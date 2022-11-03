@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -64,6 +64,7 @@
 #include "pl-supervisor.h"
 #include "pl-index.h"
 #include "pl-cont.h"
+#include "pl-coverage.h"
 #include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
@@ -79,6 +80,49 @@
 
 #define newChoice(type, fr) LDFUNC(newChoice, type, fr)
 static Choice	newChoice(DECL_LD choice_type type, LocalFrame fr);
+
+typedef foreign_t (*Func0)(void);
+typedef foreign_t (*Func1)(term_t a1);
+typedef foreign_t (*Func2)(term_t a1, term_t a2);
+typedef foreign_t (*Func3)(term_t a1, term_t a2, term_t a3);
+typedef foreign_t (*Func4)(term_t a1, term_t a2, term_t a3, term_t a4);
+typedef foreign_t (*Func5)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5);
+typedef foreign_t (*Func6)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6);
+typedef foreign_t (*Func7)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7);
+typedef foreign_t (*Func8)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7, term_t a8);
+typedef foreign_t (*Func9)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7, term_t a8,
+			   term_t a9);
+typedef foreign_t (*Func10)(term_t a1, term_t a2, term_t a3, term_t a4,
+			    term_t a5, term_t a6, term_t a7, term_t a8,
+			    term_t a9, term_t a10);
+
+typedef foreign_t (*NdetFunc0)(control_t);
+typedef foreign_t (*NdetFunc1)(term_t a1, control_t);
+typedef foreign_t (*NdetFunc2)(term_t a1, term_t a2, control_t);
+typedef foreign_t (*NdetFunc3)(term_t a1, term_t a2, term_t a3, control_t);
+typedef foreign_t (*NdetFunc4)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       control_t);
+typedef foreign_t (*NdetFunc5)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, control_t);
+typedef foreign_t (*NdetFunc6)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, control_t);
+typedef foreign_t (*NdetFunc7)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, control_t);
+typedef foreign_t (*NdetFunc8)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, term_t a8,
+			       control_t);
+typedef foreign_t (*NdetFunc9)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, term_t a8,
+			       term_t a9, control_t);
+typedef foreign_t (*NdetFunc10)(term_t a1, term_t a2, term_t a3, term_t a4,
+				term_t a5, term_t a6, term_t a7, term_t a8,
+				term_t a9, term_t a10, control_t);
+
 
 #if COUNTING
 
@@ -273,7 +317,14 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  WITH_LD(ld) if ( is_signalled() )		mask |= ALERT_SIGNAL;
+  WITH_LD(ld)
+  { if ( is_signalled() )		        mask |= ALERT_SIGNAL;
+    if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
+	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+      ld->slow_unify = TRUE;  /* see VMI B_UNIFY_VAR */
+    else
+      ld->slow_unify = FALSE;
+  }
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -298,13 +349,9 @@ updateAlerted(PL_local_data_t *ld)
 #endif
   if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
   if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
+  if ( LD->coverage.active )			mask |= ALERT_COVERAGE;
 
   ld->alerted = mask;
-
-  if ( (mask&ALERT_DEBUG) || ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
-    ld->slow_unify = TRUE;		/* see VMI B_UNIFY_VAR */
-  else
-    ld->slow_unify = FALSE;
 }
 
 
@@ -602,37 +649,37 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
 #define CALL_FCUTTED(argc, f, c) \
   { switch(argc) \
     { case 0: \
-	f(c); \
+	(*(NdetFunc0)f)(c); \
         break; \
       case 1: \
-	f(0,(c)); \
+	(*(NdetFunc1)f)(0,(c)); \
 	break; \
       case 2: \
-	f(0,0,(c)); \
+	(*(NdetFunc2)f)(0,0,(c)); \
         break; \
       case 3: \
-	f(0,0,0,(c)); \
+	(*(NdetFunc3)f)(0,0,0,(c)); \
         break; \
       case 4: \
-	f(0,0,0,0,(c)); \
+	(*(NdetFunc4)f)(0,0,0,0,(c)); \
         break; \
       case 5: \
-	f(0,0,0,0,0,(c)); \
+	(*(NdetFunc5)f)(0,0,0,0,0,(c)); \
         break; \
       case 6: \
-	f(0,0,0,0,0,0,(c)); \
+	(*(NdetFunc6)f)(0,0,0,0,0,0,(c)); \
         break; \
       case 7: \
-	f(0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc7)f)(0,0,0,0,0,0,0,(c)); \
         break; \
       case 8: \
-	f(0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc8)f)(0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 9: \
-	f(0,0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc9)f)(0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 10: \
-	f(0,0,0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc10)f)(0,0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       default: \
 	assert(0); \
@@ -651,13 +698,24 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   DEBUG(5, Sdprintf("\tCut %s, context = %p\n",
 		    predicateName(def), fr->clause));
 
-  context.context = (word)fr->clause;
+  switch((word)fr->clause & FRG_REDO_MASK)
+  { case REDO_INT:
+      context.context = (word)fr->clause >> FRG_REDO_BITS;
+      break;
+    case REDO_PTR:
+      context.context = (word)fr->clause;
+      break;
+    case YIELD_PTR:
+      context.context = (word)fr->clause & ~FRG_REDO_MASK;
+      break;
+  }
   context.control = FRG_CUTTED;
   context.engine  = LD;
 
   fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
-  { (*function)(0, argc, &context);
+  { typedef foreign_t (*FuncN)(term_t av, int argc, control_t);
+    (*(FuncN)function)(0, argc, &context);
   } else
   { CALL_FCUTTED(argc, (*function), &context);
   }
@@ -731,14 +789,13 @@ As frameFinished() is rather time critical this seems worthwhile.
 #define call1(mdef, goal) LDFUNC(call1, mdef, goal)
 static int
 call1(DECL_LD Module mdef, term_t goal)
-{ static predicate_t PRED_call1 = NULL;
+{ predicate_t pred;
   qid_t qid;
   int rc;
 
-  if ( !PRED_call1 )
-    PRED_call1 = PL_predicate("call", 1, "system");
+  pred = _PL_predicate("call", 1, "system", &GD->procedures.call1);
 
-  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
+  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, pred, goal);
   rc = PL_next_solution(qid);
   PL_cut_query(qid);
 
@@ -834,9 +891,9 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
       if ( saveWakeup(&wstate, FALSE) )
       { int rval;
 
-	startCritical;
+	startCritical();
         rval = call_term(contextModule(fr), clean);
-	if ( !endCritical )
+	if ( !endCritical() )
 	  rval = FALSE;
 	if ( !rval && exception_term )
 	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
@@ -1253,9 +1310,9 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-callBreakHook() calls prolog:break_hook/6 as
+callBreakHook() calls prolog:break_hook/7 as
 
-    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, -Action) is semidet.
+    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, +Debug, -Action) is semidet.
 
 (*) If put_vm_call() addresses  `F`  (first   var)  variables,  it  will
 initialise these to bind to the  goal.   However,  if GC comes along, it
@@ -1281,8 +1338,8 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   { LD->slow_unify = TRUE;
     goto default_action;
   }
-  proc = _PL_predicate("break_hook", 6, "prolog",
-		       &GD->procedures.prolog_break_hook6);
+  proc = _PL_predicate("break_hook", 7, "prolog",
+		       &GD->procedures.prolog_break_hook7);
   if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
@@ -1305,7 +1362,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 
   if ( saveWakeup(&wstate, FALSE) )
   { if ( (cid=PL_open_foreign_frame()) )
-    { term_t argv = PL_new_term_refs(6);
+    { term_t argv = PL_new_term_refs(7);
       Clause clause = frame->clause->value.clause;
       qid_t qid;
 
@@ -1314,6 +1371,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
+      PL_put_bool(argv+5, debugstatus.debugging);
       if ( ( op == B_UNIFY_EXIT &&
              put_call_goal(argv+4, GD->procedures.equals2) &&
              PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
@@ -1332,7 +1390,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	  { atom_t a_action;
 	    break_action action;
 
-	    if ( PL_get_atom(argv+5, &a_action) )
+	    if ( PL_get_atom(argv+6, &a_action) )
 	    { if ( a_action == ATOM_continue )
 	      { action = BRK_CONTINUE;
 	      } else if ( a_action == ATOM_trace )
@@ -1346,9 +1404,9 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	      restoreWakeup(&wstate);
 
 	      return action;
-	    } else if ( PL_is_functor(argv+5, FUNCTOR_call1) )
+	    } else if ( PL_is_functor(argv+6, FUNCTOR_call1) )
 	    { LocalFrame NFR = LD->query->next_environment;
-	      Word p = valTermRef(argv+5);
+	      Word p = valTermRef(argv+6);
 
 	      deRef(p);
 	      assert(hasFunctor(p[0], FUNCTOR_call1));
@@ -1362,7 +1420,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	      return BRK_CALL;
 	    } else
 	    { invalid_action:
-	      PL_warning("prolog:break_hook/6: invalid action");
+	      PL_warning("prolog:break_hook/7: invalid action");
 	    }
 	  }
 	}
@@ -1533,6 +1591,10 @@ destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
   LocalDefinitions v = def->impl.local.local;
   Definition local;
+
+  DEBUG(MSG_PRED_COUNT,
+	Sdprintf("Free local def[%d] for %s at %p\n",
+		 tid, predicateName(def), def));
 
   local = v->blocks[idx][tid];
   v->blocks[idx][tid] = NULL;
@@ -1815,6 +1877,11 @@ resumeAfterException(int clear, Stack outofstack)
 
   LD->exception.processing = FALSE;
   LD->outofstack = NULL;
+  clear_low_c_stack();
+
+#ifdef O_PLMT
+  updatePendingThreadSignals();
+#endif
 }
 
 
@@ -2130,11 +2197,11 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       { PL_put_frame(av+3, NULL);	/* puts 'none' */
       }
 
-      startCritical;
+      startCritical();
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
-      rc = endCritical && rc;
+      rc = endCritical() && rc;
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
       if ( rc )				/* pass user setting trace/debug */
@@ -2535,7 +2602,7 @@ one has a programPointer pointing to  I_EXITQUERY, doing the return from
 a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NDEBUG_SAVE_FLAGS prologFlagMask(PLFLAG_LASTCALL)
+#define NDEBUG_SAVE_FLAGS RUN_MODE_NORMAL
 
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
@@ -2665,7 +2732,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
     qf->flags_saved = (LD->prolog_flag.mask.flags[0] & NDEBUG_SAVE_FLAGS);
-    setPrologFlagMask(PLFLAG_LASTCALL);
+    setPrologRunMode(RUN_MODE_NORMAL);
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = LD->depth_info.limit;
     qf->saved_depth_reached = LD->depth_info.reached;
@@ -2838,6 +2905,15 @@ PL_current_query(void)
   return 0;
 }
 
+int
+PL_can_yield(void)
+{ GET_LD
+
+  return ( HAS_LD &&
+	   LD->query &&
+	   LD->query->magic == QID_MAGIC &&
+	   true(LD->query, PL_Q_ALLOW_YIELD) );
+}
 
 PL_engine_t
 PL_query_engine(qid_t qid)
@@ -3300,6 +3376,8 @@ variables used in the B_THROW instruction.
       DEBUG(CHK_SECURE, checkStacks(NULL));
       if ( exception_term )
 	THROW_EXCEPTION;
+      DEF = FR->predicate;
+      QF->yield.term = 0;
       NEXT_INSTRUCTION;
     } else
       BODY_FAILED;

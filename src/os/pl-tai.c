@@ -96,11 +96,9 @@ tz_offset() returns the offset from UTC in seconds.
 
 static void
 do_tzset(void)
-{ static int done = FALSE;
-
-  if ( !done )
+{ if ( !GD->date.tz_initialized )
   { tzset();
-    done = TRUE;
+    GD->date.tz_initialized = TRUE;
   }
 }
 

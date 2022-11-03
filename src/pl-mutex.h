@@ -160,6 +160,7 @@ typedef struct counting_mutex
 
 extern counting_mutex  *allocSimpleMutex(const char *name);
 extern void		initSimpleMutex(counting_mutex *m, const char *name);
+extern void		deleteSimpleMutex(counting_mutex *m);
 extern void		freeSimpleMutex(counting_mutex *m);
 
 #else /*O_PLMT*/

@@ -593,14 +593,16 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.id          = parent.id;
     LD->transaction.flags	= parent.flags;
   } else
-  { int tid = PL_thread_self();
+  {
 #ifdef O_PLMT
+    int tid = PL_thread_self();
     pl_mutex *mutex = NULL;
     if ( lock && !get_mutex(lock, &mutex, TRUE) )
       return FALSE;
 #define TR_LOCK() PL_mutex_lock(mutex)
 #define TR_UNLOCK() PL_mutex_unlock(mutex)
 #else
+    int tid = 1;			/* without threads we get -2 */
 #define TR_LOCK() (void)0
 #define TR_UNLOCK() (void)0
 #endif
@@ -649,7 +651,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
   return rc;
 }
 
-static const opt_spec transaction_options[] =
+static const PL_option_t transaction_options[] =
 { { ATOM_bulk,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -660,9 +662,8 @@ PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
   int flags = TR_TRANSACTION;
   int bulk = FALSE;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_transaction_option, transaction_options,
-		     &bulk) )
+  if ( !PL_scan_options(A2, 0, "transaction_option",
+			transaction_options, &bulk) )
     return FALSE;
   if ( bulk )
     flags |= TR_BULK;

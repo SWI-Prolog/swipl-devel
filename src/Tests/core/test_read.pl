@@ -36,7 +36,7 @@
 :- use_module(library(plunit)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
-:- use_module(library(lists)).
+:- use_module(library(prolog_source), [valid_term_position/2]).
 
 /** <module> Read tests
 
@@ -76,7 +76,8 @@ term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
     assertion(ground(TermPos)),
     assertion(ground(ExpectedTermPos)),
     assertion(Term =@= ExpectedTerm),
-    assertion(TermPos == ExpectedTermPos).
+    assertion(TermPos == ExpectedTermPos),
+    assertion(valid_term_position(Term, TermPos)).
 
 test(valid_position_var) :-
     term_position_check("Var", _Var, 0-3).
@@ -89,8 +90,26 @@ test(valid_position_number1) :-
 test(valid_position_number2) :-
     term_position_check(" -123.45     ", -123.45, 1-8).
 
-test(valid_position_string) :-
+test(valid_position_string_string,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, string))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
     term_position_check('"abc"', "abc", string_position(0,5)).
+test(valid_position_string_codes,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, codes))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', [97,98,99], string_position(0,5)).
+test(valid_position_string_chars,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, chars))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', [a,b,c], string_position(0,5)).
+test(valid_position_string_atom,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, atom))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', 'abc', string_position(0,5)).
 
 test(valid_position_nil) :-
     term_position_check(" [   ] ", [], 1-6).

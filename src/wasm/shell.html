@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<!--
+
+This is the test file  for  SWI-Prolog   WebAssembly  build.  It must be
+served through a web server. An example server is provided by server.pl.
+To use it, build the wasm version   in  e.g., `build.wasm` and from this
+directory, run
+
+    swipl ../src/wasm/server.pl
+
+and browse to http://localhost:8080/
+-->
+
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WebAssembly build test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.css">
+  <link rel="icon" type="image/x-icon" href="https://www.swi-prolog.org/download/logo/swipl-64x64.ico">
+</head>
+<body>
+<style>
+:root {
+    --margin: 10px;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    width: 100%; height: 100%; margin: var(--margin);
+    overflow: hidden;
+}
+
+.header {
+    padding-bottom: 5px;
+}
+
+#logo {
+    width: 5ex;
+    float: left;
+    margin-right: 2ex;
+}
+
+.content {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    width: calc(100% - 2*var(--margin));
+}
+
+#left {
+    position: relative;
+    box-sizing: border-box;
+    height: calc(100% - 2*var(--margin)); border: 1px solid black;
+}
+
+.scroll-wrapper {
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    padding: 5px;
+    overflow: auto; display: flex; flex-direction: column-reverse;
+}
+.scroll-start-at-top { flex: 1 1 0%; }
+
+.editor-container {
+    height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
+}
+
+#editor {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-wrapper {
+    border: 1px solid black;
+    padding: 1px;
+    position: relative;
+    flex-grow: 1;
+}
+
+#editor-files button, #editor-files select { height: 26px; }
+
+#editor-files select option.url { color: blue; }
+
+#file {
+    box-sizing: border-box;
+    border: 0px;
+    resize: none;
+    width: 100%; height: 100%;
+}
+
+.CodeMirror {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    font-size: 130%;
+}
+
+.editor-buttons {
+    margin-top: var(--margin);
+}
+
+#input {
+    margin-top: 5px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+
+#more { margin-left: 3ex; }
+
+#input, #more, #abort, #create-file { display: none }
+.console.prompt.goal #input { display: flex }
+.console.more        #more  { display: inline-block }
+.console.run         #abort { display: block }
+.create-file #create-file   { display: inline; }
+
+#query { flex-grow: 1; margin: 0px 10px;}
+
+.stderr { color: red; }
+.stderr, .stdout, .query {
+    white-space: pre-wrap;
+    font-family: monospace;
+    overflow-wrap: anywhere;
+}
+div.query, span.prompt { font-weight: bold; }
+.query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
+.query-answer:nth-child(even) { background-color: #eee; }
+
+.query-container, .query-answer { position: relative; }
+span.query-buttons { position: absolute; right: 5px; top: 1px; padding: 0px; margin: 0px;
+		     cursor: pointer; color: #666}
+span.query-buttons > span { margin-left: 0.5ex; border: 1px;}
+span.query-buttons > span:hover { color: black; border: 1px solid black;}
+.query-container.collapsed > .query-answers { display: none; }
+.query-container span.query-collapse:before { content: "\1401" }
+.query-container.collapsed span.query-collapse:before { content: "\1405" }
+span.query-collapse { font-size: 90%; }
+
+</style>
+
+<div class="header">
+  <img id="logo" alt="SWI-Prolog logo" src="https://www.swi-prolog.org/download/logo/swipl-128.png">
+  <div>
+    This is a basic demo of
+    a <a href="https://www.swi-prolog.org"
+    target="_blank">SWI-Prolog</a> shell based on SWI-Prolog compiled to 
+    <a href="https://webassembly.org/" target="_blank">WASM</a></div>
+  <div>Alpha version.
+  See <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm"
+  target="_blank">Wiki on Discourse</a> for status and usage</div>
+</div>
+<div class="content">
+  <div id="left">
+    <div class="scroll-wrapper">
+      <span class="scroll-start-at-top"></span>
+      <div class="console" id="console">
+	<div id="output">
+	</div>
+	<div id="more">
+	  <button id="more.next" onclick="reply_more('redo')">Next</button>
+	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
+	</div>
+	<form class="input" id="input">
+	  <span class="prompt">?- </span><input type="text" name="query"
+						id="query" autocomplete="off">
+	</form>
+	<form class="abort" id="abort">
+	  <button>Abort</button>
+	</form>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-container" id="right">
+    <form id="editor">
+      <div id="editor-files">
+      <select id="select-file">
+      </select>
+      <button id="delete-file">&#128465;</button>
+      <button id="new-file">+</button>
+      <span id="create-file">
+        <input type="text" id="file-name" placeholder="File name">
+        <button id="create-button">Create</button>
+      </span>
+      </div>
+      <div class="editor-wrapper">
+      <div id="file"></div> <!-- Filled with CodeMirror -->
+      </div>
+      <div class="editor-buttons">
+	<button>(Re)consult</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="text/prolog" id="wasm_shell.pl">
+:- module(wasm_shell, []).
+
+:- multifile prolog_edit:edit_source/1.
+
+%!  prolog_edit:edit_source(++Spec)
+%
+%   Make edit/1 work by filling the editor and trying to select the
+%   right line.
+
+prolog_edit:edit_source(Spec) :-
+    memberchk(file(File), Spec),
+    load_file(File, String),
+    _ := addFileOption(#File),
+    _ := switchToFile(#File),
+    _ := cm.setValue(String),
+    (   memberchk(line(Line), Spec)
+    ->  _ := cm.scrollIntoView(_{line:Line, ch:0}, 200)
+    ;   true
+    ).
+
+load_file(Spec, String) :-
+    uri_is_global(Spec),
+    !,
+    fetch(Spec, text, String).
+load_file(Spec, String) :-
+    setup_call_cleanup(
+        open(Spec, read, In),
+        read_string(In, _Len, String),
+        close(In)).
+
+</script>
+
+<!-- Load Prolog -->
+<script src="/wasm/swipl-web.js"></script>
+
+<!-- Splitter from https://split.js.org Requires #content to be flex.-->
+<script src="https://www.swi-prolog.org/download/web/split-1.6.5/split.min.js"></script>
+<script>
+  window.onload = () => {
+    Split(['#left', '#right'],
+	  { gutterSize: 10
+	  });
+  }
+</script>
+<style>
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+    cursor: col-resize;
+}
+.gutter:hover { background-color: #ddd; }
+</style>
+
+<!-- Get CodeMirror, our editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+<script>
+  let CodeMirror;
+  let cm;
+
+  require.config(
+    { paths:
+      { "cm/lib/codemirror": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min",
+	"cm/addon/edit/matchbrackets": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/matchbrackets.min",
+	"cm/mode/prolog": "https://www.swi-prolog.org/download/codemirror/mode/prolog"
+      }
+    });
+
+  function initCodeMirror(cont)
+  { function createCM()
+    { cm = CodeMirror(document.getElementById("file"),
+                      { lineNumbers: true,
+			matchBrackets: true,
+			mode: "prolog",
+			theme: "prolog",
+			prologKeys: true
+                      });
+    }
+
+    require(["cm/lib/codemirror",
+	     "cm/addon/edit/matchbrackets",
+	     "cm/mode/prolog/prolog",
+	     "cm/mode/prolog/prolog_keys",
+	    ], (cm) => {
+	      CodeMirror = cm;
+	      createCM();
+	      restoreFiles();
+	      addExamples().then(()=>{cont();});
+	    });
+  }
+
+  async function addExamples()
+  { const json = await fetch("examples/index.json").then((r) =>
+    { return r.json();
+    });
+
+    if ( Array.isArray(json) && json.length > 0 )
+    { const sep = document.createElement("option");
+      sep.textContent = "Demos";
+      sep.disabled = true;
+      select_file.appendChild(sep);
+
+      json.forEach((ex) =>
+	{ if ( !hasFileOption("/prolog/"+ex.name) )
+	  { const opt = document.createElement("option");
+	    opt.className = "url";
+	    opt.value = "/wasm/examples/"+ex.name;
+	    opt.textContent = (ex.comment||ex.name) + " (demo)";
+	    select_file.appendChild(opt);
+	  }
+	});
+    }
+  }
+
+  function loadCss(url)
+  { const link = document.createElement("link");
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.href = url;
+    document.getElementsByTagName("head")[0].appendChild(link);
+  }
+
+  loadCss("https://eu.swi-prolog.org/download/codemirror/theme/prolog.css");
+</script>
+
+<!-- Glue it all together -->
+<script>
+const default_file  = "/prolog/program.pl";
+
+const terminal	    = document.getElementById('console');
+const output	    = document.getElementById('output');
+let   answer;
+let   answer_ignore_nl = false;
+const input	    = document.getElementById('input');
+const more	    = document.getElementById('more');
+const editor	    = document.getElementById('editor');
+const select_file   = document.getElementById('select-file');
+const abort	    = document.getElementById('abort');
+let   yield	    = null;
+let   abort_request = false;
+let   history       = { stack: [], current: null };
+let   files	    = { current: default_file,
+			list: [default_file]
+		      };
+
+function print_output(line, cls) {
+  if ( line.trim() == "" && answer && answer_ignore_nl )
+  { answer_ignore_nl = false;
+    return;
+  }
+
+  const node = document.createElement('span');
+  node.className = cls;
+  node.textContent = line;
+  (answer||output).appendChild(node);
+};
+
+function pl(s) {
+   Prolog.call(s);
+}
+
+
+  /** @return {HTMLDivElement} in which the current query should dump
+   * its answer.
+   */
+
+  function current_answer()
+  { return answer;
+  }
+
+
+  /** Add a structur for a query.  The structure is
+   *
+   * ```
+   * <div class="query-container">
+   *   <div class="query">?- betweenl(1,3,X).</div
+   *   <div class="query-answers">
+   *     <div class="query-answer">
+   *       <span class="stdout">X = 1;</span>
+   *     </div>
+   *     <div class="query-answer">
+   *       <span class="stdout">X = 2;</span>
+   *     </div>
+   *     ...
+   *   </div>
+   * </div>
+   * ```
+   */
+
+  function add_query(query)
+  { const div1 = document.createElement("div");
+    const div2 = document.createElement("div");
+    const div3 = document.createElement("div");
+    const div4 = document.createElement("div");
+    const btns = document.createElement("span");
+    const close = document.createElement("span");
+    const icon = document.createElement("span");
+    btns.className = "query-buttons";
+    close.textContent = "\u2715";
+    icon.className = "query-collapse";
+    btns.appendChild(icon);
+    btns.appendChild(close);
+
+    const prev = last_query();
+    if ( prev )
+      query_collapsed(prev, true);
+
+    div1.className = "query-container";
+    div2.className = "query";
+    div3.className = "query-answers";
+    div4.className = "query-answer";
+    div1.appendChild(btns);
+    div1.appendChild(div2);
+    div1.appendChild(div3);
+    div3.appendChild(div4);
+    div2.textContent = `?- ${query}`;
+    answer = div4;
+    close.addEventListener("click", () => div1.remove(), false);
+    icon.addEventListener(
+      "click",
+      (e) => query_collapsed(e.target.closest("div.query-container")));
+    output.appendChild(div1);
+  }
+
+  function last_query()
+  { const q = output.lastChild;
+    if ( q.classList.contains("query-container") )
+      return q;
+    return undefined;
+  }
+
+  function query_collapsed(query, how)
+  { if ( how === true )
+      query.classList.add("collapsed");
+    else if ( how === false )
+      query.classList.remove("collapsed");
+    else
+      query.classList.toggle("collapsed");
+  }
+
+
+  /** Add a new answer `<div>` after we asked for more answers.
+   */
+  function next_answer()
+  { if ( answer )
+    { const div4 = document.createElement("div");
+      div4.className = "query-answer";
+      answer.after(div4);
+      answer = div4;
+      answer_ignore_nl = true; // suppress the first newline
+    }
+  }
+
+  /** Run a query.
+   * @param {String} query is the query to run.
+   */
+  function query(query)
+  { add_query(query);
+
+    if ( yield && yield.yield == "goal" )
+    { set_state("run");
+      next(yield.resume(query));
+    } else
+    { pl(query);
+    }
+  }
+
+// Editor and (Re)consult
+
+editor.addEventListener('submit', (e) => {
+  e.preventDefault();
+  saveFile(files.current);
+  query(`consult('${files.current}').`);
+}, false);
+
+document.getElementById('new-file').onclick = (e) => {
+  fname = document.getElementById("file-name");
+  e.preventDefault();
+  editor.className = "create-file";
+  e.target.disabled = true;
+  fname.value = "";
+  fname.focus();
+};
+
+document.getElementById('file-name').onkeydown = (e) => {
+  if ( e.key === "Enter" )
+  { e.preventDefault();
+    document.getElementById('create-button').click();
+  }
+};
+
+document.getElementById('delete-file').onclick = (e) => {
+  e.preventDefault();
+  const del = selectedFile();
+
+  if ( del != default_file )
+  { switchToFile(default_file);
+    files.list = files.list.filter((n) => (n != del));
+    localStorage.removeItem(del);
+  } else
+  { alert("Cannot delete the default file");
+  }
+};
+
+function baseName(path)
+{ return path.split("/").pop();
+}
+
+function hasFileOption(name)
+{ let found = false;
+
+  Array.from(select_file.childNodes).forEach((n) => {
+    if ( n.value == name )
+      found = true;
+  });
+
+  return found;
+}
+
+function addFileOption(name)
+{ if ( !hasFileOption(name) )
+  { const node = document.createElement('option');
+    node.textContent = baseName(name);
+    node.value = name;
+    node.selected = true;
+    select_file.appendChild(node);
+  }
+}
+
+function switchToFile(name)
+{ let options = Array.from(select_file.childNodes);
+
+  options.forEach((e) => {
+    e.selected = e.value == name;
+  });
+
+  if ( files.current != name )
+  { if ( file.current )
+      saveFile(file.current);
+    files.current = name;
+    if ( !files.list.includes(name) )
+      files.list.push(name);
+    loadFile(name);
+  }
+}
+
+document.getElementById('create-button').onclick = e => {
+  e.preventDefault();
+  let input = document.getElementById("file-name");
+  let name  = input.value.trim();
+
+  if ( /^[a-zA-Z 0-9.-_]+$/.test(name) )
+  { if ( ! /\.pl$/.test(name) )
+      name += ".pl";
+
+    name = "/prolog/"+name;
+
+    addFileOption(name);
+    switchToFile(name);
+
+    editor.className = "";
+    document.getElementById('new-file').disabled = false;
+  } else
+  { alert("No or invalid file name!");
+  }
+};
+
+function selectedFile()
+{ opt = select_file.options[select_file.selectedIndex];
+  return opt.value;
+}
+
+document.getElementById("select-file").onchange = (e) => {
+  opt = select_file.options[select_file.selectedIndex];
+
+  if ( opt.className == "url" )
+  { fetch(opt.value)
+    .then((res) => res.text())
+    .then((s) => {
+      const name = baseName(opt.value);
+      opt.className = "local";
+      opt.value = "/prolog/" + name;
+      opt.textContent = name;
+      Module.FS.writeFile(opt.value, s);
+      switchToFile(opt.value);
+    });
+  } else
+  { switchToFile(opt.value);
+  }
+}
+
+// Goal input
+
+input.addEventListener('submit', (e) =>
+{ e.preventDefault();
+
+  if ( yield && yield.yield == "goal" )
+  { let query = e.target.elements.query.value;
+    e.target.elements.query.value = '';
+
+    if ( ! /\.\s*/.test(query) )
+      query += ".";
+    history.stack.push(query);
+    history.current = null;
+    add_query(query);
+
+    set_state("run");
+    next(yield.resume(query));
+  } else
+  { alert("Not waiting for a query");
+  }
+}, false);
+
+input.addEventListener("keydown", (event) =>
+{ if ( event.defaultPrevented ) return;
+
+  switch(event.key)
+  { case "ArrowUp":
+      if ( history.current == null )
+      {	history.saved = event.target.value;
+	history.current = history.stack.length;
+      }
+      if ( --history.current >= 0 )
+      { event.target.value = history.stack[history.current];
+      }
+      break;
+    case "ArrowDown":
+      if ( history.current != null )
+      { if ( ++history.current < history.stack.length )
+	{ event.target.value = history.stack[history.current];
+	} else if ( history.current == history.stack.length )
+	{ event.target.value = history.saved;
+	}
+      }
+      break;
+    default:
+      return;
+  }
+
+  event.preventDefault();
+}, true);
+
+
+// Abort
+
+abort.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if ( yield && yield.abort )
+  { console.log("abortint", yield);
+    yield.abort();
+  } else
+  { console.log("Requesting abort");
+    abort_request = true;
+  }
+}, false);
+
+// Next/Stop
+
+function reply_more(action)
+{ if ( yield && yield.yield == "more" )
+  { switch(action)
+    { case "redo":     print_output(";", "stdout"); next_answer(); break;
+      case "continue": print_output(".", "stdout"); answer_ignore_nl = true; break;
+    }
+    next(yield.resume(action));
+  }
+}
+
+function set_state(state)
+{ terminal.className = "console " + state;
+}
+
+function next(rc)
+{ yield = null;
+
+  if ( rc.yield !== undefined )
+  { yield = rc;
+
+    Prolog.flush_output();
+
+    if ( abort_request )
+    { abort_request = false;
+      return next(yield.resume("wasm_abort"));
+    }
+
+    switch(rc.yield)
+    { case "beat":
+        return setTimeout(() => next(yield.resume("true")), 0);
+      case "goal":
+        set_state("prompt goal");
+        answer = undefined;
+        input.elements.query.focus();
+        break;
+      case "more":
+        set_state("more");
+        document.getElementById("more.next").focus();
+        break;
+      case "builtin":
+        rc.resume((rc)=>next(rc));
+        break;
+    }
+  } else if ( rc.error )
+  { console.log("Unhandled exception; restarting");
+    toplevel();
+  }
+}
+
+function toplevel()
+{ let rc = Prolog.call("wasm_query_loop",
+		       { async:true
+		       });
+
+  next(rc);
+}
+
+let Prolog;
+var Module = {
+    arguments: [],
+    locateFile: function(file) {
+	return '/wasm/' + file;
+    },
+    on_output: print_output
+};
+
+SWIPL(Module).then(async (module) =>
+    { Prolog = Module.prolog;
+      Module.FS.mkdir("/prolog");
+      pl("set_prolog_flag(tty_control, true)");
+      pl("working_directory(_, '/prolog')");
+      await Prolog.load_scripts();
+      initCodeMirror(toplevel);
+    });
+
+// Save/restore state
+
+function persistsFile(name)
+{ try
+  { let content = Module.FS.readFile(name, { encoding: 'utf8' });
+    localStorage.setItem(name, content);
+  } catch(e)
+  { localStorage.removeItem(name);
+  }
+}
+
+function restoreFile(name)
+{ let content = localStorage.getItem(name)||"";
+
+  if ( content || name == default_file )
+  { Module.FS.writeFile(name, content);
+    addFileOption(name);
+  } else
+  { files.list = files.list.filter((n) => (n != name));
+  }
+}
+
+function restoreFiles()
+{ let f = localStorage.getItem("files");
+  if ( f ) files = JSON.parse(f);
+
+  files.list.forEach((f) => restoreFile(f));
+  if ( !files.list.includes(default_file) )
+    files.list.unshift(default_file);
+
+  let current = files.current;
+  files.current = null;
+  switchToFile(current || default_file);
+}
+
+function loadFile(name)
+{ name = name || files.current;
+
+  try
+  { let content = Module.FS.readFile(name, { encoding: 'utf8' });
+    cm.setValue(content);
+  } catch(e)
+  { cm.setValue("");
+  }
+}
+
+function saveFile(name)
+{ Module.FS.writeFile(name, cm.getValue());
+}
+
+let autosave = true;
+
+window.onunload = (e) =>
+{ if ( autosave )
+  { localStorage.setItem("history", JSON.stringify(history));
+    localStorage.setItem("files",   JSON.stringify(files));
+
+    files.list.forEach((f) => persistsFile(f));
+  }
+}
+
+(function restore()
+{ let h = localStorage.getItem("history");
+
+  if ( h ) history = JSON.parse(h);
+})();
+
+</script>
+
+<!-- Demo for calls from Prolog to JavaScript -->
+<script>
+function add_one(n)
+{ return n+1;
+}
+
+function promise_any(data)
+{ console.log(data);
+
+  return new Promise(function(resolve, reject)
+  { resolve(data);
+  });
+}
+</script>
+
+</body>
+</html>

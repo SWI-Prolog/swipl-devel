@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2019, University of Amsterdam
+    Copyright (c)  2012-2022, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -100,7 +101,6 @@ void		fatalError(const char *fm, ...) NORETURN;
 bool		warning(const char *fm, ...);
 void		vfatalError(const char *fm, va_list args) NORETURN;
 bool		vwarning(const char *fm, va_list args);
-int		cleanupProlog(int status, int reclaim);
 int		run_on_halt(OnHalt *handlers, int rval);
 int		setTraditional(void);
 int		opt_append(opt_list **l, const char *s);

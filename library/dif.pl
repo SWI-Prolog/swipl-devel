@@ -123,7 +123,7 @@ subunifier([X=Y|T], OrNode) :-
 %   Extend OrNode with new elements from the   unifier.  Note that it is
 %   possible that a unification against the   same variable appears as a
 %   result of how unifiable acts on  sharing subterms. This is prevented
-%   by block_contradictions/1.
+%   by simplify_ornode/3.
 %
 %   @see test 14 in src/Tests/attvar/test_dif.pl.
 

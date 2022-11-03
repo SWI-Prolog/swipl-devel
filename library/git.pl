@@ -529,7 +529,7 @@ git_ls_remote(GitURL, Refs, Options) :-
     option(refs(LimitRefs), Options, []),
     must_be(list(atom), LimitRefs),
     append([ 'ls-remote' | RemoteOptions], [GitURL|LimitRefs], Argv),
-    git_process_output(Argv, remote_refs(Refs), []).
+    git_process_output(Argv, remote_refs(Refs), Options).
 
 ls_remote_option(Options, '--heads') :-
     option(heads(true), Options).

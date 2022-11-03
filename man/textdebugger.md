@@ -595,6 +595,45 @@ the system in debug mode. All debugging modes can be shut off at once by
 calling nodebug/0 since shutting off debug mode automatically turns off
 trace mode.
 
+In addition, SWI-Prolog supports attaching an arbitrary goal to each
+breakpoint via `set_breakpoint_condition/2`, which yields *Conditional
+Breakpoints*. A conditional breakpoint is the same as the regular
+breakpoints discussed thus far, except that whenever the breakpoint is
+triggered, the given goal is invoked and trace mode is only turned on
+in case it succeeds.
+
+To enable tracing just when ``noun/2`` is called from ``test_noun2/2``
+with ``rock2`` as the first argument, `set_breakpoint_condition/2` can
+be used like below.  Note that the condition is a Prolog string that is
+parsed to obtain the goal as well as the variable names.  The resulting
+goal is called in the module in which the clause body is executed (see
+clause_property/2, property `module`).
+
+~~~
+?- set_breakpoint('/...path.../Example.pl', 8, 24, ID).
+ID = 1.
+
+?- set_breakpoint_condition(1, "X == rock2").
+true.
+
+?- debug.
+true.
+
+[debug]  ?- test_noun2(X, rock).
+X = rock1 ;
+X = rock2.
+
+[debug]  ?- test_noun2(rock2, rock).
+   Call: (11) noun(rock2, rock) ? creep
+   Call: (12) is_a(rock2, rock) ? creep
+   Exit: (12) is_a(rock2, rock) ? creep
+   Exit: (11) noun(rock2, rock) ? creep
+   Exit: (10) test_noun2(rock2, rock) ? creep
+true.
+
+[trace]  ?-
+~~~
+
 ## Command Line Debugger Summary {#trace-summary}
 
 In summary, there are really two distinct "tracing" features: trace

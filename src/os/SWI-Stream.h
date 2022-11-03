@@ -187,10 +187,14 @@ typedef enum
   ENC_ISO_LATIN_1,			/* ISO Latin-1 (0..256) */
   ENC_ANSI,				/* default (multibyte) codepage */
   ENC_UTF8,
-  ENC_UNICODE_BE,			/* big endian unicode file */
-  ENC_UNICODE_LE,			/* little endian unicode file */
-  ENC_WCHAR				/* pl_wchar_t */
+  ENC_UTF16BE,				/* big endian UTF-16 */
+  ENC_UTF16LE,				/* little endian UTF-16 file */
+  ENC_WCHAR				/* wchar_t */
 } IOENC;
+
+#define ENC_UNICODE_BE ENC_UTF16BE
+#define ENC_UNICODE_LE ENC_UTF16LE
+
 
 #define SIO_NL_POSIX  0			/* newline as \n */
 #define SIO_NL_DOS    1			/* newline as \r\n */
@@ -311,6 +315,10 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
 #define SIO_RP_NOPOS 0x2		/* Do not update position */
 
+#define SIO_CLOSE_TRYLOCK	0x1	/* Sgcclose(): fail if we cannot lock */
+#define SIO_CLOSE_FORCE		0x2	/* Sgcclose(): force regardless of lock */
+/*#define #define SIO_CLOSE_GC	0x4        Sgcclose(): used internally */
+
 #if IOSTREAM_REPLACES_STDIO
 
 #undef FILE
@@ -408,6 +416,7 @@ PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
 PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
+PL_EXPORT(int)		Sgcclose(IOSTREAM *s, int flags);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
 PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,

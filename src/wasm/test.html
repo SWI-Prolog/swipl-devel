@@ -1,36 +1,420 @@
 <!DOCTYPE html>
-<!--
-This is the test file for SWI-Prolog WebAssembly build.
-It must be served through a web server. The web server
-must use correct MIME type for wasm files.
-Such simple-to-use web server is http-server:
-<https://www.npmjs.com/package/http-server>
-Install using npm i -g http-server
-Run http-server command in the swipl-devel
-directory and browse to <http://localhost:8080/src/wasm/test.html>
--->
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>SWI-Prolog WebAssembly build test</title>
-    </head>
-    <body>
-        <script src="/build/src/swipl-web.js"></script>
-        <script>
-            SWIPL({
-                noInitialRun: true,
-                arguments: [
-                    'swipl',
-                    '-x', 'wasm-preload/boot.prc',
-                    '--nosignals'
-                ],
-                locateFile: function(file) {
-                    return '/build/src/' + file;
-                }
-            }).then(async (module) => {
-                //module.prolog.call_string("consult('/app/app.pl').");
-                console.log('SWI-Prolog WebAssembly ready');
-            });
-        </script>
-    </body>
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WASM tests</title>
+</head>
+<body>
+<style>
+.title  { font-weight: bold; font-size: 200%; font-family: reset;
+	  margin-top: 1.5ex; margin-bottom: 1ex; display: block; }
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+#output { margin-top: 1.5ex; }
+#tests  { margin-bottom: 0.5ex; }
+</style>
+<h2>Embedded SWI-Prolog demo and tests</h2>
+<p>
+  This page loads the SWI-Prolog WASM version and interacts with the
+  Prolog system to illustrate data exchange and various calling
+  conventions.  Please examine comments in the source code for
+  further explanation.
+</p>
+<div id="controls">
+  <div id="tests"></div>
+  <button onClick="select_all(true)">Select all</button>
+  <button onClick="select_all(false)">Deselect all</button>
+  <button onClick="run_selected_tests()">Run selected tests</button>
+</div>
+<div id="output"></div>
+
+<!-- Load prolog -->
+<script src="/wasm/swipl-web.js"></script>
+
+<script>
+output   = document.getElementById('output');
+test_div = document.getElementById('tests');
+
+/*  Create Prolog.  This is still a bit ugly.  I am not sure (how) we can
+    improve on this.  `swipl-web.js` defines a single global function `SWIPL`
+    with represents the Emscripten generated module.  The object passed to
+    this is populated with all WASM stuff.  We may define some initial
+    properties to change the default behavior.  Notably:
+
+     - `arguments` provide the Prolog command line arguments.  Notably
+       `-q` may come handy to suppress the header.  Most other command
+       line arguments have little meaning in the context of the browser
+       version.  Do __not__ pass goals as we need to do some post
+       initialization steps before returning.
+     - `locateFile` is a function to find the other components
+       (`swipl-web.wasm` and `swipl-web.data`) from the plain file.
+     - `on_output` takes a function to handle output to `user_output`
+       and `user_error`.  It received a line of input (a String) and
+       either `"stderr"` or `"stdout"`.   When omitted, the output
+       is sent to the browser console.
+
+   The skeleton below is best I could find.  After creating the Module,
+   it calls SWIP(Module), which returns a Promise that is executed after
+   the other data files are loaded, Emscripten and Prolog are initialized.
+   `Module.prolog` is a class that provides the high level interaction
+   with Prolog.  In this example we load a file `test.pl` from the server
+   (relatvie to this file) and, when ready, call `run()`.
+*/
+
+let Prolog;
+var Module = {
+//  arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
+};
+
+SWIPL(Module).then((module) =>
+{ Prolog = Module.prolog;
+
+  Prolog.consult("test.pl")
+        .then(() => run());
+});
+
+
+  var tests =
+      [ { name: "p(X) with loop",
+	  call: run_p
+	},
+	{ name: "p(X) with iterator",
+	  call: run_p_with_iterator
+	},
+	{ name: "p(X) from string with iterator",
+	  call: run_p_from_string_with_iterator
+	},
+	{ name: "ground goal with iterator",
+	  call: run_ground_with_iterator
+	},
+	{ name: "Round trip data",
+	  call: test_data_round_trip
+	},
+	{ name: "Sum array of integers in Prolog",
+	  call: test_sum_list
+	},
+	{ name: "Test big integer exchange",
+	  call: test_bigint
+	},
+	{ name: "Test simple error handling",
+	  call: test_error
+	},
+	{ name: "Test long running queries with sleep",
+	  call: test_foreach_1
+	},
+	{ name: "Test long running queries with sleep and error",
+	  call: test_foreach_2
+	},
+	{ name: "Test long running computation",
+	  call: () => test_fib(35)
+	},
+	{ name: "Test long running computation (configurable)",
+	  call: test_fib,
+	  checked: false
+	}
+      ];
+
+  for(let i=0; i<tests.length; i++) {
+    const t = tests[i];
+    const c = t.checked === false ? "" : "checked";
+    test_div.innerHTML += `<div><input type="checkbox" value="${i}" name="test" ${c}><label>${t.name}</label></div>`;
+  }
+
+  function select_all(val) {
+    const s = document.querySelectorAll("input[type=checkbox][name=test]");
+    s.forEach(e => e.checked = val);
+  }
+
+  async function run_selected_tests() {
+    output.innerHTML = "";
+    const s = Array.from(document.querySelectorAll("input[type=checkbox][name=test]:checked"),
+			 e => parseInt(e.value));
+    for(let i=0; i<s.length; i++) {
+      const test = tests[s[i]];
+      const rc = test.call();
+      if ( rc instanceof Promise ) {
+	await rc;
+      }
+    }
+  }
+
+
+/* Run test test cases.
+*/
+
+function run()
+{ Prolog.set_arg_names("point", ["x", "y"]);
+
+}
+
+/* Get all results from p/1, showing iteration over Prolog answers
+   and the format of the various result values.   Note that the
+   `Prolog.with_frame(func)` makes sure Prolog term references
+   are properly reclaimed.  This is needed to ensure `av` is
+   reclaimed.
+*/
+
+function run_p()
+{ println("title", "Printing results from p/1 as objects using a loop");
+
+  Prolog.with_frame(() =>
+      { let av = Prolog.new_term_ref(1);
+	let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av);
+	let n = 0;
+
+	while(q.next().value)
+	{ println("stdout",
+		  `${++n} `,
+		  Prolog.get_chars(av, Prolog.CVT_WRITEQ), " -> ",
+		  Prolog.toJSON(av));
+	}
+
+	q.close();
+      });
+}
+
+/* Same as above, but using the JavaScript iterator (for..of) to enumerate
+   the results.  We still need the frame to get rid of `av`.
+*/
+
+function run_p_with_iterator()
+{ println("title", "Using an iterator for p/1");
+
+  Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(1);
+    let n = 0;
+
+    for(const r of Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av,
+				(v) => Prolog.toJSON(v)))
+    { println("stdout", r);
+    }
+  });
+}
+
+/* Pass a query from a string.  As the allocation of term references now happens
+   completely in the `Prolog.query()` call, the `with_frame()` happens inside the
+   interface and we no longer have to worry about leaks.
+*/
+
+function run_p_from_string_with_iterator()
+{ println("title", "Using an iterator for p/1 and call string");
+
+  let n = 0;
+
+  for(const r of Prolog.query("p(X)"))
+  { println("stdout", r.X);
+  }
+}
+
+
+function run_ground_with_iterator()
+{ println("title", "Running ground query");
+
+  println("stdout", Prolog.query("true").once());
+  println("stdout", Prolog.query("false").once());
+  println("stdout", Prolog.query("functor(_,_,_)").once());
+}
+
+
+/* This test tests round trip of data.   We start with a JavaScript object, pass it
+   to Prolog with returns it using u/3 defined as u(X,X,S), where S returns
+   the Prolog string representation for X.
+*/
+
+class Point {
+  constructor(x,y)
+  { this.x = y;
+    this.y = y;
+  }
+}
+
+function test_data_round_trip()
+{ trip(42,
+       2n**200n,
+       3.14,
+       new Prolog.Rational(1,3),
+       "Hello world!",
+       new Prolog.String("A string"),
+       [ "aap", "noot", "mies" ],
+       new Prolog.List(["a1"], new Prolog.Var()),
+       new Prolog.Compound("t", [1,2,"aap"]),
+       { name: "Jan", location: "Amsterdam" },
+       {},
+       new Point(9,9),
+       [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
+      );
+}
+
+function trip(...args)
+{ println("title", "Demonstrating round trip object -> Prolog -> object");
+
+  args.forEach((obj) =>
+  { const rc = Prolog.query("u(In,Out,S)", {In:obj}).once();
+
+    println("stdout", obj, " -> ", rc.S, " -> ", rc.Out);
+  });
+}
+
+
+/* Test calling a simple deterministic predicate.  Evaluates the performance
+   for exchanging data.  test_error() tests what happens when the predicate
+   raises an exception.  In that case the object returned by once() represents
+   the error and (thus) the target Prolog variables returned as `undefined`.
+*/
+
+function sum_list(list)
+{ return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
+}
+
+function test_sum_list()
+{ println("title", "Sum JavaScript list in Prolog");
+
+  sum_list([]);		// do the required autoloading
+  [ 1,
+    10,
+    100,
+    1000,
+    10000,
+    100000,
+//  1000000
+  ].forEach((len) =>
+  { const list = [];
+    for(var i=1; i<=len; i++)
+      list.push(i);
+
+    const sum = time("sum_list()", () => sum_list(list));
+    println("stdout", `Sum of 1..${len} is ${sum}`);
+  });
+}
+
+/* Test data round trip for really big integers and some critial values.
+*/
+
+function test_bigint()
+{ println("title", "Big integer handling");
+
+  [0,31,32,62,63,64,200].forEach((i) =>
+  { const rc = Prolog.query("bigint(I, Pos, Neg)", {I:i}).once();
+    const pos = rc.Pos;
+    const neg = rc.Neg;
+
+    println("stdout", `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
+
+    const vin = BigInt(2)**BigInt(i);
+    const out = Prolog.query("In = Out", {In:vin}).once().Out;
+
+    if ( vin === BigInt(out) )
+      println("stdout", `Round trip passed`);
+    else
+      println("stderr", `Round trip: ${vin} -> ${out}`);
+  });
+}
+
+function test_error()
+{ println("title", "Test error handling");
+
+  const sum = sum_list(["aap", "noot", "mies"]);
+  println("stdout", `Sum is ${sum}`);
+}
+
+function test_foreach_1()
+{ println("title", "Run long running goal");
+  return Prolog.forEach("between(1,3,X),sleep(0.5)",
+			(r) => println("stdout", r.X))
+           .then((n) => println("stdout", `Got ${n} answers`))
+           .catch((e) => println("stderr", `Got error ${e}`));
+}
+
+function test_foreach_2(mx)
+{ mx = mx||5;
+
+  println("title", "Run long running goal; show exception");
+  return Prolog.forEach("between(1,MAX,X),sleep(0.5),Y is 1/(3-X)",
+			{MAX:mx},
+			(r) => println("stdout", r.X))
+           .then((n) => println("stdout", `Got ${n} answers`))
+           .catch((e) => println("stderr", `Got error ${e}`));
+}
+
+  function test_fib(n) {
+    if ( n === undefined ) {
+      output.innerHTML += `<form onsubmit="return fib_n(this)">
+                             <input name="n" type="number" min="1" max="40" value="22">
+			     <button type="submit">Run</button>
+                           </form>`;
+    } else {
+      println("title", `Testing async fib(${n})`);
+      println("stdout", `While computing the <textarea> must be responsive
+and it is possible to abort the computation`);
+
+      output.innerHTML += `
+<div>
+<textarea cols="50" placeholder="Type here to see interaction"></textarea>
+</div>
+<div>
+<button id="abort" onclick="Prolog.abort()">Abort</button>
+</div>`;
+
+      return Prolog.forEach("time(fib(X,Y))", {X:n})
+	.then((a) => println("stdout", `fib(${n}) => ${a[0].Y}`))
+	.catch((e) => println("stderr", `Got error ${e}`))
+	.finally(() => document.getElementById("abort").disabled = true);
+    }
+  }
+
+  function fib_n(e) {
+    const n = e.elements.n.value;
+    test_fib(parseInt(n));
+    return false;
+  }
+
+  /* Callback test */
+
+  function add_one(i)
+  { return i+1;
+  }
+
+
+		 /*******************************
+		 *	   SIMPLE PRINT		*
+		 *******************************/
+
+function print(line, cls, nl)
+{ const node = document.createElement('span');
+
+  cls = cls||"stdout";
+  if ( typeof(line) === "object" )
+    line = JSON.stringify(line);
+  if ( nl )
+    line += '\n';
+
+  node.className = cls;
+  node.textContent = line;
+  output.appendChild(node);
+};
+
+function println(cls, ...line)
+{ line.forEach((e) => print(e, cls));
+  output.appendChild(document.createElement('br'));
+}
+
+
+function time(msg, func)
+{ const t0 = Date.now();
+  const rc = func.call(window);
+  const t1 = Date.now();
+
+  println("stdout", `${msg} took ${(t1-t0)}ms`);
+
+  return rc;
+}
+
+</script>
+</body>
 </html>

@@ -130,7 +130,8 @@ be kept consistent.
 #define TAG_VAR		0x00000000L	/* tag for variable (= 0L) */
 #define TAG_ATTVAR	0x00000001L	/* tag for attributed variable */
 #define TAG_FLOAT	0x00000002L	/* Floating point number */
-#define TAG_INTEGER	0x00000003L	/* Tagged or indirect integer */
+#define TAG_INTEGER	0x00000003L	/* Tagged small int, 64-bit indirect, */
+					/* GMP mpz or mpq (rational) */
 #define TAG_STRING	0x00000004L	/* String */
 #define TAG_ATOM	0x00000005L	/* an atom */
 #define TAG_COMPOUND	0x00000006L	/* Compound term */

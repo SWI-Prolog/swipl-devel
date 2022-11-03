@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -36,6 +36,8 @@
 
 #ifndef UTF8_H_INCLUDED
 #define UTF8_H_INCLUDED
+
+#define UNICODE_MAX (0x10FFFF)
 
 #define PL_MB_LEN_MAX 16
 
@@ -140,6 +142,79 @@ utf8_code_bytes(int chr)
   if ( chr < 0x4000000 ) return 5;
   if ( chr < 0x80000000 ) return 6;
   return -1;
+}
+
+
+		 /*******************************
+		 *	      UTF-16		*
+		 *******************************/
+
+#include <stddef.h>			/* get wchar_t */
+
+/* See https://en.wikipedia.org/wiki/UTF-16#Examples */
+
+#define IS_UTF16_LEAD(c)      ((c) >= 0xD800 && (c) <= 0xDBFF)
+#define IS_UTF16_TRAIL(c)     ((c) >= 0xDC00 && (c) <= 0xDFFF)
+#define IS_UTF16_SURROGATE(c) ((c) >= 0xD800 && (c) <= 0xDFFF)
+#define VALID_CODE_POINT(c)   ((c) >= 0 && (c) <= UNICODE_MAX && !IS_UTF16_SURROGATE(c))
+
+static inline int
+utf16_decode(int lead, int trail)
+{ int l = (lead-0xD800) << 10;
+  int t = (trail-0xDC00);
+
+  return l+t+0x10000;
+}
+
+static inline void
+utf16_encode(int c, int *lp, int *tp)
+{ c -= 0x10000;
+  *lp = (c>>10)+0xD800;
+  *tp = (c&0X3FF)+0xDC00;
+}
+
+static inline wchar_t*
+utf16_put_char(wchar_t *out, int chr)
+{ if ( chr <= 0xffff )
+  { *out++ = chr;
+  } else
+  { int l, t;
+
+    utf16_encode(chr, &l, &t);
+    *out++ = l;
+    *out++ = t;
+  }
+
+  return out;
+}
+
+static inline wchar_t*
+put_wchar(wchar_t *out, int chr)
+{
+#if SIZEOF_WCHAR_T == 2
+  return utf16_put_char(out, chr);
+#else
+  *out++ = chr;
+  return out;
+#endif
+}
+
+static inline const wchar_t*
+get_wchar(const wchar_t *in, int *chr)
+{
+#if SIZEOF_WCHAR_T == 2
+  int c = *in++;
+  if ( IS_UTF16_LEAD(c) && IS_UTF16_TRAIL(in[0]) )
+  { *chr = utf16_decode(c, in[0]);
+    in++;
+  } else
+  { *chr = c;
+  }
+  return in;
+#else
+  *chr = *in++;
+  return in;
+#endif
 }
 
 

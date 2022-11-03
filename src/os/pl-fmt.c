@@ -51,6 +51,8 @@ source should also use format() to produce error messages, etc.
 #include <ctype.h>
 #include <stdio.h>
 
+typedef foreign_t (*Func1)(term_t a1);
+
 static char *	formatInteger(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
 static char *	formatFloat(PL_locale *locale, int how, int arg,
@@ -196,7 +198,10 @@ outtext(format_state *state, PL_chars_t *txt)
       const pl_wchar_t *e = &s[txt->length];
 
       while(s<e)
-      { if ( !outchr(state, *s++) )
+      { int c;
+
+	s = get_wchar(s, &c);
+	if ( !outchr(state, c) )
 	  return FALSE;
       }
 
@@ -302,7 +307,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   int rval;
   PL_chars_t fmt;
 
-  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_STACK) )
+  if ( !PL_get_text(format, &fmt, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_STACK) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
   if ( (argc = (int)lengthList(args, FALSE)) >= 0 )
@@ -707,7 +712,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  here++;
 		  break;
 		}
-		{ Func f;
+		{ Func1 f;
 		  sub_state sstate;
 
 	      case 'k':			/* write_canonical */
@@ -760,6 +765,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case '@':
 	        { term_t ex = 0;
 		  sub_state sstate;
+		  fid_t fid;
 
 		  if ( argc < 1 )
 		  { FMT_ERROR("not enough arguments");
@@ -767,7 +773,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		  if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
 		    goto out;
-		  rc = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
+
+		  rc = ( (fid=PL_open_foreign_frame()) &&
+			 callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex) );
+		  if ( rc )
+		    PL_rewind_foreign_frame(fid);
 		  rc = end_sub_format(&sstate, rc);
 
 		  if ( !rc )

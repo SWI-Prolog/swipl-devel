@@ -43,7 +43,10 @@ test_shared_units :-
     run_tests([ shared_reeval
               ]).
 
-:- begin_tests(shared_reeval, [sto(rational_trees)]).
+:- begin_tests(shared_reeval,
+               [ sto(rational_trees),
+                 condition(current_prolog_flag(threads, true))
+               ]).
 
 :- table (p/1, q/1) as (incremental,shared).
 :- dynamic d/1 as incremental.

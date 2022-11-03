@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.1.3/sketchy/bootstrap.min.css"/>
+
+    <title>CBG Chords</title>
+    <!--
+    BSD 2-Clause License
+
+    Copyright (c) 2022, Paul Brown
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    -->
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1>CBG Chords</h1>
+      <p class="lead">
+        When it comes to Cigar Box Guitars, there are no rules. So you can tune
+        them however you like. But, no-one wants to mess about working out all
+        the chords for some new tuning you're considering. That's where this tool
+        comes in. Just set your tuning and check out all the different chord inversions
+        we can generate for it.
+      </p>
+
+      <h3>About</h3>
+      <p>
+	This is a port of an web app initially written for Tau-Prolog to <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/">SWI-Prolog for WASM</a>.
+      </p>
+
+      <div>
+        <hr/>
+        <h2 class="text-center">Tuning</h2>
+        <form>
+          <div class="form-row">
+            <div class="col form-group">
+              <label for="top_string">Top String</label>
+              <select class="form-control" id="top_string">
+                <option>A♭</option> <option>A</option> <option>A♯</option> <option>B♭</option> <option>B</option> <option>C</option> <option>C♯</option> <option>D♭</option>
+                <option>D</option> <option>D♯</option> <option>E♭</option> <option>E</option> <option>F</option> <option>F♯</option> <option>G♭</option> <option selected>G</option> <option>G♯</option>
+              </select>
+            </div>
+            <div class="col form-group">
+              <label for="middle_string">Middle String</label>
+              <select class="form-control" id="middle_string">
+                <option>A♭</option> <option>A</option> <option>A♯</option> <option>B♭</option> <option>B</option> <option>C</option> <option>C♯</option> <option>D♭</option>
+                <option selected>D</option> <option>D♯</option> <option>E♭</option> <option>E</option> <option>F</option> <option>F♯</option> <option>G♭</option> <option>G</option> <option>G♯</option>
+              </select>
+            </div>
+            <div class="col form-group">
+              <label for="bottom_string">Bottom String</label>
+              <select class="form-control" id="bottom_string">
+                <option>A♭</option> <option>A</option> <option>A♯</option> <option>B♭</option> <option>B</option> <option>C</option> <option>C♯</option> <option>D♭</option>
+                <option>D</option> <option>D♯</option> <option>E♭</option> <option>E</option> <option>F</option> <option>F♯</option> <option>G♭</option> <option selected>G</option> <option>G♯</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" id="tuning" class="btn btn-primary">Set Tuning</button>
+        </form>
+      </div>
+      <div class="mb-3">
+        <hr/>
+        <h2 class="text-center">Chords</h2>
+        <form>
+          <div class="form-row">
+            <div class="col form-group">
+              <label for="chord_note">Root</label>
+              <select class="form-control" id="chord_note">
+                <option>A♭</option> <option>A</option> <option>A♯</option> <option>B♭</option> <option>B</option> <option selected>C</option> <option>C♯</option> <option>D♭</option>
+                <option>D</option> <option>D♯</option> <option>E♭</option> <option>E</option> <option>F</option> <option>F♯</option> <option>G♭</option> <option>G</option> <option>G♯</option>
+              </select>
+            </div>
+            <div class="col form-group">
+              <label for="chord_type">Chord</label>
+              <select class="form-control" id="chord_type">
+                <option selected>major</option>
+                <option>minor</option>
+                <option>power</option>
+                <option value="7">dominant seventh</option>
+                <option value="m7">minor seventh</option>
+                <option value="dim">diminished</option>
+                <option value="sus4">sus 4</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" id="add_chord" class="btn btn-primary">Add Chord</button>
+          <button type="button" id="clear_chords" class="btn btn-outline-primary">Clear Chords</button>
+        </form>
+        <div id="chords">
+        </div>
+      </div>
+      <hr/>
+
+      <footer class="footer mt-5 bt">
+	<span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/InteractiveResource" property="dct:title" rel="dct:type">CBG Chords</span> by <span xmlns:cc="http://creativecommons.org/ns#" property="cc:attributionName">Paul Brown</span> is licensed under a BSD 2-Clause license, (full text in source).<br />
+  Based on a work at: <a xmlns:dct="http://purl.org/dc/terms/" href="https://pbrown.me/cbg.html" rel="dct:source"> https://pbrown.me/cbg.html </a>.  See also: <a href="https://pbrown.me/blog/tau_prolog_chords/">blog post</a> with initial announcement and details.
+      </footer>
+    </div>
+
+    <script type="text/prolog" id="code.pl">
+:- use_module(library(dom)).
+:- use_module(library(lists)).
+
+% Notes
+note(a, flat, 'A♭').
+note(a, natural, 'A').
+note(a, sharp, 'A♯').
+
+note(b, flat, 'B♭').
+note(b, natural, 'B').
+
+note(c, natural, 'C').
+note(c, sharp, 'C♯').
+
+note(d, flat, 'D♭').
+note(d, natural, 'D').
+note(d, sharp, 'D♯').
+
+note(e, flat, 'E♭').
+note(e, natural, 'E').
+
+note(f, natural, 'F').
+note(f, sharp, 'F♯').
+
+note(g, flat, 'G♭').
+note(g, natural, 'G').
+note(g, sharp, 'G♯').
+
+note(N, T) :-
+    note(N, T, _).
+
+equivalent(note(a, sharp), note(b, flat)).
+equivalent(note(c, sharp), note(d, flat)).
+equivalent(note(d, sharp), note(e, flat)).
+equivalent(note(f, sharp), note(g, flat)).
+equivalent(note(g, sharp), note(a, flat)).
+equivalents(N, E) :-
+    equivalent(N, E) ; equivalent(E, N).
+
+note_or_equivalent(Note, Note) :- call(Note).
+note_or_equivalent(Note, Equiv) :-
+    equivalent(Note, Equiv).
+
+% Note incrementing
+note_succ(a, b).
+note_succ(b, c).
+note_succ(c, d).
+note_succ(d, e).
+note_succ(e, f).
+note_succ(f, g).
+note_succ(g, a).
+
+chromatic_succ(note(N, flat), note(N, natural)) :-
+    note(N, flat).
+chromatic_succ(note(N, natural), note(N, sharp)) :-
+    note(N, sharp).
+chromatic_succ(note(N, natural), note(O, natural)) :-
+    note_succ(N, O),
+    \+ note(N, sharp).
+chromatic_succ(note(N, sharp), note(O, natural)) :-
+    note_succ(N, O),
+    note(N, sharp).
+
+% Guitar
+string(note(N, T), String) :-
+    String = [note(N, T)|Tail],
+    length(String, 12),
+    string_(note(N, T), Tail).
+
+string_(Note, [Last|[]]) :-
+    chromatic_succ(Note, Last).
+string_(Note, [Next|Tail]) :-
+    chromatic_succ(Note, Next),
+    string_(Next, Tail).
+
+tuning([], []).
+tuning([N|NT], [S|ST]) :-
+    N = note(_, _),
+    call(N),
+    string(N, S),
+    tuning(NT, ST).
+
+% Chords
+chord_steps(major, [0, 4, 7]).
+chord_steps(minor, [0, 3, 7]).
+chord_steps(power, [0, 7, N]) :- member(N, [0, 7, 'X']).
+chord_steps('7', [0, N, 10]) :- member(N, [4, 7]). % dominant seventh
+chord_steps(m7, [0, 3, 10]). % minor seventh (skipping the fifth for 3 string minor)
+chord_steps(dim, [0, 3, 6]).
+chord_steps(sus4, [0, 5, 7]).
+
+chord_inversion(Chord, Inversion) :-
+    length(Chord, L),
+    length(Inversion, L),
+    setof(Inv, chord_inversion_(Chord, Inv), Inversions),
+    member(Inversion, Inversions).
+
+chord_inversion_([], []).
+chord_inversion_(Chord, [H|InversionTail]) :-
+    select(H, Chord, ChordTail),
+    chord_inversion_(ChordTail, InversionTail).
+
+note_step('X', _, 'X').
+note_step(0, Note, Note).
+note_step(N, Note, Step) :-
+    N \== 'X',
+    N > 0,
+    succ(M, N),
+    chromatic_succ(Note, Next),
+    note_step(M, Next, Step).
+
+notes_steps(_, [], []).
+notes_steps(N, [S|ST], [CN|CT]) :-
+    note_step(S, N, CN),
+    notes_steps(N, ST, CT).
+
+% chord(type, root, notes)
+chord(Type, Note, Notes) :-
+    chord_steps(Type, Steps),
+    chord_inversion(Steps, Inversion),
+    \+ annoying_missing(Inversion),
+    notes_steps(Note, Inversion, Notes).
+
+annoying_missing([_, 'X', _]).
+
+string_index(_, 'X', 'X').
+string_index(String, Note, N) :-
+    string_index(0, String, Note, N).
+string_index(N, [Note|_], Note, N).
+string_index(N, [Equiv|_], Note, N) :-
+    equivalents(Note, Equiv).
+string_index(I, [Not|Tail], Note, N) :-
+    succ(I, J),
+    Not \== Note, \+ equivalents(Note, Not),
+    string_index(J, Tail, Note, N).
+
+string_indexes([], [], []).
+string_indexes([S|ST], [N|NT], [I|IT]) :-
+    string_index(S, N, I),
+    string_indexes(ST, NT, IT).
+
+tab(Tuning, chord(Note, Name), Tab) :-
+    tab(Tuning, chord(Note, Name), Tab, _).
+tab(Tuning, chord(Note, Name), Tab, Notes) :-
+    tuning(Tuning, Strings),
+    chord(Name, Note, Notes),
+    string_indexes(Strings, Notes, Tab),
+    reasonable_range(Tab).
+
+reasonable_range(Tab) :-
+   remove_open_strings(Tab, Fretted),
+   max_fret(Fretted, Max),
+   min_fret(Fretted, Min),
+   Diff is Max - Min,
+   Diff =< 4.
+
+remove_open_strings([], []).
+remove_open_strings([N|T0], T1) :-
+    (N == 0 ; N == 'X'),
+    remove_open_strings(T0, T1).
+remove_open_strings([N|T0], [N|T1]) :-
+    \+ (N == 0 ; N == 'X'),
+    remove_open_strings(T0, T1).
+
+
+max_fret([], 0).
+max_fret([H|T], Max) :-
+    max_fret(T, H, Max).
+max_fret([], Max, Max).
+max_fret([H|T], Max0, Max) :-
+    Max1 is max(H, Max0),
+    max_fret(T, Max1, Max).
+
+min_fret([], 0).
+min_fret([H|T], Min) :-
+     min_fret(T, H, Min).
+min_fret([], Min, Min).
+min_fret([H|T], Min0, Min) :-
+    Min1 is min(H, Min0),
+    min_fret(T, Min1, Min).
+
+% display
+dnotes([]) --> [].
+dnotes([N|T]) --> dnote(N), dnotes(T).
+dnote(note(N, S)) --> { note(N, S, D) }, [D].
+dnote('X') --> ['X'].
+
+% forwards and backwards: can convert list of notes to internal representation
+notes_display(Notes, Display) :-
+    dnotes(Notes, Display, []).
+
+init :-
+    get_by_id(tuning, TuningBtn),
+    bind(TuningBtn, click, _, update_tuning),
+    get_by_id(add_chord, AddChordBtn),
+    bind(AddChordBtn, click, _, add_chord),
+    get_by_id(clear_chords, CChordBtn),
+    bind(CChordBtn, click, _, clear_chords).
+
+:- dynamic(tuning/1).
+tuning([note(g, natural), note(d, natural), note(g, natural)]).
+
+selected_string(ID, note(N, T)) :-
+    get_by_id(ID, Select),
+    get_attr(Select, value, Value),
+    note(N, T, Value).                % PL
+
+update_tuning :-
+    selected_string(top_string, Top),
+    selected_string(middle_string, Mid),
+    selected_string(bottom_string, Bot),
+    Tuning = [Top, Mid, Bot],
+    retractall(tuning(_)),
+    assertz(tuning(Tuning)),
+    update_displayed_chords.
+
+:- dynamic(displayed_chord/1).
+
+add_chord :-
+    get_by_id(chord_note, CNS),
+    get_by_id(chord_type, CTS),
+    get_attr(CNS, value, CNV),
+    get_attr(CTS, value, ChordType),
+    note(Note, NoteType, CNV),       % PL
+    Chord = chord(note(Note, NoteType), ChordType),
+    assertz(displayed_chord(Chord)),
+    add_chord_div(Chord).
+
+clear_chords :-
+    retractall(displayed_chord(_)),
+    update_displayed_chords.
+
+update_displayed_chords :-
+    get_by_id(chords, ChordsDiv),
+    forall(parent_of(Child, ChordsDiv), remove(Child)),
+    forall(displayed_chord(Chord), add_chord_div(Chord)).
+
+add_chord_div(Chord) :-
+    % header
+    Chord = chord(note(Note, NoteType), ChordType),
+    note(Note, NoteType, NoteDisp),           % PL
+    atomic_list_concat([NoteDisp, ' ', ChordType], HeaderHTML),
+    create(h3, H3),
+    set_html(H3, HeaderHTML),
+    % tab list
+    create(ul, UL),
+    add_class(UL, 'list-group'),
+    add_tabs(Chord, UL),
+    % html
+    create(div, ChordDiv),
+    append_child(ChordDiv, H3),
+    append_child(ChordDiv, UL),
+    get_by_id(chords, ChordsDiv),
+    append_child(ChordsDiv, ChordDiv).
+
+add_tabs(Chord, UL) :-
+    tuning(Tuning),
+    setof(Tab-Notes, tab(Tuning, Chord, Tab, Notes), Tabs),  % PL
+    maplist(add_tab_pairs(UL), Tabs).
+
+add_tab_pairs(UL, Tab-Notes) :-
+    display_tab_format(Tab, DispTab),
+    display_notes_format(Notes, DispNotes),
+    create(li, LI),
+    add_class(LI, 'list-group-item d-flex justify-content-between align-items-center'),
+    set_html(LI, DispTab),
+    create(small, Small),
+    set_html(Small, DispNotes),
+    append_child(LI, Small),
+    append_child(UL, LI).
+
+  display_tab_format([T, M, B], Disp) :-
+      atomic_list_concat([T, ' - ', M, ' - ', B], Disp).
+  display_notes_format(Notes, Disp) :-
+      notes_display(Notes, [T, M, B]),
+      atomic_list_concat([T, ' - ', M, ' - ', B], Disp).
+
+    </script>
+
+<!-- Get SWI-Prolog going.  First we create a node for output from
+Prolog.  This is not needed as the output is otherwise sent to
+the browser console.  This makes debugging a little more pleasant.
+-->
+
+<!-- Temp Prolog output for debugging -->
+<div id="output"></div>
+<style>
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+#output { margin-top: 1.5ex; }
+</style>
+
+    <script src="/wasm/swipl-web.js"></script>
+
+    <script>
+
+let Prolog;
+var Module = {
+    arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
+};
+
+SWIPL(Module).then((module) =>
+{ Prolog = Module.prolog;
+
+  Prolog.load_scripts().then(() =>
+    Prolog.call("init"));
+});
+
+function print(line, cls)
+{ const node = document.createElement('span');
+
+  node.className = cls;
+  node.textContent = line;
+  output.appendChild(node);
+};
+
+</script>
+
+</html>

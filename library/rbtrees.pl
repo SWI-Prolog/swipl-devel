@@ -3,7 +3,7 @@
     Author:        Vitor Santos Costa
     E-mail:        vscosta@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2017, Vitor Santos Costa
+    Copyright (c)  2007-2021, Vitor Santos Costa
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,13 @@
 :- module(rbtrees,
           [ rb_new/1,                   % -Tree
             rb_empty/1,                 % ?Tree
-            rb_lookup/3,                % +Key, -Value, +T
-            rb_update/4,                % +Tree, +Key, +NewVal, -NewTree
-            rb_update/5,                % +Tree, +Key, ?OldVal, +NewVal, -NewTree
+            rb_lookup/3,                % +Key, -Value, +Tree
+            rb_update/4,                % +Tree, +Key,          ?NewVal, -NewTree
+            rb_update/5,                % +Tree, +Key, -OldVal, ?NewVal, -NewTree
             rb_apply/4,                 % +Tree, +Key, :G, -NewTree
-            rb_insert/4,                % +T0, +Key, ?Value, -NewTree
-            rb_insert_new/4,            % +T0, +Key, ?Value, -NewTree
-            rb_delete/3,                % +Tree, +Key, -NewTree
+            rb_insert/4,                % +Tree, +Key, ?Value, -NewTree
+            rb_insert_new/4,            % +Tree, +Key, ?Value, -NewTree
+            rb_delete/3,                % +Tree, +Key,       -NewTree
             rb_delete/4,                % +Tree, +Key, -Val, -NewTree
             rb_visit/2,                 % +Tree, -Pairs
             rb_keys/2,                  % +Tree, +Keys
@@ -62,6 +62,7 @@
             rb_size/2,                  % +Tree, -Size
             rb_in/3                     % ?Key, ?Value, +Tree
           ]).
+:- autoload(library(error), [domain_error/2]).
 
 /** <module> Red black trees
 
@@ -73,13 +74,41 @@ lookup and delete elements in the tree.
 
 A Red black tree is represented as a term t(Nil, Tree), where Nil is the
 Nil-node, a node shared for each nil-node in  the tree. Any node has the
-form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
-=black=.
+form colour(Left, Key, Value, Right), where _colour_  is one of `red` or
+`black`.
 
-@author Vitor Santos Costa, Jan Wielemaker, Samer Abdallah
+__Warning: instantiation of keys__
+
+Red-Black trees depend on  the  Prolog   _standard  order  of  terms_ to
+organize the keys as a (balanced)  binary   tree.  This implies that any
+term may be used as a key. The   tree may produce wrong results, such as
+not being able to find a key, if  the ordering of keys changes after the
+key has been inserted into the tree.   The user is responsible to ensure
+that variables used as keys or appearing in  a term used as key that may
+affect ordering are not  unified,  with   the  exception  of unification
+against new fresh variables. For this   reason,  _ground_ terms are safe
+keys. When using non-ground terms, either make sure the variables appear
+in places that do not affect the   standard order relative to other keys
+in the tree or make sure to not unify against these variables as long as
+the tree is being used.
+
+@see            library(pairs), library(assoc)
+@author Vitor Santos Costa, Jan Wielemaker, Samer Abdallah,
+        Peter Ludemann.
 @see "Introduction to Algorithms", Second Edition Cormen, Leiserson,
      Rivest, and Stein, MIT Press
 */
+
+% rbtrees.pl is derived from YAP's rbtrees.yap, with some minor editing.
+% One difference is that the SWI-Prolog version  assumes that a key only
+% appears once in the tree - the   YAP  code is somewhat inconsistent in
+% that  (and  even  allows  rb_lookup/3  to    backtrack,  plus  it  has
+% rb_lookupall/3, which isn't in the SWI-Prolog code).
+
+% The code has also been modified to   use SWI-Prolog's '=>' operator to
+% throw an existence_error(matching_rule, _)  exception   if  Tree isn't
+% instantiated (if ':-' is used, an  uninstanted   Tree  gets  set to an
+% empty tree, which probably isn't the desired result).
 
 :- meta_predicate
     rb_map(+,2,-),
@@ -117,6 +146,7 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 %
 %   @deprecated     Use rb_empty/1.
 
+:- det(rb_new/1).
 rb_new(t(Nil,Nil)) :-
     Nil = black('',_,_,'').
 
@@ -131,14 +161,16 @@ rb_empty(t(Nil,Nil)) :-
 %
 %   True when Value is associated with Key   in the Red-Black tree Tree.
 %   The given Key may include variables, in   which  case the RB tree is
-%   searched for a key with equivalent,   as  in (==)/2, variables. Time
+%   searched for a key with equivalent   variables  (using (==)/2). Time
 %   complexity is O(log N) in the number of elements in the tree.
+%
+%   @see rb_in/3 for backtracking over keys.
 
-rb_lookup(Key, Val, t(_,Tree)) :-
+rb_lookup(Key, Val, t(_,Tree)) =>
     lookup(Key, Val, Tree).
 
-lookup(_, _, black('',_,_,'')) :- !, fail.
-lookup(Key, Val, Tree) :-
+lookup(_Key, _Val, black('',_,_,'')) => fail.
+lookup(Key, Val, Tree) =>
     arg(2,Tree,KA),
     compare(Cmp,KA,Key),
     lookup(Cmp,Key,Val,Tree).
@@ -156,40 +188,42 @@ lookup(=, _, V, Tree) :-
 %
 %   Key is the minimum key in Tree, and is associated with Val.
 
-rb_min(t(_,Tree), Key, Val) :-
+rb_min(t(_,Tree), Key, Val) =>
     min(Tree, Key, Val).
 
-min(red(black('',_,_,_),Key,Val,_), Key, Val) :- !.
-min(black(black('',_,_,_),Key,Val,_), Key, Val) :- !.
-min(red(Right,_,_,_), Key, Val) :-
+min(red(black('',_,_,_),Key0,Val0,_), Key, Val) => Key0=Key, Val0=Val.
+min(black(black('',_,_,_),Key0,Val0,_), Key, Val) => Key0=Key, Val0=Val.
+min(red(Right,_,_,_), Key, Val) =>
     min(Right,Key,Val).
-min(black(Right,_,_,_), Key, Val) :-
+min(black(Right,_,_,_), Key, Val) =>
     min(Right,Key,Val).
+min('', _Key, _Val) => fail.
 
 %!  rb_max(+Tree, -Key, -Value) is semidet.
 %
 %   Key is the maximal key in Tree, and is associated with Val.
 
-rb_max(t(_,Tree), Key, Val) :-
+rb_max(t(_,Tree), Key, Val) =>
     max(Tree, Key, Val).
 
-max(red(_,Key,Val,black('',_,_,_)), Key, Val) :- !.
-max(black(_,Key,Val,black('',_,_,_)), Key, Val) :- !.
-max(red(_,_,_,Left), Key, Val) :-
+max(red(_,Key0,Val0,black('',_,_,_)), Key, Val) => Key0=Key, Val0=Val.
+max(black(_,Key0,Val0,black('',_,_,_)), Key, Val) =>Key0=Key, Val0=Val.
+max(red(_,_,_,Left), Key, Val) =>
     max(Left,Key,Val).
-max(black(_,_,_,Left), Key, Val) :-
+max(black(_,_,_,Left), Key, Val) =>
     max(Left,Key,Val).
+max('', _Key, _Val) => fail.
 
 %!  rb_next(+Tree, +Key, -Next, -Value) is semidet.
 %
 %   Next is the next element after Key   in Tree, and is associated with
-%   Val.
+%   Val. Fails if Key isn't in Tree or if Key is the maximum key.
 
-rb_next(t(_,Tree), Key, Next, Val) :-
+rb_next(t(_,Tree), Key, Next, Val) =>
     next(Tree, Key, Next, Val, []).
 
-next(black('',_,_,''), _, _, _, _) :- !, fail.
-next(Tree, Key, Next, Val, Candidate) :-
+next(black('',_,_,''), _, _, _, _) => fail.
+next(Tree, Key, Next, Val, Candidate) =>
     arg(2,Tree,KA),
     arg(3,Tree,VA),
     compare(Cmp,KA,Key),
@@ -211,13 +245,14 @@ next(=, _, _, _, NK, Val, Tree, Candidate) :-
 %!  rb_previous(+Tree, +Key, -Previous, -Value) is semidet.
 %
 %   Previous  is  the  previous  element  after  Key  in  Tree,  and  is
-%   associated with Val.
+%   associated with Val. Fails if Key isn't  in   Tree  or if Key is the
+%   minimum key.
 
-rb_previous(t(_,Tree), Key, Previous, Val) :-
+rb_previous(t(_,Tree), Key, Previous, Val) =>
     previous(Tree, Key, Previous, Val, []).
 
-previous(black('',_,_,''), _, _, _, _) :- !, fail.
-previous(Tree, Key, Previous, Val, Candidate) :-
+previous(black('',_,_,''), _, _, _, _) => fail.
+previous(Tree, Key, Previous, Val, Candidate) =>
     arg(2,Tree,KA),
     arg(3,Tree,VA),
     compare(Cmp,KA,Key),
@@ -236,16 +271,26 @@ previous(=, _, _, _, K, Val, Tree, Candidate) :-
     ;   Candidate = (K-Val)
     ).
 
-%!  rb_update(+Tree, +Key, +NewVal, -NewTree) is semidet.
-%!  rb_update(+Tree, +Key, ?OldVal, +NewVal, -NewTree) is semidet.
+%!  rb_update(+Tree, +Key, ?NewVal, -NewTree) is semidet.
 %
 %   Tree NewTree is tree Tree, but with   value  for Key associated with
-%   NewVal. Fails if it cannot find Key in Tree.
+%   NewVal. Fails if Key is not in   Tree (using (==)/2). This predicate
+%   may fail or give  unexpected  results   if  Key  is not sufficiently
+%   instantiated.
+%
+%   @see rb_in/3 for backtracking over keys.
 
-rb_update(t(Nil,OldTree), Key, OldVal, Val, t(Nil,NewTree)) :-
+rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2) =>
+    NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, OldVal, Val, NewTree).
 
-rb_update(t(Nil,OldTree), Key, Val, t(Nil,NewTree)) :-
+%!  rb_update(+Tree, +Key, -OldVal, ?NewVal, -NewTree) is semidet.
+%
+% Same as =|rb_update(Tree, Key, NewVal, NewTree)|= but also unifies
+% OldVal with the value associated with Key in Tree.
+
+rb_update(t(Nil,OldTree), Key, Val, NewTree2) =>
+    NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, _, Val, NewTree).
 
 update(black(Left,Key0,Val0,Right), Key, OldVal, Val, NewTree) :-
@@ -279,7 +324,8 @@ update(red(Left,Key0,Val0,Right), Key, OldVal, Val, NewTree) :-
 %   Key is associated with value  ValF  in   tree  NewTree.  Fails if it
 %   cannot find Key in Tree, or if call(G,Val0,ValF) is not satisfiable.
 
-rb_apply(t(Nil,OldTree), Key, Goal, t(Nil,NewTree)) :-
+rb_apply(t(Nil,OldTree), Key, Goal, NewTree2) =>
+    NewTree2 = t(Nil,NewTree),
     apply(OldTree, Key, Goal, NewTree).
 
 %apply(black('',_,_,''), _, _, _) :- !, fail.
@@ -321,15 +367,19 @@ apply(red(Left,Key0,Val0,Right), Key, Goal,
 %   as below, but does not materialize the pairs.
 %
 %        rb_visit(Tree, Pairs), member(Key-Value, Pairs)
+%
+%   Leaves a choicepoint  even  if  Key   is  instantiated;  to  avoid a
+%   choicepoint, use rb_lookup/3.
 
-rb_in(Key, Val, t(_,T)) :-
+rb_in(Key, Val, t(_,T)) =>
     enum(Key, Val, T).
 
-enum(Key, Val, black(L,K,V,R)) :-
+enum(Key, Val, black(L,K,V,R)) =>
     L \= '',
     enum_cases(Key, Val, L, K, V, R).
-enum(Key, Val, red(L,K,V,R)) :-
+enum(Key, Val, red(L,K,V,R)) =>
     enum_cases(Key, Val, L, K, V, R).
+enum(_Key, _Val, _Tree) => fail.
 
 enum_cases(Key, Val, L, _, _, _) :-
     enum(Key, Val, L).
@@ -349,9 +399,13 @@ enum_cases(Key, Val, _, _, _, R) :-
 %
 %   Add an element with key Key and Value   to  the tree Tree creating a
 %   new red-black tree NewTree. If Key is  a key in Tree, the associated
-%   value is replaced by Value. See also rb_insert_new/4.
+%   value is replaced by Value.  See   also  rb_insert_new/4. Does _not_
+%   validate that Key is sufficiently instantiated   to  ensure the tree
+%   remains valid if a key is further instantiated.
 
-rb_insert(t(Nil,Tree0),Key,Val,t(Nil,Tree)) :-
+:- det(rb_insert/4).
+rb_insert(t(Nil,Tree0),Key,Val,NewTree) =>
+    NewTree = t(Nil,Tree),
     insert(Tree0,Key,Val,Nil,Tree).
 
 
@@ -382,11 +436,10 @@ insert(Tree0,Key,Val,Nil,Tree) :-
 %
 % actual insertion
 %
-insert2(black('',_,_,''), K, V, Nil, T, Status) :-
-    !,
+insert2(black('',_,_,''), K, V, Nil, T, Status) =>
     T = red(Nil,K,V,Nil),
     Status = not_done.
-insert2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+insert2(red(L,K0,V0,R), K, V, Nil, NT, Flag) =>
     (   K @< K0
     ->  NT = red(NL,K0,V0,R),
         insert2(L, K, V, Nil, NL, Flag)
@@ -396,7 +449,7 @@ insert2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     ;   NT = red(L,K0,V0,NR),
         insert2(R, K, V, Nil, NR, Flag)
     ).
-insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) =>
     (   K @< K0
     ->  insert2(L, K, V, Nil, IL, Flag0),
         fix_left(Flag0, black(IL,K0,V0,R), NT, Flag)
@@ -412,9 +465,12 @@ insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 %!  rb_insert_new(+Tree, +Key, ?Value, -NewTree) is semidet.
 %
 %   Add a new element with key Key and Value to the tree Tree creating a
-%   new red-black tree NewTree. Fails if Key is a key in Tree.
+%   new red-black tree NewTree. Fails if  Key   is  a  key in Tree. Does
+%   _not_ validate that Key is sufficiently   instantiated to ensure the
+%   tree remains valid if a key is further instantiated.
 
-rb_insert_new(t(Nil,Tree0),Key,Val,t(Nil,Tree)) :-
+rb_insert_new(t(Nil,Tree0),Key,Val,NewTree) =>
+    NewTree = t(Nil,Tree),
     insert_new(Tree0,Key,Val,Nil,Tree).
 
 insert_new(Tree0,Key,Val,Nil,Tree) :-
@@ -424,11 +480,10 @@ insert_new(Tree0,Key,Val,Nil,Tree) :-
 %
 % actual insertion, copied from insert2
 %
-insert_new_2(black('',_,_,''), K, V, Nil, T, Status) :-
-    !,
+insert_new_2(black('',_,_,''), K, V, Nil, T, Status) =>
     T = red(Nil,K,V,Nil),
     Status = not_done.
-insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) =>
     (   K @< K0
     ->  NT = red(NL,K0,V0,R),
         insert_new_2(L, K, V, Nil, NL, Flag)
@@ -437,7 +492,7 @@ insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     ;   NT = red(L,K0,V0,NR),
         insert_new_2(R, K, V, Nil, NR, Flag)
     ).
-insert_new_2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
+insert_new_2(black(L,K0,V0,R), K, V, Nil, NT, Flag) =>
     (   K @< K0
     ->  insert_new_2(L, K, V, Nil, IL, Flag0),
         fix_left(Flag0, black(IL,K0,V0,R), NT, Flag)
@@ -450,16 +505,19 @@ insert_new_2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 %
 % make sure the root is always black.
 %
-fix_root(black(L,K,V,R),black(L,K,V,R)).
-fix_root(red(L,K,V,R),black(L,K,V,R)).
+:- det(fix_root/2).
+fix_root(black(L,K,V,R), Root) => Root = black(L,K,V,R).
+fix_root(red(L,K,V,R), Root) => Root = black(L,K,V,R).
 
 %
 % How to fix if we have inserted on the left
 %
-fix_left(done,T,T,done) :- !.
-fix_left(not_done,Tmp,Final,Done) :-
+:- det(fix_left/4).
+fix_left(done,T0,T,Done) => T = T0, Done = done.
+fix_left(not_done,Tmp,Final,Done) =>
     fix_left(Tmp,Final,Done).
 
+:- det(fix_left/3).
 %
 % case 1 of RB: just need to change colors.
 %
@@ -489,10 +547,12 @@ fix_left(T,T,done).
 %
 % How to fix if we have inserted on the right
 %
-fix_right(done,T,T,done) :- !.
-fix_right(not_done,Tmp,Final,Done) :-
+:- det(fix_right/4).
+fix_right(done,T0,T,Done) => T0 = T, Done = done.
+fix_right(not_done,Tmp,Final,Done) =>
     fix_right(Tmp,Final,Done).
 
+:- det(fix_right/3).
 %
 % case 1 of RB: just need to change colors.
 %
@@ -521,65 +581,76 @@ fix_right(T,T,done).
 
 
 %!  rb_delete(+Tree, +Key, -NewTree).
-%!  rb_delete(+Tree, +Key, -Val, -NewTree).
 %
 %   Delete element with key Key from the  tree Tree, returning the value
-%   Val associated with the key and a new tree NewTree.
+%   Val associated with the key and a new  tree NewTree. Fails if Key is
+%   not in Tree  (using  (==)/2).
+%
+%   @see rb_in/3 for backtracking over keys.
 
-rb_delete(t(Nil,T), K, t(Nil,NT)) :-
+rb_delete(t(Nil,T), K, NewTree) =>
+    NewTree = t(Nil,NT),
     delete(T, K, _, NT, _).
 
-rb_delete(t(Nil,T), K, V, t(Nil,NT)) :-
+%!  rb_delete(+Tree, +Key, -Val, -NewTree).
+%
+%   Same as rb_delete(Tree, Key, NewTree), but also unifies Val with the
+%   value associated with Key in Tree.
+
+rb_delete(t(Nil,T), K, V, NewTree) =>
+    NewTree = t(Nil,NT),
     delete(T, K, V0, NT, _),
     V = V0.
 
 %
 % I am afraid our representation is not as nice for delete
 %
-delete(red(L,K0,V0,R), K, V, NT, Flag) :-
-    K @< K0,
-    !,
+delete(red(L,K0,V0,R), K, V, NT, Flag) =>
+    delete_red(L,K0,V0,R, K, V, NT, Flag).
+delete(black(L,K0,V0,R), K, V, NT, Flag) =>
+    delete_black(L,K0,V0,R, K, V, NT, Flag).
+delete('', _K, _V, _NT, _Flag) =>
+    fail.
+
+delete_red(L,K0,V0,R, K, V, NT, Flag), K @< K0 =>
     delete(L, K, V, NL, Flag0),
     fixup_left(Flag0,red(NL,K0,V0,R),NT, Flag).
-delete(red(L,K0,V0,R), K, V, NT, Flag) :-
-    K @> K0,
-    !,
+delete_red(L,K0,V0,R, K, V, NT, Flag), K @> K0 =>
     delete(R, K, V, NR, Flag0),
     fixup_right(Flag0,red(L,K0,V0,NR),NT, Flag).
-delete(red(L,_,V,R), _, V, OUT, Flag) :-
-    % K == K0,
-    delete_red_node(L,R,OUT,Flag).
-delete(black(L,K0,V0,R), K, V, NT, Flag) :-
-    K @< K0,
-    !,
+delete_red(L,_,V0,R, _, V, Out, Flag) => % K == K0,
+    V0 = V,
+    delete_red_node(L,R,Out,Flag).
+
+delete_black(L,K0,V0,R, K, V, NT, Flag), K @< K0 =>
     delete(L, K, V, NL, Flag0),
     fixup_left(Flag0,black(NL,K0,V0,R),NT, Flag).
-delete(black(L,K0,V0,R), K, V, NT, Flag) :-
-    K @> K0,
-    !,
+delete_black(L,K0,V0,R, K, V, NT, Flag), K @> K0 =>
     delete(R, K, V, NR, Flag0),
     fixup_right(Flag0,black(L,K0,V0,NR),NT, Flag).
-delete(black(L,_,V,R), _, V, OUT, Flag) :-
-    % K == K0,
-    delete_black_node(L,R,OUT,Flag).
+delete_black(L,_,V0,R, _, V, Out, Flag) => % K == K0,
+    V0 = V,
+    delete_black_node(L,R,Out,Flag).
 
 %!  rb_del_min(+Tree, -Key, -Val, -NewTree)
 %
 %   Delete the least element from the tree  Tree, returning the key Key,
-%   the value Val associated with the key and a new tree NewTree.
+%   the value Val associated with the key  and a new tree NewTree. Fails
+%   if Tree is empty.
 
-rb_del_min(t(Nil,T), K, Val, t(Nil,NT)) :-
+rb_del_min(t(Nil,T), K, Val, NewTree) =>
+    NewTree = t(Nil,NT),
     del_min(T, K, Val, Nil, NT, _).
 
-del_min(red(black('',_,_,_),K,V,R), K, V, Nil, OUT, Flag) :-
+del_min(red(black('',_,_,_),K,V,R), K, V, Nil, Out, Flag) :-
     !,
-    delete_red_node(Nil,R,OUT,Flag).
+    delete_red_node(Nil,R,Out,Flag).
 del_min(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     del_min(L, K, V, Nil, NL, Flag0),
     fixup_left(Flag0,red(NL,K0,V0,R), NT, Flag).
-del_min(black(black('',_,_,_),K,V,R), K, V, Nil, OUT, Flag) :-
+del_min(black(black('',_,_,_),K,V,R), K, V, Nil, Out, Flag) :-
     !,
-    delete_black_node(Nil,R,OUT,Flag).
+    delete_black_node(Nil,R,Out,Flag).
 del_min(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     del_min(L, K, V, Nil, NL, Flag0),
     fixup_left(Flag0,black(NL,K0,V0,R),NT, Flag).
@@ -588,20 +659,22 @@ del_min(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 %!  rb_del_max(+Tree, -Key, -Val, -NewTree)
 %
 %   Delete the largest element from  the   tree  Tree, returning the key
-%   Key, the value Val associated with the key and a new tree NewTree.
+%   Key, the value Val associated with the   key and a new tree NewTree.
+%   Fails if Tree is empty.
 
-rb_del_max(t(Nil,T), K, Val, t(Nil,NT)) :-
+rb_del_max(t(Nil,T), K, Val, NewTree) =>
+    NewTree = t(Nil,NT),
     del_max(T, K, Val, Nil, NT, _).
 
-del_max(red(L,K,V,black('',_,_,_)), K, V, Nil, OUT, Flag) :-
+del_max(red(L,K,V,black('',_,_,_)), K, V, Nil, Out, Flag) :-
     !,
-    delete_red_node(L,Nil,OUT,Flag).
+    delete_red_node(L,Nil,Out,Flag).
 del_max(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     del_max(R, K, V, Nil, NR, Flag0),
     fixup_right(Flag0,red(L,K0,V0,NR),NT, Flag).
-del_max(black(L,K,V,black('',_,_,_)), K, V, Nil, OUT, Flag) :-
+del_max(black(L,K,V,black('',_,_,_)), K, V, Nil, Out, Flag) :-
     !,
-    delete_black_node(L,Nil,OUT,Flag).
+    delete_black_node(L,Nil,Out,Flag).
 del_max(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
     del_max(R, K, V, Nil, NR, Flag0),
     fixup_right(Flag0,black(L,K0,V0,NR), NT, Flag).
@@ -609,29 +682,29 @@ del_max(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 delete_red_node(L1,L2,L1,done) :- L1 == L2, !.
 delete_red_node(black('',_,_,''),R,R,done) :-  !.
 delete_red_node(L,black('',_,_,''),L,done) :-  !.
-delete_red_node(L,R,OUT,Done) :-
+delete_red_node(L,R,Out,Done) :-
     delete_next(R,NK,NV,NR,Done0),
-    fixup_right(Done0,red(L,NK,NV,NR),OUT,Done).
+    fixup_right(Done0,red(L,NK,NV,NR),Out,Done).
 
 delete_black_node(L1,L2,L1,not_done) :-         L1 == L2, !.
 delete_black_node(black('',_,_,''),red(L,K,V,R),black(L,K,V,R),done) :- !.
 delete_black_node(black('',_,_,''),R,R,not_done) :- !.
 delete_black_node(red(L,K,V,R),black('',_,_,''),black(L,K,V,R),done) :- !.
 delete_black_node(L,black('',_,_,''),L,not_done) :- !.
-delete_black_node(L,R,OUT,Done) :-
+delete_black_node(L,R,Out,Done) :-
     delete_next(R,NK,NV,NR,Done0),
-    fixup_right(Done0,black(L,NK,NV,NR),OUT,Done).
+    fixup_right(Done0,black(L,NK,NV,NR),Out,Done).
 
 delete_next(red(black('',_,_,''),K,V,R),K,V,R,done) :-  !.
 delete_next(black(black('',_,_,''),K,V,red(L1,K1,V1,R1)),
         K,V,black(L1,K1,V1,R1),done) :- !.
 delete_next(black(black('',_,_,''),K,V,R),K,V,R,not_done) :- !.
-delete_next(red(L,K,V,R),K0,V0,OUT,Done) :-
+delete_next(red(L,K,V,R),K0,V0,Out,Done) :-
     delete_next(L,K0,V0,NL,Done0),
-    fixup_left(Done0,red(NL,K,V,R),OUT,Done).
-delete_next(black(L,K,V,R),K0,V0,OUT,Done) :-
+    fixup_left(Done0,red(NL,K,V,R),Out,Done).
+delete_next(black(L,K,V,R),K0,V0,Out,Done) :-
     delete_next(L,K0,V0,NL,Done0),
-    fixup_left(Done0,black(NL,K,V,R),OUT,Done).
+    fixup_left(Done0,black(NL,K,V,R),Out,Done).
 
 fixup_left(done,T,T,done).
 fixup_left(not_done,T,NT,Done) :-
@@ -750,19 +823,20 @@ fixup3(black(black(red(Fi,KE,VE,Ep),KD,VD,C),KB,VB,black(Be,KA,VA,Al)),
        black(black(Fi,KE,VE,Ep),KD,VD,black(C,KB,VB,black(Be,KA,VA,Al))),
        done).
 
-%!  rb_visit(+Tree, -Pairs)
+%!  rb_visit(+Tree, -Pairs) is det.
 %
 %   Pairs is an infix visit of tree Tree, where each element of Pairs is
 %   of the form Key-Value.
 
-rb_visit(t(_,T),Lf) :-
+:- det(rb_visit/2).
+rb_visit(t(_,T),Lf) =>
     visit(T,[],Lf).
 
-visit(black('',_,_,_),L,L) :- !.
-visit(red(L,K,V,R),L0,Lf) :-
+visit(black('',_,_,_),L0,L) => L0 = L.
+visit(red(L,K,V,R),L0,Lf) =>
     visit(L,[K-V|L1],Lf),
     visit(R,L0,L1).
-visit(black(L,K,V,R),L0,Lf) :-
+visit(black(L,K,V,R),L0,Lf) =>
     visit(L,[K-V|L1],Lf),
     visit(R,L0,L1).
 
@@ -772,19 +846,20 @@ visit(black(L,K,V,R),L0,Lf) :-
 %
 %   True if call(Goal, Value) is true for all nodes in T.
 
-rb_map(t(Nil,Tree),Goal,t(Nil,NewTree)) :-
+rb_map(t(Nil,Tree),Goal,NewTree2) =>
+    NewTree2 = t(Nil,NewTree),
     map(Tree,Goal,NewTree,Nil).
 
 
-map(black('',_,_,''),_,Nil,Nil) :- !.
-map(red(L,K,V,R),Goal,red(NL,K,NV,NR),Nil) :-
+map(black('',_,_,''),_,Nil0,Nil) => Nil0 = Nil.
+map(red(L,K,V,R),Goal,NewTree,Nil) =>
+    NewTree = red(NL,K,NV,NR),
     call(Goal,V,NV),
-    !,
     map(L,Goal,NL,Nil),
     map(R,Goal,NR,Nil).
-map(black(L,K,V,R),Goal,black(NL,K,NV,NR),Nil) :-
+map(black(L,K,V,R),Goal,NewTree,Nil) =>
+    NewTree = black(NL,K,NV,NR),
     call(Goal,V,NV),
-    !,
     map(L,Goal,NL,Nil),
     map(R,Goal,NR,Nil).
 
@@ -795,33 +870,36 @@ map(black(L,K,V,R),Goal,black(NL,K,NV,NR),Nil) :-
 %   For all nodes Key in the tree Tree, if the value associated with key
 %   Key is Val0 in tree Tree, and   if call(G,Val0,ValF) holds, then the
 %   value  associated  with  Key  in   NewTree    is   ValF.   Fails  if
-%   call(G,Val0,ValF) is not satisfiable for all Val0.
+%   call(G,Val0,ValF)  is  not  satisfiable  for  all   Val0.  If  G  is
+%   non-deterministic, rb_map/3 will backtrack over  all possible values
+%   from call(G,Val0,ValF). You should not depend   on the order of tree
+%   traversal (currently: key order).
 
-rb_map(t(_,Tree),Goal) :-
+rb_map(t(_,Tree),Goal) =>
     map(Tree,Goal).
 
 
-map(black('',_,_,''),_) :- !.
-map(red(L,_,V,R),Goal) :-
+map(black('',_,_,''),_) => true.
+map(red(L,_,V,R),Goal) =>
     call(Goal,V),
-    !,
     map(L,Goal),
     map(R,Goal).
-map(black(L,_,V,R),Goal) :-
+map(black(L,_,V,R),Goal) =>
     call(Goal,V),
-    !,
     map(L,Goal),
     map(R,Goal).
 
-%!  rb_fold(:Goal, +Tree, +State0, -State) is det.
+%!  rb_fold(:Goal, +Tree, +State0, -State).
 %
 %   Fold the given predicate  over  all   the  key-value  pairs in Tree,
 %   starting with initial state State0  and   returning  the final state
 %   State. Pred is called as
 %
 %       call(Pred, Key-Value, State1, State2)
+%
+%   Determinism depends on Goal.
 
-rb_fold(Pred, t(_,T), S1, S2) :-
+rb_fold(Pred, t(_,T), S1, S2) =>
     fold(T, Pred, S1, S2).
 
 fold(black(L,K,V,R), Pred) -->
@@ -843,14 +921,18 @@ fold_parts(Pred, L, KV, R) -->
 %   same keys as the original but with all values set to unbound values.
 %   Pairs is a list containing all new nodes as pairs K-V.
 
-rb_clone(t(Nil,T),t(Nil,NT),Ns) :-
+:- det(rb_clone/3).
+rb_clone(t(Nil,T),TreeOut,Ns) =>
+    TreeOut = t(Nil,NT),
     clone(T,Nil,NT,Ns,[]).
 
-clone(black('',_,_,''),Nil,Nil,Ns,Ns) :- !.
-clone(red(L,K,_,R),Nil,red(NL,K,NV,NR),NsF,Ns0) :-
+clone(black('',_,_,''),Nil0,Nil,Ns0,Ns) => Nil0=Nil, Ns0=Ns.
+clone(red(L,K,_,R),Nil,TreeOut,NsF,Ns0) =>
+    TreeOut = red(NL,K,NV,NR),
     clone(L,Nil,NL,NsF,[K-NV|Ns1]),
     clone(R,Nil,NR,Ns1,Ns0).
-clone(black(L,K,_,R),Nil,black(NL,K,NV,NR),NsF,Ns0) :-
+clone(black(L,K,_,R),Nil,TreeOut,NsF,Ns0) =>
+    TreeOut = black(NL,K,NV,NR),
     clone(L,Nil,NL,NsF,[K-NV|Ns1]),
     clone(R,Nil,NR,Ns1,Ns0).
 
@@ -858,11 +940,13 @@ clone(black(L,K,_,R),Nil,black(NL,K,NV,NR),NsF,Ns0) :-
 %
 %   For all nodes Key in Keys, if the   value associated with key Key is
 %   Val0 in tree Tree, and if   call(G,Val0,ValF)  holds, then the value
-%   associated  with  Key  in  NewTree   is    ValF.   Fails  if  or  if
-%   call(G,Val0,ValF) is not satisfiable for all  Val0. Assumes keys are
-%   not repeated.
+%   associated with Key in NewTree is ValF,   otherwise  it is the value
+%   associated with the key in Tree. Fails if   Key  isn't in Tree or if
+%   call(G,Val0,ValF) is not satisfiable for all   Val0 in Keys. Assumes
+%   keys are sorted and not repeated (fails if this is not true).
 
-rb_partial_map(t(Nil,T0), Map, Goal, t(Nil,TF)) :-
+rb_partial_map(t(Nil,T0), Map, Goal, NewTree) =>
+    NewTree = t(Nil,TF),
     partial_map(T0, Map, [], Nil, Goal, TF).
 
 partial_map(T,[],[],_,_,T) :- !.
@@ -901,19 +985,20 @@ partial_map(black(L,K,V,R),Map,MapF,Nil,Goal,black(NL,K,NV,NR)) :-
     ).
 
 
-%!  rb_keys(+Tree, -Keys)
+%!  rb_keys(+Tree, -Keys) is det.
 %
 %   Keys is unified with an ordered list   of  all keys in the Red-Black
 %   tree Tree.
 
-rb_keys(t(_,T),Lf) :-
+:- det(rb_keys/2).
+rb_keys(t(_,T),Lf) =>
     keys(T,[],Lf).
 
-keys(black('',_,_,''),L,L) :- !.
-keys(red(L,K,_,R),L0,Lf) :-
+keys(black('',_,_,''),L0,L) => L0 = L.
+keys(red(L,K,_,R),L0,Lf) =>
     keys(L,[K|L1],Lf),
     keys(R,L0,L1).
-keys(black(L,K,_,R),L0,Lf) :-
+keys(black(L,K,_,R),L0,Lf) =>
     keys(L,[K|L1],Lf),
     keys(R,L0,L1).
 
@@ -922,8 +1007,10 @@ keys(black(L,K,_,R),L0,Lf) :-
 %
 %   Tree is the red-black tree  corresponding   to  the mapping in List,
 %   which should be a list of Key-Value   pairs. List should not contain
-%   more than one entry for each distinct key.
+%   more than one entry for each distinct key, but this is not validated
+%   by list_to_rbtree/2.
 
+:- det(list_to_rbtree/2).
 list_to_rbtree(List, T) :-
     sort(List,Sorted),
     ord_list_to_rbtree(Sorted, T).
@@ -932,16 +1019,19 @@ list_to_rbtree(List, T) :-
 %
 %   Tree is the red-black tree  corresponding   to  the  mapping in list
 %   List, which should be a list  of   Key-Value  pairs. List should not
-%   contain more than one entry for each   distinct key. List is assumed
+%   contain more than one entry for each   distinct key, but this is not
+%   validated by ord_list_to_rbtree/2. List is assumed
 %   to be sorted according to the standard order of terms.
 
-ord_list_to_rbtree([], t(Nil,Nil)) :-
-    !,
+:- det(ord_list_to_rbtree/2).
+ord_list_to_rbtree([], Tree) =>
+    Tree = t(Nil,Nil),
     Nil = black('', _, _, '').
-ord_list_to_rbtree([K-V], t(Nil,black(Nil,K,V,Nil))) :-
-    !,
+ord_list_to_rbtree([K-V], Tree) =>
+    Tree = t(Nil,black(Nil,K,V,Nil)),
     Nil = black('', _, _, '').
-ord_list_to_rbtree(List, t(Nil,Tree)) :-
+ord_list_to_rbtree(List, Tree2) =>
+    Tree2 = t(Nil,Tree),
     Nil = black('', _, _, ''),
     Ar =.. [seq|List],
     functor(Ar,_,L),
@@ -971,7 +1061,8 @@ build_node( _, Left, K, Val, Right, black(Left, K, Val, Right)).
 %
 %   Size is the number of elements in Tree.
 
-rb_size(t(_,T),Size) :-
+:- det(rb_size/2).
+rb_size(t(_,T),Size) =>
     size(T,0,Size).
 
 size(black('',_,_,_),Sz,Sz) :- !.
@@ -986,58 +1077,76 @@ size(black(L,_,_,R),Sz0,Szf) :-
 
 %!  is_rbtree(@Term) is semidet.
 %
-%   True if Term is a valide Red-Black tree.
-%
-%   @tbd    Catch variables.
+%   True if Term is a valid Red-Black   tree. Processes the entire tree,
+%   checking the coloring of the nodes, the  balance and the ordering of
+%   keys.    Does _not_ validate that keys are sufficiently instantiated
+%   to ensure the tree remains valid if a key is further instantiated.
 
-is_rbtree(X) :-
-    var(X), !, fail.
-is_rbtree(t(Nil,Nil)) :- !.
-is_rbtree(t(_,T)) :-
-    catch(rbtree1(T), msg(_,_), fail).
+is_rbtree(X), var(X) =>
+    fail.
+is_rbtree(t(Nil,Nil)) => true.
+is_rbtree(t(_,T)) =>
+    Err = error(_,_),
+    catch(check_rbtree(T), Err, is_rbtree_error(Err)).
+is_rbtree(_) =>
+    fail.
 
-%
+is_rbtree_error(Err), Err = error(resource_error(_),_) => throw(Err).
+is_rbtree_error(_) => fail.
+
 % This code checks if a tree is ordered and a rbtree
-%
 
-rbtree1(black(L,K,_,R)) :-
+check_rbtree(black(L,K,_,R)) =>
     find_path_blacks(L, 0, Bls),
     check_rbtree(L,-inf,K,Bls),
     check_rbtree(R,K,+inf,Bls).
-rbtree1(red(_,_,_,_)) :-
-    throw(msg("root should be black",[])).
+check_rbtree(Node), Node = red(_,_,_,_) =>
+    domain_error(rb_black, Node).
 
 
-find_path_blacks(black('',_,_,''), Bls, Bls) :- !.
-find_path_blacks(black(L,_,_,_), Bls0, Bls) :-
+find_path_blacks(black('',_,_,''), Bls0, Bls) => Bls = Bls0.
+find_path_blacks(black(L,_,_,_), Bls0, Bls) =>
     Bls1 is Bls0+1,
     find_path_blacks(L, Bls1, Bls).
-find_path_blacks(red(L,_,_,_), Bls0, Bls) :-
+find_path_blacks(red(L,_,_,_), Bls0, Bls) =>
     find_path_blacks(L, Bls0, Bls).
 
-check_rbtree(black('',_,_,''),Min,Max,Bls0) :-
-    !,
+check_rbtree(black('',_,_,''),Min,Max,Bls0) =>
     check_height(Bls0,Min,Max).
-check_rbtree(red(L,K,_,R),Min,Max,Bls) :-
+check_rbtree(red(L,K,_,R),Min,Max,Bls) =>
     check_val(K,Min,Max),
     check_red_child(L),
     check_red_child(R),
     check_rbtree(L,Min,K,Bls),
     check_rbtree(R,K,Max,Bls).
-check_rbtree(black(L,K,_,R),Min,Max,Bls0) :-
+check_rbtree(black(L,K,_,R),Min,Max,Bls0) =>
     check_val(K,Min,Max),
     Bls is Bls0-1,
     check_rbtree(L,Min,K,Bls),
     check_rbtree(R,K,Max,Bls).
 
-check_height(0,_,_) :- !.
-check_height(Bls0,Min,Max) :-
-    throw(msg("Unbalance ~d between ~w and ~w~n",[Bls0,Min,Max])).
+check_height(0,_,_) => true.
+check_height(Bls0,Min,Max) =>
+    throw(error(rbtree(balance(Bls0, Min, Max)), _)).
 
-check_val(K, Min, Max) :- ( K @> Min ; Min == -inf), (K @< Max ; Max == +inf), !.
-check_val(K, Min, Max) :-
-    throw(msg("not ordered: ~w not between ~w and ~w~n",[K,Min,Max])).
+check_val(K, Min, Max), (K @> Min ; Min == -inf), (K @< Max ; Max == +inf) =>
+    true.
+check_val(K, Min, Max) =>
+    throw(error(rbtree(order(K, Min, Max)), _)).
 
-check_red_child(black(_,_,_,_)).
-check_red_child(red(_,K,_,_)) :-
-    throw(msg("must be red: ~w~n",[K])).
+check_red_child(black(_,_,_,_)) => true.
+check_red_child(Node), Node = red(_,_,_,_) =>
+    domain_error(rb_black, Node).
+
+
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:error_message//1.
+
+prolog:error_message(rbtree(balance(Bls0, Min, Max))) -->
+    [ 'Unbalance ~d between ~w and ~w'-[Bls0,Min,Max] ].
+prolog:error_message(rbtree(order(K, Min, Max))) -->
+    [ 'not ordered: ~w not between ~w and ~w'-[K,Min,Max] ].

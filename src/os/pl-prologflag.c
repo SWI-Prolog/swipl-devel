@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -42,6 +42,7 @@
 #include <process.h>			/* getpid() */
 #endif
 #include "pl-prologflag.h"
+#include "pl-utf8.h"
 #include "pl-ctype.h"
 #include "../pl-arith.h"
 #include "../pl-tabling.h"
@@ -928,6 +929,8 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 	  return FALSE;
       } else if ( k == ATOM_string_stack_tripwire )
       { LD->fli.string_buffers.tripwire = (unsigned int)i;
+      } else if ( k == ATOM_heartbeat )
+      { LD->yield.frequency = i/16;
       }
       break;
     }
@@ -988,7 +991,7 @@ PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 /** create_prolog_flag(+Key, +Value, +Options) is det.
 */
 
-static const opt_spec prolog_flag_options[] =
+static const PL_option_t prolog_flag_options[] =
 { { ATOM_type,   OPT_ATOM },
   { ATOM_access, OPT_ATOM },
   { ATOM_keep,   OPT_BOOL },
@@ -1003,7 +1006,7 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   atom_t access = ATOM_read_write;
   int keep = FALSE;
 
-  if ( !scan_options(A3, 0, ATOM_prolog_flag_option, prolog_flag_options,
+  if ( !PL_scan_options(A3, 0, "prolog_flag_option", prolog_flag_options,
 		     &type, &access, &keep) )
     return FALSE;
 
@@ -1431,6 +1434,10 @@ set_arch(void)
 #define C_LIBPLSO ""
 #endif
 
+#ifdef __WINDOWS__
+#include "../pl-nt.h"
+#endif
+
 static void
 initPrologFlagTable(void)
 { if ( !GD->prolog_flag.table )
@@ -1439,7 +1446,6 @@ initPrologFlagTable(void)
     GD->prolog_flag.table = newHTable(256);
   }
 }
-
 
 void
 initPrologFlags(void)
@@ -1459,12 +1465,25 @@ initPrologFlags(void)
 #endif
   setPrologFlag("file_name_case_handling", FT_ATOM,
 		stringAtom(currentFileNameCaseHandling()));
+  setPrologFlag("path_max", FT_INTEGER|FF_READONLY, PATH_MAX);
   setPrologFlag("version", FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
 #ifdef PLSHAREDHOME
   setPrologFlag("shared_home", FT_ATOM|FF_READONLY, PLSHAREDHOME);
+#endif
+#ifdef __WINDOWS__
+  { char buf[PATH_MAX];
+    char *s;
+    if ( (s=findModulePath("libswipl.dll", buf, sizeof(buf))) )
+      setPrologFlag("libswipl", FT_ATOM|FF_READONLY, s);
+  }
+#elif defined(LIBPL_PATH)
+  setPrologFlag("libswipl", FT_ATOM, LIBPL_PATH);
+#endif
+#ifdef EXEC_FORMAT
+  setPrologFlag("executable_format", FT_ATOM|FF_READONLY, EXEC_FORMAT);
 #endif
   if ( GD->paths.executable )
     setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
@@ -1479,16 +1498,9 @@ initPrologFlags(void)
   setPrologFlag("protect_static_code", FT_BOOL, FALSE,
 		PLFLAG_PROTECT_STATIC_CODE);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
+  setPrologFlag("vmi_builtin", FT_BOOL, TRUE, PLFLAG_VMI_BUILTIN);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
-  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
-  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
-#ifdef C_LIBDIR
-  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
-#endif
-  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
-  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
-  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
   setPrologFlag("tmp_dir", FT_ATOM, SWIPL_TMP_DIR);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
@@ -1498,16 +1510,25 @@ initPrologFlags(void)
   setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
+  setPrologFlag("agc_close_streams", FT_BOOL, FALSE, PLFLAG_AGC_CLOSE_STREAMS);
 #endif
   setPrologFlag("table_space", FT_INTEGER, GD->options.tableSpace);
 #ifdef O_PLMT
   setPrologFlag("shared_table_space", FT_INTEGER, GD->options.sharedTableSpace);
 #endif
   setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
-  setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
+#ifdef O_DYNAMIC_EXTENSIONS
+  setPrologFlag("open_shared_object",	     FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("shared_object_extension",   FT_ATOM|FF_READONLY, SO_EXT);
   setPrologFlag("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
+  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
+  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+#ifdef C_LIBDIR
+  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
+#endif
+  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
+  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
+  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #endif
   setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
 #ifdef HAVE_POPEN
@@ -1568,7 +1589,7 @@ initPrologFlags(void)
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
-  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, PLMAXWCHAR);
+  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, UNICODE_MAX);
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, MAXARITY);
   setPrologFlag("answer_format", FT_ATOM, "~p");
@@ -1641,6 +1662,7 @@ initPrologFlags(void)
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("packs", FT_BOOL, GD->cmdline.packs, 0);
+  setPrologFlag("heartbeat", FT_INTEGER, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
@@ -1675,7 +1697,7 @@ initPrologFlags(void)
 
 static void
 setTmpDirPrologFlag(void)
- { char envbuf[MAXPATHLEN];
+ { char envbuf[PATH_MAX];
    char *td = NULL;
 
 #ifdef __unix__
@@ -1775,12 +1797,12 @@ abi_version_dict(term_t dict)
 			  ATOM_built_in };
   term_t values = PL_new_term_refs(6);
 
-  return ( PL_unify_integer(values+0, PL_version(PL_VERSION_FLI)) &&
-	   PL_unify_integer(values+1, PL_version(PL_VERSION_REC)) &&
-	   PL_unify_integer(values+2, PL_version(PL_VERSION_QLF)) &&
-	   PL_unify_integer(values+3, PL_version(PL_VERSION_QLF_LOAD)) &&
-	   PL_unify_integer(values+4, PL_version(PL_VERSION_VM)) &&
-	   PL_unify_integer(values+5, PL_version(PL_VERSION_BUILT_IN)) &&
+  return ( PL_unify_integer(values+0, PL_version_info(PL_VERSION_FLI)) &&
+	   PL_unify_integer(values+1, PL_version_info(PL_VERSION_REC)) &&
+	   PL_unify_integer(values+2, PL_version_info(PL_VERSION_QLF)) &&
+	   PL_unify_integer(values+3, PL_version_info(PL_VERSION_QLF_LOAD)) &&
+	   PL_unify_integer(values+4, PL_version_info(PL_VERSION_VM)) &&
+	   PL_unify_integer(values+5, PL_version_info(PL_VERSION_BUILT_IN)) &&
 
 	   PL_put_dict(dict, ATOM_abi, 6, keys, values) );
 }

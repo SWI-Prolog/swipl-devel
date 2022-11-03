@@ -204,8 +204,8 @@ typedef long long ssize_t;
 #define O_BINARY 0
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 #define CPBUFSIZE 8192
@@ -975,7 +975,7 @@ defaultPath(char **store, char *def)
 static void
 tmpPath(char **store, const char *base)
 { if ( !*store )
-  { char tmp[MAXPATHLEN];
+  { char tmp[PATH_MAX];
 
     sprintf(tmp, "%s%d", base, (int)getpid());
     *store = strdup(tmp);
@@ -994,7 +994,7 @@ setLibDir(const char *libdir)
   appendArgList(&libdirs, libdir);
 
 #ifndef __WINDOWS__
-  char tmp[MAXPATHLEN+16];
+  char tmp[PATH_MAX+16];
 #ifdef __APPLE__
   snprintf(tmp, sizeof(tmp), "-Wl,-rpath,%s", libdir);
 #else
@@ -1233,7 +1233,7 @@ callprog(const char *ld, arglist *args)
 
 static void
 compileFile(const char *compiler, arglist *options, const char *cfile)
-{ char ofile[MAXPATHLEN];
+{ char ofile[PATH_MAX];
   char *ext;
   arglist *args = copyArgList(options);
 
@@ -1329,7 +1329,7 @@ linkBaseExecutable()
 #endif
 
 #if defined(HOST_TOOLCHAIN_MSC)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
   sprintf(tmp, "/out:%s", cout);
   prependArgList(&ldoptions, tmp);
 }
@@ -1358,7 +1358,7 @@ linkBaseExecutable()
   {
 #if defined(HOST_TOOLCHAIN_MSC)
     if ( !embed_shared )
-    { char buf[MAXPATHLEN];
+    { char buf[PATH_MAX];
       appendArgList(&tmpfiles, replaceExtension(cout, "exp", buf));
       appendArgList(&tmpfiles, replaceExtension(cout, "lib", buf));
     }
@@ -1371,7 +1371,7 @@ linkBaseExecutable()
 
 void
 linkSharedObject()
-{ char soname[MAXPATHLEN];
+{ char soname[PATH_MAX];
   char *soout;
 
   if ( !soext )
@@ -1385,7 +1385,7 @@ linkSharedObject()
 
 #if defined(HOST_TOOLCHAIN_MSC)
   prependArgList(&ldoptions, "/dll");
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
   sprintf(tmp, "/out:%s", soout);
   prependArgList(&ldoptions, tmp);
 }
@@ -1412,7 +1412,7 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*__CYGWIN__*/
 #ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
-  { char tmp[MAXPATHLEN];
+  { char tmp[PATH_MAX];
     tmp[0] = UNQUOTED;
     sprintf(&tmp[1], SO_FORMAT_LDFLAGS);
     prependArgList(&ldoptions, tmp);
@@ -1563,8 +1563,8 @@ copy_fd(int i, int o)
 #if defined(HOST_TOOLCHAIN_MSC)
 void
 saveExportLib()
-{ char ibuf[MAXPATHLEN];
-  char obuf[MAXPATHLEN];
+{ char ibuf[PATH_MAX];
+  char obuf[PATH_MAX];
   char *ilib, *olib;
 
   ilib = replaceExtension(ctmp, "lib", ibuf);

@@ -83,7 +83,7 @@ the library.
 %           debug.
 
 spy(Spec) :-
-    notrace(spy_(Spec)).
+    '$notrace'(spy_(Spec)).
 
 spy_(_:X) :-
     var(X),
@@ -94,7 +94,7 @@ spy_(M:[H|T]) :-
     spy(M:H),
     spy(M:T).
 spy_(Spec) :-
-    notrace(prolog:debug_control_hook(spy(Spec))),
+    prolog:debug_control_hook(spy(Spec)),
     !.
 spy_(Spec) :-
     '$find_predicate'(Spec, Preds),
@@ -106,7 +106,7 @@ spy_(Spec) :-
 spy_(_).
 
 nospy(Spec) :-
-    notrace(nospy_(Spec)).
+    '$notrace'(nospy_(Spec)).
 
 nospy_(_:X) :-
     var(X),
@@ -128,7 +128,7 @@ nospy_(Spec) :-
 nospy_(_).
 
 nospyall :-
-    notrace(nospyall_).
+    '$notrace'(nospyall_).
 
 nospyall_ :-
     prolog:debug_control_hook(nospyall),
@@ -150,7 +150,7 @@ pi_to_head(Name/Arity, Head) :-
 %   Report current status of the debugger.
 
 debugging :-
-    notrace(debugging_).
+    '$notrace'(debugging_).
 
 debugging_ :-
     prolog:debug_control_hook(debugging),
@@ -174,17 +174,28 @@ spy_point(Module:Head) :-
 		 *           EXCEPTIONS		*
 		 *******************************/
 
-%!  trap(+Exception) is det.
-%!  notrap(+Exception) is det.
+%!  trap(+Formal) is det.
+%!  notrap(+Formal) is det.
 %
-%   Install a trap on error(Formal, Context)  exceptions that unify with
-%   Exception. The tracer is  started  when   a  matching  exception  is
-%   raised. This predicate enables _debug  mode_   using  debug/0 to get
-%   more context about the exception.  Even   with  debug  mode disabled
-%   exceptions are still trapped and thus one  may call nodebug/0 to run
-%   in normal mode after installing a trap.
+%   Install a trap on error(Formal, Context)  exceptions that unify. The
+%   tracer  is  started  when  a  matching  exception  is  raised.  This
+%   predicate enables _debug mode_ using  debug/0   to  get more context
+%   about the exception. Even with debug   mode  disabled exceptions are
+%   still trapped and thus one may call  nodebug/0 to run in normal mode
+%   after installing a trap. Exceptions are trapped in any thread. Debug
+%   mode is only enabled in the calling  thread. To enable debug mode in
+%   all threads use tdebug/0.
 %
-%   The predicate notrap/1 removes matching (unifying) traps.
+%   Calling debugging/0 lists the enabled  traps. The predicate notrap/1
+%   removes matching (unifying) traps.
+%
+%   In many cases debugging an exception that  is caught is as simple as
+%   below (assuming run/0 starts your program).
+%
+%   ```
+%   ?- gtrap(_).
+%   ?- run.
+%   ```
 %
 %   @see gtrap/1 to trap using the graphical debugger.
 %   @see _Edit exceptions_ menu in PceEmacs and the graphical debugger
@@ -195,7 +206,7 @@ spy_point(Module:Head) :-
     installed/1.                    % ClauseRef
 
 trap(Error) :-
-    notrace(trap_(Error)).
+    '$notrace'(trap_(Error)).
 
 trap_(Error) :-
     gensym(ex, Rule),
@@ -205,7 +216,7 @@ trap_(Error) :-
     debug.
 
 notrap(Error) :-
-    notrace(notrap_(Error)).
+    '$notrace'(notrap_(Error)).
 
 notrap_(Error) :-
     Exception = error(Error, _),

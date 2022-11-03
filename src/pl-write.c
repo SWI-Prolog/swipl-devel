@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,6 +49,7 @@
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include "os/pl-prologflag.h"
 #include <stdio.h>			/* sprintf() */
 #include <errno.h>
@@ -328,39 +330,51 @@ atomType(atom_t a, write_options *options)
 static int
 unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 { Atom ap = atomValue(atom);
-  pl_wchar_t *s = (pl_wchar_t*)ap->name;
+  const pl_wchar_t *s = (const pl_wchar_t*)ap->name;
+  const pl_wchar_t *s1;
   size_t len = ap->length/sizeof(pl_wchar_t);
+  const pl_wchar_t *e = &s[len];
+  int c;
 
   if ( len == 0 )
     return FALSE;
 
-  if ( !f_is_prolog_atom_start(*s) )
-  { for( ; len > 0; s++, len--)
-    { if ( !f_is_prolog_symbol(*s) ||
-	   code_requires_quoted(*s, fd, flags) )
+  s1 = get_wchar(s, &c);
+  if ( !f_is_prolog_atom_start(c) )	/* Sequence of symbol chars */
+  { while ( s < e )
+    { s = get_wchar(s, &c);
+
+      if ( !f_is_prolog_symbol(c) ||
+	   code_requires_quoted(c, fd, flags) )
 	return FALSE;
     }
     return TRUE;
   }
 
-  if ( code_requires_quoted(*s, fd, flags) )
+  if ( code_requires_quoted(c, fd, flags) )
     return FALSE;
 
-  do
-  { for( ++s;
-	 ( --len > 0 &&
-	   f_is_prolog_identifier_continue(*s) &&
-	   !code_requires_quoted(*s, fd, flags)
-	 );
-	 s++)
-      ;
-  } while ( len >= 2 &&
-	    *s == '.' && f_is_prolog_identifier_continue(s[1]) &&
-	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
-	    !(flags&PL_WRT_NODOTINATOM)
-	  );
+  s = s1;				/* 1st char is ID_START */
+  int dot_in_atom = ( truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+		      !(flags&PL_WRT_NODOTINATOM) );
 
-  return len == 0;
+  while ( s < e )
+  { s = get_wchar(s, &c);
+
+    if ( c == '.' && dot_in_atom && s < e )
+    { s = get_wchar(s, &c);
+      if ( f_is_prolog_identifier_continue(c) &&
+	   !code_requires_quoted(c, fd, flags) )
+	continue;
+      return FALSE;
+    }
+
+    if ( !f_is_prolog_identifier_continue(c) ||
+	 code_requires_quoted(c, fd, flags) )
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 
@@ -660,14 +674,13 @@ writeAttVar(term_t av, write_options *options)
     return TRUE;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { static predicate_t pred;
+  { predicate_t pred;
     IOSTREAM *old;
     wakeup_state wstate;
     int rc;
 
-    if ( !pred )
-      pred = _PL_predicate("portray_attvar", 1, "$attvar",
-			   &GD->procedures.portray_attvar1);
+    pred = _PL_predicate("portray_attvar", 1, "$attvar",
+			 &GD->procedures.portray_attvar1);
 
     if ( !enterPortray() )
       return FALSE;
@@ -782,9 +795,9 @@ writeAtomToStream(IOSTREAM *s, atom_t atom)
 int
 writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
-  pl_wchar_t *s = (pl_wchar_t*)a->name;
+  const pl_wchar_t *s = (const pl_wchar_t*)a->name;
   size_t len = a->length/sizeof(pl_wchar_t);
-  pl_wchar_t *e = &s[len];
+  const pl_wchar_t *e = &s[len];
 
   if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(atom, fd, flags) )
   { pl_wchar_t quote = L'\'';
@@ -793,17 +806,28 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 	Putc(quote, fd));
 
     while(s < e)
-    { TRY(putQuoted(*s++, quote, flags, fd));
+    { int c;
+
+      s = get_wchar(s, &c);
+      TRY(putQuoted(c, quote, flags, fd));
     }
 
     return Putc(quote, fd);
   }
 
-  if ( s < e && !PutOpenToken(s[0], fd) )
-    return FALSE;
-  for( ; s<e; s++)
-  { if ( !Putc(*s, fd) )
+  if ( e > s )
+  { int c;
+
+    get_wchar(s, &c);
+    if ( !PutOpenToken(c, fd) )
       return FALSE;
+
+    while ( s < e )
+    { s = get_wchar(s, &c);
+
+      if ( !Putc(c, fd) )
+	return FALSE;
+    }
   }
 
   return TRUE;
@@ -849,20 +873,6 @@ writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 
 #if O_STRING
 
-static inline int
-get_chr_from_text(const PL_chars_t *t, int index)
-{ switch(t->encoding)
-  { case ENC_ISO_LATIN_1:
-      return t->text.t[index]&0xff;
-    case ENC_WCHAR:
-      return t->text.w[index];
-    default:
-      assert(0);
-    return 0;
-  }
-}
-
-
 static int
 writeString(term_t t, write_options *options)
 { GET_LD
@@ -874,7 +884,6 @@ writeString(term_t t, write_options *options)
 
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
-    unsigned int i;
 
     if ( true(options, PL_WRT_BACKQUOTED_STRING) )
       quote = '`';
@@ -884,22 +893,65 @@ writeString(term_t t, write_options *options)
     if ( !(rc=Putc(quote, options->out)) )
       goto out;
 
-    for(i=0; i<txt.length; i++)
-    { int chr = get_chr_from_text(&txt, i);
+    switch(txt.encoding)
+    { case ENC_ISO_LATIN_1:
+      { const unsigned char *s = (const unsigned char*)txt.text.t;
+	const unsigned char *e = &s[txt.length];
 
-      if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
-	goto out;
+	while(s<e)
+	{ int chr = *s++;
+
+	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      case ENC_WCHAR:
+      { const wchar_t *s = txt.text.w;
+	const wchar_t *e = &s[txt.length];
+
+	while(s<e)
+	{ int chr;
+
+	  s = get_wchar(s, &chr);
+	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      default:
+	assert(0);
     }
-
     rc = Putc(quote, options->out);
   } else
-  { unsigned int i;
+  { switch(txt.encoding)
+    { case ENC_ISO_LATIN_1:
+      { const unsigned char *s = (const unsigned char*)txt.text.t;
+	const unsigned char *e = &s[txt.length];
 
-    for(i=0; i<txt.length; i++)
-    { int chr = get_chr_from_text(&txt, i);
+	while(s<e)
+	{ int chr = *s++;
 
-      if ( !(rc=Putc(chr, options->out)) )
+	  if ( !(rc=Putc(chr, options->out)) )
+	    goto out;
+	}
 	break;
+      }
+      case ENC_WCHAR:
+      { const wchar_t *s = txt.text.w;
+	const wchar_t *e = &s[txt.length];
+
+	while(s<e)
+	{ int chr;
+
+	  s = get_wchar(s, &chr);
+	  if ( !(rc=Putc(chr, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      default:
+	assert(0);
     }
   }
   PL_STRINGS_RELEASE();
@@ -1633,7 +1685,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	  }
 				/* +/-(Number) : avoid parsing as number */
 	  options->out->lastc |= C_PREFIX_OP;
-	  if ( functor == ATOM_minus || functor == ATOM_plus )
+	  if ( functor == ATOM_minus )
 	    options->out->lastc |= C_PREFIX_SIGN;
 
 	  _PL_get_arg(arity, t, arg);
@@ -1903,7 +1955,7 @@ writeBlobMask(atom_t a)
 }
 
 
-static const opt_spec write_term_options[] =
+static const PL_option_t write_term_options[] =
 { { ATOM_quoted,		    OPT_BOOL },
   { ATOM_quote_non_ascii,	    OPT_BOOL },
   { ATOM_ignore_ops,		    OPT_BOOL },
@@ -1962,7 +2014,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   memset(&options, 0, sizeof(options));
   options.spacing = ATOM_standard;
 
-  if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
+  if ( !PL_scan_options(opts, 0, "write_option", write_term_options,
 		     &quoted, &quote_non_ascii, &ignore_ops, &dotlists, &braceterms,
 		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &charescape_unicode,
@@ -2255,7 +2307,7 @@ Emit Codes using the escaped character  syntax,   but  does not emit the
 start and end-code itself.
 */
 
-static const opt_spec put_quoted_options[] =
+static const PL_option_t put_quoted_options[] =
 { { ATOM_character_escapes_unicode, OPT_BOOL },
   { NULL_ATOM,			    0 }
 };
@@ -2272,7 +2324,7 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
   int rc = TRUE;
   bool charescape_unicode = -1;
 
-  if ( !scan_options(A4, 0, ATOM_write_option, put_quoted_options,
+  if ( !PL_scan_options(A4, 0, "write_option", put_quoted_options,
 		     &charescape_unicode) )
     return FALSE;
 

@@ -1,8 +1,38 @@
-/*  File: pl-vmi.h
+/*  Part of SWI-Prolog
 
-    This file provides the definition of type code, and also includes
-    macros to generate other types of output on a per-VMI basis. For
-    more examples, see the files pl-wam.c and pl-codetable.c.
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2008-2022, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+			      Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef _PL_VMI_H
@@ -13,19 +43,19 @@
  * VM_SIGNATURE 0x1234abcd
  * FOREACH_VMI_CALL(sep,f,...) f(D_BREAK,...) sep() f(I_NOP,...) sep() f(H_ATOM,...) sep() ...
  * FOREACH_VMH_CALL(sep,f,...) f(wakeup,...) sep() f(retry,...) sep() f(h_const,...) sep() ...
- * 
+ *
  * Per-instruction defines, assuming the following in pl-vmi.c:
  *   VMI(INSTR_NAME, I_FLAGS, 2, (CA1_ARGTYPE,CA1_ARGTYPE))
- * 
+ *
  * VMLCASE_INSTR_NAME instr_name
  * VMIDECL_INSTR_NAME INSTR_NAME, I_FLAGS, 2, (CA1_ARGTYPE,CA1_ARGTYPE)
  * VMIFLAGS_INSTR_NAME I_FLAGS
  * VMIARGCOUNT_INSTR_NAME 2
  * VMIARGTYPES_INSTR_NAME CA1_ARGTYPE,CA1_ARGTYPE
- * 
+ *
  * Per-helper defines, assuming the following:
  *   VMH(helper_name, 2, (int, Code), (n, p))
- * 
+ *
  * VMLCASE_helper_name helper_name
  * VMHDECL_helper_name helper_name, 2, (int, Code), (n, p)
  * VMHARGCOUNT_helper_name 2
@@ -57,12 +87,12 @@
  * (a) a callout - a bare macro name that will be passed the name of the VMI, or
  * (b) a literal, in parentheses, that can contain commas, or
  * (c) an empty parameter, which is replaced by a single comma.
- * 
+ *
  * Example usage:
  * FOREACH_VMI(T_EMPTY,
  *   int ,VMI_IDENT,(Code PC,, ,(DECL_LD void *ctx),);
  * )
- * 
+ *
  * This would expand to:
  * int instr_D_BREAK(DECL_LD Code PC, void *ctx);
  * ... and so on. Note the double-comma acting as an escape for a single comma, and

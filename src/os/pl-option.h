@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,34 +36,19 @@
 #ifndef OPTION_H_INCLUDED
 #define OPTION_H_INCLUDED
 
-#define OPT_BOOL	(0)		/* types */
-#define OPT_INT		(1)
-#define OPT_STRING	(2)
-#define OPT_ATOM	(3)
-#define OPT_TERM	(4)		/* arbitrary term */
-#define OPT_LONG	(5)
-#define OPT_NATLONG	(6)		/* > 0 */
-#define OPT_SIZE	(7)		/* size_t */
-#define OPT_DOUBLE	(8)
-#define OPT_LOCALE	(9)
-#define OPT_TYPE_MASK	0xff
-#define OPT_INF		0x100		/* allow 'inf' */
-
-#define OPT_ALL		0x1		/* flags */
-
-typedef struct
-{ atom_t	name;			/* Name of option */
-  int		type;			/* Type of option */
-} opt_spec, *OptSpec;
+/* OPT_<type>, etc and opt_spec are defined in SWI-Prolog.h since the
+   option API is public.
+*/
 
 #if USE_LD_MACROS
-#define scan_options(list, flags, name, specs, ...) LDFUNC(scan_options, list, flags, name, specs, __VA_ARGS__)
+#define PL_scan_options(list, flags, name, specs, ...) \
+	LDFUNC(PL_scan_options, list, flags, name, specs, __VA_ARGS__)
 #endif
 
 #define LDFUNC_DECLARATIONS
 
-COMMON(int)		scan_options(term_t list, int flags, atom_t name,
-				     const opt_spec *specs, ...);
+COMMON(int)	PL_scan_options(term_t list, int flags, const char *opttype,
+				const PL_option_t specs[], ...);
 
 #undef LDFUNC_DECLARATIONS
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -50,6 +50,8 @@
 #include "pl-proc.h"
 #include "pl-fli.h"
 
+#undef LD
+#define LD LOCAL_LD
 
 		/********************************
 		*    CALLING THE INTERPRETER    *
@@ -101,7 +103,6 @@ restore_after_exception(term_t except)
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);
-  setPrologFlagMask(PLFLAG_LASTCALL);
   if ( PL_get_atom(except, &a) && a == ATOM_aborted )
   { rc = ( callEventHook(PLEV_ABORT) &&
 	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
@@ -153,7 +154,12 @@ query_loop(atom_t goal, int loop)
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { restore_after_exception(except);
+    { if ( Sferror(Suser_input) ||
+	   Sferror(Suser_output) ||
+	   Sferror(Suser_error) )
+	return -1;
+
+      restore_after_exception(except);
       rc = -1;
     }
 
@@ -268,8 +274,57 @@ currentBreakLevel(void)
 }
 
 
+#define NOTRACE_TRACE 0x1
+#define NOTRACE_DEBUG 0x2
+
 static
-PRED_IMPL("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
+{ PRED_LD
+  int flags = 0;
+  
+  if ( debugstatus.tracing   ) flags |= NOTRACE_TRACE;
+  if ( debugstatus.debugging ) flags |= NOTRACE_DEBUG;
+
+  if ( PL_unify_integer(A1, flags) &&
+       PL_unify_int64(A2, debugstatus.skiplevel) )
+  { debugstatus.tracing   = FALSE;
+    debugstatus.debugging = FALSE;
+    debugstatus.skiplevel = SKIP_VERY_DEEP;
+    setPrologRunMode(RUN_MODE_NORMAL);
+    updateAlerted(LD);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
+{ PRED_LD
+  int flags;
+  int64_t depth;
+
+  if ( PL_get_integer_ex(A1, &flags) &&
+       PL_get_int64_ex(A2, &depth) )
+  { debugstatus.tracing   = !!(flags&NOTRACE_TRACE);
+    debugstatus.debugging = !!(flags&NOTRACE_DEBUG);
+    debugstatus.skiplevel = depth;
+    if ( debugstatus.debugging )
+      clearPrologRunMode(RUN_MODE_NORMAL);
+    else
+      setPrologRunMode(RUN_MODE_NORMAL);
+    updateAlerted(LD);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
 { PRED_LD
   int rval;
   term_t ex;
@@ -288,9 +343,6 @@ PRED_IMPL("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   return rval;
 }
 
-#undef LD
-#define LD LOCAL_LD
-
 /** sig_atomic(:Goal) is semidet.
 
 Execute Goal as once/1 while blocking signals.
@@ -304,9 +356,9 @@ PRED_IMPL("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
 { PRED_LD
   int rval;
 
-  startCritical;
+  startCritical();
   rval = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
-  if ( !endCritical )
+  if ( !endCritical() )
     fail;				/* aborted */
 
   return rval;
@@ -335,6 +387,17 @@ PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 }
 
 
+/** '$can_yield' is semidet.
+ *
+ * True if the current query can use _foreign yielding_
+ */
+
+static
+PRED_IMPL("$can_yield", 0, can_yield, 0)
+{ PRED_LD
+
+  return !!true(LD->query, PL_Q_ALLOW_YIELD);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
@@ -359,7 +422,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     *ex = 0;
   }
 
-  if ( !(g=PL_new_term_ref()) )
+  if ( !require_c_stack(C_STACK_MIN) ||
+       !(g=PL_new_term_ref()) )
   { error:
     if ( ex )
       *ex = exception_term;
@@ -872,8 +936,11 @@ accessLevel(void)
 
 BeginPredDefs(pro)
   PRED_DEF("abort",	     0, abort,         0)
-  PRED_DEF("notrace",        1, notrace,       PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+  PRED_DEF("$notrace",       2, notrace,       PL_FA_NOTRACE)
+  PRED_DEF("$restore_trace", 2, restoretrace,  PL_FA_NOTRACE)
+  PRED_DEF("$notrace",       1, notrace,       PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("sig_atomic",     1, sig_atomic,    PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
   PRED_DEF("$trap_gdb",      0, trap_gdb,      0)
   PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+  PRED_DEF("$can_yield",     0, can_yield,     0)
 EndPredDefs

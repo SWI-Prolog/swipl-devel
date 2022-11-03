@@ -199,17 +199,16 @@ save_settings(TB, Ops, state(Style, Flags, OSM, Xref)) :-
     syntax_flags(Flags),
     '$style_check'(Style, Style).
 
-qualify_op(M, op(P,T,N), op(P,T,M:N)) :-
-    atom(N), !.
-qualify_op(M, op(P,T,L), op(P,T,QL)) :-
-    is_list(L), !,
+qualify_op(M, op(P,T,[]), Q)            => Q = op(P,T,M:[]).
+qualify_op(M, op(P,T,N), Q), atom(N)    => Q = op(P,T,M:N).
+qualify_op(M, op(P,T,L), Q), is_list(Q) =>
+    Q = op(P, T, QL),
     maplist(qualify_op_name(M), L, QL).
-qualify_op(_, Op, Op).
+qualify_op(_, Op, Q)			=> Q = Op.
 
-qualify_op_name(M, N, M:N) :-
-    atom(N),
-    !.
-qualify_op_name(_, N, N).
+qualify_op_name(M, N,  Q), atom(N) => Q = M:N.
+qualify_op_name(M, [], Q)          => Q = M:[].
+qualify_op_name(_, V,  Q)          => Q = V.
 
 restore_settings(state(Style, Flags, OSM, Xref)) :-
     restore_syntax_flags(Flags),
@@ -1268,9 +1267,10 @@ colourise_setof(Term, TB, Pos) :-
 %       Colourise database modification calls (assert/1, retract/1 and
 %       friends.
 
-colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :-
+colourise_db((Head:-Body), TB, term_position(_,_,_,_,[HP,BP])) :-
     !,
-    colourise_db(Head, TB, HP).
+    colourise_db(Head, TB, HP),
+    colourise_body(Body, Head, TB, BP).
 colourise_db(Module:Head, TB, term_position(_,_,QF,QT,[MP,HP])) :-
     !,
     colourise_module(Module, TB, MP),
@@ -2274,6 +2274,16 @@ classify_head(TB, Goal, unreferenced) :-
     colour_state_source_id(TB, SourceId),
     \+ (xref_called(SourceId, Goal, By), By \= Goal),
     !.
+classify_head(TB, Goal, test) :-
+    Goal = test(_),
+    colour_state_source_id(TB, SourceId),
+    xref_called(SourceId, Goal, '<test_unit>'(_Unit)),
+    !.
+classify_head(TB, Goal, test) :-
+    Goal = test(_, _),
+    colour_state_source_id(TB, SourceId),
+    xref_called(SourceId, Goal, '<test_unit>'(_Unit)),
+    !.
 classify_head(TB, Goal, How) :-
     colour_state_source_id(TB, SourceId),
     (   xref_defined(SourceId, Goal, imported(From))
@@ -2484,6 +2494,7 @@ def_style(head(built_in,_),        [background(orange), bold(true)]).
 def_style(head(iso,_),             [background(orange), bold(true)]).
 def_style(head(def_iso,_),         [colour(blue), bold(true)]).
 def_style(head(def_swi,_),         [colour(blue), bold(true)]).
+def_style(head(test,_),            [colour('#01bdbd'), bold(true)]).
 def_style(head(_,_),               [bold(true)]).
 def_style(rule_condition,	   [background('#d4ffe3')]).
 
@@ -3033,9 +3044,9 @@ goal_class(undefined) -->
 goal_class(global) -->
     [ ' (Auto-imported from module user)' ].
 goal_class(global(Class, File:Line)) -->
-    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+    [ ' (~w in user module from '-[Class], url(File:Line), ')' ].
 goal_class(global(Class, source_location(File,Line))) -->
-    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+    [ ' (~w in user module from '-[Class], url(File:Line), ')' ].
 goal_class(global(Class, -)) -->
     [ ' (~w in user module)'-[Class] ].
 goal_class(imported(From)) -->

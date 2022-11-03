@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2016, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2006-2022, University of Amsterdam
+                              VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,15 +46,15 @@
             file_name_on_path/2,        % +File, -PathSpec
             file_alias_path/2,          % ?Alias, ?Dir
             path_segments_atom/2,       % ?Segments, ?Atom
-            directory_source_files/3    % +Dir, -Files, +Options
+            directory_source_files/3,   % +Dir, -Files, +Options
+            valid_term_position/2       % +Term, +TermPos
           ]).
-:- autoload(library(apply),[maplist/2]).
-:- autoload(library(debug),[debug/3,assertion/1]).
-:- autoload(library(error),[domain_error/2]).
-:- autoload(library(lists),[member/2,last/2,select/3,append/3]).
-:- autoload(library(operators),
-	    [push_op/3,push_operators/1,pop_operators/0]).
-:- autoload(library(option),[select_option/4,option/3,option/2]).
+:- autoload(library(apply), [maplist/2, maplist/3, foldl/4]).
+:- autoload(library(debug), [debug/3, assertion/1]).
+:- autoload(library(error), [domain_error/2, is_of_type/2]).
+:- autoload(library(lists), [member/2, last/2, select/3, append/3, selectchk/3]).
+:- autoload(library(operators), [push_op/3, push_operators/1, pop_operators/0]).
+:- autoload(library(option), [select_option/4, option/3, option/2]).
 
 
 /** <module> Examine Prolog source-files
@@ -910,6 +911,146 @@ dir_file_path(Dir, File, Path) :-
         atom_concat(TheDir, File, Path)
     ).
 
+
+%!  valid_term_position(@Term, @TermPos) is semidet.
+%
+%   Check that a Term has an   appropriate  TermPos layout. An incorrect
+%   TermPos results in either failure of this predicate or an error.
+%
+%   If a position in TermPos  is  a   variable,  the  validation  of the
+%   corresponding   part   of   Term   succeeds.    This   matches   the
+%   term_expansion/4 treats "unknown" layout information.   If part of a
+%   TermPos is given, then all its "from"   and "to" information must be
+%   specified; for example,    string_position(X,Y)   is   an  error but
+%   string_position(0,5) succeeds.   The position values are checked for
+%   being plausible -- e.g., string_position(5,0) will fail.
+%
+%   This should always succeed:
+%
+%       read_term(Term, [subterm_positions(TermPos)]),
+%       valid_term_position(Term, TermPos)
+%
+%   @arg Term Any Prolog term including a variable).
+%   @arg TermPos The detailed layout of the term, for example
+%        from using =|read_term(Term, subterm_positions(TermPos)|=.
+%
+%   @error existence_error(matching_rule, Subterm) if a subterm of Term
+%          is inconsistent with the corresponding part of TermPos.
+%
+%   @see read_term/2, read_term/3, term_string/3
+%   @see expand_term/4, term_expansion/4, expand_goal/4, expand_term/4
+%   @see clause_info/4, clause_info/5
+%   @see prolog_clause:unify_clause_hook/5
+
+valid_term_position(Term, TermPos) :-
+    valid_term_position(0, 0x7fffffffffffffff, Term, TermPos).
+
+valid_term_position(OuterFrom, OuterTo, _Term, TermPos),
+        var(TermPos),
+        OuterFrom =< OuterTo => true.
+valid_term_position(OuterFrom, OuterTo, Var, From-To),
+        var(Var),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) => true.
+valid_term_position(OuterFrom, OuterTo, Atom, From-To),
+        atom(Atom),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) => true.
+valid_term_position(OuterFrom, OuterTo, Number, From-To),
+        number(Number),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) => true.
+valid_term_position(OuterFrom, OuterTo, [], From-To),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) => true.
+valid_term_position(OuterFrom, OuterTo, String, string_position(From,To)),
+        (   string(String)
+        ->  true
+        ;   is_of_type(codes, String)
+        ->  true
+        ;   is_of_type(chars, String)
+        ->  true
+        ;   atom(String)
+        ),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) => true.
+valid_term_position(OuterFrom, OuterTo, {Arg},
+                    brace_term_position(From,To,ArgPos)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    valid_term_position(From, To, Arg, ArgPos).
+valid_term_position(OuterFrom, OuterTo, [Hd|Tl],
+                    list_position(From,To,ElemsPos,none)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    term_position_list_tail([Hd|Tl], _HdPart, []),
+    maplist(valid_term_position, [Hd|Tl], ElemsPos).
+valid_term_position(OuterFrom, OuterTo, [Hd|Tl],
+                    list_position(From, To, ElemsPos, TailPos)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    term_position_list_tail([Hd|Tl], HdPart, Tail),
+    maplist(valid_term_position(From,To), HdPart, ElemsPos),
+    valid_term_position(Tail, TailPos).
+valid_term_position(OuterFrom, OuterTo, Term,
+                    term_position(From,To, FFrom,FTo,SubPos)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    compound_name_arguments(Term, Name, Arguments),
+    valid_term_position(Name, FFrom-FTo),
+    maplist(valid_term_position(From,To), Arguments, SubPos).
+valid_term_position(OuterFrom, OuterTo, Dict,
+                    dict_position(From,To,TagFrom,TagTo,KeyValuePosList)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    dict_pairs(Dict, Tag, Pairs),
+    valid_term_position(Tag, TagFrom-TagTo),
+    foldl(valid_term_position_dict(From,To), Pairs, KeyValuePosList, []).
+% key_value_position(From, To, SepFrom, SepTo, Key, KeyPos, ValuePos)
+% is handled in valid_term_position_dict.
+valid_term_position(OuterFrom, OuterTo, Term,
+                    parentheses_term_position(From,To,ContentPos)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    valid_term_position(From, To, Term, ContentPos).
+valid_term_position(OuterFrom, OuterTo, _Term,
+                    quasi_quotation_position(From,To,
+                                             SyntaxTerm,SyntaxPos,_ContentPos)),
+        valid_term_position_from_to(OuterFrom, OuterTo, From, To) =>
+    valid_term_position(From, To, SyntaxTerm, SyntaxPos).
+
+valid_term_position_from_to(OuterFrom, OuterTo, From, To) :-
+    integer(OuterFrom),
+    integer(OuterTo),
+    integer(From),
+    integer(To),
+    OuterFrom =< OuterTo,
+    From =< To,
+    OuterFrom =< From,
+    To =< OuterTo.
+
+:- det(valid_term_position_dict/5).
+valid_term_position_dict(OuterFrom, OuterTo, Key-Value,
+                         KeyValuePosList0, KeyValuePosList1) :-
+    selectchk(key_value_position(From,To,SepFrom,SepTo,Key,KeyPos,ValuePos),
+              KeyValuePosList0, KeyValuePosList1),
+    valid_term_position_from_to(OuterFrom, OuterTo, From, To),
+    valid_term_position_from_to(OuterFrom, OuterTo, SepFrom, SepTo),
+    SepFrom >= OuterFrom,
+    valid_term_position(From, SepFrom, Key, KeyPos),
+    valid_term_position(SepTo, To, Value, ValuePos).
+
+%!  term_position_list_tail(@List, -HdPart, -Tail) is det.
+%
+%   Similar to append(HdPart, [Tail], List) for   proper lists, but also
+%   works for inproper lists, in which  case   it  unifies Tail with the
+%   tail of the partial list. HdPart is always a proper list:
+%
+%   ```
+%   ?- prolog_source:term_position_list_tail([a,b,c], Hd, Tl).
+%   Hd = [a, b, c],
+%   Tl = [].
+%   ?- prolog_source:term_position_list_tail([a,b|X], Hd, Tl).
+%   X = Tl,
+%   Hd = [a, b].
+%   ```
+
+:- det(term_position_list_tail/3).
+term_position_list_tail([X|Xs], HdPart, Tail) =>
+    HdPart = [X|HdPart2],
+    term_position_list_tail(Xs, HdPart2, Tail).
+term_position_list_tail(Tail0, HdPart, Tail) =>
+    HdPart = [],
+    Tail0 = Tail.
 
 
                  /*******************************

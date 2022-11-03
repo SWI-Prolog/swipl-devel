@@ -38,17 +38,7 @@
 	    test_answer/2
 	  ]).
 
-:- prolog_load_context(directory, Here),
-   atom_concat(Here, '../../../../packages/clib', ClibDir0),
-   absolute_file_name(ClibDir0, ClibDir),
-   asserta(user:file_search_path(library, ClibDir)),
-   asserta(user:file_search_path(foreign, ClibDir)).
-
-:- if(absolute_file_name(foreign(unix), _,
-			 [ file_type(executable),
-			   file_errors(fail),
-			   access(read)
-			 ])).
+:- if(exists_source(library(unix))).
 
 :- use_module(library(plunit)).
 :- use_module(library(unix)).
@@ -88,8 +78,9 @@ send_bindings(In, Out) :-
 	set_prolog_IO(In, Out, Out),
 	set_prolog_flag(toplevel_residue_vars, true),
 	prolog,
-	close(In),
-	close(Out).
+	close(user_input),
+	close(user_output),
+	close(user_error).
 
 %%	test_answer(+Query, -OkReplies) is semidet.
 %
@@ -133,7 +124,10 @@ compare_comment(_-C, _-C).
 hidden :-
 	dif(_X, a).
 
-:- begin_tests(answer, [sto(rational_trees)]).
+:- begin_tests(answer,
+	       [ sto(rational_trees),
+		 condition(current_prolog_flag(threads, true))
+	       ]).
 
 test(simple, true) :-
 	test_answer('A=1', ['A=1']).
@@ -180,7 +174,7 @@ test(hidden3, true) :-
 :- else.				% No foreign(unix) found
 
 test_answer :-
-	format(user_error, 'Skipped toplevel answer tests; requires clib~n', []).
+	format(user_error, 'Skipped toplevel answer tests; requires library(unix) from clib~n', []).
 
 test_answer(_QueryAtom, _Replies).	% satisfy exports
 

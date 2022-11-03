@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2021, University of Amsterdam,
+    Copyright (c)  1999-2022, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -486,7 +486,6 @@ static thread_handle *symbol_thread_handle(atom_t a);
 static void	destroy_interactor(thread_handle *th, int gc);
 static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
-static void	free_thread_wait(PL_local_data_t *ld);
 
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked(term_t t, message_queue **queue);
@@ -496,7 +495,6 @@ static void	initMessageQueues(void);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
 static void	init_predicate_references(PL_local_data_t *ld);
-static void	free_predicate_references(PL_local_data_t *ld);
 static int	ldata_in_use(PL_local_data_t *ld);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
@@ -590,6 +588,10 @@ initialise_thread(PL_thread_info_t *info)
 static void
 free_local_data(PL_local_data_t *ld)
 { simpleMutexDelete(&ld->thread.scan_lock);
+#if STDC_CV_ALERT
+  cnd_destroy(&ld->signal.alert_cv);
+  mtx_destroy(&ld->signal.alert_mtx);
+#endif
   freeHeap(ld, sizeof(*ld));
 }
 
@@ -661,7 +663,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       PL_UNLOCK(L_THREAD);
 
       if ( ld->stacks.argument.base )		/* are stacks initialized? */
-      { ld->critical++;   /* startCritical  */
+      { WITH_LD(ld) startCritical();
 	info->in_exit_hooks = TRUE;
 	if ( LD == ld )
 	  rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
@@ -675,7 +677,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 	  PL_clear_exception();
 	}
 	info->in_exit_hooks = FALSE;
-	ld->critical--;   /* endCritical */
+	WITH_LD(ld) endCritical();	/* TBD: exception? */
       }
     } else
     { acknowledge = FALSE;
@@ -687,8 +689,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       WITH_LD(ld) activateProfiler(FALSE);
   #endif
 
-    destroy_event_list(&ld->event.hook.onthreadexit);
-    free_thread_wait(ld);
     cleanupLocalDefinitions(ld);
 
     DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
@@ -712,16 +712,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       GD->statistics.thread_cputime += time;
     }
     destroy_thread_message_queue(&ld->thread.messages);
-    free_predicate_references(ld);
-    free_undo_data(ld);
-    if ( ld->btrace_store )
-    { btrace_destroy(ld->btrace_store);
-      ld->btrace_store = NULL;
-    }
-  #ifdef O_LOCALE
-    if ( ld->locale.current )
-      releaseLocale(ld->locale.current);
-  #endif
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = FALSE;		/* needed? */
     if ( !after_fork )
@@ -900,8 +890,8 @@ initPrologThreads(void)
   PL_local_data.magic = LD_MAGIC;
   { GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.highest_allocated = 1;
-    GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
-					 sizeof(*GD->thread.threads));
+    GD->thread.threads = PL_malloc(GD->thread.thread_max *
+				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
     info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
@@ -957,8 +947,8 @@ cleanupThreads(void)
     if ( info )
       freeHeap(info, sizeof(*info));
   }
-  freeHeap(GD->thread.threads,
-	   GD->thread.thread_max * sizeof(*GD->thread.threads));
+  free_lingering(&GD->thread.lingering, GEN_MAX);
+  PL_free(GD->thread.threads);
   GD->thread.threads = NULL;
   threads_ready = FALSE;
 }
@@ -1306,7 +1296,7 @@ discard_thread(thread_handle *h)
 static void *
 thread_gc_loop(void *closure)
 {
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
   sigset_t set;
   allSignalMask(&set);
   pthread_sigmask(SIG_BLOCK, &set, NULL);
@@ -1364,7 +1354,8 @@ gc_thread(thread_handle *ref)
     } while( !COMPARE_AND_SWAP_PTR(&gced_threads, h, ref) );
 
     start_thread_gc_thread();
-  }
+  } else
+    PL_free(ref);
 }
 
 
@@ -1443,8 +1434,6 @@ static PL_blob_t thread_blob =
 Resizing max-threads. Note that we do *not* deallocate the old structure
 to ensure we can  access  GD->thread.threads[i]   at  any  time  without
 locking.
-
-TBD: remember the old ones, such that PL_cleanup() can remove them.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1454,12 +1443,12 @@ resizeThreadMax(void)
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
   oldinfo = GD->thread.threads;
-  newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
+  newinfo = PL_malloc(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, oldinfo, dsize);
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
-  GC_LINGER(oldinfo);
+  linger(&GD->thread.lingering, PL_free, oldinfo);
 
   return TRUE;
 }
@@ -1620,11 +1609,29 @@ alertThread(PL_thread_info_t *info)
         cv_broadcast(&ld->thread.alert.obj.queue->drain_var);
 	done = TRUE;
 	break;
+#if STDC_CV_ALERT
+      case ALERT_LOCK_CV:
+        /* thread_wait_signal locks L_ALERT inside alert_mtx, so we
+	 * must do the same to avoid deadlocks. A thread race here
+	 * will only cause us to alert a non-waiting thread, which
+	 * isn't a problem. */
+	PL_UNLOCK(L_ALERT);
+	mtx_lock(&ld->signal.alert_mtx);
+	PL_LOCK(L_ALERT);
+	done = cnd_broadcast(&ld->signal.alert_cv) == thrd_success;
+	mtx_unlock(&ld->signal.alert_mtx);
+	break;
+#endif
     }
     PL_UNLOCK(L_ALERT);
     if ( done )
       return TRUE;
   }
+
+#if STDC_CV_ALERT
+  /* Try sending a notification on the thread's alert cv, if it exists */
+  cnd_broadcast(&ld->signal.alert_cv);
+#endif
 
 #ifdef __WINDOWS__
   if ( info->w32id )
@@ -1632,9 +1639,14 @@ alertThread(PL_thread_info_t *info)
     return TRUE;			/* NOTE: PostThreadMessage() can */
 					/* fail if thread is being created */
   }
-#elif defined(SIG_ALERT)
-  if ( info->has_tid && GD->signals.sig_alert )
-    return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
+#elif defined(SIG_ALERT) && defined(HAVE_PTHREAD_KILL)
+  WITH_LD(ld)
+  { if ( info->has_tid && truePrologFlag(PLFLAG_SIGNALS) && GD->signals.sig_alert )
+    { DEBUG(MSG_THREAD_SIGNAL, Sdprintf("Sending signal %d to %d\n",
+					GD->signals.sig_alert, info->pl_tid));
+      return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
+    }
+  }
 #endif
   return -1;
 }
@@ -1696,13 +1708,30 @@ thread_wait_signal(DECL_LD)
     MSG msg;
     if ( !GetMessage(&msg, (HWND)-1, WM_SIGNALLED, WM_SIGNALLED) )
       return -1;
+    continue;
 #elif defined(SIG_ALERT)
-    sigset_t set;
-    int sig;
+    if ( truePrologFlag(PLFLAG_SIGNALS) )
+    { sigset_t set;
+      int sig;
 
-    sigemptyset(&set);
-    sigaddset(&set, GD->signals.sig_alert);
-    sigwait(&set, &sig);
+      sigemptyset(&set);
+      sigaddset(&set, GD->signals.sig_alert);
+      sigwait(&set, &sig);
+      continue;
+    }
+#endif
+#if STDC_CV_ALERT
+    LD->thread.alert.type = ALERT_LOCK_CV;
+    mtx_lock(&LD->signal.alert_mtx);
+    if (!is_signalled())
+      cnd_wait(&LD->signal.alert_cv, &LD->signal.alert_mtx);
+    PL_LOCK(L_ALERT);
+    LD->thread.alert.type = 0;
+    PL_UNLOCK(L_ALERT);
+    mtx_unlock(&LD->signal.alert_mtx);
+#else
+    /* Shouldn't happen? but let's avoid the spin cycle anyway */
+    Pause(0.001);
 #endif
   }
 
@@ -1842,7 +1871,7 @@ set_os_thread_name(atom_t alias)
 }
 
 
-static const opt_spec make_thread_options[] =
+static const PL_option_t make_thread_options[] =
 { { ATOM_alias,		 OPT_ATOM },
   { ATOM_debug,		 OPT_BOOL },
   { ATOM_detached,	 OPT_BOOL },
@@ -2010,11 +2039,12 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   if ( !ldnew->thread.info->debug )
   { ldnew->_debugstatus.tracing   = FALSE;
     ldnew->_debugstatus.debugging = DBG_OFF;
-    setPrologFlagMask_LD(ldnew, PLFLAG_LASTCALL);
+    setPrologRunMode_LD(ldnew, RUN_MODE_NORMAL);
   }
   ldnew->thread.waiting_for = NULL;
   init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
+  referenceStandardStreams(ldnew);
 }
 
 
@@ -2127,17 +2157,17 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   ldnew = info->thread_data;
 
-  if ( !scan_options(options, 0, /*OPT_ALL,*/
-		     ATOM_thread_option, make_thread_options,
-		     &alias,
-		     &debug,
-		     &detached,
-		     &stack,		/* stack */
-		     &c_stack,		/* c_stack */
-		     &at_exit,
-		     &inherit_from,
-		     &affinity,
-		     &queue_max_size) )
+  if ( !PL_scan_options(options, 0, /*OPT_ALL,*/
+			"thread_option", make_thread_options,
+			&alias,
+			&debug,
+			&detached,
+			&stack,		/* stack */
+			&c_stack,	/* c_stack */
+			&at_exit,
+			&inherit_from,
+			&affinity,
+			&queue_max_size) )
   { free_thread_info(info);
     fail;
   }
@@ -2623,6 +2653,9 @@ pl_thread_exit(term_t retcode)
 
   DEBUG(MSG_THREAD, Sdprintf("thread_exit(%d)\n", info->pl_tid));
 
+  for(QueryFrame qf=LD->query; qf; qf = qf->parent)
+    freeHeap(qf->qid, sizeof(*qf->qid));
+
   pthread_exit(NULL);
   assert(0);
   fail;
@@ -2715,6 +2748,7 @@ sizeof_thread(PL_thread_info_t *info)
 }
 
 
+
 		 /*******************************
 		 *	  THREAD PROPERTY	*
 		 *******************************/
@@ -2731,14 +2765,17 @@ symbol_alias(atom_t symbol)
 
 #define thread_id_propery(info, prop) LDFUNC(thread_id_propery, info, prop)
 static int
-thread_id_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ return PL_unify_integer(prop, info->pl_tid);
+thread_id_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+
+  return PL_unify_integer(prop, info->pl_tid);
 }
 
 #define thread_alias_propery(info, prop) LDFUNC(thread_alias_propery, info, prop)
 static int
-thread_alias_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ atom_t symbol, alias;
+thread_alias_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+  atom_t symbol, alias;
 
   if ( (symbol=info->symbol) &&
        (alias=symbol_alias(symbol)) )
@@ -2749,40 +2786,46 @@ thread_alias_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_status_propery(info, prop) LDFUNC(thread_status_propery, info, prop)
 static int
-thread_status_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_status_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return unify_thread_status(prop, info, info->status, TRUE);
 }
 
 #define thread_detached_propery(info, prop) LDFUNC(thread_detached_propery, info, prop)
 static int
-thread_detached_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_detached_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->detached);
 }
 
 #define thread_debug_propery(info, prop) LDFUNC(thread_debug_propery, info, prop)
 static int
-thread_debug_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_debug_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->debug);
 }
 
 #define thread_engine_propery(info, prop) LDFUNC(thread_engine_propery, info, prop)
 static int
-thread_engine_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_engine_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->is_engine);
 }
 
 #define thread_thread_propery(info, prop) LDFUNC(thread_thread_propery, info, prop)
 static int
-thread_thread_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ if ( info->is_engine )
+thread_thread_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+
+  if ( info->is_engine )
   { thread_handle *th = symbol_thread_handle(info->symbol);
 
     if ( th->interactor.thread )
@@ -2797,8 +2840,9 @@ thread_thread_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_tid_propery(info, prop) LDFUNC(thread_tid_propery, info, prop)
 static int
-thread_tid_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_tid_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   if ( info->has_tid )
   { intptr_t tid = system_thread_id(info);
@@ -2812,8 +2856,9 @@ thread_tid_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_size_propery(info, prop) LDFUNC(thread_size_propery, info, prop)
 static int
-thread_size_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_size_propery(DECL_LD void *ctx, term_t prop)
 { size_t size;
+  PL_thread_info_t *info = ctx;
 
   PL_LOCK(L_THREAD);
   size = sizeof_thread(info);
@@ -3094,6 +3139,7 @@ typedef struct _thread_sig
 { struct _thread_sig *next;		/* Next in queue */
   Module   module;			/* Module for running goal */
   record_t goal;			/* Goal to run */
+  int	   blocked;			/* Signal is blocked */
 } thread_sig;
 
 
@@ -3113,7 +3159,7 @@ static
 PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
 { PRED_LD
   Module m = NULL;
-  thread_sig *sg;
+  thread_sig *sg = NULL;
   PL_thread_info_t *info;
   PL_local_data_t *ld;
   int rc;
@@ -3128,6 +3174,7 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   sg->next    = NULL;
   sg->module  = m;
   sg->goal    = PL_record(goal);
+  sg->blocked = FALSE;
 
   PL_LOCK(L_THREAD);
   if ( !(rc=get_thread(thread, &info, TRUE)) )
@@ -3162,49 +3209,286 @@ out:
 
 
 void
-executeThreadSignals(int sig)
-{ GET_LD
-  thread_sig *sg, *next;
-  fid_t fid;
-  (void)sig;
+updatePendingThreadSignals(DECL_LD)
+{ thread_sig *sg;
 
-  if ( !is_alive(LD->thread.info->status) )
-    return;
+  for(sg=LD->thread.sig_head; sg; sg=sg->next)
+  { if ( !sg->blocked )
+    { raiseSignal(LD, SIG_THREAD_SIGNAL);
+      break;
+    }
+  }
+}
+
+
+struct siglist
+{ term_t list;
+  term_t tail;
+  term_t head;
+  term_t goal;
+  Module m;
+};
+
+
+#define append_signal(sg, sl) \
+	LDFUNC(append_signal, sg, sl)
+
+static int
+append_signal(DECL_LD thread_sig *sg, struct siglist *sl)
+{ if ( !sl->tail )
+  { if ( !(sl->tail = PL_copy_term_ref(sl->list)) ||
+	 !(sl->head=PL_new_term_ref()) ||
+	 !(sl->goal=PL_new_term_ref()) ||
+	 !PL_strip_module(sl->tail, &sl->m, sl->tail) )
+      return FALSE;
+  }
+
+  if ( sg->module == sl->m )
+    return ( PL_unify_list(sl->tail, sl->head, sl->tail) &&
+	     PL_recorded(sg->goal, sl->goal) &&
+	     PL_unify(sl->goal, sl->head) );
+  else
+    return ( PL_put_atom(sl->head, sg->module->name) &&
+	     PL_recorded(sg->goal, sl->goal) &&
+	     PL_cons_functor(sl->goal, FUNCTOR_colon2, sl->head, sl->goal) &&
+	     PL_unify_list(sl->tail, sl->head, sl->tail) &&
+	     PL_unify(sl->goal, sl->head) );
+}
+
+
+#define close_signals(sl) \
+	LDFUNC(close_signals, sl)
+
+static int
+close_signals(DECL_LD struct siglist *sl)
+{ return PL_unify_nil(sl->tail ? sl->tail : sl->list);
+}
+
+
+static
+PRED_IMPL("sig_pending", 1, sig_pending, META)
+{ PRED_LD
+
+  if ( LD->thread.sig_head )
+  { struct siglist sl = {0};
+    thread_sig *sg;
+    int rc = FALSE;
+
+    sl.list = A1;
+
+    PL_LOCK(L_THREAD);
+    for( sg=LD->thread.sig_head; sg; sg = sg->next )
+    { if ( !(rc=append_signal(sg, &sl)) )
+	break;
+    }
+    PL_UNLOCK(L_THREAD);
+
+    return rc && close_signals(&sl);
+  } else
+    return PL_unify_nil(A1);
+}
+
+static
+PRED_IMPL("sig_remove", 2, sig_remove, META)
+{ PRED_LD
+  Module m = NULL;
+  term_t pattern = PL_new_term_ref();
+  term_t ex = PL_new_term_ref();
+  term_t tmp = 0;
+  int rc = TRUE;
+  thread_sig *sg, *prev = NULL, *next;
+  struct siglist sl = {0};
+
+  if ( !PL_strip_module(A1, &m, pattern) )
+    return FALSE;
+  sl.list = A2;
 
   PL_LOCK(L_THREAD);
-  sg = LD->thread.sig_head;
-  LD->thread.sig_head = LD->thread.sig_tail = NULL;
+  for( sg=LD->thread.sig_head; sg; prev=sg, sg = next )
+  { next = sg->next;
+
+    if ( sg->module == m )
+    { if ( !tmp && !(tmp=PL_new_term_ref()) )
+      { rc = FALSE;
+	break;
+      }
+      if ( PL_recorded(sg->goal, tmp) &&
+	   can_unify(valTermRef(pattern), valTermRef(tmp), ex) )
+      { thread_sig *rm = sg;
+
+	if ( !(rc=append_signal(sg, &sl)) )
+	  break;
+
+	sg = prev;			/* do not update prev */
+	if ( prev )
+	{ prev->next = next;
+	} else
+	{ LD->thread.sig_head = next;
+	  if ( !LD->thread.sig_head )
+	    LD->thread.sig_tail = NULL;
+	}
+
+	PL_erase(rm->goal);
+	freeHeap(rm, sizeof(*rm));
+      } else if ( PL_exception(0) )
+      { rc = FALSE;
+	break;
+      } else if ( !PL_is_variable(ex) )
+      { rc = PL_raise_exception(ex);
+	break;
+      }
+    }
+  }
   PL_UNLOCK(L_THREAD);
 
-  fid = PL_open_foreign_frame();
+  return rc && close_signals(&sl);
+}
 
-  for( ; sg; sg = next)
-  { term_t goal = PL_new_term_ref();
-    Module gm;
+#define unblock_signals(_) \
+	LDFUNC(unblock_signals, _)
+
+static void
+unblock_signals(DECL_LD)
+{ thread_sig *sg;
+  int unblocked = 0;
+
+  if ( (sg=LD->thread.sig_head) )
+  { for(; sg; sg = sg->next)
+    { if ( sg->blocked )
+      { sg->blocked = FALSE;
+	unblocked++;
+      }
+    }
+  }
+
+  DEBUG(MSG_THREAD_SIGNAL,
+	Sdprintf("Unblocked %d signals\n", unblocked));
+
+  if  ( unblocked )
+    raiseSignal(LD, SIG_THREAD_SIGNAL);
+}
+
+#define signal_is_blocked(sg) \
+	LDFUNC(signal_is_blocked, sg)
+
+static int
+signal_is_blocked(DECL_LD thread_sig *sg)
+{ predicate_t pred;
+  fid_t fid;
+  int rc = FALSE;
+
+  pred = _PL_predicate("signal_is_blocked", 1, "$syspreds",
+		       &GD->procedures.signal_is_blocked1);
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t av = PL_new_term_refs(1);
+    term_t m  = PL_new_term_ref();
+
+    startCritical();
+    rc = ( PL_put_atom(m, sg->module->name) &&
+	   PL_recorded(sg->goal, av+0) &&
+	   PL_cons_functor(av+0, FUNCTOR_colon2, m, av+0) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av)
+	 );
+    rc = endCritical() && rc;
+
+    if ( rc )
+    { DEBUG(MSG_THREAD_SIGNAL,
+	    { Sdprintf("Blocked signal: ");
+	      PL_write_term(Serror, av+0, 1200,
+			    PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	    });
+      sg->blocked = TRUE;
+    }
+
+    PL_discard_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+static
+PRED_IMPL("$sig_unblock", 0, sig_unblock, 0)
+{ PRED_LD
+
+  unblock_signals();
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Execute pending signals on this thread. If the thread is no longer alive
+all signals are ignored. This routine   returns after having handled all
+signals or after an exception was raised while copying the signal to the
+stack or executing it. No signals are processed while we are executing a
+signal handler. Of course, new signals may arrive.
+
+Note that during the  execution  new  signals   may  be  added  by other
+threads. Other manipulation of the signal queue can only be done by this
+thread, but may happen as part of the signal execution.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+executeThreadSignals(int sig)
+{ GET_LD
+  fid_t fid;
+  (void)sig;
+  term_t goal;
+  thread_sig *sg, *prev = NULL, *next;
+
+  if ( !is_alive(LD->thread.info->status) ||
+       !(sg=LD->thread.sig_head) ||
+       !(fid=PL_open_foreign_frame()) ||
+       !(goal=PL_new_term_ref()) )
+    return;
+
+  for( ; sg; prev=sg, sg=next )
+  { Module gm;
     term_t ex;
-    int rval;
+    int rval = FALSE;
 
-    next = sg->next;
+    prev=sg;
+    next=sg->next;
+
+    if ( sg->blocked ||
+	 signal_is_blocked(sg) )
+      continue;
+
+    PL_LOCK(L_THREAD);
+    if ( sg == LD->thread.sig_head )
+    { if ( !(LD->thread.sig_head = sg->next) )
+	LD->thread.sig_tail = NULL;
+    } else
+    { prev->next = sg->next;
+      if ( sg == LD->thread.sig_tail )
+	LD->thread.sig_tail = prev;
+    }
+    PL_UNLOCK(L_THREAD);
+
+    gm = sg->module;
     rval = PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
-    gm = sg->module;
     freeHeap(sg, sizeof(*sg));
+    sg = prev;
+
+    if ( !rval )
+      return;				/* No signal or no space to handle */
 
     DEBUG(MSG_THREAD,
 	  Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
-    if ( rval )
+
     {
 #ifdef O_LIMIT_DEPTH
       size_t olimit = LD->depth_info.limit;
       LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
+      startCritical();
       rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
+      rval = endCritical() && rval;
 #ifdef O_LIMIT_DEPTH
       LD->depth_info.limit = olimit;
 #endif
-    } else
-    { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
-      ex = exception_term;
     }
 
     if ( !rval && ex )
@@ -3212,25 +3496,17 @@ executeThreadSignals(int sig)
       PL_close_foreign_frame(fid);
 
       DEBUG(MSG_THREAD,
-	    { print_trace(8);
-	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
+	    { Sdprintf("[%d]: Thread signal raised exception. Backtrace:\n",
+		       PL_thread_self());
 	      PL_backtrace(5, 0);
-	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
+	      Sdprintf("[%d]: end Prolog backtrace\n", PL_thread_self());
 	    });
-
-      for(sg = next; sg; sg=next)
-      { next = sg->next;
-	PL_erase(sg->goal);
-	freeHeap(sg, sizeof(*sg));
-      }
 
       return;
     }
-
-    PL_rewind_foreign_frame(fid);
   }
 
-  PL_discard_foreign_frame(fid);
+  PL_close_foreign_frame(fid);
 }
 
 
@@ -3295,7 +3571,7 @@ get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
 /** '$engine_create'(-Handle, +GoalAndTemplate, +Options)
 */
 
-static const opt_spec make_engine_options[] =
+static const PL_option_t make_engine_options[] =
 { { ATOM_stack_limit,	OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_inherit_from,	OPT_TERM },
@@ -3313,11 +3589,10 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
   term_t inherit_from =	0;
 
   memset(&attrs, 0, sizeof(attrs));
-  if ( !scan_options(A3, 0,
-		     ATOM_engine_option, make_engine_options,
-		     &stack,
-		     &alias,
-		     &inherit_from) )
+  if ( !PL_scan_options(A3, 0, "engine_option", make_engine_options,
+			&stack,
+			&alias,
+			&inherit_from) )
     return FALSE;
 
   if ( stack )
@@ -3327,7 +3602,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
   if ( (new = PL_create_engine(&attrs)) )
   { PL_engine_t me;
-    static predicate_t pred = NULL;
+    predicate_t pred;
     record_t r;
     thread_handle *th;
     term_t t;
@@ -3354,8 +3629,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
     }
     PL_unregister_atom(th->symbol);
 
-    if ( !pred )
-      pred = PL_predicate("call", 1, "system");
+    pred = _PL_predicate("call", 1, "system", &GD->procedures.call1);
 
     r = PL_record(A2);
     rc = PL_set_engine(new, &me);
@@ -4313,7 +4587,7 @@ destroy_message_queue(message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
-  if ( GD->cleaning || !queue->initialized )
+  if ( !queue->initialized )
     return;				/* deallocation is centralised */
   queue->initialized = FALSE;
 
@@ -4393,7 +4667,7 @@ sizeof_message_queue(message_queue *queue)
 
 					/* Prolog predicates */
 
-static const opt_spec timeout_options[] =
+static const PL_option_t timeout_options[] =
 { { ATOM_timeout,	OPT_DOUBLE },
   { ATOM_deadline,	OPT_DOUBLE },
   { NULL_ATOM,		0 }
@@ -4433,9 +4707,8 @@ process_deadline_options(DECL_LD term_t options,
   double tmo = DBL_MAX;
   double dlo = DBL_MAX;
 
-  if ( !scan_options(options, 0,
-		     ATOM_timeout_option, timeout_options,
-		     &tmo, &dlo) )
+  if ( !PL_scan_options(options, 0, "timeout_option", timeout_options,
+			&tmo, &dlo) )
     return FALSE;
 
   get_current_timespec(&now);
@@ -4886,7 +5159,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 }
 
 
-static const opt_spec message_queue_options[] =
+static const PL_option_t message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { ATOM_max_size,	OPT_SIZE },
   { NULL_ATOM,		0 }
@@ -4900,10 +5173,9 @@ PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
   size_t max_size = 0;			/* to be processed */
   message_queue *q;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_queue_option, message_queue_options,
-		     &alias,
-		     &max_size) )
+  if ( !PL_scan_options(A2, 0, "queue_option", message_queue_options,
+			&alias,
+			&max_size) )
     fail;
 
   if ( alias )
@@ -4962,8 +5234,10 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 
 #define message_queue_alias_property(q, prop) LDFUNC(message_queue_alias_property, q, prop)
 static int		/* message_queue_property(Queue, alias(Name)) */
-message_queue_alias_property(DECL_LD message_queue *q, term_t prop)
-{ if ( !q->anonymous )
+message_queue_alias_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+
+  if ( !q->anonymous )
     return PL_unify_atom(prop, q->id);
 
   fail;
@@ -4972,15 +5246,18 @@ message_queue_alias_property(DECL_LD message_queue *q, term_t prop)
 
 #define message_queue_size_property(q, prop) LDFUNC(message_queue_size_property, q, prop)
 static int		/* message_queue_property(Queue, size(Size)) */
-message_queue_size_property(DECL_LD message_queue *q, term_t prop)
-{ return PL_unify_integer(prop, q->size);
+message_queue_size_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+
+  return PL_unify_integer(prop, q->size);
 }
 
 
 #define message_queue_max_size_property(q, prop) LDFUNC(message_queue_max_size_property, q, prop)
 static int		/* message_queue_property(Queue, max_size(Size)) */
-message_queue_max_size_property(DECL_LD message_queue *q, term_t prop)
-{ size_t ms;
+message_queue_max_size_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+  size_t ms;
 
   if ( (ms=q->max_size) > 0 )
     return PL_unify_integer(prop, ms);
@@ -4990,8 +5267,9 @@ message_queue_max_size_property(DECL_LD message_queue *q, term_t prop)
 
 #define message_queue_waiting_property(q, prop) LDFUNC(message_queue_waiting_property, q, prop)
 static int		/* message_queue_property(Queue, waiting(Count)) */
-message_queue_waiting_property(DECL_LD message_queue *q, term_t prop)
-{ int waiting;
+message_queue_waiting_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+  int waiting;
 
   if ( (waiting=q->waiting) > 0 )
     return PL_unify_integer(prop, waiting);
@@ -5314,7 +5592,7 @@ free_wait_area(thread_wait_area *wa)
   free(wa);
 }
 
-static void
+void
 free_thread_wait(PL_local_data_t *ld)
 { thread_wait_for *twf;
 
@@ -5499,7 +5777,7 @@ unify_modified(DECL_LD term_t t)
 /** thread_wait_on_goal(:Goal, +Options) is semidet.
  */
 
-static const opt_spec thread_wait_options[] =
+static const PL_option_t thread_wait_options[] =
 { { ATOM_db,		OPT_BOOL   },
   { ATOM_wait_preds,	OPT_TERM   },
   { ATOM_modified,      OPT_TERM   },
@@ -5528,7 +5806,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
 
   if ( !PL_strip_module(A2, &module, options) ||
        !process_deadline_options(options, &deadline, &dlop) ||
-       !scan_options(options, 0, ATOM_thread_wait_options, thread_wait_options,
+       !PL_scan_options(options, 0, "thread_wait_options", thread_wait_options,
 		     &db, &wait_preds, &modified, &retry_every, &mname) )
     return FALSE;
 
@@ -5576,8 +5854,12 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
 
     register_waiting(module, LD);
     ign_filter = FALSE;
-    switch ( cv_timedwait(NULL, &module->wait->cond,
-			  &module->wait->mutex, dlop, &retry) )
+    DEBUG(MSG_THREAD_WAIT, Sdprintf("Wait on module %s ...\n",
+				    PL_atom_chars(module->name)));
+    int wrc = cv_timedwait(NULL, &module->wait->cond,
+			   &module->wait->mutex, dlop, &retry);
+    DEBUG(MSG_THREAD_WAIT, Sdprintf("Wakeup %d\n", wrc));
+    switch(wrc)
     { case CV_INTR:
 	if ( PL_handle_signals() >= 0 )
 	  continue;
@@ -5723,7 +6005,7 @@ signal_waiting_threads(Module m, thread_wait_channel *wch)
 }
 
 
-static const opt_spec thread_update_options[] =
+static const PL_option_t thread_update_options[] =
 { { ATOM_notify,  OPT_ATOM },
   { ATOM_module,  OPT_ATOM },
   { NULL_ATOM,	  0 }
@@ -5741,7 +6023,7 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
   module_cell mc;
 
   if ( !PL_strip_module(A2, &module, options) ||
-       !scan_options(options, 0, ATOM_thread_update_options,
+       !PL_scan_options(options, 0, "thread_update_options",
 		     thread_update_options,
 		     &notify, &mname) )
     return FALSE;
@@ -5770,6 +6052,11 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 
   if ( !rc )
     goto out;
+
+  DEBUG(MSG_THREAD_WAIT,
+	Sdprintf("%s to module %s\n",
+		 notify == ATOM_broadcast ? "broadcast" : "signal",
+		 PL_atom_chars(module->name)));
 
   if ( notify == ATOM_broadcast )
     cv_broadcast(&module->wait->cond);
@@ -5956,7 +6243,7 @@ allocSimpleMutex(const char *name)
 
 
 void
-freeSimpleMutex(counting_mutex *m)
+deleteSimpleMutex(counting_mutex *m)
 { PL_LOCK(L_MUTEX);
   if ( m->next )
     m->next->prev = m->prev;
@@ -5968,6 +6255,12 @@ freeSimpleMutex(counting_mutex *m)
 
   simpleMutexDelete(&m->mutex);
   remove_string((char *)m->name);
+}
+
+
+void
+freeSimpleMutex(counting_mutex *m)
+{ deleteSimpleMutex(m);
   freeHeap(m, sizeof(*m));
 }
 
@@ -6043,7 +6336,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     if ( true(attr, PL_THREAD_NO_DEBUG) )
     { ldnew->_debugstatus.tracing   = FALSE;
       ldnew->_debugstatus.debugging = DBG_OFF;
-      setPrologFlagMask_LD(ldnew, PLFLAG_LASTCALL);
+      setPrologRunMode_LD(ldnew, RUN_MODE_NORMAL);
       info->debug = FALSE;
     }
   }
@@ -6207,7 +6500,7 @@ static rc_cancel cancelGCThread(int tid);
 static void *
 GCmain(void *closure)
 { PL_thread_attr_t attrs = {0};
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
   sigset_t set;
   allSignalMask(&set);
 #ifdef SIG_ALERT
@@ -6224,11 +6517,10 @@ GCmain(void *closure)
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD
     PL_thread_info_t *info = LD->thread.info;
-    static predicate_t pred = 0;
+    predicate_t pred;
     int rc;
 
-    if ( !pred )
-      pred = PL_predicate("$gc", 0, "system");
+    pred = _PL_predicate("$gc", 0, "system", &GD->procedures.dgc0);
 
     GC_id = PL_thread_self();
     info->cancel = cancelGCThread;
@@ -6806,8 +7098,7 @@ SyncSystemCPU(int sig)
 
 double
 ThreadCPUTime(DECL_LD int which)
-{ GET_LD
-  PL_thread_info_t *info = LD->thread.info;
+{ PL_thread_info_t *info = LD->thread.info;
 
 #ifdef NO_THREAD_SYSTEM_TIME
   if ( which == CPU_SYSTEM )
@@ -6820,7 +7111,9 @@ ThreadCPUTime(DECL_LD int which)
     else
       SyncSystemCPU(0);
   } else
-  { struct sigaction old;
+  {
+#ifdef HAVE_PTHREAD_KILL
+    struct sigaction old;
     struct sigaction new;
     sigset_t sigmask;
     sigset_t set;
@@ -6849,6 +7142,9 @@ ThreadCPUTime(DECL_LD int which)
     unblockSignals(&set);
     if ( !ok )
       return 0.0;
+#else
+    return 0.0;
+#endif
   }
 
   if ( which == CPU_USER )
@@ -7080,6 +7376,9 @@ destroyLocalDefinitions(Definition def)
       }
     }
   }
+
+  free_ldef_vector(ldefs);
+  def->impl.local.local = NULL;
 }
 
 
@@ -7112,9 +7411,10 @@ localiseDefinition(Definition def)
   local->impl.clauses.clause_indexes = NULL;
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&local->module->code_size, sizeof(*local));
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Localise %s\n", predicateName(def)));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Localise def[%d] %s at %p\n",
+				 PL_thread_self(), predicateName(def), local));
 
-  setSupervisor(local);
+  setDefaultSupervisor(local);
   registerLocalDefinition(def);
 
   return local;
@@ -7510,34 +7810,36 @@ Definition*
 predicates_in_use(void)
 {
 #ifdef O_PLMT
-  int i, index=0;
-  size_t sz = 32;
+  if ( GD->cleaning != CLN_DATA )
+  { int i, index=0;
+    size_t sz = 32;
 
-  Definition *buckets = allocHeapOrHalt(sz * sizeof(Definition));
-  memset(buckets, 0, sz * sizeof(Definition*));
+    Definition *buckets = allocHeapOrHalt(sz * sizeof(Definition));
+    memset(buckets, 0, sz * sizeof(Definition*));
 
-  for(i=1; i<=GD->thread.highest_id; i++)
-  { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->access.predicate )
-    { if ( index >= sz-1 )
-      { int j = 0;
-        size_t oldsz = sz;
-        sz *= 2;
-        Definition *newbuckets = allocHeapOrHalt(sz * sizeof(Definition));
-	memset(newbuckets, 0, sz * sizeof(Definition));
-	for ( ; j < oldsz; j++ )
-	{ newbuckets[j] = buckets[j];
+    for(i=1; i<=GD->thread.highest_id; i++)
+    { PL_thread_info_t *info = GD->thread.threads[i];
+      if ( info && info->access.predicate )
+      { if ( index >= sz-1 )
+	{ int j = 0;
+	  size_t oldsz = sz;
+	  sz *= 2;
+	  Definition *newbuckets = allocHeapOrHalt(sz * sizeof(Definition));
+	  memset(newbuckets, 0, sz * sizeof(Definition));
+	  for ( ; j < oldsz; j++ )
+	  { newbuckets[j] = buckets[j];
+	  }
+	  PL_free(buckets);
+	  buckets = newbuckets;
 	}
-	PL_free(buckets);
-        buckets = newbuckets;
+	buckets[index] = info->access.predicate;
+	if ( buckets[index] )	/* atom_bucket may have been released */
+	  index++;
       }
-      buckets[index] = info->access.predicate;
-      if ( buckets[index] )	/* atom_bucket may have been released */
-        index++;
     }
-  }
 
-  return buckets;
+    return buckets;
+  }
 #endif
 
   return NULL;
@@ -7582,7 +7884,7 @@ init_predicate_references(PL_local_data_t *ld)
   refs->blocks[2] = refs->preallocated - 1;
 }
 
-static void
+void
 free_predicate_references(PL_local_data_t *ld)
 { definition_refs *refs = &ld->predicate_references;
   int i;
@@ -7592,7 +7894,9 @@ free_predicate_references(PL_local_data_t *ld)
     definition_ref *d0 = refs->blocks[i];
 
     if ( d0 )
-      freeHeap(d0+bs, bs*sizeof(definition_ref));
+    { freeHeap(d0+bs, bs*sizeof(definition_ref));
+      refs->blocks[i] = NULL;
+    }
   }
 }
 #endif /*O_PLMT*/
@@ -7753,6 +8057,60 @@ markAccessedPredicates(PL_local_data_t *ld)
   }
 }
 
+
+#if O_PLMT
+#define stack_avail(_) LDFUNC(stack_avail, _)
+
+static size_t
+stack_avail(DECL_LD)
+{ PL_thread_info_t *info = LD->thread.info;
+  size_t avail = (size_t)-1;
+
+  if ( !info->c_stack_size )
+    (void)CStackSize();
+
+  if ( info->c_stack_base )
+  { void *here = &info;
+
+    assert(here > info->c_stack_base); /* stack grows down */
+
+    avail = (char*)here - (char*)info->c_stack_base;
+  }
+
+  return avail;
+}
+#endif
+
+
+int
+require_c_stack(DECL_LD size_t needed)
+{
+#if O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
+
+  if ( !info->c_stack_low && needed > stack_avail() )
+  { info->c_stack_low = TRUE;
+
+    return PL_resource_error("c_stack");
+  }
+#endif
+
+  return TRUE;
+}
+
+
+void
+clear_low_c_stack(DECL_LD)
+{
+#if O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
+
+  if ( info->c_stack_low && stack_avail() > C_STACK_MIN )
+    info->c_stack_low = FALSE;
+#endif
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -7788,6 +8146,9 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
 
   PRED_DEF("thread_signal",	     2, thread_signal,         META|PL_FA_ISO)
+  PRED_DEF("sig_pending",	     1, sig_pending,           META)
+  PRED_DEF("sig_remove",             2, sig_remove,	       META)
+  PRED_DEF("$sig_unblock",	     0, sig_unblock,	       0)
 
   PRED_DEF("thread_wait",	     2, thread_wait,           META)
   PRED_DEF("thread_update",	     2, thread_update,         META)

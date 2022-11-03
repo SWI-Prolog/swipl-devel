@@ -23,6 +23,8 @@ include(GCCBuiltins)
 include(TestSignalType)
 include(TestSCNProcessors)
 include(TestHeaderTime)
+include(TestLLRound)
+include(TestModF)
 
 # FIXME: Is this still needed?
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
@@ -73,7 +75,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
     pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
     pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
-    pl-undo.c pl-alloc.c pl-index.c pl-fli.c)
+    pl-undo.c pl-alloc.c pl-index.c pl-fli.c pl-coverage.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}
@@ -101,8 +103,8 @@ set(SWIPL_DATA_DIRS
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
-    demo)
+    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
+    demo cmake)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
@@ -114,7 +116,7 @@ endif()
 prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 
 set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
-    qsave.pl shlib.pl statistics.pl system.pl error.pl
+    qsave.pl statistics.pl system.pl error.pl
     backcomp.pl gensym.pl listing.pl debug.pl vm.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl
     edit.pl shell.pl check.pl heaps.pl console_input.pl
@@ -151,6 +153,12 @@ else()
     set(SWIPL_DATA_library ${SWIPL_DATA_library} win_menu.pl)
   endif()
 endif()
+if(EMSCRIPTEN)
+  set(SWIPL_DATA_library ${SWIPL_DATA_library} wasm.pl dom.pl)
+endif()
+if(NOT STATIC_EXTENSIONS)
+  set(SWIPL_DATA_library ${SWIPL_DATA_library} shlib.pl)
+endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
@@ -184,10 +192,15 @@ set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
-    curr_sym.pl error_handler.pl lists.pl timed_call.pl
-    standard.pl gpp.pl thread.pl gensym.pl)
+    curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
+set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
+
+if(MULTI_THREADED)
+list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)
+endif()
 
 set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_cmake swipl.cmake)
 
 ################
 # Custom targets and commands
@@ -200,6 +213,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_executable(mkvmi mkvmi.c)
   add_executable(defatom defatom.c)
   add_executable(wrap-gcc EXCLUDE_FROM_ALL wrap-gcc.c) #only needed for PGO with GCC
+  target_include_directories(mkvmi BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   set(PROG_MKVMI mkvmi)
   set(PROG_DEFATOM defatom)
   set(TARGET_WRAPGCC wrap-gcc)
@@ -222,7 +236,7 @@ else()
 
   add_custom_command(
       OUTPUT  ${PROG_MKVMI}
-      COMMAND ${CMAKE_HOST_CC} -o ${PROG_MKVMI}
+      COMMAND ${CMAKE_HOST_CC} -I${CMAKE_CURRENT_BINARY_DIR} -o ${PROG_MKVMI}
               ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
   )
@@ -366,12 +380,18 @@ endif()
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
 target_c_stack(swipl${PGO_SUFFIX} 4000000)
-if(MINGW_ROOT)
+if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
+endif()
+if(EMSCRIPTEN)
+  target_link_options(swipl${PGO_SUFFIX} PRIVATE -s ALLOW_MEMORY_GROWTH=1)
+  if(MULTI_THREADED)
+    target_link_options(swipl${PGO_SUFFIX} PRIVATE -pthread -s PTHREAD_POOL_SIZE=4)
+  endif()
 endif()
 
 # build the library
-if(SWIPL_SHARED_LIB)
+if(SWIPL_SHARED_LIB AND NOT EMSCRIPTEN AND NOT STATIC_EXTENSIONS)
   set(LIBSWIPL_TYPE SHARED)
 else()
   set(LIBSWIPL_TYPE STATIC)
@@ -547,6 +567,12 @@ if(INSTALL_TESTS)
 install_tests()
 endif()
 
+if(SWIPL_INSTALL_IN_LIB)
+  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+else()
+  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
+endif()
+
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)
@@ -575,12 +601,6 @@ configure_package_config_file(
 ################
 # Installation
 ################
-
-if(SWIPL_INSTALL_IN_LIB)
-  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-else()
-  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
-endif()
 
 # Make sure tmp directory exists
 #
@@ -633,11 +653,12 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
 
+if(NOT STATIC_EXTENSIONS)
 # Install cmake config files
 install(EXPORT SWIPL_EXPORT
-  FILE SWIPLTargets.cmake
-  NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
-  DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+	FILE SWIPLTargets.cmake
+	NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
+	DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfigVersion.cmake"
         DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
@@ -646,6 +667,8 @@ if(SWIPL_INSTALL_PKGCONFIG)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.pc
 	DESTINATION ${SWIPL_INSTALL_PKGCONFIG})
 endif()
+endif(NOT STATIC_EXTENSIONS)
+
 if(SWIPL_INSTALL_MANPAGES)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})

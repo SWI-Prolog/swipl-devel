@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,11 +48,10 @@
 #include "pl-util.h"
 #include "pl-funct.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
+#include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include <math.h>
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -875,6 +875,7 @@ ground(DECL_LD Word p)
   rc1 = ph_ground(p, ph_mark);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark);  /* unmark the very same functors */
   assert(rc1 == rc2);
+  (void)rc2;
   return rc1;
 }
 
@@ -2505,11 +2506,14 @@ setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
     return FALSE;
 
   if ( (flags & SETARG_BACKTRACKABLE) )
-  { a = valTermRef(term);
+  { Word a2;
+
+    a = valTermRef(term);
     deRef(a);
     a = argTermP(*a, argn-1);
+    deRef2(a, a2);
 
-    if ( isVar(*a) )
+    if ( isVar(*a2) )
     { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT);
     } else
     { if ( !hasGlobalSpace(0) )
@@ -2650,6 +2654,35 @@ PRED_IMPL("$skip_list", 3, skip_list, 0)
     return TRUE;
 
   return FALSE;
+}
+
+/** '$seek_list'(+Count, +List, -RestCount, -Rest)
+*/
+
+static
+PRED_IMPL("$seek_list", 4, seek_list, 0)
+{ PRED_LD
+  int64_t size;
+  Word tail;
+
+  if ( !PL_get_int64_ex(A1, &size) )
+    return FALSE;
+  tail = valTermRef(A2);
+  while(size > 0)
+  { deRef(tail);
+    if ( isList(*tail) )
+    { tail = TailList(tail);
+      size--;
+      if ( size%1024 == 0 &&
+	   PL_handle_signals() < 0 )
+	return FALSE;
+    } else
+      break;
+  }
+
+  return ( unify_ptrs(valTermRef(A4), tail, ALLOW_GC|ALLOW_SHIFT) &&
+	   PL_unify_integer(A3, size)
+	 );
 }
 
 
@@ -3003,6 +3036,7 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	rc2 = do_number_vars(valTermRef(t), options, 0, &m);
 	unvisit();
 	assert(rc == rc2);
+	(void)rc2;
       }
       return rc + options->offset;
     } else
@@ -3032,7 +3066,7 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 }
 
 
-static const opt_spec numbervar_options[] =
+static const PL_option_t numbervar_options[] =
 { { ATOM_attvar,	    OPT_ATOM },
   { ATOM_functor_name,	    OPT_ATOM },
   { ATOM_singletons,	    OPT_BOOL },
@@ -3066,7 +3100,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
     return FALSE;
 
   if ( options &&
-       !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
+       !PL_scan_options(options, 0, "numbervar_option", numbervar_options,
 		     &av, &name, &opts.singletons) )
     fail;
 
@@ -3927,7 +3961,7 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
     flags = CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(A1, &txt, flags) )
-  { int rc = PL_unify_int64_ex(A2, txt.length);
+  { int rc = PL_unify_int64_ex(A2, PL_text_length(&txt));
 
     PL_free_text(&txt);
 
@@ -3947,7 +3981,9 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define	X_NO_SYNTAX_ERROR  0x40
 #define X_NO_LEADING_WHITE 0x80
 
-#define x_chars(pred, atom, string, how) LDFUNC(x_chars, pred, atom, string, how)
+#define x_chars(pred, atom, string, how) \
+	LDFUNC(x_chars, pred, atom, string, how)
+
 static int
 x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 { PL_chars_t atext, stext;
@@ -3990,38 +4026,68 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
   switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
-      return PL_unify_text(atom, 0, &stext, PL_ATOM);
+    { int rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
+      PL_free_text(&stext);
+      return rc;
+    }
     case X_NUMBER:
     case X_AUTO:
     { strnumstat rc;
 
-      if ( stext.encoding == ENC_ISO_LATIN_1 )
-      { unsigned char *q, *s = (unsigned char *)stext.text.t;
+      if ( stext.encoding == ENC_ISO_LATIN_1 ||
+	   stext.encoding == ENC_UTF8 )
+      { unsigned char *q, *s;
 	number n;
+
+      utf8:
+	s = (unsigned char *)stext.text.t;
 
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
 	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
 	    s++;
 	}
 
-	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK ) /* TBD: rational support? */
+	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK )
 	{ if ( *q == EOS )
 	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
+	    PL_free_text(&stext);
 	    return rc2;
 	  } else
 	    rc = NUM_ERROR;
 	  clearNumber(&n);
 	}
+      } else if ( stext.encoding == ENC_WCHAR )
+      { wchar_t *ws = stext.text.w;
+
+	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
+	{ while(*ws && isBlankW(*ws))		/* ISO: number_codes(X, "  42") */
+	    ws++;
+	}
+
+	if ( *ws == '-' || *ws == '+' )
+	  ws++;
+	if ( f_is_decimal(*ws) )
+	{ if ( !PL_mb_text(&stext, REP_UTF8) )
+	  { PL_free_text(&stext);
+	    return FALSE;
+	  }
+	  goto utf8;
+	} else
+	  rc = NUM_ERROR;
       } else
 	rc = NUM_ERROR;
 
       if ( (how&X_MASK) == X_AUTO )
-	goto case_atom;
-      else if ( !(how & X_NO_SYNTAX_ERROR) )
-	return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
-      else
-	return FALSE;
+      { goto case_atom;
+      } else
+      { PL_free_text(&stext);
+
+	if ( !(how & X_NO_SYNTAX_ERROR) )
+	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+	else
+	  return FALSE;
+      }
     }
     default:
       assert(0);
@@ -4076,7 +4142,6 @@ PRED_IMPL("number_string", 2, number_string, 0)
 static
 PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PRED_LD
-  PL_chars_t txt;
   int n;
   term_t atom = A1;
   term_t chr  = A2;
@@ -4089,35 +4154,24 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   if ( !vatom )
-  { if ( PL_get_text(atom, &txt, CVT_ATOM|CVT_STRING) && txt.length == 1 )
-    { if ( txt.encoding == ENC_WCHAR )
-	achr = txt.text.w[0];
-      else
-	achr = txt.text.t[0]&0xff;
-    } else
-    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, atom);
-    }
+  { atom_t a;
+
+    if ( !PL_get_atom(atom, &a) || (achr = charCode(a)) == -1 )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, atom);
   }
 
   if ( !vchr )
   { if ( !PL_get_integer_ex(chr, &n) )
-      fail;
+      return FALSE;
 
-    if ( n >= 0 && n <= PLMAXWCHAR )
-      cchr = n;
-    else if ( n < 0 || n > 0x10ffff )
+    if ( !VALID_CODE_POINT(n) )
       return PL_type_error("character_code", chr);
-#if SIZEOF_WCHAR_T == 2
-    else if ( n > PLMAXWCHAR )
-      return PL_representation_error("character_code");
-#else
-    else
-      assert(0);
-#endif
+
+    cchr = n;
   }
 
   if ( achr == cchr )
-    succeed;
+    return TRUE;
   if ( vatom )
     return PL_unify_atom(atom, codeToAtom(cchr));
   else
@@ -4130,7 +4184,7 @@ is_code(word w)
 { if ( isTaggedInt(w) )
   { intptr_t code = valInt(w);
 
-    return code >= 0 && code <= PLMAXWCHAR;
+    return VALID_CODE_POINT(code);
   }
 
   return FALSE;
@@ -4142,7 +4196,7 @@ is_char(word w)
 
   return ( isAtom(w) &&
 	   get_atom_text(w, &text) &&
-	   text.length == 1
+	   PL_text_length(&text) == 1
 	 );
 }
 
@@ -4215,12 +4269,12 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   char *s;
   size_t len;
 
-  if ( PL_get_nchars(A1, &len, &s, CVT_ATOM|CVT_STRING) )
+  if ( PL_get_nchars(A1, &len, &s, REP_UTF8|CVT_ATOM|CVT_STRING) )
   { number n;
     unsigned char *q;
     strnumstat rc;
 
-    if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) ) /* TBD: rational support */
+    if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) )
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
         clearNumber(&n);
@@ -4287,20 +4341,28 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 #endif
 }
 
-#define concat(a1, a2, a3, bidirectional, ctx, accept, otype) LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
+#define SIZE_NOT_SET  ((size_t)-1)
+#define SIZE_GIVEN(v) ((v) != SIZE_NOT_SET)
+
+#define concat(a1, a2, a3, bidirectional, ctx, accept, otype) \
+	LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
+
 static word
 concat(DECL_LD term_t a1, term_t a2, term_t a3,
        int bidirectional,		/* FALSE: only mode +,+,- */
        control_t ctx,
        int accept,			/* CVT_* */
-       int otype)		/* PL_ATOM or PL_STRING */
+       int otype)			/* PL_ATOM or PL_STRING */
 { PL_chars_t t1, t2, t3;
   int rc;
   int inmode = bidirectional ? CVT_VARNOFAIL : 0;
+  size_t l1 = SIZE_NOT_SET;
+  size_t l2 = SIZE_NOT_SET;
+  size_t l3 = SIZE_NOT_SET;
 
-#define L1 t1.length
-#define L2 t2.length
-#define L3 t3.length
+#define L1 (SIZE_GIVEN(l1) ? l1 : (l1=PL_text_length(&t1)))
+#define L2 (SIZE_GIVEN(l2) ? l2 : (l2=PL_text_length(&t2)))
+#define L3 (SIZE_GIVEN(l3) ? l3 : (l3=PL_text_length(&t3)))
 
   if ( ForeignControl(ctx) == FRG_CUTTED )
     succeed;
@@ -4314,9 +4376,9 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
 
   if ( t1.text.t && t2.text.t )
   { if ( t3.text.t )
-    { rc = ( t1.length + t2.length == t3.length &&
-	     PL_cmp_text(&t1, 0, &t3, 0, t1.length) == 0 &&
-	     PL_cmp_text(&t2, 0, &t3, t1.length, t2.length) == 0 );
+    { rc = ( L1 + L2 == L3 &&
+	     PL_cmp_text(&t1, 0, &t3,  0, L1) == 0 &&
+	     PL_cmp_text(&t2, 0, &t3, L1, L2) == 0 );
       goto out;
     } else
     { PL_chars_t c;
@@ -4337,14 +4399,16 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   if ( t1.text.t )			/* +, -, + */
-  { if ( L1 <= L3 &&
-	 PL_cmp_text(&t1, 0, &t3, 0, L1) == 0 )
-      return PL_unify_text_range(a2, &t3, L1, L3-L1, otype);
+  { (void)L1;
+    if ( l1 <= L3 &&
+	 PL_cmp_text(&t1, 0, &t3, 0, l1) == 0 )
+      return PL_unify_text_range(a2, &t3, l1, L3-l1, otype);
     fail;
   } else if ( t2.text.t )		/* -, +, + */
-  { if ( L2 <= L3 &&
-	 PL_cmp_text(&t2, 0, &t3, L3-L2, L2) == 0 )
-      return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);
+  { (void)L2;
+    if ( l2 <= L3 &&
+	 PL_cmp_text(&t2, 0, &t3, L3-l2, l2) == 0 )
+      return PL_unify_text_range(a1, &t3, 0, L3-l2, otype);
     fail;
   } else				/* -, -, + */
   { size_t at_n;
@@ -4718,29 +4782,22 @@ typedef struct
 } sub_state;
 
 
-#define get_positive_integer_or_unbound(t, v) LDFUNC(get_positive_integer_or_unbound, t, v)
+#define get_positive_integer_or_unbound(t, v) \
+	LDFUNC(get_positive_integer_or_unbound, t, v)
+
 static int
-get_positive_integer_or_unbound(DECL_LD term_t t, ssize_t *v)
-{ long i;
-
-  if ( PL_get_long(t, &i) )		/* TBD: should be ssize_t */
-  { if ( i < 0 )
-      PL_error(NULL, 0, NULL, ERR_DOMAIN,
-	       ATOM_not_less_than_zero, t);
-    *v = i;
-
+get_positive_integer_or_unbound(DECL_LD term_t t, size_t *v)
+{ if ( PL_is_variable(t) )
+  { *v = SIZE_NOT_SET;
     return TRUE;
   }
 
-  if ( PL_is_variable(t) )
-    return TRUE;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return PL_get_size_ex(t, v);
 }
 
+#define sub_text(atom, before, len, after, sub, h, type) \
+	LDFUNC(sub_text, atom, before, len, after, sub, h, type)
 
-
-#define sub_text(atom, before, len, after, sub, h, type) LDFUNC(sub_text, atom, before, len, after, sub, h, type)
 static foreign_t
 sub_text(DECL_LD term_t atom,
 	 term_t before, term_t len, term_t after,
@@ -4748,14 +4805,16 @@ sub_text(DECL_LD term_t atom,
 	 control_t h,
 	 int type			/* PL_ATOM or PL_STRING */)
 { PL_chars_t ta, ts;			/* the strings */
-  ssize_t b = -1, l = -1, a = -1;	/* the integers */
   sub_state *state;			/* non-deterministic state */
   atom_t expected = (type == PL_STRING ? ATOM_string : ATOM_atom);
   int match;
   fid_t fid;
+  size_t b,l,a;				/* before,length,after match */
+  size_t lab = SIZE_NOT_SET;		/* length of haystack */
+  size_t lsb = SIZE_NOT_SET;		/* length of needle */
 
-#define la ta.length
-#define ls ts.length
+#define la (SIZE_GIVEN(lab) ? lab : (lab=PL_text_length(&ta)))
+#define ls (SIZE_GIVEN(lsb) ? lsb : (lsb=PL_text_length(&ts)))
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -4765,7 +4824,7 @@ sub_text(DECL_LD term_t atom,
       if ( !get_positive_integer_or_unbound(before, &b) ||
 	   !get_positive_integer_or_unbound(len, &l) ||
 	   !get_positive_integer_or_unbound(after, &a) )
-	fail;
+	return FALSE;
 
       if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
       { if ( !PL_is_variable(sub) )
@@ -4774,23 +4833,25 @@ sub_text(DECL_LD term_t atom,
       }
 
       if ( ts.text.t )			/* `sub' given */
-      { if ( l >= 0 && (int)ls != l )	/* len conflict */
-	  fail;
-	if ( b >= 0 )			/* before given: test */
-	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == 0 )
+      { if ( SIZE_GIVEN(l) && ls != l ) /* len conflict */
+	  return FALSE;
+	if ( SIZE_GIVEN(b) )		/* before given: test */
+	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == CMP_EQUAL )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
 	  }
-	  fail;
+	  return FALSE;
 	}
-	if ( a >= 0 )			/* after given: test */
-	{ ssize_t off = la-a-ls;
+	if ( SIZE_GIVEN(a) )		/* after given: test */
+	{ if ( la >= a+ls )
+	  { size_t off = la-a-ls;
 
-	  if ( off >= 0 && PL_cmp_text(&ta, (unsigned)off, &ts, 0, ls) == 0 )
-	  { return (PL_unify_integer(len, ls) &&
-		    PL_unify_integer(before, off)) ? TRUE : FALSE;
+	    if ( PL_cmp_text(&ta, off, &ts, 0, ls) == CMP_EQUAL )
+	    { return ( PL_unify_integer(len, ls) &&
+		       PL_unify_integer(before, off) );
+	    }
 	  }
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SEARCH;
@@ -4800,26 +4861,28 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( b >= 0 )			/* before given */
-      { if ( b > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(b) )		/* before given */
+      { if ( b > la )
+	  return FALSE;
 
-	if ( l >= 0 )			/* len given */
-	{ if ( b+l <= (int)la )		/* deterministic fit */
+	if ( SIZE_GIVEN(l) )		/* len given */
+	{ if ( b+l <= la )		/* deterministic fit */
 	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
 		 PL_unify_integer(after, la-b-l) )
-	      succeed;
+	      return TRUE;
 	  }
-	  fail;
+	  return FALSE;
 	}
-	if ( a >= 0 )			/* after given */
-	{ if ( (l = la-a-b) >= 0 )
-	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
-		 PL_unify_integer(len, l) )
-	      succeed;
+	if ( SIZE_GIVEN(a) )		/* after given */
+	{ if ( la >= a+b )
+	  { size_t l2 = la-a-b;
+
+	    if ( PL_unify_text_range(sub, &ta, b, l2, type) &&
+		 PL_unify_integer(len, l2) )
+	      return TRUE;
 	  }
 
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
@@ -4829,18 +4892,20 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( l >= 0 )			/* no before, len given */
-      { if ( l > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(l) )		/* no before, len given */
+      { if ( l > la )
+	  return FALSE;
 
-	if ( a >= 0 )			/* len and after */
-	{ if ( (b = la-a-l) >= 0 )
-	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
-		 PL_unify_integer(before, b) )
-	      succeed;
+	if ( SIZE_GIVEN(a) )		/* len and after */
+	{ if ( la >= a+l )
+	  { size_t b2 = la-a-l;
+
+	    if ( PL_unify_text_range(sub, &ta, b2, l, type) &&
+		 PL_unify_integer(before, b2) )
+	      return TRUE;
 	  }
 
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
@@ -4850,9 +4915,9 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( a >= 0 )			/* only after given */
-      { if ( a > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(a) )		/* only after given */
+      { if ( a > la )
+	  return FALSE;
 
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
@@ -4877,10 +4942,10 @@ sub_text(DECL_LD term_t atom,
       state = ForeignContextPtr(h);
       if ( state )
 	freeForeignState(state, sizeof(*state));
-      succeed;
+      return TRUE;
     default:
       assert(0);
-      fail;
+      return FALSE;
   }
 
   fid = PL_open_foreign_frame();
@@ -4888,8 +4953,8 @@ again:
   switch(state->type)
   { case SUB_SEARCH:
     { PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK);
-      la = state->n2;
-      ls = state->n3;
+      lab = state->n2;
+      lsb = state->n3;
 
       for( ; state->n1+ls <= la; state->n1++ )
       { if ( PL_cmp_text(&ta, state->n1, &ts, 0, ls) == 0 )
@@ -4906,9 +4971,9 @@ again:
       goto exit_fail;
     }
     case SUB_SPLIT_TAIL:		/* before given, rest unbound */
-    { la = state->n2;
-      b  = state->n3;
-      l  = state->n1++;
+    { lab = state->n2;
+      b   = state->n3;
+      l   = state->n1++;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(len, l) &&
@@ -4922,9 +4987,9 @@ again:
 	goto exit_fail;
     }
     case SUB_SPLIT_LEN:
-    { b  = state->n1++;
-      l  = state->n2;
-      la = state->n3;
+    { b   = state->n1++;
+      l   = state->n2;
+      lab = state->n3;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
@@ -4932,10 +4997,10 @@ again:
       goto out;
     }
     case SUB_SPLIT_HEAD:
-    { b  = state->n1++;
-      la = state->n2;
-      a  = state->n3;
-      l  = la - a - b;
+    { b   = state->n1++;
+      lab = state->n2;
+      a   = state->n3;
+      l   = la - a - b;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
@@ -4948,10 +5013,10 @@ again:
 	goto exit_fail;
     }
     case SUB_ENUM:
-    { b  = state->n1;
-      l  = state->n2++;
-      la = state->n3;
-      a  = la-b-l;
+    { b   = state->n1;
+      l   = state->n2++;
+      lab = state->n3;
+      a   = la-b-l;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
@@ -4973,11 +5038,11 @@ again:
 
 exit_fail:
   freeForeignState(state, sizeof(*state));
-  fail;
+  return FALSE;
 
 exit_succeed:
   freeForeignState(state, sizeof(*state));
-  succeed;
+  return TRUE;
 
 next:
   if ( match )
@@ -5256,6 +5321,8 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
     }
     case FRG_CUTTED:
       return TRUE;
+    case FRG_RESUME:
+      assert(0);
   }
 
   return FALSE;
@@ -5385,6 +5452,8 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
     }
     case FRG_CUTTED:
       return TRUE;
+    case FRG_RESUME:
+      assert(0);
   }
 
   return FALSE;
@@ -5439,8 +5508,6 @@ void
 raiseInferenceLimitException(void)
 { GET_LD
   fid_t fid;
-  static predicate_t not_exceed[6];
-  static int done = FALSE;
   Definition def = environment_frame->predicate;
   int64_t olimit;
   int i;
@@ -5454,7 +5521,8 @@ raiseInferenceLimitException(void)
   DEBUG(MSG_INFERENCE_LIMIT,
 	Sdprintf("Got inference limit in %s\n", predicateName(def)));
 
-  if ( !done )
+#define not_exceed GD->inference_limit.not_exceed_
+  if ( !GD->inference_limit.initialized )
   { not_exceed[0] = PL_predicate("$inference_limit_true",     3, "system");
     not_exceed[1] = PL_predicate("$inference_limit_false",    1, "system");
     not_exceed[2] = PL_predicate("$inference_limit_except",   3, "system");
@@ -5505,28 +5573,6 @@ programSpace(void)
   return 0;
 }
 
-
-static size_t
-CStackSize(PL_local_data_t *ld)
-{
-#ifdef O_PLMT
-  if ( ld->thread.info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->c_stack_size));
-    return ld->thread.info->c_stack_size;
-  }
-#endif
-#ifdef HAVE_GETRLIMIT
-{ struct rlimit rlim;
-
-  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
-  { DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
-    return rlim.rlim_cur;
-  }
-}
-#endif
-
-  return 0;
-}
 
 #define QP_STATISTICS 1
 
@@ -5665,7 +5711,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
   else if (key == ATOM_c_stack)
-    v->value.i = CStackSize(LD);
+    v->value.i = CStackSize();
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_atom_space)			/* atom_space */
@@ -6055,7 +6101,7 @@ PRED_IMPL("throw", 1, throw, 0)
 }
 
 static
-PRED_IMPL("$urgent_exception", 1, urgent_exception, 0)
+PRED_IMPL("$urgent_exception", 3, urgent_exception, 0)
 { PRED_LD
   except_class c1 = classify_exception(A1);
   except_class c2 = classify_exception(A2);
@@ -6171,6 +6217,7 @@ BeginPredDefs(prims)
   PRED_DEF("nb_setarg", 3, nb_setarg, 0)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
+  PRED_DEF("$seek_list", 4, seek_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
-  PRED_DEF("$urgent_exception", 1, urgent_exception, 0)
+  PRED_DEF("$urgent_exception", 3, urgent_exception, 0)
 EndPredDefs

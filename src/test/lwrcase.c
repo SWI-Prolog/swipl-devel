@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2002, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,33 +36,33 @@
 #include <SWI-Prolog.h>
 #include <ctype.h>
 
-foreign_t
+static foreign_t
 pl_lowercase(term_t u, term_t l)
-{ char *copy;
-  char *s, *q;
-  atom_t la;
+{ char *s;
+  int rc;
 
-  if ( !PL_get_atom_chars(u, &s) )
-    return PL_warning("lowercase/2: instantiation fault");
-  copy = malloc(strlen(s)+1);
+  PL_STRINGS_MARK();
+  if ( (rc=PL_get_chars(u, &s, CVT_ATOM|CVT_EXCEPTION|BUF_STACK)) )
+  { char *q;
 
-  for( q=copy; *s; q++, s++)
-    *q = (isupper(*s) ? tolower(*s) : *s);
-  *q = '\0';
+    for(q=s; *s; q++, s++)
+      *q = (isupper(*s) ? tolower(*s) : *s);
+    *q = '\0';
 
-  la = PL_new_atom(copy);
-  free(copy);
+    rc = PL_unify_chars(l, PL_ATOM, (size_t)-1, s);
+  }
+  PL_STRINGS_RELEASE();
 
-  return PL_unify_atom(l, la);
+  return rc;
 }
 
 install_t
-install()
+install(void)
 { PL_register_foreign("lowercase", 2, pl_lowercase, 0);
 }
 
 
 install_t
-uninstall()
+uninstall(void)
 {
 }

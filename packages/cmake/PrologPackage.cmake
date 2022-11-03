@@ -53,6 +53,16 @@ else()
   endif()
 endif()
 
+# When installing to a non-standard location on macOS, the module
+# @rpath needs to be set to be able to correctly find libswipl.dylib
+if(APPLE AND (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+  set(MACOSX_RPATH TRUE)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_INSTALL_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib/swipl/lib/${SWIPL_ARCH}")
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 # add_index(dir file ...)
 #
 # Create INDEX.pl for ${dir} if at least on of the files is a .pl file
@@ -94,7 +104,11 @@ endfunction()
 
 function(swipl_plugin name)
   set(target ${name})
+if(STATIC_EXTENSIONS)
+  set(type STATIC)
+else()
   set(type MODULE)
+endif()
   set(v_module ${name})
   set(v_c_sources)
   set(v_c_libs)
@@ -171,15 +185,21 @@ function(swipl_plugin name)
     set_target_properties(${foreign_target} PROPERTIES
 			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
-    target_link_libraries(${foreign_target} PRIVATE
-			  ${v_c_libs} ${SWIPL_LIBRARIES})
+    if(STATIC_EXTENSIONS)
+      target_link_libraries(libswipl PRIVATE ${foreign_target} ${v_c_libs})
+      set_property(GLOBAL APPEND PROPERTY static_extension_libs ${v_module})
+    else()
+      target_link_libraries(${foreign_target} PRIVATE
+			    ${v_c_libs} ${SWIPL_LIBRARIES})
+    endif()
+    add_dependencies(library_index_library ${foreign_target})
     if(v_c_include_dirs)
       target_include_directories(${foreign_target} BEFORE PRIVATE
 				 ${v_c_include_dirs})
     endif()
     add_dependencies(${target} ${foreign_target})
 
-    if(NOT v_test)
+    if(NOT v_test OR INSTALL_TESTS)
       install(TARGETS ${foreign_target}
 	      LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
     endif()
@@ -249,8 +269,10 @@ if(WIN32)
       get_filename_component(dir ${lib} DIRECTORY)
       get_filename_component(base ${lib} NAME_WE)
       file(STRINGS ${lib} dlnamelist REGEX "${base}.*\\.dll$")
-      list(GET dlnamelist 0 dlname)
-      get_filename_component(dll ${dir}/../bin/${dlname} ABSOLUTE)
+      if(dlnamelist)
+        list(GET dlnamelist 0 dlname)
+        get_filename_component(dll ${dir}/../bin/${dlname} ABSOLUTE)
+      endif()
     endif()
     if(dll)
       set(dlls ${dlls} ${dll})

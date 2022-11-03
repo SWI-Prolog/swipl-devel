@@ -86,7 +86,10 @@ acquire_closure(atom_t aref)
 static int
 release_closure(atom_t aref)
 { closure *c = PL_blob_data(aref, NULL, NULL);
-  (void) c;
+  Definition def = &c->def;
+
+  freeCodesDefinition(def, FALSE);
+  free_lingering(&def->lingering, GEN_MAX);
 
   return TRUE;
 }
@@ -157,6 +160,18 @@ get_closure_predicate(DECL_LD term_t t, Definition *def)
 }
 
 
+void
+unregisterWrappedSupervisor(Code codes)
+{ if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+  { atom_t aref  = (atom_t)codes[2];
+    atom_t wname = (atom_t)codes[3];
+
+    PL_unregister_atom(aref);
+    PL_unregister_atom(wname);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called  from  freeCodesDefinition()  to  reset  the  eventually  wrapped
 supervisor to S_VIRGIN after a change   to the wrapped predicate. S_WRAP
@@ -164,7 +179,7 @@ will eventually trap this and re-create an appropriate new supervisor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-resetWrappedSupervisor(Definition def0)
+resetWrappedSupervisor(Definition def0, int do_linger)
 { Definition def = def0;
   Code codes = def->codes;
 
@@ -175,9 +190,9 @@ resetWrappedSupervisor(Definition def0)
     codes = c->def.impl.wrapped.supervisor;
   }
 
-  assert(def != def0);
+  assert(def != def0);	/* def is the definition inside the closure */
   def->impl.wrapped.supervisor = SUPERVISOR(virgin);
-  freeSupervisor(def, codes, TRUE);		/* is this the right def? */
+  freeSupervisor(def, codes, do_linger);
 }
 
 
@@ -282,12 +297,14 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
   Code codes = NULL;
   term_t head = PL_new_term_ref();
   term_t closure = A3;
+  Definition def;
 
   if ( !PL_get_atom_ex(A2, &wname) ||
        !get_procedure(A1, &proc, head, GP_DEFINE) )
     return FALSE;
+  def = proc->definition;
 
-  if ( (codes = find_wrapper(proc->definition, wname)) )
+  if ( (codes = find_wrapper(def, wname)) )
   { ClauseRef cref;
     atom_t aref = (atom_t)codes[2];
 
@@ -304,7 +321,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       return TRUE;
     }
   } else
-  { if ( unify_closure(closure, proc->definition, proc->definition->codes) )
+  { if ( unify_closure(closure, def, def->codes) )
     { ClauseRef cref;
       atom_t aref;
 
@@ -322,7 +339,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
-	proc->definition->codes = codes;
+	setSupervisor(def, codes);
 
 	return TRUE;
       }

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2015, University of Amsterdam
+    Copyright (c)  2022, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,45 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define WIN32 1
+:- module(test_signals,
+          [ test_signals/0
+          ]).
+:- use_module(library(plunit)).
+:- if( ( exists_source(library(unix)),
+         current_prolog_flag(signals, true),
+         current_prolog_flag(threads, true)
+       )).
+:- use_module(library(unix)).
 
-#define BOOTFILE	"boot32.prc"
-#define PLARCH		"i386-win32"
-#define SIZEOF_VOIDP	4
-#ifdef _MSC_VER
-typedef long ssize_t;
-#endif
+test_signals :-
+    run_tests([ signals
+              ]).
 
-#include "wincfg.h"
+:- begin_tests(signals).
+
+:- dynamic done/0.
+
+test(sync) :-
+    retractall(done),
+    setup_call_cleanup(
+        on_signal(term, Old, term),
+        test_term,
+        on_signal(term, _, Old)).
+
+term(_Sig) :-
+    length(L, 100000),
+    is_list(L),
+    assert(done).
+
+test_term :-
+    current_prolog_flag(pid, PID),
+    kill(PID, term),
+    thread_wait(done, [timeout(1)]).
+
+:- end_tests(signals).
+
+:- else.
+
+test_signals.
+
+:- endif.

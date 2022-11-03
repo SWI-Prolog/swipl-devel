@@ -50,5 +50,6 @@ int		ms_snprintf(char *buffer, size_t count,
 			    const char *fmt, ...);
 void		getDefaultsFromRegistry(void);
 const char*	WinError(void);
+char *		findModulePath(const char *module, char *buf, size_t len);
 
-#endif /*_PL_NT_H*/			
+#endif /*_PL_NT_H*/

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2021, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -920,6 +920,13 @@ charCode(word w)
 
       return p[0];
     }
+#if SIZEOF_WCHAR_T == 2
+    if ( a->length == 2*sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    { pl_wchar_t *p = (pl_wchar_t*)a->name;
+
+      return utf16_decode(p[0], p[1]);
+    }
+#endif
   }
 
   return -1;
@@ -1041,6 +1048,11 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
 }
 
 bool
+PL_cvt_i_bool(term_t p, int *s)
+{ return PL_get_bool_ex(p, s);
+}
+
+bool
 PL_cvt_i_short(term_t p, short *s)
 { return _PL_cvt_i_short(p, s, SHORT_MIN, SHORT_MAX);
 }
@@ -1084,6 +1096,16 @@ PL_cvt_i_ulong(term_t p, unsigned long *c)
 }
 
 bool
+PL_cvt_i_int32(term_t p, int32_t *c)
+{ return PL_get_integer_ex(p, c);
+}
+
+bool
+PL_cvt_i_uint32(term_t p, uint32_t *c)
+{ return PL_cvt_i_uint(p, c);
+}
+
+bool
 PL_cvt_i_int64(term_t p, int64_t *c)
 { return PL_get_int64_ex(p, c);
 }
@@ -1100,6 +1122,25 @@ PL_cvt_i_size_t(term_t p, size_t *c)
   return PL_get_size_ex(p, c);
 }
 
+bool
+PL_cvt_i_llong(term_t p, long long *c)
+{
+#if SIZEOF_LONG_LONG == 8
+  return PL_cvt_i_int64(p, (int64_t*)c);
+#else
+  #error "Unsupported size for long long"
+#endif
+}
+
+bool
+PL_cvt_i_ullong(term_t p, unsigned long long *c)
+{
+#if SIZEOF_LONG_LONG == 8
+  return PL_cvt_i_uint64(p, (uint64_t*)c);
+#else
+  #error "Unsupported size for long long"
+#endif
+}
 
 bool
 PL_cvt_i_float(term_t p, double *c)
@@ -1448,6 +1489,16 @@ PL_get_bool(term_t t, int *b)
     { *b = FALSE;
       succeed;
     }
+    fail;
+  }
+  if ( isInteger(w) )
+  { if ( w == consInt(0) )
+      *b = FALSE;
+    else if ( w == consInt(1) )
+      *b = TRUE;
+    else
+      fail;
+    succeed;
   }
 
   fail;
@@ -1496,6 +1547,36 @@ PL_get_atom_nchars(term_t t, size_t *len, char **s)
   }
 
   fail;
+}
+
+
+int
+PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
+{ PL_chars_t text;
+
+  if ( !get_atom_text(a, &text) )
+  { if ( (flags&CVT_EXCEPTION) )
+    { term_t t;
+      return ((t = PL_new_term_ref()) &&
+	      PL_put_atom(t, a) &&
+	      PL_type_error("atom", t));
+    }
+    return FALSE;
+  }
+
+  if ( PL_mb_text(&text, flags) )
+  { PL_save_text(&text, flags);
+
+    if ( len )
+      *len = text.length;
+    *s = text.text.t;
+
+    return TRUE;
+  } else
+  { PL_free_text(&text);
+
+    return FALSE;
+  }
 }
 
 
@@ -2949,12 +3030,13 @@ uncachedCodeToAtom(int chrcode)
     tmp[0] = (char)chrcode;
     return lookupAtom(tmp, 1);
   } else
-  { pl_wchar_t tmp[1];
+  { wchar_t tmp[2];
+    wchar_t *end;
     int new;
 
-    tmp[0] = chrcode;
+    end = put_wchar(tmp, chrcode);
 
-    return lookupBlob((const char *)tmp, sizeof(pl_wchar_t),
+    return lookupBlob((const char *)tmp, sizeof(tmp[0])*(end-tmp),
 		      &ucs_atom, &new);
   }
 }
@@ -3268,8 +3350,15 @@ PL_unify_float(term_t t, double f)
 int
 PL_unify_bool(term_t t, int val)
 { GET_LD
+  word w = valHandle(t);
 
-  return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+  if ( canBind(w) )
+    return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+
+  if ( val )
+    return w == ATOM_true || w == ATOM_on;
+  else
+    return w == ATOM_false || w == ATOM_off;
 }
 
 
@@ -3810,6 +3899,12 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
   if ( len )
     *len = x->length;
+  if ( unlikely(x->type == ATOM_TYPE_INVALID) )
+  { if ( type )
+      *type = NULL;
+    return NULL;
+  }
+
   if ( type )
     *type = x->type;
 
@@ -4143,7 +4238,6 @@ _PL_retry(intptr_t v)
 { ForeignRedoInt(v);
 }
 
-
 foreign_t
 _PL_retry_address(void *v)
 { if ( (uintptr_t)v & FRG_REDO_MASK )
@@ -4152,6 +4246,13 @@ _PL_retry_address(void *v)
   ForeignRedoPtr(v);
 }
 
+foreign_t
+_PL_yield_address(void *v)
+{ if ( (uintptr_t)v & FRG_REDO_MASK )
+    PL_fatal_error("PL_yield_address(%p): bad alignment", v);
+
+  ForeignYieldPtr(v);
+}
 
 intptr_t
 PL_foreign_context(control_t h)
@@ -4582,27 +4683,20 @@ variable LSAN_OPTIONS=.
 
 static int
 haltProlog(int status)
-{ int reclaim_memory = FALSE;
+{ status |= PL_CLEANUP_NO_RECLAIM_MEMORY;
 
 #if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
-  reclaim_memory = TRUE;
+  status &= ~PL_CLEANUP_NO_RECLAIM_MEMORY;
 #endif
 
-  if ( cleanupProlog(status, reclaim_memory) )
-  { run_on_halt(&GD->os.exit_hooks, status);
-
-#if 0 && defined(__SANITIZE_ADDRESS__)
-// Disabled as this doesn't work
-    Sdprintf("About to exit\n");
-    __lsan_do_leak_check();
-    Sdprintf("Done checking\n");
-    __lsan_disable();
-#endif
-
-    return TRUE;
+  switch( PL_cleanup(status) )
+  { case PL_CLEANUP_CANCELED:
+    case PL_CLEANUP_RECURSIVE:
+      return FALSE;
+    default:
+      run_on_halt(&GD->os.exit_hooks, status);
+      return TRUE;
   }
-
-  return FALSE;
 }
 
 int
@@ -4635,15 +4729,15 @@ PL_open_resource(Module m,
 { GET_LD
   IOSTREAM *s = NULL;
   fid_t fid;
-  static predicate_t MTOK_pred;
+  predicate_t pred;
   term_t t0;
 
   (void)rc_class;
 
   if ( !m )
     m = MODULE_user;
-  if ( !MTOK_pred )
-    MTOK_pred = PL_predicate("c_open_resource", 3, "$rc");
+  pred = _PL_predicate("c_open_resource", 3, "$rc",
+		       &GD->procedures.c_open_resource3);
 
   if ( !(fid = PL_open_foreign_frame()) )
   { errno = ENOENT;
@@ -4653,7 +4747,7 @@ PL_open_resource(Module m,
   PL_put_atom_chars(t0+0, name);
   PL_put_atom_chars(t0+1, mode);
 
-  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
+  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, pred, t0) ||
        !PL_get_stream_handle(t0+2, &s) )
     errno = ENOENT;
 
@@ -4716,16 +4810,38 @@ PL_abort_hook(PL_abort_hook_t func)
 }
 
 
+void
+cleanAbortHooks(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { AbortHandle next;
+
+    for(AbortHandle h = abort_head; h; h=next)
+    { next = h->next;
+      freeHeap(h, sizeof(*h));
+    }
+    abort_head = abort_tail = NULL;
+  }
+}
+
 int
 PL_abort_unhook(PL_abort_hook_t func)
 { GET_LD
   AbortHandle h = abort_head;
+  AbortHandle prev = NULL;
 
   for(; h; h = h->next)
   { if ( h->function == func )
     { h->function = NULL;
+      if ( prev )
+	prev->next = h->next;
+      else
+	abort_head = h->next;
+      if ( !h->next )
+	abort_tail = prev;
+      freeHeap(h, sizeof(*h));
       return TRUE;
     }
+    prev = h;
   }
 
   return FALSE;
@@ -5309,7 +5425,7 @@ registerForeignLicenses(void)
 		 *******************************/
 
 unsigned int
-PL_version(int which)
+PL_version_info(int which)
 { switch(which)
   { case PL_VERSION_SYSTEM:	return PLVERSION;
     case PL_VERSION_FLI:	return PL_FLI_VERSION;

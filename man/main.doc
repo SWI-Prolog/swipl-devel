@@ -58,10 +58,10 @@
 #endif
 
 \newcommand{\vmajor}{8}
-\newcommand{\vminor}{4}
-\newcommand{\vpatch}{3}
+\newcommand{\vminor}{5}
+\newcommand{\vpatch}{20}
 \newcommand{\vtag}{}
-\newcommand{\vmonth}{June}
+\newcommand{\vmonth}{October}
 \newcommand{\vyear}{2022}
 
 #ifdef BOOK
@@ -165,6 +165,7 @@ California, 94041, USA.
 \include{threads}
 \include{engines}
 \include{foreign}
+\include{wasm}
 \include{runtime}
 \appendix
 \include{lib/library}

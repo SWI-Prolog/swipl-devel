@@ -48,6 +48,9 @@
     qcompile(:),
     qcompile(:, +).
 
+:- thread_local
+    qinclude/1.
+
 %!  qcompile(:Files) is det.
 %
 %   Compile Files as consult/1 and generate   a  Quick Load File for
@@ -55,6 +58,14 @@
 
 qcompile(M:Files) :-
     qcompile_(Files, M, []).
+qcompile(M:Files, Options) :-
+    '$option'(include(Incl), Options),
+    !,
+    '$must_be'(oneof(atom, include, [user]), Incl),
+    setup_call_cleanup(
+        asserta(qinclude(Incl), Ref),
+        qcompile_(Files, M, Options),
+        erase(Ref)).
 qcompile(M:Files, Options) :-
     qcompile_(Files, M, Options).
 

@@ -597,7 +597,7 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 %               open(File, write, Out),
 %               forall(data(C1,C2,C3),
 %                      csv_write_stream(Out, [row(C1,C2,C3)], [])),
-%               close(Out)),
+%               close(Out)).
 %        ==
 
 csv_write_stream(Stream, Data, Options) :-

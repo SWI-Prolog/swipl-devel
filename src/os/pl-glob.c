@@ -296,7 +296,7 @@ compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 
 
 static int
-matchPattern(char *s, compiled_pattern *cbuf, int flags)
+matchPattern(const char *s, compiled_pattern *cbuf, int flags)
 { return match_pattern(baseBuffer(&cbuf->pattern, matchcode), s, flags);
 }
 
@@ -377,7 +377,7 @@ match_pattern(matchcode *p, const char *s, int flags)
 /** wildcard_match(+Pattern, +Name [, +Options]) is semidet.
 */
 
-static const opt_spec wildcard_options[] =
+static const PL_option_t wildcard_options[] =
 { { ATOM_case_sensitive,    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -392,7 +392,7 @@ wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
   int case_sensitive = TRUE;
 
   if ( options &&
-       !scan_options(options, 0, ATOM_wildcard_option,
+       !PL_scan_options(options, 0, "wildcard_option",
 		     wildcard_options, &case_sensitive) )
     return FALSE;
   if ( !case_sensitive )
@@ -484,7 +484,7 @@ mb_add_path(DECL_LD const char *path, GlobInfo info)
   txt.encoding  = ENC_ANSI;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  if ( PL_canonicalise_text(&txt) &&
+  if ( (PL_canonicalise_text(&txt) == TRUE) &&
        PL_mb_text(&txt, REP_UTF8) )
   { addMultipleBuffer(&info->strings, txt.text.t, txt.length+1, char);
     addBuffer(&info->files, idx, int);
@@ -548,7 +548,7 @@ utf8_exists_file(DECL_LD const char *name)
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  rc = ( PL_canonicalise_text(&txt) &&
+  rc = ( (PL_canonicalise_text(&txt) == TRUE) &&
 	 PL_mb_text(&txt, REP_FN) &&
 	 AccessFile(txt.text.t, ACCESS_EXIST) );
   PL_free_text(&txt);
@@ -556,7 +556,8 @@ utf8_exists_file(DECL_LD const char *name)
 
   return rc;
 #else
-  return AccessFile(name, ACCESS_EXIST);
+  // _xos_access_dir simply uses _waccess().  That is good enough for us.
+  return _xos_access_dir(name, F_OK) == 0 ? TRUE : FALSE;
 #endif
 }
 
@@ -574,7 +575,7 @@ utf8_opendir(DECL_LD const char *name)
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  if ( PL_canonicalise_text(&txt) &&
+  if ( (PL_canonicalise_text(&txt) == TRUE) &&
        PL_mb_text(&txt, REP_FN) )
     rc = opendir(txt.text.t);
   else
@@ -592,8 +593,8 @@ static int
 expand(const char *pattern, GlobInfo info)
 { GET_LD
   const char *pat = pattern;
-  char prefix[MAXPATHLEN];		/* before first pattern */
-  char patbuf[MAXPATHLEN];		/* pattern buffer */
+  char prefix[PATH_MAX];		/* before first pattern */
+  char patbuf[PATH_MAX];		/* pattern buffer */
   size_t prefix_len;
   int end, dot;
   int mflags = 0;
@@ -625,11 +626,11 @@ expand(const char *pattern, GlobInfo info)
 
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
-	    { char path[MAXPATHLEN];
+	    { char path[PATH_MAX];
 	      const char *entry = expand_entry(info, info->start);
 	      size_t plen = strlen(entry);
 
-	      if ( plen+prefix_len+2 <= MAXPATHLEN )
+	      if ( plen+prefix_len+2 <= PATH_MAX )
 	      { strcpy(path, entry);
 		if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
 		  path[plen++] = '/';
@@ -683,8 +684,8 @@ expand(const char *pattern, GlobInfo info)
     for(; info->start < end; info->start++)
     { DIR *d;
       struct dirent *e;
-      char path[MAXPATHLEN];
-      char tmp[MAXPATHLEN];
+      char path[PATH_MAX];
+      char tmp[PATH_MAX];
       const char *current = expand_entry(info, info->start);
       size_t clen = strlen(current);
 
@@ -701,13 +702,9 @@ expand(const char *pattern, GlobInfo info)
 	  path[plen++] = '/';
 
 	for(e=readdir(d); e; e = readdir(d))
-	{
-#ifdef __MSDOS__
-	  strlwr(e->d_name);
-#endif
-	  if ( (dot || e->d_name[0] != '.') &&
+	{ if ( (dot || e->d_name[0] != '.') &&
 	       matchPattern(e->d_name, &info->pattern, mflags) )
-	  { char newp[MAXPATHLEN];
+	  { char newp[PATH_MAX];
 
 	    if ( plen+strlen(e->d_name)+1 < sizeof(newp) )
 	    { strcpy(newp, path);
@@ -719,6 +716,8 @@ expand(const char *pattern, GlobInfo info)
 #endif
 	    }
 	  }
+	  if ( PL_handle_signals() < 0 )
+	    return FALSE;
 	}
 	closedir(d);
       }
@@ -732,6 +731,23 @@ expand(const char *pattern, GlobInfo info)
 
 
 static int
+utf8casecmp(const char *s1, const char *s2)
+{ while(*s1 && *s2)
+  { int c1, c2;
+
+    s1 = utf8_get_char(s1, &c1);
+    s2 = utf8_get_char(s2, &c2);
+    c1 = makeLowerW(c1);
+    c2 = makeLowerW(c2);
+
+    if ( c1 != c2 )
+      return c1-c2;
+  }
+
+  return *s1 && *s2 ? 0 : *s1 ? 1 : -1;
+}
+
+static int
 compareBagEntries(const void *a1, const void *a2)
 { GET_LD
   GlobInfo info = LD->glob_info;
@@ -743,9 +759,9 @@ compareBagEntries(const void *a1, const void *a2)
   s2 = expand_str(info, i2);
 
   if ( truePrologFlag(PLFLAG_FILE_CASE) )
-    return mbscoll(s1, s2);
+    return strcmp(s1, s2);
   else
-    return mbscasecoll(s1, s2);
+    return utf8casecmp(s1, s2);
 }
 
 
@@ -763,7 +779,7 @@ sort_expand(GlobInfo info)
 static
 PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
 { PRED_LD
-  char spec[MAXPATHLEN];
+  char spec[PATH_MAX];
   char *s;
   glob_info info;
   term_t l    = PL_copy_term_ref(A2);

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2020, University of Amsterdam
+    Copyright (c)  2005-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -66,7 +66,6 @@ static mpz_t MPZ_MAX_LONG;
 		 *******************************/
 
 #if O_MY_GMP_ALLOC
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GMP doesn't (yet) allow for handling  memory overflows. You can redefine
 the allocation handles, but you are not  allowed to return NULL or abort
@@ -76,8 +75,15 @@ created during the Prolog function evaluation  and use longjmp() through
 STACK_OVERFLOW_THROW.   Patrick Pelissier acknowledged this should work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void *(*smp_alloc)(size_t);
+static void *(*smp_realloc)(void *, size_t, size_t);
+static void  (*smp_free)(void *, size_t);
+
+#define NOT_IN_PROLOG_ARITHMETIC() \
+	(LD == NULL || LD->gmp.context == NULL || LD->gmp.persistent)
+
 static int
-gmp_too_big()
+gmp_too_big(void)
 { GET_LD
 
   DEBUG(1, Sdprintf("Signalling GMP overflow\n"));
@@ -92,8 +98,8 @@ mp_alloc(size_t bytes)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-    return malloc(bytes);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_alloc(bytes);
 
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
@@ -126,8 +132,8 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
   mp_mem_header *oldmem, *newmem;
 
-  if ( LD->gmp.persistent )
-    return realloc(ptr, newsize);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_realloc(ptr, oldsize, newsize);
 
   oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
@@ -163,8 +169,8 @@ mp_free(void *ptr, size_t size)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-  { free(ptr);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+  { smp_free(ptr, size);
     return;
   }
 
@@ -886,7 +892,9 @@ initGMP(void)
 #endif
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
+    { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+    }
 #endif
 
 #if __GNU_MP__ > 3 && __GNU_MP__ < 6
@@ -899,18 +907,19 @@ initGMP(void)
 
 
 void
-cleanupGMP()
+cleanupGMP(void)
 { if ( GD->gmp.initialised )
   { GD->gmp.initialised = FALSE;
 
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
-      mp_set_memory_functions(NULL, NULL, NULL);
+      mp_set_memory_functions(smp_alloc, smp_realloc, smp_free);
 #endif
     mpz_clear(MPZ_MIN_TAGGED);
     mpz_clear(MPZ_MAX_TAGGED);
     mpz_clear(MPZ_MIN_PLINT);
     mpz_clear(MPZ_MAX_PLINT);
+    mpz_clear(MPZ_MAX_UINT64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_clear(MPZ_MIN_LONG);
     mpz_clear(MPZ_MAX_LONG);
@@ -1214,23 +1223,6 @@ API_STUB(int)
 		 *	     PROMOTION		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The GMP functions which convert  mpz's   and  mpq's to double's truncate
-(round to zero) if necessary ignoring the current IEEE rounding mode. To
-correct this incorrect  rounding  when  the   mode  is  `to_postive`  or
-`to_negative` all calls  to  mpX_get_d()  should   be  wrapped  in  this
-function. Note that this function has no GMP dependencies.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-double
-mpX_round(double d) {
-  switch (fegetround()) {
-    case FE_UPWARD  : return (d>=0) ? nexttoward(d, INFINITY) : d;
-    case FE_DOWNWARD: return (d<=0) ? nexttoward(d,-INFINITY) : d;
-    default: return d;
-  }
-}
-
 int
 promoteToFloatNumber(Number n)
 { switch(n->type)
@@ -1240,7 +1232,7 @@ promoteToFloatNumber(Number n)
       break;
 #ifdef O_GMP
     case V_MPZ:
-    { double val = mpX_round(mpz_get_d(n->value.mpz));
+    { double val = mpz_to_double(n->value.mpz);
 
       clearNumber(n);
       n->value.f = val;
@@ -1328,7 +1320,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d2 = mpX_round(mpz_get_d(n2->value.mpz));
+	d2 = mpz_to_double(n2->value.mpz);
 	break;
       case V_MPQ:
 	d2 = mpq_to_double(n2->value.mpq);
@@ -1355,7 +1347,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d1 = mpX_round(mpz_get_d(n1->value.mpz));
+	d1 = mpz_to_double(n1->value.mpz);
 	break;
       case V_MPQ:
 	d1 = mpq_to_double(n1->value.mpq);
@@ -1381,6 +1373,7 @@ cmpNumbers(Number n1, Number n2)
       return cmpFloatNumbers(n1, n2);
     rc = make_same_type_numbers(n1, n2);
     assert(rc != CMP_ERROR);
+    (void)rc;
   }
 
   switch(n1->type)
@@ -1439,120 +1432,159 @@ cpNumber(Number to, Number from)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This code is copied from ECLiPSe  7.0_53.   This  code is covered by the
-CMPL 1.1 (Cisco-style Mozilla Public License  Version 1.1), available at
-www.eclipse-clp.org/license.
+From   https://gmplib.org/list-archives/gmp-devel/2013-April/003223.html
+Changed interface to be compatible to  the   previous  code we used from
+ECLiPSe.  Whereas  the  ECLiPSe  truncates,  this  code  rounds  towards
+nearest.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/*
- * Divide two bignums giving a double float result. The naive solution
- *	return mpz_to_double(num) / mpz_to_double(den);
- * suffers from floating point overflows when the numbers are huge
- * and is inefficient because it looks at unnecessarily many digits.
- *
- * IEEE double precision is 53 bits mantissa and 12 bits signed exponent.
- * So the largest integer representable with doubles is 1024 bits wide,
- * of which the first 53 are ones, i.e. it lies between 2^1023 and 2^1024.
- * If the dividend's MSB is more than 1024 bits higher than the divisor's,
- * the result will always be floating point infinity (no need to divide).
- * If we do divide, we first drop excess integer precision by keeping only
- * DBL_PRECISION_LIMBS and ignoring the lower limbs for both operands
- * (i.e. we effectively scale the integers down, or right-shift them).
- */
-
-#define MIN_LIMB_DIFF (2+1024/GMP_NUMB_BITS)
-#define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
-#define MAX_ULONG_DBL ((double)~0L+1.0)
-
 static double
-mpz_fdiv(mpz_t num, mpz_t den)
-{ mp_ptr longer_d, shorter_d;
-  mp_size_t shorter_size, longer_size, ignored_limbs = 0;
-  int negative, swapped;
-  /* By declaring res volatile we make sure that the result is rounded
-   * to double precision instead of being returned with extended precision
-   * in a floating point register, which can have confusing consequences */
-  volatile double res;
+mpz_fdiv(mpz_t a, mpz_t b)
+{ size_t sa = mpz_sizeinbase(a, 2);
+  size_t sb = mpz_sizeinbase(b, 2);
+  size_t na, nb;
+  mpz_t aa, bb;
+  double d;
 
-  shorter_size = num->_mp_size;
-  longer_size = den->_mp_size;
-  negative = 0;
+  /* easy case: |a|, |b| < 2^53, no overflow nor underflow can occur */
+  if ( sa <= 53 && sb <= 53 )
+    return mpz_get_d(a) / mpz_get_d(b);
 
-  if ( shorter_size < 0 )
-  { shorter_size = -shorter_size;
-    negative = !negative;
-  }
-  if ( longer_size < 0 )
-  { longer_size = -longer_size;
-    negative = !negative;
-  }
-  if ( shorter_size > longer_size )
-  { longer_size = shorter_size;
-    longer_d = num->_mp_d;
-    shorter_size = (den->_mp_size >= 0 ? den->_mp_size : -den->_mp_size);
-    shorter_d = den->_mp_d;
-    swapped = 1;			/* abs(res) > 1 */
+  /* same if a = m*2^e with m representable on 53 bits, idem for b, but beware
+     that both a and b do not give an overflow */
+  na = sa - mpz_scan1(a, 0);
+  nb = sb - mpz_scan1(b, 0);
+  if (sa <= 1024 && na <= 53 && sb <= 1024 && nb <= 53)
+    return mpz_get_d(a) / mpz_get_d(b);
+
+  /* hard case */
+  mpz_init(aa);
+  mpz_init(bb);
+
+  if (sa >= sb)
+  { mpz_set(aa, a);
+    mpz_mul_2exp(bb, b, sa - sb);
   } else
-  { longer_d = den->_mp_d;
-    shorter_d = num->_mp_d;
-    swapped = 0;			/* abs(res) < 1 */
+  { mpz_mul_2exp(aa, a, sb - sa);
+    mpz_set(bb, b);
   }
 
-  if ( longer_size - shorter_size > MIN_LIMB_DIFF )
-  { res = swapped ? HUGE_VAL : 0.0;
-  } else
-  { double l,s;
-    long int le, se;
-    mpz_t li, si;
-    int r_mode;
+  /* q = aa/bb*2^(sa-sb) */
 
-    /* we ignore limbs that are not significant for the result */
-    if ( longer_size > MIN_LIMB_DIFF )	/* more can't be represented */
-    { ignored_limbs = longer_size - MIN_LIMB_DIFF;
-      longer_size -= ignored_limbs;
-      shorter_size -= ignored_limbs;
-    }
-    if ( shorter_size > DBL_PRECISION_LIMBS )	/* more exceeds the precision */
-    { ignored_limbs += shorter_size - DBL_PRECISION_LIMBS;
-      longer_size -= shorter_size - DBL_PRECISION_LIMBS;
-      shorter_size = DBL_PRECISION_LIMBS;
-    }
-    longer_d += ignored_limbs;
-    shorter_d += ignored_limbs;
-    li->_mp_alloc = li->_mp_size = longer_size; li->_mp_d = longer_d;
-    si->_mp_alloc = si->_mp_size = shorter_size; si->_mp_d = shorter_d;
+  if ( mpz_cmpabs(aa, bb) >= 0 )
+  { mpz_mul_2exp(bb, bb, 1);
+    sa++;
+  }
 
-    l = mpz_get_d_2exp(&le, li);
-    s = mpz_get_d_2exp(&se, si);
+  mpz_mul_2exp(aa, aa, 54);
+  sb += 54;
 
-    /* if result negative, some rounding modes must be swapped;
-       avoid if unnecessary */
-    if ( negative )
-    { r_mode = fegetround();
+  mpz_tdiv_qr(aa, bb, aa, bb);
 
-      switch (r_mode)
-      { case FE_UPWARD:   fesetround(FE_DOWNWARD); break;
-	case FE_DOWNWARD: fesetround(FE_UPWARD);
+  /* the quotient aa should have exactly 54 bits */
+
+  switch(fegetround())
+  { case FE_TONEAREST:
+      if ( mpz_tstbit(aa, 0) == 0 )
+      {
+      } else if (mpz_cmp_ui(bb, 0) != 0)
+      { if ( mpz_sgn(aa) > 0 )
+	  mpz_add_ui(aa, aa, 1);
+	else
+	  mpz_sub_ui(aa, aa, 1);
+      } else /* mid case: round to even */
+      { if (mpz_tstbit(aa, 1) == 0)
+	{ if (mpz_sgn(aa) > 0)
+	    mpz_sub_ui(aa, aa, 1);
+	  else
+	    mpz_add_ui(aa, aa, 1);
+	} else
+	{ if (mpz_sgn(aa) > 0)
+	    mpz_add_ui(aa, aa, 1);
+	  else
+	    mpz_sub_ui(aa, aa, 1);
+	}
       }
-    }
+      break;
+    case FE_UPWARD:        // negative aa defers to truncate (mpz_get_d)
+      if (mpz_sgn(aa) > 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+        mpz_add_ui(aa, aa, 2);
+      break;
+    case FE_DOWNWARD:      // positive aa defers to truncate (mpz_get_d)
+      if (mpz_sgn(aa) < 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+        mpz_sub_ui(aa, aa, 2);
+      break;
+    case FE_TOWARDZERO:    // truncation performed by mpz_get_d
+      break;
 
-    if ( swapped )
-      res = (l/s) * pow(2.0, le-se);
-    else
-      res = (s/l) * pow(2.0, se-le);
+  }  /* switch(fegetround()) */
 
-    if ( negative )
-      fesetround(r_mode);
+  d = mpz_get_d(aa); /* exact */
+  mpz_clear(aa);
+  mpz_clear(bb);
+
+  return ldexp(d, (long)sa - (long)sb);
+}
+
+/* Convert MPZ to a double by appropriate rounding of result from mpz_get_d */
+
+double
+mpz_to_double(mpz_t a)
+{ double d = mpz_get_d(a);  // truncated, note: a != 0
+  size_t sa = mpz_sizeinbase(a, 2);
+  size_t na = mpz_scan1(a, 0);
+  int bit54, trailing_zeros;
+
+  /* float overflow check */
+  if ( isinf(d) )
+    return d;
+
+  /* if a = m*2^e with m representable on 53 bits */
+  if ( (sa-na) <= 53 )
+    return d;  // truncated value is accurate
+
+  /* round d outwards as determined by rounding mode */
+  /* bit54 is true if rounding compensation required */
+  /* trailing_zeros is true if remaining trailing bits are zero */
+
+  bit54 = mpz_tstbit(a, sa-54);
+  trailing_zeros = (na >= sa-54);
+
+  switch(fegetround())  /* Note: all uses of nexttoward can overflow */
+  { case FE_TONEAREST:
+      if ( d > 0 )
+      { if ( !bit54 )                           // d is positive
+        {
+        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
+        { d = nexttoward(d,  INFINITY);
+        }
+      } else
+      { if ( bit54 && !trailing_zeros )		// d is negative
+        {
+        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
+        { d = nexttoward(d, -INFINITY);
+        }
+      }
+      break;
+    case FE_UPWARD:
+      if ( d > 0 && (!trailing_zeros || bit54) )
+	d = nexttoward(d,  INFINITY);
+      break;
+    case FE_DOWNWARD:
+      if ( d < 0 && (!trailing_zeros || bit54) )
+	d = nexttoward(d, -INFINITY);
+      break;
+    case FE_TOWARDZERO:    // truncation already performed by mpz_get_d
+      break;
   }
 
-  return negative ? -res : res;
+  return d;
 }
 
 double
 mpq_to_double(mpq_t q)
 { return mpz_fdiv(mpq_numref(q), mpq_denref(q));
 }
-
 
 /*
  * Try to compute a "nice" rational from a float, using continued fractions.

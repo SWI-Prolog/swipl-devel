@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, VU University Amsterdam
-                         CWI, Amsterdam
+    Copyright (c)  2018-2022, VU University Amsterdam
+                              CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -196,10 +197,7 @@ add_package(_Pkg, PkgBinDir) :-
 %   probably cheaper to add it anyway.
 
 add_package_path(PkgBinDir) :-
-    (   current_prolog_flag(windows, true)
-    ->  true
-    ;   assertz(user:file_search_path(foreign, PkgBinDir))
-    ).
+    assertz(user:file_search_path(foreign, PkgBinDir)).
 
 :- if(\+ current_prolog_flag(emscripten, true)).
 % disabled as we do not (yet) have packages and opendir() is broken
@@ -221,6 +219,21 @@ set_version_info :-
     ).
 
 :- initialization(set_version_info).
+
+%!  set_libswipl
+%
+%   Set the value for libswipl.
+
+set_libswipl :-
+    current_prolog_flag(shared_object_extension, SO),
+    \+current_prolog_flag(windows, true),
+    !,
+    cmake_binary_directory(BinDir),
+    format(atom(Value), '~w/src/libswipl.~w', [BinDir, SO]),
+    set_prolog_flag(libswipl, Value).
+set_libswipl.
+
+:- initialization(set_libswipl).
 
 % Avoid getting Java from the host when running under Wine.
 

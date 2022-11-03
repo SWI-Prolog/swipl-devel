@@ -44,6 +44,8 @@ test(error, Ex == foo) :-
 	engine_create(_, throw(foo), E),
 	catch(engine_next(E, _), Ex, true),
 	engine_destroy(E).
+text(mixed, all(R) == [1,aap,2,3]) :-
+	mixed_yield_answers(R).
 test(no_data, error(existence_error(term, delivery, E))) :-
 	setup_call_cleanup(
 	    engine_create(_, sum(0), E),
@@ -197,3 +199,18 @@ join_true(Id) :-
 
 add(E, Add, Sum) :-
 	engine_post(E, Add, Sum).
+
+mixed_yield_answers(R) :-
+	setup_call_cleanup(
+	    engine_create(X, p(X), E),
+	    (	repeat,
+		(   engine_next(E, R)
+		->  true
+		;   !, fail
+		)
+	    ),
+	    engine_destroy(E)).
+
+p(1).
+p(2) :- engine_yield(aap).
+p(3).

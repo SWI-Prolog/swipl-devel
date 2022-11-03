@@ -35,7 +35,8 @@
 */
 
 :- module(make,
-          [ make/0
+          [ make/0,
+            make_reload_file/1      % +File
           ]).
 :- autoload(library(apply),[maplist/2]).
 :- autoload(library(check),[list_undefined/0,list_void_declarations/0]).
@@ -87,7 +88,7 @@ make_no_trace :-
     ;   true
     ),
     print_message(silent, make(reload(Reload))),
-    maplist(reload_file, Reload),
+    maplist(make_reload_file, Reload),
     print_message(silent, make(done(Reload))),
     (   prolog:make_hook(after, Reload)
     ->  true
@@ -132,7 +133,7 @@ file_includes(Source, Included, IncLoadTime, Seen) :-
     ;   file_includes(Included0, Included, IncLoadTime, [Included0|Seen])
     ).
 
-%!  reload_file(File)
+%!  make_reload_file(File)
 %
 %   Reload file into the proper module.
 %
@@ -140,8 +141,9 @@ file_includes(Source, Included, IncLoadTime, Seen) :-
 %           proper order for import/export dependencies.
 
 :- public reload_file/1.                % Used by PDT
+reload_file(File) :- make_reload_file(File).
 
-reload_file(File) :-
+make_reload_file(File) :-
     source_base_name(File, Compile),
     findall(M-Opts,
             source_file_property(File, load_context(M, _, Opts)),

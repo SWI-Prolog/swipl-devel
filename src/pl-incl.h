@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam,
+    Copyright (c)  1985-2022, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -41,45 +41,12 @@
 #define PLNAME "swi"
 
 #ifdef __WINDOWS__
-#ifdef WIN64
-#include "config/win64.h"
-#define PLHOME       "c:/Program Files/swipl"
-#else
-#include "config/win32.h"
-#define PLHOME       "c:/Program Files (x86)/swipl"
-#endif
+#include "config/wincfg.h"
 #else /*__WINDOWS__*/
 #include <config.h>
 #endif
 
-#ifdef _MSC_VER
-#define C_LIBS	     ""
-#define C_STATICLIBS ""
-#define C_CC	     "cl"
-#if (_MSC_VER < 1400)
-#define C_CFLAGS     "/MD /GX"
-#else
-#define C_CFLAGS     "/MD /EHsc"
-#endif
-#define C_LDFLAGS    ""
-#if defined(_DEBUG)
-#define C_PLLIB	    "swiplD.lib"
-#else
-#define C_PLLIB	    "swipl.lib"
-#endif
-#else					/* !_MSC_VER  */
-#ifdef __WINDOWS__			/* I.e., MinGW */
-#define C_LIBS	     ""
-#define C_STATICLIBS ""
-#define C_CC	     "gcc"
-#define C_CFLAGS     ""
-#define C_PLLIB	     "-lswipl"		/* Or "libswipl.lib"? */
-#define C_LIBPLSO    "-lswipl"
-#define C_LDFLAGS    ""
-#else
 #include <parms.h>			/* pick from the working dir */
-#endif
-#endif
 
 /* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
 #ifdef HAVE_GMP_H
@@ -111,6 +78,20 @@
  * here we want the original names.
  */
 #define PL_OPAQUE(type) type
+
+/* Clang way to detect address_sanitizer */
+#ifndef __has_feature
+  #define __has_feature(x) 0
+#endif
+#ifndef __SANITIZE_ADDRESS__
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+#endif
 
 #include "SWI-Prolog.h"
 
@@ -208,10 +189,16 @@ handy for it someone wants to add a data type to the system.
   O_SIGNALS
       Include OS-level signal-handling code. This does not affect any
       virtual Prolog "signals" defined above SIG_PROLOG_OFFSET, but
-      SIG_ALERT loses its "interrupt a blocking system call" semantics
-      when this is disabled. Presently this also disables support for
-      Prolog-facing signal handling (on_signal/3, etc) but that may
-      change in the future.
+      PL_thread_raise loses its "interrupt a blocking system call"
+      semantics when this is disabled.
+  O_ROUND_UP_DOWN
+      Force true values for floating point functions are between the
+      downward and upward rounded values.  Works around the fact that
+      most C runtime libraries do not correctly implement the float
+      rouding modes for many of the trigonomy and expononential
+      functions.
+  O_COVERAGE
+      Include low-level coverage analysis code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -239,6 +226,8 @@ handy for it someone wants to add a data type to the system.
 #define O_GVAR			1
 #define O_CYCLIC		1
 #define O_MITIGATE_SPECTRE	1
+#define O_ROUND_UP_DOWN		1
+#define O_COVERAGE		1
 #ifndef O_PREFER_RATIONALS
 #define O_PREFER_RATIONALS	FALSE
 #endif
@@ -252,6 +241,12 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
+/* Define either or none of O_DYNAMIC_EXTENSIONS and O_STATIC_EXTENSIONS */
+#if (defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)) \
+    && !defined(O_STATIC_EXTENSIONS)
+#define O_DYNAMIC_EXTENSIONS 1
+#endif
+
 #ifdef __WINDOWS__
 #define NOTTYCONTROL           TRUE
 #define O_DDE 1
@@ -260,6 +255,15 @@ handy for it someone wants to add a data type to the system.
 #define O_HASSHARES 1
 #define O_XOS 1
 #define O_RLC 1
+#endif
+
+#ifdef __EMSCRIPTEN__
+#define NOTTYCONTROL           TRUE
+#define O_TIGHT_CSTACK 1
+#endif
+
+#ifdef __SANITIZE_ADDRESS__
+#define O_TIGHT_CSTACK 1
 #endif
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
@@ -364,20 +368,33 @@ typedef _sigset_t sigset_t;
 #include <stdarg.h>
 #include <limits.h>
 
-#ifdef HAVE_SIGNAL_H 
+#ifdef HAVE_SIGNAL_H
 #include <signal.h>
 #endif
-#if !O_SIGNALS
-/* Pretend like we don't have access to any of these system calls */
-# undef HAVE_SIGNAL
-# undef HAVE_SIGPROCMASK
-# undef HAVE_SIGSETMASK
-# undef HAVE_SIGGETMASK
-# undef HAVE_SIGACTION
-# undef HAVE_SIGSET
-# undef HAVE_SIGBLOCK
-# undef HAVE_SIGALTSTACK
-#endif /* O_SIGNALS */
+
+/* We have two important feature test macros relating to signals. The first is
+ * O_SIGNALS, which controls whether Prolog itself should perform OS-level
+ * signal handling, and is set by the USE_SIGNALS config directive.
+ *
+ * The other macro is HAVE_OS_SIGNALS. This controls whether OS-level signal
+ * handling is available at all, e.g. from the on_signal/3 predicate.
+ */
+#ifndef HAVE_OS_SIGNALS
+# if defined(HAVE_SIGNAL) || defined(HAVE_SIGACTION)
+/* if we have at least one of these functions, assume we have access to
+ * OS-level signals, unless HAVE_OS_SIGNALS has been explicitly disabled. */
+#  define HAVE_OS_SIGNALS 1
+# endif
+#elif !HAVE_OS_SIGNALS
+/* If HAVE_OS_SIGNALS was explicitly defined to 0, turn that into an undef
+ * so that we can use either #if or #ifdef with it in libswipl code. */
+# undef HAVE_OS_SIGNALS
+#endif
+
+#if !HAVE_OS_SIGNALS
+/* If we can't access OS signals, don't include code that uses them. */
+# undef O_SIGNALS
+#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #else
@@ -420,14 +437,25 @@ typedef _sigset_t sigset_t;
 #define EMULATE_DLOPEN 1		/* Emulated dlopen() in pl-beos.c */
 #endif
 
-/* MAXPATHLEN is an optional POSIX feature (Bug#63).  As SWI-Prolog has
+/* PATH_MAX is an optional POSIX feature (Bug#63).  As SWI-Prolog has
    no length limits on text except for representing paths, we should
-   rewrite all file handling code to avoid MAXPATHLEN.  For now we just
+   rewrite all file handling code to avoid PATH_MAX.  For now we just
    define it.
 */
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
+/* If we have a threads-supporting C11 environment, we can use C11 thread
+ * primitives (as a fallback, if we don't have a system-specific impl).
+ * We do not need this stuff on Windows as it is used for internal signal
+ * handling if no true signals are available.
+ */
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__WINDOWS__)
+# include <threads.h>
+# undef thread_local /* we use this as an identifier, it's not in the C11 spec anyway */
+# define HAVE_STDC_THREADS	1
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -571,11 +599,6 @@ them.  Descriptions:
 #define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(-PLMAXINT - 1)
 #define PLMAXINT		((int64_t)(((uint64_t)1<<(INT64BITSIZE-1)) - 1))
-#if SIZEOF_WCHAR_T == 2
-#define PLMAXWCHAR		(0xffff)
-#else
-#define PLMAXWCHAR		(0x10ffff)
-#endif
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)
@@ -688,7 +711,7 @@ ATOM
 STRING
     For a string, the 27 bits are a pointer to the  global  stack.   The
     first  word  of  the  string  again reserves  the top 3 and bottom 2
-    bits.  The remaining bits indicate the lenght of the  string.   Next
+    bits.  The remaining bits indicate the length of the  string.   Next
     follows a 0 terminated character string.  Finally a word exactly the
     same  as the header word, to allow the garbage collector to traverse
     the stack downwards and identify the string.
@@ -771,7 +794,7 @@ typedef word			functor_t;	/* encoded functor */
 typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
-typedef word			(*Func)();	/* foreign functions */
+typedef foreign_t		(*Func)();	/* foreign functions */
 typedef int			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */
@@ -906,6 +929,7 @@ typedef enum
 #define	ALERT_DEBUG	     0x080
 #define	ALERT_BUFFER	     0x100
 #define	ALERT_UNDO	     0x200
+#define ALERT_COVERAGE	     0x400
 
 
 		 /*******************************
@@ -1197,19 +1221,6 @@ introduce a garbage collector (TBD).
 		 /*******************************
 		 *	 INHIBIT SIGNALS	*
 		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-At times an abort is not allowed because the heap  is  inconsistent  the
-programmer  should  call  startCritical  to start such a code region and
-endCritical to end it.
-
-MT/TBD: how to handle this gracefully in the multi-threading case.  Does
-it mean anything?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define startCritical (void)(LD->critical++)
-#define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
-				? f_endCritical() : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1599,6 +1610,9 @@ struct definition
   gen_t		last_modified;		/* Generation I was last modified */
   struct event_list  *events;		/* Forward update events */
   struct table_props *tabling;		/* Extended properties for tabling */
+#if defined(__SANITIZE_ADDRESS__)
+  char	       *name;			/* Name for debugging */
+#endif
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -2102,17 +2116,17 @@ not bound to operating system signal handling though.
 
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals - specified in docs */
 
-#if HAVE_SIGNAL
+#if HAVE_OS_SIGNALS
 
 #define MINSIGNAL		1	/* number of first signal */
 #define MAXSIGNAL		64	/* highest supported signal number */
 
-#else /* HAVE_SIGNAL */
+#else /* HAVE_OS_SIGNALS */
 
 #define MINSIGNAL		SIG_PROLOG_OFFSET /* No system signals, only Prolog sigs */
 #define MAXSIGNAL		(SIG_PROLOG_OFFSET+31)	/* we'd like this to fit in 32 bits */
 
-#endif /* HAVE_SIGNAL */
+#endif /* HAVE_OS_SIGNALS */
 
 #define NUM_SIGNALS (MAXSIGNAL - MINSIGNAL + 1)
 
@@ -2173,6 +2187,15 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 /* Is this a virtual signal? */
 #define IS_VSIG(sig)		((sig) >= SIG_PROLOG_OFFSET)
 
+#if O_DEBUG
+#undef SIGNAL_INDEX
+static inline int
+SIGNAL_INDEX(int sig)
+{ assert(IS_VALID_SIGNAL(sig));
+  return sig - MINSIGNAL;
+}
+#endif
+
 /* We want fast types for signal bitmasks; on a 64-bit arch this is probably the same as uint64_t */
 typedef uint_fast32_t		sigmask_t;
 
@@ -2205,9 +2228,13 @@ alt_segv_handler().
 Note that we  use  setjmp()  rather   than  sigsetjmp().  The  latter is
 simpler, but a lot slower as it  implies   a  system  call. We assume no
 other signals are involved and unblock SIGSEGV by hand.
+
+Note that AddressSanitizer doesn't like these tricks, so we must disable
+stack guarding when compiling with the address sanitizer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(HAVE_SIGALTSTACK) && !defined(__SANITIZE_ADDRESS__)
+#if O_SIGNALS && defined(HAVE_SIGALTSTACK) && \
+    !defined(__SANITIZE_ADDRESS__)
 #define O_C_STACK_GUARDED 1
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
@@ -2630,6 +2657,7 @@ typedef enum plflag
   PLFLAG_AUTOLOAD,			/* do autoloading */
   PLFLAG_CHARCONVERSION,		/* do character-conversion */
   PLFLAG_LASTCALL,			/* Last call optimization enabled? */
+  PLFLAG_VMI_BUILTIN,			/* Use VMI for simple built-ins */
   PLFLAG_PORTABLE_VMI,			/* Generate portable VMI code */
   PLFLAG_SIGNALS,			/* Handle signals */
   PLFLAG_DEBUGINFO,			/* generate debug info */
@@ -2645,7 +2673,8 @@ typedef enum plflag
   PLFLAG_RATIONAL,			/* Natural rational numbers */
   PLFLAG_DEBUG_ON_INTERRUPT,		/* Debug on Control-C */
   PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
-  PLFLAG_SHIFT_CHECK			/* Check suspicious shifts */
+  PLFLAG_SHIFT_CHECK,			/* Check suspicious shifts */
+  PLFLAG_AGC_CLOSE_STREAMS		/* AGC may close open streams */
 } plflag;
 
 typedef struct
@@ -2662,6 +2691,18 @@ typedef struct
 #define clearPrologFlagMask(flag) \
 	ATOMIC_AND(&prologFlagMaskInt(LD, flag), ~prologFlagMask(flag))
 #define setPrologFlagMask(flag) setPrologFlagMask_LD(LD, flag)
+
+#define RUN_MODE_NORMAL \
+	(prologFlagMask(PLFLAG_LASTCALL)| \
+	 prologFlagMask(PLFLAG_VMI_BUILTIN))
+#define setPrologRunMode_LD(ld, mask) \
+	ATOMIC_OR(&prologFlagMaskInt(ld, PLFLAG_LASTCALL), mask)
+#define clearPrologRunMode_LD(ld, mask) \
+	ATOMIC_AND(&prologFlagMaskInt(ld, PLFLAG_LASTCALL), ~(mask))
+#define setPrologRunMode(mask) \
+	setPrologRunMode_LD(LD, mask)
+#define clearPrologRunMode(mask) \
+	clearPrologRunMode_LD(LD, mask)
 
 typedef enum
 { OCCURS_CHECK_FALSE = 0,	/* allow rational trees */
@@ -2683,6 +2724,8 @@ typedef enum
 #ifdef O_INFERENCE_LIMIT
 #define INFERENCE_NO_LIMIT 0x7fffffffffffffffLL /* Highest value */
 #endif
+
+#define CACHED_DICT_FUNCTORS 128	/* Max size of dict to cache */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used

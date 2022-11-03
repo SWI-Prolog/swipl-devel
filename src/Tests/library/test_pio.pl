@@ -127,8 +127,8 @@ test_pe(N, BF, Enc) :-
 	call_cleanup(test_pe(N, BF, Enc, Tmp), delete_file(Tmp)).
 
 test_pe(N, BF, Enc, Tmp) :-
-	max_char(Enc, MaxChar),
-	random_list(N, MaxChar, List),
+	length(List, N),
+	maplist(random_code(Enc), List),
 	test_list(List, BF, Enc, Tmp).
 
 test_list(List, BF, Enc, Tmp) :-
@@ -171,14 +171,19 @@ max_char(text, 0xfffff).		% Only if Locale is UTF-8!  How to test?
 max_char(iso_latin_1, 255).
 max_char(utf8, Max) :-
 	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UTF-16
-	;   Max = 0xfffff
+	->  Max = 0xffff		% UCS-2
+	;   Max = 0xfffff		% Full Unicode range
 	).
-max_char(unicode_le, 0xffff).
-max_char(unicode_be, 0xffff).
+max_char(utf16be, Max) :-
+	(   current_prolog_flag(windows, true)
+	->  Max = 0xffff		% UCS-2
+	;   Max = 0xfffff		% Full Unicode range
+	).
+max_char(utf16le, Max) :-
+	max_char(utf16be, Max).
 max_char(wchar_t, Max) :-
 	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UTF-16
+	->  Max = 0xffff		% UCS-2
 	;   Max = 0xfffff
 	).
 
@@ -188,14 +193,19 @@ save_list(File, Codes, Enc) :-
 	format(Out, '~s', [Codes]),
 	close(Out).
 
-%random_list(_, _, "hello\nworld\n") :- !. % debug
-random_list(0, _, []) :- !.
-random_list(N, Max, [H|T]) :-
+random_code(Enc, Code) :-
+	max_char(Enc, Max),
 	repeat,
-	H is 1+random(Max-1),
-	H \== 0'\r, !,
-	N2 is N - 1,
-	random_list(N2, Max, T).
+	Code is 1+random(Max-1),
+	\+ forbidden(Code),
+	!.
+
+forbidden(0'\r).
+forbidden(Code) :-
+	surrogate_point(Code).
+
+surrogate_point(Code) :-
+	between(0xD800, 0xDFFF, Code).
 
 test(ascii) :-
 	test_pe(1000, 25, ascii).
@@ -205,10 +215,10 @@ test(iso_latin_1) :-
 	test_pe(1000, 25, iso_latin_1).
 test(utf8) :-
 	test_pe(1000, 25, utf8).
-test(unicode_le) :-
-	test_pe(1000, 25, unicode_le).
-test(unicode_be) :-
-	test_pe(1000, 25, unicode_be).
+test(utf16be) :-
+	test_pe(1000, 25, utf16be).
+test(utf16le) :-
+	test_pe(1000, 25, utf16le).
 test(wchar_t) :-
 	test_pe(1000, 25, wchar_t).
 

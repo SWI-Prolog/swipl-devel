@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, University of Amsterdam
+    Copyright (c)  2019-2022, University of Amsterdam
                               VU University Amsterdam
 		              CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -49,6 +49,12 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Event interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void	free_event_callback(event_callback *cb);
+
+typedef int (*ev_func0)(void *);
+typedef int (*ev_func1)(void *, term_t);
+typedef int (*ev_func2)(void *, term_t, term_t);
 
 #ifdef O_PLMT
 #define INIT_LIST_LOCK(l) recursiveMutexInit(&(l)->lock)
@@ -222,7 +228,7 @@ get_event_listp(DECL_LD term_t type, event_list ***listpp, size_t *argc)
   return PL_type_error("callable", type);
 }
 
-static const opt_spec prolog_listen_options[] =
+static const PL_option_t prolog_listen_options[] =
 { { ATOM_as,		 OPT_ATOM },
   { ATOM_name,		 OPT_ATOM },
   { NULL_ATOM,		 0 }
@@ -236,9 +242,9 @@ prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
   atom_t as = ATOM_first;
   atom_t name = 0;
 
-  if ( options && !scan_options(options, 0, /*OPT_ALL,*/
-				ATOM_prolog_listen_option, prolog_listen_options,
-				&as, &name) )
+  if ( options && !PL_scan_options(options, 0, /*OPT_ALL,*/
+				   "prolog_listen_option", prolog_listen_options,
+				   &as, &name) )
     return FALSE;
 
   if ( !(as == ATOM_first || as == ATOM_last) )
@@ -305,6 +311,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 		if ( !list->head )
 		  list->tail = NULL;
 	      }
+	      free_event_callback(ev);
 	      continue;
 	    }
 	  } else if ( ev->closure.term )
@@ -371,6 +378,17 @@ destroy_event_list(event_list **listp)
   }
 }
 
+void
+cleanupEvents(void)
+{ const event_type *ep;
+
+  for(ep=PL_events; ep->name; ep++)
+  { if ( !ep->local )
+      destroy_event_list(ep->location);
+  }
+}
+
+
 
 #define call_event_list(list, argc, argv) LDFUNC(call_event_list, list, argc, argv)
 static int
@@ -385,13 +403,13 @@ call_event_list(DECL_LD event_list *list, int argc, term_t argv)
     { if ( ev->function )
       { switch(argc)
 	{ case 0:
-	    rc = (*ev->function)(ev->closure.pointer);
+	    rc = (*(ev_func0)ev->function)(ev->closure.pointer);
 	    break;
 	  case 1:
-	    rc = (*ev->function)(ev->closure.pointer, argv+1);
+	    rc = (*(ev_func1)ev->function)(ev->closure.pointer, argv+1);
 	    break;
 	  case 2:
-	    rc = (*ev->function)(ev->closure.pointer, argv+1, argv+2);
+	    rc = (*(ev_func2)ev->function)(ev->closure.pointer, argv+1, argv+2);
 	    break;
 	  default:
 	    rc = FALSE;

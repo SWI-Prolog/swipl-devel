@@ -6,9 +6,12 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_options(-DWIN64)
   set(WIN64 1)
   set(WIN_PROGRAM_FILES "Program Files")
+  set(SWIPL_ARCH x64-win64)
 else()
   set(WIN_PROGRAM_FILES "Program Files (x86)")
+  set(SWIPL_ARCH i386-win32)
 endif()
+set(PLHOME "c:/${WIN_PROGRAM_FILES}/swipl")
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ws2_32)
 
@@ -67,11 +70,18 @@ endfunction()
 
 message("-- Finding required external DLLs")
 find_windows_dlls(WIN32_DLLS ${WIN32_DLL_PATTERNS})
+find_windows_dlls(WIN32_CPP_DLLS "libstdc*.dll")
 
-foreach(dll ${WIN32_DLLS})
+foreach(dll ${WIN32_DLLS} ${WIN32_CPP_DLLS})
   file(COPY ${MINGW_ROOT}/bin/${dll}
        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/src)
 endforeach()
+
+# Only install libstdc++.dll when installing the C++ tests.
+# It raises the installer size from 13 to 17 Mb.
+if(INSTALL_TESTS)
+  list(APPEND WIN32_DLLS ${WIN32_CPP_DLLS})
+endif()
 
 set(WIN32_DLLS ${WIN32_DLLS} CACHE INTERNAL "WIN32 DLLs to copy")
 endif(NOT DEFINED WIN32_DLLS)

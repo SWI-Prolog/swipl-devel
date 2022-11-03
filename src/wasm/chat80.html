@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>CHAT80 on SWI-Prolog WASM</title>
+    <style>
+      body {
+	  width: 100%;
+      }
+      #question {
+	  margin-top: 5px;
+	  box-sizing: border-box;
+	  width: 80%;
+      }
+      #input {
+	  margin-bottom: 1ex;
+      }
+    </style>
+  </head>
+
+<body>
+<h1>CHAT80 on SWI-Prolog WASM</h1>
+
+<p>
+  This demo illustrates
+  packaging <a href="https://github.com/JanWielemaker/chat80">CHAT80</a>
+  as a .qlf file and using it from JavaScript.  CHAT80 is compiled
+  using the command below.  This compiles all CHAT80 files into a single
+  SWI-Prolog .qlf file.  This file is made available on the server.
+</p>
+
+<pre>
+  ?- qcompile('chat80.pl', [include(user)]).
+</pre>
+
+<p>
+  This demo does as much as possible of the processing in JavaScript,
+  as opposed to <a href="cbg">the CBG</a> demo which does all the DOM
+  manipulation and event processing in Prolog.  We merely provide the
+  two alternatives without claiming one is better.
+</p>
+
+
+<form class="question" id="input">
+  <div>
+    <label>Examples</label>
+    <select id="examples"></select>
+  </div>
+  <div>
+    <label>Question</label>
+    <input id="question" placeholder="Question?">
+    <input type="submit" value="Submit!">
+  </div>
+</form>
+<h4>Answer (as serialized JSON)</h4>
+<div id="answer"><div>
+
+</body>
+
+<script src="/wasm/swipl-web.js"></script>
+
+<script>
+  const input    = document.getElementById("input");
+  const answer   = document.getElementById("answer");
+  const examples = document.getElementById("examples");
+
+  let Prolog;
+  var Module = {
+    arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file
+  };
+  
+  SWIPL(Module).then((module) =>
+    { Prolog = Module.prolog;
+
+      Prolog.consult("chat80.qlf")
+      .then(() => chat80());
+    });
+
+  function chat80()
+  { fill_examples();
+  }
+
+  function fill_examples()
+  { Prolog.forEach("chat_example(_,Sentence,_)",
+		   (r) =>
+		   { const q = r.Sentence.map((t) => t.nb !== undefined ? t.nb[0] : t ).join(" ");
+		     const node = document.createElement("option");
+		     node.textContent = q;
+		     examples.appendChild(node);
+		   }).then(()=>{});
+  }
+
+  input.addEventListener("submit", (e) =>
+    { e.preventDefault();
+
+      function add_answer(s)
+      { answer.innerHTML = "";
+	const node = document.createElement('span');
+	node.textContent = s;
+	answer.appendChild(node);
+      }
+
+      let query = e.target.elements.question.value;
+      Prolog.forEach(`tokenize_atom(Q, _Tokens),
+		      maplist([X,Y]>>(integer(X) -> Y = nb(X) ; Y = X), _Tokens, _Tokens1),
+		      chat_process(_Tokens1, A)`,
+		     {Q:query},
+		     (r) => add_answer(JSON.stringify(r.A))
+		    ).then((n) => {
+		       if ( n == 0 )
+			 add_answer("Sorry, I cannot answer that question");
+		    }).catch((e) => alert(e.toString()));
+    });
+
+  examples.addEventListener("change", (e) =>
+    { e.preventDefault();
+
+      let q = e.target.options[e.target.selectedIndex].textContent
+      input.elements.question.value = q;
+    });
+</script>
+
+</html>

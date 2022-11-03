@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2021, VU University Amsterdam
+    Copyright (c)  2017-2022, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v
     All rights reserved.
@@ -172,7 +172,7 @@ typedef struct size_abstract
 
 void	initTries(void);
 trie *	trie_create(alloc_pool *pool);
-void	trie_destroy(trie *trie);
+int	release_trie_ref(atom_t aref);
 void	trie_empty(trie *trie);
 void	trie_clean(trie *trie);
 void	trie_delete(trie *trie, trie_node *node, int prune);

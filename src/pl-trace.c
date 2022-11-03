@@ -1245,11 +1245,9 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       ctx = from;
     }
 
-    for(; depth > 0; PL_step_context(&ctx))
-    { LocalFrame frame;
-
-      if ( !(frame=ctx.fr) )
-	return;
+    startCritical();
+    for(; depth > 0 && ctx.fr; PL_step_context(&ctx))
+    { LocalFrame frame = ctx.fr;
 
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
@@ -1274,6 +1272,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 	depth--;
       }
     }
+    endCritical();
   } else
   { Sfprintf(out, "No stack??\n");
   }
@@ -1728,7 +1727,7 @@ resetTracer(void)
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = 0;
 
-  setPrologFlagMask(PLFLAG_LASTCALL);
+  setPrologRunMode(RUN_MODE_NORMAL);
 }
 
 
@@ -1894,10 +1893,8 @@ PL_interrupt(int sig)
 
 
 void
-initTracer(void)
-{ GET_LD
-
-  debugstatus.visible      =
+initTracer(DECL_LD)
+{ debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
@@ -1908,9 +1905,8 @@ initTracer(void)
 }
 
 int
-enable_debug_on_interrupt(int enable)
-{ GET_LD
-
+enable_debug_on_interrupt(DECL_LD int enable)
+{
 #if O_SIGNALS && defined(SIGINT)
   if ( enable )
   { if ( truePrologFlag(PLFLAG_SIGNALS) )
@@ -2054,7 +2050,7 @@ debugmode(debug_type doit, debug_type *old)
 	return FALSE;
 
       debugstatus.skiplevel = SKIP_VERY_DEEP;
-      clearPrologFlagMask(PLFLAG_LASTCALL);
+      clearPrologRunMode(RUN_MODE_NORMAL);
       if ( doit == DBG_ALL )
       { QueryFrame qf;
 
@@ -2064,13 +2060,15 @@ debugmode(debug_type doit, debug_type *old)
 	doit = DBG_ON;
       }
     } else
-    { setPrologFlagMask(PLFLAG_LASTCALL);
+    { setPrologRunMode(RUN_MODE_NORMAL);
     }
     debugstatus.debugging = doit;
     updateAlerted(LD);
     return printMessage(ATOM_silent,
 			PL_FUNCTOR_CHARS, "debug_mode", 1,
 			  PL_ATOM, doit ? ATOM_on : ATOM_off);
+  } else if ( !doit )
+  { setPrologRunMode(RUN_MODE_NORMAL);
   }
 
   return TRUE;

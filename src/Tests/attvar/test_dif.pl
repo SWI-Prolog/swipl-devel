@@ -146,6 +146,13 @@ test(issue122) :-
 test(issue109, [sto(rational_trees)]) :-
 	A=[B|A], C=[D|B], dif(A, C), A=[D|A],
 	attvar(D).
+% See https://github.com/SWI-Prolog/issues/issues/113#issue-1234908231
+test(cyclic, blocked("Cyclic term")) :-
+	dif(A, B),
+	C=[D|D],
+	A=[D|E],
+	B=[C|D],
+	D=[E|E].
 
 :- end_tests(dif).
 

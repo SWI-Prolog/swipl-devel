@@ -40,6 +40,7 @@
 :- use_module(library(debug)).
 
 test_inflimit :-
+	maybe(1),				% avoid inference limit during autoloading
 	run_tests([ call_with_inference_limit
 		  ]).
 

@@ -424,13 +424,9 @@ install_index(Out, Catcher, StagedIndex, Index) :-
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
-    catch(setup_call_cleanup(
-              open(File, read, In),
-              read(In, Term),
-              close(In)),
-          E, print_message(warning, E)),
-    (   Term = (:- module(Module, Public)),
-        is_list(Public)
+    (   catch(exports(File, Module, Public), E,
+              print_message(warning, E)),
+        nonvar(Module)
     ->  atom_concat(DirS, Local, File),
         file_name_extension(Base, _, Local),
         forall(public_predicate(Public, Name/Arity),
@@ -455,6 +451,54 @@ index_header(Fd):-
     format(Fd, '/*  Creator: make/0~n~n', []),
     format(Fd, '    Purpose: Provide index for autoload~n', []),
     format(Fd, '*/~n~n', []).
+
+exports(File, Module, Exports) :-
+    (   current_prolog_flag(xref, Old)
+    ->  true
+    ;   Old = false
+    ),
+    setup_call_cleanup(
+        set_prolog_flag(xref, true),
+        exports_(File, Module, Exports),
+        set_prolog_flag(xref, Old)).
+
+exports_(File, Module, Exports) :-
+    State = state(true, _, []),
+    (   '$source_term'(File, _,_,Term0,_,_,[syntax_errors(quiet)]),
+        (   is_list(Term0)
+        ->  '$member'(Term, Term0)
+        ;   Term = Term0
+        ),
+        (   Term = (:- module(M,Public)),
+            is_list(Public),
+            arg(1, State, true)
+        ->  nb_setarg(1, State, false),
+            nb_setarg(2, State, M),
+            nb_setarg(3, State, Public),
+            fail
+        ;   nb_setarg(1, State, false),
+            fail
+        ;   Term = (:- export(PI)),
+            ground(PI)
+        ->  arg(3, State, E0),
+            '$append'(E0, [PI], E1),
+            nb_setarg(3, State, E1),
+            fail
+        ;   Term = (:- use_foreign_library(Lib)),
+            nonvar(Lib),
+            arg(2, State, M),
+            atom(M)
+        ->  catch('$syspreds':use_foreign_library_noi(M:Lib), error(_,_), true),
+            fail
+        ;   Term = (:- Directive),
+            nonvar(Directive)
+        ->  fail
+        ;   !
+        )
+    ;   true
+    ),
+    arg(2, State, Module),
+    arg(3, State, Exports).
 
 
                  /*******************************
@@ -563,11 +607,9 @@ autoload_in(Module, How) :-
 
 autoload_in(true,             _,        _).
 autoload_in(explicit,         explicit, _).
-autoload_in(explicit_or_user, explicit, _).
-autoload_in(user,             explicit, user).
-autoload_in(explicit_or_user, explicit, _).
 autoload_in(user,             _,        user).
-autoload_in(explicit_or_user, general,  user).
+autoload_in(user_or_explicit, explicit, _).
+autoload_in(user_or_explicit, _,        user).
 
 
 %!  do_autoload(+File, :PI, +LoadModule) is det.
@@ -692,13 +734,15 @@ library_info(Spec, Context, FullFile, Module, Exports) :-
         fail
     ).
 
-
 library_info_from_file(FullFile, Module, Exports) :-
     setup_call_cleanup(
-        '$open_source'(FullFile, In, State, [], []),
-        '$term_in_file'(In, _Read, _RLayout, Term, _TLayout, _Stream,
-                        [FullFile], []),
-        '$close_source'(State, true)),
+        '$set_source_module'(OldModule, system),
+        setup_call_cleanup(
+            '$open_source'(FullFile, In, State, [], []),
+            '$term_in_file'(In, _Read, _RLayout, Term, _TLayout, _Stream,
+                            [FullFile], []),
+            '$close_source'(State, true)),
+        '$set_source_module'(OldModule)),
     (   Term = (:- module(Module, Exports))
     ->  !
     ;   nonvar(Term),

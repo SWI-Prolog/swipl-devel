@@ -39,6 +39,7 @@
 :- use_module(library(debug)).
 
 test_tabling :-
+    abolish_all_tables,
     run_tests([ tabling_ex1,
 		tabling_ex2,
 		tabling_ex3,

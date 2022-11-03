@@ -1,10 +1,7 @@
 # Building SWI-Prolog using cmake
 
 As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
-configuration files that cover the  entire   project.  Builds  have been
-tested on Ubuntu 16.04,  18.04,  18.10,   Fedora  28,  MacOSX  and cross
-compilation for Win32 as well  as  Win64   using  Ubuntu  18.04  as host
-system.
+configuration files that cover the  entire   project.
 
 The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
 generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
@@ -16,7 +13,7 @@ classical Unix make.
 
 ## Getting cmake
 
-Building SWI-Prolog requires cmake version 3.5  or later (*). Many Linux
+Building SWI-Prolog requires cmake version 3.9  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
 from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
@@ -25,7 +22,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
     wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
     sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 
-(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.14 (MacOS).
+(*) The ODBC package requires 3.9.  For the rest 3.5 should suffice.
 
 
 ## Native build
@@ -35,15 +32,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
 The   source   may   be    downloaded    as     a    tar    ball    from
 http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
-    git clone https://github.com/SWI-Prolog/swipl-devel.git
-    cd swipl-devel
-    git submodule update --init
-
-If not all modules are needed,  one can  clone/update particular ones as
-follows:
-
-    git submodule update --init packages/jpl packages/clib packages/sgml
-
+    git clone --recursive https://github.com/SWI-Prolog/swipl-devel.git
 
 ### Building from source
 
@@ -66,17 +55,18 @@ latest version:
     git pull
     git submodule update --init
     cd build
-    cmake ..
+    ninja
     ninja
     ctest -j 8
     ninja install
 
-If this fails, one of these measures may be appropriate:
+Note that `ninja` is called twice.  Under some situations not everything
+is properly updated after the first run. This is a bug.
 
-  1. run `ninja clean` before `ninja`
-  2. remove the entire `build` directory and re-create it as above.
-     Note that the build process makes no modifications outside the
-     `build` directory.
+If the build fails, one could try to remove the entire `build` directory
+and re-create it as  above.  Note  that   the  build  process  makes  no
+modifications outside the `build` directory.
+
 
 ## Build types
 
@@ -91,12 +81,11 @@ PGO build for maximum performance.
 ## Install location
 
 To install in a particular   location, use `-DCMAKE_INSTALL_PREFIX`. For
-example, this will build SWI to be installed in  `/usr/local/swipl-git`:
+example, this will build SWI to be installed in ``~/bin``.
 
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/swipl-git -G Ninja ..
+    cmake -DCMAKE_INSTALL_PREFIX=$HOME -G Ninja ..
 
-After    `sudo    ninja    install`,     `swipl`      will     be     in
-`/usr/local/swipl-git/bin/swipl`.
+After `ninja install`, `swipl` will be in `~/bin/swipl`.
 
 
 ## Customizing SWI-Prolog
@@ -114,6 +103,7 @@ and libraries that are built.
   | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
   | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
+  | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
   | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
@@ -129,6 +119,13 @@ and libraries that are built.
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
+
+Note that many combinations of these options are not properly supported.
+You are strongly encouraged  to  install   the  full  system for desktop
+usage. When installing in lightweight and   server  environments one may
+drop  one  or  more  of  ``SWIPL_PACKAGES_X``,  ``SWIPL_PACKAGES_JAVA``,
+``SWIPL_PACKAGES_ODBC`` and ``INSTALL_DOCUMENTATION``.
+
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
 
@@ -183,29 +180,27 @@ perform the process on your host Linux system.
 
 ### WASM (Emscripten)
 
-__Note__: due to a  bug  in   the  current  Emscripten  directory access
-functions we need the _native friend_   mechanism  to create the library
-index. The flags below   include `-DSWIPL_NATIVE_FRIEND=build`, assuming
-you built a  native  executable  in   the  directory  `build`  below the
-sources. Adjust as necessary.
-
-    [Assumes native Prolog in `build`.  See note above]
+Install  [Emscripten](https://emscripten.org/),  download    and   build
+[zlib](https://zlib.net/) using Emscripten. Now you can build the system
+using the commands below (assume initial working  dir is the root of the
+source tree).
 
     mkdir build.wasm
     cd build.wasm
     source ~/emsdk/emsdk_env.sh
     cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
           -DCMAKE_BUILD_TYPE=Release \
-          -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
-          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
-          -DMULTI_THREADED=OFF \
-          -DUSE_SIGNALS=OFF \
-          -DUSE_GMP=OFF \
-          -DBUILD_SWIPL_LD=OFF \
-          -DSWIPL_PACKAGES=OFF \
+          -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
+          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
+	  -DGMP_ROOT=$HOME/wasm \
           -DINSTALL_DOCUMENTATION=OFF \
-          -DSWIPL_NATIVE_FRIEND=build \
           -G Ninja ..
+
+For   latest   news   on   the    WASM     version    see    the   [Wiki
+page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
+This page also discusses how to use the WASM version with Node.js and in
+a browser.
+
 
 ### Building a 32-bit version on 64-bit Debian based Linux
 
@@ -313,8 +308,8 @@ without recompilation. The downside is that   Valgrind makes the program
 run about 20 times slower. The slowdown   by AddressSanitizer is about a
 factor two. To compile for using with AddressSanitizer, do e.g.,
 
-    % mkdir build.sanitize
-    % cd build.sanitize
+    % mkdir build.asan
+    % cd build.asan
     % cmake -DCMAKE_BUILD_TYPE=Sanitize -G Ninja ..
     % ninja
 
@@ -322,10 +317,24 @@ See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
 
 You can run the tests normally using   `ctest`. Note that the `swipl:GC`
 test requires more stack than the   default when using AddressSanitizer.
-To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
-test  `jpl:prolog_in_java`  will  fail  because  Java is not loaded with
-AddressSanitizer preloaded.   All other tests should pass (about 4 times
+To fix this run (bash) `ulimit -s unlimited` before running `ctest`. The
+test `jpl:prolog_in_java` will fail because  Java   is  not  loaded with
+AddressSanitizer preloaded. All other tests should   pass (about 4 times
 slower than normal).
+
+By   default,   memory   leak   checking   is   disabled   by   defining
+`__asan_default_options()` in `pl-main.c`. Leak checking  may be enabled
+by setting `ASAN_OPTIONS`:
+
+    % ASAN_OPTIONS=detect_leaks=1 src/swipl ...
+
+This option also causes Prolog  __not__   to  unload foreign extensions,
+which is needed to  make  ASAN   properly  report  locations  in foreign
+extensions.
+
+AddressSanitizer is reported (by Alessandro Bartolucci)   not to work on
+Apple using the xCode AppleClang. It should  work with a non-Apple Clang
+or GCC version.
 
 
 ## Packaging
@@ -393,7 +402,7 @@ The defined components are:
   | Commandline_editors  | Readline and libedit interfaces      |
   | ODBC_interface       | ODBC binding                         |
   | BerkeleyDB_interface | BDB interface                        |
-  | Perl_regex           | PCRE library binding                 |
+  | Perl_regex           | PCRE2 library binding                |
   | YAML_support         | Libyaml binding                      |
   | Java_interface       | Java interface (JPL)                 |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |

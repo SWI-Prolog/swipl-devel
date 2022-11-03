@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -447,7 +447,7 @@ getString(IOSTREAM *fd, size_t *length)
   size_t len = (size_t)getInt64(fd);
   size_t i;
 
-  if ( !length && len > MAXPATHLEN )
+  if ( !length && len > PATH_MAX )
     return NULL;
   if ( length && len > globalStackLimit() )
     return NULL;
@@ -1680,10 +1680,10 @@ runInitialization(SourceFile sf)
   { GET_LD
     fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
-    static predicate_t pred = NULL;
+    predicate_t pred;
 
-    if ( !pred )
-      pred = PL_predicate("$run_initialization", 2, "system");
+    pred = _PL_predicate("$run_initialization", 2, "system",
+			 &GD->procedures.drun_initialization2);
 
     PL_put_atom(av+0, sf->name);
     PL_put_nil( av+1);
@@ -1710,7 +1710,7 @@ loadImport(DECL_LD wic_state *state, int skip)
 
 static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *canonical;
 
   if ( state->load_state->has_moved &&
@@ -1719,14 +1719,14 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     size_t lensave = strlen(state->load_state->save_dir);
     const char *tail = &raw[lensave];
 
-    if ( strlen(state->load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
+    if ( strlen(state->load_state->load_dir)+1+strlen(tail)+1 > PATH_MAX )
       fatalError("Path name too long: %s", raw);
 
     strcpy(buf, state->load_state->load_dir);
     s = &buf[strlen(buf)];
     strcpy(s, tail);
   } else
-  { if ( strlen(raw)+1 > MAXPATHLEN )
+  { if ( strlen(raw)+1 > PATH_MAX )
     { fatalError("Path name too long: %s", raw);
       return NULL_ATOM;
     }
@@ -3104,7 +3104,40 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 }
 
 
-#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
+static int
+open_qlf_file(const char *file, IOSTREAM **sp)
+{ int sl;
+
+  if ( (sl=file_name_is_iri(file)) )
+  { IOSTREAM *s;
+
+    if ( !iri_hook(file, IRI_OPEN, ATOM_read, 0, &s) )
+      return FALSE;
+    s->encoding = ENC_OCTET;
+    clear(s, SIO_TEXT);
+
+    *sp = s;
+
+    return TRUE;
+  } else
+  { if ( (*sp = Sopen_file(file, "rbr")) )
+    { return TRUE;
+    } else
+    { GET_LD
+      term_t f = PL_new_term_ref();
+
+      PL_put_atom_chars(f, file);
+      return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		      ATOM_open, ATOM_source_sink, f);
+    }
+  }
+}
+
+
+
+#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) \
+	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
+
 static word
 qlfInfo(DECL_LD const char *file,
 	term_t cversion, term_t minload, term_t fversion,
@@ -3115,19 +3148,13 @@ qlfInfo(DECL_LD const char *file,
   int nqlf, i;
   size_t *qlfstart = NULL;
   word rval = FALSE;
-  term_t files = PL_copy_term_ref(files0);
   wic_state state;
 
   memset(&state, 0, sizeof(state));
   state.wicFile = (char*)file;
 
-  if ( !(s = Sopen_file(file, "rbr")) )
-  { term_t f = PL_new_term_ref();
-
-    PL_put_atom_chars(f, file);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-		    ATOM_open, ATOM_source_sink, f);
-  }
+  if ( !open_qlf_file(file, &s) )
+    return FALSE;
   state.wicFd = s;
 
   if ( cversion )
@@ -3154,36 +3181,39 @@ qlfInfo(DECL_LD const char *file,
   if ( !pushPathTranslation(&state, file, 0) )
     goto out;
 
-  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
-  { qlfError(&state, "seek to index failed: %s", OsError());
-    goto out;
-  }
-  if ( (nqlf = getInt32(s)) < 0 )
-  { qlfError(&state, "invalid number of files (%d)", nqlf);
-    goto out;
-  }
-  if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
-  { qlfError(&state, "seek to files failed: %s", OsError());
-    goto out;
-  }
-
-  DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
-  if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
-  { PL_no_memory();
-    goto out;
-  }
-  for(i=0; i<nqlf; i++)
-  { qlfstart[i] = (size_t)getInt32(s);
-    DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
-  }
-  DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
-
-  for(i=0; i<nqlf; i++)
-  { if ( !qlfSourceInfo(&state, qlfstart[i], files) )
+  if ( files0 )
+  { term_t files = PL_copy_term_ref(files0);
+    if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
+    { qlfError(&state, "seek to index failed: %s", OsError());
       goto out;
-  }
+    }
+    if ( (nqlf = getInt32(s)) < 0 )
+    { qlfError(&state, "invalid number of files (%d)", nqlf);
+      goto out;
+    }
+    if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
+    { qlfError(&state, "seek to files failed: %s", OsError());
+      goto out;
+    }
 
-  rval = PL_unify_nil(files);
+    DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
+    if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
+    { PL_no_memory();
+      goto out;
+    }
+    for(i=0; i<nqlf; i++)
+    { qlfstart[i] = (size_t)getInt32(s);
+      DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
+    }
+    DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
+
+    for(i=0; i<nqlf; i++)
+    { if ( !qlfSourceInfo(&state, qlfstart[i], files) )
+	goto out;
+    }
+
+    rval = PL_unify_nil(files);
+  }
 
 out:
   popPathTranslation(&state);
@@ -3200,6 +3230,9 @@ out:
 		-CurrentVersion, -MinLOadVersion, -FileVersion,
 		-CurrentSignature, -FileSignature,
 		-Files)
+    '$qlf_info'(+File,
+		-CurrentVersion, -MinLOadVersion, -FileVersion,
+		-CurrentSignature, -FileSignature)
 
 Provide information about a QLF file.
 
@@ -3211,6 +3244,18 @@ Provide information about a QLF file.
 */
 
 static
+PRED_IMPL("$qlf_info", 6, qlf_info, 0)
+{ PRED_LD
+  char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    fail;
+
+  return qlfInfo(name, A2, A3, A4, A5, A6, 0);
+}
+
+
+static
 PRED_IMPL("$qlf_info", 7, qlf_info, 0)
 { PRED_LD
   char *name;
@@ -3218,7 +3263,7 @@ PRED_IMPL("$qlf_info", 7, qlf_info, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A8);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A7);
 }
 
 
@@ -3242,7 +3287,7 @@ static wic_state *
 qlfOpen(term_t file)
 { char *name;
   char *absname;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   IOSTREAM *out;
   wic_state *state;
 
@@ -3325,12 +3370,12 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
     return qlfError(state, "bad string");
 
   if ( absloadname && !streq(absloadname, abssavename) )
-  { char load[MAXPATHLEN];
-    char save[MAXPATHLEN];
+  { char load[PATH_MAX];
+    char save[PATH_MAX];
     char *l, *s, *le, *se;
 
-    if ( ( strlen(abssavename)+1 > MAXPATHLEN ||
-	   strlen(absloadname)+1 > MAXPATHLEN
+    if ( ( strlen(abssavename)+1 > PATH_MAX ||
+	   strlen(absloadname)+1 > PATH_MAX
 	 ) )
       return PL_representation_error("max_path_length");
 
@@ -3380,12 +3425,12 @@ popPathTranslation(wic_state *state)
       if ( (tr=old->translated) )
       { GET_LD
         path_translated *n;
-	static predicate_t pred = NULL;
+	predicate_t pred;
 	fid_t fid = PL_open_foreign_frame();
 	term_t av = PL_new_term_refs(2);
 
-	if ( !pred )
-	  pred = PL_predicate("$translated_source", 2, "system");
+	pred = _PL_predicate("$translated_source", 2, "system",
+			     &GD->procedures.dtranslated_source2);
 
 	for(; tr; tr=n)
 	{ n = tr->next;
@@ -3434,7 +3479,7 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
 { IOSTREAM *fd = state->wicFd;
   bool rval;
   const char *absloadname;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -3799,7 +3844,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 Write a header for a QLF-stream
 */
 
-static const opt_spec open_wic_options[] =
+static const PL_option_t open_wic_options[] =
 { { ATOM_obfuscate,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -3813,7 +3858,7 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
 
   assert(V_LABEL > I_HIGHEST);
 
-  if ( !scan_options(A2, 0, ATOM_state_option, open_wic_options,
+  if ( !PL_scan_options(A2, 0, "state_option", open_wic_options,
 		     &obfuscate) )
     fail;
 
@@ -4078,6 +4123,87 @@ directiveClause(term_t directive, term_t clause, const char *functor)
   succeed;
 }
 
+
+typedef enum
+{ IF_FALSE,
+  IF_TRUE,
+  IF_ELSE_FALSE
+} iftrue;
+
+#define MAX_IFDEF_NEST 3
+
+typedef struct condc
+{ int    depth;
+  iftrue ctrue[MAX_IFDEF_NEST];
+} condc;
+
+static int
+cond_true(const condc *cond)
+{ return cond->ctrue[cond->depth] == IF_TRUE;
+}
+
+#define update_conditional_compilation(term, cond) \
+  LDFUNC(update_conditional_compilation, term, cond)
+
+static int
+update_conditional_compilation(DECL_LD term_t term, condc *cond)
+{ if ( !PL_is_functor(term, FUNCTOR_colon2) )
+    return FALSE;
+
+  term_t g = PL_new_term_ref();
+  _PL_get_arg(2, term, g);
+  int rc = FALSE;
+  int ctrue = cond_true(cond);
+  atom_t a;
+
+  if ( PL_is_functor(g, FUNCTOR_if1) )
+  { iftrue new;
+
+    if ( cond->depth+1 >= MAX_IFDEF_NEST )
+      fatalError("To deeply nested :- if");
+
+    if ( ctrue )
+    { term_t arg = PL_new_term_ref();
+
+      _PL_get_arg(1, g, arg);
+      if ( callProlog(MODULE_user, arg, PL_Q_NODEBUG, NULL) )
+	new = IF_TRUE;
+      else
+	new = IF_FALSE;
+    } else
+      new = IF_ELSE_FALSE;
+
+    cond->ctrue[++cond->depth] = new;
+    rc = TRUE;
+  } else if ( PL_get_atom(g, &a) )
+  { iftrue new;
+
+    if ( a == ATOM_else )
+    { switch(cond->ctrue[cond->depth])
+      { case IF_TRUE:
+	  new = IF_FALSE;
+	  break;
+        case IF_FALSE:
+	  new = IF_TRUE;
+	  break;
+        default:
+	  new = IF_ELSE_FALSE;
+      }
+      cond->ctrue[cond->depth] = new;
+      rc = TRUE;
+    } else if ( a == ATOM_endif )
+    { if ( cond->depth == 0 )
+	fatalError("Too many :- endif\n");
+      cond->depth--;
+      rc = TRUE;
+    }
+  }
+
+  PL_reset_term_refs(g);
+
+  return rc;
+}
+
 /*  Compile an entire file into intermediate code.
 
  ** Thu Apr 28 13:44:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
@@ -4085,11 +4211,12 @@ directiveClause(term_t directive, term_t clause, const char *functor)
 static bool
 compileFile(wic_state *state, const char *file)
 { GET_LD
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   char *path;
   term_t f = PL_new_term_ref();
   SourceFile sf;
   atom_t nf;
+  condc cond = {.depth = 0, .ctrue[0] = IF_TRUE};
 
   DEBUG(MSG_QLF_BOOT, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp)) )
@@ -4139,19 +4266,25 @@ compileFile(wic_state *state, const char *file)
 	    Sdprintf(":- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
-      addDirectiveWic(state, directive);
-      if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
-	Sdprintf("%s:%d: directive failed\n",
-		 PL_atom_chars(source_file_name),
-		 source_line_no);
-    } else if ( directiveClause(directive, t, "$:-") )
-    { DEBUG(MSG_QLF_DIRECTIVE,
-	    Sdprintf("$:- ");
-	    PL_write_term(Serror, directive, 1200, 0);
-	    Sdprintf(".\n"));
-      callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
-    } else
-      addClauseWic(state, t, nf);
+      if ( !update_conditional_compilation(directive, &cond) )
+      { if ( cond_true(&cond) )
+	{ addDirectiveWic(state, directive);
+	  if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
+	    Sdprintf("%s:%d: directive failed\n",
+		     PL_atom_chars(source_file_name),
+		     source_line_no);
+	}
+      }
+    } else if ( cond_true(&cond) )
+    { if ( directiveClause(directive, t, "$:-") )
+      { DEBUG(MSG_QLF_DIRECTIVE,
+	      Sdprintf("$:- ");
+	      PL_write_term(Serror, directive, 1200, 0);
+	      Sdprintf(".\n"));
+	callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
+      } else
+	addClauseWic(state, t, nf);
+    }
 
     PL_discard_foreign_frame(cid);
   }
@@ -4251,6 +4384,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
+  PRED_DEF("$qlf_info",		    6, qlf_info,	     0)
   PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)

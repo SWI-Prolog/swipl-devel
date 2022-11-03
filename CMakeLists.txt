@@ -1,5 +1,6 @@
-set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
 
 cmake_minimum_required(VERSION 3.5)
 project(SWI-Prolog)
@@ -72,6 +73,9 @@ option(INSTALL_TESTS
        OFF)
 option(GCOV
        "Compile for coverage analysis using gcov (gcc)"
+       OFF)
+option(STATIC_EXTENSIONS
+       "Add foreign extensions statically"
        OFF)
 
 set(JNIDIR ""
@@ -269,11 +273,19 @@ if(INSTALL_TESTS)
 endif(INSTALL_TESTS)
 
 # Add the packages
+if(STATIC_EXTENSIONS)
+  set_property(GLOBAL PROPERTY static_extension_libs)
+endif()
 foreach(package ${SWIPL_PACKAGE_LIST})
   swipl_package_component(${package}
 			  CMAKE_INSTALL_DEFAULT_COMPONENT_NAME)
   add_subdirectory(packages/${package})
 endforeach(package)
+if(STATIC_EXTENSIONS)
+  get_property(extlibs GLOBAL PROPERTY static_extension_libs)
+  include(StaticPackages)
+  write_static_extensions(${CMAKE_BINARY_DIR}/src/static_packages.h ${extlibs})
+endif()
 
 # Check for environment variables that may cause the build to fail
 include(CheckEnv)

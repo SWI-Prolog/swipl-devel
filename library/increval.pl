@@ -180,6 +180,7 @@ incr_invalidate_calls(Goal) :-
     !,
     forall(trie_gen(VTable, Goal, ATrie),
            '$idg_changed'(ATrie)).
+incr_invalidate_calls(_).
 
 %!  incr_invalidate_call(:Goal) is det.
 %

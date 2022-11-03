@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,6 +46,12 @@ typedef enum
   PL_CHARS_LOCAL			/* stored in in-line buffer */
 } PL_chars_alloc_t;
 
+					/* PL_canonicalise_text() errors */
+#define ERR_TEXT_ILLEGAL_UTF8		       -1
+#define ERR_TEXT_ILLEGAL_UTF16		       -2
+#define ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE    -3
+#define ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE -4
+#define ERR_TEXT_INVALID_CODE_POINT	       -5
 
 typedef struct
 { union
@@ -73,12 +80,13 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 
 int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
-int	PL_unify_text_range(term_t term, PL_chars_t *text,
+int	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
 
 int	PL_promote_text(PL_chars_t *text);
 int	PL_mb_text(PL_chars_t *text, int flags);
-int	PL_canonicalise_text(PL_chars_t *text);
+int	PL_canonicalise_text(PL_chars_t *text) WUNUSED;
+int	PL_canonicalise_text_ex(PL_chars_t *text) WUNUSED;
 
 int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 		    size_t len);
@@ -86,6 +94,7 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);
 int	PL_save_text(PL_chars_t *text, int flags);
+size_t  PL_text_length(const PL_chars_t *text);
 
 int		PL_get_text(term_t l, PL_chars_t *text, int flags);
 atom_t		textToAtom(PL_chars_t *text);

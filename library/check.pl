@@ -383,6 +383,11 @@ list_void_declarations :-
                           check(void_declaration(P, Attr)))
         ),
         fail
+    ;   predicate_property(P, discontiguous),
+        \+ (predicate_property(P, number_of_clauses(N)), N > 0),
+        print_message(warning,
+                      check(void_declaration(P, discontiguous))),
+        fail
     ;   true
     ).
 
@@ -629,6 +634,10 @@ list_format_errors(Options) :-
     ;   true
     ).
 
+format_warning(system:format(_Format, Args), Msg) :-
+    nonvar(Args),
+    \+ is_list(Args),
+    Msg = format_argv(Args).
 format_warning(system:format(Format, Args), Msg) :-
     ground(Format),
     (   is_list(Args)
@@ -1054,3 +1063,5 @@ check_message(format_argc(Expected, InList)) -->
 check_message(format_template(Formal)) -->
     { message_to_string(error(Formal, _), Msg) },
     [ 'Invalid template: ~s'-[Msg] ].
+check_message(format_argv(Args)) -->
+    [ 'Arguments are not in a list (deprecated): ~p'-[Args] ].

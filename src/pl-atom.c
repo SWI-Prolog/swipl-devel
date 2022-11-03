@@ -808,8 +808,8 @@ unmarkAtoms(void)
 
 static void
 maybe_free_atom_tables(void)
-{
-  AtomTable t = GD->atoms.table;
+{ AtomTable t = GD->atoms.table;
+
   while ( t )
   { AtomTable t2 = t->prev;
     if ( t2 && !pl_atom_table_in_use(t2) )
@@ -1666,6 +1666,18 @@ cleanupAtoms(void)
   if ( GD->atoms.table )
   { GD->atoms.table = NULL;
   }
+
+
+  PL_blob_t *bn;
+  for(PL_blob_t *t=GD->atoms.types; t; t = bn)
+  { bn = t->next;
+
+    t->next       = NULL;
+    t->registered = FALSE;
+    t->rank       = 0;
+    t->atom_name  = (atom_t)0;
+  }
+  GD->atoms.types = NULL;
 }
 
 

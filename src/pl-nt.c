@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2019, University of Amsterdam
+    Copyright (c)  1995-2022, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -161,10 +162,9 @@ PlMessage(const char *fm, ...)
 		 *	WinAPI ERROR CODES	*
 		 *******************************/
 
-const char *
-WinError(void)
-{ int id = GetLastError();
-  char *msg;
+static const char *
+WinErrorNo(int id)
+{ char *msg;
   static WORD lang;
   static int lang_initialised = 0;
 
@@ -198,6 +198,12 @@ again:
   }
 }
 
+const char *
+WinError(void)
+{ int id = GetLastError();
+
+  return WinErrorNo(id);
+}
 
 		 /*******************************
 		 *	  SLEEP/1 SUPPORT	*
@@ -332,7 +338,7 @@ setOSPrologFlags(void)
 char *
 findExecutable(const char *module, char *exe, size_t exelen)
 { int n;
-  wchar_t wbuf[MAXPATHLEN];
+  wchar_t wbuf[PATH_MAX];
   HMODULE hmod;
 
   if ( module )
@@ -347,7 +353,7 @@ findExecutable(const char *module, char *exe, size_t exelen)
   } else
     hmod = NULL;
 
-  if ( (n = GetModuleFileNameW(hmod, wbuf, MAXPATHLEN)) > 0 )
+  if ( (n = GetModuleFileNameW(hmod, wbuf, PATH_MAX)) > 0 )
   { wbuf[n] = EOS;
     return _xos_long_file_name_toA(wbuf, exe, exelen);
   } else if ( module )
@@ -357,6 +363,28 @@ findExecutable(const char *module, char *exe, size_t exelen)
 
   return exe;
 }
+
+char *
+findModulePath(const char *module, char *buf, size_t len)
+{ wchar_t wbuf[PATH_MAX];
+  HMODULE hmod;
+
+  if ( (hmod = GetModuleHandle(module)) )
+  { int n;
+
+    if ( (n = GetModuleFileNameW(hmod, wbuf, PATH_MAX)) > 0 )
+    { wbuf[n] = EOS;
+      char osbuf[PATH_MAX];
+      char *osp;
+
+      if ( (osp=_xos_long_file_name_toA(wbuf, osbuf, sizeof(osbuf))) )
+	return PrologPath(osp, buf, len);
+    }
+  }
+
+  return NULL;
+}
+
 
 		 /*******************************
 		 *     SUPPORT FOR SHELL/2	*
@@ -454,14 +482,15 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
 
 
 static void
-utf8towcs(wchar_t *o, const char *src)
+utf8towcs_buffer(Buffer b, const char *src)
 { for( ; *src; )
   { int wc;
 
     PL_utf8_code_point(&src, NULL, &wc);
-    *o++ = wc;
+    addWcharBuffer(b, wc);
   }
-  *o = 0;
+
+  addWcharBuffer(b, 0);
 }
 
 
@@ -470,15 +499,15 @@ System(char *command)			/* command is a UTF-8 string */
 { STARTUPINFOW sinfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
-  size_t len;
+  tmp_buffer buf;
   wchar_t *wcmd;
 
   memset(&sinfo, 0, sizeof(sinfo));
   sinfo.cb = sizeof(sinfo);
 
-  len = utf8_strlen(command, strlen(command));
-  wcmd = PL_malloc((len+1)*sizeof(wchar_t));
-  utf8towcs(wcmd, command);
+  initBuffer(&buf);
+  utf8towcs_buffer((Buffer)&buf, command);
+  wcmd = baseBuffer(&buf, wchar_t);
 
   if ( CreateProcessW(NULL,			/* module */
 		      wcmd,			/* command line */
@@ -494,7 +523,7 @@ System(char *command)			/* command is a UTF-8 string */
     DWORD code;
 
     CloseHandle(pinfo.hThread);			/* don't need this */
-    PL_free(wcmd);
+    discardBuffer(&buf);
 
     do
     { MSG msg;
@@ -511,7 +540,7 @@ System(char *command)			/* command is a UTF-8 string */
     shell_rval = (rval == TRUE ? code : -1);
     CloseHandle(pinfo.hProcess);
   } else
-  { PL_free(wcmd);
+  { discardBuffer(&buf);
     return shell_rval = -1;
   }
 
@@ -599,7 +628,7 @@ PRED_IMPL("win_shell", 3, win_shell3, 0)
 
 foreign_t
 pl_win_module_file(term_t module, term_t file)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *m;
   char *f;
 
@@ -693,20 +722,29 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
   char *dirs;
 
   if ( PL_get_file_name(A1, &dirs, REP_UTF8) )
-  { size_t len = utf8_strlen(dirs, strlen(dirs));
-    wchar_t *dirw = alloca((len+10)*sizeof(wchar_t));
+  { wchar_t dirw[PATH_MAX];
     DLL_DIRECTORY_COOKIE cookie;
 
-    if ( _xos_os_filenameW(dirs, dirw, len+10) == NULL )
+    if ( _xos_os_filenameW(dirs, dirw, PATH_MAX) == NULL )
       return PL_representation_error("file_name");
     if ( load_library_search_flags() )
-    { if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
+    { int eno;
+
+      /* AddDllDirectoryW() cannot handle "\\?\" */
+      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_length(dirw))) )
       { DEBUG(MSG_WIN_API,
 	      Sdprintf("AddDllDirectory(%Ws) ok\n", dirw));
 
 	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
       }
-      return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "AddDllDirectory()");
+
+      switch((eno=GetLastError()))
+      { case ERROR_FILE_NOT_FOUND:
+	  return PL_existence_error("directory", A1);
+        case ERROR_INVALID_PARAMETER:
+	  return PL_domain_error("absolute_file_name", A1);
+      }
+      return PL_error(NULL, 0, WinErrorNo(eno), ERR_SYSCALL, "AddDllDirectory()");
     } else
       return FALSE;
   } else
@@ -745,17 +783,28 @@ void *
 PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
   DWORD llflags = 0;
-  size_t len = utf8_strlen(file, strlen(file));
-  wchar_t *wfile = alloca((len+10)*sizeof(wchar_t));
+  wchar_t wfile[PATH_MAX];
 
-  if ( !wfile )
-  { dlmsg = "No memory";
-    return NULL;
-  }
+  if ( strchr(file, '/') || strchr(file, '\\' ) )
+  { if ( _xos_os_filenameW(file, wfile, PATH_MAX) == NULL )
+    { dlmsg = "Name too long";
+      return NULL;
+    }
+  } else
+  { wchar_t *w = wfile;
+    wchar_t *e = &w[PATH_MAX-1];
 
-  if ( _xos_os_filenameW(file, wfile, len+10) == NULL )
-  { dlmsg = "Name too long";
-    return NULL;
+    for(const char *s = file; *s; )
+    { int c;
+
+      s = utf8_get_char(s, &c);
+      if ( w+2 >= e )
+      { dlmsg = "Name too long";
+	return NULL;
+      }
+      w = put_wchar(w, c);
+    }
+    *w = 0;
   }
 
   DEBUG(MSG_WIN_API, Sdprintf("dlopen(%Ws)\n", wfile));
@@ -825,13 +874,13 @@ PRED_IMPL("win_process_modules", 1, win_process_modules, 0)
 	int i;
 
 	for(i=0; i<lpcbNeeded/sizeof(HMODULE); i++)
-	{ wchar_t name[MAXPATHLEN];
+	{ wchar_t name[PATH_MAX];
 	  int n;
 
-	  if ( (n=GetModuleFileNameW(found[i], name, MAXPATHLEN)) > 0 )
+	  if ( (n=GetModuleFileNameW(found[i], name, PATH_MAX)) > 0 )
 	  { name[n] = EOS;
-	    char name_utf8[MAXPATHLEN*2];
-	    char pname[MAXPATHLEN*2];
+	    char name_utf8[PATH_MAX*2];
+	    char pname[PATH_MAX*2];
 
 	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8), XOS_DOWNCASE) &&
 		 PrologPath(name_utf8, pname, sizeof(pname)) )
@@ -960,7 +1009,7 @@ static const folderid folderids[] =
 
 static int
 unify_csidl_path(term_t t, int csidl)
-{ wchar_t buf[MAX_PATH];
+{ wchar_t buf[PATH_MAX];
 
   if ( SHGetSpecialFolderPathW(0, buf, csidl, FALSE) )
   { wchar_t *p;

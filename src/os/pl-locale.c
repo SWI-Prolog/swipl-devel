@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015, VU University Amsterdam
+    Copyright (c)  2013-2022, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -165,6 +166,18 @@ update_locale(PL_locale *l, int category, const char *locale)
 }
 
 
+static void
+free_locale_symbol(void *name, void *value)
+{ PL_locale *l = value;
+  atom_t alias = (uintptr_t)name;
+
+  l->alias = 0;
+  PL_unregister_atom(alias);
+
+  releaseLocale(l);
+}
+
+
 static int
 alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
@@ -173,7 +186,9 @@ alias_locale(PL_locale *l, atom_t alias)
   PL_LOCK(L_LOCALE);
 
   if ( !GD->locale.localeTable )
-    GD->locale.localeTable = newHTable(16);
+  { GD->locale.localeTable = newHTable(16);
+    GD->locale.localeTable->free_symbol = free_locale_symbol;
+  }
 
   if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
   { GET_LD
@@ -182,11 +197,11 @@ alias_locale(PL_locale *l, atom_t alias)
     PL_put_atom(obj, alias);
     rc = PL_error("locale_create", 2, "Alias name already taken",
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
-  }
-  else
+  } else
   { addNewHTable(GD->locale.localeTable, (void*)alias, l);
     l->alias = alias;
     PL_register_atom(alias);
+    l->references++;	/* acquireLocale(), but that will deadlock */
     rc = TRUE;
   }
   PL_UNLOCK(L_LOCALE);
@@ -219,7 +234,7 @@ static void
 acquire_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  (void)ref;
+  acquireLocale(ref->data);
 }
 
 
@@ -228,7 +243,7 @@ release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   PL_LOCK(L_LOCALE);
-  if ( ref->data->references == 0 )
+  if ( --ref->data->references == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
@@ -345,37 +360,53 @@ getLocaleEx(term_t t, PL_locale **lp)
 		 *	 PROLOG BINDING		*
 		 *******************************/
 
-#define locale_alias_property(l, prop) LDFUNC(locale_alias_property, l, prop)
+#define locale_alias_property(l, prop) \
+	LDFUNC(locale_alias_property, l, prop)
+
 static int		/* locale_property(Mutex, alias(Name)) */
-locale_alias_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->alias )
+locale_alias_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->alias )
     return PL_unify_atom(prop, l->alias);
 
   return FALSE;
 }
 
-#define locale_decimal_point_property(l, prop) LDFUNC(locale_decimal_point_property, l, prop)
+#define locale_decimal_point_property(l, prop)  \
+	LDFUNC(locale_decimal_point_property, l, prop)
+
 static int		/* locale_property(Locale, decimal_point(Atom)) */
-locale_decimal_point_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->decimal_point && l->decimal_point[0] )
+locale_decimal_point_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->decimal_point && l->decimal_point[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->decimal_point);
 
   return FALSE;
 }
 
-#define locale_thousands_sep_property(l, prop) LDFUNC(locale_thousands_sep_property, l, prop)
+#define locale_thousands_sep_property(l, prop) \
+	LDFUNC(locale_thousands_sep_property, l, prop)
+
 static int		/* locale_property(Locale, thousands_sep(Atom)) */
-locale_thousands_sep_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->thousands_sep && l->thousands_sep[0] )
+locale_thousands_sep_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->thousands_sep && l->thousands_sep[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->thousands_sep);
 
   return FALSE;
 }
 
-#define locale_grouping_property(l, prop) LDFUNC(locale_grouping_property, l, prop)
+#define locale_grouping_property(l, prop) \
+	LDFUNC(locale_grouping_property, l, prop)
+
 static int		/* locale_property(Locale, grouping(List)) */
-locale_grouping_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->grouping && l->grouping[0] )
+locale_grouping_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->grouping && l->grouping[0] )
   { term_t tail = PL_copy_term_ref(prop);
     term_t head = PL_new_term_ref();
     char *s;
@@ -412,6 +443,7 @@ typedef struct
   PL_locale *l;				/* current locale */
   const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
+  int allocated;			/* Is allocated */
 } lprop_enum;
 
 
@@ -445,7 +477,8 @@ free_lstate(lprop_enum *state)
   else if ( state->l )
     releaseLocale(state->l);
 
-  freeForeignState(state, sizeof(*state));
+  if ( state->allocated )
+    freeForeignState(state, sizeof(*state));
 }
 
 
@@ -510,6 +543,7 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	    state->enum_properties = TRUE;
 	    goto enumerate;
 	  case -1:
+	    free_lstate(state);
 	    return FALSE;
 	}
       } else
@@ -561,25 +595,24 @@ enumerate:
 	}
 
 	if ( advance_lstate(state) )
-	{ if ( state == &statebuf )
+	{ if ( !state->allocated )
 	  { lprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
+	    copy->allocated = TRUE;
 	    state = copy;
 	  }
 
 	  ForeignRedoPtr(state);
 	}
 
-	if ( state != &statebuf )
-	  free_lstate(state);
+	free_lstate(state);
 	return TRUE;
       }
 
       if ( !advance_lstate(state) )
       { error:
-	if ( state != &statebuf )
-	  free_lstate(state);
+	free_lstate(state);
 	return FALSE;
       }
     }
@@ -742,7 +775,9 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    return unifyLocale(A1, new, TRUE);
+    int rc = unifyLocale(A1, new, TRUE);
+    DEBUG(0, assert(new->references == 1));
+    return rc;
   } else
   { return PL_no_memory();
   }
@@ -762,6 +797,7 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
       if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
 	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
+      l->references--;
       PL_unregister_atom(alias);
       PL_UNLOCK(L_LOCALE);
     }
@@ -850,8 +886,7 @@ initLocale(void)
 
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
-    def->references++;
-    GD->locale.default_locale = def;
+    GD->locale.default_locale = acquireLocale(def);
     LD->locale.current = acquireLocale(def);
 
     initDefaultsStreamsLocale(def);
@@ -895,11 +930,25 @@ acquireLocale(PL_locale *l)
 void
 releaseLocale(PL_locale *l)
 { PL_LOCK(L_LOCALE);
+  assert(l->references > 0);
   if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
     free_locale(l);
   PL_UNLOCK(L_LOCALE);
 }
 
+
+void
+cleanupLocale(void)
+{ if ( GD->locale.default_locale )
+  { releaseLocale(GD->locale.default_locale);
+    GD->locale.default_locale = NULL;
+  }
+
+  if ( GD->locale.localeTable )
+  { destroyHTable(GD->locale.localeTable);
+    GD->locale.localeTable = NULL;
+  }
+}
 
 
 

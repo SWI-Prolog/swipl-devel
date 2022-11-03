@@ -133,11 +133,11 @@ test(2,[error(instantiation_error)]) :-
 	expand_term((_ --> []), _).
 test(meta0,[error(instantiation_error)]) :-
 	expand_term((_, a-->[]),_).
-test(meta0,[R=@= (a(L0,L) :- a(L,L0))]) :-
+test(meta0,[R=@= (a(L0,L) :- L0=L1, a(L,L1))]) :-
 	expand_term((a, a-->[]),R).
-test(meta0,[R=@= (a(L0,L) :- b(L,L0))]) :-
+test(meta0,[R=@= (a(L0,L) :- L0=L1, b(L,L1))]) :-
 	expand_term((a, b-->[]),R).
-test(meta1,[R =@= (a([1,2|L],[3|L]):-true)]) :-
+test(meta1,[R =@= (a(A, B) :- A=[1,2|C], B=[3|C])]) :-
 	expand_term((a,[3]-->[1,2]),R).
 %test(module,[R =@= ex(L,L)]) :-  % Item#282
 %	expand_term((ex --> prolog:[]), R).

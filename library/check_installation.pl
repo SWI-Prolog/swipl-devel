@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2019, VU University Amsterdam
+    Copyright (c)  2014-2022, VU University Amsterdam
                               CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,13 +42,14 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
-:- autoload(library(apply),[maplist/2,maplist/3]).
-:- autoload(library(archive),[archive_open/3,archive_close/1]).
-:- autoload(library(lists),[append/3,member/2]).
-:- autoload(library(option),[option/2,merge_options/3]).
-:- autoload(library(pcre),[re_config/1]).
-:- autoload(library(prolog_source),[path_segments_atom/2]).
-:- use_module(library(settings),[setting/2]).
+:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(archive), [archive_open/3, archive_close/1]).
+:- autoload(library(lists), [append/3, member/2]).
+:- autoload(library(option), [option/2, merge_options/3]).
+:- autoload(library(prolog_source), [path_segments_atom/2]).
+:- use_module(library(settings), [setting/2]).
+:- autoload(library(dcg/high_order), [sequence//2, sequence/4]).
+:- autoload(library(error), [must_be/2]).
 
 
 /** <module> Check installation issues and features
@@ -105,7 +107,7 @@ component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(odbc), _{}).
 component(library(pce),
-          _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
+          _{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
             url:'xpce.html'}).
 component(library(pcre), _{features:pcre_features}).
 component(library(pdt_console), _{}).
@@ -124,6 +126,7 @@ component(library(sha), _{}).
 component(library(snowball), _{}).
 component(library(socket), _{}).
 component(library(ssl), _{}).
+component(library(sweep_link), _{features:sweep_emacs_module}).
 component(library(crypto), _{}).
 component(library(syslog), _{os:unix}).
 component(library(table), _{}).
@@ -357,7 +360,7 @@ archive_format(F, Name) :-
     ->  archive_close(A)
     ;   true
     ),
-    \+ subsumes_term(error(domain_error(filter, _),_), E).
+    \+ subsumes_term(error(domain_error(format, _),_), E).
 
 a_filter(bzip2).
 a_filter(compress).
@@ -394,6 +397,11 @@ pcre_features :-
     (   Missing == []
     ->  true
     ;   print_message(warning, installation(pcre_missing(Missing)))
+    ),
+    (   re_config(compiled_widths(Widths)),
+        1 =:= Widths /\ 1
+    ->  true
+    ;   print_message(warning, installation(pcre_missing('8-bit support')))
     ).
 
 pcre_missing(X) :-
@@ -401,8 +409,7 @@ pcre_missing(X) :-
     Term =.. [X,true],
     \+ catch(re_config(Term), _, fail).
 
-pcre_must_have(utf8).
-pcre_must_have(unicode_properties).
+pcre_must_have(unicode).
 
 %!  jquery_file
 %
@@ -415,18 +422,37 @@ jquery_file :-
     ;   print_message(warning, installation(jquery(not_found(File))))
     ).
 
+sweep_emacs_module :-
+    with_output_to(string(S), write_sweep_module_location),
+    split_string(S, "\n", "\n", [VersionInfo|Modules]),
+    must_be(oneof(["V 1"]), VersionInfo),
+    (   maplist(check_sweep_lib, Modules)
+    ->  print_message(informational, installation(sweep(found(Modules))))
+    ;   print_message(warning, installation(sweep(not_found(Modules))))
+    ).
+
+check_sweep_lib(Line) :-
+    sub_atom(Line, B, _, A, ' '),
+    sub_atom(Line, 0, B, _, Type),
+    must_be(oneof(['L', 'M']), Type),
+    sub_atom(Line, _, A, 0, Lib),
+    exists_file(Lib).
 
 %!  check_on_path
 %
-%   Validate that Prolog is installed in $PATH
+%   Validate that Prolog is installed in   $PATH.  Only performed if the
+%   running executable is  a  normal   executable  file,  assuming  some
+%   special installation such as the WASM version otherwise.
 
 check_on_path :-
     current_prolog_flag(executable, EXEFlag),
     prolog_to_os_filename(EXE, EXEFlag),
     file_base_name(EXE, Prog),
     absolute_file_name(EXE, AbsExe,
-                       [ access(execute)
+                       [ access(execute),
+                         file_errors(fail)
                        ]),
+    !,
     prolog_to_os_filename(AbsExe, OsExe),
     (   absolute_file_name(path(Prog), OnPath,
                            [ access(execute),
@@ -445,6 +471,7 @@ check_on_path :-
         )
     ;   print_message(warning, installation(not_on_path(OsExe, Prog)))
     ).
+check_on_path.
 
 
 		 /*******************************
@@ -598,6 +625,12 @@ message(jquery(found(Path))) -->
     [ '  jQuery from ~w'-[Path] ].
 message(jquery(not_found(File))) -->
     [ '  Cannot find jQuery (~w)'-[File] ].
+message(sweep(found(Paths))) -->
+    [ '  GNU-Emacs plugin loads'-[] ],
+    sequence(list_file, Paths).
+message(sweep(not_found(Paths))) -->
+    [ '  Could not find all GNU-Emacs libraries'-[] ],
+    sequence(list_file, Paths).
 message(testing(no_installed_tests)) -->
     [ '  Runtime testing is not enabled.', nl],
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
@@ -665,6 +698,9 @@ list_names([H|T]) -->
     ;   [ ', '-[] ],
         list_names(T)
     ).
+
+list_file(File) -->
+    [ nl, '    '-[], url(File) ].
 
 
 		 /*******************************

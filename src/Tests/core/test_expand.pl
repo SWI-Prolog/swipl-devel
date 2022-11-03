@@ -116,8 +116,8 @@ ssu_guard, g_b => true.
 
 test(cond_dcg, true) :-
 	\+ current_predicate(no_a//0).
-test(make_dcg, B == true) :-
-	clause(a(_,_), B).
+test(make_dcg, B == (L0=L)) :-
+	clause(a(L0,L), B).
 test(chained_term_expansion, B == true) :-
 	clause(final_c, B).
 test(meta_arg, [fail]) :-

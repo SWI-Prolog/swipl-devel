@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2018, University of Amsterdam
+    Copyright (c)  2004-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,7 +40,9 @@
             prolog_stack_frame_property/2, % +Frame, ?Property
             print_prolog_backtrace/2,   % +Stream, +Stack
             print_prolog_backtrace/3,   % +Stream, +Stack, +Options
-            backtrace/1                 % +MaxDepth
+            backtrace/1,                % +MaxDepth
+            print_last_choicepoint/0,
+            print_last_choicepoint/2    % +Choice, +Options
           ]).
 :- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2]).
@@ -336,7 +339,8 @@ frame_predicate(clause(Clause, _PC), PI) :-
     clause_property(Clause, PI).
 
 default_backtrace_options(Options) :-
-    (   current_prolog_flag(backtrace_show_lines, true)
+    (   current_prolog_flag(backtrace_show_lines, true),
+        current_prolog_flag(iso, false)
     ->  Options = []
     ;   Options = [subgoal_positions(false)]
     ).
@@ -393,7 +397,7 @@ message_frames(frame(Level, _Where, '$toplevel':toplevel_call(_)), _) -->
     [ '<user>'-[] ].
 message_frames(frame(Level, Where, Goal), Options) -->
     level(Level),
-    [ '~p'-[Goal] ],
+    [ ansi(code, '~p', [Goal]) ],
     where_goal(Where, Options).
 
 where_no_goal(foreign(PI), _) -->
@@ -402,7 +406,7 @@ where_no_goal(call(PI), _) -->
     [ '~w'-[PI] ].
 where_no_goal(pred_line(PredName, File:Line), _) -->
     !,
-    [ '~w at ~w:~d'-[PredName, File, Line] ].
+    [ '~w at '-[PredName], url(File:Line) ].
 where_no_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -420,7 +424,7 @@ where_goal(foreign(_), _) -->
     !.
 where_goal(pred_line(_PredName, File:Line), _) -->
     !,
-    [ ' at ~w:~d'-[File, Line] ].
+    [ ' at ', url(File:Line) ].
 where_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -435,7 +439,7 @@ where_goal(clause(Clause, _PC), _) -->
       clause_property(Clause, line_count(Line))
     },
     !,
-    [ ' at ~w:~d'-[ File, Line] ].
+    [ ' at ', url(File:Line) ].
 where_goal(clause(Clause, _PC), _) -->
     { clause_name(Clause, ClauseName)
     },
@@ -469,6 +473,9 @@ contiguous([frame(D1,_,_)|Frames], D0) :-
 %
 %   Produce a name (typically  Functor/Arity)   for  a  predicate to
 %   which Clause belongs.
+
+:- multifile
+    user:prolog_clause_name/2.
 
 clause_predicate_name(Clause, PredName) :-
     user:prolog_clause_name(Clause, PredName),
@@ -541,6 +548,97 @@ lineno_(Fd, Char, L) :-
 lineno_(Fd, Char, L) :-
     skip(Fd, 0'\n),
     lineno_(Fd, Char, L).
+
+
+		 /*******************************
+		 *          CHOICEPOINTS	*
+		 *******************************/
+
+%!  print_last_choicepoint is det.
+%
+%   Print details on the last open choice point.
+
+print_last_choicepoint :-
+    prolog_current_choice(ChI0),         % Choice in print_last_choicepoint/0
+    prolog_choice_attribute(ChI0, parent, ChI1),
+    print_last_choicepoint(ChI1, []).
+print_last_choicepoint.
+
+%!  print_last_choicepoint(+ChoiceRef, +Options) is det.
+
+print_last_choicepoint(ChI1, Options) :-
+    real_choice(ChI1, ChI),
+    prolog_choice_attribute(ChI, frame, F),
+    prolog_frame_attribute(F, goal, Goal),
+    Goal \= '$execute_goal2'(_,_,_),     % Toplevel REPL choicepoint
+    !,
+    option(message_level(Level), Options, warning),
+    get_prolog_backtrace(2, [_|Stack], [frame(F)]),
+    (   predicate_property(Goal, foreign)
+    ->  print_message(Level, choicepoint(foreign(Goal), Stack))
+    ;   prolog_frame_attribute(F, clause, Clause),
+        (   prolog_choice_attribute(ChI, pc, PC)
+        ->  Ctx = jump(PC)
+        ;   prolog_choice_attribute(ChI, clause, Next)
+        ->  Ctx = clause(Next)
+        ),
+        print_message(Level, choicepoint(clause(Goal, Clause, Ctx), Stack))
+    ).
+print_last_choicepoint(_, _).
+
+real_choice(Ch0, Ch) :-
+    prolog_choice_attribute(Ch0, type, Type),
+    dummy_type(Type),
+    !,
+    prolog_choice_attribute(Ch0, parent, Ch1),
+    real_choice(Ch1, Ch).
+real_choice(Ch, Ch).
+
+dummy_type(debug).
+dummy_type(none).
+
+prolog:message(choicepoint(Choice, Stack)) -->
+    choice(Choice),
+    [ nl, 'Called from', nl ],
+    message(Stack).
+
+choice(foreign(Goal)) -->
+    success_goal(Goal, 'a foreign choice point').
+choice(clause(Goal, ClauseRef, clause(Next))) -->
+    success_goal(Goal, 'a choice point in alternate clause'),
+    [ nl ],
+    [ '  ' ], clause_descr(ClauseRef), [': clause succeeded', nl],
+    [ '  ' ], clause_descr(Next),      [': next candidate clause' ].
+choice(clause(Goal, ClauseRef, jump(PC))) -->
+    { clause_where(false, ClauseRef, PC, Where,
+                   [subgoal_positions(true)])
+    },
+    success_goal(Goal, 'an in-clause choice point'),
+    [ nl, '  ' ],
+    where_no_goal(Where).
+
+success_goal(Goal, Reason) -->
+    [ ansi(code, '~p', [Goal]),
+      ' left ~w (after success)'-[Reason]
+    ].
+
+where_no_goal(pred_line(_PredName, File:Line)) -->
+    !,
+    [ url(File:Line) ].
+where_no_goal(clause_name(ClauseName)) -->
+    !,
+    [ '~w <no source>'-[ClauseName] ].
+
+clause_descr(ClauseRef) -->
+    { clause_property(ClauseRef, file(File)),
+      clause_property(ClauseRef, line_count(Line))
+    },
+    !,
+    [ url(File:Line) ].
+clause_descr(ClauseRef) -->
+    { clause_name(ClauseRef, Name)
+    },
+    [ '~w'-[Name] ].
 
 
                  /*******************************

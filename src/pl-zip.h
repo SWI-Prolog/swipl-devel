@@ -74,6 +74,7 @@ typedef struct zipper
   unsigned int	 flags;
   int		 owner;				/* owning thread id */
   int		 lock_count;			/* times locked */
+  void *	 mapped_file;			/* map_file() */
 #ifdef O_PLMT
   simpleMutex    lock;				/* basic lock */
 #endif

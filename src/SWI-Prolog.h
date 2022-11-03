@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -68,7 +69,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 80403
+#define PLVERSION 80520
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -321,12 +322,15 @@ typedef union
 #define PL_CUTTED		(1)	/* deprecated */
 #define PL_PRUNED		(1)
 #define PL_REDO			(2)
+#define PL_RESUME		(3)
 
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry_address(a)
+#define PL_yield_address(a)	return _PL_yield_address(a)
 
 PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
 PL_EXPORT(foreign_t)	_PL_retry_address(void *);
+PL_EXPORT(foreign_t)	_PL_yield_address(void *);
 PL_EXPORT(int)		PL_foreign_control(control_t);
 PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
@@ -413,7 +417,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_S_FALSE		0	/* Query failed */
 #define PL_S_TRUE		1	/* Query succeeded with choicepoint */
 #define PL_S_LAST		2	/* Query succeeded without CP */
-
+#define PL_S_YIELD	      255	/* Foreign yield */
 
 			/* Foreign context frames */
 PL_EXPORT(fid_t)	PL_open_foreign_frame(void);
@@ -437,6 +441,7 @@ PL_EXPORT(int)		PL_close_query(qid_t qid);
 PL_EXPORT(int)		PL_cut_query(qid_t qid);
 PL_EXPORT(qid_t)	PL_current_query(void);
 PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
+PL_EXPORT(int)		PL_can_yield(void);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);
@@ -482,6 +487,8 @@ PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
 PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
+PL_EXPORT(int)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
+					unsigned int flags);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
@@ -710,7 +717,7 @@ PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
 typedef struct PL_blob_t
 { uintptr_t		magic;		/* PL_BLOB_MAGIC */
   uintptr_t		flags;		/* PL_BLOB_* */
-  char *		name;		/* name of the type */
+  const char *		name;		/* name of the type */
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
   int			(*write)(IOSTREAM *s, atom_t a, int flags);
@@ -779,6 +786,7 @@ PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 		 *    QUINTUS/SICSTUS WRAPPER	*
 		 *******************************/
 
+PL_EXPORT(int)		PL_cvt_i_bool(term_t p, int *c); /* Note "int" because C has no "bool" */
 PL_EXPORT(int)		PL_cvt_i_char(term_t p, char *c);
 PL_EXPORT(int)		PL_cvt_i_schar(term_t p, signed char *c);
 PL_EXPORT(int)		PL_cvt_i_uchar(term_t p, unsigned char *c);
@@ -788,6 +796,10 @@ PL_EXPORT(int)		PL_cvt_i_int(term_t p, int *c);
 PL_EXPORT(int)		PL_cvt_i_uint(term_t p, unsigned int *c);
 PL_EXPORT(int)		PL_cvt_i_long(term_t p, long *c);
 PL_EXPORT(int)		PL_cvt_i_ulong(term_t p, unsigned long *c);
+PL_EXPORT(int)		PL_cvt_i_llong(term_t p, long long *c);
+PL_EXPORT(int)		PL_cvt_i_ullong(term_t p, unsigned long long *c);
+PL_EXPORT(int)		PL_cvt_i_int32(term_t p, int32_t *c);
+PL_EXPORT(int)		PL_cvt_i_uint32(term_t p, uint32_t *c);
 PL_EXPORT(int)		PL_cvt_i_int64(term_t p, int64_t *c);
 PL_EXPORT(int)		PL_cvt_i_uint64(term_t p, uint64_t *c);
 PL_EXPORT(int)		PL_cvt_i_size_t(term_t p, size_t *c);
@@ -934,6 +946,7 @@ PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
 PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
+PL_EXPORT(int)		PL_get_stream_from_blob(atom_t a, IOSTREAM**s, int flags);
 PL_EXPORT(IOSTREAM*)	PL_acquire_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);
@@ -1005,6 +1018,15 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 		 /*******************************
 		 *	    EMBEDDING		*
 		 *******************************/
+
+#define PL_CLEANUP_STATUS_MASK		(0x0ffff)
+#define PL_CLEANUP_NO_RECLAIM_MEMORY	(0x10000)
+#define PL_CLEANUP_NO_CANCEL		(0x20000)
+
+#define PL_CLEANUP_CANCELED	0
+#define PL_CLEANUP_SUCCESS	1
+#define PL_CLEANUP_FAILED      -1
+#define PL_CLEANUP_RECURSIVE   -2
 
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_winitialise(int argc, wchar_t **argv);
@@ -1087,6 +1109,42 @@ PL_EXPORT(int)			PL_abort_unhook(PL_abort_hook_t);
 PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 
 
+		 /*******************************
+		 *	      OPTIONS		*
+		 *******************************/
+
+typedef enum
+{ _OPT_END = -1,
+  OPT_BOOL = 0,				/* int */
+  OPT_INT,				/* int */
+  OPT_INT64,				/* int64_t */
+  OPT_UINT64,				/* uint64_t */
+  OPT_SIZE,				/* size_t */
+  OPT_DOUBLE,				/* double */
+  OPT_STRING,				/* char* (UTF-8) */
+  OPT_ATOM,				/* atom_t */
+  OPT_TERM,				/* term_t */
+  OPT_LOCALE				/* void* */
+} _PL_opt_enum_t;
+
+#define OPT_TYPE_MASK	0xff
+#define OPT_INF		0x100		/* allow 'inf' */
+
+#define OPT_ALL		0x1		/* flags */
+
+typedef struct
+{ atom_t		name;		/* Name of option */
+  _PL_opt_enum_t	type;		/* Type of option */
+  const char *		string;		/* For foreign access */
+} PL_option_t;
+
+#define PL_OPTION(name, type) { 0, type, name }
+#define PL_OPTIONS_END	      { 0, _OPT_END, (const char*)0 }
+
+PL_EXPORT(int)	PL_scan_options(term_t options, int flags, const char *opttype,
+				PL_option_t specs[], ...);
+
+
 		/********************************
 		*            SIGNALS            *
 		*********************************/
@@ -1162,7 +1220,8 @@ PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 #define PL_VERSION_VM		6	/* VM signature */
 #define PL_VERSION_BUILT_IN	7	/* Built-in predicate signature */
 
-PL_EXPORT(unsigned int) PL_version(int which);
+#define PL_version(id) PL_version_info(id)
+PL_EXPORT(unsigned int) PL_version_info(int which);
 
 
 		/********************************
@@ -1288,6 +1347,11 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 		 /*******************************
 		 *	      DEBUG		*
 		 *******************************/
+
+PL_EXPORT_DATA(int)     plugin_is_GPL_compatible;
+#ifndef EMACS_MODULE_H
+PL_EXPORT(int)          emacs_module_init(void*);
+#endif
 
 PL_EXPORT(int)		PL_prolog_debug(const char *topic);
 PL_EXPORT(int)		PL_prolog_nodebug(const char *topic);

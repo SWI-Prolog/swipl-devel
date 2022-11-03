@@ -70,7 +70,7 @@ void		cleanupArith(void);
 int		indexArithFunction(functor_t fdef);
 functor_t	functorArithFunction(unsigned int n);
 bool		ar_func_n(int findex, int argc);
-int		ar_add_ui(Number n, intptr_t add);
+int		ar_add_si(Number n, long add);
 int		valueExpression(term_t p, Number n);
 int		toIntegerNumber(Number n, int flags);
 int		arithChar(Word p);

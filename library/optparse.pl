@@ -545,7 +545,7 @@ format_opt(LongestFlagWidth, [SFlagsCW, MTDCW], HelpOptions, Opt, Line) :-
     option(line_width(LW), HelpOptions, 80),
     option(min_help_width(MHW), HelpOptions, 40),
     HelpWidth is max(MHW, LW - HelpIndent),
-    (  atom(Help)
+    (  ( atom(Help) ; string(Help) )
     -> line_breaks(Help, HelpWidth, HelpIndent, BrokenHelp)
     ;  assertion(is_list_of_atoms(Help))
     -> indent_lines(Help, HelpIndent, BrokenHelp)
@@ -590,46 +590,42 @@ group_length_([Word|Words], LineLength, Remains, ThisLine, Groups, GroupsAcc) :-
 %}}}
 
 
-%{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPTSSPEC DEFAULTS
-
+%!  add_default_defaults(+OptSpecIn, -OptSpec, +Options) is det.
+%
+%   Add defaults to the user speficified options.
 
 add_default_defaults(OptsSpec0, OptsSpec, Options) :-
     option(suppress_empty_meta(SEM), Options, true),
     maplist(default_defaults(SEM), OptsSpec0, OptsSpec).
 
 default_defaults(SuppressEmptyMeta, OptSpec0, OptSpec) :-
-    (  SuppressEmptyMeta
-    -> Meta = ''
-    ;  memberchk(type(Type), OptSpec0)
-    -> meta_placeholder(Type, Meta)
-    ;  Meta = 'T'
+    (   SuppressEmptyMeta
+    ->  Meta = ''
+    ;   memberchk(type(Type), OptSpec0)
+    ->  meta_placeholder(Type, Meta)
+    ;   Meta = 'T'
     ),
 
-    Defaults = [ help('')
-             , type(term)
-             , shortflags([])
-             , longflags([])
-             , default('_')
-             , meta(Meta)
-             ],
+    Defaults = [ help(''),
+                 type(term),
+                 shortflags([]),
+                 longflags([]),
+                 default('_'),
+                 meta(Meta)
+               ],
     merge_options(OptSpec0, Defaults, OptSpec).
-    %merge_options(+New, +Old, -Merged)
-
 
 meta_placeholder(boolean, 'B').
-meta_placeholder(atom, 'A').
-meta_placeholder(float, 'F').
+meta_placeholder(atom,    'A').
+meta_placeholder(float,   'F').
 meta_placeholder(integer, 'I').
-meta_placeholder(term, 'T').
+meta_placeholder(term,    'T').
 
 
+%!  check_opts_spec(+OptSpecIn, +Options, -OptSpec)
+%
+%   Verify and possibly fix the user option specification.
 
-%}}}
-
-
-%{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPTSSPEC VALIDATION
-
-%this is a bit paranoid, but OTOH efficiency is no issue
 check_opts_spec(OptsSpec0, Options, OptsSpec) :-
     validate_opts_spec(OptsSpec0, Options),
     add_default_defaults(OptsSpec0, OptsSpec, Options),
@@ -645,35 +641,33 @@ invalidate_opts_spec(OptsSpec, _ParseOptions) :-
                    context(validate_opts_spec/1, 'option spec must be ground')))
 
     %invalid if conflicting flags
-    ; ( member(O1, OptsSpec), flags(O1, Flags1), member(F, Flags1),
+    ;   member(O1, OptsSpec), flags(O1, Flags1), member(F, Flags1),
         member(O2, OptsSpec), flags(O2, Flags2), member(F, Flags2),
-        O1 \= O2)
-    -> throw(error(domain_error(unique_atom, F),
+        O1 \= O2
+    ->  throw(error(domain_error(unique_atom, F),
                    context(validate_opts_spec/1, 'ambiguous flag')))
 
     %invalid if unknown opt spec
-    ; ( member(OptSpec, OptsSpec),
+    ;   member(OptSpec, OptsSpec),
         member(Spec, OptSpec),
         functor(Spec, F, _),
-        \+ member(F, [opt, shortflags, longflags, type, help, default, meta]) )
+        \+ member(F, [opt, shortflags, longflags, type, help, default, meta])
     ->  throw(error(domain_error(opt_spec, F),
                    context(validate_opts_spec/1, 'unknown opt spec')))
 
     %invalid if mandatory option spec opt(ID) is not unique in the entire Spec
-    ; ( member(O1, OptsSpec), member(opt(Name), O1),
+    ;   member(O1, OptsSpec), member(opt(Name), O1),
         member(O2, OptsSpec), member(opt(Name), O2),
-        O1 \= O2)
+        O1 \= O2
     -> throw(error(domain_error(unique_atom, Name),
-                   context(validate_opts_spec/1, 'ambiguous id')))
+                   context(_, 'ambiguous id')))
     ).
-
 invalidate_opts_spec(OptsSpec, _ParseOptions) :-
     member(OptSpec, OptsSpec),
     \+ member(opt(_Name), OptSpec),
     %invalid if mandatory option spec opt(ID) is absent
     throw(error(domain_error(unique_atom, OptSpec),
-                context(validate_opts_spec/1, 'opt(id) missing'))).
-
+                context(_, 'opt(id) missing'))).
 invalidate_opts_spec(OptsSpec, ParseOptions) :-
     member(OptSpec, OptsSpec), %if we got here, OptSpec has a single unique Name
     member(opt(Name), OptSpec),
@@ -681,65 +675,54 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
     option(allow_empty_flag_spec(AllowEmpty), ParseOptions, true),
 
     %invalid if allow_empty_flag_spec(false) and no flag is given
-    ( (\+ AllowEmpty, \+ flags(OptSpec, [_|_]))
-    -> format(atom(Msg), 'no flag specified for option ''~w''', [Name]),
-       throw(error(domain_error(unique_atom, _),
-                context(validate_opts_spec/1, Msg)))
+    (   (   AllowEmpty \== true,
+            \+ flags(OptSpec, [_|_])
+        )
+    ->  format(atom(Msg), 'no flag specified for option ''~w''', [Name]),
+        throw(error(domain_error(unique_atom, _),
+                    context(_, Msg)))
 
     %invalid if any short flag is not actually single-letter
-    ; ( memberchk(shortflags(Flags), OptSpec),
+    ;   memberchk(shortflags(Flags), OptSpec),
         member(F, Flags),
         atom_length(F, L),
-        L > 1)
+        L > 1
     ->  format(atom(Msg), 'option ''~w'': flag too long to be short', [Name]),
         throw(error(domain_error(short_flag, F),
-                context(validate_opts_spec/1, Msg)))
+                    context(_, Msg)))
 
     %invalid if any option spec is given more than once
-    ; duplicate_optspec(OptSpec,
-      [type,opt,default,help,shortflags,longflags,meta])
+    ;   duplicate_optspec(OptSpec,
+                          [type,opt,default,help,shortflags,longflags,meta])
     ->  format(atom(Msg), 'duplicate spec in option ''~w''', [Name]),
         throw(error(domain_error(unique_functor, _),
-                context(validate_opts_spec/1, Msg)))
+                    context(_, Msg)))
 
     %invalid if unknown type
-    ;   (   memberchk(type(Type), OptSpec),
-            Type \== term,
-            \+ clause(error:has_type(Type,_), _)
-        )
-    ->  format(atom(Msg), 'unknown type ''~w'' in option ''~w''', [Type, Name]),
-        throw(error(type_error(flag_value, Type),
-              context(validate_opts_spec/1, Msg)))
+    ;   memberchk(type(Type), OptSpec),
+        Type \== term,
+        \+ (   current_type(Type, _Var, _Body)
+           ;   clause(parse_type(Type, _, _), _)
+           )
+    ->  existence_error(type, Type)
 
-    %invalid if type does not match default
-    %note1: reverse logic: we are trying to _in_validate OptSpec
+    ;   memberchk(type(Type), OptSpec),
+        current_type(Type, _, _),
+        memberchk(default(Default), OptSpec),
+        Default \== '_'
+    ->  \+ must_be(Type, Default)
 
-    %note2: 'term' approves of any syntactically valid prolog term, since
-    %if syntactically invalid, OptsSpec wouldn't have parsed
-
-    %note3: the special placeholder '_' creates a new variable, so no typecheck
-    ;    (memberchk(type(Type), OptSpec),
-          Type \= term,
-          memberchk(default(Default), OptSpec),
-          Default \= '_'
-    ->   \+ must_be(Type, Default))
-
-    %invalidation failed, i.e., optspec is OK
-    ; fail
+    ;   fail
     ).
 
 duplicate_optspec(_, []) :- !, fail.
 duplicate_optspec(OptSpec, [Func|Funcs]) :-
     functor(F, Func, 1),
     findall(F, member(F, OptSpec), Xs),
-    (Xs = [_,_|_]
-    -> true
-    ; duplicate_optspec(OptSpec, Funcs)
+    (   Xs = [_,_|_]
+    ->  true
+    ;   duplicate_optspec(OptSpec, Funcs)
     ).
-
-
-%}}}
-
 
 %{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PARSE OPTIONS
 % NOTE:
@@ -805,7 +788,7 @@ parse_args_([], _, []) :- !.
 short_flag_w_equals([0'-,_C], [0'=|_]) :-
     throw(error(syntax_error('disallowed: <shortflag>=<value>'),_)).
 
-
+%!  flag_id_type(+OptSpec, +FlagCodes, -ID, -Type) is semidet.
 
 flag_id_type(OptsSpec, FlagCodes, ID, Type) :-
     atom_codes(Flag, FlagCodes),
@@ -851,15 +834,13 @@ name_char( 0'_ ).
 name_char( 0'- ). %}}}
 
 
-%{{{ PARSE OPTION
+%!  parse_option(+OptSpec, +Flag:codes, +Val:codes, -Opt)
+
 parse_option(OptsSpec, Arg1, Arg2, opt(KID, Val)) :-
-    (  flag_id_type(OptsSpec, Arg1, KID, Type)
-    -> parse_val(Arg1, Type, Arg2, Val)
-    ;  format(atom(Msg), '~s', [Arg1]),
-     opt_help(OptsSpec, Help),        %unknown flag: dump usage on stderr
-     nl(user_error),
-     write(user_error, Help),
-     throw(error(domain_error(flag_value, Msg),context(_, 'unknown flag')))
+    (   flag_id_type(OptsSpec, Arg1, KID, Type)
+    ->  parse_val(Arg1, Type, Arg2, Val)
+    ;   atom_codes(Flag, Arg1),
+        existence_error(commandline_option, Flag)
     ).
 
 
@@ -872,7 +853,8 @@ parse_val(Opt, Type, Cs, Val) :-
       throw(E))
     ).
 
-%parse_loc(+Type, +ListOfCodes, -Result).
+%!  parse_loc(+Type, +ListOfCodes, -Result).
+
 parse_loc(Type, _LOC, _) :-
     var(Type), !, throw(error(instantiation_error, _)).
 parse_loc(_Type, LOC, _) :-
@@ -883,17 +865,14 @@ parse_loc(atom, Cs, Result) :- atom_codes(Result, Cs), !.
 parse_loc(integer, Cs, Result) :-
     number_codes(Result, Cs),
     integer(Result),
-
     !.
 parse_loc(float, Cs, Result)   :-
     number_codes(Result, Cs),
     float(Result),
-
     !.
 parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
-
     !.
 parse_loc(Type, Cs, Result) :-
     parse_type(Type, Cs, Result),

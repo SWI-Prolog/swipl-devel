@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2021, VU University Amsterdam
+    Copyright (c)  2016-2022, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -234,9 +234,11 @@ typedef struct idg_mdep
   Buffer	 queue;			/* Unprocessed answers */
 } idg_mdep;
 
+#define TRIE_ARRAY_PREALLOCATED 7
+
 typedef struct trie_array
 { trie **blocks[MAX_BLOCKS];
-  trie *preallocated[7];
+  trie *preallocated[TRIE_ARRAY_PREALLOCATED];
 } trie_array;
 
 
@@ -318,6 +320,7 @@ void	tbl_push_delay(atom_t atrie, Word wrapper,
 int	answer_is_conditional(trie_node *answer);
 void	untable_from_clause(Clause cl);
 void	initTabling(void);
+void	cleanupTabling(void);
 int	idg_add_dyncall(Definition def, trie *ctrie,
 			term_t variant);
 int	tbl_is_predicate_attribute(atom_t key);

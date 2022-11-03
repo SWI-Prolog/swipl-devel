@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2015, University of Amsterdam
+    Copyright (c)  2009-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -137,13 +138,13 @@ test(directory_files, true) :-
 	directory_files(Dir, Files),
 	memberchk(Plain, Files).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, F),
+	long_segment(40000, F),
 	absolute_file_name(F, _, [access(read)]).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, F),
+	long_segment(40000, F),
 	file_base_name(F, _).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, D),
+	long_segment(40000, D),
 	long_segment(2000, F),
 	atomic_list_concat([D,F], /, Path),
 	file_directory_name(Path, _).
@@ -175,6 +176,11 @@ test(file_base_name, D == 'aaa') :-
 	file_base_name('aaa/', D).
 test(file_base_name, D == '/') :-
 	file_base_name('///', D).
+test(nul, [condition(current_prolog_flag(windows,true))]) :-
+	setup_call_cleanup(
+	    open(nul, write, Out),
+	    format(Out, 'Sending to NUL', []),
+	    close(Out)).
 
 long_segment(N, Seg) :-
 	length(L, N),

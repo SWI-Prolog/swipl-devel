@@ -117,6 +117,7 @@ predicate_t	_PL_predicate(const char *name, int arity,
 			      const char *module, predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
 void		cleanupInitialiseHooks(void);
+void		cleanAbortHooks(PL_local_data_t *ld);
 atom_t		codeToAtom(int code);
 int		PL_unify_term(term_t t, ...);
 int		PL_unify_termv(term_t t, va_list args);
@@ -205,7 +206,7 @@ int		get_string_text(atom_t atom, PL_chars_t *text);
 
 #if USE_FLI_INLINES || EMIT_FLI_INLINES
 #include "pl-wam.h"
-	
+
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 

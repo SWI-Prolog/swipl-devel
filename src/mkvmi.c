@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2018, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,13 +43,14 @@
 #else
 #include <unistd.h>
 #endif
+#include <config.h>
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)	/* deprecate open() etc */
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 #define NO_SWIPL 1
@@ -334,7 +336,7 @@ emit_vmi_hdr(const char *to)
     { fprintf(out, "#define VMIDECL_%s     %s, %s, %s, (%s)\n", Vmi->name, Vmi->name, Vmi->flags, Vmi->argc, Vmi->args);
       fprintf(out, "#define VMIFLAGS_%s    %s\n", Vmi->name, Vmi->flags);
     }
-    
+
     fprintf(out, "#define VM%cARGCOUNT_%s %s\n", Vmi->is_vmh ? 'H' : 'I', Vmi->name, Vmi->argc);
     fprintf(out, "#define VM%cARGTYPES_%s %s\n\n", Vmi->is_vmh ? 'H' : 'I', Vmi->name, Vmi->args);
   }
@@ -347,7 +349,7 @@ emit_vmi_hdr(const char *to)
 int
 main(int argc, char **argv)
 { program = argv[0];
-  char buf[MAXPATHLEN];
+  char buf[PATH_MAX];
 
   argc--;
   argv++;

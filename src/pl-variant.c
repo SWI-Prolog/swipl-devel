@@ -470,7 +470,6 @@ again:
       return FALSE;
   }
 
-  startCritical;
   initBuffer(&buf);	/* can be faster! */
   init_agenda(&agenda);
 
@@ -488,9 +487,6 @@ again:
   clearSegStack(&agenda.stack);
 
   DEBUG(CHK_SECURE, checkStacks(NULL));
-
-  if ( !endCritical )
-    return FALSE;
 
   if ( rval >= 0 )
     return rval;

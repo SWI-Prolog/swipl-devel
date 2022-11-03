@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -76,6 +76,7 @@ static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def);
 static void	unregisterDirtyDefinition(Definition def);
 static gen_t	ddi_oldest_generation(DirtyDefInfo ddi);
+static void	gcClauseRefs(void);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -122,6 +123,10 @@ lookupProcedure(functor_t f, Module m)
   memset(def, 0, sizeof(*def));
   def->functor = valueFunctor(f);
   def->module  = m;
+#ifdef __SANITIZE_ADDRESS__
+  def->name = strdup(predicateName(def));
+  __lsan_ignore_object(def->name);
+#endif
   def->shared  = 1;
   if ( def->functor->arity > 0 )
   { def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
@@ -131,7 +136,10 @@ lookupProcedure(functor_t f, Module m)
   }
   resetProcedure(proc, TRUE);
 
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				 procedureName(proc), proc));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Created %s at %p\n",
+				 predicateName(def), def));
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
@@ -167,7 +175,6 @@ lingerDefinition(Definition def)
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Linger %s\n", predicateName(def)));
   ATOMIC_SUB(&m->code_size, sizeof(*def));
-  ATOMIC_DEC(&GD->statistics.predicates);
 
   /*GC_LINGER(def);*/
 }
@@ -189,8 +196,8 @@ guarantee they are not in use.
 
 void
 destroyDefinition(Definition def)
-{ ATOMIC_DEC(&GD->statistics.predicates);
-  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+{ if ( def->module )
+    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
 
   DEBUG(MSG_CGC_PRED,
 	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
@@ -202,45 +209,120 @@ destroyDefinition(Definition def)
 
     deleteIndexesDefinition(def);
     removeClausesPredicate(def, 0, FALSE);
-    registerDirtyDefinition(def);
-    DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
-    def->module = NULL;
-    set(def, P_ERASED);
-
-    return;
+    if ( GD->cleaning != CLN_DATA )
+    { registerDirtyDefinition(def);
+      DEBUG(MSG_PRED_COUNT, Sdprintf("Erased %s at\n", predicateName(def), def));
+      def->module = NULL;
+      set(def, P_ERASED);
+      return;
+    } else
+    { free_lingering(&def->lingering, GEN_MAX);
+    }
   } else					/* foreign and thread-local */
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
-				   predicateName(def)));
+  {
 #ifdef O_PLMT
+    DEBUG(MSG_PRED_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
+				   predicateName(def)));
     if ( true(def, P_THREAD_LOCAL) )
       destroyLocalDefinitions(def);
 #endif
   }
 
-  if ( def->tabling )
+  if ( true(def, P_DIRTYREG) )
+    unregisterDirtyDefinition(def);
+  unallocDefinition(def);
+}
+
+/* Finish the job when P_ERASED is det in destroyDefinition() */
+
+static void
+delayedDestroyDefinition(Definition def)
+{ DEBUG(MSG_PRED_COUNT, Sdprintf("Delayed unalloc %s at %p\n",
+				 predicateName(def), def));
+  assert(def->module == NULL);
+  if ( def->impl.clauses.first_clause == NULL ||
+       GD->cleaning == CLN_DATA )
+  { if ( GD->cleaning == CLN_DATA )
+      removeClausesPredicate(def, 0, FALSE);
+
+    DEBUG(1,
+	  if ( def->lingering )
+	  { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
+		     predicateName(def));
+	  });
+    unregisterDirtyDefinition(def);
+    deleteIndexes(&def->impl.clauses, TRUE);
+    unallocDefinition(def);
+  }
+}
+
+
+void
+unallocDefinition(Definition def)
+{ if ( def->tabling )
     freeHeap(def->tabling, sizeof(*def->tabling));
   if ( def->impl.any.args )
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
+  if ( def->events )
+    destroy_event_list(&def->events);
+  freeCodesDefinition(def, FALSE);
+  free_lingering(&def->lingering, GEN_MAX);
 
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
   freeHeap(def, sizeof(*def));
+  ATOMIC_DEC(&GD->statistics.predicates);
 }
 
 
 void
 unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
-  Module m = def->module;
+
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Freed procedure %s at %p\n",
+				 predicateName(def), proc));
 
   if ( unshareDefinition(def) == 0 )
-  { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
+  { def->module = NULL;
+    DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     destroyDefinition(def);
   }
   if ( proc->source_no )
     releaseSourceFileNo(proc->source_no);
   freeHeap(proc, sizeof(*proc));
-  if ( m )
-    ATOMIC_SUB(&m->code_size, sizeof(*proc));
+}
+
+
+static void
+free_ddi_symbol(void *name, void *value)
+{ DirtyDefInfo ddi = value;
+  Definition def = name;
+
+  PL_free(ddi);
+  if ( true(def, P_ERASED) )
+    delayedDestroyDefinition(def);
+}
+
+
+void
+initProcedures(void)
+{ GD->procedures.dirty = newHTable(32);
+  GD->procedures.dirty->free_symbol = free_ddi_symbol;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cleanupProcedures()  deals  with  the  cleanup    during   halt.  Normal
+procedures are cleaned by cleanupModules(). This   deals mostly with the
+allocations pending on clause GC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cleanupProcedures(void)
+{ if ( GD->procedures.dirty )
+  { destroyHTable(GD->procedures.dirty);
+    GD->procedures.dirty = NULL;
+  }
+
+  gcClauseRefs();
 }
 
 
@@ -279,6 +361,8 @@ importDefinitionModule(Module m, Definition def, int flags)
     proc->flags      = flags;
     proc->source_no  = 0;
     addNewHTable(m->procedures, (void *)functor, proc);
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				   procedureName(proc), proc));
   }
   UNLOCKMODULE(m);
 
@@ -1152,12 +1236,16 @@ lingerClauseRef(ClauseRef cref)
 	  assert(0);
 	});
 
-  do
-  { o = GD->clauses.lingering;
-    cref->d.gnext = o;
-  } while(!COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, o, cref) );
+  if ( GD->cleaning != CLN_DATA )
+  { do
+    { o = GD->clauses.lingering;
+      cref->d.gnext = o;
+    } while(!COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, o, cref) );
 
-  ATOMIC_INC(&GD->clauses.lingering_count);
+    ATOMIC_INC(&GD->clauses.lingering_count);
+  } else
+  { freeClauseRef(cref);
+  }
 }
 
 
@@ -1175,8 +1263,10 @@ gcClauseRefs(void)
   if ( cref )
   { ClauseRef next;
     Definition *active_defs = predicates_in_use();
+#ifdef O_DEBUG
     int freed = 0;
     int kept = 0;
+#endif
 
     for( ; cref; cref = next)
     { Definition def;
@@ -1185,10 +1275,14 @@ gcClauseRefs(void)
       def = cref->value.clause->predicate;
       if ( !activePredicate(active_defs, def) )
       { freeClauseRef(cref);
+#ifdef O_DEBUG
 	freed++;
+#endif
       } else
       {	lingerClauseRef(cref);
+#ifdef O_DEBUG
 	kept++;
+#endif
       }
     }
 
@@ -1402,6 +1496,7 @@ abolishProcedure(Procedure proc, Module module)
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { Definition ndef	     = allocHeapOrHalt(sizeof(*ndef));
+    Definition odef          = def;
 
     memset(ndef, 0, sizeof(*ndef));
     ndef->functor            = def->functor; /* should be merged with */
@@ -1413,6 +1508,10 @@ abolishProcedure(Procedure proc, Module module)
     ATOMIC_INC(&GD->statistics.predicates);
     ATOMIC_ADD(&module->code_size, sizeof(*ndef));
     resetProcedure(proc, TRUE);
+    DEBUG(MSG_PRED_COUNT, Sdprintf("Created %s at %p\n",
+				   predicateName(ndef), ndef));
+    if ( unshareDefinition(odef) == 0 )
+      lingerDefinition(odef);
   } else if ( true(def, P_FOREIGN) )	/* foreign: make normal */
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
     resetProcedure(proc, TRUE);
@@ -1447,7 +1546,7 @@ MT: Caller must hold L_PREDICATE
 size_t
 removeClausesPredicate(Definition def, int sfindex, int fromfile)
 { GET_LD
-  ClauseRef c;
+  ClauseRef c, next;
   size_t deleted = 0;
   size_t memory = 0;
   gen_t update;
@@ -1455,42 +1554,57 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   if ( true(def, P_THREAD_LOCAL) )
     return 0;
 
-  PL_LOCK(L_GENERATION);
-  update = global_generation()+1;
-  acquire_def(def);
-  for(c = def->impl.clauses.first_clause; c; c = c->next)
-  { Clause cl = c->value.clause;
+  if ( GD->cleaning != CLN_DATA )		/* normal operation */
+  { PL_LOCK(L_GENERATION);
+    update = global_generation()+1;
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = next)
+    { Clause cl = c->value.clause;
 
-    if ( (sfindex == 0 || sfindex == cl->owner_no) &&
-	 (!fromfile || cl->line_no > 0) &&
-	 false(cl, CL_ERASED) )
-    { set(cl, CL_ERASED);
+      next = c->next;
+
+      if ( (sfindex == 0 || sfindex == cl->owner_no) &&
+	   (!fromfile || cl->line_no > 0) &&
+	   false(cl, CL_ERASED) )
+      { set(cl, CL_ERASED);
 #ifdef O_LOGICAL_UPDATE
-      cl->generation.erased = update;
+	cl->generation.erased = update;
 #endif
-      deleted++;
-      memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
-      def->impl.clauses.number_of_clauses--;
-      def->impl.clauses.erased_clauses++;
-      if ( false(cl, UNIT_CLAUSE) )
-	def->impl.clauses.number_of_rules--;
-      deleteActiveClauseFromIndexes(def, cl);
-      registerRetracted(cl);
+	deleted++;
+	memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
+	def->impl.clauses.number_of_clauses--;
+	def->impl.clauses.erased_clauses++;
+	if ( false(cl, UNIT_CLAUSE) )
+	  def->impl.clauses.number_of_rules--;
+	deleteActiveClauseFromIndexes(def, cl);
+	registerRetracted(cl);
+      }
     }
-  }
-  release_def(def);
-  GD->_generation = update;
-  PL_UNLOCK(L_GENERATION);
+    release_def(def);
+    GD->_generation = update;
+    PL_UNLOCK(L_GENERATION);
 
-  if ( deleted )
-  { ATOMIC_SUB(&def->module->code_size, memory);
-    ATOMIC_ADD(&GD->clauses.erased_size, memory);
-    ATOMIC_ADD(&GD->clauses.erased, deleted);
-    if( true(def, P_DIRTYREG) )
-      ATOMIC_SUB(&GD->clauses.dirty, deleted);
+    if ( deleted )
+    { if ( def->module )
+	ATOMIC_SUB(&def->module->code_size, memory);
+      ATOMIC_ADD(&GD->clauses.erased_size, memory);
+      ATOMIC_ADD(&GD->clauses.erased, deleted);
+      if( true(def, P_DIRTYREG) )
+	ATOMIC_SUB(&GD->clauses.dirty, deleted);
 
-    registerDirtyDefinition(def);
-    DEBUG(CHK_SECURE, checkDefinition(def));
+      registerDirtyDefinition(def);
+      DEBUG(CHK_SECURE, checkDefinition(def));
+    }
+  } else				      /* final cleanup */
+  { for(c = def->impl.clauses.first_clause; c; c = next)
+    { Clause cl = c->value.clause;
+
+      next = c->next;
+      set(cl, CL_ERASED);
+      freeClauseRef(c);
+    }
+    def->impl.clauses.first_clause = NULL;
+    def->impl.clauses.last_clause = NULL;
   }
 
   return deleted;
@@ -2030,7 +2144,6 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 { Definition def = proc->definition;
   int arity = def->functor->arity;
   int i;
-  int mask = 0;
   int transparent = FALSE;
   const unsigned char *s = (const unsigned char*)spec_s;
 
@@ -2073,7 +2186,6 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
     }
 
     def->impl.any.args[i].meta = spec;
-    mask |= spec<<(i*4);
     if ( MA_NEEDS_TRANSPARENT(spec) )
       transparent = TRUE;
   }
@@ -2465,7 +2577,10 @@ oldest generation is 0 and thus no clause reference will be collected.
 
 static void
 registerDirtyDefinition(DECL_LD Definition def)
-{ if ( false(def, P_DIRTYREG) )
+{ if ( unlikely(GD->cleaning == CLN_DATA) )
+    return;
+
+  if ( false(def, P_DIRTYREG) )
   { DirtyDefInfo ddi = ddi_new(def);
 
     if ( addHTable(GD->procedures.dirty, def, ddi) == ddi )
@@ -2510,22 +2625,7 @@ maybeUnregisterDirtyDefinition(Definition def)
   }
 
   if ( true(def, P_ERASED) )
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
-    assert(def->module == NULL);
-    if ( def->impl.clauses.first_clause == NULL )
-    { DEBUG(0,
-	    if ( def->lingering )
-	    { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
-		       predicateName(def));
-	    });
-      unregisterDirtyDefinition(def);
-      deleteIndexes(&def->impl.clauses, TRUE);
-      freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
-      if ( def->tabling )
-	freeHeap(def->tabling, sizeof(*def->tabling));
-      freeHeap(def, sizeof(*def));
-    }
-  }
+    delayedDestroyDefinition(def);
 }
 
 
@@ -2774,8 +2874,7 @@ found:
 	    GD->statistics.threads_finished) == 1 )
       { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(odef)));
 	unregisterDirtyDefinition(odef);
-	freeHeap(odef, sizeof(*odef));
-	GD->statistics.predicates--;
+	unallocDefinition(odef);
       } else
       { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
 				 functorName(f), PL_atom_chars(m->name),
@@ -2784,7 +2883,7 @@ found:
       }
       PL_UNLOCK(L_THREAD);
 #else
-      freeHeap(odef, sizeof(struct definition));
+      unallocDefinition(odef);
 #endif
     }
   }

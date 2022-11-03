@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -48,8 +48,6 @@
             unload_file/1,
             exists_source/1,                    % +Spec
             exists_source/2,                    % +Spec, -Path
-            use_foreign_library/1,		% :FileSpec
-            use_foreign_library/2,		% :FileSpec, +Install
             prolog_load_context/2,
             stream_position_data/3,
             current_predicate/2,
@@ -67,8 +65,6 @@
             shell/1,                            % +Command
             on_signal/3,
             current_signal/3,
-            open_shared_object/2,
-            open_shared_object/3,
             format/1,
             garbage_collect/0,
             set_prolog_stack/2,
@@ -84,6 +80,8 @@
             nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
+            sig_block/1,                        % :Pattern
+            sig_unblock/1,                      % :Pattern
             transaction/1,                      % :Goal
             transaction/2,                      % :Goal, +Options
             transaction/3,                      % :Goal, :Constraint, +Mutex
@@ -96,13 +94,13 @@
 
 :- meta_predicate
     dynamic(:, +),
-    use_foreign_library(:),
-    use_foreign_library(:, +),
     transaction(0),
     transaction(0,0,+),
     snapshot(0),
     rule(:, -),
-    rule(:, -, ?).
+    rule(:, -, ?),
+    sig_block(:),
+    sig_unblock(:).
 
 
                 /********************************
@@ -477,6 +475,51 @@ unload_file(File) :-
     ;   true
     ).
 
+:- if(current_prolog_flag(open_shared_object, true)).
+
+                 /*******************************
+                 *            DLOPEN            *
+                 *******************************/
+
+%!  open_shared_object(+File, -Handle) is det.
+%!  open_shared_object(+File, -Handle, +Flags) is det.
+%
+%   Open a shared object or DLL file. Flags  is a list of flags. The
+%   following flags are recognised. Note   however  that these flags
+%   may have no affect on the target platform.
+%
+%       * =now=
+%       Resolve all symbols in the file now instead of lazily.
+%       * =global=
+%       Make new symbols globally known.
+
+open_shared_object(File, Handle) :-
+    open_shared_object(File, Handle, []). % use pl-load.c defaults
+
+open_shared_object(File, Handle, Flags) :-
+    (   is_list(Flags)
+    ->  true
+    ;   throw(error(type_error(list, Flags), _))
+    ),
+    map_dlflags(Flags, Mask),
+    '$open_shared_object'(File, Handle, Mask).
+
+dlopen_flag(now,        2'01).          % see pl-load.c for these constants
+dlopen_flag(global,     2'10).          % Solaris only
+
+map_dlflags([], 0).
+map_dlflags([F|T], M) :-
+    map_dlflags(T, M0),
+    (   dlopen_flag(F, I)
+    ->  true
+    ;   throw(error(domain_error(dlopen_flag, F), _))
+    ),
+    M is M0 \/ I.
+
+:- export(open_shared_object/2).
+:- export(open_shared_object/3).
+
+
 		 /*******************************
 		 *      FOREIGN LIBRARIES	*
 		 *******************************/
@@ -498,9 +541,20 @@ unload_file(File) :-
 %   _immediately_. I.e. the  difference  is   only  relevant  if the
 %   remainder of the file uses functionality of the C-library.
 
+:- meta_predicate
+    use_foreign_library(:),
+    use_foreign_library(:, +).
+:- public
+    use_foreign_library_noi/1.
+
 use_foreign_library(FileSpec) :-
     ensure_shlib,
-    initialization(shlib:load_foreign_library(FileSpec), now).
+    initialization(use_foreign_library_noi(FileSpec), now).
+
+% noi -> no initialize; used by '$autoload':exports/3.
+use_foreign_library_noi(FileSpec) :-
+    ensure_shlib,
+    shlib:load_foreign_library(FileSpec).
 
 use_foreign_library(FileSpec, Entry) :-
     ensure_shlib,
@@ -513,6 +567,50 @@ ensure_shlib :-
 ensure_shlib :-
     use_module(library(shlib), []).
 
+:- export(use_foreign_library/1).
+:- export(use_foreign_library/2).
+
+:- elif(current_predicate('$activate_static_extension'/1)).
+
+% Version when using shared objects is disabled and extensions are added
+% as static libraries.
+
+:- meta_predicate
+    use_foreign_library(:).
+:- public
+    use_foreign_library_noi/1.
+:- dynamic
+    loading/1,
+    foreign_predicate/2.
+
+use_foreign_library(FileSpec) :-
+    initialization(use_foreign_library_noi(FileSpec), now).
+
+use_foreign_library_noi(Module:foreign(Extension)) :-
+    setup_call_cleanup(
+        asserta(loading(foreign(Extension)), Ref),
+        @('$activate_static_extension'(Extension), Module),
+        erase(Ref)).
+
+:- export(use_foreign_library/1).
+
+system:'$foreign_registered'(M, H) :-
+    (   loading(Lib)
+    ->  true
+    ;   Lib = '<spontaneous>'
+    ),
+    assert(foreign_predicate(Lib, M:H)).
+
+%!  current_foreign_library(?File, -Public)
+%
+%   Query currently loaded shared libraries.
+
+current_foreign_library(File, Public) :-
+    setof(Pred, foreign_predicate(File, Pred), Public).
+
+:- export(current_foreign_library/2).
+
+:- endif. /* open_shared_object support */
 
                  /*******************************
                  *            STREAMS           *
@@ -865,7 +963,7 @@ visible_predicate(Pred) :-
     ->  (   '$get_predicate_attribute'(Pred, defined, 1)
         ->  true
         ;   \+ current_prolog_flag(M:unknown, fail),
-            functor(Head, Name, Arity),
+            '$head_name_arity'(Head, Name, Arity),
             '$find_library'(M, Name, Arity, _LoadModule, _Library)
         )
     ;   setof(PI, visible_in_module(M, PI), PIs),
@@ -1192,46 +1290,6 @@ prolog:called_by(on_signal(_,_,New), [New+1]) :-
 
 
                  /*******************************
-                 *            DLOPEN            *
-                 *******************************/
-
-%!  open_shared_object(+File, -Handle) is det.
-%!  open_shared_object(+File, -Handle, +Flags) is det.
-%
-%   Open a shared object or DLL file. Flags  is a list of flags. The
-%   following flags are recognised. Note   however  that these flags
-%   may have no affect on the target platform.
-%
-%       * =now=
-%       Resolve all symbols in the file now instead of lazily.
-%       * =global=
-%       Make new symbols globally known.
-
-open_shared_object(File, Handle) :-
-    open_shared_object(File, Handle, []). % use pl-load.c defaults
-
-open_shared_object(File, Handle, Flags) :-
-    (   is_list(Flags)
-    ->  true
-    ;   throw(error(type_error(list, Flags), _))
-    ),
-    map_dlflags(Flags, Mask),
-    '$open_shared_object'(File, Handle, Mask).
-
-dlopen_flag(now,        2'01).          % see pl-load.c for these constants
-dlopen_flag(global,     2'10).          % Solaris only
-
-map_dlflags([], 0).
-map_dlflags([F|T], M) :-
-    map_dlflags(T, M0),
-    (   dlopen_flag(F, I)
-    ->  true
-    ;   throw(error(domain_error(dlopen_flag, F), _))
-    ),
-    M is M0 \/ I.
-
-
-                 /*******************************
                  *             I/O              *
                  *******************************/
 
@@ -1437,6 +1495,47 @@ thread_join(Id) :-
     ->  true
     ;   throw(error(thread_error(Id, Status), _))
     ).
+
+%!  sig_block(:Pattern) is det.
+%
+%   Block thread signals that unify with Pattern.
+
+%!  sig_unblock(:Pattern) is det.
+%
+%   Remove any signal block that is more specific than Pattern.
+
+sig_block(Pattern) :-
+    (   nb_current('$sig_blocked', List)
+    ->  true
+    ;   List = []
+    ),
+    nb_setval('$sig_blocked', [Pattern|List]).
+
+sig_unblock(Pattern) :-
+    (   nb_current('$sig_blocked', List)
+    ->  unblock(List, Pattern, NewList),
+        (   List == NewList
+        ->  true
+        ;   nb_setval('$sig_blocked', NewList),
+            '$sig_unblock'
+        )
+    ;   true
+    ).
+
+unblock([], _, []).
+unblock([H|T], P, List) :-
+    (   subsumes_term(P, H)
+    ->  unblock(T, P, List)
+    ;   List = [H|T1],
+        unblock(T, P, T1)
+    ).
+
+:- public signal_is_blocked/1.          % called by signal_is_blocked()
+
+signal_is_blocked(Head) :-
+    nb_current('$sig_blocked', List),
+    '$member'(Head, List),
+    !.
 
 %!  set_prolog_gc_thread(+Status)
 %

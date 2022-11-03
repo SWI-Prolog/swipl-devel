@@ -805,47 +805,140 @@ default retry-time is also 1 second rather than \textit{infinite}.
 \subsection{Signalling threads}
 \label{sec:thread-signal}
 
-These predicates provide a mechanism to make another thread execute some
-goal as an \jargon{interrupt}.  Signalling threads is safe as these
-interrupts are only checked at safe points in the virtual machine.
-Nevertheless, signalling in multithreaded environments should be
-handled with care as the receiving thread may hold a \jargon{mutex}
-(see with_mutex/2).  Signalling probably only makes sense to start
-debugging threads and to cancel no-longer-needed threads with throw/1,
-where the receiving thread should be designed carefully to handle
-exceptions at any point.
+The predicates in this section provide \jargon{signalling} between
+threads. A thread signal inserts any goal as an \jargon{interrupt} into
+the control flow of any target thread. The target thread processes the
+goal at the first safe opportunity. The mechanism was introduced with
+two goals in mind: (1) running a goal inside a thread for debugging
+purposes such as enabling the status or get access thread-specific data
+and (2) force a thread to abort its current goal by inserting an
+exeption into its control flow.
+
+Over time, more complicated use cases have been identified that may
+result in multiple signals that occur (nearly) simultaneous. As of
+version 8.5.1 the interface has been extended and the interaction with
+other built-in predicates has been specified in much more detail.
 
 \begin{description}
-    \predicate{thread_signal}{2}{+ThreadId, :Goal}
-Make thread \arg{ThreadId} execute \arg{Goal} at the first
-opportunity.  In the current implementation, this implies at the first
-pass through the \jargon{Call port}. The predicate thread_signal/2
-itself places \arg{Goal} into the signalled thread's signal queue
-and returns immediately.
+    \predicate[det]{thread_signal}{2}{+ThreadId, :Goal}
+Make thread \arg{ThreadId} execute \arg{Goal} at the first opportunity.
+The predicate thread_signal/2 itself places \arg{Goal} into the
+signalled thread's signal queue and returns immediately.
 
-Signals (interrupts) do not cooperate well with the world of
-multithreading, mainly because the status of mutexes cannot be
-guaranteed easily.  At the call port, the Prolog virtual machine
-holds no locks and therefore the asynchronous execution is safe.
+\arg{ThreadId} executes \arg{Goal} as an \jargon{interrupt} at the
+first opportunity.  Defined opportunities are:
 
-\arg{Goal} can be any valid Prolog goal, including throw/1 to make
-the receiving thread generate an exception, and trace/0 to start
-tracing the receiving thread.
+\begin{itemize}
+    \item At the \jargon{call port} of any predicate except for
+          predicates with the property \const{sig_atomic}.  Currently
+	  this only applies to sig_atomic/1.
+    \item Before retrying a foreign predicate.
+    \item Before backtracking to the next clause of a Prolog predicate.
+    \item When a foreign predicate calls PL_handle_signals().
+          Foreign predicates that take long to complete should call
+	  PL_handle_signals() regularly and return with \const{FALSE}
+	  after PL_handle_signals() returned -1, indicating an exception
+	  was raised.
+    \item Foreign predicates calling \jargon{blocking system calls}
+          should attempt to make these system calls interruptible.
+	  To enable this on POSIX systems, SWI-Prolog sends a
+	  \const{SIGUSR2} to the signalled thread while the handler is
+	  an empty function.  This causes most blocking system calls
+	  to return with \const{EINTR}. See also the commandline option
+	  \cmdlineoption{--sig-alert}. On Windows, PL_handle_signals()
+	  is called when the user processes Windows messages.
+    \item For some blocking (thread) APIs we use a timed version with
+          a 0.25 sec timeout to achieve a \jargon{polling loop}.
+\end{itemize}
 
-In the Windows version, the receiving thread immediately executes
-the signal if it reaches a Windows GetMessage() call, which generally
-happens if the thread is waiting for (user) input.
+If one or more signals are queued, the queue is processed. Processing
+the queue skips signals blocked due to sig_block/1 and stops after the
+queue does not contain any more non-blocked signals or processing a
+signal results in an exception. After an exception, other signals remain
+in the queue and will be processed after unwinding to the matching
+catch/3. Typically these queued signals will be processed during the
+\arg{Recover} goal of the catch/3.  Note that sig_atomic/1 may be used
+to protect the recovery goal.
 
-    \predicate{sig_atomic}{:Goal}
+The thread_signal/2 mechanism is primarily used by the system to insert
+debugging goals into the target thread (tspy/1, tbacktrace/1, etc.) or
+to interrupt a thread using e.g., \exam{thread_signal(Thread, abort)}.
+Predicates from library \pllib{thread} use signals to stop workers for
+e.g. concurrent_maplist/2 if some call fails. Applications may use it,
+typically for similar purposes such as asynchronously stopping tasks or
+inspecting the status of a task. Below we describe the behaviour of
+thread signalling in more detail. The following notes apply for
+\arg{Goal} executing in \arg{ThreadId}
+
+\begin{itemize}
+    \item The execution is protected by sig_atomic/1 and thus signal
+          execution is \emph{not nested}.
+    \item If \arg{Goal} \emph{succeeds}, possible choice points are
+          discarded.  Changes to the Prolog stacks such as changes
+	  to backtrackable global variables remain.
+    \item If \arg{Goal} \emph{fails}, no action is taken, i.e., failure
+	  is not considered a special condition.
+    \item If \arg{Goal} \emph{raises an exception} the exeception is
+          propagated into the environment.  This allows for forcefully
+	  stopping the target thread.  The system uses this to implement
+	  abort/0 and call_with_time_limit/2.
+    \item Code into which signals may be injected must make sure to use
+          setup_call_cleanup/3 and friends to ensure proper cleanup in
+	  the case of an exception. This is good practice anyway to
+	  guard against unpredicatable exceptions such as resource
+	  exhaustion.
+    \item \arg{Goal} may use stack inspection such as prolog_frame_attribute/3
+          to determine what the thread is doing.
+\end{itemize}
+
+    \predicate[det]{sig_pending}{1}{-List}
+True when \arg{List} contains all signals submitted using
+thread_signal/2 that are not yet processed. This includes signals
+blocked by sig_block/1.
+
+    \predicate[det]{sig_remove}{2}{:Pattern, -List}
+Remove all signals that unify with \arg{Pattern} from the signal queue
+and make the removed signals available in \arg{List}
+
+    \predicate[det]{sig_block}{1}{:Pattern}
+Block thread signals queued using thread_signal/2 that match
+\arg{Pattern}.
+
+    \predicate[det]{sig_unblock}{1}{:Pattern}
+Remove any effect of sig_block/1 for patterns that are more specific
+(see subsumes_term/2).  If any patterns are removed, reschedule blocked
+signals.  Note that sig_unblock/1 normally causes all unblocked signals
+to be executed immediately.
+
+    \predicate[semidet]{sig_atomic}{1}{:Goal}
 Execute \arg{Goal} as once/1 while blocking both thread signals
 (see thread_signal/2) and OS signals (see on_signal/3).  The system
 executes some goals while blocking signals.  These are:
 
 \begin{itemize}
+    \item The goal injected using thread_signal/2, i.e., signals
+          do not interrupt a running signal handler.
     \item The \arg{Setup} call of setup_call_cleanup/3 and friends.
     \item The \arg{Cleanup} call of call_cleanup/2 and friends.
     \item Compiling a file or loading a \jargon{quick load file}.
 \end{itemize}
+
+The call port of sig_atomic/1 does not handle signals. This may notably
+be used to prevent interruption of the catch/3 \arg{Recover} goal. For
+example, we may ensure the recovery goal of a timeout is called using
+the code below. Without this precaution another signal may run before
+writeln/1 and raise an exception to prevent its execution. Note that
+catch/3 should generally \emph{not} be used for cleanup of resources in
+case of an exception and thus it is typically fine if its \arg{Recover}
+goal is interrupted.  Use setup_call_cleanup/3 or one of the other
+predicates from the call_cleanup/2 family for cleanup.
+
+\begin{code}
+    ...,
+    catch(call_with_time_limit(Time, Goal),
+	  time_limit_exceeded,
+	  sig_atomic(writeln('Time limit exceeded'))).
+\end{code}
 \end{description}
 
 

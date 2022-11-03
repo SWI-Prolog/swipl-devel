@@ -55,14 +55,21 @@ basic user of this facility myself (though   I  learned some tricks from
 people reporting bugs :-)
 
 The original version contained '$t_tidy'/2  to   convert  ((a,b),  c) to
-(a,(b,c)), but as the  SWI-Prolog  compiler   doesn't  really  care (the
-resulting code is simply the same), I've removed that.
+(a,(b,c)). As the resulting code is the   same,  this was removed. Since
+version 8.5.6 we also removed moving matches   to the first literal into
+the head as this is done by the compiler, e.g.
+
+   t --> [x]
+
+Translated  into  `t(L0,L)  :-  L0  =   [x|L]`.  SWI-Prolog  moves  head
+unifications immedately following the neck into   the  head and thus the
+DCG compiler no longer needs to do so.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 dcg_translate_rule(Rule, Clause) :-
     dcg_translate_rule(Rule, _, Clause, _).
 
-dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos) :-
+dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B0,B1), Pos) :-
     !,
     f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
     f2_pos(PosH0, PosLP0, PosMNT0, PosH, PosLP, PosMNT),
@@ -70,39 +77,13 @@ dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B), Pos) :-
     Qualify = q(M,M,_),
     dcg_extend(LP, PosLP0, S0, SR, H, PosLP),
     dcg_body(RP, PosRP0, Qualify, S0, S1, B0, PosRP),
-    dcg_body(MNT, PosMNT0, Qualify, SR, S1, B1, PosMNT),
-    dcg_optimise((B0,B1),B2,S0),
-    dcg_optimise(B2,B,SR).
+    dcg_body(MNT, PosMNT0, Qualify, SR, S1, B1, PosMNT).
 dcg_translate_rule((LP-->RP), Pos0, (H:-B), Pos) :-
     f2_pos(Pos0, PosLP0, PosRP0, Pos, PosLP, PosRP),
     dcg_extend(LP, PosLP0, S0, S, H, PosLP),
     '$current_source_module'(M),
     Qualify = q(M,M,_),
-    dcg_body(RP, PosRP0, Qualify, S0, S, B0, PosRP),
-    dcg_optimise(B0,B,S0).
-
-%!  dcg_optimise(+BodyIn, -Body, +S0) is det.
-%
-%   Performs the following translations:
-%
-%     - a(H,T) :- H = [a,b|T], b(T), ... into
-%       a([a,b|T0]) :- b(T0, T).
-%     - a(H,T) :- H = [a,b|T] into
-%       a([a,b|T0])
-%
-%   @arg S0 is the initial input list of the rule.
-
-dcg_optimise((S00=X,B), B, S0) :-
-    S00 == S0,
-    !,
-    S0 = X.
-dcg_optimise(S00=X, B, S0) :-
-    S00 == S0,
-    !,
-    S0 = X,
-    B = true.
-dcg_optimise(B, B, _).
-
+    dcg_body(RP, PosRP0, Qualify, S0, S, B, PosRP).
 
 %!  dcg_body(:DCG, ?Pos0, +Qualify, ?List, ?Tail, -Goal, -Pos) is det.
 %

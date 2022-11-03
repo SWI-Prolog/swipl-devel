@@ -706,10 +706,6 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
-  static functor_t FUNCTOR_node7;
-
-  if ( !FUNCTOR_node7 )
-    FUNCTOR_node7 = PL_new_functor(PL_new_atom("node"), 7);
 
   for( ; r; r=r->next)
   { int rc;

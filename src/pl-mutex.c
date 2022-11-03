@@ -258,7 +258,7 @@ PRED_IMPL("mutex_create", 1, mutex_create1, 0)
 }
 
 
-static const opt_spec mutex_options[] =
+static const PL_option_t mutex_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { NULL_ATOM,		0 }
 };
@@ -270,9 +270,8 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
   int rval;
   atom_t alias = 0;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_mutex_option, mutex_options,
-		     &alias) )
+  if ( !PL_scan_options(A2, 0, "mutex_option", mutex_options,
+			&alias) )
     fail;
 
   if ( alias )
@@ -363,6 +362,7 @@ PL_mutex_lock(struct pl_mutex *m)
     rc = pthread_mutex_lock(&m->mutex);
 #endif
     assert(rc == 0);
+    (void)rc;
     m->count = 1;
     m->owner = self;
   }
@@ -523,8 +523,10 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
 
 #define mutex_alias_property(m, prop) LDFUNC(mutex_alias_property, m, prop)
 static int		/* mutex_property(Mutex, alias(Name)) */
-mutex_alias_property(DECL_LD pl_mutex *m, term_t prop)
-{ if ( !m->anonymous )
+mutex_alias_property(DECL_LD void *ctx, term_t prop)
+{ pl_mutex *m = ctx;
+
+  if ( !m->anonymous )
     return PL_unify_atom(prop, m->id);
 
   fail;
@@ -533,8 +535,10 @@ mutex_alias_property(DECL_LD pl_mutex *m, term_t prop)
 
 #define mutex_status_property(m, prop) LDFUNC(mutex_status_property, m, prop)
 static int		/* mutex_property(Mutex, status(locked(By, Count))) */
-mutex_status_property(DECL_LD pl_mutex *m, term_t prop)
-{ if ( m->owner )
+mutex_status_property(DECL_LD void *ctx, term_t prop)
+{ pl_mutex *m = ctx;
+
+  if ( m->owner )
   { int owner = m->owner;
     int count = m->count;
     term_t owner_term = PL_new_term_ref();

@@ -80,14 +80,13 @@ _lookupModule(DECL_LD atom_t name)
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
-  DEBUG(MSG_CREATE_MODULE,
-	{ Sdprintf("Creating module %s:\n%s",
-		   PL_atom_chars(name),
-		   PL_backtrace_string(10,0));
-	});
-
   m = allocHeapOrHalt(sizeof(struct module));
   memset(m, 0, sizeof(*m));
+
+  DEBUG(MSG_CREATE_MODULE,
+	{ Sdprintf("Created module %s at %p\n",
+		   PL_atom_chars(name), m);
+	});
 
   m->name = name;
 #ifdef O_PLMT
@@ -319,7 +318,7 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
-    freeHeap(def, sizeof(*def));
+    unallocDefinition(def);
     freeHeap(c, sizeof(*c));
   }
 }
@@ -328,6 +327,9 @@ freeLingeringDefinitions(ListCell c)
 static void
 unallocModule(Module m)
 { GET_LD
+
+  DEBUG(MSG_CREATE_MODULE, Sdprintf("unallocModule(%s) at %p\n",
+				    PL_atom_chars(m->name), m));
 
 #ifdef O_PLMT
   if ( LD )
@@ -342,6 +344,7 @@ unallocModule(Module m)
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+  if ( m->wait )       free_wait_area(m->wait);
 #endif
   if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 
@@ -422,9 +425,12 @@ destroyModule(Module m)
 
 
 static void
-emptyModule(Module m)
-{ DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
-  if ( m->procedures ) clearHTable(m->procedures);
+empty_module(void *key, void *value)
+{ Module m = value;
+  atom_t name = (atom_t)key;
+
+  unallocModule(m);
+  (void)name;
 }
 
 
@@ -433,9 +439,8 @@ cleanupModules(void)
 { Table t;
 
   if ( (t=GD->tables.modules) )
-  { for_table(t, name, value, emptyModule(value));
-
-    GD->tables.modules = NULL;
+  { GD->tables.modules = NULL;
+    t->free_symbol = empty_module;
     destroyHTable(t);
   }
 }
@@ -1607,18 +1612,17 @@ static inline void
 fixExportModule(Module m, Definition old, Definition new)
 { LOCKMODULE(m);
 
-  for_table(m->procedures, name, value,
-	    { Procedure proc = value;
+  FOR_TABLE(m->procedures, name, value)
+  { Procedure proc = value;
 
-	      if ( proc->definition == old )
-	      { DEBUG(1, Sdprintf("Patched def of %s\n",
-				  procedureName(proc)));
-		shareDefinition(new);
-		proc->definition = new;
-		if ( unshareDefinition(old) == 0 )
-		  lingerDefinition(old);
-	      }
-	    });
+    if ( proc->definition == old )
+    { DEBUG(1, Sdprintf("Patched def of %s\n", procedureName(proc)));
+      shareDefinition(new);
+      proc->definition = new;
+      if ( unshareDefinition(old) == 0 )
+	lingerDefinition(old);
+    }
+  }
 
   UNLOCKMODULE(m);
 }
@@ -1766,6 +1770,8 @@ retry:
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				   procedureName(nproc), nproc));
   }
 
   return TRUE;

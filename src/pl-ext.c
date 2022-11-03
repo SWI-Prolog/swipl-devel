@@ -424,13 +424,17 @@ DECL_PLIST(event);
 DECL_PLIST(transaction);
 DECL_PLIST(undo);
 DECL_PLIST(error);
+DECL_PLIST(coverage);
+#ifdef __EMSCRIPTEN__
+DECL_PLIST(wasm);
+#endif
 
 void
 initBuildIns(void)
 { ExtensionCell ecell;
   Module m = MODULE_system;
 
-  GD->procedures.dirty = newHTable(32);
+  initProcedures();
 
   registerBuiltins(foreigns);
   REG_PLIST(alloc);
@@ -500,6 +504,12 @@ initBuildIns(void)
   REG_PLIST(transaction);
   REG_PLIST(undo);
   REG_PLIST(error);
+#ifdef O_COVERAGE
+  REG_PLIST(coverage);
+#endif
+#ifdef __EMSCRIPTEN__
+  REG_PLIST(wasm);
+#endif
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -526,6 +536,8 @@ initBuildIns(void)
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif
+  GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
+					      PL_new_module(PL_new_atom("prolog")));
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
   PROCEDURE_tune_gc3 =

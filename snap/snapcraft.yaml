@@ -1,4 +1,6 @@
 name: swi-prolog
+# Should be core20 to avoid fontconfig warnings, but Qt is broken on
+# core20
 base: core18
 adopt-info: swi-prolog
 #icon: packages/swipl-win/swipl.png
@@ -82,7 +84,7 @@ parts:
       # - libssl1.1
       # - libx11-6
       - libossp-uuid16
-      - libpcre3
+      - libpcre2-8-0
       - libserd-0-0
       - libxft2
       - libxpm4
@@ -100,7 +102,7 @@ parts:
       - libice-dev
       - libjpeg-dev
       - libossp-uuid-dev
-      - libpcre3-dev
+      - libpcre2-dev
       - libraptor2-dev
       - libreadline-dev
       - libserd-dev

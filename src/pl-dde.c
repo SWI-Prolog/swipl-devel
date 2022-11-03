@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,7 +64,6 @@ static functor_t FUNCTOR_dde_connect_confirm3;
 static functor_t FUNCTOR_dde_disconnect1;
 static functor_t FUNCTOR_dde_request4;
 static functor_t FUNCTOR_dde_execute3;
-static functor_t FUNCTOR_error1;
 
 static const char *
 dde_error_message(int errn)
@@ -357,8 +357,6 @@ dde_init_constants(void)
 	lookupFunctorDef(PL_new_atom("$dde_request"), 4);
     FUNCTOR_dde_execute3  =
 	lookupFunctorDef(PL_new_atom("$dde_execute"), 3);
-    FUNCTOR_error1        =
-        lookupFunctorDef(ATOM_error, 1);
 
     done = TRUE;
   }
@@ -374,6 +372,12 @@ dde_uninitialise(void *closure)
 
     DdeUninitialize(ddeInst);
   }
+
+  FUNCTOR_dde_connect3 = 0;
+  FUNCTOR_dde_connect_confirm3 = 0;
+  FUNCTOR_dde_disconnect1 = 0;
+  FUNCTOR_dde_request4 = 0;
+  FUNCTOR_dde_execute3 = 0;
 }
 
 

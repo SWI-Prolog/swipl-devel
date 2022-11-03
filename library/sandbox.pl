@@ -661,6 +661,7 @@ safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
 safe_primitive(system:statistics(_,_)).
+:- if(current_prolog_flag(threads,true)).
 safe_primitive(system:thread_statistics(Id,_,_)) :-
     (   var(Id)
     ->  instantiation_error(Id)
@@ -671,6 +672,7 @@ safe_primitive(system:thread_property(Id,_)) :-
     ->  instantiation_error(Id)
     ;   thread_self(Id)
     ).
+:- endif.
 safe_primitive(system:format_time(_,_,_)).
 safe_primitive(system:format_time(_,_,_,_)).
 safe_primitive(system:date_time_stamp(_,_)).
@@ -729,6 +731,7 @@ safe_primitive(system:upcase_atom(_,_)).
 safe_primitive(system:is_list(_)).
 safe_primitive(system:memberchk(_,_)).
 safe_primitive(system:'$skip_list'(_,_,_)).
+safe_primitive(system:'$seek_list'(_, _, _, _)).
                                         % attributes
 safe_primitive(system:get_attr(_,_,_)).
 safe_primitive(system:get_attrs(_,_)).

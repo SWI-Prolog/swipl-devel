@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2015, University of Amsterdam
+    Copyright (c)  2022, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,14 +32,39 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define WIN64 1
+:- module(test_unicode,
+          [ test_unicode/0
+          ]).
+:- use_module(library(plunit)).
+:- encoding(utf8).
 
-#define JMPBUF_ALIGNMENT 16		/* How to get this value? */
-#define BOOTFILE	"boot64.prc"
-#define PLARCH		"x64-win64"
-#define SIZEOF_VOIDP	8
-#ifdef _MSC_VER
-typedef long long ssize_t;
-#endif
+/** <module> Unicode parsing tests
 
-#include "wincfg.h"
+*/
+
+test_unicode :-
+    run_tests([ numbers
+	      ]).
+
+:- begin_tests(numbers).
+
+test(read, N == 0123456789) :-
+    term_string(N, ٠١٢٣٤٥٦٧٨٩).
+:- if(current_prolog_flag(bounded, false)).
+test(read, N == 0123456789r23) :-
+    term_string(N, ٠١٢٣٤٥٦٧٨٩r٢٣).
+:- endif.
+test(number_codes, N == 0123456789) :-
+    number_codes(N, `٠١٢٣٤٥٦٧٨٩`).
+test(atom_number, N == 0123456789) :-
+    atom_number('٠١٢٣٤٥٦٧٨٩', N).
+test(string_number, N == 0123456789) :-
+    number_string(N, "٠١٢٣٤٥٦٧٨٩").
+test(string_number, N == 12.3456789) :-
+    number_string(N, "١٢.٣٤٥٦٧٨٩").
+test(string_number, N == -12.34567e89) :-
+    number_string(N, "-١٢.٣٤٥٦٧e٨٩").
+test(string_number, N == -12.34567e-89) :-
+    number_string(N, "-١٢.٣٤٥٦٧e-٨٩").
+
+:- end_tests(numbers).

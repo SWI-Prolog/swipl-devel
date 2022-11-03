@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-fli.h"
 #include "pl-dbref.h"
 #include "pl-undo.h"
 #include "pl-wam.h"
@@ -223,12 +224,11 @@ run_undo_hooks(DECL_LD)
 { fid_t fid;
 
   if ( (fid=PL_open_foreign_frame()) )
-  { static predicate_t pred = NULL;
+  { predicate_t pred;
     term_t list;
     int rc;
 
-    if ( !pred )
-      pred = PL_predicate("$run_undo", 1, "$syspreds");
+    pred = _PL_predicate("$run_undo", 1, "$syspreds", &GD->procedures.drun_undo1);
 
     LD->undo.running++;
     rc =  ( (list = PL_new_term_ref()) &&

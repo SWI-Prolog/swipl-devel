@@ -280,6 +280,54 @@ unaliasStream(IOSTREAM *s, atom_t name)
 }
 
 
+void
+referenceStandardStreams(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { int i;
+    const atom_t *np;
+
+    for(i=0, np = standardStreams; *np; np++, i++ )
+    { IOSTREAM *s;
+
+      if ( (s=LD->IO.streams[i]) )
+	Sreference(s);
+    }
+  }
+}
+
+
+void
+unreferenceStandardStreams(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { int i;
+    const atom_t *np;
+
+    for(i=0, np = standardStreams; *np; np++, i++ )
+    { IOSTREAM *s;
+
+      if ( (s=LD->IO.streams[i]) )
+	Sunreference(s);
+    }
+  }
+}
+
+
+#define setStandardStream(i, s) LDFUNC(setStandardStream, i, s)
+
+static void
+setStandardStream(DECL_LD int i, IOSTREAM *s)
+{ IOSTREAM *old = LD->IO.streams[i];
+
+  LD->IO.streams[i] = s;
+  if ( old != s )
+  { if ( old )
+      Sunreference(old);
+    if ( s )
+      Sreference(s);
+  }
+}
+
+
 static void
 freeStream(IOSTREAM *s)
 { GET_LD
@@ -290,16 +338,20 @@ freeStream(IOSTREAM *s)
   DEBUG(1, Sdprintf("freeStream(%p)\n", s));
 
   PL_LOCK(L_FILE);
-  unaliasStream(s, NULL_ATOM);
+  if ( streamAliases )
+    unaliasStream(s, NULL_ATOM);
+
   ctx = s->context;
   if ( ctx && COMPARE_AND_SWAP_PTR(&s->context, ctx, NULL) )
-  { deleteHTable(streamContext, s);
-    if ( ctx->filename != NULL_ATOM )
-    { PL_unregister_atom(ctx->filename);
+  { if ( streamContext )
+    { deleteHTable(streamContext, s);
+      if ( ctx->filename != NULL_ATOM )
+      { PL_unregister_atom(ctx->filename);
 
-      if ( ctx->filename == source_file_name )
-      { source_file_name = NULL_ATOM;	/* TBD: pop? */
-	source_line_no = -1;
+	if ( ctx->filename == source_file_name )
+	{ source_file_name = NULL_ATOM;	/* TBD: pop? */
+	  source_line_no = -1;
+	}
       }
     }
 
@@ -315,14 +367,14 @@ freeStream(IOSTREAM *s)
        (sp=LD->IO.streams) )
   { for(i=0; i<6; i++, sp++)
     { if ( *sp == s )
-      { if ( s->flags & SIO_INPUT )
-	  *sp = Sinput;
+      { *sp = NULL;
+
+	if ( s->flags & SIO_INPUT )
+	  setStandardStream(i, Sinput);
 	else if ( sp == &Suser_error )
-	  *sp = Serror;
-	else if ( sp == &Sprotocol )
-	  *sp = NULL;
-	else
-	  *sp = Soutput;
+	  setStandardStream(i, Serror);
+	else if ( sp != &Sprotocol )
+	  setStandardStream(i, Soutput);
       }
     }
   }
@@ -368,7 +420,6 @@ fileNameStream(IOSTREAM *s)
   return name;
 }
 
-
 void
 initIO(void)
 { GET_LD
@@ -405,17 +456,19 @@ initIO(void)
   Scurin       = Sinput;		/* see/tell */
   Scurout      = Soutput;
   Sprotocol    = NULL;			/* protocolling */
+  referenceStandardStreams(LD);
 
   getStreamContext(Sinput);		/* add for enumeration */
   getStreamContext(Soutput);
   getStreamContext(Serror);
 
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addNewHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
+    addNewHTable(streamAliases,
+		 (void *)*np,
+		 (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }
-
 
 		 /*******************************
 		 *	     GET HANDLES	*
@@ -563,17 +616,55 @@ acquire_stream_ref(atom_t aref)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A garbage collected stream that is  open   cannot  be subject to any I/O
+operations. Previously we left these open. Now we close them if they are
+not yet closed. We only so so  when   the  stream is unlocked though. In
+theory we could force destruction of the stream   but for now we stay on
+the safe side.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+gc_close_stream(atom_t aref, IOSTREAM *s)
+{ if ( s->erased )
+  { unallocStream(s);
+  } else if ( s->magic == SIO_MAGIC && !true(s, SIO_CLOSING) )
+  { int doit;
+
+    WITH_LD(&PL_local_data)
+      doit = truePrologFlag(PLFLAG_AGC_CLOSE_STREAMS);
+
+    doit = doit && standardStreamIndexFromStream(s) < 0;
+
+    if ( doit )
+    { int rc = Sgcclose(s, SIO_CLOSE_TRYLOCK);
+
+      if ( s != Serror )
+      { Slock(Serror);
+	if ( rc == 0 )
+	  Sdprintf("WARNING: AGC: closed ");
+	else
+	  Sdprintf("WARNING: AGC: failed to close (locked) ");
+	write_stream_ref(Serror, aref, 0);
+	Sdprintf("\n");
+	Sunlock(Serror);
+      }
+    }
+  }
+}
+
+
 static int
 release_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-  { if ( Sunreference(ref->read) == 0 && ref->read->erased )
-      unallocStream(ref->read);
+  { if ( Sunreference(ref->read) == 0 )
+      gc_close_stream(aref, ref->read);
   }
   if ( ref->write )
-  { if ( Sunreference(ref->write) == 0 && ref->write->erased )
-      unallocStream(ref->write);
+  { if ( Sunreference(ref->write) == 0 )
+      gc_close_stream(aref, ref->write);
   }
 
   return TRUE;
@@ -738,9 +829,19 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
   return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR);
 }
 
-
 int
 PL_get_stream(term_t t, IOSTREAM **s, int flags)
+{ GET_LD
+  atom_t a;
+
+  if ( !PL_get_atom(t, &a) )
+    return not_a_stream(t);
+
+  return PL_get_stream_from_blob(a, s, flags);
+}
+
+int
+PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
 
@@ -750,7 +851,7 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
   if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
     myflags |= SH_NOPAIR;
 
-  return term_stream_handle(t, s, myflags);
+  return get_stream_handle(a, s, myflags);
 }
 
 
@@ -1206,10 +1307,35 @@ static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 void
 dieIO(void)
 { if ( GD->io_initialised )
-  { noprotocol();
+  { GD->io_initialised = FALSE;
+
+    noprotocol();
     closeFiles(TRUE);
+
+    if ( streamAliases )
+    { destroyHTable(streamAliases);
+      streamAliases = NULL;
+    }
+    if ( streamContext )
+    { destroyHTable(streamContext);
+      streamContext = NULL;
+    }
+
+    for(int i=0; i<=2; i++)
+    { IOSTREAM *s = &S__iob[i];
+
+      if ( s->context )
+      { freeHeap(s->context, sizeof(stream_context));
+	s->context = NULL;
+      }
+    }
+
     if ( ttymodified && ttyfileno == Sfileno(Sinput) )
       PopTty(Sinput, &ttytab, TRUE);
+    freeHeap(ttytab.state, 0);
+    memset(&ttytab, 0, sizeof(ttytab));
+    ttymodified = FALSE;
+    ttyfileno = -1;
   }
 }
 
@@ -1290,7 +1416,7 @@ protocol(const char *str, size_t n)
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);
-    if ( !releaseStream(s) )		/* we don not check errors */
+    if ( !releaseStream(s) )		/* we do not check errors */
       PL_clear_exception();
   }
 }
@@ -1935,9 +2061,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
       return FALSE;
 
     if ( (i=standardStreamIndexFromName(alias)) >= 0 )
-    { LD->IO.streams[i] = s;
+    { setStandardStream(i, s);
       if ( i == 0 )
-	LD->prompt.next = TRUE;	/* changed standard input: prompt! */
+	LD->prompt.next = TRUE;		/* changed Sinput: prompt! */
       return TRUE;
     }
 
@@ -1945,7 +2071,7 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     aliasStream(s, alias);
     PL_UNLOCK(L_FILE);
     return TRUE;
-  } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
+  } else if ( aname == ATOM_buffer )	/* buffer(Buffering) */
   { atom_t b;
 
     if ( !PL_get_atom_ex(a, &b) )
@@ -2694,7 +2820,18 @@ skip_cr(IOSTREAM *s)
   return FALSE;
 }
 
-#define read_pending_input(input, list, tail, chars) LDFUNC(read_pending_input, input, list, tail, chars)
+static int
+get_ucs2(const char *us, int be)
+{ if ( be )
+    return ((us[0]&0xff)<<8)+(us[1]&0xff);
+  else
+    return ((us[1]&0xff)<<8)+(us[0]&0xff);
+}
+
+
+#define read_pending_input(input, list, tail, chars) \
+	LDFUNC(read_pending_input, input, list, tail, chars)
+
 static foreign_t
 read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 { IOSTREAM *s;
@@ -2848,24 +2985,54 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	re_buffer(s, us, es-us);
         break;
       }
-      case ENC_UNICODE_BE:
-      case ENC_UNICODE_LE:
-      { size_t count = (size_t)n/2;
+      case ENC_UTF16BE:
+      case ENC_UTF16LE:
+      { size_t count = 0;
 	const char *us = buf;
-	size_t done, i;
+	const char *es = buf+n;
+	size_t done = 0, i;
+
+	while(us+2<=es)
+	{ int c = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	  us += 2;
+	  if ( IS_UTF16_LEAD(c) )
+	  { if ( us+2 <= es )
+	    { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	      if ( IS_UTF16_TRAIL(c2) )
+	      { count++;
+		us += 2;
+	      } else
+	      { Sseterr(s, SIO_WARN, "Illegal UTF-16 surrogate pair");
+		goto failure;
+	      }
+	    }
+	  } else
+	  { count++;
+	  }
+	}
 
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
 
-	for(i=0; i<count; us+=2, i++)
-	{ int c;
+	for(us=buf,i=0; i<count; i++)
+	{ int c = get_ucs2(us, s->encoding == ENC_UTF16BE);
 
-	  if ( s->encoding == ENC_UNICODE_BE )
-	    c = ((us[0]&0xff)<<8)+(us[1]&0xff);
-	  else
-	    c = ((us[1]&0xff)<<8)+(us[0]&0xff);
+	  us += 2;
+	  done += 2;
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
+
+#if SIZEOF_WCHAR_T > 2
+	  if ( IS_UTF16_LEAD(c) )
+	  { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	    done += 2;
+	    us += 2;
+	    c = utf16_decode(c, c2);
+	  }
+#endif
 
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
@@ -2873,7 +3040,6 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	  ADD_CODE(c);
 	}
 
-	done = count*2;
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
@@ -2970,7 +3136,10 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.canonical = FALSE;
 	text.encoding  = s->encoding;
 
-	PL_canonicalise_text(&text);
+	if ( !PL_canonicalise_text_ex(&text) )
+	{ releaseStream(s);
+	  return FALSE;
+	}
 	if ( text.length >= len )
 	{ int rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
 	  PL_free_text(&text);
@@ -2998,8 +3167,8 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.canonical = FALSE;
 	text.encoding  = s->encoding;
 
-	PL_canonicalise_text(&text);
-	rc = PL_unify_text(A3, 0, &text, PL_STRING);
+	rc = ( PL_canonicalise_text_ex(&text) &&
+	       PL_unify_text(A3, 0, &text, PL_STRING) );
         releaseStream(s);
         return rc;
       }
@@ -3475,9 +3644,16 @@ static struct encname
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
   { ENC_ANSI,	     ATOM_text },
   { ENC_UTF8,        ATOM_utf8 },
-  { ENC_UNICODE_BE,  ATOM_unicode_be },
-  { ENC_UNICODE_LE,  ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_utf16be },
+  { ENC_UTF16LE,     ATOM_utf16le },
   { ENC_WCHAR,	     ATOM_wchar_t },
+					/* Aliases */
+  { ENC_ISO_LATIN_1, ATOM_ISO_8859_1 },
+  { ENC_UTF8,        ATOM_UTF_8 },
+  { ENC_UTF16BE,     ATOM_unicode_be },
+  { ENC_UTF16LE,     ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_UTF_16BE },
+  { ENC_UTF16LE,     ATOM_UTF_16LE },
   { ENC_UNKNOWN,     0 },
 };
 
@@ -3497,8 +3673,7 @@ PL_atom_to_encoding(atom_t a)
 
 atom_t
 PL_encoding_to_atom(IOENC enc)
-{ if ( (int)enc > 0 &&
-       (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
+{ if ( (int)enc > 0 && (int)enc <= ENC_WCHAR )
     return encoding_names[enc].name;
   return NULL_ATOM;
 }
@@ -3561,12 +3736,11 @@ file_name_is_iri(const char *path)
 static int
 call_iri_hook(term_t argv, iri_op op, va_list args)
 { GET_LD
-  static predicate_t pred = NULL;
 
-  if ( !pred )
-    pred = PL_predicate("iri_hook", 4, "$iri");
+  if ( !GD->procedures.iri_hook4 )
+    GD->procedures.iri_hook4 = PL_predicate("iri_hook", 4, "$iri");
 
-  if ( !hasClausesDefinition(pred->definition) )
+  if ( !hasClausesDefinition(GD->procedures.iri_hook4->definition) )
   { sysError("IRI scheme handler not yet installed");
     return FALSE;
   }
@@ -3620,7 +3794,8 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       return FALSE;
   }
 
-  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, argv) )
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION,
+			 GD->procedures.iri_hook4, argv) )
   { switch(op)
     { case IRI_OPEN:
       {	IOSTREAM **vp = va_arg(args, IOSTREAM**);
@@ -3687,7 +3862,7 @@ iri_hook(const char *url, iri_op op, ...)
 		*       STREAM BASED I/O        *
 		*********************************/
 
-static const opt_spec open4_options[] =
+static const PL_option_t open4_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_reposition,     OPT_BOOL },
   { ATOM_alias,	         OPT_ATOM },
@@ -3775,7 +3950,7 @@ openStream(term_t file, term_t mode, term_t options)
   IOENC enc;
 
   if ( options )
-  { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
+  { if ( !PL_scan_options(options, 0, "stream_option", open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
 		       &encoding, &newline, &bom, &create
@@ -3933,7 +4108,7 @@ openStream(term_t file, term_t mode, term_t options)
 #ifdef O_LOCALE
   if ( locale )
   { Ssetlocale(s, locale, NULL);
-    releaseLocale(locale);			/* acquired by scan_options() */
+    releaseLocale(locale);			/* acquired by PL_scan_options() */
   }
 #endif
   if ( !close_on_abort )
@@ -4337,7 +4512,7 @@ PRED_IMPL("close", 1, close, PL_FA_ISO)
 }
 
 
-static const opt_spec close2_options[] =
+static const PL_option_t close2_options[] =
 { { ATOM_force,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -4348,7 +4523,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
 { PRED_LD
   int force = FALSE;
 
-  if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
+  if ( !PL_scan_options(A2, 0, "close_option", close2_options, &force) )
     return FALSE;
 
   return pl_close(A1, force);
@@ -4474,7 +4649,9 @@ stream_position_prop(DECL_LD IOSTREAM *s, term_t prop)
 }
 
 
-#define stream_end_of_stream_prop(s, prop) LDFUNC(stream_end_of_stream_prop, s, prop)
+#define stream_end_of_stream_prop(s, prop) \
+	LDFUNC(stream_end_of_stream_prop, s, prop)
+
 static int
 stream_end_of_stream_prop(DECL_LD IOSTREAM *s, term_t prop)
 { if ( s->magic == SIO_MAGIC && (s->flags & SIO_INPUT) )
@@ -4489,6 +4666,18 @@ stream_end_of_stream_prop(DECL_LD IOSTREAM *s, term_t prop)
 
     return PL_unify_atom(prop, val);
   }
+
+  return FALSE;
+}
+
+
+#define stream_error_prop(s, prop) \
+	LDFUNC(stream_error_prop, s, prop)
+
+static int
+stream_error_prop(DECL_LD IOSTREAM *s, term_t prop)
+{ if ( s->magic == SIO_MAGIC )
+    return PL_unify_bool(prop, Sferror(s));
 
   return FALSE;
 }
@@ -4774,6 +4963,7 @@ static const sprop sprop_list [] =
   _SP1( FUNCTOR_alias1,		stream_alias_prop ),
   _SP1( FUNCTOR_position1,	stream_position_prop ),
   _SP1( FUNCTOR_end_of_stream1,	stream_end_of_stream_prop ),
+  _SP1( FUNCTOR_error1,		stream_error_prop ),
   _SP1( FUNCTOR_eof_action1,	stream_eof_action_prop ),
   _SP1( FUNCTOR_reposition1,	stream_reposition_prop ),
   _SP1( FUNCTOR_type1,		stream_type_prop ),
@@ -5600,6 +5790,30 @@ wrapIO(IOSTREAM *s,
 }
 
 
+static ssize_t
+Swrite_stderr(void *handle, char *buf, size_t size)
+{ IOSTREAM *org = handle;
+  ssize_t rc;
+
+  return ( (rc=Sfwrite(buf, 1, size, org)) > 0 &&
+	   Sflush(org) == 0
+	 ) ? rc : -1;
+}
+
+static IOFUNCTIONS Sstderrfunctions =
+{ NULL,
+  Swrite_stderr,
+  NULL,
+  NULL,
+  NULL,
+#ifdef O_LARGEFILES
+  NULL,
+#else
+  NULL
+#endif
+};
+
+
 static int
 getIOStreams(term_t tin, term_t tout, term_t terror,
 	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
@@ -5611,7 +5825,9 @@ getIOStreams(term_t tin, term_t tout, term_t terror,
     return FALSE;
 
   if ( PL_compare(tout, terror) == 0 )	/* == */
-  { *error = getStream(Snew((*out)->handle, (*out)->flags, (*out)->functions));
+  { *error = getStream(Snew((*out),
+			    (*out)->flags & ~WRAP_CLEAR_FLAGS,
+			    &Sstderrfunctions));
     if ( !*error )
       return FALSE;
   } else
@@ -5644,13 +5860,13 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 
   PL_LOCK(L_FILE);
 
-  LD->IO.streams[1] = out;		/* user_output */
-  LD->IO.streams[2] = error;		/* user_error */
-  LD->IO.streams[4] = out;		/* current_output */
+  setStandardStream(1, out);		/* user_output */
+  setStandardStream(2, error);		/* user_error */
+  setStandardStream(4, out);		/* current_output */
 
   if ( wrapin )
-  { LD->IO.streams[3] = in;		/* current_input */
-    LD->IO.streams[0] = in;		/* user_input */
+  { setStandardStream(3, in);		/* current_input */
+    setStandardStream(0, in);		/* user_input */
     wrapIO(in, Sread_user, NULL);
     LD->prompt.next = TRUE;
   }
@@ -5668,7 +5884,7 @@ out:
     releaseStream(in);
   if ( out )
     releaseStream(out);
-  if ( error && error != out )
+  if ( error )
     releaseStream(error);
 
   return rval;

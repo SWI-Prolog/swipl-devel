@@ -37,17 +37,22 @@
 	  ]).
 
 test_ch_shift :-
-	test1,
+	or_dept(Depth),
+	test1(Depth),
 	test2.
 
-%%	test1
+or_dept(Depth), getenv('ASAN', _) => Depth = 1000.
+or_dept(Depth), current_prolog_flag(emscripten,true) => Depth = 1000.
+or_dept(Depth) => Depth = 10_000.
+
+%%	test1(+Depth) is det.
 %
 %	Tests expansion of the local stack due to a clause with many
 %	choicepoints.
 
-test1 :-
+test1(Depth) :-
 	trim_stacks,
-	make_or(10000, OR),
+	make_or(Depth, OR),
 	asserta((t :- OR), Ref),
 	once(t),
 	erase(Ref).

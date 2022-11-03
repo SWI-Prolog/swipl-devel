@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2017, University of Amsterdam
+    Copyright (c)  2006-2022, University of Amsterdam
 			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -71,6 +72,9 @@ needs to be classified as
 	* lowercase
 	<not needed by Prolog>
 
+	* decimal
+	Characters that represent decimal digits.
+
 Usage:
 
   1. Get DerivedCoreProperties.txt and UnicodeData.txt from the Unicode
@@ -128,7 +132,8 @@ write_sort_map(Out, Options) :-
 		is_list(Map)),
 	       write_codepage(Out, CP, Map, Options)),
 	write_map(Out, Tables, Options),
-	write_footer(Out, Options).
+	write_footer(Out, Options),
+	write_decimal_bases(Out, Options).
 
 write_codepage(Out, CP, Map, Options) :-
 	option(lang(javascript), Options), !,
@@ -142,23 +147,27 @@ write_codepage(Out, CP, Map, _Options) :-
 	cp_name(CP, CPN),
 	format(Out, 'static const char ~w[256] =~n', [CPN]),
 	format(Out, '{ ', []),
-	map_entries(Map, 0, Out),
-	format(Out, '~N};~n~n', []).
+	map_entries(Map, CP, 0, Out),
+	From is CP*256+(256-8),
+	To   is From + 7,
+	format(Out, '  /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n};~n~n', [From,To]).
 
 cp_name(CP, CPN) :-
 	format(atom(CPN), 'ucp0x~|~`0t~16r~2+', [CP]).
 
-map_entries([], _, _).
-map_entries([H|T], I, Out) :-
+map_entries([], _, _, _).
+map_entries([H|T], CP, I, Out) :-
 	(   I == 0
 	->  true
 	;   0 =:= I mod 8
-	->  format(Out, ',~n  ', [])
+	->  From is CP*256+(I-8),
+	    To   is From + 7,
+	    format(Out, ', /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n  ', [From,To])
 	;   format(Out, ', ', [])
 	),
-	format(Out, '~|0x~`0t~16r~2+', [H]),
+	format(Out, '0x~|~`0t~16r~2+', [H]),
 	I2 is I + 1,
-	map_entries(T, I2, Out).
+	map_entries(T, CP, I2, Out).
 
 map_chars([], _).
 map_chars([H|T], Out) :-
@@ -215,7 +224,7 @@ js_map_tables(CP, Last, Tables, Out) :-
 	(   is_list(Map)
 	->  cp_name(CP, CPN),
 	    format(Out, '~w', [CPN])
-	;   format(Out, '0x~16r', [Map])
+	;   format(Out, '0x~|~`0t~16r~2+', [Map])
 	),
 	CP2 is CP + 1,
 	js_map_tables(CP2, Last, Tables, Out).
@@ -236,7 +245,7 @@ write_header(Out, Options) :-
 	generated_file(Out),
 	map_size(Size, Options),
 	format(Out, '#define UNICODE_MAP_SIZE ~d~n', [Size]),
-	format(Out, '#define F(c) (const char*)(c)~n~n', [Size]),
+	format(Out, '#define F(c) (const char*)(c)~n~n', []),
 	forall(flag_name(Name, Hex),
 	       ( upcase_atom(Name, Up),
 		 format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
@@ -280,7 +289,8 @@ return {
   separator:   function(chr) { return (uflagsW(chr) & U_SEPARATOR)   != 0 },
   symbol:      function(chr) { return (uflagsW(chr) & U_SYMBOL)      != 0 },
   other:       function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
-  control:     function(chr) { return (uflagsW(chr) & U_CONTROL)     != 0 }
+  control:     function(chr) { return (uflagsW(chr) & U_CONTROL)     != 0 },
+  decimal:     function(chr) { return (uflagsW(chr) & U_DECIMAL)     != 0 }
 }
 });~n', []).
 write_footer(Out, _Options) :-
@@ -315,20 +325,24 @@ gen_tables(Tables, Options) :-
 	findall(table(CP,Map), table(CP, Map, Options), Tables).
 
 table(CP, Map, Options) :-
+	code_page(CP, Options),
+	option(lang(Lang), Options, 'C'),
+	findall(M, char(CP, M, Lang), Map0),
+	flat_map(Map0, Map).
+
+code_page(CP, Options) :-
 	last_unicode_page(DefPage),
 	option(first_codepage(First), Options, 0),
 	option(last_codepage(Last), Options, DefPage),
-	between(First, Last, CP),
-	findall(M, char(CP, M, Options), Map0),
-	flat_map(Map0, Map).
+	between(First, Last, CP).
 
-char(CP, Value, _Options) :-
+char(CP, Value, Lang) :-
 	between(0, 255, I),
 	Code is 256*CP+I,
-	code_flags(Code, Value).
+	code_flags(Lang, Code, Value).
 
-code_flags(Code, Value) :-
-	findall(F, flag(Code, F), Fs),
+code_flags(Lang, Code, Value) :-
+	findall(F, cflag(Lang, Code, F), Fs),
 	or(Fs, Value).
 
 or([], 0).
@@ -336,12 +350,15 @@ or([H|T], F) :-
 	or(T, F0),
 	F is F0 \/ H.
 
-flag(Code, Flag) :-
+cflag(javascript, Code, Flag) :-
 	flag_name(Name, Flag),
 	(   Code < 256
 	->  predef_code_flag(Code, Name)
 	;   code_flag(Code, Name)
 	).
+cflag('C', Code, Flag) :-
+	flag_name(Name, Flag),
+	code_flag(Code, Name).
 
 flag_name(id_start,    0x01).
 flag_name(id_continue, 0x02).
@@ -350,6 +367,7 @@ flag_name(separator,   0x08).
 flag_name(symbol,      0x10).
 flag_name(other,       0x20).
 flag_name(control,     0x40).
+flag_name(decimal,     0x80).
 
 %!	predef_code_flag(+C, ?Class) is nondet.
 %
@@ -392,6 +410,8 @@ code_flag(C, control) :-
 	control_cat(Cat).
 code_flag(C, unassigned) :-
 	\+ unicode_property(C, general_category(_)).
+code_flag(C, decimal) :-
+	unicode_property(C, general_category('Nd')).
 
 % See http://www.unicode.org/reports/tr44/#Property_Values
 
@@ -424,3 +444,81 @@ control_cat('Cn').	% a reserved unassigned code point or a noncharacter
 flat_map(Map0, Value) :-
 	sort(Map0, [Value]), !.
 flat_map(Map, Map).
+
+
+		 /*******************************
+		 *	      DECIMALS		*
+		 *******************************/
+
+write_decimal_bases(Out, Options) :-
+	decimal_bases(Bases, Options),
+	format(Out, 'static const int decimal_bases[] =~n{ ', []),
+	write_bases(Out, Bases, 0).
+
+write_bases(Out, [], _) :-
+	!,
+	format(Out, '~N};~n~n', []).
+write_bases(Out, [H|T], I) :-
+	(   I == 0
+	->  true
+	;   0 =:= I mod 8
+	->  format(Out, ',~n  ', [])
+	;   format(Out, ', ', [])
+	),
+	format(Out, '0x~|~`0t~16r~2+', [H]),
+	I2 is I + 1,
+	write_bases(Out, T, I2).
+
+
+%!	decimal_bases(-Bases, +Options) is det.
+%
+%	Basis is a list of base codepoints for a decimal block of length
+%	10.
+
+decimal_bases(Bases, Options) :-
+	findall(Digit, digit(Digit, Options), Digits),
+	digit_blocks(Digits, Blocks),
+	maplist(digit_base, Blocks, Bases0),
+	flatten(Bases0, Bases).
+
+digit(Digit, Options) :-
+	code_page(CP, Options),
+	Start is CP*256,
+	End is Start+255,
+	between(Start, End, Digit),
+	code_flag(Digit, decimal).
+
+digit_blocks(Digits, [Block|BT]) :-
+	block(Digits, T, Block),
+	!,
+	digit_blocks(T, BT).
+digit_blocks(_, []).
+
+block([H|T0], T, [H|Block]) :-
+	sequence(H, T0, T, Block),
+	Block \== [],
+	!.
+block([_|T0], T, Block) :-
+	block(T0, T, Block).
+
+sequence(I0, [H|T0], T, [H|BT]) :-
+	H =:= I0+1,
+	!,
+	sequence(H, T0, T, BT).
+sequence(_, T, T, []).
+
+digit_base(Block, Base) :-
+	length(Block, 10),
+	!,
+	Block = [Base|_].
+digit_base(Block, [Base0|Bases]) :-
+	length(Block, Len),
+	Len mod 10 =:= 0,
+	Block = [Base0|_],
+	End is Len/10-1,
+	numlist(1, End, N0),
+	maplist(mul(10), N0, N1),
+	maplist(plus(Base0), N1, Bases).
+
+mul(Times, N0, N) :-
+	N is N0*Times.

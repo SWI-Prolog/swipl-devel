@@ -238,18 +238,21 @@ clearSourceAdmin(atom_t sf_name)
 { GET_LD
   int rc = FALSE;
   fid_t fid;
-  static predicate_t pred = NULL;
+  predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("$clear_source_admin", 1, "system");
+  if ( GD->cleaning == CLN_DATA )
+    return TRUE;
+
+  pred = _PL_predicate("$clear_source_admin", 1, "system",
+		       &GD->procedures.clear_source_admin1);
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t name = PL_new_term_ref();
 
     PL_put_atom(name, sf_name);
-    startCritical;			/* block signals */
+    startCritical();			/* block signals */
     rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, name);
-    endCritical;
+    rc = endCritical() && rc;
 
     PL_discard_foreign_frame(fid);
   }
@@ -261,12 +264,13 @@ clearSourceAdmin(atom_t sf_name)
 static atom_t
 destroySourceFile(SourceFile sf)
 { if ( sf->magic == SF_MAGIC )
-  { SourceFile f;
-    atom_t name;
+  { atom_t name;
+    SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
     f = deleteHTable(GD->files.table, (void*)sf->name);
     assert(f);
+    (void)f;
     name = sf->name;
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -610,6 +614,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
     { term_t tail = PL_copy_term_ref(A2);
       term_t head = PL_new_term_ref();
       ListCell cell;
+      rc = TRUE;
 
       LOCKSRCFILE(sf);
       for(cell=sf->procedures; rc && cell; cell = cell->next )
@@ -776,7 +781,7 @@ unloadFile(SourceFile sf)
 
 static int
 unloadFile(SourceFile sf)
-{ ListCell cell, next;
+{ ListCell cell;
   size_t deleted = 0;
   int rc;
 
@@ -803,14 +808,9 @@ unloadFile(SourceFile sf)
     }
   }
   DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
+  (void)deleted;
 
-				      /* cleanup the procedure list */
-  for(cell = sf->procedures; cell; cell = next)
-  { next = cell->next;
-    freeHeap(cell, sizeof(struct list_cell));
-  }
-  sf->procedures = NULL;
-
+  freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
@@ -1490,6 +1490,8 @@ delete_old_predicates(SourceFile sf)
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
+
+      freeHeap(cell, sizeof(*cell));
     } else
     { prev = cell;
     }

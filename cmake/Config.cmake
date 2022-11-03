@@ -68,7 +68,17 @@ else()
 set(HAVE_LIBATOMIC OFF CACHE BOOL "No need to link with -latomic")
 endif()
 
+check_c_source_compiles(
+    "#include <stdint.h>
+     int64_t r1 = 1;
+     int64_t r2 = 3;
+     int64_t r3;
+     int main() { __builtin_mul_overflow(r1,r2,&r3); }"
+    HAVE___BUILTIN_MUL_OVERFLOW)
+
+if(NOT STATIC_EXTENSIONS)
 check_library_exists(dl	dlopen	      "" HAVE_LIBDL)
+endif()
 check_library_exists(m	sin	      "" HAVE_LIBM)
 check_library_exists(rt	clock_gettime "" HAVE_LIBRT)
 
@@ -94,7 +104,7 @@ set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
-set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h)
+set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h wchar.h)
 
 #if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 #  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Wno-builtin-declaration-mismatch)
@@ -108,6 +118,7 @@ check_type_size("long" SIZEOF_LONG)
 check_type_size("void *" SIZEOF_VOIDP)
 check_type_size("long long" SIZEOF_LONG_LONG)
 check_type_size("wchar_t" SIZEOF_WCHAR_T)
+check_type_size("wint_t" SIZEOF_WINT_T)
 check_type_size("off_t" SIZEOF_OFF_T)
 if(USE_GMP)
   check_type_size("mp_bitcnt_t" SIZEOF_MP_BITCNT_T)
@@ -127,10 +138,10 @@ alignof(ALIGNOF_INT64_T ALIGNOF_VOIDP ALIGNOF_DOUBLE)
 # Misc
 if(NOT EMSCRIPTEN)
   check_function_exists(mmap HAVE_MMAP)
+  check_function_exists(popen HAVE_POPEN)
 endif()
 check_function_exists(strerror HAVE_STRERROR)
 check_function_exists(poll HAVE_POLL)
-check_function_exists(popen HAVE_POPEN)
 check_function_exists(getpwnam HAVE_GETPWNAM)
 check_function_exists(fork HAVE_FORK)
 check_function_exists(vfork HAVE_VFORK)
@@ -275,6 +286,7 @@ check_function_exists(pthread_sigmask HAVE_PTHREAD_SIGMASK)
 check_function_exists(pthread_timedjoin_np HAVE_PTHREAD_TIMEDJOIN_NP)
 check_function_exists(pthread_getcpuclockid HAVE_PTHREAD_GETCPUCLOCKID)
 check_function_exists(pthread_attr_setstacksize HAVE_PTHREAD_ATTR_SETSTACKSIZE)
+check_function_exists(pthread_getattr_np HAVE_PTHREAD_GETATTR_NP)
 check_function_exists(sched_setaffinity HAVE_SCHED_SETAFFINITY)
 check_function_exists(sema_init HAVE_SEMA_INIT)
 check_function_exists(sem_init HAVE_SEM_INIT)
@@ -400,6 +412,9 @@ if(SWIPL_SHARED_LIB)
 endif()
 if(VMI_FUNCTIONS)
   set(O_VMI_FUNCTIONS 1)
+endif()
+if(STATIC_EXTENSIONS)
+  set(O_STATIC_EXTENSIONS 1)
 endif()
 
 ################

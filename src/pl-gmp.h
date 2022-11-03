@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2020, University of Amsterdam
+    Copyright (c)  2005-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -90,7 +90,7 @@ char *	skipMPQOnCharp(const char *data);
 int	mpz_to_int64(mpz_t mpz, int64_t *i);
 int	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 void	mpz_init_set_si64(mpz_t mpz, int64_t i);
-double	mpX_round(double f);
+double	mpz_to_double(mpz_t n);
 double	mpq_to_double(mpq_t q);
 void	mpq_set_double(mpq_t q, double f);
 
@@ -116,6 +116,15 @@ static inline int
 mpq_stack_size(word w)
 { return (int)w>>1;
 }
+
+static inline void
+mpz_add_si(mpz_t r, mpz_t n1, long add)
+{ if ( add > 0 )
+    mpz_add_ui(r, n1, add);
+  else
+    mpz_sub_ui(r, n1, -add);
+}
+
 
 #else /*O_GMP*/
 
