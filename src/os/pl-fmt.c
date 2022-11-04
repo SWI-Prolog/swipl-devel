@@ -1348,7 +1348,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
   switch(f->type)
   {
-#ifdef O_BIGNUM
+#ifdef O_GMP
     mpf_t mpf;
     mpz_t t1, t2;
     int neg;
@@ -1615,7 +1615,55 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       }
       break;
     }
-#endif
+#elif O_BF
+  { mpz_t n;
+
+    case V_MPZ:
+      mpz_init(n);
+      mpz_set(n, f->value.mpz);
+      goto bf_print;
+    case V_MPQ:
+      limb_t prec = ((double)(arg+2) * log(10)/log(2));
+      mpz_init(n);
+      bf_div(n, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq), prec, BF_RNDN);
+    bf_print:
+      bf_flags_t flags;
+      int upcase = FALSE;
+      switch(how)
+      { case 'f':
+	  flags = BF_FTOA_FORMAT_FRAC;
+	  break;
+	case 'E':
+	  upcase = TRUE;
+	case 'e':
+	  arg++;		/* LibBF counts total, we after . */
+	  flags = BF_FTOA_FORCE_EXP|BF_FTOA_FORMAT_FIXED;
+	  break;
+	case 'G':
+	  upcase = TRUE;
+	case 'g':
+	  flags = BF_FTOA_FORMAT_FREE;
+	  break;
+	default:
+	  assert(0);
+      }
+      size_t size;
+      char *s = bf_ftoa(&size, n, 10, arg, BF_RNDN|BF_FTOA_PL_QUIRKS|flags);
+      if ( !growBuffer(out, size+1) )
+      { PL_no_memory();
+	return NULL;
+      }
+      strcpy(baseBuffer(out, char), s);
+      free(s);
+      if ( upcase )
+      { char *exp = strchr(baseBuffer(out, char), 'e');
+	if ( exp )
+	  *exp = 'E';
+      }
+      mpz_clear(n);
+      break;
+  }
+#endif /* O_GMP OR O_BF */
     case V_INTEGER:
       promoteToFloatNumber(f);
       /*FALLTHROUGH*/
