@@ -369,6 +369,9 @@ int bf_mul_pow_radix(bf_t *r, const bf_t *T, limb_t radix,
 /* return "Infinity" instead of "Inf" and add a "+" for positive
    exponents */
 #define BF_FTOA_JS_QUIRKS    (1 << 22)
+/* add a "+" for positive exponents and emit at least two digits
+   for the exponent */
+#define BF_FTOA_PL_QUIRKS    (1 << 23)
 
 char *bf_ftoa(size_t *plen, const bf_t *a, int radix, limb_t prec,
 	      bf_flags_t flags);

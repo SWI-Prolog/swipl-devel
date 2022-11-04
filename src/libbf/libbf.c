@@ -3878,21 +3878,30 @@ static char *bf_ftoa_internal(size_t *plen, const bf_t *a2, int radix,
 		    if ((flags & BF_FTOA_FORCE_EXP) ||
 			n <= -6 || n > n_max) {
 			const char *fmt;
+			slimb_t e = n-1;
 			/* exponential notation */
 			output_digits(s, a1, radix, n_digits, 1, is_dec);
 			if (radix_bits != 0 && radix <= 16) {
-			    if (flags & BF_FTOA_JS_QUIRKS)
+			  if (flags & (BF_FTOA_JS_QUIRKS|BF_FTOA_PL_QUIRKS))
 				fmt = "p%+" PRId_LIMB;
 			    else
 				fmt = "p%" PRId_LIMB;
 			    dbuf_printf(s, fmt, (n - 1) * radix_bits);
 			} else {
-			    if (flags & BF_FTOA_JS_QUIRKS)
+			  if (flags & BF_FTOA_JS_QUIRKS)
 				fmt = "%c%+" PRId_LIMB;
-			    else
-				fmt = "%c%" PRId_LIMB;
-			    dbuf_printf(s, fmt,
-					radix <= 10 ? 'e' : '@', n - 1);
+			  else if(flags & BF_FTOA_PL_QUIRKS) {
+			    if ( e >= 0 ) {
+				fmt = "%c+%02" PRId_LIMB;
+			    } else {
+				fmt = "%c-%02" PRId_LIMB;
+				e = -e;
+			    }
+			  } else {
+			    fmt = "%c%" PRId_LIMB;
+			  }
+			  dbuf_printf(s, fmt,
+				      radix <= 10 ? 'e' : '@', e);
 			}
 		    } else if (n <= 0) {
 			/* 0.x */
