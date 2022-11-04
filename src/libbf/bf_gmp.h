@@ -296,7 +296,16 @@ mpz_sub_ui(mpz_t r, const mpz_t n1, unsigned long n2)
 
 static inline void
 mpz_mul(mpz_t r, const mpz_t n1, const mpz_t n2)
-{ bf_mul(r, n1, n2, BF_PREC_INF, BF_RNDN);
+{ if ( r == n1 || r == n2 )
+  { mpz_t tmp;
+
+    mpz_init(tmp);
+    bf_mul(tmp, n1, n2, BF_PREC_INF, BF_RNDN);
+    mpz_set(r, tmp);
+    mpz_clear(tmp);
+  } else
+  { bf_mul(r, n1, n2, BF_PREC_INF, BF_RNDN);
+  }
 }
 
 static inline void
@@ -492,26 +501,15 @@ mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
   return rc;
 }
 
+void	mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y);
+
 static inline void
 mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned y)
-{ bf_t X, Y;
+{ mpz_t X;
 
-  bf_init(&alloc_wrapper.bf_context, &X); /* TBD: Provide statically allocated versions */
-  bf_init(&alloc_wrapper.bf_context, &Y);
-  bf_set_si(&X, x);
-  bf_set_si(&Y, y);
-  bf_pow(r, &X, &Y, BF_PREC_INF, BF_RNDN);
-  bf_delete(&X);
-  bf_delete(&Y);
-}
-
-static inline void
-mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y)
-{ mpz_t Y;
-
-  mpz_init_set_ui(Y, y);
-  bf_pow(r, x, Y, BF_PREC_INF, BF_RNDN);
-  mpz_clear(Y);
+  mpz_init_set_ui(X, x);
+  mpz_pow_ui(r, X, y);
+  mpz_clear(X);
 }
 
 static inline void

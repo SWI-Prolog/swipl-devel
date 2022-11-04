@@ -141,6 +141,25 @@ mpz_lcm(mpz_t r, const mpz_t n1, const mpz_t n2)
 }
 
 
+void
+mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
+{ mpz_t N;
+
+  mpz_set_ui(r, 1);
+  mpz_init_set(N, n);
+
+  while ( x )
+  { if ( x & 0x1 )
+    { mpz_mul(r, r, N);
+      x -= 1;
+    }
+    x /= 2;
+    mpz_mul(N, N, N);
+  }
+
+  mpz_clear(N);
+}
+
 // see https://stackoverflow.com/questions/72659156/convert-double-to-integer-mantissa-and-exponents
 void
 mpq_set_d(mpq_t r, double f)
