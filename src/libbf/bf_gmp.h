@@ -502,15 +502,7 @@ mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
 }
 
 void	mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y);
-
-static inline void
-mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned y)
-{ mpz_t X;
-
-  mpz_init_set_ui(X, x);
-  mpz_pow_ui(r, X, y);
-  mpz_clear(X);
-}
+void	mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned long y);
 
 static inline void
 mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
