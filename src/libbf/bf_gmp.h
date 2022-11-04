@@ -520,7 +520,9 @@ mpz_get_str(char *STR, int BASE, const mpz_t OP)
     op = &copy;
   }
 
-  strcpy(STR, bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC));
+  char *s = bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC);
+  strcpy(STR, s);
+//  free(s);
 
   return STR;
 }
