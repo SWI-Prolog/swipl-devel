@@ -160,6 +160,48 @@ mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
   mpz_clear(N);
 }
 
+void
+mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
+{ int64_t N = n;
+  int64_t R = 1;
+
+  while ( x )
+  { int64_t N1, R1=R;
+    unsigned x1 = x;
+
+    if ( x & 0x1 )
+    { if ( __builtin_mul_overflow(R,N,&R1) )
+	goto overflow;
+      x1 -= 1;
+    }
+    x1 /= 2;
+    if ( __builtin_mul_overflow(N,N,&N1) )
+      goto overflow;
+    x = x1;
+    R = R1;
+    N = N1;
+  }
+  mpz_set_ui(r, R);
+
+ overflow:
+  mpz_t Nz;
+
+  mpz_init_set_ui(Nz, N);
+  mpz_set_ui(r, R);
+
+  while ( x )
+  { if ( x & 0x1 )
+    { mpz_mul(r, r, Nz);
+      x -= 1;
+    }
+    x /= 2;
+    mpz_mul(Nz, Nz, Nz);
+  }
+
+  mpz_clear(Nz);
+}
+
+
 // see https://stackoverflow.com/questions/72659156/convert-double-to-integer-mantissa-and-exponents
 void
 mpq_set_d(mpq_t r, double f)
