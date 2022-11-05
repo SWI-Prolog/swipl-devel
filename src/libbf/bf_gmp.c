@@ -145,8 +145,8 @@ void
 mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
 { mpz_t N;
 
-  mpz_set_ui(r, 1);
   mpz_init_set(N, n);
+  mpz_set_ui(r, 1);
 
   while ( x )
   { if ( x & 0x1 )
@@ -164,6 +164,7 @@ void
 mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
 { int64_t N = n;
   int64_t R = 1;
+  mpz_t Nz;
 
   while ( x )
   { int64_t N1, R1=R;
@@ -184,7 +185,6 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
   mpz_set_ui(r, R);
 
  overflow:
-  mpz_t Nz;
 
   mpz_init_set_ui(Nz, N);
   mpz_set_ui(r, R);
@@ -488,7 +488,7 @@ mpz_com(mpz_t r, const mpz_t n)
 
 void
 mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
-{ mpz_t cn, cn1, nxt, x, tmp;
+{ mpz_t cn, nxt, x, tmp;
   const MP_INT *op;
 
   if ( rop == OP )
@@ -498,16 +498,13 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
     op = &OP[0];
 
   mpz_init_set_ui(cn, n);     // const n
-  mpz_init_set_ui(cn1, n-1);  // const n-1
   mpz_init_set(nxt, op);
   mpz_init(x);
 
   do  // using rop and rem as temporaries
   { mpz_set(x, nxt);                   // x = nxt
-    //    mpz_pow_ui(rop, x, n-1);          // rop = pow(x, n-1)        PLUS 1
-    bf_pow(rop, x, cn1, BF_PREC_INF, BF_RNDN);  // rop = pow(x, n-1)
+    mpz_pow_ui(rop, x, n-1);           // rop = pow(x, n-1)
     mpz_tdiv_qr(rop, rem, op, rop);    // rop = op // rop
-    //    mpz_addmul_ui(rop, &s, n-1);       // rop = rop + x * (n-1)    PLUS 1
     mpz_mul_ui(rem, x, n-1);           // rem = x * (n-1)
     mpz_add(rop, rop, rem);            // rop = rop + rem
     mpz_tdiv_qr(nxt, rem, rop, cn);    // nxt = rop // n
@@ -515,11 +512,10 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
 
   mpz_set(rop, x);
 
-  bf_pow(x, rop, cn, BF_PREC_INF, BF_RNDN);  // x = pow(rop, n)
-  mpz_sub(rem, op, x);                       // rem = op - x
+  mpz_pow_ui(x, rop, n);               // x = pow(rop, n)
+  mpz_sub(rem, op, x);                 // rem = op - x
 
   mpz_clear(cn);
-  mpz_clear(cn1);
   mpz_clear(nxt);
   mpz_clear(x);
   if ( rop == OP )
