@@ -253,8 +253,8 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	break;
       }
       case V_MPQ:
-      { size_t sz = ( mpz_sizeinbase(mpq_numref(n.value.mpq), 10) +
-		      mpz_sizeinbase(mpq_denref(n.value.mpq), 10) + 4 );
+      { size_t sz = (double)( mpz_sizeinbase(mpq_numref(n.value.mpq), 2) +
+			      mpz_sizeinbase(mpq_denref(n.value.mpq), 2) + 4 ) * log(10)/log(2) * 1.2;
 	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
