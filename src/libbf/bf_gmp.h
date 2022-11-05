@@ -437,7 +437,7 @@ mpz_tdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
 
 static inline void
 mpz_tdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ if ( Q == N || R == D )
+{ if ( Q == N || R == D || Q == D )
   { mpz_t q, r;
     mpz_init(q);
     mpz_init(r);
