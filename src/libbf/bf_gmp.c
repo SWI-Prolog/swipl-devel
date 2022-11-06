@@ -447,24 +447,38 @@ bf_get_randstate(mpz_t n, const gmp_randstate_t state)
 }
 
 
+/* When `n` is negative we use "Working from LSB towards MSB"  from
+   https://en.wikipedia.org/wiki/Two%27s_complement#Converting_to_two's_complement_representation
+*/
+
 int
 mpz_tstbit(const mpz_t n, mp_bitcnt_t i)
-{ if ( i >= n->expn )
-    return 0;
+{ int set;
 
-  limb_t boffset = n->expn-1 - i; /* offset from msb */
-  limb_t loffset = boffset/(sizeof(limb_t)*8);
-  if ( loffset >= n->len )
-    return 0;
+  if ( i >= n->expn )
+  { set = 0;
+  } else
+  { limb_t boffset = n->expn-1 - i; /* offset from msb */
+    limb_t loffset = boffset/(sizeof(limb_t)*8);
+    if ( loffset >= n->len )
+      set = 0;
 
-  /* bit is 0..63, counting from lsb */
-  int bit = sizeof(limb_t)*8 - 1 - boffset % (sizeof(limb_t)*8);
+    /* bit is 0..63, counting from lsb */
+    int bit = sizeof(limb_t)*8 - 1 - boffset % (sizeof(limb_t)*8);
+    set = !!(n->tab[n->len-1-loffset] & ((limb_t)1<<bit));
+  }
 
-  return !!(n->tab[n->len-1-loffset] & ((limb_t)1<<bit));
+  if ( n->sign )
+  { mp_bitcnt_t lsb = mpz_scan1(n, 0);
+    if ( i > lsb+1 )
+      set = !set;
+  }
+
+  return set;
 }
 
 
-mp_bitcnt_t
+mp_bitcnt_t			/* is lsb, counting bits from 0 */
 mpz_scan1(const mpz_t n, mp_bitcnt_t start)
 { if ( bf_is_zero(n) )
   { return ~(mp_bitcnt_t)0;
