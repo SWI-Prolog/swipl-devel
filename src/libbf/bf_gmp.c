@@ -333,12 +333,14 @@ void
 mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2)
 { mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cnumref(q2));
   mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cdenref(q2));
+  mpq_canonicalize(r);
 }
 
 void
 mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
 { mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cdenref(q2));
   mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cnumref(q2));
+  mpq_canonicalize(r);
 }
 
 
