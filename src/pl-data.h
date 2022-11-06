@@ -215,7 +215,7 @@ and while loading .wic files.  It comes at no price.
 #define isTerm(w)	(tag(w)   == TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_ATOM, B_ATOM, H_SMALLINT, B_SMALLINT */
 
-#ifdef O_GMP
+#if O_BIGNUM
 #define isInteger(w)	( isTaggedInt(w) || \
 			  ((tag(w) == TAG_INTEGER) && !isMPQNum(w)) )
 #else
@@ -349,5 +349,3 @@ static inline Atom	fetchAtomArray(size_t index);
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 #define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
-
-

@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1792,7 +1792,7 @@ LocalFrame structure:
 
 	FR->clause	Point to the ClauseRef struct
 	FR->context	Module argument
-        FR->predicate	getProcDefinition(proc)
+	FR->predicate	getProcDefinition(proc)
 
 Using `local' compilation, all variables are   shared  with the original
 goal-term and therefore initialised. This implies   there  is no need to
@@ -1952,7 +1952,7 @@ that have an I_CONTEXT because we need to reset the context.
 	case SSU_CHOICE_CLAUSE:
 	  Output_0(ci, I_SSU_CHOICE);
 	  break;
-        default:
+	default:
 	  assert(0);
       }
 					/* ok; all live in the same module */
@@ -2521,7 +2521,7 @@ A void.  Generate either B_VOID or H_VOID.
 	if ( n == WORDS_PER_INT64 )
 	{
 #if ( SIZEOF_VOIDP == 8 )
-          int64_t val = *(int64_t*)(p+1);
+	  int64_t val = *(int64_t*)(p+1);
 #else
 	  union
 	  { int64_t i;
@@ -2535,9 +2535,9 @@ A void.  Generate either B_VOID or H_VOID.
 #endif
 
 #if SIZEOF_VOIDP == 8
-          Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
+	  Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 #else
-          if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
+	  if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
 	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 	  } else
 	  { int c = ((where&A_HEAD) ? H_INT64 : B_INT64);
@@ -3202,7 +3202,7 @@ lco(CompileInfo ci, size_t pc0)
       }
       case B_VOID:
 	Output_1(ci, L_VOID, VAROFFSET(oarg));
-        break;
+	break;
       case B_SMALLINT:
       { code a = *s++;
 	Output_2(ci, L_SMALLINT, VAROFFSET(oarg), a);
@@ -3216,7 +3216,7 @@ lco(CompileInfo ci, size_t pc0)
       }
       case B_NIL:
 	Output_1(ci, L_NIL, VAROFFSET(oarg));
-        break;
+	break;
       default:
 	assert(0);
     }
@@ -3987,10 +3987,10 @@ typedef struct type_test
 { functor_t	functor;
   code		instruction;
   const char *  name;
-  int	        (*test)(word);
+  int		(*test)(word);
 } type_test;
 
-#ifdef O_GMP
+#if O_BIGNUM
 static int fisInteger(word w)  { GET_LD return isInteger(w);  }
 #else
 static int fisInteger(word w)  { return isInteger(w);  }
@@ -4212,8 +4212,8 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
       PL_unify_term(t,
 		    PL_FUNCTOR, f,
 		      PL_FUNCTOR, FUNCTOR_prove2,
-		        PL_TERM, head,
-		        PL_TERM, body);
+			PL_TERM, head,
+			PL_TERM, body);
 
     rval = PL_call_predicate(mhead, PL_Q_NORMAL, mhead->hook, t);
 
@@ -4615,7 +4615,7 @@ skipArgs(Code PC, int skip)
       case B_FUNCTOR:
       case B_LIST:
 	nested++;
-        continue;
+	continue;
       case H_RFUNCTOR:
       case H_RLIST:
       case B_RFUNCTOR:
@@ -4625,9 +4625,9 @@ skipArgs(Code PC, int skip)
       case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
-        if ( nested >= 0 )
-          continue;
-        return PC;			/* See (*) */
+	if ( nested >= 0 )
+	  continue;
+	return PC;			/* See (*) */
       case H_ATOM:
       case H_SMALLINT:
       case H_NIL:
@@ -4660,7 +4660,7 @@ skipArgs(Code PC, int skip)
       case B_VOID:
 	if ( nested )
 	  continue;
-        if ( --skip == 0 )
+	if ( --skip == 0 )
 	  return nextPC;
 	continue;
       case H_VOID_N:
@@ -4683,7 +4683,7 @@ skipArgs(Code PC, int skip)
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
-        c = decode(replacedBreak(PC));
+	c = decode(replacedBreak(PC));
 	goto again;
 #endif
       default:
@@ -4717,19 +4717,19 @@ argKey(Code PC, int skip, word *key)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
-        return TRUE;
+	return TRUE;
       case H_ATOM:
       case H_SMALLINT:
 	*key = *PC;
 	return TRUE;
       case H_NIL:
 	*key = ATOM_nil;
-        return TRUE;
+	return TRUE;
       case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
-        return TRUE;
+	return TRUE;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
 	*key = murmur_key(PC, 2*sizeof(*PC));
@@ -4747,7 +4747,7 @@ argKey(Code PC, int skip, word *key)
 	return TRUE;
       case H_FLOAT:
 	*key = murmur_key(PC, sizeof(double));
-        return TRUE;
+	return TRUE;
       case H_STRING:
       case H_MPZ:
       case H_MPQ:
@@ -4778,14 +4778,14 @@ argKey(Code PC, int skip, word *key)
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
-        c = decode(replacedBreak(PC-1));
+	c = decode(replacedBreak(PC-1));
 	goto again;
 #endif
       default:
 	Sdprintf("Unexpected VM code %d at %p\n", c, PC);
 	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
-        fail;
+	fail;
     }
   }
 }
@@ -4809,19 +4809,19 @@ arg1Key(Code PC, word *key)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
-        return TRUE;
+	return TRUE;
       case H_ATOM:
       case H_SMALLINT:
 	*key = *PC;
 	return TRUE;
       case H_NIL:
 	*key = ATOM_nil;
-        return TRUE;
+	return TRUE;
       case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
-        return TRUE;
+	return TRUE;
       case H_INT64:
       case H_INTEGER:
       case H_FLOAT:
@@ -4845,12 +4845,12 @@ arg1Key(Code PC, word *key)
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
-        c = decode(replacedBreak(PC-1));
+	c = decode(replacedBreak(PC-1));
 	goto again;
 #endif
       default:
 	assert(0);
-        fail;
+	fail;
     }
   }
 
@@ -4876,8 +4876,8 @@ clauseBodyContext(const Clause cl)
       switch(op)
       { case I_CONTEXT:
 	  return (Module)PC[1];
-        case I_EXIT:
-        case I_EXITFACT:
+	case I_EXIT:
+	case I_EXITFACT:
 	  assert(0);
 	  break;
       }
@@ -4955,18 +4955,18 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
     switch(c)
     { case B_VAR0:
 	index = 0;
-        break;
+	break;
       case B_VAR1:
 	index = 1;
-        break;
+	break;
       case B_VAR2:
 	index = 2;
-        break;
+	break;
       case B_VAR:
       case H_VAR:
       case B_ARGVAR:
 	index = VARNUM(pc[1]);
-        break;
+	break;
       default:
 	continue;
     }
@@ -5145,7 +5145,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
 				    PL_INT, n,
-			            PL_TERM, di->variables+n) )
+				    PL_TERM, di->variables+n) )
 	fail;
     }
     TRY(PL_unify_nil(tail));
@@ -5228,7 +5228,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 #if O_DEBUGGER
       case D_BREAK:
 	c = decode(replacedBreak(PC-1));
-        goto again;
+	goto again;
 #endif
       case H_NIL:
 	TRY(PL_unify_nil(argp));
@@ -5236,20 +5236,20 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
       case H_STRING:
       case H_MPZ:
       case H_MPQ:
-        { word copy = globalIndirectFromCode(&PC);
+	{ word copy = globalIndirectFromCode(&PC);
 	  if ( !copy || !_PL_unify_atomic(argp, copy) )
 	    return FALSE;
 	  break;
 	}
       case H_INTEGER:
-        { intptr_t *p = (intptr_t*)PC;
+	{ intptr_t *p = (intptr_t*)PC;
 	  intptr_t v = *p++;
 	  PC = (Code)p;
 	  TRY(PL_unify_int64(argp, v));
 	  break;
 	}
       case H_INT64:
-        { Word p = allocGlobal(2+WORDS_PER_INT64);
+	{ Word p = allocGlobal(2+WORDS_PER_INT64);
 	  word w;
 
 	  if ( p )
@@ -5263,7 +5263,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    return FALSE;
 	}
       case H_FLOAT:
-        { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
+	{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 	  word w;
 
 	  if ( p )
@@ -5279,7 +5279,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
       case H_ATOM:
       case H_SMALLINT:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
-          break;
+	  break;
       case H_FIRSTVAR:
       case H_VAR:
 	  TRY(unifyVarGC(valTermRef(argp), di->variables,
@@ -5292,7 +5292,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  break;
 	}
       case H_VOID_N:
-        { int n = (int)*PC++;
+	{ int n = (int)*PC++;
 
 	  while(n-- > 0)
 	  { if ( !pushed )		/* FIRSTVAR in the head */
@@ -5312,14 +5312,14 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  if ( !(t2 = PL_new_term_refs(2)) ||
 	       !PL_unify_compound(argp, fdef) )
 	    return FALSE;
-          get_arg_ref(argp, t2);
+	  get_arg_ref(argp, t2);
 	  assert(t2 == argp+2);
 	  argp = t2;
 	  pushed++;
 	  continue;
       case H_LIST:
 	  fdef = FUNCTOR_dot2;
-          goto common_functor;
+	  goto common_functor;
 	}
       case H_RFUNCTOR:
 	{ functor_t fdef;
@@ -5327,16 +5327,16 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  fdef = (functor_t) XR(*PC++);
       common_rfunctor:
 	  TRY(PL_unify_compound(argp, fdef));
-          get_arg_ref(argp, argp);
+	  get_arg_ref(argp, argp);
 	  continue;
       case H_RLIST:
 	  fdef = FUNCTOR_dot2;
-          goto common_rfunctor;
+	  goto common_rfunctor;
 	}
       case H_POP:
       case B_POP:
 	  PL_reset_term_refs(argp);
-          argp -= 2;
+	  argp -= 2;
 	  pushed--;
 	  break;
       case H_LIST_FF:
@@ -5346,8 +5346,8 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	p = valTermRef(argp);
 	deRef(p);
 	p = argTermP(*p, 0);
-        TRY(unifyVarGC(p+0, di->variables, *PC++) );
-        TRY(unifyVarGC(p+1, di->variables, *PC++) );
+	TRY(unifyVarGC(p+0, di->variables, *PC++) );
+	TRY(unifyVarGC(p+1, di->variables, *PC++) );
 	break;
       }
       case I_EXITCATCH:
@@ -5646,11 +5646,11 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
     switch( op )
     {
 #if O_DEBUGGER
-        case D_BREAK:	    op = decode(replacedBreak(PC-1));
+	case D_BREAK:	    op = decode(replacedBreak(PC-1));
 			    goto again;
 #endif
-        case A_ENTER:
-        case I_NOP:
+	case A_ENTER:
+	case I_NOP:
 	case I_CHP:
 			    continue;
 	case H_ATOM:
@@ -5722,7 +5722,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
 			  }
-        case A_ROUNDTOWARDS_A:
+	case A_ROUNDTOWARDS_A:
 			  { int i = *PC++;
 			    *ARGP++ = float_rounding_name(i);
 			    continue;
@@ -5822,7 +5822,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
-        { int rc;
+	{ int rc;
 	  word w;
 
 	  if ( (rc=put_functor(&w, fdef)) != TRUE )
@@ -5831,12 +5831,12 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 	  pushArgumentStack(ARGP);
 	  ARGP = argTermP(w, 0);
 	}
-        nested++;
+	nested++;
 	continue;
       case H_LIST:
       case B_LIST:
 	fdef = FUNCTOR_dot2;
-        goto common_bfunctor;
+	goto common_bfunctor;
       }
       case H_LIST_FF:
       { size_t v1 = *PC++;
@@ -5873,7 +5873,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
       case H_RLIST:
       case B_RLIST:
 	fdef = FUNCTOR_dot2;
-        goto common_brfunctor;
+	goto common_brfunctor;
       }
       case H_POP:
       case B_POP:
@@ -5938,7 +5938,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 #if O_CATCHTHROW
 	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
 #endif
-        case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
+	case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
 							f_common:
 			    BUILD_TERM(f);
 			    pushed++;
@@ -6150,7 +6150,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			  c_ifthen:
 			    PC++;
 			    TRY_DECOMPILE(di, cut, NULL);     /* A */
-                            PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
+			    PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
 			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
 			    BUILD_TERM(f);
@@ -6802,7 +6802,7 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
     definition_ref *dref;
 
     if ( !get_procedure(p, &proc, 0, GP_FIND) ||
-         true(proc->definition, P_FOREIGN) )
+	 true(proc->definition, P_FOREIGN) )
       return FALSE;
 
     def = getProcDefinition(proc);
@@ -7129,7 +7129,7 @@ unify_vmi(term_t t, Code bp)
 
       switch(ats[an])
       { case CA1_VAR:
-        case CA1_FVAR:
+	case CA1_FVAR:
 	case CA1_CHP:
 	{ int vn =  VARNUM(*bp++);
 
@@ -7240,18 +7240,18 @@ unify_vmi(term_t t, Code bp)
     { case 1:
 	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
 			   PL_TERM, av+0);
-        break;
+	break;
       case 2:
 	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
 			   PL_TERM, av+0, PL_TERM, av+1);
-        break;
+	break;
       case 3:
 	rc = PL_unify_term(t, PL_FUNCTOR_CHARS, ci->name, an,
 			   PL_TERM, av+0, PL_TERM, av+1, PL_TERM, av+2);
-        break;
+	break;
       default:
 	assert(0);
-        rc = FALSE;
+	rc = FALSE;
     }
     if ( !rc )
       return NULL;
@@ -7531,7 +7531,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      switch(ats[an])
 	      {
 #ifdef O_GMP
-	        case CA1_MPZ:
+		case CA1_MPZ:
 		  if ( !isMPQNum(*ap) )
 		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
 		  break;
@@ -7762,7 +7762,7 @@ find_if_then_end(Code PC, Code base)
       }
       case C_NOT:
 	PC = nextpc + PC[2];
-        break;
+	break;
       case C_SOFTIF:
       case C_IFTHENELSE:
       case C_FASTCOND:
@@ -7778,7 +7778,7 @@ find_if_then_end(Code PC, Code base)
       }
       default:
 	PC = nextpc;
-        break;
+	break;
     }
   }
 }
@@ -7895,7 +7895,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	if ( loc == nextpc )
 	{ return PL_unify_nil(tail);
 	}
-        continue;
+	continue;
     { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
       { Code jmploc;
@@ -7967,7 +7967,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       { Code elseloc = nextpc + PC[2];
 	code cut = (op == C_IFTHENELSE ? C_CUT :
 		    op == C_FASTCOND   ? C_FASTCUT :
-		                         C_SOFTCUT);
+					 C_SOFTCUT);
 
 	endloc = elseloc + elseloc[-1];
 
@@ -8041,7 +8041,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       case I_CONTEXT:			/* used to compile m:head :- body */
 	PC = nextpc;
 	add_node(tail, 2);
-        continue;
+	continue;
       case B_UNIFY_FIRSTVAR:		/* child frame ptr after B_UNIFY_EXIT */
       case B_UNIFY_VAR:			/* see also '$break_pc'/3 */
 	do
@@ -8056,17 +8056,17 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	}
 	add_node(tail, 2);
 	PC = nextpc;
-        continue;
+	continue;
       default:
-        if ( loc == nextpc )
+	if ( loc == nextpc )
 	{ add_1_if_not_at_end(nextpc, end, tail);
 
 	  return PL_unify_nil(tail);
 	}
-        if ( codeTable[op].flags & VIF_BREAK )
+	if ( codeTable[op].flags & VIF_BREAK )
 	  add_node(tail, 2);
 	PC = nextpc;
-        continue;
+	continue;
     }
   }
 
@@ -8256,8 +8256,8 @@ clear_second:
 	 PL_unify_clref(cl, clause) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
-		         PL_TERM, cl,
-		         PL_INT, offset) )
+			 PL_TERM, cl,
+			 PL_INT, offset) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_break, brk);
     else
       return FALSE;			/* resource error */
