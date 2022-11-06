@@ -786,7 +786,7 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   p = *store;
   *store += wsize+2+2*MPZ_STACK_EXTRA;
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+2+2*MPZ_STACK_EXTRA, TAG_INTEGER);
+  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
   *p++ = mpq_size_stack(num_neg ? -num_limbsize : num_limbsize);
 #if O_BF
