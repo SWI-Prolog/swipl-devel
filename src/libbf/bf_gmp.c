@@ -202,6 +202,33 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
 }
 
 
+/* r is base**exp % mod */
+
+void
+mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
+{ mpz_t N;
+  mpz_t x;
+
+  mpz_init_set(N, base);
+  mpz_init_set(x, exp);
+  mpz_set_ui(r, 1);
+
+  while ( !bf_is_zero(x) )
+  { if ( mpz_scan1(x, 0) != 0 )	/* can be more efficient */
+    { mpz_mul(r, r, N);
+      mpz_fdiv_r(r, r, mod);
+      mpz_sub_ui(r, r, 1);
+    }
+    mpz_fdiv_q_ui(x, x, 2);
+    mpz_mul(N, N, N);
+    mpz_fdiv_r(N, N, mod);
+  }
+
+  mpz_clear(N);
+  mpz_clear(x);
+}
+
+
 // see https://stackoverflow.com/questions/72659156/convert-double-to-integer-mantissa-and-exponents
 void
 mpq_set_d(mpq_t r, double f)

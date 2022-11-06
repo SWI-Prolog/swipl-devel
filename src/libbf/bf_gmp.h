@@ -124,7 +124,7 @@ mpz_get_si(const mpz_t n)
   return 0;
 }
 
-static inline long
+static inline unsigned long
 mpz_get_ui(const mpz_t n)
 { int64_t nv;
 
@@ -374,7 +374,15 @@ mpz_fdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
 
 static inline void
 mpz_fdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDD);
+{ if ( R == N || R == D )
+  { mpz_t tmp;
+
+    mpz_init(tmp);
+    bf_rem(tmp, N, D, BF_PREC_INF, 0, BF_RNDD);
+    mpz_set(R, tmp);
+    mpz_clear(tmp);
+  } else
+    bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDD);
 }
 
 static inline void
@@ -394,16 +402,41 @@ mpz_fdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
 static inline unsigned long	/* remainder of N/d */
 mpz_fdiv_ui(const mpz_t N, unsigned long d)
 { mpz_t D, Q;
-  bf_t rem;
-  int64_t r;
+  mpz_t rem;
+  unsigned long r;
 
   mpz_init_set_ui(D, d);
   mpz_init(Q);
-  bf_init(&alloc_wrapper.bf_context, &rem);
-  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDD);
-  bf_get_int64(&r, &rem, BF_RNDN);
+  mpz_init(rem);
+  bf_divrem(Q, rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+  r = mpz_get_ui(rem);
   mpz_clear(Q);
-  bf_delete(&rem);
+  mpz_clear(rem);
+
+  return r;
+}
+
+static inline unsigned long	/* remainder of N/d */
+mpz_fdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long d)
+{ mpz_t D, rem;
+  unsigned long r;
+
+  mpz_init_set_ui(D, d);
+  mpz_init(rem);
+
+  if ( Q == N )
+  { mpz_t tmp;
+
+    mpz_init(tmp);
+    bf_divrem(tmp, rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+    mpz_set(Q, tmp);
+    mpz_clear(tmp);
+  } else
+  { bf_divrem(Q, rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+  }
+  r = mpz_get_ui(rem);
+  mpz_clear(rem);
+
   return r;
 }
 
@@ -503,11 +536,7 @@ mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
 
 void	mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y);
 void	mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned long y);
-
-static inline void
-mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
-{ bf_not_implemented("mpz_ui_powm");
-}
+void	mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod);
 
 static inline char *
 mpz_get_str(char *STR, int BASE, const mpz_t OP)
