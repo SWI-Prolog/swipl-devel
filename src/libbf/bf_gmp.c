@@ -14,6 +14,8 @@ bf_print_i(const char *msg, const bf_t *i)
 }
 
 
+/* multiply 'r' by 2^e */
+// shift in place (copied from libbf.c with rounding removed)
 static inline void
 mul_2exp(bf_t *r, slimb_t e)
 {
@@ -29,12 +31,32 @@ mul_2exp(bf_t *r, slimb_t e)
 
 #if STEIN
 
-/* multiply 'r' by 2^e */
-// shift in place (copied from libbf.c with rounding removed)
+/* copied from pl_arith.c */
+static int64_t
+i64_gcd(int64_t a, int64_t b)
+{ int64_t t;
+
+  if ( a == 0 )
+    return b;
+  if ( b == 0 )
+    return a;
+
+  while(b != 0)
+  { t = b;
+    b = a % b;
+    a = t;
+  }
+
+  return a;
+}
+
+#define INT64BITSIZE		(8 * sizeof(int64_t))  // from pl-incl.h
+
 void
 mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 { mpz_t a, b;
   mp_bitcnt_t als1, bls1, k;
+  int64_t a_int, b_int;
 
   if ( bf_is_zero(n1) )
   { mpz_abs(r, n2);
@@ -80,6 +102,13 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 	  mpz_set(b, r);   //           a0-b0 -> b1
 	}
 	break;
+    }
+    if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
+    { bf_get_int64(&a_int, a, BF_RNDN);  // both fit in 64 bit integers
+      bf_get_int64(&b_int, b, BF_RNDN);  // get int64 values
+      a_int = i64_gcd(a_int, b_int);     // and use int64 gcd
+      mpz_set_ui(a, a_int);              // put result in a and b (terminates loop)
+      mpz_set(b, a);
     }
   }
 
