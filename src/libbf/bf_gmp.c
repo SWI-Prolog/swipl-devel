@@ -241,7 +241,10 @@ mpq_set_d(mpq_t r, double f)
   exp -= 53;
   bf_set_si(mpq_numref(r), man);
   bf_set_si(mpq_denref(r), 1);
-  mul_2exp(mpq_denref(r), -exp);
+  if ( exp > 0 )
+    mul_2exp(mpq_numref(r), exp);
+  else
+    mul_2exp(mpq_denref(r), -exp);
 
   mpq_canonicalize(r);
 }
