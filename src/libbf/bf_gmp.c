@@ -524,33 +524,30 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Fill the exponent and len given a bigint represented as a series of
-bytes.  Note that LibBF does not include 0-limbs.
+Fill the  exponent and len given  a bigint represented as  a series of
+bytes.  Note  that LibBF  does not include  0-limbs.  This  implies we
+must compute the number  of bits between the msb and  lsb and round it
+to limbs.  Note that in normalized form the high bit of the first limb
+is always 1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
 { unsigned int i = data[0];
-  size_t  limbs = (len+sizeof(limb_t)-1)/sizeof(limb_t);
-  const unsigned char *ll = data + (len/sizeof(limb_t))*sizeof(limb_t);
-  const unsigned char *end = &data[len-1];
-  int byte = sizeof(limb_t);
+  size_t bits;
+  const unsigned char *d;
 
   r->expn = len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
-  r->len  = limbs;
-  if ( end >= ll )
-  { for(; end >= ll; end-- )
-    { if ( *end )
-	return;				/* last limb non-zero */
+  bits = r->expn;
+  for(d=&data[len-1]; ;d--)
+  { if ( *d )
+    { bits -= __builtin_ffs(*d)-1;
+      break;
     }
-    r->len--;
+    bits -= 8;
   }
-  while(!*end--)
-  { if ( --byte == 0 )
-    { r->len--;
-      byte = sizeof(limb_t);
-    }
-  }
+
+  r->len = (bits+sizeof(limb_t)*8-1)/(sizeof(limb_t)*8);
 
   if ( r->len == 0 )
     r->expn = BF_EXP_ZERO;
