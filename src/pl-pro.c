@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -215,8 +215,8 @@ pl_break1(atom_t goal)
   if ( LD->break_level > 0 )
   { rc = printMessage(ATOM_informational,
 		      PL_FUNCTOR, FUNCTOR_break2,
-		        PL_ATOM, ATOM_begin,
-		        PL_INT,  LD->break_level);
+			PL_ATOM, ATOM_begin,
+			PL_INT,  LD->break_level);
   }
 
   rc = rc && (query_loop(goal, TRUE) == TRUE);
@@ -281,7 +281,7 @@ static
 PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
 { PRED_LD
   int flags = 0;
-  
+
   if ( debugstatus.tracing   ) flags |= NOTRACE_TRACE;
   if ( debugstatus.debugging ) flags |= NOTRACE_DEBUG;
 
@@ -688,15 +688,15 @@ last_arg:
   { assert(!is_marked(p));
     p2 = unRef(*p);
     DEBUG(CHK_HIGHER_ADDRESS,
-          { if ( p2 > p )
-            {
+	  { if ( p2 > p )
+	    {
 #ifdef O_ATTVAR
-              if ( !isAttVar(*p2) )
+	      if ( !isAttVar(*p2) )
 #endif
-                if ( !gc_status.blocked )
-                  printk(context, "Reference to higher address");
-            }
-          });
+		if ( !gc_status.blocked )
+		  printk(context, "Reference to higher address");
+	    }
+	  });
     if ( p2 == p )
       printk(context, "Reference to same address");
     if ( !onLocal(p2) && !onGlobal(p2) )
@@ -783,7 +783,7 @@ last_arg:
       }
       return key + *addressIndirect(*p);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     if ( isMPZNum(*p) )
       return 0x62f8da3c;		/* TBD: make key from MPZ */
     if ( isMPQNum(*p) )
@@ -825,7 +825,7 @@ last_arg:
       printk(context, "Term at %p not on global stack", f);
 
     if ( tag(f->definition) != TAG_ATOM ||
-         storage(f->definition) != STG_GLOBAL )
+	 storage(f->definition) != STG_GLOBAL )
       printk(context, "Illegal functor: %p", *p);
     if ( f->definition & MARK_MASK )
       printk(context, "functor with mark: %p", *p);
@@ -838,9 +838,9 @@ last_arg:
       return key;
     else
       DEBUG(CHK_HIGH_ARITY,
-            { if ( arity > 256 && !is_ht_capacity(arity) )
-                printk(context, "Dubious arity (%d)", arity);
-            });
+	    { if ( arity > 256 && !is_ht_capacity(arity) )
+		printk(context, "Dubious arity (%d)", arity);
+	    });
 
     mark(p);
     for(n=0; n<arity-1; n++)

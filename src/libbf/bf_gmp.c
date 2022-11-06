@@ -202,6 +202,33 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
 }
 
 
+/* r is base**exp % mod */
+
+void
+mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
+{ mpz_t N;
+  mpz_t x;
+
+  mpz_init_set(N, base);
+  mpz_init_set(x, exp);
+  mpz_set_ui(r, 1);
+
+  while ( !bf_is_zero(x) )
+  { if ( mpz_scan1(x, 0) != 0 )	/* can be more efficient */
+    { mpz_mul(r, r, N);
+      mpz_fdiv_r(r, r, mod);
+      mpz_sub_ui(r, r, 1);
+    }
+    mpz_fdiv_q_ui(x, x, 2);
+    mpz_mul(N, N, N);
+    mpz_fdiv_r(N, N, mod);
+  }
+
+  mpz_clear(N);
+  mpz_clear(x);
+}
+
+
 // see https://stackoverflow.com/questions/72659156/convert-double-to-integer-mantissa-and-exponents
 void
 mpq_set_d(mpq_t r, double f)
@@ -306,12 +333,14 @@ void
 mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2)
 { mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cnumref(q2));
   mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cdenref(q2));
+  mpq_canonicalize(r);
 }
 
 void
 mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
 { mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cdenref(q2));
   mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cnumref(q2));
+  mpq_canonicalize(r);
 }
 
 
@@ -524,33 +553,30 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Fill the exponent and len given a bigint represented as a series of
-bytes.  Note that LibBF does not include 0-limbs.
+Fill the  exponent and len given  a bigint represented as  a series of
+bytes.  Note  that LibBF  does not include  0-limbs.  This  implies we
+must compute the number  of bits between the msb and  lsb and round it
+to limbs.  Note that in normalized form the high bit of the first limb
+is always 1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
 { unsigned int i = data[0];
-  size_t  limbs = (len+sizeof(limb_t)-1)/sizeof(limb_t);
-  const unsigned char *ll = data + (len/sizeof(limb_t))*sizeof(limb_t);
-  const unsigned char *end = &data[len-1];
-  int byte = sizeof(limb_t);
+  size_t bits;
+  const unsigned char *d;
 
   r->expn = len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
-  r->len  = limbs;
-  if ( end >= ll )
-  { for(; end >= ll; end-- )
-    { if ( *end )
-	return;				/* last limb non-zero */
+  bits = r->expn;
+  for(d=&data[len-1]; ;d--)
+  { if ( *d )
+    { bits -= __builtin_ffs(*d)-1;
+      break;
     }
-    r->len--;
+    bits -= 8;
   }
-  while(!*end--)
-  { if ( --byte == 0 )
-    { r->len--;
-      byte = sizeof(limb_t);
-    }
-  }
+
+  r->len = (bits+sizeof(limb_t)*8-1)/(sizeof(limb_t)*8);
 
   if ( r->len == 0 )
     r->expn = BF_EXP_ZERO;
