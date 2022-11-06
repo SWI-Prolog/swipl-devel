@@ -1806,7 +1806,7 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
   mpq_init(c);			      /* auxiliary */
   mpz_init(big_xi);                   /* auxiliary */
 
-  while ((mpz_fdiv(pna, pda)) != fabs)
+  while ( mpz_fdiv(pna, pda) != fabs)
   { /* infinite x indicates failure to converge */
     if ( !isfinite(x) )
       goto _bitwise_conversion_;
