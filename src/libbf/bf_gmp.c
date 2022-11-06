@@ -31,7 +31,7 @@ mul_2exp(bf_t *r, slimb_t e)
 
 #if STEIN
 
-/* copied from pl_arith.c */
+/* Copied from pl_arith.c */
 static int64_t
 i64_gcd(int64_t a, int64_t b)
 { int64_t t;
