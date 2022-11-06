@@ -17,6 +17,8 @@ typedef struct mp_alloc_wrapper
 extern mp_alloc_wrapper alloc_wrapper;
 extern void bf_not_implemented(const char *func);
 
+void	bf_print_i(const char *msg, const bf_t *i);
+
 
 		 /*******************************
 		 *	      CONTEXT		*
@@ -231,7 +233,9 @@ mp_bitcnt_t	mpz_scan1(const mpz_t n, mp_bitcnt_t start);
 
 static inline size_t
 mpz_sizeinbase (const mpz_t n, int base)
-{ if ( base == 2 )
+{ if ( bf_is_zero(n) )
+    return 1;
+  if ( base == 2 )
     return n->expn;
   bf_not_implemented("mpz_sizeinbase with base != 2");
   return 0;
