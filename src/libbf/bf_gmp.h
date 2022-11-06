@@ -569,6 +569,7 @@ static inline void
 mpq_init(mpq_t q)
 { bf_init(&alloc_wrapper.bf_context, &q[0]);
   bf_init(&alloc_wrapper.bf_context, &q[1]);
+  bf_set_si(&q[1], 1);
 }
 
 static inline void
