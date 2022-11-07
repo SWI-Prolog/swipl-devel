@@ -4462,9 +4462,27 @@ ar_random(Number n1, Number r)
   {
 #ifdef O_BIGNUM
     case V_INTEGER:
+    {
+#if O_BF
+      int msb = MSB64(n1->value.i);
+      uint64_t mask = ((uint64_t)1<<(msb+1))-1;
+      uint64_t rnd;
+
+      do
+      { rnd = mt_rand_u32(LD->arith.random.state);
+	if ( msb > 32 )
+	  rnd |= (uint64_t)mt_rand_u32(LD->arith.random.state)<<32;
+	rnd &= mask;
+      } while(rnd >= n1->value.i);
+
+      r->type = V_INTEGER;
+      r->value.i = rnd;
+      return TRUE;
+#endif
       promoteToMPZNumber(n1);
       assert(n1->type == V_MPZ);
       /*FALLTHROUGH*/
+    }
     case V_MPZ:
     { r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -4499,12 +4517,18 @@ ar_random_float(Number r)
 
   do
   {
-#ifdef O_BIGNUM
+#if O_GMP
     mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
     r->value.f = mpf_get_d(rop);
     mpf_clear(rop);
+#elif O_BF
+    uint64_t l = mt_rand_u32(LD->arith.random.state);
+    uint64_t h = mt_rand_u32(LD->arith.random.state);
+    uint64_t i = (l<<32) | h;
+
+    r->value.f = (double)i/(double)0xffffffffffffffff;
 #else
     r->value.f = _PL_Random()/(float)UINT64_MAX;
 #endif
