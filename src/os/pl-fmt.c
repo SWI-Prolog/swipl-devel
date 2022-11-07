@@ -1624,6 +1624,13 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       goto bf_print;
     case V_MPQ:
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
+      if ( how == 'f' )		/* we must compensate for the integer */
+      { mpz_t i;
+	mpz_init(i);
+	mpz_set_q(i, f->value.mpq);
+	prec += mpz_sizeinbase(i, 2);
+	mpz_clear(i);
+      }
       mpz_init(n);
       bf_div(n, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq), prec, BF_RNDN);
     bf_print:
