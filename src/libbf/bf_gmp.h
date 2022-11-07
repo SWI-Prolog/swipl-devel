@@ -415,6 +415,7 @@ mpz_fdiv_ui(const mpz_t N, unsigned long d)
   bf_divrem(Q, rem, N, D, BF_PREC_INF, 0, BF_RNDD);
   r = mpz_get_ui(rem);
   mpz_clear(Q);
+  mpz_clear(D);
   mpz_clear(rem);
 
   return r;
@@ -440,6 +441,7 @@ mpz_fdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long d)
   }
   r = mpz_get_ui(rem);
   mpz_clear(rem);
+  mpz_clear(D);
 
   return r;
 }
@@ -555,7 +557,7 @@ mpz_get_str(char *STR, int BASE, const mpz_t OP)
 
   char *s = bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC);
   strcpy(STR, s);
-//  free(s);
+  bf_free(op->ctx, s);
 
   return STR;
 }

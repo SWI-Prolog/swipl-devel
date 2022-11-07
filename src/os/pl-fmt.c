@@ -1661,7 +1661,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	return NULL;
       }
       strcpy(baseBuffer(out, char), s);
-      free(s);
+      bf_free(n->ctx, s);
       if ( upcase )
       { char *exp = strchr(baseBuffer(out, char), 'e');
 	if ( exp )
