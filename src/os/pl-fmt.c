@@ -1623,7 +1623,10 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       mpz_set(n, f->value.mpz);
       goto bf_print;
     case V_MPQ:
+    { bf_flags_t flags;
+      int upcase;
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
+      
       if ( how == 'f' )		/* we must compensate for the integer */
       { mpz_t i;
 	mpz_init(i);
@@ -1634,8 +1637,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       mpz_init(n);
       bf_div(n, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq), prec, BF_RNDN);
     bf_print:
-      bf_flags_t flags;
-      int upcase = FALSE;
+      upcase = FALSE;
       switch(how)
       { case 'f':
 	  flags = BF_FTOA_FORMAT_FRAC;
@@ -1652,6 +1654,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  flags = BF_FTOA_FORMAT_FREE;
 	  break;
 	default:
+	  flags = 0;
 	  assert(0);
       }
       size_t size;
@@ -1669,6 +1672,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       }
       mpz_clear(n);
       break;
+    }
   }
 #endif /* O_GMP OR O_BF */
     case V_INTEGER:
