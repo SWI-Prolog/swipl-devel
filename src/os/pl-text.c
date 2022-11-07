@@ -42,6 +42,7 @@
 #include "../pl-write.h"
 #include <errno.h>
 #include <stdio.h>
+#include <math.h>
 #if HAVE_LIMITS_H
 #include <limits.h>			/* solaris compatibility */
 #endif

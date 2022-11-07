@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2005-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -70,7 +70,7 @@ void	cpNumber(Number to, Number from);
 #include <gmp.h>
 
 #define MPZ_ON_STACK(n)		(!((n)->_mp_alloc))
-#define MPZ_SET_READONLY(n)	((n)->_mp_alloc = NULL)
+#define MPZ_SET_READONLY(n)	((n)->_mp_alloc = 0)
 #define MPZ_LIMB_SIZE(n)	((n)->_mp_size)
 #define MPZ_LIMBS(n)		((n)->_mp_d)
 #define MPZ_STACK_EXTRA		(1)

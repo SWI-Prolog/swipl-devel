@@ -249,14 +249,32 @@ isascii(int c)				/* missing from gmp.lib */
 		 *	STACK MANAGEMENT	*
 		 *******************************/
 
-#if O_GMP
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 An MPZ number on the stack is represented as:
 
   - Indirect Header
   - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+if O_BF
+  - exponent
+endif
   - Limbs
   - Indirect Header
+
+An MPQ number on the stack is represented as:
+  - Indirect Header
+  - Size numerator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size denominator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+if O_BF
+  - exponent numerator
+  - exponent denominator
+endif
+  - Limbs numerator
+  - Limbs denominator
+  - Indirect Header
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+#if O_GMP
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 mpz_wsize() returns the size needed to stores the limbs on the stack and
@@ -978,13 +996,13 @@ ensureWritableNumber(Number n)
 	break;
       }
     case V_MPQ:
-    { if ( MPZ_ON_STACK(n->value.mpq) )
+    { if ( MPZ_ON_STACK(mpq_numref(n->value.mpq)) )
       { mpz_t tmp;
 
 	tmp[0] = mpq_numref(n->value.mpq)[0];
 	mpz_init_set(mpq_numref(n->value.mpq), tmp);
       }
-      if ( MPZ_ON_STACK(n->value.mpq) )
+	if ( MPZ_ON_STACK(mpq_denref(n->value.mpq)) )
       { mpz_t tmp;
 
 	tmp[0] = mpq_denref(n->value.mpq)[0];
