@@ -868,19 +868,25 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 #endif
 }
 
+#endif /*O_GMP*/
 
 static void
 mpz_init_set_uint64(mpz_t mpz, uint64_t i)
 {
+#if O_GMP
 #if SIZEOF_LONG == 8
   mpz_init_set_ui(mpz, (unsigned long)i);
 #else
   mpz_init(mpz);
   mpz_import(mpz, sizeof(i), ORDER, 1, 0, 0, &i);
 #endif
+#elif O_BF
+  mpz_init(mpz);
+  bf_set_ui(mpz, i);
+#else
+#error "No implementation for mpz_init_set_uint64()"
+#endif
 }
-#endif /*O_GMP*/
-
 
 static void
 mpz_init_max_uint(mpz_t mpz, int bits)
@@ -1225,7 +1231,7 @@ put_uint64(DECL_LD Word at, uint64_t l, int flags)
   { return put_int64(at, l, flags);
   } else
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     mpz_t mpz;
 
     mpz_init_set_uint64(mpz, l);
