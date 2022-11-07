@@ -17,11 +17,20 @@ option(USE_SIGNALS
        "Enable signal handling"
        ON)
 option(USE_GMP
-       "Use GNU MP Bignum library (GPL)"
+       "Use GNU MP Bignum library (LGPL)"
        OFF)
+if(USE_GMP)
+  set(DEFAULT_USE_LIBBF OFF)
+else()
+  set(DEFAULT_USE_LIBBF ON)
+endif()
 option(USE_LIBBF
        "Use LibBF for bignums (MIT)"
-       ON)
+       ${DEFAULT_USE_LIBBF})
+if(USE_GMP AND USE_LIBBF)
+  message(WARNING "Cannot use both libGMP and LibBF; using LibBF")
+  set(USE_GMP OFF)
+endif()
 if(APPLE)
 # tcmalloc breaks setlocale() on MacOS 12 (Monterey)
 option(USE_TCMALLOC

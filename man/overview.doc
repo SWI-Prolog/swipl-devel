@@ -1583,7 +1583,10 @@ details from a normal trace.%
 
     \prologflagitem{gmp_version}{integer}{r}
 If Prolog is linked with GMP, this flag gives the major version of the
-GMP library used.  See also \secref{gmpforeign}.
+GMP library used.  See also \secref{gmpforeign}.  This flag is not present
+when linked to \href{https://bellard.org/libbf/}{LibBF}.  Use non-existence
+of the Prolog flag \prologflag{bounded} to test for big integer and rational
+number support.
 
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.

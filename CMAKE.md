@@ -98,7 +98,7 @@ and libraries that are built.
   | ----------------------------- | ------------------------------------- |
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads       |
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
-  | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers      |
+  | `-DUSE_GMP=ON`                | Use GMP instead of bundled LibBF      |
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
   | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
