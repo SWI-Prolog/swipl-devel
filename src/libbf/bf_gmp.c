@@ -608,10 +608,20 @@ is always 1.
 
 void
 bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
-{ unsigned int i = data[0];
-  size_t bits;
+{ size_t bits;
   const unsigned char *d;
 
+  while( len > 0 && *data == 0 )
+  { len--;
+    data++;
+  }
+  if ( len == 0 )
+  { r->len = 0;
+    r->expn = BF_EXP_ZERO;
+    return;
+  }
+
+  unsigned int i = data[0];
   r->expn = len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
   bits = r->expn;
   for(d=&data[len-1]; ;d--)
@@ -623,9 +633,6 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
   }
 
   r->len = (bits+sizeof(limb_t)*8-1)/(sizeof(limb_t)*8);
-
-  if ( r->len == 0 )
-    r->expn = BF_EXP_ZERO;
 }
 
 void
