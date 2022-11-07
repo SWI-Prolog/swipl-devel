@@ -1429,7 +1429,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 	print_mpz_f:
 
-	  if (mpz_cmp_ui(t1, 0) != 0)
+	  if ( mpz_sgn(t1) != 0 )
 	  { size = mpz_sizeinbase(t1, 2) * log(10)/log(2) * 1.2 + 1;
 	    if ( !growBuffer(out, size) )
 	    { PL_no_memory();
@@ -1626,7 +1626,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     { bf_flags_t flags;
       int upcase;
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
-      
+
       if ( how == 'f' )		/* we must compensate for the integer */
       { mpz_t i;
 	mpz_init(i);

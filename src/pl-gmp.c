@@ -1759,7 +1759,7 @@ mpz_fdiv(mpz_t a, mpz_t b)
   { case FE_TONEAREST:
       if ( mpz_tstbit(aa, 0) == 0 )
       {
-      } else if (mpz_cmp_ui(bb, 0) != 0)
+      } else if ( mpz_sgn(bb) != 0 )
       { if ( mpz_sgn(aa) > 0 )
 	  mpz_add_ui(aa, aa, 1);
 	else
@@ -1779,11 +1779,11 @@ mpz_fdiv(mpz_t a, mpz_t b)
       }
       break;
     case FE_UPWARD:        // negative aa defers to truncate (mpz_get_d)
-      if (mpz_sgn(aa) > 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+      if (mpz_sgn(aa) > 0 && (mpz_sgn(bb) != 0 || mpz_tstbit(aa, 0) == 1))
 	mpz_add_ui(aa, aa, 2);
       break;
     case FE_DOWNWARD:      // positive aa defers to truncate (mpz_get_d)
-      if (mpz_sgn(aa) < 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+      if (mpz_sgn(aa) < 0 && (mpz_sgn(bb) != 0 || mpz_tstbit(aa, 0) == 1))
 	mpz_sub_ui(aa, aa, 2);
       break;
     case FE_TOWARDZERO:    // truncation performed by mpz_get_d
