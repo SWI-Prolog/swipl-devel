@@ -271,6 +271,7 @@
 #cmakedefine SIZEOF_WINT_T @SIZEOF_WINT_T@
 #cmakedefine HAVE_SIZEOF_OFF_T @HAVE_SIZEOF_OFF_T@
 #cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
+#cmakedefine HAVE_INT128 @HAVE_INT128@
 #cmakedefine SO_EXT "@SO_EXT@"
 #cmakedefine SO_LD @SO_LD@
 #cmakedefine SO_LDFLAGS @SO_LDFLAGS@

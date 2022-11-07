@@ -23,12 +23,12 @@
  */
 #ifndef LIBBF_H
 #define LIBBF_H
+#include <config.h>
 
 #include <stddef.h>
 #include <stdint.h>
 
-//TBD: Must check support for int128_t
-#if 1 // defined(__x86_64__)
+#ifdef HAVE_INT128
 #define LIMB_LOG2_BITS 6
 #else
 #define LIMB_LOG2_BITS 5
