@@ -239,7 +239,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
       }
 #ifdef O_BIGNUM
       case V_MPZ:
-      { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;
+      { size_t sz = (double)mpz_sizeinbase(n.value.mpz, 2)*log(10)/log(2)*1.2 + 2;
 	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
