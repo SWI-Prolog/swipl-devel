@@ -659,7 +659,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
       { byte =  sizeof(limb_t)-1;
 	if ( shift )
 	{ l <<= shift;
-	  if ( bytes >= 0 )
+	  if ( bytes > 0 )
 	    l |= (data[0] >> (8-shift))&mask;
 	}
 	*lt = l;
