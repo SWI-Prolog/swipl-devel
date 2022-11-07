@@ -1123,6 +1123,54 @@ cleanupGMP(void)
   }
 }
 
+		 /*******************************
+		 *	     INDEXING		*
+		 *******************************/
+
+/* given a pointer to the indirect header of an integer, return a hash
+   as used  for clause indexing.   If the integer  is huge, we  do not
+   want to use the whole thing.   Instead, we pick the dimensions, the
+   first two and last limb of the content.
+ */
+
+word
+bignum_index(const word *p)
+{ word m = *p++;
+  size_t n = wsizeofInd(m);
+
+  if ( n <= KEY_INDEX_MAX )
+  { return murmur_key(p, n*sizeof(*p));
+  } else if ( (p[0]&MP_RAT_MASK) )
+  { word data[4];
+#if O_GMP
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4);
+    data[1] = p[2];
+    data[2] = p[3];
+#elif O_BF
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4)^p[2]^p[3]<<(sizeof(p[0])*4);
+    data[1] = p[4];
+    data[2] = p[5];
+#endif
+    data[3] = p[n-1];
+    return murmur_key(data, sizeof(data));
+  } else
+  { word data[4];
+#if O_GMP
+    data[0] = p[0];
+    data[1] = p[1];
+    data[2] = p[2];
+#elif O_BF
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4);
+    data[1] = p[2];
+    data[2] = p[3];
+#else
+#error("No GMP or BF")
+#endif
+    data[3] = p[n-1];
+    return murmur_key(data, sizeof(data));
+  }
+}
+
 
 		 /*******************************
 		 *	   NUMBER HANDLING      *

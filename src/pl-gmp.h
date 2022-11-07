@@ -110,6 +110,7 @@ void	mpz_init_set_si64(mpz_t mpz, int64_t i);
 double	mpz_to_double(mpz_t n);
 double	mpq_to_double(mpq_t q);
 void	mpq_set_double(mpq_t q, double f);
+word	bignum_index(const word *p);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)

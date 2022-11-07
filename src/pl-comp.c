@@ -4749,14 +4749,18 @@ argKey(Code PC, int skip, word *key)
 	*key = murmur_key(PC, sizeof(double));
 	return TRUE;
       case H_STRING:
-      case H_MPZ:
-      case H_MPQ:
       { word m = *PC++;
 	size_t n = wsizeofInd(m);
 
 	*key = murmur_key(PC, n*sizeof(*PC));
 	return TRUE;
       }
+#if O_BIGNUM
+      case H_MPZ:
+      case H_MPQ:
+	*key = bignum_index((Word)PC);
+	return TRUE;
+#endif
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
