@@ -3741,7 +3741,7 @@ ar_getbit(Number I, Number K, Number r)
     case V_MPZ:
       if ( mpz_sgn(K->value.mpz) < 0 )
 	return notLessThanZero("bit", 2, K);
-      if ( mpz_cmp_ui(K->value.mpz, MP_BITCNT_T_MAX) > 0 )
+      if ( mpz_cmp_ui(K->value.mpz, LONG_MAX) > 0 )
 	goto too_large;
       bit = mpz_get_ui(K->value.mpz);
       break;
