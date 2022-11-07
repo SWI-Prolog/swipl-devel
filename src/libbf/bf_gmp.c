@@ -231,7 +231,11 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
 }
 
 
-/* r is base**exp % mod */
+/* r is base**exp % mod
+
+   This is a simple implementation that merely keeps the operant sizes small
+   by performing the modulo during the computation.
+*/
 
 void
 mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
@@ -243,10 +247,10 @@ mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
   mpz_set_ui(r, 1);
 
   while ( !bf_is_zero(x) )
-  { if ( mpz_scan1(x, 0) != 0 )	/* can be more efficient */
+  { if ( mpz_scan1(x, 0) == 0 )	/* can be more efficient */
     { mpz_mul(r, r, N);
       mpz_fdiv_r(r, r, mod);
-      mpz_sub_ui(r, r, 1);
+      mpz_sub_ui(x, x, 1);
     }
     mpz_fdiv_q_ui(x, x, 2);
     mpz_mul(N, N, N);
