@@ -3,7 +3,11 @@
 
 #include "bf_gmp_types.h"
 #include <math.h>
+#ifdef NO_ASSERT_H
+#define assert(c) (void)0
+#else
 #include <assert.h>
+#endif
 
 typedef void *(*mp_malloc_t)(size_t);
 typedef void *(*mp_realloc_t)(void *, size_t old, size_t newsize);
