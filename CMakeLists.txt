@@ -18,7 +18,7 @@ option(USE_SIGNALS
        ON)
 option(USE_GMP
        "Use GNU MP Bignum library (LGPL)"
-       OFF)
+       ON)
 if(USE_GMP)
   set(DEFAULT_USE_LIBBF OFF)
 else()
