@@ -2207,6 +2207,35 @@ mpz_set_num(mpz_t mpz, Number n)
   }
 }
 
+static int
+bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
+{ if ( mpz_sgn(base) == 0 )
+    mpz_set_ui(r, 0);
+  else if ( mpz_cmp_ui(base, 1) == 0 )
+    mpz_set_ui(r, 1);
+  else if ( exp == 0 )
+    mpz_set_ui(r, 1);
+  else
+  { int64_t r_bits;
+    size_t base_bits = mpz_sizeinbase(base, 2);
+
+    if ( mul64(base_bits, exp, &r_bits) )
+    { if ( r_bits > 10000 )
+      { GET_LD
+
+	if ( r_bits/8 > (int64_t)globalStackLimit() )
+	  return int_too_big();
+      }
+    } else
+      return int_too_big();
+
+    mpz_pow_ui(r, base, exp);
+  }
+
+  return TRUE;
+}
+
+
 #endif /*O_BIGNUM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2470,10 +2499,8 @@ ar_pow(Number n1, Number n2, Number r)
       clearNumber(&ndp);
 
       return check_mpq(r);
-    }
-
-    clearNumber(&nrp);
-    clearNumber(&ndp);
+    } else
+      return FALSE;
   } /* end MPQ^int */
 
   if ( n2->type == V_MPQ )			/* X ^ rat */
@@ -2503,30 +2530,26 @@ ar_pow(Number n1, Number n2, Number r)
 	}
 
 	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
-	{ unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+	{ uint64_t r_num;
 
-	  if ( r_num > LONG_MAX )	/* numerator exceeds mpz_pow_ui range */
-	  { mpz_clear(r->value.mpz);
-	    if ( promoteToFloatNumber(n1) )
-	      goto doreal_mpq;
-	    else return FALSE;
+	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) )
+	    return int_too_big();
+	  if ( !bn_pow_ui(r->value.mpz,r->value.mpz,r_num) )
+	    return FALSE;
+
+	  if (exp_sign == -1)		/* create mpq=1/r->value */
+	  { mpz_t tempz;
+
+	    mpz_init_set(tempz,r->value.mpz);
+	    mpz_clear(r->value.mpz);
+	    r->type = V_MPQ;
+	    mpq_init(r->value.mpq);
+	    mpq_set_z(r->value.mpq,tempz);
+	    mpq_inv(r->value.mpq,r->value.mpq);
+	    mpz_clear(tempz);
+	    return check_mpq(r);
 	  } else
-	  { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
-
-	    if (exp_sign == -1)		/* create mpq=1/r->value */
-	    { mpz_t tempz;
-
-	      mpz_init_set(tempz,r->value.mpz);
-	      mpz_clear(r->value.mpz);
-	      r->type = V_MPQ;
-	      mpq_init(r->value.mpq);
-	      mpq_set_z(r->value.mpq,tempz);
-	      mpq_inv(r->value.mpq,r->value.mpq);
-	      mpz_clear(tempz);
-	      return check_mpq(r);
-	    } else
-	    { return TRUE;
-	    }
+	  { return TRUE;
 	  }
 	} else				/* root inexact */
 	{ mpz_clear(r->value.mpz);
@@ -2538,7 +2561,6 @@ ar_pow(Number n1, Number n2, Number r)
       }
       case V_MPQ:
       { int rat_result;
-	unsigned long r_num;
 
 	r->type = V_MPQ;
 	mpq_init(r->value.mpq);
@@ -2558,10 +2580,14 @@ ar_pow(Number n1, Number n2, Number r)
 				mpq_denref(r->value.mpq),r_den)
 		     );
 
-	r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
-	if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
-	{ mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
-	  mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+	if ( rat_result )
+	{ uint64_t r_num;
+
+	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) )
+	    return int_too_big();
+	  if ( !bn_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num) ||
+	       !bn_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num) )
+	    return FALSE;
 
 	  if ( exp_sign == -1 )
 	    mpq_inv(r->value.mpq,r->value.mpq);
