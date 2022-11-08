@@ -565,10 +565,19 @@ mpz_com(mpz_t r, const mpz_t n)
 }
 
 
+/* OP is rop**n + rem */
+
 void
 mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
 { mpz_t cn, nxt, x, tmp;
   const MP_INT *op;
+
+  if ( mpz_sizeinbase(OP, 2) < n )
+  { mpz_sub_ui(rem, OP, 1);
+    mpz_set_ui(rop, 1);
+
+    return;
+  }
 
   if ( rop == OP )
   { mpz_init_set(tmp, OP);
