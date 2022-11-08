@@ -108,48 +108,32 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   // gcd is always positive
   mpz_abs(a, n1);
   mpz_abs(b, n2);
-  int d = 0;
 
-  while (mpz_cmp(a, b) != 0)
-  { als1 = mpz_scan1(a, 0);
-    bls1 = mpz_scan1(b, 0);
-
-    switch ((als1 == 0)*2 +(bls1 == 0))
-    { case 0: // both even
-	k = -bf_min(als1,bls1);
-	mul_2exp(a, k);
-	mul_2exp(b, k);
-	d = d-k;  // add offset (k is negative)
-	break;
-      case 1: // a even, b odd
-	mul_2exp(a, -als1);
-	break;
-      case 2: // a odd, b even
-	mul_2exp(b, -bls1);
-	break;
-      case 3: // both odd, use r as temporary for swapping
-	mpz_sub(r, a, b);
-	if (r->sign)
-	{ mpz_swap(b, a);  // a < b --> a0    -> b1
-	  bf_neg(r);
-	  mpz_set(a, r);   //           b0-a0 -> a1
-	} else
-	{ mpz_swap(a, b);  // a > b --> b0    -> a1
-	  mpz_set(b, r);   //           a0-b0 -> b1
-	}
-	break;
-    }
+  als1 = mpz_scan1(a, 0); mul_2exp(a, -als1);
+  bls1 = mpz_scan1(b, 0); mul_2exp(b, -bls1);
+  k = bf_min(als1,bls1);
+ 
+  while (1)
+  { // a and b are odd at start of loop
     if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
-    { bf_get_int64(&a_int, a, BF_RNDN);  // both fit in 64 bit integers
-      bf_get_int64(&b_int, b, BF_RNDN);  // get int64 values
-      a_int = i64_gcd(a_int, b_int);     // and use int64 gcd
-      mpz_set_ui(a, a_int);              // put result in a and b (terminates loop)
-      mpz_set(b, a);
+    { bf_get_int64(&a_int, a, BF_RNDN);      // both fit in 64 bit integers
+      bf_get_int64(&b_int, b, BF_RNDN);      // get int64 values
+      mpz_set_ui(r, i64_gcd(a_int, b_int));  // and use int64 gcd
+      break;
     }
-  }
+    mpz_sub(r,a,b);     // a-b -> r is now even, b still odd
+    if ( bf_is_zero(r) )
+    { mpz_swap(r, a);   // a==b, a -> r, we're done
+      break;
+    } else if (r->sign ==1)  // test a<b
+    { mpz_swap(b, a);    // a -> b
+      bf_neg(r);         // |a-b| -> r
+    }
+    mpz_swap(a, r);   // |a-b| -> a
+    als1 = mpz_scan1(a, 0); mul_2exp(a, -als1);  // make a odd again
+  } 
 
-  mul_2exp(a, d);   // a==b, so we're done, a*2^d -> r
-  mpz_set(r, a);
+  mul_2exp(r, k);     // r*2^d -> r
   mpz_clear(a);
   mpz_clear(b);
 }
