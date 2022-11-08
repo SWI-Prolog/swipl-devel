@@ -2207,6 +2207,8 @@ mpz_set_num(mpz_t mpz, Number n)
   }
 }
 
+/* Returns 0 on success, -1 on overflow */
+
 static int
 bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
 { if ( mpz_sgn(base) == 0 )
@@ -2224,15 +2226,15 @@ bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
       { GET_LD
 
 	if ( r_bits/8 > (int64_t)globalStackLimit() )
-	  return int_too_big();
+	  return -1;
       }
     } else
-      return int_too_big();
+      return -1;
 
     mpz_pow_ui(r, base, exp);
   }
 
-  return TRUE;
+  return 0;
 }
 
 
@@ -2504,12 +2506,22 @@ ar_pow(Number n1, Number n2, Number r)
   } /* end MPQ^int */
 
   if ( n2->type == V_MPQ )			/* X ^ rat */
-  { long r_den;
+  { uint64_t r_den;
 
     if ( exp_sign == -1 )
       mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
 
-    r_den = mpz_get_ui(mpq_denref(n2->value.mpq));
+    if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) )
+    {
+    maybe_real_mpq:
+      GET_LD
+      if ( LD->arith.rat.max_rational_size_action )
+      { if ( promoteToFloatNumber(n1) )
+	  goto doreal_mpq;
+	return FALSE;		/* float overflow */
+      }
+      return int_too_big();	/* Stack overflow */
+    }
 
     switch (n1->type)
     { case V_INTEGER:
@@ -2532,10 +2544,9 @@ ar_pow(Number n1, Number n2, Number r)
 	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
 	{ uint64_t r_num;
 
-	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) )
-	    return int_too_big();
-	  if ( !bn_pow_ui(r->value.mpz,r->value.mpz,r_num) )
-	    return FALSE;
+	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) ||
+	       bn_pow_ui(r->value.mpz,r->value.mpz,r_num) )
+	    goto maybe_real_mpq;
 
 	  if (exp_sign == -1)		/* create mpq=1/r->value */
 	  { mpz_t tempz;
@@ -2553,10 +2564,9 @@ ar_pow(Number n1, Number n2, Number r)
 	  }
 	} else				/* root inexact */
 	{ mpz_clear(r->value.mpz);
-	  if ( promoteToFloatNumber(n1) )
-	    goto doreal_mpq;
-	  else return FALSE;
+	  goto maybe_real_mpq;
 	}
+
 	break;
       }
       case V_MPQ:
@@ -2583,11 +2593,10 @@ ar_pow(Number n1, Number n2, Number r)
 	if ( rat_result )
 	{ uint64_t r_num;
 
-	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) )
-	    return int_too_big();
-	  if ( !bn_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num) ||
-	       !bn_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num) )
-	    return FALSE;
+	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) ||
+	       bn_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num) ||
+	       bn_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num) )
+	    goto maybe_real_mpq;
 
 	  if ( exp_sign == -1 )
 	    mpq_inv(r->value.mpq,r->value.mpq);
@@ -2596,10 +2605,7 @@ ar_pow(Number n1, Number n2, Number r)
 	} else				/* exponent out of range for mpz_pow_ui */
 	{ mpq_clear(r->value.mpq);
 
-	  if ( promoteToFloatNumber(n1) )
-	    goto doreal_mpq;
-	  else
-	    return FALSE;
+	  goto maybe_real_mpq;
 	}
 	assert(0);
       }
