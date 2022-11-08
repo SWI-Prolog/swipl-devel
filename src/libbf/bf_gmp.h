@@ -752,7 +752,7 @@ gmp_randclear(gmp_randstate_t state)
 { (void) state;
 }
 
-void	bf_set_randstate(gmp_randstate_t state, const mpz_t n);
+int	bf_set_randstate(gmp_randstate_t state, const mpz_t n);
 void	bf_get_randstate(mpz_t n, const gmp_randstate_t state);
 
 int	gmp_snprintf(char *BUF, size_t SIZE, const char *FMT, ...);

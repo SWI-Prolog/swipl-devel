@@ -4418,6 +4418,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 #ifdef O_RANDOM_STATE
     } else if ( name == ATOM_state )
     { number n;
+      int rc = TRUE;
 
       if ( !PL_get_number(arg, &n) ||
 	   n.type != V_MPZ )
@@ -4426,11 +4427,12 @@ PRED_IMPL("set_random", 1, set_random, 0)
 #if O_GMP
       mpz_set(LD->arith.random.state[0]._mp_seed, n.value.mpz);
 #elif O_BF
-      bf_set_randstate(LD->arith.random.state, n.value.mpz);
+      if ( bf_set_randstate(LD->arith.random.state, n.value.mpz) )
+	rc = PL_domain_error("random_state", arg);
 #endif
       clearNumber(&n);
 
-      return TRUE;
+      return rc;
 #endif /*O_BIGNUM*/
     } else
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);

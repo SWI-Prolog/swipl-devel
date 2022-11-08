@@ -463,20 +463,31 @@ mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
   }
 }
 
-void
+#ifndef offsetof
+#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
+#endif
+
+int
 bf_set_randstate(gmp_randstate_t state, const mpz_t n)
-{ size_t bytes = (mpz_sizeinbase(n, 2)+7)/8;
+{ size_t size = offsetof(MTState, MT_TEMPERED);
+  size_t bytes = (mpz_sizeinbase(n, 2)+7)/8;
   size_t count;
 
-  memset(state, 0, sizeof(state[0]));
-  mpz_export((unsigned char*)state+sizeof(state[0])-bytes,
-	     &count, 1, 1, 1, 0, n);
+  if ( bytes != size )
+    return -1;
+
+  mpz_export((unsigned char*)state, &count, 1, 1, 1, 0, n);
   assert(count == bytes);
+
+  mt_temper(state);
+  return 0;
 }
 
 void
 bf_get_randstate(mpz_t n, const gmp_randstate_t state)
-{ mpz_import(n, sizeof(state[0]), 1, 1, 1, 0, state);
+{ size_t size = offsetof(MTState, MT_TEMPERED);
+
+  mpz_import(n, size, 1, 1, 1, 0, state);
 }
 
 

@@ -25,9 +25,10 @@
 #define MT_PERIOD 397
 
 typedef struct MTState {
+  unsigned int mark;
+  unsigned int index;
   uint32_t MT[MT_SIZE];
   uint32_t MT_TEMPERED[MT_SIZE];
-  size_t index;
 } MTState;
 
 /*
@@ -39,5 +40,7 @@ uint32_t mt_rand_u32(MTState *state);
  * Initialize Mersenne Twister with given seed value.
  */
 void mt_randseed(MTState *state, const uint32_t *data, size_t len);
+
+void mt_temper(MTState *state);
 
 #endif // MERSENNE_TWISTER_H

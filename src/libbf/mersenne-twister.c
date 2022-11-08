@@ -37,6 +37,21 @@
   state->MT[i] = state->MT[expr] ^ (y >> 1) ^ ((((int32_t)(y) << 31) >> 31) & MAGIC); \
   ++i;
 
+void
+mt_temper(MTState *state)
+{ uint32_t y;
+
+// Temper all numbers in a batch
+  for (size_t i = 0; i < MT_SIZE; ++i) {
+    y = state->MT[i];
+    y ^= y >> 11;
+    y ^= y << 7  & 0x9d2c5680;
+    y ^= y << 15 & 0xefc60000;
+    y ^= y >> 18;
+    state->MT_TEMPERED[i] = y;
+  }
+}
+
 static void
 generate_numbers(MTState *state)
 {
@@ -91,15 +106,7 @@ generate_numbers(MTState *state)
 	  31) & MAGIC);
   }
 
-  // Temper all numbers in a batch
-  for (size_t i = 0; i < MT_SIZE; ++i) {
-    y = state->MT[i];
-    y ^= y >> 11;
-    y ^= y << 7  & 0x9d2c5680;
-    y ^= y << 15 & 0xefc60000;
-    y ^= y >> 18;
-    state->MT_TEMPERED[i] = y;
-  }
+  mt_temper(state);
 
   state->index = 0;
 }
@@ -138,6 +145,7 @@ mt_randseed(MTState *state, const uint32_t *data, size_t len)
    * masking with 0xFFFFFFFF below.
    */
 
+  state->mark  = ~0;		/* so we have no leading zeros, simplifying saving the state */
   state->index = MT_SIZE;
 
   int i;
