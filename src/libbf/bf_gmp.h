@@ -70,9 +70,8 @@ mpz_init_set_si(mpz_t r, long n)
 
 static inline void
 mpz_init_set_ui(mpz_t r, unsigned long n)
-{ assert((int64_t)n >= 0);
-  bf_init(&alloc_wrapper.bf_context, r);
-  bf_set_si(r, n);
+{ bf_init(&alloc_wrapper.bf_context, r);
+  bf_set_ui(r, n);
 }
 
 static inline void
@@ -89,8 +88,7 @@ mpz_set(mpz_t r, const mpz_t n)
 
 static inline void
 mpz_set_ui(mpz_t r, unsigned long n)
-{ assert((int64_t)n >= 0);
-  bf_set_si(r, n);
+{ bf_set_ui(r, n);
 }
 
 static inline void
@@ -132,13 +130,10 @@ mpz_get_si(const mpz_t n)
 
 static inline unsigned long
 mpz_get_ui(const mpz_t n)
-{ int64_t nv;
+{ int64_t v;
 
-  if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
-  { if ( nv < 0 )
-      nv = -nv;
-    return nv;
-  }
+  if ( bf_get_int64(&v, n, BF_RNDZ|BF_GET_INT_MOD) == 0 )
+    return (unsigned long)v;
 
   assert(0);				/* TBD: return least significant bits */
   return 0;
