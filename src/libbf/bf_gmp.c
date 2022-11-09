@@ -109,11 +109,26 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   mpz_abs(a, n1);
   mpz_abs(b, n2);
 
-  als1 = mpz_scan1(a, 0); mul_2exp(a, -als1);
-  bls1 = mpz_scan1(b, 0); mul_2exp(b, -bls1);
+  while ( llabs(a->expn - b->expn) > 5 )  // if large difference between a and b
+  { mpz_tdiv_r(r, a, b);  // reduce somewhat with Euclidean
+    if ( bf_is_zero(r) )  // if remainder is 0, answer is b
+    { mpz_swap(b, r); 
+      mpz_clear(a);
+      mpz_clear(b);
+      return;
+    }
+    mpz_swap(a, b);
+    mpz_swap(b, r);
+  }
+  
+  // reduce a and b to odd
+  als1 = mpz_scan1(a, 0); 
+  if ( als1 > 0 ) mul_2exp(a, -als1);
+  bls1 = mpz_scan1(b, 0); 
+  if ( bls1 > 0 ) mul_2exp(b, -bls1);
   k = bf_min(als1,bls1);
- 
-  while (1)
+
+  while (1)     // now use Stein
   { // a and b are odd at start of loop
     if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
     { bf_get_int64(&a_int, a, BF_RNDN);      // both fit in 64 bit integers
