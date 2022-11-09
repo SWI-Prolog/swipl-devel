@@ -2514,13 +2514,15 @@ ar_pow(Number n1, Number n2, Number r)
     if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) )
     {
     maybe_real_mpq:
-      GET_LD
-      if ( LD->arith.rat.max_rational_size_action )
-      { if ( promoteToFloatNumber(n1) )
-	  goto doreal_mpq;
-	return FALSE;		/* float overflow */
+      { GET_LD
+
+	if ( LD->arith.rat.max_rational_size_action )
+	{ if ( promoteToFloatNumber(n1) )
+	    goto doreal_mpq;
+	  return FALSE;		/* float overflow */
+	}
+	return int_too_big();	/* Stack overflow */
       }
-      return int_too_big();	/* Stack overflow */
     }
 
     switch (n1->type)
