@@ -94,6 +94,7 @@ typedef struct {
     int sign;
     slimb_t expn;
     limb_t len;
+    limb_t alloc;
     limb_t *tab;
 } bf_t;
 
@@ -103,6 +104,7 @@ typedef struct {
     int sign;
     slimb_t expn;
     limb_t len;
+    limb_t alloc;
     limb_t *tab;
 } bfdec_t;
 

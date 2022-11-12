@@ -187,6 +187,7 @@ void bf_init(bf_context_t *s, bf_t *r)
     r->sign = 0;
     r->expn = BF_EXP_ZERO;
     r->len = 0;
+    r->alloc = 0;
     r->tab = NULL;
 }
 
@@ -196,10 +197,14 @@ int bf_resize(bf_t *r, limb_t len)
     limb_t *tab;
 
     if (len != r->len) {
-	tab = bf_realloc(r->ctx, r->tab, len * sizeof(limb_t));
-	if (!tab && len != 0)
-	    return -1;
-	r->tab = tab;
+	if ( len > r->alloc ) {
+	    limb_t alloc = ((len|0x7)+1) * sizeof(limb_t);
+	    tab = bf_realloc(r->ctx, r->tab, alloc);
+	    if (!tab && len != 0)
+		return -1;
+	    r->alloc = alloc;
+	    r->tab = tab;
+	}
 	r->len = len;
     }
     return 0;
