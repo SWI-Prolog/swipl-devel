@@ -492,13 +492,12 @@ get_integer(word w, Number n)
 
 
 void
-get_rational(word w, Number n)
+get_rational(DECL_LD word w, Number n)
 { if ( storage(w) == STG_INLINE )
   { n->type = V_INTEGER,
     n->value.i = valInt(w);
   } else
-  { GET_LD
-    Word p = addressIndirect(w);
+  { Word p = addressIndirect(w);
     size_t wsize = wsizeofInd(*p);
 
     p++;

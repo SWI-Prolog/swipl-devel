@@ -43,6 +43,7 @@
 #define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
+#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
@@ -53,6 +54,7 @@
 int	PL_unify_number(term_t t, Number n);
 int	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
+void	get_rational(word w, number *n);
 int	PL_get_number(term_t t, Number n);
 int	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
@@ -91,7 +93,6 @@ void	cpNumber(Number to, Number from);
 void	initGMP(void);
 void	cleanupGMP(void);
 void	get_integer(word w, number *n);
-void	get_rational(word w, number *n);
 Code	get_mpz_from_code(Code pc, mpz_t mpz);
 Code	get_mpq_from_code(Code pc, mpq_t mpq);
 int	promoteToMPZNumber(number *n);
