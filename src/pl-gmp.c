@@ -1976,27 +1976,25 @@ PL_get_mpq(term_t t, mpq_t mpq)
   { GET_LD
     number n;
 
-    if ( valueExpression(t, &n) )
-    { switch(n.type)
-      { case V_INTEGER:
-	  if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
-	  { mpq_set_si(mpq, (long)n.value.i, 1L);
-	    return TRUE;
-	  }
-	  promoteToMPZNumber(&n);
-	  /*FALLTHROUGH*/
-	case V_MPZ:
-	  mpq_set_z(mpq, n.value.mpz);
-	  clearNumber(&n);
+    get_rational(t, &n);
+    switch(n.type)
+    { case V_INTEGER:
+	if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
+	{ mpq_set_si(mpq, (long)n.value.i, 1L);
 	  return TRUE;
-	case V_MPQ:
-	  mpq_set(mpq, n.value.mpq);
-	  clearNumber(&n);
-	  return TRUE;
-	default:
-	  ;
-      }
-      clearNumber(&n);
+	}
+	promoteToMPZNumber(&n);
+	/*FALLTHROUGH*/
+      case V_MPZ:
+	mpq_set_z(mpq, n.value.mpz);
+	clearNumber(&n);
+	return TRUE;
+      case V_MPQ:
+	mpq_set(mpq, n.value.mpq);
+	clearNumber(&n);
+	return TRUE;
+      default:
+	;
     }
   }
 
