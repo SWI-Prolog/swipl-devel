@@ -92,13 +92,13 @@ void
 mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 { mpz_t a, b;
   mp_bitcnt_t als1, bls1, k;
-  int64_t a_int, b_int;
+  int r_sgn;
 
-  if ( bf_is_zero(n1) )
+  if ( mpz_sgn(n1) == 0 )
   { mpz_abs(r, n2);
     return;
   }
-  if ( bf_is_zero(n2) )
+  if ( mpz_sgn(n2) == 0 )
   { mpz_abs(r, n1);
     return;
   }
@@ -111,7 +111,7 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 
   while ( llabs(a->expn - b->expn) > 5 )  // if large difference between a and b
   { mpz_tdiv_r(r, a, b);  // reduce somewhat with Euclidean
-    if ( bf_is_zero(r) )  // if remainder is 0, answer is b
+    if ( mpz_sgn(r) == 0 )  // if remainder is 0, answer is b
     { mpz_swap(b, r); 
       mpz_clear(a);
       mpz_clear(b);
@@ -126,29 +126,29 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   if ( als1 > 0 ) mul_2exp(a, -als1);
   bls1 = mpz_scan1(b, 0); 
   if ( bls1 > 0 ) mul_2exp(b, -bls1);
-  k = bf_min(als1,bls1);
+  k = (als1 > bls1) ? bls1 : als1;  // k = min(als1,bls1)
 
   while (1)     // now use Stein
-  { // a and b are odd at start of loop
+  { // a and b always odd at start of loop
     if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
-    { bf_get_int64(&a_int, a, BF_RNDN);      // both fit in 64 bit integers
-      bf_get_int64(&b_int, b, BF_RNDN);      // get int64 values
-      mpz_set_ui(r, i64_gcd(a_int, b_int));  // and use int64 gcd
-      break;
+    { // both fit in 64 bit integers; get int64 values and use int64 gcd
+      mpz_set_ui(r, i64_gcd(mpz_get_si(a), mpz_get_si(b)));
+      break;             // we're done, exit while loop
     }
-    mpz_sub(r,a,b);     // a-b -> r is now even, b still odd
-    if ( bf_is_zero(r) )
-    { mpz_swap(r, a);   // a==b, a -> r, we're done
-      break;
-    } else if (r->sign ==1)  // test a<b
+    mpz_sub(r,a,b);      // a-b -> r is now even, b still odd
+    r_sgn = mpz_sgn(r);
+    if ( r_sgn == 0 )
+    { mpz_swap(r, a);    // a==b, a -> r
+      break;             // we're done, exit while loop
+    } else if ( r_sgn == -1 )  // test a<b
     { mpz_swap(b, a);    // a -> b
-      bf_neg(r);         // |a-b| -> r
+      mpz_abs(r, r);     // |a-b| -> r
     }
-    mpz_swap(a, r);   // |a-b| -> a
-    als1 = mpz_scan1(a, 0); mul_2exp(a, -als1);  // make a odd again
+    mpz_swap(a, r);      // |a-b| -> a
+    mul_2exp(a, -mpz_scan1(a, 0));  // make a odd again
   } 
 
-  mul_2exp(r, k);     // r*2^d -> r
+  mpz_mul_2exp(r, r, k); // r*2^d -> r (final answer)
   mpz_clear(a);
   mpz_clear(b);
 }
