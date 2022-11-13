@@ -198,8 +198,8 @@ int bf_resize(bf_t *r, limb_t len)
 
     if (len != r->len) {
 	if ( len > r->alloc ) {
-	    limb_t alloc = ((len|0x7)+1) * sizeof(limb_t);
-	    tab = bf_realloc(r->ctx, r->tab, alloc);
+	    limb_t alloc = ((len|0x7)+1);
+	    tab = bf_realloc(r->ctx, r->tab, alloc * sizeof(limb_t));
 	    if (!tab && len != 0)
 		return -1;
 	    r->alloc = alloc;
