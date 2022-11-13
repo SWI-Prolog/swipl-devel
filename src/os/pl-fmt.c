@@ -51,6 +51,7 @@ source should also use format() to produce error messages, etc.
 #include <ctype.h>
 #include <stdio.h>
 #include <math.h>
+#include <fenv.h>
 
 typedef foreign_t (*Func1)(term_t a1);
 
@@ -583,7 +584,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'f':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
-		{ number n;
+		{ AR_CTX
+		  number n;
 		  union {
 		  tmp_buffer b;
 		    buffer b1;
@@ -591,12 +593,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  PL_locale *l;
 
 		  NEED_ARG;
+		  AR_BEGIN();
 		  if ( !valueExpression(argv, &n) )
 		  { char f[2];
 
 		    f[0] = c;
 		    f[1] = EOS;
-		    FMT_ARG(f, argv);
+		    AR_CLEANUP();
+		    FMT_ARG(f, argv); /* returns error */
 		  }
 		  SHIFT;
 
@@ -608,6 +612,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  initBuffer(&u.b);
 		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
 		  clearNumber(&n);
+		  AR_END();
 		  if ( rc )
 		    rc = oututf80(&state, baseBuffer(&u.b, char));
 		  discardBuffer(&u.b);
@@ -621,16 +626,19 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
 	      case 'I':			/* Prolog 1_000_000 */
-		{ number i;
+		{ AR_CTX
+		  number i;
 		  tmp_buffer b;
 
 		  NEED_ARG;
+		  AR_BEGIN();
 		  if ( !valueExpression(argv, &i) ||
 		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
 
 		    f[0] = c;
 		    f[1] = EOS;
+		    AR_CLEANUP();
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
@@ -680,6 +688,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      FMT_EXEPTION();
 		  }
 		  clearNumber(&i);
+		  AR_END();
 		  rc = oututf80(&state, baseBuffer(&b, char));
 		  discardBuffer(&b);
 		  if ( !rc )
