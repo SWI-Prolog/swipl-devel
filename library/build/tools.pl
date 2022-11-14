@@ -200,12 +200,6 @@ ensure_build_dir(Dir, State0, State) :-
 %     File name extension for modules (e.g., `so` or `dll`)
 %     $ ``SWIPL_PREFIX`` (``PREFIX``) :
 %     Install prefix for global binaries, libraries and include files.
-%
-%     In addition, several environment variables   are  passes verbatim:
-%     ``TMP``, ``TEMP``, ``USER``, ``HOME``, ``LANG``, ``CC``,
-%     ``CXX``, ``LD``, ``CFLAGS``, ``CXXFLAGS`` and ``LDFLAGS`` are
-%     passed verbatim unless redefined for version 1 packs as described
-%     above.
 
 build_environment(Env, Options) :-
     findall(Name=Value,
@@ -330,9 +324,6 @@ def_environment(VAR, Value, Options) :-
     current_prolog_flag(shared_object_extension, Value).
 def_environment('PREFIX', Value, _) :-
     prolog_install_prefix(Value).
-def_environment(Pass, Value, _) :-
-    pass_env(Pass),
-    getenv(Pass, Value).
 
 swipl_libraries_dir(Dir) :-
     current_prolog_flag(windows, true),
@@ -344,19 +335,6 @@ swipl_libraries_dir(Dir) :-
     !.
 swipl_libraries_dir(Dir) :-
     prolog_library_dir(Dir).
-
-pass_env('TMP').
-pass_env('TEMP').
-pass_env('USER').
-pass_env('HOME').
-pass_env('LANG').
-pass_env('CC').
-pass_env('CXX').
-pass_env('LD').
-pass_env('CFLAGS').
-pass_env('CXXFLAGS').
-pass_env('LDFLAGS').
-pass_env('PKG_CONFIG_PATH').
 
 env_name(Id, Name, Options) :-
     option(pack_version(V), Options, 1),
@@ -570,7 +548,7 @@ run_process(Executable, Argv, Options) :-
 process_create_options(Options, Extra) :-
     option(directory(Dir), Options, .),
     (   option(env(Env), Options)
-    ->  Extra = [cwd(Dir), env(Env)]
+    ->  Extra = [cwd(Dir), environment(Env)]
     ;   Extra = [cwd(Dir)]
     ).
 
