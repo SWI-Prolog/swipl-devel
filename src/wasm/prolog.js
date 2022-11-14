@@ -174,16 +174,16 @@ class Prolog
   { let argv0 = this.args || [];
     argv0.unshift("swipl");
     let argv = argv0.map(function(arg) {
-        return this.module.allocate(
-            this.module.intArrayFromString(arg),
-            'i8', this.module.ALLOC_NORMAL);
+	return this.module.allocate(
+	    this.module.intArrayFromString(arg),
+	    'i8', this.module.ALLOC_NORMAL);
     }, this);
     var ptr = this.module._malloc(argv.length * 4);
     argv.forEach(function(arg, i) {
-        this.module.setValue(ptr + i * 4, arg, '*');
+	this.module.setValue(ptr + i * 4, arg, '*');
     }, this);
     if (!this.bindings.PL_initialise(argv.length, ptr)) {
-        throw new Error('SWI-Prolog initialisation failed.');
+	throw new Error('SWI-Prolog initialisation failed.');
     }
     this.MODULE_user = this.new_module("user");
     this.call("set_prolog_flag(color_term, false).");
@@ -297,83 +297,83 @@ class Prolog
   __bind_foreign_functions()
   { this.bindings =
     { _PL_streams: this.module.cwrap(
-        '_PL_streams', 'number', []),
+	'_PL_streams', 'number', []),
       PL_functor_arity: this.module.cwrap(
-        'PL_functor_arity', 'number', ['number']),
+	'PL_functor_arity', 'number', ['number']),
       PL_functor_name: this.module.cwrap(
-        'PL_functor_name', 'number', ['number']),
+	'PL_functor_name', 'number', ['number']),
       PL_get_functor: this.module.cwrap(
-        'PL_get_functor', 'number', ['number', 'number']),
+	'PL_get_functor', 'number', ['number', 'number']),
       PL_get_chars: this.module.cwrap(
-        'PL_get_chars', 'number', ['number', 'number', 'number']),
+	'PL_get_chars', 'number', ['number', 'number', 'number']),
       PL_get_arg: this.module.cwrap(
-        'PL_get_arg', 'number', ['number', 'number', 'number']),
+	'PL_get_arg', 'number', ['number', 'number', 'number']),
       PL_get_int64: this.module.cwrap(
-        'PL_get_int64', 'number', ['number', 'number']),
+	'PL_get_int64', 'number', ['number', 'number']),
       PL_get_float: this.module.cwrap(
-        'PL_get_float', 'number', ['number', 'number']),
+	'PL_get_float', 'number', ['number', 'number']),
       PL_put_chars: this.module.cwrap(
-        'PL_put_chars', 'number', ['number', 'number', 'number', 'number']),
+	'PL_put_chars', 'number', ['number', 'number', 'number', 'number']),
       put_bytes: this.module.cwrap(
-        'PL_put_chars', 'number', ['number', 'number', 'number', 'array']),
+	'PL_put_chars', 'number', ['number', 'number', 'number', 'array']),
       PL_put_atom: this.module.cwrap(
-        'PL_put_atom', 'number', ['number']),
+	'PL_put_atom', 'number', ['number']),
       PL_put_variable: this.module.cwrap(
-        'PL_put_variable', 'number', ['number']),
+	'PL_put_variable', 'number', ['number']),
       PL_unify: this.module.cwrap(
-        'PL_unify', 'number', ['number', 'number']),
+	'PL_unify', 'number', ['number', 'number']),
       PL_is_string: this.module.cwrap(
-        'PL_is_string', 'number', ['number']),
+	'PL_is_string', 'number', ['number']),
       PL_is_variable: this.module.cwrap(
-        'PL_is_variable', 'number', ['number']),
+	'PL_is_variable', 'number', ['number']),
       PL_term_type: this.module.cwrap(
-        'PL_term_type', 'number', ['number']),
+	'PL_term_type', 'number', ['number']),
       PL_get_list: this.module.cwrap(
-        'PL_get_list', 'number', ['number', 'number', 'number']),
+	'PL_get_list', 'number', ['number', 'number', 'number']),
       PL_get_nil: this.module.cwrap(
-        'PL_get_nil', 'number', ['number']),
+	'PL_get_nil', 'number', ['number']),
       PL_initialise: this.module.cwrap(
-        'PL_initialise', 'number', ['number', 'number']),
+	'PL_initialise', 'number', ['number', 'number']),
       PL_new_atom: this.module.cwrap(
-        'PL_new_atom', 'number', ['string']),
+	'PL_new_atom', 'number', ['string']),
       PL_register_atom: this.module.cwrap(
-        'PL_register_atom', null, ['number']),
+	'PL_register_atom', null, ['number']),
       PL_unregister_atom: this.module.cwrap(
-        'PL_unregister_atom', null, ['number']),
+	'PL_unregister_atom', null, ['number']),
       PL_new_module: this.module.cwrap(
-        'PL_new_module', 'number', ['number']),
+	'PL_new_module', 'number', ['number']),
       PL_new_functor: this.module.cwrap(
-        'PL_new_functor', 'number', ['number', 'number']),
+	'PL_new_functor', 'number', ['number', 'number']),
       PL_new_term_ref: this.module.cwrap(
-        'PL_new_term_ref', 'number', []),
+	'PL_new_term_ref', 'number', []),
       PL_new_term_refs: this.module.cwrap(
-        'PL_new_term_refs', 'number', ['number']),
+	'PL_new_term_refs', 'number', ['number']),
       PL_copy_term_ref: this.module.cwrap(
-        'PL_copy_term_ref', 'number', ['number']),
+	'PL_copy_term_ref', 'number', ['number']),
       PL_reset_term_refs: this.module.cwrap(
-        'PL_reset_term_refs', null, ['number']),
+	'PL_reset_term_refs', null, ['number']),
       PL_put_functor: this.module.cwrap(
-        'PL_put_functor', 'number', ['number', 'number']),
+	'PL_put_functor', 'number', ['number', 'number']),
       PL_put_integer: this.module.cwrap(
-        'PL_put_integer', 'number', ['number', 'number']),
+	'PL_put_integer', 'number', ['number', 'number']),
       PL_put_float: this.module.cwrap(
-        'PL_put_float', 'number', ['number', 'number']),
+	'PL_put_float', 'number', ['number', 'number']),
       PL_put_nil: this.module.cwrap(
-        'PL_put_nil', 'number', []),
+	'PL_put_nil', 'number', []),
       PL_cons_functor_v: this.module.cwrap(
-        'PL_cons_functor_v', 'number', ['number', 'number', 'number']),
+	'PL_cons_functor_v', 'number', ['number', 'number', 'number']),
       PL_cons_list: this.module.cwrap(
-        'PL_cons_list', 'number', ['number', 'number', 'number']),
+	'PL_cons_list', 'number', ['number', 'number', 'number']),
       PL_put_dict: this.module.cwrap(
-        'PL_put_dict', 'number', ['number','number','number','number','number']),
+	'PL_put_dict', 'number', ['number','number','number','number','number']),
       PL_put_term_from_chars: this.module.cwrap(
-        'PL_put_term_from_chars', 'number',['number','number','number','string']),
+	'PL_put_term_from_chars', 'number',['number','number','number','string']),
       PL_put_term: this.module.cwrap(
-        'PL_put_term', 'number', ['number', 'number']),
+	'PL_put_term', 'number', ['number', 'number']),
       PL_write_term: this.module.cwrap(
-        'PL_write_term', 'number', ['number', 'number', 'number', 'number']),
+	'PL_write_term', 'number', ['number', 'number', 'number', 'number']),
       PL_call: this.module.cwrap(
-        'PL_call', 'number', ['number', 'number']),
+	'PL_call', 'number', ['number', 'number']),
       PL_open_foreign_frame: this.module.cwrap(
 	'PL_open_foreign_frame', 'number', []),
       PL_close_foreign_frame: this.module.cwrap(
@@ -395,17 +395,17 @@ class Prolog
       PL_raise_exception: this.module.cwrap(
 	'PL_raise_exception', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
-        'WASM_ttymode', 'number', []),
+	'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(
-        'WASM_yield_request', 'number', []),
+	'WASM_yield_request', 'number', []),
       WASM_set_yield_result: this.module.cwrap(
-        'WASM_set_yield_result', 'number', ['number']),
+	'WASM_set_yield_result', 'number', ['number']),
       WASM_variable_id: this.module.cwrap(
-        'WASM_variable_id', 'number', ['number']),
+	'WASM_variable_id', 'number', ['number']),
       js_unify_obj: this.module.cwrap(
-        'js_unify_obj', 'number', ['number', 'number']),
+	'js_unify_obj', 'number', ['number', 'number']),
       js_get_obj: this.module.cwrap(
-        'js_get_obj', 'number', ['number'])
+	'js_get_obj', 'number', ['number'])
     };
   }
 
@@ -426,7 +426,7 @@ class Prolog
       { return this.__call_yieldable(goal, opts);
       } else
       { return this.with_frame(function()
-        { const term = this.new_term_ref();
+	{ const term = this.new_term_ref();
 
 	  if ( !this.chars_to_term(goal, term) )
 	    throw new Error('Query has a syntax error: ' + query);
@@ -716,11 +716,11 @@ class Prolog
 	{ if ( rc.yield !== undefined )
 	  { switch(rc.yield)
 	    { case "beat":
-	        return setTimeout(() => next_foreach(rc.resume("true")), 0);
+		return setTimeout(() => next_foreach(rc.resume("true")), 0);
 	      case "builtin":
-                return rc.resume((rc) => next_foreach(rc));
+		return rc.resume((rc) => next_foreach(rc));
 	      default:		// unsupported yield
-	        throw(rc);
+		throw(rc);
 	    }
 	  } else if ( rc.value )
 	  { if ( callback )
@@ -1155,7 +1155,7 @@ class Prolog
 	  break;
 	case "string":
 	{ const flags = ctx.string === "string" ? prolog.PL_STRING
-		                                : prolog.PL_ATOM;
+						: prolog.PL_ATOM;
 	  rc = prolog.put_chars(term, data, flags);
 	  break;
 	}
@@ -1306,9 +1306,9 @@ class Prolog
     flags  = flags||(this.CVT_ALL|this.CVT_WRITEQ);
     flags |= this.CVT_EXCEPTION|this.REP_UTF8;
     if (this.bindings.PL_get_chars(term, ptr, flags)) {
-        rc = this.module.UTF8ToString(this.module.getValue(ptr, 'i32'));
+	rc = this.module.UTF8ToString(this.module.getValue(ptr, 'i32'));
     } else {
-        rc = null;
+	rc = null;
     }
     this.module._free(ptr);
 
@@ -1420,23 +1420,23 @@ class Query {
 	}
       }
       case prolog.PL_S_FALSE:
-        this.close();
+	this.close();
 	return { done: true };
       case prolog.PL_S_LAST:
 	this.close();
 	return { done: true,
-	         value: this.map ? this.map.call(this, argv) : argv
+		 value: this.map ? this.map.call(this, argv) : argv
 	       };
       case prolog.PL_S_TRUE:
 	return { done: false,
-	         value: this.map ? this.map.call(this, argv) : argv
+		 value: this.map ? this.map.call(this, argv) : argv
 	       };
       case prolog.PL_S_YIELD:
       { let request = prolog.yield_request();
 
 	return { done: false,
-	         value: null,
-	         yield: request,
+		 value: null,
+		 yield: request,
 		 resume: (value) =>
 		 { prolog.set_yield_result(value);
 		   return this.next();
@@ -1697,7 +1697,7 @@ if ( BigInt.prototype.toJSON === undefined )
   }
 }
 
-if ( typeof HTMLCollection === "object" )
+if ( HTMLCollection && HTMLCollection.prototype && !HTMLCollection.prototype.toList )
 { HTMLCollection.prototype.toList = function()
   { const ar = [];
 
@@ -1707,5 +1707,3 @@ if ( typeof HTMLCollection === "object" )
     return ar;
   }
 }
-
-
