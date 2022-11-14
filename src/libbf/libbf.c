@@ -493,6 +493,11 @@ static int __bf_round(bf_t *r, limb_t prec1, bf_flags_t flags, limb_t l,
     int shift, add_one, rnd_mode;
     slimb_t i, bit_pos, pos, e_min, e_max, e_range, prec;
 
+    if ( prec1 == BF_PREC_INF ) 
+    { i = 0;
+      goto rndexit;  // no rounding on infinite precision
+    }
+    
     /* e_min and e_max are computed to match the IEEE 754 conventions */
     e_range = (limb_t)1 << (bf_get_exp_bits(flags) - 1);
     e_min = -e_range + 3;
@@ -582,6 +587,7 @@ static int __bf_round(bf_t *r, limb_t prec1, bf_flags_t flags, limb_t l,
     } else {
 	i = 0;
     }
+rndexit:
     /* remove trailing zeros */
     while (r->tab[i] == 0)
 	i++;
