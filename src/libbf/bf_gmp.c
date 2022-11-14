@@ -67,23 +67,27 @@ mul_2exp(bf_t *r, slimb_t e)
 
 #if STEIN
 
-/* Copied from pl_arith.c */
-static int64_t
-i64_gcd(int64_t a, int64_t b)
-{ int64_t t;
+// adapted from 
+// https://stackoverflow.com/questions/63604914/how-can-i-speed-up-the-binary-gcd-algorithm-using-builtin-ctz
+static uint64_t 
+i64_gcd(uint64_t u, uint64_t v) {
+    uint64_t t = u | v;
 
-  if ( a == 0 )
-    return b;
-  if ( b == 0 )
-    return a;
+    if(u == 0 || v == 0) return t; /* return (v) or (u), resp. */
 
-  while(b != 0)
-  { t = b;
-    b = a % b;
-    a = t;
-  }
+    int g = __builtin_ctzll(t);
 
-  return a;
+    while(u != 0) {
+        u >>= __builtin_ctzll(u);
+        v >>= __builtin_ctzll(v);
+
+        if(u >= v)
+            u = (u - v) / 2;
+        else
+            v = (v - u) / 2;
+    }
+
+    return (v << g); /* scale by common factor. */
 }
 
 #define INT64BITSIZE		(8 * sizeof(int64_t))  // from pl-incl.h
