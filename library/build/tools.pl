@@ -156,7 +156,7 @@ ensure_build_dir(Dir, State0, State) :-
 %   absent or `1`, the old names are used. These names are confusing and
 %   conflict with some build environments. Using `2` (or later), the new
 %   names are used. The list below  first   names  the new name and than
-%   between parenthesis, the new name.  Provided variables are:
+%   between parenthesis, the old name.  Provided variables are:
 %
 %     $ ``PATH`` :
 %     contains the environment path with the directory
