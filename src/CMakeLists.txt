@@ -574,7 +574,7 @@ install_tests()
 endif()
 
 if(SWIPL_INSTALL_IN_LIB)
-  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+  set(LIBSWIPL_DIR ${CMAKE_INSTALL_LIBDIR})
 else()
   set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
 endif()
