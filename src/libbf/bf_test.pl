@@ -144,6 +144,7 @@ expression(number**number).
 expression(lsb(integer)).
 expression(msb(integer)).
 expression(popcount(integer)).
+expression(gcd(integer,integer)).
 %expression(integer<<integer).
 %expression(integer>>integer).
 expression(integer/\integer).
