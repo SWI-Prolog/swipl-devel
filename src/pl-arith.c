@@ -4909,7 +4909,7 @@ initArith(void)
   LD->arith.rat.max_rational_size = (size_t)-1;
   LD->arith.rat.max_rational_size_action = ATOM_error;
 
-  setPrologFlag("max_rational_size",	    FT_INTEGER, -1);
+  setPrologFlag("max_rational_size",	    FT_INTEGER, (intptr_t)-1);
   setPrologFlag("max_rational_size_action", FT_ATOM,    "error");
 #endif
 

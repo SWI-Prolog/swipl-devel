@@ -1465,8 +1465,8 @@ initPrologFlags(void)
 #endif
   setPrologFlag("file_name_case_handling", FT_ATOM,
 		stringAtom(currentFileNameCaseHandling()));
-  setPrologFlag("path_max", FT_INTEGER|FF_READONLY, PATH_MAX);
-  setPrologFlag("version", FT_INTEGER|FF_READONLY, PLVERSION);
+  setPrologFlag("path_max", FT_INTEGER|FF_READONLY, (intptr_t)PATH_MAX);
+  setPrologFlag("version", FT_INTEGER|FF_READONLY, (intptr_t)PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
@@ -1509,14 +1509,14 @@ initPrologFlags(void)
   setPrologFlag("gc",	  FT_BOOL,	       TRUE,  PLFLAG_GC);
   setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC
-  setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
+  setPrologFlag("agc_margin", FT_INTEGER, (intptr_t)GD->atoms.margin);
   setPrologFlag("agc_close_streams", FT_BOOL, FALSE, PLFLAG_AGC_CLOSE_STREAMS);
 #endif
-  setPrologFlag("table_space", FT_INTEGER, GD->options.tableSpace);
+  setPrologFlag("table_space", FT_INTEGER, (intptr_t)GD->options.tableSpace);
 #ifdef O_PLMT
-  setPrologFlag("shared_table_space", FT_INTEGER, GD->options.sharedTableSpace);
+  setPrologFlag("shared_table_space", FT_INTEGER, (intptr_t)GD->options.sharedTableSpace);
 #endif
-  setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
+  setPrologFlag("stack_limit", FT_INTEGER, (intptr_t)LD->stacks.limit);
 #ifdef O_DYNAMIC_EXTENSIONS
   setPrologFlag("open_shared_object",	     FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("shared_object_extension",   FT_ATOM|FF_READONLY, SO_EXT);
@@ -1530,7 +1530,7 @@ initPrologFlags(void)
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #endif
-  setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
+  setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, (intptr_t)sizeof(void*)*8);
 #ifdef HAVE_POPEN
   setPrologFlag("pipe", FT_BOOL, TRUE, 0);
 #endif
@@ -1538,7 +1538,7 @@ initPrologFlags(void)
   setPrologFlag("threads",	FT_BOOL, !GD->options.nothreads, 0);
   if ( GD->options.xpce >= 0 )
     setPrologFlag("xpce",	FT_BOOL, GD->options.xpce, 0);
-  setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
+  setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, (intptr_t)0);
   setPrologFlag("gc_thread",    FT_BOOL,
 		!GD->options.nothreads &&
 		truePrologFlag(PLFLAG_GCTHREAD), PLFLAG_GCTHREAD);
@@ -1561,7 +1561,7 @@ initPrologFlags(void)
 #endif
   setPrologFlag("on_error", FT_ATOM, GD->options.on_error);
   setPrologFlag("on_warning", FT_ATOM, GD->options.on_warning);
-  setPrologFlag("break_level", FT_INTEGER|FF_READONLY, 0, 0);
+  setPrologFlag("break_level", FT_INTEGER|FF_READONLY, (intptr_t)0);
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
@@ -1571,8 +1571,8 @@ initPrologFlags(void)
   setPrologFlag("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
   setPrologFlag("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
 #endif
-  setPrologFlag("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
-  setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
+  setPrologFlag("max_tagged_integer", FT_INTEGER|FF_READONLY, (intptr_t)PLMAXTAGGEDINT);
+  setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, (intptr_t)PLMINTAGGEDINT);
 #ifdef O_BIGNUM
   setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
   setPrologFlag("prefer_rationals", FT_BOOL, O_PREFER_RATIONALS, PLFLAG_RATIONAL);
@@ -1580,7 +1580,7 @@ initPrologFlags(void)
 		O_RATIONAL_SYNTAX == RAT_NATURAL ? "natural" :
 						   "compatibility");
 #ifdef __GNU_MP__
-  setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
+  setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, (intptr_t)__GNU_MP__);
 #endif
 #else
   setPrologFlag("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);
@@ -1589,9 +1589,9 @@ initPrologFlags(void)
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
-  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, UNICODE_MAX);
+  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, (intptr_t)UNICODE_MAX);
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
-  setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, MAXARITY);
+  setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, (intptr_t)MAXARITY);
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
@@ -1627,7 +1627,7 @@ initPrologFlags(void)
 		ALLOW_VARNAME_FUNCTOR);
   setPrologFlag("allow_dot_in_atom", FT_BOOL, FALSE,
 		PLFLAG_DOT_IN_ATOM);
-  setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
+  setPrologFlag("toplevel_var_size", FT_INTEGER, (intptr_t)1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_name_variables", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
@@ -1649,7 +1649,7 @@ initPrologFlags(void)
 #ifdef __ANDROID__
   setPrologFlag("android", FT_BOOL|FF_READONLY, TRUE, 0);
 # ifdef __ANDROID_API__
-  setPrologFlag("android_api",FT_INTEGER|FF_READONLY, __ANDROID_API__);
+  setPrologFlag("android_api",FT_INTEGER|FF_READONLY, (intptr_t)__ANDROID_API__);
 # endif
 #endif
 #endif
@@ -1662,7 +1662,7 @@ initPrologFlags(void)
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("packs", FT_BOOL, GD->cmdline.packs, 0);
-  setPrologFlag("heartbeat", FT_INTEGER, 0);
+  setPrologFlag("heartbeat", FT_INTEGER, (intptr_t)0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
@@ -1744,7 +1744,7 @@ setTZPrologFlag(void)
 #define timezone _timezone
 #endif
 
-  setPrologFlag("timezone", FT_INTEGER|FF_READONLY, timezone);
+  setPrologFlag("timezone", FT_INTEGER|FF_READONLY, (intptr_t)timezone);
 }
 
 

@@ -304,10 +304,10 @@ CpuTime(cputime_kind which)
 	break;
       case CPU_SYSTEM:
 	p = &kerneltime;
-        break;
+	break;
       default:
 	assert(0);
-        return 0.0;
+	return 0.0;
     }
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
@@ -331,7 +331,7 @@ CpuCount(void)
 
 void
 setOSPrologFlags(void)
-{ PL_set_prolog_flag("cpu_count", PL_INTEGER, CpuCount());
+{ PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)CpuCount());
 }
 
 
@@ -741,7 +741,7 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
       switch((eno=GetLastError()))
       { case ERROR_FILE_NOT_FOUND:
 	  return PL_existence_error("directory", A1);
-        case ERROR_INVALID_PARAMETER:
+	case ERROR_INVALID_PARAMETER:
 	  return PL_domain_error("absolute_file_name", A1);
       }
       return PL_error(NULL, 0, WinErrorNo(eno), ERR_SYSCALL, "AddDllDirectory()");
@@ -1180,7 +1180,7 @@ PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
 	return PL_unify_integer(Value, data.dword);
       default:
 	warning("get_registry_value/2: Unknown registery-type: %d", type);
-        fail;
+	fail;
     }
   }
 
@@ -1259,7 +1259,7 @@ PL_w32_running_under_wine(void)
 
 
 		 /*******************************
-		 *	        MUI		*
+		 *		MUI		*
 		 *******************************/
 
 
@@ -1357,4 +1357,3 @@ BeginPredDefs(win)
 EndPredDefs
 
 #endif /*__WINDOWS__*/
-

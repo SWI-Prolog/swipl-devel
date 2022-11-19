@@ -3204,8 +3204,8 @@ unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
     if ( wl )
     { wl->predicate = def;
       return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_fresh2,
-			         PL_POINTER, scc,
-			         PL_POINTER, wl);
+				 PL_POINTER, scc,
+				 PL_POINTER, wl);
     } else
     { return FALSE;
     }
@@ -4366,8 +4366,8 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	  { DEBUG(MSG_TABLING_WORK,
 		  print_worklist("First step: ", wl));
 	    state = allocForeignState(sizeof(*state));
-	    state->list	            = wl;
-	    state->acp	            = acp;
+	    state->list		    = wl;
+	    state->acp		    = acp;
 	    state->scp		    = scp;
 	    state->acp_index        = sz_acp;
 	    state->answer           = get_answer_from_cluster(acp, sz_acp-1);
@@ -4689,7 +4689,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
       return FALSE;
     case FRG_CUTTED:
       return TRUE;
-        default:
+	default:
       assert(0);
       return FALSE;
   }
@@ -5934,7 +5934,7 @@ tt_abolish_table(trie *atrie)
 
 	  break;
 	}
-        default:
+	default:
 	  assert(0);
       }
     }
@@ -5962,7 +5962,7 @@ transaction_commit_tables(DECL_LD)
       switch(tsz->type)
       { case TT_ANSWER:
 	  break;
-        default:
+	default:
 	  assert(0);
       }
     }
@@ -6198,10 +6198,10 @@ idg_dependency_error(DECL_LD idg_node *parent, idg_node *child)
 	   unify_trie_term(child->atrie->data.variant,  NULL, av+1) &&
 	   PL_unify_term(av+2,
 			 PL_FUNCTOR, FUNCTOR_error2,
-		           PL_FUNCTOR_CHARS, "dependency_error", 2,
+			   PL_FUNCTOR_CHARS, "dependency_error", 2,
 			     PL_FUNCTOR_CHARS, "shared", 1, PL_TERM, av+0,
 			     PL_FUNCTOR_CHARS, "private", 1,PL_TERM, av+1,
-		           PL_VARIABLE) &&
+			   PL_VARIABLE) &&
 	   PL_raise_exception(av+2));
 }
 
@@ -6215,10 +6215,10 @@ idg_dependency_error_dyncall(DECL_LD idg_node *parent, term_t call)
 	   unify_trie_term(parent->atrie->data.variant, NULL, av+0) &&
 	   PL_unify_term(av+1,
 			 PL_FUNCTOR, FUNCTOR_error2,
-		           PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
+			   PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
 			     PL_FUNCTOR_CHARS, "shared", PL_TERM, av+0,
-		             PL_FUNCTOR_CHARS, "private", PL_TERM, call,
-		           PL_VARIABLE) &&
+			     PL_FUNCTOR_CHARS, "private", PL_TERM, call,
+			   PL_VARIABLE) &&
 	   PL_raise_exception(av+1));
 }
 
@@ -6233,10 +6233,10 @@ idg_dependency_error_mono(DECL_LD trie *src_trie, trie *dst_trie)
 	   unify_trie_term(src_trie->data.variant,  NULL, av+1) &&
 	   PL_unify_term(av+2,
 			 PL_FUNCTOR, FUNCTOR_error2,
-		           PL_FUNCTOR_CHARS, "dependency_error", 2,
+			   PL_FUNCTOR_CHARS, "dependency_error", 2,
 			     PL_TERM, av+0,
 			     PL_FUNCTOR_CHARS, "monotonic", 1,PL_TERM, av+1,
-		           PL_VARIABLE) &&
+			   PL_VARIABLE) &&
 	   PL_raise_exception(av+2));
 }
 
@@ -6299,7 +6299,7 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	  mdep->lazy = TRUE;
 	mdep->next.any = mdep0;
 	updateHTable(t, parent, mdep);
-        break;
+	break;
       default:
 	return FALSE;				   /* resource error */
     }
@@ -7122,7 +7122,7 @@ idg_changed(trie *atrie, int flags)
   DEBUG(MSG_TABLING_IDG_CHANGED,
 	print_answer_table(atrie, "IDG: %s change",
 			   flags&IDG_CHANGED_MONO ? "lazy monotonic"
-			                          : "dynamic"));
+						  : "dynamic"));
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 && idg_need_invalidated(n) )
   { trie *incomplete;
@@ -9271,7 +9271,7 @@ wait_for_table_to_complete(trie *atrie)
   DEBUG(MSG_TABLING_SHARED,
 	print_answer_table(atrie,
 			   table_needs_work(atrie) ? "Ready (abandonned)"
-			                           : "Ready (completed)"));
+						   : "Ready (completed)"));
 
   return TRUE;
 }
@@ -9328,10 +9328,10 @@ initTabling(void)
   setPrologFlag("max_table_subgoal_size_action",  FT_ATOM,    "error");
   setPrologFlag("max_table_answer_size_action",	  FT_ATOM,    "error");
   setPrologFlag("max_answers_for_subgoal_action", FT_ATOM,    "error");
-  setPrologFlag("max_table_subgoal_size",	  FT_INTEGER, -1);
-  setPrologFlag("max_table_answer_size",	  FT_INTEGER, -1);
-  setPrologFlag("max_answers_for_subgoal",	  FT_INTEGER, -1);
-  setPrologFlag("table_monotonic",	          FT_ATOM,    "eager");
+  setPrologFlag("max_table_subgoal_size",	  FT_INTEGER, (intptr_t)-1);
+  setPrologFlag("max_table_answer_size",	  FT_INTEGER, (intptr_t)-1);
+  setPrologFlag("max_answers_for_subgoal",	  FT_INTEGER, (intptr_t)-1);
+  setPrologFlag("table_monotonic",		  FT_ATOM,    "eager");
 }
 
 void
@@ -9445,7 +9445,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_collect_mono_dep",     0, tbl_collect_mono_dep,     0)
   PRED_DEF("$mono_idg_changed",         2, mono_idg_changed,	     0)
   PRED_DEF("$mono_reeval_prepare",      2, mono_reeval_prepare,	     0)
-  PRED_DEF("$mono_reeval_done",	        3, mono_reeval_done,	     0)
+  PRED_DEF("$mono_reeval_done",		3, mono_reeval_done,	     0)
   PRED_DEF("$idg_mono_empty_queue",     2, idg_mono_empty_queue,     0)
   PRED_DEF("$idg_mono_invalidate",      1, idg_mono_invalidate,	     0)
   PRED_DEF("$tbl_node_answer",          2, tbl_node_answer,	     0)
