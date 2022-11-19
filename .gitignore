@@ -155,6 +155,7 @@ src/reqs32.cab
 ReleaseNotes
 build-ppa-tmp
 scripts/upload
+CMakeUserPresets.json
 
 # snapcraft
 parts/
