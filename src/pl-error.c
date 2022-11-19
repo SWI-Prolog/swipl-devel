@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1997-2020, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -789,8 +789,8 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   if ( rc )
     rc = PL_unify_term(except,
 		       PL_FUNCTOR, FUNCTOR_error2,
-		         PL_TERM, formal,
-		         PL_TERM, swi);
+			 PL_TERM, formal,
+			 PL_TERM, swi);
 
   if ( !rc )
   { nomem:
@@ -899,7 +899,7 @@ PL_syntax_error(const char *msg, IOSTREAM *in)
        (loc = PL_new_term_ref()) &&
        PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		       PL_FUNCTOR, FUNCTOR_syntax_error1,
-		         PL_CHARS, msg,
+			 PL_CHARS, msg,
 		       PL_TERM, loc) )
   { if ( in )
     { IOPOS *pos;
@@ -1159,7 +1159,7 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
     }
     return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			 ATOM_not_less_than_zero, t)
-              : FALSE;
+	      : FALSE;
   }
 
   if ( PL_get_number(t, &n) )
@@ -1171,9 +1171,9 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 	} else
 	{ return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			       ATOM_not_less_than_zero, t)
-	            : FALSE;
+		    : FALSE;
 	}
-#ifdef O_GMP
+#if O_BIGNUM
       case V_MPZ:
       { uint64_t v;
 

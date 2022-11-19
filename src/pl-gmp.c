@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2005-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -48,7 +48,7 @@
 #undef LD
 #define LD LOCAL_LD
 
-#ifdef O_GMP
+#ifdef O_BIGNUM				/* Upto the end of this file */
 
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
@@ -59,6 +59,8 @@ static mpz_t MPZ_MAX_UINT64;
 static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
 #endif
+
+#define abs(v) ((v) < 0 ? -(v) : (v))
 
 
 		 /*******************************
@@ -109,6 +111,11 @@ mp_alloc(size_t bytes)
     return NULL;			/* make compiler happy */
   }
 
+#if O_BF
+  if ( bytes == 0 )
+    return NULL;
+#endif
+
   GMP_LEAK_CHECK(LD->gmp.allocated += bytes);
 
   mem->next = NULL;
@@ -127,6 +134,43 @@ mp_alloc(size_t bytes)
 }
 
 
+static void
+mp_free(void *ptr, size_t size)
+{ GET_LD
+  mp_mem_header *mem;
+
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+  { smp_free(ptr, size);
+    return;
+  }
+
+#if O_BF
+  if ( !ptr )
+    return;
+#endif
+
+  mem = ((mp_mem_header*)ptr)-1;
+
+  if ( mem == LD->gmp.head )
+  { LD->gmp.head = LD->gmp.head->next;
+    if ( LD->gmp.head )
+      LD->gmp.head->prev = NULL;
+    else
+      LD->gmp.tail = NULL;
+  } else if ( mem == LD->gmp.tail )
+  { LD->gmp.tail = LD->gmp.tail->prev;
+    LD->gmp.tail->next = NULL;
+  } else
+  { mem->prev->next = mem->next;
+    mem->next->prev = mem->prev;
+  }
+
+  free(mem);
+  DEBUG(9, Sdprintf("GMP: free: %ld@%p\n", size, ptr));
+  GMP_LEAK_CHECK(LD->gmp.allocated -= size);
+}
+
+
 static void *
 mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
@@ -134,6 +178,15 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 
   if ( NOT_IN_PROLOG_ARITHMETIC() )
     return smp_realloc(ptr, oldsize, newsize);
+
+#if O_BF
+  if ( !ptr )
+    return mp_alloc(newsize);
+  if ( !newsize )
+  { mp_free(ptr, oldsize);
+    return NULL;
+  }
+#endif
 
   oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
@@ -161,38 +214,6 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   DEBUG(9, Sdprintf("GMP: realloc %ld@%p --> %ld@%p\n", oldsize, ptr, newsize, &newmem[1]));
 
   return &newmem[1];
-}
-
-
-static void
-mp_free(void *ptr, size_t size)
-{ GET_LD
-  mp_mem_header *mem;
-
-  if ( NOT_IN_PROLOG_ARITHMETIC() )
-  { smp_free(ptr, size);
-    return;
-  }
-
-  mem = ((mp_mem_header*)ptr)-1;
-
-  if ( mem == LD->gmp.head )
-  { LD->gmp.head = LD->gmp.head->next;
-    if ( LD->gmp.head )
-      LD->gmp.head->prev = NULL;
-    else
-      LD->gmp.tail = NULL;
-  } else if ( mem == LD->gmp.tail )
-  { LD->gmp.tail = LD->gmp.tail->prev;
-    LD->gmp.tail->next = NULL;
-  } else
-  { mem->prev->next = mem->next;
-    mem->next->prev = mem->prev;
-  }
-
-  free(mem);
-  DEBUG(9, Sdprintf("GMP: free: %ld@%p\n", size, ptr));
-  GMP_LEAK_CHECK(LD->gmp.allocated -= size);
 }
 
 
@@ -229,12 +250,39 @@ isascii(int c)				/* missing from gmp.lib */
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-globalMPZ() pushes an mpz type GMP  integer   onto  the local stack. The
-saved version is the _mp_size field, followed by the limps.
+An MPZ number on the stack is represented as:
+
+  - Indirect Header
+  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+if O_BF
+  - exponent
+endif
+  - Limbs
+  - Indirect Header
+
+An MPQ number on the stack is represented as:
+  - Indirect Header
+  - Size numerator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size denominator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+if O_BF
+  - exponent numerator
+  - exponent denominator
+endif
+  - Limbs numerator
+  - Limbs denominator
+  - Indirect Header
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+#if O_GMP
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mpz_wsize() returns the size needed to stores the limbs on the stack and
+stores the not-rounded size over `s`.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-mpz_wsize(mpz_t mpz, size_t *s)
+mpz_wsize(const mpz_t mpz, size_t *s)
 { DEBUG(0, assert(sizeof(mpz->_mp_size) == sizeof(int)));
   size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
   size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
@@ -245,50 +293,84 @@ mpz_wsize(mpz_t mpz, size_t *s)
   return wsz;
 }
 
+#elif O_BF
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+An MPZ when emulated using LibBF is represented as:
+
+  - Indirect Header
+  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Exponent
+  - Limbs
+  - Indirect Header
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static size_t
+mpz_wsize(const mpz_t mpz, size_t *s)
+{ const bf_t *bf = mpz;
+  size_t size = sizeof(*bf->tab) * bf->len;
+  size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
+
+  if ( s )
+    *s = size;
+
+  return wsz;
+}
+
+#endif /*O_GMP||O_BF*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+globalMPZ() pushes an mpz type GMP  integer   onto  the local stack. The
+saved version is the _mp_size field, followed by the limps.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define globalMPZ(at, mpz, flags) LDFUNC(globalMPZ, at, mpz, flags)
 static int
 globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 { DEBUG(CHK_SECURE, assert(!onStackArea(global, at) && !onStackArea(local, at)));
 
-  if ( mpz->_mp_alloc )
+  if ( !MPZ_ON_STACK(mpz) )
   { size_t size, wsz;
     Word p;
     word m;
 
   copy:
     wsz = mpz_wsize(mpz, &size);
-    m   = mkIndHdr(wsz+1, TAG_INTEGER);
+    m   = mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER);
 
-    if ( wsizeofInd(m) != wsz+1 )
+    if ( wsizeofInd(m) != wsz+MPZ_STACK_EXTRA )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_integer);
       return 0;
     }
 
-    if ( !hasGlobalSpace(wsz+3) )
-    { int rc = ensureGlobalSpace(wsz+3, flags);
+    if ( !hasGlobalSpace(wsz+MPZ_STACK_EXTRA+2) )
+    { int rc = ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, flags);
 
       if ( rc != TRUE )
 	return rc;
     }
     p = gTop;
-    gTop += wsz+3;
+    gTop += wsz+MPZ_STACK_EXTRA+2;
 
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
     *p++     = m;
-    p[wsz]   = 0L;			/* pad out */
-    p[wsz+1] = m;
-    *p++     = mpz_size_stack(mpz->_mp_size);
-    memcpy(p, mpz->_mp_d, size);
+    p[wsz+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
+    p[wsz+MPZ_STACK_EXTRA] = m;
+    *p++     = mpz_size_stack(MPZ_LIMB_SIZE(mpz));
+#if O_BF
+    *p++     = mpz->expn;
+#endif
+    memcpy(p, MPZ_LIMBS(mpz), size);
   } else				/* already on the stack */
-  { Word p = (Word)mpz->_mp_d - 2;
+  { Word p = (Word)MPZ_LIMBS(mpz) - MPZ_STACK_EXTRA - 1;
     if ( !onStack(global, p) )
       goto copy;
 #ifndef NDEBUG
     size_t size;
     size_t wsz = mpz_wsize(mpz, &size);
-    assert(p[0] == mkIndHdr(wsz+1, TAG_INTEGER));
+    assert(p[0] == mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER));
 #endif
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
@@ -305,7 +387,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
   num[0] = *mpq_numref(mpq);
   den[0] = *mpq_denref(mpq);
 
-  if ( num->_mp_alloc || den->_mp_alloc )
+  if ( !MPZ_ON_STACK(num) || !MPZ_ON_STACK(den) )
   { size_t num_size, den_size, num_wsz, den_wsz;
     Word p;
     word m;
@@ -313,35 +395,42 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
   copy:
     num_wsz = mpz_wsize(num, &num_size);
     den_wsz = mpz_wsize(den, &den_size);
-    m       = mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER);
+    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, TAG_INTEGER);
 
-    if ( wsizeofInd(m) != num_wsz+den_wsz+2 )
+    if ( wsizeofInd(m) != num_wsz+den_wsz+2*MPZ_STACK_EXTRA )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_rational);
       return 0;
     }
 
-    if ( !hasGlobalSpace(num_wsz+den_wsz+4) )
-    { int rc = ensureGlobalSpace(num_wsz+den_wsz+4, flags);
+    if ( !hasGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA) )
+    { int rc = ensureGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, flags);
 
       if ( rc != TRUE )
 	return rc;
     }
     p = gTop;
-    gTop += num_wsz+den_wsz+4;
+    gTop += num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA;
 
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
     *p++ = m;
-    *p++ = mpq_size_stack(num->_mp_size);
-    *p++ = mpq_size_stack(den->_mp_size);
+    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(num));
+#if O_BF
+    *p++ = num->expn;
+#endif
+    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(den));
+#if O_BF
+    *p++ = den->expn;
+#endif
     p[num_wsz-1] = 0L;				/* pad out */
-    memcpy(p, num->_mp_d, num_size);
+    memcpy(p, MPZ_LIMBS(num), num_size);
     p += num_wsz;
     p[den_wsz-1] = 0L;				/* pad out */
-    memcpy(p, den->_mp_d, den_size);
+    memcpy(p, MPZ_LIMBS(den), den_size);
     p += den_wsz;
     *p = m;
+    assert(p==gTop-1);
   } else					/* already on the stack */
-  { Word p = (Word)num->_mp_d - 3;
+  { Word p = (Word)MPZ_LIMBS(num)-1-2*MPZ_STACK_EXTRA;
     if ( !onStack(global, p) )
       goto copy;
     DEBUG(CHK_SECURE,
@@ -349,8 +438,8 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 	    size_t den_size;
 	    size_t num_wsz = mpz_wsize(num, &num_size);
 	    size_t den_wsz = mpz_wsize(den, &den_size);
-	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER));
-	    assert((Word)den->_mp_d == (Word)num->_mp_d + num_wsz);
+	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, TAG_INTEGER));
+	    assert((Word)MPZ_LIMBS(den) == (Word)MPZ_LIMBS(num) + num_wsz);
 	  });
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
@@ -385,22 +474,30 @@ get_integer(word w, Number n)
     } else
     { n->type = V_MPZ;
 
+#if O_GMP
       n->value.mpz->_mp_size  = mpz_stack_size(*p++);
       n->value.mpz->_mp_alloc = 0;
       n->value.mpz->_mp_d     = (mp_limb_t*) p;
+#elif O_BF
+      slimb_t len = mpz_stack_size(*p++);
+      n->value.mpz->ctx	 = NULL;
+      n->value.mpz->expn = (slimb_t)*p++;
+      n->value.mpz->sign = len < 0;
+      n->value.mpz->len  = abs(len);
+      n->value.mpz->tab  = (limb_t*)p;
+#endif
     }
   }
 }
 
 
 void
-get_rational(word w, Number n)
+get_rational(DECL_LD word w, Number n)
 { if ( storage(w) == STG_INLINE )
   { n->type = V_INTEGER,
     n->value.i = valInt(w);
   } else
-  { GET_LD
-    Word p = addressIndirect(w);
+  { Word p = addressIndirect(w);
     size_t wsize = wsizeofInd(*p);
 
     p++;
@@ -412,6 +509,7 @@ get_rational(word w, Number n)
       size_t num_size;
 
       n->type = V_MPQ;
+#if O_GMP
       num->_mp_size  = mpz_stack_size(*p++);
       num->_mp_alloc = 0;
       num->_mp_d     = (mp_limb_t*) (p+1);
@@ -419,15 +517,37 @@ get_rational(word w, Number n)
       den->_mp_size  = mpz_stack_size(*p++);
       den->_mp_alloc = 0;
       den->_mp_d     = (mp_limb_t*) (p+num_size);
-
+#elif O_BF
+      slimb_t len = mpz_stack_size(*p++);
+      num->ctx	= NULL;
+      num->expn = (slimb_t)*p++;
+      num->sign = len < 0;
+      num->len  = abs(len);
+      num->tab  = (limb_t*)(p+2);
+      num_size  = mpz_wsize(num, NULL);
+      den->ctx  = NULL;
+      den->sign = 0;			/* canonical MPQ */
+      den->len  = mpz_stack_size(*p++);
+      den->expn = (slimb_t)*p++;
+      den->tab  = (limb_t*) (p+num_size);
+#endif
       *mpq_numref(n->value.mpq) = num[0];
       *mpq_denref(n->value.mpq) = den[0];
     } else
     { n->type = V_MPZ;
 
+#if O_GMP
       n->value.mpz->_mp_size  = mpz_stack_size(*p++);
       n->value.mpz->_mp_alloc = 0;
       n->value.mpz->_mp_d     = (mp_limb_t*) p;
+#elif O_BF
+      slimb_t len = mpz_stack_size(*p++);
+      n->value.mpz->ctx	 = NULL;
+      n->value.mpz->expn = (slimb_t)*p++;
+      n->value.mpz->sign = len < 0;
+      n->value.mpz->len  = abs(len);
+      n->value.mpz->tab  = (limb_t*)p;
+#endif
     }
   }
 }
@@ -438,9 +558,18 @@ get_mpz_from_code(Code pc, mpz_t mpz)
 { size_t wsize = wsizeofInd(*pc);
 
   pc++;
+#if O_GMP
   mpz->_mp_size  = mpz_stack_size(*pc);
   mpz->_mp_alloc = 0;
   mpz->_mp_d     = (mp_limb_t*)(pc+1);
+#elif O_BF
+  slimb_t len = mpz_stack_size(*pc);
+  mpz->ctx    = NULL;
+  mpz->expn   = (slimb_t)pc[1];
+  mpz->sign   = len < 0;
+  mpz->len    = abs(len);
+  mpz->tab    = (limb_t*)pc+2;
+#endif
 
   return pc+wsize;
 }
@@ -452,16 +581,32 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   p++;
   int num_size = mpz_stack_size(*p++);
   int den_size = mpz_stack_size(*p++);
-  size_t limpsize;
+  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
+  mpz_t num, den;
 
-  mpq_numref(mpq)->_mp_size  = num_size;
-  mpq_denref(mpq)->_mp_size  = den_size;
-  mpq_numref(mpq)->_mp_alloc = 0;
-  mpq_denref(mpq)->_mp_alloc = 0;
-  mpq_numref(mpq)->_mp_d     = (mp_limb_t*)p;
-  limpsize = sizeof(mp_limb_t) * abs(num_size);
+#if O_GMP
+  num->_mp_size   = num_size;
+  den->_mp_size   = den_size;
+  num->_mp_alloc  = 0;
+  den->_mp_alloc  = 0;
+  num->_mp_d = (mp_limb_t*)p;
   p += (limpsize+sizeof(word)-1)/sizeof(word);
-  mpq_denref(mpq)->_mp_d     = (mp_limb_t*)p;
+  den->_mp_d = (mp_limb_t*)p;
+#elif O_BF
+  num->ctx = NULL;
+  num->expn = *p++;
+  den->ctx = NULL;
+  den->expn = *p++;
+  num->sign = num_size < 0;
+  num->len  = abs(num_size);
+  den->sign = den_size < 0;
+  den->len  = abs(den_size);
+  num->tab = (mp_limb_t*)p;
+  p += (limpsize+sizeof(word)-1)/sizeof(word);
+  den->tab = (mp_limb_t*)p;
+#endif
+  *mpq_numref(mpq) = num[0];
+  *mpq_denref(mpq) = den[0];
 
   return pc+wsize+1;
 }
@@ -582,40 +727,61 @@ static char *
 load_mpz_bits(const char *data, size_t size, size_t limpsize, int neg, Word p)
 { mpz_t mpz;
 
+#if O_GMP
   mpz->_mp_size  = limpsize;
   mpz->_mp_alloc = limpsize;
   mpz->_mp_d     = (mp_limb_t*)p;
 
   mpz_import(mpz, size, 1, 1, 1, 0, data);
   assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
+#elif O_BF
+  mpz->len = limpsize;
+  mpz->tab = (mp_limb_t*)p;
+  mpz_import(mpz, size, 1, 1, 1, 0, data);
+#endif
 
   return (char*)data+size;
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load a bit integer from data as stored   in  records. A bigint is stored
+using 4 bytes in big endian notation   do represent the length, followed
+by N bytes in big endian notation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
 { GET_LD
   int size = 0;
-  size_t limpsize;
+  size_t limbsize;
   size_t wsize;
   int neg;
   Word p;
   word m;
 
   data = load_abs_mpz_size(data, &size, &neg);
+#if O_BF
+  bf_t bf;
+  bf_import_dimension(&bf, (const unsigned char*)data, size);
+  limbsize = bf.len;
+#else
+  limbsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
 
-  limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  wsize = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+  wsize = (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
-  *store += (wsize+3);
+  *store += (wsize+2+MPZ_STACK_EXTRA);
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+1, TAG_INTEGER);
+  m = mkIndHdr(wsize+MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
-  p[wsize] = 0L;			/* pad out */
-  p[wsize+1] = m;
-  *p++ = mpz_size_stack(neg ? -limpsize : limpsize);
+  p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
+  p[wsize+MPZ_STACK_EXTRA] = m;
+  *p++ = mpz_size_stack(neg ? -limbsize : limbsize);
+#if O_BF
+  *p++ = bf.expn;
+#endif
 
-  return load_mpz_bits(data, size, limpsize, neg, p);
+  return load_mpz_bits(data, size, limbsize, neg, p);
 }
 
 char *
@@ -623,8 +789,8 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
 { GET_LD
   int num_size;
   int den_size;
-  size_t num_limpsize, num_wsize;
-  size_t den_limpsize, den_wsize;
+  size_t num_limbsize, num_wsize;
+  size_t den_limbsize, den_wsize;
   int num_neg, den_neg;
   size_t wsize;
   Word p;
@@ -633,24 +799,39 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   data = load_abs_mpz_size(data, &num_size, &num_neg);
   data = load_abs_mpz_size(data, &den_size, &den_neg);
 
-  num_limpsize = (num_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  num_wsize = (num_limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
-  den_limpsize = (den_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  den_wsize = (den_limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+#if O_BF
+  bf_t num_bf, den_bf;
+  bf_import_dimension(&num_bf, (const unsigned char*)data, num_size);
+  num_limbsize = num_bf.len;
+  bf_import_dimension(&den_bf, (const unsigned char*)data+num_size, den_size);
+  den_limbsize = den_bf.len;
+#else
+  num_limbsize = (num_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+  den_limbsize = (den_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
+
+  num_wsize = (num_limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+  den_wsize = (den_limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   wsize = num_wsize+den_wsize;
 
   p = *store;
-  *store += (wsize+4);
+  *store += wsize+2+2*MPZ_STACK_EXTRA;
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+2, TAG_INTEGER);
+  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
-  *p++ = mpq_size_stack(num_neg ? -num_limpsize : num_limpsize);
-  *p++ = mpq_size_stack(den_neg ? -den_limpsize : den_limpsize);
+  *p++ = mpq_size_stack(num_neg ? -num_limbsize : num_limbsize);
+#if O_BF
+  *p++ = num_bf.expn;
+#endif
+  *p++ = mpq_size_stack(den_neg ? -den_limbsize : den_limbsize);
+#if O_BF
+  *p++ = den_bf.expn;
+#endif
   p[num_wsize-1] = 0;
-  data = load_mpz_bits(data, num_size, num_limpsize, num_neg, p);
+  data = load_mpz_bits(data, num_size, num_limbsize, num_neg, p);
   p += num_wsize;
   p[den_wsize-1] = 0;
-  data = load_mpz_bits(data, den_size, den_limpsize, den_neg, p);
+  data = load_mpz_bits(data, den_size, den_limbsize, den_neg, p);
   p += den_wsize;
   *p++ = m;
   assert(p == *store);
@@ -693,6 +874,7 @@ skipMPQOnCharp(const char *data)
 #define ORDER -1
 #endif
 
+#if O_GMP
 void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
 {
@@ -717,18 +899,25 @@ mpz_init_set_si64(mpz_t mpz, int64_t i)
 #endif
 }
 
+#endif /*O_GMP*/
 
 static void
 mpz_init_set_uint64(mpz_t mpz, uint64_t i)
 {
+#if O_GMP
 #if SIZEOF_LONG == 8
   mpz_init_set_ui(mpz, (unsigned long)i);
 #else
   mpz_init(mpz);
   mpz_import(mpz, sizeof(i), ORDER, 1, 0, 0, &i);
 #endif
+#elif O_BF
+  mpz_init(mpz);
+  bf_set_ui(mpz, i);
+#else
+#error "No implementation for mpz_init_set_uint64()"
+#endif
 }
-
 
 static void
 mpz_init_max_uint(mpz_t mpz, int bits)
@@ -776,7 +965,7 @@ promoteToMPQNumber(number *n)
       promoteToMPZNumber(n);
       /*FALLTHOURGH*/
     case V_MPZ:
-    { n->value.mpq->_mp_num = n->value.mpz[0];
+    { *mpq_numref(n->value.mpq) = n->value.mpz[0];
       mpz_init_set_ui(mpq_denref(n->value.mpq), 1L);
       n->type = V_MPQ;
       break;
@@ -789,7 +978,7 @@ promoteToMPQNumber(number *n)
       switch(fpclassify(v))
       { case FP_NAN:
 	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-        case FP_INFINITE:
+	case FP_INFINITE:
 	  return PL_error(NULL, 0, NULL, ERR_AR_RAT_OVERFLOW);
       }
 
@@ -812,7 +1001,7 @@ void
 ensureWritableNumber(Number n)
 { switch(n->type)
   { case V_MPZ:
-      if ( !n->value.mpz->_mp_alloc )
+      if ( MPZ_ON_STACK(n->value.mpz) )
       { mpz_t tmp;
 
 	tmp[0] = n->value.mpz[0];
@@ -820,13 +1009,13 @@ ensureWritableNumber(Number n)
 	break;
       }
     case V_MPQ:
-    { if ( !mpq_numref(n->value.mpq)->_mp_alloc )
+    { if ( MPZ_ON_STACK(mpq_numref(n->value.mpq)) )
       { mpz_t tmp;
 
 	tmp[0] = mpq_numref(n->value.mpq)[0];
 	mpz_init_set(mpq_numref(n->value.mpq), tmp);
       }
-      if ( !mpq_denref(n->value.mpq)->_mp_alloc )
+	if ( MPZ_ON_STACK(mpq_denref(n->value.mpq)) )
       { mpz_t tmp;
 
 	tmp[0] = mpq_denref(n->value.mpq)[0];
@@ -857,13 +1046,13 @@ void
 clearGMPNumber(Number n)
 { switch(n->type)
   { case V_MPZ:
-      if ( n->value.mpz->_mp_alloc )
+      if ( !MPZ_ON_STACK(n->value.mpz) )
 	mpz_clear(n->value.mpz);
       break;
     case V_MPQ:
-      if ( mpq_numref(n->value.mpq)->_mp_alloc )
+      if ( !MPZ_ON_STACK(mpq_numref(n->value.mpq)) )
 	mpz_clear(mpq_numref(n->value.mpq));
-      if ( mpq_denref(n->value.mpq)->_mp_alloc )
+      if ( !MPZ_ON_STACK(mpq_denref(n->value.mpq)) )
 	mpz_clear(mpq_denref(n->value.mpq));
       break;
     default:
@@ -881,6 +1070,10 @@ initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
+#if O_BF
+    initBF();
+#endif
+
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
@@ -897,10 +1090,12 @@ initGMP(void)
     }
 #endif
 
+#if O_GMP
 #if __GNU_MP__ > 3 && __GNU_MP__ < 6
     PL_license("lgplv3", "libgmp");
 #else
     PL_license("lgplv2+", "libgmp");
+#endif
 #endif
   }
 }
@@ -927,10 +1122,60 @@ cleanupGMP(void)
   }
 }
 
+		 /*******************************
+		 *	     INDEXING		*
+		 *******************************/
+
+/* given a pointer to the indirect header of an integer, return a hash
+   as used  for clause indexing.   If the integer  is huge, we  do not
+   want to use the whole thing.   Instead, we pick the dimensions, the
+   first two and last limb of the content.
+ */
+
+word
+bignum_index(const word *p)
+{ word m = *p++;
+  size_t n = wsizeofInd(m);
+
+  if ( n <= KEY_INDEX_MAX )
+  { return murmur_key(p, n*sizeof(*p));
+  } else if ( (p[0]&MP_RAT_MASK) )
+  { word data[4];
+#if O_GMP
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4);
+    data[1] = p[2];
+    data[2] = p[3];
+#elif O_BF
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4)^p[2]^p[3]<<(sizeof(p[0])*4);
+    data[1] = p[4];
+    data[2] = p[5];
+#endif
+    data[3] = p[n-1];
+    return murmur_key(data, sizeof(data));
+  } else
+  { word data[4];
+#if O_GMP
+    data[0] = p[0];
+    data[1] = p[1];
+    data[2] = p[2];
+#elif O_BF
+    data[0] = p[0]^p[1]<<(sizeof(p[0])*4);
+    data[1] = p[2];
+    data[2] = p[3];
+#else
+#error("No GMP or BF")
+#endif
+    data[3] = p[n-1];
+    return murmur_key(data, sizeof(data));
+  }
+}
+
 
 		 /*******************************
 		 *	   NUMBER HANDLING      *
 		 *******************************/
+
+#if O_GMP
 
 int
 mpz_to_int64(mpz_t mpz, int64_t *i)
@@ -956,7 +1201,6 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
   return FALSE;
 }
 
-
 /* return: <0:              -1
 	   >MPZ_UINT64_MAX:  1
 	   (ok)		     0
@@ -978,6 +1222,33 @@ mpz_to_uint64(mpz_t mpz, uint64_t *i)
 
   return 1;
 }
+
+
+#elif O_BF
+
+int
+mpz_to_int64(mpz_t mpz, int64_t *i)
+{ return bf_get_int64(i, mpz, 0) == 0;
+}
+
+int
+mpz_to_uint64(mpz_t mpz, uint64_t *i)
+{ if ( mpz_sgn(mpz) < 0 )
+    return -1;
+
+  if ( mpz_cmp(mpz, MPZ_MAX_UINT64) <= 0 )
+  { int64_t v;
+
+    if ( bf_get_int64(&v, mpz, BF_RNDZ|BF_GET_INT_MOD) == 0 )
+    { *i = (uint64_t)v;
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1039,7 +1310,7 @@ put_uint64(DECL_LD Word at, uint64_t l, int flags)
   { return put_int64(at, l, flags);
   } else
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     mpz_t mpz;
 
     mpz_init_set_uint64(mpz, l);
@@ -1080,12 +1351,12 @@ put_number(DECL_LD Word at, Number n, int flags)
 	}
 
 	*at = w;
-        return TRUE;
+	return TRUE;
       }
 
       return put_int64(at, n->value.i, flags);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return put_mpz(at, n->value.mpz, flags);
     case V_MPQ:
@@ -1129,7 +1400,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
       if ( isTaggedInt(*p) )
 	return valInt(*p) == n->value.i;
       /*FALLTHOURGH*/
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
 #endif
       if ( isInteger(*p) )
@@ -1143,7 +1414,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
 	return rc;
       }
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
     { if ( isRational(*p) )
       { number n2;
@@ -1230,7 +1501,7 @@ promoteToFloatNumber(Number n)
       n->value.f = (double)n->value.i;
       n->type = V_FLOAT;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { double val = mpz_to_double(n->value.mpz);
 
@@ -1261,7 +1532,7 @@ promoteNumber(Number n, numtype t)
 { switch(t)
   { case V_INTEGER:
       return TRUE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return promoteToMPZNumber(n);
     case V_MPQ:
@@ -1318,7 +1589,7 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d2 = (double)n2->value.i;
 	break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	d2 = mpz_to_double(n2->value.mpz);
 	break;
@@ -1345,7 +1616,7 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
 	break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	d1 = mpz_to_double(n1->value.mpz);
 	break;
@@ -1380,7 +1651,7 @@ cmpNumbers(Number n1, Number n2)
   { case V_INTEGER:
       return n1->value.i  < n2->value.i ? CMP_LESS :
 	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
 
@@ -1410,7 +1681,7 @@ cpNumber(Number to, Number from)
   { case V_INTEGER:
       to->value.i = from->value.i;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       mpz_init(to->value.mpz);
       mpz_set(to->value.mpz, from->value.mpz);
@@ -1425,7 +1696,7 @@ cpNumber(Number to, Number from)
   }
 }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 
 		 /*******************************
 		 *	 FLOAT <-> RATIONAL	*
@@ -1487,7 +1758,7 @@ mpz_fdiv(mpz_t a, mpz_t b)
   { case FE_TONEAREST:
       if ( mpz_tstbit(aa, 0) == 0 )
       {
-      } else if (mpz_cmp_ui(bb, 0) != 0)
+      } else if ( mpz_sgn(bb) != 0 )
       { if ( mpz_sgn(aa) > 0 )
 	  mpz_add_ui(aa, aa, 1);
 	else
@@ -1507,12 +1778,12 @@ mpz_fdiv(mpz_t a, mpz_t b)
       }
       break;
     case FE_UPWARD:        // negative aa defers to truncate (mpz_get_d)
-      if (mpz_sgn(aa) > 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
-        mpz_add_ui(aa, aa, 2);
+      if (mpz_sgn(aa) > 0 && (mpz_sgn(bb) != 0 || mpz_tstbit(aa, 0) == 1))
+	mpz_add_ui(aa, aa, 2);
       break;
     case FE_DOWNWARD:      // positive aa defers to truncate (mpz_get_d)
-      if (mpz_sgn(aa) < 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
-        mpz_sub_ui(aa, aa, 2);
+      if (mpz_sgn(aa) < 0 && (mpz_sgn(bb) != 0 || mpz_tstbit(aa, 0) == 1))
+	mpz_sub_ui(aa, aa, 2);
       break;
     case FE_TOWARDZERO:    // truncation performed by mpz_get_d
       break;
@@ -1554,16 +1825,16 @@ mpz_to_double(mpz_t a)
   { case FE_TONEAREST:
       if ( d > 0 )
       { if ( !bit54 )                           // d is positive
-        {
-        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
-        { d = nexttoward(d,  INFINITY);
-        }
+	{
+	} else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
+	{ d = nexttoward(d,  INFINITY);
+	}
       } else
       { if ( bit54 && !trailing_zeros )		// d is negative
-        {
-        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
-        { d = nexttoward(d, -INFINITY);
-        }
+	{
+	} else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
+	{ d = nexttoward(d, -INFINITY);
+	}
       }
       break;
     case FE_UPWARD:
@@ -1620,7 +1891,7 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
   mpq_init(c);			      /* auxiliary */
   mpz_init(big_xi);                   /* auxiliary */
 
-  while ((mpz_fdiv(pna, pda)) != fabs)
+  while ( mpz_fdiv(pna, pda) != fabs)
   { /* infinite x indicates failure to converge */
     if ( !isfinite(x) )
       goto _bitwise_conversion_;
@@ -1682,12 +1953,12 @@ PL_get_mpz(term_t t, mpz_t mpz)
     switch(n.type)
     { case V_INTEGER:
 	promoteToMPZNumber(&n);
-        mpz_set(mpz, n.value.mpz);
+	mpz_set(mpz, n.value.mpz);
 	clearNumber(&n);
 	break;
       case V_MPZ:
 	mpz_set(mpz, n.value.mpz);
-        break;
+	break;
       default:
 	assert(0);
     }
@@ -1705,27 +1976,25 @@ PL_get_mpq(term_t t, mpq_t mpq)
   { GET_LD
     number n;
 
-    if ( valueExpression(t, &n) )
-    { switch(n.type)
-      { case V_INTEGER:
-	  if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
-	  { mpq_set_si(mpq, (long)n.value.i, 1L);
-	    return TRUE;
-	  }
-	  promoteToMPZNumber(&n);
-	  /*FALLTHROUGH*/
-	case V_MPZ:
-	  mpq_set_z(mpq, n.value.mpz);
-	  clearNumber(&n);
+    get_rational(t, &n);
+    switch(n.type)
+    { case V_INTEGER:
+	if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
+	{ mpq_set_si(mpq, (long)n.value.i, 1L);
 	  return TRUE;
-	case V_MPQ:
-	  mpq_set(mpq, n.value.mpq);
-	  clearNumber(&n);
-	  return TRUE;
-	default:
-	  ;
-      }
-      clearNumber(&n);
+	}
+	promoteToMPZNumber(&n);
+	/*FALLTHROUGH*/
+      case V_MPZ:
+	mpq_set_z(mpq, n.value.mpz);
+	clearNumber(&n);
+	return TRUE;
+      case V_MPQ:
+	mpq_set(mpq, n.value.mpq);
+	clearNumber(&n);
+	return TRUE;
+      default:
+	;
     }
   }
 
@@ -1795,4 +2064,4 @@ __GSHandlerCheck()
 }
 #endif
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/

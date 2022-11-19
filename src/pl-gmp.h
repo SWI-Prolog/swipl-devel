@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2005-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -43,6 +43,7 @@
 #define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
+#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
@@ -53,6 +54,7 @@
 int	PL_unify_number(term_t t, Number n);
 int	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
+void	get_rational(word w, number *n);
 int	PL_get_number(term_t t, Number n);
 int	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
@@ -65,8 +67,25 @@ void	cpNumber(Number to, Number from);
 
 #undef LDFUNC_DECLARATIONS
 
-#ifdef O_GMP
+#if O_BIGNUM
+#if O_GMP
 #include <gmp.h>
+
+#define MPZ_ON_STACK(n)		(!((n)->_mp_alloc))
+#define MPZ_SET_READONLY(n)	((n)->_mp_alloc = 0)
+#define MPZ_LIMB_SIZE(n)	((n)->_mp_size)
+#define MPZ_LIMBS(n)		((n)->_mp_d)
+#define MPZ_STACK_EXTRA		(1)
+#elif O_BF
+#include "libbf/bf_gmp.h"
+#include "pl-bf.h"
+
+#define MPZ_ON_STACK(n)		(!(n->ctx))
+#define MPZ_SET_READONLY(n)	((n)->ctx = NULL)
+#define MPZ_LIMB_SIZE(n)	((n)->sign ? -(n)->len : (n)->len)
+#define MPZ_LIMBS(n)		((n)->tab)
+#define MPZ_STACK_EXTRA		(2)
+#endif
 
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
@@ -74,7 +93,6 @@ void	cpNumber(Number to, Number from);
 void	initGMP(void);
 void	cleanupGMP(void);
 void	get_integer(word w, number *n);
-void	get_rational(word w, number *n);
 Code	get_mpz_from_code(Code pc, mpz_t mpz);
 Code	get_mpq_from_code(Code pc, mpq_t mpq);
 int	promoteToMPZNumber(number *n);
@@ -93,6 +111,7 @@ void	mpz_init_set_si64(mpz_t mpz, int64_t i);
 double	mpz_to_double(mpz_t n);
 double	mpq_to_double(mpq_t q);
 void	mpq_set_double(mpq_t q, double f);
+word	bignum_index(const word *p);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
@@ -117,16 +136,17 @@ mpq_stack_size(word w)
 { return (int)w>>1;
 }
 
+#ifdef O_GMP
 static inline void
-mpz_add_si(mpz_t r, mpz_t n1, long add)
+mpz_add_si(mpz_t r, const mpz_t n1, long add)
 { if ( add > 0 )
     mpz_add_ui(r, n1, add);
   else
     mpz_sub_ui(r, n1, -add);
 }
+#endif
 
-
-#else /*O_GMP*/
+#else /*O_BIGNUM*/
 
 #define get_integer(w, n) \
 	do \
@@ -141,7 +161,7 @@ mpz_add_si(mpz_t r, mpz_t n1, long add)
 #define ensureWritableNumber(n) (void)0
 #define initGMP()		(void)0
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 
 		 /*******************************

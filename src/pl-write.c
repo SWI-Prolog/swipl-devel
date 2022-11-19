@@ -1199,13 +1199,13 @@ format_float(double f, char *buf)
   return buf;
 }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 #define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
 static int
 writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 { char tmp[1024];
   char *buf;
-  size_t sz = mpz_sizeinbase(mpz, 10) + 2;
+  size_t sz = (mpz_sizeinbase(mpz, 2)*10)/3 + 10; /* log2(10)=3.322 */
   int rc;
 
   if ( sz <= sizeof(tmp) )
@@ -1243,7 +1243,7 @@ WriteNumber(Number n, write_options *options)
       sprintf(buf, "%" PRId64, n->value.i);
       return PutToken(buf, options->out);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return writeMPZ(n->value.mpz, options);
     case V_MPQ:

@@ -548,7 +548,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	      addOpCode(info, PL_TYPE_INTEGER);
 	      addInt64(info, n.value.i);
 	      break;
-#ifdef O_GMP
+#if O_BIGNUM
 	    case V_MPZ:
 	      addOpCode(info, PL_REC_MPZ);
 	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
@@ -1433,7 +1433,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 	continue;
       }
-#ifdef O_GMP
+#if O_BIGNUM
       case PL_REC_MPZ:
 	b->data = loadMPZFromCharp(b->data, p, &b->gstore);
 	continue;
@@ -1712,7 +1712,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
       { skipLong(b);
 	continue;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case PL_REC_MPZ:
 	b->data = skipMPZOnCharp(b->data);
 	continue;

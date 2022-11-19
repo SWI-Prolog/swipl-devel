@@ -58,6 +58,11 @@ set(SRC_TAI caltime_utc.c caltime_tai.c leapsecs_sub.c leapsecs_add.c
     tai_unpack.c)
 prepend(SRC_TAI libtai/ ${SRC_TAI})
 
+if(USE_LIBBF)
+  set(SRC_BF pl-bf.c libbf/bf_gmp.c libbf/libbf.c libbf/cutils.c
+      libbf/mersenne-twister.c)
+endif()
+
 set(SRC_MINIZIP zip.c unzip.c ioapi.c)
 prepend(SRC_MINIZIP minizip/ ${SRC_MINIZIP})
 
@@ -82,6 +87,7 @@ set(LIBSWIPL_SRC
     ${SRC_OS}
     ${SRC_OS_SPECIFIC}
     ${SRC_TAI}
+    ${SRC_BF}
     ${SRC_MINIZIP})
 set(SWIPL_SRC pl-main.c)
 
@@ -169,7 +175,7 @@ set(SWIPL_DATA_library_iri_scheme file.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     clpfd.pl clpb.pl)
-if(GMP_FOUND)
+if(USE_GMP OR USE_LIBBF)
   set(SWIPL_DATA_library_clp ${SWIPL_DATA_library_clp} simplex.pl)
 endif()
 
@@ -568,7 +574,7 @@ install_tests()
 endif()
 
 if(SWIPL_INSTALL_IN_LIB)
-  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+  set(LIBSWIPL_DIR ${CMAKE_INSTALL_LIBDIR})
 else()
   set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
 endif()

@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1996-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1423,7 +1423,7 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
 
 static const int type_map[8] = { PL_VARIABLE,
 				 PL_VARIABLE,  /* attributed variable */
-			         PL_FLOAT,
+				 PL_FLOAT,
 				 PL_INTEGER,
 				 PL_STRING,
 				 PL_ATOM,
@@ -3267,7 +3267,7 @@ PL_unify_uint64(term_t t, uint64_t i)
     { switch(n.type)
       { case V_INTEGER:
 	  return FALSE;			/* we have a too big integer */
-#ifdef O_GMP
+#if O_BIGNUM
 	case V_MPZ:
 	{ uint64_t v;
 
@@ -4561,7 +4561,7 @@ resolveModule(const char *module)
   else
   { GET_LD
     return (HAS_LD && environment_frame ? contextModule(environment_frame)
-                                        : MODULE_user);
+					: MODULE_user);
   }
 }
 

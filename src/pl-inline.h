@@ -640,19 +640,22 @@ The hash should not conflict  with   a  functor_t  (hence the STG_GLOBAL
 mask) and may never be 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define KEY_INDEX_MAX 4
+
 static inline word
-murmur_key(void *ptr, size_t n)
+murmur_key(const void *ptr, size_t n)
 { word k;
 
   DEBUG(0, assert(n%sizeof(word) == 0));
 
-  if ( n > sizeof(word)*4 )
-  { word data[4];
+  if ( n > sizeof(word)*KEY_INDEX_MAX )
+  { word data[KEY_INDEX_MAX];
+    const Word in = (const Word)ptr;
 
-    data[0] = ((Word)ptr)[0];
-    data[1] = ((Word)ptr)[1];
-    data[2] = ((Word)ptr)[n/sizeof(word)-1];
-    data[3] = n;
+    for(size_t i=0; i<KEY_INDEX_MAX-2; i++)
+      data[i] = in[i];
+    data[KEY_INDEX_MAX-2] = in[n/sizeof(word)-1];
+    data[KEY_INDEX_MAX-1] = n;
 
     k = MurmurHashAligned2(data, sizeof(word)*4, MURMUR_SEED);
   } else

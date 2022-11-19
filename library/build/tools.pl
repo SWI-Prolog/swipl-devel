@@ -33,13 +33,13 @@
 */
 
 :- module(build_tools,
-          [ build_steps/3,              % +Steps, +SrcDir, +Options
-            prolog_install_prefix/1,    % -Prefix
-            run_process/3,              % +Executable, +Argv, +Options
-            has_program/3,              % +Spec, -Path, +Env
-            path_sep/1,                 % -Separator
-            ensure_build_dir/3          % +Dir, +State0, -State
-          ]).
+	  [ build_steps/3,              % +Steps, +SrcDir, +Options
+	    prolog_install_prefix/1,    % -Prefix
+	    run_process/3,              % +Executable, +Argv, +Options
+	    has_program/3,              % +Spec, -Path, +Env
+	    path_sep/1,                 % -Separator
+	    ensure_build_dir/3          % +Dir, +State0, -State
+	  ]).
 :- autoload(library(lists), [selectchk/3, member/2, append/3, last/2]).
 :- autoload(library(option), [option/2, option/3, dict_options/2]).
 :- autoload(library(pairs), [pairs_values/2]).
@@ -98,8 +98,8 @@ build_steps(Steps, SrcDir, Options) :-
     setup_path,
     build_environment(BuildEnv, Options),
     State0 = Dict0.put(#{ env: BuildEnv,
-                          src_dir: SrcDir
-                        }),
+			  src_dir: SrcDir
+			}),
     foldl(build_step, Steps, State0, _State).
 
 build_step(Spec, State0, State) :-
@@ -156,7 +156,7 @@ ensure_build_dir(Dir, State0, State) :-
 %   absent or `1`, the old names are used. These names are confusing and
 %   conflict with some build environments. Using `2` (or later), the new
 %   names are used. The list below  first   names  the new name and than
-%   between parenthesis, the new name.  Provided variables are:
+%   between parenthesis, the old name.  Provided variables are:
 %
 %     $ ``PATH`` :
 %     contains the environment path with the directory
@@ -200,22 +200,16 @@ ensure_build_dir(Dir, State0, State) :-
 %     File name extension for modules (e.g., `so` or `dll`)
 %     $ ``SWIPL_PREFIX`` (``PREFIX``) :
 %     Install prefix for global binaries, libraries and include files.
-%
-%     In addition, several environment variables   are  passes verbatim:
-%     ``TMP``, ``TEMP``, ``USER``, ``HOME``, ``LANG``, ``CC``,
-%     ``CXX``, ``LD``, ``CFLAGS``, ``CXXFLAGS`` and ``LDFLAGS`` are
-%     passed verbatim unless redefined for version 1 packs as described
-%     above.
 
 build_environment(Env, Options) :-
     findall(Name=Value,
-            distinct(Name, user_environment(Name, Value)),
-            UserEnv),
+	    distinct(Name, user_environment(Name, Value)),
+	    UserEnv),
     findall(Name=Value,
-            ( def_environment(Name, Value, Options),
-              \+ memberchk(Name=_, UserEnv)
-            ),
-            DefEnv),
+	    ( def_environment(Name, Value, Options),
+	      \+ memberchk(Name=_, UserEnv)
+	    ),
+	    DefEnv),
     append(UserEnv, DefEnv, Env).
 
 user_environment(Name, Value) :-
@@ -312,16 +306,16 @@ def_environment(VAR, Value, Options) :-
     ),
     (   current_prolog_flag(windows, true)
     ->  prolog_library_dir(LibDir),
-        atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
-        System = [SystemLib]
+	atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
+	System = [SystemLib]
     ;   apple_bundle_libdir(LibDir)
     ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
-        System = [SystemLib]
+	System = [SystemLib]
     ;   current_prolog_flag(c_libplso, '')
     ->  System = []                 % ELF systems do not need this
     ;   prolog_library_dir(SystemLibDir),
-        atomic_list_concat(['-L"',SystemLibDir,'"'], SystemLib),
-        System = [SystemLib]
+	atomic_list_concat(['-L"',SystemLibDir,'"'], SystemLib),
+	System = [SystemLib]
     ),
     current_prolog_flag(c_ldflags, LDFlags),
     atomic_list_concat([LDFlags, '-shared' | Extra], ' ', Value).
@@ -330,9 +324,6 @@ def_environment(VAR, Value, Options) :-
     current_prolog_flag(shared_object_extension, Value).
 def_environment('PREFIX', Value, _) :-
     prolog_install_prefix(Value).
-def_environment(Pass, Value, _) :-
-    pass_env(Pass),
-    getenv(Pass, Value).
 
 swipl_libraries_dir(Dir) :-
     current_prolog_flag(windows, true),
@@ -344,18 +335,6 @@ swipl_libraries_dir(Dir) :-
     !.
 swipl_libraries_dir(Dir) :-
     prolog_library_dir(Dir).
-
-pass_env('TMP').
-pass_env('TEMP').
-pass_env('USER').
-pass_env('HOME').
-pass_env('LANG').
-pass_env('CC').
-pass_env('CXX').
-pass_env('LD').
-pass_env('CFLAGS').
-pass_env('CXXFLAGS').
-pass_env('LDFLAGS').
 
 env_name(Id, Name, Options) :-
     option(pack_version(V), Options, 1),
@@ -436,23 +415,23 @@ preferred_c_compiler(cc).
 save_build_environment(BuildDir, Env) :-
     directory_file_path(BuildDir, 'buildenv.sh', EnvFile),
     setup_call_cleanup(
-        open(EnvFile, write, Out),
-        write_env_script(Out, Env),
-        close(Out)).
+	open(EnvFile, write, Out),
+	write_env_script(Out, Env),
+	close(Out)).
 
 write_env_script(Out, Env) :-
     format(Out,
-           '# This file contains the environment that can be used to\n\c
-            # build the foreign pack outside Prolog.  This file must\n\c
-            # be loaded into a bourne-compatible shell using\n\c
-            #\n\c
-            #   $ source buildenv.sh\n\n',
-           []),
+	   '# This file contains the environment that can be used to\n\c
+	    # build the foreign pack outside Prolog.  This file must\n\c
+	    # be loaded into a bourne-compatible shell using\n\c
+	    #\n\c
+	    #   $ source buildenv.sh\n\n',
+	   []),
     forall(member(Var=Value, Env),
-           format(Out, '~w=\'~w\'\n', [Var, Value])),
+	   format(Out, '~w=\'~w\'\n', [Var, Value])),
     format(Out, '\nexport ', []),
     forall(member(Var=_, Env),
-           format(Out, ' ~w', [Var])),
+	   format(Out, ' ~w', [Var])),
     format(Out, '\n', []).
 
 %!  prolog_install_prefix(-Prefix) is semidet.
@@ -493,9 +472,9 @@ prolog_install_prefix(Prefix) :-
 local_prefix('/usr', '/usr/local').
 
 
-                 /*******************************
-                 *          RUN PROCESSES       *
-                 *******************************/
+		 /*******************************
+		 *          RUN PROCESSES       *
+		 *******************************/
 
 %!  run_process(+Executable, +Argv, +Options) is det.
 %
@@ -520,9 +499,9 @@ run_process(path(Exe), Argv, Options) :-
     option(env(BuildEnv), Options),
     !,
     setup_call_cleanup(
-        b_setval('$build_tool_env', BuildEnv),
-        run_process(pack_build_path(Exe), Argv, Options),
-        nb_delete('$build_tool_env')).
+	b_setval('$build_tool_env', BuildEnv),
+	run_process(pack_build_path(Exe), Argv, Options),
+	nb_delete('$build_tool_env')).
 run_process(Executable, Argv, Options) :-
     \+ option(output(_), Options),
     \+ option(error(_), Options),
@@ -531,11 +510,11 @@ run_process(Executable, Argv, Options) :-
     !,
     process_create_options(Options, Extra),
     process_create(Executable, Argv,
-                   [ stdout(pipe(Out)),
-                     stderr(pipe(Error)),
-                     process(PID)
-                   | Extra
-                   ]),
+		   [ stdout(pipe(Out)),
+		     stderr(pipe(Error)),
+		     process(PID)
+		   | Extra
+		   ]),
     thread_create(relay_output([output-Out, error-Error]), Id, []),
     process_wait(PID, Status),
     thread_join(Id, _),
@@ -546,19 +525,19 @@ run_process(Executable, Argv, Options) :-
 run_process(Executable, Argv, Options) :-
     process_create_options(Options, Extra),
     setup_call_cleanup(
-        process_create(Executable, Argv,
-                       [ stdout(pipe(Out)),
-                         stderr(pipe(Error)),
-                         process(PID)
-                       | Extra
-                       ]),
-        (   read_stream_to_codes(Out, OutCodes, []),
-            read_stream_to_codes(Error, ErrorCodes, []),
-            process_wait(PID, Status)
-        ),
-        (   close(Out),
-            close(Error)
-        )),
+	process_create(Executable, Argv,
+		       [ stdout(pipe(Out)),
+			 stderr(pipe(Error)),
+			 process(PID)
+		       | Extra
+		       ]),
+	(   read_stream_to_codes(Out, OutCodes, []),
+	    read_stream_to_codes(Error, ErrorCodes, []),
+	    process_wait(PID, Status)
+	),
+	(   close(Out),
+	    close(Error)
+	)),
     print_error(ErrorCodes, Options),
     print_output(OutCodes, Options),
     (   Status == exit(0)
@@ -569,7 +548,7 @@ run_process(Executable, Argv, Options) :-
 process_create_options(Options, Extra) :-
     option(directory(Dir), Options, .),
     (   option(env(Env), Options)
-    ->  Extra = [cwd(Dir), env(Env)]
+    ->  Extra = [cwd(Dir), environment(Env)]
     ;   Extra = [cwd(Dir)]
     ).
 
@@ -585,10 +564,10 @@ relay([H|T], Outputs0, Outputs) :-
     selectchk(Type-H, Outputs0, Outputs1),
     (   at_end_of_stream(H)
     ->  close(H),
-        relay(T, Outputs1, Outputs)
+	relay(T, Outputs1, Outputs)
     ;   read_pending_codes(H, Codes, []),
-        relay(Type, Codes),
-        relay(T, Outputs0, Outputs)
+	relay(Type, Codes),
+	relay(T, Outputs0, Outputs)
     ).
 
 relay(error,  Codes) :-
@@ -651,17 +630,17 @@ has_program(Program, Path) :-
 
 has_program(path(Program), Path, Env), memberchk('PATH'=_, Env) =>
     setup_call_cleanup(
-        b_setval('$build_tool_env', Env),
-        has_program(pack_build_path(Program), Path, []),
-        nb_delete('$build_tool_env')).
+	b_setval('$build_tool_env', Env),
+	has_program(pack_build_path(Program), Path, []),
+	nb_delete('$build_tool_env')).
 has_program(Name, Path, Env), plain_program_name(Name) =>
     has_program(path(Name), Path, Env).
 has_program(Program, Path, _Env) =>
     exe_options(ExeOptions),
     absolute_file_name(Program, Path,
-                       [ file_errors(fail)
-                       | ExeOptions
-                       ]).
+		       [ file_errors(fail)
+		       | ExeOptions
+		       ]).
 
 plain_program_name(Name) :-
     atom(Name),
@@ -719,9 +698,9 @@ setup_path(_).
 
 mingw_extend_path :-
     absolute_file_name(path('gcc.exe'), _,
-                       [ access(exist),
-                         file_errors(fail)
-                       ]),
+		       [ access(exist),
+			 file_errors(fail)
+		       ]),
     !.
 mingw_extend_path :-
     mingw_root(MinGW),
@@ -735,7 +714,7 @@ mingw_extend_path :-
     atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
     setenv('PATH', Path),
     print_message(informational,
-                  build(mingw_extend_path(WinDirMSYS, WinDirMinGW))).
+		  build(mingw_extend_path(WinDirMSYS, WinDirMinGW))).
 
 mingw_root(MinGwRoot) :-
     current_prolog_flag(executable, Exe),
@@ -747,9 +726,9 @@ mingw_root(MinGwRoot) :-
     exists_directory(MinGwRoot),
     !.
 
-                 /*******************************
-                 *            MESSAGES          *
-                 *******************************/
+		 /*******************************
+		 *            MESSAGES          *
+		 *******************************/
 
 :- multifile prolog:message//1.
 
@@ -780,4 +759,3 @@ process_lines([H|T]) -->
     ->  []
     ;   [nl], process_lines(T)
     ).
-

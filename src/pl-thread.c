@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1999-2022, University of Amsterdam,
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1032,10 +1032,10 @@ exitPrologThreads(void)
 	    { switch( (*info->cancel)(i) )
 	      { case PL_THREAD_CANCEL_FAILED:
 		  break;
-	        case PL_THREAD_CANCEL_MUST_JOIN:
+		case PL_THREAD_CANCEL_MUST_JOIN:
 		  canceled++;
 		  /*FALLTHROUGH*/
-	        case PL_THREAD_CANCEL_JOINED:
+		case PL_THREAD_CANCEL_JOINED:
 		  continue;
 	      }
 	    }
@@ -1602,16 +1602,16 @@ alertThread(PL_thread_info_t *info)
     PL_LOCK(L_ALERT);
     switch(ld->thread.alert.type)
     { case ALERT_QUEUE_RD:
-        cv_broadcast(&ld->thread.alert.obj.queue->cond_var);
+	cv_broadcast(&ld->thread.alert.obj.queue->cond_var);
 	done = TRUE;
 	break;
       case ALERT_QUEUE_WR:
-        cv_broadcast(&ld->thread.alert.obj.queue->drain_var);
+	cv_broadcast(&ld->thread.alert.obj.queue->drain_var);
 	done = TRUE;
 	break;
 #if STDC_CV_ALERT
       case ALERT_LOCK_CV:
-        /* thread_wait_signal locks L_ALERT inside alert_mtx, so we
+	/* thread_wait_signal locks L_ALERT inside alert_mtx, so we
 	 * must do the same to avoid deadlocks. A thread race here
 	 * will only cause us to alert a non-waiting thread, which
 	 * isn't a problem. */
@@ -2025,7 +2025,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
-#ifdef O_GMP
+#ifdef O_BIGNUM
   ldnew->arith.rat                = ldold->arith.rat;
 #endif
   ldnew->arith.f                  = ldold->arith.f;
@@ -2463,7 +2463,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info,
 			   PL_FUNCTOR, FUNCTOR_exception1,
 			     PL_FUNCTOR, FUNCTOR_error2,
 			       PL_FUNCTOR, FUNCTOR_resource_error1,
-			         PL_ATOM, ATOM_memory,
+				 PL_ATOM, ATOM_memory,
 			       PL_VARIABLE);
     }
     default:
@@ -2907,7 +2907,7 @@ advance_state(tprop_enum *state)
       if ( state->tid > GD->thread.highest_id )
 	fail;
     } while ( GD->thread.threads[state->tid]->status == PL_THREAD_UNUSED ||
-              GD->thread.threads[state->tid]->status == PL_THREAD_RESERVED );
+	      GD->thread.threads[state->tid]->status == PL_THREAD_RESERVED );
 
     succeed;
   }
@@ -2990,7 +2990,7 @@ enumerate:
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
-			        PL_TERM, arg) )
+				PL_TERM, arg) )
 	    goto error;
 	}
 	if ( state->enum_threads )
@@ -4186,7 +4186,7 @@ timespec_sign(const struct timespec *t)
 { return ( t->tv_sec > 0 ?  1 :
 	   t->tv_sec < 0 ? -1 :
 	   t->tv_nsec > 0 ? 1 :
-                            0 );
+			    0 );
 
 }
 
@@ -4333,7 +4333,7 @@ cv_timedwait(message_queue *queue,
       case 0:				/* legacy systems */
 	if ( is_signalled() )
 	  return CV_INTR;
-        return CV_READY;
+	return CV_READY;
       default:
 	assert(0);
 	return CV_READY;
@@ -4454,7 +4454,7 @@ get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
       tmp = PL_new_term_ref();
       if ( !PL_recorded(msgp->message, tmp) )
       { PL_discard_foreign_frame(fid);
-        return raiseStackOverflow(GLOBAL_OVERFLOW);
+	return raiseStackOverflow(GLOBAL_OVERFLOW);
       }
       DEBUG(MSG_QUEUE,
 	    { Sdprintf("%d: found term ", PL_thread_self());
@@ -4478,7 +4478,7 @@ get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
 	if (GD->atoms.gc_active)
 	  markAtomsRecord(msgp->message);
 
-        simpleMutexLock(&queue->gc_mutex);	/* see (*) */
+	simpleMutexLock(&queue->gc_mutex);	/* see (*) */
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -4486,7 +4486,7 @@ get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-        simpleMutexUnlock(&queue->gc_mutex);
+	simpleMutexUnlock(&queue->gc_mutex);
 
 	free_thread_message(msgp);
 	queue->size--;
@@ -4772,7 +4772,7 @@ wait_queue_message(DECL_LD term_t qterm, message_queue *q, thread_message *msg,
       }
       case MSG_WAIT_TIMEOUT:
 	rc = FALSE;
-        break;
+	break;
       case TRUE:
 	break;
       default:
@@ -5411,7 +5411,7 @@ enumerate:
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
-			        PL_TERM, a1) )
+				PL_TERM, a1) )
 	    goto error;
 	}
 	if ( state->e )
@@ -5432,8 +5432,8 @@ enumerate:
 
 	if ( state != &statebuf )
 	  free_qstate(state);
-        else if ( state->e )
-          freeTableEnum(state->e);
+	else if ( state->e )
+	  freeTableEnum(state->e);
 	succeed;
       }
 
@@ -5441,8 +5441,8 @@ enumerate:
       { error:
 	if ( state != &statebuf )
 	  free_qstate(state);
-        else if ( state->e )
-          freeTableEnum(state->e);
+	else if ( state->e )
+	  freeTableEnum(state->e);
 	fail;
       }
     }
@@ -5520,10 +5520,10 @@ thread_get_message(DECL_LD term_t queue, term_t msg, struct timespec *deadline)
 	break;
       case MSG_WAIT_DESTROYED:
 	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
-        break;
+	break;
       case MSG_WAIT_TIMEOUT:
 	rc = FALSE;
-        break;
+	break;
       default:
 	;
     }
@@ -5863,11 +5863,11 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
     { case CV_INTR:
 	if ( PL_handle_signals() >= 0 )
 	  continue;
-        rc = FALSE;
-        goto out_for_loop;
+	rc = FALSE;
+	goto out_for_loop;
       case CV_TIMEDOUT:
 	rc = FALSE;
-        goto out_for_loop;
+	goto out_for_loop;
       case CV_MAYBE:
 	ign_filter = TRUE;
       case CV_READY:
@@ -6309,7 +6309,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->goal       = NULL;
   info->module     = MODULE_user;
   info->detached   = attr == NULL ||
-                     (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+		     (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
   info->open_count = 1;
 
   copy_local_data(ldnew, ldmain, attr ? attr->max_queue_size : 0);
@@ -7258,7 +7258,7 @@ markAtomsMessageQueues(void)
     { simpleMutexLock(&queueTable_mutex);
       if ( !advanceTableEnum(e, NULL, (void**)&q) )
       { simpleMutexUnlock(&queueTable_mutex);
-        break;
+	break;
       }
       simpleMutexLock(&q->gc_mutex);
       simpleMutexUnlock(&queueTable_mutex);
@@ -7630,7 +7630,7 @@ get_prop_def(term_t t, atom_t expected, const tprop *list, const tprop **def)
     for( ; p->functor; p++ )
     { if ( f == p->functor )
       { *def = p;
-        return TRUE;
+	return TRUE;
       }
     }
 
@@ -7783,19 +7783,19 @@ pl_atom_buckets_in_use(void)
     if ( info && info->access.atom_bucket )
     { if ( index >= sz-1 )
       { int j = 0;
-        size_t oldsz = sz;
-        sz *= 2;
-        Atom **newbuckets = allocHeapOrHalt(sz * sizeof(Atom*));
+	size_t oldsz = sz;
+	sz *= 2;
+	Atom **newbuckets = allocHeapOrHalt(sz * sizeof(Atom*));
 	memset(newbuckets, 0, sz * sizeof(Atom*));
 	for ( ; j < oldsz; j++ )
 	{ newbuckets[j] = buckets[j];
 	}
 	PL_free(buckets);
-        buckets = newbuckets;
+	buckets = newbuckets;
       }
       buckets[index] = info->access.atom_bucket;
       if ( buckets[index] )	/* atom_bucket may have been released */
-        index++;
+	index++;
     }
   }
 

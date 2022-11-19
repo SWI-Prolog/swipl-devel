@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -365,7 +365,7 @@ do_unify(DECL_LD Word t1, Word t2)
       case TAG_FLOAT:
 	if ( equalIndirect(w1, w2) )
 	  continue;
-        goto out_fail;
+	goto out_fail;
       case TAG_COMPOUND:
       { Functor f1 = valueTerm(w1);
 	Functor f2 = valueTerm(w2);
@@ -515,8 +515,8 @@ unify_ptrs(DECL_LD Word t1, Word t2, int flags)
       { int rc2;
 
 	PushPtr(t1); PushPtr(t2);
-        rc2 = makeMoreStackSpace(rc, flags);
-        PopPtr(t2); PopPtr(t1);
+	rc2 = makeMoreStackSpace(rc, flags);
+	PopPtr(t2); PopPtr(t1);
 	if ( !rc2 )
 	  return FALSE;
       }
@@ -724,7 +724,7 @@ unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 	  rc = failed_unify_with_occurs_check(p, t, mode);
 	}
 	rc = FALSE;
-        break;
+	break;
       }
     }
   }
@@ -773,7 +773,7 @@ PRED_IMPL("float", 1, float, 0)
 { return PL_is_float(A1);
 }
 
-#if O_GMP
+#if O_BIGNUM
 static
 PRED_IMPL("rational", 1, rational, 0)
 { return PL_is_rational(A1);
@@ -1067,7 +1067,7 @@ ph_acyclic_mark(DECL_LD Word p)
       { goto end_of_chain;
       } else
       { clearSegStack(&agenda.stack);
-        return FALSE;
+	return FALSE;
       }
     }
 
@@ -1082,25 +1082,25 @@ ph_acyclic_mark(DECL_LD Word p)
       iter = tail;
       for( i = arity-2; i >= 0; i-- )
       { p = iter->arguments + i;
-        deRef(p);
+	deRef(p);
 
-        if ( isTerm(*p) )
-        { if ( !new_workspace )
-          { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
+	if ( isTerm(*p) )
+	{ if ( !new_workspace )
+	  { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
 	      outOfCore();
-            agenda.work.head = head;
-            agenda.work.tail = tail;
-            agenda.work.p = iter->arguments + arity-1;
+	    agenda.work.head = head;
+	    agenda.work.tail = tail;
+	    agenda.work.p = iter->arguments + arity-1;
 
-            head = tail = valueTerm(*p);
-            new_workspace = TRUE;
-          } else
-          { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
+	    head = tail = valueTerm(*p);
+	    new_workspace = TRUE;
+	  } else
+	  { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
 	      outOfCore();
-            agenda.work.head = agenda.work.tail = valueTerm(*p);
-            agenda.work.p = NULL;
-          }
-        }
+	    agenda.work.head = agenda.work.tail = valueTerm(*p);
+	    agenda.work.p = NULL;
+	  }
+	}
       }
 
       if ( new_workspace )
@@ -1125,10 +1125,10 @@ ph_acyclic_mark(DECL_LD Word p)
       while ( iter != tail )
       { set_acyclic_perm(pdef);
 
-        p = iter->arguments + arityFunctor(*pdef) - 1;
-        deRef(p);
-        iter = valueTerm(*p);
-        pdef = &iter->definition;
+	p = iter->arguments + arityFunctor(*pdef) - 1;
+	deRef(p);
+	iter = valueTerm(*p);
+	pdef = &iter->definition;
       }
       set_acyclic_perm(pdef);
 
@@ -1142,7 +1142,7 @@ ph_acyclic_mark(DECL_LD Word p)
 
       if ( p )
       { deRef(p);
-        goto process_p;
+	goto process_p;
       }
     }
   }
@@ -1244,7 +1244,7 @@ following steps:
 
   1. scan_shared() walks the term and
      a. Set MARK_MASK on all visited terms and FIRST_MASK on those find
-        twice.
+	twice.
      b. Create a list Var=Term for all terms found twice.
      c. Returns the count of places that must be shared.
   2. reverse_factor_pointers() walks through the created list, placing
@@ -1252,7 +1252,7 @@ following steps:
      the original functor.
   3. link_shared() walks the term and
      a. If the functor is a reference, follow the reference-chain to
-        find the functor.  Link the term into the reference-chain.
+	find the functor.  Link the term into the reference-chain.
      b. If the functor is marked, unmark it.
   4. restore_shared_functors() finishes the job by following the
      variable-list and putting all functors from the variable back
@@ -1442,9 +1442,9 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     { case TRUE:
 	if ( tTop + 2*count > tMax )
 	  rc = TRAIL_OVERFLOW;
-        else if ( gTop + count > gMax )
+	else if ( gTop + count > gMax )
 	  rc = GLOBAL_OVERFLOW;
-        else
+	else
 	  break;
 	/*FALLTHROUGH*/
       default:
@@ -1498,7 +1498,7 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
       case CHP_JUMP:
 	if ( (void *)BFR > (void *)FR )
 	  return PL_unify_atom(A1, ATOM_false);
-        else
+	else
 	  return PL_unify_atom(A1, ATOM_true);
       default:
 	continue;
@@ -1525,7 +1525,7 @@ termHashValue(DECL_LD word term, long depth, unsigned int *hval)
       case TAG_ATOM:
       { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
 				   sizeof(unsigned int), *hval);
-        succeed;
+	succeed;
       }
       case TAG_STRING:
       { size_t len;
@@ -1534,7 +1534,7 @@ termHashValue(DECL_LD word term, long depth, unsigned int *hval)
 	s = getCharsString(term, &len);
 	*hval = MurmurHashAligned2(s, len, *hval);
 
-        succeed;
+	succeed;
       }
       case TAG_INTEGER:
 	if ( storage(term) == STG_INLINE )
@@ -1673,7 +1673,7 @@ compareAtoms(atom_t w1, atom_t w2)
     return PL_cmp_text(&t1, 0, &t2, 0, len);
   } else
   { return a1->type->rank == a2->type->rank ? CMP_EQUAL :
-           a1->type->rank < a2->type->rank ? CMP_LESS : CMP_GREATER;
+	   a1->type->rank < a2->type->rank ? CMP_LESS : CMP_GREATER;
   }
 }
 
@@ -1962,8 +1962,8 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
       return val > 0;
   } else
   { a = val < 0 ? ATOM_smaller :
-        val > 0 ? ATOM_larger :
-	          ATOM_equals;
+	val > 0 ? ATOM_larger :
+		  ATOM_equals;
 
     return PL_unify_atom(A1, a);
   }
@@ -2617,8 +2617,8 @@ skip_list(DECL_LD Word l, Word *tailp)
       lam++;
       if ( power == lam )
       { checkCell = currentCell;
-        power *= 2;
-        lam = 0;
+	power *= 2;
+	lam = 0;
       }
     }
 
@@ -3055,7 +3055,7 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	  DiscardMark(m);
 	  PL_representation_error("tagged_integer");
 	  return NV_ERROR;
-        default:
+	default:
 	  Undo(m);
 	  DiscardMark(m);
 	  if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
@@ -4277,9 +4277,9 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) )
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
-        clearNumber(&n);
+	clearNumber(&n);
 
-        return rc;
+	return rc;
       } else
       { clearNumber(&n);
 	return FALSE;
@@ -4415,7 +4415,7 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
 
     switch ( ForeignControl(ctx) )
     { case FRG_FIRST_CALL:
-        if ( PL_same_term(a1, a2) )	/* sharing variables */
+	if ( PL_same_term(a1, a2) )	/* sharing variables */
 	{ if ( L3 % 2 )
 	  { rc = FALSE;
 	    goto out;
@@ -4431,10 +4431,10 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
 	  }
 	}
 	at_n = 0;
-        break;
+	break;
       case FRG_REDO:
 	at_n = ForeignContextInt(ctx);
-        break;
+	break;
       default:
 	succeed;
     }
@@ -4751,19 +4751,19 @@ second 15 bits for the `after'.
 There are many possibilities (think the semantics are a bit overloaded).
 
     * sub is given
-        + if len conflicts: fail
+	+ if len conflicts: fail
 	+ if before or after given: test deterministically
 	+ otherwise: search (non-deterministic)
     * two of the integers are given
-        + generate (deterministic)
+	+ generate (deterministic)
     * before is given:
-        + split the remainder (non-deterministic)
+	+ split the remainder (non-deterministic)
     * len is given:
-        + enumerate breaks (non-deterministic)
+	+ enumerate breaks (non-deterministic)
     * after is given:
-        + split the remainder (non-deterministic)
+	+ split the remainder (non-deterministic)
     * non given:
-        + enumerate using before and len (non-deterministic)
+	+ enumerate using before and len (non-deterministic)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 enum sub_type
@@ -4963,9 +4963,9 @@ again:
 		   PL_unify_integer(after,  la-ls-state->n1));
 
 	  if ( ++state->n1 + ls > la )
-            goto exit_succeed;
-          else
-            goto next;
+	    goto exit_succeed;
+	  else
+	    goto next;
 	}
       }
       goto exit_fail;
@@ -5741,7 +5741,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
     v->value.i = LD->gc.stats.totals.collections;
   else if (key == ATOM_collected)
     v->value.i = LD->gc.stats.totals.trail_gained +
-                 LD->gc.stats.totals.global_gained;
+		 LD->gc.stats.totals.global_gained;
 #ifdef HAVE_BOEHM_GC
   else if ( key == ATOM_heap_gc )
     v->value.i = GC_get_gc_no();
@@ -5981,7 +5981,7 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 		return FALSE;
 	    }
 
-            return PL_unify_nil(tail);
+	    return PL_unify_nil(tail);
 	  }
 	}
       }
@@ -6028,7 +6028,7 @@ set_pl_option(const char *name, const char *value)
 	    assert(0);
 	  return TRUE;
 	}
-        case CMDOPT_SIZE_T:
+	case CMDOPT_SIZE_T:
 	{ size_t *val = d->address;
 	  number n;
 	  unsigned char *q;
@@ -6047,13 +6047,13 @@ set_pl_option(const char *name, const char *value)
 	  *val = store_string(value);
 	  succeed;
 	}
-        case CMDOPT_LIST:
+	case CMDOPT_LIST:
 	{ opt_list **l = d->address;
 
 	  opt_append(l, value);
 	  succeed;
 	}
-        default:
+	default:
 	  assert(0);
       }
     }
@@ -6124,7 +6124,7 @@ BeginPredDefs(prims)
   PRED_DEF("var", 1, var, PL_FA_ISO)
   PRED_DEF("integer", 1, integer, PL_FA_ISO)
   PRED_DEF("float", 1, float, PL_FA_ISO)
-#ifdef O_GMP
+#ifdef O_BIGNUM
   PRED_DEF("rational", 1, rational, 0)
 #endif
   PRED_DEF("number", 1, number, PL_FA_ISO)
@@ -6180,7 +6180,7 @@ BeginPredDefs(prims)
 #ifdef O_INFERENCE_LIMIT
   PRED_DEF("$inference_limit", 2, pl_inference_limit, 0)
   PRED_DEF("$inference_limit_true", 3, pl_inference_limit_true,
-           PL_FA_NONDETERMINISTIC)
+	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("$inference_limit_false", 1, inference_limit_false, 0)
   PRED_DEF("$inference_limit_except", 3, inference_limit_except, 0)
 #endif

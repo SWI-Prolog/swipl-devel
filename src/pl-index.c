@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2020, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -174,7 +174,10 @@ indexOfWord(DECL_LD word w)
       case TAG_INTEGER:
 	if ( storage(w) == STG_INLINE )
 	  break;
-      /*FALLTHROUGH*/
+#if O_BIGNUM
+	return bignum_index(addressIndirect(w));
+#endif
+	/*FALLTHROUGH for int64 and no BIGNUM */
       case TAG_STRING:
       case TAG_FLOAT:
       { Word p = addressIndirect(w);
@@ -1522,7 +1525,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
       case H_RFUNCTOR:
       case H_RLIST:
 	pc = stepPC(pc);
-        argKey(pc, 0, &arg1key);
+	argKey(pc, 0, &arg1key);
     }
   }
 
@@ -1754,7 +1757,7 @@ cmp_indexes(const void *p1, const void *p2)
     return -1;
 
   return ci1->speedup < ci2->speedup ?  1 :
-         ci1->speedup > ci2->speedup ? -1 : 0;
+	 ci1->speedup > ci2->speedup ? -1 : 0;
 }
 
 
@@ -2373,7 +2376,7 @@ skipToTerm(Clause clause, const iarg_t *position)
       }
       case I_CHP:
 	pc = stepPC(pc);
-        goto again;
+	goto again;
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
       case H_FIRSTVAR:
       case H_VAR:
@@ -2670,7 +2673,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 	hints->ln_buckets = MSB(nbest->size);
 	hints->speedup    = nbest->speedup;
 
-        free_keys_in_assessment_set(&aset);
+	free_keys_in_assessment_set(&aset);
 	free_assessment_set(&aset);
 	return TRUE;
       }
@@ -2708,7 +2711,7 @@ Where is one of
 
   - Simple index		single(ArgN)
   - Multi-argument index	multi([Arg1,Arg2,...])
-  - Deep index		        deep([Arg1,Arg2,...])
+  - Deep index			deep([Arg1,Arg2,...])
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2810,7 +2813,7 @@ unify_clause_index(term_t t, ClauseIndex ci)
 			 PL_FUNCTOR, FUNCTOR_hash4,
 			   PL_INT, (int)ci->buckets,
 			   PL_DOUBLE, (double)ci->speedup,
-		           PL_INT64, (int64_t)sizeofClauseIndex(ci),
+			   PL_INT64, (int64_t)sizeofClauseIndex(ci),
 			   PL_BOOL, ci->is_list);
 }
 

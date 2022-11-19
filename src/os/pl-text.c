@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -42,6 +42,7 @@
 #include "../pl-write.h"
 #include <errno.h>
 #include <stdio.h>
+#include <math.h>
 #if HAVE_LIMITS_H
 #include <limits.h>			/* solaris compatibility */
 #endif
@@ -232,14 +233,14 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
     { case V_INTEGER:
       { char *ep = i64toa(n.value.i, text->buf);
 
-        text->text.t    = text->buf;
+	text->text.t    = text->buf;
 	text->length    = ep-text->text.t;
 	text->storage   = PL_CHARS_LOCAL;
 	break;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
-      { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;
+      { size_t sz = (double)mpz_sizeinbase(n.value.mpz, 2)*log(10)/log(2)*1.2 + 2;
 	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
@@ -253,8 +254,8 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	break;
       }
       case V_MPQ:
-      { size_t sz = ( mpz_sizeinbase(mpq_numref(n.value.mpq), 10) +
-		      mpz_sizeinbase(mpq_denref(n.value.mpq), 10) + 4 );
+      { size_t sz = (double)( mpz_sizeinbase(mpq_numref(n.value.mpq), 2) +
+			      mpz_sizeinbase(mpq_denref(n.value.mpq), 2) + 4 ) * log(10)/log(2) * 1.2;
 	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
@@ -550,40 +551,40 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
 
-            if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
+	    if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
 	      return FALSE;
 
-            if ( type == PL_CODE_LIST ) {
-              for( ; s < e; s++)
-                p = EXTEND_SEQ_CODES(p, *s);
-            } else {
-              for( ; s < e; s++)
-                p = EXTEND_SEQ_CHARS(p, *s);
-            }
+	    if ( type == PL_CODE_LIST ) {
+	      for( ; s < e; s++)
+		p = EXTEND_SEQ_CODES(p, *s);
+	    } else {
+	      for( ; s < e; s++)
+		p = EXTEND_SEQ_CHARS(p, *s);
+	    }
 	    break;
 	  }
 	  case ENC_WCHAR:
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-            if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
+	    if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
 	      return FALSE;
 
-            if ( type == PL_CODE_LIST )
+	    if ( type == PL_CODE_LIST )
 	    { while(s < e)
 	      { int c;
 
 		s = get_wchar(s, &c);
-                p = EXTEND_SEQ_CODES(p, c);
+		p = EXTEND_SEQ_CODES(p, c);
 	      }
-            } else
+	    } else
 	    { while(s < e)
 	      { int c;
 
 		s = get_wchar(s, &c);
-                p = EXTEND_SEQ_CHARS(p, c);
+		p = EXTEND_SEQ_CHARS(p, c);
 	      }
-            }
+	    }
 	    break;
 	  }
 	  case ENC_UTF8:
@@ -591,24 +592,24 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	    const char *e = &s[text->length];
 	    size_t len = utf8_strlen(s, text->length);
 
-            if ( !(p0 = p = INIT_SEQ_STRING(len)) )
+	    if ( !(p0 = p = INIT_SEQ_STRING(len)) )
 	      return FALSE;
 
-            if ( type == PL_CODE_LIST ) {
-              while (s < e) {
-                int chr;
+	    if ( type == PL_CODE_LIST ) {
+	      while (s < e) {
+		int chr;
 
 		PL_utf8_code_point(&s, e, &chr);
-                p = EXTEND_SEQ_CODES(p, chr);
-              }
-            } else {
-              while (s < e) {
-                int chr;
+		p = EXTEND_SEQ_CODES(p, chr);
+	      }
+	    } else {
+	      while (s < e) {
+		int chr;
 
 		PL_utf8_code_point(&s, e, &chr);
-                p = EXTEND_SEQ_CHARS(p, chr);
-              }
-            }
+		p = EXTEND_SEQ_CHARS(p, chr);
+	      }
+	    }
 	    break;
 	  }
 	  case ENC_ANSI:
@@ -629,7 +630,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	      s += rc;
 	    }
 
-            if ( !(p0 = p = INIT_SEQ_STRING(len)) )
+	    if ( !(p0 = p = INIT_SEQ_STRING(len)) )
 	      return FALSE;
 
 	    n = text->length;
@@ -829,7 +830,7 @@ PL_promote_text(PL_chars_t *text)
 
       text->encoding = ENC_WCHAR;
     } else if ( text->storage == PL_CHARS_LOCAL &&
-	        (text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
+		(text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
     { unsigned char buf[sizeof(text->buf)];
       unsigned char *f = buf;
       unsigned char *e = &buf[text->length];
@@ -1013,7 +1014,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 	  wctobuffer(0, &mbs, b);
 	}
 
-        break;
+	break;
       }
       case ENC_WCHAR:
       { if ( target == ENC_ISO_LATIN_1 )
@@ -1115,7 +1116,7 @@ PL_canonicalise_text(PL_chars_t *text)
     { case ENC_OCTET:
 	text->encoding = ENC_ISO_LATIN_1;
       case ENC_ISO_LATIN_1:
-        text->canonical = TRUE;
+	text->canonical = TRUE;
 	break;				/* nothing to do */
       case ENC_WCHAR:
       { const pl_wchar_t *w;
@@ -1130,7 +1131,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	wide = FALSE;
 
 #if SIZEOF_WCHAR_T == 2
-        for(; w<e; w++)
+	for(; w<e; w++)
 	{ if ( *w > 0xff )
 	    wide = TRUE;
 	  if ( IS_UTF16_LEAD(*w) )
@@ -1148,10 +1149,10 @@ PL_canonicalise_text(PL_chars_t *text)
 	    return ERR_TEXT_INVALID_CODE_POINT;
 	}
 #endif
-        if ( !wide )
+	if ( !wide )
 	  return PL_demote_text(text, 0);
 
-        return TRUE;
+	return TRUE;
       }
       case ENC_UTF16LE:		/* assume text->length is in bytes */
       case ENC_UTF16BE:
@@ -1315,7 +1316,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	    wide = TRUE;
 	  len++;
 #if SIZEOF_WCHAR_T == 2
-          if ( wc > 0xffff )
+	  if ( wc > 0xffff )
 	    len++;
 #endif
 	  n -= rc;
@@ -1519,7 +1520,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	      utf8tobuffer(*s, b);
 	  swap_to_utf8:
 	    PL_free_text(text);
-            text->length   = entriesBuffer(b, char);
+	    text->length   = entriesBuffer(b, char);
 	    addBuffer(b, EOS, char);
 	    text->text.t   = baseBuffer(b, char);
 	    text->encoding = ENC_UTF8;
@@ -1566,7 +1567,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    return FALSE;
 	}
 	return TRUE;
-        case ENC_ISO_LATIN_1:		/* --> ISO Latin 1 */
+	case ENC_ISO_LATIN_1:		/* --> ISO Latin 1 */
 	case ENC_OCTET:			/* --> bytes */
 	case ENC_ASCII:			/* --> ASCII */
 	{ assert(text->canonical);
@@ -1593,8 +1594,8 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	      return FALSE;
 	  }
 	}
-        case ENC_UTF16LE:		/* --> UTF-16 */
-        case ENC_UTF16BE:
+	case ENC_UTF16LE:		/* --> UTF-16 */
+	case ENC_UTF16BE:
 	{ Buffer b;
 
 	  assert(text->canonical);
@@ -1631,7 +1632,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	      return FALSE;
 	  }
 	}
-        case ENC_ANSI:
+	case ENC_ANSI:
 	{ assert(text->canonical);
 	  return PL_mb_text(text, REP_MB);
 	}

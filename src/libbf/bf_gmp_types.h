@@ -3,7 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009, University of Amsterdam
+    Copyright (c)  2022, University of Amsterdam
+                         VU University Amsterdam
+		         CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,60 +34,20 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_ch_shift,
-	  [ test_ch_shift/0
-	  ]).
+#ifndef BF_GMP_TYPES_H_INCLUDED
+#define BF_GMP_TYPES_H_INCLUDED
 
-test_ch_shift :-
-	or_dept(Depth),
-	test1(Depth),
-	test2.
+#include "libbf.h"
+#include "mersenne-twister.h"
 
-or_dept(Depth), current_prolog_flag(asan,true) => Depth = 1000.
-or_dept(Depth), current_prolog_flag(emscripten,true) => Depth = 1000.
-or_dept(Depth) => Depth = 10_000.
+#define HAVE_MP_BITCNT_T 1
 
-%%	test1(+Depth) is det.
-%
-%	Tests expansion of the local stack due to a clause with many
-%	choicepoints.
+typedef bf_t MP_INT;
+typedef bf_t mpz_t[1];
+typedef bf_t mpq_t[2];			/* Numerator/Denumerator */
+typedef bf_t mpf_t[1];
+typedef limb_t mp_limb_t;
+typedef limb_t mp_bitcnt_t;
+typedef MTState gmp_randstate_t[1];
 
-test1(Depth) :-
-	trim_stacks,
-	make_or(Depth, OR),
-	asserta((t :- OR), Ref),
-	once(t),
-	erase(Ref).
-
-make_or(0, a) :- !.
-make_or(N, (G;a)) :-
-	N2 is N - 1,
-	make_or(N2, G).
-
-a.
-
-
-%%	test2
-%
-%	Tests local stack shifting when there are pending choicepoint frames.
-
-test2 :-
-	test2_1, !.
-
-test2_1 :-
-	test2_2, true.
-
-test2_2 :-
-	setup_call_cleanup(true, cp, lshift).
-
-cp.
-cp.
-
-lshift :-
-	statistics(local_shifts, S0),
-	lshift(S0), !, garbage_collect.
-
-lshift(S0) :-
-	statistics(local_shifts, S0),
-	lshift(S0).
-lshift(_).
+#endif /*BF_GMP_TYPES_H_INCLUDED*/

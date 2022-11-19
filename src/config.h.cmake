@@ -271,6 +271,7 @@
 #cmakedefine SIZEOF_WINT_T @SIZEOF_WINT_T@
 #cmakedefine HAVE_SIZEOF_OFF_T @HAVE_SIZEOF_OFF_T@
 #cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
+#cmakedefine HAVE_INT128 @HAVE_INT128@
 #cmakedefine SO_EXT "@SO_EXT@"
 #cmakedefine SO_LD @SO_LD@
 #cmakedefine SO_LDFLAGS @SO_LDFLAGS@
@@ -298,6 +299,8 @@
 #cmakedefine HAVE_TCMALLOC_EXTENSION_C_H @HAVE_TCMALLOC_EXTENSION_C_H@
 #cmakedefine O_STATIC_EXTENSIONS @O_STATIC_EXTENSIONS@
 #cmakedefine HAVE___BUILTIN_MUL_OVERFLOW @HAVE___BUILTIN_MUL_OVERFLOW@
+#cmakedefine O_GMP @O_GMP@
+#cmakedefine O_BF @O_BF@
 
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW

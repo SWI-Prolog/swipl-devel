@@ -49,11 +49,11 @@
 #include <parms.h>			/* pick from the working dir */
 
 /* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
-#ifdef HAVE_GMP_H
-#define O_GMP			1
+#if O_GMP || O_BF
+#define O_BIGNUM			1
 #endif
 
-#ifdef O_GMP
+#if O_GMP
 # ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
 # pragma warning( disable : 4146 )
 # endif
@@ -61,6 +61,8 @@
 # ifdef _MSC_VER
 # pragma warning( default : 4146 )
 # endif
+#elif O_BF
+#include "libbf/bf_gmp_types.h"
 #endif
 
 #define PL_KERNEL		1
@@ -845,7 +847,7 @@ typedef struct pl_mutex		pl_mutex;
 
 typedef enum
 { V_INTEGER,				/* integer (64-bit) value */
-#ifdef O_GMP
+#ifdef O_BIGNUM
   V_MPZ,				/* mpz_t */
   V_MPQ,				/* mpq_t */
 #endif
@@ -857,7 +859,7 @@ typedef struct
   union { double f;			/* value as a floating point number */
 	  int64_t i;			/* value as integer */
 	  word  w[WORDS_PER_DOUBLE];	/* for packing/unpacking the double */
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	  mpz_t mpz;			/* GMP integer */
 	  mpq_t mpq;			/* GMP rational */
 #endif
@@ -867,7 +869,7 @@ typedef struct
 #define TOINT_CONVERT_FLOAT	0x1	/* toIntegerNumber() */
 #define TOINT_TRUNCATE		0x2
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 #define intNumber(n)	((n)->type <=  V_MPZ)
 #define ratNumber(n)	((n)->type <=  V_MPQ)
 #else

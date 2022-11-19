@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -721,35 +721,35 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 	  freeHeap(f, sizeof(*f));
 	  return FALSE;
 	}
-        f->flags = FT_ATOM;
-        PL_register_atom(f->value.a);
+	f->flags = FT_ATOM;
+	PL_register_atom(f->value.a);
 	break;
       case FT_BOOL:
       { int b;
 	if ( !PL_get_bool_ex(value, &b) )
 	  goto wrong_type;
-        f->flags = FT_BOOL;
+	f->flags = FT_BOOL;
 	f->value.a = (b ? ATOM_true : ATOM_false);
 	break;
       }
       case FT_INTEGER:
 	if ( !PL_get_int64_ex(value, &f->value.i) )
 	  goto wrong_type;
-        f->flags = FT_INTEGER;
+	f->flags = FT_INTEGER;
 	break;
       case FT_FLOAT:
 	if ( !PL_get_float_ex(value, &f->value.f) )
 	  goto wrong_type;
-        f->flags = FT_FLOAT;
+	f->flags = FT_FLOAT;
 	break;
       case FT_TERM:
 	if ( !PL_is_ground(value) )
 	{ PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 	  goto wrong_type;
 	}
-        if ( !(f->value.t = PL_record(value)) )
+	if ( !(f->value.t = PL_record(value)) )
 	  goto wrong_type;
-        f->flags = FT_TERM;
+	f->flags = FT_TERM;
 	break;
     }
 
@@ -1072,21 +1072,21 @@ PL_current_prolog_flag(atom_t name, int type, void *value)
 	  *vp = f->value.a;
 	  return TRUE;
 	}
-        return FALSE;
+	return FALSE;
       case PL_INTEGER:
 	if ( (f->flags&FT_MASK) == FT_INTEGER )
 	{ int64_t *vp = value;
 	  *vp = f->value.i;
 	  return TRUE;
 	}
-        return FALSE;
+	return FALSE;
       case PL_FLOAT:
 	if ( (f->flags&FT_MASK) == FT_FLOAT )
 	{ double *vp = value;
 	  *vp = f->value.f;
 	  return TRUE;
 	}
-        return FALSE;
+	return FALSE;
       case PL_TERM:
 	if ( (f->flags&FT_MASK) == FT_TERM )
 	{ term_t *vp = value;
@@ -1094,7 +1094,7 @@ PL_current_prolog_flag(atom_t name, int type, void *value)
 
 	  return PL_recorded(f->value.t, t);
 	}
-        return FALSE;
+	return FALSE;
     }
   }
 
@@ -1153,16 +1153,16 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     switch ( getUnknownModule(m) )
     { case UNKNOWN_ERROR:
 	v = ATOM_error;
-        break;
+	break;
       case UNKNOWN_WARNING:
 	v = ATOM_warning;
-        break;
+	break;
       case UNKNOWN_FAIL:
 	v = ATOM_fail;
-        break;
+	break;
       default:
 	assert(0);
-        return FALSE;
+	return FALSE;
     }
 
     return PL_unify_atom(val, v);
@@ -1404,11 +1404,11 @@ set_arch(void)
     { switch(cputype&0xff)
       { case 7:
 	  setPrologFlag("arch", FT_ATOM|FF_READONLY, "x86_64-darwin");
-          return;
-        case 12:
+	  return;
+	case 12:
 	  setPrologFlag("arch", FT_ATOM|FF_READONLY, "arm64-darwin");
-          return;
-        default:
+	  return;
+	default:
 	  Sdprintf("sysctlbyname() cputype = %d (unknown)\n", (int)cputype);
       }
     }
@@ -1567,18 +1567,18 @@ initPrologFlags(void)
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
   setPrologFlag("autoload",  FT_ATOM, "true");
   setPrologFlagMask(PLFLAG_AUTOLOAD);
-#ifndef O_GMP
+#ifndef O_BIGNUM
   setPrologFlag("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
   setPrologFlag("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
 #endif
   setPrologFlag("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
   setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
-#ifdef O_GMP
+#ifdef O_BIGNUM
   setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
   setPrologFlag("prefer_rationals", FT_BOOL, O_PREFER_RATIONALS, PLFLAG_RATIONAL);
   setPrologFlag("rational_syntax",  FT_ATOM,
 		O_RATIONAL_SYNTAX == RAT_NATURAL ? "natural" :
-		                                   "compatibility");
+						   "compatibility");
 #ifdef __GNU_MP__
   setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
 #endif
@@ -1692,6 +1692,9 @@ initPrologFlags(void)
   setVersionPrologFlag();
   setArgvPrologFlag("os_argv", GD->cmdline.os_argc,   GD->cmdline.os_argv);
   setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
+#ifdef __SANITIZE_ADDRESS__
+  setPrologFlag("asan", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 }
 
 
@@ -1774,10 +1777,10 @@ setVersionPrologFlag(void)
 
   if ( !PL_unify_term(t,
 		      PL_FUNCTOR_CHARS, PLNAME, 4,
-		        PL_INT, major,
-		        PL_INT, minor,
-		        PL_INT, patch,
-		        PL_TERM, o) )
+			PL_INT, major,
+			PL_INT, minor,
+			PL_INT, patch,
+			PL_TERM, o) )
     sysError("Could not set version");
 
   setPrologFlag("version_data", FF_READONLY|FT_TERM, t);
