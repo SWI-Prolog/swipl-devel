@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam,
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -454,7 +454,7 @@ typedef _sigset_t sigset_t;
  * We do not need this stuff on Windows as it is used for internal signal
  * handling if no true signals are available.
  */
-#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__WINDOWS__)
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && defined(HAVE_THREADS_H)
 # include <threads.h>
 # undef thread_local /* we use this as an identifier, it's not in the C11 spec anyway */
 # define HAVE_STDC_THREADS	1
@@ -1512,8 +1512,8 @@ typedef struct gc_stats
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
-#define CA1_MPZ	        8	/* GNU mpz number */
-#define CA1_MPQ	        9	/* GNU mpq number */
+#define CA1_MPZ		8	/* GNU mpz number */
+#define CA1_MPQ		9	/* GNU mpq number */
 #define CA1_MODULE     10	/* a module */
 #define CA1_VAR	       11	/* a variable(-offset) */
 #define CA1_FVAR       12	/* a variable(-offset), used as `firstvar' */
@@ -2016,7 +2016,7 @@ struct gc_trail_entry
 			     } \
 			     tTop = tt; \
 			     gTop = (LD->frozen_bar > (b).globaltop ? \
-			             LD->frozen_bar : (b).globaltop); \
+				     LD->frozen_bar : (b).globaltop); \
 			    } while(0)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
@@ -2060,7 +2060,7 @@ at least one free cell on the trail-stack.
 					/* trail global stack pointer */
 #define GTrail(p) \
   do { if ( p < LD->mark_bar ) \
-         (tTop++)->address = p; \
+	 (tTop++)->address = p; \
      } while(0)
 
 
@@ -2298,7 +2298,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
-	  int	        overflow_id;	/* OVERFLOW_* */		    \
+	  int		overflow_id;	/* OVERFLOW_* */		    \
 	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
@@ -2434,7 +2434,7 @@ typedef struct
 	  { _savedf = 0; /* avoid (false) uninitialized */  \
 	  }
 #define END_NUMBERVARS(save) \
-          if ( save ) \
+	  if ( save ) \
 	  { PL_discard_foreign_frame(LD->var_names.numbervars_frame); \
 	    LD->var_names.numbervars_frame = _savedf; \
 	  } \
@@ -2617,7 +2617,7 @@ typedef struct debuginfo
   bool		tracing;		/* are we tracing? */
   debug_type	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
-  int	        visible;		/* ports that are visible */
+  int		visible;		/* ports that are visible */
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */
