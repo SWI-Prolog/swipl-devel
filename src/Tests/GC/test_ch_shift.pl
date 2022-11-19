@@ -41,7 +41,7 @@ test_ch_shift :-
 	test1(Depth),
 	test2.
 
-or_dept(Depth), getenv('ASAN', _) => Depth = 1000.
+or_dept(Depth), current_prolog_flag(asan,true) => Depth = 1000.
 or_dept(Depth), current_prolog_flag(emscripten,true) => Depth = 1000.
 or_dept(Depth) => Depth = 10_000.
 

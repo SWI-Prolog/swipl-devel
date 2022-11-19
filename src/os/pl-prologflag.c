@@ -1692,6 +1692,9 @@ initPrologFlags(void)
   setVersionPrologFlag();
   setArgvPrologFlag("os_argv", GD->cmdline.os_argc,   GD->cmdline.os_argv);
   setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
+#ifdef __SANITIZE_ADDRESS__
+  setPrologFlag("asan", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 }
 
 
