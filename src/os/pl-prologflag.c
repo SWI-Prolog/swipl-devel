@@ -1488,7 +1488,7 @@ initPrologFlags(void)
   if ( GD->paths.executable )
     setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
 #if defined(HAVE_GETPID) || defined(EMULATE_GETPID)
-  setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
+  setPrologFlag("pid", FT_INTEGER|FF_READONLY, (intptr_t)getpid());
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
   setPrologFlag("optimise_unify", FT_BOOL, TRUE, PLFLAG_OPTIMISE_UNIFY);
