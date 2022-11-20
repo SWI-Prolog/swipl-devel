@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -456,7 +456,7 @@ setOSPrologFlags(void)
 { int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    PL_set_prolog_flag("cpu_count", PL_INTEGER, cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)cpu_count);
 }
 #endif
 
@@ -709,9 +709,9 @@ verify_tmp_dir(const char* tmpdir)
 
   if ( reason )
   { if ( printMessage(ATOM_warning,
-                      PL_FUNCTOR_CHARS, "invalid_tmp_dir", 2,
-                      PL_CHARS, tmpdir,
-                      PL_CHARS, reason) )
+		      PL_FUNCTOR_CHARS, "invalid_tmp_dir", 2,
+		      PL_CHARS, tmpdir,
+		      PL_CHARS, reason) )
     { /* to prevent ignoring return value warning */ }
     return FALSE;
   }
@@ -792,7 +792,7 @@ retry:
 
     if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
     { if ( errno == EEXIST )
-        goto retry;
+	goto retry;
 
       return NULL_ATOM;
     }
@@ -2295,7 +2295,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
     case TTY_SAVE:
-        succeed;
+	succeed;
     default:
 	sysError("Unknown PushTty() mode: %d", mode);
 	/*NOTREACHED*/
@@ -2437,7 +2437,7 @@ environment will be passed to  child  processes   and  the  can  also be
 requested via getenv/2 from Prolog. Functions
 
     int Setenv(name, value)
-         char *name, *value;
+	 char *name, *value;
 
     Set the OS environment variable with name `name'.   If  it  exists
     its  value  is  changed, otherwise a new entry in the environment is
@@ -2445,7 +2445,7 @@ requested via getenv/2 from Prolog. Functions
     the variable is new.
 
     int Unsetenv(name)
-         char *name;
+	 char *name;
 
     Delete a variable from the environment.  Return  value  is  the  old
     value, or NULL if the variable did not exist.
@@ -2632,7 +2632,7 @@ Setenv(char *name, char *value)
   for(n=0, e=environ; *e; e++, n++)
   { if ( (v=matchName(*e, name)) != NULL )
     { if ( !streq(v, value) )
-        setEntry(e, name, value);
+	setEntry(e, name, value);
       return v;
     }
   }
@@ -2656,7 +2656,7 @@ Unsetenv(char *name)
       e = &environ[n];
       do
       { e[0] = e[1];
-        e++;
+	e++;
       } while(*e);
 
       return v;
@@ -3040,7 +3040,7 @@ Which(const char *program, char *fullname)
     { if ( (e = okToExec(program)) )
 	return strcpy(fullname, e);
       else
-        path++;				/* fix by Ron Hess (hess@sco.com) */
+	path++;				/* fix by Ron Hess (hess@sco.com) */
     } else
     { char tmp[PATH_MAX];
 
@@ -3049,7 +3049,7 @@ Which(const char *program, char *fullname)
       if (*path)
 	path++;				/* skip : */
       if ((dir-fullname) + strlen(program)+2 > PATH_MAX)
-        continue;
+	continue;
       *dir++ = '/';
       strcpy(dir, program);
       if ( (e = okToExec(OsPath(fullname, tmp))) )
@@ -3203,4 +3203,3 @@ Pause(double t)
 { return notImplemented("sleep", 1);
 }
 #endif
-

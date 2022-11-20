@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2012-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -637,7 +637,7 @@ again:
 	return FALSE;
       case '=':
 	addBuffer(name, EOS, char);
-        goto do_value;
+	goto do_value;
       case '\n':
 	discardBuffer(name);
 	goto again;
@@ -652,7 +652,7 @@ do_value:
     { case EOF:
       case '\n':
 	addBuffer(value, EOS, char);
-        return TRUE;
+	return TRUE;
       default:
 	addBuffer(value, c, char);
     }
@@ -890,7 +890,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	case 'b':	break;			/* already processed */
 	case 'q':	GD->options.silent = TRUE;
 			break;
-        default:
+	default:
 	{ if ( s == &argv[0][1] )
 	  { argvleft[argcleft++] = argv[0];
 	    goto next;
@@ -1304,7 +1304,7 @@ usage(void)
     "    --pce[=bool]             Make the xpce gui available\n",
     "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win-app	          Behave as Windows application\n",
+    "    --win-app		  Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
     "    -d topic,topic,...       Enable C-source DEBUG channels\n",
@@ -1508,7 +1508,7 @@ PL_cleanup(int status)
     if ( LD->outofstack )
       emptyStacks();
 
-    PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
+    PL_set_prolog_flag("exit_status", PL_INTEGER, (intptr_t)rval);
     if ( query_loop(PL_new_atom("$run_at_halt"), FALSE) == FALSE &&
 	 !(status&PL_CLEANUP_NO_CANCEL) )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
@@ -1867,9 +1867,9 @@ vwarning(const char *fm, va_list args)
 	PL_discard_foreign_frame(cid);
       Sfprintf(Suser_error, "ERROR: ");
       if ( s )
-        Sfprintf(Suser_error, s);
+	Sfprintf(Suser_error, s);
       else
-        Svfprintf(Suser_error, fm, args);
+	Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
       Pause(0.2);
     }
