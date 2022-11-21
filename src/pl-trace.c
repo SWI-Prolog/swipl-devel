@@ -1894,7 +1894,7 @@ PL_interrupt(int sig)
 static
 PRED_IMPL("prolog_interrupt", 0, prolog_interrupt, PL_FA_NOTRACE)
 { PL_interrupt(2);
-  return TRUE;
+  return !PL_exception(0);
 }
 
 
