@@ -537,6 +537,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_file_type}{2}{Define meaning of file extension}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
 \predicatesummary{prolog_ide}{1}{Program access to the development environment}
+\predicatesummary{prolog_interrupt}{0}{Allow debugging a thread}
 \predicatesummary{prolog_list_goal}{1}{\hook{user} Intercept tracer 'L' command}
 \predicatesummary{prolog_listen}{2}{Listen to Prolog events}
 \predicatesummary{prolog_listen}{3}{Listen to Prolog events}
