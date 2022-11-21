@@ -292,7 +292,8 @@ current_predicate_help(M:Name/Arity) :-
     \+ man_object_property(Name/Arity, _), % must not be indexed already
     (   mode(M:_, _)             % Some predicates are documented
     ->  true
-    ;   predicate_property(M:Head,file(File)),
+    ;   \+ module_property(system, class(system)),
+        predicate_property(M:Head,file(File)),
         doc_collect(true),
         make_reload_file(File)
     ),
