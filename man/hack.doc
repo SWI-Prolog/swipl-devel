@@ -278,6 +278,17 @@ Prolog thread that disables the debugger on all recursion levels deeper
 than the level of the variable.  See also prolog_skip_frame/1.
 \end{description}
 
+\section{Simmulating a debugger interrupt}
+\label{sec:interrupt}
+
+\begin{description}
+    \predicate{prolog_interrupt}{0}{}
+Calls the functionality that allows for debugging after receiving
+(normally) \const{SIGINT}.  This may be used in IDE environments
+to start debugging a toplevel thread by injecting this into the
+target thread using thread_signal/2.
+\end{description}
+
 
 \section{Breakpoint and watchpoint handling}
 \label{sec:breakpoint}
