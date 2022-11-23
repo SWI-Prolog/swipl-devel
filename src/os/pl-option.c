@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -151,8 +151,10 @@ get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
 
 
 typedef struct dictopt_ctx
-{ const PL_option_t       *specs;		/* specifications */
+{ const PL_option_t    *specs;		/* specifications */
   optvalue	       *values;		/* value pointers */
+  const char           *opttype;
+  int			flags;
 } dictopt_ctx;
 
 #define dict_option(key, value, last, closure) LDFUNC(dict_option, key, value, last, closure)
@@ -175,6 +177,16 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
     }
   }
 
+  if ( (ctx->flags&OPT_ALL) )
+  { term_t kv;
+    int rc = ( (kv=PL_new_term_ref()) &&
+	       PL_cons_functor(kv, FUNCTOR_colon2, key, value) &&
+	       PL_domain_error(ctx->opttype, kv)
+	     );
+    (void)rc;
+    return -1;
+  }
+
   return 0;				/* unprocessed key */
 }
 
@@ -192,15 +204,18 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
    need to worry right now.
 */
 
-#define dict_options(dict, flags, specs, values) \
-	LDFUNC(dict_options, dict, flags, specs, values)
+#define dict_options(dict, flags, opttype, specs, values) \
+	LDFUNC(dict_options, dict, flags, opttype, specs, values)
 
 static int
-dict_options(DECL_LD term_t dict, int flags, const PL_option_t *specs, optvalue *values)
+dict_options(DECL_LD term_t dict, int flags, const char *opttype,
+	     const PL_option_t *specs, optvalue *values)
 { dictopt_ctx ctx;
 
-  ctx.specs  = specs;
-  ctx.values = values;
+  ctx.specs   = specs;
+  ctx.values  = values;
+  ctx.flags   = flags;
+  ctx.opttype = opttype;
 
   return PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
@@ -230,7 +245,7 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
   }
 
   if ( PL_is_dict(options) )
-    return dict_options(options, flags, specs, values);
+    return dict_options(options, flags, opttype, specs, values);
 
   list = PL_copy_term_ref(options);
   av = PL_new_term_refs(3);

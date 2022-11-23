@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2018-2022, CWI Amsterdam
-                              SWI-Prolog Solutions b.v.
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,11 @@
 */
 
 :- module(prolog_help,
-          [ help/0,
-            help/1,                     % +Object
-            apropos/1                   % +Search
-          ]).
-:- use_module(library(pldoc), [doc_collect/1]).
+	  [ help/0,
+	    help/1,                     % +Object
+	    apropos/1                   % +Search
+	  ]).
+:- use_module(library(pldoc), []).
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
 :- autoload(library(isub), [isub/4]).
@@ -55,7 +55,8 @@
 :- autoload(pldoc(doc_words), [doc_related_word/3]).
 :- autoload(pldoc(man_index), [man_object_property/2, doc_object_identifier/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
-:- autoload(library(make), [make_reload_file/1]).
+:- autoload(library(prolog_xref), [xref_source/2]).
+
 :- use_module(library(lynx/pldoc_style), []).
 
 /** <module> Text based manual
@@ -92,9 +93,9 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 % one of `default`, `false`, an executable or executable(options), e.g.
 % less('-r').
 :- create_prolog_flag(help_pager, default,
-                      [ type(term),
-                        keep(true)
-                      ]).
+		      [ type(term),
+			keep(true)
+		      ]).
 
 %!  help is det.
 %!  help(+What) is det.
@@ -159,37 +160,37 @@ show_html(HTML) :-
     !.
 show_html(HTML) :-
     setup_call_cleanup(
-        open_string(HTML, In),
-        load_html(stream(In), DOM, []),
-        close(In)),
+	open_string(HTML, In),
+	load_html(stream(In), DOM, []),
+	close(In)),
     page_width(PageWidth),
     LineWidth is PageWidth - 4,
     with_pager(html_text(DOM, [width(LineWidth)])).
 
 help_html(Matches, How, HTML) :-
     phrase(html(html([ head([]),
-                       body([ \match_type(How),
-                              dl(\man_pages(Matches,
-                                            [ no_manual(fail),
-                                              links(false),
-                                              link_source(false),
-                                              navtree(false),
-                                              server(false)
-                                            ]))
-                            ])
-                     ])),
-           Tokens),
+		       body([ \match_type(How),
+			      dl(\man_pages(Matches,
+					    [ no_manual(fail),
+					      links(false),
+					      link_source(false),
+					      navtree(false),
+					      server(false)
+					    ]))
+			    ])
+		     ])),
+	   Tokens),
     !,
     with_output_to(string(HTML),
-                   print_html(Tokens)).
+		   print_html(Tokens)).
 
 match_type(exact-_) -->
     [].
 match_type(dwim-For) -->
     html(p(class(warning),
-           [ 'WARNING: No matches for "', span(class('help-query'), For),
-             '" Showing closely related results'
-           ])).
+	   [ 'WARNING: No matches for "', span(class('help-query'), For),
+	     '" Showing closely related results'
+	   ])).
 
 man_pages([], _) -->
     [].
@@ -255,7 +256,7 @@ help_object(SecID, _How, section(Label), ID) :-
     atom(SecID),
     (   atom_concat('sec:', SecID, Label)
     ;   sub_atom(SecID, _, _, 0, '.html'),
-        Label = SecID
+	Label = SecID
     ),
     man_object_property(section(_Level,_Num,Label,_File), id(ID)).
 help_object(Func, How, c(Name), ID) :-
@@ -293,9 +294,8 @@ current_predicate_help(M:Name/Arity) :-
     (   mode(M:_, _)             % Some predicates are documented
     ->  true
     ;   \+ module_property(M, class(system)),
-        predicate_property(M:Head,file(File)),
-        doc_collect(true),
-        make_reload_file(File)
+	predicate_property(M:Head,file(File)),
+	xref_source(File,[comments(store)])
     ),
     mode(M:Head, _).             % Test that our predicate is documented
 
@@ -315,15 +315,15 @@ with_pager(Goal) :-
     Catch = error(io_error(_,_), _),
     current_output(OldIn),
     setup_call_cleanup(
-        process_create(Pager, Options,
-                       [stdin(pipe(In))]),
-        ( set_stream(In, tty(true)),
-          set_output(In),
-          catch(Goal, Catch, true)
-        ),
-        ( set_output(OldIn),
-          close(In, [force(true)])
-        )).
+	process_create(Pager, Options,
+		       [stdin(pipe(In))]),
+	( set_stream(In, tty(true)),
+	  set_output(In),
+	  catch(Goal, Catch, true)
+	),
+	( set_output(OldIn),
+	  close(In, [force(true)])
+	)).
 with_pager(Goal) :-
     call(Goal).
 
@@ -337,12 +337,12 @@ pager_ok(Path, Options) :-
     stream_property(current_output, tty(true)),
     \+ running_under_emacs,
     (   distinct((   getenv('PAGER', Pager)
-                 ;   Pager = less
-                 )),
-        absolute_file_name(path(Pager), Path,
-                           [ access(execute),
-                             file_errors(fail)
-                           ])
+		 ;   Pager = less
+		 )),
+	absolute_file_name(path(Pager), Path,
+			   [ access(execute),
+			     file_errors(fail)
+			   ])
     ->  pager_options(Path, Options)
     ).
 pager_ok(Path, Options) :-
@@ -350,9 +350,9 @@ pager_ok(Path, Options) :-
     callable(Term),
     compound_name_arguments(Term, Pager, Options),
     absolute_file_name(path(Pager), Path,
-                           [ access(execute),
-                             file_errors(fail)
-                           ]).
+			   [ access(execute),
+			     file_errors(fail)
+			   ]).
 
 pager_options(Path, Options) :-
     file_base_name(Path, File),
@@ -410,14 +410,14 @@ apropos_no_trace(Query) :-
     (   Pairs == []
     ->  print_message(warning, help(no_apropos_match(Query)))
     ;   sort(1, >=, Pairs, Sorted),
-        length(Sorted, Len),
-        (   Len > 20
-        ->  length(Truncated, 20),
-            append(Truncated, _, Sorted)
-        ;   Truncated = Sorted
-        ),
-        pairs_values(Truncated, Matches),
-        print_message(information, help(apropos_matches(Matches, Len)))
+	length(Sorted, Len),
+	(   Len > 20
+	->  length(Truncated, 20),
+	    append(Truncated, _, Sorted)
+	;   Truncated = Sorted
+	),
+	pairs_values(Truncated, Matches),
+	print_message(information, help(apropos_matches(Matches, Len)))
     ).
 
 apropos(Query, Obj, Summary, Q) :-
@@ -490,11 +490,11 @@ object_class(f(_Name/_Arity), function).
 object_class(Name/Arity, Type) :-
     functor(Term, Name, Arity),
     (   current_predicate(system:Name/Arity),
-        predicate_property(system:Term, built_in)
+	predicate_property(system:Term, built_in)
     ->  (   predicate_property(system:Term, iso)
-        ->  Type = iso_predicate
-        ;   Type = swi_builtin_predicate
-        )
+	->  Type = iso_predicate
+	;   Type = swi_builtin_predicate
+	)
     ;   Type = library_predicate
     ).
 object_class(_M:_Name/_Arity, library_predicate).
@@ -523,12 +523,12 @@ prolog:message(help(apropos_matches(Pairs, Total))) -->
     (   {Count =:= Total}
     ->  []
     ;   [ nl,
-          ansi(fg(red), 'Showing ~D of ~D matches', [Count,Total]), nl, nl,
-          'Use ?- apropos(Type:Query) or multiple words in Query '-[], nl,
-          'to restrict your search.  For example:'-[], nl, nl,
-          '  ?- apropos(iso:open).'-[], nl,
-          '  ?- apropos(\'open file\').'-[]
-        ]
+	  ansi(fg(red), 'Showing ~D of ~D matches', [Count,Total]), nl, nl,
+	  'Use ?- apropos(Type:Query) or multiple words in Query '-[], nl,
+	  'to restrict your search.  For example:'-[], nl, nl,
+	  '  ?- apropos(iso:open).'-[], nl,
+	  '  ?- apropos(\'open file\').'-[]
+	]
     ).
 
 matches([], _) --> [].
@@ -537,7 +537,7 @@ matches([H|T], Width) -->
     (   {T == []}
     ->  []
     ;   [nl],
-        matches(T, Width)
+	matches(T, Width)
     ).
 
 match(Obj-Summary, Width) -->
@@ -548,9 +548,9 @@ match(Obj-Summary, Width) -->
       Spaces0 is Left - LenObj - 4,
       (   Spaces0 > 0
       ->  Spaces = Spaces0,
-          SummaryLen = Right
+	  SummaryLen = Right
       ;   Spaces = 1,
-          SummaryLen is Right + Spaces0 - 1
+	  SummaryLen is Right + Spaces0 - 1
       ),
       truncate(Summary, SummaryLen, SummaryE)
     },
@@ -577,7 +577,7 @@ man_object_summary(c(Name), Obj, '  C') :- !,
 man_object_summary(f(Name/Arity), Name/Arity, '  F') :- !.
 man_object_summary(Obj, Obj, Tag) :-
     (   object_class(Obj, Class),
-        class_tag(Class, Tag)
+	class_tag(Class, Tag)
     ->  true
     ;   Tag = '  ?'
     ).
