@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -344,25 +344,54 @@ save_backtrace(const char *why)
   return bt;
 }
 
+#ifdef __APPLE__
+/* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
+#define ADDR2LINE_CMD "atos -o \"%s\" %p"
+#else
+/* Emits two lines: "function\nfile:line"  */
+#define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
+#endif
 
 static int
 addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
 { char cmd[MAXCMD];
 
-  if ( snprintf(cmd, size, "addr2line -fe \"%s\" %p",
-		fname, (void*)offset) < size )
+  if ( snprintf(cmd, size, ADDR2LINE_CMD, fname, (void*)offset) < size )
   { FILE *fd;
 
     if ( (fd=popen(cmd, "r")) )
     { int c;
       char *ebuf = &buf[size-1];
       char *o = buf;
-      int nl = 0;
+      const char *sep = "() at ";
 
+#ifdef __APPLE__
+      int field = 0;
+      while((c=fgetc(fd)) != EOF && o<ebuf)
+      { if ( field == 0 )
+	{ if ( c == ' ' )
+	  { if ( o+strlen(sep) < ebuf )
+	    { strcpy(o, sep);
+	      o += strlen(sep);
+	    }
+	    field++;
+	  } else
+	  { *o++ = c;		/* copy the function */
+	  }
+	} else if ( field < 3 )
+	{ if ( c == '(' )	/* skip two '(' */
+	    field++;
+	} else
+	{ if ( c == ')' )	/* copy to ')' */
+	    break;
+	  *o++ = c;
+	}
+      }
+#else
+      int nl = 0;
       while((c=fgetc(fd)) != EOF && o<ebuf)
       { if ( c == '\n' )
-	{ const char *sep = "() at ";
-	  nl++;
+	{ nl++;
 
 	  if ( nl == 1 && o+strlen(sep) < ebuf)
 	  { strcpy(o, sep);
@@ -372,6 +401,7 @@ addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
 	{ *o++ = c;
 	}
       }
+#endif
 
       *o = '\0';
 
@@ -401,7 +431,11 @@ print_trace(btrace *bt, int me)
 	if ( info.dli_fname )
 	{ char buf[512];
 
-	  if ( strstr(info.dli_fname, ".so") &&
+	  if ( ( strstr(info.dli_fname, ".so")
+#if __APPLE__
+		 || strstr(info.dli_fname, ".dylib")
+#endif
+	       ) &&
 	       addr2line(info.dli_fname, offset, buf, sizeof(buf)) )
 	    Sdprintf("  [%d] %s [%p]\n", i, buf, addr);
 	  else if ( info.dli_sname )
@@ -704,23 +738,23 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
        { strncpy(trace->frame[depth].name,
 		 dwarf_symbol,
 		 MAX_FUNCTION_NAME_LENGTH);
-         trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
+	 trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
        } else
 #endif
        { SYMBOL_INFO* symbol = (SYMBOL_INFO*)&symbolScratch;
 
-         memset(symbol, 0, sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN);
-         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-         symbol->MaxNameLen = MAX_SYMBOL_LEN;
-         hasSymbol = SymFromAddr(hProcess, frame.AddrPC.Offset, &offset, symbol);
-         if (hasSymbol)
-         { strncpy(trace->frame[depth].name,
+	 memset(symbol, 0, sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN);
+	 symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	 symbol->MaxNameLen = MAX_SYMBOL_LEN;
+	 hasSymbol = SymFromAddr(hProcess, frame.AddrPC.Offset, &offset, symbol);
+	 if (hasSymbol)
+	 { strncpy(trace->frame[depth].name,
 		   symbol->Name,
 		   MAX_FUNCTION_NAME_LENGTH);
-           trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
-         } else
-         { trace->frame[depth].name[0] = '\0';
-         }
+	   trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
+	 } else
+	 { trace->frame[depth].name[0] = '\0';
+	 }
        }
      }
      depth++;
@@ -766,31 +800,31 @@ print_trace(btrace *bt, int me)
     { if (s->frame[depth].module[0])
       {
 #ifdef HAVE_LIBDWARF
-        IMAGEHLP_MODULE64 moduleInfo;
-        char dwarf_srclinebuf[PATH_MAX];
-        char *dwarf_srcline = dwarf_srclinebuf;
+	IMAGEHLP_MODULE64 moduleInfo;
+	char dwarf_srclinebuf[PATH_MAX];
+	char *dwarf_srcline = dwarf_srclinebuf;
 
-        memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
-        memset(dwarf_srcline, 0, PATH_MAX);
-        moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        if ( SymGetModuleInfo64(hProcess, s->frame[depth].offset, &moduleInfo) &&
-             dwarf_addr2line(&moduleInfo, s->frame[depth].offset, &dwarf_srcline) )
-        { Sdprintf("  [%d] <%s>:%s() at %s [%p]\n", depth,
-                   s->frame[depth].module,
-                   s->frame[depth].name,
-                   dwarf_srcline,
-                   (void*)s->frame[depth].offset);
-        } else
+	memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
+	memset(dwarf_srcline, 0, PATH_MAX);
+	moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+	if ( SymGetModuleInfo64(hProcess, s->frame[depth].offset, &moduleInfo) &&
+	     dwarf_addr2line(&moduleInfo, s->frame[depth].offset, &dwarf_srcline) )
+	{ Sdprintf("  [%d] <%s>:%s() at %s [%p]\n", depth,
+		   s->frame[depth].module,
+		   s->frame[depth].name,
+		   dwarf_srcline,
+		   (void*)s->frame[depth].offset);
+	} else
 #endif
-        { Sdprintf("  [%d] <%s>:%s() [%p]\n", depth,
-                   s->frame[depth].module,
-                   s->frame[depth].name,
-                   (void*)s->frame[depth].offset);
-        }
+	{ Sdprintf("  [%d] <%s>:%s() [%p]\n", depth,
+		   s->frame[depth].module,
+		   s->frame[depth].name,
+		   (void*)s->frame[depth].offset);
+	}
       } else
       { Sdprintf("  [%d] <unknown module>:%s [%p]\n", depth,
-                 s->frame[depth].name,
-                 (void*)s->frame[depth].offset);
+		 s->frame[depth].name,
+		 (void*)s->frame[depth].offset);
       }
     }
     SymCleanup(hProcess);
@@ -981,7 +1015,7 @@ BeginPredDefs(cbtrace)
 #endif
 EndPredDefs
 
-	         /*******************************
+		 /*******************************
 		 *   FALLBACK IMPLEMENTATION	*
 		 *******************************/
 
