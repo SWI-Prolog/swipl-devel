@@ -9539,7 +9539,8 @@ Equivalent to {\bf e}, but outputs a capital E to indicate the exponent.
 
     \fmtchar{f}
 Floating point in non-exponential notation. The numeric argument defines
-the number of digits right of the decimal point.  If the colon modifier
+the number of digits right of the decimal point.  If the numeric argument
+is zero (0), the value is printed as an integer. If the colon modifier
 (:) is used, the float is formatted using conventions from the current
 locale, which may define the decimal point as well as grouping of digits
 left of the decimal point.
