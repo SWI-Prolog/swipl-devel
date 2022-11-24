@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_signals,
-          [ test_signals/0
-          ]).
+:- module(test_thread_signals,
+	  [ test_thread_signals/0
+	  ]).
 :- use_module(library(plunit)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
@@ -43,12 +43,12 @@
 /** <module> Test thread_signal/2 and related primitives.
 */
 
-test_signals :-
+test_thread_signals :-
     run_tests([ signal_api,
-                signal_catch,
-                signal_nested,
-                signal_exceptions
-              ]).
+		signal_catch,
+		signal_nested,
+		signal_exceptions
+	      ]).
 
 :- meta_predicate
     signal(:),
@@ -63,43 +63,43 @@ test(pending, Pending == []) :-
 test(pending, Pending == [true]) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, true),
-                 sig_pending(Pending))).
+		 sig_pending(Pending))).
 test(remove, Removed == []) :-
     sig_remove(_, Removed).
 test(remove, Removed == [true]) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, true),
-                 sig_remove(X, Removed),
-                 sig_pending(Pending))),
+		 sig_remove(X, Removed),
+		 sig_pending(Pending))),
     assertion(var(X)),
     assertion(Pending == []).
 test(remove, Removed == []) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, true),
-                 sig_remove(false, Removed),
-                 sig_pending(Pending))),
+		 sig_remove(false, Removed),
+		 sig_pending(Pending))),
     assertion(Pending == [true]).
 test(remove, Removed == [false]) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, false),
-                 thread_signal(Me, true),
-                 sig_remove(false, Removed),
-                 sig_pending(Pending))),
+		 thread_signal(Me, true),
+		 sig_remove(false, Removed),
+		 sig_pending(Pending))),
     assertion(Pending == [true]).
 test(remove, Removed == [false]) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, true),
-                 thread_signal(Me, false),
-                 sig_remove(false, Removed),
-                 sig_pending(Pending))),
+		 thread_signal(Me, false),
+		 sig_remove(false, Removed),
+		 sig_pending(Pending))),
     assertion(Pending == [true]).
 test(remove, Removed == [false]) :-
     thread_self(Me),
     sig_atomic(( thread_signal(Me, true),
-                 thread_signal(Me, false),
-                 thread_signal(Me, ok),
-                 sig_remove(false, Removed),
-                 sig_pending(Pending))),
+		 thread_signal(Me, false),
+		 thread_signal(Me, ok),
+		 sig_remove(false, Removed),
+		 sig_pending(Pending))),
     assertion(Pending == [true,ok]).
 
 ok.
@@ -117,14 +117,14 @@ test(backtrack, X == 42) :-
 % catch/3 processes signals during recovery
 test(recover) :-
     catch(throw(error), _,
-          processes_signals).
+	  processes_signals).
 test(atomic) :-
     sig_atomic(assertion(\+ processes_signals)).
 test(cleanup) :-
     setup_call_cleanup(
-        \+ processes_signals,
-        processes_signals,
-        \+ processes_signals).
+	\+ processes_signals,
+	processes_signals,
+	\+ processes_signals).
 test(signal) :-
     thread_self(Me),
     thread_signal(Me, assertion(\+ processes_signals)).
@@ -145,8 +145,8 @@ test(signal) :-
 test(nested_likely) :-
     retractall(caught(_)),
     signal(b-[ throw(b(1)),
-               throw(a(2))
-             ]),
+	       throw(a(2))
+	     ]),
     catch(a_non_atomic, a(X), r(X)),
     findall(C, retract(caught(C)), CL),
     normally(CL==[2]).
@@ -170,8 +170,8 @@ b_2 :- signal_self([throw(b(1)),throw(a(2))]), sleep(1).
 test(nested_atomic, CL==[1,2]) :-
     retractall(caught(_)),
     signal(b-[ throw(b(1)),
-               throw(a(2))
-             ]),
+	       throw(a(2))
+	     ]),
     catch(a_atomic, a(X), r(X)),
     findall(C, retract(caught(C)), CL).
 
@@ -226,7 +226,7 @@ sig(N) =>
     current_module(M),
     (   prolog_frame_attribute(Frame, parent_goal, M:run_guarded)
     ->  sig_block(sig(_)),
-        throw(ball(N))
+	throw(ball(N))
     ;   ansi_format(warning, 'r/0 not running~n', [])
     ).
 
@@ -236,8 +236,8 @@ ex(N):-
 
 s(N, Me) :-
     forall(between(1, N, I),
-           ( %sleep(0.01),
-             thread_signal(Me, sig(I)))),
+	   ( %sleep(0.01),
+	     thread_signal(Me, sig(I)))),
     thread_signal(Me, sig(done)).
 
 loop(_) :-
@@ -312,9 +312,9 @@ signal(Delay-Signals, To, M), number(Delay) =>
     signal(Signals, To, M).
 signal(Ready-Signals, To, M), ground(Ready) =>
     thread_wait(is_ready(M, Ready),
-                [ retry_every(10),
-                  wait_preds([is_ready/2])
-                ]),
+		[ retry_every(10),
+		  wait_preds([is_ready/2])
+		]),
     retractall(is_ready(M, Ready)),
     signal(Signals, To, M).
 signal(Signal, To, M), callable(Signal) =>
@@ -323,8 +323,8 @@ signal(Signal, To, M), callable(Signal) =>
 sig(M, Signal) :-
     (   debugging(interrupt(pending))
     ->  sig_pending(Pending),
-        maplist(arg(2), Pending, User),
-        format('Got ~p; Pending: ~p~n', [Signal, User])
+	maplist(arg(2), Pending, User),
+	format('Got ~p; Pending: ~p~n', [Signal, User])
     ;   true
     ),
     (   debugging(interrupt(backtrace))
