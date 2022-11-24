@@ -32,9 +32,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_gtrace,
-          [ test_gtrace/0
-          ]).
+:- module(test_source_info,
+	  [ test_source_info/0
+	  ]).
 :- use_module(library(debug)).
 :- use_module(library(prolog_clause)).
 :- use_module(library(prolog_breakpoints)).
@@ -57,20 +57,20 @@ Each test consists of
 
 @tbd	Add many more tests.  The clauses below come from fixing the
 	debugger to deal with => rules and unification that is inlined
-        into the head.
+	into the head.
 */
 
-test_gtrace :-
-    run_tests([ gtrace
-              ]).
+test_source_info :-
+    run_tests([ source_info
+	      ]).
 
-:- begin_tests(gtrace, [cleanup(cleanup)]).
+:- begin_tests(source_info, [cleanup(cleanup)]).
 
 :- discontiguous bp/2.
 term_expansion(bp(Head, Breakpoints),
-               [ (test(Name) :- ide_test(Head)),
-                 bp(Head, Breakpoints)
-               ]) :-
+	       [ (test(Name) :- ide_test(Head)),
+		 bp(Head, Breakpoints)
+	       ]) :-
     pi_head(PI, Head),
     term_to_atom(PI, Name).
 
@@ -160,25 +160,25 @@ ide_test(Head) :-
     (   same_length(Tests, BPs)
     ->  maplist(ide_test_clause, Tests, BPs)
     ;   print_message(warning, no_expected_breakpoints(Head, Tests, BPs)),
-        maplist(ide_test_clause, Tests, _)
+	maplist(ide_test_clause, Tests, _)
     ).
 
 expected_breakpoints(Head, BPS) :-
     (   bp(Head, BPS0)
     ->  (   BPS0 = [[_|_]|_]
-        ->  BPS = BPS0
-        ;   BPS = [BPS0]
-        )
+	->  BPS = BPS0
+	;   BPS = [BPS0]
+	)
     ;   BPS = []
     ).
 
 ide_test_clause(Head-CRef, EBPS) :-
     clause_info(CRef, File, TermPos, _NameOffset,
-                [ variable_names(_VarNames)
-                ]),
+		[ variable_names(_VarNames)
+		]),
     findall(bp(PC,SubPos,String,VMI),
-            clause_bp(CRef,File,TermPos,PC,SubPos,String,VMI),
-            BreakPoints),
+	    clause_bp(CRef,File,TermPos,PC,SubPos,String,VMI),
+	    BreakPoints),
     (   nonvar(EBPS)
     ->  check_expected_breakpoints(Head, EBPS, BreakPoints)
     ;   true
@@ -190,7 +190,7 @@ check_expected_breakpoints(Head, EBPS, BPS) :-
     (   maplist(=@=, EBPS, Goals)
     ->  true
     ;   print_message(error, breakpoint_mismatch(Head, EBPS, Goals)),
-        fail
+	fail
     ).
 
 enter_exit_bp(bp(_,_,_,i_enter)) => true.
@@ -201,18 +201,18 @@ enter_exit_bp(_) => fail.
 clause_bp(CRef,File,TermPos,PC,AZ,Term,VMI) :-
     '$break_pc'(CRef, PC, NextPC),
     $ ( '$fetch_vm'(CRef, PC, _, VMI),
-        '$clause_term_position'(CRef, NextPC, List),
-        debug(break, 'Location = ~w', [List]),
-        prolog_breakpoints:range(List, TermPos, SubPos),
-        string_at(File, SubPos, String),
-        (   String = "."
-        ->  Term = '.'
-        ;   term_string(Term, String)
-        ),
-        pos_az(SubPos, AZ),
-        debug(ide, 'Break at PC=~w, Term at ~p: ~s; VMI=~p',
-              [PC, AZ, String, VMI]),
-        check_bp(VMI, Term)
+	'$clause_term_position'(CRef, NextPC, List),
+	debug(break, 'Location = ~w', [List]),
+	prolog_breakpoints:range(List, TermPos, SubPos),
+	string_at(File, SubPos, String),
+	(   String = "."
+	->  Term = '.'
+	;   term_string(Term, String)
+	),
+	pos_az(SubPos, AZ),
+	debug(ide, 'Break at PC=~w, Term at ~p: ~s; VMI=~p',
+	      [PC, AZ, String, VMI]),
+	check_bp(VMI, Term)
       ).
 
 string_at(File, SubPos, String) :-
@@ -224,9 +224,9 @@ string_at(File, SubPos, String) :-
 :- table file_string/2.
 file_string(File, String) :-
     setup_call_cleanup(
-        open(File, read, In),
-        read_string(In, _, String),
-        close(In)).
+	open(File, read, In),
+	read_string(In, _, String),
+	close(In)).
 
 pos_az(SubPos, A-Z) :-
     arg(1, SubPos, A),
@@ -268,4 +268,4 @@ prolog:message(breakpoint_mismatch(Head, EBPS, Goals)) -->
       '  expected ~p'-[EBPS]
     ].
 
-:- end_tests(gtrace).
+:- end_tests(source_info).
