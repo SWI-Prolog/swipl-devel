@@ -260,11 +260,13 @@ This library is only available on Windows systems.
 \libsummary{solution_sequences}
 \input{summaries.d/solutionsequences.tex}
 
+\IfFileExists{summaries.d/thread.tex}{
 \libsummary{thread}
-\input{summaries.d/thread.tex}
+\input{summaries.d/thread.tex}}{}
 
+\IfFileExists{summaries.d/threadpool.tex}{
 \libsummary{thread_pool}
-\input{summaries.d/threadpool.tex}
+\input{summaries.d/threadpool.tex}}{}
 
 \libsummary{varnumbers}
 \input{summaries.d/varnumbers.tex}

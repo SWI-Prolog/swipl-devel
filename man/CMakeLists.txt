@@ -163,12 +163,15 @@ endif()
 # NOTE: lib/libsummary.doc
 
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
-        thread_pool charsio debug csv lists check random varnumbers
+        charsio debug csv lists check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
-        settings occurs ansi_term readutil prolog_xref intercept thread
+        settings occurs ansi_term readutil prolog_xref intercept
         prolog_jiti tables listing strings terms ugraphs portray_text
         increval prolog_debug rbtrees statistics heaps fastrw gensym
         www_browser)
+if(MULTI_THREADED)
+  libsdoc(thread_pool thread)
+endif()
 if(NOT STATIC_EXTENSIONS)
 libdoc(shlib --subsection)
 endif()
