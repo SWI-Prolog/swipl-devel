@@ -15,9 +15,9 @@
    snapcraft upload swi-prolog_<version>.snap
    snapcraft list-revisions swi-prolog
 
-   snapcraft release swi-prolog 1 edge
+   snapcraft release swi-prolog 1 edge,candidate,beta
 OR
-   snapcraft release swi-prolog 1 stable,candidate,beta
+   snapcraft release swi-prolog 1 stable
 
 Channels is a list of `stable`, `candidate`, `beta` or `edge`
 

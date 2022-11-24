@@ -183,10 +183,13 @@ archive from this machine. The one on  the   Mac  isn't the same as time
 stamps vary.  Now
 
   - cd ~/src/macports-ports
-  - Verify that lang/swi-prolog/devel/Portfile looks good
-  - Push the branch (assuming 8.3.1 is the version):
+  - Verify that lang/swi-prolog/devel/Portfile looks good using
 
-	git push fork 8.3.1:8.3.1
+        git show HEAD
+
+  - Push the branch to our clone
+
+	    git push fork $(git rev-parse --abbrev-ref HEAD)
 
   - Open the link of the PR and complete it.
 
