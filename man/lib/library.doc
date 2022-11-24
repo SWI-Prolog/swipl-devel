@@ -79,8 +79,8 @@ documented at all.
 \input{solutionsequences}
 \input{tables}
 \input{terms}
-\input{thread}
-\input{threadpool}
+\InputIfFileExists{thread}{}{}
+\InputIfFileExists{threadpool}{}{}
 \input{ugraphs}
 \input{url}
 \input{varnumbers}

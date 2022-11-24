@@ -4,8 +4,8 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2002-2021, University of Amsterdam
-                              VU University Amsterdam
-                              SWI-Prolog Solutions b.v.
+			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,17 +35,13 @@
 */
 
 :- module(prolog_main,
-          [ main/0,
-            argv_options/3,             % +Argv, -RestArgv, -Options
-            argv_options/4,             % +Argv, -RestArgv, -Options, +ParseOpts
-            argv_usage/1,               % +Level
-            cli_parse_debug_options/2,  % +OptionsIn, -Options
-            cli_enable_development_system/0
-          ]).
-% use autoload/1 to avoid checking these files at load time.
-:- autoload(library(debug)).
-:- autoload(library(threadutil)).
-% These are fine to be checked and loaded
+	  [ main/0,
+	    argv_options/3,             % +Argv, -RestArgv, -Options
+	    argv_options/4,             % +Argv, -RestArgv, -Options, +ParseOpts
+	    argv_usage/1,               % +Level
+	    cli_parse_debug_options/2,  % +OptionsIn, -Options
+	    cli_enable_development_system/0
+	  ]).
 :- autoload(library(apply), [maplist/3, partition/4]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(pairs), [pairs_keys/2, pairs_values/2]).
@@ -88,7 +84,7 @@ echo([H|T]) :-
 @see	library(prolog_stack) to force backtraces in case of an
 	uncaught exception.
 @see    XPCE users should have a look at library(pce_main), which
-        starts the GUI and processes events until all windows have gone.
+	starts the GUI and processes events until all windows have gone.
 */
 
 :- module_transparent
@@ -253,9 +249,9 @@ argv_options(Argv, Positional, Options, POptions) :-
     !,
     E = error(_,_),
     catch(opt_parse(Argv, Positional, Options, POptions), E,
-          ( print_message(error, E),
-            halt(Code)
-          )).
+	  ( print_message(error, E),
+	    halt(Code)
+	  )).
 argv_options(Argv, Positional, Options, POptions) :-
     opt_parse(Argv, Positional, Options, POptions).
 
@@ -275,16 +271,16 @@ argv_untyped_options([H0|T0], R, Ops), sub_atom(H0, 0, _, _, --) =>
     Ops = [H|T],
     (   sub_atom(H0, B, _, A, =)
     ->  B2 is B-2,
-        sub_atom(H0, 2, B2, _, Name),
-        sub_string(H0, _, A,  0, Value0),
-        convert_option(Name, Value0, Value)
+	sub_atom(H0, 2, B2, _, Name),
+	sub_string(H0, _, A,  0, Value0),
+	convert_option(Name, Value0, Value)
     ;   sub_atom(H0, 2, _, 0, Name0),
-        (   sub_atom(Name0, 0, _, _, 'no-')
-        ->  sub_atom(Name0, 3, _, 0, Name),
-            Value = false
-        ;   Name = Name0,
-            Value = true
-        )
+	(   sub_atom(Name0, 0, _, _, 'no-')
+	->  sub_atom(Name0, 3, _, 0, Name),
+	    Value = false
+	;   Name = Name0,
+	    Value = true
+	)
     ),
     canonical_name(Name, PlName),
     H =.. [PlName,Value],
@@ -365,9 +361,9 @@ take_long(Long, T, Positional, Options, M, POptions) :- % --long=Value
     canonical_name(LName0, LName),
     (   in(M:opt_type(LName, Name, Type))
     ->  opt_value(Type, Long, VAtom, Value),
-        Opt =.. [Name,Value],
-        Options = [Opt|OptionsT],
-        opt_parse(T, Positional, OptionsT, M, POptions)
+	Opt =.. [Name,Value],
+	Options = [Opt|OptionsT],
+	opt_parse(T, Positional, OptionsT, M, POptions)
     ;   opt_error(unknown_option(M:LName0))
     ).
 take_long(LName0, T, Positional, Options, M, POptions) :- % --long
@@ -395,9 +391,9 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --long
     !,
     (   T = [VAtom|T1]
     ->  opt_value(Type, Long, VAtom, Value),
-        Opt =.. [Name,Value],
-        Options = [Opt|OptionsT],
-        opt_parse(T1, Positional, OptionsT, M, POptions)
+	Opt =.. [Name,Value],
+	Options = [Opt|OptionsT],
+	opt_parse(T1, Positional, OptionsT, M, POptions)
     ;   opt_error(missing_value(Long, Type))
     ).
 take_long_(Long, _, _, _, M, _) :-
@@ -416,17 +412,17 @@ take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
     !,
     (   T == []
     ->  (   Argv = [VAtom|ArgvT]
-        ->  opt_value(Type, H, VAtom, Value),
-            Opt =.. [Name,Value],
-            Options = [Opt|OptionsT],
-            take_shorts(T, ArgvT, Positional, OptionsT, M, POptions)
-        ;   opt_error(missing_value(H, Type))
-        )
+	->  opt_value(Type, H, VAtom, Value),
+	    Opt =.. [Name,Value],
+	    Options = [Opt|OptionsT],
+	    take_shorts(T, ArgvT, Positional, OptionsT, M, POptions)
+	;   opt_error(missing_value(H, Type))
+	)
     ;   atom_chars(VAtom, T),
-        opt_value(Type, H, VAtom, Value),
-        Opt =.. [Name,Value],
-        Options = [Opt|OptionsT],
-        take_shorts([], Argv, Positional, OptionsT, M, POptions)
+	opt_value(Type, H, VAtom, Value),
+	Opt =.. [Name,Value],
+	Options = [Opt|OptionsT],
+	take_shorts([], Argv, Positional, OptionsT, M, POptions)
     ).
 take_shorts([H|_], _, _, _, M, _) :-
     opt_error(unknown_option(M:H)).
@@ -483,7 +479,7 @@ opt_convert(between(Low, High), Spec, Value) :-
     (   ( float(Low) ; float(High) )
     ->  Value is float(Value0)
     ;   integer(Value0),
-        Value = Value0
+	Value = Value0
     ),
     Value >= Low, Value =< High.
 opt_convert(atom, Value, Value).
@@ -497,10 +493,10 @@ opt_convert(file(Access), Spec, Value) :-
     (   Spec == '-'
     ->  Value = '-'
     ;   prolog_to_os_filename(Value, Spec),
-        (   access_file(Value, Access)
-        ->  true
-        ;   opt_error(access_file(Spec, Access))
-        )
+	(   access_file(Value, Access)
+	->  true
+	;   opt_error(access_file(Spec, Access))
+	)
     ).
 opt_convert(term, Spec, Value) :-
     term_string(Value, Spec, []).
@@ -724,8 +720,8 @@ options_width(opt(_Name, boolean, Short, Long, _Help, _Meta), W) =>
     maplist(atom_length, Long, LLens),
     sum_list(LLens, LLen),
     W is ((SCount+LCount)-1)*2 +               % ', ' seps
-         SCount*2 +
-         LCount*2 + LLen.
+	 SCount*2 +
+	 LCount*2 + LLen.
 options_width(opt(_Name, _Type, Short, Long, _Help, Meta), W) =>
     length(Short, SCount),
     length(Long, LCount),
@@ -733,8 +729,8 @@ options_width(opt(_Name, _Type, Short, Long, _Help, Meta), W) =>
     maplist(atom_length, Long, LLens),
     sum_list(LLens, LLen),
     W is ((SCount+LCount)-1)*2 +               % ', ' seps
-         SCount*3 + SCount*MLen +
-         LCount*3 + LLen + LCount*MLen.
+	 SCount*3 + SCount*MLen +
+	 LCount*3 + LLen + LCount*MLen.
 
 %!  get_option(+Module, -Opt) is multi.
 %
@@ -743,7 +739,7 @@ options_width(opt(_Name, _Type, Short, Long, _Help, Meta), W) =>
 %       opt(Name, Type, ShortFlags, Longflags, Help, Meta).
 
 get_option(M, opt(help, boolean, [h,?], [help],
-                  Help, -)) :-
+		  Help, -)) :-
     \+ in(M:opt_type(_, help, boolean)),       % user defined help
     (   in(M:opt_help(help, Help))
     ->  true
@@ -754,8 +750,8 @@ get_option(M, opt(Name, Type, Short, Long, Help, Meta)) :-
     list_to_set(Names, UNames),
     member(Name, UNames),
     findall(Opt-Type,
-            in(M:opt_type(Opt, Name, Type)),
-            Pairs),
+	    in(M:opt_type(Opt, Name, Type)),
+	    Pairs),
     option_type(Name, Pairs, TypeT),
     functor(TypeT, Type, _),
     pairs_keys(Pairs, Opts),
@@ -775,7 +771,7 @@ option_type(Name, Pairs, Type) :-
     (   UTypes = []
     ->  true
     ;   print_message(warning,
-                      error(opt_error(multiple_types(Name, [Type|UTypes])),_))
+		      error(opt_error(multiple_types(Name, [Type|UTypes])),_))
     ).
 
 %!  in(:Goal)
@@ -917,7 +913,15 @@ debug_option(spy(Atom)) :-
     spy(PI).
 debug_option(gspy(Atom)) :-
     atom_pi(Atom, PI),
-    tspy(PI).
+    (   exists_source(library(thread_util))
+    ->  use_module(library(threadutil), [tspy/1]),
+	Goal = tspy(PI)
+    ;   exists_source(library(guitracer))
+    ->  use_module(library(gui_tracer), [gspy/1]),
+	Goal = gspy(PI)
+    ;   Goal = spy(PI)
+    ),
+    call(Goal).
 
 atom_pi(Atom, Module:PI) :-
     split(Atom, :, Module, PiAtom),
@@ -960,8 +964,8 @@ cli_enable_development_system :-
     set_prolog_flag(message_ide, true),
     (   current_prolog_flag(xpce_version, _)
     ->  use_module(library(pce_dispatch)),
-        memberchk(Goal, [pce_dispatch([])]),
-        call(Goal)
+	memberchk(Goal, [pce_dispatch([])]),
+	call(Goal)
     ;   true
     ),
     set_prolog_flag(toplevel_goal, prolog).
@@ -976,7 +980,7 @@ cli_enable_development_system :-
 
 prolog:called_by(main, [main(_)]).
 prolog:called_by(argv_options(_,_,_),
-                 [ opt_type(_,_,_),
-                   opt_help(_,_),
-                   opt_meta(_,_)
-                 ]).
+		 [ opt_type(_,_,_),
+		   opt_help(_,_),
+		   opt_meta(_,_)
+		 ]).

@@ -129,12 +129,12 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl
     oset.pl ordsets.pl occurs.pl lists.pl pprint.pl atom.pl
     www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl
-    threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl
+    qpforeign.pl dif.pl when.pl ugraphs.pl
     checklast.pl checkselect.pl operators.pl date.pl
     prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl
     broadcast.pl pairs.pl base64.pl record.pl rbtrees.pl settings.pl
-    thread.pl dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl
-    aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl
+    dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl
+    aggregate.pl pure_input.pl pio.pl terms.pl
     charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl
     coinduction.pl ansi_term.pl base32.pl prolog_history.pl
     optparse.pl arithmetic.pl writef.pl predicate_options.pl
@@ -164,6 +164,9 @@ if(EMSCRIPTEN)
 endif()
 if(NOT STATIC_EXTENSIONS)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} shlib.pl)
+endif()
+if(MULTI_THREADED)
+  list(APPEND SWIPL_DATA_library threadutil.pl thread.pl thread_pool.pl)
 endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl

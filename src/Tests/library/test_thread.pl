@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
     Copyright (c)  2007-2008, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,12 @@
 */
 
 :- module(test_thread, [test_thread/0]).
+
+:- if(\+exists_source(library(thread))).
+
+test_thread.
+
+:- else.
 
 test_thread :-
 	run_tests(thread).
@@ -68,3 +74,5 @@ test(first, true(X==1)) :-
 	first_solution(X, [(repeat,fail), X=1], []).
 
 :- end_tests(thread).
+
+:- endif.
