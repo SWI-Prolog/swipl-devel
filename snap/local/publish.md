@@ -2,8 +2,8 @@
 
 ## Building
 
-   snapcraft clean swi-prolog
-   snapcraft
+   SNAPCRAFT_BUILD_ENVIRONMENT=multipass snapcraft clean swi-prolog
+   SNAPCRAFT_BUILD_ENVIRONMENT=multipass snapcraft
 
 ## Local testing
 

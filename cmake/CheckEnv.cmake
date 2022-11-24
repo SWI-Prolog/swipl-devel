@@ -21,8 +21,9 @@ if(UNIX)
       conflicting_var(DYLD_LIBRARY_PATH)
     endif()
   else()
-    if(DEFINED ENV{LD_LIBRARY_PATH} AND
-       "$ENV{LD_LIBRARY_PATH}" MATCHES swipl|swi-prolog)
+    if( DEFINED ENV{LD_LIBRARY_PATH} AND
+	"$ENV{LD_LIBRARY_PATH}" MATCHES swipl|swi-prolog AND
+	NOT "$ENV{LD_LIBRARY_PATH}" MATCHES /root/parts/swi-prolog )
       conflicting_var(LD_LIBRARY_PATH)
     endif()
   endif()
