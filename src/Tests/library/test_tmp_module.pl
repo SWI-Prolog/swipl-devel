@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2014, University of Amsterdam
-                         VU University Amsterdam
+    Copyright (c)  2014-2022, University of Amsterdam
+			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,14 @@
 	  [ test_tmp_module/0,
 	    test_tmp_module/1
 	  ]).
+
+:- if(\+ exists_source(library(thread))).
+
+test_tmp_module.
+test_tmp_module(_).
+
+:- else.
+
 :- use_module(library(modules)).
 :- use_module(library(thread)).
 :- use_module(library(plunit)).
@@ -107,3 +116,5 @@ test_op :-
        T - Now > 0.002,
        !,
     thread_join(Id).
+
+:- endif.

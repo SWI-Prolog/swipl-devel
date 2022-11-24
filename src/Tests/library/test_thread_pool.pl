@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2011, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,20 +34,19 @@
 */
 
 :- module(test_thread_pool,
-	  [ test_thread_pool/0,
-	    t/0, d/0
+	  [ test_thread_pool/0
 	  ]).
+
+:- if(\+ exists_source(library(thread_pool))).
+
+test_thread_pool.
+
+:- else.
+
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(thread_pool)).
-
-d :-
-	debug(thread_pool),
-	debug(thread_pool(_)).
-
-t :-
-	test_thread_pool.
 
 test_thread_pool :-
 	run_tests([ thread_pool
@@ -91,3 +91,5 @@ run(I) :-
 	assert(v(I)).
 
 :- end_tests(thread_pool).
+
+:- endif.
