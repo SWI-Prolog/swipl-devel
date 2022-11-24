@@ -275,7 +275,7 @@ JavaScript \jargon{iterator} protocol.
 Implements the \jargon{iterator} protocol. This returns an object
 holding the keys \const{done} and \const{value}.  If exception
 handling is enabled it returns an object
-\{\const{done}:\const{true}, {\const{error}:\const{true},
+\{\const{done}:\const{true}, \const{error}:\const{true},
 \const{message}:\arg{String}\}.
 
     \cfunction{Object}{Query.once}{}
@@ -510,8 +510,7 @@ Logical negation.
     \termitem{||}{Any, Any}
 Binary operators. Note that some are not defined as Prolog operators and
 thus one must write e.g. \verb$A := &&(true,false)$.  \verb$||$ is not
-a Prolog atom, so logical disjunction gets \verb$A :=
-'||'(false,false)$.
+a Prolog atom, so logical disjunction gets \verb$A := '||'(false,false)$.
     \end{description}
 
     \predicate[semidet]{is_object}{1}{@Term}
