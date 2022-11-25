@@ -3127,8 +3127,17 @@ typedef struct register_file
 /* Define struct types for all the helper argument lists */
 #define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
 
+/* GCC and CLang allow for struct name {}, i.e., an empty struct */
+#if defined(__GNUC__) || defined(__clang__)
+#define VMH_PAD_STRUCT
+#define VMH_ADD_PADDING
+#else
+#define VMH_PAD_STRUCT int _no_empty_struct;
+#define VMH_ADD_PADDING 0
+#endif
+
 FOREACH_VMH(T_EMPTY,
-  ,VMH_ARGSTRUCT, { ,VMH_ARGS, };
+  ,VMH_ARGSTRUCT, { ,VMH_ARGS, VMH_PAD_STRUCT };
 )
 
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
@@ -3142,7 +3151,7 @@ FOREACH_VMH(T_EMPTY,
 #define _NEXT_INSTRUCTION		return PC
 #define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__}; (void)__args; \
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__, VMH_ADD_PADDING}; (void)__args; \
 					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
