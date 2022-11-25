@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -306,7 +306,7 @@ in several virtual machine instructions.  Currently covers:
 
 	* Pending signals
 	* pthread_cancel() requested
-        * Activation of the profiler
+	* Activation of the profiler
 	* out-of-stack signalled
 	* active depth-limit
 	* attributed variable wakeup
@@ -318,7 +318,7 @@ updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
   WITH_LD(ld)
-  { if ( is_signalled() )		        mask |= ALERT_SIGNAL;
+  { if ( is_signalled() )			mask |= ALERT_SIGNAL;
     if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
 	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
       ld->slow_unify = TRUE;  /* see VMI B_UNIFY_VAR */
@@ -650,37 +650,37 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
   { switch(argc) \
     { case 0: \
 	(*(NdetFunc0)f)(c); \
-        break; \
+	break; \
       case 1: \
 	(*(NdetFunc1)f)(0,(c)); \
 	break; \
       case 2: \
 	(*(NdetFunc2)f)(0,0,(c)); \
-        break; \
+	break; \
       case 3: \
 	(*(NdetFunc3)f)(0,0,0,(c)); \
-        break; \
+	break; \
       case 4: \
 	(*(NdetFunc4)f)(0,0,0,0,(c)); \
-        break; \
+	break; \
       case 5: \
 	(*(NdetFunc5)f)(0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 6: \
 	(*(NdetFunc6)f)(0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 7: \
 	(*(NdetFunc7)f)(0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 8: \
 	(*(NdetFunc8)f)(0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 9: \
 	(*(NdetFunc9)f)(0,0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 10: \
 	(*(NdetFunc10)f)(0,0,0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       default: \
 	assert(0); \
     } \
@@ -892,7 +892,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
       { int rval;
 
 	startCritical();
-        rval = call_term(contextModule(fr), clean);
+	rval = call_term(contextModule(fr), clean);
 	if ( !endCritical() )
 	  rval = FALSE;
 	if ( !rval && exception_term )
@@ -1373,9 +1373,9 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
       PL_put_choice(argv+3, bfr);
       PL_put_bool(argv+5, debugstatus.debugging);
       if ( ( op == B_UNIFY_EXIT &&
-             put_call_goal(argv+4, GD->procedures.equals2) &&
-             PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
-           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop) )
+	     put_call_goal(argv+4, GD->procedures.equals2) &&
+	     PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
+	   put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -2669,7 +2669,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->saved_ltop = lTop;
 
 					/* fill top-frame */
-  top	             = &qf->top_frame;
+  top		     = &qf->top_frame;
   top->parent        = NULL;
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->programPointer= NULL;
