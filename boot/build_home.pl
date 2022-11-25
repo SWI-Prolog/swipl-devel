@@ -197,6 +197,9 @@ add_package(_Pkg, PkgBinDir) :-
 %   probably cheaper to add it anyway.
 
 add_package_path(PkgBinDir) :-
+    (   current_prolog_flag(windows, true)
+    ->  win_add_dll_directory(PkgBinDir, _)
+    ;   true),
     assertz(user:file_search_path(foreign, PkgBinDir)).
 
 :- if(\+ current_prolog_flag(emscripten, true)).
