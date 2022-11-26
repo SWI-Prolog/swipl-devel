@@ -101,6 +101,9 @@ Address bits for VM.  Either 32 or 64.
 CC identifier to link to SWI-Prolog.  Typically
 .B -lswipl
 .TP
+.B PLLIBSWIPL
+Full path name to the shared object (DLL) that provides the Prolog core.
+.TP
 .B PLLIBS
 Additional libraries needed for linking PLLIB
 .TP
