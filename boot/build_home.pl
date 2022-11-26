@@ -4,8 +4,8 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2018-2022, VU University Amsterdam
-                              CWI, Amsterdam
-                              SWI-Prolog Solutions b.v.
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,9 +63,9 @@ cmake_binary_directory(BinDir) :-
     working_directory(PWD, PWD),
     exe_access(ExeAccess),
     absolute_file_name(Exe, AbsExe,
-                       [ access(ExeAccess),
-                         relative_to(PWD)
-                       ]),
+		       [ access(ExeAccess),
+			 relative_to(PWD)
+		       ]),
     file_directory_name(AbsExe, AbsExeDir),
     file_directory_name(AbsExeDir, ParentDir),
     (   file_base_name(ParentDir, packages)
@@ -102,9 +102,9 @@ cmake_source_directory(SrcDir) :-
 
 is_swi_prolog_cmake_file(File) :-
     setup_call_cleanup(
-        open(File, read, In),
-        is_swi_prolog_stream(In),
-        close(In)).
+	open(File, read, In),
+	is_swi_prolog_stream(In),
+	close(In)).
 
 is_swi_prolog_stream(In) :-
     repeat,
@@ -117,9 +117,9 @@ is_swi_prolog_stream(In) :-
 
 cmake_var(File, Name, Value) :-
     setup_call_cleanup(
-        open(File, read, In),
-        cmake_var_in_stream(In, Name, Value),
-        close(In)).
+	open(File, read, In),
+	cmake_var_in_stream(In, Name, Value),
+	close(In)).
 
 cmake_var_in_stream(Stream, Name, Value) :-
     string_length(Name, NameLen),
@@ -203,7 +203,7 @@ add_package_path(PkgBinDir) :-
 % disabled as we do not (yet) have packages and opendir() is broken
 % and this directory_files/2 raises an exception.
 :- forall(swipl_package(Pkg, PkgBinDir),
-          add_package(Pkg, PkgBinDir)).
+	  add_package(Pkg, PkgBinDir)).
 :- endif.
 
 %!  set_version_info
@@ -224,6 +224,7 @@ set_version_info :-
 %
 %   Set the value for libswipl.
 
+:- if(\+current_prolog_flag(libswipl, _)).
 set_libswipl :-
     current_prolog_flag(shared_object_extension, SO),
     \+current_prolog_flag(windows, true),
@@ -234,13 +235,14 @@ set_libswipl :-
 set_libswipl.
 
 :- initialization(set_libswipl).
+:- endif.
 
 % Avoid getting Java from the host when running under Wine.
 
 :- if(current_prolog_flag(wine_version, _)).
 delete_host_java_home :-
     (   getenv('JAVA_HOME', Dir),
-        sub_atom(Dir, 0, _, _, /)
+	sub_atom(Dir, 0, _, _, /)
     ->  unsetenv('JAVA_HOME')
     ;   true
     ).

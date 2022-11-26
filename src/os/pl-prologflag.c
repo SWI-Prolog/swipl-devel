@@ -41,6 +41,7 @@
 #include <windows.h>
 #include <process.h>			/* getpid() */
 #endif
+#define _GNU_SOURCE			/* get dladdr() */
 #include "pl-prologflag.h"
 #include "pl-utf8.h"
 #include "pl-ctype.h"
@@ -55,10 +56,19 @@
 #include "../pl-modul.h"
 #include "../pl-version.h"
 #include <ctype.h>
+#include <time.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <time.h>
+#ifdef HAVE_DLADDR
+#include <dlfcn.h>
+#endif
+
+#undef false
+#undef true
+#undef bool
+#define true(s, a)         ((s)->flags & (a))
+#define false(s, a)        (!true((s), (a)))
 
 
 		 /*******************************
@@ -1418,7 +1428,32 @@ set_arch(void)
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
 }
 
+static void
+set_libswipl(void)
+{
+#ifdef __WINDOWS__
+  { char buf[PATH_MAX];
+    char *s;
+    if ( (s=findModulePath("libswipl.dll", buf, sizeof(buf))) )
+    { setPrologFlag("libswipl", FT_ATOM|FF_READONLY, s);
+      return;
+    }
+  }
+#endif
 
+#ifdef HAVE_DLADDR
+  Dl_info info;
+
+  if ( dladdr(initPrologFlags, &info) && info.dli_fname )
+  { setPrologFlag("libswipl", FT_ATOM|FF_READONLY, info.dli_fname);
+    return;
+  }
+#endif
+
+#ifdef LIBPL_PATH
+  setPrologFlag("libswipl", FT_ATOM, LIBPL_PATH);
+#endif
+}
 
 		 /*******************************
 		 *	INITIALISE FEATURES	*
@@ -1473,15 +1508,7 @@ initPrologFlags(void)
 #ifdef PLSHAREDHOME
   setPrologFlag("shared_home", FT_ATOM|FF_READONLY, PLSHAREDHOME);
 #endif
-#ifdef __WINDOWS__
-  { char buf[PATH_MAX];
-    char *s;
-    if ( (s=findModulePath("libswipl.dll", buf, sizeof(buf))) )
-      setPrologFlag("libswipl", FT_ATOM|FF_READONLY, s);
-  }
-#elif defined(LIBPL_PATH)
-  setPrologFlag("libswipl", FT_ATOM, LIBPL_PATH);
-#endif
+  set_libswipl();
 #ifdef EXEC_FORMAT
   setPrologFlag("executable_format", FT_ATOM|FF_READONLY, EXEC_FORMAT);
 #endif
