@@ -56,22 +56,36 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 %   Find    the    equivalent    of      =CMAKE_BINARY_DIRECTORY=    and
 %   CMAKE_SOURCE_DIRECTORY.
 
+:- dynamic
+    cmake_bindir/1.
+
 cmake_binary_directory(BinDir) :-
+    cmake_bindir(BinDir),
+    !.
+cmake_binary_directory(BinDir) :-
+    exe_or_shared_object(Exe),
+    file_directory_name(Exe, ExeDir),
+    file_directory_name(ExeDir, ParentDir),
+    (   file_base_name(ParentDir, packages)
+    ->  file_directory_name(ParentDir, BinDir)
+    ;   BinDir = ParentDir
+    ),
+    asserta(cmake_bindir(BinDir)).
+
+exe_or_shared_object(File) :-	% only reliable when read-only
+    '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
+    !.
+exe_or_shared_object(File) :-
     current_prolog_flag(executable, OsExe),
     OsExe \== 'libswipl.dll',           % avoid dummy for embedded JPL test
     prolog_to_os_filename(Exe, OsExe),
     working_directory(PWD, PWD),
     exe_access(ExeAccess),
-    absolute_file_name(Exe, AbsExe,
+    absolute_file_name(Exe, File,
 		       [ access(ExeAccess),
 			 relative_to(PWD)
-		       ]),
-    file_directory_name(AbsExe, AbsExeDir),
-    file_directory_name(AbsExeDir, ParentDir),
-    (   file_base_name(ParentDir, packages)
-    ->  file_directory_name(ParentDir, BinDir)
-    ;   BinDir = ParentDir
-    ).
+		       ]).
+
 
 exe_access(Access) :-
     (   current_prolog_flag(unix, true)
