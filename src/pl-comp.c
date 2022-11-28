@@ -5350,8 +5350,11 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	p = valTermRef(argp);
 	deRef(p);
 	p = argTermP(*p, 0);
-	TRY(unifyVarGC(p+0, di->variables, *PC++) );
-	TRY(unifyVarGC(p+1, di->variables, *PC++) );
+	TRY(unifyVarGC(p, di->variables, *PC++) );
+	p = valTermRef(argp);	/* must re-fetch for possible GC */
+	deRef(p);
+	p = argTermP(*p, 1);
+	TRY(unifyVarGC(p, di->variables, *PC++) );
 	break;
       }
       case I_EXITCATCH:
