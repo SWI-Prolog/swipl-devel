@@ -207,7 +207,9 @@ destroyDefinition(Definition def)
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { GET_LD
 
+    LOCKDEF(def);
     deleteIndexesDefinition(def);
+    UNLOCKDEF(def);
     removeClausesPredicate(def, 0, FALSE);
     if ( GD->cleaning != CLN_DATA )
     { registerDirtyDefinition(def);
