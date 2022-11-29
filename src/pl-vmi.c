@@ -4635,11 +4635,11 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 }
 END_VMI
 
-#define FCALL_DETN(ac, h0_args...) \
+#define FCALL_DETN(ac, ...) \
   Func##ac f = (Func##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0_args));
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(1, h0);
@@ -4804,11 +4804,11 @@ VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 }
 END_VMI
 
-#define FCALL_NDETN(ac, h0_args...) \
+#define FCALL_NDETN(ac, ...) \
   NdetFunc##ac f = (NdetFunc##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
-  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0_args, &FNDET_CONTEXT));
+  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
 
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))

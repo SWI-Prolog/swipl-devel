@@ -3106,20 +3106,20 @@ typedef struct register_file
 #define _VMH_EPILOGUE			;
 
 /* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
-#define VMH_GOTO_AS_VMI(n,args...) do { VMI_EXIT; \
-					VMI_ENTER(n); \
-					VMH_GOTO(n, args); \
-				      } while(0)
+#define VMH_GOTO_AS_VMI(n,...) do { VMI_EXIT; \
+				    VMI_ENTER(n); \
+				    VMH_GOTO(n, __VA_ARGS__); \
+				  } while(0)
 
 
 /* Helper macros for rendering VMH arguments */
 #define HEAD(h, ...) h
-#define TAIL(_, t...) (t)
-#define VMH_ARGS0(n,at,an,f,asep...)
-#define VMH_ARGS1(n,at,an,f,asep...) f(n, HEAD at, HEAD an)
-#define VMH_ARGS2(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS1(n, TAIL at, TAIL an, f, asep)
-#define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
-#define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
+#define TAIL(_, ...) (__VA_ARGS__)
+#define VMH_ARGS0(n,at,an,f,...)
+#define VMH_ARGS1(n,at,an,f,...) f(n, HEAD at, HEAD an)
+#define VMH_ARGS2(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS1(n, TAIL at, TAIL an, f, __VA_ARGS__)
+#define VMH_ARGS3(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS2(n, TAIL at, TAIL an, f, __VA_ARGS__)
+#define VMH_ARGS4(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS3(n, TAIL at, TAIL an, f, __VA_ARGS__)
 #define COMMA_TYPE_ARG(n,at,an) , at an
 #define TYPE_ARG_SEMI(n,at,an)	at an ;
 #define VMH_ARGS(n) A_PASTE(VMH_ARGS, VMH_ARGCOUNT(n))(n, (VMH_ARGTYPES(n)), (VMH_ARGNAMES(n)), TYPE_ARG_SEMI)
@@ -3128,16 +3128,17 @@ typedef struct register_file
 #define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
 
 /* GCC and CLang allow for struct name {}, i.e., an empty struct */
-#if defined(__GNUC__) || defined(__clang__)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
 #define VMH_PAD_STRUCT
-#define VMH_ADD_PADDING
+#define VMH_INIT_ARGSTRUCT(...) {__VA_ARGS__}
 #else
+#undef HAVE_EMPTY_STRUCT
 #define VMH_PAD_STRUCT int _no_empty_struct;
-#define VMH_ADD_PADDING 0
+#define VMH_INIT_ARGSTRUCT(...) {0, ##__VA_ARGS__}
 #endif
 
 FOREACH_VMH(T_EMPTY,
-  ,VMH_ARGSTRUCT, { ,VMH_ARGS, VMH_PAD_STRUCT };
+  ,VMH_ARGSTRUCT, {VMH_PAD_STRUCT ,VMH_ARGS, };
 )
 
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
@@ -3151,7 +3152,7 @@ FOREACH_VMH(T_EMPTY,
 #define _NEXT_INSTRUCTION		return PC
 #define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__, VMH_ADD_PADDING}; (void)__args; \
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
 					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
@@ -3201,7 +3202,8 @@ static vmi_instr jmp_table[] =
 
 #define HELPER_ARGS(n)			helper_args.n
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
-#define _VMH_GOTO(n,args...)		VMH_ARGSTRUCT(n) __args = {args}; \
+#define _VHM_GOTO(n)			goto helper_ ## n;
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); \
 					HELPER_ARGS(n) = __args; \
 					goto helper_ ## n;
 #define _SOLUTION_RETURN		return

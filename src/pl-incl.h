@@ -288,10 +288,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#ifndef O_LABEL_ADDRESSES
-#if __GNUC__ == 2
-#define O_LABEL_ADDRESSES	1
-#endif
+#if defined(O_LABEL_ADDRESSES) && defined(PEDANTIC)
+#undef O_LABEL_ADDRESSES
 #endif
 
 /* clang as of version 11 performs about 30% worse with this option */
