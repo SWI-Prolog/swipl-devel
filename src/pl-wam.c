@@ -1529,15 +1529,29 @@ __do_undo(DECL_LD mark *m)
       setVar(*p);
   }
 
+  DEBUG(CHK_SECURE,
+	{ for(tt = tTop; --tt >= mt;)
+	    tt->address = (Word)0xbfbfbfbf;
+	});
+
   tTop = mt;
+
+  Word ngtop;
   if ( LD->frozen_bar > m->globaltop )
   { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
     reclaim_attvars(LD->frozen_bar);
-    gTop = LD->frozen_bar;
+    ngtop = LD->frozen_bar;
   } else
   { reclaim_attvars(m->globaltop);
-    gTop = m->globaltop;
+    ngtop = m->globaltop;
   }
+
+  DEBUG(CHK_SECURE,
+	{ for(Word p = gTop; --p > ngtop;)
+	    *p = 0xbfbfbfbf;
+	});
+
+  gTop = ngtop;
 }
 
 
