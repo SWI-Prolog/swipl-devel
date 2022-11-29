@@ -32,7 +32,6 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef __APPLE__
 #include "pl-apple.h"
 #include <CoreFoundation/CoreFoundation.h>
 
@@ -88,5 +87,3 @@ BeginPredDefs(apple)
   PRED_DEF("apple_current_locale_identifier", 1,
 	   apple_current_locale_identifier, 0)
 EndPredDefs
-
-#endif /*__APPLE__*/

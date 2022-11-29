@@ -49,7 +49,10 @@ include(Install)
 set(SRC_OS pl-buffer.c pl-ctype.c pl-file.c pl-files.c pl-glob.c pl-os.c
     pl-stream.c pl-string.c pl-table.c pl-text.c pl-utf8.c pl-fmt.c
     pl-dtoa.c pl-option.c pl-cstack.c pl-codelist.c pl-prologflag.c pl-tai.c
-    pl-locale.c pl-apple.c)
+    pl-locale.c)
+if(APPLE)
+  list(APPEND SRC_OS pl-apple.c)
+endif()
 prepend(SRC_OS os/ ${SRC_OS})
 
 
