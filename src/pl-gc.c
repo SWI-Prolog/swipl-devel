@@ -5436,6 +5436,31 @@ reenable_spare_stack(void *ptr, int rc)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Write illegal values in the unused parts of the stacks.  Used after GC
+and shifts to guarantee we will not use this part of the stacks.  Note
+that we may be writing above lTop, so we must compensate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+clear_unused_stack(void)
+{ DEBUG(CHK_SECURE,
+	{ GET_LD
+	  LocalFrame lTopSaved = lTop;
+
+	  for(TrailEntry tt = tTop; tt < tMax; tt++)
+	    tt->address = (Word)0xbfbfbfbf;
+	  for(Word p = gTop; p < gMax; p++)
+	    *p = 0xbfbfbfbf;
+
+	  setLTopInBody();
+	  for(Word p = (Word)lTop; p<(Word)lMax; p++)
+	    *p = 0xbfbfbfbf;
+	  lTop = lTopSaved;
+	});
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note that the trail can have  references   to  unused  stack. We set the
 references to point to a  dummy  variable,   so  no  harm  will be done.
 Setting  it  to  NULL  would  require  a    test  in  Undo(),  which  is
@@ -5482,6 +5507,8 @@ growStacks(size_t l, size_t g, size_t t)
       }
     }
   }
+
+  clear_unused_stack();
 
   return rc;
 }
@@ -5532,6 +5559,8 @@ shiftTightStacks(void)
 
   if ( (l|g|t) )
     return growStacks(l, g, t);
+  else
+    clear_unused_stack();
 
   return TRUE;
 }
