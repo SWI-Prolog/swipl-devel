@@ -4,8 +4,8 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2018, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+			 VU University Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,14 @@
 
 const code_info codeTable[] = {
   /* {name, ID, flags, #args, argtype} */
+#if O_EMPY_STRUCTS
   FOREACH_VMI(T_COMMA,
-    {,VMI_STRING, ,, ,VMI_NAME, ,, ,VMI_FLAGS, ,, ,VMI_ARGCOUNT, ,, {,VMI_ARGTYPES,}}
+	      {,VMI_STRING, ,, ,VMI_NAME, ,, ,VMI_FLAGS, ,, ,VMI_ARGCOUNT, ,, {,VMI_ARGTYPES,}}
   ),
+#else
+  FOREACH_VMI(T_COMMA,
+	      {,VMI_STRING, ,, ,VMI_NAME, ,, ,VMI_FLAGS, ,, ,VMI_ARGCOUNT, ,, {0 ,, ,VMI_ARGTYPES,}}
+  ),
+#endif
   { NULL, 0, 0, 0, {0} }
 };

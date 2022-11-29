@@ -1437,7 +1437,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  if ( op >= I_HIGHEST )
 	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
 
-	  ats = codeTable[op].argtype;
+	  ats = VM_ARGTYPES(&codeTable[op]);
 	  DEBUG(MSG_QLF_VMI,
 		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  if ( op == I_CONTEXT )
@@ -2637,7 +2637,7 @@ saveWicClause(wic_state *state, Clause clause)
   while( bp < ep )
   { Code si = bp;				/* start instruction */
     unsigned int op = decode(*bp++);
-    const char *ats = codeTable[op].argtype;
+    const char *ats = VM_ARGTYPES(&codeTable[op]);
     int n;
 
     emit_wlabels(&lstate, si, fd);

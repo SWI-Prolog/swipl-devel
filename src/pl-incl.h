@@ -114,6 +114,10 @@
  */
 #define COMMON(type) type
 
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
+#define O_EMPY_STRUCTS 1
+#endif
+
 #include "pl-macros.h"
 
 /* C11 gives us the _Static_assert operator, let's make it a little nicer.
@@ -1539,12 +1543,22 @@ typedef struct
   code		merge_av[1];	/* Argument vector */
 } vmi_merge;
 
+#if O_EMPY_STRUCTS
+#define VM_ARGC 4
+#define VM_ARGTYPES(ci) (ci)->_argtype
+#define VM_ARTYPE_PREFIX
+#else
+#define VM_ARGC 5
+#define VM_ARGTYPES(ci) &(ci)->_argtype[1]
+#define VM_ARTYPE_PREFIX 0,
+#endif
+
 typedef struct
 { char	       *name;		/* name of the code */
   vmi		code;		/* number of the code */
   unsigned char flags;		/* Addional flags (VIF_*) */
   unsigned char	arguments;	/* #args code takes (or VM_DYNARGC) */
-  char		argtype[4];	/* Argument type(s) code takes */
+  char	       _argtype[VM_ARGC]; /* Argument type(s) code takes */
 } code_info;
 
 struct mark

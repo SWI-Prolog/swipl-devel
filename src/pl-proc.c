@@ -3998,7 +3998,7 @@ remoduleClause(Clause cl, Module old, Module new)
   { code op = fetchop(PC);
 
     if ( in_body )
-    { const char *ats=codeTable[op].argtype;
+    { const char *ats = VM_ARGTYPES(&codeTable[op]);
       int an;
 
       for(an=0; ats[an]; an++)

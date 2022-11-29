@@ -148,7 +148,7 @@ count(code c, Code PC)
 { const code_info *info = &codeTable[c];
 
   counting[c].times++;
-  switch(info->argtype)
+  switch(VM_ARGTYPES(info))
   { case CA1_VAR:
     case CA1_FVAR:
     case CA1_CHP:
@@ -1343,7 +1343,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
-  if ( strchr(codeTable[op].argtype, CA1_FVAR) )
+  if ( strchr(VM_ARGTYPES(&codeTable[op]), CA1_FVAR) )
     pc_offset = stepPC(PC)-PC;
   else
     pc_offset = 0;
@@ -3128,7 +3128,7 @@ typedef struct register_file
 #define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
 
 /* GCC and CLang allow for struct name {}, i.e., an empty struct */
-#if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
+#if O_EMPY_STRUCTS
 #define VMH_PAD_STRUCT
 #define VMH_INIT_ARGSTRUCT(...) {__VA_ARGS__}
 #else
