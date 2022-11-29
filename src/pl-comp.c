@@ -5141,9 +5141,12 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
   Definition def = clause->predicate;
 
   if ( di->bindings )
-  { term_t tail = PL_copy_term_ref(di->bindings);
-    term_t head = PL_new_term_ref();
+  { term_t head, tail;
     unsigned int n;
+
+    if ( !(tail = PL_copy_term_ref(di->bindings)) ||
+	 !(head = PL_new_term_ref()) )
+      return FALSE;
 
     for(n=0; n<clause->prolog_vars; n++)
     { if ( !PL_unify_list(tail, head, tail) ||
