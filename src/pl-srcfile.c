@@ -351,7 +351,7 @@ acquireSourceFileNo(int index)
 { SourceFile sf;
 
   if ( (sf = indexToSourceFile(index)) )
-    return acquireSourceFile(sf);
+    acquireSourceFile(sf);
 }
 
 
@@ -1077,7 +1077,7 @@ reloadContext(DECL_LD SourceFile sf, Procedure proc)
 	  Sdprintf("%s %s ...\n",
 		   true(reload, P_NEW)        ? "New"   :
 		   true(reload, P_NO_CLAUSES) ? "Alien" :
-					        "Reload",
+						"Reload",
 		   predicateName(def)));
   }
 
@@ -1950,7 +1950,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
   PRED_DEF("$end_consult",		1, end_consult,		     0)
   PRED_DEF("$fixup_reconsult",		1, fixup_reconsult,          0)
-  PRED_DEF("$set_source_files",	        1, set_source_files,	     0)
+  PRED_DEF("$set_source_files",		1, set_source_files,	     0)
   PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
   PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
 EndPredDefs
