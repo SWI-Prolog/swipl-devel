@@ -4114,12 +4114,12 @@ Sclose_buffer(IOSTREAM *s)
 		 *	 STANDARD HANDLES	*
 		 *******************************/
 
-#define STDIO(n, f) { NULL, NULL, NULL, NULL, \
-		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      (void *)(n), &Sttyfunctions, \
-		      -1, \
-		      ENC_ISO_LATIN_1 \
-		    }
+#define STDIO(n, f) \
+	{ .bufp = NULL, .limitp = NULL, .buffer = NULL, .unbuffer = NULL, \
+	  .lastc = EOF, .magic = SIO_MAGIC, .flags = (f),		  \
+	  .handle = (void *)(n), .functions = &Sttyfunctions,		  \
+	  .timeout = -1, .encoding = ENC_ISO_LATIN_1			  \
+	}
 
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
