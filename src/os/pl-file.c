@@ -3949,15 +3949,18 @@ openStream(term_t file, term_t mode, term_t options)
   IOSTREAM *s;
   IOENC enc;
 
+#ifdef O_LOCALE
+#define LOCALE_ARG , &locale
+#else
+#define LOCALE_ARG
+#endif
+
   if ( options )
   { if ( !PL_scan_options(options, 0, "stream_option", open4_options,
-		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &wait,
-		       &encoding, &newline, &bom, &create
-#ifdef O_LOCALE
-		       , &locale
-#endif
-		      ) )
+			  &type, &reposition, &alias, &eof_action,
+			  &close_on_abort, &buffer, &lock, &wait,
+			  &encoding, &newline, &bom, &create
+			  LOCALE_ARG) )
       return FALSE;
   }
 

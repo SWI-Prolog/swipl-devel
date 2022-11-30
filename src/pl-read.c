@@ -5265,24 +5265,28 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 retry:
   init_read_data(&rd, s);
 
-  if ( !PL_scan_options(options, 0, "read_option", read_term_options,
-		     &rd.varnames,
-		     &rd.variables,
-		     &rd.singles,
-		     &tpos,
-		     &rd.subtpos,
-		     &charescapes,
-		     &varprefix,
-		     &dq,
-		     &mname,
-		     &rd.on_error,
-		     &bq,
-		     &tcomments,
 #ifdef O_QUASIQUOTATIONS
-		     &rd.quasi_quotations,
+#define QQ_ARG &rd.quasi_quotations,
+#else
+#define QQ_ARG
 #endif
-		     &rd.cycles,
-		     &rd.dotlists) )
+
+  if ( !PL_scan_options(options, 0, "read_option", read_term_options,
+			&rd.varnames,
+			&rd.variables,
+			&rd.singles,
+			&tpos,
+			&rd.subtpos,
+			&charescapes,
+			&varprefix,
+			&dq,
+			&mname,
+			&rd.on_error,
+			&bq,
+			&tcomments,
+			QQ_ARG
+			&rd.cycles,
+			&rd.dotlists) )
     return FALSE;
 
   if ( mname )
