@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -971,9 +971,9 @@ getOutputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
   if ( t == 0 )
   { if ( (s = getStream(
 #ifdef O_DEBUG
-                        LD->internal_debug.depth > 0 ? Serror :
+			LD->internal_debug.depth > 0 ? Serror :
 #endif
-                        Scurout)) )
+			Scurout)) )
       goto ok;
     no_stream(t, ATOM_current_output);
     return FALSE;
@@ -1851,8 +1851,8 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
     { case '\n':
       case '\r':
       case EOF:
-        *buf++ = EOS;
-        PopTty(in, &tbuf, TRUE);
+	*buf++ = EOS;
+	PopTty(in, &tbuf, TRUE);
 	Sunlock(in);
 	Sunlock(out);
 
@@ -2368,13 +2368,13 @@ found:
     rc = TRUE;
     if ( ref->read && (info->flags&SS_READ))
     { if ( !(s = getStream(ref->read)) )
-        return symbol_no_stream(sblob);
+	return symbol_no_stream(sblob);
       rc = set_stream(s, stream, aname, aval);
       releaseStream(ref->read);
     }
     if ( rc && ref->write && (info->flags&SS_WRITE) )
     { if ( !(s = getStream(ref->write)) )
-        return symbol_no_stream(sblob);
+	return symbol_no_stream(sblob);
       rc = set_stream(s, stream, aname, aval);
       releaseStream(ref->write);
     }
@@ -2812,7 +2812,7 @@ skip_cr(IOSTREAM *s)
   { switch(s->newline)
     { case SIO_NL_DETECT:
 	s->newline = SIO_NL_DOS;
-        /*FALLTHROUGH*/
+	/*FALLTHROUGH*/
       case SIO_NL_DOS:
 	return TRUE;
     }
@@ -2933,7 +2933,7 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	  s->position->byteno = pos0.byteno+us-buf;
 
 	re_buffer(s, us, es-us);
-        break;
+	break;
       }
       case ENC_UTF8:
       { const char *us = buf;
@@ -2983,7 +2983,7 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	  s->position->byteno = pos0.byteno+us-buf;
 
 	re_buffer(s, us, es-us);
-        break;
+	break;
       }
       case ENC_UTF16BE:
       case ENC_UTF16LE:
@@ -3043,7 +3043,7 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
-        break;
+	break;
       }
       case ENC_WCHAR:
       { const pl_wchar_t *ws = (const pl_wchar_t*)buf;
@@ -3068,12 +3068,12 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
-        break;
+	break;
       }
       case ENC_UNKNOWN:
       default:
 	assert(0);
-        return FALSE;
+	return FALSE;
     }
 
     if ( !unifyDiffList(list, tail, &ctx) )
@@ -3155,7 +3155,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
       if ( S__fillbuf(s) < 0 )
       { PL_chars_t text;
-        int rc;
+	int rc;
 
 	if ( Sferror(s) )
 	  return streamStatus(s);
@@ -3169,8 +3169,8 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
 	rc = ( PL_canonicalise_text_ex(&text) &&
 	       PL_unify_text(A3, 0, &text, PL_STRING) );
-        releaseStream(s);
-        return rc;
+	releaseStream(s);
+	return rc;
       }
       s->bufp--;
     }
@@ -3773,7 +3773,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
 	case ACCESS_EXIST:     mode = ATOM_exist;     break;
 	case ACCESS_FILE:      mode = ATOM_file;      break;
 	case ACCESS_DIRECTORY: mode = ATOM_directory; break;
-        default: assert(0); return FALSE;
+	default: assert(0); return FALSE;
       }
       if ( !PL_unify_term(argv+2,
 			  PL_FUNCTOR, FUNCTOR_access1,
@@ -3815,7 +3815,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       }
       default:
 	assert(0);
-        return FALSE;
+	return FALSE;
     }
   } else
   { return FALSE;
@@ -3865,7 +3865,7 @@ iri_hook(const char *url, iri_op op, ...)
 static const PL_option_t open4_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_reposition,     OPT_BOOL },
-  { ATOM_alias,	         OPT_ATOM },
+  { ATOM_alias,		 OPT_ATOM },
   { ATOM_eof_action,     OPT_ATOM },
   { ATOM_close_on_abort, OPT_BOOL },
   { ATOM_buffer,	 OPT_ATOM },
@@ -3878,7 +3878,7 @@ static const PL_option_t open4_options[] =
 #ifdef O_LOCALE
   { ATOM_locale,	 OPT_LOCALE },
 #endif
-  { NULL_ATOM,	         0 }
+  { NULL_ATOM,		 0 }
 };
 
 
@@ -3900,7 +3900,7 @@ stream_encoding_options(atom_t type, atom_t encoding, int *bom, IOENC *enc)
       case ENC_ISO_LATIN_1:		/* and skip the BOM */
       case ENC_WCHAR:
 	*bom = FALSE;
-        break;
+	break;
       default:
 	;
     }
@@ -3929,7 +3929,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t mname;
   atom_t type           = ATOM_text;
   int    reposition     = TRUE;
-  atom_t alias	        = NULL_ATOM;
+  atom_t alias		= NULL_ATOM;
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
@@ -4055,7 +4055,7 @@ openStream(term_t file, term_t mode, term_t options)
     if ( (aliast = PL_new_term_ref()) &&
 	 PL_unify_term(aliast,
 		       PL_FUNCTOR, FUNCTOR_alias1,
-		         PL_ATOM, alias) )
+			 PL_ATOM, alias) )
       PL_error(NULL, 0, NULL, ERR_PERMISSION,
 	       ATOM_open, ATOM_source_sink, aliast);
 
@@ -4398,7 +4398,7 @@ Sseek_null(void *handle, long offset, int whence)
     case SIO_SEEK_CUR:
     case SIO_SEEK_END:
     default:
-        return -1;
+	return -1;
   }
 }
 
