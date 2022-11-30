@@ -1681,7 +1681,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   if ( generation != GEN_TR_DISCARD_ASSERT )
     setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 
-  return clearBreakPointsClause >= 0;
+  return clearBreakPointsClause(clause) >= 0;
 }
 
 
