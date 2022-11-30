@@ -3126,7 +3126,7 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 { GET_LD
   event_list **list = global ? &GD->event.hook.onthreadexit
 			     : &LD->event.hook.onthreadexit;
-  int (*func)() = (void *)function;
+  int (*func)() = (int(*)())function;
 
   return register_event_function(list, 0, FALSE, func, closure, 0);
 }
