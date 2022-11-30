@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -215,7 +215,7 @@ typedef struct io_stream
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
   int			timeout;	/* timeout (milliseconds) */
   IOENC			encoding;	/* character encoding used */
-  int		        locks;		/* lock/unlock count */
+  int			locks;		/* lock/unlock count */
   int			references;	/* Reference-count */
   IOLOCK *		mutex;		/* stream mutex */
   void			(*close_hook)(void* closure);
@@ -235,7 +235,7 @@ typedef struct io_stream
 } IOSTREAM;
 
 
-#define SmakeFlag(n)	(1<<(n-1))
+#define SmakeFlag(n)	((unsigned int)1<<(n-1))
 
 #define SIO_FBUF	SmakeFlag(1)	/* full buffering */
 #define SIO_LBUF	SmakeFlag(2)	/* line buffering */
