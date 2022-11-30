@@ -196,7 +196,7 @@ ui64toa(uint64_t val, char *out)
   *out = '\0';
 
   return out;				/* points to the END */
-};
+}
 
 
 static char *

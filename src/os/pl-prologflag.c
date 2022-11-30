@@ -1447,7 +1447,7 @@ set_libswipl(void)
 #ifdef HAVE_DLADDR
   Dl_info info;
 
-  if ( dladdr(initPrologFlags, &info) && info.dli_fname )
+  if ( dladdr((void*)(intptr_t)PL_initialise, &info) && info.dli_fname )
   { setPrologFlag("libswipl", FT_ATOM|FF_READONLY, info.dli_fname);
     return;
   }

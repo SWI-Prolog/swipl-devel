@@ -2826,16 +2826,17 @@ weak function, you should (e.g. for weak-importing malloc):
 4b. WEAK_TRY_CALL(malloc, sizeof(x)) to combine check and call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int __ptr_to_bool(const void *ptr) { return ptr != NULL; }
+static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #if HAVE_WEAK_ATTRIBUTE
 # define WEAK_DECLARE(RType, Name, Params) \
 	extern RType __attribute__((weak)) Name Params
-# define WEAK_IMPORT(Name) __ptr_to_bool(&Name)
+# define WEAK_IMPORT(Name) __ptr_to_bool((intptr_t)Name)
 # define WEAK_FUNC(Name) (&Name)
 #elif defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
 # define WEAK_DECLARE(RType, Name, Params) \
 	static RType (*wf##Name) Params = NULL
-# define WEAK_IMPORT(Name) __ptr_to_bool((wf##Name = PL_dlsym(NULL, #Name)))
+# define WEAK_IMPORT(Name) \
+	__ptr_to_bool((intptr_t)(wf##Name = PL_dlsym(NULL, #Name)))
 # define WEAK_FUNC(Name) (wf##Name)
 #else
 # define WEAK_DECLARE(RType, Name, Params) \
@@ -2843,7 +2844,10 @@ static inline int __ptr_to_bool(const void *ptr) { return ptr != NULL; }
 # define WEAK_IMPORT(Name) 0
 # define WEAK_FUNC(Name) 0
 #endif
-#define WEAK_TRY_CALL(Name, ...) (WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : 0)
+#define WEAK_TRY_CALL(Name, ...) \
+	(WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : 0)
+#define WEAK_TRY_CALL_VOID(Name, ...) \
+	(WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : (void)0)
 
 #include "pl-util.h"			/* (Debug) utilities */
 #include "pl-alloc.h"			/* Allocation primitives */

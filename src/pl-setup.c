@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -669,7 +669,7 @@ prepareSignal(int sig, int plsig_flags)
     if ( !IS_VSIG(sig) )
     { handler_t old_handler = set_sighandler(sig, desired_state == PLSIG_IGNORED ? SIG_IGN : pl_signal_handler);
       if ( current_state == 0 )
-        sh->saved_handler = old_handler;
+	sh->saved_handler = old_handler;
     }
   } else
   { sh->flags = (sh->flags & ~PLSIG_USERFLAGS) | plsig_flags;
@@ -894,7 +894,7 @@ initSignals(DECL_LD)
 	sn->flags = 0;
 #endif
       if ( sn->flags )
-        prepareSignal(sn->sig, sn->flags);
+	prepareSignal(sn->sig, sn->flags);
     }
 
 #ifdef SIGHUP
@@ -914,7 +914,7 @@ initSignals(DECL_LD)
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
 
-  PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
+  PL_signal(SIG_GC|PL_SIGSYNC,		  gc_handler);
   PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
@@ -1373,8 +1373,8 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 	return FALSE;
     } else
     { if ( !PL_unify_term(old, PL_FUNCTOR, FUNCTOR_colon2,
-			         PL_ATOM, def->module->name,
-			         PL_ATOM, def->functor->name) )
+				 PL_ATOM, def->module->name,
+				 PL_ATOM, def->functor->name) )
 	return FALSE;
     }
   } else if ( sh->handler )
@@ -1426,7 +1426,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
     if ( PL_get_pointer(a, &f) )
     { sh = prepareSignal(sign, 0);
-      sh->handler = (handler_t)f;
+      sh->handler = (handler_t)(intptr_t)f;
       sh->predicate = NULL;
 
       succeed;
@@ -1560,7 +1560,7 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
   s->min_free   = 256*sizeof(word);
   s->max	= addPointer(s->base, size - spare);
   s->gced_size  = 0L;			/* size after last gc */
-  s->gc	        = gc;
+  s->gc		= gc;
   gcPolicy(s, GC_FAST_POLICY);
 }
 
@@ -1831,14 +1831,14 @@ set_stack_limit(size_t limit)
 
   if ( limit < LD->stacks.limit &&
        limit < sizeStack(local) +
-               sizeStack(global) +
-               sizeStack(trail) )
+	       sizeStack(global) +
+	       sizeStack(trail) )
   { garbageCollect(GC_USER);
     trimStacks(TRUE);
 
     if ( limit < sizeStack(local) +
-	         sizeStack(global) +
-	         sizeStack(trail) )
+		 sizeStack(global) +
+		 sizeStack(trail) )
     { term_t ex;
 
 
