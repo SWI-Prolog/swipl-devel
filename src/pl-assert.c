@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2017-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@
 #define NO_ASSERT_H
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include "pl-trace.h"
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -101,7 +103,7 @@ __assert_fail(const char *assertion,
 
   save_backtrace("assert_fail");
   print_backtrace_named("assert_fail");
+  Sdprintf("Prolog stack:\n%s\n",
+	   PL_backtrace_string(25, PL_BT_SAFE));
   abort();
 }
-
-
