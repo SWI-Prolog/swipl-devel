@@ -4,7 +4,7 @@
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2011-2021, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -240,6 +240,10 @@ const debug_topic debug_topics[] =
 };
 
 
+#ifdef __WINDOWS__
+#define strncasecmp(s1, s2, n) _strnicmp(s1, s2, n)
+#endif
+
 static const debug_topic *
 get_next_debug_topic(const char *topic, const debug_topic *dt)
 { int cmplen = strlen(topic) + 1;
@@ -295,11 +299,11 @@ prolog_debug_topic(const char *topic, int flag)
       success = TRUE;
 
       if ( code <= DBG_LEVEL9 )
-        GD->debug_level = code;
+	GD->debug_level = code;
       else if (flag)
-        set_bit(GD->debug_topics, code);
+	set_bit(GD->debug_topics, code);
       else
-        clear_bit(GD->debug_topics, code);
+	clear_bit(GD->debug_topics, code);
     }
   }
 
@@ -342,7 +346,7 @@ prolog_debug_from_string(const char *spec, int flag)
       buf[end-spec] = EOS;
       if ( !prolog_debug_topic(buf, flag) )
       { if (quiet)
-          return FALSE;
+	  return FALSE;
 	Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
 	PL_halt(1);
       }
@@ -420,4 +424,3 @@ BeginPredDefs(debug)
   PRED_DEF("prolog_debug", 1, pl_prolog_debug, 0)
   PRED_DEF("prolog_nodebug", 1, pl_prolog_nodebug, 0)
 EndPredDefs
-

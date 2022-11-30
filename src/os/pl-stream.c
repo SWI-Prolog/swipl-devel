@@ -3577,6 +3577,10 @@ Swinsock(IOSTREAM *s)
 		 *******************************/
 
 #ifdef HAVE_POPEN
+#ifdef __WINDOWS__
+#define popen _popen
+#define pclose _pclose
+#endif
 
 static ssize_t
 Sread_pipe(void *handle, char *buf, size_t size)
