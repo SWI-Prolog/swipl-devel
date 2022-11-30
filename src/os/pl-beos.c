@@ -37,8 +37,7 @@ This module is  written  by   Alex  Dörfler,  axeld@pinc-software.de and
 integrated into SWI-Prolog by Jan Wielemaker.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __BEOS__
-#include "pl-incl.h"
+#include "../pl-incl.h"
 
 
 		 /*******************************
@@ -94,5 +93,3 @@ PL_dlclose(void *handle)
 }
 
 #endif	/* EMULATE_DLOPEN */
-
-#endif	/* __BEOS__ */
