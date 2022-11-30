@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2008-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -196,7 +196,7 @@ typedef _PLS(foreign_context) *control_t; /* non-deterministic control arg */
 typedef _PLS(PL_local_data) *PL_engine_t; /* opaque engine handle */
 typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
-typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
+typedef wchar_t		pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
 typedef void *		pl_function_t;      /* pass function as void* */
 #else
@@ -913,9 +913,9 @@ UNICODE file functions.
 #define PL_DIFF_LIST	    0x01000000	/* PL_unify_chars() */
 
 
-                /*******************************
-                *         STRING BUFFERS       *
-                *******************************/
+		/*******************************
+		*         STRING BUFFERS       *
+		*******************************/
 
 #define PL_STRINGS_MARK() \
 	{ buf_mark_t __PL_mark; \
@@ -973,14 +973,14 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_PORTRAY)
 #define PL_WRT_BLOB_PORTRAY	      0x400 /* Use portray for non-text blobs */
 #define PL_WRT_NO_CYCLES	      0x800 /* Never emit @(Template,Subst) */
-#define PL_WRT_NEWLINE	             0x2000 /* Add a newline */
-#define PL_WRT_VARNAMES	             0x4000 /* Internal: variable_names(List) */
+#define PL_WRT_NEWLINE		     0x2000 /* Add a newline */
+#define PL_WRT_VARNAMES		     0x4000 /* Internal: variable_names(List) */
 #define PL_WRT_BACKQUOTE_IS_SYMBOL   0x8000 /* ` is a symbol char */
-#define PL_WRT_DOTLISTS	            0x10000 /* Write lists as .(A,B) */
+#define PL_WRT_DOTLISTS		    0x10000 /* Write lists as .(A,B) */
 #define PL_WRT_BRACETERMS           0x20000 /* Write {A} as {}(A) */
-#define PL_WRT_NODICT	            0x40000 /* Do not write dicts pretty */
+#define PL_WRT_NODICT		    0x40000 /* Do not write dicts pretty */
 #define PL_WRT_NODOTINATOM          0x80000 /* never write a.b unquoted */
-#define PL_WRT_NO_LISTS	           0x100000 /* Do not write lists as [...] */
+#define PL_WRT_NO_LISTS		   0x100000 /* Do not write lists as [...] */
 #define PL_WRT_RAT_NATURAL         0x200000 /* Write rationals as 1/3 */
 #define PL_WRT_CHARESCAPES_UNICODE 0x400000 /* Use \uXXXX escapes */
 #define PL_WRT_QUOTE_NON_ASCII	   0x800000 /* Quote atoms containing non-ascii */
