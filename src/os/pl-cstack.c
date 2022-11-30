@@ -440,7 +440,8 @@ print_trace(btrace *bt, int me)
 	    Sdprintf("  [%d] %s [%p]\n", i, buf, addr);
 	  else if ( info.dli_sname )
 	    Sdprintf("  [%d] %s(%s+%p) [%p]\n",
-		     i, info.dli_fname, info.dli_sname, addr-info.dli_saddr,
+		     i, info.dli_fname, info.dli_sname,
+		     (uintptr_t)addr-(uintptr_t)info.dli_saddr,
 		     addr);
 	  else
 	    Sdprintf("  [%d] %s(+%p) [%p]\n",

@@ -4117,7 +4117,7 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
 
 Code
 stepDynPC(Code PC, const code_info *ci)
-{ const char *ats = ci->argtype;
+{ const char *ats = VM_ARGTYPES(ci);
 
   for(; *ats; ats++)
   { switch(*ats)
@@ -5141,9 +5141,12 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
   Definition def = clause->predicate;
 
   if ( di->bindings )
-  { term_t tail = PL_copy_term_ref(di->bindings);
-    term_t head = PL_new_term_ref();
+  { term_t head, tail;
     unsigned int n;
+
+    if ( !(tail = PL_copy_term_ref(di->bindings)) ||
+	 !(head = PL_new_term_ref()) )
+      return FALSE;
 
     for(n=0; n<clause->prolog_vars; n++)
     { if ( !PL_unify_list(tail, head, tail) ||
@@ -5350,8 +5353,11 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	p = valTermRef(argp);
 	deRef(p);
 	p = argTermP(*p, 0);
-	TRY(unifyVarGC(p+0, di->variables, *PC++) );
-	TRY(unifyVarGC(p+1, di->variables, *PC++) );
+	TRY(unifyVarGC(p, di->variables, *PC++) );
+	p = valTermRef(argp);	/* must re-fetch for possible GC */
+	deRef(p);
+	p = argTermP(*p, 1);
+	TRY(unifyVarGC(p, di->variables, *PC++) );
 	break;
       }
       case I_EXITCATCH:
@@ -6946,7 +6952,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 
     for( ; PC < end; PC = stepPC(PC),an=0 )
     { code op = fetchop(PC);
-      const char *ats=codeTable[op].argtype;
+      const char *ats = VM_ARGTYPES(&codeTable[op]);
 
       while(ats[an])
       { int rc;
@@ -6990,7 +6996,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     if ( PL_is_atomic(term) )
     { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
-	const char *ats=codeTable[op].argtype;
+	const char *ats = VM_ARGTYPES(&codeTable[op]);
 
 	while(ats[an])
 	{ switch(ats[an++])
@@ -7013,7 +7019,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
     { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
-	const char *ats=codeTable[op].argtype;
+	const char *ats = VM_ARGTYPES(&codeTable[op]);
 
 	while(ats[an])
 	{ switch(ats[an++])
@@ -7034,7 +7040,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 
       for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
-	const char *ats=codeTable[op].argtype;
+	const char *ats = VM_ARGTYPES(&codeTable[op]);
 
 	while(ats[an])
 	{ switch(ats[an++])
@@ -7124,7 +7130,7 @@ unify_vmi(term_t t, Code bp)
   { if ( !PL_unify_atom_chars(t, ci->name) )
       return NULL;
   } else
-  { const char *ats = codeTable[op].argtype;
+  { const char *ats = VM_ARGTYPES(&codeTable[op]);
     term_t av = PL_new_term_refs((int)strlen(ats));
     int an;
 
@@ -7330,7 +7336,7 @@ PRED_IMPL("$vmi_property", 2, vmi_property, 0)
 	if ( prop == ATOM_break )
 	{ return PL_unify_bool_ex(arg, (ci->flags&VIF_BREAK));
 	} else if ( prop == ATOM_argv )
-	{ const char *ats = ci->argtype;
+	{ const char *ats = VM_ARGTYPES(ci);
 	  term_t tail = PL_copy_term_ref(arg);
 	  term_t head = PL_new_term_ref();
 	  int an;
@@ -7469,7 +7475,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
       if ( arity == 0 )
       { assert(cinfo->arguments == 0);
       } else
-      { const char *ats = cinfo->argtype;
+      { const char *ats = VM_ARGTYPES(cinfo);
 	int an;
 	term_t a = PL_new_term_ref();
 

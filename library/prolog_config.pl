@@ -34,9 +34,9 @@
 */
 
 :- module(prolog_config,
-          [ prolog_dump_runtime_variables/0,
-            apple_bundle_libdir/1
-          ]).
+	  [ prolog_dump_runtime_variables/0,
+	    apple_bundle_libdir/1
+	  ]).
 
 /** <module> Provide configuration information
 
@@ -55,22 +55,23 @@ linking against Prolog, embedding Prolog or calling Prolog.
 
 prolog_dump_runtime_variables :-
     (   '$cmd_option_val'(config, Format),
-        Format \== ''
+	Format \== ''
     ->  prolog_dump_runtime_variables(Format)
     ;   prolog_dump_runtime_variables(sh)
     ).
 
 prolog_dump_runtime_variables(Format) :-
-    print_flag(home,                      'PLBASE',    Format),
-    print_flag(arch,                      'PLARCH',    Format),
-    print_flag(address_bits,              'PLBITS',    Format),
-    print_flag(version,                   'PLVERSION', Format),
-    print_flag(shared_object_extension,   'PLSOEXT',   Format),
-    print_flag(shared_object_search_path, 'PLSOPATH',  Format),
-    print_flag(c_libdir,                  'PLLIBDIR',  Format),
-    print_flag(c_lib,                     'PLLIB',     Format),
-    print_flag(open_shared_object,        'PLSHARED',  Format),
-    print_flag(threads,                   'PLTHREADS', Format).
+    print_flag(home,                      'PLBASE',     Format),
+    print_flag(arch,                      'PLARCH',     Format),
+    print_flag(address_bits,              'PLBITS',     Format),
+    print_flag(version,                   'PLVERSION',  Format),
+    print_flag(shared_object_extension,   'PLSOEXT',    Format),
+    print_flag(shared_object_search_path, 'PLSOPATH',   Format),
+    print_flag(c_libdir,                  'PLLIBDIR',   Format),
+    print_flag(c_lib,                     'PLLIB',      Format),
+    print_flag(libswipl,                  'PLLIBSWIPL', Format),
+    print_flag(open_shared_object,        'PLSHARED',   Format),
+    print_flag(threads,                   'PLTHREADS',  Format).
 
 print_flag(Flag, Var, Format) :-
     (   prolog:runtime_config(Flag, Value)
@@ -125,7 +126,7 @@ print_config(sh, Var, Value) :-
 print_config(cmd, Var, Value) :-
     (   file_var(Var)
     ->  prolog_to_os_filename(Value, OSValue),
-        format('SET ~w=~w~n', [Var, OSValue])
+	format('SET ~w=~w~n', [Var, OSValue])
     ;   format('SET ~w=~w~n', [Var, Value])
     ).
 

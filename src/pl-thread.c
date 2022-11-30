@@ -3126,7 +3126,7 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 { GET_LD
   event_list **list = global ? &GD->event.hook.onthreadexit
 			     : &LD->event.hook.onthreadexit;
-  int (*func)() = (void *)function;
+  int (*func)() = (int(*)())function;
 
   return register_event_function(list, 0, FALSE, func, closure, 0);
 }
@@ -5644,6 +5644,7 @@ register_waiting(Module m, PL_local_data_t *ld)
     { thread_dcell *t;
 
       c->ld = ld;
+      PL_LOCK(L_MISC);
       if ( (t=m->wait->w_tail) )
       { c->prev = t;
 	c->next = NULL;
@@ -5654,6 +5655,7 @@ register_waiting(Module m, PL_local_data_t *ld)
 	m->wait->w_head = c;
 	c->next = c->prev = NULL;
       }
+      PL_UNLOCK(L_MISC);
       ld->thread.waiting_for->registered = c;
     }
   }
@@ -5668,6 +5670,7 @@ unregister_waiting(Module m, PL_local_data_t *ld)
   if ( c )
   { ld->thread.waiting_for->registered = NULL;
 
+    PL_LOCK(L_MISC);
     if ( c->next )
       c->next->prev = c->prev;
     else
@@ -5677,6 +5680,7 @@ unregister_waiting(Module m, PL_local_data_t *ld)
       c->prev->next = c->next;
     else
       m->wait->w_head = c->next;
+    PL_UNLOCK(L_MISC);
 
     free(c);
   }

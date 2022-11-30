@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2022, SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -32,58 +32,47 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-apple.h"
-#include <CoreFoundation/CoreFoundation.h>
+:- module(test_functor_cache,
+	  [ test_functor_cache/0
+	  ]).
+:- autoload(library(apply), [maplist/2]).
+:- use_module(library(plunit)).
 
-static char *
-cStringFromCFString(CFStringRef string, CFStringEncoding encoding)
-{ size_t bufferSize = CFStringGetMaximumSizeForEncoding(
-			  CFStringGetLength(string),
-			  encoding) + 1;
-  char *buffer;
+/** <module> Test functor caching and thread_wait
 
-  if ( (buffer=malloc(bufferSize)) )
-  { if ( !CFStringGetCString(string, buffer, bufferSize, encoding))
-    { free(buffer);
-      buffer = NULL;
-    }
-  }
+This  module verifies  that  PL_functor() cannot  return  a not  fully
+established functor and tests  thread_wait/2 race conditions.  It uses
+thread_wait/2 as that  is the best way to fire  many threads at nearly
+the same time.
+*/
 
-  return buffer;
-}
+test_functor_cache :-
+    run_tests([ functor_cache
+	      ]).
 
 
-static
-PRED_IMPL("apple_current_locale_identifier", 1,
-	  apple_current_locale_identifier, 0)
-{ CFLocaleRef currentLocale;
-  int rc = FALSE;
+:- begin_tests(functor_cache).
 
-  if ( (currentLocale = CFLocaleCopyCurrent()) )
-  { CFStringRef identifier;
+test(race) :-
+    current_prolog_flag(cpu_count, Cores),
+    Threads is Cores*2,
+    g(Threads).
 
-    if ( (identifier = CFLocaleGetIdentifier(currentLocale)) )
-    { char *buffer;
+:- table
+       p/3.
+:- dynamic
+       go/0.
 
-      if ( (buffer=cStringFromCFString(identifier, kCFStringEncodingUTF8)) )
-      { rc = PL_unify_chars(A1, PL_ATOM|REP_UTF8, (size_t)-1, buffer);
-	free(buffer);
-      } else
-	rc = PL_resource_error("memory");
-    }
+p(1,2,3).
 
-    CFRelease(currentLocale);
-  }
+g(N) :-
+    length(Threads, N),
+    maplist(thread_create(start), Threads),
+    assert(go),
+    maplist(thread_join, Threads).
 
-  return rc;
-}
+start :-
+    thread_wait(go, [wait_preds([go/0])]),
+    p(_A,_B,_C).
 
-
-		 /*******************************
-		 *      PUBLISH PREDICATES	*
-		 *******************************/
-
-BeginPredDefs(apple)
-  PRED_DEF("apple_current_locale_identifier", 1,
-	   apple_current_locale_identifier, 0)
-EndPredDefs
+:- end_tests(functor_cache).

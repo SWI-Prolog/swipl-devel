@@ -114,6 +114,10 @@
  */
 #define COMMON(type) type
 
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
+#define O_EMPY_STRUCTS 1
+#endif
+
 #include "pl-macros.h"
 
 /* C11 gives us the _Static_assert operator, let's make it a little nicer.
@@ -288,10 +292,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#ifndef O_LABEL_ADDRESSES
-#if __GNUC__ == 2
-#define O_LABEL_ADDRESSES	1
-#endif
+#if defined(O_LABEL_ADDRESSES) && defined(PEDANTIC)
+#undef O_LABEL_ADDRESSES
 #endif
 
 /* clang as of version 11 performs about 30% worse with this option */
@@ -1541,12 +1543,22 @@ typedef struct
   code		merge_av[1];	/* Argument vector */
 } vmi_merge;
 
+#if O_EMPY_STRUCTS
+#define VM_ARGC 4
+#define VM_ARGTYPES(ci) (ci)->_argtype
+#define VM_ARTYPE_PREFIX
+#else
+#define VM_ARGC 5
+#define VM_ARGTYPES(ci) &(ci)->_argtype[1]
+#define VM_ARTYPE_PREFIX 0,
+#endif
+
 typedef struct
 { char	       *name;		/* name of the code */
   vmi		code;		/* number of the code */
   unsigned char flags;		/* Addional flags (VIF_*) */
   unsigned char	arguments;	/* #args code takes (or VM_DYNARGC) */
-  char		argtype[4];	/* Argument type(s) code takes */
+  char	       _argtype[VM_ARGC]; /* Argument type(s) code takes */
 } code_info;
 
 struct mark
@@ -2814,16 +2826,17 @@ weak function, you should (e.g. for weak-importing malloc):
 4b. WEAK_TRY_CALL(malloc, sizeof(x)) to combine check and call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int __ptr_to_bool(const void *ptr) { return ptr != NULL; }
+static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #if HAVE_WEAK_ATTRIBUTE
 # define WEAK_DECLARE(RType, Name, Params) \
 	extern RType __attribute__((weak)) Name Params
-# define WEAK_IMPORT(Name) __ptr_to_bool(&Name)
+# define WEAK_IMPORT(Name) __ptr_to_bool((intptr_t)Name)
 # define WEAK_FUNC(Name) (&Name)
 #elif defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
 # define WEAK_DECLARE(RType, Name, Params) \
 	static RType (*wf##Name) Params = NULL
-# define WEAK_IMPORT(Name) __ptr_to_bool((wf##Name = PL_dlsym(NULL, #Name)))
+# define WEAK_IMPORT(Name) \
+	__ptr_to_bool((intptr_t)(wf##Name = PL_dlsym(NULL, #Name)))
 # define WEAK_FUNC(Name) (wf##Name)
 #else
 # define WEAK_DECLARE(RType, Name, Params) \
@@ -2831,7 +2844,10 @@ static inline int __ptr_to_bool(const void *ptr) { return ptr != NULL; }
 # define WEAK_IMPORT(Name) 0
 # define WEAK_FUNC(Name) 0
 #endif
-#define WEAK_TRY_CALL(Name, ...) (WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : 0)
+#define WEAK_TRY_CALL(Name, ...) \
+	(WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : 0)
+#define WEAK_TRY_CALL_VOID(Name, ...) \
+	(WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : (void)0)
 
 #include "pl-util.h"			/* (Debug) utilities */
 #include "pl-alloc.h"			/* Allocation primitives */

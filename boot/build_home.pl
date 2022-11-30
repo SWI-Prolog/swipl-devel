@@ -4,8 +4,8 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2018-2022, VU University Amsterdam
-                              CWI, Amsterdam
-                              SWI-Prolog Solutions b.v.
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -56,22 +56,36 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 %   Find    the    equivalent    of      =CMAKE_BINARY_DIRECTORY=    and
 %   CMAKE_SOURCE_DIRECTORY.
 
+:- dynamic
+    cmake_bindir/1.
+
 cmake_binary_directory(BinDir) :-
+    cmake_bindir(BinDir),
+    !.
+cmake_binary_directory(BinDir) :-
+    exe_or_shared_object(Exe),
+    file_directory_name(Exe, ExeDir),
+    file_directory_name(ExeDir, ParentDir),
+    (   file_base_name(ParentDir, packages)
+    ->  file_directory_name(ParentDir, BinDir)
+    ;   BinDir = ParentDir
+    ),
+    asserta(cmake_bindir(BinDir)).
+
+exe_or_shared_object(File) :-	% only reliable when read-only
+    '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
+    !.
+exe_or_shared_object(File) :-
     current_prolog_flag(executable, OsExe),
     OsExe \== 'libswipl.dll',           % avoid dummy for embedded JPL test
     prolog_to_os_filename(Exe, OsExe),
     working_directory(PWD, PWD),
     exe_access(ExeAccess),
-    absolute_file_name(Exe, AbsExe,
-                       [ access(ExeAccess),
-                         relative_to(PWD)
-                       ]),
-    file_directory_name(AbsExe, AbsExeDir),
-    file_directory_name(AbsExeDir, ParentDir),
-    (   file_base_name(ParentDir, packages)
-    ->  file_directory_name(ParentDir, BinDir)
-    ;   BinDir = ParentDir
-    ).
+    absolute_file_name(Exe, File,
+		       [ access(ExeAccess),
+			 relative_to(PWD)
+		       ]).
+
 
 exe_access(Access) :-
     (   current_prolog_flag(unix, true)
@@ -102,9 +116,9 @@ cmake_source_directory(SrcDir) :-
 
 is_swi_prolog_cmake_file(File) :-
     setup_call_cleanup(
-        open(File, read, In),
-        is_swi_prolog_stream(In),
-        close(In)).
+	open(File, read, In),
+	is_swi_prolog_stream(In),
+	close(In)).
 
 is_swi_prolog_stream(In) :-
     repeat,
@@ -117,9 +131,9 @@ is_swi_prolog_stream(In) :-
 
 cmake_var(File, Name, Value) :-
     setup_call_cleanup(
-        open(File, read, In),
-        cmake_var_in_stream(In, Name, Value),
-        close(In)).
+	open(File, read, In),
+	cmake_var_in_stream(In, Name, Value),
+	close(In)).
 
 cmake_var_in_stream(Stream, Name, Value) :-
     string_length(Name, NameLen),
@@ -203,7 +217,7 @@ add_package_path(PkgBinDir) :-
 % disabled as we do not (yet) have packages and opendir() is broken
 % and this directory_files/2 raises an exception.
 :- forall(swipl_package(Pkg, PkgBinDir),
-          add_package(Pkg, PkgBinDir)).
+	  add_package(Pkg, PkgBinDir)).
 :- endif.
 
 %!  set_version_info
@@ -224,6 +238,7 @@ set_version_info :-
 %
 %   Set the value for libswipl.
 
+:- if(\+current_prolog_flag(libswipl, _)).
 set_libswipl :-
     current_prolog_flag(shared_object_extension, SO),
     \+current_prolog_flag(windows, true),
@@ -234,13 +249,14 @@ set_libswipl :-
 set_libswipl.
 
 :- initialization(set_libswipl).
+:- endif.
 
 % Avoid getting Java from the host when running under Wine.
 
 :- if(current_prolog_flag(wine_version, _)).
 delete_host_java_home :-
     (   getenv('JAVA_HOME', Dir),
-        sub_atom(Dir, 0, _, _, /)
+	sub_atom(Dir, 0, _, _, /)
     ->  unsetenv('JAVA_HOME')
     ;   true
     ).

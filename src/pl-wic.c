@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -134,13 +134,13 @@ Below is an informal description of the format of a `.qlf' file:
 			    <flags>
 			    {<clause>} <pattern>
 		      | 'D'
-		        <lineno>			% source line number
+			<lineno>			% source line number
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
 		      | 'I' <XR/procedure> <flags>	% import predicate
 		      | 'Q' <qlf-module>		% include module
 		      | 'M' <XR/modulename>		% load-in-module
-		            {<statement>}
+			    {<statement>}
 			    'X'
 <flags>		::=	<num>				% Bitwise or of PRED_*
 <clause>	::=	'C' <#codes>
@@ -233,7 +233,7 @@ typedef struct source_mark
 typedef struct xr_table
 { unsigned int	id;			/* next id to give out */
   struct xr_table* previous;		/* stack */
-  Word	        blocks[XR_BLOCKS];	/* main table */
+  Word		blocks[XR_BLOCKS];	/* main table */
   word		preallocated[7];
 } xr_table, *XrTable;
 
@@ -1049,9 +1049,9 @@ loadWicFd(wic_state *state)
 	  }
 	}
       case 'X':
-        break;
+	break;
       default:
-        { loadStatement(state, c, FALSE);
+	{ loadStatement(state, c, FALSE);
 	  continue;
 	}
     }
@@ -1107,8 +1107,8 @@ loadStatement(DECL_LD wic_state *state, int c, int skip)
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	  { if ( !printMessage(ATOM_warning,
 			       PL_FUNCTOR_CHARS, "goal_failed", 2,
-			         PL_CHARS, "directive",
-			         PL_TERM, goal) )
+				 PL_CHARS, "directive",
+				 PL_TERM, goal) )
 	      PL_clear_exception();
 	  }
 	}
@@ -1437,7 +1437,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  if ( op >= I_HIGHEST )
 	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
 
-	  ats = codeTable[op].argtype;
+	  ats = VM_ARGTYPES(&codeTable[op]);
 	  DEBUG(MSG_QLF_VMI,
 		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  if ( op == I_CONTEXT )
@@ -1665,7 +1665,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  assertProcedureSource(csf, proc, clause);
 	}
 
-        discardBuffer(&buf);
+	discardBuffer(&buf);
       }
     }
   }
@@ -1828,8 +1828,8 @@ loadModuleProperties(DECL_LD wic_state *state, Module m, int skip)
 	{ Procedure proc = lookupProcedure(f, LD->modules.source);
 
 	  addNewHTable(LD->modules.source->public, (void *)f, proc);
-          if ( state->currentSource )
-            exportProcedureSource(state->currentSource, m, proc);
+	  if ( state->currentSource )
+	    exportProcedureSource(state->currentSource, m, proc);
 	} else
 	{ if ( !lookupHTable(m->public, (void *)f) )
 	  { FunctorDef fd = valueFunctor(f);
@@ -1937,7 +1937,7 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
 	{ runInitialization(state->currentSource);
 	  if ( state->currentSource )
 	    endConsult(state->currentSource);
-        }
+	}
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
@@ -2637,7 +2637,7 @@ saveWicClause(wic_state *state, Clause clause)
   while( bp < ep )
   { Code si = bp;				/* start instruction */
     unsigned int op = decode(*bp++);
-    const char *ats = codeTable[op].argtype;
+    const char *ats = VM_ARGTYPES(&codeTable[op]);
     int n;
 
     emit_wlabels(&lstate, si, fd);
@@ -2645,7 +2645,7 @@ saveWicClause(wic_state *state, Clause clause)
     switch(op)
     { { int64_t v;
 
-        case H_SMALLINT:
+	case H_SMALLINT:
 	  v = valInt(*bp++);
 	  goto vh_int;
 #if SIZEOF_VOIDP == 4
@@ -2664,7 +2664,7 @@ saveWicClause(wic_state *state, Clause clause)
       }
       { int64_t v;
 
-        case B_SMALLINT:
+	case B_SMALLINT:
 	  v = valInt(*bp++);
 	  goto vb_int;
 #if SIZEOF_VOIDP == 4
@@ -3100,7 +3100,7 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
   fname = qlfFixSourcePath(state, str);
 
   return PL_unify_list(list, head, list) &&
-         PL_unify_atom(head, fname);
+	 PL_unify_atom(head, fname);
 }
 
 
@@ -3393,7 +3393,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
     for( ;le>l && se>s && le[-1] == se[-1]; le--, se--)
     { if ( le[-1] == '/' )
       { *le = EOS;
-        *se = EOS;
+	*se = EOS;
       }
     }
 
@@ -3424,7 +3424,7 @@ popPathTranslation(wic_state *state)
 
       if ( (tr=old->translated) )
       { GET_LD
-        path_translated *n;
+	path_translated *n;
 	predicate_t pred;
 	fid_t fid = PL_open_foreign_frame();
 	term_t av = PL_new_term_refs(2);
@@ -3511,10 +3511,10 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
 
     switch(c)
     { case 'Q':
-        break;
+	break;
       case 'I':
 	loadInclude(state);
-        continue;
+	continue;
       default:
 	qlfLoadError(state);
     }
@@ -4183,10 +4183,10 @@ update_conditional_compilation(DECL_LD term_t term, condc *cond)
       { case IF_TRUE:
 	  new = IF_FALSE;
 	  break;
-        case IF_FALSE:
+	case IF_FALSE:
 	  new = IF_TRUE;
 	  break;
-        default:
+	default:
 	  new = IF_ELSE_FALSE;
       }
       cond->ctrue[cond->depth] = new;

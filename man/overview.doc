@@ -1662,14 +1662,20 @@ As programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
    \prologflagitem{libswipl}{atom}{rw}
-Path where the SWI-Prolog shared library \file{libswipl} resides.  On
-Windows this is computed reliably at runtime and the flag is read-only.
-On other systems it is the configured target installation location and
-thus this value can be wrong if the installation has been relocated.  As
-we do not have a cross-platform reliable way to compute this path the
-flag is read-write on such platforms.\footnote{When running from the
-build environment, this flag is adjusted to reflect the location in
-the build tree.}
+Path where the SWI-Prolog shared library \file{libswipl}, the
+SWI-Prolog shared object that provides Prolog, resides.  On some
+systems this can be determined reliably from the running system.  On
+these systems the flag is \emph{read-only}.  On other systems it is
+the configured target installation location and thus this value can be
+wrong if the installation has been relocated.  As we do not have a
+cross-platform reliable way to compute this path the flag is
+read-write on such platforms.\footnote{When running from the build
+environment, this flag is adjusted to reflect the location in the
+build tree.}
+
+Currently, this flag is reliable on Windows and POSIX systems
+providing the dladdr() function.  This function is provided on Linux
+and MacOS.
 
     \prologflagitem{malloc}{atom}{r}
 Set after a successful identification of the used malloc()

@@ -50,16 +50,7 @@
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
 #include <stddef.h>
-#ifdef _MSC_VER
-typedef __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-#if (_MSC_VER < 1300)
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-#else
-#include <inttypes.h>			/* more portable than stdint.h */
-#endif
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

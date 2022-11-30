@@ -6003,30 +6003,27 @@ static int
 tt_rollback_tables(Table affected)
 { int rc = TRUE;
 
-  for_table(affected, n, v,
-	    { atom_t symbol = (atom_t)n;
-	      int flags = (int)(uintptr_t) v;
-	      trie *atrie = symbol_trie(symbol);
-	      idg_node *n;
+  FOR_TABLE(affected, n, v)
+  { atom_t symbol = (atom_t)n;
+    int flags = (int)(uintptr_t) v;
+    trie *atrie = symbol_trie(symbol);
+    idg_node *n;
 
-#ifdef O_DEBUG
-	      DEBUG(0,assert(flags==TT_TBL_INVALIDATE));
-#else
-	      (void)flags;
-#endif
+    DEBUG(0,assert(flags==TT_TBL_INVALIDATE));
+    (void)flags;
 
-	      if ( (n=atrie->data.IDG) )
-	      { int flags = IDG_CHANGED_NODE;
+    if ( (n=atrie->data.IDG) )
+    { int flags = IDG_CHANGED_NODE;
 
-		if ( n->monotonic )
-		  flags |= IDG_CHANGED_MONO;
+      if ( n->monotonic )
+	flags |= IDG_CHANGED_MONO;
 
-		if ( !idg_changed(atrie, flags) )
-		  rc = FALSE;		/* can this happen? */
-		if ( n->monotonic && !n->force_reeval )
-		  n->force_reeval = TRUE;
-	      }
-	    });
+      if ( !idg_changed(atrie, flags) )
+	rc = FALSE;		/* can this happen? */
+      if ( n->monotonic && !n->force_reeval )
+	n->force_reeval = TRUE;
+    }
+  }
 
   return rc;
 }

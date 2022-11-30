@@ -1563,7 +1563,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
     int printed;
 
     if ( !onStack(local, fr) )
-      return snprintf(buf, len, "<invalid frame reference %p>", fr);
+      return snprintf(buf, len, "<invalid frame reference %p>", (void*)fr);
 
     level = levelFrame(fr);
     if ( !fr->predicate )

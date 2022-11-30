@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -440,16 +440,16 @@ do_relocated_cell(DECL_LD Word addr)
       if ( !(chk = lookupHTable(check_table, addr)) )
       { char buf1[64];
 
-        sysError("Address %s was not supposed to be updated",
-	         print_addr(addr, buf1));
-        return;
+	sysError("Address %s was not supposed to be updated",
+		 print_addr(addr, buf1));
+	return;
       }
 
       if ( chk == RELOC_UPDATED )
       { char buf1[64];
 
-        sysError("%s: updated twice", print_addr(addr, buf1));
-        return;
+	sysError("%s: updated twice", print_addr(addr, buf1));
+	return;
       }
 
       updateHTable(check_table, addr, RELOC_UPDATED);
@@ -641,12 +641,12 @@ unify_gc_reason(DECL_LD term_t t, gc_stat *stat)
   int ur = (stat->reason>>36)&0xff;
 
   return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_gc6,
-		            PL_INT, go,
-		            PL_INT, gr,
-		            PL_INT, to,
-		            PL_INT, tr,
-		            PL_INT, ex,
-		            PL_INT, ur);
+			    PL_INT, go,
+			    PL_INT, gr,
+			    PL_INT, to,
+			    PL_INT, tr,
+			    PL_INT, ex,
+			    PL_INT, ur);
 }
 
 
@@ -888,7 +888,7 @@ forward:				/* Go into the tree */
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_first(next) )		/* ref to choice point. we will */
-        BACKWARD;			/* get there some day anyway */
+	BACKWARD;			/* get there some day anyway */
       val  = get_value(next);		/* invariant */
       set_value(next, makeRef(current));/* create backwards pointer */
       DEBUG(MSG_GC_MARK_VAR_WALK,
@@ -952,7 +952,7 @@ forward:				/* Go into the tree */
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_marked(next) )		/* can be referenced from multiple */
-        BACKWARD;			/* places */
+	BACKWARD;			/* places */
       domark(next);
       DEBUG(MSG_GC_MARK_VAR_WALK,
 	    Sdprintf("Marked indirect data type, size = %ld\n",
@@ -974,13 +974,13 @@ backward:				/* reversing backwards */
     switch(t)
     { case TAG_REFERENCE:
 	val = makeRef(current);
-        break;
+	break;
       case TAG_COMPOUND:
 	val = makePtr(current-1, t);
-        break;
+	break;
       case TAG_ATTVAR:
 	val = makePtr(current, t);
-        break;
+	break;
       default:
 	assert(0);
     }
@@ -1383,19 +1383,19 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
        }
        case H_LIST_FF:
        case B_UNIFY_FF:
-          setVar(varFrame(fr, PC[1]));
-          setVar(varFrame(fr, PC[2]));
-          break;
+	  setVar(varFrame(fr, PC[1]));
+	  setVar(varFrame(fr, PC[2]));
+	  break;
        case B_UNIFY_FV:
        case B_UNIFY_VF:
        case B_UNIFY_FC:
        case A_ADD_FC:
-         setVar(varFrame(fr, PC[1]));
-         break;
+	 setVar(varFrame(fr, PC[1]));
+	 break;
        case B_ARG_CF:
        case B_ARG_VF:
 	 setVar(varFrame(fr, PC[3]));
-         break;
+	 break;
       }
     }
   }
@@ -1962,7 +1962,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 #if O_DEBUGGER
       case D_BREAK:
 	op = decode(replacedBreak(PC-1));
-        goto again;
+	goto again;
 #endif
 					/* dynamically sized objects */
       case H_STRING:			/* only skip the size of the */
@@ -1991,18 +1991,18 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	return PC-1;
       case S_NEXTCLAUSE:
 	mark_alt_clauses(state->frame, state->frame->clause->next);
-        return PC-1;
+	return PC-1;
       case I_FREDO:
 	mark_arguments(state->frame);
-        return PC-1;
+	return PC-1;
 
       case C_JMP:			/* unconditional jump */
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       case L_NOLCO:
 	PC += (int)PC[0]+1;
-        op = decode(*PC++);
-        goto again;
+	op = decode(*PC++);
+	goto again;
 					/* Control-structures */
       case C_OR:
 	if ( (state->flags & GCM_ALTCLAUSE) )
@@ -2013,7 +2013,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	walk_and_mark(state, PC, C_JMP);
 	PC = alt;
 	op = decode(*PC++);
-        goto again;
+	goto again;
       }
       case C_NOT:
       case C_DET:
@@ -2028,7 +2028,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
-        goto again;
+	goto again;
       }
       case C_SOFTIF:
       case C_IFTHENELSE:
@@ -2042,7 +2042,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	walk_and_mark(state, PC, C_JMP);
 	PC = alt;
 	op = decode(*PC++);
-        goto again;
+	goto again;
       }
       case C_IFTHEN:
       case C_SOFTIFTHEN:
@@ -2052,7 +2052,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	PC = walk_and_mark(state, PC+1, C_END);
 	PC++;				/* skip C_END */
 	op = decode(*PC++);
-        goto again;
+	goto again;
       }
       case C_CUT:
       case C_LSCUT:
@@ -2062,16 +2062,16 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case C_FASTCUT:
       case C_DETTRUE:
 	mark_choice_mark(state, PC[0]);
-        break;
+	break;
 					/* variable access */
 
       case B_UNIFY_VAR:			/* Var = Term */
 	mark_frame_var(state, PC[0]);
-        state->adepth = NO_ADEPTH;
+	state->adepth = NO_ADEPTH;
 	break;
       case B_UNIFY_FIRSTVAR:
 	state->adepth = NO_ADEPTH;	/* never need to mark over ARGP */
-        /*FALLTHROUGH*/
+	/*FALLTHROUGH*/
       case B_FIRSTVAR:
       case B_ARGFIRSTVAR:
       case A_FIRSTVAR_IS:
@@ -2089,7 +2089,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       }
       case H_LIST_FF:
 	mark_argp(state);
-        /*FALLTHROUGH*/
+	/*FALLTHROUGH*/
       case B_UNIFY_FF:
 	clear_frame_var(state, PC[0], PC);
 	clear_frame_var(state, PC[1], PC);
@@ -2104,15 +2104,15 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case B_EQ_VV:
       case B_NEQ_VV:
 	mark_frame_var(state, PC[0]);
-        mark_frame_var(state, PC[1]);
+	mark_frame_var(state, PC[1]);
 	break;
       case B_ARG_VF:
 	mark_frame_var(state, PC[0]);
-        /*FALLTHROUGH*/
+	/*FALLTHROUGH*/
       case B_ARG_CF:
 	mark_frame_var(state, PC[1]);
 	clear_frame_var(state, PC[2], PC);
-        break;
+	break;
       case I_VAR:
       case I_NONVAR:
       case I_INTEGER:
@@ -2127,7 +2127,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case I_SHIFT:
       case I_SHIFTCP:
 	mark_frame_var(state, PC[0]);
-        break;
+	break;
 
       { size_t index;			/* mark variable access */
 
@@ -2351,7 +2351,7 @@ mark_choicepoints(DECL_LD mark_state *state, Choice ch)
       { LocalFrame fr = ch->frame;
 
 	mark_alt_clauses(fr, ch->value.clause.cref);
-        if ( false(fr, FR_MARKED) )
+	if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
 	  mark_environments(state, fr->parent, fr->programPointer);
@@ -2701,7 +2701,7 @@ compact_trail(void)
     { void *chk;
       if ( (chk = lookupHTable(check_table, current)) &&
 	   chk == RELOC_NEEDS )
-        sysError("%p was supposed to be relocated (*= %p)",
+	sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
     }
 #endif
@@ -3463,9 +3463,9 @@ compact_global(void)
 
       if ( (l = offset_cell(current)) == 0 )	/* normal cells */
       { *dest = *current;
-        if ( is_upward_ref(current) )
+	if ( is_upward_ref(current) )
 	{ check_relocation(current);
-          into_relocation_chain(dest, STG_GLOBAL);
+	  into_relocation_chain(dest, STG_GLOBAL);
 	}
 	unmark(dest);
 	dest++;
@@ -3581,7 +3581,7 @@ setStartOfVMI(vm_state *state)
       if ( next >= state->pc )
       {
 #ifdef O_DEBUG
-        size_t where  = PC - clause->codes;
+	size_t where  = PC - clause->codes;
 	size_t where0 = state->pc - clause->codes;
 
 	{ GET_LD
@@ -3932,7 +3932,7 @@ scan_global(int flags)
 
       if ( ++errors > 10 )
       { Sdprintf("...\n");
-        break;
+	break;
       }
     }
 
@@ -3969,7 +3969,7 @@ scan_global(int flags)
 	       current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
-        break;
+	break;
       }
     }
   }
@@ -4612,7 +4612,7 @@ makeMoreStackSpace(int overflow, int flags)
     { size_t newsize = sizeStackP(s);
 
       if ( newsize > oldsize )		/* See (*) */
-        return rc;
+	return rc;
     } else if ( rc < 0 )
       return raiseStackOverflow(rc);
   }
@@ -4820,8 +4820,8 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
 
       if ( ls )
       { update_pointer(&query->parent, ls);
-        update_pointer(&query->saved_bfr, ls);
-        update_pointer(&query->saved_ltop, ls);
+	update_pointer(&query->saved_bfr, ls);
+	update_pointer(&query->saved_ltop, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->next_environment, ls);
 	update_pointer(&query->registers.fr, ls);
@@ -5075,7 +5075,7 @@ nextStackSizeAbove(size_t n)
     { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
 
       if ( incr )
-        increment = atol(incr);
+	increment = atol(incr);
       got_incr = TRUE;
     }
 
@@ -5087,7 +5087,7 @@ nextStackSizeAbove(size_t n)
 #ifdef __WINDOWS__
 	sz = n+rand()%10000;
 #else
-        GET_LD
+	GET_LD
 	sz = n+rand_r(&LD->gc.incr_seed)%10000;
 #endif
       } else
@@ -5436,6 +5436,31 @@ reenable_spare_stack(void *ptr, int rc)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Write illegal values in the unused parts of the stacks.  Used after GC
+and shifts to guarantee we will not use this part of the stacks.  Note
+that we may be writing above lTop, so we must compensate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+clear_unused_stack(void)
+{ DEBUG(CHK_SECURE,
+	{ GET_LD
+	  LocalFrame lTopSaved = lTop;
+
+	  for(TrailEntry tt = tTop; tt < tMax; tt++)
+	    tt->address = (Word)0xbfbfbfbf;
+	  for(Word p = gTop; p < gMax; p++)
+	    *p = 0xbfbfbfbf;
+
+	  setLTopInBody();
+	  for(Word p = (Word)lTop; p<(Word)lMax; p++)
+	    *p = 0xbfbfbfbf;
+	  lTop = lTopSaved;
+	});
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note that the trail can have  references   to  unused  stack. We set the
 references to point to a  dummy  variable,   so  no  harm  will be done.
 Setting  it  to  NULL  would  require  a    test  in  Undo(),  which  is
@@ -5482,6 +5507,8 @@ growStacks(size_t l, size_t g, size_t t)
       }
     }
   }
+
+  clear_unused_stack();
 
   return rc;
 }
@@ -5532,6 +5559,8 @@ shiftTightStacks(void)
 
   if ( (l|g|t) )
     return growStacks(l, g, t);
+  else
+    clear_unused_stack();
 
   return TRUE;
 }

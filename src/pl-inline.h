@@ -129,6 +129,20 @@ __builtin_popcount(size_t sz)
 #define MEMORY_BARRIER()	__atomic_thread_fence(__ATOMIC_SEQ_CST)
 #endif
 
+#if !defined(__ATOMIC_ACQUIRE) && defined _MSC_VER
+/* Only used to read size_t under acquire semantics */
+#define __ATOMIC_ACQUIRE 0
+static inline size_t
+__atomic_load_n(size_t *ptr, int memorder)
+{ assert(memorder == __ATOMIC_ACQUIRE);
+#if SIZEOF_VOIDP == 8
+  return InterlockedOr64Acquire(ptr, 0LL);
+#else
+  return InterlockedOrAcquire(ptr, 0L);
+#endif
+}
+#endif
+
 #ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)

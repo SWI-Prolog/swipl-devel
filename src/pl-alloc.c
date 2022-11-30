@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2021, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -144,7 +144,7 @@ as a debugging aid if GC_DEBUG is enabled.
 
 typedef struct linger
 { struct linger *next;
-  void	        *object;
+  void		*object;
 } linger;
 
 linger *GC_lingering = NULL;
@@ -1717,7 +1717,7 @@ malloc_property(term_t prop, control_t handle)
 
 	if ( WEAK_FUNC(MallocExtension_GetNumericProperty)(*pname, &val) )
 	{ if ( PL_unify_term(prop, PL_FUNCTOR_CHARS, *pname, 1,
-			             PL_INT64, val) )
+				     PL_INT64, val) )
 	  { PL_close_foreign_frame(fid);
 	    pname++;
 	    if ( *pname )
@@ -1784,7 +1784,8 @@ size_t
 heapUsed(void)
 { size_t val;
 
-  if (WEAK_TRY_CALL(MallocExtension_GetNumericProperty, "generic.current_allocated_bytes", &val))
+  if ( WEAK_TRY_CALL(MallocExtension_GetNumericProperty,
+		     "generic.current_allocated_bytes", &val) )
   {
 #ifdef MMAP_STACK
     val += GD->statistics.stack_space;
@@ -1900,7 +1901,7 @@ initMalloc(void)
 static
 PRED_IMPL("trim_heap", 0, trim_heap, 0)
 { if ( is_tcmalloc )
-    WEAK_TRY_CALL(MallocExtension_ReleaseFreeMemory);
+    WEAK_TRY_CALL_VOID(MallocExtension_ReleaseFreeMemory);
   else
     WEAK_TRY_CALL(malloc_trim, 0);
 
@@ -1923,17 +1924,17 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 
   if ( how == ATOM_short )
   { trimStacks(TRUE);
-    WEAK_TRY_CALL(MallocExtension_MarkThreadTemporarilyIdle);
+    WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadTemporarilyIdle);
   } else if ( how == ATOM_long )
   { LD->trim_stack_requested = TRUE;
     garbageCollect(GC_USER);
     LD->trim_stack_requested = FALSE;
-    WEAK_TRY_CALL(MallocExtension_MarkThreadIdle);
+    WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadIdle);
   }
 
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
 
-  WEAK_TRY_CALL(MallocExtension_MarkThreadBusy);
+  WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadBusy);
 
   return rc;
 }

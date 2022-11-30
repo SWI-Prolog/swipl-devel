@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -148,7 +148,7 @@ count(code c, Code PC)
 { const code_info *info = &codeTable[c];
 
   counting[c].times++;
-  switch(info->argtype)
+  switch(VM_ARGTYPES(info))
   { case CA1_VAR:
     case CA1_FVAR:
     case CA1_CHP:
@@ -306,7 +306,7 @@ in several virtual machine instructions.  Currently covers:
 
 	* Pending signals
 	* pthread_cancel() requested
-        * Activation of the profiler
+	* Activation of the profiler
 	* out-of-stack signalled
 	* active depth-limit
 	* attributed variable wakeup
@@ -318,7 +318,7 @@ updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
   WITH_LD(ld)
-  { if ( is_signalled() )		        mask |= ALERT_SIGNAL;
+  { if ( is_signalled() )			mask |= ALERT_SIGNAL;
     if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
 	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
       ld->slow_unify = TRUE;  /* see VMI B_UNIFY_VAR */
@@ -650,37 +650,37 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
   { switch(argc) \
     { case 0: \
 	(*(NdetFunc0)f)(c); \
-        break; \
+	break; \
       case 1: \
 	(*(NdetFunc1)f)(0,(c)); \
 	break; \
       case 2: \
 	(*(NdetFunc2)f)(0,0,(c)); \
-        break; \
+	break; \
       case 3: \
 	(*(NdetFunc3)f)(0,0,0,(c)); \
-        break; \
+	break; \
       case 4: \
 	(*(NdetFunc4)f)(0,0,0,0,(c)); \
-        break; \
+	break; \
       case 5: \
 	(*(NdetFunc5)f)(0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 6: \
 	(*(NdetFunc6)f)(0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 7: \
 	(*(NdetFunc7)f)(0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 8: \
 	(*(NdetFunc8)f)(0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 9: \
 	(*(NdetFunc9)f)(0,0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       case 10: \
 	(*(NdetFunc10)f)(0,0,0,0,0,0,0,0,0,0,(c)); \
-        break; \
+	break; \
       default: \
 	assert(0); \
     } \
@@ -892,7 +892,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
       { int rval;
 
 	startCritical();
-        rval = call_term(contextModule(fr), clean);
+	rval = call_term(contextModule(fr), clean);
 	if ( !endCritical() )
 	  rval = FALSE;
 	if ( !rval && exception_term )
@@ -1343,7 +1343,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
-  if ( strchr(codeTable[op].argtype, CA1_FVAR) )
+  if ( strchr(VM_ARGTYPES(&codeTable[op]), CA1_FVAR) )
     pc_offset = stepPC(PC)-PC;
   else
     pc_offset = 0;
@@ -1373,9 +1373,9 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
       PL_put_choice(argv+3, bfr);
       PL_put_bool(argv+5, debugstatus.debugging);
       if ( ( op == B_UNIFY_EXIT &&
-             put_call_goal(argv+4, GD->procedures.equals2) &&
-             PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
-           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop) )
+	     put_call_goal(argv+4, GD->procedures.equals2) &&
+	     PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
+	   put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -1529,15 +1529,29 @@ __do_undo(DECL_LD mark *m)
       setVar(*p);
   }
 
+  DEBUG(CHK_SECURE,
+	{ for(tt = tTop; --tt >= mt;)
+	    tt->address = (Word)0xbfbfbfbf;
+	});
+
   tTop = mt;
+
+  Word ngtop;
   if ( LD->frozen_bar > m->globaltop )
   { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
     reclaim_attvars(LD->frozen_bar);
-    gTop = LD->frozen_bar;
+    ngtop = LD->frozen_bar;
   } else
   { reclaim_attvars(m->globaltop);
-    gTop = m->globaltop;
+    ngtop = m->globaltop;
   }
+
+  DEBUG(CHK_SECURE,
+	{ for(Word p = gTop; --p > ngtop;)
+	    *p = 0xbfbfbfbf;
+	});
+
+  gTop = ngtop;
 }
 
 
@@ -2669,7 +2683,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->saved_ltop = lTop;
 
 					/* fill top-frame */
-  top	             = &qf->top_frame;
+  top		     = &qf->top_frame;
   top->parent        = NULL;
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->programPointer= NULL;
@@ -3106,20 +3120,20 @@ typedef struct register_file
 #define _VMH_EPILOGUE			;
 
 /* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
-#define VMH_GOTO_AS_VMI(n,args...) do { VMI_EXIT; \
-					VMI_ENTER(n); \
-					VMH_GOTO(n, args); \
-				      } while(0)
+#define VMH_GOTO_AS_VMI(n,...) do { VMI_EXIT; \
+				    VMI_ENTER(n); \
+				    VMH_GOTO(n, __VA_ARGS__); \
+				  } while(0)
 
 
 /* Helper macros for rendering VMH arguments */
 #define HEAD(h, ...) h
-#define TAIL(_, t...) (t)
-#define VMH_ARGS0(n,at,an,f,asep...)
-#define VMH_ARGS1(n,at,an,f,asep...) f(n, HEAD at, HEAD an)
-#define VMH_ARGS2(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS1(n, TAIL at, TAIL an, f, asep)
-#define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
-#define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
+#define TAIL(_, ...) (__VA_ARGS__)
+#define VMH_ARGS0(n,at,an,f,...)
+#define VMH_ARGS1(n,at,an,f,...) f(n, HEAD at, HEAD an)
+#define VMH_ARGS2(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS1(n, TAIL at, TAIL an, f, __VA_ARGS__)
+#define VMH_ARGS3(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS2(n, TAIL at, TAIL an, f, __VA_ARGS__)
+#define VMH_ARGS4(n,at,an,f,...) f(n, HEAD at, HEAD an) __VA_ARGS__ VMH_ARGS3(n, TAIL at, TAIL an, f, __VA_ARGS__)
 #define COMMA_TYPE_ARG(n,at,an) , at an
 #define TYPE_ARG_SEMI(n,at,an)	at an ;
 #define VMH_ARGS(n) A_PASTE(VMH_ARGS, VMH_ARGCOUNT(n))(n, (VMH_ARGTYPES(n)), (VMH_ARGNAMES(n)), TYPE_ARG_SEMI)
@@ -3127,8 +3141,18 @@ typedef struct register_file
 /* Define struct types for all the helper argument lists */
 #define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
 
+/* GCC and CLang allow for struct name {}, i.e., an empty struct */
+#if O_EMPY_STRUCTS
+#define VMH_PAD_STRUCT
+#define VMH_INIT_ARGSTRUCT(...) {__VA_ARGS__}
+#else
+#undef HAVE_EMPTY_STRUCT
+#define VMH_PAD_STRUCT int _no_empty_struct;
+#define VMH_INIT_ARGSTRUCT(...) {0, ##__VA_ARGS__}
+#endif
+
 FOREACH_VMH(T_EMPTY,
-  ,VMH_ARGSTRUCT, { ,VMH_ARGS, };
+  ,VMH_ARGSTRUCT, {VMH_PAD_STRUCT ,VMH_ARGS, };
 )
 
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
@@ -3142,7 +3166,7 @@ FOREACH_VMH(T_EMPTY,
 #define _NEXT_INSTRUCTION		return PC
 #define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__}; (void)__args; \
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
 					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
@@ -3192,7 +3216,8 @@ static vmi_instr jmp_table[] =
 
 #define HELPER_ARGS(n)			helper_args.n
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
-#define _VMH_GOTO(n,args...)		VMH_ARGSTRUCT(n) __args = {args}; \
+#define _VHM_GOTO(n)			goto helper_ ## n;
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); \
 					HELPER_ARGS(n) = __args; \
 					goto helper_ ## n;
 #define _SOLUTION_RETURN		return

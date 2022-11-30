@@ -49,7 +49,12 @@ include(Install)
 set(SRC_OS pl-buffer.c pl-ctype.c pl-file.c pl-files.c pl-glob.c pl-os.c
     pl-stream.c pl-string.c pl-table.c pl-text.c pl-utf8.c pl-fmt.c
     pl-dtoa.c pl-option.c pl-cstack.c pl-codelist.c pl-prologflag.c pl-tai.c
-    pl-locale.c pl-apple.c)
+    pl-locale.c)
+if(APPLE)
+  list(APPEND SRC_OS pl-apple.c)
+elseif(BEOS)
+  list(APPEND SRC_OS pl-beos.c)
+endif()
 prepend(SRC_OS os/ ${SRC_OS})
 
 
@@ -73,7 +78,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-proc.c pl-prof.c pl-read.c pl-rec.c pl-setup.c
     pl-sys.c pl-trace.c pl-util.c pl-wic.c pl-write.c
     pl-term.c pl-thread.c pl-xterm.c pl-srcfile.c
-    pl-beos.c pl-attvar.c pl-gvar.c pl-btree.c
+    pl-attvar.c pl-gvar.c pl-btree.c
     pl-init.c pl-gmp.c pl-segstack.c pl-hash.c
     pl-version.c pl-codetable.c pl-supervisor.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
@@ -81,6 +86,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
     pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
     pl-undo.c pl-alloc.c pl-index.c pl-fli.c pl-coverage.c)
+
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}

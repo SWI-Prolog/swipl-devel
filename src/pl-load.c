@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -323,10 +323,10 @@ PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
 
     strcpy(symname, LD_SYMBOL_PREFIX);
     strcat(symname, fname);
-    ef = (dl_funcptr) dlsym(e->dlhandle, symname);
+    ef = (dl_funcptr)(intptr_t)dlsym(e->dlhandle, symname);
   }
 #else
-  ef = (dl_funcptr) PL_dlsym(e->dlhandle, fname);
+  ef = (dl_funcptr)(intptr_t)PL_dlsym(e->dlhandle, fname);
 #endif
   if ( ef )
   { (*ef)();

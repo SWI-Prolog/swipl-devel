@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -207,7 +207,9 @@ destroyDefinition(Definition def)
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { GET_LD
 
+    LOCKDEF(def);
     deleteIndexesDefinition(def);
+    UNLOCKDEF(def);
     removeClausesPredicate(def, 0, FALSE);
     if ( GD->cleaning != CLN_DATA )
     { registerDirtyDefinition(def);
@@ -758,25 +760,25 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
     case GP_FINDHERE:
       if ( (p = isCurrentProcedure(fdef, m)) )
       { *proc = p;
-        break;
+	break;
       }
       goto notfound;
     case GP_FIND:
       if ( (p = visibleProcedure(fdef, m)) )
       { *proc = p;
-        goto out;
+	goto out;
       }
       goto notfound;
     case GP_DEFINE:
       if ( (p = lookupProcedureToDefine(fdef, m)) )
       { *proc = p;
-        break;
+	break;
       }
       fail;				/* permission error */
     case GP_RESOLVE:
       if ( (p = resolveProcedure(fdef, m)) )
       { *proc = p;
-        break;
+	break;
       }
       goto notfound;
     default:
@@ -1679,7 +1681,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   if ( generation != GEN_TR_DISCARD_ASSERT )
     setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 
-  return clearBreakPointsClause >= 0;
+  return clearBreakPointsClause(clause) >= 0;
 }
 
 
@@ -1818,7 +1820,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, Buffer tr_starts,
   DEBUG(CHK_SECURE,
 	LOCKDEF(def);
 	checkDefinition(def);
-        UNLOCKDEF(def));
+	UNLOCKDEF(def));
 
   if ( mustCleanDefinition(def) && true(ddi, DDI_MARKING) )
   { ClauseRef cref, prev = NULL;
@@ -1950,7 +1952,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
       ATOMIC_ADD(&GD->clauses.erased_size, memory);
       ATOMIC_ADD(&GD->clauses.erased, deleted);
       if( true(def, P_DIRTYREG) )
-        ATOMIC_SUB(&GD->clauses.dirty, deleted);
+	ATOMIC_SUB(&GD->clauses.dirty, deleted);
 
       registerDirtyDefinition(def);
     }
@@ -2154,21 +2156,21 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
     switch(spec_c)
     { case '+':
 	spec = MA_NONVAR;
-        break;
+	break;
       case '-':
 	spec = MA_VAR;
-        break;
+	break;
       case '?':
 	spec = MA_ANY;
-        break;
+	break;
       case ':':
 	spec = MA_META;
-        break;
+	break;
       case '^':
 	spec = MA_HAT;
-        break;
+	break;
       case '/':
-        if ( s[1] == '/' )
+	if ( s[1] == '/' )
 	{ spec = MA_DCG;
 	  s++;
 	  break;
@@ -2181,7 +2183,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 	  break;
 	}
       invalid:
-        fatalError("Invalid meta-argument for %s: %s\n", procedureName(proc), spec_s);
+	fatalError("Invalid meta-argument for %s: %s\n", procedureName(proc), spec_s);
 	return FALSE;
     }
 
@@ -2236,12 +2238,12 @@ CGC builds on the following components and invariants:
       lingerClauseRef() as someone may be traversing the clause list.
     - Call gcClauseRefs(), which
       - Finds all predicates whose clause-list is being traversed as
-        monitored using acquire_def()/release_ref().
+	monitored using acquire_def()/release_ref().
       - Call freeClauseRef() for each clause-ref associated with a
-        not-being-traversed predicate.  Re-add the others to the
+	not-being-traversed predicate.  Re-add the others to the
 	lingering clause reference list.
       - If freeClauseRef() lowers the clause reference count to zero,
-        destroy the clause.
+	destroy the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define considerClauseGC(_) LDFUNC(considerClauseGC, _)
@@ -3291,7 +3293,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   DEBUG(CHK_SECURE,
 	LOCKDEF(def);
 	checkDefinition(def);
-        UNLOCKDEF(def));
+	UNLOCKDEF(def));
   if ( allvars )
   { gen_t gen = generationFrame(environment_frame);
 
@@ -3491,9 +3493,9 @@ num_visible_clauses(DECL_LD Definition def, atom_t key, gen_t gen)
     for(c = def->impl.clauses.first_clause; c; c = c->next)
     { Clause cl = c->value.clause;
       if ( key == ATOM_number_of_rules && true(cl, UNIT_CLAUSE) )
-        continue;
+	continue;
       if ( visibleClause(cl, gen) )
-        count++;
+	count++;
     }
     release_def(def);
   }
@@ -3931,8 +3933,8 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 			/* so we can provide info about the old definition */
     if ( !printMessage(ATOM_warning,
 		       PL_FUNCTOR_CHARS, "redefined_procedure", 2,
-		         PL_CHARS, "foreign",
-		         _PL_PREDICATE_INDICATOR, proc) )
+			 PL_CHARS, "foreign",
+			 _PL_PREDICATE_INDICATOR, proc) )
       return FALSE;
 			/* ... then abolish */
     abolishProcedure(proc, def->module);
@@ -3996,7 +3998,7 @@ remoduleClause(Clause cl, Module old, Module new)
   { code op = fetchop(PC);
 
     if ( in_body )
-    { const char *ats=codeTable[op].argtype;
+    { const char *ats = VM_ARGTYPES(&codeTable[op]);
       int an;
 
       for(an=0; ats[an]; an++)
