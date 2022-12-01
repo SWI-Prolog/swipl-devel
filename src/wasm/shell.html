@@ -438,7 +438,7 @@ function pl(s) {
 
   function last_query()
   { const q = output.lastChild;
-    if ( q.classList.contains("query-container") )
+    if ( q && q.classList.contains("query-container") )
       return q;
     return undefined;
   }
