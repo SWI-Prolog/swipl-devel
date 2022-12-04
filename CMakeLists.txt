@@ -202,6 +202,15 @@ else()
   add_compile_options(-Wall)
 endif()
 
+# on ARM, backtrace() requires -funwind-tables. See
+# https://stackoverflow.com/questions/24700150/on-raspberry-pi-backtrace-returns-0-frames
+if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+  check_function_exists(backtrace HAVE_BACKTRACE)
+  if(HAVE_BACKTRACE)
+    add_compile_options(-funwind-tables)
+  endif()
+endif()
+
 if(MACOS_UNIVERSAL_BINARY)
 # Does not work!?  Now uses CFLAGS=-arcg x86_64 on M1.  See scripts/make-distribution
 # add_compile_options("SHELL:-arch x86_64" "SHELL:-arch arm64")
