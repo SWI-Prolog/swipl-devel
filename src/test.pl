@@ -626,8 +626,8 @@ gmp(shift-2) :-
 	B =:= 9223372036854775808.
 gmp(shift-3) :-
 	unbound(A),
-	forall(between(1, 100, X),
-	       catch(A is 1<<(1<<X), error(resource_error(stack), _), true)).
+	forall(between(1, 100, X), % either resource error or representation error.
+	       catch(A is 1<<(1<<X), error(_, _), true)).
 gmp(fac-1) :-
 	fac(25, X),
 	X == 15511210043330985984000000. % computed with bc
