@@ -49,12 +49,18 @@ should be discarded before the frame terminates.%
 		  stack to preserve the variable names.}
 
     \termitem{parent_goal}{}
+    \nodescription
+    \termitem{parent_goal}{-Parent}
 If \arg{Value} is instantiated to a callable term, find a frame
 executing the predicate described by \arg{Value} and unify the arguments
 of \arg{Value} to the goal arguments associated with the frame. This is
 intended to check the current execution context. The user must ensure
 the checked parent goal is not removed from the stack due to last-call
 optimisation and be aware of the slow operation on deeply nested calls.
+
+The variant \term{parent_goal}{-Parent} unifies the frame reference
+of the parent of the found frame with \arg{Parent}.  That allows for
+finding frames higher up in the stack running the same goal.
 
     \termitem{predicate_indicator}{}
 Similar to \const{goal}, but only returning the
