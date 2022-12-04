@@ -204,7 +204,9 @@ endif()
 
 # on ARM, backtrace() requires -funwind-tables. See
 # https://stackoverflow.com/questions/24700150/on-raspberry-pi-backtrace-returns-0-frames
+# We must do this at the toplevel to ensure all packages use this as well.
 if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+  include(CheckFunctionExists)
   check_function_exists(backtrace HAVE_BACKTRACE)
   if(HAVE_BACKTRACE)
     add_compile_options(-funwind-tables)
