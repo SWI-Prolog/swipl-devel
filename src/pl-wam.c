@@ -1333,6 +1333,8 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   wakeup_state wstate;
   size_t pc_offset;
 
+  SAVE_PTRS();
+
   *pop = 0;
   if (op == B_UNIFY_VAR || op == B_UNIFY_FIRSTVAR)
   { LD->slow_unify = TRUE;
@@ -1348,8 +1350,6 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   else
     pc_offset = 0;
 
-  SAVE_PTRS();
-
   /* make enough space to avoid GC/shift in the	critical region*/
   if ( !hasGlobalSpace(10) )
   { int rc;
@@ -1363,13 +1363,15 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   if ( saveWakeup(&wstate, FALSE) )
   { if ( (cid=PL_open_foreign_frame()) )
     { term_t argv = PL_new_term_refs(7);
-      Clause clause = frame->clause->value.clause;
+      Clause clause;
       qid_t qid;
 
       RESTORE_PTRS();
+
+      clause = frame->clause->value.clause;
+      PL_put_frame(argv+2, frame); /* first, as it may move */
       PL_put_clref(argv+0, clause);
       PL_put_intptr(argv+1, PC - clause->codes);
-      PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
       PL_put_bool(argv+5, debugstatus.debugging);
       if ( ( op == B_UNIFY_EXIT &&
