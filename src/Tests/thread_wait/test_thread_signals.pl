@@ -212,7 +212,7 @@ run :-
 
 run_guarded :-
     sig_unblock(sig(_)),
-    loop(1 000 000),
+    loop(10 000),
     no_lco.
 
 no_lco.
@@ -247,6 +247,7 @@ loop(N) :-
     N > 0,
     !,
     N2 is N - 1,
+    sleep(0.001),
     loop(N2).
 loop(_).
 
