@@ -2317,6 +2317,7 @@ static int
 prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
+  term_t fref;			/* Save/restore fr over possible shifts */
   atom_t key;
   size_t arity;
   term_t result = PL_new_term_ref();
@@ -2326,6 +2327,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
   if ( !fr )
     return FALSE;				/* frame == 'none' */
+  fref = consTermRef((Word)fr);
   if ( !PL_get_name_arity(what, &key, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
   if ( !PL_strip_module(value, &m, value) )
@@ -2355,15 +2357,15 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     checkData(argFrameP(fr, argn-1));
 #endif
 
-   if ( !hasGlobalSpace(0) )
-   { int rc;
+    if ( !hasGlobalSpace(0) )
+    { int rc;
 
-     if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
-       return raiseStackOverflow(rc);
-     PL_get_frame(frame, &fr);
-   }
+      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      fr = (LocalFrame)valTermRef(fref);
+    }
 
-   return PL_unify(value, consTermRef(argFrameP(fr, argn-1)));
+    return PL_unify(value, consTermRef(argFrameP(fr, argn-1)));
   }
 
   if ( !(arity == 0 || (arity == 1 && key == ATOM_parent_goal)) )
@@ -2422,13 +2424,16 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
       fail;
 
     if ( (fid = PL_open_foreign_frame()) )
-    { while( fr )
+    { fr = (LocalFrame)valTermRef(fref);
+
+      while( fr )
       { while(fr && fr->predicate != proc->definition)
 	  fr = parentFrame(fr);
 
 	if ( fr )
 	{ int i, garity = fr->predicate->functor->arity;
-	  term_t fref = consTermRef(fr);
+
+	  fref = consTermRef((Word)fr);
 
 	  for(i=0; i<garity; i++)
 	  { term_t fa;
@@ -2437,15 +2442,17 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 
 	    _PL_get_arg(i+1, head, a);
 	    if ( !PL_unify(a, fa) )
-	      break;
+	      break;				/* Argument does not unify */
 	    fr = (LocalFrame)valTermRef(fref);	/* deal with possible shift */
 	  }
-	  if ( i == garity )
-	  { if ( arity == 1 )
+	  /* fr is valid because restored after every unification */
+	  if ( i == garity )			/* All arguments unified: found a match */
+	  { if ( arity == 1 )			/* parent_frame(Next) */
 	    { LocalFrame parent;
 	      term_t arg = PL_new_term_ref();
 
 	      _PL_get_arg(1, what, arg);
+	      fr = (LocalFrame)valTermRef(fref);
 	      if ( (parent = parentFrame(fr)) )
 	      { if ( PL_unify_frame(arg, parent) )
 		  return TRUE;
@@ -2468,10 +2475,11 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 	  }
 	} else
 	{ PL_close_foreign_frame(fid);
-	  return FALSE;
+	  return FALSE;				/* No frame running this predicate */
 	}
       }
-    }
+    } else
+      return FALSE;
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&

@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1996-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -553,8 +553,8 @@ odd_even_neg(X, V0, V) :-
 ratp(C, X, X ) :-
 	C =< 0, !.
 ratp(Count, In, Out) :-
-        succ(Count0, Count),
-        T is In + (In rdiv 2),
+	succ(Count0, Count),
+	T is In + (In rdiv 2),
 	ratp(Count0, T, Out).
 
 dec(X, Y) :-
@@ -626,8 +626,8 @@ gmp(shift-2) :-
 	B =:= 9223372036854775808.
 gmp(shift-3) :-
 	unbound(A),
-	forall(between(1, 100, X),
-	       catch(A is 1<<(1<<X), error(resource_error(stack), _), true)).
+	forall(between(1, 100, X), % either resource error or representation error.
+	       catch(A is 1<<(1<<X), error(_, _), true)).
 gmp(fac-1) :-
 	fac(25, X),
 	X == 15511210043330985984000000. % computed with bc
@@ -1907,7 +1907,7 @@ avar(bagof-1) :-
 	CVars = [X1,X2],
 	put_attr(X1, test, x),
 	put_attr(X2, test, x),
-        bagof(CVar, member(CVar,CVars), All),
+	bagof(CVar, member(CVar,CVars), All),
 	All = [C1, C2],
 	get_attr(C1, test, x),
 	get_attr(C2, test, x).
@@ -2145,7 +2145,7 @@ term_atom(term_to_atom-2) :-
 
 
 		 /*******************************
-		 *	        OS		*
+		 *	OS		*
 		 *******************************/
 
 os(getenv-1) :-
@@ -2415,11 +2415,11 @@ load_program(include-1) :-
 
 :- dynamic
 	th_data/1,
-        at_exit_called/0.
+	at_exit_called/0.
 
 at_exit_work :-
-        thread_at_exit(assert(at_exit_called)),
-        thread_exit(true).
+	thread_at_exit(assert(at_exit_called)),
+	thread_exit(true).
 
 th_do_something :-
 	forall(between(1, 5, X),
@@ -2445,9 +2445,9 @@ thread(signal-1) :-
 	thread_join(Id, Exit),
 	Exit == exception(stopit).
 thread(at_exit-1) :-
-        retractall(at_exit_called),
-        thread_create(at_exit_work, Id, []),
-        thread_join(Id, exited(true)),
+	retractall(at_exit_called),
+	thread_create(at_exit_work, Id, []),
+	thread_join(Id, exited(true)),
 	retract(at_exit_called).
 thread(status-1) :-
 	thread_create(true, Id, []),
@@ -2865,21 +2865,21 @@ collect_test_output(Out, Q) :-
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),
 	(   L \== []
-        ->  format(user_error, '~NThe following tests are blocked:~n', []),
+	->  format(user_error, '~NThe following tests are blocked:~n', []),
 	    (	member(Head-Reason, L),
 		format(user_error, '    ~p~t~40|~w~n', [Head, Reason]),
 		fail
 	    ;	true
 	    )
-        ;   true
+	;   true
 	).
 report_failed :-
 	findall(X, failed(X), L),
 	length(L, Len),
 	(   Len > 0
-        ->  format(user_error, '~N*** ~w tests failed ***~n', [Len]),
+	->  format(user_error, '~N*** ~w tests failed ***~n', [Len]),
 	    fail
-        ;   format(user_error, '~NAll tests passed~n', [])
+	;   format(user_error, '~NAll tests passed~n', [])
 	).
 
 %%	call_test(:Goal, +Line)
@@ -3013,4 +3013,3 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
-

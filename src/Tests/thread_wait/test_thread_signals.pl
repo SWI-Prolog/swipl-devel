@@ -227,7 +227,7 @@ sig(N) =>
     (   prolog_frame_attribute(Frame, parent_goal, M:run_guarded)
     ->  sig_block(sig(_)),
 	throw(ball(N))
-    ;   ansi_format(warning, 'r/0 not running~n', [])
+    ;   ansi_format(warning, 'run_guarded/0 not running~n', [])
     ).
 
 ex(N):-
