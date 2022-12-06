@@ -72,6 +72,7 @@ build_macosx()
     export PATH=$HOME/deps/bin:$HOME/Qt/6.2.2/macos/bin:$PATH
     MACOSX_DEPLOYMENT_TARGET=10.14 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DUSE_GMP=OFF \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DBUILD_MACOS_BUNDLE=ON \
 	      -DJAVA_COMPATIBILITY=ON \
@@ -90,6 +91,7 @@ build_macos_universal_binary()
     CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
     MACOSX_DEPLOYMENT_TARGET=10.14 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DUSE_GMP=OFF \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
