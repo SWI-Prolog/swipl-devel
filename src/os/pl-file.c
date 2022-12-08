@@ -328,6 +328,38 @@ setStandardStream(DECL_LD int i, IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+restoreStandardStream() is called  if one of the  standard streams was
+lost, for  example because it was  rebound and the stream  was closed.
+Note that we  keep reference counts on the stream,  so replacing it is
+safe.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define restoreStandardStream(i) LDFUNC(restoreStandardStream, i)
+
+static IOSTREAM *
+restoreStandardStream(DECL_LD int i)
+{ IOSTREAM *s;
+
+  switch(i)
+  { case 0:
+    case 3:
+      s = Sinput;
+      break;
+    case 2:
+      s = Serror;
+      break;
+    default:
+      s = Soutput;
+      break;
+  }
+
+  setStandardStream(i, s);
+  return s;
+}
+
+
+
 static void
 freeStream(IOSTREAM *s)
 { GET_LD
@@ -773,6 +805,8 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 
       if ( n < 6 )			/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
+	if ( stream->magic == SIO_CMAGIC )
+	  stream = restoreStandardStream((int)n);
       } else
 	stream = s0;
 
