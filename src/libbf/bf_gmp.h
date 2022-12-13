@@ -128,6 +128,11 @@ mpz_set_ui(mpz_t r, unsigned long n)
 }
 
 static inline void
+mpz_set_si(mpz_t r, long n)
+{ bf_set_si(r, n);
+}
+
+static inline void
 mpz_swap(mpz_t a, mpz_t b)
 { mpz_t tmp;
 
@@ -291,7 +296,7 @@ mpz_cmp_ui(const mpz_t n, unsigned long i)
 { int64_t nv;
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
-    return i == nv ? 0 : i > nv ? 1 : -1;
+    return i == nv ? 0 : nv > i ? 1 : -1;
   return n->sign ? -1 : 1;
 }
 
@@ -300,8 +305,26 @@ mpz_cmp_si(const mpz_t n, long i)
 { int64_t nv;
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
-    return i == nv ? 0 : i > nv ? 1 : -1;
+    return i == nv ? 0 : nv > i ? 1 : -1;
   return n->sign ? -1 : 1;
+}
+
+static inline int
+mpz_cmp_d(const mpz_t n, double f)
+{ mpz_t tmp;
+  int rc ;
+  
+  if      ( f ==  INFINITY ) return -1;
+  else if ( f == -INFINITY ) return  1;
+  else 
+  {
+    mpz_init(tmp);
+    mpz_set_d(tmp, f);
+    rc = mpz_cmp(n, tmp);
+    mpz_clear(tmp);
+
+    return rc;
+  }
 }
 
 // Basic arithmetic
@@ -636,21 +659,21 @@ void	mpq_set_d(mpq_t r, double f);
 static inline void
 mpq_set_z(mpq_t r, const mpz_t n)
 { bf_set(&r[0], n);
-  bf_set_si(&r[1], 1);
+  bf_set_ui(&r[1], 1);
 }
 
 static inline void
 mpq_set_ui(mpq_t r, unsigned long n, unsigned long d)
 { assert((int64_t)n >= 0);
   assert((int64_t)d >= 0);
-  bf_set_si(&r[0], n);
-  bf_set_si(&r[1], d);
+  bf_set_ui(&r[0], n);
+  bf_set_ui(&r[1], d);
 }
 
 static inline void
-mpq_set_si(mpq_t r, long n, long d)
+mpq_set_si(mpq_t r, long n, unsigned long d)
 { bf_set_si(&r[0], n);
-  bf_set_si(&r[1], d);
+  bf_set_ui(&r[1], d);
 }
 
 static inline MP_INT*
@@ -677,7 +700,7 @@ static inline int
 mpq_sgn(const mpq_t q)
 { if ( bf_is_zero(&q[0]) )
     return 0;
-  return (q[0].sign ^ q[1].sign) ? -1 : 1;
+  return q[0].sign ? -1 : 1;
 }
 
 static inline void
@@ -687,7 +710,6 @@ mpq_abs(mpq_t r, const mpq_t q)
     mpq_set(r, q);
   }
   r[0].sign = 0;
-  r[1].sign = 0;
 }
 
 static inline void
@@ -723,6 +745,8 @@ mpz_set_q(mpz_t ROP, const mpq_t OP)
 
 int	mpq_cmp(const mpq_t q1, const mpq_t q2);
 int	mpq_cmp_ui(const mpq_t q1, unsigned long n, unsigned long d);
+int	mpq_cmp_si(const mpq_t q1, long n, unsigned long d);
+int	mpq_cmp_z(const mpq_t q1, const mpz_t z2);
 void	mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2);
 void	mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2);
 void	mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2);
