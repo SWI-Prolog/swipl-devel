@@ -376,6 +376,33 @@ mpq_cmp_ui(const mpq_t q1, unsigned long n, unsigned long d)
 }
 
 
+int
+mpq_cmp_si(const mpq_t q1, long n, unsigned long d)
+{ mpq_t q2;
+  int rc;
+
+  mpq_init(q2);
+  mpq_set_si(q2, n, d);
+  rc = mpq_cmp(q1, q2);
+  mpq_clear(q2);
+
+  return rc;
+}
+
+
+int
+mpq_cmp_z(const mpq_t q1, const mpz_t z2)
+{ mpz_t num;
+  int rc;
+  mpz_init(num);
+  mpz_mul(num, mpq_cdenref(q1), z2);
+  rc = mpz_cmp(mpq_cnumref(q1), num);  
+  mpz_clear(num);
+
+  return rc;
+}
+
+
 static void
 mpq_addsub(mpq_t r, const mpq_t q1, const mpq_t q2, int add)
 { mpz_t numa, numb;
@@ -621,11 +648,18 @@ void
 mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
 { mpz_t cn, nxt, x, tmp;
   const MP_INT *op;
+  int op_sgn;
 
-  if ( mpz_sizeinbase(OP, 2) < n )
-  { mpz_sub_ui(rem, OP, 1);
-    mpz_set_ui(rop, 1);
-
+  if (bf_is_zero(OP)) 
+  { mpz_set(rop, OP);               // nth root of zero is zero
+    mpz_set(rem, OP);    
+    return;
+  }
+  
+  if ( mpz_sizeinbase(OP, 2) < n )  // if n > bit size, answer is +/- 1
+  { op_sgn = mpz_sgn(OP);
+    mpz_set_si(rop, op_sgn);
+    mpz_sub_ui(rem, OP, op_sgn);
     return;
   }
 
