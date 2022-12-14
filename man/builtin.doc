@@ -8673,7 +8673,7 @@ A = 1 rdiv 10
 \end{code}
 
 For every \jargon{normal} float \arg{X} the relation
-\mbox{\arg{X} \const{=:=} rationalize(\arg{X})} holds.
+\mbox{\arg{X} \const{=:=} float(rationalize(\arg{X}))} holds.
 
 This function raises the same exceptions as \funcref{rational}{1} on
 non-normal floating point numbers.
