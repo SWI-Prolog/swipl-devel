@@ -300,9 +300,21 @@ dcg_goal(call_dcg(NT,Xs0,Xs), NT, Xs0, Xs).
 
 %!  dcg_extend(+Callable, +Pos0, -Goal, -Pos, +Xs0, ?Xs) is semidet.
 
+dcg_extend(Terminal, Pos0, Xs0 = DList, Pos, Xs0, Xs) :-
+    terminal(Terminal, DList, Xs),
+    !,
+    t_pos(Pos0, Pos).
+dcg_extend(Q0, Pos0, M:Q, Pos, Xs0, Xs) :-
+    nonvar(Q0), Q0 = M:Q1,
+    !,
+    '$expand':f2_pos(Pos0, MPos, APos0, Pos, MPos, APos),
+    dcg_extend(Q1, APos0, Q, APos, Xs0, Xs).
+dcg_extend(Control, _, _, _, _, _) :-
+    dcg_control(Control),
+    !,
+    fail.
 dcg_extend(Compound0, Pos0, Compound, Pos, Xs0, Xs) :-
     compound(Compound0),
-    \+ dcg_control(Compound0),
     !,
     extend_pos(Pos0, 2, Pos),
     compound_name_arguments(Compound0, Name, Args0),
@@ -310,18 +322,9 @@ dcg_extend(Compound0, Pos0, Compound, Pos, Xs0, Xs) :-
     compound_name_arguments(Compound, Name, Args).
 dcg_extend(Name, Pos0, Compound, Pos, Xs0, Xs) :-
     atom(Name),
-    \+ dcg_control(Name),
     !,
     extend_pos(Pos0, 2, Pos),
     compound_name_arguments(Compound, Name, [Xs0,Xs]).
-dcg_extend(Q0, Pos0, M:Q, Pos, Xs0, Xs) :-
-    compound(Q0), Q0 = M:Q1,
-    '$expand':f2_pos(Pos0, MPos, APos0, Pos, MPos, APos),
-    dcg_extend(Q1, APos0, Q, APos, Xs0, Xs).
-dcg_extend(Terminal, Pos0, Xs0 = DList, Pos, Xs0, Xs) :-
-    terminal(Terminal, DList, Xs),
-    !,
-    t_pos(Pos0, Pos).
 
 dcg_control(!).
 dcg_control([]).
@@ -331,28 +334,17 @@ dcg_control((_,_)).
 dcg_control((_;_)).
 dcg_control((_->_)).
 dcg_control((_*->_)).
-dcg_control(_:_).
 
-terminal(List, DList, Tail) :-
-    compound(List),
-    List = [_|_],
-    !,
-    '$skip_list'(_, List, T0),
-    (   var(T0)
-    ->  DList = List,
-        Tail = T0
-    ;   T0 == []
-    ->  append(List, Tail, DList)
-    ;   type_error(list, List)
-    ).
-terminal(List, DList, Tail) :-
-    List == [],
-    !,
+terminal([], DList, Tail) =>
     DList = Tail.
-terminal(String, DList, Tail) :-
+terminal(String, DList, Tail), string(String) =>
     string(String),
     string_codes(String, List),
     append(List, Tail, DList).
+terminal(List, DList, Tail), is_list(List) =>
+    append(List, Tail, DList).
+terminal(_, _, _) =>
+    fail.
 
 extend_pos(Var, _, Var) :-
     var(Var),

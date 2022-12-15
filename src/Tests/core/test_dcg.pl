@@ -106,6 +106,8 @@ test(uwn3,[sto(rational_trees)]) :-
 	phrase([1],L,L).
 test(uwn4,[sto(finite_trees),fail]) :-
 	phrase([1],L,L).
+test(partial_terminal, Bs == [b]) :-
+	As = [], phrase([a|As],[a,b],Bs).
 
 :- end_tests(phrase).
 
@@ -279,5 +281,3 @@ test(forprogrammers,
 	phrase(zeroes,Xs0,Xs).
 
 :- end_tests(context).
-
-
