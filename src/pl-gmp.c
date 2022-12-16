@@ -1568,109 +1568,132 @@ make_same_type_numbers(Number n1, Number n2)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-cmpNumbers() compares two numbers. First, both   numbers are promoted to
-the lowest (in V_* ordering) common type, after which they are compared.
-Note that if the common type is V_FLOAT, but not both are V_FLOAT we can
-run into troubles because big  integers  may   be  out  of range for the
-double representation. We trust mpz_get_d()   and mpq_to_double() return
-+/- float infinity and this compares  correctly with the other argument,
-which is guaranteed to be a valid float.
+cmpNumbers() compares two numbers. 
+Floats and integers that can be exactly represented as a float are compared
+by first converting the integer to a float.
+All other comparisons with integers or rationals are done using the
+relevant BIGNUM library compare functions. cmpNumbers() itself is just a
+large 4x4 switch statement which uses the targeted auxiliary compare function
+to compute the return value. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-cmpFloatNumbers(Number n1, Number n2)
-{ if ( n1->type == V_FLOAT )
-  { double d2;
+// compare auxiliary functions, all return one of CMP_LESS, CMP_EQUAL, CMP_GREATER except
+// any comparisions with NaN floats return CMP_NOTEQ
+static int cmp_i_i(int64_t i1, int64_t i2)
+{ return (i1 == i2) ? CMP_EQUAL : ((i1 < i2) ? CMP_LESS : CMP_GREATER);
+}
 
-    if ( isnan(n1->value.f) )
-      return CMP_NOTEQ;
+static int cmp_f_f(double d1, double d2)
+{ if (isnan(d1) || isnan(d2)) return CMP_NOTEQ;
+  else return (d1 == d2) ? CMP_EQUAL : ((d1 < d2) ? CMP_LESS : CMP_GREATER);
+}
 
-    switch(n2->type)
-    { case V_INTEGER:
-	d2 = (double)n2->value.i;
-	break;
+static int cmp_i_f(int64_t i1, double d2)
+{ 
 #ifdef O_BIGNUM
-      case V_MPZ:
-	d2 = mpz_to_double(n2->value.mpz);
-	break;
-      case V_MPQ:
-	d2 = mpq_to_double(n2->value.mpq);
-	break;
-#endif
-      default:
-	assert(0);
-	d2 = 0.0;
-    }
+  if ( abs(i1) < 9007199254740992)   // < 2^53
+    return cmp_f_f((double)i1,d2);   // integer can be exactly represented by a float
+  else if (isnan(d2)) return CMP_NOTEQ;
+  else {
+    mpz_t z1; mpz_init_set_si(z1,i1);
+    int t = mpz_cmp_d(z1,d2);        // mpz_cmp_d handles infinities
+  	mpz_clear(z1);
+  	return (t < 0) ? CMP_LESS : (t > 0);  // (t>0) equivalent to ((t>0) ? CMP_GREATER  : CMP_EQUAL)
+  }	
+#else  // not O_BIGNUM
+  return cmp_f_f((double)i1,d2);     // not strictly correct over whole int64_t range
+#endif // O_BIGNUM
+}
 
-    return n1->value.f  < d2 ? CMP_LESS :
-	   n1->value.f == d2 ? CMP_EQUAL : CMP_GREATER;
-  } else
-  { double d1;
-
-    assert(n2->type == V_FLOAT);
-
-    if ( isnan(n2->value.f) )
-      return CMP_NOTEQ;
-
-    switch(n1->type)
-    { case V_INTEGER:
-	d1 = (double)n1->value.i;
-	break;
 #ifdef O_BIGNUM
-      case V_MPZ:
-	d1 = mpz_to_double(n1->value.mpz);
-	break;
-      case V_MPQ:
-	d1 = mpq_to_double(n1->value.mpq);
-	break;
-#endif
-      default:
-	assert(0);
-	d1 = 0.0;
-    }
 
-    return n2->value.f  < d1 ? CMP_GREATER :
-	   n2->value.f == d1 ? CMP_EQUAL : CMP_LESS;
+static int cmp_z_z(mpz_t z1, mpz_t z2)
+{ int t = mpz_cmp(z1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int cmp_q_q(mpq_t q1, mpq_t q2)
+{ int t = mpq_cmp(q1,q2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int cmp_z_i(mpz_t z1, int64_t i2)
+{ int t = mpz_cmp_si(z1,i2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int cmp_q_i(mpq_t q1, int64_t i2)
+{ int t = mpq_cmp_si(q1,i2,1);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int cmp_z_f(mpz_t z1, double d2)
+{ if (isnan(d2)) return CMP_NOTEQ;
+  else {
+    int t = mpz_cmp_d(z1,d2);        // mpz_cmp_d handles infinities
+    return (t < 0) ? CMP_LESS : (t > 0);
   }
 }
 
+static int cmp_f_q(double d1, mpq_t q2)
+{ if      (isnan(d1))       return CMP_NOTEQ;
+  else if (d1 ==  INFINITY) return CMP_GREATER;
+  else if (d1 == -INFINITY) return CMP_LESS;
+  else {
+  	mpq_t q1; mpq_init(q1); mpq_set_d(q1,d1);
+    int t = cmp_q_q(q1,q2);
+    mpq_clear(q1);
+    return t;
+  }
+}
+
+static int cmp_q_z(mpq_t q1, mpz_t z2)
+{ int t = mpq_cmp_z(q1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+#endif // O_BIGNUM
 
 int
-cmpNumbers(Number n1, Number n2)
-{ if ( n1->type != n2->type )
-  { int rc;
-
-    if ( n1->type == V_FLOAT || n2->type == V_FLOAT )
-      return cmpFloatNumbers(n1, n2);
-    rc = make_same_type_numbers(n1, n2);
-    assert(rc != CMP_ERROR);
-    (void)rc;
-  }
-
+cmpNumbers(Number n1, Number n2) // Note: CMP_LESS == -CMP_GREATER, CMP_EQUAL == -CMP_EQUAL
+{ int rc;
   switch(n1->type)
   { case V_INTEGER:
-      return n1->value.i  < n2->value.i ? CMP_LESS :
-	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_i_i(n1->value.i,n2->value.i);
+        case V_FLOAT:   return  cmp_i_f(n1->value.i,n2->value.f);
 #ifdef O_BIGNUM
-    case V_MPZ:
-    { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
-
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
-    }
-    case V_MPQ:
-    { int rc = mpq_cmp(n1->value.mpq, n2->value.mpq);
-
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
-    }
-#endif
+        case V_MPZ:     return -cmp_z_i(n2->value.mpz,n1->value.i);
+        case V_MPQ:     return -cmp_q_i(n2->value.mpq,n1->value.i);
+#endif // O_BIGNUM
+      }
     case V_FLOAT:
-      return n1->value.f  < n2->value.f ? CMP_LESS :
-	     n1->value.f == n2->value.f ? CMP_EQUAL :
-	     n1->value.f  > n2->value.f ? CMP_GREATER : CMP_NOTEQ;
-  }
-
-  assert(0);
-  return CMP_EQUAL;
+      switch(n2->type)
+      { case V_INTEGER: rc =    cmp_i_f(n2->value.i,n1->value.f); 
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_FLOAT:   return  cmp_f_f(n1->value.f,n2->value.f);
+#ifdef O_BIGNUM
+        case V_MPZ:     rc =    cmp_z_f(n2->value.mpz,n1->value.f);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPQ:     return  cmp_f_q(n1->value.f,n2->value.mpq);
+      }
+    case V_MPZ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_z_i(n1->value.mpz,n2->value.i);
+        case V_FLOAT:   return  cmp_z_f(n1->value.mpz,n2->value.f);
+        case V_MPZ:     return  cmp_z_z(n1->value.mpz,n2->value.mpz);
+        case V_MPQ:     return -cmp_q_z(n2->value.mpq,n1->value.mpz);
+      }
+    case V_MPQ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_q_i(n1->value.mpq,n2->value.i);
+        case V_FLOAT:   rc =    cmp_f_q(n2->value.f,n1->value.mpq);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPZ:     return  cmp_q_z(n1->value.mpq,n2->value.mpz);
+        case V_MPQ:     return  cmp_q_q(n1->value.mpq,n2->value.mpq);
+      }
+#endif // O_BIGNUM
+  }  
 }
 
 void
