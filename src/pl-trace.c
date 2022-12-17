@@ -2428,7 +2428,9 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 
       while( fr )
       { while(fr && fr->predicate != proc->definition)
-	  fr = parentFrame(fr);
+	{ fr = parentFrame(fr);
+	  assert(!fr || isFrame(fr));
+	}
 
 	if ( fr )
 	{ int i, garity = fr->predicate->functor->arity;
