@@ -108,6 +108,7 @@
 #define MSG_DETERMINISM		 62
 
 #define MSG_READ_TOKEN		 65
+#define MSG_LOCALE		 66
 
 #define MSG_CONTINUE		 70
 

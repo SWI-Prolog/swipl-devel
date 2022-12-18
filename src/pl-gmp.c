@@ -62,6 +62,11 @@ static mpz_t MPZ_MAX_LONG;
 
 #define abs(v) ((v) < 0 ? -(v) : (v))
 
+typedef union
+{ double  d;
+  int64_t i;
+} fpattern;
+
 
 		 /*******************************
 		 *	 MEMORY MANAGEMENT	*
@@ -1575,62 +1580,47 @@ run into troubles because big  integers  may   be  out  of range for the
 double representation. We trust mpz_get_d()   and mpq_to_double() return
 +/- float infinity and this compares  correctly with the other argument,
 which is guaranteed to be a valid float.
+
+(*) Similar  to mpq_to_double(), we must  compare at 64 bit  level and
+not the extended level.  First we compare the bits.  If this is equal,
+we are done.   Otherwise we use the usual float  comparison, but as we
+have accessed the bits, the compiler must  have put the double in a 64
+bit register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 cmpFloatNumbers(Number n1, Number n2)
 { if ( n1->type == V_FLOAT )
-  { double d2;
+  { fpattern d2;
 
     if ( isnan(n1->value.f) )
       return CMP_NOTEQ;
 
     switch(n2->type)
     { case V_INTEGER:
-	d2 = (double)n2->value.i;
+	d2.d = (double)n2->value.i;
 	break;
 #ifdef O_BIGNUM
       case V_MPZ:
-	d2 = mpz_to_double(n2->value.mpz);
+	d2.d = mpz_to_double(n2->value.mpz);
 	break;
       case V_MPQ:
-	d2 = mpq_to_double(n2->value.mpq);
+	d2.d = mpq_to_double(n2->value.mpq);
 	break;
 #endif
       default:
 	assert(0);
-	d2 = 0.0;
+	d2.d = 0.0;
     }
 
-    return n1->value.f  < d2 ? CMP_LESS :
-	   n1->value.f == d2 ? CMP_EQUAL : CMP_GREATER;
+    fpattern f1 = { .d = n1->value.f };
+    return f1.i == d2.i ? CMP_EQUAL : /* see (*) */
+           f1.d == d2.d ? CMP_EQUAL :
+           f1.d  < d2.d ? CMP_LESS :
+                          CMP_GREATER;
   } else
-  { double d1;
-
-    assert(n2->type == V_FLOAT);
-
-    if ( isnan(n2->value.f) )
-      return CMP_NOTEQ;
-
-    switch(n1->type)
-    { case V_INTEGER:
-	d1 = (double)n1->value.i;
-	break;
-#ifdef O_BIGNUM
-      case V_MPZ:
-	d1 = mpz_to_double(n1->value.mpz);
-	break;
-      case V_MPQ:
-	d1 = mpq_to_double(n1->value.mpq);
-	break;
-#endif
-      default:
-	assert(0);
-	d1 = 0.0;
-    }
-
-    return n2->value.f  < d1 ? CMP_GREATER :
-	   n2->value.f == d1 ? CMP_EQUAL : CMP_LESS;
+  { assert(n2->type == V_FLOAT);
+    return -cmpFloatNumbers(n2, n1);
   }
 }
 
@@ -1858,17 +1848,26 @@ mpq_to_double(mpq_t q)
 }
 
 /*
- * Try to compute a "nice" rational from a float, using continued fractions.
- * Stop when the rational converts back into the original float exactly.
- * If the process doesn't converge (due to numeric problems), or produces
- * a result longer than the fast bitwise conversion from the float mantissa,
- * then fall back to the bitwise conversion.
+ * Try  to compute  a "nice"  rational from  a float,  using continued
+ * fractions.  Stop when the rational  converts back into the original
+ * float exactly.   If the  process doesn't  converge (due  to numeric
+ * problems),  or  produces a  result  longer  than the  fast  bitwise
+ * conversion from the  float mantissa, then fall back  to the bitwise
+ * conversion.
+ *
+ * (*) We are  done if both 64-bit doubles have  the same bit pattern.
+ * We must  notably avoid  that we compare  the _extended  width float
+ * register_ found in e.g. x87 hardware.   One way to force this is to
+ * place the temporary  result in memory, but unless  we use something
+ * the compiler doesn't  know about or the  compiler cannot gurarantee
+ * it is used elsewhere may cause  inlining.  Therefore we use a union
+ * and compare the integer component.
  */
 
 void
 mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
-{ double fabs = (f < 0.0) ? -f : f;	/* get rid of the sign */
-  double x = fabs;
+{ fpattern target = {.d = (f < 0.0) ? -f : f};
+  double x = target.d;
   mpq_t b, c;
   MP_INT *pna = mpq_numref(q);		/* use output q for a directly */
   MP_INT *pda = mpq_denref(q);
@@ -1878,7 +1877,7 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
   MP_INT *pdc = mpq_denref(c);
   mpz_t big_xi;
   int half_exp;                       /* predict bitwise conversion size */
-  double fr = frexp(fabs, &half_exp);
+  double fr = frexp(target.d, &half_exp);
   int bitwise_denominator_size = DBL_MANT_DIG-(half_exp-1);
 
   (void)fr;
@@ -1891,7 +1890,7 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
   mpq_init(c);			      /* auxiliary */
   mpz_init(big_xi);                   /* auxiliary */
 
-  while ( mpz_fdiv(pna, pda) != fabs)
+  for(;;)
   { /* infinite x indicates failure to converge */
     if ( !isfinite(x) )
       goto _bitwise_conversion_;
@@ -1916,6 +1915,11 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
     /* if it gets too long, fall back to bitwise conversion */
     if (mpz_sizeinbase(pda, 2) > bitwise_denominator_size)
       goto _bitwise_conversion_;
+
+    /* See (*) above */
+    fpattern iter = {.d = mpz_fdiv(pna, pda)};
+    if ( target.i == iter.i )
+      break;
 
     x = 1.0/xf;
   }

@@ -2723,6 +2723,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->foreign_frame	= 0;
   qf->flags		= flags;
   qf->saved_environment = environment_frame;
+  assert(parentFrame(top) == environment_frame);
   qf->saved_bfr		= LD->choicepoints;
   qf->aSave             = aTop;
   qf->solutions         = 0;

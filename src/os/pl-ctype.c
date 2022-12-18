@@ -790,8 +790,10 @@ enc_from_locale(const char *enc)
   else
     ext = enc;
 
+  DEBUG(MSG_LOCALE, Sdprintf("Set encoding from \"%s\"\n", ext));
+
   for ( m=map; m->name; m++ )
-  { if ( strcmp(enc, m->name) == 0 )
+  { if ( strcasecmp(ext, m->name) == 0 )
     { return m->encoding;
     }
   }
@@ -991,4 +993,3 @@ void
 initCharTypes(void)
 { initEncoding();
 }
-

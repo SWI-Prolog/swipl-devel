@@ -5065,16 +5065,21 @@ next_arg_ref(DECL_LD term_t argp)
 static term_t
 set_bvar_argp(DECL_LD term_t bv)
 { term_t argp;
+  Word vp;
 
-  if ( (argp=PL_new_term_refs(2)) )
-  { Word bvp = valTermRef(bv);
-    Word ap = valTermRef(argp);
+  if ( (argp=PL_new_term_refs(2)) &&
+       (vp=allocGlobal(1)) )
+  { Word ap = valTermRef(argp);
+    word w = makeRefG(vp);
 
-    ap[0] = makeRefG(bvp);
-    ap[1] = ap[0];
+    setVar(*vp);
+    *valTermRef(bv) = w;
+    ap[1] = ap[0] = w;
+
+    return argp;
   }
 
-  return argp;
+  return 0;
 }
 
 

@@ -200,6 +200,7 @@ test(chained, Balls == Expected) :-
     b_setval(test_signals_done, false),
     sig_block(sig(_)),
     ex(Max),
+%   sleep(0.01),
     run,
     findall(B, retract(ball(B)), Balls).
 
@@ -221,7 +222,7 @@ sig(done) =>
     b_setval(test_signals_done, true).
 sig(N) =>
     sig_pending(Pending),
-    debug(interrupt, 'Got ~p, pending: ~p~n', [sig(N), Pending]),
+    debug(interrupt, 'Got ~p, pending: ~p', [sig(N), Pending]),
     prolog_current_frame(Frame),
     current_module(M),
     (   prolog_frame_attribute(Frame, parent_goal, M:run_guarded)
@@ -236,7 +237,10 @@ ex(N):-
 
 s(N, Me) :-
     forall(between(1, N, I),
-	   ( %sleep(0.01),
+	   ( (   maybe(0.5)
+             ->  sleep(0.01)
+             ;   true
+             ),
 	     thread_signal(Me, sig(I)))),
     thread_signal(Me, sig(done)).
 

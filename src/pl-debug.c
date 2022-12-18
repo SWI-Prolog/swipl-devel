@@ -108,6 +108,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_DETERMINISM),
 						/* Parser */
   DEBUG_TOPIC(MSG_READ_TOKEN),
+  DEBUG_TOPIC(MSG_LOCALE),
 
   DEBUG_TOPIC(MSG_CONTINUE),
 
