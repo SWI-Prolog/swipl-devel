@@ -1119,8 +1119,10 @@ Macros for environment frames (local stack frames)
 #define varFrameP(f, n)		((Word)(f) + (n))
 #define varFrame(f, n)		(*varFrameP((f), (n)) )
 #define refFliP(f, n)		((Word)((f)+1) + (n))
-#define parentFrame(f)		((f)->parent ? (f)->parent\
-					     : (LocalFrame)varFrame((f), -1))
+#define parentFrame(f)		((f)->parent \
+				  ? (f)->parent \
+				  : (LocalFrame)varFrame( \
+				    (f), -QF_PARENT_ENV_OFFSET))
 #define slotsFrame(f)		(true((f)->predicate, P_FOREIGN) ? \
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
@@ -1819,6 +1821,10 @@ struct queryFrame
   struct localFrame top_frame;		/* The (dummy) top local frame */
   struct localFrame frame;		/* The initial frame */
 };
+
+#define QF_PARENT_ENV_OFFSET \
+	((ssize_t)((offsetof(struct queryFrame, top_frame) - \
+		    offsetof(struct queryFrame, saved_environment)) / sizeof(word)))
 
 
 #define FLI_MAGIC		82649821
