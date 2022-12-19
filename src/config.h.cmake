@@ -308,3 +308,5 @@
 
 #cmakedefine POSIX_SHELL "@POSIX_SHELL@"
 #cmakedefine SWIPL_TMP_DIR "@SWIPL_TMP_DIR@"
+
+#cmakedefine MSYS2 @MSYS2@
