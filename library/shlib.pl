@@ -573,15 +573,16 @@ win_add_dll_directory(Dir) :-
 % Under MSYS2, the program is invoked from a bash, with the dll
 % dependencies (zlib1.dll etc.) in %MINGW_PREFIX%/bin instead of
 % the installation directory). Here we add this folder to the dll
-% search path. If MINGW_PREFIX is undefined, the directive is
-% skipped.
+% search path.
 
 add_mingw_dll_directory :-
-    (   getenv('MINGW_PREFIX', Prefix)
-    ->  format(atom(Bin), '~w/bin', [Prefix]),
-        win_add_dll_directory(Bin)
-    ;   true
-    ).
+    current_prolog_flag(msys2, true),
+    !,
+    getenv('MINGW_PREFIX', Prefix),
+    atomic_list_concat([Prefix, bin], /, Bin),
+    win_add_dll_directory(Bin).
+
+add_mingw_dll_directory.
 
 :- initialization(add_mingw_dll_directory).
 
