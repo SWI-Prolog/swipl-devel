@@ -332,6 +332,9 @@ CpuCount(void)
 void
 setOSPrologFlags(void)
 { PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)CpuCount());
+#ifdef MSYS2
+  PL_set_prolog_flag("msys2", PL_BOOL, TRUE);
+#endif
 }
 
 
