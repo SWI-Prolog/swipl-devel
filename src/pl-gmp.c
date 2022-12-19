@@ -1891,14 +1891,15 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
   mpz_init(big_xi);                   /* auxiliary */
 
   for(;;)
-  { /* infinite x indicates failure to converge */
+  { double xf, xi;
+
+    /* infinite x indicates failure to converge */
     if ( !isfinite(x) )
       goto _bitwise_conversion_;
 
-    double xi = floor(x);
-    double xf = x - xi;
+    xf = modf(x, &xi);
 
-      /* compute a = a*xi + b for both numerator and denominator */
+    /* compute a = a*xi + b for both numerator and denominator */
     mpq_swap(q, b);
     if ( x < (double)LONG_MAX )
     { unsigned long int_xi = (unsigned long) xi;
