@@ -1789,6 +1789,10 @@ of this type harder, it does not reliably prevent such attacks in
 general. Full mitigation may require compiler support to disable
 speculative access to sensitive data.
 
+    \prologflagitem{msys2}{bool}{r}
+If present, SWI-Prolog is the MS-Windows version running under
+a \href{https://www.msys2.org/}{MSYS2} shell.
+
     \prologflagitem{occurs_check}{atom}{rw}
 This flag controls unification that creates an infinite tree (also
 called \jargon{cyclic term}) and can have three values. Using
