@@ -240,7 +240,7 @@ endfunction(swipl_plugin)
 # tree.
 
 function(install_dll)
-if(WIN32)
+if(WIN32 AND NOT MSYS2)
   set(dlls)
 
   foreach(lib ${ARGN})
