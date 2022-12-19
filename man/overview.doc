@@ -2323,6 +2323,10 @@ If present and \const{true}, the operating system is an implementation
 of Microsoft Windows. This flag is only available on MS-Windows based
 versions.  See also \prologflag{unix}.
 
+    \prologflagitem{msys2}{bool}{r}
+If present, SWI-Prolog is the MS-Windows version running under
+a \href{https://www.msys2.org/}{MSYS2} shell.
+
     \prologflagitem{wine_version}{atom}{r}
 If present, SWI-Prolog is the MS-Windows version running under
 the \href{https://www.winehq.org/}{Wine} emulator.
