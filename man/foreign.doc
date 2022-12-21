@@ -2810,8 +2810,9 @@ is print/1 calling portray/1 from foreign code.
 If an exception is raised while executing the goal, do not report it, but
 make it available for PL_exception().
     \definition{\const{PL_Q_PASS_EXCEPTION}}
-As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
-while calling PL_close_query().  This option is experimental.
+As \const{PL_Q_CATCH_EXCEPTION}, making the exception on the inner
+environment available using \exam{PL_exception(0)} in the parent
+environment.
     \definition{\const{PL_Q_ALLOW_YIELD}}
 Support the \const{I_YIELD} instruction for engine-based coroutining.
 See \nopredref{\$engine_yield}{2} in \file{boot/init.pl} for details.
