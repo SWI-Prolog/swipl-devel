@@ -580,7 +580,7 @@ class Prolog
   url_properties(url)
   { return fetch(url, {method: 'HEAD'}).then((r) =>
     { if ( r.status == 200 )
-      { const size = parseInt(r.headers.get("content-length"));
+      { let size = parseInt(r.headers.get("content-length"));
 	const mods = r.headers.get("last-modified");
 	const time = Date.parse(mods) || 0;
 
