@@ -8641,9 +8641,9 @@ number support.
 \begin{code}
 ?- A is rational(0.25).
 
-A is 1 rdiv 4
+A is 1r4
 ?- A is rational(0.1).
-A = 3602879701896397 rdiv 36028797018963968
+A = 3602879701896397r36028797018963968
 \end{code}
 
 For every \jargon{normal} float \arg{X} the relation
@@ -8666,10 +8666,10 @@ covered by the \textit{Cisco-style Mozilla Public License Version 1.1}.}
 \begin{code}
 ?- A is rationalize(0.25).
 
-A = 1 rdiv 4
+A = 1r4
 ?- A is rationalize(0.1).
 
-A = 1 rdiv 10
+A = 1r10
 \end{code}
 
 For every \jargon{normal} float \arg{X} the relation
