@@ -3,9 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -313,10 +311,10 @@ static inline int
 mpz_cmp_d(const mpz_t n, double f)
 { mpz_t tmp;
   int rc ;
-  
+
   if      ( f ==  INFINITY ) return -1;
   else if ( f == -INFINITY ) return  1;
-  else 
+  else
   {
     mpz_init(tmp);
     mpz_set_d(tmp, f);
@@ -388,23 +386,39 @@ mpz_mul_2exp(mpz_t r, const mpz_t n1, mp_bitcnt_t n2)
 }
 
 static inline void
-mpz_addmul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ mpz_t add;
+mpz_addmul(mpz_t r, const mpz_t n1, const mpz_t n2)
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
 
-  mpz_init(add);
-  bf_mul_ui(add, n1, n2, BF_PREC_INF, BF_RNDN);
-  bf_add(r, n1, add, BF_PREC_INF, BF_RNDN);
-  mpz_clear(add);
+  bf_mul(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_add(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
+}
+
+static inline void
+mpz_addmul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
+
+  bf_mul_ui(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_add(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
 }
 
 static inline void
 mpz_submul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ mpz_t sub;
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
 
-  mpz_init(sub);
-  bf_mul_ui(sub, n1, n2, BF_PREC_INF, BF_RNDN);
-  bf_sub(r, n1, sub, BF_PREC_INF, BF_RNDN);
-  mpz_clear(sub);
+  bf_mul_ui(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_sub(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
 }
 
 static inline void
@@ -694,6 +708,26 @@ mpq_cnumref(const mpq_t q)
 static inline const MP_INT*
 mpq_cdenref(const mpq_t q)
 { return &q[1];
+}
+
+static inline void
+mpq_get_num(mpz_t n, const mpq_t r)
+{ bf_set(n, &r[0]);
+}
+
+static inline void
+mpq_get_den(mpz_t d, const mpq_t r)
+{ bf_set(d, &r[1]);
+}
+
+static inline void
+mpq_set_num(mpq_t r, const mpz_t n)
+{ bf_set(&r[0], n);
+}
+
+static inline void
+mpq_set_den(mpq_t r, const mpz_t d)
+{ bf_set(&r[1], d);
 }
 
 static inline int
