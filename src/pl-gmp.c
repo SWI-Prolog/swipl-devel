@@ -1848,96 +1848,63 @@ mpq_to_double(mpq_t q)
 }
 
 /*
- * Try  to compute  a "nice"  rational from  a float,  using continued
- * fractions.  Stop when the rational  converts back into the original
- * float exactly.   If the  process doesn't  converge (due  to numeric
- * problems),  or  produces a  result  longer  than the  fast  bitwise
- * conversion from the  float mantissa, then fall back  to the bitwise
- * conversion.
+ * Try  to compute  a "nice"  rational from  a float  using continued
+ * fractions and rational arithmetic.  Stop when rational converts
+ * (using mpz_fdiv) back into the original float. 
  *
- * (*) We are  done if both 64-bit doubles have  the same bit pattern.
- * We must  notably avoid  that we compare  the _extended  width float
- * register_ found in e.g. x87 hardware.   One way to force this is to
- * place the temporary  result in memory, but unless  we use something
- * the compiler doesn't  know about or the  compiler cannot gurarantee
- * it is used elsewhere may cause  inlining.  Therefore we use a union
- * and compare the integer component.
+ * Prolog implementation:
+ 
+rat_rationalize(Flt, Rat) :-
+   R is rational(Flt), rational(R, N, D),
+   rat_iter((N,D), (1,0), (0,1), Flt, Rat).
+
+rat_iter((V,W), (M,N), (P,Q), Flt, Rat) :-
+	divmod(V, W, D, U),
+	A is D*M+P,  %  A = Pnxt
+	B is D*N+Q,  %  B = Qnxt
+	Try is A rdiv B,
+	( (float(Try) =:= Flt ; U == 0)  % terminating conditions
+	  -> Rat = Try
+	  ;  rat_iter((W,U), (A,B), (M,N), Flt, Rat)
+	).
+
  */
 
 void
-mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
-{ fpattern target = {.d = (f < 0.0) ? -f : f};
-  double x = target.d;
-  mpq_t b, c;
-  MP_INT *pna = mpq_numref(q);		/* use output q for a directly */
-  MP_INT *pda = mpq_denref(q);
-  MP_INT *pnb = mpq_numref(b);
-  MP_INT *pdb = mpq_denref(b);
-  MP_INT *pnc = mpq_numref(c);
-  MP_INT *pdc = mpq_denref(c);
-  mpz_t big_xi;
-  int half_exp;                       /* predict bitwise conversion size */
-  double fr = frexp(target.d, &half_exp);
-  int bitwise_denominator_size = DBL_MANT_DIG-(half_exp-1);
+mpq_set_double(mpq_t r, double f)	/* float -> nice rational */
+{ mpz_t m; mpz_init_set_si(m, 1);   // (m,n) = (1,0)
+  mpz_t n; mpz_init_set_si(n, 0);
+  mpz_t p; mpz_init_set_si(p, 0);   // (p,q) = (0,1)
+  mpz_t q; mpz_init_set_si(q, 1);
 
-  (void)fr;
-  if ( bitwise_denominator_size < 1 )
-    bitwise_denominator_size = 1;
+  mpq_set_d(r, f);
+  mpz_t v; mpz_init(v); mpq_get_num(v,r);  // (v,w) == (r.num, r.den)
+  mpz_t w; mpz_init(w); mpq_get_den(w,r);
 
-  mpz_set_ui(pna, 1L);                /* a = q = 1/0 */
-  mpz_set_ui(pda, 0L);
-  mpq_init(b);			      /* b = 0/1 */
-  mpq_init(c);			      /* auxiliary */
-  mpz_init(big_xi);                   /* auxiliary */
-
+  mpz_t d; mpz_init(d);
+  mpz_t u; mpz_init(u);
+  
   for(;;)
-  { double xf, xi;
-
-    /* infinite x indicates failure to converge */
-    if ( !isfinite(x) )
-      goto _bitwise_conversion_;
-
-    xf = modf(x, &xi);
-
-    /* compute a = a*xi + b for both numerator and denominator */
-    mpq_swap(q, b);
-    if ( x < (double)LONG_MAX )
-    { unsigned long int_xi = (unsigned long) xi;
-      mpz_mul_ui(pnc, pnb, int_xi);
-      mpz_mul_ui(pdc, pdb, int_xi);
-    } else
-    { mpz_set_d(big_xi, xi);
-      mpz_mul(pnc, pnb, big_xi);
-      mpz_mul(pdc, pdb, big_xi);
-    }
-    mpz_add(pna, pna, pnc);
-    mpz_add(pda, pda, pdc);
-
-    /* if it gets too long, fall back to bitwise conversion */
-    if (mpz_sizeinbase(pda, 2) > bitwise_denominator_size)
-      goto _bitwise_conversion_;
-
-    /* See (*) above */
-    fpattern iter = {.d = mpz_fdiv(pna, pda)};
-    if ( target.i == iter.i )
+  { mpz_fdiv_qr(d,u,v,w);
+    mpz_addmul(p,d,m);
+    mpz_addmul(q,d,n);
+    if ((mpz_fdiv(p,q) == f) || (mpz_sgn(u) == 0)) {  // terminating conditions
+      mpq_set_num(r,p); mpq_set_den(r,q);             // final answer, p & q are co-prime
       break;
-
-    x = 1.0/xf;
-  }
-
-  if ( f < 0.0 )
-    mpq_neg(q, q);
-  mpq_canonicalize(q);                /* normally not be necessary */
-
-  goto _cleanup_;
-
-_bitwise_conversion_:
-  mpq_set_d(q, f);                    /* bitwise conversion */
-
-_cleanup_:
-  mpz_clear(big_xi);
-  mpq_clear(c);
-  mpq_clear(b);
+    } else {
+      mpz_set(v,w);  mpz_set(w,u);        
+      mpz_swap(m,p); mpz_swap(n,q);
+    }
+  } // for(;;)
+    
+  mpz_clear(m);
+  mpz_clear(n);
+  mpz_clear(p);
+  mpz_clear(q);
+  mpz_clear(v);
+  mpz_clear(w);
+  mpz_clear(d);
+  mpz_clear(u);
 }
 
 
