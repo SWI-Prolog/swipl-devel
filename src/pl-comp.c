@@ -5724,6 +5724,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			  }
 	case H_STRING:
 	case H_MPZ:
+        case H_MPQ:
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
