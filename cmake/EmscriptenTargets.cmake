@@ -30,7 +30,7 @@ add_dependencies(wasm_preload wasm_preload_dir)
 set(POSTJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
 set(PREJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/pre.js)
 
-set(WASM_WEB_LINK_FLAGS
+set(WASM_SHARED_LINK_FLAGS
     -s WASM=1
     -s MODULARIZE=1
     -s EXPORT_NAME=SWIPL
@@ -39,20 +39,33 @@ set(WASM_WEB_LINK_FLAGS
     -s ALLOW_MEMORY_GROWTH=1
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
-    --preload-file ${WASM_PRELOAD_DIR}@swipl
     --pre-js ${PREJS}
     --post-js ${POSTJS})
 if(MULTI_THREADED)
-  list(APPEND WASM_WEB_LINK_FLAGS
+  list(APPEND WASM_SHARED_LINK_FLAGS
        -pthread
        -s PTHREAD_POOL_SIZE=4)
 endif()
-join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS})
 
+set(WASM_WEB_LINK_FLAGS
+    --preload-file ${WASM_PRELOAD_DIR}@swipl)
+join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS} " " ${WASM_SHARED_LINK_FLAGS})
 add_executable(swipl-web ${SWIPL_SRC})
 set_target_properties(swipl-web PROPERTIES
 		      LINK_FLAGS "${WASM_WEB_LINK_FLAGS_STRING}")
 target_link_libraries(swipl-web libswipl)
 add_dependencies(swipl-web wasm_preload)
 set_property(TARGET swipl-web PROPERTY LINK_DEPENDS
+	     ${POSTJS} ${PREJS})
+
+set(WASM_BUNDLE_LINK_FLAGS
+    -s SINGLE_FILE
+    --embed-file ${WASM_PRELOAD_DIR}@swipl)
+join_list(WASM_BUNDLE_LINK_FLAGS_STRING " " ${WASM_BUNDLE_LINK_FLAGS} " " ${WASM_SHARED_LINK_FLAGS})
+add_executable(swipl-bundle ${SWIPL_SRC})
+set_target_properties(swipl-bundle PROPERTIES
+		      LINK_FLAGS "${WASM_BUNDLE_LINK_FLAGS_STRING}")
+target_link_libraries(swipl-bundle libswipl)
+add_dependencies(swipl-bundle wasm_preload)
+set_property(TARGET swipl-bundle PROPERTY LINK_DEPENDS
 	     ${POSTJS} ${PREJS})
