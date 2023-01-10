@@ -349,7 +349,7 @@ Handle to a Prolog predicate. Predicate handles live forever (although
 they can lose their definition).
     \item[qid_t]
 Query identifier. Used by
-PL_open_query(), PL_next_solution() and PL_close_query() to handle
+PL_open_query(), PL_next_solution(), PL_cut_query(), and PL_close_query() to handle
 backtracking from C.
     \item[fid_t]
 Frame identifier. Used by
@@ -696,7 +696,7 @@ start_connection(IOSTREAM *c)
   { term_t av = PL_new_term_refs(1);
     PL_unify_stream(av+0, c);
     qid_t q = PL_open_query(e, NULL,
-			    PL_Q_NORMAL|PL_Q_ALLOW_YIELD|PL_Q_EXT_STATUS,
+			    PL_Q_PASS_EXCEPTION|PL_Q_ALLOW_YIELD|PL_Q_EXT_STATUS,
 			    p, av);
     PL_set_engine(old, NULL);
     return q;
@@ -1275,6 +1275,7 @@ See PL_get_list_chars().
     \cfunction{int}{PL_get_nchars}{term_t t, size_t *len, char **s,
 				   unsigned int flags}
 See PL_get_chars().
+\arg{len} may be \const{NULL}.
     \cfunction{int}{PL_put_atom_nchars}{term_t t, size_t len, const char *s}
 See PL_put_atom_chars().
     \cfunction{int}{PL_put_string_nchars}{term_t t, size_t len, const char *s}
@@ -1822,6 +1823,8 @@ PL_exception(), passing 0 (zero) for the query-id argument. Foreign
 functions that encounter an exception must return \const{FAIL} to
 Prolog as soon as possible or call PL_clear_exception() if they wish
 to ignore the exception.
+Note that value returned by \exam{PL_exeption(0)} is only meaningful
+if PL_unify() returns 0.
 
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
@@ -2718,7 +2721,7 @@ to call/1, and then PL_call() is used to call Prolog. This system is
 simple, but does not allow to inspect the different answers to a
 non-deterministic goal and is relatively slow as the runtime system
 needs to find the predicate. The other interface is based on
-PL_open_query(), PL_next_solution() and PL_cut_query() or
+PL_open_query(), PL_next_solution(), and PL_cut_query() or
 PL_close_query(). This mechanism is more powerful, but also more
 complicated to use.
 
@@ -2771,6 +2774,7 @@ etc.), but it is \strong{not} allowed to open multiple queries and start
 generating solutions for each of them by calling PL_next_solution().
 Be sure to call PL_cut_query() or PL_close_query() on any query you
 opened before opening the next or returning control back to Prolog.
+Failure to do so results in "undefined behavior" (typically, a crash).
 
 
 \begin{description}
@@ -2784,11 +2788,25 @@ context (as may happen in embedded systems). Note that the context
 module only matters for \jargon{meta-predicates}. See meta_predicate/1,
 context_module/1 and module_transparent/1. The \arg{p} argument
 specifies the predicate, and should be the result of a call to PL_pred()
-or PL_predicate(). Note that it is allowed to store this handle as
-global data and reuse it for future queries. The term reference \arg{t0}
+or PL_predicate().\footnote{It is allowed to store this
+handle as global data and reuse it for future queries, for example,
+which avoids 5 hash lookups (two to get the atoms, one to get the
+module, one to get the functor and the final one to get the predicate
+associated with the functor in the module):
+\begin{code}
+static predicate_t p = 0;
+if ( !p )
+  p = PL_predicate("is_a", 2, "database");
+\end{code}
+}
+The term reference \arg{t0}
 is the first of a vector of term references as returned by
 PL_new_term_refs(n). Raise a resource exception and returns
 \exam{(qid_t)0} on failure.
+
+Every use of PL_open_query() must have a corresponding call to
+PL_cut_query() or PL_close_query() before the foreign predicate
+returns either \const{TRUE} or \const{FALSE}.
 
 The \arg{flags} arguments provides some additional options concerning
 debugging and exception handling. It is a bitwise \emph{or} of the
@@ -2796,23 +2814,44 @@ following values:
 
 \begin{description}
     \definition{\const{PL_Q_NORMAL}}
-Normal operation.  The debugger inherits its settings from the environment.
+(deprecated) Normal operation.  The debugger inherits its settings from the environment.
 If an exception occurs that is not handled in Prolog, a message is printed
 and the tracer is started to debug the error.%
 	\footnote{Do not pass the integer 0 for normal operation, as
 		  this is interpreted as \const{PL_Q_NODEBUG} for
 		  backward compatibility reasons.}
+
+If \const{PL_Q_NORMAL} is specified, you must \emph{not} also
+specify \const{PL_Q_PASS_EXCEPTION} or \const{PL_Q_CATCH_EXCEPTION}.
+New code should typically either specify \const{PL_Q_PASS_EXCEPTION}
+or specify \const{PL_Q_CATCH_EXCEPTION} and deal with the exception
+and also call PL_cut_query() or PL_close_query().
     \definition{\const{PL_Q_NODEBUG}}
 Switch off the debugger while executing the goal.  This option is used
 by many calls to hook-predicates to avoid tracing the hooks.  An example
 is print/1 calling portray/1 from foreign code.
     \definition{\const{PL_Q_CATCH_EXCEPTION}}
-If an exception is raised while executing the goal, do not report it, but
-make it available for PL_exception().
+If an exception is raised while executing the goal, handle it.
+The exception can be found by calling \exam{PL_exception(qid)}, where \exam{qid}
+is the \ctype{qid_t} returned by PL_open_query().
+The exception is implicitly cleared from the environment;
+if you wish to propagate the exception, you must call
+PL_raise_exception() and return \const{FALSE}.
+If \const{PL_Q_CATCH_EXCEPTION} is specified, you must \emph{not} also
+specify \const{PL_Q_PASS_EXCEPTION} or \const{PL_Q_NORMAL}.
     \definition{\const{PL_Q_PASS_EXCEPTION}}
 As \const{PL_Q_CATCH_EXCEPTION}, making the exception on the inner
 environment available using \exam{PL_exception(0)} in the parent
 environment.
+If PL_next_solution() returns \const{FALSE}, you must call
+PL_cut_query() or PL_close_query().
+In addition, you must then either return \const{FALSE} or,
+if you return \const{TRUE}, you must call PL_clear_exception()
+to remove the exception from the environment (if you wish to
+examine the exception, use \exam{PL_exception(qid)}).
+If \const{PL_Q_PASS} is specified, you must \emph{not} also
+specify \const{PL_Q_CATCH_EXCEPTION} or \const{PL_Q_NORMAL}.
+
     \definition{\const{PL_Q_ALLOW_YIELD}}
 Support the \const{I_YIELD} instruction for engine-based coroutining.
 See \nopredref{\$engine_yield}{2} in \file{boot/init.pl} for details.
@@ -2825,7 +2864,7 @@ following table:
 \begin{tabular}{llp{4in}}
 \bf Extended & \bf Normal & \\
 \hline
-PL_S_EXCEPTION	& FALSE & Exception available through PL_exception() \\
+PL_S_EXCEPTION	& FALSE & Exception available through PL_exception(qid) \\
 PL_S_FALSE	& FALSE & Query failed \\
 PL_S_TRUE	& TRUE & Query succeeded with choicepoint \\
 PL_S_LAST	& TRUE & Query succeeded without choicepoint \\
@@ -2835,7 +2874,9 @@ PL_S_LAST	& TRUE & Query succeeded without choicepoint \\
 
 
 PL_open_query() can return the query identifier `0' if there is not enough
-space on the environment stack. This function succeeds, even if the
+space on the environment stack (and makes the exception available by
+using \exam{PL_exception(0)}).
+This function succeeds, even if the
 referenced predicate is not defined. In this case, running the query
 using PL_next_solution() will return an existence_error. See
 PL_exception().
@@ -2854,7 +2895,7 @@ ancestor(const char *me)
     p = PL_predicate("is_a", 2, "database");
 
   PL_put_atom_chars(a0, me);
-  PL_open_query(NULL, PL_Q_NORMAL, p, a0);
+  PL_open_query(NULL, PL_Q_PASS_EXCEPTION, p, a0);
   ...
 }
 \end{code}
@@ -2875,10 +2916,13 @@ and the exception is accessible through \exam{PL_exception(0)}.
 
     \cfunction{int}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
-destroyed.
+destroyed. This avoids some garbage collection, but also removes
+side effects such as setting global variables (for example, from
+PL_predicate()), Prolog global variables (see b_setval/2), or
+the exception term from \exam{PL_exception(qid)}.
 
     \cfunction{qid_t}{PL_current_query}{void}
-Returns the query id of of the current query or \const{0} if the
+Returns the query id of the current query or \const{0} if the
 current thread is not executing any queries.
 
     \cfunction{PL_engine_t}{PL_query_engine}{qid_t qid}
@@ -3073,9 +3117,12 @@ foreign function return \const{FALSE}.
 PL_exception() may be used to inspect the currently registered
 exception. It is normally called after a call to PL_next_solution()
 returns \const{FALSE}, and returns a term reference to an exception term
-if an exception is pedning, and \exam{(term_t)0} otherwise. It may also
+if an exception is pending, and \exam{(term_t)0} otherwise. It may also
 be called after, e.g., PL_unify() to distinguish a normal failing
 unification from a unification that raised an resource error exception.
+PL_exception() must only be called after a function such as
+PL_next_solution() or PL_unify() returns failure; if called elsewhere,
+the return value is undefined.
 
 If a C function implementing a predicate that calls Prolog should use
 PL_open_query() with the flag \const{PL_Q_PASS_EXCEPTION} and make the
@@ -3089,7 +3136,8 @@ predicate should normally cleanup and return with \const{FALSE}. If the
 C function whishes to continue it may call PL_clear_exception(). Note
 that this may cause any exeption to be ignored, including \emph{time
 outs} and \emph{abort}. Typically the user should check the exeption
-details before ignoring an exception. If the C code does not implement a
+details before ignoring an exception (using \exam{PL_exception(0)} or
+\exam{PL_exception(qid)} as appropriate). If the C code does not implement a
 predicate it normally prints the exception and calls
 PL_clear_exception() to discard it. Exceptions may be printed by calling
 print_message/2 through the C interface.
@@ -3167,10 +3215,12 @@ raised, or \exam{(term_t)0} if the Prolog goal simply failed. If there
 is an exception, PL_exception() returns a term reference that
 contains the exception term.
 
-Additionally, \verb$PL_exception(0)$ returns the pending exception in
+Additionally, \exam{PL_exception(0)} returns the pending exception in
 the current query or \exam{(term_t)0} if no exception is pending. This
 can be used to check the error status after a failing call to, e.g., one
-of the unification functions.
+of the unification functions. If \exam{PL_exception(0)} is called
+after a function such as PL_unify() or PL_next_solution() succeeds,
+the value is undefined.
 
     \cfunction{void}{PL_clear_exception}{void}
 Tells Prolog that the encountered exception must be ignored. This
@@ -4663,7 +4713,7 @@ main(int argc, char **argv)
     int rval;
 
     PL_put_atom_chars(h0, expression);
-    rval = PL_call_predicate(NULL, PL_Q_NORMAL, pred, h0);
+    rval = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, h0);
 
     PL_halt(rval ? 0 : 1);
   }
