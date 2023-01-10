@@ -732,13 +732,13 @@ with the dependency. A subsequent call to one of the invalidated tabled
 predicates re-evaluates the tables. For a monotonic table this implies
 pushing the queued answers through the dependencies. Removing a clause
 from one of a monotonic dynamic predicates invalidates all dependent
-tables and marks all these tables for \emph{forced reevaluation}, which
-implies they are reevaluated using the same algorithm as used for
+tables and marks all these tables for \emph{forced re-evaluation}, which
+implies they are re-evaluated using the same algorithm as used for
 \jargon{incremental} tabling.
 
 Lazy monotonic tables may depend on eager monotonic tables. There is no
 point in making an eager monotonic table depend on a lazy monotonic
-table as one would have to reevaluate the lazy table to make the eager
+table as one would have to re-evaluate the lazy table to make the eager
 table consistent. Therefore, a dependency of an eager table on a lazy
 table is silently converted into a lazy dependency.
 
