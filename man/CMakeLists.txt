@@ -167,7 +167,7 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept
         prolog_jiti tables listing strings terms ugraphs portray_text
-        increval prolog_debug rbtrees statistics heaps fastrw gensym
+        increval prolog_debug prolog_trace rbtrees statistics heaps fastrw gensym
         www_browser)
 if(MULTI_THREADED)
   libsdoc(thread_pool thread)

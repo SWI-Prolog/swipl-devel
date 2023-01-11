@@ -11165,29 +11165,6 @@ True if the tracer is currently switched on.  tracing/0 itself cannot
 be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
-    \predicate{trace}{1}{+Pred}
-Equivalent to \exam{trace(\arg{Pred}, +all)}.
-    \predicate{trace}{2}{+Pred, +Ports}
-Put a trace point on all predicates satisfying the predicate specification
-\arg{Pred}. \arg{Ports} is a list of port names (\const{call},
-\const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
-to all ports. If the port is preceded by a \const{-} sign, the
-trace point is cleared for the port. If it is preceded by a \const{+},
-the trace point is set. Tracing a predicate is achieved by
-\jargon{wrapping} the predicate using wrap_predicate/4.
-
-Each time a port (of the 4-port model) is passed that has a trace point
-set, the goal is printed. Unlike trace/0, however, the execution is
-continued without asking for further information. Examples:
-
-\begin{center}
-\begin{tabular}{lp{3in}}
-\exam{?- trace(hello).}          & Trace all ports of hello with any arity
-                                   in any module. \\
-\exam{?- trace({foo}/2, +fail).} & Trace failures of {foo}/2 in any module. \\
-\exam{?- trace({bar}/1, -all).}  & Stop tracing {bar}/1.
-\end{tabular}
-\end{center}
 
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.

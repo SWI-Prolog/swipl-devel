@@ -746,8 +746,6 @@ suggest predicates from a keyword.
 \predicatesummary{told}{0}{Close current output}
 \predicatesummary{tprofile}{1}{Profile a thread for some period}
 \predicatesummary{trace}{0}{Start the tracer}
-\predicatesummary{trace}{1}{Set trace point on predicate}
-\predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
 \predicatesummary{transaction}{1}{Run goal in a transaction}
 \predicatesummary{transaction}{2}{Run goal in a transaction}

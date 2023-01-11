@@ -150,6 +150,9 @@
 \libsummary{prologpack}
 \input{summaries.d/prologpack.tex}
 
+\libsummary{prologtrace}
+\input{summaries.d/prologtrace.tex}
+
 \libsummary{prologxref}
 
 \begin{summarylist}{ll}

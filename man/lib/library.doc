@@ -64,6 +64,7 @@ documented at all.
 \input{predicateoptions}
 \input{prologdebug}
 \input{prologjiti}
+\input{prologtrace}
 \input{prologpack}
 \input{prologxref}
 \input{quasiquotations}
