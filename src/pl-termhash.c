@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2021, University of Amsterdam
+    Copyright (c)  2010-2023, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -37,6 +37,8 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-termhash.h"
+#include "pl-fli.h"
+#include "os/pl-text.h"
 #include "pl-arith.h"
 #include "pl-pro.h"
 #define AC_TERM_WALK 1
@@ -99,8 +101,17 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
     { size_t len;
       char *s;
 
-      s = getCharsString(term, &len);
-      *hval = MurmurHashAligned2(s, len, *hval);
+      if ( (s = getCharsString(term, &len)) )
+      { *hval = MurmurHashAligned2(s, len, *hval);
+      } else
+      { PL_chars_t text;
+	if ( get_string_text(term, &text) &&
+	     PL_mb_text(&text, REP_UTF8) )
+	{ *hval = MurmurHashAligned2(text.text.t, text.length, *hval);
+	  PL_free_text(&text);
+	} else
+	  return FALSE;
+      }
 
       return TRUE;
     }
