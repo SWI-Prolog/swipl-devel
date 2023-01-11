@@ -2862,11 +2862,13 @@ Note that \const{PL_Q_PASS_EXCEPTION} is used by the debugger to decide
 whether the exception is \jargon{caught}. If there is no matching
 catch/3 call in the current query and the query was started using
 \const{PL_Q_PASS_EXCEPTION} the debugger searches the parent queries
-until it either finds a matching catch/3, a query without
-\const{PL_Q_PASS_EXCEPTION} or the top of the query stack. Uncaught
-exceptions use the \pllib{prolog_stack.pl} library to add a backtrace to
-the exception and start the debugger as soon as possible if the Prolog
-flag \prologflag{debug_on_error} is \const{true}.
+until it either finds a matching catch/3, a query with
+\const{PL_Q_CATCH_EXCEPTION} (in which case it considers the exception
+handled by C) or the top of the query stack (in which case it considers
+the exception \jargon{uncaught}). Uncaught exceptions use the
+\pllib{library(prolog_stack)} to add a backtrace to the exception and
+start the debugger as soon as possible if the Prolog flag
+\prologflag{debug_on_error} is \const{true}.
 
     \definition{\const{PL_Q_ALLOW_YIELD}}
 Support the \const{I_YIELD} instruction for engine-based coroutining.
