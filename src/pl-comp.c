@@ -3391,7 +3391,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 	  }
 #endif
 	}
-#ifdef O_GMP
+#ifdef O_BIGNUM
       } else if ( p[1]&MP_RAT_MASK )
       { Output_n(ci, A_MPQ, p, n+1);
       } else
