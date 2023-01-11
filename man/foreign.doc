@@ -2824,11 +2824,12 @@ debugging and exception handling. It is a bitwise \emph{or} of the
 following values below.	 Note that exception propagation is defined
 by the flags \const{PL_Q_NORMAL}, \const{PL_Q_CATCH_EXCEPTION} and
 \const{PL_Q_PASS_EXCEPTION}.  Exactly one of these flags must be
-specified.
+specified (if none of them is specified, the behavior is as if
+\const{PL_Q_NODEBUG} is specified)..
 
 \begin{description}
     \definition{\const{PL_Q_NORMAL}}
-Normal operation. It is called this way because it makes a call to
+Normal operation. It is named "normal" because it makes a call to
 Prolog behave as it did before exceptions were implemented, i.e., an
 error (now uncaught exception) triggers the debugger. See also the
 Prolog flag \prologflag{debug_on_error}. This mode is still useful when
@@ -2837,7 +2838,8 @@ calling Prolog from C if the C code is not willing to handle exceptions.
     \definition{\const{PL_Q_NODEBUG}}
 Switch off the debugger while executing the goal.  This option is used
 by many calls to hook-predicates to avoid tracing the hooks.  An example
-is print/1 calling portray/1 from foreign code.
+is print/1 calling portray/1 from foreign code. This is the default
+if flags is \const{0}.
 
     \definition{\const{PL_Q_CATCH_EXCEPTION}}
 If an exception is raised while executing the goal, make it available by
@@ -2852,11 +2854,12 @@ environment available using \exam{PL_exception(0)} in the parent
 environment. If PL_next_solution() returns \const{FALSE}, you must call
 PL_cut_query() or PL_close_query().  After that you may verify whether
 failure was due to logical failure of the called predicate or an exception
-by calling \exam{PL_exception(0)},  If the predicate failed due to an
+by calling \exam{PL_exception(0)}.  If the predicate failed due to an
 exception you should return with \const{FALSE} from the foreign predicate
 or call PL_clear_exception() to clear it.  If you wish to process the
-exception in C though, it is adviced to use \const{PL_Q_CATCH_EXCEPTION}
-instead.
+exception in C, it is advised to use \const{PL_Q_CATCH_EXCEPTION}
+instead, but only if you have no need to raise an exception or re-raise
+the caught exception.
 
 Note that \const{PL_Q_PASS_EXCEPTION} is used by the debugger to decide
 whether the exception is \jargon{caught}. If there is no matching
@@ -3151,8 +3154,8 @@ while the main control of the process is in C, user code should always
 check for exceptions. As explained above, C functions implementing a
 predicate should normally cleanup and return with \const{FALSE}. If the
 C function whishes to continue it may call PL_clear_exception(). Note
-that this may cause any exeption to be ignored, including \emph{time
-outs} and \emph{abort}. Typically the user should check the exeption
+that this may cause any exception to be ignored, including \emph{time
+outs} and \emph{abort}. Typically the user should check the exception
 details before ignoring an exception (using \exam{PL_exception(0)} or
 \exam{PL_exception(qid)} as appropriate). If the C code does not
 implement a predicate it normally prints the exception and calls
@@ -3226,8 +3229,8 @@ deprecated as it does not provide the opportunity to cleanup.
 
     \cfunction{term_t}{PL_exception}{qid_t qid}
 Return the \jargon{pending exception}. Exceptions may be raised by most
-of the API calls described in this chapter. Most API calls typically
-return \const{resource_error} exceptions. Some return \const{type_error}
+of the API calls described in this chapter, a common possibility being
+\const{resource_error} exceptions. Some return \const{type_error}
 or \const{domain_error} exceptions. A call to Prolog using
 PL_next_solution() may return any exception, including those thrown by
 explicit calls to throw/1.  If no exception is pending this function
@@ -3238,10 +3241,11 @@ be used after a call to PL_next_solution() that returns \const{FALSE}
 when the query was created using the \const{PL_Q_PASS_EXCEPTION} flag
 (see PL_open_query()).
 
-Note that an API may only raise an exception when it fails. The
+Note that an API may only raise an exception when it fails; if the API
+call succeeds, the result of \exam{PL_exception(0)} is undefined. The
 implementation of a foreign predicate should normally cleanup and return
 \const{FALSE} after an exception is raised (and typically also after an
-API call failed for logical reasons, see PL_unify() for an elaboration
+API call failed for logical reasons; see PL_unify() for an elaboration
 on this topic). If the call to Prolog is not the implementation of a
 foreign predicate, e.g., when the overall process control is in some
 other language, exceptions may be printed by calling print_message/2
@@ -4416,7 +4420,7 @@ returns 1 if successful, 0 otherwise.
 
     \cfunction{int}{PL_cleanup}{int status_and_flags}
 This function may be called instead of PL_halt() to cleanup Prolog
-without exitting the process. It performs the reverse of
+without exiting the process. It performs the reverse of
 PL_initialise(). It runs the PL_on_halt() and at_halt/1 handlers, closes
 all streams (except for the \jargon{standard I/O} streams, which are
 flushed only), restores all signal handlers and reclaims all memory
