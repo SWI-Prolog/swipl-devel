@@ -162,12 +162,21 @@ debugging_ :-
         print_message(informational, spying(SpyPoints))
     ;   print_message(informational, debugging(off))
     ),
-    trapping.
+    trapping,
+    forall(debugging_hook, true).
 
 spy_point(Module:Head) :-
     current_predicate(_, Module:Head),
     '$get_predicate_attribute'(Module:Head, spy, 1),
     \+ predicate_property(Module:Head, imported_from(_)).
+
+%!  debugging_hook
+%
+%   Multifile hook that is called   as  forall(debugging_hook, true) and
+%   that may be used  to  extend   the  information  printed  from other
+%   debugging libraries.
+
+:- multifile debugging_hook/0.
 
 
 		 /*******************************
