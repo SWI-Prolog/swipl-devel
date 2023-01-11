@@ -84,23 +84,25 @@ program.
 %   true.
 %
 %   ?- append([a,b], [c], L).
-%    T Call: lists:append([a, b], [c], _10478)
-%    T Call: lists:append([b], [c], _11316)
-%    T Call: lists:append([], [c], _11894)
-%    T Exit: lists:append([], [c], [c])
-%    T Exit: lists:append([b], [c], [b, c])
-%    T Exit: lists:append([a, b], [c], [a, b, c])
+%    T [10] Call: lists:append([a, b], [c], _18032)
+%    T [19] Call: lists:append([b], [c], _19410)
+%    T [28] Call: lists:append([], [c], _20400)
+%    T [28 +0.1ms] Exit: lists:append([], [c], [c])
+%    T [19 +0.2ms] Exit: lists:append([b], [c], [b, c])
+%    T [10 +0.5ms] Exit: lists:append([a, b], [c], [a, b, c])
 %   L = [a, b, c].
 %
 %   ?- trace(append, -all).
 %   %     lists:append/2: Not tracing
 %   %     lists:append/3: Not tracing
 %   %     append/1: Not tracing
+%   ```
 %
-%   @compat This library replaces prior   built-in functionality. Unlike
-%   the built-in version, ports are printed   regardless  of the `debug`
-%   flag. The built-in version printed  the   call-stack  depth. That is
-%   currently not provided by this replacement.
+%   The text between [] indicates the call  depth (first number) and for
+%   all ports except the `call` port  the   _wall_  time since the start
+%   (call port) in milliseconds. Note that the instrumentation and print
+%   time is included in the time. In   the example above the actual time
+%   is about 0.00001ms on todays hardware.
 
 trace(Pred) :-
     trace(Pred, +all).
@@ -173,9 +175,12 @@ mask_ports(Pattern, [H|T]) :-
     mask_ports(Pattern1, T).
 
 wrapper(Ports, Head, Wrapped, Wrapper) :-
-    wrapper(Ports, Head, Id-Level, Wrapped, Wrapped1),
-    Wrapper = (   prolog_current_frame(Id),
-                  prolog_frame_attribute(Id, level, Level),
+    wrapper(Ports, Head,
+            #{frame:Frame, level:Level, start:Start},
+            Wrapped, Wrapped1),
+    Wrapper = (   prolog_current_frame(Frame),
+                  prolog_frame_attribute(Frame, level, Level),
+                  get_time(Start),
                   Wrapped1
               ).
 

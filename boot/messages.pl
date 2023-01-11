@@ -1678,9 +1678,20 @@ frame_flags(Frame) -->
     },
     [ '~w~w '-[T, S] ].
 
-% trace/1,2 context handling
+% trace/1 context handling
+port(Port, Dict) -->
+    { _{level:Level, start:Time} :< Dict
+    },
+    (   { Port \== call,
+          get_time(Now),
+          Passed is (Now - Time)*1000.0
+        }
+    ->  [ '[~d +~1fms] '-[Level, Passed] ]
+    ;   [ '[~d] '-[Level] ]
+    ),
+    port(Port).
 port(Port, _Id-Level) -->
-    [ '[~d] '-Level ],
+    [ '[~d] '-[Level] ],
     port(Port).
 
 port(Port) -->
