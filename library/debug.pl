@@ -42,10 +42,10 @@
             debugging/1,                % ?Topic
             debugging/2,                % ?Topic, ?Bool
             list_debug_topics/0,
+            list_debug_topics/1,        % +Options
             debug_message_context/1,    % (+|-)What
 
-            assertion/1,                % :Goal
-            list_debug_topics/1         % +Options
+            assertion/1                 % :Goal
           ]).
 :- autoload(library(lists),[append/3,delete/3,selectchk/3,member/2]).
 :- autoload(library(prolog_stack),[backtrace/1]).
