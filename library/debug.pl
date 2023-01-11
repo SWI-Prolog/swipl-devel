@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2018, University of Amsterdam
+    Copyright (c)  2002-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,10 +44,12 @@
             list_debug_topics/0,
             debug_message_context/1,    % (+|-)What
 
-            assertion/1                 % :Goal
+            assertion/1,                % :Goal
+            list_debug_topics/1         % +Options
           ]).
 :- autoload(library(lists),[append/3,delete/3,selectchk/3,member/2]).
 :- autoload(library(prolog_stack),[backtrace/1]).
+:- autoload(library(option), [option/3, option/2]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -68,20 +71,18 @@
 
 This library is a replacement for  format/3 for printing debug messages.
 Messages are assigned a _topic_. By   dynamically  enabling or disabling
-topics the user can  select  desired   messages.  Debug  statements  are
-removed when the code is compiled for optimization.
-
-See manual for details. With XPCE, you can use the call below to start a
-graphical monitoring tool.
-
-==
-?- prolog_ide(debug_monitor).
-==
+topics the user can  select  desired   messages.  Calls  to  debug/3 and
+assertion/1 are removed when  the  code   is  compiled  for optimization
+unless the Prolog flag `optimise_debug` is set to `true`.
 
 Using the predicate assertion/1 you  can   make  assumptions  about your
 program explicit, trapping the debugger if the condition does not hold.
 
-@author Jan Wielemaker
+Output and actions by these predicates   can be configured using _hooks_
+to fit your environment. With XPCE, you can  use the call below to start
+a graphical monitoring tool.
+
+    ?- prolog_ide(debug_monitor).
 */
 
 %!  debugging(+Topic) is semidet.
@@ -92,13 +93,13 @@ program explicit, trapping the debugger if the condition does not hold.
 %   perform more complex debugging tasks.   A typical usage skeleton
 %   is:
 %
-%     ==
+%     ```
 %           (   debugging(mytopic)
 %           ->  <perform debugging actions>
 %           ;   true
 %           ),
 %           ...
-%     ==
+%     ```
 %
 %   The other two calls are intended to examine existing and enabled
 %   debugging tokens and are typically not used in user programs.
@@ -112,14 +113,28 @@ debugging(Topic, Bool) :-
 %!  debug(+Topic) is det.
 %!  nodebug(+Topic) is det.
 %
-%   Add/remove a topic from being   printed.  nodebug(_) removes all
-%   topics. Gives a warning if the topic is not defined unless it is
-%   used from a directive. The latter allows placing debug topics at
-%   the start of a (load-)file without warnings.
+%   Add/remove a topic  from  being   printed.  nodebug(_)  removes  all
+%   topics. Gives a warning if the  topic   is  not defined unless it is
+%   used from a directive. The latter allows placing debug topics at the
+%   start of a (load-)file without warnings.
 %
-%   For debug/1, Topic can be  a  term   Topic  >  Out, where Out is
-%   either a stream or  stream-alias  or   a  filename  (atom). This
-%   redirects debug information on this topic to the given output.
+%   For debug/1, Topic can be  a  term   `Topic  >  Out`, where `Out` is
+%   either a stream or  stream-alias  or   a  filename  (an  atom). This
+%   redirects debug information on this topic   to  the given output. On
+%   Linux systems redirection can be used   to  make the message appear,
+%   even if the `user_error` stream is redefined using
+%
+%       ?- debug(Topic > '/proc/self/fd/2').
+%
+%   A platform independent way to  get   debug  messages  in the current
+%   console (for example, a `swipl-win` window,  or login using `ssh` to
+%   Prolog running an SSH server from the `libssh` pack) is to use:
+%
+%       ?- stream_property(S, alias(user_error)),
+%          debug(Topic > S).
+%
+%   Do not forget to  disable  the   debugging  using  nodebug/1  before
+%   quitting the console if Prolog must remain running.
 
 debug(Topic) :-
     with_mutex(prolog_debug, debug(Topic, true)).
@@ -181,21 +196,54 @@ debug_topic(Topic) :-
     ).
 
 %!  list_debug_topics is det.
+%!  list_debug_topics(+Options) is det.
 %
-%   List currently known debug topics and their setting.
+%   List currently known topics for debug/3   and their setting. Options
+%   is  either  an  atom  or   string,    which   is   a  shorthand  for
+%   `[search(String)]` or a normal option list. Defined options are:
+%
+%     - search(String)
+%       Only show topics that match String.  Match is case insensitive
+%       on the printed representation of the term.
+%     - active(+Boolean)
+%       Only print topics that are active (`true`) or inactive
+%       (`false`).
+%     - output(+To)
+%       Only print topics whose target location matches To.
 
 list_debug_topics :-
-    format(user_error, '~`-t~45|~n', []),
-    format(user_error, '~w~t ~w~35| ~w~n',
-           ['Debug Topic', 'Activated', 'To']),
-    format(user_error, '~`-t~45|~n', []),
+    list_debug_topics([]).
+
+list_debug_topics(Options) :-
+    (   atom(Options)
+    ;   string(Options)
+    ),
+    !,
+    list_debug_topics([search(Options)]).
+list_debug_topics(Options) :-
+    print_message(information, debug_topics(header)),
+    option(active(Value), Options, _),
+    option(output(To), Options, _),
     (   debugging(Topic, Value, To),
         numbervars(Topic, 0, _, [singletons(true)]),
-        format(user_error, '~W~t ~w~35| ~w~n',
-               [Topic, [quoted(true), numbervars(true)], Value, To]),
+        term_string(Topic, String, [quoted(true), numbervars(true)]),
+        (   option(search(Search), Options)
+        ->  sub_atom_icasechk(String, _, Search)
+        ;   true
+        ),
+        print_message(information, debug_topic(Topic, String, Value, To)),
         fail
     ;   true
     ).
+
+:- multifile
+    prolog_debug_tools:debugging_hook/0.
+
+prolog_debug_tools:debugging_hook :-
+    (   debugging(_, true)
+    ->  list_debug_topics([active(true)])
+    ).
+
 
 %!  debug_message_context(+What) is det.
 %
@@ -338,13 +386,6 @@ assertion_failed.
 assertion_rethrow(time_limit_exceeded).
 assertion_rethrow('$aborted').
 
-%!  assume(:Goal) is det.
-%
-%   Acts similar to C assert() macro.  It has no effect of Goal
-%   succeeds.  If Goal fails it prints a message, a stack-trace
-%   and finally traps the debugger.
-%
-%   @deprecated     Use assertion/1 in new code.
 
                  /*******************************
                  *           EXPANSION          *
@@ -400,6 +441,16 @@ prolog:message(debug(Fmt, Args)) -->
     [ Fmt-Args ].
 prolog:message(debug_no_topic(Topic)) -->
     [ '~q: no matching debug topic (yet)'-[Topic] ].
+prolog:message(debug_topics(header)) -->
+    [ ansi(bold, '~w~t ~w~35| ~w~n', ['Debug Topic', 'Activated', 'To']),
+      '~`\u2015t~48|'
+    ].
+prolog:message(debug_topic(_, TopicString, true, [user_error])) -->
+    [ ansi(bold, '~s~t \u2714~35|', [TopicString]) ].
+prolog:message(debug_topic(_, TopicString, true, To)) -->
+    [ ansi(bold, '~s~t \u2714~35| ~q', [TopicString, To]) ].
+prolog:message(debug_topic(_, TopicString, false, _To)) -->
+    [ '~s~t -~35|'-[TopicString] ].
 
 
                  /*******************************
