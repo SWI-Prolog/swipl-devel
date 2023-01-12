@@ -209,7 +209,8 @@ debug_topic(Topic) :-
 %       Only print topics that are active (`true`) or inactive
 %       (`false`).
 %     - output(+To)
-%       Only print topics whose target location matches To.
+%       Only print topics whose target location matches To.  This option
+%       implicitly restricts the output to active topics.
 
 list_debug_topics :-
     list_debug_topics([]).
@@ -223,8 +224,11 @@ list_debug_topics(Options) :-
 list_debug_topics(Options) :-
     print_message(information, debug_topics(header)),
     option(active(Value), Options, _),
-    option(output(To), Options, _),
     (   debugging(Topic, Value, To),
+        (   option(output(Stream), Options)
+        ->  memberchk(Stream, To)
+        ;   true
+        ),
         numbervars(Topic, 0, _, [singletons(true)]),
         term_string(Topic, String, [quoted(true), numbervars(true)]),
         (   option(search(Search), Options)
