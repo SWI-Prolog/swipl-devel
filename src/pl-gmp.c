@@ -1620,6 +1620,8 @@ cmpFloatNumbers(Number n1, Number n2)
                           CMP_GREATER;
   } else
   { assert(n2->type == V_FLOAT);
+    if ( isnan(n2->value.f) )	/* CMP_NOTEQ != -CMP_NOTEQ :( */
+      return CMP_NOTEQ;
     return -cmpFloatNumbers(n2, n1);
   }
 }

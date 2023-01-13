@@ -52,6 +52,7 @@ test_arith :-
 		    float_overflow,
 		    float_zero,
 		    float_special,
+		    float_compare,
 		    arith_misc
 		  ]).
 
@@ -468,6 +469,21 @@ test(cmp, fail) :-
 	).
 
 :- end_tests(float_special).
+
+:- begin_tests(float_compare).
+
+test(max_nan, X == 1) :-
+    X is max(1, nan).
+test(max_nan, X == 1) :-
+    X is max(nan, 1).
+
+test(min_nan, X == 1) :-
+    X is min(1, nan).
+test(min_nan, X == 1) :-
+    X is min(nan, 1).
+
+:- end_tests(float_compare).
+
 
 :- begin_tests(arith_misc).
 
