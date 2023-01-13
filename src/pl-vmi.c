@@ -4038,9 +4038,9 @@ VMI(A_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
   MP_INT *num = mpq_numref(n->value.mpq);
   MP_INT *den = mpq_denref(n->value.mpq);
 
-  slimb_t num_size = mpq_stack_size(*p++);
+  int num_size = mpq_stack_size(*p++);
   num->expn = (slimb_t)*p++;
-  slimb_t den_size = mpq_stack_size(*p++);
+  int den_size = mpq_stack_size(*p++);
   den->expn = (slimb_t)*p++;
 
   num->ctx  = NULL;
