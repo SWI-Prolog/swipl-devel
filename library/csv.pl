@@ -177,7 +177,7 @@ csv_read_stream(Stream, Rows, Options) :-
 %       * separator(+Code)
 %       The comma-separator.  Must be a character code.  Default is
 %       (of course) the comma. Character codes can be specified
-%       using the 0' notion. E.g., using =|separator(0';)|= parses
+%       using the 0' notation. E.g., using =|separator(0';)|= parses
 %       a semicolon separated file.
 %
 %       * ignore_quotes(+Boolean)
