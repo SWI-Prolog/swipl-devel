@@ -671,6 +671,7 @@ path_sep(Sep) :-
 
 setup_path :-
     current_prolog_flag(windows, true),
+    \+ current_prolog_flag(msys2, true),
     !,
     setup_path([make, gcc]).
 setup_path.
