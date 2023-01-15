@@ -712,6 +712,16 @@ install_src(core_swipl_ico
 	    FILES ${CMAKE_CURRENT_SOURCE_DIR}/swipl.ico
 	    DESTINATION ${SWIPL_INSTALL_PREFIX})
 
+if(MSYS2)
+  install(DIRECTORY DESTINATION bin)
+  file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/swipl
+       "#!/usr/bin/bash\n${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl $@\n")
+  file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/swipl-ld
+       "#!/usr/bin/bash\n${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld $@\n")
+  install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/swipl DESTINATION bin)
+  install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/swipl-ld DESTINATION bin)
+endif()
+
 else(WIN32)
 
 if(NOT BUILD_MACOS_BUNDLE)
