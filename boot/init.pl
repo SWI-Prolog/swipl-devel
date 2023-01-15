@@ -1071,6 +1071,14 @@ user:file_search_path(foreign, swi(ArchLib)) :-
     \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
+user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([lib, Arch], /, ArchLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([bin, Arch], /, SoLib).
 user:file_search_path(foreign, swi(SoLib)) :-
     (   current_prolog_flag(windows, true)
     ->  SoLib = bin
