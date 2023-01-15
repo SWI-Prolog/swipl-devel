@@ -378,6 +378,7 @@ prolog_library_dir(Dir) :-
     !.
 prolog_library_dir(Dir) :-
     current_prolog_flag(windows, true),
+    \+ current_prolog_flag(msys2, true),
     current_prolog_flag(home, Home),
     !,
     atomic_list_concat([Home, bin], /, Dir).
