@@ -292,6 +292,12 @@ set_modified(DECL_LD gen_t gen)
   }
 }
 
+static void
+retract_clause_gen(Clause clause, gen_t generation)
+{ if ( clause->generation.erased > generation )
+    clause->generation.erased = generation;
+}
+
 #define transaction_commit(_) LDFUNC(transaction_commit, _)
 static int
 transaction_commit(DECL_LD)
@@ -322,18 +328,26 @@ transaction_commit(DECL_LD)
 	  cl->generation.created = GEN_TR_ASSERT_ERASE;
 	}
       } else if ( lgen == GEN_NESTED_RETRACT )
-      { retract_clause(cl, gen_commit);
+      { retract_clause_gen(cl, gen_commit);
       } else
       { DEBUG(MSG_COMMIT,
 	      Sdprintf("Commit erased clause %p for %s\n",
 		       cl, predicateName(cl->predicate)));
 	ATOMIC_DEC(&cl->tr_erased_no);
-	retract_clause(cl, gen_commit);
+	retract_clause_gen(cl, gen_commit);
       }
     }
     MEMORY_RELEASE();
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
+
+    FOR_TABLE(LD->transaction.clauses, n, v)
+    { Clause cl = n;
+      uintptr_t lgen = (uintptr_t)v;
+
+      if ( !IS_ASSERT_GEN(lgen) )
+	retract_clause(cl, cl->generation.erased);
+    }
 
     set_modified(gen_commit);
     destroyHTable(LD->transaction.clauses);
@@ -837,4 +851,3 @@ BeginPredDefs(transaction)
   PRED_DEF("pred_generations",    1, pred_generations,    META)
 #endif
 EndPredDefs
-
