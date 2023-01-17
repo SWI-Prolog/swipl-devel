@@ -378,6 +378,17 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
+#if defined(CHECK_FORMAT)
+/* Note that SWI-Prolog's "%Ws" etc confuses the compiler's format checker */
+#define WPRINTF12  __attribute__ ((format (printf, 1, 2)))
+#define WPRINTF23  __attribute__ ((format (printf, 2, 3)))
+#define WPRINTF34  __attribute__ ((format (printf, 3, 4)))
+#else
+#define WPRINTF12
+#define WPRINTF23
+#define WPRINTF34
+#endif
+
 PL_EXPORT(void)		SinitStreams(void);
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
@@ -424,16 +435,16 @@ PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
 PL_EXPORT(size_t)	Spending(IOSTREAM *s);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
-PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);
-PL_EXPORT(int)		Sprintf(const char *fm, ...);
+PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...) WPRINTF23;
+PL_EXPORT(int)		Sprintf(const char *fm, ...) WPRINTF12;
 PL_EXPORT(int)		Svprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
-PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...);
-PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...);
+PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...) WPRINTF23;
+PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...) WPRINTF34;
 PL_EXPORT(int)		Svsprintf(char *buf, const char *fm, va_list args);
 PL_EXPORT(int)		Svsnprintf(char *buf, size_t size, const char *fm, va_list args);
 PL_EXPORT(int)		Svdprintf(const char *fm, va_list args);
-PL_EXPORT(int)		Sdprintf(const char *fm, ...);
+PL_EXPORT(int)		Sdprintf(const char *fm, ...) WPRINTF12;
 PL_EXPORT(int)		Slock(IOSTREAM *s);
 PL_EXPORT(int)		StryLock(IOSTREAM *s);
 PL_EXPORT(int)		Sunlock(IOSTREAM *s);
