@@ -369,7 +369,7 @@ releaseSourceFile(SourceFile sf)
 		 sf->references-1));
 
   if ( sf->references <= 0 )
-  { Sdprintf("Oops: %d references for sourc file %s\n", PL_atom_chars(sf->name));
+  { Sdprintf("Oops: %d references for source file %s\n", sf->references, PL_atom_chars(sf->name));
     sf->references = 0x4000000;
   }
   if ( ATOMIC_DEC(&sf->references) == 0 )

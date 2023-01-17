@@ -2614,7 +2614,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
     { case EINTR:
 	return FALSE;
       case ESRCH:
-	Sdprintf("Join %s: ESRCH from %d\n",
+	Sdprintf("Join %s: ESRCH from %ld\n",
 		 threadName(info->pl_tid), info->tid);
 	return PL_error("thread_join", 2, NULL,
 			ERR_EXISTENCE, ATOM_thread, thread);

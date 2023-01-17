@@ -222,7 +222,7 @@ static unsigned int
 predicate_signature(const Definition def)
 { char str[256];
 
-  Ssprintf(str, "%s/%d/%d",
+  Ssprintf(str, "%s/%d/0x%" PRIx64,
 	   stringAtom(def->functor->name),
 	   (int)def->functor->arity,
 	   def->flags);

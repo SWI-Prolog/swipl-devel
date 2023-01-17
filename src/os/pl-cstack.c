@@ -437,17 +437,17 @@ print_trace(btrace *bt, int me)
 #endif
 	       ) &&
 	       addr2line(info.dli_fname, offset, buf, sizeof(buf)) )
-	    Sdprintf("  [%d] %s [%p]\n", i, buf, addr);
+	    Sdprintf("  [%zd] %s [%p]\n", i, buf, addr);
 	  else if ( info.dli_sname )
-	    Sdprintf("  [%d] %s(%s+%p) [%p]\n",
+	    Sdprintf("  [%zd] %s(%s+%lu) [%p]\n",
 		     i, info.dli_fname, info.dli_sname,
 		     (uintptr_t)addr-(uintptr_t)info.dli_saddr,
 		     addr);
 	  else
-	    Sdprintf("  [%d] %s(+%p) [%p]\n",
+	    Sdprintf("  [%zd] %s(+%p) [%p]\n",
 		     i, info.dli_fname, (void*)offset, addr);
 	} else
-	{ Sdprintf("  [%d] ??? [%p]\n", i, addr);
+	{ Sdprintf("  [%zd] ??? [%p]\n", i, addr);
 	}
       }
     }
