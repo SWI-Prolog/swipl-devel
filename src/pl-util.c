@@ -152,7 +152,7 @@ predicateName(Definition def)
   strcpy(e, atom_summary(def->functor->name, 50));
   e += strlen(e);
   *e++ = '/';
-  Ssprintf(e, "%d", def->functor->arity);
+  Ssprintf(e, "%zd", def->functor->arity);
 
   return buffer_string(tmp, BUF_STACK);
 }
@@ -171,7 +171,7 @@ functorName(functor_t f)
   strcpy(e, atom_summary(fd->name, 50));
   e += strlen(e);
   *e++ = '/';
-  Ssprintf(e, "%d", fd->arity);
+  Ssprintf(e, "%zd", fd->arity);
 
   return buffer_string(tmp, BUF_STACK);
 }
@@ -196,7 +196,7 @@ keyName(word key)
 	  get_number(key, &n);
 	  switch(n.type)
 	  { case V_INTEGER:
-	      Ssprintf(tmp, "%lld", n.value.i);
+	      Ssprintf(tmp, "%" PRIi64, n.value.i);
 	      break;
 	    case V_FLOAT:
 	      Ssprintf(tmp, "%f", n.value.f);
@@ -244,9 +244,9 @@ generationName(gen_t gen)
   { int tid    = (gen-GEN_TRANSACTION_BASE)/GEN_TRANSACTION_SIZE;
     int64_t g2 = (gen-GEN_TRANSACTION_BASE)%GEN_TRANSACTION_SIZE;
 
-    Ssprintf(tmp, "%d@%lld", tid, (int64_t)g2);
+    Ssprintf(tmp, "%d@%" PRIi64, tid, (int64_t)g2);
   } else
-  { Ssprintf(tmp, "%lld", (int64_t)gen);
+  { Ssprintf(tmp, "%" PRIi64, (int64_t)gen);
   }
 
   return buffer_string(tmp, BUF_STACK);

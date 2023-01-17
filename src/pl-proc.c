@@ -672,7 +672,7 @@ get_head_functor(DECL_LD term_t head, functor_t *fdef, int how)
     } else
     { char buf[100];
 
-      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, fd->arity);
+      Ssprintf(buf, "limit is %d, request = %zd", MAXARITY, fd->arity);
 
       return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_procedure_arity);

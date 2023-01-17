@@ -4455,8 +4455,8 @@ PL_clear_foreign_exception(LocalFrame fr)
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
-  Sdprintf("Thread %d (%Ws): foreign predicate %s did not clear exception: \n\t",
-	   tid, name, predicateName(fr->predicate));
+  SdprintfX("Thread %d (%Ws): foreign predicate %s did not clear exception:\n\t",
+	    tid, name, predicateName(fr->predicate));
 #if O_DEBUG
   print_backtrace_named("exception");
 #endif

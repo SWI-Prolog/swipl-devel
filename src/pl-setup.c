@@ -487,9 +487,9 @@ dispatch_signal(int sig, int sync)
 
 	  if ( PL_get_thread_alias(tid, &alias) )
 	    name = PL_atom_wchars(alias, NULL);
-	  Sdprintf("Got signal %d in thread %d (%Ws) %s\n",
-		   sig, tid, name,
-		   sync ? " (sync)" : " (async)");
+	  SdprintfX("Got signal %d in thread %d (%Ws) %s\n",
+		    sig, tid, name,
+		    sync ? " (sync)" : " (async)");
 	});
 #else
   DEBUG(MSG_SIGNAL,

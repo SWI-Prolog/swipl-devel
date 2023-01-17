@@ -1252,7 +1252,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
 	{ if ( same_proc == 10 )
-	    Sfprintf(out, "    ...\n    ...\n", Sdout);
+	    Sfprintf(out, "    ...\n    ...\n");
 	  rctx = ctx;
 	  continue;
 	}

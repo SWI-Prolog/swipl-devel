@@ -120,7 +120,7 @@ static const PL_extension foreigns[] = {
   FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
-  FRG("writeln",		1, pl_writeln,		        0),
+  FRG("writeln",		1, pl_writeln,			0),
   FRG("print",			1, pl_print,			0),
 
   FRG("read",			1, pl_read,		      ISO),
@@ -166,7 +166,7 @@ static const PL_extension foreigns[] = {
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	     NDET),
 
 #ifdef O_PROLOG_HOOK
-  FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
+  FRG("set_prolog_hook",	3, pl_set_prolog_hook,		0),
 #endif
   FRG("context_module",		1, pl_context_module,	     META),
 
@@ -190,7 +190,7 @@ static const PL_extension foreigns[] = {
 
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
-  FRG("writeln",		2, pl_writeln2,		        0),
+  FRG("writeln",		2, pl_writeln2,			0),
   FRG("writeq",			2, pl_writeq2,		      ISO),
   FRG("print",			2, pl_print2,			0),
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
@@ -198,7 +198,7 @@ static const PL_extension foreigns[] = {
 
   FRG("format_predicate",	2, pl_format_predicate,	     META),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
-						        META|NDET),
+							META|NDET),
   FRG("get_time",		1, pl_get_time,			0),
 
 #ifdef O_PLMT
@@ -222,9 +222,9 @@ static unsigned int
 predicate_signature(const Definition def)
 { char str[256];
 
-  Ssprintf(str, "%s/%d/%d",
+  Ssprintf(str, "%s/%zd/0x%" PRIx64,
 	   stringAtom(def->functor->name),
-	   (int)def->functor->arity,
+	   def->functor->arity,
 	   def->flags);
 
   return MurmurHashAligned2(str, strlen(str), SIGNATURE_SEED);

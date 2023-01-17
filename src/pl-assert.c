@@ -92,9 +92,9 @@ __assert_fail(const char *assertion,
     if ( PL_get_thread_alias(tid, &alias) )
       name = PL_atom_wchars(alias, NULL);
 
-    Sdprintf("[Thread %d (%Ws) at %s] %s:%d: %s: Assertion failed: %s\n",
-	     PL_thread_self(), name, tbuf,
-	     file, line, function, assertion);
+    SdprintfX("[Thread %d (%Ws) at %s] %s:%d: %s: Assertion failed: %s\n",
+	      PL_thread_self(), name, tbuf,
+	      file, line, function, assertion);
   }
 #else
   Sdprintf("[At %s] %s:%d: %s: Assertion failed: %s\n",

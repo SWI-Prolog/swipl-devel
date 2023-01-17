@@ -432,7 +432,8 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
     if ( cm->count == 0 )
       continue;
 
-    Sfprintf(s, "%-56Us %8d", cm->name, cm->count); /* %Us: UTF-8 string */
+    SfprintfX(s, "%-56Us %8ld", cm->name, cm->count); /* %Us: UTF-8 string */
+
 #ifdef O_CONTENTION_STATISTICS
     Sfprintf(s, " %8d", cm->collisions);
 #endif
@@ -2614,8 +2615,8 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
     { case EINTR:
 	return FALSE;
       case ESRCH:
-	Sdprintf("Join %s: ESRCH from %d\n",
-		 threadName(info->pl_tid), info->tid);
+	Sdprintf("Join %s: ESRCH from %zd\n",
+		 threadName(info->pl_tid), (size_t)info->tid);
 	return PL_error("thread_join", 2, NULL,
 			ERR_EXISTENCE, ATOM_thread, thread);
       default:

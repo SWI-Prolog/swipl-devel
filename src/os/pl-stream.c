@@ -2189,6 +2189,21 @@ Sfprintf(IOSTREAM *s, const char *fm, ...)
   return rval;
 }
 
+/* SfprintfX() is identical to Sfprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SfprintfX(IOSTREAM *s, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svfprintf(s, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
 
 int
 Sprintf(const char *fm, ...)
@@ -2611,6 +2626,22 @@ Ssnprintf(char *buf, size_t size, const char *fm, ...)
 }
 
 
+/* SsnprintfX() is identical to Ssnprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SsnprintfX(char *buf, size_t size, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svsnprintf(buf, size, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+
 int
 Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
@@ -2673,6 +2704,21 @@ Svdprintf(const char *fm, va_list args)
 
 int
 Sdprintf(const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svdprintf(fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+/* SdprintfX() is identical to Sdprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SdprintfX(const char *fm, ...)
 { va_list args;
   int rval;
 

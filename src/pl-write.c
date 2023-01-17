@@ -124,7 +124,7 @@ var_name_ptr(DECL_LD Word p, char *name)
   else
     iref = ((Word)p - (Word)gBase)*2;
 
-  Ssprintf(name, "_%lld", (int64_t)iref);
+  Ssprintf(name, "_%" PRIi64, (int64_t)iref);
 
   return name;
 }
