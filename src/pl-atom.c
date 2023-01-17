@@ -1247,7 +1247,9 @@ unregister_atom(volatile Atom p)
     char *enc;
     char *buf = NULL;
 
+    WPRINT_PUSH
     strcpy(fmt, "OOPS: PL_unregister_atom('%Ls'): -1 references\n");
+    WPRINT_POP
     enc = strchr(fmt, '%')+1;
 
     Sdprintf(fmt, dbgAtomName(p, enc, &buf));

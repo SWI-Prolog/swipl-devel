@@ -167,7 +167,9 @@ write_jsobj_ref(IOSTREAM *out, atom_t aref, int flags)
 
   PL_STRINGS_MARK();
   s = PL_atom_wchars(cname, NULL);
+  WPRINT_PUSH
   Sfprintf(out, "<js_%Ws>(%d)", s, ref->id);
+  WPRING_POP
   PL_STRINGS_RELEASE();
 
   return TRUE;

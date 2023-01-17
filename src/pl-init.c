@@ -1714,8 +1714,10 @@ vsysError(const char *fm, va_list args)
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
+  WPRINT_PUSH
   Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d (%Ws) at %s\n\t",
 	   tid, name, tbuf);
+  WPRINT_POP
 }
 #else
   Sfprintf(Serror, "[PROLOG SYSTEM ERROR: at %s\n\t", tbuf);

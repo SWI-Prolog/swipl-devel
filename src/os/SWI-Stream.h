@@ -379,14 +379,21 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *******************************/
 
 #if defined(CHECK_FORMAT)
-/* Note that SWI-Prolog's "%Ws" etc confuses the compiler's format checker */
 #define WPRINTF12  __attribute__ ((format (printf, 1, 2)))
 #define WPRINTF23  __attribute__ ((format (printf, 2, 3)))
 #define WPRINTF34  __attribute__ ((format (printf, 3, 4)))
+/* SWI-Prolog's "%Ws" etc confuses the compiler's format checker */
+#define WPRINT_PUSH \
+  _Pragma ("GCC diagnostic push") \
+  _Pragma ("GCC diagnostic ignored \"-Wformat\"") \
+  _Pragma ("GCC diagnostic ignored \"-Wformat-extra-args\"")
+#define WPRINT_POP _Pragma ("GCC diagnostic pop")
 #else
 #define WPRINTF12
 #define WPRINTF23
 #define WPRINTF34
+#define WPRINT_PUSH
+#define WPRINT_POP
 #endif
 
 PL_EXPORT(void)		SinitStreams(void);

@@ -3622,7 +3622,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
       { size_t i;
 
 	if ( DEF->tabling->abstract != 0 )
-	  Sdprintf("% WARNING: Only abstract(0) is supported\n");
+	  Sdprintf("%% WARNING: Only abstract(0) is supported\n");
 	for(i=0; i<DEF->functor->arity; i++)
 	  setVar(ap[i]);
       } else

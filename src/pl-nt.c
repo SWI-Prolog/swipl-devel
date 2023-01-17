@@ -735,8 +735,11 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
 
       /* AddDllDirectoryW() cannot handle "\\?\" */
       if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_length(dirw))) )
-      { DEBUG(MSG_WIN_API,
+      {
+        WPRINT_PUSH
+        DEBUG(MSG_WIN_API,
 	      Sdprintf("AddDllDirectory(%Ws) ok\n", dirw));
+        WPRINT_POP
 
 	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
       }
@@ -810,7 +813,9 @@ PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
     *w = 0;
   }
 
+  WPRINT_PUSH
   DEBUG(MSG_WIN_API, Sdprintf("dlopen(%Ws)\n", wfile));
+  WPRINT_POP
 
   if ( is_windows_abs_path(wfile) )
     llflags |= load_library_search_flags();

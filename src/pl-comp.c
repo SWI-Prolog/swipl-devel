@@ -4786,7 +4786,7 @@ argKey(Code PC, int skip, word *key)
 	goto again;
 #endif
       default:
-	Sdprintf("Unexpected VM code %ld at %p\n", c, PC);
+	Sdprintf("Unexpected VM code %" PRIuPTR " at %p\n", c, PC);
 	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
 	fail;
@@ -7081,7 +7081,7 @@ vm_list(Code start, Code end)
   { code op = fetchop(PC);
     const code_info *ci = &codeTable[op];
 
-    Sdprintf("%-3ld %s\n", PC-start, ci->name);
+    Sdprintf("%-3zd %s\n", (size_t)(PC-start), ci->name);
     if ( !end )
     { switch(op)
       { case I_EXIT:
