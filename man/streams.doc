@@ -611,6 +611,55 @@ or points at a buffer of (at least) the indicated size long. The default
 buffer size is defined by the C macro \const{SIO_BUFSIZE}
 \end{description}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Writing Prolog terms to foreign streams}
+\label{sec:iostream-write-term}
+
+\begin{description}
+    \cfunction{int}{PL_write_term}{IOSTREAM *s, term_t term, int precedence,
+				   int flags}
+Write \arg{term} to \arg{s}.  \arg{precedence} is the initial operator
+precedence, typically 1200. \arg{flags} is a bitwise or of the
+constants below.  These flags map to options for write_term/2.
+
+    \begin{description}
+	\definition{\const{PL_WRT_QUOTED}}
+	\definition{\const{PL_WRT_IGNOREOPS}}
+	\definition{\const{PL_WRT_NUMBERVARS}}
+	\definition{\const{PL_WRT_PORTRAY}}
+	\definition{\const{PL_WRT_CHARESCAPES}}
+	\definition{\const{PL_WRT_BACKQUOTED_STRING}}
+	\definition{\const{PL_WRT_ATTVAR_IGNORE}}
+	\definition{\const{PL_WRT_ATTVAR_DOTS}}
+	\definition{\const{PL_WRT_ATTVAR_WRITE}}
+	\definition{\const{PL_WRT_ATTVAR_PORTRAY}}
+	\definition{\const{PL_WRT_BLOB_PORTRAY}}
+	\definition{\const{PL_WRT_NO_CYCLES}}
+	\definition{\const{PL_WRT_NEWLINE}}
+	\definition{\const{PL_WRT_VARNAMES}}
+	\definition{\const{PL_WRT_BACKQUOTE_IS_SYMBOL}}
+	\definition{\const{PL_WRT_DOTLISTS}}
+	\definition{\const{PL_WRT_BRACETERMS}}
+	\definition{\const{PL_WRT_NODICT}}
+	\definition{\const{PL_WRT_NODOTINATOM}}
+	\definition{\const{PL_WRT_NO_LISTS}}
+	\definition{\const{PL_WRT_RAT_NATURAL}}
+	\definition{\const{PL_WRT_CHARESCAPES_UNICODE}}
+	\definition{\const{PL_WRT_QUOTE_NON_ASCII}}
+	\definition{\const{PL_WRT_PARTIAL}}
+    \end{description}
+
+For example, to print a term to \const{user_error} as the toplevel
+does, use
+
+\begin{code}
+    PL_write_term(Suser_error, t, 1200,
+		  PL_WRT_QUOTED|PL_WRT_PORTRAY|
+		  PL_WRT_VARNAMES|PL_WRT_NEWLINE)
+\end{code}
+\end{description}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Foreign stream error handling}
