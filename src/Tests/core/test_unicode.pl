@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,8 @@
 */
 
 test_unicode :-
-    run_tests([ numbers
+    run_tests([ numbers,
+		unicode_preds
 	      ]).
 
 :- begin_tests(numbers).
@@ -68,3 +69,12 @@ test(string_number, N == -12.34567e-89) :-
     number_string(N, "-١٢.٣٤٥٦٧e-٨٩").
 
 :- end_tests(numbers).
+
+:- begin_tests(unicode_preds).
+
+test(atom_length, Len == 1) :-
+    atom_length('\U0001F600', Len).
+test(string_length, Len == 1) :-
+    atom_length('\U0001F600', Len).
+
+:- end_tests(unicode_preds).
