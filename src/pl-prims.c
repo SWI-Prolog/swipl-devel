@@ -3949,26 +3949,37 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
 		 *	       ATOMS		*
 		 *******************************/
 
-static
-PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
-{ PRED_LD
-  int flags;
-  PL_chars_t txt;
+#define text_length(s, len, flags) \
+	LDFUNC(text_length, s, len, flags)
 
-  if ( truePrologFlag(PLFLAG_ISO) )
-    flags = CVT_ATOM|CVT_STRING|CVT_EXCEPTION|BUF_ALLOW_STACK;
-  else
-    flags = CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK;
+static foreign_t
+text_length(DECL_LD term_t s, term_t len, int flags)
+{ PL_chars_t txt;
 
-  if ( PL_get_text(A1, &txt, flags) )
-  { int rc = PL_unify_int64_ex(A2, PL_text_length(&txt));
+  flags |= CVT_EXCEPTION|BUF_ALLOW_STACK;
+
+  if ( PL_get_text(s, &txt, flags) )
+  { int rc = PL_unify_int64_ex(len, PL_text_length(&txt));
 
     PL_free_text(&txt);
 
     return rc;
   }
 
-  fail;
+  return FALSE;
+}
+
+static
+PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
+{ PRED_LD
+  int flags;
+
+  if ( truePrologFlag(PLFLAG_ISO) )
+    flags = CVT_ATOM|CVT_STRING;
+  else
+    flags = CVT_ALL;
+
+  return text_length(A1, A2, flags);
 }
 
 
@@ -5079,17 +5090,8 @@ Provisional String manipulation functions.
 static
 PRED_IMPL("string_length", 2, string_length, 0)
 { PRED_LD
-  PL_chars_t t;
 
-  if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK) )
-  { int rc = PL_unify_int64_ex(A2, t.length);
-
-    PL_free_text(&t);
-
-    return rc;
-  }
-
-  fail;
+  return text_length(A1, A2, CVT_ALL);
 }
 
 
