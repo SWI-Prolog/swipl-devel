@@ -1651,8 +1651,9 @@ colourise_expression(Float, TB, Pos) :-
     float(Float),
     !,
     colour_item(float, TB, Pos).
-colourise_expression(_Arg, _TB, _Pos) :-
-    true.
+colourise_expression(_Arg, TB, Pos) :-
+    colour_item(type_error(evaluable), TB, Pos).
+
 
 colourise_expression_args(Term, TB,
                           term_position(_,_,_,_,ArgPos)) :-
