@@ -622,6 +622,7 @@ S__fillbuf(IOSTREAM *s)
   { char chr;
     ssize_t n;
 
+  again:
     n = (*s->functions->read)(s->handle, &chr, 1);
     if ( n == 1 )
     { c = char_to_int(chr);
@@ -631,7 +632,15 @@ S__fillbuf(IOSTREAM *s)
 	s->flags |= SIO_FEOF;
       return -1;
     } else
-    { S__seterror(s);
+    { if ( errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	{ Sset_exception(s, PL_exception(0));
+	  errno = EPLEXCEPTION;
+	  return -1;
+	}
+	goto again;
+      }
+      S__seterror(s);
       return -1;
     }
   } else
@@ -658,6 +667,7 @@ S__fillbuf(IOSTREAM *s)
       len = s->bufsize;
     }
 
+  again2:
     n = (*s->functions->read)(s->handle, s->limitp, len);
     if ( n > 0 )
     { s->limitp += n;
@@ -675,6 +685,13 @@ S__fillbuf(IOSTREAM *s)
 	S__seterror(s);
 	return -1;
 #endif
+      } else if ( errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	{ Sset_exception(s, PL_exception(0));
+	  errno = EPLEXCEPTION;
+	  return -1;
+	}
+	goto again2;
       } else
       {	S__seterror(s);
 	return -1;
