@@ -387,7 +387,6 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
   _Pragma ("GCC diagnostic push") \
   _Pragma ("GCC diagnostic ignored \"-Wformat\"") \
   _Pragma ("GCC diagnostic ignored \"-Wformat-extra-args\"")
-#define WPRINT_POP _Pragma ("GCC diagnostic pop")
 #else
 #define WPRINTF12
 #define WPRINTF23

@@ -336,7 +336,7 @@ prolog_stack_frame_property(frame(_,_,_,Goal), goal(Goal)) :-
 frame_predicate(foreign(PI), PI).
 frame_predicate(call(PI), PI).
 frame_predicate(clause(Clause, _PC), PI) :-
-    clause_property(Clause, PI).
+    clause_property(Clause, predicate(PI)).
 
 default_backtrace_options(Options) :-
     (   current_prolog_flag(backtrace_show_lines, true),

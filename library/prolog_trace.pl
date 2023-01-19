@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2021, CWI, Amsterdam
+    Copyright (c)  2019-2023, CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -37,6 +37,7 @@
           [ trace/1,                            % :Spec
             trace/2,                            % :Spec, +Ports
             tracing/2,                          % :Spec, -Ports
+            list_tracing/0,
             notraceall/0
           ]).
 :- autoload(library(apply),[maplist/2]).
@@ -119,7 +120,7 @@ set_trace(Spec, Pred) :-
     ),
     modify(Spec, Spec0, Spec1),
     retractall(tracing_mask(Pred, _)),
-    (   Spec1 == []
+    (   Spec1 == [] ; Spec1 == 0
     ->  true
     ;   asserta(tracing_mask(Pred, Spec1))
     ),
@@ -238,6 +239,24 @@ is_masked(Pattern0, Port, Pattern) :-
 tracing(Spec, Ports) :-
     tracing_mask(Spec, Mask),
     mask_ports(Mask, Ports).
+
+%!  list_tracing.
+%
+%   List predicates we are currently tracing
+
+list_tracing :-
+    PI = _:_,
+    findall(trace(Head, Ports), (tracing(PI, Ports), pi_head(PI, Head)), Tracing),
+    print_message(informational, tracing(Tracing)).
+
+:- multifile
+    prolog_debug_tools:debugging_hook/0.
+
+prolog_debug_tools:debugging_hook :-
+    (   tracing(_:_, _)
+    ->  list_tracing
+    ).
+
 
 %!  notraceall is det.
 %
