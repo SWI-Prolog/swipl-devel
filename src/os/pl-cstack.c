@@ -441,7 +441,7 @@ print_trace(btrace *bt, int me)
 	  else if ( info.dli_sname )
 	    Sdprintf("  [%zd] %s(%s+0x%tx) [%p]\n",
 		     i, info.dli_fname, info.dli_sname,
-		     (uintptr_t)addr-(uintptr_t)info.dli_saddr,
+		     (char*)addr-(char*)info.dli_saddr,
 		     addr);
 	  else
 	    Sdprintf("  [%zd] %s(+%p) [%p]\n",
@@ -940,11 +940,9 @@ sigCrashHandler(int sig)
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
-  WPRINT_PUSH
-  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
-	   "received fatal signal %d (%s)\n",
-	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
-  WPRINT_POP
+  SdprintfX("\nSWI-Prolog [thread %d (%Ws) at %s]: "
+	    "received fatal signal %d (%s)\n",
+	    PL_thread_self(), name, tbuf, sig, signal_name(sig));
   print_c_backtrace("crash");
   Sdprintf("Prolog stack:\n");
   PL_backtrace(25, PL_BT_SAFE);

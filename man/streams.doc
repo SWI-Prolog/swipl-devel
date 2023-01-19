@@ -550,6 +550,11 @@ Emit a 0-terminated string.
 This function returns the number of characters written. Note that due to
 multibyte encodings the number of bytes written can be more.
 
+    \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
+Same as Sfprintf() but doesn't have the format-checking attribute.
+This is intended for formats that include extended format specifiers
+such as \exam{"%Ws"}.
+
     \cfunction{int}{Sprintf}{const char *fm, ...}
 Similar to Sfprintf(), printing to \arg{Soutput}
 
@@ -565,6 +570,11 @@ number of bytes written. Currently \arg{buf} uses
 \const{ENC_ISO_LATIN_1} encoding. Future versions will probably change
 to \const{ENC_UTF8}.
 
+    \cfunction{int}{SsnprintfX}{char *buf, size_t size, const char *fm, ...}
+Same as Ssnprintf() but doesn't have the format-checking attribute.
+This is intended for formats that include extended format specifiers
+such as \exam{"%Ws"}.
+
     \cfunction{int}{Svsprintf}{char *buf, const char *fm, va_list args}
 Variadic argument list version of Ssprintf(). Deprecated. Use
 Svsnprintf() instead.
@@ -575,6 +585,11 @@ Variadic argument list version of Ssnprintf().
     \cfunction{int}{Sdprintf}{const char *fm, ...}
 Print to \arg{Serror}.  This function should be used for printing debug
 output from foreign code.
+
+    \cfunction{int}{SdprintfX}{const char *fm, ...}
+Same as Sdprintf() but doesn't have the format-checking attribute.
+This is intended for formats that include extended format specifiers
+such as \exam{"%Ws"}.
 
     \cfunction{int}{Svdprintf}{const char *fm, va_list args}
 Variadic argument list version of Sdprintf().

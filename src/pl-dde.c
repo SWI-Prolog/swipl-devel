@@ -179,9 +179,7 @@ get_hsz(DWORD ddeInst, term_t data, HSZ *rval)
 
     assert(s[len] == 0);			/* Must be 0-terminated */
 
-    WPRINT_PUSH
-    DEBUG(2, Sdprintf("Get HSZ for %Ws ...\n", s));
-    WPRINT_POP
+    DEBUG(2, SdprintfX("Get HSZ for %Ws ...\n", s));
     if ( (h=DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE)) )
     { DEBUG(2, Sdprintf("\tHSZ = %p\n", h));
       *rval = h;
