@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2021, CWI, Amsterdam
+    Copyright (c)  2019-2023, CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -117,7 +117,7 @@ set_trace(Spec, Pred) :-
     ),
     modify(Spec, Spec0, Spec1),
     retractall(tracing_mask(Pred, _)),
-    (   Spec1 == []
+    (   Spec1 == [] ; Spec1 == 0
     ->  true
     ;   asserta(tracing_mask(Pred, Spec1))
     ),
