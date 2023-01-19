@@ -37,6 +37,7 @@
           [ trace/1,                            % :Spec
             trace/2,                            % :Spec, +Ports
             tracing/2,                          % :Spec, -Ports
+            list_tracing/0,
             notraceall/0
           ]).
 :- autoload(library(apply),[maplist/2]).
@@ -238,6 +239,24 @@ is_masked(Pattern0, Port, Pattern) :-
 tracing(Spec, Ports) :-
     tracing_mask(Spec, Mask),
     mask_ports(Mask, Ports).
+
+%!  list_tracing.
+%
+%   List predicates we are currently tracing
+
+list_tracing :-
+    PI = _:_,
+    findall(trace(Head, Ports), (tracing(PI, Ports), pi_head(PI, Head)), Tracing),
+    print_message(informational, tracing(Tracing)).
+
+:- multifile
+    prolog_debug_tools:debugging_hook/0.
+
+prolog_debug_tools:debugging_hook :-
+    (   tracing(_:_, _)
+    ->  list_tracing
+    ).
+
 
 %!  notraceall is det.
 %
