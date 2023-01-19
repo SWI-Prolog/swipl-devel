@@ -1605,6 +1605,69 @@ colourise_list_args([], none, _, _, _) :- !.
 colourise_list_args([], TP, T, TB, How) :-
     specified_item(How, T, TB, TP).
 
+
+%!  colourise_expression(+Term, +TB, +Pos)
+%
+%   colourise arithmetic expressions.
+
+colourise_expression(_, _, Pos) :-
+    var(Pos),
+    !.
+colourise_expression(Arg, TB, parentheses_term_position(PO,PC,Pos)) :-
+    !,
+    colour_item(parentheses, TB, PO-PC),
+    colourise_expression(Arg, TB, Pos).
+colourise_expression(Var, TB, Pos) :-                     % variable
+    var(Var), Pos = _-_,
+    !,
+    (   singleton(Var, TB)
+    ->  colour_item(singleton, TB, Pos)
+    ;   colour_item(var, TB, Pos)
+    ).
+colourise_expression(Compound, TB, Pos) :-
+    compound(Compound), Pos = term_position(_F,_T,FF,FT,_ArgPos),
+    !,
+    (   current_arithmetic_function(Compound)
+    ->  colour_item(function, TB, FF-FT)
+    ;   colour_item(no_function, TB, FF-FT)
+    ),
+    colourise_expression_args(Compound, TB, Pos).
+colourise_expression(Atom, TB, Pos) :-
+    atom(Atom),
+    !,
+    (   current_arithmetic_function(Atom)
+    ->  colour_item(function, TB, Pos)
+    ;   colour_item(no_function, TB, Pos)
+    ).
+colourise_expression(Integer, TB, Pos) :-
+    integer(Integer),
+    !,
+    colour_item(int, TB, Pos).
+colourise_expression(Rational, TB, Pos) :-
+    rational(Rational),
+    !,
+    colour_item(rational(Rational), TB, Pos).
+colourise_expression(Float, TB, Pos) :-
+    float(Float),
+    !,
+    colour_item(float, TB, Pos).
+colourise_expression(_Arg, _TB, _Pos) :-
+    true.
+
+colourise_expression_args(Term, TB,
+                          term_position(_,_,_,_,ArgPos)) :-
+    !,
+    colourise_expression_args(ArgPos, 1, Term, TB).
+colourise_expression_args(_, _, _).
+
+colourise_expression_args([], _, _, _).
+colourise_expression_args([Pos|T], N, Term, TB) :-
+    arg(N, Term, Arg),
+    colourise_expression(Arg, TB, Pos),
+    NN is N + 1,
+    colourise_expression_args(T, NN, Term, TB).
+
+
 %!  colourise_qq_type(+QQType, +TB, +QQTypePos)
 %
 %   Colouring the type part of a quasi quoted term
@@ -2356,6 +2419,13 @@ call_goal_colours(Term, Class, Colours) :-
 
 %       Specify colours for individual goals.
 
+def_goal_colours(_ is _,                 built_in-[classify,expression]).
+def_goal_colours(_ < _,                  built_in-[expression,expression]).
+def_goal_colours(_ > _,                  built_in-[expression,expression]).
+def_goal_colours(_ =< _,                 built_in-[expression,expression]).
+def_goal_colours(_ >= _,                 built_in-[expression,expression]).
+def_goal_colours(_ =\= _,                built_in-[expression,expression]).
+def_goal_colours(_ =:= _,                built_in-[expression,expression]).
 def_goal_colours(module(_,_),            built_in-[identifier,exports]).
 def_goal_colours(module(_,_,_),          built_in-[identifier,exports,langoptions]).
 def_goal_colours(use_module(_),          built_in-[imported_file]).
@@ -2474,6 +2544,9 @@ def_style(goal(foreign(_),_),      [colour(darkturquoise)]).
 def_style(goal(local(_),_),        []).
 def_style(goal(constraint(_),_),   [colour(darkcyan)]).
 def_style(goal(not_callable,_),    [background(orange)]).
+
+def_style(function,                [colour(blue)]).
+def_style(no_function,             [colour(red)]).
 
 def_style(option_name,             [colour('#3434ba')]).
 def_style(no_option_name,          [colour(red)]).
@@ -2774,7 +2847,9 @@ specified_item(imported_file, Term, TB, Pos) :-
 specified_item(langoptions, Term, TB, Pos) :-
     !,
     colourise_langoptions(Term, TB, Pos).
-
+specified_item(expression, Term, TB, Pos) :-
+    !,
+    colourise_expression(Term, TB, Pos).
                                         % directory
 specified_item(directory, Term, TB, Pos) :-
     !,
