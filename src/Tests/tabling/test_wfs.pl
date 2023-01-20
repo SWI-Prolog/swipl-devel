@@ -91,7 +91,7 @@ test(dwin) :-
 dwin(X) :- win_cnt(X,Cnt), Cnt >= 2.
 
 :- table win_cnt(_,lattice(sum/3)).
-sum(X,Y,Z) :- Z is X+Y, nl.
+sum(X,Y,Z) :- Z is X+Y.
 
 win_cnt(X,1) :- move(X,Y), tnot(dwin(Y)).
 
@@ -107,4 +107,3 @@ move(0,0).
 
 mp :- tnot(mq).
 mq :- tnot(mp).
-
