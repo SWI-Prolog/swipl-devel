@@ -2286,7 +2286,8 @@ typedef enum
 { INT_INT       = 0,
   INT_LONG      = 1,
   INT_LONG_LONG = 2,
-  INT_SIZE_T    = 3
+  INT_SIZE_T    = 3,
+  INT_PTRDIFF_T = 4
 } int_type;
 
 int
@@ -2370,6 +2371,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    islong = INT_SIZE_T;
 	    fm++;
 	    break;
+	  case 't':
+	    islong = INT_PTRDIFF_T;
+	    fm++;
+	    break;
 	  case 'L':			/* %Ls: ISO-Latin-1 string */
 	    enc = ENC_ISO_LATIN_1;
 	    fm++;
@@ -2427,6 +2432,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      case INT_SIZE_T:
 		vll = va_arg(args, size_t);
 		break;
+	      case INT_PTRDIFF_T:
+		vll = va_arg(args, ptrdiff_t);
+		break;
 	      default:
 		assert(0);
 	    }
@@ -2448,6 +2456,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		break;
 	      case INT_LONG_LONG:
 	      case INT_SIZE_T:
+	      case INT_PTRDIFF_T:
 #ifdef __WINDOWS__
 		*fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
 		*fp++ = '6';
