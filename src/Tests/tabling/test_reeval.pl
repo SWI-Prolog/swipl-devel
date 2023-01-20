@@ -93,10 +93,9 @@ a new tabled goal.
 p2(X) :- d2(X).
 q2(X) :- d2(X).
 
-d2(1).
-
 test(multiple_dependents,
      [cleanup(retractall(d2(_)))]) :-
+    asserta(d2(1)),
     answers(X, p2(X), [1]),
     assert(d2(2)),
     answers(X, q2(X), [1,2]),
