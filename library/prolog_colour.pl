@@ -1617,17 +1617,12 @@ colourise_expression(Arg, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
     colour_item(parentheses, TB, PO-PC),
     colourise_expression(Arg, TB, Pos).
-colourise_expression(Var, TB, Pos) :-                     % variable
-    var(Var), Pos = _-_,
-    !,
-    (   singleton(Var, TB)
-    ->  colour_item(singleton, TB, Pos)
-    ;   colour_item(var, TB, Pos)
-    ).
 colourise_expression(Compound, TB, Pos) :-
     compound(Compound), Pos = term_position(_F,_T,FF,FT,_ArgPos),
     !,
-    (   current_arithmetic_function(Compound)
+    (   dict_field_extraction(Compound)
+    ->  colourise_term_arg(Compound, TB, Pos)
+    ;   current_arithmetic_function(Compound)
     ->  colour_item(function, TB, FF-FT)
     ;   colour_item(no_function, TB, FF-FT)
     ),
@@ -1639,20 +1634,16 @@ colourise_expression(Atom, TB, Pos) :-
     ->  colour_item(function, TB, Pos)
     ;   colour_item(no_function, TB, Pos)
     ).
-colourise_expression(Integer, TB, Pos) :-
-    integer(Integer),
+colourise_expression(NumOrVar, TB, Pos) :-
+    Pos = _-_,
     !,
-    colour_item(int, TB, Pos).
-colourise_expression(Rational, TB, Pos) :-
-    rational(Rational),
-    !,
-    colour_item(rational(Rational), TB, Pos).
-colourise_expression(Float, TB, Pos) :-
-    float(Float),
-    !,
-    colour_item(float, TB, Pos).
+    colourise_term_arg(NumOrVar, TB, Pos).
 colourise_expression(_Arg, TB, Pos) :-
     colour_item(type_error(evaluable), TB, Pos).
+
+dict_field_extraction(Term) :-
+    functor(Term, '.', 2),
+    Term \= [_|_].
 
 
 colourise_expression_args(Term, TB,
