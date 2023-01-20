@@ -57,7 +57,7 @@ untouched.
 %   Output.  Options processed:
 %
 %     - capture(ListOfStreams)
-%       List of streams to capture.  Default is `[]`, causingt the
+%       List of streams to capture.  Default is `[]`, causing the
 %       predicate to call with_output_to/2.  The only admissible
 %       list elements are the alias names for the Prolog standard
 %       streams.  As `current_output` is always captured, the only
@@ -99,7 +99,8 @@ capture(Goal, Streams, Options) :-
     ;   true
     ),
     maplist(capture_output(S), Streams),
-    once(Goal).
+    once(Goal),
+    maplist(flush_output, [current_output|Streams]).
 
 output_state(State, Streams) :-
     maplist(stream_id, Streams, State).
