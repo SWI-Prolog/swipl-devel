@@ -1884,12 +1884,15 @@ mpq_set_double(mpq_t r, double f)	/* float -> nice rational */
   mpz_t d; mpz_init(d);
   mpz_t u; mpz_init(u);
   
+  fpattern fp = { .d = f};  // required due to C compiler optimization "bug"
+  fpattern rp;  
   for(;;)
   { mpz_fdiv_qr(d,u,v,w);
     mpz_addmul(p,d,m);
     mpz_addmul(q,d,n);
-    if ((mpz_fdiv(p,q) == f) || (mpz_sgn(u) == 0)) {  // terminating conditions
-      mpq_set_num(r,p); mpq_set_den(r,q);             // final answer, p & q are co-prime
+    rp.d = mpz_fdiv(p,q);
+    if ((rp.i == fp.i) || (mpz_sgn(u) == 0)) {  // terminating conditions
+      mpq_set_num(r,p); mpq_set_den(r,q);       // final answer, p & q are co-prime
       break;
     } else {
       mpz_set(v,w);  mpz_set(w,u);        
