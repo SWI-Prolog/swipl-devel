@@ -854,13 +854,19 @@ static int
 check_zero_div(int sign_n, Number r, char *func, int arity)
 { GET_LD
 
-  if ( LD->arith.f.flags & FLT_ZERO_DIV )
+  if ( sign_n == 0 )
+  { if ( LD->arith.f.flags & FLT_UNDEFINED )
+    { r->type = V_FLOAT;
+      r->value.f = const_nan;
+      return TRUE;
+    }
+  } else if ( LD->arith.f.flags & FLT_ZERO_DIV )
   { r->type = V_FLOAT;
     r->value.f = copysign(const_inf,sign_n);
     return TRUE;
-  } else
-  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);
   }
+
+  return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);
 }
 
 
@@ -2369,7 +2375,7 @@ ar_pow(Number n1, Number n2, Number r)
       { r->value.i = 0;				/* positive exp => 0 */
 	return TRUE;
       } else					/* negative exp => zero_div */
-      { return check_zero_div(ar_sign_i(n1), r, "**", 2);
+      { return check_zero_div(1, r, "**", 2);
       }
     }
     if ( n1_val == -1 && intNumber(n2) )	/* check n1 == -1 */
