@@ -126,5 +126,11 @@ function bind_std_streams()
 }
 
 if ( Module.on_output )
-{ Module.preRun.push(bind_std_streams);
+{ if (typeof Module.preRun === 'function') {
+    Module.preRun = [ Module.preRun ]
+  } else if (!Array.isArray(Module.preRun)) {
+    Module.preRun = []
+  }
+  
+  Module.preRun.push(bind_std_streams);
 }
