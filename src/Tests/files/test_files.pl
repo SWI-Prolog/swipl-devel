@@ -88,7 +88,7 @@ flush_unregistering :-
 	assertz(a(a)),
 	retractall(a(_)).
 
-%%	agc/0
+%%	agc
 %
 %	If   other   threads   are   active,   it   is   possible   that
 %	garbage_collect_atoms/0 succeeds without doing anything: the AGC
