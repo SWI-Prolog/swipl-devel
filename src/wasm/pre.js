@@ -108,7 +108,7 @@ function flush(to)
 function log_output(stream, args)
 { if ( module.on_output )
   { let s = "";
-    
+
     flush(stream);
     args.forEach((a) => { s += a; });
     Module.on_output(s, stream);
@@ -131,6 +131,6 @@ if ( Module.on_output )
   } else if (!Array.isArray(Module.preRun)) {
     Module.preRun = []
   }
-  
+
   Module.preRun.push(bind_std_streams);
 }
