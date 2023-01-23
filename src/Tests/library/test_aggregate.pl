@@ -49,9 +49,9 @@ test_aggregate :-
 :- begin_tests(foreach).
 
 test(forall, true) :-
-	foreach(between(1, 10, X), integer(X)).
+    foreach(between(1, 10, X), integer(X)).
 test(forall, fail) :-
-	foreach(between(1, 2, X), _=X).
+    foreach(between(1, 2, X), _=X).
 test(dif1, Y == 5) :-
     foreach(between(1,4,X), dif(X,Y)), Y = 5.
 test(dif1, fail) :-

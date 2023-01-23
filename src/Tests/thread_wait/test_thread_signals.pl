@@ -263,7 +263,7 @@ loop(_).
 		 *             UTILS		*
 		 *******************************/
 
-%!  processes_signals/0 is semidet.
+%!  processes_signals is semidet.
 %
 %   True if the calling thread processes signals it receives.
 

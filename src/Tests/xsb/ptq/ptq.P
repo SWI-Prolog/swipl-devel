@@ -185,7 +185,7 @@ pro(her,f,obj).
 pro(she,f,sub).
 pro(it,n,_).
 
-/** intensional version **
+/* intensional version **
 biv(run,s) --> word(runs).
 biv(run,i) --> word(run).
 biv(walk,s) --> word(walks).
@@ -209,7 +209,7 @@ bte(P\ *P@ (^b),m) --> word(bill).
 bte(P\ *P@ (^m),f) --> word(mary).
 bte(P\ *P@ (^n),n) --> word(ninety).
 
-/** intensional version **
+/* intensional version **
 btv(find,s) --> word(finds).
 btv(find,i) --> word(find).
 btv(lose,s) --> word(loses).
@@ -236,7 +236,7 @@ btv(P\X\ (*P@ (^(Y\ 'date*'@ *Y @ *X))),i) --> word(date).
 btv(P\X\ *P@ (Y\ (*X= *Y)),s) --> word(is).
 btv(P\X\ *P@ (Y\ (*X= *Y)),i) --> word(be).
 
-/** intensional version
+/* intensional version
 btv(seek,s) --> word(seeks).
 btv(seek,i) --> word(seek).
 btv(conceive,s) --> word(conceives).
@@ -263,14 +263,14 @@ biav(slowly) --> word(slowly).
 biav(voluntarily) --> word(voluntarily).
 biav(allegedly) --> word(allegedly).
 
-/** intensional version
+/* intensional version
 pr(in) --> word(in).    **/
 
 pr(PP\Q\X\ *PP@ ^(Y\ 'in*'@ *Y@ Q@X)) --> word(in).
 
 pr(about) --> word(about).
 
-/** intension version
+/* intension version
 bivt(believe_that,s) --> word(believes_that).
 bivt(believe_that,i) --> word(believe_that).
 bivt(assert_that,s) --> word(asserts_that).
@@ -281,7 +281,7 @@ bivt(Pp\X\ 'believe_that*'@Pp@X,i) --> word(believe_that).
 bivt(Pp\X\ 'assert_that*'@Pp@X,s) --> word(asserts_that).
 bivt(Pp\X\ 'assert_that*'@Pp@X,i) --> word(assert_that).
 
-/** intensional version
+/* intensional version
 biviv(try_to,s) --> word(tries_to).
 biviv(try_to,i) --> word(try_to).
 biviv(wish_to,s) --> word(wishes_to).
