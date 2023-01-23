@@ -1,7 +1,7 @@
-test:- solve.
+test :- solve, set_prolog_flag(debug, false).
 
 :-dynamic factNOTConstructor/1as incremental.
-:-import incr_assert/1from increval.
+:-import incr_assert/1 from increval.
 iso_dif(_X,((2))).
 initialNOTConstructor(Method):-thisPtrUsage(I,F,T,_),thisPtrUsage(I,F,T,Method),iso_dif(1,2).
 :-table reasonNOTConstructor/1as incremental.
