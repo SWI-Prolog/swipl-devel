@@ -37,7 +37,7 @@ user:file_search_path(scasp,  Dir) :-
                               ])]),
                 []).
 :- http_handler('/wasm/',
-                http_reply_from_files(web(.), []), [prefix]).
+                http_reply_from_files(web(.), [static_gzip(true)]), [prefix]).
 
 
 :- if(absolute_file_name(scasp(.), _, [file_type(directory), file_errors(fail)])).
@@ -59,4 +59,3 @@ server :-
 server_loop :-
     server,
     thread_get_message(quit).
-
