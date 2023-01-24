@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2022, University of Amsterdam
+    Copyright (c)  1996-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -47,11 +47,7 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 
-:- set_test_options([ load(always),
-		      silent(true),
-		      sto(true),
-		      cleanup(true),
-		      concurrent(true)
+:- set_test_options([ load(always)
 		    ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
