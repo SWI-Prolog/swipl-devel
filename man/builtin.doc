@@ -8496,6 +8496,20 @@ $\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
 is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
 evaluates to 0.0.  See also \funcref{copysign}{2}.
 
+    \function{cmpr}{2}{+Expr1, +Expr2}
+Exactly compares the values \arg{Expr1} and \arg{Expr2} and returns -1
+if \arg{Expr1} < \arg{Expr2}, 0 if they are equal, and 1 if
+\arg{Expr1} > \arg{Expr2}.  Evaluates to NaN if either or both
+\arg{Expr1} and \arg{Expr2} are NaN and the Prolog flag
+\prologflag{float_undefined} is set to \const{nan}.  See also
+\funcref{minr}{2} amd \funcref{maxr}{2}.
+
+This function relates to the Prolog numerical comparison predicates
+\predref{>}{2}, \predref{=:=}{2}, etc.  The Prolog numerical
+comparison converts the rational in a mixed rational/float comparison
+to a float, possibly rounding the value.  This function converts the
+float to a rational, comparing the exact values.
+
     \function[ISO]{copysign}{2}{+Expr1, +Expr2}
 Evaluate to \arg{X}, where the absolute value of \arg{X} equals the
 absolute value of \arg{Expr1} and the sign of \arg{X} matches the sign
@@ -8551,11 +8565,35 @@ the two values after converting to float, but returns the integer 3.  If
 both values are numerical equal the returned max is of the type used for
 the comparison.  For example, the max of 1 and 1.0 is 1.0 because both
 numbers are converted to float for the comparison.  However, the special
-float -0.0 is smaller than 0.0 as well as the integer 0.
+float -0.0 is smaller than 0.0 as well as the integer 0.  If the Prolog
+flag \prologflag{float_undefined} is set to \const{nan} and one of the
+arguments evaluates to NaN, the result is NaN.
+
+The function \funcref{maxr}{2} is similar, but uses exact (rational)
+comparision if \arg{Expr1} and \arg{Expr2} have a different type,
+propagate the rational (integer) rather and the float if the two
+compare equal and propagate the non-NaN value in case one is NaN.
+
+    \function{maxr}{2}{+Expr1, +Expr2}
+Evaluate to the larger of \arg{Expr1} and \arg{Expr2} using exact
+comparison (see \funcref{cmpr}{2}). If the two values are exactly
+equal, and one of the values is rational, the result will be that
+value; the objective being to avoid "pollution" of any precise
+calculation with a potentially imprecise float. So \exam{max(1,1.0)}
+evaluates to 1.0 while \exam{maxr(1,1.0)} evaluates to 1. This also
+means that 0 is preferred over 0.0 or -0.0; -0.0 is still considered
+smaller than 0.0.
+
+\funcref{maxr}{2} also treats NaN's as missing values so
+\exam{maxr(1,nan)} evaluates to 1.
 
     \function[ISO]{min}{2}{+Expr1, +Expr2}
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
+
+    \function{minr}{2}{+Expr1, +Expr2}
+Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison 
+(see \funcref{cmpr}{2}). See \funcref{maxr}{2} for a description of type handling.
 
     \function[deprecated]{.}{2}{+Char, []}
 A list of one element evaluates to the character code of this

@@ -1665,6 +1665,143 @@ cmpNumbers(Number n1, Number n2)
   return CMP_EQUAL;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cmpReals()   compares  two   real  numbers   (any  sub-type)   and  is
+mathematically correct.   Floats and 64  bit integers can  be compared
+without  using  extended  arithmetic.    All  other  comparisons  with
+integers  or rationals  are  done using  the  relevant BIGNUM  library
+compare  functions.  cmpReals() itself  is  just  a large  4x4  switch
+statement  which  uses  the  targeted auxiliary  compare  function  to
+compute the return value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+cmp_i_i(int64_t i1, int64_t i2)
+{ return (i1 == i2) ? CMP_EQUAL : ((i1 < i2) ? CMP_LESS : CMP_GREATER);
+}
+
+static int
+cmp_f_f(double d1, double d2)
+{ if ( isnan(d1) || isnan(d2) )
+    return CMP_NOTEQ;
+  else
+    return (d1 == d2) ? CMP_EQUAL : ((d1 < d2) ? CMP_LESS : CMP_GREATER);
+}
+
+/* See https://stackoverflow.com/questions/58734034/ */
+static int cmp_i_f(int64_t i1, double d2)
+{ int64_t i1_lo = i1 & 0x00000000FFFFFFFF;
+  int64_t i1_hi = i1 & 0xFFFFFFFF00000000;
+
+  return cmp_f_f((double)i1_lo, d2-(double)i1_hi);
+}
+
+#ifdef O_BIGNUM
+
+static int
+cmp_z_z(mpz_t z1, mpz_t z2)
+{ int t = mpz_cmp(z1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_q_q(mpq_t q1, mpq_t q2)
+{ int t = mpq_cmp(q1,q2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_z_i(mpz_t z1, int64_t i2)
+{ int t = mpz_cmp_si(z1,i2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_q_i(mpq_t q1, int64_t i2)
+{ int t = mpq_cmp_si(q1,i2,1);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_z_f(mpz_t z1, double d2)
+{ if (isnan(d2)) return CMP_NOTEQ;
+  else {
+    int t = mpz_cmp_d(z1,d2);        // mpz_cmp_d handles infinities
+    return (t < 0) ? CMP_LESS : (t > 0);
+  }
+}
+
+static int
+cmp_f_q(double d1, mpq_t q2)
+{ if      (isnan(d1))       return CMP_NOTEQ;
+  else if (d1 ==  INFINITY) return CMP_GREATER;
+  else if (d1 == -INFINITY) return CMP_LESS;
+  else
+  { mpq_t q1;
+    mpq_init(q1);
+    mpq_set_d(q1,d1);
+    int t = cmp_q_q(q1,q2);
+    mpq_clear(q1);
+    return t;
+  }
+}
+
+static int
+cmp_q_z(mpq_t q1, mpz_t z2)
+{ int t = mpq_cmp_z(q1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+#endif // O_BIGNUM
+
+/* Note that we can use reversed arguments and negation for all functions
+   except those involving floats because -CMP_NOTEQ is wrong
+*/
+
+int
+cmpReals(Number n1, Number n2)
+{ int rc;
+
+  switch(n1->type)
+  { case V_INTEGER:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_i_i(n1->value.i,n2->value.i);
+        case V_FLOAT:   return  cmp_i_f(n1->value.i,n2->value.f);
+#ifdef O_BIGNUM
+        case V_MPZ:     return -cmp_z_i(n2->value.mpz,n1->value.i);
+        case V_MPQ:     return -cmp_q_i(n2->value.mpq,n1->value.i);
+#endif // O_BIGNUM
+      }
+    case V_FLOAT:
+      switch(n2->type)
+      { case V_INTEGER: rc =    cmp_i_f(n2->value.i,n1->value.f);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_FLOAT:   return  cmp_f_f(n1->value.f,n2->value.f);
+#ifdef O_BIGNUM
+        case V_MPZ:     rc =    cmp_z_f(n2->value.mpz,n1->value.f);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPQ:     return  cmp_f_q(n1->value.f,n2->value.mpq);
+      }
+    case V_MPZ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_z_i(n1->value.mpz,n2->value.i);
+        case V_FLOAT:   return  cmp_z_f(n1->value.mpz,n2->value.f);
+        case V_MPZ:     return  cmp_z_z(n1->value.mpz,n2->value.mpz);
+        case V_MPQ:     return -cmp_q_z(n2->value.mpq,n1->value.mpz);
+      }
+    case V_MPQ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_q_i(n1->value.mpq,n2->value.i);
+        case V_FLOAT:   rc =    cmp_f_q(n2->value.f,n1->value.mpq);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPZ:     return  cmp_q_z(n1->value.mpq,n2->value.mpz);
+        case V_MPQ:     return  cmp_q_q(n1->value.mpq,n2->value.mpq);
+      }
+#endif // O_BIGNUM
+  }
+  return CMP_NOTEQ;  // unrecognized type?, treat as nan
+}
+
 void
 cpNumber(Number to, Number from)
 { to->type = from->type;

@@ -145,6 +145,7 @@ A close_on_exec		"close_on_exec"
 A close_option		"close_option"
 A close_parent		"close_parent"
 A cm			"cm"
+A cmpr			"cmpr"
 A cntrl			"cntrl"
 A co			"co"
 A codes			"codes"
@@ -513,6 +514,7 @@ A max_table_answer_size_action "max_table_answer_size_action"
 A max_table_subgoal_size "max_table_subgoal_size"
 A max_table_subgoal_size_action "max_table_subgoal_size_action"
 A max_variable_length	"max_variable_length"
+A maxr			"maxr"
 A memory		"memory"
 A merged		"merged"
 A message		"message"
@@ -525,6 +527,7 @@ A meta_predicate	"meta_predicate"
 A method		"method"
 A min			"min"
 A min_free		"min_free"
+A minr			"minr"
 A minus			"-"
 A mismatched_char	"mismatched_char"
 A mod			"mod"
@@ -1025,6 +1028,7 @@ F codes			1
 F codes			2
 F colon			2
 F comma			2
+F cmpr			2
 F compound		1
 F context		2
 F copysign		2
@@ -1153,9 +1157,11 @@ F lsb			1
 F lshift		2
 F dict_position		5
 F max			2
+F maxr			2
 F max_size		1
 F message_lines		1
 F min			2
+F minr			2
 F minus			1
 F minus			2
 F mod			2
