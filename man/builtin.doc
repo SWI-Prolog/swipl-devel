@@ -8496,6 +8496,15 @@ $\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
 is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
 evaluates to 0.0.  See also \funcref{copysign}{2}.
 
+    \function{cmpr}{2}{+Expr1, +Expr2}
+Exactly compares the values \arg{Expr1} and \arg{Expr2} and returns -1 if 
+\arg{Expr1} < \arg{Expr2}, 0 if they are equal, and 1 if \arg{Expr1} > \arg{Expr2}.
+
+ISO standard numeric comparison is inexact because it requires the conversion of any
+non-floats to floats before comparing, potentially incurring a rounding error. \funcref{cmpr}{2}
+implements an exact comparison enabling, for example, the creation of "correct" sort of a
+list of numbers of any type using predsort/3.
+
     \function[ISO]{copysign}{2}{+Expr1, +Expr2}
 Evaluate to \arg{X}, where the absolute value of \arg{X} equals the
 absolute value of \arg{Expr1} and the sign of \arg{X} matches the sign
@@ -8556,6 +8565,18 @@ float -0.0 is smaller than 0.0 as well as the integer 0.
     \function[ISO]{min}{2}{+Expr1, +Expr2}
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
+
+    \function[ISO]{maxr}{2}{+Expr1, +Expr2}
+Evaluate to the larger of \arg{Expr1} and \arg{Expr2} using exact comparison
+(see \funcref{cmpr}{2}). If the two values are exactly equal, and one of the values
+is rational, the result will be that value; the objective being to avoid "pollution" of
+any precise calculation with a potentially imprecise float. So \exam{max(1,1.0)} 
+evaluates to 1.0 while \exam{maxr(1,1.0)} evaluates to 1. This also means that 0 is preferred over 0.0 or -0.0;
+-0.0 is still considered smaller than 0.0.
+
+    \function[ISO]{minr}{2}{+Expr1, +Expr2}
+Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison 
+(see \funcref{cmpr}{2}). See \funcref{maxr}{2} for a description of type handling.
 
     \function[deprecated]{.}{2}{+Char, []}
 A list of one element evaluates to the character code of this
