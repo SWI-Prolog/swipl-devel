@@ -688,6 +688,27 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
   return compareNumbers(A1, A2, EQ);
 }
 
+/* compare Real number function: treats any numeric value as point on real number line
+   and compares two values using `cmpReals` function returning -1, 0, or 1. Comparing
+   any value with `nan` will either return `nan` or generate an error depending on global
+   flag `float_undefined`.
+ */
+
+static int
+ar_cmpr(Number n1, Number n2, Number r)
+{ r->type = V_INTEGER;
+  r->value.i = cmpReals(n1, n2);
+  if ( r->value.i == CMP_NOTEQ )  // non-number
+  { GET_LD
+    if ( LD->arith.f.flags & FLT_UNDEFINED )         // check float_undefined flag
+    { r->type = V_FLOAT;                             // return NaN
+      r->value.f = const_nan;
+    }
+    else
+      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);  // error
+  }
+  return TRUE;
+}
 
 		 /*******************************
 		 *	 ARITHMETIC STACK	*
@@ -3583,6 +3604,69 @@ ar_min(Number n1, Number n2, Number r)
 }
 
 
+/* 
+   Functions maxr/minr are similar to min/max with two significant differences:
+   1. Mathematically correct comparison is used (see ar_cmpr ).
+   2. In case values are equal, preference is given to any rational value over a float
+      to avoid inadvertent future loss of precision due to a float result.
+*/
+
+static int
+ar_maxr(Number n1, Number n2, Number r)
+{ switch (cmpReals(n1, n2))
+  { case CMP_LESS:
+      cpNumber(r,n2);
+      break;
+    case CMP_EQUAL:
+      if (n1->type != V_FLOAT)        // preference to rational
+        cpNumber(r, n1);
+      else if (n2->type != V_FLOAT)
+        cpNumber(r, n2);
+      else if ( is_min_zero(n1) )     // both floats, special case -0.0 < 0.0
+        cpNumber(r, n2);
+      else cpNumber(r, n1);
+      break;
+    case CMP_GREATER:
+      cpNumber(r,n1);
+      break;
+    case CMP_NOTEQ:                   // one or both nan
+      if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+        cpNumber(r, n2);
+      else
+        cpNumber(r, n1);
+      break;
+  }
+  return TRUE;
+}
+
+static int
+ar_minr(Number n1, Number n2, Number r)
+{ switch (cmpReals(n1, n2))
+  { case CMP_LESS:
+      cpNumber(r,n1);
+      break;
+    case CMP_EQUAL:
+      if (n1->type != V_FLOAT)        // preference to rational
+        cpNumber(r, n1);
+      else if (n2->type != V_FLOAT)
+        cpNumber(r, n2);
+      else if ( is_min_zero(n2) )     // both floats, special case -0.0 < 0.0
+        cpNumber(r, n2);
+      else cpNumber(r, n1);
+      break;
+    case CMP_GREATER:
+      cpNumber(r,n2);
+      break;
+    case CMP_NOTEQ:                   // one or both nan
+      if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+        cpNumber(r, n2);
+      else
+        cpNumber(r, n1);
+      break;
+  }
+  return TRUE;
+}
+
 static int
 ar_negation(Number n1, Number r)
 { if ( !toIntegerNumber(n1, 0) )
@@ -4757,6 +4841,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_abs1,		ar_abs, F_ISO),
   ADD(FUNCTOR_max2,		ar_max, F_ISO),
   ADD(FUNCTOR_min2,		ar_min, F_ISO),
+  ADD(FUNCTOR_cmpr2, 	ar_cmpr, 0),
+  ADD(FUNCTOR_maxr2,	ar_maxr, 0),
+  ADD(FUNCTOR_minr2,	ar_minr, 0),
 
   ADD(FUNCTOR_mod2,		ar_mod, F_ISO),
   ADD(FUNCTOR_rem2,		ar_rem, F_ISO),
