@@ -2986,7 +2986,8 @@ trapUndefined(DECL_LD Definition def)
        getUnknownModule(module) == UNKNOWN_FAIL )
     return def;
 
-  DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
+  DEBUG(MSG_AUTOLOAD, Sdprintf("[%d] trapUndefined(%s)\n",
+			       PL_thread_self(), predicateName(def)));
 
 					/* Trap via exception/3 */
   if ( truePrologFlag(PLFLAG_AUTOLOAD) && !GD->bootsession )
