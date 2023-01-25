@@ -63,6 +63,7 @@ int	promoteToFloatNumber(Number n);
 int	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 int     promoteNumber(Number n1, numtype type) WUNUSED;
 int	cmpNumbers(Number n1, Number n2);
+int	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
 
 #undef LDFUNC_DECLARATIONS
