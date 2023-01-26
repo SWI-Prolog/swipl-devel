@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -93,39 +93,22 @@ test(cat1) :-
     !,
     atom_codes(A, String),
     format(atom(A), '~w~n', [Text]).
-test(cat2) :-
+test(cat2, error(io_error(write, _))) :-
     (   current_prolog_flag(windows, true)
     ->  Cmd = 'cmd /c rem true'
     ;   Cmd = true,
         (   current_prolog_flag(signals, false)
-        ->  on_signal(pipe, OldSigPipe, ignore)
-        ;   true
+        ->  on_signal(pipe, OldSigPipe, ignore),
+            Cleanup = on_signal(pipe, _, OldSigPipe)
+        ;   Cleanup = true
         )
     ),
-    open(pipe(Cmd), write, Pipe),
-    catch(forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
-          E,
-          true),
-    catch(close(Pipe), _, true),	% ???
-    (	nonvar(OldSigPipe)
-    ->	on_signal(pipe, _, OldSigPipe)
-    ;	true
-    ),
-    (   var(E)
-    ->  format(user_error, 'No exception?~n', []),
-        fail
-					% if signalling is enabled
-    ;   E = error(signal(pipe, _), context(copy_stream_data/2, _))
-    ->  true
-					% otherwise
-    ;   E = error(io_error(write, _), context(_, 'Broken pipe'))
-    ->  true
-    ;   E = error(io_error(write, _), _),
-        current_prolog_flag(windows, true)
-    ->  true
-    ;   format(user_error, 'Wrong exception: ~p~n', [E]),
-        fail
-    ).
+    call_cleanup(
+        setup_call_cleanup(
+            open(pipe(Cmd), write, Pipe),
+            forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
+            close(Pipe, [force(true)])),
+        Cleanup).
 
 collect_line(Fd, String) :-
     get_code(Fd, C0),
