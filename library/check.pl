@@ -191,7 +191,9 @@ not_always_present(_:win_folder/2) :-
     \+ current_prolog_flag(windows, true).
 not_always_present(_:win_add_dll_directory/2) :-
     \+ current_prolog_flag(windows, true).
-
+not_always_present(_:opt_help/2).
+not_always_present(_:opt_type/3).
+not_always_present(_:opt_meta/2).
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).
