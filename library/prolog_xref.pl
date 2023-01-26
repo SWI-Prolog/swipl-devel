@@ -751,7 +751,8 @@ collect(Src, File, In, Options) :-
         Comments = []
     ;   CommentHandling == store
     ->  CommentOptions = [ process_comment(true) ],
-        Comments = []
+        Comments = [],
+	set_prolog_flag(xref_store_comments, true)
     ;   CommentOptions = [ comments(Comments) ]
     ),
     repeat,
@@ -769,7 +770,8 @@ collect(Src, File, In, Options) :-
                   E, print_message(error, E)),
             erase(Ref)),
         EOF == true,
-    !.
+    !,
+    set_prolog_flag(xref_store_comments, false).
 
 report_syntax_error(E, _, _) :-
     fatal_error(E),
