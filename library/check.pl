@@ -634,7 +634,8 @@ list_format_errors(Options) :-
     ;   true
     ).
 
-format_warning(system:format(_Format, Args), Msg) :-
+format_warning(system:format(Format, Args), Msg) :-
+    nonvar(Format),
     nonvar(Args),
     \+ is_list(Args),
     Msg = format_argv(Args).
