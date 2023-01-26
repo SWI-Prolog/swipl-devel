@@ -2757,7 +2757,9 @@ raise a resource exception and return \exam{(predicate_t)0}.
     \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
 					  const char* module}
 Same as PL_pred(), but provides a more convenient interface to the C
-programmer. The \ctype{predicate_t} handle may be stored as global data
+programmer.  If the module argument \arg{module} is \const{NULL},
+the current context module is used.
+The \ctype{predicate_t} handle may be stored as global data
 and reused for future queries\footnote{PL_predicate() involves 5 hash
 lookups (two to get the atoms, one to get the module, one to get the
 functor and the final one to get the predicate associated with the
@@ -3164,7 +3166,14 @@ print_message/2 through the C interface.
 
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
-Generate an exception (as throw/1) and return \const{FALSE}. This
+Generate an exception (as throw/1) and return \const{FALSE}.
+The \arg{exception} is copied to a global possition, so that
+an exception is still valid when a PL_close_foreign_frame()
+or PL_close_query() is done.
+If there is already a pending exception, PL_raise_exception()
+does nothing.
+
+This
 function is rarely used directly. Instead, errors are typically raised
 using the functions in \secref{cerror} or the C api functions that
 end in \exam{_ex} such as PL_get_atom_ex(). Below we give an example
@@ -3260,7 +3269,8 @@ function must be called if control remains in C after a previous API
 call fails with an exception.\footnote{This feature is non-portable.
 Other Prolog systems (e.g., YAP) have no facilities to ignore raised
 exceptions, and the design of YAP's exception handling does not support
-such a facility.}
+such a facility.} If there is no pending exception, PL_clear_exception()
+does nothing.
 \end{description}
 
 
