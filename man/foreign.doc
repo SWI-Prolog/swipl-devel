@@ -2757,13 +2757,13 @@ raise a resource exception and return \exam{(predicate_t)0}.
     \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
 					  const char* module}
 Same as PL_pred(), but provides a more convenient interface to the C
-programmer.  If the module argument \arg{module} is \const{NULL},
-the current context module is used.
-The \ctype{predicate_t} handle may be stored as global data
-and reused for future queries\footnote{PL_predicate() involves 5 hash
-lookups (two to get the atoms, one to get the module, one to get the
-functor and the final one to get the predicate associated with the
-functor in the module)} as illustrated below.
+programmer. If the module argument \arg{module} is \const{NULL}, the
+current context module is used. The \ctype{predicate_t} handle may be
+stored as global data and reused for future
+queries\footnote{PL_predicate() involves 5 hash lookups (two to get the
+atoms, one to get the module, one to get the functor and the final one
+to get the predicate associated with the functor in the module)} as
+illustrated below.
 
 \begin{code}
 static predicate_t p = 0;
@@ -3166,24 +3166,29 @@ print_message/2 through the C interface.
 
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
-Generate an exception (as throw/1) and return \const{FALSE}.
-The \arg{exception} is copied to a global possition, so that
-an exception is still valid when a PL_close_foreign_frame()
-or PL_close_query() is done.
-If there is already a pending exception, PL_raise_exception()
-does nothing.
+Generate an exception (as throw/1) and return \const{FALSE}. If there is
+already a pending exception, the most urgent exception is kept.  Urgency
+of exceptions is defined as
 
-This
-function is rarely used directly. Instead, errors are typically raised
-using the functions in \secref{cerror} or the C api functions that
-end in \exam{_ex} such as PL_get_atom_ex(). Below we give an example
-returning an exception from a foreign predicate the verbose way. Note
-that the exception is raised in a sequence of actions connected using
-\verb$&&$. This ensures that a proper exception is raised should any of
-the calls used to build or raise the exception themselves raise an
-exception.  In this simple case PL_new_term_ref() is guaranteed to
+\begin{enumerate}
+    \item abort (\verb|'$aborted'|).
+    \item \const{time_limit_exceeded} (see call_with_time_limit/2).
+    \item \const{resource_error} exceptions.
+    \item Other \term{error}{Formal, ImplDef} exceptions.
+    \item Other exceptions.
+\end{enumerate}
+
+
+This function is rarely used directly. Instead, errors are typically
+raised using the functions in \secref{cerror} or the C api functions
+that end in \exam{_ex} such as PL_get_atom_ex(). Below we give an
+example returning an exception from a foreign predicate the verbose way.
+Note that the exception is raised in a sequence of actions connected
+using \verb$&&$. This ensures that a proper exception is raised should
+any of the calls used to build or raise the exception themselves raise
+an exception. In this simple case PL_new_term_ref() is guaranteed to
 succeed because the system guarantees at least 10 available term
-references before entering the foreign predicate.  PL_unify_term()
+references before entering the foreign predicate. PL_unify_term()
 however may raise a resource exception for the global stack.
 
 \begin{code}
