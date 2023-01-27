@@ -95,7 +95,8 @@ test(cat1) :-
     format(atom(A), '~w~n', [Text]).
 test(cat2, error(io_error(write, _))) :-
     (   current_prolog_flag(windows, true)
-    ->  Cmd = 'cmd /c rem true'
+    ->  Cmd = 'cmd /c rem true',
+        Cleanup = true
     ;   Cmd = true,
         (   current_prolog_flag(signals, false)
         ->  on_signal(pipe, OldSigPipe, ignore),
