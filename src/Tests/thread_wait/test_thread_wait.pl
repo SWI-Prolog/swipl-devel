@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2020, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+		CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,11 @@ p(_) :-
 cleanup :-
     retractall(p).
 
+% only run these these if `SWIPL_TEST_FAIL_ON_UNLIKELY` is `y` as
+% these tests may fail under extreme load.
+if_safe :-
+   getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y).
+
 test(signal, exception(time_limit_exceeded)) :-
     call_with_time_limit(
         0.05,
@@ -88,24 +93,44 @@ test(wakep, cleanup(cleanup)) :-
 test(wakep, cleanup(cleanup)) :-
     assert(p),
     +thread_wait(p, [wait_preds([p/0])]).
-test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
+test(nowakep,
+     [ exception(time_limit_exceeded),
+       cleanup(cleanup),
+       condition(if_safe)
+     ]) :-
     do_later(0.05, assert(p)),
     0.2+thread_wait(p, [retry_every(0.3),wait_preds([-(p/0)])]).
-test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
+test(nowakep,
+     [ exception(time_limit_exceeded),
+       cleanup(cleanup),
+       condition(if_safe)
+     ]) :-
     assert(p),
     do_later(0.05, retract(p)),
     0.2+thread_wait(\+ p, [retry_every(0.3),wait_preds([+(p/0)])]).
-test(modified, [cleanup(cleanup)]) :-
+test(modified,
+     [ cleanup(cleanup),
+       condition(if_safe)
+     ]) :-
     do_later(0.05, assert(p)),
     +thread_wait(p(M), [modified(M), wait_preds([p/0])]).
-test(module, cleanup(cleanup)) :-
+test(module,
+     [ cleanup(cleanup),
+       condition(if_safe)
+     ]) :-
     do_later(0.05, assert(p)),
     context_module(M),
     +thread_wait(p, [module(M)]).
-test(update, Ready == true) :-
+test(update,
+     [ Ready == true,
+       condition(if_safe)
+     ]) :-
     do_later(0.05, thread_update(true, [])),
     +thread_wait(Ready = true, []).
-test(update, Ready == true) :-
+test(update,
+     [ Ready == true,
+       condition(if_safe)
+     ]) :-
     M = tw_module,
     set_flag(tw_flag, false),
     do_later(0.05,
