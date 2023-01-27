@@ -10937,7 +10937,8 @@ Create a name for a temporary file. \arg{Base} is an identifier for the
 category of file. The \arg{TmpName} is guaranteed to be unique. If the
 system halts, it will automatically remove all created temporary files.
 \arg{Base} is used as part of the final filename.  Portable applications
-should limit themselves to alphanumeric characters.
+should limit themselves to alphanumeric characters.  The directory for
+temporary files is defined by the Prolog flag \prologflag{tmp_dir}.
 
 Because it is possible to guess the generated filename, attackers may
 create the filesystem entry as a link and possibly create a security
@@ -10950,8 +10951,9 @@ Create a temporary filename \arg{FileName}, open it for writing and
 unify \arg{Stream} with the output stream. If the OS supports it, the
 created file is only accessible to the current user and the file is
 created using the open()-flag \const{O_EXCL}, which guarantees that the
-file did not exist before this call. The following options are
-processed:
+file did not exist before this call. The directory for temporary files
+is defined by the Prolog flag \prologflag{tmp_dir}. The following
+options are processed:
 
 \begin{description}
     \termitem{encoding}{+Encoding}
