@@ -2864,6 +2864,12 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     value->type = V_FLOAT;
 
     in = skip_decimals(in+1, zero);
+
+    if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
+    { if ( rc == NUM_OK )
+	*end = (ucharp)in;
+      return rc;
+    }
   }
 
   if ( (*in == 'e' || *in == 'E') &&
@@ -2875,12 +2881,6 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     if ( isSign(*in) )
       in++;
     in = skip_decimals(in, zero);
-  }
-
-  if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
-  { if ( rc == NUM_OK )
-      *end = (ucharp)in;
-    return rc;
   }
 
   if ( value->type == V_FLOAT )
