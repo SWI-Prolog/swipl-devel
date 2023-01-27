@@ -33,6 +33,26 @@ or in `~/.bashrc`:
 
     export SWIPL_PUBLIC_NETWORK_TESTS=true
 
+## Additional tests
+
+To test the ODBC driver we must set   the  driver. By default we use the
+sqlite driver as it requires no setup.
+
+    export SWIPL_TEST_ODBC_DRIVER="DRIVER=SQLite3;Database=test.sqlite"
+
+The Redis interface can be tested by   setting  the address of the Redis
+server. The server should not have a password.
+
+    export SWIPL_REDIS_SERVER=localhost:6379
+
+## Unsafe tests
+
+Some tests may accidentally fail due   to  extreme timing, i.e., heavily
+overloaded slow hardware. Such tests  are   disabled  by default. We can
+enable them using
+
+    export SWIPL_TEST_FAIL_ON_UNLIKELY=y
+
 
 ## Testing the installed system
 
