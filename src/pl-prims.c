@@ -1745,7 +1745,9 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
 	else if ( right.type == V_FLOAT && isnan(right.value.f) )
 	  rc = CMP_GREATER;
 	else
-	  rc = cmpNumbers(&left, &right);
+	{ rc = cmpReals(&left, &right);
+	  assert(rc != CMP_NOTEQ);
+	}
 	clearNumber(&left);
 	clearNumber(&right);
 

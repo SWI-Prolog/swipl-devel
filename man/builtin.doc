@@ -1920,10 +1920,13 @@ so-called ``standard order''. This order is defined as follows:
     \item $\arg{Variables} < \arg{Numbers} < \arg{Strings} < \arg{Atoms}
           < \arg{Compound Terms}$
     \item Variables are sorted by address.
-    \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
-	  as floats. If the comparison is equal, the float is considered
-	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
-	  all floating point numbers precede all integers.
+    \item \arg{Numbers} are compared by value.  Mixed rational/float
+          are compared using \funcref{cmpr}{2}.\footnote{Up to 9.1.4,
+	  comparison was done as float.} NaN is considered smaller
+	  than all numbers, including \exam{-inf}.  If the comparison is equal,
+	  the float is considered the smaller value. If the Prolog flag
+	  \prologflag{iso} is defined, all floating point numbers precede all
+	  rationals.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Compound} terms are first checked on their arity, then
