@@ -77,6 +77,5 @@ add_executable(swipl-bundle-no-data ${SWIPL_SRC})
 set_target_properties(swipl-bundle-no-data PROPERTIES
 		      LINK_FLAGS "${WASM_NO_DATA_BUNDLE_LINK_FLAGS_STRING}")
 target_link_libraries(swipl-bundle-no-data libswipl)
-add_dependencies(swipl-bundle-no-data wasm_preload)
 set_property(TARGET swipl-bundle-no-data PROPERTY LINK_DEPENDS
 	     ${POSTJS} ${PREJS})
