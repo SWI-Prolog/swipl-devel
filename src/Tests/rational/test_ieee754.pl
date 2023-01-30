@@ -508,7 +508,7 @@ test(ieee_max) :-                                       % C11 - F.10.9.2
     assertion(    0.0 is max( 0.0, -0.0)),
     assertion(      0 is max(-0.0,  0)),
     assertion(      0 is max(   0, -0.0)),
-    assertion(-1.0Inf is max( nan, -inf)),
+    assertion( 1.5NaN is max( nan, -inf)),
     assertion( 1.5NaN is max( nan,  nan)).
 
 test(ieee_min) :-                                       % C11 - F.10.9.3
@@ -519,7 +519,7 @@ test(ieee_min) :-                                       % C11 - F.10.9.3
     assertion(   -0.0 is min( 0.0, -0.0)),
     assertion(   -0.0 is min(-0.0,    0)),
     assertion(   -0.0 is min(   0, -0.0)),
-    assertion( 1.0Inf is min( inf,  nan)),
+    assertion( 1.5NaN is min( inf,  nan)),
     assertion( 1.5NaN is min( nan,  nan)).
 
 %% End of Annex F Tests %%%%%%%%%%%%%%%%%%%%%%%%%

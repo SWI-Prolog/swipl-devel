@@ -3551,10 +3551,8 @@ ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
   if ( diff == CMP_NOTEQ )			/* one or both nan */
-  { if ( n1->type == V_FLOAT && isnan(n1->value.f) )
-      cpNumber(r, n2);
-    else
-      cpNumber(r, n1);
+  { r->value.f = const_nan;
+    r->type = V_FLOAT;
   } else if ( diff == CMP_EQUAL )
   { if ( is_min_zero(n1) )
     { cpNumber(r, n2);
@@ -3580,10 +3578,8 @@ ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
   if ( diff == CMP_NOTEQ )			/* if one or both nan's */
-  { if (n1->type == V_FLOAT && isnan(n1->value.f))
-      cpNumber(r, n2);
-    else
-      cpNumber(r, n1);
+  { r->value.f = const_nan;
+    r->type = V_FLOAT;
   } else if ( diff == CMP_EQUAL )
   { if ( is_min_zero(n1) )
     { cpNumber(r, n1);
