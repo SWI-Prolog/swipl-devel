@@ -217,7 +217,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_MISC		0
 #define L_ALLOC		1
 #define L_REHASH_ATOMS	2
-#define L_FLAG	        3
+#define L_FLAG		3
 #define L_FUNCTOR	4
 #define L_RECORD	5
 #define L_THREAD	6
@@ -407,7 +407,7 @@ typedef struct thread_wait_area		/* module data for wait/update */
 	do \
 	{ if ( def->module->wait && def->module->wait->w_head ) \
 	  { thread_wait_channel wch = { .type = TWF_PREDICATE, \
-				        .obj.any = def, \
+					.obj.any = def, \
 					.flags = wflags \
 				      }; \
 	    signal_waiting_threads(def->module, &wch); \
@@ -418,7 +418,7 @@ typedef struct thread_wait_area		/* module data for wait/update */
 	do \
 	{ if ( module->wait && module->wait->w_head ) \
 	  { thread_wait_channel wch = { .type = TWF_MODULE, \
-				        .obj.any = module, \
+					.obj.any = module, \
 					.flags = wflags \
 				      }; \
 	    signal_waiting_threads(module, &wch); \
@@ -458,13 +458,13 @@ LocalDefinitions new_ldef_vector(void);
 void		free_ldef_vector(LocalDefinitions ldefs);
 void		cleanupLocalDefinitions(PL_local_data_t *ld);
 void		destroyLocalDefinitions(Definition def);
-int		PL_mutex_lock(struct pl_mutex *m);
+int		PL_mutex_lock(struct pl_mutex *m) WUNUSED;
 int		PL_mutex_unlock(struct pl_mutex *m);
 int		PL_thread_raise(int tid, int sig);
 void		cleanupThreads(void);
 intptr_t	system_thread_id(PL_thread_info_t *info);
 void		get_current_timespec(struct timespec *time);
-void	        carry_timespec_nanos(struct timespec *time);
+void		carry_timespec_nanos(struct timespec *time);
 int		signal_waiting_threads(Module m, thread_wait_channel *wch);
 void		free_wait_area(thread_wait_area *wa);
 void		free_thread_wait(PL_local_data_t *ld);
@@ -602,7 +602,7 @@ void		markAccessedPredicates(PL_local_data_t *ld);
 int		cgc_thread_stats(cgc_stats *stats);
 int		signalGCThread(int sig);
 int		isSignalledGCThread(int sig);
-double	        ThreadCPUTime(int which);
+double		ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
 int		require_c_stack(size_t needed);
 void		clear_low_c_stack(void);

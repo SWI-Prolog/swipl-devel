@@ -617,7 +617,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 #define TR_UNLOCK() PL_mutex_unlock(mutex)
 #else
     int tid = 1;			/* without threads we get -2 */
-#define TR_LOCK() (void)0
+#define TR_LOCK() TRUE
 #define TR_UNLOCK() (void)0
 #endif
 
@@ -628,10 +628,13 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.id         = goal;
     rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && (flags&TR_TRANSACTION) )
-    { if ( constraint )
-      { TR_LOCK();
-	LD->transaction.gen_start = global_generation();
-	rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
+    { int locked = FALSE;
+      if ( constraint )
+      { if ( (rc=TR_LOCK()) )
+	{ locked = TRUE;
+	  LD->transaction.gen_start = global_generation();
+	  rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
+	}
       }
       if ( rc && (flags&TR_BULK) )
       { transaction_updates(&updates);
@@ -640,9 +643,9 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
       if ( rc )
       { rc = ( transaction_commit_tables() &&
 	       transaction_commit() );
-	if ( constraint ) TR_UNLOCK();
+	if ( locked ) TR_UNLOCK();
       } else
-      { if ( constraint ) TR_UNLOCK();
+      { if ( locked ) TR_UNLOCK();
 	LD->transaction.generation = 0;	/* avoid recording the rollback */
 	transaction_discard();
 	transaction_rollback_tables();

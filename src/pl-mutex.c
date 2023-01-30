@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2017-2023, University of Amsterdam
+                              VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -682,7 +683,7 @@ enumerate:
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
-			        PL_TERM, arg) )
+				PL_TERM, arg) )
 	    goto error;
 	}
 	if ( state->e )
@@ -747,7 +748,8 @@ pl_with_mutex(term_t mutex, term_t goal)
 
   if ( !get_mutex(mutex, &m, TRUE) )
     return FALSE;
-  PL_mutex_lock(m);
+  if ( !PL_mutex_lock(m) )
+    return FALSE;
   rval = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
   PL_mutex_unlock(m);
 #else
