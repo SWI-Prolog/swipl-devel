@@ -47,9 +47,11 @@ if(MULTI_THREADED)
        -s PTHREAD_POOL_SIZE=4)
 endif()
 
+# Create swipl-web.js, swipl-web.wasm, swipl-web.data
 set(WASM_WEB_LINK_FLAGS
     --preload-file ${WASM_PRELOAD_DIR}@swipl)
-join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS} " " ${WASM_SHARED_LINK_FLAGS})
+join_list(WASM_WEB_LINK_FLAGS_STRING " "
+	  ${WASM_WEB_LINK_FLAGS} ${WASM_SHARED_LINK_FLAGS})
 add_executable(swipl-web ${SWIPL_SRC})
 set_target_properties(swipl-web PROPERTIES
 		      LINK_FLAGS "${WASM_WEB_LINK_FLAGS_STRING}")
@@ -58,14 +60,28 @@ add_dependencies(swipl-web wasm_preload)
 set_property(TARGET swipl-web PROPERTY LINK_DEPENDS
 	     ${POSTJS} ${PREJS})
 
+# Create swipl-bundle.js
 set(WASM_BUNDLE_LINK_FLAGS
     -s SINGLE_FILE
     --embed-file ${WASM_PRELOAD_DIR}@swipl)
-join_list(WASM_BUNDLE_LINK_FLAGS_STRING " " ${WASM_BUNDLE_LINK_FLAGS} " " ${WASM_SHARED_LINK_FLAGS})
+join_list(WASM_BUNDLE_LINK_FLAGS_STRING " "
+	  ${WASM_BUNDLE_LINK_FLAGS} ${WASM_SHARED_LINK_FLAGS})
 add_executable(swipl-bundle ${SWIPL_SRC})
 set_target_properties(swipl-bundle PROPERTIES
 		      LINK_FLAGS "${WASM_BUNDLE_LINK_FLAGS_STRING}")
 target_link_libraries(swipl-bundle libswipl)
 add_dependencies(swipl-bundle wasm_preload)
 set_property(TARGET swipl-bundle PROPERTY LINK_DEPENDS
+	     ${POSTJS} ${PREJS})
+
+# Create swipl-bundle-no-data.js
+set(WASM_NO_DATA_BUNDLE_LINK_FLAGS
+    -s SINGLE_FILE)
+join_list(WASM_NO_DATA_BUNDLE_LINK_FLAGS_STRING " "
+	  ${WASM_NO_DATA_BUNDLE_LINK_FLAGS} ${WASM_SHARED_LINK_FLAGS})
+add_executable(swipl-bundle-no-data ${SWIPL_SRC})
+set_target_properties(swipl-bundle-no-data PROPERTIES
+		      LINK_FLAGS "${WASM_NO_DATA_BUNDLE_LINK_FLAGS_STRING}")
+target_link_libraries(swipl-bundle-no-data libswipl)
+set_property(TARGET swipl-bundle-no-data PROPERTY LINK_DEPENDS
 	     ${POSTJS} ${PREJS})
