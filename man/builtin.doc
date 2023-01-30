@@ -8574,6 +8574,10 @@ any precise calculation with a potentially imprecise float. So \exam{max(1,1.0)}
 evaluates to 1.0 while \exam{maxr(1,1.0)} evaluates to 1. This also means that 0 is preferred over 0.0 or -0.0;
 -0.0 is still considered smaller than 0.0.
 
+\funcref{maxr}{2} also treats NaN's as missing values so \exam{maxr(1,nan)} evaluates to 1.
+(This is consistent with the current standards, which also define a propagate version, but 
+may not be implemented in all programming languages.)  
+
     \function[ISO]{minr}{2}{+Expr1, +Expr2}
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison 
 (see \funcref{cmpr}{2}). See \funcref{maxr}{2} for a description of type handling.
