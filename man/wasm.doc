@@ -1,18 +1,18 @@
 \chapter{Using SWI-Prolog in your browser (WASM)}
 \label{sec:wasm}
 
-\href{https://emscripten.org/}{Emscripten} can compile C and C++ code
-to WebAssembly (WASM).  WASM runs on a virtual machine that is
-provided by almost all modern browsers.  This allows for compiling the
-SWI-Prolog source to WASM and run it in your browser.  We keep
-up-to-data instructions for building the WASM version on the
-\href{https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/5650}{wiki}
-page.
+The SWI-Prolog WebAssembly (WASM) port lets you run SWI-Prolog
+directly in your browser.  This is a fairly comprehensive version of
+SWI-Prolog that supports the core system as well as a good selection
+of \jargon{packages}, including many of the \jargon{foreign packages}.
 
-Currently the WASM version is a fairly comprehensive version of
-SWI-Prolog.  It contains the core and a good selection of the
-\jargon{packages}, including many of the \jargon{foreign packages}.
+The WASM port uses \href{https://emscripten.org/}{Emscripten} to
+compile the SWI-Prolog source code to WASM, which runs on a virtual
+machine that is provided by almost all modern browsers.
 
+To build the SWI-Prolog WASM port, see the building instructions on
+\href{https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/5650}{the
+wiki page}
 
 \section{Loading and initializing Prolog}
 \label{sec:wasm-loading}
