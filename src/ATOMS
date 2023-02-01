@@ -1267,6 +1267,7 @@ F tanh			1
 F term_expansion	2
 F term_position		5
 F thousands_sep		1
+F time_limit_exceeded	1
 F timeout		1
 F timeout_error		2
 F tnot			1
