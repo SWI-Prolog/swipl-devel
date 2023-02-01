@@ -658,8 +658,8 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
   
   if ( mpz_sizeinbase(OP, 2) < n )  // if n > bit size, answer is +/- 1
   { op_sgn = mpz_sgn(OP);
+    mpz_add_si(rem, OP, -op_sgn);
     mpz_set_si(rop, op_sgn);
-    mpz_sub_ui(rem, OP, op_sgn);
     return;
   }
 
