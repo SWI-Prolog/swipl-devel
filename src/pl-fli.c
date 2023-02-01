@@ -4365,6 +4365,8 @@ classify_exception_p(DECL_LD Word p)
     }
 
     return EXCEPT_ERROR;
+  } else if ( hasFunctor(*p, FUNCTOR_time_limit_exceeded1) )
+  { return EXCEPT_TIMEOUT;
   }
 
   return EXCEPT_OTHER;
