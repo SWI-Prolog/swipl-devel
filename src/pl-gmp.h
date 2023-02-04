@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2022, University of Amsterdam
+    Copyright (c)  2005-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,10 +44,12 @@
 #define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
-#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#ifdef O_BIGNUM
+#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
+#endif
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -54,7 +57,6 @@
 int	PL_unify_number(term_t t, Number n);
 int	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
-void	get_rational(word w, number *n);
 int	PL_get_number(term_t t, Number n);
 int	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
@@ -65,6 +67,9 @@ int     promoteNumber(Number n1, numtype type) WUNUSED;
 int	cmpNumbers(Number n1, Number n2);
 int	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
+#ifdef O_BIGNUM
+void	get_rational(word w, number *n);
+#endif
 
 #undef LDFUNC_DECLARATIONS
 

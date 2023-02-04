@@ -48,6 +48,11 @@
 #undef LD
 #define LD LOCAL_LD
 
+typedef union
+{ double  d;
+  int64_t i;
+} fpattern;
+
 #ifdef O_BIGNUM				/* Upto the end of this file */
 
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
@@ -61,12 +66,6 @@ static mpz_t MPZ_MAX_LONG;
 #endif
 
 #define abs(v) ((v) < 0 ? -(v) : (v))
-
-typedef union
-{ double  d;
-  int64_t i;
-} fpattern;
-
 
 		 /*******************************
 		 *	 MEMORY MANAGEMENT	*
@@ -1770,7 +1769,7 @@ cmpReals(Number n1, Number n2)
 #ifdef O_BIGNUM
         case V_MPZ:     return -cmp_z_i(n2->value.mpz,n1->value.i);
         case V_MPQ:     return -cmp_q_i(n2->value.mpq,n1->value.i);
-#endif // O_BIGNUM
+#endif
       }
     case V_FLOAT:
       switch(n2->type)
@@ -1781,7 +1780,9 @@ cmpReals(Number n1, Number n2)
         case V_MPZ:     rc =    cmp_z_f(n2->value.mpz,n1->value.f);
                         return  (rc == CMP_NOTEQ) ? rc : -rc;
         case V_MPQ:     return  cmp_f_q(n1->value.f,n2->value.mpq);
+#endif
       }
+#ifdef O_BIGNUM
     case V_MPZ:
       switch(n2->type)
       { case V_INTEGER: return  cmp_z_i(n1->value.mpz,n2->value.i);
