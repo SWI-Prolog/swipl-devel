@@ -1023,7 +1023,7 @@ accident.
 \begin{code}
 change_address(Id, Address) :-
 	with_mutex(addressbook,
-		   ( retractall(address(Id, _)),
+		   ( retractall(address_db(Id, _)),
 		     asserta(address_db(Id, Address))
 		   )).
 
