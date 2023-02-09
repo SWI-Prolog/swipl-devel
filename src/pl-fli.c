@@ -5190,6 +5190,17 @@ PL_warning(const char *fm, ...)
   fail;
 }
 
+int
+PL_warningX(const char *fm, ...)
+{ va_list args;
+
+  va_start(args, fm);
+  vwarning(fm, args);
+  va_end(args);
+
+  fail;
+}
+
 void
 PL_fatal_error(const char *fm, ...)
 { va_list args;
