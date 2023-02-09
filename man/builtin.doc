@@ -11097,6 +11097,12 @@ This performs as halt/1 above except that:
     \item abort() is called instead of exit(Status).
     \end{itemize}
 
+In addition to an integer status name we also allow passing a
+\jargon{signal name}.  This is similar to \const{abort}, blocking halt
+cancellation and set the termination code to 128+signum.  For example,
+using \exam{halt(term)} the system exits with status 143 (= 128+15) on
+Linux.
+
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
 from the stream \const{user_input}. See also the Prolog flag
