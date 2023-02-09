@@ -378,6 +378,8 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
+#if !defined(WPRINTF12)
+/* these macros are duplicated in SWI-Prolog.h */
 #if defined(CHECK_FORMAT)
 #define WPRINTF12  __attribute__ ((format (printf, 1, 2)))
 #define WPRINTF23  __attribute__ ((format (printf, 2, 3)))
@@ -386,6 +388,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define WPRINTF12
 #define WPRINTF23
 #define WPRINTF34
+#endif
 #endif
 
 PL_EXPORT(void)		SinitStreams(void);
