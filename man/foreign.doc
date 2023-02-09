@@ -282,7 +282,8 @@ pl_mypredicate(term_t a0, term_t a1)
 Create a new term reference and make it point initially to the same term
 as \arg{from}. This function is commonly used to copy a predicate
 argument to a term reference that may be written. Raise a resource
-exception and returns \exam{(term_t)0} on failure.
+exception and returns \exam{(term_t)0} on failure. An example of its use
+is given below, in the sample code \exam{pl_write_atoms()}.
 
 \cfunction{void}{PL_reset_term_refs}{term_t after}
 Destroy all term references that have been created after \arg{after},
@@ -1707,10 +1708,13 @@ array of term references as returned by PL_new_term_refs().  The length
 of this array should match the number of arguments required by the
 functor.
 \cfunction{int}{PL_cons_list}{term_t -l, term_t +h, term_t +t}
-Create a list (cons-) cell in \arg{l} from the head \arg{h} and tail \arg{t}.  The
+Create a list (cons-) cell in \arg{l} from the head \arg{h} and tail \arg{t}.
+As with PL_cons_functor(), the term references \arg{h} and \arg{t} may be
+used for other purposes after the call to PL_cons_list().
+The
 code below creates a list of atoms from a \ctype{char **}.  The list
 is built tail-to-head.  The {\tt PL_unify_*()} functions can be used
-to build a list head-to-tail.
+instead to build a list head-to-tail.
 
 \begin{code}
 void
@@ -1724,9 +1728,6 @@ put_list(term_t l, int n, char **words)
   }
 }
 \end{code}
-Note that \arg{l} can be redefined within a {\tt PL_cons_list} call as
-shown here because operationally its old value is consumed before its
-new value is set.
 
 \cfunction{int}{PL_put_dict}{term_t -h, atom_t tag, size_t len,
 			     const atom_t *keys, term_t values}
@@ -1906,12 +1907,12 @@ PL_unify_functor().
     \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
 reference to the head of the list into \arg{h} and a reference
-to the tail of the list into \arg{t}. This reference may be used for
+to the tail of the list into \arg{t}. This reference to \arg{h} may be used for
 subsequent calls to this function. Suppose we want to return a list of
 atoms from a \ctype{char **}. We could use the example described by
-PL_put_list(), followed by a call to PL_unify(), or we can use the code
+PL_cons_list(), followed by a call to PL_unify(), or we can use the code
 below. If the predicate argument is unbound, the difference is minimal
-(the code based on PL_put_list() is probably slightly faster). If the
+(the code based on PL_cons_list() is probably slightly faster). If the
 argument is bound, the code below may fail before reaching the end of
 the word list, but even if the unification succeeds, this code avoids a
 duplicate (garbage) list and a deep unification.
@@ -1919,20 +1920,27 @@ duplicate (garbage) list and a deep unification.
 \begin{code}
 foreign_t
 pl_get_environ(term_t env)
-{ term_t l = PL_copy_term_ref(env);
-  term_t a = PL_new_term_ref();
+{ term_t item = PL_new_term_ref();
   extern char **environ;
-  char **e;
 
-  for(e = environ; *e; e++)
-  { if ( !PL_unify_list(l, a, l) ||
-         !PL_unify_atom_chars(a, *e) )
+  for(const char **e = environ; *e; e++)
+  { if ( !PL_unify_list(env, item, env) ||
+         !PL_unify_atom_chars(item, *e) )
       PL_fail;
   }
 
-  return PL_unify_nil(l);
+  return PL_unify_nil(env);
 }
 \end{code}
+
+In this example, \exam{item} is initialized outside the loop. This
+allocates a single new reference to a term, which is used as a
+temporary inside the loop - there is no need to allocate a new
+reference each time around the loop because the \exam{item} term
+reference can be reused and the call to PL_unify_list() copies a
+reference to the new list cell's head into the the term referenced by
+\exam{item}.
+
 \cfunction{int}{PL_unify_nil}{term_t ?l}
 Unify \arg{l} with the atom \const{[]}.
 \cfunction{int}{PL_unify_arg}{int index, term_t ?t, term_t ?a}
@@ -2550,6 +2558,22 @@ If a blob type is registered from a loadable object (shared object
 or DLL) the blob type must be deregistered before the object may be
 released.
 
+    \cfunction{int}{save}{atom_t a, IOSTREAM *s}
+
+Write the blob to stream \arg{s}, in an opaque form that's known only
+to the blob. If this is not possible, the "save" function should call
+PL_message() and return \const{FALSE}. If a "save" function is not
+provided (that is, the field is \const{NULL}), the default
+implementation writes the blob as if it is a string of characters
+(this could cause problems if a saved state is created on a big-endian
+machine and used on a little-endian machine).
+
+    \cfunction{atom_t}{load}{IOSTREAM *s}
+
+Read the blob from its saved form. If this cannot be done (e.g., a
+stream read failure or a corrupted external form), the "load" function
+should call PL_fatal_error() and return const{FALSE}.
+
 \begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
@@ -2847,7 +2871,8 @@ if flags is \const{0}.
 If an exception is raised while executing the goal, make it available by
 calling \exam{PL_exception(qid)}, where \exam{qid} is the \ctype{qid_t}
 returned by PL_open_query(). The exception is implicitly cleared from
-the environment when the query is closed. Use
+the environment when the query is closed and the exception term returned
+from \exam{PL_exception(qid)} becomes invalid. Use
 \const{PL_Q_PASS_EXCEPTION} if you wish to propagate the exception.
 
     \definition{\const{PL_Q_PASS_EXCEPTION}}
