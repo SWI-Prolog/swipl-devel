@@ -5147,9 +5147,15 @@ pl_halt(term_t code)
   int status;
   atom_t a;
 
-  if ( PL_get_atom(code, &a) && a == ATOM_abort )
-  { PL_abort_process();
-    return FALSE;				/* not reached */
+  if ( PL_get_atom(code, &a) )
+  { if ( a == ATOM_abort )
+    { PL_abort_process();
+      return FALSE;				/* not reached */
+    } else if ( PL_get_signum_ex(code, &status) )
+    { status += 128;
+      status |= PL_CLEANUP_NO_CANCEL;
+    } else
+      return FALSE;
   } else if ( !PL_get_integer_ex(code, &status) )
   { return FALSE;
   }
