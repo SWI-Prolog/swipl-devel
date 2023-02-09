@@ -4715,7 +4715,7 @@ PL_halt(int status)
 
 void
 PL_abort_process(void)
-{ haltProlog(128+SIGABRT);
+{ haltProlog((128+SIGABRT)|PL_CLEANUP_NO_CANCEL);
   abort();
 }
 
