@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2022, VU University Amsterdam
+    Copyright (c)  2014-2023, VU University Amsterdam
                               CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -86,7 +86,8 @@ shared objects/DLLs can be loaded.
 component(tcmalloc,
           _{ optional:true,
              test:test_tcmalloc,
-             url:'tcmalloc.html'
+             url:'tcmalloc.html',
+             os:linux
            }).
 component(gmp,
           _{ test:current_prolog_flag(bounded, false),
@@ -202,6 +203,10 @@ check_component(Source) :-
     !,
     check_component(Source, Properties.put(source,Source)).
 
+check_component(_Source, Properties) :-
+    OS = Properties.get(os),
+    \+ current_os(OS),
+    !.
 check_component(Source, Properties) :-
     compound(Source),
     !,
@@ -213,10 +218,6 @@ check_component(Feature, Properties) :-
     ;   print_issue(installation(missing(Properties)))
     ).
 
-check_source(_Source, Properties) :-
-    OS = Properties.get(os),
-    \+ current_os(OS),
-    !.
 check_source(Source, Properties) :-
     exists_source(Source),
     !,
