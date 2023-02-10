@@ -384,7 +384,7 @@ to the call-port and finally, restart the clause.
 VMH(retry, 0, (), ())
 { LocalFrame rframe0, rframe;
   Choice ch;
-					MARK(RETRY);
+
   if ( debugstatus.retryFrame )
     rframe = (LocalFrame)valTermRef(debugstatus.retryFrame);
   else
@@ -2184,8 +2184,6 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     setFramePredicate(FR, DEF);
     copyFrameArguments(lTop, FR, DEF->functor->arity);
 
-    END_PROF();
-    START_PROF(DEPART_CONTINUE, "DEPART_CONTINUE");
     VMH_GOTO(depart_or_retry_continue);
   }
 
@@ -4589,16 +4587,6 @@ END_VMI
 	I_FEXITDET
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_PROF_PENTIUM
-#define PROF_FOREIGN \
-	{ END_PROF(); \
-	  START_PROF(DEF->prof_index, DEF->prof_name); \
-	}
-#else
-#define PROF_FOREIGN (void)0
-#endif
-
-
 VMI(I_FOPEN, 0, 0, ())
 { FliFrame ffr;
 
@@ -4651,7 +4639,6 @@ VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
   context.control   = FRG_FIRST_CALL;
   context.predicate = DEF;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &context));
 }
 END_VMI
@@ -4665,7 +4652,6 @@ a1, a2, ... calling conventions.
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 { Func0 f = (Func0)*PC++;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
@@ -4673,7 +4659,6 @@ END_VMI
 #define FCALL_DETN(ac, ...) \
   Func##ac f = (Func##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
-  PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
@@ -4825,7 +4810,6 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
   ndet_func f = (ndet_func)*PC++;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
@@ -4834,7 +4818,6 @@ END_VMI
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 { NdetFunc0 f = (NdetFunc0)*PC++;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
@@ -4842,7 +4825,6 @@ END_VMI
 #define FCALL_NDETN(ac, ...) \
   NdetFunc##ac f = (NdetFunc##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
-  PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
 
 
@@ -6684,9 +6666,6 @@ as to investigate optimization in the future.
 // body_failed:
 VMH(shallow_backtrack, 0, (), ())
 { Choice ch = BFR;				/* shallow backtracking */
-				MARK(BKTRK);
-  END_PROF();
-  START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
   if ( FR == ch->frame )
   { Undo(ch->mark);
@@ -6756,8 +6735,6 @@ VMH(deep_backtrack, 0, (), ())
 #endif
   Choice ch;
 
-  END_PROF();
-  START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
   DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
 next_choice:

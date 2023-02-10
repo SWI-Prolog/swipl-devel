@@ -41,7 +41,6 @@
 #include "pl-gc.h"
 #include "pl-comp.h"
 #include "os/pl-cstack.h"
-#include "pentium.h"
 #include "pl-inline.h"
 #include "pl-prof.h"
 #include "pl-fli.h"
@@ -4366,9 +4365,6 @@ garbageCollect(gc_reason_t reason)
   struct call_node *prof_node = NULL;
 #endif
   gc_stat *stats;
-
-  END_PROF();
-  START_PROF(P_GC, "P_GC");
 
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;

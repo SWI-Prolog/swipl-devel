@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -72,12 +72,6 @@
 
 #define	     BFR (LD->choicepoints)	/* choicepoint registration */
 
-#if sun
-#include <prof.h>			/* in-function profiling */
-#else
-#define MARK(label)
-#endif
-
 #define newChoice(type, fr) LDFUNC(newChoice, type, fr)
 static Choice	newChoice(DECL_LD choice_type type, LocalFrame fr);
 
@@ -124,115 +118,6 @@ typedef foreign_t (*NdetFunc10)(term_t a1, term_t a2, term_t a3, term_t a4,
 				term_t a9, term_t a10, control_t);
 
 
-#if COUNTING
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The counting code has been added   while investigating the time critical
-WAM  instructions.  The  current  implementation  runs  on  top  of  the
-information  provided  by  code_info   (from    pl-comp.c)   and  should
-automatically addapt to modifications in the VM instruction set.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct
-{ code  code;
-  int	times;
-  int  *vartimesptr;
-} count_info;
-
-#define MAXVAR 8
-
-static count_info counting[I_HIGHEST];
-
-static void
-count(code c, Code PC)
-{ const code_info *info = &codeTable[c];
-
-  counting[c].times++;
-  switch(VM_ARGTYPES(info))
-  { case CA1_VAR:
-    case CA1_FVAR:
-    case CA1_CHP:
-    { int v = (int)*PC;
-
-      v -= ARGOFFSET/sizeof(word);
-      assert(v>=0);
-      if ( v >= MAXVAR )
-	v = MAXVAR-1;
-
-      if ( !counting[c].vartimesptr )
-      { int bytes = sizeof(int)*MAXVAR;
-
-	counting[c].vartimesptr = allocHeapOrHalt(bytes);
-	memset(counting[c].vartimesptr, 0, bytes);
-      }
-      counting[c].vartimesptr[v]++;
-    }
-  }
-}
-
-
-static void
-countHeader()
-{ int m;
-  int amax = MAXVAR;
-  char last[20];
-
-  Sfprintf(Scurout, "%-13s %8s ", "Instruction", "times");
-  for(m=0; m < amax-1; m++)
-    Sfprintf(Scurout, " %8d", m);
-  Ssprintf(last, ">%d", m);
-  Sfprintf(Scurout, " %8s\n", last);
-  for(m=0; m<(31+amax*8); m++)
-    Sputc('=', Scurout);
-  Sfprintf(Scurout, "\n");
-}
-
-
-static int
-cmpcounts(const void *p1, const void *p2)
-{ const count_info *c1 = p1;
-  const count_info *c2 = p2;
-
-  return c2->times - c1->times;
-}
-
-
-word
-pl_count()
-{ int i;
-  count_info counts[I_HIGHEST];
-  count_info *c;
-
-  countHeader();
-
-  memcpy(counts, counting, sizeof(counts));
-  for(i=0, c=counts; i<I_HIGHEST; i++, c++)
-    c->code = i;
-  qsort(counts, I_HIGHEST, sizeof(count_info), cmpcounts);
-
-  for(c = counts, i=0; i<I_HIGHEST; i++, c++)
-  { const code_info *info = &codeTable[c->code];
-
-    Sfprintf(Scurout, "%-13s %8d ", info->name, c->times);
-    if ( c->vartimesptr )
-    { int n, m=MAXVAR;
-
-      while(m>0 && c->vartimesptr[m-1] == 0 )
-	m--;
-      for(n=0; n<m; n++)
-	Sfprintf(Scurout, " %8d", c->vartimesptr[n]);
-    }
-    Sfprintf(Scurout, "\n");
-  }
-
-  succeed;
-}
-
-#else /* ~COUNTING */
-
-#define count(id, pc)			/* no debugging not counting */
-
-#endif /* COUNTING */
 
 		 /*******************************
 		 *	     DEBUGGING		*
@@ -2997,15 +2882,9 @@ typedef enum
   uwrite				/* Unification in write mode */
 } unify_mode;
 
-/* HACK: uncomment the following line to enable function mode */
-/* #define O_VMI_FUNCTIONS 1 */
-/* #define VMI_REGISTER_VARIABLES 1 */
-/* #define VMI_USE_REGISTER_VARIABLES 1 */
 /* registers here MUST be in the list of callee-saved registers! */
 #define LD_REGISTER "rbx"
 #define REGFILE_REGISTER "r12"
-
-#include "pentium.h"
 
 #if O_VMI_FUNCTIONS
 struct register_file;
@@ -3083,8 +2962,8 @@ typedef struct register_file
  * and just before exit from an instruction (i.e. before goto/return/etc).
  * For profiling/tracing purposes only, and not applied to VMH's.
  */
-#define VMI_ENTER(n)		count(n, PC); START_PROF(n, #n);
-#define VMI_EXIT		END_PROF();
+#define VMI_ENTER(n)		(void)(n);
+#define VMI_EXIT		(void)0;
 
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
  * get defined per-implementation.
