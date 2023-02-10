@@ -1917,19 +1917,26 @@ argument is bound, the code below may fail before reaching the end of
 the word list, but even if the unification succeeds, this code avoids a
 duplicate (garbage) list and a deep unification.
 
+Note that PL_unify_list() is not used with \arg{env} but with
+\exam{env_ref}, which has a reference to \arg{env}. The only thing
+that is allowed to be done with and argument to a foreign predicate
+(such as \arg{env}) is unification; for anything that might over-write
+the term, you must use a reference created by PL_copy_term_ref().
+
 \begin{code}
 foreign_t
 pl_get_environ(term_t env)
-{ term_t item = PL_new_term_ref();
+{ term_t env_ref = PL_copy_term_ref(env);
+  term_t item = PL_new_term_ref();
   extern char **environ;
 
   for(const char **e = environ; *e; e++)
-  { if ( !PL_unify_list(env, item, env) ||
+  { if ( !PL_unify_list(env_ref, item, env_ref) ||
          !PL_unify_atom_chars(item, *e) )
       PL_fail;
   }
 
-  return PL_unify_nil(env);
+  return PL_unify_nil(env_ref);
 }
 \end{code}
 
