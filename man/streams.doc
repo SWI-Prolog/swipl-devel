@@ -276,11 +276,11 @@ freed by the caller when done. Example:
 \end{code}
 
 The \arg{mode} is \const{"r"} or \const{"w"}. The mode \arg{"rF"} calls
-\exam{PL_free(*buffer)} at when closed.
+\exam{PL_free(buffer)} when closed.
 
 \textbf{Note:} Its is \emph{not} allowed to access streams created with
 this call from multiple threads. This is ok for all usage inside Prolog
-itself. This call is intented to use write and other output predicates
+itself. This call is intended to use Sfprintf() and other output functions
 to create strings.
 
     \cfunction{void}{Sfree}{void *ptr}

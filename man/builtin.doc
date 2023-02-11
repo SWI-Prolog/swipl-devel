@@ -7556,26 +7556,12 @@ atom_insert(Str, Val, At, NewStr) :-
 \end{code}
 
 If the \arg{NewString} should be a string, use
-atomics_to-string/2 instead of atomic_list_concat/2:
+atomics_to_string/2 instead of atomic_list_concat/2:
 \begin{code}
 string_insert(Str, Val, At, NewStr) :-
     sub_string(Str, 0, At, A1, S1),
     sub_string(Str, At, A1, _, S2),
     atomics_to_string([S1,Val,S2], NewStr).
-\end{code}
-
-The suffix of a string can be removed by:
-\begin{code}
-remove_suffix(Atom, Suffix, FirstPart) :-
-    sub_atom(Atom, Before, _, 0, Suffix),
-    sub_atom(Atom, 0, Before, _, FirstPart).
-\end{code}
-
-However, other predicates can be more convenient, for example
-atom_concat/3, which also allow different instantiation patterns:
-\begin{code}
-remove_suffix(Atom, Suffix, FirstPart) :-
-    atom_concat(FirstPart, Suffix, Atom).
 \end{code}
 
 On backtracking, matches are delivered in order left-to-right (i.e.
@@ -11181,6 +11167,12 @@ This performs as halt/1 above except that:
     \item Termination cannot be cancelled with cancel_halt/1.
     \item abort() is called instead of exit(Status).
     \end{itemize}
+
+In addition to an integer status name we also allow passing a
+\jargon{signal name}.  This is similar to \const{abort}, blocking halt
+cancellation and set the termination code to 128+signum.  For example,
+using \exam{halt(term)} the system exits with status 143 (= 128+15) on
+Linux.
 
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read

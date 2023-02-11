@@ -1375,9 +1375,9 @@ atoms, each on a line:
 foreign_t
 pl_write_atoms(term_t l)
 { term_t head = PL_new_term_ref();   /* the elements */
-  term_t list = PL_copy_term_ref(l); /* copy (we modify list) */
+  term_t tail = PL_copy_term_ref(l); /* copy (we modify tail) */
 
-  while( PL_get_list(list, head, list) )
+  while( PL_get_list(tail, head, tail) )
   { char *s;
 
     if ( PL_get_atom_chars(head, &s) )
@@ -1386,7 +1386,7 @@ pl_write_atoms(term_t l)
       PL_fail;
   }
 
-  return PL_get_nil(list);            /* test end for [] */
+  return PL_get_nil(tail);            /* test end for [] */
 }
 \end{code}
 
@@ -2551,7 +2551,7 @@ Write the content of the blob \arg{a} to the stream \arg{s}
 respecting the \arg{flags}.  The \arg{flags} are a bitwise
 \emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
-undocumented \file{SWI-Stream.h} is included \emph{before}
+\file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}. This function can retrieve the data of the blob
 using PL_blob_data().
 
@@ -2571,15 +2571,30 @@ Write the blob to stream \arg{s}, in an opaque form that's known only
 to the blob. If this is not possible, the "save" function should call
 PL_message() and return \const{FALSE}. If a "save" function is not
 provided (that is, the field is \const{NULL}), the default
-implementation writes the blob as if it is a string of characters
-(this could cause problems if a saved state is created on a big-endian
+implementation writes the blob as if it is a string of bytes (this
+could cause problems if a saved state is created on a big-endian
 machine and used on a little-endian machine).
+
+If the "save" function encounters an error, it should call
+PL_raise_exception() or one of the interface functions (e.g.,
+resource_error() or PL_representation_error() and return
+\const{FALSE}. Alternatively, it can call Sseterr() on the stream and
+return \const{FALSE}.  If no error has been set
+\exam{representation_error(culprit)} is used, where \arg{culprit} is
+the result of the blob's "write" function.\footnote{Details are
+subject to change; see
+\href{https://github.com/SWI-Prolog/swipl-devel/issues/1118}{bug
+1118}.}
 
     \cfunction{atom_t}{load}{IOSTREAM *s}
 
 Read the blob from its saved form. If this cannot be done (e.g., a
 stream read failure or a corrupted external form), the "load" function
-should call PL_fatal_error() and return const{FALSE}.
+should call PL_fatal_error() and return const{FALSE}.\footnote{Details
+are subject to change; see the "save" function.}  If a "load" function
+is not provided (that is, the field is \const{NULL}, the default
+implementation assumes that the blob was written by the default
+"save".
 
 \begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
