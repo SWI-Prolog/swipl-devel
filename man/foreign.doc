@@ -1383,10 +1383,13 @@ pl_write_atoms(term_t l)
     if ( PL_get_atom_chars(head, &s) )
       Sprintf("%s\n", s);
     else
+    { (void)PL_release_stream(s);
       PL_fail;
+    }
   }
 
-  return PL_get_nil(tail);            /* test end for [] */
+  return PL_release_stream(s) &&
+    PL_get_nil(tail);            /* test end for [] */
 }
 \end{code}
 
