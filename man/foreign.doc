@@ -2597,20 +2597,29 @@ or DLL) the blob type must be deregistered before the object may be
 released.
 
     \cfunction{int}{save}{atom_t a, IOSTREAM *s}
-
 Write the blob to stream \arg{s}, in an opaque form that's known only
-to the blob. If this is not possible, the "save" function should call
-PL_message() and return \const{FALSE}. If a "save" function is not
-provided (that is, the field is \const{NULL}), the default
-implementation writes the blob as if it is a string of characters
-(this could cause problems if a saved state is created on a big-endian
-machine and used on a little-endian machine).
+to the blob. If this is not possible, the ``save'' function should call
+PL_warning() and return \const{FALSE}. If a ``save'' function is
+not provided (that is, the field is \const{NULL}), the default
+implementation saves and restores the blob as if it is an array
+of bytes which may hold 0-bytes.
+
+If the ``save'' function encounters an error, it should raise an
+exception (see PL_raise_exception()) and return \const{FALSE}. Note that
+a failing to save/restore a blob makes it impossible to compile a file
+that contains such a blob using qcompile/2 as well as creating a
+\jargon{saved state} from a program that contains such a blob
+impossible.  Here, \jargon{contains} means that the blob appears in
+a clause or directive.
 
     \cfunction{atom_t}{load}{IOSTREAM *s}
-
-Read the blob from its saved form. If this cannot be done (e.g., a
-stream read failure or a corrupted external form), the "load" function
-should call PL_fatal_error() and return const{FALSE}.
+Read the blob from its saved form as written by the ``save'' function
+of the same blob type. If this cannot be done (e.g., a stream read
+failure or a corrupted external form), the ``load'' function should call
+PL_fatal_error() and return const{FALSE}.\footnote{Details are subject
+to change; see the ``save'' function.} If a ``load'' function is not
+provided (that is, the field is \const{NULL}, the default implementation
+assumes that the blob was written by the default ``save''.
 
 \begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}

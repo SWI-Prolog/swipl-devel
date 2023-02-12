@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2061,6 +2061,18 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
   fd->encoding = oenc;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+putAtom(wic_state *state, atom_t w)
+
+Write an atom/blob.
+
+(*) If the blob type defines a `save` function that returns an error, we
+currently have no way to propagate this. As a quick fix we set the error
+on the stream. That will eventually   re-raise  the exception, currently
+when the stream is closed.  Future   versions  should  propagate errors.
+Unfortunalely the Prolog code using this (qsave_program/2 and especially
+qcompile/2) do not implement proper exception handling and recovery.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 putAtom(wic_state *state, atom_t w)
@@ -2084,7 +2096,17 @@ putAtom(wic_state *state, atom_t w)
   { Sputc(XR_BLOB, fd);
     saveXRBlobType(state, a->type);
     if ( a->type->save )
-    { (*a->type->save)(a->atom, fd);
+    { if ( !(*a->type->save)(a->atom, fd) )
+      { term_t ex;
+
+	if ( (ex=PL_exception(0)) )	/* see (*) */
+	{ Sset_exception(fd, ex);
+	  PL_clear_exception();
+	} else
+	{ Sdprintf("Blob save hook for type %s failed\n",  a->type->name);
+	  Sseterr(fd, SIO_FERR, "Failed to save blob");
+	}
+      }
     } else
     { putString(a->name, a->length, fd);
     }
