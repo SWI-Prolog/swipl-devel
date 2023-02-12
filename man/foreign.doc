@@ -1368,25 +1368,54 @@ source distribution.
 \label{sec:foreign-read-list}
 
 The functions from this section are intended to read a Prolog list from
-C.  Suppose we expect a list of atoms; the following code will print the
-atoms, each on a line:
+C.  Suppose we expect a list of atoms; the code below will print the
+atoms, each on a line.  Please note the following:
+
+\begin{itemize}
+    \item We need a \ctype{term_t} \jargon{term reference} for the
+          elements (\arg{head}).  This reference is reused for each
+	  element.
+    \item We walk over the list using PL_get_list_ex() which overwrites
+          the list \ctype{term_t}.  As it is not allowed to overwrite
+	  the \ctype{term_t} passes as arguments to a predicate, we must
+	  \emph{copy} the argument \ctype{term_t}.
+    \item SWI-Prolog atoms are Unicode objects.  The PL_get_chars() returns
+          a \ctype{char*}. We want it to convert atoms, return the
+	  result as a \jargon{multibyte} string (\const{REP_UTF8} may
+	  also be used) and finally we want an exception on type,
+	  instantiation or representation errors (if the system's
+	  default encoding cannot represent some characters of the
+	  Unicode atom).  This may create temporary copies of the
+	  atom text.  PL_STRINGS_MARK() $\ldots$ PL_STRINGS_RELEASE()
+	  cope with that.
+    \item The *_ex() API functions are functionally the same as the
+          once without the \const{_ex} suffix, but they raise  type,
+	  domain or instantiation errors in case the input is invalid,
+	  whereas the plain version may only raise resource exceptions
+	  if the request cannot be fullfilled due to resource
+	  exhaustion.
+\end{itemize}
+
 
 \begin{code}
 foreign_t
 pl_write_atoms(term_t l)
 { term_t head = PL_new_term_ref();   /* the elements */
-  term_t list = PL_copy_term_ref(l); /* copy (we modify list) */
+  term_t tail = PL_copy_term_ref(l); /* copy (we modify tail) */
+  int rc = TRUE;
 
-  while( PL_get_list(list, head, list) )
+  while( (rc=PL_get_list_ex(tail, head, tail)) )
   { char *s;
 
-    if ( PL_get_atom_chars(head, &s) )
+    PL_STRINGS_MARK();
+    if ( (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
       Sprintf("%s\n", s);
     else
-      PL_fail;
+      break;
+    PL_STRINGS_RELEASE();
   }
 
-  return PL_get_nil(list);            /* test end for [] */
+  return rc && PL_get_nil_ex(tail);  /* test end for [] */
 }
 \end{code}
 
@@ -1917,19 +1946,28 @@ argument is bound, the code below may fail before reaching the end of
 the word list, but even if the unification succeeds, this code avoids a
 duplicate (garbage) list and a deep unification.
 
+Note that PL_unify_list() is not used with \arg{env} but with
+\exam{tail}, which is a copy of \arg{env}. Note that PL_copy_term_ref()
+create a copy \ctype{term_t} holding the same Prolog term, i.e.,
+\emph{not} a copy of the Prolog term. The only thing that is allowed to
+be done with and argument to a foreign predicate (such as \arg{env}) is
+unification; for anything that might over-write the term, you must use a
+copy created by PL_copy_term_ref().
+
 \begin{code}
 foreign_t
 pl_get_environ(term_t env)
-{ term_t item = PL_new_term_ref();
+{ term_t tail = PL_copy_term_ref(env);
+  term_t item = PL_new_term_ref();
   extern char **environ;
 
   for(const char **e = environ; *e; e++)
-  { if ( !PL_unify_list(env, item, env) ||
+  { if ( !PL_unify_list(tail, item, tail) ||
          !PL_unify_atom_chars(item, *e) )
       PL_fail;
   }
 
-  return PL_unify_nil(env);
+  return PL_unify_nil(tail);
 }
 \end{code}
 
@@ -2544,7 +2582,7 @@ Write the content of the blob \arg{a} to the stream \arg{s}
 respecting the \arg{flags}.  The \arg{flags} are a bitwise
 \emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
-undocumented \file{SWI-Stream.h} is included \emph{before}
+\file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}. This function can retrieve the data of the blob
 using PL_blob_data().
 
