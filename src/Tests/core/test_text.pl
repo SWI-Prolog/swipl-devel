@@ -53,7 +53,8 @@ test_text :-
 		    number_codes,
 		    number_chars,
 		    sub_atom,
-		    atomic_list_concat
+		    atomic_list_concat,
+                    substring
 		  ]).
 
 :- begin_tests(char_code).
@@ -251,3 +252,73 @@ test(error, error(domain_error(non_empty_atom, ''))) :-
 	atomic_list_concat(_L, '', text).
 
 :- end_tests(atomic_list_concat).
+
+% Tests for the examples given in builtins.doc for sub_atom/5.
+
+:- begin_tests(substring).
+
+test(sub_atom) :-
+    sub_atom(aaxyzbbb, 2, 3, After, SubAtom),
+    assertion(After == 3),
+    assertion(SubAtom == xyz).
+test(sub_atom) :-
+    sub_atom(aaxyzbbb, Before, Length, 3, xyz),
+    assertion(Before == 2),
+    assertion(Length == 3).
+
+test(name_value) :-
+    name_value("foo=bar", Name, Value),
+    assertion(Name == foo),
+    assertion(Value == bar).
+
+test(string_insert, S == abcdeFOOfgh) :-
+    atom_insert("abcdefgh", "FOO", 5, S).
+test(string_insert, S == "abcdeFOOfgh") :-
+    string_insert("abcdefgh", "FOO", 5, S).
+
+test(prefix) :-
+    has_prefix(abcde, abc).
+test(prefix, Rest == de) :-
+    remove_prefix(abcde, abc, Rest).
+
+test(suffix) :-
+    has_suffix("foo.pl", ".pl").
+test(suffix, Rest == foo) :-
+    remove_suffix("foo.pl", ".pl", Rest).
+test(suffix, Rest == foo) :-
+    remove_suffix2("foo.pl", '.pl', Rest).
+
+name_value(String, Name, Value) :-
+    sub_atom(String, Before, _, After, "="),
+    !,
+    sub_atom(String, 0, Before, _, Name),
+    sub_atom(String, _, After, 0, Value).
+
+atom_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomic_list_concat([S1,Val,S2], NewStr).
+
+string_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomics_to_string([S1,Val,S2], NewStr).
+
+has_prefix(Atom, Prefix) :-
+    sub_atom(Atom, 0, _, _, Prefix).
+
+has_suffix(Atom, Suffix) :-
+    sub_atom(Atom, _, _, 0, Suffix).
+
+remove_prefix(Atom, Prefix, SecondPart) :-
+    sub_atom(Atom, 0, Len, After, Prefix),
+    sub_atom(Atom, Len, After, 0, SecondPart).
+
+remove_suffix(Atom, Suffix, FirstPart) :-
+    sub_atom(Atom, Before, _, 0, Suffix),
+    sub_atom(Atom, 0, Before, _, FirstPart).
+
+remove_suffix2(Atom, Suffix, FirstPart) :-
+    atom_concat(FirstPart, Suffix, Atom).
+
+:- end_tests(substring).
