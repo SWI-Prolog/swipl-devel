@@ -7524,7 +7524,9 @@ ISO predicate for breaking atoms.  It maintains the following relation:
 \arg{Before}, has \arg{Length} characters, and \arg{Atom} contains \arg{After}
 characters after the match. The implementation minimises non-determinism and
 creation of atoms. This is a flexible predicate that can do search, prefix- and
-suffix-matching, etc.
+suffix-matching, etc. Note that scenarions that use this predicate often
+generate atoms that live shortly. In such cases sub_string/5 may be a
+better alternative. Examples:
 
 Pick out a sub-atom of length 3 starting a 0-based index 2:
 
@@ -7532,6 +7534,28 @@ Pick out a sub-atom of length 3 starting a 0-based index 2:
 ?- sub_atom(aaxyzbbb, 2, 3, After, SubAtom).
 After = 3,
 SubAtom = xyz.
+\end{code}
+
+The following example splits a string of the form
+<name>=<value> into the name part (an atom) and the value (a string).
+
+\begin{code}
+name_value(String, Name, Value) :-
+    sub_atom(String, Before, _, After, "="),
+    !,
+    sub_atom(String, 0, Before, _, Name),
+    sub_atom(String, _, After, 0, Value).
+\end{code}
+
+This example defines a predicate that inserts a value at a position.
+Note that sub_string/5 is used here instead of sub_atom/5 to avoid the
+overhead of creating atoms for the intermediate results.
+
+\begin{code}
+atom_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomic_list_concat([S1,Val,S2], NewStr).
 \end{code}
 
 On backtracking, matches are delivered in order left-to-right (i.e.
@@ -8595,7 +8619,7 @@ Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
 
     \function{minr}{2}{+Expr1, +Expr2}
-Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison 
+Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison
 (see \funcref{cmpr}{2}). See \funcref{maxr}{2} for a description of type handling.
 
     \function[deprecated]{.}{2}{+Char, []}

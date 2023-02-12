@@ -428,15 +428,25 @@ undefined.  See also read_string/5.
 This predicate is functionally equivalent to sub_atom/5, but operates on
 strings. Note that this implies the string \emph{input} arguments can be
 either strings or atoms.  If \arg{SubString} is unbound (output) it is
-unified with a string. The following example splits a string of the form
+unified with a string.  The following example splits a string of the form
 <name>=<value> into the name part (an atom) and the value (a string).
 
 \begin{code}
 name_value(String, Name, Value) :-
     sub_string(String, Before, _, After, "="),
     !,
-    sub_atom(String, 0, Before, _, Name),
+   sub_atom(String, 0, Before, _, Name),
     sub_string(String, _, After, 0, Value).
+\end{code}
+
+The next example defines a predicate that inserts a value at a position.
+See sub_atom/5 for more examples.
+
+\begin{code}
+string_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomics_to_string([S1,Val,S2], NewStr).
 \end{code}
 
     \predicate{atomics_to_string}{2}{+List, -String}
