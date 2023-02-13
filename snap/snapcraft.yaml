@@ -66,11 +66,11 @@ parts:
       -DSWIPL_PACKAGES_JAVA=OFF \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DSWIPL_INSTALL_IN_LIB=ON \
-      -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-core18-sdk/current \
       -G Ninja ..
+      cmake -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-99-qt-5-15-7-core20-sdk/current .
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    build-snaps: [kde-frameworks-5-core18-sdk]
+    build-snaps: [kde-frameworks-5-99-qt-5-15-7-core20-sdk]
     stage-packages:
       # Remove packages available in the kde base
       # - ca-certificates
