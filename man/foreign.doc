@@ -1423,7 +1423,7 @@ pl_write_atoms(term_t l)
     PL_STRINGS_RELEASE();
   }
 
-  return PL_get_nil_ex(tail);
+  return rc && PL_get_nil_ex(tail);
 }
 \end{code}
 
