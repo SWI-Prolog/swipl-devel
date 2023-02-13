@@ -24,7 +24,7 @@ description: |
 
 apps:
   swipl:
-    command: swipl
+    command: usr/bin/swipl
     extensions:
       - kde-neon
     plugs:
@@ -35,7 +35,7 @@ apps:
       - audio-playback
       - audio-record
   swipl-win:
-    command: swipl-win
+    command: usr/bin/swipl-win
     extensions:
       - kde-neon
     plugs:
