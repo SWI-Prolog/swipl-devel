@@ -410,7 +410,15 @@ If Prolog encounters a foreign predicate at run time it will call a
 function specified in the predicate definition of the foreign predicate.
 The arguments $1, \ldots, <arity>$ pass the Prolog arguments to the goal
 as Prolog terms. Foreign functions should be declared of type
-\ctype{foreign_t}. Deterministic foreign functions have two alternatives
+\ctype{foreign_t}.
+
+All the arguments to a foreign predicate must be of type
+\ctype{term_t}.  The only operation that is allowed with an argument
+to a foreign predicate is unification; for anything that might
+over-write the term, you must use a copy created by
+PL_copy_term_ref(). For an example, see PL_unify_list().
+
+Deterministic foreign functions have two alternatives
 to return control back to Prolog:
 
 \begin{description}
@@ -1377,7 +1385,7 @@ atoms, each on a line.  Please note the following:
 	  element.
     \item We walk over the list using PL_get_list_ex() which overwrites
           the list \ctype{term_t}.  As it is not allowed to overwrite
-	  the \ctype{term_t} passes as arguments to a predicate, we must
+	  the \ctype{term_t} passed in as arguments to a predicate, we must
 	  \emph{copy} the argument \ctype{term_t}.
     \item SWI-Prolog atoms are Unicode objects.  The PL_get_chars() returns
           a \ctype{char*}. We want it to convert atoms, return the
@@ -1386,14 +1394,16 @@ atoms, each on a line.  Please note the following:
 	  instantiation or representation errors (if the system's
 	  default encoding cannot represent some characters of the
 	  Unicode atom).  This may create temporary copies of the
-	  atom text.  PL_STRINGS_MARK() $\ldots$ PL_STRINGS_RELEASE()
-	  cope with that.
+	  atom text - PL_STRINGS_MARK() $\ldots$ PL_STRINGS_RELEASE()
+	  handles that.
     \item The *_ex() API functions are functionally the same as the
-          once without the \const{_ex} suffix, but they raise  type,
-	  domain or instantiation errors in case the input is invalid,
+          ones without the \const{_ex} suffix, but they raise  type,
+	  domain, or instantiation errors when the input is invalid;
 	  whereas the plain version may only raise resource exceptions
 	  if the request cannot be fullfilled due to resource
 	  exhaustion.
+    \item PL_get_nil_ex() is designed to propagate an already
+          raised exception.
 \end{itemize}
 
 
@@ -1404,18 +1414,16 @@ pl_write_atoms(term_t l)
   term_t tail = PL_copy_term_ref(l); /* copy (we modify tail) */
   int rc = TRUE;
 
-  while( (rc=PL_get_list_ex(tail, head, tail)) )
+  while( rc && PL_get_list_ex(tail, head, tail) )
   { char *s;
 
     PL_STRINGS_MARK();
-    if ( (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
-      Sprintf("%s\n", s);
-    else
-      break;
+      if (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
+        Sprintf("%s\n", s);
     PL_STRINGS_RELEASE();
   }
 
-  return rc && PL_get_nil_ex(tail);  /* test end for [] */
+  return PL_get_nil_ex(tail);
 }
 \end{code}
 
@@ -1947,12 +1955,14 @@ the word list, but even if the unification succeeds, this code avoids a
 duplicate (garbage) list and a deep unification.
 
 Note that PL_unify_list() is not used with \arg{env} but with
-\exam{tail}, which is a copy of \arg{env}. Note that PL_copy_term_ref()
-create a copy \ctype{term_t} holding the same Prolog term, i.e.,
-\emph{not} a copy of the Prolog term. The only thing that is allowed to
-be done with and argument to a foreign predicate (such as \arg{env}) is
-unification; for anything that might over-write the term, you must use a
-copy created by PL_copy_term_ref().
+\exam{tail}, which is a copy of \arg{env}. PL_copy_term_ref() creates
+a copy \ctype{term_t} holding the same Prolog term, i.e., \emph{not} a
+copy of the Prolog term. The only thing that is allowed to be done
+with an argument to a foreign predicate (such as \arg{env}) is
+unification; for anything that might over-write the term, you must use
+a copy created by PL_copy_term_ref(). The name PL_unify_list() is
+slightly misleading - it unifies the first argumment (\arg{l} but
+\emph{overwrites} the second (\arg{h}) and third (\arg{t}) arguments.
 
 \begin{code}
 foreign_t
@@ -2260,7 +2270,9 @@ As PL_get_list(), but raises a type or instantiation error if
 
     \cfunction{int}{PL_get_nil_ex}{term_t l}
 As PL_get_nil(), but raises a type or instantiation error if
-\arg{t} is not the empty list.
+\arg{t} is not the empty list.  Because PL_get_nil_ex() is commonly
+used after a \exam{while} loop over PL_get_list_ex(), it fails
+immediately if there is an exception pending (from PL_get_list_ex()).
 
     \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t}
 As PL_unify_list(), but raises a type error if \arg{t} is not a
@@ -2597,29 +2609,30 @@ or DLL) the blob type must be deregistered before the object may be
 released.
 
     \cfunction{int}{save}{atom_t a, IOSTREAM *s}
-Write the blob to stream \arg{s}, in an opaque form that's known only
-to the blob. If this is not possible, the ``save'' function should call
-PL_warning() and return \const{FALSE}. If a ``save'' function is
+Write the blob to stream \arg{s}, in an opaque form that is known only
+to the blob. If a ``save'' function is
 not provided (that is, the field is \const{NULL}), the default
 implementation saves and restores the blob as if it is an array
-of bytes which may hold 0-bytes.
+of bytes which may contain null (\exam{'\\0'}) bytes.
 
-If the ``save'' function encounters an error, it should raise an
-exception (see PL_raise_exception()) and return \const{FALSE}. Note that
-a failing to save/restore a blob makes it impossible to compile a file
-that contains such a blob using qcompile/2 as well as creating a
+If the ``save'' function encounters an error, it should call
+PL_warning(), raise an exception (see PL_raise_exception()), and
+return \const{FALSE}.\footnote{Details are subject to change.} Note
+that failure to save/restore a blob makes it impossible to compile a
+file that contains such a blob using qcompile/2 as well as creating a
 \jargon{saved state} from a program that contains such a blob
-impossible.  Here, \jargon{contains} means that the blob appears in
-a clause or directive.
+impossible.  Here, \jargon{contains} means that the blob appears in a
+clause or directive.
 
     \cfunction{atom_t}{load}{IOSTREAM *s}
 Read the blob from its saved form as written by the ``save'' function
 of the same blob type. If this cannot be done (e.g., a stream read
-failure or a corrupted external form), the ``load'' function should call
-PL_fatal_error() and return const{FALSE}.\footnote{Details are subject
-to change; see the ``save'' function.} If a ``load'' function is not
-provided (that is, the field is \const{NULL}, the default implementation
-assumes that the blob was written by the default ``save''.
+failure or a corrupted external form), the ``load'' function should
+call PL_warning(), then PL_fatal_error(), and return
+const{FALSE}.\footnote{Details are subject to change; see the ``save''
+function.} If a ``load'' function is not provided (that is, the field
+is \const{NULL}, the default implementation assumes that the blob was
+written by the default ``save'' - that is, as an array of bytes
 
 \begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}

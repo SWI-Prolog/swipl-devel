@@ -1290,11 +1290,14 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
 
 int
 PL_get_nil_ex(term_t l)
-{ if ( PL_get_nil(l) )
-    succeed;
+{ if ( PL_exception(0) )
+    return FALSE;
+
+  if ( PL_get_nil(l) )
+    return TRUE;
 
   if ( PL_is_list(l) )
-    fail;
+    return FALSE;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
