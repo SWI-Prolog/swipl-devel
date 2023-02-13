@@ -7524,8 +7524,8 @@ ISO predicate for breaking atoms.  It maintains the following relation:
 \arg{Before}, has \arg{Length} characters, and \arg{Atom} contains \arg{After}
 characters after the match. The implementation minimises non-determinism and
 creation of atoms. This is a flexible predicate that can do search, prefix- and
-suffix-matching, etc. Note that scenarions that use this predicate often
-generate atoms that live shortly. In such cases sub_string/5 may be a
+suffix-matching, etc. Scenarios that use this predicate often
+generate atoms that with a short lifetime; in such cases sub_string/5 may be a
 better alternative. Examples:
 
 Pick out a sub-atom of length 3 starting a 0-based index 2:
