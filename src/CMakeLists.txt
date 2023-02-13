@@ -152,7 +152,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
     prolog_wrap.pl prolog_trace.pl prolog_code.pl intercept.pl
     prolog_deps.pl tables.pl hashtable.pl strings.pl increval.pl
-    prolog_debug.pl prolog_versions.pl prolog_profile.pl)
+    prolog_debug.pl prolog_versions.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
@@ -173,6 +173,9 @@ if(NOT STATIC_EXTENSIONS)
 endif()
 if(MULTI_THREADED)
   list(APPEND SWIPL_DATA_library threadutil.pl thread.pl thread_pool.pl)
+endif()
+if(O_PROFILE)
+  list(APPEND SWIPL_DATA_library prolog_profile.pl)
 endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl

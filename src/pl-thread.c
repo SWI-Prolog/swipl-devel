@@ -849,7 +849,9 @@ Now we use the FD_CLOEXEC flag in Snew();
 void
 PL_cleanup_fork(void)
 { will_exec = TRUE;
+#if O_PROFILE
   stopItimer();
+#endif
 }
 
 

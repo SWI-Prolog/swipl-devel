@@ -424,6 +424,9 @@ if(USE_LIBBF)
   endif()
   set(O_BF 1)
 endif()
+if(O_PLMT AND (O_SIGPROF_PROFILE OR WIN32))
+  set(O_PROFILE 1)
+endif()
 
 ################
 # Stuff we do not need to define is below such that findmacros.pl does

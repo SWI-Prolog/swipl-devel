@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1314,70 +1315,6 @@ freeProfileData(void)
   assert(LD->profile.nodes == 0);
 }
 
-#else /* O_PROFILE */
-
-		 /*******************************
-		 *	    NO PROFILER		*
-		 *******************************/
-
-void
-stopItimer(void)
-{
-}
-
-static
-PRED_IMPL("profiler", 2, profiler, 0)
-{ return notImplemented("profile", 2);
-}
-
-static
-PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
-{ return notImplemented("reset_profile", 0);
-}
-
-static
-PRED_IMPL("$prof_node", 8, prof_node, 0)
-{ return notImplemented("profile_node", 8);
-}
-
-static
-PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
-{ return notImplemented("profile_sibling_of", 2);
-}
-
-static
-PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
-{ return notImplemented("$profile", 2);
-}
-
-static
-PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
-{ return notImplemented("$prof_procedure_data", 8);
-}
-
-static
-PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
-{ return notImplemented("$prof_statistics", 5);
-}
-
-/* Foreign interface of the profiler
-*/
-
-int
-PL_register_profile_type(PL_prof_type_t *type)
-{ return FALSE;				/* not supported */
-}
-
-void *
-PL_prof_call(void *handle, PL_prof_type_t *type)
-{ return NULL;
-}
-
-void
-PL_prof_exit(void *node)
-{
-}
-
 #endif /* O_PROFILE */
 
 		 /*******************************
@@ -1385,6 +1322,7 @@ PL_prof_exit(void *node)
 		 *******************************/
 
 BeginPredDefs(profile)
+#if O_PROFILE
   PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
@@ -1392,4 +1330,5 @@ BeginPredDefs(profile)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
+#endif
 EndPredDefs

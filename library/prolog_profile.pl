@@ -52,13 +52,12 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module provides a simple backward compatibility frontend on the new
-(in version 5.1.10) execution profiler  with  a   hook  to  the  new GUI
-visualiser for profiling results defined in library('swi/pce_profile').
+/** <module> Execution profiler
 
-Later we will add a proper textual report-generator.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+This module provides a simple frontend on  the execution profiler with a
+hook  to  the  GUI  visualiser   for    profiling   results  defined  in
+library(swi/pce_profile).
+*/
 
 :- multifile
     prolog:show_profile_hook/1.
@@ -66,15 +65,22 @@ Later we will add a proper textual report-generator.
 %!  profile(:Goal).
 %!  profile(:Goal, +Options).
 %
-%   Run Goal under the execution profiler.  Defined options are:
+%   Run once(Goal) under the execution profiler.   If  the (xpce) GUI is
+%   enabled this predicate is  hooked   by  library(swi/pce_profile) and
+%   results are presented in a gui that enables navigating the call tree
+%   and jump to predicate implementations.  Without   the  GUI, a simple
+%   textual report is generated. Defined options are:
 %
 %     * time(Which)
-%     Profile =cpu= or =wall= time.  The default is CPU time.
+%     Profile `cpu` or `wall` time.  The default is CPU time.
 %     * top(N)
 %     When generating a textual report, show the top N predicates.
 %     * cumulative(Bool)
-%     If =true= (default =false=), show cumulative output in
+%     If `true` (default `false`), show cumulative output in
 %     a textual report.
+%
+%   @tbd The textual input reflects only part of the information.
+%   @see show_coverage/2 from library(test_cover).
 
 profile(Goal) :-
     profile(Goal, []).
