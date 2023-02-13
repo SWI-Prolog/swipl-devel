@@ -1,7 +1,7 @@
 name: swi-prolog
 # Should be core20 to avoid fontconfig warnings, but Qt is broken on
 # core20
-base: core18
+base: core20
 adopt-info: swi-prolog
 #icon: packages/swipl-win/swipl.png
 license: 'BSD-2-Clause'
@@ -66,7 +66,7 @@ parts:
       -DSWIPL_PACKAGES_JAVA=OFF \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DSWIPL_INSTALL_IN_LIB=ON \
-      -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-core18-sdk/current \
+      -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-*-sdk/current \
       -G Ninja ..
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
