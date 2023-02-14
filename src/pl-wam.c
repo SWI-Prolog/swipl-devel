@@ -745,12 +745,19 @@ call_term(DECL_LD Module mdef, term_t goal)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
-call_cleanup/3.  Both may call-back the Prolog engine.
+call_cleanup/2 family.  Both may call-back the Prolog engine.
+
+The helper callCleanupHandler() deals with the cleanup family. Currently
+the predicate is always
+
+    setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup).
 
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define callCleanupHandler(fr, reason) LDFUNC(callCleanupHandler, fr, reason)
+#define callCleanupHandler(fr, reason) \
+	LDFUNC(callCleanupHandler, fr, reason)
+
 static void
 callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 { if ( false(fr, FR_CATCHED) )		/* from handler */
