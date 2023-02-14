@@ -242,7 +242,7 @@ const debug_topic debug_topics[] =
 };
 
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && !defined(strncasecmp)
 #define strncasecmp(s1, s2, n) _strnicmp(s1, s2, n)
 #endif
 
