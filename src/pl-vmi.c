@@ -5014,36 +5014,39 @@ END_VMI
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CALLCLEANUP: Part of setup_call_catcher_cleanup(:Setup, :Goal,
-?Catcher, :Cleanup). Simply set a flag on the frame and call the 1-st
-argument. See also I_CATCH.
+I_CALLCLEANUP verifies the signature of the   cleanup  handler and calls
+the Goal for
 
-I_EXITCLEANUP  is  at  the  end  of   call_cleanup/3.  If  there  is  no
-choice-point created this is the final exit. If this frame has no parent
-(it is the entry of PL_next_solution()),
+  - call_cleanup(Goal, Cleanup)
+  - setup_call_cleanup(Setup, Goal, Cleanup)
+  - setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup)
 
-setup_call_catcher_cleanup(:Setup :Goal, -Reason, :Cleanup)
-is tranalated into
+Which of these predicates it is working for  is dictated by the arity of
+the running predicate.
 
-  i_enter
-  <setup>
-  i_callcleanup
-  i_exitcleanup
-  i_exit
+I_EXITCLEANUP follows I_CALLCLEANUP. If there is no choice-point created
+this is the final exit.
+
+This group of predicates calls   '$call_cleanup'/0,  which is translated
+into the sequence of these two VM   instructions.  This call must be the
+last of the predicate.
 
 We set FR_CLEANUP to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLCLEANUP, 0, 0, ())
 { Word p;
+  size_t arity = FR->predicate->functor->arity;
+  size_t arg_goal = arity == 2 ? 1 : 2;
 
-  if ( !mustBeCallable(consTermRef(argFrameP(FR, 3))) )
+		    /* last arg is cleanup */
+  if ( !mustBeCallable(consTermRef(argFrameP(FR, arity-1))) )
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR);
   set(FR, FR_CLEANUP);
 
-  p = argFrameP(FR, 1);
+  p = argFrameP(FR, arg_goal-1);
   if ( isVar(*p) )
   { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     THROW_EXCEPTION;

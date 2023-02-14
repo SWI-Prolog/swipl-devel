@@ -660,26 +660,27 @@ catch_with_backtrace(Goal, Ball, Recover) :-
     !.
 
 
+%!  call_cleanup(:Goal, :Cleanup).
 %!  setup_call_cleanup(:Setup, :Goal, :Cleanup).
 %!  setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
-%!  call_cleanup(:Goal, :Cleanup).
 %
-%   Call Cleanup once after Goal is finished (deterministic success,
-%   failure, exception or  cut).  The   call  to  '$call_cleanup' is
-%   translated to I_CALLCLEANUP. This  instruction   relies  on  the
-%   exact stack layout left   by  setup_call_catcher_cleanup/4. Also
-%   the predicate name is used by   the kernel cleanup mechanism and
-%   can only be changed together with the kernel.
+%   Call Cleanup once after  Goal   is  finished (deterministic success,
+%   failure,  exception  or  cut).  The    call  to  '$call_cleanup'  is
+%   translated   to   ``I_CALLCLEANUP``,     ``I_EXITCLEANUP``.    These
+%   instructions  rely  on  the  exact  stack    layout  left  by  these
+%   predicates, where the variant is determined   by the arity. See also
+%   callCleanupHandler() in `pl-wam.c`.
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
     sig_atomic(Setup),
     '$call_cleanup'.
 
-setup_call_cleanup(Setup, Goal, Cleanup) :-
-    setup_call_catcher_cleanup(Setup, Goal, _Catcher, Cleanup).
+setup_call_cleanup(Setup, _Goal, _Cleanup) :-
+    sig_atomic(Setup),
+    '$call_cleanup'.
 
-call_cleanup(Goal, Cleanup) :-
-    setup_call_catcher_cleanup(true, Goal, _Catcher, Cleanup).
+call_cleanup(_Goal, _Cleanup) :-
+    '$call_cleanup'.
 
 
 		 /*******************************

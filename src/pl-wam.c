@@ -763,34 +763,56 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 { if ( false(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
-    term_t catcher;
+    size_t arg_catcher = 0;
+    size_t arg_cleanup = 0;
+    term_t clean;
+    wakeup_state wstate;
 
     if ( !(cid=PL_open_foreign_frame()) )
       return;				/* exception is in the environment */
 
     fr = (LocalFrame)valTermRef(fref);
-    catcher = consTermRef(argFrameP(fr, 2));
-
-    set(fr, FR_CATCHED);
-    if ( unify_finished(catcher, reason) )
-    { term_t clean;
-      wakeup_state wstate;
-
-      fr = (LocalFrame)valTermRef(fref);
-      clean = consTermRef(argFrameP(fr, 3));
-      if ( saveWakeup(&wstate, FALSE) )
-      { int rval;
-
-	startCritical();
-	rval = call_term(contextModule(fr), clean);
-	if ( !endCritical() )
-	  rval = FALSE;
-	if ( !rval && exception_term )
-	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
-	restoreWakeup(&wstate);
-      }
+    switch(fr->predicate->functor->arity)
+    { case 2:		/* call_cleanup(Goal, Cleanup) */
+	arg_cleanup = 2;
+        break;
+      case 3:		/* setup_call_cleanup(Setup, Goal, Cleanup) */
+	arg_cleanup = 3;
+        break;
+      case 4:		/* setup_call_catcher_cleanup(Stp, Goal, Catcher, Cln) */
+	arg_cleanup = 4;
+        arg_catcher = 3;
+	break;
+      default:
+	assert(0);
     }
 
+    set(fr, FR_CATCHED);
+
+			/* Unify the catcher */
+    if ( arg_catcher )
+    { term_t catcher = consTermRef(argFrameP(fr, arg_catcher-1));
+
+      if ( !unify_finished(catcher, reason) )
+	goto out;
+    }
+
+			/* Call the cleanup handler */
+    fr = (LocalFrame)valTermRef(fref);
+    clean = consTermRef(argFrameP(fr, arg_cleanup-1));
+    if ( saveWakeup(&wstate, FALSE) )
+    { int rval;
+
+      startCritical();
+      rval = call_term(contextModule(fr), clean);
+      if ( !endCritical() )
+	rval = FALSE;
+      if ( !rval && exception_term )
+	wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
+      restoreWakeup(&wstate);
+    }
+
+  out:
     PL_close_foreign_frame(cid);
   }
 }
