@@ -758,8 +758,6 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
     fid_t cid;
     term_t catcher;
 
-    assert(fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition);
-
     if ( !(cid=PL_open_foreign_frame()) )
       return;				/* exception is in the environment */
 

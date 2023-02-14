@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam,
+    Copyright (c)  1985-2023, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2552,8 +2552,6 @@ typedef struct
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
-#define PROCEDURE_setup_call_catcher_cleanup4 \
-				(GD->procedures.setup_call_catcher_cleanup4)
 #define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
 #define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)

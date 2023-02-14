@@ -2394,9 +2394,7 @@ is not GC-ed. This applies  for   head-arguments  as well as B_UNIFY_VAR
 instructions. See get_vmi_state().
 
 (***) When debugging, we must  avoid   GC-ing  local variables of frames
-that  are  watched  by  the  debugger.    FR_WATCHED  is  also  used  by
-setup_call_cleanup/3. We avoid full marking here. Maybe we should use an
-alternate flag for these two cases?
+that  are  watched  by  the  debugger.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -2456,8 +2454,7 @@ mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
 	mark_local_variable(argp0);
       }
 
-      if ( true(fr, FR_WATCHED) &&		/* (***) */
-	   fr->predicate != PROCEDURE_setup_call_catcher_cleanup4->definition )
+      if ( true(fr, FR_WATCHED) )
       { int slots;
 	Word sp;
 

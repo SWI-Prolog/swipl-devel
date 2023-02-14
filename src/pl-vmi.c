@@ -5031,7 +5031,7 @@ is tranalated into
   i_exitcleanup
   i_exit
 
-We set FR_WATCHED to get a cleanup call if the frame fails or is cutted.
+We set FR_CLEANUP to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLCLEANUP, 0, 0, ())

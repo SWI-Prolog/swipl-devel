@@ -327,7 +327,6 @@ struct PL_global_data
     Procedure   dcall1;			/* $call/1 */
     Procedure   call1;			/* call/1 */
     Procedure   call3;			/* call/3 */
-    Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
     Procedure   dc_call_prolog0;	/* $c_call_prolog/0 */
