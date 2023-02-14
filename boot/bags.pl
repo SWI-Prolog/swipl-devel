@@ -60,16 +60,18 @@ SICStus algorithm to guarantee that variables will have the same names".
     findnsols(+, ?, 0, -),
     findnsols(+, ?, 0, -, ?),
     bagof(?, ^, -),
-    setof(?, ^, -).
+    setof(?, ^, -),
+    cleanup_bag(0, 0).
 
 :- noprofile((
-        findall/4,
-        findall/3,
-        findnsols/4,
-        findnsols/5,
-        bagof/3,
-        setof/3,
-        findall_loop/4)).
+       findall/4,
+       findall/3,
+       findnsols/4,
+       findnsols/5,
+       bagof/3,
+       setof/3,
+       cleanup_bag/2,
+       findall_loop/4)).
 
 :- '$iso'((findall/3,
            bagof/3,
@@ -90,10 +92,18 @@ findall(Templ, Goal, List) :-
     findall(Templ, Goal, List, []).
 
 findall(Templ, Goal, List, Tail) :-
-    setup_call_cleanup(
-        '$new_findall_bag',
+    cleanup_bag(
         findall_loop(Templ, Goal, List, Tail),
         '$destroy_findall_bag').
+
+%!  cleanup_bag(:Goal, :Cleanup)
+%
+%   Variant  of  setup_call_cleanup/3  that  using  '$new_findall_bag'/0
+%   directly instead of through sig_atomic/1.
+
+cleanup_bag(_Goal, _Cleanup) :-
+    '$new_findall_bag',
+    '$call_cleanup'.
 
 findall_loop(Templ, Goal, List, Tail) :-
     (   Goal,
