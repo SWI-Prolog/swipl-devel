@@ -351,7 +351,6 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 	      once/1,
 	      ignore/1,
 	      call_cleanup/2,
-	      call_cleanup/3,
 	      setup_call_cleanup/3,
 	      setup_call_catcher_cleanup/4,
 	      notrace/1)).
@@ -380,7 +379,6 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     setup_call_cleanup(0,0,0),
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
-    call_cleanup(0,?,0),
     catch_with_backtrace(0,?,0),
     notrace(0),
     '$meta_call'(0).
@@ -665,7 +663,6 @@ catch_with_backtrace(Goal, Ball, Recover) :-
 %!  setup_call_cleanup(:Setup, :Goal, :Cleanup).
 %!  setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
 %!  call_cleanup(:Goal, :Cleanup).
-%!  call_cleanup(:Goal, +Catcher, :Cleanup).
 %
 %   Call Cleanup once after Goal is finished (deterministic success,
 %   failure, exception or  cut).  The   call  to  '$call_cleanup' is
@@ -684,8 +681,6 @@ setup_call_cleanup(Setup, Goal, Cleanup) :-
 call_cleanup(Goal, Cleanup) :-
     setup_call_catcher_cleanup(true, Goal, _Catcher, Cleanup).
 
-call_cleanup(Goal, Catcher, Cleanup) :-
-    setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
 		 /*******************************
 		 *       INITIALIZATION         *

@@ -2583,10 +2583,6 @@ not use call_cleanup/2 if you perform side-effects prior to calling that
 will be undone by \arg{Cleanup}. Instead, use setup_call_cleanup/3 with
 an appropriate first argument to perform those side-effects.
 
-    \predicate[deprecated]{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
-Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
-The same warning as for call_cleanup/2 applies.
-
     \predicate{undo}{1}{:Goal}
 Add \arg{Goal} to the \jargon{trail}. \arg{Goal} is executed as ignore/1
 on the first opportunity after backtracking to a point before the call

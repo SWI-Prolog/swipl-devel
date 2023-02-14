@@ -125,7 +125,6 @@ suggest predicates from a keyword.
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
-\predicatesummary{call_cleanup}{3}{Guard a goal with a cleaup-handler}
 \predicatesummary{call_cleanup}{2}{Guard a goal with a cleaup-handler}
 \predicatesummary{call_dcg}{3}{As phrase/3 without type checking}
 \predicatesummary{call_delays}{2}{Get the condition associated with an answer}
