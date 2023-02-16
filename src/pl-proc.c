@@ -419,23 +419,27 @@ isCurrentProcedure(DECL_LD functor_t f, Module m)
 
 
 ClauseRef
-hasClausesDefinition(Definition def)
+hasClausesDefinition(DECL_LD Definition def)
 { if ( false(def, P_FOREIGN|P_THREAD_LOCAL) &&
        def->impl.clauses.first_clause )
-  { GET_LD
-    ClauseRef c;
-    gen_t generation = global_generation();
+  { if ( false(def, P_DIRTYREG) && false(def, P_DYNAMIC) &&
+	 LD->reload.generation == GEN_INVALID )
+    { return def->impl.clauses.first_clause;
+    } else
+    { ClauseRef c;
+      gen_t generation = global_generation();
 
-    acquire_def(def);
-    for(c = def->impl.clauses.first_clause; c; c = c->next)
-    { Clause cl = c->value.clause;
+      acquire_def(def);
+      for(c = def->impl.clauses.first_clause; c; c = c->next)
+      { Clause cl = c->value.clause;
 
-      if ( visibleClauseCNT(cl, generation) )
-	break;
+	if ( visibleClauseCNT(cl, generation) )
+	  break;
+      }
+      release_def(def);
+
+      return c;
     }
-    release_def(def);
-
-    return c;
   }
 
   return NULL;
@@ -443,7 +447,7 @@ hasClausesDefinition(Definition def)
 
 
 bool
-isDefinedProcedure(Procedure proc)
+isDefinedProcedure(DECL_LD Procedure proc)
 { Definition def = proc->definition;
 
   if ( true(def, PROC_DEFINED) )
@@ -885,8 +889,11 @@ typedef struct
 } cur_enum;
 
 
+#define isDefinedOrAutoloadProcedure(proc) \
+  LDFUNC(isDefinedOrAutoloadProcedure, proc)
+
 static int
-isDefinedOrAutoloadProcedure(Procedure proc)
+isDefinedOrAutoloadProcedure(DECL_LD Procedure proc)
 { Definition def = proc->definition;
 
   if ( true(def, PROC_DEFINED|P_AUTOLOAD) )

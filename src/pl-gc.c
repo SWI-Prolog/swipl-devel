@@ -3838,11 +3838,11 @@ considerGarbageCollect(Stack s)
 
 void
 call_tune_gc_hook(void)
-{ Procedure proc = PROCEDURE_tune_gc3;
+{ GET_LD
+  Procedure proc = PROCEDURE_tune_gc3;
 
   if ( isDefinedProcedure(proc) )
-  { GET_LD
-    fid_t fid;
+  { fid_t fid;
 
     if ( (fid = PL_open_foreign_frame()) )
     { term_t av = PL_new_term_refs(3);

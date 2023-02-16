@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,8 @@
 #define	reconsultFinalizePredicate(rl, def, r)	LDFUNC(reconsultFinalizePredicate, rl, def, r)
 #define	resolveProcedure(f, module)		LDFUNC(resolveProcedure, f, module)
 #define	trapUndefined(undef)			LDFUNC(trapUndefined, undef)
+#define isDefinedProcedure(def)			LDFUNC(isDefinedProcedure, def)
+#define hasClausesDefinition(def)		LDFUNC(hasClausesDefinition, def)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

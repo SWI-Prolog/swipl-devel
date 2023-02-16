@@ -122,9 +122,8 @@ registerFunctor(FunctorDef fd)
 
 
 functor_t
-lookupFunctorDef(atom_t atom, size_t arity)
-{ GET_LD
-  int v;
+lookupFunctorDef(DECL_LD atom_t atom, size_t arity)
+{ int v;
   FunctorDef *table;
   int buckets;
   FunctorDef f, head;
@@ -135,7 +134,7 @@ redo:
   v = (int)pointerHashValue(atom, buckets);
   head = table[v];
 
-  DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
+  DEBUG(9, Sdprintf("Lookup functor %s/%zd = ", stringAtom(atom), arity));
   for(f = table[v]; f; f = f->next)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
