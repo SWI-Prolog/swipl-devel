@@ -378,6 +378,9 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
+#define SfprintfX Sfprintf	/* forward compatibility */
+#define SdprintfX Sdprintf	/* forward compatibility */
+
 PL_EXPORT(void)		SinitStreams(void);
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);

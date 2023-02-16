@@ -830,6 +830,7 @@ PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
 		 *	     MESSAGES		*
 		 *******************************/
 
+#define PL_warningX PL_warning	/* forward compatibility */
 PL_EXPORT(int)		PL_warning(const char *fmt, ...);
 PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...);
 
