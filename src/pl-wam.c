@@ -125,7 +125,7 @@ typedef foreign_t (*NdetFunc10)(term_t a1, term_t a2, term_t a3, term_t a4,
 
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 #define loffset(p) LDFUNC(loffset, p)
-static intptr_t
+static size_t
 loffset(DECL_LD void *p)
 { if ( p == NULL )
     return 0;
@@ -145,7 +145,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
   { GET_LD
 
     if ( ofr != FR )
-    { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
+    { Sfprintf(Serror, "#%zd at [%ld] predicate %s\n",
 	       loffset(FR),
 	       levelFrame(FR),
 	       predicateName(FR->predicate));
@@ -2300,7 +2300,7 @@ static void
 discardFrame(DECL_LD LocalFrame fr)
 { Definition def = fr->predicate;
 
-  DEBUG(2, Sdprintf("discard #%d running %s\n",
+  DEBUG(2, Sdprintf("discard #%zd running %s\n",
 		    loffset(fr),
 		    predicateName(fr->predicate)));
 
@@ -2347,7 +2347,7 @@ chp_chars(Choice ch)
 { GET_LD
   static char buf[256];
 
-  Ssnprintf(buf, sizeof(buf), "Choice at #%ld for frame #%ld (%s), type %s",
+  Ssnprintf(buf, sizeof(buf), "Choice at #%zd for frame #%zd (%s), type %s",
 	    loffset(ch), loffset(ch->frame),
 	    predicateName(ch->frame->predicate),
 	    ch->type == CHP_JUMP ? "JUMP" :
