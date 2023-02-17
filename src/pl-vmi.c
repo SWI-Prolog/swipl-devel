@@ -6829,6 +6829,8 @@ next_choice:
     }
   }
 
+  Profile(profFail(ch->prof_node));
+
   switch(ch->type)
   { case CHP_JUMP:
       DEBUG(MSG_BACKTRACK,
@@ -6885,7 +6887,6 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 #endif
-	Profile(profRedo(ch->prof_node));
       }
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
@@ -6947,7 +6948,6 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 #endif
-	Profile(profRedo(ch->prof_node));
       }
 
       if ( chp.cref )
@@ -6975,7 +6975,6 @@ next_choice:
 		     loffset(FR),
 		     predicateName(DEF)));
       DiscardMark(ch->mark);
-      Profile(profRedo(ch->prof_node));
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
