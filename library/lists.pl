@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2022, University of Amsterdam
+    Copyright (c)  2002-2023, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -57,6 +57,7 @@
           permutation/2,                % ?List, ?Permutation
           flatten/2,                    % +Nested, -Flat
           clumped/2,                    % +Items,-Pairs
+          subseq/3,                     % ?List, ?SubList, ?Complement
 
                                         % Ordered operations
           max_member/2,                 % -Max, +List
@@ -78,8 +79,8 @@
           subset/2,                     % +SubSet, +Set
           subtract/3                    % +Set, +Delete, -Remaining
         ]).
-:- autoload(library(error),[must_be/2]).
-:- autoload(library(pairs),[pairs_keys/2]).
+:- autoload(library(error), [must_be/2, instantiation_error/1]).
+:- autoload(library(pairs), [pairs_keys/2]).
 
 :- meta_predicate
     max_member(2, -, +),
@@ -530,6 +531,31 @@ ccount([H|T0], E, T, C0, C) :-
     C1 is C0+1,
     ccount(T0, E, T, C1, C).
 ccount(List, _, List, C, C).
+
+
+%!  subseq(+List, -SubList, -Complement) is nondet.
+%!  subseq(-List, +SubList, +Complement) is nondet.
+%
+%   Is true when SubList contains a subset   of  the elements of List in
+%   the same order and Complement contains all   elements of List not in
+%   SubList, also in the order they appear in List.
+%
+%   @compat SICStus.  The SWI-Prolog version raises an error for less
+%   instantiated modes as these do not terminate.
+
+subseq(L, S, C), is_list(L) => subseq_(L, S, C).
+subseq(L, S, C), is_list(S), is_list(C) => subseq_(L, S, C).
+subseq(L, S, C) =>
+    must_be(list_or_partial_list, L),
+    must_be(list_or_partial_list, S),
+    must_be(list_or_partial_list, C),
+    instantiation_error(L).
+
+subseq_([], [], []).
+subseq_([H|T0], T1, [H|C]) :-
+    subseq_(T0, T1, C).
+subseq_([H|T0], [H|T1], C) :-
+    subseq_(T0, T1, C).
 
 
                  /*******************************
