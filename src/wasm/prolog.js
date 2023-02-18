@@ -178,7 +178,7 @@ class Prolog
 	    this.module.intArrayFromString(arg),
 	    'i8', this.module.ALLOC_NORMAL);
     }, this);
-    var ptr = this.module._malloc(argv.length * 4);
+    var ptr = _malloc(argv.length * 4);
     argv.forEach(function(arg, i) {
 	this.module.setValue(ptr + i * 4, arg, '*');
     }, this);
@@ -461,7 +461,7 @@ class Prolog
 
   __string_to_c(string)
   { const len = this.module.lengthBytesUTF8(string);
-    const ptr = this.module._malloc(len+1);
+    const ptr = _malloc(len+1);
 
     this.module.stringToUTF8(string, ptr, len+1);
     return { ptr:    ptr,
@@ -504,8 +504,8 @@ class Prolog
 
     const pred = this.bindings.PL_predicate(c_name, arity, c_module);
 
-    this.module._free(c_name);
-    this.module._free(c_module);
+    _free(c_name);
+    _free(c_module);
 
     return pred;
   }
@@ -830,7 +830,7 @@ class Prolog
 // Returns functor of the given term.
 // Returns null when the term is not a compound.
   get_functor(term)
-  { const ptr = this.module._malloc(4);
+  { const ptr = _malloc(4);
     let result;
 
     if ( this.bindings.PL_get_functor(term, ptr) )
@@ -838,14 +838,14 @@ class Prolog
     else
       result = null;
 
-    this.module._free(ptr);
+    _free(ptr);
     return result;
   }
 
 // Returns integer number for the given term.
 // Returns null when the term is not an integer.
   get_integer(term)
-  { const ptr = this.module._malloc(8);
+  { const ptr = _malloc(8);
     let rc;
 
     if ( this.bindings.PL_get_int64(term, ptr) )
@@ -856,20 +856,20 @@ class Prolog
     { const s = this.get_chars(term, this.CVT_INTEGER);
       rc = BigInt(s);
     }
-    this.module._free(ptr);
+    _free(ptr);
 
     return rc;
   }
 
   get_float(term)
-  { const ptr = this.module._malloc(8);
+  { const ptr = _malloc(8);
     let rc;
     if (this.bindings.PL_get_float(term, ptr)) {
       rc = this.module.getValue(ptr, 'double');
     } else {
       rc = null;
     }
-    this.module._free(ptr);
+    _free(ptr);
     return rc;
   }
 
@@ -886,7 +886,7 @@ class Prolog
 
     const c = this.__string_to_c(string);
     const ret = !!this.bindings.PL_put_chars(term, flags, c.length, c.ptr);
-    this.module._free(c.ptr);
+    _free(c.ptr);
     return ret;
   }
 
@@ -1242,7 +1242,7 @@ class Prolog
 	      { const keys  = Object.keys(data);
 		const len   = keys.length;
 		const av    = prolog.new_term_ref(len);
-		const atoms = prolog.module._malloc(4*len);
+		const atoms = _malloc(4*len);
 		let   tag   = 0;
 
 		const class_name = data.constructor.name;
@@ -1259,7 +1259,7 @@ class Prolog
 
 		rc = rc && prolog.bindings.PL_put_dict(term, tag, len,
 						       atoms, av);
-		prolog.module._free(atoms);
+		_free(atoms);
 		break;
 	      }
 	      default:
@@ -1301,7 +1301,7 @@ class Prolog
 
 // Converts the argument term to a string.
   get_chars(term, flags)
-  { const ptr = this.module._malloc(4);
+  { const ptr = _malloc(4);
     let rc;
     flags  = flags||(this.CVT_ALL|this.CVT_WRITEQ);
     flags |= this.CVT_EXCEPTION|this.REP_UTF8;
@@ -1310,7 +1310,7 @@ class Prolog
     } else {
 	rc = null;
     }
-    this.module._free(ptr);
+    _free(ptr);
 
     return rc;
   }
