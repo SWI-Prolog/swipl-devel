@@ -89,7 +89,7 @@ typedef struct call_node
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
   uintptr_t	    calls;		/* Calls from the parent */
-  uintptr_t	    redos;		/* redos while here */
+  uintptr_t	    fails;		/* fails back to choicepoint */
   uintptr_t	    exits;		/* exits to the parent */
   uintptr_t	    recur;		/* recursive calls */
   uintptr_t	    ticks;		/* time-statistics */
@@ -513,7 +513,7 @@ PRED_IMPL("$prof_node", 8, prof_node, 0)
 
   return ( unify_node_id(A2, n) &&
 	   PL_unify_integer(A3, n->calls) &&
-	   PL_unify_integer(A4, n->redos) &&
+	   PL_unify_integer(A4, n->exits + n->fails - n->calls) &&
 	   PL_unify_integer(A5, n->exits) &&
 	   PL_unify_integer(A6, n->recur) &&
 	   PL_unify_integer(A7, n->ticks) &&
@@ -583,13 +583,13 @@ add_parent_ref(node_sum *sum,
 { prof_ref *r;
 
   sum->calls += self->calls;
-  sum->redos += self->redos;
+  sum->redos += self->exits + self->fails - self->calls;
   sum->exits += self->exits;
 
   for(r=sum->callers; r; r=r->next)
   { if ( r->handle == handle && r->cycle == cycle )
     { r->calls += self->calls;
-      r->redos += self->redos;
+      r->redos += self->exits + self->fails - self->calls;
       r->exits += self->exits;
       r->ticks += self->ticks;
       r->sibling_ticks += self->sibling_ticks;
@@ -600,7 +600,7 @@ add_parent_ref(node_sum *sum,
 
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = self->calls;
-  r->redos = self->redos;
+  r->redos = self->exits + self->fails - self->calls;
   r->exits = self->exits;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
@@ -641,7 +641,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   for(r=sum->callees; r; r=r->next)
   { if ( r->handle == sibling->handle && r->cycle == cycle )
     { r->calls += sibling->calls;
-      r->redos += sibling->redos;
+      r->redos += sibling->exits + sibling->fails - sibling->calls;
       r->exits += sibling->exits;
       r->ticks += sibling->ticks;
       r->sibling_ticks += sibling->sibling_ticks;
@@ -652,7 +652,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = sibling->calls;
-  r->redos = sibling->redos;
+  r->redos = sibling->exits + sibling->fails - sibling->calls;
   r->exits = sibling->exits;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
@@ -1159,6 +1159,16 @@ profResumeParent(DECL_LD struct call_node *node)
   LD->profile.current = node;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+profExit(call_node from_node)
+
+Exit to the parent of from_node. Note that all nodes from the current
+node back to and including from_node are deemed to have exited. This
+catches all normal exits (from_node == current) and last calls (from_node
+is an ancestor of current).
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 profExit(DECL_LD struct call_node *node)
@@ -1169,33 +1179,51 @@ profExit(DECL_LD struct call_node *node)
 }
 
 
-void
-profRedo(DECL_LD struct call_node *node)
-{ if ( node && node->magic != PROFNODE_MAGIC )
-    return;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+profFail(call_node cp_node)
 
-  if ( node )
-  { if ( LD->profile.current )
-    { struct call_node *n;
+Fail to choicepoint node. All nodes in  the branch from the current node
+back to a common ancestor with cp_node   are deemed to have failed. Note
+that if the current node is the  choicepoint node, nothing fails as this
+is internal to the predicate (doesn't pass through Fail port).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-      DEBUG(MSG_PROF_CALLTREE,
-	    Sdprintf("Redo: on %s; current is %s\n",
-		     node_name(node), node_name(LD->profile.current) ));
+static int
+lookback(call_node *from_node, call_node *to_node)
+{ struct call_node *node = from_node;
 
-      for(n=node; n && n != LD->profile.current; n = n->parent)
-      { DEBUG(MSG_PROF_CALLTREE,
-	      Sdprintf("Redo: %s\n", node_name(n)));
-	n->redos++;
-      }
-    } else
-    { DEBUG(MSG_PROF_CALLTREE,
-	    Sdprintf("Redo: %s\n", node_name(node)));
-      node->redos++;
-    }
+  while( node )
+  { if ( node == to_node )
+      return TRUE;
+    else
+      node = node->parent;
   }
-  LD->profile.current = node;
+
+  return FALSE;
 }
 
+static void
+profFailToCP(struct call_node *current, struct call_node *cp_node)
+{ while (current && (!lookback(cp_node, current)))
+  { DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Fail: %s\n", node_name(current)));
+
+    if (current->magic == PROFNODE_MAGIC)
+      current->fails++;
+
+    current = current->parent;
+  }
+}
+
+void
+profFail(DECL_LD struct call_node *cp_node)
+{ LD->profile.accounting = TRUE;
+
+  profFailToCP(LD->profile.current, cp_node);
+  LD->profile.current = cp_node;
+
+  LD->profile.accounting = FALSE;
+}
 
 void
 profSetHandle(struct call_node *node, void *handle)
