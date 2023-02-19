@@ -36,7 +36,7 @@
 :- module(dif,
           [ dif/2                               % +Term1, +Term2
           ]).
-:- autoload(library(lists),[append/3,reverse/2]).
+:- autoload(library(lists),[append/3, reverse/2, member/2]).
 
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -194,9 +194,12 @@ add_ornode_var2(X,Y,OrNode) :-
 simplify_ornode(OrNode) :-
     (   get_attr(OrNode, dif, node(Pairs0))
     ->  simplify_ornode(Pairs0, Pairs, U),
-        Pairs-U \== []-[],
-        put_attr(OrNode, dif, node(Pairs)),
+	(   Pairs == [],
+	    U == []
+	->  fail
+        ;   put_attr(OrNode, dif, node(Pairs)),
         subunifier(U, OrNode)
+	)
     ;   true
     ).
 
@@ -234,7 +237,11 @@ simplify_ornode_([H|T], List, U) =>
 
 attr_unify_hook(vardif(V1,V2),Other) :-
     (   get_attr(Other, dif, vardif(OV1,OV2))
-    ->  reverse_lookups(V1, Other, OrNodes1, NV1),
+    ->  (   (   or_nodes_completed(V1)
+	    ;   or_nodes_completed(V2)
+	    )
+	->  true
+	;   reverse_lookups(V1, Other, OrNodes1, NV1),
         or_one_fails(OrNodes1),
         reverse_lookups(OV1, Other, OrNodes2, NOV1),
         or_one_fails(OrNodes2),
@@ -245,12 +252,25 @@ attr_unify_hook(vardif(V1,V2),Other) :-
         (   CV1 == [], CV2 == []
         ->  del_attr(Other, dif)
         ;   put_attr(Other, dif, vardif(CV1,CV2))
+	    )
         )
     ;   var(Other)			% unrelated variable
     ->  put_attr(Other, dif, vardif(V1,V2))
     ;   verify_compounds(V1, Other),
         verify_compounds(V2, Other)
     ).
+
+or_nodes_completed(List) :-
+    member(Or-_Value, List),
+    get_attr(Or, dif, node(Unifiers0)),
+    copy_term_nat(Unifiers0, Unifiers),
+    \+ unify_list(Unifiers),
+    or_succeed(Or).
+
+unify_list([]).
+unify_list([A=A|T]) :-
+    unify_list(T).
+
 
 remove_obsolete([], _, []).
 remove_obsolete([N-Y|T], X, L) :-
@@ -325,9 +345,7 @@ filter_dead_ors([Or-Y|Rest],List) :-
 
 %!  or_one_fail(+OrNode) is semidet.
 %
-%   Some unification related to OrNode succeeded.   We can decrement the
-%   `Count` of the OrNode. If this  reaches   0,  the original terms are
-%   equal and we must fail.
+%   Some unification related to OrNode succeeded.
 
 or_one_fail(OrNode) :-
     simplify_ornode(OrNode).
