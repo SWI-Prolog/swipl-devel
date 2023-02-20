@@ -512,12 +512,12 @@ PRED_IMPL("$prof_node", 8, prof_node, 0)
   collectSiblingsTime();
 
   return ( unify_node_id(A2, n) &&
-	   PL_unify_integer(A3, n->calls) &&
-	   PL_unify_integer(A4, n->exits + n->fails - n->calls) &&
-	   PL_unify_integer(A5, n->exits) &&
-	   PL_unify_integer(A6, n->recur) &&
-	   PL_unify_integer(A7, n->ticks) &&
-	   PL_unify_integer(A8, n->sibling_ticks) );
+	   PL_unify_uint64(A3, n->calls) &&
+	   PL_unify_uint64(A4, n->exits + n->fails - n->calls) &&
+	   PL_unify_uint64(A5, n->exits) &&
+	   PL_unify_uint64(A6, n->recur) &&
+	   PL_unify_uint64(A7, n->ticks) &&
+	   PL_unify_uint64(A8, n->sibling_ticks) );
 }
 
 
@@ -807,11 +807,11 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   if ( count == 0 )
     fail;				/* nothing known about this one */
 
-  rc = ( PL_unify_integer(A2, sum.ticks) &&
-	 PL_unify_integer(A3, sum.sibling_ticks) &&
-	 PL_unify_integer(A4, sum.calls) &&
-	 PL_unify_integer(A5, sum.redos) &&
-	 PL_unify_integer(A6, sum.exits) &&
+  rc = ( PL_unify_uint64(A2, sum.ticks) &&
+	 PL_unify_uint64(A3, sum.sibling_ticks) &&
+	 PL_unify_uint64(A4, sum.calls) &&
+	 PL_unify_uint64(A5, sum.redos) &&
+	 PL_unify_uint64(A6, sum.exits) &&
 	 unify_relatives(A7, sum.callers) &&
 	 unify_relatives(A8, sum.callees)
        );
@@ -835,11 +835,11 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 static
 PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 { PRED_LD
-  if ( PL_unify_integer(A1, LD->profile.samples) &&
-       PL_unify_integer(A2, LD->profile.ticks) &&
-       PL_unify_integer(A3, LD->profile.accounting_ticks) &&
-       PL_unify_float(  A4, LD->profile.time) &&
-       PL_unify_integer(A5, LD->profile.nodes) )
+  if ( PL_unify_uint64(A1, LD->profile.samples) &&
+       PL_unify_uint64(A2, LD->profile.ticks) &&
+       PL_unify_uint64(A3, LD->profile.accounting_ticks) &&
+       PL_unify_float( A4, LD->profile.time) &&
+       PL_unify_uint64(A5, LD->profile.nodes) )
     succeed;
 
   fail;
