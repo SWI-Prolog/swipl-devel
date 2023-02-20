@@ -3,7 +3,7 @@
     Author:        Tom Schrijvers, Markus Triska and Jan Wielemaker
     E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2022, K.U.Leuven
+    Copyright (c)  2004-2023, K.U.Leuven
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -72,9 +72,8 @@ represented by a single OrNode.
 
 If a unification related to an  OrNode   fails  the terms are definitely
 unequal and thus we can kill all   pending constraints and succeed. If a
-unequal related to an OrNode succeeds we   decrement  the `Count` of the
-node. If the count  reaches  0  all   unifications  of  the  OrNode have
-succeeded, the original terms are equal and thus we need to fail.
+unequal related to an OrNode succeeds we remove it from the node. If the
+node becomes empty the terms are equal and we must fail.
 
 The following invariants must hold
 
@@ -190,6 +189,13 @@ add_ornode_var2(X,Y,OrNode) :-
 %   Finally, we remove elements from the list that have become equal. If
 %   the OrNode is empty, the original terms   are equal and thus we must
 %   fail.
+%
+%   @tbd The simplification is complicated. Another approach would be to
+%   turn `[X1=Y1, X2=Y2, ...]` into  `[X1,X2,...]` and `[Y1,Y2,...]` and
+%   call  unifiable/3  on  these  lists  to    either   end  up  with  a
+%   contradiction (satisfied) or a  new  unifier.   This  is  a stronger
+%   propagation. Seems not so easy though.  Both pending constraints and
+%   reconnecting to the proper variables need attention.
 
 simplify_ornode(OrNode) :-
     (   get_attr(OrNode, dif, node(Pairs0))
@@ -198,7 +204,7 @@ simplify_ornode(OrNode) :-
 	    U == []
 	->  fail
         ;   put_attr(OrNode, dif, node(Pairs)),
-        subunifier(U, OrNode)
+            subunifier(U, OrNode)
 	)
     ;   true
     ).
@@ -242,29 +248,36 @@ attr_unify_hook(vardif(V1,V2),Other) :-
 	    )
 	->  true
 	;   reverse_lookups(V1, Other, OrNodes1, NV1),
-        or_one_fails(OrNodes1),
-        reverse_lookups(OV1, Other, OrNodes2, NOV1),
-        or_one_fails(OrNodes2),
-        remove_obsolete(V2, Other, NV2),
-        remove_obsolete(OV2, Other, NOV2),
-        append(NV1, NOV1, CV1),
-        append(NV2, NOV2, CV2),
-        (   CV1 == [], CV2 == []
-        ->  del_attr(Other, dif)
-        ;   put_attr(Other, dif, vardif(CV1,CV2))
+	    or_one_fails(OrNodes1),
+	    reverse_lookups(OV1, Other, OrNodes2, NOV1),
+	    or_one_fails(OrNodes2),
+	    remove_obsolete(V2, Other, NV2),
+	    remove_obsolete(OV2, Other, NOV2),
+	    append(NV1, NOV1, CV1),
+	    append(NV2, NOV2, CV2),
+	    (   CV1 == [], CV2 == []
+	    ->  del_attr(Other, dif)
+	    ;   put_attr(Other, dif, vardif(CV1,CV2))
 	    )
         )
     ;   var(Other)			% unrelated variable
     ->  put_attr(Other, dif, vardif(V1,V2))
-    ;   verify_compounds(V1, Other),
+    ;   verify_compounds(V1, Other),    % concrete value
         verify_compounds(V2, Other)
     ).
+
+%!  or_nodes_completed(+List) is semidet.
+%
+%   Unification  may  have  made  some  of  the  or  nodes  internally
+%   inconsistent.  This  code checks  for that and  makes the  or node
+%   succeed if this is the case.
 
 or_nodes_completed(List) :-
     member(Or-_Value, List),
     get_attr(Or, dif, node(Unifiers0)),
     copy_term_nat(Unifiers0, Unifiers),
     \+ unify_list(Unifiers),
+    !,
     or_succeed(Or).
 
 unify_list([]).
@@ -289,6 +302,10 @@ reverse_lookups([N-X|NXs],Value,Nodes,Rest) :-
         Rest = [N-X|RRest]
     ),
     reverse_lookups(NXs,Value,RNodes,RRest).
+
+%!  verify_compounds(+Nodes, +Value)
+%
+%   Unification to a concrete Value (no variable)
 
 verify_compounds([],_).
 verify_compounds([OrNode-Y|Rest],X) :-
