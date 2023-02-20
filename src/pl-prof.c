@@ -84,16 +84,16 @@ static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
 #define PROFNODE_MAGIC 0x7ae38f24
 
 typedef struct call_node
-{ intptr_t	    magic;		/* PROFNODE_MAGIC */
+{ int		    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
-  uintptr_t	    calls;		/* Calls from the parent */
-  uintptr_t	    fails;		/* fails back to choicepoint */
-  uintptr_t	    exits;		/* exits to the parent */
-  uintptr_t	    recur;		/* recursive calls */
-  uintptr_t	    ticks;		/* time-statistics */
-  uintptr_t	    sibling_ticks;	/* ticks in a siblings */
+  uint64_t	    calls;		/* Calls from the parent */
+  uint64_t	    fails;		/* fails back to choicepoint */
+  uint64_t	    exits;		/* exits to the parent */
+  uint64_t	    recur;		/* recursive calls */
+  uint64_t	    ticks;		/* time-statistics */
+  uint64_t	    sibling_ticks;	/* ticks in a siblings */
   struct call_node *next;		/* next in siblings chain */
   struct call_node *siblings;		/* my offspring */
 } call_node;
@@ -539,22 +539,22 @@ typedef struct prof_ref
   void * handle;			/* Procedure handle */
   PL_prof_type_t   *type;
   int   cycle;
-  uintptr_t ticks;
-  uintptr_t sibling_ticks;
-  uintptr_t calls;			/* calls to/from this predicate */
-  uintptr_t redos;			/* redos to/from this predicate */
-  uintptr_t exits;			/* exits to/from this predicate */
+  uint64_t ticks;
+  uint64_t sibling_ticks;
+  uint64_t calls;			/* calls to/from this predicate */
+  uint64_t redos;			/* redos to/from this predicate */
+  uint64_t exits;			/* exits to/from this predicate */
 } prof_ref;
 
 
 typedef struct
 { Definition def;
-  uintptr_t ticks;
-  uintptr_t sibling_ticks;
-  uintptr_t calls;
-  uintptr_t redos;
-  uintptr_t exits;
-  uintptr_t recur;
+  uint64_t ticks;
+  uint64_t sibling_ticks;
+  uint64_t calls;
+  uint64_t redos;
+  uint64_t exits;
+  uint64_t recur;
   prof_ref *callers;
   prof_ref *callees;
 } node_sum;
@@ -613,7 +613,7 @@ add_parent_ref(node_sum *sum,
 
 
 static void
-add_recursive_ref(node_sum *sum, uintptr_t count, int cycle)
+add_recursive_ref(node_sum *sum, uint64_t count, int cycle)
 { prof_ref *r;
 
   for(r=sum->callers; r; r=r->next)
@@ -726,11 +726,11 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
 	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node7,
 			PL_TERM, tmp,
 			PL_INT,  r->cycle,
-			PL_LONG, r->ticks,
-			PL_LONG, r->sibling_ticks,
-			PL_LONG, r->calls,
-			PL_LONG, r->redos,
-			PL_LONG, r->exits) )
+			PL_INT64, r->ticks,
+			PL_INT64, r->sibling_ticks,
+			PL_INT64, r->calls,
+			PL_INT64, r->redos,
+			PL_INT64, r->exits) )
       fail;
   }
 
@@ -1277,10 +1277,10 @@ PL_prof_exit(void *node)
 		 *******************************/
 
 
-static uintptr_t
+static uint64_t
 collectSiblingsNode(call_node *n)
 { call_node *s;
-  uintptr_t count = 0;
+  uint64_t count = 0;
 
   for(s=n->siblings; s; s=s->next)
   { count += collectSiblingsNode(s);
