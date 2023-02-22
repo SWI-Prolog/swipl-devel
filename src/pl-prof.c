@@ -1343,6 +1343,24 @@ freeProfileData(void)
   assert(LD->profile.nodes == 0);
 }
 
+#else /* !O_PROFILE */
+
+int
+PL_register_profile_type(PL_prof_type_t *type)
+{ return FALSE;
+}
+
+void *
+PL_prof_call(void *handle, PL_prof_type_t *type)
+{ return NULL;
+}
+
+void
+PL_prof_exit(void *node)
+{
+}
+
+
 #endif /* O_PROFILE */
 
 		 /*******************************
