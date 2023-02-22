@@ -60,7 +60,8 @@
 :- autoload(library(option),[merge_options/3,option/3]).
 :- autoload(library(prolog_stack),
 	    [print_prolog_backtrace/2,get_prolog_backtrace/3]).
-:- autoload(library(statistics),[thread_statistics/2,show_profile/1]).
+:- autoload(library(statistics),[thread_statistics/2]).
+:- autoload(library(prolog_profile), [show_profile/1]).
 :- autoload(library(thread),[call_in_thread/2]).
 
 :- if((\+current_prolog_flag(xpce,false),exists_source(library(pce)))).
