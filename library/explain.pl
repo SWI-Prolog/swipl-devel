@@ -133,9 +133,17 @@ explain(List, Explanation) :-
     length(List, L),
     !,
     Explanation = [isa(List, 'is a not-closed list with ~d elements'-[L])].
+explain(Name//NTArity, Explanation) :-
+    atom(Name),
+    integer(NTArity),
+    NTArity >= 0,
+    !,
+    Arity is NTArity + 2,
+    explain(Name/Arity, Explanation).
 explain(Name/Arity, Explanation) :-
     atom(Name),
     integer(Arity),
+    Arity >= 0,
     !,
     functor(Head, Name, Arity),
     known_predicate(Module:Head),
