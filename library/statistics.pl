@@ -306,20 +306,26 @@ time(Goal) :-
 %     - cpu:Seconds
 %     - inferences:Count
 %
-%   @arg Result is one of `true` or  `false` depending on whether or not
-%   the goal succeeded.
+%   @arg Result is one of  `true`,   `false`  or  throw(E), depending on
+%   whether or not the goal succeeded or  raised an exception. Note that
+%   Result may be called  using  call/1   to  propagate  the  failure or
+%   exception.
 
 call_time(Goal, Time) :-
     call_time(Goal, Time, true).
 call_time(Goal, Time, Result) :-
     time_state(State0),
-    (   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
+    (   call_cleanup(catch(Goal, E, true),
                      Det = true),
-        Result = true,
         time_true_used(State0, Time),
-        (   Det == true
-        ->  !
-        ;   true
+        (   var(E)
+        ->  Result = true,
+            (   Det == true
+            ->  !
+            ;   true
+            )
+        ;   !,
+            Result = throw(E)
         )
     ;   time_used(State0, 11, Time),
         Result = false
