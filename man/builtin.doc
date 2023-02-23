@@ -11400,8 +11400,8 @@ forum.
 
 
 \begin{description}
-    \predicate[experimental,directive]{det}{1}{+PredicateIndicators}
-Declare a number of predicates as \const{det}, \emph{deterministic}. As
+    \predicate[directive]{det}{1}{+PredicateIndicators}
+Declare a number of predicates as \const{det} (\emph{deterministic}). As
 a result, both failure and success with a choicepoint is considered an
 error.  The behaviour if the declaration is violated is controlled with
 the Prolog flag \prologflag{determinism_error}.  The default is to raise
@@ -11430,6 +11430,13 @@ ERROR:   [10] p(a)
 
 Violations throw an \funcref{error}{2} exception
 \term{determinism_error}{Pred, Declared, Observed, property}.
+
+The trap/1 (cli) or gtrap/1 (gui) predicate can be used to make the
+debugger stop near the error.  For example:
+
+\begin{code}
+?- gtrap(determinism_error(_,_,_,_)).
+\end{code}
 
     \predicate[experimental]{$}{0}{}
 The \predref{$}{0} constructs acts similar to the \predref{!}{0},

@@ -202,7 +202,7 @@ spy_point(Module:Head) :-
 %   below (assuming run/0 starts your program).
 %
 %   ```
-%   ?- gtrap(_).
+%   ?- trap(_).
 %   ?- run.
 %   ```
 %
