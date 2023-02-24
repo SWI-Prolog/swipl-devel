@@ -620,7 +620,7 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
   } else
   { if ( !Putc(c, stream) )
       fail;
-    if ( c == quote || c == '\\' )	/* write '' or \\ */
+    if ( c == quote )	/* write '' */
     { if ( !Putc(c, stream) )
 	fail;
     }
@@ -1753,7 +1753,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	    { switch(writeAtom(functor, options))
 	      { case FALSE:
 		  fail;
-	        case TRUE_WITH_SPACE:
+		case TRUE_WITH_SPACE:
 		  TRY(Putc(' ', out));
 	      }
 	    }
@@ -2154,6 +2154,11 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.out	    = s;
   options.module    = MODULE_user;
 
+  if ( !(flags & (PL_WRT_CHARESCAPES|PL_WRT_NO_CHARESCAPES) ) )
+  { if ( true(options.module, M_CHARESCAPE) )
+      options.flags |= PL_WRT_CHARESCAPES;
+  }
+
   if ( (s=PL_acquire_stream(s)) )
   { PutOpenToken(EOF, s);			/* reset this */
     rc = writeTopTerm(term, precedence, &options);
@@ -2460,4 +2465,3 @@ BeginPredDefs(write)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
   PRED_DEF("write_length", 3, write_length, 0)
 EndPredDefs
-

@@ -643,6 +643,15 @@ constants below.  These flags map to options for write_term/2.
 	\definition{\const{PL_WRT_NUMBERVARS}}
 	\definition{\const{PL_WRT_PORTRAY}}
 	\definition{\const{PL_WRT_CHARESCAPES}}
+        \nodescription
+	\definition{\const{PL_WRT_NO_CHARESCAPES}}
+The \const{PL_WRT_NO_CHARESCAPES} does not map to a write_term/2 option.
+If one of \const{PL_WRT_CHARESCAPES} or \const{PL_WRT_NO_CHARESCAPES} is
+specified, character escapes are (not) applied.  If neither is specified
+the default depends, like for write/1, on the
+\prologflag{character_escapes} flag on the module
+\const{user}.\footnote{Prior to version 9.1.6 the default (no flag) was
+to escape the quotes and the backslash (\chr{\}).}
 	\definition{\const{PL_WRT_BACKQUOTED_STRING}}
 	\definition{\const{PL_WRT_ATTVAR_IGNORE}}
 	\definition{\const{PL_WRT_ATTVAR_DOTS}}
