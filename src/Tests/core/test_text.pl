@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2022, University of Amsterdam
+    Copyright (c)  2007-2023, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -119,6 +119,8 @@ test(write, A == 'foo(a)') :-
 	term_to_atom(foo(a), A).
 test(read, T == foo(a)) :-
 	term_to_atom(T, 'foo(a)').
+test(read, T == '\'a\\nb\\\\c\'') :-
+	term_to_atom('a\nb\\c', T).
 
 :- end_tests(term_to_atom).
 
