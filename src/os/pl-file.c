@@ -3201,8 +3201,10 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.canonical = FALSE;
 	text.encoding  = s->encoding;
 
+	PL_STRINGS_MARK();
 	rc = ( PL_canonicalise_text_ex(&text) &&
 	       PL_unify_text(A3, 0, &text, PL_STRING) );
+	PL_STRINGS_RELEASE();
 	releaseStream(s);
 	return rc;
       }
