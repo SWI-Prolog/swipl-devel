@@ -397,8 +397,9 @@ struct PL_global_data
 #ifdef HAVE_TGETENT
   struct
   { int    initialised;			/* initialisation status */
-    char  *_string_area;		/* static area for tgetent */
-    char  *_buf_area;			/* another one */
+    char  *_string_area;		/* static area for tgetstr */
+    char  *_string_area_end;		/* end of _string_area */
+    char  *_buf_area;			/* static area for tgetent */
     Table  _capabilities;		/* User-level capability table */
   } terminal;
 #endif

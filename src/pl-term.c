@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -87,6 +88,7 @@ short	ospeed;
 
 #define term_initialised    (GD->terminal.initialised)
 #define string_area	    (GD->terminal._string_area)
+#define string_area_end	    (GD->terminal._string_area_end)
 #define buf_area	    (GD->terminal._buf_area)
 #define capabilities        (GD->terminal._capabilities)
 
@@ -100,6 +102,7 @@ typedef struct
 void
 cleanupTerm(void)
 { Table t;
+  char *s;
 
   if ( (t=capabilities) )
   { capabilities = NULL;
@@ -107,6 +110,8 @@ cleanupTerm(void)
 	      freeHeap(value, sizeof(entry)));
     destroyHTable(t);
   }
+  if ( (s=buf_area) )    { buf_area = NULL; free(s); }
+  if ( (s=string_area) ) { string_area = NULL; free(s); }
 
   term_initialised = STAT_START;
 }
@@ -135,10 +140,15 @@ initTerm(void)
       goto out;
     }
 
-    if ( buf_area == NULL )
-      buf_area = allocHeapOrHalt(MAX_TERMBUF);
-    if ( string_area == NULL )
-      string_area = allocHeapOrHalt(MAX_TERMBUF);
+    if ( buf_area == NULL && !(buf_area = malloc(MAX_TERMBUF)) )
+    { PL_no_memory();
+      goto out;
+    }
+    if ( string_area == NULL && !(string_area = malloc(MAX_TERMBUF)) )
+    { PL_no_memory();
+      goto out;
+    }
+    string_area_end = string_area;
 
     switch( tgetent(buf_area, term) )
     { case -1:
@@ -202,7 +212,7 @@ lookupEntry(atom_t name, atom_t type)
     } else if ( type == ATOM_string )
     { char *s;
 
-      if ( (s = tgetstr(stringAtom(name), &string_area)) != NULL )
+      if ( (s = tgetstr(stringAtom(name), &string_area_end)) != NULL )
         e->value  = PL_new_atom(s);	/* locked: ok */
     } else
     { term_t t = PL_new_term_ref();
