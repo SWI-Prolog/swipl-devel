@@ -537,8 +537,8 @@ initBuildIns(void)
 #endif
   GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
 					      PL_new_module(PL_new_atom("prolog")));
-  PROCEDURE_exception_hook4  =
-	PL_predicate("prolog_exception_hook", 4, "user");
+  PROCEDURE_exception_hook5  =
+	PL_predicate("prolog_exception_hook", 5, "prolog");
   PROCEDURE_tune_gc3 =
 	PL_predicate("tune_gc", 3, "prolog");
 					/* allow debugging in call/1 */

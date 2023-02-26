@@ -324,6 +324,7 @@ time(Goal) :-
 call_time(Goal, Time) :-
     call_time(Goal, Time, Result),
     call(Result).
+
 call_time(Goal, Time, Result) :-
     time_state(State0),
     (   call_cleanup(catch(Goal, E, true),

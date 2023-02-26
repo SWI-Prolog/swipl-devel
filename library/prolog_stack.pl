@@ -67,7 +67,7 @@ following functionality:
 
     * get_prolog_backtrace/2 gets a Prolog representation of the
     Prolog stack.  This can be used for printing, but also to enrich
-    exceptions using prolog_exception_hook/4.  Decorating exceptions
+    exceptions using prolog:prolog_exception_hook/5.  Decorating exceptions
     is provided by this library and controlled by the hook
     stack_guard/1.
 
@@ -679,14 +679,12 @@ clause_descr(ClauseRef) -->
 %       Boolean that indicates whether the library tries to find
 %       line numbers for the calls.  Default is =true=.
 
-:- multifile
-    user:prolog_exception_hook/4.
-:- dynamic
-    user:prolog_exception_hook/4.
+:- multifile prolog:prolog_exception_hook/5.
+:- dynamic   prolog:prolog_exception_hook/5.
 
-user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
-                           error(E, context(prolog_stack(Stack),Msg)),
-                           Fr, GuardSpec) :-
+prolog:prolog_exception_hook(error(E, context(Ctx0,Msg)),
+			     error(E, context(prolog_stack(Stack),Msg)),
+			     Fr, GuardSpec, Debug) :-
     current_prolog_flag(backtrace, true),
     \+ is_stack(Ctx0, _Frames),
     (   atom(GuardSpec)
@@ -698,6 +696,9 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
         debug(backtrace, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
               [E, Ctx0, Guard]),
         stack_guard(Guard)
+    ->  true
+    ;   Debug == true,
+        stack_guard(debug)
     ),
     (   current_prolog_flag(backtrace_depth, Depth)
     ->  Depth > 0
@@ -748,6 +749,7 @@ join_stacks(_, Stack, Stack).
 
 stack_guard(none).
 stack_guard(system:catch_with_backtrace/3).
+stack_guard(debug).
 
 
                  /*******************************

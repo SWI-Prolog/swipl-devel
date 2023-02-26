@@ -926,7 +926,7 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, size, Bytes).
 
 system_undefined(user:prolog_trace_interception/4).
-system_undefined(user:prolog_exception_hook/4).
+system_undefined(prolog:prolog_exception_hook/5).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
 

@@ -401,15 +401,15 @@ examples.
 \section{Adding context to errors: prolog_exception_hook}
 \label{sec:excepthook}
 
-The hook prolog_exception_hook/4 has been introduced in SWI-Prolog 5.6.5
-to provide dedicated exception handling facilities for application
-frameworks, for example non-interactive server applications that
-wish to provide extensive context for exceptions for offline debugging.
+The hook prolog:prolog_exception_hook/5 has been introduced to provide
+dedicated exception handling facilities for application frameworks,
+for example non-interactive server applications that wish to provide
+extensive context for exceptions for offline debugging.
 
 \begin{description}
-    \predicate{prolog_exception_hook}{4}{+ExceptionIn, -ExceptionOut,
-					 +Frame, +CatcherFrame}
-This hook predicate, if defined in the module \const{user}, is between
+    \predicate{prolog:prolog_exception_hook}{5}%
+    {+ExceptionIn, -ExceptionOut, +Frame, +CatcherFrame, +DebugMode}
+This hook predicate, if defined in the module \const{prolog}, is between
 raising an exception and handling it. It is intended to allow a program
 adding additional context to an exception to simplify diagnosing the
 problem. \arg{ExceptionIn} is the exception term as raised by throw/1 or
@@ -420,7 +420,8 @@ innermost frame. See prolog_frame_attribute/3 and the library
 \arg{CatcherFrame} is a reference to the frame calling the matching
 catch/3, \const{none} if the exception is not caught or \const{'C'}
 if the exception is caught in C calling Prolog using the flag
-\const{PL_Q_CATCH_EXCEPTION}.
+\const{PL_Q_CATCH_EXCEPTION}.  \arg{DebugMode} contains the setting
+of the Prolog flag \prologflag{debug} from the calling context.
 
 The hook is run in `nodebug' mode. If it succeeds, \arg{ExceptionOut} is
 considered the current exception. If it fails, \arg{ExceptionIn} is used
@@ -428,11 +429,11 @@ for further processing. The hook is \emph{never} called recursively.
 The hook is \emph{not} allowed to modify \arg{ExceptionOut} in such
 a way that it no longer unifies with the catching frame.
 
-Typically, prolog_exception_hook/4 is used to fill the second argument
-of \term{error}{Formal, Context} exceptions. \arg{Formal} is
-defined by the ISO standard, while SWI-Prolog defines \arg{Context}
-as a term \term{context}{Location, Message}.  \arg{Location} is bound
-to a term <name>/<arity> by the kernel.  This hook can be used to add
+Typically, prolog:prolog_exception_hook/5 is used to fill the second
+argument of \term{error}{Formal, Context} exceptions. \arg{Formal} is
+defined by the ISO standard, while SWI-Prolog defines \arg{Context} as
+a term \term{context}{Location, Message}.  \arg{Location} is bound to
+a term <name>/<arity> by the kernel.  This hook can be used to add
 more information on the calling context, such as a full stack trace.
 
 Applications that use exceptions as part of normal processing must
@@ -451,6 +452,10 @@ user:prolog_exception_hook(
 	 _, _, _) :-
 	trace, fail.
 \end{code}
+
+This hook is used by \pllib{prolog_stack} to print stack traces on
+uncaught exceptions, trap/1 to debug after exceptions and the GUI
+exception editor that is part of the GUI debugger.
 \end{description}
 
 

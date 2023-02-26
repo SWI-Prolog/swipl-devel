@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021-2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -241,16 +241,16 @@ trapping :-
             Trapping),
     print_message(information, trapping(Trapping)).
 
-:- dynamic
-    user:prolog_exception_hook/4.
+:- dynamic   prolog:prolog_exception_hook/5.
+:- multifile prolog:prolog_exception_hook/5.
 
 %!  exception_hook(+ExIn, -ExOut, +Frame, +Catcher) is failure.
 %
 %   Trap exceptions and consider whether or not to start the tracer.
 
-:- public exception_hook/4.
+:- public exception_hook/5.
 
-exception_hook(Ex, Ex, _Frame, Catcher) :-
+exception_hook(Ex, Ex, _Frame, Catcher, _Debug) :-
     thread_self(Me),
     thread_property(Me, debug(true)),
     broadcast(debug(exception(Ex))),
@@ -277,8 +277,8 @@ install_exception_hook :-
         fail
     ).
 install_exception_hook :-
-    asserta((user:prolog_exception_hook(Ex, Out, Frame, Catcher) :-
-                    exception_hook(Ex, Out, Frame, Catcher)), Ref),
+    asserta((prolog:prolog_exception_hook(Ex, Out, Frame, Catcher, Debug) :-
+                    exception_hook(Ex, Out, Frame, Catcher, Debug)), Ref),
     assert(installed(Ref)).
 
 

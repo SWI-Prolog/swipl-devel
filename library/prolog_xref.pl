@@ -1453,7 +1453,7 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
-hook(user:prolog_exception_hook(_,_,_,_)).
+hook(prolog:prolog_exception_hook(_,_,_,_,_)).
 hook(sandbox:safe_primitive(_)).
 hook(sandbox:safe_meta_predicate(_)).
 hook(sandbox:safe_meta(_,_)).

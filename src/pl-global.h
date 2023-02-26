@@ -318,7 +318,7 @@ struct PL_global_data
     Procedure	strict_equal2;		/* ==/2 */
     Procedure	not_strict_equal2;	/* \==/2 */
     Procedure   arg3;			/* arg/3 */
-    Procedure	exception_hook4;
+    Procedure	exception_hook5;
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;

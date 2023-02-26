@@ -2088,10 +2088,12 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 
 #endif /*O_DEBUGGER*/
 
-#define exception_hook(pqid, fr, catchfr_ref) LDFUNC(exception_hook, pqid, fr, catchfr_ref)
+#define exception_hook(pqid, fr, catchfr_ref) \
+	LDFUNC(exception_hook, pqid, fr, catchfr_ref)
+
 static int
 exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
-{ if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
+{ if ( PROCEDURE_exception_hook5->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;
@@ -2102,7 +2104,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       if ( !saveWakeup(&wstate, TRUE) )
 	return FALSE;
 
-      av = PL_new_term_refs(4);
+      av = PL_new_term_refs(5);
       PL_put_term(av+0, exception_bin);
       PL_put_frame(av+2, (LocalFrame)valTermRef(fr));
 
@@ -2124,10 +2126,11 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       } else
       { PL_put_frame(av+3, NULL);	/* puts 'none' */
       }
+      PL_put_bool(av+4, debugstatus.debugging);
 
       startCritical();
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
-			  PROCEDURE_exception_hook4, av);
+			  PROCEDURE_exception_hook5, av);
       rc = PL_next_solution(qid);
       rc = endCritical() && rc;
       debug = debugstatus.debugging;
@@ -2161,7 +2164,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 
       return rc;
     } else
-    { PL_warning("Recursive exception in prolog_exception_hook/4");
+    { PL_warning("Recursive exception in prolog:prolog_exception_hook/5");
     }
   }
 
