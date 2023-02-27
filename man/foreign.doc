@@ -1415,9 +1415,8 @@ pl_write_atoms(term_t l)
   int rc = TRUE;
 
   while( rc && PL_get_list_ex(tail, head, tail) )
-  { char *s;
-
-    PL_STRINGS_MARK();
+  { PL_STRINGS_MARK();
+    char *s;
       if (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
         Sprintf("%s\n", s);
     PL_STRINGS_RELEASE();
@@ -3019,7 +3018,22 @@ Discards the query, but does not delete any of the data created by the
 query.  It just invalidates \arg{qid}, allowing for a new call to
 PL_open_query() in this context.  PL_cut_query() may invoke cleanup
 handlers (see setup_call_cleanup/3) and therefore may experience
-exceptions.  If an exception occurs the return value is \const{FALSE}
+exceptions.\foot{An example of a handler is in
+\begin{code}
+test_setup_call_cleanup(X) :-
+    setup_call_cleanup(
+        true,
+        between(1, 5, X),
+        throw(error)).
+\end{code}
+where PL_next_solution() will return \const{TRUE} on the first result
+and the \exam{throw(error)} will only run when PL_cut_query() or
+PL_close_query() is run. On the other hand, if the goal in
+setup_call_cleanup/3 has completed (failure, exception, determinitic
+success), the cleanup handler will have done its work before control
+gets back to Prolog and therefore PL_next_solution() will have
+generated the exception.}
+If an exception occurs, the return value is \const{FALSE}
 and the exception is accessible through \exam{PL_exception(0)}.
 
     \cfunction{int}{PL_close_query}{qid_t qid}
@@ -3252,7 +3266,8 @@ print_message/2 through the C interface.
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
 Generate an exception (as throw/1) and return \const{FALSE}. If there is
-already a pending exception, the most urgent exception is kept.  Urgency
+already a pending exception, the most urgent exception is kept; and if both
+are of the same urgency, the new exception is kept.  Urgency
 of exceptions is defined as
 
 \begin{enumerate}

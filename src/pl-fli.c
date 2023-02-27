@@ -4391,11 +4391,11 @@ PL_raise_exception(term_t exception)
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
-  { except_class co = classify_exception(exception_bin);
-    except_class cn = classify_exception(exception);
+  { except_class class_old = classify_exception(exception_bin);
+    except_class class_new = classify_exception(exception);
 
-    if ( cn >= co )
-    { if ( cn == EXCEPT_RESOURCE )
+    if ( class_new >= class_old )
+    { if ( class_new == EXCEPT_RESOURCE )
 	enableSpareStacks();
       setVar(*valTermRef(exception_bin));
       copy_exception(exception, exception_bin);
