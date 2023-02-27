@@ -2171,10 +2171,9 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     leaveDefinition(DEF);
     DEF = proc->definition;
     if ( true(DEF, P_TRANSPARENT) )
-    { FR->context = contextModule(FR);
+    { FR->context = contextModule(FR); /* must be  before setting FR_CONTEXT */
       FR->level++;
-      clear(FR, FR_CLEAR_NEXT);
-      set(FR, FR_CONTEXT);
+      FR->flags = ((FR->flags & ~(FR_LCO_CLEAR|FR_CLEAR_ALWAYS)) | FR_CONTEXT);
     } else
     { lcoSetNextFrameFlags(FR);
     }
