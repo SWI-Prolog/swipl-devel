@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, CWI, Amsterdam
+    Copyright (c)  2019-2023, CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,7 +35,7 @@
 
 :- module(basics,
 	  [ append/3, flatten/2, ith/3,
-            length/2, member/2, memberchk/2, subset/2, subseq/3,
+            length/2, member/2, memberchk/2, subset/2,
             reverse/2, select/3,
 
             for/3,                               % ?I,+B1,+B2)
@@ -80,10 +81,6 @@ for(I, B1, B2) :-
 
 ith(Index,List,Element) :-
     nth1(Index, List, Element).
-
-subseq([],[],[]).
-subseq([H|T],[H|S],C) :- subseq(T,S,C).
-subseq([H|T],S,[H|C]) :- subseq(T,S,C).
 
 log_ith(K,T,E) :-
 	(integer(K)	% integer
