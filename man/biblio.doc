@@ -1,10 +1,20 @@
 \begin{thebibliography}{Anjewierden \& Wielemaker, 1989}
 
+\bibitem[Aït-Kaci, 1999]
+Hassan Aït-Kaci.
+\newblock Warren's Abstract Machine, A Tutorial Reconstruction
+\newblock Out of print but available at \href{https://github.com/a-yiorgos/wambook}
+
 \bibitem[Anjewierden \& Wielemaker, 1989]{P1098:C1.6}
 A.~Anjewierden and J.~Wielemaker.
 \newblock Extensible objects.
 \newblock ESPRIT Project 1098 Technical Report UvA-C1-TR-006a, University of
   Amsterdam, March 1989.
+
+\bibitem[Appleby, Carlsson, Haridi \& Sahlin, 1986]
+Karen Appleby, Mats Carlsson, Seif Haridi, Dan Sahlin.
+\newblock Garbage Collection for Prolog Based on WAM (Revised version)
+\newblock \href{https://www.researchgate.net/publication/279463524_Garbage_Collection_for_Prolog_Based_on_WAM_Revised_version}
 
 \bibitem[BIM, 1989]{BIMPROLOG:manual}
 {\em BIM Prolog release 2.4}.
@@ -15,6 +25,7 @@ D.~L. Bowen and L.~M. Byrd.
 \newblock A portable {Prolog} compiler.
 \newblock In L.~M. Pereira, editor, {\em Proceedings of the Login Programming
   Workshop 1983}, Lisabon, Portugal, 1983. Universidade nova de Lisboa.
+\\newblock \href{https://www.researchgate.net/publication/273888197_A_portable_Prolog_compiler}
 
 \bibitem[Bratko, 1986]{Bratko:86}
 I.~Bratko.
@@ -31,6 +42,11 @@ W.~F. Clocksin and C.~S. Melish.
 \newblock {\em Programming in Prolog}.
 \newblock Springer-Verlag, New York, {T}hird, {R}evised and {E}xtended edition,
   1987.
+
+\bibitem[Clocksin, 1983]{Clocksin:83]
+W.~F. Clocksin.
+\newblock {\em The ZIP Virtual Machine}
+\href{https://www.softwarepreservation.org/projects/prolog/edinburgh/doc/Clocksin-ZIP_VM-1983_01.pdf/view}
 
 \bibitem[Demoen, 2002]{Demoen:CW350}
 Bart Demoen.
