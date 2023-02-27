@@ -1095,7 +1095,12 @@ and stack-shifts, so generally the only safe operations are to pass
 it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
+Same as \exam{PL_get_chars(t, NULL, s, flags)}
+
+    \cfunction{int}{PL_get_nchars}{term_t +t, size_t *len, char **s, unsigned flags}
 Convert the argument term \arg{t} to a 0-terminated C-string.
+The string's length is put into \arg{len} (which can be NULL if the
+length isn't needed).
 \arg{flags} is a bitwise disjunction from two groups of constants. The
 first specifies which term types should be converted and the second how
 the argument is stored. Below is a specification of these constants.
@@ -1415,9 +1420,8 @@ pl_write_atoms(term_t l)
   int rc = TRUE;
 
   while( rc && PL_get_list_ex(tail, head, tail) )
-  { char *s;
-
-    PL_STRINGS_MARK();
+  { PL_STRINGS_MARK();
+      char *s;
       if (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
         Sprintf("%s\n", s);
     PL_STRINGS_RELEASE();
@@ -3022,6 +3026,23 @@ handlers (see setup_call_cleanup/3) and therefore may experience
 exceptions.  If an exception occurs the return value is \const{FALSE}
 and the exception is accessible through \exam{PL_exception(0)}.
 
+An example of a handler that can trigger an exception in
+PL_cut_query() is:
+\begin{code}
+test_setup_call_cleanup(X) :-
+    setup_call_cleanup(
+        true,
+        between(1, 5, X),
+        throw(error)).
+\end{code}
+where PL_next_solution() returns \const{TRUE} on the first result
+and the \exam{throw(error)} will only run when PL_cut_query() or
+PL_close_query() is run. On the other hand, if the goal in
+setup_call_cleanup/3 has completed (failure, exception, determinitic
+success), the cleanup handler will have done its work before control
+gets back to Prolog and therefore PL_next_solution() will have
+generated the exception.
+
     \cfunction{int}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed as if the query is called as \verb$\+ \+ Goal$. This reduces
@@ -3141,12 +3162,15 @@ using these macros:
 These macros must be paired and create a C \jargon{block} (\{...\}). Any
 string created using \const{BUF_STACK} after PL_STRINGS_MARK() is
 released by the corresponding PL_STRINGS_RELEASE().  These macros
-should be used like below
+should be used like below.
+Care must be taken when using a function such as PL_get_chars(), which returns
+a \ctype{char*} if the parameter is declared outside the block -- to avoid this,
+make a copy of the string (the C++ interface uses 
 
 \begin{code}
   ...
   PL_STRINGS_MARK();
-  <operations involving strings>
+    <operations involving strings>
   PL_STRINGS_RELEASE();
   ...
 \end{code}
@@ -3252,7 +3276,8 @@ print_message/2 through the C interface.
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
 Generate an exception (as throw/1) and return \const{FALSE}. If there is
-already a pending exception, the most urgent exception is kept.  Urgency
+already a pending exception, the most urgent exception is kept; and if both
+are of the same urgency, the new exception is kept.  Urgency
 of exceptions is defined as
 
 \begin{enumerate}
