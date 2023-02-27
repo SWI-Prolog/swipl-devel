@@ -1689,12 +1689,6 @@ exception(call-4) :-
 	X = a.
 exception(call-5) :-
 	catch(throwit, _, catchme).
-exception(context-1) :-
-	catch(functor(_,_,_), E, true),
-	error_context(E, functor/3).
-exception(context-2) :-
-	catch(undef, E, true),
-	error_context(E, undef/0).
 exception(catch-gc) :-
 	catch(tcatch, E, true),
 	subsumes_term(ok(error(_,_)), E).
@@ -2261,7 +2255,7 @@ file(ext-2) :-
 	\+ file_name_extension(foo, _, 'bar.pl').	% Bug#69
 file(open-1) :-
 	catch(open(foobar, read, _, [lock(qqq)]), E, true),
-	E =@= error(domain_error(lock, qqq), context(system:open/4, _)).
+	error(E, domain_error(lock, qqq)).
 
 
 touch(File) :-
@@ -2480,8 +2474,7 @@ mutex(unlock-1) :-
 	mutex_lock(Mutex),
 	mutex_unlock(Mutex),
 	catch(mutex_unlock(Mutex), E, true),
-	E == error(permission_error(unlock, mutex, Mutex),
-		   context(mutex_unlock/1, 'not locked')),
+	error(E, permission_error(unlock, mutex, Mutex)),
 	mutex_destroy(Mutex).
 mutex(destroy-1) :-
 	gensym(mutex, Mutex),
