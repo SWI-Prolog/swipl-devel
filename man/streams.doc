@@ -553,7 +553,7 @@ multibyte encodings the number of bytes written can be more.
     \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
 Same as Sfprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"%Ws"}.
+such as \exam{"\%Ws"}.
 
     \cfunction{int}{Sprintf}{const char *fm, ...}
 Similar to Sfprintf(), printing to \arg{Soutput}
@@ -573,7 +573,7 @@ to \const{ENC_UTF8}.
     \cfunction{int}{SsnprintfX}{char *buf, size_t size, const char *fm, ...}
 Same as Ssnprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"%Ws"}.
+such as \exam{"\%Ws"}.
 
     \cfunction{int}{Svsprintf}{char *buf, const char *fm, va_list args}
 Variadic argument list version of Ssprintf(). Deprecated. Use
@@ -589,7 +589,7 @@ output from foreign code.
     \cfunction{int}{SdprintfX}{const char *fm, ...}
 Same as Sdprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"%Ws"}.
+such as \exam{"\%Ws"}.
 
     \cfunction{int}{Svdprintf}{const char *fm, va_list args}
 Variadic argument list version of Sdprintf().

@@ -2608,6 +2608,7 @@ If a blob type is registered from a loadable object (shared object
 or DLL) the blob type must be deregistered before the object may be
 released.
 
+\begin{description}
     \cfunction{int}{save}{atom_t a, IOSTREAM *s}
 Write the blob to stream \arg{s}, in an opaque form that is known only
 to the blob. If a ``save'' function is
@@ -2634,7 +2635,6 @@ function.} If a ``load'' function is not provided (that is, the field
 is \const{NULL}, the default implementation assumes that the blob was
 written by the default ``save'' - that is, as an array of bytes
 
-\begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
 possible living blobs to \const{unregistered}, avoiding further
