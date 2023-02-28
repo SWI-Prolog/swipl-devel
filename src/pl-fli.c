@@ -784,7 +784,7 @@ saveUCSAtom(atom_t atom, IOSTREAM *fd)
   const pl_wchar_t *s = (const pl_wchar_t*)a->name;
   size_t len = a->length/sizeof(pl_wchar_t);
 
-  wicPutStringW(s, len, fd);
+  PL_qlf_PutStringW(s, len, fd);
 
   return TRUE;
 }
@@ -797,7 +797,7 @@ loadUCSAtom(IOSTREAM *fd)
   size_t len;
   atom_t a;
 
-  w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
+  w = PL_qlf_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
   a = lookupUCSAtom(w, len);
 
   if ( w != buf )

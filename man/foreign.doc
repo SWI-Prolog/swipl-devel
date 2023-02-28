@@ -2615,6 +2615,10 @@ not provided (that is, the field is \const{NULL}), the default
 implementation saves and restores the blob as if it is an array
 of bytes which may contain null (\exam{'\\0'}) bytes.
 
+\file{SWI-Stream.h} defines a number of PL_qlf_put*() functions
+that write data in a machine-independent form that can be read
+by the corresponding PL_qlf_get*() functions.
+
 If the ``save'' function encounters an error, it should call
 PL_warning(), raise an exception (see PL_raise_exception()), and
 return \const{FALSE}.\footnote{Details are subject to change.} Note
@@ -2633,6 +2637,10 @@ const{FALSE}.\footnote{Details are subject to change; see the ``save''
 function.} If a ``load'' function is not provided (that is, the field
 is \const{NULL}, the default implementation assumes that the blob was
 written by the default ``save'' - that is, as an array of bytes
+
+\file{SWI-Stream.h} defines a number of PL_qlf_get*() functions
+that read data in a machine-independent form, as written by the
+by the corresponding PL_qlf_put*() functions.
 
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
