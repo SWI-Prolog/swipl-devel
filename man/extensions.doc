@@ -436,7 +436,7 @@ name_value(String, Name, Value) :-
     sub_string(String, Before, _, After, "="),
     !,
    sub_atom(String, 0, Before, _, Name),
-    sub_string(String, _, After, 0, Value).
+   sub_string(String, _, After, 0, Value).
 \end{code}
 
 The next example defines a predicate that inserts a value at a position.

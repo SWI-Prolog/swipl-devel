@@ -1414,9 +1414,10 @@ atoms, each on a line.  Please note the following:
 
 \begin{code}
 foreign_t
-pl_write_atoms(term_t l)
+pl_write_atoms(term_t Stream, term_t l)
 { term_t head = PL_new_term_ref();   /* the elements */
   term_t tail = PL_copy_term_ref(l); /* copy (we modify tail) */
+  IOSTREAM* stream;
   int rc = TRUE;
 
   while( rc && PL_get_list_ex(tail, head, tail) )
@@ -1427,7 +1428,9 @@ pl_write_atoms(term_t l)
     PL_STRINGS_RELEASE();
   }
 
-  return rc && PL_get_nil_ex(tail);
+  return ( PL_release_stream(stream) &&
+	   rc &&
+	   PL_get_nil_ex(tail) ); /* test end for [] */
 }
 \end{code}
 
