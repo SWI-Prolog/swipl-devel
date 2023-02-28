@@ -295,22 +295,15 @@ typedef struct wic_state
 
 #define LDFUNC_DECLARATIONS
 
-static char *	getString(IOSTREAM *, size_t *len);
-static int64_t	getInt64(IOSTREAM *);
-static int	getInt32(IOSTREAM *s);
-static int	getInt(IOSTREAM *);
-static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(wic_state *state);
 static bool	loadPredicate(wic_state *state, int skip);
 static bool	loadImport(wic_state *state, int skip);
 static void	saveXRBlobType(wic_state *state, PL_blob_t *type);
-static void	putString(const char *, size_t len, IOSTREAM *);
-static void	putInt64(int64_t, IOSTREAM *);
-static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
 static void	closePredicateWic(wic_state *state);
 static word	loadXRc(wic_state *state, int c);
-static atom_t   getBlob(wic_state *state);
+static atom_t	getBlob(wic_state *state);
+static atom_t	getAtom(IOSTREAM *fd, PL_blob_t *type);
 static bool	loadStatement(wic_state *state, int c, int skip);
 static bool	loadPart(wic_state *state, Module *module, int skip);
 static bool	loadInModule(wic_state *state, int skip);
@@ -440,11 +433,11 @@ global stack.
 Returns NULL if the string is too large.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
-getString(IOSTREAM *fd, size_t *length)
+char *
+PL_qlf_getString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
-  size_t len = (size_t)getInt64(fd);
+  size_t len = (size_t)PL_qlf_getInt64(fd);
   size_t i;
 
   if ( !length && len > PATH_MAX )
@@ -485,9 +478,9 @@ getString(IOSTREAM *fd, size_t *length)
 
 
 pl_wchar_t *
-wicGetStringUTF8(IOSTREAM *fd, size_t *length,
-		 pl_wchar_t *buf, size_t bufsize)
-{ size_t i, len = (size_t)getInt64(fd);
+PL_qlf_GetStringUTF8(IOSTREAM *fd, size_t *length,
+		     pl_wchar_t *buf, size_t bufsize)
+{ size_t i, len = (size_t)PL_qlf_getInt64(fd);
   IOENC oenc = fd->encoding;
   pl_wchar_t *tmp, *o;
 
@@ -518,7 +511,7 @@ static atom_t
 getAtom(IOSTREAM *fd, PL_blob_t *type)
 { char buf[1024];
   char *tmp, *s;
-  size_t len = getInt(fd);
+  size_t len = PL_qlf_getInt(fd);
   size_t i;
   atom_t a;
 
@@ -554,7 +547,7 @@ static PL_blob_t *
 getBlobType(IOSTREAM *fd)
 { const char *name;
 
-  if ( !(name = getString(fd, NULL)) )
+  if ( !(name = PL_qlf_getString(fd, NULL)) )
     fatalError("Invalid blob type in QLF");
 
   return PL_find_blob_type(name);
@@ -590,8 +583,8 @@ zigzag_decode(uint64_t n)
 }
 
 
-static int64_t
-getInt64(IOSTREAM *fd)
+int64_t
+PL_qlf_getInt64(IOSTREAM *fd)
 { int c = Qgetc(fd);
 
   if ( c&0x80 )
@@ -619,16 +612,16 @@ getInt64(IOSTREAM *fd)
 }
 
 
-static int
-getInt(IOSTREAM *fd)
-{ int64_t val = getInt64(fd);
+int
+PL_qlf_getInt(IOSTREAM *fd)
+{ int64_t val = PL_qlf_getInt64(fd);
 
   return (int)val;
 }
 
 
-static unsigned int
-getUInt(IOSTREAM *fd)
+unsigned int
+PL_qlf_getUInt(IOSTREAM *fd)
 { unsigned int c = Qgetc(fd);
 
   if ( c&0x80 )
@@ -664,8 +657,8 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 
 #define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
 
-static double
-getFloat(IOSTREAM *fd)
+double
+PL_qlf_getFloat(IOSTREAM *fd)
 { double f;
   unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
@@ -678,14 +671,14 @@ getFloat(IOSTREAM *fd)
     cl[double_byte_order[i]] = c;
   }
 
-  DEBUG(MSG_QLF_FLOAT, Sdprintf("getFloat() --> %f\n", f));
+  DEBUG(MSG_QLF_FLOAT, Sdprintf("PL_qlf_getFloat() --> %f\n", f));
 
   return f;
 }
 
 
-static int
-getInt32(IOSTREAM *s)
+int
+PL_qlf_getInt32(IOSTREAM *s)
 { int v;
 
   v  = (Sgetc(s) & 0xff) << 24;
@@ -718,7 +711,7 @@ loadXRc(DECL_LD wic_state *state, int c)
 
   switch( c )
   { case XR_REF:
-    { unsigned int xr = getUInt(fd);
+    { unsigned int xr = PL_qlf_getUInt(fd);
       DEBUG(MSG_QLF_XR, Sdprintf("Reuse XR(%d)\n", (long)xr));
       word val = lookupXrId(state, xr);
 
@@ -753,7 +746,7 @@ loadXRc(DECL_LD wic_state *state, int c)
 
       id = ++state->XR->id;
       name = loadXR(state);
-      arity = getInt(fd);
+      arity = PL_qlf_getInt(fd);
       xr = (word) lookupFunctorDef(name, arity);
       DEBUG(MSG_QLF_XR,
 	    Sdprintf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
@@ -781,7 +774,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       break;
     }
     case XR_INT:
-    { int64_t i = getInt64(fd);
+    { int64_t i = PL_qlf_getInt64(fd);
       word w;
       int rc;
 
@@ -794,7 +787,7 @@ loadXRc(DECL_LD wic_state *state, int c)
     }
     case XR_FLOAT:
     { word w;
-      double f = getFloat(fd);
+      double f = PL_qlf_getFloat(fd);
       int rc;
 
       if ( (rc=put_double(&w, f, ALLOW_GC)) != TRUE )
@@ -809,7 +802,7 @@ loadXRc(DECL_LD wic_state *state, int c)
     { char *s;
       size_t len;
 
-      if ( (s = getString(fd, &len)) )
+      if ( (s = PL_qlf_getString(fd, &len)) )
       { return globalString(len, s);
       } else
       { raiseStackOverflow(GLOBAL_OVERFLOW);
@@ -822,7 +815,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       pl_wchar_t buf[256];
       word s;
 
-      w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
+      w = PL_qlf_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
       s = globalWString(len, w);
       if ( w != buf )
 	PL_free(w);
@@ -839,7 +832,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       { case 'u':
 	case 's':
 	{ atom_t name   = loadXR(state);
-	  double time   = getFloat(fd);
+	  double time   = PL_qlf_getFloat(fd);
 	  PL_chars_t text;
 	  SourceFile sf;
 
@@ -906,7 +899,7 @@ do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
   int c = Qgetc(fd);
 
   if ( c == 'v' )
-  { int id = getInt(fd);
+  { int id = PL_qlf_getInt(fd);
 
     if ( vars[id] )
     { return PL_unify(term, vars[id]);
@@ -958,7 +951,7 @@ loadQlfTerm(DECL_LD wic_state *state, term_t term)
 
   DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
-  if ( (nvars = getInt(fd)) )
+  if ( (nvars = PL_qlf_getInt(fd)) )
   { term_t *v;
     int n;
 
@@ -1037,9 +1030,9 @@ loadWicFd(wic_state *state)
 	popPathTranslation(state);
 	succeed;
       case 'W':
-	{ char *name = store_string(getString(fd, NULL) );
+	{ char *name = store_string(PL_qlf_getString(fd, NULL) );
 
-	  if ( (name=getString(fd, NULL)) )
+	  if ( (name=PL_qlf_getString(fd, NULL)) )
 	  { name = store_string(name);
 	    loadWicFile(name);
 	    continue;
@@ -1091,7 +1084,7 @@ loadStatement(DECL_LD wic_state *state, int c, int skip)
 
 	source_file_name = (state->currentSource ? state->currentSource->name
 						 : NULL_ATOM);
-	source_line_no   = getInt(fd);
+	source_line_no   = PL_qlf_getInt(fd);
 
 	if ( !loadQlfTerm(state, goal) )
 	  return FALSE;
@@ -1143,7 +1136,7 @@ loadStatement(DECL_LD wic_state *state, int c, int skip)
 
 static void
 loadPredicateFlags(wic_state *state, Definition def, int skip)
-{ unsigned int flags = getUInt(state->wicFd);
+{ unsigned int flags = PL_qlf_getUInt(state->wicFd);
 
   if ( !skip )
   { unsigned long lflags = 0L;
@@ -1291,7 +1284,7 @@ resolve_rlabel(vm_rlabel_state *state, unsigned int id, Code base, Clause clause
 
 static void
 loadClauseFlags(wic_state *state, Clause cl, int skip)
-{ unsigned int flags = getUInt(state->wicFd);
+{ unsigned int flags = PL_qlf_getUInt(state->wicFd);
 
   if ( !skip )
   { unsigned int lflags = 0;
@@ -1351,7 +1344,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
 	clause->references   = 0;
 	clause->tr_erased_no = 0;
-	clause->line_no	     = getUInt(fd);
+	clause->line_no	     = PL_qlf_getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
@@ -1370,29 +1363,29 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  }
 	}
 
-	clause->prolog_vars = (unsigned short) getUInt(fd);
-	clause->variables   = (unsigned short) getUInt(fd);
+	clause->prolog_vars = (unsigned short) PL_qlf_getUInt(fd);
+	clause->variables   = (unsigned short) PL_qlf_getUInt(fd);
 	loadClauseFlags(state, clause, skip);
 	clause->predicate = def;
 
 #define addCode(c) addBuffer(&buf, (c), code)
 
 	for(;;)
-	{ code op = getUInt(fd);
+	{ code op = PL_qlf_getUInt(fd);
 	  const char *ats;
 	  int n = 0;
 
 	  lstate.soi = entriesBuffer(&buf, code);
 	  switch(op)
 	  { case V_LABEL:
-	    { unsigned lbl = getUInt(fd);
+	    { unsigned lbl = PL_qlf_getUInt(fd);
 	      resolve_rlabel(&lstate, lbl, baseBuffer(&buf, code),
 			     baseBuffer(&buf, struct clause));
 	      continue;
 	    }
 	    case V_H_INTEGER:
 	    case V_B_INTEGER:
-	    { int64_t val = getInt64(fd);
+	    { int64_t val = PL_qlf_getInt64(fd);
 	      word w = consInt(val);
 
 	      if ( valInt(w) == val )
@@ -1416,7 +1409,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      continue;
 	    }
 	    case V_A_INTEGER:
-	    { int64_t val = getInt64(fd);
+	    { int64_t val = PL_qlf_getInt64(fd);
 
 #if SIZEOF_VOIDP == 8
 	      addCode(encode(A_INTEGER));
@@ -1490,34 +1483,34 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		addCode(loadXR(state));
 		break;
 	      case CA1_JUMP:
-	      { unsigned lbl = getUInt(fd);
+	      { unsigned lbl = PL_qlf_getUInt(fd);
 		size_t off = entriesBuffer(&buf, code);
 		addCode(lbl);
 		push_rlabel(&lstate, lbl, off);
 		break;
 	      }
 	      case CA1_INTEGER:
-		addCode((code)getInt64(fd));
+		addCode((code)PL_qlf_getInt64(fd));
 		break;
 	      case CA1_VAR:
 	      case CA1_FVAR:
 	      case CA1_CHP:
-		addCode((code)OFFSET_VAR(getInt64(fd)));
+		addCode((code)OFFSET_VAR(PL_qlf_getInt64(fd)));
 		break;
 	      case CA1_INT64:
-	      { int64_t val = getInt64(fd);
+	      { int64_t val = PL_qlf_getInt64(fd);
 
 		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
 		break;
 	      }
 	      case CA1_FLOAT:
-	      { double f = getFloat(fd);
+	      { double f = PL_qlf_getFloat(fd);
 
 		addMultipleBuffer(&buf, (char*)&f, sizeof(double), char);
 		break;
 	      }
 	      case CA1_STRING:		/* <n> chars */
-	      { size_t l = getInt(fd);
+	      { size_t l = PL_qlf_getInt(fd);
 		int   c0 = Qgetc(fd);
 
 		if ( c0 == 'B' )
@@ -1578,7 +1571,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 #ifdef O_GMP
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
-	      { ssize_t hdrsize = getInt64(fd);
+	      { ssize_t hdrsize = PL_qlf_getInt64(fd);
 		size_t wsize;
 		mpz_t mpz;
 		word m;
@@ -1599,8 +1592,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      }
 	      case CA1_MPQ:
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPQ from %ld\n", Stell(fd)));
-	      { ssize_t num_hdrsize = getInt64(fd);
-		ssize_t den_hdrsize = getInt64(fd);
+	      { ssize_t num_hdrsize = PL_qlf_getInt64(fd);
+		ssize_t den_hdrsize = PL_qlf_getInt64(fd);
 		size_t wsize, num_wsize, den_wsize;
 		mpz_t num;
 		mpz_t den;
@@ -1699,7 +1692,7 @@ runInitialization(SourceFile sf)
 static bool
 loadImport(DECL_LD wic_state *state, int skip)
 { Procedure proc = (Procedure) loadXR(state);
-  int flags = getInt(state->wicFd);
+  int flags = PL_qlf_getInt(state->wicFd);
 
   if ( !skip )
     return importDefinitionModule(LD->modules.source, proc->definition, flags);
@@ -1766,8 +1759,8 @@ the module where it is a multifile one.
 static bool
 qlfLoadSource(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
-  char *str = getString(fd, NULL);
-  double time = getFloat(fd);
+  char *str = PL_qlf_getString(fd, NULL);
+  double time = PL_qlf_getFloat(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1884,7 +1877,7 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
 	  int line;
 
 	  qlfLoadSource(state);
-	  line = getInt(fd);
+	  line = PL_qlf_getInt(fd);
 	  DEBUG(MSG_QLF_SECTION,
 		Sdprintf("\tSource = %s:%d\n",
 			 PL_atom_chars(state->currentSource->name), line));
@@ -1988,9 +1981,9 @@ loadInclude(DECL_LD wic_state *state)
 
   owner = loadXR(state);
   pn    = loadXR(state);
-  line  = getInt(fd);
+  line  = PL_qlf_getInt(fd);
   fn    = loadXR(state);
-  time  = getFloat(fd);
+  time  = PL_qlf_getFloat(fd);
 
   if ( !PL_unify_term(t,
 		      PL_FUNCTOR, FUNCTOR_colon2,
@@ -2027,15 +2020,15 @@ of a predicate together.
 
 #define STR_NOLEN ((size_t)-1)
 
-static void
-putString(const char *s, size_t len, IOSTREAM *fd)
+void
+PL_qlf_putString(const char *s, size_t len, IOSTREAM *fd)
 { const char *e;
 
   if ( len == STR_NOLEN )
     len = strlen(s);
   e = &s[len];
 
-  putInt64(len, fd);
+  PL_qlf_putInt64(len, fd);
   while(s<e)
   { Sputc(*s, fd);
     s++;
@@ -2043,8 +2036,8 @@ putString(const char *s, size_t len, IOSTREAM *fd)
 }
 
 
-static void
-putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
+void
+PL_qlf_putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 { const pl_wchar_t *e;
   IOENC oenc = fd->encoding;
 
@@ -2052,7 +2045,7 @@ putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
     len = wcslen(s);
   e = &s[len];
 
-  putInt64(len, fd);
+  PL_qlf_putInt64(len, fd);
   fd->encoding = ENC_UTF8;
   while(s<e)
   { Sputcode(*s, fd);
@@ -2108,17 +2101,17 @@ putAtom(wic_state *state, atom_t w)
 	}
       }
     } else
-    { putString(a->name, a->length, fd);
+    { PL_qlf_putString(a->name, a->length, fd);
     }
   } else
   { Sputc(XR_ATOM, fd);
-    putString(a->name, a->length, fd);
+    PL_qlf_putString(a->name, a->length, fd);
   }
 }
 
 
-static void
-putInt64(int64_t n, IOSTREAM *fd)
+void
+PL_qlf_putInt64(int64_t n, IOSTREAM *fd)
 { uint64_t i = zigzag_encode(n);
 
   do
@@ -2132,8 +2125,8 @@ putInt64(int64_t n, IOSTREAM *fd)
 }
 
 
-static void
-putUInt(unsigned int i, IOSTREAM *fd)
+void
+PL_qlf_putUInt(unsigned int i, IOSTREAM *fd)
 { do
   { int b = i&0x7f;
 
@@ -2144,26 +2137,30 @@ putUInt(unsigned int i, IOSTREAM *fd)
   } while ( i );
 }
 
-static void
-putFloat(double f, IOSTREAM *fd)
+void
+PL_qlf_put_Float(double f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
-  DEBUG(MSG_QLF_FLOAT, Sdprintf("putFloat(%f)\n", f));
+  DEBUG(MSG_QLF_FLOAT, Sdprintf("PL_qlf_put_Float(%f)\n", f));
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
     Sputc(cl[double_byte_order[i]], fd);
 }
 
 
-static void
-putInt32(int v, IOSTREAM *fd)
+void
+PL_qlf_putInt32(int v, IOSTREAM *fd)
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
   Sputc(v&0xff, fd);
 }
 
+void
+PL_qlf_putInt(int v, IOSTREAM *fd)
+{ PL_qlf_putInt64(v, fd);
+}
 
 static void
 freeXRSymbol(void *name, void *value)
@@ -2220,7 +2217,7 @@ savedXR(wic_state *state, void *xr)
 
   if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
   { Sputc(XR_REF, fd);
-    putUInt(id, fd);
+    PL_qlf_putUInt(id, fd);
 
     succeed;
   } else
@@ -2268,15 +2265,15 @@ saveXR(DECL_LD wic_state *state, word xr)
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
   { Sputc(XR_INT, fd);
-    putInt64(valInt(xr), fd);
+    PL_qlf_putInt64(valInt(xr), fd);
     return;
   } else if ( isBignum(xr) )
   { Sputc(XR_INT, fd);
-    putInt64(valBignum(xr), fd);
+    PL_qlf_putInt64(valBignum(xr), fd);
     return;
   } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
-    putFloat(valFloat(xr), fd);
+    PL_qlf_put_Float(valFloat(xr), fd);
     return;
 #if O_STRING
   } else if ( isString(xr) )
@@ -2286,10 +2283,10 @@ saveXR(DECL_LD wic_state *state, word xr)
 
     if ( (s = getCharsString(xr, &len)) )
     { Sputc(XR_STRING, fd);
-      putString(s, len, fd);
+      PL_qlf_putString(s, len, fd);
     } else if ( (w=getCharsWString(xr, &len)) )
     { Sputc(XR_STRING_UTF8, fd);
-      putStringW(w, len, fd);
+      PL_qlf_putStringW(w, len, fd);
     }
     return;
 #endif /* O_STRING */
@@ -2327,7 +2324,7 @@ saveXRBlobType(wic_state *state, PL_blob_t *type)
     return;
 
   Sputc(XR_BLOB_TYPE, fd);
-  putString(type->name, STR_NOLEN, fd);
+  PL_qlf_putString(type->name, STR_NOLEN, fd);
 }
 
 
@@ -2373,7 +2370,7 @@ saveXRFunctor(DECL_LD wic_state *state, functor_t f)
 		 state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Sputc(XR_FUNCTOR, fd);
   saveXR(state, fdef->name);
-  putInt64(fdef->arity, fd);
+  PL_qlf_putInt64(fdef->arity, fd);
 }
 
 
@@ -2408,7 +2405,7 @@ saveXRSourceFile(DECL_LD wic_state *state, SourceFile f)
 			       state->savedXRTableId, stringAtom(f->name)));
     Sputc(f->system ? 's' : 'u', fd);
     saveXR(state, f->name);
-    putFloat(f->mtime, fd);
+    PL_qlf_put_Float(f->mtime, fd);
   } else
   { DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = <no file>\n", state->savedXRTableId));
     Sputc('-', fd);
@@ -2430,7 +2427,7 @@ do_save_qlf_term(DECL_LD wic_state *state, Word t)
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
-      putInt64(id, fd);
+      PL_qlf_putInt64(id, fd);
     } else
     { Word q = argTermP(*t, 0);
       int n, arity = arityFunctor(f);
@@ -2468,7 +2465,7 @@ saveQlfTerm(DECL_LD wic_state *state, term_t t)
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
   if ( (nvars = numberVars(t, &options, 0)) != NV_ERROR )
-  { putInt64(nvars, fd);
+  { PL_qlf_putInt64(nvars, fd);
     do_save_qlf_term(state, valTermRef(t));	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
@@ -2561,8 +2558,8 @@ push_wlabel(vm_wlabel_state *state, Code to, Clause clause)
 static void
 emit_wlabels(vm_wlabel_state *state, Code here, IOSTREAM *fd)
 { while(state->current.address == here)
-  { putUInt(V_LABEL, fd);
-    putUInt(state->current.id, fd);
+  { PL_qlf_putUInt(V_LABEL, fd);
+    PL_qlf_putUInt(state->current.id, fd);
 
     if ( entriesBuffer(&state->buf, vm_wlabel) != 0 )
       state->current = popBuffer(&state->buf, vm_wlabel);
@@ -2584,7 +2581,7 @@ put_mpz_size(IOSTREAM *fd, mpz_t mpz, size_t *szp)
     hdrsize = (ssize_t)size;
 
   *szp = size;
-  putInt64(hdrsize, fd);
+  PL_qlf_putInt64(hdrsize, fd);
 }
 
 static void
@@ -2641,16 +2638,16 @@ saveWicClause(wic_state *state, Clause clause)
   vm_wlabel_state lstate;
 
   Sputc('C', fd);
-  putUInt(state->obfuscate ? 0 : clause->line_no, fd);
+  PL_qlf_putUInt(state->obfuscate ? 0 : clause->line_no, fd);
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->owner_no));
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->source_no));
-  putUInt(clause->prolog_vars, fd);
-  putUInt(clause->variables, fd);
-  putUInt(clauseFlags(clause), fd);
+  PL_qlf_putUInt(clause->prolog_vars, fd);
+  PL_qlf_putUInt(clause->variables, fd);
+  PL_qlf_putUInt(clauseFlags(clause), fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2680,8 +2677,8 @@ saveWicClause(wic_state *state, Clause clause)
 	case H_INTEGER:
 	  v = (intptr_t)*bp++;
 	vh_int:
-	  putUInt(V_H_INTEGER, fd);
-	  putInt64(v, fd);
+	  PL_qlf_putUInt(V_H_INTEGER, fd);
+	  PL_qlf_putInt64(v, fd);
 	  continue;
       }
       { int64_t v;
@@ -2699,8 +2696,8 @@ saveWicClause(wic_state *state, Clause clause)
 	case B_INTEGER:
 	  v = (intptr_t)*bp++;
 	vb_int:
-	  putUInt(V_B_INTEGER, fd);
-	  putInt64(v, fd);
+	  PL_qlf_putUInt(V_B_INTEGER, fd);
+	  PL_qlf_putInt64(v, fd);
 	  continue;
       }
       { int64_t v;
@@ -2717,13 +2714,13 @@ saveWicClause(wic_state *state, Clause clause)
 #if SIZEOF_VOIDP == 4
 	va_int:
 #endif
-	  putUInt(V_A_INTEGER, fd);
-	  putInt64(v, fd);
+	  PL_qlf_putUInt(V_A_INTEGER, fd);
+	  PL_qlf_putInt64(v, fd);
 	  continue;
       }
     }
 
-    putUInt(op, fd);
+    PL_qlf_putUInt(op, fd);
 
     DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
@@ -2756,18 +2753,18 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_JUMP:
 	{ Code to = stepPC(si) + *bp++;
 	  vm_wlabel *lbl = push_wlabel(&lstate, to, clause);
-	  putUInt(lbl->id, fd);
+	  PL_qlf_putUInt(lbl->id, fd);
 	  break;
 	}
 	case CA1_INTEGER:
-	{ putInt64(*bp++, fd);
+	{ PL_qlf_putInt64(*bp++, fd);
 	  break;
 	}
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
 	{ intptr_t var = *bp++;
-	  putInt64(VAR_OFFSET(var), fd);
+	  PL_qlf_putInt64(VAR_OFFSET(var), fd);
 	  break;
 	}
 	case CA1_INT64:
@@ -2775,7 +2772,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  Word p = (Word)&val;
 
 	  cpInt64Data(p, bp);
-	  putInt64(val, fd);
+	  PL_qlf_putInt64(val, fd);
 	  break;
 	}
 	case CA1_FLOAT:
@@ -2785,7 +2782,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  } v;
 	  Word p = v.w;
 	  cpDoubleData(p, bp);
-	  putFloat(v.f, fd);
+	  PL_qlf_put_Float(v.f, fd);
 	  break;
 	}
 	case CA1_STRING:
@@ -2796,7 +2793,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  bp += wn;
 
 	  if ( *s == 'B' )
-	  { putInt64(l, fd);
+	  { PL_qlf_putInt64(l, fd);
 	    while( l-- > 0 )
 	      Sputc(*s++&0xff, fd);
 	  } else
@@ -2807,7 +2804,7 @@ saveWicClause(wic_state *state, Clause clause)
 	    l /= sizeof(pl_wchar_t);
 	    l--;
 
-	    putInt64(l, fd);
+	    PL_qlf_putInt64(l, fd);
 	    Sputc('W', fd);
 	    fd->encoding = ENC_UTF8;
 	    for( ; l-- > 0; w++)
@@ -2908,7 +2905,7 @@ openPredicateWic(DECL_LD wic_state *state, Definition def, atom_t sclass)
     }
 
     saveXRFunctor(state, def->functor->functor);
-    putUInt(mode, fd);
+    PL_qlf_putUInt(mode, fd);
   }
 }
 
@@ -2928,12 +2925,12 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  putInt64(PL_QLF_VERSION, fd);
-  putInt64(VM_SIGNATURE, fd);
+  PL_qlf_putInt64(PL_QLF_VERSION, fd);
+  PL_qlf_putInt64(VM_SIGNATURE, fd);
   if ( systemDefaults.home )
-    putString(systemDefaults.home, STR_NOLEN, fd);
+    PL_qlf_putString(systemDefaults.home, STR_NOLEN, fd);
   else
-    putString("<no home>",  STR_NOLEN, fd);
+    PL_qlf_putString("<no home>",  STR_NOLEN, fd);
 
   initXR(state);
 
@@ -2990,7 +2987,7 @@ addDirectiveWic(DECL_LD wic_state *state, term_t term)
 
   closePredicateWic(state);
   Sputc('D', fd);
-  putInt64(source_line_no, fd);
+  PL_qlf_putInt64(source_line_no, fd);
 
   return saveQlfTerm(state, term);
 }
@@ -3006,7 +3003,7 @@ importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc);
-  putInt64(flags, state->wicFd);
+  PL_qlf_putInt64(flags, state->wicFd);
 
   succeed;
 }
@@ -3052,14 +3049,14 @@ writeSourceMarks(wic_state *state)
   { pn = pm->next;
 
     DEBUG(MSG_QLF_SECTION, Sdprintf(" %d", pm->file_index));
-    putInt32(pm->file_index, state->wicFd);
+    PL_qlf_putInt32(pm->file_index, state->wicFd);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   state->source_mark_head = state->source_mark_tail = NULL;
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("\nWritten %d marks\n", n));
-  putInt32(n, state->wicFd);
+  PL_qlf_putInt32(n, state->wicFd);
 
   return 0;
 }
@@ -3117,7 +3114,7 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return qlfError(state, "seek to %zd failed: %s", offset, OsError());
-  if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
+  if ( Sgetc(s) != 'F' || !(str=PL_qlf_getString(s, NULL)) )
     return qlfError(state, "invalid string (offset %zd)", offset);
   fname = qlfFixSourcePath(state, str);
 
@@ -3191,7 +3188,7 @@ qlfInfo(DECL_LD const char *file,
 	 !PL_unify_integer(fversion, lversion) )
       goto out;
 
-    vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
+    vm_signature = PL_qlf_getInt(s);		/* TBD: provide to Prolog layer */
 
     if ( !PL_unify_integer(fsig, vm_signature) )
       goto out;
@@ -3209,7 +3206,7 @@ qlfInfo(DECL_LD const char *file,
     { qlfError(&state, "seek to index failed: %s", OsError());
       goto out;
     }
-    if ( (nqlf = getInt32(s)) < 0 )
+    if ( (nqlf = PL_qlf_getInt32(s)) < 0 )
     { qlfError(&state, "invalid number of files (%d)", nqlf);
       goto out;
     }
@@ -3224,7 +3221,7 @@ qlfInfo(DECL_LD const char *file,
       goto out;
     }
     for(i=0; i<nqlf; i++)
-    { qlfstart[i] = (size_t)getInt32(s);
+    { qlfstart[i] = (size_t)PL_qlf_getInt32(s);
       DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
     }
     DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
@@ -3331,10 +3328,10 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  putInt64(PL_QLF_VERSION, state->wicFd);
-  putInt64(VM_SIGNATURE, state->wicFd);
+  PL_qlf_putInt64(PL_QLF_VERSION, state->wicFd);
+  PL_qlf_putInt64(VM_SIGNATURE, state->wicFd);
 
-  putString(absname, STR_NOLEN, state->wicFd);
+  PL_qlf_putString(absname, STR_NOLEN, state->wicFd);
 
   return state;
 }
@@ -3372,7 +3369,7 @@ qlfVersion(wic_state *state, const char *exp_magic, int *vp)
        !streq(magic, exp_magic) )
     return qlfError(state, "Not a %s", exp_magic);
 
-  *vp = getInt(s);
+  *vp = PL_qlf_getInt(s);
 
   return TRUE;
 }
@@ -3388,7 +3385,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   new->previous = state->load_state;
   state->load_state = new;
 
-  if ( !(abssavename = getString(fd, NULL)) )
+  if ( !(abssavename = PL_qlf_getString(fd, NULL)) )
     return qlfError(state, "bad string");
 
   if ( absloadname && !streq(absloadname, abssavename) )
@@ -3486,7 +3483,7 @@ qlfIsCompatible(wic_state *state, const char *magic)
 		    lversion, PL_QLF_VERSION);
   state->saved_version = lversion;
 
-  vm_signature = getInt(state->wicFd);
+  vm_signature = PL_qlf_getInt(state->wicFd);
   if ( vm_signature != (int)VM_SIGNATURE )
     return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
 		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
@@ -3568,8 +3565,8 @@ qlfSaveSource(wic_state *state, SourceFile f)
 
   sourceMark(state);
   Sputc('F', fd);
-  putString(text.text.t, text.length, fd);
-  putFloat(f->mtime, fd);
+  PL_qlf_putString(text.text.t, text.length, fd);
+  PL_qlf_put_Float(f->mtime, fd);
   Sputc(f->system ? 's' : 'u', fd);
   PL_STRINGS_RELEASE();
 
@@ -3591,7 +3588,7 @@ qlfStartModule(DECL_LD wic_state *state, Module m)
 
   if ( m->file )
   { qlfSaveSource(state, m->file);
-    putInt64(m->line_no, fd);
+    PL_qlf_putInt64(m->line_no, fd);
   } else
   { Sputc('-', fd);
   }
@@ -3752,9 +3749,9 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     Sputc('I', fd);
     saveXR(state, owner);
     saveXR(state, pn);
-    putInt64(line, fd);
+    PL_qlf_putInt64(line, fd);
     saveXR(state, fn);
-    putFloat(time, fd);
+    PL_qlf_put_Float(time, fd);
 
     return TRUE;
   }
@@ -4396,8 +4393,8 @@ qlfCleanup(void)
 		 *******************************/
 
 void
-wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
-{ putStringW(w, len, fd);
+PL_qlf_PutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
+{ PL_qlf_putStringW(w, len, fd);
 }
 
 
