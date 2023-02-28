@@ -435,7 +435,7 @@ unified with a string.  The following example splits a string of the form
 name_value(String, Name, Value) :-
     sub_string(String, Before, _, After, "="),
     !,
-   sub_atom(String, 0, Before, _, Name),
+    sub_atom(String, 0, Before, _, Name),
     sub_string(String, _, After, 0, Value).
 \end{code}
 
