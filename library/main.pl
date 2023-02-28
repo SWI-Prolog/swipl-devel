@@ -163,7 +163,13 @@ interrupt(_Sig) :-
 %       or ``-``.  Type is one of:
 %
 %       - A|B
-%         Disjunctive type.
+%         Disjunctive type.  Disjunction can be used create long
+%         options with optional values.   For example, using the type
+%         ``nonneg|boolean``, for an option `http` handles ``--http``
+%         as http(true), ``--no-http`` as http(false), ``--http=3000``
+%         and ``--http 3000`` as http(3000).  With an optional boolean
+%         an option is considered boolean if it is the last or the next
+%         argument does not start with hyphen (``-``).
 %       - boolean(Default)
 %       - boolean
 %         Boolean options are special.  They do not take a value except
@@ -371,7 +377,7 @@ take_long(LName0, T, Positional, Options, M, POptions) :- % --long
     take_long_(LName, T, Positional, Options, M, POptions).
 
 take_long_(Long, T, Positional, Options, M, POptions) :- % --long
-    opt_bool_type(Long, Name, Value, M),
+    opt_bool_type(Long, Name, Value, M),                 % only boolean
     !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
@@ -380,9 +386,21 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --no-long, --nolong
     (   atom_concat('no_', LName, Long)
     ;   atom_concat('no', LName, Long)
     ),
-    opt_bool_type(LName, Name, Value0, M),
+    in(M:opt_type(LName, Name, Type)),
+    type_optional_bool(Type, Value0),
     !,
     negate(Value0, Value),
+    Opt =.. [Name,Value],
+    Options = [Opt|OptionsT],
+    opt_parse(T, Positional, OptionsT, M, POptions).
+take_long_(Long, T, Positional, Options, M, POptions) :- % --long [value]
+    in(M:opt_type(Long, Name, Type)),
+    type_optional_bool(Type, Value),
+    (   T = [VAtom|_],
+        sub_atom(VAtom, 0, _, _, -)
+    ->  true
+    ;   T == []
+    ),
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
     opt_parse(T, Positional, OptionsT, M, POptions).
@@ -429,10 +447,21 @@ take_shorts([H|_], _, _, _, M, _) :-
 
 opt_bool_type(Opt, Name, Value, M) :-
     in(M:opt_type(Opt, Name, Type)),
+    type_bool(Type, Value).
+
+type_bool(Type, Value) :-
     (   Type == boolean
     ->  Value = true
     ;   Type = boolean(Value)
     ).
+
+type_optional_bool((A|B), Value) =>
+    (   type_optional_bool(A, Value)
+    ->  true
+    ;   type_optional_bool(B, Value)
+    ).
+type_optional_bool(Type, Value) =>
+    type_bool(Type, Value).
 
 negate(true, false).
 negate(false, true).
@@ -702,7 +731,12 @@ options(Type, ShortOpt, LongOpts, Meta) -->
 
 option(boolean, _, Opt) -->
     opt(Opt).
-option(_, Meta, Opt) -->
+option(_Type, [Meta], Opt) -->
+    \+ { short_opt(Opt) },
+    !,
+    opt(Opt),
+    [ '[='-[], ansi(var, '~w', [Meta]), ']'-[] ].
+option(_Type, Meta, Opt) -->
     opt(Opt),
     (   { short_opt(Opt) }
     ->  [ ' '-[] ]
@@ -725,7 +759,11 @@ options_width(opt(_Name, boolean, Short, Long, _Help, _Meta), W) =>
 options_width(opt(_Name, _Type, Short, Long, _Help, Meta), W) =>
     length(Short, SCount),
     length(Long, LCount),
-    atom_length(Meta, MLen),
+    (   Meta = [MName]
+    ->  atom_length(MName, MLen0),
+        MLen is MLen0+2
+    ;   atom_length(Meta, MLen)
+    ),
     maplist(atom_length, Long, LLens),
     sum_list(LLens, LLen),
     W is ((SCount+LCount)-1)*2 +               % ', ' seps
@@ -745,7 +783,7 @@ get_option(M, opt(help, boolean, [h,?], [help],
     ->  true
     ;   Help = "Show this help message and exit"
     ).
-get_option(M, opt(Name, Type, Short, Long, Help, Meta)) :-
+get_option(M, opt(Name, TypeName, Short, Long, Help, Meta)) :-
     findall(Name, in(M:opt_type(_, Name, _)), Names),
     list_to_set(Names, UNames),
     member(Name, UNames),
@@ -753,16 +791,21 @@ get_option(M, opt(Name, Type, Short, Long, Help, Meta)) :-
 	    in(M:opt_type(Opt, Name, Type)),
 	    Pairs),
     option_type(Name, Pairs, TypeT),
-    functor(TypeT, Type, _),
+    functor(TypeT, TypeName, _),
     pairs_keys(Pairs, Opts),
     partition(short_opt, Opts, Short, Long),
     (   in(M:opt_help(Name, Help))
     ->  true
     ;   Help = ''
     ),
-    (   in(M:opt_meta(Name, Meta))
+    (   in(M:opt_meta(Name, Meta0))
     ->  true
-    ;   upcase_atom(Type, Meta)
+    ;   upcase_atom(TypeName, Meta0)
+    ),
+    (   \+ type_bool(TypeT, _),
+        type_optional_bool(TypeT, _)
+    ->  Meta = [Meta0]
+    ;   Meta = Meta0
     ).
 
 option_type(Name, Pairs, Type) :-
