@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2021, University of Amsterdam
+    Copyright (c)  2012-2023, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -58,6 +58,7 @@
 	    xinteger//1,		% [0-9A-Fa-f]+ --> integer
 
 	    prolog_var_name//1,		% Read a Prolog variable name
+	    csym//1,			% Read a C symbol
 
 	    eol//0,			% End of line
 	    eos//0,			% Test end of input.
@@ -455,6 +456,31 @@ prolog_id_cont([H|T]) -->
 	[H], { code_type(H, prolog_identifier_continue) }, !,
 	prolog_id_cont(T).
 prolog_id_cont([]) --> "".
+
+
+		 /*******************************
+		 *	    IDENTIFIERS		*
+		 *******************************/
+
+%%	csym(?Symbol:atom)// is semidet.
+%
+%	Recognise a C symbol according to   the  `csymf` and `csym` code
+%	type classification provided by the C library.
+
+csym(Name, Head, Tail) :-
+	nonvar(Name),
+	format(codes(Head, Tail), '~w', [Name]).
+csym(Name) -->
+	[F], {code_type(F, csymf)},
+	csyms(Rest),
+	{ atom_codes(Name, [F|Rest]) }.
+
+csyms([H|T]) -->
+	[H], {code_type(H, csym)},
+	!,
+	csyms(T).
+csyms([]) -->
+	"".
 
 
 		 /*******************************
