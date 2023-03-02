@@ -169,7 +169,7 @@ interrupt(_Sig) :-
 %         as http(true), ``--no-http`` as http(false), ``--http=3000``
 %         and ``--http 3000`` as http(3000).  With an optional boolean
 %         an option is considered boolean if it is the last or the next
-%         argument does not start with hyphen (``-``).
+%         argument starts with a hyphen (``-``).
 %       - boolean(Default)
 %       - boolean
 %         Boolean options are special.  They do not take a value except
