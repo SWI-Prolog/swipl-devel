@@ -5278,14 +5278,20 @@ again:
     { SAVE_REGISTERS(QID);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
-      { debugmode(TRUE, NULL);
+      { DEBUG(MSG_THROW,
+	      Sdprintf("Uncaught error(Formal,Context): enable debug mode\n"));
+	debugmode(TRUE, NULL);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = TRUE;
 	} else
-	{ int rc;
-	  trimStacks(FALSE);		/* restore spare stacks */
-	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
-	  (void)rc;
+	{ DEBUG(MSG_THROW,
+		Sdprintf("No space for debugging, print (l+g+t) = (%zd+%zd+%zd)\n",
+			 roomStack(local),roomStack(global),roomStack(trail)));
+	  if ( !printMessage(ATOM_error, PL_TERM, exception_term) )
+	  { Sdprintf("Could not print message for exception:\n\t");
+	    PL_write_term(Suser_error, exception_term, 1200,
+			  PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	  }
 	  PL_put_term(exception_printed, exception_term);
 	}
       } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
