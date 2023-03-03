@@ -303,7 +303,6 @@ static void	saveWicClause(wic_state *state, Clause cl);
 static void	closePredicateWic(wic_state *state);
 static word	loadXRc(wic_state *state, int c);
 static atom_t	getBlob(wic_state *state);
-static atom_t	getAtom(IOSTREAM *fd, PL_blob_t *type);
 static bool	loadStatement(wic_state *state, int c, int skip);
 static bool	loadPart(wic_state *state, Module *module, int skip);
 static bool	loadInModule(wic_state *state, int skip);
@@ -312,6 +311,12 @@ static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
 static int	qlfIsCompatible(wic_state *state, const char *magic);
+
+/* TODO: make the following public, if we can remove the wic_state
+         from putAtom(). https://github.com/SWI-Prolog/swipl-devel/issues/1120 */
+static atom_t	PL_qlf_getAtom(IOSTREAM *fd, PL_blob_t *type);
+/* static void	PL_qlf_putAtom(IOSTREAM *fd, atom_t w); */
+static void	putAtom(wic_state *state, atom_t w);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -478,8 +483,8 @@ PL_qlf_getString(IOSTREAM *fd, size_t *length)
 
 
 pl_wchar_t *
-PL_qlf_GetStringUTF8(IOSTREAM *fd, size_t *length,
-		     pl_wchar_t *buf, size_t bufsize)
+PL_GetStringUTF8(IOSTREAM *fd, size_t *length,
+		 pl_wchar_t *buf, size_t bufsize)
 { size_t i, len = (size_t)PL_qlf_getInt64(fd);
   IOENC oenc = fd->encoding;
   pl_wchar_t *tmp, *o;
@@ -508,7 +513,7 @@ PL_qlf_GetStringUTF8(IOSTREAM *fd, size_t *length,
 
 
 static atom_t
-getAtom(IOSTREAM *fd, PL_blob_t *type)
+PL_qlf_getAtom(IOSTREAM *fd, PL_blob_t *type)
 { char buf[1024];
   char *tmp, *s;
   size_t len = PL_qlf_getInt(fd);
@@ -723,7 +728,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       return ATOM_dot;
     case XR_ATOM:
     { id = ++state->XR->id;
-      xr = getAtom(fd, NULL);
+      xr = PL_qlf_getAtom(fd, NULL);
       DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
@@ -815,7 +820,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       pl_wchar_t buf[256];
       word s;
 
-      w = PL_qlf_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
+      w = PL_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
       s = globalWString(len, w);
       if ( w != buf )
 	PL_free(w);
@@ -882,7 +887,7 @@ getBlob(DECL_LD wic_state *state)
   if ( type->load )
   { return (*type->load)(state->wicFd);
   } else
-  { return getAtom(state->wicFd, type);
+  { return PL_qlf_getAtom(state->wicFd, type);
   }
 }
 
@@ -2037,7 +2042,7 @@ PL_qlf_putString(const char *s, size_t len, IOSTREAM *fd)
 
 
 void
-PL_qlf_putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
+PL_putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 { const pl_wchar_t *e;
   IOENC oenc = fd->encoding;
 
@@ -2286,7 +2291,7 @@ saveXR(DECL_LD wic_state *state, word xr)
       PL_qlf_putString(s, len, fd);
     } else if ( (w=getCharsWString(xr, &len)) )
     { Sputc(XR_STRING_UTF8, fd);
-      PL_qlf_putStringW(w, len, fd);
+      PL_putStringW(w, len, fd);
     }
     return;
 #endif /* O_STRING */
@@ -4393,8 +4398,8 @@ qlfCleanup(void)
 		 *******************************/
 
 void
-PL_qlf_PutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
-{ PL_qlf_putStringW(w, len, fd);
+PL_PutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
+{ PL_putStringW(w, len, fd);
 }
 
 

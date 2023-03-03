@@ -34,6 +34,10 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _SWI_NOT_INCLUDE_SWI_PROLOG_H
+#include <SWI-Prolog.h>
+#endif
+
 #ifndef _SWI_STREAM_H
 #define _SWI_STREAM_H
 

@@ -35,6 +35,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _SWI_NOT_INCLUDE_SWI_PROLOG_H
+
 #ifdef __WINDOWS__
 #include "windows/uxnt.h"
 #include "config/wincfg.h"
