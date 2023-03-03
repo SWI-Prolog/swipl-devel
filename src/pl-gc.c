@@ -5176,6 +5176,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   int rc;
 #if O_DEBUG
   word key=0;
+  int emergency = FALSE;
 #endif
 
   if ( !(l || g || t) )
@@ -5192,8 +5193,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   { if ( tsize + gsize + lsize > LD->stacks.limit )
     { size_t ulocal  = needStack((Stack)&LD->stacks.local)  + l;
       size_t uglobal = needStack((Stack)&LD->stacks.global) + g;
-      size_t utrail  = needStack((Stack)&LD->stacks.trail)  + t +
-		       uglobal/GLOBAL_TRAIL_RATIO;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail)  + t;
       size_t need    = ulocal + utrail + uglobal;
       size_t limit   = LD->stacks.limit;
       size_t minav   = limit/4;
@@ -5203,9 +5203,15 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
 	    Sdprintf("Reached stack-limit; need (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
 		     ulocal, uglobal, utrail, need, LD->stacks.limit));
 
-      if ( LD->in_print_message )
-      { limit += 1024*1024;
+      if ( LD->in_print_message || LD->exception.processing )
+      { DEBUG(MSG_STACK_OVERFLOW,
+	      { Sdprintf("In error condition; raising limit with 1Mb\n");
+		emergency = TRUE;
+	      });
+	limit += 1024*1024;
 	minav = 0;
+      } else
+      { utrail += uglobal/GLOBAL_TRAIL_RATIO;
       }
 
       if ( limit > need && (space=limit-need) > minav )
@@ -5380,6 +5386,14 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
     { Sdprintf("l+g+t = %zd+%zd+%zd (%.3f sec)\n",
 	       lsize, gsize, tsize, time);
     }
+    DEBUG(MSG_STACK_OVERFLOW,
+	  { if ( emergency )
+	    { Sdprintf("l+g+t = %zd+%zd+%zd; free = %zd+%zd+%zd (%.3f sec)\n",
+		       lsize, gsize, tsize,
+		       roomStack(local), roomStack(global), roomStack(trail),
+		       time);
+	    }
+	  });
   }
 
   DEBUG(CHK_SECURE,
