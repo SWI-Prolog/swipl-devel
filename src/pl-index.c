@@ -697,7 +697,7 @@ vfree_clause_list_ref(void *cref)
 
 static void
 lingerClauseListRef(Definition def, ClauseRef cref)
-{ linger(&def->lingering, vfree_clause_list_ref, cref);
+{ linger_always(&def->lingering, vfree_clause_list_ref, cref);
 }
 
 
@@ -1806,7 +1806,7 @@ setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
   MEMORY_BARRIER();
   cl->clause_indexes = cip;
   if ( cipo )
-    linger(&def->lingering, unalloc_index_array, cipo);
+    linger_always(&def->lingering, unalloc_index_array, cipo);
 }
 
 
@@ -1841,7 +1841,7 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
       }
     }
 
-    linger(&def->lingering, unalloc_ci, old);
+    linger_always(&def->lingering, unalloc_ci, old);
   }
 
   if ( !isSortedIndexes(cl->clause_indexes) )
