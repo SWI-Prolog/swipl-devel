@@ -61,6 +61,7 @@ test(pwd) :-
         close(Fd)),
     atom_codes(Pwd, String),
     same_file(Pwd, '.').
+:- if(\+ current_prolog_flag(wine_version, _)).
 test(cat1) :-
     current_prolog_flag(pid, Pid),
     format(atom(File), 'pltest-~w.txt', [Pid]),
@@ -93,6 +94,7 @@ test(cat1) :-
     !,
     atom_codes(A, String),
     format(atom(A), '~w~n', [Text]).
+:- endif.
 test(cat2, error(io_error(write, _))) :-
     (   current_prolog_flag(windows, true)
     ->  Cmd = 'cmd /c rem true',
