@@ -45,29 +45,38 @@ test_libthread :-
     run_tests([ concurrent_and
               ]).
 
+:- meta_predicate
+    reclaims_threads(0).
+
 :- begin_tests(concurrent_and, [sto(rational_trees)]).
 
 test(basic, Answer == [1-2, 2-4, 3-6]) :-
-    setof(X-Y, concurrent_and(between(1, 3, X), Y is X*2), Answer),
-    assertion(no_more_threads).
+    reclaims_threads(
+        setof(X-Y, concurrent_and(between(1, 3, X), Y is X*2), Answer)).
 test(select, Answer == [2-4]) :-
-    setof(X-Y, concurrent_and(between(1, 3, X), (X == 2, Y is X*2)), Answer),
-    assertion(no_more_threads).
+    reclaims_threads(
+        setof(X-Y, concurrent_and(between(1, 3, X), (X == 2, Y is X*2)), Answer)).
 test(cut, true) :-
-    setof(X-Y, (concurrent_and(between(1, 5, X), Y is X^2), (X==3->!;true)), _Ans),
-    assertion(no_more_threads).
+    reclaims_threads(
+        setof(X-Y,
+              (concurrent_and(between(1, 5, X), Y is X^2), (X==3->!;true)),
+              _Ans)).
 test(error, error(evaluation_error(zero_divisor))) :-
-    setof(X-Y, (concurrent_and(between(1, 5, X), Y is 1/(3-X))), _Answer),
-    assertion(no_more_threads).
+    reclaims_threads(
+        setof(X-Y, (concurrent_and(between(1, 5, X), Y is 1/(3-X))), _Answer)).
 test(gen_error, error(evaluation_error(zero_divisor))) :-
-    setof(X-Z, concurrent_and((between(1, 5, X),Y is 1/(3-X)), Z is 2*Y), _Answer),
-    assertion(no_more_threads).
+    reclaims_threads(
+        setof(X-Z,
+              concurrent_and((between(1, 5, X),Y is 1/(3-X)), Z is 2*Y),
+              _Answer)).
 
 :- end_tests(concurrent_and).
 
-no_more_threads :-
-    findall(T, anon_thread(T), Anon),
-    Anon == [].
+reclaims_threads(Goal) :-
+    findall(T, anon_thread(T), Before),
+    Goal,
+    findall(T, (anon_thread(T), \+ memberchk(T, Before)), StillRunning),
+    assertion(StillRunning == []).
 
 anon_thread(T) :-
     thread_property(T, id(_)),
