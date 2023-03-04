@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v
@@ -38,7 +38,6 @@
 /*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-ext.h"
 #include "pl-prims.h"
-#include "pl-sys.h"
 #include "pl-pro.h"
 #include "pl-write.h"
 #include "pl-read.h"
@@ -108,11 +107,7 @@ static const PL_extension foreigns[] = {
 #endif
 
   FRG("halt",			1, pl_halt,		      ISO),
-  FRG("getenv",			2, pl_getenv,			0),
-  FRG("setenv",			2, pl_setenv,			0),
-  FRG("unsetenv",		1, pl_unsetenv,			0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
-  FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
@@ -199,7 +194,6 @@ static const PL_extension foreigns[] = {
   FRG("format_predicate",	2, pl_format_predicate,	     META),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 							META|NDET),
-  FRG("get_time",		1, pl_get_time,			0),
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
@@ -209,7 +203,6 @@ static const PL_extension foreigns[] = {
 
   FRG("thread_self",		1, pl_thread_self,	      ISO),
   FRG("with_mutex",		2, pl_with_mutex,	 META|ISO),
-  FRG("$get_pid",		1, pl_get_pid,			0),
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)
