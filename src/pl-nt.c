@@ -213,6 +213,11 @@ int
 Pause(double t)
 { HANDLE h;
 
+  if ( t <= 0.0 )
+  { SwitchToThread();
+    return TRUE;
+  }
+
   if ( (h = CreateWaitableTimer(NULL, TRUE, NULL)) )
   { LARGE_INTEGER ft;
 

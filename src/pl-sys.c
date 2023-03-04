@@ -128,7 +128,16 @@ PRED_IMPL("sleep", 1, sleep, 0)
 { double t;
 
   if ( PL_get_float_ex(A1, &t) )
+  { if ( t < 0.0 )
+      return TRUE;
+#ifdef HAVE_SCHED_YIELD
+    if ( t == 0.0 )
+    { sched_yield();
+      return TRUE;
+    }
+#endif
     return Pause(t);
+  }
 
   return FALSE;
 }
