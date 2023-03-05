@@ -2686,7 +2686,7 @@ pl_garbage_collect_clauses(void)
 
     initBuffer(&tr_starts);
     markPredicatesInEnvironments(LD, (Buffer)&tr_starts);
-#ifdef O_PLMT
+#ifdef O_ENGINES
     forThreadLocalDataUnsuspended(markPredicatesInEnvironments,
 				  (Buffer)&tr_starts);
 #endif

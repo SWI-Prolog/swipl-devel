@@ -1036,7 +1036,7 @@ pl_garbage_collect_atoms(void)
   if ( verbose )
   { if ( !printMessage(ATOM_informational,
 		       PL_FUNCTOR_CHARS, "agc", 1,
-		         PL_CHARS, "start") )
+			 PL_CHARS, "start") )
     { GD->atoms.gc_active = FALSE;
       return FALSE;
     }
@@ -1047,7 +1047,7 @@ pl_garbage_collect_atoms(void)
   t = CpuTime(CPU_USER);
   unmarkAtoms();
   markAtomsOnStacks(LD, NULL);
-#ifdef O_PLMT
+#ifdef O_ENGINES
   forThreadLocalDataUnsuspended(markAtomsOnStacks, NULL);
   markAtomsMessageQueues();
 #endif
@@ -1064,10 +1064,10 @@ pl_garbage_collect_atoms(void)
   if ( verbose )
     rc = printMessage(ATOM_informational,
 		      PL_FUNCTOR_CHARS, "agc", 1,
-		        PL_FUNCTOR_CHARS, "done", 3,
-		          PL_INT64, GD->atoms.collected - oldcollected,
-		          PL_INT, GD->statistics.atoms,
-		          PL_DOUBLE, (double)t);
+			PL_FUNCTOR_CHARS, "done", 3,
+			  PL_INT64, GD->atoms.collected - oldcollected,
+			  PL_INT, GD->statistics.atoms,
+			  PL_DOUBLE, (double)t);
 
   GD->atoms.gc_active = FALSE;
 
@@ -1744,7 +1744,7 @@ current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
 	      /* avoid trap through linkVal() check */
 	      if ( atom->atom == ATOM_garbage_collected )
 	      { PL_unregister_atom(atom->atom);
-	        continue;
+		continue;
 	      });
 
 	if ( type )
