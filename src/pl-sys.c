@@ -34,6 +34,9 @@
 */
 
 #include "pl-fli.h"
+#ifdef HAVE_SCHED_YIELD
+#include <sched.h>
+#endif
 
 #ifndef MAXVARNAME
 #define MAXVARNAME 1024
