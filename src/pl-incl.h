@@ -95,6 +95,10 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
+#if defined(O_PLMT) && !defined(O_ENGINES)
+#define O_ENGINES		1
+#endif
+
 #include "SWI-Prolog.h"
 
 /* Our definition of _PL_get_arg appears in pl-fli.h */
@@ -170,8 +174,9 @@ handy for it someone wants to add a data type to the system.
       Use `logical' update-view for dynamic predicates rather then the
       `immediate' update-view of older Prolog systems.
   O_PLMT
-      Include support for multi-threading. Too much of the system relies
-      on this now, so it cannot be disabled without significant work.
+      Include support for multi-threading.
+  O_ENGINES
+      Include support for multiple engines.  This is implied by O_PLMT
   O_LARGEFILES
       Supports files >2GB on 32-bit systems (if the OS provides it).
   O_ATTVAR
@@ -2181,7 +2186,7 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 #define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+VSIG_ATOM_GC)
 #endif
 #define SIG_GC		  (SIG_PROLOG_OFFSET+VSIG_GC)
-#ifdef O_PLMT
+#ifdef O_ENGINES
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+VSIG_THREAD_SIGNAL)
 #endif
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+VSIG_CLAUSE_GC)

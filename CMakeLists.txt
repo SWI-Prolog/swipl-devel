@@ -10,6 +10,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
+option(ENGINES
+       "Enable multiple Prolog engines"
+       OFF)
 option(VMI_FUNCTIONS
        "Create a function for each VM instruction"
        OFF)

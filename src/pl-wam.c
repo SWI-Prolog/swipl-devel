@@ -213,8 +213,8 @@ updateAlerted(PL_local_data_t *ld)
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
-#ifdef O_PLMT
-  if ( ld->exit_requested )			mask |= ALERT_EXITREQ;
+#ifdef O_ENGINES
+  if ( ld->thread.exit_requested )		mask |= ALERT_EXITREQ;
 #endif
 #ifdef O_LIMIT_DEPTH
   if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
@@ -1488,7 +1488,7 @@ do_undo(mark *m)
    our block is not the real memory pointer.
 */
 
-#ifdef O_PLMT
+#ifdef O_ENGINES
 #define localDefinition(def) LDFUNC(localDefinition, def)
 static Definition
 localDefinition(DECL_LD Definition def)
@@ -1533,7 +1533,7 @@ destroyLocalDefinition(Definition def, unsigned int tid)
 Definition
 getLocalProcDefinition(DECL_LD Definition def)
 {
-#ifdef O_PLMT
+#ifdef O_ENGINES
   if ( true(def, P_THREAD_LOCAL) )
   { MEMORY_ACQUIRE();
     return localDefinition(def);
@@ -2930,7 +2930,7 @@ struct register_file;
  * macros (and from functions with local __PL_ld defined), so replicating
  * the pl-builtin.h logic here isn't such a hazard.
  */
-#  if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
+#  if (defined(O_PLMT) || defined(O_ENGINES)) && USE_LD_MACROS
 #   define VMI_ARG_DECL PL_local_data_t *__PL_ld, Code PC, struct register_file *registers
 #   define VMI_ARG_PASS __PL_ld, PC, registers
 #  else

@@ -3709,7 +3709,7 @@ setDynamicDefinition(Definition def, bool isdyn)
 int
 setThreadLocalDefinition(Definition def, bool val)
 {
-#ifdef O_PLMT
+#ifdef O_ENGINES
 
   LOCKDEF(def);
   if ( (val && true(def, P_THREAD_LOCAL)) ||

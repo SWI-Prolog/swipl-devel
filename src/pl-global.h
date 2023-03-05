@@ -154,11 +154,11 @@ struct PL_global_data
     { int	created;		/* # created hash tables */
       int	destroyed;		/* # destroyed hash tables */
     } indexes;
-#ifdef O_PLMT
-    int		threads_created;	/* # threads created */
-    int		threads_finished;	/* # finished threads */
+#ifdef O_ENGINES
     int		engines_created;	/* # engines created */
     int		engines_finished;	/* # engines threads */
+    int		threads_created;	/* # threads created */
+    int		threads_finished;	/* # finished threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
     int		errors;			/* Printed error messages */
@@ -281,7 +281,7 @@ struct PL_global_data
       struct event_list *onerase;	/* erased clause or dbref */
       struct event_list *onbreak;	/* breakpoint change */
       struct event_list *onframefinish; /* Debugged frame finished */
-#ifdef O_PLMT
+#ifdef O_ENGINES
       struct event_list *onthreadstart;	/* thread start hook */
       struct event_list *onthreadexit;	/* thread exit hook */
 #endif
@@ -349,8 +349,10 @@ struct PL_global_data
     Procedure	answer_count_restraint0;/* $tabling:answer_count_restraint/0 */
     Procedure	radial_restraint0;	/* $tabling:radial_restraint/0 */
     Procedure	tripwire3;		/* $tabling:tripwire/3 */
-#if O_PLMT
+#if O_ENGINES
     Procedure	signal_is_blocked1;	/* $syspreds:signal_is_blocked1/1 */
+#endif
+#if O_PLMT
     Procedure	dgc0;			/* system:$gc/0 */
 #endif
     Procedure	drun_undo1;		/* $syspreds:$run_undo/1 */
@@ -404,21 +406,22 @@ struct PL_global_data
   } terminal;
 #endif
 
-#ifdef O_PLMT
+#ifdef O_ENGINES
   struct
-  { int			enabled;	/* threads are enabled */
-    Table		mutexTable;	/* Name --> mutex table */
-    int			mutex_next_id;	/* next id for anonymous mutexes */
-#ifdef __WINDOWS__
-    HINSTANCE		instance;	/* Win32 process instance */
-#endif
-    counting_mutex     *mutexes;	/* Registered mutexes */
-    PL_thread_info_t   *free;		/* Free threads */
+  { PL_thread_info_t   *free;		/* Free threads */
     int			highest_allocated; /* Highest with info struct */
     int			thread_max;	/* Size of threads array */
     int			highest_id;	/* Highest Id of life thread  */
     int			peak_id;	/* Highest Id of any thread  */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
+#ifdef __WINDOWS__
+    HINSTANCE		instance;	/* Win32 process instance */
+#endif
+#ifdef O_PLMT
+    int			enabled;	/* threads are enabled */
+    int			mutex_next_id;	/* next id for anonymous mutexes */
+    Table		mutexTable;	/* Name --> mutex table */
+    counting_mutex     *mutexes;	/* Registered mutexes */
     struct
     { pthread_mutex_t	mutex;
       pthread_cond_t	cond;
@@ -430,8 +433,9 @@ struct PL_global_data
       pthread_cond_t	cond;
     } index;
     linger_list	       *lingering;
+#endif
   } thread;
-#endif /*O_PLMT*/
+#endif /*O_ENGINES*/
 
   struct
   { functor_t dict_functors[CACHED_DICT_FUNCTORS];
@@ -477,9 +481,6 @@ struct PL_local_data
   int		break_level;		/* current break level */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
-#ifdef O_PLMT
-  int		exit_requested;		/* Thread is asked to exit */
-#endif
   int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
   void *	glob_info;		/* pl-glob.c */
@@ -627,7 +628,7 @@ struct PL_local_data
   { Buffer	buffered;		/* Buffered events */
     int		delay_nesting;		/* How deeply is delay nested? */
 
-#ifdef O_PLMT
+#ifdef O_ENGINES
     struct
     { struct event_list *onthreadexit;	/* thread exit hook */
     } hook;
@@ -758,7 +759,7 @@ struct PL_local_data
   pl_internaldebugstatus_t internal_debug; /* status of C-level debug flags */
 #endif
 
-#ifdef O_PLMT
+#ifdef O_ENGINES
   struct
   { intptr_t   magic;			/* PL_THREAD_MAGIC (checking) */
     struct _PL_thread_info_t *info;	/* info structure */
@@ -767,9 +768,12 @@ struct PL_local_data
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
+    int		exit_requested;		/* Thread is asked to exit */
+#ifdef O_PLMT
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
     thread_wait_for *waiting_for;	/* thread_wait/2 info */
     alert_channel alert;		/* How to alert the thread */
+#endif
   } thread;
 #endif
 
@@ -862,7 +866,7 @@ struct PL_local_data
 GLOBAL PL_global_data_t PL_global_data;
 GLOBAL PL_code_data_t	PL_code_data;
 GLOBAL PL_local_data_t  PL_local_data;
-#ifdef O_MULTIPLE_ENGINES
+#if defined(O_ENGINES) && !defined(O_PLMT)
 GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #endif
 

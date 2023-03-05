@@ -165,6 +165,8 @@ extern void		freeSimpleMutex(counting_mutex *m);
 
 #else /*O_PLMT*/
 
+#define simpleMutexInit(p)	(void)0
+#define simpleMutexDelete(p)	(void)0
 #define simpleMutexLock(p)	(void)0
 #define simpleMutexUnlock(p)	(void)0
 

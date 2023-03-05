@@ -63,6 +63,10 @@
 #define PID_IDENTIFIES_THREAD 1
 #endif
 
+#endif /*O_PLMT*/
+
+#ifdef O_ENGINES
+
 #define GCREQUEST_AGC   0x01		/* GD->thread.gc.requests */
 #define GCREQUEST_CGC   0x02
 #define GCREQUEST_ABORT 0x04
@@ -149,7 +153,9 @@ typedef struct thread_handle
   { qid_t query;			/* Query handle */
     term_t argv;			/* Arguments */
     record_t package;			/* Exchanged term */
+#ifdef O_PLMT
     simpleMutex *mutex;			/* Sync access */
+#endif
     atom_t thread;			/* Associated thread */
   } interactor;
   struct thread_handle *next_free;	/* Free for GC */
@@ -160,15 +166,7 @@ typedef struct thread_handle
 #define QTYPE_QUEUE	1
 
 typedef struct message_queue
-{ simpleMutex	       mutex;		/* Message queue mutex */
-#ifdef __WINDOWS__
-  CONDITION_VARIABLE   cond_var;
-  CONDITION_VARIABLE   drain_var;
-#else
-  pthread_cond_t       cond_var;	/* condvar for reading */
-  pthread_cond_t       drain_var;	/* condvar for writing */
-#endif
-  struct thread_message   *head;	/* Head of message queue */
+{ struct thread_message   *head;	/* Head of message queue */
   struct thread_message   *tail;	/* Tail of message queue */
   uint64_t	       sequence_next;	/* next for sequence id */
   word		       id;		/* Id of the queue */
@@ -181,21 +179,20 @@ typedef struct message_queue
   unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
   unsigned	type : 2;		/* QTYPE_* */
+#ifdef O_PLMT
+  simpleMutex	       mutex;		/* Message queue mutex */
+#ifdef __WINDOWS__
+  CONDITION_VARIABLE   cond_var;
+  CONDITION_VARIABLE   drain_var;
+#else
+  pthread_cond_t       cond_var;	/* condvar for reading */
+  pthread_cond_t       drain_var;	/* condvar for writing */
+#endif
 #ifdef O_ATOMGC
   simpleMutex          gc_mutex;	/* Atom GC scanning sychronization */
 #endif
+#endif /*O_PLMT*/
 } message_queue;
-
-typedef struct pl_mutex
-{ pthread_mutex_t mutex;		/* the system mutex */
-  int count;				/* lock count */
-  int owner;				/* integer id of owner */
-  atom_t id;				/* id of the mutex */
-  unsigned anonymous    : 1;		/* <mutex>(0x...) */
-  unsigned initialized  : 1;		/* Mutex is initialized */
-  unsigned destroyed    : 1;		/* Mutex is destroyed */
-  unsigned auto_destroy	: 1;		/* asked to destroy */
-} pl_mutex;
 
 #define ALERT_QUEUE_RD	1
 #define ALERT_QUEUE_WR	2
@@ -211,6 +208,19 @@ typedef struct alert_channel
 } alert_channel;
 
 #define PL_THREAD_MAGIC 0x2737234f
+
+#ifdef O_PLMT
+
+typedef struct pl_mutex
+{ pthread_mutex_t mutex;		/* the system mutex */
+  int count;				/* lock count */
+  int owner;				/* integer id of owner */
+  atom_t id;				/* id of the mutex */
+  unsigned anonymous    : 1;		/* <mutex>(0x...) */
+  unsigned initialized  : 1;		/* Mutex is initialized */
+  unsigned destroyed    : 1;		/* Mutex is destroyed */
+  unsigned auto_destroy	: 1;		/* asked to destroy */
+} pl_mutex;
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
@@ -307,6 +317,50 @@ countingMutexUnlock(counting_mutex *cm)
 #define LOCKMODULE(module)	countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
 
+		 /*******************************
+		 *     CONDITION VARIABLES	*
+		 *******************************/
+
+#define CV_READY	0		/* was signalled */
+#define CV_MAYBE	1		/* might be signalled */
+#define CV_TIMEDOUT	2		/* timed out */
+#define CV_INTR		3		/* interrupted */
+
+#ifdef __WINDOWS__
+
+int	cv_timedwait(message_queue *queue,
+		     CONDITION_VARIABLE *cv,
+		     CRITICAL_SECTION *external_mutex,
+		     struct timespec *deadline,
+		     const struct timespec *retry_every);
+
+#define cv_broadcast(cv)	WakeAllConditionVariable(cv)
+#define cv_signal(cv)		WakeConditionVariable(cv)
+#define cv_init(cv,p)		InitializeConditionVariable(cv)
+#define cv_destroy(cv)		(void)cv
+
+#else
+
+int	cv_timedwait(message_queue *queue,
+		     pthread_cond_t *cv,
+		     pthread_mutex_t *external_mutex,
+		     struct timespec *deadline,
+		     const struct timespec *retry_every);
+
+#define cv_broadcast(cv)	pthread_cond_broadcast(cv)
+#define cv_signal(cv)		pthread_cond_signal(cv)
+#define cv_init(cv,p)		pthread_cond_init(cv,p)
+#define cv_destroy(cv)		pthread_cond_destroy(cv)
+
+#endif /* __WINDOWS__ */
+
+#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL, NULL)
+
+
+		 /*******************************
+		 *   NATIVE THREAD-LOCAL DATA	*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
 
@@ -316,10 +370,6 @@ global variable and the macro LD is defined   to  pick up the address of
 this variable. In multithreaded context,  POSIX pthread_getspecific() is
 used to get separate versions for each thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-		 /*******************************
-		 *   NATIVE THREAD-LOCAL DATA	*
-		 *******************************/
 
 #ifdef HAVE___THREAD
 extern __thread PL_local_data_t *GLOBAL_LD;
@@ -431,6 +481,22 @@ typedef struct thread_wait_area		/* module data for wait/update */
 
 #define WM_SIGNALLED (WM_USER+4201)	/* how to select a good number!? */
 
+
+		 /*******************************
+		 *         MT FUNCTIONS         *
+		 *******************************/
+
+int		signal_waiting_threads(Module m, thread_wait_channel *wch);
+void		free_wait_area(thread_wait_area *wa);
+void		free_thread_wait(PL_local_data_t *ld);
+
+#define acquire_ldata(info)	LDFUNC(acquire_ldata, info)
+#define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
+/* defined in pl-inline.h */
+static inline	PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
+
+#endif /*O_PLMT*/
+
 		 /*******************************
 		 *	    FUNCTIONS		*
 		 *******************************/
@@ -443,7 +509,7 @@ word		pl_thread_exit(term_t retcode);
 
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);
-#ifdef O_PLMT
+#ifdef O_ENGINES
 int		unify_thread_id(term_t id, PL_thread_info_t *info);
 #endif
 int		enableThreads(int enable);
@@ -465,10 +531,8 @@ void		cleanupThreads(void);
 intptr_t	system_thread_id(PL_thread_info_t *info);
 void		get_current_timespec(struct timespec *time);
 void		carry_timespec_nanos(struct timespec *time);
-int		signal_waiting_threads(Module m, thread_wait_channel *wch);
-void		free_wait_area(thread_wait_area *wa);
-void		free_thread_wait(PL_local_data_t *ld);
 void		free_predicate_references(PL_local_data_t *ld);
+
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
@@ -481,80 +545,34 @@ void	resumeThreads(void);
 void	markAtomsMessageQueues(void);
 void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(info)	LDFUNC(acquire_ldata, info)
-#define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
-/* defined in pl-inline.h */
-static inline PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
+#ifndef O_PLMT
+#define GLOBAL_LD (PL_current_engine_ptr)
+#define TLD_set_LD(v) (PL_current_engine_ptr = (v))
+#endif
 
-		 /*******************************
-		 *     CONDITION VARIABLES	*
-		 *******************************/
-
-#define CV_READY	0		/* was signalled */
-#define CV_MAYBE	1		/* might be signalled */
-#define CV_TIMEDOUT	2		/* timed out */
-#define CV_INTR		3		/* interrupted */
-
-#ifdef __WINDOWS__
-
-int	cv_timedwait(message_queue *queue,
-		     CONDITION_VARIABLE *cv,
-		     CRITICAL_SECTION *external_mutex,
-		     struct timespec *deadline,
-		     const struct timespec *retry_every);
-
-#define cv_broadcast(cv)	WakeAllConditionVariable(cv)
-#define cv_signal(cv)		WakeConditionVariable(cv)
-#define cv_init(cv,p)		InitializeConditionVariable(cv)
-#define cv_destroy(cv)		(void)cv
-
-#else
-
-int	cv_timedwait(message_queue *queue,
-		     pthread_cond_t *cv,
-		     pthread_mutex_t *external_mutex,
-		     struct timespec *deadline,
-		     const struct timespec *retry_every);
-
-#define cv_broadcast(cv)	pthread_cond_broadcast(cv)
-#define cv_signal(cv)		pthread_cond_signal(cv)
-#define cv_init(cv,p)		pthread_cond_init(cv,p)
-#define cv_destroy(cv)		pthread_cond_destroy(cv)
-
-#endif /* __WINDOWS__ */
-
-#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL, NULL)
-
-
-#else /*O_PLMT, end of threading-stuff */
+#endif /*O_ENGINES */
 
 		 /*******************************
 		 *	 NON-THREAD STUFF	*
 		 *******************************/
 
-#ifdef O_MULTIPLE_ENGINES
-
-#define GLOBAL_LD PL_current_engine_ptr
-
-#else /*O_MULTIPLE_ENGINES*/
-
+#ifndef O_ENGINES
 #define GLOBAL_LD (&PL_local_data)
+#endif /*!O_ENGINES*/
 
-#endif /*O_MULTIPLE_ENGINES*/
+#ifndef O_PLMT
+#define PL_LOCK(id)		(void)0
+#define PL_UNLOCK(id)		(void)0
 
-#define PL_LOCK(id)
-#define PL_UNLOCK(id)
+#define LOCKDEF(def)		(void)0
+#define UNLOCKDEF(def)		(void)0
+#define UNLOCKDYNDEF(def)	(void)0
+#define LOCKMODULE(module)	(void)0
+#define UNLOCKMODULE(module)	(void)0
 
-#define LOCKDEF(def)
-#define UNLOCKDEF(def)
-#define UNLOCKDYNDEF(def)
-#define LOCKMODULE(module)
-#define UNLOCKMODULE(module)
-
-#define acquire_ldata(ld)	(ld)
+#define acquire_ldata(info)	(info->thread_data)
 #define release_ldata(ld)	(void)0
-
-#endif /*O_PLMT*/
+#endif /*!O_PLMT*/
 
 		 /*******************************
 		 *	       COMMON		*

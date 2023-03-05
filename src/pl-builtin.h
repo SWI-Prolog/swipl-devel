@@ -279,7 +279,7 @@ typedef struct PL_global_data PL_global_data_t;
 #define _API_STUB_2(...)	(__VA_ARGS__) _API_STUB_3
 #define _API_STUB_3(...)	{GET_LD __VA_ARGS__;}
 
-#if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
+#if defined(O_ENGINES) && USE_LD_MACROS
 
 #ifdef __GNUC__
 /* Instructing GCC to treat this as a system header greatly simplifies
@@ -421,7 +421,10 @@ extern PL_local_data_t* no_local_ld(void);
 )
 
 /* Block-scope redefinition of LD in a function */
-#define WITH_LD(ld)	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+#define WITH_LD(ld) \
+	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; \
+	     !__loopctr; \
+	     __loopctr++)
 /* Passing an alternate LD to a called function. This uses the same mechanism
  * as DECL_LD, but takes it one step further. _VE_PASSLD below is a macro that
  * does not exist, but when DECL_LDFUNC() pastes __VOID_EMPTY_ to the beginning

@@ -230,9 +230,9 @@ exitFromDebugger(const char *msg, int status)
 { GET_LD
 
 #ifdef O_PLMT
-  if ( PL_thread_self() > 1 && !LD->exit_requested )
+  if ( PL_thread_self() > 1 && !LD->thread.exit_requested )
   { Sfprintf(Sdout, "%sexit session\n", msg);
-    LD->exit_requested = EXIT_REQ_THREAD;
+    LD->thread.exit_requested = EXIT_REQ_THREAD;
     return ACTION_ABORT;
   }
 #endif
@@ -1772,7 +1772,7 @@ interruptHandler(int sig)
     return;
   }
 
-  if ( LD->exit_requested )
+  if ( LD->thread.exit_requested )
   { term_t rval = PL_new_term_ref();
     PL_put_atom(rval, ATOM_true);
     pl_thread_exit(rval);

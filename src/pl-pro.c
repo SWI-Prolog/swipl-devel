@@ -167,8 +167,8 @@ query_loop(atom_t goal, int loop)
     if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
-#ifdef O_PLMT
-    if (LD->exit_requested)
+#ifdef O_ENGINES
+    if (LD->thread.exit_requested)
       loop = 0;
 #endif
   } while(loop);

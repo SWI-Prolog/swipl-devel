@@ -2082,6 +2082,8 @@ static void
 atom_generator_create_key(void)
 { pthread_key_create(&key, NULL);
 }
+#else
+static size_t atom_genetor_state;
 #endif
 
 static int
@@ -2100,9 +2102,11 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
   } else
   { if ( HAS_LD )
       index = LD->atoms.generator;
-#ifdef O_PLMT
     else
+#ifdef O_PLMT
       index = (size_t)pthread_getspecific(key);
+#else
+      index = atom_genetor_state;
 #endif
   }
 
@@ -2131,9 +2135,11 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 	   is_identifier_text(hit) )
       { if ( HAS_LD )
 	  LD->atoms.generator = index+1;
-#ifdef O_PLMT
 	else
+#ifdef O_PLMT
 	  pthread_setspecific(key, (void *)(index+1));
+#else
+	  atom_genetor_state = index;
 #endif
 
         return TRUE;
