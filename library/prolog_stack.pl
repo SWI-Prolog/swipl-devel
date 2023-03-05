@@ -501,6 +501,7 @@ subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
     '$clause_term_position'(ClauseRef, PC, List),
     debug(backtrace, '\t~p~n', [List]),
     find_subgoal(List, TPos, PosTerm),
+    compound(PosTerm),
     arg(1, PosTerm, CharA),
     arg(2, PosTerm, CharZ).
 
