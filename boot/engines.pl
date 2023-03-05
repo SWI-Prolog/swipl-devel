@@ -77,13 +77,13 @@ engine_create(Template, Goal, Engine, Options) :-
 %
 %   Similar to engine_next/2 but returning answers in reified form.
 %   Answers  are  returned  using  the  terms  the(Answer), no, and
-%   exception(Error).
+%   throw(Error).
 
 engine_next_reified(Engine, Answer) :-
     (   catch(engine_next(Engine, Answer0), Error, true)
     ->  (   var(Error)
         ->  Answer = the(Answer0)
-        ;   Answer = exception(Error)
+        ;   Answer = throw(Error)
         )
     ;   Answer = no
     ).
