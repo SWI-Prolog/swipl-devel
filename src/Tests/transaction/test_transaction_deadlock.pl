@@ -41,7 +41,9 @@ test_transaction_deadlock :-
     run_tests([ transaction_deadlock
 	      ]).
 
-:- begin_tests(transaction_deadlock).
+:- begin_tests(transaction_deadlock,
+               [ condition(current_prolog_flag(threads, true))
+               ]).
 
 test(deadlock) :-
     dl_loop(1000).
