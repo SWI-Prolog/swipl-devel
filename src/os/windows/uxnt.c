@@ -77,7 +77,7 @@
 #endif
 
 #define WIN_PATH_PREFIX _T("\\\\?\\")
-#define WIN_UNC_PREFIX  _T("\\\\?UNC\\")
+#define WIN_UNC_PREFIX  _T("\\\\?\\UNC")
 
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
@@ -329,6 +329,34 @@ is_reserved_name(const wchar_t *name)
   return FALSE;
 }
 
+/* Work around a bug in GetFullPathNameW() which sometimes starts
+   adding its own \\?\ prefix.  If so, we delete it again ...
+*/
+
+static void
+remove_win_prefix(wchar_t *s)
+{ int n;
+
+  if ( (n=_xos_win_prefix_length(s)) )
+  { const wchar_t *from = s+n;
+    size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
+
+    memmove(s, from, bytes);
+  }
+}
+
+
+/* Get a canonical name for the file, as \\?\Drive:Path for normal
+   names and \\?\UNC\server\Path for network paths.
+
+   For normal drive paths we copy \\?\ to the output and call
+   GetFullPathNameW() to place the translated version after it.
+   For UNC paths that does not work as we must have only one \
+   before the server.  So, we do the translation such that it
+   starts at the C of \UNC, next we copy the prefix in front of
+   it, after which we turn the 0 after the UNC back to a \ :(
+*/
+
 wchar_t *
 _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 { TCHAR buf[PATH_MAX];
@@ -342,37 +370,34 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
     return osname;
   }
 
-  if ( is_unc_path(cname) )
-  { wcscpy(s, WIN_UNC_PREFIX);
-    s += wcslen(s);
+  int unc;
+  DWORD rc;
+
+  if ( (unc=is_unc_path(cname)) )
+  { size_t plen = wcslen(WIN_UNC_PREFIX);
+    wchar_t *to = s+plen-1;
+
+    len -= plen-1;
+    rc = GetFullPathNameW(buf, len, to, NULL);
+    if ( rc <= len )
+    { remove_win_prefix(to);
+      wcscpy(s, WIN_UNC_PREFIX);
+      to[1] = '\\';
+      return osname;
+    }
   } else
   { wcscpy(s, WIN_PATH_PREFIX);
     s += wcslen(s);
-  }
-  len -= (s-osname);
-
-  DWORD rc = GetFullPathNameW(buf, len, s, NULL);
-  if ( rc > len )
-  { errno = ENAMETOOLONG;
-    return NULL;
-  } else if ( rc == 0 )
-  { errno = EINVAL;
-    return NULL;
+    len -= (s-osname);
+    rc = GetFullPathNameW(buf, len, s, NULL);
+    if ( rc <= len )
+    { remove_win_prefix(s);
+      return osname;
+    }
   }
 
-  /* Work around a bug in GetFullPathNameW() which sometimes starts
-     adding its own \\?\ prefix.  If so, we delete it again ...
-  */
-
-  int n;
-  if ( (n=_xos_win_prefix_length(s)) )
-  { const wchar_t *from = s+n;
-    size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
-
-    memmove(s, from, bytes);
-  }
-
-  return osname;
+  errno = ENAMETOOLONG;
+  return NULL;
 }
 
 
