@@ -3086,11 +3086,18 @@ term references and data. See \figref{calling} for an example.
 
 \begin{description}
 \cfunction{fid_t}{PL_open_foreign_frame}{}
+
 Create a foreign frame, holding a mark that allows the system to undo
 bindings and destroy data created after it, as well as providing the
 environment for creating term references. This function is called by the
-kernel before calling a foreign predicate. Raise a resource exception
-and returns \exam{(fid_t)0} on failure.
+kernel before calling a foreign predicate. Returns \exam{(fid_t)0} on
+failure. Failure is either lack of space on the stacks, in which case a
+resource exception is scheduled or atom-gc being in progress in the
+current thread, in which case no exception is scheduled. The latter is
+an exceptional case that prevents doing a callback on Prolog from
+\jargon{blob release handlers}.\footnote{Such a callback would
+\jargon{deadlock} if the callback creates new atoms or requires stack
+shifts or garbage collection.}
 
 \cfunction{void}{PL_close_foreign_frame}{fid_t id}
 Discard all term references created after the frame was opened.  All

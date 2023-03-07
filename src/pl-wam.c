@@ -344,6 +344,8 @@ fid_t
 PL_open_foreign_frame(DECL_LD)
 { size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
 
+  if ( LD->atoms.gc_active )
+    return 0;
   if ( !ensureLocalSpace(lneeded) )
     return 0;
 

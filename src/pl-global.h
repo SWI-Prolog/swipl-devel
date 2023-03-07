@@ -616,6 +616,7 @@ struct PL_local_data
   struct
   { intptr_t	generator;		/* See PL_atom_generator() */
     atom_t	unregistering;		/* See PL_unregister_atom() */
+    int		gc_active;		/* Thread is running atom-gc */
   } atoms;
 
   struct

@@ -1042,6 +1042,7 @@ pl_garbage_collect_atoms(void)
     }
   }
 
+  LD->atoms.gc_active = TRUE;
   PL_LOCK(L_REHASH_ATOMS);
   blockSignals(&set);
   t = CpuTime(CPU_USER);
@@ -1060,6 +1061,7 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc++;
   unblockSignals(&set);
   PL_UNLOCK(L_REHASH_ATOMS);
+  LD->atoms.gc_active = FALSE;
 
   if ( verbose )
     rc = printMessage(ATOM_informational,
