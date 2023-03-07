@@ -513,7 +513,7 @@ again:
       buf[0] = c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' || buf[0] == '-' )
-      { Sfprintf(Sdout, buf);
+      { Sfprintf(Sdout, "%s", buf);
 	readLine(Sdin, Sdout, buf);
       }
     }

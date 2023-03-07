@@ -145,7 +145,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
   { GET_LD
 
     if ( ofr != FR )
-    { Sfprintf(Serror, "#%zd at [%ld] predicate %s\n",
+    { Sfprintf(Serror, "#%zd at [%ud] predicate %s\n",
 	       loffset(FR),
 	       levelFrame(FR),
 	       predicateName(FR->predicate));

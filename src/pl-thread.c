@@ -8225,7 +8225,9 @@ stack_avail(DECL_LD)
   if ( info->c_stack_base )
   { void *here = &info;
 
+#ifndef __SANITIZE_ADDRESS__
     assert(here > info->c_stack_base); /* stack grows down */
+#endif
 
     avail = (char*)here - (char*)info->c_stack_base;
   }

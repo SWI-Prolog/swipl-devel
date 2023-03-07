@@ -326,7 +326,7 @@ print_addr(Word adr, char *buf)
     return buf;
   }
 
-  Ssprintf(buf, "%p=%s(%d)", adr, name, adr-base);
+  Ssprintf(buf, "%p=%s(%zu)", adr, name, (size_t)(adr-base));
   return buf;
 }
 
@@ -369,7 +369,7 @@ print_val(word val, char *buf)
   } else if ( tagex(val) == (TAG_ATOM|STG_GLOBAL) )
   { FunctorDef fd = valueFunctor(val);
 
-    Ssprintf(o, "functor %s/%d", stringAtom(fd->name), fd->arity);
+    Ssprintf(o, "functor %s/%zd", stringAtom(fd->name), fd->arity);
   } else
   { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
 
@@ -3938,8 +3938,8 @@ scan_global(int flags)
     { if ( offset_cell(next-1) != offset )
       { errors++;
 	Sdprintf("ERROR: Illegal indirect cell on global stack at %p-%p\n"
-		 "       tag=%d, offset=%ld\n",
-		 current, next, tag(*current), (long)offset);
+		 "       tag=%d, offset=%zd\n",
+		 current, next, (int)(tag(*current)), offset);
 	trap_gdb();
       }
     } else if ( !marked )
@@ -3961,7 +3961,7 @@ scan_global(int flags)
   { cells--;
     current -= offset_cell(current);
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { Sdprintf("!Illegal cell in global stack (down) at %p (*= %p)\n",
+    { Sdprintf("!Illegal cell in global stack (down) at %p (*= 0x%" PRIxPTR ")\n",
 	       current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
