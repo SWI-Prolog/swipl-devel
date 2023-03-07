@@ -568,7 +568,7 @@ redo:
 #endif
 #ifdef O_DEBUG_ATOMGC
         if ( atomLogFd && tracking(a) )
-          Sfprintf(atomLogFd, "Lookup `%s' at (#%d)\n",
+          Sfprintf(atomLogFd, "Lookup `%s' at (#%" PRIuPTR ")\n",
 		   a->name, indexAtom(a->atom));
 #endif
         *new = FALSE;
@@ -638,7 +638,7 @@ redo:
 
 #ifdef O_DEBUG_ATOMGC
   if ( atomLogFd && tracking(a) )
-    Sfprintf(atomLogFd, "Created `%s' at (#%d)\n",
+    Sfprintf(atomLogFd, "Created `%s' at (#%" PRIuPTR "d)\n",
 	     a->name, indexAtom(a->atom));
 #endif
   *new = TRUE;
@@ -692,7 +692,7 @@ _PL_debug_register_atom(atom_t a,
 
     refs = ATOM_REF_COUNT(register_atom(atom));
     if ( atomLogFd && tracking(atom) )
-      Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%d)\n",
+      Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%zd)\n",
 	       file, line, func, refs, atom->name, i);
   }
 }
@@ -711,7 +711,7 @@ _PL_debug_unregister_atom(atom_t a,
 
     refs = unregister_atom(atom);
     if ( atomLogFd && tracking(atom) )
-      Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%d)\n",
+      Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%zd)\n",
 	       file, line, func, refs, atom->name, i);
   }
 }
@@ -774,7 +774,7 @@ markAtom(atom_t a)
   {
 #ifdef O_DEBUG_ATOMGC
     if ( atomLogFd && tracking(ap) )
-      Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
+      Sfprintf(atomLogFd, "Marked `%s' at (#%zd)\n", ap->name, i);
 #endif
     ATOMIC_OR(&ap->references, ATOM_MARKED_REFERENCE);
   }
@@ -1226,7 +1226,7 @@ unregister_atom(volatile Atom p)
     refs = ATOM_REF_COUNT(newref);
 #ifdef O_DEBUG_ATOMGC
     if ( refs == 0 && atomLogFd && tracking(p) )
-      Sfprintf(atomLogFd, "Marked '%s' at (#%d) (unregistered)\n",
+      Sfprintf(atomLogFd, "Marked '%s' at (#%" PRIuPTR ") (unregistered)\n",
 	       p->name, indexAtom(p->atom));
 #endif
   } else
@@ -1236,7 +1236,7 @@ unregister_atom(volatile Atom p)
     { LD->atoms.unregistering = p->atom;
 #ifdef O_DEBUG_ATOMGC
     if ( atomLogFd && tracking(p) )
-      Sfprintf(atomLogFd, "Set atoms.unregistering for '%s' at (#%d)\n",
+      Sfprintf(atomLogFd, "Set atoms.unregistering for '%s' at (#%" PRIuPTR ")\n",
 	       p->name, indexAtom(p->atom));
 #endif
     }

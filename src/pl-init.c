@@ -1865,9 +1865,9 @@ vwarning(const char *fm, va_list args)
     { nospace:
       if ( cid )
 	PL_discard_foreign_frame(cid);
-      Sfprintf(Suser_error, "ERROR: ");
+      Sfprintf(Suser_error, "%s", "ERROR: ");
       if ( s )
-	Sfprintf(Suser_error, s);
+	Sfprintf(Suser_error, "%s", s);
       else
 	Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
