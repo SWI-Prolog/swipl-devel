@@ -177,6 +177,8 @@ thread_prof_ticks(DECL_LD)
 
 #ifdef __WINDOWS__
 
+#include <math.h>
+
 static UINT         timer;			/* our MM timer */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -208,7 +210,7 @@ startProfiler(prof_status how)
   (void)how;
 
   rval = timeSetEvent(10,
-		      5,		/* resolution (milliseconds) */
+		      round(LD->profile.sample_period/1000),		/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)0,
 		      TIME_PERIODIC);
@@ -288,9 +290,9 @@ startProfiler(prof_status how)
   timer_signal = sig;
 
   value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 5000;		/* 5ms for real; also ok for cpu */
+  value.it_interval.tv_usec = LD->profile.sample_period;  // period in usecs.
   value.it_value.tv_sec  = 0;			/* on systems where 0 means now */
-  value.it_value.tv_usec = 5000;
+  value.it_value.tv_usec = LD->profile.sample_period;
 
   if ( setitimer(timer, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
@@ -943,12 +945,41 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profile", 4, profile, PL_FA_TRANSPARENT)
 { int rc;
   prof_status val;
 
   if ( !get_prof_status(A2, &val) )
     return FALSE;
+
+  atom_t ports_opt;
+  PL_get_atom_ex(A3, &ports_opt);
+  switch (ports_opt)
+  { case ATOM_false: LD->profile.ports_control = 0;  break;  // FALSE
+    case ATOM_true:  LD->profile.ports_control = 2;  break;  // TRUE
+    default:         LD->profile.ports_control = 1;          // classic    
+  }
+  
+  LD->profile.sample_period = 5000;  // default period in usecs.
+  number rate; 
+  if ( PL_get_number(A4, &rate) )
+    switch (rate.type)
+    { case V_INTEGER : 
+        if ( 1 <= rate.value.i && rate.value.i <= 1000)
+          LD->profile.sample_period = 1000000/rate.value.i;
+        break;
+#if O_BIGNUM
+      case V_MPQ:
+	    promoteToFloatNumber(&rate);
+        /*FALLTHROUGH*/
+#endif
+      case V_FLOAT: 
+        if (1.0 <= rate.value.f && rate.value.f <= 1000.0)
+          LD->profile.sample_period = (uint64_t)(1000000/rate.value.f);
+        break;
+      default: 
+        break;
+    }
 
   resetProfiler();
   startProfiler(val);
@@ -1072,7 +1103,7 @@ prof_call(DECL_LD void *handle, PL_prof_type_t *type)
 	  Sdprintf("Call: direct recursion on %s\n", node_name(node)));
     LD->profile.accounting = FALSE;
     return node;
-  } else				/* from some parent */
+  } else if (LD->profile.ports_control < 2)	/* from some parent, only if ports option not 'true' */
   { void *parent = node->handle;
 
     for(node=node->parent; node; node = node->parent)
@@ -1149,14 +1180,17 @@ profResumeParent(DECL_LD struct call_node *node)
     return;
 
   LD->profile.accounting = TRUE;
-  for(n=LD->profile.current; n && n != node; n=n->parent)
-  { DEBUG(MSG_PROF_CALLTREE,
-	  Sdprintf("Exit: %s\n", node_name(n)));
-    n->exits++;
-  }
+ 
+  if (LD->profile.ports_control)  // classic or 'true'
+    for(n=LD->profile.current; n && n != node; n=n->parent)
+    { DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Exit: %s\n", node_name(n)));
+      n->exits++;
+    }
+  LD->profile.current = node;
+
   LD->profile.accounting = FALSE;
 
-  LD->profile.current = node;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1219,7 +1253,8 @@ void
 profFail(DECL_LD struct call_node *cp_node)
 { LD->profile.accounting = TRUE;
 
-  profFailToCP(LD->profile.current, cp_node);
+  if (LD->profile.ports_control)  // classic or all
+    profFailToCP(LD->profile.current, cp_node);
   LD->profile.current = cp_node;
 
   LD->profile.accounting = FALSE;
@@ -1369,7 +1404,7 @@ PL_prof_exit(void *node)
 
 BeginPredDefs(profile)
 #if O_PROFILE
-  PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
+  PRED_DEF("$profile", 4, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 8, prof_node, 0)
