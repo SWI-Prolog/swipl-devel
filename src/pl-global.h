@@ -596,9 +596,11 @@ struct PL_local_data
   { int		active;			/* profiler is on */
     int		accounting;		/* we are accounting */
     int		sum_ok;			/* siblings are counted */
+    int		ports_control;		/* control which port counts are generated */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
     uint64_t	samples;		/* profile samples */
+    uint64_t	sample_period;		/* profile sample period (usecs.) */
     uint64_t	ticks;			/* profile ticks total */
     uint64_t	accounting_ticks;	/* Ticks in profCall() and friends */
     size_t	nodes;			/* #Recorded nodes */
