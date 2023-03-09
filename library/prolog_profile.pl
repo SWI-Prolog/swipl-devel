@@ -73,6 +73,12 @@ library(swi/pce_profile).
 %
 %     * time(Which)
 %     Profile `cpu` or `wall` time.  The default is CPU time.
+%     * sample_rate(Rate)
+%     Samples per second, any numeric value between 1 and 1000
+%     * ports(Bool)
+%     Specifies ports counted - `true` (all ports), `false` (call
+%     port only) or `classic` (all with some errors).
+%     Accomodates space/accuracy tradeoff building call tree.
 %     * top(N)
 %     When generating a textual report, show the top N predicates.
 %     * cumulative(Bool)
@@ -88,8 +94,12 @@ profile(Goal) :-
 profile(Goal0, Options) :-
     option(time(Which), Options, cpu),
     time_name(Which, How),
+    option(ports(Ports), Options, classic),
+    must_be(oneof([true,false,classic]),Ports),
+    option(sample_rate(Rate), Options, 200),
+    must_be(between(1.0,1000), Rate),
     expand_goal(Goal0, Goal),
-    call_cleanup('$profile'(Goal, How),
+    call_cleanup('$profile'(Goal, How, Ports, Rate),
                  prolog_statistics:show_profile(Options)).
 
 time_name(cpu,      cputime)  :- !.
@@ -192,6 +202,10 @@ show_plain(Node, Stat, Key) :-
 %         Total time sampled
 %       - nodes:Count
 %         Nodes in the call graph.
+%       - sample_period: MicroSeconds
+%         Same interval timer period in micro seconds
+%       - ports: Ports
+%         One of `true`, `false` or `classic`
 %     - nodes
 %       List of nodes.  Each node provides:
 %       - predicate:PredicateIndicator
@@ -226,8 +240,12 @@ profile_data_(profile{summary:Summary, nodes:Nodes}) :-
 %   @param Node     term of the format prof(Ticks, Account, Time, Nodes)
 
 prof_statistics(summary{samples:Samples, ticks:Ticks,
-                        accounting:Account, time:Time, nodes:Nodes}) :-
-    '$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
+                        accounting:Account, time:Time,
+                        nodes:Nodes,
+                        sample_period: Period,
+                        ports: Ports
+                       }) :-
+    '$prof_statistics'(Samples, Ticks, Account, Time, Nodes, Period, Ports).
 
 %!  profile_procedure_data(?Pred, -Data:dict) is nondet.
 %

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2022, University of Amsterdam
+    Copyright (c)  1997-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -40,6 +40,7 @@
 #include "pl-allocpool.h"
 #include "pl-mutex.h"
 #include "pl-thread.h"
+#include "pl-prof.h"
 #include "pl-gmp.h"
 
 #ifndef GLOBAL			/* global variables */
@@ -593,9 +594,11 @@ struct PL_local_data
 
 #ifdef O_PROFILE
   struct
-  { int		active;			/* profiler is on */
-    int		accounting;		/* we are accounting */
+  { int		accounting;		/* we are accounting */
     int		sum_ok;			/* siblings are counted */
+    prof_status	active;			/* profiler is on */
+    prof_control ports_control;		/* which port counts are generated? */
+    unsigned int sample_period;		/* profile sample period (usecs.) */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
     uint64_t	samples;		/* profile samples */

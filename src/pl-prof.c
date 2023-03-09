@@ -177,6 +177,8 @@ thread_prof_ticks(DECL_LD)
 
 #ifdef __WINDOWS__
 
+#include <math.h>
+
 static UINT         timer;			/* our MM timer */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -208,7 +210,7 @@ startProfiler(prof_status how)
   (void)how;
 
   rval = timeSetEvent(10,
-		      5,		/* resolution (milliseconds) */
+		      round(LD->profile.sample_period/1000),		/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)0,
 		      TIME_PERIODIC);
@@ -288,9 +290,9 @@ startProfiler(prof_status how)
   timer_signal = sig;
 
   value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 5000;		/* 5ms for real; also ok for cpu */
+  value.it_interval.tv_usec = LD->profile.sample_period;  // period in usecs.
   value.it_value.tv_sec  = 0;			/* on systems where 0 means now */
-  value.it_value.tv_usec = 5000;
+  value.it_value.tv_usec = LD->profile.sample_period;
 
   if ( setitimer(timer, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
@@ -823,26 +825,33 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 }
 
 
-/** '$prof_statistics'(-Samples, -Ticks, -AccountingTicks, -Time, -Nodes)
+/** '$prof_statistics'(-Samples, -Ticks, -AccountingTicks,
+		       -Time, -Nodes, -Period, -Ports)
 
 @arg Samples is the number of times the statistical profiler was called.
 @arg Ticks   is the number of virtual ticks during profiling
 @arg AccountingTicks are tick spent on accounting
 @arg Time    is the total CPU time spent profiling
 @arg Nodes   is the number of nodes in the call tree
+@arg Period  is the number of microseconds between samples
+@arg Ports   is one of `true`, `false` or `classic`
 */
 
 static
-PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
+PRED_IMPL("$prof_statistics", 7, prof_statistics, 0)
 { PRED_LD
-  if ( PL_unify_uint64(A1, LD->profile.samples) &&
-       PL_unify_uint64(A2, LD->profile.ticks) &&
-       PL_unify_uint64(A3, LD->profile.accounting_ticks) &&
-       PL_unify_float( A4, LD->profile.time) &&
-       PL_unify_uint64(A5, LD->profile.nodes) )
-    succeed;
 
-  fail;
+  return
+    ( PL_unify_uint64(A1, LD->profile.samples) &&
+      PL_unify_uint64(A2, LD->profile.ticks) &&
+      PL_unify_uint64(A3, LD->profile.accounting_ticks) &&
+      PL_unify_float( A4, LD->profile.time) &&
+      PL_unify_uint64(A5, LD->profile.nodes) &&
+      PL_unify_integer(A6, LD->profile.sample_period) &&
+      PL_unify_atom(A7, LD->profile.ports_control == PROFC_FALSE ? ATOM_false :
+			LD->profile.ports_control == PROFC_TRUE  ? ATOM_true :
+								   ATOM_classic)
+    );
 }
 
 
@@ -943,11 +952,26 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profile", 4, profile, PL_FA_TRANSPARENT)
 { int rc;
   prof_status val;
 
   if ( !get_prof_status(A2, &val) )
+    return FALSE;
+
+  atom_t ports_opt;
+  PL_get_atom_ex(A3, &ports_opt);
+  switch (ports_opt)
+  { case ATOM_false: LD->profile.ports_control = PROFC_FALSE;   break;
+    case ATOM_true:  LD->profile.ports_control = PROFC_TRUE;    break;
+    default:         LD->profile.ports_control = PROFC_CLASSIC;
+  }
+
+  LD->profile.sample_period = 5000;  // default period in usecs.
+  double rate;
+  if ( PL_get_float_ex(A4, &rate) )
+    LD->profile.sample_period = (unsigned int)(1000000/rate);
+  else
     return FALSE;
 
   resetProfiler();
@@ -1072,7 +1096,7 @@ prof_call(DECL_LD void *handle, PL_prof_type_t *type)
 	  Sdprintf("Call: direct recursion on %s\n", node_name(node)));
     LD->profile.accounting = FALSE;
     return node;
-  } else				/* from some parent */
+  } else if ( LD->profile.ports_control != PROFC_TRUE )
   { void *parent = node->handle;
 
     for(node=node->parent; node; node = node->parent)
@@ -1149,14 +1173,18 @@ profResumeParent(DECL_LD struct call_node *node)
     return;
 
   LD->profile.accounting = TRUE;
-  for(n=LD->profile.current; n && n != node; n=n->parent)
-  { DEBUG(MSG_PROF_CALLTREE,
-	  Sdprintf("Exit: %s\n", node_name(n)));
-    n->exits++;
+
+  if ( LD->profile.ports_control  != PROFC_FALSE )
+  { for(n=LD->profile.current; n && n != node; n=n->parent)
+    { DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Exit: %s\n", node_name(n)));
+      n->exits++;
+    }
   }
+  LD->profile.current = node;
+
   LD->profile.accounting = FALSE;
 
-  LD->profile.current = node;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1219,7 +1247,8 @@ void
 profFail(DECL_LD struct call_node *cp_node)
 { LD->profile.accounting = TRUE;
 
-  profFailToCP(LD->profile.current, cp_node);
+  if ( LD->profile.ports_control != PROFC_FALSE )
+    profFailToCP(LD->profile.current, cp_node);
   LD->profile.current = cp_node;
 
   LD->profile.accounting = FALSE;
@@ -1369,12 +1398,12 @@ PL_prof_exit(void *node)
 
 BeginPredDefs(profile)
 #if O_PROFILE
-  PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
+  PRED_DEF("$profile", 4, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
-  PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
+  PRED_DEF("$prof_statistics", 7, prof_statistics, 0)
 #endif
 EndPredDefs
