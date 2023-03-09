@@ -73,6 +73,12 @@ library(swi/pce_profile).
 %
 %     * time(Which)
 %     Profile `cpu` or `wall` time.  The default is CPU time.
+%     * sample_rate(Rate)
+%     Samples per sec., any numeric value between 1 and 1000
+%     * ports(Bool)
+%     Specifies ports counted - 'true' = all ports, 'false' == call port only
+%     Defaults to "classic" view (all with some errors). 
+%     Accomodates space/accuracy tradeoff building call tree.
 %     * top(N)
 %     When generating a textual report, show the top N predicates.
 %     * cumulative(Bool)
@@ -88,8 +94,12 @@ profile(Goal) :-
 profile(Goal0, Options) :-
     option(time(Which), Options, cpu),
     time_name(Which, How),
+    option(ports(Ports), Options, classic),  % defaults to "classic" view
+    must_be(boolean,Ports),
+    option(sample_rate(Rate), Options, 200),
+    must_be(between(1.0,1000), Rate),        % numeric value, 1..1000
     expand_goal(Goal0, Goal),
-    call_cleanup('$profile'(Goal, How),
+    call_cleanup('$profile'(Goal, How, Ports, Rate),
                  prolog_statistics:show_profile(Options)).
 
 time_name(cpu,      cputime)  :- !.
