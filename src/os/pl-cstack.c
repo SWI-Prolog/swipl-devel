@@ -425,6 +425,7 @@ print_trace(btrace *bt, int me)
     { Dl_info info;
       void *addr = bt->retaddr[me][i];
 
+#ifdef HAVE_DLADDR
       if ( dladdr(addr, &info) )
       { uintptr_t offset = (uintptr_t)addr - (uintptr_t)info.dli_fbase;
 
@@ -447,6 +448,7 @@ print_trace(btrace *bt, int me)
 	    Sdprintf("  [%zd] %s(+%p) [%p]\n",
 		     i, info.dli_fname, (void*)offset, addr);
 	} else
+#endif
 	{ Sdprintf("  [%zd] ??? [%p]\n", i, addr);
 	}
       }
