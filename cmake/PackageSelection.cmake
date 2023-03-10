@@ -270,10 +270,11 @@ endfunction()
 ################
 # Assemble the package list
 
-set(SWIPL_PACKAGE_LIST)
-if(SWIPL_PACKAGES)
-  add_package_sets(${SWIPL_PACKAGE_SETS})
-  remove_packages_without_source()
+if(NOT DEFINED SWIPL_PACKAGE_LIST)
+  if(SWIPL_PACKAGES)
+    add_package_sets(${SWIPL_PACKAGE_SETS})
+    remove_packages_without_source()
+  endif()
 endif()
 
 if(NOT SWIPL_SHARED_LIB)

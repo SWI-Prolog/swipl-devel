@@ -127,6 +127,14 @@ usage. When installing in lightweight and   server  environments one may
 drop  one  or  more  of  ``SWIPL_PACKAGES_X``,  ``SWIPL_PACKAGES_JAVA``,
 ``SWIPL_PACKAGES_ODBC`` and ``INSTALL_DOCUMENTATION``.
 
+A   specific   list   of    packages     can    be    requestion   using
+`DSWIPL_PACKAGE_LIST` set to a list of package.  The list is checked for
+missing dependencies, which  are  automatically   added.  Typically  the
+documentation should be disabled in this   scenario because including it
+includes many packages. For example:
+
+    cmake -DINSTALL_DOCUMENTATION=OFF -DSWIPL_PACKAGE_LIST="clib;plunit"
+
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
 
