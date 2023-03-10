@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -50,7 +50,6 @@ void		qlfCleanup(void);
 
 void		PL_qlf_PutStringW(const pl_wchar_t *w, size_t len,
 				  IOSTREAM *fd);
-pl_wchar_t*	PL_qlf_GetStringUTF8(IOSTREAM *fd, size_t *length,
-				     pl_wchar_t *buf, size_t bufsize);
+void		PL_qlf_getStringW(IOSTREAM *fd, Buffer buf);
 
 #endif /*_PL_WIC_H*/

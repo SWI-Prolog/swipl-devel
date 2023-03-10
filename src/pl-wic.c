@@ -477,32 +477,37 @@ PL_qlf_getString(IOSTREAM *fd, size_t *length)
 }
 
 
-pl_wchar_t *
-PL_qlf_GetStringUTF8(IOSTREAM *fd, size_t *length,
-		     pl_wchar_t *buf, size_t bufsize)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_qlf_getStringW() reads a string written by PL_qlf_putStringW() into
+a buffer of wchar_t objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+PL_qlf_getStringW(IOSTREAM *fd, Buffer buf)
 { size_t i, len = (size_t)PL_qlf_getInt64(fd);
   IOENC oenc = fd->encoding;
-  pl_wchar_t *tmp, *o;
-
-  if ( length )
-    *length = len;
-
-  if ( len < bufsize )
-    tmp = buf;
-  else
-    tmp = PL_malloc(len*sizeof(pl_wchar_t));
 
   fd->encoding = ENC_UTF8;
-  for(i=0, o=tmp; i<len; i++)
+  for(i=0; i<len; i++)
   { int c = Sgetcode(fd);
 
     if ( c < 0 )
       fatalError("Unexpected EOF in UCS atom");
-    *o++ = c;
+
+#if SIZEOF_WCHAR_T == 2
+    if ( c <= 0xffff )
+    { addBuffer(buf, c, wchar_t);
+    } else
+    { int lp, tp;
+      utf16_encode(c, &lp, &tp);
+      addBuffer(buf, lp, wchar_t);
+      addBuffer(buf, tp, wchar_t);
+    }
+#else
+    addBuffer(buf, c, wchar_t);
+#endif
   }
   fd->encoding = oenc;
-
-  return tmp;
 }
 
 
@@ -810,15 +815,14 @@ loadXRc(DECL_LD wic_state *state, int c)
       }
     }
     case XR_STRING_UTF8:
-    { pl_wchar_t *w;
-      size_t len;
-      pl_wchar_t buf[256];
+    { tmp_buffer buf;
       word s;
 
-      w = PL_qlf_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
-      s = globalWString(len, w);
-      if ( w != buf )
-	PL_free(w);
+      initBuffer(&buf);
+      PL_qlf_getStringW(fd, (Buffer)&buf);
+      s = globalWString(entriesBuffer(&buf, wchar_t),
+			baseBuffer(&buf, wchar_t));
+      discardBuffer(&buf);
 
       return s;
     }
@@ -2036,20 +2040,40 @@ PL_qlf_putString(const char *s, size_t len, IOSTREAM *fd)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_qlf_putStringW() writes the  length in code points,  followed by an
+UTF-8 encoding of the text.  This is read by PL_qlf_getStringW().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 PL_qlf_putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 { const pl_wchar_t *e;
   IOENC oenc = fd->encoding;
+  size_t chlen;
 
   if ( len == STR_NOLEN )
     len = wcslen(s);
   e = &s[len];
 
-  PL_qlf_putInt64(len, fd);
+#if SIZEOF_WCHAR_T == 2
+  PL_chars_t tmp = {
+    .canonical = TRUE,
+    .length = len,
+    .encoding = ENC_WCHAR,
+    .text.w = (wchar_t*)s
+  };
+  chlen = PL_text_length(&tmp);
+#else
+  chlen = len;
+#endif
+
+  PL_qlf_putInt64(chlen, fd);
   fd->encoding = ENC_UTF8;
   while(s<e)
-  { Sputcode(*s, fd);
-    s++;
+  { int c;
+
+    s = get_wchar(s, &c);
+    Sputcode(c, fd);
   }
   fd->encoding = oenc;
 }

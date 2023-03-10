@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2022, University of Amsterdam
+    Copyright (c)  1996-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -44,6 +44,7 @@
 #include "os/pl-text.h"
 #include "os/pl-cstack.h"
 #include "os/pl-prologflag.h"
+#include "os/pl-buffer.h"
 #include "pl-codelist.h"
 #include "pl-dict.h"
 #include "pl-arith.h"
@@ -792,16 +793,14 @@ saveUCSAtom(atom_t atom, IOSTREAM *fd)
 
 static atom_t
 loadUCSAtom(IOSTREAM *fd)
-{ pl_wchar_t buf[256];
-  pl_wchar_t *w;
-  size_t len;
+{ tmp_buffer buf;
   atom_t a;
 
-  w = PL_qlf_GetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
-  a = lookupUCSAtom(w, len);
-
-  if ( w != buf )
-    PL_free(w);
+  initBuffer(&buf);
+  PL_qlf_getStringW(fd, (Buffer)&buf);
+  a = lookupUCSAtom(baseBuffer(&buf, wchar_t),
+		    entriesBuffer(&buf, wchar_t));
+  discardBuffer(&buf);
 
   return a;
 }
