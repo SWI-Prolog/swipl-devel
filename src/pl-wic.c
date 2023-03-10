@@ -434,7 +434,7 @@ Returns NULL if the string is too large.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-PL_qlf_getString(IOSTREAM *fd, size_t *length)
+qlfGetString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
   size_t len = (size_t)PL_qlf_getInt64(fd);
@@ -478,12 +478,12 @@ PL_qlf_getString(IOSTREAM *fd, size_t *length)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_qlf_getStringW() reads a string written by PL_qlf_putStringW() into
+qlfGetStringW() reads a string written by PL_qlf_putStringW() into
 a buffer of wchar_t objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-PL_qlf_getStringW(IOSTREAM *fd, Buffer buf)
+qlfGetStringW(IOSTREAM *fd, Buffer buf)
 { size_t i, len = (size_t)PL_qlf_getInt64(fd);
   IOENC oenc = fd->encoding;
 
@@ -552,7 +552,7 @@ static PL_blob_t *
 getBlobType(IOSTREAM *fd)
 { const char *name;
 
-  if ( !(name = PL_qlf_getString(fd, NULL)) )
+  if ( !(name = qlfGetString(fd, NULL)) )
     fatalError("Invalid blob type in QLF");
 
   return PL_find_blob_type(name);
@@ -807,7 +807,7 @@ loadXRc(DECL_LD wic_state *state, int c)
     { char *s;
       size_t len;
 
-      if ( (s = PL_qlf_getString(fd, &len)) )
+      if ( (s = qlfGetString(fd, &len)) )
       { return globalString(len, s);
       } else
       { raiseStackOverflow(GLOBAL_OVERFLOW);
@@ -819,7 +819,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       word s;
 
       initBuffer(&buf);
-      PL_qlf_getStringW(fd, (Buffer)&buf);
+      qlfGetStringW(fd, (Buffer)&buf);
       s = globalWString(entriesBuffer(&buf, wchar_t),
 			baseBuffer(&buf, wchar_t));
       discardBuffer(&buf);
@@ -1034,9 +1034,9 @@ loadWicFd(wic_state *state)
 	popPathTranslation(state);
 	succeed;
       case 'W':
-	{ char *name = store_string(PL_qlf_getString(fd, NULL) );
+	{ char *name = store_string(qlfGetString(fd, NULL) );
 
-	  if ( (name=PL_qlf_getString(fd, NULL)) )
+	  if ( (name=qlfGetString(fd, NULL)) )
 	  { name = store_string(name);
 	    loadWicFile(name);
 	    continue;
@@ -1763,7 +1763,7 @@ the module where it is a multifile one.
 static bool
 qlfLoadSource(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
-  char *str = PL_qlf_getString(fd, NULL);
+  char *str = qlfGetString(fd, NULL);
   double time = PL_qlf_getFloat(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
@@ -2042,11 +2042,11 @@ PL_qlf_putString(const char *s, size_t len, IOSTREAM *fd)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_qlf_putStringW() writes the  length in code points,  followed by an
-UTF-8 encoding of the text.  This is read by PL_qlf_getStringW().
+UTF-8 encoding of the text.  This is read by qlfGetStringW().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-PL_qlf_putStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
+qlfPutStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 { const pl_wchar_t *e;
   IOENC oenc = fd->encoding;
   size_t chlen;
@@ -2310,7 +2310,7 @@ saveXR(DECL_LD wic_state *state, word xr)
       PL_qlf_putString(s, len, fd);
     } else if ( (w=getCharsWString(xr, &len)) )
     { Sputc(XR_STRING_UTF8, fd);
-      PL_qlf_putStringW(w, len, fd);
+      qlfPutStringW(w, len, fd);
     }
     return;
 #endif /* O_STRING */
@@ -3138,7 +3138,7 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return qlfError(state, "seek to %zd failed: %s", offset, OsError());
-  if ( Sgetc(s) != 'F' || !(str=PL_qlf_getString(s, NULL)) )
+  if ( Sgetc(s) != 'F' || !(str=qlfGetString(s, NULL)) )
     return qlfError(state, "invalid string (offset %zd)", offset);
   fname = qlfFixSourcePath(state, str);
 
@@ -3409,7 +3409,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
   new->previous = state->load_state;
   state->load_state = new;
 
-  if ( !(abssavename = PL_qlf_getString(fd, NULL)) )
+  if ( !(abssavename = qlfGetString(fd, NULL)) )
     return qlfError(state, "bad string");
 
   if ( absloadname && !streq(absloadname, abssavename) )
@@ -4411,16 +4411,6 @@ qlfCleanup(void)
     free(buf);
   }
 }
-
-		 /*******************************
-		 *	 PUBLIC FUNCTIONS	*
-		 *******************************/
-
-void
-PL_qlf_PutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
-{ PL_qlf_putStringW(w, len, fd);
-}
-
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

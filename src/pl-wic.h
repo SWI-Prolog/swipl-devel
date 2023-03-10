@@ -48,8 +48,7 @@ bool		loadWicFromStream(const char *rcpath, IOSTREAM *fd);
 bool		compileFileList(IOSTREAM *out, int argc, char **argv);
 void		qlfCleanup(void);
 
-void		PL_qlf_PutStringW(const pl_wchar_t *w, size_t len,
-				  IOSTREAM *fd);
-void		PL_qlf_getStringW(IOSTREAM *fd, Buffer buf);
+void		qlfPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd);
+void		qlfGetStringW(IOSTREAM *fd, Buffer buf);
 
 #endif /*_PL_WIC_H*/
