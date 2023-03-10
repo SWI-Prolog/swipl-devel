@@ -486,16 +486,16 @@ PL_EXPORT(IOENC)	PL_atom_to_encoding(atom_t name);
 PL_EXPORT(atom_t)	PL_encoding_to_atom(IOENC enc);
 #endif
 
-PL_EXPORT(int64_t)	PL_qlf_get_int64(IOSTREAM *s);
-PL_EXPORT(int32_t)	PL_qlf_get_int32(IOSTREAM *s);
-PL_EXPORT(uint32_t)	PL_qlf_get_uint32(IOSTREAM *s);
-PL_EXPORT(double)	PL_qlf_get_double(IOSTREAM *s);
-PL_EXPORT(atom_t)	PL_qlf_get_atom(IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_get_int64(IOSTREAM *s, int64_t *ip);
+PL_EXPORT(int)		PL_qlf_get_int32(IOSTREAM *s, int32_t *ip);
+PL_EXPORT(int)		PL_qlf_get_uint32(IOSTREAM *s, uint32_t *ip);
+PL_EXPORT(int)		PL_qlf_get_double(IOSTREAM *s, double *fp);
+PL_EXPORT(int)		PL_qlf_get_atom(IOSTREAM *s, atom_t *a);
 
-PL_EXPORT(void)		PL_qlf_put_int64(int64_t i, IOSTREAM *s);
-PL_EXPORT(void)		PL_qlf_put_int32(int32_t i, IOSTREAM *s);
-PL_EXPORT(void)		PL_qlf_put_uint32(uint32_t i, IOSTREAM *s);
-PL_EXPORT(void)		PL_qlf_put_double(double f, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_int64(int64_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_int32(int32_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_uint32(uint32_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_double(double f, IOSTREAM *s);
 PL_EXPORT(int)		PL_qlf_put_atom(IOSTREAM *s, atom_t a);
 
 

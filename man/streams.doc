@@ -826,3 +826,50 @@ position if it is positive. The tab (\verb$\t$) tabs to the next
 multiple of 8. Any other character increments the line position by one.
 Future versions may change that, notably the tab width might no longer
 be hard coded.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Support functions for blob save/load}
+\label{sec:iostream-blob-functions}
+
+The functions in this sections are intended to support \jargon{blobs} to
+define save() and load() functions so they can be part of a saved state
+or \fileext{qlf} file. The matching pair of functions is guaranteed to
+give the same result, regardless of byte ordering (bit or little
+endian). The user shall not make any assumptions on the exact data
+format used for storing the data.  The atom read/write functions can
+only be used from the blob callback functions.
+
+
+\begin{description}
+    \cfunction{int}{PL_qlf_put_int64}{int64_t i, IOSTREAM *s}
+    \nodescription
+    \cfunction{int}{PL_qlf_put_int32}{int32_t i, IOSTREAM *s}
+    \nodescription
+    \cfunction{int}{PL_qlf_put_uint32}{uint32 i, IOSTREAM *s}
+Write integers of several sizes. Signed integers are written in
+\jargon{zigzag} encoding. For unsigned integers we only write the
+non-zero bytes.  The result is compact and independent for big
+or little endian.
+
+    \cfunction{int}{PL_qlf_put_double}{double f, IOSTREAM *s}
+Write double as 8 byte big endian.
+
+    \cfunction{int}{PL_qlf_put_atom}{atom_t a, IOSTREAM *s}
+Write an atom. The atom may be a \jargon{blob}. Note that this function
+may \emph{only} be used from a blob save() function. Calling from
+another context results in a fatal error.
+
+    \cfunction{int}{PL_qlf_get_int64}{IOSTREAM *s, int64_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_int32}{IOSTREAM *s, int32_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_uint32}{IOSTREAM *s, uint32_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_double}{IOSTREAM *s, double *fp}
+Counterparts of corresponding PL_qlf_put_*() functions.
+
+    \cfunction{int}{PL_qlf_get_atom}{IOSTREAM *s, atom_t *ap}
+Counterpart of PL_qlf_put_atom().  Again, this mau \emph{only}
+be used in the context of a blob load() function.
+\end{description}
