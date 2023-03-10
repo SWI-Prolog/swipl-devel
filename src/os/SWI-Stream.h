@@ -483,13 +483,11 @@ PL_EXPORT(atom_t)	PL_encoding_to_atom(IOENC enc);
 #endif
 
 PL_EXPORT(int64_t)	PL_qlf_getInt64(IOSTREAM *);
-PL_EXPORT(int)		PL_qlf_getInt32(IOSTREAM *s);
 PL_EXPORT(unsigned int)	PL_qlf_getUInt(IOSTREAM *fd);
 PL_EXPORT(int)		PL_qlf_getInt(IOSTREAM *);
 PL_EXPORT(double)	PL_qlf_getFloat(IOSTREAM *);
 
 PL_EXPORT(void)		PL_qlf_putInt64(int64_t, IOSTREAM *);
-PL_EXPORT(void)		PL_qlf_putInt32(int32_t, IOSTREAM *);
 PL_EXPORT(void)		PL_qlf_putUInt(unsigned int i, IOSTREAM *fd);
 PL_EXPORT(void)		PL_qlf_putInt(int v, IOSTREAM *fd);
 PL_EXPORT(void)		PL_qlf_put_Float(double, IOSTREAM *);

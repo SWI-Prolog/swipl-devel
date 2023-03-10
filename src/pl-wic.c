@@ -682,8 +682,8 @@ PL_qlf_getFloat(IOSTREAM *fd)
 }
 
 
-int
-PL_qlf_getInt32(IOSTREAM *s)
+static int32_t
+qlfGetInt32(IOSTREAM *s)
 { int v;
 
   v  = (Sgetc(s) & 0xff) << 24;
@@ -2173,8 +2173,8 @@ PL_qlf_put_Float(double f, IOSTREAM *fd)
 }
 
 
-void
-PL_qlf_putInt32(int v, IOSTREAM *fd)
+static void
+qlfPutInt32(int v, IOSTREAM *fd)
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
@@ -3073,14 +3073,14 @@ writeSourceMarks(wic_state *state)
   { pn = pm->next;
 
     DEBUG(MSG_QLF_SECTION, Sdprintf(" %d", pm->file_index));
-    PL_qlf_putInt32(pm->file_index, state->wicFd);
+    qlfPutInt32(pm->file_index, state->wicFd);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   state->source_mark_head = state->source_mark_tail = NULL;
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("\nWritten %d marks\n", n));
-  PL_qlf_putInt32(n, state->wicFd);
+  qlfPutInt32(n, state->wicFd);
 
   return 0;
 }
@@ -3230,7 +3230,7 @@ qlfInfo(DECL_LD const char *file,
     { qlfError(&state, "seek to index failed: %s", OsError());
       goto out;
     }
-    if ( (nqlf = PL_qlf_getInt32(s)) < 0 )
+    if ( (nqlf = qlfGetInt32(s)) < 0 )
     { qlfError(&state, "invalid number of files (%d)", nqlf);
       goto out;
     }
@@ -3245,7 +3245,7 @@ qlfInfo(DECL_LD const char *file,
       goto out;
     }
     for(i=0; i<nqlf; i++)
-    { qlfstart[i] = (size_t)PL_qlf_getInt32(s);
+    { qlfstart[i] = (size_t)qlfGetInt32(s);
       DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
     }
     DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
