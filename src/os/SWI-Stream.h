@@ -482,15 +482,15 @@ PL_EXPORT(IOENC)	PL_atom_to_encoding(atom_t name);
 PL_EXPORT(atom_t)	PL_encoding_to_atom(IOENC enc);
 #endif
 
-PL_EXPORT(int64_t)	PL_qlf_getInt64(IOSTREAM *);
-PL_EXPORT(unsigned int)	PL_qlf_getUInt(IOSTREAM *fd);
-PL_EXPORT(int)		PL_qlf_getInt(IOSTREAM *);
-PL_EXPORT(double)	PL_qlf_getFloat(IOSTREAM *);
+PL_EXPORT(int64_t)	PL_qlf_get_int64(IOSTREAM *s);
+PL_EXPORT(int32_t)	PL_qlf_get_int32(IOSTREAM *s);
+PL_EXPORT(uint32_t)	PL_qlf_get_uint32(IOSTREAM *s);
+PL_EXPORT(double)	PL_qlf_get_double(IOSTREAM *s);
 
-PL_EXPORT(void)		PL_qlf_putInt64(int64_t, IOSTREAM *);
-PL_EXPORT(void)		PL_qlf_putUInt(unsigned int i, IOSTREAM *fd);
-PL_EXPORT(void)		PL_qlf_putInt(int v, IOSTREAM *fd);
-PL_EXPORT(void)		PL_qlf_put_Float(double, IOSTREAM *);
+PL_EXPORT(void)		PL_qlf_put_int64(int64_t i, IOSTREAM *s);
+PL_EXPORT(void)		PL_qlf_put_int32(int32_t i, IOSTREAM *s);
+PL_EXPORT(void)		PL_qlf_put_uint32(uint32_t i, IOSTREAM *s);
+PL_EXPORT(void)		PL_qlf_put_double(double f, IOSTREAM *s);
 
 
 #ifdef __cplusplus

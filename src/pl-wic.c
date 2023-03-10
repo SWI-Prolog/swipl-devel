@@ -437,7 +437,7 @@ char *
 qlfGetString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
-  size_t len = (size_t)PL_qlf_getInt64(fd);
+  size_t len = (size_t)PL_qlf_get_int64(fd);
   size_t i;
 
   if ( !length && len > PATH_MAX )
@@ -484,7 +484,7 @@ a buffer of wchar_t objects.
 
 void
 qlfGetStringW(IOSTREAM *fd, Buffer buf)
-{ size_t i, len = (size_t)PL_qlf_getInt64(fd);
+{ size_t i, len = (size_t)PL_qlf_get_int64(fd);
   IOENC oenc = fd->encoding;
 
   fd->encoding = ENC_UTF8;
@@ -516,7 +516,7 @@ static atom_t
 getAtom(IOSTREAM *fd, PL_blob_t *type)
 { char buf[1024];
   char *tmp, *s;
-  size_t len = PL_qlf_getInt(fd);
+  size_t len = PL_qlf_get_int64(fd);
   size_t i;
   atom_t a;
 
@@ -589,7 +589,7 @@ zigzag_decode(uint64_t n)
 
 
 int64_t
-PL_qlf_getInt64(IOSTREAM *fd)
+PL_qlf_get_int64(IOSTREAM *fd)
 { int c = Qgetc(fd);
 
   if ( c&0x80 )
@@ -617,9 +617,9 @@ PL_qlf_getInt64(IOSTREAM *fd)
 }
 
 
-int
-PL_qlf_getInt(IOSTREAM *fd)
-{ int64_t val = PL_qlf_getInt64(fd);
+int32_t
+PL_qlf_get_int32(IOSTREAM *fd)
+{ int64_t val = PL_qlf_get_int64(fd);
 
   return (int)val;
 }
@@ -747,11 +747,11 @@ loadXRc(DECL_LD wic_state *state, int c)
     }
     case XR_FUNCTOR:
     { atom_t name;
-      int arity;
+      size_t arity;
 
       id = ++state->XR->id;
       name = loadXR(state);
-      arity = PL_qlf_getInt(fd);
+      arity = (size_t)PL_qlf_get_int64(fd);
       xr = (word) lookupFunctorDef(name, arity);
       DEBUG(MSG_QLF_XR,
 	    Sdprintf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
@@ -779,7 +779,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       break;
     }
     case XR_INT:
-    { int64_t i = PL_qlf_getInt64(fd);
+    { int64_t i = PL_qlf_get_int64(fd);
       word w;
       int rc;
 
@@ -903,7 +903,7 @@ do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
   int c = Qgetc(fd);
 
   if ( c == 'v' )
-  { int id = PL_qlf_getInt(fd);
+  { int id = PL_qlf_get_int32(fd);
 
     if ( vars[id] )
     { return PL_unify(term, vars[id]);
@@ -955,7 +955,7 @@ loadQlfTerm(DECL_LD wic_state *state, term_t term)
 
   DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
-  if ( (nvars = PL_qlf_getInt(fd)) )
+  if ( (nvars = PL_qlf_get_int32(fd)) )
   { term_t *v;
     int n;
 
@@ -1088,7 +1088,7 @@ loadStatement(DECL_LD wic_state *state, int c, int skip)
 
 	source_file_name = (state->currentSource ? state->currentSource->name
 						 : NULL_ATOM);
-	source_line_no   = PL_qlf_getInt(fd);
+	source_line_no   = PL_qlf_get_int32(fd);
 
 	if ( !loadQlfTerm(state, goal) )
 	  return FALSE;
@@ -1389,7 +1389,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	    }
 	    case V_H_INTEGER:
 	    case V_B_INTEGER:
-	    { int64_t val = PL_qlf_getInt64(fd);
+	    { int64_t val = PL_qlf_get_int64(fd);
 	      word w = consInt(val);
 
 	      if ( valInt(w) == val )
@@ -1413,7 +1413,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      continue;
 	    }
 	    case V_A_INTEGER:
-	    { int64_t val = PL_qlf_getInt64(fd);
+	    { int64_t val = PL_qlf_get_int64(fd);
 
 #if SIZEOF_VOIDP == 8
 	      addCode(encode(A_INTEGER));
@@ -1494,15 +1494,15 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		break;
 	      }
 	      case CA1_INTEGER:
-		addCode((code)PL_qlf_getInt64(fd));
+		addCode((code)PL_qlf_get_int64(fd));
 		break;
 	      case CA1_VAR:
 	      case CA1_FVAR:
 	      case CA1_CHP:
-		addCode((code)OFFSET_VAR(PL_qlf_getInt64(fd)));
+		addCode((code)OFFSET_VAR(PL_qlf_get_int64(fd)));
 		break;
 	      case CA1_INT64:
-	      { int64_t val = PL_qlf_getInt64(fd);
+	      { int64_t val = PL_qlf_get_int64(fd);
 
 		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
 		break;
@@ -1514,7 +1514,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		break;
 	      }
 	      case CA1_STRING:		/* <n> chars */
-	      { size_t l = PL_qlf_getInt(fd);
+	      { size_t l = (size_t)PL_qlf_get_int64(fd);
 		int   c0 = Qgetc(fd);
 
 		if ( c0 == 'B' )
@@ -1575,7 +1575,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 #ifdef O_GMP
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
-	      { ssize_t hdrsize = PL_qlf_getInt64(fd);
+	      { ssize_t hdrsize = PL_qlf_get_int64(fd);
 		size_t wsize;
 		mpz_t mpz;
 		word m;
@@ -1596,8 +1596,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      }
 	      case CA1_MPQ:
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPQ from %ld\n", Stell(fd)));
-	      { ssize_t num_hdrsize = PL_qlf_getInt64(fd);
-		ssize_t den_hdrsize = PL_qlf_getInt64(fd);
+	      { ssize_t num_hdrsize = PL_qlf_get_int64(fd);
+		ssize_t den_hdrsize = PL_qlf_get_int64(fd);
 		size_t wsize, num_wsize, den_wsize;
 		mpz_t num;
 		mpz_t den;
@@ -1696,7 +1696,7 @@ runInitialization(SourceFile sf)
 static bool
 loadImport(DECL_LD wic_state *state, int skip)
 { Procedure proc = (Procedure) loadXR(state);
-  int flags = PL_qlf_getInt(state->wicFd);
+  int flags = PL_qlf_get_int32(state->wicFd);
 
   if ( !skip )
     return importDefinitionModule(LD->modules.source, proc->definition, flags);
@@ -1881,7 +1881,7 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
 	  int line;
 
 	  qlfLoadSource(state);
-	  line = PL_qlf_getInt(fd);
+	  line = PL_qlf_get_int32(fd);
 	  DEBUG(MSG_QLF_SECTION,
 		Sdprintf("\tSource = %s:%d\n",
 			 PL_atom_chars(state->currentSource->name), line));
@@ -1985,7 +1985,7 @@ loadInclude(DECL_LD wic_state *state)
 
   owner = loadXR(state);
   pn    = loadXR(state);
-  line  = PL_qlf_getInt(fd);
+  line  = PL_qlf_get_int32(fd);
   fn    = loadXR(state);
   time  = PL_qlf_getFloat(fd);
 
@@ -2032,7 +2032,7 @@ PL_qlf_putString(const char *s, size_t len, IOSTREAM *fd)
     len = strlen(s);
   e = &s[len];
 
-  PL_qlf_putInt64(len, fd);
+  PL_qlf_put_int64(len, fd);
   while(s<e)
   { Sputc(*s, fd);
     s++;
@@ -2067,7 +2067,7 @@ qlfPutStringW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
   chlen = len;
 #endif
 
-  PL_qlf_putInt64(chlen, fd);
+  PL_qlf_put_int64(chlen, fd);
   fd->encoding = ENC_UTF8;
   while(s<e)
   { int c;
@@ -2135,7 +2135,7 @@ putAtom(wic_state *state, atom_t w)
 
 
 void
-PL_qlf_putInt64(int64_t n, IOSTREAM *fd)
+PL_qlf_put_int64(int64_t n, IOSTREAM *fd)
 { uint64_t i = zigzag_encode(n);
 
   do
@@ -2182,8 +2182,8 @@ qlfPutInt32(int v, IOSTREAM *fd)
 }
 
 void
-PL_qlf_putInt(int v, IOSTREAM *fd)
-{ PL_qlf_putInt64(v, fd);
+PL_qlf_put_int32(int32_t v, IOSTREAM *fd)
+{ PL_qlf_put_int64(v, fd);
 }
 
 static void
@@ -2289,11 +2289,11 @@ saveXR(DECL_LD wic_state *state, word xr)
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
   { Sputc(XR_INT, fd);
-    PL_qlf_putInt64(valInt(xr), fd);
+    PL_qlf_put_int64(valInt(xr), fd);
     return;
   } else if ( isBignum(xr) )
   { Sputc(XR_INT, fd);
-    PL_qlf_putInt64(valBignum(xr), fd);
+    PL_qlf_put_int64(valBignum(xr), fd);
     return;
   } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
@@ -2394,7 +2394,7 @@ saveXRFunctor(DECL_LD wic_state *state, functor_t f)
 		 state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Sputc(XR_FUNCTOR, fd);
   saveXR(state, fdef->name);
-  PL_qlf_putInt64(fdef->arity, fd);
+  PL_qlf_put_int64(fdef->arity, fd);
 }
 
 
@@ -2451,7 +2451,7 @@ do_save_qlf_term(DECL_LD wic_state *state, Word t)
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
-      PL_qlf_putInt64(id, fd);
+      PL_qlf_put_int64(id, fd);
     } else
     { Word q = argTermP(*t, 0);
       int n, arity = arityFunctor(f);
@@ -2489,7 +2489,7 @@ saveQlfTerm(DECL_LD wic_state *state, term_t t)
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
   if ( (nvars = numberVars(t, &options, 0)) != NV_ERROR )
-  { PL_qlf_putInt64(nvars, fd);
+  { PL_qlf_put_int64(nvars, fd);
     do_save_qlf_term(state, valTermRef(t));	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
@@ -2605,7 +2605,7 @@ put_mpz_size(IOSTREAM *fd, mpz_t mpz, size_t *szp)
     hdrsize = (ssize_t)size;
 
   *szp = size;
-  PL_qlf_putInt64(hdrsize, fd);
+  PL_qlf_put_int64(hdrsize, fd);
 }
 
 static void
@@ -2702,7 +2702,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  v = (intptr_t)*bp++;
 	vh_int:
 	  PL_qlf_putUInt(V_H_INTEGER, fd);
-	  PL_qlf_putInt64(v, fd);
+	  PL_qlf_put_int64(v, fd);
 	  continue;
       }
       { int64_t v;
@@ -2721,7 +2721,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  v = (intptr_t)*bp++;
 	vb_int:
 	  PL_qlf_putUInt(V_B_INTEGER, fd);
-	  PL_qlf_putInt64(v, fd);
+	  PL_qlf_put_int64(v, fd);
 	  continue;
       }
       { int64_t v;
@@ -2739,7 +2739,7 @@ saveWicClause(wic_state *state, Clause clause)
 	va_int:
 #endif
 	  PL_qlf_putUInt(V_A_INTEGER, fd);
-	  PL_qlf_putInt64(v, fd);
+	  PL_qlf_put_int64(v, fd);
 	  continue;
       }
     }
@@ -2781,14 +2781,14 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_INTEGER:
-	{ PL_qlf_putInt64(*bp++, fd);
+	{ PL_qlf_put_int64(*bp++, fd);
 	  break;
 	}
 	case CA1_VAR:
 	case CA1_FVAR:
 	case CA1_CHP:
 	{ intptr_t var = *bp++;
-	  PL_qlf_putInt64(VAR_OFFSET(var), fd);
+	  PL_qlf_put_int64(VAR_OFFSET(var), fd);
 	  break;
 	}
 	case CA1_INT64:
@@ -2796,7 +2796,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  Word p = (Word)&val;
 
 	  cpInt64Data(p, bp);
-	  PL_qlf_putInt64(val, fd);
+	  PL_qlf_put_int64(val, fd);
 	  break;
 	}
 	case CA1_FLOAT:
@@ -2817,7 +2817,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  bp += wn;
 
 	  if ( *s == 'B' )
-	  { PL_qlf_putInt64(l, fd);
+	  { PL_qlf_put_int64(l, fd);
 	    while( l-- > 0 )
 	      Sputc(*s++&0xff, fd);
 	  } else
@@ -2828,7 +2828,7 @@ saveWicClause(wic_state *state, Clause clause)
 	    l /= sizeof(pl_wchar_t);
 	    l--;
 
-	    PL_qlf_putInt64(l, fd);
+	    PL_qlf_put_int64(l, fd);
 	    Sputc('W', fd);
 	    fd->encoding = ENC_UTF8;
 	    for( ; l-- > 0; w++)
@@ -2949,8 +2949,8 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  PL_qlf_putInt64(PL_QLF_VERSION, fd);
-  PL_qlf_putInt64(VM_SIGNATURE, fd);
+  PL_qlf_put_int64(PL_QLF_VERSION, fd);
+  PL_qlf_put_int64(VM_SIGNATURE, fd);
   if ( systemDefaults.home )
     PL_qlf_putString(systemDefaults.home, STR_NOLEN, fd);
   else
@@ -3011,7 +3011,7 @@ addDirectiveWic(DECL_LD wic_state *state, term_t term)
 
   closePredicateWic(state);
   Sputc('D', fd);
-  PL_qlf_putInt64(source_line_no, fd);
+  PL_qlf_put_int64(source_line_no, fd);
 
   return saveQlfTerm(state, term);
 }
@@ -3027,7 +3027,7 @@ importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc);
-  PL_qlf_putInt64(flags, state->wicFd);
+  PL_qlf_put_int64(flags, state->wicFd);
 
   succeed;
 }
@@ -3212,7 +3212,7 @@ qlfInfo(DECL_LD const char *file,
 	 !PL_unify_integer(fversion, lversion) )
       goto out;
 
-    vm_signature = PL_qlf_getInt(s);		/* TBD: provide to Prolog layer */
+    vm_signature = PL_qlf_get_int32(s);		/* TBD: provide to Prolog layer */
 
     if ( !PL_unify_integer(fsig, vm_signature) )
       goto out;
@@ -3352,8 +3352,8 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  PL_qlf_putInt64(PL_QLF_VERSION, state->wicFd);
-  PL_qlf_putInt64(VM_SIGNATURE, state->wicFd);
+  PL_qlf_put_int64(PL_QLF_VERSION, state->wicFd);
+  PL_qlf_put_int64(VM_SIGNATURE, state->wicFd);
 
   PL_qlf_putString(absname, STR_NOLEN, state->wicFd);
 
@@ -3393,7 +3393,7 @@ qlfVersion(wic_state *state, const char *exp_magic, int *vp)
        !streq(magic, exp_magic) )
     return qlfError(state, "Not a %s", exp_magic);
 
-  *vp = PL_qlf_getInt(s);
+  *vp = PL_qlf_get_int32(s);
 
   return TRUE;
 }
@@ -3507,7 +3507,7 @@ qlfIsCompatible(wic_state *state, const char *magic)
 		    lversion, PL_QLF_VERSION);
   state->saved_version = lversion;
 
-  vm_signature = PL_qlf_getInt(state->wicFd);
+  vm_signature = PL_qlf_get_int32(state->wicFd);
   if ( vm_signature != (int)VM_SIGNATURE )
     return qlfError(state, "incompatible VM-signature (file: 0x%x; Prolog: 0x%x)",
 		    (unsigned int)vm_signature, (unsigned int)VM_SIGNATURE);
@@ -3612,7 +3612,7 @@ qlfStartModule(DECL_LD wic_state *state, Module m)
 
   if ( m->file )
   { qlfSaveSource(state, m->file);
-    PL_qlf_putInt64(m->line_no, fd);
+    PL_qlf_put_int64(m->line_no, fd);
   } else
   { Sputc('-', fd);
   }
@@ -3773,7 +3773,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     Sputc('I', fd);
     saveXR(state, owner);
     saveXR(state, pn);
-    PL_qlf_putInt64(line, fd);
+    PL_qlf_put_int64(line, fd);
     saveXR(state, fn);
     PL_qlf_put_Float(time, fd);
 
