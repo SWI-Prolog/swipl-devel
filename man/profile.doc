@@ -8,10 +8,21 @@ information-gathering component built into the kernel,%
 		  setitimer() using the \const{SIGPROF} signal and one
 		  using Windows Multi Media (MM) timers. On other
 		  systems the profiler is not provided.}
-and a presentation component which is defined in the \pllib{statistics}
+and a presentation component which is defined in the \pllib{prolog_profile}
 library.  The latter can be hooked, which is used by the XPCE module
 \pllib{swi/pce_profile} to provide an interactive graphical
 frontend for the results.
+
+The information gathering component can be run in two modes, controllable using 
+the \const{ports} option. The first mode (\const{ports(false)}) minimizes the
+memory required to store the call tree, but only accumulates the the
+\emph{call} port count for each predicate. (See \secref{debugoverview} for more information
+on the Prolog "Byrd Box Model" or "4 Port Model".) This mode is most beneficial for long
+profiler sessions on running applications. The second mode (\const{ports(false)}
+accumulates correct counts on all four ports, but can require considerably more
+memory (code dependent) and is more suitable for performing more detailed analysis
+(performance tuning) on contained pieces of code, e.g., at the individual query level.
+(See \secref{profilegather} for more detail.)
 
 \subsection{Profiling predicates}
 \label{sec:profiling-predicates}
@@ -36,8 +47,27 @@ to show_profile/1.
 	\termitem{time}{+Which}
     If \arg{Which} is \const{cpu} (default), collect CPU timing
     statistics.  If \const{wall}, collect wall time statistics
-    based on a 5 millisecond sampling rate.  Wall time statistics
+    based on the specified sampling rate (see below).  Wall time statistics
     can be useful if \arg{Goal} calls blocking system calls.
+    \end{description}
+
+    \begin{description}
+	\termitem{ports}{+Bool}
+    If \const{true} counts on all ports will be accumulated at the possible
+    expense of added memory overhead. If \const{false} only the \emph{call} port
+    counts are accumulated but memory overhead is reduced in some situations.
+    If neither value is specified, the default is the "classic" view which
+    minimizes the use of memory but displays all port counts, some of which
+    may be incorrect (\emph{call} port counts are always correct).
+    \end{description}
+
+    \begin{description}
+	\termitem{sampling_rate}{+Rate}
+    \arg{Rate} is numeric value between 1 and 1000 specifying the number of
+    samples/sec. (default = 200) to be used when gathering timing information. 
+    Note that the accuracy of the timing results is largely independent of the 
+    sampling rate as long as a sufficient number of samples (code dependent)
+    are collected.
     \end{description}
 
     \predicate{show_profile}{1}{+Options}
@@ -144,12 +174,12 @@ While the program executes under the profiler, the system builds a
 kernel: one that starts a new goal (\emph{profCall}), one that tells the
 system which goal is resumed after an \emph{exit} (\emph{profExit}) and
 one that tells the system which goal is resumed after a \emph{fail}
-(i.e., which goal is used to \emph{retry} (\emph{profRedo})). The
-profCall() function finds or creates the subnode for the argument
+(i.e., which goal is used to \emph{retry} (\emph{profFail})).
+\emph{profCall()} finds or creates the subnode for the argument
 predicate below the current node, increments the call-count of this link
 and returns the sub-node which is recorded in the Prolog stack-frame.
-Choice-points are marked with the current profiling node. profExit() and
-profRedo() pass the profiling node where execution resumes.
+Choice-points are marked with the current profiling node. \emph{profExit()} and
+\emph{profFail()} pass the profiling node where execution resumes.
 
 Just using the above algorithm would create a much too big tree due to
 recursion. For this reason the system performs detection of recursion.
@@ -159,8 +189,9 @@ detected. For example, call/1 can call a predicate that uses call/1
 itself. This can be viewed as a recursive invocation, but this is
 generally not desirable. Recursion is currently assumed if the same
 predicate \emph{with the same parent} appears higher in the call-graph.
-Early experience with some non-trivial programs are
-promising.
+Acting on mutual recursion causes inaccuracies in the port counts for  
+\emph{profExit} and \emph{profFail} motivating the '\const{ports}' option
+of profile/2 to control which strategy is used for a profiling session.
 
 The last part of the profiler collects statistics on the CPU time
 used in each node. On systems providing setitimer() with
