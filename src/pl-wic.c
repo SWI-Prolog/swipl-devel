@@ -884,11 +884,39 @@ getBlob(DECL_LD wic_state *state)
 { PL_blob_t *type = (PL_blob_t*)loadXR(state);
 
   if ( type->load )
-  { return (*type->load)(state->wicFd);
+  { atom_t a;
+
+    LD->qlf.read_state = state;
+    a = (*type->load)(state->wicFd);
+    LD->qlf.read_state = NULL;
+
+    return a;
   } else
   { return getAtom(state->wicFd, type);
   }
 }
+
+
+atom_t
+PL_qlf_get_atom(IOSTREAM *s)
+{ GET_LD
+  word w;
+
+  if ( !LD->qlf.read_state || s != LD->qlf.read_state->wicFd )
+  { fatalError("PL_qlf_get_atom() can only be used "
+	       "from a blob load function (at index %ld)", Stell(s));
+    return (atom_t)0;
+  }
+
+  w = loadXR(LD->qlf.read_state);
+  if ( !isAtom(w) )
+  { fatalError("PL_qlf_get_atom(): atom expected at index %ld", Stell(s));
+    return (atom_t)0;
+  }
+
+  return w;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2134,6 +2162,21 @@ putAtom(wic_state *state, atom_t w)
 }
 
 
+int
+PL_qlf_put_atom(IOSTREAM *s, atom_t a)
+{ GET_LD
+
+  if ( !LD->qlf.write_state || s != LD->qlf.write_state->wicFd )
+  { fatalError("PL_qlf_put_atom() can only be used "
+	       "from a blob save function");
+    return FALSE;
+  }
+
+  putAtom(LD->qlf.write_state, a);
+  return TRUE;
+}
+
+
 void
 PL_qlf_put_int64(int64_t n, IOSTREAM *fd)
 { uint64_t i = zigzag_encode(n);
@@ -3376,7 +3419,7 @@ qlfClose(DECL_LD wic_state *state)
   }
   destroyXR(state);
 
-  LD->qlf.current_state = state->parent;
+  LD->qlf.write_state = state->parent;
   freeHeap(state, sizeof(*state));
 
   return rc == 0;
@@ -3690,7 +3733,7 @@ PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
@@ -3708,7 +3751,7 @@ PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
@@ -3726,7 +3769,7 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { atom_t a;
 
     if ( !PL_get_atom_ex(A1, &a) )
@@ -3745,7 +3788,7 @@ PRED_IMPL("$qlf_current_source", 1, qlf_current_source, 0)
   wic_state *state;
   SourceFile sf;
 
-  if ( (state=LD->qlf.current_state) &&
+  if ( (state=LD->qlf.write_state) &&
        (sf = state->currentSource) )
   { return PL_unify_atom(A1, sf->name);
   }
@@ -3767,7 +3810,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
        PL_get_integer_ex(A3, &line) &&
        PL_get_atom_ex(A4, &fn) &&
        PL_get_float(A5, &time) &&
-       (state=LD->qlf.current_state) )
+       (state=LD->qlf.write_state) )
   { IOSTREAM *fd = state->wicFd;
 
     Sputc('I', fd);
@@ -3789,7 +3832,7 @@ PRED_IMPL("$qlf_end_part", 0, qlf_end_part, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { return qlfEndPart(state);
   }
 
@@ -3803,8 +3846,8 @@ PRED_IMPL("$qlf_open", 1, qlf_open, 0)
   wic_state *state = qlfOpen(A1);
 
   if ( state )
-  { state->parent = LD->qlf.current_state;
-    LD->qlf.current_state = state;
+  { state->parent = LD->qlf.write_state;
+    LD->qlf.write_state = state;
 
     return TRUE;
   }
@@ -3818,7 +3861,7 @@ PRED_IMPL("$qlf_close", 0, qlf_close, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
     return qlfClose(state);
 
   succeed;
@@ -3912,8 +3955,8 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
     state->obfuscate = obfuscate;
     state->wicFd = fd;
     writeWicHeader(state);
-    state->parent = LD->qlf.current_state;
-    LD->qlf.current_state = state;
+    state->parent = LD->qlf.write_state;
+    LD->qlf.write_state = state;
 
     succeed;
   }
@@ -3928,10 +3971,10 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { writeWicTrailer(state);
 
-    LD->qlf.current_state = state->parent;
+    LD->qlf.write_state = state->parent;
     freeHeap(state, sizeof(*state));
 
     succeed;
@@ -3987,7 +4030,7 @@ PRED_IMPL("$map_id", 2, map_id, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { void *id_from, *id_to, *old;
 
     if ( !get_id(A1, &id_from) ||
@@ -4026,7 +4069,7 @@ PRED_IMPL("$unmap_id", 1, unmap_id, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { void *id_from;
 
     if ( !get_id(A1, &id_from) )
@@ -4045,7 +4088,7 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { Module m = MODULE_system;
     term_t term = PL_new_term_ref();
     term_t qterm = PL_new_term_ref();
@@ -4076,7 +4119,7 @@ PRED_IMPL("$import_wic", 3, import_wic, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { Module m = NULL;
     functor_t fd;
     atom_t strength;
@@ -4101,7 +4144,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=LD->qlf.current_state) )
+  if ( (state=LD->qlf.write_state) )
   { Clause clause;
     atom_t sclass;
 
@@ -4356,7 +4399,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM);
   PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
-  LD->qlf.current_state = state; /* make Prolog compilation go into state */
+  LD->qlf.write_state = state; /* make Prolog compilation go into state */
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
       break;
@@ -4372,7 +4415,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   if ( rc )
     rc = writeWicTrailer(state);
 
-  LD->qlf.current_state = NULL;
+  LD->qlf.write_state = NULL;
   freeHeap(state, sizeof(*state));
 
   return rc;
@@ -4389,7 +4432,7 @@ qlfCleanup(void)
   wic_state *state;
   char *buf;
 
-  while ( (state=LD->qlf.current_state) )
+  while ( (state=LD->qlf.write_state) )
   { if ( state->mkWicFile )
     { if ( !printMessage(ATOM_warning,
 			 PL_FUNCTOR_CHARS, "qlf", 1,
@@ -4401,7 +4444,7 @@ qlfCleanup(void)
       state->mkWicFile = NULL;
     }
 
-    LD->qlf.current_state = state->parent;
+    LD->qlf.write_state = state->parent;
     freeHeap(state, sizeof(*state));
   }
 

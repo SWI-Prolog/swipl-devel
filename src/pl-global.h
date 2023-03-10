@@ -514,7 +514,8 @@ struct PL_local_data
   struct
   { char       *getstr_buffer;		/* getString() buffer */
     size_t	getstr_buffer_size;	/* size of getstr_buffer */
-    struct wic_state *current_state;	/* qlf-creation state */
+    struct wic_state *write_state;	/* qlf-write state */
+    struct wic_state *read_state;	/* qlf-read state */
   } qlf;
 
   struct

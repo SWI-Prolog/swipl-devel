@@ -159,6 +159,10 @@ typedef struct recursiveMutex IOLOCK;
 #define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
 #endif
+#ifndef PL_HAVE_ATOM_T
+#define PL_HAVE_ATOM_T
+typedef uintptr_t	atom_t;		/* opaque handle to an atom */
+#endif
 
 typedef struct io_functions
 { Sread_function	read;		/* fill the buffer */
@@ -486,11 +490,13 @@ PL_EXPORT(int64_t)	PL_qlf_get_int64(IOSTREAM *s);
 PL_EXPORT(int32_t)	PL_qlf_get_int32(IOSTREAM *s);
 PL_EXPORT(uint32_t)	PL_qlf_get_uint32(IOSTREAM *s);
 PL_EXPORT(double)	PL_qlf_get_double(IOSTREAM *s);
+PL_EXPORT(atom_t)	PL_qlf_get_atom(IOSTREAM *s);
 
 PL_EXPORT(void)		PL_qlf_put_int64(int64_t i, IOSTREAM *s);
 PL_EXPORT(void)		PL_qlf_put_int32(int32_t i, IOSTREAM *s);
 PL_EXPORT(void)		PL_qlf_put_uint32(uint32_t i, IOSTREAM *s);
 PL_EXPORT(void)		PL_qlf_put_double(double f, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_atom(IOSTREAM *s, atom_t a);
 
 
 #ifdef __cplusplus

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2022, University of Amsterdam
+    Copyright (c)  2008-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -180,7 +180,10 @@ be relied upon to remain unchanged across versions.
 		 *******************************/
 
 typedef uintptr_t	_PLQ(word);	/* Anonymous ptr-sized object*/
-typedef _PLQ(word)	atom_t;		/* Prolog atom */
+#ifndef PL_HAVE_ATOM_T
+#define PL_HAVE_ATOM_T
+typedef uintptr_t	atom_t;		/* Prolog atom */
+#endif
 typedef _PLQ(word)	functor_t;	/* Name/arity pair */
 typedef uintptr_t	_PLQ(code);	/* Prolog bytecode type */
 typedef _PLS(module) *	module_t;	/* Prolog module */
