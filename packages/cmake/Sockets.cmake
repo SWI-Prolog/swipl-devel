@@ -1,7 +1,7 @@
 include(CheckTypeSize)
 
 if(WIN32)
-  set(SOCKET_LIBRARIES ws2_32.lib gdi32.lib)
+  set(SOCKET_LIBRARIES gdi32.lib ws2_32.lib)
   set(HAVE_SOCKET 1)
 else()
   check_library_exists(socket    socket      "" HAVE_LIBSOCKET)
