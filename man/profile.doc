@@ -15,10 +15,10 @@ frontend for the results.
 
 The information gathering component can be run in two modes, controllable using 
 the \const{ports} option. The first mode (\const{ports(false)}) minimizes the
-memory required to store the call tree, but only accumulates the the
+memory required to store the call tree, but only accumulates the
 \emph{call} port count for each predicate. (See \secref{debugoverview} for more information
 on the Prolog "Byrd Box Model" or "4 Port Model".) This mode is most beneficial for long
-profiler sessions on running applications. The second mode (\const{ports(false)}
+profiler sessions on running applications. The second mode (\const{ports(true)})
 accumulates correct counts on all four ports, but can require considerably more
 memory (code dependent) and is more suitable for performing more detailed analysis
 (performance tuning) on contained pieces of code, e.g., at the individual query level.
@@ -63,7 +63,7 @@ to show_profile/1.
 
     \begin{description}
 	\termitem{sampling_rate}{+Rate}
-    \arg{Rate} is numeric value between 1 and 1000 specifying the number of
+    \arg{Rate} is a numeric value between 1 and 1000 specifying the number of
     samples/sec. (default = 200) to be used when gathering timing information. 
     Note that the accuracy of the timing results is largely independent of the 
     sampling rate as long as a sufficient number of samples (code dependent)
