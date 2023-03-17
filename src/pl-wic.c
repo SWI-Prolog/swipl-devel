@@ -3378,6 +3378,10 @@ qlfClose(DECL_LD wic_state *state)
   writeSourceMarks(state);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
+  if ( state->wicFile )
+  { remove_string(state->wicFile);
+    state->wicFile = NULL;
+  }
   if ( state->mkWicFile )
   { remove_string(state->mkWicFile);
     state->mkWicFile = NULL;
