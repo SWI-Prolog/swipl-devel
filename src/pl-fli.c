@@ -607,6 +607,15 @@ PL_new_atom_mbchars(int flags, size_t len, const char *s)
 }
 
 
+atom_t
+PL_new_blob(void *blob, size_t len, PL_blob_t *type)
+{ if ( !GD->initialised )
+    initAtoms();
+
+  int new;
+  return (atom_t)lookupBlob(blob, len, type, &new);
+}
+
 
 functor_t
 PL_new_functor_sz(atom_t f, size_t arity)

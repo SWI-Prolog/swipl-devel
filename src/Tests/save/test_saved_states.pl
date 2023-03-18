@@ -68,7 +68,7 @@ has_foreign_lib(Lib) :-
 
 /** <module> Test saved states
 
-This moduele tests the saved state generation capabilities.
+This module tests the saved state generation capabilities.
 */
 
 test_saved_states :-
@@ -249,5 +249,3 @@ test_saved_states :-
 	format(user_error, 'Skipped saved state tests; requires clib~n', []).
 
 :- endif.
-
-

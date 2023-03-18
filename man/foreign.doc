@@ -1864,11 +1864,17 @@ and PL_rewind_foreign_frame(), as shown in the snippet below.
 	  return FALSE;
 	}
         PL_rewind_foreign_frame(fid);
+      }
       ...
 
       PL_close_foreign_frame(fid);
     }
 \end{code}
+
+This code is only needed if the foreign predicate does not return
+immediately to Prolog when PL_unify() fails - there is an implicit
+frame around the entire predicate, and returning \const{FALSE}
+undoes all bindings when that frame is closed.
 
 
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
@@ -2615,9 +2621,9 @@ not provided (that is, the field is \const{NULL}), the default
 implementation saves and restores the blob as if it is an array
 of bytes which may contain null (\exam{'\\0'}) bytes.
 
-\file{SWI-Stream.h} defines a number of PL_qlf_put*() functions
+\file{SWI-Stream.h} defines a number of PL_qlf_put_*() functions
 that write data in a machine-independent form that can be read
-by the corresponding PL_qlf_get*() functions.
+by the corresponding PL_qlf_get_*() functions.
 
 If the ``save'' function encounters an error, it should call
 PL_warning(), raise an exception (see PL_raise_exception()), and
@@ -2638,9 +2644,12 @@ function.} If a ``load'' function is not provided (that is, the field
 is \const{NULL}, the default implementation assumes that the blob was
 written by the default ``save'' - that is, as an array of bytes
 
-\file{SWI-Stream.h} defines a number of PL_qlf_get*() functions
+\file{SWI-Stream.h} defines a number of PL_qlf_get_*() functions
 that read data in a machine-independent form, as written by the
-by the corresponding PL_qlf_put*() functions.
+by the corresponding PL_qlf_put_*() functions.
+
+The atom that the ``load'' function returns can be created using
+PL_new_blob().
 
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
@@ -2652,6 +2661,28 @@ intended for the uninstall() hook of foreign modules, avoiding further
 references to the module.
 \end{description}
 
+\subsubsection{Unit testing BLOB save/load functions}
+\label{sec:blob-test}
+
+A blob's ``save'' function must run in the context of using
+save_program/2 or qcompile/2; and the ``load'' function must be in the
+context of load_files/2 or similar (consult/1, etc.). To create this
+context for a unit test, you can use qcompile/2 and load_files/2.
+
+One way of doing this is to make a small \file{test_my_blob.pl} file
+that contains something like this:
+
+\begin{code}
+user:goal_expansion(make_my_blob(Blob), true) :-
+    make_my_blob(..., Blob).
+
+get_my_blob(Blob) :-
+    make_my_blob(..., Blob).
+\end{code}
+
+You can then use qcompile/2 to compile this file (which uses the
+blob's ``save'' function) and then load the resulting \file{.qlf} file
+using load_files/2 (which uses the blob's ``load'' function).
 
 \subsubsection{Accessing blobs}
 \label{sec:blobaccess}
@@ -2703,6 +2734,10 @@ deal with external objects having their own reference counts.  If the
 return is \const{TRUE} this reference count must be incremented, and it
 must be decremented on blob destruction callback.  See also
 PL_put_atom_nchars().
+
+    \cfunction{atom_t}{PL_new_blob}{void *blob, size_t len, PL_blob_t *type}
+Create a blob from its internal opaque form. This function
+is intended for the ``load'' function of a blob.
 
     \cfunction{int}{PL_get_blob}{term_t t, void **blob, size_t *len,
 				 PL_blob_t **type}
@@ -5280,7 +5315,7 @@ unallocated memory.
 % cd build.sanitize
 % cmake -G Ninja -DCMAKE_BUILD_TYPE=Sanitize ..
 % ninja
-% ASAN_OPTIONS=detect_leaks=1 build.sanitize/src/swipl
+% ASAN_OPTIONS=detect_leaks=1:allocator_may_return_null=1:detect_stack_use_after_return=1 build.sanitize/src/swipl
 <prolog interaction>
 % halt
 Running LSAN memory leak check (reclaim_memory=1)

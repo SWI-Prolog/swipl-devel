@@ -730,6 +730,7 @@ typedef struct PL_blob_t
 PL_EXPORT(int)		PL_is_blob(term_t t, PL_blob_t **type);
 PL_EXPORT(int)		PL_unify_blob(term_t t, void *blob, size_t len,
 				      PL_blob_t *type);
+PL_EXPORT(atom_t)	PL_new_blob(void *blob, size_t len, PL_blob_t *type);
 PL_EXPORT(int)		PL_put_blob(term_t t, void *blob, size_t len,
 				    PL_blob_t *type);
 PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, size_t *len,

@@ -835,11 +835,16 @@ be hard coded.
 The functions in this sections are intended to support \jargon{blobs} to
 define save() and load() functions so they can be part of a saved state
 or \fileext{qlf} file. The matching pair of functions is guaranteed to
-give the same result, regardless of byte ordering (bit or little
-endian). The user shall not make any assumptions on the exact data
+give the same result, regardless of byte ordering (big or little
+endian). The user must not make any assumptions on the exact data
 format used for storing the data.  The atom read/write functions can
 only be used from the blob callback functions.
 
+For saving an uninterpreted array of bytes, it is suggested that the
+length is output as a \ctype{size_t} value using PL_qlf_put_uint32()
+followed by the bytes using Sfwrite(); and for loading, the length is
+read using PL_qlf_get_uint32(), a buffer is allocated, and the bytes
+are read using Sfread().
 
 \begin{description}
     \cfunction{int}{PL_qlf_put_int64}{int64_t i, IOSTREAM *s}
@@ -849,7 +854,7 @@ only be used from the blob callback functions.
     \cfunction{int}{PL_qlf_put_uint32}{uint32 i, IOSTREAM *s}
 Write integers of several sizes. Signed integers are written in
 \jargon{zigzag} encoding. For unsigned integers we only write the
-non-zero bytes.  The result is compact and independent for big
+non-zero bytes.  The result is compact and the same for big
 or little endian.
 
     \cfunction{int}{PL_qlf_put_double}{double f, IOSTREAM *s}
