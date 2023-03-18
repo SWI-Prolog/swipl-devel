@@ -870,6 +870,6 @@ another context results in a fatal error.
 Counterparts of corresponding PL_qlf_put_*() functions.
 
     \cfunction{int}{PL_qlf_get_atom}{IOSTREAM *s, atom_t *ap}
-Counterpart of PL_qlf_put_atom().  Again, this mau \emph{only}
+Counterpart of PL_qlf_put_atom().  Again, this may \emph{only}
 be used in the context of a blob load() function.
 \end{description}
