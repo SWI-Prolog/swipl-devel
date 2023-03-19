@@ -47,6 +47,14 @@ if(CMAKE_COMPILER_IS_GNUCC)
       "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
+      # See: https://github.com/google/sanitizers/issues/934
+      #   The C++ tests require LD_PRELOAD="/lib/x86_64-linux-gnu/libasan.so.6:libstdc++.so
+      #   or similar (depending on your system).
+      # TODO: it would be better if this could be done in the link step.
+      # See: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags
+      # TODO: enable these defaults in ctest:
+      #       ASAN_OPTIONS=detect_leaks=1:allocator_may_return_null=1:detect_stack_use_after_return=1
+      # TODO: -fsanitize-address-use-after-scope -fsanitize=leak -fsanitize=undefined
       "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)

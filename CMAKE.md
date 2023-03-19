@@ -335,7 +335,7 @@ By   default,   memory   leak   checking   is   disabled   by   defining
 `__asan_default_options()` in `pl-main.c`. Leak checking  may be enabled
 by setting `ASAN_OPTIONS`:
 
-    % ASAN_OPTIONS=detect_leaks=1 src/swipl ...
+    % ASAN_OPTIONS=detect_leaks=1:allocator_may_return_null=1:detect_stack_use_after_return=1 src/swipl ...
 
 This option also causes Prolog  __not__   to  unload foreign extensions,
 which is needed to  make  ASAN   properly  report  locations  in foreign
