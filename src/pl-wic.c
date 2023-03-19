@@ -59,6 +59,24 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <limits.h>
+
+#if INT_MAX != 0x7fffffff
+  #error "Unexpected value for INT_MAX"
+#endif
+#if LONG_MAX == 0x7fffffffffffffff
+  #if SIZE_MAX != 0xffffffffffffffff
+  #error "Unexpected value for SIZE_MAX"
+  #endif
+#elif LONG_MAX == 0x7fffffff
+  #if SIZE_MAX == 0xffffffffffffffff || SIZE_MAX == 0xffffffff
+  #else
+    #error "Unexpected value for SIZE_MAX"
+  #endif
+#else
+  #error "Unexpected value for LONG_MAX"
+#endif
+
 
 #ifdef O_DEBUG
 #define Qgetc(s) Sgetc(s)
@@ -314,6 +332,10 @@ static void	popPathTranslation(wic_state *state);
 static int	qlfIsCompatible(wic_state *state, const char *magic);
 static void	qlfPutInt64(int64_t len, IOSTREAM *fd);
 static int64_t	qlfGetInt64(IOSTREAM *fd);
+static int32_t	qlfGet4BytesInt(IOSTREAM *s);
+static void	qlfPut4BytesInt(int32_t v, IOSTREAM *fd);
+static unsigned int qlfGetUInt32(IOSTREAM *fd);
+static void	qlfPutUInt32(uint32_t i, IOSTREAM *fd);
 
 #undef LDFUNC_DECLARATIONS
 

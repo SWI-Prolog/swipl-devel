@@ -3624,7 +3624,7 @@ compatibility with older records.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase_external() is called on it.   Currently aborts the
     process with a \jargon{fatal error} on failure. Future versions may
-    raise a resource exception and return \exam{(record_t)0}.
+    raise a resource exception and return \exam{(char*)0}.
 
     It is allowed to copy the data and use PL_recorded_external() on
     the copy.  The user is responsible for the memory management of
