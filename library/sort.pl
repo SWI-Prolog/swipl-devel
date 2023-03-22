@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2012, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2006-2023, University of Amsterdam
+                              VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,7 +53,9 @@
 %   low-level primitives and is considerably faster).
 %
 %   @see keysort/2 provides an more portable way to sort on
-%   arbitrary keys that is usually faster.
+%   arbitrary keys that is usually faster.  The predicate sort/4
+%   can sort on specific arguments of compound terms or key values
+%   of dicts.
 
 predsort(P, L, R) :-
     '$skip_list'(N, L, Tail),
