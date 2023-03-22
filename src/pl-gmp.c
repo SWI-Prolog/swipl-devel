@@ -1078,12 +1078,6 @@ initGMP(void)
     initBF();
 #endif
 
-#ifdef O_MY_GMP_ALLOC
-    if ( !GD->gmp.keep_alloc_functions )
-    { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
-      mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
-    }
-#endif
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
@@ -1092,6 +1086,12 @@ initGMP(void)
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
     mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
+#endif
+#ifdef O_MY_GMP_ALLOC
+    if ( !GD->gmp.keep_alloc_functions )
+    { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
+      mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+    }
 #endif
 
 #if O_GMP
