@@ -4456,7 +4456,7 @@ PL_qlf_put_double(double f, IOSTREAM *s)
 
 
 int
-PL_qlf_put_atom(IOSTREAM *s, atom_t a)
+PL_qlf_put_atom(atom_t a, IOSTREAM *s)
 { GET_LD
 
   if ( !LD->qlf.write_state || s != LD->qlf.write_state->wicFd )
