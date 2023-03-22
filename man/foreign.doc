@@ -2704,6 +2704,10 @@ return is \const{TRUE} this reference count must be incremented, and it
 must be decremented on blob destruction callback.  See also
 PL_put_atom_nchars().
 
+    \cfunction{atom_t}{PL_new_blob}{void *blob, size_t len, PL_blob_t *type}
+Create a blob from its internal opaque form. This function
+is intended for the ``load'' function of a blob.
+
     \cfunction{int}{PL_get_blob}{term_t t, void **blob, size_t *len,
 				 PL_blob_t **type}
 If \arg{t} holds a blob or atom, get the data and type and return
