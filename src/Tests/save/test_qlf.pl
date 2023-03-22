@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2023, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+		CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,8 @@
           [ test_qlf/0
           ]).
 :- use_module(library(plunit)).
+:- use_module(library(filesex), [directory_file_path/3]).
+:- use_module(library(debug), [assertion/1]).
 
 test_qlf :-
     run_tests([ qlf
@@ -55,15 +57,20 @@ file_path(File, Path) :-
 % Note that ['$qlf'(Qlf)] is an undocumented way  to save the file in an
 % explicit location.
 
-test(unicode, Found =@= Expected) :-
+test(unicode,
+     [ Found =@= Expected,
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
     file_path('input/unicode', In),
     file_base_name(In, Base),
     file_name_extension(Base, qlf, QlfFile),
     current_prolog_flag(tmp_dir, Tmp),
     directory_file_path(Tmp, QlfFile, Qlf),
+    catch(delete_file(Qlf), _, true),
     load_files(In, ['$qlf'(Qlf)]),
     findall(Data, data(Data), Expected),
-    abolish(data/1),
+    unload_file(In),
+    assertion(\+ current_predicate(data/1)),
     consult(Qlf),
     findall(Data, data(Data), Found).
 
