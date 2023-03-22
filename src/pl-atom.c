@@ -1576,7 +1576,8 @@ exitAtoms(int status, void *context)
 
 void
 do_init_atoms(void)
-{ PL_LOCK(L_INIT_ATOMS);
+{ initPrologThreads();
+  PL_LOCK(L_INIT_ATOMS);
   if ( !GD->atoms.initialised )			/* Atom hash table */
   { GD->atoms.table = allocHeapOrHalt(sizeof(*GD->atoms.table));
     GD->atoms.table->buckets = ATOMHASHSIZE;
