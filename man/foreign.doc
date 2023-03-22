@@ -1864,11 +1864,17 @@ and PL_rewind_foreign_frame(), as shown in the snippet below.
 	  return FALSE;
 	}
         PL_rewind_foreign_frame(fid);
+      }
       ...
 
       PL_close_foreign_frame(fid);
     }
 \end{code}
+
+This code is only needed if the foreign predicate does not return
+immediately to Prolog when PL_unify() fails - there is an implicit
+frame around the entire predicate, and returning \const{FALSE}
+undoes all bindings when that frame is closed.
 
 
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
@@ -2615,9 +2621,9 @@ not provided (that is, the field is \const{NULL}), the default
 implementation saves and restores the blob as if it is an array
 of bytes which may contain null (\exam{'\\0'}) bytes.
 
-\file{SWI-Stream.h} defines a number of PL_qlf_put*() functions
+\file{SWI-Stream.h} defines a number of PL_qlf_put_*() functions
 that write data in a machine-independent form that can be read
-by the corresponding PL_qlf_get*() functions.
+by the corresponding PL_qlf_get_*() functions.
 
 If the ``save'' function encounters an error, it should call
 PL_warning(), raise an exception (see PL_raise_exception()), and
@@ -2638,9 +2644,12 @@ function.} If a ``load'' function is not provided (that is, the field
 is \const{NULL}, the default implementation assumes that the blob was
 written by the default ``save'' - that is, as an array of bytes
 
-\file{SWI-Stream.h} defines a number of PL_qlf_get*() functions
+\file{SWI-Stream.h} defines a number of PL_qlf_get_*() functions
 that read data in a machine-independent form, as written by the
-by the corresponding PL_qlf_put*() functions.
+by the corresponding PL_qlf_put_*() functions.
+
+The atom that the ``load'' function returns can be created using
+PL_new_blob().
 
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
@@ -3593,7 +3602,7 @@ compatibility with older records.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase_external() is called on it.   Currently aborts the
     process with a \jargon{fatal error} on failure. Future versions may
-    raise a resource exception and return \exam{(record_t)0}.
+    raise a resource exception and return \exam{(char*)0}.
 
     It is allowed to copy the data and use PL_recorded_external() on
     the copy.  The user is responsible for the memory management of
