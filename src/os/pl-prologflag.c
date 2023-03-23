@@ -1755,8 +1755,9 @@ setArgvPrologFlag(const char *flag, int argc, char **argv)
   PL_put_nil(l);
   for(n=argc-1; n>= 0; n--)
   { PL_put_variable(e);
-    if ( !PL_unify_chars(e, PL_ATOM|REP_FN, -1, argv[n]) ||
-	 !PL_cons_list(l, e, l) )
+    if ( !PL_unify_chars(e, PL_ATOM|REP_FN, (size_t)-1, argv[n]) )
+      fatalError("Could not set Prolog flag argv:\n\tcurrent locale cannot represent argv[%d] (%s)", n, argv[n]);
+    if ( !PL_cons_list(l, e, l) )
       fatalError("Could not set Prolog flag argv: not enough stack");
   }
 
