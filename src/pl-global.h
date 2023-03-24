@@ -156,10 +156,10 @@ struct PL_global_data
       int	destroyed;		/* # destroyed hash tables */
     } indexes;
 #ifdef O_ENGINES
-    int		engines_created;	/* # engines created */
-    int		engines_finished;	/* # engines threads */
-    int		threads_created;	/* # threads created */
-    int		threads_finished;	/* # finished threads */
+    uint64_t	engines_created;	/* # engines created */
+    uint64_t	engines_finished;	/* # engines threads */
+    uint64_t	threads_created;	/* # threads created */
+    uint64_t	threads_finished;	/* # finished threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
     int		errors;			/* Printed error messages */
