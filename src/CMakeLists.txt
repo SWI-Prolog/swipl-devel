@@ -475,15 +475,18 @@ if (PGO_SUFFIX)
   return()
 endif()
 
+if(STATIC_EXTENSIONS)
+  set(SWIPL_INSTALLED_LIBRARIES)
+else()
+  set(SWIPL_INSTALLED_LIBRARIES libswipl)
+endif()
 
 # If the default is shared, also build a static library
 
 if(LIBSWIPL_TYPE STREQUAL "SHARED" AND SWIPL_STATIC_LIB)
-add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
-libswipl_properties(libswipl_static swipl_static)
-set(STATIC_LIB libswipl_static)
-else()
-set(STATIC_LIB)
+  add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
+  libswipl_properties(libswipl_static swipl_static)
+  list(APPEND SWIPL_INSTALLED_LIBRARIES libswipl_static)
 endif()
 
 if(BUILD_SWIPL_LD)
@@ -634,7 +637,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl ${STATIC_LIB} EXPORT SWIPL_EXPORT
+install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
