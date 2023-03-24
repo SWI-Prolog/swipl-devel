@@ -774,6 +774,15 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
     freeThreadSignals(ld);
     time = info->is_engine ? 0.0 : ThreadCPUTime(PASS_AS_LD(ld) CPU_USER);
+    info->statistics.cputime = time;
+    info->statistics.inferences = ld->statistics.inferences;
+
+    PL_local_data_t *ldcreator;
+    if ( ld->thread.creator && (ldcreator = acquire_ldata(ld->thread.creator)) )
+    { if ( ldcreator->thread.seq_id == ld->thread.creator_seq_id )
+	info->joined_by_creator = TRUE;
+      release_ldata(ldcreator);
+    }
 
     if ( !after_fork )
     { PL_LOCK(L_THREAD);
@@ -1595,7 +1604,7 @@ alloc_thread(void)
     GD->thread.highest_id = info->pl_tid;
   PL_UNLOCK(L_THREAD);
 
-  ATOMIC_INC(&GD->statistics.threads_created);
+  ld->thread.seq_id = ATOMIC_INC(&GD->statistics.threads_created);
 
   return info;
 }
@@ -2144,6 +2153,8 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   }
 #ifdef O_PLMT
   ldnew->thread.waiting_for = NULL;
+  ldnew->thread.creator = NULL;
+  ldnew->thread.child_cputime = 0.0;
 #endif
   init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
@@ -2304,6 +2315,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->goal = PL_record(goal);
   info->module = PL_context();
   copy_local_data(ldnew, ldold, queue_max_size);
+  ldnew->thread.creator = ldold->thread.info;
+  ldnew->thread.creator_seq_id = ldold->thread.seq_id;
   if ( at_exit )
     register_event_hook(&ldnew->event.hook.onthreadexit, 0, FALSE, at_exit, 0);
 
@@ -2721,6 +2734,11 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   { rval = unify_thread_status(retcode, info, status, FALSE);
 
     info->joining_by = 0;
+    if ( info->joined_by_creator ) /* that was (thus) me */
+    { LD->thread.child_cputime    += info->statistics.cputime;
+      LD->thread.child_inferences += info->statistics.inferences;
+    }
+
     free_thread_info(info);
   } else
   { info->joining_by = 0;		/* Cannot happen anymore (I think) */

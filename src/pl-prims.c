@@ -5598,17 +5598,17 @@ qp_statistics(DECL_LD atom_t key, int64_t v[])
 		      LD->gc.stats.totals.time -
 		      GD->atoms.gc_time) * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
-    LD->statistics.last_cputime = (intptr_t)v[0];
+    LD->statistics.last_cputime = v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
   { v[0] = (int64_t)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
-    LD->statistics.last_systime = (intptr_t)v[0];
+    LD->statistics.last_systime = v[0];
     vn = 2;
   } else if ( key == ATOM_real_time )
   { v[0] = (int64_t)WallTime();
     v[1] = v[0] - LD->statistics.last_real_time;
-    LD->statistics.last_real_time = (intptr_t)v[0];
+    LD->statistics.last_real_time = v[0];
     vn = 2;
   } else if ( key == ATOM_walltime )
   { double wt = WallTime();
@@ -5691,19 +5691,33 @@ qp_statistics(DECL_LD atom_t key, int64_t v[])
 
 #endif /*QP_STATISTICS*/
 
+#ifdef O_PLMT
+#define SUBTHREAD_TIME()	(LD->thread.child_cputime)
+#define SUBTHREAD_INFERENCES()	(LD->thread.child_inferences)
+#else
+#define SUBTHREAD_TIME()	(0)
+#define SUBTHREAD_INFERENCES()	(0)
+#endif
+
 #define swi_statistics(key, v) LDFUNC(swi_statistics, key, v)
+
 static int
 swi_statistics(DECL_LD atom_t key, Number v)
 { v->type = V_INTEGER;			/* most of them */
 
-  if      (key == ATOM_cputime)				/* time */
+  if      (key == ATOM_self_cputime)			/* time */
   { v->type = V_FLOAT;
     v->value.f = LD->statistics.user_cputime;
+  } else if (key == ATOM_cputime)			/* time */
+  { v->type = V_FLOAT;
+    v->value.f = LD->statistics.user_cputime + SUBTHREAD_TIME();
   } else if (key == ATOM_process_cputime)		/* time */
   { v->type = V_FLOAT;
     v->value.f = GD->statistics.user_cputime;
-  } else if (key == ATOM_inferences)			/* inferences */
+  } else if (key == ATOM_self_inferences)		/* inferences */
     v->value.i = LD->statistics.inferences;
+  else if (key == ATOM_inferences)			/* inferences */
+    v->value.i = LD->statistics.inferences + SUBTHREAD_INFERENCES();
   else if (key == ATOM_stack)
     v->value.i = GD->statistics.stack_space;
   else if (key == ATOM_stack_limit)
@@ -5752,10 +5766,6 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_collected)
     v->value.i = LD->gc.stats.totals.trail_gained +
 		 LD->gc.stats.totals.global_gained;
-#ifdef HAVE_BOEHM_GC
-  else if ( key == ATOM_heap_gc )
-    v->value.i = GC_get_gc_no();
-#endif
   else if (key == ATOM_heapused)			/* heap usage */
     v->value.i = programSpace();
 #ifdef O_ATOMGC
@@ -5768,7 +5778,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
     v->value.f = GD->atoms.gc_time;
   }
 #endif
-#ifdef O_ATOMGC
+#ifdef O_CLAUSEGC
   else if (key == ATOM_cgc)
     v->value.i = GD->clauses.cgc_count;
   else if (key == ATOM_cgc_gained)

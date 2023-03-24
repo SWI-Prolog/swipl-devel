@@ -11501,6 +11501,14 @@ that order of preference). On Windows GetProcessTimes() is used.
 Both clock_gettime() and GetProcessTimes() provide a nanosecond
 resolution interface.  The actual resolution depends on the platform.
 
+Starting with version 9.1.9, the \const{cputime} and \const{inferences}
+keys include the final value for threads that have been created by the
+calling thread \emph{and} has been \jargon{joined} by the calling
+thread. The new keys \const{self_cputime} and \const{self_inferences}
+may be used to get statistics for the calling thread only. Both keys
+also exist in the single threaded version, where the ``self'' key
+always returns the same value as the onle without ``self''.
+
 \begin{table}
 \begin{center}
 \begin{tabular}{|l|p{\linewidth-35mm}|}
@@ -11518,7 +11526,9 @@ cgc_gained	& Number of clauses reclaimed \\
 cgc_time	& Time spent in clause garbage collections \\
 clauses         & Total number of clauses in the program \\
 codes           & Total size of (virtual) executable code in words \\
-cputime         & (User) {\sc cpu} time since thread was started in seconds \\
+cputime         & (User) {\sc cpu} time since thread was started in seconds.
+		  Includes {\sc cpu} time in completed \jargon{child threads}.
+		  See also \const{self_cputime} and \const{process_cputime}. \\
 epoch		& Time stamp when thread was started \\
 errors		& Number of error mesages printed \\
 functors        & Total number of defined name/arity pairs \\
@@ -11529,7 +11539,8 @@ globallimit     & Size to which the global stack is allowed to grow \\
 global_shifts	& Number of global stack expansions \\
 heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
 inferences      & Total number of passes via the call and redo ports
-                  since Prolog was started \\
+                  since Prolog was started.  Includes inferences in
+		  \jargon{child threads}. See also \const{self_inferences}. \\
 modules         & Total number of defined modules \\
 local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\
@@ -11541,6 +11552,9 @@ trail_shifts	& Number of trail stack expansions \\
 traillimit      & Size to which the trail stack is allowed to grow \\
 trailused       & Number of bytes in use on the trail stack \\
 shift_time	& Time spent in stack-shifts \\
+self_cputime	& (User) {\sc cpu} time since thread was started in seconds \\
+self_inferences	& Total number of passes via the call and redo ports
+                  since Prolog was started \\
 stack		& Total memory in use for stacks in all threads \\
 predicates	& Total number of predicates.  This includes predicates
 		  that are undefined or not yet resolved. \\

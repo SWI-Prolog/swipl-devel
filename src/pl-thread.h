@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2022, University of Amsterdam
+    Copyright (c)  1999-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -97,6 +97,11 @@ typedef enum
   PL_THREAD_CREATED,			/* just created */
 } thread_status;
 
+/* TODO: these structures are never removed and should better be
+ * small.   Several values can move to PL_local_data, which only
+ * exists for alive threads.
+ */
+
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
@@ -106,6 +111,7 @@ typedef struct _PL_thread_info_t
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
   unsigned	    c_stack_low   : 1;	/* TRUE: Signalled low C stack */
+  unsigned	    joined_by_creator : 1;
   int		    joining_by;		/* TID of joining thread */
   void		   *c_stack_base;	/* Base of the (C-) stack */
   size_t	    c_stack_size;	/* system (C-) stack */
@@ -126,7 +132,10 @@ typedef struct _PL_thread_info_t
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    symbol;		/* thread_handle symbol */
   struct _PL_thread_info_t *next_free;	/* Next in free list */
-
+  struct
+  { double cputime;			/* Final CPU time */
+    uint64_t inferences;		/* Final inferences */
+  } statistics;
 					/* lock-free access to data */
   struct
   { KVS		    kvs;		/* current hash-table map accessed */

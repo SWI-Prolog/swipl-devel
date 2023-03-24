@@ -572,9 +572,9 @@ struct PL_local_data
 
   struct
   { uint64_t	inferences;		/* inferences in this thread */
-    uintptr_t	last_cputime;		/* milliseconds last CPU time */
-    uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
-    uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
+    uint64_t	last_cputime;		/* milliseconds last CPU time */
+    uint64_t	last_systime;		/* milliseconds last SYSTEM time */
+    uint64_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
     double	start_time;		/* When Thread was started */
     double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
@@ -766,18 +766,23 @@ struct PL_local_data
 
 #ifdef O_ENGINES
   struct
-  { intptr_t   magic;			/* PL_THREAD_MAGIC (checking) */
-    struct _PL_thread_info_t *info;	/* info structure */
+  { struct _PL_thread_info_t *info;	/* info structure */
+    uint64_t seq_id;			/* Sequence id (Unique) */
 					/* Communication */
     message_queue messages;		/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
-    int		exit_requested;		/* Thread is asked to exit */
+    int magic;				/* PL_THREAD_MAGIC (checking) */
+    int exit_requested;			/* Thread is asked to exit */
 #ifdef O_PLMT
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
     thread_wait_for *waiting_for;	/* thread_wait/2 info */
     alert_channel alert;		/* How to alert the thread */
+    struct _PL_thread_info_t *creator;	/* Thread that created me */
+    uint64_t creator_seq_id;		/* Seq id of creater */
+    double child_cputime;		/* Time of completed children */
+    uint64_t child_inferences;		/* Inferences in children */
 #endif
   } thread;
 #endif
