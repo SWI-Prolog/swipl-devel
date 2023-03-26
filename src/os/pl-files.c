@@ -178,7 +178,7 @@ int
 ExistsFile(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_FILE);
+  return _xos_exists(path, _XOS_FILE) == TRUE;
 #else
   char tmp[PATH_MAX];
   statstruct buf;
@@ -196,7 +196,7 @@ int
 ExistsDirectory(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_DIR);
+  return _xos_exists(path, _XOS_DIR) == TRUE;
 #else
   char tmp[PATH_MAX];
   char *ospath = OsPath(path, tmp);

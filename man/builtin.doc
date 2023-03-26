@@ -10733,7 +10733,8 @@ catch/3.
     \predicate{exists_file}{1}{+File}
 True if \arg{File} exists and is a \jargon{regular} file. This does not
 imply the user has read or write access to the file. See also
-exists_directory/1 and access_file/2.
+exists_directory/1 and access_file/2.  The current implementation fails
+silently, also on error error conditions such as \arg{File} being too long.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory part of \arg{File}. This predicate removes the
@@ -10783,9 +10784,10 @@ Earlier versions only compare the canonical name obtained using
 GetFullPathName().}
 
     \predicate{exists_directory}{1}{+Directory}
-True if \arg{Directory} exists and is a directory. This does not
-imply the user has read, search or write permission for the
-directory.
+True if \arg{Directory} exists and is a directory. This does not imply
+the user has read, search or write permission for the directory.  The
+current implementation fails silently, also on error error conditions
+such as \arg{Directory} being too long.
 
     \predicate{delete_file}{1}{+File}
 Remove \arg{File} from the file system. Note that on POSIX systems the
