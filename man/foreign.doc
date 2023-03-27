@@ -2882,15 +2882,15 @@ Note that PL_cleanup() invalidates the predicate handle. Foreign
 libraries that use the above mechanism must implement the module
 uninstall() function to clear the \ctype{predicate_t} global variable.
 
-    \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
-					size_t *a, module_t *m}
+    \cfunction{int}{PL_predicate_info}{predicate_t p, atom_t *n,
+				       size_t *a, module_t *m}
 Return information on the predicate \arg{p}. The name is stored over
 \arg{n}, the arity over \arg{a}, while \arg{m} receives the definition
 module. Note that the latter need not be the same as specified with
 PL_predicate(). If the predicate is imported into the module given to
 PL_predicate(), this function will return the module where the predicate
 is defined. Any of the arguments \arg{n}, \arg{a} and \arg{m} can be
-\const{NULL}.
+\const{NULL}.  Currently always returns \const{TRUE}.
 \end{description}
 
 
@@ -3238,6 +3238,10 @@ module is the user module:
   ...
 }
 \end{code}
+
+Returns \const{TRUE} on success and \const{FALSE} on error, leaving
+an exception.  Currently the only exception condition is \arg{raw}
+to be a cyclic term.
 
     \cfunction{atom_t}{PL_module_name}{module_t module}
 Return the name of \arg{module} as an atom.
