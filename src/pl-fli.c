@@ -5410,7 +5410,7 @@ PL_license(const char *license, const char *module)
     PL_put_atom_chars(av+0, license);
     PL_put_atom_chars(av+1, module);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
+    (void)PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
 
     PL_discard_foreign_frame(fid);
   } else

@@ -1560,7 +1560,7 @@ emergency:
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
     if ( isDefinedProcedure(proc) )
-      PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      (void)PL_call_predicate(MODULE_system, FALSE, proc, 0);
     PL_discard_foreign_frame(cid);
   }
 
@@ -1859,7 +1859,7 @@ vwarning(const char *fm, va_list args)
 	goto nospace;
       PL_put_atom(av, ATOM_error);	/* error? */
 
-      PL_call_predicate(NULL, PL_Q_NODEBUG, PROCEDURE_print_message2, av);
+      (void)PL_call_predicate(NULL, PL_Q_NODEBUG, PROCEDURE_print_message2, av);
       PL_discard_foreign_frame(cid);
     } else
     { nospace:

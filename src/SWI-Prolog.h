@@ -438,9 +438,9 @@ PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
 PL_EXPORT(int)		PL_can_yield(void);
 
 			/* Simplified (but less flexible) call-back */
-PL_EXPORT(int)		PL_call(term_t t, module_t m);
-PL_EXPORT(int)		PL_call_predicate(module_t m, int debug,
-					  predicate_t pred, term_t t0);
+PL_EXPORT(int)		PL_call(term_t t, module_t m) WUNUSED;
+PL_EXPORT(int)		PL_call_predicate(module_t m, int flags,
+					  predicate_t pred, term_t t0); /* TODO: WUNUSED */
 			/* Handling exceptions */
 PL_EXPORT(term_t)	PL_exception(qid_t qid);
 PL_EXPORT(int)		PL_raise_exception(term_t exception);

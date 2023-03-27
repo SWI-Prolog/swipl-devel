@@ -6513,7 +6513,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   }
 
   updateAlerted(ldnew);
-  PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
+  (void)PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 
   return info->pl_tid;
 }

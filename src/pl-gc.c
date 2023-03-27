@@ -3853,7 +3853,7 @@ call_tune_gc_hook(void)
       if ( PL_unify_float(av+0, last->gc_time) &&
 	   PL_unify_float(av+1, gc_percentage(last)) &&
 	   PL_unify_float(av+2, gc_percentage(aggr)) )
-	PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, av);
+	(void)PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, av);
 
       PL_close_foreign_frame(fid);
     }

@@ -630,7 +630,7 @@ setPrintOptions(word t)
 				    "system");
 
     _PL_put_atomic(av, t);
-    PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+    (void)PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
 
     PL_discard_foreign_frame(fid);
   }
