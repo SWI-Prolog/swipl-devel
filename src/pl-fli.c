@@ -5404,15 +5404,17 @@ PL_license(const char *license, const char *module)
 
   if ( GD->initialised )
   { fid_t fid = PL_open_foreign_frame();
-    predicate_t pred = PL_predicate("license", 2, "system");
-    term_t av = PL_new_term_refs(2);
+    if ( fid )
+    { predicate_t pred = PL_predicate("license", 2, "system");
+      term_t av = PL_new_term_refs(2);
 
-    PL_put_atom_chars(av+0, license);
-    PL_put_atom_chars(av+1, module);
+      PL_put_atom_chars(av+0, license);
+      PL_put_atom_chars(av+1, module);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
+      PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
 
-    PL_discard_foreign_frame(fid);
+      PL_discard_foreign_frame(fid);
+    }
   } else
   { struct license *l = allocHeapOrHalt(sizeof(*l));
 

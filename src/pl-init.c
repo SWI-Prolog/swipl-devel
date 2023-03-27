@@ -1560,7 +1560,7 @@ emergency:
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
     if ( isDefinedProcedure(proc) )
-      PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      PL_call_predicate(MODULE_system, PL_Q_NODEBUG, proc, 0);
     PL_discard_foreign_frame(cid);
   }
 
