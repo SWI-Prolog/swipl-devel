@@ -465,9 +465,10 @@ The previous invocation of the foreign function associated with the
 current goal indicated it was possible to backtrack.  The foreign
 function should produce the next solution.
     \item [Terminate call (\const{PL_PRUNED})]
-The choice point left by the foreign function has been destroyed by
-a cut.  The foreign function is given the opportunity to clean the
-environment.
+The choice point left by the foreign function has been destroyed by a
+cut or exception.  The foreign function is given the opportunity to
+clean the environment. The context handle is the only meaningful
+argument -- the term arguments to the call are \exam{(term_t)0}.
 \end{itemlist}
 
 Both the context information and the type of call is provided by an
@@ -3033,6 +3034,9 @@ Generate the first (next) solution for the given query.  The return
 value is \const{TRUE} if a solution was found, or \const{FALSE} to indicate
 the query could not be proven.  This function may be called repeatedly
 until it fails to generate all solutions to the query.
+
+If the PL_open_query() had the flag \const{PL_Q_EXT_STATUS}, there are
+additional return values (see \secref{foreign-yield}).
 
     \cfunction{int}{PL_cut_query}{qid_t qid}
 Discards the query, but does not delete any of the data created by the
