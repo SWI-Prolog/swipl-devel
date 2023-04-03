@@ -493,8 +493,8 @@ is also printed if stdio is not available.
 			? Sdprintf("DEBUG stack depth mismatch! %d != %d\n", GLOBAL_LD->internal_debug.depth, __new_ld_debug.depth) \
 			: 1 \
 			) ? __orig_ld_debug : __orig_ld_debug
-#define DEBUGGING(n)	(((n) <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
-			 ((n) > DBG_LEVEL9 && GD->debug_topics && true_bit(GD->debug_topics, n)))
+#define DEBUGGING(n)	((n) <= DBG_LEVEL9 ? GD->debug_level >= (n) : \
+			 (GD->debug_topics && true_bit(GD->debug_topics, n)))
 #define WITH_DEBUG_FOR(n) for \
 			( ENTER_DEBUG(n); \
 			  __orig_ld_debug.depth >= 0; \
