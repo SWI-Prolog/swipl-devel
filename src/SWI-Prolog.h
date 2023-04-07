@@ -170,8 +170,10 @@ be relied upon to remain unchanged across versions.
 
 #if __GNUC__ >= 4
 #define WUNUSED __attribute__((warn_unused_result))
+#define WDEPRECATED __attribute__((deprecated))
 #else
 #define WUNUSED
+#define WDEPRECATED
 #endif
 
 
@@ -343,7 +345,7 @@ typedef struct PL_extension
 } PL_extension;
 
 #define PL_FA_NOTRACE		(0x01)	/* foreign cannot be traced */
-#define PL_FA_TRANSPARENT	(0x02)	/* foreign is module transparent */
+#define PL_FA_TRANSPARENT	(0x02)	/* foreign is module transparent (deprecated) */
 #define PL_FA_NONDETERMINISTIC	(0x04)	/* foreign is non-deterministic */
 #define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
 #define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
@@ -361,7 +363,7 @@ PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
 						      const char *name, int arity,
 						      pl_function_t func,
 						      int flags, ...);
-PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
+PL_EXPORT(void)		PL_load_extensions(const PL_extension *e); /* WDEPRECATED */
 
 		 /*******************************
 		 *	      LICENSE		*
@@ -444,7 +446,7 @@ PL_EXPORT(int)		PL_call_predicate(module_t m, int flags,
 			/* Handling exceptions */
 PL_EXPORT(term_t)	PL_exception(qid_t qid);
 PL_EXPORT(int)		PL_raise_exception(term_t exception);
-PL_EXPORT(int)		PL_throw(term_t exception);
+PL_EXPORT(int)		PL_throw(term_t exception); /* WDEPRECATED */
 PL_EXPORT(void)		PL_clear_exception(void);
 			/* Engine-based coroutining */
 PL_EXPORT(term_t)	PL_yielded(qid_t qid);
@@ -479,7 +481,7 @@ PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
 PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
-PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
+PL_EXPORT(const char *)	PL_atom_chars(atom_t a); /* WDEPRECATED */
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(int)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
 					unsigned int flags);
@@ -1178,7 +1180,7 @@ typedef struct pl_sigaction
 } pl_sigaction_t;
 
 
-PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
+PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int); /* WDEPRECATED */
 PL_EXPORT(int)  PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old);
 PL_EXPORT(void)	PL_interrupt(int sig);
 PL_EXPORT(int)	PL_raise(int sig);
