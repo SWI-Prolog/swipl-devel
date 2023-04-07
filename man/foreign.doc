@@ -265,9 +265,10 @@ resource exception and returns \exam{(term_t)0} on failure.
 Return \arg{n} new term references. The first term reference is
 returned. The others are $\arg{t}+1$, $\arg{t}+2$, etc. Raise a resource
 exception and returns \exam{(term_t)0} on failure. There are two reasons
-for using this function. PL_open_query() expects the arguments as a set
-of consecutive term references, and \emph{very} time-critical code
-requiring a number of term references can be written as:
+for using this function. PL_open_query() and PL_cons_functor() expect
+the arguments as a set of consecutive term references, and \emph{very}
+time-critical code requiring a number of term references can be
+written as:
 
 \begin{code}
 pl_mypredicate(term_t a0, term_t a1)
@@ -1079,7 +1080,7 @@ If \arg{t} is an atom, store the unique atom identifier over \arg{a}.
 See also PL_atom_chars() and PL_new_atom(). If there is no need to
 access the data (characters) of an atom, it is advised to manipulate
 atoms using their handle.  As the atom is referenced by \arg{t}, it
-will live at least as long as \arg{t} does.  If longer live-time is
+will live at least as long as \arg{t} does.  If longer lifetime is
 required, the atom should be locked using PL_register_atom().
 
     \cfunction{int}{PL_get_atom_chars}{term_t +t, char **s}
@@ -2413,7 +2414,7 @@ encoded), \const{REP_MB} (string is encoded in the current locale)
 or 0 (string is encoded in ISO latin 1).  The string may, but is
 not required, to be closed by a full stop (.).
 
-If parsing produces an exception the behaviour depends on the
+If parsing produces an exception; the behaviour depends on the
 \const{CVT_EXCEPTION} flag. If present, the exception is propagated into
 the environment.  Otherwise, the exception is placed in \arg{t} and
 the return value is \const{FALSE}.\footnote{The \const{CVT_EXCEPTION}
