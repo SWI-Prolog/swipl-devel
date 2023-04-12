@@ -4131,7 +4131,8 @@ relation_tuple(Relation, Tuple) :-
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
         maplist(list_first_rest, Relation0, Firsts, Relation1),
-        (   var(T) ->
+        (   Firsts = [Unique] -> T = Unique
+        ;   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 fd_get(T, TDom, TPs),
