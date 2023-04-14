@@ -1190,9 +1190,10 @@ or may not match the API level of the running device, since it is
 the API level at compile time.
 
     \prologflagitem{answer_write_options}{term}{rw}
-This argument is given as option-list to write_term/2 for printing results
-of queries. Default is \texttt{[quoted(true), portray(true),
-max_depth(10), attributes(portray)]}.
+This flag is used by the interactive toplevel to print the value if
+\jargon{bindings} (answers). The flag value is passed to write_term/2
+when printing an answer queries. Default is \texttt{[quoted(true),
+portray(true), max_depth(10), attributes(portray)]}.
 
     \prologflagitem{apple}{bool}{r}
 \index{MacOS}%
