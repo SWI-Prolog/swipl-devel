@@ -1968,6 +1968,42 @@ a set of variables. You must be careful about what you do with the
 attributes though. In many cases it is more robust to use attributes to
 register information about variables.
 
+Note that the standard order is not well defined on
+\jargon{rational trees}, also known as \jargon{cyclic terms}. This
+\href{https://swi-prolog.discourse.group/t/how-to-compare-3-without-surprises-on-non-ground-terms/6386/42=jan}{issue
+was identified} by Mats Carlsson, quoted below. See also
+\href{https://github.com/SWI-Prolog/swipl-devel/issues/1162}{issue\#1162
+on GitHub}.
+
+
+\begin{quote}
+Consider the terms \arg{A} and \arg{B} defined by the equations
+
+\begin{code}
+[1] A = s(B,0).
+[2] B = s(A,1).
+\end{code}
+
+\begin{itemize}
+\item
+Clearly, \arg{A} and \arg{B} are not identical, so either
+\exam{A @< B} or \exam{A @> B} must hold.
+
+\item
+Assume \exam{A @< B}.  But then, \exam{s(A,1) @> s(B,0)} i.e.,
+\exam{B @< A}. Contradicton.
+
+\item
+Assume \exam{A @> B}.  But then, \exam{s(A,1) @< s(B,0)} i.e.,
+\exam{B @< A}. Contradicton.
+\end{itemize}
+\end{quote}
+
+
+
+
+
+
 \begin{description}
     \infixop[ISO]{==}{@Term1}{@Term2}
 True if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
