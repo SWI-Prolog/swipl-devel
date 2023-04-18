@@ -100,6 +100,8 @@ if(NOT SWIPL_SHARED_LIB)
   set(CMAKE_ENABLE_EXPORTS ON)
 endif()
 
+set(CMAKE_C_STANDARD 11)
+
 include(Utils)
 include(BuildType)
 include(Version)
