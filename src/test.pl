@@ -2143,7 +2143,10 @@ term_atom(term_to_atom-2) :-
                  *******************************/
 
 os(getenv-1) :-
-    getenv('PATH', _).              % should be around on most OSes
+    (   current_prolog_flag(wine_version, _)
+    ->  getenv('WINEPREFIX', _)
+    ;   getenv('PATH', _)
+    ).
 os(setenv-1) :-
     setenv(pltestsetenv, yes),
     getenv(pltestsetenv, X),

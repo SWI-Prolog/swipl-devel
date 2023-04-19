@@ -36,12 +36,6 @@
 	  [ test_saved_states/0
 	  ]).
 
-:- prolog_load_context(directory, Here),
-   atom_concat(Here, '../../../../packages/clib', ClibDir0),
-   absolute_file_name(ClibDir0, ClibDir),
-   asserta(user:file_search_path(library, ClibDir)),
-   asserta(user:file_search_path(foreign, ClibDir)).
-
 has_foreign_lib(Lib) :-
     absolute_file_name(foreign(Lib), _,
 		       [ file_type(executable),
@@ -75,7 +69,7 @@ test_saved_states :-
 	\+ enough_files, !,
 	format(user_error,
 	       'Skipped saved state files because the system does\n\c
-	        not offer us enough open files~n', []).
+	not offer us enough open files~n', []).
 test_saved_states :-
 	run_tests([ saved_state
 		  ]).
@@ -217,7 +211,10 @@ no_error(Codes) :-
 		 *	       TESTS		*
 		 *******************************/
 
-:- begin_tests(saved_state, [sto(rational_trees)]).
+wine :-
+    current_prolog_flag(wine_version, _).
+
+:- begin_tests(saved_state, [condition(not(wine))]).
 
 test(true, Result == [true]) :-
 	state_output(1, Exe),
