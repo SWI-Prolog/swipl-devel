@@ -634,6 +634,8 @@ PL_EXPORT(int)		PL_skip_list(term_t list, term_t tail, size_t *len);
 		 *    WIDE CHARACTER VERSIONS	*
 		 *******************************/
 
+PL_EXPORT(int)		PL_put_wchars(term_t t, int type,
+				      size_t len, const pl_wchar_t *s) WUNUSED;
 PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
 					size_t len, const pl_wchar_t *s) WUNUSED;
 PL_EXPORT(int)		PL_unify_wchars_diff(term_t t, term_t tail, int type,

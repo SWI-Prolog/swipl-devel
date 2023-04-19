@@ -1354,13 +1354,21 @@ Wide-character version of PL_get_chars().  The \arg{flags} argument
 is the same as for PL_get_chars().  Note that this operation may
 return a pointer into Prolog's `buffer stack' (see \secref{foreign-strings}).
 
-    \cfunction{int}{PL_unify_wchars}{term_t t, int type,
+    \cfunction{int}{PL_put_wchars}{term_t -t, int type,
+				   size_t len,
+				   const pl_wchar_t *s}
+\textit{Put} text from a wide character array in \arg{t}.
+Arguments are the same as PL_unify_wchars().\footnote{The current
+implemention uses PL_put_variable() followed by PL_unify_wchars().}
+
+    \cfunction{int}{PL_unify_wchars}{term_t +t, int type,
 				     size_t len,
 				     const pl_wchar_t *s}
 Unify \arg{t} with a textual representation of the C wide-character
 array \arg{s}.  The \arg{type} argument defines the Prolog
 representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
+
     \cfunction{int}{PL_unify_wchars_diff}{term_t +t, term_t -tail, int type,
 					  size_t len,
 					  const pl_wchar_t *s}
