@@ -547,8 +547,9 @@ Emit a \ctype{double}.
 Emit a 0-terminated string.
 \end{description}
 
-This function returns the number of characters written. Note that due to
-multibyte encodings the number of bytes written can be more.
+Unlike the POSIX fprintf(), this function returns the number of
+characters written. Due to multibyte encodings the number of bytes
+written can be more.
 
     \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
 Same as Sfprintf() but doesn't have the format-checking attribute.
@@ -565,10 +566,13 @@ Variadic argument list version of Sfprintf().
 Print to a C string.  Deprecated.  Use Ssnprintf() instead.
 
     \cfunction{int}{Ssnprintf}{char *buf, size_t size, const char *fm, ...}
-Print to a C string, emitting a maximum of \arg{size} bytes. Returns the
-number of bytes written. Currently \arg{buf} uses
-\const{ENC_ISO_LATIN_1} encoding. Future versions will probably change
-to \const{ENC_UTF8}.
+Print to a C string, emitting a maximum of \arg{size} bytes while
+ensuring \arg{buf} is 0-terminated.  The \arg{buf} is written using
+UTF-8 encoding.  Unlike snprintf(), the return value is the number
+of logical code points written rather than the number of bytes and if
+the buffer is too small, \const{-1} is returned rather than the number
+of bytes that would be written. Future versions may improve
+compatibility with the POSIX functions.
 
     \cfunction{int}{SsnprintfX}{char *buf, size_t size, const char *fm, ...}
 Same as Ssnprintf() but doesn't have the format-checking attribute.
