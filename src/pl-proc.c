@@ -2632,11 +2632,27 @@ unregisterDirtyDefinition(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We need to lock to avoid  a race with removeClausesPredicate() which
+may leave this predicate as non-dirty while it is dirty.
+
+  Us				Them
+  ----------------------------------------------------------------
+  Decide to unregister
+				def->impl.clauses.erased_clauses++
+				registerDirtyDefinition()
+  unregisterDirtyDefinition()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 maybeUnregisterDirtyDefinition(Definition def)
 { if ( true(def, P_DIRTYREG) &&
        def->impl.clauses.erased_clauses == 0 )
-  { unregisterDirtyDefinition(def);
+  { LOCKDEF(def);			/* See (*) */
+    if ( true(def, P_DIRTYREG) &&
+	 def->impl.clauses.erased_clauses == 0 )
+      unregisterDirtyDefinition(def);
+    UNLOCKDEF(def);
   }
 
   if ( true(def, P_ERASED) )
