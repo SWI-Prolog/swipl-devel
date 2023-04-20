@@ -395,9 +395,15 @@ resetProcedure(Procedure proc, bool isnew)
   if ( true(def, P_DIRTYREG) )
     ATOMIC_SUB(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
 
-  def->flags ^= def->flags & ~(SPY_ME|P_DIRTYREG);
-  if ( stringAtom(def->functor->name)[0] != '$' )
-    set(def, TRACE_ME);
+  uint64_t flags0, flags;
+  int userpred = stringAtom(def->functor->name)[0] != '$';
+  do
+  { flags0 = def->flags;
+    flags  = flags0 ^ (flags0 & ~(SPY_ME|P_DIRTYREG));
+    if ( userpred )
+      flags |= TRACE_ME;
+  } while(!COMPARE_AND_SWAP_UINT64(&def->flags, flags0, flags));
+
   def->impl.clauses.number_of_clauses = 0;
   if ( def->events )
     destroy_event_list(&def->events);
