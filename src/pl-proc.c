@@ -1553,7 +1553,7 @@ source-file or any sourcefile. Note   that thread-local predicates don't
 have clauses from files, so we don't   need to bother. Returns number of
 clauses that has been deleted.
 
-This is called only for (re)consult. What to do with dynamic predicates?
+This is called for (re)consult and abolish/1.
 
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
