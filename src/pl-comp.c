@@ -7212,7 +7212,7 @@ unify_vmi(term_t t, Code bp)
 	case CA1_FOREIGN:
 	{ void *func = (void*)*bp++;
 
-#ifdef HAVE_DLADDR
+#if defined(HAVE_DLADDR) && !defined(O_STATIC_EXTENSIONS)
 	  Dl_info info;
 
 	  if ( dladdr(func, &info) )

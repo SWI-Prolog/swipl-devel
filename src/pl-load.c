@@ -65,6 +65,7 @@ Feel free to add this functionality for your favorite OS and mail me the
 contributions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef O_STATIC_EXTENSIONS
 
 		 /*******************************
 		 *     DLOPEN() AND FRIENDS	*
@@ -164,8 +165,6 @@ PL_dlclose(void *handle)
 }
 
 #endif /*EMULATE_DLOPEN*/
-
-#ifndef O_STATIC_EXTENSIONS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 under_valgrind()

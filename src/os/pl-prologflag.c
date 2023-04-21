@@ -1444,7 +1444,7 @@ set_libswipl(void)
   }
 #endif
 
-#ifdef HAVE_DLADDR
+#if defined(HAVE_DLADDR) && !defined(O_STATIC_EXTENSIONS)
   Dl_info info;
 
   if ( dladdr((void*)(intptr_t)PL_initialise, &info) && info.dli_fname )
