@@ -78,9 +78,18 @@ date_time_value(time,            date(_,_,_,H,M,S,_,_,_), time(H,M,S)).
 %   representation Format. Currently supported formats are:
 %
 %       * rfc_1123
-%       Used for the HTTP protocol to represent time-stamps
+%       Used for the HTTP protocol to represent time-stamps, e.g.
+%
+%           Fri, 08 Dec 2006 15:29:44 GMT
+%
 %       * iso_8601
-%       Commonly used in XML documents.
+%       Commonly used in XML documents. Actually the XML RFC3339
+%       is a _profile_ of ISO8601.  For example
+%
+%           2006-12-08T15:29:44Z
+%
+%   @see  xsd_time_string/3  from  library(sgml)    implements   RFC3339
+%   strictly.
 
 parse_time(Text, Stamp) :-
     parse_time(Text, _Format, Stamp).
