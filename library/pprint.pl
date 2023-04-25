@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2022, University of Amsterdam
+    Copyright (c)  2014-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -65,6 +65,7 @@ etc.
                        left_margin(integer),
                        tab_width(integer),
                        indent_arguments(integer),
+                       auto_indent_arguments(integer),
                        operators(boolean),
                        write_options(list)
                      ]).
@@ -95,10 +96,16 @@ etc.
 %       implemented)
 %       $ `auto` (default) :
 %       As horizontal if line-width is not exceeded, vertical
-%       otherwise.
+%       otherwise.  See also auto_indent_arguments(Int)
 %       $ An integer :
 %       Place them vertically aligned, <N> spaces to the right of
 %       the beginning of the head.
+%     - auto_indent_arguments(+Integer)
+%       Used by indent_arguments(auto) to decide whether to introduce
+%       a newline after the `(` or not.  If specified and > 0, this
+%       provides the default integer for indent_arguments(Int).  The
+%       "hanging" mode is used if otherwise the indentation increment
+%       is twice this value.
 %     - operators(+Boolean)
 %       This is the inverse of the write_term/3 option `ignore_ops`.
 %       Default is to respect them.
@@ -204,6 +211,7 @@ bind_non_cycles([H|T0], I, [H|T]) :-
 defaults([ output(user_output),
            depth(0),
            indent_arguments(auto),
+           auto_indent_arguments(4),
            operators(true),
            write_options([ quoted(true),
                            numbervars(true),
@@ -321,17 +329,7 @@ pp(Dict, Ctx, Options) :-
         option(right_margin(RM), Options),
         Indent + Width < RM         % fits on a line, simply write
     ->  pprint(Dict, Ctx, Options)
-    ;   format(atom(Buf2), '~q{ ', [Tag]),
-        write(Out, Buf2),
-        atom_length(Buf2, FunctorIndent),
-        (   integer(IndentStyle)
-        ->  Nindent is Indent + IndentStyle,
-            (   FunctorIndent > IndentStyle
-            ->  indent(Out, Nindent, Options)
-            ;   true
-            )
-        ;   Nindent is Indent + FunctorIndent
-        ),
+    ;   compound_indent(Out, '~q{ ', Tag, Indent, Nindent, Options),
         context(Ctx, depth, Depth),
         NDepth is Depth + 1,
         modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx0),
@@ -469,17 +467,7 @@ pp(Term, Ctx, Options) :-               % compound
         Indent + Width < RM         % fits on a line, simply write
     ->  pprint(Term, Ctx, Options)
     ;   compound_name_arguments(Term, Name, Args),
-        format(atom(Buf2), '~q(', [Name]),
-        write(Out, Buf2),
-        atom_length(Buf2, FunctorIndent),
-        (   integer(IndentStyle)
-        ->  Nindent is Indent + IndentStyle,
-            (   FunctorIndent > IndentStyle
-            ->  indent(Out, Nindent, Options)
-            ;   true
-            )
-        ;   Nindent is Indent + FunctorIndent
-        ),
+        compound_indent(Out, '~q(', Name, Indent, Nindent, Options),
         context(Ctx, depth, Depth),
         NDepth is Depth + 1,
         modify_context(Ctx,
@@ -488,6 +476,27 @@ pp(Term, Ctx, Options) :-               % compound
         dec_depth(NCtx0, NCtx),
         pp_compound_args(Args, NCtx, Options),
         write(Out, ')')
+    ).
+
+compound_indent(Out, Format, Functor, Indent, Nindent, Options) :-
+    option(indent_arguments(IndentStyle), Options),
+    format(string(Buf2), Format, [Functor]),
+    write(Out, Buf2),
+    atom_length(Buf2, FunctorIndent),
+    (   IndentStyle == auto,
+        option(auto_indent_arguments(IndentArgs), Options),
+        IndentArgs > 0,
+        FunctorIndent > IndentArgs*2
+    ->  true
+    ;   IndentArgs = IndentStyle
+    ),
+    (   integer(IndentArgs)
+    ->  Nindent is Indent + IndentArgs,
+        (   FunctorIndent > IndentArgs
+        ->  indent(Out, Nindent, Options)
+        ;   true
+        )
+    ;   Nindent is Indent + FunctorIndent
     ).
 
 
