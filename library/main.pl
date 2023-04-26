@@ -202,10 +202,18 @@ interrupt(_Sig) :-
 %       - file
 %         Convert to a file name in Prolog canonical notation
 %         using prolog_to_os_filename/2.
+%       - directory
+%         Convert to a file name in Prolog canonical notation
+%         using prolog_to_os_filename/2.  No checking is done and
+%         thus this type is the same as `file`
 %       - file(Access)
 %         As `file`, and check access using access_file/2.  A value `-`
 %         is not checked for access, assuming the application handles
 %         this as standard input or output.
+%       - directory(Access)
+%         As `directory`, and check access.  Access is one of `read`
+%         `write` or `create`.  In the latter case the parent directory
+%         must exist and have write access.
 %       - term
 %         Parse option value to a Prolog term.
 %       - term(+Options)
@@ -527,6 +535,11 @@ opt_convert(file(Access), Spec, Value) :-
 	;   opt_error(access_file(Spec, Access))
 	)
     ).
+opt_convert(directory, Spec, Value) :-
+    prolog_to_os_filename(Value, Spec).
+opt_convert(directory(Access), Spec, Value) :-
+    prolog_to_os_filename(Value, Spec),
+    access_directory(Value, Access).
 opt_convert(term, Spec, Value) :-
     term_string(Value, Spec, []).
 opt_convert(term(Options), Spec, Value) :-
@@ -536,17 +549,36 @@ opt_convert(term(Options), Spec, Value) :-
     ;   Value = Term
     ).
 
+access_directory(Dir, read) =>
+    exists_directory(Dir),
+    access_file(Dir, read).
+access_directory(Dir, write) =>
+    exists_directory(Dir),
+    access_file(Dir, write).
+access_directory(Dir, create) =>
+    (   exists_directory(Dir)
+    ->  access_file(Dir, write)
+    ;   \+ exists_file(Dir),
+        file_directory_name(Dir, Parent),
+        exists_directory(Parent),
+        access_file(Parent, write)
+    ).
+
 to_bool(true,    true).
 to_bool('True',  true).
 to_bool('TRUE',  true).
 to_bool(on,      true).
 to_bool('On',    true).
+to_bool(yes,     true).
+to_bool('Yes',   true).
 to_bool('1',     true).
 to_bool(false,   false).
 to_bool('False', false).
 to_bool('FALSE', false).
 to_bool(off,     false).
 to_bool('Off',   false).
+to_bool(no,      false).
+to_bool('No',    false).
 to_bool('0',     false).
 
 %!  argv_usage(:Level) is det.
