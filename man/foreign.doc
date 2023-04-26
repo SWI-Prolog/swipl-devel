@@ -3626,6 +3626,9 @@ compatibility with older records.
     the copy.  After copying, the original may be discarded using
     PL_erase_external().
 
+    PL_record_external() will fail if the term contains \jargon{blobs}
+    that cannot be serialized, such as streams.
+
     PL_recorded_external() is used to copy such recorded terms back to
     the Prolog stack.
 \cfunction{int}{PL_recorded_external}{const char *record, term_t -t}
