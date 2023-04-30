@@ -499,8 +499,8 @@ class Prolog
 	throw(`Prolog.predicate: illegal specification: ${name}`);
     }
 
-    const c_name   = allocateUTF8(name);
-    const c_module = allocateUTF8(module||"user");
+    const c_name   = stringToNewUTF8(name);
+    const c_module = stringToNewUTF8(module||"user");
 
     const pred = this.bindings.PL_predicate(c_name, arity, c_module);
 
