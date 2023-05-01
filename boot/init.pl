@@ -1250,9 +1250,12 @@ absolute_file_name(Spec, Options, Path) :-
     '$is_options'(Options),
     \+ '$is_options'(Path),
     !,
-    absolute_file_name(Spec, Path, Options).
+    '$absolute_file_name'(Spec, Path, Options).
 absolute_file_name(Spec, Path, Options) :-
-    '$must_be'(options, Options),
+    '$absolute_file_name'(Spec, Path, Options).
+
+'$absolute_file_name'(Spec, Path, Options0) :-
+    '$options_dict'(Options0, Options),
 		    % get the valid extensions
     (   '$select_option'(extensions(Exts), Options, Options1)
     ->  '$must_be'(list, Exts)
@@ -1616,6 +1619,9 @@ user:prolog_file_type(dylib,    executable) :-
 '$pairs_keys'([K-_|T0], [K|T]) :-
     '$pairs_keys'(T0, T).
 
+'$pairs_values'([], []).
+'$pairs_values'([_-V|T0], [V|T]) :-
+    '$pairs_values'(T0, T).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
@@ -4282,7 +4288,8 @@ length(_, Length) :-
 %   @arg Rest is always a map.
 
 '$select_option'(Opt, Options, Rest) :-
-    select_dict([Opt], Options, Rest).
+    '$options_dict'(Options, Dict),
+    select_dict([Opt], Dict, Rest).
 
 %!  '$merge_options'(+New, +Default, -Merged) is det.
 %
@@ -4291,7 +4298,43 @@ length(_, Length) :-
 %   @arg Merged is always a map.
 
 '$merge_options'(New, Old, Merged) :-
-    put_dict(New, Old, Merged).
+    '$options_dict'(New, NewDict),
+    '$options_dict'(Old, OldDict),
+    put_dict(NewDict, OldDict, Merged).
+
+%!  '$options_dict'(+Options, --Dict) is det.
+%
+%   Translate to an options dict. For   possible  duplicate keys we keep
+%   the first.
+
+'$options_dict'(Options, Dict) :-
+    is_list(Options),
+    !,
+    '$keyed_options'(Options, Keyed),
+    sort(1, @<, Keyed, UniqueKeyed),
+    '$pairs_values'(UniqueKeyed, Unique),
+    dict_create(Dict, _, Unique).
+'$options_dict'(Dict, Dict) :-
+    is_dict(Dict),
+    !.
+'$options_dict'(Options, _) :-
+    '$domain_error'(options, Options).
+
+'$keyed_options'([], []).
+'$keyed_options'([H0|T0], [H|T]) :-
+    '$keyed_option'(H0, H),
+    '$keyed_options'(T0, T).
+
+'$keyed_option'(Var, _) :-
+    var(Var),
+    !,
+    '$instantiation_error'(Var).
+'$keyed_option'(Name=Value, Name-(Name-Value)).
+'$keyed_option'(NameValue, Name-(Name-Value)) :-
+    compound_name_arguments(NameValue, Name, [Value]),
+    !.
+'$keyed_option'(Opt, _) :-
+    '$domain_error'(option, Opt).
 
 
 		 /*******************************
