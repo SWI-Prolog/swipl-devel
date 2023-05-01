@@ -4157,7 +4157,7 @@ listGenerations(Definition def)
 void
 checkDefinition(Definition def)
 { GET_LD
-  unsigned int nc, indexed = 0;
+  unsigned int nc;
   ClauseRef cref;
   unsigned int erased = 0;
   Definition old;
@@ -4168,9 +4168,7 @@ checkDefinition(Definition def)
   { Clause clause = cref->value.clause;
 
     if ( false(clause, CL_ERASED) )
-    { if ( cref->d.key )
-	indexed++;
-      nc++;
+    { nc++;
     } else
     { erased++;
     }
