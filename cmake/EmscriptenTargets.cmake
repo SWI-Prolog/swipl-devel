@@ -1,5 +1,7 @@
 # Make console binaries runnable through Node.js.
 
+# set(SWIPL_C_STACK_SIZE 1048576)
+
 set(WASM_NODE_LINK_FLAGS
     -s NODERAWFS=1
     -s EXIT_RUNTIME=1)

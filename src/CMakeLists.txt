@@ -397,7 +397,6 @@ endif()
 # build swipl
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
-target_c_stack(swipl${PGO_SUFFIX} 4000000)
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
@@ -510,6 +509,10 @@ elseif(EMSCRIPTEN)
   include(EmscriptenTargets)
 elseif(ANDROID)
   include(AndroidTargets)
+endif()
+
+if(SWIPL_C_STACK_SIZE)
+  target_c_stack(swipl${PGO_SUFFIX} ${SWIPL_C_STACK_SIZE})
 endif()
 
 ################
