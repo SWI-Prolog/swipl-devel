@@ -3300,11 +3300,9 @@ check_marked(const char *s)
 { GET_LD
   intptr_t m = 0;
   Word current;
-  intptr_t cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
-  { cells++;
-    if ( is_marked(current) )
+  { if ( is_marked(current) )
     { m += (offset_cell(current)+1);
     }
   }

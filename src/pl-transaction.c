@@ -808,7 +808,6 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
 
   if ( get_procedure(A1, &proc, 0, GP_NAMEARITY) )
   { Definition def = getProcDefinition(proc);
-    size_t count = 0;
     gen_t gen = current_generation(def);
     ClauseRef c;
 
@@ -816,7 +815,6 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
 	     predicateName(def), generationName(gen),
 	     generationName(LD->transaction.gen_start));
 
-    count = 0;
     acquire_def(def);
     for(c = def->impl.clauses.first_clause; c; c = c->next)
     { Clause cl = c->value.clause;
@@ -827,9 +825,6 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
 	       generationName(cl->generation.created),
 	       generationName(cl->generation.erased),
 	       true(cl, CL_ERASED) ? " (erased)" : "");
-
-      if ( visibleClause(cl, gen) )
-        count++;
     }
     release_def(def);
 
