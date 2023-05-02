@@ -92,6 +92,14 @@ option(GCOV
 option(STATIC_EXTENSIONS
        "Add foreign extensions statically"
        OFF)
+if(EMSCRIPTEN)
+  set(DEFAULT_CCACHE OFF)
+else()
+  set(DEFAULT_CCACHE ON)
+endif()
+option(CCACHE
+       "Use ccache when available"
+       ${DEFAULT_CCACHE})
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")
@@ -121,6 +129,14 @@ endif()
 
 # Verbosity
 set(CMAKE_INSTALL_MESSAGE NEVER)
+
+if(CCACHE)
+  find_program(PROG_CCACHE ccache)
+  if(PROG_CCACHE)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${PROG_CCACHE})
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${PROG_CCACHE})
+  endif(PROG_CCACHE)
+endif(CCACHE)
 
 ################
 # Installation directories
