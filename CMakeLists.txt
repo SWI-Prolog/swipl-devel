@@ -7,6 +7,12 @@ project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+if(CMAKE_C_COMPILER_ID STREQUAL Clang)
+  set(DEFAULT_VMI_FUNCTIONS ON)
+else()
+  set(DEFAULT_VMI_FUNCTIONS OFF)
+endif()
+
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
@@ -15,7 +21,7 @@ option(ENGINES
        OFF)
 option(VMI_FUNCTIONS
        "Create a function for each VM instruction"
-       OFF)
+       ${DEFAULT_VMI_FUNCTIONS})
 option(USE_SIGNALS
        "Enable signal handling"
        ON)
