@@ -400,12 +400,6 @@ target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
-if(EMSCRIPTEN)
-  target_link_options(swipl${PGO_SUFFIX} PRIVATE -s ALLOW_MEMORY_GROWTH=1)
-  if(MULTI_THREADED)
-    target_link_options(swipl${PGO_SUFFIX} PRIVATE -pthread -s PTHREAD_POOL_SIZE=4)
-  endif()
-endif()
 
 # build the library
 if(SWIPL_SHARED_LIB AND NOT EMSCRIPTEN AND NOT STATIC_EXTENSIONS)

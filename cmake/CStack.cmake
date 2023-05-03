@@ -7,8 +7,5 @@ if(WIN32)
     set_target_properties(${target} PROPERTIES
 			  LINK_FLAGS /STACK:${limit})
   endif()
-elseif(EMSCRIPTEN)
-  set_target_properties(${target} PROPERTIES
-			LINK_FLAGS -sSTACK_SIZE=${limit})
 endif()
 endfunction()
