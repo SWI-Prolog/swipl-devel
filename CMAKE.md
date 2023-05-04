@@ -189,26 +189,12 @@ perform the process on your host Linux system.
 
 ### WASM (Emscripten)
 
-Install  [Emscripten](https://emscripten.org/),  download    and   build
-[zlib](https://zlib.net/) using Emscripten. Now you can build the system
-using the commands below (assume initial working  dir is the root of the
-source tree).
+See https://www.swi-prolog.org/build/WebAssembly.html for details.
 
-    mkdir build.wasm
-    cd build.wasm
-    source ~/emsdk/emsdk_env.sh
-    cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
-          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
-	  -DGMP_ROOT=$HOME/wasm \
-          -DINSTALL_DOCUMENTATION=OFF \
-          -G Ninja ..
-
-For   latest   news   on   the    WASM     version    see    the   [Wiki
+For   latest    news   on   the    WASM   version   see    the   [Wiki
 page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
-This page also discusses how to use the WASM version with Node.js and in
-a browser.
+This page also discusses how to  use the WASM version with Node.js and
+in a browser.
 
 
 ### Building a 32-bit version on 64-bit Debian based Linux
