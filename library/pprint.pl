@@ -67,7 +67,9 @@ etc.
                        indent_arguments(integer),
                        auto_indent_arguments(integer),
                        operators(boolean),
-                       write_options(list)
+                       write_options(list),
+                       fullstop(boolean),
+                       nl(boolean)
                      ]).
 
 %!  print_term(+Term, +Options) is det.
