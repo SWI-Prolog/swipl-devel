@@ -5058,20 +5058,8 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 END_VMI
 
 
-/* (*) Work around a bug in the LLVM.  Just calling a dummy function avoids
-   a crash here!?  If we do not use GCC's threaded-code support it appears
-   that the bug is gone too.  LLVM's support for this GCC extension is poor
-   anyway: it runs, but is *much* slower than the switch.
-*/
-
 VMI(I_EXITCLEANUP, 0, 0, ())
-{
-#if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
-  extern int llvm_dummy(void);
-  llvm_dummy();
-#endif
-
-  while( BFR && BFR->type == CHP_DEBUG )
+{ while( BFR && BFR->type == CHP_DEBUG )
     BFR = BFR->parent;
 
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
