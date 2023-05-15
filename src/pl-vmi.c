@@ -5096,6 +5096,11 @@ which is translated to:
   I_ENTER
   I_CATCH
   I_EXITCATCH
+
+I_EXITCATCH verifies finishes the catch/3 call   if  there are no choice
+points created by the guarded goal. This is   the case if the first real
+choicepoint is our `CHP_CATCH` choicepoint. If we   are in debug mode we
+restore it as a debug choicepoint, else we discard it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CATCH, 0, 0, ())
@@ -5119,9 +5124,19 @@ END_VMI
 
 
 VMI(I_EXITCATCH, 0, 0, ())
-{ if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
-  { assert(BFR->type == CHP_CATCH);
-    BFR = BFR->parent;
+{ Choice bfr = BFR;
+
+  while(bfr && bfr->type == CHP_DEBUG)
+    bfr = bfr->parent;
+
+  if ( bfr->frame == FR && bfr == (Choice)argFrameP(FR, 3) )
+  { assert(bfr->type == CHP_CATCH);
+    if ( debugstatus.debugging )
+    { bfr->type = CHP_DEBUG;
+      BFR = bfr;
+    } else
+    { BFR = bfr->parent;
+    }
     set(FR, FR_CATCHED);
   }
 
