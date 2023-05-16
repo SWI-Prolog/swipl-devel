@@ -3,7 +3,7 @@
     Author:        R.A.O'Keefe, Vitor Santos Costa, Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1984-2021, VU University Amsterdam
+    Copyright (c)  1984-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions .b.v
     All rights reserved.
@@ -46,7 +46,7 @@
             neighbours/3,               % +Vertex, +Graph, -Vertices
             reachable/3,                % +Vertex, +Graph, -Vertices
             top_sort/2,                 % +Graph, -Sort
-            top_sort/3,                 % +Graph, -Sort0, -Sort
+            ugraph_layers/2,            % +Graph, -Layers
             transitive_closure/2,       % +Graph, -Closure
             transpose_ugraph/2,         % +Graph, -NewGraph
             vertices/2,                 % +Graph, -Vertices
@@ -419,39 +419,57 @@ compose1(=, V1, Vs1, V1, N2, G2, SoFar, Comp) :-
     ord_union(N2, SoFar, Next),
     compose1(Vs1, G2, Next, Comp).
 
+%!  ugraph_layers(Graph, -Layers) is semidet.
 %!  top_sort(+Graph, -Sorted) is semidet.
-%!  top_sort(+Graph, -Sorted, ?Tail) is semidet.
 %
-%   Sorted is a  topological  sorted  list   of  nodes  in  Graph. A
-%   toplogical sort is possible  if  the   graph  is  connected  and
-%   acyclic. In the example we show   how  topological sorting works
-%   for a linear graph:
+%   Sort vertices topologically. Layers is a   list of lists of vertices
+%   where there are no edges  from  a   layer  to  an earlier layer. The
+%   predicate top_sort/2 flattens the layers using append/2.
 %
-%   ==
+%   These predicates fail if Graph is cyclic. If Graph is not connected,
+%   the sub-graphs are individually  sorted,  where   the  root  of each
+%   subgraph is in the first layer, the  nodes connected to the roots in
+%   the second, etc.
+%
+%   ```
 %   ?- top_sort([1-[2], 2-[3], 3-[]], L).
 %   L = [1, 2, 3]
-%   ==
+%   ```
 %
-%   The  predicate  top_sort/3  is  a  difference  list  version  of
-%   top_sort/2.
+%   @compat The original version of this  library provided top_sort/3 as
+%   a _difference list_ version of top_sort/2.   We removed this because
+%   the argument order was non-standard.  Fixing   causes  hard to debug
+%   compatibility issues while we expect top_sort/3   was rarely used. A
+%   backward compatible top_sort/3 can be defined as
+%
+%   ```
+%   top_sort(Graph, Tail, Sorted) :-
+%       top_sort(Graph, Sorted0),
+%       append(Sorted0, Tail, Sorted).
+%   ```
+%
+%   The original version returned all vertices   in a _layer_ in reverse
+%   order. The current one returns  them   in  standard  order of terms,
+%   i.e., each layer is an _ordered set_.
+%
+%   @compat ugraph_layers/2 is a SWI-Prolog   specific  addition to this
+%   library.
 
 top_sort(Graph, Sorted) :-
+    ugraph_layers(Graph, Layers),
+    append(Layers, Sorted).
+
+ugraph_layers(Graph, Layers) :-
     vertices_and_zeros(Graph, Vertices, Counts0),
     count_edges(Graph, Vertices, Counts0, Counts1),
     select_zeros(Counts1, Vertices, Zeros),
-    top_sort(Zeros, Sorted, Graph, Vertices, Counts1).
-
-top_sort(Graph, Sorted0, Sorted) :-
-    vertices_and_zeros(Graph, Vertices, Counts0),
-    count_edges(Graph, Vertices, Counts0, Counts1),
-    select_zeros(Counts1, Vertices, Zeros),
-    top_sort(Zeros, Sorted, Sorted0, Graph, Vertices, Counts1).
-
+    top_sort(Zeros, Layers, Graph, Vertices, Counts1).
 
 vertices_and_zeros([], [], []) :- !.
 vertices_and_zeros([Vertex-_|Graph], [Vertex|Vertices], [0|Zeros]) :-
     vertices_and_zeros(Graph, Vertices, Zeros).
 
+% Count the number of incomming edges for each vertex
 
 count_edges([], _, Counts, Counts) :- !.
 count_edges([_-Neibs|Graph], Vertices, Counts0, Counts2) :-
@@ -468,6 +486,7 @@ incr_list([V1|Neibs], [V2|Vertices], [M|Counts0], [N|Counts1]) :-
 incr_list(Neibs, [_|Vertices], [N|Counts0], [N|Counts1]) :-
     incr_list(Neibs, Vertices, Counts0, Counts1).
 
+% get the vertices with 0 incoming edges, i.e., the origins.
 
 select_zeros([], [], []) :- !.
 select_zeros([0|Counts], [Vertex|Vertices], [Vertex|Zeros]) :-
@@ -476,23 +495,21 @@ select_zeros([0|Counts], [Vertex|Vertices], [Vertex|Zeros]) :-
 select_zeros([_|Counts], [_|Vertices], Zeros) :-
     select_zeros(Counts, Vertices, Zeros).
 
+%!  top_sort(+Zeros, -Layers, +Graph, +Vertices, +Counts) is semidet.
 
-
-top_sort([], [], Graph, _, Counts) :-
+top_sort([], Layers, Graph, _, Counts) :-
     !,
-    vertices_and_zeros(Graph, _, Counts).
-top_sort([Zero|Zeros], [Zero|Sorted], Graph, Vertices, Counts1) :-
-    graph_memberchk(Zero-Neibs, Graph),
-    decr_list(Neibs, Vertices, Counts1, Counts2, Zeros, NewZeros),
-    top_sort(NewZeros, Sorted, Graph, Vertices, Counts2).
+    vertices_and_zeros(Graph, _, Counts), % verify nothing left
+    Layers = [].
+top_sort(Zeros, [Zeros|Layers], Graph, Vertices, Counts1) :-
+    decr_zero_neighbors(Zeros, Graph, Vertices, Counts1, Counts2, NewZeros, []),
+    top_sort(NewZeros, Layers, Graph, Vertices, Counts2).
 
-top_sort([], Sorted0, Sorted0, Graph, _, Counts) :-
-    !,
-    vertices_and_zeros(Graph, _, Counts).
-top_sort([Zero|Zeros], [Zero|Sorted], Sorted0, Graph, Vertices, Counts1) :-
+decr_zero_neighbors([], _, _, Counts, Counts, Z, Z).
+decr_zero_neighbors([Zero|Zeros], Graph, Vertices, Counts0, Counts, Z0, Z) :-
     graph_memberchk(Zero-Neibs, Graph),
-    decr_list(Neibs, Vertices, Counts1, Counts2, Zeros, NewZeros),
-    top_sort(NewZeros, Sorted, Sorted0, Graph, Vertices, Counts2).
+    decr_list(Neibs, Vertices, Counts0, Counts1, Z0, Z1),
+    decr_zero_neighbors(Zeros, Graph, Vertices, Counts1, Counts, Z1, Z).
 
 graph_memberchk(Element1-Edges, [Element2-Edges2|_]) :-
     Element1 == Element2,
@@ -501,17 +518,17 @@ graph_memberchk(Element1-Edges, [Element2-Edges2|_]) :-
 graph_memberchk(Element, [_|Rest]) :-
     graph_memberchk(Element, Rest).
 
-
-decr_list([], _, Counts, Counts, Zeros, Zeros) :- !.
-decr_list([V1|Neibs], [V2|Vertices], [1|Counts1], [0|Counts2], Zi, Zo) :-
+decr_list([], _, Counts, Counts, Zeros, Zeros) :-
+    !.
+decr_list([V1|Neibs], [V2|Vertices], [N|Counts1], [M|Counts2], Z0, Z) :-
     V1 == V2,
     !,
-    decr_list(Neibs, Vertices, Counts1, Counts2, [V2|Zi], Zo).
-decr_list([V1|Neibs], [V2|Vertices], [N|Counts1], [M|Counts2], Zi, Zo) :-
-    V1 == V2,
-    !,
-    M is N-1,
-    decr_list(Neibs, Vertices, Counts1, Counts2, Zi, Zo).
+    M is N - 1,
+    (   M == 0
+    ->  Z0 = [V1|Z1],
+        decr_list(Neibs, Vertices, Counts1, Counts2, Z1, Z)
+    ;   decr_list(Neibs, Vertices, Counts1, Counts2, Z0, Z)
+    ).
 decr_list(Neibs, [_|Vertices], [N|Counts1], [N|Counts2], Zi, Zo) :-
     decr_list(Neibs, Vertices, Counts1, Counts2, Zi, Zo).
 
