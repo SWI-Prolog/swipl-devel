@@ -44,6 +44,9 @@
 :- autoload(library(edinburgh), [debug/0]).
 :- autoload(library(gensym), [gensym/2]).
 
+:- multifile
+    trap_alias/2.
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> User level debugging tools
@@ -206,6 +209,15 @@ spy_point(Module:Head) :-
 %   ?- run.
 %   ```
 %
+%   The multifile hook trap_alias/2 allow for   defining short hands for
+%   commonly used traps.  Currently this defines
+%
+%     - det
+%       Trap determinism exceptions raised as a result of the det/1
+%       directive.
+%     - =>
+%       Trap rule existence error exceptions.
+%
 %   @see gtrap/1 to trap using the graphical debugger.
 %   @see _Edit exceptions_ menu in PceEmacs and the graphical debugger
 %   that provide a graphical frontend to trap exceptions.
@@ -217,22 +229,38 @@ spy_point(Module:Head) :-
 trap(Error) :-
     '$notrace'(trap_(Error)).
 
-trap_(Error) :-
+trap_(Spec) :-
+    expand_trap(Spec, Formal),
     gensym(ex, Rule),
-    asserta(exception(Rule, error(Error, _), true, true)),
-    print_message(informational, trap(Rule, error(Error, _), true, true)),
+    asserta(exception(Rule, error(Formal, _), true, true)),
+    print_message(informational, trap(Rule, error(Formal, _), true, true)),
     install_exception_hook,
     debug.
 
 notrap(Error) :-
     '$notrace'(notrap_(Error)).
 
-notrap_(Error) :-
-    Exception = error(Error, _),
+notrap_(Spec) :-
+    expand_trap(Spec, Formal),
+    Exception = error(Formal, _),
     findall(exception(Name, Exception, NotCaught, Caught),
-            retract(exception(Name, error(Error, _), Caught, NotCaught)),
+            retract(exception(Name, error(Formal, _), Caught, NotCaught)),
             Trapping),
     print_message(informational, notrap(Trapping)).
+
+expand_trap(Var, _Formal), var(Var) =>
+    true.
+expand_trap(Alias, Formal), trap_alias(Alias, For) =>
+    Formal = For.
+expand_trap(Explicit, Formal) =>
+    Formal = Explicit.
+
+%!  trap_alias(+Alias, -Error)
+%
+%   Define short hands for commonly used exceptions.
+
+trap_alias(det, determinism_error(_Pred, _Declared, _Observed, property)).
+trap_alias(=>,  existence_error(rule, _)).
 
 
 trapping :-
