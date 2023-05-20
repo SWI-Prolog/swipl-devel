@@ -89,6 +89,24 @@ unique to the toolchain.   Currently it supports
 %   which causes the system to try an  alternative. A step that wants to
 %   abort the build process must  throw  an   exception.
 %
+%   If a step fails, a warning message is printed. The message can be
+%   suppressed by enclosing the step in square brackets.  Thus, in the
+%   above example of Steps, only failure  by the `build` and `install`
+%   steps result in warning messages; failure of the other steps is
+%   silent.
+%
+%   The failure of a step can be made into an error by enclosing it
+%   in curly brackets, e.g. `[[dependencies], [configure], {build}, [test], {install}]`
+%   would throw an exception if either the `build` or `install` step failed.
+%
+%   Options are:
+%   * pack_version(N)
+%     where N is 1 or 2 (default: 1).
+%     This determines the form of environment names that are set before
+%     the  build tools are calledd.
+%     For version 1, names such as `SWIPLVERSION` or `SWIHOME` are used.
+%     For version 2, names such as `SWIPL_VERSION` or `SWIPL_HOME_DIR` are used.
+%
 %   @tbd If no tool  is  willing  to   execute  some  step,  the step is
 %   skipped. This is ok for some steps such as `dependencies` or `test`.
 %   Possibly we should force the `install` step to succeed?
@@ -112,6 +130,10 @@ build_step(Spec, State0, State) :-
     !.
 build_step([_], State, State) :-
     !.
+build_step({Step}, State, State) :-
+    !,
+    print_message(error, build(step_failed(Step))),
+    throw(error(build(step_failed(Step)))).
 build_step(Step, State, State) :-
     print_message(warning, build(step_failed(Step))).
 
@@ -149,6 +171,8 @@ ensure_build_dir(Dir, State0, State) :-
 		 *******************************/
 
 %!  build_environment(-Env, +Options) is det.
+%
+%   Options are documented under build_steps/3.
 %
 %   Assemble a clean  build  environment   for  creating  extensions  to
 %   SWI-Prolog. Env is a list of   `Var=Value` pairs. The variable names

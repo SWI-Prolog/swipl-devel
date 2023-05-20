@@ -79,7 +79,24 @@ library lets you inspect installed   packages,  install packages, remove
 packages, etc. It is complemented by   the  built-in attach_packs/0 that
 makes installed packages available as libraries.
 
+To make changes to a package:
+  * Clone the git repo,t go into the repo and run:
+    `?- pack_install(.).`
+    This builds the pack locally and creates a symlink to make it available.
+  * `?- pack_rebuild(package_name).`
+    This runs `make clean` and `make` with the right environment. It will also
+    write a file `buildendv.sh` that you can source to get the environment
+    for running a normal `make` (this is done only if there is a `configure`
+    step; i.e., if there is a `configure.in` or `configure`.
+  * The build process also supports `cmake`.
+
+Once you have made the changes, you should edit the `pack.pl` file
+to change the `version` item. After updating the git repo, issue
+a `pack_install(package_name, [upgrade(true), test(true), rebuild(make)])`
+to cause the repository to refresh.
+
 @see    Installed packages can be inspected using =|?- doc_browser.|=
+@see    library(build/tools)
 @tbd    Version logic
 @tbd    Find and resolve conflicts
 @tbd    Upgrade git packages
