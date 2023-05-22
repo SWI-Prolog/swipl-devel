@@ -109,6 +109,12 @@ expand_term(Term, Pos0, [], Pos) :-
     !,
     atomic_pos(Pos0, Pos).
 expand_term(Term, Pos0, Expanded, Pos) :-
+    setup_call_cleanup(
+        '$push_input_context'(expand_term),
+        expand_term_keep_source_loc(Term, Pos0, Expanded, Pos),
+        '$pop_input_context').
+
+expand_term_keep_source_loc(Term, Pos0, Expanded, Pos) :-
     b_setval('$term', Term),
     prepare_directive(Term),
     '$def_modules'([term_expansion/4,term_expansion/2], MList),
