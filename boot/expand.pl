@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2019, University of Amsterdam
+    Copyright (c)  2009-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -119,8 +120,7 @@ expand_term_keep_source_loc(Term, Pos0, Expanded, Pos) :-
     prepare_directive(Term),
     '$def_modules'([term_expansion/4,term_expansion/2], MList),
     call_term_expansion(MList, Term, Pos0, Term1, Pos1),
-    expand_terms(expand_term_2, Term1, Pos1, Term2, Pos),
-    rename(Term2, Expanded),
+    expand_terms(expand_term_2, Term1, Pos1, Expanded, Pos),
     b_setval('$term', []).
 
 %!  prepare_directive(+Directive) is det.
@@ -1535,64 +1535,6 @@ member_eq(E, [H|T]) :-
     ->  true
     ;   member_eq(E, T)
     ).
-
-                 /*******************************
-                 *            RENAMING          *
-                 *******************************/
-
-:- multifile
-    prolog:rename_predicate/2.
-
-rename(Var, Var) :-
-    var(Var),
-    !.
-rename(end_of_file, end_of_file) :- !.
-rename(Terms0, Terms) :-
-    is_list(Terms0),
-    !,
-    '$current_source_module'(M),
-    rename_preds(Terms0, Terms, M).
-rename(Term0, Term) :-
-    '$current_source_module'(M),
-    rename(Term0, Term, M),
-    !.
-rename(Term, Term).
-
-rename_preds([], [], _).
-rename_preds([H0|T0], [H|T], M) :-
-    (   rename(H0, H, M)
-    ->  true
-    ;   H = H0
-    ),
-    rename_preds(T0, T, M).
-
-rename(Var, Var, _) :-
-    var(Var),
-    !.
-rename(M:Term0, M:Term, M0) :-
-    !,
-    (   M = '$source_location'(_File, _Line)
-    ->  rename(Term0, Term, M0)
-    ;   rename(Term0, Term, M)
-    ).
-rename((Head0 :- Body), (Head :- Body), M) :-
-    !,
-    rename_head(Head0, Head, M).
-rename((:-_), _, _) :-
-    !,
-    fail.
-rename(Head0, Head, M) :-
-    rename_head(Head0, Head, M).
-
-rename_head(Var, Var, _) :-
-    var(Var),
-    !.
-rename_head(M:Term0, M:Term, _) :-
-    !,
-    rename_head(Term0, Term, M).
-rename_head(Head0, Head, M) :-
-    prolog:rename_predicate(M:Head0, M:Head).
-
 
                  /*******************************
                  *      :- IF ... :- ENDIF      *
