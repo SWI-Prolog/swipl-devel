@@ -50,6 +50,7 @@ documented at all.
 \input{iostream}
 \input{listing}
 \input{lists}
+\input{macros}
 \input{main}
 \input{nbset}
 \input{wwwbrowser}
