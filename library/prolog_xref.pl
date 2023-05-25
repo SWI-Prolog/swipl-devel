@@ -1933,6 +1933,7 @@ prolog:no_autoload_module(library(pldoc)).
 prolog:no_autoload_module(library(settings)).
 prolog:no_autoload_module(library(debug)).
 prolog:no_autoload_module(library(plunit)).
+prolog:no_autoload_module(library(macros)).
 
 
 %!  process_requires(+Import, +Src)
