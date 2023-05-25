@@ -756,6 +756,16 @@ colourise_clause_head(M:Head, TB, QHeadPos) :-
     colour_item(head_term(Class, Head), TB, QHeadPos),
     colour_item(head(Class, Head), TB, FPos),
     specified_items(ArgSpecs, Head, TB, ArgPos).
+colourise_clause_head(#(Macro), TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Head),
+    !,
+    macro_term_string(Head, String),
+    functor_position(MPos, FPos, _),
+    classify_head(TB, Head, Class),
+    colour_item(macro(String), TB, HF-HT),
+    colour_item(head_term(Class, Head), TB, MPos),
+    colour_item(head(Class, Head), TB, FPos),
+    colourise_term_args(Macro, TB, MPos).
 colourise_clause_head(Head, TB, Pos) :-
     head_colours(Head, ClassSpec-ArgSpecs),
     !,
@@ -1064,6 +1074,19 @@ colourise_goal(Goal, _Origin, TB, Pos) :-
     Pos = quasi_quotation_position(_F,_T,_QQType,_QQTypePos,_CPos),
     !,
     colourise_term_arg(Goal, TB, Pos).
+colourise_goal(#(Macro), Origin, TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Goal),
+    !,
+    macro_term_string(Goal, String),
+    goal_classification(TB, Goal, Origin, Class),
+    (   MPos = term_position(_,_,FF,FT,_ArgPos)
+    ->  FPos = FF-FT
+    ;   FPos = MPos
+    ),
+    colour_item(macro(String), TB, HF-HT),
+    colour_item(goal_term(Class, Goal), TB, MPos),
+    colour_item(goal(Class, Goal), TB, FPos),
+    colourise_goal_args(Goal, TB, MPos).
 colourise_goal(Goal, Origin, TB, Pos) :-
     strip_module(Goal, _, PGoal),
     nonvar(PGoal),
@@ -1499,6 +1522,11 @@ colourise_term_args([Pos|T], N, Term, TB) :-
     NN is N + 1,
     colourise_term_args(T, NN, Term, TB).
 
+%!  colourise_term_arg(+Term, +TB, +Pos)
+%
+%   Colourise an arbitrary Prolog term without context of its semantical
+%   role.
+
 colourise_term_arg(_, _, Pos) :-
     var(Pos),
     !.
@@ -1517,7 +1545,7 @@ colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :-
     !,
     colour_item(list, TB, F-T),
     colourise_list_args(Elms, Tail, List, TB, classify).    % list
-colourise_term_arg(String, TB, string_position(F, T)) :-       % string
+colourise_term_arg(String, TB, string_position(F, T)) :-    % string
     !,
     (   string(String)
     ->  colour_item(string, TB, F-T)
@@ -1566,6 +1594,12 @@ colourise_term_arg([](List,Term), TB,                   % [] as operator
     !,
     colourise_term_arg(List, TB, ListPos),
     colourise_term_arg(Term, TB, ArgPos).
+colourise_term_arg(#(Macro), TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Term),
+    !,
+    macro_term_string(Term, String),
+    colour_item(macro(String), TB, HF-HT),
+    colourise_term_arg(Macro, TB, MPos).
 colourise_term_arg(Compound, TB, Pos) :-                % compound
     compound(Compound),
     !,
@@ -2173,6 +2207,37 @@ colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
 
 
+		 /*******************************
+		 *             MACROS		*
+		 *******************************/
+
+%!  expand_macro(+TB, +Macro, -Expanded) is semidet.
+%
+%   @tbd This only works if the code is compiled. Ideally we'd also make
+%   this work for not compiled code.
+
+expand_macro(TB, Macro, Expanded) :-
+    colour_state_source_id(TB, SourceId),
+    (   xref_module(SourceId, M)
+    ->  true
+    ;   M = user
+    ),
+    current_predicate(M:'$macro'/2),
+    catch(M:'$macro'(Macro, Expanded),
+          error(_, _),
+          fail),
+    !.
+
+macro_term_string(Term, String) :-
+    copy_term_nat(Term, Copy),
+    numbervars(Copy, 0, _, [singletons(true)]),
+    term_string(Copy, String,
+                [ portray(true),
+                  max_depth(2),
+                  numbervars(true)
+                ]).
+
+
                  /*******************************
                  *        CONFIGURATION         *
                  *******************************/
@@ -2621,6 +2686,8 @@ def_style(instantiation_error,     [background(orange)]).
 
 def_style(decl_option(_),	   [bold(true)]).
 def_style(table_mode(_),	   [bold(true)]).
+
+def_style(macro(_),                [colour(blue), underline(true)]).
 
 %!  syntax_colour(?Class, ?Attributes) is nondet.
 %
@@ -3092,6 +3159,8 @@ syntax_message(neck(=>)) -->
     [ 'Rule' ].
 syntax_message(neck(-->)) -->
     [ 'Grammar rule' ].
+syntax_message(macro(String)) -->
+    [ 'Macro indicator (expands to ~s)'-[String] ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
