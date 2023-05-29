@@ -5221,7 +5221,8 @@ The following \arg{Options} are recognised by open/4:
 
 \begin{description}
     \termitem{alias}{Atom}
-Gives the stream a name.   Below is an example.   Be careful with this
+Gives the stream a name and unifies Stream with Atom.
+Below is an example.   Be careful with this
 option as stream names are global.  See also set_stream/2.
 
 \begin{code}
