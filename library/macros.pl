@@ -71,6 +71,12 @@ indented line after show example usage of the macro.
                     points:[#pt(0,0), #pt(0,5), #pt(5,0)]}).
 ```
 
+Macro expansion expands terms `#(Callable)`.  If   the  argument  to the
+#-term is not a `callable`, the  #-term   is  not modified. This notably
+allows for `#(Var)`  as  used  by   library(clpfd)  to  indicate  that a
+variable is constraint to be an (clp(fd)) integer.
+
+
 ## Implementation details {#macros-implementation}
 
 A macro `#define(Macro, Expanded) :- Body.`  is, after some basic sanity
@@ -120,8 +126,8 @@ valid_macro(Macro), reserved_macro(Macro) =>
     domain_error(macro, Macro).
 valid_macro(Macro), callable(Macro) =>
     true.
-valid_macro(Macro) =>
-    must_be(macro, Macro).
+valid_macro(_Macro) =>
+    fail.
 
 reserved_macro(define(_,_)) => true.
 reserved_macro(import(_)) => true.
