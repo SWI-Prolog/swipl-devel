@@ -213,6 +213,7 @@ aliasStream(IOSTREAM *s, atom_t name)
   ctx = getStreamContext(s);
   addNewHTable(streamAliases, (void *)name, s);
   PL_register_atom(name);
+  Sreference(s);
 
   a = allocHeapOrHalt(sizeof(*a));
   a->next = NULL;
@@ -256,6 +257,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
       }
 
       PL_unregister_atom(name);
+      Sunreference(s);
     }
   } else				/* delete them all */
   { stream_context *ctx;
@@ -269,6 +271,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
 	if ( lookupHTable(streamAliases, (void *)a->name) )
 	{ deleteHTable(streamAliases, (void *)a->name);
 	  PL_unregister_atom(a->name);
+	  Sunreference(s);
 	}
 
 	freeHeap(a, sizeof(*a));
