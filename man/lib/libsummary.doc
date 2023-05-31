@@ -208,6 +208,10 @@ This library is only available on Windows systems.
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
 
+\IfFileExists{summaries.d/rwlocks.tex}{
+\libsummary{rwlocks}
+\input{summaries.d/rwlocks.tex}}{}
+
 \libsummary{settings}
 \input{summaries.d/settings.tex}
 

@@ -170,7 +170,7 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         increval prolog_debug prolog_trace rbtrees statistics heaps fastrw gensym
         www_browser macros)
 if(MULTI_THREADED)
-  libsdoc(thread_pool thread)
+  libsdoc(thread_pool thread rwlocks)
 endif()
 if(NOT STATIC_EXTENSIONS)
 libdoc(shlib --subsection)

@@ -74,6 +74,7 @@ documented at all.
 \input{readutil}
 \input{record}
 \input{registry}
+\InputIfFileExists{rwlocks}{}{}
 \input{settings}
 \input{statistics}
 \input{strings}
