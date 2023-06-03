@@ -1,3 +1,5 @@
+[![CI](https://github.com/SWI-Prolog/swipl-devel/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SWI-Prolog/swipl-devel/actions/workflows/ci.yml)
+
 # SWI-Prolog: A comprehensive Prolog implementation
 
 SWI-Prolog is an open  source  (BSD-2)   implementation  of  the  Prolog
