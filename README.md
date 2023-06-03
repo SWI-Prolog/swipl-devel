@@ -59,6 +59,13 @@ to sandbox restrictions and does not provide the features most valued in
 SWI-Prolog such as its rich set of interfaces, multi-threading, modules,
 etc.
 
+Alternatively, there is  a WASM (_Web Assembly_)  version available at
+http://dev.swi-prolog.org/wasm/shell.   This  version has  no  sandbox
+restrictions.  The  WASM build  allows interaction with  the browser's
+DOM, so it allows for interactive Prolog applications running _inside_
+the browser.  It is otherwise rather limited though.
+
+
 ## Forum/mailing list
 
 Our       forum       is       hosted        at       a       [Discourse
