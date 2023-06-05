@@ -127,7 +127,7 @@
     (mode)/2,                       % Mode, Src
     xoption/2,                      % Src, Option
     xflag/4,                        % Name, Value, Src, Line
-
+    grammar_rule/2,                 % Head, Src
     module_comment/3,               % Src, Title, Comment
     pred_comment/4,                 % Head, Src, Summary, Comment
     pred_comment_link/3,            % Head, Src, HeadTo
@@ -530,6 +530,7 @@ xref_clean(Source) :-
     retractall(uses_file(_, Src, _)),
     retractall(xmodule(_, Src)),
     retractall(xop(Src, _)),
+    retractall(grammar_rule(_, Src)),
     retractall(xoption(Src, _)),
     retractall(xflag(_Name, _Value, Src, Line)),
     retractall(source(Src, _)),
@@ -637,6 +638,8 @@ xref_defined2(constraint(Line), Src, Called) :-
     constraint(Called, Src, Line).
 xref_defined2(imported(From), Src, Called) :-
     imported(Called, Src, From).
+xref_defined2(dcg, Src, Called) :-
+    grammar_rule(Called, Src).
 
 
 %!  xref_definition_line(+How, -Line)
@@ -869,6 +872,13 @@ process(Term, Comments, Term0, TermPos, Src, false) :-
 process(_, Term0, _) :-
     ignore_raw_term(Term0),
     !.
+process(Head :- Body, Head0 --> _, Src) :-
+    pi_head(F/A, Head),
+    pi_head(F/A0, Head0),
+    A is A0 + 2,
+    !,
+    assert_grammar_rule(Src, Head),
+    process((Head :- Body), Src).
 process(Term, _Term0, Src) :-
     process(Term, Src).
 
@@ -2528,6 +2538,14 @@ assert_foreign(Src, Goal) :-
     generalise(Goal, Term),
     current_source_line(Line),
     assert(foreign(Term, Src, Line)).
+
+assert_grammar_rule(Src, Goal) :-
+    grammar_rule(Goal, Src),
+    !.
+assert_grammar_rule(Src, Goal) :-
+    generalise(Goal, Term),
+    assert(grammar_rule(Term, Src)).
+
 
 %!  assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
 %
