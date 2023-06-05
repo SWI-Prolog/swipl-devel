@@ -612,6 +612,7 @@ xref_called(Source, Called, By, Cond, Line) :-
 %     * foreign(Location)
 %     * constraint(Location)
 %     * imported(From)
+%     * dcg
 
 xref_defined(Source, Called, How) :-
     nonvar(Source),
