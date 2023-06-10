@@ -52,7 +52,7 @@
 %   the result is the same as sort/2 (but sort/2 is built using more
 %   low-level primitives and is considerably faster).
 %
-%   @see keysort/2 provides an more portable way to sort on
+%   @see keysort/2 provides a more portable way to sort on
 %   arbitrary keys that is usually faster.  The predicate sort/4
 %   can sort on specific arguments of compound terms or key values
 %   of dicts.
