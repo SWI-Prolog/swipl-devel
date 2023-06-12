@@ -2635,7 +2635,7 @@ static int
 compare_my_blob(atom_t a, atom_t b)
 { const struct my_blob_data *blob_a = PL_blob_data(a, NULL, NULL);
   const struct my_blob_data *blob_b = PL_blob_data(b, NULL, NULL);
-  return (blob_a > blob_b) ?  1 :  (blob_a < blob_b) ? -1 : 0;
+  return (blob_a < blob_b) ? -1 : (blob_a > blob_b) ? 1 : 0;
 }
 \end{code}
 
