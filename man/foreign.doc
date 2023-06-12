@@ -324,14 +324,22 @@ are blobs that represent textual content. Textual content is also
 represented by Prolog string (see \secref{string}), which makes the
 general notion of \jargon{string} in Prolog ambiguous. The core idea
 behind blobs/atoms is to represent arbitrary content using a
-\emph{unique} handle, such that comparing the handle is enough to prove
-equivalence of the content; i.e., given two different atom handles we
-know they represent different texts. This uniqueness feature allows the
-core engine to reason about atoms without considering their content.
-\jargon{Strings} (\secref{string}) and blobs without the
-\const{PL_BLOB_UNIQUE} feature do \emph{not} have this uniqueness
-property - to test for equality, the contents of the strings or
-blobs must be compared.
+\emph{unique} handle, such that comparing the handles is enough to
+prove equivalence of the contents; i.e., given two different atom
+handles we know they represent different texts. This uniqueness
+feature allows the core engine to reason about atom equality and
+inequality without considering their content.  Blobs without the
+\const{PL_BLOB_UNIQUE} feature are also tested for uniqueness without
+considering their content.\footnote{Each time an atom or a
+\const{PL_BLOB_UNIQUE} blob is created, it must be looked up in the atom
+table; if a blob without \const{PL_BLOB_UNIQUE} is created, no lookup is
+done.}
+\jargon{Strings} (\secref{string}) do \emph{not} have this uniqueness
+property - to test for equality, the contents of the strings must be
+compared.  For both atoms and strings, comparisons for ordering (e.g.,
+used by sort/2 or @</2) must use the contents; in the case of blobs,
+\cfuncref{compare}{} can be specified in the \ctype{PL_blob_t}
+structure to override the default bitwise comparison.
 
 Because atoms are often used to represent (parts of) arbitrary input,
 intermediate results, and output of data processed by Prolog, it is
@@ -430,6 +438,16 @@ Succeed deterministically. PL_succeed is defined as
 Fail and start Prolog backtracking.  PL_fail is defined as \exam{return
 \const{FALSE}}.
 \end{description}
+
+Additional background reading that may be useful:
+\begin{itemize}
+\item \cite{Clocksin:83} - SWI-Prolog's interpreter is derived from this.
+\item \cite{Aït-Kaci:99} - This paper gives a detailed description of the
+   concepts behind Prolog interpreters. The main difference between this
+   and the "Zip" machine is that the Zip machine passes arguments by pushing
+   onto a stack whereas the Warren machine uses registers.
+\item \cite{Appleby:86}
+\end{itemize}
 
 \subsubsection{Non-deterministic Foreign Predicates}	\label{sec:foreignnondet}
 
@@ -2331,7 +2349,7 @@ Raise \exam{type_error(expected, culprit)}.  See type_error/2.
 Raise \exam{domain_error(expected, culprit)}.  See domain_error/2.
 
     \cfunction{int}{PL_existence_error}{const char *type, term_t culprit}
-Raise \exam{existence_error(type, culprit)}.  See type_error/2.
+Raise \exam{existence_error(type, culprit)}.  See existence_error/2.
 
     \cfunction{int}{PL_permission_error}{const char *operation,
 					 const char *type, term_t culprit}
@@ -2459,7 +2477,10 @@ will not change, of course).
 While the blob is alive, neither its handle nor the location of the
 contents (see PL_blob_data()) change. If the blob's type has the
 \const{PL_BLOB_UNIQUE} feature, the content of the blob must remain
-unmodified. Blobs are \emph{only} reclaimed by the atom garbage
+unmodified.
+If the blob's type does not have the \const{PL_BLOB_UNIQUE} feature,
+then none of the instances will be equal.
+Blobs are \emph{only} reclaimed by the atom garbage
 collector. In this case the atom garbage collector calls the
 \cfuncref{release} function associated with the blob type and reclaims
 the memory allocated for the content unless this is owned by the creator
@@ -2472,8 +2493,8 @@ location it must make sure the handle is \jargon{registered} to prevent
 it from being garbage collected. If the handle is obtained from a
 \ctype{term_t} object it is \textbf{not} registered because it is
 protected by the \ctype{term_t} object. This applies to e.g.,
-PL_get_atom(). Functions that create a handle from data such as
-PL_new_atom() return a registered handle to prevent the asynchronous
+PL_get_atom(). Functions that create a handle from data, such as
+PL_new_atom(), return a registered handle to prevent the asynchronous
 atom garbage collector from reclaiming it immediately. Note that many of
 the API functions create an atom or blob handle and use this to fill a
 \ctype{term_t} object, e.g., PL_unify_blob(), PL_unify_chars(), etc. In
@@ -2511,7 +2532,9 @@ typedef struct PL_blob_t
 } PL_blob_t;
 \end{code}
 
-For each type, exactly one such structure should be allocated.  Its
+For each type, exactly one such structure should be allocated and
+must not be moved (the address of the structure determines the
+blob's "type"). Its
 first field must be initialised to \const{PL_BLOB_MAGIC}.  The
 \arg{flags} is a bitwise \emph{or} of the following constants:
 
@@ -2527,12 +2550,15 @@ PL_get_nchars() and PL_unify_chars() to get text from Prolog terms
 or create Prolog terms that represent text.
 
     \constitem{PL_BLOB_UNIQUE}
-If specified the system ensures that the blob-handle is a unique
+If specified, the system ensures that the blob-handle is a unique
 reference for a blob with the given type, length and content. If this
 flag is not specified, each lookup creates a new blob. Uniqueness is
 determined by comparing the bytes in the blobs unless
 \const{PL_BLOB_NOCOPY} is also specified, in which case the pointers are
-compared.
+compared. Note that the lookup does \emph{not} use the blob's
+compare function when testing for equality, but only tests the bytes;
+this means that terms from the recorded database or C++-style strings
+will typically not compare as equal when doing blob lookup.
 
     \constitem{PL_BLOB_NOCOPY}
 By default the content of the blob is copied. Using this flag the blob
@@ -2589,7 +2615,16 @@ Compare the blobs \arg{a} and \arg{b}, both of which are of the type
 associated to this blob type. Return values are as memcmp(): $< 0$ if
 \arg{a} is less than \arg{b}, $= 0$ if both are equal, and $> 0$
 otherwise. The default implementation is a bitwise comparison of the
-blobs' contents. If you cannot guarantee that the blobs all have unique
+blobs' contents. This default implementation suffices if
+\const{PL_BLOB_UNIQUE} is set (and the blob follows the requirement
+that its contents do not change), although it might give an
+unexpected ordering.
+
+If the \cfuncref{compare}{} function is defined, the sort/2
+predicate uses that to determine if two blobs are equal and
+only keeps one of them. This can cause unexpected results
+with blobs that are actually different; 
+if you cannot guarantee that the blobs all have unique
 contents, then you should incorporate the blob address (the system
 guarantees that blobs are not shifted in memory after they are
 allocated). The following minimal compare function gives a stable total
@@ -2740,7 +2775,7 @@ ignored.
 
 Get the data and type associated to a blob. This function is mainly used
 from the callback functions described in \secref{blobtype}. Note that if
-the release() hook is called from PL_cleanup(), blobs are releases
+the release() hook is called from PL_cleanup(), blobs are released
 regardless of whether or not they are referenced and the order in which
 blobs are released is undefined (the order depends on the ordering in
 the atom hash table). PL_blob_data() may be called safely on a blob that
@@ -2749,6 +2784,18 @@ return value is guaranteed to be \const{NULL}. During normal execution
 it may return the content of a newly allocated blob that reused the
 released handle.
 \end{description}
+
+\subsubsection{Considerations for non-C code}
+\label{sec:blob-nonc}
+
+The blob API assumes that Prolog will take care of memory management, using
+the \cfuncref{release} callback to handle any cleanup.
+
+Other programming languages have their own memory management, which
+might not fit nicely with the Prolog memory management. For more
+details on blobs written with C++, see
+\href{https://www.swi-prolog.org/pldoc/man?section=cpp2}{C++ interface
+to SWI-Prolog (Version 2)}.
 
 
 \subsection{Exchanging GMP numbers}
