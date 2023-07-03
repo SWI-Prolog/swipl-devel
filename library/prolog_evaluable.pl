@@ -35,6 +35,8 @@
 :- module(prolog_evaluable,
           [ evaluable_property/2
           ]).
+:- autoload(library(prolog_code), [most_general_goal/2]).
+:- autoload(library(error), [must_be/2]).
 
 /** <module> Inspect properties of evaluable functions
 */
@@ -52,6 +54,13 @@
 %       SWI-Prolog provides library(arithmetic) for this, which rewrites
 %       the source as interleaved predicate calls and built-in function
 %       evaluation.
+%     - iso
+%       Function is part of the ISO standard. This does, for SWI-Prolog,
+%       __not__ imply that the implementation satisfies the ISO
+%       standard.  It implies that it implements the same mathematical
+%       operation as specified by the standard.  The returned type may
+%       be more precise and may, depending on Prolog flags, return
+%       non-normal floats where the ISO standard demands an exception.
 %     - template(Function, Return)
 %       Type support.  Types used are `integer`, `rational` and `float`.
 %       Functions that copy the type to the output use a variable to
@@ -61,18 +70,28 @@
 %   Future versions may provide this predicate as a built-in.
 %
 %   @compat discussed by several implementors, initiated by Paulo Moura.
+%   @arg Function is a variable or _callable_ term.  If it is a callable
+%   term, only the name and arity are considered to denote the
+%   evaluable.
 
+evaluable_property(Templ, built_in), nonvar(Templ), \+ callable(Templ) =>
+    must_be(callable, Templ).
 evaluable_property(Templ, built_in) =>
     current_arithmetic_function(Templ).
-evaluable_property(Templ, template(Templ, Ret)) =>
-    eval_type(Templ, Ret).
-evaluable_property(Templ, Prop) =>
-    evaluable_property_(Templ, Prop).
+evaluable_property(Templ, iso) =>
+    iso_function(Templ).
+evaluable_property(Templ, template(Term, Ret)) =>
+    most_general_goal(Templ, Term),
+    eval_type(Term, Ret).
+evaluable_property(Templ, Prop), var(Prop) =>
+    eval_prop(Prop),
+    evaluable_property(Templ, Prop).
+evaluable_property(_, _) =>             % fail on unknown properties.
+    fail.                               % Proposal demands a domain_error.
 
-evaluable_property_(Templ, built_in) :-
-    current_arithmetic_function(Templ).
-evaluable_property_(Templ, template(Templ, Ret)) :-
-    eval_type(Templ, Ret).
+eval_prop(built_in).
+eval_prop(template(_,_)).
+eval_prop(iso).
 
 eval_type(float*_,float).
 eval_type(_*float,float).
@@ -172,3 +191,44 @@ eval_type(tan(_),float).
 eval_type(tanh(_),float).
 eval_type(truncate(_),integer).
 eval_type(integer xor integer,integer_).
+
+% ISO core
+iso_function(_+_).
+iso_function(_-_).
+iso_function(_*_).
+iso_function(_//_).
+iso_function(_/_).
+iso_function(rem(_,_)).
+iso_function(mod(_,_)).
+iso_function(-_).
+iso_function(abs(_)).
+iso_function(sign(_)).
+iso_function(float_integer_part(_)).
+iso_function(float_fractional_part(_)).
+iso_function(float(_)).
+iso_function(floor(_)).
+iso_function(truncate(_)).
+iso_function(round(_)).
+iso_function(ceiling(_)).
+iso_function(_**_).
+iso_function(sin(_)).
+iso_function(cos(_)).
+iso_function(atan(_)).
+iso_function(exp(_)).
+iso_function(log(_)).
+iso_function(sqrt(_)).
+iso_function(_>>_).
+iso_function(_<<_).
+iso_function(_/\_).
+iso_function(_\/_).
+iso_function(\_).
+% Correndum 2
+iso_function(max(_,_)).
+iso_function(min(_,_)).
+iso_function(_^_).
+iso_function(asin(_)).
+iso_function(acos(_)).
+iso_function(atan(_,_)).
+iso_function(tan(_)).
+iso_function(pi).
+iso_function(xor(_,_)).
