@@ -62,8 +62,10 @@
 %
 %   @compat discussed by several implementors, initiated by Paulo Moura.
 
-evaluable_property(Templ, Prop), ground(Prop) =>
-    evaluable_property_(Templ, Prop), !.
+evaluable_property(Templ, built_in) =>
+    current_arithmetic_function(Templ).
+evaluable_property(Templ, template(Templ, Ret)) =>
+    eval_type(Templ, Ret).
 evaluable_property(Templ, Prop) =>
     evaluable_property_(Templ, Prop).
 
