@@ -55,7 +55,13 @@ late;  character terminals  disappear quickly now.  Use XPCE if you want
 windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if !defined(HAVE_TERM_H) && !defined(HAVE_NCURSES_TERM_H)
+/* Some systems seem not to have the headers ... */
+#undef HAVE_TGETENT
+#endif
+
 #ifdef HAVE_TGETENT
+
 #ifndef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H
 #include <sys/ioctl.h>
 #endif
@@ -307,62 +313,6 @@ PRED_IMPL("tty_put", 2, pl_tty_put, 0)
   fail;
 }
 
-
-#define HAVE_TTY_SIZE_PRED 1
-
-static
-PRED_IMPL("tty_size", 2, tty_size, 0)
-{ PRED_LD
-  int rows, cols;
-  int fd = Sfileno(Suser_input);
-
-  term_t r = A1;
-  term_t c = A2;
-
-  if ( fd < 0 )
-    fd = 0;
-
-#ifdef __unix__
-  int iorval;
-
-#ifdef TIOCGSIZE
-  struct ttysize ws;
-  iorval = ioctl(fd, TIOCGSIZE, &ws);
-
-  rows = ws.ts_lines;
-  cols = ws.ts_cols;
-#else
-#ifdef TIOCGWINSZ
-  struct winsize ws;
-  iorval = ioctl(fd, TIOCGWINSZ, &ws);
-
-  rows = ws.ws_row;
-  cols = ws.ws_col;
-#else
-  Entry er, ec;
-
-  if ( (er=lookupEntry(ATOM_li, ATOM_number)) &&
-       (ec=lookupEntry(ATOM_co, ATOM_number)) &&
-       er->value && ec->value )
-  { rows = valInt(er->value);
-    cols = valInt(ec->value);
-    iorval = 0;
-  } else
-    iorval = -1;
-#endif
-#endif
-
-  if ( iorval != 0 )
-    return PL_error("tty_size", 2, MSG_ERRNO, ERR_SYSCALL, "ioctl");
-#else /*__unix__*/
-  rows = ScreenRows();			/* old stuff refering to plterm.dll */
-  cols = ScreenCols();			/* not used anyway */
-#endif /*__unix__*/
-
-  return PL_unify_integer(r, rows) &&
-	 PL_unify_integer(c, cols);
-}
-
 #else /* ~TGETENT */
 
 #ifdef __WINDOWS__
@@ -418,6 +368,72 @@ void cleanupTerm(void)
 }
 
 #endif /* TGETENT */
+
+#if !defined(HAVE_TGETENT) && defined(HAVE_SYS_IOCTL_H)
+#include <sys/ioctl.h>
+#endif
+
+#if !defined(HAVE_PL_TTY_SIZE) && defined(HAVE_SYS_IOCTL_H) && \
+    (defined(TIOCGSIZE) || defined(TIOCGWINSZ) || defined(HAVE_TGETENT))
+
+#define HAVE_TTY_SIZE_PRED 1
+
+static
+PRED_IMPL("tty_size", 2, tty_size, 0)
+{ PRED_LD
+  int rows, cols;
+  int fd = Sfileno(Suser_input);
+
+  term_t r = A1;
+  term_t c = A2;
+
+  if ( fd < 0 )
+    fd = 0;
+
+#ifdef __unix__
+  int iorval;
+
+#ifdef TIOCGSIZE
+  struct ttysize ws;
+  iorval = ioctl(fd, TIOCGSIZE, &ws);
+
+  rows = ws.ts_lines;
+  cols = ws.ts_cols;
+#else
+#ifdef TIOCGWINSZ
+  struct winsize ws;
+  iorval = ioctl(fd, TIOCGWINSZ, &ws);
+
+  rows = ws.ws_row;
+  cols = ws.ws_col;
+#else
+#ifdef HAVE_TGETENT
+  Entry er, ec;
+
+  if ( (er=lookupEntry(ATOM_li, ATOM_number)) &&
+       (ec=lookupEntry(ATOM_co, ATOM_number)) &&
+       er->value && ec->value )
+  { rows = valInt(er->value);
+    cols = valInt(ec->value);
+    iorval = 0;
+  } else
+    iorval = -1;
+#endif
+#endif
+#endif
+
+  if ( iorval != 0 )
+    return PL_error("tty_size", 2, MSG_ERRNO, ERR_SYSCALL, "ioctl");
+#else /*__unix__*/
+  rows = ScreenRows();			/* old stuff refering to plterm.dll */
+  cols = ScreenCols();			/* not used anyway */
+#endif /*__unix__*/
+
+  return PL_unify_integer(r, rows) &&
+	 PL_unify_integer(c, cols);
+}
+
+#endif
 
 
 		 /*******************************
