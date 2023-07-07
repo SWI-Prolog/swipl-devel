@@ -2601,7 +2601,7 @@ emit_wlabels(vm_wlabel_state *state, Code here, IOSTREAM *fd)
 }
 
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 static void
 put_mpz_size(IOSTREAM *fd, mpz_t mpz, size_t *szp)
 { size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
@@ -2847,7 +2847,7 @@ saveWicClause(wic_state *state, Clause clause)
 
 	  break;
 	}
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	case CA1_MPZ:
 	{ mpz_t mpz;
 	  size_t size;
