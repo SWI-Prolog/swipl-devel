@@ -1149,7 +1149,14 @@ raw_read_identifier(int c, ReadData _PL_rd)
 #define add_comment(b, pos, _PL_rd) LDFUNC(add_comment, b, pos, _PL_rd)
 static int
 add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
-{ term_t head = PL_new_term_ref();
+{ term_t head, str;
+
+  if ( !(head=PL_new_term_ref()) ||
+       !(str=PL_new_term_ref()) ||
+       !PL_unify_chars(str, PL_STRING|REP_UTF8,
+		       entriesBuffer(b, char),
+		       baseBuffer(b, char)) )
+    return FALSE;
 
   assert(_PL_rd->comments);
   if ( !PL_unify_list(_PL_rd->comments, head, _PL_rd->comments) )
@@ -1162,13 +1169,13 @@ add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
 			    PL_INT, pos->lineno,
 			    PL_INT, pos->linepos,
 			    PL_INT, 0,
-			  PL_UTF8_STRING, baseBuffer(b, char)) )
+			  PL_TERM, str) )
       return FALSE;
   } else
   { if ( !PL_unify_term(head,
 			PL_FUNCTOR, FUNCTOR_minus2,
 			  PL_ATOM, ATOM_minus,
-			  PL_UTF8_STRING, baseBuffer(b, char)) )
+			PL_TERM, str) )
       return FALSE;
   }
 
@@ -1284,8 +1291,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 			if ( last == '*' &&
 			     (--level == 0 || _PL_rd->strictness) )
 			{ if ( cbuf )
-			  { addUTF8Buffer(cbuf, EOS);
-			    if ( !add_comment(cbuf, pos, _PL_rd) )
+			  { if ( !add_comment(cbuf, pos, _PL_rd) )
 			    { discardBuffer(cbuf);
 			      return FALSE;
 			    }
@@ -1353,7 +1359,6 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    }
 		    break;
 		  }
-		  addUTF8Buffer(cbuf, EOS);
 		  if ( !add_comment(cbuf, pos, _PL_rd) )
 		  { discardBuffer(cbuf);
 		    return FALSE;
