@@ -267,6 +267,22 @@ given:
 ?- trace, go, notrace.
 \end{code}
 
+As of version 9.1.12, unification against variables in the passed data
+as well as changes to backtrackable global variables persist. The hook
+should not unify variables in its arguments. One solution to this is to
+backtrace over the body of the interceptor. Note that the \arg{Action}
+needs to be preserved.
+
+\begin{code}
+user:prolog_trace_interception(Port, Frame, Choice, Action) :-
+    State = state(0),
+    (   my_trace_interception(Port, Frame, Choice, Action),
+	nb_setarg(1, State, Action),
+	fail
+    ;   arg(1, State, Action)
+    ).
+\end{code}
+
     \predicate{prolog_skip_frame}{1}{-Frame}
 Indicate \arg{Frame} as a skipped frame and set the `skip level' (see
 prolog_skip_level/2 to the recursion depth of \arg{Frame}.  The effect
