@@ -1454,8 +1454,8 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     }
 
   out:
-    if ( qid ) PL_close_query(qid);
-    if ( cid ) PL_discard_foreign_frame(cid);
+    if ( qid ) PL_cut_query(qid);
+    if ( cid ) PL_close_foreign_frame(cid);
 
     if ( nodebug )
     { tracemode(FALSE, NULL);
