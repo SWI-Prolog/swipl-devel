@@ -517,23 +517,25 @@ get_rational(DECL_LD word w, Number n)
       num->_mp_size  = mpz_stack_size(*p++);
       num->_mp_alloc = 0;
       num->_mp_d     = (mp_limb_t*) (p+1);
-      num_size = mpz_wsize(num, NULL);
+      num_size       = mpz_wsize(num, NULL);
       den->_mp_size  = mpz_stack_size(*p++);
       den->_mp_alloc = 0;
       den->_mp_d     = (mp_limb_t*) (p+num_size);
 #elif O_BF
       slimb_t len = mpz_stack_size(*p++);
-      num->ctx	= NULL;
-      num->expn = (slimb_t)*p++;
-      num->sign = len < 0;
-      num->len  = abs(len);
-      num->tab  = (limb_t*)(p+2);
-      num_size  = mpz_wsize(num, NULL);
-      den->ctx  = NULL;
-      den->sign = 0;			/* canonical MPQ */
-      den->len  = mpz_stack_size(*p++);
-      den->expn = (slimb_t)*p++;
-      den->tab  = (limb_t*) (p+num_size);
+      num->ctx	 = NULL;
+      num->alloc = 0;
+      num->expn  = (slimb_t)*p++;
+      num->sign  = len < 0;
+      num->len   = abs(len);
+      num->tab   = (limb_t*)(p+2);
+      num_size   = mpz_wsize(num, NULL);
+      den->ctx   = NULL;
+      den->alloc = 0;
+      den->sign  = 0;			/* canonical MPQ */
+      den->len   = mpz_stack_size(*p++);
+      den->expn  = (slimb_t)*p++;
+      den->tab   = (limb_t*) (p+num_size);
 #endif
       *mpq_numref(n->value.mpq) = num[0];
       *mpq_denref(n->value.mpq) = den[0];
@@ -568,11 +570,12 @@ get_mpz_from_code(Code pc, mpz_t mpz)
   mpz->_mp_d     = (mp_limb_t*)(pc+1);
 #elif O_BF
   slimb_t len = mpz_stack_size(*pc);
-  mpz->ctx    = NULL;
-  mpz->expn   = (slimb_t)pc[1];
-  mpz->sign   = len < 0;
-  mpz->len    = abs(len);
-  mpz->tab    = (limb_t*)pc+2;
+  mpz->ctx   = NULL;
+  mpz->alloc = 0;
+  mpz->expn  = (slimb_t)pc[1];
+  mpz->sign  = len < 0;
+  mpz->len   = abs(len);
+  mpz->tab   = (limb_t*)pc+2;
 #endif
 
   return pc+wsize;
@@ -583,12 +586,12 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 { Word p = pc;
   size_t wsize = wsizeofInd(*p);
   p++;
-  int num_size = mpz_stack_size(*p++);
-  int den_size = mpz_stack_size(*p++);
-  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   mpz_t num, den;
 
 #if O_GMP
+  int num_size = mpz_stack_size(*p++);
+  int den_size = mpz_stack_size(*p++);
+  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   num->_mp_size   = num_size;
   den->_mp_size   = den_size;
   num->_mp_alloc  = 0;
@@ -597,12 +600,15 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   p += (limpsize+sizeof(word)-1)/sizeof(word);
   den->_mp_d = (mp_limb_t*)p;
 #elif O_BF
+  int num_size = mpz_stack_size(*p++);
   num->ctx = NULL;
   num->expn = *p++;
-  den->ctx = NULL;
-  den->expn = *p++;
   num->sign = num_size < 0;
   num->len  = abs(num_size);
+  int den_size = mpz_stack_size(*p++);
+  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
+  den->ctx = NULL;
+  den->expn = *p++;
   den->sign = den_size < 0;
   den->len  = abs(den_size);
   num->tab = (mp_limb_t*)p;

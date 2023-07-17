@@ -1166,11 +1166,6 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
 
 #ifdef O_GMP
 
-static int
-mp_cpsign(ssize_t hdrsize, int mpsize)
-{ return hdrsize >= 0 ? mpsize : -mpsize;
-}
-
 static void
 mpz_hdr_size(ssize_t hdrsize, mpz_t mpz, size_t *wszp)
 { size_t size     = hdrsize >= 0 ? hdrsize : -hdrsize;
@@ -1183,12 +1178,27 @@ mpz_hdr_size(ssize_t hdrsize, mpz_t mpz, size_t *wszp)
   *wszp = wsize;
 }
 
+#endif /*O_GMP*/
+
+#ifdef O_BIGNUM
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
+#define BF_WSIZE(bf) (bf.len*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word)
+
+static int
+mp_cpsign(ssize_t hdrsize, int mpsize)
+{ return hdrsize >= 0 ? mpsize : -mpsize;
+}
 
 static void
-mpz_load_bits(IOSTREAM *fd, Word p, mpz_t mpz, size_t bytes)
-{ char fast[1024];
+qlf_mpz_load(IOSTREAM *fd, Buffer buf)
+{ ssize_t hdrsize = qlfGetInt64(fd);
+  size_t wsize;			/* limb size in words */
+  word m;
+  Word p;
+  char fast[1024];
   char *cbuf;
   size_t i;
+  size_t bytes = ABS(hdrsize);
 
   if ( bytes < sizeof(fast) )
     cbuf = fast;
@@ -1198,15 +1208,105 @@ mpz_load_bits(IOSTREAM *fd, Word p, mpz_t mpz, size_t bytes)
   for(i=0; i<bytes; i++)
     cbuf[i] = Qgetc(fd);
 
+#if O_BF
+  bf_t bf;
+  bf_import_dimension(&bf, (const unsigned char*)cbuf, bytes);
+  wsize = BF_WSIZE(bf);
+  m = mkIndHdr(wsize+2, TAG_INTEGER);
+  p = allocFromBuffer(buf, sizeof(word)*(wsize+3));
+  *p++ = m;
+  *p++ = mpz_size_stack(mp_cpsign(hdrsize, bf.len));
+  *p++ = bf.expn;
+  p[wsize-1] = 0;			/* padding */
+  bf.tab = (mp_limb_t*)p;
+  mpz_import(&bf, bytes, 1, 1, 1, 0, cbuf);
+#else
+  mpz_t mpz;
+  mpz_hdr_size(hdrsize, mpz, &wsize);
+  m = mkIndHdr(wsize+1, TAG_INTEGER);
+  p = allocFromBuffer(buf, sizeof(word)*(wsize+2));
+
+  *p++ = m;
+  *p++ = mpz_size_stack(mp_cpsign(hdrsize, mpz->_mp_size));
+  p[wsize-1] = 0;			/* padding */
   mpz->_mp_d = (mp_limb_t*)p;
   mpz_import(mpz, bytes, 1, 1, 1, 0, cbuf);
-  assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
+  assert((Word)mpz->_mp_d == p);
+#endif
+
   if ( cbuf != fast )
     PL_free(cbuf);
 }
 
+static void
+qlf_mpq_load(IOSTREAM *fd, Buffer buf)
+{ ssize_t num_hdrsize = qlfGetInt64(fd);
+  ssize_t den_hdrsize = qlfGetInt64(fd);
+  size_t num_bytes = ABS(num_hdrsize);
+  size_t den_bytes = ABS(den_hdrsize);
+  char fast[1024];
+  char *nbuf, *dbuf;
+  size_t wsize, num_wsize, den_wsize;
+  word m;
+  Word p;
 
+  if ( num_bytes+den_bytes < sizeof(fast) )
+    nbuf = fast;
+  else
+    nbuf = PL_malloc(num_bytes+den_bytes);
+  dbuf = nbuf+num_bytes;
+
+  for(size_t i=0; i<num_bytes+den_bytes; i++)
+    nbuf[i] = Qgetc(fd);
+
+#if O_BF
+  bf_t nbf, dbf;
+  bf_import_dimension(&nbf, (const unsigned char*)nbuf, num_bytes);
+  num_wsize = BF_WSIZE(nbf);
+  bf_import_dimension(&dbf, (const unsigned char*)dbuf, den_bytes);
+  den_wsize = BF_WSIZE(dbf);
+  wsize = num_wsize + den_wsize;
+  m     = mkIndHdr(wsize+4, TAG_INTEGER);
+  p     = allocFromBuffer(buf, sizeof(word)*(wsize+5));
+
+  *p++ = m;
+  *p++ = mpq_size_stack(mp_cpsign(num_hdrsize, nbf.len));
+  *p++ = nbf.expn;
+  *p++ = mpq_size_stack(mp_cpsign(den_hdrsize, dbf.len));
+  *p++ = dbf.expn;
+  p[num_wsize-1] = 0;
+  nbf.tab = (mp_limb_t*)p;
+  mpz_import(&nbf, num_bytes, 1, 1, 1, 0, nbuf);
+  p += num_wsize;
+  p[den_wsize-1] = 0;
+  dbf.tab = (mp_limb_t*)p;
+  mpz_import(&dbf, den_bytes, 1, 1, 1, 0, dbuf);
+#else
+  mpz_t num;
+  mpz_t den;
+  mpz_hdr_size(num_hdrsize, num, &num_wsize);
+  mpz_hdr_size(den_hdrsize, den, &den_wsize);
+  wsize = num_wsize + den_wsize;
+  m     = mkIndHdr(wsize+2, TAG_INTEGER);
+  p     = allocFromBuffer(buf, sizeof(word)*(wsize+3));
+
+  *p++ = m;
+  *p++ = mpq_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
+  *p++ = mpq_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
+  p[num_wsize-1] = 0;
+  num->_mp_d = (mp_limb_t*)p;
+  mpz_import(num, num_bytes, 1, 1, 1, 0, nbuf);
+  p += num_wsize;
+  p[den_wsize-1] = 0;
+  den->_mp_d = (mp_limb_t*)p;
+  mpz_import(den, den_bytes, 1, 1, 1, 0, dbuf);
 #endif
+
+  if ( nbuf != fast )
+    PL_free(nbuf);
+}
+
+#endif /*O_BIGNUM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Label handling
@@ -1579,59 +1679,18 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		}
 		break;
 	      }
+#ifdef O_BIGNUM
 	      case CA1_MPZ:
-#ifdef O_GMP
-#define ABS(x) ((x) >= 0 ? (x) : -(x))
-	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
-	      { ssize_t hdrsize = qlfGetInt64(fd);
-		size_t wsize;
-		mpz_t mpz;
-		word m;
-		Word p;
-
-		mpz_hdr_size(hdrsize, mpz, &wsize);
-		m = mkIndHdr(wsize+1, TAG_INTEGER);
-		p = allocFromBuffer(&buf, sizeof(word)*(wsize+2));
-
-		*p++ = m;
-		p[wsize] = 0;
-		*p++ = mpz_size_stack(mp_cpsign(hdrsize, mpz->_mp_size));
-		p[wsize] = 0;
-		mpz_load_bits(fd, p, mpz, ABS(hdrsize));
+		DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
+		qlf_mpz_load(fd, (Buffer)&buf);
 
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
-	      }
 	      case CA1_MPQ:
-	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPQ from %ld\n", Stell(fd)));
-	      { ssize_t num_hdrsize = qlfGetInt64(fd);
-		ssize_t den_hdrsize = qlfGetInt64(fd);
-		size_t wsize, num_wsize, den_wsize;
-		mpz_t num;
-		mpz_t den;
-		word m;
-		Word p;
-
-		mpz_hdr_size(num_hdrsize, num, &num_wsize);
-		mpz_hdr_size(den_hdrsize, den, &den_wsize);
-		wsize = num_wsize + den_wsize;
-		m     = mkIndHdr(wsize+2, TAG_INTEGER);
-		p     = allocFromBuffer(&buf, sizeof(word)*(wsize+3));
-
-		*p++ = m;
-		*p++ = mpq_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
-		*p++ = mpq_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
-		p[num_wsize] = 0;
-		mpz_load_bits(fd, p, num, ABS(num_hdrsize));
-		p += num_wsize;
-		p[den_wsize] = 0;
-		mpz_load_bits(fd, p, den, ABS(den_hdrsize));
-
+		DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPQ from %ld\n", Stell(fd)));
+		qlf_mpq_load(fd, (Buffer)&buf);
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPQ to %ld\n", Stell(fd)));
 		break;
-	      }
-#else
-		fatalError("No support for MPZ numbers");
 #endif
 	      default:
 		fatalError("No support for VM argtype %d (arg %d of %s)",
