@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -4117,7 +4117,7 @@ openStream(term_t file, term_t mode, term_t options)
     }
 
     if ( !(s = Sopen_pipe(cmd, how)) )
-    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+    { PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
@@ -4136,7 +4136,7 @@ openStream(term_t file, term_t mode, term_t options)
     if ( s == NULL )
     { error:
       if ( !PL_exception(0) )
-	PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		 ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
@@ -5428,7 +5428,7 @@ PRED_IMPL("seek", 4, seek, 0)
 	PL_error("seek", 4, "offset out of range", ERR_DOMAIN,
 		 ATOM_position, offset);
       else
-	PL_error("seek", 4, OsError(), ERR_PERMISSION,
+	PL_error("seek", 4, MSG_ERRNO, ERR_PERMISSION,
 		 ATOM_reposition, ATOM_stream, stream);
       Sclearerr(s);
       releaseStream(s);

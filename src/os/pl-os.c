@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1832,7 +1832,7 @@ to be implemented directly.  What about other Unixes?
     { term_t tmp = PL_new_term_ref();
 
       PL_put_atom_chars(tmp, ".");
-      PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+      PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 	       ATOM_getcwd, ATOM_directory, tmp);
 
       return NULL;
@@ -2755,7 +2755,7 @@ System(char *cmd)
 #endif
 
   if ( (pid = fork()) == -1 )
-  { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
+  { return PL_error("shell", 2, MSG_ERRNO, ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
   { char tmp[PATH_MAX];
     char *argv[4];

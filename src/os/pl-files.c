@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -393,7 +393,7 @@ MarkExecutable(const char *name)
     term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_stat, ATOM_file, file);
   }
 
@@ -406,7 +406,7 @@ MarkExecutable(const char *name)
     term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_chmod, ATOM_file, file);
   }
 #endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
@@ -636,7 +636,7 @@ PRED_IMPL("size_file", 2, size_file, 0)
     }
 
     if ( (size = SizeFile(n)) < 0 )
-      return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
+      return PL_error("size_file", 2, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_size, ATOM_file, A1);
 
     return PL_unify_int64(A2, size);
@@ -970,7 +970,7 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
       return TRUE;
 
     if ( truePrologFlag(PLFLAG_FILEERRORS) )
-      return PL_error("rename_file", 2, OsError(), ERR_FILE_OPERATION,
+      return PL_error("rename_file", 2, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_rename, ATOM_file, old);
     return FALSE;
   }

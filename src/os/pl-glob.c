@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -850,7 +851,7 @@ PRED_IMPL("directory_files", 2, directory_files, 0)
     return PL_unify_nil(tail);
   }
 
-  return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+  return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		  ATOM_open, ATOM_directory, A1);
 }
 

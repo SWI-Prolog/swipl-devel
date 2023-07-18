@@ -3237,7 +3237,7 @@ open_qlf_file(const char *file, IOSTREAM **sp)
       term_t f = PL_new_term_ref();
 
       PL_put_atom_chars(f, file);
-      return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+      return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_open, ATOM_source_sink, f);
     }
   }
