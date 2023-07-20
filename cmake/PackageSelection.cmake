@@ -25,13 +25,14 @@ set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
 set(SWIPL_PACKAGE_LIST_QT_title	     "Qt_console")
 set(SWIPL_PACKAGE_LIST_X_title	     "Graphics_subsystem")
-set(SWIPL_PACKAGE_LIST_WASM_title    "WASM libraries")
+set(SWIPL_PACKAGE_LIST_WASM_title    "WASM_libraries")
+set(SWIPL_PACKAGE_LIST_PYTHON_title  "Python_interface")
 
 if(EMSCRIPTEN)
   set(SWIPL_PACKAGE_SETS WASM)
 else()
   set(SWIPL_PACKAGE_SETS
-      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
+      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA PYTHON SSL TIPC QT X)
   if(UNIX)
     list(APPEND SWIPL_PACKAGE_SETS TERM)
   endif()
@@ -101,6 +102,9 @@ set(SWIPL_PACKAGE_LIST_SSL
 
 set(SWIPL_PACKAGE_LIST_JAVA
     jpl)
+
+set(SWIPL_PACKAGE_LIST_PYTHON
+    swipy)
 
 set(SWIPL_PACKAGE_LIST_TIPC
     tipc)

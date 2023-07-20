@@ -24,7 +24,7 @@ COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 COREMODULES+=" packages/archive packages/swipl-win packages/pengines"
 COREMODULES+=" packages/cql packages/bdb packages/readline packages/libedit"
 COREMODULES+=" packages/pcre packages/yaml packages/paxos packages/redis"
-COREMODULES+=" packages/stomp packages/mqi packages/sweep"
+COREMODULES+=" packages/stomp packages/mqi packages/sweep packages/swipy"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"
