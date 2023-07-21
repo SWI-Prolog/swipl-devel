@@ -547,6 +547,11 @@ PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_nil(term_t l) WUNUSED;
 PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED;
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
+#define PL_FOR_DICT_SORTED	0x1
+PL_EXPORT(int)		PL_for_dict(term_t dict,
+				    int (*func)(term_t key, term_t value, void *closure),
+				    void *closure,
+				    int flags);
 
 			/* Verify types */
 PL_EXPORT(int)		PL_term_type(term_t t);

@@ -769,10 +769,10 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_for_dict()  runs  func  on  each  key-value    pair  in  dict.  Returns
+PL_for_dict()  runs  func  on  each  key-value  pair  in  dict.  Returns
 immediately with the return value of func   if func returns non-zero. If
-the flag DICT_SORTED is given, the  key-value   pairs  are  called in the
-standard order of terms.
+the flag PL_FOR_DICT_SORTED is given, the  key-value pairs are called in
+the standard order of terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct cmp_dict_index_data
@@ -817,6 +817,32 @@ cmp_dict_index(DECL_LD const int *ip1, const int *ip2, cmp_dict_index_data *ctx)
   return rc;
 }
 
+typedef struct dict_helper
+{ int (*function)(term_t key, term_t value, void *closure);
+  void *closure;
+} dict_helper;
+
+#define public_for_dict_helper(k,v,l,c) \
+	LDFUNC(public_for_dict_helper, k,v,l,c)
+
+static int
+public_for_dict_helper(DECL_LD term_t key, term_t value, int last, void *closure)
+{ struct dict_helper *h = closure;
+
+  return (*h->function)(key, value, h->closure);
+}
+
+int
+PL_for_dict(term_t dict,
+	    int (*func)(term_t key, term_t value, void *closure),
+	    void *closure,
+	    int flags)
+{ GET_LD
+  struct dict_helper h = {.function = func, .closure = closure};
+
+  return _PL_for_dict(dict, public_for_dict_helper, &h, flags);
+}
+
 
 int
 pl_for_dict(DECL_LD term_t dict,
@@ -834,7 +860,7 @@ pl_for_dict(DECL_LD term_t dict,
   arity = arityTerm(*p);
   pairs = arity/2;
 
-  if ( (flags&DICT_SORTED) )
+  if ( (flags&PL_FOR_DICT_SORTED) )
   { cmp_dict_index_data ctx;
 
     if ( pairs < 256 )
@@ -1376,7 +1402,7 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
 
       if ( PL_get_arg(1, dict, ctx.tmp) &&
 	   PL_unify(ctx.tmp, A2) &&
-	   PL_for_dict(dict, put_pair, &ctx, DICT_SORTED) == 0 )
+	   _PL_for_dict(dict, put_pair, &ctx, PL_FOR_DICT_SORTED) == 0 )
 	return PL_unify_nil_ex(ctx.tail);
 
       return FALSE;

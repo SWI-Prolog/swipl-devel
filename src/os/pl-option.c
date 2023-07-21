@@ -217,7 +217,7 @@ dict_options(DECL_LD term_t dict, int flags, const char *opttype,
   ctx.flags   = flags;
   ctx.opttype = opttype;
 
-  return PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
+  return _PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
 
 #define vscan_options(list, flags, name, specs, args) \

@@ -1650,7 +1650,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	   PL_get_arg(1, t, class) )
       { if ( writeTerm(class, 1200, options, W_TAG) &&
 	     Putc('{', out) &&
-	     PL_for_dict(t, writeDictPair, options, DICT_SORTED) == 0 &&
+	     _PL_for_dict(t, writeDictPair, options, PL_FOR_DICT_SORTED) == 0 &&
 	     Putc('}', out) )
 	  return TRUE;
       }
