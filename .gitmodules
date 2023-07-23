@@ -121,3 +121,6 @@
 [submodule "packages/sweep"]
 	path = packages/sweep
 	url = ../packages-sweep.git
+[submodule "packages/swipy"]
+	path = packages/swipy
+	url = ../packages-swipy
