@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -40,6 +40,7 @@
 #include "pl-utf8.h"
 #include "../pl-codelist.h"
 #include "../pl-write.h"
+#include "../pl-prims.h"
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
@@ -361,9 +362,22 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
     if ( (flags&CVT_WRITEQ) )
       wflags = PL_WRT_QUOTED|PL_WRT_NUMBERVARS;
     else if ( (flags&CVT_WRITE_CANONICAL) )
-      wflags = PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS;
+      wflags = (PL_WRT_QUOTED|PL_WRT_QUOTE_NON_ASCII|
+		PL_WRT_IGNOREOPS|PL_WRT_VARNAMES|
+		PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS);
     else
       wflags = PL_WRT_NUMBERVARS;
+
+    int rc = FALSE;
+    BEGIN_NUMBERVARS(TRUE);
+    nv_options options =
+    { .functor = FUNCTOR_isovar1,
+      .on_attvar = AV_SKIP,
+      .singletons = PL_is_acyclic(l),
+      .numbered_check = FALSE
+    };
+    if ( numberVars(l, &options, 0) == NV_ERROR )
+      goto error;
 
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;
@@ -390,7 +404,8 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	Sclose(fd);
 
-	goto out;
+	rc = TRUE;
+	break;
       } else
       { Sclose(fd);
 	if ( *enc == ENC_ISO_LATIN_1 && enc[1] != ENC_UNKNOWN )
@@ -400,7 +415,9 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	  Sfree(r);
       }
     }
-
+    END_NUMBERVARS(TRUE);
+    if ( rc )
+      goto out;
     goto error;
   } else
   { goto error;
