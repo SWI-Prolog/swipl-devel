@@ -653,6 +653,16 @@ int
   return (int)arity;
 }
 
+atom_t
+_PL_cons_small_int(int64_t v)
+{ word w = consInt(v);
+  if ( valInt(w) == v )
+    return (atom_t)w;
+
+  return 0;
+}
+
+
 
 		 /*******************************
 		 *    WIDE CHARACTER SUPPORT	*
@@ -3962,6 +3972,14 @@ PL_put_dict(term_t t, atom_t tag,
   }
 
   return FALSE;
+}
+
+void
+_PL_unregister_keys(size_t len, atom_t *keys)
+{ for(size_t i=0; i<len; i++)
+  { if ( isAtom(keys[i]) )
+      PL_unregister_atom(keys[i]);
+  }
 }
 
 
