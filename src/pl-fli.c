@@ -4243,7 +4243,7 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 
 int
 PL_call(term_t t, Module m)
-{ return callProlog(m, t, PL_Q_NORMAL, NULL);
+{ return callProlog(m, t, PL_Q_PASS_EXCEPTION, NULL);
 }
 
 

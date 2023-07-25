@@ -3094,11 +3094,15 @@ generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
 
     \cfunction{int}{PL_call}{term_t t, module_t m}
-Call term \arg{t} just like the Prolog predicate once/1. \arg{t} is called
-in the module \arg{m}, or in the context module if \arg{m} == NULL.
-Returns \const{TRUE} if the call succeeds, \const{FALSE} otherwise.
+Call term \arg{t} just like the Prolog predicate once/1. \arg{t} is
+called in the module \arg{m}, or in the context module if \arg{m} ==
+NULL. Returns \const{TRUE} if the call succeeds, \const{FALSE}
+otherwise. If the goal raises an exception the return value is
+\const{FALSE} and the exception term is available using
+PL_exception(0).\footnote{Up to version 9.1.11 the debugger was
+started and the exception was not propagated.}
 \Figref{calling} shows an example to obtain the number of
-defined atoms. All checks are omitted to improve readability.
+defined atoms.
 \end{description}
 
 \subsection{Discarding Data}
