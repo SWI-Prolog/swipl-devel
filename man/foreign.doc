@@ -2748,6 +2748,13 @@ has already been released. If this happens during PL_cleanup() the
 return value is guaranteed to be \const{NULL}. During normal execution
 it may return the content of a newly allocated blob that reused the
 released handle.
+
+    \cfunction{int}{PL_free_blob}{atom_t blob}
+New in 9.1.12.  This function may be used on blobs with the
+\const{PL_BLOB_NOCOPY} flag set and a release() function. It causes the
+release() function to be called, after which the data and size are set
+to 0. The related atom remains existent and accessing it as a blob
+returns \const{NULL} for the data and 0 for the size.
 \end{description}
 
 

@@ -842,7 +842,7 @@ invalidateAtom(Atom a, unsigned int ref)
   }
 
   if ( a->type->release )
-  { if ( !(*a->type->release)(a->atom) )
+  { if ( a->name && !(*a->type->release)(a->atom) )
     { COMPARE_AND_SWAP_UINT(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
       return FALSE;
     }

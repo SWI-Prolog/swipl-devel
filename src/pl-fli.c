@@ -3922,6 +3922,24 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 }
 
 
+int
+PL_free_blob(atom_t a)
+{ Atom x = atomValue(a);
+  const PL_blob_t *type = x->type;
+
+  if ( true(type, PL_BLOB_NOCOPY) && type->release )
+  { if ( (*type->release)(a) )
+    { x->length = 0;
+      x->name = NULL;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+
 		 /*******************************
 		 *	       DICT		*
 		 *******************************/

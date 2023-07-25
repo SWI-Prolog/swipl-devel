@@ -750,6 +750,7 @@ PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, size_t *len,
 PL_EXPORT(void*)	PL_blob_data(atom_t a,
 				     size_t *len,
 				     struct PL_blob_t **type);
+PL_EXPORT(int)		PL_free_blob(atom_t blob);
 
 PL_EXPORT(void)		PL_register_blob_type(PL_blob_t *type);
 PL_EXPORT(PL_blob_t*)	PL_find_blob_type(const char* name);
