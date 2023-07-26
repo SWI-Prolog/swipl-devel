@@ -277,7 +277,9 @@ findHome(const char *symbols, int argc, const char **argv)
     IOSTREAM *fd;
     char *pparent;
 
-    if ( !(pparent=DirName(DirName(AbsoluteFile(maybe_home,parent),parent),parent)) ||
+    if ( !(pparent=DirName(DirName(AbsoluteFile(maybe_home,parent,sizeof(parent)),
+				   parent),
+			   parent)) ||
 	 strlen(PLHOMEFILE) + 1 + strlen(pparent) + 1 > sizeof(parent) )
       fatalError("File name too long: %s", home);
 
@@ -302,10 +304,10 @@ findHome(const char *symbols, int argc, const char **argv)
 	{ char buf2[PATH_MAX];
 
 	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
-	       !(maybe_home = AbsoluteFile(buf2, plp)) )
+	       !(maybe_home = AbsoluteFile(buf2, plp, sizeof(plp))) )
 	    fatalError("Path name too long: %s/%s", parent, buf);
 	} else
-	{ if ( !(maybe_home = AbsoluteFile(buf, plp)) )
+	{ if ( !(maybe_home = AbsoluteFile(buf, plp, sizeof(plp))) )
 	    fatalError("Path name too long: %s/%s", buf);
 	}
 

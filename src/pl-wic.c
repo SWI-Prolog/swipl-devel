@@ -1797,7 +1797,7 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(buf, raw);
   }
 
-  if ( (canonical=canonicalisePath(buf)) )
+  if ( (canonical=canonicalisePath(buf, sizeof(buf))) )
   { atom_t translated = file_name_to_atom(canonical);
 
     if ( strcmp(raw, canonical) )
@@ -3402,7 +3402,7 @@ qlfOpen(term_t file)
   wic_state *state;
 
   if ( !PL_get_file_name(file, &name, 0) ||
-       !(absname = AbsoluteFile(name, tmp)) )
+       !(absname = AbsoluteFile(name, tmp, sizeof(tmp))) )
     return NULL;
 
   if ( !(out = Sopen_file(name, "wb" TRACK_POS)) )
@@ -3606,7 +3606,7 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
       fail;
     }
     state->wicFile = store_string(text.text.t);
-    if ( !(absloadname = AbsoluteFile(state->wicFile, tmp)) )
+    if ( !(absloadname = AbsoluteFile(state->wicFile, tmp, sizeof(tmp))) )
       fail;
     PL_free_text(&text);
   } else
@@ -4333,7 +4333,7 @@ compileFile(wic_state *state, const char *file)
   condc cond = {.depth = 0, .ctrue[0] = IF_TRUE};
 
   DEBUG(MSG_QLF_BOOT, Sdprintf("Boot compilation of %s\n", file));
-  if ( !(path = AbsoluteFile(file, tmp)) )
+  if ( !(path = AbsoluteFile(file, tmp, sizeof(tmp))) )
     fail;
   DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 

@@ -230,7 +230,7 @@ ReadLink(const char *f, char *buf)
 
 
 static char *
-DeRefLink1(const char *f, char *lbuf)
+DeRefLink1(const char *f, char *lbuf, size_t buflen)
 { char buf[PATH_MAX];
   char *l;
 
@@ -248,9 +248,7 @@ DeRefLink1(const char *f, char *lbuf)
 	q--;
       strcpy(q, l);
 
-      canonicaliseFileName(lbuf);
-
-      return lbuf;
+      return canonicaliseFileName(lbuf, buflen);
     }
   }
 
@@ -271,8 +269,10 @@ DeRefLink(const	char *link, char *buf)
   char *f;
   int n = 20;				/* avoid loop! */
 
-  while((f=DeRefLink1(link, tmp)) && n-- > 0)
+  while((f=DeRefLink1(link, tmp, sizeof(tmp))) && n-- > 0)
     link = f;
+  if ( PL_exception(0) )		/* Name too long */
+    return NULL;
 
   if ( n > 0 )
   { strcpy(buf, link);
@@ -443,7 +443,7 @@ add_option(term_t options, functor_t f, atom_t val)
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
 
 static int
-get_file_name(term_t n, char **namep, char *tmp, int flags)
+get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 { GET_LD
   char *name;
   int chflags;
@@ -530,7 +530,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
   }
 
   if ( flags & PL_FILE_ABSOLUTE )
-  { if ( !(name = AbsoluteFile(name, tmp)) )
+  { if ( !(name = AbsoluteFile(name, tmp, tmplen)) )
       return FALSE;
   }
 
@@ -547,7 +547,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
   char *name;
   int rc;
 
-  if ( (rc=get_file_name(n, &name, buf, flags)) )
+  if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags)) )
   { if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
 	return FALSE;
@@ -568,7 +568,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
   char *name;
   int rc;
 
-  if ( (rc=get_file_name(n, &name, buf, flags|REP_UTF8)) )
+  if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags|REP_UTF8)) )
   { Buffer b;
     const char *s;
 
@@ -988,7 +988,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   term_t expanded = A2;
 
   if ( PL_get_file_name(name, &n, 0) )
-  { if ( (n = AbsoluteFile(n, tmp)) )
+  { if ( (n = AbsoluteFile(n, tmp, sizeof(tmp))) )
       return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
   }
 
