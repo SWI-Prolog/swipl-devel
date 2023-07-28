@@ -222,3 +222,9 @@
                      [ as(oneof([first,last])),
                        name(atom)
                      ]).
+:- predicate_options(system:open_shared_object/3, 3,
+                     [ resolve(oneof([lazy,now])),
+                       visibility(oneof([local,global])),
+                       now(bool),
+                       global(bool)
+                     ]).

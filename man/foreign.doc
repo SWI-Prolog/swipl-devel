@@ -104,23 +104,40 @@ predicates from \secref{shlib} in your application.
 
 \begin{description}
     \predicate{open_shared_object}{2}{+File, -Handle}
-\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process, and
+\arg{File} is the name of a \jargon{shared object} file (DLL in
+MS-Windows). This file is attached to the current process, and
 \arg{Handle} is unified with a handle to the library. Equivalent to
 \exam{open_shared_object(File, Handle, [])}. See also
-open_shared_object/3 and load_foreign_library/1.
+open_shared_object/3, load_foreign_library/1 and use_foreign_library/1.
 
 On errors, an exception \term{shared_object}{Action, Message} is
 raised. \arg{Message} is the return value from dlerror().
 
     \predicate{open_shared_object}{3}{+File, -Handle, +Options}
 As open_shared_object/2, but allows for additional flags to be passed.
-\arg{Options} is a list of atoms. \const{now} implies the symbols are
-resolved immediately rather than lazy (default). \const{global} implies
-symbols of the loaded object are visible while loading other shared
-objects (by default they are local). Note that these flags may not be
-supported by your operating system. Check the documentation of dlopen()
-or equivalent on your operating system.  Unsupported flags are silently
-ignored.
+Defined options are below.  These options map to \const{RTLD_NOW},
+\const{RTLD_LAZY} and \const{RTLD_GLOBAL} on systems where this
+predicate is implemented using dlopen().
+
+    \begin{description}
+    \termitem{resolve}{Atom}
+    When to resolve symbols.  Values are \const{lazy} (default) or
+    \const{now}.
+    \termitem{visibility}{Atom}
+    Visibility of the new symbols.  Values are are \const{local}
+    (default) or \const{global}, making the new symbols available
+    to all subsequently loaded shared objects.
+    \termitem{now}{Bool}
+    \term{now}{true} is the same as \term{resolve}{now}.  Provided
+    for backward compatibility.
+    \termitem{global}{Bool}
+    \term{global}{true} is the same as \term{visibility}{global}.
+    Provided for backward compatibility.
+    \end{description}
+
+Note that these flags may not be supported by your operating system.
+Check the documentation of dlopen() or equivalent on your operating
+system. Unsupported flags are silently ignored.
 
     \predicate{close_shared_object}{1}{+Handle}
 Detach the shared object identified by \arg{Handle}.

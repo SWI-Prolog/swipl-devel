@@ -477,49 +477,6 @@ unload_file(File) :-
 
 :- if(current_prolog_flag(open_shared_object, true)).
 
-                 /*******************************
-                 *            DLOPEN            *
-                 *******************************/
-
-%!  open_shared_object(+File, -Handle) is det.
-%!  open_shared_object(+File, -Handle, +Flags) is det.
-%
-%   Open a shared object or DLL file. Flags  is a list of flags. The
-%   following flags are recognised. Note   however  that these flags
-%   may have no affect on the target platform.
-%
-%       * =now=
-%       Resolve all symbols in the file now instead of lazily.
-%       * =global=
-%       Make new symbols globally known.
-
-open_shared_object(File, Handle) :-
-    open_shared_object(File, Handle, []). % use pl-load.c defaults
-
-open_shared_object(File, Handle, Flags) :-
-    (   is_list(Flags)
-    ->  true
-    ;   throw(error(type_error(list, Flags), _))
-    ),
-    map_dlflags(Flags, Mask),
-    '$open_shared_object'(File, Handle, Mask).
-
-dlopen_flag(now,        2'01).          % see pl-load.c for these constants
-dlopen_flag(global,     2'10).          % Solaris only
-
-map_dlflags([], 0).
-map_dlflags([F|T], M) :-
-    map_dlflags(T, M0),
-    (   dlopen_flag(F, I)
-    ->  true
-    ;   throw(error(domain_error(dlopen_flag, F), _))
-    ),
-    M is M0 \/ I.
-
-:- export(open_shared_object/2).
-:- export(open_shared_object/3).
-
-
 		 /*******************************
 		 *      FOREIGN LIBRARIES	*
 		 *******************************/
@@ -556,9 +513,9 @@ use_foreign_library_noi(FileSpec) :-
     ensure_shlib,
     shlib:load_foreign_library(FileSpec).
 
-use_foreign_library(FileSpec, Entry) :-
+use_foreign_library(FileSpec, Options) :-
     ensure_shlib,
-    initialization(shlib:load_foreign_library(FileSpec, Entry), now).
+    initialization(shlib:load_foreign_library(FileSpec, Options), now).
 
 ensure_shlib :-
     '$get_predicate_attribute'(shlib:load_foreign_library(_), defined, 1),

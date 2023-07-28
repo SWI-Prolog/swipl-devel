@@ -37,14 +37,14 @@
 
 :- module(shlib,
           [ load_foreign_library/1,     % :LibFile
-            load_foreign_library/2,     % :LibFile, +InstallFunc
+            load_foreign_library/2,     % :LibFile, +Options
             unload_foreign_library/1,   % +LibFile
             unload_foreign_library/2,   % +LibFile, +UninstallFunc
             current_foreign_library/2,  % ?LibFile, ?Public
             reload_foreign_libraries/0,
                                         % Directives
             use_foreign_library/1,      % :LibFile
-            use_foreign_library/2       % :LibFile, +InstallFunc
+            use_foreign_library/2       % :LibFile, +Options
           ]).
 :- if(current_predicate(win_add_dll_directory/2)).
 :- export(win_add_dll_directory/1).
@@ -140,7 +140,7 @@ predicate defined in C.
 
 
 %!  use_foreign_library(+FileSpec) is det.
-%!  use_foreign_library(+FileSpec, +Entry:atom) is det.
+%!  use_foreign_library(+FileSpec, +Options:list) is det.
 %
 %   Load and install a foreign   library as load_foreign_library/1,2 and
 %   register the installation using  initialization/2   with  the option
@@ -346,45 +346,54 @@ entry(_, default(Function), Function).
                  *******************************/
 
 %!  load_foreign_library(:FileSpec) is det.
-%!  load_foreign_library(:FileSpec, +Entry:atom) is det.
+%!  load_foreign_library(:FileSpec, +Options:list) is det.
 %
-%   Load a _|shared object|_  or  _DLL_.   After  loading  the Entry
-%   function is called without arguments. The default entry function
-%   is composed from =install_=,  followed   by  the file base-name.
-%   E.g.,    the    load-call    below      calls    the    function
-%   =|install_mylib()|=. If the platform   prefixes extern functions
-%   with =_=, this prefix is added before calling.
+%   Load a _|shared object|_ or _DLL_.  After loading the Entry function
+%   is called without arguments. The default  entry function is composed
+%   from =install_=, followed by the file base-name. E.g., the load-call
+%   below  calls  the  function  =|install_mylib()|=.  If  the  platform
+%   prefixes extern functions with =_=,  this   prefix  is  added before
+%   calling. Options provided are below.  Other   options  are passed to
+%   open_shared_object/3.
 %
-%     ==
-%           ...
-%           load_foreign_library(foreign(mylib)),
-%           ...
-%     ==
+%     - install(+Function)
+%       Installation function to use.  Default is default(install),
+%       which derives the function from FileSpec.
 %
-%   @param  FileSpec is a specification for absolute_file_name/3.  If searching
-%           the file fails, the plain name is passed to the OS to try the default
-%           method of the OS for locating foreign objects.  The default definition
-%           of file_search_path/2 searches <prolog home>/lib/<arch> on Unix and
-%           <prolog home>/bin on Windows.
+%   ```
+%       ...
+%       load_foreign_library(foreign(mylib)),
+%       ...
+%   ```
 %
-%   @see    use_foreign_library/1,2 are intended for use in directives.
+%   @arg  FileSpec is a specification for absolute_file_name/3.  If searching
+%         the file fails, the plain name is passed to the OS to try the default
+%         method of the OS for locating foreign objects.  The default definition
+%         of file_search_path/2 searches <prolog home>/lib/<arch> on Unix and
+%         <prolog home>/bin on Windows.
+%
+%   @see  use_foreign_library/1,2 are intended for use in directives.
 
 load_foreign_library(Library) :-
-    load_foreign_library(Library, default(install)).
+    load_foreign_library(Library, []).
 
-load_foreign_library(Module:LibFile, Entry) :-
+load_foreign_library(Module:LibFile, InstallOrOptions) :-
+    (   is_list(InstallOrOptions)
+    ->  Options = InstallOrOptions
+    ;   Options = [install(InstallOrOptions)]
+    ),
     with_mutex('$foreign',
-               load_foreign_library(LibFile, Module, Entry)).
+               load_foreign_library(LibFile, Module, Options)).
 
 load_foreign_library(LibFile, _Module, _) :-
     current_library(LibFile, _, _, _, _),
     !.
-load_foreign_library(LibFile, Module, DefEntry) :-
+load_foreign_library(LibFile, Module, Options) :-
     retractall(error(_, _)),
     find_library(LibFile, Path, Delete),
     asserta(loading(LibFile)),
     retractall(foreign_predicate(LibFile, _)),
-    catch(Module:open_shared_object(Path, Handle), E, true),
+    catch(Module:open_shared_object(Path, Handle, Options), E, true),
     (   nonvar(E)
     ->  delete_foreign_lib(Delete, Path),
         assert(error(Path, E)),
@@ -392,6 +401,7 @@ load_foreign_library(LibFile, Module, DefEntry) :-
     ;   delete_foreign_lib(Delete, Path)
     ),
     !,
+    '$option'(install(DefEntry), Options, default(install)),
     (   entry(LibFile, DefEntry, Entry),
         Module:call_shared_object_function(Handle, Entry)
     ->  retractall(loading(LibFile)),
