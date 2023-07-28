@@ -409,6 +409,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #endif
 
 					/* PL_Q_EXT_STATUS return codes */
+#define PL_S_NOT_INNER	       -2	/* Query is not inner query */
 #define PL_S_EXCEPTION	       -1	/* Query raised exception */
 #define PL_S_FALSE		0	/* Query failed */
 #define PL_S_TRUE		1	/* Query succeeded with choicepoint */

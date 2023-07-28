@@ -3066,7 +3066,9 @@ ancestor(const char *me)
 Generate the first (next) solution for the given query.  The return
 value is \const{TRUE} if a solution was found, or \const{FALSE} to indicate
 the query could not be proven.  This function may be called repeatedly
-until it fails to generate all solutions to the query.
+until it fails to generate all solutions to the query.  The return value
+\const{PL_S_NOT_INNER} is returned if \arg{qid} is not the innermost
+query.
 
 If the PL_open_query() had the flag \const{PL_Q_EXT_STATUS}, there are
 additional return values (see \secref{foreign-yield}).
@@ -3081,6 +3083,7 @@ and the exception is accessible through \exam{PL_exception(0)}.
 
 An example of a handler that can trigger an exception in
 PL_cut_query() is:
+
 \begin{code}
 test_setup_call_cleanup(X) :-
     setup_call_cleanup(
@@ -3088,19 +3091,23 @@ test_setup_call_cleanup(X) :-
         between(1, 5, X),
         throw(error)).
 \end{code}
-where PL_next_solution() returns \const{TRUE} on the first result
-and the \exam{throw(error)} will only run when PL_cut_query() or
+
+where PL_next_solution() returns \const{TRUE} on the first result and
+the \exam{throw(error)} will only run when PL_cut_query() or
 PL_close_query() is run. On the other hand, if the goal in
 setup_call_cleanup/3 has completed (failure, exception, determinitic
 success), the cleanup handler will have done its work before control
 gets back to Prolog and therefore PL_next_solution() will have
-generated the exception.
+generated the exception. The return value \const{PL_S_NOT_INNER} is
+returned if \arg{qid} is not the innermost query.
 
     \cfunction{int}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed as if the query is called as \verb$\+ \+ Goal$. This reduces
 the need for garbage collection, but also rewinds side effects such as
-setting global variables using b_setval/2.
+setting global variables using b_setval/2. The return value
+\const{PL_S_NOT_INNER} is returned if \arg{qid} is not the innermost
+query.
 
     \cfunction{qid_t}{PL_current_query}{void}
 Returns the query id of the current query or \const{0} if the

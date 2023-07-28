@@ -2769,6 +2769,8 @@ PL_cut_query(qid_t qid)
   { WITH_LD(qid->engine)
     { QueryFrame qf = QueryFromQid(qid);
 
+      if ( LD->query != qf )
+	return PL_S_NOT_INNER;
       DEBUG(0, assert(qf->magic == QID_MAGIC));
       if ( qf->foreign_frame )
 	PL_close_foreign_frame(qf->foreign_frame);
@@ -2801,6 +2803,8 @@ PL_close_query(qid_t qid)
   { WITH_LD(qid->engine)
     { QueryFrame qf = QueryFromQid(qid);
 
+      if ( LD->query != qf )
+	return PL_S_NOT_INNER;
       DEBUG(0, assert(qf->magic == QID_MAGIC));
       if ( qf->foreign_frame )
 	PL_close_foreign_frame(qf->foreign_frame);
@@ -3241,6 +3245,8 @@ depart_continue() to do the normal thing or to the backtrack point.
   QF  = QueryFromQid(qid);
   if ( QF->magic == QID_CMAGIC )
     return FALSE;
+  if ( LD->query != QF )
+    return PL_S_NOT_INNER;
   DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { fid_t fid = QF->foreign_frame;
