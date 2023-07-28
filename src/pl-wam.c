@@ -3245,7 +3245,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   QF  = QueryFromQid(qid);
   if ( QF->magic == QID_CMAGIC )
     return FALSE;
-  if ( LD->query != QF )
+  if ( LD->query != QF /*|| (void*)fli_context > (void*)QF*/ )
     return PL_S_NOT_INNER;
   DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
