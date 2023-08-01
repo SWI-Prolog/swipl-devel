@@ -1,8 +1,10 @@
 :- encoding(utf8).
 
-%! data(?Data)
+% data(?Data)
 %
 %  Provide data for QLF round trip.
+%  @bug: If this is turned into a PlDoc comment and PlDoc is enabled
+%  qcompile/1 creates invalid output.
 
 data(1).
 data('Hallo').
