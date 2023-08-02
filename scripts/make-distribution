@@ -96,6 +96,7 @@ build_macos_universal_binary()
               -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
 	      -DJAVA_COMPATIBILITY=ON \
+	      -DSWIPL_PACKAGES_PYTHON=OFF \
 	      -G Ninja ..
     ninja
     cpack
