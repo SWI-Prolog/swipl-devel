@@ -64,6 +64,7 @@ parts:
       cd $SNAPCRAFT_PART_SRC/build
       cmake -DCMAKE_BUILD_TYPE=PGO \
       -DSWIPL_PACKAGES_JAVA=OFF \
+      -DSWIPL_PACKAGES_PYTHON=OFF \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DSWIPL_INSTALL_IN_LIB=ON \
       -G Ninja ..
