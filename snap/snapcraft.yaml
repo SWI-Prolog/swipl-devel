@@ -93,6 +93,7 @@ parts:
       - tdsodbc
       - libtcmalloc-minimal4
       - unixodbc
+      - python3
     build-packages:
       - libarchive-dev
       - libdb-dev
@@ -119,3 +120,4 @@ parts:
       - libyaml-dev
       - libglvnd-dev
       - libgoogle-perftools-dev
+      - libpython3-dev
