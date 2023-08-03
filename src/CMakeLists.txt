@@ -455,7 +455,10 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
-
+# See https://github.com/python/cpython/issues/65735#issuecomment-1235768965
+# Doesn't seem to work though
+# set_target_properties(libswipl${PGO_SUFFIX} PROPERTIES
+#		        LINK_FLAGS -Wl,-z,global)
 
 ###################################################################################
 #                         END OF MAIN TARGET DEFINITIONS                          #
