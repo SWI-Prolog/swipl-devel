@@ -699,12 +699,21 @@ usage_options(M) -->
     { findall(Opt, get_option(M, Opt), Opts),
       maplist(options_width, Opts, OptWidths),
       max_list(OptWidths, MaxOptWidth),
-      catch(tty_size(_, Width), _, Width = 80),
+      tty_width(Width),
       OptColW is min(MaxOptWidth, 30),
       HelpColW is Width-4-OptColW
     },
     [ ansi(comment, 'Options:', []), nl ],
     sequence(opt_usage(OptColW, HelpColW), [nl], Opts).
+
+% Just  catch/3  is   enough,   but    dependency   tracking   in  e.g.,
+% list_undefined/0 still considers this a missing dependency.
+:- if(current_predicate(tty_size/2)).
+tty_width(Width) :-
+     catch(tty_size(_, Width), _, Width = 80).
+:- else.
+tty_width(80).
+:- endif.
 
 opt_usage(OptColW, HelpColW, opt(_Name, Type, Short, Long, Help, Meta)) -->
     options(Type, Short, Long, Meta),
