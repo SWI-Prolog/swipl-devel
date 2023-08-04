@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _GNU_SOURCE			/* get dladdr() */
 #include "pl-load.h"
 #include "pl-fli.h"
 
@@ -75,7 +76,6 @@ contributions.
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #ifdef HAVE_DLFCN_H
-#define _GNU_SOURCE			/* get RTLD_DEFAULT */
 #include <dlfcn.h>
 #endif
 
@@ -206,7 +206,7 @@ under_valgrind(void)
 }
 
 static const PL_option_t open_shared_object_options[] =
-{ { ATOM_now,	            OPT_BOOL },
+{ { ATOM_now,		    OPT_BOOL },
   { ATOM_global,            OPT_BOOL },
   { ATOM_resolve,	    OPT_ATOM },
   { ATOM_visibility,        OPT_ATOM },
