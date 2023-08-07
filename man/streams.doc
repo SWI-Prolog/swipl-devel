@@ -89,8 +89,8 @@ hello_world(term_t to)
 { IOSTREAM *s;
 
   if ( PL_get_stream(to, &s, SIO_OUTPUT) )
-  { Sfprintf(s, "Hello World!\n");
-    return PL_release_stream(s);
+  { int rc = Sfprintf(s, "Hello World!\n");
+    return PL_release_stream(s) && rc > 0;
   }
 
   return FALSE;
@@ -547,14 +547,17 @@ Emit a \ctype{double}.
 Emit a 0-terminated string.
 \end{description}
 
-Unlike the POSIX fprintf(), this function returns the number of
+Unlike the POSIX fprintf(), this function, and the related
+functions (Svprintf(), etc.) returns the number of
 characters written. Due to multibyte encodings the number of bytes
-written can be more.
+written can be more. On error, it returns a negative value; in some
+cases there is extra information (e.g., in \const{errno}) but it
+cannot be relied on.
 
     \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
 Same as Sfprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"\%Ws"}.
+such as exam{"\%Ws"} or \exam{"\%Us"}.
 
     \cfunction{int}{Sprintf}{const char *fm, ...}
 Similar to Sfprintf(), printing to \arg{Soutput}
@@ -577,7 +580,7 @@ compatibility with the POSIX functions.
     \cfunction{int}{SsnprintfX}{char *buf, size_t size, const char *fm, ...}
 Same as Ssnprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"\%Ws"}.
+such as \exam{"\%Ws"} or \exam{"\%Us"}.
 
     \cfunction{int}{Svsprintf}{char *buf, const char *fm, va_list args}
 Variadic argument list version of Ssprintf(). Deprecated. Use
@@ -593,7 +596,7 @@ output from foreign code.
     \cfunction{int}{SdprintfX}{const char *fm, ...}
 Same as Sdprintf() but doesn't have the format-checking attribute.
 This is intended for formats that include extended format specifiers
-such as \exam{"\%Ws"}.
+such as \exam{"\%Ws"} and \exam{"\%Us"}.
 
     \cfunction{int}{Svdprintf}{const char *fm, va_list args}
 Variadic argument list version of Sdprintf().

@@ -1568,7 +1568,8 @@ clause garbage collection are executed in a separate thread with the
 garbage executes the garbage collector. As running these global
 collectors may take relatively long, using a separate thread improves
 real time behaviour. The \const{gc} thread can be controlled using
-set_prolog_gc_thread/1.
+set_prolog_gc_thread/1, which either starts the gc thread or kills
+the gc thread and waits for it to die.
 
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
