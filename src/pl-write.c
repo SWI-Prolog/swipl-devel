@@ -2150,7 +2150,7 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   int rc;
 
   memset(&options, 0, sizeof(options));
-  options.flags	    = flags;
+  options.flags	    = flags & ~PL_WRT_NEWLINE;
   options.out	    = s;
   options.module    = MODULE_user;
 

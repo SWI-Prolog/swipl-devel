@@ -2478,7 +2478,7 @@ contents (see PL_blob_data()) change. If the blob's type has the
 \const{PL_BLOB_UNIQUE} feature, the content of the blob must remain
 unmodified. Blobs are \emph{only} reclaimed by the atom garbage
 collector. In this case the atom garbage collector calls the
-\cfuncref{release} function associated with the blob type and reclaims
+\cfuncref{release}{} function associated with the blob type and reclaims
 the memory allocated for the content unless this is owned by the creator
 of the blob indicated by the \const{PL_BLOB_NOCOPY} flag. After an
 \ctype{atom_t} value is reclaimed by the atom garbage collector, the
@@ -2528,9 +2528,13 @@ typedef struct PL_blob_t
 } PL_blob_t;
 \end{code}
 
-For each type, exactly one such structure should be allocated.  Its
-first field must be initialised to \const{PL_BLOB_MAGIC}.  The
-\arg{flags} is a bitwise \emph{or} of the following constants:
+For each type, exactly one such structure should be allocated. Its first
+field must be initialised to \const{PL_BLOB_MAGIC}. If a blob type is
+registered from a loadable object (shared object or DLL) the blob type
+must be deregistered using PL_unregister_blob_type() before the object
+may be released.
+
+The \arg{flags} is a bitwise \emph{or} of the following constants:
 
 \begin{description}
     \constitem{PL_BLOB_TEXT}
@@ -2576,8 +2580,8 @@ behaviour of built-in atoms. Below are the defined member functions:
 
 \begin{description}
     \cfunction{void}{acquire}{atom_t a}
-Called if a new blob of this type is created through PL_put_blob() or
-PL_unify_blob(). Note this this call is done as part of creating the
+Called if a new blob of this type is created through PL_put_blob(),
+PL_unify_blob(), or PL_new_blob(). Note this this call is done as part of creating the
 blob. The call to PL_unify_blob() may fail if the unification fails or
 cannot be completed due to a resource error. PL_put_blob() has no such
 error conditions. This callback is typically used to store the
@@ -2593,13 +2597,43 @@ the same pointer and length will produce the same \const{atom_t} handle.
 The blob (atom) \arg{a} is about to be released. This function can
 retrieve the data of the blob using PL_blob_data(). If it returns
 \const{FALSE}, the atom garbage collector will \emph{not} reclaim the
-atom. The \cfuncref{release} function is called when the atom is
+atom. The \cfuncref{release}{} function is called when the atom is
 reclaimed by the atom garbage collector. For critical resources such as
 file handles or significant memory resources it may be desirable to have
 an explicit call to dispose (most of) the resources. For example,
 close/1 reclaims the file handle and most of the resources associated
 with a stream, leaving only a tiny bit of content to the garbage
 collector.  See also setup_call_cleanup/3.
+
+The release() callback is called in the context of the thread executing
+the atom garbage collect. Normally the thread \const{gc} runs all atom
+and clause garbage collections. The release() function may not call any
+of the PL_*() functions except for PL_unregister_atom() to unregister
+other atoms that are part data associated to the blob. Calling any of
+the other PL_* functions may return in deadlocks or crashes. The
+release() function should not call any potentially slow or blocking
+functions as this may cause serious slowdowns in the rest of the system.
+
+Blobs that require cleanup that is slow, blocking or requires calling
+Prolog must pass the data to be cleaned to another thread.  Be aware
+that if the blob uses \const{PL_BLOB_NOCOPY} the user is responsible for
+discarding the data, otherwise the atom garbage collector will free the
+data.
+
+As SWI-Prolog atom garbage collector is \jargon{conservative}, there is
+no guarantee that the release() function will ever be called. If it is
+important to clean up some resource, there should be an explicit
+predicate for doing that, and calling that predicate should be
+guaranteed by using setup_call_cleanup/3 or some a process finalization
+hook such as at_halt/1.
+
+Normally, Prolog does not clean memory during shutdown. It does so on an
+explicit call to PL_cleanup().\footnote{Or if the system is compiled
+with the \program{cmake} \jargon{build type} \const{Debug}.} In such a
+situation, there is no guarantee of the order in which atoms are
+released; if a blob contains an atom (or another blob), those atoms (or
+blobs) may have already been released. See also
+\cfuncref{PL_blob_data}{}.
 
     \cfunction{int}{compare}{atom_t a, atom_t b}
 Compare the blobs \arg{a} and \arg{b}, both of which are of the type
@@ -2609,7 +2643,10 @@ otherwise. The default implementation is a bitwise comparison of the
 blobs' contents. If you cannot guarantee that the blobs all have unique
 contents, then you should incorporate the blob address (the system
 guarantees that blobs are not shifted in memory after they are
-allocated). The following minimal compare function gives a stable total
+allocated). This function should not call any PL_*() functions
+other than PL_blob_data().
+
+The following minimal compare function gives a stable total
 ordering:
 
 \begin{code}
@@ -2622,23 +2659,28 @@ compare_my_blob(atom_t a, atom_t b)
 \end{code}
 
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
-Write the content of the blob \arg{a} to the stream \arg{s}
-respecting the \arg{flags}.  The \arg{flags} are a bitwise
-\emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
-\file{SWI-Prolog.h}. This prototype is available if the
-\file{SWI-Stream.h} is included \emph{before}
+Write the content of the blob \arg{a} to the stream \arg{s} respecting
+the \arg{flags}. The return value is \const{TRUE} or \const{FALSE} and
+does \emph{not} follow the Unix convention of the number of bytes (where
+zero is possible) and negative for errors.
+
+The \arg{flags} are a bitwise \emph{or} of zero or more of the
+\const{PL_WRT_*} flags that were passed in to the calling
+PL_write_term() that called write(), and are defined in
+\file{SWI-Prolog.h}. The \arg{flags} do not have the
+\const{PL_WRT_NEWLINE} bit set, so it is safe to call PL_write_term()
+and there is no need for writing a trailing newline. This prototype is
+available if the \file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}. This function can retrieve the data of the blob
 using PL_blob_data().
 
-If this function is not provided, write/1 emits the content
-of the blob for blobs of type \const{PL_BLOB_TEXT} or a
-string of the format \verb$<#$\textit{hex data}\verb$>$
-for binary blobs.
+Most blobs reference some external data identified by a pointer and the
+write() function writes
+\verb$<$\arg{type}\verb$>($\arg{address}\verb$)$. If this function is
+not provided, write/1 emits the content of the blob for blobs of type
+\const{PL_BLOB_TEXT} or a string of the format \verb$<#$\textit{hex
+data}\verb$>$ for binary blobs.
 \end{description}
-
-If a blob type is registered from a loadable object (shared object
-or DLL) the blob type must be deregistered before the object may be
-released.
 
 \begin{description}
     \cfunction{int}{save}{atom_t a, IOSTREAM *s}
@@ -2686,6 +2728,11 @@ data. This function returns \const{TRUE} if no blobs of this type
 existed and \const{FALSE} otherwise. PL_unregister_blob_type() is
 intended for the uninstall() hook of foreign modules, avoiding further
 references to the module.
+
+    \cfunction{int}{PL_register_blob_type}{PL_blob_t *type}
+This function does not need to be called explicitly. It is called if
+needed when a blob is created by PL_unify_blob(), PL_put_blob(), or
+PL_new_blob().
 \end{description}
 
 
@@ -2727,7 +2774,7 @@ It is possible that a blob referencing critial resources is created
 after which the unification fails. Typically these resources are
 eventually reclaimed because the new blob is not referenced and
 reclaimed by the atom garbage collector. As described with the
-\cfuncref{release} function, it can be desirable to reclaim the critical
+\cfuncref{release}{} function, it can be desirable to reclaim the critical
 resources after the failing PL_unify_blob() call.
 
     \cfunction{int}{PL_put_blob}{term_t t, void *blob, size_t len,
@@ -2757,13 +2804,13 @@ ignored.
 
 Get the data and type associated to a blob. This function is mainly used
 from the callback functions described in \secref{blobtype}. Note that if
-the release() hook is called from PL_cleanup(), blobs are releases
+the release() hook is called from PL_cleanup(), blobs are released
 regardless of whether or not they are referenced and the order in which
 blobs are released is undefined (the order depends on the ordering in
 the atom hash table). PL_blob_data() may be called safely on a blob that
 has already been released. If this happens during PL_cleanup() the
 return value is guaranteed to be \const{NULL}. During normal execution
-it may return the content of a newly allocated blob that reused the
+it may return the content of a newly allocated blob that reuses the
 released handle.
 
     \cfunction{int}{PL_free_blob}{atom_t blob}
@@ -3308,14 +3355,14 @@ term and returns \const{FALSE}. If a foreign predicate returns
 \const{FALSE}, while an exception term is registered, a Prolog exception
 will be raised by the virtual machine. This implies for a foreign
 function that implements a predicate and wishes to raise an exception,
-the function shall call PL_raise_exception(), perform any necessary
-cleanup and return the return code of PL_raise_exception() or explicitly
+the function must call PL_raise_exception(), perform any necessary
+cleanup, and return the return code of PL_raise_exception() or explicitly
 \const{FALSE}. Calling PL_raise_exception() outside the context of a
 function implementing a foreign predicate results in undefined
 behaviour.
 
 Note that many of the C API functions may call PL_raise_exception() and
-return \const{FALSE}. The user shall test for this, cleanup and make the
+return \const{FALSE}. The user must test for this, cleanup, and make the
 foreign function return \const{FALSE}.
 
 PL_exception() may be used to inspect the currently registered

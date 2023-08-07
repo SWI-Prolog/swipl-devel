@@ -84,7 +84,7 @@ To make changes to a package:
     `?- pack_install(.).`
     This builds the pack locally and creates a symlink to make it available.
   * `?- pack_rebuild(package_name).`
-    This runs `make clean` and `make` with the right environment. It will also
+    This runs `make distclean` and `make` with the right environment. It will also
     write a file `buildendv.sh` that you can source to get the environment
     for running a normal `make` (this is done only if there is a `configure`
     step; i.e., if there is a `configure.in` or `configure`.

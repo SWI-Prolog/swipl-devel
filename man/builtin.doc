@@ -6638,7 +6638,8 @@ Write \arg{Term} to \arg{Stream}.
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate. Atoms that need quotes are quoted. Terms written with this
 predicate can be read back with read/1 provided the currently active
-operator declarations are identical.
+operator declarations are identical and Term.  Equivalent to
+\exam{write_term(Term, [quoted(true), numbervars(true)])}.
 
     \predicate[ISO]{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
@@ -6875,7 +6876,7 @@ with the term position of the tail, otherwise with the atom \const{none}.
     key-value pairs is described by \arg{KeyValuePosList}, which is a
     list of \functor{key_value_position}{7} terms. The
     \functor{key_value_position}{7} terms appear in the order of the
-    input. Because maps to not preserve ordering, the key is provided in
+    input. Because maps do not preserve ordering, the key is provided in
     the position description.
 
 	\termitem{key_value_position}{\arg{From}, \arg{To},
@@ -7104,10 +7105,10 @@ toplevel prints \verb!'$VAR'(0)! as \arg{A} due to the
 
 \begin{code}
 ?- Term = f(X,Y,X),
-   numbervars(Term, 0, End),
+   numbervars(Term, 0, End, [singleton(true)]),
    write_canonical(Term), nl.
-f('$VAR'(0),'$VAR'(1),'$VAR'(0))
-Term = f(A, B, A),
+f('$VAR'(0),'$VAR'('_'),'$VAR'(0))
+Term = f(A, _, A),
 X = A,
 Y = B,
 End = 2.
