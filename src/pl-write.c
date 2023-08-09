@@ -751,7 +751,8 @@ writeAtom(atom_t a, write_options *options)
   }
 
   if ( atom->type->write )
-    return (*atom->type->write)(options->out, a, options->flags);
+    return ((*atom->type->write)(options->out, a, options->flags) &&
+	    !Sferror(options->out));
   if ( false(atom->type, PL_BLOB_TEXT) )
     return writeBlob(a, options);
 
