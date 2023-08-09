@@ -208,10 +208,23 @@ under_valgrind(void)
 static const PL_option_t open_shared_object_options[] =
 { { ATOM_now,		    OPT_BOOL },
   { ATOM_global,            OPT_BOOL },
+  { ATOM_delete,	    OPT_BOOL },
+  { ATOM_load,              OPT_BOOL },
+  { ATOM_deepbind,          OPT_BOOL },
   { ATOM_resolve,	    OPT_ATOM },
   { ATOM_visibility,        OPT_ATOM },
   { NULL_ATOM,		    0 }
 };
+
+#ifndef RTLD_NODELETE
+#define RTLD_NODELETE 0
+#endif
+#ifndef RTLD_NOLOAD
+#define RTLD_NOLOAD 0
+#endif
+#ifndef RTLD_DEEPBIND
+#define RTLD_DEEPBIND 0
+#endif
 
 static int
 atom_domain_error(const char *domain, atom_t found)
@@ -234,13 +247,17 @@ open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
   int dlflags;
   int now = -1;
   int global = -1;
+  int delete = TRUE;
+  int load = TRUE;
+  int deepbind = FALSE;
   atom_t resolve = 0;
   atom_t visibility = 0;
 
   if ( options &&
        !PL_scan_options(options, 0, "open_shared_object_options",
 			open_shared_object_options,
-			&now, &global, &resolve, &visibility) )
+			&now, &global, &delete, &load, &deepbind,
+			&resolve, &visibility) )
     return FALSE;
 
   if ( resolve == ATOM_now )
@@ -262,15 +279,20 @@ open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
     global = FALSE;
 
   dlflags = now ? RTLD_NOW : RTLD_LAZY;
-  if ( global )
-    dlflags |= RTLD_GLOBAL;
+  if ( global   ) dlflags |= RTLD_GLOBAL;
+  if ( !delete  ) dlflags |= RTLD_NODELETE;
+  if ( !load    ) dlflags |= RTLD_NOLOAD;
+  if ( deepbind ) dlflags |= RTLD_DEEPBIND;
 
   if ( !PL_get_atom_ex(file, &afile) ||
        !PL_get_file_name(file, &fn, 0) )
     fail;
   if ( !(dlhandle = PL_dlopen(fn, dlflags)) )
+  { if ( !load )
+      return FALSE;
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, PL_dlerror());
+  }
 
   e = allocHeapOrHalt(sizeof(struct dl_entry));
 

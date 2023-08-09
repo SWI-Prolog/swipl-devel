@@ -226,5 +226,8 @@
                      [ resolve(oneof([lazy,now])),
                        visibility(oneof([local,global])),
                        now(bool),
-                       global(bool)
+                       global(bool),
+		       delete(bool),
+		       load(bool),
+		       deepbind(bool)
                      ]).

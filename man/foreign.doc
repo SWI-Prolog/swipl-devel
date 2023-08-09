@@ -116,8 +116,11 @@ raised. \arg{Message} is the return value from dlerror().
     \predicate{open_shared_object}{3}{+File, -Handle, +Options}
 As open_shared_object/2, but allows for additional flags to be passed.
 Defined options are below.  These options map to \const{RTLD_NOW},
-\const{RTLD_LAZY} and \const{RTLD_GLOBAL} on systems where this
-predicate is implemented using dlopen().
+\const{RTLD_LAZY}, \const{RTLD_GLOBAL}, \const{RTLD_NODELETE},
+\const{RTLD_NOLOAD} and \const{RTLD_DEEPBIND} on systems where this
+predicate is implemented using dlopen() and these flags are
+supported.   If the flag is not supported on the target OS, the
+corresponding option is silently ignored.
 
     \begin{description}
     \termitem{resolve}{Atom}
@@ -133,6 +136,15 @@ predicate is implemented using dlopen().
     \termitem{global}{Bool}
     \term{global}{true} is the same as \term{visibility}{global}.
     Provided for backward compatibility.
+    \termitem{delete}{Bool}
+    If \const{false}, include \const{RTLD_NODELETE}.
+    \termitem{load}{Bool}
+    if \const{false}, include \const{RTLD_NOLOAD}.  This returns
+    a handle to the object if it is already loaded and \const{NULL}
+    otherwise.   It causes this predicate to \jargon{fail silently} if the
+    object is not loaded.
+    \termitem{deepbind}{Bool}
+    if \const{true}, include \const{RTLD_DEEPBIND}.
     \end{description}
 
 Note that these flags may not be supported by your operating system.
