@@ -57,11 +57,17 @@
   - MAX_VAR_FRAC
     Do not create an index if the fraction of clauses with a variable
     in the target position exceeds this threshold.
+  - MIN_CLAUSES_FOR_INDEX
+    Create an index if there are more than this number of clauses
+  - MIN_SPEEDUP_RATIO
+    Need at least this ratio of #clauses/speedup for creating an index
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_LOOKAHEAD  100
 #define MIN_SPEEDUP    1.5
 #define MAX_VAR_FRAC   0.1
+#define MIN_CLAUSES_FOR_INDEX 10
+#define MIN_SPEEDUP_RATIO  10
 
 
 		 /*******************************
@@ -452,8 +458,8 @@ retry:
     if ( best_index )
     { int hi;
 
-      if ( clist->number_of_clauses > 10 &&
-	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
+      if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX &&
+	   (float)clist->number_of_clauses/best_index->speedup > MIN_SPEEDUP_RATIO &&
 	   !STATIC_RELOADING() )
       { DEBUG(MSG_JIT_POOR,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
@@ -493,7 +499,7 @@ retry:
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0])) &&
-       (clist->number_of_clauses <= 10 || STATIC_RELOADING()) )
+       (clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX || STATIC_RELOADING()) )
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation);
