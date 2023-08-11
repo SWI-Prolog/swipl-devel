@@ -106,13 +106,16 @@ duplicated this stuff.
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define HAVE_DECLSPEC
+#else
+#if !defined(HAVE_VISIBILITY_ATTRIBUTE) && (__GNUC__ >= 4 || defined(__clang__))
+#define HAVE_VISIBILITY_ATTRIBUTE 1
+#endif
 #endif
 
 #ifdef HAVE_DECLSPEC
 # ifdef PL_KERNEL
 #define PL_EXPORT(type)		__declspec(dllexport) extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllexport) extern type
-#define install_t		void
 # else
 #  ifdef __BORLANDC__
 #define PL_EXPORT(type)		type _stdcall
@@ -128,7 +131,7 @@ duplicated this stuff.
 #  endif
 #define install_t		__declspec(dllexport) void
 # endif
-#else /*HAVE_DECLSPEC*/
+#else /*!HAVE_DECLSPEC*/
 # ifdef PL_SO_EXPORT
 #define PL_EXPORT(type)		extern PL_SO_EXPORT type
 #define PL_EXPORT_DATA(type)	extern PL_SO_EXPORT type
@@ -136,7 +139,11 @@ duplicated this stuff.
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
 # endif
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define install_t		__attribute__((visibility("default"))) void
+#else
 #define install_t		void
+#endif
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
