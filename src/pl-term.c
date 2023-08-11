@@ -55,7 +55,7 @@ late;  character terminals  disappear quickly now.  Use XPCE if you want
 windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(HAVE_TERM_H) && !defined(HAVE_NCURSES_TERM_H)
+#if !defined(HAVE_TERM_H) && !defined(HAVE_NCURSES_TERM_H) && !defined(HAVE_CURSES_H)
 /* Some systems seem not to have the headers ... */
 #undef HAVE_TGETENT
 #endif
