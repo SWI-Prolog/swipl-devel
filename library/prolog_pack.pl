@@ -1131,7 +1131,7 @@ pack_post_install(Pack, PackDir, Options) :-
 
 %!  pack_rebuild(+Pack) is det.
 %
-%   Rebuilt possible foreign components of Pack.
+%   Rebuild possible foreign components of Pack.
 
 pack_rebuild(Pack) :-
     current_pack(Pack, PackDir),

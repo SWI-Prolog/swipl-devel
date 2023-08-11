@@ -10907,7 +10907,7 @@ is \const{none}.  Supported \arg{Options} are:
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
-List of file extensions to try.  Default is exam{['']}.  For each
+List of file extensions to try.  Default is \exam{['']}.  For each
 extension, absolute_file_name/3 will first add the extension and then
 verify the conditions imposed by the other options.  If the condition
 fails, the next extension on the list is tried.  Extensions may be
