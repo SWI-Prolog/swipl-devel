@@ -192,6 +192,8 @@ endif()
     else()
       target_link_libraries(${foreign_target} PRIVATE
 			    ${v_c_libs} ${SWIPL_LIBRARIES})
+      set_property(TARGET ${foreign_target} PROPERTY
+		   C_VISIBILITY_PRESET hidden)
     endif()
     add_dependencies(library_index_library ${foreign_target})
     if(v_c_include_dirs)
