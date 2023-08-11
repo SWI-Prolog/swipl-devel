@@ -2674,7 +2674,23 @@ compare_my_blob(atom_t a, atom_t b)
 Write the content of the blob \arg{a} to the stream \arg{s} respecting
 the \arg{flags}. The return value is \const{TRUE} or \const{FALSE} and
 does \emph{not} follow the Unix convention of the number of bytes (where
-zero is possible) and negative for errors.
+zero is possible) and negative for errors. Any I/O operations to
+\arg{s} are in the context of a PL_acquire_stream(); upon return,
+the PL_release_stream() handles any errors, so it is safe to not
+check return codes from Sprintf(), etc.
+
+In general, the output from the write() callback should be minimal.
+If you wish to output more debug information, it is suggested that you
+either add a debug option to your "open" predicate to output more
+information, or provide a "properties" predicate.  A typical
+implementation is:
+\begin{code}
+static int write_my_blob(IOSTREAM *s, atom_t symbol, int flags)
+{ (void)flags; /* unused */
+  Sfprintf(s, "<my_blob>(%p)", PL_blob_data(symbol, NULL, NULL));
+  return TRUE;
+}
+\endd{code}
 
 The \arg{flags} are a bitwise \emph{or} of zero or more of the
 \const{PL_WRT_*} flags that were passed in to the calling
