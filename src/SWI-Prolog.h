@@ -105,7 +105,7 @@ duplicated this stuff.
 #define _PL_EXPORT_DONE
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
-#define HAVE_DECLSPEC
+#define HAVE_DECLSPEC 1
 #else
 #if !defined(HAVE_VISIBILITY_ATTRIBUTE) && (__GNUC__ >= 4 || defined(__clang__))
 #define HAVE_VISIBILITY_ATTRIBUTE 1
