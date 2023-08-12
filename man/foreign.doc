@@ -2690,7 +2690,7 @@ static int write_my_blob(IOSTREAM *s, atom_t symbol, int flags)
   Sfprintf(s, "<my_blob>(%p)", PL_blob_data(symbol, NULL, NULL));
   return TRUE;
 }
-\endd{code}
+\end{code}
 
 The \arg{flags} are a bitwise \emph{or} of zero or more of the
 \const{PL_WRT_*} flags that were passed in to the calling
