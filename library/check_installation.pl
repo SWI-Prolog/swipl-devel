@@ -138,6 +138,7 @@ component(library(uri), _{}).
 component(library(uuid), _{}).
 component(library(zlib), _{}).
 component(library(yaml), _{}).
+component(library(janus), _{features:python_version}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
@@ -439,6 +440,11 @@ check_sweep_lib(Line) :-
     sub_atom(Line, _, A, 0, Lib),
     exists_file(Lib).
 
+python_version :-
+    py_call(sys:version, Version),
+    print_message(informational, installation(janus(Version))).
+
+
 %!  check_on_path
 %
 %   Validate that Prolog is installed in   $PATH.  Only performed if the
@@ -566,7 +572,7 @@ message(checking) -->
     [ 'Installed at: ~`.t~24| ~w'-[Home] ], [nl],
     [ 'Cores: ~`.t~24| ~w'-[Cores] ], [nl],
     [ nl ].
-message(perfect) -->
+>message(perfect) -->
     [ nl, 'Congratulations, your kit seems sound and complete!'-[] ].
 message(imperfect(N)) -->
     [ 'Found ~w issues.'-[N] ].
@@ -635,7 +641,8 @@ message(sweep(not_found(Paths))) -->
 message(testing(no_installed_tests)) -->
     [ '  Runtime testing is not enabled.', nl],
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
-
+message(janus(Version)) -->
+    [ '  Python version ~w'-[Version] ].
 
 public_executable(EXE, PublicProg) :-
     file_base_name(EXE, Prog),
