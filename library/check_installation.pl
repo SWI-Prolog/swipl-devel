@@ -572,7 +572,7 @@ message(checking) -->
     [ 'Installed at: ~`.t~24| ~w'-[Home] ], [nl],
     [ 'Cores: ~`.t~24| ~w'-[Cores] ], [nl],
     [ nl ].
->message(perfect) -->
+message(perfect) -->
     [ nl, 'Congratulations, your kit seems sound and complete!'-[] ].
 message(imperfect(N)) -->
     [ 'Found ~w issues.'-[N] ].
