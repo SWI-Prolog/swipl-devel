@@ -6,7 +6,7 @@ if(NOT CPACK_GENERATOR AND NOT APPLE)
       set(CPACK_GENERATOR "NSIS64")
     else()
       set(CPACK_GENERATOR "NSIS")
-    endif()    
+    endif()
   else()
     find_program(APT apt)
     find_program(DNF dnf)
@@ -33,7 +33,7 @@ set(CPACK_PACKAGE_VENDOR "SWI-Prolog")
 
 # We don't want an additional page when attaching the dmg
 if(NOT BUILD_MACOS_BUNDLE)
-  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 endif()
 
 if(CPACK_GENERATOR STREQUAL RPM)
