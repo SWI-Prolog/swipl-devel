@@ -617,7 +617,7 @@ write_basic_package_version_file(SWIPLConfigVersion.cmake
   VERSION "${SWIPL_VERSION_STRING}"
   COMPATIBILITY SameMajorVersion)
 configure_package_config_file(
-  "${CMAKE_SOURCE_DIR}/cmake/SWIPLConfig.cmake.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/SWIPLConfig.cmake.in"
   SWIPLConfig.cmake
   PATH_VARS SWIPL_INSTALL_ARCH_EXE
   INSTALL_DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}"
