@@ -373,7 +373,9 @@ void cleanupTerm(void)
 #include <sys/ioctl.h>
 #endif
 
-#if !defined(HAVE_PL_TTY_SIZE) && defined(HAVE_SYS_IOCTL_H) && \
+#if !defined(HAVE_PL_TTY_SIZE) && \
+    !defined(EMSCRIPTEN) && \
+    defined(HAVE_SYS_IOCTL_H) && \
     (defined(TIOCGSIZE) || defined(TIOCGWINSZ) || defined(HAVE_TGETENT))
 
 #define HAVE_TTY_SIZE_PRED 1
