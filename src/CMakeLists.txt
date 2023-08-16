@@ -673,10 +673,10 @@ install_src(core_compat_yap
 	    FILES
 	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
 	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
+install(FILES ${SWIPL_BIN_ROOT}/dot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME "swipl.home")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
+install(FILES ${SWIPL_BIN_ROOT}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
 
