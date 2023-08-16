@@ -52,6 +52,9 @@ source should also use format() to produce error messages, etc.
 #include <stdio.h>
 #include <math.h>
 #include <fenv.h>
+#ifdef __WINDOWS__
+#include "../pl-nt.h"
+#endif
 
 typedef foreign_t (*Func1)(term_t a1);
 

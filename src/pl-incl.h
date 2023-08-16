@@ -54,13 +54,7 @@
 #endif
 
 #if O_GMP
-# ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
-# pragma warning( disable : 4146 )
-# endif
 #include <gmp.h>
-# ifdef _MSC_VER
-# pragma warning( default : 4146 )
-# endif
 #elif O_BF
 #include "libbf/bf_gmp_types.h"
 #endif
@@ -126,7 +120,9 @@
 
 /* C11 gives us the _Static_assert operator, let's make it a little nicer.
  * Accept either static_assert(cond, "message") or static_assertion(cond). */
+#ifndef _MSC_VER
 #define static_assert(condition, message) _Static_assert(condition, message)
+#endif
 #define static_assertion(condition) _Static_assert(condition, "Assertion failed: ("#condition") [expansion: " A_STRINGIFY(condition) "]")
 
 #include "pl-builtin.h"

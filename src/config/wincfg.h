@@ -95,6 +95,7 @@
 #pragma warning(disable : 4244)	/* possible loss of data (int conversion) */
 #pragma warning(disable : 4267)	/* possible loss of data (int conversion) */
 #pragma warning(disable : 4018)	/* signed/unsigned comparison */
+#pragma warning(disable : 4146)	/* unary minus operator applied to unsigned type */
 #define HAVE_LOCALECONV 1
 #define HAVE_MBSTRING_H 1
 #define HAVE_LIBLOADERAPI_H 1

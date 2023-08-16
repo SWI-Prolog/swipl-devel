@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -54,6 +54,10 @@
 #include "pl-proc.h"
 #include "os/pl-prologflag.h"
 #include <stdio.h>
+#ifdef __WINDOWS__
+#include "pl-nt.h"
+#include <process.h>
+#endif
 
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000

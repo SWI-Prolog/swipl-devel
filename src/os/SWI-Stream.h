@@ -50,24 +50,25 @@
 #endif
 #endif
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#ifdef _MSC_VER
-typedef __int64 int64_t;
-#if (_MSC_VER < 1300)
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-typedef intptr_t ssize_t;		/* signed version of size_t */
-#else
-#include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
+
+#ifdef _MSC_VER
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+typedef intptr_t ssize_t;
+typedef uintptr_t size_t;
 #endif
 
 #ifdef __cplusplus

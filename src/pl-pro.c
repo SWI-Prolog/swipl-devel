@@ -684,17 +684,18 @@ check_data(DECL_LD Word p, chk_data *context)
 
 last_arg:
 
+#ifndef O_ATTVAR
+#define isAttVar(p) FALSE
+#endif
+
   while(isRef(*p))
   { assert(!is_marked(p));
     p2 = unRef(*p);
     DEBUG(CHK_HIGHER_ADDRESS,
 	  { if ( p2 > p )
-	    {
-#ifdef O_ATTVAR
-	      if ( !isAttVar(*p2) )
-#endif
-		if ( !gc_status.blocked )
-		  printk(context, "Reference to higher address");
+	    { if ( !isAttVar(*p2) &&
+		   !gc_status.blocked )
+		printk(context, "Reference to higher address");
 	    }
 	  });
     if ( p2 == p )

@@ -2150,7 +2150,9 @@ int
   { _PL_get_arg_sz(index, t, a);
     return TRUE;
   } else
-    fatalError("Arity out of range: %d", a);
+  { fatalError("Arity out of range: %d", a);
+    return FALSE;
+  }
 }
 
 

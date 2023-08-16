@@ -39,6 +39,7 @@
 #include "windows/uxnt.h"
 #include "config/wincfg.h"
 #include <winsock2.h>
+#include "../pl-nt.h"
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
