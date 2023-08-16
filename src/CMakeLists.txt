@@ -33,6 +33,7 @@ endif()
 
 # Source locations
 get_filename_component(SWIPL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+get_filename_component(SWIPL_BIN_ROOT "${CMAKE_CURRENT_BINARY_DIR}/.." ABSOLUTE)
 set(SWIPL_LIBRARY_ROOT ${SWIPL_ROOT}/library)
 set(SWIPL_BOOT_ROOT ${SWIPL_ROOT}/boot)
 
@@ -353,14 +354,14 @@ endfunction()
 config_data_files()
 
 # Set swipl.home above binaries to a relative path to the root
-file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
-file(WRITE "${CMAKE_BINARY_DIR}/src/swipl.home" "../home\n")
-file(WRITE "${CMAKE_BINARY_DIR}/packages/swipl.home" "../home\n")
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
+file(WRITE "${SWIPL_BIN_ROOT}/swipl.home" "home\n")
+file(WRITE "${SWIPL_BIN_ROOT}/src/swipl.home" "../home\n")
+file(WRITE "${SWIPL_BIN_ROOT}/packages/swipl.home" "../home\n")
+symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl.rc)
+symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl-win.rc)
 # Final swipl.home for installed system
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
+file(WRITE "${SWIPL_BIN_ROOT}/dot.txt" ".\n")
+file(WRITE "${SWIPL_BIN_ROOT}/dotdot.txt" "..\n")
 
 endif(NOT PGO_SUFFIX)
 

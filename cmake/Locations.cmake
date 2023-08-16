@@ -21,4 +21,4 @@ endfunction()
 # Set well-known locations. Should be merged as  they are now at various
 # places.
 
-set(SWIPL_ROOT ${CMAKE_SOURCE_DIR})
+set(SWIPL_ROOT ${CMAKE_CURRENT_SOURCE_DIR})

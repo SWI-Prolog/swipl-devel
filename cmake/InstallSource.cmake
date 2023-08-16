@@ -7,7 +7,7 @@
 
 # ${SWIPL_BUILD_HOME} holds the direcory where we link the Prolog
 # resource files.
-set(SWIPL_BUILD_HOME    ${CMAKE_BINARY_DIR}/home)
+set(SWIPL_BUILD_HOME    ${CMAKE_CURRENT_BINARY_DIR}/home)
 set(SWIPL_BUILD_LIBRARY ${SWIPL_BUILD_HOME}/library)
 
 add_custom_target(prolog_home)
