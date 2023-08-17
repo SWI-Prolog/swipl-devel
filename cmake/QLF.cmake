@@ -19,7 +19,7 @@
 function(add_swipl_target name)
   set(options -f none --no-packs -t halt "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET;QLF" "COMMENT;COMMAND" "OUTPUT;SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
+      my "QUIET;QLF" "COMMENT;COMMAND" "OUTPUT;BYPRODUCTS;SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
@@ -43,6 +43,7 @@ function(add_swipl_target name)
 
   add_custom_command(
       OUTPUT ${my_OUTPUT}
+      BYPRODUCTS ${my_BYPRODUCTS}
       COMMAND ${PROG_SWIPL} ${options} -g "${my_COMMAND}" -- ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       DEPENDS core prolog_home
