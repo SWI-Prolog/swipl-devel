@@ -169,10 +169,11 @@ static inline slimb_t sat_add(slimb_t a, slimb_t b)
 #define realloc(p, s) realloc_is_forbidden(p, s)
 
 void bf_context_init(bf_context_t *s, bf_realloc_func_t *realloc_func,
-		     void *realloc_opaque)
+    bf_free_func_t *free_func, void *realloc_opaque)
 {
     memset(s, 0, sizeof(*s));
     s->realloc_func = realloc_func;
+    s->free_func = free_func;
     s->realloc_opaque = realloc_opaque;
 }
 
