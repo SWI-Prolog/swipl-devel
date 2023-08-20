@@ -50,9 +50,11 @@ typedef void  (*mp_free_t)(void *, size_t size);
 typedef struct mp_alloc_wrapper
 { bf_context_t bf_context;
   mp_realloc_t realloc_func;
+  mp_free_t free_func;
 } mp_alloc_wrapper;
 
 extern mp_alloc_wrapper alloc_wrapper;
+
 extern void bf_not_implemented(const char *func);
 
 void	bf_print_i(const char *msg, const bf_t *i);
@@ -64,14 +66,15 @@ void	bf_print_i(const char *msg, const bf_t *i);
 
 static inline void
 mp_get_memory_functions(mp_malloc_t *m, mp_realloc_t *r, mp_free_t *f)
-{ *m = NULL;
-  *r = alloc_wrapper.realloc_func;
-  *f = NULL;
+{ if(m) *m = NULL;
+  if(r) *r = alloc_wrapper.realloc_func;
+  if(f) *f = alloc_wrapper.free_func;
 }
 
 static inline void
 mp_set_memory_functions(mp_malloc_t m, mp_realloc_t r, mp_free_t f)
 { alloc_wrapper.realloc_func = r;
+  alloc_wrapper.free_func = f;
 }
 
 		 /*******************************
