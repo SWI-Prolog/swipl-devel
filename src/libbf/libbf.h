@@ -138,6 +138,7 @@ typedef enum {
 typedef uint32_t bf_flags_t;
 
 typedef void *bf_realloc_func_t(void *opaque, void *ptr, size_t size);
+typedef void bf_free_func_t(void *opaque, void *ptr, size_t size);
 
 typedef struct {
     bf_t val;
@@ -147,6 +148,7 @@ typedef struct {
 typedef struct bf_context_t {
     void *realloc_opaque;
     bf_realloc_func_t *realloc_func;
+    bf_free_func_t *free_func;
     BFConstCache log2_cache;
     BFConstCache pi_cache;
     struct BFNTTState *ntt_state;
@@ -195,7 +197,7 @@ static inline slimb_t bf_min(slimb_t a, slimb_t b)
 }
 
 void bf_context_init(bf_context_t *s, bf_realloc_func_t *realloc_func,
-		     void *realloc_opaque);
+    bf_free_func_t *free_func, void *realloc_opaque);
 void bf_context_end(bf_context_t *s);
 /* free memory allocated for the bf cache data */
 void bf_clear_cache(bf_context_t *s);
@@ -215,7 +217,7 @@ static inline void bf_free(bf_context_t *s, void *ptr)
 {
     /* must test ptr otherwise equivalent to malloc(0) */
     if (ptr)
-	bf_realloc(s, ptr, 0);
+	s->free_func(s->realloc_opaque, ptr, 0); // MG: unsure about the zero
 }
 
 void bf_init(bf_context_t *s, bf_t *r);
@@ -225,7 +227,7 @@ static inline void bf_delete(bf_t *r)
     bf_context_t *s = r->ctx;
     /* we accept to delete a zeroed bf_t structure */
     if (s && r->tab) {
-	bf_realloc(s, r->tab, 0);
+	bf_free(s, r->tab);
     }
 }
 
