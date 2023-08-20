@@ -53,6 +53,14 @@ typedef struct mp_alloc_wrapper
 } mp_alloc_wrapper;
 
 extern mp_alloc_wrapper alloc_wrapper;
+
+typedef struct mp_free_wrapper
+{ bf_context_t bf_context;
+  mp_free_t free_func;
+} mp_free_wrapper;
+
+extern mp_free_wrapper free_wrapper;
+
 extern void bf_not_implemented(const char *func);
 
 void	bf_print_i(const char *msg, const bf_t *i);
