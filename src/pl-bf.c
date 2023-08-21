@@ -46,8 +46,7 @@ default_free(void *ptr, size_t size)
 { free(ptr);
 }
 
-mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc };
-mp_free_wrapper free_wrapper = { .free_func = default_free };
+mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc, .free_func = default_free };
 
 static void *
 my_bf_realloc(void *opaque, void *ptr, size_t size)
@@ -59,8 +58,8 @@ my_bf_realloc(void *opaque, void *ptr, size_t size)
 
 static void
 my_bf_free(void *opaque, void *ptr, size_t size)
-{ if ( free_wrapper.free_func )
-    free_wrapper.free_func(ptr, size);
+{ if ( alloc_wrapper.free_func )
+    alloc_wrapper.free_func(ptr, size);
   else
     free(ptr);
 }
