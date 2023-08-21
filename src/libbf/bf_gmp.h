@@ -66,9 +66,9 @@ void	bf_print_i(const char *msg, const bf_t *i);
 
 static inline void
 mp_get_memory_functions(mp_malloc_t *m, mp_realloc_t *r, mp_free_t *f)
-{ *m = NULL;
-  *r = alloc_wrapper.realloc_func;
-  *f = alloc_wrapper.free_func;
+{ if(m) *m = NULL;
+  if(r) *r = alloc_wrapper.realloc_func;
+  if(f) *f = alloc_wrapper.free_func;
 }
 
 static inline void
