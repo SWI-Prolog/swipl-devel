@@ -1,6 +1,6 @@
 /*
  * C utilities
- * 
+ *
  * Copyright (c) 2017 Fabrice Bellard
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -142,13 +142,16 @@ int dbuf_putstr(DynBuf *s, const char *str)
     return dbuf_put(s, (const uint8_t *)str, strlen(str));
 }
 
-int __attribute__((format(printf, 2, 3))) dbuf_printf(DynBuf *s,
-                                                      const char *fmt, ...)
+int
+#ifndef _MSC_VER
+__attribute__((format(printf, 2, 3)))
+#endif
+dbuf_printf(DynBuf *s, const char *fmt, ...)
 {
     va_list ap;
     char buf[128];
     int len;
-    
+
     va_start(ap, fmt);
     len = vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);

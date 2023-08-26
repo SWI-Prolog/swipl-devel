@@ -1,6 +1,6 @@
 /*
  * C utilities
- * 
+ *
  * Copyright (c) 2017 Fabrice Bellard
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,11 +26,66 @@
 
 #include <inttypes.h>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+typedef intptr_t ssize_t;
+#define likely(x) (!!(x))
+#define unlikely(x) (!!(x))
+#define force_inline __forceinline
+#define no_inline
+#define __maybe_unused
+#define __builtin_clz(v)   _lzcnt_u32(v)
+#define __builtin_clzll(v) _lzcnt_u64(v)
+#define __builtin_ctz(v)   _tzcnt_u32(v)
+#define __builtin_ctzll(v) _tzcnt_u64(v)
+#define PACK( __Declaration__ ) \
+	__pragma( pack(push, 1) ) struct __Declaration__ __pragma( pack(pop))
+
+#pragma intrinsic(_BitScanForward)
+static __forceinline int ffsl(long x)
+{ unsigned long i;
+
+  if (_BitScanForward(&i, x))
+    return (i + 1);
+  return (0);
+}
+
+static __forceinline int ffs(int x)
+{ return (ffsl(x));
+}
+
+#pragma intrinsic(_BitScanForward64)
+
+static __forceinline int ffsll(unsigned __int64 x)
+{ unsigned long i;
+
+  if (_BitScanForward64(&i, x))
+    return (i + 1);
+  return (0);
+}
+
+#define __builtin_ffs(i)   ffs(i)
+#define __builtin_ffsll(i) ffsll(i)
+
+#pragma intrinsic (__mulh)
+
+static int __forceinline
+__builtin_mul_overflow(int64_t l, int64_t r, int64_t *rc)
+{ *rc = l*r;
+  return __mulh(l,r) == 0;
+}
+
+#else /*GCC,Clang*/
+
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 #define force_inline inline __attribute__((always_inline))
 #define no_inline __attribute__((noinline))
 #define __maybe_unused __attribute__((unused))
+#define PACK( __Declaration__ ) \
+	struct __attribute__((__packed__)) __Declaration__
+
+#endif /*_MSC_VER*/
 
 #define xglue(x, y) x ## y
 #define glue(x, y) xglue(x, y)
@@ -78,7 +133,7 @@ static inline int clz32(unsigned int a)
 /* WARNING: undefined if a = 0 */
 static inline int clz64(uint64_t a)
 {
-    return __builtin_clzll(a);
+    return (int)__builtin_clzll(a);
 }
 
 /* WARNING: undefined if a = 0 */
@@ -90,14 +145,14 @@ static inline int ctz32(unsigned int a)
 /* WARNING: undefined if a = 0 */
 static inline int ctz64(uint64_t a)
 {
-    return __builtin_ctzll(a);
+    return (int)__builtin_ctzll(a);
 }
 
-struct __attribute__((packed)) packed_u32 {
+PACK(packed_u32) {
     uint32_t v;
 };
 
-struct __attribute__((packed)) packed_u16 {
+PACK(packed_u16) {
     uint16_t v;
 };
 
@@ -147,8 +202,13 @@ static inline int dbuf_put_u16(DynBuf *s, uint16_t val)
 {
     return dbuf_put(s, (uint8_t *)&val, 2);
 }
-int __attribute__((format(printf, 2, 3))) dbuf_printf(DynBuf *s,
-                                                      const char *fmt, ...);
+
+int
+#ifndef _MSC_VER
+__attribute__((format(printf, 2, 3)))
+#endif
+dbuf_printf(DynBuf *s, const char *fmt, ...);
+
 void dbuf_free(DynBuf *s);
 static inline BOOL dbuf_error(DynBuf *s) {
     return s->error;

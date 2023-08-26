@@ -228,8 +228,8 @@ int bf_set_ui(bf_t *r, uint64_t a)
 	int shift;
 	if (bf_resize(r, 1))
 	    goto fail;
-	shift = clz(a);
-	r->tab[0] = a << shift;
+	shift = clz((limb_t)a);
+	r->tab[0] = (limb_t)a << shift;
 	r->expn = LIMB_BITS - shift;
     }
 #if LIMB_BITS == 32
@@ -238,8 +238,8 @@ int bf_set_ui(bf_t *r, uint64_t a)
 	int shift;
 	if (bf_resize(r, 2))
 	    goto fail;
-	a0 = a;
-	a1 = a >> 32;
+	a0 = (limb_t)a;
+	a1 = (limb_t)(a >> 32);
 	shift = clz(a1);
 	r->tab[0] = a0 << shift;
 	r->tab[1] = (a1 << shift) | (a0 >> (LIMB_BITS - shift));
@@ -494,11 +494,11 @@ static int __bf_round(bf_t *r, limb_t prec1, bf_flags_t flags, limb_t l,
     int shift, add_one, rnd_mode;
     slimb_t i, bit_pos, pos, e_min, e_max, e_range, prec;
 
-    if ( prec1 == BF_PREC_INF ) 
+    if ( prec1 == BF_PREC_INF )
     { i = 0;
       goto rndexit;  // no rounding on infinite precision
     }
-    
+
     /* e_min and e_max are computed to match the IEEE 754 conventions */
     e_range = (limb_t)1 << (bf_get_exp_bits(flags) - 1);
     e_min = -e_range + 3;

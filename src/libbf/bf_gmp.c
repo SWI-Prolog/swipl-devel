@@ -37,6 +37,7 @@
 #include <sys/types.h>			/* get ssize_t */
 #include <string.h>
 #include <stdio.h>
+#include "cutils.h"
 #include "bf_gmp.h"
 #include <stdlib.h>
 
@@ -67,9 +68,9 @@ mul_2exp(bf_t *r, slimb_t e)
 
 #if STEIN
 
-// adapted from 
+// adapted from
 // https://stackoverflow.com/questions/63604914/how-can-i-speed-up-the-binary-gcd-algorithm-using-builtin-ctz
-static uint64_t 
+static uint64_t
 i64_gcd(uint64_t u, uint64_t v) {
     uint64_t t = u | v;
 
@@ -116,7 +117,7 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   while ( llabs(a->expn - b->expn) > 5 )  // if large difference between a and b
   { mpz_tdiv_r(r, a, b);  // reduce somewhat with Euclidean
     if ( mpz_sgn(r) == 0 )  // if remainder is 0, answer is b
-    { mpz_swap(b, r); 
+    { mpz_swap(b, r);
       mpz_clear(a);
       mpz_clear(b);
       return;
@@ -124,11 +125,11 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
     mpz_swap(a, b);
     mpz_swap(b, r);
   }
-  
+
   // reduce a and b to odd
-  als1 = mpz_scan1(a, 0); 
+  als1 = mpz_scan1(a, 0);
   if ( als1 > 0 ) mul_2exp(a, -als1);
-  bls1 = mpz_scan1(b, 0); 
+  bls1 = mpz_scan1(b, 0);
   if ( bls1 > 0 ) mul_2exp(b, -bls1);
   k = (als1 > bls1) ? bls1 : als1;  // k = min(als1,bls1)
 
@@ -150,7 +151,7 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
     }
     mpz_swap(a, r);      // |a-b| -> a
     mul_2exp(a, -mpz_scan1(a, 0));  // make a odd again
-  } 
+  }
 
   mpz_mul_2exp(r, r, k); // r*2^d -> r (final answer)
   mpz_clear(a);
@@ -396,7 +397,7 @@ mpq_cmp_z(const mpq_t q1, const mpz_t z2)
   int rc;
   mpz_init(num);
   mpz_mul(num, mpq_cdenref(q1), z2);
-  rc = mpz_cmp(mpq_cnumref(q1), num);  
+  rc = mpz_cmp(mpq_cnumref(q1), num);
   mpz_clear(num);
 
   return rc;
@@ -650,12 +651,12 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
   const MP_INT *op;
   int op_sgn;
 
-  if (bf_is_zero(OP)) 
+  if (bf_is_zero(OP))
   { mpz_set(rop, OP);               // nth root of zero is zero
-    mpz_set(rem, OP);    
+    mpz_set(rem, OP);
     return;
   }
-  
+
   if ( mpz_sizeinbase(OP, 2) < n )  // if n > bit size, answer is +/- 1
   { op_sgn = mpz_sgn(OP);
     mpz_add_si(rem, OP, -op_sgn);

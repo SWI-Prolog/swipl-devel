@@ -43,6 +43,13 @@
 #include <assert.h>
 #endif
 
+#ifdef _MSC_VER
+static inline size_t
+__builtin_popcountll(long long sz)
+{ return __popcnt64(sz);
+}
+#endif
+
 typedef void *(*mp_malloc_t)(size_t);
 typedef void *(*mp_realloc_t)(void *, size_t old, size_t newsize);
 typedef void  (*mp_free_t)(void *, size_t size);
