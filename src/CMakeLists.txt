@@ -430,7 +430,7 @@ target_include_directories(swiplobjs${PGO_SUFFIX} BEFORE PRIVATE
 			   ${LIBSWIPL_INCLUDES})
 
 function(libswipl_properties lib outname)
-  if(MSVC AND NOT SWIPL_SHARED_LIB)
+  if(MSVC)
     # MSVC does not automatically prepend 'lib' to the library name
     # Furthermore it would generate swipl.lib in the same directory as swipl.exe,
     # causing a linking failure:
