@@ -255,8 +255,16 @@ endif()
 
 # Configuration we need everywhere
 if(MULTI_THREADED)
-  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-  find_package(Threads)
+  if(MSVC)
+    find_package(PThreads4W)
+  endif()
+  if(TARGET PThreads4W::PThreads4W)
+    add_library(Threads::Threads ALIAS PThreads4W::PThreads4W)
+    set(CMAKE_USE_PTHREADS_INIT ON)
+  else()
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads)
+  endif()
 endif()
 
 include(TestLargeFiles)

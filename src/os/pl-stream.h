@@ -41,6 +41,7 @@
 
 void	unallocStream(IOSTREAM *s);
 
+#ifndef _PL_INCLUDE_H
 #ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
@@ -51,6 +52,7 @@ void	unallocStream(IOSTREAM *s);
 #define ATOMIC_SUB(ptr, v)	(*ptr -= v)
 #define ATOMIC_INC(ptr)		(++(*ptr))
 #define ATOMIC_DEC(ptr)		(--(*ptr))
+#endif
 #endif
 
 

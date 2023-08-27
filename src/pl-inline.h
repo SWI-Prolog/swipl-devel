@@ -144,12 +144,35 @@ __atomic_load_n(size_t *ptr, int memorder)
 #endif
 
 #ifdef O_PLMT
+#ifdef _MSC_VER
+#define ATOMIC_ADD(ptr, v)	_InterlockedExchangeAdd64(ptr, v)
+#define ATOMIC_SUB(ptr, v)	ATOMIC_ADD(ptr, -(v))
+#define ATOMIC_INC(ptr)		_Generic((*ptr), \
+					 int: _InterlockedIncrement((long*)ptr), \
+					 unsigned int: _InterlockedIncrement((long*)ptr), \
+					 size_t: _InterlockedIncrement64((__int64*)ptr), \
+					 __int64: _InterlockedIncrement64((__int64*)ptr))
+#define ATOMIC_DEC(ptr)		_Generic((*ptr), \
+					 int: _InterlockedDecrement((long*)ptr), \
+					 unsigned int: _InterlockedDecrement((long*)ptr), \
+					 size_t:  _InterlockedDecrement64((__int64*)ptr), \
+					 __int64: _InterlockedDecrement64((__int64*)ptr))
+#define ATOMIC_OR(ptr, v)	_Generic((*ptr), \
+					 unsigned short: _InterlockedOr16((short*)ptr, (short)(v)), \
+					 unsigned int: _InterlockedOr((long*)ptr, (long)(v)), \
+					 unsigned __int64: _InterlockedOr64((__int64*)ptr, (__int64)(v)))
+#define ATOMIC_AND(ptr, v)	_Generic((*ptr), \
+					 unsigned short: _InterlockedAnd16((short*)ptr, (short)(v)), \
+					 unsigned int: _InterlockedAnd((long*)ptr, (long)(v)), \
+					 unsigned __int64: _InterlockedAnd64((__int64*)ptr, (__int64)(v)))
+#else
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_INC(ptr)		ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
 #define ATOMIC_DEC(ptr)		ATOMIC_SUB(ptr, 1) /* --(*ptr) */
 #define ATOMIC_OR(ptr, v)	__atomic_fetch_or(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_AND(ptr, v)	__atomic_fetch_and(ptr, v, __ATOMIC_SEQ_CST)
+#endif
 
 #define __COMPARE_AND_SWAP(at, from, to) \
 	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
@@ -157,39 +180,85 @@ __atomic_load_n(size_t *ptr, int memorder)
 
 static inline int
 COMPARE_AND_SWAP_PTR(void *at, void *from, void *to)
-{ void **ptr = at;
-
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, (long)to, (long)from) == (long)from;
+# else
+  return _InterlockedCompareExchange64(at, (int64_t)to, (int64_t)from) == (int64_t)from;
+#endif
+#else
+  void **ptr = at;
   return __COMPARE_AND_SWAP(ptr, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_INT64(int64_t *at, int64_t from, int64_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_UINT64(uint64_t *at, uint64_t from, uint64_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+  return _InterlockedCompareExchange64((int64_t *)at, (int64_t)to, (int64_t)from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_INT(int *at, int from, int to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER /* sizeof(int) == sizeof(long) */
+  return _InterlockedCompareExchange(at, to, from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_UINT(unsigned int *at, unsigned int from, unsigned int to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER /* sizeof(int) == sizeof(long) */
+  return _InterlockedCompareExchange((long*)at, (long)to, (long)from) == (long)from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_SIZE(size_t *at, size_t from, size_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, to, from) == from;
+# else
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#endif
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_WORD(word *at, word from, word to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, to, from) == from;
+# else
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#endif
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 #else

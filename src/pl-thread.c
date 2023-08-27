@@ -1850,7 +1850,7 @@ thread_wait_signal(DECL_LD)
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
-	{ __atomic_and_fetch(&LD->signal.pending[i], ~mask, __ATOMIC_SEQ_CST);
+	{ ATOMIC_AND(&LD->signal.pending[i], ~mask);
 
 	  if ( sig == SIG_THREAD_SIGNAL )
 	  { dispatch_signal(sig, TRUE);
@@ -2718,8 +2718,13 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
     { case EINTR:
 	return FALSE;
       case ESRCH:
+#ifdef _MSC_VER
+	Sdprintf("Join %s: got ESRCH\n",
+		 threadName(info->pl_tid));
+#else
 	Sdprintf("Join %s: ESRCH from %zd\n",
 		 threadName(info->pl_tid), (size_t)info->tid);
+#endif
 	return PL_error("thread_join", 2, NULL,
 			ERR_EXISTENCE, ATOM_thread, thread);
       default:

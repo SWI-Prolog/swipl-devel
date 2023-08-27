@@ -157,7 +157,7 @@ typedef struct thread_handle
   atom_t		symbol;		/* associated symbol */
   atom_t		alias;		/* alias name of the thread */
   int			engine_id;	/* numeric engine id */
-  int			flags;		/* symbol flags */
+  unsigned int		flags;		/* symbol flags */
   struct
   { qid_t query;			/* Query handle */
     term_t argv;			/* Arguments */
@@ -391,7 +391,7 @@ typedef DWORD	TLD_KEY;
 #define TLD_alloc(p)	(*(p) = TlsAlloc())
 #define TLD_get(p)	TlsGetValue((p))
 #define TLD_set(p, v)	TlsSetValue((p), (v))
-#define TLD_free(p)	TlsFree(p);
+#define TLD_free(p)	TlsFree(*p);
 
 #else
 typedef pthread_key_t TLD_KEY;

@@ -340,7 +340,7 @@ typedef struct _varDef
   atom_t	name;			/* name (if available) */
   int		times;			/* occurrences */
   int		offset;			/* offset in environment frame */
-  int		flags;			/* VD_* */
+  unsigned int	flags;			/* VD_* */
 } vardef;
 
 #define VD_MAYBE_SINGLETON  0x01

@@ -2154,7 +2154,7 @@ typedef struct
 { handler_t   saved_handler;		/* Original handler */
   handler_t   handler;			/* User signal handler */
   predicate_t predicate;		/* Prolog handler */
-  int	      flags;			/* PLSIG_*, defined in pl-setup.c */
+  unsigned int flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
 
 /* Declare numbers for the virtual signals, in their own domain. For now, these
@@ -2466,7 +2466,7 @@ typedef struct
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */
   Stack		outofstack;		/* Stack we are out of */
-  int		flags;			/* WAKEUP_STATE_* */
+  unsigned int	flags;			/* WAKEUP_STATE_* */
 } wakeup_state;
 
 

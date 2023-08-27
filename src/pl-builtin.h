@@ -328,6 +328,10 @@ PL_local_data_t* __FIND_LD(PL_local_data_t *pl_ld, control_t pl_ctx, PL_local_da
 # pragma pop_macro("__FIND_LD")
 #endif
 
+#ifndef __GNUC__
+#define __has_attribute(x) 0
+#endif
+
 #if defined(__GNUC__) && __has_attribute(error)
 /* If code references LOCAL_LD (either explicitly or by redefining LD as its
  * alias) but the current function is neither an LDFUNC nor provides a GET_LD

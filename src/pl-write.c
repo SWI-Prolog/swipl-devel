@@ -68,7 +68,7 @@
 #endif
 
 typedef struct
-{ int   flags;				/* PL_WRT_* flags */
+{ unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
   atom_t spacing;			/* Where to insert spaces */
