@@ -26,6 +26,11 @@ set(SO_PATH PATH)
 set(SRC_OS_SPECIFIC pl-nt.c pl-ntconsole.c pl-dde.c os/windows/uxnt.c)
 set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib ws2_32.lib psapi.lib)
 
+if(MINGW_ROOT)
+# For MinGW we need to copy the   dlls  to the target destinations. When
+# using MSVC we use vcpkg. The  included toolchain installs the required
+# DLLs for us.
+
 if(NOT DEFINED WIN32_DLLS)
 
 function(find_file_from_pattern var dir pattern)
@@ -85,5 +90,6 @@ endif()
 
 set(WIN32_DLLS ${WIN32_DLLS} CACHE INTERNAL "WIN32 DLLs to copy")
 endif(NOT DEFINED WIN32_DLLS)
+endif(MINGW_ROOT)
 
 endif(WIN32)

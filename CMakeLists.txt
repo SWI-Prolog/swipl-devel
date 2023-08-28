@@ -7,7 +7,12 @@ project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-if(CMAKE_C_COMPILER_ID STREQUAL Clang)
+# While GCC is good at optimization large   functions, MSVC is bad at it
+# and using VMI functions more then   doubles the performance. For Clang
+# the picture is less clear. The difference  is small, with a slight win
+# on either depending on CPU and workload.
+
+if(MSVC OR CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(DEFAULT_VMI_FUNCTIONS ON)
 else()
   set(DEFAULT_VMI_FUNCTIONS OFF)
@@ -28,18 +33,6 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (LGPL)"
        ON)
-if(USE_GMP)
-  set(DEFAULT_USE_LIBBF OFF)
-else()
-  set(DEFAULT_USE_LIBBF ON)
-endif()
-option(USE_LIBBF
-       "Use LibBF for bignums (MIT)"
-       ${DEFAULT_USE_LIBBF})
-if(USE_GMP AND USE_LIBBF)
-  message(WARNING "Cannot use both libGMP and LibBF; using LibBF")
-  set(USE_GMP OFF)
-endif()
 if(APPLE)
 # tcmalloc breaks setlocale() on MacOS 12 (Monterey)
 option(USE_TCMALLOC
@@ -127,6 +120,16 @@ include(QLF)
 include(PackageSelection)
 include(Dependencies)
 include(DocDepends)
+
+if(GMP_FOUND)
+  set(USE_LIBBF_DEFAULT OFF)
+else()
+  set(USE_LIBBF_DEFAULT ON)
+endif()
+
+option(USE_LIBBF
+       "Use LibBF for bignums (MIT)"
+       ${USE_LIBBF_DEFAULT})
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set_install_prefix()
