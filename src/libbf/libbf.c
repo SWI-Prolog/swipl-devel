@@ -233,15 +233,20 @@ int bf_set_ui(bf_t *r, uint64_t a)
     }
 #if LIMB_BITS == 32
     else {
-	uint32_t a1, a0;
-	int shift;
+	limb_t a1, a0;
+	unsigned int shift;
 	if (bf_resize(r, 2))
 	    goto fail;
 	a0 = (limb_t)a;
 	a1 = (limb_t)(a >> 32);
 	shift = clz(a1);
-	r->tab[0] = a0 << shift;
-	r->tab[1] = (a1 << shift) | (a0 >> (LIMB_BITS - shift));
+	if ( shift == 0 ) /* uint32_t >> 32 is undefined */
+	{ r->tab[0] = a0;
+	  r->tab[1] = a1;
+	} else
+	{ r->tab[0] = a0 << shift;
+	  r->tab[1] = (a1 << shift) | (a0 >> (LIMB_BITS - shift));
+	}
 	r->expn = 2 * LIMB_BITS - shift;
     }
 #endif
