@@ -42,6 +42,7 @@ typedef unsigned __int128 uint128_t;
 typedef int64_t slimb_t;
 typedef uint64_t limb_t;
 typedef uint128_t dlimb_t;
+typedef int128_t sdlimb_t;
 #define BF_RAW_EXP_MIN INT64_MIN
 #define BF_RAW_EXP_MAX INT64_MAX
 
@@ -53,6 +54,7 @@ typedef uint128_t dlimb_t;
 typedef int32_t slimb_t;
 typedef uint32_t limb_t;
 typedef uint64_t dlimb_t;
+typedef int64_t sdlimb_t;
 #define BF_RAW_EXP_MIN INT32_MIN
 #define BF_RAW_EXP_MAX INT32_MAX
 
