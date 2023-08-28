@@ -38,7 +38,7 @@
 
 const code_info codeTable[] = {
   /* {name, ID, flags, #args, argtype} */
-#if O_EMPY_STRUCTS
+#if O_EMPTY_STRUCTS
   FOREACH_VMI(T_COMMA,
 	      {,VMI_STRING, ,, ,VMI_NAME, ,, ,VMI_FLAGS, ,, ,VMI_ARGCOUNT, ,, {,VMI_ARGTYPES,}}
   ),

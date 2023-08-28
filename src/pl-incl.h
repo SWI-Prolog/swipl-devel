@@ -113,7 +113,7 @@
 #define COMMON(type) type
 
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
-#define O_EMPY_STRUCTS 1
+#define O_EMPTY_STRUCTS 1
 #endif
 
 #include "pl-macros.h"
@@ -1540,7 +1540,7 @@ typedef struct
   code		merge_av[1];	/* Argument vector */
 } vmi_merge;
 
-#if O_EMPY_STRUCTS
+#if O_EMPTY_STRUCTS
 #define VM_ARGC 4
 #define VM_ARGTYPES(ci) (ci)->_argtype
 #define VM_ARTYPE_PREFIX

@@ -3060,7 +3060,7 @@ typedef struct register_file
 #define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
 
 /* GCC and CLang allow for struct name {}, i.e., an empty struct */
-#if O_EMPY_STRUCTS
+#if O_EMPTY_STRUCTS
 #define VMH_PAD_STRUCT
 #define VMH_INIT_ARGSTRUCT(...) {__VA_ARGS__}
 #else
