@@ -27,7 +27,7 @@
 #include <string.h>
 #include "cutils.h"
 
-void pstrcpy(char *buf, int buf_size, const char *str)
+void pstrcpy(char *buf, ssize_t buf_size, const char *str)
 {
     int c;
     char *q = buf;
@@ -45,11 +45,13 @@ void pstrcpy(char *buf, int buf_size, const char *str)
 }
 
 /* strcat and truncate. */
-char *pstrcat(char *buf, int buf_size, const char *s)
+char *pstrcat(char *buf, ssize_t buf_size, const char *s)
 {
-    int len;
+    if ( buf_size < 1 )
+      return buf;
+    size_t len;
     len = strlen(buf);
-    if (len < buf_size)
+    if (len < (size_t)buf_size)
         pstrcpy(buf + len, buf_size - len, s);
     return buf;
 }

@@ -110,8 +110,8 @@ enum {
     TRUE = 1,
 };
 
-void pstrcpy(char *buf, int buf_size, const char *str);
-char *pstrcat(char *buf, int buf_size, const char *s);
+void pstrcpy(char *buf, ssize_t buf_size, const char *str);
+char *pstrcat(char *buf, ssize_t buf_size, const char *s);
 int strstart(const char *str, const char *val, const char **ptr);
 
 static inline int max_int(int a, int b)
