@@ -3123,7 +3123,8 @@ static vmi_instr jmp_table[] =
 #undef NEXT_INSTRUCTION
 #undef VMH_GOTO
 #define NEXT_INSTRUCTION (void)0
-#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, (VMH_ARGSTRUCT(n)){})
+#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, \
+				    (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT())
 
 #if VMI_USE_REGISTER_VARIABLES
 # undef LD
