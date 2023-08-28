@@ -1513,6 +1513,9 @@ set_prolog_gc_thread(Status) :-
     var(Status),
     !,
     '$instantiation_error'(Status).
+set_prolog_gc_thread(_) :-
+    \+ current_prolog_flag(threads, true),
+    !.
 set_prolog_gc_thread(false) :-
     !,
     set_prolog_flag(gc_thread, false),
