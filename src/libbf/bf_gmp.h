@@ -171,7 +171,7 @@ mpz_get_si(const mpz_t n)
 { int64_t nv;
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
-    return nv;
+    return (long)nv;
 
   assert(0);				/* TBD: return least significant bits */
   return 0;
@@ -255,7 +255,7 @@ mpz_popcount(const mpz_t n)
 { mp_bitcnt_t cnt = 0;
 
   for(size_t i=0; i<n->len; i++)
-    cnt += __builtin_popcountll(n->tab[i]);
+    cnt += (mp_bitcnt_t)__builtin_popcountll(n->tab[i]);
 
   return cnt;
 }
@@ -587,7 +587,7 @@ mpz_tdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long d)
   bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
   bf_get_int64(&r, &rem, BF_RNDN);
   bf_delete(&rem);
-  return r;
+  return (unsigned long)r;
 }
 
 
@@ -625,24 +625,7 @@ mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
 void	mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y);
 void	mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned long y);
 void	mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod);
-
-static inline char *
-mpz_get_str(char *STR, int BASE, const mpz_t OP)
-{ const bf_t *op = OP;
-  bf_t copy;
-
-  if ( !op->ctx )
-  { copy = OP[0];
-    copy.ctx = &alloc_wrapper.bf_context;
-    op = &copy;
-  }
-
-  char *s = bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC);
-  strcpy(STR, s);
-  bf_free(op->ctx, s);
-
-  return STR;
-}
+char   *mpz_get_str(char *STR, int BASE, const mpz_t OP);
 
 
 		 /*******************************

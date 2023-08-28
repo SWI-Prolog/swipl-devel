@@ -41,6 +41,11 @@ typedef intptr_t ssize_t;
 #define PACK( __Declaration__ ) \
 	__pragma( pack(push, 1) ) struct __Declaration__ __pragma( pack(pop))
 
+/* two-complement.  MSVC warns that -u is still unsgined */
+#define UNEG(i) _Generic((i), \
+			 limb_t: (limb_t)(-(slimb_t)(i)), \
+			 dlimb_t: (dlimb_t)(-(sdlimb_t)(i)))
+
 #pragma intrinsic(_BitScanForward)
 static __forceinline int ffsl(long x)
 { unsigned long i;
@@ -84,6 +89,7 @@ __builtin_mul_overflow(int64_t l, int64_t r, int64_t *rc)
 #define __maybe_unused __attribute__((unused))
 #define PACK( __Declaration__ ) \
 	struct __attribute__((__packed__)) __Declaration__
+#define UNEG(i) (-(i))
 
 #endif /*_MSC_VER*/
 

@@ -89,10 +89,6 @@ static void fft_clear_cache(bf_context_t *s);
 static limb_t get_digit(const limb_t *tab, limb_t len, slimb_t pos);
 #endif
 
-#define UNEG(i) _Generic((i), \
-			 limb_t: (limb_t)(-(slimb_t)(i)), \
-			 dlimb_t: (dlimb_t)(-(sdlimb_t)(i)))
-
 /* could leading zeros */
 static inline int clz(limb_t a)
 {
