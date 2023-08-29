@@ -136,7 +136,7 @@ endif()
     elseif(arg STREQUAL "C_SOURCES")
       set(mode c_sources)
     elseif(arg STREQUAL "THREADED")
-      set(v_c_libs ${v_c_libs} ${CMAKE_THREAD_LIBS_INIT})
+      set(v_c_libs ${v_c_libs} Threads::Threads)
     elseif(arg STREQUAL "C_LIBS")
       set(mode c_libs)
     elseif(arg STREQUAL "C_INCLUDE_DIR")
@@ -243,7 +243,7 @@ endfunction(swipl_plugin)
 # tree.
 
 function(install_dll)
-if(WIN32 AND NOT MSYS2)
+if(WIN32 AND NOT MSYS2 AND NOT MSVC)
   set(dlls)
 
   foreach(lib ${ARGN})
