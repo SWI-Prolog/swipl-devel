@@ -64,12 +64,10 @@ cmake_binary_directory(BinDir) :-
     !.
 cmake_binary_directory(BinDir) :-
     exe_or_shared_object(Exe),
-    file_directory_name(Exe, ExeDir),
-    file_directory_name(ExeDir, ParentDir),
-    (   file_base_name(ParentDir, packages)
-    ->  file_directory_name(ParentDir, BinDir)
-    ;   BinDir = ParentDir
-    ),
+    parent_dir(Exe, BinDir),
+    atom_concat(BinDir, '/home/boot.prc', BootFile),
+    exists_file(BootFile),
+    !,
     asserta(cmake_bindir(BinDir)).
 
 exe_or_shared_object(File) :-	% only reliable when read-only
@@ -85,6 +83,12 @@ exe_or_shared_object(File) :-
 		       [ access(ExeAccess),
 			 relative_to(PWD)
 		       ]).
+
+parent_dir(Dir, Dir).
+parent_dir(Dir, Parent) :-
+    file_directory_name(Dir, Parent0),
+    Parent0 \== Dir,
+    parent_dir(Parent0, Parent).
 
 exe_access(Access) :-
     (   current_prolog_flag(unix, true)
