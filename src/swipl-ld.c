@@ -1544,7 +1544,8 @@ copy_fd(int i, int o)
   { while( n > 0 )
     { ssize_t n2;
 
-      if ( (n2 = write(o, buf, n)) > 0 )
+      /* (int) removes error for Windows.  Ugly, but safe. */
+      if ( (n2 = write(o, buf, (int)n)) > 0 )
       { n -= n2;
       } else
       { fprintf(stderr, "%s: write failed: %s\n", plld, oserror());
