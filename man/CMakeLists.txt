@@ -276,14 +276,25 @@ add_custom_command(
     VERBATIM)
 endif()
 
-# Create the HTML manual
+# Create the HTML manual. First we clean  it to avoid spurious files. If
+# we cannot do that, that is ok. Ideally we use `cmake -E`, but there is
+# no command to remove with wildcarts.
+
+if(CMAKE_HOST_UNIX)
+  set(clean rm -f Manual/*.html Manual/*.gif)
+elseif(WIN32)
+  set(clean cmd /c "del /Q Manual\*.html Manual\*.gif")
+else()
+  set(clean ${CMAKE_COMMAND} -E true)
+endif()
+
 prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
-    COMMAND rm -f Manual/*.html Manual/*.gif
+    COMMAND ${clean}
     COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
-    COMMAND touch manual.html
+    COMMAND ${CMAKE_COMMAND} -E touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
 	    core latex2html)
