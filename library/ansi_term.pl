@@ -43,10 +43,6 @@
 :- autoload(library(error), [domain_error/2, must_be/2, instantiation_error/1]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(uri), [uri_file_name/2]).
-:- if(exists_source(library(time))).
-:- autoload(library(time), [call_with_time_limit/2]).
-:- endif.
-
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -516,8 +512,6 @@ keep_line_pos(_, G) :-
 %   @arg RGB is a term rgb(Red,Green,Blue).  The color components are
 %   integers in the range 0..65535.
 
-
-:- if(current_predicate(call_with_time_limit/2)).
 ansi_get_color(Which0, RGB) :-
     stream_property(user_input, tty(true)),
     stream_property(user_output, tty(true)),
@@ -530,7 +524,7 @@ ansi_get_color(Which0, RGB) :-
     ),
     catch(keep_line_pos(user_output,
                         ansi_get_color_(Which, RGB)),
-          time_limit_exceeded,
+          error(timeout_error(_,_), _),
           no_xterm).
 
 supports_get_color :-
@@ -547,8 +541,11 @@ ansi_get_color_(Which, rgb(R,G,B)) :-
     hex4(GH),
     hex4(BH),
     phrase(("\e]", Id, ";rgb:", RH, "/", GH, "/", BH, "\a"), Pattern),
-    call_with_time_limit(0.05,
-                         with_tty_raw(exchange_pattern(Which, Pattern))),
+    stream_property(user_input, timeout(Old)),
+    setup_call_cleanup(
+        set_stream(user_input, timeout(0.05)),
+        with_tty_raw(exchange_pattern(Which, Pattern)),
+        set_stream(user_input, timeout(Old))),
     !,
     hex_val(RH, R),
     hex_val(GH, G),
@@ -600,13 +597,6 @@ echo([]).
 echo([H|T]) :-
     put_code(user_output, H),
     echo(T).
-
-:- else.
-ansi_get_color(_Which0, _RGB) :-
-    fail.
-:- endif.
-
-
 
 :- multifile prolog:message//1.
 
