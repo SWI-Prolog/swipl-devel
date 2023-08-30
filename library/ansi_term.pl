@@ -42,7 +42,7 @@
           ]).
 :- autoload(library(error), [domain_error/2, must_be/2, instantiation_error/1]).
 :- autoload(library(lists), [append/3]).
-:- autoload(library(uri), [uri_file_name/2]).
+:- autoload(library(utf8), [utf8_codes/3]).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -460,30 +460,44 @@ ansi_hyperlink(Stream, File, Label) :-
     ;   format(Stream, '~w', [File])
     ).
 
-
-
-%!  hyperlink(+Stream, +Spec) is semidet.
+%!  url_file_name(-URL, +File) is semidet.
 %
-%   Multifile hook that may be used   to redefine ansi_hyperlink/2,3. If
-%   this predicate succeeds the system assumes the link has been written
-%   to Stream.
-%
-%   @arg  Spec  is  either  url(Location)    or   url(URL,  Label).  See
-%   ansi_hyperlink/2,3 for details.
-
-:- dynamic has_lib_uri/1 as volatile.
+%   Same as uri_file_name/2 in mode (-,+), but   as a core library we do
+%   not wish to depend on the `clib` package and its foreign support.
 
 url_file_name(URL, File) :-
     current_prolog_flag(hyperlink_term, true),
-    (   has_lib_uri(true)
-    ->  uri_file_name(URL, File)
-    ;   exists_source(library(uri))
-    ->  use_module(library(uri), [uri_file_name/2]),
-        uri_file_name(URL, File),
-        asserta(has_lib_uri(true))
-    ;   asserta(has_lib_uri(false)),
-        fail
+    absolute_file_name(File, AbsFile),
+    ensure_leading_slash(AbsFile, AbsFile1),
+    url_encode_path(AbsFile1, Encoded),
+    format(string(URL), 'file://~s', [Encoded]).
+
+ensure_leading_slash(Path, SlashPath) :-
+    (   sub_atom(Path, 0, _, _, /)
+    ->  SlashPath = Path
+    ;   atom_concat(/, Path, SlashPath)
     ).
+
+url_encode_path(Name, Encoded) :-
+    atom_codes(Name, Codes),
+    phrase(utf8_codes(Codes), UTF8),
+    phrase(encode(UTF8), Encoded).
+
+encode([]) --> [].
+encode([H|T]) --> encode1(H), encode(T).
+
+encode1(C) -->
+    { reserved(C),
+      !,
+      format(codes([C1,C2]), '~`0t~16r~2|', [C])
+    },
+    "%", [C1,C2].
+encode1(C) -->
+    [C].
+
+reserved(C) :- C =< 0'\s.
+reserved(C) :- C >= 127.
+reserved(0'#).
 
 %!  keep_line_pos(+Stream, :Goal)
 %
