@@ -1377,11 +1377,6 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 		 *	      DEBUG		*
 		 *******************************/
 
-PL_EXPORT_DATA(int)     plugin_is_GPL_compatible;
-#ifndef EMACS_MODULE_H
-PL_EXPORT(int)          emacs_module_init(void*);
-#endif
-
 PL_EXPORT(int)		PL_prolog_debug(const char *topic);
 PL_EXPORT(int)		PL_prolog_nodebug(const char *topic);
 

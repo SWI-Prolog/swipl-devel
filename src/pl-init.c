@@ -439,11 +439,15 @@ on_error_style(const char *s)
 }
 
 
+PL_EXPORT_DATA(int) plugin_is_GPL_compatible;
 int plugin_is_GPL_compatible;
 
+PL_EXPORT(int) emacs_module_init(void*a);
+
 int
-emacs_module_init(void*a) {
-  (void)a;
+emacs_module_init(void*a)
+{ (void)a;
+
   return 0;
 }
 
