@@ -4430,8 +4430,9 @@ record_clause(DECL_LD term_t term, term_t owner, term_t source, term_t ref)
 
   if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0)) )
   { if ( ref )
+    { assert(false(clause, CL_ERASED));
       return PL_unify_clref(ref, clause);
-    else
+    } else
       return TRUE;
   }
 

@@ -1125,7 +1125,8 @@ assertProcedureSource(DECL_LD SourceFile sf, Procedure proc, Clause clause)
       for(cref2 = cref->next; cref2; cref2 = cref2->next)
       { Clause c2 = cref2->value.clause;
 
-	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) )
+	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) ||
+	     true(c2, CL_ERASED) )
 	  continue;
 	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
 	  continue;

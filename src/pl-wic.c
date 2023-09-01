@@ -4175,16 +4175,20 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
   if ( (state=LD->qlf.write_state) )
   { Clause clause;
     atom_t sclass;
+    int rc;
 
-    if ( (PL_get_clref(A1, &clause) != TRUE) ||
+    if ( ((rc=PL_get_clref(A1, &clause)) != TRUE) ||
 	 !PL_get_atom_ex(A2, &sclass) )
-      fail;
+    { if ( rc == -1 )
+	return PL_existence_error("clause", A1);
+      return FALSE;
+    }
 
     openPredicateWic(state, clause->predicate, sclass);
     saveWicClause(state, clause);
   }
 
-  succeed;
+  return TRUE;
 }
 
 
