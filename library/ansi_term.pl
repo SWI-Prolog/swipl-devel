@@ -451,13 +451,13 @@ ansi_hyperlink(Stream, File:Line, Label) :-
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w#~w\e\\~w\e]8;;\e\\',
                [ URI, Line, Label ])
-    ;   format(Stream, '~w:~w', [File, Line])
+    ;   format(Stream, '~w', [Label])
     ).
 ansi_hyperlink(Stream, File, Label) :-
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
                [ URI, Label ])
-    ;   format(Stream, '~w', [File])
+    ;   format(Stream, '~w', [Label])
     ).
 
 %!  url_file_name(-URL, +File) is semidet.

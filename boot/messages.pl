@@ -1584,8 +1584,8 @@ prolog_message(tracing(Heads)) -->
     tracing_list(Heads).
 
 goal_predicate(Head) -->
-    { predicate_property(Pred, file(File)),
-      predicate_property(Pred, line_count(Line)),
+    { predicate_property(Head, file(File)),
+      predicate_property(Head, line_count(Line)),
       goal_to_predicate_indicator(Head, PI),
       term_string(PI, PIS, [quoted(true)])
     },
