@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2023, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,8 +45,8 @@
     #if SIZEOF_VOIDP == 8
       #pragma intrinsic(_BitScanReverse64)
     #endif
-    #pragma intrinsic(_BitScanReverse)
-  #endif
+      #pragma intrinsic(_BitScanReverse)
+    #endif
 #endif
 
 #include "pl-transaction.h"
