@@ -279,7 +279,7 @@ nth0_det(N, [_|Tail], Elem) :-
 
 nth_gen(_, Elem, Elem, Base, Base).
 nth_gen([H|Tail], Elem, _, N, Base) :-
-    succ(N, M),
+    M is N + 1,
     nth_gen(Tail, Elem, H, M, Base).
 
 
