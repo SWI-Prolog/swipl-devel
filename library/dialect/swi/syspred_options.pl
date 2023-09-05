@@ -50,6 +50,7 @@
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
 		       lock(oneof([none,read,shared,write,exclusive])),
+                       reposition(boolean),
 		       wait(boolean),
 		       locale(any)		% no type-check yet
 		     ]).

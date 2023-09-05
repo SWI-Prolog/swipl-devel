@@ -5322,6 +5322,11 @@ Set end-of-line processing for the stream. \arg{Mode} is one of
 binary streams. Using \const{detect} on an \jargon{output stream} raises
 an exception.  See also set_stream/2.
 
+    \termitem{reposition}{+Bool}
+If \const{false} (default \const{true}), drop the position tracking
+logic from the stream.  This disables the use of stream_position/3
+on this stream.
+
     \termitem{type}{Type}
 Using type \const{text} (default), Prolog will write a text file in
 an operating system compatible way. Using type \const{binary} the
@@ -5334,9 +5339,6 @@ This option can be combined with the \const{lock} option. If
 with an exception if the file is locked.  The exception has the format
 \term{permission_error}{lock, source_sink, SrcDest}.
 \end{description}
-
-The option \const{reposition} is not supported in SWI-Prolog.  All streams
-connected to a file may be repositioned.
 
     \predicate[ISO]{open}{3}{+SrcDest, +Mode, --Stream}
 Equivalent to open/4 with an empty option list.
