@@ -782,10 +782,11 @@ these sequences appear in quoted atoms or strings.
 \section{Reuse of top-level bindings}    \label{sec:topvars}
 
 Bindings resulting from the successful execution of a top-level goal are
-asserted in a database \emph{if they are not too large}. These values
-may be reused in further top-level queries as \$Var. If the same
-variable name is used in a subsequent query the system associates the
-variable with the latest binding. Example:
+asserted in a database \emph{if they are not too large} (as defined by
+the Prolog flag \prologflag{toplevel_var_size}). These values may be
+reused in further top-level queries as \$Var. If the same variable name
+is used in a subsequent query the system associates the variable with
+the latest binding. Example:
 
 \begin{figure}
 \begin{code}
@@ -2184,7 +2185,8 @@ returned by the goal.
     \prologflagitem{toplevel_var_size}{int}{rw}
 Maximum size counted in literals of a term returned as a binding for a
 variable in a top-level query that is saved for re-use using the
-\chr{$} variable reference.  See \secref{topvars}.
+\chr{$} variable reference. When 0 (zero), the variable recording
+and reuse is disabled. See \secref{topvars}.
 
     \prologflagitem{trace_gc}{bool}{rw}
 If \const{true} (default \const{false}), garbage collections and
