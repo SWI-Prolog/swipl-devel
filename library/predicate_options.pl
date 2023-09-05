@@ -337,6 +337,9 @@ system:predicate_option_type(Type, Arg) :-
     var(Arg),
     !,
     add_attr(Arg, option_type(Type)).
+system:predicate_option_type(callable+_N, Arg) :-
+    !,
+    must_be(callable, Arg).
 system:predicate_option_type(Type, Arg) :-
     must_be(Type, Arg).
 
