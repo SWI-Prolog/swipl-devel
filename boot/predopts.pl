@@ -92,6 +92,7 @@ option_clause(pass_to(PI0, Arg), Head, M) -->
       functor(THead, Name, Arity),
       Clause = ('$pred_option'(Head, pass_to(PI0, Arg), Opt, Seen) :-
                   \+ memberchk(PI-Arg, Seen),
+                  ignore(predicate_property(M:THead, _)),
                   predicate_options:pred_option(TM:THead, Opt, [PI-Arg|Seen]))
     },
     [ M:Clause ].
