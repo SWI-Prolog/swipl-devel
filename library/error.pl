@@ -389,6 +389,7 @@ has_type(stream, X)       :- is_stream(X).
 has_type(encoding, X)     :- current_encoding(X).
 has_type(dict, X)         :- is_dict(X).
 has_type(list(Type), X)   :- is_list(X), element_types(X, Type).
+has_type(list_or_partial_list(Type), X)   :- is_list_or_partial_list(X), element_types(X, Type).
 has_type(type, Type)      :- ground(Type), current_type(Type,_,_).
 
 text(X) :-
@@ -406,6 +407,9 @@ element_types(List, Type) :-
 element_types(_List, Type) :-
     instantiation_error(Type).
 
+element_types_(Var, _) :-
+    var(Var),
+    !.
 element_types_([], _).
 element_types_([H|T], Type) :-
     has_type(Type, H),
