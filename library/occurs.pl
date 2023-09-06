@@ -66,7 +66,7 @@ contains_term(X, Term) :-
     !.
 
 
-%!  contains_var(+Sub, +Term) is det.
+%!  contains_var(+Sub, +Term) is semidet.
 %
 %   Succeeds if Sub is contained in Term (==, deterministically)
 
@@ -79,30 +79,43 @@ contains_var(X, Term) :-
     contains_var(X, Arg),
     !.
 
-%!  free_of_term(+Sub, +Term)
+%!  free_of_term(+Sub, +Term) is semidet.
 %
 %   Succeeds of Sub does not unify to any subterm of Term
 
 free_of_term(Sub, Term) :-
     \+ contains_term(Sub, Term).
 
-%!  free_of_var(+Sub, +Term)
+%!  free_of_var(+Sub, +Term) is semidet.
 %
 %   Succeeds of Sub is not equal (==) to any subterm of Term
 
 free_of_var(Sub, Term) :-
     \+ contains_var(Sub, Term).
 
-%!  occurrences_of_term(+SubTerm, +Term, ?Count)
+%!  occurrences_of_term(@SubTerm, @Term, ?Count) is det.
 %
-%   Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term   that _unify_ with SubTerm. As
+%   this predicate is implemented using   backtracking, SubTerm and Term
+%   are not further instantiated. Possible constraints are enforced. For
+%   example, we can count the integers in Term using
+%
+%       ?- freeze(S, integer(S)), occurrences_of_term(S, f(1,2,a), C).
+%       C = 2,
+%       freeze(S, integer(S)).
+%
+%   @see occurrences_of_var/3 for an equality (==/2) based variant.
 
 occurrences_of_term(Sub, Term, Count) :-
     count(sub_term(Sub, Term), Count).
 
-%!  occurrences_of_var(+SubTerm, +Term, ?Count)
+%!  occurrences_of_var(@SubTerm, @Term, ?Count) is det.
 %
-%   Count the number of SubTerms in Term
+%   Count the number of SubTerms in Term   that  are _equal_ to SubTerm.
+%   Equality is tested using ==/2. Can be  used to count the occurrences
+%   of a particular variable in Term.
+%
+%   @see occurrences_of_term/3 for a unification (=/2) based variant.
 
 occurrences_of_var(Sub, Term, Count) :-
     count(sub_var(Sub, Term), Count).
