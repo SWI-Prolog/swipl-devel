@@ -101,11 +101,32 @@ predicates in `user' modules.
 %     * list_undefined/0 reports undefined predicates
 %     * list_trivial_fails/0 reports calls for which there is no
 %       matching clause.
+%     * list_format_errors/0 reports mismatches in format/2,3
+%       templates and the list of arguments.
 %     * list_redefined/0 reports predicates that have a local
 %       definition and a global definition.  Note that these are
-%       *not* errors.
+%       __not__ errors.
+%     * list_void_declarations/0 reports on predicates with defined
+%       properties, but no clauses.
 %     * list_autoload/0 lists predicates that will be defined at
 %       runtime using the autoloader.
+%     * check_predicate_options/0 tests for options passed to
+%       predicates such as open/4 that are unknown or are used
+%       with an invalid argument.
+%
+%    The checker can be expanded or  restricted by modifying the dynamic
+%    multifile hook checker/2.
+%
+%    The checker may be used in batch, e.g., for CI workflows by calling
+%    SWI-Prolog as below. Note that by using ``-l`` to load the program,
+%    the program is not started  if   it  used  initialization/2 of type
+%    `main` to start the program.
+%
+%
+%    ```
+%    swipl -q --on-warning=status --on-error=status \
+%          -g check -t halt -l myprogram.pl
+%    ```
 
 check :-
     checker(Checker, Message),
