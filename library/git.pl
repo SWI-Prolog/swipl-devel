@@ -101,7 +101,8 @@ into the core Prolog library to support the Prolog package manager.
                      ]).
 :- predicate_options(git_hash/2, 2,
                      [ commit(atom),
-                       directory(atom)
+                       directory(atom),
+                       pass_to(git_process_output/3, 3)
                      ]).
 :- predicate_options(git_ls_tree/2, 2,
                      [ commit(atom),
