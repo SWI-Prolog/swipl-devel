@@ -64,7 +64,7 @@
 :- autoload(library(prolog_codewalk),
 	    [prolog_walk_code/1,prolog_program_clause/2]).
 :- autoload(library(prolog_format),[format_types/2]).
-
+:- autoload(library(predicate_options), [check_predicate_options/0]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -847,12 +847,13 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 %      retract(check:checker(list_redefined,_)).
 %      ```
 
-checker(list_undefined,         'undefined predicates').
-checker(list_trivial_fails,     'trivial failures').
-checker(list_format_errors,     'format/2,3 and debug/3 templates').
-checker(list_redefined,         'redefined system and global predicates').
-checker(list_void_declarations, 'predicates with declarations but without clauses').
-checker(list_autoload,          'predicates that need autoloading').
+checker(list_undefined,          'undefined predicates').
+checker(list_trivial_fails,      'trivial failures').
+checker(list_format_errors,      'format/2,3 and debug/3 templates').
+checker(list_redefined,          'redefined system and global predicates').
+checker(list_void_declarations,  'predicates with declarations but without clauses').
+checker(list_autoload,           'predicates that need autoloading').
+checker(check_predicate_options, 'predicate options lists').
 
 
                  /*******************************
