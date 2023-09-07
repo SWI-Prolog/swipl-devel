@@ -178,17 +178,18 @@ PL_text_length(const PL_chars_t *text)
 #define INT64_DIGITS 20
 
 static char *
-ui64toa(uint64_t val, char *out)
+ui64toa(uint64_t val, char *out, int base)
 { char tmpBuf[INT64_DIGITS + 1];
   char *ptrOrg = tmpBuf + INT64_DIGITS;
   char *ptr = ptrOrg;
   size_t nbDigs;
+  static const char digits[] = "0123456789abcdef";
 
   do
-  { int rem = val % 10;
+  { int rem = val % base;
 
-    *--ptr = rem + '0';
-    val /= 10;
+    *--ptr = digits[rem];
+    val /= base;
   } while ( val );
 
   nbDigs = ptrOrg - ptr;
@@ -201,13 +202,13 @@ ui64toa(uint64_t val, char *out)
 
 
 static char *
-i64toa(int64_t val, char *out)
+i64toa(int64_t val, char *out, int base)
 { if ( val < 0 )
   { *out++ = '-';
     val = -(uint64_t)val;
   }
 
-  return ui64toa((uint64_t)val, out);
+  return ui64toa((uint64_t)val, out, base);
 }
 
 
@@ -228,11 +229,12 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
   } else if ( ((flags&CVT_RATIONAL) && isRational(w)) ||
 	      ((flags&CVT_INTEGER)  && isInteger(w)) )
   { number n;
+    int base = (flags&CVT_XINTEGER) ? 16 : 10;
 
     PL_get_number(l, &n);
     switch(n.type)
     { case V_INTEGER:
-      { char *ep = i64toa(n.value.i, text->buf);
+      { char *ep = i64toa(n.value.i, text->buf, base);
 
 	text->text.t    = text->buf;
 	text->length    = ep-text->text.t;
@@ -246,7 +248,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
-	mpz_get_str(b->base, 10, n.value.mpz);
+	mpz_get_str(b->base, base, n.value.mpz);
 	b->top = b->base + strlen(b->base);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
@@ -261,10 +263,10 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
-	mpz_get_str(b->base, 10, mpq_numref(n.value.mpq));
+	mpz_get_str(b->base, base, mpq_numref(n.value.mpq));
 	b->top = b->base + strlen(b->base);
 	*b->top++ = 'r';			/* '/' under some condition? */
-	mpz_get_str(b->top, 10, mpq_denref(n.value.mpq));
+	mpz_get_str(b->top, base, mpq_denref(n.value.mpq));
 	b->top += strlen(b->top);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);

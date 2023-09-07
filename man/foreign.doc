@@ -1153,12 +1153,25 @@ Convert if term is a list of of character codes.
     \termitem{CVT_INTEGER}{}
 Convert if term is an integer.
 
+    \termitem{CVT_RATIONAL}{}
+Convert if term is an rational number.  The number is written as
+<num>r<den>.
+
+    \termitem{CVT_XINTEGER}{}
+Convert if term is an integer to hexadecimal notation. May be combined
+with \const{CVT_RATIONAL} to represent rational numbers using hexadecimal
+notation.  Hexadecimal notation is notably useful for transferring big
+integers to other programming environments if the target system can read
+hexadecimal notation because the result is both more compact and faster
+to write and read.
+
     \termitem{CVT_FLOAT}{}
 Convert if term is a float.  The characters returned are the same as
 write/1 would write for the floating point number.
 
     \termitem{CVT_NUMBER}{}
-Convert if term is an integer or float.
+Convert if term is an integer, rational number or or float.  Equivalent
+to \mbox{\const{CVT_INTEGER}{|}\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}
 
     \termitem{CVT_ATOMIC}{}
 Convert if term is atomic.
