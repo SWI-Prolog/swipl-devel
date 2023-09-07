@@ -55,8 +55,19 @@ late;  character terminals  disappear quickly now.  Use XPCE if you want
 windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(HAVE_TERM_H) && !defined(HAVE_NCURSES_TERM_H) && !defined(HAVE_CURSES_H)
-/* Some systems seem not to have the headers ... */
+#if !defined(HAVE_TERM_H) || !defined(HAVE_CURSES_H)
+/* system does not seem to have the headers.  In the old days there
+   was a lot of variation in the required headers, so we looked for
+   all headers that could have the tgetent() and checked for the
+   function and then just included all relevant headers available.
+
+   It seems that modern systems settled on <term.h> and <curses.h>,
+   so we'll simply demand these.
+
+   Note that for most modern compiler a lacking prototype is a real
+   error, so not having the prototype is as bad as not having the
+   function.
+*/
 #undef HAVE_TGETENT
 #endif
 
