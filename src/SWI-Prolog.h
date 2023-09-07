@@ -919,7 +919,7 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_WRITE_CANONICAL 0x00000100
 #define CVT_WRITEQ	    0x00000200
 #define CVT_ALL		    (CVT_ATOMIC|CVT_LIST)
-#define CVT_XINTEGER	    (0x00000400|CVT_INTEGER)
+#define CVT_XINTEGER	   (0x00000400|CVT_INTEGER)
 #define CVT_MASK	    0x00000fff
 
 #define CVT_EXCEPTION	    0x00001000	/* throw exception on error */

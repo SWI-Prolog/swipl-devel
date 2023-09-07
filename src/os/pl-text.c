@@ -229,7 +229,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
   } else if ( ((flags&CVT_RATIONAL) && isRational(w)) ||
 	      ((flags&CVT_INTEGER)  && isInteger(w)) )
   { number n;
-    int base = (flags&CVT_XINTEGER) ? 16 : 10;
+    int base = (flags&CVT_XINTEGER)==CVT_XINTEGER ? 16 : 10;
 
     PL_get_number(l, &n);
     switch(n.type)
