@@ -1225,15 +1225,6 @@ PL_get_bool_ex(term_t t, int *i)
 
 
 int
-PL_get_float_ex(term_t t, double *f)
-{ if ( PL_get_float(t, f) )
-    succeed;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_float, t);
-}
-
-
-int
 PL_get_char_ex(term_t t, int *p, int eof)
 { if ( PL_get_char(t, p, eof) )
     succeed;

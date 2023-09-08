@@ -1967,8 +1967,8 @@ PL_is_inf(term_t t)
 }
 
 
-int
-PL_get_float(term_t t, double *f)
+static int
+get_float(term_t t, double *f, int error)
 { GET_LD
   word w = valHandle(t);
 
@@ -1983,7 +1983,7 @@ PL_get_float(term_t t, double *f)
     get_rational(w, &n);
     if ( (rc=promoteToFloatNumber(&n)) )
       *f = n.value.f;
-    else
+    else if ( !error )
       PL_clear_exception();
 
     clearNumber(&n);
@@ -1991,9 +1991,23 @@ PL_get_float(term_t t, double *f)
     return rc;
   }
 
+  if ( error )
+    PL_type_error("float", t);
   return FALSE;
 }
 
+
+int
+PL_get_float(term_t t, double *f)
+{ GET_LD
+  return get_float(t, f, FALSE);
+}
+
+int
+PL_get_float_ex(term_t t, double *f)
+{ GET_LD
+  return get_float(t, f, TRUE);
+}
 
 #ifdef _MSC_VER
 #define ULL(x) x ## ui64
