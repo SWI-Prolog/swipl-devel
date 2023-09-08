@@ -391,6 +391,14 @@ struct PL_global_data
   } clauses;
 
   struct
+  { float	min_speedup;
+    float	max_var_fraction;
+    float	min_speedup_ratio;
+    int		max_lookahead;
+    int		min_clauses;
+  } clause_index;
+
+  struct
   { size_t	highest;		/* highest source file index */
     size_t	no_hole_before;		/* All filled before here */
     srcfile_array array;		/* index --> file */

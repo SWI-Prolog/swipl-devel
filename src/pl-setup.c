@@ -59,6 +59,7 @@
 #include "pl-trace.h"
 #include "pl-read.h"
 #include "pl-wam.h"
+#include "pl-index.h"
 #include "pl-gc.h"
 #include "pl-proc.h"
 #include "pl-pro.h"
@@ -119,6 +120,7 @@ setupProlog(void)
   initForeign();
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
+  initClauseIndexing();
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.stackLimit) )
     outOfCore();

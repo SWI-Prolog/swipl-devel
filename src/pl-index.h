@@ -70,6 +70,7 @@ int		checkClauseIndexSizes(Definition def, int nindexable);
 void		checkClauseIndexes(Definition def);
 void		listIndexGenerations(Definition def, gen_t gen);
 size_t		sizeofClauseIndexes(Definition def);
+void		initClauseIndexing();
 
 #undef LDFUNC_DECLARATIONS
 

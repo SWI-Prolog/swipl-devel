@@ -63,11 +63,11 @@
     Need at least this ratio of #clauses/speedup for creating an index
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAX_LOOKAHEAD  100
-#define MIN_SPEEDUP    1.5
-#define MAX_VAR_FRAC   0.1
-#define MIN_CLAUSES_FOR_INDEX 10
-#define MIN_SPEEDUP_RATIO  10
+#define MIN_SPEEDUP           (GD->clause_index.min_speedup)
+#define MAX_VAR_FRAC          (GD->clause_index.max_var_fraction)
+#define MIN_SPEEDUP_RATIO     (GD->clause_index.min_speedup_ratio)
+#define MAX_LOOKAHEAD         (GD->clause_index.max_lookahead)
+#define MIN_CLAUSES_FOR_INDEX (GD->clause_index.min_clauses)
 
 
 		 /*******************************
@@ -2895,6 +2895,20 @@ out:
   release_def(def);
 
   return rc;
+}
+
+
+		 /*******************************
+		 *             INIT             *
+		 *******************************/
+
+void
+initClauseIndexing(void)
+{ GD->clause_index.min_speedup       = 1.5;
+  GD->clause_index.max_var_fraction  = 0.1;
+  GD->clause_index.min_speedup_ratio = 10.0;
+  GD->clause_index.max_lookahead     = 100;
+  GD->clause_index.min_clauses       = 10;
 }
 
 
