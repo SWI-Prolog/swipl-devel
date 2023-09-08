@@ -5545,13 +5545,15 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     { ns = (char*)s;
     }
 
-					/* TBD: rational support */
     isnum = ( str_number((cucharp)ns, &e, &n, 0) == NUM_OK &&
 	      e == (unsigned char *)ns+len );
     if ( ns != s && ns != buf )
       free(ns);
     if ( isnum )
-      return PL_put_number(t, &n);
+    { int rc = PL_put_number(t, &n);
+      clearNumber(&n);
+      return rc;
+    }
   }
 
   stream = Sopen_string(NULL, (char *)s, len, "r");
