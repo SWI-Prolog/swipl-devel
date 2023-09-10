@@ -119,8 +119,16 @@ double	mpq_to_double(mpq_t q);
 void	mpq_set_double(mpq_t q, double f);
 word	bignum_index(const word *p);
 
-#define clearNumber(n) \
-	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
+static inline void
+clearNumber(Number n)
+{ switch(n->type)
+  { case V_INTEGER:
+    case V_FLOAT:
+      return;
+    default:
+      clearGMPNumber(n);
+  }
+}
 
 static inline word
 mpz_size_stack(int sz)
