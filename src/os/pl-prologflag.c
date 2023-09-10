@@ -1115,13 +1115,12 @@ PL_current_prolog_flag(atom_t name, int type, void *value)
   return FALSE;
 }
 
-
+#define unify_prolog_flag_value(m, key, f, val) \
+  LDFUNC(unify_prolog_flag_value, m, key, f, val)
 
 static int
-unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
-{ GET_LD
-
-  if ( key == ATOM_character_escapes )
+unify_prolog_flag_value(DECL_LD Module m, atom_t key, prolog_flag *f, term_t val)
+{ if ( key == ATOM_character_escapes )
   { return PL_unify_bool(val, true(m, M_CHARESCAPE));
   } else if ( key == ATOM_var_prefix )
   { return PL_unify_bool(val, true(m, M_VARPREFIX));
@@ -1279,11 +1278,10 @@ typedef struct
 } prolog_flag_enum;
 
 word
-pl_prolog_flag5(term_t key, term_t value,
-	    word scope, word access, word type,
-	    control_t h)
-{ GET_LD
-  prolog_flag_enum *e;
+pl_prolog_flag5(DECL_LD term_t key, term_t value,
+		word scope, word access, word type,
+		control_t h)
+{ prolog_flag_enum *e;
   fid_t fid;
   Module module;
 
@@ -1396,10 +1394,18 @@ pl_prolog_flag5(term_t key, term_t value,
   fail;
 }
 
+static
+PRED_IMPL("$current_prolog_flag", 5, dcurrent_prolog_flag, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
 
-foreign_t
-pl_prolog_flag(term_t name, term_t value, control_t h)
-{ return pl_prolog_flag5(name, value, 0, 0, 0, h);
+  return pl_prolog_flag5(A1, A2, A3, A4, A5, PL__ctx);
+}
+
+static
+PRED_IMPL("current_prolog_flag", 2, current_prolog_flag, PL_FA_ISO|PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return pl_prolog_flag5(A1, A2, 0, 0, 0, PL__ctx);
 }
 
 
@@ -1877,7 +1883,11 @@ cleanupPrologFlags(void)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define NDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(prologflag)
-  PRED_DEF("set_prolog_flag",    2, set_prolog_flag,    PL_FA_ISO)
-  PRED_DEF("create_prolog_flag", 3, create_prolog_flag, 0)
+  PRED_DEF("set_prolog_flag",      2, set_prolog_flag,      PL_FA_ISO)
+  PRED_DEF("create_prolog_flag",   3, create_prolog_flag,   0)
+  PRED_DEF("current_prolog_flag",  2, current_prolog_flag,  PL_FA_ISO|NDET)
+  PRED_DEF("$current_prolog_flag", 5, dcurrent_prolog_flag, NDET)
 EndPredDefs

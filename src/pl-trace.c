@@ -1026,7 +1026,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;
-    if ( !pl_prolog_flag(tmp, options, &ctx) )
+    if ( !pl_prolog_flag5(tmp, options, 0, 0, 0, &ctx) )
       PL_put_nil(options);
     PL_unify_stream_or_alias(tmp, out);
 
