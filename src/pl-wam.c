@@ -3183,7 +3183,8 @@ API_STUB(int)
 int
 PL_next_solution(DECL_LD qid_t qid)
 { register_file REGISTERS =
-  { .qid = qid
+  { .qid = qid,
+    .fndet_context.engine = LD
 #if VMCODE_IS_ADDRESS
     , .nop1 = 0, .nop2 = 0
 #endif

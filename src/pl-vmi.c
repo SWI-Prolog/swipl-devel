@@ -4630,15 +4630,13 @@ conventions.
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
   va_func f = (va_func)*PC++;
-  struct foreign_context context;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
-  context.context   = 0L;
-  context.engine    = LD;
-  context.control   = FRG_FIRST_CALL;
-  context.predicate = DEF;
+  FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+  FNDET_CONTEXT.context   = 0L;
+  FNDET_CONTEXT.predicate = DEF;
 
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &context));
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4772,9 +4770,8 @@ to the I_FCALLNDETVA (PC -= 4);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FOPENNDET, 0, 0, ())
-{ FNDET_CONTEXT.context   = 0L;
-  FNDET_CONTEXT.engine    = LD;
-  FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+{ FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+  FNDET_CONTEXT.context   = 0L;
   FNDET_CONTEXT.predicate = DEF;
 
   VMH_GOTO(foreign_redo);
@@ -4973,7 +4970,7 @@ END_VMH
 VMI(I_FREDO, 0, 0, ())
 { DEBUG(0, assert(true(DEF, P_FOREIGN)));
 
-  if ( is_signalled() )
+  if ( unlikely(LD->alerted) && is_signalled() )
   { if ( false(DEF, P_SIG_ATOMIC) )
     { SAVE_REGISTERS(QID);
       handleSignals();
@@ -4983,19 +4980,18 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  FNDET_CONTEXT.engine = LD;
   switch((word)FR->clause & FRG_REDO_MASK)
   { case REDO_INT:
-      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       FNDET_CONTEXT.control = FRG_REDO;
+      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
-      FNDET_CONTEXT.context = (word)FR->clause;
       FNDET_CONTEXT.control = FRG_REDO;
+      FNDET_CONTEXT.context = (word)FR->clause;
       break;
     case YIELD_PTR:
-      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       FNDET_CONTEXT.control = FRG_RESUME;
+      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       break;
     default:
       assert(0);

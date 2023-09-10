@@ -538,9 +538,9 @@ typedef enum
 } frg_code;
 
 struct foreign_context
-{ uintptr_t		context;	/* context value */
+{ struct PL_local_data *engine;		/* invoking engine */
   frg_code		control;	/* FRG_* action */
-  struct PL_local_data *engine;		/* invoking engine */
+  uintptr_t		context;	/* context value */
   struct definition    *predicate;	/* called Prolog predicate */
 };
 
