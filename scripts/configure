@@ -68,6 +68,17 @@ case $config in
     ;;
 esac
 
+# profile
+#
+# Use good settings for valgrind based profiling
+
+case $config in
+  *profile*)
+    opts+=" -DVMI_FUNCTIONS=ON"
+    CFLAGS+=" -fno-inline"
+    ;;
+esac
+
 # c11
 #
 # Enable pedantic C11 checking for GCC.  Use for compliancy testing as
