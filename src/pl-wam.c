@@ -234,7 +234,7 @@ updateAlerted(PL_local_data_t *ld)
 #endif
   if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
   if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
-  if ( LD->coverage.active )			mask |= ALERT_COVERAGE;
+  if ( ld->coverage.active )			mask |= ALERT_COVERAGE;
 
   ld->alerted = mask;
 }

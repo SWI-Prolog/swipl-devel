@@ -2261,7 +2261,7 @@ from C.
 VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
-  if ( unlikely(LD->alerted) )
+  if ( unlikely(LD->alerted != 0) )
   { if ( (LD->alerted&ALERT_BUFFER) )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
@@ -2289,9 +2289,9 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 	BFR = BFR->parent;
     }
 #endif /*O_DEBUGGER*/
-  }
 
-  Coverage(FR, EXIT_PORT);
+    Coverage(FR, EXIT_PORT);
+  }
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = true(FR, FR_WATCHED) ? FR : NULL;

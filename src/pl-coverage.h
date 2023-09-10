@@ -5,7 +5,8 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2022, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,8 +43,9 @@
 void	record_coverage(LocalFrame fr, int port);
 int	free_coverage_data(PL_local_data_t *ld);
 
+#define Coverage(fr, port) LDFUNC(Coverage, fr, port)
 static inline void
-Coverage(LocalFrame fr, int port)
+Coverage(DECL_LD LocalFrame fr, int port)
 {
 #if O_COVERAGE
   if ( LD->coverage.active )
