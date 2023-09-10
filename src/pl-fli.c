@@ -789,12 +789,11 @@ compareUCSAtom(atom_t h1, atom_t h2)
   { if ( *s1 != *s2 )
     { int d = *s1 - *s2;
 
-      return d<0 ? CMP_LESS : d>0 ? CMP_GREATER : CMP_EQUAL;
+      return SCALAR_TO_CMP(d, 0);
     }
   }
 
-  return a1->length >  a2->length ? CMP_GREATER :
-	 a1->length == a2->length ? CMP_EQUAL : CMP_LESS;
+  return SCALAR_TO_CMP(a1->length, a2->length);
 }
 
 

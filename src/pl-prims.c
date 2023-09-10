@@ -1646,7 +1646,10 @@ atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
 
 int
 compareAtoms(atom_t w1, atom_t w2)
-{ Atom a1 = atomValue(w1);
+{ if ( w1 == w2 )
+    return CMP_EQUAL;
+
+  Atom a1 = atomValue(w1);
   Atom a2 = atomValue(w2);
 
   if ( a1->type == a2->type )
@@ -1657,9 +1660,9 @@ compareAtoms(atom_t w1, atom_t w2)
       int v;
 
       if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
-	return v < 0 ? CMP_LESS : CMP_GREATER;
-      return a1->length == a2->length ? CMP_EQUAL :
-	     a1->length < a2->length ? CMP_LESS : CMP_GREATER;
+	return SCALAR_TO_CMP(v, 0);
+      else
+	return SCALAR_TO_CMP(a1->length, a2->length);
     }
   } else if ( true(a1->type, PL_BLOB_TEXT) &&
 	      true(a2->type, PL_BLOB_TEXT) )
@@ -1672,8 +1675,7 @@ compareAtoms(atom_t w1, atom_t w2)
 
     return PL_cmp_text(&t1, 0, &t2, 0, len);
   } else
-  { return a1->type->rank == a2->type->rank ? CMP_EQUAL :
-	   a1->type->rank < a2->type->rank ? CMP_LESS : CMP_GREATER;
+  { return SCALAR_TO_CMP(a1->type->rank, a2->type->rank);
   }
 }
 

@@ -1642,7 +1642,7 @@ cmpFloatNumbers(Number n1, Number n2)
 
 int
 cmpNumbers(Number n1, Number n2)
-{ if ( n1->type != n2->type )
+{ if ( unlikely(n1->type != n2->type) )
   { int rc;
 
     if ( n1->type == V_FLOAT || n2->type == V_FLOAT )
@@ -1654,28 +1654,34 @@ cmpNumbers(Number n1, Number n2)
 
   switch(n1->type)
   { case V_INTEGER:
-      return n1->value.i  < n2->value.i ? CMP_LESS :
-	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(n1->value.i, n2->value.i);
 #ifdef O_BIGNUM
     case V_MPZ:
     { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
 
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(rc, 0);
     }
     case V_MPQ:
     { int rc = mpq_cmp(n1->value.mpq, n2->value.mpq);
 
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(rc, 0);
     }
 #endif
     case V_FLOAT:
-      return n1->value.f  < n2->value.f ? CMP_LESS :
-	     n1->value.f == n2->value.f ? CMP_EQUAL :
-	     n1->value.f  > n2->value.f ? CMP_GREATER : CMP_NOTEQ;
-  }
+    { if ( n1->value.f == n2->value.f )
+	return CMP_EQUAL;
 
-  assert(0);
-  return CMP_EQUAL;
+      int lt = n1->value.f  < n2->value.f;
+      int gt = n1->value.f  > n2->value.f;
+
+      if ( !lt && !gt )		/* either is NaN */
+	return CMP_NOTEQ;	/* as SCALAR_TO_CMP() */
+      return gt-lt;
+    }
+    default:
+      assert(0);
+      return CMP_EQUAL;
+  }
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
