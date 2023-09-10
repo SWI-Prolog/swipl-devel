@@ -1212,7 +1212,7 @@ END_VMI
 VMH(bvar_cont, 1, (int), (voffset))
 { Word p;
   p = varFrameP(FR, voffset);
-  if ( isVar(*p) )
+  if ( unlikely(isVar(*p)) )
   { ENSURE_GLOBAL_SPACE(1, p = varFrameP(FR, voffset));
     globaliseVar(p);
     *ARGP++ = *p;
