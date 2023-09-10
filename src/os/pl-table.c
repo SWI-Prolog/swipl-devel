@@ -531,9 +531,8 @@ lookupHTable(DECL_LD Table ht, void *name)
    for `name` if it was.
  */
 void*
-addHTable(Table ht, void *name, void *value)
-{ GET_LD
-  KVS kvs;
+addHTable(DECL_LD Table ht, void *name, void *value)
+{ KVS kvs;
   void *v;
 
   acquire_kvs(ht, kvs);
@@ -549,7 +548,7 @@ addHTable(Table ht, void *name, void *value)
 
 
 void *
-addNewHTable(Table ht, void *name, void *value)
+addNewHTable(DECL_LD Table ht, void *name, void *value)
 { void *new = addHTable(ht, name, value);
   if ( new == value )
   { return value;
@@ -693,8 +692,7 @@ copyHTable(Table src_ht)
 
 TableEnum
 newTableEnum(Table ht)
-{
-  TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
+{ TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
   KVS kvs;
 
   kvs = ht->kvs;
@@ -705,7 +703,7 @@ newTableEnum(Table ht)
                  e, e->table, e->kvs));
 
   e->table = ht;
-  e->kvs = kvs;
+  e->kvs   = kvs;
   e->idx   = 0;
 
   return e;
@@ -714,27 +712,22 @@ newTableEnum(Table ht)
 
 void
 freeTableEnum(TableEnum e)
-{
-  if ( !e )
-  { return;
+{ if ( e )
+  { DEBUG(MSG_HASH_TABLE_ENUM,
+	  Sdprintf("freeTableEnum(). e: %p, ht: %p, kvs: %p\n",
+		   e, e->table, e->kvs));
+
+    ATOMIC_DEC(&e->kvs->accesses);
+    htable_maybe_free_kvs(e->table);
+
+    freeHeap(e, sizeof(*e));
   }
-
-  DEBUG(MSG_HASH_TABLE_ENUM,
-        Sdprintf("freeTableEnum(). e: %p, ht: %p, kvs: %p\n",
-                 e, e->table, e->kvs));
-
-  ATOMIC_DEC(&e->kvs->accesses);
-
-  htable_maybe_free_kvs(e->table);
-
-  freeHeap(e, sizeof(*e));
 }
 
 
 int
 advanceTableEnum(TableEnum e, void **name, void **value)
-{
-  DEBUG(MSG_HASH_TABLE_ENUM,
+{ DEBUG(MSG_HASH_TABLE_ENUM,
         Sdprintf("advanceTableEnum(). e: %p, ht: %p, kvs: %p, idx: %d\n",
                  e, e->table, e->kvs, e->idx));
 
@@ -829,5 +822,3 @@ int
 PL_advance_hash_table_enum(hash_table_enum_t e, void **key, void **value)
 { return advanceTableEnum(e, key, value);
 }
-
-

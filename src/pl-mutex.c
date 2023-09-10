@@ -185,8 +185,10 @@ PL_register_atom() would be cleaner, but that  routine is much more time
 critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define mutexCreate(name) LDFUNC(mutexCreate, name)
+
 static pl_mutex *
-mutexCreate(atom_t name)
+mutexCreate(DECL_LD atom_t name)
 { pl_mutex *m;
 
   if ( (m=allocHeap(sizeof(*m))) )

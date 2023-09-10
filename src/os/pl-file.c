@@ -183,8 +183,9 @@ getStreamContext(IOSTREAM *s)
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
     if ( COMPARE_AND_SWAP_PTR(&s->context, NULL, ctx) )
+    { GET_LD
       addNewHTable(streamContext, s, ctx);
-    else
+    } else
       freeHeap(ctx, sizeof(*ctx));
   }
 

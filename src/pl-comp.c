@@ -8214,7 +8214,8 @@ cleanupBreakPoints(void)
 
 static int				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ int second_bp = FALSE;
+{ GET_LD
+  int second_bp = FALSE;
   Code PC;
   code op, dop;
 
