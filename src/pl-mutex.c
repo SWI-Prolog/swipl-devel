@@ -168,7 +168,9 @@ unify_mutex(term_t t, pl_mutex *m)
 
 static int
 unify_mutex_owner(term_t t, int owner)
-{ if ( owner )
+{ GET_LD
+
+  if ( owner )
     return unify_thread_id(t, GD->thread.threads[owner]);
   else
     return PL_unify_nil(t);

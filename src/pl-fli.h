@@ -64,6 +64,7 @@
 #define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
 #define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
 #define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
+#define PL_new_functor_sz(f, arity)		LDFUNC(PL_new_functor_sz, f, arity)
 #define	globalizeTermRef(t)			LDFUNC(globalizeTermRef, t)
 #define	PL_reset_term_refs(r)			LDFUNC(PL_reset_term_refs, r)
 #define	PL_copy_term_ref(from)			LDFUNC(PL_copy_term_ref, from)
@@ -73,6 +74,7 @@
 #define	PL_unify_int64(t1, int64_t)		LDFUNC(PL_unify_int64, t1, int64_t)
 #define	PL_unify_int64_ex(t1, int64_t)		LDFUNC(PL_unify_int64_ex, t1, int64_t)
 #define	PL_unify_functor(t, f)			LDFUNC(PL_unify_functor, t, f)
+#define	PL_unify_nil(t)				LDFUNC(PL_unify_nil, t)
 #define	PL_get_atom(t1, a)			LDFUNC(PL_get_atom, t1, a)
 #define	PL_put_variable(t1)			LDFUNC(PL_put_variable, t1)
 #define	PL_put_atom(t1, a)			LDFUNC(PL_put_atom, t1, a)
@@ -127,6 +129,7 @@ int		_PL_get_arg(size_t index, term_t t, term_t a);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
 term_t		PL_new_term_refs(int n);
+functor_t	PL_new_functor_sz(atom_t f, size_t arity);
 int		globalizeTermRef(term_t t);
 void		PL_reset_term_refs(term_t r);
 term_t		PL_copy_term_ref(term_t from);
@@ -136,6 +139,7 @@ int		PL_unify_integer(term_t t1, intptr_t i);
 int		PL_unify_int64(term_t t1, int64_t);
 int		PL_unify_int64_ex(term_t t1, int64_t);
 int		PL_unify_functor(term_t t, functor_t f);
+int		PL_unify_nil(term_t t);
 FLI_INLINE int	PL_get_atom(term_t t1, atom_t *a);
 int		PL_get_text_as_atom(term_t t, atom_t *a, int flags);
 FLI_INLINE int	PL_put_variable(term_t t1);

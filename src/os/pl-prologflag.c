@@ -45,6 +45,7 @@
 #include "pl-prologflag.h"
 #include "pl-utf8.h"
 #include "pl-ctype.h"
+#include "pl-funct.h"
 #include "../pl-arith.h"
 #include "../pl-tabling.h"
 #include "../pl-fli.h"
@@ -1789,6 +1790,7 @@ setVersionPrologFlag(void)
   int patch = (PLVERSION%100);
 
   PL_put_nil(o);
+  initFunctors();
 
 #ifdef PLVERSION_TAG
   { const char *tag = PLVERSION_TAG;

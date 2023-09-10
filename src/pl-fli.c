@@ -618,12 +618,16 @@ PL_new_blob(void *blob, size_t len, PL_blob_t *type)
 
 
 functor_t
-PL_new_functor_sz(atom_t f, size_t arity)
-{ if ( !GD->initialised )
-    initFunctors();
-
-  return lookupFunctorDef(f, arity);
+PL_new_functor_sz(DECL_LD atom_t f, size_t arity)
+{ return lookupFunctorDef(f, arity);
 }
+
+
+API_STUB(functor_t)
+(PL_new_functor_sz)(atom_t f, size_t arity)
+( if ( !GD->initialised )
+    initFunctors();
+  return PL_new_functor_sz(f, arity); )
 
 functor_t
 (PL_new_functor)(atom_t f, int arity)
@@ -3460,10 +3464,13 @@ API_STUB(int)
 
 
 int
-PL_unify_nil(term_t l)
-{ GET_LD
-  return unifyAtomic(l, ATOM_nil);
+PL_unify_nil(DECL_LD term_t l)
+{ return unifyAtomic(l, ATOM_nil);
 }
+
+API_STUB(int)
+(PL_unify_nil)(term_t t)
+( return PL_unify_nil(t); )
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
