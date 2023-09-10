@@ -252,9 +252,14 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	{ rc = FALSE;
 	  goto cleanup;
 	}
-	if ( !state->hinf &&
-	     cmpNumbers(&state->low, &state->high) == 0 )
-	  goto cleanup;
+	if ( !state->hinf )
+	{ if ( likely(state->high.type == V_INTEGER &&
+		      state->low.type == V_INTEGER) )
+	  { if ( state->low.value.i == state->high.value.i )
+	      goto cleanup;
+	  } else if ( cmpNumbers(&state->low, &state->high) == CMP_EQUAL )
+	      goto cleanup;
+	}
 	ForeignRedoPtr(state);
 	/*NOTREACHED*/
       }
