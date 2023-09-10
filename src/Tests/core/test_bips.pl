@@ -27,7 +27,6 @@ This module is a test-frame for testing built-in predicates.
 
 :- module(test_bips, [test_bips/0]).
 :- use_module(library(plunit)).
-:- use_module(library(when)).
 
 test_bips :-
 	run_tests([ bips,
@@ -69,6 +68,8 @@ test(iso_8_4_2_3_a,[error(type_error(atom, 1+1))]) :-
 	compare(1+1, b, c).
 test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
 	compare(a, b, c).
+test(zero_codes, Order == (>)) :-
+	compare(Order, '\u1000hello\u0000world', '\u1000hello').
 
 null_file('/dev/null') :-
 	exists_file('/dev/null'), !.
