@@ -4745,11 +4745,11 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
    I_USERCALL0.
 */
 
-static inline void
-update_local_pointer(Code *p, intptr_t ls)
-{ GET_LD
+#define update_local_pointer(p, ls) LDFUNC(update_local_pointer, p, ls)
 
-  if ( onStackArea(local, *p) )
+static inline void
+update_local_pointer(DECL_LD Code *p, intptr_t ls)
+{ if ( onStackArea(local, *p) )
   { DEBUG(MSG_SHIFT_POINTER, Sdprintf(" (local ptr %p)", *p));
     update_pointer(p, ls);
   }
@@ -4767,10 +4767,11 @@ update_lg_pointer(DECL_LD Word *p, intptr_t ls, intptr_t gs)
 }
 
 
+#define update_environments(fr, ls, gs) LDFUNC(update_environments, fr, ls, gs)
+
 static QueryFrame
-update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
-{ GET_LD
-  if ( fr == NULL )
+update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
+{ if ( fr == NULL )
     return NULL;
 
   for(;;)
