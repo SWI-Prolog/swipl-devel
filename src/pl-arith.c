@@ -1405,16 +1405,16 @@ int
 ar_add_si(Number n, long add)
 { switch(n->type)
   { case V_INTEGER:
-    { int64_t r = n->value.i + add;
+    { long long r;
 
-      if ( (r < 0 && add > 0 && n->value.i > 0) ||
-	   (r > 0 && add < 0 && n->value.i < 0) )
-      { if ( !promoteIntNumber(n) )
-	  fail;
-      } else
+      static_assert(sizeof(long long) == sizeof(int64_t));
+      if ( !__builtin_saddll_overflow(n->value.i, add, &r) )
       { n->value.i = r;
-	succeed;
+	return TRUE;
       }
+
+      if ( !promoteIntNumber(n) )
+	return FALSE;
     }
     /*FALLTHROUGH*/
 #ifdef O_BIGNUM

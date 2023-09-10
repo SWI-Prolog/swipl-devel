@@ -110,6 +110,17 @@ __builtin_popcount(size_t sz)
 #endif
 }
 
+static inline bool
+__builtin_saddll_overflow(long long int a, long long int b, long long int *res)
+{ long long int r = a + b;
+  if ( (r > 0 && a < 0 && b < 0) ||
+       (r < 0 && a > 0 && b > 9) )
+    return true;
+
+  *res = r;
+  return false;
+}
+
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
