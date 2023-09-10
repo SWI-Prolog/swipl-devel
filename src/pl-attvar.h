@@ -65,6 +65,16 @@ Word		alloc_attvar(void);
 		 *	INLINE DEFINITIONS	*
 		 *******************************/
 
+#define varBindConst(p, c) LDFUNC(varBindConst, p, c)
+static inline void
+varBindConst(DECL_LD Word p, word c)
+{ DEBUG(0, assert(hasTrailSpace(1)));
+
+  *p = (c);
+  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
+    (tTop++)->address = p;
+}
+
 #define bindConst(p, c) LDFUNC(bindConst, p, c)
 static inline void
 bindConst(DECL_LD Word p, word c)
@@ -72,16 +82,11 @@ bindConst(DECL_LD Word p, word c)
 
 #ifdef O_ATTVAR
   if ( isVar(*p) )
-  { *p = (c);
-    if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-      (tTop++)->address = p;
-  } else
-  { assignAttVar(p, &(c));
-  }
+    varBindConst(p, c);
+  else
+    assignAttVar(p, &(c));
 #else
-  *p = (c);
-  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-    (tTop++)->address = p;
+  varBindConst(p, c);
 #endif
 }
 

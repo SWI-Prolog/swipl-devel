@@ -1388,12 +1388,20 @@ put_number(DECL_LD Word at, Number n, int flags)
 int
 PL_unify_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
+  word w;
 
   deRef(p);
 
+  if ( isVar(*p) &&
+       n->type == V_INTEGER &&
+       valInt(w=consInt(n->value.i)) == n->value.i &&
+       hasTrailSpace(1) )
+  { varBindConst(p, w);
+    return TRUE;
+  }
+
   if ( canBind(*p) )
-  { word w;
-    int rc;
+  { int rc;
 
     if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
@@ -1402,7 +1410,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
     deRef(p);
 
     bindConst(p, w);
-    succeed;
+    return TRUE;
   }
 
   switch(n->type)
