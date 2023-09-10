@@ -1431,7 +1431,9 @@ __do_undo(DECL_LD mark *m)
   while(--tt >= mt)
   { Word p = tt->address;
 
-    if ( isTrailVal(p) )
+    if ( likely(!isTrailVal(p)) )
+    { setVar(*p);
+    } else
     { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
       tt--;
       if ( tt->address == gBase )
@@ -1440,9 +1442,8 @@ __do_undo(DECL_LD mark *m)
       DEBUG(CHK_SECURE,
 	    if ( isAttVar(*tt->address) )
 	      assert(on_attvar_chain(tt->address)));
-      assert(!(*tt->address & (MARK_MASK|FIRST_MASK)));
-    } else
-      setVar(*p);
+      DEBUG(0, assert(!(*tt->address & (MARK_MASK|FIRST_MASK))));
+    }
   }
 
   DEBUG(CHK_SECURE,
@@ -1452,15 +1453,8 @@ __do_undo(DECL_LD mark *m)
 
   tTop = mt;
 
-  Word ngtop;
-  if ( LD->frozen_bar > m->globaltop )
-  { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
-    reclaim_attvars(LD->frozen_bar);
-    ngtop = LD->frozen_bar;
-  } else
-  { reclaim_attvars(m->globaltop);
-    ngtop = m->globaltop;
-  }
+  Word ngtop = max(LD->frozen_bar, m->globaltop);
+  reclaim_attvars(ngtop);
 
   DEBUG(CHK_SECURE,
 	{ for(Word p = gTop; --p > ngtop;)
