@@ -516,7 +516,8 @@ qlfGetStringW(IOSTREAM *fd, Buffer buf)
 
 static atom_t
 getAtom(IOSTREAM *fd, PL_blob_t *type)
-{ char buf[1024];
+{ GET_LD
+  char buf[1024];
   char *tmp, *s;
   size_t len = qlfGetInt64(fd);
   size_t i;

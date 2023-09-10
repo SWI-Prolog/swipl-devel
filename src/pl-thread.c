@@ -529,6 +529,8 @@ static int will_exec;			/* process will exec soon */
 	LDFUNC(get_message_queue_unlocked, t, queue)
 #define	get_message_queue(t, queue) \
 	LDFUNC(get_message_queue, t, queue)
+#define create_thread_handle(info) \
+	LDFUNC(create_thread_handle, info)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -2441,7 +2443,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
 
 static thread_handle *
-create_thread_handle(PL_thread_info_t *info)
+create_thread_handle(DECL_LD PL_thread_info_t *info)
 { atom_t symbol;
 
   if ( (symbol=info->symbol) )

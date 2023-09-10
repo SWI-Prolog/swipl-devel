@@ -528,9 +528,8 @@ same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 
 
 word
-lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
-{ GET_LD
-  unsigned int v0, v, ref;
+lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
+{ unsigned int v0, v, ref;
   Atom *table;
   int buckets;
   Atom a, head;
@@ -656,7 +655,7 @@ redo:
 
 
 word
-lookupAtom(const char *s, size_t length)
+lookupAtom(DECL_LD const char *s, size_t length)
 { int new;
 
   return lookupBlob(s, length, &text_atom, &new);

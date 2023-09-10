@@ -1314,8 +1314,10 @@ fetchExtFloat(CopyInfo b, void *f)
 }
 
 
+#define fetchAtom(b, a) LDFUNC(fetchAtom, b, a)
+
 static void
-fetchAtom(CopyInfo b, atom_t *a)
+fetchAtom(DECL_LD CopyInfo b, atom_t *a)
 { unsigned int len = fetchSizeInt(b);
 
   *a = lookupAtom(b->data, len);
