@@ -149,6 +149,9 @@ style(goal(local(_),_),          []).
 style(goal(constraint(_),_),     [colour(darkcyan)]).
 style(goal(not_callable,_),      [background(orange)]).
 
+style(function,                  [colour(cyan)]).
+style(no_function,               [colour(orange)]).
+
 style(option_name,               [colour('#3434ba')]).
 style(no_option_name,            [colour(orange)]).
 
