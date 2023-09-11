@@ -221,6 +221,11 @@ END_VMH
 	ENSURE_STACK_SPACE(cells, 0, onchange)
 #define ENSURE_STACK_SPACE(g, t, onchange) \
 	if ( !hasStackSpace(g, t) )			\
+	{ GROW_STACK_SPACE(g, t);			\
+	  onchange;					\
+	}
+#define GROW_STACK_SPACE(g, t) \
+	do \
 	{ int __rc;					\
 	  SAVE_REGISTERS(QID);				\
 	  __rc = ensureStackSpace(g, t);		\
@@ -229,8 +234,7 @@ END_VMH
 	  { raiseStackOverflow(__rc);			\
 	    THROW_EXCEPTION;				\
 	  }						\
-	  onchange;					\
-	}
+	} while(0)
 
 /* Can be used for debugging to always force GC at a place */
 #define FAKE_GC(onchange) \
@@ -480,19 +484,35 @@ VMI(H_SMALLINT, 0, 1, (CA1_DATA))
 END_VMI
 
 VMH(h_const, 1, (word), (c))
-{ Word k;
-  deRef2(ARGP, k);
-  if ( *k == c )
-  { ARGP++;
-    NEXT_INSTRUCTION;
+{ Word k = ARGP;
+
+  for(;;)
+  { switch(tag(*k))
+    { case TAG_VAR:
+	if ( !hasTrailSpace(1) )
+	  break;
+	varBindConst(k, c);
+	ARGP++;
+	NEXT_INSTRUCTION;
+      case TAG_ATTVAR:
+	if ( !hasGlobalSpace(0) )
+	  break;
+	assignAttVar(k, &c);
+	ARGP++;
+	NEXT_INSTRUCTION;
+      case TAG_REFERENCE:
+	k = unRef(*k);
+	continue;
+      default:
+	if ( *k == c )
+	{ ARGP++;
+	  NEXT_INSTRUCTION;
+	}
+	CLAUSE_FAILED;
+    }
+    GROW_STACK_SPACE(0,0);
+    k = ARGP;
   }
-  if ( canBind(*k) )
-  { ENSURE_GLOBAL_SPACE(0, deRef2(ARGP, k));
-    bindConst(k, c);
-    ARGP++;
-    NEXT_INSTRUCTION;
-  }
-  CLAUSE_FAILED;
 }
 END_VMH
 
