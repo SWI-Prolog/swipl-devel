@@ -71,9 +71,6 @@
 #endif
 #include <errno.h>
 
-#undef max
-#define max(a,b) ((a) > (b) ? (a) : (b))
-
 #undef K
 #undef MB
 #define K * 1024

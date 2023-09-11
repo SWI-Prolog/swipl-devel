@@ -1730,7 +1730,8 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
+  { if ( (t1|t2) == (TAG_INTEGER|TAG_FLOAT) && /* quick test first */
+	 !truePrologFlag(PLFLAG_ISO) && !eq )
     { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
 	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
       { number left, right;
@@ -1755,7 +1756,8 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
       }
     }
 
-    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+    static_assert(TAG_VAR == 0 && TAG_ATTVAR==1);
+    if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
       return t1 < t2 ? CMP_LESS : CMP_GREATER;
   }
 
@@ -1766,6 +1768,10 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
     case TAG_INTEGER:
     { number n1, n2;
       int rc;
+
+      if ( storage(w1) == STG_INLINE &&
+	   storage(w2) == STG_INLINE )
+	return SCALAR_TO_CMP(valInt(w1), valInt(w2));
 
       get_rational(w1, &n1);
       get_rational(w2, &n2);

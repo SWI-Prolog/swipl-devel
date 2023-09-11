@@ -2285,7 +2285,10 @@ stack guarding when compiling with the address sanitizer.
 #define CMP_NOTEQ     2			/* \== */
 
 /* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */
-#define SCALAR_TO_CMP(a,b) ((a) > (b)) - ((a) < (b))
+#define SCALAR_TO_CMP(a,b) ( \
+	{ __auto_type __a = (a); __auto_type __b = (b);	\
+	  (__a > __b) - (__a < __b);			\
+	})
 
 
 		/********************************
