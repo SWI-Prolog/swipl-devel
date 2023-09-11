@@ -496,65 +496,60 @@ get_integer(word w, Number n)
 
 
 void
-get_rational(DECL_LD word w, Number n)
-{ if ( storage(w) == STG_INLINE )
-  { n->type = V_INTEGER,
-    n->value.i = valInt(w);
+get_rational_no_int(DECL_LD word w, Number n)
+{ Word p = addressIndirect(w);
+  size_t wsize = wsizeofInd(*p);
+
+  p++;
+  if ( wsize == WORDS_PER_INT64 )
+  { n->type = V_INTEGER;
+    memcpy(&n->value.i, p, sizeof(int64_t));
+  } else if ( (*p&MP_RAT_MASK) )
+  { mpz_t num, den;
+    size_t num_size;
+
+    n->type = V_MPQ;
+#if O_GMP
+    num->_mp_size  = mpz_stack_size(*p++);
+    num->_mp_alloc = 0;
+    num->_mp_d     = (mp_limb_t*) (p+1);
+    num_size       = mpz_wsize(num, NULL);
+    den->_mp_size  = mpz_stack_size(*p++);
+    den->_mp_alloc = 0;
+    den->_mp_d     = (mp_limb_t*) (p+num_size);
+#elif O_BF
+    slimb_t len = mpz_stack_size(*p++);
+    num->ctx	 = NULL;
+    num->alloc = 0;
+    num->expn  = (slimb_t)*p++;
+    num->sign  = len < 0;
+    num->len   = abs(len);
+    num->tab   = (limb_t*)(p+2);
+    num_size   = mpz_wsize(num, NULL);
+    den->ctx   = NULL;
+    den->alloc = 0;
+    den->sign  = 0;			/* canonical MPQ */
+    den->len   = mpz_stack_size(*p++);
+    den->expn  = (slimb_t)*p++;
+    den->tab   = (limb_t*) (p+num_size);
+#endif
+    *mpq_numref(n->value.mpq) = num[0];
+    *mpq_denref(n->value.mpq) = den[0];
   } else
-  { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    p++;
-    if ( wsize == WORDS_PER_INT64 )
-    { n->type = V_INTEGER;
-      memcpy(&n->value.i, p, sizeof(int64_t));
-    } else if ( (*p&MP_RAT_MASK) )
-    { mpz_t num, den;
-      size_t num_size;
-
-      n->type = V_MPQ;
-#if O_GMP
-      num->_mp_size  = mpz_stack_size(*p++);
-      num->_mp_alloc = 0;
-      num->_mp_d     = (mp_limb_t*) (p+1);
-      num_size       = mpz_wsize(num, NULL);
-      den->_mp_size  = mpz_stack_size(*p++);
-      den->_mp_alloc = 0;
-      den->_mp_d     = (mp_limb_t*) (p+num_size);
-#elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      num->ctx	 = NULL;
-      num->alloc = 0;
-      num->expn  = (slimb_t)*p++;
-      num->sign  = len < 0;
-      num->len   = abs(len);
-      num->tab   = (limb_t*)(p+2);
-      num_size   = mpz_wsize(num, NULL);
-      den->ctx   = NULL;
-      den->alloc = 0;
-      den->sign  = 0;			/* canonical MPQ */
-      den->len   = mpz_stack_size(*p++);
-      den->expn  = (slimb_t)*p++;
-      den->tab   = (limb_t*) (p+num_size);
-#endif
-      *mpq_numref(n->value.mpq) = num[0];
-      *mpq_denref(n->value.mpq) = den[0];
-    } else
-    { n->type = V_MPZ;
+  { n->type = V_MPZ;
 
 #if O_GMP
-      n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-      n->value.mpz->_mp_alloc = 0;
-      n->value.mpz->_mp_d     = (mp_limb_t*) p;
+    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
+    n->value.mpz->_mp_alloc = 0;
+    n->value.mpz->_mp_d     = (mp_limb_t*) p;
 #elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      n->value.mpz->ctx	 = NULL;
-      n->value.mpz->expn = (slimb_t)*p++;
-      n->value.mpz->sign = len < 0;
-      n->value.mpz->len  = abs(len);
-      n->value.mpz->tab  = (limb_t*)p;
+    slimb_t len = mpz_stack_size(*p++);
+    n->value.mpz->ctx	 = NULL;
+    n->value.mpz->expn = (slimb_t)*p++;
+    n->value.mpz->sign = len < 0;
+    n->value.mpz->len  = abs(len);
+    n->value.mpz->tab  = (limb_t*)p;
 #endif
-    }
   }
 }
 

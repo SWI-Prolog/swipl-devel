@@ -48,7 +48,7 @@
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
 #ifdef O_BIGNUM
-#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
+#define	get_rational_no_int(w, n)	LDFUNC(get_rational_no_int, w, n)
 #endif
 #endif /*USE_LD_MACROS*/
 
@@ -68,7 +68,7 @@ int	cmpNumbers(Number n1, Number n2);
 int	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
 #ifdef O_BIGNUM
-void	get_rational(word w, number *n);
+void	get_rational_no_int(word w, number *n);
 #endif
 
 #undef LDFUNC_DECLARATIONS
@@ -159,6 +159,17 @@ mpz_add_si(mpz_t r, const mpz_t n1, long add)
     mpz_sub_ui(r, n1, -add);
 }
 #endif
+
+#define get_rational(w, n) LDFUNC(get_rational, w, n)
+static inline void
+get_rational(DECL_LD word w, Number n)
+{ if ( storage(w) == STG_INLINE )
+  { n->value.i = valInt(w);
+    n->type = V_INTEGER;
+  } else
+  { get_rational_no_int(w, n);
+  }
+}
 
 #else /*O_BIGNUM*/
 
