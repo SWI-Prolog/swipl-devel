@@ -1452,7 +1452,6 @@ ar_add_si(Number n, long add)
   fail;
 }
 
-#define SAME_SIGN(i1, i2) (((i1) ^ (i2)) >= 0)
 
 int
 pl_ar_add(Number n1, Number n2, Number r)
