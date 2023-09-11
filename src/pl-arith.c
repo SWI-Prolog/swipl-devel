@@ -1461,19 +1461,15 @@ pl_ar_add(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { if ( SAME_SIGN(n1->value.i, n2->value.i) )
-      { if ( n2->value.i < 0 )		/* both negative */
-	{ if ( n1->value.i < PLMININT - n2->value.i )
-	    goto overflow;
-	} else				/* both positive */
-	{ if ( PLMAXINT - n1->value.i < n2->value.i )
-	    goto overflow;
-	}
+    { long long v;
+
+      static_assert(sizeof(long long) == sizeof(int64_t));
+      if ( !__builtin_saddll_overflow(n1->value.i, n2->value.i, &v) )
+      { r->value.i = v;
+	r->type = V_INTEGER;
+	return TRUE;
       }
-      r->value.i = n1->value.i + n2->value.i;
-      r->type = V_INTEGER;
-      succeed;
-    overflow:
+
       if ( !promoteIntNumber(n1) ||
 	   !promoteIntNumber(n2) )
 	fail;
