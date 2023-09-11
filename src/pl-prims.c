@@ -1693,6 +1693,70 @@ compareStrings(DECL_LD word w1, word w2)
   return PL_cmp_text(&t1, 0, &t2, 0, len);
 }
 
+/* Compare two floats know to be non-equal.  As we do standard
+   order comparison, we may not return equal and must decide on
+   one to be the greatest.
+*/
+
+static int
+compare_neq_floats(double f1, double f2)
+{ if ( isnan(f1) )
+  { if ( isnan(f2) )
+    { double nf1 = NaN_value(f1);
+      double nf2 = NaN_value(f2);
+
+      if ( nf1 < nf2 )
+      { return CMP_LESS;
+      } else if ( nf1 > nf2 )
+      { return CMP_GREATER;
+      } else if ( signbit(nf1) != signbit(nf2) )
+      { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
+      } else
+      { return CMP_EQUAL;
+      }
+    }
+    return CMP_LESS;
+  } else if ( isnan(f2) )
+  { return CMP_GREATER;
+  }
+
+  if ( f1 < f2 )
+  { return CMP_LESS;
+  } else if ( f1 > f2 )
+  { return CMP_GREATER;
+  } else
+  { assert(signbit(f1) != signbit(f2));
+    return signbit(f1) ? CMP_LESS : CMP_GREATER;
+  }
+}
+
+#define compare_mixed_float_rational(w1, w2) \
+	LDFUNC(compare_mixed_float_rational, w1, w2)
+
+static int
+compare_mixed_float_rational(DECL_LD word w1, word w2)
+{ number left, right;
+  int rc;
+
+  get_number(w1, &left);
+  get_number(w2, &right);
+  if ( left.type == V_FLOAT && isnan(left.value.f) )
+    rc = CMP_LESS;
+  else if ( right.type == V_FLOAT && isnan(right.value.f) )
+    rc = CMP_GREATER;
+  else
+  { rc = cmpReals(&left, &right);
+    assert(rc != CMP_NOTEQ);
+  }
+  clearNumber(&left);
+  clearNumber(&right);
+
+  if ( rc == CMP_EQUAL )
+    rc = (tag(w1) == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
+
+  return rc;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 compareStandard(Word p1, Word p2, int eq)
@@ -1730,31 +1794,16 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( (t1|t2) == (TAG_INTEGER|TAG_FLOAT) && /* quick test first */
-	 !truePrologFlag(PLFLAG_ISO) && !eq )
-    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
-	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
-      { number left, right;
-	int rc;
+  { if ( eq )
+      return CMP_NOTEQ;
 
-	get_number(w1, &left);
-	get_number(w2, &right);
-	if ( left.type == V_FLOAT && isnan(left.value.f) )
-	  rc = CMP_LESS;
-	else if ( right.type == V_FLOAT && isnan(right.value.f) )
-	  rc = CMP_GREATER;
-	else
-	{ rc = cmpReals(&left, &right);
-	  assert(rc != CMP_NOTEQ);
-	}
-	clearNumber(&left);
-	clearNumber(&right);
-
-	if ( rc == CMP_EQUAL )
-	  rc = (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
-	return rc;
-      }
-    }
+    if ( (t1|t2) == (TAG_INTEGER|TAG_FLOAT) && /* quick test first */
+	 !truePrologFlag(PLFLAG_ISO) &&
+	 ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER)
+	 )
+      )
+      return compare_mixed_float_rational(w1, w2);
 
     static_assert(TAG_VAR == 0 && TAG_ATTVAR==1);
     if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
@@ -1785,42 +1834,11 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
     }
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
-      { return CMP_EQUAL;
-      } else if ( eq )
-      { return CMP_NOTEQ;
-      } else
-      { double f1 = valFloat(w1);
-	double f2 = valFloat(w2);
-
-	if ( isnan(f1) )
-	{ if ( isnan(f2) )
-	  { double nf1 = NaN_value(f1);
-	    double nf2 = NaN_value(f2);
-
-	    if ( nf1 < nf2 )
-	    { return CMP_LESS;
-	    } else if ( nf1 > nf2 )
-	    { return CMP_GREATER;
-	    } else if ( signbit(nf1) != signbit(nf2) )
-	    { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
-	    } else
-	    { return CMP_EQUAL;
-	    }
-	  }
-	  return CMP_LESS;
-	} else if ( isnan(f2) )
-	{ return CMP_GREATER;
-	}
-
-	if ( f1 < f2 )
-	{ return CMP_LESS;
-	} else if ( f1 > f2 )
-	{ return CMP_GREATER;
-	} else
-	{ assert(signbit(f1) != signbit(f2));
-	  return signbit(f1) ? CMP_LESS : CMP_GREATER;
-	}
-      }
+	return CMP_EQUAL;
+      else if ( eq )
+	return CMP_NOTEQ;
+      else
+	return compare_neq_floats(valFloat(w1), valFloat(w2));
     }
     case TAG_ATOM:
       return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
