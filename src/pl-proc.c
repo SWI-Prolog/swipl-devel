@@ -1143,7 +1143,8 @@ static Table retracted_clauses = NULL;
 
 static void
 registerRetracted(Clause cl)
-{ DEBUG(MSG_CGC_CREF_PL, Sdprintf("/**/ r(%p).\n", cl));
+{ GET_LD
+  DEBUG(MSG_CGC_CREF_PL, Sdprintf("/**/ r(%p).\n", cl));
   DEBUG(MSG_CGC_CREF_TRACK,
 	{ if ( !retracted_clauses )
 	    retracted_clauses = newHTable(1024);

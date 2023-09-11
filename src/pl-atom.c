@@ -706,12 +706,12 @@ _PL_debug_unregister_atom(atom_t a,
   assert(i>=0 && i<mx);
   if ( i >= GD->atoms.builtin )
   { Atom atom = fetchAtomArray(i);
-    unsigned int refs;
 
-    refs = unregister_atom(atom);
+    unregister_atom(atom);
     if ( atomLogFd && tracking(atom) )
       Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%zd)\n",
-	       file, line, func, refs, atom->name, i);
+	       file, line, func, ATOM_REF_COUNT(atom->references),
+	       atom->name, i);
   }
 }
 
@@ -1220,7 +1220,7 @@ unregister_atom(volatile Atom p)
 	newref |= ATOM_MARKED_REFERENCE;
     } while( !COMPARE_AND_SWAP_UINT(&p->references, oldref, newref) );
 #ifdef O_DEBUG_ATOMGC
-    if ( refs == 0 && atomLogFd && tracking(p) )
+    if ( ATOM_REF_COUNT(newref) == 0 && atomLogFd && tracking(p) )
       Sfprintf(atomLogFd, "Marked '%s' at (#%" PRIuPTR ") (unregistered)\n",
 	       p->name, indexAtom(p->atom));
 #endif
