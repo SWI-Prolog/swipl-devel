@@ -531,32 +531,33 @@ unifyAtomic(DECL_LD term_t t, word w)
 { Word p = valHandleP(t);
 
   for(;;)
-  { if ( canBind(*p) )
-    { if ( !hasGlobalSpace(0) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
-	  return raiseStackOverflow(rc);
-	p = valHandleP(t);
-	deRef(p);
-      }
-
-      bindConst(p, w);
-      succeed;
+  { switch( tag(*p) )
+    { case TAG_VAR:
+	if ( !hasTrailSpace(1) )
+	  break;
+	varBindConst(p, w);
+	return TRUE;
+      case TAG_ATTVAR:
+	if ( !hasGlobalSpace(0) )
+	  break;
+	assignAttVar(p, &w);
+	return TRUE;
+      case TAG_REFERENCE:
+	p = unRef(*p);
+	continue;
+      default:
+	if ( *p == w )
+	  return TRUE;
+	if ( isIndirect(w) && isIndirect(*p) )
+	  return equalIndirect(w, *p);
+	return FALSE;
     }
 
-    if ( isRef(*p) )
-    { p = unRef(*p);
-      continue;
-    }
-
-    if ( *p == w )
-      succeed;
-
-    if ( isIndirect(w) && isIndirect(*p) )
-      return equalIndirect(w, *p);
-
-    fail;
+    int rc = ensureGlobalSpace(0, ALLOW_GC);
+    if ( rc == TRUE )
+      p = valHandleP(t);
+    else
+      return raiseStackOverflow(rc);
   }
 }
 
