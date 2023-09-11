@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1722,11 +1722,7 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
 
   if ( w1 == w2 )
   { if ( isVar(w1) )
-    { cmpvars:
-      if ( p1 == p2 )
-	return CMP_EQUAL;
-      return p1 < p2 ? CMP_LESS : CMP_GREATER;
-    }
+      return SCALAR_TO_CMP(p1, p2);
     return CMP_EQUAL;
   }
 
@@ -1766,7 +1762,7 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
   switch(t1)
   { case TAG_VAR:
     case TAG_ATTVAR:
-      goto cmpvars;
+      return SCALAR_TO_CMP(p1, p2);
     case TAG_INTEGER:
     { number n1, n2;
       int rc;
