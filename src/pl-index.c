@@ -2913,9 +2913,9 @@ out:
 
 void
 initClauseIndexing(void)
-{ GD->clause_index.min_speedup       = 1.5;
-  GD->clause_index.max_var_fraction  = 0.1;
-  GD->clause_index.min_speedup_ratio = 10.0;
+{ GD->clause_index.min_speedup       = 1.5f;
+  GD->clause_index.max_var_fraction  = 0.1f;
+  GD->clause_index.min_speedup_ratio = 10.0f;
   GD->clause_index.max_lookahead     = 100;
   GD->clause_index.min_clauses       = 10;
 }

@@ -110,15 +110,15 @@ __builtin_popcount(size_t sz)
 #endif
 }
 
-static inline bool
+static inline int
 __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 { long long int r = a + b;
   if ( (r > 0 && a < 0 && b < 0) ||
        (r < 0 && a > 0 && b > 9) )
-    return true;
+    return TRUE;
 
   *res = r;
-  return false;
+  return FALSE;
 }
 
 #endif /*_MSC_VER*/
@@ -334,6 +334,7 @@ MSB64(int64_t i)
 #define MEMORY_RELEASE() (void)0
 #endif
 
+#ifndef max
 #define max(x,y) ( \
 	{ __auto_type __x = (x); __auto_type __y = (y); \
           __x > __y ? __x : __y; \
@@ -342,6 +343,7 @@ MSB64(int64_t i)
 	{ __auto_type __x = (x); __auto_type __y = (y); \
           __x < __y ? __x : __y; \
 	})
+#endif
 
 		 /*******************************
 		 *	 ATOMS/FUNCTORS		*
