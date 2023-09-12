@@ -970,12 +970,18 @@ valueExpression(DECL_LD term_t expr, number *result)
   number *n = result;
   number n_tmp;
   int walk_ref = FALSE;
-  Word p = valTermRef(expr);
+  Word p;
   Word start;
   int known_acyclic = FALSE;
   int pushed = 0;
   functor_t functor;
-  int old_round_mode = fegetround();
+  int old_round_mode;
+  int signalled;
+
+retry:
+  old_round_mode = fegetround();
+  signalled = FALSE;
+  p = valTermRef(expr);
 
   deRef(p);
   start = p;
@@ -1050,17 +1056,30 @@ valueExpression(DECL_LD term_t expr, number *result)
 	{ PL_no_memory();
 	  goto error;
 	}
-	if ( ++pushed > 100 && !known_acyclic )
-	{ int rc;
+	if ( ++pushed % 1024 == 0 )
+	{ if ( is_signalled() )
+	  { Word ogtop = gTop;
+	    if ( PL_handle_signals() < 0 )
+	      goto error;
+	    if ( ogtop != gTop ) /* gc or stack shift */
+	    { signalled = TRUE;
+	      goto error;
+	    }
+	  }
 
-	  if ( (rc=is_acyclic(start)) == TRUE )
-	  { known_acyclic = TRUE;
-	  } else
-	  { if ( rc == MEMORY_OVERFLOW )
-	      PL_error(NULL, 0, NULL, ERR_NOMEM);
-	    else
-	      PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
-	    goto error;
+	  if ( pushed > 1000 && !known_acyclic )
+	  { int rc;
+
+	    if ( (rc=is_acyclic(start)) == TRUE )
+	    { known_acyclic = TRUE;
+	    } else
+	    { if ( rc == MEMORY_OVERFLOW )
+		PL_error(NULL, 0, NULL, ERR_NOMEM);
+	      else
+		PL_error(NULL, 0, "cyclic term",
+			 ERR_TYPE, ATOM_expression, expr);
+	      goto error;
+	    }
 	  }
 	}
 	if ( term->definition == FUNCTOR_roundtoward2 )
@@ -1199,6 +1218,13 @@ error:
     fesetround(old_round_mode);
   }
   LD->in_arithmetic--;
+
+  if ( signalled )
+  { DEBUG(MSG_SIGNAL,
+	  Sdprintf("Interrupt in valueExpression() shifted stacks;"
+		   " restarting\n"));
+    goto retry;
+  }
 
   return FALSE;
 }
