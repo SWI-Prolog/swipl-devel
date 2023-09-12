@@ -13,7 +13,6 @@ build_type=RelWithDebInfo
 generator=Ninja
 export CC=cc
 export CXX=c++
-export CFLAGS=
 opts=
 
 config=$(basename $(pwd))
