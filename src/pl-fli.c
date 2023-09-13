@@ -2003,14 +2003,12 @@ get_float(term_t t, double *f, int error)
 
 int
 PL_get_float(term_t t, double *f)
-{ GET_LD
-  return get_float(t, f, FALSE);
+{ return get_float(t, f, FALSE);
 }
 
 int
 PL_get_float_ex(term_t t, double *f)
-{ GET_LD
-  return get_float(t, f, TRUE);
+{ return get_float(t, f, TRUE);
 }
 
 #ifdef _MSC_VER

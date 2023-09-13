@@ -1805,7 +1805,8 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
       )
       return compare_mixed_float_rational(w1, w2);
 
-    static_assert(TAG_VAR == 0 && TAG_ATTVAR==1);
+    static_assert(TAG_VAR == 0 && TAG_ATTVAR==1,
+		  "Think twice before reordering the tags");
     if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
       return t1 < t2 ? CMP_LESS : CMP_GREATER;
   }

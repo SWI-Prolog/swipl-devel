@@ -1438,7 +1438,7 @@ ar_add_si(Number n, long add)
   { case V_INTEGER:
     { long long r;
 
-      static_assert(sizeof(long long) == sizeof(int64_t));
+      static_assert(sizeof(long long) == sizeof(int64_t), "");
       if ( !__builtin_saddll_overflow(n->value.i, add, &r) )
       { n->value.i = r;
 	return TRUE;
@@ -1488,7 +1488,7 @@ pl_ar_add(Number n1, Number n2, Number r)
   { case V_INTEGER:
     { long long v;
 
-      static_assert(sizeof(long long) == sizeof(int64_t));
+      static_assert(sizeof(long long) == sizeof(int64_t), "");
       if ( !__builtin_saddll_overflow(n1->value.i, n2->value.i, &v) )
       { r->value.i = v;
 	r->type = V_INTEGER;
