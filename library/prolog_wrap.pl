@@ -78,6 +78,28 @@ calls the original wrapped definition somewhere.
 %   Registered  wrappers  __are  not  part    of   saved  states__  (see
 %   qsave_program/2) and thus need  to   be  re-registered,  for example
 %   using initialization/1.
+%
+%   An example of using wrap_predicate/4 for computing GCD:
+%   ==
+%       :- wrap_predicate(gcd(A,B,Gcd), gcd_wrap, W, gcd_wrap(W, A, B, Gcd)).
+%
+%       gcd(X, Y, Gcd), X < Y => gcd(X, Y-X, Gcd).
+%       gcd(X, Y, Gcd), X > Y => gcd(Y, X-Y, Gcd).
+%       gcd(X, _, Gcd) => Gcd = X.
+%
+%       gcd_wrap(call(Closure), X, Y, Gcd) :-
+%           functor(Closure, ClosureBlob, 3),
+%           X_eval is X,
+%           Y_eval is Y,
+%           call(ClosureBlob, X_eval, Y_eval, Gcd).
+%   ==
+%   or (less efficient):
+%   ==
+%       gcd_wrap(call(Closure), X, Y, Gcd) :-
+%           functor(Closure, ClosureBlob, 3),
+%           call(ClosureBlob, X_eval, Y_eval, G),
+%           Gcd is G.
+%   ==
 
 wrap_predicate(M:Head, WName, Wrapped, Body) :-
     '$wrap_predicate'(M:Head, WName, _Closure, Wrapped, Body).
