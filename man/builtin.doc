@@ -5942,6 +5942,8 @@ for predicates such as \nopredref{sformat}{3}, swritef/3,
 term_to_atom/2, atom_number/2 converting numbers to atoms, etc. The
 predicate format/3 accepts the same terms as output argument.
 
+For capturing other streams, see with_output_to/3.
+
 Applications should generally avoid creating atoms by breaking and
 concatenating other atoms, as the creation of large numbers of
 intermediate atoms generally leads to poor performance, even more so in

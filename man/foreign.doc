@@ -353,14 +353,23 @@ are blobs that represent textual content. Textual content is also
 represented by Prolog string (see \secref{string}), which makes the
 general notion of \jargon{string} in Prolog ambiguous. The core idea
 behind blobs/atoms is to represent arbitrary content using a
-\emph{unique} handle, such that comparing the handle is enough to prove
-equivalence of the content; i.e., given two different atom handles we
+\emph{unique} handle, such that comparing the handles is enough to prove
+equivalence of the contents; i.e., given two different atom handles we
 know they represent different texts. This uniqueness feature allows the
-core engine to reason about atoms without considering their content.
+core engine to reason about atom equality and inequality without considering
+their content.  Blobs without the \const{PL_BLOB_UNIQUE} feature are
+also tested for uniqueness without considering their
+content. Each time an atom or a \const{PL_BLOB_UNIQUE} blob
+is created, it must be looked up in the atom table; if a blob without
+\const{PL_BLOB_UNIQUE} is created, no lookup is done.
 \jargon{Strings} (\secref{string}) and blobs without the
 \const{PL_BLOB_UNIQUE} feature do \emph{not} have this uniqueness
 property - to test for equality, the contents of the strings or
-blobs must be compared.
+blobs must be compared.  For both atoms and strings, comparisons for
+ordering (e.g., used by sort/2 or @</2) must use the contents; in the
+case of blobs, \cfuncref{compare}{} can be specified in the
+\ctype{PL_blob_t} structure to override the default bitwise
+comparison.
 
 Because atoms are often used to represent (parts of) arbitrary input,
 intermediate results, and output of data processed by Prolog, it is
@@ -459,6 +468,16 @@ Succeed deterministically. PL_succeed is defined as
 Fail and start Prolog backtracking.  PL_fail is defined as \exam{return
 \const{FALSE}}.
 \end{description}
+
+Additional background reading that may be useful:
+\begin{itemize}
+\item \cite{Clocksin:83} - SWI-Prolog's interpreter is derived from this.
+\item \cite{Aït-Kaci:99} - This paper gives a detailed description of the
+   concepts behind Prolog interpreters. The main difference between this
+   and the "Zip" machine is that the Zip machine passes arguments by pushing
+   onto a stack whereas the Warren machine uses registers.
+\item \cite{Appleby:86}
+\end{itemize}
 
 \subsubsection{Non-deterministic Foreign Predicates}	\label{sec:foreignnondet}
 
@@ -690,8 +709,7 @@ read_or_block(term_t a0, int arity, void *context)
       s = PL_foreign_context_address(context);
       break;
     case PL_PRUNED:
-      PL_release_stream(s);
-      return TRUE;
+      return PL_release_stream(s);
     default:
       assert(0);
       return FALSE;
@@ -706,8 +724,8 @@ read_or_block(term_t a0, int arity, void *context)
     else
       return PL_release_stream(s);  // raise error
   } else
-  { PL_release_stream(s);
-    return PL_unify_chars(a0+1, PL_STRING|REP_ISO_LATIN_1, n, buf);
+  { return ( PL_release_stream(s) &&
+             PL_unify_chars(a0+1, PL_STRING|REP_ISO_LATIN_1, n, buf) );
   }
 }
 \end{code}
@@ -949,6 +967,42 @@ The latter increments the reference count of the atom \const{text},
 which effectively ensures the atom will never be collected.  It is
 advised to use the *_chars() or *_nchars() functions whenever
 applicable.
+
+
+\subsection{Input and output}
+\label{sec:input-and-output}
+
+For input and output, \file{SWI-Stream.h} defines a
+set of functions that are similar to the C library functions, except
+prefixed by \textbf{S}, e.g. Sfprintf(). They differ from the C
+functions in following ways:
+\begin{itemize}
+  \item Instead of returning the number of bytes written and a negative
+    value for error, they return \const{TRUE} and \const{FALSE}.
+  \item Instead of a \ctype{FILE}, they access the Prolog streams,
+    using \ctype{IOSTREAM*}. In particular, \const{Scurrent_output}
+    accesses the current output stream (similarly,
+    \const{Scurrent_intput}, \const{Suser_output},
+    \const{Suser_error}, \const{Suser_input}).
+  \item If you wish to directly use the operating system's
+    \const{stdin}, \const{stdout}, \const{stderr}, you can use
+    \const{Sinput}, \const{Soutput}, \const{Serror}.
+\end{itemize}
+
+In general, if a stream is acquired via PL_acquire_stream(), an error
+is raised when PL_release_stream() is called, so in that situation,
+there's no need to check the return codes from the IO functions. Blob
+write callbacks are also called in the context of an acquired stream,
+so there is no need to check the return codes from its IO function
+calls.  However, if you use one of the standard streams such as
+\const{Scurrent_output}, you should check the return code and return
+\const{FALSE} from the foreign predicate, at which point an error will
+be raised. Not all IO functions follow this, because they need to
+return other information, so you should check the details with each
+one (e.g., Sputcode() returns -1 on error).
+
+For more details, including formatting extensions for printing
+terms, see \secref{foreign-streams}.
 
 
 \subsection{Analysing Terms via the Foreign Interface}
@@ -1470,7 +1524,7 @@ pl_write_atoms(term_t l)
   { PL_STRINGS_MARK();
       char *s;
       if (rc=PL_get_chars(head, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
-        Sprintf("%s\n", s);
+        rc = Sfprintf(Scurrent_output, "%s\n", s);
     PL_STRINGS_RELEASE();
   }
 
@@ -1642,24 +1696,31 @@ pl_display(term_t t)
     case PL_INTEGER:
     case PL_FLOAT:
       PL_get_chars(t, &s, CVT_ALL);
-      Sprintf("%s", s);
+      if (! Sfprintf(Scurrent_output, "%s", s) )
+        PL_fail;
       break;
     case PL_STRING:
-      PL_get_string_chars(t, &s, &len);
-      Sprintf("\"%s\"", s);
+      if ( !PL_get_string_chars(t, &s, &len) &&
+           !Sfprintf(Scurrent_output, "\"%s\"", s) )
+        PL_fail;
       break;
     case PL_TERM:
     { term_t a = PL_new_term_ref();
 
-      PL_get_name_arity(t, &name, &arity);
-      Sprintf("%s(", PL_atom_chars(name));
+      if ( !PL_get_name_arity(t, &name, &arity) &&
+           !Sfprintf(Scurrent_output, "%s(", PL_atom_chars(name)) )
+        PL_fail
       for(n=1; n<=arity; n++)
-      { PL_get_arg(n, t, a);
+      { if ( ! PL_get_arg(n, t, a) )
+          PL_fail;
         if ( n > 1 )
-          Sprintf(", ");
-        pl_display(a);
+          if ( ! Sfprintf(Scurrent_output, ", ") )
+            PL_fail;
+        if ( !pl_display(a) )
+          PL_fail;
       }
-      Sprintf(")");
+      if ( !Sfprintf(Scurrent_output, ")") )
+        PL_fail;
       break;
     default:
       PL_fail;                          /* should not happen */
@@ -2373,7 +2434,7 @@ Raise \exam{type_error(expected, culprit)}.  See type_error/2.
 Raise \exam{domain_error(expected, culprit)}.  See domain_error/2.
 
     \cfunction{int}{PL_existence_error}{const char *type, term_t culprit}
-Raise \exam{existence_error(type, culprit)}.  See type_error/2.
+Raise \exam{existence_error(type, culprit)}.  See existence_error/2.
 
     \cfunction{int}{PL_permission_error}{const char *operation,
 					 const char *type, term_t culprit}
@@ -2501,7 +2562,10 @@ will not change, of course).
 While the blob is alive, neither its handle nor the location of the
 contents (see PL_blob_data()) change. If the blob's type has the
 \const{PL_BLOB_UNIQUE} feature, the content of the blob must remain
-unmodified. Blobs are \emph{only} reclaimed by the atom garbage
+unmodified.
+If the blob's type does not have the \const{PL_BLOB_UNIQUE} feature,
+then none of the instances will be equal.
+Blobs are \emph{only} reclaimed by the atom garbage
 collector. In this case the atom garbage collector calls the
 \cfuncref{release}{} function associated with the blob type and reclaims
 the memory allocated for the content unless this is owned by the creator
@@ -2514,8 +2578,8 @@ location it must make sure the handle is \jargon{registered} to prevent
 it from being garbage collected. If the handle is obtained from a
 \ctype{term_t} object it is \textbf{not} registered because it is
 protected by the \ctype{term_t} object. This applies to e.g.,
-PL_get_atom(). Functions that create a handle from data such as
-PL_new_atom() return a registered handle to prevent the asynchronous
+PL_get_atom(). Functions that create a handle from data, such as
+PL_new_atom(), return a registered handle to prevent the asynchronous
 atom garbage collector from reclaiming it immediately. Note that many of
 the API functions create an atom or blob handle and use this to fill a
 \ctype{term_t} object, e.g., PL_unify_blob(), PL_unify_chars(), etc. In
@@ -2553,7 +2617,9 @@ typedef struct PL_blob_t
 } PL_blob_t;
 \end{code}
 
-For each type, exactly one such structure should be allocated. Its first
+For each type, exactly one such structure should be allocated and
+must not be moved because the address of the structure determines the
+blob's "type". Its first
 field must be initialised to \const{PL_BLOB_MAGIC}. If a blob type is
 registered from a loadable object (shared object or DLL) the blob type
 must be deregistered using PL_unregister_blob_type() before the object
@@ -2578,7 +2644,10 @@ reference for a blob with the given type, length and content. If this
 flag is not specified, each lookup creates a new blob. Uniqueness is
 determined by comparing the bytes in the blobs unless
 \const{PL_BLOB_NOCOPY} is also specified, in which case the pointers are
-compared.
+compared. Note that the lookup does \emph{not} use the blob's
+compare function when testing for equality, but only tests the bytes;
+this means that terms from the recorded database or C++-style strings
+will typically not compare as equal when doing blob lookup.
 
     \constitem{PL_BLOB_NOCOPY}
 By default the content of the blob is copied. Using this flag the blob
@@ -2665,7 +2734,17 @@ Compare the blobs \arg{a} and \arg{b}, both of which are of the type
 associated to this blob type. Return values are as memcmp(): $< 0$ if
 \arg{a} is less than \arg{b}, $= 0$ if both are equal, and $> 0$
 otherwise. The default implementation is a bitwise comparison of the
-blobs' contents. If you cannot guarantee that the blobs all have unique
+blobs' contents. This default implementation suffices if
+\const{PL_BLOB_UNIQUE} is set and the blob follows the requirement
+that its contents do not change, although it might give an
+unexpected ordering, and the ordering may change if the blob is saved
+and restored using save_program/2.
+
+If the \cfuncref{compare}{} function is defined, the sort/2
+predicate uses that to determine if two blobs are equal and
+only keeps one of them. This can cause unexpected results
+with blobs that are actually different;
+if you cannot guarantee that the blobs all have unique
 contents, then you should incorporate the blob address (the system
 guarantees that blobs are not shifted in memory after they are
 allocated). This function should not call any PL_*() functions
@@ -2679,7 +2758,7 @@ static int
 compare_my_blob(atom_t a, atom_t b)
 { const struct my_blob_data *blob_a = PL_blob_data(a, NULL, NULL);
   const struct my_blob_data *blob_b = PL_blob_data(b, NULL, NULL);
-  return (blob_a > blob_b) ?  1 :  (blob_a < blob_b) ? -1 : 0;
+  return (blob_a < blob_b) ? -1 : (blob_a > blob_b) ? 1 : 0;
 }
 \end{code}
 
@@ -2690,7 +2769,7 @@ does \emph{not} follow the Unix convention of the number of bytes (where
 zero is possible) and negative for errors. Any I/O operations to
 \arg{s} are in the context of a PL_acquire_stream(); upon return,
 the PL_release_stream() handles any errors, so it is safe to not
-check return codes from Sprintf(), etc.
+check return codes from Sfprintf(), etc.
 
 In general, the output from the write() callback should be minimal.
 If you wish to output more debug information, it is suggested that you
@@ -2862,6 +2941,18 @@ to 0. The related atom remains existent and accessing it as a blob
 returns \const{NULL} for the data and 0 for the size.
 \end{description}
 
+
+\subsubsection{Considerations for non-C code}
+\label{sec:blob-non-c}
+
+The blob API assumes that Prolog will take care of memory management, using
+the \cfuncref{release} callback to handle any cleanup.
+
+Other programming languages have their own memory management, which
+might not fit nicely with the Prolog memory management. For more
+details on blobs written with C++, see
+\href{https://www.swi-prolog.org/pldoc/man?section=cpp2}{C++ interface
+to SWI-Prolog (Version 2)}.
 
 \subsection{Exchanging GMP numbers}
 \label{sec:gmpforeign}
@@ -3468,9 +3559,7 @@ pl_hello(term_t to)
 { char *s;
 
   if ( PL_get_atom_chars(to, &s) )
-  { Sprintf("Hello \"%s\"\n", s);
-
-    return TRUE;
+  { return Sfprintf(Scurrent_output, "Hello \"%s\"\n", s);
   } else
   { term_t except;
 
@@ -3498,9 +3587,7 @@ pl_hello(term_t to)
 { char *s;
 
   if ( PL_get_chars(to, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_MB) )
-  { Sprintf("Hello \"%s\"\n", s);
-
-    return TRUE;
+  { return Sfprintf(Scurrent_output, "Hello \"%s\"\n", s);
   }
 
   return FALSE;
@@ -4990,7 +5077,7 @@ calc(Atom) :-
 
 The C part of the application parses the command line options,
 initialises the Prolog engine, locates the \verb$calc/1$ predicate and calls
-it.  The coder is in \figref{calc}.
+it.  The code is in \figref{calc}.
 
 \begin{figure}
 \begin{code}
@@ -5052,6 +5139,7 @@ The application is now created using the command line below.  The option
 banner. Note that the \exam{-o calc} does not specify an extension. If
 the platform uses a file extension for executables, \program{swipl-ld}
 will add this (e.g., \fileext{exe} on Windows).
+For more details on the \exam{swipl-ld} command, see \secref{plld}.
 
 \begin{code}
 % swipl-ld -goal true -o calc calc.c calc.pl

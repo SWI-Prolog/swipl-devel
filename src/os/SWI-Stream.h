@@ -296,6 +296,11 @@ PL_EXPORT_DATA(int)		Slinesize;		/* Sgets() linesize */
 PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #endif
 
+/* WARNING: Sinput, Soutput, Serror use the OS's files directly.
+            If you wish to use Prolog's streams, use Suser_input,
+            Scurrent_output, etc. in SWI-Prolog.h
+*/
+
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
 #define Soutput (&S__iob[1])		/* Stream Soutput */
 #define Serror  (&S__iob[2])		/* Stream Serror */

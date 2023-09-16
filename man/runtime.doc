@@ -225,7 +225,7 @@ Equivalent to \exam{qsave_program(File, [])}.
 
     \predicate{autoload_all}{0}{}
 Check the current Prolog program for predicates that are referred to,
-are undefined and have a definition in the Prolog library.  Load the
+are undefined, and have a definition in the Prolog library.  Load the
 appropriate libraries.
 
 This predicate is used by qsave_program/[1,2] to ensure the saved state
@@ -318,8 +318,15 @@ The volatile/1 directive may be used to prevent saving the clauses of
 predicates that hold such references. The saved program must
 reinitialise such references using the normal program initialization
 techniques: use initialization/1,2 directives, explicitly create them
-by the entry point or make the various components recreate the context
+by the entry point or make the various components recreate the contextx
 lazily when required.
+
+    \item
+\jargon{Blobs} that properly implement the save() and load() callbacks
+can be saved and restored. By default a blob is saved as an array of bytes,
+of the internal form of the blob. This means that any saved program
+using such a blob is probably not portable to a different architecture.
+
 \end{itemize}
 
 
