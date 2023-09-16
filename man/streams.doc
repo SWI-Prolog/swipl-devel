@@ -22,6 +22,13 @@ extensions that wish to access or define streams should include
 \file{SWI-Stream.h} in addition to \file{SWI-Prolog.h} as below. Both
 headers may be used with C as well as C++.
 
+The interface also defines \const{Sinput}, \const{Suser}, \const{Serror}
+for direct access to the operating system's input and output streams,
+bypassing Prolog's control - for example, these will not be affected
+by with_output_to/3. There is also a convenience function for debugging,
+which goes directly to \const{stderr}: Sdprintf().\footnote{On Windows
+the output is also emitted using \cfuncref{OutputDebugString}{}.}
+
 \begin{code}
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>

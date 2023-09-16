@@ -93,7 +93,10 @@ To make changes to a package:
 Once you have made the changes, you should edit the `pack.pl` file
 to change the `version` item. After updating the git repo, issue
 a `pack_install(package_name, [upgrade(true), test(true), rebuild(make)])`
-to cause the repository to refresh.
+to cause the repository to refresh. You can simulate the full
+installation process by removing all the build files in the package
+(including any in submodules), running pack_install/1, and then
+running pack_install using a =|file://|= URL.
 
 @see    Installed packages can be inspected using =|?- doc_browser.|=
 @see    library(build/tools)
@@ -477,14 +480,17 @@ search_info(download(_)).
 %
 %   Install a package.  Spec is one of
 %
+%     * A package name.  This queries the package repository
+%       at http://www.swi-prolog.org
 %     * Archive file name
 %     * HTTP URL of an archive file name.  This URL may contain a
 %       star (*) for the version.  In this case pack_install asks
 %       for the directory content and selects the latest version.
 %     * GIT URL (not well supported yet)
-%     * A local directory name given as =|file://|= URL or `'.'`
-%     * A package name.  This queries the package repository
-%       at http://www.swi-prolog.org
+%     * A local directory name given as =|file://|= URL
+%     * `'.'`, in which case a relative symlink is created to the
+%       current directory (all other options for Spec make a copy
+%       of the files).
 %
 %   After resolving the type of package,   pack_install/2 is used to
 %   do the actual installation.
