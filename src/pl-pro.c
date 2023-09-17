@@ -154,7 +154,10 @@ query_loop(atom_t goal, int loop)
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { if ( Sferror(Suser_input) ||
+    { if ( classify_exception(except) == EXCEPT_ABORT )
+	Sclearerr(Suser_input);
+
+      if ( Sferror(Suser_input) ||
 	   Sferror(Suser_output) ||
 	   Sferror(Suser_error) )
 	return -1;

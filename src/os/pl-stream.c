@@ -679,6 +679,8 @@ S__fillbuf(IOSTREAM *s)
       { if ( !(s->flags & SIO_NOFEOF) )
 	  s->flags |= SIO_FEOF;
 	return -1;
+      } else if ( Sferror(s) )
+      { return -1;
 #ifdef EWOULDBLOCK
       } else if ( errno == EWOULDBLOCK )
       { s->bufp = s->buffer;
