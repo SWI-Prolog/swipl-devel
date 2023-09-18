@@ -1703,11 +1703,23 @@ cmp_f_f(double d1, double d2)
 }
 
 /* See https://stackoverflow.com/questions/58734034/ */
-static int cmp_i_f(int64_t i1, double d2)
-{ int64_t i1_lo = i1 & 0x00000000FFFFFFFF;
-  int64_t i1_hi = i1 & 0xFFFFFFFF00000000;
-
-  return cmp_f_f((double)i1_lo, d2-(double)i1_hi);
+static int
+cmp_i_f(int64_t i1, double d2)
+{ if ( isnan(d2) )
+  { return CMP_NOTEQ;
+  } else
+  { double d1_lo, d1_hi;
+#define TOD(i) ((double)((int64_t)(i)))
+    if ( i1 >= 0 )
+    { d1_lo = TOD(i1 & 0x00000000FFFFFFFF);
+      d1_hi = TOD(i1 & 0xFFFFFFFF00000000);
+    } else
+    { d1_lo = TOD(i1 | 0xFFFFFFFF00000000);
+      d1_hi = TOD(i1 | 0x00000000FFFFFFFF)+1.0;
+    }
+#undef TOD
+    return SCALAR_TO_CMP(d1_lo, d2-d1_hi);
+  }
 }
 
 #ifdef O_BIGNUM
