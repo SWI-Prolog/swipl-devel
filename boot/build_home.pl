@@ -131,7 +131,14 @@ user:file_search_path(foreign, AppDir) :-
 add_package(xpce, PkgBinDir) :-
     !,
     add_package_path(PkgBinDir),
-    use_module(swi('xpce/prolog/swipl-rc')).
+    (   absolute_file_name(swi('xpce/prolog/swipl-rc'),
+			   RCFile,
+			   [ access(read),
+			     file_errors(fail)
+			   ])
+    ->  use_module(RCFile)
+    ;   true
+    ).
 add_package(chr, PkgBinDir) :-
     assertz(user:file_search_path(chr, PkgBinDir)),
     assertz(user:file_search_path(chr, library(chr))),
