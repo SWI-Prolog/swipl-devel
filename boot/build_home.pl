@@ -121,7 +121,8 @@ user:file_search_path(library, swi(packages)).
 user:file_search_path(foreign, AppDir) :-
     current_prolog_flag(windows, true),
     current_prolog_flag(executable, Exe),
-    file_directory_name(Exe, AppDir).
+    prolog_to_os_filename(PlExe, Exe),
+    file_directory_name(PlExe, AppDir).
 
 %!  add_package(+Package, +PkgSrcDir, +PkgBinDir) is det.
 %
@@ -156,11 +157,15 @@ add_package(_Pkg, PkgBinDir) :-
 
 %!  add_package_path(+PkgBinDir) is det.
 %
-%   Add the source  and  binary  directories   for  the  package  to the
-%   `library` and `foreign` search paths. Note that  we only need to add
-%   the binary directory if  it  contains   shared  objects,  but  it is
-%   probably cheaper to add it anyway.
+%   Add the binary directories for the   package to the `foreign` search
+%   path. Note that we only  need  to   add  the  binary directory if it
+%   contains shared objects, but  it  is   probably  cheaper  to  add it
+%   anyway. On Windows, all .dll  files  are   in  the  directory of the
+%   executable.
 
+add_package_path(_) :-
+    current_prolog_flag(windows, true),
+    !.
 add_package_path(PkgBinDir) :-
     assertz(user:file_search_path(foreign, PkgBinDir)).
 
