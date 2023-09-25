@@ -17,6 +17,8 @@ set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ws2_32)
 
 if(MINGW_ROOT)
   include(port/MinGW)
+elseif(DEFINED ENV{CONDA_BUILD})
+  include(port/CondaWindows)
 endif()
 
 # Separator for swipl -p alias=dir<sep>dir...
