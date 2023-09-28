@@ -4143,7 +4143,7 @@ VMH(a_var_n, 1, (int), (offset))
       SAVE_REGISTERS(QID);
       lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
       if ( (fid = PL_open_foreign_frame()) )
-      { rc = valueExpression(consTermRef(p), &result);
+      { rc = evalExpression(consTermRef(p), &result);
 	PL_close_foreign_frame(fid);
       } else
       { rc = FALSE;
@@ -4365,7 +4365,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
 
     SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
-    { rc = valueExpression(pushWordAsTermRef(np), &n);
+    { rc = evalExpression(pushWordAsTermRef(np), &n);
       popTermRef();
       if ( rc )
       { ensureWritableNumber(&n);
@@ -4626,7 +4626,7 @@ VMI(I_FOPEN, 0, 0, ())
   }
 #endif
 
-  assert(DEF->functor->arity < 100);
+  DEBUG(CHK_SECURE, assert(DEF->functor->arity < 100));
 
   lTop = (LocalFrame)(ffr+1);
   ffr->size = 0;

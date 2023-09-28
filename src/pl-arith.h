@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
+    Copyright (c)  2023, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,7 @@
 #if USE_LD_MACROS
 #define	ar_func_n(findex, argc)		LDFUNC(ar_func_n, findex, argc)
 #define	valueExpression(p, n)		LDFUNC(valueExpression, p, n)
+#define evalExpression(expr, result)	LDFUNC(evalExpression, expr, result)
 #define	arithChar(p)			LDFUNC(arithChar, p)
 #define	getCharExpression(p, r)		LDFUNC(getCharExpression, p, r)
 #define	growArithStack(_)		LDFUNC(growArithStack, _)
@@ -72,6 +74,7 @@ functor_t	functorArithFunction(unsigned int n);
 bool		ar_func_n(int findex, int argc);
 int		ar_add_si(Number n, long add);
 int		valueExpression(term_t p, Number n);
+int		evalExpression(term_t p, Number n);
 int		toIntegerNumber(Number n, int flags);
 int		arithChar(Word p);
 int		getCharExpression(Word p, Number r);

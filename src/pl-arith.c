@@ -931,7 +931,10 @@ check_mpq(Number r)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-valueExpression() evaluates an `evaluable term'.
+valueExpression() and evalExpression evaluate an `evaluable term'.
+
+valueExpression() is provides a shorthand for plain variables that are
+typically integers
 
 This new implementation avoids using the C-stack   to be able to process
 more deeply nested terms and to be able  to recover in the unlikely case
@@ -960,9 +963,8 @@ popForMark(segstack *stack, Word *pp, int *wr)
   *pp = (Word)(w & ~(word)0x1);
 }
 
-
 int
-valueExpression(DECL_LD term_t expr, number *result)
+evalExpression(DECL_LD term_t expr, number *result)
 { segstack term_stack;
   segstack arg_stack;
   Word term_buf[16];
@@ -1227,6 +1229,26 @@ error:
   }
 
   return FALSE;
+}
+
+
+int
+valueExpression(DECL_LD term_t expr, number *n)
+{ Word p = valTermRef(expr);
+
+  deRef(p);
+  if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
+  { n->value.i = valInt(*p);
+    n->type = V_INTEGER;
+    return TRUE;
+  }
+  if ( tag(*p) == TAG_FLOAT )
+  { n->value.f = valFloat(*p);
+    n->type = V_FLOAT;
+    return TRUE;
+  }
+
+  return evalExpression(expr, n);
 }
 
 
