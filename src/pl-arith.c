@@ -977,11 +977,9 @@ evalExpression(DECL_LD term_t expr, number *result)
   int known_acyclic = FALSE;
   int pushed = 0;
   functor_t functor;
-  int old_round_mode;
   int signalled;
 
 retry:
-  old_round_mode = fegetround();
   signalled = FALSE;
   p = valTermRef(expr);
 
@@ -1214,7 +1212,6 @@ error:
     clearSegStack(&term_stack);
     while( popSegStack(&arg_stack, &n, number) )
       clearNumber(&n);
-    fesetround(old_round_mode);
   }
 
   if ( signalled )
