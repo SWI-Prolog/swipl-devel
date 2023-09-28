@@ -2918,12 +2918,14 @@ both flags:
 #define ALREADY_NUMBERED     (-10)
 #define CONTAINS_ATTVAR      (-11)
 #define REPRESENTATION_ERROR (-12)
+#define NV_EINTR	     (-13)
 
 #define do_number_vars(p, options, n, m) LDFUNC(do_number_vars, p, options, n, m)
 static intptr_t
 do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
 { term_agenda agenda;
   intptr_t start = n;
+  size_t progress = 0;
 
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
@@ -2967,6 +2969,11 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
       bindConst(p, v);
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
+
+      if ( options->singletons && (++progress%32768) == 0 && is_signalled() && !LD->critical )
+      { n = NV_EINTR;
+	goto out;
+      }
 
       if ( f->definition == options->functor )
       { if ( (Word)f >= m->globaltop )	/* new one we created ourselves */
@@ -3060,6 +3067,14 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	initvisited();
 	rc2 = do_number_vars(valTermRef(t), options, 0, &m);
 	unvisit();
+	if ( rc2 == NV_EINTR )
+	{ Undo(m);
+	  DiscardMark(m);
+	  if ( PL_handle_signals() < 0 )
+	    return NV_ERROR;
+	  assert(!is_signalled());
+	  continue;
+	}
 	assert(rc == rc2);
 	(void)rc2;
       }
@@ -3080,6 +3095,13 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	  DiscardMark(m);
 	  PL_representation_error("tagged_integer");
 	  return NV_ERROR;
+	case NV_EINTR:
+	  Undo(m);
+	  DiscardMark(m);
+	  if ( PL_handle_signals() < 0 )
+	    return NV_ERROR;
+	  assert(!is_signalled());
+	  continue;
 	default:
 	  Undo(m);
 	  DiscardMark(m);
@@ -3231,12 +3253,16 @@ PRED_IMPL("$unbind_template", 1, unbind_template, 0)
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
+#define TV_EINTR     ((size_t)-4)
 
-#define term_variables_loop(agenda, maxcount, flags) LDFUNC(term_variables_loop, agenda, maxcount, flags)
+#define term_variables_loop(agenda, maxcount, flags) \
+	LDFUNC(term_variables_loop, agenda, maxcount, flags)
+
 static size_t
 term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
 { Word p;
   size_t count = 0;
+  size_t progress = 0;
 
   while( (p=nextTermAgenda(agenda)) )
   { word w;
@@ -3271,6 +3297,8 @@ term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
 
       if ( visited(f) && !(flags&(TV_SINGLETON|TV_SHARED)) )
 	continue;
+      if ( (++progress % 32768) == 0 && is_signalled() && !LD->critical )
+	return TV_EINTR;
       if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
 	return TV_NOMEM;
     }
@@ -3342,6 +3370,13 @@ term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
 	return FALSE;			/* GC doesn't help */
       continue;
     }
+    if ( count == TV_EINTR )
+    { PL_reset_term_refs(v0);
+      if ( PL_handle_signals() < 0 )
+	return FALSE;
+      assert(!is_signalled());
+      continue;
+    }
     if ( count == TV_NOMEM )
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
     if ( count > maxcount )
@@ -3352,7 +3387,7 @@ term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
   for(i=0; i<count; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
-      fail;
+      return FALSE;
   }
   PL_reset_term_refs(head);
 
