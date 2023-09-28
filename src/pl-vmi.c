@@ -6770,7 +6770,7 @@ next_choice:
   for(; (void *)FR > (void *)ch; FR = FR->parent)
   {
 #ifdef O_DEBUGGER
-    if ( debugstatus.debugging && isDebugFrame(FR) )
+    if ( unlikely(debugstatus.debugging) && isDebugFrame(FR) )
     { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
 
       DEBUG(MSG_BACKTRACK,
@@ -6837,7 +6837,7 @@ next_choice:
   last_choice = ch->type;
 #endif
 
-  if ( LD->alerted )
+  if ( unlikely(LD->alerted) )
   { if ( LD->alerted & ALERT_BUFFER )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
@@ -6851,9 +6851,8 @@ next_choice:
       if ( !rc )
 	THROW_EXCEPTION;
     }
+    Profile(profFail(ch->prof_node));
   }
-
-  Profile(profFail(ch->prof_node));
 
   switch(ch->type)
   { case CHP_JUMP:
@@ -6936,7 +6935,14 @@ next_choice:
       DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
 
       if ( unlikely(LD->alerted) )
-      {
+      { if ( is_signalled() )
+	{ SAVE_REGISTERS(QID);
+	  handleSignals();
+	  LOAD_REGISTERS(QID);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
 	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE);
@@ -6961,8 +6967,12 @@ next_choice:
 		THROW_EXCEPTION;
 	    }
 	  }
+
+	  if ( !chp.cref )
+	    newChoice(CHP_DEBUG, FR);
 	}
 #endif
+
 #ifdef O_INFERENCE_LIMIT
 	if ( LD->statistics.inferences >= LD->inference_limit.limit )
 	{ SAVE_REGISTERS(QID);
@@ -6977,18 +6987,7 @@ next_choice:
       if ( chp.cref )
       { ch = newChoice(CHP_CLAUSE, FR);
 	ch->value.clause = chp;
-      } else if ( unlikely(debugstatus.debugging) )
-      { newChoice(CHP_DEBUG, FR);
       }
-
-      if ( is_signalled() )
-      { SAVE_REGISTERS(QID);
-	handleSignals();
-	LOAD_REGISTERS(QID);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-
 			/* require space for the args of the next frame */
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
       NEXT_INSTRUCTION;
