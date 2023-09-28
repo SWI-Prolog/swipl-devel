@@ -490,7 +490,6 @@ struct PL_local_data
   int		break_level;		/* current break level */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
-  int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */

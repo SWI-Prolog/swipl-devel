@@ -987,7 +987,6 @@ retry:
 
   deRef(p);
   start = p;
-  LD->in_arithmetic++;
 
   for(;;)
   { switch(tag(*p))
@@ -1107,8 +1106,7 @@ retry:
     }
 
     if ( p == start )
-    { LD->in_arithmetic--;
-      assert(n == result);
+    { assert(n == result);
 
       return TRUE;
     }
@@ -1196,8 +1194,7 @@ retry:
 
 	popForMark(&term_stack, &p, &walk_ref);
 	if ( p == start )
-	{ LD->in_arithmetic--;
-	  *result = *n;
+	{ *result = *n;
 
 	  return TRUE;
 	}
@@ -1219,7 +1216,6 @@ error:
       clearNumber(&n);
     fesetround(old_round_mode);
   }
-  LD->in_arithmetic--;
 
   if ( signalled )
   { DEBUG(MSG_SIGNAL,

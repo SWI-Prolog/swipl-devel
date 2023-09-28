@@ -79,7 +79,6 @@ resetProlog(int clear_stacks)
 
     gc_status.blocked        = 0;
     LD->shift_status.blocked = 0;
-    LD->in_arithmetic        = 0;
     LD->in_print_message     = 0;
   }
 
