@@ -562,7 +562,7 @@ set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait signals)
 endif()
-if(GMP_FOUND)
+if(O_BIGNUM)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
 endif()
 
