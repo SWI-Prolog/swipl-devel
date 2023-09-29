@@ -2391,6 +2391,7 @@ typedef struct
 #define	ARGUMENT_OVERFLOW (-4)
 #define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
 #define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
+#define CHECK_INTERRUPT   (-7)		/* Procedure was signalled */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */

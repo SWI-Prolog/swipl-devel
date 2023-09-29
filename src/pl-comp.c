@@ -402,6 +402,7 @@ typedef struct
   int		argvar;			/* islocal current pseudo var */
   int		singletons;		/* Marked singletons in disjunctions */
   int		head_unify;		/* In unifications against arguments */
+  int		progress;		/* Periodically check for interrupts */
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
   VarTable	used_var;		/* boolean array of used variables */
@@ -815,6 +816,7 @@ AVARS_MAX
 #define MAX_VARIABLES 1000000000	/* stay safely under signed int */
 #define AVARS_CYCLIC    -1
 /*	MEMORY_OVERFLOW -5 */
+/*      CHECK_INTERRUPT -7 */
 #define AVARS_MAX      -12
 
 static int
@@ -828,7 +830,9 @@ in_branch(const branch_var *from, const branch_var *to, const Word v)
 }
 
 
-#define analyseVariables2(head, nvars, argn, ci, depth, control) LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
+#define analyseVariables2(head, nvars, argn, ci, depth, control) \
+	LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
+
 static int
 analyseVariables2(DECL_LD Word head, int nvars, int argn,
 		  CompileInfo ci, int depth, int control)
@@ -908,6 +912,10 @@ right_recursion:
       resetVars();
 
       return rc == FALSE ? AVARS_CYCLIC : rc;
+    }
+    if ( (++ci->progress%32768) == 0 && is_signalled() && !LD->critical )
+    { resetVars();
+      return CHECK_INTERRUPT;
     }
 
     if ( ci->islocal )
@@ -1822,6 +1830,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 { compileInfo ci;			/* data base for the compiler */
   int rc;
 
+  ci.progress = 0;
   initBuffer(&ci.codes);
 
   C_STACK_OVERFLOW_GUARDED(
@@ -1842,30 +1851,30 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
   int rc;
 
   if ( head )
-  { ci->islocal      = FALSE;
-    ci->subclausearg = 0;
-    ci->arity        = (int)def->functor->arity;
-    ci->procedure    = proc;
-    ci->argvars      = 0;
-    ci->head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
-			( !(flags & (SSU_COMMIT_CLAUSE)) &&
-			  false(def, P_DYNAMIC) &&
-			  truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
-			)
+  { ci->islocal       = FALSE;
+    ci->subclausearg  = 0;
+    ci->arity         = (int)def->functor->arity;
+    ci->procedure     = proc;
+    ci->argvars       = 0;
+    ci->head_unify    = ( (flags&SSU_CHOICE_CLAUSE) ||
+			 (  !(flags & (SSU_COMMIT_CLAUSE)) &&
+			   false(def, P_DYNAMIC) &&
+			   truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
+			 )
 		      );
-    clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
+    clause.flags     = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
     ci->islocal      = TRUE;
     ci->subclausearg = 0;
-    ci->argvars	    = 1;
+    ci->argvars	     = 1;
     ci->argvar       = 1;
     ci->arity        = 0;
     ci->procedure    = NULL;		/* no LCO */
     ci->head_unify   = FALSE;
-    clause.flags    = GOAL_CLAUSE;
-    *g		    = *body;
+    clause.flags     = GOAL_CLAUSE;
+    *g		     = *body;
   }
 
   clause.predicate  = def;
@@ -1892,6 +1901,8 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
 			ERR_REPRESENTATION, ATOM_max_frame_size);
       case MEMORY_OVERFLOW:
 	return PL_error(NULL, 0, NULL, ERR_NOMEM);
+      case CHECK_INTERRUPT:
+	return rc;
       default:
 	assert(0);
     }
@@ -4228,13 +4239,24 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
 	Sdprintf(" ... "););
 
-  h = valTermRef(head);
-  b = valTermRef(body);
-  deRef(h);
-  deRef(b);
-  if ( compileClause(&clause, h, b, proc, module,
-		     warnings, hflags) != TRUE )
-    return NULL;
+  for(;;)
+  { int rc;
+
+    h = valTermRef(head);
+    b = valTermRef(body);
+    deRef(h);
+    deRef(b);
+    rc = compileClause(&clause, h, b, proc, module, warnings, hflags);
+    if ( rc == CHECK_INTERRUPT )
+    { if ( PL_handle_signals() < 0 )
+	return NULL;
+      assert(!is_signalled());
+      continue;
+    }
+    if ( rc != TRUE )
+      return NULL;
+    break;
+  }
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
 

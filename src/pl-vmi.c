@@ -5783,22 +5783,35 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	lTop = NFR;
 	setNextFrameFlags(NFR, FR);
 	rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0, 0);
-	if ( rc == FALSE )
-	  THROW_EXCEPTION;
-	if ( rc == LOCAL_OVERFLOW )
-	{ size_t room = roomStack(local);
-	  term_t lTopH = consTermRef(lTop);
-
-	  lTop = (LocalFrame)argFrameP(NFR, 1);
-	  SAVE_REGISTERS(QID);
-	  rc = growLocalSpace(room*2, ALLOW_SHIFT);
-	  LOAD_REGISTERS(QID);
-	  lTop = (LocalFrame)valTermRef(lTopH);
-	  if ( rc != TRUE )
-	  { raiseStackOverflow(rc);
+	switch(rc)
+	{ case TRUE:
+	    break;
+	  case FALSE:
 	    THROW_EXCEPTION;
+	  case LOCAL_OVERFLOW:
+	  case CHECK_INTERRUPT:
+	  { term_t lTopH = consTermRef(lTop);
+
+	    lTop = (LocalFrame)argFrameP(NFR, 1);
+	    SAVE_REGISTERS(QID);
+	    if ( rc == LOCAL_OVERFLOW )
+	    { size_t room = roomStack(local);
+	      rc = growLocalSpace(room*2, ALLOW_SHIFT);
+	    } else
+	    { if ( PL_handle_signals() < 0 )
+		THROW_EXCEPTION;
+	      rc = TRUE;
+	    }
+	    LOAD_REGISTERS(QID);
+	    lTop = (LocalFrame)valTermRef(lTopH);
+	    if ( rc != TRUE )
+	    { raiseStackOverflow(rc);
+	      THROW_EXCEPTION;
+	    }
+	    VMI_GOTO(I_USERCALL0);
 	  }
-	  VMI_GOTO(I_USERCALL0);
+	  default:
+	    assert(0);
 	}
 
 	DEF		  = NFR->predicate;
