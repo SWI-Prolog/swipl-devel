@@ -602,11 +602,14 @@ linkValI(DECL_LD Word p)
 #define is_signalled(_) LDFUNC(is_signalled, _)
 static inline int
 is_signalled(DECL_LD)
-{ if (!HAS_LD) return FALSE;
-  for (int i = 0; i < SIGMASK_WORDS; i++)
-  { if (unlikely(LD->signal.pending[i] != 0)) return TRUE;
+{ sigmask_t msk = 0;
+
+  if ( HAS_LD )
+  { for (int i = 0; i < SIGMASK_WORDS; i++)
+      msk |= LD->signal.pending[i];
   }
-  return FALSE;
+
+  return !!msk;
 }
 
 #define register_attvar(gp) LDFUNC(register_attvar, gp)
