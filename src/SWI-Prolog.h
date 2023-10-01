@@ -306,6 +306,7 @@ typedef union
 		*    DETERMINISTIC CALL/RETURN  *
 		*********************************/
 
+/* PL_succeed and PL_fail are deprecated */
 #define	PL_succeed	return TRUE	/* succeed deterministically */
 #define PL_fail		return FALSE	/* fail */
 
