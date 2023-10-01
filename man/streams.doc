@@ -76,16 +76,26 @@ rather than a \ctype{IOSTREAM*}.
 
     \cfunction{IOSTREAM *}{PL_acquire_stream}{IOSTREAM *s}
 Obtain ownership of \arg{s} and return \arg{s}. The application must
-call PL_release_stream() when done. Only one thread can own a stream and
-this call blocks if some other thread owns the stream. Note that
-PL_get_stream() acquires ownership. This function may be called multiple
-times by the same thread (\jargon{recursive lock}).
+call PL_release_stream() when done. Only one thread can own a stream
+and this call blocks if some other thread owns the stream. This
+function may be called multiple times by the same thread
+(\jargon{recursive lock}).
+Note that PL_get_stream() also acquires ownership.
 
     \cfunction{int}{PL_release_stream}{IOSTREAM *s}
 Give up ownership acquired using PL_acquire_stream() or PL_get_stream().
 If the stream is an an error state, return \const{FALSE} with an
 exception. Otherwise return \const{TRUE}.
 \end{description}
+
+In general, stream functions do not set any Prolog error state; that is
+done by PL_release_stream(). Once a stream is in an error state, all
+subsequent functions act as no-ops (returning -1) unless Sclearerr() is
+called. Sferror() may be used to check whether a stream is in an error
+condition. This error may be turned into a Prolog exception by calling
+PL_acquire_stream() followed by PL_release_stream(). In this case,
+PL_release_stream() which will set the Prolog exception and return
+\const{FALSE}.
 
 Below is an example that writes ``Hello World'' to a stream provided by
 Prolog. Note that PL_release_stream() raises an exception if the
@@ -562,8 +572,17 @@ written can be more. On error, it returns a negative value; in some
 cases there is extra information (e.g., in \const{errno}) but it
 cannot be relied on.
 
+Each call to Sfprintf() is atomic in the sense that another
+thread that calls Sfprintf() on the same stream will block.
+If you wish to do a series of print statements without any
+other thread interleaving, you should call PL_acquire_stream()
+and use its returned \ctype{IOSTREAM*} value, then call
+PL_release_stream() at the end of the print statements.
+
     \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
-Same as Sfprintf() but doesn't have the format-checking attribute.
+Same as Sfprintf() but doesn't have the format-checking attribute,
+which can trigger compiler warnings if the format does not match
+the arguments.
 This is intended for formats that include extended format specifiers
 such as \exam{"\%Ws"} or \exam{"\%Us"}.
 

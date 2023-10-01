@@ -968,15 +968,18 @@ prefixed by \textbf{S}, e.g. Sfprintf(). They differ from the C
 functions in following ways:
 \begin{itemize}
   \item Instead of returning the number of bytes written and a negative
-    value for error, they return \const{TRUE} and \const{FALSE}.
+    value for error, they return the number of characters written
+    and a negative value for error.
   \item Instead of a \ctype{FILE}, they access the Prolog streams,
     using \ctype{IOSTREAM*}. In particular, \const{Scurrent_output}
-    accesses the current output stream (similarly,
+    accesses the current output stream and works well with
+    with_output_to/2. Similarly, there are
     \const{Scurrent_intput}, \const{Suser_output},
-    \const{Suser_error}, \const{Suser_input}).
+    \const{Suser_error}, and \const{Suser_input}.
   \item If you wish to directly use the operating system's
     \const{stdin}, \const{stdout}, \const{stderr}, you can use
-    \const{Sinput}, \const{Soutput}, \const{Serror}.
+    \const{Sinput}, \const{Soutput}, \const{Serror}. These are
+    not affected by predicates such as with_output_to/2.
 \end{itemize}
 
 In general, if a stream is acquired via PL_acquire_stream(), an error
