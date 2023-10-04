@@ -987,6 +987,7 @@ initPrologThreads(void)
     info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;
+    info->open_count = 1;
     info->debug = TRUE;
     GD->thread.highest_id = 1;
     info->thread_data = &PL_local_data;
