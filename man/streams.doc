@@ -94,7 +94,7 @@ subsequent functions act as no-ops (returning -1) unless Sclearerr() is
 called. Sferror() may be used to check whether a stream is in an error
 condition. This error may be turned into a Prolog exception by calling
 PL_acquire_stream() followed by PL_release_stream(). In this case,
-PL_release_stream() which will set the Prolog exception and return
+PL_release_stream() will set the Prolog exception and return
 \const{FALSE}.
 
 Below is an example that writes ``Hello World'' to a stream provided by
