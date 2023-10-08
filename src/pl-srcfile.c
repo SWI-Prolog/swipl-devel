@@ -1368,11 +1368,11 @@ fix_metapredicate(p_reload *r)
       clear(def, P_TRANSPARENT);
       set(def, r->flags&P_TRANSPARENT);
 
-      freeCodesDefinition(def, FALSE);
+      freeCodesDefinition(def, TRUE);
     }
   } else if ( true(r, P_META) )
   { setMetapredicateMask(def, r->args);
-    freeCodesDefinition(def, FALSE);
+    freeCodesDefinition(def, TRUE);
   } else if ( true(r, P_TRANSPARENT) )
   { set(def, P_TRANSPARENT);
   }
