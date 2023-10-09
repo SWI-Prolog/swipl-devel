@@ -46,7 +46,7 @@
 
 :- autoload(library(ansi_term),[ansi_format/3]).
 :- autoload(library(apply),[foldl/4]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[instantiation_error/1,must_be/2]).
 :- autoload(library(lists),[member/2]).
 :- autoload(library(option),[option/2,option/3,meta_options/3]).

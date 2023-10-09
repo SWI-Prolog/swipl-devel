@@ -36,8 +36,8 @@
           [ format_paragraph/2,         % +Text, +Options
             trim_line/2               % +LineIn, -Line
           ]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(ansi_term),[ansi_format/3]).
-:- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2,type_error/2]).
 :- autoload(library(lists),[append/3,member/2,selectchk/3]).
 :- autoload(library(option),[select_option/3,option/2,option/3]).

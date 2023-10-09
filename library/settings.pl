@@ -51,10 +51,13 @@
 
             convert_setting_text/3      % +Type, +Text, -Value
           ]).
-:- use_module(library(arithmetic),[arithmetic_expression_value/2]).
+:- use_module(library(arithmetic),
+              [ arithmetic_function/1,
+                arithmetic_expression_value/2
+              ]).
 
 :- autoload(library(broadcast),[broadcast/1]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2,existence_error/2,type_error/2]).
 :- autoload(library(option),[option/3]).
 

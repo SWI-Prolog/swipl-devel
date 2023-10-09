@@ -47,7 +47,7 @@
             op(1150, fx, (persistent))
           ]).
 :- autoload(library(aggregate),[aggregate_all/3]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),
 	    [ instantiation_error/1,
 	      must_be/2,

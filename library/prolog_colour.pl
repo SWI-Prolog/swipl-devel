@@ -44,8 +44,8 @@
             syntax_message//1           % +Class
           ]).
 :- use_module(library(record),[(record)/1, op(_,_,record)]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[is_of_type/2]).
 :- autoload(library(lists),[member/2,append/3]).
 :- autoload(library(operators),

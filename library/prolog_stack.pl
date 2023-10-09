@@ -44,7 +44,7 @@
             print_last_choicepoint/0,
             print_last_choicepoint/2    % +Choice, +Options
           ]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),[nth1/3,append/3]).
 :- autoload(library(option),[option/2,option/3,merge_options/3]).

@@ -50,7 +50,7 @@
             check_predicate_options/1           % :PredicateIndicator
           ]).
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),
 	    [ existence_error/2,
 	      must_be/2,

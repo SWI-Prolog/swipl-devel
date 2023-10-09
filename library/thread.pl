@@ -52,7 +52,7 @@
 :- autoload(library(lists), [subtract/3, same_length/2, nth0/3]).
 :- autoload(library(option), [option/2, option/3]).
 :- autoload(library(ordsets), [ord_intersection/3, ord_union/3]).
-:- autoload(library(debug), [debug/3, assertion/1]).
+:- use_module(library(debug), [debug/3, assertion/1]).
 
 %:- debug(concurrent).
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2020, VU University Amsterdam
+    Copyright (c)  2012-2023, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,9 +39,9 @@
             prolog_program_clause/2     % -ClauseRef, +Options
           ]).
 :- use_module(library(record),[(record)/1, op(_,_,record)]).
+:- use_module(library(debug),[debug/3,debugging/1,assertion/1]).
 
 :- autoload(library(apply),[maplist/2]).
-:- autoload(library(debug),[debug/3,debugging/1,assertion/1]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(listing),[portray_clause/1]).
 :- autoload(library(lists),[member/2,nth1/3,append/3]).

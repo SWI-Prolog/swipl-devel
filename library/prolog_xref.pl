@@ -70,7 +70,7 @@
             xref_defined_class/3        % ?Source, ?ClassName, -How
           ]).
 :- autoload(library(apply),[maplist/2,partition/4,maplist/3]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(dialect),[expects_dialect/1]).
 :- autoload(library(error),[must_be/2,instantiation_error/1]).
 :- autoload(library(lists),[member/2,append/2,append/3,select/3]).

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2022, CWI Amsterdam
+    Copyright (c)  2018-2023, CWI Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -39,9 +39,10 @@
 	    apropos/1                   % +Search
 	  ]).
 :- use_module(library(pldoc), []).
+:- use_module(library(isub), [isub/4]).
+
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
-:- autoload(library(isub), [isub/4]).
 :- autoload(library(lists), [append/3, sum_list/2]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).

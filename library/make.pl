@@ -40,7 +40,7 @@
           ]).
 :- autoload(library(apply),[maplist/2]).
 :- autoload(library(check),[list_undefined/0,list_void_declarations/0]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(lists),[list_to_set/2,member/2]).
 :- autoload(library(option),[merge_options/3]).
 

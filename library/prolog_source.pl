@@ -49,8 +49,8 @@
             directory_source_files/3,   % +Dir, -Files, +Options
             valid_term_position/2       % +Term, +TermPos
           ]).
+:- use_module(library(debug), [debug/3, assertion/1]).
 :- autoload(library(apply), [maplist/2, maplist/3, foldl/4]).
-:- autoload(library(debug), [debug/3, assertion/1]).
 :- autoload(library(error), [domain_error/2, is_of_type/2]).
 :- autoload(library(lists), [member/2, last/2, select/3, append/3, selectchk/3]).
 :- autoload(library(operators), [push_op/3, push_operators/1, pop_operators/0]).

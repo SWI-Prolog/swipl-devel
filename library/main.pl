@@ -45,6 +45,7 @@
             cli_debug_opt_meta/2,       % -Option, -Arg
 	    cli_enable_development_system/0
           ]).
+:- use_module(library(debug), [debug/1]).
 :- autoload(library(apply), [maplist/2, maplist/3, partition/4]).
 :- autoload(library(lists), [append/3]).
 :- autoload(library(pairs), [pairs_keys/2, pairs_values/2]).

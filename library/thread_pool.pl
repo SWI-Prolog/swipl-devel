@@ -41,7 +41,7 @@
             current_thread_pool/1,      % ?Pool
             thread_pool_property/2      % ?Pool, ?Property
           ]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2,type_error/2]).
 :- autoload(library(lists),[member/2,delete/3]).
 :- autoload(library(option),

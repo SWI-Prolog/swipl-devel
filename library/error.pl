@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2020, University of Amsterdam
+    Copyright (c)  2006-2023, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,7 @@
             current_type/3              % ?Type, @Var, -Body
           ]).
 :- set_prolog_flag(generate_debug_info, false).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Error generating support
 

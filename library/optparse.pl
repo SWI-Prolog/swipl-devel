@@ -40,7 +40,7 @@
     ]).
 
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(debug),[assertion/1]).
+:- use_module(library(debug),[assertion/1]).
 :- autoload(library(error),[must_be/2, current_type/3]).
 :- autoload(library(lists),[member/2,max_list/2,reverse/2,append/3]).
 :- autoload(library(option),[merge_options/3,option/3]).

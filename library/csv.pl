@@ -53,7 +53,7 @@
 :- use_module(library(record),[(record)/1, op(_,_,record)]).
 
 :- autoload(library(apply),[maplist/2]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2,domain_error/2]).
 :- autoload(library(lists),[append/3]).
 :- autoload(library(option),[option/2,select_option/4]).

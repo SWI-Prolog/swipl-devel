@@ -43,7 +43,7 @@
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
           ]).
-:- autoload(library(debug),[debugging/1,debug/3]).
+:- use_module(library(debug),[debugging/1,debug/3]).
 :- autoload(library(listing),[portray_clause/1]).
 :- autoload(library(lists),[append/3]).
 :- autoload(library(occurs),[sub_term/2]).

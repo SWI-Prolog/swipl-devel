@@ -37,9 +37,9 @@
           [ html_text/1,                        % +FileName
             html_text/2                         % +FileName, Options
           ]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(ansi_term),[ansi_format/3]).
 :- autoload(library(apply),[foldl/4,maplist/3,maplist/2]).
-:- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),
 	    [ append/3, list_to_set/2, reverse/2, delete/3, sum_list/2,
