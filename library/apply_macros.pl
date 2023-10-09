@@ -40,11 +40,10 @@
           ]).
 % maplist expansion uses maplist.  Do not autoload.
 :- use_module(library(apply), [maplist/2, maplist/3, maplist/4]).
+:- use_module(library(yall), [is_lambda/1, lambda_calls/3]).
 % these may be autoloaded
-:- autoload(library(error),[type_error/2]).
 :- autoload(library(lists),[append/3]).
 :- autoload(library(prolog_code), [mkconj/3, extend_goal/3]).
-:- autoload(library(yall), [is_lambda/1, lambda_calls/3]).
 
 /** <module> Goal expansion rules to avoid meta-calling
 
