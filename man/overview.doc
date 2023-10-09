@@ -2306,6 +2306,13 @@ results.  Note that optimized arithmetic (\cmdlineoption{-O}, see
 Prolog flag \prologflag{optimise}) is currently not translated into
 a normal predicate call.
 
+    \prologflagitem{warn_autoload}{bool}{rw}
+If \const{true} (default \const{false}), warn when autoloading
+predicates from a file that defines global term- or goal-expansion
+rules.  These rules typically enhance performance or provide cleaner
+semantics and thus autoloading is not recommended.   Future versions
+will enable this flag by default.
+
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See

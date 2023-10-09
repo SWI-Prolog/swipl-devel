@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2021, University of Amsterdam
+    Copyright (c)  1997-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1789,6 +1789,31 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
       'See https://www.swi-prolog.org/changes/stack-limit.html'
     ].
+deprecated(autoload(TargetModule, File, _M:PI, expansion)) -->
+    !,
+    [ 'Auto-loading ', ansi(code, '~p', [PI]), ' from ' ],
+    load_file(File), [ ' into ' ],
+    target_module(TargetModule),
+    [ ' is deprecated due to term- or goal-expansion' ].
+
+load_file(File) -->
+    { file_base_name(File, Base),
+      absolute_file_name(library(Base), File, [access(read), file_errors(fail)]),
+      file_name_extension(Clean, pl, Base)
+    },
+    !,
+    [ ansi(code, '~p', [library(Clean)]) ].
+load_file(File) -->
+    [ url(File) ].
+
+target_module(Module) -->
+    { module_property(Module, file(File)) },
+    !,
+    load_file(File).
+target_module(Module) -->
+    [ 'module ', ansi(code, '~p', [Module]) ].
+
+
 
 		 /*******************************
 		 *           TRIPWIRES		*
