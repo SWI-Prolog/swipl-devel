@@ -2704,9 +2704,17 @@ ascii_to_double(cucharp s, cucharp e, double *dp)
   errno = 0;
   d = strtod((char*)s, &es);
   if ( (cucharp)es == e || (e[0] == '.' && e+1 == (cucharp)es) )
-  { if ( errno == ERANGE && fabs(d) > 1.0 )
-      return NUM_FOVERFLOW;
+  { if ( errno == ERANGE )
+    { GET_LD
 
+      if ( fabs(d) > 1.0 )
+      { if ( !(LD->arith.f.flags & FLT_OVERFLOW) )
+	  return NUM_FOVERFLOW;
+      } else
+      { if ( !(LD->arith.f.flags & FLT_UNDERFLOW) )
+	  return NUM_FOVERFLOW;
+      }
+    }
     *dp = d;
     return NUM_OK;
   }

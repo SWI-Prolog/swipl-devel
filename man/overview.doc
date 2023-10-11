@@ -1535,7 +1535,9 @@ The smallest representable floating point number above 0.0.  See also
     \prologflagitem{float_overflow}{atom}{rw}
 One of \const{error} (default) or \const{infinity}.  The first is ISO
 compliant.  Using \const{infinity}, floating point overflow is mapped
-to positive or negative \const{Inf}.  See \secref{ieee-float}.
+to positive or negative \const{Inf}.  See \secref{ieee-float}.  This
+flag also affects read_term/3 and friends, causing them to read too
+large floating point number as infinity.
 
     \prologflagitem{float_rounding}{atom}{rw}
 Defines how arithmetic rounds to a float.  Defined values are
