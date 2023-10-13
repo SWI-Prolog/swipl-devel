@@ -36,6 +36,7 @@
           [ test_agc_copyterm/0
           ]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_agc_copyterm :-
     run_tests([ agc_copyterm

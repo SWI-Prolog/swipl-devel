@@ -35,6 +35,9 @@
 
 :- module(test_db, [test_db/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
+:- use_module(library(gensym)).
+:- use_module(library(lists)).
 
 /** <module> Test Prolog core database functions
 

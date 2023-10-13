@@ -36,6 +36,9 @@
 	  [ thr_local_1/0
 	  ]).
 :- use_module(library(apply)).
+:- use_module(library(debug)).
+:- use_module(library(lists)).
+:- use_module(library(ordsets)).
 
 /** <module> Test thread local predicates
 

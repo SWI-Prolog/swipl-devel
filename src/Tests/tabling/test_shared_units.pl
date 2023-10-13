@@ -38,6 +38,8 @@
           [ test_shared_units/0
           ]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
+:- use_module(library(time)).
 
 test_shared_units :-
     run_tests([ shared_reeval

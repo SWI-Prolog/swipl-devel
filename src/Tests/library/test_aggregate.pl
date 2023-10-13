@@ -40,6 +40,7 @@
 :- use_module(library(dif)).
 :- use_module(library(hashtable)).
 :- use_module(library(lists)).
+:- use_module(library(debug)).
 
 test_aggregate :-
 	run_tests([ foreach,

@@ -35,6 +35,7 @@
 
 :- module(test_text, [test_text/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Prolog core text processing primitives
 

@@ -43,6 +43,7 @@
 :- use_module(library(apply)).
 :- use_module(library(error)).
 :- use_module(library(debug)).
+:- use_module(library(ordsets)).
 
 :- meta_predicate
     test_transaction(:).
@@ -201,9 +202,10 @@ test(isolate_retract2b, [cleanup(cleanup)]) :-
 
 test_transaction(M:List) :-
     must_be(list, List),
+    anon_threads(Initial),
     test(List, 1, _{module:M}, State),
     cleanup(State),
-    assertion(no_more_threads).
+    assertion(no_more_threads(Initial)).
 
 test([], _, State, State).
 test([discard|More], _, State, _) :-
@@ -378,12 +380,16 @@ clean_s(_Name-Thread) :-
     thread_send_message(Thread, done),
     thread_join(Thread).
 
-no_more_threads :-
+anon_threads(Threads) :-
     current_prolog_flag(threads, true),
     !,
-    findall(T, anon_thread(T), Anon),
-    Anon == [].
-no_more_threads.
+    findall(T, anon_thread(T), List),
+    sort(List, Threads).
+anon_threads([]).
+
+no_more_threads(Initial) :-
+    anon_threads(Now),
+    ord_subtract(Now, Initial, []).
 
 anon_thread(T) :-
     thread_property(T, id(_)),

@@ -36,6 +36,10 @@
 :- module(test_code_type, [test_code_type/0]).
 :- use_module(library(plunit)).
 :- use_module(library(apply)).
+:- use_module(library(aggregate)).
+:- use_module(library(debug)).
+:- use_module(library(ordsets)).
+:- use_module(library(varnumbers)).
 
 /** <module> Test Prolog text code_typeting primitives
 

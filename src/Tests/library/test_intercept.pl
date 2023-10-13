@@ -37,7 +37,7 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(intercept)).
-
+:- use_module(library(debug)).
 
 test_intercept :-
     run_tests([ intercept

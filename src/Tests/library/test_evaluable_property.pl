@@ -39,6 +39,7 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(prolog_evaluable)).
+:- use_module(library(debug)).
 
 test_evaluable_property :-
     run_tests(evaluable_property).
