@@ -769,7 +769,6 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
       { if ( rc == TRUE )
 	{ if ( !b )
 	  { clearPrologFlagMask(PLFLAG_SIGNALS);
-	    clearPrologFlagMask(PLFLAG_GCTHREAD);
 	    GD->options.nosignals = TRUE;
 	  }
 	} else
@@ -1184,7 +1183,6 @@ PL_initialise(int argc, char **argv)
   if ( GD->options.nosignals )
   { GET_LD
     clearPrologFlagMask(PLFLAG_SIGNALS);
-    clearPrologFlagMask(PLFLAG_GCTHREAD);
   }
 
   if ( GD->bootsession )
