@@ -176,7 +176,8 @@ help_html(Matches, How, HTML) :-
 					      links(false),
 					      link_source(false),
 					      navtree(false),
-					      server(false)
+					      server(false),
+                                              qualified(always)
 					    ]))
 			    ])
 		     ])),
@@ -196,7 +197,12 @@ match_type(dwim-For) -->
 man_pages([], _) -->
     [].
 man_pages([H|T], Options) -->
-    man_page(H, Options),
+    (   man_page(H, Options)
+    ->  []
+    ;   html(p(class(warning),
+               [ 'WARNING: No help for ~p'-[H]
+               ]))
+    ),
     man_pages(T, Options).
 
 page_width(Width) :-
@@ -266,7 +272,7 @@ help_object(Func, How, c(Name), ID) :-
     match_name(How, Fuzzy, Name),
     man_object_property(c(Name), id(ID)).
 % for currently loaded predicates
-help_object(Module, _How, Name/Arity, _ID) :-
+help_object(Module, _How, Module:Name/Arity, _ID) :-
     atom(Module),
     current_module(Module),
     atom_concat('sec:', Module, SecLabel),
@@ -275,10 +281,10 @@ help_object(Module, _How, Name/Arity, _ID) :-
 help_object(Name/Arity, _How, Name/Arity, _ID) :-
     atom(Name),
     current_predicate_help(_:Name/Arity).
-help_object(Fuzzy, How, Name/Arity, _ID) :-
+help_object(Fuzzy, How, Module:Name/Arity, _ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),
-    current_predicate_help(_:Name/Arity).
+    current_predicate_help(Module:Name/Arity).
 
 %!  current_predicate_help(?PI) is nondet.
 %
