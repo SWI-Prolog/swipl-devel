@@ -1331,12 +1331,15 @@ PL_get_name_arity() and PL_is_functor().
 \cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
 over \arg{name} and the arity over \arg{arity} (either or both may be NULL).
-See also PL_get_functor() and PL_is_functor().
+See also PL_get_compound_name_arity(), PL_get_functor() and PL_is_functor().
 
 \cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound term, the functor name will be assigned over
-\arg{name} and the arity over \arg{arity}.  This is the same as
-PL_get_name_arity(), but this function fails if \arg{t} is an atom.
+\arg{name} and the arity over \arg{arity} (either or both may be NULL -
+PL_get_compound_name_arity(t,NULL,NULL) is a less efficient way of doing
+PL_is_functor(t)).
+This is the same as PL_get_name_arity(), but this function fails if
+\arg{t} is an atom.
 
 \cfunction{int}{PL_get_module}{term_t +t, module_t *module}
 If \arg{t} is an atom, the system will look up or create the
@@ -2351,8 +2354,8 @@ As PL_get_intptr(), but raises a type or instantiation error if
 integer does not fit in a C \ctype{intptr_t}.
 
     \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i}
-As PL_get_size(), but raises a type or instantiation error if
-\arg{t} is not an atom, or a representation error if the Prolog
+As PL_get_intptr(), but raises a type or instantiation error if
+\arg{t} is not an integer, or a representation error if the Prolog
 integer does not fit in a C \ctype{size_t}.
 
     \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
