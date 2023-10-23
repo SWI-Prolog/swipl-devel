@@ -1117,7 +1117,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_not_less_than_zero, t);
 	}
-#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+#if SIZEOF_VOIDP == 8 && defined(O_BIGNUM)
       case V_MPZ:
       { uint64_t v;
 
