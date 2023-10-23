@@ -6858,9 +6858,14 @@ next_choice:
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
+      lTop = (LocalFrame)(ch+1);
+      FR->clause = NULL;
+      if ( LD->mark_bar != NO_MARK_BAR )
+	LD->mark_bar = gTop;
       SAVE_REGISTERS(QID);
       rc = run_undo_hooks();
       LOAD_REGISTERS(QID);
+      ch = BFR;			/* can be shifted */
       if ( !rc )
 	THROW_EXCEPTION;
     }
