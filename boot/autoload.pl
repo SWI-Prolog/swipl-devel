@@ -934,6 +934,7 @@ current_autoload(M:File, Context, Term) :-
 
 warn_autoload(TargetModule, PI) :-
     current_prolog_flag(warn_autoload, true),
+    \+ current_prolog_flag(xref, true),
     \+ nb_current('$autoload_warning', true),
     '$pi_head'(PI, Head),
     source_file(Head, File),
