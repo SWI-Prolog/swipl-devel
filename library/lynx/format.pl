@@ -246,7 +246,8 @@ float_right_space([S|T0], T, [S|R]) :-
     S = b(_,_),
     !,
     float_right_space(T0, T, R).
-float_right_space(Line, Line, []).
+float_right_space(Line0, Line, Right) :-
+    do_float_right(Line0, Line, Right).
 
 
 %!  space_dim(+Line, -SpaceVars, -Width)
