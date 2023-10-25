@@ -41,6 +41,10 @@
             message/1,                  % @Message
             messageln/1                 % @Message
           ]).
+:- if(exists_source(library(dialect/xsb/timed_call))).
+:- use_module(library(dialect/xsb/timed_call)).
+:- export(timed_call/2).
+:- endif.
 
 /** <module> XSB Term Writing to Designated I/O Streams
 
@@ -163,4 +167,3 @@ messageln(Term) :-
 
 message_elem(Term) :-
     write(user_error, Term).
-
