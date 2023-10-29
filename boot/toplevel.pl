@@ -398,6 +398,8 @@ clean_argv :-
 %   the extension registered for associated files, set the Prolog
 %   flag associated_file, switch to the directory holding the file
 %   and -if possible- adjust the window title.
+%
+%   Updates the `argv` Prolog flag.
 
 associated_files([]) :-
     current_prolog_flag(saved_program_class, runtime),
@@ -510,28 +512,28 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
-    apple_setup_app,
+    apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     '$run_initialization',
-    '$load_system_init_file',
-    set_toplevel,
-    '$set_file_search_paths',
+    '$load_system_init_file',                   % -F file
+    set_toplevel,                               % set `toplevel_goal` flag from -t
+    '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
     init_debug_flags,
-    start_pldoc,
+    start_pldoc,                                % handle --pldoc[=port]
     opt_attach_packs,
-    load_init_file,
+    load_init_file,                             % -f file
     catch(setup_colors, E, print_message(warning, E)),
     associated_files(Files),
-    '$load_script_file',
+    '$load_script_file',                        % -s file (may be repeated)
     load_associated_files(Files),
-    '$cmd_option_val'(goals, Goals),
+    '$cmd_option_val'(goals, Goals),            % -g goal (may be repeated)
     (   Goals == [],
-        \+ '$init_goal'(when(_), _, _)
+        \+ '$init_goal'(when(_), _, _)          % no -g or -t or initialization(program)
     ->  version                                 % default interactive run
-    ;   run_init_goals(Goals),
-        (   load_only
+    ;   run_init_goals(Goals),                  % run -g goals
+        (   load_only                           % used -l to load
         ->  version
-        ;   run_program_init,
-            run_main_init
+        ;   run_program_init,                   % initialization(Goal, program)
+            run_main_init                       % initialization(Goal, main)
         )
     ).
 
