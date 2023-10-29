@@ -225,6 +225,7 @@ prolog:message(initialize_now(Goal, Use)) -->
     ].
 
 '$run_initialization' :-
+    '$set_prolog_file_extension',
     '$run_initialization'(_, []),
     '$thread_init'.
 
@@ -343,11 +344,30 @@ path_sep -->
                  *   LOADING ASSIOCIATED FILES  *
                  *******************************/
 
-%!  argv_files(-Files) is det.
+%!  argv_prolog_files(-Files, -Mode) is det.
 %
-%   Update the Prolog flag `argv`, extracting the leading script files.
+%   Update the Prolog flag `argv`, extracting  the leading script files.
+%   This is called after the C based  parser removed Prolog options such
+%   as ``-q``, ``-f none``, etc. These   options  are availabkle through
+%   '$cmd_option_val'/2.
+%
+%   Our task is to update the Prolog flag   `argv`  and return a list of
+%   the files to be loaded.   The rules are:
+%
+%     - If we find ``--`` all remaining options must go to `argv`
+%     - If we find *.pl files, these are added to Files and possibly
+%       remaining arguments are "script" arguments.
+%     - If we find an existing file, this is Files and possibly
+%       remaining arguments are "script" arguments.
+%     - File we find [search:]name, find search(name) as Prolog file,
+%       make this the content of `Files` and pass the remainder as
+%       options to `argv`.
 
-argv_files(Files) :-
+argv_prolog_files([]) :-
+    current_prolog_flag(saved_program_class, runtime),
+    !,
+    clean_argv.
+argv_prolog_files(Files) :-
     current_prolog_flag(argv, Argv),
     no_option_files(Argv, Argv1, Files, ScriptArgs),
     (   (   ScriptArgs == true
@@ -392,22 +412,14 @@ clean_argv :-
     ;   true
     ).
 
-%!  associated_files(-Files)
+%!  win_associated_files(+Files)
 %
 %   If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %   the extension registered for associated files, set the Prolog
 %   flag associated_file, switch to the directory holding the file
 %   and -if possible- adjust the window title.
-%
-%   Updates the `argv` Prolog flag.
 
-associated_files([]) :-
-    current_prolog_flag(saved_program_class, runtime),
-    !,
-    clean_argv.
-associated_files(Files) :-
-    '$set_prolog_file_extension',
-    argv_files(Files),
+win_associated_files(Files) :-
     (   Files = [File|_]
     ->  absolute_file_name(File, AbsFile),
         set_prolog_flag(associated_file, AbsFile),
@@ -514,6 +526,7 @@ initialise_prolog :-
     '$clean_history',
     apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     '$run_initialization',
+    argv_prolog_files(Files),
     '$load_system_init_file',                   % -F file
     set_toplevel,                               % set `toplevel_goal` flag from -t
     '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
@@ -522,7 +535,7 @@ initialise_prolog :-
     opt_attach_packs,
     load_init_file,                             % -f file
     catch(setup_colors, E, print_message(warning, E)),
-    associated_files(Files),
+    win_associated_files(Files),                % swipl-win: cd and update title
     '$load_script_file',                        % -s file (may be repeated)
     load_associated_files(Files),
     '$cmd_option_val'(goals, Goals),            % -g goal (may be repeated)
