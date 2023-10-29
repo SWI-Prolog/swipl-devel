@@ -55,6 +55,8 @@ user:file_search_path(library, PackLib) :-
     pack_dir(_Name, prolog, PackLib).
 user:file_search_path(foreign, PackLib) :-
     pack_dir(_Name, foreign, PackLib).
+user:file_search_path(app, AppDir) :-
+    pack_dir(_Name, app, AppDir).
 
 %!  '$pack_detach'(+Name, -Dir) is det.
 %
@@ -178,7 +180,6 @@ attach_package(PackDir, Options) :-
     access_file(InfoFile, read),
     file_base_name(PackDir, Pack),
     check_existing(Pack, PackDir, Options),
-    foreign_dir(Pack, PackDir, ForeignDir),
     prolog_dir(PackDir, PrologDir),
     !,
     assertz(pack(Pack, PackDir)),
@@ -190,8 +191,12 @@ attach_package(PackDir, Options) :-
     ;   '$domain_error'(option_search, Where)
     ),
     update_autoload(PrologDir),
-    (   ForeignDir \== (-)
+    (   foreign_dir(Pack, PackDir, ForeignDir)
     ->  assertz(pack_dir(Pack, foreign, ForeignDir))
+    ;   true
+    ),
+    (   app_dir(PackDir, AppDir)
+    ->  assertz(pack_dir(Pack, app, AppDir))
     ;   true
     ),
     print_message(silent, pack(attached(Pack, PackDir))).
@@ -245,7 +250,6 @@ foreign_dir(Pack, PackDir, ForeignDir) :-
 	print_message(warning, pack(no_arch(Pack, Archs))),
         fail
     ).
-foreign_dir(_, _, (-)).
 
 arch(Arch) :-
     current_prolog_flag(apple_universal_binary, true),
@@ -258,3 +262,7 @@ ensure_slash(Dir, SDir) :-
     ->  SDir = Dir
     ;   atom_concat(Dir, /, SDir)
     ).
+
+app_dir(PackDir, AppDir) :-
+    atomic_list_concat([PackDir, '/app'], AppDir),
+    exists_directory(AppDir).

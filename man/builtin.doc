@@ -645,21 +645,42 @@ shared libraries (\fileext{so} or \fileext{DLL} files).  See also
 use_foreign_library/1.
 
 \begin{code}
-user:file_search_path(library, X) :-
-    library_directory(X).
+user:(file_search_path(library, Dir) :-
+	library_directory(Dir)).
 user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
+user:file_search_path(swi, Home) :-
+    current_prolog_flag(shared_home, Home).
+user:file_search_path(library, app_config(lib)).
+user:file_search_path(library, swi(library)).
+user:file_search_path(library, swi(library/clp)).
 user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(apple_universal_binary, true),
+    ArchLib = 'lib/fat-darwin'.
+user:file_search_path(foreign, swi(ArchLib)) :-
+    \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(lib)).
+user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([lib, Arch], /, ArchLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([bin, Arch], /, SoLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    (   current_prolog_flag(windows, true)
+    ->  SoLib = bin
+    ;   SoLib = lib
+    ).
 user:file_search_path(path, Dir) :-
     getenv('PATH', Path),
     (   current_prolog_flag(windows, true)
     ->  atomic_list_concat(Dirs, (;), Path)
     ;   atomic_list_concat(Dirs, :, Path)
     ),
-    member(Dir, Dirs).
+    '$member'(Dir, Dirs).
 user:file_search_path(user_app_data, Dir) :-
     '$xdg_prolog_directory'(data, Dir).
 user:file_search_path(common_app_data, Dir) :-
@@ -672,6 +693,8 @@ user:file_search_path(app_data, user_app_data('.')).
 user:file_search_path(app_data, common_app_data('.')).
 user:file_search_path(app_config, user_app_config('.')).
 user:file_search_path(app_config, common_app_config('.')).
+user:file_search_path(app, swi(app)).
+user:file_search_path(app, app_data(app)).
 \end{code}
 
 \index{XDG,directories}%

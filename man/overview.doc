@@ -831,45 +831,103 @@ true.
 
 \input{textdebugger.tex}
 
-\section{Compilation}			\label{sec:compilation}
+\section{Loading and running projects}		\label{sec:compilation}
 
-\subsection{During program development}	\label{sec:develcomp}
+Most Prolog programs are split over multiple files organized in a
+directory and optionally multiple subdirectories.  Typically all files
+are Prolog \jargon{module} files.  See \secref{modules}.  Typically,
+the directory contains a file, often called \file{load.pl}, that loads
+all other files (modules) using use_module/[1,2] or, for projects that
+do not use modules, using ensure_loaded/1.
 
-During program development, programs are normally loaded using the list
-abbreviation (\texttt{?- [load].}). It is common practice to organise a
-project as a collection of source files and a \jargon{load file}, a
-Prolog file containing only use_module/[1,2] or ensure_loaded/1
-directives, possibly with a definition of the \jargon{entry point} of
-the program, the predicate that is normally used to start the program.
-This file is often called \file{load.pl}. If the entry point is called
-{\em go}, a typical session starts as:
+If the project is an application (rather than a library), there are
+several ways to start it.  One option is by using the commandline
+option \cmdlineoption{-g} \arg{goal}.  The classical Prolog way is by
+using an initialization/1 \jargon{directive}.  Th problem with the
+latter is that such directives are both used for runtime
+initialization in modules and starting the application while it is
+hard to control the order in which they are executed.  For this
+reason, SWI-Prolog introduced initialization/2, adding an argument
+that specifies the role and (indirectly) the order of initialization.
+The application entry point is now declared using
 
 \begin{code}
-% swipl
-<banner>
+:- initialization(start, main).
 
-1 ?- [load].
-<compilation messages>
-true.
-
-2 ?- go.
-<program interaction>
+start :-
+    ...
 \end{code}
 
-When using Windows, the user may open \file{load.pl} from the Windows
-explorer, which will cause \program{swipl-win.exe} to be started in the
-directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
-entering the top level.  If Prolog is started from an interactive shell,
-one may choose the type \texttt{swipl -s load.pl}.
+Using these conventions we may run the application using this command line,
+where \arg{option ...} are Prolog options to control e.g., memory limits.
+Typically, none are required.  \arg{arg ...} are made available to the
+program using the Prolog flag \prologflag{argv}.
+
+\begin{code}
+% swipl [option ...] load.pl [arg ...]
+\end{code}
+
+To merely load the code without running the application, provided the
+entry point is started using the initialization/2 directive described
+above, we can use the \cmdlineoption{-l}.  After loading we can debug
+and/or edit the application.
+
+\begin{code}
+% swipl [option ...] -l load.pl [arg ...]
+\end{code}
+
+Rather than just using \nopredref{start}{0} as above, applications
+typically use main/0 from the library \pllib{main}.  The main/0
+predicate prepares for non-development usage and calls main/1 with the
+application \arg{argv} (command line arguments).  These are normally
+processed into \jargon{positional arguments} and \jargon{options}
+using argv_options/2 from the same library.
+
+While the above works fine when using Prolog from the commandline,
+it is less suitable for scenarios that make it hard to control the
+SWI-Prolog commandline which as using \program{swipl-win} or running
+Prolog under some IDE such as Emacs.  Loading a program that uses
+the above initialization/2 directive into the toplevel using
+
+\begin{code}
+?- [load].
+\end{code}
+
+does \textbf{not} start the entry point.  Opening a \fileext{.pl}
+file using \program{swipl-win} does start the entry point.
 
 
-\subsection{For running the result}	\label{sec:runcomp}
+\subsection{Running an application}	\label{sec:runcomp}
 
 There are various options if you want to make your program ready
 for real usage.  The best choice depends on whether the program
 is to be used only on machines holding the SWI-Prolog development
 system, the size of the program, and the operating system (Unix
-vs.\ Windows).
+vs.\ Windows).   There are four options
+
+\begin{itemize}
+\item On Unix-like systems one can use the \jargon{shebang} magic
+  sequence to turn a Prolog source into an executable.  See
+  \secref{plscript}.
+\item On any system you can use a \jargon{shell script} (Unix
+  \program{sh} or Windows \program{cmd}) script to start the
+  application.  See \secref{shellscript}.
+\item On any system you can create a \jargon{saved state} that
+  consists of the virtual machine code and a startup sequence.  Saved
+  states can be stand-alone and with some precautions they can work
+  without SWI-Prolog itself installed.  They start fast, but they are
+  big and creating a state from a program that uses native code
+  extensions and (file) resources is not trivial while details depend
+  on the OS and required resources.  See \secref{makestate}.
+\item On any system you can add a Prolog file to a designated
+  directory and allow it to be started using
+\begin{code}  
+swipl name [arg ...]
+\end{code}
+  New commands can be added to the Prolog installation, by Prolog
+  \jargon{packs}, in a user specific directory or in a system-wide
+  directory.  See \secref{swipl-app}.
+\end{itemize}
 
 
 \subsubsection{Using PrologScript}	\label{sec:plscript}
@@ -1050,6 +1108,65 @@ This performs exactly the same as executing
 		 ]).
 ?- halt.
 \end{code}
+
+\subsubsection{SWI-Prolog app scripts}	\label{sec:swipl-app}
+
+As of version 9.1.18, SWI-Prolog allows starting an application
+using the command below.  
+
+\begin{code}
+swipl [option ...] [path:]name [arg ...]
+\end{code}
+
+This command line first processes Prolog options described in
+\secref{cmdline}.  Note that most standard Prolog commandline options
+are not relevant.  The \cmdlineoption{-f} defaults to \const{none},
+which implies that the user init file is by default not loaded.  If an
+application wishes to load the user init file, it should load
+\verb$user_app_config(init)$ if this file exists (see
+exists_source/1).
+
+Next, it locates \exam{path(name)} using SWI-Prolog's file search
+mechanism defined by absolute_file_name/3.  After loading this file it
+demands a to find the entry point registered using initialization/2 as
+shown in \secref{compilation}.  By default, the application terminates
+after the entry point terminates.  The entry point may enable the
+interactive Prolog REPL loop by calling
+cli_enable_development_system/0.
+
+All command line options after \verb$[path:]name$ are accessible in
+the Prolog flag \prologflag{argv}.
+
+The optional \arg{path} defaults to \const{app}.  By default, apps are
+searched in the directories below.  See file_search_path/2 for
+details.
+
+\begin{enumerate}
+\item The \file{app} directory of the SWI-Prolog installation
+\item User and site configuration.  On POSIX systems using the
+  XDG file name conventions, this is normally \file{~/.local/share/swi-prolog/app/}
+  and \file{/usr/share/swi-prolog/app}.
+\item The \file{app} directory of a Prolog \jargon{pack}.
+\end{enumerate}
+
+The following apps are provided by the installation
+
+\begin{description}
+    \definition{app}
+    Print information on installed apps.   For example, to list all
+    available apps, run
+\begin{code}
+swipl app list
+\end{code}
+    \definition{pack}
+    Command line driven management of Prolog packs.  This is a front-end
+    to the Prolog library \pllib{prolog_pack}.  For example, to find
+    packages related to \textit{type}, use the command below.
+\begin{code}
+swipl pack find type
+\end{code}
+\end{description}
+
 
 \section{Environment Control (Prolog flags)}	\label{sec:flags}
 

@@ -117,7 +117,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
     library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
-    demo cmake)
+    demo cmake app)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
@@ -221,6 +221,8 @@ endif()
 
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
+
+set(SWIPL_DATA_app pack.pl app.pl README.md)
 
 ################
 # Custom targets and commands

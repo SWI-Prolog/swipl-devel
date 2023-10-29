@@ -665,6 +665,13 @@ usage_line(M) -->
     ),
     [ nl, nl ].
 
+
+cmdline(_M) -->
+    { current_prolog_flag(app_name, App),
+      !,
+      current_prolog_flag(os_argv, [Argv0|_])
+    },
+    cmdarg(Argv0), [' '-[], ansi(bold, '~w', [App])].
 cmdline(_M) -->
     { current_prolog_flag(associated_file, AbsFile),
       file_base_name(AbsFile, Base),

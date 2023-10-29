@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -88,20 +88,25 @@ version(Message) :-
                 *         INITIALISATION        *
                 *********************************/
 
-%!  load_init_file is det.
+%!  load_init_file(+ScriptMode) is det.
 %
 %   Load the user customization file. This can  be done using ``swipl -f
 %   file`` or simply using ``swipl``. In the   first  case we search the
 %   file both directly and over  the   alias  `user_app_config`.  In the
 %   latter case we only use the alias.
 
-load_init_file :-
+load_init_file(_) :-
     '$cmd_option_val'(init_file, OsFile),
     !,
     prolog_to_os_filename(File, OsFile),
     load_init_file(File, explicit).
-load_init_file :-
+load_init_file(prolog) :-
+    !,
     load_init_file('init.pl', implicit).
+load_init_file(none) :-
+    !,
+    load_init_file('init.pl', implicit).
+load_init_file(_).
 
 %!  loaded_init_file(?Base, ?AbsFile)
 %
@@ -344,7 +349,7 @@ path_sep -->
                  *   LOADING ASSIOCIATED FILES  *
                  *******************************/
 
-%!  argv_prolog_files(-Files, -Mode) is det.
+%!  argv_prolog_files(-Files, -ScriptMode) is det.
 %
 %   Update the Prolog flag `argv`, extracting  the leading script files.
 %   This is called after the C based  parser removed Prolog options such
@@ -362,15 +367,28 @@ path_sep -->
 %     - File we find [search:]name, find search(name) as Prolog file,
 %       make this the content of `Files` and pass the remainder as
 %       options to `argv`.
+%
+%   @arg ScriptMode is one of
+%
+%     - exe
+%       Program is a saved state
+%     - prolog
+%       One or more *.pl files on commandline
+%     - script
+%       Single existing file on commandline
+%     - app
+%       [path:]cli-name on commandline
+%     - none
+%       Normal interactive session
 
-argv_prolog_files([]) :-
+argv_prolog_files([], exe) :-
     current_prolog_flag(saved_program_class, runtime),
     !,
     clean_argv.
-argv_prolog_files(Files) :-
+argv_prolog_files(Files, ScriptMode) :-
     current_prolog_flag(argv, Argv),
-    no_option_files(Argv, Argv1, Files, ScriptArgs),
-    (   (   ScriptArgs == true
+    no_option_files(Argv, Argv1, Files, ScriptMode),
+    (   (   nonvar(ScriptMode)
         ;   Argv1 == []
         )
     ->  (   Argv1 \== Argv
@@ -381,30 +399,55 @@ argv_prolog_files(Files) :-
         halt(1)
     ).
 
-no_option_files([--|Argv], Argv, [], true) :- !.
-no_option_files([Opt|_], _, _, ScriptArgs) :-
-    ScriptArgs \== true,
+no_option_files([--|Argv], Argv, [], ScriptMode) :-
+    !,
+    (   ScriptMode = none
+    ->  true
+    ;   true
+    ).
+no_option_files([Opt|_], _, _, ScriptMode) :-
+    var(ScriptMode),
     sub_atom(Opt, 0, _, _, '-'),
     !,
     '$usage',
     halt(1).
-no_option_files([OsFile|Argv0], Argv, [File|T], ScriptArgs) :-
+no_option_files([OsFile|Argv0], Argv, [File|T], ScriptMode) :-
     file_name_extension(_, Ext, OsFile),
     user:prolog_file_type(Ext, prolog),
     !,
-    ScriptArgs = true,
+    ScriptMode = prolog,
     prolog_to_os_filename(File, OsFile),
-    no_option_files(Argv0, Argv, T, ScriptArgs).
-no_option_files([OsScript|Argv], Argv, [Script], ScriptArgs) :-
-    ScriptArgs \== true,
+    no_option_files(Argv0, Argv, T, ScriptMode).
+no_option_files([OsScript|Argv], Argv, [Script], ScriptMode) :-
+    var(ScriptMode),
     !,
-    prolog_to_os_filename(Script, OsScript),
-    (   exists_file(Script)
+    prolog_to_os_filename(PlScript, OsScript),
+    (   exists_file(PlScript)
+    ->  Script = PlScript,
+        ScriptMode = script
+    ;   cli_script(OsScript, Script)
+    ->  ScriptMode = app,
+        set_prolog_flag(app_name, OsScript)
+    ;   '$existence_error'(file, PlScript)
+    ).
+no_option_files(Argv, Argv, [], ScriptMode) :-
+    (   ScriptMode = none
     ->  true
-    ;   '$existence_error'(file, Script)
+    ;   true
+    ).
+
+cli_script(CLI, Script) :-
+    (   sub_atom(CLI, Pre, _, Post, ':')
+    ->  sub_atom(CLI, 0, Pre, _, SearchPath),
+        sub_atom(CLI, _, Post, 0, Base),
+        Spec =.. [SearchPath, Base]
+    ;   Spec = app(CLI)
     ),
-    ScriptArgs = true.
-no_option_files(Argv, Argv, [], _).
+    absolute_file_name(Spec, Script,
+                       [ file_type(prolog),
+                         access(exist),
+                         file_errors(fail)
+                       ]).
 
 clean_argv :-
     (   current_prolog_flag(argv, [--|Argv])
@@ -433,7 +476,7 @@ win_associated_files(Files) :-
 %   When opening as a GUI application, e.g.,  by opening a file from
 %   the Finder/Explorer/..., we typically  want   to  change working
 %   directory to the location of  the   primary  file.  We currently
-%   detect that we are a GUI app  by the Prolog flag =console_menu=,
+%   detect that we are a GUI app  by the Prolog flag `console_menu`,
 %   which is set by swipl-win[.exe].
 
 set_working_directory(File) :-
@@ -458,8 +501,7 @@ set_window_title(_).
 
 %!  start_pldoc
 %
-%   If the option  =|--pldoc[=port]|=  is   given,  load  the  PlDoc
-%   system.
+%   If the option ``--pldoc[=port]`` is given, load the PlDoc system.
 
 start_pldoc :-
     '$cmd_option_val'(pldoc_server, Server),
@@ -526,27 +568,30 @@ initialise_prolog :-
     '$clean_history',
     apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     '$run_initialization',
-    argv_prolog_files(Files),
+    argv_prolog_files(Files, ScriptMode),
     '$load_system_init_file',                   % -F file
     set_toplevel,                               % set `toplevel_goal` flag from -t
     '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
     init_debug_flags,
     start_pldoc,                                % handle --pldoc[=port]
     opt_attach_packs,
-    load_init_file,                             % -f file
+    load_init_file(ScriptMode),                 % -f file
     catch(setup_colors, E, print_message(warning, E)),
     win_associated_files(Files),                % swipl-win: cd and update title
     '$load_script_file',                        % -s file (may be repeated)
     load_associated_files(Files),
     '$cmd_option_val'(goals, Goals),            % -g goal (may be repeated)
-    (   Goals == [],
+    (   ScriptMode == app
+    ->  run_program_init,                       % initialization(Goal, program)
+        run_main_init(true)
+    ;   Goals == [],
         \+ '$init_goal'(when(_), _, _)          % no -g or -t or initialization(program)
     ->  version                                 % default interactive run
     ;   run_init_goals(Goals),                  % run -g goals
         (   load_only                           % used -l to load
         ->  version
         ;   run_program_init,                   % initialization(Goal, program)
-            run_main_init                       % initialization(Goal, main)
+            run_main_init(false)                % initialization(Goal, main)
         )
     ).
 
@@ -620,7 +665,7 @@ run_program_init :-
     forall('$init_goal'(when(program), Goal, Ctx),
            run_init_goal(Goal, @(Goal,Ctx))).
 
-run_main_init :-
+run_main_init(_) :-
     findall(Goal-Ctx, '$init_goal'(when(main), Goal, Ctx), Pairs),
     '$last'(Pairs, Goal-Ctx),
     !,
@@ -629,7 +674,9 @@ run_main_init :-
     ;   true
     ),
     run_init_goal(Goal, @(Goal,Ctx)).
-run_main_init.
+run_main_init(true) :-
+    '$existence_error'(initialization, main).
+run_main_init(_).
 
 run_init_goal(Goal, Ctx) :-
     (   catch_with_backtrace(user:Goal, E, true)

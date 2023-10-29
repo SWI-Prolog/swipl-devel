@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1102,6 +1102,8 @@ user:file_search_path(app_config, common_app_config('.')).
 % backward compatibility
 user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
+user:file_search_path(app, swi(app)).
+user:file_search_path(app, app_data(app)).
 
 '$xdg_prolog_directory'(Which, Dir) :-
     '$xdg_directory'(Which, XDGDir),
