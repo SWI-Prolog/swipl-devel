@@ -576,6 +576,7 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
     return TRUE;
   } else if ( PL_is_variable(out) )
   { tmp_buffer b;
+    int rc;
 
     if ( tin.encoding == ENC_ISO_LATIN_1 )
     { const unsigned char *in = (const unsigned char*)tin.text.t;
@@ -635,12 +636,13 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
       tout.canonical = FALSE;
     }
 
-    PL_unify_text(out, 0, &tout, text_type);
+    rc = PL_unify_text(out, 0, &tout, text_type);
+    PL_free_text(&tin);
     PL_free_text(&tout);
     if ( tin.encoding != ENC_ISO_LATIN_1 )
       discardBuffer(&b);
 
-    succeed;
+    return rc;
   } else
   { return PL_error(NULL, 0, NULL, ERR_TYPE,
 		    text_type == PL_STRING ? ATOM_string : ATOM_atom,
