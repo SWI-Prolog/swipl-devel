@@ -2036,19 +2036,26 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
 		*           TOKENISER           *
 		*********************************/
 
-static inline ucharp
-skipSpaces(cucharp in)
-{ int chr;
-  ucharp s;
+const char *
+utf8_skip_blanks(const char *in)
+{ char *s;
 
   for( ; *in; in=s)
-  { s = utf8_get_uchar(in, &chr);
+  { int chr;
+
+    s = utf8_get_char(in, &chr);
 
     if ( !PlBlankW(chr) )
-      return (ucharp)in;
+      return in;
   }
 
-  return (ucharp)in;
+  return in;
+}
+
+
+static inline ucharp
+skipSpaces(cucharp in)
+{ return (ucharp)utf8_skip_blanks((const char*)in);
 }
 
 

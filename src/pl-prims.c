@@ -4103,51 +4103,64 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
     }
     case X_NUMBER:
     case X_AUTO:
-    { strnumstat rc;
+    { strnumstat nrc = NUM_ERROR;
 
       if ( stext.encoding == ENC_ISO_LATIN_1 ||
 	   stext.encoding == ENC_UTF8 )
-      { unsigned char *q, *s;
+      { const char *s;
+	unsigned char *q;
 	number n;
 
       utf8:
-	s = (unsigned char *)stext.text.t;
+	s = stext.text.t;
 
+	/* ISO: number_codes(X, "  42") */
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
-	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
-	    s++;
-	}
+	  s = utf8_skip_blanks(s);
 
-	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK )
-	{ if ( *q == EOS )
-	  { int rc2 = PL_unify_number(atom, &n);
+	if ( (nrc=str_number((const unsigned char*)s, &q, &n, 0)) == NUM_OK )
+	{ if ( (char*)q == stext.text.t + stext.length )
+	  { int rc = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    PL_free_text(&stext);
-	    return rc2;
-	  } else
-	    rc = NUM_ERROR;
+	    return rc;
+	  }
 	  clearNumber(&n);
+	  nrc = NUM_ERROR;
 	}
       } else if ( stext.encoding == ENC_WCHAR )
-      { wchar_t *ws = stext.text.w;
+      { const wchar_t *ws = stext.text.w;
+	const wchar_t *we = ws + stext.length;
+	int c;
 
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
-	{ while(*ws && isBlankW(*ws))		/* ISO: number_codes(X, "  42") */
-	    ws++;
+	{ while(ws < we)
+	  { const wchar_t *ce = get_wchar(ws, &c);
+	    if ( isBlankW(c) )
+	      ws = ce;
+	    else
+	      break;
+	  }
 	}
 
-	if ( *ws == '-' || *ws == '+' )
-	  ws++;
-	if ( f_is_decimal(*ws) )
-	{ if ( !PL_mb_text(&stext, REP_UTF8) )
-	  { PL_free_text(&stext);
-	    return FALSE;
+	if ( ws < we )
+	{ const wchar_t *ce = get_wchar(ws, &c);
+	  if ( c == '-' || c == '+' )
+	    ws = ce;
+	}
+
+	if ( ws < we )
+	{ get_wchar(ws, &c);
+
+	  if ( f_is_decimal(c) )
+	  { if ( !PL_mb_text(&stext, REP_UTF8) )
+	    { PL_free_text(&stext);
+	      return FALSE;
+	    }
+	    goto utf8;
 	  }
-	  goto utf8;
-	} else
-	  rc = NUM_ERROR;
-      } else
-	rc = NUM_ERROR;
+	}
+      }
 
       if ( (how&X_MASK) == X_AUTO )
       { goto case_atom;
@@ -4155,7 +4168,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
       { PL_free_text(&stext);
 
 	if ( !(how & X_NO_SYNTAX_ERROR) )
-	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(nrc));
 	else
 	  return FALSE;
       }
