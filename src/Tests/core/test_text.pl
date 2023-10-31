@@ -53,6 +53,7 @@ test_text :-
 		    atom_to_term,
 		    number_codes,
 		    number_chars,
+		    name,
 		    sub_atom,
 		    atomic_list_concat,
                     substring
@@ -233,6 +234,19 @@ test(iso2, error(type_error(list, [a|1]))) :-
 	number_chars(1, [a|1]).
 
 :- end_tests(number_chars).
+
+:- begin_tests(name).
+
+test(int, X == 42) :-
+	name(X, `42`).
+test(atom, X == ' 42') :-
+	name(X, ` 42`).
+test(atom, X == '42 ') :-
+	name(X, `42 `).
+test(atom, X == '42 \u8607') :-		% test wchar conversion
+	name(X, `42 \u8607`).
+
+:- end_tests(name).
 
 :- begin_tests(sub_atom).
 

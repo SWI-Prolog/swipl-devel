@@ -1074,10 +1074,11 @@ PL_mb_text(PL_chars_t *text, int flags)
 
     PL_free_text(text);
 
-    text->length   = sizeOfBuffer(b)-1;
-    text->text.t   = baseBuffer(b, char);
-    text->encoding = target;
-    text->storage  = PL_CHARS_RING;
+    text->length    = sizeOfBuffer(b)-1;
+    text->text.t    = baseBuffer(b, char);
+    text->encoding  = target;
+    text->canonical = (target == ENC_ISO_LATIN_1);
+    text->storage   = PL_CHARS_RING;
   }
 
   succeed;
