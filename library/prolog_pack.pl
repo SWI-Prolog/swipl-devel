@@ -593,6 +593,7 @@ pack_select_candidate(Pack, [AtomVersion-_|_], Options,
     atom_version(InstalledAtom, Installed),
     atom_version(AtomVersion, Version),
     Installed @>= Version,
+    in_explicit_pack_dir(Pack, Options),
     !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
     option(url(URL), Options),
@@ -645,6 +646,15 @@ url_menu_item(URL, git(URL)=install_from(git(URL))) :-
     !.
 url_menu_item(URL, URL=install_from(URL)).
 
+%!  in_explicit_pack_dir(+Pack, +Options) is semidet.
+%
+%   True when Pack is installed in the explicit target directory.
+
+in_explicit_pack_dir(Pack, Options) :-
+    option(package_directory(Root), Options),
+    current_pack(Pack, PackDir),
+    file_directory_name(PackDir, Parent),
+    same_file(Parent, Root).
 
 %!  pack_install(+Name, +Options) is det.
 %
@@ -781,6 +791,10 @@ pack_install(Name, _, Options) :-
     current_pack(Name, Dir),
     option(upgrade(false), Options, false),
     \+ pack_is_in_local_dir(Name, Dir, Options),
+    (   option(package_directory(_), Options)
+    ->  in_explicit_pack_dir(Name, Options)
+    ;   true
+    ),
     print_message(error, pack(already_installed(Name))),
     pack_info(Name),
     print_message(information, pack(remove_with(Name))),
@@ -1138,7 +1152,7 @@ download_scheme(https) :-
 pack_post_install(Pack, PackDir, Options) :-
     post_install_foreign(Pack, PackDir, Options),
     post_install_autoload(PackDir, Options),
-    '$pack_attach'(PackDir).
+    attach_packs(PackDir, [duplicate(warning)]).
 
 %!  pack_rebuild(+Pack) is det.
 %
@@ -1523,7 +1537,7 @@ version_tag_prefix('').
 :- public
     atom_version/2.
 
-%!  atom_version(?Atom, ?Version)
+%   atom_version(?Atom, ?Version)
 %
 %   Translate   between   atomic   version   representation   and   term
 %   representation.  The  term  representation  is  a  list  of  version
