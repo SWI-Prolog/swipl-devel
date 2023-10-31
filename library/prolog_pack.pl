@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2021, VU University Amsterdam
+    Copyright (c)  2012-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -664,6 +664,9 @@ url_menu_item(URL, URL=install_from(URL)).
 %     existing and writable directory.  If that doesn't exist find
 %     locations where it can be created and prompt the user to do
 %     so.
+%     * insecure(+Boolean)
+%     When `true` (default `false`), do not perform any checks on SSL
+%     certificates when downloading using `https`.
 %     * interactive(+Boolean)
 %     Use default answer without asking the user if there
 %     is a default action.
@@ -1035,10 +1038,12 @@ pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
     pack_download_dir(PackTopDir, DownLoadDir),
     download_file(URL, Pack, DownloadBase, Options),
     directory_file_path(DownLoadDir, DownloadBase, DownloadFile),
+    (   option(insecure(true), Options, false)
+    ->  TLSOptions = [cert_verify_hook(ssl_verify)]
+    ;   TLSOptions = []
+    ),
     setup_call_cleanup(
-        http_open(URL, In,
-                  [ cert_verify_hook(ssl_verify)
-                  ]),
+        http_open(URL, In, TLSOptions),
         setup_call_cleanup(
             open(DownloadFile, write, Out, [type(binary)]),
             copy_stream_data(In, Out),
@@ -1086,7 +1091,7 @@ pack_url_file(URL, FileID) :-
 
 :- public ssl_verify/5.
 
-%!  ssl_verify(+SSL, +ProblemCert, +AllCerts, +FirstCert, +Error)
+%   ssl_verify(+SSL, +ProblemCert, +AllCerts, +FirstCert, +Error)
 %
 %   Currently we accept  all  certificates.   We  organise  our  own
 %   security using SHA1 signatures, so  we   do  not  care about the
