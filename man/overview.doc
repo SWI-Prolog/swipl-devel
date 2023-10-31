@@ -910,10 +910,10 @@ disabling signal handling.
 :- initialization(main, main).
 
 main(Argv) :-
-	concat_atom(Argv, ' ', SingleArg),
-	term_to_atom(Term, SingleArg),
-	Val is Term,
-	format('~w~n', [Val]).
+    atomic_list_concat(Argv, ' ', SingleArg),
+    term_to_atom(Term, SingleArg),
+    Val is Term,
+    format('~w~n', [Val]).
 \end{code}
 
 And here are two example runs:
@@ -967,26 +967,27 @@ Especially on Unix systems and not-too-large applications, writing
 a shell script that simply loads your application and calls the
 entry point is often a good choice.  A skeleton for the script is
 given below, followed by the Prolog code to obtain the program
-arguments.
+arguments.  See library \pllib{main} and argv_options/3 for details.
 
 \begin{code}
 #!/bin/sh
 
 base=<absolute-path-to-source>
-PL=swipl
+SWIPL=swipl
 
-exec $PL -q -f "$base/load" --
+exec $SWIPL "$base/load.pl" -- "$@"
 \end{code}
 
 \begin{code}
-:- initialization go.
+:- use_module(library(main)).
+:- initialization(main,main).
 
-go :-
-	current_prolog_flag(argv, Arguments),
-	go(Arguments).
+main(Argv) :-
+    argv_options(Argv, Positional, Options),
+    go(Positional, Options).
 
-go(Args) :-
-	...
+go(Positional, Options) :-
+    ...
 \end{code}
 
 On Windows systems, similar behaviour can be achieved by creating a
