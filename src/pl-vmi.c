@@ -4632,7 +4632,7 @@ VMI(I_FOPEN, 0, 0, ())
   ffr->size = 0;
   NoMark(ffr->mark);
   ffr->parent = fli_context;
-  ffr->magic = FLI_MAGIC;
+  FLI_SET_VALID(ffr);
   fli_context = ffr;
   FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(QID);
@@ -4811,7 +4811,7 @@ VMH(foreign_redo, 0, (), ())
   ffr->size = 0;
   NoMark(ffr->mark);
   ffr->parent = fli_context;
-  ffr->magic = FLI_MAGIC;
+  FLI_SET_VALID(ffr);
   fli_context = ffr;
   FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(QID);

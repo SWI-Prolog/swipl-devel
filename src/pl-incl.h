@@ -1824,10 +1824,24 @@ struct queryFrame
 
 #define FLI_MAGIC		82649821
 #define FLI_MAGIC_CLOSED	42424242
+#ifdef O_DEBUG
+#define FLI_SET_VALID(fr)	((fr)->magic = FLI_MAGIC)
+#define FLI_SET_CLOSED(fr)	((fr)->magic = FLI_MAGIC_CLOSED)
+#define FLI_VALID(fr)		((fr)->magic == FLI_MAGIC)
+#define FLI_ASSERT_VALID(fr)	assert(FLI_VALID(fr))
+#else
+#define FLI_SET_VALID(fr)	(void)0
+#define FLI_SET_CLOSED(fr)	(void)0
+#define FLI_VALID(fr)		(1)
+#define FLI_ASSERT_VALID(fr)	(void)0
+#endif
 
 struct fliFrame
-{ int		magic;			/* Magic code */
-  int		size;			/* # slots on it */
+{
+#ifdef O_DEBUG
+  int		magic;			/* Magic code */
+#endif
+  size_t	size;			/* # slots on it */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
 };

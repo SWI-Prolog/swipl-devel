@@ -191,7 +191,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
   if ( LD->var_names.numbervars_frame )
   { FliFrame fr = (FliFrame)valTermRef(LD->var_names.numbervars_frame);
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     if ( false(options, PL_WRT_NUMBERVARS) &&
          fr->mark.globaltop > (Word)f )
       return FALSE;			/* older $VAR term */

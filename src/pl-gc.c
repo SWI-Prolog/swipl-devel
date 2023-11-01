@@ -1026,7 +1026,7 @@ mark_term_refs()
 	  Sdprintf("Marking foreign frame %ld (size=%d)\n",
 		   (Word)fr-(Word)lBase, n));
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     for( ; n-- > 0; sp++ )
     { if ( !is_marked(sp) )
       { if ( isGlobalRef(*sp) )
@@ -1661,7 +1661,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 #define mark_foreign_frame(fr, te) LDFUNC(mark_foreign_frame, fr, te)
 static GCTrailEntry
 mark_foreign_frame(DECL_LD FliFrame fr, GCTrailEntry te)
-{ DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+{ FLI_ASSERT_VALID(fr);
 
   if ( isRealMark(fr->mark) )
   { te = early_reset_vars(&fr->mark, (Word)fr, te);
@@ -2972,7 +2972,7 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+    FLI_ASSERT_VALID(fr);
 
     if ( isRealMark(fr->mark) )
       sweep_mark(&fr->mark);
@@ -4077,7 +4077,7 @@ check_foreign(void)
   { Word sp = refFliP(ff, 0);
     int n = ff->size;
 
-    assert(ff->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(ff);
     if ( ff->parent )
     { assert(ff->parent < ff);
       assert(onStack(local, ff->parent));

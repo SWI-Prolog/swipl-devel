@@ -334,10 +334,10 @@ bArgVar(DECL_LD Word ap, Word vp)
 		 *******************************/
 
 term_t
-PL_new_term_refs(DECL_LD int n)
+PL_new_term_refs(DECL_LD size_t n)
 { Word t;
   term_t r;
-  int i;
+  size_t i;
   FliFrame fr;
 
   if ( !ensureLocalSpace(n*sizeof(word)) )
@@ -404,7 +404,7 @@ PL_new_term_ref_noshift(DECL_LD)
 
 
 API_STUB(term_t)
-(PL_new_term_refs)(int n)
+(PL_new_term_refs)(size_t n)
 ( if ( (void*)fli_context <= (void*)environment_frame )
     fatalError("PL_new_term_refs(): No foreign environment");
 

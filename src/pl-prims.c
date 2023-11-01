@@ -2098,7 +2098,7 @@ PRED_IMPL("?=", 2, can_compare, 0)
   if ( rc )
   { FliFrame fr = (FliFrame) valTermRef(fid);
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     if ( fr->mark.trailtop != tTop )
       rc = FALSE;
   } else if ( exception_term )

@@ -320,7 +320,7 @@ open_foreign_frame(DECL_LD)
   Mark(fr->mark);
   DEBUG(CHK_SECURE, assert(fr>fli_context));
   fr->parent = fli_context;
-  fr->magic = FLI_MAGIC;
+  FLI_SET_VALID(fr);
   fli_context = fr;
 
   return consTermRef(fr);
@@ -331,10 +331,10 @@ void
 PL_close_foreign_frame(DECL_LD fid_t id)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
-  if ( !id || fr->magic != FLI_MAGIC )
+  if ( !id || !FLI_VALID(fr) )
     sysError("PL_close_foreign_frame(): illegal frame: %d", id);
   DiscardMark(fr->mark);
-  fr->magic = FLI_MAGIC_CLOSED;
+  FLI_SET_CLOSED(fr);
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
 }
@@ -383,7 +383,7 @@ PL_open_signal_foreign_frame(int sync)
   }
 
   fr = addPointer(lTop, margin);
-  fr->magic = FLI_MAGIC;
+  FLI_SET_VALID(fr);
   fr->size = 0;
   Mark(fr->mark);
   fr->parent = fli_context;

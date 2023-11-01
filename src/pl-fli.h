@@ -128,7 +128,7 @@ void		popTermRef(void);
 int		_PL_get_arg(size_t index, term_t t, term_t a);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
-term_t		PL_new_term_refs(int n);
+term_t		PL_new_term_refs(size_t n);
 functor_t	PL_new_functor_sz(atom_t f, size_t arity);
 int		globalizeTermRef(term_t t);
 void		PL_reset_term_refs(term_t r);
