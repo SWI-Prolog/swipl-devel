@@ -397,9 +397,9 @@ is not buffered (\const{SIO_NBUF}).
     \cfunction{int}{Sgetw}{IOSTREAM *s}
 Reads/writes an integer in native byte order.  Deprecated.
 
-    \cfunction{int}{Sfread}{void *data, size_t size, size_t elems, IOSTREAM *s}
+    \cfunction{size_t}{Sfread}{void *data, size_t size, size_t elems, IOSTREAM *s}
     \nodescription
-    \cfunction{int}{Sfwrite}{const void *data, size_t size, size_t elems, IOSTREAM *s}
+    \cfunction{size_t}{Sfwrite}{const void *data, size_t size, size_t elems, IOSTREAM *s}
 Emulations of the POSIX fread() and fwrite() calls for Prolog streams.
 These functions read or write \arg{elems} objects of size \arg{size} and
 return the number of objects successfully read or written. Data exchange
