@@ -2379,7 +2379,13 @@ binding $X$.
 \prefixop[ISO]{\+}{:Goal}
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
-indicate negation in Prolog).
+  indicate negation in Prolog).  In contrast to the ISO standard, but
+  compatible with several other Prolog systems, SWI-Prolog implements
+  \predref{\+}{1} as a \jargon{control structure}.  This implies that
+  its argument is compiled as part of the enclosing clause and possible
+  variables in goal positions are translated to call/1.  As a result,
+  if such a variable is at runtime bound to a (\predref{!}{0}), the
+  cut is scoped to the call/1 call rather than the enclosing \predref{\+}{1}.
 
 Many Prolog implementations (including SWI-Prolog) provide not/1. The
 not/1 alternative is deprecated due to its strong link to logical
