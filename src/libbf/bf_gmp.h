@@ -119,6 +119,12 @@ mpz_init_set_ui(mpz_t r, unsigned long n)
 }
 
 static inline void
+mpz_init_set_ui64(mpz_t r, uint64_t n)
+{ bf_init(&alloc_wrapper.bf_context, r);
+  bf_set_ui(r, n);
+}
+
+static inline void
 mpz_init_set_si64(mpz_t r, int64_t n)
 { bf_init(&alloc_wrapper.bf_context, r);
   bf_set_si(r, n);

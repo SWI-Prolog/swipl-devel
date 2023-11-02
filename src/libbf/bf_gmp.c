@@ -257,12 +257,12 @@ mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
 
 void
 mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
-{ unsigned long N = n;
-  unsigned long R = 1;
+{ uint64_t N = n;
+  uint64_t R = 1;
   mpz_t Nz;
 
   while ( x )
-  { unsigned long N1, R1=R;
+  { uint64_t N1, R1=R;
     unsigned long x1 = x;
 
     if ( x & 0x1 )
@@ -277,11 +277,11 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
     R = R1;
     N = N1;
   }
-  mpz_set_ui(r, (unsigned long)R);
+  mpz_set_ui64(r, R);
 
  overflow:
-  mpz_init_set_ui(Nz, N);
-  mpz_set_ui(r, R);
+  mpz_init_set_ui64(Nz, N);
+  mpz_set_ui64(r, R);
 
   while ( x )
   { if ( x & 0x1 )

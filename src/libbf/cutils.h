@@ -75,9 +75,9 @@ static __forceinline int ffsll(unsigned __int64 x)
 #pragma intrinsic (__mulh)
 
 static int __forceinline
-__builtin_mul_overflow(int64_t l, int64_t r, int64_t *rc)
+__builtin_mul_overflow(uint64_t l, uint64_t r, uint64_t *rc)
 { *rc = l*r;
-  return __mulh(l,r) == 0;
+  return __umulh(l,r) == 0;
 }
 
 #else /*GCC,Clang*/
