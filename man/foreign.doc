@@ -4035,6 +4035,31 @@ Retrieve a flag whose value is a \const{term}. The returned value is a term hand
 \end{description}
 \end{description}
 
+\subsubsection{Foreign code and Well Founded Semantics}
+\label{sec:c-api-wfs}
+
+
+\begin{description}
+\cfunction{int}{PL_get_delay_list}{term_t -dl}
+Fetch the current \jargon{delay list}.  If this list is not empty, the
+current answer is \jargon{undefined}.   In the logical sense, this
+function always succeeds and sets \arg{dl} to the delay list.  It returns
+\const{FALSE} if the delay list is empty (and answer is well defined)
+and \const{TRUE} if the delay list is not empty.  If \arg{dl} is 0
+no list is instantiated, while the return value is the same.  This
+allows for testing that an answer is undefined as below.
+
+\begin{code}
+  if ( PL_get_delay_list(0) )
+    <undefined>
+  else
+    <normal answer>
+\end{code}
+
+For now, we consider the content of the list elements opaque.  See
+\file{boot/tabling.pl} for examples.
+\end{description}
+
 \subsection{Errors and warnings}
 \label{sec:foreign-print-warning}
 
