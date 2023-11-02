@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
+    Copyright (c)  2023, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
 #include "bf_gmp.h"
 #include <stdlib.h>
 #include "cutils.h"
+//#include "../os/SWI-Stream.h"		/* For Sdprintf() debugging */
 
 #define STEIN 1
 
@@ -255,13 +257,13 @@ mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
 
 void
 mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
-{ int64_t N = n;
-  int64_t R = 1;
+{ unsigned long N = n;
+  unsigned long R = 1;
   mpz_t Nz;
 
   while ( x )
-  { int64_t N1, R1=R;
-    unsigned x1 = x;
+  { unsigned long N1, R1=R;
+    unsigned long x1 = x;
 
     if ( x & 0x1 )
     { if ( __builtin_mul_overflow(R,N,&R1) )
@@ -278,9 +280,8 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
   mpz_set_ui(r, (unsigned long)R);
 
  overflow:
-
-  mpz_init_set_ui(Nz, (unsigned long)N);
-  mpz_set_ui(r, (unsigned long)R);
+  mpz_init_set_ui(Nz, N);
+  mpz_set_ui(r, R);
 
   while ( x )
   { if ( x & 0x1 )

@@ -165,6 +165,11 @@ test(rat) :-
 	X is (2 rdiv 3)^(-5),
 	assertion(rational(X, 243, 32)).
 :- endif.
+
+% tests LibBF mpz_ui_pow_ui() overflow from ulong to mpz handling
+test('2^65', A == 36893488147419103232) :-
+	A is 2^65.
+
 :- endif.
 
 :- end_tests(pow).
