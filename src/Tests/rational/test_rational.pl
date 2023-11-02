@@ -202,11 +202,11 @@ test(trip) :-
 test(roundtrip_rational) :-
     forall(between(1,1000,_),
            ( rfloat(F),
-             F =:= rational(F))).
+             assertion(F =:= rational(F)))).
 test(roundtrip_rationalize) :-
     forall(between(1,1000,_),
            ( rfloat(F),
-             F =:= rationalize(F))).
+             assertion(F =:= rationalize(F)))).
 
 :- end_tests(rationalize).
 

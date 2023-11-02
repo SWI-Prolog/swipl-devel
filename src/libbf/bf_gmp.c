@@ -163,7 +163,7 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   { // a and b always odd at start of loop
     if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
     { // both fit in 64 bit integers; get int64 values and use int64 gcd
-      mpz_set_ui(r, (unsigned long)i64_gcd(mpz_get_si(a), mpz_get_si(b)));
+      mpz_set_ui64(r, i64_gcd(mpz_get_si64(a), mpz_get_si64(b)));
       break;             // we're done, exit while loop
     }
     mpz_sub(r,a,b);      // a-b -> r is now even, b still odd

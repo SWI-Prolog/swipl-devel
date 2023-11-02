@@ -136,6 +136,11 @@ mpz_set_ui(mpz_t r, unsigned long n)
 }
 
 static inline void
+mpz_set_ui64(mpz_t r, int64_t n)
+{ bf_set_ui(r, n);
+}
+
+static inline void
 mpz_set_si(mpz_t r, long n)
 { bf_set_si(r, n);
 }
@@ -172,6 +177,17 @@ mpz_get_si(const mpz_t n)
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
     return (long)nv;
+
+  assert(0);				/* TBD: return least significant bits */
+  return 0;
+}
+
+static inline int64_t
+mpz_get_si64(const mpz_t n)
+{ int64_t nv;
+
+  if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
+    return nv;
 
   assert(0);				/* TBD: return least significant bits */
   return 0;
