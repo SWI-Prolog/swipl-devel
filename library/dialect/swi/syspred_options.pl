@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, VU University Amsterdam
+    Copyright (c)  2011-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -49,6 +49,7 @@
 		       eof_action(oneof([eof_code,error,reset])),
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
+		       close_on_exec(boolean),
 		       lock(oneof([none,read,shared,write,exclusive])),
                        reposition(boolean),
 		       wait(boolean),
