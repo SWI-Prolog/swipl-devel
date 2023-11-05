@@ -921,7 +921,7 @@ vs.\ Windows).   There are four options
   on the OS and required resources.  See \secref{makestate}.
 \item On any system you can add a Prolog file to a designated
   directory and allow it to be started using
-\begin{code}  
+\begin{code}
 swipl name [arg ...]
 \end{code}
   New commands can be added to the Prolog installation, by Prolog
@@ -1112,7 +1112,7 @@ This performs exactly the same as executing
 \subsubsection{SWI-Prolog app scripts}	\label{sec:swipl-app}
 
 As of version 9.1.18, SWI-Prolog allows starting an application
-using the command below.  
+using the command below.
 
 \begin{code}
 swipl [option ...] [path:]name [arg ...]
@@ -1503,6 +1503,10 @@ runtime lookup of predicates for meta-calling.}
 Describes when the system has been compiled. Only available if the
 C compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
 macros.
+
+    \prologflagitem{conda}{bool}{r}
+Set to \const{true} when built in a \href{https://docs.conda.io/}{Conda}
+environment.
 
     \prologflagitem{console_menu}{bool}{r}
 Set to \const{true} in \program{swipl-win.exe} to indicate that the console

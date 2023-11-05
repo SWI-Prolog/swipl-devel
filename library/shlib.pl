@@ -580,21 +580,28 @@ win_add_dll_directory(Dir) :-
     atomic_list_concat([Path0, OSDir], ';', Path),
     setenv('PATH', Path).
 
-% Under MSYS2, the program is invoked from a bash, with the dll
-% dependencies (zlib1.dll etc.) in %MINGW_PREFIX%/bin instead of
-% the installation directory). Here we add this folder to the dll
-% search path.
+% Environments such as MSYS2 and  CONDA   install  DLLs in some separate
+% directory. We add these directories to   the  search path for indirect
+% dependencies from ours foreign plugins.
 
-add_mingw_dll_directory :-
+add_dll_directories :-
     current_prolog_flag(msys2, true),
     !,
-    getenv('MINGW_PREFIX', Prefix),
-    atomic_list_concat([Prefix, bin], /, Bin),
-    win_add_dll_directory(Bin).
+    env_add_dll_dir('MINGW_PREFIX', '/bin').
+add_dll_directories :-
+    current_prolog_flag(conda, true),
+    !,
+    env_add_dll_dir('CONDA_PREFIX', '/Library/bin'),
+    ignore(env_add_dll_dir('PREFIX', '/Library/bin')).
+add_dll_directories.
 
-add_mingw_dll_directory.
+env_add_dll_dir(Var, Postfix) :-
+    getenv(Var, Prefix),
+    atom_concat(Prefix, Postfix, Dir),
+    win_add_dll_directory(Dir).
 
-:- initialization(add_mingw_dll_directory).
+:- initialization
+    add_dll_directories.
 
 :- endif.
 

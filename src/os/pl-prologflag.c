@@ -1688,6 +1688,9 @@ initPrologFlags(void)
   setPrologFlag("android_api",FT_INTEGER|FF_READONLY, (intptr_t)__ANDROID_API__);
 # endif
 #endif
+#ifdef __CONDA__
+  setPrologFlag("conda", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 #endif
 
   setPrologFlag("encoding", FT_ATOM,

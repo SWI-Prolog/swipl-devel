@@ -14,6 +14,10 @@ if(NOT SWIPL_ARCH)
 	 SWIPL_ARCH)
 endif()
 
+if(DEFINED ENV{CONDA_BUILD})
+  set(CONDA 1)
+endif()
+
 # Setup cross compiling.  As discussed with _erlanger_ in
 # https://github.com/SWI-Prolog/swipl-devel/issues/358#issuecomment-439675854
 # we distinguish three scenarios for building:
