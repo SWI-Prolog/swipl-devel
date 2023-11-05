@@ -1,4 +1,4 @@
-#cmakedefine __CONDA__ @CONDA@
+#cmakedefine __CONDA__ @__CONDA__@
 #cmakedefine O_VMI_FUNCTIONS @O_VMI_FUNCTIONS@
 #cmakedefine AC_APPLE_UNIVERSAL_BUILD @AC_APPLE_UNIVERSAL_BUILD@
 #cmakedefine ALIGNOF_DOUBLE @ALIGNOF_DOUBLE@

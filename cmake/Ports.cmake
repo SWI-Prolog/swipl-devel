@@ -1,3 +1,8 @@
+if(DEFINED ENV{CONDA_BUILD})
+  set(CONDA ON)
+  set(__CONDA__ 1)
+endif()
+
 if(APPLE)
   include(port/Darwin)
 elseif(WIN32)
@@ -12,10 +17,6 @@ endif()
 if(NOT SWIPL_ARCH)
   string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM_NAME}
 	 SWIPL_ARCH)
-endif()
-
-if(DEFINED ENV{CONDA_BUILD})
-  set(CONDA 1)
 endif()
 
 # Setup cross compiling.  As discussed with _erlanger_ in
