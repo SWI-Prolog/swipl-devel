@@ -1,5 +1,10 @@
 include(QLF)
 
+# Rebuild all library indexes. First build is   always  ok, but as we do
+# not know all dependencies for each library index and these may change,
+# we wish to re-run these on every build  run. We do this by setting the
+# OUTPUT to a dummy file that is not really created.
+
 function(library_index)
 
 foreach(dir ${ARGN})
@@ -7,23 +12,9 @@ foreach(dir ${ARGN})
   set(target library_index_${dirtarget})
 
   if(NOT TARGET ${target})
-    add_custom_target(
-	${target}_always ALL
-	DEPENDS ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl)
-
-    if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-      set(out ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl)
-      set(by)
-    else()
-      set(by ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl)
-      set(out)
-    endif()
-
     add_swipl_target(
 	${target}
-	OUTPUT  ${SWIPL_BUILD_HOME}/${dir}/INDEX.pl ${out}
-	BYPRODUCTS ${by}
-	QUIET
+	OUTPUT ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl
 	COMMAND "make_library_index('${SWIPL_BUILD_HOME}/${dir}')"
 	COMMENT "Build home/${dir}/INDEX.pl")
     add_dependencies(library_index ${target})
