@@ -14,9 +14,12 @@ foreach(dir ${ARGN})
   if(NOT TARGET ${target})
     add_swipl_target(
 	${target}
+	NOINSTALL
 	OUTPUT ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl
 	COMMAND "make_library_index('${SWIPL_BUILD_HOME}/${dir}')"
 	COMMENT "Build home/${dir}/INDEX.pl")
+    install(FILES ${SWIPL_BUILD_HOME}/${dir}/INDEX.pl
+	    DESTINATION ${SWIPL_INSTALL_PREFIX}/${dir})
     add_dependencies(library_index ${target})
   endif()
 endforeach()
