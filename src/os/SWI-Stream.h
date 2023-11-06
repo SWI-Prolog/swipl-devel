@@ -476,6 +476,8 @@ PL_EXPORT(IOSTREAM *)	Sopen_iri_or_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
 #ifdef __WINDOWS__
+PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
+PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
 #if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
 PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
 #endif
