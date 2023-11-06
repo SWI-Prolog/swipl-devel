@@ -3572,9 +3572,14 @@ stream.  As  Prolog  streams  use   the    CRT   handle,  we  must  call
 _open_osfhandle in the SWI-Prolog core.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+int
+Swin_open_osfhandle(HANDLE h, int flags)
+{ return _open_osfhandle((intptr_t)h, flags);
+}
+
 IOSTREAM *
 Swin_open_handle(HANDLE h, const char *mode)
-{ int fd = _open_osfhandle((intptr_t)h, 0);
+{ int fd = Swin_open_osfhandle(h, 0);
 
   return Sfdopen(fd, mode);
 }
