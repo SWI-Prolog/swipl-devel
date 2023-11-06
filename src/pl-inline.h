@@ -114,7 +114,7 @@ static inline int
 __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 { long long int r = a + b;
   if ( (r > 0 && a < 0 && b < 0) ||
-       (r < 0 && a > 0 && b > 9) )
+       (r < 0 && a > 0 && b > 0) )
     return TRUE;
 
   *res = r;
