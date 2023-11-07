@@ -97,6 +97,9 @@ set(LIBSWIPL_SRC
     ${SRC_BF}
     ${SRC_MINIZIP})
 set(SWIPL_SRC pl-main.c)
+if(WIN32)
+list(APPEND SWIPL_SRC os/windows/ssl_applink.c)
+endif()
 
 set(SRC_SWIPL_LD swipl-ld.c)
 if(WIN32)
