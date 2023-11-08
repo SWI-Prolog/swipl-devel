@@ -15,6 +15,7 @@ foreach(dir ${ARGN})
     add_swipl_target(
 	${target}
 	NOINSTALL
+	QUIET
 	OUTPUT ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl
 	COMMAND "make_library_index('${SWIPL_BUILD_HOME}/${dir}')"
 	COMMENT "Build home/${dir}/INDEX.pl")
