@@ -461,7 +461,7 @@ inlined_unification((V=T,RBody0), CBody0,
                     RBody, CBody, RHead, BPos1, BPos),
     inlineable_head_var(RHead, V2),
     V == V2,
-    \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
+    \+ (CBody0 = (G1,_), G1 =@= (V=T)) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=_), true,
