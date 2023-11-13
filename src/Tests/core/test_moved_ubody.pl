@@ -97,6 +97,10 @@ q(_).
 q(_,_,_,_).
 q(_,_,_,_,_,_).
 
+s8(D, C) :-
+    D = since(_,_),
+    C = D.
+
 test(decom1, (Head :- Body) =@= (nf_add([B|Bs], CLP, A, As, Cs) :-
                                     A = v(Ka,Pa),
                                     B = v(Kb,Pb),
@@ -135,6 +139,9 @@ test(decomp7, (Head :- Body) =@= (s6(A) :-
 test(decomp8, (Head :- Body) =@= (s7(f(A)) :-
                                      q(A))) :-
     Head = s7(_),
+    clause(Head, Body).
+test(decomp9, (Head :- Body) =@= (s8(A,B) :- A=since(_,_),B=A)) :-
+    Head = s8(_,_),
     clause(Head, Body).
 
 :- end_tests(moved_decompile).

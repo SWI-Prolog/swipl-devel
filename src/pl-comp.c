@@ -3628,6 +3628,8 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
 
     f1 = isFirstVarSet(ci->used_var, i1);
     f2 = isFirstVarSet(ci->used_var, i2);
+    if ( argUnifiedTo(*a1) || argUnifiedTo(*a2) )
+      set(ci->clause, CL_HEAD_TERMS);
 
     if ( f1 && f2 )
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
@@ -4966,6 +4968,20 @@ these variables are not marked as H_VOID in the head code they are refer
 to body unifications that have been moved to the head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define add_bvar_access(di, i, m) LDFUNC(add_bvar_access, di, i, m)
+
+static void
+add_bvar_access(DECL_LD decompileInfo *di, int index, int *max)
+{ if ( index < di->arity )
+  { DEBUG(MSG_COMP_ARG_UNIFY,
+	  Sdprintf("Found access to argument %d\n", index+1));
+
+    set_bit(di->bvar_access, index);
+    if ( index > *max )
+      *max = index;
+  }
+}
+
 #define mark_bvar_access(cl, di) LDFUNC(mark_bvar_access, cl, di)
 static int
 mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
@@ -4994,18 +5010,18 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
       case B_ARGVAR:
 	index = VARNUM(pc[1]);
 	break;
+      case B_UNIFY_FF:
+      case B_UNIFY_FV:
+      case B_UNIFY_VF:
+      case B_UNIFY_VV:
+	add_bvar_access(di, VARNUM(pc[1]), &max);
+	index = VARNUM(pc[2]);
+	break;
       default:
 	continue;
     }
 
-    if ( index < di->arity )
-    { DEBUG(MSG_COMP_ARG_UNIFY,
-	    Sdprintf("Found access to argument %d\n", index+1));
-
-      set_bit(di->bvar_access, index);
-      if ( index > max )
-	max = index;
-    }
+    add_bvar_access(di, index, &max);
   }
 
   assert(max >= 0);
