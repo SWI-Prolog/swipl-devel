@@ -397,6 +397,24 @@ Note that \jargon{boolean options} may be written as \exam{--name}
 as \exam{--no-name} below as the default is `true'.
 
 \begin{description}
+    \cmdlineoptionitem{-D}{name[=value]}
+Set the Prolog flag \arg{name} to \arg{value}.   The flags are set
+immediately after loading the initial \jargon{saved state}.  If the
+flag is already defined, \arg{value} is converted to the type of the
+flag.  If the flag is undefined it is set to a number of \arg{value}
+represents a number and an atom otherwise.  If no value is given,
+the flag is set to \const{true}.   The \exam{name[=value]} may
+follow the \exam{-D} immediately or appear as the next commandline
+argument.
+
+Note that many of the commandline options are reflected by a Prolog
+flag. We intend to handle these as synonyms. Currently, some of the
+commandline flags affect the Prolog initilization before loading the
+saved state has completed, while other may not be changed after Prolog
+initialization. For example, future versions will support
+\exam{-Dhome=dir} to change the notion of the Prolog installation
+directory.
+
     \cmdlineoptionitem{--debug-on-interrupt}{}
 Enable debugging on an interrupt signal (Control-C, \const{SIGINT})
 immediately.  Normally debugging on interrupt is enabled when entering

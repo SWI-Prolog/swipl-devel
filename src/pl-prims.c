@@ -6018,6 +6018,7 @@ static const optdef optdefs[] =
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
+  { "defines",		CMDOPT_LIST,	&GD->options.defines },
   { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
   { "nosignals",	CMDOPT_BOOL,	&GD->options.nosignals },
 #ifdef __WINDOWS__

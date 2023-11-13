@@ -865,6 +865,17 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
       continue;
     }
 
+    if ( *s == 'D' )
+    { const char *def = s+1;
+
+      if ( *def )
+	opt_append(&GD->options.defines, def);
+      else
+	optionList(&GD->options.defines);
+
+      continue;
+    }
+
     while(*s)
     { switch(*s)
       { case 'd':	if ( argc > 1 )
@@ -1288,6 +1299,7 @@ usage(void)
     "    -l file                  Script source file\n",
     "    -s file                  Script source file\n",
     "    -p alias=path            Define file search path 'alias'\n",
+    "    -D name=value		  Set a Prolog flag\n",
     "    -O                       Optimised compilation\n",
     "    --on-error=style         One of print, halt or status\n",
     "    --on-warning=style       One of print, halt or status\n",

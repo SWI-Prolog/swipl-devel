@@ -566,6 +566,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    apply_defines,
     apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     '$run_initialization',
     argv_prolog_files(Files, ScriptMode),
@@ -594,6 +595,42 @@ initialise_prolog :-
             run_main_init(false)                % initialization(Goal, main)
         )
     ).
+
+apply_defines :-
+    '$cmd_option_val'(defines, Defs),
+    apply_defines(Defs).
+
+apply_defines([]).
+apply_defines([H|T]) :-
+    sub_atom(H, B, _, A, '='),
+    !,
+    sub_atom(H, 0, B, _, Flag),
+    sub_atom(H, _, A, 0, Value0),
+    (   '$current_prolog_flag'(Flag, Value0, _Scope, Access, Type)
+    ->  (   Access \== write
+        ->  '$permission_error'(set, prolog_flag, Flag)
+        ;   text_flag_value(Type, Value0, Value)
+        )
+    ;   atom_number(Value0, Value)
+    ->  true
+    ;   Value = Value0
+    ),
+    set_prolog_flag(Flag, Value),
+    apply_defines(T).
+apply_defines([H|T]) :-
+    set_prolog_flag(H, true),
+    apply_defines(T).
+
+text_flag_value(integer, Text, Int) :-
+    atom_number(Text, Int),
+    !.
+text_flag_value(float, Text, Float) :-
+    atom_number(Text, Float),
+    !.
+text_flag_value(term, Text, Term) :-
+    term_string(Term, Text, []),
+    !.
+text_flag_value(_, Value, Value).
 
 :- if(current_prolog_flag(apple,true)).
 apple_set_working_directory :-
