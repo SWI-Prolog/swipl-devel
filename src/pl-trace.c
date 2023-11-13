@@ -1178,21 +1178,30 @@ frameAtLevel(LocalFrame frame, int at_depth, bool interactive)
 static int
 saveGoal(LocalFrame frame, int at_depth, bool interactive)
 { GET_LD
-  term_t goal;
+  fid_t fid;
+  int rc = FALSE;
 
   if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
     return FALSE;
 
-  if ( (goal = PL_new_term_ref()) &&
-       put_frame_goal(goal, frame) &&
-       PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
-  { if ( interactive )
-      Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
-    return TRUE;
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t goal;
+
+    if ( (goal = PL_new_term_ref()) &&
+	 put_frame_goal(goal, frame) &&
+	 PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
+    { if ( interactive )
+	Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
+      rc = TRUE;
+    }
+
+    PL_discard_foreign_frame(fid);
   }
 
-  Sfprintf(Sdout, "\nFailed to save goal\n");
-  return FALSE;
+  if ( !rc )
+    Sfprintf(Sdout, "\nFailed to save goal\n");
+
+  return rc;
 }
 
 
