@@ -340,12 +340,9 @@ unify_clause(:<-(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
     pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
                                         % Unit test clauses
-unify_clause((TH :- Body),
-             (_:'unit body'(_, _) :- !, Body), _,
-             TP0, TP) :-
-    (   TH = test(_,_)
-    ;   TH = test(_)
-    ),
+unify_clause((TH :- Body), (CH :- !, Body), _Module, TP0, TP) :-
+    plunit_source_head(TH),
+    plunit_compiled_head(CH),
     !,
     TP0 = term_position(F,T,FF,FT,[HP,BP]),
     TP  = term_position(F,T,FF,FT,[HP,term_position(0,0,0,0,[FF-FT,BP])]).
@@ -436,6 +433,14 @@ unify_clause2(_, _, _, _, _) :-
 unify_clause_head(H1, H2) :-
     strip_module(H1, _, H),
     strip_module(H2, _, H).
+
+plunit_source_head(test(_,_)) => true.
+plunit_source_head(test(_)) => true.
+plunit_source_head(_) => fail.
+
+plunit_compiled_head(_:'unit body'(_, _)) => true.
+plunit_compiled_head('unit body'(_, _)) => true.
+plunit_compiled_head(_) => fail.
 
 %!  inlined_unification(+BodyRead, +BodyCompiled,
 %!                      -BodyReadOut, -BodyCompiledOut,
