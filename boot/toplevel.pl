@@ -568,6 +568,7 @@ initialise_prolog :-
     '$clean_history',
     apply_defines,
     apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
+    init_optimise,
     '$run_initialization',
     argv_prolog_files(Files, ScriptMode),
     '$load_system_init_file',                   % -F file
@@ -657,6 +658,12 @@ apple_setup_app :-
     apple_set_locale.
 :- endif.
 apple_setup_app.
+
+init_optimise :-
+    current_prolog_flag(optimise, true),
+    !,
+    use_module(user:library(apply_macros)).
+init_optimise.
 
 opt_attach_packs :-
     current_prolog_flag(packs, true),
