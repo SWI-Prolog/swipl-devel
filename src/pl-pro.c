@@ -278,14 +278,18 @@ currentBreakLevel(void)
 
 #define NOTRACE_TRACE 0x1
 #define NOTRACE_DEBUG 0x2
+#define NOTRACE_LCO   0x4
+#define NOTRACE_VMI   0x8
 
 static
 PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
 { PRED_LD
   int flags = 0;
 
-  if ( debugstatus.tracing   ) flags |= NOTRACE_TRACE;
-  if ( debugstatus.debugging ) flags |= NOTRACE_DEBUG;
+  if ( debugstatus.tracing   )              flags |= NOTRACE_TRACE;
+  if ( debugstatus.debugging )              flags |= NOTRACE_DEBUG;
+  if ( truePrologFlag(PLFLAG_LASTCALL) )    flags |= NOTRACE_LCO;
+  if ( truePrologFlag(PLFLAG_VMI_BUILTIN) ) flags |= NOTRACE_VMI;
 
   if ( PL_unify_integer(A1, flags) &&
        PL_unify_int64(A2, debugstatus.skiplevel) )
@@ -312,10 +316,17 @@ PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
   { debugstatus.tracing   = !!(flags&NOTRACE_TRACE);
     debugstatus.debugging = !!(flags&NOTRACE_DEBUG);
     debugstatus.skiplevel = depth;
-    if ( debugstatus.debugging )
-      clearPrologRunMode(RUN_MODE_NORMAL);
+
+    if ( (flags&NOTRACE_LCO) )
+      setPrologFlagMask(PLFLAG_LASTCALL);
     else
-      setPrologRunMode(RUN_MODE_NORMAL);
+      clearPrologFlagMask(PLFLAG_LASTCALL);
+
+    if ( (flags&NOTRACE_VMI) )
+      setPrologFlagMask(PLFLAG_VMI_BUILTIN);
+    else
+      clearPrologFlagMask(PLFLAG_VMI_BUILTIN);
+
     updateAlerted(LD);
 
     return TRUE;
