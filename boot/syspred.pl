@@ -1578,7 +1578,10 @@ undo(Goal) :-
 
 '$run_undo'([One]) :-
     !,
-    call(One).
+    (   call(One)
+    ->  true
+    ;   true
+    ).
 '$run_undo'(List) :-
     run_undo(List, _, Error),
     (   var(Error)
