@@ -599,6 +599,7 @@ A offset		"offset"
 A on			"on"
 A on_error		"on_error"
 A on_warning		"on_warning"
+A oneof			"oneof"
 A opaque		"opaque"
 A open			"open"
 A operator		"operator"
@@ -1192,6 +1193,7 @@ F number		1
 F numerator		1
 F occurs_check		2
 F offset		1
+F oneof			1
 F open			2
 F or			1
 F output		0

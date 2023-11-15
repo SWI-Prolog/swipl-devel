@@ -2550,14 +2550,19 @@ is a list of the options below.  See also \prologflag{user_flags}.
 
 	\termitem{type}{+Atom}
 	Define a type restriction.  Possible values are
-	\const{boolean}, \const{atom}, \const{integer}, \const{float}
-	and \const{term}.  The default is determined from the initial
-	value.  Note that \const{term} restricts the term to be ground.
+	\const{boolean}, \const{atom}, \term{oneof}{ListOfAtoms},
+        \const{integer}, \const{float} and \const{term}.  The default
+        is determined from the initial value.  Note that \const{term}
+        restricts the term to be ground.
 
 	\termitem{keep}{+Boolean}
 	If \const{true}, do not modify the flag if it already exists.
 	Otherwise (default), this predicate behaves as set_prolog_flag/2
 	if the flag already exists.
+
+        If the flag has a value, but this value is incompatible with the
+        specified type, a warning is printed and the flag gets the
+        value and type specified by this call to create_prolog_flag/3.
     \end{description}
 \end{description}
 

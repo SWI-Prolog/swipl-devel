@@ -155,7 +155,9 @@
 		     ]).
 :- predicate_options(system:create_prolog_flag/3, 3,
 		     [ access(oneof([read_write,read_only])),
-		       type(oneof([boolean,atom,integer,float,term])),
+		       type(( oneof([boolean,atom,integer,float,term])
+                            ; compound(oneof(list(atom)))
+                            )),
 		       keep(boolean)
 		     ]).
 :- predicate_options(system:qsave_program/2, 2,
