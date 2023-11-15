@@ -71,7 +71,14 @@ through YAP.
 @author Jan Wielemaker
 */
 
-:- create_prolog_flag(apply_macros, optimise, [keep(true)]).
+:- create_prolog_flag(optimise_apply, default,
+                      [ keep(true),
+                        oneof([default,false,true])
+                      ]).
+:- create_prolog_flag(apply_macros_scope, global,
+                      [ keep(true),
+                        oneof([global,imported])
+                      ]).
 
 :- dynamic
     user:goal_expansion/2.
@@ -445,20 +452,25 @@ prolog_colour:vararg_goal_classification(maplist, Arity, expanded) :-
 
 apply_macros_sentinel.
 
+optimise_apply :-
+    (   current_prolog_flag(optimise_apply, true)
+    ->  true
+    ;   current_prolog_flag(optimise_apply, default),
+        current_prolog_flag(optimise, true)
+    ->  true
+    ).
+
 apply_macros :-
     current_prolog_flag(xref, true),
     !,
     fail.
 apply_macros :-
-    current_prolog_flag(apply_macros, Apply),
-    apply_macros(Apply).
+    optimise_apply,
+    current_prolog_flag(apply_macros_scope, Scope),
+    apply_macros(Scope).
 
-apply_macros(true)     =>
+apply_macros(global) =>
     true.
-apply_macros(false)    =>
-    fail.
-apply_macros(optimise) =>
-    current_prolog_flag(optimise, true).
 apply_macros(imported) =>
     prolog_load_context(module, M),
     predicate_property(M:apply_macros_sentinel, imported_from(apply_macros)),
