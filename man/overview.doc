@@ -333,7 +333,7 @@ Prolog flag \prologflag{argv}.
 		\arg{prolog-file} ...
 		[[\const{--}] \arg{arg} ...]}
 This is the normal way to start Prolog. The options are described in
-\secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
+\secref{cli-options}, \secref{stacksizes} and \secref{runoptions}.
 The Prolog flag \prologflag{argv} provides access to \arg{arg} ... If
 the \arg{options} are followed by one or more Prolog file names (i.e.,
 names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
@@ -390,7 +390,7 @@ a number of aspects.  See \secref{abi-versions}.
 
 
 \subsection{Command line options for running Prolog}
-\label{sec:running-options}
+\label{sec:cli-options}
 
 Note that \jargon{boolean options} may be written as \exam{--name}
 (true), \exam{--noname} or \exam{--no-name} (false).  They are written
@@ -398,14 +398,15 @@ as \exam{--no-name} below as the default is `true'.
 
 \begin{description}
     \cmdlineoptionitem{-D}{name[=value]}
-Set the Prolog flag \arg{name} to \arg{value}.   The flags are set
-immediately after loading the initial \jargon{saved state}.  If the
-flag is already defined, \arg{value} is converted to the type of the
-flag.  If the flag is undefined it is set to a number of \arg{value}
-represents a number and an atom otherwise.  If no value is given,
-the flag is set to \const{true}.   The \exam{name[=value]} may
-follow the \exam{-D} immediately or appear as the next commandline
-argument.
+Set the Prolog flag \arg{name} to \arg{value}. The flags are set
+immediately after loading the initial \jargon{saved state}. If the flag
+is already defined, \arg{value} is converted to the type of the flag. If
+the flag is undefined it is set to a number of \arg{value} represents a
+number and an atom otherwise. If no \const{=}\arg{value} is given, a
+Boolean value is used. If \arg{name} is \const{no-}\arg{flag},
+\arg{flag} is set to \const{false}. Otherwise, the flag \arg{name} is
+set to \const{true}. The \exam{name[=value]} may follow the \exam{-D}
+immediately or appear as the next commandline argument.
 
 Note that many of the commandline options are reflected by a Prolog
 flag. We intend to handle these as synonyms. Currently, some of the

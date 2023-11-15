@@ -603,10 +603,14 @@ apply_defines :-
 
 apply_defines([]).
 apply_defines([H|T]) :-
-    sub_atom(H, B, _, A, '='),
+    apply_define(H),
+    apply_defines(T).
+
+apply_define(Def) :-
+    sub_atom(Def, B, _, A, '='),
     !,
-    sub_atom(H, 0, B, _, Flag),
-    sub_atom(H, _, A, 0, Value0),
+    sub_atom(Def, 0, B, _, Flag),
+    sub_atom(Def, _, A, 0, Value0),
     (   '$current_prolog_flag'(Flag, Value0, _Scope, Access, Type)
     ->  (   Access \== write
         ->  '$permission_error'(set, prolog_flag, Flag)
@@ -616,11 +620,13 @@ apply_defines([H|T]) :-
     ->  true
     ;   Value = Value0
     ),
-    set_prolog_flag(Flag, Value),
-    apply_defines(T).
-apply_defines([H|T]) :-
-    set_prolog_flag(H, true),
-    apply_defines(T).
+    set_prolog_flag(Flag, Value).
+apply_define(Def) :-
+    atom_concat('no-', Flag, Def),
+    !,
+    set_prolog_flag(Flag, false).
+apply_define(Def) :-
+    set_prolog_flag(Def, true).
 
 text_flag_value(integer, Text, Int) :-
     atom_number(Text, Int),
