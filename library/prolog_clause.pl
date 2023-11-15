@@ -340,11 +340,12 @@ unify_clause(:<-(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
     pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
                                         % Unit test clauses
-unify_clause((TH :- Body), (CH :- !, Body), _Module, TP0, TP) :-
+unify_clause((TH :- RBody), (CH :- !, CBody), Module, TP0, TP) :-
     plunit_source_head(TH),
     plunit_compiled_head(CH),
     !,
-    TP0 = term_position(F,T,FF,FT,[HP,BP]),
+    TP0 = term_position(F,T,FF,FT,[HP,BP0]),
+    ubody(RBody, CBody, Module, BP0, BP),
     TP  = term_position(F,T,FF,FT,[HP,term_position(0,0,0,0,[FF-FT,BP])]).
                                         % module:head :- body
 unify_clause((Head :- Read),
@@ -593,10 +594,10 @@ a --> { x, y, z }.
 
 %!  ubody(+Read, +Decompiled, +Module, +TermPosRead, -TermPosForDecompiled)
 %
-%   @param Read             Clause read _after_ expand_term/2
-%   @param Decompiled       Decompiled clause
-%   @param Module           Load module
-%   @param TermPosRead      Sub-term positions of source
+%   @arg Read             Clause read _after_ expand_term/2
+%   @arg Decompiled       Decompiled clause
+%   @arg Module           Load module
+%   @arg TermPosRead      Sub-term positions of source
 
 ubody(B, DB, _, P, P) :-
     var(P),                        % TBD: Create compatible pos term?
