@@ -52,6 +52,10 @@
 :- autoload(library(option), [option/3, option/2]).
 
 :- set_prolog_flag(generate_debug_info, false).
+:- create_prolog_flag(optimise_debug, default,
+                      [ keep(true),
+                        oneof([default,false,true])
+                      ]).
 
 :- meta_predicate
     assertion(0),
