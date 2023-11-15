@@ -1100,16 +1100,16 @@ safe_output(current_error).
 
 :- public format_calls/3.                       % used in pengines_io
 
-format_calls(Format, _Args, _Calls) :-
-    var(Format),
-    !,
-    instantiation_error(Format).
 format_calls(Format, Args, Calls) :-
+    is_list(Args),
+    !,
     format_types(Format, Types),
     (   format_callables(Types, Args, Calls)
     ->  true
     ;   throw(error(format_error(Format, Types, Args), _))
     ).
+format_calls(Format, Arg, Calls) :-
+    format_calls(Format, [Arg], Calls).
 
 format_callables([], [], []).
 format_callables([callable|TT], [G|TA], [G|TG]) :-
