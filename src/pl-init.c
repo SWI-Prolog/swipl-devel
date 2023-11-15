@@ -1493,6 +1493,8 @@ PL_cleanup(int status)
   if ( GD->cleaning != CLN_NORMAL )
     return PL_CLEANUP_RECURSIVE;
 
+  checkPrologFlagsAccess();
+
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
     PlMessage("Exit status is %d", rval);

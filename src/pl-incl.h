@@ -2679,6 +2679,10 @@ typedef struct internaldebuginfo
 #define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
+/* Note: the FF_* flags are defines in SWI-Prolog.h using mask
+ * 0xf000
+ */
+
 typedef enum plflag
 { PLFLAG_CHARESCAPE = 1,		/* handle \ in atoms */
   PLFLAG_CHARESCAPE_UNICODE,		/* Write escape as \uXXXX */

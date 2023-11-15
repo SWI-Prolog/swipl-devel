@@ -615,18 +615,30 @@ apply_define(Def) :-
     ->  (   Access \== write
         ->  '$permission_error'(set, prolog_flag, Flag)
         ;   text_flag_value(Type, Value0, Value)
-        )
-    ;   atom_number(Value0, Value)
-    ->  true
-    ;   Value = Value0
-    ),
-    set_prolog_flag(Flag, Value).
+        ),
+	set_prolog_flag(Flag, Value)
+    ;   (   atom_number(Value0, Value)
+	->  true
+	;   Value = Value0
+	),
+	create_prolog_flag(Flag, Value, [warn_not_accessed])
+    ).
 apply_define(Def) :-
     atom_concat('no-', Flag, Def),
     !,
-    set_prolog_flag(Flag, false).
+    set_user_boolean_flag(Flag, false).
 apply_define(Def) :-
-    set_prolog_flag(Def, true).
+    set_user_boolean_flag(Def, true).
+
+set_user_boolean_flag(Flag, Value) :-
+    current_prolog_flag(Flag, Old),
+    !,
+    (   Old == Value
+    ->  true
+    ;   set_prolog_flag(Flag, Value)
+    ).
+set_user_boolean_flag(Flag, Value) :-
+    create_prolog_flag(Flag, Value, [warn_not_accessed]).
 
 text_flag_value(integer, Text, Int) :-
     atom_number(Text, Int),

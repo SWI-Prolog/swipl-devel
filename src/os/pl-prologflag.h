@@ -60,6 +60,7 @@ int		setRationalSyntax(atom_t a, unsigned int *flagp);
 void		initPrologFlags(void);
 void		setABIVersionPrologFlag(void);
 void		cleanupPrologFlags(void);
+int		checkPrologFlagsAccess(void);
 #undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_PROLOGFLAG_H*/

@@ -1780,6 +1780,18 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
       '  to   "~w"'-[InitFile], nl,
       '  See https://www.swi-prolog.org/modified/config-files.html'-[]
     ].
+prolog_message(not_accessed_flags(List)) -->
+    [ 'The following Prolog flags have been set but not used:', nl ],
+    flags(List).
+
+flags([H|T]) -->
+    ['  ', ansi(code, '~q', [H])],
+    (   {T == []}
+    ->  []
+    ;   [nl],
+        flags(T)
+    ).
+
 
 		 /*******************************
 		 *          DEPRECATED		*

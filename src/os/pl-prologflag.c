@@ -126,6 +126,9 @@ typedef struct _prolog_flag
 } prolog_flag;
 
 
+#define FF_WARN_NOT_ACCESSED 0x0100
+#define FF_ACCESSED          0x0200
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C-interface for defining Prolog  flags.  Depending   on  the  type,  the
 following arguments are to be provided:
@@ -597,6 +600,22 @@ propagateAutoload(DECL_LD term_t val)
 }
 
 
+static void
+accessed_prolog_flag(prolog_flag *f, atom_t name, int local)
+{ if ( true(f, FF_WARN_NOT_ACCESSED) &&
+       false(f, FF_ACCESSED) )
+  { set(f, FF_ACCESSED);
+
+    if ( local )
+    { prolog_flag *fg;
+
+      if ( (fg = lookupHTable(GD->prolog_flag.table, (void *)name)) )
+	set(fg, FF_ACCESSED);
+    }
+  }
+}
+
+
 #if O_XOS
 typedef struct access_id
 { char *name;
@@ -641,7 +660,11 @@ get_win_file_access_check(void)
 }
 #endif
 
-#define set_prolog_flag_unlocked(m, k, value, flags) LDFUNC(set_prolog_flag_unlocked, m, k, value, flags)
+#define FF_COPY_FLAGS (FF_READONLY|FF_WARN_NOT_ACCESSED)
+
+#define set_prolog_flag_unlocked(m, k, value, flags) \
+	LDFUNC(set_prolog_flag_unlocked, m, k, value, flags)
+
 static word
 set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 { prolog_flag *f;
@@ -651,12 +674,14 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 #ifdef O_PLMT
   if ( LD->prolog_flag.table &&
        (f = lookupHTable(LD->prolog_flag.table, (void *)k)) )
-  { if ( flags & FF_KEEP )
+  { accessed_prolog_flag(f, k, TRUE);
+    if ( flags & FF_KEEP )
       return TRUE;
   } else
 #endif
   if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-  { if ( flags & FF_KEEP )
+  { accessed_prolog_flag(f, k, FALSE);
+    if ( flags & FF_KEEP )
       return TRUE;
     if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
     { term_t key;
@@ -767,8 +792,7 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 	break;
     }
 
-    if ( (flags & FF_READONLY) )
-      f->flags |= FF_READONLY;
+    f->flags |= (flags&FF_COPY_FLAGS);
 
     addNewHTable(GD->prolog_flag.table, (void *)k, f);
     if ( !(lookupHTable(GD->prolog_flag.table, (void *)k) == f) )
@@ -1006,10 +1030,11 @@ PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 */
 
 static const PL_option_t prolog_flag_options[] =
-{ { ATOM_type,   OPT_ATOM },
-  { ATOM_access, OPT_ATOM },
-  { ATOM_keep,   OPT_BOOL },
-  { NULL_ATOM,   0 }
+{ { ATOM_type,              OPT_ATOM },
+  { ATOM_access,            OPT_ATOM },
+  { ATOM_keep,              OPT_BOOL },
+  { ATOM_warn_not_accessed, OPT_BOOL },
+  { NULL_ATOM,              0 }
 };
 
 static
@@ -1019,9 +1044,10 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   atom_t type = 0;
   atom_t access = ATOM_read_write;
   int keep = FALSE;
+  int warn_not_accessed = FALSE;
 
   if ( !PL_scan_options(A3, 0, "prolog_flag_option", prolog_flag_options,
-		     &type, &access, &keep) )
+			&type, &access, &keep, &warn_not_accessed) )
     return FALSE;
 
   if ( type == 0 )
@@ -1053,6 +1079,9 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 
   if ( keep )
     flags |= FF_KEEP;
+
+  if ( warn_not_accessed )
+    flags |= FF_WARN_NOT_ACCESSED;
 
   return set_prolog_flag(A1, A2, flags);
 }
@@ -1299,13 +1328,17 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
 #ifdef O_PLMT
 	if ( LD->prolog_flag.table &&
 	     (f = lookupHTable(LD->prolog_flag.table, (void *)k)) )
-	  return unify_prolog_flag_value(module, k, f, value);
+	{ accessed_prolog_flag(f, k, TRUE);
+	  return ( unify_prolog_flag_value(module, k, f, value) &&
+		   (!access || unify_prolog_flag_access(f, access)) &&
+		   (!type   || unify_prolog_flag_type(f, type)) );
+	}
 #endif
 	if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-	{ if ( unify_prolog_flag_value(module, k, f, value) &&
-	       (!access || unify_prolog_flag_access(f, access)) &&
-	       (!type   || unify_prolog_flag_type(f, type)) )
-	    succeed;
+	{ accessed_prolog_flag(f, k, FALSE);
+	  return ( unify_prolog_flag_value(module, k, f, value) &&
+		   (!access || unify_prolog_flag_access(f, access)) &&
+		   (!type   || unify_prolog_flag_type(f, type)) );
 	}
 
 	fail;
@@ -1861,6 +1894,52 @@ setABIVersionPrologFlag(void)
     setPrologFlag("abi_version", FF_READONLY|FT_TERM, t);
 
   PL_discard_foreign_frame(fid);
+}
+
+
+int
+checkPrologFlagsAccess(void)
+{ int rc = TRUE;
+
+  if ( GD->prolog_flag.table )
+  { GET_LD
+
+    if ( LD )
+    { fid_t fid = PL_open_foreign_frame();
+
+      if ( fid )
+      { term_t list = PL_new_term_ref();
+	term_t tail = PL_copy_term_ref(list);
+	term_t head = PL_new_term_ref();
+	int found = 0;
+
+	FOR_TABLE(GD->prolog_flag.table, n, v)
+	{ atom_t name = (atom_t)n;
+	  prolog_flag *f = (prolog_flag*)v;
+
+	  if ( true(f, FF_WARN_NOT_ACCESSED) &&
+	       false(f, FF_ACCESSED) )
+	  { found++;
+	    if ( !PL_unify_list(tail, head, tail) ||
+		 !PL_unify_atom(head, name) )
+	    { rc = FALSE;
+	      break;
+	    }
+	  }
+	}
+	if ( found && rc )
+	{ rc = ( PL_unify_nil(tail) &&
+		 printMessage(ATOM_warning,
+			      PL_FUNCTOR_CHARS, "not_accessed_flags", 1,
+				PL_TERM, list) );
+	}
+
+	PL_discard_foreign_frame(fid);
+      }
+    }
+  }
+
+  return rc;
 }
 
 
