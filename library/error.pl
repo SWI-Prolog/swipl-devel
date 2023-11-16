@@ -219,31 +219,33 @@ resource_error(Resource) :-
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
 %   | boolean | One of =true= or =false= |
+%   | callable | Atom or compound term |
 %   | char | Atom of length 1 |
 %   | chars | Proper list of 1-character atoms |
-%   | code | Representation Unicode code point |
+%   | code | Representation Unicode code point (0..0x10ffff) |
 %   | codes | Proper list of Unicode character codes |
+%   | compound | compound term |
+%   | compound(Term) | Compound with same name/arity as term; checks arguments |
 %   | constant | Same as `atomic` |
 %   | cyclic | Cyclic term (rational tree); see cyclic_term/1 |
 %   | dict | A dictionary term; see is_dict/1 |
 %   | encoding | Valid name for a character encoding; see current_encoding/1 |
 %   | list | A (non-open) list; see is_list/1 |
+%   | list(Type) | Proper list with elements of Type |
+%   | list_or_partial_list | A list or an open list (ending in a variable); see is_list_or_partial_list/1 |
 %   | negative_integer | Integer < 0 |
 %   | nonneg | Integer >= 0 |
 %   | oneof(L) | Ground term that is member of L |
-%   | pair | Key-Value pair |
+%   | pair | Key-Value pair.  Same as compound(any-any) |
 %   | positive_integer | Integer > 0 |
 %   | proper_list | Same as list |
-%   | list(Type) | Proper list with elements of Type |
-%   | list_or_partial_list | A list or an open list (ending in a variable); see is_list_or_partial_list/1 |
 %   | stream | A stream name or valid stream handle; see is_stream/1 |
 %   | symbol | Same as `atom` |
 %   | text | One of =atom=, =string=, =chars= or =codes= |
 %   | type | Term is a valid type specification |
 %
-%   Note: The Windows version can only represent Unicode code points
-%   up to 2^16-1. Higher values cause a representation error on most
-%   text handling predicates.
+%   In  addition,  types   may   be    composed   using   `TypeA,TypeB`,
+%   `TypeA;TypeB` and negated using `\Type`.
 %
 %   @throws instantiation_error if Term is insufficiently
 %   instantiated and type_error(Type, Term) if Term is not of Type.
@@ -367,6 +369,7 @@ has_type(chars, X)        :- '$is_char_list'(X, _Len).
 has_type(codes, X)        :- '$is_code_list'(X, _Len).
 has_type(text, X)         :- text(X).
 has_type(compound, X)     :- compound(X).
+has_type(compound(Term),X):- compound(X), is_term_of_type(Term,X).
 has_type(constant, X)     :- atomic(X).
 has_type(float, X)        :- float(X).
 has_type(ground, X)       :- ground(X).
@@ -393,6 +396,9 @@ has_type(dict, X)         :- is_dict(X).
 has_type(list(Type), X)   :- is_list(X), element_types(X, Type).
 has_type(list_or_partial_list(Type), X)   :- is_list_or_partial_list(X), element_types(X, Type).
 has_type(type, Type)      :- ground(Type), current_type(Type,_,_).
+has_type((A,B), X)	  :- (is_of_type(A,X)->is_of_type(B,X)).
+has_type((A;B), X)	  :- (is_of_type(A,X)->true;is_of_type(B,X)).
+has_type(\A, X)	          :- \+ is_of_type(A,X).
 
 text(X) :-
     (   atom(X)
@@ -458,6 +464,25 @@ qualify(G0, G) :-
     !,
     G = G0.
 qualify(G, error:G).
+
+%!  is_term_of_type(Term, X)
+%
+%   Supports types as e.g. compound(oneof(list(atom))).
+
+is_term_of_type(Term, X) :-
+    compound_name_arity(Term, N, A),
+    compound_name_arity(X, N, A),
+    term_arg_types(1, A, Term, X).
+
+term_arg_types(I, A, Type, X) :-
+    I =< A,
+    !,
+    arg(I, Type, AType),
+    arg(I, X, XArg),
+    has_type(AType, XArg),
+    I2 is I+1,
+    term_arg_types(I2, A, Type, X).
+term_arg_types(_, _, _, _).
 
 
 		 /*******************************
