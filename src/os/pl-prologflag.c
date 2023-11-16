@@ -728,13 +728,16 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
     switch( (flags & FT_MASK) )
     { case FT_FROM_VALUE:
       { if ( PL_get_atom(value, &a) )
-	{ if ( a == ATOM_true || a == ATOM_false ||
-	       a == ATOM_on || a == ATOM_off )
+	{ int bv = atom_to_bool(a);
+
+	  if ( bv >= 0 )
+	  { f->value.a = bv ? ATOM_true : ATOM_false;
 	    f->flags = FT_BOOL;
-	  else
+	  } else
+	  { f->value.a = a;
 	    f->flags = FT_ATOM;
-	  f->value.a = a;
-	  PL_register_atom(a);
+	  }
+	  PL_register_atom(f->value.a);
 	} else if ( PL_get_int64(value, &i) )
 	{ f->flags = FT_INTEGER;
 	  f->value.i = i;
