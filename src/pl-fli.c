@@ -1491,19 +1491,28 @@ PL_get_term_value(term_t t, term_value_t *val)
 
 
 int
+atom_to_bool(atom_t a)
+{ if ( a == ATOM_true || a == ATOM_on )
+    return TRUE;
+  if ( a == ATOM_false || a == ATOM_off )
+    return FALSE;
+
+  return -1;
+}
+
+
+int
 PL_get_bool(term_t t, int *b)
 { GET_LD
   word w = valHandle(t);
 
   if ( isAtom(w) )
-  { if ( w == ATOM_true || w == ATOM_on )
-    { *b = TRUE;
-      succeed;
-    } else if ( w == ATOM_false || w == ATOM_off )
-    { *b = FALSE;
-      succeed;
+  { int bv = atom_to_bool(w);
+    if ( bv >= 0 )
+    { *b = bv;
+      return TRUE;
     }
-    fail;
+    return FALSE;
   }
   if ( isInteger(w) )
   { if ( w == consInt(0) )
@@ -1511,11 +1520,11 @@ PL_get_bool(term_t t, int *b)
     else if ( w == consInt(1) )
       *b = TRUE;
     else
-      fail;
-    succeed;
+      return FALSE;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
