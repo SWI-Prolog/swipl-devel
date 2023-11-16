@@ -54,7 +54,7 @@
 :- set_prolog_flag(generate_debug_info, false).
 :- create_prolog_flag(optimise_debug, default,
                       [ keep(true),
-                        oneof([default,false,true])
+                        type(oneof([default,false,true]))
                       ]).
 
 :- meta_predicate

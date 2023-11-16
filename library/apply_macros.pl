@@ -73,11 +73,11 @@ through YAP.
 
 :- create_prolog_flag(optimise_apply, default,
                       [ keep(true),
-                        oneof([default,false,true])
+                        type(oneof([default,false,true]))
                       ]).
 :- create_prolog_flag(apply_macros_scope, global,
                       [ keep(true),
-                        oneof([global,imported])
+                        type(oneof([global,imported]))
                       ]).
 
 :- dynamic
