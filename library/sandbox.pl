@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2022, VU University Amsterdam
+    Copyright (c)  2013-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v
     All rights reserved.
@@ -569,6 +569,10 @@ safe_primitive(<(_,_)).
 :- if(current_prolog_flag(bounded, false)).
 safe_primitive(system:nth_integer_root_and_remainder(_,_,_,_)).
 :- endif.
+safe_primitive(system:current_arithmetic_function(_)).
+safe_primitive(system:bounded_number(_,_,_)).
+safe_primitive(system:float_class(_,_)).
+safe_primitive(system:float_parts(_,_,_,_)).
 
                                         % term-handling
 safe_primitive(arg(_,_,_)).
