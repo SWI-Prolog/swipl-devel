@@ -278,7 +278,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 
 static
 PRED_IMPL("succ", 2, succ, 0)
-{ GET_LD
+{ PRED_LD
   Word p1, p2;
   number i1, i2, one;
   int rc;
@@ -289,7 +289,13 @@ PRED_IMPL("succ", 2, succ, 0)
   one.value.i = 1;
 
   if ( isInteger(*p1) )
-  { get_integer(*p1, &i1);
+  { if ( isTaggedInt(*p1) )
+    { intptr_t v = valInt(*p1);
+      if ( v >= 0 && ++v >= 0 )
+	return PL_unify_integer(A2, v);
+    }
+
+    get_integer(*p1, &i1);
     if ( ar_sign_i(&i1) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, A1);
@@ -300,6 +306,14 @@ PRED_IMPL("succ", 2, succ, 0)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
 
   p2 = valTermRef(A2); deRef(p2);
+
+  if ( isTaggedInt(*p2) )
+  { intptr_t v = valInt(*p2);
+    if ( v > 0 )
+      return PL_unify_integer(A1, v-1);
+    if ( v == 0 )
+      return FALSE;
+  }
 
   if ( isInteger(*p2) )
   { get_integer(*p2, &i2);

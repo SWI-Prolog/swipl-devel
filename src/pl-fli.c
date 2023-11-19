@@ -3334,7 +3334,7 @@ PL_unify_integer(DECL_LD term_t t, intptr_t i)
 
 API_STUB(int)
 (PL_unify_integer)(term_t t, intptr_t i)
-( return unify_int64_ex(t, i, FALSE); )
+( return PL_unify_integer(t, i); )
 
 API_STUB(int)
 (PL_unify_int64)(term_t t, int64_t i)

@@ -453,44 +453,42 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-get_integer() fetches the value of a Prolog  term known to be an integer
-into a number structure. If the  value  is   a  MPZ  number,  it must be
-handled as read-only and it only be used   as  intptr_t as no calls are made
-that may force a relocation or garbage collection on the global stack.
+get_bigint()  fetches  the value  of  a  Prolog  term  known to  be  a
+non-inlined integer  into a number structure.   If the value is  a MPZ
+number, it must be handled as read-only and it only be used as long as
+no calls are made that may force a relocation or garbage collection on
+the global stack.
 
-The version without O_GMP is a macro defined in pl-gmp.h
+Normally called through the inline get_integer() function.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-get_integer(word w, Number n)
-{ if ( storage(w) == STG_INLINE )
-  { n->type = V_INTEGER,
-    n->value.i = valInt(w);
-  } else
-  { GET_LD
-    Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
+get_bigint(word w, Number n)
+{ GET_LD
+  Word p = addressIndirect(w);
+  size_t wsize = wsizeofInd(*p);
 
-    p++;
-    if ( wsize == WORDS_PER_INT64 )
-    { n->type = V_INTEGER;
-      memcpy(&n->value.i, p, sizeof(int64_t));
-    } else
-    { n->type = V_MPZ;
+  DEBUG(0, assert(storage(w) == STG_INLINE));
+
+  p++;
+  if ( wsize == WORDS_PER_INT64 )
+  { n->type = V_INTEGER;
+    memcpy(&n->value.i, p, sizeof(int64_t));
+  } else
+  { n->type = V_MPZ;
 
 #if O_GMP
-      n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-      n->value.mpz->_mp_alloc = 0;
-      n->value.mpz->_mp_d     = (mp_limb_t*) p;
+    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
+    n->value.mpz->_mp_alloc = 0;
+    n->value.mpz->_mp_d     = (mp_limb_t*) p;
 #elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      n->value.mpz->ctx	 = NULL;
-      n->value.mpz->expn = (slimb_t)*p++;
-      n->value.mpz->sign = len < 0;
-      n->value.mpz->len  = abs(len);
-      n->value.mpz->tab  = (limb_t*)p;
+    slimb_t len = mpz_stack_size(*p++);
+    n->value.mpz->ctx	 = NULL;
+    n->value.mpz->expn = (slimb_t)*p++;
+    n->value.mpz->sign = len < 0;
+    n->value.mpz->len  = abs(len);
+    n->value.mpz->tab  = (limb_t*)p;
 #endif
-    }
   }
 }
 

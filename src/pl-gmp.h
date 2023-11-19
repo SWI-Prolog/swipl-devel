@@ -98,7 +98,7 @@ void	get_rational_no_int(word w, number *n);
 
 void	initGMP(void);
 void	cleanupGMP(void);
-void	get_integer(word w, number *n);
+void	get_bigint(word w, number *n);
 Code	get_mpz_from_code(Code pc, mpz_t mpz);
 Code	get_mpq_from_code(Code pc, mpq_t mpq);
 int	promoteToMPZNumber(number *n);
@@ -159,6 +159,17 @@ mpz_add_si(mpz_t r, const mpz_t n1, long add)
     mpz_sub_ui(r, n1, -add);
 }
 #endif
+
+static inline void
+get_integer(word w, Number n)
+{ if ( storage(w) == STG_INLINE )
+  { n->type = V_INTEGER,
+    n->value.i = valInt(w);
+  } else
+  { get_bigint(w, n);
+  }
+}
+
 
 #define get_rational(w, n) LDFUNC(get_rational, w, n)
 static inline void
