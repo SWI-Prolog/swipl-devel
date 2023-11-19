@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1345,6 +1345,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
+	case I_FCALLDETVA:
 	case I_FREDO:
 	case S_TRUSTME:
 	case S_LIST:
@@ -1983,6 +1984,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 
       case I_EXITQUERY:
       case I_EXITFACT:
+      case I_FCALLDETVA:
       case I_FEXITDET:
       case I_FEXITNDET:
       case S_TRUSTME:			/* Consider supervisor handling! */

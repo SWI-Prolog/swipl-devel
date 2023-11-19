@@ -533,6 +533,56 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
 		*         FOREIGN CALLS         *
 		*********************************/
 
+#define vmi_fopen(fr, def) LDFUNC(vmi_fopen, fr, def)
+
+static void
+vmi_fopen(DECL_LD LocalFrame fr, Definition def)
+{ FliFrame ffr;
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { lTop = (LocalFrame)argFrameP(fr, def->functor->arity);
+    BFR = newChoice(CHP_DEBUG, fr);
+    ffr = (FliFrame)lTop;
+  } else
+#endif
+  { ffr = (FliFrame)argFrameP(fr, def->functor->arity);
+  }
+
+#if O_DEBUG
+  if ( exception_term )
+  { Sdprintf("Exception at entry of %s\n",  predicateName(def));
+    PL_write_term(Serror, exception_term, 1200, PL_WRT_NEWLINE);
+  }
+#endif
+
+  DEBUG(CHK_SECURE, assert(def->functor->arity < 100));
+
+  lTop = (LocalFrame)(ffr+1);
+  ffr->size = 0;
+  NoMark(ffr->mark);
+  ffr->parent = fli_context;
+  FLI_SET_VALID(ffr);
+  fli_context = ffr;
+}
+
+
+static void
+error_foreign_return_code(intptr_t rc)
+{ fid_t fid = PL_open_foreign_frame();
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t ex;
+    int rc2 = ( (ex=PL_new_term_ref()) &&
+		PL_put_intptr(ex, rc) &&
+		PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			 ATOM_foreign_return_value, ex) );
+    (void)rc2;
+    PL_close_foreign_frame(fid);
+  }
+}
+
+
 #define CALL_FCUTTED(argc, f, c) \
   { switch(argc) \
     { case 0: \

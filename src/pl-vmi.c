@@ -4601,46 +4601,24 @@ END_VMI
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	I_FOPEN
-	I_FCALLDET0-10 f/n
-	I_FEXITDET
+Deterministic foreign  code calls are translated  to "I_FCALLDETVA f",
+which  both  inlines  the  old I_FOPEN  and  I_FEXITDET  instructions.
+Without the  "VA" calling  conventions, we produce  "I_FCALLDET<N> f",
+I_FEXITDET.  The I_FEXITDET  is not used, but avoids  having to repeat
+the I_FCALLDET<N> in several switches on instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_FOPEN, 0, 0, ())
-{ FliFrame ffr;
-
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
-  { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-    BFR = newChoice(CHP_DEBUG, FR);
-    ffr = (FliFrame)lTop;
-  } else
-#endif
-  { ffr = (FliFrame)argFrameP(FR, DEF->functor->arity);
-  }
-
-#if O_DEBUG
-  if ( exception_term )
-  { Sdprintf("Exception at entry of %s\n",  predicateName(DEF));
-    PL_write_term(Serror, exception_term, 1200, PL_WRT_NEWLINE);
-  }
-#endif
-
-  DEBUG(CHK_SECURE, assert(DEF->functor->arity < 100));
-
-  lTop = (LocalFrame)(ffr+1);
-  ffr->size = 0;
-  NoMark(ffr->mark);
-  ffr->parent = fli_context;
-  FLI_SET_VALID(ffr);
-  fli_context = ffr;
+#if 0			/* inlined with I_FCALLDETVA and I_FCALLDET<N> */
+			/* NO_VMI to avoid mkvmi to see this */
+NO_VMI(I_FOPEN, 0, 0, ())
+{ FliFrame ffr = vmi_fopen(FR, DEF);
   FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(QID);
 
   NEXT_INSTRUCTION;
 }
 END_VMI
-
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_FCALLDETVA:  Call  deterministic  foreign    function  using  P_VARARG
@@ -4650,12 +4628,15 @@ conventions.
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
   va_func f = (va_func)*PC++;
-  term_t h0 = argFrameP(FR, 0) - (Word)lBase;
+  term_t h0 = consTermRef(argFrameP(FR, 0));
+
+  vmi_fopen(FR, DEF);		/* inline I_FOPEN */
 
   FNDET_CONTEXT.control   = FRG_FIRST_CALL;
   FNDET_CONTEXT.context   = 0L;
   FNDET_CONTEXT.predicate = DEF;
 
+  SAVE_REGISTERS(QID);
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
@@ -4669,13 +4650,19 @@ a1, a2, ... calling conventions.
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 { Func0 f = (Func0)*PC++;
 
+  vmi_fopen(FR, DEF); /* inline I_FOPEN */
+  SAVE_REGISTERS(QID);
+
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
 
 #define FCALL_DETN(ac, ...) \
   Func##ac f = (Func##ac)*PC++; \
-  term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
+  term_t h0 = consTermRef(argFrameP(FR, 0)); \
+  vmi_fopen(FR, DEF); /* inline I_FOPEN */ \
+  PC++; \
+  SAVE_REGISTERS(QID); \
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
@@ -4739,17 +4726,20 @@ END_VMI
 
 
 VMI(I_FEXITDET, 0, 0, ())
-{ THROW_EXCEPTION; /* probably should never happen?? */
+{ assert(0);
+  THROW_EXCEPTION; /* should never happen as we jump to the helper */
 }
 END_VMI
 
 VMH(I_FEXITDET, 1, (word), (rc))
-{ FliFrame ffr = (FliFrame)valTermRef(FFR_ID);
+{ LOAD_REGISTERS(QID);
 
-  LOAD_REGISTERS(QID);
-  PC += 3;
-  DEBUG(CHK_SECURE, assert(PC[-1] == encode(I_FEXITDET)));
-  fli_context = ffr->parent;
+  while ( (void*)fli_context > (void*)FR )
+    fli_context = fli_context->parent;
+
+  DEBUG(CHK_SECURE,
+	assert(PC[-1] == encode(I_FEXITDET) ||
+	       PC[-2] == encode(I_FCALLDETVA)));
 
   switch(rc)
   { case TRUE:
@@ -4761,15 +4751,8 @@ VMH(I_FEXITDET, 1, (word), (rc))
 	THROW_EXCEPTION;
       FRAME_FAILED;
     default:
-    { fid_t fid = PL_open_foreign_frame();
-      term_t ex = PL_new_term_ref();
-
-      PL_put_intptr(ex, rc);
-      PL_error(NULL, 0, NULL, ERR_DOMAIN,
-	       ATOM_foreign_return_value, ex);
-      PL_close_foreign_frame(fid);
+      error_foreign_return_code(rc);
       THROW_EXCEPTION;
-    }
   }
 }
 END_VMH

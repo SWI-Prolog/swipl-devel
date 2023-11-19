@@ -7130,6 +7130,7 @@ vm_list(Code start, Code end)
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
+	case I_FCALLDETVA:
 	case I_FREDO:
 	case S_TRUSTME:
 	case S_LIST:
