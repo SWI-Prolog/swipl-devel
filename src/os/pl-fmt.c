@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -39,7 +39,6 @@ Formatted output (Prolog predicates format/[1,2,3]).   One  day,  the  C
 source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-fmt.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "../pl-arith.h"
@@ -233,54 +232,58 @@ static WUNUSED int emit_rubber(format_state *state);
 		*       PROLOG CONNECTION	*
 		********************************/
 
-word
-pl_format_predicate(term_t chr, term_t descr)
-{ int c;
+static
+PRED_IMPL("format_predicate", 2, format_predicate, META)
+{ PRED_LD
+  int c;
   predicate_t proc = NULL;
   size_t arity;
 
-  if ( !PL_get_char_ex(chr, &c, FALSE) )
-    fail;
+  if ( !PL_get_char_ex(A1, &c, FALSE) )
+    return FALSE;
+  if ( !get_procedure(A2, &proc, 0, GP_CREATE) )
+    return FALSE;
 
-  if ( !get_procedure(descr, &proc, 0, GP_CREATE) )
-    fail;
   PL_predicate_info(proc, NULL, &arity, NULL);
   if ( arity == 0 )
     return PL_error(NULL, 0, "arity must be > 0", ERR_DOMAIN,
 		    PL_new_atom("format_predicate"),
-		    descr);
+		    A2);
 
   if ( !format_predicates )
     format_predicates = newHTable(8);
 
   updateHTable(format_predicates, (void *)(intptr_t)c, proc);
 
-  succeed;
+  return TRUE;
 }
 
 
-word
-pl_current_format_predicate(term_t chr, term_t descr, control_t h)
-{ GET_LD
+static
+PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
+{ PRED_LD
   intptr_t name;
   predicate_t pred;
   TableEnum e;
   fid_t fid;
 
-  switch( ForeignControl(h) )
+  term_t chr = A1;
+  term_t descr = A2;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       if ( !format_predicates )
 	fail;
       e = newTableEnum(format_predicates);
       break;
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       break;
     case FRG_CUTTED:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       freeTableEnum(e);
     default:
-      succeed;
+      return TRUE;
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -299,7 +302,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
   PL_close_foreign_frame(fid);
   freeTableEnum(e);
-  fail;
+  return FALSE;
 }
 
 
@@ -346,11 +349,11 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   return rval;
 }
 
+#define format(out, fmt, args) LDFUNC(format, out, fmt, args)
 
-word
-pl_format3(term_t out, term_t format, term_t args)
-{ GET_LD
-  redir_context ctx;
+static word
+format(DECL_LD term_t out, term_t format, term_t args)
+{ redir_context ctx;
   word rc;
   Module m = NULL;
   term_t list = PL_new_term_ref();
@@ -368,12 +371,19 @@ pl_format3(term_t out, term_t format, term_t args)
   return rc;
 }
 
+static
+PRED_IMPL("format", 2, format, META)
+{ PRED_LD
 
-word
-pl_format(term_t fmt, term_t args)
-{ return pl_format3(0, fmt, args);
+  return format(0, A1, A2);
 }
 
+static
+PRED_IMPL("format", 3, format, META)
+{ PRED_LD
+
+    return format(A1, A2, A3);
+}
 
 static inline int
 get_chr_from_text(const PL_chars_t *t, int index)
@@ -1749,3 +1759,18 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
   return baseBuffer(out, char);
 }
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+#define META PL_FA_TRANSPARENT
+#define NDET PL_FA_NONDETERMINISTIC
+
+BeginPredDefs(format)
+  PRED_DEF("format", 2, format, META)
+  PRED_DEF("format", 3, format, META)
+  PRED_DEF("format_predicate", 2, format_predicate, META)
+  PRED_DEF("current_format_predicate", 2, current_format_predicate, NDET|META)
+EndPredDefs

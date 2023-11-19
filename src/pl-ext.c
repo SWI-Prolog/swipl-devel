@@ -53,7 +53,6 @@
 #include "pl-fli.h"
 #include "pl-nt.h"
 #include "os/pl-ctype.h"
-#include "os/pl-fmt.h"
 #include "os/pl-prologflag.h"
 
 #if O_DEBUG
@@ -165,7 +164,6 @@ static const PL_extension foreigns[] = {
 #endif
   FRG("context_module",		1, pl_context_module,	     META),
 
-  FRG("format",			2, pl_format,		     META),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,      META),
 #endif
@@ -187,11 +185,6 @@ static const PL_extension foreigns[] = {
   FRG("writeq",			2, pl_writeq2,		      ISO),
   FRG("print",			2, pl_print2,			0),
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
-  FRG("format",			3, pl_format3,		     META),
-
-  FRG("format_predicate",	2, pl_format_predicate,	     META),
-  FRG("current_format_predicate", 2, pl_current_format_predicate,
-							META|NDET),
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
@@ -394,6 +387,7 @@ DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(srcfile);
 DECL_PLIST(write);
+DECL_PLIST(format);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
 DECL_PLIST(op);
@@ -460,6 +454,7 @@ initBuildIns(void)
   REG_PLIST(proc);
   REG_PLIST(srcfile);
   REG_PLIST(write);
+  REG_PLIST(format);
   REG_PLIST(dlopen);
   REG_PLIST(system);
   REG_PLIST(op);
