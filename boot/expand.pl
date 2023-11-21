@@ -1559,9 +1559,8 @@ cond_compilation((:- if(G)), []) :-
     ).
 cond_compilation((:- elif(G)), []) :-
     source_location(File, Line),
-    (   clause('$include_code'(Old, OF, _), _, Ref)
-    ->  same_source(File, OF, elif),
-        erase(Ref),
+    (   clause('$include_code'(Old, File, _), _, Ref)
+    ->  erase(Ref),
         (   Old == true
         ->  asserta('$include_code'(else_false, File, Line))
         ;   Old == false,
@@ -1573,9 +1572,8 @@ cond_compilation((:- elif(G)), []) :-
     ).
 cond_compilation((:- else), []) :-
     source_location(File, Line),
-    (   clause('$include_code'(X, OF, _), _, Ref)
-    ->  same_source(File, OF, else),
-        erase(Ref),
+    (   clause('$include_code'(X, File, _), _, Ref)
+    ->  erase(Ref),
         (   X == true
         ->  X2 = false
         ;   X == false
@@ -1599,20 +1597,14 @@ cond_compilation(end_of_file, end_of_file) :-   % TBD: Check completeness
 cond_compilation((:- endif), []) :-
     !,
     source_location(File, _),
-    (   (   clause('$include_code'(_, OF, _), _, Ref)
-        ->  same_source(File, OF, endif),
-            erase(Ref)
+    (   (   clause('$include_code'(_, File, _), _, Ref)
+        ->  erase(Ref)
         )
     ->  true
     ;   throw(error(conditional_compilation_error(no_if, endif), _))
     ).
 cond_compilation(_, []) :-
     \+ '$including'.
-
-same_source(File, File, _) :- !.
-same_source(_,    _,    Op) :-
-    throw(error(conditional_compilation_error(no_if, Op), _)).
-
 
 '$eval_if'(G) :-
     expand_goal(G, G2),
