@@ -77,7 +77,7 @@ have the same name and arity.
 */
 
 :- predicate_options(csv//2, 2,
-                     [ separator(nonneg),       % mustv be code
+                     [ separator(code),         % must be code
                        strip(boolean),
                        ignore_quotes(boolean),
                        convert(boolean),
