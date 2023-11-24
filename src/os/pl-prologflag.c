@@ -2141,10 +2141,9 @@ checkPrologFlagsAccess(void)
 { int rc = TRUE;
 
   if ( GD->prolog_flag.table )
-  { GET_LD
-
-    if ( LD )
-    { fid_t fid = PL_open_foreign_frame();
+  { if ( HAS_LD )
+    { GET_LD
+      fid_t fid = PL_open_foreign_frame();
 
       if ( fid )
       { term_t list = PL_new_term_ref();
