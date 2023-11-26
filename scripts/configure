@@ -101,6 +101,16 @@ case $config in
     ;;
 esac
 
+# native tuning
+#
+# Optimize for local CPU
+
+case $config in
+  *native*)
+    CFLAGS+=" -mtune=native -march=native"
+    ;;
+esac
+
 # malloc
 #
 # Use  malloc  instead  of  tcmalloc.  Currently  required  for  using
