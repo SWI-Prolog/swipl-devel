@@ -248,6 +248,7 @@ findHome(const char *symbols, int argc, const char **argv)
   char plp[PATH_MAX];
   const char *homeopt = find_longopt("home", argc, argv);
   const char *val;
+  const char *envvar;
 
   if ( homeopt && (val=is_longopt(homeopt, "home")) && val[0] )
   { if ( (home=PrologPath(val, plp, sizeof(plp))) )
@@ -256,18 +257,21 @@ findHome(const char *symbols, int argc, const char **argv)
   }
 
 #ifdef PLHOMEVAR_1
-  if ( !(maybe_home = Getenv(PLHOMEVAR_1, envbuf, sizeof(envbuf))) )
+  if ( !(maybe_home = Getenv((envvar=PLHOMEVAR_1), envbuf, sizeof(envbuf))) )
   {
 #ifdef PLHOMEVAR_2
-    maybe_home = Getenv(PLHOMEVAR_2, envbuf, sizeof(envbuf));
+    maybe_home = Getenv((envvar=PLHOMEVAR_2), envbuf, sizeof(envbuf));
 #endif
   }
   if ( maybe_home &&
        (maybe_home = PrologPath(maybe_home, plp, sizeof(plp))) &&
        ExistsDirectory(maybe_home) )
   { home = maybe_home;
+    DEBUG(MSG_INITIALISE,
+	  Sdprintf("Found home using env %s\n", envvar));
     goto out;
   }
+  (void)envvar;
 #endif
 
 #ifdef PLHOMEFILE
@@ -313,18 +317,42 @@ findHome(const char *symbols, int argc, const char **argv)
 
 	if ( ExistsDirectory(maybe_home) )
 	{ home = maybe_home;
+	  DEBUG(MSG_INITIALISE,
+		Sdprintf("Found home using %s from %s\n", buf));
 	}
       }
       Sclose(fd);
     }
   }
 #endif /*PLHOMEFILE*/
+#ifdef PLRELHOME
+  if ( !home && symbols )
+  { char bindir[PATH_MAX];
+    char *o;
+
+    strcpy(bindir, symbols);
+    DirName(bindir, bindir);
+    if ( strlen(bindir)+strlen(PLRELHOME)+2 > sizeof(bindir) )
+      fatalError("Executable path name too long");
+    o = bindir+strlen(bindir);
+    *o++ = '/';
+    strcpy(o, PLRELHOME);
+    if ( ExistsDirectory(bindir) )
+    { if ( !(home=AbsoluteFile(bindir, plp, sizeof(plp))) )
+	fatalError("Executable path name too long");
+      DEBUG(MSG_INITIALISE,
+	    Sdprintf("Found home using %s from %s\n", PLRELHOME, symbols));
+    }
+  }
+#endif
 
   if ( !home &&
        ( (maybe_home = PrologPath(PLHOME, plp, sizeof(plp))) &&
 	 ExistsDirectory(maybe_home)
        ) )
-    home = maybe_home;
+  { home = maybe_home;
+    DEBUG(MSG_INITIALISE, Sdprintf("Found home using %s\n", PLHOME));
+  }
 
 out:
   if ( home )
