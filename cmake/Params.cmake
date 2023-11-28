@@ -16,10 +16,10 @@ endif()
 set(PLARCH   ${SWIPL_ARCH})
 string(REGEX REPLACE "\\." "" SO_EXT "${CMAKE_SHARED_MODULE_SUFFIX}")
 
-if(NOT SWIPL_INSTALL_AS_LINK)
+if(NOT SWIPL_INSTALL_AS_LINK AND NOT PLRELHOME)
   if(SWIPL_INSTALL_WIN_BUNDLE)
     set(PLRELHOME "..")
-  else()
+  elseif(PLHOME)
     file(RELATIVE_PATH PLRELHOME "${SWIPL_INSTALL_ARCH_EXE}" "${PLHOME}")
   endif()
 endif()
@@ -61,4 +61,8 @@ get_filename_component(
 
 if(CMAKE_EXECUTABLE_FORMAT)
 string(TOLOWER ${CMAKE_EXECUTABLE_FORMAT} EXEC_FORMAT)
+endif()
+
+if(PLHOME EQUAL no-home)
+  set(PLHOME)
 endif()

@@ -8,3 +8,6 @@ if(MSVC)
 	       INTERFACE_LINK_LIBRARIES pthreads.lib)
   set(CMAKE_USE_PTHREADS_INIT 1)
 endif()
+
+set(PLHOME no-home)
+set(PLRELHOME ../lib/${SWIPL_INSTALL_DIR})

@@ -346,6 +346,7 @@ findHome(const char *symbols, int argc, const char **argv)
   }
 #endif
 
+#ifdef PLHOME
   if ( !home &&
        ( (maybe_home = PrologPath(PLHOME, plp, sizeof(plp))) &&
 	 ExistsDirectory(maybe_home)
@@ -353,6 +354,7 @@ findHome(const char *symbols, int argc, const char **argv)
   { home = maybe_home;
     DEBUG(MSG_INITIALISE, Sdprintf("Found home using %s\n", PLHOME));
   }
+#endif
 
 out:
   if ( home )
