@@ -267,7 +267,9 @@ test_component(_).
 check_features(Dict) :-
     Test = Dict.get(features),
     !,
-    call(Test).
+    catch(Test, Error,
+          ( print_message(warning, Error),
+            fail)).
 check_features(_).
 
 
