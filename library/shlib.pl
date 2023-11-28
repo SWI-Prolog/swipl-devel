@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2022, University of Amsterdam
+    Copyright (c)  1995-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -604,6 +604,25 @@ env_add_dll_dir(Var, Postfix) :-
     add_dll_directories.
 
 :- endif.
+
+		 /*******************************
+		 *          SEARCH PATH		*
+		 *******************************/
+
+:- dynamic
+    user:file_search_path/2.
+:- multifile
+    user:file_search_path/2.
+
+user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(arch, Arch),
+    atom_concat('lib/', Arch, ArchLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    (   current_prolog_flag(windows, true)
+    ->  SoLib = bin
+    ;   SoLib = lib
+    ).
+
 
                  /*******************************
                  *            MESSAGES          *
