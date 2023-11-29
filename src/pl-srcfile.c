@@ -264,7 +264,9 @@ clearSourceAdmin(atom_t sf_name)
 static atom_t
 destroySourceFile(SourceFile sf)
 { if ( sf->magic == SF_MAGIC )
-  { atom_t name;
+  { GET_LD
+
+    atom_t name;
     SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;

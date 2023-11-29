@@ -2591,7 +2591,8 @@ unalias_thread(thread_handle *th)
 { atom_t name;
 
   if ( (name=th->alias) )
-  { atom_t symbol;
+  { GET_LD
+    atom_t symbol;
 
     if ( (symbol=(word)deleteHTable(threadTable, (void *)th->alias)) )
     { th->alias = NULL_ATOM;
@@ -5063,7 +5064,9 @@ release_message_queue_ref(atom_t aref)
   if ( (q=ref->queue) )
   { destroy_message_queue(q);			/* can be called twice */
     if ( !q->destroyed )
+    { GET_LD
       deleteHTable(queueTable, (void *)q->id);
+    }
     simpleMutexDelete(&q->mutex);
     PL_free(q);
   }

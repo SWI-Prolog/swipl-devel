@@ -74,6 +74,8 @@ struct table_enum
 #define	lookupHTable(ht, name)		LDFUNC(lookupHTable, ht, name)
 #define	addHTable(ht, name, value)	LDFUNC(addHTable, ht, name, value)
 #define	addNewHTable(ht, name, value)	LDFUNC(addNewHTable, ht, name, value)
+#define	updateHTable(ht, name, value)	LDFUNC(updateHTable, ht, name, value)
+#define	deleteHTable(ht, name)		LDFUNC(deleteHTable, ht, name)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

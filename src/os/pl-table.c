@@ -562,10 +562,9 @@ addNewHTable(DECL_LD Table ht, void *name, void *value)
 }
 
 
-void*
-updateHTable(Table ht, void *name, void *value)
-{ GET_LD
-  KVS kvs;
+void *
+updateHTable(DECL_LD Table ht, void *name, void *value)
+{ KVS kvs;
   void *v;
 
   acquire_kvs(ht, kvs);
@@ -581,10 +580,9 @@ updateHTable(Table ht, void *name, void *value)
 }
 
 
-void*
-deleteHTable(Table ht, void *name)
-{ GET_LD
-  KVS kvs;
+void *
+deleteHTable(DECL_LD Table ht, void *name)
+{ KVS kvs;
   void *v;
 
   acquire_kvs(ht, kvs);

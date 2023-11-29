@@ -1155,7 +1155,8 @@ registerRetracted(Clause cl)
 static void
 reclaimRetracted(Clause cl)
 { DEBUG(MSG_CGC_CREF_TRACK,
-	{ void *v = deleteHTable(retracted_clauses, cl);
+	{ GET_LD
+	  void *v = deleteHTable(retracted_clauses, cl);
 	  if ( v != (void*)1 && GD->cleaning == CLN_NORMAL )
 	  { Definition def = cl->predicate;
 	    Sdprintf("reclaim not retracted from %s\n", predicateName(def));
@@ -2623,7 +2624,8 @@ registerDirtyDefinition(DECL_LD Definition def)
 
 static void
 unregisterDirtyDefinition(Definition def)
-{ DirtyDefInfo ddi;
+{ GET_LD
+  DirtyDefInfo ddi;
 
   if ( (ddi=deleteHTable(GD->procedures.dirty, def)) )
   { PL_free(ddi);

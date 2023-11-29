@@ -1,3 +1,6 @@
+		 /*******************************
+		 *               C		*
+		 *******************************/
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
@@ -404,7 +407,9 @@ unlinkSourceFilesModule(Module m)
 
 static int
 destroyModule(Module m)
-{ if ( !(m->class != ATOM_temporary ||
+{ GET_LD
+
+  if ( !(m->class != ATOM_temporary ||
 	 m->references > 0) )
     Sdprintf("Module %s: class %s; refs %d\n",
 	     PL_atom_chars(m->name), PL_atom_chars(m->class), m->references);
@@ -1480,7 +1485,9 @@ head from the context module.
 
 int
 exportProcedure(Module module, Procedure proc)
-{ updateHTable(module->public,
+{ GET_LD
+
+  updateHTable(module->public,
 	       (void *)proc->definition->functor->functor,
 	       proc);
 

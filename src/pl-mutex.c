@@ -77,7 +77,9 @@ release_mutexref(atom_t aref)
 
   if ( (m=ref->mutex) )
   { if ( !m->destroyed )
+    { GET_LD
       deleteHTable(GD->thread.mutexTable, (void *)m->id);
+    }
 
     if ( m->owner )
     { Sdprintf("WARNING: <mutex>(%p) garbage collected "
@@ -489,7 +491,9 @@ static int
 try_really_destroy_mutex(pl_mutex *m)
 { if ( PL_mutex_trylock(m) )
   { if ( m->count == 1 )
-    { m->destroyed = TRUE;
+    { GET_LD
+
+      m->destroyed = TRUE;
       deleteHTable(GD->thread.mutexTable, (void *)m->id);
       if ( !m->anonymous )
 	PL_unregister_atom(m->id);
