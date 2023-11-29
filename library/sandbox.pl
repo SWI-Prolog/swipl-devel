@@ -1264,6 +1264,7 @@ safe_path(A/B) :-
 safe_prolog_flag(generate_debug_info, _).
 safe_prolog_flag(optimise, _).
 safe_prolog_flag(occurs_check, _).
+safe_prolog_flag(write_attributes, _).
 % syntax
 safe_prolog_flag(var_prefix, _).
 safe_prolog_flag(double_quotes, _).
