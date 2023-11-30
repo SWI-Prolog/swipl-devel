@@ -63,6 +63,7 @@ if(SWIPL_INSTALL_WIN_BUNDLE)
 elseif(BUILD_MACOS_BUNDLE)
 # Install as a MacOS application bundle
 
+  set(PLRELHOME ../swipl)
   set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
   set(SWIPL_INSTALL_ARCH_EXE  SWI-Prolog.app/Contents/MacOS)
   set(SWIPL_INSTALL_ARCH_LIB  SWI-Prolog.app/Contents/Frameworks)

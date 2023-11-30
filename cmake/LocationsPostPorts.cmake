@@ -19,7 +19,9 @@ if(SWIPL_INSTALL_GENERIC_BUNDLE)
       CACHE STRING "Directory for man pages")
   set(SWIPL_INSTALL_PKGCONFIG share/pkgconfig
       CACHE STRING "Directory for pkg-config pages")
+endif()
 
+if(NOT SWIPL_INSTALL_MODULES)
   set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
 endif()
 
