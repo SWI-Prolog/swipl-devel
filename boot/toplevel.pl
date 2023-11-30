@@ -943,6 +943,20 @@ setup_interactive :-
                 *    USER INTERACTIVE LOOP      *
                 *********************************/
 
+%!  prolog:repl_loop_hook(+BeginEnd, +BreakLevel) is nondet.
+%
+%   Multifile  hook  that  allows  acting    on   starting/stopping  the
+%   interactive REPL loop. Called as
+%
+%       forall(prolog:repl_loop_hook(BeginEnd, BreakLevel), true)
+%
+%   @arg BeginEnd is one of `begin` or `end`
+%   @arg BreakLevel is 0 for the normal toplevel, -1 when
+%   non-interactive and >0 for _break environments_.
+
+:- multifile
+    prolog:repl_loop_hook/2.
+
 %!  prolog
 %
 %   Run the Prolog toplevel. This is now  the same as break/0, which
@@ -962,21 +976,26 @@ prolog :-
 %   exceptions are really unhandled (in Prolog).
 
 '$query_loop' :-
+    break_level(BreakLev),
+    setup_call_cleanup(
+        forall(prolog:repl_loop_hook(begin, Level), true),
+        '$query_loop'(BreakLev),
+        forall(prolog:repl_loop_hook(end, Level), true)).
+
+'$query_loop'(BreakLev) :-
     current_prolog_flag(toplevel_mode, recursive),
     !,
-    break_level(Level),
-    read_expanded_query(Level, Query, Bindings),
+    read_expanded_query(BreakLev, Query, Bindings),
     (   Query == end_of_file
     ->  print_message(query, query(eof))
     ;   '$call_no_catch'('$execute_query'(Query, Bindings, _)),
         (   current_prolog_flag(toplevel_mode, recursive)
-        ->  '$query_loop'
+        ->  '$query_loop'(BreakLev)
         ;   '$switch_toplevel_mode'(backtracking),
-            '$query_loop'           % Maybe throw('$switch_toplevel_mode')?
+            '$query_loop'(BreakLev)     % Maybe throw('$switch_toplevel_mode')?
         )
     ).
-'$query_loop' :-
-    break_level(BreakLev),
+'$query_loop'(BreakLev) :-
     repeat,
         read_expanded_query(BreakLev, Query, Bindings),
         (   Query == end_of_file
@@ -985,7 +1004,7 @@ prolog :-
             (   current_prolog_flag(toplevel_mode, recursive)
             ->  !,
                 '$switch_toplevel_mode'(recursive),
-                '$query_loop'
+                '$query_loop'(BreakLev)
             ;   fail
             )
         ).
