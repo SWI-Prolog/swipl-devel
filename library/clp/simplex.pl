@@ -1004,14 +1004,14 @@ pivot_row(Tableau, PCol, PRow) :-
         tableau_rows(Tableau, Rows),
         pivot_row(Rows, PCol, false, _, 0, 0, PRow).
 
-pivot_row([], _, Bounded, _, _, Row, Row) :- Bounded.
+pivot_row([], _, true, _, _, Row, Row).
 pivot_row([Row|Rows], PCol, Bounded0, Min0, Index0, PRow0, PRow) :-
         Row = row(_Var, Left, B),
         nth0(PCol, Left, Ae),
         (   Ae > 0 ->
             Bounded1 = true,
             Bound is B rdiv Ae,
-            (   Bounded0 ->
+            (   Bounded0 == true ->
                 (   Bound < Min0 -> Min1 = Bound, PRow1 = Index0
                 ;   Min1 = Min0, PRow1 = PRow0
                 )
