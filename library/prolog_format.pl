@@ -146,12 +146,15 @@ action_types(Action) -->
     phrase(Types).
 
 numeric_argument(number(N)) -->
-    integer(N).
+    integer(N),
+    !.
 numeric_argument(character(C)) -->
     "`",
+    !,
     [C].
 numeric_argument(star) -->
-    "*".
+    "*",
+    !.
 numeric_argument(nothing) -->
     "".
 
