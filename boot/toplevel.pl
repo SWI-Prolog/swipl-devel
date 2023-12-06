@@ -128,6 +128,7 @@ load_init_file(Base, _) :-
                        [ access(read),
                          file_errors(fail)
                        ]),
+    !,
     asserta(loaded_init_file(Base, InitFile)),
     load_files(user:InitFile,
                [ scope_settings(false)
