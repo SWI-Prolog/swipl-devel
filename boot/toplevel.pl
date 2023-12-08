@@ -979,9 +979,13 @@ prolog :-
 '$query_loop' :-
     break_level(BreakLev),
     setup_call_cleanup(
-        forall(prolog:repl_loop_hook(begin, BreakLev), true),
+        notrace(call_repl_loop_hook(begin, BreakLev)),
         '$query_loop'(BreakLev),
-        forall(prolog:repl_loop_hook(end, BreakLev), true)).
+        notrace(call_repl_loop_hook(end, BreakLev))).
+
+call_repl_loop_hook(BeginEnd, BreakLev) :-
+    forall(prolog:repl_loop_hook(BeginEnd, BreakLev), true).
+
 
 '$query_loop'(BreakLev) :-
     current_prolog_flag(toplevel_mode, recursive),
