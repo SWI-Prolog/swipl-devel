@@ -71,6 +71,8 @@
 user:file_search_path(autoload, swi(library)).
 user:file_search_path(autoload, pce(prolog/lib)).
 user:file_search_path(autoload, app_config(lib)).
+user:file_search_path(autoload, Dir) :-
+    '$ext_library_directory'(Dir).
 
 :- create_prolog_flag(warn_autoload, false, []).
 
