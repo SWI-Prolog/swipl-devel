@@ -4,6 +4,10 @@
 # possible such that we can perform   all  global package reorganization
 # centrally.
 
+# The current package is available as ${SWIPL_PKG}
+string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
+set(PKG_BUILD_LIBRARY ${SWIPL_BUILD_HOME}/library/ext/${SWIPL_PKG})
+
 # Get cmake files from this package, the package infrastructure and
 # SWI-Prolog overall
 set(CMAKE_MODULE_PATH
@@ -21,8 +25,6 @@ if(MULTI_THREADED)
   set(O_PLMT 1)
   set(_REENTRANT 1)			# FIXME: packages should use O_PLMT
 endif()
-
-string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
 
 # get SWI-Prolog.h and SWI-Stream.h
 include_directories(BEFORE ${SWIPL_ROOT}/src ${SWIPL_ROOT}/src/os)
@@ -220,7 +222,7 @@ endif()
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install_src(${src_target}
 		  FILES ${${subdir_var}}
-		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd})
       add_dependencies(${target} ${src_target})
       if(v_index AND sd)
         add_index(${sd} ${${subdir_var}})
@@ -235,7 +237,7 @@ endif()
       prepend(_genlibs ${CMAKE_CURRENT_BINARY_DIR}/ ${${subdir_var}})
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install(FILES ${_genlibs}
-	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd})
     endif()
   endforeach()
 endfunction(swipl_plugin)

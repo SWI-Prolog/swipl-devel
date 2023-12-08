@@ -1060,6 +1060,8 @@ user:file_search_path(swi, Home) :-
 user:file_search_path(library, app_config(lib)).
 user:file_search_path(library, swi(library)).
 user:file_search_path(library, swi(library/clp)).
+user:file_search_path(library, Dir) :-
+    '$ext_library_directory'(Dir).
 user:file_search_path(foreign, swi(ArchLib)) :-
     current_prolog_flag(apple_universal_binary, true),
     ArchLib = 'lib/fat-darwin'.
@@ -1165,6 +1167,21 @@ user:file_search_path(app, app_data(app)).
     ->  DirS = Dir
     ;   atom_concat(Dir, /, DirS)
     ).
+
+:- dynamic '$ext_lib_dirs'/1.
+:- volatile '$ext_lib_dirs'/1.
+
+'$ext_library_directory'(Dir) :-
+    '$ext_lib_dirs'(Dirs),
+    !,
+    '$member'(Dir, Dirs).
+'$ext_library_directory'(Dir) :-
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/library/ext/*', Pattern),
+    expand_file_name(Pattern, Dirs0),
+    '$include'(exists_directory, Dirs0, Dirs),
+    asserta('$ext_lib_dirs'(Dirs)),
+    '$member'(Dir, Dirs).
 
 
 %!  '$expand_file_search_path'(+Spec, -Expanded, +Cond) is nondet.
@@ -4164,6 +4181,15 @@ compile_aux_clauses(Clauses) :-
 '$last'([], Last, Last).
 '$last'([H|T], _, Last) :-
     '$last'(T, H, Last).
+
+:- meta_predicate '$include'(1,+,-).
+'$include'(_, [], []).
+'$include'(G, [H|T0], L) :-
+    (   call(G,H)
+    ->  L = [H|T]
+    ;   T = L
+    ),
+    '$include'(G, T0, T).
 
 
 %!  length(?List, ?N)
