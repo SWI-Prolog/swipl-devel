@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2021, University of Amsterdam
+    Copyright (c)  2009-2023, University of Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -37,9 +37,7 @@
 :- module(portray_text,
           [ portray_text/1,             % +Bool
             set_portray_text/2,         % +Name, +Value
-            set_portray_text/3,         % +Name, ?Old, +Value
-
-            '$portray_text_enabled'/1
+            set_portray_text/3          % +Name, ?Old, +Value
           ]).
 :- autoload(library(error), [must_be/2, domain_error/2]).
 
@@ -143,9 +141,8 @@ portray_text(OnOff) :-
 %       Only consider for conversion lists of integers
 %       that have a length of at least Value. Default is 3.
 %     - ellipsis
-%       When converting a list that is longer than Value, elide the
-%       output at the start using ellipsis, leaving only Value number of
-%       non-elided characters: =|`...end`|=
+%       When converting a list that is longer than Value, display
+%       the output as ``start...end``.
 
 set_portray_text(Key, New) :-
     set_portray_text(Key, _, New).
@@ -174,7 +171,7 @@ user:portray(Codes) :-
     '$skip_list'(Length, Codes, _Tail),
     portray_text_option(min_length, MinLen),
     Length >= MinLen,
-    all_codes(Codes),
+    mostly_codes(Codes, 0.9),
     portray_text_option(ellipsis, IfLonger),
     quote(C),
     put_code(C),
@@ -224,19 +221,29 @@ emit_code(0'\n, _) :- !, format('\\n').
 emit_code(0'\t, _) :- !, format('\\t').
 emit_code(C, _) :- put_code(C).
 
-all_codes(Var) :-
+mostly_codes(Codes, MinFactor) :-
+    mostly_codes(Codes, 0, 0, MinFactor).
+
+mostly_codes(Var, _, _, _) :-
     var_or_numbered(Var),
     !.
-all_codes([]).
-all_codes([H|T]) :-
-    is_code(H),
-    all_codes(T).
-
-is_code(Term) :-
-    integer(Term),
-    Term >= 0,
-    text_code(Term),
-    !.
+mostly_codes([], Yes, No, MinFactor) :-
+    Yes >= (Yes+No)*MinFactor.
+mostly_codes([H|T], Yes, No, MinFactor) :-
+    integer(H),
+    H >= 0,
+    H =< 0x1ffff,
+    (   text_code(H)
+    ->  Yes1 is Yes+1,
+        mostly_codes(T, Yes1, No, MinFactor)
+    ;   catch(code_type(H, print),error(_,_),fail),
+        No1 is No+1,
+        mostly_codes(T, Yes, No1, MinFactor),
+        (   Yes+No1 > 100
+        ->  Yes >= (Yes+No1)*MinFactor
+        ;   true
+        )
+    ).
 
 % Idea: Maybe accept anything and hex-escape anything non-printable?
 %       In particular, I could imaging 0 and ESC appearing in text of interest.
@@ -267,16 +274,4 @@ var_or_numbered('$VAR'(_)).
 %
 %   @tbd we might be able  to  use   the  current  locale to include the
 %   appropriate code page. (Does that really make sense?)
-
-
-%   '$portray_text_enabled'(-Val)
-%
-%   Ask the current status of  text   portraying.  Used by the graphical
-%   debugger.
-%
-%   @deprecated.  Use set_portray_text(enabled, Val, Val).
-
-'$portray_text_enabled'(Val) :-
-    portray_text_option(enabled, Val).
-
 
