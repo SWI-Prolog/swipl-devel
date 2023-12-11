@@ -34,68 +34,17 @@
 */
 
 :- module(prolog_install,
-          [ qcompile_libraries/0,
-            cmake_qcompile/0,
-            cmake_qcompile/2,                   % +File, +Deps
-            cmake_save_man_index/0
+          [ cmake_qcompile/0,
+            cmake_qcompile/2                    % +File, +Deps
           ]).
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(lists),[append/3,member/2,subtract/3]).
-:- autoload(library(make),[make/0]).
-:- autoload(library(pldoc/man_index), [save_man_index/0]).
 
 
 /** <module> Installation support predicates
 
 This module provides helper predicates for build and install steps.
 */
-
-%!  qcompile_libraries
-%
-%   Quick-load compilation of the Prolog libraries.
-
-qcompile_libraries :-
-    make,                           % update library index
-    qcompile_xpce.
-
-qcompile_xpce :-                        % no XPCE around
-    \+ absolute_file_name(swi(xpce),
-                          [ access(exist),
-                            file_type(directory),
-                            file_errors(fail)
-                          ], _),
-    !,
-    print_message(informational, qcompile(no(xpce))).
-qcompile_xpce :-
-    (   absolute_file_name(swi('swipl-win.rc'), _,
-                           [ access(read),
-                             file_errors(fail)
-                           ])
-    ->  use_module(swi('swipl-win.rc'))
-    ;   true
-    ),
-    qcompile_libs.
-
-
-                 /*******************************
-                 *       PRECOMPILED PARTS      *
-                 *******************************/
-
-qmodule(pce, library(pce)).
-qmodule(lib, library(pce_manual)).
-qmodule(lib, library(pcedraw)).
-qmodule(lib, library('emacs/emacs')).
-qmodule(lib, library('dialog/dialog')).
-qmodule(lib, library('trace/trace')).
-qmodule(lib, library('cql/cql')).
-
-qcompile_libs :-
-    forall(qmodule(_Type, Module),
-           (   exists_source(Module)
-           ->  print_message(informational, qcompile(Module)),
-               qcompile(Module)
-           ;   print_message(informational, qcompile(no(Module)))
-           )).
 
 		 /*******************************
 		 *   QLF COMPILATION FOR BUILD	*
@@ -141,30 +90,12 @@ cmake_qcompile(File, Deps) :-
     ;   print_message(warning, qcompile(extra, File, Extra))
     ).
 
-		 /*******************************
-		 *        MANUAL SUPPORT	*
-		 *******************************/
-
-%!  cmake_save_man_index
-%
-%   Create swi('doc/manindex.db') during the build process.
-
-cmake_save_man_index :-
-    save_man_index.
-
-
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
 
 :- multifile prolog:message//1.
 
-prolog:message(qcompile(no(What))) -->
-    [ 'Cannot find ~w'-[What] ].
-prolog:message(qcompile(library(Lib))) -->
-    [ nl, '~*c'-[64, 0'*], nl ],
-    [ 'Qcompile library ~q'-[Lib], nl ],
-    [ '~*c'-[64, 0'*] ].
 prolog:message(qcompile(missing, File, Dependencies)) -->
     [ 'The following dependencies for ~p are not listed'-[File] ],
     deps(Dependencies).
