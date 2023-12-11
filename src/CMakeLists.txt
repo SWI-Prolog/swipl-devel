@@ -77,7 +77,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-funct.c pl-gc.c pl-privitf.c pl-list.c pl-string.c
     pl-load.c pl-modul.c pl-op.c pl-prims.c pl-pro.c
     pl-proc.c pl-prof.c pl-read.c pl-rec.c pl-setup.c
-    pl-sys.c pl-trace.c pl-util.c pl-wic.c pl-write.c
+    pl-sys.c pl-trace.c pl-util.c pl-qlf.c pl-write.c
     pl-term.c pl-thread.c pl-xterm.c pl-srcfile.c
     pl-attvar.c pl-gvar.c pl-btree.c
     pl-init.c pl-gmp.c pl-segstack.c pl-hash.c

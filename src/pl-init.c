@@ -51,7 +51,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-comp.h"
 #include "pl-setup.h"
 #include "pl-fli.h"
-#include "pl-wic.h"
+#include "pl-qlf.h"
 #include "pl-pro.h"
 #include "pl-trace.h"
 #include "pl-proc.h"

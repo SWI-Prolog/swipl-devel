@@ -2773,7 +2773,7 @@ typedef enum
 #define CACHED_DICT_FUNCTORS 128	/* Max size of dict to cache */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Administration of loaded intermediate code files  (see  pl-wic.c).  Used
+Administration of loaded intermediate code files  (see  pl-qlf.c).  Used
 with the -c option to include all these if necessary.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

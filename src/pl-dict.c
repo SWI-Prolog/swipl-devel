@@ -910,9 +910,9 @@ pl_for_dict(DECL_LD term_t dict,
 
 /* resortDictsInClause() resorts the contents of dicts in a clause
 
-This predicate is called from pl-wic.c after   reloading a clause from a
-.qlf file or state if pl-wic.c  detected   a  dict  inside the clause. It
-identifies the code ranges that constitute the  k-v pairs in the dict and
+This predicate is called from pl-qlf.c after   reloading a clause from a
+.qlf file or state if pl-qlf.c  detected   a  dict inside the clause. It
+identifies the code ranges that constitute the k-v pairs in the dict and
 re-orders them according to the new atom-handle ordering.
 
 There    is    a    complicating     factor    with    B_FIRSTVAR/B_VAR,

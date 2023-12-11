@@ -54,7 +54,7 @@
 #include "pl-attvar.h"
 #include "pl-funct.h"
 #include "pl-write.h"
-#include "pl-wic.h"
+#include "pl-qlf.h"
 #include "pl-prims.h"
 #include "pl-modul.h"
 #include "pl-proc.h"
