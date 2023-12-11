@@ -2373,9 +2373,7 @@ load_files(Module:Files, Options) :-
 	(   PlTime > QlfTime
 	->  Why = old                   % PlFile is newer
 	;   Error = error(Formal,_),
-	    catch('$qlf_info'(QlfFile, _CVer, _MLVer,
-			      _FVer, _CSig, _FSig),
-		  Error, true),
+	    catch('$qlf_is_compatible'(QlfFile), Error, true),
 	    nonvar(Formal)              % QlfFile is incompatible
 	->  Why = Error
 	;   fail                        % QlfFile is up-to-date and ok

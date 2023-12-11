@@ -3244,16 +3244,16 @@ open_qlf_file(const char *file, IOSTREAM **sp)
   }
 }
 
+#define Q_VERSION 0x01
 
-
-#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) \
-	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
+#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0, flags) \
+	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0, flags)
 
 static word
 qlfInfo(DECL_LD const char *file,
 	term_t cversion, term_t minload, term_t fversion,
 	term_t csig, term_t fsig,
-	term_t files0)
+	term_t files0, int flags)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
@@ -3268,7 +3268,7 @@ qlfInfo(DECL_LD const char *file,
     return FALSE;
   state.wicFd = s;
 
-  if ( cversion )
+  if ( (flags&Q_VERSION) )
   { int vm_signature;
 
     if ( !PL_unify_integer(cversion, PL_QLF_VERSION) ||
@@ -3289,11 +3289,12 @@ qlfInfo(DECL_LD const char *file,
       goto out;
   }
 
-  if ( !pushPathTranslation(&state, file, 0) )
-    goto out;
-
   if ( files0 )
   { term_t files = PL_copy_term_ref(files0);
+
+    if ( !pushPathTranslation(&state, file, 0) )
+      goto out;
+
     if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     { qlfError(&state, "seek to index failed: %s", OsError());
       goto out;
@@ -3324,10 +3325,12 @@ qlfInfo(DECL_LD const char *file,
     }
 
     rval = PL_unify_nil(files);
-  }
+  } else
+    rval = TRUE;
 
 out:
-  popPathTranslation(&state);
+  if ( files0 )
+    popPathTranslation(&state);
   if ( qlfstart )
     free(qlfstart);
   if ( s )
@@ -3337,46 +3340,53 @@ out:
 }
 
 
-/** '$qlf_info'(+File,
-		-CurrentVersion, -MinLOadVersion, -FileVersion,
-		-CurrentSignature, -FileSignature,
-		-Files)
-    '$qlf_info'(+File,
-		-CurrentVersion, -MinLOadVersion, -FileVersion,
-		-CurrentSignature, -FileSignature)
+/** '$qlf_versions'(+File,
+		    -CurrentVersion, -MinLOadVersion, -FileVersion,
+		    -CurrentSignature, -FileSignature)
 
-Provide information about a QLF file.
+Provide version information about a QLF file.  This predicate does
+__not__ verify that the QLF file is compatible.
 
 @arg CurrentVersion is the current save version
 @arg FileVersion is the version of the file
 @arg CurrentSignature is the current VM signature
 @arg FileSignature is the signature of the file
-@arg Files is a list of atoms representing the files used to create the QLF
 */
 
 static
-PRED_IMPL("$qlf_info", 6, qlf_info, 0)
+PRED_IMPL("$qlf_versions", 6, qlf_versions, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, 0);
+  return qlfInfo(name, A2, A3, A4, A5, A6, 0, Q_VERSION);
 }
 
+/** '$qlf_is_compatible'(+File) is det.
+ *
+ * Raises an exception of File is not compatible with the current
+ * Prolog version.
+ */
 
 static
-PRED_IMPL("$qlf_info", 7, qlf_info, 0)
+PRED_IMPL("$qlf_is_compatible", 1, qlf_is_compatible, 0)
 { PRED_LD
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A7);
+  return qlfInfo(name, 0, 0, 0, 0, 0, 0, 0);
 }
 
+/** '$qlf_sources'(+File, -SourceFiles) is det.
+ *
+ * Unify SourceFiles with the files that are  embedded into the QLF file
+ * File. This predicate succeeds as long as the QLF file is sufficiently
+ * compatible to find the source files.
+ */
 
 static
 PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
@@ -3386,7 +3396,7 @@ PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, 0, 0, 0, 0, 0, A2);
+  return qlfInfo(name, 0, 0, 0, 0, 0, A2, 0);
 }
 
 
@@ -4586,8 +4596,8 @@ PL_qlf_get_double(IOSTREAM *s, double *fp)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info",		    6, qlf_info,	     0)
-  PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
+  PRED_DEF("$qlf_versions",	    6, qlf_versions,	     0)
+  PRED_DEF("$qlf_is_compatible",    1, qlf_is_compatible,    0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
