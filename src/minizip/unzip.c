@@ -127,7 +127,7 @@ typedef unsigned long z_crc_t;
 const char unz_copyright[] =
    " unzip 1.01 Copyright 1998-2004 Gilles Vollant - http://www.winimage.com/zLibDll";
 
-/* unz_file_info_interntal contain internal info about a file in zipfile*/
+/* unz_file_info64_internal contain internal info about a file in zipfile*/
 typedef struct unz_file_info64_internal_s
 {
     ZPOS64_T offset_curfile;/* relative offset of local header 8 bytes */
