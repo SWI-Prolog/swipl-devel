@@ -168,6 +168,7 @@ check_installation :-
     check_installation_(InstallIssues),
     check_on_path,
     check_config_files(ConfigIssues),
+    check_autoload,
     maplist(print_message(warning), ConfigIssues),
     append(InstallIssues, ConfigIssues, Issues),
     (   Issues == []
@@ -645,6 +646,9 @@ message(testing(no_installed_tests)) -->
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
 message(janus(Version)) -->
     [ '  Python version ~w'-[Version] ].
+message(ambiguous_autoload(PI, Paths)) -->
+    [ 'The predicate ~p can be autoloaded from multiple libraries:'-[PI]],
+    sequence(list_file, Paths).
 
 public_executable(EXE, PublicProg) :-
     file_base_name(EXE, Prog),
@@ -852,3 +856,33 @@ config_issue(moved(Type, Old, New)) -->
 config_issue(different(Type, Old, New)) -->
     [ '  found different ~w "~w"'-[Type, Old], nl ],
     [ '  new location is "~w"'-[New] ].
+
+		 /*******************************
+		 *         AUTO LOADING		*
+		 *******************************/
+
+%!  check_autoload
+%
+%   Find possible ambiguous predicates in the autoload index.
+
+check_autoload :-
+    findall(Name/Arity, '$in_library'(Name, Arity, _Path), PIs),
+    msort(PIs, Sorted),
+    clumped(Sorted, Clumped),
+    sort(2, >=, Clumped, ClumpedS),
+    ambiguous_autoload(ClumpedS).
+
+ambiguous_autoload([PI-N|T]) :-
+    N > 1,
+    !,
+    warn_ambiguous_autoload(PI),
+    ambiguous_autoload(T).
+ambiguous_autoload(_).
+
+warn_ambiguous_autoload(PI) :-
+    PI = Name/Arity,
+    findall(PlFile,
+            ( '$in_library'(Name, Arity, File),
+              file_name_extension(File, pl, PlFile)
+            ), PlFiles),
+    print_message(warning, installation(ambiguous_autoload(PI, PlFiles))).
