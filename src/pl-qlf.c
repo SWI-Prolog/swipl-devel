@@ -3273,7 +3273,7 @@ qlfInfo(DECL_LD const char *file,
 
     if ( !PL_unify_integer(cversion, PL_QLF_VERSION) ||
 	 !PL_unify_integer(minload, PL_QLF_LOADVERSION) ||
-	 !PL_unify_integer(csig, (int)VM_SIGNATURE) )
+	 !PL_unify_int64(csig, (unsigned int)VM_SIGNATURE) )
       goto out;
 
     if ( !qlfVersion(&state, qlfMagic, &lversion) ||
@@ -3282,7 +3282,7 @@ qlfInfo(DECL_LD const char *file,
 
     vm_signature = qlfGetInt32(s);		/* TBD: provide to Prolog layer */
 
-    if ( !PL_unify_integer(fsig, vm_signature) )
+    if ( !PL_unify_int64(fsig, (unsigned int)vm_signature) )
       goto out;
   } else
   { if ( !qlfIsCompatible(&state, qlfMagic) )
