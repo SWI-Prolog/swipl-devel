@@ -624,6 +624,7 @@ prolog:message(opt_usage(M)) -->
 usage(M) -->
     usage_text(M:header),
     usage_line(M),
+    usage_text(M:description),
     usage_options(M),
     usage_text(M:footer).
 
@@ -636,7 +637,7 @@ usage_text(M:Which) -->
     { in(M:opt_help(help(Which), Help))
     },
     !,
-    (   {Which == header}
+    (   {Which == header ; Which == description}
     ->  user_text(M:Help), [nl]
     ;   [nl], user_text(M:Help)
     ).
@@ -657,14 +658,19 @@ help_elem(_M, Elem) -->
     [ Elem ].
 
 usage_line(M) -->
+    { findall(Help, in(M:opt_help(help(usage), Help)), HelpLines)
+    },
     [ ansi(comment, 'Usage: ', []) ],
-    cmdline(M),
-    (   {in(M:opt_help(help(usage), Help))}
-    ->  user_text(M:Help)
-    ;   [ ' [options]'-[] ]
+    (   {HelpLines == []}
+    ->  cmdline(M), [ ' [options]'-[] ]
+    ;   sequence(usage_line(M), [nl], HelpLines)
     ),
     [ nl, nl ].
 
+usage_line(M, Help) -->
+    [ '~t~8|'-[] ],
+    cmdline(M),
+    user_text(M:Help).
 
 cmdline(_M) -->
     { current_prolog_flag(app_name, App),
