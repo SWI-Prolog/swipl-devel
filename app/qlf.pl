@@ -39,6 +39,7 @@
 :- use_module(library(lists)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(option)).
+:- use_module(library(strings)).
 :- use_module(library(ansi_term)).
 
 :- initialization(main, main).
@@ -95,8 +96,13 @@ opt_help(all,
          "Also act on valid and up-to-date QLF files").
 
 opt_help(help(header),
-         [ ansi(bold, "SWI-Prolog QLF (Quick Load Files) utility", []), nl
-         ]).
+         md({|string||
+# SWI-Prolog QLF (Quick Load Files) utility
+
+The __qlf__ tool provides commandline friendly interaction with QLF
+files.  It is primarily intended to support build tools.
+            |})).
+
 opt_help(help(usage),
          " [--compile] file[.pl] [--expect-deps file.pl ...] [--preload file.pl ...]").
 opt_help(help(usage),
@@ -110,10 +116,45 @@ opt_help(help(usage),
 opt_help(help(usage),
          " --update [--recursive] [--all] file.qlf|dir ...").
 opt_help(help(description),
-         [ "This tool provides commandline friendly interaction with QLF", nl,
-           "files.  It is primarily intended to support build tools.", nl
-         ]).
+         md({|string||
+## Command descriptions
 
+  - ``--compile`` [option..] file.pl<br>
+    Compile a Prolog source to QLF.  The ``--preload`` option first
+    loads possible requirements such as expansion rules.  The
+    ``-expect-deps`` option is intended for build tools.  It allows
+    the build tool to specify the files it has registered as
+    inputs.  If this does not match the actual inputs a warning is
+    printed.  The inputs for a qlf file can be found using ``--sources``.
+
+  - ``--source`` file.qlf<br>
+    Print the source file that are included into the QLF file.
+
+  - ``--version`` file.qlf<br>
+    Print compatibility version info on the QLF file
+
+  - ``--list``<br>
+    List QLF files and whether or not they are up-to-date.  For
+    example, list all QLF files in the current directory and its
+    sub directories:
+
+    ```
+    swipl qlf -lr .
+    ```
+  - `--clean`<br>
+    Clean QLF files.  By default cleans incompatible or out-of-date
+    QLF files.  Using ``--all``, all QLF files are removed.  For
+    example, to remove all QLF files in current directory and its
+    sub directories:
+
+    ```
+    swipl qlf --clean -ra .
+    ```
+  - ``--update``<br>
+    Update any out-of-date or incompatible QLF file.  Processes
+    the ``--reload file ..` option.
+
+            |})).
 
 		 /*******************************
 		 *           MISC SUPPORT	*
@@ -208,12 +249,12 @@ qlf_update(File, Options) :-
     !,
     (   option(all(true), Options)
     ->  print_message(informational, qlf(recompile(File, all))),
-        qcompile(user:File, Options)
+        qlf_compile(File, Options)
     ;   true
     ).
 qlf_update(File, Options) :-
     print_message(informational, qlf(recompile(File, update))),
-    qcompile(user:File, Options).
+    qlf_compile(File, Options).
 
 qlf_up_to_date(File) :-
     '$qlf_versions'(File, CurrentVersion, _MinLOadVersion, FileVersion,
