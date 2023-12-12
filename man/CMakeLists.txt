@@ -210,6 +210,8 @@ pldoc(lib/main.tex "library(main)")
 endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
+pldoc(libprofile.tex "library(prolog_profile)"
+      OPTIONS --subsection)
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source
