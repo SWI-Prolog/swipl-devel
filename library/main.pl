@@ -53,6 +53,9 @@
 :- autoload(library(prolog_debug), [spy/1]).
 :- autoload(library(dcg/high_order), [sequence//3, sequence//2]).
 :- autoload(library(option), [option/2]).
+:- if(exists_source(library(doc_markdown))).
+:- autoload(library(doc_markdown), [print_markdown/2]).
+:- endif.
 
 :- meta_predicate
     argv_options(:, -, -),
@@ -638,7 +641,7 @@ usage_text(M:Which) -->
     },
     !,
     (   {Which == header ; Which == description}
-    ->  user_text(M:Help), [nl]
+    ->  user_text(M:Help), [nl, nl]
     ;   [nl], user_text(M:Help)
     ).
 usage_text(_) -->
@@ -646,7 +649,21 @@ usage_text(_) -->
 
 user_text(M:Entries) -->
     { is_list(Entries) },
+    !,
     sequence(help_elem(M), Entries).
+:- if(current_predicate(print_markdown/2)).
+user_text(_:md(Help)) -->
+    !,
+    { with_output_to(string(String),
+                     ( current_output(S),
+                       set_stream(S, tty(true)),
+                       print_markdown(Help, []))) },
+    [ '~s'-[String] ].
+:- else.
+user_text(_:md(Help)) -->
+    !,
+    [ '~w'-[Help] ].
+:- endif.
 user_text(_:Help) -->
     [ '~w'-[Help] ].
 
