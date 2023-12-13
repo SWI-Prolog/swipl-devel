@@ -1488,7 +1488,8 @@ collect_residual_goals([H|T]) -->
     prolog:translate_bindings(+, -, +, +, :).
 
 prolog:translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals) :-
-    translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals).
+    translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals),
+    name_vars(Bindings, t(ResVars, ResGoals, Residuals)).
 
 translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
     prolog:residual_goals(ResidueGoals, []),
