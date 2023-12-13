@@ -1491,6 +1491,9 @@ prolog:translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals) :-
     translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals),
     name_vars(Bindings, t(ResVars, ResGoals, Residuals)).
 
+% should not be required.
+prolog:name_vars(Bindings, Term) :- name_vars(Bindings, Term).
+
 translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
     prolog:residual_goals(ResidueGoals, []),
     translate_bindings(Bindings0, Bindings, ResidueVars, ResidueGoals,
