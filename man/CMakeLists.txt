@@ -114,18 +114,20 @@ function(pldoc tex input)
       endif()
     endforeach()
 
-    set(haspl)
-    foreach(dep ${depends})
-      get_filename_component(ext ${dep} EXT)
-      if(ext STREQUAL ".pl")
-	set(haspl true)
-      endif()
-    endforeach()
+    if(tex MATCHES "^lib/")
+      set(haspl)
+      foreach(dep ${depends})
+	get_filename_component(ext ${dep} EXT)
+	if(ext STREQUAL ".pl")
+	  set(haspl true)
+	endif()
+      endforeach()
 
-    if(haspl)
-      set(options ${options} --summaries)
-      get_filename_component(base ${tex} NAME_WE)
-      set(byproducts lib/summaries.d/${base}.tex)
+      if(haspl)
+	set(options ${options} --summaries)
+	get_filename_component(base ${tex} NAME_WE)
+	set(byproducts lib/summaries.d/${base}.tex)
+      endif()
     endif()
 
     add_custom_command(
@@ -210,8 +212,7 @@ pldoc(lib/main.tex "library(main)")
 endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
-pldoc(libprofile.tex "library(prolog_profile)"
-      OPTIONS --subsection)
+pldoc(libprofile.tex "library(prolog_profile)" --subsection)
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source
