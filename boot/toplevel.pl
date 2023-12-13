@@ -1341,7 +1341,7 @@ write_bindings(Bindings, ResidueVars, Delays, DetOrChp) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
-    name_vars(Bindings1, Residuals, Delays1),
+    name_vars(Bindings1, t(Residuals, Delays1)),
     write_bindings2(Bindings1, Residuals, Delays1, DetOrChp).
 
 write_bindings2([], Residuals, Delays, _) :-
@@ -1364,14 +1364,28 @@ write_bindings2(Bindings, Residuals, Delays, Chp) :-
         print_message(query, query(done))
     ).
 
-name_vars(Bindings, Residuals, Delays) :-
+%!  name_vars(+Bindings, +Term) is det.
+%
+%   Give a name ``_[A-Z][0-9]*`` to all variables   in Term, that do not
+%   have a name due to Bindings. Singleton   variables in Term are named
+%   `_`. The behavior depends on these Prolog flags:
+%
+%     - toplevel_name_variables
+%       Only act when `true`, else name_vars/2 is a no-op.
+%     - toplevel_print_anon
+%
+%   Variables are named by unifying them to `'$VAR'(Name)`
+%
+%   @arg Bindings is a list Name=Value
+
+name_vars(Bindings, Term) :-
     current_prolog_flag(toplevel_name_variables, true),
     !,
-    '$term_multitons'(t(Bindings,Residuals,Delays), Vars),
+    '$term_multitons'(t(Bindings,Term), Vars),
     name_vars_(Vars, Bindings, 0),
-    term_variables(t(Bindings,Residuals,Delays), SVars),
+    term_variables(t(Bindings,Term), SVars),
     anon_vars(SVars).
-name_vars(_Bindings, _Residuals, _Delays).
+name_vars(_Bindings, _Term).
 
 name_vars_([], _, _).
 name_vars_([H|T], Bindings, N) :-
