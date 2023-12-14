@@ -9993,7 +9993,10 @@ the expected result, and is one of \const{string}, \const{number} or
 an integer, and bool results as the atom \const{on} or \const{off}.  If
 an option cannot be found, this predicate fails silently.  The
 results are only computed once. Successive queries on the same
-capability are fast.
+capability are fast.  This predicate can raise several exceptions if
+the terminal environment is incomplete, notably if the environment
+variable \const{TERM} does not exist or there is no matching entry in
+the \jargon{termcap database}.
     \predicate{tty_goto}{2}{+X, +Y}
 Goto position \mbox{(\arg{X}, \arg{Y})} on the screen.  Note that the predicates
 line_count/2 and line_position/2 will not have a well-defined
