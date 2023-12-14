@@ -238,7 +238,7 @@ make_header(Out, SaveClass, Options) :-
     ->  ArgSep = ' -- '
     ;   ArgSep = ' '
     ),
-    format(Out, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Emulator, ArgSep]).
+    format(Out, 'exec ${SWIPL:-~w} -x "$0"~w"$@"~n~n', [Emulator, ArgSep]).
 make_header(_, _, _).
 
 stand_alone(Options) :-
