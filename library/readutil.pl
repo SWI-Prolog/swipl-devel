@@ -50,7 +50,6 @@
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(option),[option/3]).
 
-
 /** <module> Read utilities
 
 This library provides some commonly used   reading  predicates. As these
@@ -87,7 +86,9 @@ implementation if the shared object cannot be found.
     read_stream_to_codes/3.
 
 link_foreign :-
-    catch(use_foreign_library(foreign(readutil)), _, fail),
+    context_module(Here),
+    catch('$syspreds':use_foreign_library_noi(Here:foreign(readutil)),
+          error(_,_), fail),
     !.
 link_foreign :-
     assertz((read_line_to_codes(Stream, Line) :-
