@@ -39,8 +39,10 @@
           ]).
 :- autoload(library(lists),[member/2,append/3,nth1/3]).
 :- autoload(library(make),[make/0]).
+:- if(exists_source(library(pce))).
 :- autoload(library(pce),[in_pce_thread/1]).
 :- autoload(library(pce_emacs),[emacs/1]).
+:- endif.
 :- autoload(library(prolog_breakpoints),[breakpoint_property/2]).
 
 
@@ -282,6 +284,7 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 do_edit_source(Location) :-             % hook
     edit_source(Location),
     !.
+:- if(current_predicate(emacs/1)).
 do_edit_source(Location) :-             % PceEmacs
     current_prolog_flag(editor, Editor),
     pceemacs(Editor),
@@ -296,6 +299,7 @@ do_edit_source(Location) :-             % PceEmacs
     ;   Pos = File
     ),
     in_pce_thread(emacs(Pos)).
+:- endif.
 do_edit_source(Location) :-             % External editor
     external_edit_command(Location, Command),
     print_message(informational, edit(waiting_for_editor)),
