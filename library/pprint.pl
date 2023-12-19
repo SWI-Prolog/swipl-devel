@@ -823,11 +823,27 @@ end_type(S, Type, Options) :-
 end_type(S, Type, Options) :-
     Options.side == left,
     !,
+    left_type(S, Type).
+end_type(S, Type, _) :-
+    right_type(S, Type).
+
+left_type(S, Type), atom(S) =>
+    sub_atom(S, 0, 1, _, Start),
+    syntax_type(Start, Type).
+left_type(S, Type), string(S) =>
     sub_string(S, 0, 1, _, Start),
     syntax_type(Start, Type).
-end_type(S, Type, _) :-
+left_type(S, Type), blob(S, _) =>
+    syntax_type("<", Type).
+
+right_type(S, Type), atom(S) =>
+    sub_atom(S, _, 1, 0, End),
+    syntax_type(End, Type).
+right_type(S, Type), string(S) =>
     sub_string(S, _, 1, 0, End),
     syntax_type(End, Type).
+right_type(S, Type), blob(S, _) =>
+    syntax_type(")", Type).
 
 syntax_type("\"", quote(double)) :- !.
 syntax_type("\'", quote(single)) :- !.
@@ -856,6 +872,7 @@ is_solo('!').
 
 primitive(Term, Type) :- var(Term),      !, Type = 'pl-avar'.
 primitive(Term, Type) :- atom(Term),     !, Type = 'pl-atom'.
+primitive(Term, Type) :- blob(Term,_),   !, Type = 'pl-blob'.
 primitive(Term, Type) :- string(Term),   !, Type = 'pl-string'.
 primitive(Term, Type) :- integer(Term),  !, Type = 'pl-int'.
 primitive(Term, Type) :- rational(Term), !, Type = 'pl-rational'.
