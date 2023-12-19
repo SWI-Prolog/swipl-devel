@@ -271,7 +271,7 @@ Term references are obtained in any of the following ways:
     temporary terms or to be written by one of the interface functions.
     For example, PL_get_arg() writes a reference to the term argument
     in its last argument.
-\item [Created by PL_new_term_refs(int n)]
+\item [Created by PL_new_term_refs(size_t n)]
     This function returns a set of term references with the same characteristics
     as PL_new_term_ref().  See PL_open_query().
 \item [Created by PL_copy_term_ref(term_t t)]
@@ -290,7 +290,7 @@ on machines that cannot use sparse memory management for allocation of the
 Prolog stacks. The returned reference describes a variable.  Raise a
 resource exception and returns \exam{(term_t)0} on failure.
 
-\cfunction{term_t}{PL_new_term_refs}{int n}
+\cfunction{term_t}{PL_new_term_refs}{size_t n}
 Return \arg{n} new term references. The first term reference is
 returned. The others are $\arg{t}+1$, $\arg{t}+2$, etc. Raise a resource
 exception and returns \exam{(term_t)0} on failure. There are two reasons
