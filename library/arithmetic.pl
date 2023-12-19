@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, VU University Amsterdam
+    Copyright (c)  2011-2023, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -59,12 +60,29 @@ terms.
 
 %!  arithmetic_function(:NameArity) is det.
 %
-%   Declare a predicate as an arithmetic function.
+%   Declare a predicate as  an  arithmetic   function.  The  function is
+%   visible in the module in which it is defined as well as modules that
+%   import the implementation predicate or inherit from this module. For
+%   example:
 %
-%   @deprecated This function provides  a   partial  work around for
-%   pure Prolog user-defined arithmetic  functions   that  has  been
-%   dropped in SWI-Prolog  5.11.23.  Notably,   it  only  deals with
-%   expression know at compile time.
+%   ```
+%   :- use_module(library(arithmetic)).
+%   :- arithmetic_function(mid/2).
+%   mid(A,B,C) :- C is (A+B)/2.
+%   ```
+%
+%   After which we may call `?- A is mid(3,5).`, resulting in `A = 4`.
+%
+%   The implementation uses goal_expansion/2 to   rewrite  an arithmetic
+%   expression using user functions  into   a  conjunction of arithmetic
+%   evaluation and predicate calls.  This   implies  that the expression
+%   must be known at compile time. Runtime evaluation is supported using
+%   arithmetic_expression_value/2.
+%
+%   @deprecated This function provides a partial   work  around for pure
+%   Prolog user-defined arithmetic functions that   has  been dropped in
+%   SWI-Prolog 5.11.23. Notably, it only deals   with expression know at
+%   compile time.
 
 arithmetic_function(Term) :-
     throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
@@ -134,17 +152,23 @@ eval(Number, _, Result) :-
     Result = Number.
 eval(Term, M, Result) :-
     evaluable(Term, M2),
-    visible(M, M2),
+    visible(Term, M, M2),
     !,
     call(M2:Term, Result).
 eval('$builtin', _, _).
 
 
-visible(M, M) :- !.
-visible(M, Super) :-
+visible(_, M, M) :- !.
+visible(F, M, Super) :-
     import_module(M, Parent),
-    visible(Parent, Super).
-
+    visible(F, Parent, Super),
+    !.
+visible(F, M, Super) :-
+    functor(F, Name, Arity),
+    PredArity is Arity+1,
+    functor(Head, Name, PredArity),
+    predicate_property(M:Head, imported_from(Super)),
+    !.
 
                  /*******************************
                  *         COMPILE-TIME         *
@@ -199,7 +223,7 @@ do_expand_function(Function, Result, ArgCode) :-
 do_expand_function(Function, Result, (ArgCode, Pred)) :-
     prolog_load_context(module, M),
     evaluable(Function, M2),
-    visible(M, M2),
+    visible(Function, M, M2),
     !,
     Function =.. [Name|Args],
     expand_predicate_arguments(Args, ArgResults, ArgCode),
