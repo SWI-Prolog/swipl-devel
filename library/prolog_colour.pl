@@ -2219,12 +2219,17 @@ colourise_prolog_flag_name(Name, TB, parentheses_term_position(PO,PC,Pos)) :-
 colourise_prolog_flag_name(Name, TB, Pos) :-
     atom(Name),
     !,
-    (   current_prolog_flag(Name, _)
+    (   (   current_prolog_flag(Name, _)
+        ;   known_flag(Name)
+        )
     ->  colour_item(flag_name(Name), TB, Pos)
     ;   colour_item(no_flag_name(Name), TB, Pos)
     ).
 colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
+
+% Some flags are know, but can be unset.
+known_flag(max_rational_size).
 
 
 		 /*******************************
