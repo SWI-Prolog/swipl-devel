@@ -1680,6 +1680,11 @@ dict_field_extraction(Term) :-
     Term \= [_|_].                        % traditional mode
 
 
+colourise_expression_args(roundtoward(Expr, Mode), TB,
+                          term_position(_,_,_,_,[ExprPos, ModePos])) :-
+    !,
+    colourise_expression(Expr, TB, ExprPos),
+    colourise_round_mode(Mode, TB, ModePos).
 colourise_expression_args(Term, TB,
                           term_position(_,_,_,_,ArgPos)) :-
     !,
@@ -1693,6 +1698,21 @@ colourise_expression_args([Pos|T], N, Term, TB) :-
     NN is N + 1,
     colourise_expression_args(T, NN, Term, TB).
 
+colourise_round_mode(Mode, TB, Pos) :-
+    var(Mode),
+    !,
+    colourise_term_arg(Mode, TB, Pos).
+colourise_round_mode(Mode, TB, Pos) :-
+    round_mode(Mode),
+    !,
+    colour_item(identifier, TB, Pos).
+colourise_round_mode(_Mode, TB, Pos) :-
+    colour_item(domain_error(rounding_mode), TB, Pos).
+
+round_mode(to_nearest).
+round_mode(to_positive).
+round_mode(to_negative).
+round_mode(to_zero).
 
 %!  colourise_qq_type(+QQType, +TB, +QQTypePos)
 %
@@ -2681,6 +2701,7 @@ def_style(dcg_right_hand_ctx,      [background('#d4ffe3')]).
 
 def_style(error,                   [background(orange)]).
 def_style(type_error(_),           [background(orange)]).
+def_style(domain_error(_),         [background(orange)]).
 def_style(syntax_error(_,_),       [background(orange)]).
 def_style(instantiation_error,     [background(orange)]).
 
