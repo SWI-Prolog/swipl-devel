@@ -97,9 +97,9 @@ require_prolog_version(Required) :-
     ->  true
     ;   GitReq = git(ReqRev, ReqHash),
         ReqNumbers == VNumbers
-    ->  (   current_prolog_flag(version_git, GitVersion)
-        ->  parse_version(GitVersion, _, git(Rev, Hash)),
-            (   ReqRev < Rev
+    ->  (   current_prolog_flag(version_git, GitVersion),
+            parse_version(GitVersion, _, git(Rev, Hash))
+        ->  (   ReqRev < Rev
             ->  true
             ;   ReqRev == Rev,
                 (   (   ReqHash == '-' ;
