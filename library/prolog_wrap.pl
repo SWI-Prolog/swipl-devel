@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, VU University Amsterdam
+    Copyright (c)  2019-2023, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@
 */
 
 :- module(prolog_wrap,
-          [ wrap_predicate/4,                   % :Head, +Name, -Wrapped, +Body
+          [ wrap_predicate/4,                   % :Head, +Name, -Wrapped, :Body
             unwrap_predicate/2,                 % :PI, ?Name
             current_predicate_wrapper/4		% :Head, -Name, -Wrapped, -Body
           ]).
@@ -42,7 +43,7 @@
 
 
 :- meta_predicate
-    wrap_predicate(:, +, -, +),
+    wrap_predicate(:, +, -, 0),
 %   unwrap_predicate(:, ?),
     current_predicate_wrapper(:, -, -, -).
 
