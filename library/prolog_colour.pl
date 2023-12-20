@@ -2219,18 +2219,40 @@ colourise_prolog_flag_name(Name, TB, parentheses_term_position(PO,PC,Pos)) :-
 colourise_prolog_flag_name(Name, TB, Pos) :-
     atom(Name),
     !,
-    (   (   current_prolog_flag(Name, _)
-        ;   known_flag(Name)
-        )
+    (   current_prolog_flag(Name, _)
     ->  colour_item(flag_name(Name), TB, Pos)
+    ;   known_flag(Name)
+    ->  colour_item(known_flag_name(Name), TB, Pos)
     ;   colour_item(no_flag_name(Name), TB, Pos)
     ).
 colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
 
 % Some flags are know, but can be unset.
+known_flag(android).
+known_flag(android_api).
+known_flag(apple).
+known_flag(asan).
+known_flag(conda).
+known_flag(dde).
+known_flag(emscripten).
+known_flag(executable_format).
+known_flag(gc_thread).
+known_flag(gmp_version).
+known_flag(gui).
 known_flag(max_rational_size).
-
+known_flag(mitigate_spectre).
+known_flag(pid).
+known_flag(pipe).
+known_flag(posix_shell).
+known_flag(shared_home).
+known_flag(shared_table_space).
+known_flag(system_thread_id).
+known_flag(threads).
+known_flag(unix).
+known_flag(windows).
+known_flag(wine_version).
+known_flag(xpce).
 
 		 /*******************************
 		 *             MACROS		*
@@ -2679,6 +2701,7 @@ def_style(class(user,_),           [underline(true)]).
 def_style(class(undefined,_),      [colour(red), underline(true)]).
 def_style(prolog_data,             [colour(blue), underline(true)]).
 def_style(flag_name(_),            [colour(blue)]).
+def_style(known_flag_name(_),      [colour(blue), background(pink)]).
 def_style(no_flag_name(_),         [colour(red)]).
 def_style(unused_import,           [colour(blue), background(pink)]).
 def_style(undefined_import,        [colour(red)]).
@@ -3187,6 +3210,12 @@ syntax_message(neck(-->)) -->
     [ 'Grammar rule' ].
 syntax_message(macro(String)) -->
     [ 'Macro indicator (expands to ~s)'-[String] ].
+syntax_message(flag_name(Name)) -->
+    [ 'Prolog flag ~w'-[Name] ].
+syntax_message(known_flag_name(Name)) -->
+    [ 'Prolog flag ~w (not set; known)'-[Name] ].
+syntax_message(no_flag_name(Name)) -->
+    [ 'Prolog flag ~w (not set)'-[Name] ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
