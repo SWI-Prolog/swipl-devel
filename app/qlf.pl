@@ -195,7 +195,11 @@ run(Files, Options) :-
 run(Files, Options) :-
     option(list(true), Options),
     !,
-    forall(member(F, Files), qlf_list(F, Options)).
+    (   Files == [],
+        option(recursive(true), Options)
+    ->  qlf_list('.', Options)
+    ;   forall(member(F, Files), qlf_list(F, Options))
+    ).
 run([File], Options) :-
     file_name_extension(_, Ext, File),
     user:prolog_file_type(Ext, prolog),
