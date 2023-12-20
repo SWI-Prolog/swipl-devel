@@ -1484,7 +1484,7 @@ hook(sandbox:safe_meta_predicate(_)).
 hook(sandbox:safe_meta(_,_)).
 hook(sandbox:safe_global_variable(_)).
 hook(sandbox:safe_directive(_)).
-
+hook(sandbox:safe_prolog_flag(_,_)).
 
 %!  arith_callable(+Spec, -Callable)
 %
