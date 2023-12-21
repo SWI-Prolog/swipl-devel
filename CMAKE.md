@@ -1,26 +1,23 @@
 # Building SWI-Prolog using cmake
 
-As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
-configuration files that cover the  entire   project.
+SWI-Prolog moved to CMake for configuration   with  version 7.7.20. Soon
+thereafter support for GNU autoconf and GNU make has been dropped.
 
-The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
-generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
-faster, avoids warning  from  being   cluttered  and  better facilitates
-debugging dependency issues. It can be   selected  using `cmake -G Ninja
-..`,  after which the usual `make` _target_   can be replaced by `ninja`
-_target_. The examples below all  use  Ninja.   Drop  `-G  Ninja` to use
-classical Unix make.
+The build has been tested with the  "Unix Makefiles", "Ninja" as well as
+"NMake Makefiles" or "Visual Studio  17   2022"  for  Windows when using
+VS2022.   Except   for   the    _Visual     Studio_    build,   we   use
+[Ninja](https://ninja-build.org/) as it builds   faster,  avoids warning
+from being cluttered and better facilitates debugging dependency issues.
+It can be selected using `cmake  -G   Ninja  ..`,  after which the usual
+`make` _target_ can be replaced by  `ninja` _target_. The examples below
+all use Ninja. Drop `-G Ninja` to use classical Unix make.
 
 ## Getting cmake
 
 Building SWI-Prolog requires cmake version 3.9  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
-from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
-cmake 3.12 (please pick the latest stable version) is as simple as:
-
-    wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
-    sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
+from https://cmake.org/download/
 
 (*) The ODBC package requires 3.9.  For the rest 3.5 should suffice.
 
@@ -30,7 +27,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
 ### Getting the source
 
 The   source   may   be    downloaded    as     a    tar    ball    from
-http://www.swi-prolog.org or downloaded using git.  The git sequence is:
+https://www.swi-prolog.org or downloaded using git. The git sequence is:
 
     git clone --recursive https://github.com/SWI-Prolog/swipl-devel.git
 
@@ -55,13 +52,10 @@ latest version:
     git pull
     git submodule update --init
     cd build
-    ninja
+	cmake .
     ninja
     ctest -j 8
     ninja install
-
-Note that `ninja` is called twice.  Under some situations not everything
-is properly updated after the first run. This is a bug.
 
 If the build fails, one could try to remove the entire `build` directory
 and re-create it as  above.  Note  that   the  build  process  makes  no
