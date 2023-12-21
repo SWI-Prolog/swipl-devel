@@ -129,7 +129,8 @@ We assume the build is done on an M1 system.
 	cd src/swipl-devel
 	git pull
 	git describe		# Verify tag
-	../scripts/pgo-compile.sh
+    cmake .
+	ninja
 	ctest
 	ninja install
 	sudo systemctl restart plweb
@@ -189,7 +190,7 @@ stamps vary.  Now
 
   - Push the branch to our clone
 
-	    git push fork $(git rev-parse --abbrev-ref HEAD)
+	git push fork $(git rev-parse --abbrev-ref HEAD)
 
   - Open the link of the PR and complete it.
 
