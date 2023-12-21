@@ -46,6 +46,9 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- if(current_prolog_flag(threads, true)).
+:- use_module(library(thread)).
+:- endif.
 
 :- set_test_options([ load(always)
                     ]).
@@ -2787,8 +2790,11 @@ scripts(Dirs, _Options) :-
 test_packages(Options) :-
     option(packages(true), Options),
     !,
-    forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-           run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir)).
+    concurrent_forall(
+        find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+        run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+        [ threads(8)
+        ]).
 test_packages(Options) :-
     option(package(Pkg), Options),
     !,
@@ -2799,16 +2805,28 @@ test_packages(Options) :-
     ).
 test_packages(_).
 
+:- if(\+current_predicate(concurrent_forall/3)).
+concurrent_forall(Generate, Test, _Options) :-
+    forall(Generate, Test).
+:- endif.
+
+
 load_cmake_test_db :-
-    load_files(swi('test/cmake_pkg_tests.db')).
+    ensure_loaded(swi('test/cmake_pkg_tests.db')).
 
 find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
     load_cmake_test_db,
-    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)).
+    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)),
+    is_pkg(Pkg).
 
 is_pkg(Pkg) :-
     load_cmake_test_db,
-    cmake_test(Pkg, _, test_goal(_, _, _)).
+    once(cmake_test(Pkg, _, test_goal(_, _, _))),
+    absolute_file_name(library(ext/Pkg), _,
+                       [ file_type(directory),
+                         access(exist),
+                         file_errors(fail)
+                       ]).
 
 %!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
 %
@@ -2818,12 +2836,12 @@ is_pkg(Pkg) :-
 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
     script_dir(ScriptDir),
     atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
-    format(user_error, '~NTesting package ~w:~w ~`.t~40|',[Pkg,TestName]),
+    format(user_error, '~N    Start testing package ~w:~w~n',[Pkg,TestName]),
     get_time(Start),
     run_pkg_test1(PkgScript, Goal, TestDir),
     get_time(End),
     Time is End - Start,
-    format(user_error, ' Passed ~2f sec.~n', [Time]).
+    format(user_error, 'Package ~w:~w~`.t~40| passed ~2f sec.~n', [Pkg,TestName,Time]).
 
 run_pkg_test1(Script, Goal, PkgDir) :-
     current_prolog_flag(executable, SWIPL),
