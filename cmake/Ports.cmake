@@ -105,8 +105,19 @@ endif(CMAKE_CROSSCOMPILING)
 ################
 # Misc tests
 
-include(CheckFloatingPointFormat)
-include(TestBigEndian)
+if(DEFINED CMAKE_C_BYTE_ORDER)
+  if(CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+    set(WORDS_BIGENDIAN 1)
+  else()
+    set(WORDS_BIGENDIAN 0)
+  endif()
+else()
+  # From cmake docs: If CMAKE_OSX_ARCHITECTURES specifies multiple architectures, the value
+  # of CMAKE_<LANG>_BYTE_ORDER is non-empty only if all architectures share the same byte
+  # order.
+  include(TestBigEndian)
+  TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+endif()
 
-TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+include(CheckFloatingPointFormat)
 ub_check_floating_point_format(IEEE754_FLOATS FLOAT_BYTES_BIGENDIAN FLOAT_WORDS_BIGENDIAN)
