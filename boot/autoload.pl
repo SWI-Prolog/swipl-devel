@@ -390,10 +390,10 @@ library_index_out_of_date(_Dir, Index, _Files) :-
 library_index_out_of_date(Dir, Index, Files) :-
     time_file(Index, IndexTime),
     (   time_file(Dir, DotTime),
-        DotTime > IndexTime
-    ;   '$member'(File, Files),
+        DotTime - IndexTime > 0.001             % compensate for jitter
+    ;   '$member'(File, Files),                 % and rounding
         time_file(File, FileTime),
-        FileTime > IndexTime
+        FileTime - IndexTime > 0.001
     ),
     !.
 
