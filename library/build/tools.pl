@@ -296,17 +296,12 @@ def_environment(VAR, '-lswipl', Options) :-
     env_name(lib, VAR, Options).
 def_environment(VAR, Value, Options) :-
     env_name(cc, VAR, Options),
-    (   getenv('CC', Value)
-    ->  true
-    ;   default_c_compiler(Value)
-    ->  true
-    ;   current_prolog_flag(c_cc, Value)
-    ).
+    default_c_compiler(Value).
 def_environment(VAR, Value, Options) :-
     env_name(ld, VAR, Options),
     (   getenv('LD', Value)
     ->  true
-    ;   current_prolog_flag(c_cc, Value)
+    ;   default_c_compiler(Value)
     ).
 def_environment('SWIPL_INCLUDE_DIRS', Value, _) :- % CMake style environment
     current_prolog_flag(home, Home),
@@ -422,10 +417,15 @@ prolog_library_dir(Dir) :-
 %   @tbd Needs proper defaults for Windows.  Find MinGW?  Find MSVC?
 
 default_c_compiler(CC) :-
+    getenv('CC', CC),
+    !.
+default_c_compiler(CC) :-
     preferred_c_compiler(CC),
     has_program(path(CC), _),
     !.
 
+preferred_c_compiler(CC) :-
+    current_prolog_flag(c_cc, CC).
 preferred_c_compiler(gcc).
 preferred_c_compiler(clang).
 preferred_c_compiler(cc).
