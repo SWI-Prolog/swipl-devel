@@ -116,7 +116,10 @@ else()
   # of CMAKE_<LANG>_BYTE_ORDER is non-empty only if all architectures share the same byte
   # order.
   include(TestBigEndian)
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE ${CMAKE_TRY_COMPILE_TARGET_TYPE})
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
   TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE ${CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE})
 endif()
 
 include(CheckFloatingPointFormat)
