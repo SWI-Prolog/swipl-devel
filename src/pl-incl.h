@@ -1000,6 +1000,7 @@ with one operation, it turns out to be faster as well.
 #define FILE_ASSIGNED		(0x40000000LL) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000LL) /* Overrules a definition */
 #define P_SIG_ATOMIC	      (0x0100000000LL) /* Do not call handleSignals */
+#define P_TRANSACT	      (0x0200000000LL) /* Subject to transactions */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
 				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
@@ -1910,7 +1911,7 @@ typedef struct p_reload
   gen_t		generation;		/* generation we update */
   ClauseRef	current_clause;		/* currently reloading clause */
   arg_info     *args;			/* Meta info on arguments */
-  unsigned	flags;			/* new flags (P_DYNAMIC, etc.) */
+  uint64_t	flags;			/* new flags (P_DYNAMIC, etc.) */
   unsigned	number_of_clauses;	/* Number of clauses we've seen */
 } p_reload;
 

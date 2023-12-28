@@ -98,7 +98,8 @@ memberchk(E, List) :-
     det(:),
     '$clausable'(:),
     '$iso'(:),
-    '$hide'(:).
+    '$hide'(:),
+    '$notransact'(:).
 
 %!  dynamic(+Spec) is det.
 %!  multifile(+Spec) is det.
@@ -143,6 +144,7 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, iso(true)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, clausable(true)).
 '$hide'(Spec)            :- '$set_pattr'(Spec, pred, trace(false)).
+'$notransact'(Spec)      :- '$set_pattr'(Spec, pred, transact(false)).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
@@ -692,6 +694,7 @@ call_cleanup(_Goal, _Cleanup) :-
 
 :- multifile '$init_goal'/3.
 :- dynamic   '$init_goal'/3.
+:- '$notransact'('$init_goal'/3).
 
 %!  initialization(:Goal, +When)
 %
@@ -1829,6 +1832,7 @@ compiling :-
     '$load_input'/2.
 :- volatile
     '$load_input'/2.
+:- '$notransact'('$load_input'/2).
 
 '$open_source'(stream(Id, In, Opts), In,
 	       restore(In, StreamState, Id, Ref, Opts), Parents, _Options) :-
@@ -2577,6 +2581,7 @@ load_files(Module:Files, Options) :-
     '$loading_file'/3.              % File, Queue, Thread
 :- volatile
     '$loading_file'/3.
+:- '$notransact'('$loading_file'/3).
 
 :- if(current_prolog_flag(threads, true)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
@@ -2873,6 +2878,7 @@ load_files(Module:Files, Options) :-
 
 :- thread_local
     '$autoload_nesting'/1.
+:- '$notransact'('$autoload_nesting'/1).
 
 '$update_autoload_level'(Options, AutoLevel) :-
     '$option'(autoload(Autoload), Options, false),
@@ -3012,6 +3018,7 @@ load_files(Module:Files, Options) :-
     '$load_context_module'/3.
 :- multifile
     '$load_context_module'/3.
+:- '$notransact'('$load_context_module'/3).
 
 '$assert_load_context_module'(_, _, Options) :-
     memberchk(register(false), Options),

@@ -646,7 +646,7 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
     return TRUE;
 
   if ( unlikely(LD->transaction.gen_base && gen >= LD->transaction.gen_base) &&
-       true(cl->predicate, P_DYNAMIC) )
+       true(cl->predicate, P_TRANSACT) )
     return transaction_visible_clause(cl, gen);
 
   return FALSE;
@@ -669,7 +669,7 @@ global_generation(void)
 #define current_generation(def) LDFUNC(current_generation, def)
 static inline gen_t
 current_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { return LD->transaction.generation;
   } else
   { return GD->_generation;
@@ -679,7 +679,7 @@ current_generation(DECL_LD Definition def)
 #define next_generation(def) LDFUNC(next_generation, def)
 static inline gen_t
 next_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
       return ++LD->transaction.generation;
     return 0;
@@ -697,7 +697,7 @@ next_generation(DECL_LD Definition def)
 #define max_generation(def) LDFUNC(max_generation, def)
 static inline gen_t
 max_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
     return LD->transaction.gen_max;
   else
     return GEN_MAX;
@@ -718,7 +718,7 @@ generation is updated and thus no harm is done.
 static inline void
 setGenerationFrame(DECL_LD LocalFrame fr)
 { if ( unlikely(LD->transaction.generation &&
-		true(fr->predicate, P_DYNAMIC)) )
+		true(fr->predicate, P_TRANSACT)) )
   { setGenerationFrameVal(fr, LD->transaction.generation);
   } else
   { gen_t gen;

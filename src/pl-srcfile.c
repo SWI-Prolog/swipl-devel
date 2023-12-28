@@ -1212,7 +1212,7 @@ associateSource(SourceFile sf, Procedure proc)
 
 int
 setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
-		       unsigned attr, int val)
+		       uint64_t attr, int val)
 { if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 

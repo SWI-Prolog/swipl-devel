@@ -66,7 +66,7 @@ int		reloadHasClauses(SourceFile sf, Procedure proc);
 ClauseRef	assertProcedureSource(SourceFile sf, Procedure proc,
 				      Clause clause);
 int		setAttrProcedureSource(SourceFile sf, Procedure proc,
-				       unsigned attr, int val);
+				       uint64_t attr, int val);
 int		setMetapredicateSource(SourceFile sf, Procedure proc,
 				       arg_info *args);
 int		exportProcedureSource(SourceFile sf, Module module,

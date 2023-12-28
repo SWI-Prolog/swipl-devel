@@ -1452,7 +1452,7 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
-  if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
     { clause->generation.created = ++LD->transaction.generation;
       clause->generation.erased  = max_generation(def);
@@ -1645,7 +1645,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   { if ( clause->generation.erased > generation )
       clause->generation.erased = generation;
   } else if ( unlikely(!!LD->transaction.generation) &&
-	      def && true(def, P_DYNAMIC) )
+	      def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
     { if ( LD->transaction.generation < LD->transaction.gen_max )
       { if ( clause->generation.erased >= LD->transaction.generation )
@@ -3461,6 +3461,7 @@ typedef struct patt_mask
 
 static const patt_mask patt_masks[] =
 { { ATOM_dynamic,	   P_DYNAMIC },
+  { ATOM_transact,	   P_TRANSACT },
   { ATOM_multifile,	   P_MULTIFILE },
   { ATOM_locked,	   P_LOCKED },
   { ATOM_system,	   P_LOCKED },		/* compatibility */
@@ -3651,7 +3652,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
     if ( def->flags & P_FOREIGN )
       fail;
     def = getProcDefinition(proc);
-    if ( true(def, P_DYNAMIC) && LD->transaction.generation )
+    if ( true(def, P_TRANSACT) && LD->transaction.generation )
       g = transaction_last_modified_predicate(def);
     else
       g = def->last_modified;
@@ -3709,10 +3710,10 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
 	 hasClausesDefinition(def) )
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
 
-    set(def, P_DYNAMIC);
+    set(def, P_DYNAMIC|P_TRANSACT);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
   } else				/* dynamic --> static */
-  { clear(def, P_DYNAMIC);
+  { clear(def, P_DYNAMIC|P_TRANSACT);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
   }
 
@@ -3751,7 +3752,7 @@ setThreadLocalDefinition(Definition def, bool val)
 
     def->impl.local.local = new_ldef_vector();
     MEMORY_RELEASE();
-    set(def, P_DYNAMIC|P_VOLATILE|P_THREAD_LOCAL);
+    set(def, P_DYNAMIC|P_TRANSACT|P_VOLATILE|P_THREAD_LOCAL);
     def->codes = SUPERVISOR(thread_local);
 
     UNLOCKDEF(def);

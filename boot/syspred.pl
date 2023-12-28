@@ -1617,8 +1617,11 @@ run_undo([H|T], E0, E) :-
     ;   '$domain_error'(most_general_term, Head)
     ),
     atomic_list_concat(['$wrap$', PName], WrapName),
-    volatile(M:WrapName/Arity),
-    module_transparent(M:WrapName/Arity),
+    PI = M:WrapName/Arity,
+    dynamic(PI),
+    '$notransact'(PI),
+    volatile(PI),
+    module_transparent(PI),
     WHead =.. [WrapName|Args],
     '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
 
