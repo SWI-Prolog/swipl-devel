@@ -358,7 +358,7 @@ make_library_index2(Dir, Patterns) :-
     pattern_files(Patterns, DirS, Files),
     (   library_index_out_of_date(Dir, AbsIndex, Files)
     ->  do_make_library_index(AbsIndex, DirS, Files),
-        flag('$modified_index', _, true)
+        set_flag('$modified_index', true)
     ;   true
     ).
 
@@ -468,11 +468,12 @@ exports(File, Module, Exports) :-
 
 exports_(File, Module, Exports) :-
     State = state(true, _, []),
-    (   '$source_term'(File, _,_,Term0,_,_,[syntax_errors(quiet)]),
-        (   is_list(Term0)
-        ->  '$member'(Term, Term0)
-        ;   Term = Term0
-        ),
+    (   '$source_term'(File,
+                       _Read,_RLayout,
+                       Term,_TermLayout,
+                       _Stream,
+                       [ syntax_errors(quiet)
+                       ]),
         (   Term = (:- module(M,Public)),
             is_list(Public),
             arg(1, State, true)
