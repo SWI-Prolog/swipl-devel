@@ -1969,6 +1969,9 @@ default_theme(message(Level),         Attrs) :-
 :- thread_local
     user:thread_message_hook/3.
 :- '$hide'((push_msg/1,pop_msg/0)).
+:- '$notransact'((user:message_hook/3,
+                  prolog:message_prefix_hook/2,
+                  user:thread_message_hook/3)).
 
 %!  print_message(+Kind, +Term)
 %

@@ -126,6 +126,11 @@ predicate defined in C.
     foreign_predicate/2,
     current_library/5.
 
+:- '$notransact'((loading/1,
+                  error/2,
+                  foreign_predicate/2,
+                  current_library/5)).
+
 :- (   current_prolog_flag(open_shared_object, true)
    ->  true
    ;   print_message(warning, shlib(not_supported)) % error?

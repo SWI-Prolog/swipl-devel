@@ -1041,6 +1041,7 @@ default_module(Me, Super) :-
     user:portray/1.
 :- multifile
     user:portray/1.
+:- '$notransact'(user:portray/1).
 
 
 		 /*******************************
@@ -1053,6 +1054,8 @@ default_module(Me, Super) :-
 :- multifile
     user:file_search_path/2,
     user:library_directory/1.
+:- '$notransact'((user:file_search_path/2,
+                  user:library_directory/1)).
 
 user:(file_search_path(library, Dir) :-
 	library_directory(Dir)).
@@ -1476,6 +1479,8 @@ user:prolog_file_type(dylib,    executable) :-
 :- volatile
     '$search_path_file_cache'/3,
     '$search_path_gc_time'/1.
+:- '$notransact'(('$search_path_file_cache'/3,
+                  '$search_path_gc_time'/1)).
 
 :- create_prolog_flag(file_search_cache_time, 10, []).
 
@@ -1670,6 +1675,8 @@ extensions to .ext
 :- volatile
     '$compilation_mode_store'/1,
     '$directive_mode_store'/1.
+:- '$notransact'(('$compilation_mode_store'/1,
+                  '$directive_mode_store'/1)).
 
 '$compilation_mode'(Mode) :-
     (   '$compilation_mode_store'(Val)
@@ -2431,6 +2438,7 @@ load_files(Module:Files, Options) :-
 
 :- dynamic
     '$resolved_source_path_db'/3.                % ?Spec, ?Dialect, ?Path
+:- '$notransact'('$resolved_source_path_db'/3).
 
 '$load_file'(File, Module, Options) :-
     '$error_count'(E0, W0),

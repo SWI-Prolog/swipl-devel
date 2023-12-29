@@ -87,6 +87,14 @@ expansion.
     system:goal_expansion/4,
     user:term_expansion/4,
     user:goal_expansion/4.
+:- '$notransact'((system:term_expansion/2,
+                  system:goal_expansion/2,
+                  user:term_expansion/2,
+                  user:goal_expansion/2,
+                  system:term_expansion/4,
+                  system:goal_expansion/4,
+                  user:term_expansion/4,
+                  user:goal_expansion/4)).
 
 :- meta_predicate
     expand_terms(4, +, ?, -, -).
