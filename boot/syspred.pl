@@ -274,8 +274,7 @@ source_file(M:Head, File) :-
     !,
     (   '$c_current_predicate'(_, M:Head),
         predicate_property(M:Head, multifile)
-    ->  multi_source_files(M:Head, Files),
-        '$member'(File, Files)
+    ->  multi_source_file(M:Head, File)
     ;   '$source_file'(M:Head, File)
     ).
 source_file(M:Head, File) :-
@@ -286,18 +285,15 @@ source_file(M:Head, File) :-
     '$source_file_predicates'(File, Predicates),
     '$member'(M:Head, Predicates).
 
-:- thread_local found_src_file/1.
-
-multi_source_files(Head, Files) :-
-    call_cleanup(
-        findall(File, multi_source_file(Head, File), Files),
-        retractall(found_src_file(_))).
-
 multi_source_file(Head, File) :-
+    State = state([]),
     nth_clause(Head, _, Clause),
     clause_property(Clause, source(File)),
-    \+ found_src_file(File),
-    asserta(found_src_file(File)).
+    arg(1, State, Found),
+    (   memberchk(File, Found)
+    ->  fail
+    ;   nb_linkarg(1, State, [File|Found])
+    ).
 
 
 %!  source_file_property(?File, ?Property) is nondet.
