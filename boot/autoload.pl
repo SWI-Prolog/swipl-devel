@@ -463,7 +463,7 @@ exports(File, Module, Exports) :-
     ),
     setup_call_cleanup(
         set_prolog_flag(xref, true),
-        exports_(File, Module, Exports),
+        snapshot(exports_(File, Module, Exports)),
         set_prolog_flag(xref, Old)).
 
 exports_(File, Module, Exports) :-
