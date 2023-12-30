@@ -341,7 +341,8 @@ def_environment(VAR, Value, Options) :-
 def_environment(VAR, Value, Options) :-
     env_name(module_ext, VAR, Options),
     current_prolog_flag(shared_object_extension, Value).
-def_environment('PREFIX', Value, _) :-
+def_environment(VAR, Value, Options) :-
+    env_name(prefix, VAR, Options),
     prolog_install_prefix(Value).
 
 swipl_libraries_dir(Dir) :-
