@@ -80,14 +80,16 @@ packages, etc. It is complemented by   the  built-in attach_packs/0 that
 makes installed packages available as libraries.
 
 To make changes to a package:
-  * Clone the git repo,t go into the repo and run:
+  * Clone the git repo, then go into the repo and run:
     `?- pack_install(.).`
-    This builds the pack locally and creates a symlink to make it available.
+    This builds the pack locally and creates a symlink to make it
+    available.  It will also write a file `buildenv.sh` that you can
+    source to get the environment for running a normal `make` (this is
+    done only if there is a `configure` step; i.e., if there is a
+    `configure.in` or `configure` file).
+  * `(source ./buildenv.sh` && make)` to rebuild
   * `?- pack_rebuild(package_name).`
-    This runs `make distclean` and `make` with the right environment. It will also
-    write a file `buildendv.sh` that you can source to get the environment
-    for running a normal `make` (this is done only if there is a `configure`
-    step; i.e., if there is a `configure.in` or `configure`.
+    This runs `make distclean` and `make` with the right environment.
   * The build process also supports `cmake`.
 
 Once you have made the changes, you should edit the `pack.pl` file
