@@ -468,7 +468,7 @@ get_bigint(word w, Number n)
   Word p = addressIndirect(w);
   size_t wsize = wsizeofInd(*p);
 
-  DEBUG(0, assert(storage(w) == STG_INLINE));
+  DEBUG(0, assert(storage(w) != STG_INLINE));
 
   p++;
   if ( wsize == WORDS_PER_INT64 )
