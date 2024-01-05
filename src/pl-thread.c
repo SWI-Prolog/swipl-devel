@@ -2369,6 +2369,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 	       ERR_SYSCALL, func);
     return FALSE;
   }
+  info->open_count = 1;
 
   return TRUE;
 }
