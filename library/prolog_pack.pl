@@ -1165,13 +1165,13 @@ pack_rebuild(Pack) :-
     !,
     post_install_foreign(Pack, PackDir, [rebuild(true)]).
 pack_rebuild(Pack) :-
-    unattached_pacth(Pack, PackDir),
+    unattached_pack(Pack, PackDir),
     !,
     post_install_foreign(Pack, PackDir, [rebuild(true)]).
 pack_rebuild(Pack) :-
     existence_error(pack, Pack).
 
-unattached_pacth(Pack, BaseDir) :-
+unattached_pack(Pack, BaseDir) :-
     directory_file_path(Pack, 'pack.pl', PackFile),
     absolute_file_name(pack(PackFile), PackPath,
                        [ access(read),
