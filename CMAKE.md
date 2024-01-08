@@ -129,6 +129,22 @@ includes many packages. For example:
 
     cmake -DINSTALL_DOCUMENTATION=OFF -DSWIPL_PACKAGE_LIST="clib;plunit"
 
+## Finding requirements
+
+Finding  requirements  is   the   task    of   CMake.   Typically,   our
+`CMakeLists.txt`  files  call  `find_package(SomePackage,  ...)`,  which
+implies it loads `FindSomePackage.cmake`. As far  as possible we rely on
+the "finders" that come bundled with CMake.   Others can be found in the
+various `cmake` directories. These are either copied from other projects
+or home brewed. Please consult the   CMake documentation on the specific
+"finder" as well as `find_package()` if   you  have trouble finding some
+requirement or selecting the right version if you have multiple versions
+of the requirement installed on your system.
+
+In particular, see
+[FindPython.cmake](https://cmake.org/cmake/help/latest/module/FindPython.html)
+to control the Python version used by the Janus interface to Python.
+
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
 
