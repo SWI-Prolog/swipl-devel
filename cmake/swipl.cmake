@@ -7,13 +7,18 @@
 #     `<prefix>/lib/cmake/swipl/SWIPLTargets.cmake` which is created
 #     by the SWI-Prolog build.  Else it is assembled here from the
 #     environment variables that are provided by pack_install/1.
+#
 #   - If figures out whether modules need to be linked against
 #     libswipl.so.  Notably on ELF platforms this is not needed,
 #     which implies the module remains independent from the exact
 #     Prolog version.
+#
 #   - It provides a function target_link_swipl(target) that uses
 #     the above to either add `swipl::libswipl` to your target,
 #     or, if linking is not needed, only the include directories.
+#
+#   - It provides a function swipl_add_test(name) that runs a
+#     test file from test/test_${name}.pl
 
 if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
   set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
@@ -110,6 +115,16 @@ function(target_link_swipl target)
   endif()
   set_target_properties(${target} PROPERTIES
     OUTPUT_NAME ${target} PREFIX "")
+endfunction()
+
+function(swipl_add_test name)
+  add_test(NAME ${name}
+	   COMMAND ${SWIPL} -p foreign=${CMAKE_CURRENT_SOURCE_DIR}/${swipl_module_dir}
+	                    -p library=${CMAKE_CURRENT_SOURCE_DIR}/prolog
+			    --on-error=status
+			    -g test_${name}
+			    -t halt
+	                    ${CMAKE_CURRENT_SOURCE_DIR}/test/test_${name}.pl)
 endfunction()
 
 # Avoid message on unused variable
