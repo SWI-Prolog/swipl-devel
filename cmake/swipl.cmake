@@ -19,10 +19,12 @@ if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
   set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
   set(swipl_version    $ENV{SWIPL_VERSION})
   set(swipl_module_lib $ENV{SWIPL_MODULE_LIB})
+  set(swipl_module_dir $ENV{SWIPL_MODULE_DIR})
 elseif($ENV{SWIHOME})		# Pack version 1
   set(swipl_home_dir   $ENV{SWIHOME})
   set(swipl_version    $ENV{SWIPLVERSION})
   set(swipl_module_lib $ENV{SWISOLIB})
+  set(swipl_module_dir $ENV{PACKSODIR})
 else()				# Outside pack_install
   function(swipl_config)
     find_program(SWIPL swipl REQUIRED)
@@ -44,6 +46,7 @@ else()				# Outside pack_install
   else()
     set(swipl_module_lib ${PLLIB})
   endif()
+  set(swipl_module_dir lib/${PLARCH})
 endif()
 
 math(EXPR swipl_version_major "${swipl_version} / 10000")
