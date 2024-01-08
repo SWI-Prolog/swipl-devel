@@ -153,6 +153,9 @@
 \libsummary{prologpack}
 \input{summaries.d/prologpack.tex}
 
+\libsummary{prologversions}
+\input{summaries.d/prologversions.tex}
+
 \libsummary{prologtrace}
 \input{summaries.d/prologtrace.tex}
 

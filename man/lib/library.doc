@@ -67,6 +67,7 @@ documented at all.
 \input{prologjiti}
 \input{prologtrace}
 \input{prologpack}
+\input{prologversions}
 \input{prologxref}
 \input{quasiquotations}
 \input{random}
