@@ -19,7 +19,7 @@ if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
   set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
   set(swipl_version    $ENV{SWIPL_VERSION})
   set(swipl_module_lib $ENV{SWIPL_MODULE_LIB})
-elif($ENV{SWIHOME})		# Pack version 1
+elseif($ENV{SWIHOME})		# Pack version 1
   set(swipl_home_dir   $ENV{SWIHOME})
   set(swipl_version    $ENV{SWIPLVERSION})
   set(swipl_module_lib $ENV{SWISOLIB})
