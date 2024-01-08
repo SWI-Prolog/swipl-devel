@@ -118,33 +118,42 @@ build_steps(Steps, SrcDir, Options) :-
     State0 = Dict0.put(#{ env: BuildEnv,
 			  src_dir: SrcDir
 			}),
+
     foldl(build_step, Steps, State0, _State).
 
 build_step(Spec, State0, State) :-
+    build_step_(Spec, State0, State),
+    post_step(Spec, State).
+
+build_step_(Spec, State0, State) :-
     step_name(Spec, Step),
     prolog:build_file(File, Tool),
     directory_file_path(State0.src_dir, File, Path),
     exists_file(Path),
     prolog:build_step(Step, Tool, State0, State),
-    post_step(Step, Tool, State),
     !.
-build_step([_], State, State) :-
+build_step_([_], State, State) :-
     !.
-build_step({Step}, State, State) :-
+build_step_({Step}, State, State) :-
     !,
     print_message(error, build(step_failed(Step))),
     throw(error(build(step_failed(Step)))).
-build_step(Step, State, State) :-
+build_step_(Step, State, State) :-
     print_message(warning, build(step_failed(Step))).
 
-step_name([Step], Step) :-              % options
-    !.
-step_name(Step, Step).
+step_name([Step], Name) => Name = Step.
+step_name({Step}, Name) => Name = Step.
+step_name(Step,   Name) => Name = Step.
 
-post_step(configure, _, State) :-
+%!  post_step(+Step, +State) is det.
+%
+%   Run code after completion of a step.
+
+post_step(Step, State) :-
+    step_name(Step, configure),
     !,
-    save_build_environment(State.bin_dir, State.env).
-post_step(_, _, _).
+    save_build_environment(State).
+post_step(_, _).
 
 
 %!  ensure_build_dir(+Dir, +State0, -State) is det.
@@ -431,14 +440,15 @@ preferred_c_compiler(gcc).
 preferred_c_compiler(clang).
 preferred_c_compiler(cc).
 
-%!  save_build_environment(+BuildDir, +Env) is det.
+%!  save_build_environment(+State:dict) is det.
 %
 %   Create  a  shell-script  ``buildenv.sh``  that  contains  the  build
 %   environment. This may be _sourced_ in the build directory to run the
 %   build steps outside Prolog. It  may   also  be  useful for debugging
 %   purposes.
 
-save_build_environment(BuildDir, Env) :-
+save_build_environment(State) :-
+    _{bin_dir:BuildDir, env:Env} :< State,
     directory_file_path(BuildDir, 'buildenv.sh', EnvFile),
     setup_call_cleanup(
 	open(EnvFile, write, Out),
