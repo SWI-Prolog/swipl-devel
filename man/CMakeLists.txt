@@ -19,9 +19,12 @@ set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 # Main files
 set(DOC_CORE abstract.tex intro.tex overview.tex builtin.tex module.tex
     foreign.tex wasm.tex runtime.tex hack.tex summary.tex xpce.tex glossary.tex
-    ide.tex license.tex threads.tex engines.tex profile.tex streams.tex
+    ide.tex license.tex threads.tex engines.tex streams.tex
     attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex ssu.tex
     tabling.tex)
+if(MULTI_THREADED)
+list(APPEND DOC_CORE profile.tex)
+endif()
 
 set(STYFILES html.sty txt.sty)
 
@@ -212,7 +215,9 @@ pldoc(lib/main.tex "library(main)")
 endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
-pldoc(libprofile.tex "library(prolog_profile)" --subsection)
+if(MULTI_THREADED)
+  pldoc(libprofile.tex "library(prolog_profile)" --subsection)
+endif()
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source

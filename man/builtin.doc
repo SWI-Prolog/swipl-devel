@@ -11712,7 +11712,7 @@ core		& Same as memory \\
 		 %	      PROFILER		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\input{profile.tex}
+\InputIfFileExists{profile.tex}{}{}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
