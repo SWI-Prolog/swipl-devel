@@ -795,6 +795,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     destroy_thread_message_queue(&ld->thread.messages);
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = FALSE;		/* needed? */
+    info->c_stack = NULL;
     if ( !after_fork )
       PL_UNLOCK(L_THREAD);
 
@@ -2038,6 +2039,7 @@ start_thread(void *closure)
 
     pthread_cleanup_push(free_prolog_thread, info->thread_data);
 
+    CStackSize();
     PL_LOCK(L_THREAD);
     info->status = PL_THREAD_RUNNING;
     PL_UNLOCK(L_THREAD);
@@ -2338,9 +2340,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   {
 #ifdef USE_COPY_STACK_SIZE
     struct rlimit rlim;
-    if ( !stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
+    if ( !c_stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
     { if ( rlim.rlim_cur != RLIM_INFINITY )
-	stack = rlim.rlim_cur;
+	c_stack = rlim.rlim_cur;
 					/* What is an infinite stack!? */
     }
 #endif
@@ -2348,9 +2350,14 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     { stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
       rc = pthread_attr_setstacksize(&attr, c_stack);
-      info->c_stack_size = c_stack;
-    } else
-    { pthread_attr_getstacksize(&attr, &info->c_stack_size);
+
+      if ( rc == 0 )
+      { assert(info->c_stack == NULL);
+	if ( !(info->c_stack = malloc(sizeof(*info->c_stack))) )
+	  outOfCore();
+	memset(info->c_stack, 0, sizeof(*info->c_stack));
+	info->c_stack->size = c_stack;
+      }
     }
   }
   if ( rc == 0 )
@@ -6588,6 +6595,7 @@ detach_engine(PL_engine_t e)
 #endif
 #endif
   memset(&info->tid, 0, sizeof(info->tid));
+  info->c_stack = NULL;
 }
 
 
@@ -8246,23 +8254,17 @@ markAccessedPredicates(PL_local_data_t *ld)
 
 static size_t
 stack_avail(DECL_LD)
-{ PL_thread_info_t *info = LD->thread.info;
-  size_t avail = (size_t)-1;
+{ c_stack_info *cinfo = CStackSize();
+  ssize_t avail = -1;
 
-  if ( !info->c_stack_size )
-    (void)CStackSize();
+  if ( cinfo && cinfo->base )
+  { void *here = &cinfo;
 
-  if ( info->c_stack_base )
-  { void *here = &info;
-
-#ifndef __SANITIZE_ADDRESS__
-    assert(here > info->c_stack_base); /* stack grows down */
-#endif
-
-    avail = (char*)here - (char*)info->c_stack_base;
+    avail = (char*)here - (char*)cinfo->base;
+    assert(avail > 0);		/* stack grows down */
   }
 
-  return avail;
+  return (size_t)avail;
 }
 #endif
 

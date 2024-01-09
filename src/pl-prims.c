@@ -5806,8 +5806,9 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
   else if (key == ATOM_c_stack)
-    v->value.i = CStackSize();
-  else if (key == ATOM_atoms)				/* atoms */
+  { c_stack_info *cinfo = CStackSize();
+    v->value.i = cinfo ? cinfo->size : 0;
+  } else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_atom_space)			/* atom_space */
     v->value.i = atom_space();

@@ -36,6 +36,7 @@
 */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 #ifndef PL_THREAD_H_DEFINED
 #define PL_THREAD_H_DEFINED
@@ -113,8 +114,7 @@ typedef struct _PL_thread_info_t
   unsigned	    c_stack_low   : 1;	/* TRUE: Signalled low C stack */
   unsigned	    joined_by_creator : 1;
   int		    joining_by;		/* TID of joining thread */
-  void		   *c_stack_base;	/* Base of the (C-) stack */
-  size_t	    c_stack_size;	/* system (C-) stack */
+  c_stack_info	   *c_stack;
   size_t	    stack_limit;	/* Stack sizes */
   size_t	    table_space;	/* Max size for local tables */
   rc_cancel	    (*cancel)(int id);	/* cancel function */

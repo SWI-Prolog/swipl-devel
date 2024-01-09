@@ -118,6 +118,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_PRED_COUNT),
 
   DEBUG_TOPIC(MSG_BACKTRACK),
+  DEBUG_TOPIC(MSG_CSTACK),
 
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
