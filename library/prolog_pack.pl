@@ -143,23 +143,14 @@ current_pack(Pack, Dir) :-
 
 %!  pack_list_installed is det.
 %
-%   List currently installed  packages.   Unlike  pack_list/1,  only
-%   locally installed packages are displayed   and  no connection is
-%   made to the internet.
+%   List currently installed  packages.  This calls
 %
-%   @see Use pack_list/1 to find packages.
+%       ?- pack_list('', [server(false)]).
+%
+%   @see pack_list/2.
 
 pack_list_installed :-
-    findall(Pack, current_pack(Pack), Packages0),
-    Packages0 \== [],
-    !,
-    sort(Packages0, Packages),
-    length(Packages, Count),
-    format('Installed packages (~D):~n~n', [Count]),
-    maplist(pack_info(list), Packages),
-    validate_dependencies.
-pack_list_installed :-
-    print_message(informational, pack(no_packages_installed)).
+    pack_list('', [server(false)]).
 
 %!  pack_info(+Pack)
 %
@@ -392,6 +383,19 @@ cmp(>,  @>).
 %     - Name@Version(ServerVersion)
 %     - Title
 %
+%   Options processed:
+%
+%     - installed(true)
+%       Only list packages that are locally installed.  Contacts the
+%       server to compare our local version to the latest available
+%       version.
+%     - outdated(true)
+%       Only list packages that need to be updated.  This option
+%       implies installed(true).
+%     - server(Server|false)
+%       If `false`, do not contact the server. This implies
+%       installed(true).  Otherwise, use the given pack server.
+%
 %   Hint: =|?- pack_list('').|= lists all packages.
 %
 %   The predicates pack_list/1 and  pack_search/1   are  synonyms.  Both
@@ -408,12 +412,18 @@ pack_search(Query) :-
     pack_list(Query, []).
 
 pack_list(Query, Options) :-
-    option(installed(true), Options),
+    (   option(installed(true), Options)
+    ;   option(outdated(true), Options)
+    ;   option(server(false), Options)
+    ),
     !,
     local_search(Query, Local),
     maplist(arg(1), Local, Packs),
-    query_pack_server(info(Packs), true(Hits), []),
-    list_hits(Hits, Local).
+    (   option(server(false), Options)
+    ->  Hits = []
+    ;   query_pack_server(info(Packs), true(Hits), [])
+    ),
+    list_hits(Hits, Local, Options).
 pack_list(Query, _Options) :-
     query_pack_server(search(Query), Result, []),
     (   Result == false
@@ -426,45 +436,91 @@ pack_list(Query, _Options) :-
         )
     ;   Result = true(Hits),       % Hits = list(pack(Name, p, Title, Version, URL))
         local_search(Query, Local),
-        list_hits(Hits, Local)
+        list_hits(Hits, Local, [])
     ).
 
-list_hits(Hits, Local) :-
+list_hits(Hits, Local, Options) :-
     append(Hits, Local, All),
     sort(All, Sorted),
-    list_hits(Sorted).
+    join_status(Sorted, Packs0),
+    include(filtered(Options), Packs0, Packs),
+    maplist(list_hit(Options), Packs).
 
-list_hits([]).
-list_hits([ pack(Pack, i, Title, Version, _),
-            pack(Pack, p, Title, Version, _)
-          | More
-          ]) :-
+filtered(Options, pack(_,Tag,_,_,_)) :-
+    option(outdated(true), Options),
     !,
-    format('i ~w@~w ~28|- ~w~n', [Pack, Version, Title]),
-    list_hits(More).
-list_hits([ pack(Pack, i, Title, VersionI, _),
-            pack(Pack, p, _,     VersionS, _)
-          | More
-          ]) :-
+    Tag == 'U'.
+filtered(_, _).
+
+list_hit(_Options, pack(Pack, Tag, Title, Version, _URL)) =>
+    list_tag(Tag),
+    ansi_format(code, '~w', [Pack]),
+    format('@'),
+    list_version(Tag, Version),
+    format('~35|- ', []),
+    ansi_format(comment, '~w~n', [Title]).
+
+list_tag(Tag) :-
+    tag_color(Tag, Color),
+    ansi_format(Color, '~w ', [Tag]).
+
+list_version(Tag, VersionI-VersionS) =>
+    tag_color(Tag, Color),
+    ansi_format(Color, '~w', [VersionI]),
+    ansi_format(bold, '(~w)', [VersionS]).
+list_version(_Tag, Version) =>
+    ansi_format([], '~w', [Version]).
+
+tag_color('U', warning) :- !.
+tag_color('A', comment) :- !.
+tag_color(_, []).
+
+%!  join_status(+PacksIn, -PacksOut) is det.
+%
+%   Combine local and remote information to   assess  the status of each
+%   package. PacksOut is a list of  pack(Name, Status, Version, URL). If
+%   the     versions     do      not       match,      `Version`      is
+%   `VersionInstalled-VersionRemote` and similar for thee URL.
+
+join_status([], []).
+join_status([ pack(Pack, i, Title, Version, URL),
+              pack(Pack, p, Title, Version, _)
+            | T0
+            ],
+            [ pack(Pack, i, Title, Version, URL)
+            | T
+            ]) :-
+    !,
+    join_status(T0, T).
+join_status([ pack(Pack, i, Title, VersionI, URLI),
+              pack(Pack, p, _,     VersionS, URLS)
+            | T0
+            ],
+            [ pack(Pack, Tag, Title, VersionI-VersionS, URLI-URLS)
+            | T
+            ]) :-
     !,
     version_data(VersionI, VDI),
     version_data(VersionS, VDS),
     (   VDI @< VDS
-    ->  Tag = ('U')
-    ;   Tag = ('A')
+    ->  Tag = 'U'
+    ;   Tag = 'A'
     ),
-    format('~w ~w@~w(~w) ~28|- ~w~n', [Tag, Pack, VersionI, VersionS, Title]),
-    list_hits(More).
-list_hits([ pack(Pack, i, Title, VersionI, _)
-          | More
-          ]) :-
+    join_status(T0, T).
+join_status([ pack(Pack, i, Title, VersionI, URL)
+            | T0
+            ],
+            [ pack(Pack, l, Title, VersionI, URL)
+            | T
+            ]) :-
     !,
-    format('l ~w@~w ~28|- ~w~n', [Pack, VersionI, Title]),
-    list_hits(More).
-list_hits([pack(Pack, Stat, Title, Version, _)|More]) :-
-    format('~w ~w@~w ~28|- ~w~n', [Stat, Pack, Version, Title]),
-    list_hits(More).
+    join_status(T0, T).
+join_status([H|T0], [H|T]) :-
+    join_status(T0, T).
 
+%!  local_search(+Query, -Packs:list(atom)) is det.
+%
+%   Search locally installed packs.
 
 local_search(Query, Packs) :-
     findall(Pack, matching_installed_pack(Query, Pack), Packs).
@@ -1637,8 +1693,11 @@ pack_inquiry(_, _, _, _).
 %   results.
 
 query_pack_server(Query, Result, Options) :-
-    setting(server, ServerBase),
-    ServerBase \== '',
+    (   option(server(ServerBase), Options)
+    ->  true
+    ;   setting(server, ServerBase),
+        ServerBase \== ''
+    ),
     atom_concat(ServerBase, query, Server),
     format(codes(Data), '~q.~n', Query),
     info_level(Informational, Options),

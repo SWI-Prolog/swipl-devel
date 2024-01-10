@@ -73,10 +73,12 @@ pack_command(install, "Install a package").
 pack_command(remove,  "Uninstall a package").
 pack_command(help,    "Help on command (also swipl pack command -h)").
 
-pack_list:opt_type(_,_,_) :- fail.
 pack_find:opt_type(_,_,_) :- fail.
 pack_info:opt_type(_,_,_) :- fail.
 pack_remove:opt_type(_,_,_) :- fail.
+
+pack_list:opt_type(outdated, outdated, boolean).
+pack_list:opt_help(outdated, "Only list packages that can be upgraded").
 
 pack_install:opt_type(url,         url,               atom).
 pack_install:opt_type(dir,         package_directory, directory(write)).
@@ -116,8 +118,12 @@ pack_install:opt_help(help(footer),
 pack_install:opt_meta(rebuild,	   'WHEN').
 pack_install:opt_meta(url,	   'URL').
 
-cli_pack_list([], _Options) :-
-    pack_list_installed.
+cli_pack_list([], Options) =>
+    pack_list('', [installed(true)|Options]).
+cli_pack_list([Search], Options) =>
+    pack_list(Search, [installed(true)|Options]).
+cli_pack_list(_, _) =>
+    argv_usage(pack_list:debug).
 
 cli_pack_find([], _Options) =>
     pack_list('').
