@@ -38,6 +38,7 @@
           [ pack_list_installed/0,
             pack_info/1,                % +Name
             pack_list/1,                % +Keyword
+            pack_list/2,                % +Query, +Options
             pack_search/1,              % +Keyword
             pack_install/1,             % +Name
             pack_install/2,             % +Name, +Options
@@ -372,13 +373,14 @@ cmp(>,  @>).
                  *            SEARCH            *
                  *******************************/
 
-%!  pack_search(+Query) is det.
 %!  pack_list(+Query) is det.
+%!  pack_list(+Query, +Options) is det.
+%!  pack_search(+Query) is det.
 %
-%   Query package server and installed packages and display results.
-%   Query is matches case-insensitively against   the name and title
-%   of known and installed packages. For   each  matching package, a
-%   single line is displayed that provides:
+%   Query package server and  installed   packages  and display results.
+%   Query is matches case-insensitively against the   name  and title of
+%   known and installed packages. For each   matching  package, a single
+%   line is displayed that provides:
 %
 %     - Installation status
 %       - *p*: package, not installed
@@ -392,17 +394,27 @@ cmp(>,  @>).
 %
 %   Hint: =|?- pack_list('').|= lists all packages.
 %
-%   The predicates pack_list/1 and pack_search/1  are synonyms. Both
-%   contact the package server at  http://www.swi-prolog.org to find
+%   The predicates pack_list/1 and  pack_search/1   are  synonyms.  Both
+%   contact the package server  at   https://www.swi-prolog.org  to find
 %   available packages.
 %
 %   @see    pack_list_installed/0 to list installed packages without
 %           contacting the server.
 
 pack_list(Query) :-
-    pack_search(Query).
+    pack_list(Query, []).
 
 pack_search(Query) :-
+    pack_list(Query, []).
+
+pack_list(Query, Options) :-
+    option(installed(true), Options),
+    !,
+    local_search(Query, Local),
+    maplist(arg(1), Local, Packs),
+    query_pack_server(info(Packs), true(Hits), []),
+    list_hits(Hits, Local).
+pack_list(Query, _Options) :-
     query_pack_server(search(Query), Result, []),
     (   Result == false
     ->  (   local_search(Query, Packs),
@@ -412,12 +424,15 @@ pack_search(Query) :-
                           [Stat, Pack, Version, Title]))
         ;   print_message(warning, pack(search_no_matches(Query)))
         )
-    ;   Result = true(Hits),
+    ;   Result = true(Hits),       % Hits = list(pack(Name, p, Title, Version, URL))
         local_search(Query, Local),
-        append(Hits, Local, All),
-        sort(All, Sorted),
-        list_hits(Sorted)
+        list_hits(Hits, Local)
     ).
+
+list_hits(Hits, Local) :-
+    append(Hits, Local, All),
+    sort(All, Sorted),
+    list_hits(Sorted).
 
 list_hits([]).
 list_hits([ pack(Pack, i, Title, Version, _),
