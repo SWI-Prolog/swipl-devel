@@ -447,13 +447,20 @@ preferred_c_compiler(cc).
 %   build steps outside Prolog. It  may   also  be  useful for debugging
 %   purposes.
 
+:- det(save_build_environment/1).
 save_build_environment(State) :-
-    _{bin_dir:BuildDir, env:Env} :< State,
+    Env = State.get(env),
+    !,
+    (   BuildDir = State.get(bin_dir)
+    ->  true
+    ;   BuildDir = State.get(src_dir)
+    ),
     directory_file_path(BuildDir, 'buildenv.sh', EnvFile),
     setup_call_cleanup(
 	open(EnvFile, write, Out),
 	write_env_script(Out, Env),
 	close(Out)).
+save_build_environment(_).
 
 write_env_script(Out, Env) :-
     format(Out,
