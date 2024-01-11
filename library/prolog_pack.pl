@@ -1418,7 +1418,7 @@ pack_remove_forced(Pack) :-
     print_message(informational, pack(remove(BaseDir))),
     delete_directory_and_contents(BaseDir).
 pack_remove_forced(Pack) :-
-    unattached_pacth(Pack, BaseDir),
+    unattached_pack(Pack, BaseDir),
     !,
     delete_directory_and_contents(BaseDir).
 pack_remove_forced(Pack) :-
