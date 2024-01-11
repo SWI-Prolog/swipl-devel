@@ -668,19 +668,19 @@ pack_select_candidate(Pack, [AtomVersion-_|_], Options,
     Installed @>= Version,
     in_explicit_pack_dir(Pack, Options),
     !.
-pack_select_candidate(Pack, Available, Options, OptsOut) :-
+pack_select_candidate(_Pack, Available, Options, OptsOut) :-
     option(url(URL), Options),
     memberchk(_Version-URLs, Available),
     memberchk(URL, URLs),
     !,
-    (   git_url(URL, Pack)
+    (   git_url(URL, _)
     ->  Extra = [git(true)]
     ;   Extra = []
     ),
     OptsOut = [url(URL), inquiry(true) | Extra].
 pack_select_candidate(Pack, [Version-[URL]|_], Options,
                       [url(URL), git(true), inquiry(true)]) :-
-    git_url(URL, Pack),
+    git_url(URL, _Pack),
     !,
     confirm(install_from(Pack, Version, git(URL)), yes, Options).
 pack_select_candidate(Pack, [Version-[URL]|More], Options,
