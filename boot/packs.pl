@@ -40,8 +40,7 @@
             attach_packs/2,                     % +Dir, +Options
             '$pack_detach'/2,                   % +Name, -Dir
             '$pack_attach'/1,                   % +Dir
-            '$pack_attach'/2,                   % +Dir, +Options
-            '$packs_from'/1                     % ?Dir
+            '$pack_attach'/2                    % +Dir, +Options
           ]).
 
 :- multifile user:file_search_path/2.
@@ -49,7 +48,6 @@
 
 :- dynamic
     pack_dir/3,                             % Pack, Type, Dir
-    packs_from/1,                           % Dir
     pack/2.                                 % Pack, BaseDir
 
 user:file_search_path(pack, app_data(pack)).
@@ -92,9 +90,6 @@ user:file_search_path(app, AppDir) :-
     ->  '$existence_error'(directory, Dir)
     ;   '$domain_error'(pack, Dir)
     ).
-
-'$packs_from'(Dir) :-
-    packs_from(Dir).
 
 %!  attach_packs
 %
@@ -174,7 +169,7 @@ attach_packs(Dir, Options) :-
     (   '$option'(replace(true), Options)
     ->  forall(pack(Name, PackDir),
                '$pack_detach'(Name, PackDir)),
-        retractall(packs_from(_))
+        retractall(user:file_search_path(pack, _))
     ;   true
     ),
     register_packs_from(Dir),
@@ -190,11 +185,10 @@ attach_packs(Dir, Options) :-
 attach_packs(_, _).
 
 register_packs_from(Dir) :-
-    packs_from(Dir),
-    !.
-register_packs_from(Dir) :-
-    asserta(packs_from(Dir)),
-    !.
+    (   user:file_search_path(pack, Dir)
+    ->  true
+    ;   asserta(user:file_search_path(pack, Dir))
+    ).
 
 attach_packages([], _, _).
 attach_packages([H|T], Dir, Options) :-
