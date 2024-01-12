@@ -1,11 +1,12 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
+    Copyright (c)  2023, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,8 +44,7 @@
 #include "os/pl-table.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Record coverage data by intercepting the tracer.   We  have two types of
-coverage:
+Record coverage data. We  have two types of coverage:
 
   - A program counter (PC)
     This is used to record calls at this PC as well as exits to
@@ -68,6 +68,55 @@ typedef struct cov_obj
 } cov_obj;
 
 
+static void
+free_cov_symbol(void *name, void *value)
+{ cov_obj *cov = value;
+
+  PL_unregister_atom(cov->cref);
+  PL_free(cov);
+}
+
+static coverage *
+newCoverageData(void)
+{ coverage *cov = malloc(sizeof(*cov));
+
+  if ( cov )
+  { memset(cov, 0, sizeof(*cov));
+
+    Table t = newHTable(1024);
+    if ( t )
+    { t->free_symbol = free_cov_symbol;
+      cov->table      = t;
+      cov->references = 1;
+      cov->flags      = COV_TRACK_THREADS;
+    } else
+    { free(cov);
+      cov = NULL;
+    }
+  }
+
+  return cov;
+}
+
+
+coverage *
+share_coverage_data(coverage *cov)
+{ if ( cov )
+    ATOMIC_INC(&cov->references);
+
+  return cov;
+}
+
+
+static void
+unshare_coverage_data(coverage *cov)
+{ if ( ATOMIC_DEC(&cov->references)  == 0 )
+  { destroyHTable(cov->table);
+    free(cov);
+  }
+}
+
+
 static int
 running_static_predicate(LocalFrame fr)
 { Definition def = fr->predicate;
@@ -78,27 +127,29 @@ running_static_predicate(LocalFrame fr)
 static cov_obj *
 call_site(LocalFrame fr)
 { LocalFrame parent = fr->parent;
+  coverage *cov;
 
-  if ( running_static_predicate(parent) )
+  if ( (cov=LD->coverage.data) &&
+       running_static_predicate(parent) )
   { void *key = (void*)fr->programPointer;
-    cov_obj *cov = lookupHTable(LD->coverage.table, key);
+    cov_obj *obj = lookupHTable(cov->table, key);
 
-    if ( !cov )
-    { cov = PL_malloc(sizeof(*cov));
-      memset(cov, 0, sizeof(*cov));
-      cov->type = COV_PC;
-      cov->cref = lookup_clref(parent->clause->value.clause);
-      cov->pc   = fr->programPointer;
+    if ( !obj )
+    { obj = PL_malloc(sizeof(*obj));
+      memset(obj, 0, sizeof(*obj));
+      obj->type = COV_PC;
+      obj->cref = lookup_clref(parent->clause->value.clause);
+      obj->pc   = fr->programPointer;
 
-      cov_obj *cov2 = addHTable(LD->coverage.table, key, cov);
-      if ( cov2 != cov )
-      { PL_unregister_atom(cov->cref);
-	PL_free(cov);
-	cov = cov2;
+      cov_obj *obj2 = addHTable(cov->table, key, obj);
+      if ( obj2 != obj )
+      { PL_unregister_atom(obj->cref);
+	PL_free(obj);
+	obj = obj2;
       }
     }
 
-    return cov;
+    return obj;
   }
 
   return NULL;
@@ -106,25 +157,32 @@ call_site(LocalFrame fr)
 
 static cov_obj *
 clause_site(ClauseRef cref)
-{ void    *key = cref->value.clause;
-  cov_obj *cov = lookupHTable(LD->coverage.table, key);
+{ void     *key = cref->value.clause;
+  coverage *cov = LD->coverage.data;
 
-  if ( !cov )
-  { cov = PL_malloc(sizeof(*cov));
-    memset(cov, 0, sizeof(*cov));
-    cov->type = COV_CLAUSE;
-    cov->cref = lookup_clref(cref->value.clause);
+  if ( cov )
+  { cov_obj *obj = lookupHTable(cov->table, key);
 
-    cov_obj *cov2 = addHTable(LD->coverage.table, key, cov);
-    if ( cov2 != cov )
-    { PL_unregister_atom(cov->cref);
-      PL_free(cov);
-      cov = cov2;
+    if ( !obj )
+    { obj = PL_malloc(sizeof(*obj));
+      memset(obj, 0, sizeof(*obj));
+      obj->type = COV_CLAUSE;
+      obj->cref = lookup_clref(cref->value.clause);
+
+      cov_obj *obj2 = addHTable(cov->table, key, obj);
+      if ( obj2 != obj )
+      { PL_unregister_atom(obj->cref);
+	PL_free(obj);
+	obj = obj2;
+      }
     }
+
+    return obj;
   }
 
-  return cov;
+  return NULL;
 }
+
 
 
 static void
@@ -184,9 +242,9 @@ unify_cov(term_t t, const cov_obj *cov)
 	     unify_definition(MODULE_system, pi, cl->predicate,
 			      0, GP_NAMEARITY) &&
 	     PL_unify_term(t, PL_FUNCTOR, FUNCTOR_call_site3,
-		                PL_ATOM,  cov->cref,
-		                PL_INT64, pc,
-		                PL_TERM,  pi) )
+				PL_ATOM,  cov->cref,
+				PL_INT64, pc,
+				PL_TERM,  pi) )
 	{ PL_reset_term_refs(pi);
 	  return TRUE;
 	}
@@ -195,7 +253,7 @@ unify_cov(term_t t, const cov_obj *cov)
     }
     case COV_CLAUSE:
       return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_clause1,
-			        PL_ATOM, cov->cref);
+				PL_ATOM, cov->cref);
     default:
       assert(0);
       return FALSE;
@@ -265,7 +323,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
   { case FRG_FIRST_CALL:
     { Table cov_table;
 
-      if ( !(cov_table = LD->coverage.table) )
+      if ( !(cov_table = LD->coverage.data->table) )
 	return FALSE;
 
       if ( PL_is_variable(A1) )
@@ -285,7 +343,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
 	if ( cl && pc_offset != -1 )
 	{ Code pc = cl->codes+pc_offset;
-	  cov_obj *cov = lookupHTable(LD->coverage.table, pc);
+	  cov_obj *cov = lookupHTable(cov_table, pc);
 
 	  return ( cov &&
 		   unify_cov(A1, cov) &&
@@ -364,9 +422,9 @@ free_coverage_data(PL_local_data_t *ld)
     LD->coverage.active = 0;
     updateAlerted(LD);
 
-    Table t = LD->coverage.table;
-    if ( t && COMPARE_AND_SWAP_PTR(&LD->coverage.table, t, NULL) )
-      destroyHTable(t);
+    coverage *cov = LD->coverage.data;
+    if ( cov && COMPARE_AND_SWAP_PTR(&LD->coverage.data, cov, NULL) )
+      unshare_coverage_data(cov);
   }
 
   return TRUE;
@@ -399,24 +457,12 @@ PRED_IMPL("$cov_reset", 0, cov_reset, 0)
  * being collected this increments the _active_ count.
  */
 
-static void
-free_cov_symbol(void *name, void *value)
-{ cov_obj *cov = value;
-
-  PL_unregister_atom(cov->cref);
-  PL_free(cov);
-}
-
-
 static
 PRED_IMPL("$cov_start", 0, cov_start, 0)
 { PRED_LD
 
-  if ( !LD->coverage.table )
-  { Table t = newHTable(1024);
-
-    t->free_symbol = free_cov_symbol;
-    LD->coverage.table = t;
+  if ( !LD->coverage.data )
+  { LD->coverage.data = newCoverageData();
   }
 
   clearPrologRunMode(RUN_MODE_NORMAL);

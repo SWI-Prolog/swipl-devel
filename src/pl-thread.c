@@ -72,6 +72,7 @@
 #include "pl-util.h"
 #include "pl-prims.h"
 #include "pl-supervisor.h"
+#include "pl-coverage.h"
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
@@ -2164,6 +2165,10 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
   referenceStandardStreams(ldnew);
+  if ( ldold->coverage.data && true(ldold->coverage.data, COV_TRACK_THREADS) )
+  { ldnew->coverage.data = share_coverage_data(ldold->coverage.data);
+    ldnew->coverage.active = ldold->coverage.active;
+  }
 }
 
 

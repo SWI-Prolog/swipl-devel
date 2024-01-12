@@ -821,8 +821,8 @@ struct PL_local_data
 
 #ifdef O_COVERAGE
   struct
-  { Table	table;			/* Table for recording data */
-    int		active;			/* We are recording */
+  { struct coverage *data;		/* Data for the coverage collection */
+    int		     active;		/* This thread is recording */
   } coverage;
 #endif
 
