@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2019, VU University Amsterdam
+    Copyright (c)  2018-2023, VU University Amsterdam
 			      CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,7 @@
 
 :- module(prolog_config,
 	  [ prolog_dump_runtime_variables/0,
-	    apple_bundle_libdir/1
+            prolog_config/2
 	  ]).
 
 /** <module> Provide configuration information
@@ -61,33 +62,39 @@ prolog_dump_runtime_variables :-
     ).
 
 prolog_dump_runtime_variables(Format) :-
-    print_flag(home,                      'PLBASE',     Format),
-    print_flag(arch,                      'PLARCH',     Format),
-    print_flag(address_bits,              'PLBITS',     Format),
-    print_flag(version,                   'PLVERSION',  Format),
-    print_flag(shared_object_extension,   'PLSOEXT',    Format),
-    print_flag(shared_object_search_path, 'PLSOPATH',   Format),
-    print_flag(c_libdir,                  'PLLIBDIR',   Format),
-    print_flag(c_lib,                     'PLLIB',      Format),
-    print_flag(libswipl,                  'PLLIBSWIPL', Format),
-    print_flag(open_shared_object,        'PLSHARED',   Format),
-    print_flag(threads,                   'PLTHREADS',  Format).
+    print_flag(home,                      'PLBASE',          Format),
+    print_flag(pack_path,                 'SWIPL_PACK_PATH', Format),
+    print_flag(arch,                      'PLARCH',          Format),
+    print_flag(address_bits,              'PLBITS',          Format),
+    print_flag(version,                   'PLVERSION',       Format),
+    print_flag(shared_object_extension,   'PLSOEXT',         Format),
+    print_flag(shared_object_search_path, 'PLSOPATH',        Format),
+    print_flag(c_libdir,                  'PLLIBDIR',        Format),
+    print_flag(c_lib,                     'PLLIB',           Format),
+    print_flag(libswipl,                  'PLLIBSWIPL',      Format),
+    print_flag(open_shared_object,        'PLSHARED',        Format),
+    print_flag(threads,                   'PLTHREADS',       Format).
 
 print_flag(Flag, Var, Format) :-
     (   prolog:runtime_config(Flag, Value)
     ->  print_config(Format, Var, Value)
-    ;   flag_value(Flag, Value)
+    ;   prolog_config(Flag, Value)
     ->  print_config(Format, Var, Value)
     ;   true
     ).
 
-flag_value(Flag, Value) :-
+%!  prolog_config(+Config, -Value) is semidet.
+%
+%   Get information on the configuration of the current Prolog system.
+%   Mostly used to support scripting.
+
+prolog_config(Flag, Value) :-
     boolean_flag(Flag),
     (   current_prolog_flag(Flag, true)
     ->  Value = yes
     ;   Value = no
     ).
-flag_value(c_libdir, Value) :-
+prolog_config(c_libdir, Value) :-
     current_prolog_flag(home, Home),
     (   current_prolog_flag(c_libdir, Rel)
     ->  atomic_list_concat([Home, Rel], /, Value)
@@ -101,8 +108,19 @@ flag_value(c_libdir, Value) :-
     ;   current_prolog_flag(arch, Arch)
     ->  atomic_list_concat([Home, lib, Arch], /, Value)
     ).
-flag_value(c_lib, '-lswipl').
-flag_value(Flag, Value) :-
+prolog_config(apple_bundle_libdir, LibDir) :-
+    apple_bundle_libdir(LibDir).
+prolog_config(c_lib, '-lswipl').
+prolog_config(pack_path, Value) :-
+    findall(Dir, absolute_file_name(pack(.), Dir,
+                                    [ file_errors(fail),
+                                      solutions(all)
+                                    ]),
+            Dirs),
+    maplist(prolog_to_os_filename, Dirs, OSDirs),
+    current_prolog_flag(path_sep, Sep),
+    atomic_list_concat(OSDirs, Sep, Value).
+prolog_config(Flag, Value) :-
     current_prolog_flag(Flag, Value).
 
 %!  apple_bundle_libdir(-LibDir)

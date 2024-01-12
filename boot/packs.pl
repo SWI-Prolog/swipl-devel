@@ -103,6 +103,7 @@ user:file_search_path(app, AppDir) :-
 
 attach_packs :-
     set_prolog_flag(packs, true),
+    set_pack_search_path,
     findall(PackDir, absolute_file_name(pack(.), PackDir,
                                         [ file_type(directory),
                                           access(read),
@@ -115,6 +116,22 @@ attach_packs :-
                attach_packs(PackDir, [duplicate(keep)]))
     ;   true
     ).
+
+set_pack_search_path :-
+    getenv('SWIPL_PACK_PATH', Value),
+    !,
+    retractall(user:file_search_path(pack, _)),
+    current_prolog_flag(path_sep, Sep),
+    atomic_list_concat(Dirs, Sep, Value),
+    register_pack_dirs(Dirs).
+set_pack_search_path.
+
+register_pack_dirs([]).
+register_pack_dirs([H|T]) :-
+    prolog_to_os_filename(Dir, H),
+    assertz(user:file_search_path(pack, Dir)),
+    register_pack_dirs(T).
+
 
 %!  remove_dups(+List, -Unique, +Seen) is det.
 %

@@ -2757,7 +2757,7 @@ is discussed in \secref{runtime}.  See autoload_all/0.
 \section{Packs: community add-ons}		\label{sec:packs}
 
 SWI-Prolog has a mechanism for easy incorporation of community
-extensions. See the \href{http://www.swi-prolog.org/pack/list}{pack
+extensions. See the \href{https://www.swi-prolog.org/pack/list}{pack
 landing page} for details and available packs.  This section documents
 the built-in predicates to attach packs.  Predicates for creating,
 registering and installing packs are provided by the library
@@ -2773,6 +2773,10 @@ file_search_path/2 for the \const{app_data} search path.
 \begin{code}
 user:file_search_path(pack, app_data(pack)).
 \end{code}
+
+The default path may be overruled with the environment variable
+\const{SWIPL_PACK_PATH}.  This variable must contain a list of
+directories separated by the OS-specific \prologflag{path_sep}.
 
 The predicate attach_packs/0 is called on startup of SWI-Prolog.
 

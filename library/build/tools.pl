@@ -47,7 +47,7 @@
 :- autoload(library(dcg/basics), [string/3]).
 :- autoload(library(apply), [foldl/4, maplist/2]).
 :- autoload(library(filesex), [directory_file_path/3, make_directory_path/1]).
-:- autoload(library(prolog_config), [apple_bundle_libdir/1]).
+:- autoload(library(prolog_config), [prolog_config/2]).
 :- autoload(library(solution_sequences), [distinct/2]).
 
 % The plugins.  Load them in the order of preference.
@@ -337,7 +337,7 @@ def_environment(VAR, Value, Options) :-
     ->  prolog_library_dir(LibDir),
 	atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
 	System = [SystemLib]
-    ;   apple_bundle_libdir(LibDir)
+    ;   prolog_config(apple_bundle_libdir, LibDir)
     ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
 	System = [SystemLib]
     ;   current_prolog_flag(c_libplso, '')
@@ -361,7 +361,7 @@ swipl_libraries_dir(Dir) :-
     current_prolog_flag(home, Home),
     atom_concat(Home, '/bin', Dir).
 swipl_libraries_dir(Dir) :-
-    apple_bundle_libdir(Dir),
+    prolog_config(apple_bundle_libdir, Dir),
     !.
 swipl_libraries_dir(Dir) :-
     prolog_library_dir(Dir).
