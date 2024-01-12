@@ -235,3 +235,8 @@
 		       load(bool),
 		       deepbind(bool)
                      ]).
+:- predicate_options('$pack':attach_packs/2, 2,
+                     [ duplicate(oneof([warning,keep,replace])),
+                       search(oneof([first,last])),
+                       replace(boolean)
+                     ]).

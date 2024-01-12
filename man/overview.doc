@@ -2772,12 +2772,14 @@ user:file_search_path(pack, app_data(pack)).
 The predicate attach_packs/0 is called on startup of SWI-Prolog.
 
     \predicate{attach_packs}{1}{+Directory}
-Attach all packs in subdirectories of \arg{Directory}.  Same as
-\term{attach_packs}{Directory, []}.
     \nodescription
     \predicate{attach_packs}{2}{+Directory, +Options}
-Attach all packs in subdirectories of \arg{Directory}.  Options
-is one of:
+Attach all packs that are subdirectories of \arg{Directory}.
+\arg{Directory} is translated into a physical directory using
+absolute_file_name/3.   This implies it can be a term \arg{Alias(SubDir)}
+and the search is relative to the current source file if \arg{Directory}
+is not an absolute path and these predicates are used as a directive.
+Defined options are:
 
     \begin{description}
 	\termitem{search}{+Where}
@@ -2791,10 +2793,16 @@ attached.  Default is \const{warning}, which prints a warning and
 ignores the new pack.  Other options are \const{keep}, which is
 like \const{warning} but operates silently and \const{replace},
 which detaches the old pack and attaches the new.
+
+	\termitem{replace}{+Boolean}
+If \const{true}, unregister all packs before registering the new
+packs.
     \end{description}
 
 The predicate attach_packs/2 can be used to attach packages that
-are bundled with an application.
+are bundled with an application.  With the option \term{replace}{true},
+attach_packs/2 ensures that the application only relies on bundled
+packs.
 \end{description}
 
 

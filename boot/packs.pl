@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2019, VU University Amsterdam
+    Copyright (c)  2012-2023, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,7 +59,7 @@ user:file_search_path(foreign, PackLib) :-
 user:file_search_path(app, AppDir) :-
     pack_dir(_Name, app, AppDir).
 
-%!  '$pack_detach'(+Name, -Dir) is det.
+%!  '$pack_detach'(+Name, ?Dir) is det.
 %
 %   Detach the given package  from  the   search  paths  and list of
 %   registered packages, but does not delete the files.
@@ -66,12 +67,12 @@ user:file_search_path(app, AppDir) :-
 '$pack_detach'(Name, Dir) :-
     (   atom(Name)
     ->  true
-    ;   throw(error(type_error(atom, Name), _))
+    ;   '$type_error'(atom, Name)
     ),
     (   retract(pack(Name, Dir))
     ->  retractall(pack_dir(Name, _, _)),
         reload_library_index
-    ;   throw(error(existence_error(pack, Name), _))
+    ;   '$existence_error'(pack, Name)
     ).
 
 %!  '$pack_attach'(+Dir) is det.
@@ -86,8 +87,8 @@ user:file_search_path(app, AppDir) :-
     !.
 '$pack_attach'(Dir, _) :-
     (   exists_directory(Dir)
-    ->  throw(error(existence_error(directory, Dir), _))
-    ;   throw(error(domain_error(pack, Dir), _))
+    ->  '$existence_error'(directory, Dir)
+    ;   '$domain_error'(pack, Dir)
     ).
 
 %!  attach_packs
@@ -129,22 +130,30 @@ remove_dups([H|T0], [H|T], Seen) :-
 %   Attach packages from directory Dir.  Options processed:
 %
 %     - duplicate(+Action)
-%     What to do if the same package is already installed in a different
-%     directory.  Action is one of
-%       - warning
-%       Warn and ignore the package
-%       - keep
-%       Silently ignore the package
-%       - replace
-%       Unregister the existing and insert the new package
+%       What to do if the same package is already installed in a different
+%       directory.  Action is one of
+%         - warning
+%           Warn and ignore the package
+%         - keep
+%           Silently ignore the package
+%         - replace
+%           Unregister the existing and insert the new package
 %     - search(+Where)
-%     Determines the order of searching package library directories.
-%     Default is `last`, alternative is `first`.
+%       Determines the order of searching package library directories.
+%       Default is `last`, alternative is `first`.
+%     - replace(+Boolean)
+%       If `true` (default `false`), remove the default set of registered
+%       packages.
 
 attach_packs(Dir) :-
     attach_packs(Dir, []).
 
 attach_packs(Dir, Options) :-
+    (   '$option'(replace(true), Options)
+    ->  forall(pack(Name, PackDir),
+               '$pack_detach'(Name, PackDir))
+    ;   true
+    ),
     absolute_file_name(Dir, Path,
                        [ file_type(directory),
                          file_errors(fail)
@@ -152,7 +161,8 @@ attach_packs(Dir, Options) :-
     catch(directory_files(Path, Entries), _, fail),
     !,
     ensure_slash(Path, SPath),
-    attach_packages(Entries, SPath, Options).
+    attach_packages(Entries, SPath, Options),
+    reload_library_index.
 attach_packs(_, _).
 
 attach_packages([], _, _).
