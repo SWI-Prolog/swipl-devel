@@ -42,6 +42,7 @@
             pack_search/1,              % +Keyword
             pack_install/1,             % +Name
             pack_install/2,             % +Name, +Options
+            pack_install_local/3,       % :Spec, +Dir, +Options
             pack_upgrade/1,             % +Name
             pack_rebuild/1,             % +Name
             pack_rebuild/0,             % All packages
@@ -72,6 +73,9 @@
 :- autoload(library(sgml)).
 :- autoload(library(sha)).
 :- autoload(library(build/tools)).
+
+:- meta_predicate
+    pack_install_local(2, +, +).
 
 /** <module> A package manager for Prolog
 
@@ -225,6 +229,9 @@ print_property_value(Prop-Fmt, Values) :-
 
 pack_info(Name, Level, Info) :-
     '$pack':pack(Name, BaseDir),
+    pack_dir_info(BaseDir, Level, Info).
+
+pack_dir_info(BaseDir, Level, Info) :-
     (   Info = directory(BaseDir)
     ;   pack_info_term(BaseDir, Info)
     ),
@@ -787,7 +794,8 @@ pack_install(Spec, Options) :-
     ;   merge_options(Options, DefOptions, PackOptions),
         update_dependency_db,
         pack_install_dir(PackDir, PackOptions),
-        pack_install(Pack, PackDir, PackOptions)
+        pack_install(Pack, PackDir, PackOptions),
+        pack_make_available(Pack, PackDir, PackOptions)
     ).
 
 pack_install_dir(PackDir, Options) :-
@@ -937,6 +945,82 @@ pack_unpack(Source, PackDir, Pack, Options) :-
 pack_unpack(_,_,_,_) :-
     existence_error(library, archive).
 :- endif.
+
+%!  pack_install_local(:Spec, +Dir, +Options) is det.
+%
+%   Install a number of packages in   a  local directory. This predicate
+%   supports installing packages local  to   an  application rather than
+%   globally.
+
+pack_install_local(_:Pairs, Dir, Options), is_list(Pairs) =>
+    ensure_directory(Dir),
+    pairs_keys(Pairs, Packs),
+    query_pack_server(info(Packs), true(Hits), []),
+    local_packs(Dir, Existing),
+    maplist(pack_install_local_(Hits, Existing,
+                                [ package_directory(Dir)|Options
+                                ]),
+            Pairs).
+pack_install_local(M:Gen, Dir, Options), callable(Gen) =>
+    findall(Pack-Options, call(M:Gen, Pack, Options), Pairs),
+    pack_install_local(Pairs, Dir, Options).
+pack_install_local(Spec, _, _) =>
+    type_error(pairs_or_callable, Spec).
+
+%!  pack_install_local_(+Latest, +Installed, +Options,
+%!                      +PackAndOptions) is det.
+
+pack_install_local_(_Latest, Installed, _Options, Pack-PackOptions) :-
+    option(version(ReqVersion), PackOptions),
+    memberchk(pack(Pack, i, _Title, Version, _URL), Installed),
+    catch(require_version(pack(Pack), Version, ReqVersion),
+          error(version_error(pack(Pack), Version, ReqVersion),_),
+          fail),
+    !.                                          % matching version
+pack_install_local_(Latest, Installed, Options, Pack-PackOptions) :-
+    memberchk(pack(Pack, p, _TitleS, VersionS, _URLS), Latest),
+    memberchk(pack(Pack, i, _TitleI, VersionI, _URLI), Installed),
+    !,
+    version_data(VersionI, VDI),
+    version_data(VersionS, VDS),
+    (   VDI @< VDS
+    ->  merge_options([upgrade(true)|PackOptions], Options, InstallOptions),
+        pack_install(Pack, InstallOptions)
+    ;   true                                    % up-to-date
+    ).
+pack_install_local_(Latest, _Installed, Options, Pack-PackOptions) :-
+    memberchk(pack(Pack, p, _Title, _Version, _URL), Latest),
+    !,
+    merge_options([upgrade(true)|PackOptions], Options, InstallOptions),
+    pack_install(Pack, InstallOptions).         % not installed
+pack_install_local_(_Latest, _Installed, _Options, Pack-_PackOptions) :-
+    print_message(error, pack(no_match(Pack))). % not known
+
+%!  local_packs(+Dir, -Packs) is det.
+%
+%   True when Packs is a list of   package search term results for packs
+%   installed in Dir.
+
+local_packs(Dir, Packs) :-
+    findall(Pack, pack_in_subdir(Dir, Pack), Packs).
+
+pack_in_subdir(Dir, pack(Pack, i, Title, Version, URL)) :-
+    directory_member(Dir, PackDir,
+                     [ file_type(directory),
+                       hidden(false)
+                     ]),
+    directory_file_path(PackDir, 'pack.pl', MetaFile),
+    exists_file(MetaFile),
+    file_base_name(PackDir, DirName),
+    findall(Term,
+            ( pack_dir_info(PackDir, _, Term),
+              search_info(Term)
+            ), Info),
+    option(pack(Pack), Info, DirName),
+    option(title(Title), Info, '<no title>'),
+    option(version(Version), Info, '<no version>'),
+    option(download(URL), Info, '<no download url>').
+
 
                  /*******************************
                  *             INFO             *
@@ -2125,6 +2209,13 @@ version_pack(pack(VersionAtom,URLs,SubDeps),
 
 pack_attach(Dir, Options) :-
     '$pack_attach'(Dir, Options).
+
+pack_make_available(Pack, PackTopDir, PackOptions) :-
+    directory_file_path(PackTopDir, Pack, PackDir),
+    (   option(package_directory(_Parent), PackOptions)
+    ->  pack_attach(PackDir, [duplicate(replace)])
+    ;   pack_attach(PackDir, [])
+    ).
 
 
                  /*******************************
