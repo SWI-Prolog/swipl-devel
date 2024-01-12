@@ -1145,19 +1145,13 @@ user:file_search_path(app, app_data(app)).
 
 '$existing_dir_from_env_path'(Env, Defaults, Dir) :-
     (   getenv(Env, Path)
-    ->  '$path_sep'(Sep),
+    ->  current_prolog_flag(path_sep, Sep),
 	atomic_list_concat(Dirs, Sep, Path)
     ;   Dirs = Defaults
     ),
     '$member'(Dir, Dirs),
     Dir \== '',
     exists_directory(Dir).
-
-'$path_sep'(Char) :-
-    (   current_prolog_flag(windows, true)
-    ->  Char = ';'
-    ;   Char = ':'
-    ).
 
 '$make_config_dir'(Dir) :-
     exists_directory(Dir),

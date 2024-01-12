@@ -1991,6 +1991,11 @@ initPrologFlags(void)
 #ifdef POSIX_SHELL
   setPrologFlag("posix_shell", FT_ATOM, POSIX_SHELL);
 #endif
+#ifdef __WINDOWS__
+  setPrologFlag("path_sep", FT_ATOM, ";");
+#else
+  setPrologFlag("path_sep", FT_ATOM, ":");
+#endif
 
   setPrologFlag("table_incremental", FT_BOOL, FALSE, PLFLAG_TABLE_INCREMENTAL);
   setPrologFlag("table_subsumptive", FT_BOOL, FALSE, 0);

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,7 @@
 */
 
 :- module(build_build,
-          [ run_process/3,              % +Executable, +Argv, +Options
-            path_sep/1                  % -Separator
+          [ run_process/3               % +Executable, +Argv, +Options
           ]).
 :- autoload(library(lists), [selectchk/3, member/2]).
 :- autoload(library(option), [option/2, option/3]).
@@ -183,17 +182,7 @@ classify_message(informational) -->
 user:file_search_path(pack_build_path, Dir) :-
     nb_current('$prolog_pack_build_env', Env),
     memberchk('PATH'=Path, Env),
-    path_sep(Sep),
+    current_prolog_flag(path_sep, Sep),
     atomic_list_concat(Dirs, Sep, Path),
     member(Dir, Dirs),
     Dir \== ''.
-
-%!  path_sep(-Sep) is det.
-%
-%   Path separator for the OS. `;` for Windows, `:` for POSIX.
-
-path_sep(Sep) :-
-    (   current_prolog_flag(windows, true)
-    ->  Sep = ';'
-    ;   Sep = ':'
-    ).

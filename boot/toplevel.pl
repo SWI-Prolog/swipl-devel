@@ -323,12 +323,8 @@ thread_initialization(Goal) :-
     { '$make_alias'(AliasChars, Alias) }.
 
 path_sep -->
-    { current_prolog_flag(windows, true)
-    },
-    !,
-    [;].
-path_sep -->
-    [:].
+    { current_prolog_flag(path_sep, Sep) },
+    [Sep].
 
 '$string'([]) --> [].
 '$string'([H|T]) --> [H], '$string'(T).

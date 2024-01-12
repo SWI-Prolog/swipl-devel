@@ -2010,6 +2010,11 @@ on POSIX systems it typically defines the length limit of the (often)
 UTF-8 encoded name).  The underlying file system may impose additional
 limits.
 
+    \prologflagitem{path_sep}{atom}{r}
+Separator for file search paths such as the environment variable
+\const{PATH} for the OS.  Normally \const{:}, but \const{;} on
+Windows.
+
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
 flag is implementation-defined.

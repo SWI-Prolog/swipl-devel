@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@
 	    prolog_install_prefix/1,    % -Prefix
 	    run_process/3,              % +Executable, +Argv, +Options
 	    has_program/3,              % +Spec, -Path, +Env
-	    path_sep/1,                 % -Separator
 	    ensure_build_dir/3          % +Dir, +State0, -State
 	  ]).
 :- autoload(library(lists), [selectchk/3, member/2, append/3, last/2]).
@@ -279,12 +278,14 @@ def_environment('PATH', Value, _) :-
     current_prolog_flag(executable, Exe),
     file_directory_name(Exe, ExeDir),
     prolog_to_os_filename(ExeDir, OsExeDir),
-    path_sep(Sep),
+    current_prolog_flag(path_sep, Sep),
     atomic_list_concat([OsExeDir, Sep, PATH], Value).
 def_environment('SWIPL', Value, _) :-
     current_prolog_flag(executable, Value).
 def_environment('SWIPL_PACK_VERSION', Value, Options) :-
     option(pack_version(Value), Options, 1).
+def_environment('SWIPL_PACK_PATH', Value, _Options) :-
+    prolog_config(pack_path, Value).
 def_environment(VAR, Value, Options) :-
     env_name(version, VAR, Options),
     current_prolog_flag(version, Value).
@@ -651,7 +652,7 @@ classify_message(informational) -->
 user:file_search_path(pack_build_path, Dir) :-
     nb_current('$build_tool_env', Env),
     memberchk('PATH'=Path, Env),
-    path_sep(Sep),
+    current_prolog_flag(path_sep, Sep),
     atomic_list_concat(Dirs, Sep, Path),
     member(Dir, Dirs),
     Dir \== ''.
@@ -695,16 +696,6 @@ exe_options(Options) :-
     Options = [ extensions(['',exe,com]), access(read) ].
 exe_options(Options) :-
     Options = [ access(execute) ].
-
-%!  path_sep(-Sep) is det.
-%
-%   Path separator for the OS. `;` for Windows, `:` for POSIX.
-
-path_sep(Sep) :-
-    (   current_prolog_flag(windows, true)
-    ->  Sep = ';'
-    ;   Sep = ':'
-    ).
 
 
 		 /*******************************
