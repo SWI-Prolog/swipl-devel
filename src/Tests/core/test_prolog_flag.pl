@@ -103,6 +103,11 @@ test(preset, Value+Type == 42+Type) :-
                    Msgs),
     assertion(Msgs = [prolog_flag_invalid_preset(Name, aapje, Type, 42)]),
     flag_value_type(Name, Value, Type).
+test(preset, Value+Type == false+term) :-
+    gensym(f, Name),
+    set_prolog_flag(Name, false),
+    create_prolog_flag(Name, default, [type(term),keep(true)]),
+    flag_value_type(Name, Value, Type).
 
 :- end_tests(prolog_flags).
 

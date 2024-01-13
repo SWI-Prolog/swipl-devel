@@ -829,6 +829,15 @@ keep_flag(atom_t k, prolog_flag *f, int flags, oneof *of, term_t value)
 	    return set_flag_type(f, flags);
 	  }
 	  break;
+	case FT_TERM:
+	{ term_t value;
+
+	  if ( (value=PL_new_term_ref()) &&
+	       unify_prolog_flag_value(MODULE_user, k, f, value) &&
+	       (f->value.t=PL_record(value)) )
+	    return set_flag_type(f, flags);
+	  return -1;
+	}
 	default:
 	  break;
       }
@@ -840,17 +849,17 @@ keep_flag(atom_t k, prolog_flag *f, int flags, oneof *of, term_t value)
     term_t type;
     term_t preset;
 
-    int rc = ( (type = PL_new_term_ref()) &&
-	       (preset = PL_new_term_ref()) &&
-	       unify_prolog_flag_type(&f2, type) &&
-	       unify_prolog_flag_value(MODULE_user, k, f, preset) &&
-	       printMessage(ATOM_warning,
-			    PL_FUNCTOR_CHARS, "prolog_flag_invalid_preset", 4,
-			      PL_ATOM, k,
-			      PL_TERM, preset,
-			      PL_TERM, type,
-			      PL_TERM, value) );
-    (void)rc;   /* we cannot ignore the return value */
+    if ( !((type = PL_new_term_ref()) &&
+	   (preset = PL_new_term_ref()) &&
+	   unify_prolog_flag_type(&f2, type) &&
+	   unify_prolog_flag_value(MODULE_user, k, f, preset) &&
+	   printMessage(ATOM_warning,
+			  PL_FUNCTOR_CHARS, "prolog_flag_invalid_preset", 4,
+			    PL_ATOM, k,
+			    PL_TERM, preset,
+			    PL_TERM, type,
+			PL_TERM, value) ) )
+      return -1;
 
     clean_prolog_flag(f);
     set_flag_type(f, flags);
@@ -875,15 +884,21 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags, on
 #ifdef O_PLMT
   if ( LD->prolog_flag.table &&
        (f = lookupHTable(LD->prolog_flag.table, (void *)k)) )
-  { accessed_prolog_flag(f, k, TRUE);
-    if ( keep_flag(k, f, flags, of, value) )
+  { int rc;
+    accessed_prolog_flag(f, k, TRUE);
+    if ( (rc=keep_flag(k, f, flags, of, value)) == TRUE )
       return f;
+    if ( rc == -1 )
+      return NULL;
   } else
 #endif
   if ( (f = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-  { accessed_prolog_flag(f, k, FALSE);
-    if ( keep_flag(k, f, flags, of, value) )
+  { int rc;
+    accessed_prolog_flag(f, k, FALSE);
+    if ( (rc=keep_flag(k, f, flags, of, value)) == TRUE )
       return f;
+    if ( rc == -1 )
+      return NULL;
     if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
     { term_t key;
 
