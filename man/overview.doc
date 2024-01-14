@@ -2812,6 +2812,28 @@ The predicate attach_packs/2 can be used to attach packages that
 are bundled with an application.  With the option \term{replace}{true},
 attach_packs/2 ensures that the application only relies on bundled
 packs.
+
+    \predicate{pack_attach}{2}{+PackDir, +Options}
+Attach a single package in \arg{PackDir}. \arg{PackDir} is expected to
+contain a file `pack.pl` with the pack metadata and a `prolog`
+directory. Options processed:
+
+    \begin{description}
+    \termitem{duplicate}{+Action}
+What to do if the same package is already installed in a different
+directory.  \arg{Action} is one of
+        \begin{description}
+	\termitem{warning}{}
+	Warn and ignore the package.
+	\termitem{keep}{}
+	Silently ignore the package.
+	\termitem{replace}{}
+	Unregister the existing and insert the new package
+	\end{description}
+    \termitem{search}{+Where}
+    Determines the order of searching package library directories.
+    Default is \const{last}, alternative is \const{first}.
+    \end{description}
 \end{description}
 
 

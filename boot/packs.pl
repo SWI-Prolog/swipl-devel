@@ -38,9 +38,8 @@
           [ attach_packs/0,
             attach_packs/1,                     % +Dir
             attach_packs/2,                     % +Dir, +Options
-            '$pack_detach'/2,                   % +Name, -Dir
-            '$pack_attach'/1,                   % +Dir
-            '$pack_attach'/2                    % +Dir, +Options
+            pack_attach/2,                      % +Dir, +Options
+            '$pack_detach'/2                    % +Name, -Dir
           ]).
 
 :- multifile user:file_search_path/2.
@@ -75,17 +74,14 @@ user:file_search_path(app, AppDir) :-
     ;   '$existence_error'(pack, Name)
     ).
 
-%!  '$pack_attach'(+Dir) is det.
+%!  pack_attach(+Dir, +Options) is det.
 %
-%   Attach the given package
+%   Attach the given package.  See manual for details.
 
-'$pack_attach'(Dir) :-
-    '$pack_attach'(Dir, []).
-
-'$pack_attach'(Dir, Options) :-
+pack_attach(Dir, Options) :-
     attach_package(Dir, Options),
     !.
-'$pack_attach'(Dir, _) :-
+pack_attach(Dir, _) :-
     (   exists_directory(Dir)
     ->  '$existence_error'(directory, Dir)
     ;   '$domain_error'(pack, Dir)

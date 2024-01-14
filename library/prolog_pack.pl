@@ -48,7 +48,6 @@
             pack_rebuild/0,             % All packages
             pack_remove/1,              % +Name
             pack_property/2,            % ?Name, ?Property
-            pack_attach/2,              % +Dir, +Options
 
             pack_url_file/2             % +URL, -File
           ]).
@@ -2185,30 +2184,10 @@ version_pack(pack(VersionAtom,URLs,SubDeps),
              pack(Version,URLs,SubDeps)) :-
     atom_version(VersionAtom, Version).
 
-
-
-%!  pack_attach(+Dir, +Options) is det.
+%!  pack_make_available(+Pack, +PackTopDir, +PackOptions) is det.
 %
-%   Attach a single package in Dir.  The Dir is expected to contain
-%   the file `pack.pl` and a `prolog` directory.  Options processed:
-%
-%     - duplicate(+Action)
-%     What to do if the same package is already installed in a different
-%     directory.  Action is one of
-%       - warning
-%       Warn and ignore the package
-%       - keep
-%       Silently ignore the package
-%       - replace
-%       Unregister the existing and insert the new package
-%     - search(+Where)
-%     Determines the order of searching package library directories.
-%     Default is `last`, alternative is `first`.
-%
-%   @see attach_packs/2 to attach multiple packs from a directory.
-
-pack_attach(Dir, Options) :-
-    '$pack_attach'(Dir, Options).
+%   Make the package available  to  the   current  Prolog  process after
+%   installation.
 
 pack_make_available(Pack, PackTopDir, PackOptions) :-
     directory_file_path(PackTopDir, Pack, PackDir),
