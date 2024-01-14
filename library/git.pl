@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c) 2010-2013, University of Amsterdam,
+    Copyright (c) 2010-2023, University of Amsterdam,
                              VU University
+                             SWI-Prolog Solutions b.v.
     Amsterdam All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,7 +51,8 @@
             git_shortlog/3,             % +Dir, -Shortlog, +Options
             git_log_data/3,             % +Field, +Record, -Value
             git_show/4,                 % +Dir, +Hash, -Commit, +Options
-            git_commit_data/3           % +Field, +Record, -Value
+            git_commit_data/3,          % +Field, +Record, -Value
+            is_git_hash/1               % +Atom
           ]).
 :- use_module(library(record),[(record)/1,current_record/2, op(_,_,record)]).
 
@@ -439,6 +441,20 @@ read_hash(Hash, Stream) :-
     read_line_to_codes(Stream, Line),
     atom_codes(Hash, Line).
 
+
+%!  is_git_hash(+Atom) is semidet.
+%
+%   True when Atom represents a GIT hash,   i.e., a 40 digit hexadecimal
+%   string.
+
+is_git_hash(Atom) :-
+    atom_length(Atom, 40),
+    atom_codes(Atom, Codes),
+    maplist(is_hex, Codes),
+    !.
+
+is_hex(Code) :-
+    code_type(Code, xdigit(_)).
 
 %!  git_ls_tree(-Entries, +Options) is det.
 %
