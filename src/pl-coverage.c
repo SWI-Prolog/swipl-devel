@@ -124,6 +124,30 @@ running_static_predicate(LocalFrame fr)
   return false(def, P_DYNAMIC|P_FOREIGN);
 }
 
+static cov_obj*
+pc_call_site(coverage *cov, const Clause cl, Code pc)
+{ void *key = (void*)pc;
+  cov_obj *obj = lookupHTable(cov->table, key);
+
+  if ( !obj )
+  { obj = PL_malloc(sizeof(*obj));
+    memset(obj, 0, sizeof(*obj));
+    obj->type = COV_PC;
+    obj->cref = lookup_clref(cl);
+    obj->pc   = pc;
+
+    cov_obj *obj2 = addHTable(cov->table, key, obj);
+    if ( obj2 != obj )
+    { PL_unregister_atom(obj->cref);
+      PL_free(obj);
+      obj = obj2;
+    }
+  }
+
+  return obj;
+}
+
+
 static cov_obj *
 call_site(LocalFrame fr)
 { LocalFrame parent = fr->parent;
@@ -131,34 +155,14 @@ call_site(LocalFrame fr)
 
   if ( (cov=LD->coverage.data) &&
        running_static_predicate(parent) )
-  { void *key = (void*)fr->programPointer;
-    cov_obj *obj = lookupHTable(cov->table, key);
-
-    if ( !obj )
-    { obj = PL_malloc(sizeof(*obj));
-      memset(obj, 0, sizeof(*obj));
-      obj->type = COV_PC;
-      obj->cref = lookup_clref(parent->clause->value.clause);
-      obj->pc   = fr->programPointer;
-
-      cov_obj *obj2 = addHTable(cov->table, key, obj);
-      if ( obj2 != obj )
-      { PL_unregister_atom(obj->cref);
-	PL_free(obj);
-	obj = obj2;
-      }
-    }
-
-    return obj;
-  }
+    return pc_call_site(cov, parent->clause->value.clause, fr->programPointer);
 
   return NULL;
 }
 
 static cov_obj *
-clause_site(ClauseRef cref)
-{ void     *key = cref->value.clause;
-  coverage *cov = LD->coverage.data;
+clause_site(coverage *cov, Clause cl)
+{ void *key = cl;
 
   if ( cov )
   { cov_obj *obj = lookupHTable(cov->table, key);
@@ -167,7 +171,7 @@ clause_site(ClauseRef cref)
     { obj = PL_malloc(sizeof(*obj));
       memset(obj, 0, sizeof(*obj));
       obj->type = COV_CLAUSE;
-      obj->cref = lookup_clref(cref->value.clause);
+      obj->cref = lookup_clref(cl);
 
       cov_obj *obj2 = addHTable(cov->table, key, obj);
       if ( obj2 != obj )
@@ -183,6 +187,11 @@ clause_site(ClauseRef cref)
   return NULL;
 }
 
+
+static cov_obj *
+clref_site(ClauseRef cref)
+{ return clause_site(LD->coverage.data, cref->value.clause);
+}
 
 
 static void
@@ -210,11 +219,11 @@ record_coverage(LocalFrame fr, int port)
       break;
     case UNIFY_PORT:
       if ( running_static_predicate(fr) )
-	bump(clause_site(fr->clause), CALL_PORT);
+	bump(clref_site(fr->clause), CALL_PORT);
       break;
     case EXIT_PORT:
       if ( running_static_predicate(fr) )
-	bump(clause_site(fr->clause), port);
+	bump(clref_site(fr->clause), port);
       bump(call_site(fr), port);
       break;
     default:
@@ -226,6 +235,59 @@ record_coverage(LocalFrame fr, int port)
 		 /*******************************
 		 *	   PROLOG BINDING	*
 		 *******************************/
+
+/** '$cov_add'(+Site, +EnterCount, +ExitCount) is det.
+ *
+ *  Add EnterCount and ExitCount to the statistics for Site.  Site
+ *  is either call_site(ClauseRef, PC) or clause(ClauseRef).
+ */
+
+static
+PRED_IMPL("$cov_add", 3, cov_add, 0)
+{ PRED_LD
+  int64_t enter, exit;
+  Clause cl;
+  int64_t pc_offset = -1;
+  term_t tmp = PL_new_term_ref();
+
+  if ( !PL_get_int64_ex(A1, &enter) ||
+       !PL_get_int64_ex(A2, &exit) )
+    return FALSE;
+
+  if ( PL_is_functor(A1, FUNCTOR_call_site2) )
+  { _PL_get_arg(2, A1, tmp);
+    if ( !PL_get_int64_ex(tmp, &pc_offset) )
+      return FALSE;
+  } else if ( !PL_is_functor(A1, FUNCTOR_clause1) )
+  { return PL_domain_error("cov_data", A1);
+  }
+
+  _PL_get_arg(1, A1, tmp);
+  int rc;
+  if ( (rc=PL_get_clref(tmp, &cl)) != TRUE )
+  { if ( rc == -1 )
+      return PL_existence_error("db_reference", tmp);
+  }
+
+  cov_obj *obj;
+  coverage *cov = LD->coverage.data;
+
+  if ( !cov )
+    cov = LD->coverage.data = newCoverageData();
+
+  if ( pc_offset != -1 )
+    obj = pc_call_site(cov, cl, cl->codes+pc_offset);
+  else
+    obj = clause_site(cov, cl);
+
+  if ( obj )
+  { ATOMIC_ADD(&obj->enter, enter);
+    ATOMIC_ADD(&obj->exits, exit);
+  }
+
+  return TRUE;
+}
+
 
 static int
 unify_cov(term_t t, const cov_obj *cov)
@@ -497,6 +559,7 @@ PRED_IMPL("$cov_stop", 0, cov_stop, 0)
 
 BeginPredDefs(coverage)
   PRED_DEF("$cov_data",	 3, cov_data,  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$cov_add",   3, cov_add,   0)
   PRED_DEF("$cov_reset", 0, cov_reset, 0)
   PRED_DEF("$cov_start", 0, cov_start, 0)
   PRED_DEF("$cov_stop",	 0, cov_stop,  0)
