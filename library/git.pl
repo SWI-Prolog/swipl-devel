@@ -629,7 +629,10 @@ read_branches(Branches, In) :-
     ->  Branches = []
     ;   Line = [_,_|Codes],
         atom_codes(H, Codes),
-        Branches = [H|T],
+        (   sub_atom(H, _, _, _, '(HEAD detached at')
+        ->  Branches = T
+        ;   Branches = [H|T]
+        ),
         read_branches(T, In)
     ).
 
