@@ -47,6 +47,7 @@
             git_branches/2,             % -Branches, +Options
             git_remote_branches/2,      % +GitURL, -Branches
             git_default_branch/2,       % -DefaultBranch, +Options
+            git_current_branch/2,       % -CurrentBranch, +Options
             git_tags_on_branch/3,       % +Dir, +Branch, -Tags
             git_shortlog/3,             % +Dir, -Shortlog, +Options
             git_log_data/3,             % +Field, +Record, -Value
@@ -589,20 +590,36 @@ git_remote_branches(GitURL, Branches) :-
 %   True when BranchName is the default branch of a repository.
 
 git_default_branch(BranchName, Options) :-
-    git_process_output([branch],
+    git_process_output(['rev-parse', '--abbrev-ref', 'origin/HEAD'],
                        read_default_branch(BranchName),
                        Options).
 
 read_default_branch(BranchName, In) :-
+    read_line_to_string(In, Result),
+    split_string(Result, "/", "", [_Origin,BranchString]),
+    atom_string(BranchName, BranchString).
+
+%!  git_default_branch(-BranchName, +Options) is semidet.
+%
+%   True when BranchName is the current branch of a repository.  Fails
+%   if the repo HEAD is detached
+
+git_current_branch(BranchName, Options) :-
+    git_process_output([branch],
+                       read_current_branch(BranchName),
+                       Options).
+
+read_current_branch(BranchName, In) :-
     repeat,
         read_line_to_codes(In, Line),
         (   Line == end_of_file
         ->  !, fail
-        ;   phrase(default_branch(Codes), Line)
-        ->  !, atom_codes(BranchName, Codes)
+        ;   phrase(current_branch(Codes), Line)
+        ->  !, atom_codes(BranchName, Codes),
+            \+ sub_atom(BranchName, _, _, _, '(HEAD detached')
         ).
 
-default_branch(Rest) -->
+current_branch(Rest) -->
     "*", whites, string(Rest).
 
 %!  git_branches(-Branches, +Options) is det.
