@@ -232,22 +232,14 @@ unify_cov(term_t t, const cov_obj *cov)
 { switch( cov->type )
   { case COV_PC:
     { ClauseRef cref = clause_clref(cov->cref);
-      Clause    cl   = cref->value.clause;
 
       if ( cref )
-      { term_t  pi = 0;
+      { Clause  cl = cref->value.clause;
 	int64_t pc = cov->pc - cl->codes;
 
-	if ( (pi=PL_new_term_ref()) &&
-	     unify_definition(MODULE_system, pi, cl->predicate,
-			      0, GP_NAMEARITY) &&
-	     PL_unify_term(t, PL_FUNCTOR, FUNCTOR_call_site3,
-				PL_ATOM,  cov->cref,
-				PL_INT64, pc,
-				PL_TERM,  pi) )
-	{ PL_reset_term_refs(pi);
-	  return TRUE;
-	}
+	return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_call_site2,
+				  PL_ATOM,  cov->cref,
+				  PL_INT64, pc);
       }
       return FALSE;
     }
@@ -263,10 +255,10 @@ unify_cov(term_t t, const cov_obj *cov)
 
 /** '$cov_data'(?Obj, -Entered, -Exited) is nondet.
  *
- * Read  coverage  information.  Obj  is  one  of  clause(ClauseRef)  or
- * call_site(ClauseRef, PC, PI). Partial information in   Obj is used to
- * speedup the process. Deterministic and  fast   lookup  is provided if
- * ClauseRef and (for call_site/3) PC are specified.
+ * Read  coverage information.   Obj  is one  of clause(ClauseRef)  or
+ * call_site(ClauseRef,  PC). Partial  information in  Obj is  used to
+ * speedup the process.  Deterministic and fast lookup  is provided if
+ * ClauseRef and (for call_site/2) PC are specified.
  *
  * Either or both Entered and Exited are non-zero.  Note that Exited may
  * be larger than Entered due to non-determinism.
@@ -329,7 +321,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
       if ( PL_is_variable(A1) )
       {	state->e = newTableEnum(cov_table);
 	break;
-      } else if ( PL_is_functor(A1, FUNCTOR_call_site3) )
+      } else if ( PL_is_functor(A1, FUNCTOR_call_site2) )
       {	term_t a = PL_new_term_ref();
 	Clause cl = 0;
 	int64_t pc_offset = -1;
