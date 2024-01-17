@@ -250,8 +250,8 @@ PRED_IMPL("$cov_add", 3, cov_add, 0)
   int64_t pc_offset = -1;
   term_t tmp = PL_new_term_ref();
 
-  if ( !PL_get_int64_ex(A1, &enter) ||
-       !PL_get_int64_ex(A2, &exit) )
+  if ( !PL_get_int64_ex(A2, &enter) ||
+       !PL_get_int64_ex(A3, &exit) )
     return FALSE;
 
   if ( PL_is_functor(A1, FUNCTOR_call_site2) )
@@ -512,12 +512,15 @@ PRED_IMPL("$cov_reset", 0, cov_reset, 0)
  */
 
 static
-PRED_IMPL("$cov_start", 0, cov_start, 0)
+PRED_IMPL("$cov_start(-Nesting)", 1, cov_start, 0)
 { PRED_LD
 
   if ( !LD->coverage.data )
-  { LD->coverage.data = newCoverageData();
-  }
+  { if ( !PL_unify_integer(A1, 1) )
+      return FALSE;
+    LD->coverage.data = newCoverageData();
+  } else if ( !PL_unify_integer(A1, LD->coverage.active+1) )
+    return FALSE;
 
   clearPrologRunMode(RUN_MODE_NORMAL);
   LD->coverage.active++;
@@ -527,26 +530,33 @@ PRED_IMPL("$cov_start", 0, cov_start, 0)
 }
 
 
-/** '$cov_stop' is semidet.
+/** '$cov_stop'(+Nesting) is semidet.
  *
- * Stop collecting coverage data.  Must  be   called  as  many  times as
- * '$cov_start' has been called to actually disable collecting data.
- *
- * Fails silently if no data is being recorded.
+ * Stop collecting  coverage data.   Resets the Nesting  to Nesting-1.
+ * If  this changes  the activation  and the  new nesting  is 0,  data
+ * collection is stopped.
  */
 
 static
-PRED_IMPL("$cov_stop", 0, cov_stop, 0)
+PRED_IMPL("$cov_stop", 1, cov_stop, 0)
 { PRED_LD
 
   if ( !LD->coverage.active )
     return FALSE;
 
-  if ( --LD->coverage.active == 0 )
-  { if ( !debugstatus.debugging )
-      setPrologRunMode(RUN_MODE_NORMAL);
-    LD->coverage.active = FALSE;
-    updateAlerted(LD);
+  int active;
+  if ( !PL_get_integer_ex(A1, &active) )
+    return FALSE;
+  active--;
+
+  if ( LD->coverage.active != active )
+  { LD->coverage.active = active;
+
+    if ( !active )
+    { if ( !debugstatus.debugging )
+	setPrologRunMode(RUN_MODE_NORMAL);
+      updateAlerted(LD);
+    }
   }
 
   return TRUE;
@@ -561,8 +571,8 @@ BeginPredDefs(coverage)
   PRED_DEF("$cov_data",	 3, cov_data,  PL_FA_NONDETERMINISTIC)
   PRED_DEF("$cov_add",   3, cov_add,   0)
   PRED_DEF("$cov_reset", 0, cov_reset, 0)
-  PRED_DEF("$cov_start", 0, cov_start, 0)
-  PRED_DEF("$cov_stop",	 0, cov_stop,  0)
+  PRED_DEF("$cov_start", 1, cov_start, 0)
+  PRED_DEF("$cov_stop",	 1, cov_stop,  0)
 EndPredDefs
 
 #endif /*O_COVERAGE*/
