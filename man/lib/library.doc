@@ -63,6 +63,7 @@ documented at all.
 \input{pio}
 \input{portraytext}
 \input{predicateoptions}
+\input{prologcoverage}
 \input{prologdebug}
 \input{prologjiti}
 \input{prologtrace}

@@ -144,6 +144,9 @@
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
 
+\libsummary{prologcoverage}
+\input{summaries.d/prologcoverage.tex}
+
 \libsummary{prologdebug}
 \input{summaries.d/prologdebug.tex}
 
