@@ -414,7 +414,10 @@ prune_node(trie *trie, trie_node *n)
     { switch( children.any->type )
       { case TN_KEY:
 	  if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
+	  { if ( !trie )
+	      trie = get_trie_from_node(n);
 	    free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
+	  }
 	  break;
 	case TN_HASHED:
 	  deleteHTable(children.hash->table, (void*)n->key);
