@@ -44,10 +44,10 @@
             cov_reset/0,                %
             cov_property/1              % ?Property
           ]).
-:- autoload(library(apply), [exclude/3, maplist/2, convlist/3]).
-:- autoload(library(ordsets),
-            [ord_intersection/3, ord_subtract/3, ord_union/3]).
-:- autoload(library(pairs), [group_pairs_by_key/2, pairs_keys_values/3]).
+:- autoload(library(apply), [exclude/3, maplist/2, convlist/3, maplist/3]).
+:- autoload(library(ordsets), [ord_intersection/3, ord_subtract/3, ord_union/3]).
+:- autoload(library(pairs),
+            [group_pairs_by_key/2, pairs_keys_values/3, pairs_values/2]).
 :- autoload(library(ansi_term), [ansi_format/3]).
 :- autoload(library(filesex), [directory_file_path/3, make_directory_path/1]).
 :- autoload(library(lists), [append/3, flatten/2, max_list/2, member/2]).
@@ -255,7 +255,8 @@ cov_finish(Level, _) :-
 %       Controls using ANSI escape sequences to color the output
 %       in the annotated source.  Default is `true`.
 %     - width(+Columns)
-%       Presumed with of the output window.
+%       Presumed width of the output window.  A value of 40 is
+%       considered the minimum.  Smaller values are handled as 40.
 %
 %   For example, run a goal and create   annotated  files in a directory
 %   `cov` using:
@@ -303,8 +304,22 @@ covered(Succeeded, Failed) :-
 %   defined in the modules Modules.
 
 file_coverage(Succeeded, Failed, Options) :-
-    tty_width(Width, Options),
-    W is Width - 8,
+    findall(File-PrintFile,
+            report_file(File, PrintFile, Succeeded, Failed, Options),
+            Pairs),
+    Pairs \== [],
+    !,
+
+    (   option(width(W0), Options)
+    ->  W is max(40, W0)
+    ;   pairs_values(Pairs, PrintFiles),
+        maplist(atom_length, PrintFiles, Lengths),
+        max_list(Lengths, Longest),
+        IdealWidth is Longest+21,
+
+        tty_width(Width, Options),
+        W is min(IdealWidth, Width - 2)
+    ),
     CovCol is W - 6,
     ClausesCol is CovCol - 6,
 
@@ -312,18 +327,29 @@ file_coverage(Succeeded, Failed, Options) :-
     ansi_format(bold, '~w~t~w~*|~t~w~*|~t~w~*|~n',
                 ['File', 'Clauses', ClausesCol, '%Cov', CovCol, '%Fail', W]),
     hr(W),
-    forall(source_file(File),
+    forall(member(File-_, Pairs),
            file_summary(File, Succeeded, Failed,
                         W, CovCol, ClausesCol,
                         Options)),
     hr(W),
 
     (   annotate_files(Options)
-    ->  forall(source_file(File),
+    ->  forall(member(File-_, Pairs),
                file_details(File, Succeeded, Failed, Options)),
         progress_done('done', [])
     ;   true
     ).
+file_coverage(_Succeeded, _Failed, _Options) :-
+    print_message(warning, coverage(no_files_to_report)).
+
+report_file(File, PrintFile, Succeeded, Failed, Options) :-
+    source_file(File),
+    cov_report_file(File, PrintFile, Options),
+    cov_clause_sets(File, Succeeded, Failed, Sets),
+    \+ ( Sets.failed == [],
+         Sets.succeeded == []
+       ).
+
 
 file_summary(File, Succeeded, Failed, W, CovCol, ClausesCol, Options) :-
     cov_report_file(File, PrintFile, Options),
@@ -964,6 +990,8 @@ cov_property(active(Level)) :-
 prolog:message(coverage(Msg)) -->
     message(Msg).
 
+message(no_files_to_report) -->
+    [ 'No coverage events in selected files'-[] ].
 message(clause_info(ClauseRef)) -->
     [ 'Inconsistent clause info for '-[] ],
     clause_msg(ClauseRef).
