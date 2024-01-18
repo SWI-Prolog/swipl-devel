@@ -319,7 +319,8 @@ file_coverage(Succeeded, Failed, Options) :-
 
     (   annotate_files(Options)
     ->  forall(source_file(File),
-               file_details(File, Succeeded, Failed, Options))
+               file_details(File, Succeeded, Failed, Options)),
+        progress_done('done', [])
     ;   true
     ).
 
@@ -1002,6 +1003,16 @@ progress(Format, Args) :-
 progress(Format, Args) :-
     format(Format, Args),
     nl.
+
+progress_done(_,_) :-
+    current_prolog_flag(verbose, silent),
+    !.
+progress_done(Format, Args) :-
+    stream_property(user_output, tty(true)),
+    !,
+    ansi_format(comment, Format, Args),
+    nl.
+progress_done(_, _).
 
 header(Title, Width) :-
     hr(Width),
