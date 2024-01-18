@@ -41,7 +41,8 @@
             show_coverage/2,            % :Goal, +Options (deprecated)
             cov_save_data/2,            % +File, +Options
             cov_load_data/2,            % +File, +Options
-            cov_reset/0                 %
+            cov_reset/0,                %
+            cov_property/1              % ?Property
           ]).
 :- autoload(library(apply), [exclude/3, maplist/2, convlist/3]).
 :- autoload(library(ordsets),
@@ -938,6 +939,19 @@ warn(Term, Msg) :-
 
 cov_reset :-
     '$cov_reset'.
+
+
+%!  cov_property(?Property)
+%
+%   True when coverage analysis satisfies   Property.  Currently defined
+%   properties are:
+%
+%     - active(?Nesting)
+%       True when coverage data is   being  collected. Nesting expresses
+%       the nesting of coverage/1 calls and is normally 1 (one).
+
+cov_property(active(Level)) :-
+    '$cov_active'(Level).
 
 
 		 /*******************************

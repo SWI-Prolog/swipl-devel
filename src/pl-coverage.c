@@ -563,16 +563,28 @@ PRED_IMPL("$cov_stop", 1, cov_stop, 0)
 }
 
 
+static
+PRED_IMPL("$cov_active", 1, cov_active, 0)
+{ PRED_LD
+
+  if ( !LD->coverage.active )
+    return FALSE;
+
+  return PL_unify_integer(A1, LD->coverage.active);
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(coverage)
-  PRED_DEF("$cov_data",	 3, cov_data,  PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$cov_add",   3, cov_add,   0)
-  PRED_DEF("$cov_reset", 0, cov_reset, 0)
-  PRED_DEF("$cov_start", 1, cov_start, 0)
-  PRED_DEF("$cov_stop",	 1, cov_stop,  0)
+  PRED_DEF("$cov_data",	  3, cov_data,   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$cov_add",    3, cov_add,    0)
+  PRED_DEF("$cov_reset",  0, cov_reset,  0)
+  PRED_DEF("$cov_start",  1, cov_start,  0)
+  PRED_DEF("$cov_stop",	  1, cov_stop,   0)
+  PRED_DEF("$cov_active", 1, cov_active, 0)
 EndPredDefs
 
 #endif /*O_COVERAGE*/
