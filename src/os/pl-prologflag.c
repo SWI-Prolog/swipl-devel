@@ -1898,6 +1898,7 @@ initPrologFlags(void)
   setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, (intptr_t)PLMINTAGGEDINT);
 #ifdef O_BIGNUM
   setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
+  setPrologFlag("rationals",	      FT_BOOL|FF_READONLY,	   TRUE, 0);
   setPrologFlag("prefer_rationals", FT_BOOL, O_PREFER_RATIONALS, PLFLAG_RATIONAL);
   setPrologFlag("rational_syntax",  FT_ATOM,
 		O_RATIONAL_SYNTAX == RAT_NATURAL ? "natural" :

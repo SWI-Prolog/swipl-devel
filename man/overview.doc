@@ -2100,6 +2100,11 @@ still some discussion on the separating character. See
 default in the future. Users are strongly encouraged to set this flag to
 \const{natural} and report issues this may cause.
 
+    \prologflagitem{rationals}{atom}{r}
+This flag is present and has the value \const{true} if the system
+supports rational numbers.  For SWI-Prolog this flag is always set
+if the flag \prologflag{bounded} is \const{false}.
+
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
 values are below. The flag may be set from the user's init file (see
