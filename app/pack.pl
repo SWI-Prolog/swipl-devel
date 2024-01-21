@@ -77,8 +77,11 @@ pack_find:opt_type(_,_,_) :- fail.
 pack_info:opt_type(_,_,_) :- fail.
 pack_remove:opt_type(_,_,_) :- fail.
 
-pack_list:opt_type(outdated, outdated, boolean).
-pack_list:opt_help(outdated, "Only list packages that can be upgraded").
+pack_list:opt_type(installed, installed, boolean).
+pack_list:opt_type(outdated,  outdated,  boolean).
+
+pack_list:opt_help(installed, "Only list packages that can be upgraded").
+pack_list:opt_help(outdated,  "Only list installed packages").
 
 pack_install:opt_type(url,         url,               atom).
 pack_install:opt_type(dir,         package_directory, directory(write)).
