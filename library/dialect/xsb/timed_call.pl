@@ -36,6 +36,8 @@
           [ timed_call/2
           ]).
 :- use_module(library(time)).
+:- use_module(library(debug)).
+:- use_module(library(error)).
 
 /** <module> XSB timed call
 
