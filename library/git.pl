@@ -663,11 +663,15 @@ current_branch(Rest) -->
 %   In addition to the usual options, this processes:
 %
 %     - contains(Commit)
-%     Return only branches that contain Commit.
+%       Return only branches that contain Commit.
+%     - remote(true)
+%       Return remote branches
 
 git_branches(Branches, Options) :-
     (   select_option(commit(Commit), Options, GitOptions)
     ->  Extra = ['--contains', Commit]
+    ;   select_option(remote(true), Options, GitOptions)
+    ->  Extra = ['-r']
     ;   Extra = [],
         GitOptions = Options
     ),
