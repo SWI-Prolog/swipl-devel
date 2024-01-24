@@ -48,6 +48,7 @@
             git_remote_branches/2,      % +GitURL, -Branches
             git_default_branch/2,       % -DefaultBranch, +Options
             git_current_branch/2,       % -CurrentBranch, +Options
+            git_tags/2,                 % -Tags, +Options
             git_tags_on_branch/3,       % +Dir, +Branch, -Tags
             git_shortlog/3,             % +Dir, -Shortlog, +Options
             git_log_data/3,             % +Field, +Record, -Value
@@ -692,6 +693,24 @@ read_branches(Branches, In) :-
         read_branches(T, In)
     ).
 
+
+%!  git_tags(-Tags, +Options) is det.
+%
+%   True when Tags is a list of git tags defined on the repository.
+
+git_tags(Tags, Options) :-
+    git_process_output([tag],
+                       read_lines_to_atoms(Tags),
+                       Options).
+
+read_lines_to_atoms(Atoms, In) :-
+    read_line_to_string(In, Line),
+    (   Line == end_of_file
+    ->  Atoms = []
+    ;   atom_string(Atom, Line),
+        Atoms = [Atom|T],
+        read_lines_to_atoms(T, In)
+    ).
 
 %!  git_tags_on_branch(+Dir, +Branch, -Tags) is det.
 %
