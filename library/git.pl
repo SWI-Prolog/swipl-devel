@@ -114,7 +114,8 @@ into the core Prolog library to support the Prolog package manager.
 :- predicate_options(git_process_output/3, 3,
                      [ directory(atom),
                        askpass(any),
-                       error(-codes)
+                       error(-codes),
+                       status(-integer)
                      ]).
 :- predicate_options(git_remote_url/3, 3,
                      [ pass_to(git_process_output/3, 3)
@@ -262,7 +263,9 @@ git_process_output(Argv, OnOutput, Options) :-
             git_wait(PID, Out, Status)),
         close_streams([Out,Error])),
     print_error(ErrorCodes, Options),
-    (   Status = exit(0)
+    (   option(status(Status), Options)
+    ->  true
+    ;   Status = exit(0)
     ->  true
     ;   throw(error(process_error(git, Status)))
     ).
