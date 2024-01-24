@@ -590,12 +590,44 @@ git_remote_branches(GitURL, Branches) :-
 
 %!  git_default_branch(-BranchName, +Options) is det.
 %
-%   True when BranchName is the default branch of a repository.
+%   True when BranchName is the default branch  of a repository. This is
+%   hard  to  define.  If   possible,    we   perform  ``rev-parse``  on
+%   ``origin/HEAD``. If not, we look  at   branches  shared  between the
+%   local and remote and select `main` or   `master` or the first common
+%   breach.  Options:
+%
+%     - remote(+Remote)
+%       Remote used to detect the default branch.   Default is `origin`.
 
 git_default_branch(BranchName, Options) :-
-    git_process_output(['rev-parse', '--abbrev-ref', 'origin/HEAD'],
+    option(remote(Remote), Options, origin),
+    atomic_list_concat([Remote, 'HEAD'], '/', HeadRef),
+    git_process_output(['rev-parse', '--abbrev-ref', HeadRef],
                        read_default_branch(BranchName),
-                       Options).
+                       [ error(_),
+                         status(Status)
+                       | Options
+                       ]),
+    Status == exit(0),
+    !.
+git_default_branch(BranchName, Options) :-
+    option(remote(Remote), Options, origin),
+    git_branches(MyBranches, []),
+    git_branches(RemoteBranches, [remote(true)]),
+    (   preferred_default_branch(BranchName),
+        shared_branch(Remote, MyBranches, RemoteBranches, BranchName)
+    ->  true
+    ;   shared_branch(Remote, MyBranches, RemoteBranches, BranchName)
+    ->  true
+    ).
+
+preferred_default_branch(main).
+preferred_default_branch(master).
+
+shared_branch(Remote, MyBranches, RemoteBranches, BranchName) :-
+    member(BranchName, MyBranches),
+    atomic_list_concat([Remote, BranchName], '/', Orig),
+    memberchk(Orig, RemoteBranches).
 
 read_default_branch(BranchName, In) :-
     read_line_to_string(In, Result),
