@@ -167,6 +167,7 @@ California, 94041, USA.
 \include{foreign}
 \include{wasm}
 \include{runtime}
+\include{packs}
 \appendix
 \include{lib/library}
 \include{hack}

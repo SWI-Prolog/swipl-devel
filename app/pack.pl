@@ -35,6 +35,9 @@
 :- use_module(library(prolog_pack)).
 :- use_module(library(main)).
 :- use_module(library(dcg/high_order)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+:- use_module(library(dcg/basics)).
 
 :- initialization(main, main).
 
@@ -60,6 +63,9 @@ pack(install, Argv) =>
 pack(remove, Argv) =>
     pack_remove:argv_options(Argv, Pos, Options),
     cli_pack_remove(Pos, Options).
+pack(publish, Argv) =>
+    pack_publish:argv_options(Argv, Pos, Options),
+    cli_pack_publish(Pos, Options).
 pack(help, [Command]) =>
     pack_command(Command, _),
     atom_concat(pack_, Command, Module),
@@ -75,51 +81,92 @@ pack_command(help,    "Help on command (also swipl pack command -h)").
 
 pack_find:opt_type(_,_,_) :- fail.
 pack_info:opt_type(_,_,_) :- fail.
-pack_remove:opt_type(_,_,_) :- fail.
+
+pack_remove:opt_type(y,    interactive,  boolean(false)).
+pack_remove:opt_type(deps, dependencies, boolean).
+
+pack_remove:opt_help(interactive,  "Use default answers (non-interactive)").
+pack_remove:opt_help(dependencies, "Remove dependencies as well?").
 
 pack_list:opt_type(installed, installed, boolean).
+pack_list:opt_type(i,	      installed, boolean).
 pack_list:opt_type(outdated,  outdated,  boolean).
+pack_list:opt_type(server,    server,    (boolean|atom)).
 
-pack_list:opt_help(installed, "Only list packages that can be upgraded").
-pack_list:opt_help(outdated,  "Only list installed packages").
+pack_list:opt_meta(server, 'URL|false').
 
-pack_install:opt_type(url,         url,               atom).
-pack_install:opt_type(dir,         package_directory, directory(write)).
-pack_install:opt_type(global,      global,            boolean).
-pack_install:opt_type(y,	   interactive,       boolean(false)).
-pack_install:opt_type(quiet,       silent,            boolean).
-pack_install:opt_type(q,           silent,            boolean).
-pack_install:opt_type(upgrade,     upgrade,           boolean).
-pack_install:opt_type(u,           upgrade,           boolean).
-pack_install:opt_type(insecure,    insecure,          boolean).
-pack_install:opt_type(k,	   insecure,          boolean).
-pack_install:opt_type(rebuild,     rebuild,           (boolean|
-                                                       oneof([if_absent,make]))).
-pack_install:opt_type(test,        test,              boolean).
-pack_install:opt_type(git,         git,               boolean).
-pack_install:opt_type(link,        link,              boolean).
+pack_list:opt_help(installed, "Only list installed packages").
+pack_list:opt_help(outdated,  "Only list packages that can be upgraded").
+pack_list:opt_help(server,    "Use as `--no-server` or `server=URL`").
 
-pack_install:opt_help(url,               "Explicit GIT or download location").
-pack_install:opt_help(package_directory, "Install in DIR/<pack>").
-pack_install:opt_help(global,            "Install system-wide (default: user)").
-pack_install:opt_help(interactive,       "Use default answers (non-interactive)").
-pack_install:opt_help(silent,            "Do not print informational feedback").
-pack_install:opt_help(upgrade,           "Upgrade the package").
-pack_install:opt_help(insecure,          "Do not check TLS certificates").
-pack_install:opt_help(rebuild,           "Rebuilt foreign components").
-pack_install:opt_help(test,              "Run test suite (if any)").
-pack_install:opt_help(git,               "Interpret URL as a GIT repository").
-pack_install:opt_help(link,              "Install from local directory using \c
-					  a symbolic link").
+pack_install:opt_type(url,      url,            atom).
+pack_install:opt_type(dir,      pack_directory, directory(write)).
+pack_install:opt_type(global,   global,         boolean).
+pack_install:opt_type(y,        interactive,    boolean(false)).
+pack_install:opt_type(quiet,    silent,         boolean).
+pack_install:opt_type(q,        silent,         boolean).
+pack_install:opt_type(upgrade,  upgrade,        boolean).
+pack_install:opt_type(u,        upgrade,        boolean).
+pack_install:opt_type(insecure, insecure,       boolean).
+pack_install:opt_type(k,        insecure,       boolean).
+pack_install:opt_type(rebuild,  rebuild,        (boolean|
+                                                 oneof([if_absent,make]))).
+pack_install:opt_type(test,     test,           boolean).
+pack_install:opt_type(git,      git,            boolean).
+pack_install:opt_type(link,     link,           boolean).
+pack_install:opt_type(version,  version,        atom).
+pack_install:opt_type(branch,   branch,         atom).
+pack_install:opt_type(commit,   commit,         atom).
 
+pack_install:opt_help(url,            "Explicit GIT or download location").
+pack_install:opt_help(pack_directory, "Install in DIR/<pack>").
+pack_install:opt_help(global,         "Install system-wide (default: user)").
+pack_install:opt_help(interactive,    "Use default answers (non-interactive)").
+pack_install:opt_help(silent,         "Do not print informational feedback").
+pack_install:opt_help(upgrade,        "Upgrade the package").
+pack_install:opt_help(insecure,       "Do not check TLS certificates").
+pack_install:opt_help(rebuild,        "Rebuilt foreign components").
+pack_install:opt_help(test,           "Run test suite (if any)").
+pack_install:opt_help(git,            "Interpret URL as a GIT repository").
+pack_install:opt_help(link,           "Install from local directory using \c
+                                       a symbolic link").
+pack_install:opt_help(version,        "Restrict the version.").
+pack_install:opt_help(branch,         "Checkout GIT branch.").
+pack_install:opt_help(commit,         "Checkout GIT commit.").
+
+pack_install:opt_help(help(usage),
+                      " install [option ...] pack ...").
 pack_install:opt_help(help(footer),
                       [ nl,
                         ansi(bold, 'Examples:', []), nl, nl,
                         ansi(code, '  swipl pack install ', []), '<pack>'
                       ]).
 
+pack_install:opt_meta(version,	   '[CMP]VERSION').
 pack_install:opt_meta(rebuild,	   'WHEN').
 pack_install:opt_meta(url,	   'URL').
+pack_install:opt_meta(branch,	   'BRANCH').
+pack_install:opt_meta(commit,	   'HASH').
+
+pack_publish:opt_type(git,      git,            boolean).
+pack_publish:opt_type(sign,     sign,           boolean).
+pack_publish:opt_type(force,    force,          boolean).
+pack_publish:opt_type(branch,   branch,         atom).
+pack_publish:opt_type(register, register,       boolean).
+pack_publish:opt_type(isolated, isolated,       boolean).
+pack_publish:opt_type(dir,      pack_directory, directory(write)).
+pack_publish:opt_type(clean,    clean,          boolean(write)).
+
+pack_publish:opt_help(register,       "Register at pack repository").
+pack_publish:opt_help(isolated,       "Isolate from my other packs").
+pack_publish:opt_help(pack_directory, "Build directory").
+pack_publish:opt_help(clean,          "Clean build directory first").
+pack_publish:opt_help(git,            "Publish from GIT repository").
+pack_publish:opt_help(sign,           "Sign the git release tag").
+pack_publish:opt_help(force,          "Force (update) the git release tag").
+pack_publish:opt_help(branch,         "Branch used for releases").
+
+pack_publish:opt_meta(branch, 'BRANCH').
 
 cli_pack_list([], Options) =>
     pack_list('', [installed(true)|Options]).
@@ -140,18 +187,20 @@ cli_pack_info([Pack], _) =>
 cli_pack_info(_, _) =>
     argv_usage(pack_info:debug).
 
-cli_pack_install([Pack], []) =>
-    cli(pack_install(Pack)).
-cli_pack_install([Pack], Options) =>
-    cli(pack_install(Pack, Options)).
+cli_pack_install(Packs, Options), Packs \== [] =>
+    maplist(parse_option, Options, Options1),
+    cli(pack_install(Packs, Options1)).
 cli_pack_install(_, _) =>
     argv_usage(pack_install:debug).
 
-cli_pack_remove([Pack], _) =>
-    cli(pack_remove(Pack)).
+cli_pack_remove(Packs, Options), Packs \== [] =>
+    cli(forall(member(Pack, Packs), pack_remove(Pack, Options))).
 cli_pack_remove(_, _) =>
     argv_usage(pack_remove:debug).
 
+
+cli_pack_publish([URL], Options) :-
+    cli(pack_publish(URL, Options)).
 
 :- meta_predicate
     cli(0).
@@ -161,6 +210,28 @@ cli(Command) :-
 cli(_Command) :-
     format('~N'),
     halt(1).
+
+parse_option(version(Atom), version(Version)) :-
+    atom_codes(Atom, Codes),
+    phrase(version(Version), Codes),
+    !.
+parse_option(Opt, Opt).
+
+version(Version) -->
+    cmp(Cmp), !, whites,
+    remainder(String),
+    !,
+    { atom_codes(V, String),
+      Version =.. [Cmp,V]
+    }.
+
+cmp(>=) --> ">=".
+cmp(>)  --> ">".
+cmp(=<) --> "=<".
+cmp(=<) --> "<=".
+cmp(<)  --> "<".
+cmp(=)  --> "=".
+cmp(=)  --> "==".
 
 usage :-
     argv_usage(debug).

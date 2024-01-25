@@ -224,7 +224,7 @@ ensure_build_dir(Dir, State0, State) :-
 %     Prefered C compiler
 %     $ ``SWIPL_LD`` (``LD``) :
 %     Prefered linker
-%     $ ``SWIPL_CFLAGS`` (``CLFLAGS``) :
+%     $ ``SWIPL_CFLAGS`` (``CFLAGS``) :
 %     C-Flags for building extensions. Always contains ``-ISWIPL-INCLUDE-DIR``.
 %     $ ``SWIPL_MODULE_LDFLAGS`` (``LDSOFLAGS``) :
 %     Link flags for linking modules.
@@ -773,24 +773,31 @@ prolog:message(build(Msg)) -->
 message(no_mingw) -->
     [ 'Cannot find MinGW and/or MSYS.'-[] ].
 message(process_output(Codes)) -->
-    { split_lines(Codes, Lines) },
-    process_lines(Lines).
+    process_output(Codes).
 message(step_failed(Step)) -->
     [ 'No build plugin could execute build step ~p'-[Step] ].
 message(mingw_extend_path(WinDirMSYS, WinDirMinGW)) -->
     [ 'Extended %PATH% with ~p and ~p'-[WinDirMSYS, WinDirMinGW] ].
 
-split_lines([], []) :- !.
-split_lines(All, [Line1|More]) :-
-    append(Line1, [0'\n|Rest], All),
-    !,
-    split_lines(Rest, More).
-split_lines(Line, [Line]).
+%!  process_output(+Codes)//
+%
+%   Emit process output  using  print_message/2.   This  preserves  line
+%   breaks.
 
-process_lines([]) --> [].
+process_output([]) -->
+    !.
+process_output(Codes) -->
+    { string_codes(String, Codes),
+      split_string(String, "\n", "\r", Lines)
+    },
+    [ at_same_line ],
+    process_lines(Lines).
+
 process_lines([H|T]) -->
     [ '~s'-[H] ],
-    (   {T==[]}
-    ->  []
+    (   {T==[""]}
+    ->  [nl]
+    ;   {T==[]}
+    ->  [flush]
     ;   [nl], process_lines(T)
     ).

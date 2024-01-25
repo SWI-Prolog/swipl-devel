@@ -85,11 +85,6 @@ application.
 %
 %     - warning(Feature)
 %       Only print a warning instead of throwing an error.
-%     - threads
-%       Demand support for multi-threading.  Same as or threads(true).
-%     - rational
-%       Demand native support for rational numbers.  Same as
-%       bounded(false).
 %     - library(Lib)
 %       Demand library(Lib) to be present.  Thde library not being
 %       there may indicate an incomplete installation.  For example
@@ -206,6 +201,9 @@ shortest([H1|T1], [H2|T2], [H1|R1], [H2|R2]) :-
 shortest(_,_, [], []).
 
 
+cmp_git_version(<, -, -) => fail.
+cmp_git_version(>, -, -) => fail.
+cmp_git_version(=, -, -) => true.
 cmp_git_version(<, _, -) => true.
 cmp_git_version(>, -, _) => true.
 cmp_git_version(=, -, _) => true.
