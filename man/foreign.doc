@@ -1951,7 +1951,7 @@ function does not \emph{immediately} return to Prolog with
 before failure is detected. \emph{Already created bindings are not
 undone}. For example, calling PL_unify() on \term{a}{X, a} and
 \term{a}{c,b} binds \arg{X} to \const{c} and fails when trying to unify
-\const{a} to \const{b}. If control remains in C or even if we want to
+\const{a} to \const{b}. If control remains in C or if we want to
 return success to Prolog, we \emph{must} undo such bindings. In
 addition, PL_unify() may have failed on an \textbf{exception}, typically
 a resource (stack) overflow. This can be tested using PL_exception(),
@@ -1959,8 +1959,11 @@ passing 0 (zero) for the query-id argument. Foreign functions that
 encounter an exception must return \const{FALSE} to Prolog as soon as
 possible or call PL_clear_exception() if they wish to ignore the
 exception. Note that there can only be an exception if PL_unify()
-returned \const{FALSE}. This is achieved using PL_open_foreign_frame()
-and PL_rewind_foreign_frame(), as shown in the snippet below.
+returned \const{FALSE}.
+
+Undoing (partial) unifications is achieved using
+PL_open_foreign_frame() and PL_rewind_foreign_frame(), as shown in the
+snippet below.
 
 \begin{code}
     { fid_t fid = PL_open_foreign_frame();
@@ -2683,25 +2686,30 @@ get access to the \ctype{atom_t} handle that belongs to this blob. If
 the same pointer and length will produce the same \const{atom_t} handle.
 
     \cfunction{int}{release}{atom_t a}
-The blob (atom) \arg{a} is about to be released. This function can
-retrieve the data of the blob using PL_blob_data(). If it returns
-\const{FALSE}, the atom garbage collector will \emph{not} reclaim the
-atom. The \cfuncref{release}{} function is called when the atom is
-reclaimed by the atom garbage collector. For critical resources such as
-file handles or significant memory resources it may be desirable to have
-an explicit call to dispose (most of) the resources. For example,
-close/1 reclaims the file handle and most of the resources associated
-with a stream, leaving only a tiny bit of content to the garbage
-collector.  See also setup_call_cleanup/3.
+The blob (atom) \arg{a} is about to be released.  The
+\cfuncref{release}{} function is called when the atom is reclaimed by
+the atom garbage collector, or when an explicit call to PL_free_blob()
+is made.  This function can retrieve the data of the blob using
+PL_blob_data().  Note that this returns \const{NULL} when called by
+the atom garbage collector and PL_free_blob() was used on the blob. If
+the \cfuncref{release}{} function returns \const{FALSE}, the atom
+garbage collector will \emph{not} reclaim the atom.  For critical
+resources such as file handles or significant memory resources, it may
+be desirable to have an explicit call to dispose (most of) the
+resources. For example, close/1 reclaims the file handle and most of
+the resources associated with a stream, leaving only a tiny bit of
+content to the garbage collector.  See also setup_call_cleanup/3.
 
-The release() callback is called in the context of the thread executing
-the atom garbage collect. Normally the thread \const{gc} runs all atom
-and clause garbage collections. The release() function may not call any
-of the PL_*() functions except for PL_unregister_atom() to unregister
-other atoms that are part data associated to the blob. Calling any of
-the other PL_* functions may return in deadlocks or crashes. The
-release() function should not call any potentially slow or blocking
-functions as this may cause serious slowdowns in the rest of the system.
+The release() callback is called in the context of the thread
+executing the atom garbage collect or the thread executing
+PL_free_blob().  Normally the thread \const{gc} runs all atom and
+clause garbage collections. The release() function may not call any of
+the PL_*() functions except for PL_blob_data() or PL_unregister_atom()
+to unregister other atoms that are part data associated to the
+blob. Calling any of the other PL_* functions may result in deadlocks
+or crashes. The \cfuncref{release}{} function should not call any
+potentially slow or blocking functions as this may cause serious
+slowdowns in the rest of the system.
 
 Blobs that require cleanup that is slow, blocking or requires calling
 Prolog must pass the data to be cleaned to another thread.  Be aware
@@ -2930,10 +2938,15 @@ released handle.
 
     \cfunction{int}{PL_free_blob}{atom_t blob}
 New in 9.1.12.  This function may be used on blobs with the
-\const{PL_BLOB_NOCOPY} flag set and a release() function. It causes the
-release() function to be called, after which the data and size are set
-to 0. The related atom remains existent and accessing it as a blob
-returns \const{NULL} for the data and 0 for the size.
+\const{PL_BLOB_NOCOPY} flag set and the blob type implements the
+\cfuncref{release}{} call back. It causes the \cfuncref{release}{}
+call back to be called, after which the data and size are set to 0 if
+the \cfuncref{release}{} returns \const{TRUE}.  The related atom
+remains existent and accessing it as a blob returns \const{NULL} for
+the data and 0 for the size.\footnote{This means that any predicates
+or callbacks that use the blob must check the result of
+PL_blob_data().}  If the release() function is not called, or if it
+returns \const{FALSE}, \const{FALSE} is returned.
 \end{description}
 
 
@@ -3321,23 +3334,40 @@ term references and data. See \figref{calling} for an example.
 
 \begin{description}
 \cfunction{fid_t}{PL_open_foreign_frame}{}
-
 Create a foreign frame, holding a mark that allows the system to undo
 bindings and destroy data created after it, as well as providing the
-environment for creating term references. This function is called by the
-kernel before calling a foreign predicate. Returns \exam{(fid_t)0} on
-failure. Failure is either lack of space on the stacks, in which case a
-resource exception is scheduled or atom-gc being in progress in the
-current thread, in which case no exception is scheduled. The latter is
-an exceptional case that prevents doing a callback on Prolog from
-\jargon{blob release handlers}.\footnote{Such a callback would
-\jargon{deadlock} if the callback creates new atoms or requires stack
-shifts or garbage collection.}
+environment for creating term references. Each call to a foreign
+predicate is wrapped in a PL_open_foreign_frame() and
+PL_close_foreign_frame() pair.  This ensures that \ctype{term_t}
+handles created during the execution of a foreign predicate are scoped
+to this execution.  Note that if the foreign predicate is
+\jargon{non-deterministic}, \ctype{term_t} handles are scoped to
+\emph{each} activation of the foreign function.
 
-\cfunction{void}{PL_close_foreign_frame}{fid_t id}
-Discard all term references created after the frame was opened.  All
-other Prolog data is retained.  This function is called by the kernel
-whenever a foreign function returns control back to Prolog.
+The user may create explicit foreign frames to undo (backtrack)
+changes to Prolog terms.  See PL_unify() for an example.  An explicit
+foreign frame must also be used for creating a call back from C to
+Prolog (see PL_open_query()) to ensure the existence of such a frame
+and to scope the \ctype{term_t} handles needed to setup the call to
+Prolog.
+
+On success, the stack has room for at least 10 \ctype{term_t} handles.
+This implies that foreign predicates as well as code inside an
+explicitly created foreign frame may use PL_new_term_ref() to create
+up to 10 \ctype{term_t} handles without checking the return status.
+
+Returns \exam{(fid_t)0} on failure. Failure is either lack of space on
+the stacks, in which case a resource exception is scheduled or atom-gc
+being in progress in the current thread, in which case no exception is
+scheduled. The latter is an exceptional case that prevents doing a
+callback on Prolog from \jargon{blob release handlers}.\footnote{Such
+a callback would \jargon{deadlock} if the callback creates new atoms
+or requires stack shifts or garbage collection.}
+
+
+\cfunction{void}{PL_close_foreign_frame}{fid_t id} Discard all term
+references created after the frame was opened.  Prolog data referenced
+by the discarded term references is not affected.  
 
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since
@@ -3352,7 +3382,6 @@ discarded.
 
 It is obligatory to call either of the two closing functions to discard
 a foreign frame.  Foreign frames may be nested.
-
 
 \begin{figure}
 
