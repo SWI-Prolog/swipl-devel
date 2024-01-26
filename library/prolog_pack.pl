@@ -783,8 +783,7 @@ version_options(_, _, []).
 %   or creates a writeable directory.  Options:
 %
 %     - pack_directory(+PackDir)
-%       Use PackDir. PackDir must be an existing and writeable
-%       directory.
+%       Use PackDir. PackDir is created if it does not exist.
 %     - global(+Boolean)
 %       If `true`, find a writeable global directory based on the
 %       file search path `common_app_data`.  If `false`, find a
@@ -798,6 +797,7 @@ version_options(_, _, []).
 
 pack_install_dir(PackDir, Options) :-
     option(pack_directory(PackDir), Options),
+    ensure_directory(PackDir),
     !.
 pack_install_dir(PackDir, Options) :-
     base_alias(Alias, Options),
