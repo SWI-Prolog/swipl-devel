@@ -1,4 +1,4 @@
-[![CI](https://github.com/SWI-Prolog/swipl-devel/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SWI-Prolog/swipl-devel/actions/workflows/ci.yml)
+[![CI](https://github.com/SWI-Prolog/swipl/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SWI-Prolog/swipl/actions/workflows/ci.yml)
 
 # SWI-Prolog: A comprehensive Prolog implementation
 
