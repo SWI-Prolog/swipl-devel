@@ -875,6 +875,8 @@ get_option(M, opt(Name, TypeName, Short, Long, Help, Meta)) :-
     ),
     (   in(M:opt_meta(Name, Meta0))
     ->  true
+    ;   type_name(TypeT, Meta0)
+    ->  true
     ;   upcase_atom(TypeName, Meta0)
     ),
     (   \+ type_bool(TypeT, _),
@@ -882,6 +884,10 @@ get_option(M, opt(Name, TypeName, Short, Long, Help, Meta)) :-
     ->  Meta = [Meta0]
     ;   Meta = Meta0
     ).
+
+type_name(oneof(Values), Name) :-
+    atomics_to_string(Values, ",", S0),
+    format(atom(Name), '{~w}', [S0]).
 
 option_type(Name, Pairs, Type) :-
     pairs_values(Pairs, Types),
