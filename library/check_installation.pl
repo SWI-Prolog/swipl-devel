@@ -148,7 +148,7 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 :- meta_predicate
     run_silent(0, +).
 
-%!  check_installation
+%!  check_installation is det.
 %
 %   Check features of the installed   system. Performs the following
 %   tests:
@@ -246,7 +246,8 @@ check_source(_Source, Properties) :-
 
 current_os(unix)    :- current_prolog_flag(unix, true).
 current_os(windows) :- current_prolog_flag(windows, true).
-current_os(linux)   :- current_prolog_flag(arch, Arch), sub_atom(Arch, _, _, _, linux).
+current_os(linux)   :- current_prolog_flag(arch, Arch),
+                       sub_atom(Arch, _, _, _, linux).
 
 %!  test_component(+Properties) is semidet.
 %
