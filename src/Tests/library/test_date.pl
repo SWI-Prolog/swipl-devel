@@ -112,7 +112,7 @@ ok(1152794050, '%Z', 'CEST').
 ok(1152794050, '%+', 'Thu Jul 13 14:34:10 2006').
 ok(1152794050, '%%', '%').
 
-%%	test_format/0
+%%	test_format
 %
 %	Extensively test the output of all supported formats.  We must
 %	run this in the C locale to get reproducable answers.
@@ -150,7 +150,7 @@ test_date(2000-1-1, 0:0:0.0, []).	% Year 2000
 test_date(-10000-1-1, 0:0:0.0, []).	% Year 10,000BC
 test_date(10000-1-1, 0:0:0.0, []).	% Year 10,000AD
 
-%	test_trip/0
+%%	test_trip
 %
 %	Run all round-trip tests and verify formats on them
 
