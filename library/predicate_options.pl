@@ -50,7 +50,7 @@
             check_predicate_options/1           % :PredicateIndicator
           ]).
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(error),
 	    [ existence_error/2,
 	      must_be/2,
@@ -303,8 +303,8 @@ check_predicate_option(Module:PI, Arg, Option) :-
     ).
 
 
-pred_option(M:Head, Option) :-
-    pred_option(M:Head, Option, []).
+pred_option(Head, Option) :-
+    pred_option(Head, Option, []).
 
 pred_option(M:Head, Option, Seen) :-
     (   has_static_option_decl(M),
@@ -337,13 +337,21 @@ system:predicate_option_type(Type, Arg) :-
     var(Arg),
     !,
     add_attr(Arg, option_type(Type)).
+system:predicate_option_type(callable+_N, Arg) :-
+    !,
+    must_be(callable, Arg).
+system:predicate_option_type(list, Arg) :-
+    !,
+    must_be(list_or_partial_list, Arg).
+system:predicate_option_type(list(Type), Arg) :-
+    !,
+    must_be(list_or_partial_list(Type), Arg).
 system:predicate_option_type(Type, Arg) :-
     must_be(Type, Arg).
 
-system:predicate_option_mode(Mode, Arg) :-
+system:predicate_option_mode(_Mode, Arg) :-
     var(Arg),
-    !,
-    add_attr(Arg, option_mode(Mode)).
+    !.
 system:predicate_option_mode(Mode, Arg) :-
     check_mode(Mode, Arg).
 
@@ -676,6 +684,10 @@ check_body((A,B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
     !,
     check_body(A, M, PA, Action),
     check_body(B, M, PB, Action).
+check_body((A;B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
+    !,
+    \+ \+ check_body(A, M, PA, Action),
+    \+ \+ check_body(B, M, PB, Action).
 check_body(A=B, _, _, _) :-             % partial evaluation
     unify_with_occurs_check(A,B),
     !.

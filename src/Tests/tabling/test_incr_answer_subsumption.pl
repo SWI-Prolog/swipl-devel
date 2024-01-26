@@ -40,6 +40,9 @@
 :- use_module(library(plunit)).
 :- use_module(library(increval)).
 :- use_module(library(tables)).
+:- use_module(library(apply)).
+:- use_module(library(debug)).
+:- use_module(library(prolog_code)).
 
 %!  test_incr_answer_subsumption
 %

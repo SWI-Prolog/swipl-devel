@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2022, University of Amsterdam
+    Copyright (c)  2005-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,10 +44,12 @@
 #define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
-#define	get_rational(w, n)		LDFUNC(get_rational, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#ifdef O_BIGNUM
+#define	get_rational_no_int(w, n)	LDFUNC(get_rational_no_int, w, n)
+#endif
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -54,7 +57,6 @@
 int	PL_unify_number(term_t t, Number n);
 int	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
-void	get_rational(word w, number *n);
 int	PL_get_number(term_t t, Number n);
 int	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
@@ -63,7 +65,11 @@ int	promoteToFloatNumber(Number n);
 int	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 int     promoteNumber(Number n1, numtype type) WUNUSED;
 int	cmpNumbers(Number n1, Number n2);
+int	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
+#ifdef O_BIGNUM
+void	get_rational_no_int(word w, number *n);
+#endif
 
 #undef LDFUNC_DECLARATIONS
 
@@ -92,7 +98,7 @@ void	cpNumber(Number to, Number from);
 
 void	initGMP(void);
 void	cleanupGMP(void);
-void	get_integer(word w, number *n);
+void	get_bigint(word w, number *n);
 Code	get_mpz_from_code(Code pc, mpz_t mpz);
 Code	get_mpq_from_code(Code pc, mpq_t mpq);
 int	promoteToMPZNumber(number *n);
@@ -113,8 +119,16 @@ double	mpq_to_double(mpq_t q);
 void	mpq_set_double(mpq_t q, double f);
 word	bignum_index(const word *p);
 
-#define clearNumber(n) \
-	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
+static inline void
+clearNumber(Number n)
+{ switch(n->type)
+  { case V_INTEGER:
+    case V_FLOAT:
+      return;
+    default:
+      clearGMPNumber(n);
+  }
+}
 
 static inline word
 mpz_size_stack(int sz)
@@ -145,6 +159,28 @@ mpz_add_si(mpz_t r, const mpz_t n1, long add)
     mpz_sub_ui(r, n1, -add);
 }
 #endif
+
+static inline void
+get_integer(word w, Number n)
+{ if ( storage(w) == STG_INLINE )
+  { n->type = V_INTEGER,
+    n->value.i = valInt(w);
+  } else
+  { get_bigint(w, n);
+  }
+}
+
+
+#define get_rational(w, n) LDFUNC(get_rational, w, n)
+static inline void
+get_rational(DECL_LD word w, Number n)
+{ if ( storage(w) == STG_INLINE )
+  { n->value.i = valInt(w);
+    n->type = V_INTEGER;
+  } else
+  { get_rational_no_int(w, n);
+  }
+}
 
 #else /*O_BIGNUM*/
 

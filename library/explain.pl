@@ -133,9 +133,17 @@ explain(List, Explanation) :-
     length(List, L),
     !,
     Explanation = [isa(List, 'is a not-closed list with ~d elements'-[L])].
+explain(Name//NTArity, Explanation) :-
+    atom(Name),
+    integer(NTArity),
+    NTArity >= 0,
+    !,
+    Arity is NTArity + 2,
+    explain(Name/Arity, Explanation).
 explain(Name/Arity, Explanation) :-
     atom(Name),
     integer(Arity),
+    Arity >= 0,
     !,
     functor(Head, Name, Arity),
     known_predicate(Module:Head),
@@ -256,9 +264,13 @@ tproperty(Pred, [' that can be autoloaded']) :-
 explain_predicate(Pred, Explanation) :-
     Pred = Module:Head,
     functor(Head, Name, Arity),
+    (   predicate_property(Pred, non_terminal)
+    ->  What = 'non-terminal'
+    ;   What = 'predicate'
+    ),
     (   predicate_property(Pred, undefined)
     ->  Explanation = [ pi(Module:Name/Arity),
-                        ansi([bold,fg(default)], ' is an undefined predicate', [])
+                        ansi([bold,fg(default)], ' is an undefined ~w', [What])
                       ]
     ;   (   var(Module)
         ->  U0 = [ pi(Name/Arity),
@@ -271,7 +283,7 @@ explain_predicate(Pred, Explanation) :-
         findall(Utter, (lproperty(Prop, Utter),
                         predicate_property(Pred, Prop)),
                 U1),
-        U2 = [ansi([bold,fg(default)], ' predicate', []) ],
+        U2 = [ansi([bold,fg(default)], ' ~w', [What]) ],
         findall(Utter, tproperty(Pred, Utter),
                 U3),
         flatten([U0, U1, U2, U3], Explanation)
@@ -435,7 +447,8 @@ report1(url(Location)) -->
 report1(url(URL, Label)) -->
     [ url(URL, Label) ].
 report1(pi(PI)) -->
-    [ ansi(code, '~q', [PI]) ].
+    { pi_nt(PI, NT) },
+    [ ansi(code, '~q', [NT]) ].
 report1(ansi(Style, Fmt, Args)) -->
     [ ansi(Style, Fmt, Args) ].
 report1(isa(Obj, Fmt-Args)) -->
@@ -448,3 +461,13 @@ report1(isa(Obj, Descr)) -->
     [ ansi(code, '~p', [Obj]),
       ansi([bold,fg(default)], ' is ~w', [Descr])
     ].
+
+pi_nt(Module:Name/Arity, NT),
+    atom(Module), atom(Name), integer(Arity),
+    Arity >= 2,
+    functor(Head, Name, Arity),
+    predicate_property(Module:Head, non_terminal) =>
+    Arity2 is Arity - 2,
+    NT = Module:Name//Arity2.
+pi_nt(PI, NT) =>
+    NT = PI.

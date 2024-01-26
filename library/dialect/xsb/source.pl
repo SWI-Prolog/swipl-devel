@@ -34,8 +34,8 @@
 */
 
 :- module(xsb_source, []).
+:- use_module(library(debug),  [debug/3]).
 :- autoload(library(apply),  [convlist/3,partition/4]).
-:- autoload(library(debug),  [debug/3]).
 :- autoload(library(error),  [instantiation_error/1]).
 :- autoload(library(occurs), [sub_term/2]).
 

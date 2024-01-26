@@ -118,6 +118,7 @@
 #define MSG_PRED_COUNT		 83
 
 #define MSG_BACKTRACK		 90
+#define MSG_CSTACK		 91
 
 						/* GC messages */
 #define	MSG_AGC			 100

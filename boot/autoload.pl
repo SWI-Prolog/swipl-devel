@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -70,7 +71,10 @@
 user:file_search_path(autoload, swi(library)).
 user:file_search_path(autoload, pce(prolog/lib)).
 user:file_search_path(autoload, app_config(lib)).
+user:file_search_path(autoload, Dir) :-
+    '$ext_library_directory'(Dir).
 
+:- create_prolog_flag(warn_autoload, false, []).
 
 %!  '$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
 %
@@ -354,7 +358,7 @@ make_library_index2(Dir, Patterns) :-
     pattern_files(Patterns, DirS, Files),
     (   library_index_out_of_date(Dir, AbsIndex, Files)
     ->  do_make_library_index(AbsIndex, DirS, Files),
-        flag('$modified_index', _, true)
+        set_flag('$modified_index', true)
     ;   true
     ).
 
@@ -386,10 +390,10 @@ library_index_out_of_date(_Dir, Index, _Files) :-
 library_index_out_of_date(Dir, Index, Files) :-
     time_file(Index, IndexTime),
     (   time_file(Dir, DotTime),
-        DotTime > IndexTime
-    ;   '$member'(File, Files),
+        DotTime - IndexTime > 0.001             % compensate for jitter
+    ;   '$member'(File, Files),                 % and rounding
         time_file(File, FileTime),
-        FileTime > IndexTime
+        FileTime - IndexTime > 0.001
     ),
     !.
 
@@ -459,16 +463,17 @@ exports(File, Module, Exports) :-
     ),
     setup_call_cleanup(
         set_prolog_flag(xref, true),
-        exports_(File, Module, Exports),
+        snapshot(exports_(File, Module, Exports)),
         set_prolog_flag(xref, Old)).
 
 exports_(File, Module, Exports) :-
     State = state(true, _, []),
-    (   '$source_term'(File, _,_,Term0,_,_,[syntax_errors(quiet)]),
-        (   is_list(Term0)
-        ->  '$member'(Term, Term0)
-        ;   Term = Term0
-        ),
+    (   '$source_term'(File,
+                       _Read,_RLayout,
+                       Term,_TermLayout,
+                       _Stream,
+                       [ syntax_errors(quiet)
+                       ]),
         (   Term = (:- module(M,Public)),
             is_list(Public),
             arg(1, State, true)
@@ -637,7 +642,8 @@ do_autoload(Library, Module:Name/Arity, LoadModule) :-
             \+ '$loading'(Library)
         ->  Module:import(LoadModule:Name/Arity)
         ;   use_module(Module:Library, [Name/Arity])
-        )
+        ),
+        warn_autoload(Module, LoadModule:Name/Arity)
     ),
     '$set_compilation_mode'(OldComp),
     '$set_autoload_level'(Old),
@@ -656,7 +662,7 @@ verbose_autoload(PI, Library) :-
 %!  autoloadable(:Head, -File) is nondet.
 %
 %   True when Head can be  autoloaded   from  File.  This implements the
-%   predicate_property/2 property autoload(File).  The   module  muse be
+%   predicate_property/2 property autoload(File).  The   module  must be
 %   instantiated.
 
 :- public                               % used from predicate_property/2
@@ -924,6 +930,32 @@ pi_in_exports(PI, Exports) :-
 current_autoload(M:File, Context, Term) :-
     '$get_predicate_attribute'(M:'$autoload'(_,_,_), defined, 1),
     M:'$autoload'(File, Context, Term).
+
+		 /*******************************
+		 *            CHECK		*
+		 *******************************/
+
+warn_autoload(TargetModule, PI) :-
+    current_prolog_flag(warn_autoload, true),
+    \+ current_prolog_flag(xref, true),
+    \+ nb_current('$autoload_warning', true),
+    '$pi_head'(PI, Head),
+    source_file(Head, File),
+    expansion_hook(P),
+    source_file(P, File),
+    !,
+    setup_call_cleanup(
+        b_setval('$autoload_warning', true),
+        print_message(warning,
+                      deprecated(autoload(TargetModule, File, PI, expansion))),
+        nb_delete('$autoload_warning')).
+warn_autoload(_, _).
+
+expansion_hook(user:goal_expansion(_,_)).
+expansion_hook(user:goal_expansion(_,_,_,_)).
+expansion_hook(system:goal_expansion(_,_)).
+expansion_hook(system:goal_expansion(_,_,_,_)).
+
 
                  /*******************************
                  *             REQUIRE          *

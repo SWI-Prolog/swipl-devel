@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013, VU University Amsterdam
+    Copyright (c)  2013-2023, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,13 +42,19 @@ typedef enum
   PROF_WALL			/* Profile wall time */
 } prof_status;
 
+typedef enum
+{ PROFC_FALSE = 0,
+  PROFC_TRUE,
+  PROFC_CLASSIC
+} prof_control;
+
 #if USE_LD_MACROS
 #define	activateProfiler(status)	LDFUNC(activateProfiler, status)
 #define	resetProfiler(_)		LDFUNC(resetProfiler, _)
 #define	profCall(def)			LDFUNC(profCall, def)
 #define	profResumeParent(node)		LDFUNC(profResumeParent, node)
 #define	profExit(node)			LDFUNC(profExit, node)
-#define	profRedo(node)			LDFUNC(profRedo, node)
+#define	profFail(node)			LDFUNC(profRedo, node)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -58,7 +65,7 @@ bool		resetProfiler(void);
 struct call_node* profCall(Definition def);
 void		profResumeParent(struct call_node *node);
 void		profExit(struct call_node *node);
-void		profRedo(struct call_node *node);
+void		profFail(struct call_node *node);
 void		profSetHandle(struct call_node *node, void *handle);
 
 #undef LDFUNC_DECLARATIONS

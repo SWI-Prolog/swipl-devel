@@ -1,26 +1,23 @@
 # Building SWI-Prolog using cmake
 
-As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
-configuration files that cover the  entire   project.
+SWI-Prolog moved to CMake for configuration   with  version 7.7.20. Soon
+thereafter support for GNU autoconf and GNU make has been dropped.
 
-The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
-generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
-faster, avoids warning  from  being   cluttered  and  better facilitates
-debugging dependency issues. It can be   selected  using `cmake -G Ninja
-..`,  after which the usual `make` _target_   can be replaced by `ninja`
-_target_. The examples below all  use  Ninja.   Drop  `-G  Ninja` to use
-classical Unix make.
+The build has been tested with the  "Unix Makefiles", "Ninja" as well as
+"NMake Makefiles" or "Visual Studio  17   2022"  for  Windows when using
+VS2022.   Except   for   the    _Visual     Studio_    build,   we   use
+[Ninja](https://ninja-build.org/) as it builds   faster,  avoids warning
+from being cluttered and better facilitates debugging dependency issues.
+It can be selected using `cmake  -G   Ninja  ..`,  after which the usual
+`make` _target_ can be replaced by  `ninja` _target_. The examples below
+all use Ninja. Drop `-G Ninja` to use classical Unix make.
 
 ## Getting cmake
 
 Building SWI-Prolog requires cmake version 3.9  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
-from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
-cmake 3.12 (please pick the latest stable version) is as simple as:
-
-    wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
-    sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
+from https://cmake.org/download/
 
 (*) The ODBC package requires 3.9.  For the rest 3.5 should suffice.
 
@@ -30,7 +27,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
 ### Getting the source
 
 The   source   may   be    downloaded    as     a    tar    ball    from
-http://www.swi-prolog.org or downloaded using git.  The git sequence is:
+https://www.swi-prolog.org or downloaded using git. The git sequence is:
 
     git clone --recursive https://github.com/SWI-Prolog/swipl-devel.git
 
@@ -55,13 +52,10 @@ latest version:
     git pull
     git submodule update --init
     cd build
-    ninja
+	cmake .
     ninja
     ctest -j 8
     ninja install
-
-Note that `ninja` is called twice.  Under some situations not everything
-is properly updated after the first run. This is a bug.
 
 If the build fails, one could try to remove the entire `build` directory
 and re-create it as  above.  Note  that   the  build  process  makes  no
@@ -112,7 +106,7 @@ and libraries that are built.
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages            |
   | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface               |
   | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                  |
-  | `-DSWIPL_PACKAGES=List`       | ;-separated list of packages          |
+  | `-DSWIPL_PACKAGE_LIST=List`   | ;-separated list of packages          |
   | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests     |
   | `-DINSTALL_TESTS=ON`          | Add tests to installed system         |
   | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs         |
@@ -126,6 +120,30 @@ You are strongly encouraged  to  install   the  full  system for desktop
 usage. When installing in lightweight and   server  environments one may
 drop  one  or  more  of  ``SWIPL_PACKAGES_X``,  ``SWIPL_PACKAGES_JAVA``,
 ``SWIPL_PACKAGES_ODBC`` and ``INSTALL_DOCUMENTATION``.
+
+A   specific   list   of    packages     can    be    requestion   using
+`DSWIPL_PACKAGE_LIST` set to a list of package.  The list is checked for
+missing dependencies, which  are  automatically   added.  Typically  the
+documentation should be disabled in this   scenario because including it
+includes many packages. For example:
+
+    cmake -DINSTALL_DOCUMENTATION=OFF -DSWIPL_PACKAGE_LIST="clib;plunit"
+
+## Finding requirements
+
+Finding  requirements  is   the   task    of   CMake.   Typically,   our
+`CMakeLists.txt`  files  call  `find_package(SomePackage,  ...)`,  which
+implies it loads `FindSomePackage.cmake`. As far  as possible we rely on
+the "finders" that come bundled with CMake.   Others can be found in the
+various `cmake` directories. These are either copied from other projects
+or home brewed. Please consult the   CMake documentation on the specific
+"finder" as well as `find_package()` if   you  have trouble finding some
+requirement or selecting the right version if you have multiple versions
+of the requirement installed on your system.
+
+In particular, see
+[FindPython.cmake](https://cmake.org/cmake/help/latest/module/FindPython.html)
+to control the Python version used by the Janus interface to Python.
 
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
@@ -181,26 +199,12 @@ perform the process on your host Linux system.
 
 ### WASM (Emscripten)
 
-Install  [Emscripten](https://emscripten.org/),  download    and   build
-[zlib](https://zlib.net/) using Emscripten. Now you can build the system
-using the commands below (assume initial working  dir is the root of the
-source tree).
+See https://www.swi-prolog.org/build/WebAssembly.html for details.
 
-    mkdir build.wasm
-    cd build.wasm
-    source ~/emsdk/emsdk_env.sh
-    cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
-          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
-	  -DGMP_ROOT=$HOME/wasm \
-          -DINSTALL_DOCUMENTATION=OFF \
-          -G Ninja ..
-
-For   latest   news   on   the    WASM     version    see    the   [Wiki
+For   latest    news   on   the    WASM   version   see    the   [Wiki
 page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
-This page also discusses how to use the WASM version with Node.js and in
-a browser.
+This page also discusses how to  use the WASM version with Node.js and
+in a browser.
 
 
 ### Building a 32-bit version on 64-bit Debian based Linux

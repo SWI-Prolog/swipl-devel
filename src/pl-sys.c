@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2009, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,8 +33,10 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-sys.h"
 #include "pl-fli.h"
+#ifdef HAVE_SCHED_YIELD
+#include <sched.h>
+#endif
 
 #ifndef MAXVARNAME
 #define MAXVARNAME 1024
@@ -59,9 +62,11 @@ PRED_IMPL("shell", 2, shell, 0)
 }
 
 
-word
-pl_getenv(term_t var, term_t value)
+static
+PRED_IMPL("getenv", 2, getenv, 0)
 { char *n;
+  term_t var = A1;
+  term_t value = A2;
 
   if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char buf[1024];
@@ -92,60 +97,67 @@ pl_getenv(term_t var, term_t value)
 }
 
 
-word
-pl_setenv(term_t var, term_t value)
+static
+PRED_IMPL("setenv", 2, setenv, 0)
 { char *n, *v;
 
-  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|BUF_STACK|CVT_EXCEPTION) &&
-       PL_get_chars(value, &v, CVT_ALL|REP_FN|CVT_EXCEPTION) )
+  if ( PL_get_chars(A1, &n, CVT_ALL|REP_FN|BUF_STACK|CVT_EXCEPTION) &&
+       PL_get_chars(A2, &v, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return Setenv(n, v);
 
   fail;
 }
 
 
-word
-pl_unsetenv(term_t var)
+static
+PRED_IMPL("unsetenv", 1, unsetenv, 0)
 { char *n;
 
-  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
+  if ( PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return Unsetenv(n);
 
   fail;
 }
 
 
-word
-pl_get_time(term_t t)
-{ return PL_unify_float(t, WallTime());
+static
+PRED_IMPL("get_time", 1, get_time, 0)
+{ return PL_unify_float(A1, WallTime());
 }
 
 
-word
-pl_sleep(term_t time)
+static
+PRED_IMPL("sleep", 1, sleep, 0)
 { double t;
 
-  if ( PL_get_float_ex(time, &t) )
+  if ( PL_get_float_ex(A1, &t) )
+  { if ( t < 0.0 )
+      return TRUE;
+#ifdef HAVE_SCHED_YIELD
+    if ( t == 0.0 )
+    { sched_yield();
+      return TRUE;
+    }
+#endif
     return Pause(t);
+  }
 
-  fail;
+  return FALSE;
 }
 
 #ifdef __WINDOWS__
 #include <process.h>
 #endif
 
-word
-pl_get_pid(term_t pid)
-{ GET_LD
-  return PL_unify_integer(pid, getpid());
-}
-
-
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(system)
-  PRED_DEF("shell", 2, shell, 0)
+  PRED_DEF("shell",    2, shell,    0)
+  PRED_DEF("setenv",   2, setenv,   0)
+  PRED_DEF("unsetenv", 1, unsetenv, 0)
+  PRED_DEF("getenv",   2, getenv,   0)
+  PRED_DEF("get_time", 1, get_time, 0)
+  PRED_DEF("sleep",    1, sleep,    0)
 EndPredDefs

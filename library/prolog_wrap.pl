@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, VU University Amsterdam
+    Copyright (c)  2019-2023, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@
 */
 
 :- module(prolog_wrap,
-          [ wrap_predicate/4,                   % :Head, +Name, -Wrapped, +Body
+          [ wrap_predicate/4,                   % :Head, +Name, -Wrapped, :Body
             unwrap_predicate/2,                 % :PI, ?Name
             current_predicate_wrapper/4		% :Head, -Name, -Wrapped, -Body
           ]).
@@ -42,7 +43,7 @@
 
 
 :- meta_predicate
-    wrap_predicate(:, +, -, +),
+    wrap_predicate(:, +, -, 0),
 %   unwrap_predicate(:, ?),
     current_predicate_wrapper(:, -, -, -).
 
@@ -78,6 +79,28 @@ calls the original wrapped definition somewhere.
 %   Registered  wrappers  __are  not  part    of   saved  states__  (see
 %   qsave_program/2) and thus need  to   be  re-registered,  for example
 %   using initialization/1.
+%
+%   An example of using wrap_predicate/4 for computing GCD:
+%   ==
+%       :- wrap_predicate(gcd(A,B,Gcd), gcd_wrap, W, gcd_wrap(W, A, B, Gcd)).
+%
+%       gcd(X, Y, Gcd), X < Y => gcd(X, Y-X, Gcd).
+%       gcd(X, Y, Gcd), X > Y => gcd(Y, X-Y, Gcd).
+%       gcd(X, _, Gcd) => Gcd = X.
+%
+%       gcd_wrap(call(Closure), X, Y, Gcd) :-
+%           functor(Closure, ClosureBlob, 3),
+%           X_eval is X,
+%           Y_eval is Y,
+%           call(ClosureBlob, X_eval, Y_eval, Gcd).
+%   ==
+%   or (less efficient):
+%   ==
+%       gcd_wrap(call(Closure), X, Y, Gcd) :-
+%           functor(Closure, ClosureBlob, 3),
+%           call(ClosureBlob, X_eval, Y_eval, G),
+%           Gcd is G.
+%   ==
 
 wrap_predicate(M:Head, WName, Wrapped, Body) :-
     '$wrap_predicate'(M:Head, WName, _Closure, Wrapped, Body).

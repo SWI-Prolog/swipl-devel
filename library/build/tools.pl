@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@
 	    prolog_install_prefix/1,    % -Prefix
 	    run_process/3,              % +Executable, +Argv, +Options
 	    has_program/3,              % +Spec, -Path, +Env
-	    path_sep/1,                 % -Separator
 	    ensure_build_dir/3          % +Dir, +State0, -State
 	  ]).
 :- autoload(library(lists), [selectchk/3, member/2, append/3, last/2]).
@@ -48,7 +47,7 @@
 :- autoload(library(dcg/basics), [string/3]).
 :- autoload(library(apply), [foldl/4, maplist/2]).
 :- autoload(library(filesex), [directory_file_path/3, make_directory_path/1]).
-:- autoload(library(prolog_config), [apple_bundle_libdir/1]).
+:- autoload(library(prolog_config), [prolog_config/2]).
 :- autoload(library(solution_sequences), [distinct/2]).
 
 % The plugins.  Load them in the order of preference.
@@ -89,6 +88,24 @@ unique to the toolchain.   Currently it supports
 %   which causes the system to try an  alternative. A step that wants to
 %   abort the build process must  throw  an   exception.
 %
+%   If a step fails, a warning message is printed. The message can be
+%   suppressed by enclosing the step in square brackets.  Thus, in the
+%   above example of Steps, only failure  by the `build` and `install`
+%   steps result in warning messages; failure of the other steps is
+%   silent.
+%
+%   The failure of a step can be made into an error by enclosing it
+%   in curly brackets, e.g. `[[dependencies], [configure], {build}, [test], {install}]`
+%   would throw an exception if either the `build` or `install` step failed.
+%
+%   Options are:
+%   * pack_version(N)
+%     where N is 1 or 2 (default: 1).
+%     This determines the form of environment names that are set before
+%     the  build tools are calledd.
+%     For version 1, names such as `SWIPLVERSION` or `SWIHOME` are used.
+%     For version 2, names such as `SWIPL_VERSION` or `SWIPL_HOME_DIR` are used.
+%
 %   @tbd If no tool  is  willing  to   execute  some  step,  the step is
 %   skipped. This is ok for some steps such as `dependencies` or `test`.
 %   Possibly we should force the `install` step to succeed?
@@ -100,29 +117,42 @@ build_steps(Steps, SrcDir, Options) :-
     State0 = Dict0.put(#{ env: BuildEnv,
 			  src_dir: SrcDir
 			}),
+
     foldl(build_step, Steps, State0, _State).
 
 build_step(Spec, State0, State) :-
+    build_step_(Spec, State0, State),
+    post_step(Spec, State).
+
+build_step_(Spec, State0, State) :-
     step_name(Spec, Step),
     prolog:build_file(File, Tool),
     directory_file_path(State0.src_dir, File, Path),
     exists_file(Path),
     prolog:build_step(Step, Tool, State0, State),
-    post_step(Step, Tool, State),
     !.
-build_step([_], State, State) :-
+build_step_([_], State, State) :-
     !.
-build_step(Step, State, State) :-
+build_step_({Step}, State, State) :-
+    !,
+    print_message(error, build(step_failed(Step))),
+    throw(error(build(step_failed(Step)))).
+build_step_(Step, State, State) :-
     print_message(warning, build(step_failed(Step))).
 
-step_name([Step], Step) :-              % options
-    !.
-step_name(Step, Step).
+step_name([Step], Name) => Name = Step.
+step_name({Step}, Name) => Name = Step.
+step_name(Step,   Name) => Name = Step.
 
-post_step(configure, _, State) :-
+%!  post_step(+Step, +State) is det.
+%
+%   Run code after completion of a step.
+
+post_step(Step, State) :-
+    step_name(Step, configure),
     !,
-    save_build_environment(State.bin_dir, State.env).
-post_step(_, _, _).
+    save_build_environment(State).
+post_step(_, _).
 
 
 %!  ensure_build_dir(+Dir, +State0, -State) is det.
@@ -149,6 +179,8 @@ ensure_build_dir(Dir, State0, State) :-
 		 *******************************/
 
 %!  build_environment(-Env, +Options) is det.
+%
+%   Options are documented under build_steps/3.
 %
 %   Assemble a clean  build  environment   for  creating  extensions  to
 %   SWI-Prolog. Env is a list of   `Var=Value` pairs. The variable names
@@ -192,7 +224,7 @@ ensure_build_dir(Dir, State0, State) :-
 %     Prefered C compiler
 %     $ ``SWIPL_LD`` (``LD``) :
 %     Prefered linker
-%     $ ``SWIPL_CFLAGS`` (``CLFLAGS``) :
+%     $ ``SWIPL_CFLAGS`` (``CFLAGS``) :
 %     C-Flags for building extensions. Always contains ``-ISWIPL-INCLUDE-DIR``.
 %     $ ``SWIPL_MODULE_LDFLAGS`` (``LDSOFLAGS``) :
 %     Link flags for linking modules.
@@ -246,12 +278,14 @@ def_environment('PATH', Value, _) :-
     current_prolog_flag(executable, Exe),
     file_directory_name(Exe, ExeDir),
     prolog_to_os_filename(ExeDir, OsExeDir),
-    path_sep(Sep),
+    current_prolog_flag(path_sep, Sep),
     atomic_list_concat([OsExeDir, Sep, PATH], Value).
 def_environment('SWIPL', Value, _) :-
     current_prolog_flag(executable, Value).
 def_environment('SWIPL_PACK_VERSION', Value, Options) :-
     option(pack_version(Value), Options, 1).
+def_environment('SWIPL_PACK_PATH', Value, _Options) :-
+    prolog_config(pack_path, Value).
 def_environment(VAR, Value, Options) :-
     env_name(version, VAR, Options),
     current_prolog_flag(version, Value).
@@ -272,17 +306,12 @@ def_environment(VAR, '-lswipl', Options) :-
     env_name(lib, VAR, Options).
 def_environment(VAR, Value, Options) :-
     env_name(cc, VAR, Options),
-    (   getenv('CC', Value)
-    ->  true
-    ;   default_c_compiler(Value)
-    ->  true
-    ;   current_prolog_flag(c_cc, Value)
-    ).
+    default_c_compiler(Value).
 def_environment(VAR, Value, Options) :-
     env_name(ld, VAR, Options),
     (   getenv('LD', Value)
     ->  true
-    ;   current_prolog_flag(c_cc, Value)
+    ;   default_c_compiler(Value)
     ).
 def_environment('SWIPL_INCLUDE_DIRS', Value, _) :- % CMake style environment
     current_prolog_flag(home, Home),
@@ -308,7 +337,7 @@ def_environment(VAR, Value, Options) :-
     ->  prolog_library_dir(LibDir),
 	atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
 	System = [SystemLib]
-    ;   apple_bundle_libdir(LibDir)
+    ;   prolog_config(apple_bundle_libdir, LibDir)
     ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
 	System = [SystemLib]
     ;   current_prolog_flag(c_libplso, '')
@@ -322,7 +351,8 @@ def_environment(VAR, Value, Options) :-
 def_environment(VAR, Value, Options) :-
     env_name(module_ext, VAR, Options),
     current_prolog_flag(shared_object_extension, Value).
-def_environment('PREFIX', Value, _) :-
+def_environment(VAR, Value, Options) :-
+    env_name(prefix, VAR, Options),
     prolog_install_prefix(Value).
 
 swipl_libraries_dir(Dir) :-
@@ -331,7 +361,7 @@ swipl_libraries_dir(Dir) :-
     current_prolog_flag(home, Home),
     atom_concat(Home, '/bin', Dir).
 swipl_libraries_dir(Dir) :-
-    apple_bundle_libdir(Dir),
+    prolog_config(apple_bundle_libdir, Dir),
     !.
 swipl_libraries_dir(Dir) :-
     prolog_library_dir(Dir).
@@ -378,6 +408,7 @@ prolog_library_dir(Dir) :-
     !.
 prolog_library_dir(Dir) :-
     current_prolog_flag(windows, true),
+    \+ current_prolog_flag(msys2, true),
     current_prolog_flag(home, Home),
     !,
     atomic_list_concat([Home, bin], /, Dir).
@@ -397,27 +428,40 @@ prolog_library_dir(Dir) :-
 %   @tbd Needs proper defaults for Windows.  Find MinGW?  Find MSVC?
 
 default_c_compiler(CC) :-
+    getenv('CC', CC),
+    !.
+default_c_compiler(CC) :-
     preferred_c_compiler(CC),
     has_program(path(CC), _),
     !.
 
+preferred_c_compiler(CC) :-
+    current_prolog_flag(c_cc, CC).
 preferred_c_compiler(gcc).
 preferred_c_compiler(clang).
 preferred_c_compiler(cc).
 
-%!  save_build_environment(+BuildDir, +Env) is det.
+%!  save_build_environment(+State:dict) is det.
 %
 %   Create  a  shell-script  ``buildenv.sh``  that  contains  the  build
 %   environment. This may be _sourced_ in the build directory to run the
 %   build steps outside Prolog. It  may   also  be  useful for debugging
 %   purposes.
 
-save_build_environment(BuildDir, Env) :-
+:- det(save_build_environment/1).
+save_build_environment(State) :-
+    Env = State.get(env),
+    !,
+    (   BuildDir = State.get(bin_dir)
+    ->  true
+    ;   BuildDir = State.get(src_dir)
+    ),
     directory_file_path(BuildDir, 'buildenv.sh', EnvFile),
     setup_call_cleanup(
 	open(EnvFile, write, Out),
 	write_env_script(Out, Env),
 	close(Out)).
+save_build_environment(_).
 
 write_env_script(Out, Env) :-
     format(Out,
@@ -608,7 +652,7 @@ classify_message(informational) -->
 user:file_search_path(pack_build_path, Dir) :-
     nb_current('$build_tool_env', Env),
     memberchk('PATH'=Path, Env),
-    path_sep(Sep),
+    current_prolog_flag(path_sep, Sep),
     atomic_list_concat(Dirs, Sep, Path),
     member(Dir, Dirs),
     Dir \== ''.
@@ -653,16 +697,6 @@ exe_options(Options) :-
 exe_options(Options) :-
     Options = [ access(execute) ].
 
-%!  path_sep(-Sep) is det.
-%
-%   Path separator for the OS. `;` for Windows, `:` for POSIX.
-
-path_sep(Sep) :-
-    (   current_prolog_flag(windows, true)
-    ->  Sep = ';'
-    ;   Sep = ':'
-    ).
-
 
 		 /*******************************
 		 *             OS PATHS		*
@@ -670,6 +704,7 @@ path_sep(Sep) :-
 
 setup_path :-
     current_prolog_flag(windows, true),
+    \+ current_prolog_flag(msys2, true),
     !,
     setup_path([make, gcc]).
 setup_path.
@@ -738,24 +773,31 @@ prolog:message(build(Msg)) -->
 message(no_mingw) -->
     [ 'Cannot find MinGW and/or MSYS.'-[] ].
 message(process_output(Codes)) -->
-    { split_lines(Codes, Lines) },
-    process_lines(Lines).
+    process_output(Codes).
 message(step_failed(Step)) -->
     [ 'No build plugin could execute build step ~p'-[Step] ].
 message(mingw_extend_path(WinDirMSYS, WinDirMinGW)) -->
     [ 'Extended %PATH% with ~p and ~p'-[WinDirMSYS, WinDirMinGW] ].
 
-split_lines([], []) :- !.
-split_lines(All, [Line1|More]) :-
-    append(Line1, [0'\n|Rest], All),
-    !,
-    split_lines(Rest, More).
-split_lines(Line, [Line]).
+%!  process_output(+Codes)//
+%
+%   Emit process output  using  print_message/2.   This  preserves  line
+%   breaks.
 
-process_lines([]) --> [].
+process_output([]) -->
+    !.
+process_output(Codes) -->
+    { string_codes(String, Codes),
+      split_string(String, "\n", "\r", Lines)
+    },
+    [ at_same_line ],
+    process_lines(Lines).
+
 process_lines([H|T]) -->
     [ '~s'-[H] ],
-    (   {T==[]}
-    ->  []
+    (   {T==[""]}
+    ->  [nl]
+    ;   {T==[]}
+    ->  [flush]
     ;   [nl], process_lines(T)
     ).

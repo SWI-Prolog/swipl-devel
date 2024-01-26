@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2023, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,8 +45,8 @@
     #if SIZEOF_VOIDP == 8
       #pragma intrinsic(_BitScanReverse64)
     #endif
-    #pragma intrinsic(_BitScanReverse)
-  #endif
+      #pragma intrinsic(_BitScanReverse)
+    #endif
 #endif
 
 #include "pl-transaction.h"
@@ -109,6 +110,17 @@ __builtin_popcount(size_t sz)
 #endif
 }
 
+static inline int
+__builtin_saddll_overflow(long long int a, long long int b, long long int *res)
+{ long long int r = a + b;
+  if ( (r > 0 && a < 0 && b < 0) ||
+       (r < 0 && a > 0 && b > 0) )
+    return TRUE;
+
+  *res = r;
+  return FALSE;
+}
+
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
@@ -144,12 +156,35 @@ __atomic_load_n(size_t *ptr, int memorder)
 #endif
 
 #ifdef O_PLMT
+#ifdef _MSC_VER
+#define ATOMIC_ADD(ptr, v)	_InterlockedExchangeAdd64(ptr, v)
+#define ATOMIC_SUB(ptr, v)	ATOMIC_ADD(ptr, -(v))
+#define ATOMIC_INC(ptr)		_Generic((*ptr), \
+					 int: _InterlockedIncrement((long*)ptr), \
+					 unsigned int: _InterlockedIncrement((long*)ptr), \
+					 size_t: _InterlockedIncrement64((__int64*)ptr), \
+					 __int64: _InterlockedIncrement64((__int64*)ptr))
+#define ATOMIC_DEC(ptr)		_Generic((*ptr), \
+					 int: _InterlockedDecrement((long*)ptr), \
+					 unsigned int: _InterlockedDecrement((long*)ptr), \
+					 size_t:  _InterlockedDecrement64((__int64*)ptr), \
+					 __int64: _InterlockedDecrement64((__int64*)ptr))
+#define ATOMIC_OR(ptr, v)	_Generic((*ptr), \
+					 unsigned short: _InterlockedOr16((short*)ptr, (short)(v)), \
+					 unsigned int: _InterlockedOr((long*)ptr, (long)(v)), \
+					 unsigned __int64: _InterlockedOr64((__int64*)ptr, (__int64)(v)))
+#define ATOMIC_AND(ptr, v)	_Generic((*ptr), \
+					 unsigned short: _InterlockedAnd16((short*)ptr, (short)(v)), \
+					 unsigned int: _InterlockedAnd((long*)ptr, (long)(v)), \
+					 unsigned __int64: _InterlockedAnd64((__int64*)ptr, (__int64)(v)))
+#else
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_INC(ptr)		ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
 #define ATOMIC_DEC(ptr)		ATOMIC_SUB(ptr, 1) /* --(*ptr) */
 #define ATOMIC_OR(ptr, v)	__atomic_fetch_or(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_AND(ptr, v)	__atomic_fetch_and(ptr, v, __ATOMIC_SEQ_CST)
+#endif
 
 #define __COMPARE_AND_SWAP(at, from, to) \
 	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
@@ -157,39 +192,85 @@ __atomic_load_n(size_t *ptr, int memorder)
 
 static inline int
 COMPARE_AND_SWAP_PTR(void *at, void *from, void *to)
-{ void **ptr = at;
-
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, (long)to, (long)from) == (long)from;
+# else
+  return _InterlockedCompareExchange64(at, (int64_t)to, (int64_t)from) == (int64_t)from;
+#endif
+#else
+  void **ptr = at;
   return __COMPARE_AND_SWAP(ptr, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_INT64(int64_t *at, int64_t from, int64_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_UINT64(uint64_t *at, uint64_t from, uint64_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+  return _InterlockedCompareExchange64((int64_t *)at, (int64_t)to, (int64_t)from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_INT(int *at, int from, int to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER /* sizeof(int) == sizeof(long) */
+  return _InterlockedCompareExchange(at, to, from) == from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_UINT(unsigned int *at, unsigned int from, unsigned int to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER /* sizeof(int) == sizeof(long) */
+  return _InterlockedCompareExchange((long*)at, (long)to, (long)from) == (long)from;
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_SIZE(size_t *at, size_t from, size_t to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, to, from) == from;
+# else
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#endif
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 static inline int
 COMPARE_AND_SWAP_WORD(word *at, word from, word to)
-{ return __COMPARE_AND_SWAP(at, from, to);
+{
+#ifdef _MSC_VER
+# if SIZEOF_VOIDP == 4
+  return _InterlockedCompareExchange(at, to, from) == from;
+# else
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#endif
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
 }
 
 #else
@@ -251,6 +332,17 @@ MSB64(int64_t i)
 #define MEMORY_BARRIER() (void)0
 #define MEMORY_ACQUIRE() (void)0
 #define MEMORY_RELEASE() (void)0
+#endif
+
+#ifndef max
+#define max(x,y) ( \
+	{ __auto_type __x = (x); __auto_type __y = (y); \
+          __x > __y ? __x : __y; \
+	})
+#define min(x,y) ( \
+	{ __auto_type __x = (x); __auto_type __y = (y); \
+          __x < __y ? __x : __y; \
+	})
 #endif
 
 		 /*******************************
@@ -510,11 +602,14 @@ linkValI(DECL_LD Word p)
 #define is_signalled(_) LDFUNC(is_signalled, _)
 static inline int
 is_signalled(DECL_LD)
-{ if (!HAS_LD) return FALSE;
-  for (int i = 0; i < SIGMASK_WORDS; i++)
-  { if (unlikely(LD->signal.pending[i] != 0)) return TRUE;
+{ sigmask_t msk = 0;
+
+  if ( HAS_LD )
+  { for (int i = 0; i < SIGMASK_WORDS; i++)
+      msk |= LD->signal.pending[i];
   }
-  return FALSE;
+
+  return !!msk;
 }
 
 #define register_attvar(gp) LDFUNC(register_attvar, gp)
@@ -551,7 +646,7 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
     return TRUE;
 
   if ( unlikely(LD->transaction.gen_base && gen >= LD->transaction.gen_base) &&
-       true(cl->predicate, P_DYNAMIC) )
+       true(cl->predicate, P_TRANSACT) )
     return transaction_visible_clause(cl, gen);
 
   return FALSE;
@@ -574,7 +669,7 @@ global_generation(void)
 #define current_generation(def) LDFUNC(current_generation, def)
 static inline gen_t
 current_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { return LD->transaction.generation;
   } else
   { return GD->_generation;
@@ -584,7 +679,7 @@ current_generation(DECL_LD Definition def)
 #define next_generation(def) LDFUNC(next_generation, def)
 static inline gen_t
 next_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
       return ++LD->transaction.generation;
     return 0;
@@ -602,7 +697,7 @@ next_generation(DECL_LD Definition def)
 #define max_generation(def) LDFUNC(max_generation, def)
 static inline gen_t
 max_generation(DECL_LD Definition def)
-{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
     return LD->transaction.gen_max;
   else
     return GEN_MAX;
@@ -623,7 +718,7 @@ generation is updated and thus no harm is done.
 static inline void
 setGenerationFrame(DECL_LD LocalFrame fr)
 { if ( unlikely(LD->transaction.generation &&
-		true(fr->predicate, P_DYNAMIC)) )
+		true(fr->predicate, P_TRANSACT)) )
   { setGenerationFrameVal(fr, LD->transaction.generation);
   } else
   { gen_t gen;

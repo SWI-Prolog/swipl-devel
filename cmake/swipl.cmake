@@ -7,22 +7,29 @@
 #     `<prefix>/lib/cmake/swipl/SWIPLTargets.cmake` which is created
 #     by the SWI-Prolog build.  Else it is assembled here from the
 #     environment variables that are provided by pack_install/1.
+#
 #   - If figures out whether modules need to be linked against
 #     libswipl.so.  Notably on ELF platforms this is not needed,
 #     which implies the module remains independent from the exact
 #     Prolog version.
+#
 #   - It provides a function target_link_swipl(target) that uses
 #     the above to either add `swipl::libswipl` to your target,
 #     or, if linking is not needed, only the include directories.
+#
+#   - It provides a function swipl_add_test(name) that runs a
+#     test file from test/test_${name}.pl
 
 if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
   set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
   set(swipl_version    $ENV{SWIPL_VERSION})
   set(swipl_module_lib $ENV{SWIPL_MODULE_LIB})
-elif($ENV{SWIHOME})		# Pack version 1
+  set(swipl_module_dir $ENV{SWIPL_MODULE_DIR})
+elseif($ENV{SWIHOME})		# Pack version 1
   set(swipl_home_dir   $ENV{SWIHOME})
   set(swipl_version    $ENV{SWIPLVERSION})
   set(swipl_module_lib $ENV{SWISOLIB})
+  set(swipl_module_dir $ENV{PACKSODIR})
 else()				# Outside pack_install
   function(swipl_config)
     find_program(SWIPL swipl REQUIRED)
@@ -40,10 +47,11 @@ else()				# Outside pack_install
   set(swipl_home_dir   ${PLBASE})
   set(swipl_version    ${PLVERSION})
   if(CMAKE_EXECUTABLE_FORMAT MATCHES ELF)
-    set(swipl_module_lib})
+    set(swipl_module_lib)
   else()
-    set(swipl_module_lib ${PLLIB)
+    set(swipl_module_lib ${PLLIB})
   endif()
+  set(swipl_module_dir lib/${PLARCH})
 endif()
 
 math(EXPR swipl_version_major "${swipl_version} / 10000")
@@ -107,6 +115,16 @@ function(target_link_swipl target)
   endif()
   set_target_properties(${target} PROPERTIES
     OUTPUT_NAME ${target} PREFIX "")
+endfunction()
+
+function(swipl_add_test name)
+  add_test(NAME ${name}
+	   COMMAND ${SWIPL} -p foreign=${CMAKE_CURRENT_SOURCE_DIR}/${swipl_module_dir}
+	                    -p library=${CMAKE_CURRENT_SOURCE_DIR}/prolog
+			    --on-error=status
+			    -g test_${name}
+			    -t halt
+	                    ${CMAKE_CURRENT_SOURCE_DIR}/test/test_${name}.pl)
 endfunction()
 
 # Avoid message on unused variable

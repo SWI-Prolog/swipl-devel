@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2021, University of Amsterdam
+    Copyright (c)  2005-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -43,7 +43,7 @@
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
           ]).
-:- autoload(library(debug),[debugging/1,debug/3]).
+:- use_module(library(debug),[debugging/1,debug/3]).
 :- autoload(library(listing),[portray_clause/1]).
 :- autoload(library(lists),[append/3]).
 :- autoload(library(occurs),[sub_term/2]).
@@ -340,14 +340,12 @@ unify_clause(:<-(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
     pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
                                         % Unit test clauses
-unify_clause((TH :- Body),
-             (_:'unit body'(_, _) :- !, Body), _,
-             TP0, TP) :-
-    (   TH = test(_,_)
-    ;   TH = test(_)
-    ),
+unify_clause((TH :- RBody), (CH :- !, CBody), Module, TP0, TP) :-
+    plunit_source_head(TH),
+    plunit_compiled_head(CH),
     !,
-    TP0 = term_position(F,T,FF,FT,[HP,BP]),
+    TP0 = term_position(F,T,FF,FT,[HP,BP0]),
+    ubody(RBody, CBody, Module, BP0, BP),
     TP  = term_position(F,T,FF,FT,[HP,term_position(0,0,0,0,[FF-FT,BP])]).
                                         % module:head :- body
 unify_clause((Head :- Read),
@@ -437,6 +435,14 @@ unify_clause_head(H1, H2) :-
     strip_module(H1, _, H),
     strip_module(H2, _, H).
 
+plunit_source_head(test(_,_)) => true.
+plunit_source_head(test(_)) => true.
+plunit_source_head(_) => fail.
+
+plunit_compiled_head(_:'unit body'(_, _)) => true.
+plunit_compiled_head('unit body'(_, _)) => true.
+plunit_compiled_head(_) => fail.
+
 %!  inlined_unification(+BodyRead, +BodyCompiled,
 %!                      -BodyReadOut, -BodyCompiledOut,
 %!                      +HeadRead,
@@ -461,7 +467,7 @@ inlined_unification((V=T,RBody0), CBody0,
                     RBody, CBody, RHead, BPos1, BPos),
     inlineable_head_var(RHead, V2),
     V == V2,
-    \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
+    \+ (CBody0 = (G1,_), G1 =@= (V=T)) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=_), true,
@@ -588,10 +594,10 @@ a --> { x, y, z }.
 
 %!  ubody(+Read, +Decompiled, +Module, +TermPosRead, -TermPosForDecompiled)
 %
-%   @param Read             Clause read _after_ expand_term/2
-%   @param Decompiled       Decompiled clause
-%   @param Module           Load module
-%   @param TermPosRead      Sub-term positions of source
+%   @arg Read             Clause read _after_ expand_term/2
+%   @arg Decompiled       Decompiled clause
+%   @arg Module           Load module
+%   @arg TermPosRead      Sub-term positions of source
 
 ubody(B, DB, _, P, P) :-
     var(P),                        % TBD: Create compatible pos term?

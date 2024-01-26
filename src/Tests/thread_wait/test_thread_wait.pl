@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
-                         VU University Amsterdam
-		CWI, Amsterdam
+    Copyright (c)  2020-2023, University of Amsterdam
+                              VU University Amsterdam
+                              CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -77,7 +78,10 @@ cleanup :-
 if_safe :-
    getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y).
 
-test(signal, exception(time_limit_exceeded)) :-
+test(signal,
+     [ timeout(0),
+       exception(time_limit_exceeded)
+     ]) :-
     call_with_time_limit(
         0.05,
         thread_wait(fail,
@@ -87,21 +91,23 @@ test(signal, exception(time_limit_exceeded)) :-
 test(wakeall, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
     +thread_wait(p, []).
-test(wakep, cleanup(cleanup)) :-
+test(wakeup, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
     +thread_wait(p, [wait_preds([p/0])]).
-test(wakep, cleanup(cleanup)) :-
+test(wakeup, cleanup(cleanup)) :-
     assert(p),
     +thread_wait(p, [wait_preds([p/0])]).
-test(nowakep,
-     [ exception(time_limit_exceeded),
+test(nowakeup,
+     [ timeout(0),
+       exception(time_limit_exceeded),
        cleanup(cleanup),
        condition(if_safe)
      ]) :-
     do_later(0.05, assert(p)),
     0.2+thread_wait(p, [retry_every(0.3),wait_preds([-(p/0)])]).
 test(nowakep,
-     [ exception(time_limit_exceeded),
+     [ timeout(0),
+       exception(time_limit_exceeded),
        cleanup(cleanup),
        condition(if_safe)
      ]) :-

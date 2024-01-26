@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam,
+    Copyright (c)  1985-2023, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -54,13 +54,7 @@
 #endif
 
 #if O_GMP
-# ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
-# pragma warning( disable : 4146 )
-# endif
 #include <gmp.h>
-# ifdef _MSC_VER
-# pragma warning( default : 4146 )
-# endif
 #elif O_BF
 #include "libbf/bf_gmp_types.h"
 #endif
@@ -95,6 +89,10 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
+#if defined(O_PLMT) && !defined(O_ENGINES)
+#define O_ENGINES		1
+#endif
+
 #include "SWI-Prolog.h"
 
 /* Our definition of _PL_get_arg appears in pl-fli.h */
@@ -115,14 +113,16 @@
 #define COMMON(type) type
 
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(PEDANTIC)
-#define O_EMPY_STRUCTS 1
+#define O_EMPTY_STRUCTS 1
 #endif
 
 #include "pl-macros.h"
 
 /* C11 gives us the _Static_assert operator, let's make it a little nicer.
  * Accept either static_assert(cond, "message") or static_assertion(cond). */
+#ifndef _MSC_VER
 #define static_assert(condition, message) _Static_assert(condition, message)
+#endif
 #define static_assertion(condition) _Static_assert(condition, "Assertion failed: ("#condition") [expansion: " A_STRINGIFY(condition) "]")
 
 #include "pl-builtin.h"
@@ -170,8 +170,9 @@ handy for it someone wants to add a data type to the system.
       Use `logical' update-view for dynamic predicates rather then the
       `immediate' update-view of older Prolog systems.
   O_PLMT
-      Include support for multi-threading. Too much of the system relies
-      on this now, so it cannot be disabled without significant work.
+      Include support for multi-threading.
+  O_ENGINES
+      Include support for multiple engines.  This is implied by O_PLMT
   O_LARGEFILES
       Supports files >2GB on 32-bit systems (if the OS provides it).
   O_ATTVAR
@@ -239,12 +240,6 @@ handy for it someone wants to add a data type to the system.
 #endif
 #ifndef O_RATIONAL_SYNTAX
 #define O_RATIONAL_SYNTAX	RAT_COMPAT
-#endif
-
-#if defined(O_PLMT)
-#if defined(O_SIGPROF_PROFILE) || defined(__WINDOWS__)
-#define O_PROFILE		1
-#endif
 #endif
 
 /* Define either or none of O_DYNAMIC_EXTENSIONS and O_STATIC_EXTENSIONS */
@@ -1005,6 +1000,7 @@ with one operation, it turns out to be faster as well.
 #define FILE_ASSIGNED		(0x40000000LL) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000LL) /* Overrules a definition */
 #define P_SIG_ATOMIC	      (0x0100000000LL) /* Do not call handleSignals */
+#define P_TRANSACT	      (0x0200000000LL) /* Subject to transactions */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
 				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
@@ -1545,7 +1541,7 @@ typedef struct
   code		merge_av[1];	/* Argument vector */
 } vmi_merge;
 
-#if O_EMPY_STRUCTS
+#if O_EMPTY_STRUCTS
 #define VM_ARGC 4
 #define VM_ARGTYPES(ci) (ci)->_argtype
 #define VM_ARTYPE_PREFIX
@@ -1829,10 +1825,24 @@ struct queryFrame
 
 #define FLI_MAGIC		82649821
 #define FLI_MAGIC_CLOSED	42424242
+#ifdef O_DEBUG
+#define FLI_SET_VALID(fr)	((fr)->magic = FLI_MAGIC)
+#define FLI_SET_CLOSED(fr)	((fr)->magic = FLI_MAGIC_CLOSED)
+#define FLI_VALID(fr)		((fr)->magic == FLI_MAGIC)
+#define FLI_ASSERT_VALID(fr)	assert(FLI_VALID(fr))
+#else
+#define FLI_SET_VALID(fr)	(void)0
+#define FLI_SET_CLOSED(fr)	(void)0
+#define FLI_VALID(fr)		(1)
+#define FLI_ASSERT_VALID(fr)	(void)0
+#endif
 
 struct fliFrame
-{ int		magic;			/* Magic code */
-  int		size;			/* # slots on it */
+{
+#ifdef O_DEBUG
+  int		magic;			/* Magic code */
+#endif
+  size_t	size;			/* # slots on it */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
 };
@@ -1901,7 +1911,7 @@ typedef struct p_reload
   gen_t		generation;		/* generation we update */
   ClauseRef	current_clause;		/* currently reloading clause */
   arg_info     *args;			/* Meta info on arguments */
-  unsigned	flags;			/* new flags (P_DYNAMIC, etc.) */
+  uint64_t	flags;			/* new flags (P_DYNAMIC, etc.) */
   unsigned	number_of_clauses;	/* Number of clauses we've seen */
 } p_reload;
 
@@ -2159,7 +2169,7 @@ typedef struct
 { handler_t   saved_handler;		/* Original handler */
   handler_t   handler;			/* User signal handler */
   predicate_t predicate;		/* Prolog handler */
-  int	      flags;			/* PLSIG_*, defined in pl-setup.c */
+  unsigned int flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
 
 /* Declare numbers for the virtual signals, in their own domain. For now, these
@@ -2187,7 +2197,7 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 #define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+VSIG_ATOM_GC)
 #endif
 #define SIG_GC		  (SIG_PROLOG_OFFSET+VSIG_GC)
-#ifdef O_PLMT
+#ifdef O_ENGINES
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+VSIG_THREAD_SIGNAL)
 #endif
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+VSIG_CLAUSE_GC)
@@ -2289,6 +2299,17 @@ stack guarding when compiling with the address sanitizer.
 #define CMP_GREATER   1			/* > */
 #define CMP_NOTEQ     2			/* \== */
 
+/* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */
+#ifdef _MSC_VER
+#define SCALAR_TO_CMP(a,b) (((a) > (b)) - ((a) < (b)))
+#else
+#define SCALAR_TO_CMP(a,b) ( \
+	{ __auto_type __a = (a); __auto_type __b = (b);	\
+	  (__a > __b) - (__a < __b);			\
+	})
+#endif
+
+
 		/********************************
 		*             STACKS            *
 		*********************************/
@@ -2385,6 +2406,7 @@ typedef struct
 #define	ARGUMENT_OVERFLOW (-4)
 #define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
 #define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
+#define CHECK_INTERRUPT   (-7)		/* Procedure was signalled */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
@@ -2417,6 +2439,8 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define hasStackSpace(g, t) \
 	(likely(gTop+(g)+BIND_GLOBAL_SPACE <= gMax) && \
 	 likely(tTop+(t)+BIND_TRAIL_SPACE <= tMax))
+#define hasTrailSpace(t) \
+	likely(tTop+(t) <= tMax)
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
@@ -2471,7 +2495,7 @@ typedef struct
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */
   Stack		outofstack;		/* Stack we are out of */
-  int		flags;			/* WAKEUP_STATE_* */
+  unsigned int	flags;			/* WAKEUP_STATE_* */
 } wakeup_state;
 
 
@@ -2558,11 +2582,9 @@ typedef struct
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
-#define PROCEDURE_setup_call_catcher_cleanup4 \
-				(GD->procedures.setup_call_catcher_cleanup4)
 #define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
 #define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
-#define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)
+#define PROCEDURE_exception_hook5	(GD->procedures.exception_hook5)
 #define PROCEDURE_dc_call_prolog	(GD->procedures.dc_call_prolog0)
 #define PROCEDURE_dinit_goal		(GD->procedures.dinit_goal3)
 #define PROCEDURE_tune_gc3		(GD->procedures.tune_gc3)
@@ -2658,6 +2680,10 @@ typedef struct internaldebuginfo
 #define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
+/* Note: the FF_* flags are defines in SWI-Prolog.h using mask
+ * 0xf000
+ */
+
 typedef enum plflag
 { PLFLAG_CHARESCAPE = 1,		/* handle \ in atoms */
   PLFLAG_CHARESCAPE_UNICODE,		/* Write escape as \uXXXX */
@@ -2748,7 +2774,7 @@ typedef enum
 #define CACHED_DICT_FUNCTORS 128	/* Max size of dict to cache */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Administration of loaded intermediate code files  (see  pl-wic.c).  Used
+Administration of loaded intermediate code files  (see  pl-qlf.c).  Used
 with the -c option to include all these if necessary.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

@@ -215,7 +215,7 @@ positive_integer(N) :-
 This illustrates why the performance of CLP(FD) constraints is almost
 always completely satisfactory when they are used in modes that can be
 handled by low-level arithmetic. To disable the automatic rewriting,
-set the Prolog flag `clpfd_goal_expansion` to `false`.
+set the Prolog flag `optimise_clpfd` to `false`.
 
 If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)

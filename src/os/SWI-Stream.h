@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -50,24 +50,25 @@
 #endif
 #endif
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#ifdef _MSC_VER
-typedef __int64 int64_t;
-#if (_MSC_VER < 1300)
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-typedef intptr_t ssize_t;		/* signed version of size_t */
-#else
-#include <unistd.h>
 #include <inttypes.h>			/* more portable than stdint.h */
+
+#ifdef _MSC_VER
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+typedef intptr_t ssize_t;
+typedef uintptr_t size_t;
 #endif
 
 #ifdef __cplusplus
@@ -88,13 +89,16 @@ stuff.
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define HAVE_DECLSPEC
+#else
+#if !defined(HAVE_VISIBILITY_ATTRIBUTE) && (__GNUC__ >= 4 || defined(__clang__))
+#define HAVE_VISIBILITY_ATTRIBUTE 1
+#endif
 #endif
 
 #ifdef HAVE_DECLSPEC
 # ifdef PL_KERNEL
 #define PL_EXPORT(type)		__declspec(dllexport) extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllexport) extern type
-#define install_t		void
 # else
 #  ifdef __BORLANDC__
 #define PL_EXPORT(type)		type _stdcall
@@ -118,7 +122,11 @@ stuff.
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
 # endif
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define install_t		__attribute__((visibility("default"))) void
+#else
 #define install_t		void
+#endif
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
@@ -158,6 +166,10 @@ typedef struct recursiveMutex IOLOCK;
 #ifndef PL_HAVE_TERM_T
 #define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
+#endif
+#ifndef PL_HAVE_ATOM_T
+#define PL_HAVE_ATOM_T
+typedef uintptr_t	atom_t;		/* opaque handle to an atom */
 #endif
 
 typedef struct io_functions
@@ -284,6 +296,11 @@ PL_EXPORT_DATA(int)		Slinesize;		/* Sgets() linesize */
 PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #endif
 
+/* WARNING: Sinput, Soutput, Serror use the OS's files directly.
+            If you wish to use Prolog's streams, use Suser_input,
+            Scurrent_output, etc. in SWI-Prolog.h
+*/
+
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
 #define Soutput (&S__iob[1])		/* Stream Soutput */
 #define Serror  (&S__iob[2])		/* Stream Serror */
@@ -378,8 +395,18 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
-#define SfprintfX Sfprintf	/* forward compatibility */
-#define SdprintfX Sdprintf	/* forward compatibility */
+#if !defined(WPRINTF12)
+/* these macros are duplicated in SWI-Prolog.h */
+#if defined(CHECK_FORMAT)
+#define WPRINTF12  __attribute__ ((format (printf, 1, 2)))
+#define WPRINTF23  __attribute__ ((format (printf, 2, 3)))
+#define WPRINTF34  __attribute__ ((format (printf, 3, 4)))
+#else
+#define WPRINTF12
+#define WPRINTF23
+#define WPRINTF34
+#endif
+#endif
 
 PL_EXPORT(void)		SinitStreams(void);
 PL_EXPORT(void)		Scleanup(void);
@@ -427,16 +454,19 @@ PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
 PL_EXPORT(size_t)	Spending(IOSTREAM *s);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
-PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);
-PL_EXPORT(int)		Sprintf(const char *fm, ...);
+PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...) WPRINTF23;
+PL_EXPORT(int)		SfprintfX(IOSTREAM *s, const char *fm, ...);
+PL_EXPORT(int)		Sprintf(const char *fm, ...) WPRINTF12;
 PL_EXPORT(int)		Svprintf(const char *fm, va_list args);
 PL_EXPORT(int)		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
-PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...);
-PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...);
+PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...) WPRINTF23;
+PL_EXPORT(int)		Ssnprintf(char *buf, size_t size, const char *fm, ...) WPRINTF34;
+PL_EXPORT(int)		SsnprintfX(char *buf, size_t size, const char *fm, ...);
 PL_EXPORT(int)		Svsprintf(char *buf, const char *fm, va_list args);
 PL_EXPORT(int)		Svsnprintf(char *buf, size_t size, const char *fm, va_list args);
 PL_EXPORT(int)		Svdprintf(const char *fm, va_list args);
-PL_EXPORT(int)		Sdprintf(const char *fm, ...);
+PL_EXPORT(int)		Sdprintf(const char *fm, ...) WPRINTF12;
+PL_EXPORT(int)		SdprintfX(const char *fm, ...);
 PL_EXPORT(int)		Slock(IOSTREAM *s);
 PL_EXPORT(int)		StryLock(IOSTREAM *s);
 PL_EXPORT(int)		Sunlock(IOSTREAM *s);
@@ -446,6 +476,9 @@ PL_EXPORT(IOSTREAM *)	Sopen_iri_or_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
 #ifdef __WINDOWS__
+PL_EXPORT(int)		Swin_open_osfhandle(HANDLE h, int flags);
+PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
+PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
 #if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
 PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
 #endif
@@ -468,6 +501,19 @@ PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
 PL_EXPORT(IOENC)	PL_atom_to_encoding(atom_t name);
 PL_EXPORT(atom_t)	PL_encoding_to_atom(IOENC enc);
 #endif
+
+PL_EXPORT(int)		PL_qlf_get_int64(IOSTREAM *s, int64_t *ip);
+PL_EXPORT(int)		PL_qlf_get_int32(IOSTREAM *s, int32_t *ip);
+PL_EXPORT(int)		PL_qlf_get_uint32(IOSTREAM *s, uint32_t *ip);
+PL_EXPORT(int)		PL_qlf_get_double(IOSTREAM *s, double *fp);
+PL_EXPORT(int)		PL_qlf_get_atom(IOSTREAM *s, atom_t *a);
+
+PL_EXPORT(int)		PL_qlf_put_int64(int64_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_int32(int32_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_uint32(uint32_t i, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_double(double f, IOSTREAM *s);
+PL_EXPORT(int)		PL_qlf_put_atom(atom_t a, IOSTREAM *s);
+
 
 #ifdef __cplusplus
 }

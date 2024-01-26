@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c) 2010-2013, University of Amsterdam,
+    Copyright (c) 2010-2023, University of Amsterdam,
                              VU University
+                             SWI-Prolog Solutions b.v.
     Amsterdam All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -46,11 +47,14 @@
             git_branches/2,             % -Branches, +Options
             git_remote_branches/2,      % +GitURL, -Branches
             git_default_branch/2,       % -DefaultBranch, +Options
+            git_current_branch/2,       % -CurrentBranch, +Options
+            git_tags/2,                 % -Tags, +Options
             git_tags_on_branch/3,       % +Dir, +Branch, -Tags
             git_shortlog/3,             % +Dir, -Shortlog, +Options
             git_log_data/3,             % +Field, +Record, -Value
             git_show/4,                 % +Dir, +Hash, -Commit, +Options
-            git_commit_data/3           % +Field, +Record, -Value
+            git_commit_data/3,          % +Field, +Record, -Value
+            is_git_hash/1               % +Atom
           ]).
 :- use_module(library(record),[(record)/1,current_record/2, op(_,_,record)]).
 
@@ -101,7 +105,8 @@ into the core Prolog library to support the Prolog package manager.
                      ]).
 :- predicate_options(git_hash/2, 2,
                      [ commit(atom),
-                       directory(atom)
+                       directory(atom),
+                       pass_to(git_process_output/3, 3)
                      ]).
 :- predicate_options(git_ls_tree/2, 2,
                      [ commit(atom),
@@ -110,7 +115,8 @@ into the core Prolog library to support the Prolog package manager.
 :- predicate_options(git_process_output/3, 3,
                      [ directory(atom),
                        askpass(any),
-                       error(-codes)
+                       error(-codes),
+                       status(-integer)
                      ]).
 :- predicate_options(git_remote_url/3, 3,
                      [ pass_to(git_process_output/3, 3)
@@ -258,7 +264,9 @@ git_process_output(Argv, OnOutput, Options) :-
             git_wait(PID, Out, Status)),
         close_streams([Out,Error])),
     print_error(ErrorCodes, Options),
-    (   Status = exit(0)
+    (   option(status(Status), Options)
+    ->  true
+    ;   Status = exit(0)
     ->  true
     ;   throw(error(process_error(git, Status)))
     ).
@@ -439,6 +447,20 @@ read_hash(Hash, Stream) :-
     atom_codes(Hash, Line).
 
 
+%!  is_git_hash(+Atom) is semidet.
+%
+%   True when Atom represents a GIT hash,   i.e., a 40 digit hexadecimal
+%   string.
+
+is_git_hash(Atom) :-
+    atom_length(Atom, 40),
+    atom_codes(Atom, Codes),
+    maplist(is_hex, Codes),
+    !.
+
+is_hex(Code) :-
+    code_type(Code, xdigit(_)).
+
 %!  git_ls_tree(-Entries, +Options) is det.
 %
 %   True  when  Entries  is  a  list  of  entries  in  the  the  GIT
@@ -569,23 +591,71 @@ git_remote_branches(GitURL, Branches) :-
 
 %!  git_default_branch(-BranchName, +Options) is det.
 %
-%   True when BranchName is the default branch of a repository.
+%   True when BranchName is the default branch  of a repository. This is
+%   hard  to  define.  If   possible,    we   perform  ``rev-parse``  on
+%   ``origin/HEAD``. If not, we look  at   branches  shared  between the
+%   local and remote and select `main` or   `master` or the first common
+%   breach.  Options:
+%
+%     - remote(+Remote)
+%       Remote used to detect the default branch.   Default is `origin`.
 
 git_default_branch(BranchName, Options) :-
-    git_process_output([branch],
+    option(remote(Remote), Options, origin),
+    atomic_list_concat([Remote, 'HEAD'], '/', HeadRef),
+    git_process_output(['rev-parse', '--abbrev-ref', HeadRef],
                        read_default_branch(BranchName),
-                       Options).
+                       [ error(_),
+                         status(Status)
+                       | Options
+                       ]),
+    Status == exit(0),
+    !.
+git_default_branch(BranchName, Options) :-
+    option(remote(Remote), Options, origin),
+    git_branches(MyBranches, []),
+    git_branches(RemoteBranches, [remote(true)]),
+    (   preferred_default_branch(BranchName),
+        shared_branch(Remote, MyBranches, RemoteBranches, BranchName)
+    ->  true
+    ;   shared_branch(Remote, MyBranches, RemoteBranches, BranchName)
+    ->  true
+    ).
+
+preferred_default_branch(main).
+preferred_default_branch(master).
+
+shared_branch(Remote, MyBranches, RemoteBranches, BranchName) :-
+    member(BranchName, MyBranches),
+    atomic_list_concat([Remote, BranchName], '/', Orig),
+    memberchk(Orig, RemoteBranches).
 
 read_default_branch(BranchName, In) :-
+    read_line_to_string(In, Result),
+    split_string(Result, "/", "", [_Origin,BranchString]),
+    atom_string(BranchName, BranchString).
+
+%!  git_default_branch(-BranchName, +Options) is semidet.
+%
+%   True when BranchName is the current branch of a repository.  Fails
+%   if the repo HEAD is detached
+
+git_current_branch(BranchName, Options) :-
+    git_process_output([branch],
+                       read_current_branch(BranchName),
+                       Options).
+
+read_current_branch(BranchName, In) :-
     repeat,
         read_line_to_codes(In, Line),
         (   Line == end_of_file
         ->  !, fail
-        ;   phrase(default_branch(Codes), Line)
-        ->  !, atom_codes(BranchName, Codes)
+        ;   phrase(current_branch(Codes), Line)
+        ->  !, atom_codes(BranchName, Codes),
+            \+ sub_atom(BranchName, _, _, _, '(HEAD detached')
         ).
 
-default_branch(Rest) -->
+current_branch(Rest) -->
     "*", whites, string(Rest).
 
 %!  git_branches(-Branches, +Options) is det.
@@ -594,11 +664,15 @@ default_branch(Rest) -->
 %   In addition to the usual options, this processes:
 %
 %     - contains(Commit)
-%     Return only branches that contain Commit.
+%       Return only branches that contain Commit.
+%     - remote(true)
+%       Return remote branches
 
 git_branches(Branches, Options) :-
     (   select_option(commit(Commit), Options, GitOptions)
     ->  Extra = ['--contains', Commit]
+    ;   select_option(remote(true), Options, GitOptions)
+    ->  Extra = ['-r']
     ;   Extra = [],
         GitOptions = Options
     ),
@@ -612,10 +686,31 @@ read_branches(Branches, In) :-
     ->  Branches = []
     ;   Line = [_,_|Codes],
         atom_codes(H, Codes),
-        Branches = [H|T],
+        (   sub_atom(H, _, _, _, '(HEAD detached at')
+        ->  Branches = T
+        ;   Branches = [H|T]
+        ),
         read_branches(T, In)
     ).
 
+
+%!  git_tags(-Tags, +Options) is det.
+%
+%   True when Tags is a list of git tags defined on the repository.
+
+git_tags(Tags, Options) :-
+    git_process_output([tag],
+                       read_lines_to_atoms(Tags),
+                       Options).
+
+read_lines_to_atoms(Atoms, In) :-
+    read_line_to_string(In, Line),
+    (   Line == end_of_file
+    ->  Atoms = []
+    ;   atom_string(Atom, Line),
+        Atoms = [Atom|T],
+        read_lines_to_atoms(T, In)
+    ).
 
 %!  git_tags_on_branch(+Dir, +Branch, -Tags) is det.
 %

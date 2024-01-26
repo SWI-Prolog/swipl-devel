@@ -645,21 +645,42 @@ shared libraries (\fileext{so} or \fileext{DLL} files).  See also
 use_foreign_library/1.
 
 \begin{code}
-user:file_search_path(library, X) :-
-    library_directory(X).
+user:(file_search_path(library, Dir) :-
+	library_directory(Dir)).
 user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
+user:file_search_path(swi, Home) :-
+    current_prolog_flag(shared_home, Home).
+user:file_search_path(library, app_config(lib)).
+user:file_search_path(library, swi(library)).
+user:file_search_path(library, swi(library/clp)).
 user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(apple_universal_binary, true),
+    ArchLib = 'lib/fat-darwin'.
+user:file_search_path(foreign, swi(ArchLib)) :-
+    \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(lib)).
+user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([lib, Arch], /, ArchLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    current_prolog_flag(msys2, true),
+    current_prolog_flag(arch, Arch),
+    atomic_list_concat([bin, Arch], /, SoLib).
+user:file_search_path(foreign, swi(SoLib)) :-
+    (   current_prolog_flag(windows, true)
+    ->  SoLib = bin
+    ;   SoLib = lib
+    ).
 user:file_search_path(path, Dir) :-
     getenv('PATH', Path),
     (   current_prolog_flag(windows, true)
     ->  atomic_list_concat(Dirs, (;), Path)
     ;   atomic_list_concat(Dirs, :, Path)
     ),
-    member(Dir, Dirs).
+    '$member'(Dir, Dirs).
 user:file_search_path(user_app_data, Dir) :-
     '$xdg_prolog_directory'(data, Dir).
 user:file_search_path(common_app_data, Dir) :-
@@ -672,6 +693,8 @@ user:file_search_path(app_data, user_app_data('.')).
 user:file_search_path(app_data, common_app_data('.')).
 user:file_search_path(app_config, user_app_config('.')).
 user:file_search_path(app_config, common_app_config('.')).
+user:file_search_path(app, swi(app)).
+user:file_search_path(app, app_data(app)).
 \end{code}
 
 \index{XDG,directories}%
@@ -1920,10 +1943,13 @@ so-called ``standard order''. This order is defined as follows:
     \item $\arg{Variables} < \arg{Numbers} < \arg{Strings} < \arg{Atoms}
           < \arg{Compound Terms}$
     \item Variables are sorted by address.
-    \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
-	  as floats. If the comparison is equal, the float is considered
-	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
-	  all floating point numbers precede all integers.
+    \item \arg{Numbers} are compared by value.  Mixed rational/float
+          are compared using \funcref{cmpr}{2}.\footnote{Up to 9.1.4,
+	  comparison was done as float.} NaN is considered smaller
+	  than all numbers, including \exam{-inf}.  If the comparison is equal,
+	  the float is considered the smaller value. If the Prolog flag
+	  \prologflag{iso} is defined, all floating point numbers precede all
+	  rationals.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Compound} terms are first checked on their arity, then
@@ -1964,6 +1990,42 @@ The above implies you \emph{can} use e.g., an assoc (from library
 a set of variables. You must be careful about what you do with the
 attributes though. In many cases it is more robust to use attributes to
 register information about variables.
+
+Note that the standard order is not well defined on
+\jargon{rational trees}, also known as \jargon{cyclic terms}. This
+\href{https://swi-prolog.discourse.group/t/how-to-compare-3-without-surprises-on-non-ground-terms/6386/42=jan}{issue
+was identified} by Mats Carlsson, quoted below. See also
+\href{https://github.com/SWI-Prolog/swipl-devel/issues/1162}{issue\#1162
+on GitHub}.
+
+
+\begin{quote}
+Consider the terms \arg{A} and \arg{B} defined by the equations
+
+\begin{code}
+[1] A = s(B,0).
+[2] B = s(A,1).
+\end{code}
+
+\begin{itemize}
+\item
+Clearly, \arg{A} and \arg{B} are not identical, so either
+\exam{A @< B} or \exam{A @> B} must hold.
+
+\item
+Assume \exam{A @< B}.  But then, \exam{s(A,1) @> s(B,0)} i.e.,
+\exam{B @< A}. Contradicton.
+
+\item
+Assume \exam{A @> B}.  But then, \exam{s(A,1) @< s(B,0)} i.e.,
+\exam{B @< A}. Contradicton.
+\end{itemize}
+\end{quote}
+
+
+
+
+
 
 \begin{description}
     \infixop[ISO]{==}{@Term1}{@Term2}
@@ -2317,7 +2379,13 @@ binding $X$.
 \prefixop[ISO]{\+}{:Goal}
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
-indicate negation in Prolog).
+  indicate negation in Prolog).  In contrast to the ISO standard, but
+  compatible with several other Prolog systems, SWI-Prolog implements
+  \predref{\+}{1} as a \jargon{control structure}.  This implies that
+  its argument is compiled as part of the enclosing clause and possible
+  variables in goal positions are translated to call/1.  As a result,
+  if such a variable is at runtime bound to a (\predref{!}{0}), the
+  cut is scoped to the call/1 call rather than the enclosing \predref{\+}{1}.
 
 Many Prolog implementations (including SWI-Prolog) provide not/1. The
 not/1 alternative is deprecated due to its strong link to logical
@@ -2579,10 +2647,6 @@ for compatibility with a number of other Prolog implementations only. Do
 not use call_cleanup/2 if you perform side-effects prior to calling that
 will be undone by \arg{Cleanup}. Instead, use setup_call_cleanup/3 with
 an appropriate first argument to perform those side-effects.
-
-    \predicate[deprecated]{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
-Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
-The same warning as for call_cleanup/2 applies.
 
     \predicate{undo}{1}{:Goal}
 Add \arg{Goal} to the \jargon{trail}. \arg{Goal} is executed as ignore/1
@@ -5186,7 +5250,8 @@ The following \arg{Options} are recognised by open/4:
 
 \begin{description}
     \termitem{alias}{Atom}
-Gives the stream a name.   Below is an example.   Be careful with this
+Gives the stream a name and unifies Stream with Atom.
+Below is an example.   Be careful with this
 option as stream names are global.  See also set_stream/2.
 
 \begin{code}
@@ -5286,6 +5351,11 @@ Set end-of-line processing for the stream. \arg{Mode} is one of
 binary streams. Using \const{detect} on an \jargon{output stream} raises
 an exception.  See also set_stream/2.
 
+    \termitem{reposition}{+Bool}
+If \const{false} (default \const{true}), drop the position tracking
+logic from the stream.  This disables the use of stream_position/3
+on this stream.
+
     \termitem{type}{Type}
 Using type \const{text} (default), Prolog will write a text file in
 an operating system compatible way. Using type \const{binary} the
@@ -5298,9 +5368,6 @@ This option can be combined with the \const{lock} option. If
 with an exception if the file is locked.  The exception has the format
 \term{permission_error}{lock, source_sink, SrcDest}.
 \end{description}
-
-The option \const{reposition} is not supported in SWI-Prolog.  All streams
-connected to a file may be repositioned.
 
     \predicate[ISO]{open}{3}{+SrcDest, +Mode, --Stream}
 Equivalent to open/4 with an empty option list.
@@ -5903,6 +5970,8 @@ by various posts to the mailinglist. It provides a flexible replacement
 for predicates such as \nopredref{sformat}{3}, swritef/3,
 term_to_atom/2, atom_number/2 converting numbers to atoms, etc. The
 predicate format/3 accepts the same terms as output argument.
+
+For capturing other streams, see with_output_to/3.
 
 Applications should generally avoid creating atoms by breaking and
 concatenating other atoms, as the creation of large numbers of
@@ -6602,7 +6671,8 @@ Write \arg{Term} to \arg{Stream}.
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate. Atoms that need quotes are quoted. Terms written with this
 predicate can be read back with read/1 provided the currently active
-operator declarations are identical.
+operator declarations are identical and Term.  Equivalent to
+\exam{write_term(Term, [quoted(true), numbervars(true)])}.
 
     \predicate[ISO]{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
@@ -6839,7 +6909,7 @@ with the term position of the tail, otherwise with the atom \const{none}.
     key-value pairs is described by \arg{KeyValuePosList}, which is a
     list of \functor{key_value_position}{7} terms. The
     \functor{key_value_position}{7} terms appear in the order of the
-    input. Because maps to not preserve ordering, the key is provided in
+    input. Because maps do not preserve ordering, the key is provided in
     the position description.
 
 	\termitem{key_value_position}{\arg{From}, \arg{To},
@@ -7068,10 +7138,10 @@ toplevel prints \verb!'$VAR'(0)! as \arg{A} due to the
 
 \begin{code}
 ?- Term = f(X,Y,X),
-   numbervars(Term, 0, End),
+   numbervars(Term, 0, End, [singleton(true)]),
    write_canonical(Term), nl.
-f('$VAR'(0),'$VAR'(1),'$VAR'(0))
-Term = f(A, B, A),
+f('$VAR'(0),'$VAR'('_'),'$VAR'(0))
+Term = f(A, _, A),
 X = A,
 Y = B,
 End = 2.
@@ -7521,7 +7591,9 @@ ISO predicate for breaking atoms.  It maintains the following relation:
 \arg{Before}, has \arg{Length} characters, and \arg{Atom} contains \arg{After}
 characters after the match. The implementation minimises non-determinism and
 creation of atoms. This is a flexible predicate that can do search, prefix- and
-suffix-matching, etc.
+suffix-matching, etc. Scenarios that use this predicate often
+generate atoms that with a short lifetime; in such cases sub_string/5 may be a
+better alternative. Examples:
 
 Pick out a sub-atom of length 3 starting a 0-based index 2:
 
@@ -7529,6 +7601,28 @@ Pick out a sub-atom of length 3 starting a 0-based index 2:
 ?- sub_atom(aaxyzbbb, 2, 3, After, SubAtom).
 After = 3,
 SubAtom = xyz.
+\end{code}
+
+The following example splits a string of the form
+<name>=<value> into the name part (an atom) and the value (a string).
+
+\begin{code}
+name_value(String, Name, Value) :-
+    sub_atom(String, Before, _, After, "="),
+    !,
+    sub_atom(String, 0, Before, _, Name),
+    sub_atom(String, _, After, 0, Value).
+\end{code}
+
+This example defines a predicate that inserts a value at a position.
+Note that sub_string/5 is used here instead of sub_atom/5 to avoid the
+overhead of creating atoms for the intermediate results.
+
+\begin{code}
+atom_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomic_list_concat([S1,Val,S2], NewStr).
 \end{code}
 
 On backtracking, matches are delivered in order left-to-right (i.e.
@@ -8496,6 +8590,20 @@ $\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
 is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
 evaluates to 0.0.  See also \funcref{copysign}{2}.
 
+    \function{cmpr}{2}{+Expr1, +Expr2}
+Exactly compares the values \arg{Expr1} and \arg{Expr2} and returns -1
+if \arg{Expr1} < \arg{Expr2}, 0 if they are equal, and 1 if
+\arg{Expr1} > \arg{Expr2}.  Evaluates to NaN if either or both
+\arg{Expr1} and \arg{Expr2} are NaN and the Prolog flag
+\prologflag{float_undefined} is set to \const{nan}.  See also
+\funcref{minr}{2} amd \funcref{maxr}{2}.
+
+This function relates to the Prolog numerical comparison predicates
+\predref{>}{2}, \predref{=:=}{2}, etc.  The Prolog numerical
+comparison converts the rational in a mixed rational/float comparison
+to a float, possibly rounding the value.  This function converts the
+float to a rational, comparing the exact values.
+
     \function[ISO]{copysign}{2}{+Expr1, +Expr2}
 Evaluate to \arg{X}, where the absolute value of \arg{X} equals the
 absolute value of \arg{Expr1} and the sign of \arg{X} matches the sign
@@ -8551,11 +8659,35 @@ the two values after converting to float, but returns the integer 3.  If
 both values are numerical equal the returned max is of the type used for
 the comparison.  For example, the max of 1 and 1.0 is 1.0 because both
 numbers are converted to float for the comparison.  However, the special
-float -0.0 is smaller than 0.0 as well as the integer 0.
+float -0.0 is smaller than 0.0 as well as the integer 0.  If the Prolog
+flag \prologflag{float_undefined} is set to \const{nan} and one of the
+arguments evaluates to NaN, the result is NaN.
+
+The function \funcref{maxr}{2} is similar, but uses exact (rational)
+comparision if \arg{Expr1} and \arg{Expr2} have a different type,
+propagate the rational (integer) rather and the float if the two
+compare equal and propagate the non-NaN value in case one is NaN.
+
+    \function{maxr}{2}{+Expr1, +Expr2}
+Evaluate to the larger of \arg{Expr1} and \arg{Expr2} using exact
+comparison (see \funcref{cmpr}{2}). If the two values are exactly
+equal, and one of the values is rational, the result will be that
+value; the objective being to avoid "pollution" of any precise
+calculation with a potentially imprecise float. So \exam{max(1,1.0)}
+evaluates to 1.0 while \exam{maxr(1,1.0)} evaluates to 1. This also
+means that 0 is preferred over 0.0 or -0.0; -0.0 is still considered
+smaller than 0.0.
+
+\funcref{maxr}{2} also treats NaN's as missing values so
+\exam{maxr(1,nan)} evaluates to 1.
 
     \function[ISO]{min}{2}{+Expr1, +Expr2}
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
+
+    \function{minr}{2}{+Expr1, +Expr2}
+Evaluate to the smaller of \arg{Expr1} and \arg{Expr2} using exact comparison
+(see \funcref{cmpr}{2}). See \funcref{maxr}{2} for a description of type handling.
 
     \function[deprecated]{.}{2}{+Char, []}
 A list of one element evaluates to the character code of this
@@ -9861,7 +9993,10 @@ the expected result, and is one of \const{string}, \const{number} or
 an integer, and bool results as the atom \const{on} or \const{off}.  If
 an option cannot be found, this predicate fails silently.  The
 results are only computed once. Successive queries on the same
-capability are fast.
+capability are fast.  This predicate can raise several exceptions if
+the terminal environment is incomplete, notably if the environment
+variable \const{TERM} does not exist or there is no matching entry in
+the \jargon{termcap database}.
     \predicate{tty_goto}{2}{+X, +Y}
 Goto position \mbox{(\arg{X}, \arg{Y})} on the screen.  Note that the predicates
 line_count/2 and line_position/2 will not have a well-defined
@@ -10672,7 +10807,8 @@ catch/3.
     \predicate{exists_file}{1}{+File}
 True if \arg{File} exists and is a \jargon{regular} file. This does not
 imply the user has read or write access to the file. See also
-exists_directory/1 and access_file/2.
+exists_directory/1 and access_file/2.  The current implementation fails
+silently, also on error error conditions such as \arg{File} being too long.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory part of \arg{File}. This predicate removes the
@@ -10693,21 +10829,21 @@ also prolog_to_os_filename/2.
 
 \begin{code}
 	...,
-	file_directory_name(Path, Dir),
-	file_base_name(Path, File),
+	file_directory_name(FilePath, Dir),
+	file_base_name(FilePath, File),
 	directory_file_path(Dir, File, Path2),
-	same_file(Path, Path2).
+	same_file(FilePath, Path2).
 \end{code}
 
-    \predicate{file_base_name}{2}{+Path, -File}
-Extracts the file name part from a path. Similar to
-file_directory_name/2 the extraction is based on the regex
+    \predicate{file_base_name}{2}{+File, -Name}
+Extracts the file name part from name that may include directories.
+Similar to file_directory_name/2 the extraction is based on the regex
 \verb|/*([^/]*)/*$|, now capturing the non-\const{/} segment. If the
-segment is empty it unifies \arg{File} with \const{/} if \arg{Path}
+segment is empty it unifies \arg{-Name} with \const{/} if \arg{File}
 starts with \const{/} and the empty atom (\verb$''$) otherwise. The
 behaviour is consistent with the POSIX \program{basename}
-program.\footnote{Before SWI-Prolog 7.7.13, if arg{Path} ended with
-a \const{/} \arg{File} was unified with the empty atom.}
+program.\footnote{Before SWI-Prolog 7.7.13, if arg{Path} ended with a
+\const{/} \arg{-Name} was unified with the empty atom.}
 
     \predicate{same_file}{2}{+File1, +File2}
 True if both filenames refer to the same physical file. That is, if
@@ -10722,9 +10858,10 @@ Earlier versions only compare the canonical name obtained using
 GetFullPathName().}
 
     \predicate{exists_directory}{1}{+Directory}
-True if \arg{Directory} exists and is a directory. This does not
-imply the user has read, search or write permission for the
-directory.
+True if \arg{Directory} exists and is a directory. This does not imply
+the user has read, search or write permission for the directory.  The
+current implementation fails silently, also on error error conditions
+such as \arg{Directory} being too long.
 
     \predicate{delete_file}{1}{+File}
 Remove \arg{File} from the file system. Note that on POSIX systems the
@@ -10806,7 +10943,7 @@ is \const{none}.  Supported \arg{Options} are:
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
-List of file extensions to try.  Default is exam{['']}.  For each
+List of file extensions to try.  Default is \exam{['']}.  For each
 extension, absolute_file_name/3 will first add the extension and then
 verify the conditions imposed by the other options.  If the condition
 fails, the next extension on the list is tried.  Extensions may be
@@ -10869,11 +11006,12 @@ The argument order has been changed for compatibility with ISO and
 SICStus.  The Quintus argument order is still accepted.
 
     \predicate{is_absolute_file_name}{1}{+File}
-True if \arg{File} specifies an absolute path name.  On Unix systems,
+True if \arg{File} specifies an absolute path name.  On POSIX systems,
 this implies the path starts with a `/'.  For Microsoft-based systems
-this implies the path starts with \file{<letter>:}. This predicate is
-intended to provide platform-independent checking for absolute paths.
-See also absolute_file_name/2 and prolog_to_os_filename/2.
+this implies the path starts with \file{<letter>:} or \file{//<host>/}.
+This predicate is intended to provide platform-independent checking for
+absolute paths. See also absolute_file_name/2 and
+prolog_to_os_filename/2.
 
     \predicate{file_name_extension}{3}{?Base, ?Extension, ?Name}
 This predicate is used to add, remove or test filename extensions. The
@@ -11173,29 +11311,6 @@ True if the tracer is currently switched on.  tracing/0 itself cannot
 be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
-    \predicate{trace}{1}{+Pred}
-Equivalent to \exam{trace(\arg{Pred}, +all)}.
-    \predicate{trace}{2}{+Pred, +Ports}
-Put a trace point on all predicates satisfying the predicate specification
-\arg{Pred}. \arg{Ports} is a list of port names (\const{call},
-\const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
-to all ports. If the port is preceded by a \const{-} sign, the
-trace point is cleared for the port. If it is preceded by a \const{+},
-the trace point is set. Tracing a predicate is achieved by
-\jargon{wrapping} the predicate using wrap_predicate/4.
-
-Each time a port (of the 4-port model) is passed that has a trace point
-set, the goal is printed. Unlike trace/0, however, the execution is
-continued without asking for further information. Examples:
-
-\begin{center}
-\begin{tabular}{lp{3in}}
-\exam{?- trace(hello).}          & Trace all ports of hello with any arity
-                                   in any module. \\
-\exam{?- trace({foo}/2, +fail).} & Trace failures of {foo}/2 in any module. \\
-\exam{?- trace({bar}/1, -all).}  & Stop tracing {bar}/1.
-\end{tabular}
-\end{center}
 
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
@@ -11362,8 +11477,8 @@ forum.
 
 
 \begin{description}
-    \predicate[experimental,directive]{det}{1}{+PredicateIndicators}
-Declare a number of predicates as \const{det}, \emph{deterministic}. As
+    \predicate[directive]{det}{1}{+PredicateIndicators}
+Declare a number of predicates as \const{det} (\emph{deterministic}). As
 a result, both failure and success with a choicepoint is considered an
 error.  The behaviour if the declaration is violated is controlled with
 the Prolog flag \prologflag{determinism_error}.  The default is to raise
@@ -11392,6 +11507,13 @@ ERROR:   [10] p(a)
 
 Violations throw an \funcref{error}{2} exception
 \term{determinism_error}{Pred, Declared, Observed, property}.
+
+The trap/1 (cli) or gtrap/1 (gui) predicate can be used to make the
+debugger stop near the error.  For example:
+
+\begin{code}
+?- gtrap(determinism_error(_,_,_,_)).
+\end{code}
 
     \predicate[experimental]{$}{0}{}
 The \predref{$}{0} constructs acts similar to the \predref{!}{0},
@@ -11456,6 +11578,14 @@ that order of preference). On Windows GetProcessTimes() is used.
 Both clock_gettime() and GetProcessTimes() provide a nanosecond
 resolution interface.  The actual resolution depends on the platform.
 
+Starting with version 9.1.9, the \const{cputime} and \const{inferences}
+keys include the final value for threads that have been created by the
+calling thread \emph{and} has been \jargon{joined} by the calling
+thread. The new keys \const{self_cputime} and \const{self_inferences}
+may be used to get statistics for the calling thread only. Both keys
+also exist in the single threaded version, where the ``self'' key
+always returns the same value as the onle without ``self''.
+
 \begin{table}
 \begin{center}
 \begin{tabular}{|l|p{\linewidth-35mm}|}
@@ -11473,7 +11603,9 @@ cgc_gained	& Number of clauses reclaimed \\
 cgc_time	& Time spent in clause garbage collections \\
 clauses         & Total number of clauses in the program \\
 codes           & Total size of (virtual) executable code in words \\
-cputime         & (User) {\sc cpu} time since thread was started in seconds \\
+cputime         & (User) {\sc cpu} time since thread was started in seconds.
+		  Includes {\sc cpu} time in completed \jargon{child threads}.
+		  See also \const{self_cputime} and \const{process_cputime}. \\
 epoch		& Time stamp when thread was started \\
 errors		& Number of error mesages printed \\
 functors        & Total number of defined name/arity pairs \\
@@ -11484,7 +11616,8 @@ globallimit     & Size to which the global stack is allowed to grow \\
 global_shifts	& Number of global stack expansions \\
 heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
 inferences      & Total number of passes via the call and redo ports
-                  since Prolog was started \\
+                  since Prolog was started.  Includes inferences in
+		  \jargon{child threads}. See also \const{self_inferences}. \\
 modules         & Total number of defined modules \\
 local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\
@@ -11496,6 +11629,9 @@ trail_shifts	& Number of trail stack expansions \\
 traillimit      & Size to which the trail stack is allowed to grow \\
 trailused       & Number of bytes in use on the trail stack \\
 shift_time	& Time spent in stack-shifts \\
+self_cputime	& (User) {\sc cpu} time since thread was started in seconds \\
+self_inferences	& Total number of passes via the call and redo ports
+                  since Prolog was started \\
 stack		& Total memory in use for stacks in all threads \\
 predicates	& Total number of predicates.  This includes predicates
 		  that are undefined or not yet resolved. \\
@@ -11576,7 +11712,7 @@ core		& Same as memory \\
 		 %	      PROFILER		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\input{profile.tex}
+\InputIfFileExists{profile.tex}{}{}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -12035,9 +12171,10 @@ When \const{false} (default \const{true}), match case insensitively.
     \predicate{sleep}{1}{+Time}
 Suspend execution \arg{Time} seconds. \arg{Time} is either a floating
 point number or an integer. Granularity is dependent on the system's
-timer granularity.  A negative time causes the timer to return
-immediately. On most non-realtime operating systems we can only ensure
-execution is suspended for {\bf at least} \arg{Time} seconds.
+timer granularity. A negative time causes the timer to return
+immediately. A zero time yields the CPU if this is supported on the
+target OS. On most non-realtime operating systems we can only ensure
+execution is suspended for \textbf{at least} \arg{Time} seconds.
 
 On Unix systems the sleep/1 predicate is realised ---in order of
 preference--- by nanosleep(), usleep(), select() if the time is below 1

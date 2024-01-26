@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2022, University of Amsterdam
+    Copyright (c)  2006-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -70,7 +70,7 @@
             xref_defined_class/3        % ?Source, ?ClassName, -How
           ]).
 :- autoload(library(apply),[maplist/2,partition/4,maplist/3]).
-:- autoload(library(debug),[debug/3]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(dialect),[expects_dialect/1]).
 :- autoload(library(error),[must_be/2,instantiation_error/1]).
 :- autoload(library(lists),[member/2,append/2,append/3,select/3]).
@@ -127,7 +127,7 @@
     (mode)/2,                       % Mode, Src
     xoption/2,                      % Src, Option
     xflag/4,                        % Name, Value, Src, Line
-
+    grammar_rule/2,                 % Head, Src
     module_comment/3,               % Src, Title, Comment
     pred_comment/4,                 % Head, Src, Summary, Comment
     pred_comment_link/3,            % Head, Src, HeadTo
@@ -425,6 +425,20 @@ set_xref(Xref) :-
     current_prolog_flag(xref, Xref),
     set_prolog_flag(xref, true).
 
+:- meta_predicate
+    with_xref(0).
+
+with_xref(Goal) :-
+    current_prolog_flag(xref, Xref),
+    (   Xref == true
+    ->  call(Goal)
+    ;   setup_call_cleanup(
+            set_prolog_flag(xref, true),
+            Goal,
+            set_prolog_flag(xref, Xref))
+    ).
+
+
 %!  set_initial_mode(+Stream, +Options) is det.
 %
 %   Set  the  initial  mode  for  processing    this   file  in  the
@@ -530,6 +544,7 @@ xref_clean(Source) :-
     retractall(uses_file(_, Src, _)),
     retractall(xmodule(_, Src)),
     retractall(xop(Src, _)),
+    retractall(grammar_rule(_, Src)),
     retractall(xoption(Src, _)),
     retractall(xflag(_Name, _Value, Src, Line)),
     retractall(source(Src, _)),
@@ -611,6 +626,7 @@ xref_called(Source, Called, By, Cond, Line) :-
 %     * foreign(Location)
 %     * constraint(Location)
 %     * imported(From)
+%     * dcg
 
 xref_defined(Source, Called, How) :-
     nonvar(Source),
@@ -637,6 +653,8 @@ xref_defined2(constraint(Line), Src, Called) :-
     constraint(Called, Src, Line).
 xref_defined2(imported(From), Src, Called) :-
     imported(Called, Src, From).
+xref_defined2(dcg, Src, Called) :-
+    grammar_rule(Called, Src).
 
 
 %!  xref_definition_line(+How, -Line)
@@ -869,6 +887,13 @@ process(Term, Comments, Term0, TermPos, Src, false) :-
 process(_, Term0, _) :-
     ignore_raw_term(Term0),
     !.
+process(Head :- Body, Head0 --> _, Src) :-
+    pi_head(F/A, Head),
+    pi_head(F/A0, Head0),
+    A =:= A0 + 2,
+    !,
+    assert_grammar_rule(Src, Head),
+    process((Head :- Body), Src).
 process(Term, _Term0, Src) :-
     process(Term, Src).
 
@@ -1232,7 +1257,7 @@ xref_meta_src(Head, Called, _) :-
     arg(1, Head, G),
     Called = [G+Extra].
 xref_meta_src(Head, Called, _) :-
-    predicate_property('$xref_tmp':Head, meta_predicate(Meta)),
+    with_xref(predicate_property('$xref_tmp':Head, meta_predicate(Meta))),
     !,
     Meta =.. [_|Args],
     meta_args(Args, 1, Head, Called).
@@ -1453,13 +1478,13 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
-hook(user:prolog_exception_hook(_,_,_,_)).
+hook(prolog:prolog_exception_hook(_,_,_,_,_)).
 hook(sandbox:safe_primitive(_)).
 hook(sandbox:safe_meta_predicate(_)).
 hook(sandbox:safe_meta(_,_)).
 hook(sandbox:safe_global_variable(_)).
 hook(sandbox:safe_directive(_)).
-
+hook(sandbox:safe_prolog_flag(_,_)).
 
 %!  arith_callable(+Spec, -Callable)
 %
@@ -1933,6 +1958,8 @@ prolog:no_autoload_module(library(pldoc)).
 prolog:no_autoload_module(library(settings)).
 prolog:no_autoload_module(library(debug)).
 prolog:no_autoload_module(library(plunit)).
+prolog:no_autoload_module(library(macros)).
+prolog:no_autoload_module(library(yall)).
 
 
 %!  process_requires(+Import, +Src)
@@ -2527,6 +2554,14 @@ assert_foreign(Src, Goal) :-
     generalise(Goal, Term),
     current_source_line(Line),
     assert(foreign(Term, Src, Line)).
+
+assert_grammar_rule(Src, Goal) :-
+    grammar_rule(Goal, Src),
+    !.
+assert_grammar_rule(Src, Goal) :-
+    generalise(Goal, Term),
+    assert(grammar_rule(Term, Src)).
+
 
 %!  assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
 %

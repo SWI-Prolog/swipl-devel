@@ -39,26 +39,6 @@
 #ifndef PL_ALLOC_H_INCLUDED
 #define PL_ALLOC_H_INCLUDED
 
-#ifdef HAVE_BOEHM_GC
-
-#ifdef O_PLMT
-#define GC_THREADS 1
-#endif
-#define DYNAMIC_MARKS
-#include <gc/gc.h>
-
-#define allocForeignState(size)			GC_MALLOC_UNCOLLECTABLE(size)
-#define freeForeignState(ptr, size)		GC_FREE(ptr)
-
-#ifdef GC_DEBUG
-void GC_linger(void *ptr);
-#define GC_LINGER(p)				GC_linger(p)
-#else
-#define GC_LINGER(p)				((void)p)
-#endif
-
-#else /*HAVE_BOEHM_GC*/
-
 #define GC_MALLOC(n)				malloc(n)
 #define GC_MALLOC_ATOMIC(n)			malloc(n)
 #define GC_MALLOC_IGNORE_OFF_PAGE(n)		malloc(n)
@@ -72,11 +52,16 @@ void GC_linger(void *ptr);
 #define allocForeignState(size)			allocHeapOrHalt(size)
 #define freeForeignState(ptr, size)		freeHeap(ptr, size)
 
-#endif /*HAVE_BOEHM_GC*/
 
 		 /*******************************
 		 *	      LINGER		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The code calls linger_always() for lingering that needs to happen both
+single  and multi-threaded  and linger()  for lingering  that is  only
+needed for multi-threading.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct linger_list
 { struct linger_list *next;		/* Next lingering object */
@@ -85,8 +70,16 @@ typedef struct linger_list
   void	       (*unalloc)(void* obj);   /* actually free the object */
 } linger_list;
 
-void	linger(linger_list** list, void (*unalloc)(void *), void *object);
 void	free_lingering(linger_list **list, gen_t generation);
+void	linger_always(linger_list** list, void (*func)(void *), void *obj);
+
+#ifdef O_PLMT
+#define linger(list, func, obj) linger_always(list, func, obj)
+#else
+
+#define linger(list, func, obj) func(obj)
+
+#endif /*O_PLMT*/
 
 
 		 /*******************************

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -86,13 +86,13 @@ int		Pause(double time);
 #define Pclose(fd)	pclose(fd)
 #endif
 
-char *		canonicaliseFileName(char *path);
-char *		canonicalisePath(char *path);
+char *		canonicaliseFileName(char *path, size_t buflen);
+char *		canonicalisePath(char *path, size_t buflen);
 char *		OsPath(const char *plpath, char *ospath);
 char *		PrologPath(const char *ospath, char *plpath, size_t len);
 void		RemoveTemporaryFiles(void);
 char *		expandVars(const char *pattern, char *expanded, int len);
-char *		AbsoluteFile(const char *spec, char *path);
+char *		AbsoluteFile(const char *spec, char *path, size_t buflen);
 int		IsAbsolutePath(const char *spec);
 char *		BaseName(const char *f, char *buf);
 char *		DirName(const char *f, char *buf);

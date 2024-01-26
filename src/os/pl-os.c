@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1299,8 +1299,13 @@ skipNetBIOSName(const char *s)
 }
 #endif
 
+/* Remove redundant /, ./, x/../, etc.   Note that this normally makes
+   the path shorter, except for Windows c:name/..., which must become
+   c:/name/...
+*/
+
 char *
-canonicaliseFileName(char *path)
+canonicaliseFileName(char *path, size_t buflen)
 { char *out = path, *in = path, *start = path;
   tmp_buffer saveb;
   int sl;
@@ -1308,6 +1313,15 @@ canonicaliseFileName(char *path)
 #ifdef O_HASDRIVES			/* C: */
   if ( in[1] == ':' && isLetter(in[0]) )
   { in += 2;
+
+    if ( in[0] != '/' )
+    { size_t len = strlen(in);
+      if ( len+4 > buflen )		/* 2+"/"+0 */
+	return PL_representation_error("max_path_length"),NULL;
+
+      memmove(in+1, in, len+1);
+      in[0] = '/';
+    }
 
     out = start = in;
   }
@@ -1467,7 +1481,7 @@ out:
 
 
 char *
-canonicalisePath(char *path)
+canonicalisePath(char *path, size_t buflen)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
@@ -1479,7 +1493,8 @@ canonicalisePath(char *path)
     }
   }
 
-  canonicaliseFileName(path);
+  if ( !canonicaliseFileName(path, buflen) )
+    return NULL;
 
 #ifdef O_CANONICALISE_DIRS
 { char *e;
@@ -1688,8 +1703,7 @@ IsAbsolutePath(const char *p)				/* /d:/ */
     succeed;
 #endif
 
-  if ( p[1] == ':' && isLetter(p[0]) &&			/* d:/ or d:\ */
-       (IS_DIR_SEPARATOR(p[2]) || p[2] == '\0') )
+  if ( p[1] == ':' && isLetter(p[0]) )		/* d: */
     succeed;
 
 #ifdef O_HASSHARES
@@ -1746,7 +1760,7 @@ IsAbsolutePath(const char *p)
 
 
 char *
-AbsoluteFile(const char *spec, char *path)
+AbsoluteFile(const char *spec, char *path, size_t buflen)
 { GET_LD
   char tmp[PATH_MAX];
   char buf[PATH_MAX];
@@ -1763,7 +1777,7 @@ AbsoluteFile(const char *spec, char *path)
   if ( IsAbsolutePath(file) )
   { strcpy(path, file);
 
-    return canonicalisePath(path);
+    return canonicalisePath(path, buflen);
   }
 
 #ifdef O_HASDRIVES
@@ -1775,7 +1789,7 @@ AbsoluteFile(const char *spec, char *path)
     path[0] = GetCurrentDriveLetter();
     path[1] = ':';
     strcpy(&path[2], file);
-    return canonicalisePath(path);
+    return canonicalisePath(path, buflen);
   }
 #endif /*O_HASDRIVES*/
 
@@ -1790,7 +1804,7 @@ AbsoluteFile(const char *spec, char *path)
 
   strcpy(&path[cwdlen], file);
 
-  return canonicalisePath(path);
+  return canonicalisePath(path, buflen);
 }
 
 
@@ -1832,13 +1846,13 @@ to be implemented directly.  What about other Unixes?
     { term_t tmp = PL_new_term_ref();
 
       PL_put_atom_chars(tmp, ".");
-      PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+      PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 	       ATOM_getcwd, ATOM_directory, tmp);
 
       return NULL;
     }
 
-    if ( !canonicalisePath(buf) )
+    if ( !canonicalisePath(buf, sizeof(buf)) )
     { PL_representation_error("max_path_length");
       return NULL;
     }
@@ -1977,7 +1991,7 @@ ChDir(const char *path)
   if ( path[0] == EOS || streq(path, ".") || is_cwd(path) )
     return TRUE;
 
-  if ( !AbsoluteFile(path, tmp) )
+  if ( !AbsoluteFile(path, tmp, sizeof(tmp)) )
     return FALSE;
   if ( is_cwd(tmp) )
     return TRUE;
@@ -2755,7 +2769,7 @@ System(char *cmd)
 #endif
 
   if ( (pid = fork()) == -1 )
-  { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
+  { return PL_error("shell", 2, MSG_ERRNO, ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
   { char tmp[PATH_MAX];
     char *argv[4];

@@ -340,7 +340,7 @@ typedef struct _varDef
   atom_t	name;			/* name (if available) */
   int		times;			/* occurrences */
   int		offset;			/* offset in environment frame */
-  int		flags;			/* VD_* */
+  unsigned int	flags;			/* VD_* */
 } vardef;
 
 #define VD_MAYBE_SINGLETON  0x01
@@ -402,6 +402,7 @@ typedef struct
   int		argvar;			/* islocal current pseudo var */
   int		singletons;		/* Marked singletons in disjunctions */
   int		head_unify;		/* In unifications against arguments */
+  int		progress;		/* Periodically check for interrupts */
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
   VarTable	used_var;		/* boolean array of used variables */
@@ -815,6 +816,7 @@ AVARS_MAX
 #define MAX_VARIABLES 1000000000	/* stay safely under signed int */
 #define AVARS_CYCLIC    -1
 /*	MEMORY_OVERFLOW -5 */
+/*      CHECK_INTERRUPT -7 */
 #define AVARS_MAX      -12
 
 static int
@@ -828,7 +830,9 @@ in_branch(const branch_var *from, const branch_var *to, const Word v)
 }
 
 
-#define analyseVariables2(head, nvars, argn, ci, depth, control) LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
+#define analyseVariables2(head, nvars, argn, ci, depth, control) \
+	LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
+
 static int
 analyseVariables2(DECL_LD Word head, int nvars, int argn,
 		  CompileInfo ci, int depth, int control)
@@ -908,6 +912,10 @@ right_recursion:
       resetVars();
 
       return rc == FALSE ? AVARS_CYCLIC : rc;
+    }
+    if ( (++ci->progress%32768) == 0 && is_signalled() && !LD->critical )
+    { resetVars();
+      return CHECK_INTERRUPT;
     }
 
     if ( ci->islocal )
@@ -1822,6 +1830,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 { compileInfo ci;			/* data base for the compiler */
   int rc;
 
+  ci.progress = 0;
   initBuffer(&ci.codes);
 
   C_STACK_OVERFLOW_GUARDED(
@@ -1842,30 +1851,30 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
   int rc;
 
   if ( head )
-  { ci->islocal      = FALSE;
-    ci->subclausearg = 0;
-    ci->arity        = (int)def->functor->arity;
-    ci->procedure    = proc;
-    ci->argvars      = 0;
-    ci->head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
-			( !(flags & (SSU_COMMIT_CLAUSE)) &&
-			  false(def, P_DYNAMIC) &&
-			  truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
-			)
+  { ci->islocal       = FALSE;
+    ci->subclausearg  = 0;
+    ci->arity         = (int)def->functor->arity;
+    ci->procedure     = proc;
+    ci->argvars       = 0;
+    ci->head_unify    = ( (flags&SSU_CHOICE_CLAUSE) ||
+			 (  !(flags & (SSU_COMMIT_CLAUSE)) &&
+			   false(def, P_DYNAMIC) &&
+			   truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
+			 )
 		      );
-    clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
+    clause.flags     = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
     ci->islocal      = TRUE;
     ci->subclausearg = 0;
-    ci->argvars	    = 1;
+    ci->argvars	     = 1;
     ci->argvar       = 1;
     ci->arity        = 0;
     ci->procedure    = NULL;		/* no LCO */
     ci->head_unify   = FALSE;
-    clause.flags    = GOAL_CLAUSE;
-    *g		    = *body;
+    clause.flags     = GOAL_CLAUSE;
+    *g		     = *body;
   }
 
   clause.predicate  = def;
@@ -1892,6 +1901,8 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
 			ERR_REPRESENTATION, ATOM_max_frame_size);
       case MEMORY_OVERFLOW:
 	return PL_error(NULL, 0, NULL, ERR_NOMEM);
+      case CHECK_INTERRUPT:
+	return rc;
       default:
 	assert(0);
     }
@@ -3617,6 +3628,8 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
 
     f1 = isFirstVarSet(ci->used_var, i1);
     f2 = isFirstVarSet(ci->used_var, i2);
+    if ( argUnifiedTo(*a1) || argUnifiedTo(*a2) )
+      set(ci->clause, CL_HEAD_TERMS);
 
     if ( f1 && f2 )
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
@@ -4228,13 +4241,24 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
 	Sdprintf(" ... "););
 
-  h = valTermRef(head);
-  b = valTermRef(body);
-  deRef(h);
-  deRef(b);
-  if ( compileClause(&clause, h, b, proc, module,
-		     warnings, hflags) != TRUE )
-    return NULL;
+  for(;;)
+  { int rc;
+
+    h = valTermRef(head);
+    b = valTermRef(body);
+    deRef(h);
+    deRef(b);
+    rc = compileClause(&clause, h, b, proc, module, warnings, hflags);
+    if ( rc == CHECK_INTERRUPT )
+    { if ( PL_handle_signals() < 0 )
+	return NULL;
+      assert(!is_signalled());
+      continue;
+    }
+    if ( rc != TRUE )
+      return NULL;
+    break;
+  }
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
 
@@ -4430,8 +4454,9 @@ record_clause(DECL_LD term_t term, term_t owner, term_t source, term_t ref)
 
   if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0)) )
   { if ( ref )
+    { assert(false(clause, CL_ERASED));
       return PL_unify_clref(ref, clause);
-    else
+    } else
       return TRUE;
   }
 
@@ -4786,7 +4811,7 @@ argKey(Code PC, int skip, word *key)
 	goto again;
 #endif
       default:
-	Sdprintf("Unexpected VM code %d at %p\n", c, PC);
+	Sdprintf("Unexpected VM code %" PRIuPTR " at %p\n", c, PC);
 	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
 	fail;
@@ -4943,6 +4968,20 @@ these variables are not marked as H_VOID in the head code they are refer
 to body unifications that have been moved to the head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define add_bvar_access(di, i, m) LDFUNC(add_bvar_access, di, i, m)
+
+static void
+add_bvar_access(DECL_LD decompileInfo *di, int index, int *max)
+{ if ( index < di->arity )
+  { DEBUG(MSG_COMP_ARG_UNIFY,
+	  Sdprintf("Found access to argument %d\n", index+1));
+
+    set_bit(di->bvar_access, index);
+    if ( index > *max )
+      *max = index;
+  }
+}
+
 #define mark_bvar_access(cl, di) LDFUNC(mark_bvar_access, cl, di)
 static int
 mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
@@ -4971,18 +5010,18 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
       case B_ARGVAR:
 	index = VARNUM(pc[1]);
 	break;
+      case B_UNIFY_FF:
+      case B_UNIFY_FV:
+      case B_UNIFY_VF:
+      case B_UNIFY_VV:
+	add_bvar_access(di, VARNUM(pc[1]), &max);
+	index = VARNUM(pc[2]);
+	break;
       default:
 	continue;
     }
 
-    if ( index < di->arity )
-    { DEBUG(MSG_COMP_ARG_UNIFY,
-	    Sdprintf("Found access to argument %d\n", index+1));
-
-      set_bit(di->bvar_access, index);
-      if ( index > max )
-	max = index;
-    }
+    add_bvar_access(di, index, &max);
   }
 
   assert(max >= 0);
@@ -7081,7 +7120,7 @@ vm_list(Code start, Code end)
   { code op = fetchop(PC);
     const code_info *ci = &codeTable[op];
 
-    Sdprintf("%-3d %s\n", PC-start, ci->name);
+    Sdprintf("%-3zd %s\n", (size_t)(PC-start), ci->name);
     if ( !end )
     { switch(op)
       { case I_EXIT:
@@ -7091,6 +7130,7 @@ vm_list(Code start, Code end)
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
+	case I_FCALLDETVA:
 	case I_FREDO:
 	case S_TRUSTME:
 	case S_LIST:
@@ -7212,7 +7252,7 @@ unify_vmi(term_t t, Code bp)
 	case CA1_FOREIGN:
 	{ void *func = (void*)*bp++;
 
-#ifdef HAVE_DLADDR
+#if defined(HAVE_DLADDR) && !defined(O_STATIC_EXTENSIONS)
 	  Dl_info info;
 
 	  if ( dladdr(func, &info) )
@@ -8213,7 +8253,8 @@ cleanupBreakPoints(void)
 
 static int				/* must hold L_BREAK */
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ int second_bp = FALSE;
+{ GET_LD
+  int second_bp = FALSE;
   Code PC;
   code op, dop;
 

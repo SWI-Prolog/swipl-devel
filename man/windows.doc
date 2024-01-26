@@ -275,7 +275,7 @@ Please send your comments to the SWI-Prolog mailinglist, and/or
 First of all, add the \file{include} folder of the installation to the
 search path for headers and the \file{lib} folder to the search path for
 libraries. Both DLLs (extensions) or embedded executables should link to
-\file{libswipl.dll.a} and, if appropriate, to the multithreaded DLL
+\file{libswipl.lib} and, if appropriate, to the multithreaded DLL
 version of the MSVC runtime library.
 
 To create extensions, create a Win32 DLL. To embed Prolog, care should

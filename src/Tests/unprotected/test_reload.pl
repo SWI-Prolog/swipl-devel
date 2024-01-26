@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2016, University of Amsterdam
+    Copyright (c)  2015-2023, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -177,6 +178,11 @@ test(mod_dynamic) :-
 test(goal_expansion) :-
 	reload(goal_expansion, 1),
 	reload(goal_expansion, 1).
+test(keep_tabling, [Name1, Wrapped1, Body1] =@= [Name2, Wrapped2, Body2]) :-
+	reload(keep_tabling, 1),
+	current_predicate_wrapper(keep_tabling:p(_,_), Name1, Wrapped1, Body1),
+	reload(keep_tabling, 2),
+	current_predicate_wrapper(keep_tabling:p(_,_), Name2, Wrapped2, Body2).
 
 :- end_tests(reconsult).
 

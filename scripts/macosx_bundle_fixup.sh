@@ -1,3 +1,5 @@
+#!/bin/sh
+
 app=$1
 
 if [ -z "$app" ]; then

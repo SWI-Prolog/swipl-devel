@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -70,7 +71,11 @@ struct table_enum
 };
 
 #if USE_LD_MACROS
-#define	lookupHTable(ht, name)	LDFUNC(lookupHTable, ht, name)
+#define	lookupHTable(ht, name)		LDFUNC(lookupHTable, ht, name)
+#define	addHTable(ht, name, value)	LDFUNC(addHTable, ht, name, value)
+#define	addNewHTable(ht, name, value)	LDFUNC(addNewHTable, ht, name, value)
+#define	updateHTable(ht, name, value)	LDFUNC(updateHTable, ht, name, value)
+#define	deleteHTable(ht, name)		LDFUNC(deleteHTable, ht, name)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

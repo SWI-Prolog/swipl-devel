@@ -1,0 +1,177 @@
+#!/bin/bash
+#
+# This helper script is supposed to be executed from a build directory
+# and sets CMake options depending on  the name of the directory.  The
+# build directory shall be called
+#
+#     build.feature1-feature2-...
+#
+# Reconized features can be found  below.  Note that this mechanism is
+# comparable to the _presets_ mechanism of recent CMake versions.
+
+build_type=RelWithDebInfo
+generator=Ninja
+export CC=cc
+export CXX=c++
+opts=
+
+config=$(basename $(pwd))
+
+# gcc-version
+# clang-version
+#
+# Set the compiler
+
+case $config in
+  *gcc-*)
+    version=$(echo $config | sed 's/.*gcc-\([0-9]*\).*/\1/')
+    export CC=gcc-$version
+    export CXX=g++-$version
+    ;;
+  *clang-*)
+    version=$(echo $config | sed 's/.*clang-\([0-9]*\).*/\1/')
+    export CC=clang-$version
+    export CXX=clang++-$version
+    ;;
+esac
+
+# nogmp
+# libbf
+#
+# Use LibBF rather than LibGMP for unbounded integers, rationals and random
+
+case $config in
+  *nogmp*|*libbf*)
+    opts+=" -DUSE_GMP=OFF"
+    ;;
+esac
+
+# single
+#
+# Build the single threaded version
+
+case $config in
+  *single*)
+    opts+=" -DMULTI_THREADED=OFF"
+    ;;
+esac
+
+# vmif
+#
+# Implement VMI instructions as functions.  Slower on GCC, about
+# equal for Clang (and WASM) and much faster for MSVC
+
+case $config in
+  *vmif*)
+    opts+=" -DVMI_FUNCTIONS=ON"
+    ;;
+esac
+
+# profile
+#
+# Use good settings for valgrind based profiling
+
+case $config in
+  *profile*)
+    opts+=" -DVMI_FUNCTIONS=ON"
+    CFLAGS+=" -fno-inline"
+    ;;
+esac
+
+# c11
+#
+# Enable pedantic C11 checking for GCC.  Use for compliancy testing as
+# it  forces a  less  efficient virtual  machine due  to  the lack  of
+# support for empty structures in C11.
+
+case $config in
+  *c11*)
+    CFLAGS+=" -pedantic -DPEDANTIC"
+    ;;
+esac
+
+# test
+#
+# Install the  tests along  with the  executable.  Allows  running the
+# tests in the installed version using test_installation/0.
+
+case $config in
+  *test*)
+    opts+=" -DINSTALL_TESTS=ON"
+    ;;
+esac
+
+# native tuning
+#
+# Optimize for local CPU
+
+case $config in
+  *native*)
+    CFLAGS+=" -mtune=native -march=native"
+    ;;
+esac
+
+# malloc
+#
+# Use  malloc  instead  of  tcmalloc.  Currently  required  for  using
+# valgrind.  Do not use on  Linux builds aiming at 24x7 multi-threaded
+# services: ptmalloc seems poor at reusing memory in these workloads.
+
+case $config in
+  *malloc*)
+    opts+=" -DUSE_TCMALLOC=OFF"
+    ;;
+esac
+
+# pgo
+# debug
+# asan
+#
+# Select the  build type.  PGO  provides best performance.   Use debug
+# for C level debugging and asan for leak and memory issue detection.
+
+case $config in
+  *pgo*)
+    build_type=PGO
+    ;;
+  *debug*)
+    build_type=Debug
+    ;;
+  *asan*)
+    build_type=Sanitize
+    ;;
+esac
+
+function confirm ()
+{ while true; do
+    echo -n "$1 "
+    read answer
+    case "$answer" in
+          y*)   return 0
+                ;;
+          n*)   return 1
+                ;;
+          *)
+                echo "Please answer yes or no"
+                ;;
+    esac
+  done
+}
+
+export CFLAGS
+
+echo "# Configuration based on build directory $config:"
+echo "# Using CC=$CC, CXX=$CXX, CFLAGS=$CFLAGS"
+echo "# Configure using "'"'"CC=$CC CXX=$CXX CFLAGS="'"'"$CFLAGS"'"'" cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts .."'"'
+
+if ! confirm "Run Cmake? "; then
+  exit 1
+fi
+
+cat > configure << EOF
+# Created by ../scripts/configure for $config at $(date)
+CC=$CC CXX=$CXX CFLAGS=$CFLAGS cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+EOF
+chmod +x configure
+
+cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..

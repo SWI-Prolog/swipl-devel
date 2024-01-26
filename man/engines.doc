@@ -337,8 +337,8 @@ predicate is provided primarily for compatibility with Lean~Prolog.
     Goal yielded with a term \arg{Answer}.
 	\termitem{no}{}
     Goal failed.
-	\termitem{exception}{Exception}
-    Goal raises the error \arg{Exception}.
+	\termitem{throw}{Exception}
+    Goal raised \arg{Exception}.
     \end{description}
 
     \predicate[det]{engine_post}{2}{+Engine, +Term}

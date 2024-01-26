@@ -279,7 +279,7 @@ typedef struct PL_global_data PL_global_data_t;
 #define _API_STUB_2(...)	(__VA_ARGS__) _API_STUB_3
 #define _API_STUB_3(...)	{GET_LD __VA_ARGS__;}
 
-#if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
+#if defined(O_ENGINES) && USE_LD_MACROS
 
 #ifdef __GNUC__
 /* Instructing GCC to treat this as a system header greatly simplifies
@@ -326,6 +326,10 @@ PL_local_data_t* __FIND_LD(PL_local_data_t *pl_ld, control_t pl_ctx, PL_local_da
 #ifdef __GNUC__
 # pragma push_macro("__FIND_LD")
 # pragma pop_macro("__FIND_LD")
+#endif
+
+#ifndef __GNUC__
+#define __has_attribute(x) 0
 #endif
 
 #if defined(__GNUC__) && __has_attribute(error)
@@ -421,7 +425,10 @@ extern PL_local_data_t* no_local_ld(void);
 )
 
 /* Block-scope redefinition of LD in a function */
-#define WITH_LD(ld)	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+#define WITH_LD(ld) \
+	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; \
+	     !__loopctr; \
+	     __loopctr++)
 /* Passing an alternate LD to a called function. This uses the same mechanism
  * as DECL_LD, but takes it one step further. _VE_PASSLD below is a macro that
  * does not exist, but when DECL_LDFUNC() pastes __VOID_EMPTY_ to the beginning
@@ -490,8 +497,8 @@ is also printed if stdio is not available.
 			? Sdprintf("DEBUG stack depth mismatch! %d != %d\n", GLOBAL_LD->internal_debug.depth, __new_ld_debug.depth) \
 			: 1 \
 			) ? __orig_ld_debug : __orig_ld_debug
-#define DEBUGGING(n)	(((n) <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
-			 ((n) > DBG_LEVEL9 && GD->debug_topics && true_bit(GD->debug_topics, n)))
+#define DEBUGGING(n)	((n) <= DBG_LEVEL9 ? GD->debug_level >= (n) : \
+			 (GD->debug_topics && true_bit(GD->debug_topics, n)))
 #define WITH_DEBUG_FOR(n) for \
 			( ENTER_DEBUG(n); \
 			  __orig_ld_debug.depth >= 0; \
@@ -531,9 +538,9 @@ typedef enum
 } frg_code;
 
 struct foreign_context
-{ uintptr_t		context;	/* context value */
+{ struct PL_local_data *engine;		/* invoking engine */
   frg_code		control;	/* FRG_* action */
-  struct PL_local_data *engine;		/* invoking engine */
+  uintptr_t		context;	/* context value */
   struct definition    *predicate;	/* called Prolog predicate */
 };
 

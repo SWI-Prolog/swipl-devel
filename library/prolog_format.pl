@@ -37,8 +37,7 @@
             format_spec//1,                     % -Spec
             format_types/2                      % +Format, -Types
           ]).
-:- autoload(library(error),[is_of_type/2,existence_error/2]).
-:- autoload(library(when),[when/2]).
+:- autoload(library(error),[existence_error/2]).
 :- autoload(library(dcg/basics),[eos//0,string_without//2,integer//1]).
 
 
@@ -59,7 +58,7 @@ example:
 @author Michael Hendricks
 */
 
-%%  format_spec(+Format, -Spec:list) is semidet.
+%%  format_spec(+Format, -Spec:list) is det.
 %
 %   Parse a format string. Each element of Spec is one of the following:
 %
@@ -72,27 +71,33 @@ example:
 %    escape.
 
 format_spec(Format, Spec) :-
-    when((ground(Format);ground(Codes)),text_codes(Format, Codes)),
-    once(phrase(format_spec(Spec), Codes, [])).
+    (   is_list(Format)
+    ->  Codes = Format
+    ;   string_codes(Format, Codes)
+    ),
+    phrase(format_spec(Spec), Codes).
 
-%%  format_spec(-Spec)//
+%%  format_spec(-Spec)// is det.
 %
 %   DCG for parsing format  strings.  It   doesn't  yet  generate format
 %   strings from a spec. See format_spec/2 for details.
 
-format_spec([]) -->
-    eos.
 format_spec([escape(Numeric,Modifier,Action)|Rest]) -->
     "~",
+    !,
     numeric_argument(Numeric),
     modifier_argument(Modifier),
     action(Action),
     format_spec(Rest).
 format_spec([text(String)|Rest]) -->
-    { when((ground(String);ground(Codes)),string_codes(String, Codes)) },
     string_without("~", Codes),
-    { Codes \= [] },
+    { Codes \== [],
+      !,
+      string_codes(String, Codes)
+    },
     format_spec(Rest).
+format_spec([]) -->
+    [].
 
 %%  format_types(+Format:text, -Types:list) is det.
 %
@@ -140,30 +145,16 @@ action_types(Action) -->
     { action_types(Code, Types) },
     phrase(Types).
 
-%% text_codes(Text:text, Codes:codes).
-text_codes(Var, Codes) :-
-    var(Var),
-    !,
-    string_codes(Var, Codes).
-text_codes(Atom, Codes) :-
-    atom(Atom),
-    !,
-    atom_codes(Atom, Codes).
-text_codes(String, Codes) :-
-    string(String),
-    !,
-    string_codes(String, Codes).
-text_codes(Codes, Codes) :-
-    is_of_type(codes, Codes).
-
-
 numeric_argument(number(N)) -->
-    integer(N).
+    integer(N),
+    !.
 numeric_argument(character(C)) -->
     "`",
+    !,
     [C].
 numeric_argument(star) -->
-    "*".
+    "*",
+    !.
 numeric_argument(nothing) -->
     "".
 

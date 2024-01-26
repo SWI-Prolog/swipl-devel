@@ -40,6 +40,7 @@
 :- use_module(library(lists)).
 :- use_module(library(plunit)).
 :- use_module(library(date)).
+:- use_module(library(debug)).
 
 :- dynamic
 	error/1.

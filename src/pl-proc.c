@@ -395,9 +395,15 @@ resetProcedure(Procedure proc, bool isnew)
   if ( true(def, P_DIRTYREG) )
     ATOMIC_SUB(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
 
-  def->flags ^= def->flags & ~(SPY_ME|P_DIRTYREG);
-  if ( stringAtom(def->functor->name)[0] != '$' )
-    set(def, TRACE_ME);
+  uint64_t flags0, flags;
+  int userpred = stringAtom(def->functor->name)[0] != '$';
+  do
+  { flags0 = def->flags;
+    flags  = flags0 ^ (flags0 & ~(SPY_ME|P_DIRTYREG));
+    if ( userpred )
+      flags |= TRACE_ME;
+  } while(!COMPARE_AND_SWAP_UINT64(&def->flags, flags0, flags));
+
   def->impl.clauses.number_of_clauses = 0;
   if ( def->events )
     destroy_event_list(&def->events);
@@ -419,23 +425,27 @@ isCurrentProcedure(DECL_LD functor_t f, Module m)
 
 
 ClauseRef
-hasClausesDefinition(Definition def)
+hasClausesDefinition(DECL_LD Definition def)
 { if ( false(def, P_FOREIGN|P_THREAD_LOCAL) &&
        def->impl.clauses.first_clause )
-  { GET_LD
-    ClauseRef c;
-    gen_t generation = global_generation();
+  { if ( false(def, P_DIRTYREG) && false(def, P_DYNAMIC) &&
+	 LD->reload.generation == GEN_INVALID )
+    { return def->impl.clauses.first_clause;
+    } else
+    { ClauseRef c;
+      gen_t generation = global_generation();
 
-    acquire_def(def);
-    for(c = def->impl.clauses.first_clause; c; c = c->next)
-    { Clause cl = c->value.clause;
+      acquire_def(def);
+      for(c = def->impl.clauses.first_clause; c; c = c->next)
+      { Clause cl = c->value.clause;
 
-      if ( visibleClauseCNT(cl, generation) )
-	break;
+	if ( visibleClauseCNT(cl, generation) )
+	  break;
+      }
+      release_def(def);
+
+      return c;
     }
-    release_def(def);
-
-    return c;
   }
 
   return NULL;
@@ -443,7 +453,7 @@ hasClausesDefinition(Definition def)
 
 
 bool
-isDefinedProcedure(Procedure proc)
+isDefinedProcedure(DECL_LD Procedure proc)
 { Definition def = proc->definition;
 
   if ( true(def, PROC_DEFINED) )
@@ -672,7 +682,7 @@ get_head_functor(DECL_LD term_t head, functor_t *fdef, int how)
     } else
     { char buf[100];
 
-      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, fd->arity);
+      Ssprintf(buf, "limit is %d, request = %zd", MAXARITY, fd->arity);
 
       return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_procedure_arity);
@@ -885,8 +895,11 @@ typedef struct
 } cur_enum;
 
 
+#define isDefinedOrAutoloadProcedure(proc) \
+  LDFUNC(isDefinedOrAutoloadProcedure, proc)
+
 static int
-isDefinedOrAutoloadProcedure(Procedure proc)
+isDefinedOrAutoloadProcedure(DECL_LD Procedure proc)
 { Definition def = proc->definition;
 
   if ( true(def, PROC_DEFINED|P_AUTOLOAD) )
@@ -1130,7 +1143,8 @@ static Table retracted_clauses = NULL;
 
 static void
 registerRetracted(Clause cl)
-{ DEBUG(MSG_CGC_CREF_PL, Sdprintf("/**/ r(%p).\n", cl));
+{ GET_LD
+  DEBUG(MSG_CGC_CREF_PL, Sdprintf("/**/ r(%p).\n", cl));
   DEBUG(MSG_CGC_CREF_TRACK,
 	{ if ( !retracted_clauses )
 	    retracted_clauses = newHTable(1024);
@@ -1141,7 +1155,8 @@ registerRetracted(Clause cl)
 static void
 reclaimRetracted(Clause cl)
 { DEBUG(MSG_CGC_CREF_TRACK,
-	{ void *v = deleteHTable(retracted_clauses, cl);
+	{ GET_LD
+	  void *v = deleteHTable(retracted_clauses, cl);
 	  if ( v != (void*)1 && GD->cleaning == CLN_NORMAL )
 	  { Definition def = cl->predicate;
 	    Sdprintf("reclaim not retracted from %s\n", predicateName(def));
@@ -1437,7 +1452,7 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
-  if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  if ( unlikely(!!LD->transaction.generation) && def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
     { clause->generation.created = ++LD->transaction.generation;
       clause->generation.erased  = max_generation(def);
@@ -1540,7 +1555,7 @@ source-file or any sourcefile. Note   that thread-local predicates don't
 have clauses from files, so we don't   need to bother. Returns number of
 clauses that has been deleted.
 
-This is called only for (re)consult. What to do with dynamic predicates?
+This is called for (re)consult and abolish/1.
 
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1630,7 +1645,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   { if ( clause->generation.erased > generation )
       clause->generation.erased = generation;
   } else if ( unlikely(!!LD->transaction.generation) &&
-	      def && true(def, P_DYNAMIC) )
+	      def && true(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
     { if ( LD->transaction.generation < LD->transaction.gen_max )
       { if ( clause->generation.erased >= LD->transaction.generation )
@@ -2343,7 +2358,7 @@ ddi_generation_name(DirtyDefInfo ddi)
   { int i;
 
     for(i=0; i<ddi->count; i++)
-    { Ssprintf(o, "%s%lld", i==0?"":" ", ddi->access[i]);
+    { Ssprintf(o, "%s%s", i==0?"":" ", generationName(ddi->access[i]));
       o += strlen(o);
     }
   } else
@@ -2353,7 +2368,7 @@ ddi_generation_name(DirtyDefInfo ddi)
     { gen_t f = ddi->access[i++];
       gen_t t = ddi->access[i++];
 
-      Ssprintf(o, "%s%lld-%lld", i==2?"":" ", f, t);
+      Ssprintf(o, "%s%s-%s", i==2?"":" ", generationName(f), generationName(t));
       o += strlen(o);
     }
   }
@@ -2609,7 +2624,8 @@ registerDirtyDefinition(DECL_LD Definition def)
 
 static void
 unregisterDirtyDefinition(Definition def)
-{ DirtyDefInfo ddi;
+{ GET_LD
+  DirtyDefInfo ddi;
 
   if ( (ddi=deleteHTable(GD->procedures.dirty, def)) )
   { PL_free(ddi);
@@ -2619,11 +2635,27 @@ unregisterDirtyDefinition(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We need to lock to avoid  a race with removeClausesPredicate() which
+may leave this predicate as non-dirty while it is dirty.
+
+  Us				Them
+  ----------------------------------------------------------------
+  Decide to unregister
+				def->impl.clauses.erased_clauses++
+				registerDirtyDefinition()
+  unregisterDirtyDefinition()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 maybeUnregisterDirtyDefinition(Definition def)
 { if ( true(def, P_DIRTYREG) &&
        def->impl.clauses.erased_clauses == 0 )
-  { unregisterDirtyDefinition(def);
+  { LOCKDEF(def);			/* See (*) */
+    if ( true(def, P_DIRTYREG) &&
+	 def->impl.clauses.erased_clauses == 0 )
+      unregisterDirtyDefinition(def);
+    UNLOCKDEF(def);
   }
 
   if ( true(def, P_ERASED) )
@@ -2679,7 +2711,7 @@ pl_garbage_collect_clauses(void)
 
     initBuffer(&tr_starts);
     markPredicatesInEnvironments(LD, (Buffer)&tr_starts);
-#ifdef O_PLMT
+#ifdef O_ENGINES
     forThreadLocalDataUnsuspended(markPredicatesInEnvironments,
 				  (Buffer)&tr_starts);
 #endif
@@ -3429,6 +3461,7 @@ typedef struct patt_mask
 
 static const patt_mask patt_masks[] =
 { { ATOM_dynamic,	   P_DYNAMIC },
+  { ATOM_transact,	   P_TRANSACT },
   { ATOM_multifile,	   P_MULTIFILE },
   { ATOM_locked,	   P_LOCKED },
   { ATOM_system,	   P_LOCKED },		/* compatibility */
@@ -3619,7 +3652,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
     if ( def->flags & P_FOREIGN )
       fail;
     def = getProcDefinition(proc);
-    if ( true(def, P_DYNAMIC) && LD->transaction.generation )
+    if ( true(def, P_TRANSACT) && LD->transaction.generation )
       g = transaction_last_modified_predicate(def);
     else
       g = def->last_modified;
@@ -3677,10 +3710,10 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
 	 hasClausesDefinition(def) )
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
 
-    set(def, P_DYNAMIC);
+    set(def, P_DYNAMIC|P_TRANSACT);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
   } else				/* dynamic --> static */
-  { clear(def, P_DYNAMIC);
+  { clear(def, P_DYNAMIC|P_TRANSACT);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
   }
 
@@ -3702,7 +3735,7 @@ setDynamicDefinition(Definition def, bool isdyn)
 int
 setThreadLocalDefinition(Definition def, bool val)
 {
-#ifdef O_PLMT
+#ifdef O_ENGINES
 
   LOCKDEF(def);
   if ( (val && true(def, P_THREAD_LOCAL)) ||
@@ -3719,7 +3752,7 @@ setThreadLocalDefinition(Definition def, bool val)
 
     def->impl.local.local = new_ldef_vector();
     MEMORY_RELEASE();
-    set(def, P_DYNAMIC|P_VOLATILE|P_THREAD_LOCAL);
+    set(def, P_DYNAMIC|P_TRANSACT|P_VOLATILE|P_THREAD_LOCAL);
     def->codes = SUPERVISOR(thread_local);
 
     UNLOCKDEF(def);
@@ -4111,10 +4144,10 @@ listGenerations(Definition def)
   for(i=1,cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
   { Clause clause = cref->value.clause;
 
-    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+    Sdprintf("%p: [%2d] %8s-%10s%s%s%s\n",
 	     clause, i,
-	     clause->generation.created,
-	     clause->generation.erased,
+	     generationName(clause->generation.created),
+	     generationName(clause->generation.erased),
 	     true(clause, CL_ERASED) ? " erased" : "",
 	     visibleClause(clause, gen) ? " v " : " X ",
 	     keyName(cref->d.key));
@@ -4128,7 +4161,7 @@ listGenerations(Definition def)
 void
 checkDefinition(Definition def)
 { GET_LD
-  unsigned int nc, indexed = 0;
+  unsigned int nc;
   ClauseRef cref;
   unsigned int erased = 0;
   Definition old;
@@ -4139,9 +4172,7 @@ checkDefinition(Definition def)
   { Clause clause = cref->value.clause;
 
     if ( false(clause, CL_ERASED) )
-    { if ( cref->d.key )
-	indexed++;
-      nc++;
+    { nc++;
     } else
     { erased++;
     }

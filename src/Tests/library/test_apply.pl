@@ -37,6 +37,9 @@
           [ test_apply/0
           ]).
 :- use_module(library(apply)).
+:- use_module(library(plunit)).
+:- use_module(library(solution_sequences)).
+:- use_module(library(yall)).
 
 % Test foldl of library(apply)
 % Author: David Tonhofer Dec 2020

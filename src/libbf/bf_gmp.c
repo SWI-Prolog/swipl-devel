@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
+    Copyright (c)  2023, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,11 +35,14 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _CRT_SECURE_NO_WARNINGS 1	/* Avoid strcpy() warning */
 #include <sys/types.h>			/* get ssize_t */
 #include <string.h>
 #include <stdio.h>
 #include "bf_gmp.h"
 #include <stdlib.h>
+#include "cutils.h"
+//#include "../os/SWI-Stream.h"		/* For Sdprintf() debugging */
 
 #define STEIN 1
 
@@ -47,6 +51,29 @@ bf_print_i(const char *msg, const bf_t *i)
 { printf("%s=%s\n",
 	 msg,
 	 bf_ftoa(NULL, i, 10, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC));
+}
+
+
+/* Note that the caller must make sure `STR` is large enough!
+   Dubious GMP API ...
+*/
+
+char *
+mpz_get_str(char *STR, int BASE, const mpz_t OP)
+{ const bf_t *op = OP;
+  bf_t copy;
+
+  if ( !op->ctx )
+  { copy = OP[0];
+    copy.ctx = &alloc_wrapper.bf_context;
+    op = &copy;
+  }
+
+  char *s = bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC);
+  strcpy(STR, s);
+  bf_free(op->ctx, s);
+
+  return STR;
 }
 
 
@@ -67,15 +94,15 @@ mul_2exp(bf_t *r, slimb_t e)
 
 #if STEIN
 
-// adapted from 
+// adapted from
 // https://stackoverflow.com/questions/63604914/how-can-i-speed-up-the-binary-gcd-algorithm-using-builtin-ctz
-static uint64_t 
+static uint64_t
 i64_gcd(uint64_t u, uint64_t v) {
     uint64_t t = u | v;
 
     if(u == 0 || v == 0) return t; /* return (v) or (u), resp. */
 
-    int g = __builtin_ctzll(t);
+    int g = (int)__builtin_ctzll(t);
 
     while(u != 0) {
         u >>= __builtin_ctzll(u);
@@ -116,7 +143,7 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   while ( llabs(a->expn - b->expn) > 5 )  // if large difference between a and b
   { mpz_tdiv_r(r, a, b);  // reduce somewhat with Euclidean
     if ( mpz_sgn(r) == 0 )  // if remainder is 0, answer is b
-    { mpz_swap(b, r); 
+    { mpz_swap(b, r);
       mpz_clear(a);
       mpz_clear(b);
       return;
@@ -124,19 +151,19 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
     mpz_swap(a, b);
     mpz_swap(b, r);
   }
-  
+
   // reduce a and b to odd
-  als1 = mpz_scan1(a, 0); 
-  if ( als1 > 0 ) mul_2exp(a, -als1);
-  bls1 = mpz_scan1(b, 0); 
-  if ( bls1 > 0 ) mul_2exp(b, -bls1);
+  als1 = mpz_scan1(a, 0);
+  if ( als1 > 0 ) mul_2exp(a, UNEG(als1));
+  bls1 = mpz_scan1(b, 0);
+  if ( bls1 > 0 ) mul_2exp(b, UNEG(bls1));
   k = (als1 > bls1) ? bls1 : als1;  // k = min(als1,bls1)
 
   while (1)     // now use Stein
   { // a and b always odd at start of loop
     if ((a->expn < INT64BITSIZE) && (b->expn <INT64BITSIZE))
     { // both fit in 64 bit integers; get int64 values and use int64 gcd
-      mpz_set_ui(r, i64_gcd(mpz_get_si(a), mpz_get_si(b)));
+      mpz_set_ui64(r, i64_gcd(mpz_get_si64(a), mpz_get_si64(b)));
       break;             // we're done, exit while loop
     }
     mpz_sub(r,a,b);      // a-b -> r is now even, b still odd
@@ -149,8 +176,8 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
       mpz_abs(r, r);     // |a-b| -> r
     }
     mpz_swap(a, r);      // |a-b| -> a
-    mul_2exp(a, -mpz_scan1(a, 0));  // make a odd again
-  } 
+    mul_2exp(a, -(slimb_t)mpz_scan1(a, 0));  // make a odd again
+  }
 
   mpz_mul_2exp(r, r, k); // r*2^d -> r (final answer)
   mpz_clear(a);
@@ -230,13 +257,13 @@ mpz_pow_ui(mpz_t r, const mpz_t n, unsigned long x)
 
 void
 mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
-{ int64_t N = n;
-  int64_t R = 1;
+{ uint64_t N = n;
+  uint64_t R = 1;
   mpz_t Nz;
 
   while ( x )
-  { int64_t N1, R1=R;
-    unsigned x1 = x;
+  { uint64_t N1, R1=R;
+    unsigned long x1 = x;
 
     if ( x & 0x1 )
     { if ( __builtin_mul_overflow(R,N,&R1) )
@@ -250,12 +277,11 @@ mpz_ui_pow_ui(mpz_t r, unsigned long n, unsigned long x)
     R = R1;
     N = N1;
   }
-  mpz_set_ui(r, R);
+  mpz_set_ui64(r, R);
 
  overflow:
-
-  mpz_init_set_ui(Nz, N);
-  mpz_set_ui(r, R);
+  mpz_init_set_ui64(Nz, N);
+  mpz_set_ui64(r, R);
 
   while ( x )
   { if ( x & 0x1 )
@@ -396,7 +422,7 @@ mpq_cmp_z(const mpq_t q1, const mpz_t z2)
   int rc;
   mpz_init(num);
   mpz_mul(num, mpq_cdenref(q1), z2);
-  rc = mpz_cmp(mpq_cnumref(q1), num);  
+  rc = mpz_cmp(mpq_cnumref(q1), num);
   mpz_clear(num);
 
   return rc;
@@ -521,10 +547,10 @@ mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
 { if ( bf_is_zero(N) )
   { bf_set_si(r, 0);
   } else if ( bf_is_exp_2(N) )
-  { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2));
+  { mpz_urandom_2exp(r, state, (mp_bitcnt_t)mpz_sizeinbase(N,2));
   } else
   { do
-    { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2)+1);
+    { mpz_urandom_2exp(r, state, (mp_bitcnt_t)mpz_sizeinbase(N,2)+1);
     } while( mpz_cmp(r, N) >= 0 );
   }
 }
@@ -565,7 +591,7 @@ int
 mpz_tstbit(const mpz_t n, mp_bitcnt_t i)
 { int set;
 
-  if ( i >= n->expn )
+  if ( (slimb_t)i >= n->expn )
   { set = 0;
   } else
   { limb_t boffset = n->expn-1 - i; /* offset from msb */
@@ -629,7 +655,7 @@ mpz_com(mpz_t r, const mpz_t n)
   size_t alllimbs = (r->expn+8*sizeof(limb_t)-1)/(8*sizeof(limb_t));
   size_t len0 = r->len;
   if ( len0 < alllimbs )
-  { bf_resize(r, alllimbs);
+  { bf_resize(r, (limb_t)alllimbs);
     memmove(&r->tab[alllimbs-len0], &r->tab[0], len0*sizeof(limb_t));
     for(size_t i=0; i<alllimbs-len0; i++)
       r->tab[i] = ~(limb_t)0;
@@ -650,12 +676,12 @@ mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
   const MP_INT *op;
   int op_sgn;
 
-  if (bf_is_zero(OP)) 
+  if (bf_is_zero(OP))
   { mpz_set(rop, OP);               // nth root of zero is zero
-    mpz_set(rem, OP);    
+    mpz_set(rem, OP);
     return;
   }
-  
+
   if ( mpz_sizeinbase(OP, 2) < n )  // if n > bit size, answer is +/- 1
   { op_sgn = mpz_sgn(OP);
     mpz_add_si(rem, OP, -op_sgn);
@@ -719,7 +745,7 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
   }
 
   unsigned int i = data[0];
-  r->expn = len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
+  r->expn = (slimb_t)(len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8)));
   bits = r->expn;
   for(d=&data[len-1]; ;d--)
   { if ( *d )
@@ -729,7 +755,7 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
     bits -= 8;
   }
 
-  r->len = (bits+sizeof(limb_t)*8-1)/(sizeof(limb_t)*8);
+  r->len = (limb_t)((bits+sizeof(limb_t)*8-1)/(sizeof(limb_t)*8));
 }
 
 void
@@ -753,7 +779,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     if ( bf.expn == BF_EXP_ZERO )
       return;
 
-    int shift = COUNT*8-bf.expn;
+    int shift = (int)(COUNT*8-bf.expn);
     limb_t mask = ((limb_t)1<<shift)-1;
 
     lt = &ROP->tab[bf.len-1];
@@ -796,7 +822,7 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
       int byte = sizeof(limb_t)-1;
       unsigned char *out = ROP;
       limb_t l = *lt;
-      int shift = bytes*8-OP->expn;
+      int shift = (int)(bytes*8-OP->expn);
       limb_t mask = (1<<shift)-1;
       limb_t low = l&mask;
       limb_t high = low<<(sizeof(limb_t)*8-shift);

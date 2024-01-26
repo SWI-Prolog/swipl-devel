@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -40,6 +40,7 @@
 #include "pl-utf8.h"
 #include "../pl-codelist.h"
 #include "../pl-write.h"
+#include "../pl-prims.h"
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
@@ -177,17 +178,18 @@ PL_text_length(const PL_chars_t *text)
 #define INT64_DIGITS 20
 
 static char *
-ui64toa(uint64_t val, char *out)
+ui64toa(uint64_t val, char *out, int base)
 { char tmpBuf[INT64_DIGITS + 1];
   char *ptrOrg = tmpBuf + INT64_DIGITS;
   char *ptr = ptrOrg;
   size_t nbDigs;
+  static const char digits[] = "0123456789abcdef";
 
   do
-  { int rem = val % 10;
+  { int rem = val % base;
 
-    *--ptr = rem + '0';
-    val /= 10;
+    *--ptr = digits[rem];
+    val /= base;
   } while ( val );
 
   nbDigs = ptrOrg - ptr;
@@ -200,13 +202,13 @@ ui64toa(uint64_t val, char *out)
 
 
 static char *
-i64toa(int64_t val, char *out)
+i64toa(int64_t val, char *out, int base)
 { if ( val < 0 )
   { *out++ = '-';
     val = -(uint64_t)val;
   }
 
-  return ui64toa((uint64_t)val, out);
+  return ui64toa((uint64_t)val, out, base);
 }
 
 
@@ -227,11 +229,12 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
   } else if ( ((flags&CVT_RATIONAL) && isRational(w)) ||
 	      ((flags&CVT_INTEGER)  && isInteger(w)) )
   { number n;
+    int base = (flags&CVT_XINTEGER)==CVT_XINTEGER ? 16 : 10;
 
     PL_get_number(l, &n);
     switch(n.type)
     { case V_INTEGER:
-      { char *ep = i64toa(n.value.i, text->buf);
+      { char *ep = i64toa(n.value.i, text->buf, base);
 
 	text->text.t    = text->buf;
 	text->length    = ep-text->text.t;
@@ -245,7 +248,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
-	mpz_get_str(b->base, 10, n.value.mpz);
+	mpz_get_str(b->base, base, n.value.mpz);
 	b->top = b->base + strlen(b->base);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
@@ -260,10 +263,10 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
-	mpz_get_str(b->base, 10, mpq_numref(n.value.mpq));
+	mpz_get_str(b->base, base, mpq_numref(n.value.mpq));
 	b->top = b->base + strlen(b->base);
 	*b->top++ = 'r';			/* '/' under some condition? */
-	mpz_get_str(b->top, 10, mpq_denref(n.value.mpq));
+	mpz_get_str(b->top, base, mpq_denref(n.value.mpq));
 	b->top += strlen(b->top);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
@@ -361,9 +364,22 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
     if ( (flags&CVT_WRITEQ) )
       wflags = PL_WRT_QUOTED|PL_WRT_NUMBERVARS;
     else if ( (flags&CVT_WRITE_CANONICAL) )
-      wflags = PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS;
+      wflags = (PL_WRT_QUOTED|PL_WRT_QUOTE_NON_ASCII|
+		PL_WRT_IGNOREOPS|PL_WRT_VARNAMES|
+		PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS);
     else
       wflags = PL_WRT_NUMBERVARS;
+
+    int rc = FALSE;
+    BEGIN_NUMBERVARS(TRUE);
+    nv_options options =
+    { .functor = FUNCTOR_isovar1,
+      .on_attvar = AV_SKIP,
+      .singletons = PL_is_acyclic(l),
+      .numbered_check = FALSE
+    };
+    if ( numberVars(l, &options, 0) == NV_ERROR )
+      goto error;
 
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;
@@ -390,7 +406,8 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 
 	Sclose(fd);
 
-	goto out;
+	rc = TRUE;
+	break;
       } else
       { Sclose(fd);
 	if ( *enc == ENC_ISO_LATIN_1 && enc[1] != ENC_UNKNOWN )
@@ -400,7 +417,9 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	  Sfree(r);
       }
     }
-
+    END_NUMBERVARS(TRUE);
+    if ( rc )
+      goto out;
     goto error;
   } else
   { goto error;
@@ -1055,10 +1074,11 @@ PL_mb_text(PL_chars_t *text, int flags)
 
     PL_free_text(text);
 
-    text->length   = sizeOfBuffer(b)-1;
-    text->text.t   = baseBuffer(b, char);
-    text->encoding = target;
-    text->storage  = PL_CHARS_RING;
+    text->length    = sizeOfBuffer(b)-1;
+    text->text.t    = baseBuffer(b, char);
+    text->encoding  = target;
+    text->canonical = (target == ENC_ISO_LATIN_1);
+    text->storage   = PL_CHARS_RING;
   }
 
   succeed;

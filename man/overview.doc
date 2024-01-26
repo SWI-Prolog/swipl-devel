@@ -333,7 +333,7 @@ Prolog flag \prologflag{argv}.
 		\arg{prolog-file} ...
 		[[\const{--}] \arg{arg} ...]}
 This is the normal way to start Prolog. The options are described in
-\secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
+\secref{cli-options}, \secref{stacksizes} and \secref{runoptions}.
 The Prolog flag \prologflag{argv} provides access to \arg{arg} ... If
 the \arg{options} are followed by one or more Prolog file names (i.e.,
 names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
@@ -390,13 +390,32 @@ a number of aspects.  See \secref{abi-versions}.
 
 
 \subsection{Command line options for running Prolog}
-\label{sec:running-options}
+\label{sec:cli-options}
 
 Note that \jargon{boolean options} may be written as \exam{--name}
 (true), \exam{--noname} or \exam{--no-name} (false).  They are written
 as \exam{--no-name} below as the default is `true'.
 
 \begin{description}
+    \cmdlineoptionitem{-D}{name[=value]}
+Set the Prolog flag \arg{name} to \arg{value}. The flags are set
+immediately after loading the initial \jargon{saved state}. If the flag
+is already defined, \arg{value} is converted to the type of the flag. If
+the flag is undefined it is set to a number of \arg{value} represents a
+number and an atom otherwise. If no \const{=}\arg{value} is given, a
+Boolean value is used. If \arg{name} is \const{no-}\arg{flag},
+\arg{flag} is set to \const{false}. Otherwise, the flag \arg{name} is
+set to \const{true}. The \exam{name[=value]} may follow the \exam{-D}
+immediately or appear as the next commandline argument.
+
+Note that many of the commandline options are reflected by a Prolog
+flag. We intend to handle these as synonyms. Currently, some of the
+commandline flags affect the Prolog initilization before loading the
+saved state has completed, while other may not be changed after Prolog
+initialization. For example, future versions will support
+\exam{-Dhome=dir} to change the notion of the Prolog installation
+directory.
+
     \cmdlineoptionitem{--debug-on-interrupt}{}
 Enable debugging on an interrupt signal (Control-C, \const{SIGINT})
 immediately.  Normally debugging on interrupt is enabled when entering
@@ -782,10 +801,11 @@ these sequences appear in quoted atoms or strings.
 \section{Reuse of top-level bindings}    \label{sec:topvars}
 
 Bindings resulting from the successful execution of a top-level goal are
-asserted in a database \emph{if they are not too large}. These values
-may be reused in further top-level queries as \$Var. If the same
-variable name is used in a subsequent query the system associates the
-variable with the latest binding. Example:
+asserted in a database \emph{if they are not too large} (as defined by
+the Prolog flag \prologflag{toplevel_var_size}). These values may be
+reused in further top-level queries as \$Var. If the same variable name
+is used in a subsequent query the system associates the variable with
+the latest binding. Example:
 
 \begin{figure}
 \begin{code}
@@ -830,45 +850,103 @@ true.
 
 \input{textdebugger.tex}
 
-\section{Compilation}			\label{sec:compilation}
+\section{Loading and running projects}		\label{sec:compilation}
 
-\subsection{During program development}	\label{sec:develcomp}
+Most Prolog programs are split over multiple files organized in a
+directory and optionally multiple subdirectories.  Typically all files
+are Prolog \jargon{module} files.  See \secref{modules}.  Typically,
+the directory contains a file, often called \file{load.pl}, that loads
+all other files (modules) using use_module/[1,2] or, for projects that
+do not use modules, using ensure_loaded/1.
 
-During program development, programs are normally loaded using the list
-abbreviation (\texttt{?- [load].}). It is common practice to organise a
-project as a collection of source files and a \jargon{load file}, a
-Prolog file containing only use_module/[1,2] or ensure_loaded/1
-directives, possibly with a definition of the \jargon{entry point} of
-the program, the predicate that is normally used to start the program.
-This file is often called \file{load.pl}. If the entry point is called
-{\em go}, a typical session starts as:
+If the project is an application (rather than a library), there are
+several ways to start it.  One option is by using the commandline
+option \cmdlineoption{-g} \arg{goal}.  The classical Prolog way is by
+using an initialization/1 \jargon{directive}.  Th problem with the
+latter is that such directives are both used for runtime
+initialization in modules and starting the application while it is
+hard to control the order in which they are executed.  For this
+reason, SWI-Prolog introduced initialization/2, adding an argument
+that specifies the role and (indirectly) the order of initialization.
+The application entry point is now declared using
 
 \begin{code}
-% swipl
-<banner>
+:- initialization(start, main).
 
-1 ?- [load].
-<compilation messages>
-true.
-
-2 ?- go.
-<program interaction>
+start :-
+    ...
 \end{code}
 
-When using Windows, the user may open \file{load.pl} from the Windows
-explorer, which will cause \program{swipl-win.exe} to be started in the
-directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
-entering the top level.  If Prolog is started from an interactive shell,
-one may choose the type \texttt{swipl -s load.pl}.
+Using these conventions we may run the application using this command line,
+where \arg{option ...} are Prolog options to control e.g., memory limits.
+Typically, none are required.  \arg{arg ...} are made available to the
+program using the Prolog flag \prologflag{argv}.
+
+\begin{code}
+% swipl [option ...] load.pl [arg ...]
+\end{code}
+
+To merely load the code without running the application, provided the
+entry point is started using the initialization/2 directive described
+above, we can use the \cmdlineoption{-l}.  After loading we can debug
+and/or edit the application.
+
+\begin{code}
+% swipl [option ...] -l load.pl [arg ...]
+\end{code}
+
+Rather than just using \nopredref{start}{0} as above, applications
+typically use main/0 from the library \pllib{main}.  The main/0
+predicate prepares for non-development usage and calls main/1 with the
+application \arg{argv} (command line arguments).  These are normally
+processed into \jargon{positional arguments} and \jargon{options}
+using argv_options/2 from the same library.
+
+While the above works fine when using Prolog from the commandline,
+it is less suitable for scenarios that make it hard to control the
+SWI-Prolog commandline which as using \program{swipl-win} or running
+Prolog under some IDE such as Emacs.  Loading a program that uses
+the above initialization/2 directive into the toplevel using
+
+\begin{code}
+?- [load].
+\end{code}
+
+does \textbf{not} start the entry point.  Opening a \fileext{.pl}
+file using \program{swipl-win} does start the entry point.
 
 
-\subsection{For running the result}	\label{sec:runcomp}
+\subsection{Running an application}	\label{sec:runcomp}
 
 There are various options if you want to make your program ready
 for real usage.  The best choice depends on whether the program
 is to be used only on machines holding the SWI-Prolog development
 system, the size of the program, and the operating system (Unix
-vs.\ Windows).
+vs.\ Windows).   There are four options
+
+\begin{itemize}
+\item On Unix-like systems one can use the \jargon{shebang} magic
+  sequence to turn a Prolog source into an executable.  See
+  \secref{plscript}.
+\item On any system you can use a \jargon{shell script} (Unix
+  \program{sh} or Windows \program{cmd}) script to start the
+  application.  See \secref{shellscript}.
+\item On any system you can create a \jargon{saved state} that
+  consists of the virtual machine code and a startup sequence.  Saved
+  states can be stand-alone and with some precautions they can work
+  without SWI-Prolog itself installed.  They start fast, but they are
+  big and creating a state from a program that uses native code
+  extensions and (file) resources is not trivial while details depend
+  on the OS and required resources.  See \secref{makestate}.
+\item On any system you can add a Prolog file to a designated
+  directory and allow it to be started using
+\begin{code}
+swipl name [arg ...]
+\end{code}
+  New commands can be added to the Prolog installation, by Prolog
+  \jargon{packs}, in a user specific directory or in a system-wide
+  directory.  See \secref{swipl-app}.
+\end{itemize}
 
 
 \subsubsection{Using PrologScript}	\label{sec:plscript}
@@ -909,10 +987,10 @@ disabling signal handling.
 :- initialization(main, main).
 
 main(Argv) :-
-	concat_atom(Argv, ' ', SingleArg),
-	term_to_atom(Term, SingleArg),
-	Val is Term,
-	format('~w~n', [Val]).
+    atomic_list_concat(Argv, ' ', SingleArg),
+    term_to_atom(Term, SingleArg),
+    Val is Term,
+    format('~w~n', [Val]).
 \end{code}
 
 And here are two example runs:
@@ -966,26 +1044,27 @@ Especially on Unix systems and not-too-large applications, writing
 a shell script that simply loads your application and calls the
 entry point is often a good choice.  A skeleton for the script is
 given below, followed by the Prolog code to obtain the program
-arguments.
+arguments.  See library \pllib{main} and argv_options/3 for details.
 
 \begin{code}
 #!/bin/sh
 
 base=<absolute-path-to-source>
-PL=swipl
+SWIPL=swipl
 
-exec $PL -q -f "$base/load" --
+exec $SWIPL "$base/load.pl" -- "$@"
 \end{code}
 
 \begin{code}
-:- initialization go.
+:- use_module(library(main)).
+:- initialization(main,main).
 
-go :-
-	current_prolog_flag(argv, Arguments),
-	go(Arguments).
+main(Argv) :-
+    argv_options(Argv, Positional, Options),
+    go(Positional, Options).
 
-go(Args) :-
-	...
+go(Positional, Options) :-
+    ...
 \end{code}
 
 On Windows systems, similar behaviour can be achieved by creating a
@@ -1048,6 +1127,65 @@ This performs exactly the same as executing
 		 ]).
 ?- halt.
 \end{code}
+
+\subsubsection{SWI-Prolog app scripts}	\label{sec:swipl-app}
+
+As of version 9.1.18, SWI-Prolog allows starting an application
+using the command below.
+
+\begin{code}
+swipl [option ...] [path:]name [arg ...]
+\end{code}
+
+This command line first processes Prolog options described in
+\secref{cmdline}.  Note that most standard Prolog commandline options
+are not relevant.  The \cmdlineoption{-f} defaults to \const{none},
+which implies that the user init file is by default not loaded.  If an
+application wishes to load the user init file, it should load
+\verb$user_app_config(init)$ if this file exists (see
+exists_source/1).
+
+Next, it locates \exam{path(name)} using SWI-Prolog's file search
+mechanism defined by absolute_file_name/3.  After loading this file it
+demands a to find the entry point registered using initialization/2 as
+shown in \secref{compilation}.  By default, the application terminates
+after the entry point terminates.  The entry point may enable the
+interactive Prolog REPL loop by calling
+cli_enable_development_system/0.
+
+All command line options after \verb$[path:]name$ are accessible in
+the Prolog flag \prologflag{argv}.
+
+The optional \arg{path} defaults to \const{app}.  By default, apps are
+searched in the directories below.  See file_search_path/2 for
+details.
+
+\begin{enumerate}
+\item The \file{app} directory of the SWI-Prolog installation
+\item User and site configuration.  On POSIX systems using the
+  XDG file name conventions, this is normally \file{~/.local/share/swi-prolog/app/}
+  and \file{/usr/share/swi-prolog/app}.
+\item The \file{app} directory of a Prolog \jargon{pack}.
+\end{enumerate}
+
+The following apps are provided by the installation
+
+\begin{description}
+    \definition{app}
+    Print information on installed apps.   For example, to list all
+    available apps, run
+\begin{code}
+swipl app list
+\end{code}
+    \definition{pack}
+    Command line driven management of Prolog packs.  This is a front-end
+    to the Prolog library \pllib{prolog_pack}.  For example, to find
+    packages related to \textit{type}, use the command below.
+\begin{code}
+swipl pack find type
+\end{code}
+\end{description}
+
 
 \section{Environment Control (Prolog flags)}	\label{sec:flags}
 
@@ -1190,9 +1328,10 @@ or may not match the API level of the running device, since it is
 the API level at compile time.
 
     \prologflagitem{answer_write_options}{term}{rw}
-This argument is given as option-list to write_term/2 for printing results
-of queries. Default is \texttt{[quoted(true), portray(true),
-max_depth(10), attributes(portray)]}.
+This flag is used by the interactive toplevel to print the value if
+\jargon{bindings} (answers). The flag value is passed to write_term/2
+when printing an answer queries. Default is \texttt{[quoted(true),
+portray(true), max_depth(10), attributes(portray)]}.
 
     \prologflagitem{apple}{bool}{r}
 \index{MacOS}%
@@ -1384,6 +1523,10 @@ Describes when the system has been compiled. Only available if the
 C compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
 macros.
 
+    \prologflagitem{conda}{bool}{r}
+Set to \const{true} when built in a \href{https://docs.conda.io/}{Conda}
+environment.
+
     \prologflagitem{console_menu}{bool}{r}
 Set to \const{true} in \program{swipl-win.exe} to indicate that the console
 supports menus.  See also \secref{plwin}.
@@ -1533,7 +1676,9 @@ The smallest representable floating point number above 0.0.  See also
     \prologflagitem{float_overflow}{atom}{rw}
 One of \const{error} (default) or \const{infinity}.  The first is ISO
 compliant.  Using \const{infinity}, floating point overflow is mapped
-to positive or negative \const{Inf}.  See \secref{ieee-float}.
+to positive or negative \const{Inf}.  See \secref{ieee-float}.  This
+flag also affects read_term/3 and friends, causing them to read too
+large floating point number as infinity.
 
     \prologflagitem{float_rounding}{atom}{rw}
 Defines how arithmetic rounds to a float.  Defined values are
@@ -1567,7 +1712,8 @@ clause garbage collection are executed in a separate thread with the
 garbage executes the garbage collector. As running these global
 collectors may take relatively long, using a separate thread improves
 real time behaviour. The \const{gc} thread can be controlled using
-set_prolog_gc_thread/1.
+set_prolog_gc_thread/1, which either enables the gc thread or kills
+the gc thread and waits for it to die.
 
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
@@ -1864,6 +2010,11 @@ on POSIX systems it typically defines the length limit of the (often)
 UTF-8 encoded name).  The underlying file system may impose additional
 limits.
 
+    \prologflagitem{path_sep}{atom}{r}
+Separator for file search paths such as the environment variable
+\const{PATH} for the OS.  Normally \const{:}, but \const{;} on
+Windows.
+
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
 flag is implementation-defined.
@@ -1948,6 +2099,11 @@ still some discussion on the separating character. See
 \secref{syntax-rational-numbers}.} We will consider \const{natural} as a
 default in the future. Users are strongly encouraged to set this flag to
 \const{natural} and report issues this may cause.
+
+    \prologflagitem{rationals}{atom}{r}
+This flag is present and has the value \const{true} if the system
+supports rational numbers.  For SWI-Prolog this flag is always set
+if the flag \prologflag{bounded} is \const{false}.
 
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
@@ -2174,10 +2330,16 @@ following \verb$~$ (tilde) sequences are replaced:
 \end{tabular}
 \end{center}
 
+    \prologflagitem{toplevel_residue_vars}{bool}{rw}
+When \const{true} (default \const{false}), print residual variables as
+detected by call_residue_vars/2 that do not appear in the bindings
+returned by the goal.
+
     \prologflagitem{toplevel_var_size}{int}{rw}
 Maximum size counted in literals of a term returned as a binding for a
 variable in a top-level query that is saved for re-use using the
-\chr{$} variable reference.  See \secref{topvars}.
+\chr{$} variable reference. When 0 (zero), the variable recording
+and reuse is disabled. See \secref{topvars}.
 
     \prologflagitem{trace_gc}{bool}{rw}
 If \const{true} (default \const{false}), garbage collections and
@@ -2297,6 +2459,13 @@ results.  Note that optimized arithmetic (\cmdlineoption{-O}, see
 Prolog flag \prologflag{optimise}) is currently not translated into
 a normal predicate call.
 
+    \prologflagitem{warn_autoload}{bool}{rw}
+If \const{true} (default \const{false}), warn when autoloading
+predicates from a file that defines global term- or goal-expansion
+rules.  These rules typically enhance performance or provide cleaner
+semantics and thus autoloading is not recommended.   Future versions
+will enable this flag by default.
+
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
@@ -2391,14 +2560,19 @@ is a list of the options below.  See also \prologflag{user_flags}.
 
 	\termitem{type}{+Atom}
 	Define a type restriction.  Possible values are
-	\const{boolean}, \const{atom}, \const{integer}, \const{float}
-	and \const{term}.  The default is determined from the initial
-	value.  Note that \const{term} restricts the term to be ground.
+	\const{boolean}, \const{atom}, \term{oneof}{ListOfAtoms},
+        \const{integer}, \const{float} and \const{term}.  The default
+        is determined from the initial value.  Note that \const{term}
+        restricts the term to be ground.
 
 	\termitem{keep}{+Boolean}
 	If \const{true}, do not modify the flag if it already exists.
 	Otherwise (default), this predicate behaves as set_prolog_flag/2
 	if the flag already exists.
+
+        If the flag has a value, but this value is incompatible with the
+        specified type, a warning is printed and the flag gets the
+        value and type specified by this call to create_prolog_flag/3.
     \end{description}
 \end{description}
 
@@ -2583,55 +2757,6 @@ When creating an executable using either qsave_program/2 or the
 \cmdlineoption{-c} command line options, it is necessary to load
 all predicates that would normally be autoloaded explicitly.  This
 is discussed in \secref{runtime}.  See autoload_all/0.
-
-
-\section{Packs: community add-ons}		\label{sec:packs}
-
-SWI-Prolog has a mechanism for easy incorporation of community
-extensions. See the \href{http://www.swi-prolog.org/pack/list}{pack
-landing page} for details and available packs.  This section documents
-the built-in predicates to attach packs.  Predicates for creating,
-registering and installing packs are provided by the library
-\pllib{prolog_pack}.
-
-\begin{description}
-    \predicate{attach_packs}{0}{}
-Attaches all packs in subdirectories of directories that are accessible
-through the \jargon{file search path} (see absolute_file_name/3)
-\const{pack}.  The default for this search path is given below.  See
-file_search_path/2 for the \const{app_data} search path.
-
-\begin{code}
-user:file_search_path(pack, app_data(pack)).
-\end{code}
-
-The predicate attach_packs/0 is called on startup of SWI-Prolog.
-
-    \predicate{attach_packs}{1}{+Directory}
-Attach all packs in subdirectories of \arg{Directory}.  Same as
-\term{attach_packs}{Directory, []}.
-    \nodescription
-    \predicate{attach_packs}{2}{+Directory, +Options}
-Attach all packs in subdirectories of \arg{Directory}.  Options
-is one of:
-
-    \begin{description}
-	\termitem{search}{+Where}
-Determines the order in which pack library directories are searched.
-Default is to add new packages at the end (\const{last}).  Using
-\const{first}, new packages are added at the start.
-
-	\termitem{duplicate}{+Action}
-Determines what happens if a pack with the same name is already
-attached.  Default is \const{warning}, which prints a warning and
-ignores the new pack.  Other options are \const{keep}, which is
-like \const{warning} but operates silently and \const{replace},
-which detaches the old pack and attaches the new.
-    \end{description}
-
-The predicate attach_packs/2 can be used to attach packages that
-are bundled with an application.
-\end{description}
 
 
 \section{The SWI-Prolog syntax}			\label{sec:syntax}

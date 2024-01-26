@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2019-2022, University of Amsterdam
                               VU University Amsterdam
-		              CWI, Amsterdam
+			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -83,7 +83,7 @@ const event_type PL_events[] =
   GEVENT(PLEV_RETRACTNOBREAK,   ATOM_break,            3, onbreak),
   GEVENT(PLEV_FRAMEFINISHED,    ATOM_frame_finished,   1, onframefinish),
   GEVENT(PLEV_UNTABLE,		ATOM_untable,          1, onuntable),
-#ifdef O_PLMT
+#ifdef O_ENGINES
   GEVENT(PLEV_THREAD_START,     ATOM_thread_start,     1, onthreadstart),
   GEVENT(PLEV_THREAD_EXIT,      ATOM_thread_exit,      1, onthreadexit),
   LEVENT(PLEV_THIS_THREAD_EXIT, ATOM_this_thread_exit, 0, onthreadexit),
@@ -632,7 +632,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
 			 ev == PLEV_BREAK          ? ATOM_true :
 			 ev == PLEV_NOBREAK        ? ATOM_false :
 			 ev == PLEV_RETRACTNOBREAK ? ATOM_retract :
-			                             ATOM_exist) &&
+						     ATOM_exist) &&
 	     PL_put_clref(av+2, cl) &&
 	     PL_put_intptr(av+3, offset) );
       break;
@@ -643,7 +643,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
       rc = PL_put_frame(av+1, fr);
       break;
     }
-#ifdef O_PLMT
+#ifdef O_ENGINES
     case PLEV_THREAD_START:
     case PLEV_THREAD_EXIT:
     { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);

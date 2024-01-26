@@ -58,11 +58,11 @@
 #endif
 
 \newcommand{\vmajor}{9}
-\newcommand{\vminor}{0}
-\newcommand{\vpatch}{4}
+\newcommand{\vminor}{1}
+\newcommand{\vpatch}{22}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{January}
-\newcommand{\vyear}{2023}
+\newcommand{\vyear}{2024}
 
 #ifdef BOOK
 \newcommand{\versionshort}{\vmajor}
@@ -167,6 +167,7 @@ California, 94041, USA.
 \include{foreign}
 \include{wasm}
 \include{runtime}
+\include{packs}
 \appendix
 \include{lib/library}
 \include{hack}

@@ -36,10 +36,12 @@ test(post, Sums == [1,3,6,10,15]) :-
 	sums_list(List, Sums).
 test(whisper, Final == 10) :-
 	whisper(9, 1, Final).
+:- if(current_prolog_flag(threads, true)).
 test(count, Final =:= N*M) :-
 	N = 4,					% threads
 	M = 10000,				% steps
 	counter(N, M, Final).
+:- endif.
 test(error, Ex == foo) :-
 	engine_create(_, throw(foo), E),
 	catch(engine_next(E, _), Ex, true),

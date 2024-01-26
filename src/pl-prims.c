@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1646,7 +1646,10 @@ atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
 
 int
 compareAtoms(atom_t w1, atom_t w2)
-{ Atom a1 = atomValue(w1);
+{ if ( w1 == w2 )
+    return CMP_EQUAL;
+
+  Atom a1 = atomValue(w1);
   Atom a2 = atomValue(w2);
 
   if ( a1->type == a2->type )
@@ -1657,9 +1660,9 @@ compareAtoms(atom_t w1, atom_t w2)
       int v;
 
       if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
-	return v < 0 ? CMP_LESS : CMP_GREATER;
-      return a1->length == a2->length ? CMP_EQUAL :
-	     a1->length < a2->length ? CMP_LESS : CMP_GREATER;
+	return SCALAR_TO_CMP(v, 0);
+      else
+	return SCALAR_TO_CMP(a1->length, a2->length);
     }
   } else if ( true(a1->type, PL_BLOB_TEXT) &&
 	      true(a2->type, PL_BLOB_TEXT) )
@@ -1672,8 +1675,7 @@ compareAtoms(atom_t w1, atom_t w2)
 
     return PL_cmp_text(&t1, 0, &t2, 0, len);
   } else
-  { return a1->type->rank == a2->type->rank ? CMP_EQUAL :
-	   a1->type->rank < a2->type->rank ? CMP_LESS : CMP_GREATER;
+  { return SCALAR_TO_CMP(a1->type->rank, a2->type->rank);
   }
 }
 
@@ -1689,6 +1691,70 @@ compareStrings(DECL_LD word w1, word w2)
   len = (t1.length > t2.length ? t1.length : t2.length);
 
   return PL_cmp_text(&t1, 0, &t2, 0, len);
+}
+
+/* Compare two floats know to be non-equal.  As we do standard
+   order comparison, we may not return equal and must decide on
+   one to be the greatest.
+*/
+
+static int
+compare_neq_floats(double f1, double f2)
+{ if ( isnan(f1) )
+  { if ( isnan(f2) )
+    { double nf1 = NaN_value(f1);
+      double nf2 = NaN_value(f2);
+
+      if ( nf1 < nf2 )
+      { return CMP_LESS;
+      } else if ( nf1 > nf2 )
+      { return CMP_GREATER;
+      } else if ( signbit(nf1) != signbit(nf2) )
+      { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
+      } else
+      { return CMP_EQUAL;
+      }
+    }
+    return CMP_LESS;
+  } else if ( isnan(f2) )
+  { return CMP_GREATER;
+  }
+
+  if ( f1 < f2 )
+  { return CMP_LESS;
+  } else if ( f1 > f2 )
+  { return CMP_GREATER;
+  } else
+  { assert(signbit(f1) != signbit(f2));
+    return signbit(f1) ? CMP_LESS : CMP_GREATER;
+  }
+}
+
+#define compare_mixed_float_rational(w1, w2) \
+	LDFUNC(compare_mixed_float_rational, w1, w2)
+
+static int
+compare_mixed_float_rational(DECL_LD word w1, word w2)
+{ number left, right;
+  int rc;
+
+  get_number(w1, &left);
+  get_number(w2, &right);
+  if ( left.type == V_FLOAT && isnan(left.value.f) )
+    rc = CMP_LESS;
+  else if ( right.type == V_FLOAT && isnan(right.value.f) )
+    rc = CMP_GREATER;
+  else
+  { rc = cmpReals(&left, &right);
+    assert(rc != CMP_NOTEQ);
+  }
+  clearNumber(&left);
+  clearNumber(&right);
+
+  if ( rc == CMP_EQUAL )
+    rc = (tag(w1) == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
+
+  return rc;
 }
 
 
@@ -1720,11 +1786,7 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
 
   if ( w1 == w2 )
   { if ( isVar(w1) )
-    { cmpvars:
-      if ( p1 == p2 )
-	return CMP_EQUAL;
-      return p1 < p2 ? CMP_LESS : CMP_GREATER;
-    }
+      return SCALAR_TO_CMP(p1, p2);
     return CMP_EQUAL;
   }
 
@@ -1732,40 +1794,34 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
-    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
-	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
-      { number left, right;
-	int rc;
+  { if ( eq )
+      return CMP_NOTEQ;
 
-	get_number(w1, &left);
-	get_number(w2, &right);
-	if ( left.type == V_FLOAT && isnan(left.value.f) )
-	  rc = CMP_LESS;
-	else if ( right.type == V_FLOAT && isnan(right.value.f) )
-	  rc = CMP_GREATER;
-	else
-	  rc = cmpNumbers(&left, &right);
-	clearNumber(&left);
-	clearNumber(&right);
+    if ( (t1|t2) == (TAG_INTEGER|TAG_FLOAT) && /* quick test first */
+	 !truePrologFlag(PLFLAG_ISO) &&
+	 ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER)
+	 )
+      )
+      return compare_mixed_float_rational(w1, w2);
 
-	if ( rc == CMP_EQUAL )
-	  rc = (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
-	return rc;
-      }
-    }
-
-    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+    static_assert(TAG_VAR == 0 && TAG_ATTVAR==1,
+		  "Think twice before reordering the tags");
+    if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
       return t1 < t2 ? CMP_LESS : CMP_GREATER;
   }
 
   switch(t1)
   { case TAG_VAR:
     case TAG_ATTVAR:
-      goto cmpvars;
+      return SCALAR_TO_CMP(p1, p2);
     case TAG_INTEGER:
     { number n1, n2;
       int rc;
+
+      if ( storage(w1) == STG_INLINE &&
+	   storage(w2) == STG_INLINE )
+	return SCALAR_TO_CMP(valInt(w1), valInt(w2));
 
       get_rational(w1, &n1);
       get_rational(w2, &n2);
@@ -1779,42 +1835,11 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
     }
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
-      { return CMP_EQUAL;
-      } else if ( eq )
-      { return CMP_NOTEQ;
-      } else
-      { double f1 = valFloat(w1);
-	double f2 = valFloat(w2);
-
-	if ( isnan(f1) )
-	{ if ( isnan(f2) )
-	  { double nf1 = NaN_value(f1);
-	    double nf2 = NaN_value(f2);
-
-	    if ( nf1 < nf2 )
-	    { return CMP_LESS;
-	    } else if ( nf1 > nf2 )
-	    { return CMP_GREATER;
-	    } else if ( signbit(nf1) != signbit(nf2) )
-	    { return signbit(nf1) ? CMP_LESS : CMP_GREATER;
-	    } else
-	    { return CMP_EQUAL;
-	    }
-	  }
-	  return CMP_LESS;
-	} else if ( isnan(f2) )
-	{ return CMP_GREATER;
-	}
-
-	if ( f1 < f2 )
-	{ return CMP_LESS;
-	} else if ( f1 > f2 )
-	{ return CMP_GREATER;
-	} else
-	{ assert(signbit(f1) != signbit(f2));
-	  return signbit(f1) ? CMP_LESS : CMP_GREATER;
-	}
-      }
+	return CMP_EQUAL;
+      else if ( eq )
+	return CMP_NOTEQ;
+      else
+	return compare_neq_floats(valFloat(w1), valFloat(w2));
     }
     case TAG_ATOM:
       return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
@@ -2073,7 +2098,7 @@ PRED_IMPL("?=", 2, can_compare, 0)
   if ( rc )
   { FliFrame fr = (FliFrame) valTermRef(fid);
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     if ( fr->mark.trailtop != tTop )
       rc = FALSE;
   } else if ( exception_term )
@@ -2893,12 +2918,14 @@ both flags:
 #define ALREADY_NUMBERED     (-10)
 #define CONTAINS_ATTVAR      (-11)
 #define REPRESENTATION_ERROR (-12)
+#define NV_EINTR	     (-13)
 
 #define do_number_vars(p, options, n, m) LDFUNC(do_number_vars, p, options, n, m)
 static intptr_t
 do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
 { term_agenda agenda;
   intptr_t start = n;
+  size_t progress = 0;
 
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
@@ -2942,6 +2969,11 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
       bindConst(p, v);
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
+
+      if ( options->singletons && (++progress%32768) == 0 && is_signalled() && !LD->critical )
+      { n = NV_EINTR;
+	goto out;
+      }
 
       if ( f->definition == options->functor )
       { if ( (Word)f >= m->globaltop )	/* new one we created ourselves */
@@ -3035,6 +3067,14 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	initvisited();
 	rc2 = do_number_vars(valTermRef(t), options, 0, &m);
 	unvisit();
+	if ( rc2 == NV_EINTR )
+	{ Undo(m);
+	  DiscardMark(m);
+	  if ( PL_handle_signals() < 0 )
+	    return NV_ERROR;
+	  assert(!is_signalled());
+	  continue;
+	}
 	assert(rc == rc2);
 	(void)rc2;
       }
@@ -3055,6 +3095,13 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	  DiscardMark(m);
 	  PL_representation_error("tagged_integer");
 	  return NV_ERROR;
+	case NV_EINTR:
+	  Undo(m);
+	  DiscardMark(m);
+	  if ( PL_handle_signals() < 0 )
+	    return NV_ERROR;
+	  assert(!is_signalled());
+	  continue;
 	default:
 	  Undo(m);
 	  DiscardMark(m);
@@ -3206,12 +3253,16 @@ PRED_IMPL("$unbind_template", 1, unbind_template, 0)
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
+#define TV_EINTR     ((size_t)-4)
 
-#define term_variables_loop(agenda, maxcount, flags) LDFUNC(term_variables_loop, agenda, maxcount, flags)
+#define term_variables_loop(agenda, maxcount, flags) \
+	LDFUNC(term_variables_loop, agenda, maxcount, flags)
+
 static size_t
 term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
 { Word p;
   size_t count = 0;
+  size_t progress = 0;
 
   while( (p=nextTermAgenda(agenda)) )
   { word w;
@@ -3246,6 +3297,8 @@ term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
 
       if ( visited(f) && !(flags&(TV_SINGLETON|TV_SHARED)) )
 	continue;
+      if ( (++progress % 32768) == 0 && is_signalled() && !LD->critical )
+	return TV_EINTR;
       if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
 	return TV_NOMEM;
     }
@@ -3317,6 +3370,13 @@ term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
 	return FALSE;			/* GC doesn't help */
       continue;
     }
+    if ( count == TV_EINTR )
+    { PL_reset_term_refs(v0);
+      if ( PL_handle_signals() < 0 )
+	return FALSE;
+      assert(!is_signalled());
+      continue;
+    }
     if ( count == TV_NOMEM )
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
     if ( count > maxcount )
@@ -3327,7 +3387,7 @@ term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
   for(i=0; i<count; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
-      fail;
+      return FALSE;
   }
   PL_reset_term_refs(head);
 
@@ -4043,51 +4103,64 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
     }
     case X_NUMBER:
     case X_AUTO:
-    { strnumstat rc;
+    { strnumstat nrc = NUM_ERROR;
 
       if ( stext.encoding == ENC_ISO_LATIN_1 ||
 	   stext.encoding == ENC_UTF8 )
-      { unsigned char *q, *s;
+      { const char *s;
+	unsigned char *q;
 	number n;
 
       utf8:
-	s = (unsigned char *)stext.text.t;
+	s = stext.text.t;
 
+	/* ISO: number_codes(X, "  42") */
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
-	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
-	    s++;
-	}
+	  s = utf8_skip_blanks(s);
 
-	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK )
-	{ if ( *q == EOS )
-	  { int rc2 = PL_unify_number(atom, &n);
+	if ( (nrc=str_number((const unsigned char*)s, &q, &n, 0)) == NUM_OK )
+	{ if ( (char*)q == stext.text.t + stext.length )
+	  { int rc = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    PL_free_text(&stext);
-	    return rc2;
-	  } else
-	    rc = NUM_ERROR;
+	    return rc;
+	  }
 	  clearNumber(&n);
+	  nrc = NUM_ERROR;
 	}
       } else if ( stext.encoding == ENC_WCHAR )
-      { wchar_t *ws = stext.text.w;
+      { const wchar_t *ws = stext.text.w;
+	const wchar_t *we = ws + stext.length;
+	int c;
 
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
-	{ while(*ws && isBlankW(*ws))		/* ISO: number_codes(X, "  42") */
-	    ws++;
+	{ while(ws < we)
+	  { const wchar_t *ce = get_wchar(ws, &c);
+	    if ( isBlankW(c) )
+	      ws = ce;
+	    else
+	      break;
+	  }
 	}
 
-	if ( *ws == '-' || *ws == '+' )
-	  ws++;
-	if ( f_is_decimal(*ws) )
-	{ if ( !PL_mb_text(&stext, REP_UTF8) )
-	  { PL_free_text(&stext);
-	    return FALSE;
+	if ( ws < we )
+	{ const wchar_t *ce = get_wchar(ws, &c);
+	  if ( c == '-' || c == '+' )
+	    ws = ce;
+	}
+
+	if ( ws < we )
+	{ get_wchar(ws, &c);
+
+	  if ( f_is_decimal(c) )
+	  { if ( !PL_mb_text(&stext, REP_UTF8) )
+	    { PL_free_text(&stext);
+	      return FALSE;
+	    }
+	    goto utf8;
 	  }
-	  goto utf8;
-	} else
-	  rc = NUM_ERROR;
-      } else
-	rc = NUM_ERROR;
+	}
+      }
 
       if ( (how&X_MASK) == X_AUTO )
       { goto case_atom;
@@ -4095,7 +4168,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
       { PL_free_text(&stext);
 
 	if ( !(how & X_NO_SYNTAX_ERROR) )
-	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(nrc));
 	else
 	  return FALSE;
       }
@@ -5596,17 +5669,17 @@ qp_statistics(DECL_LD atom_t key, int64_t v[])
 		      LD->gc.stats.totals.time -
 		      GD->atoms.gc_time) * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
-    LD->statistics.last_cputime = (intptr_t)v[0];
+    LD->statistics.last_cputime = v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
   { v[0] = (int64_t)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
-    LD->statistics.last_systime = (intptr_t)v[0];
+    LD->statistics.last_systime = v[0];
     vn = 2;
   } else if ( key == ATOM_real_time )
   { v[0] = (int64_t)WallTime();
     v[1] = v[0] - LD->statistics.last_real_time;
-    LD->statistics.last_real_time = (intptr_t)v[0];
+    LD->statistics.last_real_time = v[0];
     vn = 2;
   } else if ( key == ATOM_walltime )
   { double wt = WallTime();
@@ -5689,19 +5762,33 @@ qp_statistics(DECL_LD atom_t key, int64_t v[])
 
 #endif /*QP_STATISTICS*/
 
+#ifdef O_PLMT
+#define SUBTHREAD_TIME()	(LD->thread.child_cputime)
+#define SUBTHREAD_INFERENCES()	(LD->thread.child_inferences)
+#else
+#define SUBTHREAD_TIME()	(0)
+#define SUBTHREAD_INFERENCES()	(0)
+#endif
+
 #define swi_statistics(key, v) LDFUNC(swi_statistics, key, v)
+
 static int
 swi_statistics(DECL_LD atom_t key, Number v)
 { v->type = V_INTEGER;			/* most of them */
 
-  if      (key == ATOM_cputime)				/* time */
+  if      (key == ATOM_self_cputime)			/* time */
   { v->type = V_FLOAT;
     v->value.f = LD->statistics.user_cputime;
+  } else if (key == ATOM_cputime)			/* time */
+  { v->type = V_FLOAT;
+    v->value.f = LD->statistics.user_cputime + SUBTHREAD_TIME();
   } else if (key == ATOM_process_cputime)		/* time */
   { v->type = V_FLOAT;
     v->value.f = GD->statistics.user_cputime;
-  } else if (key == ATOM_inferences)			/* inferences */
+  } else if (key == ATOM_self_inferences)		/* inferences */
     v->value.i = LD->statistics.inferences;
+  else if (key == ATOM_inferences)			/* inferences */
+    v->value.i = LD->statistics.inferences + SUBTHREAD_INFERENCES();
   else if (key == ATOM_stack)
     v->value.i = GD->statistics.stack_space;
   else if (key == ATOM_stack_limit)
@@ -5719,8 +5806,9 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
   else if (key == ATOM_c_stack)
-    v->value.i = CStackSize();
-  else if (key == ATOM_atoms)				/* atoms */
+  { c_stack_info *cinfo = CStackSize();
+    v->value.i = cinfo ? cinfo->size : 0;
+  } else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_atom_space)			/* atom_space */
     v->value.i = atom_space();
@@ -5750,10 +5838,6 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_collected)
     v->value.i = LD->gc.stats.totals.trail_gained +
 		 LD->gc.stats.totals.global_gained;
-#ifdef HAVE_BOEHM_GC
-  else if ( key == ATOM_heap_gc )
-    v->value.i = GC_get_gc_no();
-#endif
   else if (key == ATOM_heapused)			/* heap usage */
     v->value.i = programSpace();
 #ifdef O_ATOMGC
@@ -5766,7 +5850,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
     v->value.f = GD->atoms.gc_time;
   }
 #endif
-#ifdef O_ATOMGC
+#ifdef O_CLAUSEGC
   else if (key == ATOM_cgc)
     v->value.i = GD->clauses.cgc_count;
   else if (key == ATOM_cgc_gained)
@@ -5935,6 +6019,7 @@ static const optdef optdefs[] =
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
+  { "defines",		CMDOPT_LIST,	&GD->options.defines },
   { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
   { "nosignals",	CMDOPT_BOOL,	&GD->options.nosignals },
 #ifdef __WINDOWS__

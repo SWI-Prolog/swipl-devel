@@ -37,8 +37,6 @@
 #ifndef PL_DICT_H_INCLUDED
 #define PL_DICT_H_INCLUDED
 
-#define DICT_SORTED	0x1		/* Sort dict entries */
-
 #if USE_LD_MACROS
 #define	pl_for_dict(dict, func, closure, flags)	LDFUNC(pl_for_dict, dict, func, closure, flags)
 #define	dict_order(dict, dupl)			LDFUNC(dict_order, dict, dupl)
@@ -66,7 +64,8 @@ void	  resortDictsInTerm(term_t t);
 
 #undef LDFUNC_DECLARATIONS
 
-#define PL_for_dict(dict, funcname, closure, flags) pl_for_dict(dict, LDFUNC_REF(funcname), closure, flags)
+#define _PL_for_dict(dict, funcname, closure, flags) \
+	pl_for_dict(dict, LDFUNC_REF(funcname), closure, flags)
 
 #define termIsDict(w) LDFUNC(termIsDict, w)
 static inline int

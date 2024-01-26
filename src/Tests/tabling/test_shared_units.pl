@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2023, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,13 @@
 :- module(test_shared_units,
           [ test_shared_units/0
           ]).
+
+:- if((exists_source(library(time)),
+       current_prolog_flag(threads,true))).
+
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
+:- use_module(library(time)).
 
 test_shared_units :-
     run_tests([ shared_reeval
@@ -69,3 +76,9 @@ test(propagate_falsecount) :-
     thread_join(Id).
 
 :- end_tests(shared_reeval).
+
+:- else.                                % no library(time) or no threads.
+
+test_shared_units.
+
+:- endif.

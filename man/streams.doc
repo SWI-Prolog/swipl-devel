@@ -22,6 +22,13 @@ extensions that wish to access or define streams should include
 \file{SWI-Stream.h} in addition to \file{SWI-Prolog.h} as below. Both
 headers may be used with C as well as C++.
 
+The interface also defines \const{Sinput}, \const{Suser}, \const{Serror}
+for direct access to the operating system's input and output streams,
+bypassing Prolog's control - for example, these will not be affected
+by with_output_to/3. There is also a convenience function for debugging,
+which goes directly to \const{stderr}: Sdprintf().\footnote{On Windows
+the output is also emitted using \cfuncref{OutputDebugString}{}.}
+
 \begin{code}
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
@@ -69,10 +76,11 @@ rather than a \ctype{IOSTREAM*}.
 
     \cfunction{IOSTREAM *}{PL_acquire_stream}{IOSTREAM *s}
 Obtain ownership of \arg{s} and return \arg{s}. The application must
-call PL_release_stream() when done. Only one thread can own a stream and
-this call blocks if some other thread owns the stream. Note that
-PL_get_stream() acquires ownership. This function may be called multiple
-times by the same thread (\jargon{recursive lock}).
+call PL_release_stream() when done. Only one thread can own a stream
+and this call blocks if some other thread owns the stream. This
+function may be called multiple times by the same thread
+(\jargon{recursive lock}).
+Note that PL_get_stream() also acquires ownership.
 
     \cfunction{int}{PL_release_stream}{IOSTREAM *s}
 Give up ownership acquired using PL_acquire_stream() or PL_get_stream().
@@ -80,8 +88,18 @@ If the stream is an an error state, return \const{FALSE} with an
 exception. Otherwise return \const{TRUE}.
 \end{description}
 
+In general, stream functions do not set any Prolog error state; that is
+done by PL_release_stream(). Once a stream is in an error state, all
+subsequent functions act as no-ops (returning -1) unless Sclearerr() is
+called. Sferror() may be used to check whether a stream is in an error
+condition. This error may be turned into a Prolog exception by calling
+PL_acquire_stream() followed by PL_release_stream(). In this case,
+PL_release_stream() will set the Prolog exception and return
+\const{FALSE}.
+
 Below is an example that writes ``Hello World'' to a stream provided by
-Prolog.
+Prolog. Note that PL_release_stream() raises an exception if the
+Sfprintf() failed and (thus) left the stream in an error state.
 
 \begin{code}
 static foreign_t
@@ -276,11 +294,11 @@ freed by the caller when done. Example:
 \end{code}
 
 The \arg{mode} is \const{"r"} or \const{"w"}. The mode \arg{"rF"} calls
-\exam{PL_free(*buffer)} at when closed.
+\exam{PL_free(buffer)} when closed.
 
 \textbf{Note:} Its is \emph{not} allowed to access streams created with
 this call from multiple threads. This is ok for all usage inside Prolog
-itself. This call is intented to use write and other output predicates
+itself. This call is intended to use Sfprintf() and other output functions
 to create strings.
 
     \cfunction{void}{Sfree}{void *ptr}
@@ -379,9 +397,9 @@ is not buffered (\const{SIO_NBUF}).
     \cfunction{int}{Sgetw}{IOSTREAM *s}
 Reads/writes an integer in native byte order.  Deprecated.
 
-    \cfunction{int}{Sfread}{void *data, size_t size, size_t elems, IOSTREAM *s}
+    \cfunction{size_t}{Sfread}{void *data, size_t size, size_t elems, IOSTREAM *s}
     \nodescription
-    \cfunction{int}{Sfwrite}{const void *data, size_t size, size_t elems, IOSTREAM *s}
+    \cfunction{size_t}{Sfwrite}{const void *data, size_t size, size_t elems, IOSTREAM *s}
 Emulations of the POSIX fread() and fwrite() calls for Prolog streams.
 These functions read or write \arg{elems} objects of size \arg{size} and
 return the number of objects successfully read or written. Data exchange
@@ -547,8 +565,26 @@ Emit a \ctype{double}.
 Emit a 0-terminated string.
 \end{description}
 
-This function returns the number of characters written. Note that due to
-multibyte encodings the number of bytes written can be more.
+Unlike the POSIX fprintf(), this function, and the related
+functions (Svprintf(), etc.) returns the number of
+characters written. Due to multibyte encodings the number of bytes
+written can be more. On error, it returns a negative value; in some
+cases there is extra information (e.g., in \const{errno}) but it
+cannot be relied on.
+
+Each call to Sfprintf() is atomic in the sense that another
+thread that calls Sfprintf() on the same stream will block.
+If you wish to do a series of print statements without any
+other thread interleaving, you should call PL_acquire_stream()
+and use its returned \ctype{IOSTREAM*} value, then call
+PL_release_stream() at the end of the print statements.
+
+    \cfunction{int}{SfprintfX}{IOSTREAM *s, const char *fm, ...}
+Same as Sfprintf() but doesn't have the format-checking attribute,
+which can trigger compiler warnings if the format does not match
+the arguments.
+This is intended for formats that include extended format specifiers
+such as \exam{"\%Ws"} or \exam{"\%Us"}.
 
     \cfunction{int}{Sprintf}{const char *fm, ...}
 Similar to Sfprintf(), printing to \arg{Soutput}
@@ -560,10 +596,18 @@ Variadic argument list version of Sfprintf().
 Print to a C string.  Deprecated.  Use Ssnprintf() instead.
 
     \cfunction{int}{Ssnprintf}{char *buf, size_t size, const char *fm, ...}
-Print to a C string, emitting a maximum of \arg{size} bytes. Returns the
-number of bytes written. Currently \arg{buf} uses
-\const{ENC_ISO_LATIN_1} encoding. Future versions will probably change
-to \const{ENC_UTF8}.
+Print to a C string, emitting a maximum of \arg{size} bytes while
+ensuring \arg{buf} is 0-terminated.  The \arg{buf} is written using
+UTF-8 encoding.  Unlike snprintf(), the return value is the number
+of logical code points written rather than the number of bytes and if
+the buffer is too small, \const{-1} is returned rather than the number
+of bytes that would be written. Future versions may improve
+compatibility with the POSIX functions.
+
+    \cfunction{int}{SsnprintfX}{char *buf, size_t size, const char *fm, ...}
+Same as Ssnprintf() but doesn't have the format-checking attribute.
+This is intended for formats that include extended format specifiers
+such as \exam{"\%Ws"} or \exam{"\%Us"}.
 
     \cfunction{int}{Svsprintf}{char *buf, const char *fm, va_list args}
 Variadic argument list version of Ssprintf(). Deprecated. Use
@@ -575,6 +619,11 @@ Variadic argument list version of Ssnprintf().
     \cfunction{int}{Sdprintf}{const char *fm, ...}
 Print to \arg{Serror}.  This function should be used for printing debug
 output from foreign code.
+
+    \cfunction{int}{SdprintfX}{const char *fm, ...}
+Same as Sdprintf() but doesn't have the format-checking attribute.
+This is intended for formats that include extended format specifiers
+such as \exam{"\%Ws"} and \exam{"\%Us"}.
 
     \cfunction{int}{Svdprintf}{const char *fm, va_list args}
 Variadic argument list version of Sdprintf().
@@ -628,6 +677,15 @@ constants below.  These flags map to options for write_term/2.
 	\definition{\const{PL_WRT_NUMBERVARS}}
 	\definition{\const{PL_WRT_PORTRAY}}
 	\definition{\const{PL_WRT_CHARESCAPES}}
+        \nodescription
+	\definition{\const{PL_WRT_NO_CHARESCAPES}}
+The \const{PL_WRT_NO_CHARESCAPES} does not map to a write_term/2 option.
+If one of \const{PL_WRT_CHARESCAPES} or \const{PL_WRT_NO_CHARESCAPES} is
+specified, character escapes are (not) applied.  If neither is specified
+the default depends, like for write/1, on the
+\prologflag{character_escapes} flag on the module
+\const{user}.\footnote{Prior to version 9.1.6 the default (no flag) was
+to escape the quotes and the backslash (\chr{\}).}
 	\definition{\const{PL_WRT_BACKQUOTED_STRING}}
 	\definition{\const{PL_WRT_ATTVAR_IGNORE}}
 	\definition{\const{PL_WRT_ATTVAR_DOTS}}
@@ -802,3 +860,55 @@ position if it is positive. The tab (\verb$\t$) tabs to the next
 multiple of 8. Any other character increments the line position by one.
 Future versions may change that, notably the tab width might no longer
 be hard coded.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Support functions for blob save/load}
+\label{sec:iostream-blob-functions}
+
+The functions in this sections are intended to support \jargon{blobs} to
+define save() and load() functions so they can be part of a saved state
+or \fileext{qlf} file. The matching pair of functions is guaranteed to
+give the same result, regardless of byte ordering (big or little
+endian). The user must not make any assumptions on the exact data
+format used for storing the data.  The atom read/write functions can
+only be used from the blob callback functions.
+
+For saving an uninterpreted array of bytes, it is suggested that the
+length is output as a \ctype{size_t} value using PL_qlf_put_uint32()
+followed by the bytes using Sfwrite(); and for loading, the length is
+read using PL_qlf_get_uint32(), a buffer is allocated, and the bytes
+are read using Sfread().
+
+\begin{description}
+    \cfunction{int}{PL_qlf_put_int64}{int64_t i, IOSTREAM *s}
+    \nodescription
+    \cfunction{int}{PL_qlf_put_int32}{int32_t i, IOSTREAM *s}
+    \nodescription
+    \cfunction{int}{PL_qlf_put_uint32}{uint32 i, IOSTREAM *s}
+Write integers of several sizes. Signed integers are written in
+\jargon{zigzag} encoding. For unsigned integers we only write the
+non-zero bytes.  The result is compact and the same for big
+or little endian.
+
+    \cfunction{int}{PL_qlf_put_double}{double f, IOSTREAM *s}
+Write double as 8 byte big endian.
+
+    \cfunction{int}{PL_qlf_put_atom}{atom_t a, IOSTREAM *s}
+Write an atom. The atom may be a \jargon{blob}. Note that this function
+may \emph{only} be used from a blob save() function. Calling from
+another context results in a fatal error.
+
+    \cfunction{int}{PL_qlf_get_int64}{IOSTREAM *s, int64_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_int32}{IOSTREAM *s, int32_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_uint32}{IOSTREAM *s, uint32_t *ip}
+    \nodescription
+    \cfunction{int}{PL_qlf_get_double}{IOSTREAM *s, double *fp}
+Counterparts of corresponding PL_qlf_put_*() functions.
+
+    \cfunction{int}{PL_qlf_get_atom}{IOSTREAM *s, atom_t *ap}
+Counterpart of PL_qlf_put_atom().  Again, this may \emph{only}
+be used in the context of a blob load() function.
+\end{description}

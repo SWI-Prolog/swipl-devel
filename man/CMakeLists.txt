@@ -19,9 +19,12 @@ set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 # Main files
 set(DOC_CORE abstract.tex intro.tex overview.tex builtin.tex module.tex
     foreign.tex wasm.tex runtime.tex hack.tex summary.tex xpce.tex glossary.tex
-    ide.tex license.tex threads.tex engines.tex profile.tex streams.tex
+    ide.tex license.tex threads.tex engines.tex streams.tex
     attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex ssu.tex
-    tabling.tex)
+    tabling.tex packs.tex)
+if(MULTI_THREADED)
+list(APPEND DOC_CORE profile.tex)
+endif()
 
 set(STYFILES html.sty txt.sty)
 
@@ -114,18 +117,20 @@ function(pldoc tex input)
       endif()
     endforeach()
 
-    set(haspl)
-    foreach(dep ${depends})
-      get_filename_component(ext ${dep} EXT)
-      if(ext STREQUAL ".pl")
-	set(haspl true)
-      endif()
-    endforeach()
+    if(tex MATCHES "^lib/")
+      set(haspl)
+      foreach(dep ${depends})
+	get_filename_component(ext ${dep} EXT)
+	if(ext STREQUAL ".pl")
+	  set(haspl true)
+	endif()
+      endforeach()
 
-    if(haspl)
-      set(options ${options} --summaries)
-      get_filename_component(base ${tex} NAME_WE)
-      set(byproducts lib/summaries.d/${base}.tex)
+      if(haspl)
+	set(options ${options} --summaries)
+	get_filename_component(base ${tex} NAME_WE)
+	set(byproducts lib/summaries.d/${base}.tex)
+      endif()
     endif()
 
     add_custom_command(
@@ -167,10 +172,10 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept
         prolog_jiti tables listing strings terms ugraphs portray_text
-        increval prolog_debug rbtrees statistics heaps fastrw gensym
-        www_browser)
+        increval prolog_debug prolog_trace rbtrees statistics heaps fastrw gensym
+        www_browser macros prolog_versions prolog_coverage)
 if(MULTI_THREADED)
-  libsdoc(thread_pool thread)
+  libsdoc(thread_pool thread rwlocks)
 endif()
 if(NOT STATIC_EXTENSIONS)
 libdoc(shlib --subsection)
@@ -210,6 +215,9 @@ pldoc(lib/main.tex "library(main)")
 endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
+if(MULTI_THREADED)
+  pldoc(libprofile.tex "library(prolog_profile)" --subsection)
+endif()
 
 # Check that we do not have both a .doc file and extract from the
 # Prolog source
@@ -276,14 +284,25 @@ add_custom_command(
     VERBATIM)
 endif()
 
-# Create the HTML manual
+# Create the HTML manual. First we clean  it to avoid spurious files. If
+# we cannot do that, that is ok. Ideally we use `cmake -E`, but there is
+# no command to remove with wildcarts.
+
+if(CMAKE_HOST_UNIX)
+  set(clean rm -f Manual/*.html Manual/*.gif)
+elseif(WIN32)
+  set(clean cmd /c "del /Q Manual\*.html Manual\*.gif")
+else()
+  set(clean ${CMAKE_COMMAND} -E true)
+endif()
+
 prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
-    COMMAND rm -f Manual/*.html Manual/*.gif
+    COMMAND ${clean}
     COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
-    COMMAND touch manual.html
+    COMMAND ${CMAKE_COMMAND} -E touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
 	    core latex2html)

@@ -5,11 +5,14 @@ function(alignof VAR_ALIGNOF_INT64_T VAR_ALIGNOF_VOIDP VAR_ALIGNOF_DOUBLE)
       # Compile alignment checker source
       set(alignof_checker_target ${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/CheckAlignOf.bin)
       set(alignof_checker_source_dir ${CMAKE_CURRENT_LIST_DIR})
+      SET(CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE ${CMAKE_TRY_COMPILE_TARGET_TYPE})
+      SET(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
       try_compile(alignof_checker_ok
          ${CMAKE_BINARY_DIR}
          ${alignof_checker_source_dir}/CheckAlignment.c
          COPY_FILE ${alignof_checker_target})
-
+      SET(CMAKE_TRY_COMPILE_TARGET_TYPE ${CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE})
+      
       if(alignof_checker_ok)
          # Match 1,4, 8,16,32 or 64 alignments
          set(alignof_pat_regex "(1|4|8|16|32|64)")

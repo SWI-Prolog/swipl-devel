@@ -35,6 +35,7 @@
 	    statistics/2,		% ?Key, ?Value
 	    op(1100, xfy, (do))
 	  ]).
+:- use_module(library(arithmetic)).
 :- reexport(sicstus,
 	    [ (block)/1,
 	      if/3,

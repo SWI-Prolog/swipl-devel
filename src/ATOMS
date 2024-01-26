@@ -134,6 +134,7 @@ A chmod			"chmod"
 A choice		"choice"
 A choicepoints		"choicepoints"
 A class			"class"
+A classic		"classic"
 A clausable		"clausable"
 A clause		"clause"
 A clause_garbage_collection "clause_garbage_collection"
@@ -145,6 +146,7 @@ A close_on_exec		"close_on_exec"
 A close_option		"close_option"
 A close_parent		"close_parent"
 A cm			"cm"
+A cmpr			"cmpr"
 A cntrl			"cntrl"
 A co			"co"
 A codes			"codes"
@@ -201,6 +203,7 @@ A dde_error		"dde_error"
 A dde_handle		"dde_handle"
 A deadline		"deadline"
 A deadlock		"deadlock"
+A deepbind		"deepbind"
 A debug			"debug"
 A debug_on_error	"debug_on_error"
 A debug_on_interrupt	"debug_on_interrupt"
@@ -513,6 +516,7 @@ A max_table_answer_size_action "max_table_answer_size_action"
 A max_table_subgoal_size "max_table_subgoal_size"
 A max_table_subgoal_size_action "max_table_subgoal_size_action"
 A max_variable_length	"max_variable_length"
+A maxr			"maxr"
 A memory		"memory"
 A merged		"merged"
 A message		"message"
@@ -525,6 +529,7 @@ A meta_predicate	"meta_predicate"
 A method		"method"
 A min			"min"
 A min_free		"min_free"
+A minr			"minr"
 A minus			"-"
 A mismatched_char	"mismatched_char"
 A mod			"mod"
@@ -579,6 +584,7 @@ A not_provable		"\\+"
 A not_strict_equal	"\\=="
 A not_unique		"not_unique"
 A notify		"notify"
+A now			"now"
 A number		"number"
 A number_of_clauses	"number_of_clauses"
 A number_of_rules	"number_of_rules"
@@ -593,6 +599,7 @@ A offset		"offset"
 A on			"on"
 A on_error		"on_error"
 A on_warning		"on_warning"
+A oneof			"oneof"
 A opaque		"opaque"
 A open			"open"
 A operator		"operator"
@@ -704,6 +711,7 @@ A redo			"redo"
 A redo_in_skip		"redo_in_skip"
 A reference		"reference"
 A references		"references"
+A load			"load"
 A load_count		"load_count"
 A release		"release"
 A reloading		"reloading"
@@ -716,6 +724,7 @@ A representation_error	"representation_error"
 A representation_errors	"representation_errors"
 A reserved_symbol	"reserved_symbol"
 A reset			"reset"
+A resolve		"resolve"
 A resource		"resource"
 A resource_error	"resource_error"
 A resource_handle	"resource_handle"
@@ -737,6 +746,8 @@ A see			"see"
 A seed			"seed"
 A seek_method		"seek_method"
 A select		"select"
+A self_cputime		"self_cputime"
+A self_inferences	"self_inferences"
 A semicolon		";"
 A separated		"separated"
 A set			"set"
@@ -857,6 +868,7 @@ A threads_created	"threads_created"
 A threads_peak		"threads_peak"
 A thread_update_options	"thread_update_options"
 A thread_wait_options	"thread_wait_options"
+A transact		"transact"
 A trienode		"trienode"
 A tripwire		"tripwire"
 A throw			"throw"
@@ -940,6 +952,7 @@ A variable		"variable"
 A variable_names	"variable_names"
 A variables		"variables"
 A very_deep		"very_deep"
+A visibility		"visibility"
 A vmi			"vmi"
 A volatile		"volatile"
 A wait			"wait"
@@ -947,6 +960,7 @@ A wait_preds		"wait_preds"
 A waiting		"waiting"
 A wakeup		"wakeup"
 A walltime		"walltime"
+A warn_not_accessed	"warn_not_accessed"
 A warning		"warning"
 A warnings		"warnings"
 A wchar_t		"wchar_t"
@@ -1009,7 +1023,7 @@ F buffer_size		1
 F busy			2
 F call			1
 F call_continuation	1
-F call_site		3
+F call_site		2
 F callable		1
 F callpred		2
 F catch			3
@@ -1025,6 +1039,7 @@ F codes			1
 F codes			2
 F colon			2
 F comma			2
+F cmpr			2
 F compound		1
 F context		2
 F copysign		2
@@ -1153,9 +1168,11 @@ F lsb			1
 F lshift		2
 F dict_position		5
 F max			2
+F maxr			2
 F max_size		1
 F message_lines		1
 F min			2
+F minr			2
 F minus			1
 F minus			2
 F mod			2
@@ -1177,6 +1194,7 @@ F number		1
 F numerator		1
 F occurs_check		2
 F offset		1
+F oneof			1
 F open			2
 F or			1
 F output		0

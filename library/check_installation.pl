@@ -138,6 +138,7 @@ component(library(uri), _{}).
 component(library(uuid), _{}).
 component(library(zlib), _{}).
 component(library(yaml), _{}).
+component(library(janus), _{features:python_version}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
@@ -147,7 +148,7 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 :- meta_predicate
     run_silent(0, +).
 
-%!  check_installation
+%!  check_installation is det.
 %
 %   Check features of the installed   system. Performs the following
 %   tests:
@@ -167,6 +168,7 @@ check_installation :-
     check_installation_(InstallIssues),
     check_on_path,
     check_config_files(ConfigIssues),
+    check_autoload,
     maplist(print_message(warning), ConfigIssues),
     append(InstallIssues, ConfigIssues, Issues),
     (   Issues == []
@@ -244,7 +246,8 @@ check_source(_Source, Properties) :-
 
 current_os(unix)    :- current_prolog_flag(unix, true).
 current_os(windows) :- current_prolog_flag(windows, true).
-current_os(linux)   :- current_prolog_flag(arch, Arch), sub_atom(Arch, _, _, _, linux).
+current_os(linux)   :- current_prolog_flag(arch, Arch),
+                       sub_atom(Arch, _, _, _, linux).
 
 %!  test_component(+Properties) is semidet.
 %
@@ -266,7 +269,9 @@ test_component(_).
 check_features(Dict) :-
     Test = Dict.get(features),
     !,
-    call(Test).
+    catch(Test, Error,
+          ( print_message(warning, Error),
+            fail)).
 check_features(_).
 
 
@@ -438,6 +443,11 @@ check_sweep_lib(Line) :-
     must_be(oneof(['L', 'M']), Type),
     sub_atom(Line, _, A, 0, Lib),
     exists_file(Lib).
+
+python_version :-
+    py_call(sys:version, Version),
+    print_message(informational, installation(janus(Version))).
+
 
 %!  check_on_path
 %
@@ -635,7 +645,11 @@ message(sweep(not_found(Paths))) -->
 message(testing(no_installed_tests)) -->
     [ '  Runtime testing is not enabled.', nl],
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
-
+message(janus(Version)) -->
+    [ '  Python version ~w'-[Version] ].
+message(ambiguous_autoload(PI, Paths)) -->
+    [ 'The predicate ~p can be autoloaded from multiple libraries:'-[PI]],
+    sequence(list_file, Paths).
 
 public_executable(EXE, PublicProg) :-
     file_base_name(EXE, Prog),
@@ -843,3 +857,33 @@ config_issue(moved(Type, Old, New)) -->
 config_issue(different(Type, Old, New)) -->
     [ '  found different ~w "~w"'-[Type, Old], nl ],
     [ '  new location is "~w"'-[New] ].
+
+		 /*******************************
+		 *         AUTO LOADING		*
+		 *******************************/
+
+%!  check_autoload
+%
+%   Find possible ambiguous predicates in the autoload index.
+
+check_autoload :-
+    findall(Name/Arity, '$in_library'(Name, Arity, _Path), PIs),
+    msort(PIs, Sorted),
+    clumped(Sorted, Clumped),
+    sort(2, >=, Clumped, ClumpedS),
+    ambiguous_autoload(ClumpedS).
+
+ambiguous_autoload([PI-N|T]) :-
+    N > 1,
+    !,
+    warn_ambiguous_autoload(PI),
+    ambiguous_autoload(T).
+ambiguous_autoload(_).
+
+warn_ambiguous_autoload(PI) :-
+    PI = Name/Arity,
+    findall(PlFile,
+            ( '$in_library'(Name, Arity, File),
+              file_name_extension(File, pl, PlFile)
+            ), PlFiles),
+    print_message(warning, installation(ambiguous_autoload(PI, PlFiles))).

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -252,9 +252,14 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	{ rc = FALSE;
 	  goto cleanup;
 	}
-	if ( !state->hinf &&
-	     cmpNumbers(&state->low, &state->high) == 0 )
-	  goto cleanup;
+	if ( !state->hinf )
+	{ if ( likely(state->high.type == V_INTEGER &&
+		      state->low.type == V_INTEGER) )
+	  { if ( state->low.value.i == state->high.value.i )
+	      goto cleanup;
+	  } else if ( cmpNumbers(&state->low, &state->high) == CMP_EQUAL )
+	      goto cleanup;
+	}
 	ForeignRedoPtr(state);
 	/*NOTREACHED*/
       }
@@ -273,7 +278,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 
 static
 PRED_IMPL("succ", 2, succ, 0)
-{ GET_LD
+{ PRED_LD
   Word p1, p2;
   number i1, i2, one;
   int rc;
@@ -284,7 +289,13 @@ PRED_IMPL("succ", 2, succ, 0)
   one.value.i = 1;
 
   if ( isInteger(*p1) )
-  { get_integer(*p1, &i1);
+  { if ( isTaggedInt(*p1) )
+    { intptr_t v = valInt(*p1);
+      if ( v >= 0 && ++v >= 0 )
+	return PL_unify_integer(A2, v);
+    }
+
+    get_integer(*p1, &i1);
     if ( ar_sign_i(&i1) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, A1);
@@ -295,6 +306,14 @@ PRED_IMPL("succ", 2, succ, 0)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
 
   p2 = valTermRef(A2); deRef(p2);
+
+  if ( isTaggedInt(*p2) )
+  { intptr_t v = valInt(*p2);
+    if ( v > 0 )
+      return PL_unify_integer(A1, v-1);
+    if ( v == 0 )
+      return FALSE;
+  }
 
   if ( isInteger(*p2) )
   { get_integer(*p2, &i2);
@@ -688,6 +707,27 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
   return compareNumbers(A1, A2, EQ);
 }
 
+/* compare Real number function: treats any numeric value as point on real number line
+   and compares two values using `cmpReals` function returning -1, 0, or 1. Comparing
+   any value with `nan` will either return `nan` or generate an error depending on global
+   flag `float_undefined`.
+ */
+
+static int
+ar_cmpr(Number n1, Number n2, Number r)
+{ r->type = V_INTEGER;
+  r->value.i = cmpReals(n1, n2);
+  if ( r->value.i == CMP_NOTEQ )  // non-number
+  { GET_LD
+    if ( LD->arith.f.flags & FLT_UNDEFINED )         // check float_undefined flag
+    { r->type = V_FLOAT;                             // return NaN
+      r->value.f = const_nan;
+    }
+    else
+      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);  // error
+  }
+  return TRUE;
+}
 
 		 /*******************************
 		 *	 ARITHMETIC STACK	*
@@ -905,7 +945,10 @@ check_mpq(Number r)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-valueExpression() evaluates an `evaluable term'.
+valueExpression() and evalExpression evaluate an `evaluable term'.
+
+valueExpression() is provides a shorthand for plain variables that are
+typically integers
 
 This new implementation avoids using the C-stack   to be able to process
 more deeply nested terms and to be able  to recover in the unlikely case
@@ -934,9 +977,8 @@ popForMark(segstack *stack, Word *pp, int *wr)
   *pp = (Word)(w & ~(word)0x1);
 }
 
-
 int
-valueExpression(DECL_LD term_t expr, number *result)
+evalExpression(DECL_LD term_t expr, number *result)
 { segstack term_stack;
   segstack arg_stack;
   Word term_buf[16];
@@ -944,16 +986,19 @@ valueExpression(DECL_LD term_t expr, number *result)
   number *n = result;
   number n_tmp;
   int walk_ref = FALSE;
-  Word p = valTermRef(expr);
+  Word p;
   Word start;
   int known_acyclic = FALSE;
   int pushed = 0;
   functor_t functor;
-  int old_round_mode = fegetround();
+  int signalled;
+
+retry:
+  signalled = FALSE;
+  p = valTermRef(expr);
 
   deRef(p);
   start = p;
-  LD->in_arithmetic++;
 
   for(;;)
   { switch(tag(*p))
@@ -1024,17 +1069,30 @@ valueExpression(DECL_LD term_t expr, number *result)
 	{ PL_no_memory();
 	  goto error;
 	}
-	if ( ++pushed > 100 && !known_acyclic )
-	{ int rc;
+	if ( ++pushed % 1024 == 0 )
+	{ if ( is_signalled() )
+	  { Word ogtop = gTop;
+	    if ( PL_handle_signals() < 0 )
+	      goto error;
+	    if ( ogtop != gTop ) /* gc or stack shift */
+	    { signalled = TRUE;
+	      goto error;
+	    }
+	  }
 
-	  if ( (rc=is_acyclic(start)) == TRUE )
-	  { known_acyclic = TRUE;
-	  } else
-	  { if ( rc == MEMORY_OVERFLOW )
-	      PL_error(NULL, 0, NULL, ERR_NOMEM);
-	    else
-	      PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
-	    goto error;
+	  if ( pushed > 1000 && !known_acyclic )
+	  { int rc;
+
+	    if ( (rc=is_acyclic(start)) == TRUE )
+	    { known_acyclic = TRUE;
+	    } else
+	    { if ( rc == MEMORY_OVERFLOW )
+		PL_error(NULL, 0, NULL, ERR_NOMEM);
+	      else
+		PL_error(NULL, 0, "cyclic term",
+			 ERR_TYPE, ATOM_expression, expr);
+	      goto error;
+	    }
 	  }
 	}
 	if ( term->definition == FUNCTOR_roundtoward2 )
@@ -1060,8 +1118,7 @@ valueExpression(DECL_LD term_t expr, number *result)
     }
 
     if ( p == start )
-    { LD->in_arithmetic--;
-      assert(n == result);
+    { assert(n == result);
 
       return TRUE;
     }
@@ -1149,8 +1206,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 
 	popForMark(&term_stack, &p, &walk_ref);
 	if ( p == start )
-	{ LD->in_arithmetic--;
-	  *result = *n;
+	{ *result = *n;
 
 	  return TRUE;
 	}
@@ -1170,11 +1226,36 @@ error:
     clearSegStack(&term_stack);
     while( popSegStack(&arg_stack, &n, number) )
       clearNumber(&n);
-    fesetround(old_round_mode);
   }
-  LD->in_arithmetic--;
+
+  if ( signalled )
+  { DEBUG(MSG_SIGNAL,
+	  Sdprintf("Interrupt in valueExpression() shifted stacks;"
+		   " restarting\n"));
+    goto retry;
+  }
 
   return FALSE;
+}
+
+
+int
+valueExpression(DECL_LD term_t expr, number *n)
+{ Word p = valTermRef(expr);
+
+  deRef(p);
+  if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
+  { n->value.i = valInt(*p);
+    n->type = V_INTEGER;
+    return TRUE;
+  }
+  if ( tag(*p) == TAG_FLOAT )
+  { n->value.f = valFloat(*p);
+    n->type = V_FLOAT;
+    return TRUE;
+  }
+
+  return evalExpression(expr, n);
 }
 
 
@@ -1384,16 +1465,16 @@ int
 ar_add_si(Number n, long add)
 { switch(n->type)
   { case V_INTEGER:
-    { int64_t r = n->value.i + add;
+    { long long r;
 
-      if ( (r < 0 && add > 0 && n->value.i > 0) ||
-	   (r > 0 && add < 0 && n->value.i < 0) )
-      { if ( !promoteIntNumber(n) )
-	  fail;
-      } else
+      static_assert(sizeof(long long) == sizeof(int64_t), "");
+      if ( !__builtin_saddll_overflow(n->value.i, add, &r) )
       { n->value.i = r;
-	succeed;
+	return TRUE;
       }
+
+      if ( !promoteIntNumber(n) )
+	return FALSE;
     }
     /*FALLTHROUGH*/
 #ifdef O_BIGNUM
@@ -1426,7 +1507,6 @@ ar_add_si(Number n, long add)
   fail;
 }
 
-#define SAME_SIGN(i1, i2) (((i1) ^ (i2)) >= 0)
 
 int
 pl_ar_add(Number n1, Number n2, Number r)
@@ -1435,19 +1515,15 @@ pl_ar_add(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { if ( SAME_SIGN(n1->value.i, n2->value.i) )
-      { if ( n2->value.i < 0 )		/* both negative */
-	{ if ( n1->value.i < PLMININT - n2->value.i )
-	    goto overflow;
-	} else				/* both positive */
-	{ if ( PLMAXINT - n1->value.i < n2->value.i )
-	    goto overflow;
-	}
+    { long long v;
+
+      static_assert(sizeof(long long) == sizeof(int64_t), "");
+      if ( !__builtin_saddll_overflow(n1->value.i, n2->value.i, &v) )
+      { r->value.i = v;
+	r->type = V_INTEGER;
+	return TRUE;
       }
-      r->value.i = n1->value.i + n2->value.i;
-      r->type = V_INTEGER;
-      succeed;
-    overflow:
+
       if ( !promoteIntNumber(n1) ||
 	   !promoteIntNumber(n2) )
 	fail;
@@ -3530,10 +3606,8 @@ ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
   if ( diff == CMP_NOTEQ )			/* one or both nan */
-  { if ( n1->type == V_FLOAT && isnan(n1->value.f) )
-      cpNumber(r, n2);
-    else
-      cpNumber(r, n1);
+  { r->value.f = const_nan;
+    r->type = V_FLOAT;
   } else if ( diff == CMP_EQUAL )
   { if ( is_min_zero(n1) )
     { cpNumber(r, n2);
@@ -3559,10 +3633,8 @@ ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
   if ( diff == CMP_NOTEQ )			/* if one or both nan's */
-  { if (n1->type == V_FLOAT && isnan(n1->value.f))
-      cpNumber(r, n2);
-    else
-      cpNumber(r, n1);
+  { r->value.f = const_nan;
+    r->type = V_FLOAT;
   } else if ( diff == CMP_EQUAL )
   { if ( is_min_zero(n1) )
     { cpNumber(r, n1);
@@ -3582,6 +3654,70 @@ ar_min(Number n1, Number n2, Number r)
   return TRUE;
 }
 
+
+/*
+   Functions maxr/minr are similar to min/max with three significant differences:
+   1. Mathematically correct comparison is used (see ar_cmpr ).
+   2. In case values are equal, preference is given to any rational value over a float
+      to avoid inadvertent future loss of precision due to a float result.
+   3. In case one of the arguments is NaN, the other is returned.
+*/
+
+static int
+ar_maxr(Number n1, Number n2, Number r)
+{ switch (cmpReals(n1, n2))
+  { case CMP_LESS:
+      cpNumber(r,n2);
+      break;
+    case CMP_EQUAL:
+      if (n1->type != V_FLOAT)        // preference to rational
+        cpNumber(r, n1);
+      else if (n2->type != V_FLOAT)
+        cpNumber(r, n2);
+      else if ( is_min_zero(n1) )     // both floats, special case -0.0 < 0.0
+        cpNumber(r, n2);
+      else cpNumber(r, n1);
+      break;
+    case CMP_GREATER:
+      cpNumber(r,n1);
+      break;
+    case CMP_NOTEQ:                   // one or both nan
+      if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+        cpNumber(r, n2);
+      else
+        cpNumber(r, n1);
+      break;
+  }
+  return TRUE;
+}
+
+static int
+ar_minr(Number n1, Number n2, Number r)
+{ switch (cmpReals(n1, n2))
+  { case CMP_LESS:
+      cpNumber(r,n1);
+      break;
+    case CMP_EQUAL:
+      if (n1->type != V_FLOAT)        // preference to rational
+        cpNumber(r, n1);
+      else if (n2->type != V_FLOAT)
+        cpNumber(r, n2);
+      else if ( is_min_zero(n2) )     // both floats, special case -0.0 < 0.0
+        cpNumber(r, n2);
+      else cpNumber(r, n1);
+      break;
+    case CMP_GREATER:
+      cpNumber(r,n2);
+      break;
+    case CMP_NOTEQ:                   // one or both nan
+      if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+        cpNumber(r, n2);
+      else
+        cpNumber(r, n1);
+      break;
+  }
+  return TRUE;
+}
 
 static int
 ar_negation(Number n1, Number r)
@@ -4757,6 +4893,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_abs1,		ar_abs, F_ISO),
   ADD(FUNCTOR_max2,		ar_max, F_ISO),
   ADD(FUNCTOR_min2,		ar_min, F_ISO),
+  ADD(FUNCTOR_cmpr2,	ar_cmpr, 0),
+  ADD(FUNCTOR_maxr2,	ar_maxr, 0),
+  ADD(FUNCTOR_minr2,	ar_minr, 0),
 
   ADD(FUNCTOR_mod2,		ar_mod, F_ISO),
   ADD(FUNCTOR_rem2,		ar_rem, F_ISO),

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2019, VU University Amsterdam
+    Copyright (c)  2012-2023, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,9 +38,8 @@
           [ attach_packs/0,
             attach_packs/1,                     % +Dir
             attach_packs/2,                     % +Dir, +Options
-            '$pack_detach'/2,                   % +Name, -Dir
-            '$pack_attach'/1,                   % +Dir
-            '$pack_attach'/2
+            pack_attach/2,                      % +Dir, +Options
+            '$pack_detach'/2                    % +Name, -Dir
           ]).
 
 :- multifile user:file_search_path/2.
@@ -55,8 +55,10 @@ user:file_search_path(library, PackLib) :-
     pack_dir(_Name, prolog, PackLib).
 user:file_search_path(foreign, PackLib) :-
     pack_dir(_Name, foreign, PackLib).
+user:file_search_path(app, AppDir) :-
+    pack_dir(_Name, app, AppDir).
 
-%!  '$pack_detach'(+Name, -Dir) is det.
+%!  '$pack_detach'(+Name, ?Dir) is det.
 %
 %   Detach the given package  from  the   search  paths  and list of
 %   registered packages, but does not delete the files.
@@ -64,28 +66,25 @@ user:file_search_path(foreign, PackLib) :-
 '$pack_detach'(Name, Dir) :-
     (   atom(Name)
     ->  true
-    ;   throw(error(type_error(atom, Name), _))
+    ;   '$type_error'(atom, Name)
     ),
     (   retract(pack(Name, Dir))
     ->  retractall(pack_dir(Name, _, _)),
         reload_library_index
-    ;   throw(error(existence_error(pack, Name), _))
+    ;   '$existence_error'(pack, Name)
     ).
 
-%!  '$pack_attach'(+Dir) is det.
+%!  pack_attach(+Dir, +Options) is det.
 %
-%   Attach the given package
+%   Attach the given package.  See manual for details.
 
-'$pack_attach'(Dir) :-
-    '$pack_attach'(Dir, []).
-
-'$pack_attach'(Dir, Options) :-
+pack_attach(Dir, Options) :-
     attach_package(Dir, Options),
     !.
-'$pack_attach'(Dir, _) :-
+pack_attach(Dir, _) :-
     (   exists_directory(Dir)
-    ->  throw(error(existence_error(directory, Dir), _))
-    ;   throw(error(domain_error(pack, Dir), _))
+    ->  '$existence_error'(directory, Dir)
+    ;   '$domain_error'(pack, Dir)
     ).
 
 %!  attach_packs
@@ -95,6 +94,7 @@ user:file_search_path(foreign, PackLib) :-
 
 attach_packs :-
     set_prolog_flag(packs, true),
+    set_pack_search_path,
     findall(PackDir, absolute_file_name(pack(.), PackDir,
                                         [ file_type(directory),
                                           access(read),
@@ -107,6 +107,22 @@ attach_packs :-
                attach_packs(PackDir, [duplicate(keep)]))
     ;   true
     ).
+
+set_pack_search_path :-
+    getenv('SWIPL_PACK_PATH', Value),
+    !,
+    retractall(user:file_search_path(pack, _)),
+    current_prolog_flag(path_sep, Sep),
+    atomic_list_concat(Dirs, Sep, Value),
+    register_pack_dirs(Dirs).
+set_pack_search_path.
+
+register_pack_dirs([]).
+register_pack_dirs([H|T]) :-
+    prolog_to_os_filename(Dir, H),
+    assertz(user:file_search_path(pack, Dir)),
+    register_pack_dirs(T).
+
 
 %!  remove_dups(+List, -Unique, +Seen) is det.
 %
@@ -127,22 +143,32 @@ remove_dups([H|T0], [H|T], Seen) :-
 %   Attach packages from directory Dir.  Options processed:
 %
 %     - duplicate(+Action)
-%     What to do if the same package is already installed in a different
-%     directory.  Action is one of
-%       - warning
-%       Warn and ignore the package
-%       - keep
-%       Silently ignore the package
-%       - replace
-%       Unregister the existing and insert the new package
+%       What to do if the same package is already installed in a different
+%       directory.  Action is one of
+%         - warning
+%           Warn and ignore the package
+%         - keep
+%           Silently ignore the package
+%         - replace
+%           Unregister the existing and insert the new package
 %     - search(+Where)
-%     Determines the order of searching package library directories.
-%     Default is `last`, alternative is `first`.
+%       Determines the order of searching package library directories.
+%       Default is `last`, alternative is `first`.
+%     - replace(+Boolean)
+%       If `true` (default `false`), remove the default set of registered
+%       packages.
 
 attach_packs(Dir) :-
     attach_packs(Dir, []).
 
 attach_packs(Dir, Options) :-
+    (   '$option'(replace(true), Options)
+    ->  forall(pack(Name, PackDir),
+               '$pack_detach'(Name, PackDir)),
+        retractall(user:file_search_path(pack, _))
+    ;   true
+    ),
+    register_packs_from(Dir),
     absolute_file_name(Dir, Path,
                        [ file_type(directory),
                          file_errors(fail)
@@ -150,8 +176,15 @@ attach_packs(Dir, Options) :-
     catch(directory_files(Path, Entries), _, fail),
     !,
     ensure_slash(Path, SPath),
-    attach_packages(Entries, SPath, Options).
+    attach_packages(Entries, SPath, Options),
+    reload_library_index.
 attach_packs(_, _).
+
+register_packs_from(Dir) :-
+    (   user:file_search_path(pack, Dir)
+    ->  true
+    ;   asserta(user:file_search_path(pack, Dir))
+    ).
 
 attach_packages([], _, _).
 attach_packages([H|T], Dir, Options) :-
@@ -178,7 +211,6 @@ attach_package(PackDir, Options) :-
     access_file(InfoFile, read),
     file_base_name(PackDir, Pack),
     check_existing(Pack, PackDir, Options),
-    foreign_dir(Pack, PackDir, ForeignDir),
     prolog_dir(PackDir, PrologDir),
     !,
     assertz(pack(Pack, PackDir)),
@@ -190,8 +222,12 @@ attach_package(PackDir, Options) :-
     ;   '$domain_error'(option_search, Where)
     ),
     update_autoload(PrologDir),
-    (   ForeignDir \== (-)
+    (   foreign_dir(Pack, PackDir, ForeignDir)
     ->  assertz(pack_dir(Pack, foreign, ForeignDir))
+    ;   true
+    ),
+    (   app_dir(PackDir, AppDir)
+    ->  assertz(pack_dir(Pack, app, AppDir))
     ;   true
     ),
     print_message(silent, pack(attached(Pack, PackDir))).
@@ -245,7 +281,6 @@ foreign_dir(Pack, PackDir, ForeignDir) :-
 	print_message(warning, pack(no_arch(Pack, Archs))),
         fail
     ).
-foreign_dir(_, _, (-)).
 
 arch(Arch) :-
     current_prolog_flag(apple_universal_binary, true),
@@ -258,3 +293,7 @@ ensure_slash(Dir, SDir) :-
     ->  SDir = Dir
     ;   atom_concat(Dir, /, SDir)
     ).
+
+app_dir(PackDir, AppDir) :-
+    atomic_list_concat([PackDir, '/app'], AppDir),
+    exists_directory(AppDir).

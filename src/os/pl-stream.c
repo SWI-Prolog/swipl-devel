@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -39,6 +39,7 @@
 #include "windows/uxnt.h"
 #include "config/wincfg.h"
 #include <winsock2.h>
+#include "../pl-nt.h"
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
@@ -678,6 +679,8 @@ S__fillbuf(IOSTREAM *s)
       { if ( !(s->flags & SIO_NOFEOF) )
 	  s->flags |= SIO_FEOF;
 	return -1;
+      } else if ( Sferror(s) )
+      { return -1;
 #ifdef EWOULDBLOCK
       } else if ( errno == EWOULDBLOCK )
       { s->bufp = s->buffer;
@@ -2189,6 +2192,21 @@ Sfprintf(IOSTREAM *s, const char *fm, ...)
   return rval;
 }
 
+/* SfprintfX() is identical to Sfprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SfprintfX(IOSTREAM *s, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svfprintf(s, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
 
 int
 Sprintf(const char *fm, ...)
@@ -2620,6 +2638,22 @@ Ssnprintf(char *buf, size_t size, const char *fm, ...)
 }
 
 
+/* SsnprintfX() is identical to Ssnprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SsnprintfX(char *buf, size_t size, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svsnprintf(buf, size, fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+
 int
 Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
@@ -2682,6 +2716,21 @@ Svdprintf(const char *fm, va_list args)
 
 int
 Sdprintf(const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svdprintf(fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+/* SdprintfX() is identical to Sdprintf() but its definition in
+   SWI-Stream.h doesn't have the "check format" attribute. */
+
+int
+SdprintfX(const char *fm, ...)
 { va_list args;
   int rval;
 
@@ -3510,6 +3559,32 @@ Sopen_iri_or_file(const char *path, const char *how)
   return s;
 }
 
+#ifdef __WINDOWS__
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[not sure] It seems the CRT library of Windows can operate in two modes:
+one where the CRT state is  shared   between  the application and shared
+objects loaded into it, and one where this  is not the case. The default
+Windows build uses the shared view  and   the  Conda build the separated
+view.  This means that CRT handles cannot cross a component boundary.
+
+The clib/process.c component needs to turn an   I/O HANDLE into a Prolog
+stream.  As  Prolog  streams  use   the    CRT   handle,  we  must  call
+_open_osfhandle in the SWI-Prolog core.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+Swin_open_osfhandle(HANDLE h, int flags)
+{ return _open_osfhandle((intptr_t)h, flags);
+}
+
+IOSTREAM *
+Swin_open_handle(HANDLE h, const char *mode)
+{ int fd = Swin_open_osfhandle(h, 0);
+
+  return Sfdopen(fd, mode);
+}
+#endif
+
 
 IOSTREAM *
 Sfdopen(int fd, const char *type)
@@ -3575,6 +3650,17 @@ Sfileno(IOSTREAM *s)
 
 
 #ifdef __WINDOWS__
+
+HANDLE
+Swinhandle(IOSTREAM *s)
+{ int fd = Sfileno(s);
+
+  if ( fd >= 0 )
+    return (HANDLE)_get_osfhandle(fd);
+
+  return NULL;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On  Windows,  type  SOCKET  is   an    unsigned   int   and  all  values
 [0..INVALID_SOCKET) are valid. It is  also   not  allowed  to run normal

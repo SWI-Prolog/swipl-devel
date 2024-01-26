@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2022, CWI Amsterdam
+    Copyright (c)  2018-2023, CWI Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -39,9 +39,10 @@
 	    apropos/1                   % +Search
 	  ]).
 :- use_module(library(pldoc), []).
+:- use_module(library(isub), [isub/4]).
+
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
-:- autoload(library(isub), [isub/4]).
 :- autoload(library(lists), [append/3, sum_list/2]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).
@@ -175,7 +176,8 @@ help_html(Matches, How, HTML) :-
 					      links(false),
 					      link_source(false),
 					      navtree(false),
-					      server(false)
+					      server(false),
+                                              qualified(always)
 					    ]))
 			    ])
 		     ])),
@@ -195,7 +197,12 @@ match_type(dwim-For) -->
 man_pages([], _) -->
     [].
 man_pages([H|T], Options) -->
-    man_page(H, Options),
+    (   man_page(H, Options)
+    ->  []
+    ;   html(p(class(warning),
+               [ 'WARNING: No help for ~p'-[H]
+               ]))
+    ),
     man_pages(T, Options).
 
 page_width(Width) :-
@@ -265,7 +272,7 @@ help_object(Func, How, c(Name), ID) :-
     match_name(How, Fuzzy, Name),
     man_object_property(c(Name), id(ID)).
 % for currently loaded predicates
-help_object(Module, _How, Name/Arity, _ID) :-
+help_object(Module, _How, Module:Name/Arity, _ID) :-
     atom(Module),
     current_module(Module),
     atom_concat('sec:', Module, SecLabel),
@@ -274,10 +281,10 @@ help_object(Module, _How, Name/Arity, _ID) :-
 help_object(Name/Arity, _How, Name/Arity, _ID) :-
     atom(Name),
     current_predicate_help(_:Name/Arity).
-help_object(Fuzzy, How, Name/Arity, _ID) :-
+help_object(Fuzzy, How, Module:Name/Arity, _ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),
-    current_predicate_help(_:Name/Arity).
+    current_predicate_help(Module:Name/Arity).
 
 %!  current_predicate_help(?PI) is nondet.
 %

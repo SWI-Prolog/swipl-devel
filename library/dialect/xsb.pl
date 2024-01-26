@@ -83,6 +83,7 @@
 :- use_module(library(error)).
 :- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
+:- use_module(library(dialect/xsb/consult)).
 :- use_module(library(tables)).
 :- use_module(library(aggregate)).
 :- use_module(library(option)).
@@ -337,44 +338,6 @@ map_bool(off, false).
 		 /*******************************
 		 *      BUILT-IN PREDICATES	*
 		 *******************************/
-
-%!  add_lib_dir(+Directories) is det.
-%!  add_lib_dir(+Root, +Directories) is det.
-%
-%   Add    members    of    the    comma      list     Directories    to
-%   user:library_directory/1.  If  Root  is  given,    all   members  of
-%   Directories are interpreted relative to Root.
-
-add_lib_dir(Directories) :-
-    add_lib_dir('.', Directories).
-
-add_lib_dir(_, Var) :-
-    var(Var),
-    !,
-    instantiation_error(Var).
-add_lib_dir(Root, (A,B)) :-
-    !,
-    add_lib_dir(Root, A),
-    add_lib_dir(Root, B).
-add_lib_dir(Root, a(Dir)) :-
-    !,
-    add_to_library_directory(Root, Dir, asserta).
-add_lib_dir(Root, Dir) :-
-    add_to_library_directory(Root, Dir, assertz).
-
-add_to_library_directory(Root, Dir, How) :-
-    (   expand_file_name(Dir, [Dir1])
-    ->  true
-    ;   Dir1 = Dir
-    ),
-    relative_file_name(TheDir, Root, Dir1),
-    exists_directory(TheDir),
-    !,
-    (   user:library_directory(TheDir)
-    ->  true
-    ;   call(How, user:library_directory(TheDir))
-    ).
-add_to_library_directory(_, _, _).
 
 %!  compile(File, Options)
 %

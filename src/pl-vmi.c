@@ -221,6 +221,11 @@ END_VMH
 	ENSURE_STACK_SPACE(cells, 0, onchange)
 #define ENSURE_STACK_SPACE(g, t, onchange) \
 	if ( !hasStackSpace(g, t) )			\
+	{ GROW_STACK_SPACE(g, t);			\
+	  onchange;					\
+	}
+#define GROW_STACK_SPACE(g, t) \
+	do \
 	{ int __rc;					\
 	  SAVE_REGISTERS(QID);				\
 	  __rc = ensureStackSpace(g, t);		\
@@ -229,8 +234,7 @@ END_VMH
 	  { raiseStackOverflow(__rc);			\
 	    THROW_EXCEPTION;				\
 	  }						\
-	  onchange;					\
-	}
+	} while(0)
 
 /* Can be used for debugging to always force GC at a place */
 #define FAKE_GC(onchange) \
@@ -384,7 +388,7 @@ to the call-port and finally, restart the clause.
 VMH(retry, 0, (), ())
 { LocalFrame rframe0, rframe;
   Choice ch;
-					MARK(RETRY);
+
   if ( debugstatus.retryFrame )
     rframe = (LocalFrame)valTermRef(debugstatus.retryFrame);
   else
@@ -480,19 +484,35 @@ VMI(H_SMALLINT, 0, 1, (CA1_DATA))
 END_VMI
 
 VMH(h_const, 1, (word), (c))
-{ Word k;
-  deRef2(ARGP, k);
-  if ( *k == c )
-  { ARGP++;
-    NEXT_INSTRUCTION;
+{ Word k = ARGP;
+
+  for(;;)
+  { switch(tag(*k))
+    { case TAG_VAR:
+	if ( !hasTrailSpace(1) )
+	  break;
+	varBindConst(k, c);
+	ARGP++;
+	NEXT_INSTRUCTION;
+      case TAG_ATTVAR:
+	if ( !hasGlobalSpace(0) )
+	  break;
+	assignAttVar(k, &c);
+	ARGP++;
+	NEXT_INSTRUCTION;
+      case TAG_REFERENCE:
+	k = unRef(*k);
+	continue;
+      default:
+	if ( *k == c )
+	{ ARGP++;
+	  NEXT_INSTRUCTION;
+	}
+	CLAUSE_FAILED;
+    }
+    GROW_STACK_SPACE(0,0);
+    k = ARGP;
   }
-  if ( canBind(*k) )
-  { ENSURE_GLOBAL_SPACE(0, deRef2(ARGP, k));
-    bindConst(k, c);
-    ARGP++;
-    NEXT_INSTRUCTION;
-  }
-  CLAUSE_FAILED;
 }
 END_VMH
 
@@ -1212,7 +1232,7 @@ END_VMI
 VMH(bvar_cont, 1, (int), (voffset))
 { Word p;
   p = varFrameP(FR, voffset);
-  if ( isVar(*p) )
+  if ( unlikely(isVar(*p)) )
   { ENSURE_GLOBAL_SPACE(1, p = varFrameP(FR, voffset));
     globaliseVar(p);
     *ARGP++ = *p;
@@ -2171,10 +2191,9 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     leaveDefinition(DEF);
     DEF = proc->definition;
     if ( true(DEF, P_TRANSPARENT) )
-    { FR->context = contextModule(FR);
+    { FR->context = contextModule(FR); /* must be  before setting FR_CONTEXT */
       FR->level++;
-      clear(FR, FR_CLEAR_NEXT);
-      set(FR, FR_CONTEXT);
+      FR->flags = ((FR->flags & ~(FR_LCO_CLEAR|FR_CLEAR_ALWAYS)) | FR_CONTEXT);
     } else
     { lcoSetNextFrameFlags(FR);
     }
@@ -2184,8 +2203,6 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     setFramePredicate(FR, DEF);
     copyFrameArguments(lTop, FR, DEF->functor->arity);
 
-    END_PROF();
-    START_PROF(DEPART_CONTINUE, "DEPART_CONTINUE");
     VMH_GOTO(depart_or_retry_continue);
   }
 
@@ -2264,7 +2281,7 @@ from C.
 VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
-  if ( unlikely(LD->alerted) )
+  if ( unlikely(LD->alerted != 0) )
   { if ( (LD->alerted&ALERT_BUFFER) )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
@@ -2292,16 +2309,16 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 	BFR = BFR->parent;
     }
 #endif /*O_DEBUGGER*/
-  }
 
-  Coverage(FR, EXIT_PORT);
+    Coverage(FR, EXIT_PORT);
+  }
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
     lTop = FR;
-    DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
+    DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%zd\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
   { leave = NULL;
@@ -3127,7 +3144,7 @@ VMH(c_cut, 1, (Choice), (och))
 
   ARGP = argFrameP(lTop, 0);
 
-  DEBUG(MSG_CUT, Sdprintf(" --> BFR = #%ld, lTop = #%ld\n",
+  DEBUG(MSG_CUT, Sdprintf(" --> BFR = #%ld, lTop = #%zd\n",
 			  loffset(BFR), loffset(lTop)));
   NEXT_INSTRUCTION;
 }
@@ -3146,7 +3163,7 @@ See pl-comp.c and C_SOFTCUT implementation for details.
 VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 { varFrame(FR, *PC++) = consTermRef(lTop);	/* see C_SOFTCUT */
 
-  DEBUG(MSG_CUT, Sdprintf("Creating *-> choice at %p (%d)\n",
+  DEBUG(MSG_CUT, Sdprintf("Creating *-> choice at %p (%zd)\n",
 			  lTop, loffset(lTop)));
   VMI_GOTO(C_OR);
 }
@@ -3622,7 +3639,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
       { size_t i;
 
 	if ( DEF->tabling->abstract != 0 )
-	  Sdprintf("% WARNING: Only abstract(0) is supported\n");
+	  Sdprintf("%% WARNING: Only abstract(0) is supported\n");
 	for(i=0; i<DEF->functor->arity; i++)
 	  setVar(ap[i]);
       } else
@@ -4126,7 +4143,7 @@ VMH(a_var_n, 1, (int), (offset))
       SAVE_REGISTERS(QID);
       lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
       if ( (fid = PL_open_foreign_frame()) )
-      { rc = valueExpression(consTermRef(p), &result);
+      { rc = evalExpression(consTermRef(p), &result);
 	PL_close_foreign_frame(fid);
       } else
       { rc = FALSE;
@@ -4348,7 +4365,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
 
     SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
-    { rc = valueExpression(pushWordAsTermRef(np), &n);
+    { rc = evalExpression(pushWordAsTermRef(np), &n);
       popTermRef();
       if ( rc )
       { ensureWritableNumber(&n);
@@ -4584,56 +4601,24 @@ END_VMI
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	I_FOPEN
-	I_FCALLDET0-10 f/n
-	I_FEXITDET
+Deterministic foreign  code calls are translated  to "I_FCALLDETVA f",
+which  both  inlines  the  old I_FOPEN  and  I_FEXITDET  instructions.
+Without the  "VA" calling  conventions, we produce  "I_FCALLDET<N> f",
+I_FEXITDET.  The I_FEXITDET  is not used, but avoids  having to repeat
+the I_FCALLDET<N> in several switches on instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_PROF_PENTIUM
-#define PROF_FOREIGN \
-	{ END_PROF(); \
-	  START_PROF(DEF->prof_index, DEF->prof_name); \
-	}
-#else
-#define PROF_FOREIGN (void)0
-#endif
-
-
-VMI(I_FOPEN, 0, 0, ())
-{ FliFrame ffr;
-
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
-  { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-    BFR = newChoice(CHP_DEBUG, FR);
-    ffr = (FliFrame)lTop;
-  } else
-#endif
-  { ffr = (FliFrame)argFrameP(FR, DEF->functor->arity);
-  }
-
-#if O_DEBUG
-  if ( exception_term )
-  { Sdprintf("Exception at entry of %s\n",  predicateName(DEF));
-    PL_write_term(Serror, exception_term, 1200, PL_WRT_NEWLINE);
-  }
-#endif
-
-  assert(DEF->functor->arity < 100);
-
-  lTop = (LocalFrame)(ffr+1);
-  ffr->size = 0;
-  NoMark(ffr->mark);
-  ffr->parent = fli_context;
-  ffr->magic = FLI_MAGIC;
-  fli_context = ffr;
+#if 0			/* inlined with I_FCALLDETVA and I_FCALLDET<N> */
+			/* NO_VMI to avoid mkvmi to see this */
+NO_VMI(I_FOPEN, 0, 0, ())
+{ FliFrame ffr = vmi_fopen(FR, DEF);
   FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(QID);
 
   NEXT_INSTRUCTION;
 }
 END_VMI
-
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_FCALLDETVA:  Call  deterministic  foreign    function  using  P_VARARG
@@ -4643,16 +4628,16 @@ conventions.
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
   va_func f = (va_func)*PC++;
-  struct foreign_context context;
-  term_t h0 = argFrameP(FR, 0) - (Word)lBase;
+  term_t h0 = consTermRef(argFrameP(FR, 0));
 
-  context.context   = 0L;
-  context.engine    = LD;
-  context.control   = FRG_FIRST_CALL;
-  context.predicate = DEF;
+  vmi_fopen(FR, DEF);		/* inline I_FOPEN */
 
-  PROF_FOREIGN;
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &context));
+  FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+  FNDET_CONTEXT.context   = 0L;
+  FNDET_CONTEXT.predicate = DEF;
+
+  SAVE_REGISTERS(QID);
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4665,15 +4650,19 @@ a1, a2, ... calling conventions.
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 { Func0 f = (Func0)*PC++;
 
-  PROF_FOREIGN;
+  vmi_fopen(FR, DEF); /* inline I_FOPEN */
+  SAVE_REGISTERS(QID);
+
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
 
 #define FCALL_DETN(ac, ...) \
   Func##ac f = (Func##ac)*PC++; \
-  term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
-  PROF_FOREIGN; \
+  term_t h0 = consTermRef(argFrameP(FR, 0)); \
+  vmi_fopen(FR, DEF); /* inline I_FOPEN */ \
+  PC++; \
+  SAVE_REGISTERS(QID); \
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
@@ -4737,17 +4726,20 @@ END_VMI
 
 
 VMI(I_FEXITDET, 0, 0, ())
-{ THROW_EXCEPTION; /* probably should never happen?? */
+{ assert(0);
+  THROW_EXCEPTION; /* should never happen as we jump to the helper */
 }
 END_VMI
 
 VMH(I_FEXITDET, 1, (word), (rc))
-{ FliFrame ffr = (FliFrame)valTermRef(FFR_ID);
+{ LOAD_REGISTERS(QID);
 
-  LOAD_REGISTERS(QID);
-  PC += 3;
-  DEBUG(CHK_SECURE, assert(PC[-1] == encode(I_FEXITDET)));
-  fli_context = ffr->parent;
+  while ( (void*)fli_context > (void*)FR )
+    fli_context = fli_context->parent;
+
+  DEBUG(CHK_SECURE,
+	assert(PC[-1] == encode(I_FEXITDET) ||
+	       PC[-2] == encode(I_FCALLDETVA)));
 
   switch(rc)
   { case TRUE:
@@ -4759,15 +4751,8 @@ VMH(I_FEXITDET, 1, (word), (rc))
 	THROW_EXCEPTION;
       FRAME_FAILED;
     default:
-    { fid_t fid = PL_open_foreign_frame();
-      term_t ex = PL_new_term_ref();
-
-      PL_put_intptr(ex, rc);
-      PL_error(NULL, 0, NULL, ERR_DOMAIN,
-	       ATOM_foreign_return_value, ex);
-      PL_close_foreign_frame(fid);
+      error_foreign_return_code(rc);
       THROW_EXCEPTION;
-    }
   }
 }
 END_VMH
@@ -4788,9 +4773,8 @@ to the I_FCALLNDETVA (PC -= 4);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FOPENNDET, 0, 0, ())
-{ FNDET_CONTEXT.context   = 0L;
-  FNDET_CONTEXT.engine    = LD;
-  FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+{ FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+  FNDET_CONTEXT.context   = 0L;
   FNDET_CONTEXT.predicate = DEF;
 
   VMH_GOTO(foreign_redo);
@@ -4810,7 +4794,7 @@ VMH(foreign_redo, 0, (), ())
   ffr->size = 0;
   NoMark(ffr->mark);
   ffr->parent = fli_context;
-  ffr->magic = FLI_MAGIC;
+  FLI_SET_VALID(ffr);
   fli_context = ffr;
   FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(QID);
@@ -4825,7 +4809,6 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
   ndet_func f = (ndet_func)*PC++;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
@@ -4834,7 +4817,6 @@ END_VMI
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 { NdetFunc0 f = (NdetFunc0)*PC++;
 
-  PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
@@ -4842,7 +4824,6 @@ END_VMI
 #define FCALL_NDETN(ac, ...) \
   NdetFunc##ac f = (NdetFunc##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
-  PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
 
 
@@ -4992,7 +4973,7 @@ END_VMH
 VMI(I_FREDO, 0, 0, ())
 { DEBUG(0, assert(true(DEF, P_FOREIGN)));
 
-  if ( is_signalled() )
+  if ( unlikely(LD->alerted) && is_signalled() )
   { if ( false(DEF, P_SIG_ATOMIC) )
     { SAVE_REGISTERS(QID);
       handleSignals();
@@ -5002,19 +4983,18 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  FNDET_CONTEXT.engine = LD;
   switch((word)FR->clause & FRG_REDO_MASK)
   { case REDO_INT:
-      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       FNDET_CONTEXT.control = FRG_REDO;
+      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
-      FNDET_CONTEXT.context = (word)FR->clause;
       FNDET_CONTEXT.control = FRG_REDO;
+      FNDET_CONTEXT.context = (word)FR->clause;
       break;
     case YIELD_PTR:
-      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       FNDET_CONTEXT.control = FRG_RESUME;
+      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       break;
     default:
       assert(0);
@@ -5032,36 +5012,39 @@ END_VMI
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CALLCLEANUP: Part of setup_call_catcher_cleanup(:Setup, :Goal,
-?Catcher, :Cleanup). Simply set a flag on the frame and call the 1-st
-argument. See also I_CATCH.
+I_CALLCLEANUP verifies the signature of the   cleanup  handler and calls
+the Goal for
 
-I_EXITCLEANUP  is  at  the  end  of   call_cleanup/3.  If  there  is  no
-choice-point created this is the final exit. If this frame has no parent
-(it is the entry of PL_next_solution()),
+  - call_cleanup(Goal, Cleanup)
+  - setup_call_cleanup(Setup, Goal, Cleanup)
+  - setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup)
 
-setup_call_catcher_cleanup(:Setup :Goal, -Reason, :Cleanup)
-is tranalated into
+Which of these predicates it is working for  is dictated by the arity of
+the running predicate.
 
-  i_enter
-  <setup>
-  i_callcleanup
-  i_exitcleanup
-  i_exit
+I_EXITCLEANUP follows I_CALLCLEANUP. If there is no choice-point created
+this is the final exit.
 
-We set FR_WATCHED to get a cleanup call if the frame fails or is cutted.
+This group of predicates calls   '$call_cleanup'/0,  which is translated
+into the sequence of these two VM   instructions.  This call must be the
+last of the predicate.
+
+We set FR_CLEANUP to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLCLEANUP, 0, 0, ())
 { Word p;
+  size_t arity = FR->predicate->functor->arity;
+  size_t arg_goal = arity == 2 ? 1 : 2;
 
-  if ( !mustBeCallable(consTermRef(argFrameP(FR, 3))) )
+		    /* last arg is cleanup */
+  if ( !mustBeCallable(consTermRef(argFrameP(FR, arity-1))) )
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR);
   set(FR, FR_CLEANUP);
 
-  p = argFrameP(FR, 1);
+  p = argFrameP(FR, arg_goal-1);
   if ( isVar(*p) )
   { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     THROW_EXCEPTION;
@@ -5074,24 +5057,12 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 END_VMI
 
 
-/* (*) Work around a bug in the LLVM.  Just calling a dummy function avoids
-   a crash here!?  If we do not use GCC's threaded-code support it appears
-   that the bug is gone too.  LLVM's support for this GCC extension is poor
-   anyway: it runs, but is *much* slower than the switch.
-*/
-
 VMI(I_EXITCLEANUP, 0, 0, ())
-{
-#if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
-  extern int llvm_dummy(void);
-  llvm_dummy();
-#endif
-
-  while( BFR && BFR->type == CHP_DEBUG )
+{ while( BFR && BFR->type == CHP_DEBUG )
     BFR = BFR->parent;
 
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
-  { DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
+  { DEBUG(3, Sdprintf(" --> BFR = #%zd\n", loffset(BFR->parent)));
     for(BFR = BFR->parent; BFR > (Choice)FR; BFR = BFR->parent)
     { if ( BFR->type == CHP_DEBUG )
 	continue;
@@ -5124,6 +5095,11 @@ which is translated to:
   I_ENTER
   I_CATCH
   I_EXITCATCH
+
+I_EXITCATCH verifies finishes the catch/3 call   if  there are no choice
+points created by the guarded goal. This is   the case if the first real
+choicepoint is our `CHP_CATCH` choicepoint. If we   are in debug mode we
+restore it as a debug choicepoint, else we discard it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CATCH, 0, 0, ())
@@ -5147,9 +5123,19 @@ END_VMI
 
 
 VMI(I_EXITCATCH, 0, 0, ())
-{ if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
-  { assert(BFR->type == CHP_CATCH);
-    BFR = BFR->parent;
+{ Choice bfr = BFR;
+
+  while(bfr && bfr->type == CHP_DEBUG)
+    bfr = bfr->parent;
+
+  if ( bfr->frame == FR && bfr == (Choice)argFrameP(FR, 3) )
+  { assert(bfr->type == CHP_CATCH);
+    if ( debugstatus.debugging )
+    { bfr->type = CHP_DEBUG;
+      BFR = bfr;
+    } else
+    { BFR = bfr->parent;
+    }
     set(FR, FR_CATCHED);
   }
 
@@ -5294,14 +5280,20 @@ again:
     { SAVE_REGISTERS(QID);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
-      { debugmode(TRUE, NULL);
+      { DEBUG(MSG_THROW,
+	      Sdprintf("Uncaught error(Formal,Context): enable debug mode\n"));
+	debugmode(TRUE, NULL);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = TRUE;
 	} else
-	{ int rc;
-	  trimStacks(FALSE);		/* restore spare stacks */
-	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
-	  (void)rc;
+	{ DEBUG(MSG_THROW,
+		Sdprintf("No space for debugging, print (l+g+t) = (%zd+%zd+%zd)\n",
+			 roomStack(local),roomStack(global),roomStack(trail)));
+	  if ( !printMessage(ATOM_error, PL_TERM, exception_term) )
+	  { Sdprintf("Could not print message for exception:\n\t");
+	    PL_write_term(Suser_error, exception_term, 1200,
+			  PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	  }
 	  PL_put_term(exception_printed, exception_term);
 	}
       } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
@@ -5774,22 +5766,35 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	lTop = NFR;
 	setNextFrameFlags(NFR, FR);
 	rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0, 0);
-	if ( rc == FALSE )
-	  THROW_EXCEPTION;
-	if ( rc == LOCAL_OVERFLOW )
-	{ size_t room = roomStack(local);
-	  term_t lTopH = consTermRef(lTop);
-
-	  lTop = (LocalFrame)argFrameP(NFR, 1);
-	  SAVE_REGISTERS(QID);
-	  rc = growLocalSpace(room*2, ALLOW_SHIFT);
-	  LOAD_REGISTERS(QID);
-	  lTop = (LocalFrame)valTermRef(lTopH);
-	  if ( rc != TRUE )
-	  { raiseStackOverflow(rc);
+	switch(rc)
+	{ case TRUE:
+	    break;
+	  case FALSE:
 	    THROW_EXCEPTION;
+	  case LOCAL_OVERFLOW:
+	  case CHECK_INTERRUPT:
+	  { term_t lTopH = consTermRef(lTop);
+
+	    lTop = (LocalFrame)argFrameP(NFR, 1);
+	    SAVE_REGISTERS(QID);
+	    if ( rc == LOCAL_OVERFLOW )
+	    { size_t room = roomStack(local);
+	      rc = growLocalSpace(room*2, ALLOW_SHIFT);
+	    } else
+	    { if ( PL_handle_signals() < 0 )
+		THROW_EXCEPTION;
+	      rc = TRUE;
+	    }
+	    LOAD_REGISTERS(QID);
+	    lTop = (LocalFrame)valTermRef(lTopH);
+	    if ( rc != TRUE )
+	    { raiseStackOverflow(rc);
+	      THROW_EXCEPTION;
+	    }
+	    VMI_GOTO(I_USERCALL0);
 	  }
-	  VMI_GOTO(I_USERCALL0);
+	  default:
+	    assert(0);
 	}
 
 	DEF		  = NFR->predicate;
@@ -6684,9 +6689,6 @@ as to investigate optimization in the future.
 // body_failed:
 VMH(shallow_backtrack, 0, (), ())
 { Choice ch = BFR;				/* shallow backtracking */
-				MARK(BKTRK);
-  END_PROF();
-  START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
   if ( FR == ch->frame )
   { Undo(ch->mark);
@@ -6756,8 +6758,6 @@ VMH(deep_backtrack, 0, (), ())
 #endif
   Choice ch;
 
-  END_PROF();
-  START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
   DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
 next_choice:
@@ -6766,7 +6766,7 @@ next_choice:
   for(; (void *)FR > (void *)ch; FR = FR->parent)
   {
 #ifdef O_DEBUGGER
-    if ( debugstatus.debugging && isDebugFrame(FR) )
+    if ( unlikely(debugstatus.debugging) && isDebugFrame(FR) )
     { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
 
       DEBUG(MSG_BACKTRACK,
@@ -6833,7 +6833,7 @@ next_choice:
   last_choice = ch->type;
 #endif
 
-  if ( LD->alerted )
+  if ( unlikely(LD->alerted) )
   { if ( LD->alerted & ALERT_BUFFER )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
@@ -6841,18 +6841,24 @@ next_choice:
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
+      lTop = (LocalFrame)(ch+1);
+      FR->clause = NULL;
+      if ( LD->mark_bar != NO_MARK_BAR )
+	LD->mark_bar = gTop;
       SAVE_REGISTERS(QID);
       rc = run_undo_hooks();
       LOAD_REGISTERS(QID);
+      ch = BFR;			/* can be shifted */
       if ( !rc )
 	THROW_EXCEPTION;
     }
+    Profile(profFail(ch->prof_node));
   }
 
   switch(ch->type)
   { case CHP_JUMP:
       DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Jump in %s\n",
+	    Sdprintf("    REDO #%zd: Jump in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
       PC   = ch->value.pc;
@@ -6905,7 +6911,6 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 #endif
-	Profile(profRedo(ch->prof_node));
       }
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
@@ -6913,7 +6918,7 @@ next_choice:
       struct clause_choice chp;
 
       DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Clause in %s\n",
+	    Sdprintf("    REDO #%zd: Clause in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
@@ -6931,7 +6936,14 @@ next_choice:
       DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
 
       if ( unlikely(LD->alerted) )
-      {
+      { if ( is_signalled() )
+	{ SAVE_REGISTERS(QID);
+	  handleSignals();
+	  LOAD_REGISTERS(QID);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
 	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE);
@@ -6956,8 +6968,12 @@ next_choice:
 		THROW_EXCEPTION;
 	    }
 	  }
+
+	  if ( !chp.cref )
+	    newChoice(CHP_DEBUG, FR);
 	}
 #endif
+
 #ifdef O_INFERENCE_LIMIT
 	if ( LD->statistics.inferences >= LD->inference_limit.limit )
 	{ SAVE_REGISTERS(QID);
@@ -6967,35 +6983,22 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 #endif
-	Profile(profRedo(ch->prof_node));
       }
 
       if ( chp.cref )
       { ch = newChoice(CHP_CLAUSE, FR);
 	ch->value.clause = chp;
-      } else if ( unlikely(debugstatus.debugging) )
-      { newChoice(CHP_DEBUG, FR);
       }
-
-      if ( is_signalled() )
-      { SAVE_REGISTERS(QID);
-	handleSignals();
-	LOAD_REGISTERS(QID);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-
 			/* require space for the args of the next frame */
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */
     { DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: TOP\n",
+	    Sdprintf("    REDO #%zd: %s: TOP\n",
 		     loffset(FR),
 		     predicateName(DEF)));
       DiscardMark(ch->mark);
-      Profile(profRedo(ch->prof_node));
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
@@ -7007,7 +7010,7 @@ next_choice:
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
       DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: CATCH\n",
+	    Sdprintf("    REDO #%zd: %s: CATCH\n",
 		     loffset(FR),
 		     predicateName(DEF)));
 	    if ( true(ch->frame, FR_WATCHED) )
@@ -7031,7 +7034,7 @@ next_choice:
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
       DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: DEBUG\n",
+	    Sdprintf("    REDO #%zd: %s: DEBUG\n",
 		     loffset(FR),
 		     predicateName(DEF)));
 #ifdef O_DEBUGGER

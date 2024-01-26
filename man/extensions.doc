@@ -428,7 +428,7 @@ undefined.  See also read_string/5.
 This predicate is functionally equivalent to sub_atom/5, but operates on
 strings. Note that this implies the string \emph{input} arguments can be
 either strings or atoms.  If \arg{SubString} is unbound (output) it is
-unified with a string. The following example splits a string of the form
+unified with a string.  The following example splits a string of the form
 <name>=<value> into the name part (an atom) and the value (a string).
 
 \begin{code}
@@ -437,6 +437,16 @@ name_value(String, Name, Value) :-
     !,
     sub_atom(String, 0, Before, _, Name),
     sub_string(String, _, After, 0, Value).
+\end{code}
+
+The next example defines a predicate that inserts a value at a position.
+See sub_atom/5 for more examples.
+
+\begin{code}
+string_insert(Str, Val, At, NewStr) :-
+    sub_string(Str, 0, At, A1, S1),
+    sub_string(Str, At, A1, _, S2),
+    atomics_to_string([S1,Val,S2], NewStr).
 \end{code}
 
     \predicate{atomics_to_string}{2}{+List, -String}
@@ -463,12 +473,13 @@ Convert \arg{String} to lower case and unify the result with
 \arg{LowerCase}.
 
     \predicate{read_string}{3}{+Stream, ?Length, -String}
-Read at most \arg{Length} characters from \arg{Stream} and
-return them in the string \arg{String}.  If \arg{Length} is
-unbound, \arg{Stream} is read to the end and \arg{Length} is
-unified with the number of characters read. Note that
-\textit{characters} must be read as \jargon{Unicode code points},
-\emph{not} bytes.
+Read at most \arg{Length} characters from \arg{Stream} and return them
+in the string \arg{String}. If \arg{Length} is unbound, \arg{Stream} is
+read to the end and \arg{Length} is unified with the number of
+characters read. The number of \jargon{bytes} read depends on the
+encoding of \arg{Stream} (see \secref{encoding}). This predicate may be
+used to read a sequence of bytes when the stream is in \const{octet}
+encoding.   See open/4 and set_stream/2 for controlling the encoding.
 
     \predicate{read_string}{5}{+Stream, +SepChars, +PadChars, -Sep, -String}
 Read a string from \arg{Stream}, providing functionality similar to

@@ -49,8 +49,10 @@ test_pipe :-
                  sto(rational_trees)    % rational_trees: only run once
                ]).
 
+wine :-
+    current_prolog_flag(wine_version, _).
 
-test(pwd) :-
+test(pwd, [condition(not(wine))]) :-
     (   current_prolog_flag(windows, true)
     ->  Command = 'cmd /c cd'
     ;   Command = pwd
@@ -61,6 +63,7 @@ test(pwd) :-
         close(Fd)),
     atom_codes(Pwd, String),
     same_file(Pwd, '.').
+:- if(\+ current_prolog_flag(wine_version, _)).
 test(cat1) :-
     current_prolog_flag(pid, Pid),
     format(atom(File), 'pltest-~w.txt', [Pid]),
@@ -93,7 +96,10 @@ test(cat1) :-
     !,
     atom_codes(A, String),
     format(atom(A), '~w~n', [Text]).
-test(cat2, error(io_error(write, _))) :-
+:- endif.
+test(cat2, [error(io_error(write, _)),
+	    condition(not(wine))
+	   ]) :-
     (   current_prolog_flag(windows, true)
     ->  Cmd = 'cmd /c rem true',
         Cleanup = true

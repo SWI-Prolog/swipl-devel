@@ -24,8 +24,8 @@
 
 :- module(test_dcg, [test_dcg/0]).
 :- use_module(library(plunit)).
-:- use_module(library(apply_macros)).
-:- set_test_options([load(always),sto(true)]).
+:- use_module(library(apply_macros), []).
+:- set_test_options([load(always)]).
 :- set_prolog_flag(optimise, true).
 
 test_dcg :-

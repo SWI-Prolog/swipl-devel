@@ -1,3 +1,8 @@
+if(DEFINED ENV{CONDA_BUILD})
+  set(CONDA ON)
+  set(__CONDA__ 1)
+endif()
+
 if(APPLE)
   include(port/Darwin)
 elseif(WIN32)
@@ -100,8 +105,22 @@ endif(CMAKE_CROSSCOMPILING)
 ################
 # Misc tests
 
-include(CheckFloatingPointFormat)
-include(TestBigEndian)
+if(DEFINED CMAKE_C_BYTE_ORDER)
+  if(CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+    set(WORDS_BIGENDIAN 1)
+  else()
+    set(WORDS_BIGENDIAN 0)
+  endif()
+else()
+  # From cmake docs: If CMAKE_OSX_ARCHITECTURES specifies multiple architectures, the value
+  # of CMAKE_<LANG>_BYTE_ORDER is non-empty only if all architectures share the same byte
+  # order.
+  include(TestBigEndian)
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE ${CMAKE_TRY_COMPILE_TARGET_TYPE})
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+  TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+  SET(CMAKE_TRY_COMPILE_TARGET_TYPE ${CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE})
+endif()
 
-TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
+include(CheckFloatingPointFormat)
 ub_check_floating_point_format(IEEE754_FLOATS FLOAT_BYTES_BIGENDIAN FLOAT_WORDS_BIGENDIAN)

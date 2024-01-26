@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -145,7 +146,7 @@ typedef struct findall_bag
 
 
 static
-PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
+PRED_IMPL("$new_findall_bag", 0, new_findall_bag, PL_FA_SIG_ATOMIC)
 { PRED_LD
   findall_bag *bag;
 

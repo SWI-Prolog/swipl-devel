@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -44,8 +44,8 @@
             syntax_message//1           % +Class
           ]).
 :- use_module(library(record),[(record)/1, op(_,_,record)]).
+:- use_module(library(debug),[debug/3]).
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[is_of_type/2]).
 :- autoload(library(lists),[member/2,append/3]).
 :- autoload(library(operators),
@@ -756,6 +756,16 @@ colourise_clause_head(M:Head, TB, QHeadPos) :-
     colour_item(head_term(Class, Head), TB, QHeadPos),
     colour_item(head(Class, Head), TB, FPos),
     specified_items(ArgSpecs, Head, TB, ArgPos).
+colourise_clause_head(#(Macro), TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Head),
+    !,
+    macro_term_string(Head, String),
+    functor_position(MPos, FPos, _),
+    classify_head(TB, Head, Class),
+    colour_item(macro(String), TB, HF-HT),
+    colour_item(head_term(Class, Head), TB, MPos),
+    colour_item(head(Class, Head), TB, FPos),
+    colourise_term_args(Macro, TB, MPos).
 colourise_clause_head(Head, TB, Pos) :-
     head_colours(Head, ClassSpec-ArgSpecs),
     !,
@@ -1064,6 +1074,19 @@ colourise_goal(Goal, _Origin, TB, Pos) :-
     Pos = quasi_quotation_position(_F,_T,_QQType,_QQTypePos,_CPos),
     !,
     colourise_term_arg(Goal, TB, Pos).
+colourise_goal(#(Macro), Origin, TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Goal),
+    !,
+    macro_term_string(Goal, String),
+    goal_classification(TB, Goal, Origin, Class),
+    (   MPos = term_position(_,_,FF,FT,_ArgPos)
+    ->  FPos = FF-FT
+    ;   FPos = MPos
+    ),
+    colour_item(macro(String), TB, HF-HT),
+    colour_item(goal_term(Class, Goal), TB, MPos),
+    colour_item(goal(Class, Goal), TB, FPos),
+    colourise_goal_args(Goal, TB, MPos).
 colourise_goal(Goal, Origin, TB, Pos) :-
     strip_module(Goal, _, PGoal),
     nonvar(PGoal),
@@ -1357,8 +1380,7 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
         ;   T0 = list(_),
             member(E, V0),
             var(E)
-        ;   functor(V0, '.', 2),
-            V0 \= [_|_]
+        ;   dict_field_extraction(V0)
         )
     ->  colourise_term_arg(V0, TB, P0)
     ;   callable(V0),
@@ -1500,6 +1522,11 @@ colourise_term_args([Pos|T], N, Term, TB) :-
     NN is N + 1,
     colourise_term_args(T, NN, Term, TB).
 
+%!  colourise_term_arg(+Term, +TB, +Pos)
+%
+%   Colourise an arbitrary Prolog term without context of its semantical
+%   role.
+
 colourise_term_arg(_, _, Pos) :-
     var(Pos),
     !.
@@ -1518,7 +1545,7 @@ colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :-
     !,
     colour_item(list, TB, F-T),
     colourise_list_args(Elms, Tail, List, TB, classify).    % list
-colourise_term_arg(String, TB, string_position(F, T)) :-       % string
+colourise_term_arg(String, TB, string_position(F, T)) :-    % string
     !,
     (   string(String)
     ->  colour_item(string, TB, F-T)
@@ -1567,6 +1594,12 @@ colourise_term_arg([](List,Term), TB,                   % [] as operator
     !,
     colourise_term_arg(List, TB, ListPos),
     colourise_term_arg(Term, TB, ArgPos).
+colourise_term_arg(#(Macro), TB, term_position(_,_,HF,HT,[MPos])) :-
+    expand_macro(TB, Macro, Term),
+    !,
+    macro_term_string(Term, String),
+    colour_item(macro(String), TB, HF-HT),
+    colourise_term_arg(Macro, TB, MPos).
 colourise_term_arg(Compound, TB, Pos) :-                % compound
     compound(Compound),
     !,
@@ -1604,6 +1637,82 @@ colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 colourise_list_args([], none, _, _, _) :- !.
 colourise_list_args([], TP, T, TB, How) :-
     specified_item(How, T, TB, TP).
+
+
+%!  colourise_expression(+Term, +TB, +Pos)
+%
+%   colourise arithmetic expressions.
+
+colourise_expression(_, _, Pos) :-
+    var(Pos),
+    !.
+colourise_expression(Arg, TB, parentheses_term_position(PO,PC,Pos)) :-
+    !,
+    colour_item(parentheses, TB, PO-PC),
+    colourise_expression(Arg, TB, Pos).
+colourise_expression(Compound, TB, Pos) :-
+    compound(Compound), Pos = term_position(_F,_T,FF,FT,_ArgPos),
+    !,
+    (   dict_field_extraction(Compound)
+    ->  colourise_term_arg(Compound, TB, Pos)
+    ;   current_arithmetic_function(Compound)
+    ->  colour_item(function, TB, FF-FT)
+    ;   colour_item(no_function, TB, FF-FT)
+    ),
+    colourise_expression_args(Compound, TB, Pos).
+colourise_expression(Atom, TB, Pos) :-
+    atom(Atom),
+    !,
+    (   current_arithmetic_function(Atom)
+    ->  colour_item(function, TB, Pos)
+    ;   colour_item(no_function, TB, Pos)
+    ).
+colourise_expression(NumOrVar, TB, Pos) :-
+    Pos = _-_,
+    !,
+    colourise_term_arg(NumOrVar, TB, Pos).
+colourise_expression(_Arg, TB, Pos) :-
+    colour_item(type_error(evaluable), TB, Pos).
+
+dict_field_extraction(Term) :-
+    compound(Term),
+    compound_name_arity(Term, '.', 2),
+    Term \= [_|_].                        % traditional mode
+
+
+colourise_expression_args(roundtoward(Expr, Mode), TB,
+                          term_position(_,_,_,_,[ExprPos, ModePos])) :-
+    !,
+    colourise_expression(Expr, TB, ExprPos),
+    colourise_round_mode(Mode, TB, ModePos).
+colourise_expression_args(Term, TB,
+                          term_position(_,_,_,_,ArgPos)) :-
+    !,
+    colourise_expression_args(ArgPos, 1, Term, TB).
+colourise_expression_args(_, _, _).
+
+colourise_expression_args([], _, _, _).
+colourise_expression_args([Pos|T], N, Term, TB) :-
+    arg(N, Term, Arg),
+    colourise_expression(Arg, TB, Pos),
+    NN is N + 1,
+    colourise_expression_args(T, NN, Term, TB).
+
+colourise_round_mode(Mode, TB, Pos) :-
+    var(Mode),
+    !,
+    colourise_term_arg(Mode, TB, Pos).
+colourise_round_mode(Mode, TB, Pos) :-
+    round_mode(Mode),
+    !,
+    colour_item(identifier, TB, Pos).
+colourise_round_mode(_Mode, TB, Pos) :-
+    colour_item(domain_error(rounding_mode), TB, Pos).
+
+round_mode(to_nearest).
+round_mode(to_positive).
+round_mode(to_negative).
+round_mode(to_zero).
 
 %!  colourise_qq_type(+QQType, +TB, +QQTypePos)
 %
@@ -2112,10 +2221,68 @@ colourise_prolog_flag_name(Name, TB, Pos) :-
     !,
     (   current_prolog_flag(Name, _)
     ->  colour_item(flag_name(Name), TB, Pos)
+    ;   known_flag(Name)
+    ->  colour_item(known_flag_name(Name), TB, Pos)
     ;   colour_item(no_flag_name(Name), TB, Pos)
     ).
 colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
+
+% Some flags are know, but can be unset.
+known_flag(android).
+known_flag(android_api).
+known_flag(apple).
+known_flag(asan).
+known_flag(conda).
+known_flag(dde).
+known_flag(emscripten).
+known_flag(executable_format).
+known_flag(gc_thread).
+known_flag(gmp_version).
+known_flag(gui).
+known_flag(max_rational_size).
+known_flag(mitigate_spectre).
+known_flag(pid).
+known_flag(pipe).
+known_flag(posix_shell).
+known_flag(shared_home).
+known_flag(shared_table_space).
+known_flag(system_thread_id).
+known_flag(threads).
+known_flag(unix).
+known_flag(windows).
+known_flag(wine_version).
+known_flag(xpce).
+
+		 /*******************************
+		 *             MACROS		*
+		 *******************************/
+
+%!  expand_macro(+TB, +Macro, -Expanded) is semidet.
+%
+%   @tbd This only works if the code is compiled. Ideally we'd also make
+%   this work for not compiled code.
+
+expand_macro(TB, Macro, Expanded) :-
+    colour_state_source_id(TB, SourceId),
+    (   xref_module(SourceId, M)
+    ->  true
+    ;   M = user
+    ),
+    current_predicate(M:'$macro'/2),
+    catch(M:'$macro'(Macro, Expanded),
+          error(_, _),
+          fail),
+    !.
+
+macro_term_string(Term, String) :-
+    copy_term_nat(Term, Copy),
+    numbervars(Copy, 0, _, [singletons(true)]),
+    term_string(Copy, String,
+                [ portray(true),
+                  max_depth(2),
+                  numbervars(true)
+                ]).
 
 
                  /*******************************
@@ -2356,6 +2523,13 @@ call_goal_colours(Term, Class, Colours) :-
 
 %       Specify colours for individual goals.
 
+def_goal_colours(_ is _,                 built_in-[classify,expression]).
+def_goal_colours(_ < _,                  built_in-[expression,expression]).
+def_goal_colours(_ > _,                  built_in-[expression,expression]).
+def_goal_colours(_ =< _,                 built_in-[expression,expression]).
+def_goal_colours(_ >= _,                 built_in-[expression,expression]).
+def_goal_colours(_ =\= _,                built_in-[expression,expression]).
+def_goal_colours(_ =:= _,                built_in-[expression,expression]).
 def_goal_colours(module(_,_),            built_in-[identifier,exports]).
 def_goal_colours(module(_,_,_),          built_in-[identifier,exports,langoptions]).
 def_goal_colours(use_module(_),          built_in-[imported_file]).
@@ -2475,6 +2649,9 @@ def_style(goal(local(_),_),        []).
 def_style(goal(constraint(_),_),   [colour(darkcyan)]).
 def_style(goal(not_callable,_),    [background(orange)]).
 
+def_style(function,                [colour(blue)]).
+def_style(no_function,             [colour(red)]).
+
 def_style(option_name,             [colour('#3434ba')]).
 def_style(no_option_name,          [colour(red)]).
 
@@ -2524,6 +2701,7 @@ def_style(class(user,_),           [underline(true)]).
 def_style(class(undefined,_),      [colour(red), underline(true)]).
 def_style(prolog_data,             [colour(blue), underline(true)]).
 def_style(flag_name(_),            [colour(blue)]).
+def_style(known_flag_name(_),      [colour(blue), background(pink)]).
 def_style(no_flag_name(_),         [colour(red)]).
 def_style(unused_import,           [colour(blue), background(pink)]).
 def_style(undefined_import,        [colour(red)]).
@@ -2551,11 +2729,14 @@ def_style(dcg_right_hand_ctx,      [background('#d4ffe3')]).
 
 def_style(error,                   [background(orange)]).
 def_style(type_error(_),           [background(orange)]).
+def_style(domain_error(_),         [background(orange)]).
 def_style(syntax_error(_,_),       [background(orange)]).
 def_style(instantiation_error,     [background(orange)]).
 
 def_style(decl_option(_),	   [bold(true)]).
 def_style(table_mode(_),	   [bold(true)]).
+
+def_style(macro(_),                [colour(blue), underline(true)]).
 
 %!  syntax_colour(?Class, ?Attributes) is nondet.
 %
@@ -2774,7 +2955,9 @@ specified_item(imported_file, Term, TB, Pos) :-
 specified_item(langoptions, Term, TB, Pos) :-
     !,
     colourise_langoptions(Term, TB, Pos).
-
+specified_item(expression, Term, TB, Pos) :-
+    !,
+    colourise_expression(Term, TB, Pos).
                                         % directory
 specified_item(directory, Term, TB, Pos) :-
     !,
@@ -3025,6 +3208,14 @@ syntax_message(neck(=>)) -->
     [ 'Rule' ].
 syntax_message(neck(-->)) -->
     [ 'Grammar rule' ].
+syntax_message(macro(String)) -->
+    [ 'Macro indicator (expands to ~s)'-[String] ].
+syntax_message(flag_name(Name)) -->
+    [ 'Prolog flag ~w'-[Name] ].
+syntax_message(known_flag_name(Name)) -->
+    [ 'Prolog flag ~w (not set; known)'-[Name] ].
+syntax_message(no_flag_name(Name)) -->
+    [ 'Prolog flag ~w (not set)'-[Name] ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].

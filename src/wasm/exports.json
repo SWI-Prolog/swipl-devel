@@ -208,5 +208,8 @@
     "_WASM_set_yield_result",
     "_WASM_variable_id",
     "_js_unify_obj",
-    "_js_get_obj"
+    "_js_get_obj",
+
+    "_free",
+    "_malloc"
 ]

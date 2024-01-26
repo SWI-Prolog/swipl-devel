@@ -56,8 +56,8 @@ element_css(El, Attrs, CSS) :-
 
 applicable_style(_, Attrs, CSS) :-
     memberchk(style=Style, Attrs),
-    style_css_attrs(Style, CSS),
-    text_style(CSS).
+    style_css_attrs(Style, CSS0),
+    include(text_style, CSS0, CSS).
 applicable_style(El, Attrs, CSS) :-
     html_text:style(El, Cond, CSS),
     (   eval(Cond, Attrs)

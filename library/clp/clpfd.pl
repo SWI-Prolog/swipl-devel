@@ -179,6 +179,10 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
+:- create_prolog_flag(optimise_clpfd, true, [keep(true)]).
+:- create_prolog_flag(clpfd_monotonic, false, [keep(true)]).
+:- create_prolog_flag(clpfd_propagation, default, [keep(true)]). % oneof([default,full])
+
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
 :- op(700, xfx, cis_gt).
@@ -409,7 +413,7 @@ positive_integer(N) :-
 This illustrates why the performance of CLP(FD) constraints is almost
 always completely satisfactory when they are used in modes that can be
 handled by low-level arithmetic. To disable the automatic rewriting,
-set the Prolog flag `clpfd_goal_expansion` to `false`.
+set the Prolog flag `optimise_clpfd` to `false`.
 
 If you are used to the complicated operational considerations that
 low-level arithmetic primitives necessitate, then moving to CLP(FD)
@@ -958,8 +962,6 @@ http://eu.swi-prolog.org/man/clpfd.html
 
 @author [Markus Triska](https://www.metalevel.at)
 */
-
-:- create_prolog_flag(clpfd_monotonic, false, []).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A bound is either:
@@ -2887,7 +2889,7 @@ expr_conds(popcount(A0), popcount(A)) --> expr_conds(A0, A).
         system:goal_expansion/2.
 
 system:goal_expansion(Goal, Expansion) :-
-        \+ current_prolog_flag(clpfd_goal_expansion, false),
+        \+ current_prolog_flag(optimise_clpfd, false),
         clpfd_expandable(Goal),
         prolog_load_context(module, M),
 	(   M == clpfd
@@ -4131,7 +4133,8 @@ relation_tuple(Relation, Tuple) :-
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
         maplist(list_first_rest, Relation0, Firsts, Relation1),
-        (   var(T) ->
+        (   Firsts = [Unique] -> T = Unique
+        ;   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 fd_get(T, TDom, TPs),

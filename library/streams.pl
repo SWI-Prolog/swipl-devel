@@ -33,7 +33,7 @@
 */
 
 :- module(streams,
-	  [ with_output_to/3		% ?Outtput, :Goal, +Options
+	  [ with_output_to/3		% ?Output, :Goal, +Options
 	  ]).
 :- autoload(library(error), [must_be/2]).
 :- autoload(library(option), [option/2, option/3]).
@@ -85,12 +85,12 @@ with_output_to(Output, Goal, []) =>
 with_output_to(Output, Goal, Options) =>
     option(capture(Streams), Options, []),
     must_be(list(oneof([user_output,user_error])), Streams),
-    setup_call_cleanup(
-	output_state(State, Streams),
-	with_output_to(
-	    Output,
-	    capture(Goal, Streams, Options)),
-	restore_output(State, Streams)).
+    with_output_to(
+	Output,
+	setup_call_cleanup(
+	    output_state(State, Streams),
+	    capture(Goal, Streams, Options),
+	    restore_output(State, Streams))).
 
 capture(Goal, Streams, Options) :-
     current_output(S),

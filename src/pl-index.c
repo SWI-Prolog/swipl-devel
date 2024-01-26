@@ -57,11 +57,17 @@
   - MAX_VAR_FRAC
     Do not create an index if the fraction of clauses with a variable
     in the target position exceeds this threshold.
+  - MIN_CLAUSES_FOR_INDEX
+    Create an index if there are more than this number of clauses
+  - MIN_SPEEDUP_RATIO
+    Need at least this ratio of #clauses/speedup for creating an index
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAX_LOOKAHEAD  100
-#define MIN_SPEEDUP    1.5
-#define MAX_VAR_FRAC   0.1
+#define MIN_SPEEDUP           (GD->clause_index.min_speedup)
+#define MAX_VAR_FRAC          (GD->clause_index.max_var_fraction)
+#define MIN_SPEEDUP_RATIO     (GD->clause_index.min_speedup_ratio)
+#define MAX_LOOKAHEAD         (GD->clause_index.max_lookahead)
+#define MIN_CLAUSES_FOR_INDEX (GD->clause_index.min_clauses)
 
 
 		 /*******************************
@@ -207,7 +213,9 @@ getIndexOfTerm(term_t t)
 }
 
 
-#define nextClauseArg1(chp, generation) LDFUNC(nextClauseArg1, chp, generation)
+#define nextClauseArg1(chp, generation) \
+	LDFUNC(nextClauseArg1, chp, generation)
+
 static inline ClauseRef
 nextClauseArg1(DECL_LD ClauseChoice chp, gen_t generation)
 { ClauseRef cref = chp->cref;
@@ -452,8 +460,8 @@ retry:
     if ( best_index )
     { int hi;
 
-      if ( clist->number_of_clauses > 10 &&
-	   (float)clist->number_of_clauses/best_index->speedup > 10 &&
+      if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX &&
+	   (float)clist->number_of_clauses/best_index->speedup > MIN_SPEEDUP_RATIO &&
 	   !STATIC_RELOADING() )
       { DEBUG(MSG_JIT_POOR,
 	      Sdprintf("Poor index %s of %s (trying to find better)\n",
@@ -492,8 +500,15 @@ retry:
   if ( unlikely(clist->number_of_clauses == 0) )
     return NULL;
 
+  /* Try first argument indexing if the first argument can be indexed and
+   * we have less than MIN_CLAUSES_FOR_INDEX clauses.  Accept if we have
+   * no clause or the next candidate has a different key.   If the next
+   * candidate has the same key, deep indexing may help us, so we will
+   * search for other indexes.
+   */
+
   if ( (chp->key = indexOfWord(argv[0])) &&
-       (clist->number_of_clauses <= 10 || STATIC_RELOADING()) )
+       (clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX || STATIC_RELOADING()) )
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation);
@@ -697,7 +712,7 @@ vfree_clause_list_ref(void *cref)
 
 static void
 lingerClauseListRef(Definition def, ClauseRef cref)
-{ linger(&def->lingering, vfree_clause_list_ref, cref);
+{ linger_always(&def->lingering, vfree_clause_list_ref, cref);
 }
 
 
@@ -1806,7 +1821,7 @@ setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
   MEMORY_BARRIER();
   cl->clause_indexes = cip;
   if ( cipo )
-    linger(&def->lingering, unalloc_index_array, cipo);
+    linger_always(&def->lingering, unalloc_index_array, cipo);
 }
 
 
@@ -1841,7 +1856,7 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
       }
     }
 
-    linger(&def->lingering, unalloc_ci, old);
+    linger_always(&def->lingering, unalloc_ci, old);
   }
 
   if ( !isSortedIndexes(cl->clause_indexes) )
@@ -2046,22 +2061,22 @@ listIndexGenerations(Definition def, gen_t gen)
 	    for(cr=cl->first_clause; cr; cr=cr->next)
 	    { Clause clause = cr->value.clause;
 
-	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
+	      Sdprintf("  %p: [%2d] %8s-%10s%s%s\n",
 		       clause,
 		       clauseNo(clause, 0),
-		       clause->generation.created,
-		       clause->generation.erased,
+		       generationName(clause->generation.created),
+		       generationName(clause->generation.erased),
 		       true(clause, CL_ERASED) ? " erased" : "",
 		       visibleClause(clause, gen) ? " v" : " X");
 	    }
 	  } else
 	  { Clause clause = cref->value.clause;
 
-	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+	    Sdprintf("%p: [%2d] %8s-%10s%s%s%s\n",
 		     clause,
 		     clauseNo(clause, 0),
-		     clause->generation.created,
-		     clause->generation.erased,
+		     generationName(clause->generation.created),
+		     generationName(clause->generation.erased),
 		     true(clause, CL_ERASED) ? " erased" : "",
 		     visibleClause(clause, gen) ? " v " : " X ",
 		     keyName(cref->d.key));
@@ -2390,7 +2405,7 @@ skipToTerm(Clause clause, const iarg_t *position)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	return pc;
       default:
-	Sdprintf("Unexpected VM code %d at %p\n", c, pc);
+        Sdprintf("Unexpected VM code %" PRIuPTR " at %p\n", c, pc);
 	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
 #else
@@ -2889,6 +2904,20 @@ out:
   release_def(def);
 
   return rc;
+}
+
+
+		 /*******************************
+		 *             INIT             *
+		 *******************************/
+
+void
+initClauseIndexing(void)
+{ GD->clause_index.min_speedup       = 1.5f;
+  GD->clause_index.max_var_fraction  = 0.1f;
+  GD->clause_index.min_speedup_ratio = 10.0f;
+  GD->clause_index.max_lookahead     = 100;
+  GD->clause_index.min_clauses       = 10;
 }
 
 

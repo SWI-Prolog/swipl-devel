@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -41,7 +41,6 @@
 #include "pl-gc.h"
 #include "pl-comp.h"
 #include "os/pl-cstack.h"
-#include "pentium.h"
 #include "pl-inline.h"
 #include "pl-prof.h"
 #include "pl-fli.h"
@@ -327,7 +326,7 @@ print_addr(Word adr, char *buf)
     return buf;
   }
 
-  Ssprintf(buf, "%p=%s(%d)", adr, name, adr-base);
+  Ssprintf(buf, "%p=%s(%zu)", adr, name, (size_t)(adr-base));
   return buf;
 }
 
@@ -370,7 +369,7 @@ print_val(word val, char *buf)
   } else if ( tagex(val) == (TAG_ATOM|STG_GLOBAL) )
   { FunctorDef fd = valueFunctor(val);
 
-    Ssprintf(o, "functor %s/%d", stringAtom(fd->name), fd->arity);
+    Ssprintf(o, "functor %s/%zd", stringAtom(fd->name), fd->arity);
   } else
   { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
 
@@ -1027,7 +1026,7 @@ mark_term_refs()
 	  Sdprintf("Marking foreign frame %ld (size=%d)\n",
 		   (Word)fr-(Word)lBase, n));
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     for( ; n-- > 0; sp++ )
     { if ( !is_marked(sp) )
       { if ( isGlobalRef(*sp) )
@@ -1346,6 +1345,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case I_EXITQUERY:
 	case I_FEXITDET:
 	case I_FEXITNDET:
+	case I_FCALLDETVA:
 	case I_FREDO:
 	case S_TRUSTME:
 	case S_LIST:
@@ -1662,7 +1662,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 #define mark_foreign_frame(fr, te) LDFUNC(mark_foreign_frame, fr, te)
 static GCTrailEntry
 mark_foreign_frame(DECL_LD FliFrame fr, GCTrailEntry te)
-{ DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+{ FLI_ASSERT_VALID(fr);
 
   if ( isRealMark(fr->mark) )
   { te = early_reset_vars(&fr->mark, (Word)fr, te);
@@ -1984,6 +1984,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 
       case I_EXITQUERY:
       case I_EXITFACT:
+      case I_FCALLDETVA:
       case I_FEXITDET:
       case I_FEXITNDET:
       case S_TRUSTME:			/* Consider supervisor handling! */
@@ -2395,9 +2396,7 @@ is not GC-ed. This applies  for   head-arguments  as well as B_UNIFY_VAR
 instructions. See get_vmi_state().
 
 (***) When debugging, we must  avoid   GC-ing  local variables of frames
-that  are  watched  by  the  debugger.    FR_WATCHED  is  also  used  by
-setup_call_cleanup/3. We avoid full marking here. Maybe we should use an
-alternate flag for these two cases?
+that  are  watched  by  the  debugger.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -2457,8 +2456,7 @@ mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
 	mark_local_variable(argp0);
       }
 
-      if ( true(fr, FR_WATCHED) &&		/* (***) */
-	   fr->predicate != PROCEDURE_setup_call_catcher_cleanup4->definition )
+      if ( true(fr, FR_WATCHED) )
       { int slots;
 	Word sp;
 
@@ -2976,7 +2974,7 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+    FLI_ASSERT_VALID(fr);
 
     if ( isRealMark(fr->mark) )
       sweep_mark(&fr->mark);
@@ -3304,11 +3302,9 @@ check_marked(const char *s)
 { GET_LD
   intptr_t m = 0;
   Word current;
-  intptr_t cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
-  { cells++;
-    if ( is_marked(current) )
+  { if ( is_marked(current) )
     { m += (offset_cell(current)+1);
     }
   }
@@ -3842,11 +3838,11 @@ considerGarbageCollect(Stack s)
 
 void
 call_tune_gc_hook(void)
-{ Procedure proc = PROCEDURE_tune_gc3;
+{ GET_LD
+  Procedure proc = PROCEDURE_tune_gc3;
 
   if ( isDefinedProcedure(proc) )
-  { GET_LD
-    fid_t fid;
+  { fid_t fid;
 
     if ( (fid = PL_open_foreign_frame()) )
     { term_t av = PL_new_term_refs(3);
@@ -3942,8 +3938,8 @@ scan_global(int flags)
     { if ( offset_cell(next-1) != offset )
       { errors++;
 	Sdprintf("ERROR: Illegal indirect cell on global stack at %p-%p\n"
-		 "       tag=%d, offset=%ld\n",
-		 current, next, tag(*current), (long)offset);
+		 "       tag=%d, offset=%zd\n",
+		 current, next, (int)(tag(*current)), offset);
 	trap_gdb();
       }
     } else if ( !marked )
@@ -3965,7 +3961,7 @@ scan_global(int flags)
   { cells--;
     current -= offset_cell(current);
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { Sdprintf("!Illegal cell in global stack (down) at %p (*= %p)\n",
+    { Sdprintf("!Illegal cell in global stack (down) at %p (*= 0x%" PRIxPTR ")\n",
 	       current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
@@ -4083,7 +4079,7 @@ check_foreign(void)
   { Word sp = refFliP(ff, 0);
     int n = ff->size;
 
-    assert(ff->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(ff);
     if ( ff->parent )
     { assert(ff->parent < ff);
       assert(onStack(local, ff->parent));
@@ -4366,9 +4362,6 @@ garbageCollect(gc_reason_t reason)
   struct call_node *prof_node = NULL;
 #endif
   gc_stat *stats;
-
-  END_PROF();
-  START_PROF(P_GC, "P_GC");
 
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
@@ -4754,11 +4747,11 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
    I_USERCALL0.
 */
 
-static inline void
-update_local_pointer(Code *p, intptr_t ls)
-{ GET_LD
+#define update_local_pointer(p, ls) LDFUNC(update_local_pointer, p, ls)
 
-  if ( onStackArea(local, *p) )
+static inline void
+update_local_pointer(DECL_LD Code *p, intptr_t ls)
+{ if ( onStackArea(local, *p) )
   { DEBUG(MSG_SHIFT_POINTER, Sdprintf(" (local ptr %p)", *p));
     update_pointer(p, ls);
   }
@@ -4776,10 +4769,11 @@ update_lg_pointer(DECL_LD Word *p, intptr_t ls, intptr_t gs)
 }
 
 
+#define update_environments(fr, ls, gs) LDFUNC(update_environments, fr, ls, gs)
+
 static QueryFrame
-update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
-{ GET_LD
-  if ( fr == NULL )
+update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
+{ if ( fr == NULL )
     return NULL;
 
   for(;;)
@@ -5183,6 +5177,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   int rc;
 #if O_DEBUG
   word key=0;
+  int emergency = FALSE;
 #endif
 
   if ( !(l || g || t) )
@@ -5199,8 +5194,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   { if ( tsize + gsize + lsize > LD->stacks.limit )
     { size_t ulocal  = needStack((Stack)&LD->stacks.local)  + l;
       size_t uglobal = needStack((Stack)&LD->stacks.global) + g;
-      size_t utrail  = needStack((Stack)&LD->stacks.trail)  + t +
-		       uglobal/GLOBAL_TRAIL_RATIO;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail)  + t;
       size_t need    = ulocal + utrail + uglobal;
       size_t limit   = LD->stacks.limit;
       size_t minav   = limit/4;
@@ -5210,9 +5204,15 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
 	    Sdprintf("Reached stack-limit; need (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
 		     ulocal, uglobal, utrail, need, LD->stacks.limit));
 
-      if ( LD->in_print_message )
-      { limit += 1024*1024;
+      if ( LD->in_print_message || LD->exception.processing )
+      { DEBUG(MSG_STACK_OVERFLOW,
+	      { Sdprintf("In error condition; raising limit with 1Mb\n");
+		emergency = TRUE;
+	      });
+	limit += 1024*1024;
 	minav = 0;
+      } else
+      { utrail += uglobal/GLOBAL_TRAIL_RATIO;
       }
 
       if ( limit > need && (space=limit-need) > minav )
@@ -5387,6 +5387,14 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
     { Sdprintf("l+g+t = %zd+%zd+%zd (%.3f sec)\n",
 	       lsize, gsize, tsize, time);
     }
+    DEBUG(MSG_STACK_OVERFLOW,
+	  { if ( emergency )
+	    { Sdprintf("l+g+t = %zd+%zd+%zd; free = %zd+%zd+%zd (%.3f sec)\n",
+		       lsize, gsize, tsize,
+		       roomStack(local), roomStack(global), roomStack(trail),
+		       time);
+	    }
+	  });
   }
 
   DEBUG(CHK_SECURE,

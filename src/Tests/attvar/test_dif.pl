@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2022, University of Amsterdam
+    Copyright (c)  2008-2023, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -153,6 +153,11 @@ test(cyclic, blocked("Cyclic term")) :-
 	A=[D|E],
 	B=[C|D],
 	D=[E|E].
+test(issue122, Vars == []) :-
+    A=x(a,C), B=x(D,A), C = x(_,_),
+    call_residue_vars(( dif(A,B),
+			C=x(_E,D)
+		      ), Vars).
 
 :- end_tests(dif).
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2022, University of Amsterdam
+    Copyright (c)  2007-2023, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -83,7 +83,8 @@ to base64. Base64URL encoded strings do not contain white space.
 %     - charset(+Charset)
 %     Define the encoding character set to use.  The (default) `classic`
 %     uses the classical rfc2045 characters.  The value `url` uses URL
-%     and file name friendly characters.  See base64url/2.
+%     and file name friendly characters.  See base64url/2.  The value
+%     `openbsd` uses the OpenBSD password-file alphabet.
 %     - padding(+Boolean)
 %     If `true` (default), the output is padded with `=` characters.
 %     - as(+Type)
@@ -398,6 +399,9 @@ base64_char(63, 0'/).
 base64url_char_x(62, 0'-).
 base64url_char_x(63, 0'_).
 
+base64bsd_char_x(00, 0'.).
+base64bsd_char_x(01, 0'/).
+
 base64_char(classic, Value, Char) :-
     (   base64_char(Value, Char)
     ->  true
@@ -410,7 +414,20 @@ base64_char(url, Value, Char) :-
     ->  true
     ;   syntax_error(base64_char(Value, Char))
     ).
-
+base64_char(openbsd, Value, Char) :-
+    (   base64bsd_char_x(Value, Char)
+    ->  true
+    ;   nonvar(Value)
+    ->  Value0 is Value - 2,
+        (   base64_char(Value0, Char)
+        ->  true
+        ;   syntax_error(base64_char(Value, Char))
+        )
+    ;   (   base64_char(Value0, Char)
+        ->  Value0 < 62, Value is Value0 + 2
+        ;   syntax_error(base64_char(Value, Char))
+        )
+    ).
 
                  /*******************************
                  *            MESSAGES          *

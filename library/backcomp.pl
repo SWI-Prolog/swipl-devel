@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -80,6 +80,7 @@
             unlock_predicate/2,         % +Name, +Arity
             current_module/2,           % ?Module, ?File
             export_list/2,              % +Module, -Exports
+            call_cleanup/3,		% :Goal, ?Catcher, :Cleanup
             setup_and_call_cleanup/3,   % :Setup, :Goal, :Cleanup
             setup_and_call_cleanup/4,   % :Setup, :Goal, ?Catcher, :Cleanup
             merge/3,                    % +List1, +List2, -Union
@@ -101,6 +102,7 @@
 
 :- meta_predicate
     at_initialization(0),
+    call_cleanup(0,?,0),
     setup_and_call_cleanup(0,0,0),
     setup_and_call_cleanup(0,0,?,0),
     checklist(1, +),
@@ -550,6 +552,15 @@ current_module(Module, File) :-
 
 export_list(Module, List) :-
     module_property(Module, exports(List)).
+
+%!  call_cleanup(:Goal, +Catcher, :Cleanup)
+%
+%   Call Cleanup with an indication of the reason unified to Catcher.
+%
+%   @deprecated Use setup_call_catcher_cleanup/4.
+
+call_cleanup(Goal, Catcher, Cleanup) :-
+    setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
 %!  setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
 %

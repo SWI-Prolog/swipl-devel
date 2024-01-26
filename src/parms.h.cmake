@@ -1,4 +1,7 @@
-#define PLHOME		  "@PLHOME@"
+/* Generated using cmake/Parms.cmake from src/parms.h.cmake */
+
+#cmakedefine PLHOME	  "@PLHOME@"
+#cmakedefine PLRELHOME	  "@PLRELHOME@"
 #cmakedefine PLSHAREDHOME "@PLSHAREDHOME@"
 #cmakedefine PLPKGNAME    "@SWIPL_PKG_NAME@"
 #define PLARCH            "@PLARCH@"

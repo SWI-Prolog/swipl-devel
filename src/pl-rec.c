@@ -213,7 +213,7 @@ unallocRecordList(RecordList rl)
 
 #define SIZERECORD(flags) \
 	((flags & R_DUPLICATE) ? offsetof(struct record, buffer[0]) : \
-	                         offsetof(struct record, references)) \
+				 offsetof(struct record, references)) \
 
 #define dataRecord(r) ((char *)addPointer(r, SIZERECORD(r->flags)))
 
@@ -1200,7 +1200,7 @@ typedef struct
   uint		nvars;			/* Variables seen */
   uint		dicts;			/* # dicts found */
   TmpBuffer	avars;			/* Values stored for attvars */
-  Word	        vars_buf[MAX_FAST_VARS];
+  Word		vars_buf[MAX_FAST_VARS];
 } copy_info, *CopyInfo;
 
 static void skipSizeInt(CopyInfo b);
@@ -1314,8 +1314,10 @@ fetchExtFloat(CopyInfo b, void *f)
 }
 
 
+#define fetchAtom(b, a) LDFUNC(fetchAtom, b, a)
+
 static void
-fetchAtom(CopyInfo b, atom_t *a)
+fetchAtom(DECL_LD CopyInfo b, atom_t *a)
 { unsigned int len = fetchSizeInt(b);
 
   *a = lookupAtom(b->data, len);
@@ -2222,6 +2224,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	PL_LOCK(L_RECORD);
 	rl->references++;
 	state->r = rl->firstRecord;
+	if ( true(state->r->record, R_ERASED) )
+	  advance_state(state);
       } else
       { return FALSE;
       }

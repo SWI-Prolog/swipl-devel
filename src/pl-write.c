@@ -68,7 +68,7 @@
 #endif
 
 typedef struct
-{ int   flags;				/* PL_WRT_* flags */
+{ unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
   atom_t spacing;			/* Where to insert spaces */
@@ -124,7 +124,7 @@ var_name_ptr(DECL_LD Word p, char *name)
   else
     iref = ((Word)p - (Word)gBase)*2;
 
-  Ssprintf(name, "_%lld", (int64_t)iref);
+  Ssprintf(name, "_%" PRIi64, (int64_t)iref);
 
   return name;
 }
@@ -191,7 +191,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
   if ( LD->var_names.numbervars_frame )
   { FliFrame fr = (FliFrame)valTermRef(LD->var_names.numbervars_frame);
 
-    assert(fr->magic == FLI_MAGIC);
+    FLI_ASSERT_VALID(fr);
     if ( false(options, PL_WRT_NUMBERVARS) &&
          fr->mark.globaltop > (Word)f )
       return FALSE;			/* older $VAR term */
@@ -620,7 +620,7 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
   } else
   { if ( !Putc(c, stream) )
       fail;
-    if ( c == quote || c == '\\' )	/* write '' or \\ */
+    if ( c == quote )	/* write '' */
     { if ( !Putc(c, stream) )
 	fail;
     }
@@ -751,7 +751,8 @@ writeAtom(atom_t a, write_options *options)
   }
 
   if ( atom->type->write )
-    return (*atom->type->write)(options->out, a, options->flags);
+    return ((*atom->type->write)(options->out, a, options->flags) &&
+	    !Sferror(options->out));
   if ( false(atom->type, PL_BLOB_TEXT) )
     return writeBlob(a, options);
 
@@ -1650,7 +1651,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	   PL_get_arg(1, t, class) )
       { if ( writeTerm(class, 1200, options, W_TAG) &&
 	     Putc('{', out) &&
-	     PL_for_dict(t, writeDictPair, options, DICT_SORTED) == 0 &&
+	     _PL_for_dict(t, writeDictPair, options, PL_FOR_DICT_SORTED) == 0 &&
 	     Putc('}', out) )
 	  return TRUE;
       }
@@ -1753,7 +1754,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	    { switch(writeAtom(functor, options))
 	      { case FALSE:
 		  fail;
-	        case TRUE_WITH_SPACE:
+		case TRUE_WITH_SPACE:
 		  TRY(Putc(' ', out));
 	      }
 	    }
@@ -2150,9 +2151,14 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   int rc;
 
   memset(&options, 0, sizeof(options));
-  options.flags	    = flags;
+  options.flags	    = flags & ~PL_WRT_NEWLINE;
   options.out	    = s;
   options.module    = MODULE_user;
+
+  if ( !(flags & (PL_WRT_CHARESCAPES|PL_WRT_NO_CHARESCAPES) ) )
+  { if ( true(options.module, M_CHARESCAPE) )
+      options.flags |= PL_WRT_CHARESCAPES;
+  }
 
   if ( (s=PL_acquire_stream(s)) )
   { PutOpenToken(EOF, s);			/* reset this */
@@ -2460,4 +2466,3 @@ BeginPredDefs(write)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
   PRED_DEF("write_length", 3, write_length, 0)
 EndPredDefs
-

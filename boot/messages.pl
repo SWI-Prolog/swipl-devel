@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2021, University of Amsterdam
+    Copyright (c)  1997-2023, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1573,26 +1573,33 @@ prolog_message(spying(Heads)) -->
     predicate_list(Heads).
 prolog_message(trace(Head, [])) -->
     !,
-    { goal_to_predicate_indicator(Head, Pred)
-    },
-    [ '        ~p: Not tracing'-[Pred], nl].
+    [ '    ' ], goal_predicate(Head), [ ' Not tracing'-[], nl].
 prolog_message(trace(Head, Ports)) -->
-    { goal_to_predicate_indicator(Head, Pred)
-    },
-    [ '        ~p: ~w'-[Pred, Ports], nl].
+    [ '    ' ], goal_predicate(Head), [ ': ~w'-[Ports], nl].
 prolog_message(tracing([])) -->
     !,
-    [ 'No traced predicates (see trace/1)' ].
+    [ 'No traced predicates (see trace/1,2)' ].
 prolog_message(tracing(Heads)) -->
-    [ 'Trace points (see trace/1) on:', nl ],
+    [ 'Trace points (see trace/1,2) on:', nl ],
     tracing_list(Heads).
+
+goal_predicate(Head) -->
+    { predicate_property(Head, file(File)),
+      predicate_property(Head, line_count(Line)),
+      goal_to_predicate_indicator(Head, PI),
+      term_string(PI, PIS, [quoted(true)])
+    },
+    [ url(File:Line, PIS) ].
+goal_predicate(Head) -->
+    { goal_to_predicate_indicator(Head, PI)
+    },
+    [ '~p'-[PI] ].
+
 
 predicate_list([]) -->                  % TBD: Share with dwim, etc.
     [].
 predicate_list([H|T]) -->
-    { goal_to_predicate_indicator(H, Pred)
-    },
-    [ '        ~p'-[Pred], nl],
+    [ '    ' ], goal_predicate(H), [nl],
     predicate_list(T).
 
 tracing_list([]) -->
@@ -1678,9 +1685,20 @@ frame_flags(Frame) -->
     },
     [ '~w~w '-[T, S] ].
 
-% trace/1,2 context handling
+% trace/1 context handling
+port(Port, Dict) -->
+    { _{level:Level, start:Time} :< Dict
+    },
+    (   { Port \== call,
+          get_time(Now),
+          Passed is (Now - Time)*1000.0
+        }
+    ->  [ '[~d +~1fms] '-[Level, Passed] ]
+    ;   [ '[~d] '-[Level] ]
+    ),
+    port(Port).
 port(Port, _Id-Level) -->
-    [ '[~d] '-Level ],
+    [ '[~d] '-[Level] ],
     port(Port).
 
 port(Port) -->
@@ -1762,6 +1780,25 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
       '  to   "~w"'-[InitFile], nl,
       '  See https://www.swi-prolog.org/modified/config-files.html'-[]
     ].
+prolog_message(not_accessed_flags(List)) -->
+    [ 'The following Prolog flags have been set but not used:', nl ],
+    flags(List).
+prolog_message(prolog_flag_invalid_preset(Flag, Preset, _Type, New)) -->
+    [ 'Prolog flag ', ansi(code, '~q', Flag), ' has been (re-)created with a type that is \c
+       incompatible with its value.', nl,
+      'Value updated from ', ansi(code, '~p', [Preset]), ' to default (',
+      ansi(code, '~p', [New]), ')'
+    ].
+
+
+flags([H|T]) -->
+    ['  ', ansi(code, '~q', [H])],
+    (   {T == []}
+    ->  []
+    ;   [nl],
+        flags(T)
+    ).
+
 
 		 /*******************************
 		 *          DEPRECATED		*
@@ -1771,6 +1808,31 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
       'See https://www.swi-prolog.org/changes/stack-limit.html'
     ].
+deprecated(autoload(TargetModule, File, _M:PI, expansion)) -->
+    !,
+    [ 'Auto-loading ', ansi(code, '~p', [PI]), ' from ' ],
+    load_file(File), [ ' into ' ],
+    target_module(TargetModule),
+    [ ' is deprecated due to term- or goal-expansion' ].
+
+load_file(File) -->
+    { file_base_name(File, Base),
+      absolute_file_name(library(Base), File, [access(read), file_errors(fail)]),
+      file_name_extension(Clean, pl, Base)
+    },
+    !,
+    [ ansi(code, '~p', [library(Clean)]) ].
+load_file(File) -->
+    [ url(File) ].
+
+target_module(Module) -->
+    { module_property(Module, file(File)) },
+    !,
+    load_file(File).
+target_module(Module) -->
+    [ 'module ', ansi(code, '~p', [Module]) ].
+
+
 
 		 /*******************************
 		 *           TRIPWIRES		*
@@ -1907,6 +1969,9 @@ default_theme(message(Level),         Attrs) :-
 :- thread_local
     user:thread_message_hook/3.
 :- '$hide'((push_msg/1,pop_msg/0)).
+:- '$notransact'((user:message_hook/3,
+                  prolog:message_prefix_hook/2,
+                  user:thread_message_hook/3)).
 
 %!  print_message(+Kind, +Term)
 %

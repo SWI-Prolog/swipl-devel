@@ -425,6 +425,7 @@ print_trace(btrace *bt, int me)
     { Dl_info info;
       void *addr = bt->retaddr[me][i];
 
+#ifdef HAVE_DLADDR
       if ( dladdr(addr, &info) )
       { uintptr_t offset = (uintptr_t)addr - (uintptr_t)info.dli_fbase;
 
@@ -437,17 +438,18 @@ print_trace(btrace *bt, int me)
 #endif
 	       ) &&
 	       addr2line(info.dli_fname, offset, buf, sizeof(buf)) )
-	    Sdprintf("  [%d] %s [%p]\n", i, buf, addr);
+	    Sdprintf("  [%zd] %s [%p]\n", i, buf, addr);
 	  else if ( info.dli_sname )
-	    Sdprintf("  [%d] %s(%s+%p) [%p]\n",
+	    Sdprintf("  [%zd] %s(%s+0x%tx) [%p]\n",
 		     i, info.dli_fname, info.dli_sname,
-		     (uintptr_t)addr-(uintptr_t)info.dli_saddr,
+		     (char*)addr-(char*)info.dli_saddr,
 		     addr);
 	  else
-	    Sdprintf("  [%d] %s(+%p) [%p]\n",
+	    Sdprintf("  [%zd] %s(+%p) [%p]\n",
 		     i, info.dli_fname, (void*)offset, addr);
 	} else
-	{ Sdprintf("  [%d] ??? [%p]\n", i, addr);
+#endif
+	{ Sdprintf("  [%zd] ??? [%p]\n", i, addr);
 	}
       }
     }
@@ -940,9 +942,9 @@ sigCrashHandler(int sig)
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
-  Sdprintf("\nSWI-Prolog [thread %d (%Ws) at %s]: "
-	   "received fatal signal %d (%s)\n",
-	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
+  SdprintfX("\nSWI-Prolog [thread %d (%Ws) at %s]: "
+	    "received fatal signal %d (%s)\n",
+	    PL_thread_self(), name, tbuf, sig, signal_name(sig));
   print_c_backtrace("crash");
   Sdprintf("Prolog stack:\n");
   PL_backtrace(25, PL_BT_SAFE);
@@ -1100,7 +1102,33 @@ sigCrashHandler(int sig)
 		 *   STACK LOCATION AND SIZE	*
 		 *******************************/
 
-#if defined(HAVE_GETRLIMIT) && defined(O_PLMT)
+#ifdef O_PLMT
+static pthread_once_t c_stack_key_created = PTHREAD_ONCE_INIT;
+static pthread_key_t c_stack_key = 0;
+
+static void
+c_stack_create_key(void)
+{ pthread_key_create(&c_stack_key, free);
+}
+
+static c_stack_info *
+thread_c_stack_info(c_stack_info *cinfo)
+{ pthread_once(&c_stack_key_created, c_stack_create_key);
+
+  if ( cinfo )
+  { pthread_setspecific(c_stack_key, cinfo);
+  } else if ( (cinfo=pthread_getspecific(c_stack_key)) )
+  { return cinfo;
+  } else
+  { if ( !(cinfo = malloc(sizeof(*cinfo))) )
+      outOfCore();
+    memset(cinfo, 0, sizeof(*cinfo));
+    pthread_setspecific(c_stack_key, cinfo);
+  }
+
+  return cinfo;
+}
+
 static size_t
 round_pages(size_t n)
 { size_t psize;
@@ -1114,52 +1142,64 @@ round_pages(size_t n)
 
   return ROUND(n, psize);
 }
-#endif
 
-size_t
+static void
+c_stack_base(c_stack_info *cinfo)
+{ if ( !cinfo->base && cinfo->size )
+  { size_t top = round_pages((size_t)&cinfo);
+    cinfo->base = (void*)(top - cinfo->size);
+  }
+}
+
+#endif /*O_PLMT*/
+
+c_stack_info *
 CStackSize(DECL_LD)
 {
 #ifdef O_PLMT
   PL_thread_info_t *info = LD->thread.info;
+  c_stack_info *cinfo;
 
-  if ( info->c_stack_size )
-    return info->c_stack_size;
+  if ( !(cinfo=info->c_stack) )
+    cinfo = info->c_stack = thread_c_stack_info(NULL);
 
-  if ( info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", LD->thread.info->c_stack_size));
+  if ( !cinfo->initialised )
+  { info->c_stack = thread_c_stack_info(info->c_stack);
 
-#ifdef HAVE_PTHREAD_GETATTR_NP
-    pthread_attr_t attr;
-
-    if ( pthread_getattr_np(info->tid, &attr) == 0 )
-    { pthread_attr_getstack(&attr, &info->c_stack_base, &info->c_stack_size);
-      pthread_attr_destroy(&attr);
+    if ( cinfo->size && !cinfo->base )
+    { c_stack_base(cinfo);
     } else
-    { info->c_stack_size = (size_t)-1;
-    }
-#endif
-
-    return info->c_stack_size;
-  }
-
+    { if ( info->pl_tid == 1 )
+      {
 #ifdef HAVE_GETRLIMIT
-  struct rlimit rlim;
+	struct rlimit rlim;
 
-  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 &&
-       rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur )
-  { size_t top = round_pages((size_t)&info);
-
-    DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
-    info->c_stack_size = rlim.rlim_cur;
-
-    info->c_stack_base = (void*)(top - info->c_stack_size);
-  } else
-  { info->c_stack_size = (size_t)-1;
-  }
+	if ( getrlimit(RLIMIT_STACK, &rlim) == 0 &&
+	     rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur )
+	{ cinfo->size = rlim.rlim_cur;
+	  c_stack_base(cinfo);
+	}
 #endif
+      } else
+      {
+#ifdef HAVE_PTHREAD_GETATTR_NP
+	pthread_attr_t attr;
 
-  return info->c_stack_size;
-#else
-  return (size_t)-1;
+	if ( pthread_getattr_np(info->tid, &attr) == 0 )
+	{ pthread_attr_getstack(&attr, &cinfo->base, &cinfo->size);
+	  pthread_attr_destroy(&attr);
+	}
+#endif
+      }
+    }
+    cinfo->initialised = TRUE;
+    DEBUG(MSG_CSTACK, Sdprintf("[%d]: C-stack %p[%zd]\n",
+			       info->pl_tid, cinfo->base, cinfo->size));
+
+  }
+
+  return cinfo;
+#else /*O_PLMT*/
+  return NULL;
 #endif
 }

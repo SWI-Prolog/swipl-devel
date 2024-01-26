@@ -3,9 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,6 +43,13 @@
 #include <assert.h>
 #endif
 
+#ifdef _MSC_VER
+static inline size_t
+__builtin_popcountll(long long sz)
+{ return __popcnt64(sz);
+}
+#endif
+
 typedef void *(*mp_malloc_t)(size_t);
 typedef void *(*mp_realloc_t)(void *, size_t old, size_t newsize);
 typedef void  (*mp_free_t)(void *, size_t size);
@@ -52,9 +57,11 @@ typedef void  (*mp_free_t)(void *, size_t size);
 typedef struct mp_alloc_wrapper
 { bf_context_t bf_context;
   mp_realloc_t realloc_func;
+  mp_free_t free_func;
 } mp_alloc_wrapper;
 
 extern mp_alloc_wrapper alloc_wrapper;
+
 extern void bf_not_implemented(const char *func);
 
 void	bf_print_i(const char *msg, const bf_t *i);
@@ -66,14 +73,15 @@ void	bf_print_i(const char *msg, const bf_t *i);
 
 static inline void
 mp_get_memory_functions(mp_malloc_t *m, mp_realloc_t *r, mp_free_t *f)
-{ *m = NULL;
-  *r = alloc_wrapper.realloc_func;
-  *f = NULL;
+{ if(m) *m = NULL;
+  if(r) *r = alloc_wrapper.realloc_func;
+  if(f) *f = alloc_wrapper.free_func;
 }
 
 static inline void
 mp_set_memory_functions(mp_malloc_t m, mp_realloc_t r, mp_free_t f)
 { alloc_wrapper.realloc_func = r;
+  alloc_wrapper.free_func = f;
 }
 
 		 /*******************************
@@ -111,6 +119,12 @@ mpz_init_set_ui(mpz_t r, unsigned long n)
 }
 
 static inline void
+mpz_init_set_ui64(mpz_t r, uint64_t n)
+{ bf_init(&alloc_wrapper.bf_context, r);
+  bf_set_ui(r, n);
+}
+
+static inline void
 mpz_init_set_si64(mpz_t r, int64_t n)
 { bf_init(&alloc_wrapper.bf_context, r);
   bf_set_si(r, n);
@@ -124,6 +138,11 @@ mpz_set(mpz_t r, const mpz_t n)
 
 static inline void
 mpz_set_ui(mpz_t r, unsigned long n)
+{ bf_set_ui(r, n);
+}
+
+static inline void
+mpz_set_ui64(mpz_t r, int64_t n)
 { bf_set_ui(r, n);
 }
 
@@ -160,6 +179,17 @@ mpz_init_set_d(mpz_t r, double f)
 
 static inline long
 mpz_get_si(const mpz_t n)
+{ int64_t nv;
+
+  if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
+    return (long)nv;
+
+  assert(0);				/* TBD: return least significant bits */
+  return 0;
+}
+
+static inline int64_t
+mpz_get_si64(const mpz_t n)
 { int64_t nv;
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
@@ -247,7 +277,7 @@ mpz_popcount(const mpz_t n)
 { mp_bitcnt_t cnt = 0;
 
   for(size_t i=0; i<n->len; i++)
-    cnt += __builtin_popcountll(n->tab[i]);
+    cnt += (mp_bitcnt_t)__builtin_popcountll(n->tab[i]);
 
   return cnt;
 }
@@ -313,10 +343,10 @@ static inline int
 mpz_cmp_d(const mpz_t n, double f)
 { mpz_t tmp;
   int rc ;
-  
+
   if      ( f ==  INFINITY ) return -1;
   else if ( f == -INFINITY ) return  1;
-  else 
+  else
   {
     mpz_init(tmp);
     mpz_set_d(tmp, f);
@@ -388,23 +418,39 @@ mpz_mul_2exp(mpz_t r, const mpz_t n1, mp_bitcnt_t n2)
 }
 
 static inline void
-mpz_addmul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ mpz_t add;
+mpz_addmul(mpz_t r, const mpz_t n1, const mpz_t n2)
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
 
-  mpz_init(add);
-  bf_mul_ui(add, n1, n2, BF_PREC_INF, BF_RNDN);
-  bf_add(r, n1, add, BF_PREC_INF, BF_RNDN);
-  mpz_clear(add);
+  bf_mul(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_add(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
+}
+
+static inline void
+mpz_addmul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
+
+  bf_mul_ui(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_add(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
 }
 
 static inline void
 mpz_submul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ mpz_t sub;
+{ mpz_t tmp; mpz_init_set(tmp,r);
+  mpz_t acc; mpz_init(acc);
 
-  mpz_init(sub);
-  bf_mul_ui(sub, n1, n2, BF_PREC_INF, BF_RNDN);
-  bf_sub(r, n1, sub, BF_PREC_INF, BF_RNDN);
-  mpz_clear(sub);
+  bf_mul_ui(acc, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_sub(r, tmp, acc, BF_PREC_INF, BF_RNDN);
+
+  mpz_clear(tmp);
+  mpz_clear(acc);
 }
 
 static inline void
@@ -563,7 +609,7 @@ mpz_tdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long d)
   bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
   bf_get_int64(&r, &rem, BF_RNDN);
   bf_delete(&rem);
-  return r;
+  return (unsigned long)r;
 }
 
 
@@ -601,24 +647,7 @@ mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
 void	mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y);
 void	mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned long y);
 void	mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod);
-
-static inline char *
-mpz_get_str(char *STR, int BASE, const mpz_t OP)
-{ const bf_t *op = OP;
-  bf_t copy;
-
-  if ( !op->ctx )
-  { copy = OP[0];
-    copy.ctx = &alloc_wrapper.bf_context;
-    op = &copy;
-  }
-
-  char *s = bf_ftoa(NULL, op, BASE, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC);
-  strcpy(STR, s);
-  bf_free(op->ctx, s);
-
-  return STR;
-}
+char   *mpz_get_str(char *STR, int BASE, const mpz_t OP);
 
 
 		 /*******************************
@@ -694,6 +723,26 @@ mpq_cnumref(const mpq_t q)
 static inline const MP_INT*
 mpq_cdenref(const mpq_t q)
 { return &q[1];
+}
+
+static inline void
+mpq_get_num(mpz_t n, const mpq_t r)
+{ bf_set(n, &r[0]);
+}
+
+static inline void
+mpq_get_den(mpz_t d, const mpq_t r)
+{ bf_set(d, &r[1]);
+}
+
+static inline void
+mpq_set_num(mpq_t r, const mpz_t n)
+{ bf_set(&r[0], n);
+}
+
+static inline void
+mpq_set_den(mpq_t r, const mpz_t d)
+{ bf_set(&r[1], d);
 }
 
 static inline int

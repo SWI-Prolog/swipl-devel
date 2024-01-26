@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -178,7 +178,7 @@ int
 ExistsFile(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_FILE);
+  return _xos_exists(path, _XOS_FILE) == TRUE;
 #else
   char tmp[PATH_MAX];
   statstruct buf;
@@ -196,7 +196,7 @@ int
 ExistsDirectory(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_DIR);
+  return _xos_exists(path, _XOS_DIR) == TRUE;
 #else
   char tmp[PATH_MAX];
   char *ospath = OsPath(path, tmp);
@@ -230,7 +230,7 @@ ReadLink(const char *f, char *buf)
 
 
 static char *
-DeRefLink1(const char *f, char *lbuf)
+DeRefLink1(const char *f, char *lbuf, size_t buflen)
 { char buf[PATH_MAX];
   char *l;
 
@@ -248,9 +248,7 @@ DeRefLink1(const char *f, char *lbuf)
 	q--;
       strcpy(q, l);
 
-      canonicaliseFileName(lbuf);
-
-      return lbuf;
+      return canonicaliseFileName(lbuf, buflen);
     }
   }
 
@@ -271,8 +269,10 @@ DeRefLink(const	char *link, char *buf)
   char *f;
   int n = 20;				/* avoid loop! */
 
-  while((f=DeRefLink1(link, tmp)) && n-- > 0)
+  while((f=DeRefLink1(link, tmp, sizeof(tmp))) && n-- > 0)
     link = f;
+  if ( PL_exception(0) )		/* Name too long */
+    return NULL;
 
   if ( n > 0 )
   { strcpy(buf, link);
@@ -393,7 +393,7 @@ MarkExecutable(const char *name)
     term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_stat, ATOM_file, file);
   }
 
@@ -406,7 +406,7 @@ MarkExecutable(const char *name)
     term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_chmod, ATOM_file, file);
   }
 #endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
@@ -443,7 +443,7 @@ add_option(term_t options, functor_t f, atom_t val)
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
 
 static int
-get_file_name(term_t n, char **namep, char *tmp, int flags)
+get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 { GET_LD
   char *name;
   int chflags;
@@ -530,7 +530,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
   }
 
   if ( flags & PL_FILE_ABSOLUTE )
-  { if ( !(name = AbsoluteFile(name, tmp)) )
+  { if ( !(name = AbsoluteFile(name, tmp, tmplen)) )
       return FALSE;
   }
 
@@ -547,7 +547,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
   char *name;
   int rc;
 
-  if ( (rc=get_file_name(n, &name, buf, flags)) )
+  if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags)) )
   { if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
 	return FALSE;
@@ -568,7 +568,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
   char *name;
   int rc;
 
-  if ( (rc=get_file_name(n, &name, buf, flags|REP_UTF8)) )
+  if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags|REP_UTF8)) )
   { Buffer b;
     const char *s;
 
@@ -636,7 +636,7 @@ PRED_IMPL("size_file", 2, size_file, 0)
     }
 
     if ( (size = SizeFile(n)) < 0 )
-      return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
+      return PL_error("size_file", 2, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_size, ATOM_file, A1);
 
     return PL_unify_int64(A2, size);
@@ -970,7 +970,7 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
       return TRUE;
 
     if ( truePrologFlag(PLFLAG_FILEERRORS) )
-      return PL_error("rename_file", 2, OsError(), ERR_FILE_OPERATION,
+      return PL_error("rename_file", 2, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_rename, ATOM_file, old);
     return FALSE;
   }
@@ -988,7 +988,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
   term_t expanded = A2;
 
   if ( PL_get_file_name(name, &n, 0) )
-  { if ( (n = AbsoluteFile(n, tmp)) )
+  { if ( (n = AbsoluteFile(n, tmp, sizeof(tmp))) )
       return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
   }
 

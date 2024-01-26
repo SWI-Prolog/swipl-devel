@@ -5,7 +5,8 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2022, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,11 +40,22 @@
 #ifndef _PL_COVERAGE_H
 #define _PL_COVERAGE_H
 
-void	record_coverage(LocalFrame fr, int port);
-int	free_coverage_data(PL_local_data_t *ld);
+#define COV_TRACK_THREADS	0x0001 /* activate in child threads */
 
+typedef struct coverage
+{ Table		table;		/* call-sites --> data */
+  unsigned int	references;	/* # threads using this */
+  unsigned int	flags;		/* COV_* */
+} coverage;
+
+void	  record_coverage(LocalFrame fr, int port);
+int	  free_coverage_data(PL_local_data_t *ld);
+coverage *share_coverage_data(coverage *cov);
+
+
+#define Coverage(fr, port) LDFUNC(Coverage, fr, port)
 static inline void
-Coverage(LocalFrame fr, int port)
+Coverage(DECL_LD LocalFrame fr, int port)
 {
 #if O_COVERAGE
   if ( LD->coverage.active )

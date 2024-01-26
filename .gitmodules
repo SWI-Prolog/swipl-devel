@@ -67,9 +67,6 @@
 [submodule "packages/cpp"]
 	path = packages/cpp
 	url = ../packages-cpp.git
-[submodule "packages/cppproxy"]
-	path = packages/cppproxy
-	url = ../packages-cppproxy.git
 [submodule "packages/ltx2htm"]
 	path = packages/ltx2htm
 	url = ../packages-ltx2htm.git
@@ -121,3 +118,6 @@
 [submodule "packages/sweep"]
 	path = packages/sweep
 	url = ../packages-sweep.git
+[submodule "packages/swipy"]
+	path = packages/swipy
+	url = ../packages-swipy

@@ -13,74 +13,7 @@ library.  The latter can be hooked, which is used by the XPCE module
 \pllib{swi/pce_profile} to provide an interactive graphical
 frontend for the results.
 
-\subsection{Profiling predicates}
-\label{sec:profiling-predicates}
-
-The following predicates are defined to interact with the profiler.
-
-\begin{description}
-    \predicate{profile}{1}{:Goal}
-Execute \arg{Goal} just like once/1, collecting profiling statistics,
-and call \term{show_profile}{[]}.  With XPCE installed this
-opens a graphical interface to examine the collected profiling data.
-
-    \predicate{profile}{2}{:Goal, +Options}
-Execute \arg{Goal} just like once/1. Collect profiling statistics
-according to \arg{Options} and call show_profile/1 with \arg{Options}.
-The default collects CPU profiling and opens a graphical interface when
-provided, printing the `plain' time usage of the top 25 predicates as
-a ballback.  Options are described below.  Remaining options are passed
-to show_profile/1.
-
-    \begin{description}
-	\termitem{time}{+Which}
-    If \arg{Which} is \const{cpu} (default), collect CPU timing
-    statistics.  If \const{wall}, collect wall time statistics
-    based on a 5 millisecond sampling rate.  Wall time statistics
-    can be useful if \arg{Goal} calls blocking system calls.
-    \end{description}
-
-    \predicate{show_profile}{1}{+Options}
-This predicate first calls prolog:show_profile_hook/1. If XPCE is
-loaded, this hook is used to activate a GUI interface to visualise the
-profile results.  If not, a report is printed to the terminal according
-to \arg{Options}:
-
-    \begin{description}
-	\termitem{top}{+N}
-    Show the only top \arg{N} predicates.  Default is 25.
-	\termitem{cumulative}{+Bool}
-    If \const{true} (default \const{false}), include the time spent in
-    children in the time reported for a predicate.
-    \end{description}
-
-    \predicate{profiler}{2}{-Old, +New}
-Query or change the status of the profiler. The status is one of
-
-\begin{description}
-    \termitem{false}{}
-The profiler is not activated.
-    \termitem{cputime}{}
-The profiler collects CPU statistics.
-    \termitem{walltime}{}
-The profiler collects wall time statistics.
-\end{description}
-
-The value \const{true} is accepted as a synonym for \const{cputime}
-for compatibility reasons.
-
-    \predicate{reset_profiler}{0}{}
-Switches the profiler to \const{false} and clears all collected
-statistics.
-
-    \predicate{noprofile}{1}{+Name/+Arity, \ldots}
-Declares the predicate \arg{Name}/\arg{Arity} to be invisible to the
-profiler. The time spent in the named predicate is added to the caller,
-and the callees are linked directly to the caller.  This is particularly
-useful for simple meta-predicates such as call/1, ignore/1, catch/3,
-etc.
-\end{description}
-
+\input{libprofile.tex}
 
 \subsection{Visualizing profiling data}			\label{sec:pceprofile}
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v
@@ -38,7 +38,6 @@
 /*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-ext.h"
 #include "pl-prims.h"
-#include "pl-sys.h"
 #include "pl-pro.h"
 #include "pl-write.h"
 #include "pl-read.h"
@@ -54,7 +53,6 @@
 #include "pl-fli.h"
 #include "pl-nt.h"
 #include "os/pl-ctype.h"
-#include "os/pl-fmt.h"
 #include "os/pl-prologflag.h"
 
 #if O_DEBUG
@@ -108,11 +106,7 @@ static const PL_extension foreigns[] = {
 #endif
 
   FRG("halt",			1, pl_halt,		      ISO),
-  FRG("getenv",			2, pl_getenv,			0),
-  FRG("setenv",			2, pl_setenv,			0),
-  FRG("unsetenv",		1, pl_unsetenv,			0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
-  FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
@@ -120,7 +114,7 @@ static const PL_extension foreigns[] = {
   FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
-  FRG("writeln",		1, pl_writeln,		        0),
+  FRG("writeln",		1, pl_writeln,			0),
   FRG("print",			1, pl_print,			0),
 
   FRG("read",			1, pl_read,		      ISO),
@@ -166,18 +160,15 @@ static const PL_extension foreigns[] = {
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	     NDET),
 
 #ifdef O_PROLOG_HOOK
-  FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
+  FRG("set_prolog_hook",	3, pl_set_prolog_hook,		0),
 #endif
   FRG("context_module",		1, pl_context_module,	     META),
 
-  FRG("format",			2, pl_format,		     META),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,      META),
 #endif
 
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
-  FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
-  FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
@@ -190,16 +181,10 @@ static const PL_extension foreigns[] = {
 
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
-  FRG("writeln",		2, pl_writeln2,		        0),
+  FRG("writeln",		2, pl_writeln2,			0),
   FRG("writeq",			2, pl_writeq2,		      ISO),
   FRG("print",			2, pl_print2,			0),
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
-  FRG("format",			3, pl_format3,		     META),
-
-  FRG("format_predicate",	2, pl_format_predicate,	     META),
-  FRG("current_format_predicate", 2, pl_current_format_predicate,
-						        META|NDET),
-  FRG("get_time",		1, pl_get_time,			0),
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
@@ -209,7 +194,6 @@ static const PL_extension foreigns[] = {
 
   FRG("thread_self",		1, pl_thread_self,	      ISO),
   FRG("with_mutex",		2, pl_with_mutex,	 META|ISO),
-  FRG("$get_pid",		1, pl_get_pid,			0),
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)
@@ -222,9 +206,9 @@ static unsigned int
 predicate_signature(const Definition def)
 { char str[256];
 
-  Ssprintf(str, "%s/%d/%d",
+  Ssprintf(str, "%s/%zd/0x%" PRIx64,
 	   stringAtom(def->functor->name),
-	   (int)def->functor->arity,
+	   def->functor->arity,
 	   def->flags);
 
   return MurmurHashAligned2(str, strlen(str), SIGNATURE_SEED);
@@ -403,6 +387,7 @@ DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(srcfile);
 DECL_PLIST(write);
+DECL_PLIST(format);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
 DECL_PLIST(op);
@@ -469,6 +454,7 @@ initBuildIns(void)
   REG_PLIST(proc);
   REG_PLIST(srcfile);
   REG_PLIST(write);
+  REG_PLIST(format);
   REG_PLIST(dlopen);
   REG_PLIST(system);
   REG_PLIST(op);
@@ -529,7 +515,6 @@ initBuildIns(void)
   LOOKUPPROC(arg3);
   LOOKUPPROC(print_message2);
   LOOKUPPROC(dcall1);
-  LOOKUPPROC(setup_call_catcher_cleanup4);
   LOOKUPPROC(dthread_init0);
   LOOKUPPROC(dc_call_prolog0);
   LOOKUPPROC(dinit_goal3);
@@ -538,8 +523,8 @@ initBuildIns(void)
 #endif
   GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
 					      PL_new_module(PL_new_atom("prolog")));
-  PROCEDURE_exception_hook4  =
-	PL_predicate("prolog_exception_hook", 4, "user");
+  PROCEDURE_exception_hook5  =
+	PL_predicate("prolog_exception_hook", 5, "prolog");
   PROCEDURE_tune_gc3 =
 	PL_predicate("tune_gc", 3, "prolog");
 					/* allow debugging in call/1 */

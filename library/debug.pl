@@ -50,8 +50,13 @@
 :- autoload(library(lists),[append/3,delete/3,selectchk/3,member/2]).
 :- autoload(library(prolog_stack),[backtrace/1]).
 :- autoload(library(option), [option/3, option/2]).
+:- autoload(library(dcg/high_order), [sequence/5]).
 
 :- set_prolog_flag(generate_debug_info, false).
+:- create_prolog_flag(optimise_debug, default,
+                      [ keep(true),
+                        type(oneof([default,false,true]))
+                      ]).
 
 :- meta_predicate
     assertion(0),
@@ -222,29 +227,33 @@ list_debug_topics(Options) :-
     !,
     list_debug_topics([search(Options)]).
 list_debug_topics(Options) :-
-    print_message(information, debug_topics(header)),
-    option(active(Value), Options, _),
-    (   debugging(Topic, Value, To),
-        (   option(output(Stream), Options)
-        ->  memberchk(Stream, To)
-        ;   true
-        ),
-        numbervars(Topic, 0, _, [singletons(true)]),
-        term_string(Topic, String, [quoted(true), numbervars(true)]),
-        (   option(search(Search), Options)
-        ->  sub_atom_icasechk(String, _, Search)
-        ;   true
-        ),
-        print_message(information, debug_topic(Topic, String, Value, To)),
-        fail
+    option(active(Activated), Options, _),
+    findall(debug_topic(Topic, String, Activated, To),
+            matching_topic(Topic, String, Activated, To, Options),
+            Tuples),
+    print_message(information, debug_topics(Tuples)).
+
+matching_topic(Topic, String, Activated, To, Options) :-
+    debugging(Topic, Activated, To),
+    (   option(output(Stream), Options)
+    ->  memberchk(Stream, To)
+    ;   true
+    ),
+    topic_to_string(Topic, String),
+    (   option(search(Search), Options)
+    ->  sub_atom_icasechk(String, _, Search)
     ;   true
     ).
+
+topic_to_string(Topic, String) :-
+    numbervars(Topic, 0, _, [singletons(true)]),
+    term_string(Topic, String, [quoted(true), numbervars(true)]).
 
 :- multifile
     prolog_debug_tools:debugging_hook/0.
 
 prolog_debug_tools:debugging_hook :-
-    (   debugging(_, true)
+    (   debugging(_, true, _)
     ->  list_debug_topics([active(true)])
     ).
 
@@ -445,15 +454,17 @@ prolog:message(debug(Fmt, Args)) -->
     [ Fmt-Args ].
 prolog:message(debug_no_topic(Topic)) -->
     [ '~q: no matching debug topic (yet)'-[Topic] ].
-prolog:message(debug_topics(header)) -->
+prolog:message(debug_topics(Tuples)) -->
     [ ansi(bold, '~w~t ~w~35| ~w~n', ['Debug Topic', 'Activated', 'To']),
-      '~`\u2015t~48|'
-    ].
-prolog:message(debug_topic(_, TopicString, true, [user_error])) -->
+      '~`\u2015t~48|', nl
+    ],
+    sequence(debug_topic, [nl], Tuples).
+
+debug_topic(debug_topic(_, TopicString, true, [user_error])) -->
     [ ansi(bold, '~s~t \u2714~35|', [TopicString]) ].
-prolog:message(debug_topic(_, TopicString, true, To)) -->
+debug_topic(debug_topic(_, TopicString, true, To)) -->
     [ ansi(bold, '~s~t \u2714~35| ~q', [TopicString, To]) ].
-prolog:message(debug_topic(_, TopicString, false, _To)) -->
+debug_topic(debug_topic(_, TopicString, false, _To)) -->
     [ '~s~t -~35|'-[TopicString] ].
 
 

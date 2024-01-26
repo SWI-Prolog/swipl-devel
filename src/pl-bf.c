@@ -41,7 +41,12 @@ default_realloc(void *ptr, size_t old, size_t new)
 { return realloc(ptr, new);
 }
 
-mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc };
+static void
+default_free(void *ptr, size_t size)
+{ free(ptr);
+}
+
+mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc, .free_func = default_free };
 
 static void *
 my_bf_realloc(void *opaque, void *ptr, size_t size)
@@ -51,9 +56,17 @@ my_bf_realloc(void *opaque, void *ptr, size_t size)
     return realloc(ptr, size);
 }
 
+static void
+my_bf_free(void *opaque, void *ptr, size_t size)
+{ if ( alloc_wrapper.free_func )
+    alloc_wrapper.free_func(ptr, size);
+  else
+    free(ptr);
+}
+
 void
 initBF(void)
-{ bf_context_init(&alloc_wrapper.bf_context, my_bf_realloc, NULL);
+{ bf_context_init(&alloc_wrapper.bf_context, my_bf_realloc, my_bf_free, NULL);
 }
 
 void

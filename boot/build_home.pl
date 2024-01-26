@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2022, VU University Amsterdam
+    Copyright (c)  2018-2023, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -64,12 +64,10 @@ cmake_binary_directory(BinDir) :-
     !.
 cmake_binary_directory(BinDir) :-
     exe_or_shared_object(Exe),
-    file_directory_name(Exe, ExeDir),
-    file_directory_name(ExeDir, ParentDir),
-    (   file_base_name(ParentDir, packages)
-    ->  file_directory_name(ParentDir, BinDir)
-    ;   BinDir = ParentDir
-    ),
+    parent_dir(Exe, BinDir),
+    atom_concat(BinDir, '/home/boot.prc', BootFile),
+    exists_file(BootFile),
+    !,
     asserta(cmake_bindir(BinDir)).
 
 exe_or_shared_object(File) :-	% only reliable when read-only
@@ -86,69 +84,17 @@ exe_or_shared_object(File) :-
 			 relative_to(PWD)
 		       ]).
 
+parent_dir(Dir, Dir).
+parent_dir(Dir, Parent) :-
+    file_directory_name(Dir, Parent0),
+    Parent0 \== Dir,
+    parent_dir(Parent0, Parent).
 
 exe_access(Access) :-
     (   current_prolog_flag(unix, true)
     ->  Access = execute
     ;   Access = read
     ).
-
-%!  cmake_source_directory(-SrcDir) is det.
-%
-%   Find the SWI-Prolog source directory. First   try .. from the binary
-%   dir, that try the binary dir   and finally read the =CMakeLists.txt=
-%   file. We take these three steps because   the  first two are quicker
-%   and I'm not sure how much we can rely on the CMakeCache.txt content.
-
-cmake_source_directory(SrcDir) :-
-    cmake_binary_directory(BinDir),
-    (   file_directory_name(BinDir, SrcDir)
-    ;   SrcDir = BinDir
-    ),
-    atomic_list_concat([SrcDir, 'CMakeLists.txt'], /, CMakeFile),
-    exists_file(CMakeFile),
-    is_swi_prolog_cmake_file(CMakeFile),
-    !.
-cmake_source_directory(SrcDir) :-
-    cmake_binary_directory(BinDir),
-    atomic_list_concat([BinDir, 'CMakeCache.txt'], /, CacheFile),
-    cmake_var(CacheFile, 'SWI-Prolog_SOURCE_DIR:STATIC', SrcDir).
-
-is_swi_prolog_cmake_file(File) :-
-    setup_call_cleanup(
-	open(File, read, In),
-	is_swi_prolog_stream(In),
-	close(In)).
-
-is_swi_prolog_stream(In) :-
-    repeat,
-    read_string(In, "\n", "\t ", Sep, Line),
-    (   Sep == -1
-    ->  !, fail
-    ;   sub_string(Line, _, _, _, 'project(SWI-Prolog)')
-    ),
-    !.
-
-cmake_var(File, Name, Value) :-
-    setup_call_cleanup(
-	open(File, read, In),
-	cmake_var_in_stream(In, Name, Value),
-	close(In)).
-
-cmake_var_in_stream(Stream, Name, Value) :-
-    string_length(Name, NameLen),
-    repeat,
-      read_string(Stream, '\n', '\r', Sep, String0),
-      (   Sep \== -1
-      ->  String = String0
-      ;   String0 == ""
-      ->  !, fail
-      ;   String = String0
-      ),
-      sub_string(String, 0, _, _, Name),
-      sub_string(String, NameLen, 1, After, "="),
-      sub_atom(String, _, After,  0, Value),
-      !.
 
 %!  swipl_package(-Pkg, -PkgBinDir) is nondet.
 %
@@ -175,7 +121,8 @@ user:file_search_path(library, swi(packages)).
 user:file_search_path(foreign, AppDir) :-
     current_prolog_flag(windows, true),
     current_prolog_flag(executable, Exe),
-    file_directory_name(Exe, AppDir).
+    prolog_to_os_filename(PlExe, Exe),
+    file_directory_name(PlExe, AppDir).
 
 %!  add_package(+Package, +PkgSrcDir, +PkgBinDir) is det.
 %
@@ -185,9 +132,14 @@ user:file_search_path(foreign, AppDir) :-
 add_package(xpce, PkgBinDir) :-
     !,
     add_package_path(PkgBinDir),
-    cmake_source_directory(Root),
-    atomic_list_concat([Root, 'packages/xpce/swipl/swipl-rc'], /, PceLinkFile),
-    use_module(PceLinkFile).
+    (   absolute_file_name(swi('xpce/prolog/swipl-rc'),
+			   RCFile,
+			   [ access(read),
+			     file_errors(fail)
+			   ])
+    ->  use_module(RCFile)
+    ;   true
+    ).
 add_package(chr, PkgBinDir) :-
     assertz(user:file_search_path(chr, PkgBinDir)),
     assertz(user:file_search_path(chr, library(chr))),
@@ -205,11 +157,15 @@ add_package(_Pkg, PkgBinDir) :-
 
 %!  add_package_path(+PkgBinDir) is det.
 %
-%   Add the source  and  binary  directories   for  the  package  to the
-%   `library` and `foreign` search paths. Note that  we only need to add
-%   the binary directory if  it  contains   shared  objects,  but  it is
-%   probably cheaper to add it anyway.
+%   Add the binary directories for the   package to the `foreign` search
+%   path. Note that we only  need  to   add  the  binary directory if it
+%   contains shared objects, but  it  is   probably  cheaper  to  add it
+%   anyway. On Windows, all .dll  files  are   in  the  directory of the
+%   executable.
 
+add_package_path(_) :-
+    current_prolog_flag(windows, true),
+    !.
 add_package_path(PkgBinDir) :-
     assertz(user:file_search_path(foreign, PkgBinDir)).
 

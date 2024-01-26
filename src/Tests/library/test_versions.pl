@@ -3,7 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2009, University of Amsterdam
+    Copyright (c)  2024, University of Amsterdam
+                         VU University Amsterdam
+		         CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,21 +34,34 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+:- module(test_versions,
+          [ test_versions/0
+          ]).
+:- use_module(library(plunit)).
+:- use_module(library(prolog_versions)).
 
-#ifndef _PL_SYS_H
-#define _PL_SYS_H
+test_versions :-
+    run_tests([ cmp_versions
+              ]).
 
-		 /*******************************
-		 *    FUNCTION DECLARATIONS	*
-		 *******************************/
+:- begin_tests(cmp_versions).
 
-word		pl_shell(term_t command, term_t status);
-word		pl_getenv(term_t var, term_t value);
-word		pl_setenv(term_t var, term_t value);
-word		pl_unsetenv(term_t var);
-word		pl_get_time(term_t t);
-word		pl_sleep(term_t time);
-word		pl_get_pid(term_t pid);
+test(eq) :-
+    cmp_versions(=, '9.1', '9.1.2').
+test(eq, fail) :-
+    cmp_versions(=, '9.1.1', '9.1.2').
+test(eq, fail) :-
+    cmp_versions(=, '9.1.2-12', '9.1.2-13').
+test(lt, fail) :-
+    cmp_versions(<, '9.1', '9.1.2').
+test(gt, fail) :-
+    cmp_versions(>, '9.1', '9.1.2').
+test(lt) :-
+    cmp_versions(<, '9.1.1', '9.1.2').
+test(lt) :-
+    cmp_versions(<, '9.1.1-23-g955d063c0', '9.1.2').
+test(lt) :-
+    cmp_versions(<, '9.1.2-22-g955d063ca', '9.1.2-23-g955d063c0').
 
-#endif /*_PL_SYS_H*/
+:- end_tests(cmp_versions).
+

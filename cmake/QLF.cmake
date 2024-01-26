@@ -17,33 +17,48 @@
 #   - ${SWIPL_COMMAND_DEPENDS} is added to the dependencies
 
 function(add_swipl_target name)
-  set(options -f none --no-packs -t halt "--home=${SWIPL_BUILD_HOME}")
+  set(options --no-packs "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET;QLF" "COMMENT;COMMAND" "OUTPUT;SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
+      my "QUIET;QLF;NOINSTALL"
+         "COMMENT;COMMAND;APP"
+         "OUTPUT;BYPRODUCTS;SCRIPT;DEPENDS;OPTIONS;LIBS"
+         ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
   endif()
 
   if(NOT my_COMMENT)
-    set(my_COMMENT "-- swipl -g ${my_COMMAND}")
+    if(my_COMMENT)
+      set(my_COMMENT "-- swipl -g ${my_COMMAND}")
+    else()
+      set(my_COMMENT "-- swipl ${my_APP}")
+    endif()
   endif()
 
   if(my_QLF)
     set(PROG_SWIPL ${PROG_SWIPL_FOR_BOOT})
   endif()
 
-  foreach(s ${my_LIBS})
-    set(options ${options} -g "use_module(library(${s}))")
-  endforeach()
-
-  foreach(s ${my_SCRIPT})
-    set(options ${options} -s ${s})
-  endforeach()
+  if(my_COMMAND)
+    set(options ${options} -f none -t halt)
+    foreach(s ${my_LIBS})
+      set(options ${options} -g "use_module(library(${s}))")
+    endforeach()
+    foreach(s ${my_SCRIPT})
+      set(options ${options} -s ${s})
+    endforeach()
+    set(options ${options} -g ${my_COMMAND} --)
+  elseif(my_APP)
+    set(options ${options} ${my_APP})
+  else()
+    message(FATAL_ERROR "add_swipl_target() requires COMMAND or APP")
+  endif()
 
   add_custom_command(
       OUTPUT ${my_OUTPUT}
-      COMMAND ${PROG_SWIPL} ${options} -g "${my_COMMAND}" -- ${my_OPTIONS}
+      BYPRODUCTS ${my_BYPRODUCTS}
+      COMMAND ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
@@ -52,11 +67,13 @@ function(add_swipl_target name)
       ${name} ALL
       DEPENDS ${my_OUTPUT})
 
-  list(GET my_OUTPUT 0 primary)
-  string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${primary}")
-  get_filename_component(rel ${rel} DIRECTORY)
-  install(FILES ${primary}
-	  DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
+  if(NOT my_NOINSTALL)
+    list(GET my_OUTPUT 0 primary)
+    string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${primary}")
+    get_filename_component(rel ${rel} DIRECTORY)
+    install(FILES ${primary}
+	    DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
+  endif()
 endfunction()
 
 # add_qcompile_target(
@@ -84,9 +101,8 @@ function(add_qcompile_target target)
   add_swipl_target(
       qlf-${tname}
       OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
-      COMMAND cmake_qcompile
-      LIBS prolog_install
-      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src} ${extra}
+      APP qlf
+      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --expect-deps ${src} ${extra}
       COMMENT "QLF compiling ${target}.qlf"
       DEPENDS ${src} ${my_DEPENDS})
 endfunction()

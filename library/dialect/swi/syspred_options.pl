@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, VU University Amsterdam
+    Copyright (c)  2011-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -49,7 +49,9 @@
 		       eof_action(oneof([eof_code,error,reset])),
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
+		       close_on_exec(boolean),
 		       lock(oneof([none,read,shared,write,exclusive])),
+                       reposition(boolean),
 		       wait(boolean),
 		       locale(any)		% no type-check yet
 		     ]).
@@ -118,7 +120,7 @@
 		     [ extensions(list(atom)),
 		       relative_to(atom),
 		       access(oneof([read,write,append,execute,exist,none])),
-		       file_type(oneof([txt,prolog,executable,directory])),
+		       file_type(oneof([txt,prolog,source,executable,directory])),
 		       file_errors(oneof([fail,error])),
 		       solutions(oneof([first,all])),
 		       expand(boolean)
@@ -153,7 +155,9 @@
 		     ]).
 :- predicate_options(system:create_prolog_flag/3, 3,
 		     [ access(oneof([read_write,read_only])),
-		       type(oneof([boolean,atom,integer,float,term])),
+		       type(( oneof([boolean,atom,integer,float,term])
+                            ; compound(oneof(list(atom)))
+                            )),
 		       keep(boolean)
 		     ]).
 :- predicate_options(system:qsave_program/2, 2,
@@ -221,4 +225,18 @@
 :- predicate_options(system:prolog_listen/3, 3,
                      [ as(oneof([first,last])),
                        name(atom)
+                     ]).
+:- predicate_options(system:open_shared_object/3, 3,
+                     [ resolve(oneof([lazy,now])),
+                       visibility(oneof([local,global])),
+                       now(bool),
+                       global(bool),
+		       delete(bool),
+		       load(bool),
+		       deepbind(bool)
+                     ]).
+:- predicate_options('$pack':attach_packs/2, 2,
+                     [ duplicate(oneof([warning,keep,replace])),
+                       search(oneof([first,last])),
+                       replace(boolean)
                      ]).

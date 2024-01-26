@@ -193,12 +193,14 @@ while [ $cont != "no" ]; do
     rm -f $doc.log
     if [ $quiet == true ]; then
         $tex $doc -file-line-error -halt-on-error >/dev/null
+	stat=$?
     else
 	$tex $doc
+	stat=$?
     fi
-    if [ $? != 0 ]; then
+    if [ $stat != 0 ]; then
         rm -f $doc.idx.$$
-        exit $?;
+        exit $stat;
     fi
     if grep -q "$rerun" $doc.log; then
         if [ $quiet == false ]; then

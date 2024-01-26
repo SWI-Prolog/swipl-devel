@@ -3,8 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
-                              VU University Amsterdam
+    Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,18 +32,45 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _PL_FMT_H
-#define _PL_FMT_H
-#include "../pl-incl.h"
+#ifdef _MSC_VER
 
-		 /*******************************
-		 *    FUNCTION DECLARATIONS	*
-		 *******************************/
+#include "../SWI-Stream.h"
+#include <windows.h>
 
-word		pl_format_predicate(term_t chr, term_t descr);
-word		pl_current_format_predicate(term_t chr, term_t descr,
-					    control_t h);
-word		pl_format(term_t fmt, term_t args);
-word		pl_format3(term_t s, term_t fmt, term_t args);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+OPENSSL_Applink() ensures all OpenSSL routines that use MSVC library CRT
+handles use them from the same DLL.  It   is  called  Applink as this is
+normally associated with the application and   OpenSSL finds it from the
+executable module accessible using `GetModuleHandle(NULL)`.
 
-#endif /*_PL_FMT_H*/
+We want to keep this stuff in   our ssl package, so OPENSSL_Applink() is
+compiled into ssl4pl.dll. But,  as  OpenSSL   searches  it  in  the main
+executable, we need to _chain_ it. That is what this function does.
+
+Note that this compiles and links  fine   using  MSVC.  When using MinGW
+something goes really wrong and all   plugins  complain they cannot find
+the PL_* API functions. As MinGW by default uses the _shared_ CRT model,
+this does not matter.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+__declspec(dllexport) void ** __cdecl
+OPENSSL_Applink(void)
+{ static int applink_done = FALSE;
+  static void**(*f)(void) = NULL;
+
+  if ( !applink_done )
+  { HMODULE mod = GetModuleHandle("ssl4pl");
+    if ( mod )
+      f = (void*)GetProcAddress(mod, "OPENSSL_Applink");
+    if ( !mod || !f )
+      Sdprintf("Could not find OPENSSL_Applink() in ssl4pl.dll\n");
+    applink_done = TRUE;
+  }
+
+  if ( f )
+    return f();
+
+  return NULL;
+}
+
+#endif /*_MSC_VER*/

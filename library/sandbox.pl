@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2022, VU University Amsterdam
+    Copyright (c)  2013-2023, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v
     All rights reserved.
@@ -569,6 +569,10 @@ safe_primitive(<(_,_)).
 :- if(current_prolog_flag(bounded, false)).
 safe_primitive(system:nth_integer_root_and_remainder(_,_,_,_)).
 :- endif.
+safe_primitive(system:current_arithmetic_function(_)).
+safe_primitive(system:bounded_number(_,_,_)).
+safe_primitive(system:float_class(_,_)).
+safe_primitive(system:float_parts(_,_,_,_)).
 
                                         % term-handling
 safe_primitive(arg(_,_,_)).
@@ -1100,16 +1104,16 @@ safe_output(current_error).
 
 :- public format_calls/3.                       % used in pengines_io
 
-format_calls(Format, _Args, _Calls) :-
-    var(Format),
-    !,
-    instantiation_error(Format).
 format_calls(Format, Args, Calls) :-
+    is_list(Args),
+    !,
     format_types(Format, Types),
     (   format_callables(Types, Args, Calls)
     ->  true
     ;   throw(error(format_error(Format, Types, Args), _))
     ).
+format_calls(Format, Arg, Calls) :-
+    format_calls(Format, [Arg], Calls).
 
 format_callables([], [], []).
 format_callables([callable|TT], [G|TA], [G|TG]) :-
@@ -1260,6 +1264,7 @@ safe_path(A/B) :-
 safe_prolog_flag(generate_debug_info, _).
 safe_prolog_flag(optimise, _).
 safe_prolog_flag(occurs_check, _).
+safe_prolog_flag(write_attributes, _).
 % syntax
 safe_prolog_flag(var_prefix, _).
 safe_prolog_flag(double_quotes, _).

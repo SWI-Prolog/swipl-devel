@@ -85,6 +85,7 @@ otherwise a more structured approach for operator handling.
 
 :- thread_local
     operator_stack/1.
+:- '$notransact'(operator_stack/1).
 
 :- meta_predicate
     push_operators(:),

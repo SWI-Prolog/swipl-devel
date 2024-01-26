@@ -264,7 +264,9 @@ clearSourceAdmin(atom_t sf_name)
 static atom_t
 destroySourceFile(SourceFile sf)
 { if ( sf->magic == SF_MAGIC )
-  { atom_t name;
+  { GET_LD
+
+    atom_t name;
     SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
@@ -369,7 +371,7 @@ releaseSourceFile(SourceFile sf)
 		 sf->references-1));
 
   if ( sf->references <= 0 )
-  { Sdprintf("Oops: %d references for sourc file %s\n", PL_atom_chars(sf->name));
+  { Sdprintf("Oops: %d references for source file %s\n", sf->references, PL_atom_chars(sf->name));
     sf->references = 0x4000000;
   }
   if ( ATOMIC_DEC(&sf->references) == 0 )
@@ -1125,7 +1127,8 @@ assertProcedureSource(DECL_LD SourceFile sf, Procedure proc, Clause clause)
       for(cref2 = cref->next; cref2; cref2 = cref2->next)
       { Clause c2 = cref2->value.clause;
 
-	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) )
+	if ( !GLOBALLY_VISIBLE_CLAUSE(c2, reload->generation) ||
+	     true(c2, CL_ERASED) )
 	  continue;
 	if ( true(def, P_MULTIFILE) && c2->owner_no != sf->index )
 	  continue;
@@ -1209,7 +1212,7 @@ associateSource(SourceFile sf, Procedure proc)
 
 int
 setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
-		       unsigned attr, int val)
+		       uint64_t attr, int val)
 { if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 
@@ -1367,11 +1370,11 @@ fix_metapredicate(p_reload *r)
       clear(def, P_TRANSPARENT);
       set(def, r->flags&P_TRANSPARENT);
 
-      freeCodesDefinition(def, FALSE);
+      freeCodesDefinition(def, TRUE);
     }
   } else if ( true(r, P_META) )
   { setMetapredicateMask(def, r->args);
-    freeCodesDefinition(def, FALSE);
+    freeCodesDefinition(def, TRUE);
   } else if ( true(r, P_TRANSPARENT) )
   { set(def, P_TRANSPARENT);
   }

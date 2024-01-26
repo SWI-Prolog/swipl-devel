@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -54,6 +54,10 @@
 #include "pl-proc.h"
 #include "os/pl-prologflag.h"
 #include <stdio.h>
+#ifdef __WINDOWS__
+#include "pl-nt.h"
+#include <process.h>
+#endif
 
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000
@@ -230,9 +234,9 @@ exitFromDebugger(const char *msg, int status)
 { GET_LD
 
 #ifdef O_PLMT
-  if ( PL_thread_self() > 1 && !LD->exit_requested )
+  if ( PL_thread_self() > 1 && !LD->thread.exit_requested )
   { Sfprintf(Sdout, "%sexit session\n", msg);
-    LD->exit_requested = EXIT_REQ_THREAD;
+    LD->thread.exit_requested = EXIT_REQ_THREAD;
     return ACTION_ABORT;
   }
 #endif
@@ -513,7 +517,7 @@ again:
       buf[0] = c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' || buf[0] == '-' )
-      { Sfprintf(Sdout, buf);
+      { Sfprintf(Sdout, "%s", buf);
 	readLine(Sdin, Sdout, buf);
       }
     }
@@ -1022,7 +1026,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;
-    if ( !pl_prolog_flag(tmp, options, &ctx) )
+    if ( !pl_prolog_flag5(tmp, options, 0, 0, 0, &ctx) )
       PL_put_nil(options);
     PL_unify_stream_or_alias(tmp, out);
 
@@ -1174,21 +1178,30 @@ frameAtLevel(LocalFrame frame, int at_depth, bool interactive)
 static int
 saveGoal(LocalFrame frame, int at_depth, bool interactive)
 { GET_LD
-  term_t goal;
+  fid_t fid;
+  int rc = FALSE;
 
   if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
     return FALSE;
 
-  if ( (goal = PL_new_term_ref()) &&
-       put_frame_goal(goal, frame) &&
-       PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
-  { if ( interactive )
-      Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
-    return TRUE;
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t goal;
+
+    if ( (goal = PL_new_term_ref()) &&
+	 put_frame_goal(goal, frame) &&
+	 PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
+    { if ( interactive )
+	Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
+      rc = TRUE;
+    }
+
+    PL_discard_foreign_frame(fid);
   }
 
-  Sfprintf(Sdout, "\nFailed to save goal\n");
-  return FALSE;
+  if ( !rc )
+    Sfprintf(Sdout, "\nFailed to save goal\n");
+
+  return rc;
 }
 
 
@@ -1252,7 +1265,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
 	{ if ( same_proc == 10 )
-	    Sfprintf(out, "    ...\n    ...\n", Sdout);
+	    Sfprintf(out, "    ...\n    ...\n");
 	  rctx = ctx;
 	  continue;
 	}
@@ -1454,8 +1467,8 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     }
 
   out:
-    if ( qid ) PL_close_query(qid);
-    if ( cid ) PL_discard_foreign_frame(cid);
+    if ( qid ) PL_cut_query(qid);
+    if ( cid ) PL_close_foreign_frame(cid);
 
     if ( nodebug )
     { tracemode(FALSE, NULL);
@@ -1772,7 +1785,7 @@ interruptHandler(int sig)
     return;
   }
 
-  if ( LD->exit_requested )
+  if ( LD->thread.exit_requested )
   { term_t rval = PL_new_term_ref();
     PL_put_atom(rval, ATOM_true);
     pl_thread_exit(rval);

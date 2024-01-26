@@ -25,13 +25,14 @@ set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
 set(SWIPL_PACKAGE_LIST_QT_title	     "Qt_console")
 set(SWIPL_PACKAGE_LIST_X_title	     "Graphics_subsystem")
-set(SWIPL_PACKAGE_LIST_WASM_title    "WASM libraries")
+set(SWIPL_PACKAGE_LIST_WASM_title    "WASM_libraries")
+set(SWIPL_PACKAGE_LIST_PYTHON_title  "Python_interface")
 
 if(EMSCRIPTEN)
   set(SWIPL_PACKAGE_SETS WASM)
 else()
   set(SWIPL_PACKAGE_SETS
-      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
+      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA PYTHON SSL TIPC QT X)
   if(UNIX)
     list(APPEND SWIPL_PACKAGE_SETS TERM)
   endif()
@@ -102,6 +103,9 @@ set(SWIPL_PACKAGE_LIST_SSL
 set(SWIPL_PACKAGE_LIST_JAVA
     jpl)
 
+set(SWIPL_PACKAGE_LIST_PYTHON
+    swipy)
+
 set(SWIPL_PACKAGE_LIST_TIPC
     tipc)
 
@@ -112,7 +116,7 @@ set(SWIPL_PACKAGE_LIST_X
     xpce)
 
 set(SWIPL_PACKAGE_LIST_WASM
-    clpqr plunit chr clib http semweb)
+    clpqr plunit chr clib http semweb pcre)
 
 # swipl_package_component(pkg var)
 #
@@ -270,10 +274,11 @@ endfunction()
 ################
 # Assemble the package list
 
-set(SWIPL_PACKAGE_LIST)
-if(SWIPL_PACKAGES)
-  add_package_sets(${SWIPL_PACKAGE_SETS})
-  remove_packages_without_source()
+if(NOT DEFINED SWIPL_PACKAGE_LIST)
+  if(SWIPL_PACKAGES)
+    add_package_sets(${SWIPL_PACKAGE_SETS})
+    remove_packages_without_source()
+  endif()
 endif()
 
 if(NOT SWIPL_SHARED_LIB)
@@ -291,9 +296,13 @@ endif()
 if(STATIC_EXTENSIONS)
   swipl_del_package(jpl       "requires dynamic loading")
   swipl_del_package(sweep     "requires dynamic loading")
+  swipl_del_package(swipy     "requires dynamic loading")
 endif()
 if(WIN32)
   swipl_del_package(swipl-win "Conflicts with native swipl-win.exe")
+endif()
+if(CMAKE_VERSION VERSION_LESS 3.16)
+  swipl_del_package(swipy     "Requires CMake version 3.16 or higher")
 endif()
 
 if(INSTALL_DOCUMENTATION)
@@ -322,7 +331,7 @@ if(SWIPL_PACKAGE_LIST)
   list(REMOVE_DUPLICATES SWIPL_PACKAGE_LIST)
   set(missing)
   foreach(pkg ${SWIPL_PACKAGE_LIST})
-    if(NOT EXISTS ${CMAKE_SOURCE_DIR}/packages/${pkg}/CMakeLists.txt)
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/packages/${pkg}/CMakeLists.txt)
       set(missing "${missing} packages/${pkg}")
     endif()
   endforeach()

@@ -35,11 +35,53 @@
 
 :- module(consult,
           [ consult/1,                  % :File
-            ensure_dync_loaded/1	% +File
+            ensure_dync_loaded/1,       % +File
+            add_lib_dir/1,              % +Directories
+            add_lib_dir/2               % +Root, +Directories
           ]).
+:- use_module(library(error)).
+:- use_module(library(filesex)).
 
 :- meta_predicate
     ensure_dync_loaded(:).
 
 ensure_dync_loaded(File) :-
     load_files(File, [if(not_loaded), dialect(xsb)]).
+
+%!  add_lib_dir(+Directories) is det.
+%!  add_lib_dir(+Root, +Directories) is det.
+%
+%   Add    members    of    the    comma      list     Directories    to
+%   user:library_directory/1.  If  Root  is  given,    all   members  of
+%   Directories are interpreted relative to Root.
+
+add_lib_dir(Directories) :-
+    add_lib_dir('.', Directories).
+
+add_lib_dir(_, Var) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+add_lib_dir(Root, (A,B)) :-
+    !,
+    add_lib_dir(Root, A),
+    add_lib_dir(Root, B).
+add_lib_dir(Root, a(Dir)) :-
+    !,
+    add_to_library_directory(Root, Dir, asserta).
+add_lib_dir(Root, Dir) :-
+    add_to_library_directory(Root, Dir, assertz).
+
+add_to_library_directory(Root, Dir, How) :-
+    (   expand_file_name(Dir, [Dir1])
+    ->  true
+    ;   Dir1 = Dir
+    ),
+    relative_file_name(TheDir, Root, Dir1),
+    exists_directory(TheDir),
+    !,
+    (   user:library_directory(TheDir)
+    ->  true
+    ;   call(How, user:library_directory(TheDir))
+    ).
+add_to_library_directory(_, _, _).

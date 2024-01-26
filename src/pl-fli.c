@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2022, University of Amsterdam
+    Copyright (c)  1996-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -44,6 +44,7 @@
 #include "os/pl-text.h"
 #include "os/pl-cstack.h"
 #include "os/pl-prologflag.h"
+#include "os/pl-buffer.h"
 #include "pl-codelist.h"
 #include "pl-dict.h"
 #include "pl-arith.h"
@@ -53,7 +54,7 @@
 #include "pl-attvar.h"
 #include "pl-funct.h"
 #include "pl-write.h"
-#include "pl-wic.h"
+#include "pl-qlf.h"
 #include "pl-prims.h"
 #include "pl-modul.h"
 #include "pl-proc.h"
@@ -333,10 +334,10 @@ bArgVar(DECL_LD Word ap, Word vp)
 		 *******************************/
 
 term_t
-PL_new_term_refs(DECL_LD int n)
+PL_new_term_refs(DECL_LD size_t n)
 { Word t;
   term_t r;
-  int i;
+  size_t i;
   FliFrame fr;
 
   if ( !ensureLocalSpace(n*sizeof(word)) )
@@ -403,7 +404,7 @@ PL_new_term_ref_noshift(DECL_LD)
 
 
 API_STUB(term_t)
-(PL_new_term_refs)(int n)
+(PL_new_term_refs)(size_t n)
 ( if ( (void*)fli_context <= (void*)environment_frame )
     fatalError("PL_new_term_refs(): No foreign environment");
 
@@ -530,32 +531,33 @@ unifyAtomic(DECL_LD term_t t, word w)
 { Word p = valHandleP(t);
 
   for(;;)
-  { if ( canBind(*p) )
-    { if ( !hasGlobalSpace(0) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
-	  return raiseStackOverflow(rc);
-	p = valHandleP(t);
-	deRef(p);
-      }
-
-      bindConst(p, w);
-      succeed;
+  { switch( tag(*p) )
+    { case TAG_VAR:
+	if ( !hasTrailSpace(1) )
+	  break;
+	varBindConst(p, w);
+	return TRUE;
+      case TAG_ATTVAR:
+	if ( !hasGlobalSpace(0) )
+	  break;
+	assignAttVar(p, &w);
+	return TRUE;
+      case TAG_REFERENCE:
+	p = unRef(*p);
+	continue;
+      default:
+	if ( *p == w )
+	  return TRUE;
+	if ( isIndirect(w) && isIndirect(*p) )
+	  return equalIndirect(w, *p);
+	return FALSE;
     }
 
-    if ( isRef(*p) )
-    { p = unRef(*p);
-      continue;
-    }
-
-    if ( *p == w )
-      succeed;
-
-    if ( isIndirect(w) && isIndirect(*p) )
-      return equalIndirect(w, *p);
-
-    fail;
+    int rc = ensureGlobalSpace(0, ALLOW_GC);
+    if ( rc == TRUE )
+      p = valHandleP(t);
+    else
+      return raiseStackOverflow(rc);
   }
 }
 
@@ -606,14 +608,27 @@ PL_new_atom_mbchars(int flags, size_t len, const char *s)
 }
 
 
+atom_t
+PL_new_blob(void *blob, size_t len, PL_blob_t *type)
+{ if ( !GD->initialised )
+    initAtoms();
+
+  int new;
+  return (atom_t)lookupBlob(blob, len, type, &new);
+}
+
 
 functor_t
-PL_new_functor_sz(atom_t f, size_t arity)
-{ if ( !GD->initialised )
-    initFunctors();
-
-  return lookupFunctorDef(f, arity);
+PL_new_functor_sz(DECL_LD atom_t f, size_t arity)
+{ return lookupFunctorDef(f, arity);
 }
+
+
+API_STUB(functor_t)
+(PL_new_functor_sz)(atom_t f, size_t arity)
+( if ( !GD->initialised )
+    initFunctors();
+  return PL_new_functor_sz(f, arity); )
 
 functor_t
 (PL_new_functor)(atom_t f, int arity)
@@ -642,6 +657,16 @@ int
   VALID_INT_ARITY(arity);
   return (int)arity;
 }
+
+atom_t
+_PL_cons_small_int(int64_t v)
+{ word w = consInt(v);
+  if ( valInt(w) == v )
+    return (atom_t)w;
+
+  return 0;
+}
+
 
 
 		 /*******************************
@@ -769,12 +794,11 @@ compareUCSAtom(atom_t h1, atom_t h2)
   { if ( *s1 != *s2 )
     { int d = *s1 - *s2;
 
-      return d<0 ? CMP_LESS : d>0 ? CMP_GREATER : CMP_EQUAL;
+      return SCALAR_TO_CMP(d, 0);
     }
   }
 
-  return a1->length >  a2->length ? CMP_GREATER :
-	 a1->length == a2->length ? CMP_EQUAL : CMP_LESS;
+  return SCALAR_TO_CMP(a1->length, a2->length);
 }
 
 
@@ -784,7 +808,7 @@ saveUCSAtom(atom_t atom, IOSTREAM *fd)
   const pl_wchar_t *s = (const pl_wchar_t*)a->name;
   size_t len = a->length/sizeof(pl_wchar_t);
 
-  wicPutStringW(s, len, fd);
+  qlfPutStringW(s, len, fd);
 
   return TRUE;
 }
@@ -792,39 +816,16 @@ saveUCSAtom(atom_t atom, IOSTREAM *fd)
 
 static atom_t
 loadUCSAtom(IOSTREAM *fd)
-{ pl_wchar_t buf[256];
-  pl_wchar_t *w;
-  size_t len;
+{ tmp_buffer buf;
   atom_t a;
 
-  w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
-  a = lookupUCSAtom(w, len);
-
-  if ( w != buf )
-    PL_free(w);
+  initBuffer(&buf);
+  qlfGetStringW(fd, (Buffer)&buf);
+  a = lookupUCSAtom(baseBuffer(&buf, wchar_t),
+		    entriesBuffer(&buf, wchar_t));
+  discardBuffer(&buf);
 
   return a;
-}
-
-
-int
-PL_unify_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
-{ PL_chars_t text;
-  int rc;
-
-  if ( len == (size_t)-1 )
-    len = wcslen(s);
-
-  text.text.w    = (pl_wchar_t *)s;
-  text.encoding  = ENC_WCHAR;
-  text.storage   = PL_CHARS_HEAP;
-  text.length    = len;
-  text.canonical = FALSE;
-
-  rc = PL_unify_text(t, 0, &text, flags);
-  PL_free_text(&text);
-
-  return rc;
 }
 
 
@@ -847,6 +848,19 @@ PL_unify_wchars_diff(term_t t, term_t tail, int flags,
   PL_free_text(&text);
 
   return rc;
+}
+
+
+int
+PL_unify_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
+{ return PL_unify_wchars_diff(t, 0, flags, len, s);
+}
+
+
+int
+PL_put_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
+{ return PL_put_variable(t) &&
+         PL_unify_wchars_diff(t, 0, flags, len, s);
 }
 
 
@@ -1477,19 +1491,28 @@ PL_get_term_value(term_t t, term_value_t *val)
 
 
 int
+atom_to_bool(atom_t a)
+{ if ( a == ATOM_true || a == ATOM_on )
+    return TRUE;
+  if ( a == ATOM_false || a == ATOM_off )
+    return FALSE;
+
+  return -1;
+}
+
+
+int
 PL_get_bool(term_t t, int *b)
 { GET_LD
   word w = valHandle(t);
 
   if ( isAtom(w) )
-  { if ( w == ATOM_true || w == ATOM_on )
-    { *b = TRUE;
-      succeed;
-    } else if ( w == ATOM_false || w == ATOM_off )
-    { *b = FALSE;
-      succeed;
+  { int bv = atom_to_bool(w);
+    if ( bv >= 0 )
+    { *b = bv;
+      return TRUE;
     }
-    fail;
+    return FALSE;
   }
   if ( isInteger(w) )
   { if ( w == consInt(0) )
@@ -1497,11 +1520,11 @@ PL_get_bool(term_t t, int *b)
     else if ( w == consInt(1) )
       *b = TRUE;
     else
-      fail;
-    succeed;
+      return FALSE;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -1957,8 +1980,8 @@ PL_is_inf(term_t t)
 }
 
 
-int
-PL_get_float(term_t t, double *f)
+static int
+get_float(term_t t, double *f, int error)
 { GET_LD
   word w = valHandle(t);
 
@@ -1973,7 +1996,7 @@ PL_get_float(term_t t, double *f)
     get_rational(w, &n);
     if ( (rc=promoteToFloatNumber(&n)) )
       *f = n.value.f;
-    else
+    else if ( !error )
       PL_clear_exception();
 
     clearNumber(&n);
@@ -1981,9 +2004,21 @@ PL_get_float(term_t t, double *f)
     return rc;
   }
 
+  if ( error )
+    PL_type_error("float", t);
   return FALSE;
 }
 
+
+int
+PL_get_float(term_t t, double *f)
+{ return get_float(t, f, FALSE);
+}
+
+int
+PL_get_float_ex(term_t t, double *f)
+{ return get_float(t, f, TRUE);
+}
 
 #ifdef _MSC_VER
 #define ULL(x) x ## ui64
@@ -2140,7 +2175,9 @@ int
   { _PL_get_arg_sz(index, t, a);
     return TRUE;
   } else
-    fatalError("Arity out of range: %d", a);
+  { fatalError("Arity out of range: %d", a);
+    return FALSE;
+  }
 }
 
 
@@ -3297,7 +3334,7 @@ PL_unify_integer(DECL_LD term_t t, intptr_t i)
 
 API_STUB(int)
 (PL_unify_integer)(term_t t, intptr_t i)
-( return unify_int64_ex(t, i, FALSE); )
+( return PL_unify_integer(t, i); )
 
 API_STUB(int)
 (PL_unify_int64)(term_t t, int64_t i)
@@ -3435,10 +3472,13 @@ API_STUB(int)
 
 
 int
-PL_unify_nil(term_t l)
-{ GET_LD
-  return unifyAtomic(l, ATOM_nil);
+PL_unify_nil(DECL_LD term_t l)
+{ return unifyAtomic(l, ATOM_nil);
 }
+
+API_STUB(int)
+(PL_unify_nil)(term_t t)
+( return PL_unify_nil(t); )
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3912,6 +3952,24 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 }
 
 
+int
+PL_free_blob(atom_t a)
+{ Atom x = atomValue(a);
+  const PL_blob_t *type = x->type;
+
+  if ( true(type, PL_BLOB_NOCOPY) && type->release )
+  { if ( (*type->release)(a) )
+    { x->length = 0;
+      x->name = NULL;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+
 		 /*******************************
 		 *	       DICT		*
 		 *******************************/
@@ -3962,6 +4020,14 @@ PL_put_dict(term_t t, atom_t tag,
   }
 
   return FALSE;
+}
+
+void
+_PL_unregister_keys(size_t len, atom_t *keys)
+{ for(size_t i=0; i<len; i++)
+  { if ( isAtom(keys[i]) )
+      PL_unregister_atom(keys[i]);
+  }
 }
 
 
@@ -4225,7 +4291,7 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 
 int
 PL_call(term_t t, Module m)
-{ return callProlog(m, t, PL_Q_NORMAL, NULL);
+{ return callProlog(m, t, PL_Q_PASS_EXCEPTION, NULL);
 }
 
 
@@ -4457,8 +4523,8 @@ PL_clear_foreign_exception(LocalFrame fr)
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
-  Sdprintf("Thread %d (%Ws): foreign predicate %s did not clear exception: \n\t",
-	   tid, name, predicateName(fr->predicate));
+  SdprintfX("Thread %d (%Ws): foreign predicate %s did not clear exception:\n\t",
+	    tid, name, predicateName(fr->predicate));
 #if O_DEBUG
   print_backtrace_named("exception");
 #endif
@@ -4534,7 +4600,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   if ( def->impl.any.defined )
     PL_linger(def->impl.any.defined);	/* Dubious: what if a clause list? */
   def->impl.foreign.function = f;
-  def->flags &= ~(P_DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|P_NONDET|P_VARARG);
+  def->flags &= ~(P_DYNAMIC|P_TRANSACT|P_THREAD_LOCAL|P_TRANSPARENT|P_NONDET|P_VARARG);
   def->flags |= (P_FOREIGN|TRACE_ME);
 
   if ( m == MODULE_system || SYSTEM_MODE )
@@ -5190,6 +5256,17 @@ PL_warning(const char *fm, ...)
   fail;
 }
 
+int
+PL_warningX(const char *fm, ...)
+{ va_list args;
+
+  va_start(args, fm);
+  vwarning(fm, args);
+  va_end(args);
+
+  fail;
+}
+
 void
 PL_fatal_error(const char *fm, ...)
 { va_list args;
@@ -5385,15 +5462,17 @@ PL_license(const char *license, const char *module)
 
   if ( GD->initialised )
   { fid_t fid = PL_open_foreign_frame();
-    predicate_t pred = PL_predicate("license", 2, "system");
-    term_t av = PL_new_term_refs(2);
+    if ( fid )
+    { predicate_t pred = PL_predicate("license", 2, "system");
+      term_t av = PL_new_term_refs(2);
 
-    PL_put_atom_chars(av+0, license);
-    PL_put_atom_chars(av+1, module);
+      PL_put_atom_chars(av+0, license);
+      PL_put_atom_chars(av+1, module);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
+      PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
 
-    PL_discard_foreign_frame(fid);
+      PL_discard_foreign_frame(fid);
+    }
   } else
   { struct license *l = allocHeapOrHalt(sizeof(*l));
 

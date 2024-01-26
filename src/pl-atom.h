@@ -38,10 +38,17 @@
 #ifndef _PL_ATOM_H
 #define _PL_ATOM_H
 
+#if USE_LD_MACROS
+#define lookupBlob(s, len, type, new) LDFUNC(lookupBlob, s, len, type, new)
+#define lookupAtom(s, len) LDFUNC(lookupAtom, s, len)
+#endif
+
+
 		 /*******************************
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#define LDFUNC_DECLARATIONS
 #define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 word		lookupAtom(const char *s, size_t len);
 word		lookupBlob(const char *s, size_t len,
@@ -59,5 +66,6 @@ size_t		atom_space(void);
 #ifdef O_DEBUG_ATOMGC
 word		pl_track_atom(term_t which, term_t stream);
 #endif
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_ATOM_H*/

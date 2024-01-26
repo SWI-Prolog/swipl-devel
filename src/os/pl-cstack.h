@@ -35,6 +35,12 @@
 #ifndef PL_CSTACK_H_INCLUDED
 #define PL_CSTACK_H_INCLUDED
 
+typedef struct c_stack_info
+{ int	    initialised;		/* Struct is fully initialized */
+  void	   *base;			/* Base of the (C-) stack */
+  size_t    size;			/* system (C-) stack */
+} c_stack_info;
+
 #if USE_LD_MACROS
 #define CStackSize(_)	LDFUNC(CStackSize, _)
 #endif /*USE_LD_MACROS*/
@@ -48,7 +54,7 @@ COMMON(void)	initBackTrace(void);
 COMMON(void)	sigCrashHandler(int sig);
 
 #define LDFUNC_DECLARATIONS
-size_t	CStackSize(void);
+c_stack_info   *CStackSize(void);
 #undef LDFUNC_DECLARATIONS
 
 #endif /*PL_CSTACK_H_INCLUDED*/

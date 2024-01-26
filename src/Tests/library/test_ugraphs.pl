@@ -3,10 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
-                              VU University Amsterdam
-			      CWI, Amsterdam
-			      SWI-Prolog Solutions b.v.
+    Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,22 +32,29 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+:- module(test_ugraphs,
+	  [ test_ugraphs/0
+	  ]).
+:- use_module(library(plunit)).
+:- use_module(library(ugraphs)).
 
-#ifndef _PL_WIC_H
-#define _PL_WIC_H
+test_ugraphs :-
+    run_tests([ top_sort
+		  ]).
 
-		 /*******************************
-		 *    FUNCTION DECLARATIONS	*
-		 *******************************/
+:- begin_tests(top_sort).
 
-bool		loadWicFromStream(const char *rcpath, IOSTREAM *fd);
-bool		compileFileList(IOSTREAM *out, int argc, char **argv);
-void		qlfCleanup(void);
+test(linear, L == [1,2,3]) :-
+    top_sort([1-[2], 2-[3], 3-[]], L).
+test(linear, L == [[1],[2],[3]]) :-
+    ugraph_layers([1-[2], 2-[3], 3-[]], L).
+test(multi, L == [[1], [2, 4], [3]]) :-
+    ugraph_layers([1-[2,4], 2-[3], 3-[], 4-[]], L).
+test(multi,  L == [[1], [2, 3], [4]]) :-
+    ugraph_layers([1-[2,3], 2-[4], 3-[], 4-[]], L).
+test(disconnected, L = [[1, 4], [2], [3]]) :-
+    ugraph_layers([1-[2,3], 2-[3], 3-[], 4-[]], L).
+test(cyclic, fail) :-
+    ugraph_layers([1-[2,3], 2-[3], 3-[2], 4-[5], 5-[]], _L).
 
-void		wicPutStringW(const pl_wchar_t *w, size_t len,
-			      IOSTREAM *fd);
-pl_wchar_t*	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
-				 pl_wchar_t *buf, size_t bufsize);
-
-#endif /*_PL_WIC_H*/			
+:- end_tests(top_sort).

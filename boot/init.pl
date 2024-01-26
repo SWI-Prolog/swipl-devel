@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2023, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -98,7 +98,8 @@ memberchk(E, List) :-
     det(:),
     '$clausable'(:),
     '$iso'(:),
-    '$hide'(:).
+    '$hide'(:),
+    '$notransact'(:).
 
 %!  dynamic(+Spec) is det.
 %!  multifile(+Spec) is det.
@@ -143,6 +144,7 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, iso(true)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, clausable(true)).
 '$hide'(Spec)            :- '$set_pattr'(Spec, pred, trace(false)).
+'$notransact'(Spec)      :- '$set_pattr'(Spec, pred, transact(false)).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
@@ -351,7 +353,6 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 	      once/1,
 	      ignore/1,
 	      call_cleanup/2,
-	      call_cleanup/3,
 	      setup_call_cleanup/3,
 	      setup_call_catcher_cleanup/4,
 	      notrace/1)).
@@ -380,7 +381,6 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     setup_call_cleanup(0,0,0),
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
-    call_cleanup(0,?,0),
     catch_with_backtrace(0,?,0),
     notrace(0),
     '$meta_call'(0).
@@ -662,30 +662,28 @@ catch_with_backtrace(Goal, Ball, Recover) :-
     !.
 
 
+%!  call_cleanup(:Goal, :Cleanup).
 %!  setup_call_cleanup(:Setup, :Goal, :Cleanup).
 %!  setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
-%!  call_cleanup(:Goal, :Cleanup).
-%!  call_cleanup(:Goal, +Catcher, :Cleanup).
 %
-%   Call Cleanup once after Goal is finished (deterministic success,
-%   failure, exception or  cut).  The   call  to  '$call_cleanup' is
-%   translated to I_CALLCLEANUP. This  instruction   relies  on  the
-%   exact stack layout left   by  setup_call_catcher_cleanup/4. Also
-%   the predicate name is used by   the kernel cleanup mechanism and
-%   can only be changed together with the kernel.
+%   Call Cleanup once after  Goal   is  finished (deterministic success,
+%   failure,  exception  or  cut).  The    call  to  '$call_cleanup'  is
+%   translated   to   ``I_CALLCLEANUP``,     ``I_EXITCLEANUP``.    These
+%   instructions  rely  on  the  exact  stack    layout  left  by  these
+%   predicates, where the variant is determined   by the arity. See also
+%   callCleanupHandler() in `pl-wam.c`.
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
     sig_atomic(Setup),
     '$call_cleanup'.
 
-setup_call_cleanup(Setup, Goal, Cleanup) :-
-    setup_call_catcher_cleanup(Setup, Goal, _Catcher, Cleanup).
+setup_call_cleanup(Setup, _Goal, _Cleanup) :-
+    sig_atomic(Setup),
+    '$call_cleanup'.
 
-call_cleanup(Goal, Cleanup) :-
-    setup_call_catcher_cleanup(true, Goal, _Catcher, Cleanup).
+call_cleanup(_Goal, _Cleanup) :-
+    '$call_cleanup'.
 
-call_cleanup(Goal, Catcher, Cleanup) :-
-    setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
 		 /*******************************
 		 *       INITIALIZATION         *
@@ -696,6 +694,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 
 :- multifile '$init_goal'/3.
 :- dynamic   '$init_goal'/3.
+:- '$notransact'('$init_goal'/3).
 
 %!  initialization(:Goal, +When)
 %
@@ -1042,6 +1041,7 @@ default_module(Me, Super) :-
     user:portray/1.
 :- multifile
     user:portray/1.
+:- '$notransact'(user:portray/1).
 
 
 		 /*******************************
@@ -1054,6 +1054,8 @@ default_module(Me, Super) :-
 :- multifile
     user:file_search_path/2,
     user:library_directory/1.
+:- '$notransact'((user:file_search_path/2,
+                  user:library_directory/1)).
 
 user:(file_search_path(library, Dir) :-
 	library_directory(Dir)).
@@ -1064,18 +1066,11 @@ user:file_search_path(swi, Home) :-
 user:file_search_path(library, app_config(lib)).
 user:file_search_path(library, swi(library)).
 user:file_search_path(library, swi(library/clp)).
+user:file_search_path(library, Dir) :-
+    '$ext_library_directory'(Dir).
 user:file_search_path(foreign, swi(ArchLib)) :-
     current_prolog_flag(apple_universal_binary, true),
     ArchLib = 'lib/fat-darwin'.
-user:file_search_path(foreign, swi(ArchLib)) :-
-    \+ current_prolog_flag(windows, true),
-    current_prolog_flag(arch, Arch),
-    atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(SoLib)) :-
-    (   current_prolog_flag(windows, true)
-    ->  SoLib = bin
-    ;   SoLib = lib
-    ).
 user:file_search_path(path, Dir) :-
     getenv('PATH', Path),
     (   current_prolog_flag(windows, true)
@@ -1098,6 +1093,8 @@ user:file_search_path(app_config, common_app_config('.')).
 % backward compatibility
 user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
+user:file_search_path(app, swi(app)).
+user:file_search_path(app, app_data(app)).
 
 '$xdg_prolog_directory'(Which, Dir) :-
     '$xdg_directory'(Which, XDGDir),
@@ -1148,19 +1145,13 @@ user:file_search_path(user_profile, app_preferences('.')).
 
 '$existing_dir_from_env_path'(Env, Defaults, Dir) :-
     (   getenv(Env, Path)
-    ->  '$path_sep'(Sep),
+    ->  current_prolog_flag(path_sep, Sep),
 	atomic_list_concat(Dirs, Sep, Path)
     ;   Dirs = Defaults
     ),
     '$member'(Dir, Dirs),
     Dir \== '',
     exists_directory(Dir).
-
-'$path_sep'(Char) :-
-    (   current_prolog_flag(windows, true)
-    ->  Char = ';'
-    ;   Char = ':'
-    ).
 
 '$make_config_dir'(Dir) :-
     exists_directory(Dir),
@@ -1176,6 +1167,21 @@ user:file_search_path(user_profile, app_preferences('.')).
     ->  DirS = Dir
     ;   atom_concat(Dir, /, DirS)
     ).
+
+:- dynamic '$ext_lib_dirs'/1.
+:- volatile '$ext_lib_dirs'/1.
+
+'$ext_library_directory'(Dir) :-
+    '$ext_lib_dirs'(Dirs),
+    !,
+    '$member'(Dir, Dirs).
+'$ext_library_directory'(Dir) :-
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/library/ext/*', Pattern),
+    expand_file_name(Pattern, Dirs0),
+    '$include'(exists_directory, Dirs0, Dirs),
+    asserta('$ext_lib_dirs'(Dirs)),
+    '$member'(Dir, Dirs).
 
 
 %!  '$expand_file_search_path'(+Spec, -Expanded, +Cond) is nondet.
@@ -1246,9 +1252,12 @@ absolute_file_name(Spec, Options, Path) :-
     '$is_options'(Options),
     \+ '$is_options'(Path),
     !,
-    absolute_file_name(Spec, Path, Options).
+    '$absolute_file_name'(Spec, Path, Options).
 absolute_file_name(Spec, Path, Options) :-
-    '$must_be'(options, Options),
+    '$absolute_file_name'(Spec, Path, Options).
+
+'$absolute_file_name'(Spec, Path, Options0) :-
+    '$options_dict'(Options0, Options),
 		    % get the valid extensions
     (   '$select_option'(extensions(Exts), Options, Options1)
     ->  '$must_be'(list, Exts)
@@ -1464,6 +1473,8 @@ user:prolog_file_type(dylib,    executable) :-
 :- volatile
     '$search_path_file_cache'/3,
     '$search_path_gc_time'/1.
+:- '$notransact'(('$search_path_file_cache'/3,
+                  '$search_path_gc_time'/1)).
 
 :- create_prolog_flag(file_search_cache_time, 10, []).
 
@@ -1612,6 +1623,9 @@ user:prolog_file_type(dylib,    executable) :-
 '$pairs_keys'([K-_|T0], [K|T]) :-
     '$pairs_keys'(T0, T).
 
+'$pairs_values'([], []).
+'$pairs_values'([_-V|T0], [V|T]) :-
+    '$pairs_values'(T0, T).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
@@ -1655,6 +1669,8 @@ extensions to .ext
 :- volatile
     '$compilation_mode_store'/1,
     '$directive_mode_store'/1.
+:- '$notransact'(('$compilation_mode_store'/1,
+                  '$directive_mode_store'/1)).
 
 '$compilation_mode'(Mode) :-
     (   '$compilation_mode_store'(Val)
@@ -1817,6 +1833,7 @@ compiling :-
     '$load_input'/2.
 :- volatile
     '$load_input'/2.
+:- '$notransact'('$load_input'/2).
 
 '$open_source'(stream(Id, In, Opts), In,
 	       restore(In, StreamState, Id, Ref, Opts), Parents, _Options) :-
@@ -2361,9 +2378,7 @@ load_files(Module:Files, Options) :-
 	(   PlTime > QlfTime
 	->  Why = old                   % PlFile is newer
 	;   Error = error(Formal,_),
-	    catch('$qlf_info'(QlfFile, _CVer, _MLVer,
-			      _FVer, _CSig, _FSig),
-		  Error, true),
+	    catch('$qlf_is_compatible'(QlfFile), Error, true),
 	    nonvar(Formal)              % QlfFile is incompatible
 	->  Why = Error
 	;   fail                        % QlfFile is up-to-date and ok
@@ -2417,6 +2432,7 @@ load_files(Module:Files, Options) :-
 
 :- dynamic
     '$resolved_source_path_db'/3.                % ?Spec, ?Dialect, ?Path
+:- '$notransact'('$resolved_source_path_db'/3).
 
 '$load_file'(File, Module, Options) :-
     '$error_count'(E0, W0),
@@ -2567,6 +2583,7 @@ load_files(Module:Files, Options) :-
     '$loading_file'/3.              % File, Queue, Thread
 :- volatile
     '$loading_file'/3.
+:- '$notransact'('$loading_file'/3).
 
 :- if(current_prolog_flag(threads, true)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
@@ -2863,6 +2880,7 @@ load_files(Module:Files, Options) :-
 
 :- thread_local
     '$autoload_nesting'/1.
+:- '$notransact'('$autoload_nesting'/1).
 
 '$update_autoload_level'(Options, AutoLevel) :-
     '$option'(autoload(Autoload), Options, false),
@@ -3002,6 +3020,7 @@ load_files(Module:Files, Options) :-
     '$load_context_module'/3.
 :- multifile
     '$load_context_module'/3.
+:- '$notransact'('$load_context_module'/3).
 
 '$assert_load_context_module'(_, _, Options) :-
     memberchk(register(false), Options),
@@ -4170,6 +4189,15 @@ compile_aux_clauses(Clauses) :-
 '$last'([H|T], _, Last) :-
     '$last'(T, H, Last).
 
+:- meta_predicate '$include'(1,+,-).
+'$include'(_, [], []).
+'$include'(G, [H|T0], L) :-
+    (   call(G,H)
+    ->  L = [H|T]
+    ;   T = L
+    ),
+    '$include'(G, T0, T).
+
 
 %!  length(?List, ?N)
 %
@@ -4278,7 +4306,8 @@ length(_, Length) :-
 %   @arg Rest is always a map.
 
 '$select_option'(Opt, Options, Rest) :-
-    select_dict([Opt], Options, Rest).
+    '$options_dict'(Options, Dict),
+    select_dict([Opt], Dict, Rest).
 
 %!  '$merge_options'(+New, +Default, -Merged) is det.
 %
@@ -4287,7 +4316,43 @@ length(_, Length) :-
 %   @arg Merged is always a map.
 
 '$merge_options'(New, Old, Merged) :-
-    put_dict(New, Old, Merged).
+    '$options_dict'(New, NewDict),
+    '$options_dict'(Old, OldDict),
+    put_dict(NewDict, OldDict, Merged).
+
+%!  '$options_dict'(+Options, --Dict) is det.
+%
+%   Translate to an options dict. For   possible  duplicate keys we keep
+%   the first.
+
+'$options_dict'(Options, Dict) :-
+    is_list(Options),
+    !,
+    '$keyed_options'(Options, Keyed),
+    sort(1, @<, Keyed, UniqueKeyed),
+    '$pairs_values'(UniqueKeyed, Unique),
+    dict_create(Dict, _, Unique).
+'$options_dict'(Dict, Dict) :-
+    is_dict(Dict),
+    !.
+'$options_dict'(Options, _) :-
+    '$domain_error'(options, Options).
+
+'$keyed_options'([], []).
+'$keyed_options'([H0|T0], [H|T]) :-
+    '$keyed_option'(H0, H),
+    '$keyed_options'(T0, T).
+
+'$keyed_option'(Var, _) :-
+    var(Var),
+    !,
+    '$instantiation_error'(Var).
+'$keyed_option'(Name=Value, Name-(Name-Value)).
+'$keyed_option'(NameValue, Name-(Name-Value)) :-
+    compound_name_arguments(NameValue, Name, [Value]),
+    !.
+'$keyed_option'(Opt, _) :-
+    '$domain_error'(option, Opt).
 
 
 		 /*******************************

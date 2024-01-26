@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2021, University of Amsterdam
+    Copyright (c)  2007-2023, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -36,15 +36,15 @@
 
 :- module(apply_macros,
           [ expand_phrase/2,            % :PhraseGoal, -Goal
-            expand_phrase/4             % :PhraseGoal, +Pos0, -Goal, -Pos
+            expand_phrase/4,            % :PhraseGoal, +Pos0, -Goal, -Pos
+            apply_macros_sentinel/0
           ]).
 % maplist expansion uses maplist.  Do not autoload.
 :- use_module(library(apply), [maplist/2, maplist/3, maplist/4]).
+:- use_module(library(yall), [is_lambda/1, lambda_calls/3]).
 % these may be autoloaded
-:- autoload(library(error),[type_error/2]).
 :- autoload(library(lists),[append/3]).
 :- autoload(library(prolog_code), [mkconj/3, extend_goal/3]).
-:- autoload(library(yall), [is_lambda/1, lambda_calls/3]).
 
 /** <module> Goal expansion rules to avoid meta-calling
 
@@ -71,11 +71,19 @@ through YAP.
 @author Jan Wielemaker
 */
 
+:- create_prolog_flag(optimise_apply, default,
+                      [ keep(true),
+                        type(oneof([default,false,true]))
+                      ]).
+:- create_prolog_flag(apply_macros_scope, global,
+                      [ keep(true),
+                        type(oneof([global,imported]))
+                      ]).
+
 :- dynamic
     user:goal_expansion/2.
 :- multifile
     user:goal_expansion/2.
-
 
 %!  expand_maplist(+Callable, +Lists, -Goal) is det.
 %
@@ -436,13 +444,45 @@ prolog_colour:vararg_goal_classification(maplist, Arity, expanded) :-
     system:goal_expansion/2,
     system:goal_expansion/4.
 
-%       @tbd    Should we only apply if optimization is enabled (-O)?
+%!  apply_macros_sentinel
+%
+%   Used to detect that library(apply_macros) is loaded into the current
+%   context  explicitly.  This  test  is  used    if   the  Prolog  flag
+%   `apply_macros` is set to `imported`.
+
+apply_macros_sentinel.
+
+optimise_apply :-
+    (   current_prolog_flag(optimise_apply, true)
+    ->  true
+    ;   current_prolog_flag(optimise_apply, default),
+        current_prolog_flag(optimise, true)
+    ->  true
+    ).
+
+apply_macros :-
+    current_prolog_flag(xref, true),
+    !,
+    fail.
+apply_macros :-
+    optimise_apply,
+    current_prolog_flag(apply_macros_scope, Scope),
+    apply_macros(Scope).
+
+apply_macros(global) =>
+    true.
+apply_macros(imported) =>
+    prolog_load_context(module, M),
+    predicate_property(M:apply_macros_sentinel, imported_from(apply_macros)),
+    !.
 
 system:goal_expansion(GoalIn, GoalOut) :-
-    \+ current_prolog_flag(xref, true),
+    apply_macros,
     expand_apply(GoalIn, GoalOut).
 system:goal_expansion(GoalIn, PosIn, GoalOut, PosOut) :-
+    apply_macros,
     expand_apply(GoalIn, PosIn, GoalOut, PosOut).
+
 
 		 /*******************************
 		 *            MESSAGES		*

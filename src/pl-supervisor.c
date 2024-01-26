@@ -120,6 +120,7 @@ freeCodesDefinition(Definition def, int do_linger)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign supervisors.  Creates one of:
 
+DET code:  I_FCALLDETVA
 DET code:  I_FOPEN,     I_FCALLDETVA|I_FCALLDET<N>,   I_FEXITDET
 NDET code: I_FOPENNDET, I_FCALLNDETVA|I_FCALLNDET<N>, I_FEXITNDET, I_FREDO
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -140,16 +141,18 @@ createForeignSupervisor(Definition def, Func f)
   }
 
   if ( false(def, P_NONDET) )
-  { Code codes = allocCodes(4);
+  { Code codes;
 
-    codes[0] = encode(I_FOPEN);
     if ( true(def, P_VARARG) )
-      codes[1] = encode(I_FCALLDETVA);
-    else
-      codes[1] = encode(I_FCALLDET0+def->functor->arity);
-    codes[2] = (code)f;
-    codes[3] = encode(I_FEXITDET);
-
+    { codes = allocCodes(2);
+      codes[0] = encode(I_FCALLDETVA);
+      codes[1] = (code)f;
+    } else
+    { codes = allocCodes(3);
+      codes[0] = encode(I_FCALLDET0+def->functor->arity);
+      codes[1] = (code)f;
+      codes[2] = encode(I_FEXITDET);
+    }
     def->codes = codes;
   } else
   { Code codes = allocCodes(5);

@@ -274,8 +274,7 @@ source_file(M:Head, File) :-
     !,
     (   '$c_current_predicate'(_, M:Head),
         predicate_property(M:Head, multifile)
-    ->  multi_source_files(M:Head, Files),
-        '$member'(File, Files)
+    ->  multi_source_file(M:Head, File)
     ;   '$source_file'(M:Head, File)
     ).
 source_file(M:Head, File) :-
@@ -286,18 +285,15 @@ source_file(M:Head, File) :-
     '$source_file_predicates'(File, Predicates),
     '$member'(M:Head, Predicates).
 
-:- thread_local found_src_file/1.
-
-multi_source_files(Head, Files) :-
-    call_cleanup(
-        findall(File, multi_source_file(Head, File), Files),
-        retractall(found_src_file(_))).
-
 multi_source_file(Head, File) :-
+    State = state([]),
     nth_clause(Head, _, Clause),
     clause_property(Clause, source(File)),
-    \+ found_src_file(File),
-    asserta(found_src_file(File)).
+    arg(1, State, Found),
+    (   memberchk(File, Found)
+    ->  fail
+    ;   nb_linkarg(1, State, [File|Found])
+    ).
 
 
 %!  source_file_property(?File, ?Property) is nondet.
@@ -477,49 +473,6 @@ unload_file(File) :-
 
 :- if(current_prolog_flag(open_shared_object, true)).
 
-                 /*******************************
-                 *            DLOPEN            *
-                 *******************************/
-
-%!  open_shared_object(+File, -Handle) is det.
-%!  open_shared_object(+File, -Handle, +Flags) is det.
-%
-%   Open a shared object or DLL file. Flags  is a list of flags. The
-%   following flags are recognised. Note   however  that these flags
-%   may have no affect on the target platform.
-%
-%       * =now=
-%       Resolve all symbols in the file now instead of lazily.
-%       * =global=
-%       Make new symbols globally known.
-
-open_shared_object(File, Handle) :-
-    open_shared_object(File, Handle, []). % use pl-load.c defaults
-
-open_shared_object(File, Handle, Flags) :-
-    (   is_list(Flags)
-    ->  true
-    ;   throw(error(type_error(list, Flags), _))
-    ),
-    map_dlflags(Flags, Mask),
-    '$open_shared_object'(File, Handle, Mask).
-
-dlopen_flag(now,        2'01).          % see pl-load.c for these constants
-dlopen_flag(global,     2'10).          % Solaris only
-
-map_dlflags([], 0).
-map_dlflags([F|T], M) :-
-    map_dlflags(T, M0),
-    (   dlopen_flag(F, I)
-    ->  true
-    ;   throw(error(domain_error(dlopen_flag, F), _))
-    ),
-    M is M0 \/ I.
-
-:- export(open_shared_object/2).
-:- export(open_shared_object/3).
-
-
 		 /*******************************
 		 *      FOREIGN LIBRARIES	*
 		 *******************************/
@@ -556,9 +509,9 @@ use_foreign_library_noi(FileSpec) :-
     ensure_shlib,
     shlib:load_foreign_library(FileSpec).
 
-use_foreign_library(FileSpec, Entry) :-
+use_foreign_library(FileSpec, Options) :-
     ensure_shlib,
-    initialization(shlib:load_foreign_library(FileSpec, Entry), now).
+    initialization(shlib:load_foreign_library(FileSpec, Options), now).
 
 ensure_shlib :-
     '$get_predicate_attribute'(shlib:load_foreign_library(_), defined, 1),
@@ -926,7 +879,7 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, size, Bytes).
 
 system_undefined(user:prolog_trace_interception/4).
-system_undefined(user:prolog_exception_hook/4).
+system_undefined(prolog:prolog_exception_hook/5).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
 
@@ -1556,6 +1509,9 @@ set_prolog_gc_thread(Status) :-
     var(Status),
     !,
     '$instantiation_error'(Status).
+set_prolog_gc_thread(_) :-
+    \+ current_prolog_flag(threads, true),
+    !.
 set_prolog_gc_thread(false) :-
     !,
     set_prolog_flag(gc_thread, false),
@@ -1618,7 +1574,10 @@ undo(Goal) :-
 
 '$run_undo'([One]) :-
     !,
-    call(One).
+    (   call(One)
+    ->  true
+    ;   true
+    ).
 '$run_undo'(List) :-
     run_undo(List, _, Error),
     (   var(Error)
@@ -1654,8 +1613,11 @@ run_undo([H|T], E0, E) :-
     ;   '$domain_error'(most_general_term, Head)
     ),
     atomic_list_concat(['$wrap$', PName], WrapName),
-    volatile(M:WrapName/Arity),
-    module_transparent(M:WrapName/Arity),
+    PI = M:WrapName/Arity,
+    dynamic(PI),
+    '$notransact'(PI),
+    volatile(PI),
+    module_transparent(PI),
     WHead =.. [WrapName|Args],
     '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
 

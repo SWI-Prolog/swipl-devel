@@ -4,6 +4,10 @@
 # possible such that we can perform   all  global package reorganization
 # centrally.
 
+# The current package is available as ${SWIPL_PKG}
+string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
+set(PKG_BUILD_LIBRARY ${SWIPL_BUILD_HOME}/library/ext/${SWIPL_PKG})
+
 # Get cmake files from this package, the package infrastructure and
 # SWI-Prolog overall
 set(CMAKE_MODULE_PATH
@@ -21,8 +25,6 @@ if(MULTI_THREADED)
   set(O_PLMT 1)
   set(_REENTRANT 1)			# FIXME: packages should use O_PLMT
 endif()
-
-string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
 
 # get SWI-Prolog.h and SWI-Stream.h
 include_directories(BEFORE ${SWIPL_ROOT}/src ${SWIPL_ROOT}/src/os)
@@ -117,6 +119,7 @@ endif()
   set(v_pl_subdirs)			# list of subdirs
   set(v_pl_gensubdirs)			# list of subdirs (generated files)
   set(v_index ON)
+  set(v_index_subdirs ON)
   set(v_test OFF)
 
   add_custom_target(${target})
@@ -126,8 +129,9 @@ endif()
   foreach(arg ${ARGN})
     if(arg STREQUAL "MODULE")
       set(mode md_module)
-    elseif(arg STREQUAL "NOINDEX")
+    elseif(arg STREQUAL "NOINDEX" AND NOT mode STREQUAL after_subdir)
       set(v_index OFF)
+      set(v_index_subdirs OFF)
     elseif(arg STREQUAL "TEST_ONLY")
       set(v_test ON)
     elseif(arg STREQUAL "SHARED")
@@ -136,7 +140,9 @@ endif()
     elseif(arg STREQUAL "C_SOURCES")
       set(mode c_sources)
     elseif(arg STREQUAL "THREADED")
-      set(v_c_libs ${v_c_libs} ${CMAKE_THREAD_LIBS_INIT})
+      if(MULTI_THREADED)
+        set(v_c_libs ${v_c_libs} Threads::Threads)
+      endif()
     elseif(arg STREQUAL "C_LIBS")
       set(mode c_libs)
     elseif(arg STREQUAL "C_INCLUDE_DIR")
@@ -147,7 +153,9 @@ endif()
       set(v_pl_subdir ${arg})
       set(mode after_subdir)
     elseif(mode STREQUAL after_subdir)
-      if(arg STREQUAL "PL_LIBS")
+      if(arg STREQUAL "NOINDEX")
+        set(v_index_subdirs OFF)
+      elseif(arg STREQUAL "PL_LIBS")
 	set(v_pl_subdirs ${v_pl_subdirs} "@${v_pl_subdir}")
 	string(REPLACE "/" "_" subdir_var "v_pl_subdir_${v_pl_subdir}")
 	set(${subdir_var})
@@ -185,12 +193,18 @@ endif()
     set_target_properties(${foreign_target} PROPERTIES
 			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
+    if(MULTI_THREADED AND MSVC)
+      target_compile_options(${foreign_target} BEFORE PRIVATE /MD)
+    endif()
     if(STATIC_EXTENSIONS)
-      target_link_libraries(libswipl PRIVATE ${foreign_target} ${v_c_libs})
+      target_link_libraries(libswipl PRIVATE ${foreign_target})
+      target_link_libraries(${foreign_target} PRIVATE ${v_c_libs})
       set_property(GLOBAL APPEND PROPERTY static_extension_libs ${v_module})
     else()
       target_link_libraries(${foreign_target} PRIVATE
 			    ${v_c_libs} ${SWIPL_LIBRARIES})
+      set_property(TARGET ${foreign_target} PROPERTY
+		   C_VISIBILITY_PRESET hidden)
     endif()
     add_dependencies(library_index_library ${foreign_target})
     if(v_c_include_dirs)
@@ -199,7 +213,7 @@ endif()
     endif()
     add_dependencies(${target} ${foreign_target})
 
-    if(NOT v_test OR INSTALL_TESTS)
+    if((NOT v_test OR INSTALL_TESTS) AND NOT STATIC_EXTENSIONS)
       install(TARGETS ${foreign_target}
 	      LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
     endif()
@@ -212,10 +226,13 @@ endif()
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install_src(${src_target}
 		  FILES ${${subdir_var}}
-		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd})
       add_dependencies(${target} ${src_target})
-      if(v_index AND sd)
-        add_index(${sd} ${${subdir_var}})
+      if(v_index AND NOT sd)
+        add_index(ext/${SWIPL_PKG}/${sd} ${${subdir_var}})
+      endif()
+      if(v_index_subdirs AND sd)
+        add_index(ext/${SWIPL_PKG}/${sd} ${${subdir_var}})
       endif()
     endif()
   endforeach()
@@ -227,9 +244,10 @@ endif()
       prepend(_genlibs ${CMAKE_CURRENT_BINARY_DIR}/ ${${subdir_var}})
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install(FILES ${_genlibs}
-	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
+	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd})
     endif()
   endforeach()
+
 endfunction(swipl_plugin)
 
 # install_dll(file ...)
@@ -240,7 +258,7 @@ endfunction(swipl_plugin)
 # tree.
 
 function(install_dll)
-if(WIN32 AND NOT MSYS2)
+if(WIN32 AND NOT MSYS2 AND NOT MSVC)
   set(dlls)
 
   foreach(lib ${ARGN})

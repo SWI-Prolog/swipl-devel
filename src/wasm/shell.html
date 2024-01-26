@@ -245,7 +245,8 @@ load_file(Spec, String) :-
 </script>
 
 <!-- Load Prolog -->
-<script src="/wasm/swipl-web.js"></script>
+<!-- Use swipl-bundle.js or swipl-web.js -->
+<script src="/wasm/swipl-bundle.js"></script>
 
 <!-- Splitter from https://split.js.org Requires #content to be flex.-->
 <script src="https://www.swi-prolog.org/download/web/split-1.6.5/split.min.js"></script>
@@ -730,7 +731,7 @@ function toplevel()
 let Prolog;
 var Module = {
     arguments: [],
-    locateFile: function(file) {
+    locateFile: function(file) { // not needed with swipl-bundle.js
 	return '/wasm/' + file;
     },
     on_output: print_output

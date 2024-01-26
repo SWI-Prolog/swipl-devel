@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2016, University of Amsterdam
+    Copyright (c)  2009-2023, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -302,6 +303,8 @@ dcg_terminal_pos(Pos, _) :-
 dcg_terminal_pos(list_position(F,T,_Elms,_Tail),
                  term_position(F,T,_,_,_)).
 dcg_terminal_pos(F-T,
+                 term_position(F,T,_,_,_)).
+dcg_terminal_pos(string_position(F,T),
                  term_position(F,T,_,_,_)).
 dcg_terminal_pos(Pos, _) :-
     expected_layout(terminal, Pos).

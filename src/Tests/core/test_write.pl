@@ -163,6 +163,18 @@ test(space, S == "= (is)") :-
 					partial(true)
 				      ])
 		       )).
+test(backslash, S == "'te\\\\st'") :-
+    with_output_to(string(S),
+		   write_term('te\\st',
+			      [ character_escapes(true),
+				quoted(true)
+			      ])).
+test(backslash, S == "'te\\st'") :-
+    with_output_to(string(S),
+		   write_term('te\\st',
+			      [ character_escapes(false),
+				quoted(true)
+			      ])).
 
 :- end_tests(write_quoted).
 

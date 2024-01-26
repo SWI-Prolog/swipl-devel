@@ -49,6 +49,7 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
       /opt/local/lib)
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
       /opt/local/include)
+  set(CMAKE_FRAMEWORK_PATH /opt/local/Library/Frameworks)
   if(EXISTS /opt/local/libexec/jpeg)
     set(JPEG_ROOT /opt/local/libexec/jpeg)
   endif()

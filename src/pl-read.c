@@ -1149,7 +1149,14 @@ raw_read_identifier(int c, ReadData _PL_rd)
 #define add_comment(b, pos, _PL_rd) LDFUNC(add_comment, b, pos, _PL_rd)
 static int
 add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
-{ term_t head = PL_new_term_ref();
+{ term_t head, str;
+
+  if ( !(head=PL_new_term_ref()) ||
+       !(str=PL_new_term_ref()) ||
+       !PL_unify_chars(str, PL_STRING|REP_UTF8,
+		       entriesBuffer(b, char),
+		       baseBuffer(b, char)) )
+    return FALSE;
 
   assert(_PL_rd->comments);
   if ( !PL_unify_list(_PL_rd->comments, head, _PL_rd->comments) )
@@ -1162,13 +1169,13 @@ add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
 			    PL_INT, pos->lineno,
 			    PL_INT, pos->linepos,
 			    PL_INT, 0,
-			  PL_UTF8_STRING, baseBuffer(b, char)) )
+			  PL_TERM, str) )
       return FALSE;
   } else
   { if ( !PL_unify_term(head,
 			PL_FUNCTOR, FUNCTOR_minus2,
 			  PL_ATOM, ATOM_minus,
-			  PL_UTF8_STRING, baseBuffer(b, char)) )
+			PL_TERM, str) )
       return FALSE;
   }
 
@@ -1284,8 +1291,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 			if ( last == '*' &&
 			     (--level == 0 || _PL_rd->strictness) )
 			{ if ( cbuf )
-			  { addUTF8Buffer(cbuf, EOS);
-			    if ( !add_comment(cbuf, pos, _PL_rd) )
+			  { if ( !add_comment(cbuf, pos, _PL_rd) )
 			    { discardBuffer(cbuf);
 			      return FALSE;
 			    }
@@ -1353,7 +1359,6 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    }
 		    break;
 		  }
-		  addUTF8Buffer(cbuf, EOS);
 		  if ( !add_comment(cbuf, pos, _PL_rd) )
 		  { discardBuffer(cbuf);
 		    return FALSE;
@@ -2031,19 +2036,26 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
 		*           TOKENISER           *
 		*********************************/
 
-static inline ucharp
-skipSpaces(cucharp in)
-{ int chr;
-  ucharp s;
+const char *
+utf8_skip_blanks(const char *in)
+{ char *s;
 
   for( ; *in; in=s)
-  { s = utf8_get_uchar(in, &chr);
+  { int chr;
+
+    s = utf8_get_char(in, &chr);
 
     if ( !PlBlankW(chr) )
-      return (ucharp)in;
+      return in;
   }
 
-  return (ucharp)in;
+  return in;
+}
+
+
+static inline ucharp
+skipSpaces(cucharp in)
+{ return (ucharp)utf8_skip_blanks((const char*)in);
 }
 
 
@@ -2699,9 +2711,17 @@ ascii_to_double(cucharp s, cucharp e, double *dp)
   errno = 0;
   d = strtod((char*)s, &es);
   if ( (cucharp)es == e || (e[0] == '.' && e+1 == (cucharp)es) )
-  { if ( errno == ERANGE && fabs(d) > 1.0 )
-      return NUM_FOVERFLOW;
+  { if ( errno == ERANGE )
+    { GET_LD
 
+      if ( fabs(d) > 1.0 )
+      { if ( !(LD->arith.f.flags & FLT_OVERFLOW) )
+	  return NUM_FOVERFLOW;
+      } else
+      { if ( !(LD->arith.f.flags & FLT_UNDERFLOW) )
+	  return NUM_FOVERFLOW;
+      }
+    }
     *dp = d;
     return NUM_OK;
   }
@@ -5540,13 +5560,15 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     { ns = (char*)s;
     }
 
-					/* TBD: rational support */
     isnum = ( str_number((cucharp)ns, &e, &n, 0) == NUM_OK &&
 	      e == (unsigned char *)ns+len );
     if ( ns != s && ns != buf )
       free(ns);
     if ( isnum )
-      return PL_put_number(t, &n);
+    { int rc = PL_put_number(t, &n);
+      clearNumber(&n);
+      return rc;
+    }
   }
 
   stream = Sopen_string(NULL, (char *)s, len, "r");

@@ -1347,6 +1347,25 @@ init_delay_list(void)
   return t;
 }
 
+
+int
+PL_get_delay_list(term_t t)
+{ GET_LD
+
+  term_t dl = LD->tabling.delay_list;
+
+  if ( t )
+  { _PL_get_arg(1, dl, t);
+    return !PL_get_nil(t);
+  } else
+  { Word p = valTermRef(dl);
+    deRef(p);
+
+    return argTerm(*p,0) != ATOM_nil ;
+  }
+}
+
+
 static
 PRED_IMPL("$tbl_delay_list", 1, tbl_delay_list, 0)
 { PRED_LD;

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2020, University of Amsterdam
+    Copyright (c)  1997-2023, University of Amsterdam
 			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -111,6 +112,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   int do_throw = FALSE;
   fid_t fid;
   int rc;
+  int msg_rep = REP_UTF8;
 
   if ( exception_term )			/* do not overrule older exception */
     return FALSE;
@@ -128,6 +130,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   { if ( errno == EPLEXCEPTION )
       return FALSE;
     msg = OsError();
+    msg_rep = REP_MB;
   }
 
   LD->exception.processing = TRUE;	/* allow using spare stack */
@@ -776,7 +779,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     }
 
     if ( rc && msg )
-    { rc = PL_put_atom_chars(msgterm, msg);
+    { rc = PL_put_chars(msgterm, PL_ATOM|msg_rep, (size_t)-1, msg);
     }
 
     if ( rc )
@@ -1114,7 +1117,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_not_less_than_zero, t);
 	}
-#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+#if SIZEOF_VOIDP == 8 && defined(O_BIGNUM)
       case V_MPZ:
       { uint64_t v;
 
@@ -1222,15 +1225,6 @@ PL_get_bool_ex(term_t t, int *i)
 
 
 int
-PL_get_float_ex(term_t t, double *f)
-{ if ( PL_get_float(t, f) )
-    succeed;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_float, t);
-}
-
-
-int
 PL_get_char_ex(term_t t, int *p, int eof)
 { if ( PL_get_char(t, p, eof) )
     succeed;
@@ -1290,11 +1284,14 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
 
 int
 PL_get_nil_ex(term_t l)
-{ if ( PL_get_nil(l) )
-    succeed;
+{ if ( PL_exception(0) )
+    return FALSE;
+
+  if ( PL_get_nil(l) )
+    return TRUE;
 
   if ( PL_is_list(l) )
-    fail;
+    return FALSE;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }

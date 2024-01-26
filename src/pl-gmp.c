@@ -48,6 +48,11 @@
 #undef LD
 #define LD LOCAL_LD
 
+typedef union
+{ double  d;
+  int64_t i;
+} fpattern;
+
 #ifdef O_BIGNUM				/* Upto the end of this file */
 
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
@@ -61,12 +66,6 @@ static mpz_t MPZ_MAX_LONG;
 #endif
 
 #define abs(v) ((v) < 0 ? -(v) : (v))
-
-typedef union
-{ double  d;
-  int64_t i;
-} fpattern;
-
 
 		 /*******************************
 		 *	 MEMORY MANAGEMENT	*
@@ -454,106 +453,101 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-get_integer() fetches the value of a Prolog  term known to be an integer
-into a number structure. If the  value  is   a  MPZ  number,  it must be
-handled as read-only and it only be used   as  intptr_t as no calls are made
-that may force a relocation or garbage collection on the global stack.
+get_bigint()  fetches  the value  of  a  Prolog  term  known to  be  a
+non-inlined integer  into a number structure.   If the value is  a MPZ
+number, it must be handled as read-only and it only be used as long as
+no calls are made that may force a relocation or garbage collection on
+the global stack.
 
-The version without O_GMP is a macro defined in pl-gmp.h
+Normally called through the inline get_integer() function.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-get_integer(word w, Number n)
-{ if ( storage(w) == STG_INLINE )
-  { n->type = V_INTEGER,
-    n->value.i = valInt(w);
-  } else
-  { GET_LD
-    Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
+get_bigint(word w, Number n)
+{ GET_LD
+  Word p = addressIndirect(w);
+  size_t wsize = wsizeofInd(*p);
 
-    p++;
-    if ( wsize == WORDS_PER_INT64 )
-    { n->type = V_INTEGER;
-      memcpy(&n->value.i, p, sizeof(int64_t));
-    } else
-    { n->type = V_MPZ;
+  DEBUG(0, assert(storage(w) != STG_INLINE));
+
+  p++;
+  if ( wsize == WORDS_PER_INT64 )
+  { n->type = V_INTEGER;
+    memcpy(&n->value.i, p, sizeof(int64_t));
+  } else
+  { n->type = V_MPZ;
 
 #if O_GMP
-      n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-      n->value.mpz->_mp_alloc = 0;
-      n->value.mpz->_mp_d     = (mp_limb_t*) p;
+    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
+    n->value.mpz->_mp_alloc = 0;
+    n->value.mpz->_mp_d     = (mp_limb_t*) p;
 #elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      n->value.mpz->ctx	 = NULL;
-      n->value.mpz->expn = (slimb_t)*p++;
-      n->value.mpz->sign = len < 0;
-      n->value.mpz->len  = abs(len);
-      n->value.mpz->tab  = (limb_t*)p;
+    slimb_t len = mpz_stack_size(*p++);
+    n->value.mpz->ctx	 = NULL;
+    n->value.mpz->expn = (slimb_t)*p++;
+    n->value.mpz->sign = len < 0;
+    n->value.mpz->len  = abs(len);
+    n->value.mpz->tab  = (limb_t*)p;
 #endif
-    }
   }
 }
 
 
 void
-get_rational(DECL_LD word w, Number n)
-{ if ( storage(w) == STG_INLINE )
-  { n->type = V_INTEGER,
-    n->value.i = valInt(w);
+get_rational_no_int(DECL_LD word w, Number n)
+{ Word p = addressIndirect(w);
+  size_t wsize = wsizeofInd(*p);
+
+  p++;
+  if ( wsize == WORDS_PER_INT64 )
+  { n->type = V_INTEGER;
+    memcpy(&n->value.i, p, sizeof(int64_t));
+  } else if ( (*p&MP_RAT_MASK) )
+  { mpz_t num, den;
+    size_t num_size;
+
+    n->type = V_MPQ;
+#if O_GMP
+    num->_mp_size  = mpz_stack_size(*p++);
+    num->_mp_alloc = 0;
+    num->_mp_d     = (mp_limb_t*) (p+1);
+    num_size       = mpz_wsize(num, NULL);
+    den->_mp_size  = mpz_stack_size(*p++);
+    den->_mp_alloc = 0;
+    den->_mp_d     = (mp_limb_t*) (p+num_size);
+#elif O_BF
+    slimb_t len = mpz_stack_size(*p++);
+    num->ctx	 = NULL;
+    num->alloc = 0;
+    num->expn  = (slimb_t)*p++;
+    num->sign  = len < 0;
+    num->len   = abs(len);
+    num->tab   = (limb_t*)(p+2);
+    num_size   = mpz_wsize(num, NULL);
+    den->ctx   = NULL;
+    den->alloc = 0;
+    den->sign  = 0;			/* canonical MPQ */
+    den->len   = mpz_stack_size(*p++);
+    den->expn  = (slimb_t)*p++;
+    den->tab   = (limb_t*) (p+num_size);
+#endif
+    *mpq_numref(n->value.mpq) = num[0];
+    *mpq_denref(n->value.mpq) = den[0];
   } else
-  { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    p++;
-    if ( wsize == WORDS_PER_INT64 )
-    { n->type = V_INTEGER;
-      memcpy(&n->value.i, p, sizeof(int64_t));
-    } else if ( (*p&MP_RAT_MASK) )
-    { mpz_t num, den;
-      size_t num_size;
-
-      n->type = V_MPQ;
-#if O_GMP
-      num->_mp_size  = mpz_stack_size(*p++);
-      num->_mp_alloc = 0;
-      num->_mp_d     = (mp_limb_t*) (p+1);
-      num_size = mpz_wsize(num, NULL);
-      den->_mp_size  = mpz_stack_size(*p++);
-      den->_mp_alloc = 0;
-      den->_mp_d     = (mp_limb_t*) (p+num_size);
-#elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      num->ctx	= NULL;
-      num->expn = (slimb_t)*p++;
-      num->sign = len < 0;
-      num->len  = abs(len);
-      num->tab  = (limb_t*)(p+2);
-      num_size  = mpz_wsize(num, NULL);
-      den->ctx  = NULL;
-      den->sign = 0;			/* canonical MPQ */
-      den->len  = mpz_stack_size(*p++);
-      den->expn = (slimb_t)*p++;
-      den->tab  = (limb_t*) (p+num_size);
-#endif
-      *mpq_numref(n->value.mpq) = num[0];
-      *mpq_denref(n->value.mpq) = den[0];
-    } else
-    { n->type = V_MPZ;
+  { n->type = V_MPZ;
 
 #if O_GMP
-      n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-      n->value.mpz->_mp_alloc = 0;
-      n->value.mpz->_mp_d     = (mp_limb_t*) p;
+    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
+    n->value.mpz->_mp_alloc = 0;
+    n->value.mpz->_mp_d     = (mp_limb_t*) p;
 #elif O_BF
-      slimb_t len = mpz_stack_size(*p++);
-      n->value.mpz->ctx	 = NULL;
-      n->value.mpz->expn = (slimb_t)*p++;
-      n->value.mpz->sign = len < 0;
-      n->value.mpz->len  = abs(len);
-      n->value.mpz->tab  = (limb_t*)p;
+    slimb_t len = mpz_stack_size(*p++);
+    n->value.mpz->ctx	 = NULL;
+    n->value.mpz->expn = (slimb_t)*p++;
+    n->value.mpz->sign = len < 0;
+    n->value.mpz->len  = abs(len);
+    n->value.mpz->tab  = (limb_t*)p;
 #endif
-    }
   }
 }
 
@@ -569,11 +563,12 @@ get_mpz_from_code(Code pc, mpz_t mpz)
   mpz->_mp_d     = (mp_limb_t*)(pc+1);
 #elif O_BF
   slimb_t len = mpz_stack_size(*pc);
-  mpz->ctx    = NULL;
-  mpz->expn   = (slimb_t)pc[1];
-  mpz->sign   = len < 0;
-  mpz->len    = abs(len);
-  mpz->tab    = (limb_t*)pc+2;
+  mpz->ctx   = NULL;
+  mpz->alloc = 0;
+  mpz->expn  = (slimb_t)pc[1];
+  mpz->sign  = len < 0;
+  mpz->len   = abs(len);
+  mpz->tab   = (limb_t*)pc+2;
 #endif
 
   return pc+wsize;
@@ -584,12 +579,12 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 { Word p = pc;
   size_t wsize = wsizeofInd(*p);
   p++;
-  int num_size = mpz_stack_size(*p++);
-  int den_size = mpz_stack_size(*p++);
-  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   mpz_t num, den;
 
 #if O_GMP
+  int num_size = mpz_stack_size(*p++);
+  int den_size = mpz_stack_size(*p++);
+  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   num->_mp_size   = num_size;
   den->_mp_size   = den_size;
   num->_mp_alloc  = 0;
@@ -598,12 +593,15 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   p += (limpsize+sizeof(word)-1)/sizeof(word);
   den->_mp_d = (mp_limb_t*)p;
 #elif O_BF
+  int num_size = mpz_stack_size(*p++);
   num->ctx = NULL;
   num->expn = *p++;
-  den->ctx = NULL;
-  den->expn = *p++;
   num->sign = num_size < 0;
   num->len  = abs(num_size);
+  int den_size = mpz_stack_size(*p++);
+  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
+  den->ctx = NULL;
+  den->expn = *p++;
   den->sign = den_size < 0;
   den->len  = abs(den_size);
   num->tab = (mp_limb_t*)p;
@@ -1383,12 +1381,20 @@ put_number(DECL_LD Word at, Number n, int flags)
 int
 PL_unify_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
+  word w;
 
   deRef(p);
 
+  if ( isVar(*p) &&
+       n->type == V_INTEGER &&
+       valInt(w=consInt(n->value.i)) == n->value.i &&
+       hasTrailSpace(1) )
+  { varBindConst(p, w);
+    return TRUE;
+  }
+
   if ( canBind(*p) )
-  { word w;
-    int rc;
+  { int rc;
 
     if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
@@ -1397,7 +1403,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
     deRef(p);
 
     bindConst(p, w);
-    succeed;
+    return TRUE;
   }
 
   switch(n->type)
@@ -1629,7 +1635,7 @@ cmpFloatNumbers(Number n1, Number n2)
 
 int
 cmpNumbers(Number n1, Number n2)
-{ if ( n1->type != n2->type )
+{ if ( unlikely(n1->type != n2->type) )
   { int rc;
 
     if ( n1->type == V_FLOAT || n2->type == V_FLOAT )
@@ -1641,28 +1647,185 @@ cmpNumbers(Number n1, Number n2)
 
   switch(n1->type)
   { case V_INTEGER:
-      return n1->value.i  < n2->value.i ? CMP_LESS :
-	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(n1->value.i, n2->value.i);
 #ifdef O_BIGNUM
     case V_MPZ:
     { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
 
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(rc, 0);
     }
     case V_MPQ:
     { int rc = mpq_cmp(n1->value.mpq, n2->value.mpq);
 
-      return rc < 0 ? CMP_LESS : rc == 0 ? CMP_EQUAL : CMP_GREATER;
+      return SCALAR_TO_CMP(rc, 0);
     }
 #endif
     case V_FLOAT:
-      return n1->value.f  < n2->value.f ? CMP_LESS :
-	     n1->value.f == n2->value.f ? CMP_EQUAL :
-	     n1->value.f  > n2->value.f ? CMP_GREATER : CMP_NOTEQ;
-  }
+    { if ( n1->value.f == n2->value.f )
+	return CMP_EQUAL;
 
-  assert(0);
-  return CMP_EQUAL;
+      int lt = n1->value.f  < n2->value.f;
+      int gt = n1->value.f  > n2->value.f;
+
+      if ( !lt && !gt )		/* either is NaN */
+	return CMP_NOTEQ;	/* as SCALAR_TO_CMP() */
+      return gt-lt;
+    }
+    default:
+      assert(0);
+      return CMP_EQUAL;
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cmpReals()   compares  two   real  numbers   (any  sub-type)   and  is
+mathematically correct.   Floats and 64  bit integers can  be compared
+without  using  extended  arithmetic.    All  other  comparisons  with
+integers  or rationals  are  done using  the  relevant BIGNUM  library
+compare  functions.  cmpReals() itself  is  just  a large  4x4  switch
+statement  which  uses  the  targeted auxiliary  compare  function  to
+compute the return value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+cmp_i_i(int64_t i1, int64_t i2)
+{ return (i1 == i2) ? CMP_EQUAL : ((i1 < i2) ? CMP_LESS : CMP_GREATER);
+}
+
+static int
+cmp_f_f(double d1, double d2)
+{ if ( isnan(d1) || isnan(d2) )
+    return CMP_NOTEQ;
+  else
+    return (d1 == d2) ? CMP_EQUAL : ((d1 < d2) ? CMP_LESS : CMP_GREATER);
+}
+
+/* See https://stackoverflow.com/questions/58734034/ */
+static int
+cmp_i_f(int64_t i1, double d2)
+{ if ( isnan(d2) )
+  { return CMP_NOTEQ;
+  } else
+  { double d1_lo, d1_hi;
+#define TOD(i) ((double)((int64_t)(i)))
+    if ( i1 >= 0 )
+    { d1_lo = TOD(i1 & 0x00000000FFFFFFFF);
+      d1_hi = TOD(i1 & 0xFFFFFFFF00000000);
+    } else
+    { d1_lo = TOD(i1 | 0xFFFFFFFF00000000);
+      d1_hi = TOD(i1 | 0x00000000FFFFFFFF)+1.0;
+    }
+#undef TOD
+    return SCALAR_TO_CMP(d1_lo, d2-d1_hi);
+  }
+}
+
+#ifdef O_BIGNUM
+
+static int
+cmp_z_z(mpz_t z1, mpz_t z2)
+{ int t = mpz_cmp(z1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_q_q(mpq_t q1, mpq_t q2)
+{ int t = mpq_cmp(q1,q2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_z_i(mpz_t z1, int64_t i2)
+{ int t = mpz_cmp_si(z1,i2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_q_i(mpq_t q1, int64_t i2)
+{ int t = mpq_cmp_si(q1,i2,1);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+static int
+cmp_z_f(mpz_t z1, double d2)
+{ if (isnan(d2)) return CMP_NOTEQ;
+  else {
+    int t = mpz_cmp_d(z1,d2);        // mpz_cmp_d handles infinities
+    return (t < 0) ? CMP_LESS : (t > 0);
+  }
+}
+
+static int
+cmp_f_q(double d1, mpq_t q2)
+{ if      (isnan(d1))       return CMP_NOTEQ;
+  else if (d1 ==  INFINITY) return CMP_GREATER;
+  else if (d1 == -INFINITY) return CMP_LESS;
+  else
+  { mpq_t q1;
+    mpq_init(q1);
+    mpq_set_d(q1,d1);
+    int t = cmp_q_q(q1,q2);
+    mpq_clear(q1);
+    return t;
+  }
+}
+
+static int
+cmp_q_z(mpq_t q1, mpz_t z2)
+{ int t = mpq_cmp_z(q1,z2);
+  return (t < 0) ? CMP_LESS : (t > 0);
+}
+
+#endif // O_BIGNUM
+
+/* Note that we can use reversed arguments and negation for all functions
+   except those involving floats because -CMP_NOTEQ is wrong
+*/
+
+int
+cmpReals(Number n1, Number n2)
+{ int rc;
+
+  switch(n1->type)
+  { case V_INTEGER:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_i_i(n1->value.i,n2->value.i);
+        case V_FLOAT:   return  cmp_i_f(n1->value.i,n2->value.f);
+#ifdef O_BIGNUM
+        case V_MPZ:     return -cmp_z_i(n2->value.mpz,n1->value.i);
+        case V_MPQ:     return -cmp_q_i(n2->value.mpq,n1->value.i);
+#endif
+      }
+    case V_FLOAT:
+      switch(n2->type)
+      { case V_INTEGER: rc =    cmp_i_f(n2->value.i,n1->value.f);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_FLOAT:   return  cmp_f_f(n1->value.f,n2->value.f);
+#ifdef O_BIGNUM
+        case V_MPZ:     rc =    cmp_z_f(n2->value.mpz,n1->value.f);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPQ:     return  cmp_f_q(n1->value.f,n2->value.mpq);
+#endif
+      }
+#ifdef O_BIGNUM
+    case V_MPZ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_z_i(n1->value.mpz,n2->value.i);
+        case V_FLOAT:   return  cmp_z_f(n1->value.mpz,n2->value.f);
+        case V_MPZ:     return  cmp_z_z(n1->value.mpz,n2->value.mpz);
+        case V_MPQ:     return -cmp_q_z(n2->value.mpq,n1->value.mpz);
+      }
+    case V_MPQ:
+      switch(n2->type)
+      { case V_INTEGER: return  cmp_q_i(n1->value.mpq,n2->value.i);
+        case V_FLOAT:   rc =    cmp_f_q(n2->value.f,n1->value.mpq);
+                        return  (rc == CMP_NOTEQ) ? rc : -rc;
+        case V_MPZ:     return  cmp_q_z(n1->value.mpq,n2->value.mpz);
+        case V_MPQ:     return  cmp_q_q(n1->value.mpq,n2->value.mpq);
+      }
+#endif // O_BIGNUM
+  }
+  return CMP_NOTEQ;  // unrecognized type?, treat as nan
 }
 
 void
@@ -1850,13 +2013,26 @@ mpq_to_double(mpq_t q)
 }
 
 /*
- * Try  to compute  a "nice"  rational from  a float,  using continued
- * fractions.  Stop when the rational  converts back into the original
- * float exactly.   If the  process doesn't  converge (due  to numeric
- * problems),  or  produces a  result  longer  than the  fast  bitwise
- * conversion from the  float mantissa, then fall back  to the bitwise
- * conversion.
+ * Try  to compute  a "nice"  rational from  a float  using continued
+ * fractions and rational arithmetic.  Stop when rational converts
+ * (using mpz_fdiv) back into the original float.
  *
+ * Prolog implementation:
+
+rat_rationalize(Flt, Rat) :-
+   R is rational(Flt), rational(R, N, D),
+   rat_iter((N,D), (1,0), (0,1), Flt, Rat).
+
+rat_iter((V,W), (M,N), (P,Q), Flt, Rat) :-
+	divmod(V, W, D, U),
+	A is D*M+P,  %  A = Pnxt
+	B is D*N+Q,  %  B = Qnxt
+	Try is A rdiv B,
+	( (float(Try) =:= Flt ; U == 0)  % terminating conditions
+	  -> Rat = Try
+	  ;  rat_iter((W,U), (A,B), (M,N), Flt, Rat)
+	).
+
  * (*) We are  done if both 64-bit doubles have  the same bit pattern.
  * We must  notably avoid  that we compare  the _extended  width float
  * register_ found in e.g. x87 hardware.   One way to force this is to
@@ -1867,79 +2043,44 @@ mpq_to_double(mpq_t q)
  */
 
 void
-mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
-{ fpattern target = {.d = (f < 0.0) ? -f : f};
-  double x = target.d;
-  mpq_t b, c;
-  MP_INT *pna = mpq_numref(q);		/* use output q for a directly */
-  MP_INT *pda = mpq_denref(q);
-  MP_INT *pnb = mpq_numref(b);
-  MP_INT *pdb = mpq_denref(b);
-  MP_INT *pnc = mpq_numref(c);
-  MP_INT *pdc = mpq_denref(c);
-  mpz_t big_xi;
-  int half_exp;                       /* predict bitwise conversion size */
-  double fr = frexp(target.d, &half_exp);
-  int bitwise_denominator_size = DBL_MANT_DIG-(half_exp-1);
+mpq_set_double(mpq_t r, double f)	/* float -> nice rational */
+{ mpz_t m; mpz_init_set_si(m, 1);   // (m,n) = (1,0)
+  mpz_t n; mpz_init_set_si(n, 0);
+  mpz_t p; mpz_init_set_si(p, 0);   // (p,q) = (0,1)
+  mpz_t q; mpz_init_set_si(q, 1);
 
-  (void)fr;
-  if ( bitwise_denominator_size < 1 )
-    bitwise_denominator_size = 1;
+  mpq_set_d(r, f);
+  mpz_t v; mpz_init(v); mpq_get_num(v,r);  // (v,w) == (r.num, r.den)
+  mpz_t w; mpz_init(w); mpq_get_den(w,r);
 
-  mpz_set_ui(pna, 1L);                /* a = q = 1/0 */
-  mpz_set_ui(pda, 0L);
-  mpq_init(b);			      /* b = 0/1 */
-  mpq_init(c);			      /* auxiliary */
-  mpz_init(big_xi);                   /* auxiliary */
+  mpz_t d; mpz_init(d);
+  mpz_t u; mpz_init(u);
 
+  fpattern fp = { .d = f };	/* see (*) */
+  fpattern rp;
   for(;;)
-  { double xf, xi;
-
-    /* infinite x indicates failure to converge */
-    if ( !isfinite(x) )
-      goto _bitwise_conversion_;
-
-    xf = modf(x, &xi);
-
-    /* compute a = a*xi + b for both numerator and denominator */
-    mpq_swap(q, b);
-    if ( x < (double)LONG_MAX )
-    { unsigned long int_xi = (unsigned long) xi;
-      mpz_mul_ui(pnc, pnb, int_xi);
-      mpz_mul_ui(pdc, pdb, int_xi);
-    } else
-    { mpz_set_d(big_xi, xi);
-      mpz_mul(pnc, pnb, big_xi);
-      mpz_mul(pdc, pdb, big_xi);
-    }
-    mpz_add(pna, pna, pnc);
-    mpz_add(pda, pda, pdc);
-
-    /* if it gets too long, fall back to bitwise conversion */
-    if (mpz_sizeinbase(pda, 2) > bitwise_denominator_size)
-      goto _bitwise_conversion_;
-
-    /* See (*) above */
-    fpattern iter = {.d = mpz_fdiv(pna, pda)};
-    if ( target.i == iter.i )
+  { mpz_fdiv_qr(d,u,v,w);
+    mpz_addmul(p,d,m);
+    mpz_addmul(q,d,n);
+    rp.d = mpz_fdiv(p,q);
+    if ((rp.i == fp.i) || (mpz_sgn(u) == 0)) // terminating conditions
+    { mpq_set_num(r,p);			     // final answer, p & q are co-prime
+      mpq_set_den(r,q);
       break;
-
-    x = 1.0/xf;
+    } else {
+      mpz_set(v,w);  mpz_set(w,u);
+      mpz_swap(m,p); mpz_swap(n,q);
+    }
   }
 
-  if ( f < 0.0 )
-    mpq_neg(q, q);
-  mpq_canonicalize(q);                /* normally not be necessary */
-
-  goto _cleanup_;
-
-_bitwise_conversion_:
-  mpq_set_d(q, f);                    /* bitwise conversion */
-
-_cleanup_:
-  mpz_clear(big_xi);
-  mpq_clear(c);
-  mpq_clear(b);
+  mpz_clear(m);
+  mpz_clear(n);
+  mpz_clear(p);
+  mpz_clear(q);
+  mpz_clear(v);
+  mpz_clear(w);
+  mpz_clear(d);
+  mpz_clear(u);
 }
 
 

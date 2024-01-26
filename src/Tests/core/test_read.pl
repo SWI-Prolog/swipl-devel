@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2023, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -46,22 +47,23 @@ Test term reading, notably option processing
 */
 
 test_read :-
-	run_tests([ read_term
-		  ]).
+    run_tests([ read_term,
+		read_numbers
+	      ]).
 
 :- begin_tests(read_term).
 
 test(singletons, Names == ['_a','_A','_0','A']) :-
-	term_string(_, "a(_,_a,_A,_0,A)",
-		    [ singletons(Singletons)
-		    ]),
-	maplist(arg(1), Singletons, Names).
+    term_string(_, "a(_,_a,_A,_0,A)",
+                [ singletons(Singletons)
+                ]),
+    maplist(arg(1), Singletons, Names).
 test(warn_singletons, Messages =@= [singletons(a(_,_,_,_,_), ['_a','A'])]) :-
-	catch_messages(_,
-		       term_string(_, "a(_,_a,_A,_0,A)",
-				   [ singletons(warning)
-				   ]),
-		       Messages).
+    catch_messages(_,
+                   term_string(_, "a(_,_a,_A,_0,A)",
+                               [ singletons(warning)
+                               ]),
+                   Messages).
 test(position,
      [Query,TermPos,Comments] ==
      [true,7-11,['$stream_position'(0,0,0,0)-"%hello"]]) :-
@@ -160,6 +162,20 @@ test(valid_position_dict3) :-
 		      ])).
 
 :- end_tests(read_term).
+
+:- begin_tests(read_numbers).
+
+test(float_overflow, error(syntax_error(float_overflow))) :-
+    term_string(_, '1.797693134862316e+308', []).
+test(float_overflow, F =:= inf) :-
+    current_prolog_flag(float_overflow, Old),
+    setup_call_cleanup(
+        set_prolog_flag(float_overflow, infinity),
+        term_string(F, '1.797693134862316e+308', []),
+        set_prolog_flag(float_overflow, Old)).
+
+:- end_tests(read_numbers).
+
 
 %%	catch_messages(+Kind, :Goal, -Messages) is semidet.
 

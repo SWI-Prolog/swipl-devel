@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _GNU_SOURCE			/* get dladdr() */
 #include "pl-load.h"
 #include "pl-fli.h"
 
@@ -65,6 +66,7 @@ Feel free to add this functionality for your favorite OS and mail me the
 contributions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef O_STATIC_EXTENSIONS
 
 		 /*******************************
 		 *     DLOPEN() AND FRIENDS	*
@@ -74,7 +76,6 @@ contributions.
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #ifdef HAVE_DLFCN_H
-#define _GNU_SOURCE			/* get RTLD_DEFAULT */
 #include <dlfcn.h>
 #endif
 
@@ -165,8 +166,6 @@ PL_dlclose(void *handle)
 
 #endif /*EMULATE_DLOPEN*/
 
-#ifndef O_STATIC_EXTENSIONS
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 under_valgrind()
 
@@ -206,35 +205,94 @@ under_valgrind(void)
   return vg;
 }
 
+static const PL_option_t open_shared_object_options[] =
+{ { ATOM_now,		    OPT_BOOL },
+  { ATOM_global,            OPT_BOOL },
+  { ATOM_delete,	    OPT_BOOL },
+  { ATOM_load,              OPT_BOOL },
+  { ATOM_deepbind,          OPT_BOOL },
+  { ATOM_resolve,	    OPT_ATOM },
+  { ATOM_visibility,        OPT_ATOM },
+  { NULL_ATOM,		    0 }
+};
 
-static
-PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
-{ PRED_LD
-  void *dlhandle;
+#ifndef RTLD_NODELETE
+#define RTLD_NODELETE 0
+#endif
+#ifndef RTLD_NOLOAD
+#define RTLD_NOLOAD 0
+#endif
+#ifndef RTLD_DEEPBIND
+#define RTLD_DEEPBIND 0
+#endif
+
+static int
+atom_domain_error(const char *domain, atom_t found)
+{ term_t t;
+
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, found) &&
+	   PL_domain_error(domain, found) );
+}
+
+#define open_shared_object(file, plhandle, options) \
+	LDFUNC(open_shared_object, file, plhandle, options)
+
+static foreign_t
+open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
+{ void *dlhandle;
   char *fn;
   atom_t afile;
   DlEntry e;
   int dlflags;
-  int n;
+  int now = -1;
+  int global = -1;
+  int delete = TRUE;
+  int load = TRUE;
+  int deepbind = FALSE;
+  atom_t resolve = 0;
+  atom_t visibility = 0;
 
-  term_t file     = A1;
-  term_t plhandle = A2;
-  term_t flags    = A3;
+  if ( options &&
+       !PL_scan_options(options, 0, "open_shared_object_options",
+			open_shared_object_options,
+			&now, &global, &delete, &load, &deepbind,
+			&resolve, &visibility) )
+    return FALSE;
 
+  if ( resolve == ATOM_now )
+    now = TRUE;
+  else if ( resolve == ATOM_lazy )
+    now = FALSE;
+  else if ( resolve )
+    return atom_domain_error("resolve", resolve);
+  else if ( now == -1 )
+    now = FALSE;
 
-  if ( PL_get_integer(flags, &n) )
-  { dlflags = (n & DL_NOW) ? RTLD_NOW : RTLD_LAZY;
-    if ( n & DL_GLOBAL )
-      dlflags |= RTLD_GLOBAL;
-  } else
-    dlflags = RTLD_LAZY;
+  if ( visibility == ATOM_global )
+    global = TRUE;
+  else if ( visibility == ATOM_local )
+    global = FALSE;
+  else if ( visibility )
+    return atom_domain_error("visibility", visibility);
+  else if ( global == -1 )
+    global = FALSE;
+
+  dlflags = now ? RTLD_NOW : RTLD_LAZY;
+  if ( global   ) dlflags |= RTLD_GLOBAL;
+  if ( !delete  ) dlflags |= RTLD_NODELETE;
+  if ( !load    ) dlflags |= RTLD_NOLOAD;
+  if ( deepbind ) dlflags |= RTLD_DEEPBIND;
 
   if ( !PL_get_atom_ex(file, &afile) ||
        !PL_get_file_name(file, &fn, 0) )
     fail;
   if ( !(dlhandle = PL_dlopen(fn, dlflags)) )
+  { if ( !load )
+      return FALSE;
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, PL_dlerror());
+  }
 
   e = allocHeapOrHalt(sizeof(struct dl_entry));
 
@@ -256,6 +314,17 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
   return PL_unify_integer(plhandle, e->id);
 }
 
+static
+PRED_IMPL("open_shared_object", 3, open_shared_object, 0)
+{ PRED_LD
+  return open_shared_object(A1, A2, A3);
+}
+
+static
+PRED_IMPL("open_shared_object", 2, open_shared_object, 0)
+{ PRED_LD
+  return open_shared_object(A1, A2, 0);
+}
 
 static DlEntry
 find_dl_entry(term_t h)
@@ -450,7 +519,8 @@ cleanupForeign(void)
 
 BeginPredDefs(dlopen)
 #if defined(HAVE_SHARED_OBJECTS) && !defined(O_STATIC_EXTENSIONS)
-  PRED_DEF("$open_shared_object", 3, open_shared_object, 0)
+  PRED_DEF("open_shared_object",  2, open_shared_object, 0)
+  PRED_DEF("open_shared_object",  3, open_shared_object, 0)
   PRED_DEF("close_shared_object", 1, close_shared_object, 0)
   PRED_DEF("call_shared_object_function", 2, call_shared_object_function,
 	   PL_FA_TRANSPARENT)

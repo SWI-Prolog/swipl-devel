@@ -33,6 +33,7 @@ endif()
 
 # Source locations
 get_filename_component(SWIPL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+get_filename_component(SWIPL_BIN_ROOT "${CMAKE_CURRENT_BINARY_DIR}/.." ABSOLUTE)
 set(SWIPL_LIBRARY_ROOT ${SWIPL_ROOT}/library)
 set(SWIPL_BOOT_ROOT ${SWIPL_ROOT}/boot)
 
@@ -76,7 +77,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-funct.c pl-gc.c pl-privitf.c pl-list.c pl-string.c
     pl-load.c pl-modul.c pl-op.c pl-prims.c pl-pro.c
     pl-proc.c pl-prof.c pl-read.c pl-rec.c pl-setup.c
-    pl-sys.c pl-trace.c pl-util.c pl-wic.c pl-write.c
+    pl-sys.c pl-trace.c pl-util.c pl-qlf.c pl-write.c
     pl-term.c pl-thread.c pl-xterm.c pl-srcfile.c
     pl-attvar.c pl-gvar.c pl-btree.c
     pl-init.c pl-gmp.c pl-segstack.c pl-hash.c
@@ -96,6 +97,9 @@ set(LIBSWIPL_SRC
     ${SRC_BF}
     ${SRC_MINIZIP})
 set(SWIPL_SRC pl-main.c)
+if(MSVC AND WIN32)
+list(APPEND SWIPL_SRC os/windows/ssl_applink.c)
+endif()
 
 set(SRC_SWIPL_LD swipl-ld.c)
 if(WIN32)
@@ -116,7 +120,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
     library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
-    demo cmake)
+    demo cmake app)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
@@ -147,12 +151,13 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     random.pl prolog_breakpoints.pl prolog_autoload.pl
     prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
     prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
-    sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
+    sandbox.pl prolog_format.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
     prolog_wrap.pl prolog_trace.pl prolog_code.pl intercept.pl
     prolog_deps.pl tables.pl hashtable.pl strings.pl increval.pl
-    prolog_debug.pl prolog_versions.pl)
+    prolog_debug.pl prolog_versions.pl prolog_evaluable.pl macros.pl
+    prolog_coverage.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
@@ -172,7 +177,11 @@ if(NOT STATIC_EXTENSIONS)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} shlib.pl)
 endif()
 if(MULTI_THREADED)
-  list(APPEND SWIPL_DATA_library threadutil.pl thread.pl thread_pool.pl)
+  list(APPEND SWIPL_DATA_library threadutil.pl thread.pl thread_pool.pl
+       rwlocks.pl)
+endif()
+if(O_PROFILE)
+  list(APPEND SWIPL_DATA_library prolog_profile.pl)
 endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
@@ -216,6 +225,8 @@ endif()
 
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
+
+set(SWIPL_DATA_app pack.pl app.pl qlf.pl README.md)
 
 ################
 # Custom targets and commands
@@ -349,14 +360,14 @@ endfunction()
 config_data_files()
 
 # Set swipl.home above binaries to a relative path to the root
-file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
-file(WRITE "${CMAKE_BINARY_DIR}/src/swipl.home" "../home\n")
-file(WRITE "${CMAKE_BINARY_DIR}/packages/swipl.home" "../home\n")
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
+file(WRITE "${SWIPL_BIN_ROOT}/swipl.home" "home\n")
+file(WRITE "${SWIPL_BIN_ROOT}/src/swipl.home" "../home\n")
+file(WRITE "${SWIPL_BIN_ROOT}/packages/swipl.home" "../home\n")
+symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl.rc)
+symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl-win.rc)
 # Final swipl.home for installed system
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
+file(WRITE "${SWIPL_BIN_ROOT}/dot.txt" ".\n")
+file(WRITE "${SWIPL_BIN_ROOT}/dotdot.txt" "..\n")
 
 endif(NOT PGO_SUFFIX)
 
@@ -394,15 +405,8 @@ endif()
 # build swipl
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
-target_c_stack(swipl${PGO_SUFFIX} 4000000)
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
-endif()
-if(EMSCRIPTEN)
-  target_link_options(swipl${PGO_SUFFIX} PRIVATE -s ALLOW_MEMORY_GROWTH=1)
-  if(MULTI_THREADED)
-    target_link_options(swipl${PGO_SUFFIX} PRIVATE -pthread -s PTHREAD_POOL_SIZE=4)
-  endif()
 endif()
 
 # build the library
@@ -432,7 +436,7 @@ target_include_directories(swiplobjs${PGO_SUFFIX} BEFORE PRIVATE
 			   ${LIBSWIPL_INCLUDES})
 
 function(libswipl_properties lib outname)
-  if(MSVC AND NOT SWIPL_SHARED_LIB)
+  if(MSVC)
     # MSVC does not automatically prepend 'lib' to the library name
     # Furthermore it would generate swipl.lib in the same directory as swipl.exe,
     # causing a linking failure:
@@ -458,7 +462,10 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
-
+# See https://github.com/python/cpython/issues/65735#issuecomment-1235768965
+# Doesn't seem to work though
+# set_target_properties(libswipl${PGO_SUFFIX} PROPERTIES
+#		        LINK_FLAGS -Wl,-z,global)
 
 ###################################################################################
 #                         END OF MAIN TARGET DEFINITIONS                          #
@@ -472,15 +479,18 @@ if (PGO_SUFFIX)
   return()
 endif()
 
+if(STATIC_EXTENSIONS)
+  set(SWIPL_INSTALLED_LIBRARIES)
+else()
+  set(SWIPL_INSTALLED_LIBRARIES libswipl)
+endif()
 
 # If the default is shared, also build a static library
 
 if(LIBSWIPL_TYPE STREQUAL "SHARED" AND SWIPL_STATIC_LIB)
-add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
-libswipl_properties(libswipl_static swipl_static)
-set(STATIC_LIB libswipl_static)
-else()
-set(STATIC_LIB)
+  add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
+  libswipl_properties(libswipl_static swipl_static)
+  list(APPEND SWIPL_INSTALLED_LIBRARIES libswipl_static)
 endif()
 
 if(BUILD_SWIPL_LD)
@@ -504,6 +514,10 @@ elseif(EMSCRIPTEN)
   include(EmscriptenTargets)
 elseif(ANDROID)
   include(AndroidTargets)
+endif()
+
+if(SWIPL_C_STACK_SIZE)
+  target_c_stack(swipl${PGO_SUFFIX} ${SWIPL_C_STACK_SIZE})
 endif()
 
 ################
@@ -546,15 +560,15 @@ endif()
 add_custom_target(check
     COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
-set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
+set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
     compile charset eclipse clp GC save files transaction
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
     xsb/sub_tests)
 if(MULTI_THREADED)
-  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait signals)
 endif()
-if(GMP_FOUND)
+if(O_BIGNUM)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
 endif()
 
@@ -610,7 +624,7 @@ write_basic_package_version_file(SWIPLConfigVersion.cmake
   VERSION "${SWIPL_VERSION_STRING}"
   COMPATIBILITY SameMajorVersion)
 configure_package_config_file(
-  "${CMAKE_SOURCE_DIR}/cmake/SWIPLConfig.cmake.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/SWIPLConfig.cmake.in"
   SWIPLConfig.cmake
   PATH_VARS SWIPL_INSTALL_ARCH_EXE
   INSTALL_DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}"
@@ -631,7 +645,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl ${STATIC_LIB} EXPORT SWIPL_EXPORT
+install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
@@ -639,7 +653,7 @@ install(TARGETS swipl libswipl ${STATIC_LIB} EXPORT SWIPL_EXPORT
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
-if(WIN32)
+if(MINGW)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libswipl.dll.a
 	DESTINATION ${LIBSWIPL_DIR}
 	RENAME libswipl.lib)
@@ -665,10 +679,10 @@ install_src(core_compat_yap
 	    FILES
 	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
 	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
+install(FILES ${SWIPL_BIN_ROOT}/dot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME "swipl.home")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
+install(FILES ${SWIPL_BIN_ROOT}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
 
@@ -706,6 +720,7 @@ install(TARGETS swipl-win
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
 )
+# helper dlls (MinGW runtime, pthread-win32, etc.)
 prepend(WIN32_DLL_FILES ${CMAKE_CURRENT_BINARY_DIR}/ ${WIN32_DLLS})
 install(FILES ${WIN32_DLL_FILES} DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
 install_src(core_swipl_ico
@@ -714,7 +729,7 @@ install_src(core_swipl_ico
 
 else(WIN32)
 
-if(NOT BUILD_MACOS_BUNDLE)
+if(SWIPL_INSTALL_AS_LINK)
 # Create symbolic link from public installation dir to executables
 install(DIRECTORY DESTINATION bin)
 ilink(${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_ARCH_EXE}/swipl
