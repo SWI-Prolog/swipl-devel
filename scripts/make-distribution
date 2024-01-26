@@ -136,7 +136,22 @@ build_PPAs()
   git submodule update debian
 }
 
+is_clean_release()
+{ if [ ${version} != V$(git describe) ]; then
+    echo "ERROR: Git tag is inconsistent with release"
+    return 1
+  fi
+  if [ ! -z "$(git diff -q)" ]; then
+    echo "ERROR: Working directory is dirty"
+    return 1
+  fi
+}
+
 build()
+{ is_clean_release && force_build
+}
+
+force_build()
 { if [ $(uname) = Darwin ]; then
     if uname -a | grep arm64 > /dev/null; then
       build_macos_universal_binary
