@@ -39,8 +39,6 @@
           ]).
 :- autoload(library(apply), [maplist/2, maplist/3]).
 :- autoload(library(error), [domain_error/2, existence_error/2, type_error/2]).
-:- autoload(library(dcg/basics), [whites//0]).
-:- autoload(library(lists), [append/3]).
 
 /** <module> Demand specific (Prolog) versions
 
@@ -256,10 +254,14 @@ parse_version_(String, VNumbers, git(GitRev, GitHash)) :-
     !,
     split_string(NumberS, ".", "", List),
     maplist(number_string, VNumbers, List),
-    number_string(GitRev, GitRevS),
-    (   Hash = [HashS]
-    ->  atom_string(GitHash, HashS)
-    ;   GitHash = '-'
+    (   GitRevS == "DIRTY"
+    ->  GitRev = 0,
+        GitHash = 'DIRTY'
+    ;   number_string(GitRev, GitRevS),
+        (   Hash = [HashS]
+        ->  atom_string(GitHash, HashS)
+        ;   GitHash = '-'
+        )
     ).
 parse_version_(String, VNumbers, -) :-
     split_string(String, ".", "", List),
