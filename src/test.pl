@@ -2713,8 +2713,23 @@ testdir('Tests/rational') :-
 
 test :-
     current_prolog_flag(argv, Argv),
-    argv_options(Argv, Files, Options),
+    argv_options(test:Argv, Files, Options),
     test(Files, Options).
+
+test:opt_type(list,     list_test_dirs, boolean).
+test:opt_type(l,        list_test_dirs, boolean).
+test:opt_type(core,     core,           boolean).
+test:opt_type(subdirs,  subdirs,        (boolean|term)).
+test:opt_type(packages, packages,       boolean).
+test:opt_type(package,  package,        atom).
+test:opt_type(output,   output,         oneof([always,never,on_failure])).
+
+test:opt_help(list_test_dirs, "List available directories with tests").
+test:opt_help(core,           "Run core tests").
+test:opt_help(subdirs,        "Prolog list of subdirectories to test").
+test:opt_help(packages,       "Test all packages").
+test:opt_help(package,        "Test named package").
+test:opt_help(output,         "When to write test output").
 
 %!  test(+Files, +Options)
 %
@@ -2744,6 +2759,8 @@ test(_, Options) :-
 test(Files, Options) :-
     retractall(failed(_)),
     retractall(blocked(_,_)),
+    option(output(Output), Options, on_failure),
+    set_test_options([output(Output)]),
     (   option(core(false), Options)
     ->  true
     ;   forall(testset(Set), runtest(Set))
