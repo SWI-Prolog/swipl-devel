@@ -11,9 +11,17 @@
 
 # Set PREFIX to point at the prefix for installing the dependencies.
 # Configure using cmake -DMACOSX_DEPENDENCIES_FROM=$PREFIX
+#
+# Ideally, we build _universal_  libraries, but this seems complicated
+# because the  configuration of some  of the libraries depends  on the
+# CPU.  E.g., OpenSSL  does not build on the M1  using `-arch x86_64`.
+# pcre   does  not   include  the   JIT  compiler,   etc.   Therefore,
+# unfortunately, we must build the  libraries on a read x86_64 machine
+# and  combine  them  using  the  `macos-import-arch.sh`  script  into
+# universal binaries.
 
 PREFIX="$HOME/deps"
-export MACOSX_DEPLOYMENT_TARGET=10.14
+export MACOSX_DEPLOYMENT_TARGET=10.15
 
 GMP_VERSION=6.2.1
 SSL_VERSION=3.0.8
@@ -33,10 +41,13 @@ READLINE_VERSION=8.2
 
 src="$(pwd)"
 ################
-# Handy for running autoconf from a directory
+# LDFLAGS allows for running autoconf from a directory
 
 export LDFLAGS=-L$PREFIX/lib
-export CFLAGS="-mmacosx-version-min=10.14 -O2"
+export CUFLAGS="-arch x86_64"
+export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
+export CFLAGS="$CMFLAGS"
+#export CFLAGS="$CUFLAGS $CMFLAGS"
 
 config()
 { if [ -r ./configure ]; then
@@ -87,6 +98,7 @@ build_ssl()
 	   return 1
 	   ;;
     esac
+    export CFLAGS="$CMFLAGS"	# cannot build universal binary
     ./Configure --prefix=$PREFIX shared threads $target
     make depend
     make
@@ -312,16 +324,16 @@ build_emacs()
 # Do the whole lot for all prerequisites
 
 clean_prerequisites()
-{ ( cd gmp-$GMP_VERSION && make distclean )
-  ( cd openssl-$SSL_VERSION && make distclean )
-  ( cd jpeg-$JPEG_VERSION && make distclean )
-  ( cd zlib-$ZLIB_VERSION && make distclean )
-  ( cd libarchive-$ARCHIVE_VERSION && make distclean )
-  ( cd uuid-$UUID_VERSION && make distclean )
-  ( cd ffi-$FFI_VERSION && make distclean )
-  ( cd libyaml && make distclean )
-}
+{ rm -rf jpeg-9f
+  for f in *.tar.*; do
+      dir=$(echo $f | sed 's/\.tar\..*//')
+      echo "Cleaning $dir"
+      rm -rf $dir
+      tar zxf $f
+  done
 
+  ( cd libyaml && git clean -xfd )
+}
 
 download_prerequisites()
 { download_gmp
