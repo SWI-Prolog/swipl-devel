@@ -71,7 +71,7 @@ build_macosx()
 { rm -rf build.macosx
   mkdir build.macosx
   ( cd build.macosx
-    export PATH=$HOME/deps/bin:$HOME/$QT_BIN:$PATH
+    export PATH=$HOME/deps/bin:$QT_BIN:$PATH
     MACOSX_DEPLOYMENT_TARGET=10.14 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DUSE_GMP=OFF \
@@ -89,7 +89,7 @@ build_macos_universal_binary()
 { rm -rf build.macosx-fat
   mkdir build.macosx-fat
   ( cd build.macosx-fat
-    export PATH=$HOME/deps/bin:$HOME/$QT_BIN:$PATH
+    export PATH=$HOME/deps/bin:$QT_BIN:$PATH
     CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
 	cmake -DCMAKE_BUILD_TYPE=Release \
@@ -111,7 +111,7 @@ build_macosx_gcc()
 { rm -rf build.macosx-gcc
   mkdir build.macosx-gcc
   ( cd build.macosx-gcc
-    export PATH=$HOME/deps/bin:$HOME/$QT_BIN:$PATH
+    export PATH=$HOME/deps/bin:$QT_BIN:$PATH
     export CC=gcc-mp-13
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
         cmake -DCMAKE_BUILD_TYPE=PGO \
