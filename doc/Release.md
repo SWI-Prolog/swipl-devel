@@ -39,18 +39,17 @@ MacOS dependencies for new releases, in particular for OpenSSL.
       - automake
       - gnutar
       - gsed
-      - gcc11 (when building for x86_64 only)
+      - gcc13 (when building for x86_64)
       - cmake
       - openjdk17
-      - Qt 6.2.2
+      - Qt 6.6.1
   - Build the SWI-Prolog dependencies according to `scripts/macos-deps.sh`
 
 #### MacOS universal binaries
 
 We assume the build is done on an M1 system.
 
-  - Build the dependencies for both x86_64 and arm64.  Either on
-    machines with both architectures or using `clang -arch` option.
+  - Build the dependencies on both x86_64 and arm64.
   - Copy the x86_64 deps tree to ~/deps.x86_64.
   - Go to `deps` and run
 
@@ -69,6 +68,11 @@ We assume the build is done on an M1 system.
   - From there, the recipe in `scripts/make-distribution` does
     the job.
 
+Note  that ideally,  one  could build  the  dependencies as  universal
+binaries,  but OpenSSL  does not  build that  way and  pcre2 does  not
+include JIT support  for x86_64 this way.  In  general, libraries that
+include assembly or use CPU detection may not work at all or be slower
+when built as a universal binary.
 
 ## Accounts, etc
 
@@ -204,21 +208,33 @@ stamps vary.  Now
 ### Update docker-swipl
 
   - cp -r <latest version> <new version>
-  - Edit <newversion>/bullseye/Dockerfile, e.g.
+  - Edit <newversion>/bookworm/Dockerfile, e.g.
     - SWIPL_VER=8.2.3; \
     - SWIPL_CHECKSUM=9403972f9d87f1f4971fbd4a5644b4976b1b18fc174be84506c6b713bd1f9c93; \
   - Test using
-    - `docker pull debian:bullseye-slim`
+    - `docker pull debian:bookworm-slim`
     - `docker build . 2>&1 | tee build.log
   - On success, add the Dockerfile and create a PR
 
 ### Update official-images
 
+  - Prepare using
+
+        git checkout master
+		git pull
+		git checkout -b swipl-<version>
+
   - Edit `library/swipl`, update
     - GitCommit
     - Tags
     - Directory
+
   - Commit with comment "Updated swipl (devel/stable) to <version>"
+
+  - Push using
+
+       git push fork $(git rev-parse --abbrev-ref HEAD)
+
   - Create a PR.
 
 ## Creating the Announce post
