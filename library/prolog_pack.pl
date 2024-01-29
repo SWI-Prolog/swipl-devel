@@ -726,8 +726,9 @@ pack_default_options(Archive, Pack, OptsIn, Options) :- % (3)
     expand_file_name(Archive, [File]),
     exists_file(File),
     !,
-    (   pack_version_file(Pack, Version, File)
+    (   pack_version_file(Pack, VersionTerm, File)
     ->  uri_file_name(FileURL, File),
+        atom_version(Version, VersionTerm),
         merge_options([url(FileURL), version(Version)], OptsIn, Options)
     ;   domain_error(pack_file_name, Archive)
     ).
