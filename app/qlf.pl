@@ -55,9 +55,14 @@ main(Argv) :-
     ;   Options1 = Options2
     ),
     argv_options(Argv1, Pos, Options2),
-    run(Pos, Options).
+    maplist(expand_opt, Options, RunOptions),
+    run(Pos, RunOptions).
 main(_) :-
     argv_usage(debug).
+
+expand_opt(include(true), include(user)) :- !.
+expand_opt(Opt, Opt).
+
 
 		 /*******************************
 		 *             USAGE		*
@@ -65,6 +70,7 @@ main(_) :-
 
 opt_type(compile,   compile,   boolean).
 opt_type(c,         compile,   boolean).
+opt_type(include,   include,   boolean).
 opt_type(source,    source,    boolean).
 opt_type(s,         source,    boolean).
 opt_type(version,   version,   boolean).
@@ -80,6 +86,8 @@ opt_type(a,         all,       boolean).
 
 opt_help(compile,
          "Compile Prolog files").
+opt_help(include,
+         "Include other user files into .qlf file").
 opt_help(source,
          "List the source files from which this QLF file was created").
 opt_help(version,
@@ -325,7 +333,7 @@ qlf_compile(File, Options) :-
     ),
     option(preload(Preload), Options, []),
     forall(member(PeloadFile, Preload), preload(PeloadFile)),
-    qcompile(user:Base),
+    qcompile(user:Base, Options),
     (   option(expect_deps(Deps), Options)
     ->  file_name_extension(Base, qlf, QlfFile),
         '$qlf_sources'(QlfFile, Sources),
