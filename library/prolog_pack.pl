@@ -1817,8 +1817,7 @@ prepare_pack_dir(Dir, Options) :-
     (   empty_directory(Dir)
     ->  true
     ;   remove_existing_pack(Dir, Options)
-    ->  delete_directory_and_contents(Dir),
-        make_directory(Dir)
+    ->  make_directory(Dir)
     ).
 prepare_pack_dir(Dir, _) :-
     (   read_link(Dir, _, _)
