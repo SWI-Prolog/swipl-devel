@@ -11,8 +11,8 @@
 
 build_type=RelWithDebInfo
 generator=Ninja
-export CC=cc
-export CXX=c++
+export CC=
+export CXX=
 opts=
 
 config=$(basename $(pwd))
@@ -142,6 +142,21 @@ case $config in
     ;;
 esac
 
+case $config in
+    *wasm*)
+	WASM_HOME=$HOME/wasm
+	source $WASM_HOME/emsdk/emsdk_env.sh
+	TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
+	build_type=Release
+	LDFLAGS+=" -s STACK_SIZE=1048576"
+	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
+	opts+=" -DCMAKE_FIND_ROOT_PATH=$HOME/wasm"
+	opts+=" -DUSE_GMP=OFF"
+	opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	;;
+esac
+
 function confirm ()
 { while true; do
     echo -n "$1 "
@@ -159,10 +174,20 @@ function confirm ()
 }
 
 export CFLAGS
+export LDFLAGS
 
-echo "# Configuration based on build directory $config:"
-echo "# Using CC=$CC, CXX=$CXX, CFLAGS=$CFLAGS"
-echo "# Configure using "'"'"CC=$CC CXX=$CXX CFLAGS="'"'"$CFLAGS"'"'" cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts .."'"'
+using=
+[ -z "$CC" ]      || using+=" "CC=$CC
+[ -z "$CXX" ]     || using+=" "CXX=$CCX
+[ -z "$CFLAGS" ]  || using+=" "CFLAGS='"'$CFLAGS'"'
+[ -z "$LDFLAGS" ] || using+=" "LDFLAGS='"'$LDFLAGS'"'
+
+cat << EOF
+# Configure using
+#
+#    $using cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+#
+EOF
 
 if ! confirm "Run Cmake? "; then
   exit 1
@@ -170,8 +195,9 @@ fi
 
 cat > configure << EOF
 # Created by ../scripts/configure for $config at $(date)
-CC=$CC CXX=$CXX CFLAGS=$CFLAGS cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+
+$using cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
 EOF
 chmod +x configure
 
-cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+./configure
