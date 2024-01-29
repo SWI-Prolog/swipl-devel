@@ -1,24 +1,52 @@
 #!/bin/sh
 
+deployqt=
+
+usage()
+{ echo "Usage: $0 [--deployqt=prog] app"
+  exit 1
+}
+
+done=no
+while [ $done = no ]; do
+    case "$1" in
+	--deployqt=*)
+	    deployqt="$(echo $1 | sed 's/--deployqt=//')"
+	    shift
+	    ;;
+	--*)
+	    usage
+	    ;;
+	*)
+	    done=yes
+	    ;;
+    esac
+done
+
 app=$1
 
 if [ -z "$app" ]; then
-  echo "Usage: $0 app"
-  exit 1
+    usage
 fi
+
+printf "Fixing app bundle in $app\n"
 
 ARCH=$($app/Contents/MacOS/swipl --arch)
 moduledir=$app/Contents/swipl/lib/$ARCH
 frameworkdir=$app/Contents/Frameworks
 
-# macdeployqt appears to copy libjvm.dylib.  We
-# do not want that.
-if [ -f $frameworkdir/libjvm.dylib ]; then
-  printf "Removing libjvm.dylib from bundle\n"
-  rm $frameworkdir/libjvm.dylib
+if [ ! -z "$deployqt" ]; then
+    dest=$(dirname $app)
+    printf "Moving modules to avoid deployqt from interfering ..."
+    mv $moduledir $dest
+    printf "ok\n"
+    printf "Running $(basename $deployqt) ...\n"
+    $deployqt $app
+    printf "Restoring modules\n"
+    mv $dest/$(basename $moduledir) $(dirname $moduledir)
 fi
 
-printf "Adding Macport dylibs to modules in $moduledir\n"
+printf "Adding Macport dylibs to modules\n"
 
 changeset="$(echo $moduledir/*) $app/Contents/MacOS/swipl"
 while [ ! -z "$changeset" ]; do

@@ -144,19 +144,14 @@ if(BUILD_MACOS_BUNDLE)
     install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
 	    DESTINATION .)
 
-    install(CODE "set(deployqt \"${MACOS_DEPLOYQT}\")
-                  set(fixup_script \"${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh\")
+    install(CODE "set(deployqt ${MACOS_DEPLOYQT})
+                  set(fixup_script ${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh)
                  ")
     install(CODE [===[
       execute_process(COMMAND ln -sf SWI-Prolog swipl-win
 		      WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
-      message("Deploying Qt to ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app")
-      execute_process(COMMAND "${deployqt}"
-		      "${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app")
       file(WRITE "${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/swipl.home" "swipl\n")
-
-      message("Adding dependencies for modules to bundle")
-      execute_process(COMMAND ${fixup_script} "${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app")
+      execute_process(COMMAND ${fixup_script} --deployqt=${deployqt} ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
     ]===])
   endfunction()
 
