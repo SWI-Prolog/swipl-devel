@@ -1265,6 +1265,7 @@ class Prolog
 	      default:
 	      { let id = prolog.object_ids.get(data);
 
+		prolog.bindings.PL_put_variable(term);
 		if ( id === undefined )
 		{ id = prolog.next_object_id+1;
 		  rc = prolog.bindings.js_unify_obj(term, id);
