@@ -60,20 +60,20 @@ qlf(compile, Argv) =>
     ->  Options1 = [preload(Preload)|Options2]
     ;   Options1 = Options2
     ),
-    qlf_compile:argv_options(Argv1, Files, Options2),
+    argv_options(qlf_compile:Argv1, Files, Options2),
     maplist(expand_compile_opt, Options, RunOptions),
     cli_qlf_compile(Files, RunOptions).
 qlf(update, Argv) =>
-    qlf_update:argv_options(Argv, Files, Options),
+    argv_options(qlf_update:Argv, Files, Options),
     cli_qlf_update(Files, Options).
 qlf(info, Argv) =>
-    qlf_info:argv_options(Argv, [File], Options),
+    argv_options(qlf_info:Argv, [File], Options),
     cli_qlf_info(File, Options).
 qlf(list, Argv) =>
-    qlf_list:argv_options(Argv, Pos, Options),
+    argv_options(qlf_list:Argv, Pos, Options),
     cli_qlf_list(Pos, Options).
 qlf(clean, Argv) =>
-    qlf_clean:argv_options(Argv, Pos, Options),
+    argv_options(qlf_clean:Argv, Pos, Options),
     cli_qlf_clean(Pos, Options).
 qlf(help, [Command]) =>
     qlf_command(Command, _),
