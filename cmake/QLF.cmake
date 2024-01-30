@@ -102,7 +102,7 @@ function(add_qcompile_target target)
       qlf-${tname}
       OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
       APP qlf
-      OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --expect-deps ${src} ${extra}
+      OPTIONS compile ${SWIPL_QLF_BASE}/${target} --expect-deps ${src} ${extra}
       COMMENT "QLF compiling ${target}.qlf"
       DEPENDS ${src} ${my_DEPENDS})
 endfunction()
