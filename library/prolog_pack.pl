@@ -2870,6 +2870,7 @@ download_data(Info, Data),
 download_data(Info, Data) =>                % Archive download.
     Data = download(URL, Hash, Metadata),
     URL = Info.get(downloaded),
+    download_url(URL),
     pack_status_dir(Info.installed, archive(Archive, URL)),
     file_sha1(Archive, Hash),
     pack_archive_info(Archive, _Pack, Metadata, _).
