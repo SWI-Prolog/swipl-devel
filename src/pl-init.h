@@ -78,8 +78,10 @@ typedef struct
   opt_list     *search_paths;		/* -p path */
   opt_list     *defines;		/* -Dname=value */
   char *	pldoc_server;		/* --pldoc=Server */
+  char *	bootFrom;		/* -x file */
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
+  bool		compile;		/* -c source ... */
   bool		silent;			/* -q: quiet operation */
   bool		traditional;		/* --traditional: no version 7 exts */
   bool		nothreads;		/* --no-threads */
