@@ -3579,7 +3579,10 @@ install_from(Info, unpack) -->
     [ ' from ', url(Info.url) ].
 
 msg_downloads(Info) -->
-    [ ansi(comment, ' (downloaded ~D times)', [Info.get(all_downloads)]) ],
+    { Downloads = Info.get(all_downloads),
+      Downloads > 0
+    },
+    [ ansi(comment, ' (downloaded ~D times)', [Downloads]) ],
     !.
 msg_downloads(_) -->
     [].
