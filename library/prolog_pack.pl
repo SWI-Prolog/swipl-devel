@@ -1600,7 +1600,8 @@ local_pack_info(PackDir,
     findall(Req, member(requires(Req), Info), Requires),
     findall(Prv, member(provides(Prv), Info), Provides),
     findall(Cfl, member(conflicts(Cfl), Info), Conflicts),
-    (   is_git_directory(PackDir)
+    (   have_git,
+        is_git_directory(PackDir)
     ->  git_hash(Hash, [directory(PackDir)]),
         IsGit = true
     ;   Hash = '-',
