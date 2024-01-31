@@ -79,6 +79,9 @@ qlf(help, [Command]) =>
     qlf_command(Command, _),
     atom_concat(qlf_, Command, Module),
     argv_usage(Module:debug).
+qlf(_, _) =>
+    usage,
+    halt(1).
 
 qlf_compile:opt_type(include,   include,   boolean).
 qlf_compile:opt_help(help(usage),
