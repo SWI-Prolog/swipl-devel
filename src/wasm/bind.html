@@ -1,0 +1,45 @@
+<html>
+  <body>
+    <p>This demo illustrates that we can use a JavaScript object in a
+      DOM bind/4 call.  Note that this prevents the passed object
+      (the Button) to be reclaimed.  It is in general better to use
+      find the addressed object(s) by navigating the DOM from the
+      event <code>target</code> or find the object from their class
+      or <code>id</code> property.
+    </p>
+    <p>
+      If you click the button, the label of the button is changed.
+    </p>
+    <script src="/wasm/swipl-bundle.js"></script>
+    </script>
+    <script>
+      let Prolog;
+      var Module = {
+	arguments: ["-q"],
+	locateFile: (file) => '/wasm/' + file
+      };
+      (async (a) => {
+        await SWIPL(Module);
+	Prolog = Module.prolog;
+        Prolog.load_scripts()
+      })();
+    </script>
+    <script id="main" type="text/prolog">
+      :- use_module(library(dom)).
+
+      :- initialization(run).
+
+      run :-
+        create(button, Button),
+        Button.innerHTML := "click",
+        _ := document.body.appendChild(Button),
+        bind(Button, click, _, test(Button)).
+
+      test(Button) :-
+	_ := console.log(Button),  
+	Text := Button.innerHTML,
+	string_concat(Text, " and again", NewText),
+	Button.innerHTML := NewText.
+    </script>
+  </body>
+</html>

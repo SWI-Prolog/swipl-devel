@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,10 @@
             bind/4                      % +Elem,+EventType,-Event,:Goal
           ]).
 :- use_module(wasm).
+:- use_module(autoload(apply), [maplist/3, maplist/2]).
+:- use_module(library(gensym), [gensym/2]).
+:- use_module(library(lists), [member/2]).
+:- use_module(library(terms), [foldsubterms/5]).
 
 /** <module> Tau-Prolog compatible DOM manipulation
 
@@ -56,7 +60,7 @@ incompatible.
 */
 
 :- meta_predicate
-    bind(+,+,-,:).
+    bind(+,+,-,0).
 
 %!  get_by_id(+Id, -Element) is semidet.
 %
@@ -139,9 +143,36 @@ parent_of(Child, Parent), nonvar(Parent) =>
 %!  bind(+Elem, +EventType, -Event, :Goal)
 %
 %   Bind EventType on Elem to call Goal. If  Event appears in Goal is is
-%   bound to the current event.
+%   bound to the current  event.  Goal   may  contain  JavaScript object
+%   references. Using this feature asserts a   mapping  that holds these
+%   JavaScript object references in  the   Prolog  database. Neither the
+%   clause, nor the referenced JavaScript objects   will be reclaimed if
+%   the object to which this event is  bound is deleted. In other words,
+%   do not use JavaScript objects in  the   bind/4  call for objects for
+%   which many instances are created and later destroyed. If you need to
+%   deal with volatile objects, find these object from the event or some
+%   permanent object by navigating the DOM.
 
+:- dynamic js_obj_bound/2 as volatile.
+
+bind(Elem, On, Ev, Goal) :-
+    foldsubterms(map_object, Goal, Goal1, [], Map),
+    Map \== [],
+    gensym(js_obj_binding, Id),
+    asserta(js_obj_bound(Id, Map)),
+    maplist(arg(1), Map, Vars),
+    bind(Elem, On, Ev, js_obj_call(Id, Vars, Goal1)).
 bind(Elem, On, Ev, Goal) :-
     term_string(Goal, String, [variable_names(['Event__'=Ev])]),
     _ := prolog.bind(Elem, #On, String).
 
+map_object(Obj, Var, Map, [Var=Obj|Map]) :-
+    is_object(Obj).
+
+js_obj_call(Id, Vars, Goal) :-
+    js_obj_bound(Id, Map),
+    maplist(arg(1), Map, Vars),
+    maplist(bind_js_obj, Map),
+    call(Goal).
+
+bind_js_obj(X=X).
