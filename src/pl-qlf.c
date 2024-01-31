@@ -2549,7 +2549,7 @@ saveQlfTerm(DECL_LD wic_state *state, term_t t)
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
-	Sdprintf(" from %d ... ", Stell(fd)));
+	Sdprintf(" from %ld ... ", Stell(fd)));
 
   options.functor = FUNCTOR_dvard1;
   options.on_attvar = AV_SKIP;
@@ -3085,7 +3085,9 @@ addDirectiveWic(DECL_LD wic_state *state, term_t term)
 }
 
 
-#define importWic(state, proc, strength) LDFUNC(importWic, state, proc, strength)
+#define importWic(state, proc, strength) \
+	LDFUNC(importWic, state, proc, strength)
+
 static bool
 importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
 { int flags = atomToImportStrength(strength);
@@ -3093,6 +3095,9 @@ importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
   assert(flags >= 0);
   closePredicateWic(state);
 
+  DEBUG(MSG_QLF_IMPORT, Sdprintf("Save %s import %s from %ld\n",
+				 PL_atom_chars(strength), procedureName(proc),
+				 Stell(state->wicFd)));
   Sputc('I', state->wicFd);
   saveXRProc(state, proc);
   qlfPutInt64(flags, state->wicFd);
