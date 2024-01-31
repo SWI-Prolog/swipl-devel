@@ -2,7 +2,7 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
+    WWW:           https://www.swi-prolog.org
     Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -39,12 +39,18 @@
 :- use_module(library(lists)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(option)).
-:- use_module(library(strings)).
 :- use_module(library(ansi_term)).
 
 :- initialization(main, main).
 
-main(Argv) :-
+main([Argv1|Argv]) :-
+    qlf(Argv1, Argv),
+    !.
+main(_) :-
+    usage,
+    halt(1).
+
+qlf(compile, Argv) =>
     argv_deps_preload(Argv, Deps, Preload, Argv1),
     (   memberchk('--expect-deps', Argv)
     ->  Options = [expect_deps(Deps)|Options1]
@@ -54,125 +60,134 @@ main(Argv) :-
     ->  Options1 = [preload(Preload)|Options2]
     ;   Options1 = Options2
     ),
-    argv_options(Argv1, Pos, Options2),
-    run(Pos, Options).
-main(_) :-
+    argv_options(qlf_compile:Argv1, Files, Options2),
+    maplist(expand_compile_opt, Options, RunOptions),
+    cli_qlf_compile(Files, RunOptions).
+qlf(update, Argv) =>
+    argv_options(qlf_update:Argv, Files, Options),
+    cli_qlf_update(Files, Options).
+qlf(info, Argv) =>
+    argv_options(qlf_info:Argv, [File], Options),
+    cli_qlf_info(File, Options).
+qlf(list, Argv) =>
+    argv_options(qlf_list:Argv, Pos, Options),
+    cli_qlf_list(Pos, Options).
+qlf(clean, Argv) =>
+    argv_options(qlf_clean:Argv, Pos, Options),
+    cli_qlf_clean(Pos, Options).
+qlf(help, [Command]) =>
+    qlf_command(Command, _),
+    atom_concat(qlf_, Command, Module),
+    argv_usage(Module:debug).
+qlf(_, _) =>
+    usage,
+    halt(1).
+
+qlf_compile:opt_type(include,   include,   boolean).
+qlf_compile:opt_help(help(usage),
+                     " compile [--include] file ...").
+qlf_compile:opt_help(help(header),
+                     [ansi(bold, "Compile Prolog into .qlf files.", [])]).
+qlf_compile:opt_help(include,
+                     "Include other user files into .qlf file").
+
+qlf_update:opt_type(include,   include,   boolean).
+qlf_update:opt_type(Flag, Opt, Type) :- qlf_list:opt_type(Flag, Opt, Type).
+
+qlf_update:opt_help(help(header),
+                    [ansi(bold, "Recompile outdated .qlf files.", [])]).
+qlf_update:opt_help(help(usage),
+                     " update [option ...] file-or-directory ...").
+qlf_update:opt_help(include,
+                    "Include other user files into .qlf file").
+qlf_update:opt_help(Opt, Message) :-
+    qlf_list:opt_help(Opt, Message),
+    atom(Opt).
+
+
+qlf_info:opt_type(source,    source,    boolean).
+qlf_info:opt_type(s,         source,    boolean).
+qlf_info:opt_type(version,   version,   boolean).
+qlf_info:opt_type(v,         version,   boolean).
+
+qlf_info:opt_help(help(usage),
+                  " info [option ...] file").
+qlf_info:opt_help(source,
+                  "List the source files from which this QLF file was created").
+qlf_info:opt_help(version,
+                  "List version information about QLF file").
+
+qlf_list:opt_type(recursive, recursive, boolean).
+qlf_list:opt_type(r,         recursive, boolean).
+qlf_list:opt_type(all,       all,       boolean).
+qlf_list:opt_type(a,         all,       boolean).
+
+qlf_list:opt_help(help(header),
+                   [ansi(bold, "List .qlf files and their status.", [])]).
+qlf_list:opt_help(help(usage),
+                  " list [option ...] [file-or-directory ...]").
+qlf_list:opt_help(recursive,
+                  "Recurse into subdirectories").
+qlf_list:opt_help(all,
+                  "Also act on valid and up-to-date QLF files").
+
+qlf_clean:opt_type(Flag, Opt, Type) :- qlf_list:opt_type(Flag, Opt, Type).
+qlf_clean:opt_help(help(header),
+                   [ansi(bold, "Delete out-of-date .qlf files.", [])]).
+qlf_clean:opt_help(help(usage),
+                   " clean [option ...] [file-or-directory ...]").
+qlf_clean:opt_help(Opt, Message) :-
+    qlf_list:opt_help(Opt, Message),
+    atom(Opt).
+
+
+%!  usage
+%
+%   Overall usage
+
+qlf_command(compile, "Compile Prolog file to .qlf").
+qlf_command(update,  "Recompile outdated .qlf files").
+qlf_command(info,    "Print information on a .qlf file").
+qlf_command(list,    "List .qlf files").
+qlf_command(clean,   "Clean .qlf files").
+
+usage :-
     argv_usage(debug).
 
-		 /*******************************
-		 *             USAGE		*
-		 *******************************/
-
-opt_type(compile,   compile,   boolean).
-opt_type(c,         compile,   boolean).
-opt_type(source,    source,    boolean).
-opt_type(s,         source,    boolean).
-opt_type(version,   version,   boolean).
-opt_type(v,         version,   boolean).
-opt_type(clean,     clean,     boolean).
-opt_type(update,    update,    boolean).
-opt_type(list,      list,      boolean).
-opt_type(l,         list,      boolean).
-opt_type(recursive, recursive, boolean).
-opt_type(r,         recursive, boolean).
-opt_type(all,       all,       boolean).
-opt_type(a,         all,       boolean).
-
-opt_help(compile,
-         "Compile Prolog files").
-opt_help(source,
-         "List the source files from which this QLF file was created").
-opt_help(version,
-         "List version information about QLF file").
-opt_help(clean,
-         "Remove all QLF files that are incompatible with this version of Prolog").
-opt_help(update,
-         "Recompile all QLF files that are incompatible or out-of-date").
-opt_help(list,
-         "List QLF files").
-opt_help(recursive,
-         "Recurse into subdirectories").
-opt_help(all,
-         "Also act on valid and up-to-date QLF files").
-
 opt_help(help(header),
-         md({|string||
-# SWI-Prolog QLF (Quick Load Files) utility
-
-The __qlf__ tool provides commandline friendly interaction with QLF
-files.  It is primarily intended to support build tools.
-            |})).
-
+         [ ansi(bold, 'Manage SWI-Prolog .qlf (Quick Load) files',  []),
+           nl
+         ]).
 opt_help(help(usage),
-         " [--compile] file[.pl] [--expect-deps file.pl ...] [--preload file.pl ...]").
-opt_help(help(usage),
-         " --source file.qlf").
-opt_help(help(usage),
-         " --version file.qlf").
-opt_help(help(usage),
-         " --list [--recursive] [--all] file.qlf|dir ...").
-opt_help(help(usage),
-         " --clean [--recursive] [--all] file.qlf|dir ...").
-opt_help(help(usage),
-         " --update [--recursive] [--all] file.qlf|dir ...").
-opt_help(help(description),
-         md({|string||
-## Command descriptions
+         [ ' [option ...] '-[],
+           ansi(bold, 'command', []),
+           ' [arg ...]'-[]
+         ]).
+opt_help(help(footer),
+         [ nl, ansi(comment, 'Available commands:', []), nl, nl,
+           \commands,
+           nl,
+           'For help on a command use -h as command argument'
+         ]).
 
-  - ``--compile`` [option..] file.pl<br>
-    Compile a Prolog source to QLF.  The ``--preload`` option first
-    loads possible requirements such as expansion rules.  The
-    ``-expect-deps`` option is intended for build tools.  It allows
-    the build tool to specify the files it has registered as
-    inputs.  If this does not match the actual inputs a warning is
-    printed.  The inputs for a qlf file can be found using ``--sources``.
+commands -->
+    foreach(qlf_command(Cmd, Comment),
+            [ ansi(bold, '~w', [Cmd]),
+              ansi(comment, '~t~15|~s~n', [Comment])
+            ]).
 
-  - ``--source`` file.qlf<br>
-    Print the source file that are included into the QLF file.
-
-  - ``--version`` file.qlf<br>
-    Print compatibility version info on the QLF file
-
-  - ``--list``<br>
-    List QLF files and whether or not they are up-to-date.  For
-    example, list all QLF files in the current directory and its
-    sub directories:
-
-    ```
-    swipl qlf -lr .
-    ```
-  - `--clean`<br>
-    Clean QLF files.  By default cleans incompatible or out-of-date
-    QLF files.  Using ``--all``, all QLF files are removed.  For
-    example, to remove all QLF files in current directory and its
-    sub directories:
-
-    ```
-    swipl qlf --clean -ra .
-    ```
-  - ``--update``<br>
-    Update any out-of-date or incompatible QLF file.  Processes
-    the ``--reload file ..` option.
-
-            |})).
 
 		 /*******************************
-		 *           MISC SUPPORT	*
+		 *          SUB COMMANDS	*
 		 *******************************/
 
-run([File], Options) :-
-    option(compile(true), Options),
-    !,
-    qlf_compile(File, Options).
-run([File], Options) :-
+cli_qlf_info(File, Options) :-
     option(source(true), Options),
     !,
     '$qlf_sources'(File, Sources),
     forall(member(F, Sources),
            writeln(F)).
-run([File], Options) :-
-    option(version(true), Options),
-    !,
+cli_qlf_info(File, _Options) :-
     '$qlf_versions'(File, CurrentVersion, MinLOadVersion, FileVersion,
                     CurrentSignature, FileSignature),
     format('QLF version: ~p (current ~p, compatibility ~p)~n',
@@ -184,28 +199,17 @@ run([File], Options) :-
     ;   ansi_format(warning,
                     'QLF file is incompatible with this version of Prolog~n', [])
     ).
-run(Files, Options) :-
-    option(clean(true), Options),
-    !,
-    forall(member(F, Files), qlf_clean(F, Options)).
-run(Files, Options) :-
-    option(update(true), Options),
-    !,
-    forall(member(F, Files), qlf_update(F, Options)).
-run(Files, Options) :-
-    option(list(true), Options),
-    !,
-    (   Files == [],
-        option(recursive(true), Options)
-    ->  qlf_list('.', Options)
-    ;   forall(member(F, Files), qlf_list(F, Options))
-    ).
-run([File], Options) :-
-    file_name_extension(_, Ext, File),
-    user:prolog_file_type(Ext, prolog),
-    !,
-    run([File], [compile(true)|Options]).
 
+%!  cli_qlf_clean(+Files, +Options) is det.
+%
+%   Remove specified .qlf files.
+
+cli_qlf_clean([], Options) :-
+    option(recursive(true), Options),
+    !,
+    qlf_clean('.', Options).
+cli_qlf_clean(Files, Options) :-
+    forall(member(F, Files), qlf_clean(F, Options)).
 
 qlf_clean(Dir, Options) :-
     exists_directory(Dir),
@@ -234,6 +238,13 @@ qlf_clean(File, _) :-
     delete_file(File),
     !.
 
+%!  cli_qlf_update(+Files, +Options) is det.
+%
+%   Recompile .qlf files.
+
+cli_qlf_update(Files, Options) :-
+    forall(member(F, Files), qlf_update(F, Options)).
+
 qlf_update(Dir, Options) :-
     exists_directory(Dir),
     option(recursive(true), Options),
@@ -253,12 +264,12 @@ qlf_update(File, Options) :-
     !,
     (   option(all(true), Options)
     ->  print_message(informational, qlf(recompile(File, all))),
-        qlf_compile(File, Options)
+        cli_qlf_compile(File, Options)
     ;   true
     ).
 qlf_update(File, Options) :-
     print_message(informational, qlf(recompile(File, update))),
-    qlf_compile(File, Options).
+    cli_qlf_compile(File, Options).
 
 qlf_up_to_date(File) :-
     '$qlf_versions'(File, CurrentVersion, _MinLOadVersion, FileVersion,
@@ -271,6 +282,17 @@ qlf_up_to_date(File) :-
     forall(member(S, Sources),
           ( catch(time_file(S, TS), E, fail),
             TS < TQLF)).
+
+%!  cli_qlf_list(+Files, +Options) is det.
+%
+%   List QLF files
+
+cli_qlf_list(Files, Options) :-
+    (   Files == [],
+        option(recursive(true), Options)
+    ->  qlf_list('.', Options)
+    ;   forall(member(F, Files), qlf_list(F, Options))
+    ).
 
 qlf_list(Dir, Options) :-
     exists_directory(Dir),
@@ -295,7 +317,7 @@ qlf_list(File, _Options) :-
 
 
 		 /*******************************
-		 *       --build support	*
+		 *       compile SUPPORT	*
 		 *******************************/
 
 argv_deps_preload([], [], [], []).
@@ -317,7 +339,15 @@ argv_files([Opt|Argv], [Opt|Argv], Files, Files) :-
 argv_files([File|Argv0], Argv, [File|Files0], Files) :-
     argv_files(Argv0, Argv, Files0, Files).
 
-qlf_compile(File, Options) :-
+expand_compile_opt(include(true), include(user)) :- !.
+expand_compile_opt(Opt, Opt).
+
+cli_qlf_compile(Files, Options) :-
+    is_list(Files),
+    !,
+    forall(member(File, Files),
+           cli_qlf_compile(File, Options)).
+cli_qlf_compile(File, Options) :-
     (   file_name_extension(Base, Ext, File),
         user:prolog_file_type(Ext, prolog)
     ->  true
@@ -325,7 +355,7 @@ qlf_compile(File, Options) :-
     ),
     option(preload(Preload), Options, []),
     forall(member(PeloadFile, Preload), preload(PeloadFile)),
-    qcompile(user:Base),
+    qcompile(user:Base, Options),
     (   option(expect_deps(Deps), Options)
     ->  file_name_extension(Base, qlf, QlfFile),
         '$qlf_sources'(QlfFile, Sources),

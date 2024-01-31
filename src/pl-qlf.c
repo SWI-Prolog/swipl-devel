@@ -104,7 +104,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<version-number>
 			<bits-per-word>
 			'F' <string>			% path of qlf file
-			{'I' <include>}
+			{'L' <include>}
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
 <qlf-module>	::=	<qlf-header>
@@ -138,6 +138,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
 		      | 'I' <XR/procedure> <flags>	% import predicate
+		      | 'L' <include>			% record included file
 		      | 'Q' <qlf-module>		% include module
 		      | 'M' <XR/modulename>		% load-in-module
 			    {<statement>}
@@ -291,6 +292,7 @@ typedef struct wic_state
 #define	loadStatement(state, c, skip)	LDFUNC(loadStatement, state, c, skip)
 #define	loadPart(state, module, skip)	LDFUNC(loadPart, state, module, skip)
 #define	loadInModule(state, skip)	LDFUNC(loadInModule, state, skip)
+#define loadInclude(state, skip)	LDFUNC(loadInclude, state, skip)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -307,6 +309,7 @@ static atom_t	getAtom(IOSTREAM *fd, PL_blob_t *type);
 static bool	loadStatement(wic_state *state, int c, int skip);
 static bool	loadPart(wic_state *state, Module *module, int skip);
 static bool	loadInModule(wic_state *state, int skip);
+static bool	loadInclude(wic_state *state, int skip);
 static int	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
@@ -1086,7 +1089,8 @@ loadStatement(DECL_LD wic_state *state, int c, int skip)
     }
     case 'I':
       return loadImport(state, skip);
-
+    case 'L':
+      return loadInclude(state, skip);
     case 'D':
     { fid_t cid;
 
@@ -1446,6 +1450,9 @@ loadPredicate(DECL_LD wic_state *state, int skip)
       { DEBUG(MSG_QLF_PREDICATE, Sdprintf("ok\n"));
 	succeed;
       }
+      case 'L':
+	loadInclude(state, FALSE);
+	continue;
       case 'C':
       { int has_dicts = 0;
 	tmp_buffer buf;
@@ -2040,9 +2047,8 @@ loadInModule(DECL_LD wic_state *state, int skip)
 }
 
 
-#define loadInclude(state) LDFUNC(loadInclude, state)
 static bool
-loadInclude(DECL_LD wic_state *state)
+loadInclude(DECL_LD wic_state *state, int skip)
 { IOSTREAM *fd = state->wicFd;
   atom_t owner, pn, fn;
   int line;
@@ -2051,26 +2057,33 @@ loadInclude(DECL_LD wic_state *state)
   term_t t = PL_new_term_ref();
   sourceloc loc;
 
+  DEBUG(MSG_QLF_INCLUDE, Sdprintf("Loading include from %ld ",
+				  Stell(state->wicFd)));
+
   owner = loadXR(state);
   pn    = loadXR(state);
   line  = qlfGetInt32(fd);
   fn    = loadXR(state);
   time  = qlfGetDouble(fd);
 
-  if ( !PL_unify_term(t,
-		      PL_FUNCTOR, FUNCTOR_colon2,
-			PL_ATOM, ATOM_system,
-			PL_FUNCTOR_CHARS, "$included", 4,
-			  PL_ATOM, pn,
-			  PL_INT, line,
-			  PL_ATOM, fn,
-			  PL_FLOAT, time) )
-    return FALSE;
+  DEBUG(MSG_QLF_INCLUDE, Sdprintf("(%s)\n ", PL_atom_chars(fn)));
 
-  loc.file = pn;
-  loc.line = line;
+  if ( !skip )
+  { if ( !PL_unify_term(t,
+			PL_FUNCTOR, FUNCTOR_colon2,
+			  PL_ATOM, ATOM_system,
+			  PL_FUNCTOR_CHARS, "$included", 4,
+			    PL_ATOM, pn,
+			    PL_INT, line,
+			    PL_ATOM, fn,
+			    PL_FLOAT, time) )
+      return FALSE;
 
-  assert_term(t, NULL, CL_END, owner, &loc, 0);
+    loc.file = pn;
+    loc.line = line;
+
+    assert_term(t, NULL, CL_END, owner, &loc, 0);
+  }
 
   PL_discard_foreign_frame(fid);
   return TRUE;
@@ -2549,7 +2562,7 @@ saveQlfTerm(DECL_LD wic_state *state, term_t t)
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
-	Sdprintf(" from %d ... ", Stell(fd)));
+	Sdprintf(" from %ld ... ", Stell(fd)));
 
   options.functor = FUNCTOR_dvard1;
   options.on_attvar = AV_SKIP;
@@ -3085,7 +3098,9 @@ addDirectiveWic(DECL_LD wic_state *state, term_t term)
 }
 
 
-#define importWic(state, proc, strength) LDFUNC(importWic, state, proc, strength)
+#define importWic(state, proc, strength) \
+	LDFUNC(importWic, state, proc, strength)
+
 static bool
 importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
 { int flags = atomToImportStrength(strength);
@@ -3093,6 +3108,9 @@ importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
   assert(flags >= 0);
   closePredicateWic(state);
 
+  DEBUG(MSG_QLF_IMPORT, Sdprintf("Save %s import %s from %ld\n",
+				 PL_atom_chars(strength), procedureName(proc),
+				 Stell(state->wicFd)));
   Sputc('I', state->wicFd);
   saveXRProc(state, proc);
   qlfPutInt64(flags, state->wicFd);
@@ -3637,8 +3655,9 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
     switch(c)
     { case 'Q':
 	break;
-      case 'I':
-	loadInclude(state);
+      case 'I':			/* load version 68 files */
+      case 'L':
+	loadInclude(state, FALSE);
 	continue;
       default:
 	qlfLoadError(state);
@@ -3852,7 +3871,10 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
        (state=LD->qlf.write_state) )
   { IOSTREAM *fd = state->wicFd;
 
-    Sputc('I', fd);
+    DEBUG(MSG_QLF_INCLUDE, Sdprintf("Saving include of %s from %ld\n",
+				    PL_atom_chars(fn),
+				    Stell(state->wicFd)));
+    Sputc('L', fd);
     saveXR(state, owner);
     saveXR(state, pn);
     qlfPutInt64(line, fd);

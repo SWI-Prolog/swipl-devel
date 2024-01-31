@@ -726,8 +726,9 @@ pack_default_options(Archive, Pack, OptsIn, Options) :- % (3)
     expand_file_name(Archive, [File]),
     exists_file(File),
     !,
-    (   pack_version_file(Pack, Version, File)
+    (   pack_version_file(Pack, VersionTerm, File)
     ->  uri_file_name(FileURL, File),
+        atom_version(Version, VersionTerm),
         merge_options([url(FileURL), version(Version)], OptsIn, Options)
     ;   domain_error(pack_file_name, Archive)
     ).
@@ -1599,7 +1600,8 @@ local_pack_info(PackDir,
     findall(Req, member(requires(Req), Info), Requires),
     findall(Prv, member(provides(Prv), Info), Provides),
     findall(Cfl, member(conflicts(Cfl), Info), Conflicts),
-    (   is_git_directory(PackDir)
+    (   have_git,
+        is_git_directory(PackDir)
     ->  git_hash(Hash, [directory(PackDir)]),
         IsGit = true
     ;   Hash = '-',
@@ -1816,8 +1818,7 @@ prepare_pack_dir(Dir, Options) :-
     (   empty_directory(Dir)
     ->  true
     ;   remove_existing_pack(Dir, Options)
-    ->  delete_directory_and_contents(Dir),
-        make_directory(Dir)
+    ->  make_directory(Dir)
     ).
 prepare_pack_dir(Dir, _) :-
     (   read_link(Dir, _, _)
@@ -2869,6 +2870,7 @@ download_data(Info, Data),
 download_data(Info, Data) =>                % Archive download.
     Data = download(URL, Hash, Metadata),
     URL = Info.get(downloaded),
+    download_url(URL),
     pack_status_dir(Info.installed, archive(Archive, URL)),
     file_sha1(Archive, Hash),
     pack_archive_info(Archive, _Pack, Metadata, _).
@@ -3577,7 +3579,10 @@ install_from(Info, unpack) -->
     [ ' from ', url(Info.url) ].
 
 msg_downloads(Info) -->
-    [ ansi(comment, ' (downloaded ~D times)', [Info.get(all_downloads)]) ],
+    { Downloads = Info.get(all_downloads),
+      Downloads > 0
+    },
+    [ ansi(comment, ' (downloaded ~D times)', [Downloads]) ],
     !.
 msg_downloads(_) -->
     [].

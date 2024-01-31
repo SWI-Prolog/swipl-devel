@@ -2,7 +2,7 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
+    WWW:           https://www.swi-prolog.org
     Copyright (c)  2023, SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -75,8 +75,10 @@ pack(_, _) =>
 
 pack_command(list,    "List packages").
 pack_command(find,    "Find packages").
+pack_command(info,    "Print info on a pack").
 pack_command(install, "Install a package").
 pack_command(remove,  "Uninstall a package").
+pack_command(publish, "Register a pack with swi-prolog.org").
 pack_command(help,    "Help on command (also swipl pack command -h)").
 
 pack_find:opt_type(_,_,_) :- fail.
