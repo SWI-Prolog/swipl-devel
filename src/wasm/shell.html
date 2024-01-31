@@ -245,7 +245,9 @@ load_file(Spec, String) :-
 </script>
 
 <!-- Load Prolog -->
-<!-- Use swipl-bundle.js or swipl-web.js -->
+<!-- Use swipl-bundle.js or swipl-web.js.  The bundle is easier to
+     distribute while web is better for local use with e.g., Emscripten
+     tools such as --profiling -->
 <script src="/wasm/swipl-bundle.js"></script>
 
 <!-- Splitter from https://split.js.org Requires #content to be flex.-->
