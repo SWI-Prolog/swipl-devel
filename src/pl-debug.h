@@ -82,6 +82,7 @@
 #define MSG_QLF_BOOT_READ	 37
 #define MSG_QLF_LABEL		 38
 #define MSG_QLF_IMPORT		 92
+#define MSG_QLF_INCLUDE		 93
 #define MSG_PROC_COUNT		 39
 #define MSG_CUT			 40
 
