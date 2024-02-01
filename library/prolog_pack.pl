@@ -2408,6 +2408,7 @@ confirm_remove(Pack, Deps, Delete, Options) :-
 %       If `true` (default), clean the destination directory first
 
 pack_publish(Dir, Options) :-
+    \+ download_url(Dir),
     is_git_directory(Dir), !,
     pack_git_info(Dir, _Hash, Metadata),
     prepare_repository(Dir, Metadata, Options),
