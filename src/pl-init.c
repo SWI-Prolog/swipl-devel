@@ -1164,6 +1164,14 @@ PL_initialise(int argc, char **argv)
 #endif
   }
   initDefaultOptions();
+  if ( GD->resources.DB )
+  { IOSTREAM *opts;
+
+    if ( (opts=SopenZIP(GD->resources.DB, "$prolog/options.txt", RC_RDONLY)) )
+    { loadStateOptions(opts);
+      Sclose(opts);
+    }
+  }
 
   if ( !GD->resources.DB ||
        !streq(GD->options.saveclass, "runtime") )
@@ -1217,7 +1225,6 @@ PL_initialise(int argc, char **argv)
 	argv = argvleft;
       }
     }
-
   } else
   { argc--;				/* saved state: only drop program */
     argv++;
