@@ -169,7 +169,11 @@ typedef uintptr_t	term_t;		/* opaque term handle */
 #endif
 #ifndef PL_HAVE_ATOM_T
 #define PL_HAVE_ATOM_T
+#ifdef O_M64
+typedef uint64_t	atom_t;		/* opaque handle to an atom */
+#endif
 typedef uintptr_t	atom_t;		/* opaque handle to an atom */
+#else
 #endif
 
 typedef struct io_functions

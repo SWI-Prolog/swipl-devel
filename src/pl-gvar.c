@@ -87,7 +87,7 @@ free_nb_linkval_value(word value)
 
 
 static void
-free_nb_linkval_symbol(void *name, void* value)
+free_nb_linkval_symbol(table_key_t name, table_value_t value)
 { free_nb_linkval_value((word)value);
   free_nb_linkval_name((atom_t)name);
 }
@@ -103,7 +103,7 @@ new_gvar(DECL_LD atom_t name, atom_t value)
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
-  addNewHTable(LD->gvar.nb_vars, (void*)name, (void*)old);
+  addNewHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)old);
   PL_register_atom(name);
 
   return old;
@@ -114,7 +114,7 @@ new_gvar(DECL_LD atom_t name, atom_t value)
 static word
 lookup_gvar(DECL_LD atom_t name)
 { if ( LD->gvar.nb_vars )
-    return (word)lookupHTable(LD->gvar.nb_vars, (void*)name);
+    return (word)lookupHTable(LD->gvar.nb_vars, (table_key_t)name);
 
   return 0;
 }
@@ -183,7 +183,8 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
       freezeGlobal();		/* The value location must be */
       if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
-      updateHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
+      updateHTable(LD->gvar.nb_vars,
+		   (table_key_t)name, (table_value_t)makeRefG(p));
     }
 
     TrailAssignment(p);
@@ -192,7 +193,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
   { if ( storage(old) == STG_GLOBAL )
       LD->gvar.grefs--;
 
-    updateHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
+    updateHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)w);
 
     if ( storage(w) == STG_GLOBAL )
     { freezeGlobal();
@@ -268,7 +269,7 @@ int
 gvar_value(DECL_LD atom_t name, Word p)
 { if ( LD->gvar.nb_vars )
   { word w;
-    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (table_key_t)name)) )
     { *p = w;
       return TRUE;
     }
@@ -378,7 +379,8 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
     if ( (w = lookup_gvar(name)) )
     { if ( w != ATOM_no_value )
       { free_nb_linkval_value(w);
-	updateHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_no_value);
+	updateHTable(LD->gvar.nb_vars,
+		     (table_key_t)name, (table_value_t)ATOM_no_value);
       }
     } else
     { new_gvar(name, ATOM_no_value);
@@ -393,8 +395,6 @@ static
 PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   TableEnum e;
-  atom_t name;
-  word val;
   fid_t fid;
 
   switch( CTX_CNTRL )
@@ -425,8 +425,14 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   { freeTableEnum(e);
     return FALSE;
   }
-  while( advanceTableEnum(e, (void**)&name, (void**)&val) )
-  { if ( !is_gval(val) )
+
+  table_key_t tk;
+  table_value_t tv;
+  while( advanceTableEnum(e, &tk, &tv) )
+  { atom_t name = (atom_t)tk;
+    word val = (word)tv;
+
+    if ( !is_gval(val) )
       continue;
     if ( PL_unify_atom(A1, name) &&
 	 unify_ptrs(valTermRef(A2), &val, 0) )

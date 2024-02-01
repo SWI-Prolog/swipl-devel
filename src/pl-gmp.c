@@ -1417,6 +1417,7 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
     }
 
     *at = consInt(v);
+    assert(valInt(*at) == v);
     return TRUE;
   } else if ( mpz_to_int64(mpz, &v) )
   { return put_int64(at, v, flags);

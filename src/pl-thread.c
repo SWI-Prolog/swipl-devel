@@ -515,9 +515,9 @@ TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 		 *	    GLOBAL DATA		*
 		 *******************************/
 
-static Table threadTable;		/* name --> reference symbol */
+static TableWW threadTable;		/* name --> reference symbol */
 static int threads_ready = FALSE;	/* Prolog threads available */
-static Table queueTable;		/* name --> queue */
+static TableWP queueTable;		/* name --> queue */
 static int will_exec;			/* process will exec soon */
 
 
@@ -1024,13 +1024,13 @@ cleanupThreads(void)
   /*TLD_free(PL_ldata);*/		/* this causes crashes */
 
   if ( queueTable )
-  { destroyHTable(queueTable);		/* removes shared queues */
+  { destroyHTableWP(queueTable);	/* removes shared queues */
     queueTable = NULL;
     simpleMutexDelete(&queueTable_mutex);
   }
 #ifdef O_PLMT
   if ( GD->thread.mutexTable )
-  { destroyHTable(GD->thread.mutexTable);
+  { destroyHTableWP(GD->thread.mutexTable);
     GD->thread.mutexTable = NULL;
   }
 #endif
@@ -1278,8 +1278,8 @@ aliasThread(int tid, atom_t type, atom_t name)
   if ( !threadTable )
     threadTable = newHTable(16);
 
-  if ( (threadTable && lookupHTable(threadTable, (void *)name)) ||
-       (queueTable  && lookupHTable(queueTable,  (void *)name)) )
+  if ( (threadTable && lookupHTable(threadTable, name)) ||
+       (queueTable  && lookupHTableWP(queueTable,  name)) )
   { term_t obj = PL_new_term_ref();
 
     PL_UNLOCK(L_THREAD);
@@ -1293,7 +1293,7 @@ aliasThread(int tid, atom_t type, atom_t name)
   { th->alias = name;
     PL_register_atom(name);
     PL_register_atom(info->symbol);
-    addNewHTable(threadTable, (void *)name, (void *)info->symbol);
+    addNewHTable(threadTable, name, info->symbol);
   } else
   { rc = PL_no_memory();
   }
@@ -2145,7 +2145,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->arith.f                  = ldold->arith.f;
   if ( ldold->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
+    ldnew->prolog_flag.table	  = copyHTableWP(ldold->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   ldnew->tabling.restraint        = ldold->tabling.restraint;
@@ -2427,7 +2427,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     } else if ( isTextAtom(symbol) )	/* alias name? */
     { word w;
 
-      if ( (w = (word)lookupHTable(threadTable, (void *)symbol)) )
+      if ( (w = (word)lookupHTable(threadTable, symbol)) )
       { symbol = w;
 	goto from_symbol;
       } else
@@ -2606,7 +2606,7 @@ unalias_thread(thread_handle *th)
   { GET_LD
     atom_t symbol;
 
-    if ( (symbol=(word)deleteHTable(threadTable, (void *)th->alias)) )
+    if ( (symbol=deleteHTable(threadTable, th->alias)) )
     { th->alias = NULL_ATOM;
       PL_unregister_atom(name);
       PL_unregister_atom(symbol);
@@ -3683,7 +3683,7 @@ get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
     } else if ( isTextAtom(symbol) )
     { word w;
 
-      if ( (w = (word)lookupHTable(threadTable, (void *)symbol)) )
+      if ( (w = lookupHTable(threadTable, symbol)) )
       { symbol = w;
 	goto from_symbol;
       }
@@ -5078,7 +5078,7 @@ release_message_queue_ref(atom_t aref)
   { destroy_message_queue(q);			/* can be called twice */
     if ( !q->destroyed )
     { GET_LD
-      deleteHTable(queueTable, (void *)q->id);
+      deleteHTableWP(queueTable, q->id);
     }
     simpleMutexDelete(&q->mutex);
     PL_free(q);
@@ -5133,8 +5133,9 @@ unify_queue(term_t t, message_queue *q)
 
 
 static void
-free_queue_symbol(void *name, void *value)
-{ message_queue *q = value;
+free_queue_symbol(table_key_t name, table_value_t value)
+{ message_queue *q = val2ptr(value);
+  (void)name;
 
   destroy_message_queue(q);			/* must this be synced? */
   PL_free(q);
@@ -5150,13 +5151,13 @@ unlocked_message_queue_create(term_t queue, long max_size)
 
   if ( !queueTable )
   { simpleMutexInit(&queueTable_mutex);
-    queueTable = newHTable(16);
+    queueTable = newHTableWP(16);
     queueTable->free_symbol = free_queue_symbol;
   }
 
   if ( PL_get_atom(queue, &name) )
-  { if ( lookupHTable(queueTable, (void *)name) ||
-	 lookupHTable(threadTable, (void *)name) )
+  { if ( lookupHTableWP(queueTable, name) ||
+	 lookupHTable(threadTable, name) )
     { PL_error("message_queue_create", 1, NULL, ERR_PERMISSION,
 	       ATOM_create, ATOM_message_queue, queue);
       return NULL;
@@ -5183,7 +5184,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   } else
   { q->id = id;
   }
-  addNewHTable(queueTable, (void *)q->id, q);
+  addNewHTableWP(queueTable, q->id, q);
 
   if ( unify_queue(queue, q) )
   { if ( q->anonymous )
@@ -5245,7 +5246,7 @@ get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
 
   if ( queueTable )
   { message_queue *q;
-    if ( (q = lookupHTable(queueTable, (void *)id)) )
+    if ( (q = lookupHTableWP(queueTable, id)) )
     { *queue = q;
       return TRUE;
     }
@@ -5253,7 +5254,7 @@ get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
   if ( threadTable )
   { word w;
 
-    if ( (w = (word)lookupHTable(threadTable, (void *)id)) )
+    if ( (w = lookupHTable(threadTable, id)) )
     { thread_handle *th;
 
       if ( (th=symbol_thread_handle(w)) )
@@ -5386,7 +5387,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   }
 
   simpleMutexLock(&queueTable_mutex);	/* see markAtomsMessageQueues() */
-  deleteHTable(queueTable, (void*)q->id);
+  deleteHTableWP(queueTable, (table_key_t)q->id);
   simpleMutexUnlock(&queueTable_mutex);
 
   if ( !q->anonymous )
@@ -5485,10 +5486,11 @@ advance_qstate(qprop_enum *state)
     state->p = qprop_list;
   }
   if ( state->e )
-  { message_queue *q;
+  { table_value_t tv;
 
-    if ( advanceTableEnum(state->e, NULL, (void**)&q) )
-    { state->q = q;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { message_queue *q = val2ptr(tv);
+      state->q = q;
 
       succeed;
     }
@@ -5527,10 +5529,10 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 	switch( get_prop_def(property, ATOM_message_queue_property,
 			     qprop_list, &state->p) )
 	{ case 1:
-	    state->e = newTableEnum(queueTable);
+	    state->e = newTableEnumWP(queueTable);
 	    goto enumerate;
 	  case 0:
-	    state->e = newTableEnum(queueTable);
+	    state->e = newTableEnumWP(queueTable);
 	    state->p = qprop_list;
 	    state->enum_properties = TRUE;
 	    goto enumerate;
@@ -5569,11 +5571,12 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->q )			/* first time, enumerating queues */
-  { message_queue *q;
+  { table_value_t tv;
 
     assert(state->e);
-    if ( advanceTableEnum(state->e, NULL, (void**)&q) )
-    { state->q = q;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { message_queue *q = val2ptr(tv);
+      state->q = q;
     } else
     { freeTableEnum(state->e);
       assert(state == &statebuf);
@@ -7464,15 +7467,17 @@ markAtomsThreadMessageQueue(PL_local_data_t *ld)
 void
 markAtomsMessageQueues(void)
 { if ( queueTable )
-  { message_queue *q;
-    TableEnum e = newTableEnum(queueTable);
+  { TableEnum e = newTableEnumWP(queueTable);
 
-    while ( TRUE )
-    { simpleMutexLock(&queueTable_mutex);
-      if ( !advanceTableEnum(e, NULL, (void**)&q) )
+    for(;;)
+    { table_value_t tv;
+
+      simpleMutexLock(&queueTable_mutex);
+      if ( !advanceTableEnum(e, NULL, &tv) )
       { simpleMutexUnlock(&queueTable_mutex);
 	break;
       }
+      message_queue *q = val2ptr(tv);
       simpleMutexLock(&q->gc_mutex);
       simpleMutexUnlock(&queueTable_mutex);
       markAtomsMessageQueue(q);
@@ -8101,7 +8106,7 @@ static void
 cgcActivatePredicate(DECL_LD Definition def, gen_t gen)
 { DirtyDefInfo ddi;
 
-  if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
+  if ( (ddi=lookupHTablePP(GD->procedures.dirty, def)) )
     ddi_add_access_gen(ddi, gen);
 }
 

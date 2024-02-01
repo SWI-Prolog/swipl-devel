@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -251,9 +251,9 @@ PRED_IMPL("format_predicate", 2, format_predicate, META)
 		    A2);
 
   if ( !format_predicates )
-    format_predicates = newHTable(8);
+    format_predicates = newHTableWP(8);
 
-  updateHTable(format_predicates, (void *)(intptr_t)c, proc);
+  updateHTableWP(format_predicates, c, proc);
 
   return TRUE;
 }
@@ -262,8 +262,6 @@ PRED_IMPL("format_predicate", 2, format_predicate, META)
 static
 PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
 { PRED_LD
-  intptr_t name;
-  predicate_t pred;
   TableEnum e;
   fid_t fid;
 
@@ -274,7 +272,7 @@ PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
   { case FRG_FIRST_CALL:
       if ( !format_predicates )
 	fail;
-      e = newTableEnum(format_predicates);
+      e = newTableEnumWP(format_predicates);
       break;
     case FRG_REDO:
       e = CTX_PTR;
@@ -290,8 +288,14 @@ PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
   { freeTableEnum(e);
     return FALSE;
   }
-  while( advanceTableEnum(e, (void**)&name, (void**)&pred) )
-  { if ( PL_unify_integer(chr, name) &&
+
+  table_key_t tk;
+  table_value_t tv;
+  while( advanceTableEnum(e, &tk, &tv) )
+  { int c = tv;
+    predicate_t pred = val2ptr(tv);
+
+    if ( PL_unify_integer(chr, c) &&
 	 PL_unify_predicate(descr, pred, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
@@ -528,7 +532,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 					/* Check for user defined format */
 	  if ( format_predicates &&
-	       (proc = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
+	       (proc = lookupHTableWP(format_predicates, c)) )
 	  { size_t arity;
 	    term_t av;
 	    sub_state sstate;

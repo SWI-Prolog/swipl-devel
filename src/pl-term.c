@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -118,14 +118,15 @@ typedef struct
 
 void
 cleanupTerm(void)
-{ Table t;
+{ TableWP t;
   char *s;
 
   if ( (t=capabilities) )
   { capabilities = NULL;
-    for_table(t, name, value,
-	      freeHeap(value, sizeof(entry)));
-    destroyHTable(t);
+    FOR_TABLE(t, name, value)
+    { freeHeap(val2ptr(value), sizeof(entry));
+    }
+    destroyHTableWP(t);
   }
   if ( (s=buf_area) )    { buf_area = NULL; free(s); }
   if ( (s=string_area) ) { string_area = NULL; free(s); }
@@ -145,7 +146,7 @@ initTerm(void)
   { char term[100];
 
     if ( !capabilities )
-      capabilities = newHTable(16);
+      capabilities = newHTableWP(16);
 
     term_initialised = STAT_ERROR;
     if ( !Getenv("TERM", term, sizeof(term)) )
@@ -205,7 +206,7 @@ lookupEntry(atom_t name, atom_t type)
 
   PL_LOCK(L_TERM);
   if ( !capabilities ||
-       !(e = lookupHTable(capabilities, (void*)name)) )
+       !(e = lookupHTableWP(capabilities, name)) )
   { if ( !initTerm() )
     { e = NULL;
       goto out;
@@ -240,7 +241,7 @@ lookupEntry(atom_t name, atom_t type)
       goto out;
     }
 
-    addNewHTable(capabilities, (void *)name, e);
+    addNewHTableWP(capabilities, name, e);
   }
 
 out:

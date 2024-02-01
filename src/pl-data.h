@@ -169,11 +169,11 @@ be kept consistent.
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
-#define valPtrB(w, b)	((Word)(((w) >> 5) + (b)))
+#define valPtrB(w, b)	((Word)(uintptr_t)(((w) >> 5) + (b)))
 #define valPtr2(w, s)	valPtrB(w, LD->bases[s])
 #define valPtr(w)	valPtr2(w, storage(w))
-#define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
-#define valUInt(w)	((uintptr_t)(w) >> LMASK_BITS)
+#define valInt(w)	((sword)(w) >> LMASK_BITS)
+#define valUInt(w)	((word)(w) >> LMASK_BITS)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*

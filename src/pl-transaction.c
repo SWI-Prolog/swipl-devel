@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020-2022, University of Amsterdam
+    Copyright (c)  2020-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -83,10 +83,12 @@ A clause is visible iff
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+typedef uintptr_t tr_gen_t;
+
 /* Avoid conflict with HTABLE_TOMBSTONE and HTABLE_SENTINEL */
-#define GEN_ASSERTA		((uintptr_t)(void*)-3)
-#define GEN_ASSERTZ		((uintptr_t)(void*)-4)
-#define GEN_NESTED_RETRACT	((uintptr_t)(void*)-5)
+#define GEN_ASSERTA		((tr_gen_t)(void*)-3)
+#define GEN_ASSERTZ		((tr_gen_t)(void*)-4)
+#define GEN_NESTED_RETRACT	((tr_gen_t)(void*)-5)
 
 #define IS_ASSERT_GEN(g) ((g)==GEN_ASSERTA||(g)==GEN_ASSERTZ)
 
@@ -94,28 +96,28 @@ typedef struct tr_stack
 { struct tr_stack  *parent;		/* parent transaction */
   gen_t		    gen_nest;		/* Saved nesting generation */
   gen_t             generation;		/* Parent generation */
-  Table		    clauses;		/* Parent changed clauses */
-  Table		    predicates;		/* Parent changed predicates */
+  TablePW	    clauses;		/* Parent changed clauses */
+  TablePW	    predicates;		/* Parent changed predicates */
   struct tbl_trail *table_trail;	/* Parent changes to tables */
   term_t	    id;			/* Parent goal */
   unsigned int	    flags;		/* TR_* flags */
 } tr_stack;
 
 static void
-tr_free_clause_symbol(void *k, void *v)
-{ Clause cl = k;
+tr_free_clause_symbol(table_key_t k, table_value_t v)
+{ Clause cl = val2ptr(k);
   (void)v;
 
   release_clause(cl);
 }
 
 #define tr_clause_table(_) LDFUNC(tr_clause_table, _)
-static Table
+static TablePW
 tr_clause_table(DECL_LD)
-{ Table t;
+{ TablePW t;
 
   if ( !(t=LD->transaction.clauses) )
-  { t = newHTable(16);
+  { t = newHTablePW(16);
     t->free_symbol = tr_free_clause_symbol;
     LD->transaction.clauses = t;
   }
@@ -156,7 +158,7 @@ transaction_retract_clause(DECL_LD Clause clause)
 
     acquire_clause(clause);
     ATOMIC_INC(&clause->tr_erased_no);
-    addHTable(tr_clause_table(), clause, (void*)lgen);
+    addHTablePW(tr_clause_table(), clause, lgen);
 
     return TRUE;
   } else if ( clause->generation.created <= LD->transaction.gen_nest )
@@ -165,12 +167,12 @@ transaction_retract_clause(DECL_LD Clause clause)
       return PL_representation_error("transaction_generations"),-1;
     clause->generation.erased = egen;
     acquire_clause(clause);
-    addHTable(tr_clause_table(), clause, (void*)GEN_NESTED_RETRACT);
+    addHTablePW(tr_clause_table(), clause, GEN_NESTED_RETRACT);
 
     return TRUE;
 #if 0					/* see (*) */
   } else if ( LD->transaction.clauses )
-  { deleteHTable(LD->transaction.clauses, clause);
+  { deleteHTablePW(LD->transaction.clauses, clause);
 #endif
   }
   DEBUG(MSG_TRANSACTION,
@@ -187,7 +189,7 @@ transaction_assert_clause(DECL_LD Clause clause, ClauseRef where)
 { uintptr_t lgen = (where == CL_START ? GEN_ASSERTA : GEN_ASSERTZ);
 
   acquire_clause(clause);
-  addHTable(tr_clause_table(), clause, (void*)lgen);
+  addHTablePW(tr_clause_table(), clause, lgen);
 
   return TRUE;
 }
@@ -204,10 +206,10 @@ transaction_visible_clause(DECL_LD Clause cl, gen_t gen)
       tr_stack *stack;
 
       for(stack=&s; stack; stack=stack->parent)
-      { intptr_t lgen;
+      { tr_gen_t lgen;
 
 	if ( stack->clauses &&
-	     (lgen = (intptr_t)lookupHTable(stack->clauses, cl)) &&
+	     (lgen = lookupHTablePW(stack->clauses, cl)) &&
 	     !IS_ASSERT_GEN(lgen) )
 	{ if ( lgen+LD->transaction.gen_base <= gen )
 	    return FALSE;
@@ -233,23 +235,23 @@ on modification stamps) or is a  GMP   number.  The latter is not always
 present and in any case, using GMP is relatively costly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LGEN(gen)		  ((uintptr_t)((gen)-LD->transaction.gen_base))
+#define LGEN(gen)		  ((tr_gen_t)((gen)-LD->transaction.gen_base))
 #define GGEN(lgen)		  ((lgen)+LD->transaction.gen_base)
-#define LGEN_FLAGS_PTR(gen,flags) ((void*)((LGEN(gen)<<2)|flags))
-#define PTR_LGEN(ptr)		  ((uintptr_t)(ptr)>>2)
-#define PTR_GEN(ptr)		  GGEN((uintptr_t)(ptr)>>2)
-#define PTR_GEN_FLAGS(ptr)	  ((uintptr_t)(ptr)&0x3)
-#define PTR_ADD_FLAGS(ptr, flags) ((void*)((uintptr_t)(ptr)|(flags)))
+#define LGEN_FLAGS_VAL(gen,flags) ((LGEN(gen)<<2)|flags)
+#define VAL_LGEN(ptr)		  ((ptr)>>2)
+#define VAL_GEN(ptr)		  GGEN(VAL_LGEN(ptr))
+#define VAL_GEN_FLAGS(ptr)	  ((ptr)&0x3)
+#define VAL_ADD_FLAGS(ptr, flags) ((ptr)|(flags))
 
 gen_t
 transaction_last_modified_predicate(DECL_LD Definition def)
-{ Table table;
+{ TablePW table;
 
   if ( (table=LD->transaction.predicates) )
-  { void *lgen;
+  { tr_gen_t lgen;
 
-    if ( (lgen = lookupHTable(table, def)) )
-    { uintptr_t lmod = PTR_LGEN(lgen);
+    if ( (lgen = lookupHTablePW(table, def)) )
+    { uintptr_t lmod = VAL_LGEN(lgen);
       return LD->transaction.gen_start + lmod;
     }
   }
@@ -262,17 +264,17 @@ transaction_last_modified_predicate(DECL_LD Definition def)
 void
 transaction_set_last_modified(Definition def, gen_t gen, int flags)
 { GET_LD
-  void *lgen0;
+  tr_gen_t lgen0;
   int oflags;
 
   if ( !LD->transaction.predicates )
-    LD->transaction.predicates = newHTable(16);
+    LD->transaction.predicates = newHTablePW(16);
 
-  lgen0  = lookupHTable(LD->transaction.predicates, def);
-  oflags = PTR_GEN_FLAGS(lgen0);
+  lgen0  = lookupHTablePW(LD->transaction.predicates, def);
+  oflags = VAL_GEN_FLAGS(lgen0);
 
-  updateHTable(LD->transaction.predicates, def,
-	       LGEN_FLAGS_PTR(gen, oflags|flags));
+  updateHTablePW(LD->transaction.predicates, def,
+		 LGEN_FLAGS_VAL(gen, oflags|flags));
 }
 
 
@@ -280,14 +282,14 @@ transaction_set_last_modified(Definition def, gen_t gen, int flags)
 static void
 set_modified(DECL_LD gen_t gen)
 { if ( LD->transaction.predicates )
-  { for_table(LD->transaction.predicates, n, v,
-	      { Definition def = n;
-		int flags = PTR_GEN_FLAGS(v);
+  { FOR_TABLE(LD->transaction.predicates, n, v)
+    { Definition def = val2ptr(n);
+      int flags = VAL_GEN_FLAGS(v);
 
-		setLastModifiedPredicate(def, gen, flags);
-	      });
+      setLastModifiedPredicate(def, gen, flags);
+    }
 
-    destroyHTable(LD->transaction.predicates);
+    destroyHTablePW(LD->transaction.predicates);
     LD->transaction.predicates = NULL;
   }
 }
@@ -308,8 +310,8 @@ transaction_commit(DECL_LD)
     gen_commit = global_generation()+1;
 
     FOR_TABLE(LD->transaction.clauses, n, v)
-    { Clause cl = n;
-      uintptr_t lgen = (uintptr_t)v;
+    { Clause cl = val2ptr(n);
+      tr_gen_t lgen = v;
 
       if ( IS_ASSERT_GEN(lgen) )
       { if ( false(cl, CL_ERASED) )
@@ -342,15 +344,15 @@ transaction_commit(DECL_LD)
     PL_UNLOCK(L_GENERATION);
 
     FOR_TABLE(LD->transaction.clauses, n, v)
-    { Clause cl = n;
-      uintptr_t lgen = (uintptr_t)v;
+    { Clause cl = val2ptr(n);
+      tr_gen_t lgen = v;
 
       if ( !IS_ASSERT_GEN(lgen) )
 	retract_clause(cl, cl->generation.erased);
     }
 
     set_modified(gen_commit);
-    destroyHTable(LD->transaction.clauses);
+    destroyHTablePW(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
   }
 
@@ -363,50 +365,50 @@ transaction_discard(DECL_LD)
 { int rc = TRUE;
 
   if ( LD->transaction.clauses )
-  { for_table(LD->transaction.clauses, n, v,
-	      { Clause cl = n;
-		Definition def = cl->predicate;
-		uintptr_t lgen = (uintptr_t)v;
-		atom_t action = 0;
+  { FOR_TABLE(LD->transaction.clauses, n, v)
+    { Clause cl = val2ptr(n);
+      tr_gen_t lgen = v;
+      Definition def = cl->predicate;
+      atom_t action = 0;
 
-		if ( IS_ASSERT_GEN(lgen) )
-		{ if ( false(cl, CL_ERASED) )
-		  { cl->generation.erased  = GEN_TR_DISCARD_ASSERT;
-		    MEMORY_RELEASE();
-		    cl->generation.created = GEN_TR_DISCARD_ASSERT;
-		    retract_clause(cl, cl->generation.created);
-		    DEBUG(MSG_COMMIT,
-			  Sdprintf("Discarded asserted clause %p for %s\n",
-				   cl, predicateName(cl->predicate)));
-		    action = (lgen==GEN_ASSERTA ? ATOM_asserta : ATOM_assertz);
-		  } else
-		  { cl->generation.erased  = GEN_TR_DISCARD_ASSERT_ERASE;
-		    MEMORY_RELEASE();
-		    cl->generation.created = GEN_TR_DISCARD_ASSERT_ERASE;
-		    DEBUG(MSG_COMMIT,
-			  Sdprintf("Discarded asserted&retracted "
-				   "clause %p for %s\n",
-				   cl, predicateName(cl->predicate)));
-		  }
-		} else if ( lgen == GEN_NESTED_RETRACT )
-		{ cl->generation.erased = LD->transaction.gen_max;
-		  action = ATOM_retract;
-		} else
-		{ ATOMIC_DEC(&cl->tr_erased_no);
-		  action = ATOM_retract;
-		}
+      if ( IS_ASSERT_GEN(lgen) )
+      { if ( false(cl, CL_ERASED) )
+	{ cl->generation.erased  = GEN_TR_DISCARD_ASSERT;
+	  MEMORY_RELEASE();
+	  cl->generation.created = GEN_TR_DISCARD_ASSERT;
+	  retract_clause(cl, cl->generation.created);
+	  DEBUG(MSG_COMMIT,
+		Sdprintf("Discarded asserted clause %p for %s\n",
+			 cl, predicateName(cl->predicate)));
+	  action = (lgen==GEN_ASSERTA ? ATOM_asserta : ATOM_assertz);
+	} else
+	{ cl->generation.erased  = GEN_TR_DISCARD_ASSERT_ERASE;
+	  MEMORY_RELEASE();
+	  cl->generation.created = GEN_TR_DISCARD_ASSERT_ERASE;
+	  DEBUG(MSG_COMMIT,
+		Sdprintf("Discarded asserted&retracted "
+			 "clause %p for %s\n",
+			 cl, predicateName(cl->predicate)));
+	}
+      } else if ( lgen == GEN_NESTED_RETRACT )
+      { cl->generation.erased = LD->transaction.gen_max;
+	action = ATOM_retract;
+      } else
+      { ATOMIC_DEC(&cl->tr_erased_no);
+	action = ATOM_retract;
+      }
 
-		if ( def && def->events && action &&
-		     !(LD->transaction.flags&TR_BULK) )
-		{ if ( !predicate_update_event(def, action, cl,
-					       P_EVENT_ROLLBACK) )
-		    rc = FALSE;
-		}
-	      });
-    destroyHTable(LD->transaction.clauses);
+      if ( def && def->events && action &&
+	   !(LD->transaction.flags&TR_BULK) )
+      { if ( !predicate_update_event(def, action, cl,
+				     P_EVENT_ROLLBACK) )
+	  rc = FALSE;
+      }
+    };
+    destroyHTablePW(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
     if ( LD->transaction.predicates )
-    { destroyHTable(LD->transaction.predicates);
+    { destroyHTablePW(LD->transaction.predicates);
       LD->transaction.predicates = NULL;
     }
   }
@@ -415,28 +417,27 @@ transaction_discard(DECL_LD)
 }
 
 static void
-merge_clause_tables(Table into, Table from)
+merge_clause_tables(TablePW into, TablePW from)
 { FOR_TABLE(from, n, v)
-  { Clause cl = n;
+  { Clause cl = val2ptr(n);
 
-    if ( addHTable(into, cl, v) == v )
+    if ( addHTablePW(into, cl, v) == v )
       acquire_clause(cl);		/* new in outer table */
     else
-      updateHTable(into, cl, v);	/* already in outer table */
+      updateHTablePW(into, cl, v);	/* already in outer table */
   };
 }
 
 #define merge_pred_tables(into, from) LDFUNC(merge_pred_tables, into, from)
 static void
-merge_pred_tables(DECL_LD Table into, Table from)
+merge_pred_tables(DECL_LD TablePW into, TablePW from)
 { FOR_TABLE(from, n, v)
-  { Definition def = n;
-    void *lgen = v;
-    void *lgen0 = lookupHTable(into, def);
-    int oflags = PTR_GEN_FLAGS(lgen0);
+  { Definition def = val2ptr(n);
+    tr_gen_t lgen = v;
+    tr_gen_t lgen0 = lookupHTablePW(into, def);
+    int oflags = VAL_GEN_FLAGS(lgen0);
 
-
-    updateHTable(into, def, PTR_ADD_FLAGS(lgen, oflags));
+    updateHTablePW(into, def, VAL_ADD_FLAGS(lgen, oflags));
   };
 }
 
@@ -479,27 +480,27 @@ is_trie_clause(const Clause cl)
 static int
 transaction_updates(DECL_LD Buffer b)
 { if ( LD->transaction.clauses )
-  { for_table(LD->transaction.clauses, n, v,
-	      { Clause cl = n;
-		uintptr_t lgen = (uintptr_t)v;
+  { FOR_TABLE(LD->transaction.clauses, n, v)
+    { Clause cl = val2ptr(n);
+      tr_gen_t lgen = v;
 
-		if ( IS_ASSERT_GEN(lgen) )
-		{ if ( false(cl, CL_ERASED) )
-		  { tr_update u;
-		    u.clause = cl;
-		    if ( lgen == GEN_ASSERTA )
-		      u.update = FUNCTOR_asserta1;
-		    else
-		      u.update = FUNCTOR_assertz1;
-		    addBuffer(b, u, tr_update);
-		  }
-		} else if ( !is_trie_clause(cl) )
-		{ tr_update u;
-		  u.clause = cl;
-		  u.update = FUNCTOR_erased1;
-		  addBuffer(b, u, tr_update);
-		}
-	      });
+      if ( IS_ASSERT_GEN(lgen) )
+      { if ( false(cl, CL_ERASED) )
+	{ tr_update u;
+	  u.clause = cl;
+	  if ( lgen == GEN_ASSERTA )
+	    u.update = FUNCTOR_asserta1;
+	  else
+	    u.update = FUNCTOR_assertz1;
+	  addBuffer(b, u, tr_update);
+	}
+      } else if ( !is_trie_clause(cl) )
+      { tr_update u;
+	u.clause = cl;
+	u.update = FUNCTOR_erased1;
+	addBuffer(b, u, tr_update);
+      }
+    };
     qsort(baseBuffer(b, void),
 	  entriesBuffer(b, tr_update), sizeof(tr_update),
 	  cmp_updates);
@@ -574,7 +575,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
       { if ( parent.predicates )
 	{ merge_pred_tables(parent.predicates,
 			    LD->transaction.predicates);
-	  destroyHTable(LD->transaction.predicates);
+	  destroyHTablePW(LD->transaction.predicates);
 	} else
 	{ parent.predicates = LD->transaction.predicates;
 	}
@@ -588,7 +589,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 	      goto nested_discard;
 	  }
 	  merge_clause_tables(parent.clauses, LD->transaction.clauses);
-	  destroyHTable(LD->transaction.clauses);
+	  destroyHTablePW(LD->transaction.clauses);
 	} else
 	{ parent.clauses = LD->transaction.clauses;
 	}

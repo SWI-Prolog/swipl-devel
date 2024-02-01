@@ -76,7 +76,7 @@ typedef enum
 
 typedef struct tbl_component
 { int			magic;			/* COMPONENT_MAGIC */
-  scc_status	        status;			/* SCC_* */
+  scc_status		status;			/* SCC_* */
   scc_neg_status	neg_status;		/* SCC_NEG_* */
   size_t		simplifications;        /* # simplifications */
   struct tbl_component *parent;
@@ -166,7 +166,7 @@ typedef struct delay_usage
 } delay_usage;
 
 typedef struct delay
-{ trie	            *variant;		/* Answer trie */
+{ trie		    *variant;		/* Answer trie */
   trie_node         *answer;		/* Answer in there (NULL for negative) */
 } delay;
 
@@ -194,8 +194,8 @@ typedef struct delay_info
 typedef struct idg_node
 { int           magic;			/* IDG_NODE_MAGIC */
   trie	       *atrie;			/* answer trie */
-  Table		affected;		/* parent IDG nodes */
-  Table		dependent;		/* child IDG nodes */
+  TablePP	affected;		/* parent IDG nodes */
+  TablePP	dependent;		/* child IDG nodes */
   size_t	answer_count;		/* #answers in previous complete state */
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */

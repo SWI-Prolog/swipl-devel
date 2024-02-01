@@ -45,7 +45,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(GCC_OPTFLAGS -O2)
   endif()
 
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 -gdwarf-2 -g3"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 -gdwarf-2 -g3 $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} -gdwarf-2 -g3"
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)

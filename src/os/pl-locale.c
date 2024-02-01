@@ -167,9 +167,9 @@ update_locale(PL_locale *l, int category, const char *locale)
 
 
 static void
-free_locale_symbol(void *name, void *value)
-{ PL_locale *l = value;
-  atom_t alias = (uintptr_t)name;
+free_locale_symbol(table_key_t name, table_value_t value)
+{ PL_locale *l = val2ptr(value);
+  atom_t alias = name;
 
   l->alias = 0;
   PL_unregister_atom(alias);
@@ -186,11 +186,11 @@ alias_locale(PL_locale *l, atom_t alias)
   PL_LOCK(L_LOCALE);
 
   if ( !GD->locale.localeTable )
-  { GD->locale.localeTable = newHTable(16);
+  { GD->locale.localeTable = newHTableWP(16);
     GD->locale.localeTable->free_symbol = free_locale_symbol;
   }
 
-  if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
+  if ( lookupHTableWP(GD->locale.localeTable, alias) )
   { GET_LD
     term_t obj = PL_new_term_ref();
 
@@ -198,7 +198,7 @@ alias_locale(PL_locale *l, atom_t alias)
     rc = PL_error("locale_create", 2, "Alias name already taken",
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
   } else
-  { addNewHTable(GD->locale.localeTable, (void*)alias, l);
+  { addNewHTableWP(GD->locale.localeTable, alias, l);
     l->alias = alias;
     PL_register_atom(alias);
     l->references++;	/* acquireLocale(), but that will deadlock */
@@ -326,7 +326,7 @@ getLocale(term_t t, PL_locale **lp)
     } else if ( (ref=PL_blob_data(a, NULL, &bt)) && bt == &locale_blob )
     { l = ref->data;
     } else if ( GD->locale.localeTable )
-    { l = lookupHTable(GD->locale.localeTable, (void*)a);
+    { l = lookupHTableWP(GD->locale.localeTable, a);
     }
 
     if ( l )
@@ -457,10 +457,11 @@ advance_lstate(lprop_enum *state)
     state->p = lprop_list;
   }
   if ( state->e )
-  { PL_locale *l;
+  { table_value_t tv;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { PL_locale *l = val2ptr(tv);
 
-    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
-    { state->l = l;
+      state->l = l;
 
       return TRUE;
     }
@@ -517,16 +518,16 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 		 get_atom_arg(property, &alias) )
 	    { PL_locale *l;
 
-	      if ( (l = lookupHTable(GD->locale.localeTable, (void*)alias)) )
+	      if ( (l = lookupHTableWP(GD->locale.localeTable, alias)) )
 		return unifyLocale(locale, l, FALSE);
 	      else
 		return FALSE;
 	    }
-	    state->e = newTableEnum(GD->locale.localeTable);
+	    state->e = newTableEnumWP(GD->locale.localeTable);
 	    goto enumerate;
 	  }
 	  case 0:
-	    state->e = newTableEnum(GD->locale.localeTable);
+	    state->e = newTableEnumWP(GD->locale.localeTable);
 	    state->p = lprop_list;
 	    state->enum_properties = TRUE;
 	    goto enumerate;
@@ -564,11 +565,13 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->l )			/* first time, enumerating locales */
-  { PL_locale *l;
+  { table_value_t tv;
 
     assert(state->e);
-    if ( advanceTableEnum(state->e, NULL, (void**)&l) )
-    { state->l = l;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { PL_locale *l = val2ptr(tv);
+
+      state->l = l;
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
@@ -586,7 +589,7 @@ enumerate:
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
-			        PL_TERM, arg) )
+				PL_TERM, arg) )
 	    goto error;
 	}
 	if ( state->e )
@@ -793,13 +796,11 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
   { if ( l->alias )
     { atom_t alias = l->alias;
 
-      PL_LOCK(L_LOCALE);
-      if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
-	deleteHTable(GD->locale.localeTable, (void*)alias);
-      l->alias = 0;
-      l->references--;
-      PL_unregister_atom(alias);
-      PL_UNLOCK(L_LOCALE);
+      if ( deleteHTableWP(GD->locale.localeTable, alias) == l )
+      { l->alias = 0;
+	l->references--;
+	PL_unregister_atom(alias);
+      }
     }
 
     releaseLocale(l);
@@ -945,7 +946,7 @@ cleanupLocale(void)
   }
 
   if ( GD->locale.localeTable )
-  { destroyHTable(GD->locale.localeTable);
+  { destroyHTableWP(GD->locale.localeTable);
     GD->locale.localeTable = NULL;
   }
 }

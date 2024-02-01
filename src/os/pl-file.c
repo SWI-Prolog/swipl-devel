@@ -148,8 +148,8 @@ standardStreamIndexFromStream(IOSTREAM *s)
 static void aliasStream(IOSTREAM *s, atom_t alias);
 static void unaliasStream(IOSTREAM *s, atom_t name);
 
-static Table streamAliases;		/* alias --> stream */
-static Table streamContext;		/* stream --> extra data */
+static TableWP streamAliases;		/* alias --> stream */
+static TablePP streamContext;		/* stream --> extra data */
 
 typedef struct _alias
 { struct _alias *next;
@@ -183,7 +183,7 @@ getStreamContext(IOSTREAM *s)
     ctx->flags = 0;
     if ( COMPARE_AND_SWAP_PTR(&s->context, NULL, ctx) )
     { GET_LD
-      addNewHTable(streamContext, s, ctx);
+      addNewHTablePP(streamContext, s, ctx);
     } else
       freeHeap(ctx, sizeof(*ctx));
   }
@@ -207,11 +207,11 @@ aliasStream(IOSTREAM *s, atom_t name)
   alias *a;
 
 					/* ensure name is free (error?) */
-  if ( (sp = lookupHTable(streamAliases, (void *)name)) )
+  if ( (sp = lookupHTableWP(streamAliases, name)) )
     unaliasStream(sp, name);
 
   ctx = getStreamContext(s);
-  addNewHTable(streamAliases, (void *)name, s);
+  addNewHTableWP(streamAliases, name, s);
   PL_register_atom(name);
   Sacquire(s);
 
@@ -234,10 +234,10 @@ static void
 unaliasStream(IOSTREAM *s, atom_t name)
 { GET_LD
   if ( name )
-  { if ( lookupHTable(streamAliases, (void *)name) )
+  { if ( lookupHTableWP(streamAliases, name) )
     { stream_context *ctx;
 
-      deleteHTable(streamAliases, (void *)name);
+      deleteHTableWP(streamAliases, name);
 
       if ( (ctx=getExistingStreamContext(s)) )
       { alias **a;
@@ -268,8 +268,8 @@ unaliasStream(IOSTREAM *s, atom_t name)
       for(a = ctx->alias_head; a; a=n)
       { n = a->next;
 
-	if ( lookupHTable(streamAliases, (void *)a->name) )
-	{ deleteHTable(streamAliases, (void *)a->name);
+	if ( lookupHTableWP(streamAliases, a->name) )
+	{ deleteHTableWP(streamAliases, a->name);
 	  PL_unregister_atom(a->name);
 	  Srelease(s);
 	}
@@ -401,7 +401,7 @@ freeStream(IOSTREAM *s)
   ctx = s->context;
   if ( ctx && COMPARE_AND_SWAP_PTR(&s->context, ctx, NULL) )
   { if ( streamContext )
-    { deleteHTable(streamContext, s);
+    { deleteHTablePP(streamContext, s);
       if ( ctx->filename != NULL_ATOM )
       { PL_unregister_atom(ctx->filename);
 
@@ -498,8 +498,8 @@ initIO(void)
   const atom_t *np;
   int i;
 
-  streamAliases = newHTable(16);
-  streamContext = newHTable(16);
+  streamAliases = newHTableWP(16);
+  streamContext = newHTablePP(16);
   PL_register_blob_type(&stream_blob);
 
   if ( false(Sinput, SIO_ISATTY) ||
@@ -535,9 +535,9 @@ initIO(void)
   getStreamContext(Serror);
 
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addNewHTable(streamAliases,
-		 (void *)*np,
-		 (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
+    addNewHTableWP(streamAliases,
+		   *np,
+		   (IOSTREAM*)(uintptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }
@@ -839,7 +839,7 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 
     if ( !(flags & SH_UNLOCKED) )
       PL_LOCK(L_FILE);
-    if ( (s0 = lookupHTable(streamAliases, (void *)a)) )
+    if ( (s0 = lookupHTableWP(streamAliases, a)) )
     { IOSTREAM *stream;
       uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
 
@@ -1387,11 +1387,11 @@ dieIO(void)
     closeFiles(TRUE);
 
     if ( streamAliases )
-    { destroyHTable(streamAliases);
+    { destroyHTableWP(streamAliases);
       streamAliases = NULL;
     }
     if ( streamContext )
-    { destroyHTable(streamContext);
+    { destroyHTablePP(streamContext);
       streamContext = NULL;
     }
 
@@ -1450,11 +1450,13 @@ void
 closeFiles(int all)
 { GET_LD
   TableEnum e;
-  IOSTREAM *s;
 
-  e = newTableEnum(streamContext);
-  while( advanceTableEnum(e, (void**)&s, NULL) )
-  { if ( all || !(s->flags & SIO_NOCLOSE) )
+  e = newTableEnumPP(streamContext);
+  table_key_t tk;
+  while( advanceTableEnum(e, &tk, NULL) )
+  { IOSTREAM *s = key2ptr(tk);
+
+    if ( all || !(s->flags & SIO_NOCLOSE) )
     { IOSTREAM *s2 = tryGetStream(s);
 
       if ( s2 )
@@ -1997,11 +1999,13 @@ noprotocol(void)
 
   if ( Sprotocol && (s = getStream(Sprotocol)) )
   { TableEnum e;
-    IOSTREAM *p;
+    table_key_t tk;
 
-    e = newTableEnum(streamContext);
-    while( advanceTableEnum(e, (void**)&p, NULL) )
-    { if ( p->tee == s )
+    e = newTableEnumPP(streamContext);
+    while( advanceTableEnum(e, &tk, NULL) )
+    { IOSTREAM *p = key2ptr(tk);
+
+      if ( p->tee == s )
 	p->tee = NULL;
     }
     freeTableEnum(e);
@@ -4130,7 +4134,7 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( alias != NULL_ATOM &&
        streamAliases &&
-       lookupHTable(streamAliases, (void *)alias) )
+       lookupHTableWP(streamAliases, alias) )
   { term_t aliast;
 
     if ( (aliast = PL_new_term_ref()) &&
@@ -4270,12 +4274,16 @@ PRED_IMPL("open", 3, open3, PL_FA_ISO)
 static IOSTREAM *
 findStreamFromFile(atom_t name, unsigned int flags)
 { TableEnum e;
-  IOSTREAM *s = NULL, *s0;
-  stream_context *ctx;
+  IOSTREAM *s = NULL;
 
-  e = newTableEnum(streamContext);
-  while( advanceTableEnum(e, (void**)&s0, (void**)&ctx) )
-  { if ( ctx->filename == name &&
+  e = newTableEnumPP(streamContext);
+  table_key_t tk;
+  table_value_t tv;
+  while( advanceTableEnum(e, &tk, &tv) )
+  { IOSTREAM *s0 = key2ptr(tk);
+    stream_context *ctx = val2ptr(tv);
+
+    if ( ctx->filename == name &&
 	 true(ctx, flags) )
     { s = s0;
       break;
@@ -5224,15 +5232,17 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
   term_t head = PL_new_term_ref();
 
   if ( (p=get_stream_property_def(A1)) )
-  { TableEnum e = newTableEnum(streamContext);
-    IOSTREAM *s;
+  { TableEnum e = newTableEnumPP(streamContext);
     term_t st = PL_new_term_ref();
     term_t pt = PL_new_term_ref();
     term_t ex = PL_new_term_ref();
 
     PL_LOCK(L_FILE);
-    while( advanceTableEnum(e, (void**)&s, NULL))
-    { Sacquire(s);
+    table_key_t tk;
+    while( advanceTableEnum(e, &tk, NULL))
+    { IOSTREAM *s = key2ptr(tk);
+
+      Sacquire(s);
       rc = ( s->magic == SIO_MAGIC &&
 	     s->context != NULL &&
 	     unify_stream_property(s, p, pt) );
@@ -5256,15 +5266,17 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     else
       rc = !PL_exception(0) && PL_unify_nil(tail);
   } else if ( PL_is_variable(A1) )
-  { TableEnum e = newTableEnum(streamContext);
-    IOSTREAM *s;
+  { TableEnum e = newTableEnumPP(streamContext);
     term_t st = PL_new_term_ref();
     term_t pl = PL_new_term_ref();
 
     rc = TRUE;
     PL_LOCK(L_FILE);
-    while( rc && advanceTableEnum(e, (void**)&s, NULL))
-    { rc = ( s->context != NULL &&
+    table_key_t tk;
+    while( rc && advanceTableEnum(e, &tk, NULL))
+    { IOSTREAM *s = key2ptr(tk);
+
+      rc = ( s->context != NULL &&
 	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
 	     PL_get_arg(1, head, st) &&

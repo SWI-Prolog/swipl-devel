@@ -627,8 +627,9 @@ free_tmp_name(atom_t tname)
 
 
 static void
-free_tmp_symbol(void *name, void *value)
-{ (void)free_tmp_name((atom_t)name);
+free_tmp_symbol(table_key_t name, table_value_t value)
+{ (void)value;
+  (void)free_tmp_name((atom_t)name);
 }
 
 
@@ -802,14 +803,17 @@ retry:
 
   tname = PL_new_atom_mbchars(REP_FN, (size_t)-1, temp); /* locked: ok! */
 
-  PL_LOCK(L_OS);
   if ( !GD->os.tmp_files )
-  { GD->os.tmp_files = newHTable(4);
-    GD->os.tmp_files->free_symbol = free_tmp_symbol;
+  { PL_LOCK(L_OS);
+    if ( !GD->os.tmp_files )
+    { Table ht = newHTable(4);
+      ht->free_symbol = free_tmp_symbol;
+      GD->os.tmp_files = ht;
+    }
+    PL_UNLOCK(L_OS);
   }
-  PL_UNLOCK(L_OS);
 
-  addNewHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
+  addNewHTable(GD->os.tmp_files, (table_key_t)tname, TRUE);
 
   return tname;
 }
@@ -821,14 +825,10 @@ DeleteTemporaryFile(atom_t name)
   int rc = FALSE;
 
   if ( GD->os.tmp_files )
-  { PL_LOCK(L_OS);
-    if ( GD->os.tmp_files && GD->os.tmp_files->size > 0 )
-    { if ( lookupHTable(GD->os.tmp_files, (void*)name) )
-      { deleteHTable(GD->os.tmp_files, (void*)name);
+  { if ( GD->os.tmp_files )
+    { if ( deleteHTable(GD->os.tmp_files, (table_key_t)name) )
 	rc = free_tmp_name(name);
-      }
     }
-    PL_UNLOCK(L_OS);
   }
 
   return rc;

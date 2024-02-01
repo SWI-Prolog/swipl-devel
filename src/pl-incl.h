@@ -619,7 +619,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 
-#include "os/pl-table.h"
 #include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -786,11 +785,17 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 	PL_fid_t				/* avoid AIX name-clash */
 #endif
 
+#if O_M64
+typedef uint64_t		word;		/* Anonymous ptr-sized object*/
+typedef int64_t			sword;		/* Signed version */
+#else
 typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
+typedef intptr_t		sword;		/* Signed version */
+#endif
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
 typedef word			functor_t;	/* encoded functor */
-typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
+typedef word			code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef foreign_t		(*Func)();	/* foreign functions */
@@ -1903,6 +1908,14 @@ typedef enum except_class
 		 *	SOURCE FILE ADMIN	*
 		 *******************************/
 
+// Duplicates from pl-table.h.  Mutual type dependencies!
+typedef struct table		*Table;		/* word -> word  */
+typedef struct table_pp		*TablePP;       /* Pointer -> Pointer  */
+typedef struct table_wp		*TableWP;       /* word -> Pointer  */
+typedef struct table_pw		*TablePW;       /* word -> Pointer  */
+typedef struct kvs		*KVS;		/* map of key-values */
+typedef struct table_enum	*TableEnum;	/* Enumerate table entries */
+
 #define SF_MAGIC 0x14a3c90f
 #define SF_MAGIC_DESTROYING 0x14a3c910
 
@@ -1917,14 +1930,14 @@ typedef struct p_reload
 
 typedef struct m_reload
 { Module	module;
-  Table		public;			/* new export list */
+  TableWP	public;			/* new export list (functor_t -> Procedure */
 } m_reload;
 
 typedef struct sf_reload
-{ Table		procedures;		/* Procedures being reloaded */
+{ TablePP	procedures;		/* Procedure -> p_reload* */
   gen_t		reload_gen;		/* Magic gen for reloading */
   size_t	pred_access_count;	/* Top of predicate access stack */
-  Table		modules;		/* Modules seen during reload */
+  TablePP	modules;		/* Module -> m_reload* */
   unsigned	number_of_clauses;	/* reload clause count */
 } sf_reload;
 
@@ -1967,9 +1980,9 @@ struct module
 { atom_t	name;		/* name of module */
   atom_t	class;		/* class of the module */
   SourceFile	file;		/* file from which module is loaded */
-  Table		procedures;	/* predicates associated with module */
-  Table		public;		/* public predicates associated */
-  Table		operators;	/* local operator declarations */
+  TableWP	procedures;	/* predicates associated with module */
+  TableWP	public;		/* public predicates associated */
+  TableWP	operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
   ListCell	lingering;	/* Lingering definitions */
   size_t	code_size;	/* #Bytes used for its procedures */
@@ -2893,6 +2906,7 @@ static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
 #include "pl-hash.h"			/* Murmurhash function */
+#include "os/pl-table.h"		/* Hash tables */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
 #include "os/pl-text.h"			/* text manipulation */
