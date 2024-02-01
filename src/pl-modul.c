@@ -68,10 +68,10 @@ static void	unallocModule(Module m);
 static void	unlinkSourceFilesModule(Module m);
 
 static void
-unallocProcedureSymbol(void *name, void *value)
+unallocProcedureSymbol(table_key_t name, table_value_t value)
 { DEBUG(MSG_CLEANUP,
 	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)name)));
-  unallocProcedure(value);
+  unallocProcedure(val2ptr(value));
 }
 
 
@@ -80,7 +80,7 @@ static Module
 _lookupModule(DECL_LD atom_t name)
 { Module m, super;
 
-  if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
+  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
     return m;
 
   m = allocHeapOrHalt(sizeof(struct module));
@@ -100,12 +100,12 @@ _lookupModule(DECL_LD atom_t name)
     set(m, DBLQ_STRING|BQ_CODES|O_RATIONAL_SYNTAX);
 
   if ( name == ATOM_user || name == ATOM_system )
-    m->procedures = newHTable(PROCEDUREHASHSIZE);
+    m->procedures = newHTableWP(PROCEDUREHASHSIZE);
   else
-    m->procedures = newHTable(MODULEPROCEDUREHASHSIZE);
+    m->procedures = newHTableWP(MODULEPROCEDUREHASHSIZE);
   m->procedures->free_symbol = unallocProcedureSymbol;
 
-  m->public = newHTable(PUBLICHASHSIZE);
+  m->public = newHTableWP(PUBLICHASHSIZE);
   m->class  = ATOM_user;
 
   if ( name == ATOM_user )
@@ -127,7 +127,7 @@ _lookupModule(DECL_LD atom_t name)
       PL_warning("Could not add super-module");
   }
 
-  addNewHTable(GD->tables.modules, (void *)name, m);
+  addNewHTableWP(GD->tables.modules, name, m);
   GD->statistics.modules++;
   PL_register_atom(name);
 
@@ -139,7 +139,7 @@ Module
 lookupModule(DECL_LD atom_t name)
 { Module m;
 
-  if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
+  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
     return m;
 
   PL_LOCK(L_MODULE);
@@ -152,7 +152,7 @@ lookupModule(DECL_LD atom_t name)
 
 Module
 isCurrentModule(DECL_LD atom_t name)
-{ return lookupHTable(GD->tables.modules, (void*)name);
+{ return lookupHTableWP(GD->tables.modules, name);
 }
 
 
@@ -177,7 +177,7 @@ acquireModule(DECL_LD atom_t name)
 { Module m;
 
   PL_LOCK(L_MODULE);
-  m = lookupHTable(GD->tables.modules, (void*)name);
+  m = lookupHTableWP(GD->tables.modules, name);
   if ( m && m->class == ATOM_temporary )
     m->references++;
   PL_UNLOCK(L_MODULE);
@@ -225,7 +225,7 @@ newModuleEnum(int flags)
 { ModuleEnum en = malloc(sizeof(*en));
 
   if ( en )
-  { if ( (en->tenum = newTableEnum(GD->tables.modules)) )
+  { if ( (en->tenum = newTableEnumWP(GD->tables.modules)) )
     { en->current = NULL;
       en->flags = flags;
     } else
@@ -239,13 +239,13 @@ newModuleEnum(int flags)
 
 Module
 advanceModuleEnum(ModuleEnum en)
-{ void *v;
+{ table_value_t v;
   Module m = NULL;
 
   PL_LOCK(L_MODULE);
   for(;;)
   { if ( advanceTableEnum(en->tenum, NULL, &v) )
-      m = v;
+      m = val2ptr(v);
     else
       m = NULL;
 
@@ -276,8 +276,9 @@ freeModuleEnum(ModuleEnum en)
 
 
 static void
-unallocModuleSymbol(void *name, void *value)
-{ unallocModule(value);
+unallocModuleSymbol(table_key_t name, table_value_t value)
+{ (void)name;
+  unallocModule(val2ptr(value));
 }
 
 
@@ -292,7 +293,7 @@ initModules(void)
 #endif
     initFunctors();
 
-    GD->tables.modules = newHTable(MODULEHASHSIZE);
+    GD->tables.modules = newHTableWP(MODULEHASHSIZE);
     GD->tables.modules->free_symbol = unallocModuleSymbol;
     GD->modules.system = _lookupModule(ATOM_system);
     GD->modules.user   = _lookupModule(ATOM_user);
@@ -341,9 +342,9 @@ unallocModule(Module m)
     if ( LD->modules.typein == m ) LD->modules.typein = MODULE_user;
   }
 
-  if ( m->public )     destroyHTable(m->public);
-  if ( m->procedures ) destroyHTable(m->procedures);
-  if ( m->operators )  destroyHTable(m->operators);
+  if ( m->public )     destroyHTableWP(m->public);
+  if ( m->procedures ) destroyHTableWP(m->procedures);
+  if ( m->operators )  destroyHTableWP(m->operators);
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
   if ( m->mutex )      freeSimpleMutex(m->mutex);
@@ -384,8 +385,8 @@ unlinkSourceFilesModule(Module m)
   struct bit_vector *vec = new_bitvector(high+1);
   SourceFile sf;
 
-  for_table(m->procedures, name, value,
-	    markSourceFilesProcedure(value, vec));
+  FOR_TABLE(m->procedures, name, value)
+    markSourceFilesProcedure(val2ptr(value), vec);
 
   for(i=1; i<=high; i++)
   { if ( true_bit(vec, i) )
@@ -415,13 +416,11 @@ destroyModule(Module m)
 	     PL_atom_chars(m->name), PL_atom_chars(m->class), m->references);
 
   PL_LOCK(L_MODULE);
-  if ( deleteHTable(GD->tables.modules, (void*)m->name) == m )
+  if ( deleteHTableWP(GD->tables.modules, m->name) == m )
     set(m, M_DESTROYED);
-#ifndef NDEBUG
-  { GET_LD
-    assert(!lookupHTable(GD->tables.modules, (void*)m->name));
-  }
-#endif
+  DEBUG(0, { GET_LD
+	     assert(!lookupHTableWP(GD->tables.modules, m->name));
+           });
   PL_UNLOCK(L_MODULE);
 
   releaseModule(m);
@@ -430,23 +429,22 @@ destroyModule(Module m)
 
 
 static void
-empty_module(void *key, void *value)
-{ Module m = value;
-  atom_t name = (atom_t)key;
+empty_module(table_key_t key, table_value_t value)
+{ Module m = val2ptr(value);
+  (void)key;
 
   unallocModule(m);
-  (void)name;
 }
 
 
 void
 cleanupModules(void)
-{ Table t;
+{ TableWP t;
 
   if ( (t=GD->tables.modules) )
   { GD->tables.modules = NULL;
     t->free_symbol = empty_module;
-    destroyHTable(t);
+    destroyHTableWP(t);
   }
 }
 
@@ -668,7 +666,7 @@ set_module(DECL_LD Module m, term_t prop)
       { m->class = class;
 	return TRUE;
       } else if ( class == ATOM_temporary )
-      { Table procs;
+      { TableWP procs;
 
 	if ( m->class == ATOM_user &&
 	     !((procs=m->procedures) && procs->size != 0) )
@@ -814,7 +812,7 @@ stripModule(DECL_LD Word term, Module *module, int flags)
       }
     } else
     { *module = (environment_frame ? contextModule(environment_frame)
-		                   : MODULE_user);
+				   : MODULE_user);
     }
   }
 
@@ -825,11 +823,8 @@ stripModule(DECL_LD Word term, Module *module, int flags)
 bool
 isPublicModule(Module module, Procedure proc)
 { GET_LD
-  if ( lookupHTable(module->public,
-		    (void *)proc->definition->functor->functor) )
-    succeed;
-
-  fail;
+  return !!lookupHTableWP(module->public,
+			  proc->definition->functor->functor);
 }
 
 
@@ -1176,7 +1171,7 @@ find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 	PL_put_variable(plist);
 	if ( !PL_unify_list(mlist, mhead, mlist) ||
 	     !PL_unify_term(mhead, PL_FUNCTOR, FUNCTOR_minus2,
-			             PL_ATOM, m->name,
+				     PL_ATOM, m->name,
 				     PL_TERM, plist) )
 	  return FALSE;
       }
@@ -1304,25 +1299,26 @@ declareModule(atom_t name, atom_t class, atom_t super,
   if ( sf->reload )
   { registerReloadModule(sf, module);
   } else
-  { for_table(module->procedures, name, value,
-	      { Procedure proc = value;
-		Definition def = proc->definition;
-		if ( !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
-		{ if ( def->module == module &&
-		       hasClausesDefinition(def) )
-		  { if ( !rdef )
-		    { rdef = PL_new_term_ref();
-		      rtail = PL_copy_term_ref(rdef);
-		      tmp = PL_new_term_ref();
-		    }
+  { FOR_TABLE(module->procedures, name, value)
+    { Procedure proc = val2ptr(value);
+      Definition def = proc->definition;
 
-		    PL_unify_list(rtail, tmp, rtail);
-		    unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
-		  }
-		  abolishProcedure(proc, module);
-		}
-	      })
-    clearHTable(module->public);
+      if ( !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
+      { if ( def->module == module &&
+	     hasClausesDefinition(def) )
+	{ if ( !rdef )
+	  { rdef = PL_new_term_ref();
+	    rtail = PL_copy_term_ref(rdef);
+	    tmp = PL_new_term_ref();
+	  }
+
+	  PL_unify_list(rtail, tmp, rtail);
+	  unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
+	}
+	abolishProcedure(proc, module);
+      }
+    }
+    clearHTableWP(module->public);
   }
   if ( super )
     rc = setSuperModule(module, _lookupModule(super));
@@ -1390,13 +1386,13 @@ unify_export_list(DECL_LD term_t public, Module module)
   term_t list = PL_copy_term_ref(public);
   int rval = TRUE;
 
-  for_table(module->public, name, value,
-	    { if ( !PL_unify_list(list, head, list) ||
-		   !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
-	      { rval = FALSE;
-		break;
-	      }
-	    })
+  FOR_TABLE(module->public, name, value)
+  { if ( !PL_unify_list(list, head, list) ||
+	 !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
+    { rval = FALSE;
+      break;
+    }
+  }
   if ( rval )
     return PL_unify_nil(list);
 
@@ -1409,21 +1405,21 @@ sizeof_module(Module m)
 { GET_LD
   size_t size = sizeof(*m);
 
-  if ( m->public)     size += sizeofTable(m->public);
-  if ( m->procedures) size += sizeofTable(m->procedures);
-  if ( m->operators)  size += sizeofTable(m->operators);
+  if ( m->public)     size += sizeofTableWP(m->public);
+  if ( m->procedures) size += sizeofTableWP(m->procedures);
+  if ( m->operators)  size += sizeofTableWP(m->operators);
 
-  for_table(m->procedures, name, value,
-	    { Procedure proc = value;
-	      Definition def = proc->definition;
+  FOR_TABLE(m->procedures, name, value)
+  { Procedure proc = val2ptr(value);
+    Definition def = proc->definition;
 
-	      size += sizeof(*proc);
+    size += sizeof(*proc);
 
-	      if ( def->module == m && false(def, P_FOREIGN) )
-	      { Definition def = getProcDefinition(proc);
-		size += sizeof_predicate(def);
-	      }
-	    });
+    if ( def->module == m && false(def, P_FOREIGN) )
+    { Definition def = getProcDefinition(proc);
+      size += sizeof_predicate(def);
+    }
+  }
 
   return size;
 }
@@ -1487,9 +1483,9 @@ int
 exportProcedure(Module module, Procedure proc)
 { GET_LD
 
-  updateHTable(module->public,
-	       (void *)proc->definition->functor->functor,
-	       proc);
+  updateHTableWP(module->public,
+		 proc->definition->functor->functor,
+		 proc);
 
   return TRUE;
 }
@@ -1562,7 +1558,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
   atom_t mname;
   Module module;
   TableEnum e;
-  Procedure proc;
+  table_value_t tv;
   term_t tail = PL_copy_term_ref(A2);
   term_t head = PL_new_term_ref();
 
@@ -1571,10 +1567,11 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
   if ( !(module = isCurrentModule(mname)) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_module, A1);
 
-  e = newTableEnum(module->public);
+  e = newTableEnumWP(module->public);
 
-  while( advanceTableEnum(e, NULL, (void**)&proc) )
-  { Definition def = proc->definition;
+  while( advanceTableEnum(e, NULL, &tv) )
+  { Procedure proc = val2ptr(tv);
+    Definition def = proc->definition;
     FunctorDef fd = def->functor;
 
     if ( !isDefinedProcedure(proc) &&			/* not defined */
@@ -1620,7 +1617,7 @@ fixExportModule(Module m, Definition old, Definition new)
 { LOCKMODULE(m);
 
   FOR_TABLE(m->procedures, name, value)
-  { Procedure proc = value;
+  { Procedure proc = val2ptr(value);
 
     if ( proc->definition == old )
     { DEBUG(1, Sdprintf("Patched def of %s\n", procedureName(proc)));
@@ -1639,7 +1636,7 @@ static void
 fixExport(Definition old, Definition new)
 { PL_LOCK(L_MODULE);		/* Otherwise tmp modules may disappear */
   FOR_TABLE(GD->tables.modules, name, value)
-    fixExportModule(value, old, new);
+    fixExportModule(val2ptr(value), old, new);
   PL_UNLOCK(L_MODULE);
 }
 
@@ -1755,21 +1752,22 @@ retry:
       return FALSE;
     if ( !printMessage(ATOM_warning,
 		       PL_FUNCTOR_CHARS, "import_private", 2,
-		         PL_ATOM, destination->name,
-		         PL_TERM, pi) )
+			 PL_ATOM, destination->name,
+			 PL_TERM, pi) )
       return FALSE;
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
-    void *old;
+    Procedure old;
 
     nproc->flags = pflags;
     nproc->source_no = 0;
     shareDefinition(proc->definition);
     nproc->definition = proc->definition;
 
-    old = addHTable(destination->procedures,
-		    (void *)proc->definition->functor->functor, nproc);
+    old = addHTableWP(destination->procedures,
+		      proc->definition->functor->functor,
+		      nproc);
     if ( old != nproc )
     { int shared = unshareDefinition(proc->definition);
       assert(shared > 0);

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -54,14 +55,12 @@ typedef struct flag
 
 static void	freeFlagValue(Flag f);
 
-#define flagTable (GD->flags.table)
-
 #undef LD
 #define LD LOCAL_LD
 
 static void
-freeFlagSymbol(void *name, void *value)
-{ Flag f = value;
+freeFlagSymbol(table_key_t name, table_value_t value)
+{ Flag f = val2ptr(value);
 
   freeFlagValue(f);
   freeHeap(f, sizeof(*f));
@@ -70,18 +69,18 @@ freeFlagSymbol(void *name, void *value)
 
 void
 initFlags(void)
-{ flagTable = newHTable(FLAGHASHSIZE);
-  flagTable->free_symbol = freeFlagSymbol;
+{ GD->flags.table = newHTableWP(FLAGHASHSIZE);
+  GD->flags.table->free_symbol = freeFlagSymbol;
 }
 
 
 void
 cleanupFlags(void)
-{ Table t;
+{ TableWP t;
 
-  if ( (t=flagTable) )
-  { flagTable = NULL;
-    destroyHTable(t);
+  if ( (t=GD->flags.table) )
+  { GD->flags.table = NULL;
+    destroyHTableWP(t);
   }
 }
 
@@ -91,7 +90,7 @@ lookupFlag(word key)
 { GET_LD
   Flag f, of;
 
-  if ( (f = lookupHTable(flagTable, (void *)key)) )
+  if ( (f = lookupHTableWP(GD->flags.table, key)) )
     return f;
 
   f = (Flag) allocHeapOrHalt(sizeof(struct flag));
@@ -100,7 +99,7 @@ lookupFlag(word key)
     PL_register_atom(key);
   f->type = FLG_INTEGER;
   f->value.i = 0;
-  if ( (of=addHTable(flagTable, (void *)key, f)) != f )
+  if ( (of=addHTableWP(GD->flags.table, key, f)) != f )
   { freeHeap(f, sizeof(*f));
     f = of;
   }
@@ -212,7 +211,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
 word
 pl_current_flag(term_t k, control_t h)
 { GET_LD
-  Flag f;
+  table_value_t v;
   TableEnum e;
 
   switch( ForeignControl(h) )
@@ -220,11 +219,11 @@ pl_current_flag(term_t k, control_t h)
     { word key;
 
       if ( PL_is_variable(k) )
-      {	e = newTableEnum(flagTable);
+      {	e = newTableEnumWP(GD->flags.table);
 	break;
       }
       if ( getKeyEx(k, &key) &&
-	   lookupHTable(flagTable, (void *)key) )
+	   lookupHTableWP(GD->flags.table, key) )
 	succeed;
       fail;
     }
@@ -235,18 +234,20 @@ pl_current_flag(term_t k, control_t h)
       e = ForeignContextPtr(h);
       freeTableEnum(e);
     default:
-      succeed;
+      return TRUE;
   }
 
-  while( advanceTableEnum(e, NULL, (void**)&f) )
-  { if ( !unifyKey(k, f->key) )
+  while( advanceTableEnum(e, NULL, &v) )
+  { Flag f = val2ptr(v);
+
+    if ( !unifyKey(k, f->key) )
       continue;
 
     ForeignRedoPtr(e);
   }
 
   freeTableEnum(e);
-  fail;
+  return FALSE;
 }
 
 

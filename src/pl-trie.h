@@ -62,7 +62,7 @@ typedef struct trie_children_key
 
 typedef struct trie_children_hashed
 { tn_node_type	type;			/* TN_HASHED */
-  Table		table;			/* Key --> child map */
+  TableWP	table;			/* Key --> child map */
   unsigned	var_mask;		/* Variables in this place */
   trie_children_key *old_single;	/* Old single node */
 } trie_children_hashed;
@@ -113,7 +113,7 @@ typedef struct trie
 #ifdef O_PLMT
   int			tid;		/* thread id doing completion or re-evaluation */
 #endif
-  trie_node	        root;		/* the root node */
+  trie_node		root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
   alloc_pool	       *alloc_pool;	/* Node allocation pool */

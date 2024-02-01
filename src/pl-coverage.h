@@ -43,7 +43,7 @@
 #define COV_TRACK_THREADS	0x0001 /* activate in child threads */
 
 typedef struct coverage
-{ Table		table;		/* call-sites --> data */
+{ TablePP	table;		/* call-sites --> data */
   unsigned int	references;	/* # threads using this */
   unsigned int	flags;		/* COV_* */
 } coverage;

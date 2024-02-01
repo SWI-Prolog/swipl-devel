@@ -289,7 +289,7 @@ get_child(DECL_LD trie_node *n, word key)
 	  return children.key->child;
         return NULL;
       case TN_HASHED:
-	return lookupHTable(children.hash->table, (void*)key);
+	return lookupHTableWP(children.hash->table, key);
       default:
 	assert(0);
     }
@@ -364,21 +364,20 @@ next:
 	goto next;
       }
       case TN_HASHED:
-      { Table table = children.hash->table;
-	TableEnum e = newTableEnum(table);
-	void *k, *v;
+      { TableWP table = children.hash->table;
+	TableEnum e = newTableEnumWP(table);
 	trie_children_key *os;
 
 	if ( (os=children.hash->old_single) )	/* see insert_child() (*) note */
 	  free_to_pool(trie->alloc_pool, os, sizeof(*os));
 	free_to_pool(trie->alloc_pool, children.hash, sizeof(*children.hash));
 
-	while(advanceTableEnum(e, &k, &v))
-	{ clear_node(trie, v, TRUE);
-	}
+	table_value_t tv;
+	while(advanceTableEnum(e, NULL, &tv))
+	  clear_node(trie, val2ptr(tv), TRUE);
 
 	freeTableEnum(e);
-	destroyHTable(table);
+	destroyHTableWP(table);
 	break;
       }
     }
@@ -420,7 +419,7 @@ prune_node(trie *trie, trie_node *n)
 	  }
 	  break;
 	case TN_HASHED:
-	  deleteHTable(children.hash->table, (void*)n->key);
+	  deleteHTableWP(children.hash->table, n->key);
 	  empty = children.hash->table->size == 0;
 	  break;
       }
@@ -464,17 +463,17 @@ prune_trie(trie *trie, trie_node *root,
 	  continue;
 	}
 	case TN_HASHED:
-	{ Table table = children.hash->table;
-	  TableEnum e = newTableEnum(table);
-	  void *k, *v;
+	{ TableWP table = children.hash->table;
+	  TableEnum e = newTableEnumWP(table);
+	  table_value_t v;
 
-	  if ( advanceTableEnum(e, &k, &v) )
+	  if ( advanceTableEnum(e, NULL, &v) )
 	  { if ( !pushSegStack(&stack, ps, prune_state) )
 	      outOfCore();
 	    ps.e = e;
 	    ps.n = n;
 
-	    n = v;
+	    n = val2ptr(v);
 	    continue;
 	  } else
 	  { freeTableEnum(e);
@@ -502,7 +501,7 @@ prune_trie(trie *trie, trie_node *root,
 	      free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
 	    break;
 	  case TN_HASHED:
-	    deleteHTable(children.hash->table, (void*)n->key);
+	    deleteHTableWP(children.hash->table, n->key);
 	    choice = TRUE;
 	    break;
 	}
@@ -515,10 +514,10 @@ prune_trie(trie *trie, trie_node *root,
 
   next_choice:
     if ( ps.e )
-    { void *k, *v;
+    { table_value_t v;
 
-      if ( advanceTableEnum(ps.e, &k, &v) )
-      { n = v;
+      if ( advanceTableEnum(ps.e, NULL, &v) )
+      { n = val2ptr(v);
 	continue;
       } else
       { n = ps.n;
@@ -594,11 +593,10 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 	    }
 
 	    hnode->type     = TN_HASHED;
-	    hnode->table    = newHTable(4);
+	    hnode->table    = newHTableWP(4);
 	    hnode->var_mask = 0;
-	    addHTable(hnode->table, (void*)children.key->key,
-				    children.key->child);
-	    addHTable(hnode->table, (void*)key, (void*)new);
+	    addHTableWP(hnode->table, children.key->key, children.key->child);
+	    addHTableWP(hnode->table, key, new);
 	    update_var_mask(hnode, children.key->key);
 	    update_var_mask(hnode, new->key);
 	    new->parent = n;
@@ -609,15 +607,14 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 	    } else
 	    { hnode->old_single = NULL;
 	      destroy_node(trie, new);
-	      destroyHTable(hnode->table);
+	      destroyHTableWP(hnode->table);
 	      free_to_pool(trie->alloc_pool, hnode, sizeof(*hnode));
 	      continue;
 	    }
 	  }
 	}
 	case TN_HASHED:
-	{ trie_node *old = addHTable(children.hash->table,
-				     (void*)key, (void*)new);
+	{ trie_node *old = addHTableWP(children.hash->table, key, new);
 
 	  if ( new == old )
 	  { new->parent = n;
@@ -995,12 +992,14 @@ next:
 	goto next;
       }
       case TN_HASHED:
-      { Table table = children.hash->table;
-	TableEnum e = newTableEnum(table);
-	void *k, *v;
+      { TableWP table = children.hash->table;
+	TableEnum e = newTableEnumWP(table);
+	table_value_t v;
 
-	while(advanceTableEnum(e, &k, &v))
-	{ if ( (rc=map_trie_node(v, map, ctx)) != NULL )
+	while(advanceTableEnum(e, NULL, &v))
+	{ trie_node *n2 = val2ptr(v);
+
+	  if ( (rc=map_trie_node(n2, map, ctx)) != NULL )
 	  { freeTableEnum(e);
 	    return rc;
 	  }
@@ -1040,7 +1039,7 @@ stat_node(trie_node *n, void *ctx)
 	stats->bytes += sizeof(*children.key);
         break;
       case TN_HASHED:
-	stats->bytes += sizeofTable(children.hash->table);
+	stats->bytes += sizeofTableWP(children.hash->table);
 	stats->hashes++;
 	break;
       default:
@@ -1841,7 +1840,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 
 typedef struct trie_choice
 { TableEnum  table_enum;
-  Table      table;
+  TableWP    table;
   unsigned   var_mask;
   unsigned   var_index;
   word       novar;
@@ -2037,13 +2036,11 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 	  return NULL;
 	}
       case TN_HASHED:
-      { void *tk, *tv;
-
-	if ( has_key )
+      { if ( has_key )
 	{ if ( children.hash->var_mask == 0 )
 	  { trie_node *child;
 
-	    if ( (child = lookupHTable(children.hash->table, (void*)k)) )
+	    if ( (child = lookupHTableWP(children.hash->table, k)) )
 	    { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
 	      ch->key        = k;
 	      ch->child	     = child;
@@ -2078,10 +2075,12 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 	dstate->prune = FALSE;
 	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
 	ch->table = NULL;
-	ch->table_enum = newTableEnum(children.hash->table);
+	ch->table_enum = newTableEnumWP(children.hash->table);
+	table_key_t tk;
+	table_value_t tv;
 	advanceTableEnum(ch->table_enum, &tk, &tv);
-	ch->key   = (word)tk;
-	ch->child = (trie_node*)tv;
+	ch->key   = tk;
+	ch->child = val2ptr(tv);
 	break;
       }
       default:
@@ -2113,17 +2112,18 @@ descent_node(DECL_LD trie_gen_state *state, descent_state *dstate, trie_choice *
 static int
 advance_node(DECL_LD trie_choice *ch)
 { if ( ch->table_enum )
-  { void *k, *v;
+  { table_key_t k;
+    table_value_t v;
 
     if ( advanceTableEnum(ch->table_enum, &k, &v) )
-    { ch->key   = (word)k;
-      ch->child = (trie_node*)v;
+    { ch->key   = k;
+      ch->child = val2ptr(v);
 
       return TRUE;
     }
   } else if ( ch->table )
   { if ( ch->novar )
-    { if ( (ch->child=lookupHTable(ch->table, (void*)ch->novar)) )
+    { if ( (ch->child=lookupHTableWP(ch->table, ch->novar)) )
       { ch->key = ch->novar;
 	ch->novar = 0;
 	return TRUE;
@@ -2133,7 +2133,7 @@ advance_node(DECL_LD trie_choice *ch)
     { if ( (ch->var_mask & (0x1<<(ch->var_index-1))) )
       { word key = ((((word)ch->var_index))<<LMASK_BITS)|TAG_VAR;
 
-	if ( (ch->child=lookupHTable(ch->table, (void*)key)) )
+	if ( (ch->child=lookupHTableWP(ch->table, key)) )
 	{ ch->key = key;
 	  ch->var_index++;
 	  return TRUE;
@@ -2477,8 +2477,8 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 	} else if ( name == ATOM_idg_size )
 	{ size_t size = sizeof(*idg);
 
-	  if ( idg->affected )  size += sizeofTable(idg->affected);
-	  if ( idg->dependent ) size += sizeofTable(idg->dependent);
+	  if ( idg->affected )  size += sizeofTablePP(idg->affected);
+	  if ( idg->dependent ) size += sizeofTablePP(idg->dependent);
 
 	  return PL_unify_int64(arg, size);
 	}
@@ -2900,9 +2900,10 @@ children:
 	goto next;
       }
       case TN_HASHED:
-      { Table table = children.hash->table;
-	TableEnum e = newTableEnum(table);
-	void *k, *v;
+      { TableWP table = children.hash->table;
+	TableEnum e = newTableEnumWP(table);
+	table_key_t k;
+	table_value_t v;
 
 	if ( !advanceTableEnum(e, &k, &v) )
 	{ freeTableEnum(e);
@@ -2910,7 +2911,7 @@ children:
 	}
 
 	for(;;)
-	{ n = v;
+	{ n = val2ptr(v);
 
 	  if ( !(state->try = advanceTableEnum(e, &k, &v)) )
 	  { freeTableEnum(e);

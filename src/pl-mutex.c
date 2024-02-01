@@ -78,7 +78,7 @@ release_mutexref(atom_t aref)
   if ( (m=ref->mutex) )
   { if ( !m->destroyed )
     { GET_LD
-      deleteHTable(GD->thread.mutexTable, (void *)m->id);
+      deleteHTableWP(GD->thread.mutexTable, m->id);
     }
 
     if ( m->owner )
@@ -209,7 +209,7 @@ mutexCreate(DECL_LD atom_t name)
     { m->id = name;
     }
 
-    addNewHTable(GD->thread.mutexTable, (void *)m->id, m);
+    addNewHTableWP(GD->thread.mutexTable, m->id, m);
     if ( m->anonymous )
       PL_unregister_atom(m->id);		/* reclaim on GC */
     else if ( GD->atoms.builtin )		/* (*) */
@@ -229,7 +229,7 @@ unlocked_pl_mutex_create(term_t mutex)
   word id;
 
   if ( PL_get_atom(mutex, &name) )
-  { if ( lookupHTable(GD->thread.mutexTable, (void *)name) )
+  { if ( lookupHTableWP(GD->thread.mutexTable, name) )
     { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
 	       ATOM_create, ATOM_mutex, mutex);
       return NULL;
@@ -320,7 +320,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
 
   PL_LOCK(L_UMUTEX);
   if ( GD->thread.mutexTable &&
-       (m = lookupHTable(GD->thread.mutexTable, (void *)id)) )
+       (m = lookupHTableWP(GD->thread.mutexTable, id)) )
   { ;
   } else if ( create )
   { m = unlocked_pl_mutex_create(t);
@@ -471,12 +471,14 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
 static
 PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
 { TableEnum e;
-  pl_mutex *m;
+  table_value_t tv;
   int tid = PL_thread_self();
 
-  e = newTableEnum(GD->thread.mutexTable);
-  while( advanceTableEnum(e, NULL, (void**)&m) )
-  { if ( m->owner == tid )
+  e = newTableEnumWP(GD->thread.mutexTable);
+  while( advanceTableEnum(e, NULL, &tv) )
+  { pl_mutex *m = val2ptr(tv);
+
+    if ( m->owner == tid )
     { m->count = 0;
       m->owner = 0;
       pthread_mutex_unlock(&m->mutex);
@@ -494,7 +496,7 @@ try_really_destroy_mutex(pl_mutex *m)
     { GET_LD
 
       m->destroyed = TRUE;
-      deleteHTable(GD->thread.mutexTable, (void *)m->id);
+      deleteHTableWP(GD->thread.mutexTable, m->id);
       if ( !m->anonymous )
 	PL_unregister_atom(m->id);
       m->count = 0;
@@ -589,10 +591,11 @@ advance_mstate(mprop_enum *state)
     state->p = mprop_list;
   }
   if ( state->e )
-  { pl_mutex *m;
+  { table_value_t tv;
 
-    if ( advanceTableEnum(state->e, NULL, (void**)&m) )
-    { state->m = m;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { pl_mutex *m = val2ptr(tv);
+      state->m = m;
 
       succeed;
     }
@@ -628,10 +631,10 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
       { switch( get_prop_def(property, ATOM_mutex_property,
 			     mprop_list, &state->p) )
 	{ case 1:
-	    state->e = newTableEnum(GD->thread.mutexTable);
+	    state->e = newTableEnumWP(GD->thread.mutexTable);
 	    goto enumerate;
 	  case 0:
-	    state->e = newTableEnum(GD->thread.mutexTable);
+	    state->e = newTableEnumWP(GD->thread.mutexTable);
 	    state->p = mprop_list;
 	    state->enum_properties = TRUE;
 	    goto enumerate;
@@ -668,11 +671,12 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->m )			/* first time, enumerating mutexes */
-  { pl_mutex *m;
+  { table_value_t tv;
 
     assert(state->e);
-    if ( advanceTableEnum(state->e, NULL, (void**)&m) )
-    { state->m = m;
+    if ( advanceTableEnum(state->e, NULL, &tv) )
+    { pl_mutex *m = val2ptr(tv);
+      state->m = m;
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
@@ -730,13 +734,13 @@ enumerate:
 		 *******************************/
 
 static void
-unalloc_mutex_symbol(void *name, void *value)
-{ unalloc_mutex(value);
+unalloc_mutex_symbol(table_key_t name, table_value_t value)
+{ unalloc_mutex(val2ptr(value));
 }
 
 void
 initMutexes(void)
-{ GD->thread.mutexTable = newHTable(16);
+{ GD->thread.mutexTable = newHTableWP(16);
   GD->thread.mutexTable->free_symbol = unalloc_mutex_symbol;
   initMutexRef();
 }

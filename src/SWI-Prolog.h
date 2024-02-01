@@ -188,13 +188,17 @@ be relied upon to remain unchanged across versions.
 		 *	       TYPES		*
 		 *******************************/
 
-typedef uintptr_t	_PLQ(word);	/* Anonymous ptr-sized object*/
+#if O_M64
+typedef uint64_t	_PLQ(word);	/* Anonymous Prolog data cell */
+#else
+typedef uintptr_t	_PLQ(word);	/* Anonymous Prolog data cell */
+#endif
 #ifndef PL_HAVE_ATOM_T
 #define PL_HAVE_ATOM_T
-typedef uintptr_t	atom_t;		/* Prolog atom */
+typedef _PLQ(word)	atom_t;		/* Prolog atom */
 #endif
 typedef _PLQ(word)	functor_t;	/* Name/arity pair */
-typedef uintptr_t	_PLQ(code);	/* Prolog bytecode type */
+typedef _PLQ(word)	_PLQ(code);	/* Prolog bytecode type */
 typedef _PLS(module) *	module_t;	/* Prolog module */
 typedef _PLS(procedure) *predicate_t;	/* Prolog procedure */
 typedef _PLS(record) *	record_t;	/* Prolog recorded term */
@@ -206,8 +210,8 @@ typedef _PLS(queryRef) *qid_t;		/* opaque query handle */
 typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef _PLS(foreign_context) *control_t; /* non-deterministic control arg */
 typedef _PLS(PL_local_data) *PL_engine_t; /* opaque engine handle */
-typedef uintptr_t	PL_atomic_t;	/* same a word */
-typedef uintptr_t	foreign_t;	/* return type of foreign functions */
+typedef _PLQ(word)	PL_atomic_t;	/* same a word */
+typedef _PLQ(word)	foreign_t;	/* return type of foreign functions */
 typedef wchar_t		pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
 typedef void *		pl_function_t;      /* pass function as void* */
@@ -1345,24 +1349,31 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 		 /*******************************
 		 *	    HASH TABLES		*
 		 *******************************/
-typedef _PLS(table)	  *hash_table_t;
+typedef _PLS(table)	 *hash_table_t;
 typedef _PLS(table_enum) *hash_table_enum_t;
+#if O_MT64
+typedef uint64_t table_key_t;
+typedef uint64_t table_value_t;
+#else
+typedef uintptr_t table_key_t;
+typedef uintptr_t table_value_t;
+#endif
 
 #define PL_HT_NEW	0x0001
 #define PL_HT_UPDATE	0x0002
 
-PL_EXPORT(hash_table_t)	PL_new_hash_table(int size,
-					  void (*free_symbol)(void *n, void *v));
+PL_EXPORT(hash_table_t)	PL_new_hash_table(size_t size,
+					  void (*free_symbol)(table_key_t n, table_value_t v));
 PL_EXPORT(int)		PL_free_hash_table(hash_table_t table);
-PL_EXPORT(void*)	PL_lookup_hash_table(hash_table_t table, void *key);
-PL_EXPORT(void*)	PL_add_hash_table(hash_table_t table,
-					  void *key, void *value, int flags);
-PL_EXPORT(void*)	PL_del_hash_table(hash_table_t table, void *key);
+PL_EXPORT(table_value_t) PL_lookup_hash_table(hash_table_t table, table_key_t key);
+PL_EXPORT(table_value_t) PL_add_hash_table(hash_table_t table,
+					   table_key_t key, table_value_t value, int flags);
+PL_EXPORT(table_value_t) PL_del_hash_table(hash_table_t table, table_key_t key);
 PL_EXPORT(int)		PL_clear_hash_table(hash_table_t table);
 PL_EXPORT(hash_table_enum_t) PL_new_hash_table_enum(hash_table_t table);
 PL_EXPORT(void)		PL_free_hash_table_enum(hash_table_enum_t e);
 PL_EXPORT(int)		PL_advance_hash_table_enum(hash_table_enum_t e,
-						   void **key, void **value);
+						   table_key_t *key, table_value_t *value);
 
 
 		 /*******************************

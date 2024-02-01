@@ -3,10 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2023, University of Amsterdam
-                         VU University Amsterdam
-			 CWI, Amsterdam
-			 SWI-Prolog Solutions b.v.
+    Copyright (c)  2023-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -69,8 +66,9 @@ typedef struct cov_obj
 
 
 static void
-free_cov_symbol(void *name, void *value)
-{ cov_obj *cov = value;
+free_cov_symbol(table_key_t name, table_value_t value)
+{ cov_obj *cov = val2ptr(value);
+  (void)name;
 
   PL_unregister_atom(cov->cref);
   PL_free(cov);
@@ -83,7 +81,7 @@ newCoverageData(void)
   if ( cov )
   { memset(cov, 0, sizeof(*cov));
 
-    Table t = newHTable(1024);
+    TablePP t = newHTablePP(1024);
     if ( t )
     { t->free_symbol = free_cov_symbol;
       cov->table      = t;
@@ -111,7 +109,7 @@ share_coverage_data(coverage *cov)
 static void
 unshare_coverage_data(coverage *cov)
 { if ( ATOMIC_DEC(&cov->references)  == 0 )
-  { destroyHTable(cov->table);
+  { destroyHTablePP(cov->table);
     free(cov);
   }
 }
@@ -126,8 +124,7 @@ running_static_predicate(LocalFrame fr)
 
 static cov_obj*
 pc_call_site(coverage *cov, const Clause cl, Code pc)
-{ void *key = (void*)pc;
-  cov_obj *obj = lookupHTable(cov->table, key);
+{ cov_obj *obj = lookupHTablePP(cov->table, pc);
 
   if ( !obj )
   { obj = PL_malloc(sizeof(*obj));
@@ -136,7 +133,7 @@ pc_call_site(coverage *cov, const Clause cl, Code pc)
     obj->cref = lookup_clref(cl);
     obj->pc   = pc;
 
-    cov_obj *obj2 = addHTable(cov->table, key, obj);
+    cov_obj *obj2 = addHTablePP(cov->table, pc, obj);
     if ( obj2 != obj )
     { PL_unregister_atom(obj->cref);
       PL_free(obj);
@@ -162,10 +159,8 @@ call_site(LocalFrame fr)
 
 static cov_obj *
 clause_site(coverage *cov, Clause cl)
-{ void *key = cl;
-
-  if ( cov )
-  { cov_obj *obj = lookupHTable(cov->table, key);
+{ if ( cov )
+  { cov_obj *obj = lookupHTablePP(cov->table, cl);
 
     if ( !obj )
     { obj = PL_malloc(sizeof(*obj));
@@ -173,7 +168,7 @@ clause_site(coverage *cov, Clause cl)
       obj->type = COV_CLAUSE;
       obj->cref = lookup_clref(cl);
 
-      cov_obj *obj2 = addHTable(cov->table, key, obj);
+      cov_obj *obj2 = addHTablePP(cov->table, cl, obj);
       if ( obj2 != obj )
       { PL_unregister_atom(obj->cref);
 	PL_free(obj);
@@ -375,7 +370,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { Table cov_table;
+    { TablePP cov_table;
       coverage *cov;
 
       if ( !(cov=LD->coverage.data) ||
@@ -383,7 +378,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 	return FALSE;
 
       if ( PL_is_variable(A1) )
-      {	state->e = newTableEnum(cov_table);
+      {	state->e = newTableEnumPP(cov_table);
 	break;
       } else if ( PL_is_functor(A1, FUNCTOR_call_site2) )
       {	term_t a = PL_new_term_ref();
@@ -399,7 +394,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
 	if ( cl && pc_offset != -1 )
 	{ Code pc = cl->codes+pc_offset;
-	  cov_obj *cov = lookupHTable(cov_table, pc);
+	  cov_obj *cov = lookupHTablePP(cov_table, pc);
 
 	  return ( cov &&
 		   unify_cov(A1, cov) &&
@@ -407,7 +402,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 		   PL_unify_int64(A3, cov->exits) );
 	}
 
-	state->e = newTableEnum(cov_table);
+	state->e = newTableEnumPP(cov_table);
 	if ( cl )
 	  state->cref = lookup_clref(cl);
 	state->type = COV_PC;
@@ -419,7 +414,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
 	  if ( PL_get_arg(1, A1, a) &&
 	       PL_get_clref(a, &cl) )
-	  { cov_obj *cov = lookupHTable(cov_table, cl);
+	  { cov_obj *cov = lookupHTablePP(cov_table, cl);
 
 	    return ( cov &&
 		     PL_unify_int64(A2, cov->enter) &&
@@ -427,7 +422,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 	  } else
 	    return FALSE;
 	} else
-	{ state->e = newTableEnum(cov_table);
+	{ state->e = newTableEnumPP(cov_table);
 	  state->type = COV_CLAUSE;
 	  break;
 	}
@@ -444,11 +439,11 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
       assert(0);
   }
 
-  void *value;
+  table_value_t value;
   fid_t fid = PL_open_foreign_frame();
 
   while( advanceTableEnum(state->e, NULL, &value ) )
-  { cov_obj *cov = value;
+  { cov_obj *cov = val2ptr(value);
 
     if ( is_candidate(state, cov) &&
 	 unify_cov(A1, cov) &&

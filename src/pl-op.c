@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -90,27 +90,28 @@ typedef struct _opdef			/* predefined and enumerated */
 		 *******************************/
 
 static void
-copyOperatorSymbol(void *name, void **value)
-{ operator *op = *value;
+copyOperatorSymbol(table_key_t name, table_value_t *value)
+{ operator *op = val2ptr(*value);
   operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
+  PL_register_atom((atom_t) name);
   *o2 = *op;
-  *value = o2;
+  *value = ptr2val(o2);
 }
 
 
 static void
-freeOperatorSymbol(void *name, void *value)
-{ operator *op = value;
+freeOperatorSymbol(table_key_t name, table_value_t value)
+{ operator *op = val2ptr(value);
 
   PL_unregister_atom((atom_t) name);
   freeHeap(op, sizeof(*op));
 }
 
 
-static Table
+static TableWP
 newOperatorTable(int size)
-{ Table t = newHTable(size);
+{ TableWP t = newHTableWP(size);
 
   t->copy_symbol = copyOperatorSymbol;
   t->free_symbol = freeOperatorSymbol;
@@ -162,7 +163,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   if ( !m->operators )
     m->operators = newOperatorTable(8);
 
-  if ( (op = lookupHTable(m->operators, (void *)name)) )
+  if ( (op = lookupHTableWP(m->operators, name)) )
   { ;
   } else if ( priority < 0 )
   { PL_UNLOCK(L_OP);				/* already inherited: do not change */
@@ -184,7 +185,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
   if ( must_reg )
   { PL_register_atom(name);
-    addNewHTable(m->operators, (void *)name, op);
+    addNewHTableWP(m->operators, name, op);
   }
   PL_UNLOCK(L_OP);
 
@@ -208,7 +209,7 @@ visibleOperator(Module m, atom_t name, int kind)
   ListCell c;
 
   if ( m->operators &&
-       (op = lookupHTable(m->operators, (void *)name)) )
+       (op = lookupHTableWP(m->operators, name)) )
   { if ( op->type[kind] != OP_INHERIT )
       return op;
   }
@@ -278,7 +279,8 @@ scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
   if ( *done != 0x7 )
   { operator *op;
 
-    if ( m->operators && (op = lookupHTable(m->operators, (void *)name)) )
+    if ( m->operators &&
+	 (op = lookupHTableWP(m->operators, name)) )
       sofar = maxOp(op, done, sofar);
 
     if ( *done != 0x7 )
@@ -421,13 +423,16 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
 
 
 static void
-addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
-{ TableEnum e = newTableEnum(t);
-  atom_t nm;
-  operator *op;
+addOpsFromTable(TableWP t, atom_t name, int priority, int type, Buffer b)
+{ TableEnum e = newTableEnumWP(t);
+  table_key_t tk;
+  table_value_t tv;
 
-  while( advanceTableEnum(e, (void**)&nm, (void**)&op) )
-  { if ( nm == name || name == NULL_ATOM )
+  while( advanceTableEnum(e, &tk, &tv) )
+  { atom_t nm = (atom_t)tk;
+    operator *op = val2ptr(tv);
+
+    if ( nm == name || name == NULL_ATOM )
     { if ( type )
       { int kind = type&OP_MASK;
 

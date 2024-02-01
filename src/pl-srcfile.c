@@ -188,8 +188,9 @@ unallocSourceFile(SourceFile sf)
 
 
 static void
-freeSymbolSourceFile(void *name, void *value)
-{ SourceFile sf = value;
+freeSymbolSourceFile(table_key_t name, table_value_t value)
+{ SourceFile sf = val2ptr(value);
+  (void)name;
 
   if ( sf->magic == SF_MAGIC )
     sf->magic = SF_MAGIC_DESTROYING;
@@ -215,12 +216,12 @@ cleanupSourceFileArray(void)
 
 void
 cleanupSourceFiles(void)
-{ Table t;
+{ TableWP t;
 
   if ( (t=GD->files.table) )
   { GD->files.table = NULL;
 
-    destroyHTable(t);
+    destroyHTableWP(t);
   }
 
   cleanupSourceFileArray();
@@ -270,7 +271,7 @@ destroySourceFile(SourceFile sf)
     SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
-    f = deleteHTable(GD->files.table, (void*)sf->name);
+    f = deleteHTableWP(GD->files.table, sf->name);
     assert(f);
     (void)f;
     name = sf->name;
@@ -292,12 +293,12 @@ lookupSourceFile_unlocked(atom_t name, int create)
   SourceFile file;
 
   if ( !GD->files.table )
-  { GD->files.table = newHTable(32);
+  { GD->files.table = newHTableWP(32);
     GD->files.table->free_symbol = freeSymbolSourceFile;
     GD->files.no_hole_before = 1;
   }
 
-  if ( !(file=lookupHTable(GD->files.table, (void*)name)) &&
+  if ( !(file=lookupHTableWP(GD->files.table, name)) &&
        create )
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
@@ -313,7 +314,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
     PL_register_atom(file->name);
     registerSourceFile(file);
 
-    addNewHTable(GD->files.table, (void*)name, file);
+    addNewHTableWP(GD->files.table, name, file);
   }
 
   return file;
@@ -520,7 +521,7 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
     { PL_LOCK(L_MODULE);
       m->file = NULL;
       m->line_no = 0;
-      clearHTable(m->public);
+      clearHTableWP(m->public);
       PL_UNLOCK(L_MODULE);
     }
 
@@ -555,7 +556,7 @@ unlinkSourceFileModule(SourceFile sf, Module m)
     proc = cell->value;
     def  = proc->definition;
 
-    if ( lookupHTable(m->procedures, (void*)def->functor->functor) ||
+    if ( lookupHTableWP(m->procedures, def->functor->functor) ||
 	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
     { if ( sf->current_procedure == proc )
 	sf->current_procedure = NULL;
@@ -854,7 +855,7 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 	  m->file = NULL;
 	  m->line_no = 0;
 	  delModuleSourceFile(sf, m);
-	  clearHTable(m->public);
+	  clearHTableWP(m->public);
 	  setSuperModule(m, MODULE_user);
 	  UNLOCKMODULE(m);
 	}
@@ -895,7 +896,7 @@ startReconsultFile(SourceFile sf)
   { ListCell cell;
 
     memset(r, 0, sizeof(*r));
-    r->procedures        = newHTable(16);
+    r->procedures        = newHTablePP(16);
     r->reload_gen        = GEN_RELOAD;
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
@@ -1014,9 +1015,9 @@ int
 reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
-  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
-  { return reload->number_of_clauses > 0;
-  }
+  if ( sf->reload &&
+       (reload=lookupHTablePP(sf->reload->procedures, proc)) )
+    return reload->number_of_clauses > 0;
 
   return FALSE;
 }
@@ -1048,7 +1049,7 @@ static p_reload *
 reloadContext(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
-  if ( !(reload = lookupHTable(sf->reload->procedures, proc)) )
+  if ( !(reload = lookupHTablePP(sf->reload->procedures, proc)) )
   { Definition def = proc->definition;
 
     if ( !(reload = allocHeap(sizeof(*reload))) )
@@ -1074,7 +1075,7 @@ reloadContext(DECL_LD SourceFile sf, Procedure proc)
     } else
     { set(reload, P_NEW);
     }
-    addNewHTable(sf->reload->procedures, proc, reload);
+    addNewHTablePP(sf->reload->procedures, proc, reload);
     DEBUG(MSG_RECONSULT_PRED,
 	  Sdprintf("%s %s ...\n",
 		   true(reload, P_NEW)        ? "New"   :
@@ -1387,15 +1388,15 @@ registerReloadModule(SourceFile sf, Module module)
   m_reload *r;
 
   if ( sf->reload )
-  { Table mt;
+  { TablePP mt;
 
     if ( !(mt=sf->reload->modules) )
-      mt = sf->reload->modules = newHTable(8);
+      mt = sf->reload->modules = newHTablePP(8);
 
-    if ( !(r=lookupHTable(mt, module)) )
+    if ( !(r=lookupHTablePP(mt, module)) )
     { r = allocHeapOrHalt(sizeof(*r));
       memset(r, 0, sizeof(*r));
-      addNewHTable(mt, module, r);
+      addNewHTablePP(mt, module, r);
     }
   }
 }
@@ -1407,12 +1408,10 @@ exportProcedureSource(SourceFile sf, Module module, Procedure proc)
   m_reload *r;
 
   if ( sf->reload && sf->reload->modules &&
-       (r = lookupHTable(sf->reload->modules, module)) )
+       (r = lookupHTablePP(sf->reload->modules, module)) )
   { if ( !r->public )
-      r->public = newHTable(8);
-    updateHTable(r->public,
-		 (void *)proc->definition->functor->functor,
-		 proc);
+      r->public = newHTableWP(8);
+    updateHTableWP(r->public, proc->definition->functor->functor, proc);
   }
 
   return exportProcedure(module, proc);
@@ -1426,10 +1425,10 @@ fix_module(Module m, m_reload *r)
   LOCKMODULE(m);
   FOR_TABLE(m->public, n, v)
   { if ( !r->public ||
-	 !lookupHTable(r->public, n) )
+	 !lookupHTableWP(r->public, n) )
     { DEBUG(MSG_RECONSULT_MODULE,
-	    Sdprintf("Delete export %s\n", procedureName(v)));
-      deleteHTable(m->public, n);
+	    Sdprintf("Delete export %s\n", procedureName(val2ptr(v))));
+      deleteHTableWP(m->public, n);
     }
   };
   UNLOCKMODULE(m);
@@ -1486,7 +1485,7 @@ delete_old_predicates(SourceFile sf)
     next = cell->next;
 
     if ( false(proc->definition, P_FOREIGN) &&
-	 !lookupHTable(sf->reload->procedures, proc) )
+	 !lookupHTablePP(sf->reload->procedures, proc) )
     { delete_old_predicate(sf, proc);
 
       if ( prev )
@@ -1575,27 +1574,27 @@ endReconsult(SourceFile sf)
     delete_old_predicates(sf);
 
     FOR_TABLE(reload->procedures, n, v)
-    { Procedure proc = n;
-      p_reload *r = v;
+    { Procedure proc = key2ptr(n);
+      p_reload *r = val2ptr(v);
 
       accessed_preds -= end_reconsult_proc(sf, proc, r);
     }
 
     popNPredicateAccess(accessed_preds);
     assert(reload->pred_access_count == popNPredicateAccess(0));
-    destroyHTable(reload->procedures);
+    destroyHTablePP(reload->procedures);
 
     if ( reload->modules )
     { FOR_TABLE(reload->modules, n, v)
-      { Module m = n;
-	m_reload *r = v;
+      { Module m = key2ptr(n);
+	m_reload *r = val2ptr(v);
 
 	fix_module(m, r);
 	if ( r->public )
-	  destroyHTable(r->public);
+	  destroyHTableWP(r->public);
 	freeHeap(r, sizeof(*r));
       }
-      destroyHTable(reload->modules);
+      destroyHTablePP(reload->modules);
     }
 
     sf->number_of_clauses = sf->reload->number_of_clauses;
@@ -1636,7 +1635,7 @@ flush_procedure(SourceFile sf, Procedure proc)
   if ( (reload=sf->reload) )
   { p_reload *r;
 
-    if ( (r=lookupHTable(sf->reload->procedures, proc)) )
+    if ( (r=lookupHTablePP(sf->reload->procedures, proc)) )
     { if ( false(r, P_NEW|P_NO_CLAUSES) )
       { Definition def = proc->definition;
 

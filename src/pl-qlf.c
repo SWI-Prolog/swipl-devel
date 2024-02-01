@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -263,7 +263,7 @@ typedef struct wic_state
   SourceFile currentSource;		/* current source file */
 
   Table idMap;				/* mapped identifiers */
-  Table	savedXRTable;			/* saved XR entries */
+  TableWW savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
   SourceMark source_mark_head;		/* Locations of sources */
@@ -1899,11 +1899,11 @@ loadModuleProperties(DECL_LD wic_state *state, Module m, int skip)
 	if ( !skip )
 	{ Procedure proc = lookupProcedure(f, LD->modules.source);
 
-	  addNewHTable(LD->modules.source->public, (void *)f, proc);
+	  addNewHTableWP(LD->modules.source->public, f, proc);
 	  if ( state->currentSource )
 	    exportProcedureSource(state->currentSource, m, proc);
 	} else
-	{ if ( !lookupHTable(m->public, (void *)f) )
+	{ if ( !lookupHTableWP(m->public, f) )
 	  { FunctorDef fd = valueFunctor(f);
 
 	    warning("%s: skipped module \"%s\" lacks %s/%d",
@@ -2181,7 +2181,7 @@ putAtom(wic_state *state, atom_t w)
   static PL_blob_t *text_blob;
 
   if ( state->idMap &&
-       (mapped = (atom_t)lookupHTable(state->idMap, (void*)w)) )
+       (mapped = (atom_t)lookupHTable(state->idMap, (table_key_t)w)) )
   { assert(isAtom(mapped));
     w = mapped;
   }
@@ -2268,8 +2268,9 @@ qlfPutInt32(int32_t v, IOSTREAM *fd)
 }
 
 static void
-freeXRSymbol(void *name, void *value)
+freeXRSymbol(table_key_t name, table_value_t value)
 { word w = (word)name;
+  (void)value;
 
   if ( w&0x1 )
   { w &= ~0x1;
@@ -2314,45 +2315,65 @@ savedXRPointer  must  be  used  for   the    pointers.   The  value  for
 savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-savedXR(wic_state *state, void *xr)
-{ GET_LD
-  IOSTREAM *fd = state->wicFd;
-  unsigned int id;
 
-  if ( (id = (intptr_t)lookupHTable(state->savedXRTable, xr)) )
-  { Sputc(XR_REF, fd);
+#define savedXR(state, xr) LDFUNC(savedXR, state, xr)
+
+static int
+savedXR(DECL_LD wic_state *state, void *xr)
+{ intptr_t id;
+
+  if ( (id = lookupHTable(state->savedXRTable, ptr2key(xr))) )
+  { IOSTREAM *fd = state->wicFd;
+
+    Sputc(XR_REF, fd);
     qlfPutUInt32(id, fd);
 
     succeed;
   } else
   { id = ++state->savedXRTableId;
-    addNewHTable(state->savedXRTable, xr, (void *)(intptr_t)id);
+    addNewHTable(state->savedXRTable, ptr2key(xr), id);
   }
 
   fail;
 }
 
 
-static inline int
-savedXRConstant(wic_state *state, word w)
-{ int rc;
+#define savedXRConstant(state, w) LDFUNC(savedXRConstant, state, w)
+
+static int
+savedXRConstant(DECL_LD wic_state *state, word w)
+{ word key = w;
+  intptr_t id;
 
   assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
+  assert((w&0x3));			/* Cannot conflict with pointers */
 
-  if ( !(rc=savedXR(state, (void *)(w|0x1))) && isAtom(w) )
-  { DEBUG(MSG_QLF_XR, Sdprintf("REG: %s\n", stringAtom(w)));
-    PL_register_atom(w);
+  if ( (id = lookupHTable(state->savedXRTable, key)) )
+  { IOSTREAM *fd = state->wicFd;
+
+    Sputc(XR_REF, fd);
+    qlfPutUInt32(id, fd);
+
+    succeed;
+  } else
+  { id = ++state->savedXRTableId;
+    addNewHTable(state->savedXRTable, key, id);
+    if ( isAtom(w) )
+    { DEBUG(MSG_QLF_XR, Sdprintf("REG: %s\n", stringAtom(w)));
+      PL_register_atom(w);
+    }
   }
 
-  return rc;
+  fail;
 }
 
 
 static int XRNullPointer = 0;
 
+#define savedXRPointer(state, p) LDFUNC(savedXRPointer, state, p)
+
 static inline int
-savedXRPointer(wic_state *state, void *p)
+savedXRPointer(DECL_LD wic_state *state, void *p)
 { assert(((word)p & 0x1) == 0);
 
   if ( !p )
@@ -2423,7 +2444,8 @@ saveXR(DECL_LD wic_state *state, word xr)
 
 static void
 saveXRBlobType(wic_state *state, PL_blob_t *type)
-{ IOSTREAM *fd = state->wicFd;
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
 
   if ( savedXRPointer(state, type) )
     return;
@@ -2465,7 +2487,7 @@ saveXRFunctor(DECL_LD wic_state *state, functor_t f)
     return;
 
   if ( state->idMap &&
-       (mapped = (functor_t)lookupHTable(state->idMap, (void*)f)) )
+       (mapped = (functor_t)lookupHTable(state->idMap, (table_key_t)f)) )
     f = mapped;
 
   fdef = valueFunctor(f);
@@ -3731,16 +3753,16 @@ qlfStartModule(DECL_LD wic_state *state, Module m)
   }
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("MODULE %s\n", stringAtom(m->name)));
-  for_table(m->public, name, value,
-	    { functor_t f = (functor_t)name;
+  FOR_TABLE(m->public, name, value)
+  { functor_t f = name;
 
-	      DEBUG(MSG_QLF_EXPORT,
-		    Sdprintf("Exported %s/%d\n",
-			     stringAtom(nameFunctor(f)),
-			     arityFunctor(f)));
-	      Sputc('E', fd);
-	      saveXRFunctor(state, f);
-	    })
+    DEBUG(MSG_QLF_EXPORT,
+	  Sdprintf("Exported %s/%d\n",
+		   stringAtom(nameFunctor(f)),
+		   arityFunctor(f)));
+    Sputc('E', fd);
+    saveXRFunctor(state, f);
+  }
 
   Sputc('X', fd);
 
@@ -4048,7 +4070,7 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
 }
 
 static void
-freeMapping(void *name, void *value)
+freeMapping(table_key_t name, table_value_t value)
 { word id_from = (word)name;
   word id_to   = (word)value;
 
@@ -4057,24 +4079,24 @@ freeMapping(void *name, void *value)
 }
 
 static int
-get_id(term_t t, void **id)
+get_id(term_t t, Word id)
 { GET_LD
   atom_t a;
   functor_t f;
 
   if ( PL_get_atom(t, &a) )
-  { *id = (void *)a;
+  { *id = a;
   } else if ( PL_get_functor(t, &f) )
   { if ( f == FUNCTOR_colon2 )
     { Procedure proc;
 
       if ( get_procedure(t, &proc, 0, GP_FINDHERE|GP_EXISTENCE_ERROR) )
-      { *id = (void *)proc->definition;
+      { *id = (word)(uintptr_t)proc->definition;
       } else
       { return FALSE;
       }
     }
-    *id = (void *)f;
+    *id = f;
   } else
   { return PL_type_error("identifier", t);
   }
@@ -4095,14 +4117,14 @@ PRED_IMPL("$map_id", 2, map_id, 0)
   wic_state *state;
 
   if ( (state=LD->qlf.write_state) )
-  { void *id_from, *id_to, *old;
+  { word id_from, id_to, old;
 
     if ( !get_id(A1, &id_from) ||
 	 !get_id(A2, &id_to) )
       return FALSE;
 
-    if ( (isAtom((word)id_from)    && !isAtom((word)id_to)) ||
-	 (isFunctor((word)id_from) && !isFunctor((word)id_to)) )
+    if ( (isAtom(id_from)    && !isAtom(id_to)) ||
+	 (isFunctor(id_from) && !isFunctor(id_to)) )
       return PL_permission_error("map", "identifier", A1);
 
     if ( !state->idMap )
@@ -4110,16 +4132,16 @@ PRED_IMPL("$map_id", 2, map_id, 0)
       state->idMap->free_symbol = freeMapping;
     }
 
-    if ( (old=lookupHTable(state->idMap, id_from)) )
+    if ( (old=(word)lookupHTable(state->idMap, (table_key_t)id_from)) )
     { if ( old == id_to )
 	return TRUE;
       else
 	return PL_permission_error("map", "identifier", A1);
     } else
-    { addNewHTable(state->idMap, id_from, id_to);
-      if ( isAtom((word)id_from) )
-      { PL_register_atom((atom_t)id_from);
-	PL_register_atom((atom_t)id_to);
+    { addNewHTable(state->idMap, (table_key_t)id_from, (table_value_t)id_to);
+      if ( isAtom(id_from) )
+      { PL_register_atom(id_from);
+	PL_register_atom(id_to);
       }
       return TRUE;
     }
@@ -4134,13 +4156,13 @@ PRED_IMPL("$unmap_id", 1, unmap_id, 0)
   wic_state *state;
 
   if ( (state=LD->qlf.write_state) )
-  { void *id_from;
+  { word id_from;
 
     if ( !get_id(A1, &id_from) )
       return FALSE;
 
     if ( state->idMap )
-      deleteHTable(state->idMap, id_from);
+      deleteHTable(state->idMap, (table_key_t)id_from);
   }
 
   return TRUE;

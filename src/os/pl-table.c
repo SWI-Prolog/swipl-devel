@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -99,31 +100,32 @@ Transitioning between states is performed using CAS.
 
 #endif
 
-static void *	htable_put(Table ht, KVS kvs, void *name, void *value, int flags);
+static table_value_t htable_put(Table ht, KVS kvs, table_key_t name, table_value_t value, int flags);
 
 
 #define HTABLE_NORMAL   0x1
 #define HTABLE_RESIZE   0x2
 #define HTABLE_PRESERVE 0x4
 
-#define HTABLE_TOMBSTONE ((void*)-1)
-#define HTABLE_SENTINEL  ((void*)-2)
+#define HTABLE_TOMBSTONE ((table_value_t)-1)
+#define HTABLE_SENTINEL  ((table_key_t)-2)
 
 
-static inline void *htable_name(KVS kvs, int idx)
+static inline table_key_t htable_name(KVS kvs, size_t idx)
 { return kvs->entries[idx].name;
 }
 
-static inline void *htable_value(KVS kvs, int idx)
+static inline table_value_t htable_value(KVS kvs, size_t idx)
 { return kvs->entries[idx].value;
 }
 
-static inline int htable_cas_name(KVS kvs, int idx, void *exp, void *name)
-{ return COMPARE_AND_SWAP_PTR(&kvs->entries[idx].name, exp, name);
+// TBD: eventually must become COMPARE_AND_SWAP_WORD()
+static inline int htable_cas_name(KVS kvs, size_t idx, table_key_t exp, table_key_t name)
+{ return __COMPARE_AND_SWAP(&kvs->entries[idx].name, exp, name);
 }
 
-static inline int htable_cas_value(KVS kvs, int idx, void *exp, void *value)
-{ return COMPARE_AND_SWAP_PTR(&kvs->entries[idx].value, exp, value);
+static inline int htable_cas_value(KVS kvs, size_t idx, table_key_t exp, table_key_t value)
+{ return __COMPARE_AND_SWAP(&kvs->entries[idx].value, exp, value);
 }
 
 static inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)
@@ -136,7 +138,7 @@ static inline int htable_cas_cleanup(Table ht, int exp, int cleanup)
 
 
 static KVS
-htable_alloc_kvs(int len)
+htable_alloc_kvs(size_t len)
 { size_t bytes;
   KVS kvs;
 
@@ -214,9 +216,9 @@ htable_maybe_free_kvs(Table ht)
 static void
 htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
 {
-  int idx = 0;
-  void *n;
-  void *v;
+  size_t idx = 0;
+  table_key_t n;
+  table_value_t v;
 
   while ( idx < old_kvs->len )
   {
@@ -224,7 +226,7 @@ htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
     v = htable_value(old_kvs, idx);
 
     while ( !(n = htable_name(old_kvs, idx)) )
-    { htable_cas_name(old_kvs, idx, NULL, HTABLE_SENTINEL);
+    { htable_cas_name(old_kvs, idx, NULL_KEY, HTABLE_SENTINEL);
       n = HTABLE_SENTINEL;
     }
 
@@ -259,15 +261,14 @@ static KVS
 htable_resize(Table ht, KVS kvs)
 {
   KVS new_kvs;
-  int new_len = kvs->len;
+  size_t new_len = kvs->len;
 
   if ( ht->size >= (kvs->len >> 2) )
   { new_len = kvs->len << 1;
     if ( ht->size >= (kvs->len >> 1) )
     { new_len = kvs->len << 2;
     }
-  }
-  else if ( kvs->resizing )
+  } else if ( kvs->resizing )
   { new_len = kvs->len << 1;
   }
 
@@ -280,8 +281,7 @@ htable_resize(Table ht, KVS kvs)
   new_kvs->prev = kvs;
 
   if ( htable_cas_new_kvs(kvs, new_kvs) )
-  {
-    DEBUG(MSG_HASH_TABLE_KVS,
+  { DEBUG(MSG_HASH_TABLE_KVS,
           Sdprintf("Rehashing table %p to %d entries. kvs: %p -> new_kvs: %p\n", ht, new_len, kvs, new_kvs));
 
     new_kvs->resizing = TRUE;
@@ -291,8 +291,7 @@ htable_resize(Table ht, KVS kvs)
     ht->kvs = new_kvs;
 
     htable_maybe_free_kvs(ht);
-  }
-  else
+  } else
   { htable_free_kvs(new_kvs);
     new_kvs = kvs->next;
     assert(new_kvs);
@@ -302,32 +301,29 @@ htable_resize(Table ht, KVS kvs)
 }
 
 
-static void*
-htable_get(Table ht, KVS kvs, void *name)
-{
-  void *n;
-  void *v;
-  int idx, reprobe_count;
+static table_value_t
+htable_get(Table ht, KVS kvs, table_key_t name)
+{ table_key_t n;
+  table_value_t v;
+  size_t idx;
+  int reprobe_count;
 
-  assert(name != NULL);
+  assert(name);
 
 redo:
-
-  idx = (int)pointerHashValue(name, kvs->len);
+  idx = (size_t)pointerHashValue(name, kvs->len);
   reprobe_count = 0;
 
   while ( TRUE )
-  {
-    n = htable_name(kvs, idx);
+  { n = htable_name(kvs, idx);
     v = htable_value(kvs, idx);
 
     if ( !n )
-      return NULL;
+      return NULL_VALUE;
 
     if ( n == name )
-    {
-      if ( v == HTABLE_TOMBSTONE )
-      { return NULL;
+    { if ( v == HTABLE_TOMBSTONE )
+      { return NULL_VALUE;
       } else if ( v == HTABLE_SENTINEL )
       { kvs = kvs->next;
         goto redo;
@@ -341,41 +337,36 @@ redo:
       if ( kvs )
       { goto redo;
       } else
-      { return NULL;
+      { return NULL_VALUE;
       }
     }
 
     idx = (idx+1)&(kvs->len-1);
   }
-
-  return NULL;
 }
 
 
-static void*
-htable_put(Table ht, KVS kvs, void *name, void *value, int flags)
-{
-  void *n;
-  void *v;
-  int idx, reprobe_count;
+static table_value_t
+htable_put(Table ht, KVS kvs, table_key_t name, table_value_t value, int flags)
+{ table_key_t n;
+  table_value_t v;
+  size_t idx;
+  int reprobe_count;
 
-  assert(name != NULL);
-  assert(value != NULL);
+  assert(name);
+  assert(value);
 
 redo:
-
-  idx = (int)pointerHashValue(name, kvs->len);
+  idx = (size_t)pointerHashValue(name, kvs->len);
   reprobe_count = 0;
 
   while( TRUE )
-  {
-    n = htable_name(kvs, idx);
+  { n = htable_name(kvs, idx);
     v = htable_value(kvs, idx);
 
     if ( !n )
-    {
-      if ( value == HTABLE_TOMBSTONE ) return value;
-      if ( htable_cas_name(kvs, idx, NULL, name) )
+    { if ( value == HTABLE_TOMBSTONE ) return value;
+      if ( htable_cas_name(kvs, idx, NULL_KEY, name) )
       { n = name;
         break;
       }
@@ -398,8 +389,7 @@ redo:
   if ( value == v ) return v;
 
   while( TRUE )
-  {
-    if ( v == HTABLE_SENTINEL )
+  { if ( v == HTABLE_SENTINEL )
     { kvs = kvs->next;
       goto redo;
     }
@@ -416,8 +406,7 @@ redo:
   }
 
   if ( flags & HTABLE_NORMAL )
-  {
-    if ( ((!v) || (v == HTABLE_TOMBSTONE)) && (value != HTABLE_TOMBSTONE) )
+  { if ( ((!v) || (v == HTABLE_TOMBSTONE)) && (value != HTABLE_TOMBSTONE) )
     { ATOMIC_INC(&ht->size);
     } else if ( !((!v) || (v == HTABLE_TOMBSTONE)) && (value == HTABLE_TOMBSTONE) )
     { ATOMIC_DEC(&ht->size);
@@ -429,15 +418,13 @@ redo:
 
 
 int
-htable_iter(Table ht, KVS kvs, int *index, void **name, void **value)
-{
-  int idx = *index;
-  void *n = NULL;
-  void *v = NULL;
+htable_iter(Table ht, KVS kvs, size_t *index, table_key_t *name, table_value_t *value)
+{ size_t idx = *index;
+  table_key_t n = NULL_KEY;
+  table_value_t v = NULL_VALUE;
 
   while ( idx < kvs->len )
-  {
-    n = htable_name(kvs, idx);
+  { n = htable_name(kvs, idx);
     v = htable_value(kvs, idx++);
 
     if ( (!n) || (n == HTABLE_SENTINEL) )
@@ -454,8 +441,8 @@ htable_iter(Table ht, KVS kvs, int *index, void **name, void **value)
   }
 
   if ( (n == HTABLE_SENTINEL) || (v == HTABLE_TOMBSTONE) )
-  { n = NULL;
-    v = NULL;
+  { n = NULL_KEY;
+    v = NULL_VALUE;
   }
 
   *index = idx;
@@ -467,7 +454,7 @@ htable_iter(Table ht, KVS kvs, int *index, void **name, void **value)
   { *value = v;
   }
 
-  return (v != NULL);
+  return !!v;
 }
 
 
@@ -477,7 +464,7 @@ htable_iter(Table ht, KVS kvs, int *index, void **name, void **value)
 		 *******************************/
 
 Table
-newHTable(int len)
+newHTable(size_t len)
 { Table ht;
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
@@ -499,8 +486,7 @@ newHTable(int len)
 
 void
 destroyHTable(Table ht)
-{
-  DEBUG(MSG_HASH_TABLE_API,
+{ DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("destroyHTable(). ht: %p\n", ht));
 
   clearHTable(ht);
@@ -509,10 +495,10 @@ destroyHTable(Table ht)
 }
 
 
-void*
-lookupHTable(DECL_LD Table ht, void *name)
+table_value_t
+lookupHTable(DECL_LD Table ht, table_key_t name)
 { KVS kvs;
-  void *v;
+  table_value_t v;
 
   acquire_kvs(ht, kvs);
 
@@ -530,10 +516,10 @@ lookupHTable(DECL_LD Table ht, void *name)
    `value` if `name` was not in the table and the existing association
    for `name` if it was.
  */
-void*
-addHTable(DECL_LD Table ht, void *name, void *value)
+table_value_t
+addHTable(DECL_LD Table ht, table_key_t name, table_value_t value)
 { KVS kvs;
-  void *v;
+  table_value_t v;
 
   acquire_kvs(ht, kvs);
 
@@ -547,9 +533,9 @@ addHTable(DECL_LD Table ht, void *name, void *value)
 }
 
 
-void *
-addNewHTable(DECL_LD Table ht, void *name, void *value)
-{ void *new = addHTable(ht, name, value);
+table_value_t
+addNewHTable(DECL_LD Table ht, table_key_t name, table_value_t value)
+{ table_value_t new = addHTable(ht, name, value);
   if ( new == value )
   { return value;
   } else
@@ -562,10 +548,10 @@ addNewHTable(DECL_LD Table ht, void *name, void *value)
 }
 
 
-void *
-updateHTable(DECL_LD Table ht, void *name, void *value)
+table_value_t
+updateHTable(DECL_LD Table ht, table_key_t name, table_value_t value)
 { KVS kvs;
-  void *v;
+  table_value_t v;
 
   acquire_kvs(ht, kvs);
 
@@ -580,10 +566,10 @@ updateHTable(DECL_LD Table ht, void *name, void *value)
 }
 
 
-void *
-deleteHTable(DECL_LD Table ht, void *name)
+table_value_t
+deleteHTable(DECL_LD Table ht, table_key_t name)
 { KVS kvs;
-  void *v;
+  table_value_t v;
 
   acquire_kvs(ht, kvs);
 
@@ -593,7 +579,7 @@ deleteHTable(DECL_LD Table ht, void *name)
   v = htable_put(ht, kvs, name, HTABLE_TOMBSTONE, HTABLE_NORMAL);
   release_kvs();
 
-  return (v == HTABLE_TOMBSTONE ? NULL : v);
+  return (v == HTABLE_TOMBSTONE ? NULL_VALUE : v);
 }
 
 
@@ -601,9 +587,9 @@ void
 clearHTable(Table ht)
 { GET_LD
   KVS kvs;
-  int idx = 0;
-  void *n = NULL;
-  void *v = NULL;
+  size_t idx = 0;
+  table_key_t n = NULL_KEY;
+  table_value_t v = NULL_VALUE;
 
   acquire_kvs(ht, kvs);
 
@@ -645,8 +631,8 @@ copyHTable(Table src_ht)
   Table dest_ht;
   KVS src_kvs, dest_kvs;
   int idx = 0;
-  void *n = NULL;
-  void *v = NULL;
+  table_key_t n = NULL_KEY;
+  table_value_t v = NULL_VALUE;
 
   acquire_kvs(src_ht, src_kvs);
   dest_ht = newHTable(src_kvs->len);
@@ -724,7 +710,7 @@ freeTableEnum(TableEnum e)
 
 
 int
-advanceTableEnum(TableEnum e, void **name, void **value)
+advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value)
 { DEBUG(MSG_HASH_TABLE_ENUM,
         Sdprintf("advanceTableEnum(). e: %p, ht: %p, kvs: %p, idx: %d\n",
                  e, e->table, e->kvs, e->idx));
@@ -752,7 +738,7 @@ sizeofTable(Table ht)				/* memory usage in bytes */
 #endif
 
 hash_table_t
-PL_new_hash_table(int size, void (*free_symbol)(void *n, void *v))
+PL_new_hash_table(size_t size, void (*free_symbol)(table_key_t n, table_value_t v))
 { NEED_LD
   hash_table_t ht = newHTable(size);
 
@@ -770,15 +756,15 @@ PL_free_hash_table(hash_table_t table)
   return TRUE;
 }
 
-void *
-PL_lookup_hash_table(hash_table_t table, void *key)
+table_value_t
+PL_lookup_hash_table(hash_table_t table, table_key_t key)
 { NEED_LD
 
   return lookupHTable(table, key);
 }
 
-void *
-PL_add_hash_table(hash_table_t table, void *key, void *value, int flags)
+table_value_t
+PL_add_hash_table(hash_table_t table, table_key_t key, table_value_t value, int flags)
 { NEED_LD
 
   if ( !(flags&(PL_HT_NEW|PL_HT_UPDATE)) )
@@ -789,8 +775,8 @@ PL_add_hash_table(hash_table_t table, void *key, void *value, int flags)
     return updateHTable(table, key, value);
 }
 
-void *
-PL_del_hash_table(hash_table_t table, void *key)
+table_value_t
+PL_del_hash_table(hash_table_t table, table_key_t key)
 { NEED_LD
 
   return deleteHTable(table, key);
@@ -817,6 +803,6 @@ PL_free_hash_table_enum(hash_table_enum_t e)
 }
 
 int
-PL_advance_hash_table_enum(hash_table_enum_t e, void **key, void **value)
+PL_advance_hash_table_enum(hash_table_enum_t e, table_key_t *key, table_value_t *value)
 { return advanceTableEnum(e, key, value);
 }

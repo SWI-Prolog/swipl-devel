@@ -1752,7 +1752,7 @@ freePrologLocalData(PL_local_data_t *ld)
 #ifdef O_PLMT
   if ( ld->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    destroyHTable(ld->prolog_flag.table);
+    destroyHTableWP(ld->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   free_predicate_references(ld);

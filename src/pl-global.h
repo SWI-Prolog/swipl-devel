@@ -178,7 +178,7 @@ struct PL_global_data
   } modules;
 
   struct
-  { Table	modules;		/* atom --> module */
+  { TableWP	modules;		/* atom --> module */
   } tables;
 
 #if O_PLMT
@@ -196,7 +196,7 @@ struct PL_global_data
 #endif
 
   struct
-  { Table	record_lists;		/* Available record lists */
+  { TableWP	record_lists;		/* Key -> record list */
   } recorded_db;
 
   struct
@@ -231,7 +231,7 @@ struct PL_global_data
   } atoms;
 
   struct
-  { Table	breakpoints;		/* Breakpoint table */
+  { TablePP	breakpoints;		/* Code -> Breakpoint table */
   } comp;
 
   struct
@@ -254,15 +254,15 @@ struct PL_global_data
 #endif
 
   struct				/* pl-format.c */
-  { Table	predicates;
+  { TableWP	predicates;
   } format;
 
   struct
-  { Table	table;			/* flag key --> flag */
+  { TableWP	table;			/* flag key --> flag */
   } flags;
 
   struct
-  { Table	table;			/* global (read-only) features */
+  { TableWP	table;			/* global (read-only) features */
   } prolog_flag;
 
   struct
@@ -364,7 +364,7 @@ struct PL_global_data
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
-    Table	dirty;			/* Table of dirty procedures */
+    TablePP	dirty;			/* Table of dirty procedures */
 #endif
   } procedures;
 
@@ -402,7 +402,7 @@ struct PL_global_data
   { size_t	highest;		/* highest source file index */
     size_t	no_hole_before;		/* All filled before here */
     srcfile_array array;		/* index --> file */
-    Table	table;			/* name  --> file */
+    TableWP	table;			/* name  --> file */
   } files;
 
 #ifdef HAVE_TGETENT
@@ -411,7 +411,7 @@ struct PL_global_data
     char  *_string_area;		/* static area for tgetstr */
     char  *_string_area_end;		/* end of _string_area */
     char  *_buf_area;			/* static area for tgetent */
-    Table  _capabilities;		/* User-level capability table */
+    TableWP _capabilities;		/* User-level capability table */
   } terminal;
 #endif
 
@@ -429,7 +429,7 @@ struct PL_global_data
 #ifdef O_PLMT
     int			enabled;	/* threads are enabled */
     int			mutex_next_id;	/* next id for anonymous mutexes */
-    Table		mutexTable;	/* Name --> mutex table */
+    TableWP		mutexTable;	/* Name --> mutex table */
     counting_mutex     *mutexes;	/* Registered mutexes */
     struct
     { pthread_mutex_t	mutex;
@@ -452,7 +452,7 @@ struct PL_global_data
 
 #ifdef O_LOCALE
   struct
-  { Table		localeTable;	/* Name --> locale table */
+  { TableWP		localeTable;	/* Name --> locale table */
     PL_locale	       *default_locale;	/* System wide default */
   } locale;
 #endif
@@ -704,7 +704,7 @@ struct PL_local_data
   } os;
 
   struct
-  { Table	  table;		/* Feature table */
+  { TableWP	  table;		/* local Prolog flag table */
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
     occurs_check_t occurs_check;	/* Unify and occurs check */
@@ -791,8 +791,8 @@ struct PL_local_data
     gen_t	      gen_max;		/* Transaction max gen */
     gen_t	      gen_nest;		/* Start of nested generation */
     gen_t	      generation;	/* Local current generation */
-    Table	      clauses;		/* Affected clauses */
-    Table	      predicates;	/* Pred --> last modified */
+    TablePW	      clauses;		/* Affected clauses */
+    TablePW	      predicates;	/* Pred --> last modified */
     struct tbl_trail *table_trail;	/* Affected tables */
     term_t	      id;		/* Default the goal */
     struct tr_stack  *stack;		/* Nested transaction stack */
@@ -863,8 +863,8 @@ struct PL_local_data
     intptr_t _trailtops_marked;		/* # marked trailtops */
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
-    Table _check_table;			/* relocation address table */
-    Table _local_table;			/* marked local variables */
+    TablePW _check_table;		/* relocation address table */
+    TablePW _local_table;		/* marked local variables */
     int  _relocated_check;		/* Verify relocated addresses? */
     unsigned int incr_seed;		/* Seed for random stack increments */
 #endif

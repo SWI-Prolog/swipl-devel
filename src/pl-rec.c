@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,8 +61,8 @@ static int  is_external(const char *rec, size_t len);
 #define LD LOCAL_LD
 
 static void
-free_recordlist_symbol(void *name, void *value)
-{ RecordList l = value;
+free_recordlist_symbol(table_key_t name, table_value_t value)
+{ RecordList l = val2ptr(value);
 
   unallocRecordList(l);
 }
@@ -69,18 +70,18 @@ free_recordlist_symbol(void *name, void *value)
 
 void
 initRecords(void)
-{ GD->recorded_db.record_lists = newHTable(8);
+{ GD->recorded_db.record_lists = newHTableWP(8);
   GD->recorded_db.record_lists->free_symbol = free_recordlist_symbol;
 }
 
 
 void
 cleanupRecords(void)
-{ Table t;
+{ TableWP t;
 
   if ( (t=GD->recorded_db.record_lists) )
   { GD->recorded_db.record_lists = NULL;
-    destroyHTable(t);
+    destroyHTableWP(t);
   }
 }
 
@@ -93,7 +94,7 @@ lookupRecordList(word key)
 { GET_LD
   RecordList l;
 
-  if ( (l = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
+  if ( (l = lookupHTableWP(GD->recorded_db.record_lists, key)) )
   { return l;
   } else
   { if ( isAtom(key) )			/* can also be functor_t */
@@ -101,7 +102,7 @@ lookupRecordList(word key)
     l = allocHeapOrHalt(sizeof(*l));
     memset(l, 0, sizeof(*l));
     l->key = key;
-    addNewHTable(GD->recorded_db.record_lists, (void *)key, l);
+    addNewHTableWP(GD->recorded_db.record_lists, key, l);
 
     return l;
   }
@@ -126,7 +127,7 @@ isCurrentRecordList(word key, int must_be_non_empty)
 { GET_LD
   RecordList rl;
 
-  if ( (rl = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
+  if ( (rl = lookupHTableWP(GD->recorded_db.record_lists, key)) )
   { if ( must_be_non_empty )
     { RecordRef record;
 
@@ -1989,7 +1990,7 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { if ( PL_is_variable(A1) )
-      { e = newTableEnum(GD->recorded_db.record_lists);
+      { e = newTableEnumWP(GD->recorded_db.record_lists);
 	break;
       } else if ( getKeyEx(A1, &k) &&
 		  isCurrentRecordList(k, TRUE) )
@@ -2009,10 +2010,10 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
   }
 
   if ( (fid = PL_open_foreign_frame()) )
-  { void *sk, *sv;
+  { table_value_t sv;
 
-    while(advanceTableEnum(e, &sk, &sv))
-    { RecordList rl = sv;
+    while(advanceTableEnum(e, NULL, &sv))
+    { RecordList rl = val2ptr(sv);
       RecordRef record;
 
       PL_LOCK(L_RECORD);
@@ -2214,7 +2215,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
       memset(state, 0, sizeof(*state));
       if ( PL_is_variable(key) )
-      { state->e = newTableEnum(GD->recorded_db.record_lists);
+      { state->e = newTableEnumWP(GD->recorded_db.record_lists);
 	PL_LOCK(L_RECORD);
       } else if ( getKeyEx(key, &k) )
       { RecordList rl;
@@ -2288,10 +2289,10 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       }
 
       if ( state->e )
-      { void *sk, *sv;
+      { table_value_t sv;
 
-	while(advanceTableEnum(state->e, &sk, &sv))
-	{ RecordList rl = sv;
+	while(advanceTableEnum(state->e, NULL, &sv))
+	{ RecordList rl = val2ptr(sv);
 	  RecordRef r;
 
 	  if ( (r=firstRecordRecordList(rl)) )

@@ -7483,23 +7483,23 @@ wrapper library in Prolog.
 static const code_info *
 lookup_vmi(atom_t name)
 { GET_LD
-  static Table ctable = NULL;
+  static TableWP ctable = NULL;	/* TBD: Must be cleared in PL_cleanup() */
 
   if ( !ctable )
   { PL_LOCK(L_MISC);
     if ( !ctable )
     { int i;
 
-      ctable = newHTable(32);
+      ctable = newHTableWP(32);
       for(i=0; i<I_HIGHEST; i++)
-	addNewHTable(ctable,
-		     (void*)PL_new_atom(codeTable[i].name),
-		     (void*)&codeTable[i]);
+	addNewHTableWP(ctable,
+		       PL_new_atom(codeTable[i].name),
+		       (code_info*)&codeTable[i]);
     }
     PL_UNLOCK(L_MISC);
   }
 
-  return lookupHTable(ctable, (void*)name);
+  return lookupHTableWP(ctable, name);
 }
 
 
@@ -8230,9 +8230,9 @@ matching_unify_break(Clause clause, int offset, code op)
 
 
 static void
-free_break_symbol(void *name, void *value)
-{ BreakPoint bp = value;
-  Code PC = name;
+free_break_symbol(table_key_t name, table_value_t value)
+{ BreakPoint bp = val2ptr(value);
+  Code PC = val2ptr(name);
 
   *PC = bp->saved_instruction;
 
@@ -8242,7 +8242,7 @@ free_break_symbol(void *name, void *value)
 void
 cleanupBreakPoints(void)
 { if ( breakTable )
-  { destroyHTable(breakTable);
+  { destroyHTablePP(breakTable);
     breakTable = NULL;
   }
 }
@@ -8264,7 +8264,7 @@ set_second:
   dop = decode(op);
 
   if ( !breakTable )
-  { breakTable = newHTable(16);
+  { breakTable = newHTablePP(16);
     breakTable->free_symbol = free_break_symbol;
   }
 
@@ -8278,7 +8278,7 @@ set_second:
     bp->offset = offset;
     bp->saved_instruction = op;
 
-    addNewHTable(breakTable, PC, bp);
+    addNewHTablePP(breakTable, PC, bp);
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 
@@ -8303,7 +8303,7 @@ clearBreak(Clause clause, int offset)
 
 clear_second:
   PC = PC0 = clause->codes + offset;
-  if ( !breakTable || !(bp = lookupHTable(breakTable, PC)) )
+  if ( !breakTable || !(bp = lookupHTablePP(breakTable, PC)) )
   { term_t brk, cl;
 
     if ( second_bp )
@@ -8321,7 +8321,7 @@ clear_second:
   }
 
   *PC = bp->saved_instruction;
-  deleteHTable(breakTable, PC0);
+  deleteHTablePP(breakTable, PC0);
   freeHeap(bp, sizeof(*bp));
 
   if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
@@ -8343,7 +8343,7 @@ clearBreakPointsClause(Clause clause)
     delayEvents();
     PL_LOCK(L_BREAK);
     FOR_TABLE(breakTable, name, value)
-    { BreakPoint bp = (BreakPoint)value;
+    { BreakPoint bp = val2ptr(value);
       if ( bp->clause == clause )
       { int offset = bp->offset;
 	clearBreak(clause, bp->offset);
@@ -8367,7 +8367,7 @@ replacedBreakUnlocked(Code PC)
 
   c = decode(*PC);
   if ( c == D_BREAK )
-  { if ( (bp = lookupHTable(breakTable, PC)) )
+  { if ( (bp = lookupHTablePP(breakTable, PC)) )
     { c = bp->saved_instruction;
     } else
     { sysError("No saved instruction for break at %p", PC);
@@ -8439,14 +8439,14 @@ static
 PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 { GET_LD
   TableEnum e = NULL;			/* make gcc happy */
-  BreakPoint bp;
+  table_value_t tv;
 
   if ( !breakTable )
     fail;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      e = newTableEnum(breakTable);
+      e = newTableEnumPP(breakTable);
       break;
     case FRG_REDO:
       e = CTX_PTR;
@@ -8459,8 +8459,9 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
       assert(0);
   }
 
-  while( advanceTableEnum(e, NULL, (void**)&bp) )
-  { fid_t cid;
+  while( advanceTableEnum(e, NULL, &tv) )
+  { BreakPoint bp = val2ptr(tv);
+    fid_t cid;
 
     if ( !(cid=PL_open_foreign_frame()) )
     { freeTableEnum(e);

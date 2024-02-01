@@ -389,12 +389,12 @@ print_val(word val, char *buf)
 
 #if O_DEBUG
 
-#define RELOC_NEEDS   ((void*)1)
-#define RELOC_CHAINED ((void*)2)
-#define RELOC_UPDATED ((void*)3)
+#define RELOC_NEEDS   ((table_value_t)1)
+#define RELOC_CHAINED ((table_value_t)2)
+#define RELOC_UPDATED ((table_value_t)3)
 
-#define LOCAL_MARKED ((void*)1)
-#define LOCAL_UNMARKED ((void*)2)
+#define LOCAL_MARKED   ((table_value_t)1)
+#define LOCAL_UNMARKED ((table_value_t)2)
 
 static void
 needsRelocation(void *addr)
@@ -402,16 +402,16 @@ needsRelocation(void *addr)
 
   needs_relocation++;
 
-  DEBUG(CHK_SECURE, updateHTable(check_table, addr, RELOC_NEEDS));
+  DEBUG(CHK_SECURE, updateHTablePW(check_table, addr, RELOC_NEEDS));
 }
 
 
 static void
 do_check_relocation(DECL_LD Word addr, char *file, int line)
 { if ( DEBUGGING(CHK_SECURE) )
-  { void *chk;
+  { table_value_t chk;
 
-    if ( !(chk = lookupHTable(check_table, addr)) )
+    if ( !(chk = lookupHTablePW(check_table, addr)) )
     { char buf1[256];
       char buf2[256];
       sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
@@ -424,7 +424,7 @@ do_check_relocation(DECL_LD Word addr, char *file, int line)
       return;
     }
 
-    updateHTable(check_table, addr, RELOC_CHAINED);
+    updateHTablePW(check_table, addr, RELOC_CHAINED);
   }
 }
 
@@ -434,9 +434,9 @@ static void
 do_relocated_cell(DECL_LD Word addr)
 { if ( DEBUGGING(CHK_SECURE) )
   { if ( relocated_check )		/* we cannot do this during the */
-    { void *chk;			/* final up-phase because the addresses */
+    { table_value_t chk;		/* final up-phase because the addresses */
 					/* have already changed */
-      if ( !(chk = lookupHTable(check_table, addr)) )
+      if ( !(chk = lookupHTablePW(check_table, addr)) )
       { char buf1[64];
 
 	sysError("Address %s was not supposed to be updated",
@@ -451,7 +451,7 @@ do_relocated_cell(DECL_LD Word addr)
 	return;
       }
 
-      updateHTable(check_table, addr, RELOC_UPDATED);
+      updateHTablePW(check_table, addr, RELOC_UPDATED);
     }
   }
 
@@ -462,14 +462,16 @@ do_relocated_cell(DECL_LD Word addr)
 static void
 printNotRelocated()
 { GET_LD
-  TableEnum e = newTableEnum(check_table);
-  Word addr;
-  void *chk;
+  TableEnum e = newTableEnumPW(check_table);
+  table_key_t tk;
+  table_value_t chk;
 
   Sdprintf("Not relocated cells:\n");
 
-  while( advanceTableEnum(e, (void**)&addr, (void**)&chk) )
-  { if ( chk == RELOC_CHAINED )
+  while( advanceTableEnum(e, &tk, &chk) )
+  { void *addr = val2ptr(tk);
+
+    if ( chk == RELOC_CHAINED )
     { char buf1[64];
 
       Sdprintf("\t%s\n", print_addr(addr, buf1));
@@ -487,12 +489,12 @@ markLocal(Word addr)
   local_marked++;
 
   DEBUG(CHK_SECURE,
-	{ void *marked;
+	{ table_value_t marked;
 
-	  if ( (marked = lookupHTable(local_table, addr)) )
+	  if ( (marked = lookupHTablePW(local_table, addr)) )
 	  { assert(marked == LOCAL_UNMARKED);
 	  }
-	  updateHTable(local_table, addr, LOCAL_MARKED);
+	  updateHTablePW(local_table, addr, LOCAL_MARKED);
 	});
 }
 
@@ -504,11 +506,11 @@ processLocal(Word addr)
   local_marked--;
 
   DEBUG(CHK_SECURE,
-	{ void *marked;
+	{ table_value_t marked;
 
-	  if ( (marked = lookupHTable(local_table, addr)) )
+	  if ( (marked = lookupHTablePW(local_table, addr)) )
 	  { assert(marked == LOCAL_MARKED);
-	    updateHTable(local_table, addr, LOCAL_UNMARKED);
+	    updateHTablePW(local_table, addr, LOCAL_UNMARKED);
 	  } else
 	  { assert(0);
 	  }
@@ -1100,7 +1102,7 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
   { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
-    void *v;
+    table_value_t v;
 
     while( advanceTableEnum(e, NULL, &v) )
     { word w = (word)v;
@@ -1155,14 +1157,15 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word fp = (Word)(fr+1);
     TableEnum e = newTableEnum(LD->gvar.nb_vars);
-    atom_t name;
-    word p;
+    table_key_t name;
+    table_value_t tv;
     int found = 0;
 
-    while( advanceTableEnum(e, (void**)&name, (void**)&p) )
-    { if ( isGlobalRef(p) )
+    while( advanceTableEnum(e, &name, &tv) )
+    { word p = (word)tv;
+      if ( isGlobalRef(p) )
       { p = *fp++;
-	updateHTable(e->table, (void*)name, (void*)p);
+	updateHTable(e->table, name, (table_value_t)p);
 	found++;
       }
     }
@@ -2696,8 +2699,8 @@ compact_trail(void)
       update_relocation_chain(&current->address, &dest->address);
 #if O_DEBUG
     else if ( DEBUGGING(CHK_SECURE) )
-    { void *chk;
-      if ( (chk = lookupHTable(check_table, current)) &&
+    { table_value_t chk;
+      if ( (chk = lookupHTablePW(check_table, current)) &&
 	   chk == RELOC_NEEDS )
 	sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
@@ -3211,13 +3214,14 @@ sweep_stacks(vm_state *state)
   {
 #ifdef O_DEBUG
     if ( DEBUGGING(CHK_SECURE) )
-    { TableEnum e = newTableEnum(local_table);
-      Word addr;
+    { TableEnum e = newTableEnumPW(local_table);
+      table_key_t tk;
 
       Sdprintf("FATAL: unprocessed local variables:\n");
 
-      while( advanceTableEnum(e, (void**)&addr, NULL) )
-      { char buf1[64];
+      while( advanceTableEnum(e, &tk, NULL) )
+      { Word addr = key2ptr(tk);
+	char buf1[64];
 	char buf2[64];
 
 	Sdprintf("\t%s (*= %s)\n", print_addr(addr, buf1), print_val(*addr, buf2));
@@ -4412,11 +4416,11 @@ garbageCollect(gc_reason_t reason)
     start_map = NULL;
 
     if ( check_table == NULL )
-    { check_table = newHTable(256);
-      local_table = newHTable(256);
+    { check_table = newHTablePW(256);
+      local_table = newHTablePW(256);
     } else
-    { clearHTable(check_table);
-      clearHTable(local_table);
+    { clearHTablePW(check_table);
+      clearHTablePW(local_table);
     }
 
     mark_base = mark_top = malloc(usedStack(global));
@@ -5724,11 +5728,11 @@ markPredicatesInEnvironments(PL_local_data_t *ld, void *ctx)
   if ( ld->transaction.gen_start )
   { Buffer tr_starts = ctx;
 
-    for_table(GD->procedures.dirty, n, v,
-	      { DirtyDefInfo ddi = v;
+    FOR_TABLE(GD->procedures.dirty, n, v)
+    { DirtyDefInfo ddi = val2ptr(v);
 
-		ddi_add_access_gen(ddi, ld->transaction.gen_start);
-	      });
+      ddi_add_access_gen(ddi, ld->transaction.gen_start);
+    }
     addBuffer(tr_starts, ld->transaction.generation, gen_t);
   }
 
@@ -5742,7 +5746,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld, void *ctx)
       Definition def = fr->predicate;
 
       if ( is_pointer_like(def) &&
-	   (ddi=lookupHTable(GD->procedures.dirty, def)) )
+	   (ddi=lookupHTablePP(GD->procedures.dirty, def)) )
       { gen_t gen = generationFrame(fr);
 
 	ddi_add_access_gen(ddi, gen);
