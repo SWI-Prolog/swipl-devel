@@ -100,7 +100,6 @@ and libraries that are built.
   | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
-  | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system            |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages               |
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages            |
@@ -213,9 +212,14 @@ Building the 32-bit version on  a  64   bit  platform  can be useful for
 testing and creating  32-bit  .qlf  files   or  saved  states.  A fairly
 complete system is created using the configuration command below.
 
-    cmake -DSWIPL_M32=ON \
-          -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_QT=OFF \
+    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_i386.cmake \
+          -DSWIPL_PACKAGES_X=OFF -DSWIPL_PACKAGES_QT=OFF \
+          -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_PYTHON=OFF \
           -G Ninja ..
+
+See `cmake/cross/linux_i386.cmake` for  setting  up   the  compiler  and
+libraries.  ``SWIPL_PACKAGES_X``  currently  does  not  work.  This  can
+probably be fixed.
 
 ### Cross-building for targets without an emulator
 
