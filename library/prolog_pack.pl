@@ -66,7 +66,7 @@
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).
 :- use_module(library(debug), [assertion/1]).
-:- use_module(library(pairs), [group_pairs_by_key/2, pairs_keys/2]).
+:- use_module(library(pairs), [pairs_keys/2]).
 :- autoload(library(git)).
 :- autoload(library(sgml)).
 :- autoload(library(sha)).
@@ -277,6 +277,7 @@ base_name(File, Base) :-
     term_in_file(1, +, -).
 
 term_in_file(Valid, File, Term) :-
+    exists_file(File),
     setup_call_cleanup(
         open(File, read, In, [encoding(utf8)]),
         term_in_stream(Valid, In, Term),
@@ -334,7 +335,7 @@ pack_info_term(autoload(boolean)).              % Default installation options
 
 error:has_type(version, Version) :-
     atom(Version),
-    version_data(Version, _Data).
+    is_version(Version).
 error:has_type(email_or_url, Address) :-
     atom(Address),
     (   sub_atom(Address, _, _, _, @)
@@ -349,16 +350,16 @@ error:has_type(email_or_url_or_empty, Address) :-
 error:has_type(dependency, Value) :-
     is_dependency(Value, _Token, _Version).
 
-version_data(Version, version(Data)) :-
-    atomic_list_concat(Parts, '.', Version),
-    maplist(atom_number, Parts, Data).
+is_version(Version) :-
+    split_string(Version, ".", "", Parts),
+    maplist(number_string, _, Parts).
 
 is_dependency(Token, Token, *) :-
     atom(Token).
 is_dependency(Term, Token, VersionCmp) :-
     Term =.. [Op,Token,Version],
     cmp(Op, _),
-    version_data(Version, _),
+    is_version(Version),
     VersionCmp =.. [Op,Version].
 
 cmp(<,  @<).
@@ -511,8 +512,8 @@ join_status([ pack(Pack, i, Title, VersionI, URLI),
             | T
             ]) :-
     !,
-    version_data(VersionI, VDI),
-    version_data(VersionS, VDS),
+    version_sort_key(VersionI, VDI),
+    version_sort_key(VersionS, VDS),
     (   VDI @< VDS
     ->  Tag = 'U'
     ;   Tag = 'A'
@@ -726,9 +727,8 @@ pack_default_options(Archive, Pack, OptsIn, Options) :- % (3)
     expand_file_name(Archive, [File]),
     exists_file(File),
     !,
-    (   pack_version_file(Pack, VersionTerm, File)
+    (   pack_version_file(Pack, Version, File)
     ->  uri_file_name(FileURL, File),
-        atom_version(Version, VersionTerm),
         merge_options([url(FileURL), version(Version)], OptsIn, Options)
     ;   domain_error(pack_file_name, Archive)
     ).
@@ -764,19 +764,19 @@ pack_default_options(URL, Pack, OptsIn, Options) :-      % (7)
     pack_version_file(Pack, Version, URL),
     download_url(URL),
     !,
-    available_download_versions(URL, [URLVersion-LatestURL|_]),
+    available_download_versions(URL, Available),
+    Available = [URLVersion-LatestURL|_],
     NewOptions = [url(LatestURL)|VersionOptions],
-    version_options(Version, URLVersion, VersionOptions),
+    version_options(Version, URLVersion, Available, VersionOptions),
     merge_options(NewOptions, OptsIn, Options).
 pack_default_options(Pack, Pack, Options, Options) :-    % (8)
     \+ uri_is_global(Pack).
 
-version_options(Version, Version, [version(Version)]) :- !.
-version_options(Version, _, [version(Version)]) :-
-    Version = version(List),
-    maplist(integer, List),
+version_options(Version, Version, _, [version(Version)]) :- !.
+version_options(Version, _, Available, [versions(Available)]) :-
+    sub_atom(Version, _, _, _, *),
     !.
-version_options(_, _, []).
+version_options(_, _, _, []).
 
 %!  pack_install_dir(-PackDir, +Options) is det.
 %
@@ -1248,8 +1248,14 @@ cmp(Token >  Version, Token, >,	 Version).
 %   not known to the server. In most cases, the URL will be a git URL or
 %   the URL to download an archive. It can  also be a ``file://`` url to
 %   install from a local archive.
+%
+%   The   first   clause   deals    with     a    wildcard    URL.   See
+%   pack_default_options/4, case (7).
 
 :- det(pack_options_to_versions/2).
+pack_options_to_versions(Pack-PackOptions, Pack-Versions) :-
+    option(versions(Available), PackOptions), !,
+    maplist(version_url_info(Pack, PackOptions), Available, Versions).
 pack_options_to_versions(Pack-PackOptions, Pack-[Version-[Info]]) :-
     option(url(URL), PackOptions),
     findall(Prop, option_info_prop(PackOptions, Prop), Pairs),
@@ -1259,6 +1265,19 @@ pack_options_to_versions(Pack-PackOptions, Pack-[Version-[Info]]) :-
                 | Pairs
                 ]),
     Version = Info.get(version, '0.0.0').
+
+version_url_info(Pack, PackOptions, Version-URL, Version-[Info]) :-
+    findall(Prop,
+            ( option_info_prop(PackOptions, Prop),
+              Prop \= version-_
+            ),
+            Pairs),
+    dict_create(Info, #,
+                [ pack-Pack,
+                  url-URL,
+                  version-Version
+                | Pairs
+                ]).
 
 option_info_prop(PackOptions, Prop-Value) :-
     option_info(Prop),
@@ -1772,12 +1791,11 @@ dir_metadata(GitDir, Info) :-
 %   Perform basic sanity checks on DownloadFile
 
 download_file_sanity_check(Archive, Pack, Info) :-
-    info_field(name(Name), Info),
-    info_field(version(VersionAtom), Info),
-    atom_version(VersionAtom, Version),
-    pack_version_file(PackA, VersionA, Archive),
-    must_match([Pack, PackA, Name], name),
-    must_match([Version, VersionA], version).
+    info_field(name(PackName), Info),
+    info_field(version(PackVersion), Info),
+    pack_version_file(PackFile, FileVersion, Archive),
+    must_match([Pack, PackName, PackFile], name),
+    must_match([PackVersion, FileVersion], version).
 
 info_field(Field, Info) :-
     memberchk(Field, Info),
@@ -2042,22 +2060,22 @@ version_prefix -->
 version_prefix -->
     "".
 
-
 %!  download_file(+URL, +Pack, -File, +Options) is det.
+%
+%   Determine the file into which  to   download  URL. The second clause
+%   deals with GitHub downloads from a release tag.
 
 download_file(URL, Pack, File, Options) :-
     option(version(Version), Options),
     !,
-    atom_version(VersionA, Version),
     file_name_extension(_, Ext, URL),
-    format(atom(File), '~w-~w.~w', [Pack, VersionA, Ext]).
+    format(atom(File), '~w-~w.~w', [Pack, Version, Ext]).
 download_file(URL, Pack, File, _) :-
     file_base_name(URL,Basename),
     no_int_file_name_extension(Tag,Ext,Basename),
     tag_version(Tag,Version),
     !,
-    atom_version(VersionA,Version),
-    format(atom(File0), '~w-~w', [Pack, VersionA]),
+    format(atom(File0), '~w-~w', [Pack, Version]),
     file_name_extension(File0, Ext, File).
 download_file(URL, _, File, _) :-
     file_base_name(URL, File).
@@ -2616,7 +2634,7 @@ info_file(todo(_),   'todo').
                  *         VERSION LOGIC        *
                  *******************************/
 
-%!  pack_version_file(-Pack, -Version, +File) is semidet.
+%!  pack_version_file(-Pack, -Version:atom, +File) is semidet.
 %
 %   True if File is the  name  of  a   file  or  URL  of a file that
 %   contains Pack at Version. File must   have  an extension and the
@@ -2662,43 +2680,28 @@ safe_pack_char(C) :- between(0'A, 0'Z, C), !.
 safe_pack_char(C) :- between(0'0, 0'9, C), !.
 safe_pack_char(0'_).
 
-
-:- public
-    atom_version/2.
-
-%   atom_version(?Atom, ?Version)
+%!  pack_version(-Pack:atom, -Version:atom)// is semidet.
 %
-%   Translate   between   atomic   version   representation   and   term
-%   representation.  The  term  representation  is  a  list  of  version
-%   components as integers and can be compared using `@>`
+%   True when the input statifies <pack>-<version>
 
-atom_version(Atom, version(Parts)) :-
-    (   atom(Atom)
-    ->  atom_codes(Atom, Codes),
-        phrase(version(Parts), Codes)
-    ;   atomic_list_concat(Parts, '.', Atom)
-    ).
-
-pack_version(Pack, version(Parts)) -->
+pack_version(Pack, Version) -->
     string(Codes), "-",
     version(Parts),
     !,
-    { atom_codes(Pack, Codes)
+    { atom_codes(Pack, Codes),
+      atomic_list_concat(Parts, '.', Version)
     }.
 
-version([_|T]) -->
-    "*",
-    !,
-    (   "."
-    ->  version(T)
-    ;   []
-    ).
 version([H|T]) -->
-    integer(H),
+    version_part(H),
     (   "."
     ->  version(T)
-    ;   { T = [] }
+    ;   {T=[]}
     ).
+
+version_part(*) --> "*", !.
+version_part(Int) --> integer(Int).
+
 
 		 /*******************************
 		 *           GIT LOGIC		*
@@ -2738,7 +2741,7 @@ git_url(URL, Pack) :-
 git_download_scheme(http).
 git_download_scheme(https).
 
-%!  github_release_url(+URL, -Pack, -Version) is semidet.
+%!  github_release_url(+URL, -Pack, -Version:atom) is semidet.
 %
 %   True when URL is the URL of a GitHub release.  Such releases are
 %   accessible as
@@ -2764,10 +2767,15 @@ github_archive_path(['',_User,Pack,archive,refs,tags,File],Pack,File).
 github_archive_extension(tgz).
 github_archive_extension(zip).
 
+%!  tag_version(+GitTag, -Version) is semidet.
+%
+%   True when a GIT tag describes version Version.  GitTag must
+%   satisfy ``[vV]?int(\.int)*``.
+
 tag_version(Tag, Version) :-
     version_tag_prefix(Prefix),
-    atom_concat(Prefix, AtomVersion, Tag),
-    atom_version(AtomVersion, Version).
+    atom_concat(Prefix, Version, Tag),
+    is_version(Version).
 
 version_tag_prefix(v).
 version_tag_prefix('V').
@@ -2925,7 +2933,7 @@ message_severity(exception(_), error, _).
                  *        WILDCARD URIs         *
                  *******************************/
 
-%!  available_download_versions(+URL, -Versions) is det.
+%!  available_download_versions(+URL, -Versions:list(atom)) is det.
 %
 %   Deal with wildcard URLs, returning a  list of Version-URL pairs,
 %   sorted by version.
@@ -2959,14 +2967,32 @@ available_download_versions(URL, Versions) :-
     ;   true
     ),
     versioned_urls(MatchingURLs, VersionedURLs),
-    keysort(VersionedURLs, SortedVersions),
-    reverse(SortedVersions, Versions),
+    sort_version_pairs(VersionedURLs, Versions),
     print_message(informational, pack(found_versions(Versions))).
 available_download_versions(URL, [Version-URL]) :-
     (   pack_version_file(_Pack, Version0, URL)
     ->  Version = Version0
-    ;   Version = unknown
+    ;   Version = '0.0.0'
     ).
+
+%!  sort_version_pairs(+Pairs, -Sorted) is det.
+%
+%   Sort a list of Version-Data by decreasing version.
+
+sort_version_pairs(Pairs, Sorted) :-
+    map_list_to_pairs(version_pair_sort_key_, Pairs, Keyed),
+    sort(1, @>=, Keyed, SortedKeyed),
+    pairs_values(SortedKeyed, Sorted).
+
+version_pair_sort_key_(Version-_Data, Key) :-
+    version_sort_key(Version, Key).
+
+version_sort_key(Version, Key) :-
+    split_string(Version, ".", "", Parts),
+    maplist(number_string, Key, Parts),
+    !.
+version_sort_key(Version, _) :-
+    domain_error(version, Version).
 
 %!  github_url(+URL, -User, -Repo) is semidet.
 %
@@ -3335,8 +3361,7 @@ message(directory_exists(Dir)) -->
       '\t~q'-[Dir]
     ].
 message(already_installed(pack(Pack, Version))) -->
-    { atom_version(AVersion, Version) },
-    [ 'Pack `~w'' is already installed @~w'-[Pack, AVersion] ].
+    [ 'Pack `~w'' is already installed @~w'-[Pack, Version] ].
 message(already_installed(Pack)) -->
     [ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
 message(kept_foreign(Pack, Arch)) -->
@@ -3385,10 +3410,8 @@ message(query_versions(URL)) -->
 message(no_matching_urls(URL)) -->
     [ 'Could not find any matching URL: ~q'-[URL] ].
 message(found_versions([Latest-_URL|More])) -->
-    { length(More, Len),
-      atom_version(VLatest, Latest)
-    },
-    [ '    Latest version: ~w (~D older)'-[VLatest, Len] ].
+    { length(More, Len) },
+    [ '    Latest version: ~w (~D older)'-[Latest, Len] ].
 message(build(Pack, PackDir)) -->
     [ ansi(bold, 'Building pack ~w in directory ~w', [Pack, PackDir]) ].
 message(contacting_server(Server)) -->
@@ -3637,13 +3660,7 @@ confirm_default(none) -->
     [ ' y/n? ' ].
 
 msg_version(Version) -->
-    { atom(Version) },
-    !,
     [ '~w'-[Version] ].
-msg_version(VersionData) -->
-    !,
-    { atom_version(Atom, VersionData) },
-    [ '~w'-[Atom] ].
 
 msg_can_upgrade(Info) -->
     { Latest = Info.get(latest_version) },
