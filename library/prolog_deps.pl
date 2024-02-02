@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, VU University Amsterdam
-                         CWI, Amsterdam
+    Copyright (c)  2020-2024, VU University Amsterdam
+                              CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,7 +40,7 @@
           ]).
 :- use_module(library(apply), [convlist/3, maplist/3]).
 :- use_module(library(filesex), [copy_file/2]).
-:- use_module(library(lists), [select/3, subtract/3, append/3, member/2]).
+:- use_module(library(lists), [select/3, append/3, member/2]).
 :- use_module(library(option), [option/2, option/3]).
 :- use_module(library(pairs), [group_pairs_by_key/2]).
 :- use_module(library(pprint), [print_term/2]).
@@ -277,8 +278,9 @@ update_directive(Dir0, Deps0, Deps, Dir) :-
     same_dep_file(DepFile, File),
     !,
     (   Dir0 =.. [Pred,File0,Imports]
-    ->  maplist(pi_head, PIs, Heads),
-        subtract(PIs, Imports, New),
+    ->  exports(File, Exports),
+        maplist(head_pi(Exports), Heads, PIs),
+        subtract_pis(PIs, Imports, New),
         append(Imports, New, NewImports),
         Dir =.. [Pred,File0,NewImports]
     ;   Dir = Dir0
@@ -300,6 +302,54 @@ same_dep_file(Dep, File) :-
     file_name_extension(Dep, Ext, DepFile),
     same_file(DepFile, File),
     !.
+
+exports(File, Public) :-
+    E = error(_,_),
+    catch('$autoload':exports(File, _Module, Public), E,
+          (   print_message(warning, E),
+              Public = []
+          )).
+
+%!  head_pi(+Exports, +Head, -PI) is det.
+
+head_pi(PIs, Head, PI) :-
+    head_pi(Head, PI),
+    memberchk(PI, PIs),
+    !.
+head_pi(_PIs, Head, PI) :-
+    pi_head(PI, Head).
+
+head_pi(Head, PI) :-
+    pi_head(PI0, Head),
+    (   PI = PI0
+    ;   dcg_pi(PI0, PI)
+    ).
+
+dcg_pi(Module:Name/Arity, PI), integer(Arity), Arity >= 2 =>
+    DCGArity is Arity - 2,
+    PI = Module:Name//DCGArity.
+dcg_pi(Name/Arity, PI), integer(Arity), Arity >= 2 =>
+    DCGArity is Arity - 2,
+    PI = Name//DCGArity.
+dcg_pi(_/Arity, _), integer(Arity) =>
+    fail.
+
+%!  subtract_pis(+Set, +Delete, -Result) is det.
+
+subtract_pis([], _, R) =>
+    R = [].
+subtract_pis([H|T], D, R) =>
+    (   member(E, D),
+        same_pi(H, E)
+    ->  subtract_pis(T, D, R)
+    ;   R = [H|R1],
+        subtract_pis(T, D, R1)
+    ).
+
+same_pi(PI, PI) => true.
+same_pi(Name/A1, Name//A2) => A1 =:= A2+2.
+same_pi(Name//A1, Name/A2) => A1 =:= A2-2.
+same_pi(_,_) => fail.
 
 
 %!  update_style(+OldDirectives, +Options0, -Options)

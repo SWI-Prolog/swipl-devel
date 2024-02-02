@@ -456,6 +456,11 @@ index_header(Fd):-
     format(Fd, '    Purpose: Provide index for autoload~n', []),
     format(Fd, '*/~n~n', []).
 
+%!  exports(+File, -Module, -Exports) is det.
+%
+%   Get the exports from a library as a list of PIs.
+
+:- public exports/3.                            % using by library(prolog_deps).
 exports(File, Module, Exports) :-
     (   current_prolog_flag(xref, Old)
     ->  true
