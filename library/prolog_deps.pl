@@ -118,7 +118,8 @@ user:file_search_path(noautoload, library(pce(prolog/lib))).
 file_autoload_directives(File, Directives, Options) :-
     xref_source(File),
     findall(Head, distinct(Head, undefined(File, Head, Options)), Missing),
-    convlist(missing_autoload(File), Missing, Pairs),
+    option(update(Old), Options, []),
+    convlist(missing_autoload(File, Old), Missing, Pairs),
     keysort(Pairs, Pairs1),
     group_pairs_by_key(Pairs1, Grouped),
     directives(Grouped, Directives, Options).
@@ -222,10 +223,25 @@ defined(File, Callable) :-
 		 *       GENERATE OUTPUT	*
 		 *******************************/
 
-missing_autoload(Src, Head, From-Head) :-
+missing_autoload(Src, _, Head, From-Head) :-
     xref_defined(Src, Head, imported(From)),
     !.
-missing_autoload(_Src, Head, File-Head) :-
+missing_autoload(Src, Directives, Head, File-Head) :-
+    src_file(Src, SrcFile),
+    member(:-(Dir), Directives),
+    directive_file(Dir, FileSpec),
+    absolute_file_name(FileSpec, File,
+                       [ file_type(prolog),
+                         file_errors(fail),
+                         relative_to(SrcFile),
+                         access(read)
+                       ]),
+    exports(File, Exports),
+    member(PI, Exports),
+    is_pi(PI),
+    pi_head(PI, Head),
+    !.
+missing_autoload(_Src, _, Head, File-Head) :-
     predicate_property(Head, autoload(File0)),
     !,
     (   absolute_file_name(File0, File,
@@ -236,14 +252,22 @@ missing_autoload(_Src, Head, File-Head) :-
     ->  true
     ;   File = File0
     ).
-missing_autoload(_Src, Head, File-Head) :-
+missing_autoload(_Src, _, Head, File-Head) :-
     noautoload(Head, File),
     !.
-missing_autoload(_Src, Head, _) :-
+missing_autoload(_Src, _, Head, _) :-
     pi_head(PI, Head),
     print_message(warning,
                   error(existence_error(procedure, PI), _)),
     fail.
+
+:- if(exists_source(library(pce))).
+:- autoload(library(pce), [get/3]).
+src_file(@(Ref), File) =>
+    get(?(@(Ref), file), absolute_path, File).
+:- endif.
+src_file(File, File) =>
+    true.
 
 %!  directives(+FileAndHeads, -Directives, +Options) is det.
 %
@@ -309,6 +333,10 @@ exports(File, Public) :-
           (   print_message(warning, E),
               Public = []
           )).
+
+is_pi(Name/Arity), atom(Name), integer(Arity) => true.
+is_pi(Name//Arity), atom(Name), integer(Arity) => true.
+is_pi(_) => fail.
 
 %!  head_pi(+Exports, +Head, -PI) is det.
 
