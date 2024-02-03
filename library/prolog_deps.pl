@@ -122,7 +122,7 @@ file_autoload_directives(File, Directives, Options) :-
     convlist(missing_autoload(File, Old), Missing, Pairs),
     keysort(Pairs, Pairs1),
     group_pairs_by_key(Pairs1, Grouped),
-    directives(Grouped, Directives, Options).
+    directives(File, Grouped, Directives, Options).
 
 %!  undefined(+File, -Callable, +Options)
 %
@@ -269,33 +269,36 @@ src_file(@(Ref), File) =>
 src_file(File, File) =>
     true.
 
-%!  directives(+FileAndHeads, -Directives, +Options) is det.
+%!  directives(+File, +FileAndHeads, -Directives, +Options) is det.
 %
 %   Assemble the final set of directives. Uses the option update(Old).
 
-directives(FileAndHeads, Directives, Options) :-
+directives(File, FileAndHeads, Directives, Options) :-
     option(update(Old), Options, []),
-    phrase(update_directives(Old, FileAndHeads, RestDeps), Directives, Rest),
+    phrase(update_directives(Old, FileAndHeads, RestDeps, File),
+           Directives, Rest),
     update_style(Old, Options, Options1),
     maplist(directive(Options1), RestDeps, Rest0),
     sort(Rest0, Rest).
 
-update_directives([], Deps, Deps) -->
+update_directives([], Deps, Deps, _) -->
     [].
-update_directives([:-(H)|T], Deps0, Deps) -->
-    { update_directive(H, Deps0, Deps1, Directive) },
+update_directives([:-(H)|T], Deps0, Deps, File) -->
+    { update_directive(File, H, Deps0, Deps1, Directive) },
     !,
     [ :-(Directive) ],
-    update_directives(T, Deps1, Deps).
-update_directives([H|T], Deps0, Deps) -->
+    update_directives(T, Deps1, Deps, File).
+update_directives([H|T], Deps0, Deps, File) -->
     [ H ],
-    update_directives(T, Deps0, Deps).
+    update_directives(T, Deps0, Deps, File).
 
-update_directive(Dir0, Deps0, Deps, Dir) :-
+update_directive(Src, Dir0, Deps0, Deps, Dir) :-
+    src_file(Src, SrcFile),
     directive_file(Dir0, FileSpec),
     absolute_file_name(FileSpec, File,
                        [ file_type(prolog),
                          file_errors(fail),
+                         relative_to(SrcFile),
                          access(read)
                        ]),
     select(DepFile-Heads, Deps0, Deps),
