@@ -350,9 +350,10 @@ interpreted as an empty string.
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
-\jargon{anytext} as its first argument. Number types must first be
-formatted into strings before the length of their string representation
-can be determined.
+\jargon{anytext} as its first argument. Numeric types are formatted
+into strings before the length of their string representation is
+determined.\footnote{This behavior should be considered deprecated}
+See also write_length/3.
 
     \predicate{string_code}{3}{?Index, +String, ?Code}
 True when \arg{Code} represents the character at the 1-based \arg{Index}
