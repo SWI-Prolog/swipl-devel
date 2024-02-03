@@ -266,8 +266,8 @@ missing_autoload(_Src, _, Head, _) :-
 src_file(@(Ref), File) =>
     get(?(@(Ref), file), absolute_path, File).
 :- endif.
-src_file(File, File) =>
-    true.
+src_file(File0, File) =>
+    File = File0.
 
 %!  directives(+File, +FileAndHeads, -Directives, +Options) is det.
 %
