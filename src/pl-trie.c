@@ -1232,7 +1232,7 @@ intern_value(DECL_LD term_t value)
     if ( isAtom(*vp) || isTaggedInt(*vp) )
       return *vp;
 
-    return (word)PL_record(value);
+    return ptr2word(PL_record(value));
   } else
   { return ATOM_trienode;
   }
@@ -1244,7 +1244,7 @@ release_value(word value)
 { if ( isAtom(value) )
     PL_unregister_atom(value);
   else if ( isRecord(value) )
-    PL_erase((record_t)value);
+    PL_erase(word2ptr(record_t, value));
 }
 
 
@@ -1254,7 +1254,7 @@ equal_value(word v1, word v2)
     return TRUE;
 
   if ( isRecord(v1) && isRecord(v2) )
-    return variantRecords((record_t)v1, (record_t)v2);
+    return variantRecords(word2ptr(record_t, v1), word2ptr(record_t, v2));
 
   return FALSE;
 }
@@ -1269,7 +1269,7 @@ unify_value(DECL_LD term_t t, word value)
   { term_t t2;
 
     return ( (t2=PL_new_term_ref()) &&
-	     PL_recorded((record_t)value, t2) &&
+	     PL_recorded(word2ptr(record_t, value), t2) &&
 	     PL_unify(t, t2)
 	   );
   }
@@ -1282,7 +1282,7 @@ put_trie_value(DECL_LD term_t t, trie_node *node)
   { *valTermRef(t) = node->value;
     return TRUE;
   } else
-  { return PL_recorded((record_t)node->value, t);
+  { return PL_recorded(word2ptr(record_t, node->value), t);
   }
 }
 
@@ -1320,7 +1320,7 @@ set_trie_value(DECL_LD trie *trie, trie_node *node, term_t value)
 
   if ( !set_trie_value_word(trie, node, val) &&
        isRecord(val) )
-    PL_erase((record_t)val);
+    PL_erase(word2ptr(record_t, val));
 
   return TRUE;
 }
@@ -1413,7 +1413,7 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 	    release_value(old);
 	    trie_discard_clause(trie);
 	  } else if ( isRecord(val) )
-	  { PL_erase((record_t)val);
+	  { PL_erase(word2ptr(record_t, val));
 	  }
 
 	  return TRUE;
@@ -1421,7 +1421,7 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 	{ if ( !equal_value(node->value, val) )
 	    PL_permission_error("modify", "trie_key", Key);
 	  if ( isRecord(val) )
-	    PL_erase((record_t)val);
+	    PL_erase(word2ptr(record_t, val));
 
 	  return FALSE;
 	}
@@ -2929,7 +2929,7 @@ children:
   } else
   { if ( n->value )			/* what if we have none? */
     { if ( answer_is_conditional(n) )
-	add_vmi_d(state, T_DELAY, (code)n);
+	add_vmi_d(state, T_DELAY, ptr2code(n));
 
       if ( true(state->trie, TRIE_ISMAP) )
       { add_vmi(state, T_VALUE);
@@ -2943,7 +2943,7 @@ children:
 	{ term_t t2;
 
 	  if ( (t2=PL_new_term_ref()) &&
-	       PL_recorded((record_t)n->value, t2) )
+	       PL_recorded(word2ptr(record_t, n->value), t2) )
 	  { Word p = valTermRef(t2);
 
 	    deRef(p);
@@ -3068,7 +3068,7 @@ set_trie_clause_general_undefined(Clause clause)
 
     switch(c)
     { case T_DELAY:
-	PC[1] = (code)NULL;
+	PC[1] = ptr2code(NULL);
         break;
     }
   }

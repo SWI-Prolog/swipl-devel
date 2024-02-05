@@ -746,9 +746,9 @@ loadXRc(DECL_LD wic_state *state, int c)
     }
     case XR_BLOB_TYPE:
     { id = ++state->XR->id;
-      xr = (word)getBlobType(fd);
+      xr = ptr2word(getBlobType(fd));
       DEBUG(MSG_QLF_XR,
-	    Sdprintf("XR(%d) = <blob-type>%s", id, ((PL_blob_t*)xr)->name));
+	    Sdprintf("XR(%d) = <blob-type>%s", id, word2ptr(PL_blob_t*, xr)->name));
       break;
     }
     case XR_FUNCTOR:
@@ -769,10 +769,10 @@ loadXRc(DECL_LD wic_state *state, int c)
 
       id = ++state->XR->id;
       f = (functor_t) loadXR(state);
-      m = (Module) loadXR(state);
-      xr = (word) lookupProcedure(f, m);
+      m = word2ptr(Module, loadXR(state));
+      xr = ptr2word(lookupProcedure(f, m));
       DEBUG(MSG_QLF_XR,
-	    Sdprintf("XR(%d) = proc %s\n", id, procedureName((Procedure)xr)));
+	    Sdprintf("XR(%d) = proc %s\n", id, procedureName(word2ptr(Procedure, xr))));
       break;
     }
     case XR_MODULE:
@@ -780,7 +780,7 @@ loadXRc(DECL_LD wic_state *state, int c)
       atom_t name;
       id = ++state->XR->id;
       name = loadXR(state);
-      xr = (word) lookupModule(name);
+      xr = ptr2word(lookupModule(name));
       DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = module %s\n", id, stringAtom(name)));
       break;
     }
@@ -857,7 +857,7 @@ loadXRc(DECL_LD wic_state *state, int c)
 	    sf->system = (c == 's' ? TRUE : FALSE);
 	  }
 	  sf->count++;
-	  xr = (word)sf;
+	  xr = ptr2word(sf);
 	  /* do not release sf; part of state */
 	  break;
 	}
@@ -887,7 +887,7 @@ loadXRc(DECL_LD wic_state *state, int c)
 
 static atom_t
 getBlob(DECL_LD wic_state *state)
-{ PL_blob_t *type = (PL_blob_t*)loadXR(state);
+{ PL_blob_t *type = word2ptr(PL_blob_t*, loadXR(state));
 
   if ( type->load )
   { atom_t a;
@@ -962,18 +962,14 @@ static int
 loadQlfTerm(DECL_LD wic_state *state, term_t term)
 { IOSTREAM *fd = state->wicFd;
   int nvars;
-  Word vars;
+  term_t *vars;
   int rc;
 
   DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
   if ( (nvars = qlfGetInt32(fd)) )
-  { term_t *v;
-    int n;
-
-    vars = alloca(nvars * sizeof(term_t));
-    for(n=nvars, v=vars; n>0; n--, v++)
-      *v = 0L;
+  { vars = alloca(nvars * sizeof(*vars));
+    memset(vars, 0, nvars * sizeof(*vars));
   } else
     vars = NULL;
 
@@ -1466,8 +1462,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	clause->tr_erased_no = 0;
 	clause->line_no	     = qlfGetUInt32(fd);
 
-	{ SourceFile of = (void *) loadXR(state);
-	  SourceFile sf = (void *) loadXR(state);
+	{ SourceFile of = word2ptr(SourceFile, loadXR(state));
+	  SourceFile sf = word2ptr(SourceFile, loadXR(state));
 	  unsigned int ono = (of ? of->index : 0);
 	  unsigned int sno = (sf ? sf->index : 0);
 	  if ( sf )
@@ -1770,7 +1766,7 @@ runInitialization(SourceFile sf)
 
 static bool
 loadImport(DECL_LD wic_state *state, int skip)
-{ Procedure proc = (Procedure) loadXR(state);
+{ Procedure proc = word2ptr(Procedure, loadXR(state));
   int flags = qlfGetInt32(state->wicFd);
 
   if ( !skip )
@@ -2374,11 +2370,10 @@ static int XRNullPointer = 0;
 
 static inline int
 savedXRPointer(DECL_LD wic_state *state, void *p)
-{ assert(((word)p & 0x1) == 0);
+{ assert((ptr2word(p)&0x1) == 0);
 
   if ( !p )
-  { return savedXR(state, &XRNullPointer);
-  }
+    return savedXR(state, &XRNullPointer);
 
   return savedXR(state, p);
 }
@@ -2853,12 +2848,12 @@ saveWicClause(wic_state *state, Clause clause)
     for(n=0; ats[n]; n++)
     { switch(ats[n])
       { case CA1_PROC:
-	{ Procedure p = (Procedure) *bp++;
+	{ Procedure p = code2ptr(Procedure, *bp++);
 	  saveXRProc(state, p);
 	  break;
 	}
 	case CA1_MODULE:
-	{ Module m = (Module) *bp++;	/* can be NULL, see I_CALLATMV */
+	{ Module m = code2ptr(Module, *bp++);	/* can be NULL, see I_CALLATMV */
 	  saveXRModule(state, m);
 	  break;
 	}

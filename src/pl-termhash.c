@@ -440,7 +440,7 @@ push_var(Word p, sha1_state *state)
 
 static int
 push_attvar(Word p, sha1_state *state)
-{ Word w = (Word)*p;
+{ Word w = word2ptr(Word, *p);
   return ( pushSegStack(&state->vars, p, Word) &&
 	   pushSegStack(&state->vars, w, Word) );
 }
@@ -575,7 +575,7 @@ variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
   rc = variant_sha1(&agenda, &state);
   ac_clearTermAgenda(&agenda);
   while(popSegStack(&state.vars, &p, Word))
-  { word w = (word)p;
+  { word w = ptr2word(p);
     if ( unlikely(isAttVar(w)) )
     { popSegStack(&state.vars, &p, Word);
       *p = w;

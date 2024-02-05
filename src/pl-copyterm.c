@@ -307,7 +307,7 @@ update_ground(DECL_LD Word p, int flags)
 
 static int
 pushForMark(segstack *stack, Word p, int wr)
-{ word w = ((word)p)|wr;
+{ word w = ptr2word(p)|wr;
 
   return pushSegStack(stack, w, word);
 }
@@ -318,7 +318,7 @@ popForMark(segstack *stack, Word *pp, int *wr)
 
   popSegStack(stack, &w, word);
   *wr = w & (word)MC_MASK;
-  *pp = (Word)(w & ~(word)MC_MASK);
+  *pp = word2ptr(Word, (w & ~(word)MC_MASK));
 }
 
 

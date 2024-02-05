@@ -1942,7 +1942,7 @@ instruction immediately follows the I_ENTER. The argument is the module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CONTEXT, 0, 1, (CA1_MODULE))
-{ Module m = (Module)*PC++;
+{ Module m = code2ptr(Module, *PC++);
 
   setContextModule(FR, m);
 
@@ -1965,7 +1965,7 @@ execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALL, VIF_BREAK, 1, (CA1_PROC))
-{ Procedure proc = (Procedure) *PC++;
+{ Procedure proc = code2ptr(Procedure, *PC++);
 
   NFR = lTop;
   setNextFrameFlags(NFR, FR);
@@ -2169,7 +2169,7 @@ call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
-{ Procedure proc = (Procedure) *PC++;
+{ Procedure proc = code2ptr(Procedure, *PC++);
 
   if ( (void *)BFR <= (void *)FR &&
        truePrologFlag(PLFLAG_LASTCALL) &&
@@ -2231,7 +2231,7 @@ VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 { if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
   { VMI_GOTO(I_CALLM);
   } else
-  { Module m = (Module)*PC++;
+  { Module m = code2ptr(Module, *PC++);
 
     setContextModule(FR, m);
     VMI_GOTO(I_DEPART);
@@ -2626,7 +2626,7 @@ problem.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_LCALL, 0, 1, (CA1_PROC))
-{ Procedure proc = (Procedure)*PC++;
+{ Procedure proc = code2ptr(Procedure, *PC++);
   Module ctx0 = contextModule(FR);
 
   leaveDefinition(DEF);
@@ -3724,7 +3724,7 @@ TBD: get rid of clause-references
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF))
-{ ClauseRef cref = (ClauseRef)*PC++;
+{ ClauseRef cref = code2ptr(ClauseRef, *PC++);
 
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
@@ -3748,7 +3748,7 @@ setStartOfVMI().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
-{ ClauseRef cref = (ClauseRef)*PC;
+{ ClauseRef cref = code2ptr(ClauseRef, *PC);
 
   PC += 3;
   ARGP = argFrameP(FR, 0);
@@ -3840,9 +3840,9 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
   ARGP = argFrameP(FR, 0);
   deRef2(ARGP, k);
   if ( isList(*k) )
-    cref = (ClauseRef)PC[1];
+    cref = code2ptr(ClauseRef, PC[1]);
   else if ( isNil(*k) )
-    cref = (ClauseRef)PC[0];
+    cref = code2ptr(ClauseRef, PC[0]);
   else if ( canBind(*k) )
   { PC = SUPERVISOR(staticp) + 1;
     VMI_GOTO(S_STATIC);
@@ -4629,7 +4629,7 @@ conventions.
 
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
-  va_func f = (va_func)*PC++;
+  va_func f = code2ptr(va_func, *PC++);
   term_t h0 = consTermRef(argFrameP(FR, 0));
 
   vmi_fopen(FR, DEF);		/* inline I_FOPEN */
@@ -4650,7 +4650,7 @@ a1, a2, ... calling conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
-{ Func0 f = (Func0)*PC++;
+{ Func0 f = code2ptr(Func0, *PC++);
 
   vmi_fopen(FR, DEF); /* inline I_FOPEN */
   SAVE_REGISTERS(QID);
@@ -4659,12 +4659,12 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 }
 END_VMI
 
-#define FCALL_DETN(ac, ...) \
-  Func##ac f = (Func##ac)*PC++; \
-  term_t h0 = consTermRef(argFrameP(FR, 0)); \
-  vmi_fopen(FR, DEF); /* inline I_FOPEN */ \
-  PC++; \
-  SAVE_REGISTERS(QID); \
+#define FCALL_DETN(ac, ...)				\
+  Func##ac f = code2ptr(Func##ac, *PC++);		\
+  term_t h0 = consTermRef(argFrameP(FR, 0));		\
+  vmi_fopen(FR, DEF); /* inline I_FOPEN */		\
+  PC++;							\
+  SAVE_REGISTERS(QID);					\
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
@@ -4804,7 +4804,7 @@ END_VMH
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*ndet_func)(term_t h0, size_t arity, struct foreign_context*);
-  ndet_func f = (ndet_func)*PC++;
+  ndet_func f = code2ptr(ndet_func, *PC++);
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
@@ -4813,15 +4813,15 @@ END_VMI
 
 
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
-{ NdetFunc0 f = (NdetFunc0)*PC++;
+{ NdetFunc0 f = code2ptr(NdetFunc0, *PC++);
 
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
 
-#define FCALL_NDETN(ac, ...) \
-  NdetFunc##ac f = (NdetFunc##ac)*PC++; \
-  term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
+#define FCALL_NDETN(ac, ...)						\
+  NdetFunc##ac f = code2ptr(NdetFunc##ac, *PC++);			\
+  term_t h0 = argFrameP(FR, 0) - (Word)lBase;				\
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
 
 
@@ -4930,7 +4930,7 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
       if ( exception_term )		/* false alarm */
 	PL_clear_foreign_exception(FR);
 
-      CL = (ClauseRef)rc;
+      CL = word2ptr(ClauseRef, rc);
 
       if ( (rc&YIELD_PTR) )
       { fid_t fid;
@@ -4981,18 +4981,19 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  switch((word)FR->clause & FRG_REDO_MASK)
+  word wcl = ptr2word(FR->clause);
+  switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
       FNDET_CONTEXT.control = FRG_REDO;
-      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
+      FNDET_CONTEXT.context = (word)((sword)(wcl) >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
       FNDET_CONTEXT.control = FRG_REDO;
-      FNDET_CONTEXT.context = (word)FR->clause;
+      FNDET_CONTEXT.context = wcl;
       break;
     case YIELD_PTR:
       FNDET_CONTEXT.control = FRG_RESUME;
-      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
+      FNDET_CONTEXT.context = wcl & ~FRG_REDO_MASK;
       break;
     default:
       assert(0);
@@ -5600,7 +5601,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 
   PC++;
   iv = (int)*PC++;
-  proc = (Procedure)*PC++;
+  proc = code2ptr(Procedure, *PC++);
 
   ap = varFrameP(FR, iv);
   deRef(ap);
@@ -5628,8 +5629,8 @@ same as the end of I_USERCALL
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
-{ Module module = (Module)*PC++;
-  DEF    = ((Procedure)*PC++)->definition;
+{ Module module = code2ptr(Module, *PC++);
+  DEF    = code2ptr(Procedure, *PC++)->definition;
   NFR = lTop;
 
   VMH_GOTO(mcall_cont, module);
@@ -6294,7 +6295,7 @@ VMI(T_VALUE, 0, 0, ())
 END_VMI
 
 VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
-{ trie_node *answer = (trie_node*)*PC++;
+{ trie_node *answer = code2ptr(trie_node*, *PC++);
   atom_t atrie;
 
   ENSURE_STACK_SPACE(16, 12, (void)0);

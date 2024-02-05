@@ -467,9 +467,9 @@ typedef struct
 } cycle_mark;
 
 
-#define mkAttVarP(p)  ((Word)((word)(p) | 0x1L))
-#define isAttVarP(p)  ((word)(p) & 0x1)
-#define valAttVarP(p) ((Word)((word)(p) & ~0x1L))
+#define mkAttVarP(p)  ((Word)((uintptr_t)(p) | 0x1L))
+#define isAttVarP(p)  ((uintptr_t)(p) & 0x1)
+#define valAttVarP(p) ((Word)((uintptr_t)(p) & ~0x1L))
 
 #define compile_term_to_heap(agenda, info) LDFUNC(compile_term_to_heap, agenda, info)
 static int

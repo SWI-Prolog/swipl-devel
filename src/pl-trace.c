@@ -328,7 +328,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 
 	    a = valTermRef(t);
 	    deRef(a);
-	    a = argFrameP(*a, i);
+	    a = argFrameP(word2ptr(LocalFrame, *a), i);
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 

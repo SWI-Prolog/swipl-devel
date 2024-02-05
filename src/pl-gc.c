@@ -1147,7 +1147,7 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
 
   if ( saved_bar_at )
   { assert((void *)(saved_bar_at+1) == (void*)lTop);
-    LD->frozen_bar = valPtr2((word)*saved_bar_at, STG_GLOBAL);
+    LD->frozen_bar = valPtr2(ptr2word(*saved_bar_at), STG_GLOBAL);
 
     assert(onStack(global, LD->frozen_bar) || LD->frozen_bar == gTop);
     lTop = (LocalFrame) saved_bar_at;
@@ -1205,8 +1205,8 @@ argument_stack_to_term_refs(vm_state *state)
       if ( onGlobal(adr) )
       { term_t t = PL_new_term_ref_noshift();
 
-	if ( (word)adr & UWRITE )
-	{ adr = (Word)((word)adr & ~UWRITE);
+	if ( (uintptr_t)adr & UWRITE )
+	{ adr = (Word)((uintptr_t)adr & ~UWRITE);
 	  *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_ATTVAR);
 	  state->uwrite_count++;
 	} else
@@ -1215,7 +1215,7 @@ argument_stack_to_term_refs(vm_state *state)
 	DEBUG(CHK_SECURE, checkData(adr));
       } else
       { assert(adr >= (Word)lBase);
-	*ap = (Word)((word)adr | LARGP);
+	*ap = (Word)((uintptr_t)adr | LARGP);
       }
     }
 
@@ -1238,15 +1238,15 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
     for(ap=aBase; ap<aTop; ap++)
     { Word adr = *ap;
 
-      if ( (word)adr & LARGP )
-      { *ap = (Word)((word)adr & ~LARGP);
+      if ( (uintptr_t)adr & LARGP )
+      { *ap = (Word)((uintptr_t)adr & ~LARGP);
       } else
       { word w = *fp++;
 	word mask = (tag(w) == TAG_ATTVAR ? UWRITE : 0);
 
 	if ( mask )
 	  uwc++;
-	*ap = (Word)((word)valPtr(w)|mask);
+	*ap = (Word)(ptr2word(valPtr(w))|mask);
       }
     }
     assert(fp == (Word)(fr+1) + fr->size);
@@ -2677,7 +2677,7 @@ static void
 alien_into_relocation_chain(DECL_LD void *addr, int orgst, int stg)
 { void **ptr = (void **)addr;
 
-  *ptr = (void *)consPtr(*ptr, orgst);
+  *ptr = word2ptr(void *, consPtr(*ptr, orgst));
   into_relocation_chain(addr, stg);
 
   alien_relocations++;
@@ -2742,7 +2742,7 @@ tag_trail(DECL_LD)
     { Word p2 = trailValP(p);
 
       DEBUG(CHK_SECURE, assert(onStack(global, p2)));
-      te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
+      te->address = word2ptr(Word, consPtr(p2, STG_GLOBAL|TAG_TRAILVAL));
       //DEBUG(SECURE_CHK, assert(te == tBase || !isTrailVal(te[-1].address)));
     } else
     { if ( onLocal(te->address) )
@@ -2752,7 +2752,7 @@ tag_trail(DECL_LD)
 	stg = STG_GLOBAL;
       }
 
-      te->address = (Word)consPtr(te->address, stg);
+      te->address = word2ptr(Word, consPtr(te->address, stg));
     }
   }
 }

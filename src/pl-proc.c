@@ -4044,18 +4044,18 @@ remoduleClause(Clause cl, Module old, Module new)
       for(an=0; ats[an]; an++)
       { switch(ats[an])
 	{ case CA1_PROC:
-	  { Procedure op = (Procedure)PC[an+1];
+	  { Procedure op = code2ptr(Procedure, PC[an+1]);
 
 	    if ( op->definition->module != MODULE_system )
 	    { functor_t f = op->definition->functor->functor;
 
-	      PC[an+1] = (code)lookupProcedure(f, new);
+	      PC[an+1] = ptr2code(lookupProcedure(f, new));
 	    }
 	    break;
 	  }
 	  case CA1_MODULE:
-	  { if ( old == (Module)PC[an+1] )
-	      PC[an+1] = (code)new;
+	  { if ( old == code2ptr(Module, PC[an+1]) )
+	      PC[an+1] = ptr2code(new);
 	  }
 	}
       }

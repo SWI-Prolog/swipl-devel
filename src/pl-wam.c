@@ -635,15 +635,16 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   DEBUG(5, Sdprintf("\tCut %s, context = %p\n",
 		    predicateName(def), fr->clause));
 
-  switch((word)fr->clause & FRG_REDO_MASK)
+  word wcl = ptr2word(fr->clause);
+  switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
-      context.context = (word)fr->clause >> FRG_REDO_BITS;
+      context.context = wcl >> FRG_REDO_BITS;
       break;
     case REDO_PTR:
-      context.context = (word)fr->clause;
+      context.context = wcl;
       break;
     case YIELD_PTR:
-      context.context = (word)fr->clause & ~FRG_REDO_MASK;
+      context.context = wcl & ~FRG_REDO_MASK;
       break;
   }
   context.control = FRG_CUTTED;
@@ -1027,29 +1028,29 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
   switch(op)
   { case I_CALL:			/* procedure */
     case I_DEPART:
-    { return ( put_call_goal(t, (Procedure) PC[1]) &&
+    { return ( put_call_goal(t, code2ptr(Procedure, PC[1])) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_CALLM:			/* module, procedure */
     case I_DEPARTM:
-    { Module m = (Module)PC[1];
+    { Module m = code2ptr(Module, PC[1]);
       term_t av;
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, m->name) &&
-	       put_call_goal(av+1, (Procedure) PC[2]) &&
+	       put_call_goal(av+1, code2ptr(Procedure, PC[2])) &&
 	       PL_cons_functor_v(t, FUNCTOR_colon2, av) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_CALLATM:			/* procm, contextm, proc */
     case I_DEPARTATM:			/* call(@(procm:g, contextm)) */
-    { Module procm    = (Module)PC[1];
-      Module contextm = (Module)PC[2];
+    { Module procm    = code2ptr(Module, PC[1]);
+      Module contextm = code2ptr(Module, PC[2]);
       term_t av;
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3]) &&
+	       put_call_goal(av+1, code2ptr(Procedure, PC[3])) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_atom(av+1, contextm->name) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
@@ -1057,14 +1058,14 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
     }
     case I_CALLATMV:			/* procm, contextm, proc */
     case I_DEPARTATMV:			/* call(@(procm:g, contextm)) */
-    { Module procm    = (Module)PC[1];
+    { Module procm    = code2ptr(Module, PC[1]);
       LocalFrame   fr = (LocalFrame)valTermRef(frref);
       term_t      cmv = consTermRef(varFrameP(fr, (int)PC[2]));
       term_t av;
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3]) &&
+	       put_call_goal(av+1, code2ptr(Procedure, PC[3])) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_term(av+1, cmv) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
@@ -3193,7 +3194,7 @@ static vmi_instr jmp_table[] =
 #define _VMI_DECLARATION(Name,f,na,a)	Name ## _LBL:
 #define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
 #define _VMI_GOTO(n)			goto n ## _LBL
-#define _VMI_GOTO_CODE(c)		goto *(void *)(c)
+#define _VMI_GOTO_CODE(c)		goto *code2ptr(void *, c)
 #undef SEPARATE_VMI1
 #undef SEPARATE_VMI2
 /* This macro must ensure that two identical VMI instructions do not get

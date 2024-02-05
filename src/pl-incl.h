@@ -770,7 +770,7 @@ typedef word			functor_t;	/* encoded functor */
 typedef struct module *		module_t;	/* a module */
 typedef struct procedure *	predicate_t;	/* a predicate handle */
 typedef struct record *		record_t;	/* handle to a recorded term */
-typedef uintptr_t		term_t;		/* external term-reference */
+typedef word			term_t;		/* external term-reference */
 typedef uintptr_t		qid_t;		/* external query-id */
 typedef uintptr_t		PL_fid_t;	/* external foreign context-id */
 typedef struct foreign_context *control_t;	/* non-deterministic control arg */
@@ -839,6 +839,20 @@ typedef struct feature *	Feature;	/* pl-prims.c */
 typedef struct dirty_def_info * DirtyDefInfo;
 typedef struct counting_mutex	counting_mutex;
 typedef struct pl_mutex		pl_mutex;
+
+static inline code
+ptr2code(void *ptr)
+{ return (code)(uintptr_t)ptr;
+}
+
+static inline code
+ptr2word(void *ptr)
+{ return (word)(uintptr_t)ptr;
+}
+
+#define word2ptr(type, w) ((type)(uintptr_t)(w))
+#define code2ptr(type, c) ((type)(uintptr_t)(c))
+
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -1122,8 +1136,8 @@ Macros for environment frames (local stack frames)
 #define refFliP(f, n)		((Word)((f)+1) + (n))
 #define parentFrame(f)		((f)->parent \
 				  ? (f)->parent \
-				  : (LocalFrame)varFrame( \
-				    (f), -QF_PARENT_ENV_OFFSET))
+				 : word2ptr(LocalFrame, varFrame( \
+				    (f), -QF_PARENT_ENV_OFFSET)))
 #define slotsFrame(f)		(true((f)->predicate, P_FOREIGN) ? \
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
