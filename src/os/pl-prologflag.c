@@ -1557,7 +1557,7 @@ typedef struct
 
 word
 pl_prolog_flag5(DECL_LD term_t key, term_t value,
-		word scope, word access, word type,
+		term_t scope, term_t access, term_t type,
 		control_t h)
 { prolog_flag_enum *e;
   fid_t fid;

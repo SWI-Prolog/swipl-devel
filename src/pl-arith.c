@@ -962,7 +962,7 @@ single pointer for each recursion level in the evaluable term.
 
 static int
 pushForMark(segstack *stack, Word p, int wr)
-{ word w = ((word)p)|wr;
+{ word w = ptr2word(p)|wr;
 
   return pushSegStack(stack, w, word);
 }
@@ -973,7 +973,7 @@ popForMark(segstack *stack, Word *pp, int *wr)
 
   popSegStack(stack, &w, word);
   *wr = w & (word)0x1;
-  *pp = (Word)(w & ~(word)0x1);
+  *pp = word2ptr(Word, (w & ~(word)0x1));
 }
 
 int

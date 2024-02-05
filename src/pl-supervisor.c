@@ -146,11 +146,11 @@ createForeignSupervisor(Definition def, Func f)
     if ( true(def, P_VARARG) )
     { codes = allocCodes(2);
       codes[0] = encode(I_FCALLDETVA);
-      codes[1] = (code)f;
+      codes[1] = ptr2code(f);
     } else
     { codes = allocCodes(3);
       codes[0] = encode(I_FCALLDET0+def->functor->arity);
-      codes[1] = (code)f;
+      codes[1] = ptr2code(f);
       codes[2] = encode(I_FEXITDET);
     }
     def->codes = codes;
@@ -162,7 +162,7 @@ createForeignSupervisor(Definition def, Func f)
       codes[1] = encode(I_FCALLNDETVA);
     else
       codes[1] = encode(I_FCALLNDET0+def->functor->arity);
-    codes[2] = (code)f;
+    codes[2] = ptr2code(f);
     codes[3] = encode(I_FEXITNDET);
     codes[4] = encode(I_FREDO);
 
@@ -255,7 +255,7 @@ singleClauseSupervisor(Definition def)
 			predicateName(def)));
 
       codes[0] = encode(S_TRUSTME);
-      codes[1] = (code)cref;
+      codes[1] = ptr2code(cref);
 
       return codes;
     }
@@ -296,11 +296,11 @@ listSupervisor(Definition def)
 
       codes[0] = encode(S_LIST);
       if ( c[0] == ATOM_nil )
-      { codes[1] = (code)cref[0];
-	codes[2] = (code)cref[1];
+      { codes[1] = ptr2code(cref[0]);
+	codes[2] = ptr2code(cref[1]);
       } else
-      { codes[1] = (code)cref[1];
-	codes[2] = (code)cref[0];
+      { codes[1] = ptr2code(cref[1]);
+	codes[2] = ptr2code(cref[0]);
       }
 
       return codes;

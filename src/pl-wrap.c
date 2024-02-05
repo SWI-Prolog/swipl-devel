@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2019, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -313,9 +313,9 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       return FALSE;
 
     if ( (cref = assert_wrapper(A5)) )
-    { Clause cl = ((ClauseRef)codes[1])->value.clause;
+    { Clause cl = code2ptr(ClauseRef, codes[1])->value.clause;
 
-      codes[1] = (code)cref;
+      codes[1] = ptr2code(cref);
       retractClauseDefinition(cl->predicate, cl, FALSE);
 
       return TRUE;
@@ -335,7 +335,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	PL_register_atom(wname);
 
 	codes[0] = encode(S_CALLWRAPPER);
-	codes[1] = (code)cref;
+	codes[1] = ptr2code(cref);
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
@@ -370,7 +370,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 
       for(;;)
       { closure *c = PL_blob_data(codes[2], NULL, NULL);
-	ClauseRef cref = (ClauseRef)codes[1];
+	ClauseRef cref = code2ptr(ClauseRef, codes[1]);
 
 	if ( !PL_put_clref(ct, cref->value.clause) ||
 	     !PL_unify_list(tail, head, tail) ||
@@ -457,7 +457,7 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
     Code codes = *cp;
 
     while ( codes[0] == encode(S_CALLWRAPPER) )
-    { ClauseRef cref = (ClauseRef)codes[1];
+    { ClauseRef cref = code2ptr(ClauseRef, codes[1]);
       Clause cl = cref->value.clause;
       atom_t aref = (atom_t)codes[2];
       atom_t wname = (atom_t)codes[3];
