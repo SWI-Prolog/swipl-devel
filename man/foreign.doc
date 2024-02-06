@@ -1963,20 +1963,36 @@ returned \const{FALSE}.
 
 Undoing (partial) unifications is achieved using
 PL_open_foreign_frame() and PL_rewind_foreign_frame(), as shown in the
-snippet below.
+snippet below:
 
 \begin{code}
-    { fid_t fid = PL_open_foreign_frame();
+/* Same as: can_unify(T1,T2) :- unifiable(T1,T2,_). */
+/* Or:      can_unify(T1,T2) :- \+ \+ (T1 = T2). */
+foreign_t can_unify(term_t t1, term_t t2)
+{ fid_t fid = PL_open_foreign_frame();
 
-      ...
-      if ( !PL_unify(t1, t2) )
+  int rval = PL_unify(t1, t2);
+  PL_discard_foreign_frame();
+  return rval;
+}
+\end{code}
+
+\begin{code}
+    /* equivalent to the Prolog code
+       T1 = T2 -> do_one_thing ; do_another_thing */
+    { fid_t fid = PL_open_foreign_frame();
+      int t1_t2_unified = PL_unify(t1, t2);
+      if ( !t1_t2_unified )
       { if ( PL_exception(0) )
 	{ PL_close_foreign_frame(fid);
 	  return FALSE;
 	}
         PL_rewind_foreign_frame(fid);
       }
-      ...
+      if ( t1_t2_unified )
+        do_one_thing(...);
+      else
+        do_another_thing(...);
 
       PL_close_foreign_frame(fid);
     }
@@ -2939,8 +2955,8 @@ released handle.
     \cfunction{int}{PL_free_blob}{atom_t blob}
 New in 9.1.12.  This function may be used on blobs with the
 \const{PL_BLOB_NOCOPY} flag set and the blob type implements the
-\cfuncref{release}{} call back. It causes the \cfuncref{release}{}
-call back to be called, after which the data and size are set to 0 if
+\cfuncref{release}{} callback. It causes the \cfuncref{release}{}
+callback to be called, after which the data and size are set to 0 if
 the \cfuncref{release}{} returns \const{TRUE}.  The related atom
 remains existent and accessing it as a blob returns \const{NULL} for
 the data and 0 for the size.\footnote{This means that any predicates
@@ -3346,7 +3362,7 @@ to this execution.  Note that if the foreign predicate is
 
 The user may create explicit foreign frames to undo (backtrack)
 changes to Prolog terms.  See PL_unify() for an example.  An explicit
-foreign frame must also be used for creating a call back from C to
+foreign frame must also be used for creating a callback from C to
 Prolog (see PL_open_query()) to ensure the existence of such a frame
 and to scope the \ctype{term_t} handles needed to setup the call to
 Prolog.

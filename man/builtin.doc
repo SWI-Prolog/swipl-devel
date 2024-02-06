@@ -1855,7 +1855,8 @@ atomic(Term) :-
 
 SWI-Prolog defines the following atomic datatypes: atom (atom/1),
 string (string/1), integer (integer/1), floating point number
-(float/1) and blob (blob/2).  In addition, the symbol \verb$[]$
+(float/1), rational (rational/1), and blob (blob/2).
+In addition, the symbol \verb$[]$
 (empty list) is atomic, but not an atom.  See \secref{ext-lists}.
 
     \predicate[ISO]{compound}{1}{@Term}
