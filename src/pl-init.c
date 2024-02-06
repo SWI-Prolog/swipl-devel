@@ -290,7 +290,9 @@ findHome(const char *symbols, int argc, const char **argv)
     Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, pparent);
 
     if ( (fd = Sopen_file(buf, "r")) )
-    { if ( Sfgets(buf, sizeof(buf), fd) )
+    { DEBUG(MSG_INITIALISE, Sdprintf("Found home link file %s\n", buf));
+
+      if ( Sfgets(buf, sizeof(buf), fd) )
       { size_t l = strlen(buf);
 
 	while(l > 0 && buf[l-1] <= ' ')
@@ -318,7 +320,7 @@ findHome(const char *symbols, int argc, const char **argv)
 	if ( ExistsDirectory(maybe_home) )
 	{ home = maybe_home;
 	  DEBUG(MSG_INITIALISE,
-		Sdprintf("Found home using %s from %s\n", buf));
+		Sdprintf("Found home %s using link file\n", home));
 	}
       }
       Sclose(fd);
@@ -352,7 +354,7 @@ findHome(const char *symbols, int argc, const char **argv)
 	 ExistsDirectory(maybe_home)
        ) )
   { home = maybe_home;
-    DEBUG(MSG_INITIALISE, Sdprintf("Found home using %s\n", PLHOME));
+    DEBUG(MSG_INITIALISE, Sdprintf("Using compiled-in home at %s\n", PLHOME));
   }
 #endif
 
@@ -527,8 +529,6 @@ initPaths(int argc, const char **argv)
 
     DEBUG(MSG_INITIALISE, Sdprintf("rc-module: %s\n", symbols));
 
-    systemDefaults.home	       = findHome(symbols, argc, argv);
-
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
     symbols = findExecutable(NULL, plp, sizeof(plp));
@@ -536,6 +536,8 @@ initPaths(int argc, const char **argv)
 #endif
     GD->paths.executable       = store_string(symbols);
     GD->options.systemInitFile = defaultSystemInitFile(argv[0]);
+
+    systemDefaults.home	       = findHome(symbols, argc, argv);
   } else
   { systemDefaults.home	       = findHome(NULL, argc, argv);
     GD->options.systemInitFile = store_string("none");

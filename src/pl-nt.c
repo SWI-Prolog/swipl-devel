@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2022, University of Amsterdam
+    Copyright (c)  1995-2024, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -343,6 +343,11 @@ setOSPrologFlags(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+findExecutable() returns  a Prolog path  for the main executable  or a
+module of SWI-Prolog.  Returns NULL if the path cannot be determined.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 findExecutable(const char *module, char *exe, size_t exelen)
 { int n;
@@ -362,14 +367,18 @@ findExecutable(const char *module, char *exe, size_t exelen)
     hmod = NULL;
 
   if ( (n = GetModuleFileNameW(hmod, wbuf, PATH_MAX)) > 0 )
-  { wbuf[n] = EOS;
-    return _xos_long_file_name_toA(wbuf, exe, exelen);
+  { char os_exe[PATH_MAX];
+    char *p0;
+
+    wbuf[n] = EOS;
+    if ( (p0=_xos_long_file_name_toA(wbuf, os_exe, sizeof(os_exe))) )
+      return PrologPath(p0, exe, exelen);
+    return NULL;
   } else if ( module )
   { return PrologPath(module, exe, exelen);
   } else
-    *exe = EOS;
-
-  return exe;
+  { return NULL;
+  }
 }
 
 char *
