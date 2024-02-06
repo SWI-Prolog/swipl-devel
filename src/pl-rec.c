@@ -467,6 +467,14 @@ typedef struct
 } cycle_mark;
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Variable handling.  The buffer info->vars holds addresses of variables
+that we number  while processing the term.  For  normal variables this
+is easy  as the address is  enough.  For attributed variables  we must
+push the value as  well as the address such that we  can put the value
+back where it came.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define mkAttVarP(p)  ((Word)((uintptr_t)(p) | 0x1L))
 #define isAttVarP(p)  ((uintptr_t)(p) & 0x1)
 #define valAttVarP(p) ((Word)((uintptr_t)(p) & ~0x1L))
@@ -662,6 +670,8 @@ static void unvisit(DECL_LD) {}
 
 #endif
 
+/* Restore variable numbered in compile_term_to_heap() */
+
 static void
 restoreVars(compile_info *info)
 { Word *p = topBuffer(&info->vars, Word);
@@ -670,8 +680,9 @@ restoreVars(compile_info *info)
   while(p > b)
   { p--;
     if (isAttVarP(*p) )
-    { *valAttVarP(*p) = (word)p[-1];
-      p--;
+    { Word addr = valAttVarP(*p);
+      p -= sizeof(word)/sizeof(Word);
+      *addr = *(Word)p;
     } else
       setVar(**p);
   }
