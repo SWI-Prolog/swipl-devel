@@ -151,11 +151,11 @@ initWamTable(DECL_LD)
       sysError("Could not initialise VM jump table");
   }
 
-  wam_table[0] = (code) (interpreter_jmp_table[0]);
+  wam_table[0] = ptr2code(interpreter_jmp_table[0]);
   maxcoded = mincoded = wam_table[0];
 
   for(n = 1; n < I_HIGHEST; n++)
-  { wam_table[n] = (code) (interpreter_jmp_table[n]);
+  { wam_table[n] = ptr2code(interpreter_jmp_table[n]);
     if ( wam_table[n] > maxcoded )
       maxcoded = wam_table[n];
     if ( wam_table[n] < mincoded )
@@ -1974,7 +1974,7 @@ that have an I_CONTEXT because we need to reset the context.
 
       if ( true(def, P_MFCONTEXT) )
       { set(&clause, CL_BODY_CONTEXT);
-	Output_1(ci, I_CONTEXT, (code)ci->module);
+	Output_1(ci, I_CONTEXT, ptr2code(ci->module));
       }
     }
 
@@ -3064,24 +3064,24 @@ appropriate calling instruction.
   if ( ci->at_context.type != TM_NONE )
   { if ( ci->at_context.type == TM_MODULE )
     { Module cm = ci->at_context.module;
-      code ctm = (tm==ci->module) ? (code)0 : (code)tm;
+      code ctm = (tm==ci->module) ? (code)0 : ptr2code(tm);
 
-      Output_3(ci, callatm(call), ctm, (code)cm, (code)proc);
+      Output_3(ci, callatm(call), ctm, ptr2code(cm), ptr2code(proc));
     } else
     { int idx = ci->at_context.var_index;
-      code ctm = (tm==ci->module) ? (code)0 : (code)tm;
+      code ctm = (tm==ci->module) ? (code)0 : ptr2code(tm);
 
-      Output_3(ci, callatmv(call), ctm, VAROFFSET(idx), (code)proc);
+      Output_3(ci, callatmv(call), ctm, VAROFFSET(idx), ptr2code(proc));
     }
   } else
 #endif
   { if ( tm == ci->module )
-    { Output_1(ci, call, (code) proc);
+    { Output_1(ci, call, ptr2code(proc));
       if ( call == I_DEPART &&
 	   ci->procedure )
 	lco(ci, pc0);
     } else
-    { Output_2(ci, mcall(call), (code)tm, (code)proc);
+    { Output_2(ci, mcall(call), ptr2code(tm), ptr2code(proc));
     }
   }
 
@@ -3235,12 +3235,12 @@ lco(CompileInfo ci, size_t pc0)
     FIX_BUFFER_SHIFT();
   }
 
-  Procedure depart_proc = (Procedure)e[-1];
+  Procedure depart_proc = code2ptr(Procedure, e[-1]);
 
   if ( ci->procedure ==	depart_proc )
     Output_0(ci, I_TCALL);
   else
-    Output_1(ci, I_LCALL, (code)depart_proc);
+    Output_1(ci, I_LCALL, ptr2code(depart_proc));
 
   FIX_BUFFER_SHIFT();
 
@@ -4904,7 +4904,7 @@ clauseBodyContext(const Clause cl)
 
       switch(op)
       { case I_CONTEXT:
-	  return (Module)PC[1];
+	  return code2ptr(Module, PC[1]);
 	case I_EXIT:
 	case I_EXITFACT:
 	  assert(0);
@@ -5568,7 +5568,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   }
 
   if ( fetchop(PC) == I_CONTEXT )
-  { Module context = (Module)PC[1];
+  { Module context = code2ptr(Module, PC[1]);
     term_t a = PL_new_term_ref();
 
     PC += 2;
@@ -6060,16 +6060,16 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    assert(0);	/* should never happen */
 			    continue;
       case I_DEPART:
-      case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
+      case I_CALL:        { Procedure proc = code2ptr(Procedure, XR(*PC++));
 			    BUILD_TERM(proc->definition->functor->functor);
 			    pushed++;
 			    continue;
 			  }
 #ifdef O_CALL_AT_MODULE
       case I_DEPARTATMV:
-      case I_CALLATMV:	  { Module pm = (Module)XR(*PC++);
+      case I_CALLATMV:	  { Module pm = code2ptr(Module, XR(*PC++));
 			    size_t cm = XR(*PC++);
-			    Procedure proc = (Procedure)XR(*PC++);
+			    Procedure proc = code2ptr(Procedure, XR(*PC++));
 			    BUILD_TERM(proc->definition->functor->functor);
 			    if ( pm )
 			    { ARGP++;
@@ -6090,9 +6090,9 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    continue;
 			  }
       case I_DEPARTATM:
-      case I_CALLATM:     { Module pm = (Module)XR(*PC++);
-			    Module cm = (Module)XR(*PC++);
-			    Procedure proc = (Procedure)XR(*PC++);
+      case I_CALLATM:     { Module pm = code2ptr(Module, XR(*PC++));
+			    Module cm = code2ptr(Module, XR(*PC++));
+			    Procedure proc = code2ptr(Procedure, XR(*PC++));
 			    BUILD_TERM(proc->definition->functor->functor);
 			    if ( pm )
 			    { ARGP++;
@@ -6107,8 +6107,8 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			  }
 #endif
       case I_DEPARTM:
-      case I_CALLM:       { Module m = (Module)XR(*PC++);
-			    Procedure proc = (Procedure)XR(*PC++);
+      case I_CALLM:       { Module m = code2ptr(Module, XR(*PC++));
+			      Procedure proc = code2ptr(Procedure, XR(*PC++));
 			    BUILD_TERM(proc->definition->functor->functor);
 			    ARGP++;
 			    ARGP[-1] = ARGP[-2];	/* swap arguments */
@@ -7005,7 +7005,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	switch(ats[an++])
 	{ case CA1_PROC:
 	  { size_t i;
-	    Procedure proc = (Procedure) PC[an];
+	    Procedure proc = code2ptr(Procedure, PC[an]);
 	    rc = unify_definition(MODULE_user, term, getProcDefinition(proc), 0, 0);
 	  hit:
 	    if ( !rc )
@@ -7024,7 +7024,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	    goto hit;
 	  }
 	  case CA1_MODULE:
-	  { Module xr = (Module)PC[an];
+	  { Module xr = code2ptr(Module, PC[an]);
 	    rc = PL_unify_atom(term, xr->name);
 	    goto hit;
 	  }
@@ -7050,7 +7050,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 		succeed;
 	      break;
 	    case CA1_MODULE:
-	    { Module xr = (Module)PC[an];
+	    { Module xr = code2ptr(Module, PC[an]);
 
 	      if ( xr && PL_unify_atom(term, xr->name) )
 		succeed;
@@ -7090,7 +7090,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	while(ats[an])
 	{ switch(ats[an++])
 	  { case CA1_PROC:
-	    { Procedure pa = (Procedure)PC[an];
+	    { Procedure pa = code2ptr(Procedure, PC[an]);
 	      Definition def = getProcDefinition(pa);
 
 	      if ( pd == def )
@@ -7228,21 +7228,21 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_MODULE:
-	{ Module m = (Module)*bp++;
+	{ Module m = code2ptr(Module, *bp++);
 	  if ( m )			/* I_DEPARTAM can have NULL module */
 	    PL_put_atom(av+an, m->name);
 	  rc = TRUE;
 	  break;
 	}
 	case CA1_PROC:
-	{ Procedure proc = (Procedure)*bp++;
+	{ Procedure proc = code2ptr(Procedure, *bp++);
 
 	  rc = unify_definition(MODULE_user, av+an, proc->definition, 0,
 				GP_QUALIFY|GP_NAMEARITY);
 	  break;
 	}
 	case CA1_CLAUSEREF:
-	{ ClauseRef cref = (ClauseRef)*bp++;
+	{ ClauseRef cref = code2ptr(ClauseRef, *bp++);
 
 	  rc = PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_clause1,
 			     PL_POINTER, cref->value.clause);
@@ -7250,7 +7250,7 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_FOREIGN:
-	{ void *func = (void*)*bp++;
+	{ void *func = code2ptr(void*, *bp++);
 
 #if defined(HAVE_DLADDR) && !defined(O_STATIC_EXTENSIONS)
 	  Dl_info info;
@@ -7649,7 +7649,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	    { Procedure proc;
 
 	      if ( get_procedure(a, &proc, 0, GP_CREATE|GP_NAMEARITY) )
-	      { Output_a(ci, (code)proc);
+	      { Output_a(ci, ptr2code(proc));
 		break;
 	      }
 	      fail;
