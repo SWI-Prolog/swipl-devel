@@ -4981,18 +4981,19 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  switch((word)FR->clause & FRG_REDO_MASK)
+  word wcl = ptr2word(FR->clause);
+  switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
       FNDET_CONTEXT.control = FRG_REDO;
-      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
+      FNDET_CONTEXT.context = (word)((sword)(wcl) >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
       FNDET_CONTEXT.control = FRG_REDO;
-      FNDET_CONTEXT.context = (word)FR->clause;
+      FNDET_CONTEXT.context = wcl;
       break;
     case YIELD_PTR:
       FNDET_CONTEXT.control = FRG_RESUME;
-      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
+      FNDET_CONTEXT.context = wcl & ~FRG_REDO_MASK;
       break;
     default:
       assert(0);
@@ -5600,7 +5601,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 
   PC++;
   iv = (int)*PC++;
-  proc = (Procedure)*PC++;
+  proc = code2ptr(Procedure, *PC++);
 
   ap = varFrameP(FR, iv);
   deRef(ap);
@@ -5628,8 +5629,8 @@ same as the end of I_USERCALL
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
-{ Module module = (Module)*PC++;
-  DEF    = ((Procedure)*PC++)->definition;
+{ Module module = code2ptr(Module, *PC++);
+  DEF    = code2ptr(Procedure, *PC++)->definition;
   NFR = lTop;
 
   VMH_GOTO(mcall_cont, module);
@@ -6294,7 +6295,7 @@ VMI(T_VALUE, 0, 0, ())
 END_VMI
 
 VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
-{ trie_node *answer = (trie_node*)*PC++;
+{ trie_node *answer = code2ptr(trie_node*, *PC++);
   atom_t atrie;
 
   ENSURE_STACK_SPACE(16, 12, (void)0);
