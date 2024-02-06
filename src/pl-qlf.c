@@ -1766,7 +1766,7 @@ runInitialization(SourceFile sf)
 
 static bool
 loadImport(DECL_LD wic_state *state, int skip)
-{ Procedure proc = (Procedure) loadXR(state);
+{ Procedure proc = word2ptr(Procedure, loadXR(state));
   int flags = qlfGetInt32(state->wicFd);
 
   if ( !skip )
@@ -2370,11 +2370,10 @@ static int XRNullPointer = 0;
 
 static inline int
 savedXRPointer(DECL_LD wic_state *state, void *p)
-{ assert(((word)p & 0x1) == 0);
+{ assert((ptr2word(p)&0x1) == 0);
 
   if ( !p )
-  { return savedXR(state, &XRNullPointer);
-  }
+    return savedXR(state, &XRNullPointer);
 
   return savedXR(state, p);
 }
@@ -2849,12 +2848,12 @@ saveWicClause(wic_state *state, Clause clause)
     for(n=0; ats[n]; n++)
     { switch(ats[n])
       { case CA1_PROC:
-	{ Procedure p = (Procedure) *bp++;
+	{ Procedure p = code2ptr(Procedure, *bp++);
 	  saveXRProc(state, p);
 	  break;
 	}
 	case CA1_MODULE:
-	{ Module m = (Module) *bp++;	/* can be NULL, see I_CALLATMV */
+	{ Module m = code2ptr(Module, *bp++);	/* can be NULL, see I_CALLATMV */
 	  saveXRModule(state, m);
 	  break;
 	}
