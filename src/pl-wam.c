@@ -1028,7 +1028,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
   switch(op)
   { case I_CALL:			/* procedure */
     case I_DEPART:
-    { return ( put_call_goal(t, (Procedure) PC[1]) &&
+    { return ( put_call_goal(t, code2ptr(Procedure, PC[1])) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_CALLM:			/* module, procedure */
@@ -1065,7 +1065,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3]) &&
+	       put_call_goal(av+1, code2ptr(Procedure, PC[3])) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_term(av+1, cmv) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
