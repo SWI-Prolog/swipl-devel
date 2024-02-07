@@ -2242,6 +2242,7 @@ known_flag(gmp_version).
 known_flag(gui).
 known_flag(max_rational_size).
 known_flag(mitigate_spectre).
+known_flag(msys2).
 known_flag(pid).
 known_flag(pipe).
 known_flag(posix_shell).

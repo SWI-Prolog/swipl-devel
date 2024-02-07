@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1978,6 +1978,14 @@ initPrologFlags(void)
 #ifdef __CONDA__
   setPrologFlag("conda", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+#endif
+
+#if __WINDOWS__
+  #if __CONDA__ || MSYS2
+  setPrologFlag("xdg", FT_BOOL, TRUE, 0);
+  #endif
+#else
+  setPrologFlag("xdg", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 
   setPrologFlag("encoding", FT_ATOM,

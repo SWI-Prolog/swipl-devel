@@ -2510,6 +2510,25 @@ Internal flag used by help/1 when writing to a terminal. If
 present and \const{true} it prints bold and underlined text using
 \jargon{overstrike}.
 
+    \prologflagitem{xdg}{bool}{r(w)}
+This flaf defines whether or not the we follow the Free Desktop
+standard for application data and confiration files.   The flag is
+\const{true} and read-only for non-Windows systems.  On Windows
+systems the flag is \const{true} but read-write when compiled under
+\jargon{Conda} or \const{MSYS2} and not defined otherwise.  On
+Windows, the search order is
+
+\begin{description}
+   \definition{Flag is not defined}
+First search the Windows directories, then the XDG directories.
+This is the default for the Windows binaries.
+   \definition{Flag is \const{true}}
+First search the XDG directories, then the Windows directories.
+This is the default on MSYS2 and Conda.
+   \definition{Flag is \const{false}}
+Search the Windows directories only.
+\end{description}
+
     \prologflagitem{xpce}{bool}{r}
 Available and set to \const{true} if the XPCE graphics system is loaded.
 

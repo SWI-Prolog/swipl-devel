@@ -1073,10 +1073,8 @@ user:file_search_path(foreign, swi(ArchLib)) :-
     ArchLib = 'lib/fat-darwin'.
 user:file_search_path(path, Dir) :-
     getenv('PATH', Path),
-    (   current_prolog_flag(windows, true)
-    ->  atomic_list_concat(Dirs, (;), Path)
-    ;   atomic_list_concat(Dirs, :, Path)
-    ),
+    current_prolog_flag(path_sep, Sep),
+    atomic_list_concat(Dirs, Sep, Path),
     '$member'(Dir, Dirs).
 user:file_search_path(user_app_data, Dir) :-
     '$xdg_prolog_directory'(data, Dir).
@@ -1103,44 +1101,50 @@ user:file_search_path(app, app_data(app)).
     atom_concat(XDGDirS, 'swi-prolog', Dir),
     '$make_config_dir'(Dir).
 
-% config
-'$xdg_directory'(config, Home) :-
+'$xdg_directory'(Which, Dir) :-
+    '$xdg_directory_search'(Where),
+    '$xdg_directory'(Which, Where, Dir).
+
+'$xdg_directory_search'(xdg) :-
+    current_prolog_flag(xdg, true).
+'$xdg_directory_search'(Where) :-
     current_prolog_flag(windows, true),
-    catch(win_folder(appdata, Home), _, fail),
-    !.
-'$xdg_directory'(config, Home) :-
+    (   Where = windows
+    ;   current_prolog_flag(xdg, false)
+    ->  !, fail
+    ;   \+ current_prolog_flag(xdg, true)
+    ).
+
+% config
+'$xdg_directory'(config, windows, Home) :-
+    catch(win_folder(appdata, Home), _, fail).
+'$xdg_directory'(config, xdg, Home) :-
     getenv('XDG_CONFIG_HOME', Home).
-'$xdg_directory'(config, Home) :-
+'$xdg_directory'(config, xdg, Home) :-
     expand_file_name('~/.config', [Home]).
 % data
-'$xdg_directory'(data, Home) :-
-    current_prolog_flag(windows, true),
-    catch(win_folder(local_appdata, Home), _, fail),
-    !.
-'$xdg_directory'(data, Home) :-
+'$xdg_directory'(data, windows, Home) :-
+    catch(win_folder(local_appdata, Home), _, fail).
+'$xdg_directory'(data, xdg, Home) :-
     getenv('XDG_DATA_HOME', Home).
-'$xdg_directory'(data, Home) :-
+'$xdg_directory'(data, xdg, Home) :-
     expand_file_name('~/.local', [Local]),
     '$make_config_dir'(Local),
     atom_concat(Local, '/share', Home),
     '$make_config_dir'(Home).
 % common data
-'$xdg_directory'(common_data, Dir) :-
-    current_prolog_flag(windows, true),
-    catch(win_folder(common_appdata, Dir), _, fail),
-    !.
-'$xdg_directory'(common_data, Dir) :-
+'$xdg_directory'(common_data, windows, Dir) :-
+    catch(win_folder(common_appdata, Dir), _, fail).
+'$xdg_directory'(common_data, xdg, Dir) :-
     '$existing_dir_from_env_path'('XDG_DATA_DIRS',
 				  [ '/usr/local/share',
 				    '/usr/share'
 				  ],
 				  Dir).
 % common config
-'$xdg_directory'(common_config, Dir) :-
-    current_prolog_flag(windows, true),
-    catch(win_folder(common_appdata, Dir), _, fail),
-    !.
-'$xdg_directory'(common_config, Dir) :-
+'$xdg_directory'(common_config, windows, Dir) :-
+    catch(win_folder(common_appdata, Dir), _, fail).
+'$xdg_directory'(common_config, xdg, Dir) :-
     '$existing_dir_from_env_path'('XDG_CONFIG_DIRS', ['/etc/xdg'], Dir).
 
 '$existing_dir_from_env_path'(Env, Defaults, Dir) :-
