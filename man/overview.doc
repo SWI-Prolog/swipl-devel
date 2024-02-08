@@ -1147,11 +1147,13 @@ exists_source/1).
 
 Next, it locates \exam{path(name)} using SWI-Prolog's file search
 mechanism defined by absolute_file_name/3.  After loading this file it
-demands a to find the entry point registered using initialization/2 as
-shown in \secref{compilation}.  By default, the application terminates
-after the entry point terminates.  The entry point may enable the
-interactive Prolog REPL loop by calling
-cli_enable_development_system/0.
+finds the last goal registered for \const{main} using initialization/2
+as described in \secref{compilation} - if there is no initization
+directive for \const{main}, the program terminates with an error.  By
+default, the application terminates after the entry point terminates.
+The entry point may enable the interactive Prolog REPL loop by calling
+cli_enable_development_system/0. Other forms of the initialization/2
+directive are also allowed, in addition to `main`.
 
 All command line options after \verb$[path:]name$ are accessible in
 the Prolog flag \prologflag{argv}.
