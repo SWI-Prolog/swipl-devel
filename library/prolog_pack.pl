@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2012-2023, VU University Amsterdam
+    Copyright (c)  2012-2024, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -578,8 +578,8 @@ search_info(download(_)).
 %     * `'.'`, in which case a relative symlink is created to the
 %       current directory (all other options for Spec make a copy
 %       of the files).  Installation using a symlink is normally
-%       used during development of the pack.
-
+%       used during development of a pack.
+%
 %   Processes the options below. Default  options   as  would be used by
 %   pack_install/1 are used to complete the  provided Options. Note that
 %   pack_install/2 can be used through the   SWI-Prolog command line app
