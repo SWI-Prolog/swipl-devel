@@ -76,9 +76,6 @@ doc2tex(InFile, OutFile) :-
         emit(Result, Out),
         close(Out)).
 
-doc2tex([]) -->
-    "{END_OF_FILE}", !, % Useful for finding markup that caused a crash
-    remainder(_).
 doc2tex(Result) -->
     tr(One),
     !,
@@ -98,33 +95,29 @@ add_result(One, [One|Tail], Tail).
 		 *            RECOGNISERS	*
 		 *******************************/
 
-tr(\cfuncref(FName, Args)) -->
-    pl_c_func_prefix(Prefix),
-    c_identifier(Name), "(", string_without(")", Chars), ")",
-    !,
-    {  atom_concat(Prefix, Name, FName),
-       string_chars(Args, Chars)
-    }.
-tr(\cfuncref(FName, Args)) -->
-    pl_cxx_func_prefix(Prefix),
-    cxx_identifier(Name), "(", string_without(")", Chars), ")",
-    !,
-    {  atom_concat(Prefix, Name, FName),
-       string_chars(Args, Chars)
-    }.
-tr(\cfuncref(FName, Args)) --> % This might become a different cmd
-    cxx_identifier(FName), "(", string_without(")", Chars), ")",
-    !,
-    {  string_chars(Args0, Chars),
-       (   Args0 = "{{}}" % TODO: remove when Args is properly processed
-       ->  Args = "\\Scurl"
-       ;   Args = Args0
-       )
-    }.
 tr(Object) -->
     unquoted_atom(Name),
     !,
     tr_name(Name, Object).
+tr(\cfuncref(FName, Args)) -->
+    pl_c_func_prefix(Prefix),
+    c_identifier(Name), paren_arg(Chars),
+    !,
+    {  atom_concat(Prefix, Name, FName),
+       expand_urldefs(Chars, Args)
+    }.
+tr(\cfuncref(FName, Args)) -->
+    pl_cxx_func_prefix(Prefix),
+    cxx_identifier(Name), paren_arg(Chars),
+    !,
+    {  atom_concat(Prefix, Name, FName),
+       expand_urldefs(Chars, Args)
+    }.
+tr(\cfuncref(FName, Args)) --> % This might become a different cmd
+    cxx_identifier(FName), paren_arg(Chars),
+    !,
+    {  expand_urldefs(Chars, Args)
+    }.
 tr([\begin(code),Code,\end(code),'\n\n',\noindent,'\n']) -->
     "\\begin{code}", string(CodeChars), "\\end{code}",
     !,
@@ -189,6 +182,37 @@ tr(\bnfmeta(Name)) -->
     !.
 tr(C) -->
     [C].
+
+%!  paren_arg(-Codes)//
+%
+%   Read  a  string  between  parenthesis,    keeping  track  of  nested
+%   parenthesis.
+%
+%   @tbd Test for too long argument lists?
+
+paren_arg(Codes) -->
+    "(", paren_arg(Codes, [0')]).
+
+paren_arg([], [Close]) -->
+    [Close],
+    !.
+paren_arg([H|T], Stack) -->
+    [H],
+    { code_type(H, paren(Close)) },
+    !,
+    paren_arg(T, [Close|Stack]).
+paren_arg([H|T], [H|Stack]) -->
+    [H],
+    !,
+    paren_arg(T, Stack).
+paren_arg([H|T], Stack) -->
+    [H],
+    paren_arg(T, Stack).
+
+
+expand_urldefs(Codes, String) :-
+    phrase(doc2tex(Parsed), Codes),
+    with_output_to(string(String), emit(Parsed, current_output)).
 
 pl_c_func_prefix('PL_') --> "PL_", !.
 pl_c_func_prefix('S')   --> "S", !.
