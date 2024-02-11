@@ -95,29 +95,33 @@ add_result(One, [One|Tail], Tail).
 		 *            RECOGNISERS	*
 		 *******************************/
 
-tr(Object) -->
-    unquoted_atom(Name),
-    !,
-    tr_name(Name, Object).
-tr(\cfuncref(FName, Args)) -->
+tr(\cfuncref(FName, Args)) -->		% PL_*, S*, etc. function
     pl_c_func_prefix(Prefix),
     c_identifier(Name), paren_arg(Chars),
     !,
     {  atom_concat(Prefix, Name, FName),
        expand_urldefs(Chars, Args)
     }.
-tr(\cfuncref(FName, Args)) -->
+tr(\cfuncref(FName, Args)) -->		% Pl* C++ function
     pl_cxx_func_prefix(Prefix),
     cxx_identifier(Name), paren_arg(Chars),
     !,
     {  atom_concat(Prefix, Name, FName),
        expand_urldefs(Chars, Args)
     }.
-tr(\cfuncref(FName, Args)) --> % This might become a different cmd
+tr(\cfuncref(FName, Args)) -->		% C++ function or func()
     cxx_identifier(FName), paren_arg(Chars),
+    {   sub_atom(FName, _, _, _, ::)
+    ;   sub_atom(FName, _, _, _, ~)
+    ;   Chars == []
+    },
     !,
     {  expand_urldefs(Chars, Args)
     }.
+tr(Object) -->				% Prolog predicate references
+    unquoted_atom(Name),                % or just words
+    !,
+    tr_name(Name, Object).
 tr([\begin(code),Code,\end(code),'\n\n',\noindent,'\n']) -->
     "\\begin{code}", string(CodeChars), "\\end{code}",
     !,
