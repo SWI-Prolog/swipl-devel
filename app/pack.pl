@@ -119,6 +119,7 @@ pack_install:opt_type(link,     link,           boolean).
 pack_install:opt_type(version,  version,        atom).
 pack_install:opt_type(branch,   branch,         atom).
 pack_install:opt_type(commit,   commit,         atom).
+pack_install:opt_type(server,   server,         atom).
 
 pack_install:opt_help(url,            "Explicit GIT or download location").
 pack_install:opt_help(pack_directory, "Install in DIR/<pack>").
@@ -135,6 +136,7 @@ pack_install:opt_help(link,           "Install from local directory using \c
 pack_install:opt_help(version,        "Restrict the version.").
 pack_install:opt_help(branch,         "Checkout GIT branch.").
 pack_install:opt_help(commit,         "Checkout GIT commit.").
+pack_install:opt_help(server,         "Server to contact for finding packages").
 
 pack_install:opt_help(help(usage),
                       " install [option ...] pack ...").
