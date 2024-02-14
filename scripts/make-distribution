@@ -7,7 +7,7 @@ fi
 
 version=`cat VERSION`
 pdf_build_dir=build.pdf
-PUBLIC="ec:/home/swipl/web/download/devel"
+PUBLIC="plweb@oehoe:srv/plweb/data/download/devel"
 QT_BIN=$HOME/Qt6.6/6.6.1/macos/bin
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
