@@ -2894,8 +2894,8 @@ download_data(Info, Data) =>                % Archive download.
 %   results.
 
 query_pack_server(Query, Result, Options) :-
-    (   option(server(ServerBase), Options)
-    ->  true
+    (   option(server(ServerOpt), Options)
+    ->  server_url(ServerOpt, ServerBase)
     ;   setting(server, ServerBase),
         ServerBase \== ''
     ),
@@ -2912,6 +2912,20 @@ query_pack_server(Query, Result, Options) :-
         close(In)),
     message_severity(Result, Level, Informational),
     print_message(Level, pack(server_reply(Result))).
+
+server_url(URL0, URL) :-
+    uri_components(URL0, Components),
+    uri_data(scheme, Components, Scheme),
+    var(Scheme),
+    !,
+    atom_concat('https://', URL0, URL1),
+    server_url(URL1, URL).
+server_url(URL0, URL) :-
+    uri_components(URL0, Components),
+    uri_data(path, Components, ''),
+    !,
+    uri_edit([path('/pack/')], URL0, URL).
+server_url(URL, URL).
 
 read_reply(ContentType, In, Result) :-
     sub_atom(ContentType, 0, _, _, 'application/x-prolog'),
