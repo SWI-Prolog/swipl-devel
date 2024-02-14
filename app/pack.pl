@@ -54,6 +54,9 @@ pack(list, Argv) =>
 pack(find, Argv) =>
     pack_find:argv_options(Argv, Pos, Options),
     cli_pack_find(Pos, Options).
+pack(search, Argv) =>
+    pack_find:argv_options(Argv, Pos, Options),
+    cli_pack_find(Pos, Options).
 pack(info, Argv) =>
     pack_info:argv_options(Argv, Pos, Options),
     cli_pack_info(Pos, Options).
@@ -75,6 +78,7 @@ pack(_, _) =>
 
 pack_command(list,    "List packages").
 pack_command(find,    "Find packages").
+pack_command(search,  "Alias for `find`").
 pack_command(info,    "Print info on a pack").
 pack_command(install, "Install a package").
 pack_command(remove,  "Uninstall a package").
@@ -179,10 +183,10 @@ cli_pack_list([Search], Options) =>
 cli_pack_list(_, _) =>
     argv_usage(pack_list:debug).
 
-cli_pack_find([], _Options) =>
-    pack_list('').
-cli_pack_find([Search], _Options) =>
-    pack_list(Search).
+cli_pack_find([], Options) =>
+    pack_list('', Options).
+cli_pack_find([Search], Options) =>
+    pack_list(Search, Options).
 cli_pack_find(_, _) =>
     argv_usage(pack_find:debug).
 
