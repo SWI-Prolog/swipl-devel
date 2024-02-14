@@ -1106,13 +1106,13 @@ user:file_search_path(app, app_data(app)).
     '$xdg_directory'(Which, Where, Dir).
 
 '$xdg_directory_search'(xdg) :-
-    current_prolog_flag(xdg, true).
+    current_prolog_flag(xdg, true),
+    !.
 '$xdg_directory_search'(Where) :-
     current_prolog_flag(windows, true),
-    (   Where = windows
-    ;   current_prolog_flag(xdg, false)
-    ->  !, fail
-    ;   \+ current_prolog_flag(xdg, true)
+    (   current_prolog_flag(xdg, false)
+    ->  Where = windows
+    ;   '$member'(Where, [windows, xdg])
     ).
 
 % config
