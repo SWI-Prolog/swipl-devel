@@ -18,6 +18,8 @@ if(MINGW_ROOT)
   include(port/MinGW)
 elseif(CONDA)
   include(port/CondaWindows)
+elseif(MSYS2)
+  include(port/msys2)
 endif()
 
 if(NOT PLHOME)
