@@ -520,8 +520,7 @@ PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
 PL_EXPORT(int)		PL_get_bool(term_t t, int *value) WUNUSED;
 PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
-					/* PL_get_string() is deprecated */
-PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED;
+PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
 PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags) WUNUSED;
 PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags) WUNUSED;
@@ -921,7 +920,7 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_RATIONAL	    0x00000010
 #define CVT_FLOAT	    0x00000020
 #define CVT_VARIABLE	    0x00000040
-#define CVT_NUMBER	    (CVT_RATIONAL|CVT_FLOAT)
+#define CVT_NUMBER	    (CVT_RATIONAL|CVT_FLOAT|CVT_INTEGER)
 #define CVT_ATOMIC	    (CVT_NUMBER|CVT_ATOM|CVT_STRING)
 #define CVT_WRITE	    0x00000080
 #define CVT_WRITE_CANONICAL 0x00000100
