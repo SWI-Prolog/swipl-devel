@@ -12,15 +12,15 @@ as well as developing packages.
 
 Packs are installed as self-containing directories that provide
 additional Prolog libraries and \jargon{foreign modules}, compiled
-native code plugins.  In addition, a pack can define \jargon{apps},
+native code plugins. In addition, a pack can define \jargon{apps},
 command line tools that can be started using \exam{swipl app [args]}
-(see \secref{swipl-app}).  Packs are searched as sub-directories of
-the Prolog search path \const{pack}.  Initially, this search path is
-the user's \jargon{App data}, followed by the system's \jargon{App
-  data}.  The searched directories can be found using
+(see \secref{swipl-app}). Packs are searched as sub-directories of the
+Prolog search path \const{pack}. Initially, this search path is the
+user's \jargon{App data}, followed by the system's \jargon{App data}.
+The searched directories can be found using
 
 \begin{code}
-?- absolute_file_name(pack(.), Path, [solutions(all)]).  
+?- absolute_file_name(pack(.), Path, [solutions(all)]).
 \end{code}
 
 The search path can be managed using the environment variable
@@ -33,18 +33,19 @@ using attach_packs/2.
 
 As of version 9.1.22, SWI-Prolog supports three models for managing
 packs: \jargon{shared packages} are added to the user or system
-environment, while \jargon{Project specific packages} are added to a
+environment, while \jargon{project specific packages} are added to a
 particular project only.  Finally, project specific packages can be
 managed as \jargon{git submodules}.  These three approaches are
 discussed in more detail below.
 
+Using pack_install/2 we can install a package either for the current
+user or globally for all users.
+
 \paragraph{Shared packages}
 
-Using pack_install/2 we can install a package either for the current
-user or globally for all users.  Installing packs independent from a
-particular project is practical for users or system wide installations
+System-wide installations
 is satisfactory as long as all projects can use the same version of a
-pack, the packs required by all projects do not conflict and
+pack, the packs required by all projects do not conflict, and
 redistribution of the projects is not a primary concern.  For example,
 if you frequently require RocksDB for several projects you are working
 on, installing the \const{rocksdb} pack as user is appropriate.
@@ -64,7 +65,7 @@ project.  This approach is also found with \program{npm}, the Node.js
 package manager.  Using project-specific packs with SWI-Prolog
 requires calling attach_packs/2 before loading any library from a
 pack.  To use (only) packs from the local sub directory \file{packs},
-call:
+add this directive to the code that uses it:
 
 \begin{code}
 :- attach_packs(packs, [replace(true)]).
@@ -133,7 +134,7 @@ using the steps below
 
 \begin{code}
 ?- attach_packs(packs, [replace(true)]).
-?- pack_rebuild.  
+?- pack_rebuild.
 \end{code}
 
 Using git submodules gives full control of the pack versions you are
@@ -595,7 +596,7 @@ that has publicly accessible \jargon{origin},
 \item Commit all changes, make sure the the repository is clean.
 \item Run
 \begin{code}
-swipl pack publish .    
+swipl pack publish .
 \end{code}
 \end{enumerate}
 
@@ -621,7 +622,7 @@ the content of the archive but, instead, create a new archive with
 a new version.
 
 \begin{code}
-swipl pack publish URL  
+swipl pack publish URL
 \end{code}
 
 
@@ -697,7 +698,7 @@ using
 \item Install the pack \emph{as a link} using the command below.  If
   the pack contains foreign build scripts, this creates a file
   \file{buildenv.sh} that contains the environment variables for
-  building the pack.  
+  building the pack.
 \begin{code}
 ?- pack_install(.).
 \end{code}

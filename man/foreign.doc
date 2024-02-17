@@ -1178,8 +1178,8 @@ Convert the argument term \arg{t} to a 0-terminated C-string.
 first specifies which term types should be converted and the second how
 the argument is stored. Below is a specification of these constants.
 \const{BUF_STACK} implies, if the data is not static (as from an atom),
-that the data is pushed on a stack. If BUF_MALLOC is used, the data must
-be freed using PL_free() when no longer needed.
+that the data is pushed on a stack. If \const{BUF_MALLOC} is used,
+the data must be freed using PL_free() when no longer needed.
 
 With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
