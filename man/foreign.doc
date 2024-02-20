@@ -1961,25 +1961,35 @@ possible or call PL_clear_exception() if they wish to ignore the
 exception. Note that there can only be an exception if PL_unify()
 returned \const{FALSE}.
 
-Undoing (partial) unifications is achieved using
-PL_open_foreign_frame() and PL_rewind_foreign_frame(), as shown in the
-snippet below.
+In some scenarios we need to undo \jargon{partial
+  unifications}. Suppose we have a database that contains Prolog terms
+and we run a query over this database.  We must succeed on the first
+successful unification.  If a unification is not successful, we must
+stop if there is an exception or undo the partial unification and try
+again.  Suppose our database contains \term{f}{a,1} and \term{f}{b,2}
+and our query is \term{f}{A,2}.  This should succeed with \arg{A} =
+\const{b}, but the first unification binds \arg{A} to \const{a} before
+failing to unify 1 with 2.
 
 \begin{code}
-    { fid_t fid = PL_open_foreign_frame();
+static foreign_t
+find_in_db(term_t target)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t candidate = PL_new_term_ref();
 
-      ...
-      if ( !PL_unify(t1, t2) )
-      { if ( PL_exception(0) )
-	{ PL_close_foreign_frame(fid);
-	  return FALSE;
-	}
-        PL_rewind_foreign_frame(fid);
-      }
-      ...
-
-      PL_close_foreign_frame(fid);
-    }
+  while(get_from_my_database(candidate))
+  { if ( PL_unify(candidate, target) ) /* found */
+    { PL_close_foreign_frame(fid);
+      return TRUEl;
+    } else if ( PL_exception(0) )      /* error */
+    { PL_close_foreign_frame(fid);
+      return FALSE;
+    } else
+    PL_rewind_foreign_frame(fid);      /* try next */
+  }
+  PL_close_foreign_frame(fid);	       /* not found */
+  return FALSE;
+}
 \end{code}
 
 This code is only needed if the foreign predicate does not return
@@ -2939,8 +2949,8 @@ released handle.
     \cfunction{int}{PL_free_blob}{atom_t blob}
 New in 9.1.12.  This function may be used on blobs with the
 \const{PL_BLOB_NOCOPY} flag set and the blob type implements the
-\cfuncref{release}{} call back. It causes the \cfuncref{release}{}
-call back to be called, after which the data and size are set to 0 if
+\cfuncref{release}{} callback. It causes the \cfuncref{release}{}
+callback to be called, after which the data and size are set to 0 if
 the \cfuncref{release}{} returns \const{TRUE}.  The related atom
 remains existent and accessing it as a blob returns \const{NULL} for
 the data and 0 for the size.\footnote{This means that any predicates
@@ -3346,7 +3356,7 @@ to this execution.  Note that if the foreign predicate is
 
 The user may create explicit foreign frames to undo (backtrack)
 changes to Prolog terms.  See PL_unify() for an example.  An explicit
-foreign frame must also be used for creating a call back from C to
+foreign frame must also be used for creating a callback from C to
 Prolog (see PL_open_query()) to ensure the existence of such a frame
 and to scope the \ctype{term_t} handles needed to setup the call to
 Prolog.
@@ -3367,7 +3377,7 @@ or requires stack shifts or garbage collection.}
 
 \cfunction{void}{PL_close_foreign_frame}{fid_t id} Discard all term
 references created after the frame was opened.  Prolog data referenced
-by the discarded term references is not affected.  
+by the discarded term references is not affected.
 
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since
