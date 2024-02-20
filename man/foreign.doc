@@ -1980,12 +1980,12 @@ find_in_db(term_t target)
   while(get_from_my_database(candidate))
   { if ( PL_unify(candidate, target) ) /* found */
     { PL_close_foreign_frame(fid);
-      return TRUEl;
+      return TRUE;
     } else if ( PL_exception(0) )      /* error */
     { PL_close_foreign_frame(fid);
       return FALSE;
     } else
-    PL_rewind_foreign_frame(fid);      /* try next */
+      PL_rewind_foreign_frame(fid);    /* try next */
   }
   PL_close_foreign_frame(fid);	       /* not found */
   return FALSE;
