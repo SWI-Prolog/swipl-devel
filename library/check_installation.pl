@@ -138,7 +138,10 @@ component(library(uri), _{}).
 component(library(uuid), _{}).
 component(library(zlib), _{}).
 component(library(yaml), _{}).
-component(library(janus), _{features:python_version}).
+component(python,_{test:python_exists}).
+component(library(janus),
+          _{pre:python_exists,
+            features:python_version}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
@@ -448,6 +451,10 @@ python_version :-
     py_call(sys:version, Version),
     print_message(informational, installation(janus(Version))).
 
+python_exists:-
+    shell('python --version',0),!.
+python_exists:-
+    fail.
 
 %!  check_on_path
 %
