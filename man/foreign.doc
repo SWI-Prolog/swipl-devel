@@ -1187,6 +1187,13 @@ if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 See also PL_get_wchars() and PL_get_nchars().
 
+The first set of flags (\const{CVT_ATOM} through \const{CVT_VARIABLE},
+if set, are tested in order, using the first that matches. If none of
+these match, then a check is made for one of \const{CVT_WRITE},
+\const{CVT_WRITE_CANONICAL}, \const{CVT_WRITEQ} being set. If none of
+the ``CVT_WRITE*’’ flags are set, then a \except{type_error} is
+raised.
+
 \begin{description}
     \termitem{CVT_ATOM}{}
 Convert if term is an atom.
@@ -1195,14 +1202,15 @@ Convert if term is an atom.
 Convert if term is a string.
 
     \termitem{CVT_LIST}{}
-Convert if term is a list of of character codes.
+Convert if term is a list of of characters or character codes.
 
     \termitem{CVT_INTEGER}{}
 Convert if term is an integer.
 
     \termitem{CVT_RATIONAL}{}
-Convert if term is an rational number.  The number is written as
-<num>r<den>.
+
+Convert if term is an rational number (including integer).
+Non-integral numbers are written as <num>r<den>.
 
     \termitem{CVT_XINTEGER}{}
 Convert if term is an integer to hexadecimal notation. May be combined
@@ -1223,26 +1231,26 @@ to \mbox{\const{CVT_INTEGER}{|}\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}
     \termitem{CVT_ATOMIC}{}
 Convert if term is atomic.
 
+    \termitem{CVT_ALL}{}
+Convert if term is any of the above. Note that this does not
+include variables or terms (with the exception of a list of characters/codes).
+
     \termitem{CVT_VARIABLE}{}
-Convert variable to print-name
+Convert variable to print-name (e.g., \exam{_3290}).
 
     \termitem{CVT_WRITE}{}
 Convert any term that is not converted by any of the other flags using
 write/1. If no \const{BUF_*} is provided, \const{BUF_STACK} is implied.
 
-    \termitem{CVT_WRITE_CANONICAL}{}
-As \const{CVT_WRITE}, but using write_canonical/2.
-
     \termitem{CVT_WRITEQ}{}
 As \const{CVT_WRITE}, but using writeq/2.
 
-    \termitem{CVT_ALL}{}
-Convert if term is any of the above, except for \const{CVT_VARIABLE} and
-\const{CVT_WRITE*}.
+    \termitem{CVT_WRITE_CANONICAL}{}
+As \const{CVT_WRITE}, but using write_canonical/2.
 
     \termitem{CVT_EXCEPTION}{}
 If conversion fails due to a type error, raise a Prolog type error
-exception in addition to failure
+exception in addition to failure.
 
     \termitem{BUF_DISCARDABLE}{}
 Data must copied immediately.
@@ -1980,14 +1988,14 @@ find_in_db(term_t target)
   while(get_from_my_database(candidate))
   { if ( PL_unify(candidate, target) ) /* found */
     { PL_close_foreign_frame(fid);
-      return TRUEl;
+      return TRUE;
     } else if ( PL_exception(0) )      /* error */
     { PL_close_foreign_frame(fid);
       return FALSE;
     } else
-    PL_rewind_foreign_frame(fid);      /* try next */
+      PL_rewind_foreign_frame(fid);    /* try next */
   }
-  PL_close_foreign_frame(fid);	       /* not found */
+  PL_close_foreign_frame(fid);         /* not found */
   return FALSE;
 }
 \end{code}
