@@ -1225,15 +1225,20 @@ Convert if term is a float.  The characters returned are the same as
 write/1 would write for the floating point number.
 
     \termitem{CVT_NUMBER}{}
-Convert if term is an integer, rational number or or float.  Equivalent
-to \mbox{\const{CVT_INTEGER}{|}\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}
+Convert if term is an integer, rational number or float.  Equivalent
+to \mbox{\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}.  Note that
+\const{CVT_INTEGER} is implied by \const{CVT_RATIONAL}.
 
     \termitem{CVT_ATOMIC}{}
-Convert if term is atomic.
+Convert if term is atomic. Equivalent
+to \mbox{\const{CVT_NUMBER}{|}\const{CVT_ATOM}{|}\const{CVT_STRING}}.
 
     \termitem{CVT_ALL}{}
-Convert if term is any of the above. Note that this does not
-include variables or terms (with the exception of a list of characters/codes).
+Convert if term is any of the above. Integers and rational numbers are
+written as decimal (i.e., \const{CVT_XINTEGER} is \emph{not} implied).
+Note that this does not include variables or terms (with the exception
+of a list of characters/codes). Equivalent to
+\mbox{\const{CVT_ATOMIC}{|}\const{CVT_LIST}}.
 
     \termitem{CVT_VARIABLE}{}
 Convert variable to print-name (e.g., \exam{_3290}).
