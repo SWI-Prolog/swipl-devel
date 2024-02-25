@@ -1226,14 +1226,19 @@ write/1 would write for the floating point number.
 
     \termitem{CVT_NUMBER}{}
 Convert if term is an integer, rational number or or float.  Equivalent
-to \mbox{\const{CVT_INTEGER}{|}\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}
+to \mbox{\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}.
+(\const{CVT_INTEGER} is is subsumed by \const{CVT_RATIONAL}).
 
     \termitem{CVT_ATOMIC}{}
-Convert if term is atomic.
+Convert if term is atomic. Equivalent
+to \mbox{\const{CVT_NUMBER}{|}\const{CVT_ATOM}{|}\const{CVT_STRING}}.
 
     \termitem{CVT_ALL}{}
-Convert if term is any of the above. Note that this does not
-include variables or terms (with the exception of a list of characters/codes).
+Convert if term is any of the above except \const{CVT_XINTEGER} and
+\const{CVT_INTEGER} (the latter is subsumed by \const{CVT_RATIONAL}).
+Note that this does not include variables or terms (with the exception
+of a list of characters/codes).  Equivalent to
+\mbox{\const{CVT_ATOMIC}{|}\const{CVT_LIST}}.
 
     \termitem{CVT_VARIABLE}{}
 Convert variable to print-name (e.g., \exam{_3290}).
