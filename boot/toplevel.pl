@@ -184,8 +184,8 @@ load_script_files([OsFile|More]) :-
                              file_errors(fail)
                            ])
     ->  asserta(loaded_init_file(script, Path)),
-        load_files(user:Path, []),
-        load_files(More)
+        load_files(user:Path),
+        load_files(user:More)
     ;   throw(error(existence_error(script_file, File), _))
     ).
 
