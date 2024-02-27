@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2023, VU University Amsterdam
+    Copyright (c)  2014-2024, VU University Amsterdam
                               CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -45,6 +45,7 @@
 :- autoload(library(apply), [maplist/2, maplist/3]).
 :- autoload(library(archive), [archive_open/3, archive_close/1]).
 :- autoload(library(lists), [append/3, member/2]).
+:- autoload(library(occurs), [sub_term/2]).
 :- autoload(library(option), [option/2, merge_options/3]).
 :- autoload(library(prolog_source), [path_segments_atom/2]).
 :- use_module(library(settings), [setting/2]).
@@ -99,11 +100,13 @@ component(library(cgi), _{}).
 component(library(crypt), _{}).
 component(library(bdb), _{}).
 component(library(double_metaphone), _{}).
+component(library(editline), _{os:unix}).
 component(library(filesex), _{}).
 component(library(http/http_stream), _{}).
 component(library(http/json), _{}).
 component(library(http/jquery), _{features:jquery_file}).
 component(library(isub), _{}).
+component(library(janus), _{features:python_version}).
 component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(odbc), _{}).
@@ -115,7 +118,6 @@ component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
 component(library(protobufs), _{}).
-component(library(editline), _{os:unix}).
 component(library(readline), _{os:unix}).
 component(library(readutil), _{}).
 component(library(rlimit), _{os:unix}).
@@ -136,9 +138,8 @@ component(library(tipc/tipc), _{os:linux}).
 component(library(unicode), _{}).
 component(library(uri), _{}).
 component(library(uuid), _{}).
-component(library(zlib), _{}).
 component(library(yaml), _{}).
-component(library(janus), _{features:python_version}).
+component(library(zlib), _{}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
@@ -228,7 +229,7 @@ check_source(Source, Properties) :-
                      ->  call(Pre)
                      ;   true
                      ),
-                     load_files(Source, [silent(true), if(not_loaded)])
+                     load_files(Source, [silent(true), if(true)])
                    ),
                    Properties.put(action, load))
     ->  test_component(Properties),
@@ -689,8 +690,7 @@ details(Properties) -->
 details(_) --> [].
 
 explain(Messages) -->
-    { Messages = [message(error(shared_object(open, _Message), _), _, _)|_]
-    },
+    { shared_object_error(Messages) },
     !,
     [nl],
     (   { current_prolog_flag(windows, true) }
@@ -699,6 +699,11 @@ explain(Messages) -->
     ).
 explain(Messages) -->
     print_messages(Messages).
+
+shared_object_error(Messages) :-
+    sub_term(Term, Messages),
+    subsumes_term(error(shared_object(open, _Message), _), Term),
+    !.
 
 print_messages([]) --> [].
 print_messages([message(_Term, _Kind, Lines)|T]) -->
