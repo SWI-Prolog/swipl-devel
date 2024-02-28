@@ -101,6 +101,16 @@ case $config in
     ;;
 esac
 
+# PDF docs
+#
+# Build the PDF documentation
+
+case $config in
+  *pdf*)
+    opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
+    ;;
+esac
+
 # native tuning
 #
 # Optimize for local CPU
