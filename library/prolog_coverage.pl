@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2006-2023, University of Amsterdam
+    Copyright (c)  2006-2024, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -44,21 +44,28 @@
             cov_reset/0,                %
             cov_property/1              % ?Property
           ]).
-:- autoload(library(apply), [exclude/3, maplist/2, convlist/3, maplist/3]).
+:- autoload(library(apply),
+            [exclude/3, maplist/2, convlist/3, maplist/3, maplist/4]).
 :- autoload(library(ordsets), [ord_intersection/3, ord_subtract/3, ord_union/3]).
 :- autoload(library(pairs),
-            [group_pairs_by_key/2, pairs_keys_values/3, pairs_values/2]).
+            [ group_pairs_by_key/2,
+              pairs_keys_values/3,
+              pairs_values/2,
+              map_list_to_pairs/3
+            ]).
 :- autoload(library(ansi_term), [ansi_format/3]).
 :- autoload(library(filesex), [directory_file_path/3, make_directory_path/1]).
-:- autoload(library(lists), [append/3, flatten/2, max_list/2, member/2]).
+:- autoload(library(lists),
+            [append/3, flatten/2, max_list/2, member/2, append/2, sum_list/2]).
 :- autoload(library(option), [option/2, option/3]).
 :- autoload(library(readutil), [read_line_to_string/2]).
 :- use_module(library(prolog_breakpoints), []).
 :- autoload(library(prolog_clause), [clause_info/4]).
-:- autoload(library(solution_sequences), [call_nth/2]).
-:- use_module(library(debug), [debug/3]).
+:- autoload(library(solution_sequences), [call_nth/2, distinct/2]).
+:- use_module(library(debug), [debug/3, assertion/1]).
 :- autoload(library(error), [must_be/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
+:- autoload(library(terms), [mapsubterms/3]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -304,6 +311,7 @@ covered(Succeeded, Failed) :-
 %   defined in the modules Modules.
 
 file_coverage(Succeeded, Failed, Options) :-
+    abolish_module_tables(prolog_coverage),
     findall(File-PrintFile,
             report_file(File, PrintFile, Succeeded, Failed, Options),
             Pairs),
@@ -342,22 +350,69 @@ file_coverage(Succeeded, Failed, Options) :-
 file_coverage(_Succeeded, _Failed, _Options) :-
     print_message(warning, coverage(no_files_to_report)).
 
+%!  report_file(?File, -PrintFile, -Succeeded, -Failed, +Options) is semidet
+
 report_file(File, PrintFile, Succeeded, Failed, Options) :-
-    source_file(File),
+    (   nonvar(File)
+    ->  true
+    ;   (   source_file(File)
+        ;   distinct(File, source_includes(_, File))
+        )
+    ),
     cov_report_file(File, PrintFile, Options),
     cov_clause_sets(File, Succeeded, Failed, Sets),
     \+ ( Sets.failed == [],
          Sets.succeeded == []
        ).
 
+%!  source_includes(?Main, ?Included) is nondet.
+%
+%   True when Included is (recursively) included in the "true" source
+%   fine Main.
+
+:- table source_includes/2.
+
+source_includes(Main, Included) :-
+    nonvar(Main),
+    !,
+    source_file_property(Main, includes(File, _Time)),
+    (   Included = File
+    ;   source_includes(File, Included)
+    ).
+source_includes(Main, Included) :-
+    nonvar(Included),
+    !,
+    source_file_property(Included, included_in(Parent, _Time)),
+    (   no_included_file(Parent)
+    ->  Main = Parent
+    ;   source_includes(Main, Parent)
+    ).
+source_includes(Main, Included) :-
+    source_file(Main),			% generator
+    source_includes(Main, Included).
+
+main_source(File, Main) :-
+    no_included_file(File),
+    !,
+    Main = File.
+main_source(File, Main) :-
+    source_includes(Main, File).
+
+%!  file_summary(+File, +Succeeded, +Failed,
+%!               +Width, +CovCol, +ClausesCol, +Options) is det.
+%
+%   Write a summary with the file  and   clause  percentages on a single
+%   line.
 
 file_summary(File, Succeeded, Failed, W, CovCol, ClausesCol, Options) :-
     cov_report_file(File, PrintFile, Options),
-    cov_clause_sets(File, Succeeded, Failed, Sets),
-    \+ ( Sets.failed == [],
-         Sets.succeeded == []
+    cov_clause_sets(File, Succeeded, Failed, Sets0),
+    \+ ( Sets0.failed == [],
+         Sets0.succeeded == []
        ),
     !,
+    deduplicate_clauses(File, Sets0, Sets),
+
     length(Sets.clauses, AC),
     length(Sets.uncovered, UC),
     length(Sets.failed, FC),
@@ -371,11 +426,12 @@ file_summary(_,_,_,_,_,_,_).
 
 file_details(File, Succeeded, Failed, Options) :-
     cov_report_file(File, _PrintFile, Options),
-    cov_clause_sets(File, Succeeded, Failed, Sets),
-    \+ ( Sets.failed == [],
-         Sets.succeeded == []
+    cov_clause_sets(File, Succeeded, Failed, Sets0),
+    \+ ( Sets0.failed == [],
+         Sets0.succeeded == []
        ),
     !,
+    deduplicate_clauses(File, Sets0, Sets),
     ord_union(Sets.failed, Sets.succeeded, Covered),
     detailed_report(Sets.uncovered, Covered, File, Options).
 file_details(_,_,_,_).
@@ -442,17 +498,148 @@ clause_source(Clause, File, Line) :-
     clause_property(Clause, file(File)),
     clause_property(Clause, line_count(Line)).
 clause_source(Clause, File, Line) :-
+    clause_in_file(File, File, Clause, Line).
+clause_source(Clause, File, Line) :-
+    source_includes(Main, File),
+    clause_in_file(Main, File, Clause, Line).
+
+clause_in_file(Main, Source, Clause, Line) :-
     Pred = _:_,
-    source_file(Pred, File),
+    source_file(Pred, Main),
     \+ predicate_property(Pred, multifile),
     nth_clause(Pred, _Index, Clause),
+    clause_property(Clause, file(Source)),
     clause_property(Clause, line_count(Line)).
-clause_source(Clause, File, Line) :-
+clause_in_file(_Main, Source, Clause, Line) :-
     Pred = _:_,
     predicate_property(Pred, multifile),
     nth_clause(Pred, _Index, Clause),
-    clause_property(Clause, file(File)),
+    clause_property(Clause, file(Source)),
     clause_property(Clause, line_count(Line)).
+
+%!  deduplicate_clauses(+File, +ClauseSetsIn, -ClauseSetsOut) is det.
+%
+%   @arg ClauseSetsIn is a dict   with  `clauses`, `uncovered`, `failed`
+%   and `succeeded`.
+
+deduplicate_clauses(File, Set, Set) :-
+    no_included_file(File),
+    !.
+deduplicate_clauses(_File, SetIn, SetOut) :-
+    _{clauses:AC, uncovered:UC, failed:FC, succeeded:FS} :< SetIn,
+    clause_duplicates(AC, AC1),
+    clause_duplicates(UC, UC1),
+    clause_duplicates(FC, FC1),
+    clause_duplicates(FS, FS1),
+    exclude(covered_in_some_file(AC1, FC, FS), UC1, UC2),
+    exclude(succeeded_in_some_file(AC1, FS), FC1, FC2),
+    SetOut = SetIn.put(_{clauses:AC1, uncovered:UC2, failed:FC2, succeeded:FS1}).
+
+no_included_file(File) :-
+    source_file(File).
+
+%!  clause_duplicates(+Clauses, -Sets) is det.
+%
+%   Assuming Clauses is a list of clauses   associated  with a file that
+%   was included multiple times, get  the   equivalent  clauses as sets.
+%   Note that we know all Clauses come from the same file.
+%
+%   @arg Sets is an ordered set  of   ordered  sets of clause references
+%   that form an equivalence group.
+
+clause_duplicates(Clauses, Sets) :-
+    maplist(clause_dedup_data, Clauses, Dedups),
+    sort(2, @=<, Dedups, ByMain),       % first my line
+    sort(1, @=<, ByMain, ByLine),       % then by main
+    clause_sets(ByLine, Sets0),
+    sort(Sets0, Sets).
+
+clause_dedup_data(Clause, dd(Line, Main, Clause)) :-
+    clause_property(Clause, line_count(Line)),
+    clause_property(Clause, source(Main)).
+
+clause_sets([], []).
+clause_sets([H|T0], Sets) :-
+    same_line_clauses(H, SameL, T0, T1),
+    same_line_clause_sets([H|SameL], Sets, More),
+    clause_sets(T1, More).
+
+same_line_clauses(CRef, [H|TS], [H|T0], T) :-
+    arg(1, CRef, Line),
+    arg(1, H, Line),
+    !,
+    same_line_clauses(CRef, TS, T0, T).
+same_line_clauses(_, [], L, L).
+
+%!  same_line_clause_sets(+DDClauses, -Sets, ?Tail) is det.
+%
+%   Given that DDClauses is a list of   dd(Line, File, Clause) each with
+%   the same `Line` and ordered on File,  compute the sets of equivalent
+%   clauses.
+%
+%   First we deal with the common case where there is at most one clause
+%   per file.  Then we consider them all the same.
+
+same_line_clause_sets([], Sets, Sets) :-
+    !.
+same_line_clause_sets(SameL, Sets, More) :-
+    map_list_to_pairs(arg(2), SameL, Pairs),
+    group_pairs_by_key(Pairs, ByFile),
+    pairs_values(ByFile, FileSets),
+    \+ member([_,_|_], FileSets),
+    !,
+    maplist(arg(3), SameL, Clauses0),
+    sort(Clauses0, Clauses),
+    Sets = [Clauses|More].
+same_line_clause_sets([H|T0], [Clauses|Sets], More) :-
+    same_clauses(H, Same, T0, T),
+    maplist(arg(3), [H|Same], Clauses0),
+    sort(Clauses0, Clauses),
+    same_line_clause_sets(T, Sets, More).
+
+same_clauses(CRef, [Same|TS], L0, L) :-
+    select(Same, L0, L1),
+    same_clause(CRef, Same),
+    !,
+    same_clauses(CRef, TS, L1, L).
+same_clauses(_, [], L, L).
+
+same_clause(dd(L1, F1, C1), dd(L2, F2, C2)) :-
+    assertion(L1 == L2),
+    F1 \== F2,
+    clause_property(C1, size(Size)),
+    clause_property(C2, size(Size)),
+    clause(Head0, Body1, C1),
+    clause(Head1, Body2, C2),
+    mapsubterms(unqualify, (Head0:-Body1), Clause1),
+    mapsubterms(unqualify, (Head1:-Body2), Clause2),
+    Clause1 =@= Clause2.
+
+unqualify(_:X, X).
+
+covered_in_some_file(AllEQ, Failed, Succeeded, UncoveredSet) :-
+    member(Clause, UncoveredSet),
+    member(EQSet, AllEQ),
+    memberchk(Clause, EQSet),
+    !,
+    member(Cl2, EQSet),
+    (   memberchk(Cl2, Succeeded)
+    ;   memberchk(Cl2, Failed)
+    ),
+    !.
+covered_in_some_file(_AllEQ, _Failed, _Succeeded, _UncoveredSet) :-
+    assertion(fail).
+
+succeeded_in_some_file(AllEQ, Succeeded, FailedSet) :-
+    member(Clause, FailedSet),
+    member(EQSet, AllEQ),
+    memberchk(Clause, EQSet),
+    !,
+    member(Cl2, EQSet),
+    memberchk(Cl2, Succeeded),
+    !.
+succeeded_in_some_file(_AllEQ, _Succeeded, _FailedSet) :-
+    assertion(fail).
 
 %!  cov_report_file(+File, -PrintFile, +Options) is semidet.
 %
@@ -476,7 +663,7 @@ cov_report_file(File, File, Options) :-
     !.
 cov_report_file(File, File, Options) :-
     option(modules(Modules), Options),
-    source_file_property(File, module(M)),
+    file_module(File, M),
     memberchk(M, Modules),
     !.
 cov_report_file(File, PrintFile, Options) :-
@@ -493,12 +680,18 @@ cov_report_file(File, PrintFile, Options) :-
     atom_concat(Path1, PrintFile, File),
     !.
 cov_report_file(File, File, _Options) :-
-    (   source_file_property(File, module(M)),
+    (   file_module(File, M),
         module_property(M, class(user))
     ->  true
     ;   forall(source_file_property(File, module(M)),
                module_property(M, class(test)))
     ).
+
+file_module(File, Module) :-
+    source_file_property(File, module(Module)).
+file_module(File, Module) :-
+    source_includes(Main, File),
+    file_module(Main, Module).
 
 ensure_slash(Path, Path) :-
     sub_atom(Path, _, _, 0, /),
@@ -517,8 +710,15 @@ annotate_files(Options) :-
 
 %!  detailed_report(+Uncovered, +Covered, +File:atom, +Options) is det
 %
-%   @arg Uncovered is a list of uncovered clauses
-%   @arg Covered is a list of covered clauses
+%   Generate a detailed report for  File.   Depending  on  Options, this
+%   either creates an annotated version of File   or  it generates a per
+%   clause report of non-covered clauses.
+%
+%   @arg Uncovered is a list of uncovered clauses.  If File is an
+%   included file, it is a list of sets of clause references that
+%   represent the same clause.
+%   @arg Covered is a list of covered clauses.  As with Uncovered,
+%   this is a list of sets for an included File
 
 detailed_report(Uncovered, Covered, File, Options):-
     annotate_files(Options),
@@ -544,21 +744,35 @@ detailed_report(Uncovered, _, File, _Options):-
 
 line_annotation(File, uncovered, Clause, Annotation) :-
     !,
-    clause_property(Clause, file(File)),
-    clause_property(Clause, line_count(Line)),
+    clause_or_set_source_location(Clause, File, Line),
     Annotation = (Line-ansi(error,###))-3.
-line_annotation(File, covered, Clause, [(Line-Annot)-Len|CallSites]) :-
-    clause_property(Clause, file(File)),
-    clause_property(Clause, line_count(Line)),
-    '$cov_data'(clause(Clause), Entered, Exited),
-    counts_annotation(Entered, Exited, Annot, Len),
-    findall(((CSLine-CSAnnot)-CSLen)-PC,
-            clause_call_site_annotation(Clause, PC, CSLine, CSAnnot, CSLen),
-            CallSitesPC),
-    pairs_keys_values(CallSitesPC, CallSites, PCs),
-    check_covered_call_sites(Clause, PCs).
+line_annotation(File, covered, ClauseOrSet, [HeadAllot|CallSites]) :-
+    clause_or_set_source_location(ClauseOrSet, File, Line),
+    clause_or_set_cov_data(ClauseOrSet, Entered, Exited),
+    line_annotation_msg(line_anot(Line, 0, Entered, Exited), HeadAllot),
+    flatten([ClauseOrSet], Clauses),
+    maplist(clause_call_site_annotations, Clauses, AnnotSets),
+    append(AnnotSets, Annots),
+    join_annots(Annots, Joined),
+    maplist(line_annotation_msg, Joined, CallSites),
+    check_correct_offsets(Clauses, AnnotSets).
 
-counts_annotation(Entered, Exited, Annot, Len) :-
+clause_or_set_source_location([Clause|_], File, Line) =>
+    clause_property(Clause, file(File)),
+    clause_property(Clause, line_count(Line)).
+clause_or_set_source_location(Clause, File, Line) =>
+    clause_property(Clause, file(File)),
+    clause_property(Clause, line_count(Line)).
+
+clause_or_set_cov_data(Clause, Entered, Exited),
+    blob(Clause, clause) =>
+    '$cov_data'(clause(Clause), Entered, Exited).
+clause_or_set_cov_data(Clauses, Entered, Exited) =>
+    maplist(clause_or_set_cov_data, Clauses, LEntered, LExited),
+    sum_list(LEntered, Entered),
+    sum_list(LExited, Exited).
+
+line_annotation_msg(line_anot(Line, _PC, Entered, Exited), (Line-Annot)-Len) :-
     (   Exited == Entered
     ->  format(string(Text), '++~D', [Entered]),
         Annot = ansi(comment, Text)
@@ -574,10 +788,12 @@ counts_annotation(Entered, Exited, Annot, Len) :-
     ),
     string_length(Text, Len).
 
-uncovered_clause_line(File, Clause, Name-Line) :-
-    clause_property(Clause, file(File)),
-    clause_pi(Clause, Name),
-    clause_property(Clause, line_count(Line)).
+uncovered_clause_line(File, Code, Name-Line) :-
+    clause_or_set_source_location(Clause, File, Line),
+    (   Code = [Clause|_]                % included file; omit module
+    ->  clause_pi(Clause, _:Name)
+    ;   clause_pi(Code, Name)
+    ).
 
 %!  clause_pi(+Clause, -Name) is det.
 %
@@ -598,20 +814,49 @@ print_clause_line((Module:Name/Arity)-Lines):-
 		 *     LINE LEVEL CALL SITES	*
 		 *******************************/
 
-clause_call_site_annotation(ClauseRef, NextPC, Line, Annot, Len) :-
+join_annots(Annots, Joined) :-
+    sort(2, @=<, Annots, ByPC),
+    join_annots_(ByPC, Joined0),
+    sort(1, @=<, Joined0, Joined).
+
+join_annots_([], []).
+join_annots_([H0|T0], [H|T]) :-
+    sum_annot_counts(H0, H, T0, T1),
+    join_annots_(T1, T).
+
+sum_annot_counts(line_anot(Line, PC, Enter1, Exit1),
+                 Final,
+                 [line_anot(Line, PC, Enter2, Exit2)|T0],
+                 T) :-
+    !,
+    Enter is Enter1 + Enter2,
+    Exit  is Exit1 + Exit2,
+    sum_annot_counts(line_anot(Line, PC, Enter, Exit),
+                     Final, T0, T).
+sum_annot_counts(Sum, Sum, T, T).
+
+%!  clause_call_site_annotations(+Clause, -Annotations) is det.
+%
+%   @arg Annotations is a list line_anot(Line, PC, Entered, Exited)
+
+clause_call_site_annotations(Clause, Annots) :-
+    findall(Annot,
+            clause_call_site_annotation(Clause, Annot),
+            Annots).
+
+clause_call_site_annotation(ClauseRef,
+                            line_anot(Line, NextPC, Entered, Exited)) :-
     clause_call_site(ClauseRef, PC-NextPC, Line:_LPos),
     (   '$cov_data'(call_site(ClauseRef, NextPC), Entered, Exited)
-    ->  counts_annotation(Entered, Exited, Annot, Len)
+    ->  true
     ;   '$fetch_vm'(ClauseRef, PC, _, VMI),
         \+ no_annotate_call_site(VMI)
-    ->  Annot = ansi(error, ---),
-        Len = 3
+    ->  Entered = 0, Exited = 0
     ).
 
 no_annotate_call_site(i_enter).
 no_annotate_call_site(i_exit).
 no_annotate_call_site(i_cut).
-
 
 clause_call_site(ClauseRef, PC-NextPC, Pos) :-
     clause_info(ClauseRef, File, TermPos, _NameOffset),
@@ -645,6 +890,15 @@ file_text(File, String) :-
         open(File, read, In),
         read_string(In, _, String),
         close(In)).
+
+%!  check_correct_offsets(+Clauses, +Annotations) is det.
+%
+%   Verify that all PC's that  were   annotated  have  been generated as
+%   possible call sites.
+
+check_correct_offsets([Clause|_], [Annots|_]) :-
+    maplist(arg(2), Annots, PCs),
+    check_covered_call_sites(Clause, PCs).
 
 check_covered_call_sites(Clause, Reported) :-
     findall(PC, ('$cov_data'(call_site(Clause,PC), Enter, _), Enter > 0), Seen),
@@ -846,14 +1100,15 @@ save_clause(Out, Clause, Ref) :-
     clause_property(Clause, line_count(Line)),
     clause_property(Clause, size(Bytes)),
     clause_property(Clause, predicate(PI)),
-    source_file_property(File, load_context(Module, Location, Options)),
+    main_source(File, Main),
+    source_file_property(Main, load_context(Module, Location, Options)),
     nth_clause(_, Nth, Clause),
     !,
     (   predicate_property(saved_clause(_,_), number_of_clauses(N))
     ->  Ref is N+1
     ;   Ref = 1
     ),
-    format(Out, '~q.~n', [cl(PI, Nth, Bytes, File:Line, Module, Location, Options, Ref)]),
+    format(Out, '~q.~n', [cl(PI, Nth, Bytes, Main, File:Line, Module, Location, Options, Ref)]),
     assertz(saved_clause(Clause, Ref)).
 save_clause(_Out, Clause, _Ref) :-
     debug(cov(save), 'Could not save clause ~p', [Clause]).
@@ -899,14 +1154,14 @@ cov_load_data_from_stream(Term, In, Options) :-
 cov_restore_data(cov_begin_data(_), _Options) =>
     true.
 cov_restore_data(cl(PI, Nth,
-                    Bytes, File:Line, Module, _Location, LoadOptions,
+                    Bytes, Main, File:Line, Module, _Location, LoadOptions,
                     Ref), Options) =>
     (   restore_clause(PI, Nth, Bytes, File, Line, Ref)
     ->  true
     ;   source_file(File)
     ->  warn(File, coverage(source_changed(File, PI)))
     ;   option(load(true), Options)
-    ->  load_files(Module:File, [if(not_loaded)|LoadOptions]),
+    ->  load_files(Module:Main, [if(not_loaded)|LoadOptions]),
         (   restore_clause(PI, Nth, Bytes, File, Line, Ref)
         ->  true
         ;   warn(File, coverage(source_changed(File, PI)))
