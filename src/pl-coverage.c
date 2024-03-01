@@ -376,8 +376,10 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { Table cov_table;
+      coverage *cov;
 
-      if ( !(cov_table = LD->coverage.data->table) )
+      if ( !(cov=LD->coverage.data) ||
+	   !(cov_table=cov->table) )
 	return FALSE;
 
       if ( PL_is_variable(A1) )
