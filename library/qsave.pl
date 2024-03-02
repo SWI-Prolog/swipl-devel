@@ -672,7 +672,8 @@ save_predicate(P, _SaveClass) :-
     P = (M:H),
     functor(H, Name, Arity),
     feedback('~npre-defining foreign ~w/~d ', [Name, Arity]),
-    '$add_directive_wic'('$predefine_foreign'(M:Name/Arity)).
+    '$add_directive_wic'('$predefine_foreign'(M:Name/Arity)),
+    save_attributes(P).
 save_predicate(P, SaveClass) :-
     P = (M:H),
     functor(H, F, A),
