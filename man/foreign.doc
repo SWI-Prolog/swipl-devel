@@ -1191,7 +1191,7 @@ The first set of flags (\const{CVT_ATOM} through \const{CVT_VARIABLE},
 if set, are tested in order, using the first that matches. If none of
 these match, then a check is made for one of \const{CVT_WRITE},
 \const{CVT_WRITE_CANONICAL}, \const{CVT_WRITEQ} being set. If none of
-the ``CVT_WRITE*’’ flags are set, then a \except{type_error} is
+the ``CVT_WRITE*'' flags are set, then a \except{type_error} is
 raised.
 
 \begin{description}
