@@ -60,7 +60,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 90301
+#define PLVERSION 90302
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -520,8 +520,7 @@ PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
 PL_EXPORT(int)		PL_get_bool(term_t t, int *value) WUNUSED;
 PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
-					/* PL_get_string() is deprecated */
-PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED;
+PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
 PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags) WUNUSED;
 PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags) WUNUSED;

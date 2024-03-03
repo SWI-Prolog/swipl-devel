@@ -1178,14 +1178,21 @@ Convert the argument term \arg{t} to a 0-terminated C-string.
 first specifies which term types should be converted and the second how
 the argument is stored. Below is a specification of these constants.
 \const{BUF_STACK} implies, if the data is not static (as from an atom),
-that the data is pushed on a stack. If BUF_MALLOC is used, the data must
-be freed using PL_free() when no longer needed.
+that the data is pushed on a stack. If \const{BUF_MALLOC} is used,
+the data must be freed using PL_free() when no longer needed.
 
 With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 See also PL_get_wchars() and PL_get_nchars().
+
+The first set of flags (\const{CVT_ATOM} through \const{CVT_VARIABLE},
+if set, are tested in order, using the first that matches. If none of
+these match, then a check is made for one of \const{CVT_WRITE},
+\const{CVT_WRITE_CANONICAL}, \const{CVT_WRITEQ} being set. If none of
+the ``CVT_WRITE*'' flags are set, then a \except{type_error} is
+raised.
 
 \begin{description}
     \termitem{CVT_ATOM}{}
@@ -1195,14 +1202,15 @@ Convert if term is an atom.
 Convert if term is a string.
 
     \termitem{CVT_LIST}{}
-Convert if term is a list of of character codes.
+Convert if term is a list of characters (atoms of length 1) or character
+codes (integers representing Unicode code points).
 
     \termitem{CVT_INTEGER}{}
 Convert if term is an integer.
 
     \termitem{CVT_RATIONAL}{}
-Convert if term is an rational number.  The number is written as
-<num>r<den>.
+Convert if term is a rational number (including integers). Non-integral
+numbers are written as <num>r<den>.
 
     \termitem{CVT_XINTEGER}{}
 Convert if term is an integer to hexadecimal notation. May be combined
@@ -1217,32 +1225,37 @@ Convert if term is a float.  The characters returned are the same as
 write/1 would write for the floating point number.
 
     \termitem{CVT_NUMBER}{}
-Convert if term is an integer, rational number or or float.  Equivalent
-to \mbox{\const{CVT_INTEGER}{|}\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}
+Convert if term is an integer, rational number or float.  Equivalent
+to \mbox{\const{CVT_RATIONAL}{|}\const{CVT_FLOAT}}.  Note that
+\const{CVT_INTEGER} is implied by \const{CVT_RATIONAL}.
 
     \termitem{CVT_ATOMIC}{}
-Convert if term is atomic.
+Convert if term is atomic. Equivalent
+to \mbox{\const{CVT_NUMBER}{|}\const{CVT_ATOM}{|}\const{CVT_STRING}}.
+
+    \termitem{CVT_ALL}{}
+Convert if term is any of the above. Integers and rational numbers are
+written as decimal (i.e., \const{CVT_XINTEGER} is \emph{not} implied).
+Note that this does not include variables or terms (with the exception
+of a list of characters/codes). Equivalent to
+\mbox{\const{CVT_ATOMIC}{|}\const{CVT_LIST}}.
 
     \termitem{CVT_VARIABLE}{}
-Convert variable to print-name
+Convert variable to print-name (e.g., \exam{_3290}).
 
     \termitem{CVT_WRITE}{}
 Convert any term that is not converted by any of the other flags using
 write/1. If no \const{BUF_*} is provided, \const{BUF_STACK} is implied.
 
-    \termitem{CVT_WRITE_CANONICAL}{}
-As \const{CVT_WRITE}, but using write_canonical/2.
-
     \termitem{CVT_WRITEQ}{}
 As \const{CVT_WRITE}, but using writeq/2.
 
-    \termitem{CVT_ALL}{}
-Convert if term is any of the above, except for \const{CVT_VARIABLE} and
-\const{CVT_WRITE*}.
+    \termitem{CVT_WRITE_CANONICAL}{}
+As \const{CVT_WRITE}, but using write_canonical/2.
 
     \termitem{CVT_EXCEPTION}{}
 If conversion fails due to a type error, raise a Prolog type error
-exception in addition to failure
+exception in addition to failure.
 
     \termitem{BUF_DISCARDABLE}{}
 Data must copied immediately.
@@ -1961,25 +1974,36 @@ possible or call PL_clear_exception() if they wish to ignore the
 exception. Note that there can only be an exception if PL_unify()
 returned \const{FALSE}.
 
-Undoing (partial) unifications is achieved using
-PL_open_foreign_frame() and PL_rewind_foreign_frame(), as shown in the
-snippet below.
+In some scenarios we need to undo \jargon{partial
+  unifications}. Suppose we have a database that contains Prolog terms
+and we run a query over this database.  We must succeed on the first
+successful unification.  If a unification is not successful, we must
+stop if there is an exception or undo the partial unification and try
+again.  Suppose our database contains \term{f}{a,1} and \term{f}{b,2}
+and our query is \term{f}{A,2}.  This should succeed with \arg{A} =
+\const{b}, but the first unification binds \arg{A} to \const{a} before
+failing to unify 1 with~2.
 
 \begin{code}
-    { fid_t fid = PL_open_foreign_frame();
+static foreign_t
+find_in_db(term_t target)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t candidate = PL_new_term_ref();
 
-      ...
-      if ( !PL_unify(t1, t2) )
-      { if ( PL_exception(0) )
-	{ PL_close_foreign_frame(fid);
-	  return FALSE;
-	}
-        PL_rewind_foreign_frame(fid);
-      }
-      ...
-
-      PL_close_foreign_frame(fid);
+  while(get_from_my_database(candidate))
+  { if ( PL_unify(candidate, target) ) /* found */
+    { PL_close_foreign_frame(fid);
+      return TRUE;
+    } else if ( PL_exception(0) )      /* error */
+    { PL_close_foreign_frame(fid);
+      return FALSE;
     }
+
+    PL_rewind_foreign_frame(fid);      /* try next */
+  }
+  PL_close_foreign_frame(fid);         /* not found */
+  return FALSE;
+}
 \end{code}
 
 This code is only needed if the foreign predicate does not return
@@ -2939,8 +2963,8 @@ released handle.
     \cfunction{int}{PL_free_blob}{atom_t blob}
 New in 9.1.12.  This function may be used on blobs with the
 \const{PL_BLOB_NOCOPY} flag set and the blob type implements the
-\cfuncref{release}{} call back. It causes the \cfuncref{release}{}
-call back to be called, after which the data and size are set to 0 if
+\cfuncref{release}{} callback. It causes the \cfuncref{release}{}
+callback to be called, after which the data and size are set to 0 if
 the \cfuncref{release}{} returns \const{TRUE}.  The related atom
 remains existent and accessing it as a blob returns \const{NULL} for
 the data and 0 for the size.\footnote{This means that any predicates
@@ -3346,7 +3370,7 @@ to this execution.  Note that if the foreign predicate is
 
 The user may create explicit foreign frames to undo (backtrack)
 changes to Prolog terms.  See PL_unify() for an example.  An explicit
-foreign frame must also be used for creating a call back from C to
+foreign frame must also be used for creating a callback from C to
 Prolog (see PL_open_query()) to ensure the existence of such a frame
 and to scope the \ctype{term_t} handles needed to setup the call to
 Prolog.
@@ -3367,7 +3391,7 @@ or requires stack shifts or garbage collection.}
 
 \cfunction{void}{PL_close_foreign_frame}{fid_t id} Discard all term
 references created after the frame was opened.  Prolog data referenced
-by the discarded term references is not affected.  
+by the discarded term references is not affected.
 
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since

@@ -693,6 +693,7 @@ safe_primitive(asserta(X)) :- safe_assert(X).
 safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
+safe_primitive(current_predicate(X)) :- safe_current_predicate(X).
 safe_primitive('$dcg':dcg_translate_rule(_,_)).
 safe_primitive('$syspreds':predicate_property(Pred, _)) :-
     nonvar(Pred),
@@ -866,6 +867,15 @@ safe_global_var(Name) :-
 %
 %   Declare the given global variable safe to write to.
 
+%!  safe_current_predicate(+X)
+%
+%   current_predicate/1 is safe when not used with qualification.
+
+safe_current_predicate(X) :-
+    nonvar(X),
+    X = _:_, !,
+    fail.
+safe_current_predicate(_).
 
 %!  safe_meta(+Goal, -Called:list(callable)) is semidet.
 %
