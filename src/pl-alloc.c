@@ -55,7 +55,7 @@
 /* Provides error checking for the weak declarations below */
 #include <gperftools/malloc_extension_c.h>
 #endif
-#ifdef HAVE_SYS_MMAN_H
+#if defined(HAVE_SYS_MMAN_H) && defined(HAVE_MMAP) && defined(HAVE_SYSCONF)
 #define MMAP_STACK 1
 #include <sys/mman.h>
 #include <unistd.h>
