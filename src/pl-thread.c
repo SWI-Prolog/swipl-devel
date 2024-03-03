@@ -2352,7 +2352,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     }
 #endif
     if ( c_stack )
-    { stack = round_pages(c_stack);
+    { c_stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
       rc = pthread_attr_setstacksize(&attr, c_stack);
 
