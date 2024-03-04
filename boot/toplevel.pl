@@ -1904,7 +1904,7 @@ call_expand_answer(Goal, BindingsIn, BindingsOut) :-
     ->  true
     ;   user:expand_answer(BindingsIn, BindingsOut)
     ->  true
-    ;   BindingsOut = BindingsOut
+    ;   BindingsOut = BindingsIn
     ),
     '$save_toplevel_vars'(BindingsOut),
     !.
