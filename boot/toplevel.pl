@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1294,7 +1294,7 @@ subst_chars([H|T]) -->
     ->  DetOrChp = true
     ;   DetOrChp = Chp
     ),
-    call_expand_answer(Bindings, NewBindings),
+    call_expand_answer(Goal, Bindings, NewBindings),
     (    \+ \+ write_bindings(NewBindings, Vars, Delays, DetOrChp)
     ->   !
     ).
@@ -1882,21 +1882,30 @@ print_last_chpoint_(Chp) :-
 :- user:multifile(expand_query/4).
 
 call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
-    user:expand_query(Goal, Expanded, Bindings, ExpandedBindings),
-    !.
-call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
-    toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings),
-    !.
-call_expand_query(Goal, Goal, Bindings, Bindings).
+    (   '$replace_toplevel_vars'(Goal, Expanded0, Bindings, ExpandedBindings0)
+    ->  true
+    ;   Expanded0 = Goal, ExpandedBindings0 = Bindings
+    ),
+    (   user:expand_query(Expanded0, Expanded, ExpandedBindings0, ExpandedBindings)
+    ->  true
+    ;   Expanded = Expanded0, ExpandedBindings = ExpandedBindings0
+    ).
 
 
-:- user:dynamic(expand_answer/2).
-:- user:multifile(expand_answer/2).
+:- dynamic
+    user:expand_answer/2,
+    prolog:expand_answer/3.
+:- multifile
+    user:expand_answer/2,
+    prolog:expand_answer/3.
 
-call_expand_answer(Goal, Expanded) :-
-    user:expand_answer(Goal, Expanded),
+call_expand_answer(Goal, BindingsIn, BindingsOut) :-
+    (   prolog:expand_answer(Goal, BindingsIn, BindingsOut)
+    ->  true
+    ;   user:expand_answer(BindingsIn, BindingsOut)
+    ->  true
+    ;   BindingsOut = BindingsOut
+    ),
+    '$save_toplevel_vars'(BindingsOut),
     !.
-call_expand_answer(Goal, Expanded) :-
-    toplevel_variables:expand_answer(Goal, Expanded),
-    !.
-call_expand_answer(Goal, Goal).
+call_expand_answer(_, Bindings, Bindings).

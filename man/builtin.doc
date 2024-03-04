@@ -11251,12 +11251,13 @@ from the stream \const{user_input}. See also the Prolog flag
 typing the end-of-file character (typically control-D).
 \end{description}
 
-The following two hooks allow for expanding queries and handling the
+The following hooks allow for expanding queries and handling the
 result of a query.  These hooks are used by the top level variable
 expansion mechanism described in \secref{topvars}.
 
 \begin{description}
-    \predicate{expand_query}{4}{+Query, -Expanded, +Bindings, -ExpandedBindings}
+    \predicate{user:expand_query}{4}{+Query, -Expanded,
+				     +Bindings, -ExpandedBindings}
 Hook in module \const{user}, normally not defined.  \arg{Query} and
 \arg{Bindings} represents the query read from the user and the names
 of the free variables as obtained using read_term/3.  If this predicate
@@ -11265,12 +11266,18 @@ the query and bindings to be executed by the top level.  This predicate
 is used by the top level (prolog/0).  See also expand_answer/2 and
 term_expansion/2.
 
-    \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings}
-Hook in
-module \const{user}, normally not defined. Expand the result of a
-successfully executed top-level query. \arg{Bindings} is the query
+    \predicate{prolog:expand_answer}{3}{+Goal, +Bindings, -ExpandedBindings}
+Hook in module \const{prolog}, normally not defined. Expand the result of
+a successfully executed top-level query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
-must be unified with the bindings the top level should print.
+must be unified with the bindings the top level should print. \arg{Goal}
+provides the instantiated query. This hook supersedes
+user:expand_answer/2.
+
+    \predicate[deprecated]{user:expand_answer}{2}{+Bindings,
+						  -ExpandedBindings}
+Hook in module \const{user}, normally not defined.  This hook provides
+backward compatibility and is superseded by prolog:expand_answer/3.
 \end{description}
 
 \section{Creating a Protocol of the User Interaction}	\label{sec:protocol}
