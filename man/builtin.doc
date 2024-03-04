@@ -9580,10 +9580,12 @@ format/2 for details.
 
     \predicate{format}{2}{+Format, :Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
-\arg{Arguments} provides the arguments required by the format
-specification. If only one argument is required and this single argument
-is not a list, the argument need not be put in a list. Otherwise the
-arguments are put in a list.
+\arg{Arguments} is a list of arguments required by the format
+specification.  For backward compatibility, if \arg{Format} needs
+exactly one argument and the required argument is not a list, single
+argument needs not be nested in a list.   This feature is deprecated
+as it easily leads to mistakes and make static analysis by check/0
+less accurate.
 
 Special sequences start with the tilde (\chr{~}), followed by an
 optional numeric argument, optionally followed by a colon modifier (:),
