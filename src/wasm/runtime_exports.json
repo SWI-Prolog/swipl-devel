@@ -8,5 +8,6 @@
     "getValue",
     "UTF8ToString",
     "lengthBytesUTF8",
+    "stringToNewUTF8",
     "stringToUTF8"
 ]
