@@ -2584,16 +2584,21 @@ will not change, of course).
 While the blob is alive, neither its handle nor the location of the
 contents (see PL_blob_data()) change. If the blob's type has the
 \const{PL_BLOB_UNIQUE} feature, the content of the blob must remain
-unmodified.
-If the blob's type does not have the \const{PL_BLOB_UNIQUE} feature,
-then none of the instances will be equal.
-Blobs are \emph{only} reclaimed by the atom garbage
-collector. In this case the atom garbage collector calls the
-\cfuncref{release}{} function associated with the blob type and reclaims
-the memory allocated for the content unless this is owned by the creator
-of the blob indicated by the \const{PL_BLOB_NOCOPY} flag. After an
-\ctype{atom_t} value is reclaimed by the atom garbage collector, the
-value may be reused for allocating a new blob or atom.
+unmodified.  If the blob's type does not have the
+\const{PL_BLOB_UNIQUE} feature multiple instances of this blob type
+may contain the same data.  The blob \emph{handle} (\ctype{atom_t}) is
+reclaimed \emph{only} by the atom garbage collector.  The blob's
+\emph{content} (data) is normally reclaimed when the garbage collector
+reclaims the blob.  If the blob's type defines the
+\cfuncref{release}{} function, this function is called.  This hook may
+deal with side effects and is responsible of releasing the data if the
+blob's type has the \const{PL_BLOB_NOCOPY} flag.  The content of a
+\const{PL_BLOB_NOCOPY} blob may be released before the blob itself can
+be garbage collected using PL_free_blob().  This immediately triggers
+the \cfuncref{release}{} function.  After PL_free_blob() has reclaimed
+the content, this function will not be called when the \ctype{atom_t}
+handle is reclaimed.  An \ctype{atom_t} handle may be reused for a new
+atom or blob after it has been garbage collected.
 
 If foreign code stores the \ctype{atom_t} handle in some permanent
 location it must make sure the handle is \jargon{registered} to prevent
@@ -2712,28 +2717,27 @@ the same pointer and length will produce the same \const{atom_t} handle.
     \cfunction{int}{release}{atom_t a}
 The blob (atom) \arg{a} is about to be released.  The
 \cfuncref{release}{} function is called when the atom is reclaimed by
-the atom garbage collector, or when an explicit call to PL_free_blob()
-is made.  This function can retrieve the data of the blob using
-PL_blob_data().  Note that this returns \const{NULL} when called by
-the atom garbage collector and PL_free_blob() was used on the blob. If
-the \cfuncref{release}{} function returns \const{FALSE}, the atom
-garbage collector will \emph{not} reclaim the atom.  For critical
-resources such as file handles or significant memory resources, it may
-be desirable to have an explicit call to dispose (most of) the
-resources. For example, close/1 reclaims the file handle and most of
-the resources associated with a stream, leaving only a tiny bit of
-content to the garbage collector.  See also setup_call_cleanup/3.
+the atom garbage collector, when an explicit call to PL_free_blob() is
+made or during shutdown of Prolog.  This function can retrieve the
+data of the blob using PL_blob_data().  If the \cfuncref{release}{}
+function returns \const{FALSE}, the atom garbage collector will
+\emph{not} reclaim the atom.  For critical resources such as file
+handles or significant memory resources, it may be desirable to have
+an explicit call to dispose (most of) the resources. For example,
+close/1 reclaims the file handle and most of the resources associated
+with a stream, leaving only a tiny bit of content to the garbage
+collector.  See also setup_call_cleanup/3.
 
 The release() callback is called in the context of the thread
-executing the atom garbage collect or the thread executing
-PL_free_blob().  Normally the thread \const{gc} runs all atom and
-clause garbage collections. The release() function may not call any of
-the PL_*() functions except for PL_blob_data() or PL_unregister_atom()
-to unregister other atoms that are part data associated to the
-blob. Calling any of the other PL_* functions may result in deadlocks
-or crashes. The \cfuncref{release}{} function should not call any
-potentially slow or blocking functions as this may cause serious
-slowdowns in the rest of the system.
+executing the atom garbage collect, the thread executing
+PL_free_blob() or the thread initiating the shutdown.  Normally the
+thread \const{gc} runs all atom and clause garbage collections. The
+release() function may not call any of the PL_*() functions except for
+PL_blob_data() or PL_unregister_atom() to unregister other atoms that
+are part data associated to the blob. Calling any of the other PL_*
+functions may result in deadlocks or crashes. The \cfuncref{release}{}
+function should not call any potentially slow or blocking functions as
+this may cause serious slowdowns in the rest of the system.
 
 Blobs that require cleanup that is slow, blocking or requires calling
 Prolog must pass the data to be cleaned to another thread.  Be aware
@@ -2948,7 +2952,6 @@ ignored.
     \cfunction{void *}{PL_blob_data}{atom_t a,
 				     size_t *len,
 				     PL_blob_t **type}
-
 Get the data and type associated to a blob. This function is mainly used
 from the callback functions described in \secref{blobtype}. Note that if
 the release() hook is called from PL_cleanup(), blobs are released
@@ -2965,8 +2968,11 @@ New in 9.1.12.  This function may be used on blobs with the
 \const{PL_BLOB_NOCOPY} flag set and the blob type implements the
 \cfuncref{release}{} callback. It causes the \cfuncref{release}{}
 callback to be called, after which the data and size are set to 0 if
-the \cfuncref{release}{} returns \const{TRUE}.  The related atom
-remains existent and accessing it as a blob returns \const{NULL} for
+the \cfuncref{release}{} returns \const{TRUE}.  After this sequence,
+the \cfuncref{release}{} for this blob is never called again.  The
+related \ctype{atom_t} handle remains valid until it is no longer
+referenced and reclaimed by the atom garbage collector.  If the blob
+data is accessed using e.g., PL_get_blob() it returns \const{NULL} for
 the data and 0 for the size.\footnote{This means that any predicates
 or callbacks that use the blob must check the result of
 PL_blob_data().}  If the release() function is not called, or if it

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1635,7 +1635,7 @@ cleanupAtoms(void)
       if ( !ATOM_IS_VALID(ref) )
         continue;
 
-      if ( a->type->release )
+      if ( a->name && a->type->release )
         (*a->type->release)(a->atom);
       else if ( GD->atoms.gc_hook )
         (*GD->atoms.gc_hook)(a->atom);
