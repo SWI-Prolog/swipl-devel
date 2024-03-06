@@ -5193,8 +5193,14 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 
     PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
-    { rc = ( s->context != NULL &&
-	     unify_stream_property(s, p, pt) &&
+    { Sreference(s);
+      rc = ( s->context != NULL &&
+	     unify_stream_property(s, p, pt) );
+      if ( s->erased && Sunreference(s) == 0 )
+      { unallocStream(s);
+	rc = FALSE;
+      }
+      rc = ( rc &&
 	     can_unify(valTermRef(A1), valTermRef(pt), ex) &&
 	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
