@@ -2977,6 +2977,10 @@ the data and 0 for the size.\footnote{This means that any predicates
 or callbacks that use the blob must check the result of
 PL_blob_data().}  If the release() function is not called, or if it
 returns \const{FALSE}, \const{FALSE} is returned.
+
+PL_free_blob() may be called multiple times on the same
+\ctype{atom_t}, provided the handle is still valid.  Subsequent calls
+after a successful call have no effect and return \const{FALSE}.
 \end{description}
 
 
