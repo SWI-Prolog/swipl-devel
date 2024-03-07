@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -5194,7 +5194,8 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
     { Sreference(s);
-      rc = ( s->context != NULL &&
+      rc = ( s->magic == SIO_MAGIC &&
+	     s->context != NULL &&
 	     unify_stream_property(s, p, pt) );
       if ( s->erased && Sunreference(s) == 0 )
       { unallocStream(s);

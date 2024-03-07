@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -133,6 +133,7 @@ static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
 static int	S__seterror(IOSTREAM *s);
        void	unallocStream(IOSTREAM *s);
+static int	S__fileno(IOSTREAM *s);
 
 static IOSTREAM *	Sopen_buffer(IOSTREAM *s, char *buf, size_t size);
 static void		Sclose_buffer(IOSTREAM *s);
@@ -3330,9 +3331,11 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   }
 #endif
 
-{ int fd;
-  if ( (fd = Sfileno(s)) >= 0 )
-  { if ( isatty(fd) )
+  s->fileno = S__fileno(s);
+  if ( s->fileno >= 0 )
+  { int fd = (int)s->fileno;
+
+    if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
 
 #if defined(F_SETFD)
@@ -3342,7 +3345,6 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 			 HANDLE_FLAG_INHERIT, 0);
 #endif
   }
-}
 
 #ifdef O_LOCALE
   initStreamLocale(s);
@@ -3619,20 +3621,13 @@ Sfdopen(int fd, const char *type)
 /* MT: as long as s is valid, this should be ok
 */
 
-int
-Sfileno(IOSTREAM *s)
-{ int n;
-
-  if ( s->magic != SIO_MAGIC )
-  { errno = EINVAL;
-    return -1;
-  }
-
-  if ( s->flags & SIO_FILE )
-  { intptr_t h = (intptr_t)s->handle;
-    n = (int)h;
+static int
+S__fileno(IOSTREAM *s)
+{ if ( (s->flags & SIO_FILE) )
+  { return (int)(intptr_t)s->handle;
   } else
   { IOFUNCTIONS *funcs = s->functions;
+    int n;
 
     if ( s->magic == SIO_MAGIC &&
 	 funcs->control &&
@@ -3644,8 +3639,20 @@ Sfileno(IOSTREAM *s)
     errno = EINVAL;
     return -1;
   }
+}
 
-  return n;
+
+int
+Sfileno(IOSTREAM *s)
+{ if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  if ( s->fileno >= 0 )
+    return (int)s->fileno;
+
+  return -1;
 }
 
 

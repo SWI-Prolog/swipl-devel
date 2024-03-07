@@ -243,7 +243,8 @@ typedef struct io_stream
   void *		exception;	/* pending exception (record_t) */
   void *		context;	/* getStreamContext() */
   struct PL_locale *	locale;		/* Locale associated to stream */
-  intptr_t		reserved[4];	/* reserved for extension */
+  intptr_t		fileno;		/* File number if this is associated to a file */
+  intptr_t		reserved[3];	/* reserved for extension */
 } IOSTREAM;
 
 
