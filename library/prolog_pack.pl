@@ -348,19 +348,28 @@ error:has_type(email_or_url_or_empty, Address) :-
     ;   error:has_type(email_or_url, Address)
     ).
 error:has_type(dependency, Value) :-
-    is_dependency(Value, _Token, _Version).
+    is_dependency(Value).
 
 is_version(Version) :-
     split_string(Version, ".", "", Parts),
     maplist(number_string, _, Parts).
 
-is_dependency(Token, Token, *) :-
-    atom(Token).
-is_dependency(Term, Token, VersionCmp) :-
-    Term =.. [Op,Token,Version],
+is_dependency(Var) :-
+    var(Var),
+    !,
+    fail.
+is_dependency(Token) :-
+    atom(Token),
+    !.
+is_dependency(Term) :-
+    compound(Term),
+    compound_name_arguments(Term, Op, [Token,Version]),
+    atom(Token),
     cmp(Op, _),
     is_version(Version),
-    VersionCmp =.. [Op,Version].
+    !.
+is_dependency(PrologToken) :-
+    is_prolog_token(PrologToken).
 
 cmp(<,  @<).
 cmp(=<, @=<).
