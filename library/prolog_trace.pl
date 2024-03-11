@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2023, CWI, Amsterdam
+    Copyright (c)  2019-2024, CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -60,8 +60,8 @@ program.
     trace(:, +),
     tracing(:, -).
 
-:- dynamic tracing_mask/2.
-:- volatile tracing_mask/2.
+:- dynamic tracing_mask/2 as volatile.          % :Head, Bitmask
+:- dynamic trace_condition/3 as volatile.       % :Head, Port, Cond
 
 %!  trace(:Pred) is det.
 %!  trace(:Pred, +PortSpec) is det.
@@ -104,32 +104,54 @@ program.
 %   (call port) in milliseconds. Note that the instrumentation and print
 %   time is included in the time. In   the example above the actual time
 %   is about 0.00001ms on todays hardware.
+%
+%   In addition, __conditions__ may be specified.   In this case the the
+%   specification takes the shape ``trace(:Head, Port(Condition))``. For
+%   example:
+%
+%       ?- trace(current_prolog_flag(Flag, Value), call(var(Flag))).
+%       ?- list_tracing.
+%       % Trace points (see trace/1,2) on:
+%       %     system:current_prolog_flag(A,_): [call(var(A))]
+%
+%   This specification will only  print  the   goal  if  the  registered
+%   condition succeeds. Note that we can use  the condition for its side
+%   effect and then fail to avoid printing the event. Clearing the trace
+%   event  on  all  relevant  ports  removes  the  condition.  There  is
+%   currently no way to modify the  condition without clearing the trace
+%   point first.
 
 trace(Pred) :-
     trace(Pred, +all).
 
 trace(Pred, Spec) :-
+    Pred = Ctx:_,
     '$find_predicate'(Pred, Preds),
     Preds \== [],
-    maplist(set_trace(Spec), Preds).
+    maplist(set_trace_pi(Spec, Pred, Ctx), Preds).
 
-set_trace(Spec, Pred) :-
-    (   tracing_mask(Pred, Spec0)
+set_trace_pi(Spec, PredSpec, Ctx, Pred) :-
+    pi_head(Pred, Head0),
+    resolve_predicate(Head0, Head),
+    bind_head(PredSpec, Head),
+    set_trace(Spec, Head, Ctx).
+
+bind_head(Head, Head) :- !.
+bind_head(_:Head, _:Head) :- !.
+bind_head(_, _).
+
+set_trace(Spec, Head, Ctx) :-
+    (   tracing_mask(Head, Spec0)
     ->  true
     ;   Spec0 = 0
     ),
-    modify(Spec, Spec0, Spec1),
-    retractall(tracing_mask(Pred, _)),
+    modify(Spec, Head, Spec0, Spec1, Ctx),
+    retractall(tracing_mask(Head, _)),
     (   Spec1 == [] ; Spec1 == 0
     ->  true
-    ;   asserta(tracing_mask(Pred, Spec1))
+    ;   asserta(tracing_mask(Head, Spec1))
     ),
     mask_ports(Spec1, Ports),
-    pi_head(Pred, Head0),
-    (   predicate_property(Head0, imported_from(M))
-    ->  requalify(Head0, M, Head)
-    ;   Head = Head0
-    ),
     (   Spec1 == 0
     ->  unwrap_predicate(Head, trace),
         print_message(informational, trace(Head, Ports))
@@ -138,30 +160,59 @@ set_trace(Spec, Pred) :-
         print_message(informational, trace(Head, Ports))
     ).
 
+resolve_predicate(Head0, Head) :-
+    (   predicate_property(Head0, imported_from(M))
+    ->  requalify(Head0, M, Head)
+    ;   Head = Head0
+    ).
+
 requalify(Term, M, M:Plain) :-
     strip_module(Term, _, Plain).
 
-modify(Var, _, _) :-
+modify(Var, _, _, _, _) :-
     var(Var),
     !,
     instantiation_error(Var).
-modify([], Spec, Spec) :-
+modify([], _, Spec, Spec, _) :-
     !.
-modify([H|T], Spec0, Spec) :-
+modify([H|T], Head, Spec0, Spec, Ctx) :-
     !,
-    modify(H, Spec0, Spec1),
-    modify(T, Spec1, Spec).
-modify(+Port, Spec0, Spec) :-
+    modify(H, Head, Spec0, Spec1, Ctx),
+    modify(T, Head, Spec1, Spec, Ctx).
+modify(+PortSpec, Head, Spec0, Spec, Ctx) :-
     !,
+    port_spec(PortSpec, Head, Port, Ctx),
     port_mask(Port, Mask),
     Spec is Spec0 \/ Mask.
-modify(-Port, Spec0, Spec) :-
+modify(-Port, Head, Spec0, Spec, _) :-
     !,
     port_mask(Port, Mask),
+    remove_condition(Head, Mask),
     Spec is Spec0 /\ \Mask.
-modify(Port, Spec0, Spec) :-
+modify(Port, Head, Spec0, Spec, Ctx) :-
+    modify(+Port, Head, Spec0, Spec, Ctx).
+
+port_spec(Spec, _, Port, _), atom(Spec) =>
+    Port = Spec.
+port_spec(Spec, Head, Port, Ctx),
+    compound(Spec),
+    compound_name_arguments(Spec, Name, [Cond]) =>
+    Port = Name,
     port_mask(Port, Mask),
-    Spec is Spec0 \/ Mask.
+    strip_module(Ctx:Cond, M, PCond),
+    (   predicate_property(M:PCond, iso)
+    ->  TheCond = PCond
+    ;   TheCond = M:PCond
+    ),
+    asserta(trace_condition(Head, Mask, TheCond)).
+
+remove_condition(Head, Mask) :-
+    (   trace_condition(Head, TraceMask, TheCond),
+        Mask /\ TraceMask =:= TraceMask,
+        retractall(trace_condition(Head, TraceMask, TheCond)),
+        fail
+    ;   true
+    ).
 
 port_mask(all,  0x0f).
 port_mask(call, 0x01).
@@ -174,6 +225,17 @@ mask_ports(0, []) :-
 mask_ports(Pattern, [H|T]) :-
     is_masked(Pattern, H, Pattern1),
     mask_ports(Pattern1, T).
+
+%!  wrapper(+Ports:integer, :Head, -Wrapped, -Wrapper) is det.
+%!  wrapper(+Ports:integer, :Head, +Id, -Wrapped, -Wrapper) is det.
+%
+%   Adds calls to
+%
+%      print_message(debug, frame(Head, trace(Port, Id)))
+%
+%   @arg Id is a term  `#{frame:Frame, level:Level, start:Start}`, where
+%   `Frame` is the (fragile) frame  identifier,   `Level`  is  the stack
+%   depth and `Start` is the wall-time when the call was started.
 
 wrapper(Ports, Head, Wrapped, Wrapper) :-
     wrapper(Ports, Head,
@@ -191,7 +253,7 @@ wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, call, Pattern1),
     !,
     wrapper(Pattern1, Head, Id, Wrapped, Call0),
-    Call = (   print_message(debug, frame(Head, trace(call, Id))),
+    Call = (   prolog_trace:on_port(call, Head, Id),
                Call0
            ).
 wrapper(Pattern, Head, Id, Wrapped, Call) :-
@@ -199,7 +261,7 @@ wrapper(Pattern, Head, Id, Wrapped, Call) :-
     !,
     wrapper(Pattern1, Head, Id, Wrapped, Call0),
     Call = (   Call0,
-               print_message(debug, frame(Head, trace(exit, Id)))
+               prolog_trace:on_port(exit, Head, Id)
            ).
 wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, redo, Pattern1),
@@ -209,7 +271,7 @@ wrapper(Pattern, Head, Id, Wrapped, Call) :-
                (   Det == true
                ->  true
                ;   true
-               ;   print_message(debug, frame(Head, trace(redo, Id))),
+               ;   prolog_trace:on_port(redo, Head, Id),
                    fail
                )
            ).
@@ -222,7 +284,7 @@ wrapper(Pattern, Head, Id, Wrapped, Call) :-
                     ->  !
                     ;   true
                     )
-                ;   print_message(debug, frame(Head, trace(fail, Id))),
+                ;   prolog_trace:on_port(fail, Head, Id),
                     fail
                 )).
 
@@ -232,21 +294,57 @@ is_masked(Pattern0, Port, Pattern) :-
     !,
     Pattern is Pattern0 /\ \Mask.
 
+%   on_port(+Port, +Head, +Id)
+%
+%   Called on the various ports. Succeeds on the `call` and `exit` ports
+%   and fails otherwise.
+
+:- public on_port/3.
+on_port(Port, Head, Id) :-
+    (   do_trace(Port, Head)
+    ->  print_message(debug, frame(Head, trace(Port, Id)))
+    ;   true
+    ),
+    success_port(Port).
+
+do_trace(Port, Head) :-
+    forall(active_trace_condition(Port, Head, Cond),
+           Cond).
+
+active_trace_condition(Port, Head, Cond) :-
+    trace_condition(Head, Mask, Cond),
+    port_mask(Port, PortMask),
+    Mask /\ PortMask =\= 0.
+
+success_port(call).                     % on the other ports we must fail.
+success_port(exit).
+
 %!  tracing(:Spec, -Ports)
 %
-%   True if Spec is traced using Ports
+%   True if Spec is traced using Ports.   Spec is a fully qualified head
+%   term.
 
 tracing(Spec, Ports) :-
     tracing_mask(Spec, Mask),
-    mask_ports(Mask, Ports).
+    mask_ports(Mask, Ports0),
+    maplist(add_condition(Spec), Ports0, Ports).
+
+add_condition(Head, Port, PortCond) :-
+    trace_condition(Head, Mask, Cond),
+    port_mask(Port, PortMask),
+    Mask /\ PortMask =\= 0,
+    !,
+    PortCond =.. [Port,Cond].
+add_condition(_, Port, Port).
+
 
 %!  list_tracing.
 %
 %   List predicates we are currently tracing
 
 list_tracing :-
-    PI = _:_,
-    findall(trace(Head, Ports), (tracing(PI, Ports), pi_head(PI, Head)), Tracing),
+    Head = _:_,
+    findall(trace(Head, Ports), tracing(Head, Ports), Tracing),
     print_message(informational, tracing(Tracing)).
 
 :- multifile

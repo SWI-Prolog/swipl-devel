@@ -1575,6 +1575,12 @@ prolog_message(trace(Head, [])) -->
     !,
     [ '    ' ], goal_predicate(Head), [ ' Not tracing'-[], nl].
 prolog_message(trace(Head, Ports)) -->
+    { '$member'(Port, Ports), compound(Port),
+      !,
+      numbervars(Head+Ports, 0, _, [singletons(true)])
+    },
+    [ '    ~p: ~p'-[Head,Ports] ].
+prolog_message(trace(Head, Ports)) -->
     [ '    ' ], goal_predicate(Head), [ ': ~w'-[Ports], nl].
 prolog_message(tracing([])) -->
     !,
