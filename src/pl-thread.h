@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2023, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -510,11 +510,17 @@ static inline	PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
 		 *	    FUNCTIONS		*
 		 *******************************/
 
+#ifndef __WINDOWS__
+#define HAVE_PTHREAD_EXIT 1
+#endif
+
 int		exitPrologThreads(void);
 bool		aliasThread(int tid, atom_t type, atom_t name);
 word		pl_thread_create(term_t goal, term_t id,
 				 term_t options);
+#if HAVE_PTHREAD_EXIT
 word		pl_thread_exit(term_t retcode);
+#endif
 
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);

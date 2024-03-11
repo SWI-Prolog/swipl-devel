@@ -188,7 +188,9 @@ static const PL_extension foreigns[] = {
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
+#if HAVE_PTHREAD_EXIT
   FRG("thread_exit",		1, pl_thread_exit,		0),
+#endif
   FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 

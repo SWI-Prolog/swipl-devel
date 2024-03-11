@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2023, University of Amsterdam,
+    Copyright (c)  1999-2024, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2772,6 +2772,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 }
 
 
+#if HAVE_PTHREAD_EXIT
 word
 pl_thread_exit(term_t retcode)
 { GET_LD
@@ -2791,6 +2792,7 @@ pl_thread_exit(term_t retcode)
   assert(0);
   fail;
 }
+#endif
 
 
 static
