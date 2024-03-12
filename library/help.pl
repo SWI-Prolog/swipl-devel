@@ -301,7 +301,7 @@ current_predicate_help(M:Name/Arity) :-
     (   mode(M:_, _)             % Some predicates are documented
     ->  true
     ;   \+ module_property(M, class(system)),
-	predicate_property(M:Head,file(File)),
+        main_source_file(M:Head, File),
 	xref_source(File,[comments(store)])
     ),
     mode(M:Head, _).             % Test that our predicate is documented
@@ -309,6 +309,22 @@ current_predicate_help(M:Name/Arity) :-
 match_name(exact, Name, Name).
 match_name(dwim,  Name, Fuzzy) :-
     freeze(Fuzzy, dwim_match(Fuzzy, Name)).
+
+%!  main_source_file(+Pred, -File) is semidet.
+%
+%   True when File is the main (not included) file that defines Pred.
+
+main_source_file(Pred, File) :-
+    predicate_property(Pred, file(File0)),
+    main_source(File0, File).
+
+main_source(File, Main) :-
+    source_file(File),
+    !,
+    Main = File.
+main_source(File, Main) :-
+    source_file_property(File, included_in(Parent, _Time)),
+    main_source(Parent, Main).
 
 
 %!  with_pager(+Goal)
