@@ -285,28 +285,25 @@ Srlc_control(void *handle, int cmd, void *closure)
 static IOFUNCTIONS rlc_functions;
 
 static void
+bind_std(IOSTREAM *s, rlc_console c)
+{ s->functions = &rlc_functions;
+  s->handle    = c;
+  s->encoding  = ENC_WCHAR;
+  s->flags     = ~SIO_FILE;
+  s->fileno    = -1;
+}
+
+static void
 rlc_bind_terminal(rlc_console c)
-{ rlc_functions	        = *Sinput->functions;
+{ rlc_functions		= *Sinput->functions;
   rlc_functions.read    = Srlc_read;
   rlc_functions.write	= Srlc_write;
   rlc_functions.close   = Srlc_close;
   rlc_functions.control = Srlc_control;
 
-  Sinput->functions  = &rlc_functions;
-  Soutput->functions = &rlc_functions;
-  Serror->functions  = &rlc_functions;
-
-  Sinput->handle  = c;
-  Soutput->handle = c;
-  Serror->handle  = c;
-
-  Sinput->encoding  = ENC_WCHAR;
-  Soutput->encoding = ENC_WCHAR;
-  Serror->encoding  = ENC_WCHAR;
-
-  Sinput->flags  &= ~SIO_FILE;
-  Soutput->flags &= ~SIO_FILE;
-  Serror->flags  &= ~SIO_FILE;
+  bind_std(Sinput);
+  bind_std(Soutput);
+  bind_std(Serror);
 }
 
 

@@ -3642,6 +3642,15 @@ S__fileno(IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sfileno() returns  the cached file  no rather then  calling Scontrol()
+using  SIO_GETFILENO.   This  is  to  ensure  safe  stream_property(S,
+file_no(I)), which cannot lock the  stream.  The `fileno` field is set
+by Snew().   If the stream is  modified such that the  associated file
+handle  is   changed,  the  user   must  update  the   `fileno`  field
+accordingly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 Sfileno(IOSTREAM *s)
 { if ( s->magic != SIO_MAGIC )
@@ -3649,6 +3658,7 @@ Sfileno(IOSTREAM *s)
     return -1;
   }
 
+  DEBUG(0, assert(s->fileno == S__fileno(s)));
   if ( s->fileno >= 0 )
     return (int)s->fileno;
 
@@ -4271,6 +4281,7 @@ SinitStreams(void)
     for(i=0; i<=2; i++)
     { IOSTREAM *s = &S__iob[i];
 
+      s->fileno = i;
       if ( !isatty(i) && s->functions == &Sttyfunctions )
       { s->flags &= ~SIO_ISATTY;
 	s->functions = &Sfilefunctions; /* Check for pipe? */
