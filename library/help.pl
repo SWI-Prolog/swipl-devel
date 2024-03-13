@@ -297,7 +297,7 @@ current_predicate_help(M:Name/Arity) :-
     current_predicate(M:Name/Arity),
     pi_head(Name/Arity,Head),
     \+ predicate_property(M:Head, imported_from(_)),
-    \+ man_object_property(Name/Arity, _), % must not be indexed already
+    module_property(M, class(user)),
     (   mode(M:_, _)             % Some predicates are documented
     ->  true
     ;   \+ module_property(M, class(system)),
