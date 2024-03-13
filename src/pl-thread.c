@@ -2103,7 +2103,7 @@ start_thread(void *closure)
 
 static void
 copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
-		size_t max_queue_size)
+		PL_thread_attr_t *attr)
 { GET_LD
 
   if ( !LD )
@@ -2115,10 +2115,8 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   { ldnew->prompt.first		  = ldold->prompt.first;
     PL_register_atom(ldnew->prompt.first);
   }
+  copyStandardStreams(ldnew, ldold, attr->flags);
   ldnew->modules		  = ldold->modules;
-  ldnew->IO			  = ldold->IO;
-  ldnew->IO.input_stack		  = NULL;
-  ldnew->IO.output_stack	  = NULL;
   ldnew->encoding		  = ldold->encoding;
 #ifdef O_LOCALE
   ldnew->locale.current		  = acquireLocale(ldold->locale.current);
@@ -2162,9 +2160,8 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->thread.creator = NULL;
   ldnew->thread.child_cputime = 0.0;
 #endif
-  init_message_queue(&ldnew->thread.messages, max_queue_size);
+  init_message_queue(&ldnew->thread.messages, attr->max_queue_size);
   init_predicate_references(ldnew);
-  referenceStandardStreams(ldnew);
   if ( ldold->coverage.data && true(ldold->coverage.data, COV_TRACK_THREADS) )
   { ldnew->coverage.data = share_coverage_data(ldold->coverage.data);
     ldnew->coverage.active = ldold->coverage.active;
@@ -2242,9 +2239,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   term_t inherit_from = 0;
   term_t at_exit = 0;
   term_t affinity = 0;
-  size_t queue_max_size = 0;
   int debug = -1;
   int detached = FALSE;
+  PL_thread_attr_t attr = {0};
 
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -2269,7 +2266,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 			&at_exit,
 			&inherit_from,
 			&affinity,
-			&queue_max_size) )
+			&attr.max_queue_size) )
   { free_thread_info(info);
     fail;
   }
@@ -2287,6 +2284,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     { free_thread_info(info);
       return FALSE;
     }
+  } else
+  { attr.flags |= PL_THREAD_CUR_STREAMS;
   }
   if ( debug >= 0 )
     info->debug = debug;
@@ -2324,7 +2323,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   info->goal = PL_record(goal);
   info->module = PL_context();
-  copy_local_data(ldnew, ldold, queue_max_size);
+  copy_local_data(ldnew, ldold, &attr);
   ldnew->thread.creator = ldold->thread.info;
   ldnew->thread.creator_seq_id = ldold->thread.seq_id;
   if ( at_exit )
@@ -2332,15 +2331,15 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   int rc = 0;
   const char *func;
-  pthread_attr_t attr;
+  pthread_attr_t pattr;
 
-  pthread_attr_init(&attr);
+  pthread_attr_init(&pattr);
   if ( info->detached )
   { func = "pthread_attr_setdetachstate";
-    rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    rc = pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_DETACHED);
   }
   if ( rc == 0 && affinity )
-    rc = set_affinity(affinity, &attr);
+    rc = set_affinity(affinity, &pattr);
   if ( rc == 0 )
   {
 #ifdef USE_COPY_STACK_SIZE
@@ -2354,7 +2353,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     if ( c_stack )
     { c_stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
-      rc = pthread_attr_setstacksize(&attr, c_stack);
+      rc = pthread_attr_setstacksize(&pattr, c_stack);
 
       if ( rc == 0 )
       { assert(info->c_stack == NULL);
@@ -2370,10 +2369,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     info->status = PL_THREAD_CREATED;
     assert(info->goal);
     func = "pthread_create";
-    rc = pthread_create(&info->tid, &attr, start_thread, info);
+    rc = pthread_create(&info->tid, &pattr, start_thread, info);
     PL_UNLOCK(L_THREAD);
   }
-  pthread_attr_destroy(&attr);
+  pthread_attr_destroy(&pattr);
   if ( rc != 0 )
   { free_thread_info(info);
     if ( !PL_exception(0) )
@@ -3718,12 +3717,11 @@ static
 PRED_IMPL("$engine_create", 3, engine_create, 0)
 { PRED_LD
   PL_engine_t new;
-  PL_thread_attr_t attrs;
+  PL_thread_attr_t attrs = {0};
   size_t stack	      =	0;
   atom_t alias	      =	NULL_ATOM;
   term_t inherit_from =	0;
 
-  memset(&attrs, 0, sizeof(attrs));
   if ( !PL_scan_options(A3, 0, "engine_option", make_engine_options,
 			&stack,
 			&alias,
@@ -6470,6 +6468,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   PL_thread_info_t *info;
   PL_local_data_t *ldnew;
   PL_local_data_t *ldmain;
+  PL_thread_attr_t abuf = {0};
 
   if ( LD )
   { if ( LD->thread.info->open_count+1 == 0 )
@@ -6495,21 +6494,19 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   ldmain = GD->thread.threads[1]->thread_data;
   ldnew = info->thread_data;
+  if ( !attr )
+    attr = &abuf;
 
-  if ( attr )
-  { if ( attr->stack_limit )
-      info->stack_limit = attr->stack_limit;
-
-    info->cancel = attr->cancel;
-  }
+  if ( attr->stack_limit )
+    info->stack_limit = attr->stack_limit;
+  info->cancel = attr->cancel;
 
   info->goal       = NULL;
   info->module     = MODULE_user;
-  info->detached   = attr == NULL ||
-		     (attr->flags & PL_THREAD_NOT_DETACHED) == 0;
+  info->detached   = !(attr->flags & PL_THREAD_NOT_DETACHED);
   info->open_count = 1;
 
-  copy_local_data(ldnew, ldmain, attr ? attr->max_queue_size : 0);
+  copy_local_data(ldnew, ldmain, attr);
 
   if ( !initialise_thread(info) )
   { free_thread_info(info);
@@ -6521,21 +6518,20 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->status = PL_THREAD_RUNNING;
   PL_UNLOCK(L_THREAD);
 
-  if ( attr )
-  { if ( attr->alias )
-    { if ( !aliasThread(info->pl_tid, ATOM_thread, PL_new_atom(attr->alias)) )
-      { free_thread_info(info);
-	errno = EPERM;
-	TLD_set_LD(NULL);
-	return -1;
-      }
+  if ( attr->alias )
+  { if ( !aliasThread(info->pl_tid, ATOM_thread, PL_new_atom(attr->alias)) )
+    { free_thread_info(info);
+      errno = EPERM;
+      TLD_set_LD(NULL);
+      return -1;
     }
-    if ( true(attr, PL_THREAD_NO_DEBUG) )
-    { ldnew->_debugstatus.tracing   = FALSE;
-      ldnew->_debugstatus.debugging = DBG_OFF;
-      setPrologRunMode_LD(ldnew, RUN_MODE_NORMAL);
-      info->debug = FALSE;
-    }
+  }
+
+  if ( true(attr, PL_THREAD_NO_DEBUG) )
+  { ldnew->_debugstatus.tracing   = FALSE;
+    ldnew->_debugstatus.debugging = DBG_OFF;
+    setPrologRunMode_LD(ldnew, RUN_MODE_NORMAL);
+    info->debug = FALSE;
   }
 
   updateAlerted(ldnew);
@@ -6712,7 +6708,8 @@ GCmain(void *closure)
 #endif
 
   attrs.alias = "gc";
-  attrs.flags = PL_THREAD_NO_DEBUG|PL_THREAD_NOT_DETACHED;
+  attrs.flags = ( PL_THREAD_NO_DEBUG|
+		  PL_THREAD_NOT_DETACHED );
   set_os_thread_name_from_charp("gc");
 
   if ( PL_thread_attach_engine(&attrs) > 0 )

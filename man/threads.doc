@@ -137,7 +137,9 @@ inherited:
     \begin{itemize}
 	\item The prompt (see prompt/2)
         \item The \jargon{typein} module (see module/1)
-        \item The standard streams (\const{user_input}, etc.)
+        \item The standard streams (\const{user_input}, etc.).
+        \item \const{current_input} and \const{current_output} are
+              bound to \const{user_input} and \const{user_output}.
         \item The default encoding (see \prologflag{encoding})
         \item The default locale (see set_locale/1)
         \item All prolog flags
@@ -1270,12 +1272,12 @@ Creates a new Prolog engine in the calling thread. If the calling thread
 already has an engine the reference count of the engine is incremented.
 The \arg{attr} argument can be \const{NULL} to create a thread with
 default attributes.  Otherwise it is a pointer to a structure with
-the definition below.\footnote{The structure layout changed in version
-7.7.14.} For any field with value `0', the default is used. The
+the definition below. For any field with value `0', the default is used. The
 \const{cancel} field may be filled with a pointer to a function that is
 called when PL_cleanup() terminates the running Prolog engines. If this
 function is not present or returns \const{FALSE} pthread_cancel() is
-used. The \const{flags} field defines the following flags:
+used.  The new thread inherits is properties from Prolog's \const{main}
+thread.  The \const{flags} field defines the following flags:
 
 \begin{description}
     \termitem{PL_THREAD_NO_DEBUG}{}
@@ -1285,6 +1287,11 @@ By default, the debug status is inherited from the main thread.
 By default the new thread is created in \jargon{detached} mode.  With
 this flag it is created normally, allowing Prolog to \jargon{join} the
 thread.
+    \termitem{PL_THREAD_CUR_STREAMS}{}
+By default the \const{current_input} and \const{current_output} are
+set to \const{user_input} and \const{user_output} of the main thread.
+Using this flag, these streams are copied from the main thread.  See
+also the \const{inherited_from} option of thread_create/3.
 \end{description}
 
 \begin{code}

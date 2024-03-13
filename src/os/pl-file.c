@@ -131,9 +131,8 @@ static int
 standardStreamIndexFromStream(IOSTREAM *s)
 { GET_LD
   IOSTREAM **sp = LD->IO.streams;
-  int i = 0;
 
-  for( ; i<6; i++, sp++ )
+  for(int i=0; i <= SNO_MAX; i++, sp++ )
   { if ( *sp == s )
       return i;
   }
@@ -322,12 +321,34 @@ static void
 setStandardStream(DECL_LD int i, IOSTREAM *s)
 { IOSTREAM *old = LD->IO.streams[i];
 
-  LD->IO.streams[i] = s;
   if ( old != s )
-  { if ( old )
-      Sunreference(old);
+  { if ( s ) Sreference(s);
+    LD->IO.streams[i] = s;
+    if ( old ) Sunreference(old);
+  }
+}
+
+
+void
+copyStandardStreams(PL_local_data_t *ldnew, PL_local_data_t *ldold,
+		    intptr_t flags)
+{ ldnew->IO.stream_type_check = ldold->IO.stream_type_check;
+  int upto = (flags&PL_THREAD_CUR_STREAMS) ? SNO_MAX : SNO_USER_ERROR;
+
+  for(int i=0; i <= upto; i++)
+  { IOSTREAM *s = ldold->IO.streams[i];
     if ( s )
       Sreference(s);
+    ldnew->IO.streams[i] = s;
+  }
+
+  if ( upto == SNO_USER_ERROR )
+  { WITH_LD(ldnew)
+    { Scurin  = Suser_input;
+      Scurout = Suser_output;
+      Sreference(Scurin);
+      Sreference(Scurout);
+    }
   }
 }
 
@@ -346,11 +367,11 @@ restoreStandardStream(DECL_LD int i)
 { IOSTREAM *s;
 
   switch(i)
-  { case 0:
-    case 3:
+  { case SNO_USER_INPUT:
+    case SNO_CURRENT_INPUT:
       s = Sinput;
       break;
-    case 2:
+    case SNO_USER_ERROR:
       s = Serror;
       break;
     default:
@@ -401,7 +422,7 @@ freeStream(IOSTREAM *s)
        LD &&
 #endif
        (sp=LD->IO.streams) )
-  { for(i=0; i<6; i++, sp++)
+  { for(i=0; i <= SNO_MAX; i++, sp++)
     { if ( *sp == s )
       { *sp = NULL;
 
@@ -807,7 +828,7 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
     { IOSTREAM *stream;
       uintptr_t n = (uintptr_t)s0 & ~STD_HANDLE_MASK;
 
-      if ( n < 6 )			/* standard stream! */
+      if ( n <= SNO_MAX )		/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
 	if ( stream->magic == SIO_CMAGIC )
 	  stream = restoreStandardStream((int)n);
@@ -1557,32 +1578,35 @@ PRED_IMPL("$input_context", 1, input_context, 0)
 
 
 void
-pushOutputContext(void)
-{ GET_LD
-  OutputContext c = allocHeapOrHalt(sizeof(struct output_context));
-
+pushOutputContext(DECL_LD IOSTREAM *s)
+{ OutputContext c      = allocHeapOrHalt(sizeof(struct output_context));
   c->stream            = Scurout;
   c->previous          = output_context_stack;
   output_context_stack = c;
+
+  Sreference(c->stream);
+  setStandardStream(SNO_CURRENT_OUTPUT, s);
 }
 
 
 void
-popOutputContext(void)
-{ GET_LD
-  OutputContext c = output_context_stack;
+popOutputContext(DECL_LD)
+{ OutputContext c = output_context_stack;
 
   if ( c )
-  { if ( c->stream->magic == SIO_MAGIC )
-      Scurout = c->stream;
-    else
-    { Sdprintf("Oops, current stream closed?");
-      Scurout = Soutput;
+  { IOSTREAM *s = c->stream;
+
+    if ( s->magic != SIO_MAGIC )
+    { Sdprintf("[%d] current_output closed; set to user_output\n",
+	       PL_thread_self());
+      s = Soutput;
     }
+    setStandardStream(SNO_CURRENT_OUTPUT, s);
     output_context_stack = c->previous;
+    Sunreference(c->stream);
     freeHeap(c, sizeof(struct output_context));
   } else
-    Scurout = Soutput;
+    setStandardStream(SNO_CURRENT_OUTPUT, Soutput);
 }
 
 
@@ -1646,9 +1670,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
   ctx->magic = REDIR_MAGIC;
 
   if ( redir )
-  { pushOutputContext();
-    Scurout = ctx->stream;
-  }
+    pushOutputContext(ctx->stream);
 
   return TRUE;
 }
@@ -1663,7 +1685,9 @@ closeOutputRedirect(redir_context *ctx)
   ctx->magic = 0;
 
   if ( ctx->redirected )
+  { GET_LD
     popOutputContext();
+  }
 
   if ( ctx->is_stream )
   { rval = streamStatus(ctx->stream);
@@ -1712,7 +1736,9 @@ discardOutputRedirect(redir_context *ctx)
   ctx->magic = 0;
 
   if ( ctx->redirected )
+  { GET_LD
     popOutputContext();
+  }
 
   if ( ctx->is_stream )
   { streamStatus(ctx->stream);
@@ -2478,8 +2504,7 @@ tellString(char **s, size_t *size, IOENC enc)
 
   stream = Sopenmem(s, size, "w");
   stream->encoding = enc;
-  pushOutputContext();
-  Scurout = stream;
+  pushOutputContext(stream);
 
   return TRUE;
 }
@@ -4362,8 +4387,7 @@ do_tell(term_t f, atom_t m)
   }
 
   set(getStreamContext(s), IO_TELL);
-  pushOutputContext();
-  Scurout = s;
+  pushOutputContext(s);
 
 ok:
   PL_UNLOCK(L_SEETELL);

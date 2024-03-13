@@ -1289,6 +1289,7 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 
 #define PL_THREAD_NO_DEBUG	0x01	/* Start thread in nodebug mode */
 #define PL_THREAD_NOT_DETACHED	0x02	/* Allow Prolog to join */
+#define PL_THREAD_CUR_STREAMS   0x04	/* Copy current{input,output} */
 
 typedef enum
 { PL_THREAD_CANCEL_FAILED = FALSE,	/* failed to cancel; try abort */

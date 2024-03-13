@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2432,8 +2432,7 @@ PRED_IMPL("write_length", 3, write_length, 0)
     s->flags |= SIO_USERBUF;
 
     clearPrologFlagMask(PLFLAG_ISO);
-    pushOutputContext();
-    Scurout = s;
+    pushOutputContext(s);
     rc = pl_write_term3(0, A1, A3);
     popOutputContext();
     LD->prolog_flag.mask = oldmask;
