@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2023, CWI Amsterdam
+    Copyright (c)  2018-2024, CWI Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -115,12 +115,23 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 %       be unbound.
 %     - Name//Arity
 %       Give help on the matching DCG rule (non-terminal)
+%     - Module:Name
+%       Give help on predicates with Name in Module and any arity.
+%       Used for loaded code only.
+%     - Module:Name/Arity
+%       Give help on predicates with Name in Module and Arity.
+%       Used for loaded code only.
 %     - f(Name/Arity)
 %       Give help on the matching Prolog arithmetic functions.
 %     - c(Name)
 %       Give help on the matching C interface function
 %     - section(Label)
 %       Show the section from the manual with matching Label.
+%
+%   help/1 shows documentation from the manual   as  well as from loaded
+%   user code if the code is documented   using  PlDoc. To show only the
+%   documentatoion of the  loaded  predicate   we  may  prefix predicate
+%   indicator with the module in which it is defined.
 %
 %   If an exact match fails this predicates attempts fuzzy matching and,
 %   when successful, display the results headed   by  a warning that the
@@ -277,6 +288,12 @@ help_object(Module, _How, Module:Name/Arity, _ID) :-
     current_module(Module),
     atom_concat('sec:', Module, SecLabel),
     \+ man_object_property(section(_,_,SecLabel,_), _), % not a section
+    current_predicate_help(Module:Name/Arity).
+help_object(Module:Name, _How, Module:Name/Arity, _ID) :-
+    atom(Name),
+    current_predicate_help(Module:Name/Arity).
+help_object(Module:Name/Arity, _How, Module:Name/Arity, _ID) :-
+    atom(Name),
     current_predicate_help(Module:Name/Arity).
 help_object(Name/Arity, _How, Name/Arity, _ID) :-
     atom(Name),
