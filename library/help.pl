@@ -295,9 +295,9 @@ help_object(Module:Name, _How, Module:Name/Arity, _ID) :-
 help_object(Module:Name/Arity, _How, Module:Name/Arity, _ID) :-
     atom(Name),
     current_predicate_help(Module:Name/Arity).
-help_object(Name/Arity, _How, Name/Arity, _ID) :-
+help_object(Name/Arity, _How, Module:Name/Arity, _ID) :-
     atom(Name),
-    current_predicate_help(_:Name/Arity).
+    current_predicate_help(Module:Name/Arity).
 help_object(Fuzzy, How, Module:Name/Arity, _ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),
