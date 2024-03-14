@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2013, University of Amsterdam
+    Copyright (c)  2007-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -90,10 +91,10 @@ emptySegStack(segstack *s)
 		    (stack)->top += sizeof(type),		\
 		    TRUE					\
 		  )						\
-		: pushSegStack_((stack), &data)			\
+		: !!pushSegStack_((stack), &data)		\
 	)
 
-COMMON(int)	pushSegStack_(segstack *stack, void* data) WUNUSED;
+COMMON(void*)	pushSegStack_(segstack *stack, void* data) WUNUSED;
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r) WUNUSED;
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
