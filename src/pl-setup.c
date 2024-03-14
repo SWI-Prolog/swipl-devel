@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -65,6 +65,7 @@
 #include "pl-pro.h"
 #include "pl-gvar.h"
 #include "pl-coverage.h"
+#include "pl-bag.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -1740,12 +1741,7 @@ freePrologLocalData(PL_local_data_t *ld)
     destroyHTable(ld->gvar.nb_vars);
 #endif
 
-  if ( ld->bags.default_bag )
-  { PL_free(ld->bags.default_bag);
-#if defined(O_ATOMGC) && defined(O_PLMT)
-    simpleMutexDelete(&ld->bags.mutex);
-#endif
-  }
+  cleanup_bags(ld);
 
 #ifdef O_CYCLIC
   clearSegStack(&ld->cycle.lstack);

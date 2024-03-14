@@ -718,13 +718,7 @@ struct PL_local_data
   { FindData	find;			/* /<ports> <goal> in tracer */
   } trace;
 
-  struct
-  { struct findall_bag *bags;		/* Known bags */
-    struct findall_bag *default_bag;	/* Bag we keep around */
-#if defined(O_ATOMGC) && defined(O_PLMT)
-    simpleMutex mutex;			/* Atom GC scanning synchronization */
-#endif
-  } bags;
+  struct findall_state *bags;		/* findall/3 store  */
 
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */

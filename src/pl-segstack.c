@@ -55,6 +55,18 @@ data before updating the pointers.
 TBD: Avoid instruction/cache write reordering in push/pop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static size_t
+next_chunk_size(segstack *stack)
+{ if ( stack->last && stack->last->allocated )
+  { return stack->last->size*2;
+  } else
+  { size_t size = 1024;
+    while(size < 4*stack->unit_size)
+      size *= 2;
+    return size;
+  }
+}
+
 void *
 pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
@@ -66,7 +78,7 @@ pushSegStack_(segstack *stack, void *data)
 
     return ptr;
   } else
-  { size_t chunksize = tmp_nalloc((size_t)1024<<stack->chunk_count++);
+  { size_t chunksize = tmp_nalloc(next_chunk_size(stack));
     segchunk *chunk = tmp_malloc(chunksize);
 
     if ( !chunk )

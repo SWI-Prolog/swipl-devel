@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -144,25 +144,34 @@ typedef struct findall_bag
   Record	answer_buf[64];		/* tmp space */
 } findall_bag;
 
+typedef struct findall_state
+{ findall_bag  *bags;			/* Known bags  */
+#if defined(O_ATOMGC) && defined(O_PLMT)
+  simpleMutex   mutex;			/* Atom GC scanning synchronization */
+#endif
+  segstack	bag_stack;		/* For allocating bags  */
+  findall_bag	buf[1];			/* Default bag */
+} findall_state;
 
 static
 PRED_IMPL("$new_findall_bag", 0, new_findall_bag, PL_FA_SIG_ATOMIC)
 { PRED_LD
   findall_bag *bag;
+  findall_state *state = LD->bags;
 
-  if ( !LD->bags.bags )			/* outer one */
-  { if ( !LD->bags.default_bag )
-    {
+  if ( !state )
+  { if ( !(state = PL_malloc(sizeof(*LD->bags))) )
+      return PL_no_memory();
+    state->bags = NULL;
+    initSegStack(&state->bag_stack, sizeof(findall_bag),
+		 sizeof(state->buf), state->buf);
 #if defined(O_ATOMGC) && defined(O_PLMT)
-      simpleMutexInit(&LD->bags.mutex);
+    simpleMutexInit(&state->mutex);
 #endif
-      LD->bags.default_bag = PL_malloc(sizeof(*bag));
-    }
-    bag = LD->bags.default_bag;
-  } else
-  { bag = PL_malloc(sizeof(*bag));
+    LD->bags = state;
   }
 
+  bag = pushSegStack_(&state->bag_stack, NULL);
   if ( !bag )
     return PL_no_memory();
 
@@ -171,14 +180,29 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, PL_FA_SIG_ATOMIC)
   bag->suspended_solutions = 0;
   bag->solutions	   = 0;
   bag->gsize		   = 0;
-  bag->parent		   = LD->bags.bags;
+  bag->parent		   = state->bags;
   init_mem_pool(&bag->records);
   initSegStack(&bag->answers, sizeof(Record),
 	       sizeof(bag->answer_buf), bag->answer_buf);
   MEMORY_BARRIER();
-  LD->bags.bags = bag;
+  LD->bags->bags = bag;
 
   return TRUE;
+}
+
+
+void
+cleanup_bags(PL_local_data_t *ld)
+{ findall_state *state;
+
+  if ( (state=ld->bags) )
+  { ld->bags = NULL;
+    clearSegStack(&state->bag_stack);
+#if defined(O_ATOMGC) && defined(O_PLMT)
+    simpleMutexDelete(&state->mutex);
+#endif
+    PL_free(state);
+  }
 }
 
 
@@ -193,7 +217,7 @@ alloc_record(void *ctx, size_t bytes)
 #define current_bag(_) LDFUNC(current_bag, _)
 static findall_bag *
 current_bag(DECL_LD)
-{ findall_bag *bag = LD->bags.bags;
+{ findall_bag *bag = LD->bags->bags;
 
   while(bag && bag->suspended)
   { assert(bag->parent);
@@ -280,9 +304,9 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 #ifdef O_ATOMGC
 		/* see comment with scanSegStack() for synchronization details */
       if ( !quickPopTopOfSegStack(&bag->answers) )
-      { simpleMutexLock(&LD->bags.mutex);
+      { simpleMutexLock(&LD->bags->mutex);
 	popTopOfSegStack(&bag->answers);
-	simpleMutexUnlock(&LD->bags.mutex);
+	simpleMutexUnlock(&LD->bags->mutex);
       }
 #else
       popTopOfSegStack(&bag->answers);
@@ -315,9 +339,9 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       bag = current_bag();
-      simpleMutexLock(&LD->bags.mutex);
+      simpleMutexLock(&LD->bags->mutex);
       clear_mem_pool(&bag->records);
-      simpleMutexUnlock(&LD->bags.mutex);
+      simpleMutexUnlock(&LD->bags->mutex);
       bag->suspended_solutions += bag->solutions;
       bag->solutions = 0;
       bag->gsize = 0;
@@ -344,25 +368,24 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
 static
 PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = LD->bags.bags;
+  findall_bag *bag = LD->bags->bags;
 
   assert(bag);
   assert(bag->magic == FINDALL_MAGIC);
   assert(bag->suspended == FALSE);
 
 #ifdef O_ATOMGC
-  simpleMutexLock(&LD->bags.mutex);
+  simpleMutexLock(&LD->bags->mutex);
 #endif
-  LD->bags.bags = bag->parent;
+  LD->bags->bags = bag->parent;
 #ifdef O_ATOMGC
-  simpleMutexUnlock(&LD->bags.mutex);
+  simpleMutexUnlock(&LD->bags->mutex);
 #endif
 
   bag->magic = 0;
   clearSegStack(&bag->answers);
   clear_mem_pool(&bag->records);
-  if ( bag != LD->bags.default_bag )
-    PL_free(bag);
+  popSegStack_(&LD->bags->bag_stack, NULL);
 
   return TRUE;
 }
@@ -382,14 +405,16 @@ markAtomsAnswers(void *data)
 
 void
 markAtomsFindall(PL_local_data_t *ld)
-{ findall_bag *bag;
+{ findall_state *state;
 
-  if ( ld->bags.default_bag )
-  { simpleMutexLock(&ld->bags.mutex);
-    bag = ld->bags.bags;
+  if ( (state=ld->bags) )
+  { findall_bag *bag;
+
+    simpleMutexLock(&state->mutex);
+    bag = state->bags;
     for( ; bag; bag = bag->parent )
       scanSegStack(&bag->answers, markAtomsAnswers);
-    simpleMutexUnlock(&ld->bags.mutex);
+    simpleMutexUnlock(&state->mutex);
   }
 }
 
