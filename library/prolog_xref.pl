@@ -755,13 +755,17 @@ current_source_line(Line) :-
 %!  collect(+Source, +File, +Stream, +Options)
 %
 %   Process data from Source. If File  \== Source, we are processing
-%   an included file. Stream is the stream   from  shich we read the
+%   an included file. Stream is the stream   from  which we read the
 %   program.
 
 collect(Src, File, In, Options) :-
     (   Src == File
     ->  SrcSpec = Line
     ;   SrcSpec = (File:Line)
+    ),
+    (   current_prolog_flag(xref_store_comments, OldStore)
+    ->  true
+    ;   OldStore = false
     ),
     option(comments(CommentHandling), Options, collect),
     (   CommentHandling == ignore
@@ -789,7 +793,7 @@ collect(Src, File, In, Options) :-
             erase(Ref)),
         EOF == true,
     !,
-    set_prolog_flag(xref_store_comments, false).
+    set_prolog_flag(xref_store_comments, OldStore).
 
 report_syntax_error(E, _, _) :-
     fatal_error(E),
