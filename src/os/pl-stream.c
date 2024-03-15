@@ -382,6 +382,23 @@ Sunlock(IOSTREAM *s)
 }
 
 
+IOSTREAM *
+Sacquire(IOSTREAM *s)
+{ Sreference(s);
+  return s;
+}
+
+int
+Srelease(IOSTREAM *s)
+{ if ( Sunreference(s) == 0 && s->erased )
+  { unallocStream(s);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *		TIMEOUT		*
 		 *******************************/

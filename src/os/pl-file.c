@@ -213,7 +213,7 @@ aliasStream(IOSTREAM *s, atom_t name)
   ctx = getStreamContext(s);
   addNewHTable(streamAliases, (void *)name, s);
   PL_register_atom(name);
-  Sreference(s);
+  Sacquire(s);
 
   a = allocHeapOrHalt(sizeof(*a));
   a->next = NULL;
@@ -257,7 +257,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
       }
 
       PL_unregister_atom(name);
-      Sunreference(s);
+      Srelease(s);
     }
   } else				/* delete them all */
   { stream_context *ctx;
@@ -271,7 +271,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
 	if ( lookupHTable(streamAliases, (void *)a->name) )
 	{ deleteHTable(streamAliases, (void *)a->name);
 	  PL_unregister_atom(a->name);
-	  Sunreference(s);
+	  Srelease(s);
 	}
 
 	freeHeap(a, sizeof(*a));
@@ -293,7 +293,7 @@ referenceStandardStreams(PL_local_data_t *ld)
     { IOSTREAM *s;
 
       if ( (s=LD->IO.streams[i]) )
-	Sreference(s);
+	Sacquire(s);
     }
   }
 }
@@ -309,7 +309,7 @@ unreferenceStandardStreams(PL_local_data_t *ld)
     { IOSTREAM *s;
 
       if ( (s=LD->IO.streams[i]) )
-	Sunreference(s);
+	Srelease(s);
     }
   }
 }
@@ -322,9 +322,9 @@ setStandardStream(DECL_LD int i, IOSTREAM *s)
 { IOSTREAM *old = LD->IO.streams[i];
 
   if ( old != s )
-  { if ( s ) Sreference(s);
+  { if ( s ) Sacquire(s);
     LD->IO.streams[i] = s;
-    if ( old ) Sunreference(old);
+    if ( old ) Srelease(old);
   }
 }
 
@@ -338,7 +338,7 @@ copyStandardStreams(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   for(int i=0; i <= upto; i++)
   { IOSTREAM *s = ldold->IO.streams[i];
     if ( s )
-      Sreference(s);
+      Sacquire(s);
     ldnew->IO.streams[i] = s;
   }
 
@@ -346,8 +346,8 @@ copyStandardStreams(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   { WITH_LD(ldnew)
     { Scurin  = Suser_input;
       Scurout = Suser_output;
-      Sreference(Scurin);
-      Sreference(Scurout);
+      Sacquire(Scurin);
+      Sacquire(Scurout);
     }
   }
 }
@@ -667,9 +667,9 @@ acquire_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-    Sreference(ref->read);
+    Sacquire(ref->read);
   if ( ref->write )
-    Sreference(ref->write);
+    Sacquire(ref->write);
 }
 
 
@@ -1584,7 +1584,7 @@ pushOutputContext(DECL_LD IOSTREAM *s)
   c->previous          = output_context_stack;
   output_context_stack = c;
 
-  Sreference(c->stream);
+  Sacquire(c->stream);
   setStandardStream(SNO_CURRENT_OUTPUT, s);
 }
 
@@ -1603,7 +1603,7 @@ popOutputContext(DECL_LD)
     }
     setStandardStream(SNO_CURRENT_OUTPUT, s);
     output_context_stack = c->previous;
-    Sunreference(c->stream);
+    Srelease(c->stream);
     freeHeap(c, sizeof(struct output_context));
   } else
     setStandardStream(SNO_CURRENT_OUTPUT, Soutput);
@@ -5217,14 +5217,12 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 
     PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
-    { Sreference(s);
+    { Sacquire(s);
       rc = ( s->magic == SIO_MAGIC &&
 	     s->context != NULL &&
 	     unify_stream_property(s, p, pt) );
-      if ( s->erased && Sunreference(s) == 0 )
-      { unallocStream(s);
+      if ( Srelease(s) )
 	rc = FALSE;
-      }
       rc = ( rc &&
 	     can_unify(valTermRef(A1), valTermRef(pt), ex) &&
 	     PL_unify_list(tail, head, tail) &&

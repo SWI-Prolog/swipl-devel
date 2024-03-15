@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2020, University of Amsterdam
+    Copyright (c)  2017-2024, University of Amsterdam
                               VU University Amsterdam
-		              CWI, Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,7 +40,9 @@
 
 #include "SWI-Stream.h"
 
-void	unallocStream(IOSTREAM *s);
+void		unallocStream(IOSTREAM *s);
+IOSTREAM       *Sacquire(IOSTREAM *s);
+int             Srelease(IOSTREAM *s);
 
 #ifndef _PL_INCLUDE_H
 #ifdef O_PLMT
