@@ -4382,15 +4382,15 @@ do_tell(term_t f, atom_t m)
 
   PL_LOCK(L_SEETELL);
   if ( get_stream_handle(a, &s, SH_UNLOCKED) )
-  { Scurout = s;
+  { setStandardStream(SNO_CURRENT_OUTPUT, s);
     goto ok;
   }
   if ( a == ATOM_user )
-  { Scurout = Suser_output;
+  { setStandardStream(SNO_CURRENT_OUTPUT, Suser_output);
     goto ok;
   }
   if ( (s = findStreamFromFile(a, IO_TELL)) )
-  { Scurout = s;
+  { setStandardStream(SNO_CURRENT_OUTPUT, s);
     goto ok;
   }
 
@@ -5497,7 +5497,7 @@ PRED_IMPL("set_input", 1, set_input, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getInputStream(A1, S_DONTCARE, &s) )
-  { Scurin = s;
+  { setStandardStream(SNO_CURRENT_INPUT, s);
     releaseStream(s);
     return TRUE;
   }
@@ -5512,7 +5512,7 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getOutputStream(A1, S_DONTCARE, &s) )
-  { Scurout = s;
+  { setStandardStream(SNO_CURRENT_OUTPUT, s);
     releaseStream(s);
     return TRUE;
   }
