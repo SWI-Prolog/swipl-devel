@@ -1443,6 +1443,7 @@ abi_version(void)
 	  PL_QLF_LOADVERSION,
 	  GD->foreign.signature,
 	  VM_SIGNATURE);
+  PL_cleanup(0);
 
   return TRUE;
 }
