@@ -440,9 +440,7 @@ end_sub_format(sub_state *state, int rc)
     if ( rc )
       state->fstate->column = lp;
   } else
-  { int lp = Scurout->position->linepos;
-
-    toldString();
+  { toldString();
     if ( rc )
     { int c0 = state->fstate->column;
       rc = oututf8(state->fstate, state->str, state->bufsize);
