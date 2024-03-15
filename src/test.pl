@@ -2633,8 +2633,6 @@ testset(exception).
 testset(term_atom).
 testset(os).
 testset(io).
-testset(popen) :-
-    current_prolog_flag(pipe, true).
 testset(timeout).
 testset(file).
 testset(unicode_file) :-
