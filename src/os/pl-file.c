@@ -5933,18 +5933,18 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 
   PL_LOCK(L_FILE);
 
-  setStandardStream(1, out);		/* user_output */
-  setStandardStream(2, error);		/* user_error */
-  setStandardStream(4, out);		/* current_output */
+  setStandardStream(SNO_USER_OUTPUT,    out);
+  setStandardStream(SNO_USER_ERROR,     error);
+  setStandardStream(SNO_CURRENT_OUTPUT, out);
 
   if ( wrapin )
-  { setStandardStream(3, in);		/* current_input */
-    setStandardStream(0, in);		/* user_input */
+  { setStandardStream(SNO_CURRENT_INPUT, in);
+    setStandardStream(SNO_USER_INPUT,    in);
     wrapIO(in, Sread_user, NULL);
     LD->prompt.next = TRUE;
   }
 
-  for(i=0; i<3; i++)
+  for(i=SNO_USER_INPUT; i<=SNO_USER_ERROR; i++)
   { LD->IO.streams[i]->position = &LD->IO.streams[0]->posbuf;
     LD->IO.streams[i]->flags |= SIO_RECORDPOS;
   }
