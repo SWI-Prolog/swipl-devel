@@ -424,14 +424,29 @@ freeStream(IOSTREAM *s)
        (sp=LD->IO.streams) )
   { for(i=0; i <= SNO_MAX; i++, sp++)
     { if ( *sp == s )
-      { *sp = NULL;
+      { IOSTREAM *new;
 
-	if ( s->flags & SIO_INPUT )
-	  setStandardStream(i, Sinput);
-	else if ( sp == &Suser_error )
-	  setStandardStream(i, Serror);
-	else if ( sp != &Sprotocol )
-	  setStandardStream(i, Soutput);
+	switch(i)
+	{ case SNO_USER_INPUT:
+	    new = Sinput;
+	    break;
+	  case SNO_USER_OUTPUT:
+	    new = Soutput;
+	    break;
+	  case SNO_USER_ERROR:
+	    new = Serror;
+	    break;
+	  case SNO_CURRENT_INPUT:
+	    new = Suser_input;
+	    break;
+	  case SNO_CURRENT_OUTPUT:
+	    new = Suser_output;
+	    break;
+	  case SNO_PROTOCOL:
+	    new = NULL;
+	    break;
+	}
+	setStandardStream(i, new);
       }
     }
   }
