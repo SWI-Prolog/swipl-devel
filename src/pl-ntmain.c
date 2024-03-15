@@ -301,9 +301,9 @@ rlc_bind_terminal(rlc_console c)
   rlc_functions.close   = Srlc_close;
   rlc_functions.control = Srlc_control;
 
-  bind_std(Sinput);
-  bind_std(Soutput);
-  bind_std(Serror);
+  bind_std(Sinput, c);
+  bind_std(Soutput, c);
+  bind_std(Serror, c);
 }
 
 
