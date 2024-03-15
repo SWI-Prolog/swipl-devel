@@ -61,7 +61,7 @@ test_answer :-
 %%	toplevel_answer(+GoalAtom, -Answer:string) is det.
 %
 %	Run GoalAtom in a separate thread and   catch the output that is
-%	produces by Prolog.
+%	produced by Prolog.
 
 toplevel_answer(GoalAtom, Answer) :-
 	pipe(Read, Write),
@@ -79,8 +79,8 @@ send_bindings(In, Out) :-
 	set_prolog_flag(toplevel_residue_vars, true),
 	prolog,
 	close(user_input),
-	close(user_output),
-	close(user_error).
+	close(user_error),
+	close(user_output).
 
 %%	test_answer(+Query, -OkReplies) is semidet.
 %
