@@ -2519,8 +2519,8 @@ toldString()
     return TRUE;
 
   if ( s->functions == &Smemfunctions )
-  { closeStream(s);
-    popOutputContext();
+  { popOutputContext();
+    closeStream(s);
   } else
     releaseStream(s);
 
