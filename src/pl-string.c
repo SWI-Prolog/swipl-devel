@@ -245,7 +245,9 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
     t.canonical = FALSE;
     t.storage   = PL_CHARS_HEAP;
 
-    return PL_unify_text(A1, 0, &t, PL_STRING);
+    rc = PL_unify_text(A1, 0, &t, PL_STRING);
+    PL_free_text(&t);
+    return rc;
   }
 
   return FALSE;
