@@ -3146,7 +3146,14 @@ compileSimpleAddition(DECL_LD Word sc, compileInfo *ci)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Perform LCO optimization when possible.
+Perform LCO optimization  when possible.  `pc0` is the  PC offset that
+starts  the  instructions preparing  the  last  call and  ending  with
+I_DEPART <proc>
+
+This code analyses  the code that sets up the  arguments to <proc> and
+emits code  to deal  with the  LCO case, ending  either in  I_TCALL or
+I_LCALL <proc>.  Finally, we swap the LCO and non-LCO code using three
+calls to reverse_code().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
