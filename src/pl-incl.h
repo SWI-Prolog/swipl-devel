@@ -2454,23 +2454,36 @@ typedef enum
 	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-hasGlobalSpace(n) is true if we have enough space to create an object of
-size N on the global stack AND  can   use  bindConst()  to bind it to an
+hasGlobalSpace(n) is true if we have  enough space to create an object
+of size N on the global stack AND can use bindConst() to bind it to an
 (attributed) variable.
+
+Note that on 32-bit systems the  pointer can easily overflow, so we do
+the arithmetic after dividing by the unit size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_M64 && SIZEOF_VOIDP == 4
+#define hasSpace(base, top, size) \
+	(size_t)(base)/sizeof(base) + (size) <= (size_t)(top)/sizeof(base)
+#else
+#define hasSpace(base, top, size) \
+	(base) + (size) <= (top)
+#endif
 
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
 	hasStackSpace(n,0)
 #define hasStackSpace(g, t) \
-	(likely(gTop+(g)+BIND_GLOBAL_SPACE <= gMax) && \
-	 likely(tTop+(t)+BIND_TRAIL_SPACE <= tMax))
+	(hasGlobalSpace_(g+BIND_GLOBAL_SPACE) && \
+	 hasTrailSpace(t+BIND_TRAIL_SPACE))
+#define hasGlobalSpace_(n) \
+	likely(hasSpace(gTop, gMax, (n)))
 #define hasTrailSpace(t) \
-	likely(tTop+(t) <= tMax)
+	likely(hasSpace(tTop, tMax, (t)))
 #define overflowCode(n) \
-	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
-					      : TRAIL_OVERFLOW )
+	( !hasGlobalSpace_((n)+BIND_GLOBAL_SPACE) ? GLOBAL_OVERFLOW \
+						  : TRAIL_OVERFLOW )
 #define GLOBAL_TRAIL_RATIO (6)
 
 
