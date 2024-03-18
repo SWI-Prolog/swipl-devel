@@ -1242,11 +1242,11 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
       { *ap = (Word)((uintptr_t)adr & ~LARGP);
       } else
       { word w = *fp++;
-	word mask = (tag(w) == TAG_ATTVAR ? UWRITE : 0);
+	uintptr_t mask = (tag(w) == TAG_ATTVAR ? UWRITE : 0);
 
 	if ( mask )
 	  uwc++;
-	*ap = (Word)(ptr2word(valPtr(w))|mask);
+	*ap = (Word)((uintptr_t)valPtr(w)|mask);
       }
     }
     assert(fp == (Word)(fr+1) + fr->size);
