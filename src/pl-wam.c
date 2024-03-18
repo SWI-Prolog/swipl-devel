@@ -130,7 +130,8 @@ loffset(DECL_LD void *p)
 { if ( p == NULL )
     return 0;
 
-  assert((intptr_t)p % sizeof(word) == 0);
+  IS_WORD_ALIGNED(p);
+
   return (Word)p-(Word)lBase;
 }
 #endif
@@ -2555,6 +2556,7 @@ static Choice
 newChoice(DECL_LD choice_type type, LocalFrame fr)
 { Choice ch = (Choice)lTop;
 
+  IS_WORD_ALIGNED(ch);
   DEBUG(0, assert(ch+1 <= (Choice)lMax));
   DEBUG(0, assert(BFR < ch));
   lTop = (LocalFrame)(ch+1);
@@ -2644,10 +2646,11 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   while ( (uintptr_t)qf % JMPBUF_ALIGNMENT )
     qf = addPointer(qf, sizeof(word));
 #endif
+  IS_WORD_ALIGNED(qf);
   qf->saved_ltop = lTop;
-
 					/* fill top-frame */
   top		     = &qf->top_frame;
+  IS_WORD_ALIGNED(top);
   top->parent        = NULL;
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->programPointer= NULL;
@@ -2742,6 +2745,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
 					/* publish environment */
   LD->choicepoints  = &qf->choice;
+  IS_WORD_ALIGNED(LD->choicepoints);
   environment_frame = fr;
   qf->parent = LD->query;
   LD->query = qf;

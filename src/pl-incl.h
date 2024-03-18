@@ -1832,12 +1832,12 @@ struct queryFrame
   LocalFrame	saved_ltop;		/* Saved lTop */
   QueryFrame	parent;			/* Parent queryFrame */
   QueryRef	qid;			/* Opaque query id */
-  struct choice	choice;			/* First (dummy) choice-point */
+  struct choice	choice WORD_ALIGNED;	/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
 					/* Do not put anything between */
 					/* or check parentFrame() */
-  struct localFrame top_frame;		/* The (dummy) top local frame */
-  struct localFrame frame;		/* The initial frame */
+  struct localFrame top_frame WORD_ALIGNED; /* The (dummy) top local frame */
+  struct localFrame frame WORD_ALIGNED;	/* The initial frame */
 };
 
 #define QF_PARENT_ENV_OFFSET \
