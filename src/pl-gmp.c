@@ -2123,8 +2123,10 @@ PL_get_mpq(term_t t, mpq_t mpq)
 { if ( PL_is_rational(t) )
   { GET_LD
     number n;
+    Word p = valTermRef(t);
 
-    get_rational(t, &n);
+    deRef(p);
+    get_rational(*p, &n);
     switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
