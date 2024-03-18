@@ -828,8 +828,6 @@ typedef struct choice *		Choice;		/* Choice-point */
 typedef struct clause_choice *  ClauseChoice;   /* firstClause()/nextClause() */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
-typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
-typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
@@ -1581,6 +1579,11 @@ typedef struct
   char	       _argtype[VM_ARGC]; /* Argument type(s) code takes */
 } code_info;
 
+typedef union trail_entry
+{ Word	address;	/* address of the variable */
+  word	as_word;	/* Tagged during GC */
+} *TrailEntry;
+
 struct mark
 { TrailEntry	trailtop;	/* top of the trail stack */
   Word		globaltop;	/* top of the global stack */
@@ -2026,18 +2029,6 @@ typedef struct module_enum
   int		flags;
 } module_enum, *ModuleEnum;
 
-
-		 /*******************************
-		 *	      TRAIL		*
-		 *******************************/
-
-struct trail_entry
-{ Word		address;	/* address of the variable */
-};
-
-struct gc_trail_entry
-{ word		address;	/* address of the variable */
-};
 
 		 /*******************************
 		 *	   META PREDICATE	*

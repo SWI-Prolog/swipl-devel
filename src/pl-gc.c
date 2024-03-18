@@ -196,7 +196,7 @@ reference pointers to the local stack as it used to be.
 #define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
-#define ttag(x)		(((word)(x))&TAG_TRAILMASK)
+#define ttag(x)		((x)&TAG_TRAILMASK)
 
 
 		 /*******************************
@@ -1470,20 +1470,22 @@ popall_marked(DECL_LD)
 }
 
 
-#define mergeTrailedAssignments(top, mark, assignments) LDFUNC(mergeTrailedAssignments, top, mark, assignments)
+#define mergeTrailedAssignments(top, mark, assignments) \
+	LDFUNC(mergeTrailedAssignments, top, mark, assignments)
+
 static void
-mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
+mergeTrailedAssignments(DECL_LD TrailEntry top, TrailEntry mark,
 			int assignments)
-{ GCTrailEntry te;
+{ TrailEntry te;
   LD->cycle.vstack.unit_size = sizeof(Word);
 
   DEBUG(MSG_GC_ASSIGNMENTS,
 	Sdprintf("Scanning %d trailed assignments\n", assignments));
 
   for(te=mark; te <= top; te++)
-  { Word p = val_ptr(te->address);
+  { Word p = val_ptr(te->as_word);
 
-    if ( ttag(te[1].address) == TAG_TRAILVAL )
+    if ( ttag(te[1].as_word) == TAG_TRAILVAL )
     { assignments--;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
@@ -1491,8 +1493,8 @@ mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
 		Sdprintf("Delete duplicate trailed assignment at %s\n",
 			 var_name_ptr(p, vname));
 	      });
-	te->address = 0;
-	te[1].address = 0;
+	te->as_word = 0;
+	te[1].as_word = 0;
 	trailcells_deleted += 2;
       } else
       { mark_first(p);
@@ -1500,7 +1502,7 @@ mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
       }
     } else
     { if ( is_first(p) )
-      { te->address = 0;
+      { te->as_word = 0;
 	trailcells_deleted++;
       }
     }
@@ -1554,24 +1556,24 @@ backtracking.
 #define early_reset_vars(m, top, te) \
 	LDFUNC(early_reset_vars, m, top, te)
 
-static GCTrailEntry
-early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
-{ GCTrailEntry tm = (GCTrailEntry)m->trailtop;
-  GCTrailEntry te0 = te;
+static TrailEntry
+early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
+{ TrailEntry tm = m->trailtop;
+  TrailEntry te0 = te;
   int assignments = 0;
   Word gKeep = (LD->frozen_bar > m->globaltop ? LD->frozen_bar : m->globaltop);
 
   for( ; te >= tm; te-- )		/* early reset of vars */
   {
 #if O_DESTRUCTIVE_ASSIGNMENT
-    if ( isTrailVal(te->address) )
-    { Word tard = val_ptr(te[-1].address);
-      Word gp = val_ptr(te->address);
+    if ( isTrailVal(te->as_word) )
+    { Word tard = val_ptr(te[-1].as_word);
+      Word gp = val_ptr(te->as_word);
 
       if ( tard >= top || (tard >= gKeep && tard < gMax) )
-      { te->address = 0;
+      { te->as_word = 0;
 	te--;
-	te->address = 0;
+	te->as_word = 0;
 	trailcells_deleted += 2;
       } else if ( is_marked(tard) )
       {
@@ -1611,25 +1613,25 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	  *tard = *gp;
 	  unmark(tard);
 
-	  te->address = 0;
+	  te->as_word = 0;
 	  te--;
-	  te->address = 0;
+	  te->as_word = 0;
 	  trailcells_deleted += 2;
 	}
       }
     } else
 #endif
-    { Word tard = val_ptr(te->address);
+    { Word tard = val_ptr(te->as_word);
 
       if ( tard >= top )		/* above local stack */
-      { DEBUG(CHK_SECURE, assert(ttag(te[1].address) != TAG_TRAILVAL));
-	te->address = 0;
+      { DEBUG(CHK_SECURE, assert(ttag(te[1].as_word) != TAG_TRAILVAL));
+	te->as_word = 0;
 	trailcells_deleted++;
       } else if ( tard > gKeep && tard < gMax )
       { if ( LD->attvar.attvars &&	/* see (**) */
 	     is_marked(tard) && isRef(*tard) &&
 	     te-1 >= tm )
-	{ Word tard2 = val_ptr(te[-1].address);
+	{ Word tard2 = val_ptr(te[-1].as_word);
 
 	  if ( is_marked(tard2) && isAttVar(*tard2) )
 	  { te--;
@@ -1639,7 +1641,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	    continue;
 	  }
 	}
-	te->address = 0;
+	te->as_word = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
       { DEBUG(MSG_GC_RESET,
@@ -1647,7 +1649,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	      Sdprintf("Early reset at %s (%s)\n",
 		       var_name_ptr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
-	te->address = 0;
+	te->as_word = 0;
 	trailcells_deleted++;
       }
     }
@@ -1663,8 +1665,8 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 
 
 #define mark_foreign_frame(fr, te) LDFUNC(mark_foreign_frame, fr, te)
-static GCTrailEntry
-mark_foreign_frame(DECL_LD FliFrame fr, GCTrailEntry te)
+static TrailEntry
+mark_foreign_frame(DECL_LD FliFrame fr, TrailEntry te)
 { FLI_ASSERT_VALID(fr);
 
   if ( isRealMark(fr->mark) )
@@ -1692,7 +1694,7 @@ mark_foreign_frame(DECL_LD FliFrame fr, GCTrailEntry te)
 typedef struct mark_state
 { vm_state     *vm_state;		/* Virtual machine locations */
   FliFrame	flictx;			/* foreign context for early reset */
-  GCTrailEntry	reset_entry;		/* Walk trail stack for early reset */
+  TrailEntry	reset_entry;		/* Walk trail stack for early reset */
 } mark_state;
 
 
@@ -2517,7 +2519,7 @@ mark_stacks(vm_state *vmstate)
 
   memset(&state, 0, sizeof(state));
   state.vm_state     = vmstate;
-  state.reset_entry  = (GCTrailEntry)tTop - 1;
+  state.reset_entry  = tTop - 1;
   state.flictx       = fli_context;
   trailcells_deleted = 0;
 
@@ -2691,12 +2693,12 @@ Trail stack compacting.
 static void
 compact_trail(void)
 { GET_LD
-  GCTrailEntry dest, current;
+  TrailEntry dest, current;
 
 	/* compact the trail stack */
-  for( dest = current = (GCTrailEntry)tBase; current < (GCTrailEntry)tTop; )
-  { if ( is_first(&current->address) )
-      update_relocation_chain(&current->address, &dest->address);
+  for( dest = current = tBase; current < tTop; )
+  { if ( is_first(&current->as_word) )
+      update_relocation_chain(&current->as_word, &dest->as_word);
 #if O_DEBUG
     else if ( DEBUGGING(CHK_SECURE) )
     { table_value_t chk;
@@ -2707,15 +2709,15 @@ compact_trail(void)
     }
 #endif
 
-    if ( current->address )
+    if ( current->as_word )
       *dest++ = *current++;
     else
       current++;
   }
-  if ( is_first(&current->address) )
-    update_relocation_chain(&current->address, &dest->address);
+  if ( is_first(&current->as_word) )
+    update_relocation_chain(&current->as_word, &dest->as_word);
 
-  tTop = (TrailEntry)dest;
+  tTop = dest;
 
   if ( relocated_cells != relocation_cells )
     sysError("After trail: relocation cells = %ld; relocated_cells = %ld\n",
@@ -2764,13 +2766,13 @@ untag_trail(DECL_LD)
 { TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
-  { if ( te->address )
-    { word mask = ttag(te->address);
+  { if ( te->as_word )
+    { word mask = ttag(te->as_word);
 
-      te->address = (Word)((word)valPtr((word)te->address)|mask);
+      te->address = word2ptr(Word, (uintptr_t)valPtr(te->as_word)|mask);
 #ifdef O_ATTVAR
-      if ( isTrailVal(te->address) )
-      { word w = trailVal(te->address);
+      if ( isTrailVal(te->as_word) )
+      { word w = trailVal(te->as_word);
 
 	if ( isAttVar(w) )
 	{ Word avp = te[-1].address;
@@ -3059,22 +3061,22 @@ relocation chains.
 static void
 sweep_trail(void)
 { GET_LD
-  GCTrailEntry te = (GCTrailEntry)tTop - 1;
+  TrailEntry te = tTop - 1;
 
-  for( ; te >= (GCTrailEntry)tBase; te-- )
+  for( ; te >= tBase; te-- )
   { if ( te->address )
-    {
+    { te->as_word = ptr2word(te->address);
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
-      if ( ttag(te->address) == TAG_TRAILVAL )
-      { needsRelocation(&te->address);
-	check_relocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL);
+      if ( ttag(te->as_word) == TAG_TRAILVAL )
+      { needsRelocation(&te->as_word);
+	check_relocation(&te->as_word);
+	into_relocation_chain(&te->as_word, STG_TRAIL);
       } else
 #endif
-      if ( storage(te->address) == STG_GLOBAL )
-      { needsRelocation(&te->address);
-	check_relocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL);
+      if ( storage(te->as_word) == STG_GLOBAL )
+      { needsRelocation(&te->as_word);
+	check_relocation(&te->as_word);
+	into_relocation_chain(&te->as_word, STG_TRAIL);
       }
     }
   }
@@ -4668,7 +4670,7 @@ f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
       gmin = 0;
 
     if ( tTop+tcells > tMax || tight((Stack)&LD->stacks.trail) )
-      tmin = tcells*sizeof(struct trail_entry);
+      tmin = tcells*sizeof(TrailEntry*);
     else
       tmin = 0;
 
