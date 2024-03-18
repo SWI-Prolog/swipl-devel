@@ -41,27 +41,25 @@
 #define SMALL_STATIC_BUFFER_SIZE	(512)
 #define BUFFER_DISCARD_ABOVE	       (4096)
 
-#define ALIGN(n) __attribute__ ((aligned (n)))
-
 typedef struct
 { char *	base;			/* allocated base */
   char *	top;			/* pointer to top */
   char *	max;			/* current location */
-  char		static_buffer[STATIC_BUFFER_SIZE] ALIGN(8);
+  char		static_buffer[STATIC_BUFFER_SIZE] WORD_ALIGNED;
 } tmp_buffer, *TmpBuffer;
 
 typedef struct
 { char *	base;			/* allocated base */
   char *	top;			/* pointer to top */
   char *	max;			/* current location */
-  char		static_buffer[SMALL_STATIC_BUFFER_SIZE] ALIGN(8);
+  char		static_buffer[SMALL_STATIC_BUFFER_SIZE] WORD_ALIGNED;
 } tmp_small_buffer;
 
 typedef struct
 { char *	base;			/* allocated base */
   char *	top;			/* pointer to top */
   char *	max;			/* current location */
-  char		static_buffer[sizeof(char *)] ALIGN(8);
+  char		static_buffer[sizeof(char *)] WORD_ALIGNED;
 } MAY_ALIAS buffer, *Buffer;
 
 typedef struct string_buffer
