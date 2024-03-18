@@ -1490,7 +1490,8 @@ valid while the stack is unrolled after an exception.
 
 static void
 emptyStack(Stack s)
-{ s->top       = s->base;
+{ IS_WORD_ALIGNED(s->base);
+  s->top       = s->base;
   s->gced_size = 0L;
 }
 

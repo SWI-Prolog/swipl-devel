@@ -754,10 +754,14 @@ place them on the stack (see I_USERCALL).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __GNUC__
-#define WORD_ALIGNED __attribute__ ((aligned (sizeof(word))))
+#define ALIGN(n) __attribute__ ((aligned (n)))
+#define IS_WORD_ALIGNED(ptr) assert(((uintptr_t)(ptr)&(sizeof(word)-1)) == 0)
 #else
-#define WORD_ALIGNED
+#define ALIGN(n)
+#define IS_WORD_ALIGNED(ptr)
 #endif
+
+#define WORD_ALIGNED ALIGN(sizeof(word))
 
 #if 0
 /* The following have all been defined in SWI-Prolog.h, included above,
@@ -852,7 +856,6 @@ ptr2word(void *ptr)
 
 #define word2ptr(type, w) ((type)(uintptr_t)(w))
 #define code2ptr(type, c) ((type)(uintptr_t)(c))
-
 
 		 /*******************************
 		 *	    ARITHMETIC		*
