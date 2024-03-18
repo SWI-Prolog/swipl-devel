@@ -2067,7 +2067,7 @@ Finish up the clause.
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
     if ( (uintptr_t)p % sizeof(gen_t) != 0 )
-    { p = addPointer(p, sizeof(word));
+    { p = addPointer(p, sizeof(void*));
       assert((uintptr_t)p % sizeof(gen_t) == 0);
     }
 #endif

@@ -790,8 +790,8 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 #endif
 
 #if O_M64
-typedef uint64_t		word;		/* Anonymous ptr-sized object*/
-typedef int64_t			sword;		/* Signed version */
+typedef uint64_t		word WORD_ALIGNED; /* Anonymous ptr-sized object*/
+typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 #else
 typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
 typedef intptr_t		sword;		/* Signed version */
