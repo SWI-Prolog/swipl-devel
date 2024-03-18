@@ -216,8 +216,8 @@ typedef enum
 */
 
 typedef struct
-{ Word term;
-  Word key;
+{ Word term WORD_ALIGNED;
+  Word key  WORD_ALIGNED;
 } ITEM;
 
 					/* TBD: handle CMP_ERROR */
@@ -428,7 +428,9 @@ typedef enum
   SORT_NOSORT
 } list_sort;
 
-#define prolog_list_to_sort_list(t, remove_dups, argc, argv, pair, lp, end) LDFUNC(prolog_list_to_sort_list, t, remove_dups, argc, argv, pair, lp, end)
+#define prolog_list_to_sort_list(t, remove_dups, argc, argv, pair, lp, end) \
+	LDFUNC(prolog_list_to_sort_list, t, remove_dups, argc, argv, pair, lp, end)
+
 static list_sort
 prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
 			 int remove_dups,	/* allow to be cyclic */
@@ -496,6 +498,7 @@ static void
 put_sort_list(term_t l, list sl)
 { GET_LD
 
+    IS_WORD_ALIGNED(sl);
   *valTermRef(l) = consPtr(sl, TAG_COMPOUND|STG_GLOBAL);
 
   for(;;)
