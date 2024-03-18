@@ -699,7 +699,8 @@ prolog:prolog_exception_hook(error(E, context(Ctx0,Msg)),
         stack_guard(Guard)
     ->  true
     ;   Debug == true,
-        stack_guard(debug)
+        stack_guard(debug),
+        Guard = none
     ),
     (   current_prolog_flag(backtrace_depth, Depth)
     ->  Depth > 0
