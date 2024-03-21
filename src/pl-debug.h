@@ -3,7 +3,7 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -121,6 +121,8 @@
 
 #define MSG_BACKTRACK		 90
 #define MSG_CSTACK		 91
+#define MSG_GMP_ALLOC		 92
+#define MSG_GMP_OVERFLOW	 93
 
 						/* GC messages */
 #define	MSG_AGC			 100

@@ -92,7 +92,7 @@ static int
 gmp_too_big(void)
 { GET_LD
 
-  DEBUG(1, Sdprintf("Signalling GMP overflow\n"));
+  DEBUG(MSG_GMP_OVERFLOW, Sdprintf("Signalling GMP overflow\n"));
 
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
 }
@@ -109,10 +109,10 @@ mp_alloc(size_t bytes)
 
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
-  { gmp_too_big();
-    abortProlog();
+  { gmp_too_big();		/* signals global overflow and does longjmp() */
+    abortProlog();		/* Just in case this fails */
     PL_rethrow();
-    return NULL;			/* make compiler happy */
+    return NULL;		/* make compiler happy */
   }
 
 #if O_BF
@@ -132,7 +132,7 @@ mp_alloc(size_t bytes)
   { mem->prev = NULL;
     LD->gmp.head = LD->gmp.tail = mem;
   }
-  DEBUG(9, Sdprintf("GMP: alloc %ld@%p\n", bytes, &mem[1]));
+  DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: alloc %zd@%p\n", bytes, &mem[1]));
 
   return &mem[1];
 }
@@ -170,7 +170,7 @@ mp_free(void *ptr, size_t size)
   }
 
   free(mem);
-  DEBUG(9, Sdprintf("GMP: free: %ld@%p\n", size, ptr));
+  DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: free: %zd@%p\n", size, ptr));
   GMP_LEAK_CHECK(LD->gmp.allocated -= size);
 }
 
@@ -215,7 +215,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 
   GMP_LEAK_CHECK(LD->gmp.allocated -= oldsize;
 		 LD->gmp.allocated += newsize);
-  DEBUG(9, Sdprintf("GMP: realloc %ld@%p --> %ld@%p\n", oldsize, ptr, newsize, &newmem[1]));
+  DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: realloc %zd@%p --> %zd@%p\n", oldsize, ptr, newsize, &newmem[1]));
 
   return &newmem[1];
 }
@@ -230,7 +230,7 @@ mp_cleanup(ar_context *ctx)
   { for(mem=LD->gmp.head; mem; mem=next)
     { next = mem->next;
       if ( mem->context == LD->gmp.context )
-      { DEBUG(9, Sdprintf("GMP: cleanup of %p\n", &mem[1]));
+      { DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: cleanup of %p\n", &mem[1]));
 	mp_free(&mem[1], 0);
       }
     }

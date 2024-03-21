@@ -121,6 +121,8 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_BACKTRACK),
   DEBUG_TOPIC(MSG_CSTACK),
+  DEBUG_TOPIC(MSG_GMP_ALLOC),
+  DEBUG_TOPIC(MSG_GMP_OVERFLOW),
 
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
