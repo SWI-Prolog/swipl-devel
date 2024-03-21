@@ -1211,8 +1211,8 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 
   if ( sz <= sizeof(tmp) )
     buf = tmp;
-  else
-    buf = PL_malloc(sz);
+  else if ( !(buf = tmp_malloc(sz)) )
+    return PL_no_memory();
 
   /* mpz_get_str() can perform large intermediate allocations */
   EXCEPTION_GUARDED({ LD->gmp.persistent++;
@@ -1224,7 +1224,7 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 		    })
   rc = PutToken(buf, options->out);
   if ( buf != tmp )
-    PL_free(buf);
+    tmp_free(buf);
 
   return rc;
 }
