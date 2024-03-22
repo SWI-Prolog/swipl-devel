@@ -1208,6 +1208,7 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
   char *buf;
   size_t sz = (mpz_sizeinbase(mpz, 2)*10)/3 + 10; /* log2(10)=3.322 */
   int rc;
+  AR_CTX;
 
   if ( sz <= sizeof(tmp) )
     buf = tmp;
@@ -1215,14 +1216,14 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
     return PL_no_memory();
 
   /* mpz_get_str() can perform large intermediate allocations */
-  EXCEPTION_GUARDED({ LD->gmp.persistent++;
-		      mpz_get_str(buf, 10, mpz);
-		      LD->gmp.persistent--;
+  AR_BEGIN();
+  EXCEPTION_GUARDED({ mpz_get_str(buf, 10, mpz);
+                      rc = TRUE;
 		    },
-		    { LD->gmp.persistent--;
-		      rc = PL_rethrow();
-		    })
-  rc = PutToken(buf, options->out);
+		    { rc = FALSE;
+		    });
+  AR_END();
+  rc = rc && PutToken(buf, options->out);
   if ( buf != tmp )
     tmp_free(buf);
 

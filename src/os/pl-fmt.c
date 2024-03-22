@@ -1105,20 +1105,21 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
       size_t len = (double)mpz_sizeinbase(i->value.mpz, 2) * log(radix)/log(2) * 1.2;
       char tmp[256];
       char *buf;
-      int rc = TRUE;
+      int rc;
+      AR_CTX;
 
       if ( len+2 > sizeof(tmp) )
-	buf = PL_malloc(len+2);
+	buf = tmp_malloc(len+2);
       else
 	buf = tmp;
 
-      EXCEPTION_GUARDED({ LD->gmp.persistent++;
-			  mpz_get_str(buf, radix, i->value.mpz);
-			  LD->gmp.persistent--;
+      AR_BEGIN();
+      EXCEPTION_GUARDED({ mpz_get_str(buf, radix, i->value.mpz);
+			  rc = TRUE;
 			},
-			{ LD->gmp.persistent--;
-			  rc = PL_rethrow();
+			{ rc = FALSE;
 			});
+      AR_END();
       if ( !rc )
 	return NULL;
 
@@ -1162,7 +1163,7 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
       }
 
       if ( buf != tmp )
-	PL_free(buf);
+	tmp_free(buf);
 
       addBuffer(out, EOS, char);
       return baseBuffer(out, char);
