@@ -4401,8 +4401,8 @@ seed_from_dev(DECL_LD const char *dev)
       }
 
       if ( rd >= MIN_RAND_SEED_LEN )
-      { DEBUG(1, Sdprintf("Seed random using %ld bytes from %s\n",
-			  (long)rd, dev));
+      { DEBUG(1, Sdprintf("Seed random using %zd bytes from %s\n",
+			  rd, dev));
 
 	LD->gmp.persistent++;
 	mpz_init(seed);
