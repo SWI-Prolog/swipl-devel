@@ -89,13 +89,18 @@ static void  (*smp_free)(void *, size_t);
 #define NOT_IN_PROLOG_ARITHMETIC() \
 	(LD == NULL || LD->gmp.context == NULL || LD->gmp.persistent)
 
-static int
+#define ROUND_SIZE(n) (((n) + (sizeof(size_t) - 1))/sizeof(size_t))
+
+static void *
 gmp_too_big(void)
 { GET_LD
 
   DEBUG(MSG_GMP_OVERFLOW, Sdprintf("Signalling GMP overflow\n"));
 
-  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
+  outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
+  abortProlog();		/* Just in case this fails */
+  PL_rethrow();
+  return NULL;
 }
 
 #define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)globalStackLimit())
@@ -109,13 +114,8 @@ mp_alloc(size_t bytes)
   if ( NOT_IN_PROLOG_ARITHMETIC() )
     return smp_alloc(bytes);
 
-  if ( TOO_BIG_GMP(bytes) ||
-       !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
-  { gmp_too_big();		/* signals global overflow and does longjmp() */
-    abortProlog();		/* Just in case this fails */
-    PL_rethrow();
-    return NULL;		/* make compiler happy */
-  }
+  if ( TOO_BIG_GMP(bytes) )
+    return gmp_too_big();
 
 #if O_BF
   if ( bytes == 0 )
@@ -123,20 +123,39 @@ mp_alloc(size_t bytes)
 #endif
   ctx = LD->gmp.context;
 
-  GMP_LEAK_CHECK(ctx->allocated += bytes);
-
-  mem->next = NULL;
-  if ( ctx->tail )
-  { mem->prev = ctx->tail;
-    ctx->tail->next = mem;
-    ctx->tail = mem;
-  } else
-  { mem->prev = NULL;
-    ctx->head = ctx->tail = mem;
+  size_t fastunits = ROUND_SIZE(bytes)+1;
+  if ( ctx->allocated+fastunits <= GMP_STACK_ALLOC )
+  { size_t *data = &ctx->alloc_buf[ctx->allocated];
+    *data++ = fastunits;
+    ctx->allocated += fastunits;
+    DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: from stack %zd@%p\n", bytes, data));
+    return data;
   }
-  DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: alloc %zd@%p\n", bytes, &mem[1]));
 
-  return &mem[1];
+  if ( (mem = malloc(sizeof(mp_mem_header)+bytes)) )
+  { mem->next = NULL;
+    if ( ctx->tail )
+    { mem->prev = ctx->tail;
+      ctx->tail->next = mem;
+      ctx->tail = mem;
+    } else
+    { mem->prev = NULL;
+      ctx->head = ctx->tail = mem;
+    }
+    DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: malloc %zd@%p\n", bytes, &mem[1]));
+
+    return &mem[1];
+  } else
+    return gmp_too_big();
+}
+
+
+static inline size_t *
+mp_on_stack(ar_context *ctx, void *ptr)
+{ if ( ptr > (void*)ctx->alloc_buf && ptr < (void*)&ctx->alloc_buf[GMP_STACK_ALLOC] )
+    return &((size_t*)ptr)[-1];
+
+  return NULL;
 }
 
 
@@ -156,6 +175,13 @@ mp_free(void *ptr, size_t size)
     return;
 #endif
   ctx = LD->gmp.context;
+  size_t *base = mp_on_stack(ctx, ptr);
+  if ( base )
+  { if ( (base-ctx->alloc_buf) + base[0] == ctx->allocated )
+      ctx->allocated -= base[0];
+    return;
+  }
+
   mem = ((mp_mem_header*)ptr)-1;
 
   if ( mem == ctx->head )
@@ -174,7 +200,6 @@ mp_free(void *ptr, size_t size)
 
   free(mem);
   DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: free: %zd@%p\n", size, ptr));
-  GMP_LEAK_CHECK(ctx->allocated -= size);
 }
 
 
@@ -196,33 +221,54 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   }
 #endif
 
-  oldmem = ((mp_mem_header*)ptr)-1;
-  if ( TOO_BIG_GMP(newsize) ||
-       !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
-  { gmp_too_big();
-    abortProlog();
-    PL_rethrow();
-    return NULL;			/* make compiler happy */
-  }
+  if ( TOO_BIG_GMP(newsize) )
+    return gmp_too_big();
 
   ctx = LD->gmp.context;
-  if ( oldmem != newmem )		/* re-link if moved */
-  { if ( newmem->prev )
-      newmem->prev->next = newmem;
-    else
-      ctx->head = newmem;
+  size_t *base = mp_on_stack(ctx, ptr);
+  if ( base )
+  { size_t fastunits = ROUND_SIZE(newsize)+1;
+    size_t alloc0 = base-ctx->alloc_buf;
 
-    if ( newmem->next )
-      newmem->next->prev = newmem;
-    else
-      ctx->tail = newmem;
+    if ( alloc0 + base[0] == ctx->allocated ) /* at the top */
+    { if ( alloc0+fastunits-1 <= GMP_STACK_ALLOC )
+      { base[0] = fastunits;		      /* and still fits */
+	ctx->allocated = alloc0+fastunits;
+	return ptr;
+      }
+    } else if ( fastunits <= base[0] )	      /* shrink */
+    { base[0] = fastunits;
+      return ptr;
+    }
+
+    void *new = mp_alloc(newsize);
+    if ( new )
+    { size_t cp = base[0]*sizeof(size_t);
+      if ( newsize < cp )
+	cp = newsize;
+      memcpy(new, ptr, cp);
+    }
+    return new;
   }
 
-  GMP_LEAK_CHECK(ctx->allocated -= oldsize;
-		 ctx->allocated += newsize);
-  DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: realloc %zd@%p --> %zd@%p\n", oldsize, ptr, newsize, &newmem[1]));
+  oldmem = ((mp_mem_header*)ptr)-1;
+  if ( (newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
+  { if ( oldmem != newmem )		/* re-link if moved */
+    { if ( newmem->prev )
+	newmem->prev->next = newmem;
+      else
+	ctx->head = newmem;
 
-  return &newmem[1];
+      if ( newmem->next )
+	newmem->next->prev = newmem;
+      else
+	ctx->tail = newmem;
+    }
+
+    DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: realloc %zd@%p --> %zd@%p\n", oldsize, ptr, newsize, &newmem[1]));
+    return &newmem[1];
+  } else
+    return gmp_too_big();
 }
 
 
@@ -236,7 +282,45 @@ mp_cleanup(ar_context *ctx)
     mp_free(&mem[1], 0);
   }
 }
+
+#ifdef O_DEBUG
+static int
+mp_test_alloc(void)
+{ GET_LD
+  AR_CTX;
+
+  AR_BEGIN();
+
+  char *first  = mp_alloc(8);
+  strcpy(first, "hello");
+  char *second = mp_alloc(8);
+  assert(second-first == sizeof(size_t)+8);
+  /* realloc top */
+  char *ext = mp_realloc(second, 8, 12);
+  assert(ext == second);
+  assert(__PL_ar_ctx.allocated == ROUND_SIZE(8)+1+ROUND_SIZE(12)+1);
+  /* free top */
+  mp_free(ext, 12);
+  assert(__PL_ar_ctx.allocated == ROUND_SIZE(8)+1);
+  /* re-add second */
+  second = mp_alloc(8);
+  assert(second-first == sizeof(size_t)+8);
+  /* realloc non-first (move) */
+  ext = mp_realloc(first, 8, 25);
+  assert(ext-second == sizeof(size_t)+8);
+  assert(strcmp(ext, "hello") == 0);
+  /* shrink last */
+  char *ext2 = mp_realloc(ext, 25, 8);
+  assert(ext == ext2);
+  assert(mp_on_stack(&__PL_ar_ctx, ext2)[0] == ROUND_SIZE(8)+1);
+
+  AR_END();
+
+  return TRUE;
+}
 #endif
+
+#endif /*O_MY_GMP_ALLOC*/
 
 
 #ifdef __WINDOWS__
@@ -1089,6 +1173,7 @@ initGMP(void)
     { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
     }
+    DEBUG(0, mp_test_alloc());
 #endif
 
 #if O_GMP

@@ -3957,7 +3957,9 @@ A_ENTER: Prepare for arithmetic operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(A_ENTER, 0, 0, ())
-{ AR_BEGIN();
+{ memset(&__PL_ar_ctx, 0, sizeof(__PL_ar_ctx));
+  __PL_ar_ctx.alloc_buf = __PL_ar_buf;
+  AR_BEGIN();
   NEXT_INSTRUCTION;
 }
 END_VMI

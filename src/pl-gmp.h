@@ -205,6 +205,7 @@ get_rational(DECL_LD word w, Number n)
 		 *******************************/
 
 #define FE_NOTSET (-1)
+#define GMP_STACK_ALLOC 1024	/* in size_t units */
 
 #if O_MY_GMP_ALLOC
 typedef struct mp_mem_header
@@ -215,32 +216,24 @@ typedef struct mp_mem_header
 typedef struct ar_context
 { mp_mem_header	    *head;
   mp_mem_header	    *tail;
-  size_t	     allocated;
   int		     femode;
+  size_t	     allocated;
+  size_t	    *alloc_buf;
 } ar_context;
 
-#define O_GMP_LEAK_CHECK 0
-#if O_GMP_LEAK_CHECK
-#define GMP_LEAK_CHECK(g) g
-#else
-#define GMP_LEAK_CHECK(g)
-#endif
+#define AR_CTX \
+	size_t     __PL_ar_buf[GMP_STACK_ALLOC]; \
+	ar_context __PL_ar_ctx = {.alloc_buf = __PL_ar_buf};
 
-#define AR_CTX	ar_context __PL_ar_ctx = {0};
 #define AR_BEGIN() \
 	do \
 	{ assert(LD->gmp.context == NULL); \
 	  __PL_ar_ctx.femode    = FE_NOTSET; \
 	  LD->gmp.context	= &__PL_ar_ctx; \
-	  GMP_LEAK_CHECK(__PL_ar_ctx.allocated = LD->gmp.allocated); \
 	} while(0)
 #define AR_END() \
 	do \
 	{ LD->gmp.context = NULL; \
-	  GMP_LEAK_CHECK(if ( __PL_ar_ctx.allocated != LD->gmp.allocated ) \
-			 { Sdprintf("GMP: lost %ld bytes\n", \
-				    LD->gmp.allocated-__PL_ar_ctx.allocated); \
-			 }) \
 	} while(0)
 #define AR_CLEANUP() \
 	do \

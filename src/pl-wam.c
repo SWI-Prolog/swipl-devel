@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -3035,6 +3035,8 @@ typedef struct register_file
   jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
 # define     EXIT_VM_BUF		(REGISTERS.exit_vm_buf)
 #endif
+  size_t     pl_ar_buf[GMP_STACK_ALLOC];
+#define __PL_ar_buf	(REGISTERS.pl_ar_buf)
 } register_file;
 
 
