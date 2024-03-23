@@ -772,9 +772,8 @@ freeArithLocalData(PL_local_data_t *ld)
 	       assert(ld == LD);
 	     });
 
-    ld->gmp.persistent++;
-    gmp_randclear(ld->arith.random.state);
-    ld->gmp.persistent--;
+    WITH_LD(ld)
+      AR_PERSISTENT(gmp_randclear(ld->arith.random.state));
     ld->arith.random.initialised = FALSE;
   }
 #endif
@@ -4404,12 +4403,11 @@ seed_from_dev(DECL_LD const char *dev)
       { DEBUG(1, Sdprintf("Seed random using %zd bytes from %s\n",
 			  rd, dev));
 
-	LD->gmp.persistent++;
-	mpz_init(seed);
-	mpz_import(seed, rd, 1, sizeof(char), 0, 0, seedarray);
-	gmp_randseed(LD->arith.random.state, seed);
-	mpz_clear(seed);
-	LD->gmp.persistent--;
+	AR_PERSISTENT(
+	  mpz_init(seed);
+	  mpz_import(seed, rd, 1, sizeof(char), 0, 0, seedarray);
+	  gmp_randseed(LD->arith.random.state, seed);
+	  mpz_clear(seed));
 
 	done = TRUE;
       }
@@ -4445,12 +4443,11 @@ seed_from_crypt_context(DECL_LD)
   { return FALSE;
   }
 
-  LD->gmp.persistent++;
-  mpz_init(seed);
-  mpz_import(seed, RAND_SEED_LEN, 1, sizeof(BYTE), 0, 0, seedarray);
-  gmp_randseed(LD->arith.random.state, seed);
-  mpz_clear(seed);
-  LD->gmp.persistent--;
+  AR_PERSISTENT(
+    mpz_init(seed);
+    mpz_import(seed, RAND_SEED_LEN, 1, sizeof(BYTE), 0, 0, seedarray);
+    gmp_randseed(LD->arith.random.state, seed);
+    mpz_clear(seed));
 
   return TRUE;
 #else
@@ -4477,9 +4474,8 @@ seed_random(DECL_LD)
     for(i=0; i<sizeof(double)/sizeof(long); i++)
       key ^= u.l[i];
 
-    LD->gmp.persistent++;
-    gmp_randseed_ui(LD->arith.random.state, key);
-    LD->gmp.persistent--;
+    AR_PERSISTENT(
+      gmp_randseed_ui(LD->arith.random.state, key));
   }
 }
 
@@ -4498,17 +4494,18 @@ static void
 init_random(DECL_LD)
 {
 #ifdef O_BIGNUM
+  /* Prefer the Mersenne Twister as we can safe its state */
+  #ifdef HAVE_GMP_RANDINIT_MT
+    #define O_RANDOM_STATE 1
+    #undef gmp_randinit_default
+    #define gmp_randinit_default(s) gmp_randinit_mt(s)
+  #endif
+
   if ( !LD->arith.random.initialised )
-  { LD->gmp.persistent++;
-#ifdef HAVE_GMP_RANDINIT_MT
-#define O_RANDOM_STATE 1
-    gmp_randinit_mt(LD->arith.random.state);
-#else
-    gmp_randinit_default(LD->arith.random.state);
-#endif
-    LD->arith.random.initialised = TRUE;
-    seed_random();
-    LD->gmp.persistent--;
+  { AR_PERSISTENT(
+      gmp_randinit_default(LD->arith.random.state);
+      LD->arith.random.initialised = TRUE;
+      seed_random());
   }
 #endif
 }

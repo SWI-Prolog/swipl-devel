@@ -592,8 +592,7 @@ struct PL_local_data
 
 #ifdef O_BIGNUM
   struct
-  { int		persistent;		/* do persistent operations */
-    ar_context *context;		/* current allocation context */
+  { ar_context *context;		/* current allocation context */
   } gmp;
 #endif
 

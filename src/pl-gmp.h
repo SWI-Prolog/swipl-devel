@@ -243,6 +243,15 @@ typedef struct ar_context
 	  mp_cleanup(&__PL_ar_ctx); \
 	} while(0)
 
+#define AR_PERSISTENT(g)				\
+  do							\
+  { ar_context *__PL_ar_ctx_saved = LD->gmp.context;	\
+  LD->gmp.context = NULL;				\
+  g;							\
+  LD->gmp.context = __PL_ar_ctx_saved;			\
+  } while(0)
+
+
 void	mp_cleanup(ar_context *ctx);
 
 #else /*O_MY_GMP_ALLOC*/

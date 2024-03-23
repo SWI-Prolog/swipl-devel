@@ -87,7 +87,7 @@ static void *(*smp_realloc)(void *, size_t, size_t);
 static void  (*smp_free)(void *, size_t);
 
 #define NOT_IN_PROLOG_ARITHMETIC() \
-	(LD == NULL || LD->gmp.context == NULL || LD->gmp.persistent)
+	(LD == NULL || LD->gmp.context == NULL)
 
 #define ROUND_SIZE(n) (((n) + (sizeof(size_t) - 1))/sizeof(size_t))
 
