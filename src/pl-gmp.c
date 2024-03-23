@@ -91,19 +91,63 @@ static void  (*smp_free)(void *, size_t);
 
 #define ROUND_SIZE(n) (((n) + (sizeof(size_t) - 1))/sizeof(size_t))
 
-static void *
-gmp_too_big(void)
-{ GET_LD
+typedef enum
+{ GMO_TB_OK = 0,
+  GMP_TB_RESTRAINT,
+  GMP_TB_STACK,
+  GMP_TB_MALLOC
+} gmp_tb;
 
-  DEBUG(MSG_GMP_OVERFLOW, Sdprintf("Signalling GMP overflow\n"));
+#define gmp_too_big(why)      LDFUNC(gmp_too_big, why)
+#define gmp_check_size(bytes) LDFUNC(gmp_check_size, bytes)
 
-  outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
-  abortProlog();		/* Just in case this fails */
+static void*			/* Actually, does not return */
+gmp_too_big(DECL_LD gmp_tb why)
+{ DEBUG(MSG_GMP_OVERFLOW, Sdprintf("Signalling GMP overflow\n"));
+
+  switch(why)
+  { case GMP_TB_RESTRAINT:
+      number max = { .type = V_INTEGER };
+      max.value.i = LD->gmp.max_integer_size;
+      PL_error(NULL, 0, "requires more than max_integer_size bytes",
+	       ERR_AR_TRIPWIRE, ATOM_max_integer_size, &max);
+      PL_rethrow();
+    case GMP_TB_STACK:
+      outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
+      break;
+    case GMP_TB_MALLOC:
+      PL_no_memory();
+      PL_rethrow();
+    default:
+  }
+
+  abortProlog();		/* Just in case the above fails */
   PL_rethrow();
-  return NULL;
+  return FALSE;
 }
 
-#define TOO_BIG_GMP(n) ((n) > 1000 && (n) > (size_t)globalStackLimit())
+
+static int
+gmp_check_size(DECL_LD size_t bytes)
+{ gmp_tb why = GMO_TB_OK;
+
+  if ( bytes <= 1000 )
+    return TRUE;
+  if ( bytes > LD->gmp.max_integer_size )
+    why = GMP_TB_RESTRAINT;
+  else if ( bytes > (size_t)globalStackLimit())
+    why = GMP_TB_STACK;
+  else
+    return TRUE;
+
+  gmp_too_big(why);
+  return FALSE;
+}
+
+
+#define TOO_BIG_GMP(n) ((n) > 1000 &&			   \
+			((n) > LD->gmp.max_integer_size || \
+			 (n) > (size_t)globalStackLimit()))
 
 static void *
 mp_alloc(size_t bytes)
@@ -114,8 +158,8 @@ mp_alloc(size_t bytes)
   if ( NOT_IN_PROLOG_ARITHMETIC() )
     return smp_alloc(bytes);
 
-  if ( TOO_BIG_GMP(bytes) )
-    return gmp_too_big();
+  if ( !gmp_check_size(bytes) )
+    return NULL;
 
 #if O_BF
   if ( bytes == 0 )
@@ -146,7 +190,7 @@ mp_alloc(size_t bytes)
 
     return &mem[1];
   } else
-    return gmp_too_big();
+    return gmp_too_big(GMP_TB_MALLOC);
 }
 
 
@@ -221,8 +265,8 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   }
 #endif
 
-  if ( TOO_BIG_GMP(newsize) )
-    return gmp_too_big();
+  if ( newsize > oldsize && !gmp_check_size(newsize) )
+    return NULL;
 
   ctx = LD->gmp.context;
   size_t *base = mp_on_stack(ctx, ptr);
@@ -268,7 +312,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
     DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: realloc %zd@%p --> %zd@%p\n", oldsize, ptr, newsize, &newmem[1]));
     return &newmem[1];
   } else
-    return gmp_too_big();
+    return gmp_too_big(GMP_TB_MALLOC);
 }
 
 

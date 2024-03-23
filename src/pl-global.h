@@ -593,6 +593,7 @@ struct PL_local_data
 #ifdef O_BIGNUM
   struct
   { ar_context *context;		/* current allocation context */
+    size_t	max_integer_size;	/* Max size of MPZ data */
   } gmp;
 #endif
 

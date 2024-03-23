@@ -1428,9 +1428,11 @@ the exception happened.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
-\prologflag{min_integer} and \prologflag{max_integer}. If \const{false}
-integers can be arbitrarily large and the \prologflag{min_integer} and
-\prologflag{max_integer} are not present. See \secref{artypes}.
+\prologflag{min_integer} and \prologflag{max_integer}. If
+\const{false} integers can be arbitrarily large and the
+\prologflag{min_integer} and \prologflag{max_integer} are not present.
+The flag \prologflag{max_integer_size} may be used to enforce an
+arbitrary limit rather than exhausting memory. See \secref{artypes}.
 
     \prologflagitem{break_level}{integer}{r}
 Current break-level. The initial top level (started with
@@ -1854,6 +1856,15 @@ this flag. Currently \const{0xffff} on Windows (UCS-2) and
 Maximum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.
 
+    \prologflagitem{max_integer_size}{integer}{rw}
+When this tripwire is set, memory allocation on behalf of big integers
+and rational numbers is limited to given number of bytes.  The minimum
+value is 1,000.  When unset, the allocation limit is determined by the
+stack limit as we cannot represent larger numbers or malloc()
+failures.  Notably services that may process arbitrary arithmetic
+expressions on behalf of a client may set this limit to avoid resource
+exhaustion.
+
     \prologflagitem{max_procedure_arity}{integer}{r}
 Maximum arity for a predicate.  An attempt to define or call such a
 predicate results in a \exam{representation_error(max_procedure_arity)}
@@ -1864,7 +1875,8 @@ Limit the size in bytes for rational numbers. This \jargon{tripwire} can
 be used to identify cases where setting the Prolog flag
 \prologflag{prefer_rationals} to \const{true} creates excessively big
 rational numbers and, if precision is not required, one should use
-floating point arithmetic.
+floating point arithmetic.  Note that rationals are also implicitly
+limited by the Prolog flag \prologflag{max_integer_size}.
 
     \prologflagitem{max_rational_size_action}{atom}{rw}
 Action when the \prologflag{max_rational_size} tripwire is exceeded.

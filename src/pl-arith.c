@@ -5050,9 +5050,11 @@ initArith(void)
 #ifdef O_BIGNUM
   LD->arith.rat.max_rational_size = (size_t)-1;
   LD->arith.rat.max_rational_size_action = ATOM_error;
+  LD->gmp.max_integer_size = (size_t)-1;
 
   setPrologFlag("max_rational_size",	    FT_INTEGER, (intptr_t)-1);
   setPrologFlag("max_rational_size_action", FT_ATOM,    "error");
+  setPrologFlag("max_integer_size",	    FT_INTEGER, (intptr_t)-1);
 #endif
 
   LD->arith.f.flags = FLT_ROUND_NEAREST|FLT_UNDERFLOW;
@@ -5092,6 +5094,7 @@ is_arith_flag(atom_t k)
 #ifdef O_BIGNUM
 	   k == ATOM_max_rational_size ||
 	   k == ATOM_max_rational_size_action ||
+	   k == ATOM_max_integer_size ||
 #endif
 	   k == ATOM_float_overflow ||
 	   k == ATOM_float_zero_div ||
@@ -5111,6 +5114,9 @@ get_arith_flag(DECL_LD term_t val, atom_t k)
     return PL_unify_uint64(val, sz);
   if ( k == ATOM_max_rational_size_action )
     return PL_unify_atom(val, LD->arith.rat.max_rational_size_action);
+  if ( k == ATOM_max_integer_size &&
+       (sz=LD->gmp.max_integer_size) != (size_t)-1 )
+    return PL_unify_uint64(val, sz);
 #endif
   if ( k == ATOM_float_overflow )
     a = LD->arith.f.flags & FLT_OVERFLOW ? ATOM_infinity : ATOM_error;
@@ -5130,7 +5136,7 @@ get_arith_flag(DECL_LD term_t val, atom_t k)
 
 #ifdef O_BIGNUM
 static int
-set_restraint(term_t t, size_t *valp)
+set_restraint(term_t t, size_t *valp, size_t min)
 { GET_LD
   atom_t inf;
 
@@ -5138,7 +5144,12 @@ set_restraint(term_t t, size_t *valp)
   { *valp = (size_t)-1;
     return TRUE;
   }
-  return PL_get_size_ex(t, valp);
+  if ( PL_get_size_ex(t, valp) )
+  { if ( *valp < min )
+      *valp = min;
+    return TRUE;
+  }
+  return FALSE;
 }
 
 #define set_restraint_action(t, key, valp) LDFUNC(set_restraint_action, t, key, valp)
@@ -5200,11 +5211,13 @@ set_arith_flag(DECL_LD term_t val, atom_t key)
 
 #ifdef O_BIGNUM
   if ( key == ATOM_max_rational_size )
-    return set_restraint(val, &LD->arith.rat.max_rational_size);
+    return set_restraint(val, &LD->arith.rat.max_rational_size, 0);
   if ( key == ATOM_max_rational_size_action )
     return set_restraint_action(
 	       val, key,
 	       &LD->arith.rat.max_rational_size_action);
+  if ( key == ATOM_max_integer_size )
+    return set_restraint(val, &LD->gmp.max_integer_size, 1000);
 #endif
 
   if ( PL_get_atom_ex(val, &a) )
