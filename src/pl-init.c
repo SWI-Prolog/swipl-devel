@@ -1844,6 +1844,14 @@ action:
   return FALSE;					/* not reached */
 }
 
+void
+PL_system_error(const char *fm, ...)
+{ va_list args;
+
+  va_start(args, fm);
+  vsysError(fm, args);
+  va_end(args);
+}
 
 void
 vfatalError(const char *fm, va_list args)

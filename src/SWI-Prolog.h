@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2023, University of Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -876,6 +876,7 @@ PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
 PL_EXPORT(int)		PL_warning(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(int)		PL_warningX(const char *fmt, ...);
 PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...) WPRINTF12;
+PL_EXPORT(void)		PL_system_error(const char *fmt, ...) WPRINTF12;
 
 		 /*******************************
 		 *      RECORDED DATABASE	*

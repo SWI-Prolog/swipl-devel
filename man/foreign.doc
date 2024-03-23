@@ -4137,6 +4137,24 @@ Print an error message starting with `{\tt [WARNING: }', followed
 by the output from \arg{format}, followed by a `\chr{]}' and a newline.
 Then start the tracer. \arg{format} and the arguments are the same as
 for \manref{printf}{2}. Always returns \const{FALSE}.
+
+\cfunction{int}{PL_fatal_error}{format, a1, \ldots}
+As PL_warning(), but using \texttt{[FATAL ERROR: at <time> ...]} and
+terminates the process after cleanup using abort().  If the process
+is a Windows GUI application it uses a message box.  This function
+should be used if an unrepairable error is detected.  For example,
+Prolog uses it to signal it cannot find the compiled Prolog startup
+or memory allocation fails in a place from where we cannot gracefully
+generate an exception.\footnote{Currently most memory allocation except
+for most of the big allocations such as for the Prolog stacks.}
+
+\cfunction{int}{PL_system_error}{format, a1, \ldots}
+As PL_fatal_error(), but using \texttt{[PROLOG SYSTEM ERROR: ...]}
+and provides additional technical details such as the thread that
+trapped the error and backtrace of the C and Prolog stacks.  This
+function should be used to when an unexpected and unrepairable error is
+detected.  For example, Prolog uses this after it finds an inconsistency
+in the data during garbage collection.
 \end{description}
 
 \subsection{Environment Control from Foreign Code}
