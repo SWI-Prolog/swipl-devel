@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2022, University of Amsterdam
+    Copyright (C): 1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -53,7 +53,8 @@ test_arith :-
 		    float_zero,
 		    float_special,
 		    float_compare,
-		    arith_misc
+		    arith_misc,
+		    max_integer_size
 		  ]).
 
 :- begin_tests(div).
@@ -489,6 +490,31 @@ test(min_nan, X == 1.5NaN) :-
 
 :- end_tests(float_compare).
 
+:- begin_tests(max_integer_size,
+	       [ condition(current_prolog_flag(bounded,false))
+	       ]).
+
+cleanup :-
+	set_prolog_flag(max_integer_size, infinite).
+
+test(set, [Max == 10 000, cleanup(cleanup)]) :-
+	set_prolog_flag(max_integer_size, 10 000),
+	current_prolog_flag(max_integer_size, Max),
+	set_prolog_flag(max_integer_size, infinite),
+	assertion(\+current_prolog_flag(max_integer_size,_)).
+
+% Note that this tests the _allocated_ size.  LibBF does not store
+% the least significant zero bits, so we must make sure the least
+% significant bit is set.
+test(overflow,
+     [ error(resource_error(tripwire(max_integer_size, 1000))),
+       cleanup(cleanup)
+     ]):-
+	set_prolog_flag(max_integer_size, 1000),
+	A is 1<<10000 + 1,
+	integer(A).
+
+:- end_tests(max_integer_size).
 
 :- begin_tests(arith_misc).
 
@@ -501,3 +527,6 @@ test(float_rval) :-
 	6.5 is max(6.5,3).
 
 :- end_tests(arith_misc).
+
+% No tests below here because the set_prolog_flag(optimise, true) above
+% causes them not to be loaded.
