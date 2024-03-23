@@ -107,18 +107,19 @@ gmp_too_big(DECL_LD gmp_tb why)
 
   switch(why)
   { case GMP_TB_RESTRAINT:
-      number max = { .type = V_INTEGER };
+    { number max = { .type = V_INTEGER };
       max.value.i = LD->gmp.max_integer_size;
       PL_error(NULL, 0, "requires more than max_integer_size bytes",
 	       ERR_AR_TRIPWIRE, ATOM_max_integer_size, &max);
       PL_rethrow();
+    }
     case GMP_TB_STACK:
       outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
       break;
     case GMP_TB_MALLOC:
+    default:
       PL_no_memory();
       PL_rethrow();
-    default:
   }
 
   abortProlog();		/* Just in case the above fails */
