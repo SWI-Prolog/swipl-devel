@@ -70,7 +70,7 @@ next_chunk_size(segstack *stack)
 void *
 pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
-  { void *ptr = stack->top;
+  { char *ptr = stack->top;
 
     if ( data )
       memcpy(ptr, data, stack->unit_size);
