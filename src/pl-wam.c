@@ -3035,6 +3035,7 @@ typedef struct register_file
   jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
 # define     EXIT_VM_BUF		(REGISTERS.exit_vm_buf)
 #endif
+  /* Not initialized below here */
   size_t     pl_ar_buf[GMP_STACK_ALLOC];
 #define __PL_ar_buf	(REGISTERS.pl_ar_buf)
 } register_file;
@@ -3228,13 +3229,15 @@ API_STUB(int)
 
 int
 PL_next_solution(DECL_LD qid_t qid)
-{ register_file REGISTERS =
-  { .qid = qid,
-    .fndet_context.engine = LD
-#if VMCODE_IS_ADDRESS
-    , .nop1 = 0, .nop2 = 0
+{ register_file REGISTERS;
+  memset(&REGISTERS, 0, offsetof(register_file,pl_ar_buf));
+  QID = qid;
+  FNDET_CONTEXT.engine = LD;
+#ifdef VMCODE_IS_ADDRESS
+  REGISTERS.nop1 = 0;
+  REGISTERS.nop2 = 0;
 #endif
-  };					/* Active registers */
+
   Code PC;				/* program counter */
   exception_frame THROW_ENV;		/* PL_thow() environment */
 
