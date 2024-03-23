@@ -132,7 +132,7 @@ mp_alloc(size_t bytes)
     return data;
   }
 
-  if ( (mem = malloc(sizeof(mp_mem_header)+bytes)) )
+  if ( (mem = tmp_malloc(sizeof(mp_mem_header)+bytes)) )
   { mem->next = NULL;
     if ( ctx->tail )
     { mem->prev = ctx->tail;
@@ -198,7 +198,7 @@ mp_free(void *ptr, size_t size)
     mem->next->prev = mem->prev;
   }
 
-  free(mem);
+  tmp_free(mem);
   DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: free: %zd@%p\n", size, ptr));
 }
 
@@ -252,7 +252,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   }
 
   oldmem = ((mp_mem_header*)ptr)-1;
-  if ( (newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
+  if ( (newmem = tmp_realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
   { if ( oldmem != newmem )		/* re-link if moved */
     { if ( newmem->prev )
 	newmem->prev->next = newmem;
