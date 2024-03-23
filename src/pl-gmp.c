@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2022, University of Amsterdam
+    Copyright (c)  2005-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -102,6 +103,7 @@ gmp_too_big(void)
 static void *
 mp_alloc(size_t bytes)
 { GET_LD
+  ar_context *ctx;
   mp_mem_header *mem;
 
   if ( NOT_IN_PROLOG_ARITHMETIC() )
@@ -119,18 +121,18 @@ mp_alloc(size_t bytes)
   if ( bytes == 0 )
     return NULL;
 #endif
+  ctx = LD->gmp.context;
 
-  GMP_LEAK_CHECK(LD->gmp.allocated += bytes);
+  GMP_LEAK_CHECK(ctx->allocated += bytes);
 
   mem->next = NULL;
-  mem->context = LD->gmp.context;
-  if ( LD->gmp.tail )
-  { mem->prev = LD->gmp.tail;
-    LD->gmp.tail->next = mem;
-    LD->gmp.tail = mem;
+  if ( ctx->tail )
+  { mem->prev = ctx->tail;
+    ctx->tail->next = mem;
+    ctx->tail = mem;
   } else
   { mem->prev = NULL;
-    LD->gmp.head = LD->gmp.tail = mem;
+    ctx->head = ctx->tail = mem;
   }
   DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: alloc %zd@%p\n", bytes, &mem[1]));
 
@@ -141,6 +143,7 @@ mp_alloc(size_t bytes)
 static void
 mp_free(void *ptr, size_t size)
 { GET_LD
+  ar_context *ctx;
   mp_mem_header *mem;
 
   if ( NOT_IN_PROLOG_ARITHMETIC() )
@@ -152,18 +155,18 @@ mp_free(void *ptr, size_t size)
   if ( !ptr )
     return;
 #endif
-
+  ctx = LD->gmp.context;
   mem = ((mp_mem_header*)ptr)-1;
 
-  if ( mem == LD->gmp.head )
-  { LD->gmp.head = LD->gmp.head->next;
-    if ( LD->gmp.head )
-      LD->gmp.head->prev = NULL;
+  if ( mem == ctx->head )
+  { ctx->head = ctx->head->next;
+    if ( ctx->head )
+      ctx->head->prev = NULL;
     else
-      LD->gmp.tail = NULL;
-  } else if ( mem == LD->gmp.tail )
-  { LD->gmp.tail = LD->gmp.tail->prev;
-    LD->gmp.tail->next = NULL;
+      ctx->tail = NULL;
+  } else if ( mem == ctx->tail )
+  { ctx->tail = ctx->tail->prev;
+    ctx->tail->next = NULL;
   } else
   { mem->prev->next = mem->next;
     mem->next->prev = mem->prev;
@@ -171,13 +174,14 @@ mp_free(void *ptr, size_t size)
 
   free(mem);
   DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: free: %zd@%p\n", size, ptr));
-  GMP_LEAK_CHECK(LD->gmp.allocated -= size);
+  GMP_LEAK_CHECK(ctx->allocated -= size);
 }
 
 
 static void *
 mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
+  ar_context *ctx;
   mp_mem_header *oldmem, *newmem;
 
   if ( NOT_IN_PROLOG_ARITHMETIC() )
@@ -201,20 +205,21 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
     return NULL;			/* make compiler happy */
   }
 
+  ctx = LD->gmp.context;
   if ( oldmem != newmem )		/* re-link if moved */
   { if ( newmem->prev )
       newmem->prev->next = newmem;
     else
-      LD->gmp.head = newmem;
+      ctx->head = newmem;
 
     if ( newmem->next )
       newmem->next->prev = newmem;
     else
-      LD->gmp.tail = newmem;
+      ctx->tail = newmem;
   }
 
-  GMP_LEAK_CHECK(LD->gmp.allocated -= oldsize;
-		 LD->gmp.allocated += newsize);
+  GMP_LEAK_CHECK(ctx->allocated -= oldsize;
+		 ctx->allocated += newsize);
   DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: realloc %zd@%p --> %zd@%p\n", oldsize, ptr, newsize, &newmem[1]));
 
   return &newmem[1];
@@ -223,20 +228,13 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 
 void
 mp_cleanup(ar_context *ctx)
-{ GET_LD
-  mp_mem_header *mem, *next;
+{ mp_mem_header *mem, *next;
 
-  if ( LD->gmp.context )
-  { for(mem=LD->gmp.head; mem; mem=next)
-    { next = mem->next;
-      if ( mem->context == LD->gmp.context )
-      { DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: cleanup of %p\n", &mem[1]));
-	mp_free(&mem[1], 0);
-      }
-    }
+  for(mem=ctx->head; mem; mem=next)
+  { next = mem->next;
+    DEBUG(MSG_GMP_ALLOC, Sdprintf("GMP: cleanup of %p\n", &mem[1]));
+    mp_free(&mem[1], 0);
   }
-
-  LD->gmp.context = ctx->parent;
 }
 #endif
 
