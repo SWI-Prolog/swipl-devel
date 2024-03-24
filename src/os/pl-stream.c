@@ -4261,10 +4261,10 @@ Sclose_buffer(IOSTREAM *s)
 		 *******************************/
 
 #define STDIO(n, f) \
-	{ .bufp = NULL, .limitp = NULL, .buffer = NULL, .unbuffer = NULL, \
-	  .lastc = EOF, .magic = SIO_MAGIC, .flags = (f),		  \
-	  .handle = (void *)(n), .functions = &Sttyfunctions,		  \
-	  .timeout = -1, .encoding = ENC_ISO_LATIN_1			  \
+	{ .bufp = NULL, .limitp = NULL, .buffer = NULL, .unbuffer = NULL,  \
+	  .lastc = EOF, .magic = SIO_MAGIC, .flags = (f),		   \
+	  .handle = (void *)(n), .fileno = n, .functions = &Sttyfunctions, \
+	  .timeout = -1, .encoding = ENC_ISO_LATIN_1			   \
 	}
 
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
