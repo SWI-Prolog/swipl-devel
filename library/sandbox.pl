@@ -710,6 +710,7 @@ safe_primitive('$dicts':'.'(_,K,_)) :-
     ).
 
 dict_built_in(get(_)).
+dict_built_in(get(_,_)).
 dict_built_in(put(_)).
 dict_built_in(put(_,_)).
 
