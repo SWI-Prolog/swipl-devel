@@ -444,8 +444,8 @@ PL_EXPORT(int)		Ssetlocale(IOSTREAM *s,
 				   struct PL_locale **old_loc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
-PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
-PL_EXPORT(long)		Stell(IOSTREAM *s);
+PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence); /* WDEPRECATED */ /* use Sseek64() */
+PL_EXPORT(long)		Stell(IOSTREAM *s); /* WDEPRECATED */ /* use Stell64() */
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(int)		Sgcclose(IOSTREAM *s, int flags);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);

@@ -435,7 +435,8 @@ Returns the size in bytes of the object associated to the stream or
 -1 if this is not known.
 
     \cfunction{int}{Sseek}{IOSTREAM *s, long pos, int whence}
-    \nodescription
+    Deprecated - use Sseek64() instead because some platforms define
+    \ctype{long} as 32-bits.
     \cfunction{int}{Sseek64}{IOSTREAM *s, int64_t pos, int whence}
 Reposition the file pointer in the object associated to \arg{s},
 returning 0 on success and -1 otherwise.  If the stream is buffered
@@ -447,7 +448,8 @@ a C \ctype{long}.  \arg{Whence} is one of \const{SIO_SEEK_SET},
 the start, current position or end.
 
     \cfunction{long}{Stell}{IOSTREAM *s}
-    \nodescription
+    Deprecated - use Stell64() instead because some platforms define
+    \ctype{long} as 32-bits.
     \cfunction{int64_t}{Stell64}{IOSTREAM *s}
 Return the current position in the stream.  This is obtained from
 the recorded position or based on information from the seek handlers,
