@@ -289,7 +289,7 @@ bind_std(IOSTREAM *s, rlc_console c)
 { s->functions = &rlc_functions;
   s->handle    = c;
   s->encoding  = ENC_WCHAR;
-  s->flags     = ~SIO_FILE;
+  s->flags    &= ~SIO_FILE;
   s->fileno    = -1;
 }
 
