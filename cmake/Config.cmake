@@ -303,7 +303,6 @@ include(TestRecursiveMutex)
 
 if(HAVE_PTHREAD_SETNAME_NP)
 function(check_pthread_setname_np)
-  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Werror)
   check_c_source_compiles(
       "#define _GNU_SOURCE
        #include <pthread.h>\nint main()
