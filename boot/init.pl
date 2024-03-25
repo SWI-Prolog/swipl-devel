@@ -3446,7 +3446,7 @@ load_files(Module:Files, Options) :-
     ->  true
     ;   throw(error(type_error(list, Spec), _))
     ),
-    '$import_except'(Spec, Export, Import),
+    '$import_except'(Spec, Source, Export, Import),
     '$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, Import, Reexport) :-
     !,
@@ -3454,35 +3454,39 @@ load_files(Module:Files, Options) :-
     !,
     '$import_all'(Import, Target, Source, Reexport, strong).
 '$import_list'(_, _, Import, _) :-
-    throw(error(type_error(import_specifier, Import))).
+    '$type_error'(import_specifier, Import).
 
 
-'$import_except'([], List, List).
-'$import_except'([H|T], List0, List) :-
-    '$import_except_1'(H, List0, List1),
-    '$import_except'(T, List1, List).
+'$import_except'([], _, List, List).
+'$import_except'([H|T], Source, List0, List) :-
+    '$import_except_1'(H, Source, List0, List1),
+    '$import_except'(T, Source, List1, List).
 
-'$import_except_1'(Var, _, _) :-
+'$import_except_1'(Var, _, _, _) :-
     var(Var),
     !,
-    throw(error(instantitation_error, _)).
-'$import_except_1'(PI as N, List0, List) :-
+    '$instantiation_error'(Var).
+'$import_except_1'(PI as N, _, List0, List) :-
     '$pi'(PI), atom(N),
     !,
     '$canonical_pi'(PI, CPI),
     '$import_as'(CPI, N, List0, List).
-'$import_except_1'(op(P,A,N), List0, List) :-
+'$import_except_1'(op(P,A,N), _, List0, List) :-
     !,
     '$remove_ops'(List0, op(P,A,N), List).
-'$import_except_1'(PI, List0, List) :-
+'$import_except_1'(PI, Source, List0, List) :-
     '$pi'(PI),
     !,
     '$canonical_pi'(PI, CPI),
-    '$select'(P, List0, List),
-    '$canonical_pi'(CPI, P),
-    !.
-'$import_except_1'(Except, _, _) :-
-    throw(error(type_error(import_specifier, Except), _)).
+    (   '$select'(P, List0, List),
+        '$canonical_pi'(CPI, P)
+    ->  true
+    ;   print_message(warning,
+                      error(existence_error(export, PI, module(Source)), _)),
+        List = List0
+    ).
+'$import_except_1'(Except, _, _, _) :-
+    '$type_error'(import_specifier, Except).
 
 '$import_as'(CPI, N, [PI2|T], [CPI as N|T]) :-
     '$canonical_pi'(PI2, CPI),
@@ -3491,7 +3495,7 @@ load_files(Module:Files, Options) :-
     !,
     '$import_as'(PI, N, T0, T).
 '$import_as'(PI, _, _, _) :-
-    throw(error(existence_error(export, PI), _)).
+    '$existence_error'(export, PI).
 
 '$pi'(N/A) :- atom(N), integer(A), !.
 '$pi'(N//A) :- atom(N), integer(A).
@@ -4065,6 +4069,9 @@ compile_aux_clauses(Clauses) :-
 
 '$existence_error'(Type, Object) :-
     throw(error(existence_error(Type, Object), _)).
+
+'$existence_error'(Type, Object, In) :-
+    throw(error(existence_error(Type, Object, In), _)).
 
 '$permission_error'(Action, Type, Term) :-
     throw(error(permission_error(Action, Type, Term), _)).

@@ -214,6 +214,9 @@ iso_message(existence_error(matching_rule, Goal)) -->
     [ 'No rule matches ~p'-[Goal] ].
 iso_message(existence_error(Type, Object)) -->
     [ '~w `~p'' does not exist'-[Type, Object] ].
+iso_message(existence_error(export, PI, module(M))) --> % not ISO
+    [ 'Module ', ansi(code, '~q', [M]), ' does not export ',
+      ansi(code, '~q', [PI]) ].
 iso_message(existence_error(Type, Object, In)) --> % not ISO
     [ '~w `~p'' does not exist in ~p'-[Type, Object, In] ].
 iso_message(busy(Type, Object)) -->
