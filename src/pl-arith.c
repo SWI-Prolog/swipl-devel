@@ -2795,8 +2795,8 @@ ar_powm(Number base, Number exp, Number mod, Number r)
     PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
   if ( !intNumber(exp) )
     PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
-  if ( !intNumber(exp) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
+  if ( !intNumber(mod) )
+    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, mod);
 
 #ifdef O_BIGNUM
   promoteToMPZNumber(base);
