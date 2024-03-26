@@ -1269,7 +1269,7 @@ arithChar(DECL_LD Word p)
 { deRef(p);
 
   if ( isTaggedInt(*p) )
-  { intptr_t chr = valInt(*p);
+  { sword chr = valInt(*p);
 
     if ( VALID_CODE_POINT(chr) )
       return (int)chr;
