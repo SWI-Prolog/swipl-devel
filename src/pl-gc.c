@@ -1561,7 +1561,7 @@ backtracking.
 
 static TrailEntry
 early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
-{ TrailEntry tm = m->trailtop;
+{ TrailEntry tm = m->trailtop.as_ptr;
   TrailEntry te0 = te;
   int assignments = 0;
   Word gKeep = (LD->frozen_bar > m->globaltop.as_ptr ? LD->frozen_bar
@@ -3004,7 +3004,7 @@ sweep_foreign(void)
 #define unsweep_mark(m) LDFUNC(unsweep_mark, m)
 static void
 unsweep_mark(DECL_LD mark *m)
-{ m->trailtop  = (TrailEntry)valPtr2(m->trailtop->as_word,  STG_TRAIL);
+{ m->trailtop.as_ptr  = (TrailEntry)valPtr2(m->trailtop.as_word, STG_TRAIL);
   m->globaltop.as_ptr = valPtr2(m->globaltop.as_word, STG_GLOBAL);
   m->saved_bar.as_ptr = valPtr2(m->saved_bar.as_word, STG_GLOBAL);
 
@@ -3991,7 +3991,7 @@ static void
 check_mark(mark *m)
 { GET_LD
 
-  assert(onTrailArea(m->trailtop));
+  assert(onTrailArea(m->trailtop.as_ptr));
   assert(onGlobalArea(m->globaltop.as_ptr));
   assert(onGlobalArea(m->saved_bar.as_ptr));
   assert(m->saved_bar.as_ptr <= m->globaltop.as_ptr);
@@ -4744,7 +4744,7 @@ Memory management description.
 static void
 update_mark(mark *m, intptr_t gs, intptr_t ts)
 { if ( ts )
-    update_pointer(&m->trailtop, ts);
+    update_pointer(&m->trailtop.as_ptr, ts);
   if ( gs )
   { update_pointer(&m->globaltop.as_ptr, gs);
     update_pointer(&m->saved_bar.as_ptr, gs);

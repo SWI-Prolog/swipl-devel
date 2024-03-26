@@ -1595,7 +1595,7 @@ typedef union gc_trailptr
 } gc_trailptr;
 
 struct mark
-{ TrailEntry	trailtop;	/* top of the trail stack */
+{ gc_trailptr	trailtop;	/* top of the trail stack */
   gc_wordptr	globaltop;	/* top of the global stack */
   gc_wordptr	saved_bar;	/* saved LD->mark_bar */
 };
@@ -2081,7 +2081,7 @@ typedef struct module_enum
 
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
-#define Mark(b)		do { (b).trailtop  = tTop; \
+#define Mark(b)		do { (b).trailtop.as_ptr  = tTop; \
 			     (b).saved_bar.as_ptr = LD->mark_bar; \
 			     DEBUG(CHK_SECURE, \
 				   assert((b).saved_bar.as_ptr == NO_MARK_BAR || \
@@ -2098,10 +2098,10 @@ typedef struct module_enum
 					  (LD->mark_bar >= gBase && \
 					   LD->mark_bar <= gTop))); \
 			   } while(0)
-#define NOT_A_MARK	(TrailEntry)(~(word)0)
-#define NoMark(b)	do { (b).trailtop = NOT_A_MARK; \
+#define NOT_A_MARK	(~(word)0)
+#define NoMark(b)	do { (b).trailtop.as_word = NOT_A_MARK; \
 			   } while(0)
-#define isRealMark(b)	((b).trailtop != NOT_A_MARK)
+#define isRealMark(b)	((b).trailtop.as_word != NOT_A_MARK)
 
 
 		 /*******************************
