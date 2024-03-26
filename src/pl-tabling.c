@@ -7359,7 +7359,7 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
 	count++;
       }
     } else
-    { trie_node *an = (trie_node *)*base;
+    { trie_node *an = word2ptr(trie_node*, *base);
 
       if ( an->value )
       { if ( !PL_unify_list(tail, head, tail) ||
@@ -7586,7 +7586,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
     { trie_node *node = wkl_mode_add_answer(NULL, atrie, A2, 0);
 
       if ( node )
-      { mono_idg_changed(atrie, (word)node);
+      { mono_idg_changed(atrie, ptr2word(node));
 	return TRUE;
       }
     } else					/* normal tabling */
@@ -7601,7 +7601,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 	tt_add_answer(atrie, node);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 
-	if ( !mono_idg_changed(atrie, (word)node) )
+	if ( !mono_idg_changed(atrie, ptr2word(node)) )
 	  return FALSE;
 	if ( !atrie_answer_event(atrie, node) )
 	  return FALSE;
@@ -7761,7 +7761,7 @@ prune_deleted_mdeps(idg_node *idg)
 	  { if ( isAtom(*base) )
 	    { *out++ = *base;
 	    } else
-	    { trie_node *an = (trie_node *)*base;
+	    { trie_node *an = word2ptr(trie_node *, *base);
 
 	      if ( an->value )
 		*out++ = *base;
@@ -7837,7 +7837,7 @@ mdep_is_empty(idg_mdep *mdep)
 	  if ( !true(cref->value.clause, CL_ERASED) )
 	    return FALSE;
 	} else
-	{ trie_node *an = (trie_node *)*base;
+	{ trie_node *an = word2ptr(trie_node *, *base);
 
 	  if ( an->value )
 	    return FALSE;
@@ -8071,7 +8071,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 	    prune_trie(atrie, &atrie->root, NULL, NULL);
 	  }
 	  if ( queue )
-	    rc = mono_idg_changed(atrie, (word)n);
+	    rc = mono_idg_changed(atrie, ptr2word(n));
 	}
 
 	if ( !n && rc && !invalid_deps )
@@ -8177,7 +8177,7 @@ get_mono_answer(DECL_LD term_t t, word *ap)
     if ( isAtom(*p) )			/* clause reference */
     { *ap = *p;
     } else if ( isInteger(*p) )		/* trie node */
-    { *ap = (word) word_to_answer(*p);
+    { *ap = ptr2word(word_to_answer(*p));
     } else
       return PL_type_error("tbl_answer", t);
   }
