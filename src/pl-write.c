@@ -193,7 +193,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
 
     FLI_ASSERT_VALID(fr);
     if ( false(options, PL_WRT_NUMBERVARS) &&
-         fr->mark.globaltop > (Word)f )
+         fr->mark.globaltop.as_ptr > (Word)f )
       return FALSE;			/* older $VAR term */
   }
 

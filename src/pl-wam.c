@@ -1505,7 +1505,7 @@ __do_undo(DECL_LD mark *m)
 
   tTop = mt;
 
-  Word ngtop = max(LD->frozen_bar, m->globaltop);
+  Word ngtop = max(LD->frozen_bar, m->globaltop.as_ptr);
   reclaim_attvars(ngtop);
 
   DEBUG(CHK_SECURE,

@@ -2976,7 +2976,7 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
       }
 
       if ( f->definition == options->functor )
-      { if ( (Word)f >= m->globaltop )	/* new one we created ourselves */
+      { if ( (Word)f >= m->globaltop.as_ptr )	/* new one we created ourselves */
 	{ if ( options->singletons )
 	  { Word p = &f->arguments[0];
 
