@@ -1201,6 +1201,21 @@ format_float(double f, char *buf)
 }
 
 #ifdef O_BIGNUM
+static int
+mpz_get_str_ex(char *buf, int base, mpz_t mpz)
+{ int rc;
+
+  /* mpz_get_str() can perform large intermediate allocations */
+  EXCEPTION_GUARDED({ mpz_get_str(buf, 10, mpz);
+                      rc = TRUE;
+		    },
+		    { rc = FALSE;
+		    });
+
+  return rc;
+}
+
+
 #define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
 static int
 writeMPZ(DECL_LD mpz_t mpz, write_options *options)
@@ -1208,21 +1223,21 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
   char *buf;
   size_t sz = (mpz_sizeinbase(mpz, 2)*10)/3 + 10; /* log2(10)=3.322 */
   int rc;
-  AR_CTX;
 
   if ( sz <= sizeof(tmp) )
     buf = tmp;
   else if ( !(buf = tmp_malloc(sz)) )
     return PL_no_memory();
 
-  /* mpz_get_str() can perform large intermediate allocations */
-  AR_BEGIN();
-  EXCEPTION_GUARDED({ mpz_get_str(buf, 10, mpz);
-                      rc = TRUE;
-		    },
-		    { rc = FALSE;
-		    });
-  AR_END();
+  if ( LD->gmp.context )
+  { rc = mpz_get_str_ex(buf, 10, mpz);
+  } else
+  { AR_CTX;
+    AR_BEGIN();
+    rc = mpz_get_str_ex(buf, 10, mpz);
+    AR_END();
+  }
+
   rc = rc && PutToken(buf, options->out);
   if ( buf != tmp )
     tmp_free(buf);
