@@ -535,7 +535,7 @@ valFloat(DECL_LD word w)
 #endif
 
 
-#if ALIGNOF_INT64_T == ALIGNOF_VOIDP
+#if ALIGNOF_INT64_T == ALIGNOF_WORD
 #define valBignum(w) (*(int64_t *)valIndirectP(w))
 #else
 #define valBignum(w) LDFUNC(valBignum, w)
@@ -547,7 +547,7 @@ valBignum(DECL_LD word w)
     word w[WORDS_PER_INT64];
   } val;
 
-#if ( SIZEOF_VOIDP == 4 )
+#if ( SIZEOF_WORD == 4 )
   val.w[0] = p[0];
   val.w[1] = p[1];
 #else

@@ -579,7 +579,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
     bindConst(k, c);
     ARGP++;
     NEXT_INSTRUCTION;
-  } else if ( isBignum(*k) && valBignum(*k) == (intptr_t)*PC++ )
+  } else if ( isBignum(*k) && valBignum(*k) == (scode)*PC++ )
   { ARGP++;
     NEXT_INSTRUCTION;
   }
