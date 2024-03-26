@@ -2747,7 +2747,7 @@ tag_trail(DECL_LD)
     { Word p2 = trailValP(p);
 
       DEBUG(CHK_SECURE, assert(onStack(global, p2)));
-      te->address = word2ptr(Word, consPtr(p2, STG_GLOBAL|TAG_TRAILVAL));
+      te->as_word = consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
       //DEBUG(SECURE_CHK, assert(te == tBase || !isTrailVal(te[-1].address)));
     } else
     { if ( onLocal(te->address) )
@@ -2757,7 +2757,7 @@ tag_trail(DECL_LD)
 	stg = STG_GLOBAL;
       }
 
-      te->address = word2ptr(Word, consPtr(te->address, stg));
+      te->as_word = consPtr(te->address, stg);
     }
   }
 }
