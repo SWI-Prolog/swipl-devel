@@ -980,7 +980,7 @@ int
 evalExpression(DECL_LD term_t expr, number *result)
 { segstack term_stack;
   segstack arg_stack;
-  Word term_buf[16];
+  word term_buf[16];
   number arg_buf[16];
   number *n = result;
   number n_tmp;
@@ -1060,7 +1060,7 @@ retry:
 	}
 
 	if ( p == start )
-	{ initSegStack(&term_stack, sizeof(Word), sizeof(term_buf), term_buf);
+	{ initSegStack(&term_stack, sizeof(word), sizeof(term_buf), term_buf);
 	  initSegStack(&arg_stack, sizeof(number), sizeof(arg_buf), arg_buf);
 	}
 
