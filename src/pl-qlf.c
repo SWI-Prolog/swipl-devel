@@ -1507,10 +1507,10 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      if ( valInt(w) == val )
 	      { addCode(encode(op==V_H_INTEGER ? H_SMALLINT : B_SMALLINT));
 		addCode(w);
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_CODE == 8
 	      } else
 	      { addCode(encode(op==V_H_INTEGER ? H_INTEGER : B_INTEGER));
-		addCode((intptr_t)val);
+		addCode((scode)val);
 	      }
 #else
 	      } else if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
@@ -1527,13 +1527,13 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	    case V_A_INTEGER:
 	    { int64_t val = qlfGetInt64(fd);
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_CODE == 8
 	      addCode(encode(A_INTEGER));
-	      addCode((intptr_t)val);
+	      addCode((scode)val);
 #else
 	      if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
 	      { addCode(encode(A_INTEGER));
-		addCode((intptr_t)val);
+		addCode((scode)val);
 	      } else
 	      { addCode(encode(A_INT64));
 		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
@@ -2789,7 +2789,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case H_SMALLINT:
 	  v = valInt(*bp++);
 	  goto vh_int;
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	case H_INT64:
 	{ Word p = (Word)&v;
 	  cpInt64Data(p, bp);
@@ -2808,7 +2808,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case B_SMALLINT:
 	  v = valInt(*bp++);
 	  goto vb_int;
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	case B_INT64:
 	{ Word p = (Word)&v;
 	  cpInt64Data(p, bp);
@@ -2824,7 +2824,7 @@ saveWicClause(wic_state *state, Clause clause)
       }
       { int64_t v;
 
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	case A_INT64:
 	{ Word p = (Word)&v;
 	  cpInt64Data(p, bp);
@@ -2833,7 +2833,7 @@ saveWicClause(wic_state *state, Clause clause)
 #endif
 	case A_INTEGER:
 	  v = (intptr_t)*bp++;
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	va_int:
 #endif
 	  qlfPutUInt32(V_A_INTEGER, fd);

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -260,6 +260,7 @@ typedef struct c_warning
 		 *	  PORTABLE CHECK	*
 		 *******************************/
 
+/* Eventually can go if O_M64 is standard */
 #if SIZEOF_VOIDP == 4
 #define is_portable_smallint(w) (tagex(w) == (TAG_INTEGER|STG_INLINE))
 #define is_portable_constant(w) isConst(w)
@@ -2531,7 +2532,7 @@ A void.  Generate either B_VOID or H_VOID.
 
 	if ( n == WORDS_PER_INT64 )
 	{
-#if ( SIZEOF_VOIDP == 8 )
+#if ( SIZEOF_WORD == 8 )
 	  int64_t val = *(int64_t*)(p+1);
 #else
 	  union
@@ -2545,7 +2546,7 @@ A void.  Generate either B_VOID or H_VOID.
 	  val = cvt.i;
 #endif
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_CODE == 8
 	  Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 #else
 	  if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
@@ -4762,13 +4763,13 @@ argKey(Code PC, int skip, word *key)
       case H_RLIST:
 	*key = FUNCTOR_dot2;
 	return TRUE;
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_WORD == 4
       case H_INT64:			/* only on 32-bit hardware! */
 	*key = murmur_key(PC, 2*sizeof(*PC));
 	return TRUE;
 #endif
       case H_INTEGER:
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_WORD == 4
       { int64_t val;
 	val = (int64_t)(intptr_t)*PC;
 	*key = murmur_key(&val, sizeof(val));

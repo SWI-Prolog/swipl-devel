@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2022, VU University Amsterdam
+    Copyright (c)  2017-2024, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1086,7 +1086,7 @@ simplify_delay_set(delay_info *di, delay_set *ds)
 static trie_node *
 word_to_answer(DECL_LD word w)
 {
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_WORD == 8
    assert(isTaggedInt(w));
    return intToPointer(valInt(w));
 #else
@@ -1423,8 +1423,8 @@ delay_to_data(DECL_LD trie_node *answer, Word wrapper)
   { return consInt(0);
   } else if ( is_ground_trie_node(answer) )
   {
-#if SIZEOF_VOIDP == 8
-    intptr_t rc = consInt(pointerToInt(answer));
+#if SIZEOF_WORD == 8
+    word rc = consInt(pointerToInt(answer));
     DEBUG(0, assert(intToPointer(valInt(rc)) == answer));
     return rc;
 #else

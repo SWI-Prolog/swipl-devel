@@ -785,14 +785,14 @@ typedef wchar_t			pl_wchar_t;	/* Prolog wide character */
 typedef foreign_t		(*pl_function_t)(); /* foreign language functions */
 typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 
-#define				fid_t \
-	PL_fid_t				/* avoid AIX name-clash */
-#endif
+#define fid_t			PL_fid_t        /* avoid AIX name-clash */
+#endif /*0*/
 
 #if O_M64
 typedef uint64_t		word WORD_ALIGNED; /* Anonymous ptr-sized object*/
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 #define SIZEOF_WORD 8
+#define SIZEOF_CODE 8		/* may change */
 #else
 typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
 typedef intptr_t		sword;		/* Signed version */
@@ -802,6 +802,7 @@ typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
 typedef word			functor_t;	/* encoded functor */
 typedef word			code WORD_ALIGNED; /* bytes codes */
+typedef sword			scode WORD_ALIGNED;
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef foreign_t		(*Func)();	/* foreign functions */

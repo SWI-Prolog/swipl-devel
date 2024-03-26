@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2022, VU University Amsterdam
+    Copyright (c)  2016-2024, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -2712,7 +2712,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 
 	    if ( wsize == sizeof(int64_t)/sizeof(word))
 	    {
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_CODE == 8
 	      add_vmi_d(state, T_INTEGER, (code)ip[0]);
 #else
 	      add_vmi_d(state, T_INT64, (code)ip[0]);
@@ -2729,7 +2729,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	case TAG_FLOAT:
 	{ Word ip = valIndirectP(w);
 	  add_vmi_d(state, T_FLOAT, (code)ip[0]);
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	  addBuffer(&state->codes, (code)ip[1], code);
 #endif
           break;
@@ -2828,7 +2828,7 @@ next:
 
       switch(tag(key))
       { case TAG_INTEGER:
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_CODE == 8
 	  if ( wsize == 1 )			/* 64-bit integer */
 	  { if ( state->try )
 	      add_vmi_else_d(state, T_TRY_INTEGER, (code)h->data[0]);
@@ -2863,7 +2863,7 @@ next:
 	    add_vmi_else_d(state, T_TRY_FLOAT, (code)h->data[0]);
 	  else
 	    add_vmi_d(state, T_FLOAT, (code)h->data[0]);
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_CODE == 4
 	  addBuffer(&state->codes, (code)h->data[1], code);
 #endif
 	  goto indirect_done;

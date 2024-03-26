@@ -1568,10 +1568,10 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 
 static int
 allocStacks(DECL_LD)
-{ size_t minglobal = 8*SIZEOF_VOIDP K;
-  size_t minlocal  = 4*SIZEOF_VOIDP K;
-  size_t mintrail  = 4*SIZEOF_VOIDP K;
-  size_t minarg    = 1*SIZEOF_VOIDP K;
+{ size_t minglobal = 8*SIZEOF_WORD K;
+  size_t minlocal  = 4*SIZEOF_WORD K;
+  size_t mintrail  = 4*SIZEOF_WORD K;
+  size_t minarg    = 1*SIZEOF_WORD K;
 
   size_t itrail  = nextStackSizeAbove(mintrail-1);
   size_t iglobal = nextStackSizeAbove(minglobal-1);
@@ -1599,11 +1599,11 @@ allocStacks(DECL_LD)
   lBase   = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
+	     "global",   iglobal, 512*SIZEOF_WORD, TRUE);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  512*SIZEOF_VOIDP + LOCAL_MARGIN, FALSE);
+	     "local",    ilocal,  512*SIZEOF_WORD + LOCAL_MARGIN, FALSE);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  256*SIZEOF_VOIDP, TRUE);
+	     "trail",    itrail,  256*SIZEOF_WORD, TRUE);
   init_stack((Stack)&LD->stacks.argument,
 	     "argument", minarg,  0,                FALSE);
 
