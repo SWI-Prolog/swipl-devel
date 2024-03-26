@@ -246,7 +246,7 @@ forwards void		sweep_foreign(void);
 static void		sweep_global_mark(gc_wordptr *m);
 forwards void		update_relocation_chain(Word, Word);
 forwards void		into_relocation_chain(Word, int stg);
-forwards void		alien_into_relocation_chain(void *addr,
+forwards void		alien_into_relocation_chain(Word addr,
 						    int orgst, int stg);
 forwards void		compact_trail(void);
 forwards void		sweep_mark(mark *);
@@ -260,7 +260,7 @@ static size_t		tight(Stack s);
 #if O_DEBUG
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line);
-forwards void		needsRelocation(void *);
+forwards void		needsRelocation(Word ptr);
 forwards void		check_mark(mark *m);
 static int		check_marked(const char *s);
 #endif
@@ -397,7 +397,7 @@ print_val(word val, char *buf)
 #define LOCAL_UNMARKED ((table_value_t)2)
 
 static void
-needsRelocation(void *addr)
+needsRelocation(Word addr)
 { GET_LD
 
   needs_relocation++;
@@ -1677,10 +1677,11 @@ mark_foreign_frame(DECL_LD FliFrame fr, TrailEntry te)
   { te = early_reset_vars(&fr->mark, (Word)fr, te);
 
     DEBUG(MSG_GC_MARK_FOREIGN, Sdprintf("Marking foreign frame %p\n", fr));
-    needsRelocation(&fr->mark.trailtop);
-    check_relocation((Word)&fr->mark.trailtop);
+    fr->mark.trailtop.as_word = ptr2word(fr->mark.trailtop.as_ptr);
+    needsRelocation(&fr->mark.trailtop.as_word);
+    check_relocation(&fr->mark.trailtop.as_word);
     DEBUG(CHK_SECURE, assert(isRealMark(fr->mark)));
-    alien_into_relocation_chain(&fr->mark.trailtop,
+    alien_into_relocation_chain(&fr->mark.trailtop.as_word,
 				STG_TRAIL, STG_LOCAL);
 
   }
@@ -2336,8 +2337,8 @@ early_reset_choicepoint(DECL_LD mark_state *state, Choice ch)
   }
 
   state->reset_entry = early_reset_vars(&ch->mark, top, state->reset_entry);
-  needsRelocation(&ch->mark.trailtop);
-  alien_into_relocation_chain(&ch->mark.trailtop,
+  needsRelocation(&ch->mark.trailtop.as_word);
+  alien_into_relocation_chain(&ch->mark.trailtop.as_word,
 			      STG_TRAIL, STG_LOCAL);
   DEBUG(CHK_SECURE, trailtops_marked--);
 }
@@ -2680,10 +2681,8 @@ into_relocation_chain(DECL_LD Word current, int stg)
 
 
 static void
-alien_into_relocation_chain(DECL_LD void *addr, int orgst, int stg)
-{ void **ptr = (void **)addr;
-
-  *ptr = word2ptr(void *, consPtr(*ptr, orgst));
+alien_into_relocation_chain(DECL_LD Word addr, int orgst, int stg)
+{ *addr = consPtr(word2ptr(Word, *addr), orgst);
   into_relocation_chain(addr, stg);
 
   alien_relocations++;
