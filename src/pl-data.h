@@ -271,12 +271,10 @@ and while loading .wic files.  It comes at no price.
 		 *	      INDIRECTS		*
 		 *******************************/
 
-#if SIZEOF_VOIDP == 4			/* extend as needed */
-#define PADBITS 2
-#else
-#if SIZEOF_VOIDP == 8
+#if O_M64 || SIZEOF_VOIDP == 8
 #define PADBITS 3
-#endif
+#elif SIZEOF_VOIDP == 4
+#define PADBITS 2
 #endif
 
 #define PADMASK (sizeof(word)-1)
@@ -287,7 +285,7 @@ and while loading .wic files.  It comes at no price.
 #define valIndirectP(w)	(((Word)valPtr(w))+1)
 
 #define padHdr(iw)	(((iw)>>LMASK_BITS & PADMASK) ? \
-			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(intptr_t))
+			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(word))
 #define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
 #define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
 #define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))

@@ -944,9 +944,8 @@ allocString(DECL_LD size_t len)
 
 
 word
-globalString(size_t len, const char *s)
-{ GET_LD
-  Word p = allocString(len+1);
+globalString(DECL_LD size_t len, const char *s)
+{ Word p = allocString(len+1);
 
   if ( p )
   { char *q = (char *)&p[1];
@@ -954,7 +953,14 @@ globalString(size_t len, const char *s)
     *q++ = 'B';
     memcpy(q, s, len);
 
-    return consPtr(p, TAG_STRING|STG_GLOBAL);
+    word w = consPtr(p, TAG_STRING|STG_GLOBAL);
+    DEBUG(CHK_SECURE,
+	  { size_t len2;
+	    char *s2 = getCharsString(w, &len2);
+	    assert(len2 == len);
+	    assert(memcmp(s, s2, len) == 0);
+	  });
+    return w;
   }
 
   return 0;
@@ -962,9 +968,8 @@ globalString(size_t len, const char *s)
 
 
 word
-globalWString(size_t len, const pl_wchar_t *s)
-{ GET_LD
-  const pl_wchar_t *e = &s[len];
+globalWString(DECL_LD size_t len, const pl_wchar_t *s)
+{ const pl_wchar_t *e = &s[len];
   const pl_wchar_t *p;
   Word g;
 

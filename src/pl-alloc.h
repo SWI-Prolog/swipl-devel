@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2021, VU University Amsterdam
+    Copyright (c)  2012-2024, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -91,6 +91,8 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define	allocGlobalNoShift(words)		LDFUNC(allocGlobalNoShift, words)
 #define	f_pushArgumentStack(p)			LDFUNC(f_pushArgumentStack, p)
 #define	allocString(len)			LDFUNC(allocString, len)
+#define globalString(len, s)			LDFUNC(globalString, len, s)
+#define globalWString(len, s)			LDFUNC(globalWString, len, s)
 #define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
 #define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
 #define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
