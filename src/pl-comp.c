@@ -5301,9 +5301,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  break;
 	}
       case H_INTEGER:
-	{ intptr_t *p = (intptr_t*)PC;
-	  intptr_t v = *p++;
-	  PC = (Code)p;
+	{ scode v = (scode)*PC++;
 	  TRY(PL_unify_int64(argp, v));
 	  break;
 	}
