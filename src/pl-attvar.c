@@ -1292,7 +1292,7 @@ static void
 scan_trail(DECL_LD Choice ch, int set)
 { TrailEntry te, base;
 
-  base = ch->mark.trailtop;
+  base = ch->mark.trailtop.as_ptr;
 
   for(te=tTop-1; te>=base; te--)
   { if ( isTrailVal(te->address) )

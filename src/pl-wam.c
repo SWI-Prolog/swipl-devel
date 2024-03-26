@@ -1478,7 +1478,7 @@ reclaim_attvars(DECL_LD Word after)
 static inline void
 __do_undo(DECL_LD mark *m)
 { TrailEntry tt = tTop;
-  TrailEntry mt = m->trailtop;
+  TrailEntry mt = m->trailtop.as_ptr;
 
   while(--tt >= mt)
   { Word p = tt->address;

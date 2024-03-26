@@ -697,7 +697,7 @@ unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 
   if ( rc == TRUE )
   { TrailEntry tt = tTop;
-    TrailEntry mt = m.trailtop;
+    TrailEntry mt = m.trailtop.as_ptr;
 
     while(--tt >= mt)
     { Word p = tt->address;
@@ -2099,7 +2099,7 @@ PRED_IMPL("?=", 2, can_compare, 0)
   { FliFrame fr = (FliFrame) valTermRef(fid);
 
     FLI_ASSERT_VALID(fr);
-    if ( fr->mark.trailtop != tTop )
+    if ( fr->mark.trailtop.as_ptr != tTop )
       rc = FALSE;
   } else if ( exception_term )
   { PL_close_foreign_frame(fid);	/* keep exception */
@@ -3906,7 +3906,7 @@ unifiable(DECL_LD term_t t1, term_t t2, term_t subst)
 retry:
   if ( unify_all_trail_ptrs(t1, t2, &m) )
   { TrailEntry tt = tTop;
-    TrailEntry mt = m.trailtop;
+    TrailEntry mt = m.trailtop.as_ptr;
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
@@ -3977,7 +3977,7 @@ retry:
 	}
       }
       gTop = gp;			/* may not have used all space */
-      tTop = m.trailtop;
+      tTop = m.trailtop.as_ptr;
 
       rc = PL_unify(pushWordAsTermRef(list), subst);
       popTermRef();

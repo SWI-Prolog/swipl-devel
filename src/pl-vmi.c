@@ -1860,7 +1860,7 @@ VMI(I_CHP, 0, 0, ())
 END_VMI
 
 VMI(I_SSU_CHOICE, 0, 0, ())
-{ if ( tTop > BFR->mark.trailtop )
+{ if ( tTop > BFR->mark.trailtop.as_ptr )
     CLAUSE_FAILED;
 
   VMI_GOTO(I_ENTER);
@@ -1868,7 +1868,7 @@ VMI(I_SSU_CHOICE, 0, 0, ())
 END_VMI
 
 VMI(I_SSU_COMMIT, 0, 0, ())
-{ if ( tTop > BFR->mark.trailtop )
+{ if ( tTop > BFR->mark.trailtop.as_ptr )
     CLAUSE_FAILED;
 
   clear(FR, FR_SSU_DET);
