@@ -2065,9 +2065,9 @@ debugmode(debug_type doit, debug_type *old)
   if ( debugstatus.debugging != doit )
   { if ( doit )
     { if ( have_space_for_debugging() &&
-	   !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
-				 8*1024*SIZEOF_VOIDP,
-				 8*1024*SIZEOF_VOIDP) )
+	   !enlargeMinFreeStacks(8*1024*SIZEOF_WORD,
+				 8*1024*SIZEOF_WORD,
+				 8*1024*SIZEOF_WORD) )
 	return FALSE;
 
       debugstatus.skiplevel = SKIP_VERY_DEEP;

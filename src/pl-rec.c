@@ -780,7 +780,7 @@ variantRecords(const Record r1, const Record r2)
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_WORD == 8
 #define REC_SZ REC_64
 #else
 #define REC_SZ REC_32
