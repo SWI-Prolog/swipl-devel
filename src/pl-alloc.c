@@ -865,9 +865,9 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
     return TRUE;
   }
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_WORD == 8
   req = 3;
-#elif SIZEOF_VOIDP == 4
+#elif SIZEOF_WORD == 4
   req = 4;
 #else
 #error "FIXME: Unsupported sizeof word"
@@ -882,7 +882,7 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
   p = gTop;
   gTop += req;
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_WORD == 8
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(1, TAG_INTEGER);
 
@@ -890,7 +890,7 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
   *p++ = l;
   *p   = m;
 #else
-#if SIZEOF_VOIDP == 4
+#if SIZEOF_WORD == 4
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(2, TAG_INTEGER);
 

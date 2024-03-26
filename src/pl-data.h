@@ -271,9 +271,9 @@ and while loading .wic files.  It comes at no price.
 		 *	      INDIRECTS		*
 		 *******************************/
 
-#if O_M64 || SIZEOF_VOIDP == 8
+#if SIZEOF_WORD == 8
 #define PADBITS 3
-#elif SIZEOF_VOIDP == 4
+#elif SIZEOF_WORD == 4
 #define PADBITS 2
 #endif
 

@@ -792,9 +792,11 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 #if O_M64
 typedef uint64_t		word WORD_ALIGNED; /* Anonymous ptr-sized object*/
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
+#define SIZEOF_WORD 8
 #else
 typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
 typedef intptr_t		sword;		/* Signed version */
+#define SIZEOF_WORD SIZEOF_VOIDP
 #endif
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
