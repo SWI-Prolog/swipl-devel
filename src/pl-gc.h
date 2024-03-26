@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -100,8 +100,15 @@ static inline int
 ensureLocalSpace_ex(DECL_LD size_t bytes)
 { int rc;
 
+#if O_M64 && SIZEOF_VOIDP == 4
+  Word wltop = (Word)lTop;
+  Word wlmax = (Word)lMax;
+  if ( likely(hasSpace(wltop, wlmax, bytes/sizeof(word))) )
+    return TRUE;
+#else
   if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
     return TRUE;
+#endif
 
   if ( (rc=growLocalSpace(bytes, ALLOW_SHIFT)) == TRUE )
     return TRUE;
@@ -112,13 +119,12 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
 #define ensureStackSpace_ex(gcells, tcells, flags) LDFUNC(ensureStackSpace_ex, gcells, tcells, flags)
 static inline int
 ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
-{ gcells += BIND_GLOBAL_SPACE;
-  tcells += BIND_TRAIL_SPACE;
-
-  if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
+{ if ( hasStackSpace(gcells, tcells) )
     return TRUE;
 
-  return f_ensureStackSpace(gcells, tcells, flags);
+  return f_ensureStackSpace(gcells+BIND_GLOBAL_SPACE,
+			    tcells+BIND_TRAIL_SPACE,
+			    flags);
 }
 
 #endif /*_PL_GC_H*/

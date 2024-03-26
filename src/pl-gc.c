@@ -4641,14 +4641,14 @@ the macros ensureTrailSpace() and ensureGlobalSpace()
 
 int
 f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
-{ if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
+{ if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
     return TRUE;
 
   if ( LD->gc.active )
   { enableSpareStack((Stack)&LD->stacks.global, TRUE);
     enableSpareStack((Stack)&LD->stacks.trail,  TRUE);
 
-    if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
+    if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
       return TRUE;
   }
 
@@ -4661,29 +4661,29 @@ f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
     { if ( (rc=garbageCollect(GC_GLOBAL_OVERFLOW)) != TRUE )
 	return rc;
 
-      if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
+      if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
 	return TRUE;
     }
 
     /* Consider a stack-shift.  ALLOW_GC implies ALLOW_SHIFT */
 
-    if ( gTop+gcells > gMax || tight((Stack)&LD->stacks.global) )
+    if ( !hasGlobalSpace_(gcells) || tight((Stack)&LD->stacks.global) )
       gmin = gcells*sizeof(word);
     else
       gmin = 0;
 
-    if ( tTop+tcells > tMax || tight((Stack)&LD->stacks.trail) )
+    if ( !hasTrailSpace(tcells) || tight((Stack)&LD->stacks.trail) )
       tmin = tcells*sizeof(TrailEntry*);
     else
       tmin = 0;
 
     if ( (rc=growStacks(0, gmin, tmin)) != TRUE )
       return rc;
-    if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
+    if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
       return TRUE;
   }
 
-  if ( gTop+gcells > gMax )
+  if ( !hasGlobalSpace_(gcells) )
     return GLOBAL_OVERFLOW;
   else
     return TRAIL_OVERFLOW;
