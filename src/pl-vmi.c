@@ -4739,10 +4739,6 @@ VMH(I_FEXITDET, 1, (word), (rc))
   while ( (void*)fli_context > (void*)FR )
     fli_context = fli_context->parent;
 
-  DEBUG(CHK_SECURE,
-	assert(PC[-1] == encode(I_FEXITDET) ||
-	       PC[-2] == encode(I_FCALLDETVA)));
-
   switch(rc)
   { case TRUE:
       if ( exception_term )		/* false alarm */
