@@ -2468,7 +2468,7 @@ the arithmetic after dividing by the unit size.
 
 #if O_M64 && SIZEOF_VOIDP == 4
 #define hasSpace(base, top, size) \
-	(size_t)(base)/sizeof(base) + (size) <= (size_t)(top)/sizeof(base)
+  (size_t)(base)/sizeof(*(base)) + (size) <= (size_t)(top)/sizeof(*(base))
 #else
 #define hasSpace(base, top, size) \
 	(base) + (size) <= (top)
@@ -2479,7 +2479,7 @@ the arithmetic after dividing by the unit size.
 #define hasGlobalSpace(n) \
 	hasStackSpace(n,0)
 #define hasStackSpace(g, t) \
-	(hasGlobalSpace_(g+BIND_GLOBAL_SPACE) && \
+	(hasGlobalSpace_((g)+BIND_GLOBAL_SPACE) && \
 	 hasTrailSpace(t+BIND_TRAIL_SPACE))
 #define hasGlobalSpace_(n) \
 	likely(hasSpace(gTop, gMax, (n)))
