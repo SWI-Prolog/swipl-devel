@@ -1235,7 +1235,7 @@ has_attributes_after(DECL_LD Word av, Choice ch)
 	{ char buf[64];
 	  char vname[32];
 	  Sdprintf("has_attributes_after(%s, %s)\n",
-		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop, buf));
+		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop.as_ptr, buf));
 	});
 
   av = deRefM(av, &w);
@@ -1255,7 +1255,7 @@ has_attributes_after(DECL_LD Word av, Choice ch)
 	      Sdprintf("  att/3 at %s\n", print_addr((Word)f, buf));
 	    });
 
-      if ( (Word)f >= ch->mark.globaltop )
+      if ( (Word)f >= ch->mark.globaltop.as_ptr )
 	return TRUE;			/* created after choice */
 
       if ( f->definition == FUNCTOR_att3 )
@@ -1271,7 +1271,7 @@ has_attributes_after(DECL_LD Word av, Choice ch)
 	  return TRUE;			/* modified after choice point */
 	(void)deRefM(pv, &w);
 	if ( isTerm(w) &&
-	     (Word)valueTerm(w) >= ch->mark.globaltop )
+	     (Word)valueTerm(w) >= ch->mark.globaltop.as_ptr )
 	  return TRUE;			/* argument term after choice point */
 
 	l = pv+1;

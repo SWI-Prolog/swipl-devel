@@ -1580,14 +1580,24 @@ typedef struct
 } code_info;
 
 typedef union trail_entry
-{ Word	address;	/* address of the variable */
-  word	as_word;	/* Tagged during GC */
+{ Word		address;	/* address of the variable */
+  word		as_word;	/* Tagged during GC */
 } *TrailEntry;
+
+typedef union gc_wordptr
+{ Word		as_ptr;		/* address of the variable */
+  word		as_word;	/* Tagged during GC */
+} gc_wordptr;
+
+typedef union gc_trailptr
+{ TrailEntry	as_ptr;		/* address of the variable */
+  word		as_word;	/* Tagged during GC */
+} gc_trailptr;
 
 struct mark
 { TrailEntry	trailtop;	/* top of the trail stack */
-  Word		globaltop;	/* top of the global stack */
-  Word		saved_bar;	/* saved LD->mark_bar */
+  gc_wordptr	globaltop;	/* top of the global stack */
+  gc_wordptr	saved_bar;	/* saved LD->mark_bar */
 };
 
 struct functor
@@ -2072,17 +2082,17 @@ typedef struct module_enum
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
-			     (b).saved_bar = LD->mark_bar; \
+			     (b).saved_bar.as_ptr = LD->mark_bar; \
 			     DEBUG(CHK_SECURE, \
-				   assert((b).saved_bar == NO_MARK_BAR || \
-					  ((b).saved_bar >= gBase && \
-					   (b).saved_bar <= gTop))); \
-			     (b).globaltop = gTop; \
+				   assert((b).saved_bar.as_ptr == NO_MARK_BAR || \
+					  ((b).saved_bar.as_ptr >= gBase && \
+					   (b).saved_bar.as_ptr <= gTop))); \
+			     (b).globaltop.as_ptr = gTop; \
 			     if ( LD->mark_bar != NO_MARK_BAR ) \
-			       LD->mark_bar = (b).globaltop; \
+			       LD->mark_bar = (b).globaltop.as_ptr; \
 			   } while(0)
-#define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
-					     LD->frozen_bar : (b).saved_bar); \
+#define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar.as_ptr ? \
+					     LD->frozen_bar : (b).saved_bar.as_ptr); \
 			     DEBUG(CHK_SECURE, \
 				   assert(LD->mark_bar == NO_MARK_BAR || \
 					  (LD->mark_bar >= gBase && \

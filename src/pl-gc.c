@@ -243,7 +243,7 @@ typedef struct vm_state
 forwards void		mark_variable(Word);
 static void		mark_local_variable(Word p);
 forwards void		sweep_foreign(void);
-static void		sweep_global_mark(Word *m);
+static void		sweep_global_mark(gc_wordptr *m);
 forwards void		update_relocation_chain(Word, Word);
 forwards void		into_relocation_chain(Word, int stg);
 forwards void		alien_into_relocation_chain(void *addr,
@@ -1077,25 +1077,28 @@ restore_grefs(DECL_LD)
 #ifdef O_GVAR
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Dealing  with  nb_setval/2  and   nb_getval/2  non-backtrackable  global
-variables as defined  in  pl-gvar.c.  We   cannot  mark  and  sweep  the
-hash-table itself as the  reversed   pointers  cannot  address arbitrary
-addresses returned by allocHeapOrHalt(). Therefore we   turn all references to
-the  global  stack  into  term-references  and  rely  on  the  available
-mark-and-sweep for foreign references.
+Dealing  with  nb_setval/2  and nb_getval/2  non-backtrackable  global
+variables  as defined  in pl-gvar.c.   We  cannot mark  and sweep  the
+hash-table itself  as the  reversed pointers cannot  address arbitrary
+addresses  returned  by  allocHeapOrHalt().   Therefore  we  turn  all
+references to  the global stack  into term-references and rely  on the
+available mark-and-sweep for foreign references.
 
-If none of the global  variable  refers   to  the  global stack we could
-`unfreeze' the global stack, except  we   may  have used nb_setarg/3. We
-could enhance on this by introducing  a   `melt-bar'  set  to the lowest
-location which we assigned using nb_setarg/3.   If backtracking takes us
-before  that  point  we  safely  know  there  are  no  terms  left  with
-nb_setarg/3  assignments.  As  the  merged   backtrackable  global  vars
-implementation also causes freezing of the stacks, it is uncertain
+If none  of the global  variable refers to  the global stack  we could
+`unfreeze' the global  stack, except we may have  used nb_setarg/3. We
+could enhance  on this by introducing  a `melt-bar' set to  the lowest
+location which  we assigned using nb_setarg/3.   If backtracking takes
+us  before that  point we  safely know  there are  no terms  left with
+nb_setarg/3  assignments.  As  the  merged  backtrackable global  vars
+implementation also  causes freezing  of the  stacks, it  is uncertain
 whether there is much to gain with this approach.
+
+We save the `frozen_bar` in a gc_wordptr that os allocated on top of
+the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static fid_t
-gvars_to_term_refs(Word **saved_bar_at)
+gvars_to_term_refs(gc_wordptr **saved_bar_at)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
 
@@ -1126,12 +1129,12 @@ gvars_to_term_refs(Word **saved_bar_at)
   }
 
   if ( LD->frozen_bar )
-  { Word *sb;
+  { gc_wordptr *sb;
 
-    assert((Word)lTop + 1 <= (Word)lMax);
-    sb = (Word*)lTop;
+    assert((gc_wordptr*)lTop + 1 <= (gc_wordptr*)lMax);
+    sb = (gc_wordptr*)lTop;
     lTop = (LocalFrame)(sb+1);
-    *sb = LD->frozen_bar;
+    (*sb).as_ptr = LD->frozen_bar;
     *saved_bar_at = sb;
   } else
   { *saved_bar_at = NULL;
@@ -1142,12 +1145,12 @@ gvars_to_term_refs(Word **saved_bar_at)
 
 
 static void
-term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
+term_refs_to_gvars(fid_t fid, gc_wordptr *saved_bar_at)
 { GET_LD
 
   if ( saved_bar_at )
   { assert((void *)(saved_bar_at+1) == (void*)lTop);
-    LD->frozen_bar = valPtr2(ptr2word(*saved_bar_at), STG_GLOBAL);
+    LD->frozen_bar = valPtr2((*saved_bar_at).as_word, STG_GLOBAL);
 
     assert(onStack(global, LD->frozen_bar) || LD->frozen_bar == gTop);
     lTop = (LocalFrame) saved_bar_at;
@@ -1561,7 +1564,8 @@ early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
 { TrailEntry tm = m->trailtop;
   TrailEntry te0 = te;
   int assignments = 0;
-  Word gKeep = (LD->frozen_bar > m->globaltop ? LD->frozen_bar : m->globaltop);
+  Word gKeep = (LD->frozen_bar > m->globaltop.as_ptr ? LD->frozen_bar
+						     : m->globaltop.as_ptr);
 
   for( ; te >= tm; te-- )		/* early reset of vars */
   {
@@ -2907,11 +2911,10 @@ finds one of these cells, we simply fetch the value and go to `done'.
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
 static void
-sweep_global_mark(DECL_LD Word *m)
-{ Word gm;
+sweep_global_mark(DECL_LD gc_wordptr *m)
+{ Word gm = m->as_ptr;
 
   DEBUG(CHK_SECURE, assert(onStack(local, m)));
-  gm = *m;
   if ( is_marked_or_first(gm-1) )
     goto done;				/* quit common easy case */
 
@@ -2934,16 +2937,16 @@ sweep_global_mark(DECL_LD Word *m)
 	word w = consVar(off);
 	Word p;
 
-	for(p = gm+1; p<(*m); p++)
+	for(p = gm+1; p<m->as_ptr; p++)
 	  *p = w;			/* (*) */
       }
 
     done:
-      *m = gm;
+      m->as_word = ptr2word(gm);
       DEBUG(MSG_GC_RELOC, Sdprintf("gTop mark from choice point: "));
-      needsRelocation(m);
-      check_relocation((Word)m);
-      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL);
+      needsRelocation(&m->as_word);
+      check_relocation(&m->as_word);
+      alien_into_relocation_chain(&m->as_word, STG_GLOBAL, STG_LOCAL);
 
       return;
     } else				/* a large cell */
@@ -2964,14 +2967,15 @@ static inline void
 sweep_mark(DECL_LD mark *m)
 { marks_swept++;
   sweep_global_mark(&m->globaltop);
-  if ( m->saved_bar > gTop )
-    m->saved_bar = gTop;
+
+  if ( m->saved_bar.as_ptr > gTop )
+    m->saved_bar.as_ptr = gTop;
   sweep_global_mark(&m->saved_bar);
 }
 
 
 static void
-sweep_foreign()
+sweep_foreign(void)
 { GET_LD
   FliFrame fr = fli_context;
 
@@ -3000,9 +3004,9 @@ sweep_foreign()
 #define unsweep_mark(m) LDFUNC(unsweep_mark, m)
 static void
 unsweep_mark(DECL_LD mark *m)
-{ m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
-  m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
-  m->saved_bar = valPtr2((word)m->saved_bar, STG_GLOBAL);
+{ m->trailtop  = (TrailEntry)valPtr2(m->trailtop->as_word,  STG_TRAIL);
+  m->globaltop.as_ptr = valPtr2(m->globaltop.as_word, STG_GLOBAL);
+  m->saved_bar.as_ptr = valPtr2(m->saved_bar.as_word, STG_GLOBAL);
 
   DEBUG(CHK_SECURE, check_mark(m));
 
@@ -3510,7 +3514,7 @@ compact_global(void)
 
 
 static void
-collect_phase(vm_state *state, Word *saved_bar_at)
+collect_phase(vm_state *state, gc_wordptr *saved_bar_at)
 { GET_LD
 
   DEBUG(CHK_SECURE, check_marked("Start collect"));
@@ -3988,12 +3992,12 @@ check_mark(mark *m)
 { GET_LD
 
   assert(onTrailArea(m->trailtop));
-  assert(onGlobalArea(m->globaltop));
-  assert(onGlobalArea(m->saved_bar));
-  assert(m->saved_bar <= m->globaltop);
+  assert(onGlobalArea(m->globaltop.as_ptr));
+  assert(onGlobalArea(m->saved_bar.as_ptr));
+  assert(m->saved_bar.as_ptr <= m->globaltop.as_ptr);
   if ( start_map )
-  { assert(is_start(m->globaltop));
-    assert(is_start(m->saved_bar));
+  { assert(is_start(m->globaltop.as_ptr));
+    assert(is_start(m->saved_bar.as_ptr));
   }
 }
 
@@ -4363,7 +4367,7 @@ garbageCollect(gc_reason_t reason)
   int no_mark_bar;
   int rc;
   fid_t gvars, astack, attvars;
-  Word *saved_bar_at;
+  gc_wordptr *saved_bar_at;		/* LD->frozen_bar placed on top of local stack */
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
 #endif
@@ -4742,8 +4746,8 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
 { if ( ts )
     update_pointer(&m->trailtop, ts);
   if ( gs )
-  { update_pointer(&m->globaltop, gs);
-    update_pointer(&m->saved_bar, gs);
+  { update_pointer(&m->globaltop.as_ptr, gs);
+    update_pointer(&m->saved_bar.as_ptr, gs);
   }
 }
 
