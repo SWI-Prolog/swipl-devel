@@ -2547,10 +2547,10 @@ A void.  Generate either B_VOID or H_VOID.
 #endif
 
 #if SIZEOF_CODE == 8
-	  Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
+	  Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (scode)val);
 #else
 	  if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
-	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
+	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (scode)val);
 	  } else
 	  { int c = ((where&A_HEAD) ? H_INT64 : B_INT64);
 	    Output_n(ci, c, (Word)&val, WORDS_PER_INT64);
@@ -5728,7 +5728,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 	case H_INTEGER:
 	case B_INTEGER:
 	case A_INTEGER:
-			  { intptr_t i = (intptr_t)*PC++;
+			  { scode i = (scode)*PC++;
 			    int rc;
 
 			    if ( (rc=put_int64(ARGP++, i, 0)) != TRUE )
@@ -7202,7 +7202,7 @@ unify_vmi(term_t t, Code bp)
 	}
 	case CA1_INTEGER:
 	case CA1_JUMP:
-	{ intptr_t i = (intptr_t)*bp++;
+	{ scode i = (scode)*bp++;
 
 	  rc = PL_put_int64(av+an, i);
 	  break;

@@ -571,7 +571,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
     gTop += 2+WORDS_PER_INT64;
     c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
-    cvt.val = (int64_t)(intptr_t)*PC++;
+    cvt.val = (int64_t)(scode)*PC++;
     *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
     cpInt64Data(p, vp);
     *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -1068,7 +1068,7 @@ VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
   p = gTop;
   gTop += 2+WORDS_PER_INT64;
 
-  cvt.val = (int64_t)(intptr_t)*PC++;
+  cvt.val = (int64_t)(scode)*PC++;
   *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
   cpInt64Data(p, vp);
