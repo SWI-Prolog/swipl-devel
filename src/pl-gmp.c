@@ -61,7 +61,7 @@ static mpz_t MPZ_MAX_TAGGED;
 static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_PLINT;
 static mpz_t MPZ_MAX_UINT64;
-#if SIZEOF_LONG	< SIZEOF_VOIDP
+#if SIZEOF_LONG	< SIZEOF_WORD
 static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
 #endif
@@ -1209,7 +1209,7 @@ initGMP(void)
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
     mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
     mpz_init_max_uint(MPZ_MAX_UINT64, 64);
-#if SIZEOF_LONG < SIZEOF_VOIDP
+#if SIZEOF_LONG < SIZEOF_WORD
     mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
     mpz_init_set_si64(MPZ_MAX_LONG, LONG_MAX);
 #endif
@@ -1400,7 +1400,7 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 		   mpz_get_str(buf, 10, mpz));
 	});
 
-#if SIZEOF_LONG < SIZEOF_VOIDP
+#if SIZEOF_LONG < SIZEOF_WORD
   if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_LONG) <= 0 )
 #else
