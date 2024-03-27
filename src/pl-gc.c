@@ -2906,8 +2906,8 @@ offset the location of the  target   non-garbage  location.  If scanning
 finds one of these cells, we simply fetch the value and go to `done'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define consVar(w) (((intptr_t)(w)<<LMASK_BITS) | TAG_VAR)
-#define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
+#define consVar(w) (((word)(w)<<LMASK_BITS) | TAG_VAR)
+#define valVar(w)  ((w) >> LMASK_BITS)
 
 static void
 sweep_global_mark(DECL_LD gc_wordptr *m)
