@@ -306,20 +306,24 @@ update_ground(DECL_LD Word p, int flags)
 #define MC_WALK_REF  0x1
 #define MC_WALK_COPY 0x2
 
+#define MC_TAG(p,t)  ((Word)((uintptr_t)(p)|t))
+#define MC_UNTAG(p)  ((Word)((uintptr_t)(p) & ~(uintptr_t)MC_MASK))
+#define MC_TAGVAL(p) ((int)((uintptr_t)(p) & (uintptr_t)MC_MASK))
+
 static int
 pushForMark(segstack *stack, Word p, int wr)
-{ word w = ptr2word(p)|wr;
+{ Word w = MC_TAG(p, wr);
 
-  return pushSegStack(stack, w, word);
+  return pushSegStack(stack, w, Word);
 }
 
 static void
 popForMark(segstack *stack, Word *pp, int *wr)
-{ word w = 0;
+{ Word w = 0;
 
-  popSegStack(stack, &w, word);
-  *wr = w & (word)MC_MASK;
-  *pp = word2ptr(Word, (w & ~(word)MC_MASK));
+  popSegStack(stack, &w, Word);
+  *wr = MC_TAGVAL(w);
+  *pp = MC_UNTAG(w);
 }
 
 
