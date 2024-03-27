@@ -4981,7 +4981,7 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  uintptr_t wcl = FR->clause;
+  uintptr_t wcl = (uintptr_t)FR->clause;
   switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
       FNDET_CONTEXT.control = FRG_REDO;
