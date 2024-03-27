@@ -3843,13 +3843,13 @@ also needs support in garbageCollect() and growStacks().
 
 #define unify_all_trail_ptrs(t1, t2, m) LDFUNC(unify_all_trail_ptrs, t1, t2, m)
 static bool
-unify_all_trail_ptrs(DECL_LD Word t1, Word t2, mark *m)
+unify_all_trail_ptrs(DECL_LD term_t t1, term_t t2, mark *m)
 { for(;;)
   { int rc;
 
     Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
-    rc = raw_unify_ptrs(t1, t2);
+    rc = raw_unify_ptrs(valTermRef(t1), valTermRef(t2));
     if ( rc == TRUE )			/* Terms unified */
     { return rc;
     } else if ( rc == FALSE )		/* Terms did not unify */
@@ -3862,9 +3862,7 @@ unify_all_trail_ptrs(DECL_LD Word t1, Word t2, mark *m)
 
       Undo(*m);
       DiscardMark(*m);
-      PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
-      PopPtr(t2); PopPtr(t1);
       if ( !rc2 )
 	return FALSE;
     }
@@ -3906,8 +3904,7 @@ unifiable(DECL_LD term_t t1, term_t t2, term_t subst)
   }
 
 retry:
-  if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
-			    valTermRef(t2), &m) )
+  if ( unify_all_trail_ptrs(t1, t2, &m) )
   { TrailEntry tt = tTop;
     TrailEntry mt = m.trailtop;
 
