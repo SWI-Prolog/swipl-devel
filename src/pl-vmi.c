@@ -4981,11 +4981,11 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  word wcl = ptr2word(FR->clause);
+  uintptr_t wcl = FR->clause;
   switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
       FNDET_CONTEXT.control = FRG_REDO;
-      FNDET_CONTEXT.context = (word)((sword)(wcl) >> FRG_REDO_BITS);
+      FNDET_CONTEXT.context = (uintptr_t)((intptr_t)(wcl) >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
       FNDET_CONTEXT.control = FRG_REDO;
