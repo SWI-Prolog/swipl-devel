@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2023, University of Amsterdam
+    Copyright (c)  1996-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1753,7 +1753,7 @@ PL_get_integer(DECL_LD term_t t, int *i)
 { word w = valHandle(t);
 
   if ( isTaggedInt(w) )
-  { intptr_t val = valInt(w);
+  { sword val = valInt(w);
 
     if ( val > INT_MAX || val < INT_MIN )
       fail;
@@ -1802,7 +1802,7 @@ PL_get_uint(DECL_LD term_t t, unsigned int *i)
 { word w = valHandle(t);
 
   if ( isTaggedInt(w) )
-  { intptr_t val = valInt(w);
+  { sword val = valInt(w);
 
     if ( val < 0 || val > UINT_MAX )
       fail;
@@ -1846,7 +1846,7 @@ PL_get_long(DECL_LD term_t t, long *i)
 { word w = valHandle(t);
 
   if ( isTaggedInt(w) )
-  { intptr_t val = valInt(w);
+  { sword val = valInt(w);
 
     if ( val > LONG_MAX || val < LONG_MIN )
       fail;
