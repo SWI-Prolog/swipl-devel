@@ -37,6 +37,7 @@ endif()
 # For GCC, using -O3 makes the program bigger and slower.  -O2 is
 # better.  Possibly tuning individual flags can reach better results.
 
+set(GCC_GFLAGS "-gdwarf-2 -g3")
 if(CMAKE_COMPILER_IS_GNUCC)
   if($ENV{CFLAGS})
     string(REGEX MATCH "-O" match $ENV{CFLAGS})
@@ -45,37 +46,47 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(GCC_OPTFLAGS -O2)
   endif()
 
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 -gdwarf-2 -g3 $ENV{CFLAGS}"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} -gdwarf-2 -g3"
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE "${GCC_OPTFLAGS}"
+  set(CMAKE_C_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
-  set(CMAKE_C_FLAGS_PGO "${GCC_OPTFLAGS} -gdwarf-2 -g3"
+  set(CMAKE_C_FLAGS_PGO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
+      "-O0 ${GCC_GFLAGS} -fsanitize=address -fno-omit-frame-pointer $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 -gdwarf-2 -g3"
+
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
+      "-O0 ${GCC_GFLAGS} -fsanitize=address -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -gdwarf-2 -g3"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "-gdwarf-2 -g3 -fsanitize=address -O1 -fno-omit-frame-pointer"
+      "${GCC_GFLAGS} -fsanitize=address -O1 -fno-omit-frame-pointer $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -gdwarf-2 -g3"
+
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "-gdwarf-2 -g3 -fsanitize=address -O1 -fno-omit-frame-pointer"
+      "${GCC_GFLAGS} -fsanitize=address -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -gdwarf-2 -g3"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -gdwarf-2 -g3"
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
 elseif(EMSCRIPTEN)
 elseif(MSVC)
