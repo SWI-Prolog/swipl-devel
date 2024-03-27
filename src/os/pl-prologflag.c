@@ -1893,8 +1893,8 @@ initPrologFlags(void)
   setPrologFlag("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
   setPrologFlag("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
 #endif
-  setPrologFlag("max_tagged_integer", FT_INT64|FF_READONLY, PLMAXTAGGEDINT);
-  setPrologFlag("min_tagged_integer", FT_INT64|FF_READONLY, PLMINTAGGEDINT);
+  setPrologFlag("max_tagged_integer", FT_INT64|FF_READONLY, (int64_t)PLMAXTAGGEDINT);
+  setPrologFlag("min_tagged_integer", FT_INT64|FF_READONLY, (int64_t)PLMINTAGGEDINT);
 #ifdef O_BIGNUM
   setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
   setPrologFlag("rationals",	      FT_BOOL|FF_READONLY,	   TRUE, 0);
