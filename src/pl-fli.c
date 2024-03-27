@@ -618,6 +618,18 @@ PL_new_blob(void *blob, size_t len, PL_blob_t *type)
 }
 
 
+size_t
+PL_atom_index(atom_t a)
+{ return indexAtom(a);
+}
+
+atom_t
+PL_atom_from_index(size_t i)
+{ Atom a = fetchAtomArray(i);
+  return a->atom;
+}
+
+
 functor_t
 PL_new_functor_sz(DECL_LD atom_t f, size_t arity)
 { return lookupFunctorDef(f, arity);

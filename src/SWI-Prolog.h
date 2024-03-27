@@ -501,6 +501,8 @@ PL_EXPORT(int)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
+PL_EXPORT(size_t)	PL_atom_index(atom_t index);
+PL_EXPORT(atom_t)	PL_atom_from_index(size_t a);
 #ifdef O_DEBUG_ATOMGC
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)

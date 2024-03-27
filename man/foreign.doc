@@ -905,6 +905,18 @@ use PL_atom_nchars() to obtain the C string and its length (for
 ISO-Latin-1 atoms) or PL_atom_wchars() to obtain a C wide string
 (\ctype{wchar_t}).
 
+\cfunction{size_t}{PL_atom_index}{atom_t atom}
+Extract the \jargon{index} of an atom.  This is a relatively small
+integer.  Atoms are numbered sequentially, starting at one (1).  Note
+that the sequence may have holes due to atom garbage collection.  The
+released index may later be reused for a new atom.   The index may be
+used as a compact identifier for the atom.  Extracting the index has
+no impact on the lifetime of the atom, i.e., the index is valid as
+long as the \ctype{atom_t} is valid.
+
+\cfunction{atom_t}{PL_atom_from_index}{size_t index}
+Recover an atom from its index as obtained by PL_atom_index().
+
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity pair.
 The returned handle is valid for the entire Prolog session. Future
