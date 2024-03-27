@@ -1154,7 +1154,7 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 
   deRef(p);
   if ( isTaggedInt(*p) )
-  { intptr_t v = valInt(*p);
+  { sword v = valInt(*p);
 
     if ( v >= 0 )
     { *i = v;
