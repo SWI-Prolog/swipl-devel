@@ -5419,9 +5419,17 @@ PL_query(int query)
     case PL_QUERY_MIN_INTEGER:
       fail;				/* cannot represent (anymore) */
     case PL_QUERY_MAX_TAGGED_INT:
+#if SIZEOF_WORD > SIZEOF_VOIDP
+      fail;				/* cannot represent (anymore) */
+#else
       return PLMAXTAGGEDINT;
+#endif
     case PL_QUERY_MIN_TAGGED_INT:
+#if SIZEOF_WORD > SIZEOF_VOIDP
+      fail;
+#else
       return PLMINTAGGEDINT;
+#endif
     case PL_QUERY_GETC:
       PopTty(Sinput, &ttytab, FALSE);		/* restore terminal mode */
       return (intptr_t) Sgetchar();		/* normal reading */
