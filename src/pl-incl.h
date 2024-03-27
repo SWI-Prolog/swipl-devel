@@ -591,9 +591,9 @@ them.  Descriptions:
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(intptr_t)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
+#define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
-#define PLMINTAGGEDINT32	(-(intptr_t)((word)1<<(32-LMASK_BITS-1)))
+#define PLMINTAGGEDINT32	(-(sword)((word)1<<(32-LMASK_BITS-1)))
 #define PLMAXTAGGEDINT32	(-PLMINTAGGEDINT32 - 1)
 #define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(-PLMAXINT - 1)
@@ -2506,7 +2506,7 @@ typedef enum
   AV_ERROR
 } av_action;
 
-#define NV_ERROR (PLMINTAGGEDINT-1)
+#define NV_ERROR (-1)
 
 typedef struct
 { functor_t functor;			/* Functor to use ($VAR/1) */
