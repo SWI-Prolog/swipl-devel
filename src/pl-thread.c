@@ -801,6 +801,10 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       PL_UNLOCK(L_THREAD);
 
 #ifdef O_PLMT
+#ifdef O_DEBUG
+    int debug = DEBUGGING(MSG_CLEANUP_THREAD);
+#endif
+
     if ( acknowledge )			/* == canceled */
     { DEBUG(MSG_CLEANUP_THREAD,
 	    Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
@@ -822,7 +826,13 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
 #ifdef O_PLMT
     if ( acknowledge )
+    {
+#ifdef O_DEBUG
+      if ( debug )
+	Sfprintf(Serror, "sem_post(sem_canceled_ptr)\n");
+#endif
       sem_post(sem_canceled_ptr);
+    }
 #endif
   }
 
@@ -1133,7 +1143,10 @@ exitPrologThreads(void)
 	      { case PL_THREAD_CANCEL_FAILED:
 		  break;
 		case PL_THREAD_CANCEL_MUST_JOIN:
+		{ DEBUG(MSG_CLEANUP_THREAD,
+			Sdprintf("Used ->cancel(%d)\n", i));
 		  canceled++;
+		}
 		  /*FALLTHROUGH*/
 		case PL_THREAD_CANCEL_JOINED:
 		  continue;
@@ -1141,7 +1154,10 @@ exitPrologThreads(void)
 	    }
 
 	    if ( PL_thread_raise(i, SIG_PLABORT) )
+	    { DEBUG(MSG_CLEANUP_THREAD,
+		    Sdprintf("Sent abort to %d%d\n", i));
 	      canceled++;
+	    }
 	  }
 
 	  break;
@@ -1153,9 +1169,9 @@ exitPrologThreads(void)
   }
 
   if ( canceled > 0 )		    /* see (*) above */
-  { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads ", canceled));
-
+  {
 #ifdef USE_TIMER_WAIT
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (alarm timer)\n", canceled));
     struct itimerval timeout = {0};
     struct sigaction act = {0};
 
@@ -1177,6 +1193,7 @@ exitPrologThreads(void)
     }
 
 #elif defined(HAVE_SEM_TIMEDWAIT)
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (sem_timedwait)\n", canceled));
     struct timespec deadline;
 
     get_current_timespec(&deadline);
@@ -1186,14 +1203,16 @@ exitPrologThreads(void)
     while(canceled > 0)
     { if ( sem_timedwait(sem_canceled_ptr, &deadline) == 0 )
       { canceled--;
-	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left %d", canceled));
+	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("sem_timedwait(): ok. left %d\n", canceled));
       } else
-      { if ( errno != EINTR )
+      { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("sem_timedwait(): %s\n", strerror(errno)));
+	if ( errno != EINTR )
 	  break;
       }
     }
 
 #else
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (sem_trywait)\n", canceled));
     int maxwait = 10;
 
     for(maxwait = 10; maxwait > 0 && canceled > 0; maxwait--)
@@ -1208,7 +1227,7 @@ exitPrologThreads(void)
     }
 
 #endif
-    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("\nLeft: %d threads\n", canceled));
+    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left: %d threads\n", canceled));
   }
 
   if ( canceled )
