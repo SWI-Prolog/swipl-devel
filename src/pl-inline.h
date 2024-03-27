@@ -512,7 +512,7 @@ Trail(DECL_LD Word p, word v)
 #define f_consPtr(p, base, ts) LDFUNC(f_consPtr, p, base, ts)
 static inline word
 f_consPtr(DECL_LD void *p, uintptr_t base, word ts)
-{ uintptr_t v = (uintptr_t) p;
+{ word v = (uintptr_t) p;
 
   v -= base;
   DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
