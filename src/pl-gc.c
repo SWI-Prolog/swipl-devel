@@ -2907,13 +2907,15 @@ finds one of these cells, we simply fetch the value and go to `done'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define consVar(w) (((word)(w)<<LMASK_BITS) | TAG_VAR)
-#define valVar(w)  ((w) >> LMASK_BITS)
+#define valVar(w)  ((word)(w) >> LMASK_BITS)
 
 static void
 sweep_global_mark(DECL_LD gc_wordptr *m)
 { Word gm = m->as_ptr;
 
   DEBUG(CHK_SECURE, assert(onStack(local, m)));
+  IS_WORD_ALIGNED(gm);
+
   if ( is_marked_or_first(gm-1) )
     goto done;				/* quit common easy case */
 
@@ -3925,7 +3927,11 @@ scan_global(int flags)
     cells++;
 
     if ( tagex(*current) == (TAG_VAR|STG_RESERVED) )
-      Sdprintf("read varref at %p\n", current);
+      Sdprintf("read/1 varref at %p\n", current);
+    if ( tag(*current) == TAG_VAR && *current != 0 )
+    { Sdprintf("Unexpected varref to %zd at %zd\n", valVar(*current), current-gBase);
+      trap_gdb();
+    }
 
     if ( (!marked && is_marked(current)) || is_first(current) )
     { char pbuf[256];
