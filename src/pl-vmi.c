@@ -5384,8 +5384,9 @@ again:
 	fli_context = fli_context->parent;
 
       DEBUG(CHK_SECURE,
-	    { SAVE_REGISTERS(QID);
-	      memset(lTop, 0xfb, lMax-lTop);
+	    { size_t clean = (char*)lMax - (char*)lTop;
+	      SAVE_REGISTERS(QID);
+	      memset(lTop, 0xfb, clean);
 	      checkStacks(NULL);
 	      LOAD_REGISTERS(QID)
 	    });
