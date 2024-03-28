@@ -3928,8 +3928,10 @@ scan_global(int flags)
 
     if ( tagex(*current) == (TAG_VAR|STG_RESERVED) )
       Sdprintf("read/1 varref at %p\n", current);
-    if ( tag(*current) == TAG_VAR && *current != 0 )
-    { Sdprintf("Unexpected varref to %zd at %zd\n", valVar(*current), current-gBase);
+    /* TAG_VAR+value is used by sweep_global_mark() */
+    if ( tag(*current) == TAG_VAR && !marked && *current != 0 )
+    { Sdprintf("Unexpected varref to %zd at %zd\n",
+	       valVar(*current), current-gBase);
       trap_gdb();
     }
 
