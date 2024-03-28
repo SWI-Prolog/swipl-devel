@@ -70,21 +70,6 @@ typedef struct th_data
 } th_data;
 
 
-static void *
-allocBuffer(Buffer b, size_t size)
-{ void *ptr;
-
-  if ( b->top + size > b->max )
-  { if ( !growBuffer(b, size) )
-      return NULL;
-  }
-  ptr = b->top;
-  b->top += size;
-
-  return ptr;
-}
-
-
 #define primitiveHashValue(term, hval) LDFUNC(primitiveHashValue, term, hval)
 static int
 primitiveHashValue(DECL_LD word term, unsigned int *hval)
@@ -247,7 +232,7 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
     Functor t = valueTerm(*p);
 
     initBuffer(&tmp);
-    work = allocBuffer(b, sizeof(*work));	/* cannot fail */
+    work = allocFromBuffer(b, sizeof(*work));	/* cannot fail */
     start_term(work, b, *p);
     work->parent_offset = (size_t)-1;
     t->definition = consInt(0);
@@ -283,7 +268,7 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
 	} else
 	{ size_t parent = nodeID(work, b);
 
-	  if ( !(work = allocBuffer(b, sizeof(*work))) )
+	  if ( !(work = allocFromBuffer(b, sizeof(*work))) )
 	  { rc = -1;			/* out of memory */
 	    goto out;
 	  }
