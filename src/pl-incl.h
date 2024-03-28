@@ -798,6 +798,7 @@ typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 typedef uintptr_t		word;		/* Prolog data cell */
 typedef intptr_t		sword;		/* Signed version */
 #define SIZEOF_WORD SIZEOF_VOIDP
+#define SIZEOF_CODE SIZEOF_VOIDP
 #define ALIGNOF_WORD ALIGNOF_VOIDP
 #endif
 typedef word *			Word;		/* a pointer to anything */
