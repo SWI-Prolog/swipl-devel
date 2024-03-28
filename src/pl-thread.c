@@ -1238,6 +1238,7 @@ exitPrologThreads(void)
     { term_t head    = PL_new_term_ref();
       term_t running = PL_new_term_ref();
       term_t tail    = PL_copy_term_ref(running);
+      int found = 0;
 
       rc = TRUE;
       for(i = 1; i <= GD->thread.highest_id; i++)
@@ -1245,7 +1246,8 @@ exitPrologThreads(void)
 
 	if ( info && info->thread_data && i != me )
 	{ if ( info->status == PL_THREAD_RUNNING )
-	  { if ( !PL_unify_list(tail, head, tail) ||
+	  { found++;
+	    if ( !PL_unify_list(tail, head, tail) ||
 		 !unify_thread_id(head, info) )
 	    { rc = FALSE;
 	      break;
@@ -1254,7 +1256,7 @@ exitPrologThreads(void)
 	}
       }
 
-      if ( rc )
+      if ( rc && found )
       { rc = ( PL_unify_nil(tail) &&
 	       printMessage(ATOM_informational,
 			    PL_FUNCTOR_CHARS, "threads_not_died", 1,
