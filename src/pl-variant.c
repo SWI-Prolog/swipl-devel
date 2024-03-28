@@ -57,10 +57,10 @@
 #define node_isom(p)	((p)->b)
 
 typedef struct aWork
-{ word *	left;			/* left term arguments */
-  word *	right;			/* right term arguments */
-  int		arg;
-  int		arity;
+{ Word		left;			/* left term arguments */
+  Word		right;			/* right term arguments */
+  size_t	arg;
+  size_t	arity;
 } aWork;
 
 
@@ -87,7 +87,7 @@ init_agenda(argPairs *a)
 
 
 static inline bool
-push_start_args(argPairs *a, Word left, Word right, int arity)  /* plural */
+push_start_args(argPairs *a, Word left, Word right, size_t arity)  /* plural */
 { a->work.left  = left;
   a->work.right = right;
   a->work.arg   = 0;
@@ -97,7 +97,7 @@ push_start_args(argPairs *a, Word left, Word right, int arity)  /* plural */
 }
 
 static inline bool
-push_args(argPairs *a, Word left, Word right, int arity)  /* plural */
+push_args(argPairs *a, Word left, Word right, size_t arity)  /* plural */
 { if ( !pushSegStack(&a->stack, a->work, aWork) )
     return FALSE;
 
@@ -205,8 +205,9 @@ univ(DECL_LD word t, Word d, Word *a)
 }
 
 static inline void
-reset_terms(node * r)
-{ *(r->bp)  =  r->orig;
+reset_terms(node *r)
+{ IS_WORD_ALIGNED(r->bp);
+  *r->bp = r->orig;
 }
 
 /* isomorphic (==) */
@@ -230,7 +231,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
   if ( dm != dn )
     return FALSE;
 
-  if ( !push_args(a,  lm, ln, arityFunctor(dm)) )
+  if ( !push_args(a, lm, ln, arityFunctor(dm)) )
     return MEMORY_OVERFLOW;
 
   while( next_arg(a, &l, &r) )
@@ -328,14 +329,16 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
   { word wl, wr;
 
  attvar:
-   deRef(l);
-   deRef(r);
+    IS_WORD_ALIGNED(l);
+    IS_WORD_ALIGNED(r);
+    deRef(l);
+    deRef(r);
 
-   wl = *l;
-   wr = *r;
+    wl = *l;
+    wr = *r;
 
-   if ( tag(wl) != tag(wr) )
-     return FALSE;
+    if ( tag(wl) != tag(wr) )
+      return FALSE;
 
    if ( tag(wl) == TAG_VAR )
    { size_t i, j;
