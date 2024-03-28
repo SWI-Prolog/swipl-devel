@@ -1256,12 +1256,14 @@ exitPrologThreads(void)
 	}
       }
 
-      if ( rc && found )
-      { rc = ( PL_unify_nil(tail) &&
-	       printMessage(ATOM_informational,
-			    PL_FUNCTOR_CHARS, "threads_not_died", 1,
-			      PL_TERM, running)
-	     );
+      if ( rc )
+      { if ( found )
+	{ rc = ( PL_unify_nil(tail) &&
+		 printMessage(ATOM_informational,
+			      PL_FUNCTOR_CHARS, "threads_not_died", 1,
+				PL_TERM, running));
+	} else
+	  canceled = 0;
       }
     } else
     { rc = FALSE;
@@ -1269,7 +1271,7 @@ exitPrologThreads(void)
 
     if ( !rc )
       Sdprintf("%d threads wouldn't die\n", canceled);
-    rc = FALSE;
+    rc = !canceled;
   } else
   { DEBUG(MSG_THREAD, Sdprintf("done\n"));
 #ifndef WIN64			/* FIXME: Hangs if nothing is printed */
