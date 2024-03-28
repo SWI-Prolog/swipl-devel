@@ -150,17 +150,14 @@ static PL_blob_t record_blob =
 
 atom_t
 lookup_clref(Clause clause)
-{ clause_ref ref;
+{ clause_ref ref = { .next=NULL, .d.key=0, .value.clause = clause };
   int new;
 
-  DEBUG(0,
+  DEBUG(CHK_SECURE,
 	{ GET_LD
 	  assert(!onStackArea(local, clause));
 	});
 
-  ref.next = NULL;
-  ref.d.key = 0;
-  ref.value.clause = clause;
   return lookupBlob((const char*)&ref, SIZEOF_CREF_CLAUSE, &clause_blob, &new);
 }
 
