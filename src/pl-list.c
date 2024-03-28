@@ -226,16 +226,21 @@ typedef struct
 #endif
 #ifndef FREE
 #define FREE(x) \
-	{ x->next = NULL; \
+	{ x->next.as_word = 0; \
 	  x->item.term = NULL; \
 	  x->item.key = NULL; \
 	}
 #endif
 
 typedef struct List_Record *list;
-struct List_Record {
-    list next;
-    ITEM item;
+typedef union
+{ list  as_ptr;
+  word  as_word;
+} m64_list;
+
+struct List_Record
+{ m64_list next;
+  ITEM     item;
 };
 
 #define NIL (list)0
@@ -259,16 +264,16 @@ nat_sort(list data, int remove_dups, sort_order order)
   while ((p = data) != NIL)
   { /* pick up a run from the front of data, setting */
     /* p = (pointer to beginning of run), data = (rest of data) */
-    if ((q = p->next) != NIL)
+    if ((q = p->next.as_ptr) != NIL)
     { compare(c, p, q);
 
-      data = q->next;
+      data = q->next.as_ptr;
       if (c > 0)
       { r = q, q = p, p = r;
-	p->next = q;
+	p->next.as_ptr = q;
       } else if (c == remove_dups)
       {	/* c < 0 or = 0, so c = 1 impossible */
-	p->next = q->next;
+	p->next.as_ptr = q->next.as_ptr;
 	FREE(q);
 	q = p;
       }
@@ -279,15 +284,15 @@ nat_sort(list data, int remove_dups, sort_order order)
 	if (c > 0)
 	  break;
 	if (c == remove_dups)
-	{ s = r->next;
+	{ s = r->next.as_ptr;
 	  FREE(r);
 	  r = s;
 	} else
-	{ q->next = r, q = r, r = r->next;
+	{ q->next.as_ptr = r, q = r, r = r->next.as_ptr;
 	}
       }
 
-      q->next = NIL;
+      q->next.as_ptr = NIL;
       data = r;
     } else
     { data = NIL;
@@ -303,18 +308,18 @@ nat_sort(list data, int remove_dups, sort_order order)
 	compare(c, q, p);
 
 	if (c <= 0)
-	{ r->next = q, r = q, q = q->next;
+	{ r->next.as_ptr = q, r = q, q = q->next.as_ptr;
 	  if (c == remove_dups)
-	  { s = p->next;
+	  { s = p->next.as_ptr;
 	    FREE(p);
 	    p = s;
 	  }
 	} else
-	{ r->next = p, r = p, p = p->next;
+	{ r->next.as_ptr = p, r = p, p = p->next.as_ptr;
 	}
       }
-      r->next = q ? q : p;
-      p = header.next;
+      r->next.as_ptr = q ? q : p;
+      p = header.next.as_ptr;
     }
 
 	 /* push the merged run onto the stack */
@@ -334,18 +339,18 @@ nat_sort(list data, int remove_dups, sort_order order)
       compare(c, q, p);
 
       if (c <= 0)
-      { r->next = q, r = q, q = q->next;
+      { r->next.as_ptr = q, r = q, q = q->next.as_ptr;
 	if (c == remove_dups)
-	{ s = p->next;
+	{ s = p->next.as_ptr;
 	  FREE(p);
 	  p = s;
 	}
       } else
-      { r->next = p, r = p, p = p->next;
+      { r->next.as_ptr = p, r = p, p = p->next.as_ptr;
       }
     }
-    r->next = q ? q : p;
-    p = header.next;
+    r->next.as_ptr = q ? q : p;
+    p = header.next.as_ptr;
   }
 
   return p;
@@ -482,12 +487,12 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
     deRef(l);
     if ( len > 0 )
     { assert(isList(*l));
-      p->next = p+1;
+      p->next.as_ptr = p+1;
       p++;
     }
   }
 
-  p->next = NULL;
+  p->next.as_ptr = NULL;
   *end = (Word)(p+1);
 
   return SORT_SORT;
@@ -502,10 +507,10 @@ put_sort_list(term_t l, list sl)
   *valTermRef(l) = consPtr(sl, TAG_COMPOUND|STG_GLOBAL);
 
   for(;;)
-  { list n = sl->next;
+  { list n = sl->next.as_ptr;
     Word p = (Word)sl;
 
-    n = sl->next;
+    n = sl->next.as_ptr;
 					/* see also linkVal() */
     p[1] = (needsRef(*sl->item.term) ? makeRefG(sl->item.term)
 				     : *sl->item.term);
@@ -532,6 +537,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
   if ( !ensureLocalSpace(sizeof(word)) )
     return FALSE;
 
+  checkStacks(NULL);
   switch( prolog_list_to_sort_list(in, remove_dups,
 				   argc, argv, pair,
 				   &l, &top) )
@@ -540,6 +546,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
     case SORT_NIL:
       return PL_unify_nil(out);
     case SORT_NOSORT:
+      checkStacks(NULL);
       return PL_unify(in, out);
     case SORT_SORT:
     default:
@@ -547,6 +554,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
       l = nat_sort(l, remove_dups, order);
       put_sort_list(tmp, l);
       gTop = top;
+      checkStacks(NULL);
 
       return PL_unify(out, tmp);
     }
