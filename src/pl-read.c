@@ -1576,6 +1576,11 @@ reading terms with many named variables   result in quadratic behaviour.
 Not sure whether it is worth the trouble to use a hash-table here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
+#define consVarInfo(i)	((word)(nv)<<LMASK_BITS)|TAG_VAR|STG_RESERVED
+#define valVarInfo(w)   ((size_t)((word)(w)>>LMASK_BITS))
+#define VAR_INDEX_HASH_OFFSET 1
+
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
 
 #define FOR_VARS(v) \
@@ -1615,7 +1620,7 @@ linkVariable(Variable var, ReadData _PL_rd)
 { unsigned int key = variableHash(var) % var_hash_size;
 
   var->hash_next = var_buckets[key];
-  var_buckets[key] = (var->signature>>LMASK_BITS)+1;
+  var_buckets[key] = valVarInfo(var->signature)+VAR_INDEX_HASH_OFFSET;
 }
 
 
@@ -1640,7 +1645,7 @@ rehashVariables(ReadData _PL_rd)
 
 static int
 hashVariable(Variable var, ReadData _PL_rd)
-{ unsigned int i = var->signature>>LMASK_BITS;
+{ size_t i = valVarInfo(var->signature);
 
   if ( i > var_hash_size )
     return rehashVariables(_PL_rd);
@@ -1650,26 +1655,23 @@ hashVariable(Variable var, ReadData _PL_rd)
   }
 }
 
-					/* use hash-key? */
+static inline Variable
+var_from_index(size_t i, ReadData _PL_rd)
+{ return &baseBuffer(&var_buffer, struct variable)[i];
+}
 
-static Variable
+static inline Variable
 varInfo(word w, ReadData _PL_rd)
-{ if ( tagex(w) == (TAG_VAR|STG_RESERVED) )
-    return &baseBuffer(&var_buffer, struct variable)[w>>LMASK_BITS];
+{ if ( isVarInfo(w) )
+    return var_from_index(valVarInfo(w), _PL_rd);
 
   return NULL;
 }
 
 
 static Variable
-var_from_index(unsigned int i, ReadData _PL_rd)
-{ return &baseBuffer(&var_buffer, struct variable)[i-1];
-}
-
-static Variable
 lookupVariable(const char *name, size_t len, ReadData _PL_rd)
-{ struct variable next;
-  Variable var;
+{ Variable var;
   size_t nv;
 
   if ( !isAnonVarNameN(name, len) )		/* always add _ */
@@ -1678,7 +1680,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
       unsigned int vi;
 
       for(vi = var_buckets[key]; vi; vi=var->hash_next)
-      { var = var_from_index(vi, _PL_rd);
+      { var = var_from_index(vi-VAR_INDEX_HASH_OFFSET, _PL_rd);
 
 	if ( len == var->namelen && strncmp(name, var->name, len) == 0 )
 	{ var->times++;
@@ -1696,13 +1698,12 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   }
 
   nv = entriesBuffer(&var_buffer, struct variable);
-  next.name      = save_var_name(name, len, _PL_rd);
-  next.namelen   = len;
-  next.times     = 1;
-  next.variable  = 0;
-  next.signature = (nv<<LMASK_BITS)|TAG_VAR|STG_RESERVED;
-  addBuffer(&var_buffer, next, struct variable);
-  var = topBuffer(&var_buffer, struct variable) - 1;
+  var = allocFromBuffer(&var_buffer, sizeof(*var));
+  var->name      = save_var_name(name, len, _PL_rd);
+  var->namelen   = len;
+  var->times     = 1;
+  var->variable  = 0;
+  var->signature = consVarInfo(nv);
   if ( nv >= 16 )
     hashVariable(var, _PL_rd);
 
