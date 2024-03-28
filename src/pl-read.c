@@ -5182,12 +5182,12 @@ retry:
 
   if ( options &&
        !PL_scan_options(options, 0, "read_option", read_clause_options,
-		     &rd.varnames,
-		     &tpos,
-		     &rd.subtpos,
-		     &process_comment,
-		     &opt_comments,
-		     &syntax_errors) )
+			&rd.varnames,
+			&tpos,
+			&rd.subtpos,
+			&process_comment,
+			&opt_comments,
+			&syntax_errors) )
   { PL_close_foreign_frame(fid);
     return FALSE;
   }

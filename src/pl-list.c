@@ -510,7 +510,7 @@ static void
 put_sort_list(term_t l, list sl)
 { GET_LD
 
-    IS_WORD_ALIGNED(sl);
+  IS_WORD_ALIGNED(sl);
   *valTermRef(l) = consPtr(sl, TAG_COMPOUND|STG_GLOBAL);
 
   for(;;)
