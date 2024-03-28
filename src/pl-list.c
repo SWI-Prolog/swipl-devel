@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -215,21 +216,27 @@ typedef enum
     FREE	Frees a List_Record including its ITEM.
 */
 
+typedef union
+{ Word as_ptr;
+  word as_word;
+} m64_kv;
+
 typedef struct
-{ Word term WORD_ALIGNED;
-  Word key  WORD_ALIGNED;
+{ m64_kv term;
+  m64_kv key;
 } ITEM;
 
 					/* TBD: handle CMP_ERROR */
 #ifndef COMPARE_KEY
-#define COMPARE_KEY(x,y) compareStandard((x)->key, (y)->key, FALSE)
+#define COMPARE_KEY(x,y) compareStandard((x)->key.as_ptr, (y)->key.as_ptr, FALSE)
 #endif
 #ifndef FREE
+/* FREE() leaves the struct as three variables on the global stack */
 #define FREE(x) \
-	{ x->next.as_word = 0; \
-	  x->item.term = NULL; \
-	  x->item.key = NULL; \
-	}
+  { setVar(x->next.as_word);	    \
+    setVar(x->item.term.as_word);   \
+    setVar(x->item.key.as_word);    \
+  }
 #endif
 
 typedef struct List_Record *list;
@@ -476,11 +483,11 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
 
   deRef(l);
   while(len-- > 0)
-  { p->item.term = HeadList(l);
-    deRef(p->item.term);
-    p->item.key = extract_key(p->item.term, argc, argv, pair);
+  { p->item.term.as_ptr = HeadList(l);
+    deRef(p->item.term.as_ptr);
+    p->item.key.as_ptr = extract_key(p->item.term.as_ptr, argc, argv, pair);
 
-    if ( unlikely(!p->item.key) )
+    if ( unlikely(!p->item.key.as_ptr) )
       return SORT_ERR;
 
     l = TailList(l);
@@ -512,8 +519,8 @@ put_sort_list(term_t l, list sl)
 
     n = sl->next.as_ptr;
 					/* see also linkVal() */
-    p[1] = (needsRef(*sl->item.term) ? makeRefG(sl->item.term)
-				     : *sl->item.term);
+    p[1] = (needsRef(*sl->item.term.as_ptr) ? makeRefG(sl->item.term.as_ptr)
+					    : *sl->item.term.as_ptr);
     p[0] = FUNCTOR_dot2;
     if ( n )
     { p[2] = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
@@ -526,7 +533,9 @@ put_sort_list(term_t l, list sl)
 }
 
 
-#define pl_nat_sort(in, out, remove_dups, order, argc, argv, pair) LDFUNC(pl_nat_sort, in, out, remove_dups, order, argc, argv, pair)
+#define pl_nat_sort(in, out, remove_dups, order, argc, argv, pair) \
+	LDFUNC(pl_nat_sort, in, out, remove_dups, order, argc, argv, pair)
+
 static int
 pl_nat_sort(DECL_LD term_t in, term_t out,
 	    int remove_dups, sort_order order,
@@ -537,7 +546,8 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
   if ( !ensureLocalSpace(sizeof(word)) )
     return FALSE;
 
-  checkStacks(NULL);
+  static_assert(sizeof(*l) == 3*sizeof(word));
+
   switch( prolog_list_to_sort_list(in, remove_dups,
 				   argc, argv, pair,
 				   &l, &top) )
@@ -546,7 +556,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
     case SORT_NIL:
       return PL_unify_nil(out);
     case SORT_NOSORT:
-      checkStacks(NULL);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
       return PL_unify(in, out);
     case SORT_SORT:
     default:
@@ -554,7 +564,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
       l = nat_sort(l, remove_dups, order);
       put_sort_list(tmp, l);
       gTop = top;
-      checkStacks(NULL);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
 
       return PL_unify(out, tmp);
     }
