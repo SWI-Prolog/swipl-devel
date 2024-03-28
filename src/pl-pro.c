@@ -703,7 +703,18 @@ last_arg:
 
   while(isRef(*p))
   { assert(!is_marked(p));
-    p2 = unRef(*p);
+    if ( storage(*p) == STG_LOCAL ) /* PushPtr()/PopPtr() reference? */
+    { for(int i=0; i<LD->tmp.top; i++)
+      { if ( valTermRef(LD->tmp.h[i]) == p )
+	{ p2 = unRefLG(*p);	    /* Yes */
+	  goto deref_ok;
+	}
+      }
+      printk(context, "Reference to local stack");
+    } else
+    { p2 = unRef(*p);
+    }
+  deref_ok:
     DEBUG(CHK_HIGHER_ADDRESS,
 	  { if ( p2 > p )
 	    { if ( !isAttVar(*p2) &&
