@@ -950,7 +950,7 @@ do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
   { word w;
 
     if ( (w=loadXRc(state, c)) )
-      return _PL_unify_atomic(term, w);
+      return PL_unify_atomic(term, w);
 
     return FALSE;
   }

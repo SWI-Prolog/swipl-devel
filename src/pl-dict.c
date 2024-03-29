@@ -759,7 +759,7 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
       assert(rc == -2);
       Undo(m);
       return ( (ex = PL_new_term_ref()) &&
-	       _PL_unify_atomic(ex, dupl) &&
+	       PL_unify_atomic(ex, dupl) &&
 	       PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, ex) );
     }
   }					/* TBD: {name:value, ...} */
@@ -1262,7 +1262,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
 	  deRef2(&f->arguments[i+1], np);	/* TBD: check type */
 	  if ( unify_ptrs(&f->arguments[i], valTermRef(A3),
 			  ALLOW_GC|ALLOW_SHIFT) &&
-	       _PL_unify_atomic(A1, *np) )
+	       PL_unify_atomic(A1, *np) )
 	  { PL_close_foreign_frame(fid);
 
 	    if ( i+2 < arity )

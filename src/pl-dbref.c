@@ -180,7 +180,7 @@ int
 PL_unify_clref(term_t t, Clause clause)
 { GET_LD
   atom_t a = lookup_clref(clause);
-  int rc = _PL_unify_atomic(t, a);
+  int rc = PL_unify_atomic(t, a);
 
   PL_unregister_atom(a);
 

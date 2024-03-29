@@ -266,7 +266,7 @@ PRED_IMPL("tty_get_capability", 3, tty_get_capability, 0)
     fail;
 
   if ( e->value != 0L )
-    return _PL_unify_atomic(value, e->value);
+    return PL_unify_atomic(value, e->value);
 
   fail;
 }

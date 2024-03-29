@@ -792,18 +792,20 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 typedef uint64_t		word WORD_ALIGNED; /* Prolog data cell */
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 #define SIZEOF_WORD 8
+#define SIZEOF_ATOM 4
 #define SIZEOF_CODE 8		/* may change */
 #define ALIGNOF_WORD 8
 #else
 typedef uintptr_t		word;		/* Prolog data cell */
 typedef intptr_t		sword;		/* Signed version */
 #define SIZEOF_WORD SIZEOF_VOIDP
+#define SIZEOF_ATOM SIZEOF_WORD
 #define SIZEOF_CODE SIZEOF_VOIDP
 #define ALIGNOF_WORD ALIGNOF_VOIDP
 #endif
 typedef word *			Word;		/* a pointer to anything */
-typedef word			atom_t;		/* encoded atom */
-typedef word			functor_t;	/* encoded functor */
+typedef uintptr_t		atom_t;		/* encoded atom */
+typedef uintptr_t		functor_t;	/* encoded functor */
 typedef word			code WORD_ALIGNED; /* bytes codes */
 typedef sword			scode WORD_ALIGNED;
 typedef code *			Code;		/* pointer to byte codes */
@@ -860,6 +862,11 @@ ptr2word(void *ptr)
 
 #define word2ptr(type, w) ((type)(uintptr_t)(w))
 #define code2ptr(type, c) ((type)(uintptr_t)(c))
+#define word2atom(w)	  ((atom_t)(w))
+#define atom2word(w)	  ((word)(w))
+#define code2atom(w)	  ((atom_t)(w))
+#define atom2code(w)	  ((code)(w))
+
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -1370,8 +1377,8 @@ extern IOSTREAM *atomLogFd;
 
 struct functorDef
 { FunctorDef	next;		/* next in chain */
-  word		functor;	/* as appearing on the global stack */
-  word		name;		/* Name of functor */
+  functor_t	functor;	/* as appearing on the global stack */
+  atom_t	name;		/* Name of functor */
   size_t	arity;		/* arity of functor */
   unsigned      flags;		/* Flag field holding: */
 		  /* CONTROL_F	   Compiled control-structure */

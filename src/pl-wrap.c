@@ -266,7 +266,7 @@ retry:
       for(; arity > 0; arity--)
 	*to++ = linkValI(f++);
 
-      return _PL_unify_atomic(wrapped, w);
+      return PL_unify_atomic(wrapped, w);
     } else
     { int rc;
 
@@ -376,7 +376,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 	     !PL_unify_list(tail, head, tail) ||
 	     !PL_unify_term(head,
 			    PL_FUNCTOR, FUNCTOR_minus2,
-			      PL_ATOM, codes[3],
+			      PL_ATOM, code2atom(codes[3]),
 			      PL_TERM, ct) )
 	  return FALSE;
 

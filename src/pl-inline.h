@@ -273,6 +273,20 @@ COMPARE_AND_SWAP_WORD(word *at, word from, word to)
 #endif
 }
 
+static inline int
+COMPARE_AND_SWAP_ATOM(atom_t *at, atom_t from, atom_t to)
+{
+#ifdef _MSC_VER
+# if SIZEOF_ATOM == 4
+  return _InterlockedCompareExchange(at, to, from) == from;
+# else
+  return _InterlockedCompareExchange64(at, to, from) == from;
+#endif
+#else
+  return __COMPARE_AND_SWAP(at, from, to);
+#endif
+}
+
 #else
 #define ATOMIC_ADD(ptr, v)		(*ptr += v)
 #define ATOMIC_SUB(ptr, v)		(*ptr -= v)
@@ -288,6 +302,7 @@ COMPARE_AND_SWAP_WORD(word *at, word from, word to)
 #define COMPARE_AND_SWAP_UINT(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #define COMPARE_AND_SWAP_SIZE(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #define COMPARE_AND_SWAP_WORD(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_ATOM(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #endif
 
 #ifndef HAVE_MSB

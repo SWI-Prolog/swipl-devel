@@ -526,7 +526,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
     { atom_t a = textToAtom(text);
 
       if ( a )
-      { int rval = _PL_unify_atomic(term, a);
+      { int rval = PL_unify_atomic(term, a);
 
 	PL_unregister_atom(a);
 	return rval;
@@ -541,7 +541,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
       { if ( hasGlobalSpace(globalSpaceRequirement(text)) ||
 	     PL_from_stack_text(text, 0) )
 	{ if ( (w = textToString(text)) )
-	    return _PL_unify_atomic(term, w);
+	    return PL_unify_atomic(term, w);
 	}
 
 	return FALSE;

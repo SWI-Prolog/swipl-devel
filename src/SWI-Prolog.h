@@ -195,9 +195,9 @@ typedef uintptr_t	_PLQ(word);	/* Anonymous Prolog data cell */
 #endif
 #ifndef PL_HAVE_ATOM_T
 #define PL_HAVE_ATOM_T
-typedef _PLQ(word)	atom_t;		/* Prolog atom */
+typedef uintptr_t	atom_t;		/* Prolog atom */
 #endif
-typedef _PLQ(word)	functor_t;	/* Name/arity pair */
+typedef uintptr_t	functor_t;	/* Name/arity pair */
 typedef _PLQ(word)	_PLQ(code);	/* Prolog bytecode type */
 typedef _PLS(module) *	module_t;	/* Prolog module */
 typedef _PLS(procedure) *predicate_t;	/* Prolog procedure */
@@ -911,7 +911,7 @@ PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
 
 PL_EXPORT(PL_atomic_t)	_PL_get_atomic(term_t t);
 PL_EXPORT(void)		_PL_put_atomic(term_t t, PL_atomic_t a);
-PL_EXPORT(int)		_PL_unify_atomic(term_t t, PL_atomic_t a);
+PL_EXPORT(int)		PL_unify_atomic(term_t t, PL_atomic_t a);
 PL_EXPORT(int)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
 PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 

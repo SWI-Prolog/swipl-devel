@@ -519,15 +519,14 @@ API_STUB(term_t)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unifyAtomic(p, a) unifies a term, represented by  a pointer to it, with
-an atomic value. It is intended for foreign language functions.
+PL_unify_atomic(p, a) unifies a term,  represented by a pointer to it,
+with an atomic value. It is intended for foreign language functions.
 
 May call GC/SHIFT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define unifyAtomic(t, w) LDFUNC(unifyAtomic, t, w)
-static bool
-unifyAtomic(DECL_LD term_t t, word w)
+int
+PL_unify_atomic(DECL_LD term_t t, word w)
 { Word p = valHandleP(t);
 
   for(;;)
@@ -2554,7 +2553,7 @@ PL_unify_string_chars(term_t t, const char *s)
   word str = globalString(strlen(s), (char *)s);
 
   if ( str )
-    return unifyAtomic(t, str);
+    return PL_unify_atomic(t, str);
 
   return FALSE;
 }
@@ -2565,7 +2564,7 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
   word str = globalString(len, s);
 
   if ( str )
-    return unifyAtomic(t, str);
+    return PL_unify_atomic(t, str);
 
   return FALSE;
 }
@@ -2945,12 +2944,12 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 
 int
 PL_unify_atom(DECL_LD term_t t, atom_t a)
-{ return unifyAtomic(t, a);
+{ return PL_unify_atomic(t, atom2word(a));
 }
 
 API_STUB(int)
 (PL_unify_atom)(term_t t, atom_t a)
-( return unifyAtomic(t, a); )
+( return PL_unify_atom(t, a); )
 
 
 int
@@ -3051,7 +3050,7 @@ int
 PL_unify_atom_chars(term_t t, const char *chars)
 { GET_LD
   atom_t a = lookupAtom(chars, strlen(chars));
-  int rval = unifyAtomic(t, a);
+  int rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -3063,7 +3062,7 @@ int
 PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
   atom_t a = lookupAtom(chars, len);
-  int rval = unifyAtomic(t, a);
+  int rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -3303,7 +3302,7 @@ PL_unify_uint64(term_t t, uint64_t i)
 
     switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
     { case TRUE:
-	return unifyAtomic(t, w);
+	return PL_unify_atomic(t, w);
       case LOCAL_OVERFLOW:
 	return PL_representation_error("uint64_t");
       default:
@@ -3338,7 +3337,7 @@ PL_unify_integer(DECL_LD term_t t, intptr_t i)
 { word w = consInt(i);
 
   if ( valInt(w) == i )
-    return unifyAtomic(t, w);
+    return PL_unify_atomic(t, w);
 
   return unify_int64_ex(t, i, FALSE);
 }
@@ -3485,7 +3484,7 @@ API_STUB(int)
 
 int
 PL_unify_nil(DECL_LD term_t l)
-{ return unifyAtomic(l, ATOM_nil);
+{ return PL_unify_atom(l, ATOM_nil);
 }
 
 API_STUB(int)
@@ -3881,8 +3880,8 @@ _PL_get_atomic(term_t t)
 
 
 API_STUB(int)
-(_PL_unify_atomic)(term_t t, PL_atomic_t a)
-( return unifyAtomic(t, a); )
+(PL_unify_atomic)(term_t t, PL_atomic_t a)
+( return PL_unify_atomic(t, a); )
 
 
 void
@@ -3902,7 +3901,7 @@ PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
   atom_t a = lookupBlob(blob, len, type, &new);
-  int rval = unifyAtomic(t, a);
+  int rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 

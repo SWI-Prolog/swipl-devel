@@ -239,7 +239,7 @@ trie_discard_clause(trie *trie)
 { atom_t dbref;
 
   if ( (dbref=trie->clause) )
-  { if ( COMPARE_AND_SWAP_WORD(&trie->clause, dbref, 0) &&
+  { if ( COMPARE_AND_SWAP_ATOM(&trie->clause, dbref, 0) &&
 	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause */
     { ClauseRef cref = clause_clref(dbref);	/* from two ends */
 
@@ -1264,7 +1264,7 @@ equal_value(word v1, word v2)
 static int
 unify_value(DECL_LD term_t t, word value)
 { if ( !isRecord(value) )
-  { return _PL_unify_atomic(t, value);
+  { return PL_unify_atomic(t, value);
   } else
   { term_t t2;
 
@@ -3007,7 +3007,7 @@ retry:
   if ( !(dbref = trie->clause) )
   { if ( trie->value_count == 0 )
     { dbref = ATOM_fail;
-      if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
+      if ( !COMPARE_AND_SWAP_ATOM(&trie->clause, 0, dbref) )
 	goto retry;
     } else
     { trie_compile_state state;
@@ -3022,7 +3022,7 @@ retry:
       { cref = assertDefinition(def, cl, CL_END);
 	if ( cref )
 	{ dbref = lookup_clref(cref->value.clause);
-	  if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
+	  if ( !COMPARE_AND_SWAP_ATOM(&trie->clause, 0, dbref) )
 	  { PL_unregister_atom(dbref);
 	    retractClauseDefinition(def, cref->value.clause, FALSE);
 	    goto retry;
@@ -3049,7 +3049,7 @@ PRED_IMPL("$trie_compile", 2, trie_compile, 0)
 			     : GD->procedures.trie_gen_compiled2);
     atom_t clref = compile_trie(proc->definition, trie);
 
-    return _PL_unify_atomic(A2, clref);
+    return PL_unify_atomic(A2, clref);
   }
 
   return FALSE;

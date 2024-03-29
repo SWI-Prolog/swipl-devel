@@ -5296,7 +5296,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
       case H_MPZ:
       case H_MPQ:
 	{ word copy = globalIndirectFromCode(&PC);
-	  if ( !copy || !_PL_unify_atomic(argp, copy) )
+	  if ( !copy || !PL_unify_atomic(argp, copy) )
 	    return FALSE;
 	  break;
 	}
@@ -5314,7 +5314,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	    cpInt64Data(p, PC);
 	    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-	    TRY(_PL_unify_atomic(argp, w));
+	    TRY(PL_unify_atomic(argp, w));
 	    break;
 	  } else
 	    return FALSE;
@@ -5328,14 +5328,14 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	    cpDoubleData(p, PC);
 	    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	    TRY(_PL_unify_atomic(argp, w));
+	    TRY(PL_unify_atomic(argp, w));
 	    break;
 	  } else
 	    return FALSE;
 	}
       case H_ATOM:
       case H_SMALLINT:
-	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
+	  TRY(PL_unify_atomic(argp, XR(*PC++)));
 	  break;
       case H_FIRSTVAR:
       case H_VAR:
@@ -7026,7 +7026,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	  }
 	  case CA1_DATA:
 	  { word xr = PC[an];
-	    rc = _PL_unify_atomic(term, xr);
+	    rc = PL_unify_atomic(term, xr);
 	    goto hit;
 	  }
 	  case CA1_MODULE:
@@ -7052,7 +7052,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	while(ats[an])
 	{ switch(ats[an++])
 	  { case CA1_DATA:
-	      if ( _PL_unify_atomic(term, PC[an]) )
+	      if ( PL_unify_atomic(term, PC[an]) )
 		succeed;
 	      break;
 	    case CA1_MODULE:
@@ -7225,7 +7225,7 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_DATA:
-	{ rc = _PL_unify_atomic(av+an, *bp++);
+	{ rc = PL_unify_atomic(av+an, *bp++);
 	  break;
 	}
 	case CA1_FUNC:
@@ -7286,7 +7286,7 @@ unify_vmi(term_t t, Code bp)
 	case CA1_MPQ:
 	case CA1_STRING:
 	{ word c = globalIndirectFromCode(&bp);
-	  rc = _PL_unify_atomic(av+an, c);
+	  rc = PL_unify_atomic(av+an, c);
 	  break;
 	}
 	default:

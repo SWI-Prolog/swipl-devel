@@ -527,7 +527,7 @@ same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 }
 
 
-word
+atom_t
 lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
 { unsigned int v0, v, ref;
   Atom *table;
@@ -654,7 +654,7 @@ redo:
 }
 
 
-word
+atom_t
 lookupAtom(DECL_LD const char *s, size_t length)
 { int new;
 

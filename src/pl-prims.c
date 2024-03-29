@@ -3189,7 +3189,7 @@ PRED_IMPL("var_number", 2, var_number, 0)
 
       deRef(a);
       if ( isAtom(*a) || isInteger(*a) )
-	return _PL_unify_atomic(A2, *a);
+	return PL_unify_atomic(A2, *a);
     }
   }
 

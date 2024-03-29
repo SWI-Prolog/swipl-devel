@@ -50,8 +50,8 @@
 
 #define LDFUNC_DECLARATIONS
 #define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
-word		lookupAtom(const char *s, size_t len);
-word		lookupBlob(const char *s, size_t len,
+atom_t		lookupAtom(const char *s, size_t len);
+atom_t		lookupBlob(const char *s, size_t len,
 			   PL_blob_t *type, int *new);
 word		pl_atom_hashstat(term_t i, term_t n);
 void		do_init_atoms(void);

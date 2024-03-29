@@ -978,7 +978,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	  memcpy(q,      data.hdr.base,       shdr);
 	  memcpy(q+shdr, data.info.code.base, scode);
 
-	  rc = _PL_unify_atomic(string, w);
+	  rc = PL_unify_atomic(string, w);
 	  discard_record_data(&data);
 
 	  return rc;
@@ -1417,13 +1417,17 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	continue;
       }
       case PL_TYPE_EXT_ATOM:
-      { fetchAtom(b, p);
-	PL_unregister_atom(*p);
+      { atom_t a;
+	fetchAtom(b, &a);
+        *p = atom2word(a);
+	PL_unregister_atom(a);
 	continue;
       }
       case PL_TYPE_EXT_WATOM:
-      { fetchAtomW(b, p);
-	PL_unregister_atom(*p);
+      { atom_t a;
+	fetchAtomW(b, &a);
+	*p = atom2word(a);
+	PL_unregister_atom(a);
 	continue;
       }
       case PL_TYPE_TAGGED_INTEGER:
@@ -1967,7 +1971,7 @@ unifyKey(term_t key, word val)
 { GET_LD
 
   if ( isAtom(val) || isTaggedInt(val) )
-  { return _PL_unify_atomic(key, val);
+  { return PL_unify_atomic(key, val);
   } else
   { return PL_unify_functor(key, (functor_t) val);
   }

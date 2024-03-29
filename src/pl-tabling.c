@@ -1507,7 +1507,7 @@ PRED_IMPL("$tbl_add_global_delays", 2, tbl_add_global_delays, 0)
       deRef(dlp);
       if ( isNil(*dlp) )
       { *p = linkValI(valTermRef(A1));
-	return _PL_unify_atomic(A2, l);
+	return PL_unify_atomic(A2, l);
       }
       *p   = consPtr(&p[1], TAG_COMPOUND|STG_GLOBAL);
       p++;
@@ -2379,7 +2379,7 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
     }
 
     if ( PL_is_variable(ret) )
-      return _PL_unify_atomic(ret, w);
+      return PL_unify_atomic(ret, w);
     else
       return unify_ptrs(valTermRef(ret), &w, ALLOW_RETCODE);
   }
@@ -3806,7 +3806,7 @@ add_subsuming_answer(DECL_LD worklist *wl, trie *atrie, trie_node *root, term_t 
   { term_t trie;
 
     if ( (trie = PL_new_term_ref()) &&
-	 _PL_unify_atomic(trie, atrie->symbol) )
+	 PL_unify_atomic(trie, atrie->symbol) )
       trie_error(rc, trie);
 
     return NULL;
@@ -4585,10 +4585,10 @@ tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
 
     if ( clref )
     { TRIE_STAT_INC(atrie, gen_call);
-      return ( _PL_unify_atomic(Trie, clref) &&
-	       _PL_unify_atomic(status, ATOM_complete) );
+      return ( PL_unify_atomic(Trie, clref) &&
+	       PL_unify_atomic(status, ATOM_complete) );
     } else
-    { return ( _PL_unify_atomic(Trie, atrie->symbol) &&
+    { return ( PL_unify_atomic(Trie, atrie->symbol) &&
 	       unify_table_status(status, atrie, def, TRUE) );
     }
   }
@@ -4639,7 +4639,7 @@ PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   get_closure_predicate(A1, &def);
 
   if ( (trie=get_answer_table(def, A2, A5, &clref, FALSE)) )
-  { return ( _PL_unify_atomic(A3, trie->symbol) &&
+  { return ( PL_unify_atomic(A3, trie->symbol) &&
 	     unify_table_status(A4, trie, def, TRUE) );
   }
 
@@ -4653,7 +4653,7 @@ PRED_IMPL("$tbl_local_variant_table", 1, tbl_local_variant_table, 0)
   trie *trie = LD->tabling.variant_table;
 
   if ( trie )
-    return _PL_unify_atomic(A1, trie->symbol);
+    return PL_unify_atomic(A1, trie->symbol);
 
   return FALSE;
 }
@@ -4667,7 +4667,7 @@ PRED_IMPL("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   trie *trie = GD->tabling.variant_table;
 
   if ( trie )
-    return _PL_unify_atomic(A1, trie->symbol);
+    return PL_unify_atomic(A1, trie->symbol);
 #endif
 
   return FALSE;
@@ -4694,7 +4694,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       if ( (trie=LD->tabling.variant_table) )
-      { if ( _PL_unify_atomic(A1, trie->symbol) )
+      { if ( PL_unify_atomic(A1, trie->symbol) )
 	{ if ( GD->tabling.variant_table )
 	    ForeignRedoInt(1);
 	  else
@@ -4704,7 +4704,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
     /*FALLTHROUGH*/
     case FRG_REDO:
       if ( (trie=GD->tabling.variant_table) )
-	return _PL_unify_atomic(A1, trie->symbol);
+	return PL_unify_atomic(A1, trie->symbol);
       return FALSE;
     case FRG_CUTTED:
       return TRUE;
@@ -4842,7 +4842,7 @@ unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
   atom_t clref = compile_trie(proc->definition, atrie);
 
   TRIE_STAT_INC(atrie, gen_call);
-  return _PL_unify_atomic(cl, clref);
+  return PL_unify_atomic(cl, clref);
 }
 
 
@@ -5209,7 +5209,7 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
     term_t t = PL_new_term_ref();
 
     return ( PL_unify_pointer(av+0, wl->component) &&
-	     _PL_unify_atomic(av+1, wl->table->symbol) &&
+	     PL_unify_atomic(av+1, wl->table->symbol) &&
 	     PL_unify_bool(av+2, wl->in_global_wl) &&
 	     PL_unify_bool(av+3, wl->executing) &&
 	     unify_clusters(av+4, wl) &&
@@ -5228,7 +5228,7 @@ PRED_IMPL("$tbl_wkl_table", 2, tbl_wkl_table, 0)
   worklist *wl;
 
   return ( get_worklist(A1, &wl) &&
-	   _PL_unify_atomic(A2, wl->table->symbol) );
+	   PL_unify_atomic(A2, wl->table->symbol) );
 }
 
 
