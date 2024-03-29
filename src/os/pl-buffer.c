@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,7 +43,7 @@ growBuffer(Buffer b, size_t minfree)
   size_t top = b->top - b->base;
   char *new;
 
-  if ( b->top + minfree <= b->max )
+  if ( b->max - b->top >= minfree )
     return TRUE;
 
   if ( sz < 512 )

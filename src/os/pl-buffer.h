@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -79,7 +80,7 @@ int	growBuffer(Buffer b, size_t minfree);
 
 #define addBuffer(b, obj, type) \
 	do \
-	{ if ( (b)->top + sizeof(type) > (b)->max ) \
+	{ if ( (b)->max - (b)->top < sizeof(type) )	\
 	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
 	      outOfCore(); \
 	  } \
@@ -92,7 +93,7 @@ int	growBuffer(Buffer b, size_t minfree);
 	{ size_t _tms = (times); \
           size_t _len = _tms * sizeof(type); \
           type *_d, *_s = (type *)ptr; \
-	  if ( (b)->top + _len > (b)->max ) \
+	  if ( (b)->max - (b)->top < _len )	\
 	  { if ( !growBuffer((Buffer)b, _len) ) \
 	      outOfCore(); \
 	  } \
