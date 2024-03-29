@@ -716,7 +716,7 @@ _PL_debug_unregister_atom(atom_t a,
 }
 
 
-word
+foreign_t
 pl_track_atom(term_t which, term_t stream)
 { char *s;
 
@@ -1445,7 +1445,7 @@ redo:
 }
 
 
-word
+foreign_t
 pl_atom_hashstat(term_t idx, term_t n)
 { GET_LD
   long i, m;

@@ -44,6 +44,6 @@
 
 void		initFlags(void);
 void		cleanupFlags(void);
-word		pl_current_flag(term_t k, control_t h);
+foreign_t	pl_current_flag(term_t k, control_t h);
 
 #endif /*_PL_FLAG_H*/

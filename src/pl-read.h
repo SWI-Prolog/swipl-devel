@@ -66,10 +66,10 @@ strnumstat	str_number(const unsigned char *string,
 			   unsigned char **end,
 			   Number value, int flags);
 const char *	str_number_error(strnumstat rc);
-word		pl_raw_read(term_t term);
-word		pl_raw_read2(term_t stream, term_t term);
-word		pl_read(term_t term);
-word		pl_read2(term_t stream, term_t term);
+foreign_t	pl_raw_read(term_t term);
+foreign_t	pl_raw_read2(term_t stream, term_t term);
+foreign_t	pl_read(term_t term);
+foreign_t	pl_read2(term_t stream, term_t term);
 void		initCharConversion(void);
 foreign_t	pl_char_conversion(term_t in, term_t out);
 foreign_t	pl_current_char_conversion(term_t in, term_t out, control_t h);

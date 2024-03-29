@@ -4994,7 +4994,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
 }
 
 
-word
+foreign_t
 pl_raw_read2(term_t from, term_t term)
 { GET_LD
   unsigned char *s, *e, *t2, *top;
@@ -5049,13 +5049,13 @@ pl_raw_read2(term_t from, term_t term)
 }
 
 
-word
+foreign_t
 pl_raw_read(term_t term)
 { return pl_raw_read2(0, term);
 }
 
 
-word
+foreign_t
 pl_read2(term_t from, term_t term)
 { GET_LD
   read_data rd;
@@ -5080,7 +5080,7 @@ pl_read2(term_t from, term_t term)
 }
 
 
-word
+foreign_t
 pl_read(term_t term)
 { return pl_read2(0, term);
 }

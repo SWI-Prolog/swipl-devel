@@ -2254,7 +2254,7 @@ pl_print2(term_t stream, term_t term)
   return rc;
 }
 
-word
+foreign_t
 pl_write_canonical2(term_t stream, term_t term)
 { GET_LD
   nv_options options;

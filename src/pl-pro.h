@@ -43,13 +43,13 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-word		pl_break(void);
+foreign_t	pl_break(void);
 int		currentBreakLevel(void);
 int		callProlog(Module module, term_t goal, int flags, term_t *ex);
 int		abortProlog(void);
 bool		prologToplevel(atom_t toplevel);
 int		query_loop(atom_t goal, int loop);
-word		pl_metacut(void);
+foreign_t	pl_metacut(void);
 word		checkDataEx(Word p, int flags);
 int		getAccessLevelMask(atom_t a, access_level_t *val);
 atom_t		accessLevel(void);

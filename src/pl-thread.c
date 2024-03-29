@@ -2250,7 +2250,7 @@ set_affinity(term_t affinity, pthread_attr_t *attr)
 }
 
 
-word
+foreign_t
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
   PL_thread_info_t *info;
@@ -2614,7 +2614,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info,
 }
 
 
-word
+foreign_t
 pl_thread_self(term_t self)
 { GET_LD
 
@@ -2795,7 +2795,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 
 
 #if HAVE_PTHREAD_EXIT
-word
+foreign_t
 pl_thread_exit(term_t retcode)
 { GET_LD
   PL_thread_info_t *info = LD->thread.info;

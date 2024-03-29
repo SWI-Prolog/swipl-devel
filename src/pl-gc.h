@@ -57,7 +57,7 @@
 int		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
 int		garbageCollect(gc_reason_t reason);
-word		pl_garbage_collect(term_t d);
+foreign_t	pl_garbage_collect(term_t d);
 gc_stat *	last_gc_stats(gc_stats *stats);
 Word		findGRef(int n);
 size_t		nextStackSizeAbove(size_t n);

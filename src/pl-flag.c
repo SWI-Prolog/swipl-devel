@@ -208,7 +208,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
 }
 
 
-word
+foreign_t
 pl_current_flag(term_t k, control_t h)
 { GET_LD
   table_value_t v;

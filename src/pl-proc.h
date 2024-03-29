@@ -80,7 +80,7 @@ int		get_procedure(term_t descr, Procedure *proc,
 			      term_t he, int f);
 int		checkModifySystemProc(functor_t f);
 int		overruleImportedProcedure(Procedure proc, Module target);
-word		pl_current_predicate(term_t name, term_t functor, control_t h);
+foreign_t	pl_current_predicate(term_t name, term_t functor, control_t h);
 void		clear_meta_declaration(Definition def);
 void		setMetapredicateMask(Definition def, arg_info *args);
 int		isTransparentMetamask(Definition def, arg_info *args);
@@ -108,14 +108,14 @@ void		initProcedures(void);
 void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition undef);
-word		pl_abolish(term_t atom, term_t arity);
-word		pl_abolish1(term_t pred);
+foreign_t	pl_abolish(term_t atom, term_t arity);
+foreign_t	pl_abolish1(term_t pred);
 int		redefineProcedure(Procedure proc, SourceFile sf,
 				  unsigned int suppress);
-word		pl_index(term_t pred);
+foreign_t	pl_index(term_t pred);
 Definition	autoImport(functor_t f, Module m);
-word		pl_require(term_t pred);
-word		pl_check_definition(term_t spec);
+foreign_t	pl_require(term_t pred);
+foreign_t	pl_check_definition(term_t spec);
 foreign_t	pl_list_generations(term_t desc);
 foreign_t	pl_check_procedure(term_t desc);
 void		checkDefinition(Definition def);

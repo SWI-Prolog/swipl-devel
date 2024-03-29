@@ -460,7 +460,7 @@ checkFunctors()
 }
 #endif
 
-word
+foreign_t
 pl_current_functor(term_t name, term_t arity, control_t h)
 { GET_LD
   atom_t nm = 0;

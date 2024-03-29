@@ -41,8 +41,8 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-word		pl_dwim_match(term_t a1, term_t a2, term_t mm);
-word		pl_dwim_predicate(term_t term, term_t dwim,
+foreign_t	pl_dwim_match(term_t a1, term_t a2, term_t mm);
+foreign_t	pl_dwim_predicate(term_t term, term_t dwim,
 				  control_t h);
 
 #endif /*_PL_DWIM_H*/

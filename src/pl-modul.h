@@ -74,11 +74,11 @@ int		exportProcedure(Module module, Procedure proc);
 int		declareModule(atom_t name, atom_t class, atom_t super,
 			      SourceFile sf, int line,
 			      int rdef);
-word		pl_context_module(term_t module);
+foreign_t	pl_context_module(term_t module);
 int		atomToImportStrength(atom_t a);
-word		pl_import(term_t pred);
+foreign_t	pl_import(term_t pred);
 #ifdef O_PROLOG_HOOK
-word		pl_set_prolog_hook(term_t module, term_t old, term_t new);
+foreign_t	pl_set_prolog_hook(term_t module, term_t old, term_t new);
 #endif
 ModuleEnum	newModuleEnum(int flags);
 Module		advanceModuleEnum(ModuleEnum en);

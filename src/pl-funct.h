@@ -50,7 +50,7 @@ functor_t	isCurrentFunctor(atom_t atom, size_t arity);
 void		initFunctors(void);
 void		cleanupFunctors(void);
 int		checkFunctors(void);
-word		pl_current_functor(term_t name, term_t arity,
+foreign_t	pl_current_functor(term_t name, term_t arity,
 				   control_t h);
 size_t		functor_space(void);
 

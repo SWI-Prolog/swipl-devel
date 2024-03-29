@@ -5187,7 +5187,7 @@ PRED_IMPL("sub_string", 5, sub_string, PL_FA_NONDETERMINISTIC)
 		*            CONTROL            *
 		*********************************/
 
-word
+foreign_t
 pl_repeat(control_t h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -5199,17 +5199,17 @@ pl_repeat(control_t h)
   }
 }
 
-word
+foreign_t
 pl_fail()		/* just to define it */
 { fail;
 }
 
-word
+foreign_t
 pl_true()		/* just to define it */
 { succeed;
 }
 
-word
+foreign_t
 pl_halt(term_t code)
 { GET_LD
   int status;

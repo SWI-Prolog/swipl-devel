@@ -60,7 +60,7 @@
 See how the system reacts on segmentation faults.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static word
+static foreign_t
 pl_crash()
 { intptr_t *lp = NULL;
 

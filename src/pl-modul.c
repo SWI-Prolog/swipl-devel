@@ -1591,7 +1591,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
 }
 
 
-word
+foreign_t
 pl_context_module(term_t module)
 { GET_LD
   return PL_unify_atom(module, contextModule(environment_frame)->name);

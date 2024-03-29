@@ -4525,7 +4525,7 @@ garbageCollect(gc_reason_t reason)
   return shiftTightStacks();
 }
 
-word
+foreign_t
 pl_garbage_collect(term_t d)
 {
 #if O_DEBUG

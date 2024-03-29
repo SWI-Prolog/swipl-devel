@@ -250,7 +250,7 @@ Run a nested toplevel. Do not  use   PRED_IMPL()  for this because it is
 very handy to use from e.g., the gdb debugger.
 */
 
-word
+foreign_t
 pl_break(void)
 { GET_LD
   wakeup_state wstate;
@@ -592,7 +592,7 @@ setAccessLevel(access_level_t accept)
 Cut (!) as called via the  meta-call  mechanism has no effect.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
+foreign_t
 pl_metacut(void)
 { succeed;
 }

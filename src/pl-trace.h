@@ -62,18 +62,18 @@ int		tracemode(int new, int *old);
 int		debugmode(debug_type new, debug_type *old);
 int		trace_if_space(void);
 int		put_frame_goal(term_t goal, LocalFrame frame);
-word		pl_trace(void);
-word		pl_notrace(void);
-word		pl_tracing(void);
-word		pl_spy(term_t p);
-word		pl_nospy(term_t p);
-word		pl_leash(term_t old, term_t new);
-word		pl_visible(term_t old, term_t new);
-word		pl_debuglevel(term_t old, term_t new);
-word		pl_prolog_current_frame(term_t fr);
+foreign_t	pl_trace(void);
+foreign_t	pl_notrace(void);
+foreign_t	pl_tracing(void);
+foreign_t	pl_spy(term_t p);
+foreign_t	pl_nospy(term_t p);
+foreign_t	pl_leash(term_t old, term_t new);
+foreign_t	pl_visible(term_t old, term_t new);
+foreign_t	pl_debuglevel(term_t old, term_t new);
+foreign_t	pl_prolog_current_frame(term_t fr);
 int		PL_put_frame(term_t t, LocalFrame fr);
 void		PL_put_choice(term_t t, Choice ch);
 
 #undef LDFUNC_DECLARATIONS
 
-#endif /*_PL_TRACE_H*/			
+#endif /*_PL_TRACE_H*/

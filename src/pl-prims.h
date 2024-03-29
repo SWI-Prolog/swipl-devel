@@ -72,14 +72,14 @@ word		stringToList(char *s);
 foreign_t	pl_sub_atom(term_t atom,
 			    term_t before, term_t len, term_t after,
 			    term_t sub, control_t h);
-word		pl_repeat(control_t h);
-word		pl_fail(void);
-word		pl_true(void);
-word		pl_halt(term_t code);
+foreign_t	pl_repeat(control_t h);
+foreign_t	pl_fail(void);
+foreign_t	pl_true(void);
+foreign_t	pl_halt(term_t code);
 int		pl_statistics_ld(term_t k, term_t value,
 				 PL_local_data_t *ld);
 int		set_pl_option(const char *name, const char *value);
-word		pl_novice(term_t old, term_t new);
+foreign_t	pl_novice(term_t old, term_t new);
 Word		ground(Word p);
 int		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);

@@ -815,7 +815,7 @@ reconsidered and probably a large part of this function should be  moved
 to C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
+foreign_t
 pl_current_predicate(term_t name, term_t spec, control_t h)
 { GET_LD
   TableEnum e;
@@ -2785,7 +2785,7 @@ pl_garbage_collect_clauses(void)
 		 *	    CHECKING		*
 		 *******************************/
 
-word
+foreign_t
 pl_check_definition(term_t spec)
 { GET_LD
   Procedure proc;
@@ -3067,7 +3067,7 @@ error:
 		 *	  REQUIRE SUPPORT	*
 		 *******************************/
 
-word
+foreign_t
 pl_require(term_t pred)
 { Procedure proc;
 
@@ -3429,7 +3429,7 @@ do_abolish(Module m, term_t atom, term_t arity)
 }
 
 
-word
+foreign_t
 pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 { GET_LD
   Module m = NULL;
@@ -3440,7 +3440,7 @@ pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 }
 
 
-word
+foreign_t
 pl_abolish1(term_t spec)		/* Name/Arity */
 { GET_LD
   term_t name  = PL_new_term_ref();

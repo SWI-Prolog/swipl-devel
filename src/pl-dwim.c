@@ -175,7 +175,7 @@ dwimMatch(const char *str1, const char *str2)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-word
+foreign_t
 pl_dwim_match(term_t a1, term_t a2, term_t mm)
 { GET_LD
   char *s1, *s2;
@@ -196,7 +196,7 @@ specified module or context module  that  match  in  a  DWIM  sense  the
 predicate head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
+foreign_t
 pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
 { GET_LD
   functor_t fdef;

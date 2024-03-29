@@ -51,19 +51,19 @@
 
 char *		var_name_ptr(Word p, char *name);
 char *		varName(term_t var, char *buf);
-word		pl_write_canonical(term_t term);
-word		pl_write_canonical2(term_t stream, term_t term);
-word		pl_write_term(term_t term, term_t options);
-word		pl_write_term3(term_t stream,
+foreign_t	pl_write_canonical(term_t term);
+foreign_t	pl_write_canonical2(term_t stream, term_t term);
+foreign_t	pl_write_term(term_t term, term_t options);
+foreign_t	pl_write_term3(term_t stream,
 			       term_t term, term_t options);
-word		pl_write(term_t term);
-word		pl_writeln(term_t term);
-word		pl_writeq(term_t term);
-word		pl_print(term_t term);
-word		pl_write2(term_t stream, term_t term);
-word		pl_writeln2(term_t stream, term_t term);
-word		pl_writeq2(term_t stream, term_t term);
-word		pl_print2(term_t stream, term_t term);
+foreign_t	pl_write(term_t term);
+foreign_t	pl_writeln(term_t term);
+foreign_t	pl_writeq(term_t term);
+foreign_t	pl_print(term_t term);
+foreign_t	pl_write2(term_t stream, term_t term);
+foreign_t	pl_writeln2(term_t stream, term_t term);
+foreign_t	pl_writeq2(term_t stream, term_t term);
+foreign_t	pl_print2(term_t stream, term_t term);
 int		writeAttributeMask(atom_t name);
 int		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
 int		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
@@ -75,4 +75,4 @@ double		NaN_value(double f);
 
 #undef LDFUNC_DECLARATIONS
 
-#endif /*_PL_WRITE_H*/			
+#endif /*_PL_WRITE_H*/

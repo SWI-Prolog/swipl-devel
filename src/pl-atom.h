@@ -53,7 +53,7 @@
 atom_t		lookupAtom(const char *s, size_t len);
 atom_t		lookupBlob(const char *s, size_t len,
 			   PL_blob_t *type, int *new);
-word		pl_atom_hashstat(term_t i, term_t n);
+foreign_t	pl_atom_hashstat(term_t i, term_t n);
 void		do_init_atoms(void);
 int		resetListAtoms(void);
 void		cleanupAtoms(void);
@@ -64,7 +64,7 @@ int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
 size_t		atom_space(void);
 #ifdef O_DEBUG_ATOMGC
-word		pl_track_atom(term_t which, term_t stream);
+foreign_t	pl_track_atom(term_t which, term_t stream);
 #endif
 #undef LDFUNC_DECLARATIONS
 
