@@ -104,7 +104,7 @@
 #define	PL_clearsig(sig)			LDFUNC(PL_clearsig, sig)
 #define	classify_exception(ex)			LDFUNC(classify_exception, ex)
 #define	classify_exception_p(p)			LDFUNC(classify_exception_p, p)
-#define	get_string_text(atom, text)		LDFUNC(get_string_text, atom, text)
+#define	get_string_text(w, text)		LDFUNC(get_string_text, w, text)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -198,7 +198,7 @@ void		resetForeign(void);
 
 int		get_atom_ptr_text(Atom atom, PL_chars_t *text);
 int		get_atom_text(atom_t atom, PL_chars_t *text);
-int		get_string_text(atom_t atom, PL_chars_t *text);
+int		get_string_text(word w, PL_chars_t *text);
 
 #undef LDFUNC_DECLARATIONS
 
