@@ -2472,13 +2472,7 @@ Note that on 32-bit systems the  pointer can easily overflow, so we do
 the arithmetic after dividing by the unit size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_M64 && SIZEOF_VOIDP == 4
-#define hasSpace(base, top, size) \
-  (size_t)(base)/sizeof(*(base)) + (size) <= (size_t)(top)/sizeof(*(base))
-#else
-#define hasSpace(base, top, size) \
-	(base) + (size) <= (top)
-#endif
+#define hasSpace(base, top, size) ((top) - (base)) >= (size)
 
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
