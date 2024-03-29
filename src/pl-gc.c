@@ -5595,6 +5595,15 @@ is a small price to pay.
 Otherwise  this  routine  is  fairly  trivial.   It  is  modelled  after
 checkStacks(), a simple routine for  checking stack-consistency that has
 to walk along all reachable data as well.
+
+Note that we only have to check up to the gTop when this is entered as
+all atoms pushed to  the stack when this is running  are marked by the
+thread itself using  pushVolatileAtom().  We can bottom-up  and we can
+safely  skip  indirects (avoiding  false  hits  on  atoms on  the  bit
+patterns of strings,  big integers, floats, ...).  We  must however be
+aware that near the  end of the stack things are dirty  and need to be
+careful not to crash.   As above, as long as we do  not crash, we only
+can mark some atoms too many.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -5610,11 +5619,18 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
 	  Sfprintf(atomLogFd, "Mark global %p..%p\n", gbase, gtop));
 #endif
 
-  for(current = gbase; current < gtop; current += (offset_word(w)+1) )
+  for(current = gbase; current < gtop; current++ )
   { w = *current;
 
     if ( isAtom(w) )
-      markAtom(w);
+    { markAtom(w);
+    } else if ( unlikely(storage(w) == STG_LOCAL) )
+    { word sz = wsizeofInd(w) + 1; /* = _careful_ offset_word() */
+      if ( gtop - current > sz )
+	current += sz;
+      else
+	break;
+    }
   }
 }
 
