@@ -806,8 +806,8 @@ typedef intptr_t		sword;		/* Signed version */
 typedef word *			Word;		/* a pointer to anything */
 typedef uintptr_t		atom_t;		/* encoded atom */
 typedef uintptr_t		functor_t;	/* encoded functor */
-typedef word			code WORD_ALIGNED; /* bytes codes */
-typedef sword			scode WORD_ALIGNED;
+typedef uintptr_t		code;		/* VM instructions */
+typedef intptr_t		scode;		/* signed VM instruction argument */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef foreign_t		(*Func)();	/* foreign functions */

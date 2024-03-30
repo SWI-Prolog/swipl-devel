@@ -701,9 +701,10 @@ get_mpz_from_code(Code pc, mpz_t mpz)
   return pc+wsize;
 }
 
+
 Code
 get_mpq_from_code(Code pc, mpq_t mpq)
-{ Word p = pc;
+{ Code p = pc;
   size_t wsize = wsizeofInd(*p);
   p++;
   mpz_t num, den;
@@ -717,7 +718,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   num->_mp_alloc  = 0;
   den->_mp_alloc  = 0;
   num->_mp_d = (mp_limb_t*)p;
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
+  p += (limpsize+sizeof(code)-1)/sizeof(code);
   den->_mp_d = (mp_limb_t*)p;
 #elif O_BF
   int num_size = mpz_stack_size(*p++);
@@ -732,7 +733,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   den->sign = den_size < 0;
   den->len  = abs(den_size);
   num->tab = (mp_limb_t*)p;
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
+  p += (limpsize+sizeof(code)-1)/sizeof(code);
   den->tab = (mp_limb_t*)p;
 #endif
   *mpq_numref(mpq) = num[0];

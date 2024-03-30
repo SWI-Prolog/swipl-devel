@@ -198,7 +198,7 @@ typedef uintptr_t	_PLQ(word);	/* Anonymous Prolog data cell */
 typedef uintptr_t	atom_t;		/* Prolog atom */
 #endif
 typedef uintptr_t	functor_t;	/* Name/arity pair */
-typedef _PLQ(word)	_PLQ(code);	/* Prolog bytecode type */
+typedef uintptr_t	_PLQ(code);	/* Prolog bytecode type */
 typedef _PLS(module) *	module_t;	/* Prolog module */
 typedef _PLS(procedure) *predicate_t;	/* Prolog procedure */
 typedef _PLS(record) *	record_t;	/* Prolog recorded term */
