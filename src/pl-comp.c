@@ -87,9 +87,6 @@ checkCodeTable(void)
 { const code_info *ci;
   int n;
 
-  if ( sizeof(struct clause) % sizeof(word) != 0 )
-    sysError("Invalid alignment of struct clause");
-
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
   { if ( (int)ci->code != n )
       sysError("Wrong entry in codeTable: %d", n);
@@ -1243,7 +1240,7 @@ calculation at runtime.
 static void Output_0(CompileInfo ci, vmi c);
 
 #define Output_a(ci,c)		addBuffer(&(ci)->codes, c, code)
-#define Output_an(ci,p,n)	addMultipleBuffer(&(ci)->codes, p, n, word)
+#define Output_an(ci,p,n)	addMultipleBuffer(&(ci)->codes, p, n, code)
 #define Output_1(ci,c,a)	BLOCK(Output_0(ci, c); \
 				      Output_a(ci, a))
 #define Output_2(ci,c,a0,a1)	BLOCK(Output_1(ci, c, a0); \
@@ -2055,7 +2052,7 @@ Finish up the clause.
     space = ( clause.variables*sizeof(word) +
 	      sizeofClause(clause.code_size) +
 	      SIZEOF_CREF_CLAUSE +
-	      sizeof(word) +		/* possible alignment */
+	      sizeof(uintptr_t)*2 +     /* possible alignment */
 	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
 	      sizeof(struct choice)
 	    );
@@ -2086,6 +2083,12 @@ Finish up the clause.
 
     DEBUG(MSG_COMP_ARGVAR, Sdprintf("; now %d vars\n", clause.variables));
     DEBUG(MSG_COMP_ARGVAR, vm_list(cl->codes, NULL));
+#if SIZEOF_CODE != ALIGNOF_WORD
+    if ( (uintptr_t)p % sizeof(word) != 0 )
+    { p = addPointer(p, sizeof(void*));
+      assert((uintptr_t)p % sizeof(word) == 0);
+    }
+#endif
     lTop = (LocalFrame)p;
   }
 
@@ -2584,7 +2587,7 @@ A void.  Generate either B_VOID or H_VOID.
     { Word p = valIndirectP(*arg);
       int c =  (where & A_BODY) ? B_FLOAT : H_FLOAT;
 
-      Output_n(ci, c, p, WORDS_PER_DOUBLE);
+      Output_n(ci, c, p, CODES_PER_DOUBLE);
       return TRUE;
     }
     case TAG_STRING:
@@ -3423,7 +3426,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
   if ( isFloat(*arg) )
   { Word p = valIndirectP(*arg);
 
-    Output_n(ci, A_DOUBLE, p, WORDS_PER_DOUBLE);
+    Output_n(ci, A_DOUBLE, p, CODES_PER_DOUBLE);
     succeed;
   }
 

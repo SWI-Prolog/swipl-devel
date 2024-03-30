@@ -2777,8 +2777,10 @@ saveWicClause(wic_state *state, Clause clause)
 
   while( bp < ep )
   { Code si = bp;				/* start instruction */
+    Sdprintf("bp = %p\n", bp);
     unsigned int op = decode(*bp++);
     const char *ats = VM_ARGTYPES(&codeTable[op]);
+    Sdprintf("  %s\n", codeTable[op].name);
     int n;
 
     emit_wlabels(&lstate, si, fd);
@@ -2891,20 +2893,18 @@ saveWicClause(wic_state *state, Clause clause)
 	}
 	case CA1_INT64:
 	{ int64_t val;
-	  Word p = (Word)&val;
-
-	  cpInt64Data(p, bp);
+	  static_assert(sizeof(int64_t)%sizeof(code) == 0);
+	  memcpy(&val, bp, sizeof(val));
+	  bp = addPointer(bp, sizeof(val));
 	  qlfPutInt64(val, fd);
 	  break;
 	}
 	case CA1_FLOAT:
-	{ union
-	  { word w[WORDS_PER_DOUBLE];
-	    double f;
-	  } v;
-	  Word p = v.w;
-	  cpDoubleData(p, bp);
-	  qlfPutDouble(v.f, fd);
+	{ double val;
+	  static_assert(sizeof(double)%sizeof(code) == 0);
+	  memcpy(&val, bp, sizeof(double));
+	  bp = addPointer(bp, sizeof(double));
+	  qlfPutDouble(val, fd);
 	  break;
 	}
 	case CA1_STRING:

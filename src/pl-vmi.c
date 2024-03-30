@@ -641,7 +641,7 @@ H_FLOAT: Float in the head. The  float   follows  the instruction and is
 represented as a native C-double.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
+VMI(H_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
 { Word k;
 
   IF_WRITE_MODE_GOTO(B_FLOAT);
@@ -1106,7 +1106,7 @@ B_FLOAT: Float in the  body.  PC  is   followed  by  a  double in native
 representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
+VMI(B_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
 { Word p;
 
   ENSURE_GLOBAL_SPACE(2+WORDS_PER_DOUBLE, (void)0);
@@ -4090,7 +4090,7 @@ END_VMI
 A_DOUBLE: Push double following PC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_DOUBLE, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
+VMI(A_DOUBLE, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
 { Number n = allocArithStack();
   Word p = &n->value.w[0];
 

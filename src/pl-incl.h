@@ -589,6 +589,8 @@ them.  Descriptions:
 #define INT64BITSIZE		(8 * sizeof(int64_t))
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
+#define CODES_PER_DOUBLE        ((sizeof(double)+sizeof(code)-1)/sizeof(code))
+#define CODES_PER_INT64		(sizeof(int64_t)/sizeof(code))
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
@@ -793,7 +795,7 @@ typedef uint64_t		word WORD_ALIGNED; /* Prolog data cell */
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 #define SIZEOF_WORD 8
 #define SIZEOF_ATOM 4
-#define SIZEOF_CODE 8		/* may change */
+#define SIZEOF_CODE SIZEOF_VOIDP
 #define ALIGNOF_WORD 8
 #else
 typedef uintptr_t		word;		/* Prolog data cell */
