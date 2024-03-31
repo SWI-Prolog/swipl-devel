@@ -2902,18 +2902,21 @@ saveWicClause(wic_state *state, Clause clause)
 	    while( l-- > 0 )
 	      Sputc(*s++&0xff, fd);
 	  } else
-	  { pl_wchar_t *w = (pl_wchar_t*)s + 1;
+	  { const pl_wchar_t *w = (const pl_wchar_t*)s + 1;
+	    l = l/sizeof(*w) - 1;
+	    const pl_wchar_t *e = w+l;
 	    IOENC oenc = fd->encoding;
 
 	    assert(*s == 'W');
-	    l /= sizeof(pl_wchar_t);
-	    l--;
 
 	    qlfPutInt64(l, fd);
 	    Sputc('W', fd);
 	    fd->encoding = ENC_UTF8;
-	    for( ; l-- > 0; w++)
-	    { Sputcode(*w, fd);
+	    while(w < e)
+	    { int chr;
+
+	      w = get_wchar(w, &chr);
+	      Sputcode(chr, fd);
 	    }
 	    fd->encoding = oenc;
 	  }
