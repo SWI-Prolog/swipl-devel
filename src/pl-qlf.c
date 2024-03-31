@@ -2775,12 +2775,14 @@ saveWicClause(wic_state *state, Clause clause)
   ep = bp + clause->code_size;
   init_wlabels(&lstate);
 
+  DEBUG(MSG_QLF_PREDICATE,
+	Sdprintf("Saving %d-th clause of %s\n",
+		 clauseNo(clause, 0), predicateName(clause->predicate)));
+
   while( bp < ep )
   { Code si = bp;				/* start instruction */
-    Sdprintf("bp = %p\n", bp);
     unsigned int op = decode(*bp++);
     const char *ats = VM_ARGTYPES(&codeTable[op]);
-    Sdprintf("  %s\n", codeTable[op].name);
     int n;
 
     emit_wlabels(&lstate, si, fd);
