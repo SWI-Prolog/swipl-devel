@@ -4122,19 +4122,6 @@ output_indirect(DECL_LD code op, Word p, compileInfo *ci)
   return TRUE;
 }
 
-
-Code
-code_get_indirect(Code pc, Word mp, Word *data)
-{ Word wpc = (Word)pc;		/* TBD: May not be aligned */
-  word m = *wpc++;
-  *data = wpc;
-  wpc += wsizeofInd(m);
-  *mp = m;
-
-  return (Code)wpc;
-}
-
-
 		 /*******************************
 		 *	     ATOM-GC		*
 		 *******************************/

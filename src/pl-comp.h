@@ -86,8 +86,6 @@ Module		clauseBodyContext(const Clause cl);
 
 #undef LDFUNC_DECLARATIONS
 
-Code		code_get_indirect(Code pc, Word m, Word *data);
-
 static inline code
 fetchop(Code PC)
 { code op = decode(*PC);
@@ -127,6 +125,18 @@ stepPC_unlocked(Code PC)
     return stepDynPC(PC, &codeTable[op]);
   else
     return PC + codeTable[op].arguments;
+}
+
+
+static inline Code
+code_get_indirect(Code pc, Word mp, Word *data)
+{ Word wpc = (Word)pc;		/* TBD: May not be aligned */
+  word m = *wpc++;
+  *data = wpc;
+  wpc += wsizeofInd(m);
+  *mp = m;
+
+  return (Code)wpc;
 }
 
 
