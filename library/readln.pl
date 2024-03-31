@@ -131,7 +131,7 @@ Examples:
 readln(Read) :-                 % the default is read up to EOL
     string_codes("_0123456789", Arg2),
     rl_readln(Line, LastCh, [10], Arg2, uppercase),
-    (   LastCh == -1
+    (   LastCh == end_of_file
     ->  append(Line,[end_of_file], Read)
     ;   Read = Line
     ).
