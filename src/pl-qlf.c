@@ -2908,11 +2908,14 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_STRING:
-	{ word m = *bp;
-	  char *s = (char *)++bp;
+	{ word m;
+	  Word data;
+
+	  bp = code_get_indirect(bp, &m, &data);
+
+	  char *s = (char *)data;
 	  size_t wn = wsizeofInd(m);
 	  size_t l = wn*sizeof(word) - padHdr(m);
-	  bp += wn;
 
 	  if ( *s == 'B' )
 	  { qlfPutInt64(l, fd);
