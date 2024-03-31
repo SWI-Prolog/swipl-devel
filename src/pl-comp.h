@@ -3,10 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
-			 SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2024, University of Amsterdam
+                              VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -85,6 +85,8 @@ void		vm_list(Code code, Code end);
 Module		clauseBodyContext(const Clause cl);
 
 #undef LDFUNC_DECLARATIONS
+
+Code		code_get_indirect(Code pc, Word m, Word *data);
 
 static inline code
 fetchop(Code PC)

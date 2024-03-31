@@ -211,7 +211,6 @@ cleanupWamTable(void)
 
 #endif /* VMCODE_IS_ADDRESS */
 
-
 		 /*******************************
 		 *     WARNING DECLARATIONS	*
 		 *******************************/
@@ -416,8 +415,20 @@ typedef struct
 } compileInfo, *CompileInfo;
 
 
+		 /*******************************
+		 *          PROTOTYPES          *
+		 *******************************/
+
+
+#if USE_LD_MACROS
+#define output_indirect(op, ptr, ci) LDFUNC(output_indirect, op, ptr, ci)
 #define link_local_var(v, iv, ci) LDFUNC(link_local_var, v, iv, ci)
-static int link_local_var(DECL_LD Word v, int iv, CompileInfo ci);
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+static int	output_indirect(code op, Word p, compileInfo *ci);
+static int	link_local_var(Word v, int iv, CompileInfo ci);
+#undef LDFUNC_DECLARATIONS
 
 
 		 /*******************************
@@ -2594,12 +2605,9 @@ A void.  Generate either B_VOID or H_VOID.
     if ( ci->islocal )
     { goto argvar;
     } else
-    { Word p = addressIndirect(*arg);
-      size_t n = wsizeofInd(*p);
-      int c = (where & A_HEAD) ? H_STRING : B_STRING;
-
-      Output_n(ci, c, p, n+1);
-      return TRUE;
+    { return output_indirect((where & A_HEAD) ? H_STRING : B_STRING,
+			     addressIndirect(*arg),
+			     ci);
     }
   }
 
@@ -4088,6 +4096,43 @@ compileBodyShift(DECL_LD Word arg, compileInfo *ci, int for_copy)
   return FALSE;
 }
 
+		 /*******************************
+		 *       INDIRECT IN CODE       *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Add an indirect to the code.  It is not clear how this should be done.
+Typically, the alignment requirements of  the stacks are now different
+than in the code space.
+
+Note  that we  could also  consider  adding such  terms "outside"  the
+stacks, notably if we have unconstrained 64 bit pointers.
+
+For now, we copy the indirect using  the layout of the stacks into the
+code space.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+output_indirect(DECL_LD code op, Word p, compileInfo *ci)
+{ word m = *p;
+  size_t wn = wsizeofInd(m);
+  size_t codesize = (wn+1)*sizeof(word)/sizeof(code);
+  Output_0(ci, op);
+  Output_an(ci, p, codesize);
+  return TRUE;
+}
+
+
+Code
+code_get_indirect(Code pc, Word mp, Word *data)
+{ Word wpc = (Word)pc;		/* TBD: May not be aligned */
+  word m = *wpc++;
+  *data = wpc;
+  wpc += wsizeofInd(m);
+  *mp = m;
+
+  return (Code)wpc;
+}
 
 
 		 /*******************************
