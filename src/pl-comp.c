@@ -4180,15 +4180,18 @@ stepDynPC(Code PC, const code_info *ci)
     { case CA1_STRING:
       case CA1_MPZ:
       case CA1_MPQ:
-      { word m = *PC++;
-	PC += wsizeofInd(m);
+      { word m;
+	Word data;
+	PC = code_get_indirect(PC, &m, &data);
+	(void)m;
+	(void)data;
 	break;
       }
       case CA1_FLOAT:
-	PC += WORDS_PER_DOUBLE;
+	PC += CODES_PER_DOUBLE;
 	break;
       case CA1_INT64:
-	PC += WORDS_PER_INT64;
+	PC += CODES_PER_INT64;
 	break;
       default:
 	PC++;
