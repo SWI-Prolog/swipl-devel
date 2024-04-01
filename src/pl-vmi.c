@@ -6334,87 +6334,6 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
 END_VMI
 
 
-VMI(T_TRY_INTEGER, 0, 2, (CA1_JUMP,CA1_INTEGER))
-{ TRIE_TRY;
-  VMI_GOTO(T_INTEGER);
-}
-END_VMI
-VMI(T_INTEGER, 0, 1, (CA1_INTEGER))
-{ Word k;
-
-  deRef2(TrieCurrentP, k);
-  if ( canBind(*k) )
-  { Word p;
-    word c;
-    union
-    { int64_t val;
-      word w[WORDS_PER_INT64];
-    } cvt;
-    Word vp = cvt.w;
-
-    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(TrieCurrentP, k));
-    p = gTop;
-    gTop += 2+WORDS_PER_INT64;
-    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-
-    cvt.val = (int64_t)(intptr_t)*PC++;
-    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-    cpInt64Data(p, vp);
-    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-
-    bindConst(k, c);
-    TrieNextArg();
-    NEXT_INSTRUCTION;
-  } else if ( isBignum(*k) && valBignum(*k) == (intptr_t)*PC++ )
-  { TrieNextArg();
-    NEXT_INSTRUCTION;
-  }
-
-  CLAUSE_FAILED;
-}
-END_VMI
-
-VMI(T_TRY_INT64, 0, 1+WORDS_PER_INT64, (CA1_JUMP,CA1_INT64))
-{ TRIE_TRY;
-  VMI_GOTO(T_INT64);
-}
-END_VMI
-VMI(T_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
-{ Word k;
-
-  deRef2(TrieCurrentP, k);
-  if ( canBind(*k) )
-  { Word p;
-    word c;
-
-    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(TrieCurrentP, k));
-    p = gTop;
-    gTop += 2+WORDS_PER_INT64;
-    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-
-    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-    cpInt64Data(p, PC);
-    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-
-    bindConst(k, c);
-    TrieNextArg();
-    NEXT_INSTRUCTION;
-  } else if ( isBignum(*k) )
-  { Word vk = valIndirectP(*k);
-    size_t i;
-
-    for(i=0; i<WORDS_PER_INT64; i++)
-    { if ( *vk++ != (word)*PC++ )
-	CLAUSE_FAILED;
-    }
-    TrieNextArg();
-    NEXT_INSTRUCTION;
-  }
-
-  CLAUSE_FAILED;
-}
-END_VMI
-
 VMI(T_TRY_FLOAT, 0, 1+WORDS_PER_DOUBLE, (CA1_JUMP,CA1_FLOAT))
 { TRIE_TRY;
   VMI_GOTO(T_FLOAT);
@@ -6520,16 +6439,31 @@ VMI(T_ATOM, 0, 1, (CA1_DATA))
 }
 END_VMI
 
-VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_DATA))
+VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_INTEGER))
 { TRIE_TRY;
   VMI_GOTO(T_SMALLINT);
 }
 END_VMI
 
-VMI(T_SMALLINT, 0, 1, (CA1_DATA))
-{ word c = (word)*PC++;
-  DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", valInt(c)));
-  VMH_GOTO(t_const, c);
+VMI(T_SMALLINT, 0, 1, (CA1_INTEGER))
+{ scode i = (scode)*PC++;
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", (long long)i));
+  VMH_GOTO(t_const, consInt(i));
+}
+END_VMI
+
+VMI(T_TRY_SMALLINTW, 0, 2, (CA1_JUMP,CA1_WORD))
+{ TRIE_TRY;
+  VMI_GOTO(T_SMALLINT);
+}
+END_VMI
+
+VMI(T_SMALLINTW, 0, 1, (CA1_WORD))
+{ word w;
+
+  PC = code_get_word(PC, &w);
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", (long long)w));
+  VMH_GOTO(t_const, consInt((sword)w));
 }
 END_VMI
 

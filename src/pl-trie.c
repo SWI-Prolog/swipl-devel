@@ -2705,25 +2705,26 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  break;
 	case TAG_INTEGER:
 	  if ( storage(w) == STG_INLINE)
-	  { add_vmi_d(state, T_SMALLINT, (code)w);
+	  { sword i = valInt(w);
+
+#if CODES_PER_WORD == 1
+	    add_vmi_d(state, T_SMALLINT, (scode)i);
+#else
+	    if ( (scode)i == i )
+	    { add_vmi_d(state, T_SMALLINT, (scode)i);
+	    } else
+	    { add_vmi(state, T_SMALLINTW);
+	      addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
+	    }
+#endif
+#ifdef O_BIGNUM
 	  } else
 	  { size_t wsize = wsizeofIndirect(w);
 	    Word ip = valIndirectP(w);
 
-	    if ( wsize == sizeof(int64_t)/sizeof(word))
-	    {
-#if SIZEOF_CODE == 8
-	      add_vmi_d(state, T_INTEGER, (code)ip[0]);
-#else
-	      add_vmi_d(state, T_INT64, (code)ip[0]);
-	      addBuffer(&state->codes, (code)ip[1], code);
+	    add_vmi_d(state, T_MPZ, (code)ip[-1]);
+	    addMultipleBuffer(&state->codes, ip, wsize, code);
 #endif
-#ifdef O_GMP
-	    } else
-	    { add_vmi_d(state, T_MPZ, (code)ip[-1]);
-	      addMultipleBuffer(&state->codes, ip, wsize, code);
-#endif
-	    }
 	  }
 	  break;
 	case TAG_FLOAT:
@@ -2828,24 +2829,6 @@ next:
 
       switch(tag(key))
       { case TAG_INTEGER:
-#if SIZEOF_CODE == 8
-	  if ( wsize == 1 )			/* 64-bit integer */
-	  { if ( state->try )
-	      add_vmi_else_d(state, T_TRY_INTEGER, (code)h->data[0]);
-	    else
-	      add_vmi_d(state, T_INTEGER, (code)h->data[0]);
-	    goto indirect_done;
-	  } else
-#else
-	  if ( wsize == 2 )			/* 64-bit integer */
-	  { if ( state->try )
-	      add_vmi_else_d(state, T_TRY_INT64, (code)h->data[0]);
-	    else
-	      add_vmi_d(state, T_INT64, (code)h->data[0]);
-	    addBuffer(&state->codes, (code)h->data[1], code);
-	    goto indirect_done;
-	  } else
-#endif
 	  { if ( state->try )
 	      add_vmi_else_d(state, T_TRY_MPZ, (code)h->header);
 	    else
