@@ -1485,6 +1485,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	clause->predicate = def;
 
 #define addCode(c) addBuffer(&buf, (c), code)
+#define addWord(c) addBuffer(&buf, (c), word)
 
 	for(;;)
 	{ code op = qlfGetUInt32(fd);
@@ -1561,9 +1562,9 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		  assert(codeTable[op].arguments == VM_DYNARGC ||
 			 (size_t)codeTable[op].arguments == strlen(ats) ||
 			 (streq(ats, ca1_float) &&
-			  codeTable[op].arguments == WORDS_PER_DOUBLE) ||
+			  codeTable[op].arguments == CODES_PER_DOUBLE) ||
 			 (streq(ats, ca1_int64) &&
-			  codeTable[op].arguments == WORDS_PER_INT64));
+			  codeTable[op].arguments == CODES_PER_INT64));
 		});
 
 	  for(n=0; ats[n]; n++)
@@ -1632,7 +1633,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		if ( c0 == 'B' )
 		{ int lw = (l+sizeof(word))/sizeof(word);
 		  int pad = (lw*sizeof(word) - l);
-		  Code bp;
+		  Word bp;
 		  char *s;
 
 		  DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
@@ -1659,7 +1660,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 
 		  assert(c0 == 'W');
 
-		  addCode(m);		/* The header */
+		  addWord(m);		/* The header */
 		  addBuffer(&buf, 'W', char);
 		  for(i=1; i<sizeof(pl_wchar_t); i++)
 		    addBuffer(&buf, 0, char);
