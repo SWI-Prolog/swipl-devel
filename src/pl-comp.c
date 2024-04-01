@@ -4820,10 +4820,12 @@ argKey(Code PC, int skip, word *key)
 	*key = murmur_key(PC, sizeof(double));
 	return TRUE;
       case H_STRING:
-      { word m = *PC++;
+      { word m;
+	Word data;
+	PC = code_get_indirect(PC, &m, &data);
 	size_t n = wsizeofInd(m);
 
-	*key = murmur_key(PC, n*sizeof(*PC));
+	*key = murmur_key(PC, n*sizeof(word));
 	return TRUE;
       }
 #if O_BIGNUM

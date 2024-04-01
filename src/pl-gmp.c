@@ -1262,6 +1262,8 @@ cleanupGMP(void)
    as used  for clause indexing.   If the integer  is huge, we  do not
    want to use the whole thing.   Instead, we pick the dimensions, the
    first two and last limb of the content.
+
+   Note: p might be aligned at Code rather than Word.
  */
 
 word
