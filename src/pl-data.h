@@ -343,7 +343,7 @@ static inline Atom	fetchAtomArray(size_t index);
 		 *	   CREATING WORDS	*
 		 *******************************/
 
-#define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
+#define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-(LMASK_BITS-2))) - 1)
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 #define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)

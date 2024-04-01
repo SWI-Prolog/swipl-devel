@@ -140,4 +140,13 @@ code_get_indirect(Code pc, Word mp, Word *data)
 }
 
 
+static inline Code
+code_get_word(Code pc, Word wp)
+{ Word wpc = (Word)pc;		/* TBD: May not be aligned */
+  *wp = *wpc++;
+
+  return (Code)wpc;
+}
+
+
 #endif /*PL_COMP_H_INCLUDED*/

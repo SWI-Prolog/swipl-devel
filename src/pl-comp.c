@@ -2431,7 +2431,7 @@ try_fast_condition(CompileInfo ci, size_t tc_or)
       case A_VAR2:
       case A_VAR:
       case A_INTEGER:
-      case A_INT64:
+      case A_INTEGERW:
       case A_MPZ:
       case A_MPQ:
       case A_DOUBLE:
@@ -2540,50 +2540,29 @@ A void.  Generate either B_VOID or H_VOID.
       { goto var;
       }
     case TAG_INTEGER:
-      if ( storage(*arg) != STG_INLINE )
-      {	Word p = addressIndirect(*arg);
-	size_t n = wsizeofInd(*p);
+      if ( storage(*arg) == STG_INLINE )
+      { sword i = vaInt(*arg);
 
-	if ( n == WORDS_PER_INT64 )
-	{
-#if ( SIZEOF_WORD == 8 )
-	  int64_t val = *(int64_t*)(p+1);
+#if CODES_PER_WORD == 1
+	Output_1(ci, (where & A_BODY) ? B_SMALLINT : H_SMALLINT, (scode)i);
 #else
-	  union
-	  { int64_t i;
-	    word w[WORDS_PER_INT64];
-	  } cvt;
-	  int64_t val;
-
-	  cvt.w[0] = p[1];
-	  cvt.w[1] = p[2];
-	  val = cvt.i;
-#endif
-
-#if SIZEOF_CODE == 8
-	  Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (scode)val);
-#else
-	  if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
-	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (scode)val);
-	  } else
-	  { int c = ((where&A_HEAD) ? H_INT64 : B_INT64);
-	    Output_n(ci, c, (Word)&val, WORDS_PER_INT64);
-	  }
-#endif
-	} else				/* MPZ/MPQ NUMBER */
-	{ int c;
-
-	  if ( p[1]&MP_RAT_MASK )
-	    c = (where & A_HEAD) ? H_MPQ : B_MPQ;
-	  else
-	    c = (where & A_HEAD) ? H_MPZ : B_MPZ;
-
-	  Output_n(ci, c, p, n+1);
-	  return TRUE;
+	if ( (scode)i == i )
+	{ Output_1(ci, (where & A_BODY) ? B_SMALLINT : H_SMALLINT, (scode)i);
+	} else
+	{ Output_n(ci, (where & A_BODY) ? B_SMALLINTW : H_SMALLINTW, &i, CODES_PER_WORD);
 	}
-	return TRUE;
+#endif
+      } else
+      { size_t n = wsizeofInd(*p);
+	int c;
+
+	if ( p[1]&MP_RAT_MASK )
+	  c = (where & A_HEAD) ? H_MPQ : B_MPQ;
+	else
+	  c = (where & A_HEAD) ? H_MPZ : B_MPZ;
+
+	Output_n(ci, c, p, n+1);
       }
-      Output_1(ci, (where & A_BODY) ? B_SMALLINT : H_SMALLINT, *arg);
       return TRUE;
     case TAG_ATOM:
       if ( isNil(*arg) )
@@ -3394,40 +3373,27 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 
   if ( isRational(*arg) )
   { if ( storage(*arg) == STG_INLINE )
-    { Output_1(ci, A_INTEGER, valInt(*arg));
+    { sword i = vaInt(*arg);
+#if CODES_PER_WORD == 1
+      Output_1(ci, A_INTEGER, i);
+#else
+      if ( (scode)i == i )
+      { Output_1(ci, A_INTEGER, (scode)i);
+      } else
+      { Output_n(ci, A_INTEGERW, &i, CODES_PER_WORD);
+      }
+#endif
     } else
     { Word p = addressIndirect(*arg);
       size_t  n = wsizeofInd(*p);
 
-      if ( n == sizeof(int64_t)/sizeof(word) )
-      { p++;
-	{
-#if SIZEOF_VOIDP == 8
-	  int64_t val = *(int64_t*)p;
-	  Output_1(ci, A_INTEGER, val);
-#else
-	  union
-	  { int64_t val;
-	    word w[WORDS_PER_INT64];
-	  } cvt;
-	  Word vp = cvt.w;
-
-	  cpInt64Data(vp, p);
-
-	  if ( cvt.val >= LONG_MIN && cvt.val <= LONG_MAX )
-	  { Output_1(ci, A_INTEGER, (word)cvt.val);
-	  } else
-	  { Output_n(ci, A_INT64, cvt.w, WORDS_PER_INT64);
-	  }
-#endif
-	}
 #ifdef O_BIGNUM
-      } else if ( p[1]&MP_RAT_MASK )
+      if ( p[1]&MP_RAT_MASK )
       { Output_n(ci, A_MPQ, p, n+1);
       } else
       { Output_n(ci, A_MPZ, p, n+1);
-#endif
       }
+#endif
     }
     succeed;
   }
@@ -4190,8 +4156,8 @@ stepDynPC(Code PC, const code_info *ci)
       case CA1_FLOAT:
 	PC += CODES_PER_DOUBLE;
 	break;
-      case CA1_INT64:
-	PC += CODES_PER_INT64;
+      case CA1_WORD:
+	PC += CODES_PER_WORD;
 	break;
       default:
 	PC++;
@@ -5755,41 +5721,25 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    continue;
 	case H_ATOM:
 	case B_ATOM:
-	case H_SMALLINT:
-	case B_SMALLINT:
 			    *ARGP++ = XR(*PC++);
 			    continue;
+	case H_SMALLINT:
+	case B_SMALLINT:
+			  { scode i = *PC++;
+			    *ARGP++ = consInt(i);
+			    continue;
+			  }
+	case H_SMALLINTW:
+	case B_SMALLINTW:
+			  { word w;
+			    PC = code_get_word(PC,&w);
+			    *ARGP++ = consInt((sword)w);
+			    continue;
+			  }
 	case H_NIL:
 	case B_NIL:
 			    *ARGP++ = ATOM_nil;
 			    continue;
-	case H_INTEGER:
-	case B_INTEGER:
-	case A_INTEGER:
-			  { scode i = (scode)*PC++;
-			    int rc;
-
-			    if ( (rc=put_int64(ARGP++, i, 0)) != TRUE )
-			      return rc;
-			    continue;
-			  }
-	case H_INT64:
-	case B_INT64:
-	case A_INT64:
-			  { Word p;
-
-			    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
-			      return GLOBAL_OVERFLOW;
-
-			    p = gTop;
-			    gTop += 2+WORDS_PER_INT64;
-
-			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-			    cpInt64Data(p, PC);
-			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-			    continue;
-			  }
 	case H_FLOAT:
 	case B_FLOAT:
 	case A_DOUBLE:
@@ -7256,12 +7206,10 @@ unify_vmi(term_t t, Code bp)
 	  rc = PL_put_float(av+an, v.d);
 	  break;
 	}
-	case CA1_INT64:
-	{ int64_t i;
-	  Word dp = (Word)&i;
-
-	  cpInt64Data(dp, bp);
-	  rc = PL_put_int64(av+an, i);
+	case CA1_WORD:
+	{ word w;
+	  bp = code_get_word(bp, &w);
+	  rc = PL_put_int64(av+an, (sword)w);
 	  break;
 	}
 	case CA1_DATA:
@@ -7613,13 +7561,13 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      Output_an(ci, p, WORDS_PER_DOUBLE);
 	      break;
 	    }
-	    case CA1_INT64:
+	    case CA1_WORD:
 	    { int64_t val;
-	      Word p = (Word)&val;
 
 	      if ( !PL_get_int64_ex(a, &val) )
 		fail;
-	      Output_an(ci, p, WORDS_PER_INT64);
+	      sword w = val;
+	      Output_an(ci, (Code)&w, CODES_PER_WORD);
 	      break;
 	    }
 	    case CA1_MPZ:

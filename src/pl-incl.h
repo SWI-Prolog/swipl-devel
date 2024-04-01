@@ -591,6 +591,7 @@ them.  Descriptions:
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 #define CODES_PER_DOUBLE        ((sizeof(double)+sizeof(code)-1)/sizeof(code))
 #define CODES_PER_INT64		(sizeof(int64_t)/sizeof(code))
+#define CODES_PER_WORD		(sizeof(word)/sizeof(code))
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
@@ -1543,9 +1544,9 @@ typedef struct gc_stats
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
 #define CA1_DATA	3	/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
-#define CA1_INTEGER	4	/* intptr_t value */
-#define CA1_INT64	5	/* int64 value */
-#define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
+#define CA1_INTEGER	4	/* code value as integer */
+#define CA1_WORD	5	/* word value as integer (CODES_PER_WORD) */
+#define CA1_FLOAT	6	/* next CODES_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
 #define CA1_MPZ		8	/* GNU mpz number */
 #define CA1_MPQ		9	/* GNU mpq number */

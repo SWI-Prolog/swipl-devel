@@ -1558,13 +1558,13 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  addCode(encode(op));
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
-		  const char ca1_int64[2] = {CA1_INT64};
+		  const char ca1_word[2] = {CA1_WORD};
 		  assert(codeTable[op].arguments == VM_DYNARGC ||
 			 (size_t)codeTable[op].arguments == strlen(ats) ||
 			 (streq(ats, ca1_float) &&
 			  codeTable[op].arguments == CODES_PER_DOUBLE) ||
-			 (streq(ats, ca1_int64) &&
-			  codeTable[op].arguments == CODES_PER_INT64));
+			 (streq(ats, ca1_word) &&
+			  codeTable[op].arguments == CODES_PER_WORD));
 		});
 
 	  for(n=0; ats[n]; n++)
@@ -1614,10 +1614,10 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	      case CA1_CHP:
 		addCode((code)OFFSET_VAR(qlfGetInt64(fd)));
 		break;
-	      case CA1_INT64:
-	      { int64_t val = qlfGetInt64(fd);
+	      case CA1_WORD:
+	      { sword val = qlfGetInt64(fd);
 
-		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
+		addMultipleBuffer(&buf, &val, CODES_PER_WORD, code);
 		break;
 	      }
 	      case CA1_FLOAT:
@@ -2894,12 +2894,10 @@ saveWicClause(wic_state *state, Clause clause)
 	  qlfPutInt64(VAR_OFFSET(var), fd);
 	  break;
 	}
-	case CA1_INT64:
-	{ int64_t val;
-	  static_assert(sizeof(int64_t)%sizeof(code) == 0);
-	  memcpy(&val, bp, sizeof(val));
-	  bp = addPointer(bp, sizeof(val));
-	  qlfPutInt64(val, fd);
+	case CA1_WORD:
+	{ word w;
+	  bp = code_get_word(bp, &w);
+	  qlfPutInt64((sword)w, fd);
 	  break;
 	}
 	case CA1_FLOAT:

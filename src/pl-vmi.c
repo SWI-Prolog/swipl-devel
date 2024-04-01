@@ -474,14 +474,27 @@ END_VMI
 H_SMALLINT is used for  small integer  in the head  of the clause.  ARGP
 points to the current argument to  be   matched.  ARGP is derefenced and
 unified with a constant argument.
+
+The argument is the raw value
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_SMALLINT, 0, 1, (CA1_DATA))
+VMI(H_SMALLINT, 0, 1, (CA1_INTEGER))
 { IF_WRITE_MODE_GOTO(B_SMALLINT);
 
-  VMH_GOTO(h_const, (word)*PC++);
+  scode i = (scode)*PC++;
+  VMH_GOTO(h_const, consInt(i));
 }
 END_VMI
+
+#if CODES_PER_WORD > 1
+VMI(H_SMALLINTW, 0, CODES_PER_WORD, (CA1_WORD))
+{ IF_WRITE_MODE_GOTO(B_SMALLINTW);
+  word w;
+  PC = code_get_word(PC,&w);
+  VMH_GOTO(h_const, consInt((sword)w));
+}
+END_VMI
+#endif
 
 VMH(h_const, 1, (word), (c))
 { Word k = ARGP;
@@ -539,98 +552,6 @@ VMI(H_NIL, 0, 0, ())
     ARGP++;
     NEXT_INSTRUCTION;
   }
-  CLAUSE_FAILED;
-}
-END_VMI
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_INTEGER: Long integer in  the  head.   Note  that  small  integers are
-handled through H_SMALLINT. Copy to the  global stack if the argument is
-variable, compare the numbers otherwise.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
-{ Word k;
-
-  IF_WRITE_MODE_GOTO(B_INTEGER);
-
-  deRef2(ARGP, k);
-  if ( canBind(*k) )
-  { Word p;
-    word c;
-    union
-    { int64_t val;
-      word w[WORDS_PER_INT64];
-    } cvt;
-    Word vp = cvt.w;
-
-    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(ARGP, k));
-
-    p = gTop;
-    gTop += 2+WORDS_PER_INT64;
-    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-
-    cvt.val = (int64_t)(scode)*PC++;
-    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-    cpInt64Data(p, vp);
-    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-
-    bindConst(k, c);
-    ARGP++;
-    NEXT_INSTRUCTION;
-  } else if ( isBignum(*k) && valBignum(*k) == (scode)*PC++ )
-  { ARGP++;
-    NEXT_INSTRUCTION;
-  }
-
-  CLAUSE_FAILED;
-}
-END_VMI
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_INT64: 64-bit integer in the head. Only applicable for 32-bit hardware
-as this is the same as H_INTEGER on 64-bit hardware.
-
-TBD: Compile conditionally
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
-{ Word k;
-
-  IF_WRITE_MODE_GOTO(B_INT64);
-
-  deRef2(ARGP, k);
-  if ( canBind(*k) )
-  { Word p;
-    word c;
-
-    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(ARGP, k));
-
-    p = gTop;
-    gTop += 2+WORDS_PER_INT64;
-    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-
-    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-    cpInt64Data(p, PC);
-    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-
-    bindConst(k, c);
-    ARGP++;
-    NEXT_INSTRUCTION;
-  } else if ( isBignum(*k) )
-  { Word vk = valIndirectP(*k);
-    size_t i;
-
-    for(i=0; i<WORDS_PER_INT64; i++)
-    { if ( *vk++ != (word)*PC++ )
-	CLAUSE_FAILED;
-    }
-    ARGP++;
-    NEXT_INSTRUCTION;
-  }
-
   CLAUSE_FAILED;
 }
 END_VMI
@@ -1036,66 +957,25 @@ VMI(B_ATOM, VIF_LCO, 1, (CA1_DATA))
 }
 END_VMI
 
-VMI(B_SMALLINT, VIF_LCO, 1, (CA1_DATA))
-{ *ARGP++ = (word)*PC++;
+VMI(B_SMALLINT, VIF_LCO, 1, (CA1_INTEGER))
+{ scode i = (scode)*PC++;
+  *ARGP++ = consInt(i);
   NEXT_INSTRUCTION;
 }
 END_VMI
+
+#if CODES_PER_WORD > 1
+VMI(B_SMALLINTW, VIF_LCO, CODES_PER_WORD, (CA1_WORD))
+{ word w;
+  PC = code_get_word(PC,&w);
+  *ARGP++ = consInt((sword)w);
+  NEXT_INSTRUCTION;
+}
+END_VMI
+#endif
 
 VMI(B_NIL, VIF_LCO, 0, ())
 { *ARGP++ = ATOM_nil;
-  NEXT_INSTRUCTION;
-}
-END_VMI
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_INTEGER: Long following PC for integers   that  cannot be expressed as
-tagged integer.
-
-TBD:	Merge the code writing longs to the stack
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
-{ Word p;
-  union
-  { int64_t val;
-    word w[WORDS_PER_INT64];
-  } cvt;
-  Word vp = cvt.w;
-
-  ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, (void)0);
-  p = gTop;
-  gTop += 2+WORDS_PER_INT64;
-
-  cvt.val = (int64_t)(scode)*PC++;
-  *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-  cpInt64Data(p, vp);
-  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-  NEXT_INSTRUCTION;
-}
-END_VMI
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_INT64: 64-bit (int64_t) in the body.  See H_INT64
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
-{ Word p;
-  size_t i;
-
-  ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, (void)0);
-  p = gTop;
-  gTop += 2+WORDS_PER_INT64;
-
-  *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-  for(i=0; i<WORDS_PER_INT64; i++)
-    *p++ = (word)*PC++;
-  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-
   NEXT_INSTRUCTION;
 }
 END_VMI
@@ -3971,27 +3851,24 @@ A_INTEGER: Push long integer following PC
 VMI(A_INTEGER, 0, 1, (CA1_INTEGER))
 { Number n = allocArithStack();
 
-  n->value.i = (intptr_t) *PC++;
+  n->value.i = (scode) *PC++;
   n->type    = V_INTEGER;
   NEXT_INSTRUCTION;
 }
 END_VMI
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A_INT64: Push int64_t following PC
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(A_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
+#if CODES_PER_WORD > 1
+VMI(A_INTEGERW, 0, 1, (CA1_WORD))
 { Number n = allocArithStack();
-  Word p = &n->value.w[0];
 
-  cpInt64Data(p, PC);
+  word w;
+  PC = code_get_word(PC,&w);
+  n->value.i = (sword)w;
   n->type    = V_INTEGER;
   NEXT_INSTRUCTION;
 }
 END_VMI
-
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_MPZ: Push mpz integer following PC
