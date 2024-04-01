@@ -3218,6 +3218,15 @@ lco(CompileInfo ci, size_t pc0)
 	Output_2(ci, L_SMALLINT, VAROFFSET(oarg), a);
 	break;
       }
+#if CODES_PER_WORD > 1
+      case B_SMALLINTW:
+      { word a;
+	s = code_get_word(s, &a);
+	Output_1(ci, L_SMALLINTW, VAROFFSET(oarg));
+	Output_an(ci, &a, CODES_PER_WORD);
+	break;
+      }
+#endif
       case B_ATOM:
       { code a = *s++;
 	PL_register_atom(a);		/* TBD: unregister on failure */

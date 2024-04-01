@@ -2483,13 +2483,24 @@ VMI(L_NIL, 0, 1, (CA1_FVAR))
 }
 END_VMI
 
-VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_DATA))
-{ Word v1 = varFrameP(FR, (int)*PC++);
-  word  c = (word)*PC++;
-  *v1 = c;
+VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_INTEGER))
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
+  code  i = *PC++;
+  *v1 = consInt((scode)i);
   NEXT_INSTRUCTION;
 }
 END_VMI
+
+#if CODES_PER_WORD > 1
+VMI(L_SMALLINTW, 0, 2, (CA1_FVAR,CA1_WORD))
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
+  word w;
+  PC = code_get_word(PC, &w);
+  *v1 = consInt((sword)w);
+  NEXT_INSTRUCTION;
+}
+END_VMI
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual tail call. The arguments for the   new predicate have been set by
