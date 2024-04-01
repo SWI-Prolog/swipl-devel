@@ -2541,7 +2541,7 @@ A void.  Generate either B_VOID or H_VOID.
       }
     case TAG_INTEGER:
       if ( storage(*arg) == STG_INLINE )
-      { sword i = vaInt(*arg);
+      { sword i = valInt(*arg);
 
 #if CODES_PER_WORD == 1
 	Output_1(ci, (where & A_BODY) ? B_SMALLINT : H_SMALLINT, (scode)i);
@@ -2553,7 +2553,8 @@ A void.  Generate either B_VOID or H_VOID.
 	}
 #endif
       } else
-      { size_t n = wsizeofInd(*p);
+      { Word p = addressIndirect(*arg);
+	size_t n = wsizeofInd(*p);
 	int c;
 
 	if ( p[1]&MP_RAT_MASK )
@@ -3373,7 +3374,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 
   if ( isRational(*arg) )
   { if ( storage(*arg) == STG_INLINE )
-    { sword i = vaInt(*arg);
+    { sword i = valInt(*arg);
 #if CODES_PER_WORD == 1
       Output_1(ci, A_INTEGER, i);
 #else
@@ -4667,9 +4668,8 @@ skipArgs(Code PC, int skip)
 	return PC;			/* See (*) */
       case H_ATOM:
       case H_SMALLINT:
+      case H_SMALLINTW:
       case H_NIL:
-      case H_INT64:
-      case H_INTEGER:
       case H_FLOAT:
       case H_STRING:
       case H_MPZ:
@@ -4680,9 +4680,8 @@ skipArgs(Code PC, int skip)
       case H_LIST_FF:
       case B_ATOM:
       case B_SMALLINT:
+      case B_SMALLINTW:
       case B_NIL:
-      case B_INT64:
-      case B_INTEGER:
       case B_FLOAT:
       case B_STRING:
       case B_MPZ:
@@ -4757,8 +4756,18 @@ argKey(Code PC, int skip, word *key)
 	return TRUE;
       case H_ATOM:
       case H_SMALLINT:
-	*key = *PC;
+      { scode i = *PC;
+	*key = consInt(i);
 	return TRUE;
+      }
+#if CODES_PER_WORD > 1
+      case H_SMALLINTW:
+      { word m;
+	code_get_word(PC, &m);
+	*key = consInt(m);
+	return TRUE;
+      }
+#endif
       case H_NIL:
 	*key = ATOM_nil;
 	return TRUE;
@@ -4766,21 +4775,6 @@ argKey(Code PC, int skip, word *key)
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
-	return TRUE;
-#if SIZEOF_WORD == 4
-      case H_INT64:			/* only on 32-bit hardware! */
-	*key = murmur_key(PC, 2*sizeof(*PC));
-	return TRUE;
-#endif
-      case H_INTEGER:
-#if SIZEOF_WORD == 4
-      { int64_t val;
-	val = (int64_t)(intptr_t)*PC;
-	*key = murmur_key(&val, sizeof(val));
-      }
-#else
-	*key = murmur_key(PC, sizeof(*PC));
-#endif
 	return TRUE;
       case H_FLOAT:
 	*key = murmur_key(PC, sizeof(double));
@@ -4855,8 +4849,18 @@ arg1Key(Code PC, word *key)
 	return TRUE;
       case H_ATOM:
       case H_SMALLINT:
-	*key = *PC;
+      { scode i = *PC;
+	*key = consInt(i);
 	return TRUE;
+      }
+#if CODES_PER_WORD > 1
+      case H_SMALLINTW:
+      { word w;
+	code_get_word(PC, &w);
+	*key = consInt((sword)w);
+	return TRUE;
+      }
+#endif
       case H_NIL:
 	*key = ATOM_nil;
 	return TRUE;
@@ -4865,8 +4869,6 @@ arg1Key(Code PC, word *key)
       case H_RLIST:
 	*key = FUNCTOR_dot2;
 	return TRUE;
-      case H_INT64:
-      case H_INTEGER:
       case H_FLOAT:
       case H_STRING:
       case H_MPZ:
@@ -5306,25 +5308,6 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    return FALSE;
 	  break;
 	}
-      case H_INTEGER:
-	{ scode v = (scode)*PC++;
-	  TRY(PL_unify_int64(argp, v));
-	  break;
-	}
-      case H_INT64:
-	{ Word p = allocGlobal(2+WORDS_PER_INT64);
-	  word w;
-
-	  if ( p )
-	  { w = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-	    cpInt64Data(p, PC);
-	    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-	    TRY(PL_unify_atomic(argp, w));
-	    break;
-	  } else
-	    return FALSE;
-	}
       case H_FLOAT:
 	{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 	  word w;
@@ -5340,9 +5323,19 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    return FALSE;
 	}
       case H_ATOM:
-      case H_SMALLINT:
 	  TRY(PL_unify_atomic(argp, XR(*PC++)));
 	  break;
+      case H_SMALLINT:
+        { scode i = *PC++;
+	  TRY(PL_unify_atomic(argp, consInt(i)));
+	  break;
+	}
+      case H_SMALLINTW:
+        { word w;
+	  PC = code_get_word(PC, &w);
+	  TRY(PL_unify_atomic(argp, consInt((sword)w)));
+	  break;
+	}
       case H_FIRSTVAR:
       case H_VAR:
 	  TRY(unifyVarGC(valTermRef(argp), di->variables,

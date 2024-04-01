@@ -674,7 +674,7 @@ END_VMI
 
 
 VMI(H_VOID_N, 0, 1, (CA1_INTEGER))
-{ ARGP += (int)*PC++;
+{ ARGP += *PC++;
   NEXT_INSTRUCTION;
 }
 END_VMI

@@ -1502,42 +1502,19 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	    }
 	    case V_H_INTEGER:
 	    case V_B_INTEGER:
-	    { int64_t val = qlfGetInt64(fd);
-	      word w = consInt(val);
-
-	      if ( valInt(w) == val )
-	      { addCode(encode(op==V_H_INTEGER ? H_SMALLINT : B_SMALLINT));
-		addCode(w);
-#if SIZEOF_CODE == 8
-	      } else
-	      { addCode(encode(op==V_H_INTEGER ? H_INTEGER : B_INTEGER));
-		addCode((scode)val);
-	      }
-#else
-	      } else if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
-	      { addCode(encode(op==V_H_INTEGER ? H_INTEGER : B_INTEGER));
-		addCode((intptr_t)val);
-	      } else
-	      { addCode(encode(op==V_H_INTEGER ? H_INT64 : B_INT64));
-		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
-	      }
-#endif
-
-	      continue;
-	    }
 	    case V_A_INTEGER:
 	    { int64_t val = qlfGetInt64(fd);
 
-#if SIZEOF_CODE == 8
-	      addCode(encode(A_INTEGER));
+#if CODES_PER_WORD == 1
+	      addCode(encode(op==V_H_INTEGER ? H_SMALLINT : op==V_B_INTEGER ? B_SMALLINT : A_INTEGER));
 	      addCode((scode)val);
 #else
-	      if ( val >= INTPTR_MIN && val <= INTPTR_MAX )
-	      { addCode(encode(A_INTEGER));
+	      if ( (scode)val== val )
+	      { addCode(encode(op==V_H_INTEGER ? H_SMALLINT : op==V_B_INTEGER ? B_SMALLINT : A_INTEGER));
 		addCode((scode)val);
 	      } else
-	      { addCode(encode(A_INT64));
-		addMultipleBuffer(&buf, (char*)&val, sizeof(int64_t), char);
+	      { addCode(encode(op==V_H_INTEGER ? H_SMALLINTW : op==V_B_INTEGER ? B_SMALLINTW : A_INTEGERW));
+		addMultipleBuffer(&buf, &val, CODES_PER_WORD, code);
 	      }
 #endif
 	      continue;
@@ -2789,62 +2766,39 @@ saveWicClause(wic_state *state, Clause clause)
     emit_wlabels(&lstate, si, fd);
 
     switch(op)
-    { { int64_t v;
+    { int64_t v;
+      int vop;
 
-	case H_SMALLINT:
-	  v = valInt(*bp++);
-	  goto vh_int;
-#if SIZEOF_CODE == 4
-	case H_INT64:
-	{ Word p = (Word)&v;
-	  cpInt64Data(p, bp);
-	  goto vh_int;
+      case H_SMALLINT:
+	vop = V_H_INTEGER;
+	goto common_smallint;
+      case B_SMALLINT:
+	vop = V_B_INTEGER;
+	goto common_smallint;
+      case A_INTEGER:
+	vop = V_A_INTEGER;
+      common_smallint:
+	v = valInt(*bp++);
+#if CODES_PER_WORD > 1
+	goto vh_int;
+      case H_SMALLINTW:
+	vop = V_H_INTEGER;
+	goto common_smallintw;
+      case B_SMALLINTW:
+	vop = V_B_INTEGER;
+	goto common_smallintw;
+      case A_INTEGERW:
+	vop = V_A_INTEGER;
+      common_smallintw:
+	{ word w;
+	  bp = code_get_word(bp, &w);
+	  v = (sword)w;
 	}
+      vh_int:
 #endif
-	case H_INTEGER:
-	  v = (intptr_t)*bp++;
-	vh_int:
-	  qlfPutUInt32(V_H_INTEGER, fd);
-	  qlfPutInt64(v, fd);
-	  continue;
-      }
-      { int64_t v;
-
-	case B_SMALLINT:
-	  v = valInt(*bp++);
-	  goto vb_int;
-#if SIZEOF_CODE == 4
-	case B_INT64:
-	{ Word p = (Word)&v;
-	  cpInt64Data(p, bp);
-	  goto vb_int;
-	}
-#endif
-	case B_INTEGER:
-	  v = (intptr_t)*bp++;
-	vb_int:
-	  qlfPutUInt32(V_B_INTEGER, fd);
-	  qlfPutInt64(v, fd);
-	  continue;
-      }
-      { int64_t v;
-
-#if SIZEOF_CODE == 4
-	case A_INT64:
-	{ Word p = (Word)&v;
-	  cpInt64Data(p, bp);
-	  goto va_int;
-	}
-#endif
-	case A_INTEGER:
-	  v = (intptr_t)*bp++;
-#if SIZEOF_CODE == 4
-	va_int:
-#endif
-	  qlfPutUInt32(V_A_INTEGER, fd);
-	  qlfPutInt64(v, fd);
-	  continue;
-      }
+	qlfPutUInt32(vop, fd);
+	qlfPutInt64(v, fd);
+	continue;
     }
 
     qlfPutUInt32(op, fd);

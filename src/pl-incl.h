@@ -591,7 +591,7 @@ them.  Descriptions:
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 #define CODES_PER_DOUBLE        ((sizeof(double)+sizeof(code)-1)/sizeof(code))
 #define CODES_PER_INT64		(sizeof(int64_t)/sizeof(code))
-#define CODES_PER_WORD		(sizeof(word)/sizeof(code))
+#define CODES_PER_WORD		(SIZEOF_WORD/SIZEOF_CODE)
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))

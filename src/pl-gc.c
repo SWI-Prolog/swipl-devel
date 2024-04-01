@@ -2191,9 +2191,8 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	  /*FALLTHROUGH*/
 	case H_ATOM:
 	case H_SMALLINT:
+	case H_SMALLINTW:
 	case H_NIL:
-	case H_INTEGER:
-	case H_INT64:
 	case H_FLOAT:
 	  mark_argp(state);
 	  break;
@@ -3618,9 +3617,8 @@ setStartOfVMI(vm_state *state)
 	case H_VAR:
 	case H_ATOM:
 	case H_SMALLINT:
+	case H_SMALLINTW:
 	case H_NIL:
-	case H_INTEGER:
-	case H_INT64:
 	case H_FLOAT:
 	case H_VOID:
 	  if ( state->adepth == 0 )
