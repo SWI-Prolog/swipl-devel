@@ -1524,21 +1524,21 @@ arg/3 special cases
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_DATA,CA1_VAR,CA1_FVAR))
+VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_INTEGER,CA1_VAR,CA1_FVAR))
 { ENSURE_GLOBAL_SPACE(2, (void)0);
 
   PC += 3;
   VMH_GOTO(arg3_fast,
-	   (Word)PC-3,
-	   valInt((word)PC[-3]),
-	   varFrameP(FR, (int)PC[-2]),
-	   varFrameP(FR, (int)PC[-1]));
+	   NULL,
+	   (scode)PC[-3],
+	   varFrameP(FR, PC[-2]),
+	   varFrameP(FR, PC[-1]));
 }
 END_VMI
 
-VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
+VMH(arg3_fast, 4, (Word, scode, Word, Word), (aidx, ai, aterm, aarg))
 { if ( isVar(*aterm) )
-  { globaliseVar(aterm);
+  { globaliseVar(aterm);	/* instantiation error, go slow route */
   } else
   { deRef(aterm);
     if ( isTerm(*aterm) && likely(truePrologFlag(PLFLAG_VMI_BUILTIN)) )
@@ -1549,14 +1549,14 @@ VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
       }
     }
   }
-  VMH_GOTO(arg3_slow, aidx, aterm, aarg);
+  VMH_GOTO(arg3_slow, aidx, ai, aterm, aarg);
 }
 END_VMH
 
-VMH(arg3_slow, 3, (Word, Word, Word), (aidx, aterm, aarg))
+VMH(arg3_slow, 4, (Word, scode, Word, Word), (aidx, ai, aterm, aarg))
 { globaliseFirstVar(aarg);
   ARGP = argFrameP(lTop, 0);
-  *ARGP++ = *aidx;
+  *ARGP++ = aidx ? *aidx : consInt(ai);
   *ARGP++ = *aterm;
   *ARGP++ = *aarg;
 
@@ -1572,20 +1572,20 @@ VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
 
   ENSURE_GLOBAL_SPACE(3, (void)0);
 
-  aidx0 = varFrameP(FR, (int)*PC++);
-  aterm = varFrameP(FR, (int)*PC++);
-  aarg  = varFrameP(FR, (int)*PC++);
+  aidx0 = varFrameP(FR, *PC++);
+  aterm = varFrameP(FR, *PC++);
+  aarg  = varFrameP(FR, *PC++);
 
   if ( isVar(*aidx0) ) globaliseVar(aidx0);
   if ( isVar(*aterm) ) globaliseVar(aterm);
 
   deRef2(aidx0, aidx);
   if ( isTaggedInt(*aidx) )
-  { VMH_GOTO(arg3_fast, aidx, valInt(*aidx), aterm, aarg);
+  { VMH_GOTO(arg3_fast, aidx, (scode)valInt(*aidx), aterm, aarg);
   }
 
   aidx = aidx0;
-  VMH_GOTO(arg3_slow, aidx, aterm, aarg);
+  VMH_GOTO(arg3_slow, aidx, 0, aterm, aarg);
 }
 END_VMI
 

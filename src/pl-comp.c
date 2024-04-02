@@ -3867,8 +3867,9 @@ compileBodyArg3(DECL_LD Word arg, compileInfo *ci)
 
       deRef2(&av[0], a1);
       if ( isTaggedInt(*a1) )
-      { isFirstVarSet(ci->used_var, v3);
-	Output_3(ci, B_ARG_CF, *a1, VAROFFSET(v2), VAROFFSET(v3));
+      { scode i = (scode)valInt(*a1); /* TBD: check negative/overflow? */
+	isFirstVarSet(ci->used_var, v3);
+	Output_3(ci, B_ARG_CF, i, VAROFFSET(v2), VAROFFSET(v3));
 	return TRUE;
       }
       if ( (v1=isIndexedVarTerm(*a1)) >= 0 &&
