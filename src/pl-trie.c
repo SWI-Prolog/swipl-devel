@@ -2637,6 +2637,13 @@ add_vmi_d(trie_compile_state *state, vmi c, code d)
 }
 
 static void
+add_vmi_w(trie_compile_state *state, vmi c, word d)
+{ addBuffer(&state->codes, encode(c), code);
+  addBuffer(&state->codes, d, word);
+}
+
+
+static void
 add_vmi_else_d(trie_compile_state *state, vmi c, code d)
 { size_t el;
 
@@ -2645,6 +2652,17 @@ add_vmi_else_d(trie_compile_state *state, vmi c, code d)
   addBuffer(&state->codes, (code)state->else_loc, code);
   state->else_loc = el;
   addBuffer(&state->codes, d, code);
+}
+
+static void
+add_vmi_else_w(trie_compile_state *state, vmi c, word d)
+{ size_t el;
+
+  addBuffer(&state->codes, encode(c), code);
+  el = entriesBuffer(&state->codes, code);
+  addBuffer(&state->codes, (code)state->else_loc, code);
+  state->else_loc = el;
+  addBuffer(&state->codes, d, word);
 }
 
 static void
@@ -2657,6 +2675,15 @@ fixup_else(trie_compile_state *state)
   base[el] = pc-el-1;
 }
 
+
+static void
+add_indirect(trie_compile_state *state, code op, word w)
+{ Word p = addressIndirect(w);
+  size_t wsize = wsizeofInd(*p);
+
+  add_vmi(state, op);
+  addMultipleBuffer(&state->codes, p, wsize, word);
+}
 
 #define compile_trie_value(v, state) LDFUNC(compile_trie_value, v, state)
 static int
@@ -2719,11 +2746,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 #endif
 #ifdef O_BIGNUM
 	  } else
-	  { size_t wsize = wsizeofIndirect(w);
-	    Word ip = valIndirectP(w);
-
-	    add_vmi_d(state, T_MPZ, (code)ip[-1]);
-	    addMultipleBuffer(&state->codes, ip, wsize, code);
+	  { add_indirect(state, T_MPZ, w);
 #endif
 	  }
 	  break;
@@ -2736,11 +2759,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
           break;
 	}
 	case TAG_STRING:
-	{ size_t wsize = wsizeofIndirect(w);
-	  Word ip = valIndirectP(w);
-
-	  add_vmi_d(state, T_STRING, (code)ip[-1]);
-	  addMultipleBuffer(&state->codes, ip, wsize, code);
+	{ add_indirect(state, T_STRING, w);
 	  break;
 	}
 	case TAG_COMPOUND:
@@ -2830,29 +2849,27 @@ next:
       switch(tag(key))
       { case TAG_INTEGER:
 	  { if ( state->try )
-	      add_vmi_else_d(state, T_TRY_MPZ, (code)h->header);
+	      add_vmi_else_w(state, T_TRY_MPZ, h->header);
 	    else
-	      add_vmi_d(state, T_MPZ, (code)h->header);
+	      add_vmi_w(state, T_MPZ, h->header);
 	  }
 	  break;
         case TAG_STRING:
 	  if ( state->try )
-	    add_vmi_else_d(state, T_TRY_STRING, (code)h->header);
+	    add_vmi_else_w(state, T_TRY_STRING, h->header);
 	  else
-	    add_vmi_d(state, T_STRING, (code)h->header);
+	    add_vmi_w(state, T_STRING, h->header);
 	  break;
         case TAG_FLOAT:
+	  static_assert(sizeof(h->data[0]) == sizeof(word));
 	  if ( state->try )
-	    add_vmi_else_d(state, T_TRY_FLOAT, (code)h->data[0]);
+	    add_vmi_else_w(state, T_TRY_FLOAT, h->data[0]);
 	  else
-	    add_vmi_d(state, T_FLOAT, (code)h->data[0]);
-#if SIZEOF_CODE == 4
-	  addBuffer(&state->codes, (code)h->data[1], code);
-#endif
+	    add_vmi_w(state, T_FLOAT, h->data[0]);
 	  goto indirect_done;
       }
 
-      addMultipleBuffer(&state->codes, h->data, wsize, code);
+      addMultipleBuffer(&state->codes, h->data, wsize, word);
     indirect_done:
       break;
     }
