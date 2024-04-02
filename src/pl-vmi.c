@@ -588,18 +588,10 @@ VMI(H_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
   } else if ( isFloat(*k) )
   { Word p = valIndirectP(*k);
 
-    switch(WORDS_PER_DOUBLE) /* depend on compiler to clean up */
-    { case 2:
-	if ( *p++ != *PC++ )
-	  CLAUSE_FAILED;
-      case 1:
-	if ( *p++ == *PC++ )
-	{ ARGP++;
-	  NEXT_INSTRUCTION;
-	}
-	CLAUSE_FAILED;
-      default:
-	assert(0);
+    if ( memcmp(p, PC, sizeof(double)) == 0 )
+    { PC += CODES_PER_DOUBLE;
+      ARGP++;
+      NEXT_INSTRUCTION;
     }
   }
 
