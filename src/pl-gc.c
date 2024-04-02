@@ -1985,9 +1985,10 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case B_MPZ:
       case A_MPQ:
       case B_MPQ:
-      { word m = *PC;
-	PC += wsizeofInd(m)+1;
-	assert(codeTable[op].arguments == VM_DYNARGC);
+      { word m;
+	Word data;
+	PC = code_get_indirect(PC, &m, &data);
+	DEBUG(0, assert(codeTable[op].arguments == VM_DYNARGC));
 	PC -= VM_DYNARGC;		/* compensate for for-step */
 	break;
       }
