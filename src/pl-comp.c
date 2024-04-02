@@ -4761,9 +4761,11 @@ argKey(Code PC, int skip, word *key)
     switch(c)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
-	*key = (functor_t)*PC;
+	*key = code2functor(*PC);
 	return TRUE;
       case H_ATOM:
+	*key = code2atom(*PC);
+	return TRUE;
       case H_SMALLINT:
       { scode i = *PC;
 	*key = consInt(i);
@@ -4854,9 +4856,11 @@ arg1Key(Code PC, word *key)
     switch(c)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
-	*key = (functor_t)*PC;
+	*key = code2functor(*PC);
 	return TRUE;
       case H_ATOM:
+	*key = code2atom(*PC);
+	return TRUE;
       case H_SMALLINT:
       { scode i = *PC;
 	*key = consInt(i);

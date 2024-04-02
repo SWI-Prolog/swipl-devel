@@ -869,6 +869,8 @@ ptr2word(void *ptr)
 #define atom2word(w)	  ((word)(w))
 #define code2atom(w)	  ((atom_t)(w))
 #define atom2code(w)	  ((code)(w))
+#define code2functor(w)	  ((functor_t)(w))
+#define functor2code(w)	  ((code)(w))
 
 
 		 /*******************************
