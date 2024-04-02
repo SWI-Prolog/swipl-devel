@@ -182,8 +182,9 @@ indexOfWord(DECL_LD word w)
 	  break;
 #if O_BIGNUM
 	return bignum_index(addressIndirect(w));
+#else
+	assert(0);
 #endif
-	/*FALLTHROUGH for int64 and no BIGNUM */
       case TAG_STRING:
       case TAG_FLOAT:
       { Word p = addressIndirect(w);
