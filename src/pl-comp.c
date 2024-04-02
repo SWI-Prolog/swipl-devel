@@ -4795,7 +4795,7 @@ argKey(Code PC, int skip, word *key)
 	PC = code_get_indirect(PC, &m, &data);
 	size_t n = wsizeofInd(m);
 
-	*key = murmur_key(PC, n*sizeof(word));
+	*key = murmur_key(data, n*sizeof(word));
 	return TRUE;
       }
 #if O_BIGNUM
