@@ -291,12 +291,10 @@ and while loading .wic files.  It comes at no price.
 #define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
-#define isBignum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
-			 wsizeofIndirect(w) == sizeof(int64_t)/sizeof(word))
 
 #define MP_RAT_MASK	(0x1)
 
-/* valBignum(w) and valFloat(w) moved to pl-inline.h */
+/* valFloat(w) moved to pl-inline.h */
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
 #define isWString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'W')
 
@@ -310,7 +308,6 @@ static inline Atom	fetchAtomArray(size_t index);
 #define indexAtom(w)	((w)>>LMASK_BITS)
 #define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)
-#define valInteger(w)	(storage(w) == STG_INLINE ? valInt(w) : valBignum(w))
 
 		 /*******************************
 		 *	      FUNCTORS		*

@@ -550,30 +550,6 @@ valFloat(DECL_LD word w)
 #endif
 
 
-#if ALIGNOF_INT64_T == ALIGNOF_WORD
-#define valBignum(w) (*(int64_t *)valIndirectP(w))
-#else
-#define valBignum(w) LDFUNC(valBignum, w)
-static inline int64_t
-valBignum(DECL_LD word w)
-{ Word p = valIndirectP(w);
-  union
-  { int64_t i;
-    word w[WORDS_PER_INT64];
-  } val;
-
-#if ( SIZEOF_WORD == 4 )
-  val.w[0] = p[0];
-  val.w[1] = p[1];
-#else
-#error "Unsupported int64_t alignment conversion"
-#endif
-
-  return val.i;
-}
-#endif
-
-
 #define valHandle(r) LDFUNC(valHandle, r)
 static inline word
 valHandle(DECL_LD term_t r)

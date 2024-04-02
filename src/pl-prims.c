@@ -3005,7 +3005,7 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
 
 	  deRef(p);
 	  if ( options->numbered_check && isInteger(*p) )
-	  { intptr_t i = (intptr_t)valInteger(*p); /* cannot be bigger */
+	  { intptr_t i = (intptr_t)valInt(*p); /* cannot be bigger */
 
 	    if ( i >= (intptr_t)start )
 	    { n = ALREADY_NUMBERED;

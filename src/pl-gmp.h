@@ -45,8 +45,10 @@
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
+#define	put_int64(p, i, flags)		LDFUNC(put_int64, p, i, flags)
 #define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
 #define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#define get_int64(w, ip)		LDFUNC(get_int64, w, ip)
 #ifdef O_BIGNUM
 #define	get_rational_no_int(w, n)	LDFUNC(get_rational_no_int, w, n)
 #endif
@@ -60,7 +62,9 @@ void	get_number(word w, Number n);
 int	PL_get_number(term_t t, Number n);
 int	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
+int	put_int64(Word p, int64_t i, int flags);
 int	put_number(Word at, Number n, int flags);
+int	get_int64(word w, int64_t *ip);
 int	promoteToFloatNumber(Number n);
 int	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 int     promoteNumber(Number n1, numtype type) WUNUSED;
@@ -187,7 +191,7 @@ get_rational(DECL_LD word w, Number n)
 #define get_integer(w, n) \
 	do \
 	{ (n)->type = V_INTEGER; \
-	  (n)->value.i = valInteger(w); \
+	  (n)->value.i = valInt(w); \
 	} while(0)
 #define get_rational(w, n) \
 	get_integer(w, n)

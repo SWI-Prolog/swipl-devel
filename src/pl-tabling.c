@@ -1083,20 +1083,11 @@ simplify_delay_set(delay_info *di, delay_set *ds)
 
 
 #define word_to_answer(w) LDFUNC(word_to_answer, w)
-static trie_node *
+static inline trie_node *
 word_to_answer(DECL_LD word w)
-{
-#if SIZEOF_WORD == 8
-   assert(isTaggedInt(w));
-   return intToPointer(valInt(w));
-#else
-   if ( isTaggedInt(w) )
-   { return intToPointer(valInt(w));
-   } else
-   { assert(isBignum(w));
-     return intToPointer(valBignum(w));
-   }
-#endif
+{ assert(isTaggedInt(w));
+
+  return intToPointer(valInt(w));
 }
 
 

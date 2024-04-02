@@ -773,8 +773,6 @@ last_arg:
       printk(context, "Indirect at %p not on global stack", a);
     if ( storage(*p) != STG_GLOBAL )
       printk(context, "Indirect data not on global");
-    if ( isBignum(*p) )
-      return key+(word) valBignum(*p);
     if ( isFloat(*p) )
       return key+(word) valFloat(*p);
     if ( isString(*p) )

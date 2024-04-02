@@ -828,6 +828,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   int first = REC_HDR;
   term_agenda agenda;
   int scode, rc;
+  int64_t v;
 
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
   p = valTermRef(t);
@@ -838,17 +839,8 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   data->info.external = TRUE;
   data->info.lock = FALSE;
 
-  if ( isInteger(*p) )			/* integer-only record */
-  { int64_t v;
-
-    if ( isTaggedInt(*p) )
-      v = valInt(*p);
-    else if ( isBignum(*p) )
-      v = valBignum(*p);
-    else				/* GMP integers */
-      goto general;
-
-    first |= (REC_INT|REC_GROUND);
+  if ( get_int64(*p, &v) )		/* integer-only record */
+  { first |= (REC_INT|REC_GROUND);
     addOpCode(&data->info, first);
     addInt64(&data->info, v);
     data->simple = TRUE;
@@ -857,15 +849,13 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   } else if ( isAtom(*p) )		/* atom-only record */
   { first |= (REC_ATOM|REC_GROUND);
     addOpCode(&data->info, first);
-    if ( !addAtom(&data->info, *p) )
+    if ( !addAtom(&data->info, word2atom(*p)) )
       return FALSE;
     data->simple = TRUE;
 
     return TRUE;
   }
-
 					/* the real stuff */
-general:
   data->simple = FALSE;
   initBuffer(&data->info.vars);
   data->info.size = 0;

@@ -357,7 +357,7 @@ print_val(word val, char *buf)
   if ( isVar(val) )
   { strcpy(o, "VAR");
   } else if ( isTaggedInt(val) )
-  { Ssprintf(o, "int(%ld)", valInteger(val));
+  { Ssprintf(o, "int(%ld)", valInt(val));
   } else if ( isAtom(val) )
   { const char *s = stringAtom(val);
     if ( strlen(s) > 10 )

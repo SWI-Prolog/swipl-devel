@@ -590,8 +590,8 @@ them.  Descriptions:
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 #define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 #define CODES_PER_DOUBLE        ((sizeof(double)+sizeof(code)-1)/sizeof(code))
-#define CODES_PER_INT64		(sizeof(int64_t)/sizeof(code))
 #define CODES_PER_WORD		(SIZEOF_WORD/SIZEOF_CODE)
+#define WORDS_PER_BIGNUM64	(5)
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
@@ -1289,20 +1289,6 @@ We assume the compiler will optimise this properly.
 #define cpDoubleData(to, from) \
 	{ Word _f = (Word)(from); \
 	  switch(WORDS_PER_DOUBLE) \
-	  { case 2: \
-	      *(to)++ = *_f++; \
-	    case 1: \
-	      *(to)++ = *_f++; \
-	      from = (void *)_f; \
-	      break; \
-	    default: \
-	      assert(0); \
-	  } \
-	}
-
-#define cpInt64Data(to, from) \
-	{ Word _f = (Word)(from); \
-	  switch(WORDS_PER_INT64) \
 	  { case 2: \
 	      *(to)++ = *_f++; \
 	    case 1: \

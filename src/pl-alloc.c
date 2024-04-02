@@ -840,81 +840,6 @@ newTerm(void)
 }
 
 		 /*******************************
-		 *    OPERATIONS ON INTEGERS	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Translate  a  64-bit  integer  into   a    Prolog   cell.   Uses  tagged
-representation if possible or allocates 64-bits on the global stack.
-
-Return is one of:
-
-	TRUE:		 Success
-	FALSE:		 Interrupt
-	GLOBAL_OVERFLOW: Stack overflow
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-put_int64(DECL_LD Word at, int64_t l, int flags)
-{ Word p;
-  word r, m;
-  int req;
-
-  r = consInt(l);
-  if ( valInt(r) == l )
-  { *at = r;
-    return TRUE;
-  }
-
-#if SIZEOF_WORD == 8
-  req = 3;
-#elif SIZEOF_WORD == 4
-  req = 4;
-#else
-#error "FIXME: Unsupported sizeof word"
-#endif
-
-  if ( !hasGlobalSpace(req) )
-  { int rc = ensureGlobalSpace(req, flags);
-
-    if ( rc != TRUE )
-      return rc;
-  }
-  p = gTop;
-  gTop += req;
-
-#if SIZEOF_WORD == 8
-  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(1, TAG_INTEGER);
-
-  *p++ = m;
-  *p++ = l;
-  *p   = m;
-#else
-#if SIZEOF_WORD == 4
-  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(2, TAG_INTEGER);
-
-  *p++ = m;
-#ifdef WORDS_BIGENDIAN
-  *p++ = (word)(l>>32);
-  *p++ = (word)l;
-#else
-  *p++ = (word)l;
-  *p++ = (word)(l>>32);
-#endif
-  *p   = m;
-#else
-#error "FIXME: Unsupported sizeof intptr_t."
-#endif
-#endif
-
-  *at = r;
-  return TRUE;
-}
-
-
-		 /*******************************
 		 *    OPERATIONS ON STRINGS	*
 		 *******************************/
 
@@ -1085,8 +1010,6 @@ put_double(DECL_LD Word at, double d, int flags)
   return TRUE;
 }
 
-
-/* valBignum(DECL_LD word w) moved to pl-inline.h */
 
 		 /*******************************
 		 *  GENERIC INDIRECT OPERATIONS	*

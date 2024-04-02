@@ -199,8 +199,8 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
 
   p = &f->arguments[0];
   deRef(p);
-  if ( isTaggedInt(*p) || isBignum(*p) )
-  { int64_t n = valInteger(*p);
+  if ( isTaggedInt(*p) )
+  { int64_t n = valInt(*p);
     char buf[32];			/* Max is H354745078340568300 */
 
     if ( n < 0 )

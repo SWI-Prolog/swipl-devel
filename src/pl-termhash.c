@@ -489,7 +489,7 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
       }
       case TAG_INTEGER:
       { if ( !isIndirect(w) )
-	{ int64_t val = valInteger(w);
+	{ int64_t val = valInt(w);
 
 	  HASH("i", 1);
 	  HASH(&val, sizeof(val));

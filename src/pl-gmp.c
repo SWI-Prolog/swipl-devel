@@ -594,43 +594,32 @@ void
 get_bigint(word w, Number n)
 { GET_LD
   Word p = addressIndirect(w);
-  size_t wsize = wsizeofInd(*p);
 
   DEBUG(0, assert(storage(w) != STG_INLINE));
 
-  p++;
-  if ( wsize == WORDS_PER_INT64 )
-  { n->type = V_INTEGER;
-    memcpy(&n->value.i, p, sizeof(int64_t));
-  } else
-  { n->type = V_MPZ;
-
+  p++;				/* bits of indirect */
+  n->type = V_MPZ;
 #if O_GMP
-    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-    n->value.mpz->_mp_alloc = 0;
-    n->value.mpz->_mp_d     = (mp_limb_t*) p;
+  n->value.mpz->_mp_size  = mpz_stack_size(*p++);
+  n->value.mpz->_mp_alloc = 0;
+  n->value.mpz->_mp_d     = (mp_limb_t*) p;
 #elif O_BF
-    slimb_t len = mpz_stack_size(*p++);
-    n->value.mpz->ctx	 = NULL;
-    n->value.mpz->expn = (slimb_t)*p++;
-    n->value.mpz->sign = len < 0;
-    n->value.mpz->len  = abs(len);
-    n->value.mpz->tab  = (limb_t*)p;
+  slimb_t len = mpz_stack_size(*p++);
+  n->value.mpz->ctx	 = NULL;
+  n->value.mpz->expn = (slimb_t)*p++;
+  n->value.mpz->sign = len < 0;
+  n->value.mpz->len  = abs(len);
+  n->value.mpz->tab  = (limb_t*)p;
 #endif
-  }
 }
 
 
 void
 get_rational_no_int(DECL_LD word w, Number n)
 { Word p = addressIndirect(w);
-  size_t wsize = wsizeofInd(*p);
 
   p++;
-  if ( wsize == WORDS_PER_INT64 )
-  { n->type = V_INTEGER;
-    memcpy(&n->value.i, p, sizeof(int64_t));
-  } else if ( (*p&MP_RAT_MASK) )
+  if ( (*p&MP_RAT_MASK) )
   { mpz_t num, den;
     size_t num_size;
 
@@ -745,6 +734,22 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 
   return pc;
 }
+
+
+int
+get_int64(DECL_LD word w, int64_t *ip)
+{ if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
+  { *ip = valInt(w);
+    return TRUE;
+  } else if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
+  { number n;
+
+    get_bigint(w, &n);
+    return mpz_to_int64(n.value.mpz, ip);
+  } else
+    return FALSE;
+}
+
 
 
 		 /*******************************
@@ -1399,9 +1404,7 @@ without any knowledge of the represented data.
 #define put_mpz(at, mpz, flags) LDFUNC(put_mpz, at, mpz, flags)
 static int
 put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
-{ int64_t v;
-
-  DEBUG(2,
+{ DEBUG(2,
 	{ char buf[256];
 	  Sdprintf("put_mpz(%s)\n",
 		   mpz_get_str(buf, 10, mpz));
@@ -1426,8 +1429,6 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
     *at = consInt(v);
     assert(valInt(*at) == v);
     return TRUE;
-  } else if ( mpz_to_int64(mpz, &v) )
-  { return put_int64(at, v, flags);
   } else
   { return globalMPZ(at, mpz, flags);
   }
@@ -1444,6 +1445,28 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 */
 
 int
+put_int64(DECL_LD Word at, int64_t l, int flags)
+{ word r;
+
+  r = consInt(l);
+  if ( valInt(r) == l )
+  { *at = r;
+    return TRUE;
+  } else
+  {
+#ifdef O_BIGNUM
+    mpz_t mpz;
+
+    mpz_init_set_si64(mpz, l);
+    return globalMPZ(at, mpz, flags);
+#else
+    return LOCAL_OVERFLOW;
+#endif
+  }
+}
+
+
+int
 put_uint64(DECL_LD Word at, uint64_t l, int flags)
 { if ( (int64_t)l >= 0 )
   { return put_int64(at, l, flags);
@@ -1453,7 +1476,7 @@ put_uint64(DECL_LD Word at, uint64_t l, int flags)
     mpz_t mpz;
 
     mpz_init_set_uint64(mpz, l);
-    return put_mpz(at, mpz, flags);
+    return globalMPZ(at, mpz, flags);
 #else
     return LOCAL_OVERFLOW;
 #endif

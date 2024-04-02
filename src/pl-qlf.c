@@ -2366,10 +2366,6 @@ saveXR(DECL_LD wic_state *state, word xr)
   { Sputc(XR_INT, fd);
     qlfPutInt64(valInt(xr), fd);
     return;
-  } else if ( isBignum(xr) )
-  { Sputc(XR_INT, fd);
-    qlfPutInt64(valBignum(xr), fd);
-    return;
   } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
     qlfPutDouble(valFloat(xr), fd);

@@ -1466,7 +1466,7 @@ PL_get_term_value(term_t t, term_value_t *val)
   { case PL_VARIABLE:
       break;
     case PL_INTEGER:
-      val->i = valInteger(w);		/* TBD: Handle MPZ integers? */
+      get_int64(w, &val->i);		/* TBD: Handle MPZ integers? */
       break;
     case PL_FLOAT:
       val->f = valFloat(w);
@@ -1771,34 +1771,6 @@ PL_get_integer(DECL_LD term_t t, int *i)
     *i = (int)val;
     succeed;
   }
-#if SIZEOF_VOIDP < 8
-  if ( isBignum(w) )
-  { int64_t val = valBignum(w);
-
-    if ( val > INT_MAX || val < INT_MIN )
-      fail;
-
-    *i = (int)val;
-    succeed;
-  }
-#endif
-#ifndef O_GMP
-  if ( isFloat(w) )
-  { double f = valFloat(w);
-    int l;
-
-#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( f > (double)INT_MAX || f < (double)INT_MIN )
-      fail;
-#endif
-
-    l = (int)f;
-    if ( (double)l == f )
-    { *i = l;
-      succeed;
-    }
-  }
-#endif
   fail;
 }
 
@@ -1820,34 +1792,6 @@ PL_get_uint(DECL_LD term_t t, unsigned int *i)
     *i = (unsigned int)val;
     succeed;
   }
-#if SIZEOF_VOIDP < 8
-  if ( isBignum(w) )
-  { int64_t val = valBignum(w);
-
-    if ( val < 0 || val > UINT_MAX )
-      fail;
-
-    *i = (unsigned int)val;
-    succeed;
-  }
-#endif
-#ifndef O_GMP
-  if ( isFloat(w) )
-  { double f = valFloat(w);
-    unsigned int l;
-
-#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( f > (double)UINT_MAX || f < 0.0 )
-      fail;
-#endif
-
-    l = (unsigned int)f;
-    if ( (double)l == f )
-    { *i = l;
-      succeed;
-    }
-  }
-#endif
   fail;
 }
 
@@ -1855,6 +1799,7 @@ PL_get_uint(DECL_LD term_t t, unsigned int *i)
 int
 PL_get_long(DECL_LD term_t t, long *i)
 { word w = valHandle(t);
+  int64_t i64;
 
   if ( isTaggedInt(w) )
   { sword val = valInt(w);
@@ -1864,30 +1809,13 @@ PL_get_long(DECL_LD term_t t, long *i)
     *i = (long)val;
     succeed;
   }
-  if ( isBignum(w) )
-  { int64_t val = valBignum(w);
 
-    if ( val > LONG_MAX || val < LONG_MIN )
-      fail;
-
-    *i = (long)val;
+  if ( get_int64(w, &i64) &&
+       i64 <= LONG_MAX && i64 >= LONG_MIN )
+  { *i = (long)i64;
     succeed;
   }
-  if ( isFloat(w) )
-  { double f = valFloat(w);
-    long l;
 
-#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( f > (double)LONG_MAX || f < (double)LONG_MIN )
-      fail;
-#endif
-
-    l = (long) f;
-    if ( (double)l == f )
-    { *i = l;
-      succeed;
-    }
-  }
   fail;
 }
 
@@ -1905,27 +1833,7 @@ PL_get_int64(DECL_LD term_t t, int64_t *i)
   { *i = valInt(w);
     succeed;
   }
-  if ( isBignum(w) )
-  { *i = valBignum(w);
-    succeed;
-  }
-  if ( isFloat(w) )
-  { double f = valFloat(w);
-    int64_t l;
-
-#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !((f >= LLONG_MAX) && (f <= LLONG_MIN)) )
-      fail;
-#endif
-
-    l = (int64_t) f;
-    if ( (double)l == f )
-    { *i = l;
-      succeed;
-    }
-  }
-
-  fail;
+  return get_int64(w, i);
 }
 
 
@@ -2352,12 +2260,6 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
       if ( isTextAtom(*p) )
       { ref->type    = PL_ATOM;
 	ref->value.a = (atom_t) *p;
-
-	goto ok;
-      }
-      if ( isBignum(*p) )
-      { ref->type    = PL_INTEGER;
-	ref->value.i = (intptr_t)valBignum(*p);
 
 	goto ok;
       }
@@ -2902,16 +2804,15 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   Word p;
   word w;
 
-  if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
+  if ( !hasGlobalSpace(2) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
   }
 
   w = consInt(i);
-  if ( valInt(w) != i )
-    put_int64(&w, i, 0);
+  assert(valInt(w) == i);
 
   p = gTop;
   gTop += 2;
@@ -3251,10 +3152,10 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   deRef(p);
 
   if ( canBind(*p) )
-  { if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+  { if ( !hasGlobalSpace(WORDS_PER_BIGNUM64) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(WORDS_PER_BIGNUM64, ALLOW_GC)) != TRUE )
 	return raiseStackOverflow(rc);
       p = valHandleP(t);
       deRef(p);
@@ -3270,8 +3171,9 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   if ( w == *p && valInt(w) == i )
     succeed;
 
-  if ( isBignum(*p) )
-    return valBignum(*p) == i;
+  int64_t v;
+  if ( get_int64(*p, &v) )
+    return v == i;
 
   if ( ex && !isInteger(*p) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
@@ -3805,8 +3707,8 @@ put_xpce_ref_arg(DECL_LD xpceref_t *ref)
 { if ( ref->type == PL_INTEGER )
   { word w = consInt(ref->value.i);
 
-    if ( valInt(w) != ref->value.i )
-      put_int64(&w, ref->value.i, 0);
+    if ( valInt(w) != ref->value.i)
+      return PL_representation_error("pce_reference");
 
     return w;
   }
@@ -3820,10 +3722,10 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
   Word p;
 
-  if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
+  if ( !hasGlobalSpace(2) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
   }
 
@@ -3855,8 +3757,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 	succeed;
       } else
       { if ( ref->type == PL_INTEGER )
-	  return ( isInteger(*a) &&
-		   valInteger(*a) == ref->value.i );
+	  return ( isTaggedInt(*a) &&
+		   valInt(*a) == ref->value.i );
 	else
 	  return *a == ref->value.a;
       }

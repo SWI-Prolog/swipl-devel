@@ -96,7 +96,6 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
 #define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
 #define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
-#define	put_int64(p, i, flags)			LDFUNC(put_int64, p, i, flags)
 #define	VM_globalIndirectFromCode(pc)		LDFUNC(VM_globalIndirectFromCode, pc)
 #define	VM_equalIndirectFromCode(a, pc)		LDFUNC(VM_equalIndirectFromCode, a, pc)
 #endif /*USE_LD_MACROS*/
@@ -127,8 +126,6 @@ char *		getCharsString(word w, size_t *len);
 pl_wchar_t *	getCharsWString(word w, size_t *len);
 Word		newTerm(void);
 int		put_double(Word p, double f, int flags);
-int		put_int64(Word p, int64_t i, int flags);
-/* valBignum(word w) moved to pl-inline.h */
 int		equalIndirect(word r1, word r2);
 ALLOC_INLINE
 size_t		gsizeIndirectFromCode(Code PC);
