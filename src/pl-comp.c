@@ -421,12 +421,12 @@ typedef struct
 
 
 #if USE_LD_MACROS
-#define output_indirect(op, ptr, ci) LDFUNC(output_indirect, op, ptr, ci)
+#define output_indirect(ci, op, ptr) LDFUNC(output_indirect, ci, op, ptr)
 #define link_local_var(v, iv, ci) LDFUNC(link_local_var, v, iv, ci)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
-static int	output_indirect(code op, Word p, compileInfo *ci);
+static int	output_indirect(compileInfo *ci, code op, Word p);
 static int	link_local_var(Word v, int iv, CompileInfo ci);
 #undef LDFUNC_DECLARATIONS
 
@@ -2553,16 +2553,14 @@ A void.  Generate either B_VOID or H_VOID.
 	}
 #endif
       } else
-      { Word p = addressIndirect(*arg);
-	size_t n = wsizeofInd(*p);
-	int c;
+      { int op;
 
-	if ( p[1]&MP_RAT_MASK )
-	  c = (where & A_HEAD) ? H_MPQ : B_MPQ;
+	if ( isMPQNum(*arg) )
+	  op = (where & A_HEAD) ? H_MPQ : B_MPQ;
 	else
-	  c = (where & A_HEAD) ? H_MPZ : B_MPZ;
+	  op = (where & A_HEAD) ? H_MPZ : B_MPZ;
 
-	Output_n(ci, c, p, n+1);
+	output_indirect(ci, op, addressIndirect(*arg));
       }
       return TRUE;
     case TAG_ATOM:
@@ -2585,9 +2583,9 @@ A void.  Generate either B_VOID or H_VOID.
     if ( ci->islocal )
     { goto argvar;
     } else
-    { return output_indirect((where & A_HEAD) ? H_STRING : B_STRING,
-			     addressIndirect(*arg),
-			     ci);
+    { return output_indirect(ci,
+			     (where & A_HEAD) ? H_STRING : B_STRING,
+			     addressIndirect(*arg));
     }
   }
 
@@ -4090,7 +4088,7 @@ code space.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-output_indirect(DECL_LD code op, Word p, compileInfo *ci)
+output_indirect(DECL_LD compileInfo *ci, code op, Word p)
 { word m = *p;
   size_t wn = wsizeofInd(m);
   size_t codesize = (wn+1)*sizeof(word)/sizeof(code);
