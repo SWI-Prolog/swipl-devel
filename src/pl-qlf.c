@@ -2753,9 +2753,6 @@ saveWicClause(wic_state *state, Clause clause)
   ep = bp + clause->code_size;
   init_wlabels(&lstate);
 
-  if ( strcmp(predicateName(clause->predicate), "system:$option/3") == 0 )
-    trap_gdb();
-
   DEBUG(MSG_QLF_PREDICATE,
 	Sdprintf("Saving %d-th clause of %s\n",
 		 clauseNo(clause, 0), predicateName(clause->predicate)));
