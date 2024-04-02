@@ -46,6 +46,7 @@
 #include "pl-gc.h"
 #include "pl-attvar.h"
 #include "pl-inline.h"
+#include "pl-comp.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -681,65 +682,68 @@ get_rational_no_int(DECL_LD word w, Number n)
 
 Code
 get_mpz_from_code(Code pc, mpz_t mpz)
-{ size_t wsize = wsizeofInd(*pc);
+{ word m;
+  Word data;
+  pc = code_get_indirect(pc, &m, &data);
 
-  pc++;
 #if O_GMP
-  mpz->_mp_size  = mpz_stack_size(*pc);
+  mpz->_mp_size  = mpz_stack_size(data[0]);
   mpz->_mp_alloc = 0;
-  mpz->_mp_d     = (mp_limb_t*)(pc+1);
+  mpz->_mp_d     = (mp_limb_t*)(data+1);
 #elif O_BF
-  slimb_t len = mpz_stack_size(*pc);
+  slimb_t len = mpz_stack_size(data[0]);
   mpz->ctx   = NULL;
   mpz->alloc = 0;
-  mpz->expn  = (slimb_t)pc[1];
+  mpz->expn  = (slimb_t)data[1];
   mpz->sign  = len < 0;
   mpz->len   = abs(len);
-  mpz->tab   = (limb_t*)pc+2;
+  mpz->tab   = (limb_t*)data+2;
 #endif
 
-  return pc+wsize;
+  return pc;
 }
 
 
 Code
 get_mpq_from_code(Code pc, mpq_t mpq)
-{ Code p = pc;
-  size_t wsize = wsizeofInd(*p);
-  p++;
+{ word m;
+  Word data;
+  pc = code_get_indirect(pc, &m, &data);
   mpz_t num, den;
 
 #if O_GMP
-  int num_size = mpz_stack_size(*p++);
-  int den_size = mpz_stack_size(*p++);
+  int num_size = mpz_stack_size(data[0]);
+  int den_size = mpz_stack_size(data[1]);
   size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   num->_mp_size   = num_size;
   den->_mp_size   = den_size;
   num->_mp_alloc  = 0;
   den->_mp_alloc  = 0;
+  Word p = &data[2];
   num->_mp_d = (mp_limb_t*)p;
-  p += (limpsize+sizeof(code)-1)/sizeof(code);
+  p += (limpsize+sizeof(*p)-1)/sizeof(*p);
   den->_mp_d = (mp_limb_t*)p;
 #elif O_BF
-  int num_size = mpz_stack_size(*p++);
+  int num_size = mpz_stack_size(data[0]);
   num->ctx = NULL;
-  num->expn = *p++;
+  num->expn = data[1];
   num->sign = num_size < 0;
   num->len  = abs(num_size);
-  int den_size = mpz_stack_size(*p++);
+  int den_size = mpz_stack_size(data[2]);
   size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
   den->ctx = NULL;
-  den->expn = *p++;
+  den->expn = data[3];
   den->sign = den_size < 0;
   den->len  = abs(den_size);
+  Word p = &data[4];
   num->tab = (mp_limb_t*)p;
-  p += (limpsize+sizeof(code)-1)/sizeof(code);
+  p += (limpsize+sizeof(*p)-1)/sizeof(*p);
   den->tab = (mp_limb_t*)p;
 #endif
   *mpq_numref(mpq) = num[0];
   *mpq_denref(mpq) = den[0];
 
-  return pc+wsize+1;
+  return pc;
 }
 
 
