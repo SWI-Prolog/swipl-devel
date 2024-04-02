@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2021-2024, VU University Amsterdam
-		              CWI, Amsterdam
+			      CWI, Amsterdam
 			      SWI-Prolog Soutions b.v.
     All rights reserved.
 
@@ -78,7 +78,7 @@ VM_equalIndirectFromCode(DECL_LD word a, Code pc)
   { size_t n = wsizeofInd(m);
 
     pa++;
-    return WORD_AND_CODE(!memcpy(data, pa, sizeof(*data)*n), pc);
+    return WORD_AND_CODE(memcmp(data, pa, sizeof(*data)*n) == 0, pc);
   }
 
   return WORD_AND_CODE(FALSE, pc);
