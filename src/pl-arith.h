@@ -151,10 +151,6 @@ static inline int
 isMPQNum(DECL_LD word w)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    if ( wsize == WORDS_PER_INT64 )
-      return FALSE;
 
     return p[1]&MP_RAT_MASK;
   }
@@ -167,10 +163,6 @@ static inline int
 isMPZNum(DECL_LD word w)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    if ( wsize == WORDS_PER_INT64 )
-      return FALSE;
 
     return !(p[1]&MP_RAT_MASK);
   }
