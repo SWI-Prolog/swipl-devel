@@ -38,8 +38,8 @@
             clause_vm/2,                % +ClauseRef,-VM:list
             vmi_labels/2                % ?VMI,?Labeled
           ]).
-:- autoload(library(lists),[member/2]).
-:- autoload(library(prolog_clause),[predicate_name/2]).
+:- autoload(library(lists), [member/2, selectchk/3]).
+:- autoload(library(prolog_clause), [predicate_name/2]).
 
 
 /** <module> SWI-Prolog Virtual Machine utilities
