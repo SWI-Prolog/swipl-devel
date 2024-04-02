@@ -2675,15 +2675,55 @@ fixup_else(trie_compile_state *state)
   base[el] = pc-el-1;
 }
 
-
 static void
-add_indirect(trie_compile_state *state, code op, word w)
+add_indirect(trie_compile_state *state, vmi op, word w)
 { Word p = addressIndirect(w);
   size_t wsize = wsizeofInd(*p);
 
   add_vmi(state, op);
   addMultipleBuffer(&state->codes, p, wsize, word);
 }
+
+static void
+add_smallint(trie_compile_state *state, vmi c1, vmi c2, word w)
+{ sword i = valInt(w);
+#if CODES_PER_WORD == 1
+  add_vmi_d(state, c1, (scode)i);
+#else
+  if ( (scode)i == i )
+  { add_vmi_d(state, c1, (scode)i);
+  } else
+  { add_vmi(state, c2);
+    addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
+  }
+#endif
+}
+
+static void
+add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
+{ size_t el;
+  sword i = valInt(w);
+  vmi op;
+#if CODES_PER_WORD == 1
+  op = c1;
+#else
+  op =  (scode)i == i ? c1 : c2;
+#endif
+
+  addBuffer(&state->codes, encode(op), code);
+  el = entriesBuffer(&state->codes, code);
+  addBuffer(&state->codes, (code)state->else_loc, code);
+  state->else_loc = el;
+#if CODES_PER_WORD == 1
+  addBuffer(&state->codes, i, scode);
+#else
+  if ( (scode)i == i )
+    addBuffer(&state->codes, i, scode);
+  else
+    addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
+#endif
+}
+
 
 #define compile_trie_value(v, state) LDFUNC(compile_trie_value, v, state)
 static int
@@ -2732,18 +2772,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  break;
 	case TAG_INTEGER:
 	  if ( storage(w) == STG_INLINE)
-	  { sword i = valInt(w);
-
-#if CODES_PER_WORD == 1
-	    add_vmi_d(state, T_SMALLINT, (scode)i);
-#else
-	    if ( (scode)i == i )
-	    { add_vmi_d(state, T_SMALLINT, (scode)i);
-	    } else
-	    { add_vmi(state, T_SMALLINTW);
-	      addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
-	    }
-#endif
+	  { add_smallint(state, T_SMALLINT, T_SMALLINTW, w);
 #ifdef O_BIGNUM
 	  } else
 	  { add_indirect(state, T_MPZ, w);
@@ -2875,16 +2904,16 @@ next:
     }
     case TAG_ATOM:
     { if ( state->try )
-	add_vmi_else_d(state, T_TRY_ATOM, (code)key);
+	add_vmi_else_d(state, T_TRY_ATOM, code2atom(key));
       else
-	add_vmi_d(state, T_ATOM, (code)key);
+	add_vmi_d(state, T_ATOM, code2atom(key));
       break;
     }
     case TAG_INTEGER:
     { if ( state->try )
-	add_vmi_else_d(state, T_TRY_SMALLINT, (code)key);
+	add_vmi_else_i(state, T_TRY_SMALLINT, T_TRY_SMALLINTW, key);
       else
-	add_vmi_d(state, T_SMALLINT, (code)key);
+	add_smallint(state, T_SMALLINT, T_SMALLINTW, key);
       break;
     }
     default:
