@@ -257,30 +257,48 @@ typedef struct c_warning
 		 *******************************/
 
 /* Eventually can go if O_M64 is standard */
-#if SIZEOF_VOIDP == 4
-#define is_portable_smallint(w) (tagex(w) == (TAG_INTEGER|STG_INLINE))
-#define is_portable_constant(w) isConst(w)
-#else
 #define is_portable_smallint(w) LDFUNC(is_portable_smallint, w)
-#define is_portable_constant(w) (isAtom(w) || is_portable_smallint(w))
+#define is_portable_constant(w) LDFUNC(is_portable_constant, w)
 
-#define PORTABLE_INT_MASK 0xffffffff80000000
-
+/* Integer constant fits on (portable) code */
 static inline int
 is_portable_smallint(DECL_LD word w)
-{ if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
+{ if ( isTaggedInt(w) )
   { if ( truePrologFlag(PLFLAG_PORTABLE_VMI) )
-    { word masked = w&PORTABLE_INT_MASK;
+    { sword i = valInt(w);
 
-      return !masked || masked == PORTABLE_INT_MASK;
-    } else
-    { return TRUE;
+      return i >= INT32_MIN && i <= INT32_MAX;
     }
+    return TRUE;
   } else
     return FALSE;
 }
 
+/* w doesn't change when put in code (anyway) or 32-bit code (portable) */
+static inline int
+is_portable_constant(DECL_LD word w)
+{ if ( isAtom(w) )
+    return TRUE;
+
+  if ( isTaggedInt(w) )
+  {
+#if SIZEOF_CODE < SIZEOF_WORD
+    code c = (code)w;
+    if ( (word)c != w )
+      return FALSE;
 #endif
+
+    if ( truePrologFlag(PLFLAG_PORTABLE_VMI) )
+    { uint32_t c = (uint32_t)w;
+      if ( (word)c != w )
+	return FALSE;
+    } else
+    { return TRUE;
+    }
+  }
+
+  return FALSE;
+}
 
 		 /*******************************
 		 *	     COMPILER		*
