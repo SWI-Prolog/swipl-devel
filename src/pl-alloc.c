@@ -1462,8 +1462,8 @@ tmp_nrealloc(void *mem, size_t req)
 size_t
 tmp_malloc_size(void *mem)
 { if ( mem )
-  { size_t *sp = mem;
-    return sp[-1];
+  { Word sp = mem;
+    return (size_t)sp[-1];
   }
 
   return 0;
@@ -1471,10 +1471,10 @@ tmp_malloc_size(void *mem)
 
 void *
 tmp_malloc(size_t size)
-{ void *mem = malloc(size+sizeof(size_t));
+{ void *mem = malloc(size+sizeof(word));
 
   if ( mem )
-  { size_t *sp = mem;
+  { Word sp = mem;
     *sp++ = size;
 #ifdef O_DEBUG
     memset(sp, 0xFB, size);
@@ -1488,8 +1488,8 @@ tmp_malloc(size_t size)
 
 void *
 tmp_realloc(void *old, size_t size)
-{ size_t *sp = old;
-  size_t osize = *--sp;
+{ Word sp = old;
+  size_t osize = (size_t)*--sp;
   void *mem;
 
 #ifdef O_DEBUG
@@ -1500,7 +1500,7 @@ tmp_realloc(void *old, size_t size)
   }
 #else
   (void)osize;
-  if ( (mem = realloc(sp, size+sizeof(size_t))) )
+  if ( (mem = realloc(sp, size+sizeof(word))) )
   { sp = mem;
     *sp++ = size;
     return sp;
