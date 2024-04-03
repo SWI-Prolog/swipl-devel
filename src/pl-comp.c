@@ -256,7 +256,6 @@ typedef struct c_warning
 		 *	  PORTABLE CHECK	*
 		 *******************************/
 
-/* Eventually can go if O_M64 is standard */
 #define is_portable_smallint(w) LDFUNC(is_portable_smallint, w)
 #define is_portable_constant(w) LDFUNC(is_portable_constant, w)
 

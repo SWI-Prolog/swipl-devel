@@ -5113,13 +5113,6 @@ nextStackSizeAbove(size_t n)
   if ( size < SMALLSTACK )
     size = SMALLSTACK;
 
-#if !O_M64				/* enforce real limit */
-  if ( size > (size_t)(MAXTAGGEDPTR+1) )
-    size = (size_t)(MAXTAGGEDPTR+1);
-  if ( size < n )
-    return 0;				/* still too small */
-#endif
-
   return size;
 }
 
