@@ -2669,6 +2669,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     top->level	     = 0;
   }
   fr                 = &qf->frame;
+  IS_WORD_ALIGNED(fr);
   fr->parent         = top;
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
@@ -2698,6 +2699,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->next_environment  = NULL;		/* see D_BREAK */
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
+  IS_WORD_ALIGNED(ap);
   { size_t n;
     Word p = valTermRef(args);
 
