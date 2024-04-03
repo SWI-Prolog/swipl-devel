@@ -565,7 +565,7 @@ System(char *command)			/* command is a UTF-8 string */
 }
 
 
-word
+foreign_t
 pl_win_exec(term_t cmd, term_t how)
 { wchar_t *s;
   size_t len;
