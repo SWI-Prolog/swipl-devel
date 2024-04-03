@@ -119,13 +119,12 @@ static inline table_value_t htable_value(KVS kvs, size_t idx)
 { return kvs->entries[idx].value;
 }
 
-// TBD: eventually must become COMPARE_AND_SWAP_WORD()
 static inline int htable_cas_name(KVS kvs, size_t idx, table_key_t exp, table_key_t name)
-{ return __COMPARE_AND_SWAP(&kvs->entries[idx].name, exp, name);
+{ return COMPARE_AND_SWAP_UINT64(&kvs->entries[idx].name, exp, name);
 }
 
 static inline int htable_cas_value(KVS kvs, size_t idx, table_key_t exp, table_key_t value)
-{ return __COMPARE_AND_SWAP(&kvs->entries[idx].value, exp, value);
+{ return COMPARE_AND_SWAP_UINT64(&kvs->entries[idx].value, exp, value);
 }
 
 static inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)

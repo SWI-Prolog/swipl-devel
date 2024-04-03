@@ -2865,6 +2865,7 @@ make_gc_hole(Word bottom, Word top)
     Word bt = bottom;
     word hdr;
 
+#if SIZEOF_VOIDP == 8
     while(wsize > MAX_STRLEN)
     { Word t1  = bt+MAX_STRLEN+1;
 
@@ -2875,6 +2876,7 @@ make_gc_hole(Word bottom, Word top)
       bt = t1+1;
       wsize = top - bt - 1;
     }
+#endif
 
     hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
     *top = *bt = hdr;

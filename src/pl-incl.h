@@ -2419,9 +2419,7 @@ typedef struct
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
 
-#define globalStackLimit() (LD->stacks.limit > (MAXTAGGEDPTR+1) ? \
-					       (MAXTAGGEDPTR+1) : \
-					       LD->stacks.limit)
+#define globalStackLimit() (LD->stacks.limit)
 
 #define GROW_TRIM  ((size_t)-1)
 #define GROW_TIGHT ((size_t)1)
