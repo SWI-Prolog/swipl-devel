@@ -2474,7 +2474,11 @@ the arithmetic after dividing by the unit size.
 
 static inline int
 f_hasSpace(void *here, void *top, size_t bytes)
-{ return top >= here && top-here >= bytes;
+{
+#if O_DEBUG
+  assert(top>=here);
+#endif
+  return top-here >= bytes;
 }
 
 #define BIND_GLOBAL_SPACE (7)

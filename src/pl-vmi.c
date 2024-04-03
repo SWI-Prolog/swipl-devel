@@ -136,10 +136,10 @@ Virtual machine instruction names.  Prefixes:
 		 *	 LOCAL ALLOCATION	*
 		 *******************************/
 
-/* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
+/* Note that lTop can be > lMax when calling ENSURE_LOCAL_SPACE() */
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( unlikely(!hasLocalSpace(bytes)) ) \
+	if ( unlikely(lTop > lMax || !hasLocalSpace(bytes)) ) \
 	{ int rc; \
 	  SAVE_REGISTERS(QID); \
 	  rc = growLocalSpace(bytes, ALLOW_SHIFT); \
