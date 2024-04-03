@@ -2890,7 +2890,9 @@ next:
 	    add_vmi_w(state, T_STRING, h->header);
 	  break;
         case TAG_FLOAT:
-	  static_assert(sizeof(h->data[0]) == sizeof(word));
+#if ! __clang__
+	  static_assertion(sizeof(h->data[0]) == sizeof(word));
+#endif
 	  if ( state->try )
 	    add_vmi_else_w(state, T_TRY_FLOAT, h->data[0]);
 	  else

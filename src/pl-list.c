@@ -546,7 +546,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
   if ( !ensureLocalSpace(sizeof(word)) )
     return FALSE;
 
-  static_assert(sizeof(*l) == 3*sizeof(word));
+  static_assertion(sizeof(*l) == 3*sizeof(word));
 
   switch( prolog_list_to_sort_list(in, remove_dups,
 				   argc, argv, pair,

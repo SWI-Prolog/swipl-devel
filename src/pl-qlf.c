@@ -2852,7 +2852,7 @@ saveWicClause(wic_state *state, Clause clause)
 	}
 	case CA1_FLOAT:
 	{ double val;
-	  static_assert(sizeof(double)%sizeof(code) == 0);
+	  static_assertion(sizeof(double)%sizeof(code) == 0);
 	  memcpy(&val, bp, sizeof(double));
 	  bp = addPointer(bp, sizeof(double));
 	  qlfPutDouble(val, fd);
