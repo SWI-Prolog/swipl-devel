@@ -447,7 +447,9 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 static int	output_indirect(compileInfo *ci, code op, Word p);
 static int	link_local_var(Word v, int iv, CompileInfo ci);
+#if SIZEOF_CODE < SIZEOF_WORD
 static Word	make_atoms_reachable(Word p, size_t size, const Code code);
+#endif
 #undef LDFUNC_DECLARATIONS
 
 
@@ -2147,6 +2149,7 @@ exit_fail:
 }
 
 
+#if SIZEOF_CODE < SIZEOF_WORD
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If we  compile a  clause to the  local stack we  must ensure  that all
 atoms  in this  clause are  reachable by  the atom  garbage collector.
@@ -2198,6 +2201,7 @@ make_atoms_reachable(DECL_LD Word base, size_t size, const Code code)
 
   return NULL;
 }
+#endif /*SIZEOF_CODE < SIZEOF_WORD*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 compileBody() compiles the clause's body.  Within a body,  a  number  of
