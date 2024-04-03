@@ -4150,7 +4150,7 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
       { word w = PC[2];
 
 	if ( isAtom(w) )
-	  (*func)(w);
+	  (*func)(word2atom(w));
 	break;
       }
     }
