@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -67,5 +68,11 @@ size_t		atom_space(void);
 foreign_t	pl_track_atom(term_t which, term_t stream);
 #endif
 #undef LDFUNC_DECLARATIONS
+
+static inline int
+isBuiltInAtom(atom_t a)
+{ size_t index = indexAtom(a);
+  return index < GD->atoms.builtin;
+}
 
 #endif /*_PL_ATOM_H*/

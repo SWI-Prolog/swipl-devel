@@ -441,11 +441,13 @@ typedef struct
 #if USE_LD_MACROS
 #define output_indirect(ci, op, ptr) LDFUNC(output_indirect, ci, op, ptr)
 #define link_local_var(v, iv, ci) LDFUNC(link_local_var, v, iv, ci)
+#define make_atoms_reachable(p, sz, code) LDFUNC(make_atoms_reachable, p, sz, code)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 static int	output_indirect(compileInfo *ci, code op, Word p);
 static int	link_local_var(Word v, int iv, CompileInfo ci);
+static Word	make_atoms_reachable(Word p, size_t size, const Code code);
 #undef LDFUNC_DECLARATIONS
 
 
@@ -2067,6 +2069,10 @@ Finish up the clause.
     ATOMIC_INC(&GD->statistics.clauses);
   } else
   { size_t space;
+    LocalFrame fr = lTop;
+    Word p0 = argFrameP(fr, clause.variables);
+    Word p = p0;
+    ClauseRef cref = (ClauseRef)p;
 
     DEBUG(MSG_COMP_ARGVAR,
 	  Sdprintf("%d argvars; %d prolog vars; %d vars",
@@ -2086,12 +2092,6 @@ Finish up the clause.
       goto exit_fail;
     }
 
-    LocalFrame fr = lTop;
-    Word p0 = argFrameP(fr, clause.variables);
-    Word p = p0;
-    ClauseRef cref;
-
-    cref = (ClauseRef)p;
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
     if ( (uintptr_t)p % sizeof(gen_t) != 0 )
@@ -2104,8 +2104,24 @@ Finish up the clause.
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci->codes, code), sizeOfBuffer(&ci->codes));
     p = addPointer(p, sizeofClause(clause.code_size));
-    cl->variables += (int)(p-p0);
 
+#if SIZEOF_CODE != ALIGNOF_WORD
+    if ( (uintptr_t)p % sizeof(word) != 0 )
+    { p = addPointer(p, sizeof(void*));
+      IS_WORD_ALIGNED(p);
+    }
+#endif
+
+#if SIZEOF_CODE < SIZEOF_WORD
+    p = make_atoms_reachable(p, clause.code_size,
+			     baseBuffer(&ci->codes, code));
+    if ( !p )
+    { rc = LOCAL_OVERFLOW;
+      goto exit_fail;
+    }
+#endif
+
+    cl->variables += (unsigned int)(p-p0);
     fr->clause = cref;
     fr->predicate = getProcDefinition(proc);
     setNextFrameFlags(fr, environment_frame);
@@ -2113,13 +2129,10 @@ Finish up the clause.
 
     DEBUG(MSG_COMP_ARGVAR, Sdprintf("; now %d vars\n", clause.variables));
     DEBUG(MSG_COMP_ARGVAR, vm_list(cl->codes, NULL));
-#if SIZEOF_CODE != ALIGNOF_WORD
-    if ( (uintptr_t)p % sizeof(word) != 0 )
-    { p = addPointer(p, sizeof(void*));
-      assert((uintptr_t)p % sizeof(word) == 0);
-    }
-#endif
+
     lTop = (LocalFrame)p;
+    DEBUG(0, assert(argFrameP(fr, fr->clause->value.clause->variables)
+		    == (Word)lTop));
   }
 
   discardBuffer(&ci->codes);
@@ -2131,6 +2144,59 @@ exit_fail:
   resetVars();
   discardBuffer(&ci->codes);
   return rc;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If we  compile a  clause to the  local stack we  must ensure  that all
+atoms  in this  clause are  reachable by  the atom  garbage collector.
+This is fine if `sizeof(word)  == sizeof(code)` as the normal scanning
+does its work.   If not though, AGC  won't find them.  We  fix this by
+pushing these atoms  to the local stack just below  the clause itself.
+So, we get:W
+
+  Old lTop
+     frame
+     clause
+     atom_1
+     ...
+     atom_n
+  New lTop
+
+The function make_atoms_reachable()  pushes the atoms as  long as they
+fit and returns the number of atoms.  If the total size computation is
+ok, `lTop`  is moved and the  clause is added.  Otherwise  this is all
+simply discarded.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ Word here;
+  Word max;
+} mkatom_reach_t;
+
+static int
+make_atom_reachable(atom_t a, void *ctx)
+{ mkatom_reach_t *r = ctx;
+
+  if ( !isBuiltInAtom(a) )
+  { if ( r->here < r->max )
+    { *r->here++ = atom2word(a);
+      return TRUE;
+    }
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
+static Word
+make_atoms_reachable(DECL_LD Word base, size_t size, const Code code)
+{ mkatom_reach_t ctx = {.here = base, .max = (Word)lMax};
+
+  if ( forAtomsInCodes(size, code, make_atom_reachable, &ctx) )
+    return ctx.here;
+
+  return NULL;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4122,27 +4188,20 @@ output_indirect(DECL_LD compileInfo *ci, code op, Word p)
 
 #ifdef O_ATOMGC
 
-void
-forAtomsInClause(Clause clause, void (func)(atom_t a))
-{ Code PC, ep;
-  code c;
-
-  PC = clause->codes;
-  ep = PC + clause->code_size;
+int
+forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
+{ Code ep = PC + size;
 
   for( ; PC < ep; PC = stepPC(PC) )
-  { c = fetchop(PC);
+  { code c = fetchop(PC);
 
     switch(c)
     { case H_ATOM:
       case B_ATOM:
       { word w = PC[1];
 
-	if ( isAtom(w) )
-	{ atom_t a = w;
-
-	  (*func)(a);
-	}
+	if ( isAtom(w) && !(*func)(word2atom(w), ctx) )
+	  return FALSE;
 	break;
       }
       case B_EQ_VC:
@@ -4150,12 +4209,19 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
       case B_UNIFY_VC:			/* var, const */
       { word w = PC[2];
 
-	if ( isAtom(w) )
-	  (*func)(word2atom(w));
+	if ( isAtom(w) && !(*func)(word2atom(w), ctx) )
+	  return FALSE;
 	break;
       }
     }
   }
+
+  return TRUE;
+}
+
+int
+forAtomsInClause(Clause clause, int (func)(atom_t a, void*), void *ctx)
+{ return forAtomsInCodes(clause->code_size, clause->codes, func, ctx);
 }
 
 #endif /*O_ATOMGC*/

@@ -61,7 +61,10 @@ int		compileClause(Clause *cp, Word head, Word body,
 			      term_t warnings, int flags);
 Clause		assert_term(term_t term, Module m, ClauseRef where,
 			    atom_t owner, SourceLoc loc, int flags);
-void		forAtomsInClause(Clause clause, void (func)(atom_t a));
+int		forAtomsInCodes(size_t size, Code PC,
+				int (func)(atom_t a, void*), void *ctx);
+int		forAtomsInClause(Clause clause,
+				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
 int		det_goal_error(LocalFrame fr, Code PC,

@@ -1747,29 +1747,23 @@ unallocClause(Clause c)
   PL_free(c);
 }
 
-
-#ifdef O_DEBUG_ATOMGC
-static void
-unregister_atom_clause(atom_t a)
-{ PL_unregister_atom(a);
+static int
+unregister_atom_clause(atom_t a, void *ctx)
+{ (void)ctx;
+  PL_unregister_atom(a);
+  return TRUE;
 }
 
-static void
-register_atom_clause(atom_t a)
-{ PL_register_atom(a);
+static int
+register_atom_clause(atom_t a, void *ctx)
+{ (void)ctx;
+  PL_register_atom(a);
+  return TRUE;
 }
-#endif
 
 void
 freeClause(Clause c)
-{
-#ifdef O_ATOMGC
-#ifdef O_DEBUG_ATOMGC
-  forAtomsInClause(c, unregister_atom_clause);
-#else
-  forAtomsInClause(c, PL_unregister_atom);
-#endif
-#endif
+{ forAtomsInClause(c, unregister_atom_clause, NULL);
 
   if ( true(c, DBREF_CLAUSE) )		/* will be freed from symbol */
     set(c, DBREF_ERASED_CLAUSE);
@@ -4111,13 +4105,7 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
       copy->predicate = copy_def;
       if ( def->module != copy_def->module )
 	remoduleClause(copy, def->module, copy_def->module);
-#ifdef O_ATOMGC
-#ifdef O_DEBUG_ATOMGC
-      forAtomsInClause(copy, register_atom_clause);
-#else
-      forAtomsInClause(copy, PL_register_atom);
-#endif
-#endif
+      forAtomsInClause(copy, register_atom_clause, NULL);
       assertProcedure(to, copy, CL_END);
     }
   }
