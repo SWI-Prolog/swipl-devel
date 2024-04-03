@@ -2484,7 +2484,7 @@ VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_INTEGER))
 END_VMI
 
 #if CODES_PER_WORD > 1
-VMI(L_SMALLINTW, 0, 2, (CA1_FVAR,CA1_WORD))
+VMI(L_SMALLINTW, 0, 1+CODES_PER_WORD, (CA1_FVAR,CA1_WORD))
 { Word v1 = varFrameP(FR, (size_t)*PC++);
   word w;
   PC = code_get_word(PC, &w);
