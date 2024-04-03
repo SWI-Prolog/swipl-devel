@@ -4114,7 +4114,7 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
       { word w = PC[2];
 
 	if ( isAtom(w) )
-	  PL_unregister_atom(w);
+	  (*func)(w);
 	break;
       }
     }
