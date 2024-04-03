@@ -756,12 +756,14 @@ must ensure that sizeof(struct clause) is  a multiple of sizeof(word) to
 place them on the stack (see I_USERCALL).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __GNUC__
+#if SIZEOF_VOIDP == SIZEOF_WORD
+#define ALIGN(n)
+#define IS_WORD_ALIGNED(ptr)
+#elif defined(__GNUC__) || defined(__clang__)
 #define ALIGN(n) __attribute__ ((aligned (n)))
 #define IS_WORD_ALIGNED(ptr) assert(((uintptr_t)(ptr)&(sizeof(word)-1)) == 0)
 #else
-#define ALIGN(n)
-#define IS_WORD_ALIGNED(ptr)
+#error "Do not know how to specify alignment"
 #endif
 
 #define WORD_ALIGNED ALIGN(sizeof(word))
@@ -1710,7 +1712,7 @@ struct localFrame
 #endif
   unsigned int	level;			/* recursion level */
   unsigned int	flags;			/* packed long holding: */
-};
+} WORD_ALIGNED;
 
 
 typedef enum
