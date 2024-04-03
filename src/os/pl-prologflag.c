@@ -355,14 +355,6 @@ clean_prolog_flag(prolog_flag *f)
   }
 }
 
-static void
-freePrologFlag(prolog_flag *f)
-{ clean_prolog_flag(f);
-
-  freeHeap(f, sizeof(*f));
-}
-
-
 #ifdef O_PLMT
 static prolog_flag *
 copy_prolog_flag(const prolog_flag *f)
@@ -395,6 +387,13 @@ copySymbolPrologFlagTable(table_key_t name, table_value_t *value)
   *value = ptr2val(copy_prolog_flag(f));
 }
 
+
+static void
+freePrologFlag(prolog_flag *f)
+{ clean_prolog_flag(f);
+
+  freeHeap(f, sizeof(*f));
+}
 
 static void
 freeSymbolPrologFlagTable(table_key_t name, table_value_t value)
