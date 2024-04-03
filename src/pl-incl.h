@@ -2470,7 +2470,12 @@ Note that on 32-bit systems the  pointer can easily overflow, so we do
 the arithmetic after dividing by the unit size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define hasSpace(base, top, size) (((top) - (base)) >= (size))
+#define hasSpace(base, top, size) f_hasSpace(base, top, (size)*sizeof(*(base)))
+
+static inline int
+f_hasSpace(void *here, void *top, size_t bytes)
+{ return top >= here && top-here >= bytes;
+}
 
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
