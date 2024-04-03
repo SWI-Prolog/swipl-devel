@@ -486,15 +486,19 @@ VMI(H_SMALLINT, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
-#if CODES_PER_WORD > 1
 VMI(H_SMALLINTW, 0, CODES_PER_WORD, (CA1_WORD))
-{ IF_WRITE_MODE_GOTO(B_SMALLINTW);
+{
+#if CODES_PER_WORD > 1
+  IF_WRITE_MODE_GOTO(B_SMALLINTW);
   word w;
   PC = code_get_word(PC,&w);
   VMH_GOTO(h_const, consInt((sword)w));
+#else
+  assert(0);
+  NEXT_INSTRUCTION;
+#endif
 }
 END_VMI
-#endif
 
 VMH(h_const, 1, (word), (c))
 { Word k = ARGP;
@@ -956,15 +960,18 @@ VMI(B_SMALLINT, VIF_LCO, 1, (CA1_INTEGER))
 }
 END_VMI
 
-#if CODES_PER_WORD > 1
 VMI(B_SMALLINTW, VIF_LCO, CODES_PER_WORD, (CA1_WORD))
-{ word w;
+{
+#if CODES_PER_WORD > 1
+  word w;
   PC = code_get_word(PC,&w);
   *ARGP++ = consInt((sword)w);
+#else
+  assert(0);
+#endif
   NEXT_INSTRUCTION;
 }
 END_VMI
-#endif
 
 VMI(B_NIL, VIF_LCO, 0, ())
 { *ARGP++ = ATOM_nil;
@@ -2483,16 +2490,19 @@ VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_INTEGER))
 }
 END_VMI
 
-#if CODES_PER_WORD > 1
 VMI(L_SMALLINTW, 0, 1+CODES_PER_WORD, (CA1_FVAR,CA1_WORD))
-{ Word v1 = varFrameP(FR, (size_t)*PC++);
+{
+#if CODES_PER_WORD > 1
+  Word v1 = varFrameP(FR, (size_t)*PC++);
   word w;
   PC = code_get_word(PC, &w);
   *v1 = consInt((sword)w);
+#else
+  assert(0);
+#endif
   NEXT_INSTRUCTION;
 }
 END_VMI
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual tail call. The arguments for the   new predicate have been set by
@@ -3860,18 +3870,21 @@ VMI(A_INTEGER, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
-#if CODES_PER_WORD > 1
 VMI(A_INTEGERW, 0, CODES_PER_WORD, (CA1_WORD))
-{ Number n = allocArithStack();
+{
+#if CODES_PER_WORD > 1
+  Number n = allocArithStack();
 
   word w;
   PC = code_get_word(PC,&w);
   n->value.i = (sword)w;
   n->type    = V_INTEGER;
+#else
+  assert(0);
+#endif
   NEXT_INSTRUCTION;
 }
 END_VMI
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_MPZ: Push mpz integer following PC
