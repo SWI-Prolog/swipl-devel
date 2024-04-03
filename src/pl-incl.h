@@ -2470,7 +2470,7 @@ Note that on 32-bit systems the  pointer can easily overflow, so we do
 the arithmetic after dividing by the unit size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define hasSpace(base, top, size) ((top) - (base)) >= (size)
+#define hasSpace(base, top, size) (((top) - (base)) >= (size))
 
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
@@ -2487,6 +2487,8 @@ the arithmetic after dividing by the unit size.
 	( !hasGlobalSpace_((n)+BIND_GLOBAL_SPACE) ? GLOBAL_OVERFLOW \
 						  : TRAIL_OVERFLOW )
 #define GLOBAL_TRAIL_RATIO (6)
+#define hasLocalSpace(bytes) \
+	hasSpace((char*)lTop, (char*)lMax, bytes)
 
 
 		 /*******************************

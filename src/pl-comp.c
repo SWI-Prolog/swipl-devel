@@ -2066,11 +2066,7 @@ Finish up the clause.
     ATOMIC_ADD(&GD->statistics.codes, clause.code_size);
     ATOMIC_INC(&GD->statistics.clauses);
   } else
-  { LocalFrame fr = lTop;
-    Word p0 = argFrameP(fr, clause.variables);
-    Word p = p0;
-    ClauseRef cref;
-    size_t space;
+  { size_t space;
 
     DEBUG(MSG_COMP_ARGVAR,
 	  Sdprintf("%d argvars; %d prolog vars; %d vars",
@@ -2085,10 +2081,15 @@ Finish up the clause.
 	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
 	      sizeof(struct choice)
 	    );
-    if ( addPointer(lTop, space) >= (void*)lMax )
+    if ( !hasLocalSpace(space) )
     { rc = LOCAL_OVERFLOW;
       goto exit_fail;
     }
+
+    LocalFrame fr = lTop;
+    Word p0 = argFrameP(fr, clause.variables);
+    Word p = p0;
+    ClauseRef cref;
 
     cref = (ClauseRef)p;
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
