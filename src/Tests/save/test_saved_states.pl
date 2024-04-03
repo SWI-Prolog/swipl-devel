@@ -185,9 +185,10 @@ run_state(Exe, Args, Result) :-
         )),
     assertion(no_error(ErrOutput)).
 
-remove_state(_State) :-
+remove_state(State) :-
     debugging(save(keep)),
-    !.
+    !,
+    print_message(information, format('Created state in "~w"', [State])).
 remove_state(State) :-
     catch(delete_file(State), _, true).
 
