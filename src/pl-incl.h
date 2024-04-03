@@ -791,21 +791,12 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 #define fid_t			PL_fid_t        /* avoid AIX name-clash */
 #endif /*0*/
 
-#if O_M64
 typedef uint64_t		word WORD_ALIGNED; /* Prolog data cell */
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
 #define SIZEOF_WORD 8
-#define SIZEOF_ATOM 4
+#define SIZEOF_ATOM SIZEOF_VOIDP
 #define SIZEOF_CODE SIZEOF_VOIDP
 #define ALIGNOF_WORD 8
-#else
-typedef uintptr_t		word;		/* Prolog data cell */
-typedef intptr_t		sword;		/* Signed version */
-#define SIZEOF_WORD SIZEOF_VOIDP
-#define SIZEOF_ATOM SIZEOF_WORD
-#define SIZEOF_CODE SIZEOF_VOIDP
-#define ALIGNOF_WORD ALIGNOF_VOIDP
-#endif
 typedef word *			Word;		/* a pointer to anything */
 typedef uintptr_t		atom_t;		/* encoded atom */
 typedef uintptr_t		functor_t;	/* encoded functor */

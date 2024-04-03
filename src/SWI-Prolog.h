@@ -188,11 +188,7 @@ be relied upon to remain unchanged across versions.
 		 *	       TYPES		*
 		 *******************************/
 
-#if O_M64
 typedef uint64_t	_PLQ(word);	/* Anonymous Prolog data cell */
-#else
-typedef uintptr_t	_PLQ(word);	/* Anonymous Prolog data cell */
-#endif
 #ifndef PL_HAVE_ATOM_T
 #define PL_HAVE_ATOM_T
 typedef uintptr_t	atom_t;		/* Prolog atom */
