@@ -5748,12 +5748,14 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    continue;
 	case H_SMALLINT:
 	case B_SMALLINT:
+        case A_INTEGER:
 			  { scode i = *PC++;
 			    *ARGP++ = consInt(i);
 			    continue;
 			  }
 	case H_SMALLINTW:
 	case B_SMALLINTW:
+        case A_INTEGERW:
 			  { word w;
 			    PC = code_get_word(PC,&w);
 			    *ARGP++ = consInt((sword)w);
