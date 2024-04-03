@@ -70,13 +70,8 @@ typedef struct table_pw *       TablePW;	/* Pointer -> word */
 typedef struct kvs *		KVS;		/* map of key-values */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct table_enum *	TableEnum;	/* Enumerate table entries */
-#if O_MT64
 typedef uint64_t table_key_t;
 typedef uint64_t table_value_t;
-#else
-typedef uintptr_t table_key_t;
-typedef uintptr_t table_value_t;
-#endif
 
 #define NULL_KEY   ((table_key_t)0)
 #define NULL_VALUE ((table_value_t)0)
@@ -90,10 +85,10 @@ typedef uintptr_t table_value_t;
     KVS		kvs;		/* map of key-value pairs */		\
   }
 
-TABLE_STRUCT(table);
-TABLE_STRUCT(table_pp);
-TABLE_STRUCT(table_wp);
-TABLE_STRUCT(table_pw);
+TABLE_STRUCT(table);		/* word -> word */
+TABLE_STRUCT(table_pp);		/* ptr -> ptr */
+TABLE_STRUCT(table_wp);		/* word -> ptr */
+TABLE_STRUCT(table_pw);		/* ptr -> word */
 
 struct kvs
 { size_t len;			/* size of key-value map */

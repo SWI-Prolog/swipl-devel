@@ -1349,13 +1349,8 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 		 *******************************/
 typedef _PLS(table)	 *hash_table_t;
 typedef _PLS(table_enum) *hash_table_enum_t;
-#if O_MT64
 typedef uint64_t table_key_t;
 typedef uint64_t table_value_t;
-#else
-typedef uintptr_t table_key_t;
-typedef uintptr_t table_value_t;
-#endif
 
 #define PL_HT_NEW	0x0001
 #define PL_HT_UPDATE	0x0002
