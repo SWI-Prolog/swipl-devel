@@ -372,7 +372,7 @@ PL_open_signal_foreign_frame(int sync)
   size_t minspace = sizeof(struct localFrame) + MINFOREIGNSIZE*sizeof(word);
   size_t margin   = sync ? 0 : MAXARITY*sizeof(word);
 
-  if ( (char*)lTop + minspace + margin  > (char*)lMax )
+  if ( !hasLocalSpace(minspace + margin) )
   { if ( sync )
     { int rc;
 

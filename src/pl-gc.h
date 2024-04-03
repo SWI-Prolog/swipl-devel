@@ -100,15 +100,8 @@ static inline int
 ensureLocalSpace_ex(DECL_LD size_t bytes)
 { int rc;
 
-#if O_M64 && SIZEOF_VOIDP == 4
-  Word wltop = (Word)lTop;
-  Word wlmax = (Word)lMax;
-  if ( likely(hasSpace(wltop, wlmax, bytes/sizeof(word))) )
+  if ( likely(hasLocalSpace(bytes)) )
     return TRUE;
-#else
-  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
-    return TRUE;
-#endif
 
   if ( (rc=growLocalSpace(bytes, ALLOW_SHIFT)) == TRUE )
     return TRUE;

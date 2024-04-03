@@ -139,7 +139,7 @@ Virtual machine instruction names.  Prefixes:
 /* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
+	if ( unlikely(!hasLocalSpace(bytes)) ) \
 	{ int rc; \
 	  SAVE_REGISTERS(QID); \
 	  rc = growLocalSpace(bytes, ALLOW_SHIFT); \
@@ -291,7 +291,7 @@ VMI(D_BREAK, 0, 0, ())
     */
     Choice ch;
 
-    if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
+    if ( !hasLocalSpace(sizeof(struct choice)) )
     { int rc;
 
       SAVE_REGISTERS(QID);
@@ -1883,7 +1883,7 @@ procedure and deallocate our temporary version if threading is not used.
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
 
-  if ( unlikely(addPointer(lTop, LOCAL_MARGIN) > (void*)lMax) )
+  if ( unlikely(!hasLocalSpace(LOCAL_MARGIN)) )
   { int rc;
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
@@ -2688,7 +2688,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
 { size_t skip = *PC++;
   Choice ch;
 
-  if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
+  if ( unlikely(!hasLocalSpace(sizeof(struct choice))) )
   { int rc;
 
     SAVE_REGISTERS(QID);
