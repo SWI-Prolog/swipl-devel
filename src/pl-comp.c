@@ -5933,13 +5933,15 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    goto arg_vf_cont;
       case B_ARG_CF:
-			    *ARGP++ = (word)*PC++;
+			  { scode i = *PC++;
+			    *ARGP++ = consInt(i);
 			    arg_vf_cont:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    BUILD_TERM(FUNCTOR_arg3);
 			    pushed++;
 			    continue;
+			  }
       case H_VOID:
       case B_VOID:
 			    setVar(*ARGP++);
