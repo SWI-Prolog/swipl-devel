@@ -282,18 +282,15 @@ is_portable_constant(DECL_LD word w)
   if ( isTaggedInt(w) )
   {
 #if SIZEOF_CODE < SIZEOF_WORD
-    code c = (code)w;
-    if ( (word)c != w )
-      return FALSE;
-#endif
-
+    code c = word2code(w);
+    return code2word(c) == w;
+#else
     if ( truePrologFlag(PLFLAG_PORTABLE_VMI) )
     { uint32_t c = (uint32_t)w;
-      if ( (word)c != w )
-	return FALSE;
-    } else
-    { return TRUE;
+      return (word)(sword)(int32_t)c == w;
     }
+    return TRUE;
+#endif
   }
 
   return FALSE;
@@ -3730,7 +3727,7 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
   unify_term:
     first = isFirstVarSet(ci->used_var, i1);
     if ( is_portable_constant(*a2) )
-    { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), *a2);
+    { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), word2code(*a2));
       if ( isAtom(*a2) )
 	PL_register_atom(*a2);
     } else
@@ -3817,7 +3814,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-    Output_2(ci, B_EQ_VC, VAROFFSET(i1), *a2);
+    Output_2(ci, B_EQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
       PL_register_atom(*a2);
     return TRUE;
@@ -3826,7 +3823,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
   { int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
-    Output_2(ci, B_EQ_VC, VAROFFSET(i2), *a1);
+    Output_2(ci, B_EQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
       PL_register_atom(*a1);
     return TRUE;
@@ -3896,7 +3893,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-    Output_2(ci, B_NEQ_VC, VAROFFSET(i1), *a2);
+    Output_2(ci, B_NEQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
       PL_register_atom(*a2);
     return TRUE;
@@ -3905,7 +3902,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
   { int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
-    Output_2(ci, B_NEQ_VC, VAROFFSET(i2), *a1);
+    Output_2(ci, B_NEQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
       PL_register_atom(*a1);
     return TRUE;
@@ -7103,7 +7100,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	    goto hit;
 	  }
 	  case CA1_DATA:
-	  { word xr = PC[an];
+	  { word xr = code2word(PC[an]);
 	    rc = PL_unify_atomic(term, xr);
 	    goto hit;
 	  }
@@ -7130,7 +7127,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	while(ats[an])
 	{ switch(ats[an++])
 	  { case CA1_DATA:
-	      if ( PL_unify_atomic(term, PC[an]) )
+	      if ( PL_unify_atomic(term, code2word(PC[an])) )
 		succeed;
 	      break;
 	    case CA1_MODULE:
@@ -7301,7 +7298,7 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_DATA:
-	{ rc = PL_unify_atomic(av+an, *bp++);
+	{ rc = PL_unify_atomic(av+an, code2word(*bp++));
 	  break;
 	}
 	case CA1_FUNC:
@@ -7696,7 +7693,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      if ( isAtom(val) )
 		PL_register_atom(val);
 
-	      Output_a(ci, val);
+	      Output_a(ci, word2code(val));
 	      break;
 	    }
 	    case CA1_FUNC:

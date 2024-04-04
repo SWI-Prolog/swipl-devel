@@ -94,7 +94,7 @@ echo(X,X).
 
 % Test A_INTEGER, A_INTEGERW and A_MPZ
 % Push integer to arithmetic evaluation stack
-:- set_prolog_flag(optimise, true).
+% :- set_prolog_flag(optimise, true).
 expr(X) :- X is 0+0.
 expr(X) :- X is -1+0.
 expr(X) :- X is 1+0.
@@ -108,3 +108,34 @@ expr(X) :- X is -72057594037927937+0.
 expr(X) :- X is 72057594037927936+0.
 expr(X) :- X is -476462786578645564756252+0.
 expr(X) :- X is 476462786578645564756252+0.
+
+% Test A_ADD_FC.  Note that the first argument must be a "first var"
+% for this optimization to be applied.
+add(X) :- p(A), Y is A+1, X = Y.
+add(X) :- p(A), Y is A-1, X = Y.
+add(X) :- p(A), Y is A+2147483647, X = Y.
+add(X) :- p(A), Y is A+ -2147483648, X = Y.
+add(X) :- p(A), Y is A+2147483648, X = Y.   % general arithmetic on 32 bit
+add(X) :- p(A), Y is A+ -2147483649, X = Y. % general arithmetic on 32 bit
+
+p(0).
+
+cmp(X) :- echo(a,A), (A == a -> X = 0 ; X = 1).
+cmp(X) :- echo(0,A), (A == 0 -> X = 0 ; X = 1).
+cmp(X) :- echo(0,A), (A == 1 -> X = 1 ; X = 0).
+cmp(X) :- echo(-1,A), (A == -1 -> X = 0 ; X = 1).
+cmp(X) :- echo(16777215,A), (A == 16777215 -> X = 0 ; X = 1).
+cmp(X) :- echo(16777216,A), (A == 16777216 -> X = 0 ; X = 1).
+cmp(X) :- echo(-16777216,A), (A == -16777216 -> X = 0 ; X = 1).
+cmp(X) :- echo(-16777216,A), (A == 16777216 -> X = 1 ; X = 0).
+cmp(X) :- echo(-16777217,A), (A == -16777217 -> X = 0 ; X = 1).
+
+
+% Test rational number instructions.  These have
+% a uniform representation, so we do not need to
+% test many alternatives.
+rat(23673r276348).
+rat(-23673r276348).
+rat(36433737686427865845854r347489547594758975684).
+rat(X) :- echo(-36r42, X).
+rat(X) :- X is 237r373 * 253r236.

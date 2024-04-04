@@ -463,7 +463,7 @@ VMI(H_ATOM, 0, 1, (CA1_DATA))
 { word c;
   IF_WRITE_MODE_GOTO(B_ATOM);
 
-  c = (word)*PC++;
+  c = code2atom(*PC++);
   pushVolatileAtom(c);
   VMH_GOTO(h_const, c);
 }
@@ -946,7 +946,7 @@ this is above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_ATOM, VIF_LCO, 1, (CA1_DATA))
-{ word c = (word)*PC++;
+{ word c = code2atom(*PC++);
   pushVolatileAtom(c);
   *ARGP++ = c;
   NEXT_INSTRUCTION;
@@ -1316,7 +1316,7 @@ need for wakeup.
 
 VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word f = varFrameP(FR, (int)*PC++);
-  word c = (word)*PC++;
+  word c = code2word(*PC++);
 
   if ( LD->slow_unify )
   { ENSURE_GLOBAL_SPACE(1, f = varFrameP(FR, PC[-2]));
@@ -1339,7 +1339,7 @@ B_UNIFY_VC: Unify a variable (not first) with a constant in the body.
 
 VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
-  word c = (word)*PC++;
+  word c = code2word(*PC++);
 
   if ( LD->slow_unify )
   { if ( isVar(*k) )
@@ -1417,7 +1417,7 @@ B_EQ_VC Var == constant
 
 VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
-  word c  = (word)*PC++;
+  word c  = code2word(*PC++);
 
 #ifdef O_DEBUGGER
   if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
@@ -1493,7 +1493,7 @@ B_NEQ_VC Var == constant
 
 VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
-  word c  = (word)*PC++;
+  word c  = code2word(*PC++);
 
 #ifdef O_DEBUGGER
   if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
@@ -2467,7 +2467,7 @@ END_VMI
 
 VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
-  word  c = (word)*PC++;
+  word  c = code2atom(*PC++);
   pushVolatileAtom(c);
   *v1 = c;
   NEXT_INSTRUCTION;
@@ -6388,7 +6388,7 @@ VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
 END_VMI
 
 VMI(T_ATOM, 0, 1, (CA1_DATA))
-{ word c = (word)*PC++;
+{ word c = code2atom(*PC++);
   DEBUG(MSG_TRIE_VM, Sdprintf("T_ATOM %s\n", PL_atom_chars(c)));
   pushVolatileAtom(c);
   VMH_GOTO(t_const, c);

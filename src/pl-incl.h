@@ -859,11 +859,13 @@ ptr2word(void *ptr)
 #define word2ptr(type, w) ((type)(uintptr_t)(w))
 #define code2ptr(type, c) ((type)(uintptr_t)(c))
 #define word2atom(w)	  ((atom_t)(w))
-#define atom2word(w)	  ((word)(w))
-#define code2atom(w)	  ((atom_t)(w))
+#define atom2word(a)	  ((word)(a))
+#define code2atom(c)	  ((atom_t)(c))
 #define atom2code(w)	  ((code)(w))
-#define code2functor(w)	  ((functor_t)(w))
-#define functor2code(w)	  ((code)(w))
+#define code2functor(c)	  ((functor_t)(c))
+#define functor2code(f)	  ((code)(f))
+#define word2code(w)	  ((code)(w))
+#define code2word(c)	  ((word)(sword)(scode)(c))
 
 
 		 /*******************************

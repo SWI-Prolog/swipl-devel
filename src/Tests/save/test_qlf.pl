@@ -97,6 +97,40 @@ test(expr,
              Expected, Found,
              [ optimise(true) ]),
     debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(cmp,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [cmp(_)],
+             Expected, Found,
+             [ optimise(true) ]),
+    assertion((Expected = [List], maplist(==(0), List))),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(add_fc,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [add(_)],
+             Expected, Found,
+             [ optimise(true) ]),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(rat,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [rat(_)],
+             Expected, Found,
+             [ optimise(true) ]),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
 
 :- end_tests(qlf).
 
