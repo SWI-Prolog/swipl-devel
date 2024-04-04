@@ -2823,7 +2823,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_DATA:
-	{ word xr = (word) *bp++;
+	{ word xr = code2word(*bp++);
 	  saveXR(state, xr);
 	  break;
 	}
@@ -2834,7 +2834,7 @@ saveWicClause(wic_state *state, Clause clause)
 	  break;
 	}
 	case CA1_INTEGER:
-	{ qlfPutInt64(*bp++, fd);
+	{ qlfPutInt64((scode)*bp++, fd);
 	  break;
 	}
 	case CA1_VAR:

@@ -139,3 +139,13 @@ rat(-23673r276348).
 rat(36433737686427865845854r347489547594758975684).
 rat(X) :- echo(-36r42, X).
 rat(X) :- X is 237r373 * 253r236.
+
+test(head(_)).
+test(body(_)).
+test(expr(_)).
+test(add(_)).
+test(cmp(_)).
+test(rat(_)).
+
+run :-
+    forall((test(G), G), format('~q.~n', [G])).
