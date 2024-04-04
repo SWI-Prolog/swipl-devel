@@ -69,6 +69,16 @@ test(unicode,
              [data(_)],
              Expected, Found),
     debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(h_integer,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [head(_)],
+             Expected, Found),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
 
 :- end_tests(qlf).
 
