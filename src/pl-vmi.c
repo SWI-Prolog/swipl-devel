@@ -3894,27 +3894,9 @@ VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 {
 #ifdef O_BIGNUM
   Number n = allocArithStack();
-  Word p = (Word)PC+1;				/* skip indirect header */
-  int len = mpz_stack_size(*p++);
-  size_t limpsize = sizeof(mp_limb_t) * abs(len);
 
   n->type = V_MPZ;
-#ifdef O_GMP
-  n->value.mpz->_mp_size  = len;
-  n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
-  n->value.mpz->_mp_d = (void*)p;
-#elif O_BF
-  n->value.mpz->ctx  = NULL;
-  n->value.mpz->expn = (slimb_t)*p++;
-  n->value.mpz->sign = len < 0;
-  n->value.mpz->len  = abs(len);
-  n->value.mpz->tab  = (limb_t*)p;
-#else
-  #error "No bignum implementation"
-#endif
-
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
-  PC = (Code)p;
+  PC = get_mpz_from_code(PC, n->value.mpz);
 #endif
   NEXT_INSTRUCTION;
 }
@@ -3928,51 +3910,9 @@ VMI(A_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
 {
 #ifdef O_BIGNUM
   Number n = allocArithStack();
-  Word p = (Word)PC+1;				/* skip indirect header */
-  size_t limpsize;
 
   n->type = V_MPQ;
-#ifdef O_GMP
-  int num_size = mpq_stack_size(*p++);
-  int den_size = mpq_stack_size(*p++);
-  mpq_numref(n->value.mpq)->_mp_size  = num_size;
-  mpq_numref(n->value.mpq)->_mp_alloc = 0;	/* avoid de-allocating */
-  limpsize = sizeof(mp_limb_t) * abs(num_size);
-  mpq_numref(n->value.mpq)->_mp_d = (void*)p;
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
-
-  mpq_denref(n->value.mpq)->_mp_size  = den_size;
-  mpq_denref(n->value.mpq)->_mp_alloc = 0;	/* avoid de-allocating */
-  limpsize = sizeof(mp_limb_t) * abs(den_size);
-  mpq_denref(n->value.mpq)->_mp_d = (void*)p;
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
-#elif O_BF
-  MP_INT *num = mpq_numref(n->value.mpq);
-  MP_INT *den = mpq_denref(n->value.mpq);
-
-  int num_size = mpq_stack_size(*p++);
-  num->expn = (slimb_t)*p++;
-  int den_size = mpq_stack_size(*p++);
-  den->expn = (slimb_t)*p++;
-
-  num->ctx  = NULL;
-  num->sign = num_size < 0;
-  num->len  = abs(num_size);
-  num->tab  = (limb_t*)p;
-  limpsize = sizeof(mp_limb_t) * abs(num_size);
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
-
-  den->ctx  = NULL;
-  den->sign = 0;		/* canonical */
-  den->len  = den_size;
-  den->tab  = (limb_t*)p;
-  limpsize = sizeof(mp_limb_t) * abs(den_size);
-  p += (limpsize+sizeof(word)-1)/sizeof(word);
-#else
-  #error "No bignum implementation"
-#endif
-
-  PC = (Code)p;
+  PC = get_mpq_from_code(PC, n->value.mpq);
 #endif
   NEXT_INSTRUCTION;
 }

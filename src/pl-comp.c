@@ -3480,16 +3480,9 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
       }
 #endif
     } else
-    { Word p = addressIndirect(*arg);
-      size_t  n = wsizeofInd(*p);
+    { int op = isMPQNum(*arg) ? A_MPQ : A_MPZ;
 
-#ifdef O_BIGNUM
-      if ( p[1]&MP_RAT_MASK )
-      { Output_n(ci, A_MPQ, p, n+1);
-      } else
-      { Output_n(ci, A_MPZ, p, n+1);
-      }
-#endif
+      output_indirect(ci, op, addressIndirect(*arg));
     }
     succeed;
   }
