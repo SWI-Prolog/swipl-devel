@@ -48,9 +48,6 @@ test_qlf :-
     run_tests([ qlf
               ]).
 
-:- meta_predicate
-    qlf_trip(+, +, +, -, -).
-
 find_me.
 file_path(File, Path) :-
     source_file(find_me, Here),
@@ -79,6 +76,27 @@ test(h_integer,
              [head(_)],
              Expected, Found),
     debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(b_integer,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [body(_)],
+             Expected, Found),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(expr,
+     [ Found =@= Expected,
+       setup(test_files(integers, Prolog, Qlf)),
+       cleanup(catch(delete_file(Qlf), _, true))
+     ]) :-
+    qlf_trip(Prolog,
+             Qlf,
+             [expr(_)],
+             Expected, Found,
+             [ optimise(true) ]),
+    debug(qlf(result), '~q~n~q', [Expected, Found]).
 
 :- end_tests(qlf).
 
@@ -91,6 +109,7 @@ test_files(Spec, Prolog, Qlf) :-
     directory_file_path(Tmp, QlfFile, Qlf).
 
 %!  qlf_trip(+Prolog, +Qlf, :Goals, -Expected, -Found) is det.
+%!  qlf_trip(+Prolog, +Qlf, :Goals, -Expected, -Found, +Options) is det.
 %
 %   Load and qcompile the file  Input   from  the directory `input`, run
 %   call(Goal, Expected) to get the expected data, unload the file, load
@@ -100,8 +119,11 @@ test_files(Spec, Prolog, Qlf) :-
 %   an explicit location.
 
 qlf_trip(Prolog, Qlf, Goals, Expected, Found) :-
+    qlf_trip(Prolog, Qlf, Goals, Expected, Found, []).
+
+qlf_trip(Prolog, Qlf, Goals, Expected, Found, Options) :-
     catch(delete_file(Qlf), _, true),
-    load_files(Prolog, ['$qlf'(Qlf)]),
+    load_files(Prolog, ['$qlf'(Qlf)|Options]),
     run(Goals, Expected),
     unload_file(Prolog),
     assert_unloaded(Goals),

@@ -58,6 +58,8 @@
 %   Prolog flag `portable_vmi` must generate VM code on 64 bit platforms
 %   that can be loaded on 32 bit platforms.   This may imply relocating.
 
+% Test H_SMALLINT, H_SMALLINTW and H_MPZ
+% Unification in the head
 head(0).
 head(-1).
 head(1).
@@ -71,3 +73,38 @@ head(-72057594037927937).
 head(72057594037927936).
 head(-476462786578645564756252).
 head(476462786578645564756252).
+
+% test B_SMALLINT, B_SMALLINTW and B_MPZ
+% Push integer for subgoal
+body(X) :- echo(0, X).
+body(X) :- echo(-1, X).
+body(X) :- echo(1, X).
+body(X) :- echo(-2147483648, X).
+body(X) :- echo(2147483647, X).
+body(X) :- echo(-2147483649, X).
+body(X) :- echo(2147483648, X).
+body(X) :- echo(-72057594037927936, X).
+body(X) :- echo(72057594037927935, X).
+body(X) :- echo(-72057594037927937, X).
+body(X) :- echo(72057594037927936, X).
+body(X) :- echo(-476462786578645564756252, X).
+body(X) :- echo(476462786578645564756252, X).
+
+echo(X,X).
+
+% Test A_INTEGER, A_INTEGERW and A_MPZ
+% Push integer to arithmetic evaluation stack
+:- set_prolog_flag(optimise, true).
+expr(X) :- X is 0+0.
+expr(X) :- X is -1+0.
+expr(X) :- X is 1+0.
+expr(X) :- X is -2147483648+0.
+expr(X) :- X is 2147483647+0.
+expr(X) :- X is -2147483649+0.
+expr(X) :- X is 2147483648+0.
+expr(X) :- X is -72057594037927936+0.
+expr(X) :- X is 72057594037927935+0.
+expr(X) :- X is -72057594037927937+0.
+expr(X) :- X is 72057594037927936+0.
+expr(X) :- X is -476462786578645564756252+0.
+expr(X) :- X is 476462786578645564756252+0.
