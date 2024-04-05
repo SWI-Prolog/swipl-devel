@@ -506,6 +506,10 @@ test(set, [Max == 10 000, cleanup(cleanup)]) :-
 % Note that this tests the _allocated_ size.  LibBF does not store
 % the least significant zero bits, so we must make sure the least
 % significant bit is set.
+%
+% Emscripten does not handle the longjmp() correctly, so we disable
+% this test for now.
+:- if(\+current_prolog_flag(emscripten,true)).
 test(overflow,
      [ error(resource_error(tripwire(max_integer_size, 1000))),
        cleanup(cleanup)
@@ -513,6 +517,7 @@ test(overflow,
 	set_prolog_flag(max_integer_size, 1000),
 	A is 1<<10000 + 1,
 	integer(A).
+:- endif.
 
 :- end_tests(max_integer_size).
 
