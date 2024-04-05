@@ -590,6 +590,56 @@ the global stack.
 Normally called through the inline get_integer() function.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+get_mpz_from_stack(Word p, mpz_t mpz)
+{
+#if O_GMP
+  mpz->_mp_size  = mpz_stack_size(*p++);
+  mpz->_mp_alloc = 0;
+  mpz->_mp_d     = (mp_limb_t*) p;
+#elif O_BF
+  slimb_t len = mpz_stack_size(*p++);
+  mpz->ctx	 = NULL;
+  mpz->expn = (slimb_t)*p++;
+  mpz->sign = len < 0;
+  mpz->len  = abs(len);
+  mpz->tab  = (limb_t*)p;
+#endif
+}
+
+static void
+get_mpq_from_stack(Word p, mpq_t mpq)
+{ mpz_t num, den;
+  size_t num_size;
+
+#if O_GMP
+  num->_mp_size  = mpz_stack_size(*p++);
+  num->_mp_alloc = 0;
+  num->_mp_d     = (mp_limb_t*) (p+1);
+  num_size       = mpz_wsize(num, NULL);
+  den->_mp_size  = mpz_stack_size(*p++);
+  den->_mp_alloc = 0;
+  den->_mp_d     = (mp_limb_t*) (p+num_size);
+#elif O_BF
+  slimb_t len = mpz_stack_size(*p++);
+  num->ctx    = NULL;
+  num->alloc  = 0;
+  num->expn   = (slimb_t)*p++;
+  num->sign   = len < 0;
+  num->len    = abs(len);
+  num->tab    = (limb_t*)(p+2);
+  num_size    = mpz_wsize(num, NULL);
+  den->ctx    = NULL;
+  den->alloc  = 0;
+  den->sign   = 0;			/* canonical MPQ */
+  den->len    = mpz_stack_size(*p++);
+  den->expn   = (slimb_t)*p++;
+  den->tab    = (limb_t*) (p+num_size);
+#endif
+  *mpq_numref(mpq) = num[0];
+  *mpq_denref(mpq) = den[0];
+}
+
 void
 get_bigint(word w, Number n)
 { GET_LD
@@ -599,20 +649,14 @@ get_bigint(word w, Number n)
 
   p++;				/* bits of indirect */
   n->type = V_MPZ;
-#if O_GMP
-  n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-  n->value.mpz->_mp_alloc = 0;
-  n->value.mpz->_mp_d     = (mp_limb_t*) p;
-#elif O_BF
-  slimb_t len = mpz_stack_size(*p++);
-  n->value.mpz->ctx	 = NULL;
-  n->value.mpz->expn = (slimb_t)*p++;
-  n->value.mpz->sign = len < 0;
-  n->value.mpz->len  = abs(len);
-  n->value.mpz->tab  = (limb_t*)p;
-#endif
+  get_mpz_from_stack(p, n->value.mpz);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get a rational (int or non-int-rational) from a Prolog word, knowing the
+word is not an inlined (tagged) integer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 get_rational_no_int(DECL_LD word w, Number n)
@@ -620,51 +664,11 @@ get_rational_no_int(DECL_LD word w, Number n)
 
   p++;
   if ( (*p&MP_RAT_MASK) )
-  { mpz_t num, den;
-    size_t num_size;
-
-    n->type = V_MPQ;
-#if O_GMP
-    num->_mp_size  = mpz_stack_size(*p++);
-    num->_mp_alloc = 0;
-    num->_mp_d     = (mp_limb_t*) (p+1);
-    num_size       = mpz_wsize(num, NULL);
-    den->_mp_size  = mpz_stack_size(*p++);
-    den->_mp_alloc = 0;
-    den->_mp_d     = (mp_limb_t*) (p+num_size);
-#elif O_BF
-    slimb_t len = mpz_stack_size(*p++);
-    num->ctx	 = NULL;
-    num->alloc = 0;
-    num->expn  = (slimb_t)*p++;
-    num->sign  = len < 0;
-    num->len   = abs(len);
-    num->tab   = (limb_t*)(p+2);
-    num_size   = mpz_wsize(num, NULL);
-    den->ctx   = NULL;
-    den->alloc = 0;
-    den->sign  = 0;			/* canonical MPQ */
-    den->len   = mpz_stack_size(*p++);
-    den->expn  = (slimb_t)*p++;
-    den->tab   = (limb_t*) (p+num_size);
-#endif
-    *mpq_numref(n->value.mpq) = num[0];
-    *mpq_denref(n->value.mpq) = den[0];
+  { n->type = V_MPQ;
+    get_mpq_from_stack(p, n->value.mpq);
   } else
   { n->type = V_MPZ;
-
-#if O_GMP
-    n->value.mpz->_mp_size  = mpz_stack_size(*p++);
-    n->value.mpz->_mp_alloc = 0;
-    n->value.mpz->_mp_d     = (mp_limb_t*) p;
-#elif O_BF
-    slimb_t len = mpz_stack_size(*p++);
-    n->value.mpz->ctx	 = NULL;
-    n->value.mpz->expn = (slimb_t)*p++;
-    n->value.mpz->sign = len < 0;
-    n->value.mpz->len  = abs(len);
-    n->value.mpz->tab  = (limb_t*)p;
-#endif
+    get_mpz_from_stack(p, n->value.mpz);
   }
 }
 
@@ -675,19 +679,7 @@ get_mpz_from_code(Code pc, mpz_t mpz)
   Word data;
   pc = code_get_indirect(pc, &m, &data);
 
-#if O_GMP
-  mpz->_mp_size  = mpz_stack_size(data[0]);
-  mpz->_mp_alloc = 0;
-  mpz->_mp_d     = (mp_limb_t*)(data+1);
-#elif O_BF
-  slimb_t len = mpz_stack_size(data[0]);
-  mpz->ctx   = NULL;
-  mpz->alloc = 0;
-  mpz->expn  = (slimb_t)data[1];
-  mpz->sign  = len < 0;
-  mpz->len   = abs(len);
-  mpz->tab   = (limb_t*)data+2;
-#endif
+  get_mpz_from_stack(data, mpz);
 
   return pc;
 }
@@ -698,39 +690,8 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 { word m;
   Word data;
   pc = code_get_indirect(pc, &m, &data);
-  mpz_t num, den;
 
-#if O_GMP
-  int num_size = mpz_stack_size(data[0]);
-  int den_size = mpz_stack_size(data[1]);
-  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
-  num->_mp_size   = num_size;
-  den->_mp_size   = den_size;
-  num->_mp_alloc  = 0;
-  den->_mp_alloc  = 0;
-  Word p = &data[2];
-  num->_mp_d = (mp_limb_t*)p;
-  p += (limpsize+sizeof(*p)-1)/sizeof(*p);
-  den->_mp_d = (mp_limb_t*)p;
-#elif O_BF
-  int num_size = mpz_stack_size(data[0]);
-  num->ctx = NULL;
-  num->expn = data[1];
-  num->sign = num_size < 0;
-  num->len  = abs(num_size);
-  int den_size = mpz_stack_size(data[2]);
-  size_t limpsize = sizeof(mp_limb_t) * abs(num_size);
-  den->ctx = NULL;
-  den->expn = data[3];
-  den->sign = den_size < 0;
-  den->len  = abs(den_size);
-  Word p = &data[4];
-  num->tab = (mp_limb_t*)p;
-  p += (limpsize+sizeof(*p)-1)/sizeof(*p);
-  den->tab = (mp_limb_t*)p;
-#endif
-  *mpq_numref(mpq) = num[0];
-  *mpq_denref(mpq) = den[0];
+  get_mpq_from_stack(data, mpq);
 
   return pc;
 }
