@@ -756,6 +756,9 @@ must ensure that sizeof(struct clause) is  a multiple of sizeof(word) to
 place them on the stack (see I_USERCALL).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SIZEOF_WORD  8
+#define ALIGNOF_WORD 8
+
 #if SIZEOF_VOIDP == SIZEOF_WORD
 #define ALIGN(n)
 #define IS_WORD_ALIGNED(ptr)
@@ -795,10 +798,8 @@ typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 
 typedef uint64_t		word WORD_ALIGNED; /* Prolog data cell */
 typedef int64_t			sword WORD_ALIGNED; /* Signed version */
-#define SIZEOF_WORD 8
 #define SIZEOF_ATOM SIZEOF_VOIDP
 #define SIZEOF_CODE SIZEOF_VOIDP
-#define ALIGNOF_WORD 8
 typedef word *			Word;		/* a pointer to anything */
 typedef uintptr_t		atom_t;		/* encoded atom */
 typedef uintptr_t		functor_t;	/* encoded functor */
@@ -2471,7 +2472,7 @@ f_hasSpace(void *here, void *top, size_t bytes)
 #if O_DEBUG
   assert(top>=here);
 #endif
-  return top-here >= bytes;
+  return (char*)top-(char*)here >= bytes;
 }
 
 #define BIND_GLOBAL_SPACE (7)
