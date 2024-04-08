@@ -458,9 +458,8 @@ error:
 
 
 atom_t
-textToAtom(PL_chars_t *text)
-{ GET_LD
-  atom_t a;
+textToAtom(DECL_LD PL_chars_t *text)
+{ atom_t a;
   int rc;
 
   PL_STRINGS_MARK();
@@ -480,24 +479,23 @@ textToAtom(PL_chars_t *text)
 
 
 word
-textToString(PL_chars_t *text)
-{ GET_LD
-  atom_t a;
+textToString(DECL_LD PL_chars_t *text)
+{ word w;
   int rc;
 
   PL_STRINGS_MARK();
   if ( (rc=PL_canonicalise_text(text)) == TRUE )
   { if ( text->encoding == ENC_ISO_LATIN_1 )
-      a = globalString(text->length, text->text.t);
+      w = globalString(text->length, text->text.t);
     else
-      a = globalWString(text->length, text->text.w);
+      w = globalWString(text->length, text->text.w);
   } else
   { text_error(text, rc);
-    a = 0;
+    w = 0;
   }
   PL_STRINGS_RELEASE();
 
-  return a;
+  return w;
 }
 
 

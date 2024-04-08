@@ -3783,7 +3783,8 @@ Windows *W() functions.
 
 atom_t
 file_name_to_atom(const char *fn)
-{ PL_chars_t text;
+{ GET_LD
+  PL_chars_t text;
   atom_t a;
 
   text.text.t    = (char *)fn;

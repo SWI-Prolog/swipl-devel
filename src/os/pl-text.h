@@ -75,6 +75,8 @@ typedef struct
 
 #if USE_LD_MACROS
 #define	PL_get_text(l, text, flags)	LDFUNC(PL_get_text, l, text, flags)
+#define textToAtom(text)		LDFUNC(textToAtom, text)
+#define textToString(text)		LDFUNC(textToString, text)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

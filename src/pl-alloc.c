@@ -962,7 +962,9 @@ getCharsWString(DECL_LD word w, size_t *len)
 
   s = (char *)&p[1];
   if ( *s != 'W' )
+  { assert(*s == 'B');
     return NULL;
+  }
 
   if ( len )
     *len = ((wn*sizeof(word) - pad)/sizeof(pl_wchar_t)) - 1;
