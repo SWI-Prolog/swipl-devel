@@ -681,7 +681,7 @@ again:
 	discardBuffer(name);
 	goto again;
       default:
-	addBuffer(name, c, char);
+	addBuffer(name, (char)c, char);
     }
   }
 
@@ -693,7 +693,7 @@ do_value:
 	addBuffer(value, EOS, char);
 	return TRUE;
       default:
-	addBuffer(value, c, char);
+	addBuffer(value, (char)c, char);
     }
   }
 }
@@ -1067,7 +1067,7 @@ PL_winitialise(int argc, wchar_t **wargv)
 
     for(w = wargv[i]; *w; w++)
     { if ( *w < 0x7f )
-      { char c = *w;
+      { char c = (char)*w;
 	addBuffer(&b, c, char);
       } else
       { char wb[6];

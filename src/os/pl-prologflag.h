@@ -49,9 +49,9 @@
 		 *******************************/
 
 #define LDFUNC_DECLARATIONS
-void		setPrologFlag(const char *name, int flags, ...);
-int		set_prolog_flag(term_t key, term_t value, int flags);
-word		pl_prolog_flag5(term_t key, term_t value,
+void		setPrologFlag(const char *name, unsigned short flags, ...);
+int		set_prolog_flag(term_t key, term_t value, unsigned short flags);
+foreign_t	pl_prolog_flag5(term_t key, term_t value,
 				term_t local, term_t access, term_t type,
 				control_t h);
 int		setDoubleQuotes(atom_t a, unsigned int *flagp);

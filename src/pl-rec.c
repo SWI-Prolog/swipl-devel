@@ -98,7 +98,7 @@ lookupRecordList(word key)
   { return l;
   } else
   { if ( isAtom(key) )			/* can also be functor_t */
-      PL_register_atom(key);
+      PL_register_atom(word2atom(key));
     l = allocHeapOrHalt(sizeof(*l));
     memset(l, 0, sizeof(*l));
     l->key = key;
@@ -231,7 +231,7 @@ typedef struct
   int	     external;			/* Allow for external storage */
   int	     lock;			/* lock compiled atoms */
   cerror     error;			/* generated error */
-  word	     econtext[1];		/* error context */
+  atom_t     econtext[1];		/* error context */
 } compile_info, *CompileInfo;
 
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
@@ -281,7 +281,7 @@ addUnalignedBuf(TmpBuffer b, void *ptr, size_t bytes)
 
 static inline void
 addOpCode(CompileInfo info, int code)
-{ addBuffer(&info->code, code, uchar);
+{ addBuffer(&info->code, (uchar)code, uchar);
   DEBUG(9, Sdprintf("Added %d, now %d big\n",
 		    code, sizeOfBuffer(&info->code)));
 }
@@ -311,7 +311,7 @@ addUintBuffer(Buffer b, size_t val)
       if ( d || !leading )
       { if ( zips != 0 )
 	  d |= 0x80;
-	addBuffer(b, d, uchar);
+	addBuffer(b, (uchar)d, uchar);
 	leading = FALSE;
       }
     }
@@ -348,12 +348,12 @@ addInt64(CompileInfo info, int64_t v)
     i = (MSB64(a)+9)/8;
   }
 
-  addBuffer(&info->code, i, uchar);
+  addBuffer(&info->code, (uchar)i, uchar);
 
   while( --i >= 0 )
   { int b = (int)(v>>(i*8)) & 0xff;
 
-    addBuffer(&info->code, b, uchar);
+    addBuffer(&info->code, (uchar)b, uchar);
   }
 }
 
@@ -532,7 +532,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	  addSizeInt(info, n);
 	  DEBUG(9, Sdprintf("Added var-link %d\n", n));
 	} else
-	{ if ( !addAtom(info, w) )
+	{ if ( !addAtom(info, word2atom(w)) )
 	    return FALSE;
 	  DEBUG(9, Sdprintf("Added '%s'\n", stringAtom(w)));
 	}
@@ -595,12 +595,12 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
       case TAG_COMPOUND:
       { Functor f = valueTerm(w);
 	int arity;
-	word functor;
+	functor_t functor;
 
 #if O_CYCLIC
 	if ( isInteger(f->definition) )
 	{ addOpCode(info, PL_REC_CYCLE);
-	  addSizeInt(info, valInt(f->definition));
+	  addSizeInt(info, (size_t)valInt(f->definition));
 
 	  DEBUG(1, Sdprintf("Added cycle for offset = %d\n",
 			    valInt(f->definition)));
@@ -610,10 +610,10 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	{ cycle_mark mark;
 
 	  arity   = arityFunctor(f->definition);
-	  functor = f->definition;
+	  functor = word2functor(f->definition);
 
 	  mark.term = f;
-	  mark.fdef = f->definition;
+	  mark.fdef = functor;
 	  if ( !pushSegStack(&LD->cycle.lstack, mark, cycle_mark) )
 	    return FALSE;
 	  f->definition = (functor_t)consUInt(info->size);
@@ -873,7 +873,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   scode = (int)sizeOfBuffer(&data->info.code);
 
   initBuffer(&data->hdr);
-  addBuffer(&data->hdr, first, uchar);			/* magic code */
+  addBuffer(&data->hdr, (uchar)first, uchar);		/* magic code */
   addUintBuffer((Buffer)&data->hdr, scode);		/* code size */
   addUintBuffer((Buffer)&data->hdr, data->info.size);	/* size on stack */
   if ( data->info.nvars > 0 )
@@ -1049,7 +1049,7 @@ readSizeInt(IOSTREAM *in, char *to, size_t *sz)
       return NULL;
     }
 
-    *t++ = d;
+    *t++ = (char)d;
     if ( t-to > 10 )
       return NULL;
     r = (r<<7)|(d&0x7f);
@@ -1101,8 +1101,8 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	{ int size = Sgetc(in)&0xff;
 
 	  if ( size <= 8 )
-	  { rec[0] = m;
-	    rec[1] = size;
+	  { rec[0] = (char)m;
+	    rec[1] = (char)size;
 	    if ( Sfread(&rec[2], 1, size, in) != size )
 	      rc = PL_syntax_error("fastrw_integer", in);
 	    else
@@ -1113,7 +1113,7 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	  break;
 	}
 	case REC_HDR|REC_ATOM|REC_GROUND:
-	{ uchar op = Sgetc(in);
+	{ int op = Sgetc(in);
 
 	  switch(op)
 	  { case PL_TYPE_NIL:
@@ -1127,8 +1127,8 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	    { size_t bytes;
 	      char *np;
 
-	      rec[0] = m;
-	      rec[1] = op;
+	      rec[0] = (char)m;
+	      rec[1] = (char)op;
 
 	      if ( (np=readSizeInt(in, &rec[2], &bytes)) &&
 		   (rec = realloc_record(rec, &np, bytes)) &&
@@ -1148,7 +1148,7 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	{ char *np;
 	  size_t codes, gsize, nvars;
 
-	  rec[0] = m;
+	  rec[0] = (char)m;
 
 	  if ( (np=readSizeInt(in, &rec[1], &codes)) &&
 	       (np=readSizeInt(in, np, &gsize)) &&
@@ -1705,7 +1705,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
       case PL_TYPE_ATOM:
-      { atom_t a = fetchWord(b);
+      { atom_t a = word2atom(fetchWord(b)); /* TBD: Store atom rather than word */
 
 	(*func)(a);
 	continue;

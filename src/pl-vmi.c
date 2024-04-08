@@ -464,7 +464,7 @@ VMI(H_ATOM, 0, 1, (CA1_DATA))
   IF_WRITE_MODE_GOTO(B_ATOM);
 
   c = code2atom(*PC++);
-  pushVolatileAtom(c);
+  pushVolatileAtom(word2atom(c));
   VMH_GOTO(h_const, c);
 }
 END_VMI
@@ -947,7 +947,7 @@ this is above the stack anyway.
 
 VMI(B_ATOM, VIF_LCO, 1, (CA1_DATA))
 { word c = code2atom(*PC++);
-  pushVolatileAtom(c);
+  pushVolatileAtom(word2atom(c));
   *ARGP++ = c;
   NEXT_INSTRUCTION;
 }
@@ -2389,13 +2389,14 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   deRef(p);
 
   if ( isTaggedInt(*p) )
-  {
+  { sword code = valInt(*p);
 #if !O_VMI_FUNCTIONS
     assert(LD->exception.throw_environment == &THROW_ENV);
     LD->exception.throw_environment = THROW_ENV.parent;
 #endif
 
-    SOLUTION_RETURN(valInt(*p));
+    assert(code >= INT_MIN && code <= INT_MAX);
+    SOLUTION_RETURN((int)code);
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE,
 	     ATOM_integer, pushWordAsTermRef(argFrameP(FR, 1)));
@@ -2468,7 +2469,7 @@ END_VMI
 VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word  c = code2atom(*PC++);
-  pushVolatileAtom(c);
+  pushVolatileAtom(word2atom(c));
   *v1 = c;
   NEXT_INSTRUCTION;
 }
@@ -2920,8 +2921,8 @@ VMI(I_CUTCHP, 0, 0, ())
   Choice och;
 
   deRef(a);
-  if ( isInteger(*a) && storage(*a) == STG_INLINE )
-  { intptr_t i = valInt(*a);
+  if ( isTaggedInt(*a) )
+  { sword i = valInt(*a);
     och = ((Choice)((Word)lBase + i));
 
     if ( !existingChoice(och) )
@@ -3503,7 +3504,7 @@ worth the trouble.
 
 VMI(S_INCR_DYNAMIC, 0, 0, ())
 { enterDefinition(DEF);
-  atom_t current = *valTermRef(LD->tabling.idg_current);
+  atom_t current = word2atom(*valTermRef(LD->tabling.idg_current));
   trie *ctrie;
 
   if ( current &&
@@ -4061,7 +4062,7 @@ VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
 { int mode = (int)*PC++;
   Number n = allocArithStack();
 
-  __PL_ar_ctx.femode = n->value.i = fegetround();
+  n->value.i = __PL_ar_ctx.femode = fegetround();
   n->type = V_INTEGER;
   set_rounding(mode);
 
@@ -4075,10 +4076,10 @@ VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
   int rm;
 
   deRef(p);
-  if ( isAtom(*p) && atom_to_rounding(*p, &rm) )
+  if ( isAtom(*p) && atom_to_rounding(word2atom(*p), &rm) )
   { Number n = allocArithStack();
 
-    __PL_ar_ctx.femode = n->value.i = fegetround();
+    n->value.i = __PL_ar_ctx.femode = fegetround();
     n->type = V_INTEGER;
     set_rounding(rm);
     NEXT_INSTRUCTION;
@@ -4174,8 +4175,8 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   }
 #endif
 
-  if ( tagex(*np) == (TAG_INTEGER|STG_INLINE) )
-  { intptr_t v = valInt(*np);
+  if ( isTaggedInt(*np) )
+  { sword v = valInt(*np);
     int64_t r = v+add;			/* tagged ints never overflow */
     word w = consInt(r);
 
@@ -4566,7 +4567,7 @@ VMI(I_FEXITDET, 0, 0, ())
 }
 END_VMI
 
-VMH(I_FEXITDET, 1, (word), (rc))
+VMH(I_FEXITDET, 1, (foreign_t), (rc))
 { LOAD_REGISTERS(QID);
 
   while ( (void*)fli_context > (void*)FR )
@@ -5408,7 +5409,7 @@ VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
     ap = varFrameP(FR, iv);
     deRef(ap);
     if ( isTextAtom(*ap) )
-    { Module m = lookupModule(*ap);
+    { Module m = lookupModule(word2atom(*ap));
 
       setContextModule(FR, m);
       VMI_GOTO(I_DEPART);
@@ -5440,7 +5441,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
   ap = varFrameP(FR, iv);
   deRef(ap);
   if ( isTextAtom(*ap) )
-  { Module module = lookupModule(*ap);
+  { Module module = lookupModule(word2atom(*ap));
     DEF = proc->definition;
     NFR = lTop;
 
@@ -5544,7 +5545,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
   { Atom ap = atomValue(goal);
 
     if ( true(ap->type, PL_BLOB_TEXT) || goal == ATOM_nil )
-    { functor = lookupFunctorDef(goal, callargs);
+    { functor = lookupFunctorDef(word2atom(goal), callargs);
       arity   = 0;
       args    = NULL;
     } else if ( ap->type == &_PL_closure_blob )
@@ -5556,7 +5557,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
   { FunctorDef fd;
     Functor gt = valueTerm(goal);
 
-    functor = gt->definition;
+    functor = word2functor(gt->definition);
     if ( is_call0 && functor == FUNCTOR_colon2 )
       VMH_GOTO(call_type_error);
 
@@ -5930,7 +5931,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
   ClauseRef cref;
 
   deRef(tp);
-  dbref = *tp;
+  dbref = word2atom(*tp);
   if ( !isAtom(dbref) )
   {
   trie_gen_type_error:
@@ -6388,7 +6389,7 @@ VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
 END_VMI
 
 VMI(T_ATOM, 0, 1, (CA1_DATA))
-{ word c = code2atom(*PC++);
+{ atom_t c = code2atom(*PC++);
   DEBUG(MSG_TRIE_VM, Sdprintf("T_ATOM %s\n", PL_atom_chars(c)));
   pushVolatileAtom(c);
   VMH_GOTO(t_const, c);

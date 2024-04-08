@@ -74,8 +74,8 @@ remove_string(char *s)
 char
 digitName(int n, int smll)
 { if (n <= 9)
-    return n + '0';
-  return n + (smll ? 'a' : 'A') - 10;
+    return (char)(n + '0');
+  return (char)(n + (smll ? 'a' : 'A') - 10);
 }
 
 

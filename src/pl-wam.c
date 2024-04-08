@@ -639,13 +639,13 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   word wcl = ptr2word(fr->clause);
   switch(wcl & FRG_REDO_MASK)
   { case REDO_INT:
-      context.context = wcl >> FRG_REDO_BITS;
+      context.context = (uintptr_t)(wcl >> FRG_REDO_BITS);
       break;
     case REDO_PTR:
-      context.context = wcl;
+      context.context = (uintptr_t)wcl;
       break;
     case YIELD_PTR:
-      context.context = wcl & ~FRG_REDO_MASK;
+      context.context = (uintptr_t)(wcl & ~FRG_REDO_MASK);
       break;
   }
   context.control = FRG_CUTTED;
@@ -758,7 +758,7 @@ call_term(DECL_LD Module mdef, term_t goal)
 
     if ( isAtom(*p) )
     { if ( isTextAtom(*p) )
-      { functor = lookupFunctorDef(*p, 0);
+      { functor = lookupFunctorDef(word2atom(*p), 0);
 	av = 0;
       } else
 	return call1(mdef, goal);
@@ -779,7 +779,7 @@ call_term(DECL_LD Module mdef, term_t goal)
 
 	for(i=0; i<arity; i++, ap++)
 	  *ap = linkValG(&args[i]);
-	functor = f->definition;
+	functor = word2functor(f->definition);
       } else
 	return call1(mdef, goal);
     } else

@@ -769,7 +769,7 @@ stripModuleName(DECL_LD Word term, atom_t *name)
     deRef(mp);
     if ( !isTextAtom(*mp) )
       break;
-    nm = *mp;
+    nm = word2atom(*mp);
     term = argTermP(*term, 1);
     deRef(term);
     if ( --depth == 0 && !is_acyclic(term) )

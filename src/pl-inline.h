@@ -72,7 +72,7 @@
 */
 
 #define HAVE_MSB 1
-static inline int
+static inline unsigned int
 MSB(size_t i)
 { unsigned long index;
 #if SIZEOF_VOIDP == 8
@@ -88,7 +88,7 @@ MSB(size_t i)
 
 #if SIZEOF_VOIDP == 8
 #define HAVE_MSB64 1
-static inline int
+static inline unsigned int
 MSB64(int64_t i)
 { unsigned long index;
   _BitScanReverse64(&index, i);
@@ -124,15 +124,25 @@ __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
-#if SIZEOF_VOIDP == SIZEOF_LONG
-#define MSB(i) ((int)sizeof(long)*8-1-__builtin_clzl(i)) /* GCC builtin */
 #define HAVE_MSB 1
-#elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
-#define MSB(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i)) /* GCC builtin */
-#define HAVE_MSB 1
-#endif
 #define HAVE_MSB64 1
-#define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
+
+static inline unsigned int
+MSB(size_t i)
+{
+#if SIZEOF_VOIDP == SIZEOF_LONG
+  return (unsigned int)sizeof(long)*8-1-__builtin_clzl(i);
+#elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
+  return (unsigned int)sizeof(long long)*8-1-__builtin_clzll(i);
+#else
+#error "No MSB";
+#endif
+}
+
+static inline unsigned int
+MSB64(int64_t i)
+{ return (unsigned int)sizeof(long long)*8-1-__builtin_clzll(i);
+}
 #endif
 
 #ifdef HAVE_GCC_ATOMIC

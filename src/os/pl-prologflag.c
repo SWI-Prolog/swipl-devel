@@ -239,7 +239,7 @@ check_oneof_flag(const oneof *of, atom_t a, int error)
 }
 
 void
-setPrologFlag(const char *name, int flags, ...)
+setPrologFlag(const char *name, unsigned short flags, ...)
 { GET_LD
   atom_t an = PL_new_atom(name);
   prolog_flag *f;
@@ -272,10 +272,10 @@ setPrologFlag(const char *name, int flags, ...)
       unsigned int flag = va_arg(args, unsigned int);
 
       if ( !first_def && flag && !f->index )	/* type definition */
-      { f->index = flag;
+      { f->index = (short)flag;
 	val = (f->value.a == ATOM_true);
       } else if ( first_def )			/* 1st definition */
-      { f->index = flag;
+      { f->index = (short)flag;
 	DEBUG(MSG_PROLOG_FLAG,
 	      Sdprintf("Prolog flag %s at %d\n", name, flag));
       }
@@ -796,7 +796,7 @@ set_flag_atom(prolog_flag *f, atom_t a)
 
 
 static int
-keep_flag(atom_t k, prolog_flag *f, int flags, oneof *of, term_t value)
+keep_flag(atom_t k, prolog_flag *f, unsigned short flags, oneof *of, term_t value)
 { if ( (flags&FF_KEEP) )
   { if ( of )
     { if ( check_oneof_flag(of, f->value.a, FALSE) )
@@ -875,7 +875,7 @@ keep_flag(atom_t k, prolog_flag *f, int flags, oneof *of, term_t value)
 	LDFUNC(set_prolog_flag_unlocked, m, k, value, flags, of)
 
 static prolog_flag *
-set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags, oneof *of)
+set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, unsigned short flags, oneof *of)
 { prolog_flag *f;
   int rval = TRUE;
 
@@ -1159,24 +1159,29 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags, on
     { int64_t i;
 
       if ( !PL_get_int64_ex(value, &i) )
-	return FALSE;
-      f->value.i = i;
+	return NULL;
 
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
+      { if ( i < 0 || i > SIZE_MAX )
+	  return PL_representation_error("size_t"),NULL;
 	GD->atoms.margin = (size_t)i;
-      else
+      } else
 #endif
       if ( k == ATOM_table_space )
-      { if ( !LD->tabling.node_pool )
-	  LD->tabling.node_pool = new_alloc_pool("private_table_space", i);
+      { if ( i < 0 || i > SIZE_MAX )
+	  return PL_representation_error("size_t"),NULL;
+	if ( !LD->tabling.node_pool )
+	  LD->tabling.node_pool = new_alloc_pool("private_table_space", (size_t)i);
 	else
 	  LD->tabling.node_pool->limit = (size_t)i;
       }
 #ifdef O_PLMT
       else if ( k == ATOM_shared_table_space )
-      { if ( !GD->tabling.node_pool )
-	{ alloc_pool *pool = new_alloc_pool("shared_table_space", i);
+      { if ( i < 0 || i > SIZE_MAX )
+	  return PL_representation_error("size_t"),NULL;
+	if ( !GD->tabling.node_pool )
+	{ alloc_pool *pool = new_alloc_pool("shared_table_space", (size_t)i);
 	  if ( pool && !COMPARE_AND_SWAP_PTR(&GD->tabling.node_pool, NULL, pool) )
 	    free_alloc_pool(pool);
 	} else
@@ -1184,13 +1189,22 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags, on
       }
 #endif
       else if ( k == ATOM_stack_limit )
-      { if ( !set_stack_limit((size_t)i) )
+      { if ( i < 0 || i > SIZE_MAX )
+	  return PL_representation_error("size_t"),NULL;
+	if ( !set_stack_limit((size_t)i) )
 	  return FALSE;
       } else if ( k == ATOM_string_stack_tripwire )
-      { LD->fli.string_buffers.tripwire = (unsigned int)i;
+      { if ( i < 0 || i > UINT_MAX )
+	  return PL_representation_error("uint"),NULL;
+	LD->fli.string_buffers.tripwire = (unsigned int)i;
       } else if ( k == ATOM_heartbeat )
-      { LD->yield.frequency = i/16;
+      { if ( i < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, value),NULL;
+	LD->yield.frequency = i/16;
       }
+
+      f->value.i = i;
       break;
     }
     case FT_FLOAT:
@@ -1216,7 +1230,7 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags, on
 
 
 static prolog_flag *
-set_prolog_flag_ptr(term_t key, term_t value, int flags, oneof *of)
+set_prolog_flag_ptr(term_t key, term_t value, unsigned short flags, oneof *of)
 { GET_LD
   atom_t k;
   Module m = MODULE_parse;
@@ -1239,7 +1253,7 @@ set_prolog_flag_ptr(term_t key, term_t value, int flags, oneof *of)
 }
 
 int
-set_prolog_flag(term_t key, term_t value, int flags)
+set_prolog_flag(term_t key, term_t value, unsigned short flags)
 { return !!set_prolog_flag_ptr(key, value, flags, NULL);
 }
 
@@ -1266,7 +1280,7 @@ static const PL_option_t prolog_flag_options[] =
 static
 PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 { PRED_LD
-  int flags = 0;
+  unsigned short flags = 0;
   term_t type = 0;
   atom_t access = ATOM_read_write;
   int keep = FALSE;
@@ -1554,7 +1568,7 @@ typedef struct
   Module module;
 } prolog_flag_enum;
 
-word
+foreign_t
 pl_prolog_flag5(DECL_LD term_t key, term_t value,
 		term_t scope, term_t access, term_t type,
 		control_t h)
@@ -1640,7 +1654,7 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
     table_value_t tv;
 
     while( advanceTableEnum(e->table_enum, &tk, &tv) )
-    { atom_t fn = tk;
+    { atom_t fn = (atom_t)tk;
       prolog_flag *f = val2ptr(tv);
 
       if ( e->explicit_scope == FALSE &&
@@ -2179,7 +2193,7 @@ checkPrologFlagsAccess(void)
 	int found = 0;
 
 	FOR_TABLE(GD->prolog_flag.table, n, v)
-	{ atom_t name = n;
+	{ atom_t name = (atom_t)n;
 	  prolog_flag *f = val2ptr(v);
 
 	  if ( true(f, FF_WARN_NOT_ACCESSED) &&

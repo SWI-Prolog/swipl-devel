@@ -764,7 +764,7 @@ place them on the stack (see I_USERCALL).
 #define IS_WORD_ALIGNED(ptr)
 #elif defined(__GNUC__) || defined(__clang__)
 #define ALIGN(n) __attribute__ ((aligned (n)))
-#define IS_WORD_ALIGNED(ptr) assert(((uintptr_t)(ptr)&(sizeof(word)-1)) == 0)
+#define IS_WORD_ALIGNED(ptr) DEBUG(0, assert(((uintptr_t)(ptr)&(sizeof(word)-1)) == 0))
 #else
 #error "Do not know how to specify alignment"
 #endif
@@ -860,6 +860,7 @@ ptr2word(void *ptr)
 #define word2ptr(type, w) ((type)(uintptr_t)(w))
 #define code2ptr(type, c) ((type)(uintptr_t)(c))
 #define word2atom(w)	  ((atom_t)(w))
+#define word2functor(w)	  ((functor_t)(w))
 #define atom2word(a)	  ((word)(a))
 #define code2atom(c)	  ((atom_t)(c))
 #define atom2code(w)	  ((code)(w))
@@ -1302,7 +1303,7 @@ Structure declarations that must be shared across multiple files.
 
 struct atom
 { Atom		next;		/* next in chain */
-  word		atom;		/* as appearing on the global stack */
+  atom_t	atom;		/* as appearing on the global stack */
 #ifdef O_TERMHASH
   unsigned int  hash_value;	/* hash-key value */
 #endif
@@ -1427,7 +1428,7 @@ typedef struct arg_info
   unsigned	list	   : 1;		/* Index using lists */
   unsigned	ln_buckets : 5;		/* lg2(bucket count) */
   unsigned	assessed   : 1;		/* Value was assessed */
-  unsigned	meta	   : 4;		/* Meta-argument info */
+  unsigned int	meta	   : 4;		/* Meta-argument info */
 } arg_info;
 
 typedef struct impl_any

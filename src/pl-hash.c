@@ -8,6 +8,8 @@
 #ifdef NO_SWIPL
 #include <stdint.h>
 #define DEBUG(l,g) (void)0
+typedef uint64_t word;
+#define static_assertion(condition) (void)0
 #else
 #include "pl-incl.h"
 #endif
@@ -185,13 +187,14 @@ swap_bytes(unsigned int v)
 #endif
 
 unsigned int
-MurmurHashIntptr(intptr_t v, unsigned int seed)
+MurmurHashWord(word v, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
   const int r = 24;
   unsigned int h = seed ^ sizeof(v);
   unsigned int k;
 
-#if SIZEOF_VOIDP == 8
+  static_assertion(sizeof(v) == 8);
+
 #if WORDS_BIGENDIAN
   k = swap_bytes((unsigned int)(v>>32));
   MIX(h,k,m);
@@ -199,10 +202,7 @@ MurmurHashIntptr(intptr_t v, unsigned int seed)
 #else
   k = v & 0xffffffff;
   MIX(h,k,m);
-  k = (v>>32) & 0xffffffff;
-#endif
-#else
-  k = v;
+  k = (unsigned int)(v>>32) & 0xffffffff;
 #endif
   MIX(h,k,m);
 

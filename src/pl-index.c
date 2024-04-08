@@ -143,7 +143,7 @@ indexing.
 
 static inline int
 hashIndex(word key, int buckets)
-{ unsigned int k = MurmurHashIntptr(key, MURMUR_SEED);
+{ unsigned int k = MurmurHashWord(key, MURMUR_SEED);
 
   return k & (buckets-1);
 }
@@ -298,7 +298,7 @@ nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 	  argv = at->arguments;
 	  argc = arityFunctor(at->definition);
 
-	  ctx->position[ctx->depth++] = an;
+	  ctx->position[ctx->depth++] = (iarg_t)an;
 	  ctx->position[ctx->depth]   = END_INDEX_POS;
 
 	  DEBUG(MSG_INDEX_DEEP,
@@ -2133,7 +2133,7 @@ typedef struct hash_assessment
   size_t	funct_count;		/* # functor cases */
   float		stdev;			/* Standard deviation */
   float		speedup;		/* Expected speedup */
-  unsigned	list;			/* Put lists in the buckets */
+  unsigned	list : 1;		/* Put lists in the buckets */
   size_t	space;			/* Space indication */
   key_asm      *keys;			/* tmp key-set */
 } hash_assessment;
@@ -2219,9 +2219,8 @@ static int
 compar_keys(const void *p1, const void *p2)
 { const key_asm *k1 = p1;
   const key_asm *k2 = p2;
-  intptr_t d = (k1->key - k2->key);
 
-  return d < 0 ? -1 : d > 0 ? 1 : 0;
+  return SCALAR_TO_CMP(k1->key, k2->key);
 }
 
 
@@ -2588,7 +2587,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 					/* Step 1: find instantiated args */
   for(i=0; i<ac; i++)
   { if ( canIndex(av[i]) )
-      instantiated[ninstantiated++] = i;
+      instantiated[ninstantiated++] = (iarg_t)i;
   }
 
 					/* Step 2: find non-yet assessed args */
@@ -2596,7 +2595,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
   { int arg = instantiated[i];
 
     if ( !clist->args[arg].assessed )
-    { ia[0] = arg+1;
+    { ia[0] = (iarg_t)(arg+1);
       alloc_assessment(&aset, ia);
     }
   }
@@ -2616,7 +2615,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 
 	ainfo->speedup    = a->speedup;
 	ainfo->list       = a->list;
-	ainfo->ln_buckets = MSB(a->size);
+	ainfo->ln_buckets = MSB(a->size)&0x1f;
       } else
       { ainfo->speedup    = 0.0;
 	ainfo->list       = FALSE;
@@ -2702,7 +2701,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
   { arg_info *ainfo = &clist->args[best];
 
     memset(hints, 0, sizeof(*hints));
-    hints->args[0]    = best+1;
+    hints->args[0]    = (iarg_t)(best+1);
     hints->ln_buckets = ainfo->ln_buckets;
     hints->speedup    = ainfo->speedup;
     hints->list       = ainfo->list;

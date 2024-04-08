@@ -96,7 +96,7 @@ lookupFlag(word key)
   f = (Flag) allocHeapOrHalt(sizeof(struct flag));
   f->key = key;
   if ( isAtom(key) )
-    PL_register_atom(key);
+    PL_register_atom(word2atom(key));
   f->type = FLG_INTEGER;
   f->value.i = 0;
   if ( (of=addHTableWP(GD->flags.table, key, f)) != f )

@@ -583,7 +583,7 @@ S__flushbufc(int c, IOSTREAM *s)
   { if ( S__flushbuf(s) <= 0 )		/* == 0: no progress!? */
       c = -1;
     else
-      *s->bufp++ = (c & 0xff);
+      *s->bufp++ = (char)c;
   } else
   { if ( s->flags & SIO_NBUF )
     { char chr = (char)c;
@@ -801,7 +801,7 @@ put_byte(int c, IOSTREAM *s)
 { c &= 0xff;
 
   if ( s->bufp < s->limitp )
-  { *s->bufp++ = c;
+  { *s->bufp++ = (char)c;
   } else
   { if ( S__flushbufc(c, s) < 0 )
     { s->lastc = EOF;
@@ -844,7 +844,7 @@ static inline void
 unget_byte(int c, IOSTREAM *s)
 { IOPOS *p = s->position;
 
-  *--s->bufp = c;
+  *--s->bufp = (char)c;
   if ( p )
   { p->charno--;			/* FIXME: not correct */
     p->byteno--;
@@ -1181,7 +1181,7 @@ retry:
 	    goto mberr;
 	  }
 	}
-	b[0] = c;
+	b[0] = (char)c;
 	rc=mbrtowc(&wc, b, 1, s->mbstate);
 	if ( rc == 1 || rc == 0)
 	{ c = wc;
@@ -1260,7 +1260,7 @@ retry:
 	  }
 	}
 
-	*p++ = c1;
+	*p++ = (char)c1;
       }
 
       c = chr;
@@ -1380,7 +1380,7 @@ Sgetw(IOSTREAM *s)
 
     if ( (c = Sgetc(s)) < 0 )
       return -1;
-    *q++ = c & 0xff;
+    *q++ = (unsigned char)c;
   }
 
   return w;
@@ -1402,7 +1402,7 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
       if ( (c = Sgetc(s)) == EOF )
 	break;
 
-      *buf++ = c & 0xff;
+      *buf++ = (char)c;
     }
   } else
   { while(chars > 0)
@@ -1426,7 +1426,7 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
       if ( (c = S__fillbuf(s)) == EOF )
 	break;
 
-      *buf++ = c & 0xff;
+      *buf++ = (char)c;
       chars--;
     }
   }
@@ -1467,7 +1467,7 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
       return c;
     }
 
-    buf[0] = c;
+    buf[0] = (char)c;
     limit--;
     done = 1;
   }
@@ -2144,7 +2144,7 @@ Sfgets(char *buf, int n, IOSTREAM *s)
 	buf = NULL;
       goto out;
     } else
-    { *q++ = c;
+    { *q++ = (char)c;
       if ( c == '\n' )
       { if ( n > 0 )
 	  *q = '\0';
@@ -3159,9 +3159,14 @@ Swrite_file(void *handle, char *buf, size_t size)
 static long
 Sseek_file(void *handle, long pos, int whence)
 { intptr_t h = (intptr_t) handle;
+  off_t rc = lseek((int)h, pos, whence); /* cannot do EINTR according to man */
 
-					/* cannot do EINTR according to man */
-  return lseek((int)h, pos, whence);
+  if ( rc > LONG_MAX )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  return (long)rc;
 }
 
 
@@ -3952,7 +3957,7 @@ Sseek_memfile64(void *handle, int64_t offset, int whence)
   { errno = EINVAL;
     return -1;
   }
-  mf->here = offset;
+  mf->here = (size_t)offset;
 
   return offset;
 }

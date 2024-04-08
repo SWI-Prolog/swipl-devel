@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2023, University of Amsterdam
+    Copyright (c)  1997-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -101,7 +101,7 @@ struct PL_global_data
   int		io_initialised;		/* I/O system has been initialised */
   cleanup_status cleaning;		/* Inside PL_cleanup() */
   int		halt_cancelled;		/* Times halt was cancelled */
-  int		bootsession;		/* -b boot compilation */
+  unsigned int	bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
 

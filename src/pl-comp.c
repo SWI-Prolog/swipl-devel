@@ -339,7 +339,7 @@ with  a  structure  that  mimics  a term, but isn't one.
 
 #define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
 #define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_RESERVED)
-#define varIndex(w)	((w)>>LMASK_BITS)
+#define varIndex(w)	((size_t)((w)>>LMASK_BITS))
 #define varInfo(w)	(LD->comp.vardefs[varIndex(w)])
 
 
@@ -695,7 +695,7 @@ get_variable_names(DECL_LD CompileInfo ci)
 	deRef(v);
 	if ( isAtom(*n) && isVarInfo(*v) )
 	{ VarDef vd = varInfo(*v);
-	  vd->name = *n;
+	  vd->name = word2atom(*n);
 	  found++;
 	}
       }
@@ -763,7 +763,7 @@ is_argument_var(DECL_LD Word p, CompileInfo ci)
 { deRef(p);
 
   if ( isVarInfo(*p) )
-  { int index = varIndex(*p);
+  { size_t index = varIndex(*p);
 
     if ( index < ci->arity )
       return varInfo(*p);
@@ -948,7 +948,8 @@ right_recursion:
     if ( ci->islocal )
     { if ( ci->subclausearg )
       { DEBUG(MSG_COMP_ARGVAR,
-	      Sdprintf("argvar for %s\n", functorName(f->definition)));
+	      Sdprintf("argvar for %s\n",
+		       functorName(word2functor(f->definition))));
 	ci->argvars++;
 
 	return nvars;
@@ -1601,7 +1602,7 @@ getTargetModule(DECL_LD target_module *tm, Word t, CompileInfo ci)
       return FALSE;
     }
   } else if ( isTextAtom(*t) )
-  { tm->module = lookupModule(*t);
+  { tm->module = lookupModule(word2atom(*t));
     tm->type = TM_MODULE;
     if ( !ci->islocal && tm->module->class == ATOM_temporary )
       return PL_error(NULL, 0, "temporary module", ERR_PERMISSION,
@@ -2653,8 +2654,8 @@ A void.  Generate either B_VOID or H_VOID.
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
       { if ( !ci->islocal )
-	  PL_register_atom(*arg);
-	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, *arg);
+	  PL_register_atom(word2atom(*arg));
+	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, word2code(*arg));
       }
       return TRUE;
     case TAG_FLOAT:
@@ -3084,7 +3085,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     { Output_0(ci, I_DET);
       succeed;
     } else
-    { functor = lookupFunctorDef(*arg, 0);
+    { functor = lookupFunctorDef(word2functor(*arg), 0);
       fdef = NULL;				/* NULL --> no arguments */
     }
   } else
@@ -3196,13 +3197,13 @@ compileSimpleAddition(DECL_LD Word sc, compileInfo *ci)
 	if ( (vi=isIndexedVarTerm(*a1)) >= 0 &&
 	     !isFirstVar(ci->used_var, vi) &&
 	     is_portable_smallint(*a2) )
-	{ intptr_t i = valInt(*a2);
+	{ sword i = valInt(*a2);
 
 	  if ( neg )
 	    i = -i;			/* tagged int: cannot overflow */
 
 	  isFirstVarSet(ci->used_var, rvar);
-	  Output_3(ci, A_ADD_FC, VAROFFSET(rvar), VAROFFSET(vi), i);
+	  Output_3(ci, A_ADD_FC, VAROFFSET(rvar), VAROFFSET(vi), (code)i);
 	  succeed;
 	}
 
@@ -3507,7 +3508,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
     Word a;
 
     if ( isTextAtom(*arg) )
-    { fdef = lookupFunctorDef(*arg, 0);
+    { fdef = lookupFunctorDef(word2functor(*arg), 0);
       ar = 0;
       a = NULL;
     } else if ( isTerm(*arg) )
@@ -3520,7 +3521,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
     case_char_constant:
       if ( !getCharExpression(arg, &n) )
 	return FALSE;
-      Output_1(ci, A_INTEGER, n.value.i);
+      Output_1(ci, A_INTEGER, (code)n.value.i);
       return TRUE;
     } else
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
@@ -3544,7 +3545,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
       int vindex;
 
       deRef2(a+1, m);
-      if ( isAtom(*m) && atom_to_rounding(*m, &mode) )
+      if ( isAtom(*m) && atom_to_rounding(word2atom(*m), &mode) )
       { Output_1(ci, A_ROUNDTOWARDS_A, mode);
       } else if ( (rc=arithVarOffset(m, ci, &vindex)) == TRUE )
       { Output_1(ci, A_ROUNDTOWARDS_V, VAROFFSET(vindex));
@@ -3729,7 +3730,7 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
     if ( is_portable_constant(*a2) )
     { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), word2code(*a2));
       if ( isAtom(*a2) )
-	PL_register_atom(*a2);
+	PL_register_atom(word2atom(*a2));
     } else
     { int where = (first ? A_BODY : A_HEAD|A_ARG);
       Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
@@ -3816,7 +3817,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
-      PL_register_atom(*a2);
+      PL_register_atom(word2atom(*a2));
     return TRUE;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -3825,7 +3826,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
-      PL_register_atom(*a1);
+      PL_register_atom(word2atom(*a1));
     return TRUE;
   }
 
@@ -3895,7 +3896,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
-      PL_register_atom(*a2);
+      PL_register_atom(word2atom(*a2));
     return TRUE;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -3904,7 +3905,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
-      PL_register_atom(*a1);
+      PL_register_atom(word2atom(word2atom(*a1)));
     return TRUE;
   }
 
@@ -5538,8 +5539,8 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 }
 
 #define makeVarRef(i)	((i)<<LMASK_BITS|TAG_REFERENCE)
-#define isVarRef(w)	((tag(w) == TAG_REFERENCE && \
-			  storage(w) == STG_INLINE) ? valInt(w) : -1)
+#define isVarRef(w)	((ssize_t)((tag(w) == TAG_REFERENCE &&		\
+				    storage(w) == STG_INLINE) ? valInt(w) : -1))
 
 static functor_t
 clause_functor(const Clause cl)
@@ -7693,7 +7694,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      if ( !isConst(val) )
 		return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, a);
 	      if ( isAtom(val) )
-		PL_register_atom(val);
+		PL_register_atom(word2atom(val));
 
 	      Output_a(ci, word2code(val));
 	      break;

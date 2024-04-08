@@ -78,7 +78,7 @@ free_nb_linkval_name(atom_t name)
 static void
 free_nb_linkval_value(word value)
 { if ( isAtom(value) )
-    PL_unregister_atom(value);
+    PL_unregister_atom(word2atom(value));
   else if ( storage(value) == STG_GLOBAL )
   { GET_LD
     LD->gvar.grefs--;
@@ -170,7 +170,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
   if ( w == old )
     succeed;
   if ( isAtom(old) )
-    PL_unregister_atom(old);
+    PL_unregister_atom(word2atom(old));
 
   if ( backtrackable )
   { Word p;
@@ -199,7 +199,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
     { freezeGlobal();
       LD->gvar.grefs++;
     } else if ( isAtom(w) )
-      PL_register_atom(w);
+      PL_register_atom(word2atom(w));
   }
 
   succeed;

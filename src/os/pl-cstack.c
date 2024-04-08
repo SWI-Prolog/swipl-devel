@@ -398,7 +398,7 @@ addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
 	    o += strlen(sep);
 	  }
 	} else
-	{ *o++ = c;
+	{ *o++ = (char)c;
 	}
       }
 #endif
@@ -1176,7 +1176,7 @@ CStackSize(DECL_LD)
 
 	if ( getrlimit(RLIMIT_STACK, &rlim) == 0 &&
 	     rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur )
-	{ cinfo->size = rlim.rlim_cur;
+	{ cinfo->size = (size_t)rlim.rlim_cur;
 	  c_stack_base(cinfo);
 	}
 #endif

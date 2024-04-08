@@ -292,6 +292,7 @@ typedef union
 #define PL_NOT_A_LIST	 (43)		/* Object is not a list */
 					/* dicts */
 #define PL_DICT		 (44)
+#define PL_SWORD	 (45)		/* Signed word (internal) */
 
 /* Or'ed flags for PL_set_prolog_flag() */
 /* MUST fit in a short int! */

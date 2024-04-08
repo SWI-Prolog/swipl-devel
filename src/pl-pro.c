@@ -192,10 +192,10 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 `$break' is called to actually built the break environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static foreign_t
 pl_break1(atom_t goal)
 { GET_LD
-  int rc = TRUE;
+  foreign_t rc = TRUE;
   int old_level = LD->break_level;
 
   IOSTREAM *inSave       = Scurin;
@@ -256,7 +256,7 @@ pl_break(void)
   wakeup_state wstate;
 
   if ( saveWakeup(&wstate, TRUE) )
-  { word rc;
+  { foreign_t rc;
 
     rc = pl_break1(ATOM_dquery_loop);
     restoreWakeup(&wstate);
@@ -309,11 +309,20 @@ static
 PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
 { PRED_LD
   int flags;
-  int64_t depth;
+  int64_t depthi;
 
   if ( PL_get_integer_ex(A1, &flags) &&
-       PL_get_int64_ex(A2, &depth) )
-  { debugstatus.tracing   = !!(flags&NOTRACE_TRACE);
+       PL_get_int64_ex(A2, &depthi) )
+  { size_t depth;
+
+    if ( depthi == -1 )
+      depth = SKIP_VERY_DEEP;
+    else if ( depthi < 0 || depthi > SIZE_MAX )
+      return PL_representation_error("size_t");
+    else
+      depth = (size_t)depthi;
+
+    debugstatus.tracing   = !!(flags&NOTRACE_TRACE);
     debugstatus.debugging = !!(flags&NOTRACE_DEBUG);
     debugstatus.skiplevel = depth;
 

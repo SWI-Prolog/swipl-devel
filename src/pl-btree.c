@@ -76,7 +76,7 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
   if ( !isTerm(*t) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
   f = valueTerm(*t);
-  fd = f->definition;
+  fd = word2functor(f->definition);
   arity = arityFunctor(fd);
   if ( arity < kp || arity < lp || arity < rp )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);

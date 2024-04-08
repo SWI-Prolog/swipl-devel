@@ -395,8 +395,8 @@ extract_key(DECL_LD Word p1, int argc, const word *argv, int pair)
 	  existence = ATOM_key;
 	  goto err_exists;
 	} else if ( isInteger(argv[0]) )
-	{ int arity = arityTerm(*p1);
-	  int an = valInt(argv[0]);
+	{ size_t arity = arityTerm(*p1);
+	  sword an = valInt(argv[0]);
 
 	  if ( an <= arity )
 	  { p1 = argTermP(*p1, an-1);
@@ -615,7 +615,7 @@ get_key_arg_ex(DECL_LD term_t t, word *k, int zero_ok)
 
   deRef(p);
   if ( isTaggedInt(*p) )
-  { intptr_t v = valInt(*p);
+  { intptr_t v = (intptr_t)valInt(*p);
 
     if ( v > 0 )
     { *k = *p;

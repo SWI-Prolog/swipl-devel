@@ -152,9 +152,8 @@ This distinguishes three cases.
 int
 transaction_retract_clause(DECL_LD Clause clause)
 { if ( clause->generation.created < LD->transaction.gen_base )
-  { uintptr_t lgen = ( next_generation(clause->predicate) -
-		       LD->transaction.gen_base
-		     );
+  { tr_gen_t lgen = (tr_gen_t)( next_generation(clause->predicate) -
+				LD->transaction.gen_base );
 
     acquire_clause(clause);
     ATOMIC_INC(&clause->tr_erased_no);
@@ -209,7 +208,7 @@ transaction_visible_clause(DECL_LD Clause cl, gen_t gen)
       { tr_gen_t lgen;
 
 	if ( stack->clauses &&
-	     (lgen = lookupHTablePW(stack->clauses, cl)) &&
+	     (lgen = (tr_gen_t)lookupHTablePW(stack->clauses, cl)) &&
 	     !IS_ASSERT_GEN(lgen) )
 	{ if ( lgen+LD->transaction.gen_base <= gen )
 	    return FALSE;
@@ -250,7 +249,7 @@ transaction_last_modified_predicate(DECL_LD Definition def)
   if ( (table=LD->transaction.predicates) )
   { tr_gen_t lgen;
 
-    if ( (lgen = lookupHTablePW(table, def)) )
+    if ( (lgen = (tr_gen_t)lookupHTablePW(table, def)) )
     { uintptr_t lmod = VAL_LGEN(lgen);
       return LD->transaction.gen_start + lmod;
     }
@@ -270,7 +269,7 @@ transaction_set_last_modified(Definition def, gen_t gen, int flags)
   if ( !LD->transaction.predicates )
     LD->transaction.predicates = newHTablePW(16);
 
-  lgen0  = lookupHTablePW(LD->transaction.predicates, def);
+  lgen0  = (tr_gen_t)lookupHTablePW(LD->transaction.predicates, def);
   oflags = VAL_GEN_FLAGS(lgen0);
 
   updateHTablePW(LD->transaction.predicates, def,
@@ -311,7 +310,7 @@ transaction_commit(DECL_LD)
 
     FOR_TABLE(LD->transaction.clauses, n, v)
     { Clause cl = val2ptr(n);
-      tr_gen_t lgen = v;
+      tr_gen_t lgen = (tr_gen_t)v;
 
       if ( IS_ASSERT_GEN(lgen) )
       { if ( false(cl, CL_ERASED) )
@@ -345,7 +344,7 @@ transaction_commit(DECL_LD)
 
     FOR_TABLE(LD->transaction.clauses, n, v)
     { Clause cl = val2ptr(n);
-      tr_gen_t lgen = v;
+      tr_gen_t lgen = (tr_gen_t)v;
 
       if ( !IS_ASSERT_GEN(lgen) )
 	retract_clause(cl, cl->generation.erased);
@@ -367,7 +366,7 @@ transaction_discard(DECL_LD)
   if ( LD->transaction.clauses )
   { FOR_TABLE(LD->transaction.clauses, n, v)
     { Clause cl = val2ptr(n);
-      tr_gen_t lgen = v;
+      tr_gen_t lgen = (tr_gen_t)v;
       Definition def = cl->predicate;
       atom_t action = 0;
 
@@ -433,8 +432,8 @@ static void
 merge_pred_tables(DECL_LD TablePW into, TablePW from)
 { FOR_TABLE(from, n, v)
   { Definition def = val2ptr(n);
-    tr_gen_t lgen = v;
-    tr_gen_t lgen0 = lookupHTablePW(into, def);
+    tr_gen_t lgen = (tr_gen_t)v;
+    tr_gen_t lgen0 = (tr_gen_t)lookupHTablePW(into, def);
     int oflags = VAL_GEN_FLAGS(lgen0);
 
     updateHTablePW(into, def, VAL_ADD_FLAGS(lgen, oflags));
@@ -482,7 +481,7 @@ transaction_updates(DECL_LD Buffer b)
 { if ( LD->transaction.clauses )
   { FOR_TABLE(LD->transaction.clauses, n, v)
     { Clause cl = val2ptr(n);
-      tr_gen_t lgen = v;
+      tr_gen_t lgen = (tr_gen_t)v;
 
       if ( IS_ASSERT_GEN(lgen) )
       { if ( false(cl, CL_ERASED) )

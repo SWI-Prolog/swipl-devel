@@ -1842,7 +1842,7 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
 	return compare_neq_floats(valFloat(w1), valFloat(w2));
     }
     case TAG_ATOM:
-      return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
+      return eq ? CMP_NOTEQ : compareAtoms(word2atom(w1), word2atom(w2));
     case TAG_STRING:
       return compareStrings(w1, w2);
     case TAG_COMPOUND:
@@ -1966,7 +1966,7 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
   { a = 0;
   } else
   { if ( isAtom(*d) )
-    { a = *d;
+    { a = word2atom(*d);
 
       if ( a == ATOM_equals )
 	return compareStandard(p1, p2, TRUE) == CMP_EQUAL ? TRUE : FALSE;
@@ -2281,7 +2281,7 @@ PRED_IMPL("functor", 4, functor, 0)
 	     PL_unify_integer(A3, fd->arity) &&
 	     match_functor_type(A4, type, ATOM_compound) );
   } else if ( isAtom(*p) )
-  { return ( PL_unify_atom(A2, *p) &&
+  { return ( PL_unify_atom(A2, word2atom(*p)) &&
 	     PL_unify_integer(A3, 0) &&
 	     match_functor_type(A4, type, ATOM_atom) );
   } else if ( !canBind(*p) )
@@ -2374,10 +2374,15 @@ get_arg_integer_ex(DECL_LD term_t t, size_t *n)
 
   deRef(p);
   if ( isTaggedInt(*p) )
-  { intptr_t v = valInt(*p);
+  { sword v = valInt(*p);
 
     if ( v > 0 )
-    { *n = v;
+    {
+#if SIZEOF_VOIDP < SIZEOF_WORD
+      if ( v > INT_MAX )
+	return FALSE;
+#endif
+      *n = (size_t)v;
       return TRUE;
     }
     if ( v == 0 )
@@ -2514,7 +2519,7 @@ unify_vp(DECL_LD Word vp, Word val)
 
 
 #define setarg(n, term, value, flags) LDFUNC(setarg, n, term, value, flags)
-static word
+static foreign_t
 setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
 { size_t arity, argn;
   atom_t name;
@@ -2706,7 +2711,7 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
   }
 
   return ( unify_ptrs(valTermRef(A4), tail, ALLOW_GC|ALLOW_SHIFT) &&
-	   PL_unify_integer(A3, size)
+	   PL_unify_int64(A3, size)
 	 );
 }
 
@@ -3689,7 +3694,7 @@ free_variables_loop(DECL_LD Word t, atom_t *mname, term_t goal)
 
     if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
-      functor_t fd = f->definition;	/* modified by visited */
+      functor_t fd = word2functor(f->definition); /* modified by visited */
 
       if ( visited(f) )
       { if ( !in_goal && !existential )
@@ -3713,7 +3718,7 @@ free_variables_loop(DECL_LD Word t, atom_t *mname, term_t goal)
 
 	  deRef2(&f->arguments[0], a1);
 	  if ( isAtom(*a1) )
-	    *mname = *a1;
+	    *mname = word2atom(*a1);
 	  t = &f->arguments[1];
 	  goto again;
 	} else if ( !existential )
@@ -4263,7 +4268,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 static int
 is_code(word w)
 { if ( isTaggedInt(w) )
-  { intptr_t code = valInt(w);
+  { sword code = valInt(w);
 
     return VALID_CODE_POINT(code);
   }
@@ -4276,7 +4281,7 @@ is_char(word w)
 { PL_chars_t text;
 
   return ( isAtom(w) &&
-	   get_atom_text(w, &text) &&
+	   get_atom_text(word2atom(w), &text) &&
 	   PL_text_length(&text) == 1
 	 );
 }
@@ -4428,7 +4433,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 #define concat(a1, a2, a3, bidirectional, ctx, accept, otype) \
 	LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
 
-static word
+static foreign_t
 concat(DECL_LD term_t a1, term_t a2, term_t a3,
        int bidirectional,		/* FALSE: only mode +,+,- */
        control_t ctx,

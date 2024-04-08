@@ -2262,8 +2262,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   term_t inherit_from = 0;
   term_t at_exit = 0;
   term_t affinity = 0;
-  int debug = -1;
-  int detached = FALSE;
+  unsigned debug = 2;
+  unsigned int detached = FALSE;
   PL_thread_attr_t attr = {0};
 
   if ( !PL_is_callable(goal) )
@@ -2293,7 +2293,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
     fail;
   }
-  info->detached = detached;
+  info->detached = detached&0x1;
   if ( at_exit && !PL_is_callable(at_exit) )
   { free_thread_info(info);
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
@@ -2310,8 +2310,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   } else
   { attr.flags |= PL_THREAD_CUR_STREAMS;
   }
-  if ( debug >= 0 )
-    info->debug = debug;
+  if ( debug < 2 )
+    info->debug = debug&0x1;
   else
     info->debug = ldold->thread.info->debug;
 
@@ -2369,7 +2369,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     struct rlimit rlim;
     if ( !c_stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
     { if ( rlim.rlim_cur != RLIM_INFINITY )
-	c_stack = rlim.rlim_cur;
+	c_stack = (size_t)rlim.rlim_cur;
 					/* What is an infinite stack!? */
     }
 #endif
@@ -2451,7 +2451,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     { word w;
 
       if ( (w = (word)lookupHTable(threadTable, symbol)) )
-      { symbol = w;
+      { symbol = word2atom(w);
 	goto from_symbol;
       } else
 	goto no_thread;
@@ -2629,7 +2629,7 @@ unalias_thread(thread_handle *th)
   { GET_LD
     atom_t symbol;
 
-    if ( (symbol=deleteHTable(threadTable, th->alias)) )
+    if ( (symbol=(atom_t)deleteHTable(threadTable, th->alias)) )
     { th->alias = NULL_ATOM;
       PL_unregister_atom(name);
       PL_unregister_atom(symbol);
@@ -2724,7 +2724,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 { PRED_LD
   PL_thread_info_t *info;
   void *r;
-  word rval;
+  foreign_t rval;
   int rc;
   thread_status status;
 
@@ -3707,7 +3707,7 @@ get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
     { word w;
 
       if ( (w = lookupHTable(threadTable, symbol)) )
-      { symbol = w;
+      { symbol = word2atom(w);
 	goto from_symbol;
       }
       if ( warn )
@@ -5170,7 +5170,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
 { GET_LD
   atom_t name = NULL_ATOM;
   message_queue *q;
-  word id;
+  atom_t id;
 
   if ( !queueTable )
   { simpleMutexInit(&queueTable_mutex);
@@ -5280,7 +5280,7 @@ get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
     if ( (w = lookupHTable(threadTable, id)) )
     { thread_handle *th;
 
-      if ( (th=symbol_thread_handle(w)) )
+      if ( (th=symbol_thread_handle(word2atom(w))) )
       { tid = th->engine_id;
 	goto have_tid;
       }

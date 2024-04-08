@@ -210,7 +210,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
       int64_t j = n / 26;
 
       if ( j == 0 )
-      { buf[0] = i+'A';
+      { buf[0] = (char)(i+'A');
 	buf[1] = EOS;
       } else
       { sprintf(buf, "%c%" PRId64, i+'A', j);
@@ -220,11 +220,11 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
     return PutToken(buf, options->out) ? TRUE : -1;
   }
 
-  if ( isAtom(*p) && atomIsVarName(*p) )
+  if ( isAtom(*p) && atomIsVarName(word2atom(*p)) )
   { write_options o2 = *options;
     clear(&o2, PL_WRT_QUOTED);
 
-    return writeAtom(*p, &o2) ? TRUE : -1;
+    return writeAtom(word2atom(*p), &o2) ? TRUE : -1;
   }
 
   return FALSE;
@@ -575,7 +575,7 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
       esc[1] = EOS;
 
       if ( c == quote )
-      { esc[0] = c;
+      { esc[0] = (char)c;
       } else
       { switch(c)
 	{ case 7:
@@ -1601,7 +1601,8 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 { GET_LD
   atom_t functor;
   size_t arity, n;
-  int op_type, op_pri;
+  unsigned char op_type;
+  short op_pri;
   atom_t a;
   IOSTREAM *out = options->out;
 
@@ -2189,7 +2190,7 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 }
 
 
-static word
+static foreign_t
 do_write2(term_t stream, term_t term, int flags, int canonical)
 { GET_LD
   IOSTREAM *s;
@@ -2258,7 +2259,7 @@ foreign_t
 pl_write_canonical2(term_t stream, term_t term)
 { GET_LD
   nv_options options;
-  word rc;
+  foreign_t rc;
 
   BEGIN_NUMBERVARS(TRUE);
 

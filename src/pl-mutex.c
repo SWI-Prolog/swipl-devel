@@ -226,7 +226,7 @@ unlocked_pl_mutex_create(term_t mutex)
 { GET_LD
   atom_t name = NULL_ATOM;
   pl_mutex *m;
-  word id;
+  atom_t id;
 
   if ( PL_get_atom(mutex, &name) )
   { if ( lookupHTableWP(GD->thread.mutexTable, name) )

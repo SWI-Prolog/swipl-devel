@@ -1518,7 +1518,7 @@ PL_get_bool(term_t t, int *b)
   word w = valHandle(t);
 
   if ( isAtom(w) )
-  { int bv = atom_to_bool(w);
+  { int bv = atom_to_bool(word2atom(w));
     if ( bv >= 0 )
     { *b = bv;
       return TRUE;
@@ -2052,7 +2052,7 @@ PL_get_functor(DECL_LD term_t t, functor_t *f)
     succeed;
   }
   if ( isCallableAtom(w) || isReservedSymbol(w) )
-  { *f = lookupFunctorDef(w, 0);
+  { *f = lookupFunctorDef(word2atom(w), 0);
     succeed;
   }
 
@@ -2246,20 +2246,20 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
   if ( !isTerm(w) )
     fail;
 
-  fd = valueTerm(w)->definition;
+  fd = word2functor(valueTerm(w)->definition);
   if ( fd == FUNCTOR_xpceref1 )		/* @ref */
   { Word p = argTermP(w, 0);
 
     do
     { if ( isTaggedInt(*p) )
       { ref->type    = PL_INTEGER;
-	ref->value.i = valInt(*p);
+	ref->value.i = (intptr_t)valInt(*p);
 
 	goto ok;
       }
       if ( isTextAtom(*p) )
       { ref->type    = PL_ATOM;
-	ref->value.a = (atom_t) *p;
+	ref->value.a = word2atom(*p);
 
 	goto ok;
       }
@@ -2680,7 +2680,8 @@ PL_put_uint64(term_t t, uint64_t i)
 
   switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
   { case TRUE:
-      return setHandle(t, w);
+      setHandle(t, w);
+      return TRUE;
     case LOCAL_OVERFLOW:
       return PL_representation_error("uint64_t");
     default:
@@ -3470,6 +3471,11 @@ cont:
       rval = PL_unify_int64(t, i);
       break;
     }
+    case PL_SWORD:
+    { sword i = va_arg(args, sword);
+      rval = PL_unify_int64(t, i);
+      break;
+    }
     case PL_POINTER:
       rval = PL_unify_pointer(t, va_arg(args, void *));
       break;
@@ -3967,7 +3973,7 @@ PL_term_type(term_t t)
     { return (isInteger(w) ? PL_INTEGER : PL_RATIONAL);
     }
     case PL_TERM:
-    { functor_t f = valueTerm(w)->definition;
+    { functor_t f = word2functor(valueTerm(w)->definition);
       FunctorDef fd = valueFunctor(f);
 
       if ( f == FUNCTOR_dot2 )
@@ -5090,7 +5096,7 @@ PL_set_prolog_flag(const char *name, int type, ...)
 { GET_LD
   va_list args;
   int rval = TRUE;
-  int flags = (type & FF_MASK);
+  unsigned short flags = ((unsigned short)type & FF_MASK);
   fid_t fid;
   term_t av;
 

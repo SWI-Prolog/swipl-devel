@@ -165,9 +165,10 @@ push_undo(DECL_LD Word p)
     atom_t u;
 
     if ( f->definition == FUNCTOR_dot2 )
-    { u = f->arguments[0];
-      if ( !isAtom(u) )
+    { word w = f->arguments[0];
+      if ( !isAtom(w) )
 	return;
+      u = word2atom(w);
     } else
       return;
 

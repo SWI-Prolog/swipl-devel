@@ -178,7 +178,7 @@ typedef struct message_queue
 { struct thread_message   *head;	/* Head of message queue */
   struct thread_message   *tail;	/* Tail of message queue */
   uint64_t	       sequence_next;	/* next for sequence id */
-  word		       id;		/* Id of the queue */
+  atom_t	       id;		/* Id of the queue */
   size_t	       size;		/* # terms in queue */
   size_t	       max_size;	/* Max # terms in queue */
   int		       waiting;		/* # waiting threads */

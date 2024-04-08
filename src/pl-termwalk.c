@@ -207,7 +207,7 @@ ac_pushTermAgenda(DECL_LD ac_term_agenda *a, word w, functor_t *fp)
   a->work.term     = term;
   a->work.location = term->arguments;
   a->work.size     = arityFunctor(term->definition);
-  *fp              = term->definition;
+  *fp              = word2functor(term->definition);
   set_marked((Word)&term->definition);
 
   return TRUE;
@@ -537,4 +537,3 @@ pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
 }
 
 #endif /*AC_TERM_WALK_LRS*/
-

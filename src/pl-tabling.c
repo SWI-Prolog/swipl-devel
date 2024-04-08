@@ -894,7 +894,7 @@ delete_depending_answers(worklist *wl, TmpBuffer wlset)
     assert(wl->depend_abolish);
 
     if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
-    { trie *at = symbol_trie(di->variant->value);
+    { trie *at = symbol_trie(word2atom(di->variant->value));
       worklist *dwl;
 
       if ( WL_IS_WORKLIST((dwl=at->data.worklist)) &&
@@ -1087,7 +1087,7 @@ static inline trie_node *
 word_to_answer(DECL_LD word w)
 { assert(isTaggedInt(w));
 
-  return intToPointer(valInt(w));
+  return intToPointer((uintptr_t)valInt(w));
 }
 
 
@@ -1191,7 +1191,7 @@ retry:
 	  h = HeadList(dlp);
 	  deRef(h);
 	  if ( isAtom(*h) )		/* Answer trie symbol */
-	  { if ( (at=symbol_trie(*h)) )
+	  { if ( (at=symbol_trie(word2atom(*h))) )
 	    { an = NULL;
 	    } else			/* deleted trie or 'undefined' */
 	    { undef:
@@ -1206,7 +1206,7 @@ retry:
 	    if ( f->definition == FUNCTOR_plus2 )
 	    { deRef2(&f->arguments[0], p);
 	      assert(isAtom(*p));
-	      if ( !(at=symbol_trie(*p)) )
+	      if ( !(at=symbol_trie(word2atom(*p))) )
 	      { goto undef;
 	      }
 	      deRef2(&f->arguments[1], p);
@@ -1416,7 +1416,7 @@ delay_to_data(DECL_LD trie_node *answer, Word wrapper)
   {
 #if SIZEOF_WORD == 8
     word rc = consInt(pointerToInt(answer));
-    DEBUG(0, assert(intToPointer(valInt(rc)) == answer));
+    DEBUG(0, assert(intToPointer((uintptr_t)valInt(rc)) == answer));
     return rc;
 #else
     word rc;
@@ -1565,7 +1565,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
 
   if ( DL_IS_DELAY_LIST(di) )
-  { trie *at = symbol_trie(di->variant->value);
+  { trie *at = symbol_trie(word2atom(di->variant->value));
     worklist *wl = at->data.worklist;
     assert(wl->magic == WORKLIST_MAGIC);
 
@@ -1591,7 +1591,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
 
   if ( DL_IS_DELAY_LIST(di) )
-  { trie *at = symbol_trie(di->variant->value);
+  { trie *at = symbol_trie(word2atom(di->variant->value));
     worklist *wl = at->data.worklist;
 
     assert(wl->magic == WORKLIST_MAGIC);
@@ -2026,7 +2026,7 @@ PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
     init_spf_agenda(&agenda);
 
     if ( DL_IS_DELAY_LIST(di) )
-    { trie *at = symbol_trie(di->variant->value);
+    { trie *at = symbol_trie(word2atom(di->variant->value));
       worklist *wl = at->data.worklist;
 
       DEBUG(MSG_TABLING_AC,
@@ -2304,7 +2304,7 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 { (void)variant_table;
 
   if ( node->value )
-  { trie *atrie = symbol_trie(node->value);
+  { trie *atrie = symbol_trie(word2atom(node->value));
 
     reset_answer_table(atrie, variant_table->magic == TRIE_CMAGIC);
     assert(atrie->data.variant == node);
@@ -2490,7 +2490,7 @@ retry:
     }
 
     if ( node->value )
-    { atrie = symbol_trie(node->value);
+    { atrie = symbol_trie(word2atom(node->value));
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
 #ifdef O_PLMT
@@ -2517,7 +2517,7 @@ retry:
 	} else
 	{ release_trie_ref(symb);
 	  PL_unregister_atom(symb);
-	  atrie = symbol_trie(node->value);
+	  atrie = symbol_trie(word2atom(node->value));
 	}
       } else
 #endif
@@ -2640,11 +2640,11 @@ suspension_keys(DECL_LD term_t instance)
       arity = SINDEX_MAX;
 
     for(i=0; i<arity; i++)
-    { unsigned int ki = indexOfWord(f->arguments[i]);
+    { word ki = indexOfWord(f->arguments[i]);
 
       if ( ki )
       { k->argn = i+1;
-	k->key  = ki;
+	k->key  = (unsigned int)ki;
 	if ( ++k >= &keys[SINDEX_MAX-1] )
 	  break;
       }
@@ -4476,7 +4476,7 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	  arity = SINDEX_MAX;
 
 	for(i=0; i<arity; i++)
-	  state->keys[i].key = indexOfWord(f->arguments[i]);
+	  state->keys[i].key = (unsigned int)indexOfWord(f->arguments[i]);
 
 	state->keys_inited = TRUE;
       }
@@ -5512,7 +5512,7 @@ answer_update_delay_list(DECL_LD term_t wrapper, trie_node *answer, void *vctx)
     deRef(p);
     assert(isAtom(*p));
 
-   tbl_push_delay(*p, valTermRef(wrapper), answer);
+    tbl_push_delay(word2atom(*p), valTermRef(wrapper), answer);
   }
 
   return TRUE;
@@ -5749,7 +5749,7 @@ lg_clauses(DECL_LD idg_mdep *mdep, mono_dep_status *s)
 
     for(; base < top; base++)
     { if ( isAtom(*base) )
-      { ClauseRef cref = clause_clref(*base);
+      { ClauseRef cref = clause_clref(word2atom(*base));
 	Clause cl = cref->value.clause;
 
 	if ( !true(cl, CL_ERASED) )
@@ -6387,10 +6387,12 @@ set_idg_current(DECL_LD trie *atrie)
 #define idg_current(_) LDFUNC(idg_current, _)
 static trie *
 idg_current(DECL_LD)
-{ atom_t current = *valTermRef(LD->tabling.idg_current);
+{ word current = *valTermRef(LD->tabling.idg_current);
 
   if ( current )
-    return symbol_trie(current);
+  { DEBUG(0, assert(isAtom(current)));
+    return symbol_trie(word2atom(current));
+  }
 
   return NULL;
 }
@@ -6456,7 +6458,7 @@ PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
   if ( get_trie(A2, &atrie) )
   { atom_t current;
 
-    if ( (current = *valTermRef(LD->tabling.idg_current)) )
+    if ( (current = word2atom(*valTermRef(LD->tabling.idg_current))) )
     { if ( !PL_unify_atom(A1, current) )
 	return FALSE;
     }
@@ -7321,7 +7323,7 @@ mdep_queue_answer(idg_mdep *mdep, word ans)
   }
 
   if ( isAtom(ans) )
-    PL_register_atom(ans);
+    PL_register_atom(word2atom(ans));
 
   rc = !isEmptyBuffer(mdep->queue);
   addBuffer(mdep->queue, ans, word);
@@ -7341,11 +7343,11 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
 
   for(; base < top; base++)
   { if ( isAtom(*base) )
-    { ClauseRef cref = clause_clref(*base);
+    { ClauseRef cref = clause_clref(word2atom(*base));
 
       if ( !true(cref->value.clause, CL_ERASED) )
       { if ( !PL_unify_list(tail, head, tail) ||
-	     !PL_unify_atom(head, *base) )
+	     !PL_unify_atom(head, word2atom(*base)) )
 	  return -1;
 	count++;
       }
@@ -7382,7 +7384,7 @@ mdep_empty_queue(idg_mdep *mdep, size_t del)
 
     for(; base < top; base++)
     { if ( isAtom(*base) )
-	PL_unregister_atom(*base);
+	PL_unregister_atom(word2atom(*base));
     }
 
     left = topBuffer(mdep->queue, word) - top;
@@ -7415,7 +7417,7 @@ dep_free_queue(Buffer queue)
 
     for(; base < top; base++)
     { if ( isAtom(*base) )
-	PL_unregister_atom(*base);
+	PL_unregister_atom(word2atom(*base));
     }
 
     discardBuffer(queue);
@@ -7823,7 +7825,7 @@ mdep_is_empty(idg_mdep *mdep)
       /* see also mdep_unify_answers() */
       for(; base < top; base++)
       { if ( isAtom(*base) )
-	{ ClauseRef cref = clause_clref(*base);
+	{ ClauseRef cref = clause_clref(word2atom(*base));
 
 	  if ( !true(cref->value.clause, CL_ERASED) )
 	    return FALSE;

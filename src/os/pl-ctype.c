@@ -746,7 +746,7 @@ write_normalize_space(IOSTREAM *out, term_t in)
 static
 PRED_IMPL("normalize_space", 2, normalize_space, 0)
 { redir_context ctx;
-  word rc;
+  foreign_t rc;
 
   if ( (rc = setupOutputRedirect(A1, &ctx, FALSE)) )
   { if ( (rc = write_normalize_space(ctx.stream, A2)) )

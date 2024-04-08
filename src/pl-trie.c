@@ -80,9 +80,9 @@ TODO
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
 #define TRIE_KEY_POP(n)      RESERVED_TRIE_VAL(10+(n))
 
-#define IS_TRIE_KEY_POP(w)   ((tagex(w) == (TAG_VAR|STG_LOCAL) && \
-			       ((w)>>LMASK_BITS) > 10) ? ((w)>>LMASK_BITS) - 10 \
-						       : 0)
+#define IS_TRIE_KEY_POP(w)   ((size_t)((tagex(w) == (TAG_VAR|STG_LOCAL) && \
+					((w)>>LMASK_BITS) > 10) ? ((w)>>LMASK_BITS) - 10 \
+								: 0))
 
 #define NVARS_FAST 100
 
@@ -200,13 +200,13 @@ static inline void	release_value(word value);
 static inline void
 acquire_key(word key)
 { if ( isAtom(key) )
-    PL_register_atom(key);
+    PL_register_atom(word2atom(key));
 }
 
 static inline void
 release_key(word key)
 { if ( isAtom(key) )
-    PL_unregister_atom(key);
+    PL_unregister_atom(word2atom(key));
 }
 
 
@@ -1242,7 +1242,7 @@ intern_value(DECL_LD term_t value)
 static inline void
 release_value(word value)
 { if ( isAtom(value) )
-    PL_unregister_atom(value);
+    PL_unregister_atom(word2atom(value));
   else if ( isRecord(value) )
     PL_erase(word2ptr(record_t, value));
 }
@@ -1677,7 +1677,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 
       DEBUG(MSG_TRIE_PUT_TERM,
 	    Sdprintf("U Pushed %s %zd, mode=%d\n",
-		     functorName(key), state->ptr+1-gBase, state->umode));
+		     functorName(word2functor(key)), state->ptr+1-gBase, state->umode));
       pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
 
       if ( state->umode == uwrite )
@@ -1808,7 +1808,7 @@ unify_key(DECL_LD ukey_state *state, word key)
       break;
     }
     case TAG_ATOM:
-      pushVolatileAtom(key);
+      pushVolatileAtom(word2atom(key));
       /*FALLTHROUGH*/
     case TAG_INTEGER:
     { if ( state->umode == uwrite )
@@ -1937,7 +1937,7 @@ get_key(DECL_LD trie_gen_state *state, descent_state *dstate, word *key)
     desc_tstate dts;
 
     DEBUG(MSG_TRIE_GEN,
-	  Sdprintf("get_key() for %s\n", functorName(f->definition)));
+	  Sdprintf("get_key() for %s\n", functorName(word2functor(f->definition))));
 
     *key = f->definition;
     if ( dstate->size > 1 )
@@ -2718,7 +2718,7 @@ add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
   addBuffer(&state->codes, i, scode);
 #else
   if ( (scode)i == i )
-    addBuffer(&state->codes, i, scode);
+    addBuffer(&state->codes, (scode)i, scode);
   else
     addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
 #endif
@@ -2870,7 +2870,7 @@ next:
     case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
     case STG_GLOBAL|TAG_STRING:
     case STG_GLOBAL|TAG_FLOAT:
-    { size_t index = key>>LMASK_BITS;
+    { size_t index = (size_t)(key>>LMASK_BITS);
       int idx = MSB(index);
       indirect *h = &state->trie->indirects->array.blocks[idx][index];
       size_t wsize = wsizeofInd(h->header);

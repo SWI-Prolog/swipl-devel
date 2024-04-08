@@ -2047,18 +2047,18 @@ meta_declaration(term_t spec)
     _PL_get_arg(i+1, head, arg);
 
     if ( PL_is_integer(arg) )
-    { int e;
+    { unsigned int e;
 
-      if ( !PL_get_integer_ex(arg, &e) )
+      if ( !PL_cvt_i_uint(arg, &e) )
 	return FALSE;
-      if ( e < 0 || e > 9 )
+      if ( e > 9 )
       { domain_error:
 	return PL_error(NULL, 0, "0..9",
 			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
       }
-      args[i].meta = e;
+      args[i].meta = e&0xf;
     } else if ( PL_get_atom(arg, &ma) )
-    { int m;
+    { unsigned int m;
 
       if      ( ma == ATOM_plus )          m = MA_NONVAR;
       else if ( ma == ATOM_minus )         m = MA_VAR;
@@ -2069,7 +2069,7 @@ meta_declaration(term_t spec)
       else if ( ma == ATOM_gdiv )          m = MA_DCG;
       else goto domain_error;
 
-      args[i].meta = m;
+      args[i].meta = m&0xf;
     } else
     { return PL_error(NULL, 0, "0..9",
 			ERR_TYPE, ATOM_meta_argument_specifier, arg);;
@@ -2166,7 +2166,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 
   for(i=0; i<arity; i++, s++)
   { int spec_c = *s;
-    int spec;
+    unsigned int spec;
 
     switch(spec_c)
     { case '+':
@@ -2202,7 +2202,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 	return FALSE;
     }
 
-    def->impl.any.args[i].meta = spec;
+    def->impl.any.args[i].meta = spec&0xf;
     if ( MA_NEEDS_TRANSPARENT(spec) )
       transparent = TRUE;
   }
@@ -3397,7 +3397,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 		*       PROLOG PREDICATES       *
 		*********************************/
 
-static word
+static foreign_t
 do_abolish(Module m, term_t atom, term_t arity)
 { GET_LD
   functor_t f;

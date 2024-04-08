@@ -130,7 +130,7 @@ start_term(DECL_LD th_data *work, Buffer b, word w)
 { atom_t name;
 
   work->term     = valueTerm(w);
-  work->functor  = work->term->definition;
+  work->functor  = word2functor(work->term->definition);
   work->hash     = MURMUR_SEED;
   work->arg      = 0;
   work->in_cycle = 0;

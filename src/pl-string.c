@@ -65,10 +65,10 @@ addUTF8Buffer(Buffer b, int c)
 
     end = utf8_put_char(buf, c);
     for(p=buf; p<end; p++)
-    { addBuffer(b, *p&0xff, char);
+    { addBuffer(b, *p, char);
     }
   } else
-  { addBuffer(b, c, char);
+  { addBuffer(b, (char)c, char);
   }
 }
 
@@ -358,7 +358,7 @@ PRED_IMPL("get_string_code", 3, get_string_code, 0)
 	   );
   }
 
-  return PL_unify_integer(A3, text_get_char(&t, i-1));
+  return PL_unify_integer(A3, text_get_char(&t, (size_t)(i-1)));
 }
 
 

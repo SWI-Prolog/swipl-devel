@@ -1495,7 +1495,7 @@ htinit(unsigned char *h, unsigned char *s, int inc)
 {
 	int i, j;
 	for(i = 0; (j = s[i]) !=0; i++)
-		h[j] = i + inc;
+	  h[j] = (unsigned char)(i + inc);
 	}
 
  static void
@@ -3625,14 +3625,8 @@ freedtoa(char *s)
  *	   calculation.
  */
 
- char *
-dtoa
-#ifdef KR_headers
-	(dd, mode, ndigits, decpt, sign, rve)
-	double dd; int mode, ndigits, *decpt, *sign; char **rve;
-#else
-	(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve)
-#endif
+char *
+dtoa(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve)
 {
  /*	Arguments ndigits, decpt, sign are similar to those
 	of ecvt and fcvt; trailing zeros are suppressed from
@@ -3946,7 +3940,7 @@ dtoa
 			for(i = 0;;) {
 				L = (int)dval(&u);
 				dval(&u) -= L;
-				*s++ = '0' + (int)L;
+				*s++ = (char)('0' + (int)L);
 				if (dval(&u) < dval(&eps))
 					goto ret1;
 				if (1. - dval(&u) < dval(&eps))
@@ -3965,7 +3959,7 @@ dtoa
 				L = (Long)(dval(&u));
 				if (!(dval(&u) -= L))
 					ilim = i;
-				*s++ = '0' + (int)L;
+				*s++ = (char)('0' + (int)L);
 				if (i == ilim) {
 					if (dval(&u) > 0.5 + dval(&eps))
 						goto bump_up;
@@ -4008,7 +4002,7 @@ dtoa
 				dval(&u) += ds;
 				}
 #endif
-			*s++ = '0' + (int)L;
+			*s++ = (char)('0' + (int)L);
 			if (!dval(&u)) {
 #ifdef SET_INEXACT
 				inexact = 0;
@@ -4180,7 +4174,7 @@ dtoa
 				else if (!b->x[0] && b->wds <= 1)
 					inexact = 0;
 #endif
-				*s++ = dig;
+				*s++ = (char)dig;
 				goto ret;
 				}
 #endif
@@ -4214,7 +4208,7 @@ dtoa
 						goto round_9_up;
 					}
  accept_dig:
-				*s++ = dig;
+					  *s++ = (char)dig;
 				goto ret;
 				}
 			if (j1 > 0) {
@@ -4227,13 +4221,13 @@ dtoa
 					*s++ = '9';
 					goto roundoff;
 					}
-				*s++ = dig + 1;
+				*s++ = (char)(dig + 1);
 				goto ret;
 				}
 #ifdef Honor_FLT_ROUNDS
  keep_dig:
 #endif
-			*s++ = dig;
+			*s++ = (char)dig;
 			if (i == ilim)
 				break;
 			b = multadd(b, 10, 0);
@@ -4247,7 +4241,7 @@ dtoa
 		}
 	else
 		for(i = 1;; i++) {
-			*s++ = dig = quorem(b,S) + '0';
+		  *s++ = (char)(dig = quorem(b,S) + '0');
 			if (!b->x[0] && b->wds <= 1) {
 #ifdef SET_INEXACT
 				inexact = 0;

@@ -491,7 +491,7 @@ FreeMemory(void)
   { if ( limit.rlim_cur == RLIM_INFINITY )
       return (uintptr_t)-1;
     else
-      return limit.rlim_cur - used;
+      return (uintptr_t)(limit.rlim_cur - used);
   }
 #endif
 
@@ -1668,7 +1668,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 		   ATOM_max_path_length);
 	  return NULL;
 	}
-	*expanded++ = c;
+	*expanded++ = (char)c;
 
 	continue;
     }

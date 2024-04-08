@@ -1948,7 +1948,7 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
       default:
 	if ( truePrologFlag(PLFLAG_TTY_CONTROL) )
 	  Sputcode(c, out);
-	*buf++ = c;
+	*buf++ = (char)c;
     }
   }
 }
@@ -2113,7 +2113,7 @@ set_buffering(IOSTREAM *s, atom_t b)
 
 
 static int
-atom_to_newline_mode(atom_t val, unsigned int flags, int *mode)
+atom_to_newline_mode(atom_t val, unsigned int flags, unsigned int *mode)
 { if ( val == ATOM_posix )
     *mode = SIO_NL_POSIX;
   else if ( val == ATOM_dos )
@@ -2352,13 +2352,13 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     return TRUE;
   } else if ( aname == ATOM_newline )
   { atom_t val;
-    int mode;
+    unsigned int mode;
 
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
 
     if ( atom_to_newline_mode(val, s->flags, &mode) )
-    { s->newline = mode;
+    { s->newline = mode&0x3;
       return TRUE;
     } else
       return FALSE;
@@ -4008,6 +4008,7 @@ stream_encoding_options(atom_t type, atom_t encoding, int *bom, IOENC *enc)
 }
 
 /* MT: openStream() must be called unlocked */
+#define SIO_NL_UNDEF 4		/* not one of SIO_NL_* */
 
 IOSTREAM *
 openStream(term_t file, term_t mode, term_t options)
@@ -4020,7 +4021,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
   atom_t newline	= 0;
-  int	 fnewline       = -1;
+  unsigned int fnewline = SIO_NL_UNDEF;
   int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
 #ifdef O_LOCALE
@@ -4192,8 +4193,8 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   s->encoding = enc;
-  if ( fnewline != -1 )
-    s->newline = fnewline;
+  if ( fnewline != SIO_NL_UNDEF )
+    s->newline = fnewline&0x3;
 #ifdef O_LOCALE
   if ( locale )
   { Ssetlocale(s, locale, NULL);

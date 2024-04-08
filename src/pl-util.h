@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,9 +51,9 @@ char *		sourceFileName(SourceFile sf);
 char *		generationName(gen_t gen);
 int		clauseNo(Clause clause, gen_t gen);
 int		notImplemented(char *name, int arity);
-word		setBoolean(int *flag, term_t o, term_t n);
-word		setInteger(int *val, term_t old, term_t new);
+foreign_t	setBoolean(int *flag, term_t o, term_t n);
+foreign_t	setInteger(int *val, term_t old, term_t new);
 const char *	atom_summary(atom_t name, unsigned int maxlen);
 const char *	string_summary(word name, unsigned int maxlen);
 
-#endif /*_PL_UTIL_H*/			
+#endif /*_PL_UTIL_H*/

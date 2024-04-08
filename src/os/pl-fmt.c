@@ -126,9 +126,7 @@ outchr(format_state *state, int chr)
       for(s=buf; s<e; s++)
 	addBuffer((Buffer)&state->buffer, *s, char);
     } else
-    { char c = chr;
-
-      addBuffer((Buffer)&state->buffer, c, char);
+    { addBuffer((Buffer)&state->buffer, (char)chr, char);
     }
 
     state->buffered++;
@@ -292,7 +290,7 @@ PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
   table_key_t tk;
   table_value_t tv;
   while( advanceTableEnum(e, &tk, &tv) )
-  { int c = tv;
+  { int c = (int)tv;
     predicate_t pred = val2ptr(tv);
 
     if ( PL_unify_integer(chr, c) &&
@@ -310,7 +308,7 @@ PRED_IMPL("current_format_predicate", 2, current_format_predicate, NDET|META)
 }
 
 
-static word
+static foreign_t
 format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
 { GET_LD
   term_t argv;
@@ -355,10 +353,10 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
 
 #define format(out, fmt, args) LDFUNC(format, out, fmt, args)
 
-static word
+static foreign_t
 format(DECL_LD term_t out, term_t format, term_t args)
 { redir_context ctx;
-  word rc;
+  foreign_t rc;
   Module m = NULL;
   term_t list = PL_new_term_ref();
 
@@ -612,7 +610,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( !valueExpression(argv, &n) )
 		  { char f[2];
 
-		    f[0] = c;
+		    f[0] = (char)c;
 		    f[1] = EOS;
 		    AR_CLEANUP();
 		    FMT_ARG(f, argv); /* returns error */
@@ -652,7 +650,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
 
-		    f[0] = c;
+		    f[0] = (char)c;
 		    f[1] = EOS;
 		    AR_CLEANUP();
 		    FMT_ARG(f, argv);
@@ -682,7 +680,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  { PL_locale ltmp;
 		    char grouping[2];
 
-		    grouping[0] = (arg == DEFAULT ? 3 : arg);
+		    grouping[0] = (char)(arg == DEFAULT ? 3 : arg);
 		    grouping[1] = '\0';
 		    ltmp.thousands_sep = L"_";
 		    ltmp.grouping = grouping;
@@ -1013,7 +1011,7 @@ lappend(const wchar_t *l, int def, Buffer out)
     { int c = *e;
 
       if ( c < 128 )
-      { addBuffer(out, c, char);
+      { addBuffer(out, (char)c, char);
       } else
       { char buf[6];
 	char *e8, *s;
@@ -1025,7 +1023,7 @@ lappend(const wchar_t *l, int def, Buffer out)
       }
     }
   } else
-  { addBuffer(out, def, char);
+  { addBuffer(out, (char)def, char);
   }
 }
 
@@ -1034,7 +1032,7 @@ revert_string(char *s, size_t len)
 { char *e = &s[len-1];
 
   for(; e>s; s++,e--)
-  { int c = *e;
+  { char c = *e;
 
     *e = *s;
     *s = c;
@@ -1107,7 +1105,8 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 #ifdef O_BIGNUM
     case V_MPZ:
     { GET_LD
-      size_t len = (double)mpz_sizeinbase(i->value.mpz, 2) * log(radix)/log(2) * 1.2;
+	size_t len = (size_t)((double)mpz_sizeinbase(i->value.mpz, 2) *
+			      log(radix)/log(2) * 1.2);
       char tmp[256];
       char *buf;
       int rc;
@@ -1129,7 +1128,7 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
       { char *s;
 
 	for(s=buf; *s; s++)
-	  *s = toupper(*s);
+	  *s = (char)toupper(*s);
       }
 
       if ( grouping || div > 0 )
@@ -1427,7 +1426,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     }
     case V_MPQ:
     { char tmp[12];
-      int size;
+      size_t size;
       int written;
       int fbits;
       int digits;
@@ -1453,7 +1452,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	print_mpz_f:
 
 	  if ( mpz_sgn(t1) != 0 )
-	  { size = mpz_sizeinbase(t1, 2) * log(10)/log(2) * 1.2 + 1;
+	  { size =(size_t)((double)mpz_sizeinbase(t1, 2) * log(10)/log(2) * 1.2 + 1);
 	    if ( !growBuffer(out, size) )
 	    { PL_no_memory();
 	      return NULL;
@@ -1492,7 +1491,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  if (arg)
 	  { memmove(out->base+written-(arg-1), out->base+written-arg, arg+1);
 	    if ( locale->decimal_point && locale->decimal_point[0] )
-	      *(out->base+written-arg) = locale->decimal_point[0];
+	      *(out->base+written-arg) = (char)locale->decimal_point[0];
 	    else
 	      *(out->base+written-arg) = '.';
 	    written++;
@@ -1582,7 +1581,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  if (arg)
 	  { memmove(out->base+2, out->base+1, written+1);
 	    if ( locale->decimal_point && locale->decimal_point[0] )
-	      *(out->base+1) = locale->decimal_point[0];
+	      *(out->base+1) = (char)locale->decimal_point[0];
 	    else
 	      *(out->base+1) = '.';
 	    written++;

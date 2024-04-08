@@ -803,7 +803,7 @@ cmp_dict_index(DECL_LD const int *ip1, const int *ip2, cmp_dict_index_data *ctx)
   } else
   { if ( isAtom(*p) )
     { if ( isAtom(*q) )
-	rc = compareAtoms(*p, *q);
+	rc = compareAtoms(word2atom(*p), word2atom(*q));
       else
 	rc = CMP_GREATER;
     } else

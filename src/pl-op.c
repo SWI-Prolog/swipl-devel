@@ -79,7 +79,7 @@ typedef struct _operator		/* storage in tables */
 
 typedef struct _opdef			/* predefined and enumerated */
 { atom_t name;
-  short  type;
+  unsigned char type;
   short  priority;
 } opdef;
 
@@ -130,7 +130,7 @@ tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-defOperator(Module m, atom_t name, int type, int priority, int force)
+defOperator(Module m, atom_t name, unsigned char type, short priority, int force)
 { GET_LD
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
@@ -223,7 +223,7 @@ visibleOperator(Module m, atom_t name, int kind)
 
 
 int
-currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
+currentOperator(Module m, atom_t name, int kind, unsigned char *type, short *priority)
 { operator *op;
 
   assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
@@ -312,7 +312,7 @@ priorityOperator(Module m, atom_t name)
 		 *	  PROLOG BINDING	*
 		 *******************************/
 
-static int
+static unsigned char
 atomToOperatorType(atom_t atom)
 { if (atom == ATOM_fx)			return OP_FX;
   else if (atom == ATOM_fy)		return OP_FY;
@@ -348,7 +348,7 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
 { PRED_LD
   atom_t nm;
   atom_t tp;
-  int t;
+  unsigned char t;
   int p;
   Module m = MODULE_parse;
 
@@ -379,7 +379,7 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_specifier, type);
 
   if ( PL_get_atom(name, &nm) )
-  { return defOperator(m, nm, t, p, FALSE);
+  { return defOperator(m, nm, t, (short)p, FALSE);
   } else
   { term_t l = PL_copy_term_ref(name);
     term_t e = PL_new_term_ref();
@@ -387,7 +387,7 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
     while( PL_get_list_ex(l, e, l) )
     { if ( !PL_get_atom(e, &nm) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, e);
-      if ( !defOperator(m, nm, t, p, FALSE) )
+      if ( !defOperator(m, nm, t, (short)p, FALSE) )
 	return FALSE;
     }
     if ( !PL_get_nil_ex(l) )
@@ -404,7 +404,7 @@ of matching operators and (on backtracking) return the matching ones.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-addOpToBuffer(Buffer b, atom_t name, int type, int priority)
+addOpToBuffer(Buffer b, atom_t name, unsigned char type, short priority)
 { opdef *op = baseBuffer(b, opdef);
   int mx    = (int)entriesBuffer(b, opdef);
   int i;
@@ -488,7 +488,7 @@ typedef struct
 
 
 #define current_op(m, inherit, prec, type, name, h) LDFUNC(current_op, m, inherit, prec, type, name, h)
-static word
+static foreign_t
 current_op(DECL_LD Module m, int inherit,
 	   term_t prec, term_t type, term_t name,
 	   control_t h)
@@ -618,7 +618,7 @@ PRED_IMPL("current_op", 3, current_op,
   Module mp = MODULE_parse;
   Module m  = mp;
   term_t name = A3;
-  word rc;
+  foreign_t rc;
 
   if ( CTX_CNTRL != FRG_CUTTED )
   { if ( !(name = PL_new_term_ref()) ||

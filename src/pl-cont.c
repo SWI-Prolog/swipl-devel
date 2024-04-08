@@ -471,11 +471,11 @@ retry:
     Word ap;
     ClauseRef cref;
     Clause cl;
-    intptr_t pcoffset;
+    size_t pcoffset;
     size_t lneeded, lroom;
     int i;
-    atom_t mname = *ep++;
-    word blob = *ep++;
+    atom_t mname = word2atom(*ep++);
+    atom_t blob  = word2atom(*ep++);
 
     if ( !(cref = clause_clref(blob)) ||
 	 arityFunctor(f->definition) != cref->value.clause->variables + 3 )
@@ -484,7 +484,7 @@ retry:
     }
 
     cl = cref->value.clause;
-    pcoffset = valInt(*ep++);
+    pcoffset = (size_t)valInt(*ep++);
 
     lneeded = sizeof(word) +
 	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
@@ -512,7 +512,7 @@ retry:
 
     for(; i<cl->variables; i++, ep++, ap++)
     { if ( isTaggedInt(*ep) )
-      { intptr_t ichp = valInt(*ep);
+      { sword ichp = valInt(*ep);
 	Choice ch, chp;
 
 	ch = (Choice)valTermRef(ichp);

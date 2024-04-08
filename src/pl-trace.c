@@ -514,7 +514,7 @@ again:
       { action = exitFromDebugger("EOF: ", 4);
 	goto out;
       }
-      buf[0] = c;
+      buf[0] = (char)c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' || buf[0] == '-' )
       { Sfprintf(Sdout, "%s", buf);

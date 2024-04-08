@@ -247,7 +247,7 @@ and while loading .wic files.  It comes at no price.
 		 *	COMPOUNDS AND LISTS	*
 		 *******************************/
 
-#define functorTerm(w)	valueTerm(w)->definition
+#define functorTerm(w)	word2functor(valueTerm(w)->definition)
 #define arityTerm(w)	arityFunctor(valueTerm(w)->definition)
 #define valueTerm(w)	((Functor)valPtr2(w, STG_GLOBAL))
 #define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f))
@@ -280,12 +280,12 @@ and while loading .wic files.  It comes at no price.
 #define PADMASK (sizeof(word)-1)
 
 #define mkIndHdr(n, t)	(((n)<<(LMASK_BITS+PADBITS)) | (t) | STG_LOCAL)
-#define wsizeofInd(iw)	((iw)>>(LMASK_BITS+PADBITS))
+#define wsizeofInd(iw)	((size_t)((iw)>>(LMASK_BITS+PADBITS)))
 #define addressIndirect(w) valPtr(w)
 #define valIndirectP(w)	(((Word)valPtr(w))+1)
 
-#define padHdr(iw)	(((iw)>>LMASK_BITS & PADMASK) ? \
-			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(word))
+#define padHdr(iw)	((size_t)(((iw)>>LMASK_BITS & PADMASK) ?	\
+				  ((iw)>>LMASK_BITS & PADMASK) : sizeof(word)))
 #define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
 #define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
 #define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))
@@ -305,7 +305,7 @@ and while loading .wic files.  It comes at no price.
 /* TODO: putting a prototype here to satisfy the compiler, but fetchAtomArray()
  * may want to be moved somewhere else.  */
 static inline Atom	fetchAtomArray(size_t index);
-#define indexAtom(w)	((w)>>LMASK_BITS)
+#define indexAtom(w)	((size_t)((w)>>LMASK_BITS))
 #define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)
 
@@ -318,7 +318,7 @@ static inline Atom	fetchAtomArray(size_t index);
 #define MK_FUNCTOR(n, a) (functor_t)(((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
 			  TAG_ATOM|STG_GLOBAL)
 #define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
-#define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
+#define indexFunctor(w)	((size_t)((w)>>(LMASK_BITS+F_ARITY_BITS)))
 #define valueFunctor(w) fetchFunctorArray(indexFunctor(w))
 #define _arityFunc_(w)	((size_t)(((w) >> LMASK_BITS) & F_ARITY_MASK))
 #define arityFunctor(w) (unlikely(_arityFunc_(w) == F_ARITY_MASK) \

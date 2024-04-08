@@ -411,7 +411,7 @@ mark_for_copy(DECL_LD Word p, int flags)
 	if ( virgin(t->definition) )
 	{ DEBUG(MSG_COPYTERM,
 		Sdprintf("Visit %s at %s\n",
-			 functorName(t->definition),
+			 functorName(word2functor(t->definition)),
 			 print_addr(&t->definition, NULL)));
 	  set_visited(t->definition);
 	} else
@@ -456,7 +456,7 @@ mark_for_copy(DECL_LD Word p, int flags)
 
       DEBUG(MSG_COPYTERM,
 	    Sdprintf("Functor %s; mode=0x%x\n",
-		     functorName(*p & ~BOTH_MASK), mode));
+		     functorName(word2functor(*p & ~BOTH_MASK)), mode));
 
       if ( mode&MC_WALK_COPY )
 	f |= COPYING_ATTVAR;
@@ -503,7 +503,7 @@ cp_unmark(DECL_LD Word p, int flags)
 
 	  DEBUG(MSG_COPYTERM,
 		Sdprintf("Unmarking %s at %s\n",
-			 functorName(f->definition),
+			 functorName(word2functor(f->definition)),
 			 print_addr(&f->definition, NULL)));
 
 	  if ( !pushWorkAgenda(&agenda,
@@ -706,7 +706,7 @@ copy_term(DECL_LD Word from, Word to, size_t abstract, int flags)
 	}
       }
       case TAG_ATOM:
-	pushVolatileAtom(*from);
+	pushVolatileAtom(word2atom(*from));
         /*FALLTHROUGH*/
       default:
 	*to = *from;
@@ -743,7 +743,7 @@ again:
     case TAG_COMPOUND:
       break;
     case TAG_ATOM:
-      pushVolatileAtom(*from);
+      pushVolatileAtom(word2atom(*from));
       /*FALLTHROUGH*/
     default:
       *to = *from;
@@ -872,7 +872,7 @@ needs_relocation(word w)
 static word
 relocate_down(word w, size_t offset)
 { if ( isAtom(w) )
-  { PL_register_atom(w);
+  { PL_register_atom(word2atom(w));
     return w;
   } else
   { return (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
@@ -883,7 +883,7 @@ relocate_down(word w, size_t offset)
 static word
 relocate_up(DECL_LD word w, size_t offset)
 { if ( isAtom(w) )
-  { pushVolatileAtom(w);
+  { pushVolatileAtom(word2atom(w));
     return w;
   } else
   { return (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
@@ -968,7 +968,7 @@ free_fastheap(fastheap_term *fht)
   for(r = fht->relocations; *r != REL_END; r++)
   { p += *r;
     if ( isAtom(*p) )
-      PL_unregister_atom(*p);
+      PL_unregister_atom(word2atom(*p));
   }
 
   free(fht);

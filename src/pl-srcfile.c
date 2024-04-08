@@ -304,9 +304,9 @@ lookupSourceFile_unlocked(atom_t name, int create)
     memset(file, 0, sizeof(*file));
 
     file->name       = name;
-    file->system     = GD->bootsession;
-    file->from_state = GD->bootsession;
-    file->resource   = GD->bootsession;
+    file->system     = GD->bootsession&1;
+    file->from_state = GD->bootsession&1;
+    file->resource   = GD->bootsession&1;
 #ifdef O_PLMT
     file->mutex    = allocSimpleMutex(PL_atom_chars(name));
 #endif
@@ -735,7 +735,7 @@ PRED_IMPL("$set_source_file", 3, set_source_file, 0)
     { int v;
 
       if ( PL_get_bool_ex(A3, &v) )
-      { sf->resource = v;
+      { sf->resource = (unsigned)v&0x1;
 	rc = TRUE;
       } else
 	rc = FALSE;

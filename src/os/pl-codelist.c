@@ -58,7 +58,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
   enum { CHARS, CODES } type;
 
   if ( isList(list) )
-  { intptr_t c = -1;
+  { sword c = -1;
 
     arg = argTermP(list, 0);
     deRef(arg);
@@ -100,7 +100,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
 
   slow = list;
   while( isList(list) )
-  { intptr_t c = -1;
+  { sword c = -1;
 
     arg = argTermP(list, 0);
     deRef(arg);

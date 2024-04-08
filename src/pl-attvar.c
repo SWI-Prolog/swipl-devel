@@ -976,7 +976,7 @@ when_condition(DECL_LD Word cond, Word result, when_state *state)
 
   if ( isTerm(*cond) )
   { Functor term = valueTerm(*cond);
-    functor_t f = term->definition;
+    functor_t f = word2functor(term->definition);
 
     if ( f == FUNCTOR_unify_determined2 ) /* ?=/2 */
     { *result = *cond;

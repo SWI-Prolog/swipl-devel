@@ -44,7 +44,7 @@
 		 *******************************/
 
 int		currentOperator(Module m, atom_t name, int kind,
-				int *type, int *priority);
+				unsigned char *type, short *priority);
 int		priorityOperator(Module m, atom_t atom);
 void		initOperators(void);
 

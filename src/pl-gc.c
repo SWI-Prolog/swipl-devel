@@ -371,7 +371,7 @@ print_val(word val, char *buf)
 
     Ssprintf(o, "functor %s/%zd", stringAtom(fd->name), fd->arity);
   } else
-  { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
+  { size_t offset = (size_t)((val>>(LMASK_BITS-2))/sizeof(word));
 
     if ( storage(val) == STG_GLOBAL )
       offset -= gBase - (Word)base_addresses[STG_GLOBAL];
@@ -563,7 +563,7 @@ gc_stat_aggregate(gc_stats *stats)
 
 #define gc_stat_start(stats, reason) LDFUNC(gc_stat_start, stats, reason)
 static void
-gc_stat_start(DECL_LD gc_stats *stats, unsigned int reason)
+gc_stat_start(DECL_LD gc_stats *stats, gc_reason_t reason)
 { gc_stat *this = &stats->last[stats->last_index];
   double cpu = ThreadCPUTime(CPU_USER);
 
@@ -731,8 +731,12 @@ offset_word(word m)
 { size_t offset;
 
   if ( unlikely(storage(m) == STG_LOCAL) )
-    offset = wsizeofInd(m) + 1;
-  else
+  {
+#if SIZEOF_VOIDP < SIZEOF_WORD && O_DEBUG
+    assert(wsizeofInd(m) + 1 < SIZE_MAX);
+#endif
+    offset = (size_t)wsizeofInd(m) + 1;
+  } else
     offset = 0;
 
   return offset;
@@ -2956,7 +2960,7 @@ sweep_global_mark(DECL_LD gc_wordptr *m)
     { size_t offset;
 
       DEBUG(CHK_SECURE, assert(storage(*prev) == STG_LOCAL));
-      offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
+      offset = (size_t)(wsizeofInd(*prev)+1);	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
 	goto found;
@@ -3109,7 +3113,7 @@ sweep_frame(DECL_LD LocalFrame fr, int slots)
     { word w = *sp;
 
       if ( isGlobalRef(w) ||
-	   (isAtom(w) && is_volatile_atom(w)) )
+	   (isAtom(w) && is_volatile_atom(word2atom(w))) )
       { DEBUG(MSG_GC_SWEEP, char b[64];
 	      Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
 		       levelFrame(fr), predicateName(fr->predicate),
@@ -3369,7 +3373,7 @@ downskip_combine_garbage(DECL_LD Word current, Word dest)
       { size_t offset;
 
 	DEBUG(CHK_SECURE, assert(storage(*current) == STG_LOCAL));
-	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
+	offset = (size_t)wsizeofInd(*current)+1;	/* = offset for a large cell */
 	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
 	{ DEBUG(MSG_GC_HOLE,
@@ -5636,7 +5640,7 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   { w = *current;
 
     if ( isAtom(w) )
-    { markAtom(w);
+    { markAtom(word2atom(w));
     } else if ( unlikely(storage(w) == STG_LOCAL) )
     { word sz = wsizeofInd(w) + 1; /* = _careful_ offset_word() */
       if ( gtop - current > sz )
@@ -5659,7 +5663,7 @@ markAtomsOnLocalStack(PL_local_data_t *ld)
   { word w = *current;
 
     if ( isAtom(w) )
-      markAtom(w);
+      markAtom(word2atom(w));
   }
 }
 

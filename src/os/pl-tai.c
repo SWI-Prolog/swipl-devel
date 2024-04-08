@@ -581,7 +581,7 @@ fmt_not_implemented(int c)
   char key[3];
 
   key[0] = '%';
-  key[1] = c;
+  key[1] = (char)c;
   key[2] = 0;
 
   PL_put_atom_chars(t, key);

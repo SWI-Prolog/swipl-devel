@@ -169,7 +169,7 @@ update_locale(PL_locale *l, int category, const char *locale)
 static void
 free_locale_symbol(table_key_t name, table_value_t value)
 { PL_locale *l = val2ptr(value);
-  atom_t alias = name;
+  atom_t alias = word2atom(name);
 
   l->alias = 0;
   PL_unregister_atom(alias);
@@ -676,13 +676,13 @@ set_grouping(term_t t, char **valp)
 
       _PL_get_arg(1, head, head);
       if ( get_group_size_ex(head, &g) )
-      { *o++ = g;
+      { *o++ = (char)g;
 	goto end;
       }
       return FALSE;
     }
     if ( get_group_size_ex(head, &g) )
-    { *o++ = g;
+    { *o++ = (char)g;
     } else
       return FALSE;
   }

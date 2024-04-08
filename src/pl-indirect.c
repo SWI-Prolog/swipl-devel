@@ -372,7 +372,7 @@ rehash_indirect_table(indirect_table *tab)
 
 word
 extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
-{ size_t index = val>>LMASK_BITS;
+{ size_t index = (size_t)(val>>LMASK_BITS);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);
@@ -407,7 +407,7 @@ extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
 
 word
 extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
-{ size_t index = val>>LMASK_BITS;
+{ size_t index = (size_t)(val>>LMASK_BITS);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);
@@ -429,7 +429,7 @@ extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
 
 size_t
 gsize_indirect(indirect_table *tab, word val)
-{ size_t index = val>>LMASK_BITS;
+{ size_t index = (size_t)(val>>LMASK_BITS);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);

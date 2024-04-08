@@ -837,7 +837,7 @@ static void
 zset_time(zip_fileinfo *info, double t)
 { struct tm rb, *r;
   tm_zip *tmzip = &info->tmz_date;
-  time_t itime = t;
+  time_t itime = (time_t)t;
 
   r = PL_localtime_r(&itime, &rb);
   tmzip->tm_sec  = r->tm_sec;
@@ -1047,7 +1047,7 @@ static const PL_option_t zipopen3_options[] =
   { ATOM_bom,		 OPT_BOOL },
   { ATOM_release,	 OPT_BOOL },
   { ATOM_reposition,	 OPT_BOOL },
-  { NULL_ATOM,	         0 }
+  { NULL_ATOM,		 0 }
 };
 
 static
@@ -1100,7 +1100,13 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 				 fname, sizeof(fname),
 				 extra, sizeof(extra),
 				 comment, sizeof(comment)) == UNZ_OK )
-	size = info.uncompressed_size;
+      {
+#if SIZEOF_VOIDP < 8
+	if ( info.uncompressed_size > SIZE_MAX )
+	  PL_representation_error("size_t");
+#endif
+	size = (size_t)info.uncompressed_size;
+      }
     }
 
     if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
@@ -1208,8 +1214,17 @@ map_file(const char *name)
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )
-    { mf->start = mmap(NULL,
-		       buf.st_size,
+    {
+#if SIZEOF_VOIDP < 8
+      if ( buf.st_size > SIZE_MAX )
+      { close(fd);
+	free(mf);
+	PL_representation_error("size_t");
+	return NULL;
+      }
+#endif
+      mf->start = mmap(NULL,
+		       (size_t)buf.st_size,
 		       PROT_READ,
 		       MAP_SHARED,
 		       fd,
@@ -1455,14 +1470,14 @@ zipper_file(const zipper *z)
 		 *******************************/
 
 BeginPredDefs(zip)
-  PRED_DEF("zip_open_stream",		  3, zip_open_stream,	          0)
-  PRED_DEF("zip_clone",		          2, zip_clone,	                  0)
-  PRED_DEF("zip_close_",		  2, zip_close,		          0)
-  PRED_DEF("zip_lock",		          1, zip_lock,		          0)
-  PRED_DEF("zip_unlock",	          1, zip_unlock,		  0)
+  PRED_DEF("zip_open_stream",		  3, zip_open_stream,		  0)
+  PRED_DEF("zip_clone",			  2, zip_clone,			  0)
+  PRED_DEF("zip_close_",		  2, zip_close,			  0)
+  PRED_DEF("zip_lock",			  1, zip_lock,			  0)
+  PRED_DEF("zip_unlock",		  1, zip_unlock,		  0)
   PRED_DEF("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   PRED_DEF("zipper_goto",		  2, zipper_goto,		  0)
   PRED_DEF("zipper_open_current",         3, zipper_open_current,         0)
   PRED_DEF("zip_file_info_",		  3, zip_file_info,               0)
-  PRED_DEF("$rc_handle",		  1, rc_handle,		          0)
+  PRED_DEF("$rc_handle",		  1, rc_handle,			  0)
 EndPredDefs

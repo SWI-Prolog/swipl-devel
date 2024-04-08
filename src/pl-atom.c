@@ -1686,7 +1686,7 @@ cleanupAtoms(void)
 
 
 #define current_blob(a, type, call, state) LDFUNC(current_blob, a, type, call, state)
-static word
+static atom_t
 current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
 { atom_t type_name = 0;
   size_t index;
