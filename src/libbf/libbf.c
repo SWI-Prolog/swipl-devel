@@ -248,6 +248,7 @@ int bf_set_ui(bf_t *r, uint64_t a)
 	  r->tab[1] = (a1 << shift) | (a0 >> (LIMB_BITS - shift));
 	}
 	r->expn = 2 * LIMB_BITS - shift;
+	bf_normalize_and_round(r, BF_PREC_INF, BF_RNDZ);
     }
 #endif
     return 0;
