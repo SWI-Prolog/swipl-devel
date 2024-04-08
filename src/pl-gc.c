@@ -334,8 +334,8 @@ print_addr(Word adr, char *buf)
 char *
 print_val(word val, char *buf)
 { GET_LD
-  static const char *tag_name[] = { "var", "attvar", "float", "int", "atom",
-				    "string", "term", "ref" };
+  static const char *tag_name[] = { "var", "attvar", "float", "int", "string",
+				    "atom", "term", "ref" };
   static const char *stg_name[] = { "static", "global", "local", "reserved" };
   static char tmp[256];
   char *o;
