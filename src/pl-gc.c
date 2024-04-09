@@ -3317,7 +3317,7 @@ is_upward_ref(DECL_LD Word p)
 static int
 check_marked(const char *s)
 { GET_LD
-  intptr_t m = 0;
+  size_t m = 0;
   Word current;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
@@ -3328,9 +3328,8 @@ check_marked(const char *s)
 
   if ( m == total_marked )
     return TRUE;
-
-  if ( m != total_marked )
-    Sdprintf("**** ERROR: size: %ld != %ld (%s) ****\n",
+  else
+    Sdprintf("**** ERROR: size: %zd != %zd (%s) ****\n",
 	     m, total_marked, s);
 
   return FALSE;
