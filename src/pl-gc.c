@@ -2869,7 +2869,9 @@ make_gc_hole(Word bottom, Word top)
     Word bt = bottom;
     word hdr;
 
-#if SIZEOF_VOIDP == 8
+#if SIZEOF_VOIDP == SIZEOF_WORD
+    /* Gap might be too big for a single string, so create more of them */
+    /* On 32-bit systems with 8 byte words a single string suffices always */
     while(wsize > MAX_STRLEN)
     { Word t1  = bt+MAX_STRLEN+1;
 
@@ -3372,7 +3374,7 @@ downskip_combine_garbage(DECL_LD Word current, Word dest)
       { size_t offset;
 
 	DEBUG(CHK_SECURE, assert(storage(*current) == STG_LOCAL));
-	offset = (size_t)wsizeofInd(*current)+1;	/* = offset for a large cell */
+	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
 	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
 	{ DEBUG(MSG_GC_HOLE,
