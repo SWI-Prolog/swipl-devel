@@ -5218,31 +5218,39 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
       size_t space;
 
       DEBUG(MSG_STACK_OVERFLOW,
-	    Sdprintf("Reached stack-limit; need (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
-		     ulocal, uglobal, utrail, need, LD->stacks.limit));
+	    Sdprintf("Reached stack-limit; want (l+g+t) %zd+%zd+%zd=%zd; limit = %zd\n",
+		     tsize, gsize, lsize, tsize + gsize + lsize, LD->stacks.limit));
 
       if ( LD->in_print_message || LD->exception.processing )
       { DEBUG(MSG_STACK_OVERFLOW,
 	      { Sdprintf("In error condition; raising limit with 1Mb\n");
 		emergency = TRUE;
 	      });
-	limit += 1024*1024;
+	if ( limit < need + 1024*1024 )
+	  limit = need + 1024*1024;
 	minav = 0;
       } else
       { utrail += uglobal/GLOBAL_TRAIL_RATIO;
+	need    = ulocal + utrail + uglobal;
       }
 
       if ( limit > need && (space=limit-need) > minav )
-      { gsize = uglobal + uglobal * space/need;
-	tsize = utrail  + utrail  * space/need;
-	lsize = ulocal  + ulocal  * space/need;
+      { double f = (double)limit/(double)need;
+
+	gsize = (size_t)((double)uglobal * f);
+	tsize = (size_t)((double)utrail  * f);
+	lsize = (size_t)((double)ulocal  + f);
 
 	gsize = ROUND(gsize, 4096);
 	tsize = ROUND(tsize, 4096);
 	lsize = ROUND(lsize, 4096);
 
-	DEBUG(MSG_STACK_OVERFLOW, Sdprintf(" --> l:g:t = %zd:%zd:%zd\n",
-					   lsize, gsize, tsize));
+	DEBUG(MSG_STACK_OVERFLOW,
+	      Sdprintf("   Distributing available space.\n"
+		       "       Need (l+g+t) = %zd+%zd+%zd=%zd (space=%zd)\n"
+		       "       Resizing to (l+g+t) = %zd+%zd+%zd=%zd\n",
+		       ulocal, uglobal, utrail, need, space,
+		       lsize, gsize, tsize, lsize+gsize+tsize));
       } else
       { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Got stack overflow;\n"));
 	return STACK_OVERFLOW;
