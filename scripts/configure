@@ -188,7 +188,7 @@ export LDFLAGS
 
 using=
 [ -z "$CC" ]      || using+=" "CC=$CC
-[ -z "$CXX" ]     || using+=" "CXX=$CCX
+[ -z "$CXX" ]     || using+=" "CXX=$CXX
 [ -z "$CFLAGS" ]  || using+=" "CFLAGS='"'$CFLAGS'"'
 [ -z "$LDFLAGS" ] || using+=" "LDFLAGS='"'$LDFLAGS'"'
 
@@ -209,5 +209,12 @@ cat > configure << EOF
 $using cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
 EOF
 chmod +x configure
+
+# Create direnv file.  We need this to avoid resetting variables
+# when re-running cmake
+[ -z "$CC" ]      || echo "export CC=$CC"                  > .envrc
+[ -z "$CXX" ]     || echo "export CXX=$CXX"               >> .envrc
+[ -z "$CFLAGS" ]  || echo "export CFLAGS="'"'$CFLAGS'"'   >> .envrc
+[ -z "$LDFLAGS" ] || echo "export LDFLAGS="'"'$LDFLAGS'"' >> .envrc
 
 ./configure
