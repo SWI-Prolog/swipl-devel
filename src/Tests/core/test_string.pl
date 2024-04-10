@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2022, University of Amsterdam
+    Copyright (c)  2013-2024, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -85,6 +85,8 @@ test(string_lower, L == "abc") :-
 	string_lower("aBc", L).
 test(string_upper, L == "ABC") :-
 	string_upper("aBc", L).
+test(string_upper, L == "WH\u0178") :-		% Issue #1262 (iso -> wide)
+	string_upper("wh\u00ff", L).
 
 :- end_tests(string).
 

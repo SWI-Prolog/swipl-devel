@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -547,6 +547,34 @@ get_chr_from_text(const PL_chars_t *t, size_t *index)
 #define modify_case_atom(in, out, down, text_type) \
 	LDFUNC(modify_case_atom, in, out, down, text_type)
 
+static void
+modify_case_latin_1_to_wide(PL_chars_t *tin, PL_chars_t *tout, Buffer b, int down)
+{ const unsigned char *in = (const unsigned char*)tin->text.t;
+  PL_free_text(tout);
+  initBuffer(b);
+
+  if ( down )
+  { for(size_t i=0; i<tin->length; i++)
+    { wint_t c = towlower(in[i]);
+
+      addWcharBuffer(b, c);
+    }
+  } else				/* upcase */
+  { for(size_t i=0; i<tin->length; i++)
+    { wint_t c = towupper(in[i]);
+
+      addWcharBuffer(b, c);
+    }
+  }
+
+  tout->storage   = PL_CHARS_HEAP;
+  tout->text.w    = baseBuffer(b, wchar_t);
+  tout->length    = entriesBuffer(b, wchar_t);
+  tout->encoding  = ENC_WCHAR;
+  tout->canonical = FALSE;
+}
+
+
 static foreign_t
 modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 { PL_chars_t tin, tout;
@@ -597,14 +625,20 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
       { for(i=0; i<tin.length; i++)
 	{ wint_t c = towlower(in[i]);
 
-	  assert(c <= 0xff);
+	  if ( c > 0xff )
+	  { modify_case_latin_1_to_wide(&tin, &tout, (Buffer)&b, down);
+	    break;
+	  }
 	  tout.text.t[i] = (char)c;
 	}
       } else				/* upcase */
       { for(i=0; i<tin.length; i++)
 	{ wint_t c = towupper(in[i]);
 
-	  assert(c <= 0xff);
+	  if ( c > 0xff )
+	  { modify_case_latin_1_to_wide(&tin, &tout, (Buffer)&b, down);
+	    break;
+	  }
 	  tout.text.t[i] = (char)c;
 	}
       }
@@ -639,7 +673,7 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
     rc = PL_unify_text(out, 0, &tout, text_type);
     PL_free_text(&tin);
     PL_free_text(&tout);
-    if ( tin.encoding != ENC_ISO_LATIN_1 )
+    if ( tout.encoding != ENC_ISO_LATIN_1 )
       discardBuffer(&b);
 
     return rc;
