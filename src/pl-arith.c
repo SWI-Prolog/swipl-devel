@@ -1241,6 +1241,7 @@ error:
 int
 valueExpression(DECL_LD term_t expr, number *n)
 { Word p = valTermRef(expr);
+  int rc;
 
   deRef(p);
   if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
@@ -1254,7 +1255,8 @@ valueExpression(DECL_LD term_t expr, number *n)
     return TRUE;
   }
 
-  return evalExpression(expr, n);
+  EXCEPTION_GUARDED(rc=evalExpression(expr, n), rc=FALSE);
+  return rc;
 }
 
 
