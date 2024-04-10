@@ -983,7 +983,7 @@ class Prolog
     const term = this.new_term_ref();
     if ( !this.chars_to_term(goal, term) )
       throw new Error('Query has a syntax error: ' + query);
-    const q = this.query(module, flags, pred_call1, term, fid);
+    const q = this.query(module, flags, pred_call1, term, undefined, fid);
     return q.next_yieldable();
   }
 
