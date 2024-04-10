@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -49,7 +49,7 @@
 		 *******************************/
 
 #define LDFUNC_DECLARATIONS
-void		setPrologFlag(const char *name, unsigned short flags, ...);
+void		setPrologFlag(const char *name, unsigned int flags, ...);
 int		set_prolog_flag(term_t key, term_t value, unsigned short flags);
 foreign_t	pl_prolog_flag5(term_t key, term_t value,
 				term_t local, term_t access, term_t type,

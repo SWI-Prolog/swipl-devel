@@ -238,8 +238,12 @@ check_oneof_flag(const oneof *of, atom_t a, int error)
   return TRUE;
 }
 
+/* `flags` should be `unsigned short`, but may not be subject to
+ * argument promotion for use with va_start() according to clang
+ */
+
 void
-setPrologFlag(const char *name, unsigned short flags, ...)
+setPrologFlag(const char *name, unsigned int flags, ...)
 { GET_LD
   atom_t an = PL_new_atom(name);
   prolog_flag *f;
@@ -259,7 +263,7 @@ setPrologFlag(const char *name, unsigned short flags, ...)
   } else
   { f = allocHeapOrHalt(sizeof(*f));
     f->index = 0;
-    f->flags = flags;
+    f->flags = (unsigned short)flags;
     f->oneof = NULL;
     addNewHTableWP(GD->prolog_flag.table, an, f);
     first_def = TRUE;
