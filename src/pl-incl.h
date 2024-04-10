@@ -1779,7 +1779,7 @@ struct choice
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 EXCEPTION_GUARDED(code, cleanup) must be used  in environments that need
-cleanup  should  a  PL_throw()  happen.  The   most  commpn  reason  for
+cleanup  should  a  PL_throw()  happen.  The   most  common  reason  for
 PL_throw() instead of the nicely   synchronous PL_raise_exception() is a
 stack overflow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

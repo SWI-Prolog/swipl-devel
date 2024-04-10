@@ -3246,7 +3246,7 @@ PL_next_solution(DECL_LD qid_t qid)
 #endif
 
   Code PC;				/* program counter */
-  exception_frame THROW_ENV;		/* PL_thow() environment */
+  exception_frame THROW_ENV;		/* PL_throw() environment */
 
 #if O_VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
