@@ -2886,10 +2886,11 @@ make_gc_hole(Word bottom, Word top)
 
     hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
     *top = *bt = hdr;
+    DEBUG(0, assert(bt+offset_cell(bt) == top));
 
     DEBUG(MSG_GC_HOLE,
-	  Sdprintf("Created Garbage hole %p..%p, size %ld\n",
-		   bt, top+1, (long)wsize));
+	  Sdprintf("Created Garbage hole %p..%p, size %zd\n",
+		   bt, top+1, wsize));
   }
 
   return bottom;
