@@ -8,6 +8,7 @@ include(QLF)
 function(library_index)
 
 foreach(dir ${ARGN})
+  string(REGEX REPLACE "/$" "" dir ${dir})
   string(REGEX REPLACE "/" "_" dirtarget ${dir})
   set(target library_index_${dirtarget})
 
