@@ -863,11 +863,7 @@ needs_relocation(word w)
 { return ( isTerm(w) || isRef(w) || isIndirect(w) || isAtom(w) );
 }
 
-#if SIZEOF_WORD == 8
-#define PTR_SHIFT (LMASK_BITS+1)
-#else
 #define PTR_SHIFT LMASK_BITS
-#endif
 
 static word
 relocate_down(word w, size_t offset)
@@ -932,7 +928,7 @@ term_to_fastheap(DECL_LD term_t t)
   fht->relocations = addPointer(fht->data, fht->data_len*sizeof(word));
   indirects        = fht->data + (gtop-gcopy);
 
-  offset = gcopy-gBase;
+  offset = (size_t)gcopy;
   for(p=gcopy, o=fht->data, r=fht->relocations; p<gtop; p++)
   { if ( needs_relocation(*p) )
     { size_t this_rel = p-gcopy;
@@ -940,7 +936,7 @@ term_to_fastheap(DECL_LD term_t t)
       if ( isIndirect(*p) )
       { Word ip = addressIndirect(*p);
 	size_t sz = wsizeofInd(*ip)+2;
-	size_t go = gBase - (Word)base_addresses[STG_GLOBAL];
+	size_t go = 1;		/* global has one dummy cell */
 
 	memcpy(indirects, ip, sz*sizeof(word));
 	*o++ = ((go+indirects-fht->data)<<PTR_SHIFT) | tagex(*p);
@@ -991,7 +987,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
   o = gTop;
   memcpy(o, fht->data, fht->data_len*sizeof(word));
 
-  offset = o-gBase;
+  offset = (size_t)o;
   for(r = fht->relocations, p=o; *r != REL_END; r++)
   { p += *r;
     *p = relocate_up(*p, offset);
@@ -999,6 +995,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
 
   gTop += fht->data_len;
   *valTermRef(t) = makeRefG(o);
+  DEBUG(CHK_SECURE, PL_check_data(t));
 
   return TRUE;
 }

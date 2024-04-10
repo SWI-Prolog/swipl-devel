@@ -532,16 +532,23 @@ Trail(DECL_LD Word p, word v)
 }
 
 
-#define consPtrB(p, base, ts)	f_consPtr(p, (uintptr_t)(base), ts)
-#define consPtr(p, ts)		consPtrB(p, LD->bases[(ts)&STG_MASK], (ts))
-#define f_consPtr(p, base, ts) LDFUNC(f_consPtr, p, base, ts)
 static inline word
-f_consPtr(DECL_LD void *p, uintptr_t base, word ts)
-{ word v = (uintptr_t) p;
+consPtr(void *p, word ts)
+{ word v = ptr2word(p);
 
-  v -= base;
-  DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
-  return (v<<5)|ts;
+  return (v<<LMASK_BITS)|ts;
+}
+
+static inline Word
+valPtr(word w)
+{ return word2ptr(Word, w>>LMASK_BITS);
+}
+
+#define valPtr2(w, st) LDFUNC(valPtr2, w, st)
+static inline Word
+valPtr2(DECL_LD word w, int st)
+{ (void)st;
+  return valPtr(w);
 }
 
 
@@ -581,11 +588,9 @@ the global stack only once.
 static inline word
 linkValI(DECL_LD Word p)
 { word w = *p;
-  uintptr_t gb = LD->bases[STG_GLOBAL];
 
   while(isRef(w))
-  { //p = unRef(w);
-    p = (Word)valPtrB(w,gb);
+  { p = unRef(w);
     w = *p;
   }
 
@@ -594,9 +599,8 @@ linkValI(DECL_LD Word p)
   if ( !needsRef(w) )
   { return w;
   } else
-  { // return makeRefG(p);
-    DEBUG(0, assert(p<(Word)lBase));
-    return consPtrB(p, gb, TAG_REFERENCE|STG_GLOBAL);
+  { DEBUG(0, assert(p<(Word)lBase));
+    return makeRefG(p);
   }
 }
 

@@ -172,8 +172,8 @@ reference pointers to the local stack as it used to be.
 
 #define get_value(p)	(*(p) & VALUE_MASK)
 #define set_value(p, w)	{ *(p) &= GC_MASK; *(p) |= w; }
-#define val_ptr2(w, s)	((Word)((uintptr_t)valPtr2((w), (s)) & ~(uintptr_t)0x3))
-#define val_ptr(w)	val_ptr2((w), storage(w))
+#define val_ptr2(w, s)	valPtr(w)
+#define val_ptr(w)	valPtr(w)
 
 #define inShiftedArea(area, shift, ptr) \
 	((char *)ptr >= (char *)LD->stacks.area.base + shift && \
@@ -330,7 +330,6 @@ print_val(word val, char *buf)
 { GET_LD
   static const char *tag_name[] = { "var", "attvar", "float", "int", "string",
 				    "atom", "term", "ref" };
-  static const char *stg_name[] = { "static", "global", "local", "reserved" };
   static char tmp[256];
   char *o;
 
@@ -365,15 +364,25 @@ print_val(word val, char *buf)
 
     Ssprintf(o, "functor %s/%zd", stringAtom(fd->name), fd->arity);
   } else
-  { size_t offset = (size_t)((val>>(LMASK_BITS-2))/sizeof(word));
+  { Word ptr = valPtr(val);
+    char *stack = NULL;
+    size_t offset;
 
-    if ( storage(val) == STG_GLOBAL )
-      offset -= gBase - (Word)base_addresses[STG_GLOBAL];
+    if ( onStackArea(local, ptr) )
+    { stack = "local";
+      offset = ptr - (Word)lBase;
+    } else if ( onStackArea(global, ptr) )
+    { stack = "global";
+      offset = ptr - gBase;
+    } else if ( onStackArea(trail, ptr) )
+    { stack = "trail";
+      offset = ptr - (Word)tBase;
+    }
 
-    Ssprintf(o, "%s at %s(%zd)",
-	     tag_name[tag(val)],
-	     stg_name[storage(val) >> 3],
-	     offset);
+    if ( stack )
+      Ssprintf(o, "%s at %s(%zd)", tag_name[tag(val)], stack, offset);
+    else
+      Ssprintf(o, "%s at %p (no stack)", tag_name[tag(val)], ptr);
   }
 
   return buf;
@@ -1481,7 +1490,8 @@ mergeTrailedAssignments(DECL_LD TrailEntry top, TrailEntry mark,
   LD->cycle.vstack.unit_size = sizeof(Word);
 
   DEBUG(MSG_GC_ASSIGNMENTS,
-	Sdprintf("Scanning %d trailed assignments\n", assignments));
+	Sdprintf("Scanning %d trailed assignments in %zd..%zd\n",
+		 assignments, mark-tBase, top-tBase));
 
   for(te=mark; te <= top; te++)
   { Word p = val_ptr(te->as_word);
@@ -1501,11 +1511,9 @@ mergeTrailedAssignments(DECL_LD TrailEntry top, TrailEntry mark,
       { mark_first(p);
 	push_marked(p);
       }
-    } else
-    { if ( is_first(p) )
-      { te->as_word = 0;
-	trailcells_deleted++;
-      }
+    } else if ( p && is_first(p) )
+    { te->as_word = 0;
+      trailcells_deleted++;
     }
   }
 
@@ -2628,8 +2636,9 @@ update_relocation_chain(DECL_LD Word current, Word dest)
   word val = get_value(current);
 
   DEBUG(MSG_GC_RELOC,
-	Sdprintf("unwinding relocation chain at %p to %p\n",
-		 current, dest));
+	char b1[64]; char b2[64];
+	Sdprintf("unwinding relocation chain at %s to %s\n",
+		 print_addr(current, b1), print_addr(dest, b2)));
 
   do
   { int tag;
@@ -2640,10 +2649,12 @@ update_relocation_chain(DECL_LD Word current, Word dest)
     val = get_value(current);
     DEBUG(MSG_GC_RELOC,
 	  { FliFrame f;
+	    char b1[64];
 
 	    f = addPointer(current, - offset(fliFrame, mark.trailtop));
 	    if ( onStack(local, f) && f->magic == FLI_MAGIC )
-	      Sdprintf("Updating trail-mark of foreign frame at %p\n", f);
+	      Sdprintf("Updating trail-mark of foreign frame at %s\n",
+		       print_addr((Word)f, b1));
 	  });
     set_value(current, makePtr(dest, tag));
     relocated_cell(current);
@@ -2664,8 +2675,9 @@ into_relocation_chain(DECL_LD Word current, int stg)
   set_value(head, consPtr(current, stg|tag(val)));
 
   DEBUG(MSG_GC_RELOC,
-	Sdprintf("Into relocation chain: %p (head = %p)\n",
-		 current, head));
+	char b1[64]; char b2[64];
+	Sdprintf("Into relocation chain: %s (head = %s)\n",
+		 print_addr(current, b1), print_addr(head, b2)));
 
   if ( is_first(head) )
     mark_first(current);
@@ -2746,7 +2758,8 @@ tag_trail(DECL_LD)
 
       DEBUG(CHK_SECURE, assert(onStack(global, p2)));
       te->as_word = consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
-      //DEBUG(SECURE_CHK, assert(te == tBase || !isTrailVal(te[-1].address)));
+      DEBUG(MSG_GC_ASSIGNMENTS,
+	    Sdprintf("Trailed assignment at %zd\n", te-tBase-1));
     } else
     { if ( onLocal(te->address) )
       { stg = STG_LOCAL;
@@ -2985,7 +2998,7 @@ sweep_foreign(void)
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
-    int n = fr->size;
+    size_t n = fr->size;
 
     FLI_ASSERT_VALID(fr);
 
@@ -3269,9 +3282,13 @@ is_downward_ref(DECL_LD Word p)
   { case TAG_INTEGER:
       if ( storage(val) == STG_INLINE )
 	fail;
-    case TAG_ATTVAR:
     case TAG_STRING:
     case TAG_FLOAT:
+      if ( storage(val) != STG_GLOBAL )
+      { assert(storage(val) == STG_LOCAL);
+	fail;
+      }
+    case TAG_ATTVAR:
     case TAG_REFERENCE:
     case TAG_COMPOUND:
     { Word d = val_ptr(val);
@@ -3294,9 +3311,13 @@ is_upward_ref(DECL_LD Word p)
   { case TAG_INTEGER:
       if ( storage(val) == STG_INLINE )
 	fail;
-    case TAG_ATTVAR:
     case TAG_STRING:
     case TAG_FLOAT:
+      if ( storage(val) != STG_GLOBAL )
+      { assert(storage(val) == STG_LOCAL);
+	fail;
+      }
+    case TAG_ATTVAR:
     case TAG_REFERENCE:
     case TAG_COMPOUND:
     { Word d = val_ptr(val);
@@ -3922,7 +3943,7 @@ scan_global(int flags)
   int marked = (flags & TRUE);
   int regstart = start_map && (flags & REGISTER_STARTS) != 0;
 
-  for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
+  for( current = gBase; current < gTop; current = next )
   { size_t offset;
 
     if ( regstart )
@@ -3968,6 +3989,14 @@ scan_global(int flags)
 	{ char b1[64], b2[64];
 
 	  Sdprintf("ERROR: ref at %s not on global (*=%s)\n",
+		   print_addr(current, b1), print_val(*current, b2));
+	  trap_gdb();
+	}
+      } else if ( isIndirect(*current) )
+      { if ( !onStack(global, valIndirectP(*current)) )
+	{ char b1[64], b2[64];
+
+	  Sdprintf("ERROR: indirect at %s not on global (*=%s)\n",
 		   print_addr(current, b1), print_val(*current, b2));
 	  trap_gdb();
 	}
@@ -4746,6 +4775,23 @@ Memory management description.
 #define update_pointer(p, offset) \
 	do { if ( *p ) *p = addPointer(*p,offset); } while(0)
 
+static inline void
+update_wpointer(Word p, intptr_t offset)
+{ Word ptr = valPtr(*p);
+  word ts  = tagex(*p);
+
+  ptr = addPointer(ptr, offset);
+  *p = consPtr(ptr, ts);
+}
+
+
+static void
+update_gpointer(Word p, intptr_t gs)
+{ word w = *p;
+
+  if ( storage(w) == STG_GLOBAL && tag(w) != TAG_ATOM )
+    update_wpointer(p, gs);
+}
 
 		 /*******************************
 		 *	   LOCAL STACK		*
@@ -4791,6 +4837,26 @@ update_lg_pointer(DECL_LD Word *p, intptr_t ls, intptr_t gs)
 
 #define update_environments(fr, ls, gs) LDFUNC(update_environments, fr, ls, gs)
 
+static void
+update_arguments(LocalFrame fr, intptr_t gs)
+{ Word sp = argFrameP(fr, 0);
+  int slots = fr->predicate->functor->arity;
+
+  for( ; slots-- > 0; sp++ )
+    update_gpointer(sp, gs);
+}
+
+static void
+update_trie_gen(LocalFrame fr, intptr_t gs)
+{ Word   sp = argFrameP(fr, 0);
+  Clause cl = fr->clause->value.clause;
+  int    mv = cl->prolog_vars;
+
+  for(; mv-- > 0; sp++)
+    update_gpointer(sp, gs);
+}
+
+
 static QueryFrame
 update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
 { if ( fr == NULL )
@@ -4825,6 +4891,19 @@ update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
       }
 
       DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
+    }
+    if ( gs )
+    { if ( true(fr->predicate, P_FOREIGN) || !fr->clause )
+      { update_arguments(fr, gs);
+      } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN2) ||
+		fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN3) )
+      { update_trie_gen(fr, gs);
+      } else
+      { Word sp = argFrameP(fr, 0);
+
+	for(size_t i = fr->clause->value.clause->prolog_vars; i-- > 0; sp++)
+	  update_gpointer(sp, gs);
+      }
     }
 
     if ( fr->parent )
@@ -4875,6 +4954,18 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 }
 
 
+static void
+update_new_arguments(vm_state *state, intptr_t gs)
+{ if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
+    int slots = state->new_args;
+
+    for( ; slots-- > 0; sp++ )
+      update_gpointer(sp, gs);
+  }
+}
+
+
 		 /*******************************
 		 *	  ARGUMENT STACK	*
 		 *******************************/
@@ -4920,6 +5011,20 @@ update_trail(TrailEntry tb, intptr_t ls, intptr_t gs)
 
 
 		 /*******************************
+		 *         GLOBAL STACK         *
+		 *******************************/
+
+static void
+update_global(Word tb, intptr_t gs)
+{ GET_LD
+  Word current = tb;			/* new base */
+  Word top = current+(gTop-gBase);	/* new top */
+
+  for( ; current < top; current += (offset_cell(current)+1) )
+    update_gpointer(current, gs);
+}
+
+		 /*******************************
 		 *	  FOREIGN FRAMES	*
 		 *******************************/
 
@@ -4929,9 +5034,15 @@ update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
   FliFrame fr = addPointer(fli_context, ls);
 
   for( ; fr; fr = fr->parent )
-  { if ( isRealMark(fr->mark) )
+  { Word sp = refFliP(fr, 0);
+    size_t n = fr->size;
+
+    if ( isRealMark(fr->mark) )
       update_mark(&fr->mark, gs, ts);
     update_pointer(&fr->parent, ls);
+
+    for(; n-- > 0; sp++ )
+      update_gpointer(sp, gs);
   }
 }
 
@@ -4951,6 +5062,16 @@ update_gvars(intptr_t gs)
   }
   if ( LD->attvar.attvars )
   { update_pointer(&LD->attvar.attvars, gs);
+  }
+
+  if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
+  { FOR_TABLE(LD->gvar.nb_vars, n, v)
+    { word w = (word)v;
+
+      update_gpointer(&w, gs);
+      if ( w != (word)v )
+	updateHTable(LD->gvar.nb_vars, n, w);
+    }
   }
 }
 
@@ -5033,8 +5154,10 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     assert(choice_count == 0);
 
     if ( gs || ls )
-    { update_argument(ls, gs);
+    { update_new_arguments(state, gs);
+      update_argument(ls, gs);
       update_trail(tb, ls, gs);
+      update_global(gb, gs);
     }
     update_foreign(ts, ls, gs);
     if ( gs )
@@ -5043,10 +5166,6 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     updateStackHeader(local,  ls);
     updateStackHeader(global, gs);
     updateStackHeader(trail,  ts);
-
-    base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
-    base_addresses[STG_GLOBAL] = (uintptr_t)(gBase-1); /* MARK_MASK */
-    base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   }
 
   if ( ls )
@@ -5269,11 +5388,6 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   PL_clearsig(SIG_GC);
 
   get_vmi_state(LD->query, &state);
-  DEBUG(CHK_SECURE,
-	{ gBase++;
-	  checkStacks(&state);
-	  gBase--;
-	});
 
   { TrailEntry tb = tBase;
     Word gb = gBase;

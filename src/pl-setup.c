@@ -1463,20 +1463,10 @@ initPrologStacks(size_t limit)
   LD->stacks.trail.overflow_id    = TRAIL_OVERFLOW;
   LD->stacks.argument.overflow_id = ARGUMENT_OVERFLOW;
 
-  base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
-  base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
-  base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   *gBase++ = MARK_MASK;			/* see sweep_global_mark() */
   gMax--;				/*  */
   tMax--;
   emptyStacks();
-
-  DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
-		    base_addresses[STG_LOCAL]));
-  DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
-		    base_addresses[STG_GLOBAL]));
-  DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
-		    base_addresses[STG_TRAIL]));
 
   return TRUE;
 }
