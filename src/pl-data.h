@@ -279,8 +279,17 @@ and while loading .wic files.  It comes at no price.
 
 #define PADMASK (sizeof(word)-1)
 
-#define mkIndHdr(n, t)	(((n)<<(LMASK_BITS+PADBITS)) | (t) | STG_LOCAL)
-#define wsizeofInd(iw)	((size_t)((iw)>>(LMASK_BITS+PADBITS)))
+static inline word
+mkIndHdr(size_t size, int tag)
+{ word w = size;
+  return (w<<(LMASK_BITS+PADBITS))|tag|STG_LOCAL;
+}
+
+static inline size_t
+wsizeofInd(word w)
+{ return (size_t)(w>>(LMASK_BITS+PADBITS));
+}
+
 #define addressIndirect(w) valPtr(w)
 #define valIndirectP(w)	(((Word)valPtr(w))+1)
 
