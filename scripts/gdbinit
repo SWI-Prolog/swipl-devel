@@ -51,7 +51,12 @@ define pl-tid
 end
 
 define ninja
-  shell ninja
+  if $argc == 0
+    shell ninja
+  end
+  if $argc == 1
+    shell ninja $arg0
+  end
 end
 
 # Re-run the current program until it  crashes. Not SWI-Prolog specific,
