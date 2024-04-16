@@ -20,6 +20,9 @@ handle SIGTERM noprint nostop pass
 set print thread-events off
 set print inferior-events off
 
+#  Fedora debug info daemon.  See https://debuginfod.fedoraproject.org/
+set debuginfod enabled on
+
 # Allow debugging ASAN events.
 set environment ASAN_OPTIONS=abort_on_error=1
 
