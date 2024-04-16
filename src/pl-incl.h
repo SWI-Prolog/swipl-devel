@@ -1039,10 +1039,10 @@ with one operation, it turns out to be faster as well.
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
 				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
-#define P_MODIFIED		P_DIRTYREG
-#define P_NEW			SPY_ME
-#define P_NO_CLAUSES		TRACE_ME
-#define P_CHECK_SSU		HIDE_CHILDS
+#define P_MODIFIED	      (0x1000000000LL) /* Clause list as modified */
+#define P_NEW		      (0x2000000000LL) /* New predicate */
+#define P_NO_CLAUSES	      (0x4000000000LL) /* Foreign or thread local */
+#define P_CHECK_SSU	      (0x8000000000LL) /* Check mixed => and :- */
 
 /* Flags on clauses (unsigned int) */
 
