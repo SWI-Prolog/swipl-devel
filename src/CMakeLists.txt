@@ -343,6 +343,16 @@ endforeach()
 unset(varname)
 unset(varnames)
 
+if(SWIPL_INSTALL_IN_LIB)
+  if(CMAKE_INSTALL_LIBDIR)
+    set(LIBSWIPL_DIR ${CMAKE_INSTALL_LIBDIR})
+  else()
+    set(LIBSWIPL_DIR lib)
+  endif()
+else()
+  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
+endif()
+
 # Configure some data files.  Uses a function because these
 # files use old-style variable names and we want to avoid these
 # leaking into the cmake environment.
@@ -594,16 +604,6 @@ endfunction()
 
 if(INSTALL_TESTS)
 install_tests()
-endif()
-
-if(SWIPL_INSTALL_IN_LIB)
-  if(CMAKE_INSTALL_LIBDIR)
-    set(LIBSWIPL_DIR ${CMAKE_INSTALL_LIBDIR})
-  else()
-    set(LIBSWIPL_DIR lib)
-  endif()
-else()
-  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
 endif()
 
 # Populate parms.h, making the compilation environment known to Prolog
