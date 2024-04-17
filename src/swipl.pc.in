@@ -1,6 +1,6 @@
 prefix=@prefix@
 exec_prefix=${prefix}
-libdir=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_ARCH_LIB@
+libdir=@CMAKE_INSTALL_PREFIX@/@LIBSWIPL_DIR@
 includedir=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_INCLUDE@
 
 Name: swipl
