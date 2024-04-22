@@ -129,7 +129,6 @@ Marking, testing marks and extracting values from GC masked words.
 #define VALUE_MASK	(~GC_MASK)
 
 #if O_DEBUG
-char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__)
 #define relocated_cell(p) do_relocated_cell(p)
 #define recordMark(p) LDFUNC(recordMark, p)
@@ -156,11 +155,6 @@ Whereas in the rest of the system reference pointers always point at the
 global stack, GC needs to reverse pointers   and  thus be able to create
 reference pointers to the local stack as it used to be.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#undef makeRef
-#undef unRef
-#define makeRef(p)	((void*)p >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
-#define unRef(w)	((Word)valPtr(w))
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( is_marked(p) ) \
@@ -895,7 +889,7 @@ forward:				/* Go into the tree */
       if ( is_first(next) )		/* ref to choice point. we will */
 	BACKWARD;			/* get there some day anyway */
       val  = get_value(next);		/* invariant */
-      set_value(next, makeRef(current));/* create backwards pointer */
+      set_value(next, makeRefLG(current));/* create backwards pointer */
       DEBUG(MSG_GC_MARK_VAR_WALK,
 	    Sdprintf("Marking REF from %p to %p\n", current, next));
       current = next;			/* invariant */
@@ -978,7 +972,7 @@ backward:				/* reversing backwards */
     set_value(current, val);
     switch(t)
     { case TAG_REFERENCE:
-	val = makeRef(current);
+	val = makeRefLG(current);
 	break;
       case TAG_COMPOUND:
 	val = makePtr(current-1, t);
