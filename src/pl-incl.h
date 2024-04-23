@@ -2149,7 +2149,7 @@ Temporary store/restore pointers to make them safe over GC/shift
 			     *valTermRef(LD->tmp.h[i]) = makeRefLG(p); \
 			   } while(0)
 #define PopPtr(p)	do { int i = --LD->tmp.top; \
-			     p = unRefLG(*valTermRef(LD->tmp.h[i])); \
+			     p = unRef(*valTermRef(LD->tmp.h[i])); \
 			     setVar(*valTermRef(LD->tmp.h[i])); \
 			   } while(0)
 #define PushVal(w)	do { int i = LD->tmp.top++; \

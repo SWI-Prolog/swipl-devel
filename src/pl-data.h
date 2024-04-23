@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2020, University of Amsterdam
+    Copyright (c)  1996-2024, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,30 +35,34 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Aim
-===
+This file provides the access macros and inline functions for all Prolog
+data. As of version 9.3.4, all Prolog data   is of type `word`, which is
+64 bits, also on 32-bit hardware. The  current data representation is an
+_intermediate_ between the 32/64 bit  model   of  previous  versions and
+taking full advantage of the 64 bit space. Notably, where older versions
+used _relative_ addresses with a _storage_   tag  that tells relative to
+which memory area, the current version uses _absolute_ addresses.
 
-Flexibel adaption to different memory model.   Possible  to make `clean'
-programs, i.e. programs that donot make assumptions on the memory model.
-The latter appears necessary on some systems to put Prolog into a DLL.
+Tags
+====
 
-Fast comparison and checking. The hope  is   that  the  result will have
-comparable or better speed.
+Tags are stored in the low bits.  This allows extracting the value using
+a single shift and creating a tagged version as a shift+bitwise-or.
 
-Approach
-========
+We need type and GC bits. GC requires   two bits: the `MARK` bit is used
+to mark that data  is  accessible  and   the  `FIRST`  plays  two roles:
+indicate the _head of a relocation chain_ and   the end of a range while
+traversing the graph of linked Prolog data. These two bits are zero when
+not in GC and are used by  many   algorithms  on  terms to avoid cycles,
+avoid processing terms twice, etc.
 
-	* No direct pointers in Prolog machine words anymore
-
-	* Tags in the low bits to exploit SPARC and possible other
-	  machines fixed-width instruction, so masks can be loaded
-	  in one instead of two instructions.
-
-	* Explicit encoding of the `user' data-types in the word,
-	  so PL_term_type() can be much faster.
-
-	* Explicit encoding of the storage regime used, so more code
-	  can be generic.
+The type currently consists of a combination of type and _storage_ mask.
+The latter was used to indicate the   memory  area of the (old) relative
+pointer, but still keeps its role  as   type  indication. For example, a
+string is represented as `TAG_STRING|STG_GLOBAL`   as Prolog data, while
+the string itself is stored on the  global stack guarded by an _indirect
+guard_ tagged as `TAG_STRING|STG_LOCAL`. Future   versions  will combine
+these and reorganise the tag space.
 
 Types:
 ======
@@ -66,55 +71,75 @@ Sorted to standard order of terms:
 
 Storage places:
 
-	S	Static (global variable)
-	L	Local
-	G	Global
-	T	Trail
-	-	Inline
+	S (00)	Static/inline/trail
+	L (10)	Local stack
+	G (01)	Global stack
+	T (00)	Trail stack
+	- (00)	Inline
 
-	      INDEX  STORAGE  L  G  T  S  -  I
--------------------------------------------------------------
-Var		0      -                 00
-Integer		1      G-       01       00
-Float		2      G        01
-Atom		3      S              00
-String		4      G        01
-List		5      G        01
-Term		6      G        01
-Reference	7      LG    10 01
-----------------------------------------------------------------
-
-Adding 2 bits for the garbage collector, this adds up to 7-bits tag info,
-leaving us with 32-7 is 25 bits data, or:
-
-	* Tagged ints from -16M to +16M
-	* 128 MB per memory area, assuming all data is 4-byte aligned.
-
-Giving this, stacks can be freely shifted!
+	      INDEX  STORAGE
+----------------------------
+Var		0      -
+Integer		1      G-
+Float		2      G
+Atom		3      S
+String		4      G
+List		5      G
+Term		6      G
+Reference	7      LG
+-----------------------------
 
 Bit layout
 ==========
 
-	* Value are the top-bits, so extracting the value is just a
-	  shift.
+ - Value are the top-bits, so extracting the value is just a
+   shift.
 
-	* GC masks follow, so, as they are normally both 0, shifting
-	  suffices for this too.
+ - GC masks follow, so, as they are normally both 0, shifting
+   suffices for this too.
 
-	* Type is the low 3-bits, so a simple mask yields the type.
+ - Type is the low 3-bits, so a simple mask yields the type.
 
-	* Storage in bits 4 and 5
+ - Storage in bits 4 and 5
+
+Variables
+=========
+
+SWI-Prolog uses the `word` 0 for a  Prolog variable. Unlike most systems
+that create a variable as a  _self   reference_.  The  advantage of self
+references is that you can always pass Prolog data as a `word` (i.e., by
+value). In SWI-Prolog we typically pass `Word`,   a  pointer to a `word`
+or, when robustness against GC/SHIFT is  required, as `term_t`, which is
+an offset to the local stack where we can find the `word`.
+
+The advantage of this approach is  that  we   can  use  the _value_ of a
+variable for making annotations about  it   in  many  algorithms such as
+copy_term/2, variant/2, etc.
+
+Global stack data
+=================
+
+ - Terms (compound) uses <functor_t, word*>, where functor_t
+   uses `TAG_ATOM|STG_GLOBAL`.
 
 Indirect data
-=============
+-------------
 
-	* Using normal tag, but the storage-specifier is 0x3 (11).  Tag
-	  is only INTEGER, STRING or FLOAT
+Data that is too big to fit  in   a  64 bit `word` is called _indirect_.
+This is stored on the global stack  as   a  binary  blob, guarded by two
+equal quard words. The guards indicate the  type and length of the blob.
+The guards are required for GC to be   able  to enumerate the objects on
+the stack both upward and downward.
 
-	* Using value: size in words of the object * 4
+ - Using normal tag, but the storage-specifier is STG_LOCAL.  Tag
+   is only INTEGER, STRING or FLOAT
 
-	* String uses the low-order 2 bits for specifying the amount of
-	  padding bytes (0-3, 0 means 4).
+ - Using value: size in words of the object * 8
+
+ - String uses the low-order 3 bits for specifying the amount of
+   padding bytes (0-7, 0 means 8).  Note that we cannot store the
+   size in bytes instead as this would get a rounded down word-size
+   of the blob while the size needs to be rounded up.
 
 NOTE: the tag-numbers are  mapped  to   public  constants  (PL_*) in the
 type_map array in pl-fli.c.  Make  sure   this  is  consistent  with the
@@ -224,7 +249,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define isRef(w)	(tag(w) == TAG_REFERENCE)
-#define unRef(w)	((Word)valPtr2(w, STG_GLOBAL))
+#define unRef(w)	valPtr(w)
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef(d); }
 #define makeRefG(p)	consPtr(p, TAG_REFERENCE|STG_GLOBAL)
@@ -237,7 +262,6 @@ and while loading .wic files.  It comes at no price.
 /* We use local references during GC and shift */
 #define makeRefLok(p)	consPtr(p, TAG_REFERENCE|STG_LOCAL)
 #define makeRefLG(p)	((void*)(p) >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
-#define unRefLG(w)	((Word)valPtr(w))
 
 
 		 /*******************************
@@ -246,7 +270,7 @@ and while loading .wic files.  It comes at no price.
 
 #define functorTerm(w)	word2functor(valueTerm(w)->definition)
 #define arityTerm(w)	arityFunctor(valueTerm(w)->definition)
-#define valueTerm(w)	((Functor)valPtr2(w, STG_GLOBAL))
+#define valueTerm(w)	((Functor)valPtr(w))
 #define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f))
 #define argTerm(w, n)	(valueTerm(w)->arguments[n])
 #define argTermP(w, n)	(&argTerm(w, n))
@@ -259,7 +283,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define isAttVar(w)	(tag(w) == TAG_ATTVAR)
-#define valPAttVar(w)	((Word)valPtr2(w, STG_GLOBAL))
+#define valPAttVar(w)	valPtr(w)
 
 #define canBind(w)	needsRef(w)
 
@@ -270,11 +294,10 @@ and while loading .wic files.  It comes at no price.
 
 #if SIZEOF_WORD == 8
 #define PADBITS 3
-#elif SIZEOF_WORD == 4
-#define PADBITS 2
-#endif
-
 #define PADMASK (sizeof(word)-1)
+#else
+#error "Word must be 8 bytes"
+#endif
 
 static inline word
 mkIndHdr(size_t size, int tag)
@@ -287,14 +310,14 @@ wsizeofInd(word w)
 { return (size_t)(w>>(LMASK_BITS+PADBITS));
 }
 
-#define addressIndirect(w) valPtr(w)
-#define valIndirectP(w)	(((Word)valPtr(w))+1)
+#define addressIndirect(w)	valPtr(w)		/* Pointer to start guard */
+#define valIndirectP(w)		(((Word)valPtr(w))+1)	/* Pointer to the blob data */
 
-#define padHdr(iw)	((size_t)(((iw)>>LMASK_BITS & PADMASK) ?	\
-				  ((iw)>>LMASK_BITS & PADMASK) : sizeof(word)))
-#define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
-#define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
-#define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))
+#define padHdr(iw)		((size_t)(((iw)>>LMASK_BITS & PADMASK) ?	\
+					  ((iw)>>LMASK_BITS & PADMASK) : sizeof(word)))
+#define mkPadHdr(n)		(((n)&PADMASK) << LMASK_BITS)
+#define mkBlobHdr(n,pad,tag)	(mkIndHdr(n, tag)|mkPadHdr(pad))
+#define wsizeofIndirect(w)	(wsizeofInd(*addressIndirect(w)))
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
 

@@ -1616,7 +1616,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		  DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
 		  bp = allocFromBuffer(&buf, sizeof(word)*(lw+1));
 		  s = (char *)&bp[1];
-		  *bp = mkStrHdr(lw, pad);
+		  *bp = mkBlobHdr(lw, pad, TAG_STRING);
 		  bp += lw;
 		  *bp++ = 0L;
 		  *s++ = 'B';
@@ -1628,7 +1628,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		  size_t  bs = (l+1)*sizeof(pl_wchar_t);
 		  size_t  lw = (bs+sizeof(word))/sizeof(word);
 		  int    pad = (lw*sizeof(word) - bs);
-		  word	   m = mkStrHdr(lw, pad);
+		  word	   m = mkBlobHdr(lw, pad, TAG_STRING);
 		  IOENC oenc = fd->encoding;
 
 		  DEBUG(MSG_QLF_VMI,

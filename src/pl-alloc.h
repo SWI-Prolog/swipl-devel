@@ -90,7 +90,7 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define	allocGlobal(words)			LDFUNC(allocGlobal, words)
 #define	allocGlobalNoShift(words)		LDFUNC(allocGlobalNoShift, words)
 #define	f_pushArgumentStack(p)			LDFUNC(f_pushArgumentStack, p)
-#define	allocString(len)			LDFUNC(allocString, len)
+#define	globalBlob(len, tag)			LDFUNC(globalBlob, len, tag)
 #define globalString(len, s)			LDFUNC(globalString, len, s)
 #define globalWString(len, s)			LDFUNC(globalWString, len, s)
 #define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
@@ -119,7 +119,7 @@ Word		allocGlobal(size_t words);
 Word		allocGlobalNoShift(size_t words);
 void		f_pushArgumentStack(Word p);
 void		initMemAlloc(void);
-Word		allocString(size_t len);
+Word		globalBlob(size_t len, int tag);
 word		globalString(size_t len, const char *s);
 word		globalWString(size_t len, const pl_wchar_t *s);
 char *		getCharsString(word w, size_t *len);

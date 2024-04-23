@@ -960,7 +960,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	size_t scode = sizeOfBuffer(&data.info.code);
 	Word p;
 
-	if ( (p=allocString(shdr+scode+1)) )
+	if ( (p=globalBlob(shdr+scode+1, TAG_STRING)) )
 	{ char *q = (char *)&p[1];
 	  word w  = consPtr(p, TAG_STRING|STG_GLOBAL);
 
@@ -1466,10 +1466,10 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	int pad;
 	word hdr;
 
-	lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
+	lw = (len+sizeof(word))/sizeof(word); /* see globalBlob() */
 	pad = (lw*sizeof(word) - len);
 	*p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
-	*b->gstore++ = hdr = mkStrHdr(lw, pad);
+	*b->gstore++ = hdr = mkBlobHdr(lw, pad, TAG_STRING);
 	b->gstore[lw-1] = 0L;		/* zero-padding */
 	fetchChars(b, len, b->gstore);
 	b->gstore += lw;

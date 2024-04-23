@@ -844,19 +844,28 @@ newTerm(void)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-To distinguish between byte and wide strings,   the system adds a 'B' or
-'W' in front of the real string. For   a  'W', the following 3 bytes are
-ignored to avoid alignment restriction problems.
+Allocate a  blob of non-word  aligned size,  given the size  in bytes.
+Note that  that last word is  zeroed to make sure  possible padding is
+zero  and canonical  and strings  are 0-terminated  (they may  contain
+internal zeros).
 
-Note that these functions can trigger GC
+TBD: This function  ensures there is at least one  0 byte that follows
+the data.  That  is good for strings,  but not if we want  to use this
+for non-null terminated  data.  If you want to fix  this, take care of
+strings  as  they  live  in   code,  records  and  .QLF  files.   Also
+getCharsString() and getCharsWString() must  be updated to compute the
+correct length.
+
+This function calls allocGlobal() and thus  may cause a stack shift or
+garbage collect.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-allocString(DECL_LD size_t len)
+globalBlob(DECL_LD size_t len, int tag)
 { size_t lw = (len+sizeof(word))/sizeof(word);
   int pad = (int)(lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
-  word m = mkStrHdr(lw, pad);
+  word m = mkBlobHdr(lw, pad, tag);
 
   if ( !p )
     return NULL;
@@ -869,9 +878,18 @@ allocString(DECL_LD size_t len)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+To distinguish between byte and wide strings, the system adds a 'B' or
+'W'  in  front   of  the  real  string.  For  a   'W',  the  following
+sizeof(wchar_t)-1  bytes are  ignored to  avoid alignment  restriction
+problems.
+
+Note that these functions can trigger GC
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 globalString(DECL_LD size_t len, const char *s)
-{ Word p = allocString(len+1);
+{ Word p = globalBlob(len+1, TAG_STRING);
 
   if ( p )
   { char *q = (char *)&p[1];
@@ -907,7 +925,7 @@ globalWString(DECL_LD size_t len, const pl_wchar_t *s)
   if ( p == e )				/* 8-bit string */
   { unsigned char *t;
 
-    if ( !(g = allocString(len+1)) )
+    if ( !(g = globalBlob(len+1, TAG_STRING)) )
       return 0;
     t = (unsigned char *)&g[1];
     *t++ = 'B';
@@ -917,7 +935,7 @@ globalWString(DECL_LD size_t len, const pl_wchar_t *s)
   { char *t;
     pl_wchar_t *w;
 
-    if ( !(g = allocString((len+1)*sizeof(pl_wchar_t))) )
+    if ( !(g = globalBlob((len+1)*sizeof(pl_wchar_t), TAG_STRING)) )
       return 0;
     t = (char *)&g[1];
     w = (pl_wchar_t*)t;

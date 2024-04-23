@@ -715,7 +715,7 @@ last_arg:
     if ( storage(*p) == STG_LOCAL ) /* PushPtr()/PopPtr() reference? */
     { for(int i=0; i<LD->tmp.top; i++)
       { if ( valTermRef(LD->tmp.h[i]) == p )
-	{ p2 = unRefLG(*p);	    /* Yes */
+	{ p2 = unRef(*p);
 	  goto deref_ok;
 	}
       }

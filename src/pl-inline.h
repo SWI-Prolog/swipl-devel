@@ -544,14 +544,6 @@ valPtr(word w)
 { return word2ptr(Word, w>>LMASK_BITS);
 }
 
-#define valPtr2(w, st) LDFUNC(valPtr2, w, st)
-static inline Word
-valPtr2(DECL_LD word w, int st)
-{ (void)st;
-  return valPtr(w);
-}
-
-
 #if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
 #define valFloat(w) (*(double *)valIndirectP(w))
 #else
@@ -584,9 +576,8 @@ checking (unless compiled for debugging) and fetches the base address of
 the global stack only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define linkValI(p) LDFUNC(linkValI, p)
 static inline word
-linkValI(DECL_LD Word p)
+linkValI(Word p)
 { word w = *p;
 
   while(isRef(w))
