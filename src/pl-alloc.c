@@ -1019,8 +1019,7 @@ put_double(DECL_LD Word at, double d, int flags)
 
 int
 equalIndirect(word w1, word w2)
-{ GET_LD
-  Word p1 = addressIndirect(w1);
+{ Word p1 = addressIndirect(w1);
   Word p2 = addressIndirect(w2);
 
   if ( *p1 == *p2 )

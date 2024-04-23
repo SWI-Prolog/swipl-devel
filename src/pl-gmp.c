@@ -642,8 +642,7 @@ get_mpq_from_stack(Word p, mpq_t mpq)
 
 void
 get_bigint(word w, Number n)
-{ GET_LD
-  Word p = addressIndirect(w);
+{ Word p = addressIndirect(w);
 
   DEBUG(0, assert(storage(w) != STG_INLINE));
 
@@ -852,8 +851,7 @@ by N bytes in big endian notation.
 
 char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
-{ GET_LD
-  int size = 0;
+{ int size = 0;
   size_t limbsize;
   size_t wsize;
   int neg;
@@ -887,8 +885,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
 
 char *
 loadMPQFromCharp(const char *data, Word r, Word *store)
-{ GET_LD
-  int num_size;
+{ int num_size;
   int den_size;
   size_t num_limbsize, num_wsize;
   size_t den_limbsize, den_wsize;
