@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -3292,7 +3292,7 @@ term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
       if ( !(v = PL_new_term_ref_noshift()) )
 	return TV_NOSPACE;
       *valTermRef(v) = makeRefG(p);
-      if ( (flags&TV_ATTS) )
+      if ( (flags&TV_ATTS) && isAttVar(w) )
       { Word p2 = valPAttVar(w);
 	deRef2(p2, p);
 	goto again;
