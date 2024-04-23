@@ -5331,13 +5331,13 @@ again:
     }
 
     PC = findCatchExit();
-    { word lSafe = consTermRef(lTop);
-      lTop = (LocalFrame)argFrameP(lTop, 1);
-      ARGP = (Word)lTop;
+    { LD->query->next_environment = lTop;
+      ARGP = argFrameP(lTop, 1);
       SAVE_REGISTERS(QID);
       resumeAfterException(TRUE, outofstack);
       LOAD_REGISTERS(QID);
-      lTop = (LocalFrame)valTermRef(lSafe);
+      LD->query->next_environment = NULL;
+      DEBUG(CHK_SECURE, checkData(argFrameP(lTop, 0)));
     }
 
     VMI_GOTO(I_USERCALL0);
