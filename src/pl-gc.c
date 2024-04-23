@@ -3064,6 +3064,8 @@ unsweep_stacks(DECL_LD vm_state *state)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Sweeping the local and trail stack to insert necessary pointers  in  the
 relocation chains.
+
+Note that the trail is "tagged" (see tag_trail) if we get here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -3072,8 +3074,8 @@ sweep_trail(void)
   TrailEntry te = tTop - 1;
 
   for( ; te >= tBase; te-- )
-  { if ( te->address )
-    { te->as_word = ptr2word(te->address);
+  { if ( te->as_word )
+    {
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
       if ( ttag(te->as_word) == TAG_TRAILVAL )
       { needsRelocation(&te->as_word);
