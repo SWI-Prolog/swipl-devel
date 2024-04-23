@@ -5609,20 +5609,21 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	  case CHECK_INTERRUPT:
 	  { term_t lTopH = consTermRef(lTop);
 
+	    LD->query->next_environment = NFR;
 	    lTop = (LocalFrame)argFrameP(NFR, 1);
 	    SAVE_REGISTERS(QID);
 	    if ( rc == LOCAL_OVERFLOW )
 	    { size_t room = roomStack(local);
 	      rc = growLocalSpace(room*2, ALLOW_SHIFT);
 	    } else
-	    { if ( PL_handle_signals() < 0 )
-		THROW_EXCEPTION;
-	      rc = TRUE;
+	    { rc = (PL_handle_signals() >= 0); /* rc = FALSE: exception */
 	    }
 	    LOAD_REGISTERS(QID);
+	    LD->query->next_environment = NULL;
 	    lTop = (LocalFrame)valTermRef(lTopH);
 	    if ( rc != TRUE )
-	    { raiseStackOverflow(rc);
+	    { if ( rc )		/* rc < 0 (*_OVERFLOW): raise overflow exception */
+		raiseStackOverflow(rc);
 	      THROW_EXCEPTION;
 	    }
 	    VMI_GOTO(I_USERCALL0);
