@@ -2198,7 +2198,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 	PL_cut_query(qid);
       }
 
-      if ( ex && !PL_same_term(ex, exception_term) )
+      if ( ex && (!exception_term || !PL_same_term(ex, exception_term)) )
       {	PL_raise_exception(ex);	/* copy term again */
 	wstate.flags |= WAKEUP_STATE_SKIP_EXCEPTION;
 	rc = TRUE;			/* handled */
