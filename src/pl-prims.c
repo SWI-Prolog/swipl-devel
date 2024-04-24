@@ -2181,18 +2181,12 @@ PRED_IMPL("functor", 3, functor, 0)
     if ( fd->arity == 0 )
       return PL_domain_error("compound_non_zero_arity", A1);
 
-    if ( !PL_unify_atom(A2, fd->name) ||
-	 !PL_unify_integer(A3, fd->arity) )
-      fail;
-
-    succeed;
+    return ( PL_unify_atom(A2, fd->name) &&
+	     PL_unify_integer(A3, fd->arity) );
   }
   if ( isAtomic(*p) )
-  { if ( !PL_unify(A2, A1) ||
-	 !PL_unify_integer(A3, 0) )
-      fail;
-
-    succeed;
+  { return ( PL_unify(A2, A1) &&
+	     PL_unify_integer(A3, 0) );
   }
   if ( !PL_is_atomic(A2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, A2);
