@@ -4784,13 +4784,22 @@ update_wpointer(Word p, intptr_t offset)
   *p = consPtr(ptr, ts);
 }
 
-
 static void
 update_gpointer(Word p, intptr_t gs)
 { word w = *p;
 
   if ( storage(w) == STG_GLOBAL && tag(w) != TAG_ATOM )
     update_wpointer(p, gs);
+}
+
+static void
+update_lgpointer(Word p, intptr_t ls, intptr_t gs)
+{ word w = *p;
+
+  if ( storage(w) == STG_GLOBAL && tag(w) != TAG_ATOM )
+    update_wpointer(p, gs);
+  else if ( storage(w) == STG_LOCAL )
+    update_wpointer(p, ls);
 }
 
 		 /*******************************
@@ -5042,7 +5051,7 @@ update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
     update_pointer(&fr->parent, ls);
 
     for(; n-- > 0; sp++ )
-      update_gpointer(sp, gs);
+      update_lgpointer(sp, ls, gs);
   }
 }
 
