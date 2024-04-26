@@ -445,8 +445,7 @@ Returns `0` if there is no enough space to store this term.
 
 static size_t
 size_frame_term(LocalFrame fr)
-{ GET_LD
-  size_t arity = fr->predicate->functor->arity;
+{ size_t arity = fr->predicate->functor->arity;
   size_t size = 4 + 3 + arity+1;
   size_t i;
 
