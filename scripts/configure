@@ -152,6 +152,11 @@ case $config in
     ;;
 esac
 
+# wasm
+# termux
+#
+# Build for specific targets
+
 case $config in
     *wasm*)
 	WASM_HOME=$HOME/wasm
@@ -164,6 +169,11 @@ case $config in
 	opts+=" -DCMAKE_FIND_ROOT_PATH=$HOME/wasm"
 	opts+=" -DUSE_GMP=OFF"
 	opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	;;
+    *termux*)
+	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
+	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
+	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
 	;;
 esac
 
