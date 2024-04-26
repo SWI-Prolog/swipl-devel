@@ -232,11 +232,11 @@ static int
 compare_dict_entry(const void *a, const void *b, void *arg)
 { Word p = (Word)a+1;
   Word q = (Word)b+1;
-  WITH_LD(arg)
-  { deRef(p);
-    deRef(q);
-  }
-  return (*p<*q ? -1 : *p>*q ? 1 : 0);
+
+  deRef(p);
+  deRef(q);
+
+  return SCALAR_TO_CMP(*p, *q);
 }
 
 
