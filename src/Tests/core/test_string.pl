@@ -85,8 +85,11 @@ test(string_lower, L == "abc") :-
 	string_lower("aBc", L).
 test(string_upper, L == "ABC") :-
 	string_upper("aBc", L).
+:- if(\+ current_prolog_flag(windows, true)).
+% Windows wtoupper(255) returns 09F, a control character.
 test(string_upper, L == "WH\u0178") :-		% Issue #1262 (iso -> wide)
 	string_upper("wh\u00ff", L).
+:- endif.
 
 :- end_tests(string).
 
