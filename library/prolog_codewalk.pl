@@ -1176,6 +1176,10 @@ translate_location(file_term_position(Path, TermPos), Dict) =>
               line_count: Line,
               line_position: LinePos
             }.
+translate_location(file(Path, Line, -1, _), Dict) =>
+    Dict = _{ file: Path,
+              line_count: Line
+            }.
 translate_location(Var, Dict), var(Var) =>
     Dict = _{}.
 
