@@ -1091,6 +1091,7 @@ with one operation, it turns out to be faster as well.
 #define M_VARPREFIX		(0x00008000) /* _var, Atom */
 #define M_DESTROYED		(0x00010000)
 #define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
+#define M_RDSTRING_TERM		(0x00040000) /* read/1 and friends: demand a term */
 
 /* Flags on functors */
 

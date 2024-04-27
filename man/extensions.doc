@@ -304,7 +304,9 @@ with reversed argument order.
 Bi-directional conversion between a term and a string. If \arg{String}
 is instantiated, it is parsed and the result is unified with \arg{Term}.
 Otherwise \arg{Term} is `written' using the option \term{quoted}{true}
-and the result is converted to \arg{String}.
+and the result is converted to \arg{String}.  If \arg{String} only
+contains white space and/or comments, an \term{syntax_error}{end_of_string}
+exception is raised.
 
     \predicate{term_string}{3}{?Term, ?String, +Options}
 As term_string/2, passing \arg{Options} to either read_term/2

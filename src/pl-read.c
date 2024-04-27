@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1223,11 +1223,14 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    return TRUE;
 		  }
 		  rawSyntaxError("end_of_file");
+		} else if ( true(_PL_rd, M_RDSTRING_TERM) )
+		{ rawSyntaxError("end_of_string");
+		} else
+		{ set_start_line;
+		  strcpy((char *)rb.base, "end_of_file. ");
+		  rb.here = rb.base + 14;
+		  return TRUE;
 		}
-		set_start_line;
-		strcpy((char *)rb.base, "end_of_file. ");
-		rb.here = rb.base + 14;
-		return TRUE;
       case '/': if ( rb.stream->position )
 		{ pbuf = *rb.stream->position;
 		  pbuf.charno--;
@@ -5446,7 +5449,9 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 }
 
 
-#define atom_to_term(atom, term, bindings, text_type) LDFUNC(atom_to_term, atom, term, bindings, text_type)
+#define atom_to_term(atom, term, bindings, text_type) \
+	LDFUNC(atom_to_term, atom, term, bindings, text_type)
+
 static int
 atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
 { PL_chars_t txt;
@@ -5494,6 +5499,7 @@ atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
       rd.varnames = bindings;
     else if ( bindings )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, bindings);
+    set(&rd, M_RDSTRING_TERM);
 
     if ( !(rval = read_term(term, &rd)) && rd.has_exception )
       rval = PL_raise_exception(rd.exception);
