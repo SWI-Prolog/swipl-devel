@@ -5611,6 +5611,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 
 	    LD->query->next_environment = NFR;
 	    lTop = (LocalFrame)argFrameP(NFR, 1);
+	    ARGP = (Word)lTop;
 	    SAVE_REGISTERS(QID);
 	    if ( rc == LOCAL_OVERFLOW )
 	    { size_t room = roomStack(local);
