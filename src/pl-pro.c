@@ -285,14 +285,23 @@ static
 PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
 { PRED_LD
   int flags = 0;
+  int64_t sl;
 
   if ( debugstatus.tracing   )              flags |= NOTRACE_TRACE;
   if ( debugstatus.debugging )              flags |= NOTRACE_DEBUG;
   if ( truePrologFlag(PLFLAG_LASTCALL) )    flags |= NOTRACE_LCO;
   if ( truePrologFlag(PLFLAG_VMI_BUILTIN) ) flags |= NOTRACE_VMI;
 
-  if ( PL_unify_integer(A1, flags) &&
-       PL_unify_int64(A2, debugstatus.skiplevel) )
+  if ( debugstatus.skiplevel == SKIP_VERY_DEEP )
+    sl = -1;
+  else if ( debugstatus.skiplevel == SKIP_REDO_IN_SKIP )
+    sl = -2;
+  else
+  { sl = debugstatus.skiplevel;
+    assert(sl >= 0 && sl <= SIZE_MAX);
+  }
+
+  if ( PL_unify_integer(A1, flags) && PL_unify_int64(A2, sl) )
   { debugstatus.tracing   = FALSE;
     debugstatus.debugging = FALSE;
     debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -317,6 +326,8 @@ PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
 
     if ( depthi == -1 )
       depth = SKIP_VERY_DEEP;
+    else if ( depthi == -2 )
+      depth = SKIP_REDO_IN_SKIP;
     else if ( depthi < 0 || depthi > SIZE_MAX )
       return PL_representation_error("size_t");
     else
