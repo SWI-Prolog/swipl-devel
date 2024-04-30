@@ -78,32 +78,11 @@ __assert_fail(const char *assertion,
 	      const char *file,
 	      unsigned int line,
 	      const char *function)
-{ time_t now = time(NULL);
-  char tbuf[48];
-
-  ctime_r(&now, tbuf);
-  tbuf[24] = '\0';
-
-#ifdef O_PLMT
-  { const pl_wchar_t *name = L"";
-    int tid = PL_thread_self();
-    atom_t alias;
-
-    if ( PL_get_thread_alias(tid, &alias) )
-      name = PL_atom_wchars(alias, NULL);
-
-    SdprintfX("[Thread %d (%Ws) at %s] %s:%d: %s: Assertion failed: %s\n",
-	      PL_thread_self(), name, tbuf,
-	      file, line, function, assertion);
-  }
-#else
-  Sdprintf("[At %s] %s:%d: %s: Assertion failed: %s\n",
-	   tbuf, file, line, function, assertion);
-#endif
+{ Sdprintf("\nERROR: %s:%d: %s: Assertion failed: %s\n",
+	   file, line, function, assertion);
 
   save_backtrace("assert_fail");
-  print_backtrace_named("assert_fail");
-  Sdprintf("Prolog stack:\n%s\n",
-	   PL_backtrace_string(25, PL_BT_SAFE));
+  printCrashContext("assert_fail");
+
   abort();
 }

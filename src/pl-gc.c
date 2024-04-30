@@ -5391,6 +5391,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   if ( !(l || g || t) )
     return TRUE;
 
+  LD->shift_status.inferences = LD->statistics.inferences;
   enterGC();			/* atom-gc synchronisation */
   blockSignals(&mask);
   blockGC(0);			/* avoid recursion due to */

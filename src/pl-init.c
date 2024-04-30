@@ -1767,52 +1767,71 @@ warning(const char *fm, ...)
 #define ctime_r(timep, buf) strcpy(buf, ctime(timep))
 #endif
 
-static bool
-vsysError(const char *fm, va_list args)
+void
+printCrashContext(const char *btname)
 { GET_LD
-  static int active = 0;
   time_t now;
   char tbuf[48];
-
-  if ( active++ )
-  { abort();
-  }
+  int btflags = 0;
 
   now = time(NULL);
   ctime_r(&now, tbuf);
   tbuf[24] = '\0';
+  Sdprintf("Time: %s\n", tbuf);
+
+  if ( LD )
+  { Sdprintf("Inferences: %" PRIu64 "\n", LD->statistics.inferences);
+    if ( gc_status.active )
+    { Sdprintf("Running GC: %" PRIu64 "-th garbage collection]\n",
+	       LD->gc.stats.totals.collections);
+      unblockSignals(&LD->gc.saved_sigmask);
+      btflags |= PL_BT_SAFE;
+    }
+  }
 
 #ifdef O_PLMT
-{ int tid = PL_thread_self();
+  int tid = PL_thread_self();
   atom_t alias;
   const pl_wchar_t *name = L"";
 
   if ( PL_get_thread_alias(tid, &alias) )
     name = PL_atom_wchars(alias, NULL);
 
-  SfprintfX(Serror, "[PROLOG SYSTEM ERROR:  Thread %d (%Ws) at %s\n\t",
-	    tid, name, tbuf);
-}
-#else
-  Sfprintf(Serror, "[PROLOG SYSTEM ERROR: at %s\n\t", tbuf);
+  SdprintfX("Thread: %d (%Ws)\n", tid, name);
 #endif
-  Svfprintf(Serror, fm, args);
-  if ( gc_status.active )
-  { Sfprintf(Serror,
-	    "\n[While in %ld-th garbage collection]\n",
-	    LD->gc.stats.totals.collections);
-    unblockSignals(&LD->gc.saved_sigmask);
+
+  print_backtrace_named(btname);
+  if ( LD )
+  { if ( LD->shift_status.inferences )
+    { Sdprintf("Last stack shift at %" PRIu64 " inferences\n",
+		LD->shift_status.inferences);
+      print_backtrace_named("SHIFT");
+    }
+    if ( LD->gc.inferences )
+    { Sdprintf("Last garbage collect at %" PRIu64 " inferences\n",
+		LD->gc.inferences);
+      print_backtrace_named("GC");
+    }
+    Sdprintf("\n\nPROLOG STACK:\n");
+    PL_backtrace(10, btflags);
   }
+}
 
+
+
+static bool
+vsysError(const char *fm, va_list args)
+{ static int active = 0;
+
+  if ( active++ )
+    abort();
+
+  Sfprintf(Serror, "\nERROR: System error: ");
+  Svfprintf(Serror, fm, args);
   Sfprintf(Serror, "\n");
-  save_backtrace("SYSERROR");
-  print_backtrace_named("SYSERROR");
 
-#if defined(O_DEBUGGER)
-  Sfprintf(Serror, "\n\nPROLOG STACK:\n");
-  PL_backtrace(10, 0);
-  Sfprintf(Serror, "]\n");
-#endif /*O_DEBUGGER*/
+  save_backtrace("SYSERROR");
+  printCrashContext("SYSERROR");
 
   if ( !(true(Sinput, SIO_ISATTY) &&
 	 true(Serror, SIO_ISATTY)) ||

@@ -99,6 +99,7 @@ typedef struct
 		 *******************************/
 
 int		startProlog(int argc, char **argv);
+void		printCrashContext(const char *btname);
 bool		sysError(const char *fm, ...);
 void		fatalError(const char *fm, ...) NORETURN;
 bool		warning(const char *fm, ...);

@@ -2603,8 +2603,9 @@ typedef struct
 
 
 typedef struct
-{ int		blocked;		/* No shifts allowed */
-  double	time;			/* time spent in stack shifts */
+{ double	time;			/* time spent in stack shifts */
+  uint64_t	inferences;		/* Inference count at start */
+  int		blocked;		/* No shifts allowed */
   int		local_shifts;		/* Shifts of the local stack */
   int		global_shifts;		/* Shifts of the global stack */
   int		trail_shifts;		/* Shifts of the trail stack */

@@ -915,12 +915,7 @@ print_c_backtrace(const char *why)
 
 void
 sigCrashHandler(int sig)
-{ int tid;
-  atom_t alias;
-  const pl_wchar_t *name = L"";
-  time_t now = time(NULL);
-  char tbuf[48];
-
+{ GET_LD
   signal(sig,     SIG_DFL);
 #ifdef SIGALRM
   signal(SIGALRM, SIG_DFL);
@@ -935,19 +930,14 @@ sigCrashHandler(int sig)
   alarm(10);				/* try to avoid deadlocks */
 #endif
 
-  tid = PL_thread_self();
-  ctime_r(&now, tbuf);
-  tbuf[24] = '\0';
+  Sdprintf("\nERROR: Received fatal signal %d (%s)\n",
+	   sig, signal_name(sig));
+  save_backtrace("crash");
+#ifdef O_PLMT
+  LD->thread.info->c_stack_low = TRUE; /* Actually, we are on an alt-stack */
+#endif
+  printCrashContext("crash");
 
-  if ( PL_get_thread_alias(tid, &alias) )
-    name = PL_atom_wchars(alias, NULL);
-
-  SdprintfX("\nSWI-Prolog [thread %d (%Ws) at %s]: "
-	    "received fatal signal %d (%s)\n",
-	    PL_thread_self(), name, tbuf, sig, signal_name(sig));
-  print_c_backtrace("crash");
-  Sdprintf("Prolog stack:\n");
-  PL_backtrace(25, PL_BT_SAFE);
   Sdprintf("Running on_halt hooks with status %d\n", 128+sig);
   run_on_halt(&GD->os.exit_hooks, 128+sig);
 
