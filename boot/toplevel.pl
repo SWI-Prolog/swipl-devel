@@ -1337,19 +1337,21 @@ write_bindings(Bindings, ResidueVars, Delays, DetOrChp) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
-    name_vars(Bindings1, t(Residuals, Delays1)),
     write_bindings2(Bindings1, Residuals, Delays1, DetOrChp).
 
 write_bindings2([], Residuals, Delays, _) :-
     current_prolog_flag(prompt_alternatives_on, groundness),
     !,
+    name_vars([], t(Residuals, Delays)),
     print_message(query, query(yes(Delays, Residuals))).
 write_bindings2(Bindings, Residuals, Delays, true) :-
     current_prolog_flag(prompt_alternatives_on, determinism),
     !,
+    name_vars(Bindings, t(Residuals, Delays)),
     print_message(query, query(yes(Bindings, Delays, Residuals))).
 write_bindings2(Bindings, Residuals, Delays, Chp) :-
     repeat,
+        name_vars(Bindings, t(Residuals, Delays)),
         print_message(query, query(more(Bindings, Delays, Residuals))),
         get_respons(Action, Chp),
     (   Action == redo
@@ -1376,6 +1378,7 @@ write_bindings2(Bindings, Residuals, Delays, Chp) :-
 
 name_vars(Bindings, Term) :-
     current_prolog_flag(toplevel_name_variables, true),
+    answer_flags_imply_numbervars,
     !,
     '$term_multitons'(t(Bindings,Term), Vars),
     name_vars_(Vars, Bindings, 0),
@@ -1417,6 +1420,21 @@ is_bound([Vars=_|T], Name) :-
 in_vars(Name, Name) :- !.
 in_vars(Names, Name) :-
     '$member'(Name, Names).
+
+%!  answer_flags_imply_numbervars
+%
+%   True when the answer will be  written recognising '$VAR'(N). If this
+%   is not the case we should not try to name the variables.
+
+answer_flags_imply_numbervars :-
+    current_prolog_flag(answer_write_options, Options),
+    numbervars_option(Opt),
+    memberchk(Opt, Options),
+    !.
+
+numbervars_option(portray(true)).
+numbervars_option(portrayed(true)).
+numbervars_option(numbervars(true)).
 
 %!  residual_goals(:NonTerminal)
 %
@@ -1856,7 +1874,7 @@ print_predicate(0'w, [write], [ quoted(true),
                                 spacing(next_argument)
                               ]).
 print_predicate(0'p, [print], [ quoted(true),
-                                portray(true),
+                                portrayed(true),
                                 max_depth(10),
                                 spacing(next_argument)
                               ]).
