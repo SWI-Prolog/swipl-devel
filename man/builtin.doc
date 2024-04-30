@@ -6519,10 +6519,13 @@ in 0..25 it emits A..Z. For higher numbers it emits An..Zn, where
 \arg{n} is \arg{N}//26. For negative numbers it emits S_\arg{N}, which
 is used for representing shared sub-terms and cyclic terms.
 
-If \arg{N} is an atom it is written without quotes. This extension
-allows for writing variables with user-provided names. The default is
-\const{false}. See also numbervars/3 and the option
-\const{variable_names}.
+If \arg{N} is an atom that is syntactically a valid variable it is
+written without quotes. This extension allows for writing variables
+with user-provided names.
+
+The default for this flag is \const{false} unless the
+\const{portrayed} option is enabled. See also numbervars/3 and the
+option \const{variable_names}.
 
     \termitem{partial}{Bool}
 If \const{true} (default \const{false}), do not reset the logic that
@@ -6560,7 +6563,8 @@ current priority.
 If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
-is an extension to the ISO write_term options.
+is an extension to the ISO write_term options.  If this option is set,
+the \const{numbervars} option \emph{defaults} to \const{true}.
 
     \termitem{priority}{Integer}
 An integer between 0 and 1200 representing the `context priority'.
