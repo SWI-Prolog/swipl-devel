@@ -4418,10 +4418,7 @@ garbageCollect(gc_reason_t reason)
   gc_stat_start(&LD->gc.stats, reason);
 
   assert(LD->fast_condition == NULL);
-
-#ifdef O_MAINTENANCE
   save_backtrace("GC");
-#endif
 
   if ( verbose )
     Sdprintf("%% GC: ");
@@ -5632,9 +5629,7 @@ growStacks(size_t l, size_t g, size_t t)
   Word ogb = gBase;
   Word ogm = gMax;
 
-#ifdef O_MAINTENANCE
   save_backtrace("SHIFT");
-#endif
 
   include_spare_stack(&LD->stacks.local,  &l);
   include_spare_stack(&LD->stacks.global, &g);
