@@ -758,9 +758,10 @@ run_init_goal(Goal, Ctx) :-
 %   toplevel.
 
 init_debug_flags :-
-    once(print_predicate(_, [print], PrintOptions)),
     Keep = [keep(true)],
-    create_prolog_flag(answer_write_options, PrintOptions, Keep),
+    create_prolog_flag(answer_write_options,
+                       [ quoted(true), portray(true), max_depth(10),
+                         spacing(next_argument)], Keep),
     create_prolog_flag(prompt_alternatives_on, determinism, Keep),
     create_prolog_flag(toplevel_extra_white_line, true, Keep),
     create_prolog_flag(toplevel_print_factorized, false, Keep),
@@ -1859,7 +1860,8 @@ answer_respons(0'*, Chp, show_again) :-
     !,
     print_last_chpoint(Chp).
 answer_respons(Char, _, show_again) :-
-    print_predicate(Char, Pred, Options),
+    current_prolog_flag(answer_write_options, Options0),
+    print_predicate(Char, Pred, Options0, Options),
     !,
     print_message(query, if_tty(['~w'-[Pred]])),
     set_prolog_flag(answer_write_options, Options).
@@ -1870,15 +1872,55 @@ answer_respons(-1, _, show_again) :-
 answer_respons(Char, _, again) :-
     print_message(query, no_action(Char)).
 
-print_predicate(0'w, [write], [ quoted(true),
-                                spacing(next_argument)
-                              ]).
-print_predicate(0'p, [print], [ quoted(true),
-                                portrayed(true),
-                                max_depth(10),
-                                spacing(next_argument)
-                              ]).
+%!  print_predicate(+Code, -Change, +Options0, -Options) is semidet.
+%
+%   Modify  the  `answer_write_options`  value  according  to  the  user
+%   command.
 
+print_predicate(0'w, [write], Options0, Options) :-
+    edit_options([-portrayed(true),-portray(true)],
+                 Options0, Options).
+print_predicate(0'p, [print], Options0, Options) :-
+    edit_options([+portrayed(true)],
+                 Options0, Options).
+print_predicate(0'+, [Change], Options0, Options) :-
+    (   '$select'(max_depth(D0), Options0, Options1)
+    ->  D is D0*10,
+        format(string(Change), 'max_depth(~D)', [D]),
+        Options = [max_depth(D)|Options1]
+    ;   Options = Options0,
+        Change = 'no max_depth'
+    ).
+print_predicate(0'-, [Change], Options0, Options) :-
+    (   '$select'(max_depth(D0), Options0, Options1)
+    ->  D is max(1, D0//10),
+        Options = [max_depth(D)|Options1]
+    ;   D = 10,
+        Options = [max_depth(D)|Options0]
+    ),
+    format(string(Change), 'max_depth(~D)', [D]).
+
+edit_options([], Options, Options).
+edit_options([H|T], Options0, Options) :-
+    edit_option(H, Options0, Options1),
+    edit_options(T, Options1, Options).
+
+edit_option(-Term, Options0, Options) =>
+    (   '$select'(Term, Options0, Options)
+    ->  true
+    ;   Options = Options0
+    ).
+edit_option(+Term, Options0, Options) =>
+    functor(Term, Name, 1),
+    functor(Var, Name, 1),
+    (   '$select'(Var, Options0, Options1)
+    ->  Options = [Term|Options1]
+    ;   Options = [Term|Options0]
+    ).
+
+%!  print_last_chpoint(+Chp) is det.
+%
+%   Print the last choicepoint when an answer is nondeterministic.
 
 print_last_chpoint(Chp) :-
     current_predicate(print_last_choice_point/0),

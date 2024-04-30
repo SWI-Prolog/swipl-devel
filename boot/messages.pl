@@ -1320,6 +1320,7 @@ query_result(help) -->
       '  ; (n,r,space,TAB): redo              | t:         trace&redo'-[], nl,
       '  *:                 show choicepoint  | c (a,RET): stop'-[], nl,
       '  w:                 write             | p:         print'-[], nl,
+      '  +:                 max_depth*10      | -:         max_depth//10'-[], nl,
       '  b:                 break             | h (?):     help'-[],
       nl, nl
     ].
