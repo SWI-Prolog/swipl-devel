@@ -1,5 +1,6 @@
 #!/bin/bash
 
+series=devel
 port=swi-prolog-devel
 portprefix=/opt/local
 branch=master
@@ -26,16 +27,25 @@ fi
 portgit=$HOME/src/macports-ports/
 portfile=lang/$port/Portfile
 version=$(cat VERSION)
-file=../swipl-$version.tar.gz
+distfile=swipl-$version.tar.gz
+file=../$distfile
 
-if [ ! -r $file ]; then
-  echo "ERROR: Could not find distfile $file"
-  exit 1
+if [ -r $file ]; then
+    size=$(wc -c < $file)
+    sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
+    rmd160=$(openssl rmd160 -provider legacy < $file | cut -d ' ' -f 2)
+
+    url="https://www.swi-prolog.org/download/$series/src/$distfile"
+    sizew=$(curl -s --head "$url" | sed 's/\r$//' | grep ^content-length | cut -d ' ' -f 2)
+    if [ ! "$size" = "$sizew" ]; then
+	echo "ERROR: $url has non-matching size"
+	echo "ERROR:   Expected: $size, found $sizew"
+	exit 1
+    fi
+else
+    echo "ERROR: Could not find distfile $file"
+    exit 1
 fi
-
-size=$(wc -c < $file | xargs)
-sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
-rmd160=$(openssl rmd160 -provider legacy < $file | cut -d ' ' -f 2)
 
 if [ -d $portprefix/var/macports/distfiles ]; then
   cp $file $portprefix/var/macports/distfiles/swi-prolog || exit 1
