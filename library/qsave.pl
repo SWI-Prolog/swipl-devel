@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2022, University of Amsterdam
+    Copyright (c)  1995-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -62,7 +62,7 @@ also used by the commandline sequence below.
 
 :- multifile error:has_type/2.
 error:has_type(qsave_foreign_option, Term) :-
-    is_of_type(oneof([save, no_save]), Term),
+    is_of_type(oneof([save, no_save, copy]), Term),
     !.
 error:has_type(qsave_foreign_option, arch(Archs)) :-
     is_of_type(list(atom), Archs),
@@ -151,7 +151,7 @@ qsave_program(FileBase, Options0) :-
                                      % running on this state
           setup_call_catcher_cleanup(
               open(File, write, StateOut, [type(binary)]),
-              write_state(StateOut, SaveClass, Options),
+              write_state(StateOut, SaveClass, File, Options),
               Reason,
               finalize_state(Reason, StateOut, File))
         ),
@@ -159,20 +159,20 @@ qsave_program(FileBase, Options0) :-
     cleanup,
     !.
 
-write_state(StateOut, SaveClass, Options) :-
+write_state(StateOut, SaveClass, ExeFile, Options) :-
     make_header(StateOut, SaveClass, Options),
     setup_call_cleanup(
         zip_open_stream(StateOut, RC, []),
-        write_zip_state(RC, SaveClass, Options),
+        write_zip_state(RC, SaveClass, ExeFile, Options),
         zip_close(RC, [comment('SWI-Prolog saved state')])),
     flush_output(StateOut).
 
-write_zip_state(RC, SaveClass, Options) :-
+write_zip_state(RC, SaveClass, ExeFile, Options) :-
     save_options(RC, SaveClass, Options),
     save_resources(RC, SaveClass),
     lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
-    save_foreign_libraries(RC, Options).
+    save_foreign_libraries(RC, ExeFile, Options).
 
 finalize_state(exit, StateOut, File) :-
     close(StateOut),
@@ -941,24 +941,27 @@ qualify_head(T, user:T).
                  *       FOREIGN LIBRARIES      *
                  *******************************/
 
-%!  save_foreign_libraries(+Archive, +Options) is det.
+%!  save_foreign_libraries(+Archive, +ExeFile, +Options) is det.
 %
 %   Save current foreign libraries into the archive.
 
-save_foreign_libraries(RC, Options) :-
+save_foreign_libraries(RC, _, Options) :-
     option(foreign(save), Options),
     !,
     current_prolog_flag(arch, HostArch),
     feedback('~nHOST(~w) FOREIGN LIBRARIES~n', [HostArch]),
     save_foreign_libraries1(HostArch, RC, Options).
-save_foreign_libraries(RC, Options) :-
+save_foreign_libraries(RC, _, Options) :-
     option(foreign(arch(Archs)), Options),
     !,
     forall(member(Arch, Archs),
            ( feedback('~n~w FOREIGN LIBRARIES~n', [Arch]),
              save_foreign_libraries1(Arch, RC, Options)
            )).
-save_foreign_libraries(_, _).
+save_foreign_libraries(_RC, ExeFile, Options) :-
+    option(foreign(copy), Options),
+    copy_foreign_libraries(ExeFile, Options).
+save_foreign_libraries(_, _, _).
 
 save_foreign_libraries1(Arch, RC, _Options) :-
     forall(current_foreign_library(FileSpec, _Predicates),
@@ -966,6 +969,34 @@ save_foreign_libraries1(Arch, RC, _Options) :-
              term_to_atom(EntryName, Name),
              zipper_append_file(RC, Name, File, [time(Time)])
            )).
+
+%!  copy_foreign_libraries(+Exe, +Options) is det.
+%
+%   Copy all required foreign libraries   to  an installation directory.
+%   This is currently only implemented  for   Windows,  copying all .dll
+%   files to the directory where the executable is created.
+
+:- if(current_prolog_flag(windows, true)).
+copy_foreign_libraries(ExeFile, _Options) :-
+    !,
+    file_directory_name(ExeFile, Dir),
+    win_process_modules(Modules),
+    include(prolog_dll, Modules, PrologDLLs),
+    maplist(copy_dll(Dir), PrologDLLs).
+:- endif.
+copy_foreign_libraries(_ExeFile, _Options) :-
+    print_message(warning, qsave(copy_foreign_libraries)).
+
+prolog_dll(DLL) :-
+    file_base_name(DLL, File),
+    absolute_file_name(foreign(File), DLL,
+                       [ solutions(all) ]),
+    !.
+
+copy_dll(Dest, DLL) :-
+    print_message(informational, copy_foreign_library(DLL, Dest)),
+    copy_file(DLL, Dest).
+
 
 %!  find_foreign_library(+Architecture, +FileSpec, -EntryName, -File, -Time)
 %!								is det.
@@ -1360,3 +1391,5 @@ prolog:message(no_resource(Name, File)) -->
       [Name, File] ].
 prolog:message(qsave(nondet)) -->
     [ 'qsave_program/2 succeeded with a choice point'-[] ].
+prolog:message(copy_foreign_library(Lib,Dir)) -->
+    [ 'Copying ~w to ~w'-[Lib, Dir] ].

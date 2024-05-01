@@ -206,6 +206,19 @@ for armv7 if even if the code will be running on newer arm CPUs. It
 is also useful to provide highly-optimized shared objects for
 particular architectures.
 
+If \arg{Action} is \textbf{copy}, the foreign extensions are copied to
+the installation location.  This feature is currently only supported
+for Windows, where both DLLs required to run \program{swipl.exe} and
+DLLs loaded through extensions are are copied to the same directory as
+where the executable is saved.  Required DLLs are found using
+win_process_modules/2.  Thus, we can create an executable using e.g.,
+
+\begin{code}
+swipl -o dist/myprog.exe --foreign=copy -c myprog.pl
+\end{code}
+
+The \exam{--foreign=copy} option is introduced in 9.3.6.
+
 	\termitem{undefined}{+Value}
 Defines what happens if an undefined predicate is found during the
 code analysis.  Values are \const{ignore} (default) or \const{error}.
