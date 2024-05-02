@@ -63,7 +63,7 @@
 
 */
 
-
+#include <config.h>		/* SWI-Prolog config */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,13 +84,14 @@
 #   include <errno.h>
 #endif
 
-
+#ifndef HAVE_Z_CRC_T
 #ifndef NOUNCRYPT
 #ifndef z_crc_t
 #ifdef Z_U4
 typedef Z_U4 z_crc_t;
 #else
 typedef unsigned long z_crc_t;
+#endif
 #endif
 #endif
 #endif

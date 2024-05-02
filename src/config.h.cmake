@@ -275,6 +275,7 @@
 #cmakedefine SIZEOF_VOIDP @SIZEOF_VOIDP@
 #cmakedefine SIZEOF_WCHAR_T @SIZEOF_WCHAR_T@
 #cmakedefine SIZEOF_WINT_T @SIZEOF_WINT_T@
+#cmakedefine HAVE_Z_CRC_T @HAVE_Z_CRC_T@
 #cmakedefine HAVE_SIZEOF_OFF_T @HAVE_SIZEOF_OFF_T@
 #cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
 #cmakedefine HAVE_INT128 @HAVE_INT128@
