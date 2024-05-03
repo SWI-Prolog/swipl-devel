@@ -584,7 +584,7 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 
 static inline uint64_t
 zigzag_encode(int64_t n)
-{ return (n << 1) ^ (n >> 63);
+{ return ((uint64_t)n << 1) ^ (n >> 63);
 }
 
 
