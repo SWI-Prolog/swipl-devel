@@ -205,7 +205,8 @@ load_vmis(const char *file)
 	  exit(1);
 	} else
 	{ e4--;				/* backspace over ) */
-	  e5 -= is_vmh;
+	  if ( e5 )
+	    e5 -= is_vmh;
 	}
 
 	vmi_list[vmi_count].name  = my_strndup(s1, e1-s1);
