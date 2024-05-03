@@ -361,8 +361,8 @@ typedef struct _varDef
 #define VD_ARGUMENT	    0x10	/* Unified against an argument */
 
 typedef struct
-{ int	isize;
-  int	entry[1];
+{ unsigned int	isize;
+  unsigned int	entry[1];
 } var_table, *VarTable;
 
 #undef struct_offsetp
@@ -406,7 +406,7 @@ typedef struct
   Clause	clause;			/* clause we are constructing */
   Procedure	procedure;		/* Procedure it belongs to */
   int		arity;			/* arity of top-goal */
-  int		vartablesize;		/* size of the vartable */
+  unsigned int	vartablesize;		/* size of the vartable */
   int		islocal;		/* Temporary local clause */
   int		subclausearg;		/* processing subclausearg */
   int		argvars;		/* islocal argument pseudo vars */
@@ -1350,18 +1350,18 @@ isIndexedVarTerm(DECL_LD word w)
 
 static void
 clearVarTable(compileInfo *ci)
-{ int *pi = ci->used_var->entry;
-  int n   = ci->vartablesize;
+{ unsigned int *pi = ci->used_var->entry;
+  unsigned int n   = ci->vartablesize;
 
   ci->used_var->isize = n;
-  while(--n >= 0)
+  while(n-- > 0)
     *pi++ = 0;
 }
 
 static bool
 isFirstVarSet(VarTable vt, int n)
-{ int m  = 1 << (n % BITSPERINT);
-  int *p = &vt->entry[n / BITSPERINT];
+{ unsigned int m  = 1U << (n % BITSPERINT);
+  unsigned int *p = &vt->entry[n / BITSPERINT];
 
   if ( (*p & m) )
     return FALSE;
@@ -1372,8 +1372,8 @@ isFirstVarSet(VarTable vt, int n)
 
 static bool
 isFirstVar(VarTable vt, int n)
-{ int m  = 1 << (n % BITSPERINT);
-  int *p = &vt->entry[n / BITSPERINT];
+{ unsigned int m  = 1U << (n % BITSPERINT);
+  unsigned int *p = &vt->entry[n / BITSPERINT];
 
   return (*p & m) == 0;
 }
@@ -1424,10 +1424,10 @@ c_var(c_var_state *s, int at, compileInfo *ci)
 
 static int
 balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
-{ int *p1 = &valt1->entry[0];
-  int *p2 = &valt2->entry[0];
-  int vts = ci->vartablesize;
-  int n;
+{ unsigned int *p1 = &valt1->entry[0];
+  unsigned int *p2 = &valt2->entry[0];
+  unsigned int vts = ci->vartablesize;
+  unsigned int n;
   int done = 0;
   c_var_state vstate = {0};
 
@@ -1438,7 +1438,7 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
     { unsigned int i;
 
       for(i = 0; i < BITSPERINT; i++)
-      { if ( m & (1 << i) )
+      { if ( m & (1U << i) )
 	{ c_var(&vstate, VAROFFSET(n * BITSPERINT + i), ci);
 	  done++;
 	}
@@ -1453,9 +1453,9 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 
 static void
 orVars(VarTable valt1, VarTable valt2)
-{ int *p1 = &valt1->entry[0];
-  int *p2 = &valt2->entry[0];
-  int n;
+{ unsigned int *p1 = &valt1->entry[0];
+  unsigned int *p2 = &valt2->entry[0];
+  unsigned int n;
 
   for( n = 0; n < valt1->isize; n++ )
     *p1++ |= *p2++;
@@ -1493,12 +1493,12 @@ last_arg:
 
 static VarTable
 copyVarTable(VarTable to, VarTable from)
-{ int *t = to->entry;
-  int *f = from->entry;
-  int n  = from->isize;
+{ unsigned int *t = to->entry;
+  unsigned int *f = from->entry;
+  unsigned int n  = from->isize;
 
   to->isize = n;
-  while(--n>=0)
+  while(n-- > 0)
     *t++ = *f++;
 
   return to;
