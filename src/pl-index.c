@@ -2238,7 +2238,7 @@ unbound clause.
 static int
 assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 { key_asm *s = a->keys;
-  key_asm *o = a->keys-1;
+  key_asm *o;
   key_asm *e = &s[a->size];
   word c = 0;				/* invalid key */
   size_t fc = 0;
@@ -2249,6 +2249,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   if ( !a->keys )
     return FALSE;
 
+  o = a->keys-1;
   qsort(a->keys, a->size, sizeof(key_asm), compar_keys);
   for( ; s<e; s++)
   { if ( s->key != c )
