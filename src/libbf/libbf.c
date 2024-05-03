@@ -262,7 +262,10 @@ int bf_set_si(bf_t *r, int64_t a)
 {
     int ret;
 
-    if (a < 0) {
+    if (a == INT64_MIN) { /* avoid undef. beh. for -INT_MIN */
+	ret = bf_set_ui(r, ((uint64_t) -(INT64_MIN + 1)) + 1U);
+	r->sign = 1;
+    } else if (a < 0) {
 	ret = bf_set_ui(r, -a);
 	r->sign = 1;
     } else {
