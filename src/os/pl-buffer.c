@@ -180,8 +180,9 @@ popStringBuffer(string_stack *stack)
     stack->allocated = --stack->top;
   } else
   { unsigned int i = stack->top--;
+    size_t discard = i<16 ? 0 : BUFFER_DISCARD_ABOVE>>i; /* discard higher buffers earlier */
     string_buffer *b = &stack->buffers[MSB(i)][i];
-    emptyBuffer(&b->buf, BUFFER_DISCARD_ABOVE>>i);
+    emptyBuffer(&b->buf, discard);
   }
 
   return stack->top;
