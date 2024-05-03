@@ -59,8 +59,10 @@ typedef union
 
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
-static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
-static mpz_t MPZ_MAX_PLINT;
+#ifndef O_BF
+static mpz_t MPZ_MIN_INT64;		/* int64_t integers */
+static mpz_t MPZ_MAX_INT64;
+#endif
 static mpz_t MPZ_MAX_UINT64;
 #if SIZEOF_LONG	< SIZEOF_WORD
 static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
@@ -1174,8 +1176,10 @@ initGMP(void)
 
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
-    mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
-    mpz_init_set_si64(MPZ_MAX_PLINT, PLMAXINT);
+#ifndef O_BF
+    mpz_init_set_si64(MPZ_MIN_INT64,  INT64_MIN);
+    mpz_init_set_si64(MPZ_MAX_INT64,  INT64_MAX);
+#endif
     mpz_init_max_uint(MPZ_MAX_UINT64, 64);
 #if SIZEOF_LONG < SIZEOF_WORD
     mpz_init_set_si64(MPZ_MIN_LONG, LONG_MIN);
@@ -1211,8 +1215,10 @@ cleanupGMP(void)
 #endif
     mpz_clear(MPZ_MIN_TAGGED);
     mpz_clear(MPZ_MAX_TAGGED);
-    mpz_clear(MPZ_MIN_PLINT);
-    mpz_clear(MPZ_MAX_PLINT);
+#ifndef O_BF
+    mpz_clear(MPZ_MIN_INT64);
+    mpz_clear(MPZ_MAX_INT64);
+#endif
     mpz_clear(MPZ_MAX_UINT64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_clear(MPZ_MIN_LONG);
@@ -1280,8 +1286,8 @@ bignum_index(const word *p)
 
 int
 mpz_to_int64(mpz_t mpz, int64_t *i)
-{ if ( mpz_cmp(mpz, MPZ_MIN_PLINT) >= 0 &&
-       mpz_cmp(mpz, MPZ_MAX_PLINT) <= 0 )
+{ if ( mpz_cmp(mpz, MPZ_MIN_INT64) >= 0 &&
+       mpz_cmp(mpz, MPZ_MAX_INT64) <= 0 )
   { uint64_t v;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
