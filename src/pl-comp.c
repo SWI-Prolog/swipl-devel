@@ -1953,8 +1953,8 @@ left-to-right.
   if ( flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
     Output_0(ci, I_CHP);
 
-  if ( head )
-  { int n;
+  if ( head && ci->arity)
+  { size_t n;
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci->arity; n++, arg++ )
