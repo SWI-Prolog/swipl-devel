@@ -7645,7 +7645,8 @@ localiseDefinition(Definition def)
 
   *local = *def;
   local->impl.any.args = allocHeapOrHalt(bytes);
-  memcpy(local->impl.any.args, def->impl.any.args, bytes);
+  if ( bytes )
+    memcpy(local->impl.any.args, def->impl.any.args, bytes);
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
