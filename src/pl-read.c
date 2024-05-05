@@ -1700,9 +1700,10 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
     }
   }
 
+  char *sname = save_var_name(name, len, _PL_rd);
   nv = entriesBuffer(&var_buffer, struct variable);
   var = allocFromBuffer(&var_buffer, sizeof(*var));
-  var->name      = save_var_name(name, len, _PL_rd);
+  var->name      = sname;
   var->namelen   = len;
   var->times     = 1;
   var->variable  = 0;

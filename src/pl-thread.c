@@ -7644,8 +7644,10 @@ localiseDefinition(Definition def)
   size_t bytes = sizeof(arg_info)*def->functor->arity;
 
   *local = *def;
-  local->impl.any.args = allocHeapOrHalt(bytes);
-  memcpy(local->impl.any.args, def->impl.any.args, bytes);
+  if ( bytes )
+  { local->impl.any.args = allocHeapOrHalt(bytes);
+    memcpy(local->impl.any.args, def->impl.any.args, bytes);
+  }
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
