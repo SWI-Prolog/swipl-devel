@@ -37,6 +37,10 @@ endif()
 # For GCC, using -O3 makes the program bigger and slower.  -O2 is
 # better.  Possibly tuning individual flags can reach better results.
 
+option(SANITIZE,
+  "ASAN option"
+  address)
+
 set(GCC_GFLAGS "-gdwarf-2 -g3")
 if(CMAKE_COMPILER_IS_GNUCC)
   if($ENV{CFLAGS})
@@ -55,7 +59,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS_PGO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "-O0 ${GCC_GFLAGS} -fsanitize=address -fno-omit-frame-pointer $ENV{CFLAGS}"
+      "-O0 ${GCC_GFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${GCC_GFLAGS} $ENV{CXXFLAGS}"
@@ -65,13 +69,13 @@ if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "-O0 ${GCC_GFLAGS} -fsanitize=address -fno-omit-frame-pointer $ENV{CXXFLAGS}"
+      "-O0 ${GCC_GFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "${GCC_GFLAGS} -fsanitize=address -O1 -fno-omit-frame-pointer $ENV{CFLAGS}"
+      "${GCC_GFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
@@ -81,7 +85,7 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(CMAKE_CXX_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "${GCC_GFLAGS} -fsanitize=address -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
+      "${GCC_GFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"

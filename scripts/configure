@@ -150,6 +150,10 @@ case $config in
   *asan*)
     build_type=Sanitize
     ;;
+  *ubsan*)
+    build_type=Sanitize
+    opts+=" -DSANITIZE=undefined"
+    ;;
 esac
 
 # wasm
