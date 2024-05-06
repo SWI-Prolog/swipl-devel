@@ -149,7 +149,7 @@ else
   header "Package `basename $directory`"
 fi
 
-git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" --date-order --simplify-merges $* | awk '
+git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" --date-order --simplify-merges $* | tr -d '\r'| awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
