@@ -3042,21 +3042,28 @@ retry:
     { trie_compile_state state;
       Clause cl;
       ClauseRef cref;
+      fid_t fid;
 
       init_trie_compile_state(&state, trie);
       add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
-      if ( compile_trie_node(&trie->root, &state) &&
-	   fixup_last_fail(&state) &&
-	   create_trie_clause(def, &cl, &state) )
-      { cref = assertDefinition(def, cl, CL_END);
-	if ( cref )
-	{ dbref = lookup_clref(cref->value.clause);
-	  if ( !COMPARE_AND_SWAP_ATOM(&trie->clause, 0, dbref) )
-	  { PL_unregister_atom(dbref);
-	    retractClauseDefinition(def, cref->value.clause, FALSE);
-	    goto retry;
+      if ( (fid=PL_open_foreign_frame()) )
+      { if ( compile_trie_node(&trie->root, &state) &&
+	     fixup_last_fail(&state) &&
+	     create_trie_clause(def, &cl, &state) )
+	{ cref = assertDefinition(def, cl, CL_END);
+	  if ( cref )
+	  { dbref = lookup_clref(cref->value.clause);
+	    if ( !COMPARE_AND_SWAP_ATOM(&trie->clause, 0, dbref) )
+	    { PL_unregister_atom(dbref);
+	      retractClauseDefinition(def, cref->value.clause, FALSE);
+	      PL_close_foreign_frame(fid);
+	      goto retry;
+	    }
 	  }
 	}
+	PL_close_foreign_frame(fid);
+      } else
+      { dbref = ATOM_error;
       }
       assert(state.else_loc == 0);
       clean_trie_compile_state(&state);

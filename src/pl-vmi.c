@@ -5961,6 +5961,8 @@ VMI(S_TRIE_GEN, 0, 0, ())
       SAVE_REGISTERS(QID);
       dbref = compile_trie(FR->predicate, t);
       LOAD_REGISTERS(QID);
+      if ( dbref == ATOM_error )
+	THROW_EXCEPTION;
     }
 
     if ( dbref == ATOM_fail )
