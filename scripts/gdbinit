@@ -8,6 +8,7 @@
 set breakpoint pending on
 break trap_gdb
 break sysError
+break __assert_fail
 set breakpoint pending off
 
 # Pass signals that are commonly used and not needed for debugging
