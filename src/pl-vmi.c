@@ -5958,18 +5958,21 @@ VMI(S_TRIE_GEN, 0, 0, ())
     { if ( t->value_count == 0 )
 	FRAME_FAILED;
 
+      LD->query->next_environment = lTop;
+      lTop = (LocalFrame)ARGP;
       SAVE_REGISTERS(QID);
       dbref = compile_trie(FR->predicate, t);
       LOAD_REGISTERS(QID);
+      LD->query->next_environment = NULL;
       if ( dbref == ATOM_error )
 	THROW_EXCEPTION;
     }
 
     if ( dbref == ATOM_fail )
       FRAME_FAILED;
-  }
 
-  cref = clause_clref(dbref);
+    cref = clause_clref(dbref);
+  }
 
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
