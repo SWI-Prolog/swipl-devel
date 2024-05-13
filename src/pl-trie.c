@@ -2675,13 +2675,19 @@ fixup_else(trie_compile_state *state)
   base[el] = pc-el-1;
 }
 
+/* Add an indirect to the compiled trie.   Indirects are stored
+ * using the header field, followed by the content.  I.e., the
+ * same format as on the stacks, except that the trailing guard
+ * is missing.  Therefore we write `wsize+1` words.
+ */
+
 static void
 add_indirect(trie_compile_state *state, vmi op, word w)
 { Word p = addressIndirect(w);
   size_t wsize = wsizeofInd(*p);
 
   add_vmi(state, op);
-  addMultipleBuffer(&state->codes, p, wsize, word);
+  addMultipleBuffer(&state->codes, p, wsize+1, word);
 }
 
 static void
