@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2019, University of Amsterdam
+    Copyright (c)  2017-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(pairs)).
 
 test_trie :-
 	run_tests([ trie
@@ -136,6 +138,44 @@ test(var2, set(Y == [1,2])) :-
         test_var(a, Y).
 test(var3, set(Y == [1])) :-
         test_var(c, Y).
+test(issue_1277, X == [foo]) :-
+	trie_new(T),
+	trie_insert(T, _, [foo]),
+	trie_gen_compiled(T, _, X).
+test(gen_compiled2_free, GData =@= Data) :-
+	setof(D, data(D), Data),
+	trie_new(T),
+	maplist(trie_insert(T), Data),
+	setof(GD, trie_gen_compiled(T, GD), GData).
+test(gen_compiled2_instantiated, GData =@= Data) :-
+	setof(D, (data(D), nonvar(D)), Data),
+	trie_new(T),
+	maplist(trie_insert(T), Data),
+	setof(GD, (member(GD, Data), trie_gen_compiled(T, GD)), GData).
+test(gen_compiled3_free, GData =@= KVData) :-
+	setof(D, data(D), Data),
+	pairs_keys_values(KVData, Data, Data),
+	trie_new(T),
+	maplist(trie_insert(T), Data, Data),
+	setof(GK-GV, trie_gen_compiled(T, GK, GV), GData).
+
+:- if(current_prolog_flag(bounded, false)).
+data(Big) :- Big is random(1<<200).
+data(Big) :- Big is -random(1<<200).
+:- endif.
+data(Med) :- Med is random(1<<55).
+data(Med) :- Med is -random(1<<55).
+data(363).
+data(-363).
+data(0).
+data(1r3).
+data(3.14).
+data("This is a nice string").
+data(_Var).
+data(f(x)).
+data(f(X,X)).
+data([nice, list(of(terms))]).
+
 
 shared_list(N, t(List,N)) :-
 	length(List, N),
