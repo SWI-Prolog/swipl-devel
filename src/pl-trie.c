@@ -2970,9 +2970,9 @@ children:
       { add_vmi(state, T_VALUE);
 	if ( !isRecord(n->value) )
 	{ if ( isAtom(n->value) )
-	  { add_vmi_d(state, T_ATOM, (code)n->value);
+	  { add_vmi_d(state, T_ATOM, word2code(n->value));
 	  } else
-	  { add_vmi_d(state, T_SMALLINT, (code)n->value);
+	  { add_smallint(state, T_SMALLINT, T_SMALLINTW, n->value);
 	  }
 	} else
 	{ term_t t2;
