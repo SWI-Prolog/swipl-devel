@@ -1774,6 +1774,11 @@ printCrashContext(const char *btname)
   time_t now;
   char tbuf[48];
   int btflags = 0;
+  static bool running = FALSE;
+
+  if ( running )
+    Sdprintf("Recursive crash; omitting crash report\n");
+  running = TRUE;
 
   now = time(NULL);
   ctime_r(&now, tbuf);
@@ -1803,19 +1808,23 @@ printCrashContext(const char *btname)
 
   print_backtrace_named(btname);
   if ( LD )
-  { if ( LD->shift_status.inferences )
-    { Sdprintf("Last stack shift at %" PRIu64 " inferences\n",
-		LD->shift_status.inferences);
-      print_backtrace_named("SHIFT");
-    }
-    if ( LD->gc.inferences )
-    { Sdprintf("Last garbage collect at %" PRIu64 " inferences\n",
-		LD->gc.inferences);
-      print_backtrace_named("GC");
+  { if ( getenv("SWIPL_DEBUG_GC_STACK") )
+    { if ( LD->shift_status.inferences )
+      { Sdprintf("Last stack shift at %" PRIu64 " inferences\n",
+		 LD->shift_status.inferences);
+	print_backtrace_named("SHIFT");
+      }
+      if ( LD->gc.inferences )
+      { Sdprintf("Last garbage collect at %" PRIu64 " inferences\n",
+		 LD->gc.inferences);
+	print_backtrace_named("GC");
+      }
     }
     Sdprintf("\n\nPROLOG STACK:\n");
     PL_backtrace(10, btflags);
   }
+
+  running = FALSE;
 }
 
 
