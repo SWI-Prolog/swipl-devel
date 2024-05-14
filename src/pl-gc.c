@@ -5211,7 +5211,7 @@ nextStackSizeAbove(size_t n)
     static size_t increment = 0;
 
     if ( !got_incr )
-    { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
+    { char *incr = getenv("SWIPL_STACK_INCREMENT"); /* 1: random */
 
       if ( incr )
 	increment = atol(incr);

@@ -84,7 +84,7 @@ dbgfd(void)
     { char *f;
 
       tried = 1;
-      if ( (f = getenv("SWI_DEBUG_IOREF")) )
+      if ( (f = getenv("SWIPL_DEBUG_IOREF")) )
 	debugfd = fopen(f, "w");
     }
   }
