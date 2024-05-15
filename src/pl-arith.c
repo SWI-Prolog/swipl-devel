@@ -1710,6 +1710,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   if ( ar_sign_i(n1) == 0 )		/* shift of 0 is always 0 */
   { r->value.i = 0;
     r->type = V_INTEGER;
+    return TRUE;
   }
 
   switch(n2->type)			/* amount to shift */
