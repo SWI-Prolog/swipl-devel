@@ -792,13 +792,15 @@ avoided by creating a dummy mpz that looks big enough to mpz_import().
 
 static char *
 load_mpz_size(const char *data, int *szp)
-{ int size = 0;
+{ const unsigned char *udata = (const unsigned char*)data;
+  uint32_t usize = 0;
+  int32_t size;
 
-  size |= (data[0]&0xff)<<24;
-  size |= (data[1]&0xff)<<16;
-  size |= (data[2]&0xff)<<8;
-  size |= (data[3]&0xff);
-  size = (size << SHIFTSIGN32)>>SHIFTSIGN32;	/* sign extend */
+  usize |= ((uint32_t)udata[0])<<24;
+  usize |= ((uint32_t)udata[1])<<16;
+  usize |= ((uint32_t)udata[2])<<8;
+  usize |= ((uint32_t)udata[3]);
+  size = (int32_t)usize;
 
   *szp = size;
   data += 4;
