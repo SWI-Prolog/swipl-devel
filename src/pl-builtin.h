@@ -550,7 +550,7 @@ struct foreign_context
 #define YIELD_PTR	0x01		/* Returned a pointer */
 #define REDO_INT	0x02		/* Returned an integer */
 
-#define ForeignRedoIntVal(v)	(((uintptr_t)((v)<<FRG_REDO_BITS))|REDO_INT)
+#define ForeignRedoIntVal(v)	(((uintptr_t)((uintptr_t)(v)<<FRG_REDO_BITS))|REDO_INT)
 #define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
 #define ForeignYieldPtrVal(v)	(((uintptr_t)(v))|YIELD_PTR)
 
