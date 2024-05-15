@@ -1989,6 +1989,7 @@ struct sourceFile
   unsigned int	number_of_clauses;	/* number of clauses */
   unsigned int	index;			/* index number (1,2,...) */
   unsigned int	references;		/* Reference count */
+  unsigned	isfile     : 1;		/* Is a real file */
   unsigned	system     : 1;		/* system sourcefile: do not reload */
   unsigned	from_state : 1;		/* Loaded from resource DB state */
   unsigned	resource   : 1;		/* Loaded from resource DB file */

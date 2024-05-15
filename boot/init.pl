@@ -2290,7 +2290,7 @@ load_files(Module:Files, Options) :-
     fail.
 '$noload'(_, FullFile, _Options) :-
     '$time_source_file'(FullFile, Time, system),
-    Time > 0.0,
+    float(Time),
     !.
 '$noload'(not_loaded, FullFile, _) :-
     source_file(FullFile),
@@ -3000,7 +3000,7 @@ load_files(Module:Files, Options) :-
 	  error(_, _),
 	  fail),
     !.
-'$modified_id'(_, 0.0, _).
+'$modified_id'(_, 0, _).
 
 
 '$compile_type'(What) :-

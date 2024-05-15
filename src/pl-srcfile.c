@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2021, VU University Amsterdam
+    Copyright (c)  2014-2024, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -303,6 +303,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
   { file = allocHeapOrHalt(sizeof(*file));
     memset(file, 0, sizeof(*file));
 
+    file->mtime	     = 0.0;
     file->name       = name;
     file->system     = GD->bootsession&1;
     file->from_state = GD->bootsession&1;
@@ -639,6 +640,16 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 }
 
 
+#define unify_src_file_time(t, f) LDFUNC(unify_src_file_time, t, f)
+
+static int
+unify_src_file_time(DECL_LD term_t t, const SourceFile f)
+{ if ( f->isfile )
+    return PL_unify_float(t, f->mtime);
+
+  return PL_unify_integer(t, 0);
+}
+
 static
 PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 { PRED_LD
@@ -669,7 +680,7 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
       continue;
 
     if ( PL_unify_atom(file, f->name) &&
-	 PL_unify_float(time, f->mtime) &&
+	 unify_src_file_time(time, f) &&
 	 PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) )
     { PL_close_foreign_frame(fid);
       ForeignRedoInt(index+1);
@@ -1694,16 +1705,25 @@ static
 PRED_IMPL("$start_consult", 2, start_consult, 0)
 { PRED_LD
   atom_t name;
-  double time;
-
   term_t file = A1;
   term_t modified = A2;
 
-  if ( PL_get_atom_ex(file, &name) &&
-       PL_get_float_ex(modified, &time) )
-  { SourceFile sf = lookupSourceFile(name, TRUE);
+  if ( PL_get_atom_ex(file, &name) )
+  { int isfile, i;
+    double mtime;
 
-    sf->mtime = time;
+    if ( PL_get_integer(modified, &i) && i == 0 )
+    { isfile = FALSE;
+      mtime = 0.0;
+    } else if ( PL_get_float_ex(modified, &mtime) )
+    { isfile = TRUE;
+    } else
+      return FALSE;
+
+    SourceFile sf = lookupSourceFile(name, TRUE);
+
+    sf->mtime = mtime;
+    sf->isfile = isfile&1;
     startConsult(sf);
     releaseSourceFile(sf);
 

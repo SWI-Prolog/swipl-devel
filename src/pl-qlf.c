@@ -164,7 +164,7 @@ Below is an informal description of the format of a `.qlf' file:
 			XR_FUNCTOR <XR/name> <num>	% functor
 			XR_PRED    <XR/fdef> <XR/module>% predicate
 			XR_MODULE  <XR/name>		% module
-			XR_FILE	   's'|'u' <XR/atom> <time>
+			XR_FILE	   's'|'u'|'S'|'U' <XR/atom> <time>
 				   '-'
 			XR_BLOB_TYPE <len><chars>	% blob type-name
 <term>		::=	<num>				% # variables in term
@@ -172,8 +172,8 @@ Below is an informal description of the format of a `.qlf' file:
 <theterm>	::=	<XR/atomic>			% atomic data
 		      | 'v' <num>			% variable
 		      | 't' <XR/functor> {<theterm>}	% compound
-<system>	::=	's'				% system source file
-		      | 'u'				% user source file
+<system>	::=	's' | 'S'			% system source file
+		      | 'u' | 'U'			% user source file
 <time>		::=	<word>				% time file was loaded
 <line>		::=	<num>
 <codes>		::=	<num> {<code>}
@@ -841,6 +841,8 @@ loadXRc(DECL_LD wic_state *state, int c)
       switch( (c=Qgetc(fd)) )
       { case 'u':
 	case 's':
+	case 'U':
+	case 'S':
 	{ atom_t name   = word2atom(loadXR(state));
 	  double time   = qlfGetDouble(fd);
 	  PL_chars_t text;
@@ -853,8 +855,9 @@ loadXRc(DECL_LD wic_state *state, int c)
 	  PL_STRINGS_RELEASE();
 
 	  if ( sf->mtime == 0.0 )
-	  { sf->mtime   = time;
-	    sf->system = (c == 's' ? TRUE : FALSE);
+	  { sf->mtime  = time;
+	    sf->system = !!(c == 's' || c == 'S');
+	    sf->isfile = !!(c == 's' || c == 'u');
 	  }
 	  sf->count++;
 	  xr = ptr2word(sf);
@@ -1814,7 +1817,7 @@ qlfLoadSource(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
   char *str = qlfGetString(fd, NULL);
   double time = qlfGetDouble(fd);
-  unsigned int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
+  int ftype = Qgetc(fd);
   atom_t fname;
 
   if ( !str )
@@ -1830,7 +1833,8 @@ qlfLoadSource(wic_state *state)
   state->currentSource = lookupSourceFile(fname, TRUE);
   PL_unregister_atom(fname);		/* locked with sourceFile */
   state->currentSource->mtime = time;
-  state->currentSource->system = issys&0x1;
+  state->currentSource->system = !!(ftype == 's' || ftype == 'S');
+  state->currentSource->isfile = !!(ftype == 's' || ftype == 'u');
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
   else
@@ -2485,6 +2489,13 @@ saveXRProc(DECL_LD wic_state *state, Procedure p)
   saveXRModule(state, p->definition->module);
 }
 
+static inline int
+src_file_status(const SourceFile f)
+{ if ( f->isfile )
+    return f->system ? 's' : 'u';
+  else
+    return f->system ? 'S' : 'U';
+}
 
 #define saveXRSourceFile(state, f) LDFUNC(saveXRSourceFile, state, f)
 static void
@@ -2499,7 +2510,7 @@ saveXRSourceFile(DECL_LD wic_state *state, SourceFile f)
   if ( f )
   { DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = file %s\n",
 			       state->savedXRTableId, stringAtom(f->name)));
-    Sputc(f->system ? 's' : 'u', fd);
+    Sputc(src_file_status(f), fd);
     saveXR(state, f->name);
     qlfPutDouble(f->mtime, fd);
   } else
@@ -3666,7 +3677,7 @@ qlfSaveSource(wic_state *state, SourceFile f)
   Sputc('F', fd);
   qlfPutString(text.text.t, text.length, fd);
   qlfPutDouble(f->mtime, fd);
-  Sputc(f->system ? 's' : 'u', fd);
+  Sputc(src_file_status(f), fd);
   PL_STRINGS_RELEASE();
 
   state->currentSource = f;

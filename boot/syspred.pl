@@ -245,8 +245,8 @@ atom_prefix(Atom, Prefix) :-
 %   if the canonical name  as   defined  by  absolute_file_name/2 is
 %   known as a loaded filename.
 %
-%   Note that Time = 0.0 is used by  PlDoc and other code that needs
-%   to create a file record without being interested in the time.
+%   Note that Time = 0 is used by PlDoc and other code that needs to
+%   create a file record without being interested in the time.
 
 source_file(File) :-
     (   current_prolog_flag(access_level, user)
@@ -260,7 +260,7 @@ source_file(File) :-
         ), !
     ;   '$time_source_file'(File, Time, Level)
     ),
-    Time > 0.0.
+    float(Time).
 
 %!  source_file(+Head, -File) is semidet.
 %!  source_file(?Head, ?File) is nondet.
