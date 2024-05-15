@@ -1745,7 +1745,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       if ( dir < 0 )			/* shift left (<<) */
       {
 #ifdef O_BIGNUM				/* msb() is 0..63 */
-	int bits = shift;
+	size_t bits = shift;
 
 	if ( n1->value.i >= 0 )
 	  bits += MSB64(n1->value.i);
@@ -1754,15 +1754,15 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	else
 	  bits += MSB64(-n1->value.i);
 
-	if ( bits >= (int)(sizeof(int64_t)*8-1) )
+	if ( bits >= sizeof(int64_t)*8-1 )
 	{ promoteToMPZNumber(n1);
 	  goto mpz;
 	} else
 #endif
-	{ r->value.i = n1->value.i << shift;
+	{ r->value.i = (int64_t)((uint64_t)n1->value.i << shift);
 	}
-      } else
-      { if ( shift >= (long)sizeof(int64_t)*8 )
+      } else				/* shift right (>>) */
+      { if ( shift >= sizeof(int64_t)*8 )
 	  r->value.i = (n1->value.i >= 0 ? 0 : -1);
 	else
 	  r->value.i = n1->value.i >> shift;
@@ -1774,7 +1774,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     mpz:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
-      if ( dir < 0 )
+      if ( dir < 0 )		/* shift left (<<) */
       {
 #ifdef O_BIGNUM_PRECHECK_ALLOCATIONS
 	GET_LD

@@ -8867,13 +8867,23 @@ to the result of the evaluation.
 Same as \funcref{ceiling}{1} (backward compatibility).
 
     \infixfunction[ISO]{>>}{+IntExpr1}{+IntExpr2}
-Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.  The
-operation performs \jargon{arithmetic shift}, which implies that the
-inserted most significant bits are copies of the original most
-significant bits.
+Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right. The
+ISO standard dictates shifting a negative value is
+\jargon{implementation defined}.  SWI-Prolog defines shifting negative
+integers to be defined as $-(-Int>>Shift)$.  Shifting positive
+integers by more than their size results in 0 (zero). Shifting
+negative integers by more then their size results in -1.  I.e.,
+\exam{A is -3464 >> 100} binds \arg{A} to -1.  If \arg{IntExpr2}
+is negative, a right shift (see \funcref{>>}{2}) is performed with
+the negated value of \arg{IntExpr2}.
 
     \infixfunction[ISO]{<<}{+IntExpr1}{+IntExpr2}
-Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the left.
+Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the left.  The
+ISO standard dictates shifting a negative value is
+\jargon{implementation defined}.  SWI-Prolog defines shifting negative
+integers to be defined as $-(-Int<<Shift)$. If \arg{IntExpr2} is
+negative, a left shift (see \funcref{<<}{2}) is performed with the
+negated value of \arg{IntExpr2}.
 
     \infixfunction[ISO]{\/}{+IntExpr1}{+IntExpr2}
 Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
