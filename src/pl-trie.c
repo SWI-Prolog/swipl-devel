@@ -538,7 +538,7 @@ prune_trie(trie *trie, trie_node *root,
 
 
 #define VMASKBITS  (sizeof(unsigned)*8)
-#define VMASK_SCAN (0x1<<(VMASKBITS-1))
+#define VMASK_SCAN (0x1U<<(VMASKBITS-1))
 
 static inline void
 update_var_mask(trie_children_hashed *hnode, word key)
@@ -547,7 +547,7 @@ update_var_mask(trie_children_hashed *hnode, word key)
     unsigned mask;
 
     if ( vn < VMASKBITS )
-      mask = 0x1<<(vn-1);
+      mask = 0x1U<<(vn-1);
     else
       mask = VMASK_SCAN;
 
