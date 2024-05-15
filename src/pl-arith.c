@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -80,6 +80,8 @@ in this array.
 #include <ieeefp.h>
 #endif
 #include <fenv.h>
+
+#define O_BIGNUM_PRECHECK_ALLOCATIONS 1
 
 #ifndef DBL_MAX
 #define DBL_MAX     1.7976931348623157e+308
@@ -1777,12 +1779,14 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       if ( dir < 0 )		/* shift left (<<) */
       {
 #ifdef O_BIGNUM_PRECHECK_ALLOCATIONS
-	GET_LD
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
-	if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
-	{ mpz_clear(r->value.mpz);
-	  return int_too_big();
+	if ( msb > 10000 )
+	{ GET_LD
+	  if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
+	  { mpz_clear(r->value.mpz);
+	    return int_too_big();
+	  }
 	}
 #endif /*O_BIGNUM_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
