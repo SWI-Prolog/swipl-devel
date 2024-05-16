@@ -2786,10 +2786,11 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  }
 	  break;
 	case TAG_FLOAT:
-	{ Word ip = valIndirectP(w);
-	  add_vmi_d(state, T_FLOAT, (code)ip[0]);
+	{ Code ip = (Code)valIndirectP(w);
+	  add_vmi_d(state, T_FLOAT, ip[0]);
 #if SIZEOF_CODE == 4
-	  addBuffer(&state->codes, (code)ip[1], code);
+	  static_assertion(sizeof(double) == sizeof(code)*2);
+	  addBuffer(&state->codes, ip[1], code);
 #endif
           break;
 	}
@@ -2896,12 +2897,13 @@ next:
 	    add_vmi_w(state, T_STRING, h->header);
 	  break;
         case TAG_FLOAT:
-	  { static_assertion(sizeof(h->data[0]) == sizeof(word)); }
-	  if ( state->try )
-	    add_vmi_else_w(state, T_TRY_FLOAT, h->data[0]);
-	  else
-	    add_vmi_w(state, T_FLOAT, h->data[0]);
-	  goto indirect_done;
+	  { static_assertion(sizeof(h->data[0]) == sizeof(double));
+	    if ( state->try )
+	      add_vmi_else_w(state, T_TRY_FLOAT, h->data[0]);
+	    else
+	      add_vmi_w(state, T_FLOAT, h->data[0]);
+	    goto indirect_done;
+	  }
       }
 
       addMultipleBuffer(&state->codes, h->data, wsize, word);

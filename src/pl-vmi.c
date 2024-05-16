@@ -6324,9 +6324,9 @@ VMI(T_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
     TrieNextArg();
     NEXT_INSTRUCTION;
   } else if ( isFloat(*k) )
-  { Word p = valIndirectP(*k);
+  { Code p = (Code)valIndirectP(*k);
 
-    switch(WORDS_PER_DOUBLE) /* depend on compiler to clean up */
+    switch(CODES_PER_DOUBLE) /* depend on compiler to clean up */
     { case 2:
 	if ( *p++ != *PC++ )
 	  CLAUSE_FAILED;
@@ -6418,7 +6418,7 @@ END_VMI
 
 VMI(T_TRY_SMALLINTW, 0, 1+CODES_PER_WORD, (CA1_JUMP,CA1_WORD))
 { TRIE_TRY;
-  VMI_GOTO(T_SMALLINT);
+  VMI_GOTO(T_SMALLINTW);
 }
 END_VMI
 
