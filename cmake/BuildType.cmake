@@ -37,9 +37,8 @@ endif()
 # For GCC, using -O3 makes the program bigger and slower.  -O2 is
 # better.  Possibly tuning individual flags can reach better results.
 
-option(SANITIZE,
-  "ASAN option"
-  address)
+set(SANITIZE "address" CACHE STRING
+  "Value for -fsanitize when using -DCMAKE_BUILD_TYPE=Sanitize (address)")
 
 set(GCC_GFLAGS "-gdwarf-2 -g3")
 if(CMAKE_COMPILER_IS_GNUCC)
