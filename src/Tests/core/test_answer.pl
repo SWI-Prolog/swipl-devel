@@ -63,10 +63,10 @@ test_answer :-
 %	Run GoalAtom in a separate thread and   catch the output that is
 %	produced by Prolog.
 
-toplevel_answer(GoalAtom, Answer) :-
+toplevel_answer(GoalAtom, Answer, Flags) :-
 	pipe(Read, Write),
 	pipe(Read2, Write2),
-	thread_create(send_bindings(Read2, Write), Id, []),
+	thread_create(send_bindings(Read2, Write, Flags), Id, []),
 	format(Write2, '(~w), !.~n', [GoalAtom]),
 	close(Write2),
 	read_string(Read, _, Answer),
@@ -74,9 +74,11 @@ toplevel_answer(GoalAtom, Answer) :-
 	thread_join(Id, Reply),
 	assertion(Reply == true).
 
-send_bindings(In, Out) :-
+send_bindings(In, Out, Flags) :-
 	set_prolog_IO(In, Out, Out),
 	set_prolog_flag(toplevel_residue_vars, true),
+	forall(member(Flag=Value, Flags),
+	       set_prolog_flag(Flag, Value)),
 	prolog,
 	close(user_input),
 	close(user_error),
@@ -87,7 +89,10 @@ send_bindings(In, Out) :-
 %	True if Query produces one of the outputs in OkReplies.
 
 test_answer(QueryAtom, Replies) :-
-	toplevel_answer(QueryAtom, Output),
+	test_answer(QueryAtom, Replies, []).
+
+test_answer(QueryAtom, Replies, Flags) :-
+	toplevel_answer(QueryAtom, Output, Flags),
 	debug(test_answer, 'Got: ~q', [Output]),
 	term_string(Written, Output,
 		    [ variable_names(OutBindings),
@@ -123,6 +128,8 @@ compare_comment(_-C, _-C).
 
 hidden :-
 	dif(_X, a).
+
+v(f(X,X)).
 
 :- begin_tests(answer,
 	       [ sto(rational_trees),
@@ -167,6 +174,20 @@ test(hidden3, true) :-
 		      dif(B, b),
 		      % with pending residual goals
 		      dif(_,a)'
+		    ]).
+test(name_var, true) :-
+	test_answer('test_answer:v(X)',
+		    [ 'X = f(_A,_A)'
+		    ],
+		    [ toplevel_name_variables=true,
+		      toplevel_print_anon=false
+		    ]).
+test(name_var, true) :-
+	test_answer('test_answer:v(_A)',
+		    [ '_A = f(_B,_B)'
+		    ],
+		    [ toplevel_name_variables=true,
+		      toplevel_print_anon=true
 		    ]).
 
 :- end_tests(answer).

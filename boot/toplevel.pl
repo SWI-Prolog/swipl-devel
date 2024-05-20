@@ -1397,6 +1397,11 @@ anon_vars([]).
 anon_vars(['$VAR'('_')|T]) :-
     anon_vars(T).
 
+%!  name_var(+Bindings, -Name, +N0, -N) is det.
+%
+%   True when Name is a valid name for   a new variable where the search
+%   is guided by the number N0. Name may not appear in Bindings.
+
 name_var(Bindings, Name, N0, N) :-
     between(N0, infinite, N1),
     I is N1//26,
@@ -1412,7 +1417,7 @@ name_var(Bindings, Name, N0, N) :-
     !,
     N is N1+1.
 
-is_bound([Vars=_|T], Name) :-
+is_bound([binding(Vars,_Value,_Subst)|T], Name) :-
     (   in_vars(Vars, Name)
     ->  true
     ;   is_bound(T, Name)
