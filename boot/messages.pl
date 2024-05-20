@@ -316,7 +316,7 @@ dependency_error(Dep, monotonic(On)) -->
     ].
 
 faq(Page) -->
-    [nl, '  See FAQ at https://www.swi-prolog.org/FAQ/', Page, '.txt' ].
+    [nl, '  See FAQ at https://www.swi-prolog.org/FAQ/', Page, '.html' ].
 
 type_error_comment(_Expected, Actual) -->
     { type_of(Actual, Type),
