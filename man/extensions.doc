@@ -1186,14 +1186,14 @@ The goal \verb$Select :< From$ is equivalent to
 True when the tags of \arg{Select} and \arg{From} have been unified,
 all keys in \arg{Select} appear in \arg{From} and the corresponding
 values have been unified. The key-value pairs of \arg{From} that do not
-appear in \arg{Select} are used to form an anonymous dict, which us
+appear in \arg{Select} are used to form an anonymous dict, which is
 unified with \arg{Rest}.  For example:
 
 \begin{code}
 ?- select_dict(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
 P = point,
 Y = 1,
-R = _G1705{z:2}.
+R = _{z:2}.
 \end{code}
 
 See also \predref{:<}{2} to ignore \arg{Rest} and \predref{>:<}{2} for
