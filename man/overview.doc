@@ -2297,8 +2297,15 @@ are printed as \arg{_}.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
-(\chr{_}) are printed normally.  If \const{false} they are hidden.
-This may be used to hide bindings in complex queries from the top level.
+(\chr{_}) are printed normally.  If \const{false} (default) the
+binding of such variables are omitted from the answer.  This may be
+used to hide bindings in complex queries from the top level.  For example,
+the binding for \arg{_List} below is not printed.
+
+\begin{code}
+?- numlist(1,1 000 000,_List), sum_list(_List, Sum).
+Sum = 500000500000.
+\end{code}
 
     \prologflagitem{toplevel_print_factorized}{bool}{rw}
 If \const{true} (default \const{false}) show the internal sharing of

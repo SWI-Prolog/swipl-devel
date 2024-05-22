@@ -1967,7 +1967,7 @@ initPrologFlags(void)
   setPrologFlag("allow_dot_in_atom", FT_BOOL, FALSE,
 		PLFLAG_DOT_IN_ATOM);
   setPrologFlag("toplevel_var_size", FT_INTEGER, (intptr_t)1000);
-  setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
+  setPrologFlag("toplevel_print_anon", FT_BOOL, FALSE, 0);
   setPrologFlag("toplevel_name_variables", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
