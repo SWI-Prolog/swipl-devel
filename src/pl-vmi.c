@@ -503,33 +503,22 @@ END_VMI
 VMH(h_const, 1, (word), (c))
 { Word k = ARGP;
 
-  for(;;)
-  { switch(tag(*k))
-    { case TAG_VAR:
-	if ( !hasTrailSpace(1) )
-	  break;
-	varBindConst(k, c);
-	ARGP++;
-	NEXT_INSTRUCTION;
-      case TAG_ATTVAR:
-	if ( !hasGlobalSpace(0) )
-	  break;
-	assignAttVar(k, &c);
-	ARGP++;
-	NEXT_INSTRUCTION;
-      case TAG_REFERENCE:
-	k = unRef(*k);
-	continue;
-      default:
-	if ( *k == c )
-	{ ARGP++;
-	  NEXT_INSTRUCTION;
-	}
-	CLAUSE_FAILED;
-    }
-    GROW_STACK_SPACE(0,0);
-    k = ARGP;
+  deRef(k);
+  if ( *k == c )
+  { ARGP++;
+    NEXT_INSTRUCTION;
   }
+  if ( canBind(*k) )
+  { if ( !hasGlobalSpace(0) )
+    { GROW_STACK_SPACE(0,0);
+      k = ARGP;
+      deRef(k);
+    }
+    bindConst(k, c);
+    ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  CLAUSE_FAILED;
 }
 END_VMH
 
