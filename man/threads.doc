@@ -474,6 +474,15 @@ does not suspend if no space is available, failing immediately instead.
 
 If \arg{Time} $< 0$, thread_send_message/3 fails immediately without
 sending the message.
+
+    \termitem{signals}{+BoolOrTime}
+Whether or not signals (see thread_signal/2) are processed while
+waiting.  As the underlying implementation does not handle signals on
+most platforms, the implementation by default (\const{true}) times out
+every 0.25~seconds and checks for signals.  If \const{false}, signals
+are not checked.  If a number is specified, we check for signals every
+\arg{Time} seconds.  Smaller times may be used to improved
+responsiveness to signals.  Larger times may be used to reduce CPU usage.
     \end{description}
 
     \predicate{thread_get_message}{1}{?Term}
@@ -587,6 +596,15 @@ thread_peek_message/2, a matching term is removed from the queue.
 
 If \arg{Time} $< 0$, thread_get_message/3 fails immediately without
 removing any message from the queue.
+
+    \termitem{signals}{+BoolOrTime}
+Whether or not signals (see thread_signal/2) are processed while
+waiting.  As the underlying implementation does not handle signals on
+most platforms, the implementation by default (\const{true}) times out
+every 0.25~seconds and checks for signals.  If \const{false}, signals
+are not checked.  If a number is specified, we check for signals every
+\arg{Time} seconds.  Smaller times may be used to improved
+responsiveness to signals.  Larger times may be used to reduce CPU usage.
     \end{description}
 
     \predicate[semidet]{thread_peek_message}{2}{+Queue, ?Term}

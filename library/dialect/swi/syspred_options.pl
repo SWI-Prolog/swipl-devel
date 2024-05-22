@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, VU University Amsterdam
+    Copyright (c)  2011-2024, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -195,11 +195,13 @@
 		     ]).
 :- predicate_options(system:thread_send_message/3, 3,
 		     [ timeout(number),
-		       deadline(number)
+		       deadline(number),
+		       signals(any)
 		     ]).
 :- predicate_options(system:thread_get_message/3, 3,
 		     [ timeout(number),
-		       deadline(number)
+		       deadline(number),
+		       signals(any)
 		     ]).
 :- predicate_options(system:locale_create/3, 3,
 		     [ alias(atom),

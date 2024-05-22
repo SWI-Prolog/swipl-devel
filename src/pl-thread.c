@@ -4162,12 +4162,13 @@ typedef enum
 #define MSG_WAIT_DESTROYED	(-3)
 
 #ifdef O_PLMT
-#define dispatch_cond_wait(queue, wait, deadline) \
-	LDFUNC(dispatch_cond_wait, queue, wait, deadline)
+#define dispatch_cond_wait(queue, wait, deadline, retry_every) \
+	LDFUNC(dispatch_cond_wait, queue, wait, deadline, retry_every)
 
 static int dispatch_cond_wait(DECL_LD message_queue *queue,
 			      queue_wait_type wait,
-			      struct timespec *deadline);
+			      struct timespec *deadline,
+			      const struct timespec *retry_every);
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4229,18 +4230,18 @@ queue_message() adds a message to a message queue.  The caller must hold
 the queue-mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define queue_message(queue, msgp, deadline) \
-	LDFUNC(queue_message, queue, msgp, deadline)
+#define queue_message(queue, msgp, deadline, retry) \
+	LDFUNC(queue_message, queue, msgp, deadline, retry)
 
 static int
 queue_message(DECL_LD message_queue *queue, thread_message *msgp,
-	      struct timespec *deadline)
+	      struct timespec *deadline, struct timespec *retry)
 { if ( queue->max_size > 0 && queue->size >= queue->max_size )
   {
 #ifdef O_PLMT
     queue->wait_for_drain++;
     while ( queue->size >= queue->max_size )
-    { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline) )
+    { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline, retry) )
       { case CV_INTR:
 	{ if ( !LD )			/* needed for clean exit */
 	  { Sdprintf("Forced exit from queue_message()\n");
@@ -4324,6 +4325,8 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
 #ifdef HAVE_FTIME
 #include <sys/timeb.h>
 #endif
+
+#define RETRY_BLOCK ((struct timespec *)1)
 
 static void
 timespec_set_dbl(struct timespec *spec, double stamp)
@@ -4433,6 +4436,10 @@ cv_timedwait(message_queue *queue,
   { retry_every   = &retry;
     retry.tv_sec  = 0;
     retry.tv_nsec = 250000000;
+  } else if ( retry_every == RETRY_BLOCK )
+  { retry_every   = &retry;
+    retry.tv_sec  = 60;
+    retry.tv_nsec = 0;
   }
   api_timeout = timespec_msecs(retry_every);
 
@@ -4483,6 +4490,10 @@ cv_timedwait(message_queue *queue,
   { retry_every = &retry;
     retry.tv_sec = 0;
     retry.tv_nsec = 250000000;
+  } else if ( retry_every == RETRY_BLOCK )
+  { retry_every   = &retry;	/* TBD: use pthread_cond_wait() */
+    retry.tv_sec  = 60;
+    retry.tv_nsec = 0;
   }
 
   for(;;)
@@ -4522,7 +4533,8 @@ cv_timedwait(message_queue *queue,
 
 static int
 dispatch_cond_wait(DECL_LD message_queue *queue, queue_wait_type wait,
-		   struct timespec *deadline)
+		   struct timespec *deadline,
+		   const struct timespec *retry_every)
 { int rc;
 
   LD->thread.alert.obj.queue = queue;
@@ -4533,7 +4545,7 @@ dispatch_cond_wait(DECL_LD message_queue *queue, queue_wait_type wait,
 		    (wait == QUEUE_WAIT_READ ? &queue->cond_var
 					     : &queue->drain_var),
 		    &queue->mutex,
-		    deadline, NULL);
+		    deadline, retry_every);
 
   PL_LOCK(L_ALERT);
   LD->thread.alert.type = 0;
@@ -4585,11 +4597,12 @@ we also need to lock to avoid  get_message() destroying the record while
 markAtomsMessageQueue() scans it. This fixes the reopened Bug#142.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define get_message(queue, msg, deadline) \
-	LDFUNC(get_message, queue, msg, deadline)
+#define get_message(queue, msg, deadline, retry) \
+	LDFUNC(get_message, queue, msg, deadline, retry)
 
 static int
-get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
+get_message(DECL_LD message_queue *queue, term_t msg,
+	    struct timespec *deadline, struct timespec *retry)
 { int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
   fid_t fid = PL_open_foreign_frame();
@@ -4696,7 +4709,7 @@ get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    rc = dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline);
+    rc = dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline, retry);
     switch ( rc )
     { case CV_INTR:
       { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: CV_INTR\n", PL_thread_self()));
@@ -4866,6 +4879,7 @@ sizeof_message_queue(message_queue *queue)
 static const PL_option_t timeout_options[] =
 { { ATOM_timeout,	OPT_DOUBLE },
   { ATOM_deadline,	OPT_DOUBLE },
+  { ATOM_signals,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
 
@@ -4891,22 +4905,41 @@ static const PL_option_t timeout_options[] =
 	   FALSE (leading to failure).
 */
 
-#define process_deadline_options(options, ts, pts) \
-	LDFUNC(process_deadline_options, options, ts, pts)
+#define process_deadline_options(options, ts, pts, rs, prs) \
+	LDFUNC(process_deadline_options, options, ts, pts, rs, prs)
 
 static int
 process_deadline_options(DECL_LD term_t options,
-			 struct timespec *ts, struct timespec **pts)
+			 struct timespec *ts, struct timespec **pts,
+			 struct timespec *rs, struct timespec **prs)
 { struct timespec now;
   struct timespec deadline;
   struct timespec timeout;
   struct timespec *dlop=NULL;
   double tmo = DBL_MAX;
   double dlo = DBL_MAX;
+  term_t sigo = 0;
+  int sigb;
+  double sigf;
 
   if ( !PL_scan_options(options, 0, "timeout_option", timeout_options,
-			&tmo, &dlo) )
+			&tmo, &dlo, &sigo) )
     return FALSE;
+
+  if ( rs )
+  { if ( !sigo )
+    { *prs = NULL;
+    } else if ( PL_get_bool(sigo, &sigb) )
+    { if ( sigb )
+	*prs = NULL;
+      else
+	*prs = RETRY_BLOCK;
+    } else if ( PL_get_float(sigo, &sigf) && sigf > 0.0 )
+    { timespec_set_dbl(rs, sigf);
+      *prs = rs;
+    } else
+      return PL_domain_error("signal_option", sigo);
+  }
 
   get_current_timespec(&now);
 
@@ -4944,16 +4977,16 @@ process_deadline_options(DECL_LD term_t options,
   return TRUE;
 }
 
-#define wait_queue_message(qterm, q, msg, deadline) \
-	LDFUNC(wait_queue_message, qterm, q, msg, deadline)
+#define wait_queue_message(qterm, q, msg, deadline, retry) \
+	LDFUNC(wait_queue_message, qterm, q, msg, deadline, retry)
 
 static int
 wait_queue_message(DECL_LD term_t qterm, message_queue *q, thread_message *msg,
-		   struct timespec *deadline)
+		   struct timespec *deadline, struct timespec *retry)
 { int rc;
 
   for(;;)
-  { rc = queue_message(q, msg, deadline);
+  { rc = queue_message(q, msg, deadline, retry);
 
     switch(rc)
     { case MSG_WAIT_INTR:
@@ -4983,12 +5016,12 @@ wait_queue_message(DECL_LD term_t qterm, message_queue *q, thread_message *msg,
   return rc;
 }
 
-#define thread_send_message(queue, msgterm, deadline) \
-	LDFUNC(thread_send_message, queue, msgterm, deadline)
+#define thread_send_message(queue, msgterm, deadline, retry) \
+	LDFUNC(thread_send_message, queue, msgterm, deadline, retry)
 
 static int
 thread_send_message(DECL_LD term_t queue, term_t msgterm,
-			struct timespec *deadline)
+		    struct timespec *deadline, struct timespec *retry)
 { message_queue *q;
   thread_message *msg;
   int rc;
@@ -5001,7 +5034,7 @@ thread_send_message(DECL_LD term_t queue, term_t msgterm,
     return FALSE;
   }
 
-  rc = wait_queue_message(queue, q, msg, deadline);
+  rc = wait_queue_message(queue, q, msg, deadline, retry);
   release_message_queue(q);
 
   if ( rc == FALSE )
@@ -5014,17 +5047,17 @@ static
 PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 { PRED_LD
 
-  return thread_send_message(A1, A2, NULL);
+  return thread_send_message(A1, A2, NULL, NULL);
 }
 
 static
 PRED_IMPL("thread_send_message", 3, thread_send_message, 0)
 { PRED_LD
-  struct timespec deadline;
-  struct timespec *dlop=NULL;
+  struct timespec deadline, retry;
+  struct timespec *dlop=NULL, *retry_every=NULL;
 
-  return process_deadline_options(A3,&deadline,&dlop)
-    &&   thread_send_message(A1, A2, dlop);
+  return process_deadline_options(A3,&deadline,&dlop,&retry,&retry_every)
+    &&   thread_send_message(A1, A2, dlop, retry_every);
 }
 
 
@@ -5036,7 +5069,7 @@ PRED_IMPL("thread_get_message", 1, thread_get_message, PL_FA_ISO)
 
   for(;;)
   { simpleMutexLock(&LD->thread.messages.mutex);
-    rc = get_message(&LD->thread.messages, A1, NULL);
+    rc = get_message(&LD->thread.messages, A1, NULL, NULL);
     simpleMutexUnlock(&LD->thread.messages.mutex);
 
     if ( rc == MSG_WAIT_INTR )
@@ -5710,9 +5743,11 @@ thread_get_message(-Message)
     a message from the queue implicitly associated to the thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define thread_get_message(queue, msg, deadline) LDFUNC(thread_get_message, queue, msg, deadline)
+#define thread_get_message(queue, msg, deadline, retry) \
+	LDFUNC(thread_get_message, queue, msg, deadline, retry)
 static int
-thread_get_message(DECL_LD term_t queue, term_t msg, struct timespec *deadline)
+thread_get_message(DECL_LD term_t queue, term_t msg,
+		   struct timespec *deadline, struct timespec *retry)
 { int rc;
 
   for(;;)
@@ -5721,7 +5756,7 @@ thread_get_message(DECL_LD term_t queue, term_t msg, struct timespec *deadline)
     if ( !get_message_queue(queue, &q) )
       return FALSE;
 
-    rc = get_message(q, msg, deadline);
+    rc = get_message(q, msg, deadline, retry);
     release_message_queue(q);
 
     switch(rc)
@@ -5751,18 +5786,18 @@ static
 PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 { PRED_LD
 
-  return thread_get_message(A1, A2, NULL);
+    return thread_get_message(A1, A2, NULL, NULL);
 }
 
 
 static
 PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
 { PRED_LD
-  struct timespec deadline;
-  struct timespec *dlop=NULL;
+    struct timespec deadline, retry;
+  struct timespec *dlop=NULL, *retry_every=NULL;
 
-  return process_deadline_options(A3,&deadline,&dlop)
-    &&   thread_get_message(A1, A2, dlop);
+  return process_deadline_options(A3,&deadline,&dlop,&retry,&retry_every)
+    &&   thread_get_message(A1, A2, dlop,retry_every);
 }
 
 
@@ -6023,7 +6058,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
   atom_t mname = NULL_ATOM;
 
   if ( !PL_strip_module(A2, &module, options) ||
-       !process_deadline_options(options, &deadline, &dlop) ||
+       !process_deadline_options(options, &deadline, &dlop, NULL, NULL) ||
        !PL_scan_options(options, 0, "thread_wait_options", thread_wait_options,
 		     &db, &wait_preds, &modified, &retry_every, &mname) )
     return FALSE;
