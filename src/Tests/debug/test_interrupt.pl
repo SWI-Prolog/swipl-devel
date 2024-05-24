@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2015, University of Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -96,8 +97,19 @@ cp_zero_null :-
 
 :- begin_tests(interrupt, [condition(current_prolog_flag(threads, true))]).
 
+% interrupts on blocking system calls are  supported if the alert signal
+% is not disabled or alert signals are not used for the OS.
+
+:- if(current_predicate(prolog_alert_signal/2)).
+supports_interrupts :-
+	prolog_alert_signal(Sig, Sig),
+	Sig > 0.
+:- endif.
+supports_interrupts.
+
 test(copy_stream_data, [ sto(rational_trees),
-			 condition(access_file('/dev/zero', exist))]) :-
+			 condition(access_file('/dev/zero', exist)),
+			 condition(supports_interrupts)]) :-
 	test_interrupt(cp_zero_null).
 
 :- end_tests(interrupt).
