@@ -97,7 +97,8 @@ cp_zero_null :-
 :- begin_tests(interrupt, [condition(current_prolog_flag(threads, true))]).
 
 test(copy_stream_data, [ sto(rational_trees),
-			 condition(access_file('/dev/zero', exist))]) :-
+			 condition(access_file('/dev/zero', exist)),
+			 condition(\+ prolog_alert_signal(0, 0))]) :-
 	test_interrupt(cp_zero_null).
 
 :- end_tests(interrupt).
