@@ -598,7 +598,8 @@ foreign_t	pl_thread_self(term_t self);
 #define TWF_ASSERT	0x0001		/* Predicate actions */
 #define TWF_RETRACT	0x0002
 
-#define C_STACK_MIN	(100*1024)
+#define C_STACK_MIN	(32*1024)
+#define NEW_C_STACK_MIN (C_STACK_MIN*2)
 
 typedef struct
 { functor_t functor;			/* functor of property */

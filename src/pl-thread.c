@@ -2258,7 +2258,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   PL_local_data_t *ldnew, *ldold = LD;
   atom_t alias = NULL_ATOM, idname;
   size_t stack = 0;
-  size_t c_stack = 0;
+  size_t c_stack = (size_t)-1;
   term_t inherit_from = 0;
   term_t at_exit = 0;
   term_t affinity = 0;
@@ -2284,8 +2284,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 			&alias,
 			&debug,
 			&detached,
-			&stack,		/* stack */
-			&c_stack,	/* c_stack */
+			&stack,
+			&c_stack,
 			&at_exit,
 			&inherit_from,
 			&affinity,
@@ -2367,14 +2367,16 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   {
 #ifdef USE_COPY_STACK_SIZE
     struct rlimit rlim;
-    if ( !c_stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
+    if ( c_stack == (size_t)-1 && getrlimit(RLIMIT_STACK, &rlim) == 0 )
     { if ( rlim.rlim_cur != RLIM_INFINITY )
 	c_stack = (size_t)rlim.rlim_cur;
 					/* What is an infinite stack!? */
     }
 #endif
-    if ( c_stack )
-    { c_stack = round_pages(c_stack);
+    if ( c_stack != (size_t)-1 )
+    { if ( c_stack < NEW_C_STACK_MIN )
+	c_stack = NEW_C_STACK_MIN;
+      c_stack = round_pages(c_stack);
       func = "pthread_attr_setstacksize";
       rc = pthread_attr_setstacksize(&pattr, c_stack);
 
