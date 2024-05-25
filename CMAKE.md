@@ -24,6 +24,11 @@ from https://cmake.org/download/
 
 ## Native build
 
+The [build SWI-Prolog from source](https://www.swi-prolog.org/build/)
+page has information one how to get and build SWI-Prolog for various
+platforms. Check that page also for the prerequisites depending on the
+platform.
+
 ### Getting the source
 
 The   source   may   be    downloaded    as     a    tar    ball    from
@@ -52,7 +57,7 @@ latest version:
     git pull
     git submodule update --init
     cd build
-	cmake .
+    cmake ..
     ninja
     ctest -j 8
     ninja install
@@ -155,8 +160,8 @@ platform).  The following environment variables are commonly used:
 - `SWI_HOME_DIR` should point at SWI-Prolog's main directory, e.g.
   ``${CMAKE_INSTALL_PREFIX}/lib/swipl``
 - The shared object search path should include the directory where
-  `libswipl.{so,dll,...}` resides.  The variable depends on the
-  platform.  Some popular names:
+  `libswipl.{so,dll,...}` resides.  The variable depends on the platform.
+  Some popular names:
 
   - `LD_LIBRARY_PATH` (ELF based systems such as Linux)
   - `DYLD_LIBRARY_PATH` (MacOS)
@@ -202,8 +207,8 @@ See https://www.swi-prolog.org/build/WebAssembly.html for details.
 
 For   latest    news   on   the    WASM   version   see    the   [Wiki
 page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
-This page also discusses how to  use the WASM version with Node.js and
-in a browser.
+This page also discusses how to  use the WASM version with Node.js and in
+a browser.
 
 
 ### Building a 32-bit version on 64-bit Debian based Linux
@@ -232,13 +237,13 @@ steps:
 
   - Build a native Prolog system in a directory, say `native`.  This
     version must have the same _word-size_ (32 or 64-bits) as the
-    cross-compiled target.  One the core Prolog system (no packages)
-    is required and the system only needs to be build, i.e., the
-    _install_ step is allowed but not needed.  See above.
+    cross-compiled target.  One the core Prolog system (no packages) is
+    required and the system only needs to be build, i.e., the _install_
+    step is allowed but not needed.  See above.
 
   - Specify `-DSWIPL_NATIVE_FRIEND=native` for the cross-compilation.
-    This will cause the above system to be used for the cross
-    compilation steps.
+    This will cause the above system to be used for the cross compilation
+    steps.
 
 ## Development
 
@@ -250,9 +255,9 @@ complete development environment and library   and system predicates can
 be edited using edit/1 and friends.
 
 The script `scripts/swi-activate` may be used   to  create symlinks from
-$HOME/bin to the version in the  current   working  directory. It may be
-used to activate the system  in  the   build  directory  or  where it is
-installed. It is called from the build directory as one of:
+`$HOME/bin` to the version in the  current   working  directory. It may
+be used to activate the system  in  the   build  directory  or  where it
+is installed. It is called from the build directory as one of:
 
     ../scripts/swipl-activate
     ../scripts/swipl-activate --installed
@@ -277,6 +282,12 @@ achieved using the target `core`, which   builds `swipl`, `libswipl` and
 `boot.prc`:
 
     ninja core
+
+Note that when using the `swi-activate` script, any system-wide version
+installed (e.g., from a Linux distribution) may be occluded, since the
+symbolic link created at `$HOME/bin/` will have precedence over, e.g.,
+`/usr/bin/swipl`. Delete the created symbolic link if you would like to
+come back to the distribution-based installed version.
 
 
 ### Testing
@@ -366,7 +377,7 @@ And, for the 32-bit version:
     cpack
 
 
-### Debian based Linux systems (.deb or .rpm)
+### Debian based Linux systems (`.deb` or `.rpm`)
 
 The following commands create  `swipl-<version>-<nr>.<cpu>.deb/rpm` file
 with  SWI-Prolog  to  be  installed  in  /usr.  The  process  creates  a
@@ -432,8 +443,11 @@ generate the Ubuntu PPA releases.
 
 ## Issues
 
-- Provide a FindSWIPL.cmake?
-- Problem compiling SWI when another SWI is installed already and you
+- Problem compiling SWIPL when another SWIPL is installed already and you
   have environment variables set to facilitate e.g., embedding in Java.
   The variable names and possibly conflicting values depend on the OS.
-  See [issue](https://github.com/SWI-Prolog/swipl-devel/issues/435)
+  See [issue](https://github.com/SWI-Prolog/swipl-devel/issues/435).
+- Potential problems when having multiple paralell insallations of SWIPL
+  (e.g., distribution-based, build, manually installed), and environment
+  variables `SWI_HOME_DIR` or `SWIPL` set to specific SWIPL's home
+  directory. Read above.

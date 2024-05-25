@@ -63,3 +63,21 @@ if [ ! -z "$swiplwin" ]; then
   rm -f $HOME/bin/swipl-win
   (cd $HOME/bin && ln -s $swiplwin)
 fi
+
+if [ ! -z "$SWI_HOME_DIR" ]; then
+    var=SWI_HOME_DIR
+    value="$SWI_HOME_DIR"
+elif [ ! -z "$SWIPL" ]; then
+    var=SWIPL
+    value="$SWIPL"
+fi
+
+if [ ! -z "$var" ]; then
+cat <<EOF
+
+WARNING: The environment variable \$$var sets the "home" directory of
+WARNING: SWI-Prolog to $value.  Please delete this variable to run the
+WARNING: activated version of SWI-Prolog or set the value explicitly
+WARNING: to $($swipl --home)
+EOF
+fi
