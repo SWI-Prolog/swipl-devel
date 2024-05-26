@@ -54,8 +54,7 @@ as follows:
 In most cases the following should  update   an  installed system to the
 latest version:
 
-    git pull
-    git submodule update --init
+    git pull --recurse-submodule
     cd build
     cmake ..
     ninja
