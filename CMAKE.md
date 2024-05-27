@@ -54,12 +54,15 @@ as follows:
 In most cases the following should  update   an  installed system to the
 latest version:
 
-    git pull --recurse-submodule
+    git pull
+    git submodule update --init
     cd build
     cmake ..
     ninja
     ctest -j 8
     ninja install
+
+The first two steps can be jointly done via `git pull --recurse-submodule=on-demand`.
 
 If the build fails, one could try to remove the entire `build` directory
 and re-create it as  above.  Note  that   the  build  process  makes  no
