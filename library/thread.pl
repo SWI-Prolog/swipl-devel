@@ -48,7 +48,7 @@
             call_in_thread/2            % +Thread, :Goal
           ]).
 :- autoload(library(apply), [maplist/2, maplist/3, maplist/4, maplist/5]).
-:- autoload(library(error), [must_be/2]).
+:- autoload(library(error), [must_be/2, instantiation_error/1]).
 :- autoload(library(lists), [subtract/3, same_length/2, nth0/3]).
 :- autoload(library(option), [option/2, option/3]).
 :- autoload(library(ordsets), [ord_intersection/3, ord_union/3]).
@@ -734,6 +734,11 @@ thread_option(stack(_)).
 %   This predicate is primarily intended   for  debugging and inspection
 %   tasks.
 
+call_in_thread(Thread, Goal) :-
+    must_be(callable, Goal),
+    var(Thread),
+    !,
+    instantiation_error(Thread).
 call_in_thread(Thread, Goal) :-
     thread_self(Thread),
     !,
