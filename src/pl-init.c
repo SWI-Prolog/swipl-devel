@@ -1777,7 +1777,9 @@ printCrashContext(const char *btname)
   static bool running = FALSE;
 
   if ( running )
-    Sdprintf("Recursive crash; omitting crash report\n");
+  { Sdprintf("Recursive crash; omitting crash report\n");
+    return;
+  }
   running = TRUE;
 
   now = time(NULL);
