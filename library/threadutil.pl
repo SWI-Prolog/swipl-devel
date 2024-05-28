@@ -153,6 +153,8 @@ thread_has_console :-
 
 :- if(current_predicate(win_open_console/5)).
 
+can_open_console.
+
 open_console(Title, In, Out, Err) :-
     thread_self(Id),
     regkey(Id, Key),
@@ -184,6 +186,10 @@ xterm_args(['-fg', '#000000']).
 xterm_args(['-bg', '#ffffdd']).
 xterm_args(['-sb', '-sl', 1000, '-rightbar']).
 
+can_open_console :-
+    getenv('DISPLAY', _),
+    absolute_file_name(path(xterm), _XTerm, [access(execute)]).
+
 open_console(Title, In, Out, Err) :-
     findall(Arg, xterm_args(Arg), Args),
     append(Args, Argv),
@@ -204,12 +210,10 @@ attach_console :-
 attach_console(_) :-
     thread_has_console,
     !.
-:- if(\+current_predicate(open_console/4)).
+:- if(current_predicate(open_console/4)).
 attach_console(Title) :-
-    print_message(error, cannot_attach_console(Title)),
-    fail.
-:- else.
-attach_console(Title) :-
+    can_open_console,
+    !,
     thread_self(Id),
     (   var(Title)
     ->  console_title(Id, Title)
@@ -224,7 +228,12 @@ attach_console(Title) :-
     set_stream(Out, alias(current_output)),
     enable_line_editing(In,Out,Err),
     thread_at_exit(detach_console(Id)).
+:- endif.
+attach_console(Title) :-
+    print_message(error, cannot_attach_console(Title)),
+    fail.
 
+:- if(current_predicate(open_console/4)).
 console_title(Thread, Title) :-         % uses tabbed consoles
     current_prolog_flag(console_menu_version, qt),
     !,
@@ -288,6 +297,8 @@ interactor :-
     interactor(_).
 
 interactor(Title) :-
+    can_open_console,
+    !,
     thread_self(Me),
     thread_create(thread_run_interactor(Me, Title), _Id,
                   [ detached(true),
@@ -301,6 +312,9 @@ interactor(Title) :-
     ;   Msg = false
     ->  fail
     ).
+interactor(Title) :-
+    print_message(error, cannot_attach_console(Title)),
+    fail.
 
 thread_run_interactor(Creator, Title) :-
     set_prolog_flag(query_debug_settings, debug(false, false)),
