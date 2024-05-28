@@ -34,11 +34,8 @@
 */
 
 :- module(thread_util,
-          [ thread_run_interactor/0,    % interactor main loop
-            threads/0,                  % List available threads
+          [ threads/0,                  % List available threads
             join_threads/0,             % Join all terminated threads
-            interactor/0,               % Create a new interactor
-            interactor/1,               % ?Title
             thread_has_console/0,       % True if thread has a console
             attach_console/0,           % Create a new console for thread.
             attach_console/1,           % ?Title
@@ -53,6 +50,14 @@
             tbacktrace/1,               % +ThreadId,
             tbacktrace/2                % +ThreadId, +Options
           ]).
+:- if((   current_predicate(win_open_console/5)
+      ;   current_predicate('$open_xterm'/5))).
+:- export(( thread_run_interactor/0,    % interactor main loop
+            interactor/0,
+            interactor/1                % ?Title
+          )).
+:- endif.
+
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(backcomp),[thread_at_exit/1]).
 :- autoload(library(edinburgh),[nodebug/0]).
@@ -114,40 +119,6 @@ rip_thread(thread{id:id, status:Status}) :-
     Status \== running,
     \+ thread_self(Id),
     thread_join(Id, _).
-
-%!  interactor is det.
-%!  interactor(?Title) is det.
-%
-%   Run a Prolog toplevel in another thread   with a new console window.
-%   If Title is given, this will be used as the window title.
-
-interactor :-
-    interactor(_).
-
-interactor(Title) :-
-    thread_self(Me),
-    thread_create(thread_run_interactor(Me, Title), _Id,
-                  [ detached(true),
-                    debug(false)
-                  ]),
-    thread_get_message(title(Title)).
-
-thread_run_interactor(Creator, Title) :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console(Title),
-    thread_send_message(Creator, title(Title)),
-    print_message(banner, thread_welcome),
-    prolog.
-
-%!  thread_run_interactor
-%
-%   Attach a console and run a Prolog toplevel in the current thread.
-
-thread_run_interactor :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console(_Title),
-    print_message(banner, thread_welcome),
-    prolog.
 
 %!  thread_has_console is semidet.
 %
@@ -306,6 +277,53 @@ detach_console(Id) :-
         close(Err, [force(true)])
     ;   true
     ).
+
+%!  interactor is det.
+%!  interactor(?Title) is det.
+%
+%   Run a Prolog toplevel in another thread   with a new console window.
+%   If Title is given, this will be used as the window title.
+
+interactor :-
+    interactor(_).
+
+interactor(Title) :-
+    thread_self(Me),
+    thread_create(thread_run_interactor(Me, Title), _Id,
+                  [ detached(true),
+                    debug(false)
+                  ]),
+    thread_get_message(Msg),
+    (   Msg = title(Title0)
+    ->  Title = Title0
+    ;   Msg = throw(Error)
+    ->  throw(Error)
+    ;   Msg = false
+    ->  fail
+    ).
+
+thread_run_interactor(Creator, Title) :-
+    set_prolog_flag(query_debug_settings, debug(false, false)),
+    Error = error(Formal,_),
+    (   catch(attach_console(Title), Error, true)
+    ->  (   var(Formal)
+        ->  thread_send_message(Creator, title(Title)),
+            print_message(banner, thread_welcome),
+            prolog
+        ;   thread_send_message(Creator, throw(Error))
+        )
+    ;   thread_send_message(Creator, false)
+    ).
+
+%!  thread_run_interactor
+%
+%   Attach a console and run a Prolog toplevel in the current thread.
+
+thread_run_interactor :-
+    set_prolog_flag(query_debug_settings, debug(false, false)),
+    attach_console(_Title),
+    print_message(banner, thread_welcome),
+    prolog.
 
 :- endif.                               % have open_console/4
 
