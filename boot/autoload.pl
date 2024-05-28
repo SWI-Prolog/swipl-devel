@@ -503,6 +503,8 @@ exports_(File, Module, Exports) :-
         ;   Term = (:- Directive),
             nonvar(Directive)
         ->  fail
+        ;   Term == []                          % Expansion for conditionals
+        ->  fail
         ;   !
         )
     ;   true
