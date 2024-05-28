@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2018, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,12 +38,11 @@
 #define _XOPEN_SOURCE 600
 #endif
 
-/* #define O_DEBUG 1 */
-#include "pl-xterm.h"
 #include "pl-fli.h"
 #include "pl-util.h"
 #include "os/pl-ctype.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
+#define HAVE_OPEN_XTERM5 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Open an alternative  xterm-console.  Used   to  support  multi-threading
@@ -210,9 +210,15 @@ should this process be related to us?  Should it be a new session?
 #define MAXARGV 100
 #define RESARGC 10
 
-foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
-{ GET_LD
+static
+PRED_IMPL("$open_xterm", 5, open_xterm, 0)
+{ PRED_LD
+  term_t title = A1;
+  term_t in    = A2;
+  term_t out   = A3;
+  term_t err   = A4;
+  term_t argv  = A5;
+
   int master, slave, pid;
   char *slavename;
   struct termios termio;
@@ -291,7 +297,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
     xterm_argv[xterm_argc]   = NULL;		/* Up to RESARGC */
 
     execvp("xterm", xterm_argv);
-    perror("execlp");
+    perror("execvp(xterm)");
   }
 
   for(i=1; i<xterm_malloced_argc; i++)
@@ -320,11 +326,10 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
 	  unifyXtermStream(err, xt, SIO_OUTPUT|SIO_NBUF));
 }
 
-#else /*HAVE_GRANTPT*/
-
-foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
-{ return notImplemented("open_xterm", 4);
-}
-
 #endif /*HAVE_GRANTPT*/
+
+BeginPredDefs(xterm)
+#ifdef HAVE_OPEN_XTERM5
+  PRED_DEF("$open_xterm", 5, open_xterm, 0)
+#endif
+EndPredDefs

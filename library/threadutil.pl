@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2017, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
                               VU University Amsterdam
-    All rights reserved.
+                              SWI-Prolog Solutions b.v.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -170,6 +170,56 @@ thread_has_console :-
     thread_has_console(Id),
     !.
 
+%!  open_console(+Title, -In, -Out, -Err) is det.
+%
+%   Open a new console window and unify In,  Out and Err with the input,
+%   output and error streams for the new console. This predicate is only
+%   available  if  win_open_console/5  (Windows  or   Qt  swipl-win)  or
+%   '$open_xterm'/5 (POSIX systems with pseudo terminal support).
+
+:- multifile xterm_args/1.
+:- dynamic   xterm_args/1.
+
+:- if(current_predicate(win_open_console/5)).
+
+open_console(Title, In, Out, Err) :-
+    thread_self(Id),
+    regkey(Id, Key),
+    win_open_console(Title, In, Out, Err,
+                     [ registry_key(Key)
+                     ]).
+
+regkey(Key, Key) :-
+    atom(Key).
+regkey(_, 'Anonymous').
+
+:- elif(current_predicate('$open_xterm'/5)).
+
+%!  xterm_args(-List) is nondet.
+%
+%   Multifile and dynamic hook that  provides (additional) arguments for
+%   the xterm(1) process opened  for   additional  thread consoles. Each
+%   solution must bind List to a list   of  atomic values. All solutions
+%   are concatenated using append/2 to form the final argument list.
+%
+%   The defaults set  the  colors   to  black-on-light-yellow,  enable a
+%   scrollbar, set the font using  Xft   font  pattern  and prepares the
+%   back-arrow key.
+
+xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
+xterm_args(['-xrm', '*backarrowKey: false']).
+xterm_args(['-fa', 'Ubuntu Mono', '-fs', 12]).
+xterm_args(['-fg', '#000000']).
+xterm_args(['-bg', '#ffffdd']).
+xterm_args(['-sb', '-sl', 1000, '-rightbar']).
+
+open_console(Title, In, Out, Err) :-
+    findall(Arg, xterm_args(Arg), Args),
+    append(Args, Argv),
+    '$open_xterm'(Title, In, Out, Err, Argv).
+
+:- endif.
+
 %!  attach_console is det.
 %!  attach_console(?Title) is det.
 %
@@ -183,6 +233,11 @@ attach_console :-
 attach_console(_) :-
     thread_has_console,
     !.
+:- if(\+current_predicate(open_console/4)).
+attach_console(Title) :-
+    print_message(error, cannot_attach_console(Title)),
+    fail.
+:- else.
 attach_console(Title) :-
     thread_self(Id),
     (   var(Title)
@@ -216,54 +271,6 @@ human_thread_id(Thread, Alias) :-
     !.
 human_thread_id(Thread, Id) :-
     thread_property(Thread, id(Id)).
-
-%!  open_console(+Title, -In, -Out, -Err) is det.
-%
-%   Open a new console window and unify In,  Out and Err with the input,
-%   output and error streams for the new console.
-
-:- multifile xterm_args/1.
-:- dynamic   xterm_args/1.
-
-:- if(current_predicate(win_open_console/5)).
-
-open_console(Title, In, Out, Err) :-
-    thread_self(Id),
-    regkey(Id, Key),
-    win_open_console(Title, In, Out, Err,
-                     [ registry_key(Key)
-                     ]).
-
-regkey(Key, Key) :-
-    atom(Key).
-regkey(_, 'Anonymous').
-
-:- else.
-
-%!  xterm_args(-List) is nondet.
-%
-%   Multifile and dynamic hook that  provides (additional) arguments for
-%   the xterm(1) process opened  for   additional  thread consoles. Each
-%   solution must bind List to a list   of  atomic values. All solutions
-%   are concatenated using append/2 to form the final argument list.
-%
-%   The defaults set  the  colors   to  black-on-light-yellow,  enable a
-%   scrollbar, set the font using  Xft   font  pattern  and prepares the
-%   back-arrow key.
-
-xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
-xterm_args(['-xrm', '*backarrowKey: false']).
-xterm_args(['-fa', 'Ubuntu Mono', '-fs', 12]).
-xterm_args(['-fg', '#000000']).
-xterm_args(['-bg', '#ffffdd']).
-xterm_args(['-sb', '-sl', 1000, '-rightbar']).
-
-open_console(Title, In, Out, Err) :-
-    findall(Arg, xterm_args(Arg), Args),
-    append(Args, Argv),
-    open_xterm(Title, In, Out, Err, Argv).
-
-:- endif.
 
 %!  enable_line_editing(+In, +Out, +Err) is det.
 %
@@ -300,6 +307,7 @@ detach_console(Id) :-
     ;   true
     ).
 
+:- endif.                               % have open_console/4
 
                  /*******************************
                  *          DEBUGGING           *
@@ -467,6 +475,8 @@ prolog:message(joined_threads(Threads)) -->
     thread_list(Threads).
 prolog:message(threads(Threads)) -->
     thread_list(Threads).
+prolog:message(cannot_attach_console(_Title)) -->
+    [ 'Cannot attach a console (requires swipl-win or POSIX pty support)' ].
 
 thread_list(Threads) -->
     { maplist(th_id_len, Threads, Lens),

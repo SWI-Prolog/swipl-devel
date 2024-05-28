@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v
@@ -48,7 +48,6 @@
 #include "pl-modul.h"
 #include "pl-gc.h"
 #include "pl-flag.h"
-#include "pl-xterm.h"
 #include "pl-supervisor.h"
 #include "pl-fli.h"
 #include "pl-nt.h"
@@ -191,7 +190,6 @@ static const PL_extension foreigns[] = {
 #if HAVE_PTHREAD_EXIT
   FRG("thread_exit",		1, pl_thread_exit,		0),
 #endif
-  FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 
   FRG("thread_self",		1, pl_thread_self,	      ISO),
@@ -412,6 +410,7 @@ DECL_PLIST(transaction);
 DECL_PLIST(undo);
 DECL_PLIST(error);
 DECL_PLIST(coverage);
+DECL_PLIST(xterm);
 #ifdef __EMSCRIPTEN__
 DECL_PLIST(wasm);
 #endif
@@ -492,6 +491,7 @@ initBuildIns(void)
   REG_PLIST(transaction);
   REG_PLIST(undo);
   REG_PLIST(error);
+  REG_PLIST(xterm);
 #ifdef O_COVERAGE
   REG_PLIST(coverage);
 #endif
