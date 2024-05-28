@@ -488,10 +488,10 @@ exports_(File, Module, Exports) :-
             fail
         ;   nb_setarg(1, State, false),
             fail
-        ;   Term = (:- export(PI)),
-            ground(PI)
-        ->  arg(3, State, E0),
-            '$append'(E0, [PI], E1),
+        ;   Term = (:- export(Export))
+        ->  phrase(export_pi(Export), PIs),
+            arg(3, State, E0),
+            '$append'(E0, PIs, E1),
             nb_setarg(3, State, E1),
             fail
         ;   Term = (:- use_foreign_library(Lib)),
@@ -509,6 +509,17 @@ exports_(File, Module, Exports) :-
     ),
     arg(2, State, Module),
     arg(3, State, Exports).
+
+export_pi(Var) -->
+    { var(Var) },
+    !.
+export_pi((A,B)) -->
+    !,
+    export_pi(A),
+    export_pi(B).
+export_pi(PI) -->
+    { ground(PI) },
+    [PI].
 
 
                  /*******************************
