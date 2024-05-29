@@ -879,6 +879,7 @@ PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
 PL_EXPORT(int)		PL_warning(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(int)		PL_warningX(const char *fmt, ...);
 PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...) WPRINTF12;
+PL_EXPORT(void)		PL_api_error(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(void)		PL_system_error(const char *fmt, ...) WPRINTF12;
 
 		 /*******************************

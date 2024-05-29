@@ -100,7 +100,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 static int	usage(void);
 static int	giveVersionInfo(const char *a);
-static bool	vsysError(const char *fm, va_list args);
+static bool	vsysError(const char *errtype, const char *fm, va_list args);
 
 #define	optionString(s) { if (argc > 1) \
 			  { if ( s ) remove_string(s); \
@@ -1734,12 +1734,11 @@ sysError(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
-  vsysError(fm, args);
+  vsysError("system", fm, args);
   va_end(args);
 
   PL_fail;
 }
-
 
 void
 fatalError(const char *fm, ...)
@@ -1832,18 +1831,18 @@ printCrashContext(const char *btname)
 
 
 static bool
-vsysError(const char *fm, va_list args)
+vsysError(const char *errtype, const char *fm, va_list args)
 { static int active = 0;
 
   if ( active++ )
     abort();
 
-  Sfprintf(Serror, "\nERROR: System error: ");
+  Sfprintf(Serror, "\nERROR: %s error: ", errtype);
   Svfprintf(Serror, fm, args);
   Sfprintf(Serror, "\n");
 
-  save_backtrace("SYSERROR");
-  printCrashContext("SYSERROR");
+  save_backtrace(errtype);
+  printCrashContext(errtype);
 
   if ( !(true(Sinput, SIO_ISATTY) &&
 	 true(Serror, SIO_ISATTY)) ||
@@ -1880,7 +1879,16 @@ PL_system_error(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
-  vsysError(fm, args);
+  vsysError("system", fm, args);
+  va_end(args);
+}
+
+void
+PL_api_error(const char *fm, ...)
+{ va_list args;
+
+  va_start(args, fm);
+  vsysError("API", fm, args);
   va_end(args);
 }
 
