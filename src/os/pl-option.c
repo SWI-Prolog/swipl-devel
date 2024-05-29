@@ -337,6 +337,7 @@ API_STUB(int)
 ( int rc;
   va_list args;
 
+  valid_term_t(options);
   for(PL_option_t *s = specs; s->name || s->string; s++)
   { if ( !s->name && s->string )
       s->name = PL_new_atom(s->string);

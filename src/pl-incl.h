@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam,
+    Copyright (c)  1985-2024, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -206,6 +206,8 @@ handy for it someone wants to add a data type to the system.
       functions.
   O_COVERAGE
       Include low-level coverage analysis code.
+  O_VALIDATE_API
+      Include validity checks for the API functions
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -1340,6 +1342,8 @@ typedef struct atom_table
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
 #define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
+#define ATOM_PRE_DESTROY_REFERENCE \
+	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
 #define ATOM_IS_FREE(ref)	(((ref) & ATOM_STATE_MASK) == 0)
 #define ATOM_IS_RESERVED(ref)	((ref) & ATOM_RESERVED_REFERENCE)

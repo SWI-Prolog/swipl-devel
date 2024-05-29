@@ -133,6 +133,67 @@ static int	PL_get_uint(term_t t, unsigned int *i);
 
 #undef LDFUNC_DECLARATIONS
 
+#if O_VALIDATE_API
+void
+valid_term_t(DECL_LD term_t t)
+{ Word p = valTermRef(t);
+
+  if ( !onStack(local, p) )
+    PL_api_error("invalid term_t %zd (out of range)", (size_t)t);
+  for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
+  { size_t arity = fr->predicate->functor->arity;
+    if ( p >= argFrameP(fr, 0) && p < argFrameP(fr, arity) )
+      return;
+    if ( (Word)fr < p )
+      break;
+  }
+
+  for(FliFrame fr = fli_context; fr; fr = fr->parent)
+  { Word p0 = (Word)(fr+1);
+    if ( p >= p0 && p < p0+fr->size )
+      return;
+    if ( (Word)fr < p )
+      break;
+  }
+
+  PL_api_error("invalid term_t %zd (not in any foreign frame)", (size_t)t);
+}
+
+void
+valid_functor_t(functor_t f)
+{ if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+    PL_api_error("invalid functor_t %zd (bad tag)", (size_t)f);
+  size_t index = indexFunctor(f);
+  if ( index > GD->functors.highest )
+    PL_api_error("invalid functor_t %zd (out of range)", (size_t)f);
+  FunctorDef fd = fetchFunctorArray(index);
+  if ( !true(fd, VALID_F) )
+    PL_api_error("invalid functor_t %zd (no valid functor at this index)",
+		 (size_t)f);
+}
+
+void
+valid_atom_t(atom_t a)
+{ if ( !isAtom(a) )
+    PL_api_error("invalid atom_t %zd (bad tag)", (size_t)a);
+  size_t index = indexAtom(a);
+  if ( index > GD->atoms.highest )
+    PL_api_error("invalid atom_t %zd (out of range)", (size_t)a);
+  Atom atm = fetchAtomArray(index);
+  if ( !ATOM_IS_VALID(atm->references) &&
+       atm->references != ATOM_PRE_DESTROY_REFERENCE )
+    PL_api_error("invalid atom_t %zd (no valid atom at this index)",
+		 (size_t)a);
+}
+
+void
+valid_dict_key(atom_t a)
+{ if ( isTaggedInt(a) )
+    valid_atom_t(a);
+}
+
+#endif /*O_VALIDATE_API*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
 frequent operation. There  are  a  couple   of  options  to  realise it.
@@ -506,12 +567,15 @@ PL_copy_term_ref(DECL_LD term_t from)
 
 API_STUB(void)
 (PL_reset_term_refs)(term_t r)
-( PL_reset_term_refs(r); )
+( valid_term_t(r);
+  PL_reset_term_refs(r);
+)
 
 API_STUB(term_t)
 (PL_copy_term_ref)(term_t from)
-( return PL_copy_term_ref(from); )
-
+( valid_term_t(from);
+  return PL_copy_term_ref(from);
+)
 
 
 		 /*******************************
@@ -652,18 +716,21 @@ functor_t
 
 atom_t
 PL_functor_name(functor_t f)
-{ return nameFunctor(f);
+{ valid_functor_t(f);
+  return nameFunctor(f);
 }
 
 
 size_t
 PL_functor_arity_sz(functor_t f)
-{ return arityFunctor(f);
+{ valid_functor_t(f);
+  return arityFunctor(f);
 }
 
 int
 (PL_functor_arity)(functor_t f)
-{ size_t arity = arityFunctor(f);
+{ valid_functor_t(f);
+  size_t arity = arityFunctor(f);
 
   VALID_INT_ARITY(arity);
   return (int)arity;
@@ -846,6 +913,9 @@ PL_unify_wchars_diff(term_t t, term_t tail, int flags,
 { PL_chars_t text;
   int rc;
 
+  valid_term_t(t);
+  if ( tail )
+    valid_term_t(tail);
   if ( len == (size_t)-1 )
     len = wcslen(s);
 
@@ -870,7 +940,8 @@ PL_unify_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
 
 int
 PL_put_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
-{ return PL_put_variable(t) &&
+{ valid_term_t(t);
+  return PL_put_variable(t) &&
          PL_unify_wchars_diff(t, 0, flags, len, s);
 }
 
@@ -887,13 +958,15 @@ PL_utf8_strlen(const char *s, size_t len)
 
 const char *
 PL_atom_chars(atom_t a)
-{ return (const char *) stringAtom(a);
+{ valid_atom_t(a);
+  return (const char *) stringAtom(a);
 }
 
 
 const char *
 PL_atom_nchars(atom_t a, size_t *len)
-{ Atom x = atomValue(a);
+{ valid_atom_t(a);
+  Atom x = atomValue(a);
 
   if ( x->type != &ucs_atom )
   { if ( len )
@@ -907,7 +980,8 @@ PL_atom_nchars(atom_t a, size_t *len)
 
 const wchar_t *
 PL_atom_wchars(atom_t a, size_t *len)
-{ Atom x = atomValue(a);
+{ valid_atom_t(a);
+  Atom x = atomValue(a);
 
   if ( x->type == &ucs_atom )
   { if ( len )
@@ -1020,6 +1094,7 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
   int i;
   PL_chars_t txt;
 
+  valid_term_t(p);
   if ( PL_get_integer(p, &i) && i >= mn && i <= mx )
   { *c = (char)i;
     return TRUE;
@@ -1060,6 +1135,7 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
 { GET_LD
   int i;
 
+  valid_term_t(p);
   if ( PL_get_integer(p, &i) &&
        i >= mn && i <= mx )
   { *s = (short)i;
@@ -1266,6 +1342,8 @@ PL_cvt_o_address(void *address, term_t p)
 int					/* TBD: how to report error? */
 PL_compare(term_t t1, term_t t2)
 { GET_LD
+  valid_term_t(t1);
+  valid_term_t(t2);
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
@@ -1276,6 +1354,8 @@ PL_compare(term_t t1, term_t t2)
 int
 PL_same_compound(term_t t1, term_t t2)
 { GET_LD
+  valid_term_t(t1);
+  valid_term_t(t2);
   word w1 = valHandle(t1);
   word w2 = valHandle(t2);
 
@@ -1307,16 +1387,16 @@ bindConsVal(DECL_LD Word to, Word p)
 }
 
 
-int
-PL_cons_functor(term_t h, functor_t fd, ...)
-{ GET_LD
-  size_t arity = arityFunctor(fd);
+#define cons_functorv(h, fd, args) LDFUNC(cons_functorv, h, fd, args)
+
+static int
+cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
+{ size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
-  { va_list args;
-    Word a, t;
+  { Word a, t;
 
     VALID_TERM_ARITY(arity);
 
@@ -1329,7 +1409,6 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 
     a = t = gTop;
     gTop += 1+arity;
-    va_start(args, fd);
     *a = fd;
     while( arity-- > 0 )
     { term_t r = va_arg(args, term_t);
@@ -1337,16 +1416,42 @@ PL_cons_functor(term_t h, functor_t fd, ...)
       bindConsVal(++a, valHandleP(r));
     }
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
-    va_end(args);
   }
 
   return TRUE;
 }
 
+int
+PL_cons_functor(DECL_LD term_t h, functor_t fd, ...)
+{ va_list args;
+  int rc;
+
+  va_start(args, fd);
+  rc = cons_functorv(h, fd, args);
+  va_end(args);
+
+  return rc;
+}
+
+API_STUB(int)
+(PL_cons_functor)(term_t h, functor_t fd, ...)
+( va_list args;
+  int rc;
+
+  va_start(args, fd);
+  valid_term_t(h);
+  valid_functor_t(fd);
+  rc = cons_functorv(h, fd, args);
+  va_end(args);
+
+  return rc;
+)
 
 int
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 { GET_LD
+  valid_term_t(h);
+  valid_functor_t(fd);
   size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
@@ -1403,7 +1508,11 @@ PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
 
 API_STUB(int)
 (PL_cons_list)(term_t l, term_t head, term_t tail)
-( return PL_cons_list(l, head, tail); )
+( valid_term_t(l);
+  valid_term_t(head);
+  valid_term_t(tail);
+  return PL_cons_list(l, head, tail);
+)
 
 /* PL_cons_list_v() creates a list from a vector of term-references
 */
@@ -1412,6 +1521,7 @@ int
 PL_cons_list_v(term_t list, size_t count, term_t elems)
 { GET_LD
 
+  valid_term_t(list);
   if ( count > 0 )
   { Word p;
 
@@ -1424,7 +1534,8 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
 
     p = gTop;
     for( ; count-- > 0; p += 3, elems++ )
-    { p[0] = FUNCTOR_dot2;
+    { valid_term_t(elems);
+      p[0] = FUNCTOR_dot2;
       bindConsVal(&p[1], valHandleP(elems));
       if ( count > 0 )
       { p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
@@ -1459,6 +1570,7 @@ static const int type_map[8] = { PL_VARIABLE,
 int
 PL_get_term_value(term_t t, term_value_t *val)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
   int rval = type_map[tag(w)];
 
@@ -1515,6 +1627,7 @@ atom_to_bool(atom_t a)
 int
 PL_get_bool(term_t t, int *b)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -1543,12 +1656,15 @@ PL_get_bool(term_t t, int *b)
 
 API_STUB(int)
 (PL_get_atom)(term_t t, atom_t *a)
-( return PL_get_atom(t, a); )
+( valid_term_t(t);
+  return PL_get_atom(t, a);
+)
 
 
 int
 PL_get_atom_chars(term_t t, char **s)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -1567,6 +1683,7 @@ PL_get_atom_chars(term_t t, char **s)
 int
 PL_get_atom_nchars(term_t t, size_t *len, char **s)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -1588,6 +1705,7 @@ int
 PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
 { PL_chars_t text;
 
+  valid_atom_t(a);
   if ( !get_atom_text(a, &text) )
   { if ( (flags&CVT_EXCEPTION) )
     { term_t t;
@@ -1618,6 +1736,7 @@ PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
 int
 PL_get_string(term_t t, char **s, size_t *len)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isString(w) )
@@ -1638,6 +1757,7 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
 { Buffer b;
   CVT_result result;
 
+  valid_term_t(l);
   if ( (b = codes_or_chars_to_buffer(l, flags, FALSE, &result)) )
   { char *r;
     size_t len = entriesBuffer(b, char);
@@ -1672,6 +1792,7 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { GET_LD
   PL_chars_t text;
 
+  valid_term_t(l);
   if ( !PL_get_text(l, &text, flags) )
     return FALSE;
 
@@ -1691,6 +1812,7 @@ PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
 { GET_LD
   PL_chars_t text;
 
+  valid_term_t(l);
   if ( !PL_get_text(l, &text, flags) )
     return FALSE;
 
@@ -1719,6 +1841,7 @@ PL_get_chars(term_t t, char **s, unsigned flags)
 int
 PL_get_text_as_atom(term_t t, atom_t *a, int flags)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
   PL_chars_t text;
 
@@ -1777,7 +1900,9 @@ PL_get_integer(DECL_LD term_t t, int *i)
 
 API_STUB(int)
 (PL_get_integer)(term_t t, int *i)
-( return PL_get_integer(t, i); )
+( valid_term_t(t);
+  return PL_get_integer(t, i);
+)
 
 
 static int
@@ -1822,7 +1947,9 @@ PL_get_long(DECL_LD term_t t, long *i)
 
 API_STUB(int)
 (PL_get_long)(term_t t, long *i)
-( return PL_get_long(t, i); )
+( valid_term_t(t);
+  return PL_get_long(t, i);
+)
 
 
 int
@@ -1839,35 +1966,46 @@ PL_get_int64(DECL_LD term_t t, int64_t *i)
 
 API_STUB(int)
 (PL_get_int64)(term_t t, int64_t *i)
-( return PL_get_int64(t, i); )
+( valid_term_t(t);
+  return PL_get_int64(t, i);
+)
 
 int
 PL_get_uint64(term_t t, uint64_t *i)
 { GET_LD
 
+  valid_term_t(t);
   return pl_get_uint64(t, i, FALSE);
 }
 
 API_STUB(int)
 (PL_get_uint64_ex)(term_t t, uint64_t *i)
-( return pl_get_uint64(t, i, TRUE); )
+( valid_term_t(t);
+  return pl_get_uint64(t, i, TRUE);
+)
 
 int
-PL_get_intptr(term_t t, intptr_t *i)
-{ GET_LD
+PL_get_intptr(DECL_LD term_t t, intptr_t *i)
+{
 #if SIZEOF_LONG != SIZEOF_VOIDP && SIZEOF_VOIDP == 8
-   return PL_get_int64(t, i);
+  return PL_get_int64(t, i);
 #else
-   return PL_get_long(t, (long*)i);
+  return PL_get_long(t, (long*)i);
 #endif
 }
 
+API_STUB(int)
+(PL_get_intptr)(term_t t, intptr_t *i)
+( valid_term_t(t);
+  return PL_get_intptr(t, i);
+)
 
 int
 PL_get_uintptr(term_t t, size_t *i)
 { GET_LD
   int64_t val;
 
+  valid_term_t(t);
   if ( !PL_get_int64(t, &val) )
     return FALSE;
 
@@ -1891,6 +2029,7 @@ PL_is_inf(term_t t)
 { GET_LD
   atom_t a;
 
+  valid_term_t(t);
   if ( PL_get_atom(t, &a) &&
        (a == ATOM_inf || a == ATOM_infinite) )
     succeed;
@@ -1902,6 +2041,7 @@ PL_is_inf(term_t t)
 static int
 get_float(term_t t, double *f, int error)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isFloat(w) )
@@ -1967,7 +2107,9 @@ PL_get_pointer(DECL_LD term_t t, void **ptr)
 
 API_STUB(int)
 (PL_get_pointer)(term_t t, void **ptr)
-( return PL_get_pointer(t, ptr); )
+( valid_term_t(t);
+  return PL_get_pointer(t, ptr);
+)
 
 
 
@@ -1998,12 +2140,15 @@ PL_get_name_arity_sz(DECL_LD term_t t, atom_t *name, size_t *arity)
 
 API_STUB(int)
 (PL_get_name_arity_sz)(term_t t, atom_t *name, size_t *arity)
-( return PL_get_name_arity_sz(t, name, arity); )
+( valid_term_t(t);
+  return PL_get_name_arity_sz(t, name, arity);
+)
 
 
 int
 PL_get_compound_name_arity_sz(term_t t, atom_t *name, size_t *arity)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isTerm(w) )
@@ -2024,6 +2169,7 @@ int
 { GET_LD
   size_t arity;
 
+  valid_term_t(t);
   if ( !PL_get_name_arity_sz(t, name, &arity) )
     return FALSE;
   VALID_INT_ARITY(arity);
@@ -2062,13 +2208,16 @@ PL_get_functor(DECL_LD term_t t, functor_t *f)
 
 API_STUB(int)
 (PL_get_functor)(term_t t, functor_t *f)
-( return PL_get_functor(t, f); )
+( valid_term_t(t);
+  return PL_get_functor(t, f);
+)
 
 int
 PL_get_module(term_t t, module_t *m)
 { GET_LD
   atom_t a;
 
+  valid_term_t(t);
   if ( PL_get_atom(t, &a) )
   { *m = lookupModule(a);
     succeed;
@@ -2081,6 +2230,7 @@ PL_get_module(term_t t, module_t *m)
 int
 _PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
@@ -2094,7 +2244,7 @@ int
   { _PL_get_arg_sz(index, t, a);
     return TRUE;
   } else
-  { fatalError("Arity out of range: %d", a);
+  { fatalError("_PL_get_arg(): negative index: %d", index);
     return FALSE;
   }
 }
@@ -2114,6 +2264,8 @@ _PL_get_arg(DECL_LD size_t index, term_t t, term_t a)
 int
 PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
+  valid_term_t(t);
+  valid_term_t(a);
   word w = valHandle(t);
 
   if ( isTerm(w) && index > 0 )
@@ -2135,14 +2287,17 @@ int
 (PL_get_arg)(int index, term_t t, term_t a)
 { if ( index >= 0 )
     return PL_get_arg_sz(index, t, a);
-  fatalError("Index out of range: %d", index);
+  fatalError("PL_get_arg() negative index: %d", index);
   return FALSE;
 }
 
 #ifdef O_ATTVAR
 API_STUB(int)
 (PL_get_attr)(term_t t, term_t a)
-( return PL_get_attr(t, a); )
+( valid_term_t(t);
+  valid_term_t(a);
+  return PL_get_attr(t, a);
+)
 #endif
 
 
@@ -2165,12 +2320,18 @@ PL_get_list(DECL_LD term_t l, term_t h, term_t t)
 
 API_STUB(int)
 (PL_get_list)(term_t l, term_t h, term_t t)
-( return PL_get_list(l, h, t); )
+( valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
+  return PL_get_list(l, h, t);
+)
 
 
 int
 PL_get_head(term_t l, term_t h)
 { GET_LD
+  valid_term_t(l);
+  valid_term_t(h);
   word w = valHandle(l);
 
   if ( isList(w) )
@@ -2186,6 +2347,8 @@ PL_get_head(term_t l, term_t h)
 int
 PL_get_tail(term_t l, term_t t)
 { GET_LD
+  valid_term_t(l);
+  valid_term_t(t);
   word w = valHandle(l);
 
   if ( isList(w) )
@@ -2196,22 +2359,23 @@ PL_get_tail(term_t l, term_t t)
   fail;
 }
 
-
 int
-PL_get_nil(term_t l)
-{ GET_LD
-  word w = valHandle(l);
+PL_get_nil(DECL_LD term_t l)
+{ word w = valHandle(l);
 
-  if ( isNil(w) )
-    succeed;
-
-  fail;
+  return !!isNil(w);
 }
 
+API_STUB(int)
+(PL_get_nil)(term_t l)
+( valid_term_t(l);
+  return PL_get_nil(l);
+)
 
 int
 PL_skip_list(term_t list, term_t tail, size_t *len)
 { GET_LD
+  valid_term_t(list);
   intptr_t length;
   Word l = valTermRef(list);
   Word t;
@@ -2220,7 +2384,8 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
   if ( len )
     *len = length;
   if ( tail )
-  { Word t2 = valTermRef(tail);
+  { valid_term_t(tail);
+    Word t2 = valTermRef(tail);
 
     setVar(*t2);
     unify_ptrs(t2, t, 0);
@@ -2240,6 +2405,7 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
 int
 _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
   functor_t fd;
 
@@ -2283,7 +2449,8 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 
 API_STUB(int)
 (PL_is_variable)(term_t t)
-( word w = valHandle(t);
+( valid_term_t(t);
+  word w = valHandle(t);
 
   return canBind(w) ? TRUE : FALSE;
 )
@@ -2294,12 +2461,15 @@ API_STUB(int)
 
 API_STUB(int)
 (PL_is_atom)(term_t t)
-( return PL_is_atom(t); )
+( valid_term_t(t);
+  return PL_is_atom(t);
+)
 
 
 int
 PL_is_blob(term_t t, PL_blob_t **type)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -2318,6 +2488,7 @@ PL_is_blob(term_t t, PL_blob_t **type)
 int
 PL_is_attvar(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return isAttVar(w) ? TRUE : FALSE;
@@ -2327,6 +2498,7 @@ PL_is_attvar(term_t t)
 int
 PL_is_integer(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return isInteger(w) ? TRUE : FALSE;
@@ -2336,6 +2508,7 @@ PL_is_integer(term_t t)
 int
 PL_is_float(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return isFloat(w) ? TRUE : FALSE;
@@ -2345,6 +2518,7 @@ PL_is_float(term_t t)
 int
 PL_is_rational(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return isRational(w);
@@ -2354,6 +2528,7 @@ PL_is_rational(term_t t)
 int
 PL_is_compound(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return isTerm(w) ? TRUE : FALSE;
@@ -2385,6 +2560,7 @@ isCallable(DECL_LD word w)
 int
 PL_is_callable(term_t t)
 { GET_LD
+  valid_term_t(t);
 
   return isCallable(valHandle(t));
 }
@@ -2393,7 +2569,8 @@ PL_is_callable(term_t t)
 
 API_STUB(int)
 (PL_is_functor)(term_t t, functor_t f)
-( word w = valHandle(t);
+( valid_term_t(t);
+  word w = valHandle(t);
 
   if ( hasFunctor(w, f) )
     succeed;
@@ -2403,17 +2580,24 @@ API_STUB(int)
 
 
 int
-PL_is_list(term_t t)
-{ GET_LD
-  word w = valHandle(t);
+PL_is_list(DECL_LD term_t t)
+{ word w = valHandle(t);
 
-  return (isList(w) || isNil(w)) ? TRUE : FALSE;
+  return (isList(w) || isNil(w));
 }
+
+
+API_STUB(int)
+(PL_is_list)(term_t t)
+( valid_term_t(t);
+  return PL_is_list(t);
+)
 
 
 int
 PL_is_pair(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return !!isList(w);
@@ -2425,7 +2609,8 @@ PL_is_pair(term_t t)
 
 API_STUB(int)
 (PL_is_atomic)(term_t t)
-( word w = valHandle(t);
+( valid_term_t(t);
+  word w = valHandle(t);
 
   return !!isAtomic(w);
 )
@@ -2434,6 +2619,7 @@ API_STUB(int)
 int
 PL_is_number(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return !!isNumber(w);
@@ -2444,6 +2630,7 @@ PL_is_number(term_t t)
 int
 PL_is_string(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   return !!isString(w);
@@ -2452,6 +2639,7 @@ PL_is_string(term_t t)
 int
 PL_unify_string_chars(term_t t, const char *s)
 { GET_LD
+  valid_term_t(t);
   word str = globalString(strlen(s), (char *)s);
 
   if ( str )
@@ -2463,6 +2651,7 @@ PL_unify_string_chars(term_t t, const char *s)
 int
 PL_unify_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
+  valid_term_t(t);
   word str = globalString(len, s);
 
   if ( str )
@@ -2481,14 +2670,18 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 
 API_STUB(int)
 (PL_put_variable)(term_t t)
-( return PL_put_variable(t); )
+( valid_term_t(t);
+  return PL_put_variable(t);
+)
 
 
 /* PL_put_atom(DECL_LD term_t t, atom_t a) moved to pl-fli.h */
 
 API_STUB(int)
 (PL_put_atom)(term_t t, atom_t a)
-( setHandle(t, a);
+( valid_term_t(t);
+  valid_atom_t(a);
+  setHandle(t, a);
   return TRUE;
 )
 
@@ -2496,6 +2689,7 @@ API_STUB(int)
 int
 PL_put_bool(term_t t, int val)
 { GET_LD
+  valid_term_t(t);
 
   PL_put_atom(t, val ? ATOM_true : ATOM_false);
   return TRUE;
@@ -2507,6 +2701,7 @@ PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
 
+  valid_term_t(t);
   setHandle(t, a);
   PL_unregister_atom(a);
 
@@ -2522,6 +2717,7 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
   if ( len == (size_t)-1 )
     len = strlen(s);
 
+  valid_term_t(t);
   setHandle(t, a);
   PL_unregister_atom(a);
 
@@ -2532,6 +2728,7 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
 int
 PL_put_string_chars(term_t t, const char *s)
 { GET_LD
+  valid_term_t(t);
   word w = globalString(strlen(s), s);
 
   if ( w )
@@ -2546,6 +2743,7 @@ PL_put_string_chars(term_t t, const char *s)
 int
 PL_put_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
+  valid_term_t(t);
   word w = globalString(len, s);
 
   if ( w )
@@ -2560,6 +2758,7 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
 int
 PL_put_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
+  valid_term_t(t);
   PL_chars_t text;
   word w = 0;
   int rc = FALSE;
@@ -2600,6 +2799,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
 int
 PL_put_list_ncodes(term_t t, size_t len, const char *chars)
 { GET_LD
+  valid_term_t(t);
 
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
@@ -2634,6 +2834,7 @@ int
 PL_put_list_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
 
+  valid_term_t(t);
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
   } else
@@ -2670,13 +2871,16 @@ PL_put_list_chars(term_t t, const char *chars)
 
 API_STUB(int)
 (PL_put_int64)(term_t t, int64_t i)
-( return PL_put_int64(t, i); )
+( valid_term_t(t);
+  return PL_put_int64(t, i);
+)
 
 int
 PL_put_uint64(term_t t, uint64_t i)
 { GET_LD
   word w;
   int rc;
+  valid_term_t(t);
 
   switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
   { case TRUE:
@@ -2692,7 +2896,9 @@ PL_put_uint64(term_t t, uint64_t i)
 
 API_STUB(int)
 (PL_put_integer)(term_t t, long i)
-( return PL_put_int64(t, i); )
+( valid_term_t(t);
+  return PL_put_int64(t, i);
+)
 
 
 int
@@ -2712,6 +2918,7 @@ _PL_put_number(DECL_LD term_t t, Number n)
 int
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
+  valid_term_t(t);
   uint64_t i = pointerToInt(ptr);
 
   return PL_put_int64(t, (int64_t)i);
@@ -2724,6 +2931,7 @@ PL_put_float(term_t t, double f)
   word w;
   int rc;
 
+  valid_term_t(t);
   if ( (rc=put_double(&w, f, ALLOW_GC)) == TRUE )
   { setHandle(t, w);
     return TRUE;
@@ -2736,6 +2944,8 @@ PL_put_float(term_t t, double f)
 int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
+  valid_term_t(t);
+  valid_functor_t(f);
   size_t arity = arityFunctor(f);
 
   if ( arity == 0 )
@@ -2759,6 +2969,7 @@ PL_put_functor(term_t t, functor_t f)
 int
 PL_put_list(term_t l)
 { GET_LD
+  valid_term_t(l);
   Word a = allocGlobal(3);
 
   if ( a )
@@ -2776,6 +2987,8 @@ PL_put_list(term_t l)
 int
 PL_put_nil(term_t l)
 { GET_LD
+  valid_term_t(l);
+
   setHandle(l, ATOM_nil);
 
   return TRUE;
@@ -2796,7 +3009,10 @@ PL_put_term(DECL_LD term_t t1, term_t t2)
 
 API_STUB(int)
 (PL_put_term)(term_t t1, term_t t2)
-( return PL_put_term(t1, t2); )
+( valid_term_t(t1);
+  valid_term_t(t2);
+  return PL_put_term(t1, t2);
+)
 
 
 int
@@ -2805,6 +3021,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   Word p;
   word w;
 
+  valid_term_t(t);
   if ( !hasGlobalSpace(2) )
   { int rc;
 
@@ -2828,6 +3045,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
 int
 _PL_put_xpce_reference_a(term_t t, atom_t name)
 { GET_LD
+  valid_term_t(t);
   Word a = allocGlobal(2);
 
   if ( a )
@@ -2851,12 +3069,15 @@ PL_unify_atom(DECL_LD term_t t, atom_t a)
 
 API_STUB(int)
 (PL_unify_atom)(term_t t, atom_t a)
-( return PL_unify_atom(t, a); )
+( valid_term_t(t);
+  return PL_unify_atom(t, a);
+)
 
 
 int
 PL_unify_compound(term_t t, functor_t f)
 { GET_LD
+  valid_term_t(t);
   Word p = valHandleP(t);
   size_t arity = arityFunctor(f);
 
@@ -2945,12 +3166,15 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
 
 API_STUB(int)
 (PL_unify_functor)(term_t t, functor_t f)
-( return PL_unify_functor(t, f); )
+( valid_term_t(t);
+  return PL_unify_functor(t, f);
+)
 
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
 { GET_LD
+  valid_term_t(t);
   atom_t a = lookupAtom(chars, strlen(chars));
   int rval = PL_unify_atom(t, a);
 
@@ -2963,6 +3187,7 @@ PL_unify_atom_chars(term_t t, const char *chars)
 int
 PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
+  valid_term_t(t);
   atom_t a = lookupAtom(chars, len);
   int rval = PL_unify_atom(t, a);
 
@@ -3042,6 +3267,7 @@ cleanupCodeToAtom(void)
 int
 PL_unify_list_ncodes(term_t l, size_t len, const char *chars)
 { GET_LD
+  valid_term_t(l);
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
@@ -3075,6 +3301,7 @@ PL_unify_list_codes(term_t l, const char *chars)
 int
 PL_unify_list_nchars(term_t l, size_t len, const char *chars)
 { GET_LD
+  valid_term_t(l);
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
@@ -3115,7 +3342,8 @@ flags: bitwise or of type and representation
 
 int
 PL_unify_chars(term_t t, int flags, size_t len, const char *s)
-{ PL_chars_t text;
+{ valid_term_t(t);
+  PL_chars_t text;
   term_t tail;
   int rc;
 
@@ -3197,6 +3425,7 @@ int
 PL_unify_uint64(term_t t, uint64_t i)
 { GET_LD
 
+  valid_term_t(t);
   if ( (int64_t)i >= 0 )
   { return unify_int64_ex(t, i, TRUE);
   } else if ( PL_is_variable(t) )
@@ -3248,11 +3477,15 @@ PL_unify_integer(DECL_LD term_t t, intptr_t i)
 
 API_STUB(int)
 (PL_unify_integer)(term_t t, intptr_t i)
-( return PL_unify_integer(t, i); )
+( valid_term_t(t);
+  return PL_unify_integer(t, i);
+)
 
 API_STUB(int)
 (PL_unify_int64)(term_t t, int64_t i)
-( return unify_int64_ex(t, i, FALSE); )
+( valid_term_t(t);
+  return unify_int64_ex(t, i, FALSE);
+)
 
 int
 PL_unify_pointer(DECL_LD term_t t, void *ptr)
@@ -3264,12 +3497,15 @@ PL_unify_pointer(DECL_LD term_t t, void *ptr)
 
 API_STUB(int)
 (PL_unify_pointer)(term_t t, void *ptr)
-( return PL_unify_pointer(t, ptr); )
+( valid_term_t(t);
+  return PL_unify_pointer(t, ptr);
+)
 
 
 int
 PL_unify_float(term_t t, double f)
 { GET_LD
+  valid_term_t(t);
   Word p = valHandleP(t);
 
   deRef(p);
@@ -3301,6 +3537,7 @@ PL_unify_float(term_t t, double f)
 int
 PL_unify_bool(term_t t, int val)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( canBind(w) )
@@ -3314,9 +3551,8 @@ PL_unify_bool(term_t t, int val)
 
 
 int
-PL_unify_arg_sz(size_t index, term_t t, term_t a)
-{ GET_LD
-  word w = valHandle(t);
+PL_unify_arg_sz(DECL_LD size_t index, term_t t, term_t a)
+{ word w = valHandle(t);
 
   if ( isTerm(w) &&
        index > 0 &&
@@ -3330,11 +3566,18 @@ PL_unify_arg_sz(size_t index, term_t t, term_t a)
   fail;
 }
 
+API_STUB(int)
+(PL_unify_arg_sz)(size_t index, term_t t, term_t a)
+( valid_term_t(t);
+  valid_term_t(a);
+  return PL_unify_arg_sz(index, t, a);
+)
+
 int
 (PL_unify_arg)(int index, term_t t, term_t a)
 { if ( index >= 0 )
     return PL_unify_arg_sz(index, t, a);
-  fatalError("Index out of range: %d", index);
+  fatalError("PL_unify_arg(): negative index: %d", index);
   return FALSE;
 }
 
@@ -3382,7 +3625,11 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
 
 API_STUB(int)
 (PL_unify_list)(term_t l, term_t h, term_t t)
-( return PL_unify_list(l, h, t); )
+( valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
+  return PL_unify_list(l, h, t);
+)
 
 
 int
@@ -3392,7 +3639,9 @@ PL_unify_nil(DECL_LD term_t l)
 
 API_STUB(int)
 (PL_unify_nil)(term_t t)
-( return PL_unify_nil(t); )
+( valid_term_t(t);
+  return PL_unify_nil(t);
+)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3679,7 +3928,9 @@ failout:
 
 API_STUB(int)
 (PL_unify_termv)(term_t t, va_list args)
-( return PL_unify_termv(t, args); )
+( valid_term_t(t);
+  return PL_unify_termv(t, args);
+)
 
 
 int
@@ -3701,6 +3952,7 @@ API_STUB(int)
   int rval;
 
   va_start(args, t);
+  valid_term_t(t);
   rval = PL_unify_termv(t, args);
   va_end(args);
 
@@ -3728,6 +3980,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
   Word p;
 
+  valid_term_t(t);
   if ( !hasGlobalSpace(2) )
   { int rc;
 
@@ -3783,18 +4036,22 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 PL_atomic_t
 _PL_get_atomic(term_t t)
 { GET_LD
+  valid_term_t(t);
   return valHandle(t);
 }
 
 
 API_STUB(int)
 (PL_unify_atomic)(term_t t, PL_atomic_t a)
-( return PL_unify_atomic(t, a); )
+( valid_term_t(t);
+  return PL_unify_atomic(t, a);
+)
 
 
 void
 _PL_put_atomic(term_t t, PL_atomic_t a)
 { GET_LD
+  valid_term_t(t);
   setHandle(t, a);
 }
 
@@ -3808,6 +4065,7 @@ int
 PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
+  valid_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
   int rval = PL_unify_atom(t, a);
 
@@ -3821,6 +4079,7 @@ int
 PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
+  valid_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
 
   setHandle(t, a);
@@ -3833,6 +4092,7 @@ PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 int
 PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -3854,7 +4114,8 @@ PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
 
 void *
 PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
-{ Atom x = atomValue(a);
+{ valid_atom_t(a);
+  Atom x = atomValue(a);
 
   if ( len )
     *len = x->length;
@@ -3873,7 +4134,8 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
 int
 PL_free_blob(atom_t a)
-{ Atom x = atomValue(a);
+{ valid_atom_t(a);
+  Atom x = atomValue(a);
   const PL_blob_t *type = x->type;
 
   if ( true(type, PL_BLOB_NOCOPY) && type->release && x->name )
@@ -3901,8 +4163,12 @@ PL_put_dict(term_t t, atom_t tag,
   size_t size = len*2+2;
   size_t i;
 
+  valid_term_t(t);
+  if ( tag )
+    valid_atom_t(tag);
   for(i=0; i<len; i++)
-  { if ( !globalizeTermRef(values+i) )
+  { valid_term_t(values+i);
+    if ( !globalizeTermRef(values+i) )
       return FALSE;
   }
 
@@ -3958,6 +4224,7 @@ _PL_unregister_keys(size_t len, atom_t *keys)
 int
 PL_term_type(term_t t)
 { GET_LD
+  valid_term_t(t);
   word w = valHandle(t);
   int t0 = type_map[tag(w)];
 
@@ -4005,7 +4272,10 @@ PL_unify(DECL_LD term_t t1, term_t t2)
 
 API_STUB(int)
 (PL_unify)(term_t t1, term_t t2)
-( return PL_unify(t1, t2); )
+( valid_term_t(t1);
+  valid_term_t(t2);
+  return PL_unify(t1, t2);
+)
 
 
 /*
@@ -4063,7 +4333,10 @@ PL_strip_module_flags(DECL_LD term_t raw, module_t *m, term_t plain, int flags)
 
 API_STUB(int)
 (PL_strip_module)(term_t raw, module_t *m, term_t plain)
-( return PL_strip_module_flags(raw, m, plain, 0); )
+( valid_term_t(raw);
+  valid_term_t(plain);
+  return PL_strip_module_flags(raw, m, plain, 0);
+)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_strip_module_ex() is similar to  PL_strip_module(),   but  returns an
@@ -4117,12 +4390,15 @@ PL_module_name(Module m)
 module_t
 PL_new_module(atom_t name)
 { GET_LD
+  valid_atom_t(name);
   return lookupModule(name);
 }
 
 int
 PL_qualify(term_t raw, term_t qualified)
 { GET_LD
+  valid_term_t(raw);
+  valid_term_t(qualified);
   Module m = NULL;
   term_t mname;
 
@@ -4142,7 +4418,8 @@ PL_qualify(term_t raw, term_t qualified)
 
 predicate_t
 PL_pred(functor_t functor, module_t module)
-{ if ( module == NULL )
+{ valid_functor_t(functor);
+  if ( module == NULL )
     module = PL_context();
 
   return lookupProcedure(functor, module);
@@ -4195,7 +4472,13 @@ int
 PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 { int rval;
   qid_t qid;
+  size_t arity = pred->definition->functor->arity;
 
+  if ( arity > 0 )
+  { valid_term_t(h0);
+    if ( arity > 1 )
+      valid_term_t(h0+arity-1);
+  }
   if ( (qid = PL_open_query(ctx, flags, pred, h0)) )
   { int r1 = PL_next_solution(qid);
     int r2 = PL_cut_query(qid);
@@ -4210,7 +4493,8 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 
 int
 PL_call(term_t t, Module m)
-{ return callProlog(m, t, PL_Q_PASS_EXCEPTION, NULL);
+{ valid_term_t(t);
+  return callProlog(m, t, PL_Q_PASS_EXCEPTION, NULL);
 }
 
 
@@ -4365,6 +4649,7 @@ int
 PL_raise_exception(term_t exception)
 { GET_LD
 
+  valid_term_t(exception);
   assert(valTermRef(exception) < (Word)lTop);
 
   if ( PL_is_variable(exception) )	/* internal error */
@@ -5059,6 +5344,7 @@ record_t
 PL_record(term_t t)
 { GET_LD
 
+  valid_term_t(t);
   return compileTermToHeap(t, R_DUPLICATE);
 }
 
@@ -5067,6 +5353,7 @@ int
 PL_recorded(record_t r, term_t t)
 { GET_LD
 
+  valid_term_t(t);
   return copyRecordToGlobal(t, r, ALLOW_GC) == TRUE;
 }
 

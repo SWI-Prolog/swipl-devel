@@ -108,6 +108,9 @@ endif()
 option(CCACHE
        "Use ccache when available"
        ${DEFAULT_CCACHE})
+option(VALIDATE_API
+       "Add runtime argument checks for PL_*() functions"
+       ON)
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")

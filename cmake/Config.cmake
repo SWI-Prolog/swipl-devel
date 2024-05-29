@@ -450,6 +450,9 @@ endif()
 if(O_PLMT AND (O_SIGPROF_PROFILE OR WIN32))
   set(O_PROFILE 1)
 endif()
+if(VALIDATE_API)
+  set(O_VALIDATE_API 1)
+endif()
 
 ################
 # Stuff we do not need to define is below such that findmacros.pl does

@@ -835,9 +835,6 @@ static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
 
-#define ATOM_PRE_DESTROY_REFERENCE \
-	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
-
   if ( !COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
   { return FALSE;
   }
