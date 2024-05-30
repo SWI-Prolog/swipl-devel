@@ -172,9 +172,6 @@ static const PL_extension foreigns[] = {
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
   FRG("garbage_collect_clauses", 0, pl_garbage_collect_clauses,	0),
-#ifdef O_DEBUG_ATOMGC
-  FRG("track_atom",		2, pl_track_atom,		0),
-#endif
 #endif
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
