@@ -4613,6 +4613,7 @@ VMH(foreign_redo, 0, (), ())
   ffr = (FliFrame)(ch+1);
   lTop = (LocalFrame)(ffr+1);
   ffr->size = 0;
+  ffr->no_free_before = (size_t)-1;
   NoMark(ffr->mark);
   ffr->parent = fli_context;
   FLI_SET_VALID(ffr);

@@ -53,6 +53,7 @@
 #if USE_LD_MACROS
 #if O_VALIDATE_API
 #define valid_term_t(t)				LDFUNC(valid_term_t, t)
+#define valid_user_term_t(t)			LDFUNC(valid_user_term_t, t)
 #endif
 #define	linkVal(p)				LDFUNC(linkVal, p)
 #define	linkValG(p)				LDFUNC(linkValG, p)
@@ -69,6 +70,7 @@
 #define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
 #define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
 #define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
+#define PL_free_term_ref(t)			LDFUNC(PL_free_term_ref, t)
 #define PL_new_functor_sz(f, arity)		LDFUNC(PL_new_functor_sz, f, arity)
 #define	globalizeTermRef(t)			LDFUNC(globalizeTermRef, t)
 #define	PL_reset_term_refs(r)			LDFUNC(PL_reset_term_refs, r)
@@ -153,6 +155,7 @@ int		PL_get_intptr(term_t t, intptr_t *i);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
 term_t		PL_new_term_refs(size_t n);
+void		PL_free_term_ref(term_t t);
 functor_t	PL_new_functor_sz(atom_t f, size_t arity);
 int		globalizeTermRef(term_t t);
 void		PL_reset_term_refs(term_t r);

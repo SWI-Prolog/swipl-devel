@@ -484,6 +484,7 @@ PL_EXPORT(int)		PL_assert(term_t term, module_t m, int flags);
 PL_EXPORT(term_t)	PL_new_term_refs(size_t n);
 PL_EXPORT(term_t)	PL_new_term_ref(void);
 PL_EXPORT(term_t)	PL_copy_term_ref(term_t from);
+PL_EXPORT(void)		PL_free_term_ref(term_t t);
 PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 
 			/* Constants */

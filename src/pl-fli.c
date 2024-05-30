@@ -134,27 +134,63 @@ static int	PL_get_uint(term_t t, unsigned int *i);
 #undef LDFUNC_DECLARATIONS
 
 #if O_VALIDATE_API
+
+#define in_foreign_argv(p)	LDFUNC(in_foreign_argv, p)
+static int
+in_foreign_argv(DECL_LD Word p)
+{ for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
+  { if ( true(fr->predicate, P_FOREIGN) )
+    { size_t arity = fr->predicate->functor->arity;
+      if ( p >= argFrameP(fr, 0) && p < argFrameP(fr, arity) )
+	return TRUE;
+    }
+    if ( (Word)fr < p )
+      break;
+  }
+
+  return FALSE;
+}
+
+#define in_foreign_frame(p)	LDFUNC(in_foreign_frame, p)
+static FliFrame
+in_foreign_frame(DECL_LD Word p)
+{ for(FliFrame fr = fli_context; fr; fr = fr->parent)
+  { Word p0 = (Word)(fr+1);
+    if ( p >= p0 && p < p0+fr->size )
+      return fr;
+    if ( (Word)fr < p )
+      break;
+  }
+
+  return NULL;
+}
+
 void
 valid_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   if ( !onStack(local, p) )
     PL_api_error("invalid term_t %zd (out of range)", (size_t)t);
-  for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
-  { size_t arity = fr->predicate->functor->arity;
-    if ( p >= argFrameP(fr, 0) && p < argFrameP(fr, arity) )
-      return;
-    if ( (Word)fr < p )
-      break;
-  }
+  if ( *p == ATOM_term_t_free )
+    PL_api_error("invalid term_t %zd (freed)", (size_t)t);
 
-  for(FliFrame fr = fli_context; fr; fr = fr->parent)
-  { Word p0 = (Word)(fr+1);
-    if ( p >= p0 && p < p0+fr->size )
-      return;
-    if ( (Word)fr < p )
-      break;
-  }
+  if ( in_foreign_argv(p) || in_foreign_frame(p) )
+    return;
+
+  PL_api_error("invalid term_t %zd (not in any foreign frame)", (size_t)t);
+}
+
+void
+valid_user_term_t(DECL_LD term_t t)
+{ Word p = valTermRef(t);
+
+  if ( !onStack(local, p) )
+    PL_api_error("invalid term_t %zd (out of range)", (size_t)t);
+  if ( *p == ATOM_term_t_free )
+    PL_api_error("invalid term_t %zd (freed)", (size_t)t);
+
+  if ( in_foreign_frame(p) )
+    return;
 
   PL_api_error("invalid term_t %zd (not in any foreign frame)", (size_t)t);
 }
@@ -462,7 +498,22 @@ PL_new_term_ref_noshift(DECL_LD)
   return new_term_ref();
 }
 
+void
+PL_free_term_ref(DECL_LD term_t ref)
+{ FliFrame fr = fli_context;
+  Word p = valTermRef(ref);
 
+  if ( p+1 == (Word)lTop )
+  { lTop = (LocalFrame)p;
+    fr->size--;
+  } else
+  { fr = in_foreign_frame(p);
+    size_t i = p - (Word)(fr+1);
+    if ( i < fr->no_free_before )
+      fr->no_free_before = i;
+    *p = ATOM_term_t_free;
+  }
+}
 
 API_STUB(term_t)
 (PL_new_term_refs)(size_t n)
@@ -481,6 +532,11 @@ API_STUB(term_t)
   return PL_new_term_ref();
 )
 
+API_STUB(void)
+(PL_free_term_ref)(term_t ref)
+( valid_user_term_t(ref);
+  PL_free_term_ref(ref);
+)
 
 /* PL_new_nil_ref() is for compatibility with SICStus and other
    prologs that create the initial term-reference as [] instead of
@@ -940,7 +996,7 @@ PL_unify_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
 
 int
 PL_put_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
-{ valid_term_t(t);
+{ valid_user_term_t(t);
   return PL_put_variable(t) &&
          PL_unify_wchars_diff(t, 0, flags, len, s);
 }
@@ -2265,7 +2321,7 @@ int
 PL_get_arg_sz(size_t index, term_t t, term_t a)
 { GET_LD
   valid_term_t(t);
-  valid_term_t(a);
+  valid_user_term_t(a);
   word w = valHandle(t);
 
   if ( isTerm(w) && index > 0 )
@@ -2295,7 +2351,7 @@ int
 API_STUB(int)
 (PL_get_attr)(term_t t, term_t a)
 ( valid_term_t(t);
-  valid_term_t(a);
+  valid_user_term_t(a);
   return PL_get_attr(t, a);
 )
 #endif
@@ -2321,8 +2377,8 @@ PL_get_list(DECL_LD term_t l, term_t h, term_t t)
 API_STUB(int)
 (PL_get_list)(term_t l, term_t h, term_t t)
 ( valid_term_t(l);
-  valid_term_t(h);
-  valid_term_t(t);
+  valid_user_term_t(h);
+  valid_user_term_t(t);
   return PL_get_list(l, h, t);
 )
 
@@ -2331,7 +2387,7 @@ int
 PL_get_head(term_t l, term_t h)
 { GET_LD
   valid_term_t(l);
-  valid_term_t(h);
+  valid_user_term_t(h);
   word w = valHandle(l);
 
   if ( isList(w) )
@@ -2348,7 +2404,7 @@ int
 PL_get_tail(term_t l, term_t t)
 { GET_LD
   valid_term_t(l);
-  valid_term_t(t);
+  valid_user_term_t(t);
   word w = valHandle(l);
 
   if ( isList(w) )
@@ -2384,7 +2440,7 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
   if ( len )
     *len = length;
   if ( tail )
-  { valid_term_t(tail);
+  { valid_user_term_t(tail);
     Word t2 = valTermRef(tail);
 
     setVar(*t2);
@@ -2670,7 +2726,7 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 
 API_STUB(int)
 (PL_put_variable)(term_t t)
-( valid_term_t(t);
+( valid_user_term_t(t);
   return PL_put_variable(t);
 )
 
@@ -2679,7 +2735,7 @@ API_STUB(int)
 
 API_STUB(int)
 (PL_put_atom)(term_t t, atom_t a)
-( valid_term_t(t);
+( valid_user_term_t(t);
   valid_atom_t(a);
   setHandle(t, a);
   return TRUE;
@@ -2689,7 +2745,7 @@ API_STUB(int)
 int
 PL_put_bool(term_t t, int val)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
 
   PL_put_atom(t, val ? ATOM_true : ATOM_false);
   return TRUE;
@@ -2701,7 +2757,7 @@ PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
 
-  valid_term_t(t);
+  valid_user_term_t(t);
   setHandle(t, a);
   PL_unregister_atom(a);
 
@@ -2717,7 +2773,7 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
   if ( len == (size_t)-1 )
     len = strlen(s);
 
-  valid_term_t(t);
+  valid_user_term_t(t);
   setHandle(t, a);
   PL_unregister_atom(a);
 
@@ -2728,7 +2784,7 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
 int
 PL_put_string_chars(term_t t, const char *s)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
   word w = globalString(strlen(s), s);
 
   if ( w )
@@ -2743,7 +2799,7 @@ PL_put_string_chars(term_t t, const char *s)
 int
 PL_put_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
   word w = globalString(len, s);
 
   if ( w )
@@ -2758,7 +2814,7 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
 int
 PL_put_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
   PL_chars_t text;
   word w = 0;
   int rc = FALSE;
@@ -2799,7 +2855,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
 int
 PL_put_list_ncodes(term_t t, size_t len, const char *chars)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
 
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
@@ -2834,7 +2890,7 @@ int
 PL_put_list_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
 
-  valid_term_t(t);
+  valid_user_term_t(t);
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
   } else
@@ -2880,7 +2936,7 @@ PL_put_uint64(term_t t, uint64_t i)
 { GET_LD
   word w;
   int rc;
-  valid_term_t(t);
+  valid_user_term_t(t);
 
   switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
   { case TRUE:
@@ -2918,7 +2974,7 @@ _PL_put_number(DECL_LD term_t t, Number n)
 int
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
   uint64_t i = pointerToInt(ptr);
 
   return PL_put_int64(t, (int64_t)i);
@@ -2931,7 +2987,7 @@ PL_put_float(term_t t, double f)
   word w;
   int rc;
 
-  valid_term_t(t);
+  valid_user_term_t(t);
   if ( (rc=put_double(&w, f, ALLOW_GC)) == TRUE )
   { setHandle(t, w);
     return TRUE;
@@ -2944,7 +3000,7 @@ PL_put_float(term_t t, double f)
 int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
-  valid_term_t(t);
+  valid_user_term_t(t);
   valid_functor_t(f);
   size_t arity = arityFunctor(f);
 
@@ -2969,7 +3025,7 @@ PL_put_functor(term_t t, functor_t f)
 int
 PL_put_list(term_t l)
 { GET_LD
-  valid_term_t(l);
+  valid_user_term_t(l);
   Word a = allocGlobal(3);
 
   if ( a )
@@ -2987,7 +3043,7 @@ PL_put_list(term_t l)
 int
 PL_put_nil(term_t l)
 { GET_LD
-  valid_term_t(l);
+  valid_user_term_t(l);
 
   setHandle(l, ATOM_nil);
 
@@ -3009,7 +3065,7 @@ PL_put_term(DECL_LD term_t t1, term_t t2)
 
 API_STUB(int)
 (PL_put_term)(term_t t1, term_t t2)
-( valid_term_t(t1);
+( valid_user_term_t(t1);
   valid_term_t(t2);
   return PL_put_term(t1, t2);
 )
@@ -3627,7 +3683,7 @@ API_STUB(int)
 (PL_unify_list)(term_t l, term_t h, term_t t)
 ( valid_term_t(l);
   valid_term_t(h);
-  valid_term_t(t);
+  valid_user_term_t(t);
   return PL_unify_list(l, h, t);
 )
 
@@ -4079,7 +4135,7 @@ int
 PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
   int new;
-  valid_term_t(t);
+  valid_user_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
 
   setHandle(t, a);
@@ -4163,7 +4219,7 @@ PL_put_dict(term_t t, atom_t tag,
   size_t size = len*2+2;
   size_t i;
 
-  valid_term_t(t);
+  valid_user_term_t(t);
   if ( tag )
     valid_atom_t(tag);
   for(i=0; i<len; i++)

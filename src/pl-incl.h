@@ -1884,6 +1884,7 @@ struct fliFrame
   int		magic;			/* Magic code */
 #endif
   size_t	size;			/* # slots on it */
+  size_t	no_free_before;		/* No free before this */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
 };

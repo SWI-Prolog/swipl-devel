@@ -318,6 +318,7 @@ open_foreign_frame(DECL_LD)
   assert((LocalFrame)(fr+1) <= lMax);
   lTop = (LocalFrame)(fr+1);
   fr->size = 0;
+  fr->no_free_before = (size_t)-1;
   Mark(fr->mark);
   DEBUG(CHK_SECURE, assert(fr>fli_context));
   fr->parent = fli_context;

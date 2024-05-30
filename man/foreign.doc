@@ -315,6 +315,13 @@ argument to a term reference that may be written. Raise a resource
 exception and returns \exam{(term_t)0} on failure. An example of its use
 is given below, in the sample code \exam{pl_write_atoms()}.
 
+\cfunction{void}{PL_free_term_ref}{term_t t}
+Release a specific term reference.  Normally all term references in a
+\jargon{scope} are discarded together or all term references created
+after a specific one are reclaimed using PL_reset_term_refs(). This
+function shrinks the current foreign frame if \arg{t} is the last one
+in the frame.  Else it marks \arg{t} for reuse by PL_new_term_ref().
+
 \cfunction{void}{PL_reset_term_refs}{term_t after}
 Destroy all term references that have been created after \arg{after},
 including \arg{after} itself. Any reference to the invalidated  term
