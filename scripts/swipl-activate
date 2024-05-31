@@ -18,7 +18,7 @@ swiplld=
 
 if [ "$1" = "--installed" ]; then
 
-  prefix=$(grep CMAKE_INSTALL_PREFIX CMakeCache.txt | sed 's/.*=//')
+  prefix=$(grep CMAKE_INSTALL_PREFIX:STRING= CMakeCache.txt | sed 's/.*=//')
   if [ -x $prefix/bin/swipl ]; then
     swipl=$prefix/bin/swipl
     if [ -x $prefix/bin/swipl-win ]; then
