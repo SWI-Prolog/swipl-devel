@@ -731,7 +731,8 @@ function toplevel()
 }
 
 let Prolog;
-var Module = {
+let Module;
+var options = {
     arguments: [],
     locateFile: function(file) { // not needed with swipl-bundle.js
 	return '/wasm/' + file;
@@ -739,8 +740,9 @@ var Module = {
     on_output: print_output
 };
 
-SWIPL(Module).then(async (module) =>
-    { Prolog = Module.prolog;
+SWIPL(options).then(async (module) =>
+    { Module = module;
+      Prolog = Module.prolog;
       Module.FS.mkdir("/prolog");
       pl("set_prolog_flag(tty_control, true)");
       pl("working_directory(_, '/prolog')");

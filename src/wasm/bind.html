@@ -14,12 +14,13 @@
     </script>
     <script>
       let Prolog;
-      var Module = {
+      let Module;
+      var options = {
 	arguments: ["-q"],
 	locateFile: (file) => '/wasm/' + file
       };
       (async (a) => {
-        await SWIPL(Module);
+        Module = await SWIPL(options);
 	Prolog = Module.prolog;
         Prolog.load_scripts()
       })();
