@@ -6415,6 +6415,9 @@ END_VMI
 VMI(T_SMALLINTW, 0, CODES_PER_WORD, (CA1_WORD))
 { word w;
 
+#if CODES_PER_WORD == 1
+  SEPARATE_VMI1;		/* Might collapse with T_SMALLINT */
+#endif
   PC = code_get_word(PC, &w);
   DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", (long long)w));
   VMH_GOTO(t_const, consInt((sword)w));
