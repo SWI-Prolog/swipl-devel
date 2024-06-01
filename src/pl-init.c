@@ -1828,7 +1828,26 @@ printCrashContext(const char *btname)
   running = FALSE;
 }
 
+static void
+abort_sig(int sig)
+{ (void)sig;
+  abort();
+}
 
+static void
+set_cleanup_timeout(int sec)
+{
+#ifdef HAVE_SETITIMER
+  struct itimerval timeout = {0};
+  struct sigaction act = {0};
+
+  timeout.it_value.tv_sec = sec;
+  act.sa_handler = abort_sig;
+
+  sigaction(SIGALRM, &act, NULL);
+  setitimer(ITIMER_REAL, &timeout, NULL);
+#endif
+}
 
 static bool
 vsysError(const char *errtype, const char *fm, va_list args)
@@ -1836,6 +1855,8 @@ vsysError(const char *errtype, const char *fm, va_list args)
 
   if ( active++ )
     abort();
+
+  set_cleanup_timeout(30);
 
   Sfprintf(Serror, "\nERROR: %s error: ", errtype);
   Svfprintf(Serror, fm, args);
@@ -1850,13 +1871,13 @@ vsysError(const char *errtype, const char *fm, va_list args)
     PL_abort_process();			/* non-interactive or booting */
 
 action:
+  Sflush(Soutput);
+  ResetTty();
 #ifdef HAVE_GETPID
   Sfprintf(Serror, "\n[pid=%d] Action? ", getpid());
 #else
   Sfprintf(Serror, "\nAction? ");
 #endif
-  Sflush(Soutput);
-  ResetTty();
 
   switch(getSingleChar(Sinput, FALSE))
   { case EOF:
