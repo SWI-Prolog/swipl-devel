@@ -3196,10 +3196,10 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
     { Word a = gTop;
       word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
+      *a++ = f;
+      for(size_t i=0; i<arity; i++)
+	setVar(a[i]);
       gTop += 1+arity;
-      *a = f;
-      while( arity-- > 0 )
-	setVar(*++a);
 
       bindConst(p, to);
     }
