@@ -117,10 +117,6 @@ Prolog int) is used by the garbage collector to update the stack frames.
 	    fatalError("Arity out of range: %lld", (int64_t)arity); \
 	} while(0);
 
-#define VALID_TERM_ARITY(arity) \
-	do { if ( (ssize_t)arity < 0 ) \
-	       return raiseStackOverflow(GLOBAL_OVERFLOW); } while(0)
-
 #if USE_LD_MACROS
 #define	unify_int64_ex(t, i, ex)	LDFUNC(unify_int64_ex, t, i, ex)
 #define	PL_get_uint(t, i)		LDFUNC(PL_get_uint, t, i)
@@ -1434,8 +1430,6 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
   } else
   { Word a, t;
 
-    VALID_TERM_ARITY(arity);
-
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
 
@@ -1494,8 +1488,6 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   { setHandle(h, nameFunctor(fd));
   } else
   { Word t, a, ai;
-
-    VALID_TERM_ARITY(arity);
 
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
@@ -2989,7 +2981,6 @@ PL_put_functor(term_t t, functor_t f)
   } else
   { Word a;
 
-    VALID_TERM_ARITY(arity);
     if ( !(a = allocGlobal(1 + arity)) )
       return FALSE;
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
@@ -3123,7 +3114,6 @@ PL_unify_compound(term_t t, functor_t f)
     Word a;
     word to;
 
-    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
@@ -3159,7 +3149,6 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
   if ( canBind(*p) )
   { size_t needed = (1+arity);
 
-    VALID_TERM_ARITY(arity);
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
