@@ -102,6 +102,7 @@
 #define	PL_get_name_arity_sz(t, name, arity)	LDFUNC(PL_get_name_arity_sz, t, name, arity)
 #define	PL_unify_atom(t, a)			LDFUNC(PL_unify_atom, t, a)
 #define	PL_unify_atomic(t, w)			LDFUNC(PL_unify_atomic, t, w)
+#define PL_unify_bool(t, val)			LDFUNC(PL_unify_bool, t, val)
 #define	PL_unify_pointer(t, ptr)		LDFUNC(PL_unify_pointer, t, ptr)
 #define	PL_get_list(l, h, t)			LDFUNC(PL_get_list, l, h, t)
 #define	PL_is_atom(t)				LDFUNC(PL_is_atom, t)
@@ -116,6 +117,7 @@
 #define PL_unify_arg_sz(i, t, a)		LDFUNC(PL_unify_arg_sz, i, t, a)
 #define PL_get_nil(l)				LDFUNC(PL_get_nil, l)
 #define PL_is_list(l)				LDFUNC(PL_is_list, l)
+#define PL_unify_float(t, f)			LDFUNC(PL_unify_float, t, f)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -194,7 +196,9 @@ int		PL_get_name_arity_sz(term_t t, atom_t *name,
 int		PL_get_uintptr(term_t t, size_t *i);
 int		PL_unify_atom(term_t t, atom_t a);
 int		PL_unify_atomic(term_t t, word a);
+int		PL_unify_bool(term_t t, int val);
 int		PL_unify_pointer(term_t t, void *ptr);
+int		PL_unify_float(term_t t, double f);
 int		PL_get_list(term_t l, term_t h, term_t t);
 FLI_INLINE int	PL_is_atom(term_t t);
 int		PL_unify_list(term_t l, term_t h, term_t t);
@@ -260,7 +264,7 @@ FLI_INLINE int
 PL_is_variable(DECL_LD term_t t)
 { word w = valHandle(t);
 
-  return canBind(w) ? TRUE : FALSE;
+  return canBind(w);
 }
 
 FLI_INLINE int

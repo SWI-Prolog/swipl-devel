@@ -3399,24 +3399,23 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   deRef(p);
 
   if ( canBind(*p) )
-  { if ( !hasGlobalSpace(WORDS_PER_BIGNUM64) )
-    { int rc;
+  { if ( valInt(w) == i )
+      return bindConst(p, w);
 
-      if ( (rc=ensureGlobalSpace(WORDS_PER_BIGNUM64, ALLOW_GC)) != TRUE )
-	return raiseStackOverflow(rc);
-      p = valHandleP(t);
+    int rc;
+    if ( (rc=put_int64(&w, i, 0)) == TRUE )
+    { p = valHandleP(t);
       deRef(p);
+      return bindConst(p, w);
+    } else if ( rc == LOCAL_OVERFLOW )
+    { return PL_representation_error("int64");
+    } else
+    { return raiseStackOverflow(rc);
     }
-
-    if ( valInt(w) != i )
-      put_int64(&w, i, 0);
-
-    bindConst(p, w);
-    succeed;
   }
 
   if ( w == *p && valInt(w) == i )
-    succeed;
+    return TRUE;
 
   int64_t v;
   if ( get_int64(*p, &v) )
@@ -3425,7 +3424,7 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   if ( ex && !isInteger(*p) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 
-  fail;
+  return FALSE;
 }
 
 
@@ -3521,52 +3520,51 @@ API_STUB(int)
 
 
 int
-PL_unify_float(term_t t, double f)
-{ GET_LD
-  valid_term_t(t);
-  Word p = valHandleP(t);
+PL_unify_float(DECL_LD term_t t, double f)
+{ Word p = valHandleP(t);
 
   deRef(p);
-
   if ( canBind(*p) )
   { word w;
+    int rc = put_double(&w, f, ALLOW_GC);
 
-    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC)) != TRUE )
-	return raiseStackOverflow(rc);
-      p = valHandleP(t);
+    if ( rc == TRUE )
+    { p = valHandleP(t);
       deRef(p);
-    }
-
-    put_double(&w, f, ALLOW_CHECKED);
-    bindConst(p, w);
-    succeed;
+      return bindConst(p, w);
+    } else
+      return raiseStackOverflow(rc);
   }
 
-  if ( isFloat(*p) && valFloat(*p) == f )
-    succeed;
-
-  fail;
+  return isFloat(*p) && valFloat(*p) == f;
 }
 
+API_STUB(int)
+(PL_unify_float)(term_t t, double f)
+( valid_term_t(t);
+  return PL_unify_float(t, f)
+)
 
 int
-PL_unify_bool(term_t t, int val)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_unify_bool(DECL_LD term_t t, int val)
+{ Word p = valHandleP(t);
 
-  if ( canBind(w) )
-    return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+  deRef(p);
+  if ( canBind(*p) )
+    return bindConst(p, val ? ATOM_true : ATOM_false);
 
+  word w = *p;
   if ( val )
     return w == ATOM_true || w == ATOM_on;
   else
     return w == ATOM_false || w == ATOM_off;
 }
 
+API_STUB(int)
+(PL_unify_bool)(term_t t, int val)
+( valid_term_t(t);
+  return PL_unify_bool(t, val)
+)
 
 int
 PL_unify_arg_sz(DECL_LD size_t index, term_t t, term_t a)
