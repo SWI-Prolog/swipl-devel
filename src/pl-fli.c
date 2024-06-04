@@ -3147,22 +3147,19 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
 
   deRef(p);
   if ( canBind(*p) )
-  { size_t needed = (1+arity);
+  { if ( arity )
+    { size_t needed = (1+arity);
 
-    if ( !hasGlobalSpace(needed) )
-    { int rc;
+      if ( !hasGlobalSpace(needed) )
+      { int rc;
 
-      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
-	return raiseStackOverflow(rc);
-      p = valHandleP(t);		/* reload: may have shifted */
-      deRef(p);
-    }
+	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+	  return raiseStackOverflow(rc);
+	p = valHandleP(t);		/* reload: may have shifted */
+	deRef(p);
+      }
 
-    if ( arity == 0 )
-    { word name = nameFunctor(f);
-      bindConst(p, name);
-    } else
-    { Word a = gTop;
+      Word a = gTop;
       word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
       *a++ = f;
@@ -3170,20 +3167,16 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
 	setVar(a[i]);
       gTop += 1+arity;
 
-      bindConst(p, to);
-    }
-
-    succeed;
-  } else
-  { if ( arity == 0  )
-    { if ( *p == nameFunctor(f) )
-	succeed;
+      return bindConst(p, to);
     } else
-    { if ( hasFunctor(*p, f) )
-	succeed;
+    { word name = nameFunctor(f);
+      return bindConst(p, name);
     }
-
-    fail;
+  } else
+  { if ( arity )
+      return hasFunctor(*p, f);
+    else
+      return *p == nameFunctor(f);
   }
 }
 
