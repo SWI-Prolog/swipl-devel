@@ -263,7 +263,7 @@ Returns one of:
 #define SWAPW(p,q) { Word _tmp = p; p=q; q=_tmp; } while(0)
 
 #define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
-static int
+int
 do_unify(DECL_LD Word t1, Word t2)
 { term_agendaLR agenda;
   int compound = FALSE;

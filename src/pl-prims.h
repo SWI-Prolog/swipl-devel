@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -54,10 +55,12 @@
 #define	pl_statistics_ld(k, value, ld)	LDFUNC(pl_statistics_ld, k, value, ld)
 #define	ground(p)			LDFUNC(ground, p)
 #define	PL_same_term(t1, t2)		LDFUNC(PL_same_term, t1, t2)
+#define do_unify(t1, t2)		LDFUNC(do_unify, t1, t2)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
+int		do_unify(Word t1, Word t2);
 int		unify_ptrs(Word t1, Word t2, int flags);
 void		unify_vp(Word vp, Word val);
 bool		can_unify(Word t1, Word t2, term_t ex);

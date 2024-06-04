@@ -714,6 +714,20 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     }
   }
 
+  /* First try the simple case.  do_unify() either completes
+   * (TRUE or FALSE) or returns a memory overflow code.  In
+   * the latter case we just try again, protected for GC
+   */
+  if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
+  { int rc = do_unify(k, ARGP);
+    if ( rc == TRUE )
+    { ARGP++;
+      NEXT_INSTRUCTION;
+    }
+    if ( rc == FALSE )
+      CLAUSE_FAILED;
+  }
+
   SAVE_REGISTERS(QID);
   rc = unify_ptrs(k, ARGP, ALLOW_GC|ALLOW_SHIFT);
   LOAD_REGISTERS(QID);
