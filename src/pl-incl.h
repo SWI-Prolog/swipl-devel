@@ -1648,7 +1648,6 @@ typedef struct local_definitions
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
-  Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
   { impl_any	any;			/* has some value */
@@ -1659,6 +1658,7 @@ struct definition
   } impl;
   uint64_t	flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
+  Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
   struct event_list  *events;		/* Forward update events */
@@ -1713,14 +1713,14 @@ struct localFrame
   ClauseRef	clause;			/* Current clause of frame */
   Definition	predicate;		/* Predicate we are running */
   Module	context;		/* context module of frame */
-#ifdef O_PROFILE
-  struct call_node *prof_node;		/* Profiling node */
-#endif
 #ifdef O_LOGICAL_UPDATE
   lgen_t	generation;		/* generation of the database */
 #endif
   unsigned int	level;			/* recursion level */
   unsigned int	flags;			/* packed long holding: */
+#ifdef O_PROFILE
+  struct call_node *prof_node;		/* Profiling node */
+#endif
 } WORD_ALIGNED;
 
 

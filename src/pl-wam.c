@@ -3218,7 +3218,8 @@ static vmi_instr jmp_table[] =
 #if VMCODE_IS_ADDRESS
 
 #define _VMI_DECLARATION(Name,f,na,a)	Name ## _LBL:
-#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); \
+					_VMI_GOTO_CODE(*PC++)
 #define _VMI_GOTO(n)			goto n ## _LBL
 #define _VMI_GOTO_CODE(c)		goto *code2ptr(void *, c)
 #undef SEPARATE_VMI1

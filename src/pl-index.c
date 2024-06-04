@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,9 @@
 #include "pl-fli.h"
 #include "pl-wam.h"
 #include <math.h>
+
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *	     PARAMETERS		*
@@ -148,10 +152,8 @@ hashIndex(word key, int buckets)
   return k & (buckets-1);
 }
 
-
-#define canIndex(w) LDFUNC(canIndex, w)
 static inline int
-canIndex(DECL_LD word w)
+canIndex(word w)
 { for(;;)
   { switch(tag(w))
     { case TAG_VAR:
@@ -166,10 +168,8 @@ canIndex(DECL_LD word w)
   }
 }
 
-
-#define indexOfWord(w) LDFUNC(indexOfWord, w)
 static inline word
-indexOfWord(DECL_LD word w)
+indexOfWord(word w)
 { for(;;)
   { switch(tag(w))
     { case TAG_VAR:
@@ -206,9 +206,8 @@ indexOfWord(DECL_LD word w)
 
 
 word
-getIndexOfTerm(term_t t)
-{ GET_LD
-  word w = *valTermRef(t);
+getIndexOfTerm(DECL_LD term_t t)
+{ word w = *valTermRef(t);
 
   return indexOfWord(w);
 }
@@ -370,9 +369,8 @@ setClauseChoice(DECL_LD ClauseChoice chp, ClauseRef cref, gen_t generation)
 }
 
 
-#define indexKeyFromArgv(ci, argv) LDFUNC(indexKeyFromArgv, ci, argv)
 static inline word
-indexKeyFromArgv(DECL_LD ClauseIndex ci, Word argv)
+indexKeyFromArgv(ClauseIndex ci, Word argv)
 { if ( likely(ci->args[1] == 0) )
   { return indexOfWord(argv[ci->args[0]-1]);
   } else

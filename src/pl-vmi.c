@@ -675,7 +675,7 @@ stack that must be treated as a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_VAR, 0, 1, (CA1_VAR))
-{ Word k = varFrameP(FR, (int)*PC++);
+{ Word k = varFrameP(FR, (size_t)*PC++);
   int rc;
 
   if ( UMODE == uwrite )
@@ -2016,7 +2016,7 @@ VMH(depart_or_retry_continue, 0, (), ())
       }
     }
 #endif /*O_DEBUGGER*/
-  }
+  } /* end of if (LD->alerted) */
 
   PC = DEF->codes;
   NEXT_INSTRUCTION;
@@ -2431,8 +2431,8 @@ simplified version of linkVal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
-  Word v2 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
+  Word v2 = varFrameP(FR, (size_t)*PC++);
   word w = *v2;
 
   while(isRef(w))
@@ -2448,7 +2448,7 @@ VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
 END_VMI
 
 VMI(L_VOID, 0, 1, (CA1_FVAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
 
   setVar(*v1);
   NEXT_INSTRUCTION;
@@ -2456,7 +2456,7 @@ VMI(L_VOID, 0, 1, (CA1_FVAR))
 END_VMI
 
 VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
   word  c = code2atom(*PC++);
   pushVolatileAtom(word2atom(c));
   *v1 = c;
@@ -2465,7 +2465,7 @@ VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
 END_VMI
 
 VMI(L_NIL, 0, 1, (CA1_FVAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
 
   *v1 = ATOM_nil;
   NEXT_INSTRUCTION;
