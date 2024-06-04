@@ -261,154 +261,162 @@ Returns one of:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define SWAPW(p,q) { Word _tmp = p; p=q; q=_tmp; } while(0)
+#define unify_simple_ptrs(t1, t2) LDFUNC(unify_simple_ptrs, t1, t2)
+
+int
+unify_simple_ptrs(DECL_LD Word t1, Word t2)
+{ word w1, w2;
+
+  if ( t1 == t2 )
+    return TRUE;
+
+  w1 = *t1;
+  w2 = *t2;
+
+  DEBUG(CHK_ATOM_GARBAGE_COLLECTED,
+	{ assert(w1 != ATOM_garbage_collected);
+	  assert(w2 != ATOM_garbage_collected);
+	});
+
+  if ( isVar(w1) )
+  { if ( unlikely(tTop+2 >= tMax) )
+      return TRAIL_OVERFLOW;
+
+    if ( isVar(w2) )
+    { if ( t1 > t2 )
+	SWAPW(t1, t2);
+      if ( t1 < t2 )			/* always point downwards */
+      { if ( t1 > (Word)lBase )
+	{ Word v;
+
+	  if ( unlikely(gTop+1 >= gMax) )
+	    return GLOBAL_OVERFLOW;
+
+	  v = gTop++;
+	  setVar(*v);
+	  Trail(t1, makeRefG(v));
+	  Trail(t2, makeRefG(v));
+	} else
+	{ Trail(t2, makeRefG(t1));
+	}
+	return TRUE;
+      }
+    }
+#ifdef O_ATTVAR
+    if ( isAttVar(w2 ) )
+      w2 = makeRefG(t2);
+#endif
+    Trail(t1, w2);
+    return TRUE;
+  }
+
+  if ( isVar(w2) )
+  { if ( unlikely(tTop+1 >= tMax) )
+      return TRAIL_OVERFLOW;
+#ifdef O_ATTVAR
+    if ( isAttVar(w1) )
+      w1 = makeRefG(t1);
+#endif
+    Trail(t2, w1);
+    return TRUE;
+  }
+
+#ifdef O_ATTVAR
+  if ( isAttVar(w1) )
+  { if ( !hasGlobalSpace(0) )
+      return overflowCode(0);
+
+    assignAttVar(t1, t2);
+    return TRUE;
+  }
+  if ( isAttVar(w2) )
+  { if ( !hasGlobalSpace(0) )
+      return overflowCode(0);
+
+    assignAttVar(t2, t1);
+    return TRUE;
+  }
+#endif
+
+  if ( w1 == w2 )
+    return TRUE;
+  if ( tagex(w1) != tagex(w2) )
+    return FALSE;
+
+  if ( isIndirect(w1) )
+    return equalIndirect(w1, w2);
+
+  if ( tag(w1) == TAG_COMPOUND )
+    return DO_COMPOUND;
+
+  return FALSE;
+}
+
 
 #define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
 int
 do_unify(DECL_LD Word t1, Word t2)
-{ term_agendaLR agenda;
-  int compound = FALSE;
-  int rc = FALSE;
+{ deRef(t1);
+  deRef(t2);
 
-  do
-  { word w1, w2;
+  int rc = unify_simple_ptrs(t1, t2);
+  if ( rc >= 0 )
+    return rc;
+  if ( rc != DO_COMPOUND )
+    return rc;
 
-    deRef(t1); w1 = *t1;
-    deRef(t2); w2 = *t2;
+  Functor f1 = valueTerm(*t1);
+  Functor f2 = valueTerm(*t2);
+  if ( f1->definition != f2->definition )
+    return FALSE;
 
-    DEBUG(CHK_ATOM_GARBAGE_COLLECTED,
-	  { assert(w1 != ATOM_garbage_collected);
-	    assert(w2 != ATOM_garbage_collected);
-	  });
+  term_agendaLR agenda;
+  size_t arity = arityFunctor(f1->definition);
+  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+  initCyclic();
+  linkTermsCyclic(f1, f2);
 
-    if ( isVar(w1) )
-    { if ( unlikely(tTop+2 >= tMax) )
-      { rc = TRAIL_OVERFLOW;
-	goto out_fail;
-      }
-
-      if ( isVar(w2) )
-      { uvars:
-	if ( t1 < t2 )			/* always point downwards */
-	{ if ( t1 > (Word)lBase )
-	  { Word v;
-
-	    if ( unlikely(gTop+1 >= gMax) )
-	    { rc = GLOBAL_OVERFLOW;
-	      goto out_fail;
-	    }
-	    v = gTop++;
-	    setVar(*v);
-	    Trail(t1, makeRefG(v));
-	    Trail(t2, makeRefG(v));
-	  } else
-	  { Trail(t2, makeRefG(t1));
-	  }
-	  continue;
-	}
-	if ( t1 == t2 )
-	  continue;
-	SWAPW(t1, t2);
-	goto uvars;
-      }
-  #ifdef O_ATTVAR
-      if ( isAttVar(w2 ) )
-	w2 = makeRefG(t2);
-  #endif
-      Trail(t1, w2);
+  while( nextTermAgendaLR(&agenda, &t1, &t2) )
+  { deRef(t1);
+    deRef(t2);
+    rc = unify_simple_ptrs(t1, t2);
+    if ( rc == TRUE )
       continue;
-    }
-    if ( isVar(w2) )
-    { if ( unlikely(tTop+1 >= tMax) )
-      { rc = TRAIL_OVERFLOW;
-	goto out_fail;
-      }
-  #ifdef O_ATTVAR
-      if ( isAttVar(w1) )
-	w1 = makeRefG(t1);
-  #endif
-      Trail(t2, w1);
-      continue;
-    }
+    if ( rc == FALSE )
+      break;
+    if ( rc != DO_COMPOUND )
+      break;
 
-  #ifdef O_ATTVAR
-    if ( isAttVar(w1) )
-    { if ( !hasGlobalSpace(0) )
-      { rc = overflowCode(0);
-	goto out_fail;
-      }
-      assignAttVar(t1, t2);
-      continue;
-    }
-    if ( isAttVar(w2) )
-    { if ( !hasGlobalSpace(0) )
-      { rc = overflowCode(0);
-	goto out_fail;
-      }
-      assignAttVar(t2, t1);
-      continue;
-    }
-  #endif
-
-    if ( w1 == w2 )
-      continue;
-    if ( tag(w1) != tag(w2) )
-      goto out_fail;
-
-    switch(tag(w1))
-    { case TAG_ATOM:
-	goto out_fail;
-      case TAG_INTEGER:
-	if ( storage(w1) == STG_INLINE ||
-	     storage(w2) == STG_INLINE )
-	  goto out_fail;
-      case TAG_STRING:
-      case TAG_FLOAT:
-	if ( equalIndirect(w1, w2) )
-	  continue;
-	goto out_fail;
-      case TAG_COMPOUND:
-      { Functor f1 = valueTerm(w1);
-	Functor f2 = valueTerm(w2);
-	int arity;
+    f1 = valueTerm(*t1);
+    f2 = valueTerm(*t2);
 
 #if O_CYCLIC
-	while ( isRef(f1->definition) )
-	  f1 = (Functor)unRef(f1->definition);
-	while ( isRef(f2->definition) )
-	  f2 = (Functor)unRef(f2->definition);
-	if ( f1 == f2 )
-	  continue;
+    while ( isRef(f1->definition) )
+      f1 = (Functor)unRef(f1->definition);
+    while ( isRef(f2->definition) )
+      f2 = (Functor)unRef(f2->definition);
+    if ( f1 == f2 )
+    { rc = TRUE;
+      continue;
+    }
 #endif
 
-	if ( f1->definition != f2->definition )
-	  goto out_fail;
-	arity = arityFunctor(f1->definition);
-
-	if ( !compound )
-	{ compound = TRUE;
-	  initCyclic();
-	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
-	} else
-	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
-	  { rc = MEMORY_OVERFLOW;
-	    goto out_fail;
-	  }
-	}
-
-	linkTermsCyclic(f1, f2);
-
-	continue;
-      }
+    if ( f1->definition != f2->definition )
+    { rc = FALSE;
+      break;
     }
-  } while(compound && nextTermAgendaLR(&agenda, &t1, &t2));
 
-  rc = TRUE;
-
-out_fail:
-  if ( compound )
-  { clearTermAgendaLR(&agenda);
-    exitCyclic();
+    size_t arity = arityFunctor(f1->definition);
+    if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
+    { rc = MEMORY_OVERFLOW;
+      break;
+    }
+    linkTermsCyclic(f1, f2);
   }
+
+  clearTermAgendaLR(&agenda);
+  exitCyclic();
+
   return rc;
 }
 
