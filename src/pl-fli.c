@@ -3642,7 +3642,7 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
 API_STUB(int)
 (PL_unify_list)(term_t l, term_t h, term_t t)
 ( valid_term_t(l);
-  valid_term_t(h);
+  valid_user_term_t(h);
   valid_user_term_t(t);
   return PL_unify_list(l, h, t);
 )
