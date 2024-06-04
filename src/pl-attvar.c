@@ -204,6 +204,20 @@ assignAttVar(DECL_LD Word av, Word value)
   return;
 }
 
+int
+bind_attvar_const(DECL_LD Word p, word c)
+{ if ( !hasGlobalSpace(0) )
+  { PushPtr(p); PushVal(c);
+    int rc = ensureGlobalSpace(0, ALLOW_GC);
+    PopVal(c); PopPtr(p);
+    if ( !rc )
+      return FALSE;
+  }
+
+  assignAttVar(p, &(c));
+  return TRUE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Link known attributes variables into a reference list.

@@ -1412,6 +1412,25 @@ default_action:
 #undef SAVE_PTRS
 #undef RESTORE_PTRS
 
+		 /*******************************
+		 *           TRAILING           *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Trail a raw pointer after we know there is insufficient tail space.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+grow_trail_ptr(DECL_LD Word p)
+{ PushPtr(p);
+  int rc = ensureGlobalSpace(0, ALLOW_GC);
+  PopPtr(p);
+  if ( !rc )
+    return FALSE;
+
+  (tTop++)->address = p;
+  return TRUE;
+}
 
 		 /*******************************
 		 *    DESTRUCTIVE ASSIGNMENT	*
@@ -1428,7 +1447,7 @@ normal) and then pushing a marked pointer to  a cell on the global stack
 holding the old (overwritten) value.
 
 Undo is slightly more complicated as it has to check for these special
-cells on the trailstack.
+cells on the trail stack.
 
 The garbage collector has to take care in  a number of places: it has to
 pass through the trail-stack, marking   the  global-stack references for

@@ -52,6 +52,7 @@
 #define	PL_next_solution(qid)		LDFUNC(PL_next_solution, qid)
 #define	foreignWakeup(ex)		LDFUNC(foreignWakeup, ex)
 #define	existingChoice(ch)		LDFUNC(existingChoice, ch)
+#define grow_trail_ptr(p)		LDFUNC(grow_trail_ptr, p)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -75,6 +76,7 @@ int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
 int		existingChoice(Choice ch);
+int		grow_trail_ptr(Word p);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);
 #endif
@@ -82,5 +84,16 @@ char *		chp_chars(Choice ch);
 #undef LDFUNC_DECLARATIONS
 
 #define getProcDefinition(proc)	getLocalProcDefinition(proc->definition)
+
+#define trail_ptr(p) LDFUNC(trail_ptr, p)
+static inline int
+trail_ptr(DECL_LD Word p)
+{ if ( hasTrailSpace(1) )
+  { (tTop++)->address = p;
+    return TRUE;
+  }
+
+  return grow_trail_ptr(p);
+}
 
 #endif /*_PL_WAM_H*/
