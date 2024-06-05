@@ -71,7 +71,7 @@ initTermAgenda(term_agenda *a, size_t size, Word p)
 
 static inline void
 clearTermAgenda(term_agenda *a)
-{ clearSegStack(&a->stack);
+{ discardSegStack(&a->stack);
 }
 
 
@@ -337,7 +337,7 @@ initTermAgendaLR0(term_agendaLR *a)
 
 static void
 clearTermAgendaLR(term_agendaLR *a)
-{ clearSegStack(&a->stack);
+{ discardSegStack(&a->stack);
 }
 
 
