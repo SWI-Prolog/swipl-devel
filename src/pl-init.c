@@ -1828,11 +1828,13 @@ printCrashContext(const char *btname)
   running = FALSE;
 }
 
+#ifdef HAVE_SETITIMER
 static void
 abort_sig(int sig)
 { (void)sig;
   abort();
 }
+#endif
 
 static void
 set_cleanup_timeout(int sec)
