@@ -260,7 +260,7 @@ Returns one of:
 			of trail-space.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define SWAPW(p,q) { Word _tmp = p; p=q; q=_tmp; } while(0)
+#define SWAPW(p,q) do { Word _tmp = p; p=q; q=_tmp; } while(0)
 #define unify_simple_ptrs(t1, t2) LDFUNC(unify_simple_ptrs, t1, t2)
 
 int
