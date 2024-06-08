@@ -386,6 +386,7 @@ do_unify(DECL_LD Word t1, Word t2)
       break;
     if ( rc != DO_COMPOUND )
       break;
+    rc = TRUE;
 
     f1 = valueTerm(*t1);
     f2 = valueTerm(*t2);
@@ -396,9 +397,7 @@ do_unify(DECL_LD Word t1, Word t2)
     while ( isRef(f2->definition) )
       f2 = (Functor)unRef(f2->definition);
     if ( f1 == f2 )
-    { rc = TRUE;
       continue;
-    }
 #endif
 
     if ( f1->definition != f2->definition )
