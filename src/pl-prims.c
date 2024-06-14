@@ -364,6 +364,7 @@ do_unify(DECL_LD Word t1, Word t2)
     return rc;
   if ( rc != DO_COMPOUND )
     return rc;
+  rc = TRUE;
 
   Functor f1 = valueTerm(*t1);
   Functor f2 = valueTerm(*t2);
