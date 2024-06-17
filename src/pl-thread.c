@@ -7591,10 +7591,12 @@ new_ldef_vector(void)
 { LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
 
   memset(f, 0, sizeof(*f));
-  f->blocks[0] = f->preallocated - 1;
-  f->blocks[1] = f->preallocated - 1;
-  f->blocks[2] = f->preallocated - 1;
-
+  f->blocks[0] = f->preallocated;
+  f->blocks[1] = f->preallocated;
+  f->blocks[2] = f->preallocated;
+  f->blocks[0]--;
+  f->blocks[1]--;
+  f->blocks[2]--;
   return f;
 }
 
