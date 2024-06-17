@@ -582,7 +582,7 @@ them.  Descriptions:
 #define SMALLSTACK		32 * 1024 /* GC policy */
 #define MAX_PORTRAY_NESTING	100	/* Max recursion in portray */
 
-#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
+#define LOCAL_MARGIN ((size_t)argFrameP0(LocalFrame, MAXARITY) + \
 		      sizeof(struct choice))
 
 #define WORDBITSIZE		(8 * sizeof(word))
@@ -1148,6 +1148,7 @@ Macros for environment frames (local stack frames)
 
 #define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
 #define levelFrame(fr)		((fr)->level)
+#define argFrameP0(t, n)	((Word)((t)1) + (n))
 #define argFrameP(f, n)		((Word)((f)+1) + (n))
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
