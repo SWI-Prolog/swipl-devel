@@ -504,6 +504,9 @@ check_on_path.
 %       When `false`, do not test the packages
 %     - package(+Package)
 %       Only test package package.
+%     - arguments(+List)
+%       For tests that invoke swipl, prepend these extra command-line
+%       arguments. Useful for embedded systems. 
 
 test_installation :-
     test_installation([]).

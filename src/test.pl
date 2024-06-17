@@ -2812,7 +2812,7 @@ test_packages(Options) :-
     !,
     concurrent_forall(
         find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-        run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+        run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir, Options),
         [ threads(8)
         ]).
 test_packages(Options) :-
@@ -2820,7 +2820,7 @@ test_packages(Options) :-
     !,
     (   is_pkg(Pkg)
     ->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-               run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+               run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir, Options))
     ;   existence_error(package, Pkg)
     ).
 test_packages(_).
@@ -2848,33 +2848,28 @@ is_pkg(Pkg) :-
                          file_errors(fail)
                        ]).
 
-%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
+%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir, +Options)
 %
 %   Run test for the specified  package,   making  sure  the working
 %   directory is set to the location of the package.
 
-run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir, Options) :-
     script_dir(ScriptDir),
     atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
     format(user_error, '~N    Start testing package ~w:~w~n',[Pkg,TestName]),
     get_time(Start),
-    run_pkg_test1(PkgScript, Goal, TestDir),
+    run_pkg_test1(PkgScript, Goal, TestDir, Options),
     get_time(End),
     Time is End - Start,
     format(user_error, 'Package ~w:~w~`.t~40| passed ~2f sec.~n', [Pkg,TestName,Time]).
 
-run_pkg_test1(Script, Goal, PkgDir) :-
+run_pkg_test1(Script, Goal, PkgDir, Options) :-
     current_prolog_flag(executable, SWIPL),
+    option(arguments(Extra), Options, []),
     working_directory(CWD, CWD),
     format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
-    process_create(SWIPL,
-                   [ '-f', 'none',
-                     '-t', 'halt',
-                     '--no-packs',
-                     '-p', POpt,
-                     '-g', Goal,
-                     Script
-                   ],
+    append(Extra, ['-f', none, '-t', halt, '--no-packs', '-p', POpt, '-g', Goal, Script], Arguments),
+    process_create(SWIPL, Arguments,
                    [ stdout(pipe(Out)),
                      stderr(pipe(Out)),
                      cwd(PkgDir),
