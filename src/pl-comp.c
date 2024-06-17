@@ -2083,7 +2083,7 @@ Finish up the clause.
 	      sizeofClause(clause.code_size) +
 	      SIZEOF_CREF_CLAUSE +
 	      sizeof(uintptr_t)*2 +     /* possible alignment */
-	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
+	      (size_t)argFrameP0(LocalFrame, MAXARITY) +
 	      sizeof(struct choice)
 	    );
     if ( !hasLocalSpace(space) )
