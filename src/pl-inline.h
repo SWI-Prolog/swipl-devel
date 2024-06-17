@@ -417,7 +417,7 @@ typedef struct bit_vector
 #define BITSPERE (sizeof(bitv_chunk)*8)
 
 #ifndef offset
-#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
+#define offset(s, f) ((size_t)(&((struct s *)256)->f) - (size_t)((struct s *)256))
 #endif
 
 static inline size_t
