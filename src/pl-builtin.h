@@ -428,7 +428,7 @@ extern PL_local_data_t* no_local_ld(void);
 #define WITH_LD(ld) \
 	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; \
 	     !__loopctr; \
-	     __loopctr++)
+	     __loopctr = (PL_local_data_t*) 1)
 /* Passing an alternate LD to a called function. This uses the same mechanism
  * as DECL_LD, but takes it one step further. _VE_PASSLD below is a macro that
  * does not exist, but when DECL_LDFUNC() pastes __VOID_EMPTY_ to the beginning
