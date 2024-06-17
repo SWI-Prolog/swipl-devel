@@ -824,7 +824,8 @@ PL_instantiation_error(term_t actual)
 
 int
 PL_uninstantiation_error(term_t actual)
-{ return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
+{ valid_term_t(actual);
+  return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
 }
 
 int
@@ -839,13 +840,15 @@ PL_representation_error(const char *representation)
 
 int
 PL_type_error(const char *expected, term_t actual)
-{ return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
+{ valid_term_t(actual);
+  return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
 }
 
 
 int
 PL_domain_error(const char *expected, term_t actual)
-{ atom_t a = PL_new_atom(expected);
+{ valid_term_t(actual);
+  atom_t a = PL_new_atom(expected);
   int rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, a, actual);
   PL_unregister_atom(a);
 
@@ -855,7 +858,8 @@ PL_domain_error(const char *expected, term_t actual)
 
 int
 PL_existence_error(const char *type, term_t actual)
-{ atom_t a = PL_new_atom(type);
+{ valid_term_t(actual);
+  atom_t a = PL_new_atom(type);
   int rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, a, actual);
   PL_unregister_atom(a);
 
@@ -865,7 +869,8 @@ PL_existence_error(const char *type, term_t actual)
 
 int
 PL_permission_error(const char *op, const char *type, term_t obj)
-{ atom_t t = PL_new_atom(type);
+{ valid_term_t(obj);
+  atom_t t = PL_new_atom(type);
   atom_t o = PL_new_atom(op);
   int rc = PL_error(NULL, 0, NULL, ERR_PERMISSION, o, t, obj);
 
@@ -954,6 +959,7 @@ and TRUE if the printing succeeded or merely failed.
 int
 printMessage(atom_t severity, ...)
 { GET_LD
+  valid_atom_t(severity);
   wakeup_state wstate;
   term_t av;
   predicate_t pred = PROCEDURE_print_message2;
@@ -1017,12 +1023,15 @@ PL_get_atom_ex(DECL_LD term_t t, atom_t *a)
 
 API_STUB(int)
 (PL_get_atom_ex)(term_t t, atom_t *a)
-( return PL_get_atom_ex(t, a); )
+( valid_term_t(t);
+  return PL_get_atom_ex(t, a);
+)
 
 
 int
 PL_get_integer_ex(term_t t, int *i)
 { GET_LD
+  valid_term_t(t);
 
   if ( PL_get_integer(t, i) )
     succeed;
@@ -1033,12 +1042,9 @@ PL_get_integer_ex(term_t t, int *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
-
 int
-PL_get_long_ex(term_t t, long *i)
-{ GET_LD
-
-  if ( PL_get_long(t, i) )
+PL_get_long_ex(DECL_LD term_t t, long *i)
+{ if ( PL_get_long(t, i) )
     succeed;
 
   if ( PL_is_integer(t) )
@@ -1047,10 +1053,16 @@ PL_get_long_ex(term_t t, long *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
+API_STUB(int)
+(PL_get_long_ex)(term_t t, long *i)
+( valid_term_t(t);
+  return PL_get_long_ex(t, i);
+)
 
 int
 PL_get_int64_ex(term_t t, int64_t *i)
 { GET_LD
+  valid_term_t(t);
 
   if ( PL_get_int64(t, i) )
     succeed;
@@ -1063,7 +1075,7 @@ PL_get_int64_ex(term_t t, int64_t *i)
 
 
 int
-PL_get_intptr_ex(term_t t, intptr_t *i)
+PL_get_intptr_ex(DECL_LD term_t t, intptr_t *i)
 {
 #if SIZEOF_LONG != SIZEOF_VOIDP && SIZEOF_VOIDP == 8
    return PL_get_int64_ex(t, i);
@@ -1071,6 +1083,12 @@ PL_get_intptr_ex(term_t t, intptr_t *i)
    return PL_get_long_ex(t, (long*)i);
 #endif
 }
+
+API_STUB(int)
+(PL_get_intptr_ex)(term_t t, intptr_t *i)
+( valid_term_t(t);
+  return PL_get_intptr_ex(t, i);
+)
 
 #if SIZEOF_VOIDP < 8
 #ifndef UINTPTR_MAX
@@ -1218,11 +1236,14 @@ PL_get_uint64_ex(DECL_LD term_t t, uint64_t *i)
 
 API_STUB(int)
 (PL_get_size_ex)(term_t t, size_t *i)
-( return PL_get_size_ex(t, i); )
+( valid_term_t(t);
+  return PL_get_size_ex(t, i);
+)
 
 int
 PL_get_bool_ex(term_t t, int *i)
-{ if ( PL_get_bool(t, i) )
+{ valid_term_t(t);
+  if ( PL_get_bool(t, i) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
@@ -1231,7 +1252,8 @@ PL_get_bool_ex(term_t t, int *i)
 
 int
 PL_get_char_ex(term_t t, int *p, int eof)
-{ if ( PL_get_char(t, p, eof) )
+{ valid_term_t(t);
+  if ( PL_get_char(t, p, eof) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, t);
@@ -1241,6 +1263,7 @@ PL_get_char_ex(term_t t, int *p, int eof)
 int
 PL_get_pointer_ex(term_t t, void **addrp)
 { GET_LD
+  valid_term_t(t);
   if ( PL_get_pointer(t, addrp) )
     succeed;
 
@@ -1251,6 +1274,9 @@ PL_get_pointer_ex(term_t t, void **addrp)
 int
 PL_unify_list_ex(term_t l, term_t h, term_t t)
 { GET_LD
+  valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
 
   if ( PL_unify_list(l, h, t) )
     succeed;
@@ -1264,7 +1290,8 @@ PL_unify_list_ex(term_t l, term_t h, term_t t)
 
 int
 PL_unify_nil_ex(term_t l)
-{ if ( PL_unify_nil(l) )
+{ valid_term_t(l);
+  if ( PL_unify_nil(l) )
     succeed;
 
   if ( PL_is_list(l) )
@@ -1277,6 +1304,9 @@ PL_unify_nil_ex(term_t l)
 int
 PL_get_list_ex(term_t l, term_t h, term_t t)
 { GET_LD
+  valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
 
   if ( PL_get_list(l, h, t) )
     succeed;
@@ -1292,6 +1322,7 @@ PL_get_nil_ex(term_t l)
 { if ( PL_exception(0) )
     return FALSE;
 
+  valid_term_t(l);
   if ( PL_get_nil(l) )
     return TRUE;
 
@@ -1305,6 +1336,7 @@ int
 PL_unify_bool_ex(term_t t, int val)
 { GET_LD
   bool v;
+  valid_term_t(t);
 
   if ( PL_is_variable(t) )
     return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
@@ -1321,6 +1353,8 @@ PL_unify_bool_ex(term_t t, int val)
 int
 PL_get_arg_ex(int n, term_t term, term_t arg)
 { GET_LD
+  valid_term_t(term);
+  valid_term_t(arg);
 
   if ( PL_get_arg(n, term, arg) )
   { succeed;
@@ -1336,7 +1370,8 @@ PL_get_arg_ex(int n, term_t term, term_t arg)
 
 int
 PL_get_module_ex(term_t name, Module *m)
-{ if ( !PL_get_module(name, m) )
+{ valid_term_t(name);
+  if ( !PL_get_module(name, m) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, name);
 
   succeed;

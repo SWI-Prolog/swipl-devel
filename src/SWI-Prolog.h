@@ -60,7 +60,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 90306
+#define PLVERSION 90307
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -484,6 +484,7 @@ PL_EXPORT(int)		PL_assert(term_t term, module_t m, int flags);
 PL_EXPORT(term_t)	PL_new_term_refs(size_t n);
 PL_EXPORT(term_t)	PL_new_term_ref(void);
 PL_EXPORT(term_t)	PL_copy_term_ref(term_t from);
+PL_EXPORT(void)		PL_free_term_ref(term_t t);
 PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 
 			/* Constants */
@@ -551,7 +552,7 @@ PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
 PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
-PL_EXPORT(int)		PL_get_dict_key(atom_t key, term_t dict, term_t value);
+PL_EXPORT(int)		PL_get_dict_key(atom_t key, term_t dict, term_t value) WUNUSED;
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
@@ -879,6 +880,7 @@ PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
 PL_EXPORT(int)		PL_warning(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(int)		PL_warningX(const char *fmt, ...);
 PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...) WPRINTF12;
+PL_EXPORT(void)		PL_api_error(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(void)		PL_system_error(const char *fmt, ...) WPRINTF12;
 
 		 /*******************************

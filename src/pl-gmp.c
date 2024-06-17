@@ -1512,11 +1512,8 @@ PL_unify_number(DECL_LD term_t t, Number n)
 
   if ( isVar(*p) &&
        n->type == V_INTEGER &&
-       valInt(w=consInt(n->value.i)) == n->value.i &&
-       hasTrailSpace(1) )
-  { varBindConst(p, w);
-    return TRUE;
-  }
+       valInt(w=consInt(n->value.i)) == n->value.i )
+    return varBindConst(p, w);
 
   if ( canBind(*p) )
   { int rc;

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2017, University of Amsterdam
+    Copyright (c)  2004-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-wam.h"
 
 #ifndef _PL_ATTVAR_H
 #define _PL_ATTVAR_H
@@ -44,6 +46,7 @@
 
 #if USE_LD_MACROS
 #define	assignAttVar(av, value)		LDFUNC(assignAttVar, av, value)
+#define	bind_attvar_const(av, c)	LDFUNC(bind_attvar_const, av, c)
 #define	saveWakeup(state, forceframe)	LDFUNC(saveWakeup, state, forceframe)
 #define	restoreWakeup(state)		LDFUNC(restoreWakeup, state)
 #define	PL_get_attr(t, a)		LDFUNC(PL_get_attr, t, a)
@@ -53,6 +56,7 @@
 #define LDFUNC_DECLARATIONS
 
 void		assignAttVar(Word av, Word value);
+int		bind_attvar_const(Word p, word c);
 int		saveWakeup(wakeup_state *state, int forceframe);
 void		restoreWakeup(wakeup_state *state);
 int		PL_get_attr(term_t t, term_t a);
@@ -66,27 +70,26 @@ Word		alloc_attvar(void);
 		 *******************************/
 
 #define varBindConst(p, c) LDFUNC(varBindConst, p, c)
-static inline void
+static inline int
 varBindConst(DECL_LD Word p, word c)
-{ DEBUG(0, assert(hasTrailSpace(1)));
+{ *p = (c);
+  if ( unlikely((void*)p >= (void*)lBase || p < LD->mark_bar) )
+    return trail_ptr(p);
 
-  *p = (c);
-  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-    (tTop++)->address = p;
+  return TRUE;
 }
 
 #define bindConst(p, c) LDFUNC(bindConst, p, c)
-static inline void
+static inline int
 bindConst(DECL_LD Word p, word c)
-{ DEBUG(0, assert(hasGlobalSpace(0)));
-
+{
 #ifdef O_ATTVAR
   if ( isVar(*p) )
-    varBindConst(p, c);
+    return varBindConst(p, c);
   else
-    assignAttVar(p, &(c));
+    return bind_attvar_const(p, c);
 #else
-  varBindConst(p, c);
+  return varBindConst(p, c);
 #endif
 }
 

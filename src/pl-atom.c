@@ -715,10 +715,12 @@ _PL_debug_unregister_atom(atom_t a,
   }
 }
 
-
-foreign_t
-pl_track_atom(term_t which, term_t stream)
-{ char *s;
+static
+PRED_IMPL("track_atom", 2, track_atom, 0)
+{ PRED_LD
+  char *s;
+  term_t which = A1;
+  term_t stream = A2;
 
   if ( t_tracking )
     remove_string(t_tracking);
@@ -832,9 +834,6 @@ static Atom invalid_atoms = NULL;
 static int
 invalidateAtom(Atom a, unsigned int ref)
 { Atom *ap;
-
-#define ATOM_PRE_DESTROY_REFERENCE \
-	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
   if ( !COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
   { return FALSE;
@@ -2250,4 +2249,7 @@ BeginPredDefs(atom)
   PRED_DEF("$atom_references", 2, atom_references, 0)
   PRED_DEF("$atom_completions", 2, atom_completions, 0)
   PRED_DEF("$complete_atom", 3, complete_atom, 0)
+#ifdef O_DEBUG_ATOMGC
+  PRED_DEF("$track_atom", 2, track_atom, 0)
+#endif
 EndPredDefs

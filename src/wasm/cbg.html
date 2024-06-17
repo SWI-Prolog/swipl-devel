@@ -420,14 +420,16 @@ the browser console.  This makes debugging a little more pleasant.
     <script>
 
 let Prolog;
-var Module = {
+let Module;
+var options = {
     arguments: ["-q"],
     locateFile: (file) => '/wasm/' + file,
     on_output: print
 };
 
-SWIPL(Module).then((module) =>
-{ Prolog = Module.prolog;
+SWIPL(options).then((module) =>
+{ Module = module;
+  Prolog = Module.prolog;
 
   Prolog.load_scripts().then(() =>
     Prolog.call("init"));

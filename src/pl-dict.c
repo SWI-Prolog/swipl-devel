@@ -667,9 +667,8 @@ get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
 		 *******************************/
 
 int
-PL_is_dict(term_t t)
-{ GET_LD
-  Word p = valTermRef(t);
+PL_is_dict(DECL_LD term_t t)
+{ Word p = valTermRef(t);
 
   deRef(p);
   if ( isTerm(*p) )
@@ -686,6 +685,15 @@ PL_is_dict(term_t t)
   return FALSE;
 }
 
+API_STUB(int)
+(PL_is_dict)(term_t t)
+( valid_term_t(t);
+  return PL_is_dict(t);
+)
+
+
+/* Turn data into a dict if it is not already a dict.
+ */
 
 static int
 PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
@@ -1728,8 +1736,10 @@ PL_get_dict_key(atom_t key, term_t dict, term_t value)
   word d;
   Word vp;
 
-  if ( !is_dict_key(key) )
-    return -1;
+  valid_dict_key(key);
+  valid_term_t(dict);
+  valid_term_t(value);
+
   if ( !get_dict_ex(dict, &d, FALSE) )
     return FALSE;
   if ( (vp=dict_lookup_ptr(d, key)) )

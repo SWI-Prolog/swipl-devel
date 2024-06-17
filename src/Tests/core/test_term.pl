@@ -176,6 +176,14 @@ test(cycle_with_prefix, [sto(rational_trees), fail]) :-
 	X = [A|Y],
 	B = [X|Y],
 	A =@= B.
+test(attvar) :-
+	put_attr(C,m,x),
+	put_attr(F,m,x),
+	v(C) =@= v(F).
+test(attvar, fail) :-
+	put_attr(C,m,x),
+	put_attr(F,m,x),
+	v(C,C) =@= v(C,F).
 
 v(_).
 

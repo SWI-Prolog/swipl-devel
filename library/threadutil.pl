@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2017, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
                               VU University Amsterdam
-    All rights reserved.
+                              SWI-Prolog Solutions b.v.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -34,11 +34,8 @@
 */
 
 :- module(thread_util,
-          [ thread_run_interactor/0,    % interactor main loop
-            threads/0,                  % List available threads
+          [ threads/0,                  % List available threads
             join_threads/0,             % Join all terminated threads
-            interactor/0,               % Create a new interactor
-            interactor/1,               % ?Title
             thread_has_console/0,       % True if thread has a console
             attach_console/0,           % Create a new console for thread.
             attach_console/1,           % ?Title
@@ -53,6 +50,14 @@
             tbacktrace/1,               % +ThreadId,
             tbacktrace/2                % +ThreadId, +Options
           ]).
+:- if((   current_predicate(win_open_console/5)
+      ;   current_predicate('$open_xterm'/5))).
+:- export(( thread_run_interactor/0,    % interactor main loop
+            interactor/0,
+            interactor/1                % ?Title
+          )).
+:- endif.
+
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(backcomp),[thread_at_exit/1]).
 :- autoload(library(edinburgh),[nodebug/0]).
@@ -115,40 +120,6 @@ rip_thread(thread{id:id, status:Status}) :-
     \+ thread_self(Id),
     thread_join(Id, _).
 
-%!  interactor is det.
-%!  interactor(?Title) is det.
-%
-%   Run a Prolog toplevel in another thread   with a new console window.
-%   If Title is given, this will be used as the window title.
-
-interactor :-
-    interactor(_).
-
-interactor(Title) :-
-    thread_self(Me),
-    thread_create(thread_run_interactor(Me, Title), _Id,
-                  [ detached(true),
-                    debug(false)
-                  ]),
-    thread_get_message(title(Title)).
-
-thread_run_interactor(Creator, Title) :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console(Title),
-    thread_send_message(Creator, title(Title)),
-    print_message(banner, thread_welcome),
-    prolog.
-
-%!  thread_run_interactor
-%
-%   Attach a console and run a Prolog toplevel in the current thread.
-
-thread_run_interactor :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console(_Title),
-    print_message(banner, thread_welcome),
-    prolog.
-
 %!  thread_has_console is semidet.
 %
 %   True when the calling thread has an attached console.
@@ -170,62 +141,19 @@ thread_has_console :-
     thread_has_console(Id),
     !.
 
-%!  attach_console is det.
-%!  attach_console(?Title) is det.
-%
-%   Create a new console and make the   standard Prolog streams point to
-%   it. If not provided, the title is   built  using the thread id. Does
-%   nothing if the current thread already has a console attached.
-
-attach_console :-
-    attach_console(_).
-
-attach_console(_) :-
-    thread_has_console,
-    !.
-attach_console(Title) :-
-    thread_self(Id),
-    (   var(Title)
-    ->  console_title(Id, Title)
-    ;   true
-    ),
-    open_console(Title, In, Out, Err),
-    assert(has_console(Id, In, Out, Err)),
-    set_stream(In,  alias(user_input)),
-    set_stream(Out, alias(user_output)),
-    set_stream(Err, alias(user_error)),
-    set_stream(In,  alias(current_input)),
-    set_stream(Out, alias(current_output)),
-    enable_line_editing(In,Out,Err),
-    thread_at_exit(detach_console(Id)).
-
-console_title(Thread, Title) :-         % uses tabbed consoles
-    current_prolog_flag(console_menu_version, qt),
-    !,
-    human_thread_id(Thread, Id),
-    format(atom(Title), 'Thread ~w', [Id]).
-console_title(Thread, Title) :-
-    current_prolog_flag(system_thread_id, SysId),
-    human_thread_id(Thread, Id),
-    format(atom(Title),
-           'SWI-Prolog Thread ~w (~d) Interactor',
-           [Id, SysId]).
-
-human_thread_id(Thread, Alias) :-
-    thread_property(Thread, alias(Alias)),
-    !.
-human_thread_id(Thread, Id) :-
-    thread_property(Thread, id(Id)).
-
 %!  open_console(+Title, -In, -Out, -Err) is det.
 %
 %   Open a new console window and unify In,  Out and Err with the input,
-%   output and error streams for the new console.
+%   output and error streams for the new console. This predicate is only
+%   available  if  win_open_console/5  (Windows  or   Qt  swipl-win)  or
+%   '$open_xterm'/5 (POSIX systems with pseudo terminal support).
 
 :- multifile xterm_args/1.
 :- dynamic   xterm_args/1.
 
 :- if(current_predicate(win_open_console/5)).
+
+can_open_console.
 
 open_console(Title, In, Out, Err) :-
     thread_self(Id),
@@ -238,7 +166,7 @@ regkey(Key, Key) :-
     atom(Key).
 regkey(_, 'Anonymous').
 
-:- else.
+:- elif(current_predicate('$open_xterm'/5)).
 
 %!  xterm_args(-List) is nondet.
 %
@@ -258,12 +186,71 @@ xterm_args(['-fg', '#000000']).
 xterm_args(['-bg', '#ffffdd']).
 xterm_args(['-sb', '-sl', 1000, '-rightbar']).
 
+can_open_console :-
+    getenv('DISPLAY', _),
+    absolute_file_name(path(xterm), _XTerm, [access(execute)]).
+
 open_console(Title, In, Out, Err) :-
     findall(Arg, xterm_args(Arg), Args),
     append(Args, Argv),
-    open_xterm(Title, In, Out, Err, Argv).
+    '$open_xterm'(Title, In, Out, Err, Argv).
 
 :- endif.
+
+%!  attach_console is det.
+%!  attach_console(?Title) is det.
+%
+%   Create a new console and make the   standard Prolog streams point to
+%   it. If not provided, the title is   built  using the thread id. Does
+%   nothing if the current thread already has a console attached.
+
+attach_console :-
+    attach_console(_).
+
+attach_console(_) :-
+    thread_has_console,
+    !.
+:- if(current_predicate(open_console/4)).
+attach_console(Title) :-
+    can_open_console,
+    !,
+    thread_self(Id),
+    (   var(Title)
+    ->  console_title(Id, Title)
+    ;   true
+    ),
+    open_console(Title, In, Out, Err),
+    assert(has_console(Id, In, Out, Err)),
+    set_stream(In,  alias(user_input)),
+    set_stream(Out, alias(user_output)),
+    set_stream(Err, alias(user_error)),
+    set_stream(In,  alias(current_input)),
+    set_stream(Out, alias(current_output)),
+    enable_line_editing(In,Out,Err),
+    thread_at_exit(detach_console(Id)).
+:- endif.
+attach_console(Title) :-
+    print_message(error, cannot_attach_console(Title)),
+    fail.
+
+:- if(current_predicate(open_console/4)).
+console_title(Thread, Title) :-         % uses tabbed consoles
+    current_prolog_flag(console_menu_version, qt),
+    !,
+    human_thread_id(Thread, Id),
+    format(atom(Title), 'Thread ~w', [Id]).
+console_title(Thread, Title) :-
+    current_prolog_flag(system_thread_id, SysId),
+    human_thread_id(Thread, Id),
+    format(atom(Title),
+           'SWI-Prolog Thread ~w (~d) Interactor',
+           [Id, SysId]).
+
+human_thread_id(Thread, Alias) :-
+    thread_property(Thread, alias(Alias)),
+    !.
+human_thread_id(Thread, Id) :-
+    thread_property(Thread, id(Id)).
 
 %!  enable_line_editing(+In, +Out, +Err) is det.
 %
@@ -300,6 +287,59 @@ detach_console(Id) :-
     ;   true
     ).
 
+%!  interactor is det.
+%!  interactor(?Title) is det.
+%
+%   Run a Prolog toplevel in another thread   with a new console window.
+%   If Title is given, this will be used as the window title.
+
+interactor :-
+    interactor(_).
+
+interactor(Title) :-
+    can_open_console,
+    !,
+    thread_self(Me),
+    thread_create(thread_run_interactor(Me, Title), _Id,
+                  [ detached(true),
+                    debug(false)
+                  ]),
+    thread_get_message(Msg),
+    (   Msg = title(Title0)
+    ->  Title = Title0
+    ;   Msg = throw(Error)
+    ->  throw(Error)
+    ;   Msg = false
+    ->  fail
+    ).
+interactor(Title) :-
+    print_message(error, cannot_attach_console(Title)),
+    fail.
+
+thread_run_interactor(Creator, Title) :-
+    set_prolog_flag(query_debug_settings, debug(false, false)),
+    Error = error(Formal,_),
+    (   catch(attach_console(Title), Error, true)
+    ->  (   var(Formal)
+        ->  thread_send_message(Creator, title(Title)),
+            print_message(banner, thread_welcome),
+            prolog
+        ;   thread_send_message(Creator, throw(Error))
+        )
+    ;   thread_send_message(Creator, false)
+    ).
+
+%!  thread_run_interactor
+%
+%   Attach a console and run a Prolog toplevel in the current thread.
+
+thread_run_interactor :-
+    set_prolog_flag(query_debug_settings, debug(false, false)),
+    attach_console(_Title),
+    print_message(banner, thread_welcome),
+    prolog.
+
+:- endif.                               % have open_console/4
 
                  /*******************************
                  *          DEBUGGING           *
@@ -467,6 +507,8 @@ prolog:message(joined_threads(Threads)) -->
     thread_list(Threads).
 prolog:message(threads(Threads)) -->
     thread_list(Threads).
+prolog:message(cannot_attach_console(_Title)) -->
+    [ 'Cannot attach a console (requires swipl-win or POSIX pty support)' ].
 
 thread_list(Threads) -->
     { maplist(th_id_len, Threads, Lens),

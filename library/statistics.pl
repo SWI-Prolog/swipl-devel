@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2023, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -269,13 +269,13 @@ thread_stats(Thread, Stacks,
 
 %!  time(:Goal) is nondet.
 %
-%   Execute Goal, reporting statistics to the user. If Goal succeeds
-%   non-deterministically,  retrying  reports  the   statistics  for
-%   providing the next answer.
+%   Execute Goal, reporting statistics to  the   user.  If Goal succeeds
+%   non-deterministically, retrying reports the statistics for providing
+%   the next answer.
 %
-%   Statistics  are  retrieved  using   thread_statistics/3  on  the
-%   calling   thread.   Note   that   not    all   systems   support
-%   thread-specific CPU time. Notable, this is lacking on MacOS X.
+%   Note that is no  portable  way   to  get  thread-specific  CPU time.
+%   SWI-Prolog has implementations for  Linux,   Windows  and MacOS. The
+%   automatic detection may work on some other operating systems.
 %
 %   @bug Inference statistics are often a few off.
 %   @see statistics/2 for obtaining statistics in your program and

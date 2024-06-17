@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam,
+    Copyright (c)  1985-2024, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -206,6 +206,8 @@ handy for it someone wants to add a data type to the system.
       functions.
   O_COVERAGE
       Include low-level coverage analysis code.
+  O_VALIDATE_API
+      Include validity checks for the API functions
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -1340,6 +1342,8 @@ typedef struct atom_table
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
 #define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
+#define ATOM_PRE_DESTROY_REFERENCE \
+	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
 #define ATOM_IS_FREE(ref)	(((ref) & ATOM_STATE_MASK) == 0)
 #define ATOM_IS_RESERVED(ref)	((ref) & ATOM_RESERVED_REFERENCE)
@@ -1644,7 +1648,6 @@ typedef struct local_definitions
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
-  Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
   { impl_any	any;			/* has some value */
@@ -1655,6 +1658,7 @@ struct definition
   } impl;
   uint64_t	flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
+  Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
   struct event_list  *events;		/* Forward update events */
@@ -1709,14 +1713,14 @@ struct localFrame
   ClauseRef	clause;			/* Current clause of frame */
   Definition	predicate;		/* Predicate we are running */
   Module	context;		/* context module of frame */
-#ifdef O_PROFILE
-  struct call_node *prof_node;		/* Profiling node */
-#endif
 #ifdef O_LOGICAL_UPDATE
   lgen_t	generation;		/* generation of the database */
 #endif
   unsigned int	level;			/* recursion level */
   unsigned int	flags;			/* packed long holding: */
+#ifdef O_PROFILE
+  struct call_node *prof_node;		/* Profiling node */
+#endif
 } WORD_ALIGNED;
 
 
@@ -1880,6 +1884,7 @@ struct fliFrame
   int		magic;			/* Magic code */
 #endif
   size_t	size;			/* # slots on it */
+  size_t	no_free_before;		/* No free before this */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
 };
@@ -2439,6 +2444,7 @@ typedef struct
 #define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
 #define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
 #define CHECK_INTERRUPT   (-7)		/* Procedure was signalled */
+#define DO_COMPOUND	  (-8)		/* Need more general algorithm */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
@@ -2467,15 +2473,15 @@ Note that on 32-bit systems the  pointer can easily overflow, so we do
 the arithmetic after dividing by the unit size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define hasSpace(base, top, size) f_hasSpace(base, top, (size)*sizeof(*(base)))
+#define hasSpace(base, top, size) f_hasSpace(base, top, size, sizeof(*(base)))
 
 static inline int
-f_hasSpace(void *here, void *top, size_t bytes)
+f_hasSpace(void *here, void *top, size_t nelem, size_t esize)
 {
 #if O_DEBUG
   assert(top>=here);
 #endif
-  return (char*)top-(char*)here >= bytes;
+  return ((char*)top-(char*)here)/esize >= nelem;
 }
 
 #define BIND_GLOBAL_SPACE (7)

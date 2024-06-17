@@ -65,17 +65,19 @@
   const examples = document.getElementById("examples");
 
   let Prolog;
-  var Module = {
+  let Module;
+  var options = {
     arguments: ["-q"],
     locateFile: (file) => '/wasm/' + file
   };
   
-  SWIPL(Module).then((module) =>
-    { Prolog = Module.prolog;
+  SWIPL(options).then((module) =>
+  { Module = module;
+    Prolog = Module.prolog;
 
-      Prolog.consult("chat80.qlf")
-      .then(() => chat80());
-    });
+  Prolog.consult("chat80.qlf")
+        .then(() => chat80());
+  });
 
   function chat80()
   { fill_examples();

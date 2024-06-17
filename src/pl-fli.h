@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2023, University of Amsterdam
+    Copyright (c)  1996-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -51,19 +51,26 @@
 		 *******************************/
 
 #if USE_LD_MACROS
+#if O_VALIDATE_API
+#define valid_term_t(t)				LDFUNC(valid_term_t, t)
+#define valid_user_term_t(t)			LDFUNC(valid_user_term_t, t)
+#endif
 #define	linkVal(p)				LDFUNC(linkVal, p)
 #define	linkValG(p)				LDFUNC(linkValG, p)
 #define	linkValNoG(p)				LDFUNC(linkValNoG, p)
 #define	bArgVar(ap, vp)				LDFUNC(bArgVar, ap, vp)
 #define	_PL_put_number(t, n)			LDFUNC(_PL_put_number, t, n)
 #define	PL_unify_term(t, ...)			LDFUNC(PL_unify_term, t, __VA_ARGS__)
+#define PL_cons_functor(h, fd, ...)		LDFUNC(PL_cons_functor, h, fd, __VA_ARGS__)
 #define	PL_unify_termv(t, args)			LDFUNC(PL_unify_termv, t, args)
 #define	pushWordAsTermRef(p)			LDFUNC(pushWordAsTermRef, p)
 #define	popTermRef(_)				LDFUNC(popTermRef, _)
 #define	_PL_get_arg(index, t, a)		LDFUNC(_PL_get_arg, index, t, a)
+#define PL_get_intptr(t, i)			LDFUNC(PL_get_intptr, t, i)
 #define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
 #define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
 #define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
+#define PL_free_term_ref(t)			LDFUNC(PL_free_term_ref, t)
 #define PL_new_functor_sz(f, arity)		LDFUNC(PL_new_functor_sz, f, arity)
 #define	globalizeTermRef(t)			LDFUNC(globalizeTermRef, t)
 #define	PL_reset_term_refs(r)			LDFUNC(PL_reset_term_refs, r)
@@ -95,6 +102,7 @@
 #define	PL_get_name_arity_sz(t, name, arity)	LDFUNC(PL_get_name_arity_sz, t, name, arity)
 #define	PL_unify_atom(t, a)			LDFUNC(PL_unify_atom, t, a)
 #define	PL_unify_atomic(t, w)			LDFUNC(PL_unify_atomic, t, w)
+#define PL_unify_bool(t, val)			LDFUNC(PL_unify_bool, t, val)
 #define	PL_unify_pointer(t, ptr)		LDFUNC(PL_unify_pointer, t, ptr)
 #define	PL_get_list(l, h, t)			LDFUNC(PL_get_list, l, h, t)
 #define	PL_is_atom(t)				LDFUNC(PL_is_atom, t)
@@ -106,9 +114,25 @@
 #define	classify_exception(ex)			LDFUNC(classify_exception, ex)
 #define	classify_exception_p(p)			LDFUNC(classify_exception_p, p)
 #define	get_string_text(w, text)		LDFUNC(get_string_text, w, text)
+#define PL_unify_arg_sz(i, t, a)		LDFUNC(PL_unify_arg_sz, i, t, a)
+#define PL_get_nil(l)				LDFUNC(PL_get_nil, l)
+#define PL_is_list(l)				LDFUNC(PL_is_list, l)
+#define PL_unify_float(t, f)			LDFUNC(PL_unify_float, t, f)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
+
+#if O_VALIDATE_API
+void		valid_term_t(term_t t);
+void		valid_atom_t(atom_t t);
+void		valid_functor_t(functor_t t);
+void		valid_dict_key(atom_t a);
+#else
+#define valid_term_t(t) (void)0
+#define valid_atom_t(t) (void)0
+#define valid_functor_t(t) (void)0
+#define valid_dict_key(t) (void)0
+#endif
 
 word		linkVal(Word p);
 word		linkValG(Word p);
@@ -124,13 +148,16 @@ void		cleanAbortHooks(PL_local_data_t *ld);
 atom_t		codeToAtom(int code);
 int		atom_to_bool(atom_t a);
 int		PL_unify_term(term_t t, ...);
+int		PL_cons_functor(term_t h, functor_t fd, ...);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		pushWordAsTermRef(Word p);
 void		popTermRef(void);
 int		_PL_get_arg(size_t index, term_t t, term_t a);
+int		PL_get_intptr(term_t t, intptr_t *i);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
 term_t		PL_new_term_refs(size_t n);
+void		PL_free_term_ref(term_t t);
 functor_t	PL_new_functor_sz(atom_t f, size_t arity);
 int		globalizeTermRef(term_t t);
 void		PL_reset_term_refs(term_t r);
@@ -169,18 +196,23 @@ int		PL_get_name_arity_sz(term_t t, atom_t *name,
 int		PL_get_uintptr(term_t t, size_t *i);
 int		PL_unify_atom(term_t t, atom_t a);
 int		PL_unify_atomic(term_t t, word a);
+int		PL_unify_bool(term_t t, int val);
 int		PL_unify_pointer(term_t t, void *ptr);
+int		PL_unify_float(term_t t, double f);
 int		PL_get_list(term_t l, term_t h, term_t t);
 FLI_INLINE int	PL_is_atom(term_t t);
 int		PL_unify_list(term_t l, term_t h, term_t t);
 int		PL_cons_list(term_t l, term_t head, term_t tail);
 int		PL_cons_list_v(term_t list, size_t count, term_t elems);
 int		PL_is_inf(term_t t);
+int		PL_get_nil(term_t t);
+int		PL_is_list(term_t t);
 /* PL_same_term(term_t t1, term_t t2) moved to pl-prims.h */
 int		isUCSAtom(Atom a);
 atom_t		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 int		charCode(word w);
 int		isCallable(word w);
+int		PL_unify_arg_sz(size_t index, term_t t, term_t a);
 
 void		registerForeignLicenses(void);
 void            bindExtensions(const char *module,
@@ -232,7 +264,7 @@ FLI_INLINE int
 PL_is_variable(DECL_LD term_t t)
 { word w = valHandle(t);
 
-  return canBind(w) ? TRUE : FALSE;
+  return canBind(w);
 }
 
 FLI_INLINE int

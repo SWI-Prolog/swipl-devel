@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -39,7 +39,7 @@
           [ '$find_library'/5,
             '$in_library'/3,
             '$define_predicate'/1,
-            '$update_library_index'/0,
+            '$update_library_index'/1,          % +Options
             '$autoload'/1,
 
             make_library_index/1,
@@ -136,15 +136,20 @@ user:file_search_path(autoload, Dir) :-
 :- thread_local
     silent/0.
 
-%!  '$update_library_index'
+%!  '$update_library_index'(+Options)
 %
 %   Called from make/0 to update the index   of the library for each
 %   library directory that has a writable   index.  Note that in the
 %   Windows  version  access_file/2  is  mostly   bogus.  We  assert
-%   silent/0 to suppress error messages.
+%   silent/0 to suppress error messages.  Options:
+%
+%       - system(+Boolean)
+%         Do (not) include system libraries.   Default `false`.
+%       - user(+Boolean)
+%         Do (not) include user libraries.  Default `true`.
 
-'$update_library_index' :-
-    setof(Dir, writable_indexed_directory(Dir), Dirs),
+'$update_library_index'(Options) :-
+    setof(Dir, writable_indexed_directory(Dir, Options), Dirs),
     !,
     setup_call_cleanup(
         asserta(silent, Ref),
@@ -154,7 +159,7 @@ user:file_search_path(autoload, Dir) :-
     ->  reload_library_index
     ;   true
     ).
-'$update_library_index'.
+'$update_library_index'(_).
 
 guarded_make_library_index([]).
 guarded_make_library_index([Dir|Dirs]) :-
@@ -165,10 +170,18 @@ guarded_make_library_index([Dir|Dirs]) :-
     ),
     guarded_make_library_index(Dirs).
 
-%!  writable_indexed_directory(-Dir) is nondet.
+%!  writable_indexed_directory(-Dir, +Options) is nondet.
 %
 %   True when Dir is an indexed   library  directory with a writable
 %   index, i.e., an index that can be updated.
+
+writable_indexed_directory(Dir, Options) :-
+    current_prolog_flag(home, Home),
+    writable_indexed_directory(Dir),
+    (   sub_atom(Dir, 0, _, _, Home)
+    ->  '$option'(system(true), Options, false)
+    ;   '$option'(user(true), Options, true)
+    ).
 
 writable_indexed_directory(Dir) :-
     index_file_name(IndexFile, autoload('INDEX'), [access([read,write])]),
@@ -488,10 +501,10 @@ exports_(File, Module, Exports) :-
             fail
         ;   nb_setarg(1, State, false),
             fail
-        ;   Term = (:- export(PI)),
-            ground(PI)
-        ->  arg(3, State, E0),
-            '$append'(E0, [PI], E1),
+        ;   Term = (:- export(Export))
+        ->  phrase(export_pi(Export), PIs),
+            arg(3, State, E0),
+            '$append'(E0, PIs, E1),
             nb_setarg(3, State, E1),
             fail
         ;   Term = (:- use_foreign_library(Lib)),
@@ -503,12 +516,25 @@ exports_(File, Module, Exports) :-
         ;   Term = (:- Directive),
             nonvar(Directive)
         ->  fail
+        ;   Term == []                          % Expansion for conditionals
+        ->  fail
         ;   !
         )
     ;   true
     ),
     arg(2, State, Module),
     arg(3, State, Exports).
+
+export_pi(Var) -->
+    { var(Var) },
+    !.
+export_pi((A,B)) -->
+    !,
+    export_pi(A),
+    export_pi(B).
+export_pi(PI) -->
+    { ground(PI) },
+    [PI].
 
 
                  /*******************************

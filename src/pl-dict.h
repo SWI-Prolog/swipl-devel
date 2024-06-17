@@ -38,6 +38,7 @@
 #define PL_DICT_H_INCLUDED
 
 #if USE_LD_MACROS
+#define PL_is_dict(t)				LDFUNC(PL_is_dict, t)
 #define	pl_for_dict(dict, func, closure, flags)	LDFUNC(pl_for_dict, dict, func, closure, flags)
 #define	dict_order(dict, dupl)			LDFUNC(dict_order, dict, dupl)
 #define	dict_order_term_refs(av, indexes, cnt)	LDFUNC(dict_order_term_refs, av, indexes, cnt)

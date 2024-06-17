@@ -675,7 +675,7 @@ stack that must be treated as a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_VAR, 0, 1, (CA1_VAR))
-{ Word k = varFrameP(FR, (int)*PC++);
+{ Word k = varFrameP(FR, (size_t)*PC++);
   int rc;
 
   if ( UMODE == uwrite )
@@ -712,6 +712,20 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     } else
     { setVar(*ARGP);
     }
+  }
+
+  /* First try the simple case.  do_unify() either completes
+   * (TRUE or FALSE) or returns a memory overflow code.  In
+   * the latter case we just try again, protected for GC
+   */
+  if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
+  { int rc = do_unify(k, ARGP);
+    if ( rc == TRUE )
+    { ARGP++;
+      NEXT_INSTRUCTION;
+    }
+    if ( rc == FALSE )
+      CLAUSE_FAILED;
   }
 
   SAVE_REGISTERS(QID);
@@ -2016,7 +2030,7 @@ VMH(depart_or_retry_continue, 0, (), ())
       }
     }
 #endif /*O_DEBUGGER*/
-  }
+  } /* end of if (LD->alerted) */
 
   PC = DEF->codes;
   NEXT_INSTRUCTION;
@@ -2431,8 +2445,8 @@ simplified version of linkVal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
-  Word v2 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
+  Word v2 = varFrameP(FR, (size_t)*PC++);
   word w = *v2;
 
   while(isRef(w))
@@ -2448,7 +2462,7 @@ VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
 END_VMI
 
 VMI(L_VOID, 0, 1, (CA1_FVAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
 
   setVar(*v1);
   NEXT_INSTRUCTION;
@@ -2456,7 +2470,7 @@ VMI(L_VOID, 0, 1, (CA1_FVAR))
 END_VMI
 
 VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
   word  c = code2atom(*PC++);
   pushVolatileAtom(word2atom(c));
   *v1 = c;
@@ -2465,7 +2479,7 @@ VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
 END_VMI
 
 VMI(L_NIL, 0, 1, (CA1_FVAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word v1 = varFrameP(FR, (size_t)*PC++);
 
   *v1 = ATOM_nil;
   NEXT_INSTRUCTION;
@@ -4606,6 +4620,7 @@ VMH(foreign_redo, 0, (), ())
 { Choice ch;
   FliFrame ffr;
 
+  environment_frame = FR;
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   ch = newChoice(CHP_JUMP, FR);
   ch->value.pc = PC+3;
@@ -4613,6 +4628,7 @@ VMH(foreign_redo, 0, (), ())
   ffr = (FliFrame)(ch+1);
   lTop = (LocalFrame)(ffr+1);
   ffr->size = 0;
+  ffr->no_free_before = (size_t)-1;
   NoMark(ffr->mark);
   ffr->parent = fli_context;
   FLI_SET_VALID(ffr);
@@ -6414,6 +6430,9 @@ END_VMI
 VMI(T_SMALLINTW, 0, CODES_PER_WORD, (CA1_WORD))
 { word w;
 
+#if CODES_PER_WORD == 1
+  SEPARATE_VMI1;		/* Might collapse with T_SMALLINT */
+#endif
   PC = code_get_word(PC, &w);
   DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", (long long)w));
   VMH_GOTO(t_const, consInt((sword)w));

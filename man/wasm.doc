@@ -32,29 +32,32 @@ The WASM SWI-Prolog distribution consists of three files:
 \end{description}
 
 Below is the skeleton for getting access to the Prolog system.  We
-first define the global \arg{Module} object, optionally with
-configuration parameters.  We use a global variable because some of
-the Emscripten configuration parameters require access to the
-\arg{Module}.  \const{SWIPL} returns a \ctype{Promise} that resolves
-when the WASM system is loaded and initialized.  This sets
-\const{Module.prolog} to an instance of the class \ctype{Prolog} that
-provides a high level interface from JavaScript.
+first define the global \arg{Prolog} and \arg{Module} objects.  The
+\arg{options} object provides module configuration
+options. \cfuncref{SWIPL}{} returns a \ctype{Promise} that resolves
+when the WASM system is loaded and initialized.  It returns the WASM
+\jargon{module}, which contains \const{Module.prolog} to an instance of
+the class \ctype{Prolog} that provides a high level interface from
+JavaScript.
 
 \begin{code}
 let Prolog;
-const Module = {
+let Module;
+const options = {
   // Provide options for customization
 };
 
-SWIPL(Module).then((module) =>
-{ Prolog = Module.prolog;
+SWIPL(options).then((module) =>
+{ Module = module;
+  Prolog = Module.prolog;
 
   // Start using Prolog
 };
 \end{code}
 
-\arg{Module} defines customization properties for the Emscripten module
-as well as for Prolog.   We highlight the important properties below.
+The \arg{options} object defines customization properties for the
+Emscripten module as well as for Prolog.  We highlight the important
+properties below.
 
 \begin{description}
     \termitem{arguments}{}
@@ -79,7 +82,7 @@ var Module = {
 
     \termitem{on_output}{}
 A \ctype{Function} that is called when Prolog writes to
-\const{user_output} or \const{user_input}. It is passed two arguments: a
+\const{user_output} or \const{user_error}. It is passed two arguments: a
 \ctype{String} containing the text to emit and one of the constant
 strings \const{"stdout"} or \const{"stderr"} to indicate the output
 stream. This uses the Emscripten \const{Module.FS.init} option to rebind

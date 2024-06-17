@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2018, University of Amsterdam
+    Copyright (c)  1999-2024, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,12 +38,11 @@
 #define _XOPEN_SOURCE 600
 #endif
 
-/* #define O_DEBUG 1 */
-#include "pl-xterm.h"
 #include "pl-fli.h"
 #include "pl-util.h"
 #include "os/pl-ctype.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
+#define HAVE_OPEN_XTERM5 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Open an alternative  xterm-console.  Used   to  support  multi-threading
@@ -65,6 +65,8 @@ portability problems for users of   the  single-threaded version.
 #endif
 #include <termios.h>
 #include <signal.h>
+#include <poll.h>
+#include <sys/wait.h>
 
 typedef struct
 { int fd;				/* associated file */
@@ -210,9 +212,15 @@ should this process be related to us?  Should it be a new session?
 #define MAXARGV 100
 #define RESARGC 10
 
-foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
-{ GET_LD
+static
+PRED_IMPL("$open_xterm", 5, open_xterm, 0)
+{ PRED_LD
+  term_t title = A1;
+  term_t in    = A2;
+  term_t out   = A3;
+  term_t err   = A4;
+  term_t argv  = A5;
+
   int master, slave, pid;
   char *slavename;
   struct termios termio;
@@ -271,6 +279,8 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
   if ( tcsetattr(slave, TCSANOW, &termio) )
     perror("tcsetattr");
 
+#define EXIT_EXEC_FAILED 23
+
   if ( (pid = fork()) == 0 )
   { char arg[64];
     char *cc;
@@ -291,20 +301,36 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
     xterm_argv[xterm_argc]   = NULL;		/* Up to RESARGC */
 
     execvp("xterm", xterm_argv);
-    perror("execlp");
+    perror("execvp(xterm)");
+    exit(EXIT_EXEC_FAILED);
   }
 
   for(i=1; i<xterm_malloced_argc; i++)
     PL_free(xterm_argv[i]);
 
-  for (;;)			/* read 1st line containing window-id */
-  { char c;
-
-    if ( read(slave, &c, 1) < 0 )
-      break;
-    if ( c == '\n' )
-      break;
+  struct pollfd fds[] = {{.fd = slave, .events=POLLIN}};
+  char line[256];
+  line[0] = 0;
+  if ( poll(fds, 1, 1000) > 0 )
+  { for (int i=0; i<sizeof(line); i++) /* read 1st line containing window-id */
+    { if ( read(slave, &line[i], 1) < 0)
+	break;
+      if ( line[i] == '\n' )
+      { line[i] = 0;
+	break;
+      }
+    }
   }
+  if ( !line[0] )
+  { if ( waitpid(pid, NULL, WNOHANG) == pid )
+    { close(slave);
+      close(master);
+
+      return PL_error(NULL, 0, "could not execute xterm",
+		      ERR_SYSCALL, "exec(xterm)");
+    }
+  }
+
   termio.c_lflag |= ECHO;
   DEBUG(1, Sdprintf("%s: Erase = %d\n", slavename, termio.c_cc[VERASE]));
   if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
@@ -320,11 +346,10 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
 	  unifyXtermStream(err, xt, SIO_OUTPUT|SIO_NBUF));
 }
 
-#else /*HAVE_GRANTPT*/
-
-foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
-{ return notImplemented("open_xterm", 4);
-}
-
 #endif /*HAVE_GRANTPT*/
+
+BeginPredDefs(xterm)
+#ifdef HAVE_OPEN_XTERM5
+  PRED_DEF("$open_xterm", 5, open_xterm, 0)
+#endif
+EndPredDefs

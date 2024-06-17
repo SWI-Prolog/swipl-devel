@@ -318,6 +318,7 @@ open_foreign_frame(DECL_LD)
   assert((LocalFrame)(fr+1) <= lMax);
   lTop = (LocalFrame)(fr+1);
   fr->size = 0;
+  fr->no_free_before = (size_t)-1;
   Mark(fr->mark);
   DEBUG(CHK_SECURE, assert(fr>fli_context));
   fr->parent = fli_context;
@@ -1411,6 +1412,25 @@ default_action:
 #undef SAVE_PTRS
 #undef RESTORE_PTRS
 
+		 /*******************************
+		 *           TRAILING           *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Trail a raw pointer after we know there is insufficient tail space.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+grow_trail_ptr(DECL_LD Word p)
+{ PushPtr(p);
+  int rc = ensureGlobalSpace(0, ALLOW_GC);
+  PopPtr(p);
+  if ( !rc )
+    return FALSE;
+
+  (tTop++)->address = p;
+  return TRUE;
+}
 
 		 /*******************************
 		 *    DESTRUCTIVE ASSIGNMENT	*
@@ -1427,7 +1447,7 @@ normal) and then pushing a marked pointer to  a cell on the global stack
 holding the old (overwritten) value.
 
 Undo is slightly more complicated as it has to check for these special
-cells on the trailstack.
+cells on the trail stack.
 
 The garbage collector has to take care in  a number of places: it has to
 pass through the trail-stack, marking   the  global-stack references for
@@ -3198,7 +3218,8 @@ static vmi_instr jmp_table[] =
 #if VMCODE_IS_ADDRESS
 
 #define _VMI_DECLARATION(Name,f,na,a)	Name ## _LBL:
-#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); \
+					_VMI_GOTO_CODE(*PC++)
 #define _VMI_GOTO(n)			goto n ## _LBL
 #define _VMI_GOTO_CODE(c)		goto *code2ptr(void *, c)
 #undef SEPARATE_VMI1

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,8 +44,9 @@
 		 *******************************/
 
 #if USE_LD_MACROS
-#define	firstClause(argv, fr, def, next)	LDFUNC(firstClause, argv, fr, def, next)
-#define	nextClause(chp, argv, fr, def)		LDFUNC(nextClause, chp, argv, fr, def)
+#define	firstClause(av, fr, def, next)	LDFUNC(firstClause, av, fr, def, next)
+#define	nextClause(chp, argv, fr, def)	LDFUNC(nextClause, chp, argv, fr, def)
+#define getIndexOfTerm(t)		LDFUNC(getIndexOfTerm, t)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

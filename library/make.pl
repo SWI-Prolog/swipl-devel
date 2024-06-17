@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2003-2020, University of Amsterdam
+    Copyright (c)  2003-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,7 +81,7 @@ make :-
     notrace(make_no_trace).
 
 make_no_trace :-
-    '$update_library_index',
+    '$update_library_index'([]),
     findall(File, modified_file(File), Reload0),
     list_to_set(Reload0, Reload),
     (   prolog:make_hook(before, Reload)

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2021, University of Amsterdam
+    Copyright (c)  1997-2024, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -109,6 +109,8 @@ typedef enum
 #define	PL_get_size_ex(t, i)		LDFUNC(PL_get_size_ex, t, i)
 #define	pl_get_uint64(t, i, ex)		LDFUNC(pl_get_uint64, t, i, ex)
 #define	PL_get_uint64_ex(t, i)		LDFUNC(PL_get_uint64_ex, t, i)
+#define PL_get_long_ex(t, i)		LDFUNC(PL_get_long_ex, t, i)
+#define PL_get_intptr_ex(t, i)		LDFUNC(PL_get_intptr_ex, t, i)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -123,6 +125,8 @@ int		pl_get_uint64(term_t t, uint64_t *i, int ex);
 int		PL_get_uint64_ex(term_t t, uint64_t *i);
 int		PL_get_module_ex(term_t name, module_t *m);
 int		PL_get_arg_ex(int n, term_t term, term_t arg);
+int		PL_get_long_ex(term_t t, long *i);
+int		PL_get_intptr_ex(term_t t, long *i);
 
 #undef LDFUNC_DECLARATIONS
 

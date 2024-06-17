@@ -57,23 +57,26 @@ test_div = document.getElementById('tests');
        either `"stderr"` or `"stdout"`.   When omitted, the output
        is sent to the browser console.
 
-   The skeleton below is best I could find.  After creating the Module,
-   it calls SWIP(Module), which returns a Promise that is executed after
-   the other data files are loaded, Emscripten and Prolog are initialized.
+   The skeleton below is best I could find.  Based on `options`,
+   `SWIPL()` returns a Promise that is executed after the other data
+   files are loaded, Emscripten and Prolog are initialized.
    `Module.prolog` is a class that provides the high level interaction
-   with Prolog.  In this example we load a file `test.pl` from the server
-   (relatvie to this file) and, when ready, call `run()`.
+   with Prolog.  In this example we load a file `test.pl` from the
+   server (relatvie to this file) and, when ready, call `run()`.
+
 */
 
 let Prolog;
-var Module = {
+let Module;
+var options = {
 //  arguments: ["-q"],
     locateFile: (file) => '/wasm/' + file,
     on_output: print
 };
 
-SWIPL(Module).then((module) =>
-{ Prolog = Module.prolog;
+SWIPL(options).then((module) =>
+{ Module = module;
+  Prolog = Module.prolog;
 
   Prolog.consult("test.pl")
         .then(() => run());

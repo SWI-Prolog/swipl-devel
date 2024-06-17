@@ -64,9 +64,6 @@ void		resetAtoms(void);
 int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
 size_t		atom_space(void);
-#ifdef O_DEBUG_ATOMGC
-foreign_t	pl_track_atom(term_t which, term_t stream);
-#endif
 #undef LDFUNC_DECLARATIONS
 
 static inline int

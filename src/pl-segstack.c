@@ -261,6 +261,15 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
   }
 }
 
+void
+free_segstack_chunks(segchunk *c)
+{ segchunk *n;
+
+  for(; c; c = n)
+  { n = c->next;
+    tmp_free(c);
+  }
+}
 
 void
 clearSegStack_(segstack *s)
@@ -276,15 +285,9 @@ clearSegStack_(segstack *s)
     s->max  = addPointer(c, c->size);
     s->chunk_count = 1;
 
-    for(c=n; c; c = n)
-    { n = c->next;
-      tmp_free(c);
-    }
+    free_segstack_chunks(n);
   } else				/* all dynamic chunks */
-  { for(; c; c = n)
-    { n = c->next;
-      tmp_free(c);
-    }
+  { free_segstack_chunks(c);
     memset(s, 0, sizeof(*s));
   }
 }

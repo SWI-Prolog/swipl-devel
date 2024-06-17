@@ -3336,27 +3336,24 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   sg->blocked = FALSE;
 
   PL_LOCK(L_THREAD);
-  if ( !(rc=get_thread(thread, &info, TRUE)) )
-    goto out;
-  if ( !(rc=is_alive(info->status)) )
-  { error:
-    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
-    goto out;
+  rc = get_thread(thread, &info, TRUE);
+  if ( rc && !(rc=is_alive(info->status)) )
+    rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
+
+  if ( rc )
+  { ld = info->thread_data;
+    if ( !ld->thread.sig_head )
+    { ld->thread.sig_head = ld->thread.sig_tail = sg;
+    } else
+    { ld->thread.sig_tail->next = sg;
+      ld->thread.sig_tail = sg;
+    }
+    sg = NULL;
+    raiseSignal(ld, SIG_THREAD_SIGNAL);
+    if ( info->has_tid && !alertThread(info) )
+      rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
   }
 
-  ld = info->thread_data;
-  if ( !ld->thread.sig_head )
-  { ld->thread.sig_head = ld->thread.sig_tail = sg;
-  } else
-  { ld->thread.sig_tail->next = sg;
-    ld->thread.sig_tail = sg;
-  }
-  sg = NULL;
-  raiseSignal(ld, SIG_THREAD_SIGNAL);
-  if ( info->has_tid && !alertThread(info) )
-    goto error;
-
-out:
   if ( sg )
   { PL_erase(sg->goal);
     freeHeap(sg, sizeof(*sg));
