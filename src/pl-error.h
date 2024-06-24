@@ -126,7 +126,7 @@ int		PL_get_uint64_ex(term_t t, uint64_t *i);
 int		PL_get_module_ex(term_t name, module_t *m);
 int		PL_get_arg_ex(int n, term_t term, term_t arg);
 int		PL_get_long_ex(term_t t, long *i);
-int		PL_get_intptr_ex(term_t t, long *i);
+int		PL_get_intptr_ex(term_t t, intptr_t *i);
 
 #undef LDFUNC_DECLARATIONS
 
