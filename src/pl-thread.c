@@ -7591,10 +7591,12 @@ new_ldef_vector(void)
 { LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
 
   memset(f, 0, sizeof(*f));
-  f->blocks[0] = f->preallocated - 1;
-  f->blocks[1] = f->preallocated - 1;
-  f->blocks[2] = f->preallocated - 1;
-
+  f->blocks[0] = f->preallocated;
+  f->blocks[1] = f->preallocated;
+  f->blocks[2] = f->preallocated;
+  f->blocks[0]--;
+  f->blocks[1]--;
+  f->blocks[2]--;
   return f;
 }
 
@@ -8138,9 +8140,14 @@ init_predicate_references(PL_local_data_t *ld)
 { definition_refs *refs = &ld->predicate_references;
 
   memset(refs, 0, sizeof(*refs));
-  refs->blocks[0] = refs->preallocated - 1;
-  refs->blocks[1] = refs->preallocated - 1;
-  refs->blocks[2] = refs->preallocated - 1;
+  refs->blocks[0] = refs->preallocated;
+  refs->blocks[1] = refs->preallocated;
+  refs->blocks[2] = refs->preallocated;
+
+  /* subtract later to avoid UBSAN error */
+  refs->blocks[0]--;
+  refs->blocks[1]--;
+  refs->blocks[2]--;
 }
 
 void

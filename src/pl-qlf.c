@@ -344,9 +344,14 @@ pushXrIdTable(wic_state *state)
 
   memset(t, 0, sizeof(*t));
   t->id = 0;
-  t->blocks[0] = t->preallocated - 1;
-  t->blocks[1] = t->preallocated - 1;
-  t->blocks[2] = t->preallocated - 1;
+  t->blocks[0] = t->preallocated;
+  t->blocks[1] = t->preallocated;
+  t->blocks[2] = t->preallocated;
+ 
+  /* avoid UBSAN error */ 
+  t->blocks[0]--;
+  t->blocks[1]--;
+  t->blocks[2]--;
 
   t->previous = state->XR;
   state->XR = t;

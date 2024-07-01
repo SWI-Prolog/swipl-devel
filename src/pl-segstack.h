@@ -76,7 +76,7 @@ emptySegStack(segstack *s)
 
 
 #define popSegStack(stack, to, type) \
-	( ((stack)->top >= (stack)->base + sizeof(type))	\
+	( ((stack)->top && (stack)->top >= (stack)->base + sizeof(type))	\
 		? ( (stack)->top -= sizeof(type),		\
 		    *to = *(type*)(stack)->top,			\
 		    TRUE					\
@@ -86,7 +86,7 @@ emptySegStack(segstack *s)
 	)
 
 #define pushSegStack(stack, data, type) \
-	( ((stack)->top + sizeof(type) <= (stack)->max)	\
+	( ((stack)-> top && (stack)->top + sizeof(type) <= (stack)->max)	\
 		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
 		    TRUE					\

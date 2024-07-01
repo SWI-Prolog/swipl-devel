@@ -366,7 +366,7 @@ typedef struct
 } var_table, *VarTable;
 
 #undef struct_offsetp
-#define struct_offsetp(t, f) ((size_t)((t*)0)->f)
+#define struct_offsetp(t, f) ((size_t)((t*)4)->f - (size_t)((t*)4))
 #define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
@@ -2083,7 +2083,7 @@ Finish up the clause.
 	      sizeofClause(clause.code_size) +
 	      SIZEOF_CREF_CLAUSE +
 	      sizeof(uintptr_t)*2 +     /* possible alignment */
-	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
+	      (size_t)argFrameP0(LocalFrame, MAXARITY) +
 	      sizeof(struct choice)
 	    );
     if ( !hasLocalSpace(space) )

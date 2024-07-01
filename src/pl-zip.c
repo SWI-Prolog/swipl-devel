@@ -379,6 +379,12 @@ zseek64_mem(voidpf opaque, voidpf stream, ZPOS64_T offset, int origin)
 { mem_stream *mem = stream;
   const char *p;
 
+  /* Avoid UBSAN in start + offset */
+  if ( origin == SEEK_SET && offset == (ZPOS64_T)(-1) )
+  { errno = EINVAL;
+    return -1;
+  }
+ 
   switch(origin)
   { case SEEK_SET: p = mem->start + offset; break;
     case SEEK_CUR: p = mem->here + offset;  break;
