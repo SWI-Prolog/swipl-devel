@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -222,6 +222,8 @@ ensure_build_dir(Dir, State0, State) :-
 %     CMake style variable that contains the directory holding `libswipl`
 %     $ ``SWIPL_CC`` (``CC``) :
 %     Prefered C compiler
+%     $ ``SWIPL_CXX`` (``CXX``) :
+%     Prefered C++ compiler
 %     $ ``SWIPL_LD`` (``LD``) :
 %     Prefered linker
 %     $ ``SWIPL_CFLAGS`` (``CFLAGS``) :
@@ -308,6 +310,9 @@ def_environment(VAR, Value, Options) :-
     env_name(cc, VAR, Options),
     default_c_compiler(Value).
 def_environment(VAR, Value, Options) :-
+    env_name(cxx, VAR, Options),
+    default_cxx_compiler(Value).
+def_environment(VAR, Value, Options) :-
     env_name(ld, VAR, Options),
     (   getenv('LD', Value)
     ->  true
@@ -385,6 +390,8 @@ env_name_v(arch,           1, 'SWIARCH').
 env_name_v(arch,           2, 'SWIPL_ARCH').
 env_name_v(cc,             1, 'CC').
 env_name_v(cc,             2, 'SWIPL_CC').
+env_name_v(cxx,            1, 'CXX').
+env_name_v(cxx,            2, 'SWIPL_CXX').
 env_name_v(ld,             1, 'LD').
 env_name_v(ld,             2, 'SWIPL_LD').
 env_name_v(cflags,         1, 'CFLAGS').
@@ -431,8 +438,16 @@ default_c_compiler(CC) :-
     getenv('CC', CC),
     !.
 default_c_compiler(CC) :-
-    preferred_c_compiler(CC),
-    has_program(path(CC), _),
+    preferred_c_compiler(CC0),
+    has_program(CC0, CC),
+    !.
+
+default_cxx_compiler(CXX) :-
+    getenv('CXX', CXX),
+    !.
+default_cxx_compiler(CXX) :-
+    preferred_cxx_compiler(CXX0),
+    has_program(CXX0, CXX),
     !.
 
 preferred_c_compiler(CC) :-
@@ -440,6 +455,13 @@ preferred_c_compiler(CC) :-
 preferred_c_compiler(gcc).
 preferred_c_compiler(clang).
 preferred_c_compiler(cc).
+
+preferred_cxx_compiler(CXX) :-
+    current_prolog_flag(c_cxx, CXX).
+preferred_cxx_compiler('g++').
+preferred_cxx_compiler('clang++').
+preferred_cxx_compiler('c++').
+
 
 %!  save_build_environment(+State:dict) is det.
 %

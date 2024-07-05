@@ -1861,6 +1861,7 @@ initPrologFlags(void)
   setPrologFlag("shared_object_extension",   FT_ATOM|FF_READONLY, SO_EXT);
   setPrologFlag("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
   setPrologFlag("c_cc",	     FT_ATOM, C_CC);
+  setPrologFlag("c_cxx",     FT_ATOM, C_CXX);
   setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
 #ifdef C_LIBDIR
   setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);

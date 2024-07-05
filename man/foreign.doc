@@ -3902,22 +3902,30 @@ compatibility with older records.
 
 \begin{description}
 \cfunction{char *}{PL_record_external}{term_t +t, size_t *len}
-    Record the term \arg{t} into the Prolog database as recorda/3 and
-    return an opaque handle to the term.  The returned handle remains
-    valid until PL_erase_external() is called on it.   Currently aborts the
-    process with a \jargon{fatal error} on failure. Future versions may
-    raise a resource exception and return \exam{(char*)0}.
+    Similar to PL_record(), but the term is serialized such that
+    it can be reloaded in another Prolog session.  This implies
+    that atoms and functors are stored by their content rather than
+    their handle. As a result, PL_record_external() fails (returning
+    \const{NULL} if the term contains \jargon{blobs} that cannot be
+    serialized, such as streams.
 
-    It is allowed to copy the data and use PL_recorded_external() on
-    the copy.  The user is responsible for the memory management of
-    the copy.  After copying, the original may be discarded using
-    PL_erase_external().
+    These functions are used to implement library \pllib{fastrw} as
+    well as for storing Prolog terms in external databases such as
+    BerkeleyDB (library \pllib{bdb}) or RocksDB.  The representation
+    is optimized for plain atoms and numbers.
 
-    PL_record_external() will fail if the term contains \jargon{blobs}
-    that cannot be serialized, such as streams.
+    Records that are used only in the same Prolog process should use
+    PL_record() as this can represent any term, is more compact and
+    faster.
 
-    PL_recorded_external() is used to copy such recorded terms back to
-    the Prolog stack.
+    The returned string may be copied.  Note that the string may
+    contain null bytes and is not null terminated.  The length in
+    bytes is returned in \arg{len}.   After copying, the returned
+    string may be discarded using PL_erase_external().
+
+    PL_recorded_external() is used to copy the term represented in
+    the data back to the Prolog stack.  PL_recorded_external() can
+    be used on the returned string as well as on a copy.
 \cfunction{int}{PL_recorded_external}{const char *record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
