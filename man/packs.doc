@@ -515,6 +515,8 @@ CMake style variable that contains the directory holding
 \file{libswipl}
   \definition{\const{SWIPL_CC} (\const{CC})}
 C compiler used to build SWI-Prolog.
+  \definition{\const{SWIPL_CXX} (\const{CXX})}
+C++ compiler used to build SWI-Prolog.
   \definition{\const{SWIPL_LD} (\const{LD})}
 Linker used to link SWI-Prolog.
   \definition{\const{SWIPL_CFLAGS} (\const{CFLAGS})}

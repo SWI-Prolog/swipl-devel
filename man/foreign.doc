@@ -3909,7 +3909,8 @@ compatibility with older records.
     raise a resource exception and return \exam{(char*)0}.
 
     It is allowed to copy the data and use PL_recorded_external() on
-    the copy.  The user is responsible for the memory management of
+    the copy (the string may contain nulls and is not null-terminated).
+    The user is responsible for the memory management of
     the copy.  After copying, the original may be discarded using
     PL_erase_external().
 

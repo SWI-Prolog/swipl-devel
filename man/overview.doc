@@ -1440,11 +1440,15 @@ Current break-level. The initial top level (started with
 threads that are not running a top-level loop.
 
     \prologflagitem{c_cc}{atom}{rw}
-Name of the C compiler used to compile SWI-Prolog.  Normally either gcc
-or cc.  See \secref{plld}.
+Name of the C compiler used to compile SWI-Prolog.  Normally either
+\const{gcc} or \const{cc}.  See \secref{plld}.
 
     \prologflagitem{c_cflags}{atom}{rw}
 CFLAGS used to compile SWI-Prolog.  See \secref{plld}.
+
+    \prologflagitem{c_cxx}{atom}{rw}
+Name of the C++ compiler used to compile SWI-Prolog.  Normally either
+\const{g++} or \const{c++}.  See \secref{plld}.
 
     \prologflagitem{c_ldflags}{atom}{rw}
 LDFLAGS used to link SWI-Prolog. See \secref{plld}.
