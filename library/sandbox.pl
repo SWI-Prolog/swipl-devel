@@ -725,6 +725,7 @@ safe_primitive(system:between(_,_,_)).
 safe_primitive(system:succ(_,_)).
 safe_primitive(system:plus(_,_,_)).
 safe_primitive(system:float_class(_,_)).
+safe_primitive(system:term_singletons(_,_)).
 safe_primitive(system:term_variables(_,_)).
 safe_primitive(system:term_variables(_,_,_)).
 safe_primitive(system:'$term_size'(_,_,_)).
