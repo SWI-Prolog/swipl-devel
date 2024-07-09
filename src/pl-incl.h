@@ -582,7 +582,7 @@ them.  Descriptions:
 #define SMALLSTACK		32 * 1024 /* GC policy */
 #define MAX_PORTRAY_NESTING	100	/* Max recursion in portray */
 
-#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
+#define LOCAL_MARGIN (sizeof(struct localFrame) + MAXARITY*sizeof(word) + \
 		      sizeof(struct choice))
 
 #define WORDBITSIZE		(8 * sizeof(word))
@@ -1406,7 +1406,7 @@ behalf  of  I_USERCALL.  This   is   verified    in   an   assertion  in
 checkCodeTable().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define sizeofClause(n) ((char *)&((Clause)NULL)->codes[n] - (char *)NULL)
+#define sizeofClause(n) (offsetof(struct clause, codes[n]))
 
 struct clause
 { Definition		predicate;	/* Predicate I belong to */
@@ -2854,6 +2854,19 @@ typedef struct
 { atom_t	file;			/* name of the file */
   int		line;			/* line number */
 } sourceloc, *SourceLoc;
+
+
+/* Initialise the preallocated parts of a dynamic array.  The block
+ * pointers must be 1 before the preallocated data.  Unfortunately
+ * clang using -fsanitize=undefined considers this invalid.  It does
+ * not see that this does actually the same.
+ */
+
+#define INIT_DYN_ARRAY(t)						\
+  static_assertion(sizeof(t->preallocated)/sizeof(t->preallocated[0]) == 7); \
+  t->blocks[0] = t->preallocated; t->blocks[0]--;			\
+  t->blocks[1] = t->blocks[0];						\
+  t->blocks[2] = t->blocks[0];						\
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to

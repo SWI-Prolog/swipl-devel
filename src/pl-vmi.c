@@ -4642,7 +4642,7 @@ END_VMH
 
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
-{ typedef foreign_t (*ndet_func)(term_t h0, size_t arity, struct foreign_context*);
+{ typedef foreign_t (*ndet_func)(term_t h0, int arity, struct foreign_context*);
   ndet_func f = code2ptr(ndet_func, *PC++);
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 

@@ -74,9 +74,19 @@ emptySegStack(segstack *s)
 	 (s->last == NULL || s->last->previous == NULL);
 }
 
+/* Note that the C standard does not allow operations on NULL
+   pointers other than comparing equal to NULL.  For this reason
+   we need the `(stack)->top` condition.  I hope most C compiler
+   will delete the redundant condition.
+ */
+
+#define segStackHasData(stack)				\
+  ((stack)->top && (stack)->top > (stack)->base)
+#define segStackHasSpace(stack, size)				\
+  ((stack)->top && (stack)->top + (size) <= (stack)->max)
 
 #define popSegStack(stack, to, type) \
-	( ((stack)->top >= (stack)->base + sizeof(type))	\
+	( segStackHasData(stack)				\
 		? ( (stack)->top -= sizeof(type),		\
 		    *to = *(type*)(stack)->top,			\
 		    TRUE					\
@@ -86,7 +96,7 @@ emptySegStack(segstack *s)
 	)
 
 #define pushSegStack(stack, data, type) \
-	( ((stack)->top + sizeof(type) <= (stack)->max)	\
+	( segStackHasSpace(stack, sizeof(type))			\
 		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
 		    TRUE					\
