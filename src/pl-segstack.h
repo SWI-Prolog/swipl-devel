@@ -86,7 +86,7 @@ emptySegStack(segstack *s)
 	)
 
 #define pushSegStack(stack, data, type) \
-	( ((stack)-> top && (stack)->top + sizeof(type) <= (stack)->max)	\
+	( ((stack)->top && (stack)->top + sizeof(type) <= (stack)->max)	\
 		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
 		    TRUE					\
