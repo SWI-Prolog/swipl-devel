@@ -1407,7 +1407,7 @@ behalf  of  I_USERCALL.  This   is   verified    in   an   assertion  in
 checkCodeTable().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define sizeofClause(n) ((char *)&((Clause)8)->codes[n] - (char *)((Clause)8))
+#define sizeofClause(n) (offsetof(struct clause, codes[n]))
 
 struct clause
 { Definition		predicate;	/* Predicate I belong to */
