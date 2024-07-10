@@ -6690,7 +6690,7 @@ protected_predicate(DECL_LD Definition def)
 
 static foreign_t
 clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
-       int PL__ac, control_t PL__ctx)
+       size_t PL__ac, control_t PL__ctx)
 { PRED_LD
   Procedure proc;
   Definition def;

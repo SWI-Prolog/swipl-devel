@@ -598,7 +598,7 @@ EndPredDefs
 
 #define PRED_IMPL(name, arity, fname, flags) \
         foreign_t \
-        pl_ ## fname ## arity ## _va(term_t PL__t0, int PL__ac, \
+        pl_ ## fname ## arity ## _va(term_t PL__t0, size_t PL__ac, \
 				     control_t PL__ctx)
 
 #define Arg(N)  (PL__t0+((n)-1))

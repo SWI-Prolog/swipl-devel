@@ -654,7 +654,7 @@ discardForeignFrame(DECL_LD LocalFrame fr)
 
   fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
-  { typedef foreign_t (*FuncN)(term_t av, int argc, control_t);
+  { typedef foreign_t (*FuncN)(term_t av, size_t argc, control_t);
     (*(FuncN)function)(0, argc, &context);
   } else
   { CALL_FCUTTED(argc, (*function), &context);

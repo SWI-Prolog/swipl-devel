@@ -1216,7 +1216,7 @@ which these pairs are enumerated is _undefined_.
 */
 
 static foreign_t
-pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
+pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
 { PRED_LD
   int i;
   word dict;
