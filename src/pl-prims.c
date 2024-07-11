@@ -4389,6 +4389,11 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
 /* MacOS X Mavericks and Yosemite write a char (nul) too many if the
  * buffer is short.  Thanks to Samer Abdallah for sorting this out.
+ *
+ * (*) On failure, wcsxfrm() normally returns the required size.
+ * The official docs are not completely explicit abut this though
+ * and it appears MacOS 15 (beta) does not, requiring another
+ * iteration.  We now allow for 5 iterations ...
  */
 #ifdef __APPLE__
 #define WCSXFRM_BUFFER_OVERRUN 1
@@ -4409,20 +4414,23 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 
   if ( !PL_get_wchars(A1, &len, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
     fail;
-  for(;;)
+  for(int iter=5; --iter > 0;)
   { if ( (n=wcsxfrm(o, s, buflen)) < buflen )
     { int rc = PL_unify_wchars(A2, PL_STRING, n, o);
 
       if ( o != buf )
-	PL_free(o);
+	free(o);
 
       return rc;
     } else
-    { assert(o == buf);
+    { if ( o != buf )			/* see (*) */
+	free(o);
       buflen = n+1;
-      o = PL_malloc(buflen*sizeof(wchar_t));
+      if ( !(o = malloc(buflen*sizeof(wchar_t))) )
+	return PL_no_memory();
     }
   }
+  assert(0);
 #else
   GET_LD
   return PL_unify(A1, A2);
