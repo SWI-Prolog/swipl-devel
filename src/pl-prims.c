@@ -4414,7 +4414,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 
   if ( !PL_get_wchars(A1, &len, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
     fail;
-  for(int iter=5; --iter > 0;)
+  for(;;)
   { if ( (n=wcsxfrm(o, s, buflen)) < buflen )
     { int rc = PL_unify_wchars(A2, PL_STRING, n, o);
 
@@ -4423,9 +4423,12 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 
       return rc;
     } else
-    { if ( o != buf )			/* see (*) */
-	free(o);
-      buflen = n+1;
+    { if ( o == buf )			/* see (*) */
+      { buflen = n+1;
+      } else
+      {	free(o);			/* we get a nonsense return */
+	buflen *= 2;			/* so, double */
+      }
       if ( !(o = malloc(buflen*sizeof(wchar_t))) )
 	return PL_no_memory();
     }
