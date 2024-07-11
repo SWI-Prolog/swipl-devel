@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1093,6 +1093,8 @@ user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
 user:file_search_path(app, swi(app)).
 user:file_search_path(app, app_data(app)).
+user:file_search_path(working_directory, CWD) :-
+    working_directory(CWD, CWD).
 
 '$xdg_prolog_directory'(Which, Dir) :-
     '$xdg_directory'(Which, XDGDir),
@@ -1420,15 +1422,14 @@ user:prolog_file_type(dylib,    executable) :-
     '$file_conditions'(Cond, Extended),
     '$absolute_file_name'(Extended, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
-    '$relative_to'(Cond, source, Dir),
-    atomic_list_concat([Dir, /, File], AbsFile),
-    '$extend_file'(AbsFile, Exts, Extended),
-    '$file_conditions'(Cond, Extended),
+    (   '$relative_to'(Cond, source, Dir)
+    *-> atomic_list_concat([Dir, /, File], AbsFile),
+        '$extend_file'(AbsFile, Exts, Extended),
+        '$file_conditions'(Cond, Extended)
+    ;   '$extend_file'(File, Exts, Extended),
+        '$file_conditions'(Cond, Extended)
+    ),
     !,
-    '$absolute_file_name'(Extended, FullName).
-'$chk_file'(File, Exts, Cond, _, FullName) :-
-    '$extend_file'(File, Exts, Extended),
-    '$file_conditions'(Cond, Extended),
     '$absolute_file_name'(Extended, FullName).
 
 '$segments_to_atom'(Atom, Atom) :-
@@ -1462,7 +1463,7 @@ user:prolog_file_type(dylib,    executable) :-
 	;   file_directory_name(FileOrDir, Dir)
 	)
     ;   Default == cwd
-    ->  '$cwd'(Dir)
+    ->  working_directory(Dir, Dir)
     ;   Default == source
     ->  source_location(ContextFile, _Line),
 	file_directory_name(ContextFile, Dir)

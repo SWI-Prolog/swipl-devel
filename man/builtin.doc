@@ -695,6 +695,8 @@ user:file_search_path(app_config, user_app_config('.')).
 user:file_search_path(app_config, common_app_config('.')).
 user:file_search_path(app, swi(app)).
 user:file_search_path(app, app_data(app)).
+user:file_search_path(working_directory, CWD) :-
+    working_directory(CWD, CWD).
 \end{code}
 
 \index{XDG,directories}%
@@ -10973,9 +10975,16 @@ specified both as \fileext{ext} or plain \const{ext}.
     \termitem{relative_to}{+FileOrDir}
 Resolve the path relative to the given directory or the directory
 holding the given file.  Without this option, paths are resolved
-relative to the working directory (see working_directory/2) or,
-if \arg{Spec} is atomic and absolute_file_name/[2,3] is executed
-in a directive, it uses the current source file as reference.
+relative to the working directory (see working_directory/2) or, if
+\arg{Spec} is atomic and absolute_file_name/[2,3] is executed in a
+directive, it uses the current source file as reference.  Note that a
+directive using initialization/1 is executed \emph{after} loading the
+file.  This implies that such paths are resolved relative to the
+working directory for the toplevel file and relative to the file
+loading the file holding the initialization/1 directive otherwise.
+
+Up to version 9.3.9, the system tried \emph{both} the directory
+holding the current source and the current working directory.
 
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}). \arg{Mode} is
