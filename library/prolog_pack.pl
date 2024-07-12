@@ -1543,6 +1543,9 @@ download_info_extra(Info, [git(true),commit(Hash)|Options], Options) :-
     Info.get(git) == true,
     !,
     Hash = Info.get(commit, 'HEAD').
+download_info_extra(Info, [link(true)|Options], Options) :-
+    Info.get(link) == true,
+    !.
 download_info_extra(_, Options, Options).
 
 installed(Info) :-
