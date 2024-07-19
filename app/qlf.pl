@@ -355,7 +355,7 @@ cli_qlf_compile(File, Options) :-
     ),
     option(preload(Preload), Options, []),
     forall(member(PeloadFile, Preload), preload(PeloadFile)),
-    qcompile(user:Base, Options),
+    qcompile(user:Base, [imports([])|Options]),
     (   option(expect_deps(Deps), Options)
     ->  file_name_extension(Base, qlf, QlfFile),
         '$qlf_sources'(QlfFile, Sources),
