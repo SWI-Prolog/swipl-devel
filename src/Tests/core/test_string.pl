@@ -36,6 +36,8 @@
 :- module(test_string, [test_string/0]).
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
+:- use_module(library(debug)).
+
 :- encoding(utf8).
 
 /** <module> Test string manipulation primitives
@@ -85,8 +87,11 @@ test(string_lower, L == "abc") :-
 	string_lower("aBc", L).
 test(string_upper, L == "ABC") :-
 	string_upper("aBc", L).
-test(string_upper, L == "WH\u0178") :-		% Issue #1262 (iso -> wide)
-	string_upper("wh\u00ff", L).
+test(string_upper) :-		% Issue #1262 (iso -> wide)
+	string_upper("wh\u00ff", Upr),
+	assertion((   Upr == "WH\u0178" % If locale supports Unicode
+		  ;   Upr == "WH\u00ff"	% Otherwise
+		  )).
 
 :- end_tests(string).
 
