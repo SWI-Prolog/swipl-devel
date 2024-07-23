@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -48,6 +48,7 @@ Test term reading, notably option processing
 
 test_read :-
     run_tests([ read_term,
+                read_op,
 		read_numbers
 	      ]).
 
@@ -72,14 +73,6 @@ test(position,
                 [ subterm_positions(TermPos),
                   comments(Comments)
                 ]).
-
-term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
-    term_string(Term, TermString, [subterm_positions(TermPos)]),
-    assertion(ground(TermPos)),
-    assertion(ground(ExpectedTermPos)),
-    assertion(Term =@= ExpectedTerm),
-    assertion(TermPos == ExpectedTermPos),
-    assertion(valid_term_position(Term, TermPos)).
 
 test(valid_position_var) :-
     term_position_check("Var", _Var, 0-3).
@@ -163,6 +156,29 @@ test(valid_position_dict3) :-
 
 :- end_tests(read_term).
 
+:- begin_tests(read_op).
+
+:- op(600, fy, !).
+:- op(600, fy, []).
+
+test(modify, Term = !([])) :-
+    context_module(M),
+    term_string(Term, '![]', [module(M)]).
+test(minus_block, Term = -([x])) :-
+    context_module(M),
+    term_string(Term, '-[x]', [module(M)]).
+test(modify_block, Term = !([x])) :-
+    context_module(M),
+    term_string(Term, '![x]', [module(M)]).
+test(pos_block) :-
+    context_module(M),
+    term_position_check(
+	"![x]", !([x]),
+	term_position(0,4,0,1,[list_position(1,4,[2-3],none)]),
+        [module(M)]).
+
+:- end_tests(read_op).
+
 :- begin_tests(read_numbers).
 
 test(float_overflow, error(syntax_error(float_overflow))) :-
@@ -176,6 +192,19 @@ test(float_overflow, F =:= inf) :-
 
 :- end_tests(read_numbers).
 
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
+    term_position_check(TermString, ExpectedTerm, ExpectedTermPos, []).
+
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos, Options) :-
+    term_string(Term, TermString,
+                [ subterm_positions(TermPos)
+                | Options
+                ]),
+    assertion(ground(TermPos)),
+    assertion(ground(ExpectedTermPos)),
+    assertion(Term =@= ExpectedTerm),
+    assertion(TermPos == ExpectedTermPos),
+    assertion(valid_term_position(Term, TermPos)).
 
 %%	catch_messages(+Kind, :Goal, -Messages) is semidet.
 

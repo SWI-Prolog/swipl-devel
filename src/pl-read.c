@@ -3756,14 +3756,17 @@ modify_op(DECL_LD cterm_state *cstate, int cpri)
   if ( cstate->side_n > 0 && cstate->rmo == 0 &&
        cpri > SideOp(cstate->side_p)->right_pri )
   { op_entry *op = SideOp(cstate->side_p);
-    if ( op->kind == OP_PREFIX && !op->isblock )
+    if ( op->kind == OP_PREFIX )
     { term_t tmp;
 
       DEBUG(MSG_READ_OP, Sdprintf("Prefix %s to atom", stringOp(op)));
       cstate->rmo++;
       if ( !(tmp = alloc_term(_PL_rd)) )
 	return FALSE;
-      PL_put_atom(tmp, op->op.atom);
+      if ( op->isblock )
+	PL_put_term(tmp, op->op.block);
+      else
+	PL_put_atom(tmp, op->op.atom);
       queue_out_op(0, op->tpos, _PL_rd);
       cstate->out_n++;
       PopOp(cstate);
