@@ -1786,7 +1786,9 @@ printCrashContext(const char *btname)
   tbuf[24] = '\0';
   Sdprintf("Time: %s\n", tbuf);
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { Sdprintf("Inferences: %" PRIu64 "\n", LD->statistics.inferences);
     if ( gc_status.active )
     { Sdprintf("Running GC: %" PRIu64 "-th garbage collection]\n",
@@ -1808,7 +1810,9 @@ printCrashContext(const char *btname)
 #endif
 
   print_backtrace_named(btname);
+#ifdef O_PLMT
   if ( LD )
+#endif
   { if ( getenv("SWIPL_DEBUG_GC_STACK") )
     { if ( LD->shift_status.inferences )
       { Sdprintf("Last stack shift at %" PRIu64 " inferences\n",
