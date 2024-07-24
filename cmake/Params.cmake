@@ -1,12 +1,17 @@
 # Populate parms.h
 
-if(APPLE)
-  set(C_CC "cc")
-  set(C_CXX "c++")
-else()
-  set(C_CC     ${CMAKE_C_COMPILER})
-  set(C_CXX    ${CMAKE_CXX_COMPILER})
+set(SWIPL_CC "from-cmake" CACHE STRING
+    "Value for c_cc flag.  When from-cmake, we use CMAKE_C_COMPILER")
+set(SWIPL_CXX "from-cmake" CACHE STRING
+    "Value for c_cxx flag.  When from-cmake, we use CMAKE_CXX_COMPILER")
+
+if(SWIPL_CC STREQUAL "from-cmake")
+  set(SWIPL_CC ${CMAKE_C_COMPILER})
 endif()
+if(SWIPL_CXX STREQUAL "from-cmake")
+  set(SWIPL_CXX ${CMAKE_CXX_COMPILER})
+endif()
+
 if(NOT PLHOME)
   set(PLHOME   ${CMAKE_INSTALL_PREFIX}/${SWIPL_INSTALL_PREFIX})
 endif()

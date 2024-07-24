@@ -39,6 +39,7 @@ build_win32()
     mkdir build.win32
     ( cd build.win32
       cmake -DCMAKE_BUILD_TYPE=Release \
+            -DSWIPL_CC=gcc.exe -DSWIPL_CXX=g++.exe \
 	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
 	    -DJAVA_COMPATIBILITY=ON \
 	    -G Ninja ..
@@ -56,6 +57,7 @@ build_win64()
     mkdir build.win64
     ( cd build.win64
       cmake -DCMAKE_BUILD_TYPE=Release \
+            -DSWIPL_CC=gcc.exe -DSWIPL_CXX=g++.exe \
 	    -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
 	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
 	    -DJAVA_COMPATIBILITY=ON \
@@ -74,6 +76,7 @@ build_macosx()
     export PATH=$HOME/deps/bin:$QT_BIN:$PATH
     MACOSX_DEPLOYMENT_TARGET=10.14 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
 	      -DUSE_GMP=OFF \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DBUILD_MACOS_BUNDLE=ON \
@@ -93,6 +96,7 @@ build_macos_universal_binary()
     CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
 	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
@@ -114,6 +118,7 @@ build_macosx_gcc()
     export CC=gcc-mp-13
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
         cmake -DCMAKE_BUILD_TYPE=PGO \
+	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
               -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DBUILD_MACOS_BUNDLE=ON \
               -DJAVA_COMPATIBILITY=ON \
@@ -152,6 +157,25 @@ is_clean_release()
   fi
 }
 
+list_file()
+{ if [ -f "$1" ]; then
+     ls -l "$1"
+  fi
+}
+
+list_built()
+{ if [ $(uname) = Darwin ]; then
+    list_file build.macosx-fat/swipl-${version}-1.fat.dmg
+    list_file build.macosx-gcc/swipl-${version}-1.x86_64.dmg
+    list_file build.macosx/swipl-${version}-1.x86_64.dmg
+  else
+    ls -l build.win32/swipl-${version}-1.x86.exe
+    ls -l build.win64/swipl-${version}-1.x64.exe
+    ls -l build.pdf/man/SWI-Prolog-$version.pdf
+    ls -l ../swipl-$version.tar.gz
+  fi
+}
+
 build()
 { is_clean_release && force_build
 }
@@ -168,8 +192,10 @@ force_build()
     build_win32
     build_win64
     build_source
-    build_PPAs
+    [ "$PPA" = no ] || build_PPAs
   fi
+
+  list_built
 }
 
 ################

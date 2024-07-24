@@ -105,6 +105,8 @@ and libraries that are built.
   | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
+  | `-DSWIPL_CC=<string>`	  | Default for `c_cc` flag		  |
+  | `-DSWIPL_CXX=<string>`	  | Default for `c_cxx` flag		  |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system            |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages               |
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages            |
