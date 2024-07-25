@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2017-2020, University of Amsterdam
+    Copyright (c)  2017-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -42,7 +42,8 @@
 :- use_module(library(prolog_stack)).
 
 test_continuation :-
-	run_tests([ continuation
+	run_tests([ continuation,
+		    fast_heap
 		  ]).
 
 
@@ -247,3 +248,39 @@ test(context, cleanup(retractall(test_cont_context_d(_)))) :-
    test_cont_context_d(1).
 
 :- end_tests(continuation).
+
+:- begin_tests(fast_heap).
+
+test(fast_heap, forall(data(Term))) :-
+     trip(Term).
+
+trip(Data) :-
+	'$fast_record'(Data, Ref),
+	'$fast_recorded'(Ref, DataCp),
+	Data =@= DataCp.
+
+data(Term) :-
+	data_(Term).
+data(f(Term)) :-
+	data_(Term).
+data(f(Term,Term)) :-
+	data_(Term).
+
+:- if(current_prolog_flag(bounded, false)).
+data_(Big) :- Big is random(1<<200).
+data_(Big) :- Big is -random(1<<200).
+:- endif.
+data_(Med) :- Med is random(1<<55).
+data_(Med) :- Med is -random(1<<55).
+data_(363).
+data_(-363).
+data_(0).
+data_(1r3).
+data_(3.14).
+data_("This is a nice string").
+data_(_Var).
+data_(f(x)).
+data_(f(X,X)).
+data_([nice, list(of(terms))]).
+
+:- end_tests(fast_heap).

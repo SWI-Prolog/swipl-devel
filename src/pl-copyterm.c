@@ -847,6 +847,29 @@ size_abstract_term(DECL_LD term_t in, term_t copy, size_t abstract)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This Prolog binding is for testing purposes only.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("$fast_record", 2, fast_record, 0)
+{ PRED_LD
+  fastheap_term *t = term_to_fastheap(A1);
+  return PL_unify_pointer(A2, t);
+}
+
+static
+PRED_IMPL("$fast_recorded", 2, fast_recorded, 0)
+{ PRED_LD
+  void *ptr;
+
+  if ( !PL_get_pointer_ex(A1, &ptr) )
+    return FALSE;
+
+  term_t tmp = PL_new_term_ref();
+  return put_fastheap(ptr, tmp) && PL_unify(A2, tmp);
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The code below copies a  term  to   the  heap  (program space) just like
 PL_record(). The representation is particularly   suited  for copying it
 back to the stack really quickly: the memory can simply be copied to the
@@ -1106,4 +1129,7 @@ BeginPredDefs(copyterm)
   PRED_DEF("copy_term_nat",      2, copy_term_nat,      0)
   PRED_DEF("copy_term_nat",      4, copy_term_nat,      0)
   PRED_DEF("size_abstract_term", 3, size_abstract_term, 0)
+/* Predicates for testing */
+  PRED_DEF("$fast_record",       2, fast_record,        0)
+  PRED_DEF("$fast_recorded",     2, fast_recorded,      0)
 EndPredDefs
