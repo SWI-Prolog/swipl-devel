@@ -959,10 +959,9 @@ term_to_fastheap(DECL_LD term_t t)
       if ( isIndirect(*p) )
       { Word ip = addressIndirect(*p);
 	size_t sz = wsizeofInd(*ip)+2;
-	size_t go = 1;		/* global has one dummy cell */
 
 	memcpy(indirects, ip, sz*sizeof(word));
-	*o++ = ((go+indirects-fht->data)<<PTR_SHIFT) | tagex(*p);
+	*o++ = (((char*)indirects-(char*)fht->data)<<PTR_SHIFT) | tagex(*p);
 	indirects += sz;
       } else
       { *o++ = relocate_down(*p, offset);
