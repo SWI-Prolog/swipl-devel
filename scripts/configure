@@ -24,7 +24,7 @@ config=$(basename $(pwd))
 
 case $config in
   *gcc-*)
-    version=$(echo $config | sed 's/.*gcc-\(\(mp-\)[0-9]*\).*/\1/')
+    version=$(echo $config | sed 's/.*gcc-\(\(mp-\)\{0,1\}[0-9]*\).*/\1/')
     export CC=gcc-$version
     export CXX=g++-$version
     ;;
