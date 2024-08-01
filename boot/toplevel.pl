@@ -350,7 +350,7 @@ path_sep -->
 %
 %   Update the Prolog flag `argv`, extracting  the leading script files.
 %   This is called after the C based  parser removed Prolog options such
-%   as ``-q``, ``-f none``, etc. These   options  are availabkle through
+%   as ``-q``, ``-f none``, etc.  These   options  are available through
 %   '$cmd_option_val'/2.
 %
 %   Our task is to update the Prolog flag   `argv`  and return a list of
@@ -567,13 +567,13 @@ initialise_prolog :-
     apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     init_optimise,
     '$run_initialization',
-    argv_prolog_files(Files, ScriptMode),
     '$load_system_init_file',                   % -F file
     set_toplevel,                               % set `toplevel_goal` flag from -t
     '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
     init_debug_flags,
     start_pldoc,                                % handle --pldoc[=port]
     opt_attach_packs,
+    argv_prolog_files(Files, ScriptMode),
     load_init_file(ScriptMode),                 % -f file
     catch(setup_colors, E, print_message(warning, E)),
     win_associated_files(Files),                % swipl-win: cd and update title
