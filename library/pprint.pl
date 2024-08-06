@@ -607,7 +607,7 @@ pp_dict_args([Name-Value|T], Ctx, Options) :-
     option(output(Out), Options),
     line_position(Out, Pos0),
     pp(Name, Ctx, Options),
-    write(Out, ':'),
+    write(Out, ': '),
     line_position(Out, Pos1),
     context(Ctx, indent, Indent),
     Indent2 is Indent + Pos1-Pos0,
