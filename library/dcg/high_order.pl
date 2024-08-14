@@ -91,7 +91,7 @@ sequence_([], _) -->
 %   final element is _not_ committed.  More   formally,  it  matches the
 %   following sequence:
 %
-%       Element?, (Sep,Element)*
+%       (Element, (Sep,Element)*)?
 %
 %   See also sequence//5.
 
@@ -104,7 +104,7 @@ sequence(OnElem, OnSep, List) -->
 %   where each pair of elements is separated   by Sep. More formally, it
 %   matches the following sequence:
 %
-%       Start, Element?, (Sep,Element)*, End
+%       Start, (Element, (Sep,Element)*)?, End
 %
 %   The example below matches a Prolog list of integers:
 %
