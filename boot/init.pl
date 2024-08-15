@@ -3539,7 +3539,11 @@ load_files(Module:Files, Options) :-
     length(Args, Arity),
     Head =.. [Name|Args],
     NewHead =.. [NewName|Args],
-    (   '$get_predicate_attribute'(Source:Head, transparent, 1)
+    (   '$get_predicate_attribute'(Source:Head, meta_predicate, Meta)
+    ->  Meta =.. [Name|MetaArgs],
+        NewMeta =.. [NewName|MetaArgs],
+        meta_predicate(Context:NewMeta)
+    ;   '$get_predicate_attribute'(Source:Head, transparent, 1)
     ->  '$set_predicate_attribute'(Context:NewHead, transparent, true)
     ;   true
     ),
