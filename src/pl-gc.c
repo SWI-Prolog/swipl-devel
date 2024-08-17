@@ -2165,12 +2165,18 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	  break;
       }
 	case I_CALLCLEANUP:
-	  mark_frame_var(state, VAROFFSET(1)); /* main goal */
+	{ size_t arity = state->frame->predicate->functor->arity;
+	  size_t arg_goal = arity == 2 ? 1 : 2;
+	  mark_frame_var(state, VAROFFSET(arg_goal-1)); /* main goal */
 	  break;
+	}
 	case I_EXITCLEANUP:
-	  mark_frame_var(state, VAROFFSET(2)); /* The ball */
-	  mark_frame_var(state, VAROFFSET(3)); /* cleanup goal */
+	{ size_t arity = state->frame->predicate->functor->arity;
+	  if ( arity == 4 ) /* setup_call_catcher_cleanup/4 */
+	    mark_frame_var(state, VAROFFSET(arity-2)); /* The ball */
+	  mark_frame_var(state, VAROFFSET(arity-1)); /* cleanup goal */
 	  break;
+	}
 	case I_EXITCATCH:
 	case I_EXITRESET:
 	  mark_frame_var(state, VAROFFSET(1)); /* The ball */
