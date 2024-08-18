@@ -112,6 +112,7 @@ parts:
       - libssl-dev
       - libxext-dev
       - libxft-dev
+      - libxrandr-dev
       - libxinerama-dev
       - libxpm-dev
       - libxt-dev
