@@ -427,6 +427,7 @@ The defined components are:
   | Perl_regex           | PCRE2 library binding                |
   | YAML_support         | Libyaml binding                      |
   | Java_interface       | Java interface (JPL)                 |
+  | Python_interface     | Python interface (Janus)             |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
   | TIPC_networking      | Linux TIPC network support           |
   | Qt_console           | Qt windowed interface                |
