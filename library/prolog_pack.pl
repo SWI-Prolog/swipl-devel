@@ -893,7 +893,8 @@ pack_unpack_from_local(Source0, PackTopDir, Name, PackDir, Options) :-
             link_file(RelPath, PackDir, symbolic),
             assertion(same_file(Source, PackDir))
         )
-    ;   is_git_directory(Source)
+    ;   \+ option(git(false), Options),
+        is_git_directory(Source)
     ->  remove_existing_pack(PackDir, Options),
         run_process(path(git), [clone, Source, PackDir], [])
     ;   prepare_pack_dir(PackDir, Options),
