@@ -1962,6 +1962,7 @@ initPrologFlags(void)
   setPrologFlag("verbose_load", FT_ATOM, "silent");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose_file_search", FT_BOOL, FALSE, 0);
+  setPrologFlag("source_search_working_directory", FT_BOOL, TRUE, 0);
   setPrologFlag("sandboxed_load", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
 		ALLOW_VARNAME_FUNCTOR);

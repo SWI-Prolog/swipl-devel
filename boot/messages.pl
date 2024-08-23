@@ -1824,6 +1824,13 @@ deprecated(autoload(TargetModule, File, _M:PI, expansion)) -->
     load_file(File), [ ' into ' ],
     target_module(TargetModule),
     [ ' is deprecated due to term- or goal-expansion' ].
+deprecated(source_search_working_directory(File, _FullFile)) -->
+    [ 'Found file ', ansi(code, '~w', [File]),
+      ' relative to the current working directory.', nl,
+      'This behaviour is deprecated but still supported by', nl,
+      'the Prolog flag ',
+      ansi(code, source_search_working_directory, []), '.', nl
+    ].
 
 load_file(File) -->
     { file_base_name(File, Base),

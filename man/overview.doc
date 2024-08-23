@@ -2207,6 +2207,16 @@ flag is \const{false} if the hosting OS does not support signal handling
 or the command line option \cmdlineoption{--no-signals} is active.  See
 \secref{sigembedded} for details.
 
+    \prologflagitem{source_search_working_directory}{rw}
+If set to \const{true}, loading a relative file name from source code
+searches relative to the location of the source file as well as relative
+to the working directory. Searching relative to the working directory is
+deprecated and a warning is printed if the file is found this way.
+Furture versions are likely to change the default to
+\const{false}.\footnote{Searching the working directory was supported up
+to version 9.3.8. Version 9.3.9 disabled this and version 9.3.10
+re-enables it with a warning.}
+
     \prologflagitem{stack_limit}{int}{rw}
 Limits the combined sizes of the Prolog stacks for the current thread.
 See also \cmdlineoption{--stack-limit} and \secref{memlimit}.
