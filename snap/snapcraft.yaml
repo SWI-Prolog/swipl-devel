@@ -84,6 +84,7 @@ parts:
       # - libjpeg8
       # - libssl1.1
       # - libx11-6
+      - libxinerama1
       - libossp-uuid16
       - libpcre2-8-0
       - libserd-0-0
