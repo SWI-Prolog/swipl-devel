@@ -1433,15 +1433,17 @@ user:prolog_file_type(dylib,    executable) :-
         '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName)
     ->  true
     ;   current_prolog_flag(source_search_working_directory, true),
-        working_directory(Dir, Dir),
-        '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName),
+	'$extend_file'(File, Exts, Extended),
+	'$file_conditions'(Cond, Extended),
+	'$absolute_file_name'(Extended, FullName),
         '$print_message'(warning,
                          deprecated(source_search_working_directory(
                                         File, FullName)))
     ).
 '$chk_file'(File, Exts, Cond, _Cache, FullName) :-      % Not loading source
-    working_directory(Dir, Dir),
-    '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName).
+    '$extend_file'(File, Exts, Extended),
+    '$file_conditions'(Cond, Extended),
+    '$absolute_file_name'(Extended, FullName).
 
 '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName) :-
     atomic_list_concat([Dir, /, File], AbsFile),
