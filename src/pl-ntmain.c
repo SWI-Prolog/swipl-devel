@@ -746,16 +746,25 @@ free_interactor(void *closure)
 
 static void *
 run_interactor(void *closure)
-{ predicate_t pred;
-  PL_thread_attr_t attr = {0};
+{ PL_thread_attr_t attr = {0};
 
   attr.flags = PL_THREAD_NO_DEBUG;
   PL_thread_attach_engine(&attr);
   pthread_cleanup_push(free_interactor, NULL);
 
+  fid_t fid = PL_open_foreign_frame();
+  if ( fid )
+  { term_t g = PL_new_term_ref();
+    PL_put_term_from_chars(g, REP_UTF8, (size_t)-1,
+			   "use_module(library(threadutil),[])");
+    if ( PL_call(g, NULL) )
+    { predicate_t pred = PL_predicate("thread_run_interactor", 0,
+				      "thread_util");
+      PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);
+    }
 
-  pred = PL_predicate("thread_run_interactor", 0, "user");
-  PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);
+    PL_close_foreign_frame(fid);
+  }
 
   pthread_cleanup_pop(1);
 
