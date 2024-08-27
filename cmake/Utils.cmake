@@ -33,7 +33,7 @@ FUNCTION(ILINK from to)
   get_filename_component(LNTNAME ${from} NAME)
   file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
   install(CODE "EXECUTE_PROCESS(COMMAND ln -sf ${LNLNK} ./${LNTNAME}
-				WORKING_DIRECTORY \$ENV{DESTDIR}${LNTDIR})")
+				WORKING_DIRECTORY \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}${LNTDIR})")
 ENDFUNCTION(ILINK)
 
 # Some autoconf utilities
