@@ -549,11 +549,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
-    { if ( !hasGlobalSpace(text->length*3+1) &&
-	   !PL_from_stack_text(text, 0) )
-	return FALSE;
-
-      if ( text->length == 0 )
+    { if ( text->length == 0 )
       { if ( tail )
 	{ PL_put_term(tail, term);
 	  return TRUE;
@@ -561,8 +557,17 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	{ return PL_unify_nil(term);
 	}
       } else
-      { term_t l = PL_new_term_ref();
-	Word p0, p;
+      { Word p0, p;
+
+	if ( text->storage == PL_CHARS_STACK &&   /* text from a string */
+	     ( !hasGlobalSpace(text->length*3+1) ||
+	       !hasLocalSpace(sizeof(word)) ) &&  /* no shift/GC needed */
+	     !PL_from_stack_text(text, 0) )	  /* shift/gc; if we cannot */
+	  return FALSE;				  /* copy we must fail */
+
+	term_t l = PL_new_term_ref();
+	if ( !l )
+	  return FALSE;
 
 	switch(text->encoding)
 	{ case ENC_ISO_LATIN_1:
@@ -674,7 +679,9 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	  }
 	}
 
-	return CLOSE_SEQ_STRING(p, p0, tail, term, l );
+	int rc = CLOSE_SEQ_STRING(p, p0, tail, term, l );
+	PL_reset_term_refs(l);
+	return rc;
       }
     }
     default:
