@@ -1601,6 +1601,10 @@ is_dialect(swi) :-
 	catch(current_prolog_flag(dialect, swi), _, fail).
 \end{code}
 
+    \prologflagitem{dir_sep}{atom}{r}
+Separator for directories in a file name the OS.  Normally \const{/},
+but \const{\} on Windows.
+
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
 This flag determines how double quoted strings are read by Prolog and is
 ---like \prologflag{character_escapes} and \prologflag{back_quotes}---

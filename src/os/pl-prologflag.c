@@ -2034,9 +2034,11 @@ initPrologFlags(void)
   setPrologFlag("posix_shell", FT_ATOM, POSIX_SHELL);
 #endif
 #ifdef __WINDOWS__
-  setPrologFlag("path_sep", FT_ATOM, ";");
+  setPrologFlag("path_sep", FT_ATOM|FF_READONLY, ";");
+  setPrologFlag("dir_sep", FT_ATOM|FF_READONLY, "\\");
 #else
-  setPrologFlag("path_sep", FT_ATOM, ":");
+  setPrologFlag("path_sep", FT_ATOM|FF_READONLY, ":");
+  setPrologFlag("dir_sep", FT_ATOM|FF_READONLY, "/");
 #endif
 
   setPrologFlag("table_incremental", FT_BOOL, FALSE, PLFLAG_TABLE_INCREMENTAL);
