@@ -222,10 +222,7 @@ conget(Name, Value) :-
 %   Return the directory separator for the platform
 
 slash(Slash) :-
-    (   current_prolog_flag(windows, true)
-    ->  Slash = '\\'
-    ;   Slash = '/'
-    ).
+    current_prolog_flag(dir_sep, Slash).
 
 %!  xsb_backtrace(-Backtrace)
 %
