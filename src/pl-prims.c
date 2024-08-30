@@ -4433,7 +4433,6 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 	return PL_no_memory();
     }
   }
-  assert(0);
 #else
   GET_LD
   return PL_unify(A1, A2);
