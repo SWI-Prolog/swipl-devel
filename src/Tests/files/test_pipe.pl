@@ -113,7 +113,7 @@ test(cat2, [error(io_error(write, _)),
     call_cleanup(
         setup_call_cleanup(
             open(pipe(Cmd), write, Pipe),
-            forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
+            forall(between(1, 120_000, _), format(Pipe, '0123456789~n', [])),
             close(Pipe, [force(true)])),
         Cleanup).
 
