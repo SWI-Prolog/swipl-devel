@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,9 @@
 :- use_module(library(apply)).
 :- use_module(library(debug)).
 :- use_module(library(prolog_stack)).
+:- use_module(library(ansi_term)).
+:- use_module(library(lists)).
+:- use_module(library(random)).
 
 /** <module> Test thread_signal/2 and related primitives.
 */
@@ -51,7 +54,7 @@ test_thread_signals :-
 	      ]).
 
 :- meta_predicate
-    signal(:),
+    signal(:, -),
     ready(:),
     signal_self(:),
     normally(0).
@@ -142,11 +145,11 @@ test(signal) :-
 :- dynamic caught/1.
 
 % there is no _guarantee_ the second signal arrives in time.
-test(nested_likely) :-
+test(nested_likely, cleanup(stop_signal_thread(TID))) :-
     retractall(caught(_)),
     signal(b-[ throw(b(1)),
 	       throw(a(2))
-	     ]),
+	     ], TID),
     catch(a_non_atomic, a(X), r(X)),
     findall(C, retract(caught(C)), CL),
     normally(CL==[2]).
@@ -167,11 +170,11 @@ a_non_atomic_2 :- catch(b_2, b(X), r(X)), sleep(1).
 
 b_2 :- signal_self([throw(b(1)),throw(a(2))]), sleep(1).
 
-test(nested_atomic, CL==[1,2]) :-
+test(nested_atomic, [true(CL==[1,2]), cleanup(stop_signal_thread(TID))]) :-
     retractall(caught(_)),
     signal(b-[ throw(b(1)),
 	       throw(a(2))
-	     ]),
+	     ], TID),
     catch(a_atomic, a(X), r(X)),
     findall(C, retract(caught(C)), CL).
 
@@ -283,7 +286,7 @@ loop(N) :-
     loop(N2).
 loop(_).
 
-%!  signal(+Spec) is det.
+%!  signal(+Spec, -TID) is det.
 %
 %   Send some thread signals according to Spec. The core patterns of
 %   spec are:
@@ -302,10 +305,17 @@ loop(_).
 
 :- dynamic is_ready/2.
 
-signal(M:List) :-
+signal(M:List, TID) :-
     retractall(is_ready(_,_)),
     thread_self(To),
-    thread_create(signal(List, To, M), _, [detached(true)]).
+    thread_create(signal(List, To, M), TID, []).
+
+stop_signal_thread(TID) :-
+    var(TID),
+    !.
+stop_signal_thread(TID) :-
+    catch(thread_send_message(TID, abort), error(_,_), true),
+    thread_join(TID, _).
 
 signal([], _, _) =>
     true.
