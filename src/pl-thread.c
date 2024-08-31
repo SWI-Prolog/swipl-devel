@@ -3428,21 +3428,24 @@ PRED_IMPL("sig_pending", 1, sig_pending, META)
   if ( LD->thread.sig_head )
   { struct siglist sl = {0};
     thread_sig *sg;
-    int rc = FALSE;
+    int rc = TRUE;
 
     sl.list = A1;
 
-    PL_LOCK(L_THREAD);
     for( sg=LD->thread.sig_head; sg; sg = sg->next )
-    { if ( !(rc=append_signal(sg, &sl)) )
-	break;
+    { if ( sg->goal )
+      { if ( !(rc=append_signal(sg, &sl)) )
+	  break;
+      }
     }
-    PL_UNLOCK(L_THREAD);
 
     return rc && close_signals(&sl);
   } else
     return PL_unify_nil(A1);
 }
+
+/** sig_remove(+Pattern, -List) is det.
+*/
 
 static
 PRED_IMPL("sig_remove", 2, sig_remove, META)
@@ -3452,40 +3455,28 @@ PRED_IMPL("sig_remove", 2, sig_remove, META)
   term_t ex = PL_new_term_ref();
   term_t tmp = 0;
   int rc = TRUE;
-  thread_sig *sg, *prev = NULL, *next;
+  thread_sig *sg;
   struct siglist sl = {0};
 
   if ( !PL_strip_module(A1, &m, pattern) )
     return FALSE;
   sl.list = A2;
 
-  PL_LOCK(L_THREAD);
-  for( sg=LD->thread.sig_head; sg; prev=sg, sg = next )
-  { next = sg->next;
+  for( sg=LD->thread.sig_head; sg; sg = sg->next )
+  { record_t rec;
 
-    if ( sg->module == m )
+    if ( (rec=sg->goal) && sg->module == m )
     { if ( !tmp && !(tmp=PL_new_term_ref()) )
       { rc = FALSE;
 	break;
       }
-      if ( PL_recorded(sg->goal, tmp) &&
+      if ( PL_recorded(rec, tmp) &&
 	   can_unify(valTermRef(pattern), valTermRef(tmp), ex) )
-      { thread_sig *rm = sg;
-
-	if ( !(rc=append_signal(sg, &sl)) )
+      { if ( !(rc=append_signal(sg, &sl)) )
 	  break;
 
-	sg = prev;			/* do not update prev */
-	if ( prev )
-	{ prev->next = next;
-	} else
-	{ LD->thread.sig_head = next;
-	  if ( !LD->thread.sig_head )
-	    LD->thread.sig_tail = NULL;
-	}
-
-	PL_erase(rm->goal);
-	freeHeap(rm, sizeof(*rm));
+	sg->goal = NULL;
+	PL_erase(rec);
       } else if ( PL_exception(0) )
       { rc = FALSE;
 	break;
@@ -3495,7 +3486,6 @@ PRED_IMPL("sig_remove", 2, sig_remove, META)
       }
     }
   }
-  PL_UNLOCK(L_THREAD);
 
   return rc && close_signals(&sl);
 }
@@ -3572,6 +3562,31 @@ PRED_IMPL("$sig_unblock", 0, sig_unblock, 0)
   return TRUE;
 }
 
+#define cleanThreadSignals(_) LDFUNC(cleanThreadSignals, _)
+
+static void
+cleanThreadSignals(DECL_LD)
+{ thread_sig *sg, *next, *prev=NULL;
+
+  PL_LOCK(L_THREAD);
+  for(sg=LD->thread.sig_head; sg; sg=next)
+  { next = sg->next;
+
+    if ( !sg->goal )
+    { if ( !prev )
+      { if ( !(LD->thread.sig_head = sg->next) )
+	  LD->thread.sig_tail = NULL;
+      } else
+      { if ( !(prev->next = sg->next) )
+	  LD->thread.sig_tail = prev;
+      }
+      freeHeap(sg, sizeof(*sg));
+    } else
+      prev = sg;
+  }
+  PL_UNLOCK(L_THREAD);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Execute pending signals on this thread. If the thread is no longer alive
@@ -3591,7 +3606,8 @@ executeThreadSignals(int sig)
   fid_t fid;
   (void)sig;
   term_t goal;
-  thread_sig *sg, *prev = NULL, *next;
+  thread_sig *sg, *tail;
+  size_t erased = 0;
 
   if ( !is_alive(LD->thread.info->status) ||
        !(sg=LD->thread.sig_head) ||
@@ -3599,37 +3615,29 @@ executeThreadSignals(int sig)
        !(goal=PL_new_term_ref()) )
     return;
 
-  for( ; sg; prev=sg, sg=next )
+  tail = LD->thread.sig_tail;
+  for( ; sg; sg=sg->next )
   { Module gm;
     term_t ex;
     int rval = FALSE;
 
-    prev=sg;
-    next=sg->next;
-
     if ( sg->blocked ||
+	 !sg->goal ||			/* erased */
 	 signal_is_blocked(sg) )
+    { if ( sg == tail )
+	break;
       continue;
-
-    PL_LOCK(L_THREAD);
-    if ( sg == LD->thread.sig_head )
-    { if ( !(LD->thread.sig_head = sg->next) )
-	LD->thread.sig_tail = NULL;
-    } else
-    { prev->next = sg->next;
-      if ( sg == LD->thread.sig_tail )
-	LD->thread.sig_tail = prev;
     }
-    PL_UNLOCK(L_THREAD);
 
     gm = sg->module;
-    rval = PL_recorded(sg->goal, goal);
-    PL_erase(sg->goal);
-    freeHeap(sg, sizeof(*sg));
-    sg = prev;
+    record_t rec = sg->goal;
+    sg->goal = NULL;
+    erased++;
+    rval = PL_recorded(rec, goal);
+    PL_erase(rec);
 
     if ( !rval )
-      return;				/* No signal or no space to handle */
+      break;				/* No signal or no space to handle */
 
     DEBUG(MSG_THREAD,
 	  Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
@@ -3649,7 +3657,6 @@ executeThreadSignals(int sig)
 
     if ( !rval && ex )
     { PL_raise_exception(ex);
-      PL_close_foreign_frame(fid);
 
       DEBUG(MSG_THREAD,
 	    { Sdprintf("[%d]: Thread signal raised exception. Backtrace:\n",
@@ -3658,11 +3665,16 @@ executeThreadSignals(int sig)
 	      Sdprintf("[%d]: end Prolog backtrace\n", PL_thread_self());
 	    });
 
-      return;
+      break;
     }
+
+    if ( sg == tail )		/* do not process newly added signals */
+      break;			/* may lead to out-of-order handling */
   }
 
   PL_close_foreign_frame(fid);
+  if ( erased )
+    cleanThreadSignals();
 }
 
 

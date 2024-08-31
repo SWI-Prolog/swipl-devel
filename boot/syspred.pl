@@ -1487,8 +1487,7 @@ unblock([H|T], P, List) :-
 
 signal_is_blocked(Head) :-
     nb_current('$sig_blocked', List),
-    '$member'(Head, List),
-    !.
+    memberchk(Head, List).
 
 %!  set_prolog_gc_thread(+Status)
 %

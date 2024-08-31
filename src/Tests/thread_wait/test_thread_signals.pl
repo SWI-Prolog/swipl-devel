@@ -205,7 +205,8 @@ test(chained, Balls == Expected) :-
     ex(Max),
 %   sleep(0.01),
     run,
-    findall(B, retract(ball(B)), Balls).
+    findall(B, retract(ball(B)), Balls0),
+    msort(Balls0, Balls).	% can be out of order
 
 run :-
     b_getval(test_signals_done, true),
