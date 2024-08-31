@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2020, University of Amsterdam
+    Copyright (c)  2004-2024, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -119,6 +120,22 @@ lookup_gvar(DECL_LD atom_t name)
   return 0;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get a global variable value.   Flags is reserved to do/do not allow for
+lazy definition of the variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_getval(atom_t name, term_t val, unsigned int flags)
+{ GET_LD
+  word w = lookup_gvar(name);
+  if ( w )
+  { *valTermRef(val) = w;
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
