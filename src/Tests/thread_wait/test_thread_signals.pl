@@ -150,7 +150,7 @@ test(nested_likely) :-
         test_nested_unlikely
     ->  true
     ;   \+ getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y),
-        format(user_error, 'test signal_nested:nested_likely \
+        format(user_error, 'test signal_nested:nested_likely \c
 			    failed (can happen)~n', [])
     ).
 
