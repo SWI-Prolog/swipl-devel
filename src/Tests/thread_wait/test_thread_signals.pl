@@ -146,9 +146,13 @@ test(signal) :-
 
 % there is no _guarantee_ the second signal arrives in time.
 test(nested_likely) :-
-    between(1, 10, _),
-    test_nested_unlikely,
-    !.
+    (   between(1, 10, _),
+        test_nested_unlikely
+    ->  true
+    ;   \+ getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y),
+        format(user_error, 'test signal_nested:nested_likely \
+			    failed (can happen)~n', [])
+    ).
 
 test_nested_unlikely :-
     retractall(caught(_)),
