@@ -4035,10 +4035,12 @@ file properties, search, naming conventions, etc., from foreign code.
 \begin{description}
     \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
 Translate a Prolog term into a file name. The name is stored in the
-buffer stack described with the PL_get_chars() option \const{BUF_STACK}.
+buffer stack described with the PL_get_chars() option \const{BUF_STACK},
+which is popped upon return from the foreign predicate to Prolog.
 Conversion from the internal UNICODE encoding is done using standard C
 library functions. \arg{flags} is a bit-mask controlling the conversion
-process. Options are:
+process. On failure, \const{PL_FILE_NOERRORS} controls whether an
+exception is raised. Options are:
 
 \begin{description}
     \definition{\const{PL_FILE_ABSOLUTE}}
