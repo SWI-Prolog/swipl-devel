@@ -28,10 +28,14 @@ case $config in
     export CC=gcc-$version
     export CXX=g++-$version
     ;;
-  *clang-*)
+  *clang-[0-9]*)
     version=$(echo $config | sed 's/.*clang-\([0-9]*\).*/\1/')
     export CC=clang-$version
     export CXX=clang++-$version
+    ;;
+  *clang*)
+    export CC=clang
+    export CXX=clang++
     ;;
 esac
 
