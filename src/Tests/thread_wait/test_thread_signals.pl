@@ -145,14 +145,20 @@ test(signal) :-
 :- dynamic caught/1.
 
 % there is no _guarantee_ the second signal arrives in time.
-test(nested_likely, cleanup(stop_signal_thread(TID))) :-
+test(nested_likely) :-
+    between(1, 10, _),
+    test_nested_unlikely,
+    !.
+
+test_nested_unlikely :-
     retractall(caught(_)),
     signal(b-[ throw(b(1)),
 	       throw(a(2))
 	     ], TID),
     catch(a_non_atomic, a(X), r(X)),
+    stop_signal_thread(TID),
     findall(C, retract(caught(C)), CL),
-    normally(CL==[2]).
+    CL == [2].
 
 % The _=_ below and in a_atomic allow this test to work on systems without
 % OS-level signals, since pending signals are only checked at the call port,
