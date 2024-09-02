@@ -39,7 +39,7 @@
 #define VC8 1				/* (aka Microsoft 2005 VC++ */
 #endif
 
-#define NOTTYCONTROL		TRUE	/* default -tty */
+#define NOTTYCONTROL		true	/* default -tty */
 
 #if defined(O_PLMT) && !defined(_REENTRANT)
 #define _REENTRANT 1

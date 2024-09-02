@@ -108,13 +108,13 @@ init_locale_strings(PL_locale *l, struct lconv *conv)
     l->thousands_sep = ls_to_wcs(conv->thousands_sep, L",");
     l->grouping      = strdup(conv->grouping);
 
-    return TRUE;
+    return true;
   } else
   { l->decimal_point = wcsdup(L".");
     l->thousands_sep = wcsdup(L",");
     l->grouping      = strdup("\003");
 
-    return FALSE;
+    return false;
   }
 }
 
@@ -202,7 +202,7 @@ alias_locale(PL_locale *l, atom_t alias)
     l->alias = alias;
     PL_register_atom(alias);
     l->references++;	/* acquireLocale(), but that will deadlock */
-    rc = TRUE;
+    rc = true;
   }
   PL_UNLOCK(L_LOCALE);
 
@@ -226,7 +226,7 @@ write_locale_ref(IOSTREAM *s, atom_t aref, int flags)
 
   Sfprintf(s, "<locale>(%p)", ref->data);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -249,7 +249,7 @@ release_locale_ref(atom_t aref)
     ref->data->symbol = 0;
   PL_UNLOCK(L_LOCALE);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -305,7 +305,7 @@ unifyLocale(term_t t, PL_locale *l, int alias)
     return PL_unify(t, b);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -332,11 +332,11 @@ getLocale(term_t t, PL_locale **lp)
     if ( l )
     { assert(l->magic == LOCALE_MAGIC);
       *lp = acquireLocale(l);
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -345,14 +345,14 @@ getLocaleEx(term_t t, PL_locale **lp)
 { GET_LD
 
   if ( getLocale(t, lp) )
-    return TRUE;
+    return true;
 
   if ( PL_is_atom(t) )
     PL_existence_error("locale", t);
   else
     PL_type_error("locale", t);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -370,7 +370,7 @@ locale_alias_property(DECL_LD void *ctx, term_t prop)
   if ( l->alias )
     return PL_unify_atom(prop, l->alias);
 
-  return FALSE;
+  return false;
 }
 
 #define locale_decimal_point_property(l, prop)  \
@@ -383,7 +383,7 @@ locale_decimal_point_property(DECL_LD void *ctx, term_t prop)
   if ( l->decimal_point && l->decimal_point[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->decimal_point);
 
-  return FALSE;
+  return false;
 }
 
 #define locale_thousands_sep_property(l, prop) \
@@ -396,7 +396,7 @@ locale_thousands_sep_property(DECL_LD void *ctx, term_t prop)
   if ( l->thousands_sep && l->thousands_sep[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->thousands_sep);
 
-  return FALSE;
+  return false;
 }
 
 #define locale_grouping_property(l, prop) \
@@ -413,7 +413,7 @@ locale_grouping_property(DECL_LD void *ctx, term_t prop)
 
     for(s=l->grouping; ; s++)
     { if ( !PL_unify_list(tail, head, tail) )
-	return FALSE;
+	return false;
       if ( s[1] == 0 || (s[1] == s[0] && s[2] == 0) )
 	return ( PL_unify_term(head, PL_FUNCTOR, FUNCTOR_repeat1,
 			       PL_INT, (int)s[0]) &&
@@ -422,11 +422,11 @@ locale_grouping_property(DECL_LD void *ctx, term_t prop)
       if ( s[0] == CHAR_MAX )
 	return PL_unify_nil(tail);
       if ( !PL_unify_integer(head, s[0]) )
-	return FALSE;
+	return false;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -452,7 +452,7 @@ advance_lstate(lprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
     if ( state->p->functor )
-      return TRUE;
+      return true;
 
     state->p = lprop_list;
   }
@@ -463,11 +463,11 @@ advance_lstate(lprop_enum *state)
 
       state->l = l;
 
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -519,9 +519,9 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	    { PL_locale *l;
 
 	      if ( (l = lookupHTableWP(GD->locale.localeTable, alias)) )
-		return unifyLocale(locale, l, FALSE);
+		return unifyLocale(locale, l, false);
 	      else
-		return FALSE;
+		return false;
 	    }
 	    state->e = newTableEnumWP(GD->locale.localeTable);
 	    goto enumerate;
@@ -529,10 +529,10 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	  case 0:
 	    state->e = newTableEnumWP(GD->locale.localeTable);
 	    state->p = lprop_list;
-	    state->enum_properties = TRUE;
+	    state->enum_properties = true;
 	    goto enumerate;
 	  case -1:
-	    return FALSE;
+	    return false;
 	}
       } else if ( getLocale(locale, &state->l) )
       { switch( get_prop_def(property, ATOM_locale_property,
@@ -541,14 +541,14 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	    goto enumerate;
 	  case 0:
 	    state->p = lprop_list;
-	    state->enum_properties = TRUE;
+	    state->enum_properties = true;
 	    goto enumerate;
 	  case -1:
 	    free_lstate(state);
-	    return FALSE;
+	    return false;
 	}
       } else
-      { return FALSE;
+      { return false;
       }
     }
     case FRG_REDO:
@@ -575,7 +575,7 @@ enumerate:
     } else
     { freeTableEnum(state->e);
       assert(state != &statebuf);
-      return FALSE;
+      return false;
     }
   }
 
@@ -593,7 +593,7 @@ enumerate:
 	    goto error;
 	}
 	if ( state->e )
-	{ if ( !unifyLocale(locale, state->l, TRUE) )
+	{ if ( !unifyLocale(locale, state->l, true) )
 	    goto error;
 	}
 
@@ -602,7 +602,7 @@ enumerate:
 	  { lprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
-	    copy->allocated = TRUE;
+	    copy->allocated = true;
 	    state = copy;
 	  }
 
@@ -610,13 +610,13 @@ enumerate:
 	}
 
 	free_lstate(state);
-	return TRUE;
+	return true;
       }
 
       if ( !advance_lstate(state) )
       { error:
 	free_lstate(state);
-	return FALSE;
+	return false;
       }
     }
   }
@@ -630,11 +630,11 @@ set_chars(term_t t, wchar_t **valp)
   if ( PL_get_wchars(t, NULL, &s, CVT_ATOM|CVT_EXCEPTION) )
   { free(*valp);
     if ( (*valp = wcsdup(s)) )
-      return TRUE;
+      return true;
     return PL_no_memory();
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -647,12 +647,12 @@ get_group_size_ex(term_t t, int *s)
   if ( PL_get_integer_ex(t, &i) )
   { if ( i > 0 && i < CHAR_MAX )
     { *s = i;
-      return TRUE;
+      return true;
     }
     PL_domain_error("digit_group_size", t);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -672,19 +672,19 @@ set_grouping(term_t t, char **valp)
 
     if ( PL_is_functor(head, FUNCTOR_repeat1) )
     { if ( !PL_get_nil_ex(tail) )
-	return FALSE;
+	return false;
 
       _PL_get_arg(1, head, head);
       if ( get_group_size_ex(head, &g) )
       { *o++ = (char)g;
 	goto end;
       }
-      return FALSE;
+      return false;
     }
     if ( get_group_size_ex(head, &g) )
     { *o++ = (char)g;
     } else
-      return FALSE;
+      return false;
   }
 
   if ( PL_get_nil_ex(tail) )
@@ -693,11 +693,11 @@ set_grouping(term_t t, char **valp)
     *o++ = '\0';
     free(*valp);
     if ( (*valp = strdup(s)) )
-      return TRUE;
+      return true;
     return PL_no_memory();
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -772,13 +772,13 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     {
     error:
       free_locale(new);
-      return FALSE;
+      return false;
     }
 
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    int rc = unifyLocale(A1, new, TRUE);
+    int rc = unifyLocale(A1, new, true);
     DEBUG(0, assert(new->references == 1));
     return rc;
   } else
@@ -804,10 +804,10 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
     }
 
     releaseLocale(l);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -837,10 +837,10 @@ PRED_IMPL("set_locale", 1, set_locale, 0)
       }
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -852,9 +852,9 @@ PRED_IMPL("current_locale", 1, current_locale, 0)
 { PRED_LD
 
   if ( LD->locale.current )
-    return unifyLocale(A1, LD->locale.current, TRUE);
+    return unifyLocale(A1, LD->locale.current, true);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -914,7 +914,7 @@ initStreamLocale(IOSTREAM *s)
   if ( l )
     s->locale = acquireLocale(l);
 
-  return TRUE;
+  return true;
 }
 
 

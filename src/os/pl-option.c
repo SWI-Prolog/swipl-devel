@@ -66,64 +66,64 @@ get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
     { int bval;
 
       if ( !PL_get_bool_ex(val, &bval) )
-	return FALSE;
+	return false;
       *valp.b = bval;
 
-      return TRUE;
+      return true;
     }
     case OPT_INT:
     { if ( !PL_get_integer_ex(val, valp.i) )
-	return FALSE;
+	return false;
 
-      return TRUE;
+      return true;
     }
     case OPT_INT64:
     { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
 	*valp.i64 = INT64_MAX;
       else if ( !PL_get_int64_ex(val, valp.i64) )
-	return FALSE;
+	return false;
 
-      return TRUE;
+      return true;
     }
     case OPT_UINT64:
     { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
 	*valp.ui64 = (uint64_t)-1;
       if ( !PL_get_uint64_ex(val, valp.ui64) )
-	return FALSE;
+	return false;
 
-      return TRUE;
+      return true;
     }
     case OPT_SIZE:
     { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
 	*valp.sz = (size_t)-1;
       else if ( !PL_get_size_ex(val, valp.sz) )
-	return FALSE;
+	return false;
 
-      return TRUE;
+      return true;
     }
     case OPT_DOUBLE:
     { if ( !PL_get_float_ex(val, valp.f) )
-	return FALSE;
+	return false;
 
-      return TRUE;
+      return true;
     }
     case OPT_STRING:
     { char *str;
 
       if ( !PL_get_chars(val, &str, CVT_ALL|REP_UTF8|BUF_STACK|CVT_EXCEPTION) )
-	return FALSE;
+	return false;
       *valp.s = str;
 
-      return TRUE;
+      return true;
     }
     case OPT_ATOM:
     { atom_t a;
 
       if ( !PL_get_atom_ex(val, &a) )
-	return FALSE;
+	return false;
       *valp.a = a;
 
-      return TRUE;
+      return true;
     }
 #ifdef O_LOCALE
     case OPT_LOCALE:
@@ -131,22 +131,22 @@ get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
       PL_locale **lp = valp.ptr;
 
       if ( !getLocaleEx(val, &l) )
-	return FALSE;
+	return false;
       *lp = l;
 
-      return TRUE;
+      return true;
     }
 #endif
     case OPT_TERM:
     { *valp.t = PL_copy_term_ref(val); /* can't reuse anymore */
 
-      return TRUE;
+      return true;
     }
     default:
       assert(0);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -217,7 +217,7 @@ dict_options(DECL_LD term_t dict, int flags, const char *opttype,
   ctx.flags   = flags;
   ctx.opttype = opttype;
 
-  return _PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
+  return _PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? true : false;
 }
 
 #define vscan_options(list, flags, name, specs, args) \
@@ -231,7 +231,7 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
   term_t list;
   term_t av, head, tmp, val;
   int n;
-  int candiscard = TRUE;
+  int candiscard = true;
   int count = 0;
   (void)opttype;
 
@@ -256,7 +256,7 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
   while ( PL_get_list(list, head, list) )
   { atom_t name;
     size_t arity;
-    int implicit_true = FALSE;
+    int implicit_true = false;
 
     if ( count++ == 1000 )
     { if ( !PL_is_acyclic(list) )
@@ -273,7 +273,7 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
       } else if ( arity == 1 )
       { _PL_get_arg(1, head, val);
       } else if ( arity == 0 )
-      { implicit_true = TRUE;
+      { implicit_true = true;
       } else
       { goto itemerror;
       }
@@ -288,15 +288,15 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
     { if ( s->name == name )
       { if ( implicit_true )
 	{ if ( (s->type&OPT_TYPE_MASK) == OPT_BOOL )
-	  { *(values[n].b) = TRUE;
+	  { *(values[n].b) = true;
 	    break;
 	  }
 	  goto itemerror;
 	}
 	if ( !get_optval(values[n], s, val) )
-	  return FALSE;
+	  return false;
 	if ( (s->type&OPT_TYPE_MASK) == OPT_TERM )
-	  candiscard = FALSE;
+	  candiscard = false;
 	break;
       }
     }

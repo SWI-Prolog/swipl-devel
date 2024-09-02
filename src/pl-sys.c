@@ -83,7 +83,7 @@ PRED_IMPL("getenv", 2, getenv, 0)
         if ( size > 0 )
           rc = PL_unify_chars(value, PL_ATOM|REP_FN, size, buf);
         else
-          rc = FALSE;
+          rc = false;
 
         PL_free(buf);
         return rc;
@@ -132,17 +132,17 @@ PRED_IMPL("sleep", 1, sleep, 0)
 
   if ( PL_get_float_ex(A1, &t) )
   { if ( t < 0.0 )
-      return TRUE;
+      return true;
 #ifdef HAVE_SCHED_YIELD
     if ( t == 0.0 )
     { sched_yield();
-      return TRUE;
+      return true;
     }
 #endif
     return Pause(t);
   }
 
-  return FALSE;
+  return false;
 }
 
 #ifdef __WINDOWS__

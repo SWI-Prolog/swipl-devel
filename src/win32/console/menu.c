@@ -140,10 +140,10 @@ insertMenu(HMENU in, const TCHAR *label, const TCHAR *before)
     { info.fType = MFT_SEPARATOR;
     }
 
-    InsertMenuItem(in, bid, FALSE, &info);
+    InsertMenuItem(in, bid, false, &info);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -173,7 +173,7 @@ findPopup(RlcData b, const TCHAR *name, int *pos)
       info.dwTypeData = nbuf;
       info.cch = sizeof(nbuf);
 
-      if ( !GetMenuItemInfo(mb, i, TRUE, &info) )
+      if ( !GetMenuItemInfo(mb, i, true, &info) )
 	return NULL;
 
       if ( info.fType == MF_STRING )
@@ -251,13 +251,13 @@ rlc_menu_action(rlc_console c, menu_data *data)
     if ( (popup = findPopup(b, data->menu, NULL)) )
       data->rc = insertMenu(popup, data->label, data->before);
     else
-      data->rc = FALSE;
+      data->rc = false;
   } else				/* insert_menu() */
   { HMENU mb;
     HWND hwnd = rlc_hwnd(c);
 
     if ( !(mb = GetMenu(hwnd)) )
-    { data->rc = FALSE;
+    { data->rc = false;
       return;
     }
 
@@ -276,12 +276,12 @@ rlc_menu_action(rlc_console c, menu_data *data)
       info.dwTypeData = (TCHAR *)data->label;
       info.cch = (int)_tcslen(data->label);
 
-      InsertMenuItem(mb, bid, TRUE, &info);
+      InsertMenuItem(mb, bid, true, &info);
 					/* force redraw; not automatic! */
       DrawMenuBar(hwnd);
     }
 
-    data->rc = TRUE;
+    data->rc = true;
   }
 }
 

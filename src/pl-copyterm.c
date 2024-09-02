@@ -114,7 +114,7 @@ mark_vars() is a helper for copy_term/4.
 
 static int
 mark_vars(DECL_LD term_t t, int set)
-{ int rc = TRUE;
+{ int rc = true;
   term_agenda agenda;
   Word p = valTermRef(t);
 
@@ -151,7 +151,7 @@ end_loop:
   { switch(tag(*p))
     { case TAG_ATTVAR:
       case TAG_VAR:
-	if ( rc != TRUE )
+	if ( rc != true )
 	  clear_marks(*p);
         break;
       case TAG_COMPOUND:
@@ -217,7 +217,7 @@ mark_for_duplicate(DECL_LD Word p, int flags)
   }
   clearTermAgenda(&agenda);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -263,8 +263,8 @@ again:
       if ( (flags&COPY_MARKED) &&
 	   virgin(*p) &&
 	   !(flags&COPYING_ATTVAR) )
-	return TRUE;
-      return FALSE;
+	return true;
+      return false;
     case TAG_REFERENCE:
       p = unRef(*p);
       goto again;
@@ -273,7 +273,7 @@ again:
       return is_ground(t->definition);
     }
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -286,11 +286,11 @@ update_ground(DECL_LD Word p, int flags)
 { Functor t = valueTerm(*p);
   int arity = arityFunctor(t->definition);
   Word a = &t->arguments[arity];
-  int ground = TRUE;
+  int ground = true;
 
   while(--a >= t->arguments)
   { if ( !can_share(a, flags) )
-    { ground = FALSE;
+    { ground = false;
       break;
     }
   }
@@ -342,16 +342,16 @@ must_copy_attvar(word w, int flags, int mode)
 { if ( flags & (COPY_ATTRS|COPY_MARKED) )
   { if ( flags & COPY_MARKED )
     { if ( mode & MC_WALK_COPY )
-	return TRUE;
+	return true;
       if ( must_copy(w) )
 	return !!(flags & COPY_ATTRS);
       else
-	return FALSE;
+	return false;
     } else
-    { return TRUE;
+    { return true;
     }
   } else
-  { return FALSE;
+  { return false;
   }
 }
 
@@ -398,7 +398,7 @@ mark_for_copy(DECL_LD Word p, int flags)
       case TAG_REFERENCE:
       { if ( !pushForMark(&stack, p, mode) )
 	{ clearSegStack(&stack);
-	  return FALSE;
+	  return false;
 	}
 	mode |= MC_WALK_REF;
 	deRef(p);
@@ -423,7 +423,7 @@ mark_for_copy(DECL_LD Word p, int flags)
 	if ( arity >= 1 )
 	{ if ( !pushForMark(&stack, p, mode) )
 	  { clearSegStack(&stack);
-	    return FALSE;
+	    return false;
 	  }
 	  mode &= ~MC_WALK_REF;
 	  p = &t->arguments[arity-1];		/* last argument */
@@ -434,7 +434,7 @@ mark_for_copy(DECL_LD Word p, int flags)
 
     if ( p == start )
     { clearSegStack(&stack);
-      return TRUE;
+      return true;
     }
 
     while ( mode&MC_WALK_REF )
@@ -446,7 +446,7 @@ mark_for_copy(DECL_LD Word p, int flags)
       }
       if ( p == start )
       { clearSegStack(&stack);
-	return TRUE;
+	return true;
       }
     }
 
@@ -570,7 +570,7 @@ exitCyclicCopy(DECL_LD int flags)
 static int
 copy_term(DECL_LD Word from, Word to, size_t abstract, int flags)
 { term_agendaLRD agenda;
-  int rc = TRUE;
+  int rc = true;
   size_t aleft = (size_t)-1;
 
   initTermAgendaLRD(&agenda, 1, from, to);
@@ -735,7 +735,7 @@ do_copy_term(DECL_LD Word from, Word to, int abstract, int flags)
 again:
   switch(tag(*from))
   { case TAG_VAR:
-      return TRUE;
+      return true;
     case TAG_REFERENCE:
       from = unRef(*from);
       goto again;
@@ -747,7 +747,7 @@ again:
       /*FALLTHROUGH*/
     default:
       *to = *from;
-      return TRUE;
+      return true;
   }
 
   if ( (flags&COPY_SHARE) )
@@ -755,12 +755,12 @@ again:
 			cp_unmark(from, flags);
 			checkData(from);
 		      });
-    if ( (rc=mark_for_copy(from, flags)) != TRUE )
+    if ( (rc=mark_for_copy(from, flags)) != true )
     { cp_unmark(from, flags);
       return rc;
     }
   } else if ( !(flags&COPY_ABSTRACT) )
-  { if ( (rc=mark_for_duplicate(from, flags)) != TRUE )
+  { if ( (rc=mark_for_duplicate(from, flags)) != true )
     { cp_unmark(from, flags);
       return rc;
     }
@@ -770,7 +770,7 @@ again:
   exitCyclicCopy(flags);
   cp_unmark(from, flags);
   DEBUG(0,
-	if ( rc == TRUE )	     // May lead to "Reference to higher address"
+	if ( rc == true )	     // May lead to "Reference to higher address"
 	{ checkData(from);
 	  checkData(to);
 	});
@@ -791,18 +791,18 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
     Word dest, src;
 
     if ( !(fid = PL_open_foreign_frame()) )
-      return FALSE;			/* no space */
+      return false;			/* no space */
 
     if ( !(dest = allocGlobal(1)) )	/* make a variable on the global */
     { PL_close_foreign_frame(fid);
-      return FALSE;			/* stack */
+      return false;			/* stack */
     }
     setVar(*dest);
     *valTermRef(to) = makeRefG(dest);
     src = valTermRef(from);
 
     if ( vars )
-    { if ( mark_vars(vars, TRUE) != TRUE )
+    { if ( mark_vars(vars, true) != true )
 	return PL_no_memory();
     }
     rc = do_copy_term(src, dest, abstract, flags);
@@ -811,11 +811,11 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
     { PL_discard_foreign_frame(fid);
       PL_put_variable(to);		/* gc consistency */
       if ( vars )
-      { if ( mark_vars(vars, FALSE) != TRUE )
+      { if ( mark_vars(vars, false) != true )
 	  return PL_no_memory();
       }
       if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
-	return FALSE;
+	return false;
       DEBUG(CHK_SECURE, checkStacks(NULL));
     } else
     { PL_close_foreign_frame(fid);
@@ -824,7 +824,7 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
 	      checkData(valTermRef(to));
 	      checkStacks(NULL);
 	    });
-      return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
+      return true;		/* if do_copy_term() == false --> not-ground */
     }
   }
 }
@@ -863,7 +863,7 @@ PRED_IMPL("$fast_recorded", 2, fast_recorded, 0)
   void *ptr;
 
   if ( !PL_get_pointer_ex(A1, &ptr) )
-    return FALSE;
+    return false;
 
   term_t tmp = PL_new_term_ref();
   return put_fastheap(ptr, tmp) && PL_unify(A2, tmp);
@@ -1002,7 +1002,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
   if ( !hasGlobalSpace(fht->data_len) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+    if ( (rc=ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -1019,7 +1019,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
   *valTermRef(t) = makeRefG(o);
   DEBUG(CHK_SECURE, PL_check_data(t));
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1114,7 +1114,7 @@ PRED_IMPL("size_abstract_term", 3, size_abstract_term, 0)
       return PL_unify(copy, A3);
   }
 
-  return FALSE;
+  return false;
 }
 
 		 /*******************************

@@ -172,7 +172,7 @@ stripostfix(const char *s, const char *e)
   if ( ls >= le )
     return strcasecmp(&s[ls-le], e) == 0;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -207,16 +207,16 @@ int_mbscoll(const char *s1, const char *s2, int icase)
   int rc;
 
   if ( l1 < 1024 && (w1 = alloca(sizeof(wchar_t)*(l1+1))) )
-  { ml1 = FALSE;
+  { ml1 = false;
   } else
   { w1 = PL_malloc_atomic(sizeof(wchar_t)*(l1+1));
-    ml1 = TRUE;
+    ml1 = true;
   }
   if ( l2 < 1024 && (w2 = alloca(sizeof(wchar_t)*(l2+1))) )
-  { ml2 = FALSE;
+  { ml2 = false;
   } else
   { w2 = PL_malloc_atomic(sizeof(wchar_t)*(l2+1));
-    ml2 = TRUE;
+    ml2 = true;
   }
 
   memset(&mbs, 0, sizeof(mbs));
@@ -247,7 +247,7 @@ out:
 #ifndef HAVE_MBSCOLL
 int
 mbscoll(const char *s1, const char *s2)
-{ return int_mbscoll(s1, s2, FALSE);
+{ return int_mbscoll(s1, s2, false);
 }
 #endif
 
@@ -255,6 +255,6 @@ mbscoll(const char *s1, const char *s2)
 #ifndef HAVE_MBSCASECOLL
 int
 mbscasecoll(const char *s1, const char *s2)
-{ return int_mbscoll(s1, s2, TRUE);
+{ return int_mbscoll(s1, s2, true);
 }
 #endif

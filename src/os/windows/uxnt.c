@@ -66,9 +66,9 @@
 #include <fcntl.h>
 #include <assert.h>
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#ifndef true
+#define true 1
+#define false 0
 #endif
 
 #if WIN_PATH_MAX
@@ -213,18 +213,18 @@ existsAndWriteableDir(const TCHAR *name)
   if ( a != INVALID_FILE_ATTRIBUTES )
   { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
     { if ( !(a & FILE_ATTRIBUTE_READONLY) )
-	return TRUE;
+	return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
 char *
 _xos_home(void)				/* expansion of ~ */
 { static char home[PATH_MAX];
-  static int done = FALSE;
+  static int done = false;
 
   if ( !done )
   { TCHAR h[PATH_MAX];
@@ -264,7 +264,7 @@ _xos_home(void)				/* expansion of ~ */
       _xos_canonical_filenameW(tmp, home, sizeof(home), 0);
     }
 
-    done = TRUE;
+    done = true;
   }
 
   return home;
@@ -290,10 +290,10 @@ is_unc_path(const char *q)
     for(q=hp; *q && *q < 0x80 && (isalnum(*q) || *q == '.' || *q == ':'); q++)
       ;
     if ( ISSEP(*q) )
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 int
@@ -323,10 +323,10 @@ static int
 is_reserved_name(const wchar_t *name)
 { for(const wchar_t**r = reserved_file_names; *r; r++)
   { if ( _tcsicmp(name, *r) == 0 )
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 /* Work around a bug in GetFullPathNameW() which sometimes starts
@@ -415,7 +415,7 @@ _xos_os_filename(const char *cname, char *osname, size_t len)
 { char *o = osname;
   char *e = osname+len-1;
   const char *s = cname;
-  int unc = FALSE;
+  int unc = false;
   char *eh = NULL;
 
   while( *s )
@@ -423,18 +423,18 @@ _xos_os_filename(const char *cname, char *osname, size_t len)
 
     s = utf8_get_char(s, &c);
     if ( ISSEP(c) )
-    { int insert = FALSE;
+    { int insert = false;
 
       if ( unc )
 	eh = o;				/* end of host */
 
       if ( o == osname )
-      { insert = TRUE;
+      { insert = true;
       } else if ( o == osname+1 && osname[0] == '\\' )
-      { unc = TRUE;
-	insert = TRUE;
+      { unc = true;
+	insert = true;
       } else if ( o[-1] != '\\' )
-      { insert = TRUE;
+      { insert = true;
       }
 
       if ( insert )
@@ -517,11 +517,11 @@ _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 int
 _xos_is_absolute_filename(const char *spec)
 { if ( spec[1] == ':' && !(spec[0]&0x80) && iswalpha(spec[0]) )
-    return TRUE;			/* drive */
+    return true;			/* drive */
   if ( ISSEP(spec[0]) && ISSEP(spec[1]) )
-    return TRUE;			/* UNC */
+    return true;			/* UNC */
 
-  return FALSE;
+  return false;
 }
 
 
@@ -553,7 +553,7 @@ _xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
   int changed = 0;
 
   while(*i)
-  { int dirty = FALSE;
+  { int dirty = false;
 
     while(*i && *i != '\\' && *i != '/' )
     { if ( *i == '~' )
@@ -656,7 +656,7 @@ delete_trailing_slash(wchar_t *s)
 static int
 compare_file_identifiers(const wchar_t *p1, const wchar_t *p2)
 { HANDLE h1 = INVALID_HANDLE_VALUE, h2 = INVALID_HANDLE_VALUE;
-  int rc = FALSE;
+  int rc = false;
 
   if ( (h1=CreateFileW(p1, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
 		       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL))
@@ -683,7 +683,7 @@ compare_file_identifiers(const wchar_t *p1, const wchar_t *p2)
 int
 _xos_same_file(const char *p1, const char *p2)
 { if ( strcmp(p1, p2) == 0 )
-  { return TRUE;
+  { return true;
   } else
   { TCHAR osp1[PATH_MAX], osp2[PATH_MAX];
 
@@ -695,12 +695,12 @@ _xos_same_file(const char *p1, const char *p2)
     delete_trailing_slash(osp2);
 
     if ( _tcsicmp(osp1, osp2) == 0 )
-      return TRUE;
+      return true;
 
     return compare_file_identifiers(osp1, osp2);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -898,7 +898,7 @@ _xos_access(const char *path, int mode)
 
   if ( !OpenThreadToken(GetCurrentThread(),
 			TOKEN_DUPLICATE | TOKEN_READ,
-			TRUE,
+			true,
 			&token) )
   { if ( GetLastError() != ERROR_NO_TOKEN )
       goto simple;
@@ -1046,7 +1046,7 @@ _xos_get_file_time(const char *name, int which, double *tp)
 #define SEC_TO_UNIX_EPOCH 11644473600.0
 
   if ( !_xos_os_filenameW(name, wfile, PATH_MAX) )
-    return FALSE;
+    return false;
 
   if ( (hFile=CreateFileW(wfile,
 			  0,
@@ -1070,7 +1070,7 @@ _xos_get_file_time(const char *name, int which, double *tp)
         break;
       default:
 	assert(0);
-        rc = FALSE;
+        rc = false;
     }
     CloseHandle(hFile);
 
@@ -1100,19 +1100,19 @@ exists_file_or_dir(const TCHAR *path, int flags)
   if ( (a=GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES )
   { if ( (flags & _XOS_DIR) )
     { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
-	return TRUE;
+	return true;
       else
-	return FALSE;
+	return false;
     }
     if ( (flags & _XOS_FILE) )
     { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
-	return FALSE;
+	return false;
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1164,7 +1164,7 @@ opendir(const char *path)
     errno = ENOMEM;
     return NULL;
   }
-  dp->first = TRUE;
+  dp->first = true;
   dp->handle = FindFirstFileExW(buf,
 				FindExInfoBasic, dp->data,
 				FindExSearchNameMatch, NULL,
@@ -1201,7 +1201,7 @@ closedir(DIR *dp)
 struct dirent *
 readdir(DIR *dp)
 { if ( dp->first )
-  { dp->first = FALSE;
+  { dp->first = false;
     if ( dp->handle == INVALID_HANDLE_VALUE )
       return NULL;
   } else

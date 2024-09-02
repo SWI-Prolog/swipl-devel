@@ -84,7 +84,7 @@ pushSegStack_(segstack *stack, void *data)
     if ( !chunk )
       return NULL;			/* out of memory */
 
-    chunk->allocated = TRUE;
+    chunk->allocated = true;
     chunk->size = chunksize;
     chunk->next = NULL;
     chunk->previous = stack->last;
@@ -118,7 +118,7 @@ pushRecordSegStack(segstack *stack, Record r)
     *rp++ = r;
     stack->top = (char*)rp;
 
-    return TRUE;
+    return true;
   } else
   { return !!pushSegStack_(stack, &r);
   }
@@ -139,7 +139,7 @@ popSegStack_(segstack *stack, void *data)
     if ( data )
       memcpy(data, stack->top, stack->unit_size);
 
-    return TRUE;
+    return true;
   } else
   { segchunk *chunk = stack->last;
 
@@ -159,7 +159,7 @@ popSegStack_(segstack *stack, void *data)
       }
     }
 
-    return FALSE;
+    return false;
   }
 }
 

@@ -64,7 +64,7 @@ resetProlog(int clear_stacks)
 
   if ( Sferror(in) )
   { Sclearerr(in);
-    LD->prompt.next = TRUE;
+    LD->prompt.next = true;
   }
 
   Scurin  = in;
@@ -90,7 +90,7 @@ resetProlog(int clear_stacks)
   LD->autoload.loop = NULL;
   updateAlerted(LD);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -98,9 +98,9 @@ static int
 restore_after_exception(term_t except)
 { GET_LD
   atom_t a;
-  int rc = TRUE;
+  int rc = true;
 
-  tracemode(FALSE, NULL);
+  tracemode(false, NULL);
   debugmode(DBG_OFF, NULL);
   if ( PL_get_atom(except, &a) && a == ATOM_aborted )
   { rc = ( callEventHook(PLEV_ABORT) &&
@@ -118,7 +118,7 @@ considered unhandled and thus  can  trap   the  debugger.  I.e., if goal
 terminates due to an exception, the exception   is  reported and goal is
 restarted. Before the restart, the system is   restored to a sane state.
 This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
-debugger.  Return: FALSE: failed, TRUE: success, -1: exception.
+debugger.  Return: false: failed, true: success, -1: exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -128,7 +128,7 @@ query_loop(atom_t goal, int loop)
   int clear_stacks = (LD->query == NULL);
 
   if ( loop )
-    enable_debug_on_interrupt(TRUE);
+    enable_debug_on_interrupt(true);
 
   do
   { fid_t fid;
@@ -195,7 +195,7 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 static foreign_t
 pl_break1(atom_t goal)
 { GET_LD
-  foreign_t rc = TRUE;
+  foreign_t rc = true;
   int old_level = LD->break_level;
 
   IOSTREAM *inSave       = Scurin;
@@ -206,7 +206,7 @@ pl_break1(atom_t goal)
   debug_type debugSave;
   tbl_status tblstat;
 
-  tracemode(FALSE, &traceSave);
+  tracemode(false, &traceSave);
   debugmode(DBG_OFF, &debugSave);
   save_tabling_status(&tblstat);
 
@@ -221,7 +221,7 @@ pl_break1(atom_t goal)
 			PL_INT,  LD->break_level);
   }
 
-  rc = rc && (query_loop(goal, TRUE) == TRUE);
+  rc = rc && (query_loop(goal, true) == true);
 
   if ( LD->break_level > 0 )
   { rc = rc && printMessage(ATOM_informational,
@@ -255,7 +255,7 @@ pl_break(void)
 { GET_LD
   wakeup_state wstate;
 
-  if ( saveWakeup(&wstate, TRUE) )
+  if ( saveWakeup(&wstate, true) )
   { foreign_t rc;
 
     rc = pl_break1(ATOM_dquery_loop);
@@ -264,7 +264,7 @@ pl_break(void)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -302,16 +302,16 @@ PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
   }
 
   if ( PL_unify_integer(A1, flags) && PL_unify_int64(A2, sl) )
-  { debugstatus.tracing   = FALSE;
-    debugstatus.debugging = FALSE;
+  { debugstatus.tracing   = false;
+    debugstatus.debugging = false;
     debugstatus.skiplevel = SKIP_VERY_DEEP;
     setPrologRunMode(RUN_MODE_NORMAL);
     updateAlerted(LD);
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -349,10 +349,10 @@ PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
 
     updateAlerted(LD);
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -416,7 +416,7 @@ PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
     PL_clear_exception();
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -460,11 +460,11 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   { error:
     if ( ex )
       *ex = exception_term;
-    return FALSE;
+    return false;
   }
 
   if ( !PL_strip_module(goal, &module, g) )
-    return FALSE;
+    return false;
   if ( !PL_get_functor(g, &fd) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
     if ( ex )
@@ -478,7 +478,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
    * series
    */
   if ( fd == FUNCTOR_true0 )
-    return TRUE;
+    return true;
 
   proc = resolveProcedure(fd, module);
 
@@ -518,7 +518,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 	*ex = ex2;
 	reset = g;
       }
-      rval = FALSE;
+      rval = false;
     }
 
     if ( !reset )
@@ -535,12 +535,12 @@ abortProlog(void)
 { GET_LD
   fid_t fid;
   term_t ex;
-  int rc = FALSE;
+  int rc = false;
 
   pl_notrace();
   Sreset();				/* Discard pending IO */
 
-  LD->exception.processing = TRUE;	/* allow using spare stack */
+  LD->exception.processing = true;	/* allow using spare stack */
 
   if ( (fid = PL_open_foreign_frame()) &&
        (ex = PL_new_term_ref()) )
@@ -587,13 +587,13 @@ prologToplevel(atom_t goal)
   if ( goal == ATOM_dquery_loop ||
        goal == ATOM_dtoplevel )
   { LD->break_level++;
-    loop = TRUE;
+    loop = true;
   } else
-    loop = FALSE;
+    loop = false;
   rc = query_loop(goal, loop);
   LD->break_level = old_level;
 
-  return rc == TRUE;
+  return rc == true;
 }
 
 
@@ -629,7 +629,7 @@ trap_gdb()
 static
 PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
 { trap_gdb();
-  return TRUE;
+  return true;
 }
 
 #if O_DEBUG || defined(O_MAINTENANCE)
@@ -718,7 +718,7 @@ check_data(DECL_LD Word p, chk_data *context)
 last_arg:
 
 #ifndef O_ATTVAR
-#define isAttVar(p) FALSE
+#define isAttVar(p) false
 #endif
 
   while(isRef(*p))
@@ -920,9 +920,9 @@ PL_check_data(term_t data)
   GET_LD
 
   (void)checkData(valTermRef(data));
-  return TRUE;
+  return true;
 #else
-  return FALSE;
+  return false;
 #endif
 }
 
@@ -953,9 +953,9 @@ getAccessLevelMask(atom_t a, access_level_t *val)
   else if ( a == ATOM_system )
     *val = ACCESS_LEVEL_SYSTEM;
   else
-    return FALSE;
+    return false;
 
-  return TRUE;
+  return true;
 }
 
 

@@ -87,10 +87,10 @@ consoleHandlerRoutine(DWORD id)
 #else
       PL_raise(SIGINT);
 #endif
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 #endif
 
@@ -127,7 +127,7 @@ main(int argc, char **argv)
 {
 #if O_CTRLC
   main_thread_id = GetCurrentThreadId();
-  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, true);
 #endif
 
 #if O_ANSI_COLORS

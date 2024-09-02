@@ -72,7 +72,7 @@ write_closure(IOSTREAM *s, atom_t aref, int flags)
   (void)flags;
 
   Sfprintf(s, "<closure>(%s)", predicateName(&c->def));
-  return TRUE;
+  return true;
 }
 
 
@@ -88,10 +88,10 @@ release_closure(atom_t aref)
 { closure *c = PL_blob_data(aref, NULL, NULL);
   Definition def = &c->def;
 
-  freeCodesDefinition(def, FALSE);
+  freeCodesDefinition(def, false);
   free_lingering(&def->lingering, GEN_MAX);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -153,10 +153,10 @@ get_closure_predicate(DECL_LD term_t t, Definition *def)
   { closure *c = data;
     *def = c->def.impl.wrapped.predicate;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -225,7 +225,7 @@ assert_wrapper(DECL_LD term_t clause)
     ClauseRef cref;
 
     if ( !dref )
-    { retractClauseDefinition(def, cl, FALSE);
+    { retractClauseDefinition(def, cl, false);
       return NULL;
     }
     acquire_def(def);
@@ -270,7 +270,7 @@ retry:
     } else
     { int rc;
 
-      if ( (rc = ensureGlobalSpace(1+arity, ALLOW_GC)) == TRUE )
+      if ( (rc = ensureGlobalSpace(1+arity, ALLOW_GC)) == true )
 	goto retry;
 
       return raiseStackOverflow(rc);
@@ -301,7 +301,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 
   if ( !PL_get_atom_ex(A2, &wname) ||
        !get_procedure(A1, &proc, head, GP_DEFINE) )
-    return FALSE;
+    return false;
   def = proc->definition;
 
   if ( (codes = find_wrapper(def, wname)) )
@@ -310,15 +310,15 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 
     if ( !PL_unify_atom(closure, aref) ||
 	 !unify_wrapped(A4, aref, head) )
-      return FALSE;
+      return false;
 
     if ( (cref = assert_wrapper(A5)) )
     { Clause cl = code2ptr(ClauseRef, codes[1])->value.clause;
 
       codes[1] = ptr2code(cref);
-      retractClauseDefinition(cl->predicate, cl, FALSE);
+      retractClauseDefinition(cl->predicate, cl, false);
 
-      return TRUE;
+      return true;
     }
   } else
   { if ( unify_closure(closure, def, def->codes) )
@@ -327,7 +327,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 
       if ( !PL_get_atom_ex(closure, &aref) ||
 	   !unify_wrapped(A4, aref, head) )
-	return FALSE;				/* something really wrong */
+	return false;				/* something really wrong */
 
       if ( (cref = assert_wrapper(A5)) )
       { codes = allocCodes(4);
@@ -341,12 +341,12 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 
 	setSupervisor(def, codes);
 
-	return TRUE;
+	return true;
       }
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -378,7 +378,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 			    PL_FUNCTOR, FUNCTOR_minus2,
 			      PL_ATOM, code2atom(codes[3]),
 			      PL_TERM, ct) )
-	  return FALSE;
+	  return false;
 
 	codes = c->def.impl.wrapped.supervisor;
 	if ( codes[0] != encode(S_CALLWRAPPER) )
@@ -387,7 +387,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -408,7 +408,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
 
   if ( !PL_get_atom_ex(A2, &wname) ||
        !get_procedure(A1, &proc, head, GP_RESOLVE) )
-    return FALSE;
+    return false;
 
   if ( (codes = find_wrapper(proc->definition, wname)) )
   { atom_t aref = codes[2];
@@ -435,7 +435,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -469,18 +469,18 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
 	continue;
       }
 
-      retractClauseDefinition(cl->predicate, cl, FALSE);
+      retractClauseDefinition(cl->predicate, cl, false);
       *cp = cls->def.impl.wrapped.supervisor;
 
-      freeSupervisor(def, codes, TRUE);
+      freeSupervisor(def, codes, true);
       PL_unregister_atom(aref);
       PL_unregister_atom(wname);
 
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 

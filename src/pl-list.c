@@ -47,7 +47,7 @@
 
 static
 PRED_IMPL("is_list", 1, is_list, 0)
-{ if ( lengthList(A1, FALSE) >= 0 )
+{ if ( lengthList(A1, false) >= 0 )
     succeed;
 
   fail;
@@ -72,7 +72,7 @@ PRED_IMPL("$length", 2, dlength, 0)
       if ( !hasGlobalSpace(len*3) )
       { int rc;
 
-	if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
+	if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
 	  return raiseStackOverflow(rc);
       }
 
@@ -91,7 +91,7 @@ PRED_IMPL("$length", 2, dlength, 0)
     } else if ( len == 0 )
     { return PL_unify_nil(A1);
     } else
-    { return FALSE;
+    { return false;
     }
   } else if ( PL_is_integer(A2) )
   { number i;
@@ -100,7 +100,7 @@ PRED_IMPL("$length", 2, dlength, 0)
     deRef(p);
     get_integer(*p, &i);
     if ( ar_sign_i(&i) < 0 )
-      return FALSE;
+      return false;
 
     return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
   }
@@ -119,12 +119,12 @@ PRED_IMPL("$memberchk", 3, memberchk, 0)
   fid_t fid;
 
   if ( !(fid=PL_open_foreign_frame()) )
-    return FALSE;
+    return false;
 
   for(;;)
   { if ( ++done % 10000 == 0 )
     { if ( PL_handle_signals() < 0 )
-	return FALSE;
+	return false;
       if ( done > usedStack(global)/(sizeof(word)*2) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, A2);
     }
@@ -137,7 +137,7 @@ PRED_IMPL("$memberchk", 3, memberchk, 0)
     if ( !PL_unify_list(l, h, l) )
     { PL_close_foreign_frame(fid);
       PL_unify_nil_ex(l);
-      return FALSE;
+      return false;
     }
 
     if ( PL_unify(A1, h) )
@@ -228,7 +228,7 @@ typedef struct
 
 					/* TBD: handle CMP_ERROR */
 #ifndef COMPARE_KEY
-#define COMPARE_KEY(x,y) compareStandard((x)->key.as_ptr, (y)->key.as_ptr, FALSE)
+#define COMPARE_KEY(x,y) compareStandard((x)->key.as_ptr, (y)->key.as_ptr, false)
 #endif
 #ifndef FREE
 /* FREE() leaves the struct as three variables on the global stack */
@@ -471,7 +471,7 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
     return SORT_NOSORT;
 
   if ( !hasGlobalSpace(len*3) )
-  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
+  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
     { raiseStackOverflow(rc);
       return SORT_ERR;
     }
@@ -544,7 +544,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
   Word top = NULL;
 
   if ( !ensureLocalSpace(sizeof(word)) )
-    return FALSE;
+    return false;
 
   static_assertion(sizeof(*l) == 3*sizeof(word));
 
@@ -552,7 +552,7 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
 				   argc, argv, pair,
 				   &l, &top) )
   { case SORT_ERR:
-      return FALSE;
+      return false;
     case SORT_NIL:
       return PL_unify_nil(out);
     case SORT_NOSORT:
@@ -577,8 +577,8 @@ PRED_IMPL("sort", 2, sort, PL_FA_ISO)
 { PRED_LD
 
   return pl_nat_sort(A1, A2,
-		     TRUE, SORT_ASC,
-		     0, NULL, FALSE);
+		     true, SORT_ASC,
+		     0, NULL, false);
 }
 
 
@@ -587,8 +587,8 @@ PRED_IMPL("msort", 2, msort, 0)
 { PRED_LD
 
   return pl_nat_sort(A1, A2,
-		     FALSE, SORT_ASC,
-		     0, NULL, FALSE);
+		     false, SORT_ASC,
+		     0, NULL, false);
 }
 
 
@@ -597,8 +597,8 @@ PRED_IMPL("keysort", 2, keysort, PL_FA_ISO)
 { PRED_LD
 
   return pl_nat_sort(A1, A2,
-		     FALSE, SORT_ASC,
-		     0, NULL, TRUE);
+		     false, SORT_ASC,
+		     0, NULL, true);
 }
 
 /** sort(+Key, +Order, +Random, -Sorted)
@@ -619,18 +619,18 @@ get_key_arg_ex(DECL_LD term_t t, word *k, int zero_ok)
 
     if ( v > 0 )
     { *k = *p;
-      return TRUE;
+      return true;
     }
     if ( v == 0 )
     { *k = *p;
       if ( zero_ok )
-	return TRUE;
+	return true;
     }
   }
 
   if ( isAtom(*p) )
   { *k = *p;
-    return TRUE;
+    return true;
   }
 
   if ( isInteger(*p) )
@@ -640,7 +640,7 @@ get_key_arg_ex(DECL_LD term_t t, word *k, int zero_ok)
     if ( ar_sign_i(&n) <= 0 )
       PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, t);
 
-    return FALSE;
+    return false;
   }
 
   return -1;
@@ -653,14 +653,14 @@ typedef struct order_def
 } order_def;
 
 static const order_def order_defs[] =
-{ { ATOM_smaller,	SORT_ASC,  TRUE	 },
-  { ATOM_at_smaller,	SORT_ASC,  TRUE	 },
-  { ATOM_smaller_equal,	SORT_ASC,  FALSE },
-  { ATOM_at_smaller_eq,	SORT_ASC,  FALSE },
-  { ATOM_larger,	SORT_DESC, TRUE	 },
-  { ATOM_at_larger,	SORT_DESC, TRUE	 },
-  { ATOM_larger_equal,	SORT_DESC, FALSE },
-  { ATOM_at_larger_eq,	SORT_DESC, FALSE },
+{ { ATOM_smaller,	SORT_ASC,  true	 },
+  { ATOM_at_smaller,	SORT_ASC,  true	 },
+  { ATOM_smaller_equal,	SORT_ASC,  false },
+  { ATOM_at_smaller_eq,	SORT_ASC,  false },
+  { ATOM_larger,	SORT_DESC, true	 },
+  { ATOM_at_larger,	SORT_DESC, true	 },
+  { ATOM_larger_equal,	SORT_DESC, false },
+  { ATOM_at_larger_eq,	SORT_DESC, false },
   { 0 }
 };
 
@@ -675,9 +675,9 @@ PRED_IMPL("sort", 4, sort, 0)
   atom_t order_name;
   const order_def *od;
 
-  if ( (rc=get_key_arg_ex(A1, argv, TRUE)) == FALSE )
-    return FALSE;
-  if ( rc == TRUE )				/* Key is integer */
+  if ( (rc=get_key_arg_ex(A1, argv, true)) == false )
+    return false;
+  if ( rc == true )				/* Key is integer */
   { if ( argv[0] == consInt(0) )
     { argc = 0;
       argv = NULL;
@@ -697,8 +697,8 @@ PRED_IMPL("sort", 4, sort, 0)
 	    return PL_no_memory();
 	}
         for(argc=0; PL_get_list(tail, head, tail); argc++)
-	{ if ( get_key_arg_ex(head, &argv[argc], FALSE) != TRUE )
-	  { rc = FALSE;
+	{ if ( get_key_arg_ex(head, &argv[argc], false) != true )
+	  { rc = false;
 	    goto out;
 	  }
 	}
@@ -724,7 +724,7 @@ PRED_IMPL("sort", 4, sort, 0)
 
   rc = pl_nat_sort(A3, A4,
 		   od->remove_dups, od->order,
-		   argc, argv, FALSE);
+		   argc, argv, false);
 
 out:
   if ( argv && argv != tmp )

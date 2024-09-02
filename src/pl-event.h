@@ -138,7 +138,7 @@ callEventHook(pl_event_type ev, ...)
     return rc;
   }
 
-  return TRUE;
+  return true;
 }
 
 #endif /*_PL_EVENT_H*/

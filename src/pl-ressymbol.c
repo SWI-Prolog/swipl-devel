@@ -126,7 +126,7 @@ compareReservedSymbol(atom_t h1, atom_t h2)
 
 atom_t
 textToReservedSymbol(PL_chars_t *text)
-{ if ( PL_canonicalise_text(text) != TRUE )
+{ if ( PL_canonicalise_text(text) != true )
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )

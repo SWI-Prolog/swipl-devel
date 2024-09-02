@@ -247,19 +247,19 @@ PRED_IMPL("$cov_add", 3, cov_add, 0)
 
   if ( !PL_get_int64_ex(A2, &enter) ||
        !PL_get_int64_ex(A3, &exit) )
-    return FALSE;
+    return false;
 
   if ( PL_is_functor(A1, FUNCTOR_call_site2) )
   { _PL_get_arg(2, A1, tmp);
     if ( !PL_get_int64_ex(tmp, &pc_offset) )
-      return FALSE;
+      return false;
   } else if ( !PL_is_functor(A1, FUNCTOR_clause1) )
   { return PL_domain_error("cov_data", A1);
   }
 
   _PL_get_arg(1, A1, tmp);
   int rc;
-  if ( (rc=PL_get_clref(tmp, &cl)) != TRUE )
+  if ( (rc=PL_get_clref(tmp, &cl)) != true )
   { if ( rc == -1 )
       return PL_existence_error("db_reference", tmp);
   }
@@ -280,7 +280,7 @@ PRED_IMPL("$cov_add", 3, cov_add, 0)
     ATOMIC_ADD(&obj->exits, exit);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -298,14 +298,14 @@ unify_cov(term_t t, const cov_obj *cov)
 				  PL_ATOM,  cov->cref,
 				  PL_INT64, pc);
       }
-      return FALSE;
+      return false;
     }
     case COV_CLAUSE:
       return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_clause1,
 				PL_ATOM, cov->cref);
     default:
       assert(0);
-      return FALSE;
+      return false;
   }
 }
 
@@ -345,20 +345,20 @@ save_state(cov_data_state *state)
 
   cov_data_state *s = allocForeignState(sizeof(*s));
   *s = *state;
-  s->saved = TRUE;
+  s->saved = true;
   return s;
 }
 
 static int
 is_candidate(cov_data_state *state, cov_obj *cov)
 { if ( state->type != COV_ANY && cov->type != state->type )
-    return FALSE;
+    return false;
   if ( state->cref && cov->cref != state->cref )
-    return FALSE;
+    return false;
   if ( cov->enter == 0 && cov->exits == 0 )
-    return FALSE;
+    return false;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -375,7 +375,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
       if ( !(cov=LD->coverage.data) ||
 	   !(cov_table=cov->table) )
-	return FALSE;
+	return false;
 
       if ( PL_is_variable(A1) )
       {	state->e = newTableEnumPP(cov_table);
@@ -387,10 +387,10 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
 	_PL_get_arg(1, A1, a);
 	if ( !PL_is_variable(a) && !PL_get_clref(a, &cl) )
-	  return FALSE;
+	  return false;
 	_PL_get_arg(2, A1, a);
 	if ( !PL_is_variable(a) && !PL_get_int64_ex(a, &pc_offset) )
-	  return FALSE;
+	  return false;
 
 	if ( cl && pc_offset != -1 )
 	{ Code pc = cl->codes+pc_offset;
@@ -420,7 +420,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 		     PL_unify_int64(A2, cov->enter) &&
 		     PL_unify_int64(A3, cov->exits) );
 	  } else
-	    return FALSE;
+	    return false;
 	} else
 	{ state->e = newTableEnumPP(cov_table);
 	  state->type = COV_CLAUSE;
@@ -434,7 +434,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
     case FRG_CUTTED:
       state = CTX_PTR;
       free_state(state);
-      return TRUE;
+      return true;
     default:
       assert(0);
   }
@@ -462,7 +462,7 @@ PRED_IMPL("$cov_data", 3, cov_data, PL_FA_NONDETERMINISTIC)
 
   PL_close_foreign_frame(fid);
   free_state(state);
-  return FALSE;
+  return false;
 }
 
 int
@@ -478,7 +478,7 @@ free_coverage_data(PL_local_data_t *ld)
       unshare_coverage_data(cov);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -514,16 +514,16 @@ PRED_IMPL("$cov_start(-Nesting)", 1, cov_start, 0)
 
   if ( !LD->coverage.data )
   { if ( !PL_unify_integer(A1, 1) )
-      return FALSE;
+      return false;
     LD->coverage.data = newCoverageData();
   } else if ( !PL_unify_integer(A1, LD->coverage.active+1) )
-    return FALSE;
+    return false;
 
   clearPrologRunMode(RUN_MODE_NORMAL);
   LD->coverage.active++;
   updateAlerted(LD);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -539,11 +539,11 @@ PRED_IMPL("$cov_stop", 1, cov_stop, 0)
 { PRED_LD
 
   if ( !LD->coverage.active )
-    return FALSE;
+    return false;
 
   int active;
   if ( !PL_get_integer_ex(A1, &active) )
-    return FALSE;
+    return false;
   active--;
 
   if ( LD->coverage.active != active )
@@ -556,7 +556,7 @@ PRED_IMPL("$cov_stop", 1, cov_stop, 0)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -565,7 +565,7 @@ PRED_IMPL("$cov_active", 1, cov_active, 0)
 { PRED_LD
 
   if ( !LD->coverage.active )
-    return FALSE;
+    return false;
 
   return PL_unify_integer(A1, LD->coverage.active);
 }

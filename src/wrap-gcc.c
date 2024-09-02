@@ -41,14 +41,14 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define FALSE 0
-#define TRUE 1
+#define false 0
+#define true 1
 
 int
 main(int argc, char *argv[])
 { const char *pgo_suffix = argv[1];
   char *outfile = NULL, *tempfile = NULL;
-  int dash_o = FALSE;
+  int dash_o = false;
   int status;
 
   if (argc < 3)
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
 
   for (int i = 0; i < argc; i++)
   { if ( dash_o )
-    { dash_o = FALSE;
+    { dash_o = false;
       outfile = argv[i];
       tempfile = strdup(outfile);
       for(char *tagloc = strstr(tempfile, pgo_suffix);
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
       }
       argv[i] = tempfile;
     } else if (strcmp(argv[i], "-o") == 0)
-      dash_o = TRUE;
+      dash_o = true;
   }
 
   if ( !fork() )

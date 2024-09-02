@@ -135,7 +135,7 @@ zlock(zipper *z)
   { z->lock_count++;
   }
 
-  return TRUE;
+  return true;
 }
 
 static int
@@ -162,7 +162,7 @@ zunlock(zipper *z)
   { goto error;
   }
 
-  return TRUE;
+  return true;
 }
 
 typedef struct valid_transition
@@ -210,7 +210,7 @@ ok:
     *prev_state = z->state;
   z->state = state;
 
-  return TRUE;
+  return true;
 }
 
 static int
@@ -218,7 +218,7 @@ zrelease(zipper *z)
 { z->state = ZIP_IDLE;
   zdisown(z);
 
-  return TRUE;
+  return true;
 }
 
 		 /*******************************
@@ -453,7 +453,7 @@ write_zipper(IOSTREAM *s, atom_t aref, int flags)
 { zipper *ref = PL_blob_data(aref, NULL, NULL);
 
   Sfprintf(s, "<zipper>(%p)", ref);
-  return TRUE;
+  return true;
 }
 
 static void
@@ -523,7 +523,7 @@ release_zipper(atom_t aref)
 #endif
   free(z);
 
-  return TRUE;
+  return true;
 }
 
 static int
@@ -572,11 +572,11 @@ get_zipper(term_t t, zipper **zipper)
 
   if ( PL_get_blob(t, &p, &len, &type) && type == &zipper_blob )
   { *zipper = p;
-    return TRUE;
+    return true;
   }
 
   PL_type_error("zipper", t);
-  return FALSE;
+  return false;
 }
 
 		 /*******************************
@@ -595,14 +595,14 @@ static
 PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
 { zipper *z = NULL;
   IOSTREAM *stream = NULL;
-  int close_parent = FALSE;
+  int close_parent = false;
 
   if ( !PL_scan_options(A3, 0, "zip_options", zip_open_stream_options,
 		     &close_parent) )
-    return FALSE;
+    return false;
 
   if ( !PL_get_stream(A1, &stream, 0) )
-    return FALSE;
+    return false;
 
   if ( !(z=malloc(sizeof(*z))) )
     return PL_resource_error("memory");
@@ -617,7 +617,7 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
 #endif
 
   if ( (stream->flags&SIO_OUTPUT) )
-  { if ( (z->writer=zipOpen2_64(stream, FALSE,
+  { if ( (z->writer=zipOpen2_64(stream, false,
 				NULL,
 				&zstream_functions)) )
     { return unify_zipper(A2, z);
@@ -670,7 +670,7 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
     return unify_zipper(A2, clone);
   }
 
-  return FALSE;
+  return false;
 }
 
 /** zip_close(+Zipper, +Comment)
@@ -689,15 +689,15 @@ PRED_IMPL("zip_close_", 2, zip_close, 0)
        zacquire(z, ZIP_CLOSE, &prev_state, "close") )
   { if ( prev_state == ZIP_READ_ENTRY )
     { PL_register_atom(z->symbol);
-      return TRUE;				/* delay */
+      return true;				/* delay */
     } else if ( close_zipper(z) == 0 )
-    { return TRUE;
+    { return true;
     } else
     { return PL_warning("zip_close/2 failed");
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 /** zip_lock(+Zipper)
@@ -711,7 +711,7 @@ PRED_IMPL("zip_lock", 1, zip_lock, 0)
   { return zlock(z);
   }
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -722,7 +722,7 @@ PRED_IMPL("zip_unlock", 1, zip_unlock, 0)
   { return zunlock(z);
   }
 
-  return FALSE;
+  return false;
 }
 
 		 /*******************************
@@ -898,11 +898,11 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int level = 6;
   atom_t method = ATOM_deflated;
   int imethod;
-  int zip64 = FALSE;
+  int zip64 = false;
 
   if ( !PL_scan_options(A4, 0, "zip_options", zip_new_file_options,
 			&extra, &comment, &ftime, &method, &level, &zip64) )
-    return FALSE;
+    return false;
 
   if ( extra )
     extralen = strlen(extra);
@@ -940,7 +940,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
 				 comment,	/* comment */
 				 imethod,	/* method */
 				 level,		/* level */
-				 FALSE,		/* raw */
+				 false,		/* raw */
 				 -MAX_WBITS,	/* windowBits */
 				 DEF_MEM_LEVEL,	/* memLevel */
 				 Z_DEFAULT_STRATEGY, /* strategy */
@@ -960,7 +960,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 /** zipper_goto(+Zipper, +File) is det.
@@ -980,7 +980,7 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
       return PL_warning("Not open for reading");
 
     if ( !zacquire(z, ZIP_SCAN, NULL, "goto") )
-      return FALSE;
+      return false;
 
     if ( PL_get_atom(A2, &a) )
     { int rc;
@@ -993,10 +993,10 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 	return PL_domain_error("zipper_goto", A2);
 
       if ( rc == UNZ_OK )
-	return TRUE;
+	return true;
       if ( rc == UNZ_END_OF_LIST_OF_FILE )
       { zrelease(z);
-	return FALSE;
+	return false;
       }
       Sdprintf("zipper_goto/2: rc=%d (%s)\n", rc,
 	       a == ATOM_first ? "first" : "next");
@@ -1009,12 +1009,12 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 
       if ( PL_get_arg(1, A2, arg) &&
 	   PL_get_chars(arg, &fname, flags) )
-      { switch((rc=unzLocateFile(z->reader, fname, TRUE)))
+      { switch((rc=unzLocateFile(z->reader, fname, true)))
 	{ case UNZ_OK:
-	    return TRUE;
+	    return true;
 	  case UNZ_END_OF_LIST_OF_FILE:
 	    zrelease(z);
-	    return FALSE;
+	    return false;
 	}
 	Sdprintf("zipper_goto/2: rc=%d file(%s)\n", rc, fname);
 	assert(0);
@@ -1027,7 +1027,7 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
 	   PL_get_int64_ex(arg, &offset) )
       { switch(unzSetOffset64(z->reader, offset))
 	{ case UNZ_OK:
-	    return TRUE;
+	    return true;
 	  default:
 	    zrelease(z);
 	    return PL_existence_error("zip_entry", arg);
@@ -1039,7 +1039,7 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 /** zip_open_current(+Zipper, -Stream, +Options) is det.
@@ -1063,19 +1063,19 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
   atom_t type       = ATOM_text;
   atom_t encoding   = NULL_ATOM;
   int	 bom        = -1;
-  int    release    = TRUE;
-  int	 reposition = FALSE;
+  int    release    = true;
+  int	 reposition = false;
   size_t size       = 0;
   int flags         = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   IOENC enc;
 
   if ( !PL_scan_options(A3, 0, "stream_option", zipopen3_options,
 			&type, &encoding, &bom, &release, &reposition) )
-    return FALSE;
+    return false;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
-    return FALSE;
+    return false;
   if ( bom == -1 )
-    bom = TRUE;
+    bom = true;
 
   if ( type == ATOM_text )
   { flags |= SIO_TEXT;
@@ -1090,7 +1090,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
       return PL_warning("Not open for reading");
 
     if ( !zacquire(z, ZIP_READ_ENTRY, NULL, "open_current") )
-      return FALSE;
+      return false;
 
     if ( release )
       set(z, ZIP_RELEASE_ON_CLOSE);
@@ -1136,7 +1136,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
     PL_warning("Failed to open current");
   }
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -1173,7 +1173,7 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -1185,10 +1185,10 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
 	 unify_zipper(A1, GD->resources.DB) &&
 	 PL_get_atom(A1, &GD->resources.handle) )
     { PL_register_atom(GD->resources.handle);
-      return TRUE;
+      return true;
     }
 
-    return FALSE;
+    return false;
   } else
   { return PL_unify_atom(A1, GD->resources.handle);
   }
@@ -1363,7 +1363,7 @@ zip_open_archive(const char *file, int flags)
   } else
   { DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
 
-    if ( !(z.writer = zipOpen2_64(file, FALSE, NULL, &zfile_functions)) )
+    if ( !(z.writer = zipOpen2_64(file, false, NULL, &zfile_functions)) )
       return NULL;
 
     if ( (r = malloc(sizeof(*r))) )
@@ -1424,7 +1424,7 @@ IOSTREAM *
 SopenZIP(zipper *z, const char *name, int flags)
 { if ( z->reader )
   { if ( zacquire(z, ZIP_SCAN, NULL, "goto") &&
-	 unzLocateFile(z->reader, name, TRUE) == UNZ_OK &&
+	 unzLocateFile(z->reader, name, true) == UNZ_OK &&
 	 zacquire(z, ZIP_READ_ENTRY, NULL, "open_current") &&
 	 unzOpenCurrentFile(z->reader) == UNZ_OK )
     { set(z, ZIP_RELEASE_ON_CLOSE);
@@ -1446,7 +1446,7 @@ SopenZIP(zipper *z, const char *name, int flags)
 				 NULL,		/* comment */
 				 Z_DEFLATED,	/* method */
 				 6,		/* level */
-				 FALSE,		/* raw */
+				 false,		/* raw */
 				 -MAX_WBITS,	/* windowBits */
 				 DEF_MEM_LEVEL,	/* memLevel */
 				 Z_DEFAULT_STRATEGY, /* strategy */
@@ -1454,7 +1454,7 @@ SopenZIP(zipper *z, const char *name, int flags)
 				 0,		/* crc */
 				 VERSIONMADEBY,	/* versionMadeBy */
 				 0,		/* flagBase */
-				 FALSE);	/* zip64 */
+				 false);	/* zip64 */
     if ( rc == 0 )
     { set(z, ZIP_RELEASE_ON_CLOSE);
       return Snew(z, SIO_OUTPUT, &Szipfunctions);

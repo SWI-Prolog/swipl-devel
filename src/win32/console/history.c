@@ -40,9 +40,9 @@
 #include "console_i.h"			/* internal stuff */
 #include <string.h>
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#ifndef true
+#define true 1
+#define false 0
 #endif
 
 static __inline int
@@ -151,7 +151,7 @@ rlc_for_history(rlc_console c,
 
 int
 rlc_at_head_history(RlcData b)
-{ return b->history.current == -1 ? TRUE : FALSE;
+{ return b->history.current == -1 ? true : false;
 }
 
 

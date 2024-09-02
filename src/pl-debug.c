@@ -284,12 +284,12 @@ static int
 prolog_debug_topic(const char *topic, int flag)
 { long level;
   char *end;
-  int success = FALSE;
+  int success = false;
 
   level = strtol(topic, &end, 10);
   if ( end > topic && *end == EOS )
   { GD->debug_level = level;
-    success = TRUE;
+    success = true;
   } else
   { const debug_topic *dt = NULL;
 
@@ -303,7 +303,7 @@ prolog_debug_topic(const char *topic, int flag)
 
     while ( (dt = get_next_debug_topic(topic, dt)) )
     { int code = dt->code;
-      success = TRUE;
+      success = true;
 
       if ( code <= DBG_LEVEL9 )
 	GD->debug_level = code;
@@ -353,7 +353,7 @@ prolog_debug_from_string(const char *spec, int flag)
       buf[end-spec] = EOS;
       if ( !prolog_debug_topic(buf, flag) )
       { if (quiet)
-	  return FALSE;
+	  return false;
 	Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
 	PL_halt(1);
       }
@@ -366,24 +366,24 @@ prolog_debug_from_string(const char *spec, int flag)
 
   if ( !prolog_debug_topic(spec, flag) )
   { if (quiet)
-      return FALSE;
+      return false;
     Sdprintf("ERROR: Unknown debug topic: %s\n", spec);
     PL_halt(1);
   }
 
-  return TRUE;
+  return true;
 }
 
 
 int
 PL_prolog_debug(const char *topic)
-{ return prolog_debug_topic(topic, TRUE);
+{ return prolog_debug_topic(topic, true);
 }
 
 
 int
 PL_prolog_nodebug(const char *topic)
-{ return prolog_debug_topic(topic, FALSE);
+{ return prolog_debug_topic(topic, false);
 }
 
 
@@ -396,7 +396,7 @@ prolog_debug(term_t t, int flag)
     fail;
 
   if ( prolog_debug_topic(topic, flag) )
-    return TRUE;
+    return true;
 
   return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_debug_topic, t);
 }
@@ -404,13 +404,13 @@ prolog_debug(term_t t, int flag)
 
 static
 PRED_IMPL("prolog_debug", 1, pl_prolog_debug, 0)
-{ return prolog_debug(A1, TRUE);
+{ return prolog_debug(A1, true);
 }
 
 
 static
 PRED_IMPL("prolog_nodebug", 1, pl_prolog_nodebug, 0)
-{ return prolog_debug(A1, FALSE);
+{ return prolog_debug(A1, false);
 }
 
 

@@ -89,9 +89,9 @@ emptySegStack(segstack *s)
 	( segStackHasData(stack)				\
 		? ( (stack)->top -= sizeof(type),		\
 		    *to = *(type*)(stack)->top,			\
-		    TRUE					\
+		    true					\
 		  )						\
-		: !(stack)->last || !(stack)->last->previous ? FALSE \
+		: !(stack)->last || !(stack)->last->previous ? false \
 		: popSegStack_((stack), to)			\
 	)
 
@@ -99,7 +99,7 @@ emptySegStack(segstack *s)
 	( segStackHasSpace(stack, sizeof(type))			\
 		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
-		    TRUE					\
+		    true					\
 		  )						\
 		: !!pushSegStack_((stack), &data)		\
 	)
@@ -169,10 +169,10 @@ static inline int
 quickPopTopOfSegStack(segstack *stack)
 { if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 

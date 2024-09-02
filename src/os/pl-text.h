@@ -62,7 +62,7 @@ typedef struct
 					/* private stuff */
   IOENC encoding;			/* how it is encoded */
   PL_chars_alloc_t storage;		/* how it is stored */
-  int canonical;			/* TRUE: ENC_ISO_LATIN_1 or ENC_WCHAR */
+  int canonical;			/* true: ENC_ISO_LATIN_1 or ENC_WCHAR */
   char buf[100];			/* buffer for simple stuff */
 } PL_chars_t;
 
@@ -70,7 +70,7 @@ typedef struct
 	{ (txt)->text.t    = NULL; \
 	  (txt)->encoding  = ENC_UNKNOWN; \
 	  (txt)->storage   = PL_CHARS_LOCAL; \
-	  (txt)->canonical = FALSE; \
+	  (txt)->canonical = false; \
 	}
 
 #if USE_LD_MACROS

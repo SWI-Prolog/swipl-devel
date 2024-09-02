@@ -424,7 +424,7 @@ destroyModule(Module m)
   PL_UNLOCK(L_MODULE);
 
   releaseModule(m);
-  return TRUE;
+  return true;
 }
 
 
@@ -538,7 +538,7 @@ addSuperModule_no_lock(Module m, Module s, int where)
 
   for(c=m->supers; c; c=c->next)
   { if ( c->value == s )
-      return TRUE;			/* already a super-module */
+      return true;			/* already a super-module */
   }
 
   c = allocHeapOrHalt(sizeof(*c));
@@ -650,21 +650,21 @@ set_module(DECL_LD Module m, term_t prop)
     { atom_t mname;
 
       if ( !PL_get_atom_ex(arg, &mname) )
-	return FALSE;
+	return false;
 
       return setSuperModule(m, _lookupModule(mname));
     } else if ( pname == ATOM_class )
     { atom_t class;
 
       if ( !PL_get_atom_ex(arg, &class) )
-	return FALSE;
+	return false;
       if ( class == ATOM_user ||
 	   class == ATOM_system ||
 	   class == ATOM_library ||
 	   class == ATOM_test ||
 	   class == ATOM_development )
       { m->class = class;
-	return TRUE;
+	return true;
       } else if ( class == ATOM_temporary )
       { TableWP procs;
 
@@ -677,14 +677,14 @@ set_module(DECL_LD Module m, term_t prop)
 						  "module is not empty",
 			  ERR_PERMISSION, ATOM_module_property, ATOM_class, arg);
 	}
-	return TRUE;
+	return true;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
     } else if ( pname == ATOM_program_space )
     { size_t limit;
 
       if ( !PL_get_size_ex(arg, &limit) )
-	return FALSE;
+	return false;
       if ( limit && limit < m->code_size )
       { term_t ex = PL_new_term_ref();
 
@@ -693,7 +693,7 @@ set_module(DECL_LD Module m, term_t prop)
 			ATOM_limit, ATOM_program_space, ex);
       }
       m->code_limit = limit;
-      return TRUE;
+      return true;
     } else
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_property, prop);
     }
@@ -712,7 +712,7 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
   int rc;
 
   if ( !(p=stripModuleName(valTermRef(A1), &mname)) )
-    return FALSE;
+    return false;
   *valTermRef(prop) = linkValNoG(p);
 
   PL_LOCK(L_MODULE);
@@ -875,7 +875,7 @@ PRED_IMPL("import_module", 2, import_module,
       succeed;
   }
 
-  if ( !get_module(A1, &m, TRUE) )
+  if ( !get_module(A1, &m, true) )
     fail;
 
   for(n=0, c=m->supers; c; c=c->next, n++)
@@ -903,8 +903,8 @@ PRED_IMPL("add_import_module", 3, add_import_module, 0)
   Module me, super;
   atom_t where;
 
-  if ( !get_module(A1, &me, TRUE) ||
-       !get_module(A2, &super, TRUE) ||
+  if ( !get_module(A1, &me, true) ||
+       !get_module(A2, &super, true) ||
        !PL_get_atom_ex(A3, &where) )
     fail;
 
@@ -917,8 +917,8 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
 { Module me, super;
   int rval;
 
-  if ( !get_module(A1, &me, TRUE) ||
-       !get_module(A2, &super, TRUE) )
+  if ( !get_module(A1, &me, true) ||
+       !get_module(A2, &super, true) )
     fail;
 
   PL_LOCK(L_MODULE);
@@ -936,16 +936,16 @@ get_existing_source_file(DECL_LD term_t file, SourceFile *sfp)
   atom_t a;
 
   if ( PL_get_atom(file, &a) )
-  { if ( (sf = lookupSourceFile(a, FALSE)) )
+  { if ( (sf = lookupSourceFile(a, false)) )
     { *sfp = sf;
-      return TRUE;
+      return true;
     }
 
-    return FALSE;
+    return false;
   }
 
   *sfp = NULL;
-  return TRUE;
+  return true;
 }
 
 
@@ -981,14 +981,14 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 	  return PL_unify_atom(file, f);
 	}
 
-	return FALSE;
+	return false;
       }
 
       if ( !get_existing_source_file(file, &sf) )
-	return FALSE;			/* given, but non-existing file */
+	return false;			/* given, but non-existing file */
 
       if ( sf )
-      { int rc = FALSE;
+      { int rc = false;
 
 	if ( sf->modules )
 	{ PL_LOCK(L_PREDICATE);
@@ -1030,7 +1030,7 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
-      return FALSE;
+      return false;
   }
 
 					/* mode (-,-) */
@@ -1050,7 +1050,7 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   }
 
   freeModuleEnum(e);
-  return FALSE;
+  return false;
 }
 
 
@@ -1083,10 +1083,10 @@ PRED_IMPL("$set_typein_module", 1, set_typein_module, 0)
   atom_t name;
 
   if ( !PL_get_atom_ex(A1, &name) )
-    return FALSE;
+    return false;
 
   LD->modules.typein = lookupModule(name);
-  return TRUE;
+  return true;
 }
 
 static
@@ -1102,10 +1102,10 @@ PRED_IMPL("$set_source_module", 1, set_source_module, 0)
   atom_t name;
 
   if ( !PL_get_atom_ex(A1, &name) )
-    return FALSE;
+    return false;
 
   LD->modules.source = lookupModule(name);
-  return TRUE;
+  return true;
 }
 
 
@@ -1121,15 +1121,15 @@ pl_set_prolog_hook(term_t module, term_t old, term_t new)
 
   if ( m->hook )
   { if ( !unify_definition(MODULE_user, old, m->hook->definition, 0, GP_HIDESYSTEM) )
-      return FALSE;
+      return false;
   } else
   { if ( !PL_unify_nil(old) )
-      return FALSE;
+      return false;
   }
 
   if ( PL_get_nil(new) )
   { m->hook = NULL;
-    return TRUE;
+    return true;
   } else
     return get_procedure(new, &m->hook, 0, GP_NAMEARITY|GP_CREATE);
 }
@@ -1149,7 +1149,7 @@ find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 		       int l)
 { ListCell c;
   int i;
-  int found = FALSE;
+  int found = false;
   term_t mhead = tmp+0;
   term_t plist = tmp+1;
   term_t phead = tmp+2;
@@ -1158,7 +1158,7 @@ find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 
   if ( l < 0 )
   { sysError("OOPS loop in default modules???\n");
-    return FALSE;
+    return false;
   }
 
   for(i=0; i<count; i++)
@@ -1167,31 +1167,31 @@ find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
     if ( (proc = isCurrentProcedure(targets[i].functor, m)) &&
 	 proc->definition->impl.any.defined )
     { if ( !found )
-      { found = TRUE;
+      { found = true;
 	PL_put_variable(plist);
 	if ( !PL_unify_list(mlist, mhead, mlist) ||
 	     !PL_unify_term(mhead, PL_FUNCTOR, FUNCTOR_minus2,
 				     PL_ATOM, m->name,
 				     PL_TERM, plist) )
-	  return FALSE;
+	  return false;
       }
 
       if ( !PL_unify_list(plist, phead, plist) ||
 	   !PL_unify(phead, targets[i].pi) )
-	return FALSE;
+	return false;
     }
   }
   if ( found && !PL_unify_nil(plist) )
-    return FALSE;
+    return false;
 
   for(c = m->supers; c; c=c->next)
   { Module s = c->value;
 
     if ( !find_modules_with_defs(s, count, targets, tmp, mlist, l-1) )
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1224,7 +1224,7 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
   Word mp;
 
   if ( !(mp=stripModuleName(valTermRef(A1), &mname)) )
-    return FALSE;
+    return false;
   *valTermRef(ttail) = linkValNoG(mp);
 
   if ( mname )
@@ -1243,15 +1243,15 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
       return PL_resource_error("target_predicates");
     if ( !get_functor(thead, &targets[tcount].functor,
 		      NULL, 0, GF_PROCEDURE|GP_NOT_QUALIFIED) )
-      return FALSE;
+      return false;
     targets[tcount].pi = PL_copy_term_ref(thead);
     tcount++;
   }
   if ( !PL_get_nil_ex(ttail) )
-    return FALSE;
+    return false;
 
   if ( !find_modules_with_defs(m, tcount, targets, tmp, tail, 100) )
-    return FALSE;
+    return false;
 
   return PL_unify_nil(tail);
 }
@@ -1270,7 +1270,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 { GET_LD
   Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
-  int rc = TRUE;
+  int rc = true;
 
   PL_LOCK(L_MODULE);
   if ( class )
@@ -1327,7 +1327,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 
   if ( rdef )
   { if ( !PL_unify_nil(rtail) )
-      return FALSE;
+      return false;
 
     if ( rc )
       rc = printMessage(ATOM_warning,
@@ -1374,7 +1374,7 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
        !PL_get_bool_ex(redefine, &rdef) )
     fail;
 
-  sf = lookupSourceFile(fname, TRUE);
+  sf = lookupSourceFile(fname, true);
   return declareModule(mname, cname, sname, sf, line_no, rdef);
 }
 
@@ -1384,12 +1384,12 @@ static int
 unify_export_list(DECL_LD term_t public, Module module)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(public);
-  int rval = TRUE;
+  int rval = true;
 
   FOR_TABLE(module->public, name, value)
   { if ( !PL_unify_list(list, head, list) ||
 	 !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
-    { rval = FALSE;
+    { rval = false;
       break;
     }
   }
@@ -1434,7 +1434,7 @@ PRED_IMPL("$module_property", 2, module_property, 0)
   atom_t pname;
   size_t parity;
 
-  if ( !get_module(A1, &m, FALSE) )
+  if ( !get_module(A1, &m, false) )
     fail;
 
   if ( !PL_get_name_arity(A2, &pname, &parity) ||
@@ -1467,7 +1467,7 @@ PRED_IMPL("$module_property", 2, module_property, 0)
   } else if ( pname == ATOM_program_space )
   { if ( m->code_limit )
       return PL_unify_int64(a, m->code_limit);
-    return FALSE;
+    return false;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_module_property, A2);
@@ -1487,7 +1487,7 @@ exportProcedure(Module module, Procedure proc)
 		 proc->definition->functor->functor,
 		 proc);
 
-  return TRUE;
+  return true;
 }
 
 #define export_pi1(pi, module) LDFUNC(export_pi1, pi, module)
@@ -1497,14 +1497,14 @@ export_pi1(DECL_LD term_t pi, Module module)
   Procedure proc;
 
   if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE|GF_NAMEARITY) )
-    return FALSE;
+    return false;
 
   if ( (proc = isStaticSystemProcedure(fd)) && ison(proc->definition, P_ISO) )
-    return TRUE;
+    return true;
   proc = lookupProcedure(fd, module);
 
   if ( ReadingSource )
-  { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
+  { SourceFile sf = lookupSourceFile(source_file_name, true);
     int rc = exportProcedureSource(sf, module, proc);
     releaseSourceFile(sf);
     return rc;
@@ -1517,7 +1517,7 @@ export_pi1(DECL_LD term_t pi, Module module)
 static int
 export_pi(DECL_LD term_t pi, Module module, int depth)
 { if ( !PL_strip_module(pi, &module, pi) )
-    return FALSE;
+    return false;
 
   while ( PL_is_functor(pi, FUNCTOR_comma2) )
   { term_t a1 = PL_new_term_ref();
@@ -1527,7 +1527,7 @@ export_pi(DECL_LD term_t pi, Module module, int depth)
 
     _PL_get_arg(1, pi, a1);
     if ( !export_pi(a1, module, depth) )
-      return FALSE;
+      return false;
     PL_reset_term_refs(a1);
     _PL_get_arg(2, pi, pi);
   }
@@ -1563,7 +1563,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
   term_t head = PL_new_term_ref();
 
   if ( !PL_get_atom_ex(A1, &mname) )
-    return FALSE;
+    return false;
   if ( !(module = isCurrentModule(mname)) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_module, A1);
 
@@ -1581,7 +1581,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
 	   !unify_definition(MODULE_user, head, proc->definition,
 			     0, GP_QUALIFY|GP_NAMEARITY) )
       { freeTableEnum(e);
-	return FALSE;
+	return false;
       }
     }
   }
@@ -1662,18 +1662,18 @@ import(DECL_LD term_t pred, term_t strength)
   int pflags = 0;
 
   if ( !get_functor(pred, &fd, &source, 0, GF_PROCEDURE) )
-    return FALSE;
+    return false;
   if ( strength )
   { atom_t a;
 
     if ( !PL_get_atom_ex(strength, &a) )
-      return FALSE;
+      return false;
     if ( (pflags=atomToImportStrength(a)) < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_import_type, strength);
   }
 
   if ( !(proc = lookupProcedure(fd, source)) )
-    return FALSE;
+    return false;
 
   if ( !isDefinedProcedure(proc) )
     autoImport(proc->definition->functor->functor, proc->definition->module);
@@ -1684,17 +1684,17 @@ retry:
   { LOCKMODULE(destination);
     if ( old->definition == proc->definition )
     { UNLOCKMODULE(destination);
-      return TRUE;			/* already done this! */
+      return true;			/* already done this! */
     }
 
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
-      int fixup = FALSE;
+      int fixup = false;
 
       old->definition = proc->definition;
       shareDefinition(proc->definition);
       if ( unshareDefinition(odef) > 0 )
-      { fixup = TRUE;			/* delay to avoid a deadlock */
+      { fixup = true;			/* delay to avoid a deadlock */
       } else
       { lingerDefinition(odef);
       }
@@ -1704,7 +1704,7 @@ retry:
       if ( fixup )
 	fixExport(odef, proc->definition);
 
-      return TRUE;
+      return true;
     }
 
     if ( old->definition->module == destination )
@@ -1715,16 +1715,16 @@ retry:
 	{ term_t pi = PL_new_term_ref();
 
 	  if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
-	    return FALSE;
+	    return false;
 
 	  if ( !printMessage(ATOM_warning,
 			     PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
 			       PL_ATOM, destination->name,
 			       PL_TERM, pi) )
-	    return FALSE;
+	    return false;
 	}
 
-	return TRUE;
+	return true;
       } else
 	return PL_error("import", 1, "name clash", ERR_IMPORT_PROC,
 			proc, destination->name, 0);
@@ -1749,12 +1749,12 @@ retry:
   { term_t pi = PL_new_term_ref();
 
     if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
-      return FALSE;
+      return false;
     if ( !printMessage(ATOM_warning,
 		       PL_FUNCTOR_CHARS, "import_private", 2,
 			 PL_ATOM, destination->name,
 			 PL_TERM, pi) )
-      return FALSE;
+      return false;
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
@@ -1779,7 +1779,7 @@ retry:
 				   procedureName(nproc), nproc));
   }
 
-  return TRUE;
+  return true;
 }
 
 static
@@ -1822,10 +1822,10 @@ PRED_IMPL("$destroy_module", 1, destroy_module, 0)
       }
     }
 
-    return TRUE;				/* non-existing */
+    return true;				/* non-existing */
   }
 
-  return FALSE;
+  return false;
 }
 
 		 /*******************************

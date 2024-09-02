@@ -195,9 +195,9 @@ typedef long long ssize_t;
 #include <string.h>
 #include <signal.h>
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#ifndef true
+#define true 1
+#define false 0
 #endif
 
 #ifndef O_BINARY
@@ -286,21 +286,21 @@ static char *plsysinit;			/* -F file */
 static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
-static int  opt_o=FALSE;		/* -o out given */
-static int  opt_E=FALSE;		/* -E given */
+static int  opt_o=false;		/* -o out given */
+static int  opt_E=false;		/* -E given */
 
-static int build_defaults = FALSE;	/* don't ask Prolog for parameters*/
+static int build_defaults = false;	/* don't ask Prolog for parameters*/
 
-static int nostate = TRUE;		/* do not make a state */
-static int nolink = FALSE;		/* do not link */
-static int nolibswipl = FALSE;		/* do not link with -lswipl */
-static int shared = FALSE;		/* -shared: make a shared-object/DLL */
+static int nostate = true;		/* do not make a state */
+static int nolink = false;		/* do not link */
+static int nolibswipl = false;		/* do not link with -lswipl */
+static int shared = false;		/* -shared: make a shared-object/DLL */
 static char *soext = SO_EXT;		/* extension of shared object */
-static int embed_shared = FALSE;	/* -dll/-embed-shared: embed Prolog */
+static int embed_shared = false;	/* -dll/-embed-shared: embed Prolog */
 					/* in a DLL/.so file */
-static int verbose = TRUE;		/* verbose operation */
-static int fake = FALSE;		/* don't really do anything */
-static int show_version = FALSE;	/* --version */
+static int verbose = true;		/* verbose operation */
+static int fake = false;		/* don't really do anything */
+static int show_version = false;	/* --version */
 
 static void	removeTempFiles();
 static void	parseOptions(int argc, char **argv);
@@ -654,20 +654,20 @@ dispatchFile(const char *name)
     for( ; d->extension; d++ )
     { if ( strfeq(d->extension, ext) )
       { if ( d->list == &plfiles || d->list == &qlfiles )
-	  nostate = FALSE;
+	  nostate = false;
 	appendArgList(d->list, name);
-	return TRUE;
+	return true;
       }
     }
     if ( soext && strfeq(soext, ext) )
     { if ( d->list == &plfiles || d->list == &qlfiles )
-	nostate = FALSE;
+	nostate = false;
       appendArgList(&libs, name);
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -762,7 +762,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "--version") )	/* --version */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
-      show_version = TRUE;
+      show_version = true;
     } else if ( streq(opt, "-f") )		/* -f */
     { fake++;
     } else if ( streq(opt, "-c") )		/* -c */
@@ -773,7 +773,7 @@ parseOptions(int argc, char **argv)
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-E") )		/* -E */
     { nolink++;
-      opt_E = TRUE;
+      opt_E = true;
       appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-g") )		/* -g */
@@ -807,16 +807,16 @@ parseOptions(int argc, char **argv)
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-build-defaults") )	/* -build-defaults */
-    { build_defaults = TRUE;
+    { build_defaults = true;
     } else if ( streq(opt, "-nostate") )	/* -nostate */
-    { nostate = TRUE;
+    { nostate = true;
     } else if ( streq(opt, "-state") )		/* -state */
-    { nostate = FALSE;
+    { nostate = false;
     } else if ( streq(opt, "-nolibswipl") )	/* -nolibswipl */
-    { nolibswipl = TRUE;
+    { nolibswipl = true;
     } else if ( streq(opt, "-dll") ||		/* -dll */
 		streq(opt, "-embed-shared") )   /* -embed-shared */
-    { embed_shared = TRUE;
+    { embed_shared = true;
 #if defined(HOST_TOOLCHAIN_MSC)
       appendArgList(&ldoptions, "/DLL");
 #else
@@ -826,15 +826,15 @@ parseOptions(int argc, char **argv)
 #endif
 #endif
     } else if ( streq(opt, "-shared") )		/* -shared */
-    { shared = TRUE;
-      nostate = TRUE;
+    { shared = true;
+      nostate = true;
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
       appendArgList(&cppoptions, SO_pic);
 #endif
     } else if ( streq(opt, "-SHARED") )		/* -SHARED */
-    { shared = TRUE;
-      nostate = TRUE;
+    { shared = true;
+      nostate = true;
 #ifdef SO_PIC
       appendArgList(&coptions, SO_PIC);
       appendArgList(&cppoptions, SO_PIC);
@@ -859,7 +859,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-o") )		/* -o out */
     { if ( argc > 1 )
       { out = argv[1];
-	opt_o = TRUE;
+	opt_o = true;
 	argc--, argv++;
       } else
 	usage();
@@ -1165,14 +1165,14 @@ char *
 shell_quote(char *to, const char *arg)
 { static const char needq[] = "#!|<>*?$'\"";
   const char *s;
-  int needquote = FALSE;
+  int needquote = false;
 
   if ( arg[0] == UNQUOTED )
   { arg++;				/* skip the not-quote marker */
   } else
   { for(s=arg; *s; s++)
     { if ( strchr(needq, *s) )
-      { needquote = TRUE;
+      { needquote = true;
 	break;
       }
     }
@@ -1443,7 +1443,7 @@ linkSharedObject()
 
 static void
 quoted_name(const char *name, char *plname)
-{ int needquote = TRUE;
+{ int needquote = true;
 
   if ( islower(CTOI(name[0])) )
   { const char *s = name+1;
@@ -1451,7 +1451,7 @@ quoted_name(const char *name, char *plname)
     for( ; *s && (isalnum(CTOI(*s)) || *s == '_'); s++)
       ;
     if ( *s == '\0' )
-      needquote = FALSE;
+      needquote = false;
   }
 
   if ( !needquote )
@@ -1690,7 +1690,7 @@ main(int argc, char **argv)
 
   putenv("PLLD=true");			/* for subprograms */
 
-  verbose = FALSE;
+  verbose = false;
 
   if ( argc > 2 && streq(argv[0], "-pl") )
     special = 2;
@@ -1714,7 +1714,7 @@ main(int argc, char **argv)
   defaultProgram(&pl, PROG_PL);
 
   if ( build_defaults )
-  { nostate = TRUE;			/* not needed and Prolog won't run */
+  { nostate = true;			/* not needed and Prolog won't run */
     defaultProgram(&cc, C_CC);
 #if defined(PLBASE)
     defaultPath(&plbase, PLBASE);

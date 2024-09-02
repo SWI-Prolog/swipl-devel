@@ -289,7 +289,7 @@ CpuTime(cputime_kind which)
 #define CPU_TIME_DONE
   struct tms t;
   double used;
-  static int MTOK_got_hz = FALSE;
+  static int MTOK_got_hz = false;
   static double MTOK_hz;
 
   if ( !MTOK_got_hz )
@@ -559,7 +559,7 @@ _PL_Random(void)
 
   if ( !LD->os.rand_initialised )
   { setRandom(NULL);
-    LD->os.rand_initialised = TRUE;
+    LD->os.rand_initialised = true;
   }
 
 #ifdef HAVE_RANDOM
@@ -703,7 +703,7 @@ verify_tmp_dir(const char* tmpdir)
 { const char *reason = NULL;
 
   if ( tmpdir == NULL )
-    return FALSE;
+    return false;
 
   if ( !ExistsDirectory(tmpdir) )
     reason = "no such directory";
@@ -714,10 +714,10 @@ verify_tmp_dir(const char* tmpdir)
 		      PL_CHARS, tmpdir,
 		      PL_CHARS, reason) )
     { /* to prevent ignoring return value warning */ }
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 #ifdef O_XOS
@@ -813,7 +813,7 @@ retry:
     PL_UNLOCK(L_OS);
   }
 
-  addNewHTable(GD->os.tmp_files, (table_key_t)tname, TRUE);
+  addNewHTable(GD->os.tmp_files, (table_key_t)tname, true);
 
   return tname;
 }
@@ -822,7 +822,7 @@ retry:
 int
 DeleteTemporaryFile(atom_t name)
 { GET_LD
-  int rc = FALSE;
+  int rc = false;
 
   if ( GD->os.tmp_files )
   { if ( GD->os.tmp_files )
@@ -1158,7 +1158,7 @@ cleanupExpand(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 verify_entry() verifies the path cache for this   path is still safe. If
-not it updates the cache and returns FALSE.
+not it updates the cache and returns false.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1169,20 +1169,20 @@ verify_entry(CanonicalDir d)
   if ( statfunc(OsPath(d->canonical, tmp), &buf) == 0 )
   { if ( d->inode  == buf.st_ino &&
 	 d->device == buf.st_dev )
-      return TRUE;
+      return true;
 
     DEBUG(MSG_OS_DIR, Sdprintf("%s: inode/device changed\n", d->canonical));
 
     d->inode  = buf.st_ino;
     d->device = buf.st_dev;
-    return TRUE;
+    return true;
   } else
   { DEBUG(MSG_OS_DIR, Sdprintf("%s: no longer exists\n", d->canonical));
 
     deleteCanonicalDir(d);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1989,12 +1989,12 @@ ChDir(const char *path)
   OsPath(path, ospath);
 
   if ( path[0] == EOS || streq(path, ".") || is_cwd(path) )
-    return TRUE;
+    return true;
 
   if ( !AbsoluteFile(path, tmp, sizeof(tmp)) )
-    return FALSE;
+    return false;
   if ( is_cwd(tmp) )
-    return TRUE;
+    return true;
 
   if ( chdir(ospath) == 0 )
   { size_t len;
@@ -2011,10 +2011,10 @@ ChDir(const char *path)
     GD->paths.CWDdir = store_string(tmp);
     PL_UNLOCK(L_OS);
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2176,7 +2176,7 @@ Sread_terminal(void *handle, char *buf, size_t size)
   if ( LD->prompt.next &&
        isoff(Sinput, SIO_RAW) &&
        ison(Sinput, SIO_ISATTY) )
-    PL_write_prompt(TRUE);
+    PL_write_prompt(true);
   else if ( ison(Soutput, SIO_ISATTY) )
     Sflush(Suser_output);
 
@@ -2186,10 +2186,10 @@ Sread_terminal(void *handle, char *buf, size_t size)
   if ( size == 0 )			/* end-of-file */
   { if ( fd == 0 )
     { Sclearerr(Suser_input);
-      LD->prompt.next = TRUE;
+      LD->prompt.next = true;
     }
   } else if ( size > 0 && buf[size-1] == '\n' )
-    LD->prompt.next = TRUE;
+    LD->prompt.next = true;
 
   LD->read_source = oldsrc;
 
@@ -2209,7 +2209,7 @@ ResetTty(void)
     Soutput->functions =
     Serror->functions  = &GD->os.iofunctions;
   }
-  LD->prompt.next = TRUE;
+  LD->prompt.next = true;
 }
 
 #ifdef O_HAVE_TERMIO			/* sys/termios.h or sys/termio.h */
@@ -2229,13 +2229,13 @@ GetTtyState(int fd, struct termios *tio)
 
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, tio) )
-    return FALSE;
+    return false;
 #else
   if ( ioctl(fd, TIOCGETA, tio) )
-    return FALSE;
+    return false;
 #endif
 
-  return TRUE;
+  return true;
 }
 
 static int
@@ -2260,7 +2260,7 @@ SetTtyState(int fd, struct termios *tio)
   if ( fd == ttyfileno && ttytab.state )
     ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2290,7 +2290,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
   if ( !GetTtyState(fd, &TTY_STATE(buf)) )
-    return FALSE;
+    return false;
 
   tio = TTY_STATE(buf);			/* structure copy */
 
@@ -2320,13 +2320,13 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 /**
  * @param do_free is one of
- *   - FALSE: do not free the state
- *   - TRUE:  free the state
+ *   - false: do not free the state
+ *   - true:  free the state
  */
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ int rc = TRUE;
+{ int rc = true;
 
   Sset_ttymode(s, buf->mode);
 
@@ -2432,7 +2432,7 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 
   Sset_ttymode(s, buf->mode);
   if ( buf->mode != TTY_RAW )
-    LD->prompt.next = TRUE;
+    LD->prompt.next = true;
 
   succeed;
 }
@@ -2505,7 +2505,7 @@ int
 Setenv(char *name, char *value)
 {
 #ifdef HAVE_SETENV
-  if ( setenv(name, value, TRUE) != 0 )
+  if ( setenv(name, value, true) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
 #else
   char *buf;
@@ -3109,9 +3109,9 @@ Pause(double t)
   { rc = nanosleep(&req, &req);
     if ( rc == -1 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
-	return FALSE;
+	return false;
     } else
-      return TRUE;
+      return true;
   }
 }
 
@@ -3124,11 +3124,11 @@ Pause(double t)
 int
 Pause(double t)
 { if ( t <= 0.0 )
-    return TRUE;
+    return true;
 
   usleep((unsigned long)(t * 1000000.0));
 
-  return TRUE;
+  return true;
 }
 
 #endif /*HAVE_USLEEP*/
@@ -3149,7 +3149,7 @@ Pause(double time)
     timeout.tv_usec = (long)(time * 1000000) % 1000000;
     select(1, NULL, NULL, NULL, &timeout);
 
-    return TRUE;
+    return true;
   } else
   { int rc;
     int left = (int)(time+0.5);
@@ -3158,9 +3158,9 @@ Pause(double time)
     { rc = sleep(left);
       if ( rc == -1 && errno == EINTR )
       { if ( PL_handle_signals() < 0 )
-	  return FALSE;
+	  return false;
 
-	return TRUE;
+	return true;
       }
       left -= rc;
     } while ( rc != 0 );
@@ -3175,11 +3175,11 @@ Pause(double time)
 int					/* a millisecond granualrity. */
 Pause(double time)			/* the EMX function sleep uses seconds */
 { if ( time <= 0.0 )			/* the select() trick does not work at all. */
-    return TRUE;
+    return true;
 
   DosSleep((ULONG)(time * 1000));
 
-  return TRUE;
+  return true;
 }
 
 #endif /*HAVE_DOSSLEEP*/
@@ -3206,7 +3206,7 @@ int
 Pause(double t)
 { delay((int)(t * 1000));
 
-  return TRUE;
+  return true;
 }
 
 #endif /*HAVE_DELAY*/

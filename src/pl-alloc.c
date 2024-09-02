@@ -270,10 +270,10 @@ enableSpareStack(Stack s, int always)
 	  Sdprintf("Enabling spare on %s: %zd bytes\n", s->name, s->spare));
     s->max = addPointer(s->max, s->spare);
     s->spare = 0;
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -281,9 +281,9 @@ void
 enableSpareStacks(void)
 { GET_LD
 
-  enableSpareStack((Stack)&LD->stacks.local,  FALSE);
-  enableSpareStack((Stack)&LD->stacks.global, FALSE);
-  enableSpareStack((Stack)&LD->stacks.trail,  FALSE);
+  enableSpareStack((Stack)&LD->stacks.local,  false);
+  enableSpareStack((Stack)&LD->stacks.global, false);
+  enableSpareStack((Stack)&LD->stacks.trail,  false);
 }
 
 
@@ -341,13 +341,13 @@ is_variant_frame(DECL_LD LocalFrame fr1, LocalFrame fr2)
 
     for(i=0; i<arity; i++)
     { if ( !is_variant_ptr(argFrameP(fr1, i), argFrameP(fr2, i)) )
-	return FALSE;
+	return false;
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -674,7 +674,7 @@ outOfStack(void *stack, stack_overflow_action how)
     print_backtrace_named("crash");
     fatalError("Sorry, cannot continue");
 
-    return FALSE;				/* NOTREACHED */
+    return false;				/* NOTREACHED */
   }
 
   save_backtrace(msg);
@@ -687,8 +687,8 @@ outOfStack(void *stack, stack_overflow_action how)
   }
 
   enableSpareStacks();
-  LD->trim_stack_requested = TRUE;
-  LD->exception.processing = TRUE;
+  LD->trim_stack_requested = true;
+  LD->exception.processing = true;
   LD->outofstack = stack;
 
   switch(how)
@@ -721,7 +721,7 @@ outOfStack(void *stack, stack_overflow_action how)
 	longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
       }
 
-      return FALSE;
+      return false;
     }
     default:
       assert(0);
@@ -743,8 +743,8 @@ raiseStackOverflow(int overflow)
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
     case MEMORY_OVERFLOW:
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
-    case FALSE:				/* some other error is pending */
-      return FALSE;
+    case false:				/* some other error is pending */
+      return false;
     default:
       s = NULL;
       assert(0);
@@ -802,7 +802,7 @@ allocGlobal(DECL_LD size_t n)
   if ( !hasGlobalSpace(n) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != true )
     { raiseStackOverflow(rc);
       return NULL;
     }
@@ -1010,7 +1010,7 @@ put_double(DECL_LD Word at, double d, int flags)
   if ( flags != ALLOW_CHECKED && !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
   { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
 
-    if ( rc != TRUE )
+    if ( rc != true )
       return rc;
   }
   p = gTop;
@@ -1026,7 +1026,7 @@ put_double(DECL_LD Word at, double d, int flags)
   p += WORDS_PER_DOUBLE;
   *p = m;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1224,9 +1224,9 @@ PL_linger(void *mem)
     GC_linger(mem);
 #endif
   }
-  return TRUE;
+  return true;
 #else
-  return FALSE;
+  return false;
 #endif
 }
 
@@ -1249,11 +1249,11 @@ heap_gc_warn_proc(char *msg, GC_word arg)
 
 void
 initAlloc(void)
-{ static int done = FALSE;
+{ static int done = false;
 
   if ( done )
     return;
-  done = TRUE;
+  done = true;
 
 #if defined(_DEBUG) && defined(__WINDOWS__) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
@@ -1362,7 +1362,7 @@ tmp_malloc(size_t req)
   req += SA_OFFSET;
   if ( req < MMAP_THRESHOLD )
   { reg = malloc(req);
-    mmapped = FALSE;
+    mmapped = false;
   } else
   { req = roundpgsize(req);
 
@@ -1372,7 +1372,7 @@ tmp_malloc(size_t req)
 	       -1, 0);
     if ( reg == MAP_FAILED )
       reg = NULL;
-    mmapped = TRUE;
+    mmapped = true;
   }
 
   if ( reg )
@@ -1646,7 +1646,7 @@ malloc_property(term_t prop, control_t handle)
 	  }
 	}
 
-	return FALSE;
+	return false;
       } else if ( PL_is_variable(prop) )
       { pname = tcmalloc_properties;
 	goto enumerate;
@@ -1670,24 +1670,24 @@ malloc_property(term_t prop, control_t handle)
 	    if ( *pname )
 	      PL_retry_address(pname);
 	    else
-	      return TRUE;
+	      return true;
 	  }
 	}
 
 	if ( PL_exception(0) )
-	  return FALSE;
+	  return false;
 	PL_rewind_foreign_frame(fid);
       }
       PL_close_foreign_frame(fid);
 
-      return FALSE;
+      return false;
     }
     case PL_CUTTED:
-    { return TRUE;
+    { return true;
     }
     default:
     { assert(0);
-      return FALSE;
+      return false;
     }
   }
 }
@@ -1705,7 +1705,7 @@ set_malloc(term_t prop)
 
     if ( !PL_get_arg(1, prop, a) ||
 	 !PL_get_size_ex(a, &val) )
-      return FALSE;
+      return false;
 
     if ( s )
     { const char **pname = tcmalloc_properties;
@@ -1713,7 +1713,7 @@ set_malloc(term_t prop)
       for(; *pname; pname++)
       { if ( streq(s, *pname) )
 	{ if ( WEAK_FUNC(MallocExtension_SetNumericProperty)(*pname, val) )
-	    return TRUE;
+	    return true;
 	  else
 	    return PL_permission_error("set", "malloc_property", prop);
 	}
@@ -1754,23 +1754,23 @@ may be overruled.
 Returns 0 if tcmalloc is not present or not enabled.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int is_tcmalloc = FALSE;
+static int is_tcmalloc = false;
 
 static int
 initTCMalloc(void)
-{ static int done = FALSE;
+{ static int done = false;
   int set = 0;
 
   if ( done )
     return is_tcmalloc;
-  done = TRUE;
+  done = true;
 
   if ( WEAK_IMPORT(MallocExtension_GetNumericProperty) )
   { size_t in_use;
 
     if ( WEAK_FUNC(MallocExtension_GetNumericProperty)("generic.current_allocated_bytes", &in_use) &&
 	 in_use > 100000 )
-    { is_tcmalloc = TRUE;
+    { is_tcmalloc = true;
       PL_set_prolog_flag("malloc", PL_ATOM, "tcmalloc");
     } else
     { return 0;
@@ -1793,7 +1793,7 @@ initTCMalloc(void)
   return set;
 }
 
-static int is_ptmalloc = FALSE;
+static int is_ptmalloc = false;
 #ifdef HAVE_MALLINFO2
 WEAK_DECLARE(struct mallinfo2, mallinfo2, (void));
 #elif defined(HAVE_MALLINFO)
@@ -1803,11 +1803,11 @@ WEAK_DECLARE(int, malloc_trim, (size_t pad));
 
 static int
 initPTMalloc(void)
-{ static int done = FALSE;
+{ static int done = false;
 
   if ( done )
     return is_ptmalloc;
-  done = TRUE;
+  done = true;
 
   size_t uordblks = 0;
 #ifdef HAVE_MALLINFO2
@@ -1822,7 +1822,7 @@ initPTMalloc(void)
 
   if ( uordblks > 100000 )
   { PL_set_prolog_flag("malloc", PL_ATOM, "ptmalloc");
-    is_ptmalloc = TRUE;
+    is_ptmalloc = true;
   }
 
   WEAK_IMPORT(malloc_trim); /* hope to have trim but it doesn't change the test */
@@ -1835,7 +1835,7 @@ int
 initMalloc(void)
 { return ( initTCMalloc() ||
 	   initPTMalloc() ||
-	   FALSE
+	   false
 	 );
 }
 
@@ -1852,7 +1852,7 @@ PRED_IMPL("trim_heap", 0, trim_heap, 0)
   else
     WEAK_TRY_CALL(malloc_trim, 0);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1867,15 +1867,15 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
   atom_t how;
 
   if ( !PL_get_atom_ex(A2, &how) )
-    return FALSE;
+    return false;
 
   if ( how == ATOM_short )
-  { trimStacks(TRUE);
+  { trimStacks(true);
     WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadTemporarilyIdle);
   } else if ( how == ATOM_long )
-  { LD->trim_stack_requested = TRUE;
+  { LD->trim_stack_requested = true;
     garbageCollect(GC_USER);
-    LD->trim_stack_requested = FALSE;
+    LD->trim_stack_requested = false;
     WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadIdle);
   }
 
@@ -1897,7 +1897,7 @@ static
 PRED_IMPL("garbage_collect_heap", 0, garbage_collect_heap, 0)
 { GC_gcollect();
 
-  return TRUE;
+  return true;
 }
 #endif
 

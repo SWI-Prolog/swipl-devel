@@ -82,7 +82,7 @@ Xterm_read(void *handle, char *buffer, size_t count)
   ssize_t size;
 
   if ( LD->prompt.next && Sttymode(Suser_input) != TTY_RAW )
-    PL_write_prompt(TRUE);
+    PL_write_prompt(true);
   else
     Sflush(Suser_output);
 
@@ -100,9 +100,9 @@ Xterm_read(void *handle, char *buffer, size_t count)
   } while(0);
 
   if ( size == 0 )			/* end-of-file */
-  { LD->prompt.next = TRUE;
+  { LD->prompt.next = true;
   } else if ( size > 0 && buffer[size-1] == '\n' )
-    LD->prompt.next = TRUE;
+    LD->prompt.next = true;
 
   return size;
 }
@@ -200,7 +200,7 @@ unifyXtermStream(term_t t, xterm *xt, int flags)
     return PL_unify_stream(t, s);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -234,7 +234,7 @@ PRED_IMPL("$open_xterm", 5, open_xterm, 0)
   int i;
 
   if ( !PL_get_chars(title, &titlechars, CVT_ALL|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   xterm_argv[xterm_argc++] = "xterm";
   while(PL_get_list_ex(tail, head, tail))
@@ -242,10 +242,10 @@ PRED_IMPL("$open_xterm", 5, open_xterm, 0)
       return PL_representation_error("xterm_argc");
     if ( !PL_get_chars(head, &xterm_argv[xterm_argc++],
 		       CVT_ALL|BUF_MALLOC|CVT_EXCEPTION) )
-      return FALSE;
+      return false;
   }
   if ( !PL_get_nil_ex(tail) )
-    return FALSE;
+    return false;
   xterm_malloced_argc = xterm_argc;
 
 #ifdef HAVE_POSIX_OPENPT

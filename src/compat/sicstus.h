@@ -184,10 +184,10 @@ SP_get_number_codes(SP_term_ref term, char const **s)
 
   if ( PL_get_chars(term, &tmp, CVT_NUMBER) )
   { *s = (const char*)tmp;
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -198,10 +198,10 @@ SP_put_number_codes(SP_term_ref term, char const *s)
   if ( PL_chars_to_term(s, t) &&
        PL_is_number(t) )
   { PL_put_term(term, t);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -240,7 +240,7 @@ SP_put_integer_bytes(SP_term_ref term,
 	break;
       }
     default:
-      return FALSE;
+      return false;
     }
 
     return PL_put_int64(term, val);
@@ -286,7 +286,7 @@ SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
     return PL_cons_functor_v(term, f, argv);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -304,7 +304,7 @@ SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
 	SP_set_state(SP_SUCCESS)
 #define SP_WRAP_CHECK_STATE() \
 	if ( SP_get_state() != SP_SUCCESS ) \
-	  return FALSE
+	  return false
 
 
 		 /*******************************

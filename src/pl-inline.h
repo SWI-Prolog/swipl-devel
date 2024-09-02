@@ -115,10 +115,10 @@ __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 { long long int r = a + b;
   if ( (r > 0 && a < 0 && b < 0) ||
        (r < 0 && a > 0 && b > 0) )
-    return TRUE;
+    return true;
 
   *res = r;
-  return FALSE;
+  return false;
 }
 
 #endif /*_MSC_VER*/
@@ -197,7 +197,7 @@ __atomic_load_n(size_t *ptr, int memorder)
 #endif
 
 #define __COMPARE_AND_SWAP(at, from, to) \
-	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
+	__atomic_compare_exchange_n(at, &(from), to, false, \
 				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 
 static inline int
@@ -506,7 +506,7 @@ static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
 static inline int
 same_type_numbers(Number n1, Number n2)
 { if ( n1->type == n2->type )
-    return TRUE;
+    return true;
   return make_same_type_numbers(n1, n2);
 }
 
@@ -630,27 +630,27 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
   e = cl->generation.erased;
 
   if ( unlikely(e == LD->reload.generation) )
-    return FALSE;
+    return false;
   if ( unlikely(c == LD->reload.generation) )
-    return TRUE;
+    return true;
 
   if ( c <= gen && e > gen )
-    return TRUE;
+    return true;
 
   if ( unlikely(LD->transaction.gen_base && gen >= LD->transaction.gen_base) &&
        ison(cl->predicate, P_TRANSACT) )
     return transaction_visible_clause(cl, gen);
 
-  return FALSE;
+  return false;
 }
 
 #define visibleClauseCNT(cl, gen) LDFUNC(visibleClauseCNT, cl, gen)
 static inline int
 visibleClauseCNT(DECL_LD Clause cl, gen_t gen)
 { if ( likely(visibleClause(cl, gen)) )
-    return TRUE;
+    return true;
   LD->clauses.erased_skipped++;
-  return FALSE;
+  return false;
 }
 
 static inline gen_t

@@ -55,12 +55,12 @@ pl_dmalloc_log_changed(term_t mark,
        !PL_get_bool(not_freed, &nf) ||
        !PL_get_bool(freed, &f) ||
        !PL_get_bool(details, &d) )
-    return FALSE;
+    return false;
 
   m = (unsigned long)i;
   dmalloc_log_changed(m, nf, f, d);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -70,10 +70,10 @@ pl_dmalloc_message(term_t msg)
 
   if ( PL_get_chars(msg, &s, CVT_ALL|CVT_EXCEPTION|REP_MB) )
   { dmalloc_message("%s", s);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 

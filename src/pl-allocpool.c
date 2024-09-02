@@ -54,7 +54,7 @@ new_alloc_pool(const char *name, size_t limit)
 
 void
 free_alloc_pool(alloc_pool *pool)
-{ pool->freed = TRUE;
+{ pool->freed = true;
   if ( pool->size == 0 )
     free(pool);
 }

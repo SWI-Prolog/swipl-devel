@@ -83,7 +83,7 @@ LastModifiedFile(const char *name, double *tp)
   statstruct buf;
 
   if ( statfunc(OsPath(name, tmp), &buf) < 0 )
-    return FALSE;
+    return false;
 
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
   *tp = (double)buf.st_mtim.tv_sec + (double)buf.st_mtim.tv_nsec/1.0e9;
@@ -91,7 +91,7 @@ LastModifiedFile(const char *name, double *tp)
   *tp = (double)buf.st_mtime;
 #endif
 
-  return TRUE;
+  return true;
 #endif
 }
 
@@ -126,7 +126,7 @@ SizeFile(const char *path)
 
 /** int AccessFile(const char *path, int mode)
 
-TRUE if path can be accessed in the   specified modes. Mode is a bitwise
+true if path can be accessed in the   specified modes. Mode is a bitwise
 or created from one or more  of the constants ACCESS_EXIST, ACCESS_READ,
 ACCESS_WRITE and ACCESS_EXECUTE.
 */
@@ -156,7 +156,7 @@ int
 AccessFile(const char *path, int mode)
 { char tmp[PATH_MAX];
 #ifdef HAVE_ACCESS
-  return access(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
+  return access(OsPath(path, tmp), access_mode(mode)) == 0 ? true : false;
 #else
 #error "No implementation for AccessFile()"
 #endif
@@ -167,7 +167,7 @@ AccessDirectory(const char *path, int mode)
 {
 #if O_XOS
   char tmp[PATH_MAX];
-  return _xos_access_dir(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
+  return _xos_access_dir(OsPath(path, tmp), access_mode(mode)) == 0 ? true : false;
 #else
   return AccessFile(path, mode);
 #endif
@@ -178,16 +178,16 @@ int
 ExistsFile(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_FILE) == TRUE;
+  return _xos_exists(path, _XOS_FILE) == true;
 #else
   char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
   { DEBUG(2, perror(tmp));
-    return FALSE;
+    return false;
   }
-  return TRUE;
+  return true;
 #endif
 }
 
@@ -196,19 +196,19 @@ int
 ExistsDirectory(const char *path)
 {
 #ifdef O_XOS
-  return _xos_exists(path, _XOS_DIR) == TRUE;
+  return _xos_exists(path, _XOS_DIR) == true;
 #else
   char tmp[PATH_MAX];
   char *ospath = OsPath(path, tmp);
   statstruct buf;
 
   if ( statfunc(ospath, &buf) < 0 )
-    return FALSE;
+    return false;
 
   if ( S_ISDIR(buf.st_mode) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 #endif /*O_XOS*/
 }
 
@@ -303,10 +303,10 @@ SameFile(const char *f1, const char *f2)
 
   if ( truePrologFlag(PLFLAG_FILE_CASE) )
   { if ( streq(f1, f2) )
-      return TRUE;
+      return true;
   } else
   { if ( strcasecmp(f1, f2) == 0 )
-      return TRUE;
+      return true;
   }
 
 #ifdef __unix__				/* doesn't work on most not Unix's */
@@ -316,25 +316,25 @@ SameFile(const char *f1, const char *f2)
 
     if ( statfunc(OsPath(f1, tmp), &buf1) != 0 ||
 	 statfunc(OsPath(f2, tmp), &buf2) != 0 )
-      return FALSE;
+      return false;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
-      return TRUE;
+      return true;
   }
 #endif
 #ifdef O_XOS
-  return _xos_same_file(f1, f2) == TRUE;
+  return _xos_same_file(f1, f2) == true;
 #endif /*O_XOS*/
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */
     /* this is fine as OS'es not supporting symbolic links don't need this */
 
-  return FALSE;
+  return false;
 }
 
 
 /** int RemoveFile(const char *path)
 
-Remove a file from the filesystem.  Returns   TRUE  on success and FALSE
+Remove a file from the filesystem.  Returns   true  on success and false
 otherwise.
 */
 
@@ -343,9 +343,9 @@ RemoveFile(const char *path)
 { char tmp[PATH_MAX];
 
 #ifdef HAVE_REMOVE
-  return remove(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
+  return remove(OsPath(path, tmp)) == 0 ? true : false;
 #else
-  return unlink(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
+  return unlink(OsPath(path, tmp)) == 0 ? true : false;
 #endif
 }
 
@@ -360,7 +360,7 @@ RenameFile(const char *old, const char *new)
   osnew = OsPath(new, newbuf);
 
 #ifdef HAVE_RENAME
-  return rename(osold, osnew) == 0 ? TRUE : FALSE;
+  return rename(osold, osnew) == 0 ? true : false;
 #else
 { int rval;
 
@@ -370,9 +370,9 @@ RenameFile(const char *old, const char *new)
     unlink(osnew);
 
   if ( rval == 0 )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 #endif /*HAVE_RENAME*/
 }
@@ -398,7 +398,7 @@ MarkExecutable(const char *name)
   }
 
   if ( (buf.st_mode & 0111) == (~um & 0111) )
-    return TRUE;
+    return true;
 
   buf.st_mode |= 0111 & ~um;
   if ( chmod(name, buf.st_mode) == -1 )
@@ -411,7 +411,7 @@ MarkExecutable(const char *name)
   }
 #endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
 
-  return TRUE;
+  return true;
 }
 
 
@@ -435,10 +435,10 @@ add_option(term_t options, functor_t f, atom_t val)
        PL_unify_list(options, head, options) &&
        PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val) )
   { PL_reset_term_refs(head);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
@@ -459,7 +459,7 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 	  PL_predicate("absolute_file_name", 3, "system");
       term_t av = PL_new_term_refs(3);
       term_t options = PL_copy_term_ref(av+2);
-      int rc = TRUE;
+      int rc = true;
       int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
 					     : PL_Q_PASS_EXCEPTION);
 
@@ -488,7 +488,7 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
       return rc;
     }
 
-    return FALSE;
+    return false;
   }
 
   chflags = CVT_FILENAME;
@@ -497,7 +497,7 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
   if ( !(flags & PL_FILE_NOERRORS) )
     chflags |= CVT_EXCEPTION;
   if ( !PL_get_nchars(n, &len, &name, chflags) )
-    return FALSE;
+    return false;
   if ( strlen(name) != len )
   { code0:
     return PL_error(NULL, 0, "file name contains a 0-code",
@@ -509,7 +509,7 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(name = expandVars(name, tmp, PATH_MAX)) )
-      return FALSE;
+      return false;
   }
 
   if ( !(flags & PL_FILE_NOERRORS) )
@@ -532,12 +532,12 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 
   if ( flags & PL_FILE_ABSOLUTE )
   { if ( !(name = AbsoluteFile(name, tmp, tmplen)) )
-      return FALSE;
+      return false;
   }
 
   *namep = buffer_string(name, BUF_STACK);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -551,7 +551,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
   if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags)) )
   { if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
-	return FALSE;
+	return false;
       name = buffer_string(name, BUF_STACK);
     }
 
@@ -575,7 +575,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
 
     if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
-	return FALSE;
+	return false;
     }
 
     b = findBuffer(BUF_STACK);
@@ -618,7 +618,7 @@ PRED_IMPL("time_file", 2, time_file, 0)
 		    ATOM_time, ATOM_file, A1);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -643,7 +643,7 @@ PRED_IMPL("size_file", 2, size_file, 0)
     return PL_unify_int64(A2, size);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -661,10 +661,10 @@ PRED_IMPL("access_file", 2, access_file, 0)
   if ( !PL_get_atom(mode, &m) )
     return PL_error("access_file", 2, NULL, ERR_TYPE, ATOM_atom, mode);
   if ( !PL_get_file_name(name, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( m == ATOM_none )
-    return TRUE;
+    return true;
 
   if      ( m == ATOM_write || m == ATOM_append )
     md = ACCESS_WRITE;
@@ -681,13 +681,13 @@ PRED_IMPL("access_file", 2, access_file, 0)
   { int rc;
 
     if ( !iri_hook(n, IRI_ACCESS, md, &rc) )
-      return FALSE;
+      return false;
 
     return rc;
   }
 
   if ( AccessFile(n, md) )
-    return TRUE;
+    return true;
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
   { char tmp[PATH_MAX];
@@ -697,13 +697,13 @@ PRED_IMPL("access_file", 2, access_file, 0)
       return PL_representation_error("max_path_length");
     if ( dir[0] )
     { if ( !ExistsDirectory(dir) )
-	return FALSE;
+	return false;
     }
     if ( AccessDirectory(dir[0] ? dir : ".", md) )
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -717,15 +717,15 @@ PRED_IMPL("read_link", 3, read_link, 0)
   term_t to   = A3;
 
   if ( !PL_get_file_name(file, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( (l = ReadLink(n, buf)) &&
        PL_unify_chars(link, PL_ATOM|REP_FN, (size_t)-1, l) &&
        (t = DeRefLink(n, buf)) &&
        PL_unify_chars(to, PL_ATOM|REP_FN, (size_t)-1, t) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -735,13 +735,13 @@ PRED_IMPL("exists_file", 1, exists_file, 0)
   int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( (sl=file_name_is_iri(n)) )
   { int rc;
 
     if ( !iri_hook(n, IRI_ACCESS, ACCESS_FILE, &rc) )
-      return FALSE;
+      return false;
 
     return rc;
   }
@@ -756,13 +756,13 @@ PRED_IMPL("exists_directory", 1, exists_directory, 0)
   int sl;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( (sl=file_name_is_iri(n)) )
   { int rc;
 
     if ( !iri_hook(n, IRI_ACCESS, ACCESS_DIRECTORY, &rc) )
-      return FALSE;
+      return false;
 
     return rc;
   }
@@ -777,9 +777,9 @@ PRED_IMPL("is_absolute_file_name", 1, is_absolute_file_name, 0)
 
   if ( PL_get_file_name(A1, &n, 0) &&
        (IsAbsolutePath(n) || file_name_is_iri(n)) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -791,7 +791,7 @@ PRED_IMPL("same_file", 2, same_file, 0)
        PL_get_file_name(A2, &n2, 0) )
     return SameFile(n1, n2);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -801,7 +801,7 @@ PRED_IMPL("file_base_name", 2, file_base_name, 0)
   char tmp[PATH_MAX];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   if ( (b=BaseName(n, tmp)) )
     return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, b);
@@ -816,7 +816,7 @@ PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
   char tmp[PATH_MAX];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   if ( (d=DirName(n, tmp)) )
     return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, d);
@@ -839,7 +839,7 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   term_t name = A2;
 
   if ( !PL_get_chars(base, &n, CVT_ALL|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   if ( (fn=TemporaryFile(n, "", NULL)) )
     return PL_unify_atom(name, fn);
@@ -863,7 +863,7 @@ PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
 
   if ( !PL_get_chars(A1, &ext, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) ||
        !PL_get_atom_ex(A2, &encoding) )
-    return FALSE;
+    return false;
   if ( (enc = PL_atom_to_encoding(encoding)) == ENC_UNKNOWN )
   { if ( encoding == ATOM_binary )
     { enc = ENC_OCTET;
@@ -907,13 +907,13 @@ PRED_IMPL("delete_file", 1, delete_file, 0)
 
   if ( PL_get_atom(A1, &aname) &&
        DeleteTemporaryFile(aname) )
-    return TRUE;
+    return true;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( RemoveFile(n) )
-    return TRUE;
+    return true;
 
   return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		  ATOM_delete, ATOM_file, A1);
@@ -925,10 +925,10 @@ PRED_IMPL("delete_directory", 1, delete_directory, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( rmdir(n) == 0 )
-    return TRUE;
+    return true;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_delete, ATOM_directory, A1);
@@ -940,10 +940,10 @@ PRED_IMPL("make_directory", 1, make_directory, 0)
 { char *n;
 
   if ( !PL_get_file_name(A1, &n, 0) )
-    return FALSE;
+    return false;
 
   if ( mkdir(n, 0777) == 0 )
-    return TRUE;
+    return true;
   else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_create, ATOM_directory, A1);
@@ -964,19 +964,19 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
     { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	return PL_error("rename_file", 2, "same file", ERR_PERMISSION,
 			ATOM_rename, ATOM_file, old);
-      return FALSE;
+      return false;
     }
 
     if ( RenameFile(o, n) )
-      return TRUE;
+      return true;
 
     if ( truePrologFlag(PLFLAG_FILEERRORS) )
       return PL_error("rename_file", 2, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_rename, ATOM_file, old);
-    return FALSE;
+    return false;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -993,7 +993,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
       return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1003,7 +1003,7 @@ PRED_IMPL("$cwd", 1, cwd, 0)
   const char *wd;
 
   if ( !(wd = PL_cwd(buf, sizeof(buf))) )
-    return FALSE;
+    return false;
 
   return PL_unify_chars(A1, PL_ATOM|REP_FN, (size_t)-1, wd);
 }
@@ -1016,14 +1016,14 @@ PRED_IMPL("$chdir", 1, chdir, 0)
 
   if ( PL_get_file_name(A1, &n, 0) )
   { if ( ChDir(n) )
-      return TRUE;
+      return true;
 
     if ( truePrologFlag(PLFLAG_FILEERRORS) )
       return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 		      ATOM_chdir, ATOM_directory, A1);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1033,7 +1033,7 @@ has_extension(const char *name, const char *ext)
   const char *s = name + strlen(name);
 
   if ( ext[0] == EOS )
-    return TRUE;
+    return true;
 
   while(*s != '.' && *s != '/' && s > name)
     s--;
@@ -1046,7 +1046,7 @@ has_extension(const char *name, const char *ext)
       return strcasecmp(&s[1], ext) == 0;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1111,7 +1111,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
 
     return PL_unify_chars(full, PL_ATOM|REP_FN, -1, buf);
   } else
-    return FALSE;
+    return false;
 }
 
 
@@ -1135,7 +1135,7 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
       return PL_unify_chars(os, PL_ATOM|REP_UTF8, -1, buf);
     }
-    return FALSE;
+    return false;
   }
 
   if ( PL_get_wchars(os, NULL, &wn, CVT_ALL) )
@@ -1179,7 +1179,7 @@ PRED_IMPL("$my_file", 1, my_file, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) ||
        file_name_is_iri(n) )
-    return FALSE;
+    return false;
 
 #ifdef HAVE_GETUID
 { statstruct buf;
@@ -1187,15 +1187,15 @@ PRED_IMPL("$my_file", 1, my_file, 0)
 
   if ( statfunc(OsPath(n, tmp), &buf) < 0 )
   { perror(tmp);
-    return FALSE;
+    return false;
   }
 
   if ( buf.st_uid != getuid() )
-    return FALSE;
+    return false;
 }
 #endif
 
-  return TRUE;
+  return true;
 }
 
 

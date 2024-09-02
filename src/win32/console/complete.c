@@ -83,7 +83,7 @@ rlc_complete_file_function(RlcCompleteData data)
       HANDLE h;
 
       if ( ln->point - start > 200 )
-	return FALSE;
+	return false;
 
       for( ; n < ln->point; n++)
       { int c = ln->data[n];
@@ -104,31 +104,31 @@ rlc_complete_file_function(RlcCompleteData data)
 	  data->quote = close_quote(ln->data[start-1]);
 	_tcscpy(data->candidate, fdata.cFileName);
 	data->ptr_handle = h;
-	data->case_insensitive = TRUE;
+	data->case_insensitive = true;
 	data->function = rlc_complete_file_function;
 
-	return TRUE;
+	return true;
       }
 
-      return FALSE;
+      return false;
     }
 
     case COMPLETE_ENUMERATE:
     { if ( FindNextFile(data->ptr_handle, &fdata) )
       { _tcscpy(data->candidate, fdata.cFileName);
-	return TRUE;
+	return true;
       }
 
-      return FALSE;
+      return false;
     }
 
     case COMPLETE_CLOSE:
     { FindClose(data->ptr_handle);
 
-      return FALSE;
+      return false;
     }
 
     default:
-      return FALSE;
+      return false;
   }
 }

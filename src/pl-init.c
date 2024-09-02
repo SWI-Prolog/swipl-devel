@@ -185,28 +185,28 @@ is_bool_opt(const char *opt, const char *name, int *val)
 	 strcasecmp(optval, "true") == 0 ||
 	 strcasecmp(optval, "yes") == 0 ||
 	 strcasecmp(optval, "y") == 0 )
-    { *val = TRUE;
-      return TRUE;
+    { *val = true;
+      return true;
     }
     if ( strcasecmp(optval, "false") == 0 ||
 	 strcasecmp(optval, "no") == 0 ||
 	 strcasecmp(optval, "n") == 0 )
-    { *val = FALSE;
-      return TRUE;
+    { *val = false;
+      return true;
     }
 
     return -1;
   } else if ( strncmp(opt, "no", 2) == 0 &&
 	      (optval=is_longopt(skip_wsep(opt+2),name)) )
   { if ( *optval == EOS )
-    { *val = FALSE;
-      return TRUE;
+    { *val = false;
+      return true;
     }
 
     return -1;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -221,7 +221,7 @@ opt_append(opt_list **l, const char *s)
     l = &(*l)->next;
   *l = n;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -416,13 +416,13 @@ is_hash_bang_file(const char *s)
 { char fb[PATH_MAX];
   char *fn;
   IOSTREAM *fd;
-  int rc = FALSE;
+  int rc = false;
 
   if ( (fn = PrologPath(s, fb, sizeof(fb))) &&
        (fd = Sopen_file(fb, "r")) )
   { if ( Sgetc(fd) == '#' &&
 	 Sgetc(fd) == '!' )
-      rc = TRUE;
+      rc = true;
 
     Sclose(fd);
   }
@@ -501,14 +501,14 @@ setupGNUEmacsInferiorMode(void)
   { GET_LD
 
     clearPrologFlagMask(PLFLAG_TTY_CONTROL);
-    val = TRUE;
+    val = true;
 #ifdef __WINDOWS__
     Sinput->flags  |= SIO_ISATTY;
     Soutput->flags |= SIO_ISATTY;
     Serror->flags  |= SIO_ISATTY;
 #endif
   } else
-  { val = FALSE;
+  { val = false;
   }
 
   PL_set_prolog_flag("emacs_inferior_process", PL_BOOL|FF_READONLY, val);
@@ -633,9 +633,9 @@ initDefaults(void)
   getDefaultsFromRegistry();
 #endif
 
-  GD->io_initialised	     = FALSE;
-  GD->initialised	     = FALSE;
-  GD->bootsession	     = FALSE;
+  GD->io_initialised	     = false;
+  GD->initialised	     = false;
+  GD->bootsession	     = false;
 #ifdef SIG_ALERT
   GD->signals.sig_alert      = SIG_ALERT;
 #endif
@@ -673,7 +673,7 @@ again:
   for(;;)
   { switch(c = Sgetc(s))
     { case EOF:
-	return FALSE;
+	return false;
       case '=':
 	addBuffer(name, EOS, char);
 	goto do_value;
@@ -691,7 +691,7 @@ do_value:
     { case EOF:
       case '\n':
 	addBuffer(value, EOS, char);
-	return TRUE;
+	return true;
       default:
 	addBuffer(value, (char)c, char);
     }
@@ -701,7 +701,7 @@ do_value:
 
 static int
 loadStateOptions(IOSTREAM *opts)
-{ int rc = FALSE;
+{ int rc = false;
   tmp_buffer name;
   tmp_buffer val;
 
@@ -709,7 +709,7 @@ loadStateOptions(IOSTREAM *opts)
   { set_pl_option(baseBuffer(&name, char), baseBuffer(&val, char));
     discardBuffer(&name);
     discardBuffer(&val);
-    rc = TRUE;		/* check really modified? */
+    rc = true;		/* check really modified? */
   }
 
   return rc;
@@ -741,11 +741,11 @@ initDefaultOptions(void)
 
 int
 setTraditional(void)
-{ GD->options.traditional = TRUE;
+{ GD->options.traditional = true;
   if ( GD->atoms.table )
     resetListAtoms();
 
-  return TRUE;
+  return true;
 }
 
 
@@ -784,39 +784,39 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 	break;
 
       if ( (rc=is_bool_opt(s, "quiet", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( b )
-	    GD->options.silent = TRUE;
+	    GD->options.silent = true;
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "debug_on_interrupt", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( b )
 	    setPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "debug", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( !b )
 	    clearPrologFlagMask(PLFLAG_DEBUGINFO);
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "signals", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( !b )
 	  { clearPrologFlagMask(PLFLAG_SIGNALS);
-	    GD->options.nosignals = TRUE;
+	    GD->options.nosignals = true;
 	  }
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "threads", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( !b )
-	    GD->options.nothreads = TRUE;
+	    GD->options.nothreads = true;
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "tty", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	{ if ( b )
 	    setPrologFlagMask(PLFLAG_TTY_CONTROL);
 	  else
@@ -824,12 +824,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 	} else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "pce", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	  GD->options.xpce = b;
 	else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "packs", &b)) )
-      { if ( rc == TRUE )
+      { if ( rc == true )
 	  GD->cmdline.packs = b;
 	else
 	  return -1;
@@ -839,7 +839,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
       { /* already handled */
 #ifdef __WINDOWS__
       } else if ( (optval=is_longopt(s, "win_app")) )
-      { GD->options.win_app = TRUE;
+      { GD->options.win_app = true;
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
@@ -915,14 +915,14 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
     while(*s)
     { switch(*s)
       { case 'd':	if ( argc > 1 )
-			{ prolog_debug_from_string(argv[1], TRUE);
+			{ prolog_debug_from_string(argv[1], true);
 			  argc--, argv++;
 			} else
 			  return -1;
 			break;
 	case 'p':	optionList(&GD->options.search_paths);
 			break;
-	case 'O':	GD->cmdline.optimise = TRUE; /* see initPrologFlags() */
+	case 'O':	GD->cmdline.optimise = true; /* see initPrologFlags() */
 			break;
 	case 'x':	optionString(GD->options.bootFrom);
 			break;
@@ -939,11 +939,11 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 			break;
 	case 't':	optionString(GD->options.topLevel);
 			break;
-	case 'c':	GD->options.compile = TRUE;
+	case 'c':	GD->options.compile = true;
 			break;
-	case 'b':	GD->bootsession = TRUE;
+	case 'b':	GD->bootsession = true;
 			break;
-	case 'q':	GD->options.silent = TRUE;
+	case 'q':	GD->options.silent = true;
 			break;
 	default:
 	{ if ( s == &argv[0][1] )
@@ -1043,10 +1043,10 @@ PL_is_initialised(int *argc, char ***argv)
     if ( argv )
       *argv = GD->cmdline.os_argv;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1059,7 +1059,7 @@ PL_winitialise(int argc, wchar_t **wargv)
   char *abuf, *op;
 
   if ( !(argv = malloc((argc+1)*sizeof(*argv))) )
-    return FALSE;
+    return false;
 
   initBuffer(&b);
   for(i=0; i<argc; i++)
@@ -1082,7 +1082,7 @@ PL_winitialise(int argc, wchar_t **wargv)
 
   sz = entriesBuffer(&b, char);
   if ( !(abuf = malloc(sz)) )
-    return FALSE;
+    return false;
   memcpy(abuf, baseBuffer(&b, char), sz);
   discardBuffer(&b);
   op = abuf;
@@ -1126,7 +1126,7 @@ Steps:
 
 int
 PL_initialise(int argc, char **argv)
-{ int is_hash_bang = FALSE;
+{ int is_hash_bang = false;
   const char *rcpath = "<none>";
 
   if ( GD->initialised )
@@ -1136,7 +1136,7 @@ PL_initialise(int argc, char **argv)
   /* Initialize debug flag early, if first argument */
   if (argc > 2 && strcmp(argv[1],"-d") == 0)
     /* One's complement tells p_d_f_s not to bail on error, just return */
-    prolog_debug_from_string(argv[2], ~TRUE);
+    prolog_debug_from_string(argv[2], ~true);
 #endif
 
   initAlloc();
@@ -1145,7 +1145,7 @@ PL_initialise(int argc, char **argv)
 
   GD->cmdline.os_argc = argc;
   GD->cmdline.os_argv = argv;
-  GD->cmdline.packs   = TRUE;
+  GD->cmdline.packs   = true;
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
@@ -1185,7 +1185,7 @@ PL_initialise(int argc, char **argv)
       exit(0);
 
     if ( argc > 1 && argv[0][0] != '-' && is_hash_bang_file(argv[0]) )
-      is_hash_bang = TRUE;
+      is_hash_bang = true;
 
     argvleft = PL_malloc(argc*sizeof(*argvleft));
     if ( (done = parseCommandLineOptions(argc, argv, argvleft)) < 0 )
@@ -1194,7 +1194,7 @@ PL_initialise(int argc, char **argv)
     }
     argc = done;
     argv = argvleft;
-    GD->cmdline.appl_malloc = TRUE;
+    GD->cmdline.appl_malloc = true;
 
     if ( GD->bootsession )
     { DEBUG(MSG_INITIALISE, Sdprintf("Boot session\n"));
@@ -1238,7 +1238,7 @@ PL_initialise(int argc, char **argv)
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
   if ( !setupProlog() )
-    return FALSE;
+    return false;
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), ATOM_thread, ATOM_main);
   enableThreads(!GD->options.nothreads);
@@ -1283,10 +1283,10 @@ PL_initialise(int argc, char **argv)
   { IOSTREAM *statefd = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_RDONLY);
 
     if ( statefd )
-    { GD->bootsession = TRUE;
+    { GD->bootsession = true;
       if ( !loadWicFromStream(rcpath, statefd) )
-	return FALSE;
-      GD->bootsession = FALSE;
+	return false;
+      GD->bootsession = false;
 
       Sclose(statefd);
     } else
@@ -1299,7 +1299,7 @@ PL_initialise(int argc, char **argv)
 			    DISCONTIGUOUS_STYLE|
 			    NOEFFECT_CHECK);
   setAccessLevel(ACCESS_LEVEL_USER);
-  GD->initialised = TRUE;
+  GD->initialised = true;
   registerForeignLicenses();
 
   DEBUG(MSG_INITIALISE, Sdprintf("Starting Prolog Part of initialisation\n"));
@@ -1323,9 +1323,9 @@ PL_initialise(int argc, char **argv)
 int
 PL_set_resource_db_mem(const unsigned char *data, size_t size)
 { if ( (GD->resources.DB = zip_open_archive_mem(data, size, RC_RDONLY)) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1399,7 +1399,7 @@ usage(void)
   for(lp = lines; *lp; lp++)
     Sfprintf(Serror, *lp, prog);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1407,7 +1407,7 @@ static
 PRED_IMPL("$usage", 0, usage, 0)
 { usage();
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1427,7 +1427,7 @@ version(void)
 	  tag[0] ? "-" : "", tag,
 	  PLARCH);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1446,7 +1446,7 @@ abi_version(void)
 	  VM_SIGNATURE);
   PL_cleanup(0);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1454,7 +1454,7 @@ static int
 arch(void)
 { Sprintf("%s\n", PLARCH);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1463,7 +1463,7 @@ giveVersionInfo(const char *a)
 { const char *v;
 
   if ( *a++ != '-' || *a++ != '-' )
-    return FALSE;
+    return false;
 
   if ( (v=is_longopt(a, "help")) && !*v )
     return usage();
@@ -1474,7 +1474,7 @@ giveVersionInfo(const char *a)
   if ( (v=is_longopt(a, "abi_version")) && !*v )
     return abi_version();
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1530,7 +1530,7 @@ run_on_halt(OnHalt *handlers, int rval)
     freeHeap(h, sizeof(*h));
   }
 
-  return TRUE;				/* not yet cancelling */
+  return true;				/* not yet cancelling */
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1577,7 +1577,7 @@ PL_cleanup(int status)
 #endif
 
   GD->cleaning = CLN_PROLOG;
-  debugmode(FALSE, NULL);		/* avoid recursive tracing */
+  debugmode(false, NULL);		/* avoid recursive tracing */
 
   if ( GD->initialised )
   { DEBUG(MSG_CLEANUP, Sdprintf("Running at_halt hooks\n"));
@@ -1586,7 +1586,7 @@ PL_cleanup(int status)
       emptyStacks();
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, (intptr_t)rval);
-    if ( query_loop(PL_new_atom("$run_at_halt"), FALSE) == FALSE &&
+    if ( query_loop(PL_new_atom("$run_at_halt"), false) == false &&
 	 !(status&PL_CLEANUP_NO_CANCEL) )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
@@ -1616,7 +1616,7 @@ PL_cleanup(int status)
   { if ( reclaim_memory )
     { Sdprintf("WARNING: Failed to stop Prolog threads. "
 	       "Not reclaming memory.\n");
-      reclaim_memory = FALSE;
+      reclaim_memory = false;
     }
   }
 
@@ -1773,13 +1773,13 @@ printCrashContext(const char *btname)
   time_t now;
   char tbuf[48];
   int btflags = 0;
-  static bool running = FALSE;
+  static bool running = false;
 
   if ( running )
   { Sdprintf("Recursive crash; omitting crash report\n");
     return;
   }
-  running = TRUE;
+  running = true;
 
   now = time(NULL);
   ctime_r(&now, tbuf);
@@ -1829,7 +1829,7 @@ printCrashContext(const char *btname)
     PL_backtrace(10, btflags);
   }
 
-  running = FALSE;
+  running = false;
 }
 
 #ifdef HAVE_SETITIMER
@@ -1885,7 +1885,7 @@ action:
   Sfprintf(Serror, "\nAction? ");
 #endif
 
-  switch(getSingleChar(Sinput, FALSE))
+  switch(getSingleChar(Sinput, false))
   { case EOF:
       Sfprintf(Serror, "EOF: exit (status 134)\n");
     case 'e':
@@ -1898,7 +1898,7 @@ action:
       goto action;
   }
 
-  return FALSE;					/* not reached */
+  return false;					/* not reached */
 }
 
 void
@@ -2028,7 +2028,7 @@ vwarning(const char *fm, va_list args)
   if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
     pl_trace();
 
-  return FALSE;
+  return false;
 }
 
 

@@ -81,7 +81,7 @@ VM_equalIndirectFromCode(DECL_LD word a, Code pc)
     return WORD_AND_CODE(memcmp(data, pa, sizeof(*data)*n) == 0, pc);
   }
 
-  return WORD_AND_CODE(FALSE, pc);
+  return WORD_AND_CODE(false, pc);
 }
 
 #endif

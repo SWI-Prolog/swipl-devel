@@ -148,10 +148,10 @@ compilePattern(char *p, compiled_pattern *cbuf, int flags)
 { initPattern(cbuf);
 
   if ( compile_pattern(cbuf, p, NOCURL, flags) )
-    return TRUE;
+    return true;
 
   discardPattern(cbuf);
-  return FALSE;
+  return false;
 }
 
 static int
@@ -308,10 +308,10 @@ match_pattern(matchcode *p, const char *s, int flags)
   for(;;)
   { switch( c = *p++ )
     { case EXIT:
-	return (*s == EOS ? TRUE : FALSE);
+	return (*s == EOS ? true : false);
       case ANY:						/* ? */
 	if ( *s == EOS )
-	  return FALSE;
+	  return false;
 	s = utf8_skip_char(s);
 	continue;
       case ANYOF:					/* [...] */
@@ -334,7 +334,7 @@ match_pattern(matchcode *p, const char *s, int flags)
 	    p++;
 	  }
 	}
-	return FALSE;
+	return false;
 
       match:
 	p = anyend;
@@ -344,18 +344,18 @@ match_pattern(matchcode *p, const char *s, int flags)
       { int c2;
 	do
 	{ if ( match_pattern(p, s, flags) )
-	    return TRUE;
+	    return true;
 	  PL_utf8_code_point(&s, NULL, &c2);
 	} while(c2);
 
-	return FALSE;
+	return false;
       }
       case JMP:						/* { ... } */
 	p += *p;
         continue;
       case ALT:
 	if ( match_pattern(p+1, s, flags) )
-	  return TRUE;
+	  return true;
         p += *p;
 	continue;
       default:						/* character */
@@ -368,7 +368,7 @@ match_pattern(matchcode *p, const char *s, int flags)
 	if ( c == c2 )
 	  continue;
 
-	return FALSE;
+	return false;
       }
     }
   }
@@ -388,14 +388,14 @@ static const PL_option_t wildcard_options[] =
 static int
 wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
 { char *p, *s;
-  int rc = FALSE;
+  int rc = false;
   int mflags = 0;
-  int case_sensitive = TRUE;
+  int case_sensitive = true;
 
   if ( options &&
        !PL_scan_options(options, 0, "wildcard_option",
 			wildcard_options, &case_sensitive) )
-    return FALSE;
+    return false;
   if ( !case_sensitive )
     mflags |= M_IGNCASE;
 
@@ -484,8 +484,8 @@ mb_add_path(DECL_LD const char *path, GlobInfo info)
   txt.length    = strlen(path);
   txt.encoding  = ENC_ANSI;
   txt.storage   = PL_CHARS_HEAP;
-  txt.canonical = FALSE;
-  if ( (PL_canonicalise_text(&txt) == TRUE) &&
+  txt.canonical = false;
+  if ( (PL_canonicalise_text(&txt) == true) &&
        PL_mb_text(&txt, REP_UTF8) )
   { addMultipleBuffer(&info->strings, txt.text.t, txt.length+1, char);
     addBuffer(&info->files, idx, int);
@@ -548,8 +548,8 @@ utf8_exists_file(DECL_LD const char *name)
   txt.length    = strlen(name);
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
-  txt.canonical = FALSE;
-  rc = ( (PL_canonicalise_text(&txt) == TRUE) &&
+  txt.canonical = false;
+  rc = ( (PL_canonicalise_text(&txt) == true) &&
 	 PL_mb_text(&txt, REP_FN) &&
 	 AccessFile(txt.text.t, ACCESS_EXIST) );
   PL_free_text(&txt);
@@ -558,7 +558,7 @@ utf8_exists_file(DECL_LD const char *name)
   return rc;
 #else
   // _xos_access_dir simply uses _waccess().  That is good enough for us.
-  return _xos_access_dir(name, F_OK) == 0 ? TRUE : FALSE;
+  return _xos_access_dir(name, F_OK) == 0 ? true : false;
 #endif
 }
 
@@ -575,8 +575,8 @@ utf8_opendir(DECL_LD const char *name)
   txt.length    = strlen(name);
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
-  txt.canonical = FALSE;
-  if ( (PL_canonicalise_text(&txt) == TRUE) &&
+  txt.canonical = false;
+  if ( (PL_canonicalise_text(&txt) == true) &&
        PL_mb_text(&txt, REP_FN) )
     rc = opendir(txt.text.t);
   else
@@ -641,7 +641,7 @@ expand(const char *pattern, GlobInfo info)
 	      }
 	    }
 	  }
-	  return TRUE;
+	  return true;
 	case '[':				/* meta characters: expand */
 	case '{':
 	case '?':
@@ -677,7 +677,7 @@ expand(const char *pattern, GlobInfo info)
 
     discardPattern(&info->pattern);
     if ( !compilePattern(patbuf, &info->pattern, mflags) ) /* syntax error */
-      return FALSE;
+      return false;
     dot = (patbuf[0] == '.');			/* do dots as well */
 
     end = info->end;
@@ -718,7 +718,7 @@ expand(const char *pattern, GlobInfo info)
 	    }
 	  }
 	  if ( PL_handle_signals() < 0 )
-	    return FALSE;
+	    return false;
 	}
 	closedir(d);
       }
@@ -810,11 +810,11 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
   if ( !PL_unify_nil(l) )
   { failout:
     free_expand_info(&info);
-    return FALSE;
+    return false;
   }
 
   free_expand_info(&info);
-  return TRUE;
+  return true;
 }
 
 
@@ -830,7 +830,7 @@ PRED_IMPL("directory_files", 2, directory_files, 0)
   DIR *dir;
 
   if ( !PL_get_file_name(A1, &dname, PL_FILE_READ|PL_FILE_OSPATH) )
-    return FALSE;
+    return false;
 
   if ( (dir=opendir(dname)) )
   { struct dirent *e;
@@ -843,7 +843,7 @@ PRED_IMPL("directory_files", 2, directory_files, 0)
 	   !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, e->d_name) )
       { closedir(dir);
-	return FALSE;
+	return false;
       }
     }
     closedir(dir);

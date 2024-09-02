@@ -126,7 +126,7 @@ PRED_IMPL("get_flag", 2, get_flag, 0)
   term_t value = A2;
 
   if ( !getKeyEx(name, &key) )
-    return FALSE;
+    return false;
 
   f = lookupFlag(key);
   PL_LOCK(L_FLAG);
@@ -141,7 +141,7 @@ PRED_IMPL("get_flag", 2, get_flag, 0)
       rc = PL_unify_float(value, f->value.f);
       break;
     default:
-      rc = FALSE;
+      rc = false;
       assert(0);
   }
   PL_UNLOCK(L_FLAG);
@@ -162,7 +162,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
   term_t value = A2;
 
   if ( !getKeyEx(name, &key) )
-    return FALSE;
+    return false;
   f = lookupFlag(key);
 
   if ( PL_get_atom(value, &a) )
@@ -172,7 +172,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
     f->value.a = a;
     PL_register_atom(a);
     PL_UNLOCK(L_FLAG);
-    return TRUE;
+    return true;
   } else if ( PL_get_number(value, &n) )
   { switch(n.type)
     { case V_INTEGER:
@@ -181,7 +181,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
 	f->type = FLG_INTEGER;
 	f->value.i = n.value.i;
 	PL_UNLOCK(L_FLAG);
-	return TRUE;
+	return true;
       }
 #ifdef O_GMP
       case V_MPZ:
@@ -195,7 +195,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
 	f->type = FLG_FLOAT;
         f->value.f = n.value.f;
 	PL_UNLOCK(L_FLAG);
-	return TRUE;
+	return true;
       }
       default:
 	goto type_error;
@@ -234,7 +234,7 @@ pl_current_flag(term_t k, control_t h)
       e = ForeignContextPtr(h);
       freeTableEnum(e);
     default:
-      return TRUE;
+      return true;
   }
 
   while( advanceTableEnum(e, NULL, &v) )
@@ -247,7 +247,7 @@ pl_current_flag(term_t k, control_t h)
   }
 
   freeTableEnum(e);
-  return FALSE;
+  return false;
 }
 
 

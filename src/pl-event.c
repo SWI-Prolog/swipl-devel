@@ -70,8 +70,8 @@ typedef int (*ev_func2)(void *, term_t, term_t);
 
 #define EV_GLOBAL(name) (&GD->event.hook.name)
 #define EV_LOCAL(name)  (&((PL_local_data_t*)NULL)->event.hook.name)
-#define GEVENT(id, name, ac, loc) {id, name, ac, FALSE, EV_GLOBAL(loc) }
-#define LEVENT(id, name, ac, loc) {id, name, ac, TRUE,  EV_LOCAL(loc)  }
+#define GEVENT(id, name, ac, loc) {id, name, ac, false, EV_GLOBAL(loc) }
+#define LEVENT(id, name, ac, loc) {id, name, ac, true,  EV_LOCAL(loc)  }
 
 const event_type PL_events[] =
 { GEVENT(PLEV_ABORT,            ATOM_abort,            0, onabort),
@@ -105,7 +105,7 @@ link_event(event_list *list, event_callback *cb, int last)
   }
   UNLOCK_LIST(list);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -113,11 +113,11 @@ link_event(event_list *list, event_callback *cb, int last)
 static int
 get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 { if ( !PL_strip_module(closure, m, cb) )
-    return FALSE;
+    return false;
   if ( !PL_is_callable(cb) )
     return PL_type_error("callable", closure);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -130,7 +130,7 @@ add_event_hook(event_list *list, atom_t name, int last, term_t closure, int argc
   term_t t = PL_new_term_ref();
 
   if ( !get_callback(closure, &m, t) )
-    return FALSE;
+    return false;
 
   if ( name )
   { event_callback *ev;
@@ -145,7 +145,7 @@ add_event_hook(event_list *list, atom_t name, int last, term_t closure, int argc
 	if ( r )
 	  free_fastheap(r);
 
-	return TRUE;
+	return true;
       }
     }
 
@@ -212,14 +212,14 @@ get_event_listp(DECL_LD term_t type, event_list ***listpp, size_t *argc)
 	  *listpp = event_list_location(et->id);
 	  *argc   = et->argc;
 
-	  return TRUE;
+	  return true;
 	}
       }
     } else if ( get_procedure(type, &proc, 0, GP_RESOLVE|GP_NAMEARITY) )
     { *listpp = &proc->definition->events;
       *argc   = 2;				/* action, cref */
 
-      return TRUE;
+      return true;
     }
 
     return PL_domain_error("event", type);
@@ -245,7 +245,7 @@ prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
   if ( options && !PL_scan_options(options, 0, /*OPT_ALL,*/
 				   "prolog_listen_option", prolog_listen_options,
 				   &as, &name) )
-    return FALSE;
+    return false;
 
   if ( !(as == ATOM_first || as == ATOM_last) )
   { term_t ex = PL_new_term_ref();
@@ -255,7 +255,7 @@ prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
   if ( get_event_listp(type, &listp, &argc) )
     return register_event_hook(listp, name, as == ATOM_last, closure, argc);
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -292,7 +292,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
       Procedure proc = NULL;
 
       if ( !get_callback(A2, &m, t) )
-	return FALSE;
+	return false;
       if ( PL_get_atom(t, &name) )
 	proc = resolveProcedure(PL_new_functor(name, argc), m);
 
@@ -320,7 +320,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 	      goto delete;
 	    if ( PL_exception(0) )
 	    { UNLOCK_LIST(list);
-	      return FALSE;
+	      return false;
 	    }
 	    PL_rewind_foreign_frame(fid);
 	  }
@@ -331,10 +331,10 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
       UNLOCK_LIST(list);
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -393,7 +393,7 @@ cleanupEvents(void)
 #define call_event_list(list, argc, argv) LDFUNC(call_event_list, list, argc, argv)
 static int
 call_event_list(DECL_LD event_list *list, int argc, term_t argv)
-{ int rc = TRUE;
+{ int rc = true;
 
   if ( list )
   { event_callback *ev;
@@ -412,7 +412,7 @@ call_event_list(DECL_LD event_list *list, int argc, term_t argv)
 	    rc = (*(ev_func2)ev->function)(ev->closure.pointer, argv+1, argv+2);
 	    break;
 	  default:
-	    rc = FALSE;
+	    rc = false;
 	    assert(0);
 	}
       } else if ( ev->closure.term )
@@ -492,7 +492,7 @@ delayEvent(pl_event_type ev, va_list args)
     addBuffer(LD->event.buffered, dev, delayed_event);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -505,11 +505,11 @@ delayEvents(void)
 
     if ( (LD->event.buffered = malloc(sizeof(tmp_buffer))) )
     { initBuffer(LD->event.buffered);
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -580,11 +580,11 @@ PL_call_event_hook(pl_event_type ev, ...)
     return rc;
   }
 
-  return TRUE;
+  return true;
 }
 
 
-/* Returns FALSE iff there is an exception inside the execution of the
+/* Returns false iff there is an exception inside the execution of the
  * hook
  */
 
@@ -592,18 +592,18 @@ int
 PL_call_event_hook_va(pl_event_type ev, va_list args)
 { GET_LD
   wakeup_state wstate;
-  int rc = TRUE;
+  int rc = true;
   event_list *list = *event_list_location(ev);
   term_t av;
   const event_type *event_decl = &PL_events[ev];
 
   if ( LD->event.delay_nesting )
   { delayEvent(ev, args);
-    return TRUE;
+    return true;
   }
 
-  if ( !saveWakeup(&wstate, TRUE) )
-    return FALSE;
+  if ( !saveWakeup(&wstate, true) )
+    return false;
   av = PL_new_term_refs(event_decl->argc+1);
 
   switch(ev)
@@ -671,7 +671,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     if ( !rc && PL_exception(0) )
       set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
     else
-      rc = TRUE;				/* only FALSE on error */
+      rc = true;				/* only false on error */
   }
 
 out:
@@ -687,7 +687,7 @@ predicate_update_event(DECL_LD Definition def, atom_t action, Clause cl,
 { wakeup_state wstate;
   int rc;
 
-  if ( (rc=saveWakeup(&wstate, TRUE)) )
+  if ( (rc=saveWakeup(&wstate, true)) )
   { term_t av;
 
     rc = ( (av=PL_new_term_refs(3)) && /* closure, action, clause */
@@ -711,7 +711,7 @@ table_answer_event(DECL_LD Definition def, atom_t action, term_t answer)
 { wakeup_state wstate;
   int rc;
 
-  if ( (rc=saveWakeup(&wstate, TRUE)) )
+  if ( (rc=saveWakeup(&wstate, true)) )
   { term_t av;
 
     rc = ( (av=PL_new_term_refs(3)) && /* closure, action, answer */
@@ -737,10 +737,10 @@ int
 retractall_event(DECL_LD Definition def, term_t head, functor_t start)
 { wakeup_state wstate;
   term_t av;
-  int rc = TRUE;
+  int rc = true;
 
-  if ( !saveWakeup(&wstate, TRUE) )
-    return FALSE;
+  if ( !saveWakeup(&wstate, true) )
+    return false;
   av = PL_new_term_refs(4);			/* closure, action, start/end, head */
 
   if ( !PL_put_atom(av+1, def->module->name) ||
@@ -748,7 +748,7 @@ retractall_event(DECL_LD Definition def, term_t head, functor_t start)
        !PL_cons_functor_v(av+2, FUNCTOR_colon2, av+1) ||
        !PL_cons_functor_v(av+2, start, av+2) ||
        !PL_put_atom(av+1, ATOM_retractall) )
-    return FALSE;
+    return false;
 
   rc = call_event_list(def->events, 2, av);
 

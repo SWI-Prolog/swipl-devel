@@ -233,10 +233,10 @@ static BOOL MySetFilePointerEx(HANDLE hFile, LARGE_INTEGER pos, LARGE_INTEGER *n
 #else
     LONG lHigh = pos.HighPart;
     DWORD dwNewPos = SetFilePointer(hFile, pos.LowPart, &lHigh, dwMoveMethod);
-    BOOL fOk = TRUE;
+    BOOL fOk = true;
     if (dwNewPos == 0xFFFFFFFF)
         if (GetLastError() != NO_ERROR)
-            fOk = FALSE;
+            fOk = false;
     if ((newPos != NULL) && (fOk))
     {
         newPos->LowPart = dwNewPos;

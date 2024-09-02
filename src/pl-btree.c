@@ -62,7 +62,7 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
   unsigned int p, kp, lp, rp;
 
   if ( !PL_cvt_i_uint(A3, &p) )
-    return FALSE;
+    return false;
   rp = (p       & 0xff)-1;
   lp = ((p>>8)  & 0xff)-1;
   kp = ((p>>16) & 0xff)-1;
@@ -84,16 +84,16 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
   for(;;)
   { Word a = &f->arguments[kp];
     Word n;
-    int d = compareStandard(k, a, FALSE);
+    int d = compareStandard(k, a, false);
     int arg;
 
     if ( d == CMP_ERROR )
-      return FALSE;
+      return false;
     if ( d == CMP_EQUAL )
     { if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
 	   PL_unify_atom(A5, ATOM_equals) )
-	return TRUE;
-      return FALSE;
+	return true;
+      return false;
     }
 
     arg = (d == CMP_LESS ? lp : rp);
@@ -106,8 +106,8 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
 
       if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
 	   PL_unify_atom(A5, arg == lp ? ATOM_smaller : ATOM_larger ) )
-	return TRUE;
-      return FALSE;
+	return true;
+      return false;
     }
     f = valueTerm(*n);
     if ( f->definition != fd )

@@ -243,9 +243,9 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        if ( unify_hsz(ddeInst, argv+0, hsz2) &&		/* topic */
 	    unify_hsz(ddeInst, argv+1, hsz1) &&		/* service */
 	    PL_unify_integer(argv+2, dwData2 ? 1 : 0) )	/* same instance */
-       { rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       { rval = PL_call_predicate(MODULE_dde, true, pred, argv);
        } else
-       { rval = FALSE;
+       { rval = false;
        }
        PL_discard_foreign_frame(cid);
 
@@ -262,7 +262,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 if ( unify_hsz(ddeInst, argv+0, hsz2) &&		/* topic */
 	      unify_hsz(ddeInst, argv+1, hsz1) &&		/* service */
 	      PL_unify_integer(argv+2, plhandle) )
-	   PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+	   PL_call_predicate(MODULE_dde, true, pred, argv);
 
 	 PL_discard_foreign_frame(cid);
        }
@@ -279,7 +279,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 server_handle[plhandle] = (HCONV)NULL;
 
        PL_put_integer(argv+0, plhandle);
-       PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       PL_call_predicate(MODULE_dde, true, pred, argv);
        PL_discard_foreign_frame(cid);
 
        return NULL;
@@ -296,7 +296,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        PL_put_integer(argv+0, plhandle);
        unify_hsz(ddeInst, argv+1, hsz1);
        unify_hdata(   argv+2, hData);
-       if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
+       if ( PL_call_predicate(MODULE_dde, true, pred, argv) )
 	 rval = (void *) DDE_FACK;
        PL_discard_foreign_frame(cid);
        DdeFreeDataHandle(hData);
@@ -315,7 +315,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 unify_hsz(ddeInst, argv+1, hsz1);	/* topic */
 	 unify_hsz(ddeInst, argv+2, hsz2);	/* item */
 
-	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
+	 if ( PL_call_predicate(MODULE_dde, true, pred, argv) )
 	 { wchar_t *s;
 	   size_t len;
 
@@ -341,7 +341,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 
 static void
 dde_init_constants(void)
-{ static int done = FALSE;
+{ static int done = false;
 
   if ( !done )				/* no worries if this happens twice */
   { GET_LD
@@ -358,7 +358,7 @@ dde_init_constants(void)
     FUNCTOR_dde_execute3  =
 	lookupFunctorDef(PL_new_atom("$dde_execute"), 3);
 
-    done = TRUE;
+    done = true;
   }
 }
 
@@ -395,7 +395,7 @@ dde_initialise(void)
 			0L) == DMLERR_NO_ERROR)
     { LD->os.dde_instance = ddeInst;
 #ifdef O_PLMT
-      PL_thread_at_exit(dde_uninitialise, NULL, FALSE);
+      PL_thread_at_exit(dde_uninitialise, NULL, false);
 #endif
     } else
     { dde_warning("initialise");
@@ -420,7 +420,7 @@ PRED_IMPL("$dde_register_service", 2, dde_register_service, 0)
   term_t onoff = A2;
 
   if ( !(ddeInst=dde_initialise()) )
-    return FALSE;
+    return false;
   if ( !get_hsz(ddeInst, topic, &t) )
     fail;
   if ( !PL_get_bool(onoff, &a) )
@@ -429,7 +429,7 @@ PRED_IMPL("$dde_register_service", 2, dde_register_service, 0)
   if ( !a )
   { int rval = (intptr_t)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
     DdeFreeStringHandle(ddeInst, t);
-    return rval ? TRUE : FALSE;
+    return rval ? true : false;
   } else
   { if ( DdeNameService(ddeInst, t, 0L, DNS_REGISTER|DNS_FILTERON) )
       succeed;				/* should we free too? */
@@ -444,7 +444,7 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
 { PRED_LD
   UINT i;
   HSZ Hservice = 0, Htopic = 0;
-  int rc = TRUE;
+  int rc = true;
   DWORD ddeInst;
 
   term_t service = A1;
@@ -456,7 +456,7 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
 
   if ( !get_hsz(ddeInst, service, &Hservice) ||
        !get_hsz(ddeInst, topic, &Htopic) )
-  { rc = FALSE;
+  { rc = false;
     goto out;
   }
 
@@ -549,7 +549,7 @@ PRED_IMPL("dde_request", 4, dde_request, 0)
   term_t timeout = A4;
 
   if ( !(ddeInst=dde_initialise()) )
-    return FALSE;
+    return false;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(ddeInst, item, &Hitem) ||

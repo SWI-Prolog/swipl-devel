@@ -76,7 +76,7 @@ varBindConst(DECL_LD Word p, word c)
   if ( unlikely((void*)p >= (void*)lBase || p < LD->mark_bar) )
     return trail_ptr(p);
 
-  return TRUE;
+  return true;
 }
 
 #define bindConst(p, c) LDFUNC(bindConst, p, c)

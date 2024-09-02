@@ -251,7 +251,7 @@ while loop, either use a goto or use the PASS_AS_LD macro instead.
     { assert(LD == other_ld);
       assert(get_current_ld() == other_ld);
       break;
-      assert(FALSE);
+      assert(false);
     }
     assert(LD == my_ld);
 
@@ -514,7 +514,7 @@ int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm,
 #define DEBUG(a, b) ((void)0)
 #define ENTER_DEBUG(n) ;
 #define EXIT_DEBUG(n) ;
-#define DEBUGGING(n) FALSE
+#define DEBUGGING(n) false
 #define WITH_DEBUG_FOR(n) /* empty */
 #define IF_DEBUGGING(n) if (0)
 #endif
@@ -581,8 +581,8 @@ non-deterministic predicates. The implementation returns   using  one of
 these  constructs.  The  `Redo'   variations    are   only   allowed  if
 PL_FA_NONDETERMINISTIC is present in `flags'.
 
-    * return FALSE
-    * return TRUE
+    * return false
+    * return true
     * ForeignRedoInt(intptr_t val)
     * ForeignRedoPtr(void *ptr)
 

@@ -108,10 +108,10 @@ typedef struct _PL_thread_info_t
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */
   unsigned	    debug         : 1;	/* thread can be debugged */
-  unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
-  unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
-  unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
-  unsigned	    c_stack_low   : 1;	/* TRUE: Signalled low C stack */
+  unsigned	    in_exit_hooks : 1;	/* true: running exit hooks */
+  unsigned	    has_tid       : 1;	/* true: tid = valid */
+  unsigned	    is_engine	  : 1;	/* true: created as engine */
+  unsigned	    c_stack_low   : 1;	/* true: Signalled low C stack */
   unsigned	    joined_by_creator : 1;
   int		    joining_by;		/* TID of joining thread */
   c_stack_info	   *c_stack;

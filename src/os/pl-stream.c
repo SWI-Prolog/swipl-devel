@@ -115,11 +115,11 @@ locking is required.
 #define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
 #define UNDO_SIZE ROUND(PL_MB_LEN_MAX, sizeof(wchar_t))
 
-#ifndef FALSE
-#define FALSE 0
+#ifndef false
+#define false 0
 #endif
-#ifndef TRUE
-#define TRUE 1
+#ifndef true
+#define true 1
 #endif
 
 #define char_to_int(c)	(0xff & (int)(c))
@@ -145,14 +145,14 @@ static inline int
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
        recursiveMutexTryLock(s->mutex) == EBUSY )
-    return FALSE;
+    return false;
 
-  return TRUE;
+  return true;
 }
 #else
 #define SLOCK(s)
 #define SUNLOCK(s)
-#define STRYLOCK(s) (TRUE)
+#define STRYLOCK(s) (true)
 #endif
 
 #include "pl-error.h"
@@ -392,10 +392,10 @@ int
 Srelease(IOSTREAM *s)
 { if ( Sunreference(s) == 0 && s->erased )
   { unallocStream(s);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -993,20 +993,20 @@ put_code(int c, IOSTREAM *s)
       break;
     }
     case ENC_UTF16BE:
-      if ( put_utf16(c, s, TRUE) < 0 )
+      if ( put_utf16(c, s, true) < 0 )
 	return -1;
       break;
     case ENC_UTF16LE:
-      if ( put_utf16(c, s, FALSE) < 0 )
+      if ( put_utf16(c, s, false) < 0 )
 	return -1;
       break;
     case ENC_WCHAR:
 #if SIZEOF_WCHAR_T == 2
 #ifdef WORDS_BIGENDIAN
-      if ( put_utf16(c, s, TRUE) < 0 )
+      if ( put_utf16(c, s, true) < 0 )
 	return -1;
 #else
-      if ( put_utf16(c, s, FALSE) < 0 )
+      if ( put_utf16(c, s, false) < 0 )
 	return -1;
 #endif
       break;
@@ -1228,17 +1228,17 @@ retry:
       break;
     }
     case ENC_UTF16BE:
-      c = get_utf16(s, TRUE);
+      c = get_utf16(s, true);
       break;
     case ENC_UTF16LE:
-      c = get_utf16(s, FALSE);
+      c = get_utf16(s, false);
       break;
     case ENC_WCHAR:
 #if SIZEOF_WCHAR_T == 2
 #ifdef WORDS_BIGENDIAN
-      c = get_utf16(s, TRUE);
+      c = get_utf16(s, true);
 #else
-      c = get_utf16(s, FALSE);
+      c = get_utf16(s, false);
 #endif
       break;
 #else
@@ -1462,7 +1462,7 @@ Sread_pending(IOSTREAM *s, char *buf, size_t limit, int flags)
   { int c = S__fillbuf(s);
 
     if ( c < 0 )
-    { if ( (s->flags & SIO_FEOF) && Sfpasteof(s) != TRUE )
+    { if ( (s->flags & SIO_FEOF) && Sfpasteof(s) != true )
 	return 0;
       return c;
     }
@@ -1599,10 +1599,10 @@ SwriteBOM(IOSTREAM *s)
 int
 Sfeof(IOSTREAM *s)
 { if ( s->flags & SIO_FEOF )
-    return TRUE;
+    return true;
 
   if ( s->bufp < s->limitp )
-    return FALSE;
+    return false;
 
   if ( s->flags & SIO_NBUF )
   { errno = EINVAL;
@@ -1610,10 +1610,10 @@ Sfeof(IOSTREAM *s)
   }
 
   if ( S__fillbuf(s) == -1 )
-    return TRUE;
+    return true;
 
   s->bufp--;
-  return FALSE;
+  return false;
 }
 
 
@@ -2111,7 +2111,7 @@ S__close(IOSTREAM *s, int flags)
   if ( s->references == 0 )
     unallocStream(s);
   else
-    s->erased = TRUE;
+    s->erased = true;
 
   return rval;
 }
@@ -2337,9 +2337,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
   if ( !s->buffer && (s->flags & SIO_NBUF) )
   { S__setbuf(s, buf, sizeof(buf));
-    tmpbuf = TRUE;
+    tmpbuf = true;
   } else
-    tmpbuf = FALSE;
+    tmpbuf = false;
 
   while(*fm)
   { if ( *fm == '%' )
@@ -2351,8 +2351,8 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	continue;
       } else
       { int align = A_RIGHT;
-	int modified = FALSE;
-	int has_arg1 = FALSE, has_arg2 = FALSE;
+	int modified = false;
+	int has_arg1 = false, has_arg2 = false;
 	int arg1=0, arg2=0;
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
 	int islong = 0;
@@ -2365,7 +2365,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    case '-':	align = A_LEFT;  fm++; continue;
 	    case '0':	pad = '0';	 fm++; continue;
 	    case ' ':	pad = ' ';       fm++; continue;
-	    case '#':   modified = TRUE; fm++; continue;
+	    case '#':   modified = true; fm++; continue;
 	  }
 	  break;
 	}
@@ -2798,7 +2798,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 { int done = 0;				/* # items converted */
   int chread = 0;			/* # characters read */
   int c = GET(s);			/* current character */
-  int supress;				/* if TRUE, don't assign (*) */
+  int supress;				/* if true, don't assign (*) */
   int field_width;			/* max width of field */
   int tsize;				/* SZ_SHORT, SZ_NORMAL, SZ_LONG */
 
@@ -2809,7 +2809,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
       fm++;
       continue;
     } else if ( *fm == '%' && fm[1] != '%' )
-    { supress = FALSE;
+    { supress = false;
       field_width = -1;
       int size = SZ_STANDARD;
 
@@ -2849,7 +2849,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  base = 10;
 
 	do_int:
-	  negative = FALSE;
+	  negative = false;
 	  if ( c == '+' )
 	    c = GET(s);
 	  else if ( c == '-' )
@@ -2857,7 +2857,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	    c = GET(s);
 	  }
 	do_unsigned:
-	  ok = FALSE;
+	  ok = false;
 	  if ( base == 16 )		/* hexadecimal */
 	  { if ( isxdigit(c) )
 	    { v = valxdigit(c);
@@ -2897,7 +2897,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	    return done;
 	case 'u':
 	  base = 10;
-	  negative = FALSE;
+	  negative = false;
 	  goto do_unsigned;
 	case 'o':
 	  base = 8;
@@ -2916,7 +2916,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	    { UNGET(c2, s);
 	      base = 8;
 	    }
-	    negative = FALSE;
+	    negative = false;
 	    goto do_unsigned;
 	  }
 	  base = 10;
@@ -3388,11 +3388,11 @@ get_mode(const char *s, int *mp)
   { if ( *s >= '0' && *s <= '7' )
       m = (m<<3) + *s - '0';
     else
-      return FALSE;
+      return false;
   }
 
   *mp = m;
-  return TRUE;
+  return true;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3421,7 +3421,7 @@ Sopen_file(const char *path, const char *how)
   enum {lnone=0,lread,lwrite} lock = lnone;
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
-  int wait = TRUE;
+  int wait = true;
   int mode = 0666;
 
   for( ; *how; how++)
@@ -3434,7 +3434,7 @@ Sopen_file(const char *path, const char *how)
 	flags &= ~SIO_RECORDPOS;
 	break;
       case 'L':				/* lock r: read, w: write */
-	wait = FALSE;
+	wait = false;
 	/*FALLTHROUGH*/
       case 'l':				/* lock r: read, w: write */
 	if ( *++how == 'r' )
@@ -3891,7 +3891,7 @@ Swrite_memfile(void *handle, char *buf, size_t size)
       if ( !mf->malloced )
       { if ( mf->buffer )
 	  memcpy(nb, mf->buffer, mf->allocated);
-	mf->malloced = TRUE;
+	mf->malloced = true;
       }
     } else
     { if ( !(nb = realloc(mf->buffer, ns)) )
@@ -4014,7 +4014,7 @@ Scontrol_memfile(void *handle, int action, void *arg)
     }
     case SIO_GETREPOSITION:
     { int *valp = arg;
-      *valp = TRUE;
+      *valp = true;
 
       return 0;
     }
@@ -4079,8 +4079,8 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
     return NULL;
   }
 
-  mf->malloced      = FALSE;
-  mf->free_on_close = FALSE;
+  mf->malloced      = false;
+  mf->free_on_close = false;
   mf->bufferp       = bufp;
   mf->buffer        = *bufp;
 
@@ -4100,7 +4100,7 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
 	mf->size = 0;
 	mf->allocated = (sizep ? *sizep : 0);
 	if ( mf->buffer == NULL || mode[1] == 'a' )
-	  mf->malloced = TRUE;
+	  mf->malloced = true;
 	if ( mf->buffer )
 	  mf->buffer[0] = '\0';
 	if ( sizep )
@@ -4110,7 +4110,7 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
 	flags &= ~SIO_TEXT;
 	break;
       case 'F':
-	mf->free_on_close = TRUE;
+	mf->free_on_close = true;
 	break;
       default:
 	free(mf);
@@ -4289,7 +4289,7 @@ static const IOSTREAM S__iob0[] =
 };
 
 
-static int S__initialised = FALSE;
+static int S__initialised = false;
 
 void
 SinitStreams(void)
@@ -4297,7 +4297,7 @@ SinitStreams(void)
   { int i;
     IOENC enc;
 
-    S__initialised = TRUE;
+    S__initialised = true;
     enc = initEncoding();
 
     for(i=0; i<=2; i++)
@@ -4426,5 +4426,5 @@ Scleanup(void)
     *s = S__iob0[i];			/* re-initialise */
   }
 
-  S__initialised = FALSE;
+  S__initialised = false;
 }

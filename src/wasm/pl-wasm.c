@@ -77,7 +77,7 @@ WASM_variable_id(term_t t)
 
 static term_t yield_request = 0;
 static term_t yield_result  = 0;
-static int    yield_unified = FALSE;
+static int    yield_unified = false;
 
 static
 PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
@@ -85,7 +85,7 @@ PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
   { case FRG_FIRST_CALL:
     { yield_request = A1;
       yield_result  = A2;
-      yield_unified = FALSE;
+      yield_unified = false;
       PL_yield_address(&yield_request);
     }
     case PL_RESUME:
@@ -93,13 +93,13 @@ PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
 
       yield_request = 0;
       yield_result  = 0;
-      yield_unified = FALSE;
+      yield_unified = false;
 
       return rc;
     }
     case PL_PRUNED:
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -123,7 +123,7 @@ PRED_IMPL("js_run_script", 1, js_run_script, 0)
   }
   PL_STRINGS_RELEASE();
 
-  return TRUE;
+  return true;
 }
 
 static
@@ -170,7 +170,7 @@ write_jsobj_ref(IOSTREAM *out, atom_t aref, int flags)
   SfprintfX(out, "<js_%Ws>(%d)", s, ref->id);
   PL_STRINGS_RELEASE();
 
-  return TRUE;
+  return true;
 }
 
 
@@ -180,7 +180,7 @@ release_jsobj_blob(atom_t aref)
 
   EM_ASM({ release_registered_object($0); }, ref->id);
 
-  return TRUE;
+  return true;
 }
 
 

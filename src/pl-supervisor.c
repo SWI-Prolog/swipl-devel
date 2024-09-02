@@ -70,8 +70,8 @@ freeCodesDefinition() destroys the supervisor of  a predicate, replacing
 it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
 predicate *always* has non-NULL def->codes.
 
-If linger == FALSE, we  are  absolutely   sure  that  it  is harmless to
-deallocate the old supervisor. If TRUE,   there may be references. I.e.,
+If linger == false, we  are  absolutely   sure  that  it  is harmless to
+deallocate the old supervisor. If true,   there may be references. I.e.,
 other threads may have started executing this predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -187,12 +187,12 @@ equalSupervisors(const Code s1, const Code s2)
 
     if ( sz1 && sz1 == sz2 &&
 	 memcmp(s1, s2, sz1*sizeof(*s1)) == 0 )
-      return TRUE;
+      return true;
 
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -419,10 +419,10 @@ createUndefSupervisor(Definition def)
   if ( (codes = undefSupervisor(def)) )
   { def->codes = codes;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -451,11 +451,11 @@ setSupervisor(Definition def, Code codes)
   Code old = def->codes;
 
   if ( equalSupervisors(old, codes) )
-  { freeSupervisor(def, codes, FALSE);
+  { freeSupervisor(def, codes, false);
   } else
   { MEMORY_BARRIER();
     def->codes = codes;
-    freeSupervisor(def, old, TRUE);
+    freeSupervisor(def, old, true);
   }
   PL_UNLOCK(L_PREDICATE);
 }
@@ -477,16 +477,16 @@ setDefaultSupervisor(Definition def)
     old = def->codes;
     codes = createSupervisor(def);
     if ( equalSupervisors(old, codes) )
-    { freeSupervisor(def, codes, FALSE);
+    { freeSupervisor(def, codes, false);
     } else
     { MEMORY_BARRIER();
       def->codes = codes;
-      freeSupervisor(def, old, TRUE);
+      freeSupervisor(def, old, true);
     }
     PL_UNLOCK(L_PREDICATE);
   }
 
-  return TRUE;
+  return true;
 }
 
 

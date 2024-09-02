@@ -57,7 +57,7 @@ static
 PRED_IMPL("apple_current_locale_identifier", 1,
 	  apple_current_locale_identifier, 0)
 { CFLocaleRef currentLocale;
-  int rc = FALSE;
+  int rc = false;
 
   if ( (currentLocale = CFLocaleCopyCurrent()) )
   { CFStringRef identifier;

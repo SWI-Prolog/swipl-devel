@@ -90,7 +90,7 @@ backSkipUTF8(const char *start, const char *s, int *chr)
 static int
 unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
 { if ( PL_unify_text(t, 0, txt, type) )
-  { return TRUE;
+  { return true;
   } else if ( !PL_exception(0) )
   { PL_chars_t tt;
 
@@ -103,7 +103,7 @@ unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -139,12 +139,12 @@ string_x(DECL_LD term_t str, term_t list, int out_type)
   int rc;
 
   switch ( PL_get_text(str, &t, CVT_ALL|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case TRUE:
+  { case true:
       rc = unify_text(list, &t, out_type);
       PL_free_text(&t);
       return rc;
-    case FALSE:
-      return FALSE;
+    case false:
+      return false;
     /*case 2: str can bind */
   }
 
@@ -154,7 +154,7 @@ string_x(DECL_LD term_t str, term_t list, int out_type)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 static
@@ -186,7 +186,7 @@ PRED_IMPL("text_to_string", 2, text_to_string, 0)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -211,25 +211,25 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
   size_t len;
 
   if ( !PL_get_atom_ex(A3, &ename) )
-    return FALSE;
+    return false;
   if ( (enc=PL_atom_to_encoding(ename)) == ENC_UNKNOWN ||
        enc == ENC_WCHAR )
     return PL_domain_error("encoding", A3);
 
   switch ( PL_get_text(A1, &t,
 		       CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case TRUE:
+  { case true:
       if ( !PL_text_recode(&t, enc) )
       { PL_free_text(&t);
-	return FALSE;
+	return false;
       }
       rc = PL_unify_chars(A2, PL_CODE_LIST|REP_ISO_LATIN_1,
 			  t.length * unit_length(t.encoding),
 			  t.text.t);
       PL_free_text(&t);
       return rc;
-    case FALSE:
-      return FALSE;
+    case false:
+      return false;
     default:
       /* 2: can unify */
       break;
@@ -242,7 +242,7 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
     t.text.t    = s;
     t.length    = len/unit_length(enc);
     t.encoding  = enc;
-    t.canonical = FALSE;
+    t.canonical = false;
     t.storage   = PL_CHARS_HEAP;
 
     rc = PL_unify_text(A1, 0, &t, PL_STRING);
@@ -250,7 +250,7 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -271,21 +271,21 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
     { size_t i;
 
       if ( !PL_get_text(A2, &t, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-	return FALSE;
+	return false;
       if ( !PL_is_variable(A1) )
       { if ( !PL_get_size_ex(A1, &i) )
-	  return FALSE;
+	  return false;
 	if ( i == 0 || i > t.length )
-	  return FALSE;
+	  return false;
 	return PL_unify_integer(A3, text_get_char(&t, i-1));
       } else
       { if ( !PL_is_variable(A3) )
-	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
-	    return FALSE;
+	{ if ( !PL_get_char_ex(A3, &tchar, false) )
+	    return false;
 	} else if ( t.length > 0 )
 	{ tchar = -1;
 	} else
-	  return FALSE;
+	  return false;
 
 	idx = 0;
 	goto gen;
@@ -298,7 +298,7 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
       if ( PL_is_variable(A3) )
 	tchar = -1;
       else
-	PL_get_char(A3, &tchar, FALSE);
+	PL_get_char(A3, &tchar, false);
 
     gen:
       if ( tchar == -1 )
@@ -307,9 +307,9 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 	{ if ( idx+1 < t.length )
 	    ForeignRedoInt(idx+1);
 	  else
-	    return TRUE;
+	    return true;
 	}
-	return FALSE;
+	return false;
       }
 
       for(; idx < t.length; idx++)
@@ -319,16 +319,16 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 	    { if ( text_get_char(&t, idx) == tchar )
 		ForeignRedoInt(idx);
 	    }
-	    return TRUE;
+	    return true;
 	  }
-	  return FALSE;
+	  return false;
 	}
       }
 
-      return FALSE;
+      return false;
     }
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -346,7 +346,7 @@ PRED_IMPL("get_string_code", 3, get_string_code, 0)
 
   if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) ||
        !PL_get_int64_ex(A1, &i) )
-    return FALSE;
+    return false;
 
   if ( i < 1 || i > (int64_t) t.length )
   { term_t av;
@@ -369,7 +369,7 @@ static
 PRED_IMPL("split_string", 4, split_string, 0)
 { PRED_LD
   PL_chars_t input, sep, pad;
-  int rc = FALSE;
+  int rc = false;
   int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
   input.storage = PL_CHARS_VIRGIN;
@@ -467,7 +467,7 @@ PRED_IMPL("read_string", 5, read_string, 0)
   IOSTREAM *s = NULL;
   PL_chars_t sep, pad;
   int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
-  int rc = FALSE;
+  int rc = false;
   tmp_buffer tmpbuf;
 
   sep.storage = PL_CHARS_VIRGIN;
@@ -527,7 +527,7 @@ PRED_IMPL("read_string", 3, read_string, 0)
   tmp_buffer tmpbuf;
   int vlen;
   size_t len = (size_t)-1;
-  int rc = FALSE;
+  int rc = false;
 
   initBuffer(&tmpbuf);
   if ( getTextInputStream(A1, &s) &&
@@ -589,14 +589,14 @@ PRED_IMPL("open_string", 2, open_string, 0)
     { s->encoding = text.encoding;
 
       if ( PL_unify_stream(A2, s) )
-	return TRUE;
+	return true;
       Sclose(s);
     } else
     { PL_free_text(&text);
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 

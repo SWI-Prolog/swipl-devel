@@ -90,7 +90,7 @@ static inline int
 trail_ptr(DECL_LD Word p)
 { if ( hasTrailSpace(1) )
   { (tTop++)->address = p;
-    return TRUE;
+    return true;
   }
 
   return grow_trail_ptr(p);

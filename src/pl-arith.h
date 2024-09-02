@@ -155,7 +155,7 @@ isMPQNum(DECL_LD word w)
     return p[1]&MP_RAT_MASK;
   }
 
-  return FALSE;
+  return false;
 }
 
 #define isMPZNum(w) LDFUNC(isMPZNum, w)
@@ -167,7 +167,7 @@ isMPZNum(DECL_LD word w)
     return !(p[1]&MP_RAT_MASK);
   }
 
-  return FALSE;
+  return false;
 }
 
 #endif /*PL_ARITH_H*/

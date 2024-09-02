@@ -90,7 +90,7 @@ windowing!
 #endif
 
 #define MAX_TERMBUF	1024		/* Conforming manual */
-#define STAT_START	0		/* must be FALSE */
+#define STAT_START	0		/* must be false */
 #define STAT_OK		1
 #define STAT_ERROR	2
 

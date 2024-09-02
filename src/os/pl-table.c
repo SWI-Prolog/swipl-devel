@@ -191,7 +191,7 @@ static void
 htable_maybe_free_kvs(Table ht)
 { KVS kvs;
 
-  if ( !htable_cas_cleanup(ht, FALSE, TRUE) )
+  if ( !htable_cas_cleanup(ht, false, true) )
   { return;
   }
 
@@ -208,7 +208,7 @@ htable_maybe_free_kvs(Table ht)
     kvs = next;
   }
 
-  htable_cas_cleanup(ht, TRUE, FALSE);
+  htable_cas_cleanup(ht, true, false);
 }
 
 
@@ -234,7 +234,7 @@ htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
       continue;
     }
 
-    while ( TRUE )
+    while ( true )
     {
       if ( v && v != HTABLE_TOMBSTONE )
       { htable_put(ht, new_kvs, n, v, HTABLE_RESIZE);
@@ -283,9 +283,9 @@ htable_resize(Table ht, KVS kvs)
   { DEBUG(MSG_HASH_TABLE_KVS,
           Sdprintf("Rehashing table %p to %d entries. kvs: %p -> new_kvs: %p\n", ht, new_len, kvs, new_kvs));
 
-    new_kvs->resizing = TRUE;
+    new_kvs->resizing = true;
     htable_copy_kvs(ht, kvs, new_kvs);
-    new_kvs->resizing = FALSE;
+    new_kvs->resizing = false;
 
     ht->kvs = new_kvs;
 
@@ -313,7 +313,7 @@ redo:
   idx = (size_t)pointerHashValue(name, kvs->len);
   reprobe_count = 0;
 
-  while ( TRUE )
+  while ( true )
   { n = htable_name(kvs, idx);
     v = htable_value(kvs, idx);
 
@@ -359,7 +359,7 @@ redo:
   idx = (size_t)pointerHashValue(name, kvs->len);
   reprobe_count = 0;
 
-  while( TRUE )
+  while( true )
   { n = htable_name(kvs, idx);
     v = htable_value(kvs, idx);
 
@@ -387,7 +387,7 @@ redo:
 
   if ( value == v ) return v;
 
-  while( TRUE )
+  while( true )
   { if ( v == HTABLE_SENTINEL )
     { kvs = kvs->next;
       goto redo;
@@ -468,7 +468,7 @@ newHTable(size_t len)
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
   ht->size	  = 0;
-  ht->cleanup     = FALSE;
+  ht->cleanup     = false;
   ht->free_symbol = NULL;
   ht->copy_symbol = NULL;
 
@@ -731,7 +731,7 @@ sizeofTable(Table ht)				/* memory usage in bytes */
 		 *******************************/
 
 #ifdef O_PLMT
-#define NEED_LD  GET_LD if ( !LD ) return FALSE;
+#define NEED_LD  GET_LD if ( !LD ) return false;
 #else
 #define NEED_LD (void)0;
 #endif
@@ -752,7 +752,7 @@ PL_free_hash_table(hash_table_t table)
 { NEED_LD
 
   destroyHTable(table);
-  return TRUE;
+  return true;
 }
 
 table_value_t
@@ -786,7 +786,7 @@ PL_clear_hash_table(hash_table_t table)
 { NEED_LD
 
   clearHTable(table);
-  return TRUE;
+  return true;
 }
 
 hash_table_enum_t

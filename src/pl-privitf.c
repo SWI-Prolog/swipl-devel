@@ -56,8 +56,8 @@ the public interface.
 
 /** PL_get_char(term_t c, int *p, int eof)
 
-Get a character code from a term and   store  in over p. Returns TRUE if
-successful. On failure it returns a  type   error.  If  eof is TRUE, the
+Get a character code from a term and   store  in over p. Returns true if
+successful. On failure it returns a  type   error.  If  eof is true, the
 integer -1 or the atom end_of_file can used to specify and EOF character
 code.
 */
@@ -75,20 +75,20 @@ PL_get_char(term_t c, int *p, int eof)
 	return PL_domain_error("character", c);
 
       *p = chr;
-      return TRUE;
+      return true;
     }
     if ( eof && chr == -1 )
     { *p = chr;
-      return TRUE;
+      return true;
     }
   } else if ( PL_get_atom(c, &name) )
   { if ( (chr = charCode(name)) != -1 )
     { *p = chr;
-      return TRUE;
+      return true;
     }
     if ( eof && name == ATOM_end_of_file )
     { *p = -1;
-      return TRUE;
+      return true;
     }
   } else if ( PL_get_text(c, &text, CVT_ATOM|CVT_STRING|CVT_LIST) &&
 	      PL_text_length(&text) == 1 )
@@ -98,7 +98,7 @@ PL_get_char(term_t c, int *p, int eof)
     { get_wchar(text.text.w, p);
     }
 
-    return TRUE;
+    return true;
   }
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, c);
@@ -130,10 +130,10 @@ PL_unify_char(term_t chr, int c, int how)
       default:
 	return PL_unify_integer(chr, c);
     }
-  } else if ( PL_get_char(chr, &c2, TRUE) )
+  } else if ( PL_get_char(chr, &c2, true) )
     return c == c2;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -149,10 +149,10 @@ allocList(size_t maxcells, list_ctx *ctx)
   if ( p )
   { ctx->lp = ctx->gstore = p;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 int
@@ -167,10 +167,10 @@ unifyList(term_t term, list_ctx *ctx)
   deRef(a);
   if ( !unify_ptrs(a, ctx->lp, 0) )
   { gTop = ctx->lp;
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 int
@@ -185,14 +185,14 @@ unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
   deRef(a);
   if ( !unify_ptrs(a, ctx->lp, 0) )
   { gTop = ctx->lp;
-    return FALSE;
+    return false;
   }
   a = valTermRef(tail);
   deRef(a);
   if ( !unify_ptrs(a, ctx->gstore, 0) )
   { gTop = ctx->lp;
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }

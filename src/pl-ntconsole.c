@@ -40,7 +40,7 @@
 #include "pl-incl.h"
 #include "pl-nt.h"
 
-static int running_under_wine = FALSE;
+static int running_under_wine = false;
 
 #define ANSI_MAGIC		(0x734ab9de)
 #define ANSI_BUFFER_SIZE	(256)
@@ -134,17 +134,17 @@ buffer is really full we need to flush anyway. This should never happen.
 
 static int
 send_ansi(ansi_stream *as, int chr)
-{ int flush = FALSE;
+{ int flush = false;
 
   as->buffer[as->buffered++] = chr;
 
   if ( IS_UTF16_LEAD(chr) )
   { if ( as->buffered >= ANSI_BUFFER_SIZE )
-      flush = TRUE;
+      flush = true;
   } else
   { if ( as->buffered >= ANSI_BUFFER_SIZE-1 ||
 	 (chr == '\n' && (as->pStream->flags & SIO_LBUF)) )
-      flush = TRUE;
+      flush = true;
   }
 
   if ( flush )
@@ -423,7 +423,7 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
   BOOL rc;
   DWORD done;
   DWORD mode;
-  int isRaw = FALSE;
+  int isRaw = false;
 
   if ( Suser_input &&
        Suser_input->handle == handle &&
@@ -431,7 +431,7 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
   { if ( GetConsoleMode(as->hConsole, &mode) &&
 	 SetConsoleMode(as->hConsole,
 			mode & ~(ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT)) )
-      isRaw = TRUE;
+      isRaw = true;
   }
 
   if ( !running_under_wine )
@@ -491,7 +491,7 @@ wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
   s->functions = funcs;
   s->flags &= ~SIO_FILE;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -515,7 +515,7 @@ PL_w32_wrap_ansi_console(void)
   if ( hIn    == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR ||
        hOut   == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(hOut,&info)||
        hError == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR )
-  { return FALSE;
+  { return false;
   }
 
   saved_functions       = Sinput->functions;
@@ -533,6 +533,6 @@ PL_w32_wrap_ansi_console(void)
   init_output(Soutput->handle, &info);
   init_output(Serror->handle, &info);
 
-  PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
-  return TRUE;
+  PL_set_prolog_flag("tty_control", PL_BOOL, true);
+  return true;
 }

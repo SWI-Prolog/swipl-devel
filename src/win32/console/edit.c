@@ -61,9 +61,9 @@ static void	bind_actions(void);
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#ifndef true
+#define true 1
+#define false 0
 #endif
 
 #ifndef EOS
@@ -500,7 +500,7 @@ list_completions(Line ln, int chr)
 
 	  while(*msg)
 	    rlc_putchar(ln->console, *msg++);
-	  ln->reprompt = TRUE;
+	  ln->reprompt = true;
 	  data->call_type = COMPLETE_CLOSE;
 	  (*data->function)(data);
 	  return;
@@ -537,7 +537,7 @@ list_completions(Line ln, int chr)
 	rlc_putchar(ln->console, '\n');
       }
 
-      ln->reprompt = TRUE;
+      ln->reprompt = true;
     }
   }
 }
@@ -570,7 +570,7 @@ update_display(Line ln)
     rlc_get_mark(ln->console, &ln->origin);
 
     ln->change_start = 0;
-    ln->reprompt = FALSE;
+    ln->reprompt = false;
   }
 
   rlc_goto_mark(ln->console, &ln->origin, ln->data, ln->change_start);
@@ -628,7 +628,7 @@ read_line(rlc_console b)
 
     (*func)(&ln, c);
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
-      ln.reprompt = TRUE;
+      ln.reprompt = true;
     update_display(&ln);
   }
   rlc_clearprompt(b);
@@ -659,7 +659,7 @@ init_dispatch_table()
 
     bind_actions();
 
-    done = TRUE;
+    done = true;
   }
 }
 
@@ -722,12 +722,12 @@ rlc_bind(int chr, const char *fname)
 	else
 	  dispatch_table[chr] = a->function;
 
-	return TRUE;
+	return true;
       }
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 static void

@@ -44,7 +44,7 @@ growBuffer(Buffer b, size_t minfree)
   char *new;
 
   if ( b->max - b->top >= minfree )
-    return TRUE;
+    return true;
 
   if ( sz < 512 )
     sz = 512;				/* minimum reasonable size */
@@ -54,20 +54,20 @@ growBuffer(Buffer b, size_t minfree)
   if ( b->base == b->static_buffer )
   { sz = tmp_nalloc(sz);
     if ( !(new = tmp_malloc(sz)) )
-      return FALSE;
+      return false;
 
     memcpy(new, b->static_buffer, osz);
   } else
   { sz = tmp_nrealloc(b->base, sz);
     if ( !(new = tmp_realloc(b->base, sz)) )
-      return FALSE;
+      return false;
   }
 
   b->base = new;
   b->top = b->base + top;
   b->max = b->base + sz;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -256,10 +256,10 @@ unfindBuffer(Buffer b, int flags)
     else
       Sdprintf("OOPS: unfindBuffer(): not top buffer\n");
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 

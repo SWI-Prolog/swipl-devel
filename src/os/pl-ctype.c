@@ -396,8 +396,8 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	return PL_error("char_type", 2, NULL, ERR_INSTANTIATION);
 
       if ( !(do_enum & ENUM_CHAR) )
-      { if ( !PL_get_char_ex(chr, &c, TRUE) )
-	  return FALSE;
+      { if ( !PL_get_char_ex(chr, &c, true) )
+	  return false;
 	if ( c == -1 )
 	  return PL_unify_atom(class, ATOM_end_of_file);
       }
@@ -411,7 +411,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
       if ( do_enum == ENUM_NONE )
       { if ( arity == 0 )
-	  return (*cc->test)(c) ? TRUE : FALSE;
+	  return (*cc->test)(c) ? true : false;
 	else
 	{ int rval = (*cc->test)(c);
 
@@ -427,7 +427,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	      ok = PL_unify_integer(a, rval);
 
 	    if ( ok )
-	      return TRUE;
+	      return true;
 	    else
 	      do_enum = ENUM_CHAR;	/* try the other way around */
 	  } else
@@ -441,7 +441,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
 	_PL_get_arg(1, class, a);
 	if ( !PL_is_variable(a) )
-	{ if ( PL_get_char(a, &ca, FALSE) )
+	{ if ( PL_get_char(a, &ca, false) )
 	  { int c = (*cc->reverse)(ca);
 
 	    if ( c < 0 )
@@ -540,14 +540,14 @@ PRED_IMPL("iswctype", 2, iswctype, 0)
   int chr;
   wctype_t t;
 
-  if ( !PL_get_char_ex(A1, &chr, FALSE) ||
+  if ( !PL_get_char_ex(A1, &chr, false) ||
        !PL_get_chars(A2, &s, CVT_ATOM|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   if ( !(t=wctype(s)) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_type, A2);
 
-  return iswctype(chr, t) ? TRUE : FALSE;
+  return iswctype(chr, t) ? true : false;
 }
 #endif
 
@@ -604,7 +604,7 @@ modify_case_latin_1_to_wide(PL_chars_t *tin, PL_chars_t *tout, Buffer b, int dow
   tout->text.w    = baseBuffer(b, wchar_t);
   tout->length    = entriesBuffer(b, wchar_t);
   tout->encoding  = ENC_WCHAR;
-  tout->canonical = FALSE;
+  tout->canonical = false;
 }
 
 
@@ -613,7 +613,7 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 { PL_chars_t tin, tout;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   if ( PL_get_text(out, &tout, CVT_ATOMIC) )
   { size_t i1=0, i2=0;
@@ -627,14 +627,14 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 
       if ( down )
       { if ( co != ftolower(ci) )
-	  return FALSE;
+	  return false;
       } else
       { if ( co != ftoupper(ci) )
-	  return FALSE;
+	  return false;
       }
     }
 
-    return TRUE;
+    return true;
   } else if ( PL_is_variable(out) )
   { tmp_buffer b;
     int rc;
@@ -645,7 +645,7 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 
       tout.encoding  = tin.encoding;
       tout.length    = tin.length;
-      tout.canonical = TRUE;
+      tout.canonical = true;
       if ( tout.length < sizeof(tout.buf) )
       { tout.text.t  = tout.buf;
 	tout.storage = PL_CHARS_LOCAL;
@@ -700,7 +700,7 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
       tout.text.w    = baseBuffer(&b, wchar_t);
       tout.length    = entriesBuffer(&b, wchar_t);
       tout.encoding  = ENC_WCHAR;
-      tout.canonical = FALSE;
+      tout.canonical = false;
     }
 
     rc = PL_unify_text(out, 0, &tout, text_type);
@@ -721,28 +721,28 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 static
 PRED_IMPL("downcase_atom", 2, downcase_atom, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, TRUE, PL_ATOM);
+  return modify_case_atom(A1, A2, true, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, FALSE, PL_ATOM);
+  return modify_case_atom(A1, A2, false, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("string_lower", 2, string_lower, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, TRUE, PL_STRING);
+  return modify_case_atom(A1, A2, true, PL_STRING);
 }
 
 
 static
 PRED_IMPL("string_upper", 2, string_upper, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, FALSE, PL_STRING);
+  return modify_case_atom(A1, A2, false, PL_STRING);
 }
 
 
@@ -774,14 +774,14 @@ copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
     int c  = get_chr_from_text(t, &at);
 
     if ( c == -1 )
-      return TRUE;
+      return true;
 
     if ( !unicode_separator(c) )
     { *i=at;
       if ( Sputcode(c, out) < 0 )
-	return FALSE;
+	return false;
     } else
-      return TRUE;
+      return true;
   }
 }
 
@@ -793,7 +793,7 @@ write_normalize_space(IOSTREAM *out, term_t in)
   size_t i = 0, end;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   end = tin.length;
   skip_separators(&tin, &i);
@@ -802,11 +802,11 @@ write_normalize_space(IOSTREAM *out, term_t in)
     skip_separators(&tin, &i);
     if ( i < end )
     { if (  Sputcode(' ', out) < 0 )
-	return FALSE;
+	return false;
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -815,7 +815,7 @@ PRED_IMPL("normalize_space", 2, normalize_space, 0)
 { redir_context ctx;
   foreign_t rc;
 
-  if ( (rc = setupOutputRedirect(A1, &ctx, FALSE)) )
+  if ( (rc = setupOutputRedirect(A1, &ctx, false)) )
   { if ( (rc = write_normalize_space(ctx.stream, A2)) )
       rc = closeOutputRedirect(&ctx);
     else
@@ -877,7 +877,7 @@ message isn't really cute. It would be better to use printMessage(), but
 the system isn't yet initialised far enough.   Maybe we should store the
 failure and print a message at the end of the initialisation?
 
-We only return FALSE if LC_CTYPE  fails.   This  is a serious indication
+We only return false if LC_CTYPE  fails.   This  is a serious indication
 that locale support is broken. We don't   depend too much on the others,
 so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

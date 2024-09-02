@@ -238,7 +238,7 @@ handy for it someone wants to add a data type to the system.
 #define O_ROUND_UP_DOWN		1
 #define O_COVERAGE		1
 #ifndef O_PREFER_RATIONALS
-#define O_PREFER_RATIONALS	FALSE
+#define O_PREFER_RATIONALS	false
 #endif
 #ifndef O_RATIONAL_SYNTAX
 #define O_RATIONAL_SYNTAX	RAT_COMPAT
@@ -251,7 +251,7 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 #ifdef __WINDOWS__
-#define NOTTYCONTROL           TRUE
+#define NOTTYCONTROL           true
 #define O_DDE 1
 #define O_DLL 1
 #define O_HASDRIVES 1
@@ -261,7 +261,7 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 #ifdef __EMSCRIPTEN__
-#define NOTTYCONTROL           TRUE
+#define NOTTYCONTROL           true
 #define O_TIGHT_CSTACK 1
 #endif
 
@@ -525,13 +525,13 @@ Booleans,  addresses,  strings  and other   goodies.
 
 #define TermVector(name, s)	LocalArray(Word, name, s)
 
-#ifndef TRUE
-#define TRUE			1
-#define FALSE			0
+#ifndef true
+#define true			1
+#define false			0
 #endif
-#define succeed			return TRUE
-#define fail			return FALSE
-#define TRY(goal)		do { if (!(goal)) return FALSE; } while(0)
+#define succeed			return true
+#define fail			return false
+#define TRY(goal)		do { if (!(goal)) return false; } while(0)
 
 #define CL_START		((ClauseRef)1)	/* asserta */
 #define CL_END			((ClauseRef)2)	/* assertz */
@@ -905,8 +905,8 @@ typedef struct
 #define floatNumber(n)	((n)->type >= V_FLOAT)
 
 typedef enum
-{ NUM_ERROR = FALSE,			/* Syntax error */
-  NUM_OK    = TRUE,			/* Ok */
+{ NUM_ERROR = false,			/* Syntax error */
+  NUM_OK    = true,			/* Ok */
   NUM_FUNDERFLOW = -1,			/* Float underflow */
   NUM_FOVERFLOW = -2,			/* Float overflow */
   NUM_IOVERFLOW = -3,			/* Integer overflow */
@@ -2299,7 +2299,7 @@ stack guarding when compiling with the address sanitizer.
 #define O_C_STACK_GUARDED 1
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
-	{ LD->signal.sig_critical = TRUE;		\
+	{ LD->signal.sig_critical = true;		\
 	  if ( setjmp(LD->signal.context) )		\
 	  { cleanup;					\
 	    unblockSignal(SIGSEGV);			\
@@ -2307,7 +2307,7 @@ stack guarding when compiling with the address sanitizer.
 	  } else					\
 	  { rc = code;					\
 	  }						\
-	  LD->signal.sig_critical = FALSE;		\
+	  LD->signal.sig_critical = false;		\
 	} while(0)
 #else
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \

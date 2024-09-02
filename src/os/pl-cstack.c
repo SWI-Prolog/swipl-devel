@@ -97,7 +97,7 @@ get_trace_store(int create)
     { btrace *s = malloc(sizeof(*s));
       if ( s )
       { memset(s, 0, sizeof(*s));
-	s->shared = TRUE;
+	s->shared = true;
 	LD->btrace_store = s;
       }
     }
@@ -149,7 +149,7 @@ next_btrace_id(btrace *bt)
 
 btrace *
 save_backtrace(const char *why)
-{ btrace *bt = get_trace_store(TRUE);
+{ btrace *bt = get_trace_store(true);
 
   if ( bt )
   { btrace_stack *s;
@@ -194,7 +194,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store(FALSE);
+{ btrace *bt = get_trace_store(false);
 
   if ( bt )
   { int me = bt->current-last;
@@ -277,7 +277,7 @@ get_trace_store(int create)
     { btrace *s = malloc(sizeof(*s));
       if ( s )
       { memset(s, 0, sizeof(*s));
-	s->shared = TRUE;
+	s->shared = true;
 	LD->btrace_store = s;
       }
     }
@@ -325,7 +325,7 @@ next_btrace_id(btrace *bt)
 
 btrace *
 save_backtrace(const char *why)
-{ btrace *bt = get_trace_store(TRUE);
+{ btrace *bt = get_trace_store(true);
 
   if ( bt )
   { void *array[100];
@@ -410,7 +410,7 @@ addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -460,7 +460,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store(FALSE);
+{ btrace *bt = get_trace_store(false);
 
   if ( bt )
   { int me = bt->current-last;
@@ -580,7 +580,7 @@ get_trace_store(int create)
   { btrace *s = malloc(sizeof(*s));
     if ( s )
     { memset(s, 0, sizeof(*s));
-      s->shared = TRUE;
+      s->shared = true;
       LD->btrace_store = s;
     }
   } else if ( create )
@@ -678,7 +678,7 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
   ZeroMemory(&frame, sizeof( STACKFRAME64));
   memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
   moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-  rc = SymInitialize(hProcess, NULL, TRUE);
+  rc = SymInitialize(hProcess, NULL, true);
   if (rc == 0)
     return 0;
 
@@ -708,7 +708,7 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
 			    SymGetModuleBase64,
 			    NULL)) != 0)
    { int hasModule = 0;
-     BOOL hasSymbol = FALSE;
+     BOOL hasSymbol = false;
 
      if (skip > 0)
      { skip--;
@@ -768,7 +768,7 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
 
 btrace *
 win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
-{ btrace *bt = get_trace_store(TRUE);
+{ btrace *bt = get_trace_store(true);
   if ( bt )
   { int current = next_btrace_id(bt);
     btrace_stack *s = &bt->dumps[current];
@@ -796,7 +796,7 @@ print_trace(btrace *bt, int me)
   { int depth;
     HANDLE hProcess = GetCurrentProcess();
 
-    SymInitialize(hProcess, NULL, TRUE);
+    SymInitialize(hProcess, NULL, true);
 
     Sdprintf("Stack trace labeled \"%s\":\n", s->name);
     for(depth=0; depth<s->depth; depth++)
@@ -840,7 +840,7 @@ print_trace(btrace *bt, int me)
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store(FALSE);
+{ btrace *bt = get_trace_store(false);
 
   if ( bt )
   { int me = bt->current-last;
@@ -900,7 +900,7 @@ initBackTrace(void)
 
 void
 print_backtrace_named(const char *why)
-{ bstore_print_backtrace_named(get_trace_store(FALSE), why);
+{ bstore_print_backtrace_named(get_trace_store(false), why);
 }
 
 
@@ -934,7 +934,7 @@ sigCrashHandler(int sig)
 	   sig, signal_name(sig));
   save_backtrace("crash");
 #ifdef O_PLMT
-  LD->thread.info->c_stack_low = TRUE; /* Actually, we are on an alt-stack */
+  LD->thread.info->c_stack_low = true; /* Actually, we are on an alt-stack */
 #endif
   printCrashContext("crash");
 
@@ -984,7 +984,7 @@ PRED_IMPL("c_backtrace_clear", 0, c_backtrace_clear, 0)
     LD->btrace_store = NULL;
   }
 
-  return TRUE;
+  return true;
 }
 
 static
@@ -993,10 +993,10 @@ PRED_IMPL("c_backtrace_print", 1, c_backtrace_print, 0)
 
   if ( PL_get_chars(A1, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
   { print_backtrace_named(s);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 #endif
@@ -1182,7 +1182,7 @@ CStackSize(DECL_LD)
 #endif
       }
     }
-    cinfo->initialised = TRUE;
+    cinfo->initialised = true;
     DEBUG(MSG_CSTACK, Sdprintf("[%d]: C-stack %p[%zd]\n",
 			       info->pl_tid, cinfo->base, cinfo->size));
 

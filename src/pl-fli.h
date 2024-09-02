@@ -272,9 +272,9 @@ PL_is_atom(DECL_LD term_t t)
 { word w = valHandle(t);
 
   if ( isTextAtom(w) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 FLI_INLINE int
@@ -299,13 +299,13 @@ PL_put_variable(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   setVar(*p);
-  return TRUE;
+  return true;
 }
 
 FLI_INLINE int
 PL_put_atom(DECL_LD term_t t, atom_t a)
 { setHandle(t, a);
-  return TRUE;
+  return true;
 }
 
 FLI_INLINE int
@@ -313,11 +313,11 @@ PL_put_int64(DECL_LD term_t t, int64_t i)
 { word w = consInt(i);
 
   if ( valInt(w) != i &&
-       put_int64(&w, i, ALLOW_GC) != TRUE )
-    return FALSE;
+       put_int64(&w, i, ALLOW_GC) != true )
+    return false;
 
   setHandle(t, w);
-  return TRUE;
+  return true;
 }
 
 FLI_INLINE int

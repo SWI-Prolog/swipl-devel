@@ -310,7 +310,7 @@ rlc_long_name(TCHAR *file)
   int changed = 0;
 
   while(*i)
-  { int dirty = FALSE;
+  { int dirty = false;
 
     while(*i && *i != '\\')
     { if ( *i == '~' )
@@ -458,7 +458,7 @@ rlc_create_console(rlc_console_attr *attr)
 		  GetCurrentProcess(),
 		  &b->application_thread,
 		  0,
-		  FALSE,
+		  false,
 		  DUPLICATE_SAME_ACCESS);
   b->application_thread_id = GetCurrentThreadId();
   b->console_thread = CreateThread(NULL,			/* security */
@@ -491,7 +491,7 @@ rlc_create_window(RlcData b)
   rect.right  = a->x + (a->width+2) * b->cw + GetSystemMetrics(SM_CXVSCROLL);
   rect.bottom = a->y + a->height * b->ch;
 
-  AdjustWindowRect(&rect, style, TRUE);
+  AdjustWindowRect(&rect, style, true);
   hwnd = CreateWindow(rlc_window_class(_rlc_hicon), b->current_title,
 		      style,
 		      a->x, a->y,
@@ -501,8 +501,8 @@ rlc_create_window(RlcData b)
 
   b->window = hwnd;
   SetWindowLongPtr(hwnd, GWL_DATA, (LONG_PTR) b);
-  SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, FALSE);
-  SetScrollPos(hwnd, SB_VERT, b->sb_start, TRUE);
+  SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, false);
+  SetScrollPos(hwnd, SB_VERT, b->sb_start, true);
 
   b->queue    = rlc_make_queue(256);
   b->sb_lines = rlc_count_lines(b, b->first, b->last);
@@ -526,9 +526,9 @@ rlc_create_window(RlcData b)
 int
 rlc_iswin32s()
 { if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) ==3)
-    return TRUE;
+    return true;
   else
-    return FALSE;
+    return false;
 }
 
 
@@ -635,7 +635,7 @@ rlc_save_options(RlcData b)
   memset(&attr, 0, sizeof(attr));
   attr.key = b->regkey_name;
 
-  if ( !(key = rlc_option_key(&attr, TRUE)) )
+  if ( !(key = rlc_option_key(&attr, true)) )
     return;
 
   reg_save_int(key, _T("SaveLines"),  b->height);
@@ -771,7 +771,7 @@ static void
 rlc_get_options(rlc_console_attr *attr)
 { HKEY key;
 
-  if ( !(key = rlc_option_key(attr, FALSE)) )
+  if ( !(key = rlc_option_key(attr, false)) )
   { if ( !attr->width  )    attr->width = 80;
     if ( !attr->height )    attr->height = 24;
     if ( !attr->savelines ) attr->savelines = 200;
@@ -941,7 +941,7 @@ rlc_color(rlc_console con, int which, COLORREF c)
   }
 
   if ( b->window )
-    InvalidateRect(b->window, NULL, TRUE);
+    InvalidateRect(b->window, NULL, true);
 
   return old;
 }
@@ -955,11 +955,11 @@ rlc_kill(RlcData b)
   { case 0:
       b->queue->flags |= RLC_EOF;
       PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
-      return TRUE;
+      return true;
     case 1:
       if ( _rlc_interrupt_hook )
       { (*_rlc_interrupt_hook)(b, SIGINT);
-	return TRUE;
+	return true;
       }
     default:
       if ( !SendMessageTimeout(b->kill_window,
@@ -975,16 +975,16 @@ rlc_kill(RlcData b)
 			     _T("Error"),
 			     MB_OKCANCEL|MB_ICONEXCLAMATION|MB_APPLMODAL) )
 	  { case IDCANCEL:
-	      return FALSE;
+	      return false;
 	  }
 	  TerminateThread(b->application_thread, 1);
 
-	  return TRUE;
+	  return true;
 	}
       }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1083,14 +1083,14 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_SETFOCUS:
-      b->has_focus = TRUE;
+      b->has_focus = true;
       CreateCaret(hwnd, NULL, b->fixedfont ? b->cw : 3, b->ch-1);
       rlc_place_caret(b);
       return 0;
 
     case WM_KILLFOCUS:
-      b->has_focus = FALSE;
-      b->caret_is_shown = FALSE;
+      b->has_focus = false;
+      b->caret_is_shown = false;
       HideCaret(hwnd);
       DestroyCaret();
       return 0;
@@ -1156,7 +1156,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	scrolledbykey:
 	  rlc_update_scrollbar(b);
-	  InvalidateRect(hwnd, NULL, FALSE);
+	  InvalidateRect(hwnd, NULL, false);
 
 	  return 0;
 	}
@@ -1292,7 +1292,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       }
 
       rlc_update_scrollbar(b);
-      InvalidateRect(hwnd, NULL, FALSE);
+      InvalidateRect(hwnd, NULL, false);
 
       return 0;
     }
@@ -1327,7 +1327,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       }
 
       rlc_update_scrollbar(b);
-      InvalidateRect(hwnd, NULL, FALSE);
+      InvalidateRect(hwnd, NULL, false);
 
       return 0;
     }
@@ -1484,7 +1484,7 @@ rlc_init_word_chars()
 { int i;
 
   for(i=0; i<CHAR_MAX; i++)
-    _rlc_word_chars[i] = (isalnum(i) || i == '_') ? TRUE : FALSE;
+    _rlc_word_chars[i] = (isalnum(i) || i == '_') ? true : false;
 }
 
 
@@ -1542,15 +1542,15 @@ rlc_set_selection(RlcData b, int sl, int sc, int el, int ec)
   int nel = NextLine(b, el);
   int nsel= NextLine(b, b->sel_end_line);
   int i;
-  int innow  = FALSE;
-  int insoon = FALSE;
+  int innow  = false;
+  int insoon = false;
 
 					/* find the lines that changed */
   for(i=sch; ; i = NextLine(b, i))
   { if ( i == sl )
-    { insoon = TRUE;
+    { insoon = true;
       if ( i == b->sel_start_line )
-      { innow = TRUE;
+      { innow = true;
 	if ( sc != b->sel_start_char ||
 	     (i == el && i != b->sel_end_line) ||
 	     (i == b->sel_end_line && i != el) )
@@ -1558,7 +1558,7 @@ rlc_set_selection(RlcData b, int sl, int sc, int el, int ec)
       } else
 	rlc_changed_line(b, i, CHG_CHANGED);
     } else if ( i == b->sel_start_line )
-    { innow = TRUE;
+    { innow = true;
       rlc_changed_line(b, i, CHG_CHANGED);
     }
 
@@ -1571,13 +1571,13 @@ rlc_set_selection(RlcData b, int sl, int sc, int el, int ec)
       rlc_changed_line(b, i, CHG_CHANGED);
 
     if ( i == nel )
-    { insoon = FALSE;
+    { insoon = false;
       if ( i == nsel )
-	innow = FALSE;
+	innow = false;
       else
 	rlc_changed_line(b, i, CHG_CHANGED);
     } else if ( i == nsel )
-    { innow = FALSE;
+    { innow = false;
       rlc_changed_line(b, i, CHG_CHANGED);
     }
 
@@ -1668,9 +1668,9 @@ rlc_between(RlcData b, int f, int t, int v)
 
   if ( h >= rlc_count_lines(b, b->first, f) &&
        h <= rlc_count_lines(b, b->first, t) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1797,8 +1797,8 @@ static int
 rlc_has_selection(RlcData b)
 { if ( SelEQ(b->sel_start_line, b->sel_start_char,
 	     b->sel_end_line,   b->sel_end_char) )
-    return FALSE;
-  return TRUE;
+    return false;
+  return true;
 }
 
 
@@ -1875,19 +1875,19 @@ rlc_place_caret(RlcData b)
       }
       if ( !b->caret_is_shown )
       { ShowCaret(b->window);
-	b->caret_is_shown = TRUE;
+	b->caret_is_shown = true;
 
 	return;
       }
     } else
-    { if ( b->caret_is_shown == TRUE )
+    { if ( b->caret_is_shown == true )
       { HideCaret(b->window);
-	b->caret_is_shown = FALSE;
+	b->caret_is_shown = false;
       }
     }
   }
 
-  b->caret_is_shown = FALSE;
+  b->caret_is_shown = false;
 }
 
 
@@ -1899,8 +1899,8 @@ rlc_update_scrollbar(RlcData b)
 
     if ( nsb_lines != b->sb_lines ||
 	 nsb_start != b->sb_start )
-    { SetScrollRange(b->window, SB_VERT, 0, nsb_lines, FALSE);
-      SetScrollPos(  b->window, SB_VERT, nsb_start, TRUE);
+    { SetScrollRange(b->window, SB_VERT, 0, nsb_lines, false);
+      SetScrollPos(  b->window, SB_VERT, nsb_start, true);
 
       b->sb_lines = nsb_lines;
       b->sb_start = nsb_start;
@@ -1994,7 +1994,7 @@ rlc_redraw(RlcData b)
   RECT rect;
   HBRUSH bg;
   int stockbg;
-  int insel = FALSE;			/* selected lines? */
+  int insel = false;			/* selected lines? */
 
   SelectObject(hdc, b->hfont);
   SetTextColor(hdc, b->foreground);
@@ -2002,22 +2002,22 @@ rlc_redraw(RlcData b)
 
   if ( b->background == RGB(255, 255, 255) )
   { bg = GetStockObject(WHITE_BRUSH);
-    stockbg = TRUE;
+    stockbg = true;
   } else
   { bg = CreateSolidBrush(b->background);
-    stockbg = FALSE;
+    stockbg = false;
   }
 
   if ( b->has_focus && b->caret_is_shown )
   { HideCaret(b->window);
-    b->caret_is_shown = FALSE;
+    b->caret_is_shown = false;
   }
 
   if ( rlc_count_lines(b, b->first, b->sel_start_line) <
        rlc_count_lines(b, b->first, l) &&
        rlc_count_lines(b, b->first, b->sel_end_line) >=
        rlc_count_lines(b, b->first, l) )
-    insel = TRUE;
+    insel = true;
 
   if ( insel )
   { SetBkColor(hdc, b->sel_background);
@@ -2039,18 +2039,18 @@ rlc_redraw(RlcData b)
 						     : b->sel_end_char);
 
       rcl_paint_text(b, hdc, tl,  0, cf, ty, &cx, insel);
-      insel = TRUE;
+      insel = true;
       rcl_paint_text(b, hdc, tl, cf, ce, ty, &cx, insel);
       if ( l == b->sel_end_line )
-      { insel = FALSE;
+      { insel = false;
 	rcl_paint_text(b, hdc, tl, ce, b->width, ty, &cx, insel);
       } else
-	insel = TRUE;
+	insel = true;
     } else if ( l == b->sel_end_line )	/* end of selection */
     { int ce = b->sel_end_char;
 
       rcl_paint_text(b, hdc, tl, 0, ce, ty, &cx, insel);
-      insel = FALSE;
+      insel = false;
       rcl_paint_text(b, hdc, tl, ce, b->width, ty, &cx, insel);
     } else				/* entire line in/out selection */
     { rcl_paint_text(b, hdc, tl, 0, b->width, ty, &cx, insel);
@@ -2093,12 +2093,12 @@ static void
 rlc_request_redraw(RlcData b)
 { if ( b->changed & CHG_CHANGED )
   { if ( b->window )
-      InvalidateRect(b->window, NULL, FALSE);
+      InvalidateRect(b->window, NULL, false);
   } else
   { int i = b->window_start;
     int y = 0;
     RECT rect;
-    int first = TRUE;
+    int first = true;
 
     rect.left = b->cw;
     rect.right = (b->width+1) * b->cw;
@@ -2110,7 +2110,7 @@ rlc_request_redraw(RlcData b)
       { if ( first )
 	{ rect.top = y * b->ch;
 	  rect.bottom = rect.top + b->ch;
-	  first = FALSE;
+	  first = false;
 	} else
 	  rect.bottom = (y+1) * b->ch;
       }
@@ -2119,7 +2119,7 @@ rlc_request_redraw(RlcData b)
     }
 
     if ( !first && b->window )
-      InvalidateRect(b->window, &rect, FALSE);
+      InvalidateRect(b->window, &rect, false);
     else if ( b->changed & CHG_CARET )
       rlc_place_caret(b);
   }
@@ -2200,13 +2200,13 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
   b->cw = tm.tmAveCharWidth;
   b->cb = tm.tmHeight;
   b->ch = tm.tmHeight + tm.tmExternalLeading;
-  b->fixedfont = (tm.tmPitchAndFamily & TMPF_FIXED_PITCH ? FALSE : TRUE);
+  b->fixedfont = (tm.tmPitchAndFamily & TMPF_FIXED_PITCH ? false : true);
   ReleaseDC(NULL, hdc);
 
   if ( b->window )
   { RECT rect;
 
-    if ( b->has_focus == TRUE )
+    if ( b->has_focus == true )
     { CreateCaret(b->window, NULL, b->fixedfont ? b->cw : 3, b->ch-1);
       rlc_place_caret(b);
     }
@@ -2298,7 +2298,7 @@ rlc_queryfont(RlcData b)
     if ( (f = CreateFontIndirect(&lf)) )
     { rlc_init_text_dimensions(b, f);
 
-      InvalidateRect(b->window, NULL, TRUE);
+      InvalidateRect(b->window, NULL, true);
     }
   }
 }
@@ -2324,14 +2324,14 @@ rlc_make_buffer(int w, int h)
   b->cmdstat	    = CMD_INITIAL;
   b->changed	    = CHG_CARET|CHG_CHANGED|CHG_CLEAR;
   b->imode	    = IMODE_COOKED;	/* switch on first rlc_read() call */
-  b->imodeswitch    = FALSE;
+  b->imodeswitch    = false;
   b->lhead	    = NULL;
   b->ltail	    = NULL;
   InitializeCriticalSection(&b->lock);
 
   memset(b->lines, 0, sizeof(text_line) * h);
   for(i=0; i<h; i++)
-    b->lines[i].adjusted = TRUE;
+    b->lines[i].adjusted = true;
 
   rlc_init_word_chars();
 
@@ -2360,8 +2360,8 @@ rlc_shift_lines_down(RlcData b, int line)
 
   b->lines[line].text       = NULL;	/* make this one `free' */
   b->lines[line].size       = 0;
-  b->lines[line].adjusted   = TRUE;
-  b->lines[line].softreturn = FALSE;
+  b->lines[line].adjusted   = true;
+  b->lines[line].softreturn = false;
 }
 
 
@@ -2397,7 +2397,7 @@ rlc_resize(RlcData b, int w, int h)
   for(i = b->first; /*i != b->last*/; i = NextLine(b, i))
   { TextLine tl = &b->lines[i];
 
-    if ( tl->text && tl->adjusted == FALSE )
+    if ( tl->text && tl->adjusted == false )
       rlc_adjust_line(b, i);
 
     if ( tl->size > w )
@@ -2413,12 +2413,12 @@ rlc_resize(RlcData b, int w, int h)
 	DEBUG(Dprintf(_T("Copied %d chars from line %d to %d\n"),
 		      pl->size - w, pl - b->lines, i));
 	tl->size = pl->size - w;
-	tl->adjusted = TRUE;
-	tl->softreturn = FALSE;
-	pl->softreturn = TRUE;
+	tl->adjusted = true;
+	tl->softreturn = false;
+	pl->softreturn = true;
 	pl->text = rlc_realloc(pl->text, w * sizeof(text_char));
 	pl->size = w;
-	pl->adjusted = TRUE;
+	pl->adjusted = true;
 	i = (int)(pl - b->lines);
 	DEBUG(Dprint_lines(b, b->first, b->last));
       } else				/* put in next line */
@@ -2445,7 +2445,7 @@ rlc_resize(RlcData b, int w, int h)
       memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(text_char));
       memmove(nl->text, tl->text, tl->size*sizeof(text_char));
       nl->size += tl->size;
-      nl->adjusted = TRUE;
+      nl->adjusted = true;
       rlc_shift_lines_up(b, i);
     }
 
@@ -2475,9 +2475,9 @@ rlc_reinit_line(RlcData b, int line)
 { TextLine tl = &b->lines[line];
 
   tl->text	 = NULL;
-  tl->adjusted   = FALSE;
+  tl->adjusted   = false;
   tl->size       = 0;
-  tl->softreturn = FALSE;
+  tl->softreturn = false;
 }
 
 
@@ -2499,7 +2499,7 @@ rlc_adjust_line(RlcData b, int line)
   { tl->text = rlc_realloc(tl->text, tl->size == 0
 				? sizeof(text_char)
 				: tl->size * sizeof(text_char));
-    tl->adjusted = TRUE;
+    tl->adjusted = true;
   }
 }
 
@@ -2511,11 +2511,11 @@ rlc_unadjust_line(RlcData b, int line)
   if ( tl->text )
   { if ( tl->adjusted )
     { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(text_char));
-      tl->adjusted = FALSE;
+      tl->adjusted = false;
     }
   } else
   { tl->text = rlc_malloc((b->width + 1)*sizeof(text_char));
-    tl->adjusted = FALSE;
+    tl->adjusted = false;
     tl->size = 0;
   }
 }
@@ -2533,9 +2533,9 @@ rlc_open_line(RlcData b)
   }
 
   b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(text_char));
-  b->lines[i].adjusted   = FALSE;
+  b->lines[i].adjusted   = false;
   b->lines[i].size       = 0;
-  b->lines[i].softreturn = FALSE;
+  b->lines[i].softreturn = false;
 }
 
 
@@ -2598,7 +2598,7 @@ rlc_caret_down(RlcData b, int arg)
   { if ( b->caret_y == b->last )
       rlc_add_line(b);
     b->caret_y = NextLine(b, b->caret_y);
-    b->lines[b->caret_y].softreturn = FALSE; /* ? why not only on open? */
+    b->lines[b->caret_y].softreturn = false; /* ? why not only on open? */
   }
   b->changed |= CHG_CARET;
 					/* scroll? */
@@ -2615,7 +2615,7 @@ static void
 rlc_caret_forward(RlcData b, int arg)
 { while(arg-- > 0)
   { if ( ++b->caret_x >= b->width )
-    { b->lines[b->caret_y].softreturn = TRUE;
+    { b->lines[b->caret_y].softreturn = true;
       b->caret_x = 0;
       rlc_caret_down(b, 1);
     }
@@ -3039,7 +3039,7 @@ window_loop(LPVOID arg)
 					/* created by Prolog (XPCE) will be */
 					/* in the background and inactive! */
   if ( !AttachThreadInput(b->application_thread_id,
-			  b->console_thread_id, TRUE) )
+			  b->console_thread_id, true) )
     rlc_putansi(b, '!');
 
   PostThreadMessage(b->application_thread_id, WM_RLC_READY, 0, 0);
@@ -3078,7 +3078,7 @@ window_loop(LPVOID arg)
 	  goto out;
 
 	if ( b->imodeswitch )
-	{ b->imodeswitch = FALSE;
+	{ b->imodeswitch = false;
 	}
       }
     }
@@ -3133,7 +3133,7 @@ getch(rlc_console c)
     } else
     { rlc_dispatch(b);
       if ( b->imodeswitch )
-      { b->imodeswitch = FALSE;
+      { b->imodeswitch = false;
 	return IMODE_SWITCH_CHAR;
       }
     }
@@ -3167,10 +3167,10 @@ getkey(rlc_console con)
   { int old = b->imode;
 
     b->imode = IMODE_RAW;
-    b->imodeswitch = TRUE;
+    b->imodeswitch = true;
     c = getch(b);
     b->imode = old;
-    b->imodeswitch = TRUE;
+    b->imodeswitch = true;
   } else
     c = getch(b);
 
@@ -3260,10 +3260,10 @@ rlc_resize_queue(RlcQueue q, int size)
     q->last  = (int)(o-newbuf);
     q->size  = size;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -3279,22 +3279,22 @@ rlc_add_queue(RlcData b, RlcQueue q, int chr)
       if ( empty )
 	PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
 
-      return TRUE;
+      return true;
     }
 
     rlc_resize_queue(q, q->size*2);
   }
 
-  return FALSE;
+  return false;
 }
 
 
 int
 rlc_is_empty_queue(RlcQueue q)
 { if ( q->first == q->last )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -3346,7 +3346,7 @@ rlc_read(rlc_console c, TCHAR *buf, size_t count)
 
     if ( d->imode != IMODE_COOKED )
     { d->imode = IMODE_COOKED;
-      d->imodeswitch = TRUE;
+      d->imodeswitch = true;
     }
 
     while(!d->lhead)
@@ -3589,10 +3589,10 @@ rlc_window_pos(rlc_console c,
 		 x, y, w, h,
 		 flags);
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -3698,9 +3698,9 @@ rlc_set(rlc_console c, int what, uintptr_t data, RlcFreeDataHook hook)
 	   what <= RLC_VALUE(MAX_USER_VALUES) )
       { b->values[what-RLC_VALUE(0)].data = data;
 	b->values[what-RLC_VALUE(0)].hook = hook;
-        return TRUE;
+        return true;
       }
-      return FALSE;
+      return false;
   }
 }
 
@@ -3710,22 +3710,22 @@ rlc_get(rlc_console c, int what, uintptr_t *data)
 { RlcData b = (RlcData)c;
 
   if ( !b )
-    return FALSE;
+    return false;
 
   switch(what)
   { case RLC_APPLICATION_THREAD:
       *data = (uintptr_t)b->application_thread;
-      return TRUE;
+      return true;
     case RLC_APPLICATION_THREAD_ID:
       *data = (uintptr_t)b->application_thread_id;
-      return TRUE;
+      return true;
     default:
       if ( what >= RLC_VALUE(0) &&
 	   what <= RLC_VALUE(MAX_USER_VALUES) )
       { *data = b->values[what-RLC_VALUE(0)].data;
-        return TRUE;
+        return true;
       }
-      return FALSE;
+      return false;
   }
 }
 

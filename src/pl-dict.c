@@ -103,15 +103,15 @@ get_dict_ex(DECL_LD term_t t, Word dp, int ex)
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 )		/* does *not* validate ordering */
     { *dp = *p;
-      return TRUE;
+      return true;
     }
   }
 
   if ( !ex )
-    return FALSE;
+    return false;
 
   PL_type_error("dict", t);
-  return FALSE;
+  return false;
 }
 
 
@@ -134,13 +134,13 @@ get_create_dict_ex(DECL_LD term_t t, term_t dt)
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 )		/* does *not* validate ordering */
     { *valTermRef(dt) = *p;
-      return TRUE;
+      return true;
     }
   }
 
   if ( PL_get_dict_ex(t, 0, dt, DICT_GET_ALL) )
   { assert(isTerm(*valTermRef(dt)));
-    return TRUE;
+    return true;
   }
 
   return PL_type_error("dict", t);
@@ -185,8 +185,8 @@ dict_lookup_ptr(DECL_LD word dict, word name)
 
 /* True if the keys are proper keys and ordered.  Return values:
 
-   TRUE:  correctly ordered dict
-   FALSE: not ordered
+   true:  correctly ordered dict
+   false: not ordered
    -1:    not a key
    -2:    duplicate key
 */
@@ -194,7 +194,7 @@ dict_lookup_ptr(DECL_LD word dict, word name)
 #define dict_ordered(data, count, dupl) LDFUNC(dict_ordered, data, count, dupl)
 static int
 dict_ordered(DECL_LD Word data, int count, Word dupl)
-{ int ordered = TRUE;
+{ int ordered = true;
   Word n1, n2;
 
   if ( count > 0 )
@@ -210,7 +210,7 @@ dict_ordered(DECL_LD Word data, int count, Word dupl)
       if ( *n1 < *n2 )
 	continue;
       if ( *n1 > *n2 )
-	ordered = FALSE;
+	ordered = false;
       if ( *n1 == *n2 )
       { if ( dupl )
 	{ *dupl = *n1;
@@ -330,7 +330,7 @@ assign_in_dict(DECL_LD Word dp, Word val)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -340,13 +340,13 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
 { Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
   Word new, out, in, in_end, nv_end;
-  int modified = FALSE;
+  int modified = false;
 
   assert(arity%2 == 1);
 
   if ( size == 0 )
   { *new_dict = dict;
-    return TRUE;
+    return true;
   }
 
   if ( gTop+1+arity+2*size > gMax )
@@ -366,11 +366,11 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
     deRef2(nv+1, n_name);
 
     if ( *i_name == *n_name )
-    { if ( (rc=assign_in_dict(out++, nv)) != TRUE )
+    { if ( (rc=assign_in_dict(out++, nv)) != true )
 	return rc;
       *out++ = *i_name;
-      if ( !modified && compareStandard(nv, in, TRUE) )
-	modified = TRUE;
+      if ( !modified && compareStandard(nv, in, true) )
+	modified = true;
       in += 2;
       nv += 2;
     } else if ( *i_name < *n_name )
@@ -378,18 +378,18 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
       *out++ = *i_name;
       in += 2;
     } else
-    { if ( (rc=assign_in_dict(out++, nv)) != TRUE )
+    { if ( (rc=assign_in_dict(out++, nv)) != true )
 	return rc;
       *out++ = *n_name;
       nv += 2;
-      modified = TRUE;
+      modified = true;
     }
   }
 
   if ( nv == nv_end )
   { if ( !modified )
     { *new_dict = dict;
-      return TRUE;
+      return true;
     }
     while(in < in_end)
     { Word i_name;
@@ -404,7 +404,7 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
       int rc;
 
       deRef2(nv+1, n_name);
-      if ( (rc=assign_in_dict(out++, nv)) != TRUE )
+      if ( (rc=assign_in_dict(out++, nv)) != true )
 	return rc;
       *out++ = *n_name;
       nv += 2;
@@ -417,7 +417,7 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
 
   *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -455,12 +455,12 @@ del_dict(DECL_LD word dict, word key, word *new_dict)
 
   *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
 
-  return TRUE;
+  return true;
 }
 
 
 /* partial_unify_dict(dict1, dict2) unifies all common elements of two
-   dicts.  It returns TRUE on success, FALSE on a failed unification
+   dicts.  It returns true on success, false on a failed unification
    and *_OVERFLOW on some memory overflow
 */
 
@@ -476,7 +476,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
   int rc;
 
   /* unify the tages */
-  if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE)) != TRUE )
+  if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE)) != true )
     return rc;
 
   /* advance to first v+k entry */
@@ -489,7 +489,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
     deRef2(in1+1, n1);
     deRef2(in2+1, n2);
     if ( *n1 == *n2 )
-    { if ( (rc = unify_ptrs(in1, in2, ALLOW_RETCODE)) != TRUE )
+    { if ( (rc = unify_ptrs(in1, in2, ALLOW_RETCODE)) != true )
 	return rc;
       in1 += 2;
       in2 += 2;
@@ -500,7 +500,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -525,7 +525,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
   int rc;
 
   /* unify the tags */
-  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE)) != TRUE )
+  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
     return rc;
 
   /* advance to first v+k entry */
@@ -539,23 +539,23 @@ select_dict(DECL_LD word del, word from, word *new_dict)
     deRef2(fin+1, f);
 
     if ( *d == *f )
-    { if ( (rc = unify_ptrs(din, fin, ALLOW_RETCODE)) != TRUE )
+    { if ( (rc = unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
 	return rc;
       din += 2;
       fin += 2;
     } else if ( *d < *f )
-    { return FALSE;
+    { return false;
     } else
     { fin += 2;
       left++;
     }
   }
   if ( din < dend )
-    return FALSE;
+    return false;
   left += (fend-fin)/2;
 
   if ( !new_dict )
-    return TRUE;
+    return true;
 
   if ( gTop+2+2*left <= gMax )
   { Word out = gTop;
@@ -585,7 +585,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
     }
     gTop = out;
 
-    return TRUE;
+    return true;
   }
 
   return GLOBAL_OVERFLOW;
@@ -600,11 +600,11 @@ get_name_ex(DECL_LD term_t t, Word np)
   deRef(p);
   if ( is_dict_key(*p) )
   { *np = *p;
-    return TRUE;
+    return true;
   }
 
   PL_type_error("dict-key", t);
-  return FALSE;
+  return false;
 }
 
 
@@ -629,13 +629,13 @@ get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
 	deRef2(&f->arguments[1], vp);
 	*value = linkValI(vp);
 
-	return TRUE;
+	return true;
       } else
       { Undo(*m);
 	PL_type_error("dict-key", pushWordAsTermRef(np));
 	popTermRef();
 
-	return FALSE;
+	return false;
       }
     } else if ( arityFunctor(f->definition) == 1 &&
 		(flags&DICT_GET_TERM) ) /* Name(Value) */
@@ -644,7 +644,7 @@ get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
       *name = nameFunctor(f->definition);
       deRef2(&f->arguments[0], vp);
       *value = linkValI(vp);
-      return TRUE;
+      return true;
     }
   }
 
@@ -657,7 +657,7 @@ get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
   PL_type_error(type, pushWordAsTermRef(p));
   popTermRef();
 
-  return FALSE;				/* type error */
+  return false;				/* type error */
 }
 
 
@@ -678,11 +678,11 @@ PL_is_dict(DECL_LD term_t t)
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 &&
-	 dict_ordered(f->arguments+1, fd->arity/2, &dupl) == TRUE )
-      return TRUE;
+	 dict_ordered(f->arguments+1, fd->arity/2, &dupl) == true )
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 API_STUB(int)
@@ -702,23 +702,23 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 
   if ( PL_is_dict(data) )
   { PL_put_term(dict, data);
-    return TRUE;
+    return true;
   }
 
   if ( PL_is_list(data) )
-  { intptr_t len = lengthList(data, TRUE);
+  { intptr_t len = lengthList(data, true);
     Word ap, dp, tail;
     mark m;
     int rc;
 
     if ( len < 0 )
-      return FALSE;			/* not a proper list */
+      return false;			/* not a proper list */
 
     if ( unlikely(tTop+1 >= tMax) )
     { if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
-	return FALSE;
+	return false;
     }
-    if ( (rc=ensureGlobalSpace(len*2+2, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(len*2+2, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
     ap = gTop;
     Mark(m);
@@ -750,17 +750,17 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     { Word head = HeadList(tail);
 
       if ( !get_name_value(head, ap+1, ap, &m, flags) )
-	return FALSE;
+	return false;
       ap += 2;
       tail = TailList(tail);
       deRef(tail);
     }
 
-    if ( (rc=dict_order(dp, &dupl)) == TRUE )
+    if ( (rc=dict_order(dp, &dupl)) == true )
     { gTop = ap;
       *valTermRef(dict) = consPtr(dp, TAG_COMPOUND|STG_GLOBAL);
       DEBUG(CHK_SECURE, checkStacks(NULL));
-      return TRUE;
+      return true;
     } else
     { term_t ex;
 
@@ -1046,14 +1046,14 @@ resortDictsInCodes(Code PC, Code end)
 	      default:
 	      { if ( kv_pos != kv_buf )
 		  free(kv_pos);
-		return TRUE;		/* not a dict */
+		return true;		/* not a dict */
 	      }
 	    }
 
 	    if ( !resortDictsInCodes(PCv, PC) )
 	    { if ( kv_pos != kv_buf )
 		free(kv_pos);
-	      return FALSE;
+	      return false;
 	    }
 
 	    PC = stepPC(PC);		/* skip key */
@@ -1097,7 +1097,7 @@ resortDictsInCodes(Code PC, Code end)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 int
@@ -1129,7 +1129,7 @@ right_arg:
     word dupl;
 
     if ( fd->name == ATOM_dict && fd->arity%2 == 1 &&
-	 dict_ordered(&t->arguments[1], fd->arity/2, &dupl) == FALSE )
+	 dict_ordered(&t->arguments[1], fd->arity/2, &dupl) == false )
     { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
       dict_order((Word)t, &dupl);
     }
@@ -1178,11 +1178,11 @@ PRED_IMPL("is_dict", 1, is_dict, 0)
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 /*&&
-	 dict_ordered(f->arguments+1, fd->arity/2, &dupl) == TRUE*/ )
-      return TRUE;
+	 dict_ordered(f->arguments+1, fd->arity/2, &dupl) == true*/ )
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1199,12 +1199,12 @@ PRED_IMPL("is_dict", 2, is_dict, 0)
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 /*&&
-	 dict_ordered(f->arguments+1, fd->arity/2,  &dupl) == TRUE*/ )
+	 dict_ordered(f->arguments+1, fd->arity/2,  &dupl) == true*/ )
       return unify_ptrs(&f->arguments[0], valTermRef(A2),
 			ALLOW_GC|ALLOW_SHIFT);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1226,7 +1226,7 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
     { Word np = valTermRef(A1);
 
       if ( !get_dict_ex(A2, &dict, !ex) )
-	return FALSE;
+	return false;
 
       deRef(np);
       if ( is_dict_key(*np) )
@@ -1238,7 +1238,7 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
 	if ( ex )
 	  return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
 			  ATOM_key, A1, A2);
-	return FALSE;
+	return false;
       }
       if ( canBind(*np) )
       { i = 1;
@@ -1246,7 +1246,7 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
       }
       if ( !ex )
 	return PL_type_error("dict-key", A1);
-      return FALSE;
+      return false;
     }
     case FRG_REDO:
     { Functor f;
@@ -1276,32 +1276,32 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
 	    if ( i+2 < arity )
 	      ForeignRedoInt(i);
 	    else
-	      return TRUE;
+	      return true;
 	  } else if ( exception_term )
 	  { PL_close_foreign_frame(fid);
-	    return FALSE;
+	    return false;
 	  }
 	  PL_rewind_foreign_frame(fid);
 	}
 	PL_close_foreign_frame(fid);
       }
-      return FALSE;
+      return false;
     }
     default:
-      return TRUE;
+      return true;
   }
 }
 
 
 static
 PRED_IMPL("get_dict", 3, get_dict, PL_FA_NONDETERMINISTIC)
-{ return pl_get_dict(PL__t0, PL__ac, FALSE, PL__ctx);
+{ return pl_get_dict(PL__t0, PL__ac, false, PL__ctx);
 }
 
 
 static
 PRED_IMPL("get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
-{ return pl_get_dict(PL__t0, PL__ac, TRUE, PL__ctx);
+{ return pl_get_dict(PL__t0, PL__ac, true, PL__ctx);
 }
 
 
@@ -1322,21 +1322,21 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
        !(vp=dict_lookup_ptr(*valTermRef(dt), key)) ||
        !unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT) ||
        !PL_put_term(av+0, A5) )
-    return FALSE;
+    return false;
 
   for(;;)
   { word new;
     int rc;
 
     if ( (rc = put_dict(*valTermRef(dt),
-			1, valTermRef(av), &new)) == TRUE )
+			1, valTermRef(av), &new)) == true )
     { term_t t = dt+3;
 
       *valTermRef(t) = new;
       return PL_unify(A4, t);
     } else
     { if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return FALSE;
+	return false;
     }
   }
 }
@@ -1363,7 +1363,7 @@ PRED_IMPL("dict_create", 3, dict_create, 0)
   if ( PL_get_dict_ex(A3, A2, m, DICT_GET_ALL) )
     return PL_unify(A1, m);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1413,7 +1413,7 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
 	   _PL_for_dict(dict, put_pair, &ctx, PL_FOR_DICT_SORTED) == 0 )
 	return PL_unify_nil_ex(ctx.tail);
 
-      return FALSE;
+      return false;
     }
   } else
   { term_t m = PL_new_term_ref();
@@ -1422,7 +1422,7 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
       return PL_unify(A1, m);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1449,7 +1449,7 @@ retry:
 
     if ( (rc = put_dict(*valTermRef(dt+0),
 			arity/2, &f2->arguments[1],
-			&new)) == TRUE )
+			&new)) == true )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1462,7 +1462,7 @@ retry:
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 /** put_dict(+Key, +Dict0, +Value, -Dict)
@@ -1485,7 +1485,7 @@ retry:
     int rc;
 
     if ( (rc = put_dict(*valTermRef(dt),
-			1, valTermRef(av), &new)) == TRUE )
+			1, valTermRef(av), &new)) == true )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1498,7 +1498,7 @@ retry:
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1533,7 +1533,7 @@ retry:
   { if ( !hasGlobalSpace(0) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
       goto retry;
     }
@@ -1543,7 +1543,7 @@ retry:
       { term_t copy = PL_new_term_ref();
 
 	if ( !duplicate_term(value, copy) )
-	  return FALSE;
+	  return false;
 	value = copy;
 	val = valTermRef(value);
 	deRef(val);
@@ -1552,7 +1552,7 @@ retry:
     }
   }
 
-  if ( get_dict_ex(dict, &m, TRUE) &&
+  if ( get_dict_ex(dict, &m, true) &&
        get_name_ex(key, &k) )
   { Word vp;
 
@@ -1560,14 +1560,14 @@ retry:
     { if ( (flags&SETDICT_BACKTRACKABLE) )
 	TrailAssignment(vp);
       unify_vp(vp, val);
-      return TRUE;
+      return true;
     }
 
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
 		    ATOM_key, key, dict);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1616,7 +1616,7 @@ retry:
     { int rc;
       word new;
 
-      if ( (rc=del_dict(*valTermRef(mt), key, &new)) == TRUE )
+      if ( (rc=del_dict(*valTermRef(mt), key, &new)) == true )
       { term_t t = PL_new_term_ref();
 
 	*valTermRef(t) = new;
@@ -1631,7 +1631,7 @@ retry:
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1651,24 +1651,24 @@ retry:
   { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
 
     switch(rc)
-    { case TRUE:
+    { case true:
       { term_t t = PL_new_term_ref();
 
 	*valTermRef(t) = r;
 	return PL_unify(A3, t);
       }
-      case FALSE:
+      case false:
 	return rc;
       case MEMORY_OVERFLOW:
 	return PL_no_memory();
       default:
 	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	  return FALSE;
+	  return false;
         goto retry;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1683,19 +1683,19 @@ retry:
   { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), NULL);
 
     switch(rc)
-    { case TRUE:
-      case FALSE:
+    { case true:
+      case false:
 	return rc;
       case MEMORY_OVERFLOW:
 	return PL_no_memory();
       default:
 	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	  return FALSE;
+	  return false;
         goto retry;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1710,19 +1710,19 @@ retry:
   { int rc = partial_unify_dict(*valTermRef(dt+0), *valTermRef(dt+1));
 
     switch(rc)
-    { case TRUE:
-      case FALSE:
+    { case true:
+      case false:
 	return rc;
       case MEMORY_OVERFLOW:
 	return PL_no_memory();
       default:
 	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	  return FALSE;
+	  return false;
         goto retry;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1740,14 +1740,14 @@ PL_get_dict_key(atom_t key, term_t dict, term_t value)
   valid_term_t(dict);
   valid_term_t(value);
 
-  if ( !get_dict_ex(dict, &d, FALSE) )
-    return FALSE;
+  if ( !get_dict_ex(dict, &d, false) )
+    return false;
   if ( (vp=dict_lookup_ptr(d, key)) )
   { *valTermRef(value) = linkValI(vp);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 

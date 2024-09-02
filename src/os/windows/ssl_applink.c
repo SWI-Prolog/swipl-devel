@@ -55,7 +55,7 @@ this does not matter.
 
 __declspec(dllexport) void ** __cdecl
 OPENSSL_Applink(void)
-{ static int applink_done = FALSE;
+{ static int applink_done = false;
   static void**(*f)(void) = NULL;
 
   if ( !applink_done )
@@ -64,7 +64,7 @@ OPENSSL_Applink(void)
       f = (void*)GetProcAddress(mod, "OPENSSL_Applink");
     if ( !mod || !f )
       Sdprintf("Could not find OPENSSL_Applink() in ssl4pl.dll\n");
-    applink_done = TRUE;
+    applink_done = true;
   }
 
   if ( f )

@@ -118,7 +118,7 @@ int		opt_append(opt_list **l, const char *s);
 #define SYSTEMHOME "/usr/lib/swipl"
 #endif
 #ifndef NOTTYCONTROL
-#define NOTTYCONTROL FALSE
+#define NOTTYCONTROL false
 #endif
 
 #ifndef PLARCH

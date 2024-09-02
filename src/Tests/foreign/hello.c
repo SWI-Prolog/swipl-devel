@@ -53,7 +53,7 @@ hello(term_t to)
   if ( PL_get_atom_chars(to, &s) )
     printf("Hello %s\n", s);
 
-  return TRUE;
+  return true;
 }
 
 

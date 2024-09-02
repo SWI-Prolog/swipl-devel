@@ -568,5 +568,5 @@ initBuildIns(void)
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
 
-  extensions_loaded = TRUE;
+  extensions_loaded = true;
 }

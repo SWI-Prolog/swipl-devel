@@ -127,7 +127,7 @@ gmp_too_big(DECL_LD gmp_tb why)
 
   abortProlog();		/* Just in case the above fails */
   PL_rethrow();
-  return FALSE;
+  return false;
 }
 
 
@@ -136,16 +136,16 @@ gmp_check_size(DECL_LD size_t bytes)
 { gmp_tb why = GMO_TB_OK;
 
   if ( bytes <= 1000 )
-    return TRUE;
+    return true;
   if ( bytes > LD->gmp.max_integer_size )
     why = GMP_TB_RESTRAINT;
   else if ( bytes > (size_t)globalStackLimit())
     why = GMP_TB_STACK;
   else
-    return TRUE;
+    return true;
 
   gmp_too_big(why);
-  return FALSE;
+  return false;
 }
 
 
@@ -364,7 +364,7 @@ mp_test_alloc(void)
 
   AR_END();
 
-  return TRUE;
+  return true;
 }
 #endif
 
@@ -481,7 +481,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
     if ( !hasGlobalSpace(wsz+MPZ_STACK_EXTRA+2) )
     { int rc = ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, flags);
 
-      if ( rc != TRUE )
+      if ( rc != true )
 	return rc;
     }
     p = gTop;
@@ -509,7 +509,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -539,7 +539,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     if ( !hasGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA) )
     { int rc = ensureGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, flags);
 
-      if ( rc != TRUE )
+      if ( rc != true )
 	return rc;
     }
     p = gTop;
@@ -578,7 +578,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -702,14 +702,14 @@ int
 get_int64(DECL_LD word w, int64_t *ip)
 { if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
   { *ip = valInt(w);
-    return TRUE;
+    return true;
   } else if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { number n;
 
     get_bigint(w, &n);
     return mpz_to_int64(n.value.mpz, ip);
   } else
-    return FALSE;
+    return false;
 }
 
 
@@ -816,9 +816,9 @@ load_abs_mpz_size(const char *data, int *szp, int *neg)
   if ( neg )
   { if ( size < 0 )
     { size = -size;
-      *neg = TRUE;
+      *neg = true;
     } else
-    { *neg = FALSE;
+    { *neg = false;
     }
   } else if ( size < 0 )
     size = -size;
@@ -1056,7 +1056,7 @@ promoteToMPZNumber(number *n)
       break;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1091,7 +1091,7 @@ promoteToMPQNumber(number *n)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1170,7 +1170,7 @@ clearGMPNumber(Number n)
 void
 initGMP(void)
 { if ( !GD->gmp.initialised )
-  { GD->gmp.initialised = TRUE;
+  { GD->gmp.initialised = true;
 
 #if O_BF
     initBF();
@@ -1209,7 +1209,7 @@ initGMP(void)
 void
 cleanupGMP(void)
 { if ( GD->gmp.initialised )
-  { GD->gmp.initialised = FALSE;
+  { GD->gmp.initialised = false;
 
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
@@ -1304,10 +1304,10 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
     else
       *i = (int64_t)v;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 /* return: <0:              -1
@@ -1388,13 +1388,13 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
     if ( !hasGlobalSpace(0) )		/* ensure we have room for bindConst */
     { int rc = ensureGlobalSpace(0, flags);
 
-      if ( rc != TRUE )
+      if ( rc != true )
 	return rc;
     }
 
     *at = consInt(v);
     assert(valInt(*at) == v);
-    return TRUE;
+    return true;
   } else
   { return globalMPZ(at, mpz, flags);
   }
@@ -1404,8 +1404,8 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 
 /* returns one of
 
-  TRUE: ok
-  FALSE: some error
+  true: ok
+  false: some error
   GLOBAL_OVERFLOW: no space
   LOCAL_OVERFLOW: cannot represent (no GMP)
 */
@@ -1417,7 +1417,7 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
   r = consInt(l);
   if ( valInt(r) == l )
   { *at = r;
-    return TRUE;
+    return true;
   } else
   {
 #ifdef O_BIGNUM
@@ -1458,7 +1458,7 @@ affected by GC/shift.  The intented scenario is:
 
   { word c;
 
-    if ( (rc=put_number(&c, n, ALLOW_GC)) == TRUE )
+    if ( (rc=put_number(&c, n, ALLOW_GC)) == true )
       bindConst(<somewhere>, c);
     ...
   }
@@ -1474,12 +1474,12 @@ put_number(DECL_LD Word at, Number n, int flags)
       { if ( !hasGlobalSpace(0) )
 	{ int rc = ensureGlobalSpace(0, flags);
 
-	  if ( rc != TRUE )
+	  if ( rc != true )
 	    return rc;
 	}
 
 	*at = w;
-	return TRUE;
+	return true;
       }
 
       return put_int64(at, n->value.i, flags);
@@ -1499,7 +1499,7 @@ put_number(DECL_LD Word at, Number n, int flags)
   }
 
   assert(0);
-  return FALSE;
+  return false;
 }
 
 
@@ -1518,14 +1518,14 @@ PL_unify_number(DECL_LD term_t t, Number n)
   if ( canBind(*p) )
   { int rc;
 
-    if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
+    if ( (rc=put_number(&w, n, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
 
     p = valTermRef(t);			/* put_number can shift the stacks */
     deRef(p);
 
     bindConst(p, w);
-    return TRUE;
+    return true;
   }
 
   switch(n->type)
@@ -1580,12 +1580,12 @@ PL_put_number(DECL_LD term_t t, Number n)
 { word w;
   int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
+  if ( (rc=put_number(&w, n, ALLOW_GC)) != true )
     return raiseStackOverflow(rc);
 
   *valTermRef(t) = w;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1664,7 +1664,7 @@ int
 promoteNumber(Number n, numtype t)
 { switch(t)
   { case V_INTEGER:
-      return TRUE;
+      return true;
 #ifdef O_BIGNUM
     case V_MPZ:
       return promoteToMPZNumber(n);
@@ -1675,7 +1675,7 @@ promoteNumber(Number n, numtype t)
       return promoteToFloatNumber(n);
     default:
       assert(0);
-      return FALSE;
+      return false;
   }
 }
 
@@ -2265,10 +2265,10 @@ PL_get_mpz(term_t t, mpz_t mpz)
 	assert(0);
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2285,24 +2285,24 @@ PL_get_mpq(term_t t, mpq_t mpq)
     { case V_INTEGER:
 	if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
 	{ mpq_set_si(mpq, (long)n.value.i, 1L);
-	  return TRUE;
+	  return true;
 	}
 	promoteToMPZNumber(&n);
 	/*FALLTHROUGH*/
       case V_MPZ:
 	mpq_set_z(mpq, n.value.mpz);
 	clearNumber(&n);
-	return TRUE;
+	return true;
       case V_MPQ:
 	mpq_set(mpq, n.value.mpq);
 	clearNumber(&n);
-	return TRUE;
+	return true;
       default:
 	;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 

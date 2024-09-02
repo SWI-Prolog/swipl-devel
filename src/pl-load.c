@@ -189,17 +189,17 @@ under_valgrind(void)
     char *s;
 
     if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
-    { vg = TRUE;
+    { vg = true;
       return vg;
     }
 #endif
 
     if ( RUNNING_ON_VALGRIND )
-    { vg = TRUE;
+    { vg = true;
       return vg;
     }
 
-    vg = FALSE;
+    vg = false;
   }
 
   return vg;
@@ -247,9 +247,9 @@ open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
   int dlflags;
   int now = -1;
   int global = -1;
-  int delete = TRUE;
-  int load = TRUE;
-  int deepbind = FALSE;
+  int delete = true;
+  int load = true;
+  int deepbind = false;
   atom_t resolve = 0;
   atom_t visibility = 0;
 
@@ -258,25 +258,25 @@ open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
 			open_shared_object_options,
 			&now, &global, &delete, &load, &deepbind,
 			&resolve, &visibility) )
-    return FALSE;
+    return false;
 
   if ( resolve == ATOM_now )
-    now = TRUE;
+    now = true;
   else if ( resolve == ATOM_lazy )
-    now = FALSE;
+    now = false;
   else if ( resolve )
     return atom_domain_error("resolve", resolve);
   else if ( now == -1 )
-    now = FALSE;
+    now = false;
 
   if ( visibility == ATOM_global )
-    global = TRUE;
+    global = true;
   else if ( visibility == ATOM_local )
-    global = FALSE;
+    global = false;
   else if ( visibility )
     return atom_domain_error("visibility", visibility);
   else if ( global == -1 )
-    global = FALSE;
+    global = false;
 
   dlflags = now ? RTLD_NOW : RTLD_LAZY;
   if ( global   ) dlflags |= RTLD_GLOBAL;
@@ -289,7 +289,7 @@ open_shared_object(DECL_LD term_t file, term_t plhandle, term_t options)
     fail;
   if ( !(dlhandle = PL_dlopen(fn, dlflags)) )
   { if ( !load )
-      return FALSE;
+      return false;
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, PL_dlerror());
   }
@@ -463,10 +463,10 @@ activate_static_extension(const char *ename)
     { typedef void (*install_function)(void);
       install_function f = sym;
       (*f)();
-      return TRUE;
+      return true;
     }
 
-    return FALSE;
+    return false;
   }
 #else
   typedef void (*install_func)(void);
@@ -482,11 +482,11 @@ activate_static_extension(const char *ename)
       ext++)
   { if ( strcmp(ename, ext->name) == 0 )
     { (*ext->func)();
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 #endif
 }
 
@@ -497,10 +497,10 @@ PRED_IMPL("$activate_static_extension", 1, activate_static_extension,
 
   if ( PL_get_chars(A1, &ename, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
   { if ( activate_static_extension(ename) )
-      return TRUE;
+      return true;
     return PL_existence_error("foreign_extension", A1);
   } else
-    return FALSE;
+    return false;
 }
 
 #endif /*O_STATIC_EXTENSIONS*/

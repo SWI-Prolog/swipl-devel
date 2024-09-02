@@ -93,13 +93,13 @@ push_start_args(argPairs *a, Word left, Word right, size_t arity)  /* plural */
   a->work.arg   = 0;
   a->work.arity = arity;
 
-  return TRUE;
+  return true;
 }
 
 static inline bool
 push_args(argPairs *a, Word left, Word right, size_t arity)  /* plural */
 { if ( !pushSegStack(&a->stack, a->work, aWork) )
-    return FALSE;
+    return false;
 
   return push_start_args(a, left, right, arity);
 }
@@ -108,7 +108,7 @@ static inline bool
 next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
 { while( a->work.arg >= a->work.arity)
   { if ( !popSegStack(&a->stack, &a->work, aWork) )
-      return FALSE;
+      return false;
   }
 
   *lp = a->work.left;
@@ -118,7 +118,7 @@ next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
   a->work.left++;
   a->work.right++;
 
-  return TRUE;
+  return true;
 }
 
 static inline node *
@@ -130,13 +130,13 @@ static inline bool
 add_node_buffer(Buffer b, node *obj)
 { if ( ((b->top) + sizeof(node)) > (b->max) )
   { if ( !growBuffer(b, sizeof(node)) )
-      return FALSE;
+      return false;
   }
 
   *((node *)(b)->top) = *obj;
   b->top += sizeof(node);
 
-  return TRUE;
+  return true;
 }
 
 static size_t
@@ -220,7 +220,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
   Word dummy = NULL;
 
   if ( i == j )
-    return TRUE;
+    return true;
 
   if ( !push_args(a, dummy, dummy, 1) )
     return MEMORY_OVERFLOW;
@@ -229,7 +229,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
   univ(node_orig(Node(j, buf)), &dn, &ln);
 
   if ( dm != dn )
-    return FALSE;
+    return false;
 
   if ( !push_args(a, lm, ln, arityFunctor(dm)) )
     return MEMORY_OVERFLOW;
@@ -237,7 +237,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
   while( next_arg(a, &l, &r) )
   { word wl, wr;
     if ( l == NULL )
-      return TRUE;
+      return true;
 
   attvar:
     deRef(l);
@@ -247,11 +247,11 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
     wr = *r;
 
     if ( tag(wl) != tag(wr) )
-      return FALSE;
+      return false;
 
     if ( tag(wl) == TAG_VAR )
     { if ( l != r )		/* identity test on variables */
-	return FALSE;
+	return false;
       continue;
     }
 
@@ -266,16 +266,16 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
 
     switch(tag(wl))
     { case TAG_ATOM:
-	return FALSE;
+	return false;
       case TAG_INTEGER:
 	if ( storage(wl) == STG_INLINE ||
 	     storage(wr) == STG_INLINE )
-	  return FALSE;
+	  return false;
       case TAG_STRING:
       case TAG_FLOAT:
 	if ( equalIndirect(wl, wr) )
 	  continue;
-        return FALSE;
+        return false;
       case TAG_COMPOUND:
       { Word lm, ln;
 	word dm, dn;
@@ -297,7 +297,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
 	univ(node_orig(n), &dn, &ln);
 
 	if ( dm != dn )
-	  return FALSE;
+	  return false;
 
 	if ( i <= j )
 	  node_isom(m) = j;		/* union */
@@ -314,11 +314,11 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 /* t =@= u */
-/* returns TRUE, FALSE or MEMORY_OVERFLOW */
+/* returns true, false or MEMORY_OVERFLOW */
 
 #define variant(agenda, buf) LDFUNC(variant, agenda, buf)
 static int
@@ -338,7 +338,7 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
     wr = *r;
 
     if ( tag(wl) != tag(wr) )
-      return FALSE;
+      return false;
 
    if ( needsRef(wl) )		/* var or attvar */
    { size_t i, j;
@@ -382,7 +382,7 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 	 continue;
        }
      }
-     return FALSE;
+     return false;
     }
 
     if ( wl == wr && !isTerm(wl) )
@@ -390,16 +390,16 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 
     switch(tag(wl))
     { case TAG_ATOM:
-	return FALSE;
+	return false;
       case TAG_INTEGER:
 	if ( storage(wl) == STG_INLINE ||
 	     storage(wr) == STG_INLINE )
-	  return FALSE;
+	  return false;
       case TAG_STRING:
       case TAG_FLOAT:
 	if ( equalIndirect(wl, wr) )
 	  continue;
-        return FALSE;
+        return false;
       case TAG_COMPOUND:
       {   size_t i, j;
 	  int k, h;
@@ -426,7 +426,7 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 	  univ(node_orig(Node(j,buf)), &dn, &ln);
 
 	  if ( dm != dn )
-	    return FALSE;
+	    return false;
 
 	  node_variant(m) = j;
 
@@ -438,11 +438,11 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
-/* returns TRUE, FALSE or FALSE+exception */
+/* returns true, false or false+exception */
 int
 is_variant_ptr(DECL_LD Word p1, Word p2)
 { argPairs agenda;
@@ -456,22 +456,22 @@ is_variant_ptr(DECL_LD Word p1, Word p2)
   deRef(p2);
 
   if ( *p1 == *p2 )                     /* same term */
-    return TRUE;
+    return true;
   if ( tag(*p1) != tag(*p2) )           /* different type */
-    return FALSE;
+    return false;
 again:
   switch(tag(*p1))                      /* quick tests */
   { case TAG_VAR:
-      return TRUE;
+      return true;
     case TAG_ATTVAR:
       p1 = valPAttVar(*p1);
       p2 = valPAttVar(*p2);
       goto again;
     case TAG_ATOM:
-      return FALSE;
+      return false;
     case TAG_INTEGER:
       if ( !(isIndirect(*p1) && isIndirect(*p2)) )
-        return FALSE;
+        return false;
       /*FALLTHROUGH*/
     case TAG_FLOAT:
     case TAG_STRING:
@@ -481,12 +481,12 @@ again:
       Functor t2 = valueTerm(*p2);
 
       if ( t1->definition != t2->definition )
-        return FALSE;
+        return false;
       break;
     }
     default:
       assert(0);
-      return FALSE;
+      return false;
   }
 
   initBuffer(&buf);	/* can be faster! */

@@ -67,7 +67,7 @@ write_undo_ref(IOSTREAM *s, atom_t aref, int flags)
   (void)flags;
 
   Sfprintf(s, "<undo>(%p)", r);
-  return TRUE;
+  return true;
 }
 
 static void
@@ -81,7 +81,7 @@ release_undo_blob(atom_t aref)
   record_t r = *ref;
 
   PL_erase(r);
-  return TRUE;
+  return true;
 }
 
 static int
@@ -149,9 +149,9 @@ PRED_IMPL("$undo", 1, undo, 0)
       DEBUG(MSG_UNDO, Sdprintf("Trailed %p\n", ul));
       *ul = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 
-      return TRUE;
+      return true;
     } else
-      return FALSE;
+      return false;
   } else
     return PL_permission_error("undo", "goal", A1);
 }
@@ -207,7 +207,7 @@ put_scheduled_undo(DECL_LD term_t list)
 
       if ( !put_undo(h, u) ||
 	   !PL_cons_list(list, h, list) )
-	return FALSE;
+	return false;
     }
 
     for(; top0 > top; )
@@ -217,7 +217,7 @@ put_scheduled_undo(DECL_LD term_t list)
     emptyBuffer(LD->undo.scheduled, 1024);
   }
 
-  return TRUE;
+  return true;
 }
 
 int
@@ -241,7 +241,7 @@ run_undo_hooks(DECL_LD)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 

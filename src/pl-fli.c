@@ -138,13 +138,13 @@ in_foreign_argv(DECL_LD Word p)
   { if ( ison(fr->predicate, P_FOREIGN) )
     { size_t arity = fr->predicate->functor->arity;
       if ( p >= argFrameP(fr, 0) && p < argFrameP(fr, arity) )
-	return TRUE;
+	return true;
     }
     if ( (Word)fr < p )
       break;
   }
 
-  return FALSE;
+  return false;
 }
 
 #define in_foreign_frame(p)	LDFUNC(in_foreign_frame, p)
@@ -566,7 +566,7 @@ retry:
     if ( !hasGlobalSpace(1) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
       goto retry;
     }
@@ -575,7 +575,7 @@ retry:
     Trail(p, makeRefG(v));
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -649,11 +649,11 @@ PL_unify_atomic(DECL_LD term_t t, word w)
   if ( canBind(*p) )
     return bindConst(p, w);
   if ( *p == w )
-    return TRUE;
+    return true;
   if ( isIndirect(w) && isIndirect(*p) )
     return equalIndirect(w, *p);
 
-  return FALSE;
+  return false;
 }
 
 		 /*******************************
@@ -693,7 +693,7 @@ PL_new_atom_mbchars(int flags, size_t len, const char *s)
   text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
 		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   text.length    = len;
-  text.canonical = FALSE;
+  text.canonical = false;
   text.storage   = PL_CHARS_HEAP;
 
   a = textToAtom(&text);
@@ -837,7 +837,7 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
   txt.length    = len;
   txt.encoding  = ENC_WCHAR;
   txt.storage   = PL_CHARS_HEAP;
-  txt.canonical = FALSE;
+  txt.canonical = false;
 
   a = textToAtom(&txt);
   PL_free_text(&txt);
@@ -860,7 +860,7 @@ get_atom_ptr_text(Atom a, PL_chars_t *text)
     text->encoding = ENC_ISO_LATIN_1;
   }
   text->storage   = PL_CHARS_HEAP;
-  text->canonical = TRUE;
+  text->canonical = true;
 
   succeed;
 }
@@ -884,7 +884,7 @@ get_string_text(DECL_LD word w, PL_chars_t *text)
     text->encoding = ENC_WCHAR;
   }
   text->storage   = PL_CHARS_STACK;
-  text->canonical = TRUE;
+  text->canonical = true;
 
   succeed;
 }
@@ -920,7 +920,7 @@ saveUCSAtom(atom_t atom, IOSTREAM *fd)
 
   qlfPutStringW(s, len, fd);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -955,7 +955,7 @@ PL_unify_wchars_diff(term_t t, term_t tail, int flags,
   text.encoding  = ENC_WCHAR;
   text.storage   = PL_CHARS_HEAP;
   text.length    = len;
-  text.canonical = FALSE;
+  text.canonical = false;
 
   rc = PL_unify_text(t, tail, &text, flags);
   PL_free_text(&text);
@@ -1098,10 +1098,10 @@ PL_cvt_set_encoding(int enc)
     case REP_UTF8:
     case REP_MB:
       sp_encoding = enc;
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 #define REP_SP (sp_encoding)
@@ -1129,11 +1129,11 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
   valid_term_t(p);
   if ( PL_get_integer(p, &i) && i >= mn && i <= mx )
   { *c = (char)i;
-    return TRUE;
+    return true;
   } else if ( PL_get_text(p, &txt, CVT_ATOM|CVT_STRING|CVT_LIST) )
   { if ( txt.length == 1 && txt.encoding == ENC_ISO_LATIN_1 )
     { *c = txt.text.t[0];
-      return TRUE;			/* can never be allocated */
+      return true;			/* can never be allocated */
     }
     PL_free_text(&txt);
   }
@@ -1171,7 +1171,7 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
   if ( PL_get_integer(p, &i) &&
        i >= mn && i <= mx )
   { *s = (short)i;
-    return TRUE;
+    return true;
   }
 
   if ( PL_is_integer(p) )
@@ -1205,7 +1205,7 @@ PL_cvt_i_uint(term_t t, unsigned int *c)
 { GET_LD
 
   if ( PL_get_uint(t, c) )
-    return TRUE;
+    return true;
 
   if ( PL_is_integer(t) )
     return PL_representation_error("uint");
@@ -1325,7 +1325,7 @@ PL_cvt_i_address(term_t p, void *address)
 bool
 PL_cvt_o_int64(int64_t c, term_t p)
 { GET_LD
-  return unify_int64_ex(p, c, TRUE);
+  return unify_int64_ex(p, c, true);
 }
 
 
@@ -1379,7 +1379,7 @@ PL_compare(term_t t1, term_t t2)
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
-  return compareStandard(p1, p2, FALSE);	/* -1, 0, 1 */
+  return compareStandard(p1, p2, false);	/* -1, 0, 1 */
 }
 
 
@@ -1391,7 +1391,7 @@ PL_same_compound(term_t t1, term_t t2)
   word w1 = valHandle(t1);
   word w2 = valHandle(t2);
 
- return isTerm(w1) && w1==w2 ? TRUE : FALSE;
+ return isTerm(w1) && w1==w2 ? true : false;
 }
 
 
@@ -1433,7 +1433,7 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
     }
 
@@ -1448,7 +1448,7 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
 
-  return TRUE;
+  return true;
 }
 
 int
@@ -1492,7 +1492,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     if ( !hasGlobalSpace(1+arity) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
     }
 
@@ -1507,7 +1507,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1518,7 +1518,7 @@ PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
   if ( !hasGlobalSpace(3) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -1530,7 +1530,7 @@ PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1556,7 +1556,7 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
     if ( !hasGlobalSpace(3*count) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
     }
 
@@ -1578,7 +1578,7 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
   { setHandle(list, ATOM_nil);
   }
 
-  return TRUE;
+  return true;
 }
 
 		 /*******************************
@@ -1644,9 +1644,9 @@ PL_get_term_value(term_t t, term_value_t *val)
 int
 atom_to_bool(atom_t a)
 { if ( a == ATOM_true || a == ATOM_on )
-    return TRUE;
+    return true;
   if ( a == ATOM_false || a == ATOM_off )
-    return FALSE;
+    return false;
 
   return -1;
 }
@@ -1662,21 +1662,21 @@ PL_get_bool(term_t t, int *b)
   { int bv = atom_to_bool(word2atom(w));
     if ( bv >= 0 )
     { *b = bv;
-      return TRUE;
+      return true;
     }
-    return FALSE;
+    return false;
   }
   if ( isInteger(w) )
   { if ( w == consInt(0) )
-      *b = FALSE;
+      *b = false;
     else if ( w == consInt(1) )
-      *b = TRUE;
+      *b = true;
     else
-      return FALSE;
-    return TRUE;
+      return false;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1741,7 +1741,7 @@ PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
 	      PL_put_atom(t, a) &&
 	      PL_type_error("atom", t));
     }
-    return FALSE;
+    return false;
   }
 
   if ( PL_mb_text(&text, flags) )
@@ -1751,11 +1751,11 @@ PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
       *len = text.length;
     *s = text.text.t;
 
-    return TRUE;
+    return true;
   } else
   { PL_free_text(&text);
 
-    return FALSE;
+    return false;
   }
 }
 
@@ -1786,7 +1786,7 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
   CVT_result result;
 
   valid_term_t(l);
-  if ( (b = codes_or_chars_to_buffer(l, flags, FALSE, &result)) )
+  if ( (b = codes_or_chars_to_buffer(l, flags, false, &result)) )
   { char *r;
     size_t len = entriesBuffer(b, char);
 
@@ -1822,7 +1822,7 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 
   valid_term_t(l);
   if ( !PL_get_text(l, &text, flags) )
-    return FALSE;
+    return false;
 
   PL_promote_text(&text);
   PL_save_text(&text, flags);
@@ -1831,7 +1831,7 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
     *length = text.length;
   *s = text.text.w;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1842,7 +1842,7 @@ PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
 
   valid_term_t(l);
   if ( !PL_get_text(l, &text, flags) )
-    return FALSE;
+    return false;
 
   if ( PL_mb_text(&text, flags) )
   { PL_save_text(&text, flags);
@@ -1851,11 +1851,11 @@ PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
       *length = text.length;
     *s = text.text.t;
 
-    return TRUE;
+    return true;
   } else
   { PL_free_text(&text);
 
-    return FALSE;
+    return false;
   }
 }
 
@@ -1875,7 +1875,7 @@ PL_get_text_as_atom(term_t t, atom_t *a, int flags)
 
   if ( isAtom(w) )
   { *a = (atom_t) w;
-    return TRUE;
+    return true;
   }
 
   if ( PL_get_text(t, &text, flags) )
@@ -1884,11 +1884,11 @@ PL_get_text_as_atom(term_t t, atom_t *a, int flags)
     PL_free_text(&text);
     if ( ta )
     { *a = ta;
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2003,13 +2003,13 @@ PL_get_uint64(term_t t, uint64_t *i)
 { GET_LD
 
   valid_term_t(t);
-  return pl_get_uint64(t, i, FALSE);
+  return pl_get_uint64(t, i, false);
 }
 
 API_STUB(int)
 (PL_get_uint64_ex)(term_t t, uint64_t *i)
 ( valid_term_t(t);
-  return pl_get_uint64(t, i, TRUE);
+  return pl_get_uint64(t, i, true);
 )
 
 int
@@ -2035,20 +2035,20 @@ PL_get_uintptr(term_t t, size_t *i)
 
   valid_term_t(t);
   if ( !PL_get_int64(t, &val) )
-    return FALSE;
+    return false;
 
   if ( val < 0 )
-    return FALSE;
+    return false;
 #if SIZEOF_VOIDP < 8
 #if SIZEOF_LONG == SIZEOF_VOIDP
   if ( val > (int64_t)ULONG_MAX )
-    return FALSE;
+    return false;
 #endif
 #endif
 
   *i = (size_t)val;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2074,7 +2074,7 @@ get_float(term_t t, double *f, int error)
 
   if ( isFloat(w) )
   { *f = valFloat(w);
-    return TRUE;
+    return true;
   }
   if ( isRational(w) )
   { number n;
@@ -2093,18 +2093,18 @@ get_float(term_t t, double *f, int error)
 
   if ( error )
     PL_type_error("float", t);
-  return FALSE;
+  return false;
 }
 
 
 int
 PL_get_float(term_t t, double *f)
-{ return get_float(t, f, FALSE);
+{ return get_float(t, f, false);
 }
 
 int
 PL_get_float_ex(term_t t, double *f)
-{ return get_float(t, f, TRUE);
+{ return get_float(t, f, true);
 }
 
 #ifdef _MSC_VER
@@ -2199,10 +2199,10 @@ int
 
   valid_term_t(t);
   if ( !PL_get_name_arity_sz(t, name, &arity) )
-    return FALSE;
+    return false;
   VALID_INT_ARITY(arity);
   *arityp = (int)arity;
-  return TRUE;
+  return true;
 }
 
 int
@@ -2210,10 +2210,10 @@ int
 { size_t arity;
 
   if ( !PL_get_compound_name_arity_sz(t, name, &arity) )
-    return FALSE;
+    return false;
   VALID_INT_ARITY(arity);
   *arityp = (int)arity;
-  return TRUE;
+  return true;
 }
 
 
@@ -2264,16 +2264,16 @@ _PL_get_arg_sz(size_t index, term_t t, term_t a)
   Word p = &f->arguments[index-1];
 
   setHandle(a, linkValI(p));
-  return TRUE;
+  return true;
 }
 int
 (_PL_get_arg)(int index, term_t t, term_t a)
 { if ( index >= 0 )
   { _PL_get_arg_sz(index, t, a);
-    return TRUE;
+    return true;
   } else
   { fatalError("_PL_get_arg(): negative index: %d", index);
-    return FALSE;
+    return false;
   }
 }
 
@@ -2285,7 +2285,7 @@ _PL_get_arg(DECL_LD size_t index, term_t t, term_t a)
   Word p = &f->arguments[index-1];
 
   setHandle(a, linkValI(p));
-  return TRUE;
+  return true;
 }
 
 
@@ -2316,7 +2316,7 @@ int
 { if ( index >= 0 )
     return PL_get_arg_sz(index, t, a);
   fatalError("PL_get_arg() negative index: %d", index);
-  return FALSE;
+  return false;
 }
 
 #ifdef O_ATTVAR
@@ -2480,7 +2480,7 @@ API_STUB(int)
 ( valid_term_t(t);
   word w = valHandle(t);
 
-  return canBind(w) ? TRUE : FALSE;
+  return canBind(w) ? true : false;
 )
 
 
@@ -2506,10 +2506,10 @@ PL_is_blob(term_t t, PL_blob_t **type)
       *type = a->type;
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2519,7 +2519,7 @@ PL_is_attvar(term_t t)
   valid_term_t(t);
   word w = valHandle(t);
 
-  return isAttVar(w) ? TRUE : FALSE;
+  return isAttVar(w) ? true : false;
 }
 
 
@@ -2529,7 +2529,7 @@ PL_is_integer(term_t t)
   valid_term_t(t);
   word w = valHandle(t);
 
-  return isInteger(w) ? TRUE : FALSE;
+  return isInteger(w) ? true : false;
 }
 
 
@@ -2539,7 +2539,7 @@ PL_is_float(term_t t)
   valid_term_t(t);
   word w = valHandle(t);
 
-  return isFloat(w) ? TRUE : FALSE;
+  return isFloat(w) ? true : false;
 }
 
 
@@ -2559,7 +2559,7 @@ PL_is_compound(term_t t)
   valid_term_t(t);
   word w = valHandle(t);
 
-  return isTerm(w) ? TRUE : FALSE;
+  return isTerm(w) ? true : false;
 }
 
 
@@ -2571,15 +2571,15 @@ isCallable(DECL_LD word w)
     Atom ap = atomValue(fd->name);
 
     if ( ison(ap->type, PL_BLOB_TEXT) || fd->name == ATOM_nil )
-      return TRUE;
+      return true;
     if ( ap->type == &_PL_closure_blob )
     { closure *c = (closure*)ap->name;
 
       if ( c->def.functor->arity == fd->arity )
-	return TRUE;
+	return true;
     }
 
-    return FALSE;
+    return false;
   }
 
   return isTextAtom(w) != 0;
@@ -2673,7 +2673,7 @@ PL_unify_string_chars(term_t t, const char *s)
   if ( str )
     return PL_unify_atomic(t, str);
 
-  return FALSE;
+  return false;
 }
 
 int
@@ -2685,7 +2685,7 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
   if ( str )
     return PL_unify_atomic(t, str);
 
-  return FALSE;
+  return false;
 }
 #endif /*O_STRING*/
 
@@ -2710,7 +2710,7 @@ API_STUB(int)
 ( valid_user_term_t(t);
   valid_atom_t(a);
   setHandle(t, a);
-  return TRUE;
+  return true;
 )
 
 
@@ -2720,7 +2720,7 @@ PL_put_bool(term_t t, int val)
   valid_user_term_t(t);
 
   PL_put_atom(t, val ? ATOM_true : ATOM_false);
-  return TRUE;
+  return true;
 }
 
 
@@ -2733,7 +2733,7 @@ PL_put_atom_chars(term_t t, const char *s)
   setHandle(t, a);
   PL_unregister_atom(a);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2749,7 +2749,7 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
   setHandle(t, a);
   PL_unregister_atom(a);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2761,10 +2761,10 @@ PL_put_string_chars(term_t t, const char *s)
 
   if ( w )
   { setHandle(t, w);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2776,10 +2776,10 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
 
   if ( w )
   { setHandle(t, w);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2789,7 +2789,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
   valid_user_term_t(t);
   PL_chars_t text;
   word w = 0;
-  int rc = FALSE;
+  int rc = false;
 
   if ( len == (size_t)-1 )
     len = strlen(s);
@@ -2798,7 +2798,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
   text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
 		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   text.length    = len;
-  text.canonical = FALSE;
+  text.canonical = false;
   text.storage   = PL_CHARS_HEAP;
 
   flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
@@ -2815,7 +2815,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
 
   if ( w )
   { setHandle(t, w);
-    rc = TRUE;
+    rc = true;
   }
 
   PL_free_text(&text);
@@ -2835,7 +2835,7 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
   { Word p = allocGlobal(len*3);
 
     if ( !p )
-      return FALSE;
+      return false;
 
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
@@ -2848,7 +2848,7 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
     p[-1] = ATOM_nil;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2869,7 +2869,7 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
   { Word p = allocGlobal(len*3);
 
     if ( !p )
-      return FALSE;
+      return false;
 
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
@@ -2882,7 +2882,7 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
     p[-1] = ATOM_nil;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2911,9 +2911,9 @@ PL_put_uint64(term_t t, uint64_t i)
   valid_user_term_t(t);
 
   switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
-  { case TRUE:
+  { case true:
       setHandle(t, w);
-      return TRUE;
+      return true;
     case LOCAL_OVERFLOW:
       return PL_representation_error("uint64_t");
     default:
@@ -2934,9 +2934,9 @@ _PL_put_number(DECL_LD term_t t, Number n)
 { word w;
   int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC)) == TRUE )
+  if ( (rc=put_number(&w, n, ALLOW_GC)) == true )
   { setHandle(t, w);
-    return TRUE;
+    return true;
   } else
   { return raiseStackOverflow(rc);
   }
@@ -2960,9 +2960,9 @@ PL_put_float(term_t t, double f)
   int rc;
 
   valid_user_term_t(t);
-  if ( (rc=put_double(&w, f, ALLOW_GC)) == TRUE )
+  if ( (rc=put_double(&w, f, ALLOW_GC)) == true )
   { setHandle(t, w);
-    return TRUE;
+    return true;
   }
 
   return raiseStackOverflow(rc);
@@ -2982,14 +2982,14 @@ PL_put_functor(term_t t, functor_t f)
   { Word a;
 
     if ( !(a = allocGlobal(1 + arity)) )
-      return FALSE;
+      return false;
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = f;
     while(arity-- > 0)
       setVar(*a++);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -3004,10 +3004,10 @@ PL_put_list(term_t l)
     *a++ = FUNCTOR_dot2;
     setVar(*a++);
     setVar(*a);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -3018,7 +3018,7 @@ PL_put_nil(term_t l)
 
   setHandle(l, ATOM_nil);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -3027,10 +3027,10 @@ PL_put_term(DECL_LD term_t t1, term_t t2)
 { if ( globalizeTermRef(t2) )
   { Word p2 = valHandleP(t2);
     setHandle(t1, linkValI(p2));
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -3052,7 +3052,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   if ( !hasGlobalSpace(2) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -3065,7 +3065,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   *p++ = FUNCTOR_xpceref1;
   *p++ = w;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -3079,9 +3079,9 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
   { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = FUNCTOR_xpceref1;
     *a++ = name;
-    return TRUE;
+    return true;
   }
-  return FALSE;
+  return false;
 }
 
 
@@ -3117,7 +3117,7 @@ PL_unify_compound(term_t t, functor_t f)
     if ( !hasGlobalSpace(needed) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
       p = valHandleP(t);		/* reload: may have shifted */
       deRef(p);
@@ -3153,7 +3153,7 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
       if ( !hasGlobalSpace(needed) )
       { int rc;
 
-	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
 	  return raiseStackOverflow(rc);
 	p = valHandleP(t);		/* reload: may have shifted */
 	deRef(p);
@@ -3373,7 +3373,7 @@ PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   text.storage   = PL_CHARS_HEAP;
   text.length    = len;
-  text.canonical = FALSE;
+  text.canonical = false;
 
   flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
 
@@ -3403,7 +3403,7 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
       return bindConst(p, w);
 
     int rc;
-    if ( (rc=put_int64(&w, i, 0)) == TRUE )
+    if ( (rc=put_int64(&w, i, 0)) == true )
     { p = valHandleP(t);
       deRef(p);
       return bindConst(p, w);
@@ -3415,7 +3415,7 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   }
 
   if ( w == *p && valInt(w) == i )
-    return TRUE;
+    return true;
 
   int64_t v;
   if ( get_int64(*p, &v) )
@@ -3424,18 +3424,18 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   if ( ex && !isInteger(*p) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 
-  return FALSE;
+  return false;
 }
 
 
 int
 PL_unify_int64_ex(DECL_LD term_t t, int64_t i)
-{ return unify_int64_ex(t, i, TRUE);
+{ return unify_int64_ex(t, i, true);
 }
 
 int
 PL_unify_int64(DECL_LD term_t t, int64_t i)
-{ return unify_int64_ex(t, i, FALSE);
+{ return unify_int64_ex(t, i, false);
 }
 
 int
@@ -3444,13 +3444,13 @@ PL_unify_uint64(term_t t, uint64_t i)
 
   valid_term_t(t);
   if ( (int64_t)i >= 0 )
-  { return unify_int64_ex(t, i, TRUE);
+  { return unify_int64_ex(t, i, true);
   } else if ( PL_is_variable(t) )
   { word w;
     int rc;
 
     switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
-    { case TRUE:
+    { case true:
 	return PL_unify_atomic(t, w);
       case LOCAL_OVERFLOW:
 	return PL_representation_error("uint64_t");
@@ -3463,7 +3463,7 @@ PL_unify_uint64(term_t t, uint64_t i)
     if ( PL_get_number(t, &n) )
     { switch(n.type)
       { case V_INTEGER:
-	  return FALSE;			/* we have a too big integer */
+	  return false;			/* we have a too big integer */
 #if O_BIGNUM
 	case V_MPZ:
 	{ uint64_t v;
@@ -3477,7 +3477,7 @@ PL_unify_uint64(term_t t, uint64_t i)
       }
     }
 
-    return FALSE;
+    return false;
   }
 }
 
@@ -3488,7 +3488,7 @@ PL_unify_integer(DECL_LD term_t t, intptr_t i)
   if ( valInt(w) == i )
     return PL_unify_atomic(t, w);
 
-  return unify_int64_ex(t, i, FALSE);
+  return unify_int64_ex(t, i, false);
 }
 
 
@@ -3501,14 +3501,14 @@ API_STUB(int)
 API_STUB(int)
 (PL_unify_int64)(term_t t, int64_t i)
 ( valid_term_t(t);
-  return unify_int64_ex(t, i, FALSE);
+  return unify_int64_ex(t, i, false);
 )
 
 int
 PL_unify_pointer(DECL_LD term_t t, void *ptr)
 { uint64_t i = pointerToInt(ptr);
 
-  return unify_int64_ex(t, (int64_t)i, FALSE);
+  return unify_int64_ex(t, (int64_t)i, false);
 }
 
 
@@ -3528,7 +3528,7 @@ PL_unify_float(DECL_LD term_t t, double f)
   { word w;
     int rc = put_double(&w, f, ALLOW_GC);
 
-    if ( rc == TRUE )
+    if ( rc == true )
     { p = valHandleP(t);
       deRef(p);
       return bindConst(p, w);
@@ -3594,7 +3594,7 @@ int
 { if ( index >= 0 )
     return PL_unify_arg_sz(index, t, a);
   fatalError("PL_unify_arg(): negative index: %d", index);
-  return FALSE;
+  return false;
 }
 
 int
@@ -3610,7 +3610,7 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
     if ( !hasGlobalSpace(3) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
       p = valHandleP(l);		/* reload: may have shifted */
       deRef(p);
@@ -3704,13 +3704,13 @@ PL_unify_termv(DECL_LD term_t t, va_list args)
   int op;
 
   if ( !(t = PL_copy_term_ref(t)) )
-    return FALSE;
+    return false;
   initBuffer(&buf);
 
 cont:
   switch((op=va_arg(args, int)))
   { case PL_VARIABLE:
-      rval = TRUE;
+      rval = true;
       break;
     case PL_ATOM:
       rval = PL_unify_atom(t, va_arg(args, atom_t));
@@ -3772,7 +3772,7 @@ cont:
       txt.length    = strlen(txt.text.t);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_UTF8;
-      txt.canonical = FALSE;
+      txt.canonical = false;
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_UTF8_STRING ? PL_STRING : PL_ATOM);
@@ -3789,7 +3789,7 @@ cont:
       txt.text.t    = va_arg(args, char *);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_UTF8;
-      txt.canonical = FALSE;
+      txt.canonical = false;
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NUTF8_CHARS ? PL_ATOM :
@@ -3808,7 +3808,7 @@ cont:
       txt.text.w    = va_arg(args, wchar_t *);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_WCHAR;
-      txt.canonical = FALSE;
+      txt.canonical = false;
 
       if ( txt.length == (size_t)-1 )
 	txt.length = wcslen(txt.text.w );
@@ -3830,7 +3830,7 @@ cont:
       txt.length    = strlen(txt.text.t);
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_ANSI;
-      txt.canonical = FALSE;
+      txt.canonical = false;
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_MBCHARS ? PL_ATOM :
@@ -3864,13 +3864,13 @@ cont:
 
       w.type  = w_term;
       if ( !(w.value.term.term  = PL_copy_term_ref(t)) )
-	return FALSE;
+	return false;
       w.value.term.arg   = 0;
       w.value.term.arity = arity;
       addBuffer(&buf, w, work);
       tos++;
 
-      rval = TRUE;
+      rval = true;
       break;
     }
   }
@@ -3879,13 +3879,13 @@ cont:
 
       w.type = w_list;
       if ( !(w.value.list.tail = PL_copy_term_ref(t)) )
-	return FALSE;
+	return false;
       w.value.list.len  = va_arg(args, int);
 
       addBuffer(&buf, w, work);
       tos++;
 
-      rval = TRUE;
+      rval = true;
       break;
     }
     case _PL_PREDICATE_INDICATOR:
@@ -3932,14 +3932,14 @@ cont:
 
     PL_reset_term_refs(tsave);
     discardBuffer(&buf);
-    return TRUE;
+    return true;
   }
 
 failout:
   PL_reset_term_refs(tsave);
   discardBuffer(&buf);
 
-  return FALSE;
+  return false;
 }
 
 API_STUB(int)
@@ -4000,7 +4000,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
   if ( !hasGlobalSpace(2) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -4158,11 +4158,11 @@ PL_free_blob(atom_t a)
   { if ( (*type->release)(a) )
     { x->length = 0;
       x->name = NULL;
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -4185,7 +4185,7 @@ PL_put_dict(term_t t, atom_t tag,
   for(i=0; i<len; i++)
   { valid_term_t(values+i);
     if ( !globalizeTermRef(values+i) )
-      return FALSE;
+      return false;
   }
 
   if ( (p0=p=allocGlobal(size)) )
@@ -4210,17 +4210,17 @@ PL_put_dict(term_t t, atom_t tag,
 	goto invalid;
     }
 
-    if ( dict_order(p0, NULL) == TRUE )
+    if ( dict_order(p0, NULL) == true )
     { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
       DEBUG(CHK_SECURE, checkStacks(NULL));
-      return TRUE;
+      return true;
     }
 
     gTop -= size;
     return -2;
   }
 
-  return FALSE;
+  return false;
 }
 
 void
@@ -4309,7 +4309,7 @@ PL_unify_output(DECL_LD term_t t1, term_t t2)
   if ( canBind(*p1) && !canBind(*p2) &&
        hasGlobalSpace(0) )
   { bindConst(p1, *p2);
-    return TRUE;
+    return true;
   } else
   { return unify_ptrs(p1, p2, ALLOW_GC|ALLOW_SHIFT);
   }
@@ -4328,7 +4328,7 @@ PL_strip_module_flags(DECL_LD term_t raw, module_t *m, term_t plain, int flags)
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
   { if ( !(p = stripModule(p, m, flags)) )
-      return FALSE;
+      return false;
     setHandle(plain, linkValI(p));
   } else
   { if ( *m == NULL )
@@ -4340,11 +4340,11 @@ PL_strip_module_flags(DECL_LD term_t raw, module_t *m, term_t plain, int flags)
       if ( w )
 	setHandle(plain, w);
       else
-	return FALSE;
+	return false;
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 API_STUB(int)
@@ -4368,7 +4368,7 @@ PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
   { if ( !(p = stripModule(p, m, 0)) )
-      return FALSE;
+      return false;
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);
       deRef(a1);
@@ -4385,10 +4385,10 @@ PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
     if ( (w=linkValG(p)) )
       setHandle(plain, w);
     else
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 module_t
@@ -4420,7 +4420,7 @@ PL_qualify(term_t raw, term_t qualified)
 
   if ( !(mname = PL_new_term_ref()) ||
        !PL_strip_module(raw, &m, qualified) )
-    return FALSE;
+    return false;
 
   setHandle(mname, m->name);
 
@@ -4476,7 +4476,7 @@ PL_predicate_info(predicate_t pred, atom_t *name, size_t *arity, module_t *m)
   if ( m )
     *m     = def->module;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -4501,7 +4501,7 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 
     rval = (r1 && r2);	/* do not inline; we *must* execute PL_cut_query() */
   } else
-    rval = FALSE;
+    rval = false;
 
   return rval;
 }
@@ -4569,14 +4569,14 @@ has_emergency_space(void *sv, size_t needed)
   ssize_t lacking = ((char*)s->top + needed) - (char*)s->max;
 
   if ( lacking <= 0 )
-    return TRUE;
+    return true;
   if ( lacking < s->spare )
   { s->max    = (char*)s->max + lacking;
     s->spare -= lacking;
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -4589,11 +4589,11 @@ copy_exception(DECL_LD term_t ex, term_t bin)
   { if ( duplicate_term(ex, bin) )
     { ok:
       PL_close_foreign_frame(fid);
-      return TRUE;
+      return true;
     } else
     { PL_rewind_foreign_frame(fid);
       PL_clear_exception();
-      LD->exception.processing = TRUE;
+      LD->exception.processing = true;
 
       if ( PL_is_functor(ex, FUNCTOR_error2) )
       { term_t arg, av;
@@ -4626,7 +4626,7 @@ copy_exception(DECL_LD term_t ex, term_t bin)
 
   Sdprintf("WARNING: mapped exception to abort due to stack overflow\n");
   PL_put_atom(bin, ATOM_aborted);
-  return TRUE;
+  return true;
 }
 
 
@@ -4675,7 +4675,7 @@ PL_raise_exception(term_t exception)
   save_backtrace("exception");
 #endif
 
-  LD->exception.processing = TRUE;
+  LD->exception.processing = true;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { except_class co = classify_exception(exception_bin);
     except_class cn = classify_exception(exception);
@@ -4691,7 +4691,7 @@ PL_raise_exception(term_t exception)
   }
   exception_term = exception_bin;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -4723,7 +4723,7 @@ PL_clear_exception(void)
 { GET_LD
 
   if ( exception_term )
-  { resumeAfterException(TRUE, LD->outofstack);
+  { resumeAfterException(true, LD->outofstack);
     LD->outofstack = NULL;
   }
 }
@@ -4903,7 +4903,7 @@ register_foreignv(const char *module,
     ext[1].predicate_name = NULL;
     rememberExtensions(module, ext);
 
-    return TRUE;
+    return true;
   }
 }
 
@@ -4966,7 +4966,7 @@ supported by GCC and Clang. Do do so, use
 See cmake/BuildType.cmake for details.
 
 Currently SWI-Prolog does not reclaim all memory   on  edit, even not if
-cleanupProlog() is called with reclaim_memory set to TRUE. The docs says
+cleanupProlog() is called with reclaim_memory set to true. The docs says
 we can use __lsan_disable() just before exit   to  avoid the leak check,
 but this doesn't seem to work (Ubuntu 18.04). What does work is defining
 __asan_default_options(), providing an alternative   to  the environment
@@ -4984,10 +4984,10 @@ haltProlog(int status)
   switch( PL_cleanup(status) )
   { case PL_CLEANUP_CANCELED:
     case PL_CLEANUP_RECURSIVE:
-      return FALSE;
+      return false;
     default:
       run_on_halt(&GD->os.exit_hooks, status);
-      return TRUE;
+      return true;
   }
 }
 
@@ -4996,7 +4996,7 @@ PL_halt(int status)
 { if ( haltProlog(status) )
     exit(status);
 
-  return FALSE;
+  return false;
 }
 
 #ifndef SIGABRT
@@ -5068,10 +5068,10 @@ PL_clearsig(DECL_LD int sig)
 { if ( IS_VALID_SIGNAL(sig) && HAS_LD )
   { WSIGMASK_CLEAR(LD->signal.pending, sig);
     updateAlerted(LD);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 		/********************************
@@ -5131,12 +5131,12 @@ PL_abort_unhook(PL_abort_hook_t func)
       if ( !h->next )
 	abort_tail = prev;
       freeHeap(h, sizeof(*h));
-      return TRUE;
+      return true;
     }
     prev = h;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -5235,7 +5235,7 @@ PL_prompt_next(int fd)
 { GET_LD
 
   if ( fd == 0 )
-    LD->prompt.next = TRUE;
+    LD->prompt.next = true;
 }
 
 
@@ -5332,23 +5332,23 @@ input_on_fd(int fd)
 int
 PL_dispatch(int fd, int wait)
 { if ( wait == PL_DISPATCH_INSTALLED )
-    return GD->foreign.dispatch_events ? TRUE : FALSE;
+    return GD->foreign.dispatch_events ? true : false;
 
   if ( GD->foreign.dispatch_events && PL_thread_self() <= 1 )
   { if ( wait == PL_DISPATCH_WAIT )
     { while( !input_on_fd(fd) )
       { if ( PL_handle_signals() < 0 )
-	  return FALSE;
+	  return false;
 	(*GD->foreign.dispatch_events)(fd);
       }
     } else
     { (*GD->foreign.dispatch_events)(fd);
       if ( PL_handle_signals() < 0 )
-	  return FALSE;
+	  return false;
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -5370,7 +5370,7 @@ PL_recorded(record_t r, term_t t)
 { GET_LD
 
   valid_term_t(t);
-  return copyRecordToGlobal(t, r, ALLOW_GC) == TRUE;
+  return copyRecordToGlobal(t, r, ALLOW_GC) == true;
 }
 
 
@@ -5398,7 +5398,7 @@ int
 PL_set_prolog_flag(const char *name, int type, ...)
 { GET_LD
   va_list args;
-  int rval = TRUE;
+  int rval = true;
   unsigned short flags = ((unsigned short)type & FF_MASK);
   fid_t fid;
   term_t av;
@@ -5432,7 +5432,7 @@ PL_set_prolog_flag(const char *name, int type, ...)
 	break;
       }
       default:
-	rval = FALSE;
+	rval = false;
     }
     PL_close_foreign_frame(fid);
   } else
@@ -5458,7 +5458,7 @@ PL_set_prolog_flag(const char *name, int type, ...)
 	break;
       }
       default:
-	rval = FALSE;
+	rval = false;
     }
   }
   va_end(args);
@@ -5509,7 +5509,7 @@ PL_fatal_error(const char *fm, ...)
 
 int
 PL_action(int action, ...)
-{ int rval = TRUE;
+{ int rval = true;
   va_list args;
 
   va_start(args, action);
@@ -5530,20 +5530,20 @@ PL_action(int action, ...)
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while in %ld-th garbage collection]\n",
 		 LD->gc.stats.totals.collections);
-	rval = FALSE;
+	rval = false;
 	break;
       }
       if ( GD->bootsession || !GD->initialised )
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while initialising]\n");
-	rval = FALSE;
+	rval = false;
 	break;
       }
       PL_backtrace(a, 0);
     }
 #else
       warning("No Prolog backtrace in runtime version");
-      rval = FALSE;
+      rval = false;
 #endif
       break;
     case PL_ACTION_BREAK:
@@ -5553,7 +5553,7 @@ PL_action(int action, ...)
     { int a = va_arg(args, int);
 
       PL_halt(a);
-      rval = FALSE;
+      rval = false;
       break;
     }
     case PL_ACTION_ABORT:
@@ -5570,7 +5570,7 @@ PL_action(int action, ...)
     case PL_ACTION_WRITE:
     { GET_LD
       char *s = va_arg(args, char *);
-      rval = Sfputs(s, Scurout) < 0 ? FALSE : TRUE;
+      rval = Sfputs(s, Scurout) < 0 ? false : true;
       break;
     }
     case PL_ACTION_FLUSH:
@@ -5583,7 +5583,7 @@ PL_action(int action, ...)
 #ifdef O_PLMT
       rval = attachConsole();
 #else
-      rval = FALSE;
+      rval = false;
 #endif
       break;
     }
@@ -5596,17 +5596,17 @@ PL_action(int action, ...)
       { GD->gmp.keep_alloc_functions = !set;
 	initGMP();
       } else
-      { rval = FALSE;
+      { rval = false;
       }
 #else
-      rval = FALSE;
+      rval = false;
 #endif
       break;
     }
     default:
       sysError("PL_action(): Illegal action: %d", action);
       /*NOTREACHED*/
-      rval = FALSE;
+      rval = false;
   }
 
   va_end(args);
@@ -5641,7 +5641,7 @@ PL_query(int query)
       return PLMINTAGGEDINT;
 #endif
     case PL_QUERY_GETC:
-      PopTty(Sinput, &ttytab, FALSE);		/* restore terminal mode */
+      PopTty(Sinput, &ttytab, false);		/* restore terminal mode */
       return (intptr_t) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
       return PLVERSION;
@@ -5664,7 +5664,7 @@ PL_query(int query)
       return (intptr_t)(cpu*1000.0);
     }
     case PL_QUERY_HALTING:
-    { return (GD->cleaning == CLN_NORMAL ? FALSE : TRUE);
+    { return (GD->cleaning == CLN_NORMAL ? false : true);
     }
     default:
       sysError("PL_query: Illegal query: %d", query);

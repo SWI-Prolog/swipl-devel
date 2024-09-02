@@ -131,10 +131,10 @@ PL_getval(atom_t name, term_t val, unsigned int flags)
   word w = lookup_gvar(name);
   if ( w )
   { *valTermRef(val) = w;
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -161,7 +161,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
   if ( !hasGlobalSpace(3) )		/* also ensures trail for */
   { int rc;				/* TrailAssignment() */
 
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -288,11 +288,11 @@ gvar_value(DECL_LD atom_t name, Word p)
   { word w;
     if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (table_key_t)name)) )
     { *p = w;
-      return TRUE;
+      return true;
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -331,12 +331,12 @@ getval(DECL_LD term_t var, term_t value, int raise_error)
     switch(auto_define_gvar(name))
     { case gvar_fail:
 	new_gvar(name, ATOM_no_value);
-	return FALSE;
+	return false;
       case gvar_retry:
 	continue;
       case gvar_error:
 	if ( exception_term )
-	  return FALSE;				/* error from handler */
+	  return false;				/* error from handler */
         new_gvar(name, ATOM_no_value);
         goto error;
     }
@@ -347,7 +347,7 @@ error:
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
 		    ATOM_variable, var);
   else
-    return FALSE;
+    return false;
 }
 
 
@@ -355,7 +355,7 @@ static
 PRED_IMPL("nb_linkval", 2, nb_linkval, 0)
 { PRED_LD
 
-  return setval(A1, A2, FALSE);
+  return setval(A1, A2, false);
 }
 
 
@@ -363,7 +363,7 @@ static
 PRED_IMPL("nb_getval", 2, nb_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2, TRUE);
+  return getval(A1, A2, true);
 }
 
 
@@ -371,14 +371,14 @@ static
 PRED_IMPL("b_setval", 2, b_setval, 0)
 { PRED_LD
 
-  return setval(A1, A2, TRUE);
+  return setval(A1, A2, true);
 }
 
 static
 PRED_IMPL("b_getval", 2, b_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2, TRUE);
+  return getval(A1, A2, true);
 }
 
 
@@ -388,7 +388,7 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
   atom_t name;
 
   if ( !PL_get_atom_ex(A1, &name) )
-    return FALSE;
+    return false;
 
   if ( LD->gvar.nb_vars )
   { word w;
@@ -417,7 +417,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       if ( PL_is_atom(A1) )
-	return getval(A1, A2, FALSE);
+	return getval(A1, A2, false);
       if ( !PL_is_variable(A1) )
 	return PL_type_error("atom", A1);
       if ( LD->gvar.nb_vars )
@@ -440,7 +440,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 
   if ( !(fid = PL_open_foreign_frame()) )
   { freeTableEnum(e);
-    return FALSE;
+    return false;
   }
 
   table_key_t tk;

@@ -158,12 +158,12 @@ canIndex(word w)
   { switch(tag(w))
     { case TAG_VAR:
       case TAG_ATTVAR:
-	return FALSE;
+	return false;
       case TAG_REFERENCE:
 	w = *unRef(w);
 	continue;
       default:
-	return TRUE;
+	return true;
     }
   }
 }
@@ -670,7 +670,7 @@ newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
   memcpy(ci->args, hap, sizeof(ci->args));
   ci->buckets	 = buckets;
   ci->is_list	 = hints->list;
-  ci->incomplete = TRUE;
+  ci->incomplete = true;
   ci->speedup	 = hints->speedup;
   ci->entries	 = allocHeapOrHalt(bytes);
   copytpos(ci->position, ctx->position);
@@ -687,7 +687,7 @@ freeClauseListRef(ClauseRef cref)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr, next;
 
-  deleteIndexes(cl, TRUE);
+  deleteIndexes(cl, true);
 
   for(cr=cl->first_clause; cr; cr=next)
   { next = cr->next;
@@ -1231,7 +1231,7 @@ clearTriedIndexes(Definition def)
   for(i=0; i<arity; i++)
   { arg_info *ainfo = &def->impl.clauses.args[i];
 
-    ainfo->assessed = FALSE;
+    ainfo->assessed = false;
   }
 
   def->impl.clauses.jiti_tried = 0;
@@ -1532,7 +1532,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
 
   if ( ci->is_list )			/* find first argument key for term */
   { if ( key == 0 )
-      return FALSE;
+      return false;
     switch(decode(*pc))
     { case H_FUNCTOR:
       case H_LIST:
@@ -1555,7 +1555,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
     ci->size += addClauseBucket(&ch[hi], cl, key, arg1key, where, ci->is_list);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1570,7 +1570,7 @@ addClauseToIndexes(Definition def, Clause clause, ClauseRef where)
   reconsider_index(def);
 
   DEBUG(CHK_SECURE, checkDefinition(def));
-  return TRUE;
+  return true;
 }
 
 
@@ -1631,13 +1631,13 @@ completed_index(ClauseIndex ci)
 {
 #ifdef O_PLMT
   pthread_mutex_lock(&GD->thread.index.mutex);
-  ci->incomplete = FALSE;
+  ci->incomplete = false;
   pthread_cond_broadcast(&GD->thread.index.cond);
   pthread_mutex_unlock(&GD->thread.index.mutex);
   DEBUG(MSG_JIT, Sdprintf("[%d] index %p completed\n",
 			  PL_thread_self(), ci));
 #else
-  ci->incomplete = FALSE;
+  ci->incomplete = false;
 #endif
 }
 
@@ -1700,7 +1700,7 @@ See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
   for(cref = clist->first_clause; cref; cref = cref->next)
   { if ( isoff(cref->value.clause, CL_ERASED) )
     { if ( !addClauseToIndex(ci, cref->value.clause, CL_END) )
-      { ci->invalid = TRUE;
+      { ci->invalid = true;
 	completed_index(ci);
 	deleteIndex(ctx->predicate, clist, ci);
 	return NULL;
@@ -1799,12 +1799,12 @@ isSortedIndexes(ClauseIndex *cip)
       if ( ISDEADCI(ci) )
 	continue;
       if ( speedup < ci->speedup )
-	return FALSE;
+	return false;
       speedup = ci->speedup;
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1932,7 +1932,7 @@ insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
 int
 checkClauseIndexSizes(Definition def, int nindexable)
 { ClauseIndex *cip;
-  int rc = TRUE;
+  int rc = true;
 
   if ( (cip=def->impl.clauses.clause_indexes) )
   { for( ; *cip; cip++ )
@@ -1944,7 +1944,7 @@ checkClauseIndexSizes(Definition def, int nindexable)
       if ( ci->size != nindexable )
       { Sdprintf("%s has inconsistent clause index->size",
 		 predicateName(def));
-	rc = FALSE;
+	rc = false;
       }
     }
   }
@@ -2236,7 +2236,7 @@ unbound clause.
 static int
 assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 { if ( !a->keys )
-    return FALSE;
+    return false;
 
   key_asm *s = a->keys;
   key_asm *o = a->keys-1;
@@ -2278,11 +2278,11 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 					/* assess quality */
   if ( clause_count )
   { a->stdev   = (float)sqrt(Q/(float)i);
-    a->list    = FALSE;
+    a->list    = false;
 
     if ( a->size == 1 )			/* Single value that is not compound */
     { if ( !isFunctor(a->keys[0].key) )
-	return FALSE;
+	return false;
     }
 
     a->speedup =            (float)(clause_count*a->size) /
@@ -2297,17 +2297,17 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     if ( a->speedup < 0.8*(float)clause_count &&
 	 a->funct_count > 0 &&
 	 a->var_count == 0 )		/* See (*) */
-    { a->list = TRUE;
+    { a->list = true;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
 
     if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC )
     { a->speedup = 0.0;
-      return FALSE;			/* not indexable */
+      return false;			/* not indexable */
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2328,13 +2328,13 @@ assessAddKey(hash_assessment *a, word key, int nvcomp)
   { if ( a->allocated == 0 )
     { a->allocated = 512;
       if ( !(a->keys = malloc(a->allocated*sizeof(*a->keys))) )
-	return FALSE;
+	return false;
     } else
     { assess_remove_duplicates(a, 0);
       if ( a->size*2 > a->allocated )
       { key_asm *new = realloc(a->keys, a->allocated*2*sizeof(*a->keys));
 	if ( !new )
-	  return FALSE;
+	  return false;
 	a->keys = new;
 	a->allocated *= 2;
       }
@@ -2342,7 +2342,7 @@ assessAddKey(hash_assessment *a, word key, int nvcomp)
     goto put_key;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2429,9 +2429,9 @@ indexableCompound(Code pc)
       case H_VAR:
 	continue;
       case H_POP:
-	return FALSE;
+	return false;
       default:
-	return TRUE;
+	return true;
     }
   }
 }
@@ -2483,11 +2483,11 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	pc = skipArgs(pc, kpp[0]-carg);
       carg = kpp[0];
       argKey(pc, 0, &keys[kpp[0]]);
-      nvcomp[kpp[0]] = FALSE;
+      nvcomp[kpp[0]] = false;
 						/* see whether this a compound */
       if ( isFunctor(keys[kpp[0]]) )		/* with nonvar args */
       { if ( indexableCompound(pc) )
-	  nvcomp[kpp[0]] = TRUE;
+	  nvcomp[kpp[0]] = true;
       }
     }
 
@@ -2513,7 +2513,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	  }
 	}
 
-	assessAddKey(a, murmur_key(key, sizeof(word)*harg), FALSE);
+	assessAddKey(a, murmur_key(key, sizeof(word)*harg), false);
       }
     next_assessment:
       ;
@@ -2558,7 +2558,7 @@ expected speedup is
 	----------------------------------
 	#clauses - #var + #var * #distinct
 
-@returns TRUE if a best hash was found.  Details on the best hash are in
+@returns true if a best hash was found.  Details on the best hash are in
 *hints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2617,7 +2617,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 	ainfo->ln_buckets = MSB(a->size)&0x1f;
       } else
       { ainfo->speedup    = 0.0;
-	ainfo->list       = FALSE;
+	ainfo->list       = false;
 	ainfo->ln_buckets = 0;
 
 	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
@@ -2625,7 +2625,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 				predicateName(ctx->predicate)));
       }
 
-      ainfo->assessed = TRUE;
+      ainfo->assessed = true;
 
       if ( a->keys )
 	free(a->keys);
@@ -2689,7 +2689,7 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
 
 	free_keys_in_assessment_set(&aset);
 	free_assessment_set(&aset);
-	return TRUE;
+	return true;
       }
       free_keys_in_assessment_set(&aset);
       free_assessment_set(&aset);
@@ -2705,10 +2705,10 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
     hints->speedup    = ainfo->speedup;
     hints->list       = ainfo->list;
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2779,7 +2779,7 @@ unify_clause_index(term_t t, ClauseIndex ci)
 
   if ( !(where=PL_new_term_ref()) ||
        !(tmp =PL_new_term_ref()) )
-    return FALSE;
+    return false;
 
   if ( ci->args[1] )
   { int i;
@@ -2789,16 +2789,16 @@ unify_clause_index(term_t t, ClauseIndex ci)
     { if ( ci->args[i] )
       { if ( !PL_put_integer(tmp, ci->args[i]) ||
 	     !PL_cons_list(where, tmp, where) )
-	  return FALSE;
+	  return false;
       }
     }
 
     if ( !PL_cons_functor(where, FUNCTOR_multi1, where) )
-      return FALSE;
+      return false;
   } else
   { if ( !PL_put_integer(where, ci->args[0]) ||
 	 !PL_cons_functor(where, FUNCTOR_single1, where) )
-      return FALSE;
+      return false;
   }
 
   if ( ci->position[0] != END_INDEX_POS )
@@ -2808,17 +2808,17 @@ unify_clause_index(term_t t, ClauseIndex ci)
     if ( !(nil=PL_new_term_ref()) ||
 	 !PL_put_nil(nil) ||
 	 !PL_cons_functor(where, FUNCTOR_dot2, where, nil) )
-      return FALSE;
+      return false;
 
     while(*ap != END_INDEX_POS)
       ap++;
     for(--ap; ap >= ci->position; ap--)
     { if ( !PL_put_integer(tmp, (*ap)+1) ||
 	   !PL_cons_list(where, tmp, where) )
-	return FALSE;
+	return false;
     }
     if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
-      return FALSE;
+      return false;
   }
 
   return PL_unify_term(t,
@@ -2854,17 +2854,17 @@ add_deep_indexes(DECL_LD ClauseIndex ci, term_t head, term_t tail)
 
 	    if ( !PL_unify_list(tail, head, tail) ||
 		 !unify_clause_index(head, ci) )
-	      return FALSE;
+	      return false;
 	    if ( ci->is_list &&
 		 !add_deep_indexes(ci, head, tail) )
-	      return FALSE;
+	      return false;
 	  }
 	}
       }
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2873,7 +2873,7 @@ unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
   Definition def = getProcDefinition(proc);
   ClauseIndex *cip;
-  int rc = FALSE;
+  int rc = false;
   int found = 0;
 
   acquire_def(def);

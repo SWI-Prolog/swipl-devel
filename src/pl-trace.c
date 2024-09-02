@@ -167,9 +167,9 @@ static inline int
 valid_choice(DECL_LD Choice ch)
 { if ( (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG &&
        onStack(local, ch->frame) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -203,10 +203,10 @@ the parent is a debug frame.
 int
 isDebugFrame(LocalFrame FR)
 { if ( isoff(FR->predicate, TRACE_ME) )
-    return FALSE;			/* hidden predicate */
+    return false;			/* hidden predicate */
 
   if ( isoff(FR->predicate, HIDE_CHILDS) )
-    return TRUE;			/* user pred */
+    return true;			/* user pred */
 
   if ( FR->parent )
   { LocalFrame parent = FR->parent;
@@ -214,17 +214,17 @@ isDebugFrame(LocalFrame FR)
     if ( levelFrame(FR) == levelFrame(parent)+1 )
     {					/* not last-call optimized */
       if ( isoff(parent->predicate, HIDE_CHILDS) )
-	return TRUE;			/* user calls system */
-      return FALSE;			/* system calls system */
+	return true;			/* user calls system */
+      return false;			/* system calls system */
     } else
     { if ( isoff(parent, FR_HIDE_CHILDS) )
-	return TRUE;
-      return FALSE;
+	return true;
+      return false;
     }
   } else
   { QueryFrame qf = queryOfFrame(FR);
 
-    return (qf->flags & PL_Q_NODEBUG) ? FALSE : TRUE;
+    return (qf->flags & PL_Q_NODEBUG) ? false : true;
   }
 }
 
@@ -318,7 +318,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	{ term_t t = PL_new_term_ref();
 	  term_t frref = consTermRef(fr);
 	  int i, arity = fr->predicate->functor->arity;
-	  int rval = TRUE;
+	  int rval = true;
 
 	  if ( copyRecordToGlobal(t, find->goal.term.term,
 				  ALLOW_GC|ALLOW_SHIFT) < 0 )
@@ -333,7 +333,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	    b = argFrameP(fr, i);
 
 	    if ( !can_unify(a++, b++, 0) )
-	    { rval = FALSE;
+	    { rval = false;
 	      break;
 	    }
 	  }
@@ -462,14 +462,14 @@ We are in searching mode; should we actually give this port?
       rc = canUnifyTermWithGoal(frame);
       RESTORE_PTRS()
       if ( rc )
-	LD->trace.find->searching = FALSE; /* Got you */
+	LD->trace.find->searching = false; /* Got you */
       return ACTION_CONTINUE;		/* Continue the search */
     } else
     { return ACTION_CONTINUE;		/* Continue the search */
     }
   }
 
-  if ( !saveWakeup(&wstate, FALSE) )
+  if ( !saveWakeup(&wstate, false) )
     return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -497,7 +497,7 @@ again:
   { char buf[LINESIZ];
 
     debugstatus.skiplevel = SKIP_VERY_DEEP;
-    debugstatus.tracing   = TRUE;
+    debugstatus.tracing   = true;
 
     Sfprintf(Sdout, " ? ");
     Sflush(Sdout);
@@ -508,7 +508,7 @@ again:
 	goto out;
       }
     } else
-    { int c = getSingleChar(Sdin, FALSE);
+    { int c = getSingleChar(Sdin, false);
 
       if ( c == EOF )
       { action = exitFromDebugger("EOF: ", 4);
@@ -552,7 +552,7 @@ setupFind(char *buf)
     { Sfprintf(Sdout, "[No previous search]\n");
       fail;
     }
-    LD->trace.find->searching = TRUE;
+    LD->trace.find->searching = true;
     succeed;
   }
   for( ; *s && !isBlank(*s); s++ )	/* Parse the port specification */
@@ -609,7 +609,7 @@ setupFind(char *buf)
     }
 
     find->port      = port;
-    find->searching = TRUE;
+    find->searching = true;
 
     DEBUG(2,
 	  Sdprintf("setup ok, port = 0x%x, goal = ", port);
@@ -646,7 +646,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 	    bool interactive)
 { GET_LD
   int num_arg;				/* numeric argument */
-  int def_arg = TRUE;			/* arg is default */
+  int def_arg = true;			/* arg is default */
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
@@ -666,7 +666,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 
     while(isBlank(*s))
       s++;
-    def_arg = FALSE;
+    def_arg = false;
   } else
     num_arg = 0;
 
@@ -686,7 +686,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
     case '.':   if ( LD->trace.find &&
 		     LD->trace.find->type != TRACE_FIND_NONE )
 		{ FeedBack("repeat search\n");
-		  LD->trace.find->searching = TRUE;
+		  LD->trace.find->searching = true;
 		  clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		} else
@@ -749,10 +749,10 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		setPrintOptions(ATOM_print);
 		return ACTION_AGAIN;
     case 'l':	FeedBack("leap\n");
-		tracemode(FALSE, NULL);
+		tracemode(false, NULL);
 		return ACTION_CONTINUE;
     case 'n':	FeedBack("no debug\n");
-		tracemode(FALSE, NULL);
+		tracemode(false, NULL);
 		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
@@ -762,7 +762,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		alternatives(bfr);
 		return ACTION_AGAIN;
     case 'C':	debugstatus.showContext = 1 - debugstatus.showContext;
-		if ( debugstatus.showContext == TRUE )
+		if ( debugstatus.showContext == true )
 		{ FeedBack("Show context\n");
 		} else
 		{ FeedBack("No show context\n");
@@ -890,11 +890,11 @@ put_frame_goal(term_t goal, LocalFrame frame)
   term_t fref = consTermRef((Word)frame);
 
   if ( !PL_unify_functor(goal, def->functor->functor) )
-    return FALSE;
+    return false;
   if ( tTop+argc > tMax )
   { int rc;
 
-    if ( (rc=ensureTrailSpace(argc)) != TRUE )
+    if ( (rc=ensureTrailSpace(argc)) != true )
       return raiseStackOverflow(rc);
   }
 
@@ -929,13 +929,13 @@ put_frame_goal(term_t goal, LocalFrame frame)
   { term_t a;
 
     if ( !(a=PL_new_term_ref()) )
-      return FALSE;
+      return false;
 
     PL_put_atom(a, def->module->name);
     return PL_cons_functor(goal, FUNCTOR_colon2, a, goal);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -964,10 +964,10 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
   wakeup_state wstate;
   Definition def = frame->predicate;
-  int rc = TRUE;
+  int rc = true;
 
-  if ( !saveWakeup(&wstate, TRUE) )
-  { rc = FALSE;
+  if ( !saveWakeup(&wstate, true) )
+  { rc = false;
     goto out;
   }
 
@@ -1118,7 +1118,7 @@ exceptionDetails()
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1145,7 +1145,7 @@ listGoal(LocalFrame frame)
     return rc;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1179,10 +1179,10 @@ static int
 saveGoal(LocalFrame frame, int at_depth, bool interactive)
 { GET_LD
   fid_t fid;
-  int rc = FALSE;
+  int rc = false;
 
   if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
-    return FALSE;
+    return false;
 
   if ( (fid = PL_open_foreign_frame()) )
   { term_t goal;
@@ -1192,7 +1192,7 @@ saveGoal(LocalFrame frame, int at_depth, bool interactive)
 	 PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
     { if ( interactive )
 	Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
-      rc = TRUE;
+      rc = true;
     }
 
     PL_discard_foreign_frame(fid);
@@ -1356,7 +1356,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     term_t argv, rarg;
     atom_t portname = NULL_ATOM;
     functor_t portfunc = 0;
-    int nodebug = FALSE;
+    int nodebug = false;
 
     SAVE_PTRS();
     if ( !(cid=PL_open_foreign_frame()) )
@@ -1417,7 +1417,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = ACTION_CONTINUE;
 	} else if ( a == ATOM_nodebug )
 	{ rval = ACTION_CONTINUE;
-	  nodebug = TRUE;
+	  nodebug = true;
 	} else if ( a == ATOM_fail )
 	{ rval = ACTION_FAIL;
 	} else if ( a == ATOM_skip )
@@ -1453,14 +1453,14 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       { rval = ACTION_ABORT;
       } else
       { if ( printMessage(ATOM_error, PL_TERM, ex) )
-	{ nodebug = TRUE;
+	{ nodebug = true;
 	  rval = ACTION_CONTINUE;
 	} else if ( classify_exception(exception_term) >= EXCEPT_TIMEOUT )
 	{ PL_clear_exception();
 	  rval = ACTION_ABORT;
 	} else
 	{ PL_clear_exception();
-	  nodebug = TRUE;
+	  nodebug = true;
 	  rval = ACTION_CONTINUE;
 	}
       }
@@ -1471,7 +1471,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( cid ) PL_close_foreign_frame(cid);
 
     if ( nodebug )
-    { tracemode(FALSE, NULL);
+    { tracemode(false, NULL);
       debugmode(DBG_OFF, NULL);
     }
   }
@@ -1525,7 +1525,7 @@ PL_get_context(pl_context_t *c, int thread_id)
   (void)thread_id;
 
   if ( !HAS_LD )
-    return FALSE;
+    return false;
 
   c->ld = LD;
   c->qf = LD->query;
@@ -1538,7 +1538,7 @@ PL_get_context(pl_context_t *c, int thread_id)
   else
     c->pc = NULL;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1548,7 +1548,7 @@ PL_step_context(pl_context_t *c)
   { GET_LD
 
     if ( !onStack(local, c->fr) )
-      return FALSE;
+      return false;
 
     if ( c->fr->parent )
     { c->pc = c->fr->programPointer;
@@ -1560,7 +1560,7 @@ PL_step_context(pl_context_t *c)
     }
   }
 
-  return c->fr ? TRUE : FALSE;
+  return c->fr ? true : false;
 }
 
 
@@ -1648,13 +1648,13 @@ hasAlternativesFrame(LocalFrame frame)
   for(;;)
   { for( ; ch; ch = ch->parent )
     { if ( (void *)ch < (void *)frame )
-	return FALSE;
+	return false;
 
       if ( ch->frame == frame )
       { switch( ch->type )
 	{ case CHP_CLAUSE:
 	  case CHP_JUMP:
-	    return TRUE;
+	    return true;
 	  case CHP_TOP:			/* no default to get warning */
 	  case CHP_CATCH:
 	  case CHP_DEBUG:
@@ -1666,7 +1666,7 @@ hasAlternativesFrame(LocalFrame frame)
     { fr = qf->saved_environment;
       ch = qf->saved_bfr;
     } else
-      return FALSE;
+      return false;
   }
 }
 
@@ -1734,7 +1734,7 @@ void
 resetTracer(void)
 { GET_LD
 
-  debugstatus.tracing      = FALSE;
+  debugstatus.tracing      = false;
   debugstatus.debugging    = DBG_OFF;
   debugstatus.suspendTrace = 0;
   debugstatus.skiplevel    = 0;
@@ -1772,7 +1772,7 @@ interruptHandler(int sig)
 { GET_LD
   int c;
   int safe;
-  int first = TRUE;
+  int first = true;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
@@ -1799,14 +1799,14 @@ interruptHandler(int sig)
   if ( !LD->signal.is_sync )
   { if ( PL_pending(sig) )
     { PL_clearsig(sig);
-      safe = FALSE;
+      safe = false;
     } else
     { DEBUG(1, Sdprintf("Reposting as synchronous\n"));
       PL_raise(sig);
       return;
     }
   } else
-  { safe = TRUE;
+  { safe = true;
   }
 #else
   safe = !LD->critical;
@@ -1820,7 +1820,7 @@ again:
       PL_clear_exception();
   } else
   { if ( first )
-    { first = FALSE;
+    { first = false;
       Sfprintf(Sdout,
 	       "\n"
 	       "WARNING: By typing Control-C twice, you have forced an asynchronous\n"
@@ -1831,7 +1831,7 @@ again:
     Sfprintf(Sdout, "Action (h for help) ? ");
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
-  c = getSingleChar(Sdin, FALSE);
+  c = getSingleChar(Sdin, false);
 
   switch(c)
   { case 'a':	Sfprintf(Sdout, "abort\n");
@@ -1918,11 +1918,11 @@ initTracer(DECL_LD)
 { debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     EXCEPTION_PORT;
-  debugstatus.showContext  = FALSE;
+  debugstatus.showContext  = false;
   resetTracer();
 
   if ( truePrologFlag(PLFLAG_DEBUG_ON_INTERRUPT) )
-    enable_debug_on_interrupt(TRUE);
+    enable_debug_on_interrupt(true);
 }
 
 int
@@ -1934,15 +1934,15 @@ enable_debug_on_interrupt(DECL_LD int enable)
     { PL_signal(SIGINT, PL_interrupt);
       setPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
     } else
-    { return FALSE;
+    { return false;
     }
   } else
   { terminate_on_signal(SIGINT);
     clearPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
   }
-  return TRUE;
+  return true;
 #else
-  return FALSE;
+  return false;
 #endif
 }
 
@@ -1973,7 +1973,7 @@ tracemode(int doit, int *old)
 
   if ( doit )
   { debugmode(DBG_ON, NULL);
-    doit = TRUE;
+    doit = true;
   }
 
   if ( old )
@@ -1988,7 +1988,7 @@ tracemode(int doit, int *old)
   if ( doit )				/* make sure trace works inside skip */
   { debugstatus.skiplevel = SKIP_VERY_DEEP;
     if ( LD->trace.find )
-      LD->trace.find->searching = FALSE;
+      LD->trace.find->searching = false;
   }
 
   succeed;
@@ -2016,11 +2016,11 @@ trace_if_space(void)
 { int trace;
 
   if ( have_space_for_debugging() )
-  { trace = TRUE;
+  { trace = true;
     tracemode(trace, NULL);
 
   } else
-    trace = FALSE;
+    trace = false;
 
   return trace;
 }
@@ -2068,7 +2068,7 @@ debugmode(debug_type doit, debug_type *old)
 	   !enlargeMinFreeStacks(8*1024*SIZEOF_WORD,
 				 8*1024*SIZEOF_WORD,
 				 8*1024*SIZEOF_WORD) )
-	return FALSE;
+	return false;
 
       debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologRunMode(RUN_MODE_NORMAL);
@@ -2092,7 +2092,7 @@ debugmode(debug_type doit, debug_type *old)
   { setPrologRunMode(RUN_MODE_NORMAL);
   }
 
-  return TRUE;
+  return true;
 }
 
 #else /*O_DEBUGGER*/
@@ -2111,12 +2111,12 @@ debugmode(debug_type doit, debug_type *old)
 
 foreign_t
 pl_trace()
-{ return tracemode(TRUE, NULL);
+{ return tracemode(true, NULL);
 }
 
 foreign_t
 pl_notrace()
-{ return tracemode(FALSE, NULL);
+{ return tracemode(false, NULL);
 }
 
 foreign_t
@@ -2143,7 +2143,7 @@ PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
   }
 
   if ( PL_compare(A1, A2) == 0 )
-    return TRUE;
+    return true;
 
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_very_deep )
@@ -2175,7 +2175,7 @@ PRED_IMPL("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
   debugstatus.skiplevel = levelFrame(fr);
   set(fr, FR_SKIPPED);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -2194,12 +2194,12 @@ pl_spy(term_t p)
       if ( !printMessage(ATOM_informational,
 			 PL_FUNCTOR_CHARS, "spy", 1,
 			   PL_TERM, p) )
-	return FALSE;
+	return false;
     }
     return debugmode(DBG_ALL, NULL);
   }
 
-  return FALSE;
+  return false;
 }
 
 foreign_t
@@ -2218,10 +2218,10 @@ pl_nospy(term_t p)
 			  PL_FUNCTOR_CHARS, "nospy", 1,
 			    PL_TERM, p);
     }
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 foreign_t
@@ -2270,7 +2270,7 @@ PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
   if ( ch )
     return PL_unify_choice(A1, ch);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2341,12 +2341,12 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   if ( !PL_get_frame(frame, &fr) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
   if ( !fr )
-    return FALSE;				/* frame == 'none' */
+    return false;				/* frame == 'none' */
   fref = consTermRef((Word)fr);
   if ( !PL_get_name_arity(what, &key, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
   if ( !PL_strip_module(value, &m, value) )
-    return FALSE;
+    return false;
 
   set(fr, FR_DEBUG);			/* explicit call to do this? */
 
@@ -2375,7 +2375,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     if ( !hasGlobalSpace(0) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
       fr = (LocalFrame)valTermRef(fref);
     }
@@ -2408,7 +2408,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     { clear_frame_vars(parent);
       PL_put_frame(result, parent);
     } else
-      return FALSE;
+      return false;
   } else if (key == ATOM_top)
   { PL_put_atom(result, fr->parent ? ATOM_false : ATOM_true);
   } else if (key == ATOM_context_module)
@@ -2419,16 +2419,16 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition &&
 	 fr->predicate != PROCEDURE_dcall1->definition )
     { if ( !PL_unify_clref(result, fr->clause->value.clause) )
-	return FALSE;
+	return false;
     } else
-    { return FALSE;
+    { return false;
     }
   } else if (key == ATOM_goal)
   { if ( !put_frame_goal(result, fr) )
-      return FALSE;
+      return false;
   } else if ( key == ATOM_predicate_indicator )
   { if ( !unify_definition(m, result, fr->predicate, 0, GP_NAMEARITY) )
-      return FALSE;
+      return false;
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;
     term_t head = PL_new_term_ref();
@@ -2472,18 +2472,18 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 	      fr = (LocalFrame)valTermRef(fref);
 	      if ( (parent = parentFrame(fr)) )
 	      { if ( PL_unify_frame(arg, parent) )
-		  return TRUE;
+		  return true;
 	      } else
 	      { if ( PL_unify_atom(arg, ATOM_none) )
-		  return TRUE;
+		  return true;
 	      }
 	    } else
-	    { return TRUE;
+	    { return true;
 	    }
 	  }
 
 	  if ( PL_exception(0) )
-	  { return FALSE;
+	  { return false;
 	  } else
 	  { PL_rewind_foreign_frame(fid);
 
@@ -2492,11 +2492,11 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 	  }
 	} else
 	{ PL_close_foreign_frame(fid);
-	  return FALSE;				/* No frame running this predicate */
+	  return false;				/* No frame running this predicate */
 	}
       }
     } else
-      return FALSE;
+      return false;
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&
@@ -2596,7 +2596,7 @@ choice_type_atom(Choice ch)
     if ( decode(ch->value.pc[0]) == I_FREDO )
       return ATOM_foreign;
     assert(0);
-    return FALSE;
+    return false;
   } else
     return types[ch->type];
 }
@@ -2629,14 +2629,14 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 
     if ( offset != (size_t)-1 )
       return PL_unify_int64(A3, offset);
-    return FALSE;
+    return false;
   } else if ( key == ATOM_clause )
   { if ( ch->type == CHP_CLAUSE )
     { return PL_unify_clref(A3, ch->value.clause.cref->value.clause);
     } else if ( choice_type_atom(ch) == ATOM_clause )
     { Sdprintf("S_ALLCLAUSES not yet supported\n");
     }
-    return FALSE;
+    return false;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 

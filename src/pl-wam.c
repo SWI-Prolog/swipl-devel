@@ -207,9 +207,9 @@ updateAlerted(PL_local_data_t *ld)
   { if ( is_signalled() )			mask |= ALERT_SIGNAL;
     if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
 	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
-      ld->slow_unify = TRUE;  /* see VMI B_UNIFY_VAR */
+      ld->slow_unify = true;  /* see VMI B_UNIFY_VAR */
     else
-      ld->slow_unify = FALSE;
+      ld->slow_unify = false;
   }
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
@@ -258,17 +258,17 @@ raiseSignal(PL_local_data_t *ld, int sig)
     { alerted = ld->alerted;
     } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
 int
 pendingSignal(PL_local_data_t *ld, int sig)
 { if ( IS_VALID_SIGNAL(sig) && ld )
-  { return WSIGMASK_ISSET(ld->signal.pending, sig) ? TRUE : FALSE;
+  { return WSIGMASK_ISSET(ld->signal.pending, sig) ? true : false;
   }
 
   return -1;
@@ -377,7 +377,7 @@ PL_open_signal_foreign_frame(int sync)
   { if ( sync )
     { int rc;
 
-      if ( (rc=growLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
+      if ( (rc=growLocalSpace(minspace, ALLOW_SHIFT)) != true )
 	return 0;
     } else
     { return 0;
@@ -432,7 +432,7 @@ PL_discard_foreign_frame(fid_t id)
 static int
 determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 { fid_t fid;
-  int rc = FALSE;
+  int rc = false;
   atom_t a = ATOM_error;
 
   if ( found == ATOM_nondet )
@@ -440,12 +440,12 @@ determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
       ;
 
     if ( (void*)bfr < (void*)fr )
-      return TRUE;
+      return true;
   }
 
   PL_current_prolog_flag(ATOM_determinism_error, PL_ATOM, &a);
   if ( a == ATOM_silent )
-    return TRUE;
+    return true;
 
   if ( (fid=PL_open_foreign_frame()) )
   { Definition def = fr->predicate;
@@ -511,7 +511,7 @@ determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 static int
 ssu_or_det_failed(DECL_LD LocalFrame fr)
 { fid_t fid;
-  int rc = FALSE;
+  int rc = false;
 
   if ( isoff(fr, FR_SSU_DET) )
     return determinism_error(fr, NULL, ATOM_fail);
@@ -679,13 +679,13 @@ enum finished
 };
 
 static const finish_reason reason_decls[] =
-{ { ATOM_exit,               FALSE },	/* keep consistent with enum finished */
-  { ATOM_fail,               FALSE },
-  { ATOM_cut,                FALSE },
-  { ATOM_exit,               FALSE },
-  { ATOM_external_exception, TRUE },
-  { ATOM_external_exception, TRUE },
-  { ATOM_exception,          TRUE }
+{ { ATOM_exit,               false },	/* keep consistent with enum finished */
+  { ATOM_fail,               false },
+  { ATOM_cut,                false },
+  { ATOM_exit,               false },
+  { ATOM_external_exception, true },
+  { ATOM_external_exception, true },
+  { ATOM_exception,          true }
 };
 
 
@@ -794,7 +794,7 @@ call_term(DECL_LD Module mdef, term_t goal)
 
     return rval;
   } else
-    return FALSE;				/* exception in env */
+    return false;				/* exception in env */
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -855,13 +855,13 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 			/* Call the cleanup handler */
     fr = (LocalFrame)valTermRef(fref);
     clean = consTermRef(argFrameP(fr, arg_cleanup-1));
-    if ( saveWakeup(&wstate, FALSE) )
+    if ( saveWakeup(&wstate, false) )
     { int rval;
 
       startCritical();
       rval = call_term(contextModule(fr), clean);
       if ( !endCritical() )
-	rval = FALSE;
+	rval = false;
       if ( !rval && exception_term )
 	wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
       restoreWakeup(&wstate);
@@ -885,7 +885,7 @@ frameFinished(DECL_LD LocalFrame fr, enum finished reason)
   if ( ison(fr, FR_DEBUG) )
     return callEventHook(PLEV_FRAMEFINISHED, fr);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -997,20 +997,20 @@ put_call_goal(DECL_LD term_t t, Procedure proc)
     int i;
 
     if ( !gt )
-      return FALSE;			/* could not allocate */
+      return false;			/* could not allocate */
 
     DEBUG(MSG_TRACE,
 	  Sdprintf("Copy %d call args from %p\n", fd->arity, ap));
 
     *gp++ = fd->functor;
     for(i=0; i<fd->arity; i++)
-      unify_gl(gp++, ap++, FALSE);
+      unify_gl(gp++, ap++, false);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
   } else
   { *valTermRef(t) = fd->name;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1097,7 +1097,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[1] = simple_goal;
       *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
 
-      return TRUE;
+      return true;
     }
     case B_EQ_VC:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto vc_2;
     case B_NEQ_VC:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto vc_2;
@@ -1109,7 +1109,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       Word       v1 = varFrameP(fr, (int)PC[1]);
 
       if ( !gt )
-	return FALSE;
+	return false;
 
       if ( clean&0x1 ) setVar(*v1);
 
@@ -1120,7 +1120,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
 
-      return TRUE;
+      return true;
     }
     case B_EQ_VV:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto fa_2;
     case B_NEQ_VV:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto fa_2;
@@ -1135,7 +1135,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       Word v2       = varFrameP(fr, (int)PC[2]);
 
       if ( !gt )
-	return FALSE;
+	return false;
 
       if ( clean&0x1 ) setVar(*v1);
       if ( clean&0x2 ) setVar(*v2);
@@ -1147,7 +1147,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
 
-      return TRUE;
+      return true;
     }
     case B_UNIFY_EXIT:
     { if ( debugstatus.debugging )
@@ -1173,7 +1173,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       Word       v1 = varFrameP(fr, (int)PC[1]);
 
       if ( !gt )
-	return FALSE;
+	return false;
 
       gt[0] = ftor;
       unify_gl(&gt[1], v1, has_firstvar);
@@ -1181,7 +1181,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
 
-      return TRUE;
+      return true;
     }
     case A_LT:	ftor = FUNCTOR_smaller2;       goto ar_2;
     case A_LE:	ftor = FUNCTOR_smaller_equal2; goto ar_2;
@@ -1248,7 +1248,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       intptr_t add  = (intptr_t)PC[3];
 
       if ( !gt )
-	return FALSE;
+	return false;
 
       setVar(*A);
       gt[0] = FUNCTOR_plus2;
@@ -1261,7 +1261,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[6], STG_GLOBAL|TAG_COMPOUND);
 
-      return TRUE;
+      return true;
     }
     case I_CUT:
       return PL_put_atom(t, ATOM_cut);
@@ -1304,7 +1304,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 
   *pop = 0;
   if (op == B_UNIFY_VAR || op == B_UNIFY_FIRSTVAR)
-  { LD->slow_unify = TRUE;
+  { LD->slow_unify = true;
     goto default_action;
   }
   proc = _PL_predicate("break_hook", 7, "prolog",
@@ -1321,13 +1321,13 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   if ( !hasGlobalSpace(10) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(10, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(10, ALLOW_GC)) != true )
     { raiseStackOverflow(rc);
       return BRK_ERROR;
     }
   }
 
-  if ( saveWakeup(&wstate, FALSE) )
+  if ( saveWakeup(&wstate, false) )
   { if ( (cid=PL_open_foreign_frame()) )
     { term_t argv = PL_new_term_refs(7);
       Clause clause;
@@ -1426,10 +1426,10 @@ grow_trail_ptr(DECL_LD Word p)
   int rc = ensureGlobalSpace(0, ALLOW_GC);
   PopPtr(p);
   if ( !rc )
-    return FALSE;
+    return false;
 
   (tTop++)->address = p;
-  return TRUE;
+  return true;
 }
 
 		 /*******************************
@@ -1693,7 +1693,7 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
       term_t fref = consTermRef(fr);
 
       lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
-      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
 	return rc;
 
       fr = (LocalFrame)valTermRef(fref);
@@ -1731,7 +1731,7 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
 	{ term_t t = pushWordAsTermRef(p);
 	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
 	  popTermRef();
-	  return FALSE;
+	  return false;
 	}
       } else
       { break;
@@ -1741,7 +1741,7 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
     *k = *p;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1766,7 +1766,7 @@ checkCallAtContextInstantiation(DECL_LD Word p)
   g = argTermP(*p, 0);
   deRef(g);
   if ( !(g=stripModuleName(g, &pm)) )
-    return FALSE;
+    return false;
   if ( hasFunctor(*g, FUNCTOR_colon2) )
   { m = argTermP(*g, 0);
     deRef(m);
@@ -1778,7 +1778,7 @@ checkCallAtContextInstantiation(DECL_LD Word p)
   if ( canBind(*g) )
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1801,7 +1801,7 @@ foreignWakeup(DECL_LD term_t ex)
 
       if ( (fid=PL_open_foreign_frame()) )
       { term_t a0 = PL_new_term_ref();
-	int rval = FALSE;
+	int rval = false;
 	qid_t qid;
 
 	PL_put_term(a0, LD->attvar.head);
@@ -1809,7 +1809,7 @@ foreignWakeup(DECL_LD term_t ex)
 	{ setVar(*valTermRef(LD->attvar.head));
 	  setVar(*valTermRef(LD->attvar.tail));
 	  rval = PL_next_solution(qid);
-	  if ( rval == FALSE )
+	  if ( rval == false )
 	  { term_t t = PL_exception(qid);
 
 	    if ( t )
@@ -1824,11 +1824,11 @@ foreignWakeup(DECL_LD term_t ex)
       }
 
       PL_put_term(ex, exception_term);
-      return FALSE;
+      return false;
     }
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -1866,12 +1866,12 @@ resumeAfterException(int clear, Stack outofstack)
   if ( !considerGarbageCollect((Stack)NULL) )
   { trimStacks((outofstack != NULL));
   } else
-  { trimStacks(FALSE);		/* just re-enable the spare stacks */
+  { trimStacks(false);		/* just re-enable the spare stacks */
     if ( outofstack != NULL )
-      LD->trim_stack_requested = TRUE;	/* next time with resize */
+      LD->trim_stack_requested = true;	/* next time with resize */
   }
 
-  LD->exception.processing = FALSE;
+  LD->exception.processing = false;
   LD->outofstack = NULL;
   clear_low_c_stack();
 
@@ -1887,7 +1887,7 @@ exceptionUnwindGC(void)
 
   LD->stacks.global.gced_size = 0;
   LD->stacks.trail.gced_size = 0;
-  LD->trim_stack_requested = TRUE;
+  LD->trim_stack_requested = true;
   if ( considerGarbageCollect(NULL) )
   { garbageCollect(GC_EXCEPTION);
     enableSpareStacks();
@@ -2169,8 +2169,8 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       int debug, trace, rc;
 
       LD->exception.in_hook++;
-      if ( !saveWakeup(&wstate, TRUE) )
-	return FALSE;
+      if ( !saveWakeup(&wstate, true) )
+	return false;
 
       av = PL_new_term_refs(5);
       PL_put_term(av+0, exception_bin);
@@ -2184,7 +2184,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       { DEBUG(MSG_THROW,
 	    Sdprintf("Already rewritting exception for frame %d\n",
 		     catchfr_ref));
-	rc = FALSE;
+	rc = false;
 	goto done;
       } else if ( catchfr_ref )
       { LocalFrame cfr = (LocalFrame)valTermRef(catchfr_ref);
@@ -2205,8 +2205,8 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       trace = debugstatus.tracing;
       if ( rc )				/* pass user setting trace/debug */
       { PL_cut_query(qid);
-	if ( debug ) debugstatus.debugging = TRUE;
-	if ( trace ) debugstatus.tracing = TRUE;
+	if ( debug ) debugstatus.debugging = true;
+	if ( trace ) debugstatus.tracing = true;
 	if ( !PL_is_variable(av+1) )
 	  ex = av+1;
       } else
@@ -2221,9 +2221,9 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       if ( ex && (!exception_term || !PL_same_term(ex, exception_term)) )
       {	PL_raise_exception(ex);	/* copy term again */
 	wstate.flags |= WAKEUP_STATE_SKIP_EXCEPTION;
-	rc = TRUE;			/* handled */
+	rc = true;			/* handled */
       } else
-      { rc = FALSE;
+      { rc = false;
       }
 
     done:
@@ -2236,7 +2236,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
     }
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2387,7 +2387,7 @@ discardFrame(DECL_LD LocalFrame fr)
 }
 
 
-/* TRUE if fr is in the continuation of frame or the frame of ch or one
+/* true if fr is in the continuation of frame or the frame of ch or one
  * of its parents.
  */
 static int
@@ -2396,13 +2396,13 @@ in_continuation(LocalFrame fr, LocalFrame frame, Choice ch)
   { while(frame > fr)
       frame = frame->parent;
     if ( frame == fr )
-      return TRUE;
+      return true;
 
     if ( (void*)ch > (void*)fr )
     { frame = ch->frame;
       ch = ch->parent;
     } else
-    { return FALSE;
+    { return false;
     }
   }
 }
@@ -2441,10 +2441,10 @@ existingChoice(DECL_LD Choice ch)
     for(ch2 = BFR; ch2 > ch; ch2 = ch2->parent)
       ;
     if ( ch2 == ch )
-      return TRUE;
+      return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -2475,7 +2475,7 @@ discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
     for(me = BFR; ; me=me->parent)
     { LocalFrame fr2;
       LocalFrame delto;
-      int me_undone = FALSE;
+      int me_undone = false;
 
       if ( me->parent && me->parent->frame > fr )
 	delto = me->parent->frame;
@@ -2495,7 +2495,7 @@ discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 	{ char *lSave = (char*)lBase;
 
 	  if ( !me_undone && is_exception_finish(reason) )
-	  { me_undone = TRUE;
+	  { me_undone = true;
 	    Undo(me->mark);
 	    DiscardMark(me->mark);
 	  }
@@ -2613,7 +2613,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   size_t i, arity;
   Word ap;
   size_t lneeded;
-  static int top_initialized = FALSE;
+  static int top_initialized = false;
   static struct clause clause;
   static struct clause_ref cref;
 
@@ -2624,7 +2624,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     clause.codes[0] = encode(I_EXITQUERY);
     cref.value.clause = &clause;
 
-    top_initialized = TRUE;
+    top_initialized = true;
   }
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
@@ -2699,9 +2699,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
   assert((uintptr_t)lTop >= (uintptr_t)(fli_context+1));
 
-  if ( flags == TRUE )			/* compatibility */
+  if ( flags == true )			/* compatibility */
     flags = PL_Q_NORMAL;
-  else if ( flags == FALSE )
+  else if ( flags == false )
     flags = PL_Q_NODEBUG;
   flags &= 0xff;			/* mask reserved flags */
 
@@ -2732,7 +2732,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( ison(qf, PL_Q_NODEBUG) )
   { set(fr, FR_HIDE_CHILDS);
-    suspendTrace(TRUE);
+    suspendTrace(true);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
     qf->flags_saved = (LD->prolog_flag.mask.flags[0] & NDEBUG_SAVE_FLAGS);
@@ -2818,7 +2818,7 @@ restore_after_query(QueryFrame qf)
   aTop		    = qf->aSave;
   lTop		    = qf->saved_ltop;
   if ( ison(qf, PL_Q_NODEBUG) )
-  { suspendTrace(FALSE);
+  { suspendTrace(false);
     debugstatus.debugging = qf->debugSave;
     LD->prolog_flag.mask.flags[0] &= (~NDEBUG_SAVE_FLAGS);
     LD->prolog_flag.mask.flags[0] |= qf->flags_saved;
@@ -2834,7 +2834,7 @@ restore_after_query(QueryFrame qf)
 
 int
 PL_cut_query(qid_t qid)
-{ int rc = TRUE;
+{ int rc = true;
 
   if ( qid )
   { WITH_LD(qid->engine)
@@ -2852,7 +2852,7 @@ PL_cut_query(qid_t qid)
 	discard_query(qid);
 	qf = QueryFromQid(qid);
 	if ( !exbefore && exception_term != 0 )
-	  rc = FALSE;
+	  rc = false;
       }
 
       restore_after_query(qf);
@@ -2868,7 +2868,7 @@ PL_cut_query(qid_t qid)
 
 int
 PL_close_query(qid_t qid)
-{ int rc = TRUE;
+{ int rc = true;
 
   if ( qid )
   { WITH_LD(qid->engine)
@@ -2886,7 +2886,7 @@ PL_close_query(qid_t qid)
 	discard_query(qid);
 	qf = QueryFromQid(qid);
 	if ( !exbefore && exception_term != 0 )
-	  rc = FALSE;
+	  rc = false;
       }
 
       if ( !(qf->exception && ison(qf, PL_Q_PASS_EXCEPTION)) )
@@ -3313,7 +3313,7 @@ code thiscode;
 #endif /* VMCODE_IS_ADDRESS */
 
   if ( qid == 0 )			/* PL_open_query() failed */
-    return FALSE;
+    return false;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the real start point  of   this  function.  Simply loads the VMI
@@ -3323,7 +3323,7 @@ depart_continue() to do the normal thing or to the backtrack point.
 
   QF  = QueryFromQid(qid);
   if ( QF->magic == QID_CMAGIC )
-    return FALSE;
+    return false;
   if ( LD->query != QF /*|| (void*)fli_context > (void*)QF*/ )
     return PL_S_NOT_INNER;
   DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
@@ -3442,5 +3442,5 @@ resumebreak:
 #endif /* O_VMI_FUNCTIONS */
 
   assert(0);
-  return FALSE;
+  return false;
 } /* end of PL_next_solution() */

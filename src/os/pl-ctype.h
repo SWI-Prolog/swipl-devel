@@ -94,15 +94,15 @@ extern const char _PL_char_types[];	/* array of character types */
 
 #define isControlW(c)	PlCharType(c, == CT, iswcntrl((wint_t)c))
 #define isBlankW(c)	PlCharType(c, == SP, iswspace((wint_t)c))
-#define isDigitW(c)	PlCharType(c, == DI, FALSE)
+#define isDigitW(c)	PlCharType(c, == DI, false)
 #define isLowerW(c)	PlCharType(c, == LC, iswlower((wint_t)c))
 #define isUpperW(c)	PlCharType(c, == UC, iswupper((wint_t)c))
-#define isSymbolW(c)	PlCharType(c, == SY, FALSE)
-#define isPunctW(c)	PlCharType(c, == PU, FALSE)
-#define isSoloW(c)	PlCharType(c, == SO, FALSE)
+#define isSymbolW(c)	PlCharType(c, == SY, false)
+#define isPunctW(c)	PlCharType(c, == PU, false)
+#define isSoloW(c)	PlCharType(c, == SO, false)
 #define isAlphaW(c)	PlCharType(c, >= UC, iswalnum((wint_t)c))
 #define isLetterW(c)	(PlCharType(c, == LC, iswalpha((wint_t)c)) || \
-			 PlCharType(c, == UC, FALSE))
+			 PlCharType(c, == UC, false))
 
 #if SIZEOF_WINT_T == 2
 #define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : \

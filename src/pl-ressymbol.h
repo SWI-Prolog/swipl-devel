@@ -43,7 +43,7 @@ COMMON(atom_t)	textToReservedSymbol(PL_chars_t *text);
 
 #else /*O_RESERVED_SYMBOLS*/
 
-#define isReservedSymbol(a) FALSE
+#define isReservedSymbol(a) false
 
 #endif /*O_RESERVED_SYMBOLS*/
 

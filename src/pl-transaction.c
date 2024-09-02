@@ -159,7 +159,7 @@ transaction_retract_clause(DECL_LD Clause clause)
     ATOMIC_INC(&clause->tr_erased_no);
     addHTablePW(tr_clause_table(), clause, lgen);
 
-    return TRUE;
+    return true;
   } else if ( clause->generation.created <= LD->transaction.gen_nest )
   { gen_t egen = next_generation(clause->predicate);
     if ( !egen )
@@ -168,7 +168,7 @@ transaction_retract_clause(DECL_LD Clause clause)
     acquire_clause(clause);
     addHTablePW(tr_clause_table(), clause, GEN_NESTED_RETRACT);
 
-    return TRUE;
+    return true;
 #if 0					/* see (*) */
   } else if ( LD->transaction.clauses )
   { deleteHTablePW(LD->transaction.clauses, clause);
@@ -180,7 +180,7 @@ transaction_retract_clause(DECL_LD Clause clause)
 		 generationName(clause->generation.created),
 		 generationName(clause->generation.erased)));
 
-  return FALSE;
+  return false;
 }
 
 int
@@ -190,7 +190,7 @@ transaction_assert_clause(DECL_LD Clause clause, ClauseRef where)
   acquire_clause(clause);
   addHTablePW(tr_clause_table(), clause, lgen);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -211,15 +211,15 @@ transaction_visible_clause(DECL_LD Clause cl, gen_t gen)
 	     (lgen = (tr_gen_t)lookupHTablePW(stack->clauses, cl)) &&
 	     !IS_ASSERT_GEN(lgen) )
 	{ if ( lgen+LD->transaction.gen_base <= gen )
-	    return FALSE;
+	    return false;
 	}
       }
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -355,13 +355,13 @@ transaction_commit(DECL_LD)
     LD->transaction.clauses = NULL;
   }
 
-  return TRUE;
+  return true;
 }
 
 #define transaction_discard(_) LDFUNC(transaction_discard, _)
 static int
 transaction_discard(DECL_LD)
-{ int rc = TRUE;
+{ int rc = true;
 
   if ( LD->transaction.clauses )
   { FOR_TABLE(LD->transaction.clauses, n, v)
@@ -401,7 +401,7 @@ transaction_discard(DECL_LD)
 	   !(LD->transaction.flags&TR_BULK) )
       { if ( !predicate_update_event(def, action, cl,
 				     P_EVENT_ROLLBACK) )
-	  rc = FALSE;
+	  rc = false;
       }
     };
     destroyHTablePW(LD->transaction.clauses);
@@ -505,7 +505,7 @@ transaction_updates(DECL_LD Buffer b)
 	  cmp_updates);
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -521,10 +521,10 @@ announce_updates(DECL_LD Buffer updates)
   { Definition def = u->clause->predicate;
 
     if ( !predicate_update_event(def, nameFunctor(u->update), u->clause, 0) )
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 
@@ -611,13 +611,13 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 #ifdef O_PLMT
     int tid = PL_thread_self();
     pl_mutex *mutex = NULL;
-    if ( lock && !get_mutex(lock, &mutex, TRUE) )
-      return FALSE;
+    if ( lock && !get_mutex(lock, &mutex, true) )
+      return false;
 #define TR_LOCK() PL_mutex_lock(mutex)
 #define TR_UNLOCK() PL_mutex_unlock(mutex)
 #else
     int tid = 1;			/* without threads we get -2 */
-#define TR_LOCK() TRUE
+#define TR_LOCK() true
 #define TR_UNLOCK() (void)0
 #endif
 
@@ -628,10 +628,10 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.id         = goal;
     rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && (flags&TR_TRANSACTION) )
-    { int locked = FALSE;
+    { int locked = false;
       if ( constraint )
       { if ( (rc=TR_LOCK()) )
-	{ locked = TRUE;
+	{ locked = true;
 	  LD->transaction.gen_start = global_generation();
 	  rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
 	}
@@ -677,11 +677,11 @@ static
 PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
 { PRED_LD
   int flags = TR_TRANSACTION;
-  int bulk = FALSE;
+  int bulk = false;
 
   if ( !PL_scan_options(A2, 0, "transaction_option",
 			transaction_options, &bulk) )
-    return FALSE;
+    return false;
   if ( bulk )
     flags |= TR_BULK;
 
@@ -712,7 +712,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { if ( !LD->transaction.id )
-	return FALSE;
+	return false;
       id0 = LD->transaction.id;
       stack = LD->transaction.stack;
       break;
@@ -723,7 +723,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
       break;
     }
     default:
-      return TRUE;
+      return true;
   }
 
   id = PL_new_term_ref();
@@ -733,7 +733,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
     int rc;
 
     if ( !PL_strip_module(id0, &m, id) )
-      return FALSE;
+      return false;
     if ( m == m0 )
       rc = PL_unify(A1, id);
     else
@@ -743,7 +743,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
     { if ( stack )
 	ForeignRedoPtr(stack);
       else
-	return TRUE;
+	return true;
     }
     Undo(fli_context->mark);
 
@@ -751,7 +751,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
     { id0 = stack->id;
       stack = stack->parent;
     } else
-      return FALSE;
+      return false;
   }
 }
 
@@ -771,7 +771,7 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
 { PRED_LD
 
   if ( !LD->transaction.generation )
-    return FALSE;			/* error? */
+    return false;			/* error? */
 
   if ( LD->transaction.clauses )
   { tmp_buffer buf;
@@ -779,7 +779,7 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
     term_t tail = PL_copy_term_ref(A1);
     term_t head = PL_new_term_ref();
     term_t tmp  = PL_new_term_ref();
-    int rc = TRUE;
+    int rc = true;
 
     initBuffer(&buf);
     transaction_updates((Buffer)&buf);
@@ -788,7 +788,7 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
 
     for(; u<e; u++)
     { if ( !add_update(u->clause, u->update, tail, head, tmp) )
-      { rc = FALSE;
+      { rc = false;
 	break;
       }
     }
@@ -828,10 +828,10 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
     }
     release_def(def);
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 #endif
 

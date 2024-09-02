@@ -172,7 +172,7 @@ Srlc_read(void *handle, char *buffer, size_t size)
   int is_user_input = (Suser_input && Suser_input->handle == c);
   term_t ex;
 
-  PL_write_prompt(TRUE);
+  PL_write_prompt(true);
 
   if ( is_user_input &&
        PL_ttymode(Suser_input) == PL_RAWTTY )
@@ -324,16 +324,16 @@ process_console_options(rlc_console_attr *attr, term_t options)
     { TCHAR *key;
 
       if ( !get_chars_arg_ex(1, opt, &key) )
-	return FALSE;
+	return false;
 
       attr->key = key;
     } else
       return PL_domain_error("window_option", opt);
   }
   if ( !PL_get_nil_ex(tail) )
-    return FALSE;
+    return false;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -356,14 +356,14 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
 
   memset(&attr, 0, sizeof(attr));
   if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_STACK|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
   attr.title = (const TCHAR*) s;
 
   if ( !process_console_options(&attr, options) )
-    return FALSE;
+    return false;
 
   c = rlc_create_console(&attr);
-  create_prolog_hidden_window(c, FALSE);	/* for sending messages */
+  create_prolog_hidden_window(c, false);	/* for sending messages */
   registerConsole(c);
 
 #define STREAM_COMMON (SIO_TEXT|	/* text-stream */		\
@@ -391,20 +391,20 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
     Sclose(err);
     rlc_close(c);
 
-    return FALSE;
+    return false;
   }
 
   rlc_set(c, RLC_PROLOG_INPUT,  (uintptr_t)in,  NULL);
   rlc_set(c, RLC_PROLOG_OUTPUT, (uintptr_t)out, NULL);
   rlc_set(c, RLC_PROLOG_ERROR,  (uintptr_t)err, free_stream);
 
-  return TRUE;
+  return true;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: actually rlc_add_history() removes  duplicates   and  empty lines.
 Also, read_line() already updates the history.   Maybe  this should just
-return TRUE? This however would not allow for programmatically inserting
+return true? This however would not allow for programmatically inserting
 things in the history. This shouldn't matter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -426,10 +426,10 @@ pl_rl_add_history(term_t text)
 	rlc_add_history(PL_current_console(), s);
     }
 
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -453,12 +453,12 @@ pl_rl_history(term_t list)
 { term_t tail = PL_new_term_ref();
 
   if ( !PL_unify_nil(tail) )
-    return FALSE;
+    return false;
 
   if ( rlc_for_history(PL_current_console(), add_line, (void*)tail) == 0 )
     return PL_unify(tail, list);
 
-  return FALSE;
+  return false;
 }
 
 
@@ -484,7 +484,7 @@ prolog_complete(RlcCompleteData data)
       wint_t c;
 
       if ( !ln->data )		/* we donot want to complete on all atoms */
-	return FALSE;
+	return false;
 
       while(start > 0 && (_istalnum((c=ln->data[start-1])) || c == '_') )
 	start--;
@@ -492,7 +492,7 @@ prolog_complete(RlcCompleteData data)
       { _TINT cs = ln->data[start-1];
 
 	if ( _tcschr(_T("'/\\.~"), cs) )
-	  return FALSE;			/* treat as a filename */
+	  return false;			/* treat as a filename */
       }
       if ( _istlower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
       { size_t patlen = ln->point - start;
@@ -503,28 +503,28 @@ prolog_complete(RlcCompleteData data)
 	if ( PL_atom_generator_w(data->buf_handle,
 				 data->candidate,
 				 sizeof(data->candidate)/sizeof(TCHAR),
-				 FALSE) )
+				 false) )
 	{ data->replace_from = (int)start;
 	  data->function = prolog_complete;
-	  return TRUE;
+	  return true;
 	}
       }
 
-      return FALSE;
+      return false;
     }
     case COMPLETE_ENUMERATE:
     { if ( PL_atom_generator_w(data->buf_handle,
 			       data->candidate,
 			       sizeof(data->candidate)/sizeof(TCHAR),
-			       TRUE) )
-	return TRUE;
+			       true) )
+	return true;
 
-      return FALSE;
+      return false;
     }
     case COMPLETE_CLOSE:
-      return TRUE;
+      return true;
     default:
-      return FALSE;
+      return false;
   }
 }
 
@@ -532,11 +532,11 @@ prolog_complete(RlcCompleteData data)
 static int
 do_complete(RlcCompleteData data)
 { if ( prolog_complete(data) )
-    return TRUE;
+    return true;
 
   if ( file_completer )
     return (*file_completer)(data);
-  return FALSE;
+  return false;
 }
 
 
@@ -558,11 +558,11 @@ static rlc_console main_console;
 int
 PL_set_menu_thread(void)
 { if ( main_console )
-  { create_prolog_hidden_window(main_console, TRUE);
-    return TRUE;
+  { create_prolog_hidden_window(main_console, true);
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -572,7 +572,7 @@ pl_window_title(term_t old, term_t new)
   TCHAR *n;
 
   if ( !PL_get_wchars(new, NULL, &n, CVT_ALL|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
 
   rlc_title(PL_current_console(), n, buf, sizeof(buf)/sizeof(TCHAR));
 
@@ -586,9 +586,9 @@ get_chars_arg_ex(int a, term_t t, TCHAR **v)
 
   if ( PL_get_arg(a, t, arg) &&
        PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_STACK|CVT_EXCEPTION) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -598,9 +598,9 @@ get_int_arg_ex(int a, term_t t, int *v)
 
   _PL_get_arg(a, t, arg);
   if ( PL_get_integer_ex(arg, v) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -610,9 +610,9 @@ get_bool_arg_ex(int a, term_t t, int *v)
 
   _PL_get_arg(a, t, arg);
   if ( PL_get_bool_ex(arg, v) )
-    return TRUE;
+    return true;
 
-  return FALSE;
+  return false;
 }
 
 
@@ -635,12 +635,12 @@ pl_window_pos(term_t options)
     if ( streq(s, "position") && arity == 2 )
     { if ( !get_int_arg_ex(1, opt, &x) ||
 	   !get_int_arg_ex(2, opt, &y) )
-	return FALSE;
+	return false;
       flags &= ~SWP_NOMOVE;
     } else if ( streq(s, "size") && arity == 2 )
     { if ( !get_int_arg_ex(1, opt, &w) ||
 	   !get_int_arg_ex(2, opt, &h) )
-	return FALSE;
+	return false;
       flags &= ~SWP_NOSIZE;
     } else if ( streq(s, "zorder") && arity == 1 )
     { term_t t = PL_new_term_ref();
@@ -648,7 +648,7 @@ pl_window_pos(term_t options)
 
       _PL_get_arg(1, opt, t);
       if ( !PL_get_chars(t, &v, CVT_ATOM|CVT_EXCEPTION) )
-	return FALSE;
+	return false;
       if ( streq(v, "top") )
 	z = HWND_TOP;
       else if ( streq(v, "bottom") )
@@ -665,7 +665,7 @@ pl_window_pos(term_t options)
     { int v;
 
       if ( !get_bool_arg_ex(1, opt, &v) )
-	return FALSE;
+	return false;
       flags &= ~(SWP_SHOWWINDOW|SWP_HIDEWINDOW);
       if ( v )
 	flags |= SWP_SHOWWINDOW;
@@ -677,11 +677,11 @@ pl_window_pos(term_t options)
       return PL_domain_error("window_option", opt);
   }
   if ( !PL_get_nil_ex(tail) )
-   return FALSE;
+   return false;
 
   rlc_window_pos(PL_current_console(), z, x, y, w, h, flags);
 
-  return TRUE;
+  return true;
 }
 
 
@@ -707,7 +707,7 @@ pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
   if ( !PL_get_wchars(menu, NULL, &m, CVT_ATOM) ||
        !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
        !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
-    return FALSE;
+    return false;
 
   if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
@@ -724,7 +724,7 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
 
   if ( !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
        !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
-    return FALSE;
+    return false;
 
   if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
@@ -947,9 +947,9 @@ static LRESULT
 message_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 { switch( PL_win_message_proc(hwnd, message, wParam, lParam) )
   { case PL_MSG_HANDLED:
-      return TRUE;
+      return true;
     default:
-      return FALSE;
+      return false;
   }
 }
 
@@ -1008,10 +1008,10 @@ get_color_component(term_t rgb, int component, int *color)
        PL_get_integer_ex(a, color) )
   { if ( *color < 0 || *color > 255 )
       return PL_domain_error("rgb_value", a);
-    return TRUE;
+    return true;
   }
 
-  return FALSE;
+  return false;
 }
 
 static foreign_t
@@ -1025,7 +1025,7 @@ win_window_color(term_t which, term_t color)
     FUNCTOR_rgb3 = PL_new_functor(PL_new_atom("rgb"), 3);
 
   if ( !PL_get_chars(which, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
-    return FALSE;
+    return false;
   if ( strcmp(s, "foreground") == 0 )
     wcolor = RLC_TEXT;
   else if ( strcmp(s, "background") == 0 )
@@ -1042,12 +1042,12 @@ win_window_color(term_t which, term_t color)
        get_color_component(color, 2, &g) &&
        get_color_component(color, 3, &b) )
   { rlc_color(PL_current_console(), wcolor, RGB(r,g,b));
-    return TRUE;
+    return true;
   } else
   { return PL_type_error("rgb", color);
   }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -1081,7 +1081,7 @@ install_readline(rlc_console c)
   PL_register_foreign_in_module(
       "system", "$rl_history",       1, pl_rl_history,        0);
 
-  PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
+  PL_set_prolog_flag("tty_control", PL_BOOL, true);
   PL_set_prolog_flag("readline",    PL_ATOM, "swipl_win");
 }
 
@@ -1134,16 +1134,16 @@ win32main(rlc_console c, int argc, TCHAR **argv)
 
   PL_register_extensions_in_module("system", extensions);
   install_readline(c);
-  PL_action(PL_ACTION_GUIAPP, TRUE);
+  PL_action(PL_ACTION_GUIAPP, true);
   main_console = c;
   PL_on_halt(closeWin, c);
 
-  create_prolog_hidden_window(c, FALSE);
+  create_prolog_hidden_window(c, false);
   PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
   rlc_message_hook(message_proc);
-  PL_set_prolog_flag("console_menu", PL_BOOL, TRUE);
+  PL_set_prolog_flag("console_menu", PL_BOOL, true);
 #ifdef O_PLMT
   rlc_insert_menu_item(c, _T("&Run"), _T("&New thread"), NULL);
 #endif

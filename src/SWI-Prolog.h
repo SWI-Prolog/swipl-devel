@@ -235,8 +235,8 @@ typedef union
 
 
 #ifndef TRUE
-#define TRUE	(1)
-#define FALSE	(0)
+#define TRUE	(true)
+#define FALSE	(false)
 #endif
 
 		 /*******************************
@@ -309,8 +309,8 @@ typedef union
 		*********************************/
 
 /* PL_succeed and PL_fail are deprecated */
-#define	PL_succeed	return TRUE	/* succeed deterministically */
-#define PL_fail		return FALSE	/* fail */
+#define	PL_succeed	return true	/* succeed deterministically */
+#define PL_fail		return false	/* fail */
 
 
 		/********************************
@@ -406,7 +406,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 		 *******************************/
 
 #ifdef PL_KERNEL
-#define PL_Q_DEBUG		0x0001	/* = TRUE for backward compatibility */
+#define PL_Q_DEBUG		0x0001	/* = true for backward compatibility */
 #endif
 #define PL_Q_NORMAL		0x0002	/* normal usage */
 #define PL_Q_NODEBUG		0x0004	/* use this one */
@@ -1285,7 +1285,7 @@ PL_EXPORT(unsigned int) PL_version_info(int which);
 #define PL_QUERY_MAX_THREADS	11	/* maximum thread count */
 #define PL_QUERY_ENCODING	12	/* I/O encoding */
 #define PL_QUERY_USER_CPU	13	/* User CPU in milliseconds */
-#define PL_QUERY_HALTING	14	/* If TRUE, we are in PL_cleanup() */
+#define PL_QUERY_HALTING	14	/* If true, we are in PL_cleanup() */
 
 PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 
@@ -1299,8 +1299,8 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 #define PL_THREAD_CUR_STREAMS   0x04	/* Copy current{input,output} */
 
 typedef enum
-{ PL_THREAD_CANCEL_FAILED = FALSE,	/* failed to cancel; try abort */
-  PL_THREAD_CANCEL_JOINED = TRUE,	/* cancelled and joined */
+{ PL_THREAD_CANCEL_FAILED = false,	/* failed to cancel; try abort */
+  PL_THREAD_CANCEL_JOINED = true,	/* cancelled and joined */
   PL_THREAD_CANCEL_MUST_JOIN		/* cancelled, must join */
 } rc_cancel;
 

@@ -101,10 +101,10 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
 { int rc;
 
   if ( likely(hasLocalSpace(bytes)) )
-    return TRUE;
+    return true;
 
-  if ( (rc=growLocalSpace(bytes, ALLOW_SHIFT)) == TRUE )
-    return TRUE;
+  if ( (rc=growLocalSpace(bytes, ALLOW_SHIFT)) == true )
+    return true;
 
   return raiseStackOverflow(rc);
 }
@@ -113,7 +113,7 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
 static inline int
 ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
 { if ( hasStackSpace(gcells, tcells) )
-    return TRUE;
+    return true;
 
   return f_ensureStackSpace(gcells+BIND_GLOBAL_SPACE,
 			    tcells+BIND_TRAIL_SPACE,

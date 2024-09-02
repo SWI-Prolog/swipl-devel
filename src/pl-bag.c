@@ -176,7 +176,7 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, PL_FA_SIG_ATOMIC)
     return PL_no_memory();
 
   bag->magic		   = FINDALL_MAGIC;
-  bag->suspended	   = FALSE;
+  bag->suspended	   = false;
   bag->suspended_solutions = 0;
   bag->solutions	   = 0;
   bag->gsize		   = 0;
@@ -187,7 +187,7 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, PL_FA_SIG_ATOMIC)
   MEMORY_BARRIER();
   LD->bags->bags = bag;
 
-  return TRUE;
+  return true;
 }
 
 
@@ -259,7 +259,7 @@ add_findall_bag(DECL_LD term_t term, term_t count)
   if ( count )
     return PL_unify_int64(count, bag->solutions + bag->suspended_solutions);
   else
-    return FALSE;
+    return false;
 }
 
 static
@@ -290,7 +290,7 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
     int rc;
 
     if ( !hasGlobalSpace(space) )
-    { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
+    { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
     }
 
@@ -346,21 +346,21 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
       bag->solutions = 0;
       bag->gsize = 0;
       DEBUG(MSG_NSOLS, Sdprintf("Suspend %p\n", bag));
-      bag->suspended = TRUE;
+      bag->suspended = true;
       ForeignRedoPtr(bag);
     case FRG_REDO:
       bag = CTX_PTR;
       DEBUG(MSG_NSOLS, Sdprintf("Resume %p\n", bag));
-      bag->suspended = FALSE;
-      return FALSE;
+      bag->suspended = false;
+      return false;
     case FRG_CUTTED:
       bag = CTX_PTR;
       DEBUG(MSG_NSOLS, Sdprintf("! Resume %p\n", bag));
-      bag->suspended = FALSE;
-      return TRUE;
+      bag->suspended = false;
+      return true;
     default:
       assert(0);
-      return FALSE;
+      return false;
   }
 }
 
@@ -372,7 +372,7 @@ PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
 
   assert(bag);
   assert(bag->magic == FINDALL_MAGIC);
-  assert(bag->suspended == FALSE);
+  assert(bag->suspended == false);
 
 #ifdef O_ATOMGC
   simpleMutexLock(&LD->bags->mutex);
@@ -387,7 +387,7 @@ PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
   clear_mem_pool(&bag->records);
   popSegStack_(&LD->bags->bag_stack, NULL);
 
-  return TRUE;
+  return true;
 }
 
 

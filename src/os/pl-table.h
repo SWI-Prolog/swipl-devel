@@ -79,7 +79,7 @@ typedef uint64_t table_value_t;
 #define TABLE_STRUCT(name)						\
   struct name								\
   { int		size;		/* # symbols in the table */		\
-    int		cleanup;	/* TRUE when KVS cleanup in progress */ \
+    int		cleanup;	/* true when KVS cleanup in progress */ \
     void	(*copy_symbol)(table_key_t n, table_value_t *v);	\
     void	(*free_symbol)(table_key_t n, table_value_t v);		\
     KVS		kvs;		/* map of key-value pairs */		\
@@ -92,7 +92,7 @@ TABLE_STRUCT(table_pw);		/* ptr -> word */
 
 struct kvs
 { size_t len;			/* size of key-value map */
-  int resizing;			/* TRUE while resizing */
+  int resizing;			/* true while resizing */
   int accesses;			/* number of accesses */
   KVS next;			/* next map */
   KVS prev;			/* last map */
