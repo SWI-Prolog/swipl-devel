@@ -119,7 +119,7 @@ static int
 running_static_predicate(LocalFrame fr)
 { Definition def = fr->predicate;
 
-  return false(def, P_DYNAMIC|P_FOREIGN);
+  return isoff(def, P_DYNAMIC|P_FOREIGN);
 }
 
 static cov_obj*

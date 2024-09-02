@@ -451,15 +451,15 @@ determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
   { Definition def = fr->predicate;
     atom_t decl;
 
-    if ( true(fr, FR_DETGUARD) )
-    { if ( true(fr, FR_DETGUARD_SET) )
+    if ( ison(fr, FR_DETGUARD) )
+    { if ( ison(fr, FR_DETGUARD_SET) )
       { decl = ATOM_guard;
       } else
       { LocalFrame fr2;
 
 	decl = ATOM_guard_in_caller;
 	for(fr2=fr->parent; fr2; fr2=fr2->parent)
-	{ if ( true(fr2, FR_DETGUARD_SET) )
+	{ if ( ison(fr2, FR_DETGUARD_SET) )
 	  { def = fr2->predicate;
 	    break;
 	  }
@@ -468,12 +468,12 @@ determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
     } else
     { decl = ATOM_property;
 
-      if ( false(def, P_DET) )
+      if ( isoff(def, P_DET) )
       { LocalFrame fr2;
 
 	for(fr2=fr->parent; fr2; fr2=fr2->parent)
 	{ Definition def2 = fr2->predicate;
-	  if ( true(def2, P_DET) )
+	  if ( ison(def2, P_DET) )
 	  { def = def2;
 	    break;
 	  }
@@ -513,7 +513,7 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
 { fid_t fid;
   int rc = FALSE;
 
-  if ( false(fr, FR_SSU_DET) )
+  if ( isoff(fr, FR_SSU_DET) )
     return determinism_error(fr, NULL, ATOM_fail);
 
   if ( (fid = PL_open_foreign_frame()) )
@@ -653,7 +653,7 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   context.engine  = LD;
 
   fid = PL_open_foreign_frame();
-  if ( true(def, P_VARARG) )
+  if ( ison(def, P_VARARG) )
   { typedef foreign_t (*FuncN)(term_t av, size_t argc, control_t);
     (*(FuncN)function)(0, argc, &context);
   } else
@@ -768,7 +768,7 @@ call_term(DECL_LD Module mdef, term_t goal)
       FunctorDef fd = valueFunctor(f->definition);
 
       if ( isTextAtom(fd->name) &&
-	   false(fd, CONTROL_F) &&
+	   isoff(fd, CONTROL_F) &&
 	   !(fd->name == ATOM_call && fd->arity > 8) )
       { size_t arity = fd->arity;
 	Word args = f->arguments;
@@ -815,7 +815,7 @@ Note that the cleanup handler is called while protected against signals.
 
 static void
 callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
-{ if ( false(fr, FR_CATCHED) )		/* from handler */
+{ if ( isoff(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
     size_t arg_catcher = 0;
@@ -876,13 +876,13 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 #define frameFinished(fr, reason) LDFUNC(frameFinished, fr, reason)
 static int
 frameFinished(DECL_LD LocalFrame fr, enum finished reason)
-{ if ( true(fr, FR_CLEANUP) )
+{ if ( ison(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
     callCleanupHandler(fr, reason);
     fr = (LocalFrame)valTermRef(fref);
   }
 
-  if ( true(fr, FR_DEBUG) )
+  if ( ison(fr, FR_DEBUG) )
     return callEventHook(PLEV_FRAMEFINISHED, fr);
 
   return TRUE;
@@ -1602,7 +1602,7 @@ Definition
 getLocalProcDefinition(DECL_LD Definition def)
 {
 #ifdef O_ENGINES
-  if ( true(def, P_THREAD_LOCAL) )
+  if ( ison(def, P_THREAD_LOCAL) )
   { MEMORY_ACQUIRE();
     return localDefinition(def);
   }
@@ -1627,11 +1627,11 @@ getProcDefinitionForThread(Definition def, unsigned int tid)
 #define getProcDefinedDefinition(def) LDFUNC(getProcDefinedDefinition, def)
 static inline Definition
 getProcDefinedDefinition(DECL_LD Definition def)
-{ if ( !def->impl.any.defined && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any.defined && isoff(def, PROC_DEFINED) )
     def = trapUndefined(def);
 
 #ifdef O_PLMT
-  if ( true(def, P_THREAD_LOCAL) )
+  if ( ison(def, P_THREAD_LOCAL) )
     return getLocalProcDefinition(def);
 #endif
 
@@ -1642,9 +1642,9 @@ getProcDefinedDefinition(DECL_LD Definition def)
 Module
 contextModule(LocalFrame fr)
 { for(; fr; fr = fr->parent)
-  { if ( true(fr, FR_CONTEXT) )
+  { if ( ison(fr, FR_CONTEXT) )
       return fr->context;
-    if ( false(fr->predicate, P_TRANSPARENT) )
+    if ( isoff(fr->predicate, P_TRANSPARENT) )
       return fr->predicate->module;
   }
 
@@ -1988,7 +1988,7 @@ findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex)
 
     if ( fr->predicate != catch3 )
       continue;
-    if ( true(fr, FR_CATCHED) )
+    if ( ison(fr, FR_CATCHED) )
       continue;				/* thrown from recover */
     if ( (void*)fr > (void*)ch )
       continue;				/* call-port of catch/3 */
@@ -2038,7 +2038,7 @@ isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
 { Definition catch3 = PROCEDURE_catch3->definition;
   QueryFrame qf = QueryFromQid(qid);
 
-  while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
+  while( qf && ison(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
 
     if ( !fr )
@@ -2068,7 +2068,7 @@ isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
     }
   }
 
-  if ( qf && true(qf, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) )
+  if ( qf && ison(qf, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) )
     return (term_t)-1;
 
   return 0;
@@ -2136,17 +2136,17 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 
   if ( SYSTEM_MODE )
     return fr;				/* system mode; debug everything */
-  if ( isDebugFrame(fr) && false(fr->predicate, HIDE_CHILDS) )
+  if ( isDebugFrame(fr) && isoff(fr->predicate, HIDE_CHILDS) )
     return fr;				/* normal user code */
-  for( ; fr && fr->parent && true(fr->parent->predicate, HIDE_CHILDS);
+  for( ; fr && fr->parent && ison(fr->parent->predicate, HIDE_CHILDS);
        fr = fr->parent)
     ;					/* find top of hidden children */
   DEBUG(MSG_TRACE, if ( fr )
 	Sdprintf("REDO user frame of [%d] %s%s\n",
 		 (int)levelFrame(fr),
 		 predicateName(fr->predicate),
-		 true(fr, FR_INBOX) ? " (inbox)" : ""));
-  if ( fr && false(fr, FR_INBOX) )
+		 ison(fr, FR_INBOX) ? " (inbox)" : ""));
+  if ( fr && isoff(fr, FR_INBOX) )
   { set(fr, FR_INBOX);			/* External retry */
     return fr;
   }
@@ -2375,7 +2375,7 @@ discardFrame(DECL_LD LocalFrame fr)
 		    loffset(fr),
 		    predicateName(fr->predicate)));
 
-  if ( true(def, P_FOREIGN) )
+  if ( ison(def, P_FOREIGN) )
   { if ( fr->clause )
     { discardForeignFrame(fr);
       fr->clause = NULL;
@@ -2489,9 +2489,9 @@ discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 	  fr2 = fr2->parent)
       { assert(onStack(local, me));
 	assert(onStack(local, fr2));
-	assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
+	assert(fr2->clause || ison(fr2->predicate, P_FOREIGN));
 
-	if ( true(fr2, FR_WATCHED) )
+	if ( ison(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;
 
 	  if ( !me_undone && is_exception_finish(reason) )
@@ -2730,7 +2730,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   lTop = (LocalFrame)ap;
 
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
-  if ( true(qf, PL_Q_NODEBUG) )
+  if ( ison(qf, PL_Q_NODEBUG) )
   { set(fr, FR_HIDE_CHILDS);
     suspendTrace(TRUE);
     qf->debugSave = debugstatus.debugging;
@@ -2756,7 +2756,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Mark(qf->choice.mark);
   setGenerationFrame(fr);
 					/* context module */
-  if ( true(def, P_TRANSPARENT) )
+  if ( ison(def, P_TRANSPARENT) )
   { if ( ctx )
       setContextModule(fr, ctx);
     else if ( qf->saved_environment )
@@ -2790,7 +2790,7 @@ discard_query(qid_t qid)
   { discardChoicesAfter(&qf->frame, FINISH_CUT);
     qf = QueryFromQid(qid);		/* may be shifted */
     discardFrame(&qf->frame);
-    if ( true(&qf->frame, FR_WATCHED) )
+    if ( ison(&qf->frame, FR_WATCHED) )
     { lTop = (LocalFrame)argFrameP(&qf->frame,
 				   qf->frame.predicate->functor->arity);
       frameFinished(&qf->frame, FINISH_CUT);
@@ -2817,7 +2817,7 @@ restore_after_query(QueryFrame qf)
   environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
   lTop		    = qf->saved_ltop;
-  if ( true(qf, PL_Q_NODEBUG) )
+  if ( ison(qf, PL_Q_NODEBUG) )
   { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;
     LD->prolog_flag.mask.flags[0] &= (~NDEBUG_SAVE_FLAGS);
@@ -2846,7 +2846,7 @@ PL_cut_query(qid_t qid)
       if ( qf->foreign_frame )
 	PL_close_foreign_frame(qf->foreign_frame);
 
-      if ( false(qf, PL_Q_DETERMINISTIC) )
+      if ( isoff(qf, PL_Q_DETERMINISTIC) )
       { int exbefore = (exception_term != 0);
 
 	discard_query(qid);
@@ -2880,7 +2880,7 @@ PL_close_query(qid_t qid)
       if ( qf->foreign_frame )
 	PL_close_foreign_frame(qf->foreign_frame);
 
-      if ( false(qf, PL_Q_DETERMINISTIC) )
+      if ( isoff(qf, PL_Q_DETERMINISTIC) )
       { int exbefore = (exception_term != 0);
 
 	discard_query(qid);
@@ -2889,7 +2889,7 @@ PL_close_query(qid_t qid)
 	  rc = FALSE;
       }
 
-      if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
+      if ( !(qf->exception && ison(qf, PL_Q_PASS_EXCEPTION)) )
 	Undo(qf->choice.mark);
 
       restore_after_query(qf);
@@ -2921,7 +2921,7 @@ PL_can_yield(void)
   return ( HAS_LD &&
 	   LD->query &&
 	   LD->query->magic == QID_MAGIC &&
-	   true(LD->query, PL_Q_ALLOW_YIELD) );
+	   ison(LD->query, PL_Q_ALLOW_YIELD) );
 }
 
 PL_engine_t
@@ -3327,7 +3327,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   if ( LD->query != QF /*|| (void*)fli_context > (void*)QF*/ )
     return PL_S_NOT_INNER;
   DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
-  if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
+  if ( ison(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);

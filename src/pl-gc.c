@@ -783,7 +783,7 @@ unmark_environments(DECL_LD LocalFrame fr, uintptr_t mask)
     return NULL;
 
   for(;;)
-  { if ( false(fr, mask) )
+  { if ( isoff(fr, mask) )
       return NULL;
     clear(fr, mask);
     LD->gc._local_frames--;
@@ -1416,7 +1416,7 @@ static inline int
 slotsInFrame(LocalFrame fr, Code PC)
 { Definition def = fr->predicate;
 
-  if ( !PC || true(def, P_FOREIGN) || !fr->clause )
+  if ( !PC || ison(def, P_FOREIGN) || !fr->clause )
     return def->functor->arity;
 
   return fr->clause->value.clause->prolog_vars;
@@ -2374,7 +2374,7 @@ mark_choicepoints(DECL_LD mark_state *state, Choice ch)
       { LocalFrame fr = ch->frame;
 
 	mark_alt_clauses(fr, ch->value.clause.cref);
-	if ( false(fr, FR_MARKED) )
+	if ( isoff(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
 	  mark_environments(state, fr->parent, fr->programPointer);
@@ -2428,7 +2428,7 @@ mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
   while ( fr )
   { walk_state state;
 
-    if ( false(fr, FR_MARKED) )
+    if ( isoff(fr, FR_MARKED) )
     { set(fr, FR_MARKED);
       state.flags = GCM_CLEAR;
 
@@ -2439,7 +2439,7 @@ mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
 
     assert(wasFrame(fr));
 
-    if ( true(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
+    if ( ison(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(MSG_GC_MARK_ARGS,
 	    Sdprintf("Marking arguments for [%d] %s\n",
 		     levelFrame(fr), predicateName(fr->predicate)));
@@ -2478,7 +2478,7 @@ mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
 	mark_local_variable(argp0);
       }
 
-      if ( true(fr, FR_WATCHED) )
+      if ( ison(fr, FR_WATCHED) )
       { int slots;
 	Word sp;
 
@@ -3154,7 +3154,7 @@ sweep_environments(LocalFrame fr, Code PC)
   for( ; ; )
   { int slots;
 
-    if ( false(fr, FR_MARKED) )
+    if ( isoff(fr, FR_MARKED) )
       return NULL;
     clear(fr, FR_MARKED);
 
@@ -3601,7 +3601,7 @@ static void
 setStartOfVMI(vm_state *state)
 { LocalFrame fr = state->frame;
 
-  if ( fr->clause && false(fr->predicate, P_FOREIGN) && state->pc )
+  if ( fr->clause && isoff(fr->predicate, P_FOREIGN) && state->pc )
   { Clause clause = fr->clause->value.clause;
     Code PC, ep, next;
 
@@ -4060,7 +4060,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
   { int slots, n;
     Word sp;
 
-    if ( true(fr, FR_MARKED) )
+    if ( ison(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
     local_frames++;
@@ -4072,7 +4072,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 	  Sdprintf("Check [%ld] %s (PC=%d):",
 		   levelFrame(fr),
 		   predicateName(fr->predicate),
-		   (false(fr->predicate, P_FOREIGN) && PC)
+		   (isoff(fr->predicate, P_FOREIGN) && PC)
 		   ? (PC-fr->clause->value.clause->codes)
 		   : 0));
 
@@ -4877,7 +4877,7 @@ update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
   for(;;)
   { assert(inShiftedArea(local, ls, fr));
 
-    if ( true(fr, FR_MARKED) )
+    if ( ison(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
     local_frames++;
@@ -4905,7 +4905,7 @@ update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
       DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
     }
     if ( gs )
-    { if ( true(fr->predicate, P_FOREIGN) || !fr->clause )
+    { if ( ison(fr->predicate, P_FOREIGN) || !fr->clause )
       { update_arguments(fr, gs);
       } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN2) ||
 		fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN3) )

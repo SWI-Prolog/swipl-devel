@@ -448,7 +448,7 @@ is_variant_ptr(DECL_LD Word p1, Word p2)
 { argPairs agenda;
   tmp_buffer buf;
   Buffer VARIANT_BUFFER = (Buffer)&buf;
-  bool rval;
+  int rval;
   node *r;
   node new = {NULL, 0, 0, 0};   /* dummy node as 0-th element*/
 
@@ -492,8 +492,8 @@ again:
   initBuffer(&buf);	/* can be faster! */
   init_agenda(&agenda);
 
-  if ( (add_node_buffer(VARIANT_BUFFER, &new) >= 0) &&
-       (push_start_args(&agenda, p1, p2, 1) >=0) )
+  if ( add_node_buffer(VARIANT_BUFFER, &new) &&
+       push_start_args(&agenda, p1, p2, 1) )
     rval = variant(&agenda, VARIANT_BUFFER);
   else
     rval = MEMORY_OVERFLOW;

@@ -2147,7 +2147,7 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 
 int
 Sttymode(IOSTREAM *s)
-{ return true(s, SIO_RAW) ? TTY_RAW : TTY_COOKED;
+{ return ison(s, SIO_RAW) ? TTY_RAW : TTY_COOKED;
 }
 
 static void
@@ -2174,10 +2174,10 @@ Sread_terminal(void *handle, char *buf, size_t size)
   source_location oldsrc = LD->read_source;
 
   if ( LD->prompt.next &&
-       false(Sinput, SIO_RAW) &&
-       true(Sinput, SIO_ISATTY) )
+       isoff(Sinput, SIO_RAW) &&
+       ison(Sinput, SIO_ISATTY) )
     PL_write_prompt(TRUE);
-  else if ( true(Soutput, SIO_ISATTY) )
+  else if ( ison(Soutput, SIO_ISATTY) )
     Sflush(Suser_output);
 
   PL_dispatch(fd, PL_DISPATCH_WAIT);
@@ -2273,7 +2273,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   buf->mode  = Sttymode(s);
   buf->state = NULL;
 
-  if ( false(s, SIO_ISATTY) )
+  if ( isoff(s, SIO_ISATTY) )
   { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
     succeed;				/* not a terminal */
   }

@@ -429,7 +429,7 @@ static
 PRED_IMPL("$can_yield", 0, can_yield, 0)
 { PRED_LD
 
-  return !!true(LD->query, PL_Q_ALLOW_YIELD);
+  return !!ison(LD->query, PL_Q_ALLOW_YIELD);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -384,7 +384,7 @@ zseek64_mem(voidpf opaque, voidpf stream, ZPOS64_T offset, int origin)
   { errno = EINVAL;
     return -1;
   }
- 
+
   switch(origin)
   { case SEEK_SET: p = mem->start + offset; break;
     case SEEK_CUR: p = mem->here + offset;  break;
@@ -488,7 +488,7 @@ close_zipper(zipper *z)
   if ( z->input.any )
   { switch(z->input_type)
     { case ZIP_STREAM:
-	if ( true(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
+	if ( ison(z, ZIP_CLOSE_STREAM_ON_CLOSE) )
 	{ IOSTREAM *in = z->input.stream;
 
 	  z->input.stream = NULL;
@@ -778,7 +778,7 @@ Sclose_zip_entry(void *handle)
   { zrelease(z);
     close_zipper(z);
     PL_register_atom(z->symbol);		/* revert delayed zip_close_/2 */
-  } else if ( true(z, ZIP_RELEASE_ON_CLOSE) )
+  } else if ( ison(z, ZIP_RELEASE_ON_CLOSE) )
   { zrelease(z);
   } else
   { z->state = ZIP_IDLE;
@@ -901,7 +901,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int zip64 = FALSE;
 
   if ( !PL_scan_options(A4, 0, "zip_options", zip_new_file_options,
-		     &extra, &comment, &ftime, &method, &level, &zip64) )
+			&extra, &comment, &ftime, &method, &level, &zip64) )
     return FALSE;
 
   if ( extra )
@@ -1070,7 +1070,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
   IOENC enc;
 
   if ( !PL_scan_options(A3, 0, "stream_option", zipopen3_options,
-		     &type, &encoding, &bom, &release, &reposition) )
+			&type, &encoding, &bom, &release, &reposition) )
     return FALSE;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return FALSE;

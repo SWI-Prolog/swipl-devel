@@ -202,10 +202,10 @@ the parent is a debug frame.
 
 int
 isDebugFrame(LocalFrame FR)
-{ if ( false(FR->predicate, TRACE_ME) )
+{ if ( isoff(FR->predicate, TRACE_ME) )
     return FALSE;			/* hidden predicate */
 
-  if ( false(FR->predicate, HIDE_CHILDS) )
+  if ( isoff(FR->predicate, HIDE_CHILDS) )
     return TRUE;			/* user pred */
 
   if ( FR->parent )
@@ -213,11 +213,11 @@ isDebugFrame(LocalFrame FR)
 
     if ( levelFrame(FR) == levelFrame(parent)+1 )
     {					/* not last-call optimized */
-      if ( false(parent->predicate, HIDE_CHILDS) )
+      if ( isoff(parent->predicate, HIDE_CHILDS) )
 	return TRUE;			/* user calls system */
       return FALSE;			/* system calls system */
     } else
-    { if ( false(parent, FR_HIDE_CHILDS) )
+    { if ( isoff(parent, FR_HIDE_CHILDS) )
 	return TRUE;
       return FALSE;
     }
@@ -283,7 +283,7 @@ than the redo port of some subgoal of this port.
 
 static LocalFrame
 redoFrame(LocalFrame fr, Code *PC)
-{ while( fr && false(fr, FR_SKIPPED))
+{ while( fr && isoff(fr, FR_SKIPPED))
   { *PC = fr->programPointer;
     fr = parentFrame(fr);
   }
@@ -412,18 +412,18 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
   }
 
   if ( !debugstatus.tracing &&
-       (false(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
+       (isoff(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
     return ACTION_CONTINUE;		/* not tracing and no spy-point */
   if ( debugstatus.skiplevel < levelFrame(frame) )
     return ACTION_CONTINUE;		/* skipped */
   if ( debugstatus.skiplevel == levelFrame(frame) &&
        (port & (REDO_PORT|CUT_PORT|UNIFY_PORT)) )
     return ACTION_CONTINUE;		/* redo, unify or ! in skipped pred */
-  if ( false(def, TRACE_ME) )
+  if ( isoff(def, TRACE_ME) )
     return ACTION_CONTINUE;		/* non-traced predicate */
   if ( (!(debugstatus.visible & port)) )
     return ACTION_CONTINUE;		/* wrong port */
-  if ( (true(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
+  if ( (ison(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
        (port & CUT_PORT) )
     return ACTION_CONTINUE;		/* redo or ! in system predicates */
 
@@ -925,7 +925,7 @@ put_frame_goal(term_t goal, LocalFrame frame)
   }
 
   if ( def->module != MODULE_user &&
-       (false(def->module, M_SYSTEM) || SYSTEM_MODE))
+       (isoff(def->module, M_SYSTEM) || SYSTEM_MODE))
   { term_t a;
 
     if ( !(a=PL_new_term_ref()) )
@@ -980,7 +980,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     term_t pc   = PL_new_term_ref();
     const portname *pn = portnames;
 
-    if ( true(def, P_FOREIGN) )
+    if ( ison(def, P_FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
       rc = PL_put_intptr(pc, PC-frame->clause->value.clause->codes);
@@ -1030,8 +1030,8 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
       PL_put_nil(options);
     PL_unify_stream_or_alias(tmp, out);
 
-    msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
-    msg[1] = true(def, SPY_ME)	      ? '*' : ' ';
+    msg[0] = ison(def, P_TRANSPARENT) ? '^' : ' ';
+    msg[1] = ison(def, SPY_ME)	      ? '*' : ' ';
     msg[2] = EOS;
 
     frame = (LocalFrame)valTermRef(fref);
@@ -1389,7 +1389,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     } else if ( portfunc )
     { int pcn;
 
-      if ( PC && false(frame->predicate, P_FOREIGN) && frame->clause )
+      if ( PC && isoff(frame->predicate, P_FOREIGN) && frame->clause )
 	pcn = (int)(PC - frame->clause->value.clause->codes);
       else
 	pcn = 0;
@@ -1592,7 +1592,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 			      (long)(c->pc - fr->predicate->codes));
     }
 
-    if ( false(fr->predicate, P_FOREIGN) )
+    if ( isoff(fr->predicate, P_FOREIGN) )
     { int clause_no = 0;
       intptr_t pc = -1;
 
@@ -2187,7 +2187,7 @@ pl_spy(term_t p)
   if ( get_procedure(p, &proc, 0, GP_FIND) )
   { Definition def = getProcDefinition(proc);
 
-    if ( false(def, SPY_ME) )
+    if ( isoff(def, SPY_ME) )
     { LOCKDEF(def);
       set(def, SPY_ME);
       UNLOCKDEF(def);
@@ -2210,7 +2210,7 @@ pl_nospy(term_t p)
   if ( get_procedure(p, &proc, 0, GP_FIND|GP_EXISTENCE_ERROR) )
   { Definition def = getProcDefinition(proc);
 
-    if ( true(def, SPY_ME) )
+    if ( ison(def, SPY_ME) )
     { LOCKDEF(def);
       clear(def, SPY_ME);
       UNLOCKDEF(def);
@@ -2359,7 +2359,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     if ( argn < 1 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, arg);
 
-    if ( true(fr->predicate, P_FOREIGN) || !fr->clause )
+    if ( ison(fr->predicate, P_FOREIGN) || !fr->clause )
     { if ( argn > fr->predicate->functor->arity )
 	fail;
     } else
@@ -2393,7 +2393,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if (key == ATOM_has_alternatives)
   { PL_put_atom(result, hasAlternativesFrame(fr) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_skipped)
-  { PL_put_atom(result, true(fr, FR_SKIPPED) ? ATOM_true : ATOM_false);
+  { PL_put_atom(result, ison(fr, FR_SKIPPED) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_alternative)
   { LocalFrame alt;
 
@@ -2414,7 +2414,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if (key == ATOM_context_module)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
-  { if ( false(fr->predicate, P_FOREIGN) &&
+  { if ( isoff(fr->predicate, P_FOREIGN) &&
 	 fr->clause && fr->clause->value.clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition &&
 	 fr->predicate != PROCEDURE_dcall1->definition )
@@ -2500,7 +2500,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&
-	 false(fr->parent->predicate, P_FOREIGN) &&
+	 isoff(fr->parent->predicate, P_FOREIGN) &&
 	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
     { intptr_t pc = fr->programPointer - fr->parent->clause->value.clause->codes;
@@ -2568,7 +2568,7 @@ in_clause_jump(Choice ch)
 { Clause cl;
 
   if ( ch->type == CHP_JUMP &&
-       false(ch->frame->predicate, P_FOREIGN) &&
+       isoff(ch->frame->predicate, P_FOREIGN) &&
        ch->frame->clause &&
        (cl=ch->frame->clause->value.clause) &&
        ch->value.pc >= cl->codes &&

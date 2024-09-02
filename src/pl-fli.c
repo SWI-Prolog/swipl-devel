@@ -135,7 +135,7 @@ static int	PL_get_uint(term_t t, unsigned int *i);
 static int
 in_foreign_argv(DECL_LD Word p)
 { for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
-  { if ( true(fr->predicate, P_FOREIGN) )
+  { if ( ison(fr->predicate, P_FOREIGN) )
     { size_t arity = fr->predicate->functor->arity;
       if ( p >= argFrameP(fr, 0) && p < argFrameP(fr, arity) )
 	return TRUE;
@@ -199,7 +199,7 @@ valid_functor_t(functor_t f)
   if ( index > GD->functors.highest )
     PL_api_error("invalid functor_t %zd (out of range)", (size_t)f);
   FunctorDef fd = fetchFunctorArray(index);
-  if ( !true(fd, VALID_F) )
+  if ( !ison(fd, VALID_F) )
     PL_api_error("invalid functor_t %zd (no valid functor at this index)",
 		 (size_t)f);
 }
@@ -848,7 +848,7 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
 
 int
 get_atom_ptr_text(Atom a, PL_chars_t *text)
-{ if ( false(a->type, PL_BLOB_TEXT) )
+{ if ( isoff(a->type, PL_BLOB_TEXT) )
     fail;				/* non-textual atom */
   if ( a->type == &ucs_atom )
   { text->text.w   = (pl_wchar_t *) a->name;
@@ -1020,7 +1020,7 @@ PL_atom_wchars(atom_t a, size_t *len)
       *len = x->length / sizeof(pl_wchar_t);
 
     return (const wchar_t *)x->name;
-  } else if ( true(x->type, PL_BLOB_TEXT) )
+  } else if ( ison(x->type, PL_BLOB_TEXT) )
   { Buffer b = findBuffer(BUF_STACK);
     const char *s = (const char*)x->name;
     const char *e = &s[x->length];
@@ -1044,7 +1044,7 @@ charCode(word w)
 { if ( isAtom(w) )
   { Atom a = atomValue(w);
 
-    if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
+    if ( a->length == 1 && ison(a->type, PL_BLOB_TEXT) )
       return a->name[0] & 0xff;
     if ( a->length == sizeof(pl_wchar_t) && a->type == &ucs_atom )
     { pl_wchar_t *p = (pl_wchar_t*)a->name;
@@ -1698,7 +1698,7 @@ PL_get_atom_chars(term_t t, char **s)
   if ( isAtom(w) )
   { Atom a = atomValue(w);
 
-    if ( true(a->type, PL_BLOB_TEXT) )
+    if ( ison(a->type, PL_BLOB_TEXT) )
     { *s = a->name;
       succeed;
     }
@@ -1717,7 +1717,7 @@ PL_get_atom_nchars(term_t t, size_t *len, char **s)
   if ( isAtom(w) )
   { Atom a = atomValue(w);
 
-    if ( true(a->type, PL_BLOB_TEXT) )
+    if ( ison(a->type, PL_BLOB_TEXT) )
     { *s   = a->name;
       *len = a->length;
 
@@ -2570,7 +2570,7 @@ isCallable(DECL_LD word w)
     FunctorDef fd = valueFunctor(f->definition);
     Atom ap = atomValue(fd->name);
 
-    if ( true(ap->type, PL_BLOB_TEXT) || fd->name == ATOM_nil )
+    if ( ison(ap->type, PL_BLOB_TEXT) || fd->name == ATOM_nil )
       return TRUE;
     if ( ap->type == &_PL_closure_blob )
     { closure *c = (closure*)ap->name;
@@ -4154,7 +4154,7 @@ PL_free_blob(atom_t a)
   Atom x = atomValue(a);
   const PL_blob_t *type = x->type;
 
-  if ( true(type, PL_BLOB_NOCOPY) && type->release && x->name )
+  if ( ison(type, PL_BLOB_NOCOPY) && type->release && x->name )
   { if ( (*type->release)(a) )
     { x->length = 0;
       x->name = NULL;
@@ -4819,7 +4819,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
 
   if ( def->impl.any.defined )
     PL_linger(def->impl.any.defined);	/* Dubious: what if a clause list? */
-  if ( true(def, P_FOREIGN) && !def->impl.foreign.function )
+  if ( ison(def, P_FOREIGN) && !def->impl.foreign.function )
   { def->impl.foreign.function = f;	/* predefined from saved state */
   } else
   { def->impl.foreign.function = f;
@@ -5382,7 +5382,7 @@ PL_erase(record_t r)
 
 record_t
 PL_duplicate_record(record_t r)
-{ if ( true(r, R_DUPLICATE) )
+{ if ( ison(r, R_DUPLICATE) )
   { r->references++;
     return r;
   } else

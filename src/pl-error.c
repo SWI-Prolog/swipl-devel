@@ -1335,7 +1335,7 @@ PL_get_nil_ex(term_t l)
 int
 PL_unify_bool_ex(term_t t, int val)
 { GET_LD
-  bool v;
+  int v;
   valid_term_t(t);
 
   if ( PL_is_variable(t) )

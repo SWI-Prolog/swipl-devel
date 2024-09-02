@@ -502,8 +502,8 @@ initIO(void)
   streamContext = newHTablePP(16);
   PL_register_blob_type(&stream_blob);
 
-  if ( false(Sinput, SIO_ISATTY) ||
-       false(Soutput, SIO_ISATTY) )
+  if ( isoff(Sinput, SIO_ISATTY) ||
+       isoff(Soutput, SIO_ISATTY) )
   { /* clear PLFLAG_TTY_CONTROL */
     PL_set_prolog_flag("tty_control", PL_BOOL, FALSE);
   }
@@ -700,7 +700,7 @@ static void
 gc_close_stream(atom_t aref, IOSTREAM *s)
 { if ( s->erased )
   { unallocStream(s);
-  } else if ( s->magic == SIO_MAGIC && !true(s, SIO_CLOSING) )
+  } else if ( s->magic == SIO_MAGIC && !ison(s, SIO_CLOSING) )
   { int doit;
 
     WITH_LD(&PL_local_data)
@@ -1888,7 +1888,7 @@ PRED_IMPL("with_tty_raw", 1, with_tty_raw, PL_FA_TRANSPARENT)
 
   if ( !stream )
     return symbol_no_stream(ATOM_user_input);
-  save = true(Sinput, SIO_ISATTY);
+  save = ison(Sinput, SIO_ISATTY);
 
   Slock(stream);
   Sflush(stream);
@@ -2182,12 +2182,12 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     if ( !PL_get_atom_ex(a, &type) )
       return FALSE;
     if ( type == ATOM_text )
-    { if ( false(s, SIO_TEXT) && Ssetenc(s, LD->encoding, NULL) != 0 )
+    { if ( isoff(s, SIO_TEXT) && Ssetenc(s, LD->encoding, NULL) != 0 )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			ATOM_encoding, ATOM_stream, stream);
       s->flags |= SIO_TEXT;
     } else if ( type == ATOM_binary )
-    { if ( true(s, SIO_TEXT) && Ssetenc(s, ENC_OCTET, NULL) != 0 )
+    { if ( ison(s, SIO_TEXT) && Ssetenc(s, ENC_OCTET, NULL) != 0 )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			ATOM_encoding, ATOM_stream, stream);
 
@@ -4286,7 +4286,7 @@ findStreamFromFile(atom_t name, unsigned int flags)
     stream_context *ctx = val2ptr(tv);
 
     if ( ctx->filename == name &&
-	 true(ctx, flags) )
+	 ison(ctx, flags) )
     { s = s0;
       break;
     }
@@ -5724,7 +5724,7 @@ peek(DECL_LD term_t stream, term_t chr, int how)
 
   if ( !getInputStream(stream, how == PL_BYTE ? S_BINARY : S_TEXT, &s) )
     return FALSE;
-  if ( true(s, SIO_NBUF) || (s->bufsize && s->bufsize < PL_MB_LEN_MAX) )
+  if ( ison(s, SIO_NBUF) || (s->bufsize && s->bufsize < PL_MB_LEN_MAX) )
   { releaseStream(s);
     return PL_error(NULL, 0, "stream is unbuffered", ERR_PERMISSION,
 		    ATOM_peek, ATOM_stream, stream);

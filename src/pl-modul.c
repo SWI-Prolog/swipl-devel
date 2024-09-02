@@ -197,7 +197,7 @@ acquireModulePtr(DECL_LD Module m)
 static void
 releaseModule_unlocked(Module m)
 { if ( --m->references == 0 &&
-       true(m, M_DESTROYED) )
+       ison(m, M_DESTROYED) )
   { unlinkSourceFilesModule(m);
 #ifdef O_PLMT
     if ( m->wait )
@@ -372,7 +372,7 @@ back-links to the source files.
 
 static void
 markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
-{ if ( false(proc, PROC_MULTISOURCE) )
+{ if ( isoff(proc, PROC_MULTISOURCE) )
     set_bit(v, proc->source_no);
   else
     setall_bitvector(v);
@@ -1303,7 +1303,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
     { Procedure proc = val2ptr(value);
       Definition def = proc->definition;
 
-      if ( !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
+      if ( !ison(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
       { if ( def->module == module &&
 	     hasClausesDefinition(def) )
 	{ if ( !rdef )
@@ -1415,7 +1415,7 @@ sizeof_module(Module m)
 
     size += sizeof(*proc);
 
-    if ( def->module == m && false(def, P_FOREIGN) )
+    if ( def->module == m && isoff(def, P_FOREIGN) )
     { Definition def = getProcDefinition(proc);
       size += sizeof_predicate(def);
     }
@@ -1499,7 +1499,7 @@ export_pi1(DECL_LD term_t pi, Module module)
   if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE|GF_NAMEARITY) )
     return FALSE;
 
-  if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
+  if ( (proc = isStaticSystemProcedure(fd)) && ison(proc->definition, P_ISO) )
     return TRUE;
   proc = lookupProcedure(fd, module);
 

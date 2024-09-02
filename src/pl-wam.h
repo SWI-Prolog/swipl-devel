@@ -68,7 +68,7 @@ fid_t		PL_open_foreign_frame(void);
 void		PL_close_foreign_frame(fid_t id);
 fid_t		PL_open_signal_foreign_frame(int sync);
 int		PL_next_solution(qid_t qid);
-int		foreignWakeup(term_t ex);
+bool		foreignWakeup(term_t ex);
 void		resumeAfterException(int clear, Stack outofstack);
 void		updateAlerted(PL_local_data_t *ld);
 int		raiseSignal(PL_local_data_t *ld, int sig);

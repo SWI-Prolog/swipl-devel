@@ -431,7 +431,7 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
   hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
-#define STATIC_RELOADING() (LD->reload.generation && false(ctx->predicate, P_DYNAMIC))
+#define STATIC_RELOADING() (LD->reload.generation && isoff(ctx->predicate, P_DYNAMIC))
 
   if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
@@ -576,7 +576,7 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def, ClauseChoice chp)
 			      def->functor->arity,
 			      &def->impl.clauses,
 			      &ctx);
-#define CHK_STATIC_RELOADING() (LD->reload.generation && false(def, P_DYNAMIC))
+#define CHK_STATIC_RELOADING() (LD->reload.generation && isoff(def, P_DYNAMIC))
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
 					 generationFrame(fr)) ||
@@ -911,7 +911,7 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
       { addToClauseList(cr, cref->value.clause, arg1key, CL_END);
-	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
+	if ( ison(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
 	}
@@ -1062,7 +1062,7 @@ gcClauseList(ClauseList clist, DirtyDefInfo ddi, gen_t start, Buffer tr_starts)
   while(cref && clist->erased_clauses)
   { Clause cl = cref->value.clause;
 
-    if ( true(cl, CL_ERASED) )
+    if ( ison(cl, CL_ERASED) )
     { if ( ddi_is_garbage(ddi, start, tr_starts, cl) )
       { ClauseRef c = cref;
 
@@ -1121,7 +1121,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
     } else
     { Clause cl = cref->value.clause;
 
-      if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, tr_starts, cl) )
+      if ( ison(cl, CL_ERASED) && ddi_is_garbage(ddi, start, tr_starts, cl) )
       { ClauseRef c;
 
 	dirty--;
@@ -1159,7 +1159,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
 	{ if ( !is_list )
 	  { for(cref=ch->head; cref; cref=cref->next)
 	    { Clause cl = cref->value.clause;
-	      assert( false(cl, CL_ERASED) ||
+	      assert( isoff(cl, CL_ERASED) ||
 		      !ddi_is_garbage(ddi, start, tr_starts, cl)
 		    );
 	    }
@@ -1257,9 +1257,9 @@ has_pow2_clauses(Definition def)
 
 static void
 reconsider_index(Definition def)
-{ if ( true(def, P_DYNAMIC) )
+{ if ( ison(def, P_DYNAMIC) )
   { if ( has_pow2_clauses(def) )
-    { if ( true(def, P_SHRUNKPOW2) )
+    { if ( ison(def, P_SHRUNKPOW2) )
       { clear(def, P_SHRUNKPOW2);
       } else
       { clearTriedIndexes(def);
@@ -1271,8 +1271,8 @@ reconsider_index(Definition def)
 
 static void
 shrunkpow2(Definition def)
-{ if ( true(def, P_DYNAMIC) )
-  { if ( false(def, P_SHRUNKPOW2) && has_pow2_clauses(def) )
+{ if ( ison(def, P_DYNAMIC) )
+  { if ( isoff(def, P_SHRUNKPOW2) && has_pow2_clauses(def) )
       set(def, P_SHRUNKPOW2);
   }
 }
@@ -1315,7 +1315,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 	  unsigned int count = 0;
 
 	  for(cr=cl->first_clause; cr; cr=cr->next)
-	  { if ( true(cr->value.clause, CL_ERASED) )
+	  { if ( ison(cr->value.clause, CL_ERASED) )
 	      erased++;
 	    else
 	      count++;
@@ -1441,7 +1441,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
       if ( ci->invalid )
 	return;
 
-      if ( true(def, P_DYNAMIC) )
+      if ( ison(def, P_DYNAMIC) )
       { if ( def->impl.clauses.number_of_clauses < ci->resize_below )
 	{ DEBUG(MSG_JIT_DELINDEX,
 		Sdprintf("Deleted index %d from %s (shrunk too much)\n",
@@ -1698,7 +1698,7 @@ See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   for(cref = clist->first_clause; cref; cref = cref->next)
-  { if ( false(cref->value.clause, CL_ERASED) )
+  { if ( isoff(cref->value.clause, CL_ERASED) )
     { if ( !addClauseToIndex(ci, cref->value.clause, CL_END) )
       { ci->invalid = TRUE;
 	completed_index(ci);
@@ -1989,7 +1989,7 @@ checkClauseIndexes(Definition def)
 	    unsigned int count = 0;
 
 	    for(cr=cl->first_clause; cr; cr=cr->next)
-	    { if ( true(cr->value.clause, CL_ERASED) )
+	    { if ( ison(cr->value.clause, CL_ERASED) )
 		erased++;
 	      else
 		count++;
@@ -2001,7 +2001,7 @@ checkClauseIndexes(Definition def)
 	  } else
 	  { Clause clause = cref->value.clause;
 
-	    if ( true(clause, CL_ERASED) )
+	    if ( ison(clause, CL_ERASED) )
 	      dirty++;
 	  }
 	}
@@ -2065,7 +2065,7 @@ listIndexGenerations(Definition def, gen_t gen)
 		       clauseNo(clause, 0),
 		       generationName(clause->generation.created),
 		       generationName(clause->generation.erased),
-		       true(clause, CL_ERASED) ? " erased" : "",
+		       ison(clause, CL_ERASED) ? " erased" : "",
 		       visibleClause(clause, gen) ? " v" : " X");
 	    }
 	  } else
@@ -2076,7 +2076,7 @@ listIndexGenerations(Definition def, gen_t gen)
 		     clauseNo(clause, 0),
 		     generationName(clause->generation.created),
 		     generationName(clause->generation.erased),
-		     true(clause, CL_ERASED) ? " erased" : "",
+		     ison(clause, CL_ERASED) ? " erased" : "",
 		     visibleClause(clause, gen) ? " v " : " X ",
 		     keyName(cref->d.key));
 	  }
@@ -2473,7 +2473,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     Code pc;
     int carg = 0;
 
-    if ( true(cl, CL_ERASED) )
+    if ( ison(cl, CL_ERASED) )
       continue;
 
     pc = skipToTerm(cref->value.clause, ctx->position);

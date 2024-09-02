@@ -1672,8 +1672,8 @@ compareAtoms(atom_t w1, atom_t w2)
       else
 	return SCALAR_TO_CMP(a1->length, a2->length);
     }
-  } else if ( true(a1->type, PL_BLOB_TEXT) &&
-	      true(a2->type, PL_BLOB_TEXT) )
+  } else if ( ison(a1->type, PL_BLOB_TEXT) &&
+	      ison(a2->type, PL_BLOB_TEXT) )
   { PL_chars_t t1, t2;
     size_t len;
 
@@ -3155,7 +3155,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   if ( options &&
        !PL_scan_options(options, 0, "numbervar_option", numbervar_options,
-		     &av, &name, &opts.singletons) )
+			&av, &name, &opts.singletons) )
     fail;
 
   if ( av == ATOM_error )

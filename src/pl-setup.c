@@ -497,7 +497,7 @@ dispatch_signal(int sig, int sync)
 		 sig, sync ? " (sync)" : " (async)"));
 #endif
 
-  if ( true(sh, PLSIG_NOFRAME) && sh->handler )
+  if ( ison(sh, PLSIG_NOFRAME) && sh->handler )
   { (*sh->handler)(sig);
     return;
   }
@@ -514,7 +514,7 @@ dispatch_signal(int sig, int sync)
 	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
 
-  if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
+  if ( (LD->critical || (ison(sh, PLSIG_SYNC) && !sync))
        && sh->handler != PL_interrupt
        && !is_fatal_signal(sig)	)
   { PL_raise(sig);			/* wait for better times! */
@@ -555,7 +555,7 @@ dispatch_signal(int sig, int sync)
 #ifdef O_LIMIT_DEPTH
     LD->depth_info.limit = olimit;
 #endif
-  } else if ( true(sh, PLSIG_THROW) )
+  } else if ( ison(sh, PLSIG_THROW) )
   { char *predname;
     int  arity;
 
@@ -683,7 +683,7 @@ static void
 unprepareSignal(int sig)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
-  if ( true(sh, PLSIG_STATEFLAGS) )
+  if ( ison(sh, PLSIG_STATEFLAGS) )
   { if ( !IS_VSIG(sig) )
       set_sighandler(sig, sh->saved_handler);
     sh->flags         = 0;
@@ -1109,7 +1109,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
       }
       active = TRUE;
     } else if ( act->sa_cfunction &&
-		(false(sh, PLSIG_PREPARED)||act->sa_cfunction!=sh->saved_handler) )
+		(isoff(sh, PLSIG_PREPARED)||act->sa_cfunction!=sh->saved_handler) )
     { active = TRUE;
     }
 
@@ -1359,11 +1359,11 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
   sh = &GD->signals.handlers[SIGNAL_INDEX(sign)];
 
-  if ( false(sh, PLSIG_STATEFLAGS) )		/* not handled */
+  if ( isoff(sh, PLSIG_STATEFLAGS) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
-  } else if ( true(sh, PLSIG_IGNORED) )		/* signal ignored */
+  } else if ( ison(sh, PLSIG_IGNORED) )		/* signal ignored */
   { TRY(PL_unify_atom(old, ATOM_ignore));
-  } else if ( true(sh, PLSIG_THROW) )		/* throw exception */
+  } else if ( ison(sh, PLSIG_THROW) )		/* throw exception */
   { TRY(PL_unify_atom(old, ATOM_throw));
   } else if ( sh->predicate )			/* call predicate */
   { Definition def = sh->predicate->definition;

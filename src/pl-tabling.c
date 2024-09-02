@@ -712,7 +712,7 @@ free_worklist_set(worklist_set *wls, int freewl)
     for(i=0; i<nwpl; i++)
     { worklist *wl = wlp[i];
 
-      if ( (freewl&WLFS_FREE_ALL) || true(wl->table, TRIE_COMPLETE) )
+      if ( (freewl&WLFS_FREE_ALL) || ison(wl->table, TRIE_COMPLETE) )
       { free_worklist(wl);
       } else if ( (freewl&WLFS_DISCARD_INCOMPLETE) )
       { trie *atrie = wl->table;
@@ -1137,7 +1137,7 @@ retry:
     }
 					/* Incremental tabling */
     if ( wl->table->data.IDG && wl->table->data.IDG->reevaluating )
-    { if ( false(answer, TN_IDG_UNCONDITIONAL) )
+    { if ( isoff(answer, TN_IDG_UNCONDITIONAL) )
 	simplify_answer(wl, answer, TRUE);
     }
 
@@ -1232,7 +1232,7 @@ retry:
 		  }
 		}
 
-		if ( true(at, TRIE_ISMAP) )	/* answer subsumption */
+		if ( ison(at, TRIE_ISMAP) )	/* answer subsumption */
 		{ Word rp;
 		  trie_node *root;
 
@@ -2084,7 +2084,7 @@ PRED_IMPL("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
       return TRUE;
     }
 
-    if ( true(trie, TRIE_COMPLETE) )
+    if ( ison(trie, TRIE_COMPLETE) )
       return TRUE;
 
     return PL_permission_error("set_answer_complete", "trie", A1);
@@ -2103,7 +2103,7 @@ PRED_IMPL("$tbl_is_answer_completed", 1, tbl_is_answer_completed, 0)
     if ( WL_IS_WORKLIST((wl=trie->data.worklist)) )
       return wl->answer_completed;
 
-    return !!true(trie, TRIE_COMPLETE);
+    return !!ison(trie, TRIE_COMPLETE);
   }
 
   return FALSE;
@@ -2160,7 +2160,7 @@ print_answer_table(trie *atrie, const char *msg, ...)
   va_start(args, msg);
   unify_trie_term(atrie->data.variant, NULL, t);
   if ( msg )
-  { if ( true(atrie, TRIE_ISSHARED) )
+  { if ( ison(atrie, TRIE_ISSHARED) )
       Sdprintf("Thread [%d]: ", PL_thread_self());
 
     Svdprintf(msg, args);
@@ -2284,7 +2284,7 @@ reset_answer_table(trie *atrie, int cleanup)
   clear(atrie, TRIE_COMPLETE);
 
   if ( (n=atrie->data.IDG) )
-  { if ( true(atrie, TRIE_ISSHARED) && GD->cleaning != CLN_DATA )
+  { if ( ison(atrie, TRIE_ISSHARED) && GD->cleaning != CLN_DATA )
     { idg_reset(n);
     } else
     { atrie->data.IDG = NULL;
@@ -2292,7 +2292,7 @@ reset_answer_table(trie *atrie, int cleanup)
     }
   }
 
-  if ( true(atrie, TRIE_ISTRACKED) )
+  if ( ison(atrie, TRIE_ISTRACKED) )
     tt_abolish_table(atrie);
 
   trie_empty(atrie);
@@ -2325,7 +2325,7 @@ clear_variant_table(trie **vtriep)
 
   if ( (vtrie=*vtriep) )
   { vtrie->magic = TRIE_CMAGIC;
-    if ( true(vtrie, TRIE_ISSHARED) )
+    if ( ison(vtrie, TRIE_ISSHARED) )
       release_trie(vtrie);			/* acquired in variant_table() */
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
@@ -2451,7 +2451,7 @@ get_answer_table(DECL_LD Definition def, term_t t, term_t ret, atom_t *clrefp,
 	return NULL;
       }
     }
-    shared = def->tabling && true(def->tabling, TP_SHARED);
+    shared = def->tabling && ison(def->tabling, TP_SHARED);
   }
 #else
   shared = FALSE;
@@ -3280,7 +3280,7 @@ unify_complete_or_invalid(DECL_LD term_t t, trie *atrie,
 #define unify_table_status(t, trie, def, create) LDFUNC(unify_table_status, t, trie, def, create)
 static int
 unify_table_status(DECL_LD term_t t, trie *trie, Definition def, int create)
-{ if ( true(trie, TRIE_COMPLETE) )
+{ if ( ison(trie, TRIE_COMPLETE) )
   { return unify_complete_or_invalid(t, trie, def, create);
   } else
   { worklist *wl = trie->data.worklist;
@@ -3309,7 +3309,7 @@ unify_table_status(DECL_LD term_t t, trie *trie, Definition def, int create)
 #define table_status(trie) LDFUNC(table_status, trie)
 static atom_t
 table_status(DECL_LD trie *trie)
-{ if ( true(trie, TRIE_COMPLETE) )
+{ if ( ison(trie, TRIE_COMPLETE) )
   { return complete_or_invalid_status(trie, FALSE);
   } else
   { worklist *wl = trie->data.worklist;
@@ -3327,7 +3327,7 @@ table_status(DECL_LD trie *trie)
 static int
 table_is_incomplete(trie *trie)
 { return ( WL_IS_WORKLIST(trie->data.worklist) &&
-	   false(trie, TRIE_COMPLETE) );
+	   isoff(trie, TRIE_COMPLETE) );
 }
 
 
@@ -3340,7 +3340,7 @@ unify_skeleton(DECL_LD trie *atrie, term_t wrapper, term_t skeleton)
        unify_trie_term(atrie->data.variant, NULL, wrapper) )
   { worklist *wl = atrie->data.worklist;
     Definition def = WL_IS_WORKLIST(wl) ? wl->predicate : NULL;
-    int flags = true(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
+    int flags = ison(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
     return ( get_answer_table(def, wrapper, skeleton,
 			      NULL, flags|AT_NOCLAIM) != NULL);
   }
@@ -3439,7 +3439,7 @@ destroy_answer_trie(trie *atrie)
     { DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
 	    print_answer_table(atrie, "Delete answer trie for"));
 
-      if ( true(atrie, TRIE_ISSHARED) )
+      if ( ison(atrie, TRIE_ISSHARED) )
       { COMPLETE_WORKLIST(atrie,		/* lock might be overkill */
 			  reset_answer_table(atrie, FALSE));
       } else
@@ -3478,7 +3478,7 @@ abolish_table(trie *atrie)
 #ifdef O_PLMT
       int mytid = PL_thread_self();
 
-      if ( true(atrie, TRIE_ISSHARED) )
+      if ( ison(atrie, TRIE_ISSHARED) )
       { LOCK_SHARED_TABLE(atrie);
 	if ( !atrie->tid )			/* no owner */
 	{ take_trie(atrie, mytid);
@@ -3594,11 +3594,11 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     int rc;
 
 #ifdef O_PLMT
-    DEBUG(0, assert(false(wl->table, TRIE_ISSHARED) || wl->table->tid));
+    DEBUG(0, assert(isoff(wl->table, TRIE_ISSHARED) || wl->table->tid));
 #endif
 
     kp = valTermRef(A2);
-    if ( true(wl->table, TRIE_ISMAP) )
+    if ( ison(wl->table, TRIE_ISMAP) )
       return !!wkl_mode_add_answer(wl, wl->table, A2, A3);
 
     sa.size = pred_max_table_answer_size(wl->predicate);
@@ -3625,7 +3625,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 
       if ( node->value )
       { if ( node->value == ATOM_trienode )
-	{ if ( true(node, TN_IDG_DELETED) )
+	{ if ( ison(node, TN_IDG_DELETED) )
 	  { clear(node, TN_IDG_DELETED);
 	    goto update_dl;
 	  } else
@@ -3770,7 +3770,7 @@ add_subsuming_answer(DECL_LD worklist *wl, trie *atrie, trie_node *root, term_t 
   vp = valTermRef(margs);
   rc = trie_lookup(atrie, root, &node, vp, TRUE, NULL);
   if ( rc == TRUE )
-  { if ( false(node, TN_SECONDARY) )
+  { if ( isoff(node, TN_SECONDARY) )
     { node->value = ATOM_trienode;
       set(node, TN_SECONDARY);
 
@@ -3785,7 +3785,7 @@ add_subsuming_answer(DECL_LD worklist *wl, trie *atrie, trie_node *root, term_t 
       }
       return node;
     } else
-    { if ( true(node, TN_IDG_DELETED) )
+    { if ( ison(node, TN_IDG_DELETED) )
 	clear(node, TN_IDG_DELETED);
 
       if ( wl && answer_is_conditional(node) )
@@ -3816,7 +3816,7 @@ static void *
 update_subsuming_answer(trie_node *node, void *ptr)
 { sa_context *ctx = ptr;
 
-  if ( true(node, TN_SECONDARY) )
+  if ( ison(node, TN_SECONDARY) )
   { GET_LD
     predicate_t PRED_update7;
     term_t av = ctx->argv;
@@ -3958,8 +3958,8 @@ wkl_mode_add_answer(DECL_LD worklist *wl, trie *atrie,
 
   rc = trie_lookup(atrie, NULL, &root, kp, TRUE, NULL);
   if ( rc == TRUE )
-  { if ( true(root, TN_PRIMARY) )
-    { if ( true(root, TN_IDG_DELETED) )
+  { if ( ison(root, TN_PRIMARY) )
+    { if ( ison(root, TN_IDG_DELETED) )
       { clear(root, TN_IDG_DELETED);
 	 DEBUG(MSG_TABLING_MODED,
 	       Sdprintf("First answer while re-evaluating\n"));
@@ -4243,7 +4243,7 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
 static int
 tbl_unify_answer(DECL_LD trie_node *node, term_t term)
 { if ( node )
-  { if ( unlikely(true(node, TN_SECONDARY)) )
+  { if ( unlikely(ison(node, TN_SECONDARY)) )
     { term_t av = PL_new_term_refs(2);
 
       return ( unify_trie_term(node, &node, av+1) &&
@@ -4262,7 +4262,7 @@ tbl_unify_answer(DECL_LD trie_node *node, term_t term)
 static int
 tbl_put_moded_args(DECL_LD term_t t, trie_node *node)
 { if ( node )
-  { if ( unlikely(true(node, TN_SECONDARY)) )
+  { if ( unlikely(ison(node, TN_SECONDARY)) )
       return unify_trie_term(node, NULL, t);
     else
       return put_trie_value(t, node); /* TBD: Can become ATOM_trienode */
@@ -4566,10 +4566,10 @@ tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
       return FALSE;
 
     if ( is_monotonic &&
-	 def->tabling && true(def->tabling, TP_MONOTONIC) &&
+	 def->tabling && ison(def->tabling, TP_MONOTONIC) &&
 	 ( LD->tabling.in_assert_propagation ||
 	   inner_is_monotonic() ) )
-    { assert(true(environment_frame, FR_INRESET));
+    { assert(ison(environment_frame, FR_INRESET));
       if ( !PL_unify_bool(is_monotonic, TRUE) )
 	return FALSE;
     }
@@ -4827,7 +4827,7 @@ wls_reeval_complete(worklist **wls, size_t ntables)
 static int
 unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
 { trie *atrie = scc->leader;
-  Procedure proc = (true(atrie, TRIE_ISMAP)
+  Procedure proc = (ison(atrie, TRIE_ISMAP)
 			     ? GD->procedures.trie_gen_compiled3
 			     : GD->procedures.trie_gen_compiled2);
   atom_t clref = compile_trie(proc->definition, atrie);
@@ -4876,7 +4876,7 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      if ( true(atrie, TRIE_ABOLISH_ON_COMPLETE) )
+      if ( ison(atrie, TRIE_ABOLISH_ON_COMPLETE) )
       { atrie->data.worklist = NULL;
 	wl->table = NULL;
 	destroy_answer_trie(atrie);
@@ -5293,7 +5293,7 @@ put_delay_set(DECL_LD term_t cond, delay_info *di, delay_set *set,
 	return FALSE;
       }
 
-      if ( true(top->answer, TN_SECONDARY) ) /* Ret/ModeArgs */
+      if ( ison(top->answer, TN_SECONDARY) ) /* Ret/ModeArgs */
       { if ( !tbl_unify_answer(top->answer, ans) ||
 	     !PL_get_arg(1, ans, tmp) ||
 	     !PL_unify(tmp, ret) ||
@@ -5575,7 +5575,7 @@ static int
 is_tabled(Definition def)
 { table_props *props;
 
-  return (props=def->tabling) && true(props, TP_TABLED);
+  return (props=def->tabling) && ison(props, TP_TABLED);
 }
 
 
@@ -5752,7 +5752,7 @@ lg_clauses(DECL_LD idg_mdep *mdep, mono_dep_status *s)
       { ClauseRef cref = clause_clref(word2atom(*base));
 	Clause cl = cref->value.clause;
 
-	if ( !true(cl, CL_ERASED) )
+	if ( !ison(cl, CL_ERASED) )
 	{ if ( cl->generation.created < GEN_TRANSACTION_BASE )
 	    s->global_clauses++;
 	  else if ( cl->generation.created >= LD->transaction.gen_base &&
@@ -5904,7 +5904,7 @@ tt_add_answer(DECL_LD trie *atrie, trie_node *node)
 	a->atrie  = atrie;
 	a->answer = node;
 
-	if ( false(atrie, TRIE_ISTRACKED) )
+	if ( isoff(atrie, TRIE_ISTRACKED) )
 	  set(atrie, TRIE_ISTRACKED);
       }
     }
@@ -6276,8 +6276,8 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	  Sdprintf(" [fc=%d]\n", parent->falsecount);
 	});
 
-  if ( true(parent->atrie, TRIE_ISSHARED) &&
-       false(child->atrie, TRIE_ISSHARED) )
+  if ( ison(parent->atrie, TRIE_ISSHARED) &&
+       isoff(child->atrie, TRIE_ISSHARED) )
     return idg_dependency_error(parent, child);
 
   if ( !(t=child->affected) )
@@ -6347,13 +6347,13 @@ idg_init_variant(DECL_LD trie *atrie, Definition def, term_t variant)
 	return FALSE;
     }
 
-    if ( (def->tabling && true(def->tabling, TP_MONOTONIC|TP_INCREMENTAL)) )
+    if ( (def->tabling && ison(def->tabling, TP_MONOTONIC|TP_INCREMENTAL)) )
     { idg_node *n = idg_new(atrie);
 
       if ( def->tabling )
-      { if ( true(def->tabling, TP_MONOTONIC) )
+      { if ( ison(def->tabling, TP_MONOTONIC) )
 	  n->monotonic = TRUE;
-	if ( true(def->tabling, TP_LAZY) )
+	if ( ison(def->tabling, TP_LAZY) )
 	  n->lazy = TRUE;
       }
 
@@ -6488,7 +6488,7 @@ trie_for_dynamic_predicate(DECL_LD Definition def, trie *ctrie, term_t variant)
 { trie *atrie;
   int flags = (AT_CREATE|AT_NOCLAIM);
 
-  if ( true(ctrie, TRIE_ISSHARED) )
+  if ( ison(ctrie, TRIE_ISSHARED) )
   { flags |= AT_SHARED;
 
     /* a shared table cannot depend on a thread-local predicate */
@@ -6497,11 +6497,11 @@ trie_for_dynamic_predicate(DECL_LD Definition def, trie *ctrie, term_t variant)
     { Procedure proc;
 
       if ( get_procedure(variant, &proc, 0, GP_RESOLVE) &&
-	   true(proc->definition, P_THREAD_LOCAL) )
+	   ison(proc->definition, P_THREAD_LOCAL) )
       { return idg_dependency_error_dyncall(ctrie->data.IDG,
 					    variant),NULL;
       }
-    } else if ( true(def, P_THREAD_LOCAL) )
+    } else if ( ison(def, P_THREAD_LOCAL) )
     { return idg_dependency_error_dyncall(ctrie->data.IDG, variant),NULL;
     }
   } else
@@ -7053,7 +7053,7 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 	{ n->force_reeval = FALSE;
 
 #ifdef O_PLMT
-	  if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
+	  if ( ison(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
 	  { if ( n->atrie->tid == PL_thread_self() ) /* See (*) */
 	      COMPLETE_WORKLIST(n->atrie, (void)0);
 	    else
@@ -7345,7 +7345,7 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
   { if ( isAtom(*base) )
     { ClauseRef cref = clause_clref(word2atom(*base));
 
-      if ( !true(cref->value.clause, CL_ERASED) )
+      if ( !ison(cref->value.clause, CL_ERASED) )
       { if ( !PL_unify_list(tail, head, tail) ||
 	     !PL_unify_atom(head, word2atom(*base)) )
 	  return -1;
@@ -7442,14 +7442,14 @@ idg_add_monotonic_edge(DECL_LD trie *src_trie, trie *dst_trie, term_t dep)
   { if ( sn->monotonic && !sn->lazy )
       sn->falsecount = 0;			/* (*) */
 
-    if ( def->tabling && true(def->tabling, TP_MONOTONIC) )
+    if ( def->tabling && ison(def->tabling, TP_MONOTONIC) )
       return idg_add_child(dn, sn, dep, def->tabling->flags);
     else
       return TRUE;				/* monotonic --> incremental */
   }
 
   if ( def->tabling &&
-       true(def->tabling, TP_OPAQUE) )
+       ison(def->tabling, TP_OPAQUE) )
     return TRUE;				/* monotonic --> opaque */
 
   return idg_dependency_error_mono(src_trie, dst_trie);
@@ -7575,7 +7575,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
     { Sdprintf("Monotonic propagation to non-monotonic table??\n");
       idg_changed(atrie, IDG_CHANGED_NODE);
       return FALSE;
-    } else if ( true(atrie, TRIE_ISMAP) )	/* answer subsumption */
+    } else if ( ison(atrie, TRIE_ISMAP) )	/* answer subsumption */
     { trie_node *node = wkl_mode_add_answer(NULL, atrie, A2, 0);
 
       if ( node )
@@ -7638,7 +7638,7 @@ inner_is_monotonic(DECL_LD)
        (dep=idg_current()) )
   { Definition def = dep->data.predicate;
 
-    if ( def->tabling && true(def->tabling, TP_MONOTONIC) )
+    if ( def->tabling && ison(def->tabling, TP_MONOTONIC) )
       return TRUE;
   }
 
@@ -7675,7 +7675,7 @@ PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
 
 static void *
 mono_reeval_prep_node(trie_node *n, void *ctx)
-{ if ( n->value && true(n, TN_SECONDARY) )
+{ if ( n->value && ison(n, TN_SECONDARY) )
     set(n, TN_IDG_AS_LAST);
   else
     clear(n, TN_IDG_AS_LAST);
@@ -7710,7 +7710,7 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
       idg->lazy_queued = FALSE;		/* trap that new answers are queued */
       idg->mono_reevaluating = TRUE;
       idg->tt_new_dep = FALSE;		/* see idg_add_child() */
-      if ( true(atrie, TRIE_ISMAP) )
+      if ( ison(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
       return PL_unify_integer(A2, atrie->value_count);
@@ -7776,14 +7776,14 @@ static void *
 mono_reeval_done_node(trie_node *n, void *ctx)
 { int *gc = ctx;
 
-  if ( n->value && true(n, TN_SECONDARY) )
-  { if ( true(n, TN_IDG_AS_LAST) )
+  if ( n->value && ison(n, TN_SECONDARY) )
+  { if ( ison(n, TN_IDG_AS_LAST) )
     { clear(n, TN_IDG_AS_LAST);
       return NULL;				/* same aggregated value */
     }
     return n;					/* new aggregated value */
   }
-  if ( true(n, TN_IDG_AS_LAST) )
+  if ( ison(n, TN_IDG_AS_LAST) )
   { clear(n, TN_IDG_AS_LAST);			/* deleted aggregated value */
     return n;
   }
@@ -7827,7 +7827,7 @@ mdep_is_empty(idg_mdep *mdep)
       { if ( isAtom(*base) )
 	{ ClauseRef cref = clause_clref(word2atom(*base));
 
-	  if ( !true(cref->value.clause, CL_ERASED) )
+	  if ( !ison(cref->value.clause, CL_ERASED) )
 	    return FALSE;
 	} else
 	{ trie_node *an = word2ptr(trie_node *, *base);
@@ -8053,7 +8053,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 	DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(atrie, "%d answers (same)", vc));
 
-	if ( true(atrie, TRIE_ISMAP) )
+	if ( ison(atrie, TRIE_ISMAP) )
 	{ int gc = 0;
 	  int queue;
 
@@ -8344,7 +8344,7 @@ PRED_IMPL("$tbl_reeval_prepare_top", 2, tbl_reeval_prepare_top, 0)
   { idg_node *idg = atrie->data.IDG;
 
 #ifdef O_PLMT
-    if ( true(atrie, TRIE_ISSHARED) )
+    if ( ison(atrie, TRIE_ISSHARED) )
     { atom_t cref = 0;
 
       if ( !claim_answer_table(atrie, &cref, 0) )
@@ -8355,7 +8355,7 @@ PRED_IMPL("$tbl_reeval_prepare_top", 2, tbl_reeval_prepare_top, 0)
 #endif
 
     if ( idg->falsecount == 0 && !idg->force_reeval) /* someone else re-evaluated it */
-    { if ( true(atrie, TRIE_ISMAP) )
+    { if ( ison(atrie, TRIE_ISMAP) )
 	return PL_unify_integer(A2, 0);
       else
 	return PL_unify_atom(A2, trie_symbol(atrie));
@@ -8386,7 +8386,7 @@ PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
       return FALSE;
 
 #ifdef O_PLMT
-    if ( true(atrie, TRIE_ISSHARED) )
+    if ( ison(atrie, TRIE_ISSHARED) )
     { atom_t cref = 0;
 
       if ( !claim_answer_table(atrie, &cref, 0) )
@@ -8442,17 +8442,17 @@ reeval_complete_node(trie_node *n, void *ctx)
     return NULL;
   }
 
-  if ( true(n, TN_IDG_DELETED) )
+  if ( ison(n, TN_IDG_DELETED) )
   { clear(n, TN_IDG_DELETED);		/* not used by trie admin */
     trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
-    if ( false(n, TN_IDG_UNCONDITIONAL) )
+    if ( isoff(n, TN_IDG_UNCONDITIONAL) )
       simplify_answer(atrie->data.worklist, n, FALSE);
     DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Not reappeared");
-  } else if ( true(n, TN_IDG_UNCONDITIONAL) &&
+  } else if ( ison(n, TN_IDG_UNCONDITIONAL) &&
 	      answer_is_conditional(n) )
   { atrie->data.IDG->new_answer = TRUE;
     DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Got conditional");
-  } else if ( false(n, TN_IDG_UNCONDITIONAL) &&
+  } else if ( isoff(n, TN_IDG_UNCONDITIONAL) &&
 	      !answer_is_conditional(n) )
   { atrie->data.IDG->new_answer = TRUE;
     DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Got UNconditional");
@@ -8530,7 +8530,7 @@ reset_evaluate_node(trie_node *n, void *ctx)
     n->data.delayinfo = NULL;
   }
 
-  if ( true(n, TN_IDG_ADDED) )
+  if ( ison(n, TN_IDG_ADDED) )
   { trie_delete(atrie, n, FALSE);	/* we are enumerating this node */
   } else				/* and cannot delete it (now) */
   { set(n, TN_IDG_DELETED);
@@ -8664,17 +8664,17 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
   { GET_LD
 
     if ( att == ATOM_monotonic )
-    { return PL_unify_integer(value, !!true(p, TP_MONOTONIC));
+    { return PL_unify_integer(value, !!ison(p, TP_MONOTONIC));
     } else if ( att == ATOM_incremental )
-    { return PL_unify_integer(value, !!true(p, TP_INCREMENTAL));
+    { return PL_unify_integer(value, !!ison(p, TP_INCREMENTAL));
     } else if ( att == ATOM_tshared )
-    { return PL_unify_integer(value, !!true(p, TP_SHARED));
+    { return PL_unify_integer(value, !!ison(p, TP_SHARED));
     } else if ( att == ATOM_opaque )
-    { return PL_unify_integer(value, !!true(p, TP_OPAQUE));
+    { return PL_unify_integer(value, !!ison(p, TP_OPAQUE));
     } else if ( att == ATOM_lazy )
-    { return PL_unify_integer(value, !!true(p, TP_LAZY));
+    { return PL_unify_integer(value, !!ison(p, TP_LAZY));
     } else if ( att == ATOM_tabled )
-    { return PL_unify_integer(value, !!true(p, TP_TABLED));
+    { return PL_unify_integer(value, !!ison(p, TP_TABLED));
     } else
     { size_t v0;
 
@@ -8717,7 +8717,7 @@ get_size_or_inf(DECL_LD term_t t, size_t *vp)
 void
 tbl_set_incremental_predicate(Definition def, int val)
 { table_props *p = get_predicate_table_props(def);
-  int now = !!true(p, TP_INCREMENTAL);
+  int now = !!ison(p, TP_INCREMENTAL);
 
   if ( !!val != now )
   { if ( val )
@@ -9040,7 +9040,7 @@ tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
 
 static int
 table_needs_work(trie *atrie)
-{ if ( true(atrie, TRIE_COMPLETE) )
+{ if ( ison(atrie, TRIE_COMPLETE) )
   { idg_node *n;
 
     if ( (n=atrie->data.IDG) )
@@ -9075,7 +9075,7 @@ reduce contention.
 
 static int
 claim_answer_table(DECL_LD trie *atrie, atom_t *clrefp, int flags)
-{ if ( true(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
+{ if ( ison(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
   { int mytid = PL_thread_self();
     volatile atom_t clref = 0;
 

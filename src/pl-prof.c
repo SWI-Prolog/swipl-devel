@@ -871,7 +871,7 @@ prof_clear_environments(DECL_LD LocalFrame fr)
     return NULL;
 
   for(;;)
-  { if ( true(fr, FR_MARKED) )
+  { if ( ison(fr, FR_MARKED) )
       return NULL;
     set(fr, FR_MARKED);
     LD->gc._local_frames++;
@@ -1146,7 +1146,7 @@ prof_call(DECL_LD void *handle, PL_prof_type_t *type)
 
 call_node *
 profCall(DECL_LD Definition def)
-{ if ( true(def, P_NOPROFILE) )
+{ if ( ison(def, P_NOPROFILE) )
     return LD->profile.current;
 
   acquireModulePtr(def->module);

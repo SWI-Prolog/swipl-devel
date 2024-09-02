@@ -990,7 +990,7 @@ Load intermediate code state from the  specified stream. rcpath contains
 the ZIP file name.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 loadWicFromStream(const char *rcpath, IOSTREAM *fd)
 { wic_state state;
   int rval;
@@ -2714,10 +2714,10 @@ static unsigned int
 clauseFlags(const Clause clause)
 { unsigned int flags = 0;
 
-  if ( true(clause, UNIT_CLAUSE) )       flags |= CLAUSE_UNIT_CLAUSE;
-  if ( true(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
-  if ( true(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
-  if ( true(clause, CL_HEAD_TERMS) )     flags |= CLAUSE_HEAD_TERMS;
+  if ( ison(clause, UNIT_CLAUSE) )       flags |= CLAUSE_UNIT_CLAUSE;
+  if ( ison(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
+  if ( ison(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
+  if ( ison(clause, CL_HEAD_TERMS) )     flags |= CLAUSE_HEAD_TERMS;
 
   return flags;
 }
@@ -2958,16 +2958,16 @@ predicateFlags(Definition def, atom_t sclass)
 { unsigned int flags = 0;
 
   if ( sclass == ATOM_kernel )
-  { if ( true(def, P_LOCKED) && false(def, HIDE_CHILDS) )
+  { if ( ison(def, P_LOCKED) && isoff(def, HIDE_CHILDS) )
       return PRED_SYSTEM;
     return (PRED_SYSTEM|PRED_HIDE_CHILDS);
   }
 
-  if ( true(def, P_LOCKED) )
+  if ( ison(def, P_LOCKED) )
     flags |= PRED_SYSTEM;
-  if ( true(def, HIDE_CHILDS) )
+  if ( ison(def, HIDE_CHILDS) )
     flags |= PRED_HIDE_CHILDS;
-  if ( true(def, P_DET) )
+  if ( ison(def, P_DET) )
     flags |= PRED_DET;
 
   return flags;
@@ -3988,7 +3988,7 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
   assert(V_LABEL > I_HIGHEST);
 
   if ( !PL_scan_options(A2, 0, "state_option", open_wic_options,
-		     &obfuscate) )
+			&obfuscate) )
     fail;
 
   if ( PL_get_stream_handle(A1, &fd) )

@@ -1750,9 +1750,9 @@ fatalError(const char *fm, ...)
 }
 
 
-int
+bool
 warning(const char *fm, ...)
-{ int rc;
+{ bool rc;
   va_list args;
 
   va_start(args, fm);
@@ -1871,8 +1871,8 @@ vsysError(const char *errtype, const char *fm, va_list args)
   save_backtrace(errtype);
   printCrashContext(errtype);
 
-  if ( !(true(Sinput, SIO_ISATTY) &&
-	 true(Serror, SIO_ISATTY)) ||
+  if ( !(ison(Sinput, SIO_ISATTY) &&
+	 ison(Serror, SIO_ISATTY)) ||
        GD->bootsession )
     PL_abort_process();			/* non-interactive or booting */
 
@@ -1962,7 +1962,7 @@ move the rest of the warnings gradually. For this reason we make a term
 Where ListOfLines is a list of string objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 vwarning(const char *fm, va_list args)
 { GET_LD
   toldString();				/* play safe */

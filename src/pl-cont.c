@@ -184,7 +184,7 @@ put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
 
   cref = lookup_clref(cl);
   *p++ = env_functor(slots);
-  if ( false(fr->predicate, P_TRANSPARENT) )
+  if ( isoff(fr->predicate, P_TRANSPARENT) )
     *p++ = ATOM_nil;
   else
     *p++ = contextModule(fr)->name;

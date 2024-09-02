@@ -64,15 +64,6 @@
 #include <dlfcn.h>
 #endif
 
-/* MacOS (re-)defines bool, true and false.  This is a bit unelegant,
-   but it works
-*/
-#undef false
-#undef true
-#undef bool
-#define true(s, a)		((s)->flags & (a))
-#define false(s, a)		(!true((s), (a)))
-
 #undef LD			/* Get at most once per function */
 #define LD LOCAL_LD
 
@@ -778,7 +769,7 @@ annotate_unify(DECL_LD Word p1, Word p2, CompileInfo ci)
   if ( (vd=is_argument_var(p1, ci)) )
   { deRef(p2);
 
-    if ( false(vd, VD_ARGUMENT) && !isVarInfo(*p2) && !isVar(*p2) )
+    if ( isoff(vd, VD_ARGUMENT) && !isVarInfo(*p2) && !isVar(*p2) )
     { set(vd, VD_ARGUMENT);
       vd->arg_value = p2;
 
@@ -902,13 +893,13 @@ right_recursion:
     { pushBranchVar(ci, vd);
     } else
     { if ( (debugstatus.styleCheck&VARBRANCH_CHECK) )
-      { if ( true(vd, VD_MAYBE_UNBALANCED) && false(vd, VD_UNBALANCED) )
+      { if ( ison(vd, VD_MAYBE_UNBALANCED) && isoff(vd, VD_UNBALANCED) )
 	{ set(vd, VD_UNBALANCED);
 	  compiler_warning(ci, "unbalanced_var", vd->address);
 	}
       }
       if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
-      { if ( true(vd, VD_MAYBE_SINGLETON) )
+      { if ( ison(vd, VD_MAYBE_SINGLETON) )
 	{ assert(vd->times > 1);
 	  DEBUG(MSG_COMP_VARS,
 		Sdprintf("Not a singleton: %p\n", vd->address));
@@ -951,7 +942,7 @@ right_recursion:
 	ci->argvars++;
 
 	return nvars;
-      } else if ( false(fd, CONTROL_F) )
+      } else if ( isoff(fd, CONTROL_F) )
       { size_t ar = fd->arity;
 
 	ci->subclausearg++;
@@ -1046,7 +1037,7 @@ right_recursion:
 	  }
 	  if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
 	  { if ( (bv->saved_times == 1) || (vd->times == 1) )
-	    { if ( false(vd, VD_MAYBE_SINGLETON) )
+	    { if ( isoff(vd, VD_MAYBE_SINGLETON) )
 	      { set(vd, VD_MAYBE_SINGLETON);
 		DEBUG(MSG_COMP_VARS,
 		      Sdprintf("Possible singleton: %p\n", vd->address));
@@ -1137,7 +1128,7 @@ right_recursion:
       head = f->arguments;
       argn = ( argn < 0 ? 0 : ci->arity );
 
-      if ( control && false(fd, CONTROL_F) )
+      if ( control && isoff(fd, CONTROL_F) )
 	control = FALSE;
 
       for(; --ar > 0; head++, argn++)
@@ -1206,9 +1197,9 @@ analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
     if ( !vd->address )
       continue;
     if ( vd->name && (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
-    { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
+    { if ( ison(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
 	   atom_is_named_var(vd->name) > 0 )
-      { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
+      { const char *type = ( ison(vd, VD_MAYBE_SINGLETON) ?
 				  "branch_singleton" : "negation_singleton" );
 	compiler_warning(ci, type, vd->address);
       } else if ( vd->times > 1 && atom_is_named_var(vd->name) < 0 )
@@ -1382,7 +1373,7 @@ static Word
 argUnifiedTo(DECL_LD word w)
 { VarDef v = varInfo(w);
 
-  if ( true(v, VD_ARGUMENT) )
+  if ( ison(v, VD_ARGUMENT) )
     return v->arg_value;
 
   return NULL;
@@ -1884,7 +1875,7 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
     ci->argvars       = 0;
     ci->head_unify    = ( (flags&SSU_CHOICE_CLAUSE) ||
 			 (  !(flags & (SSU_COMMIT_CLAUSE)) &&
-			   false(def, P_DYNAMIC) &&
+			   isoff(def, P_DYNAMIC) &&
 			   truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
 			 )
 		      );
@@ -1993,12 +1984,12 @@ that have an I_CONTEXT because we need to reset the context.
 	  assert(0);
       }
 					/* ok; all live in the same module */
-      if ( false(def, P_MFCONTEXT) &&
+      if ( isoff(def, P_MFCONTEXT) &&
 	   ci->module != def->module &&
-	   false(proc->definition, P_TRANSPARENT) )
+	   isoff(proc->definition, P_TRANSPARENT) )
 	set(def, P_MFCONTEXT);
 
-      if ( true(def, P_MFCONTEXT) )
+      if ( ison(def, P_MFCONTEXT) )
       { set(&clause, CL_BODY_CONTEXT);
 	Output_1(ci, I_CONTEXT, ptr2code(ci->module));
       }
@@ -2281,7 +2272,7 @@ right_argument:
   { functor_t fd = functorTerm(*body);
     FunctorDef fdef = valueFunctor(fd);
 
-    if ( true(fdef, CONTROL_F) )
+    if ( ison(fdef, CONTROL_F) )
     { if ( fd == FUNCTOR_comma2 )			/* A , B */
       { int rv;
 
@@ -2910,14 +2901,14 @@ lookupBodyProcedure(functor_t functor, Module tm)
 
   if ( (proc = isCurrentProcedure(functor, tm)) &&
        ( isDefinedProcedure(proc) ||
-	 true(proc->definition, P_REDEFINED)
+	 ison(proc->definition, P_REDEFINED)
        )
      )
     return proc;
 
   if ( tm != MODULE_system &&
        (proc = isCurrentProcedure(functor, MODULE_system)) &&
-       true(proc->definition, P_ISO) &&
+       ison(proc->definition, P_ISO) &&
        !GD->bootsession )
     return proc;
 
@@ -3002,7 +2993,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     if ( !isTextAtom(fdef->name) && fdef->name != ATOM_nil )
       return NOT_CALLABLE;
 
-    if ( true(fdef, ARITH_F) && !ci->islocal )
+    if ( ison(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
 	   compileSimpleAddition(arg, ci) )
 	succeed;
@@ -3272,7 +3263,7 @@ lco(CompileInfo ci, size_t pc0)
     const code_info *vmi = &codeTable[c];
     int bv;
 
-    if ( false(vmi, VIF_LCO) )
+    if ( isoff(vmi, VIF_LCO) )
     { no_lco:
       seekBuffer(&(ci)->codes, pcz, code);
       return;
@@ -3389,7 +3380,7 @@ compileArith(DECL_LD Word arg, compileInfo *ci)
   else if ( fdef == FUNCTOR_is2 )				/* is */
   { size_t tc_a1 = PC(ci);
     code isvar;
-    int rc;
+    bool rc;
 
     rc=compileArgument(argTermP(*arg, 0), A_BODY, ci);
     if ( rc != TRUE )
@@ -3456,7 +3447,7 @@ arithVarOffset(DECL_LD Word arg, compileInfo *ci, int *offp)
 }
 
 
-static int
+static bool
 compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 { int index;
   int rc;
@@ -3655,7 +3646,7 @@ isUnifiedArg(DECL_LD Word a1, Word a2)
 { if ( isVarInfo(*a1) )
   { VarDef vd = varInfo(*a1);
 
-    if ( true(vd, VD_ARGUMENT) &&
+    if ( ison(vd, VD_ARGUMENT) &&
 	 vd->arg_value == a2 )
       return TRUE;
   }
@@ -4403,7 +4394,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
       if ( !isDefinedProcedure(proc) )
       { if ( SYSTEM_MODE )
-	{ if ( false(def, P_LOCKED) )
+	{ if ( isoff(def, P_LOCKED) )
 	    set(def, HIDE_CHILDS|P_LOCKED);
 	} else
 	{ if ( truePrologFlag(PLFLAG_DEBUGINFO) )
@@ -4442,7 +4433,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( false(def, P_DYNAMIC) )
+  if ( isoff(def, P_DYNAMIC) )
   { if ( isDefinedProcedure(proc) )
     { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     derror:
@@ -4552,7 +4543,7 @@ record_clause(DECL_LD term_t term, term_t owner, term_t source, term_t ref)
 
   if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0)) )
   { if ( ref )
-    { assert(false(clause, CL_ERASED));
+    { assert(isoff(clause, CL_ERASED));
       return PL_unify_clref(ref, clause);
     } else
       return TRUE;
@@ -5001,7 +4992,7 @@ compiling a clause into a different module, as in
 
 Module
 clauseBodyContext(const Clause cl)
-{ if ( true(cl, CL_BODY_CONTEXT) )
+{ if ( ison(cl, CL_BODY_CONTEXT) )
   { Code PC = cl->codes;
 
     for(;; PC = stepPC(PC))
@@ -5059,7 +5050,7 @@ typedef struct
 
 #define LDFUNC_DECLARATIONS
 
-static int decompile_head(Clause, term_t, decompileInfo *);
+static bool decompile_head(Clause, term_t, decompileInfo *);
 static int decompileBody(term_t body, decompileInfo *, code, Code);
 static int decompileBodyNoShift(decompileInfo *, code, Code);
 static int build_term(functor_t f, decompileInfo *di, int dir);
@@ -5309,7 +5300,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 
   PC = clause->codes;
 
-  if ( true(clause, GOAL_CLAUSE) )
+  if ( ison(clause, GOAL_CLAUSE) )
     return PL_unify_atom(head, ATOM_dcall);
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
@@ -5626,14 +5617,14 @@ decompile(Clause clause, term_t term, term_t bindings)
   } else
     di->variables = 0;
 
-  if ( true(clause, CL_HEAD_TERMS) )
+  if ( ison(clause, CL_HEAD_TERMS) )
   { di->bvar_access = alloca(sizeof_bitvector(di->arity));
     init_bitvector(di->bvar_access, di->arity);
     if ( !mark_bvar_access(clause, di) )
       return FALSE;
   }
 
-  if ( true(clause, UNIT_CLAUSE) )	/* fact */
+  if ( ison(clause, UNIT_CLAUSE) )	/* fact */
   { if ( decompile_head(clause, term, di) )
     { if ( di->variables )
 	PL_reset_term_refs(di->variables);
@@ -6555,7 +6546,7 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
   if ( PL_is_variable(head) )
   { if ( !(how&GP_QUALIFY) &&
 	 (def->module == ctx ||
-	  ((how&GP_HIDESYSTEM) && true(def->module, M_SYSTEM))) )
+	  ((how&GP_HIDESYSTEM) && ison(def->module, M_SYSTEM))) )
     { if ( !unify_functor(head, def->functor->functor, how) )
 	return FALSE;
       if ( thehead )
@@ -6663,8 +6654,8 @@ unify_head(DECL_LD term_t h, term_t d)
 #define protected_predicate(def) LDFUNC(protected_predicate, def)
 static int
 protected_predicate(DECL_LD Definition def)
-{ if ( true(def, P_FOREIGN) ||
-       (   false(def, (P_DYNAMIC|P_CLAUSABLE)) &&
+{ if ( ison(def, P_FOREIGN) ||
+       (   isoff(def, (P_DYNAMIC|P_CLAUSABLE)) &&
 	   (   truePrologFlag(PLFLAG_PROTECT_STATIC_CODE) ||
 	       truePrologFlag(PLFLAG_ISO)
 	   )
@@ -6728,7 +6719,7 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
 	  def = clause->predicate;
-	  if ( true(clause, GOAL_CLAUSE) )
+	  if ( ison(clause, GOAL_CLAUSE) )
 	  { tmp = head;
 	  } else
 	  { tmp = PL_new_term_ref();
@@ -6750,7 +6741,7 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
       if ( !get_procedure(head, &proc, 0, GP_FIND) )
 	return FALSE;
       def = getProcDefinition(proc);
-      if ( !isDefinedProcedure(proc) && true(def, P_AUTOLOAD) )
+      if ( !isDefinedProcedure(proc) && ison(def, P_AUTOLOAD) )
 	def = trapUndefined(def);
 
       if ( protected_predicate(def) )
@@ -6905,7 +6896,7 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
     { int i;
       definition_ref *dref;
 
-      if ( true(clause, GOAL_CLAUSE) )
+      if ( ison(clause, GOAL_CLAUSE) )
 	return FALSE;			/* I do not belong to a predicate */
 
       def = clause->predicate;
@@ -6939,7 +6930,7 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
     definition_ref *dref;
 
     if ( !get_procedure(p, &proc, 0, GP_FIND) ||
-	 true(proc->definition, P_FOREIGN) )
+	 ison(proc->definition, P_FOREIGN) )
       return FALSE;
 
     def = getProcDefinition(proc);
@@ -7023,7 +7014,7 @@ wouldBindToDefinition(Definition from, Definition to)
 	succeed;
 
       if ( def->impl.any.defined ||	/* defined and not the same */
-	   true(def, PROC_DEFINED) ||
+	   ison(def, PROC_DEFINED) ||
 	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;
     }
@@ -8001,7 +7992,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   if ( pcoffset == (int)clause->code_size )
     return PL_unify_atom(A3, ATOM_exit);
 
-  if ( true(clause, GOAL_CLAUSE) )
+  if ( ison(clause, GOAL_CLAUSE) )
     add_node(tail, 2);			/* $call :- <Body> */
 
   while( PC < loc )
@@ -8417,7 +8408,7 @@ clear_second:
 
 int
 clearBreakPointsClause(Clause clause)
-{ if ( breakTable && true(clause, HAS_BREAKPOINTS) )
+{ if ( breakTable && ison(clause, HAS_BREAKPOINTS) )
   { int rc = TRUE;
 
     delayEvents();

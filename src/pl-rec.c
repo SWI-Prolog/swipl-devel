@@ -114,7 +114,7 @@ firstRecordRecordList(RecordList rl)
 { RecordRef record;
 
   for(record = rl->firstRecord; record; record = record->next)
-  { if ( false(record->record, R_ERASED) )
+  { if ( isoff(record->record, R_ERASED) )
       return record;
   }
 
@@ -172,7 +172,7 @@ cleanRecordList(RecordList rl)
   for(r = rl->firstRecord; r; r = next )
   { next = r->next;
 
-    if ( true(r->record, R_ERASED) )
+    if ( ison(r->record, R_ERASED) )
       remove_record(r);
   }
 }
@@ -417,7 +417,7 @@ addAtom(CompileInfo info, atom_t a)
   } else if ( unlikely(info->external) )
   { Atom ap = atomValue(a);
 
-    if ( true(ap->type, PL_BLOB_TEXT) )
+    if ( ison(ap->type, PL_BLOB_TEXT) )
     { if ( isUCSAtom(ap) )
 	addOpCode(info, PL_TYPE_EXT_WATOM);
       else
@@ -1799,11 +1799,11 @@ unregister_atom_rec(atom_t a)
 
 bool
 freeRecord(Record record)
-{ if ( true(record, R_DUPLICATE) && --record->references > 0 )
+{ if ( ison(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
 #ifdef O_ATOMGC
-  if ( false(record, (R_EXTERNAL|R_NOLOCK)) )
+  if ( isoff(record, (R_EXTERNAL|R_NOLOCK)) )
   { copy_info ci;
 
     DEBUG(3, Sdprintf("freeRecord(%p)\n", record));
@@ -1833,7 +1833,7 @@ unallocRecordRef(RecordRef r)
 
 static void
 freeRecordRef(RecordRef r)
-{ int reclaim_now = false(r->record, R_DBREF);
+{ int reclaim_now = isoff(r->record, R_DBREF);
 
   freeRecord(r->record);
   if ( reclaim_now )
@@ -2150,7 +2150,7 @@ free_state(recorded_state *state)
   if ( state->r )
   { RecordList rl = state->r->list;
 
-    if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+    if ( --rl->references == 0 && ison(rl, RL_DIRTY) )
       cleanRecordList(rl);
   }
   if ( state->saved )
@@ -2170,11 +2170,11 @@ advance_state(recorded_state *state)
   { if ( !r->next )
     { RecordList rl = r->list;
 
-      if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+      if ( --rl->references == 0 && ison(rl, RL_DIRTY) )
 	cleanRecordList(rl);
     }
     r = r->next;
-  } while ( r && true(r->record, R_ERASED) );
+  } while ( r && ison(r->record, R_ERASED) );
 
   state->r = r;
   return r;
@@ -2230,7 +2230,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	PL_LOCK(L_RECORD);
 	rl->references++;
 	state->r = rl->firstRecord;
-	if ( true(state->r->record, R_ERASED) )
+	if ( ison(state->r->record, R_ERASED) )
 	  advance_state(state);
       } else
       { return FALSE;
@@ -2403,11 +2403,11 @@ PRED_IMPL("instance", 2, instance, 0)
     Clause clause = cref->value.clause;
     gen_t generation = generationFrame(environment_frame);
 
-    if ( true(clause, GOAL_CLAUSE) ||
+    if ( ison(clause, GOAL_CLAUSE) ||
 	 !visibleClause(clause, generation) )
       return FALSE;
 
-    if ( true(clause, UNIT_CLAUSE) )
+    if ( ison(clause, UNIT_CLAUSE) )
     { term_t head = PL_new_term_ref();
 
       return ( decompile(clause, head, 0) &&
@@ -2415,7 +2415,7 @@ PRED_IMPL("instance", 2, instance, 0)
 			     PL_FUNCTOR, FUNCTOR_prove2,
 			       PL_TERM, head,
 			       PL_ATOM, ATOM_true) );
-    } else if ( true(clause, SSU_CHOICE_CLAUSE) )
+    } else if ( ison(clause, SSU_CHOICE_CLAUSE) )
     { term_t tmp = PL_new_term_ref();
 
       return ( decompile(clause, tmp, 0) &&
@@ -2452,7 +2452,7 @@ PRED_IMPL("erase", 1, erase, 0)
     Clause clause = cref->value.clause;
     Definition def = clause->predicate;
 
-    if ( !true(def, P_DYNAMIC) )
+    if ( !ison(def, P_DYNAMIC) )
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 

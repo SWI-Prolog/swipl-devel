@@ -425,7 +425,7 @@ prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
     state->bufsize    = sizeof(state->buf);
 
     tellString(&state->str, &state->bufsize, ENC_UTF8);
-    if ( true(fd, SIO_ISATTY) )
+    if ( ison(fd, SIO_ISATTY) )
       set(Scurout, SIO_ISATTY);
   }
 

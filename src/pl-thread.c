@@ -1290,7 +1290,7 @@ exitPrologThreads(void)
 		 *	    ALIAS NAME		*
 		 *******************************/
 
-int
+bool
 aliasThread(int tid, atom_t type, atom_t name)
 { GET_LD
   PL_thread_info_t *info;
@@ -1378,7 +1378,7 @@ static int       thread_gc_running = FALSE;
 
 static void
 discard_thread(thread_handle *h)
-{ if ( true(h, TH_IS_INTERACTOR) )
+{ if ( ison(h, TH_IS_INTERACTOR) )
   { destroy_interactor(h, TRUE);		/* cannot be running */
     return;
   }
@@ -1501,7 +1501,7 @@ write_thread_handle(IOSTREAM *s, atom_t eref, int flags)
   (void)flags;
 
   Sfprintf(s, "<%s>(%d,%p)",
-	   true(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
+	   ison(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
 	   ref->engine_id, ref);
   return TRUE;
 }
@@ -1531,7 +1531,7 @@ save_thread(atom_t aref, IOSTREAM *fd)
   (void)fd;
 
   return PL_warning("Cannot save reference to <%s>(%d,%p)",
-		    true(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
+		    ison(ref, TH_IS_INTERACTOR) ? "engine" : "thread",
 		    ref->engine_id, ref);
 }
 
@@ -2185,7 +2185,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
 #endif
   init_message_queue(&ldnew->thread.messages, attr->max_queue_size);
   init_predicate_references(ldnew);
-  if ( ldold->coverage.data && true(ldold->coverage.data, COV_TRACK_THREADS) )
+  if ( ldold->coverage.data && ison(ldold->coverage.data, COV_TRACK_THREADS) )
   { ldnew->coverage.data = share_coverage_data(ldold->coverage.data);
     ldnew->coverage.active = ldold->coverage.active;
   }
@@ -3707,8 +3707,8 @@ get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
 
   from_symbol:
     if ( (th=symbol_thread_handle(symbol)) &&
-	 true(th, TH_IS_INTERACTOR) )
-    { if ( th->info || true(th, (TH_INTERACTOR_NOMORE|TH_INTERACTOR_DONE)) )
+	 ison(th, TH_IS_INTERACTOR) )
+    { if ( th->info || ison(th, (TH_INTERACTOR_NOMORE|TH_INTERACTOR_DONE)) )
       { *thp = th;
 	return TRUE;
       }
@@ -3951,7 +3951,7 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
     return PL_permission_error("post_to", "engine", ref);
 
   if ( !th->interactor.query )
-  { if ( true(th, TH_INTERACTOR_NOMORE) )
+  { if ( ison(th, TH_INTERACTOR_NOMORE) )
     { clear(th, TH_INTERACTOR_NOMORE);
       set(th, TH_INTERACTOR_DONE);
       return FALSE;
@@ -5996,7 +5996,7 @@ thread_wait_preds(DECL_LD Module m, term_t preds)
       { wch.type = TWF_PREDICATE;
 	wch.obj.predicate = getProcDefinition(proc);
 	wch.generation = wch.obj.predicate->last_modified;
-	if ( true(wch.obj.predicate, P_THREAD_LOCAL) )
+	if ( ison(wch.obj.predicate, P_THREAD_LOCAL) )
 	  return PL_permission_error("thread_wait", "thread_local", head);
 	set(wch.obj.predicate, P_WAITED_FOR);
 	add_wch(&wch);
@@ -6071,7 +6071,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
   if ( !PL_strip_module(A2, &module, options) ||
        !process_deadline_options(options, &deadline, &dlop, NULL, NULL) ||
        !PL_scan_options(options, 0, "thread_wait_options", thread_wait_options,
-		     &db, &wait_preds, &modified, &retry_every, &mname) )
+			&db, &wait_preds, &modified, &retry_every, &mname) )
     return FALSE;
 
   if ( mname )
@@ -6288,8 +6288,8 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 
   if ( !PL_strip_module(A2, &module, options) ||
        !PL_scan_options(options, 0, "thread_update_options",
-		     thread_update_options,
-		     &notify, &mname) )
+			thread_update_options,
+			&notify, &mname) )
     return FALSE;
   if ( notify != ATOM_broadcast && notify != ATOM_signal )
   { term_t ex = PL_new_term_ref();
@@ -6599,7 +6599,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     }
   }
 
-  if ( true(attr, PL_THREAD_NO_DEBUG) )
+  if ( ison(attr, PL_THREAD_NO_DEBUG) )
   { ldnew->_debugstatus.tracing   = FALSE;
     ldnew->_debugstatus.debugging = DBG_OFF;
     setPrologRunMode_LD(ldnew, RUN_MODE_NORMAL);
@@ -7723,7 +7723,7 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 		     id,
 		     predicateName(def)));
 
-      assert(true(def, P_THREAD_LOCAL));
+      assert(ison(def, P_THREAD_LOCAL));
       destroyLocalDefinition(def, id);
     }
     freeHeap(ch, sizeof(*ch));
@@ -7740,7 +7740,7 @@ sizeof_local_definitions(PL_local_data_t *ld)
   { Definition def = ch->definition;
     Definition local;
 
-    assert(true(def, P_THREAD_LOCAL));
+    assert(ison(def, P_THREAD_LOCAL));
     if ( (local = getProcDefinitionForThread(def, ld->thread.info->pl_tid)) )
       size += sizeof_predicate(local);
   }
@@ -7781,7 +7781,7 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
     fail;
 
   def = proc->definition;
-  if ( false(def, P_THREAD_LOCAL) )
+  if ( isoff(def, P_THREAD_LOCAL) )
     fail;
 
   if ( !get_thread(thread, &info, FALSE) )

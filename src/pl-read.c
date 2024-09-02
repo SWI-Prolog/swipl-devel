@@ -999,7 +999,7 @@ getchr__(ReadData _PL_rd)
 			}
 #define set_start_line { if ( !something_read ) \
 			 { setCurrentSourceLocation(_PL_rd); \
-			   something_read++; \
+			   something_read = TRUE; \
 			 } \
 		       }
 
@@ -1038,7 +1038,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
   while((c=getchrq()) != EOF && c != q)
   {
   next:
-    if ( c == '\\' && true(_PL_rd, M_CHARESCAPE) )
+    if ( c == '\\' && ison(_PL_rd, M_CHARESCAPE) )
     { int base;
 
       addToBuffer(c, _PL_rd);
@@ -1223,7 +1223,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    return TRUE;
 		  }
 		  rawSyntaxError("end_of_file");
-		} else if ( true(_PL_rd, M_RDSTRING_TERM) )
+		} else if ( ison(_PL_rd, M_RDSTRING_TERM) )
 		{ rawSyntaxError("end_of_string");
 		} else
 		{ set_start_line;
@@ -1314,7 +1314,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  addToBuffer('/', _PL_rd);
 		  if ( isSymbolW(c) )
 		  { while( c != EOF && isSymbolW(c) &&
-			   !(c == '`' && true(_PL_rd, BQ_MASK)) )
+			   !(c == '`' && ison(_PL_rd, BQ_MASK)) )
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    }
@@ -1455,13 +1455,13 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		c = getchr();
 		if ( PlSymbolW(c) )
 		{ while( c != EOF && PlSymbolW(c) &&
-			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
+			 !(c == '`' && ison(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
 		}
 		goto handle_c;
-      case '`': if ( true(_PL_rd, BQ_MASK) )
+      case '`': if ( ison(_PL_rd, BQ_MASK) )
 		{ set_start_line;
 		  if ( !raw_read_quoted(c, _PL_rd) )
 		    fail;
@@ -1486,7 +1486,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
-			if ( c == '`' && true(_PL_rd, BQ_MASK) )
+			if ( c == '`' && ison(_PL_rd, BQ_MASK) )
 			  break;
 		      } while( c != EOF && PlSymbolW(c) );
 		      goto handle_c;
@@ -2014,7 +2014,7 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
     { Procedure proc;
 
       if ( (proc=resolveProcedure(PL_new_functor(name, 4), m)) &&
-	   true(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
+	   ison(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
 	return TRUE;
 
       if ( (ex = PL_new_term_ref()) &&
@@ -2110,7 +2110,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
-    if ( chr == '`' && false(_PL_rd, BQ_MASK) )
+    if ( chr == '`' && isoff(_PL_rd, BQ_MASK) )
       continue;				/* ` is a symbol char */
     if ( !PlSymbolW(chr) )
       return in;
@@ -2554,7 +2554,7 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
       { in++;
       } else
 	break;
-    } else if ( c == '\\' && true(_PL_rd, M_CHARESCAPE) )
+    } else if ( c == '\\' && ison(_PL_rd, M_CHARESCAPE) )
     { c = escape_char(in, &in, quote, _PL_rd);
       if ( c >= 0 )
       { addUTF8Buffer(buf, c);
@@ -3034,7 +3034,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		}
     case UC:
     upper:
-		if ( c != '_' && true(_PL_rd, M_VARPREFIX) )
+		if ( c != '_' && ison(_PL_rd, M_VARPREFIX) )
 		  goto lower;
 
 		{ rdhere = SkipVarIdCont(rdhere);
@@ -3092,7 +3092,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  break;
 		}
     case_symbol:
-    case SY:	if ( c == '`' && true(_PL_rd, BQ_MASK) )
+    case SY:	if ( c == '`' && ison(_PL_rd, BQ_MASK) )
 		  goto case_bq;
 
 		rdhere = SkipSymbol(rdhere, _PL_rd);
@@ -3193,13 +3193,13 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
 #if O_STRING
-		  if ( true(_PL_rd, DBLQ_STRING) )
+		  if ( ison(_PL_rd, DBLQ_STRING) )
 		    type = PL_STRING;
 		  else
 #endif
-		  if ( true(_PL_rd, DBLQ_ATOM) )
+		  if ( ison(_PL_rd, DBLQ_ATOM) )
 		    type = PL_ATOM;
-		  else if ( true(_PL_rd, DBLQ_CHARS) )
+		  else if ( ison(_PL_rd, DBLQ_CHARS) )
 		    type = PL_CHAR_LIST;
 		  else
 		    type = PL_CODE_LIST;
@@ -3215,14 +3215,14 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  break;
 		}
     case BQ:
-    case_bq:    if ( true(_PL_rd, BQ_MASK) )
+    case_bq:    if ( ison(_PL_rd, BQ_MASK) )
 		{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  PL_chars_t txt;
 		  int type;
 
-		  type = ( true(_PL_rd, BQ_STRING) ? PL_STRING :
-			   true(_PL_rd, BQ_CODES)  ? PL_CODE_LIST :
+		  type = ( ison(_PL_rd, BQ_STRING) ? PL_STRING :
+			   ison(_PL_rd, BQ_CODES)  ? PL_CODE_LIST :
 			   PL_CHAR_LIST
 			 );
 
@@ -5283,8 +5283,8 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
   int rval;
   atom_t w;
   read_data rd;
-  bool charescapes = -1;
-  bool varprefix = -1;
+  int charescapes = -1;
+  int varprefix = -1;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;

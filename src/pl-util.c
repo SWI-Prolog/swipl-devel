@@ -295,7 +295,7 @@ static bool
 isUserSystemPredicate(Definition def)
 { GET_LD
 
-  if ( true(def, P_LOCKED) &&
+  if ( ison(def, P_LOCKED) &&
        GD->cleaning != CLN_DATA &&
        isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;

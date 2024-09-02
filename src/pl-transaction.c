@@ -313,7 +313,7 @@ transaction_commit(DECL_LD)
       tr_gen_t lgen = (tr_gen_t)v;
 
       if ( IS_ASSERT_GEN(lgen) )
-      { if ( false(cl, CL_ERASED) )
+      { if ( isoff(cl, CL_ERASED) )
 	{ cl->generation.erased  = GEN_MAX;
 	  MEMORY_RELEASE();
 	  cl->generation.created = gen_commit;
@@ -371,7 +371,7 @@ transaction_discard(DECL_LD)
       atom_t action = 0;
 
       if ( IS_ASSERT_GEN(lgen) )
-      { if ( false(cl, CL_ERASED) )
+      { if ( isoff(cl, CL_ERASED) )
 	{ cl->generation.erased  = GEN_TR_DISCARD_ASSERT;
 	  MEMORY_RELEASE();
 	  cl->generation.created = GEN_TR_DISCARD_ASSERT;
@@ -484,7 +484,7 @@ transaction_updates(DECL_LD Buffer b)
       tr_gen_t lgen = (tr_gen_t)v;
 
       if ( IS_ASSERT_GEN(lgen) )
-      { if ( false(cl, CL_ERASED) )
+      { if ( isoff(cl, CL_ERASED) )
 	{ tr_update u;
 	  u.clause = cl;
 	  if ( lgen == GEN_ASSERTA )
@@ -824,7 +824,7 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
 	       cl,
 	       generationName(cl->generation.created),
 	       generationName(cl->generation.erased),
-	       true(cl, CL_ERASED) ? " (erased)" : "");
+	       ison(cl, CL_ERASED) ? " (erased)" : "");
     }
     release_def(def);
 

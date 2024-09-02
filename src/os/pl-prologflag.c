@@ -68,11 +68,9 @@
 #include <dlfcn.h>
 #endif
 
-#undef false
-#undef true
 #undef bool
-#define true(s, a)         ((s)->flags & (a))
-#define false(s, a)        (!true((s), (a)))
+#define ison(s, a)         ((s)->flags & (a))
+#define isoff(s, a)        (!ison((s), (a)))
 
 
 		 /*******************************
@@ -720,8 +718,8 @@ propagateAutoload(DECL_LD term_t val)
 
 static void
 accessed_prolog_flag(prolog_flag *f, atom_t name, int local)
-{ if ( true(f, FF_WARN_NOT_ACCESSED) &&
-       false(f, FF_ACCESSED) )
+{ if ( ison(f, FF_WARN_NOT_ACCESSED) &&
+       isoff(f, FF_ACCESSED) )
   { set(f, FF_ACCESSED);
 
     if ( local )
@@ -1409,17 +1407,17 @@ PL_current_prolog_flag(atom_t name, int type, void *value)
 static int
 unify_prolog_flag_value(DECL_LD Module m, atom_t key, prolog_flag *f, term_t val)
 { if ( key == ATOM_character_escapes )
-  { return PL_unify_bool(val, true(m, M_CHARESCAPE));
+  { return PL_unify_bool(val, ison(m, M_CHARESCAPE));
   } else if ( key == ATOM_var_prefix )
-  { return PL_unify_bool(val, true(m, M_VARPREFIX));
+  { return PL_unify_bool(val, ison(m, M_VARPREFIX));
   } else if ( key == ATOM_double_quotes )
   { atom_t v;
 
-    if ( true(m, DBLQ_CHARS) )
+    if ( ison(m, DBLQ_CHARS) )
       v = ATOM_chars;
-    else if ( true(m, DBLQ_ATOM) )
+    else if ( ison(m, DBLQ_ATOM) )
       v = ATOM_atom;
-    else if ( true(m, DBLQ_STRING) )
+    else if ( ison(m, DBLQ_STRING) )
       v = ATOM_string;
     else
       v = ATOM_codes;
@@ -1428,11 +1426,11 @@ unify_prolog_flag_value(DECL_LD Module m, atom_t key, prolog_flag *f, term_t val
   } else if ( key == ATOM_back_quotes )
   { atom_t v;
 
-    if ( true(m, BQ_STRING) )
+    if ( ison(m, BQ_STRING) )
       v = ATOM_string;
-    else if ( true(m, BQ_CODES) )
+    else if ( ison(m, BQ_CODES) )
       v = ATOM_codes;
-    else if ( true(m, BQ_CHARS) )
+    else if ( ison(m, BQ_CHARS) )
       v = ATOM_chars;
     else
       v = ATOM_symbol_char;
@@ -2204,8 +2202,8 @@ checkPrologFlagsAccess(void)
 	{ atom_t name = (atom_t)n;
 	  prolog_flag *f = val2ptr(v);
 
-	  if ( true(f, FF_WARN_NOT_ACCESSED) &&
-	       false(f, FF_ACCESSED) )
+	  if ( ison(f, FF_WARN_NOT_ACCESSED) &&
+	       isoff(f, FF_ACCESSED) )
 	  { found++;
 	    if ( !PL_unify_list(tail, head, tail) ||
 		 !PL_unify_atom(head, name) )

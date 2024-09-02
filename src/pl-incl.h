@@ -422,8 +422,6 @@ typedef _sigset_t sigset_t;
 
 /* prepare including BeOS types */
 #ifdef __BEOS__
-#define bool BOOL
-
 #include <BeBuild.h>
 #if (B_BEOS_VERSION <= B_BEOS_VERSION_5)
 # include <socket.h>      /* include socket.h to get the fd_set structure */
@@ -431,10 +429,6 @@ typedef _sigset_t sigset_t;
 # include <SupportDefs.h> /* not needed for a BONE-based networking stack */
 #endif
 #include <OS.h>
-
-#undef true
-#undef false
-#undef bool
 #define EMULATE_DLOPEN 1		/* Emulated dlopen() in pl-beos.c */
 #endif
 
@@ -522,8 +516,6 @@ A common basis for C keywords.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Booleans,  addresses,  strings  and other   goodies.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef int			bool;
 
 #if __GNUC__ && !__STRICT_ANSI__
 #define LocalArray(t, n, s)	t n[s]
@@ -995,9 +987,9 @@ short.  As this allows us to set, clear and test combinations  of  flags
 with one operation, it turns out to be faster as well.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define true(s, a)		((s)->flags & (a))
+#define ison(s, a)		((s)->flags & (a))
 #define alltrue(s, a)		(((s)->flags & (a)) == (a))
-#define false(s, a)		(!true((s), (a)))
+#define isoff(s, a)		(!ison((s), (a)))
 #define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
@@ -1157,7 +1149,7 @@ Macros for environment frames (local stack frames)
 				  ? (f)->parent \
 				 : word2ptr(LocalFrame, varFrame( \
 				    (f), -QF_PARENT_ENV_OFFSET)))
-#define slotsFrame(f)		(true((f)->predicate, P_FOREIGN) ? \
+#define slotsFrame(f)		(ison((f)->predicate, P_FOREIGN) ? \
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 

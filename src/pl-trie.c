@@ -403,7 +403,7 @@ prune_node(trie *trie, trie_node *n)
 { trie_node *p;
   int empty = TRUE;
 
-  for(; empty && n->parent && false(n, TN_PRIMARY|TN_SECONDARY); n = p)
+  for(; empty && n->parent && isoff(n, TN_PRIMARY|TN_SECONDARY); n = p)
   { trie_children children;
 
     p = n->parent;
@@ -487,7 +487,7 @@ prune_trie(trie *trie, trie_node *root,
     }
 
   prune:
-    for(; n != root && false(n, TN_PRIMARY|TN_SECONDARY); n = p)
+    for(; n != root && isoff(n, TN_PRIMARY|TN_SECONDARY); n = p)
     { trie_children children;
       int choice = FALSE;
 
@@ -910,10 +910,10 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
   int rc = TRUE;
   trie *trie_ptr;
   mark m;
-  int is_secondary = true(node, TN_SECONDARY);
+  int is_secondary = ison(node, TN_SECONDARY);
 						/* get the keys */
   for( ; node->parent; node = node->parent )
-  { if ( is_secondary && true(node, TN_PRIMARY) )
+  { if ( is_secondary && ison(node, TN_PRIMARY) )
     { if ( parent )
 	*parent = node;
       break;
@@ -1030,7 +1030,7 @@ stat_node(trie_node *n, void *ctx)
 
   stats->nodes++;
   stats->bytes += sizeof(*n);
-  if ( n->value && true(n, TN_PRIMARY) )
+  if ( n->value && ison(n, TN_PRIMARY) )
     stats->values++;
 
   if ( children.any )
@@ -1339,7 +1339,7 @@ them after the references drop to 0.
 void
 trie_delete(trie *trie, trie_node *node, int prune)
 { if ( node->value )
-  { if ( true(node, TN_PRIMARY) )
+  { if ( ison(node, TN_PRIMARY) )
       ATOMIC_DEC(&trie->value_count);
 
     clear(node, (TN_PRIMARY|TN_SECONDARY));
@@ -1381,14 +1381,14 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
     trie_node *node;
     int rc;
 
-    if ( false(trie, TRIE_ISMAP|TRIE_ISSET) )
+    if ( isoff(trie, TRIE_ISMAP|TRIE_ISSET) )
     { if ( Value )
 	set(trie, TRIE_ISMAP);
       else
 	set(trie, TRIE_ISSET);
     } else
-    { if ( (Value  && false(trie, TRIE_ISMAP)) ||
-	   (!Value && false(trie, TRIE_ISSET)) )
+    { if ( (Value  && isoff(trie, TRIE_ISMAP)) ||
+	   (!Value && isoff(trie, TRIE_ISSET)) )
       { return PL_permission_error("insert", "trie", Trie);
       }
     }
@@ -2004,7 +2004,7 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
   } else
     has_key = FALSE;
 
-  if ( children.any && false(node, state->vflags) )
+  if ( children.any && isoff(node, state->vflags) )
   { switch( children.any->type )
     { case TN_KEY:
 	if ( !has_key ||
@@ -2101,7 +2101,7 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 static trie_choice *
 descent_node(DECL_LD trie_gen_state *state, descent_state *dstate, trie_choice *ch)
 { while( ch && ch->child->children.any &&
-	 false(ch->child, state->vflags) )
+	 isoff(ch->child, state->vflags) )
   { ch = add_choice(state, dstate, ch->child);
   }
 
@@ -2178,7 +2178,7 @@ next_choice(DECL_LD trie_gen_state *state)
 
   do
   { ch = next_choice0(state, &dstate);
-  } while (ch && false(ch->child, state->vflags));
+  } while (ch && isoff(ch->child, state->vflags));
 
   return ch;
 }
@@ -2249,7 +2249,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
       init_trie_state(state, trie, root);
       rc = ( (ch = add_choice(state, &dstate, root)) &&
 	     (ch = descent_node(state, &dstate, ch)) &&
-	     (true(ch->child, state->vflags) || next_choice(state)) );
+	     (ison(ch->child, state->vflags) || next_choice(state)) );
       clear_descent_state(&dstate);
       if ( !rc )
       { clear_trie_state(state);
@@ -2259,7 +2259,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
     }
     case FRG_REDO:
       state = CTX_PTR;
-      if ( true(gen_state_leaf(state), state->vflags) ||
+      if ( ison(gen_state_leaf(state), state->vflags) ||
 	   next_choice(state) )		/* pending choice was deleted */
       { break;
       } else
@@ -2929,7 +2929,7 @@ next:
   }
 
 children:
-  if ( children.any && false(n, TN_PRIMARY|TN_SECONDARY) )
+  if ( children.any && isoff(n, TN_PRIMARY|TN_SECONDARY) )
   { switch( children.any->type )
     { case TN_KEY:
       { state->try = FALSE;
@@ -2968,7 +2968,7 @@ children:
     { if ( answer_is_conditional(n) )
 	add_vmi_d(state, T_DELAY, ptr2code(n));
 
-      if ( true(state->trie, TRIE_ISMAP) )
+      if ( ison(state->trie, TRIE_ISMAP) )
       { add_vmi(state, T_VALUE);
 	if ( !isRecord(n->value) )
 	{ if ( isAtom(n->value) )
@@ -3088,7 +3088,7 @@ PRED_IMPL("$trie_compile", 2, trie_compile, 0)
   trie *trie;
 
   if ( get_trie(A1, &trie) )
-  { Procedure proc = (true(trie, TRIE_ISMAP)
+  { Procedure proc = (ison(trie, TRIE_ISMAP)
 			     ? GD->procedures.trie_gen_compiled3
 			     : GD->procedures.trie_gen_compiled2);
     atom_t clref = compile_trie(proc->definition, trie);

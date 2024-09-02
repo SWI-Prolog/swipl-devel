@@ -1927,7 +1927,7 @@ VMH(depart_or_retry_continue, 0, (), ())
 
 					/* we need the autoloader and get back */
     if ( DEF->codes[0] == encode(S_VIRGIN) &&
-	 !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+	 !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
     { PC = DEF->codes;
       NEXT_INSTRUCTION;
     }
@@ -1940,7 +1940,7 @@ VMH(depart_or_retry_continue, 0, (), ())
       { setFramePredicate(FR, DEF);
 	setGenerationFrame(FR);
       }
-      if ( false(DEF, P_SIG_ATOMIC) )
+      if ( isoff(DEF, P_SIG_ATOMIC) )
       { SAVE_REGISTERS(QID);
 	handleSignals();
 	LOAD_REGISTERS(QID);
@@ -2056,8 +2056,8 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
   if ( (void *)BFR <= (void *)FR &&
        truePrologFlag(PLFLAG_LASTCALL) &&
        ( proc->definition->impl.any.defined ||
-	 true(proc->definition, PROC_DEFINED)) )
-  { if ( true(FR, FR_WATCHED) )
+	 ison(proc->definition, PROC_DEFINED)) )
+  { if ( ison(FR, FR_WATCHED) )
     { LD->query->next_environment = lTop;
       lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
       SAVE_REGISTERS(QID);
@@ -2072,14 +2072,14 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     FR->clause = NULL;			/* for save atom-gc */
     leaveDefinition(DEF);
     DEF = proc->definition;
-    if ( true(DEF, P_TRANSPARENT) )
+    if ( ison(DEF, P_TRANSPARENT) )
     { FR->context = contextModule(FR); /* must be  before setting FR_CONTEXT */
       FR->level++;
       FR->flags = ((FR->flags & ~(FR_LCO_CLEAR|FR_CLEAR_ALWAYS)) | FR_CONTEXT);
     } else
     { lcoSetNextFrameFlags(FR);
     }
-    if ( true(DEF, HIDE_CHILDS) )
+    if ( ison(DEF, HIDE_CHILDS) )
       set(FR, FR_HIDE_CHILDS);
 
     setFramePredicate(FR, DEF);
@@ -2196,7 +2196,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   }
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
-  { leave = true(FR, FR_WATCHED) ? FR : NULL;
+  { leave = ison(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
     lTop = FR;
@@ -2205,7 +2205,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   } else
   { leave = NULL;
     clear(FR, FR_INBOX);
-    if ( true(FR, FR_DET|FR_DETGUARD) )
+    if ( ison(FR, FR_DET|FR_DETGUARD) )
     { SAVE_REGISTERS(QID);
       determinism_error(FR, BFR, ATOM_nondet);
       LOAD_REGISTERS(QID);
@@ -2322,7 +2322,7 @@ VMI(I_EXITQUERY, 0, 0, ())
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
     FR->clause = NULL;
 
-    if ( true(FR, FR_WATCHED) )
+    if ( ison(FR, FR_WATCHED) )
     { SAVE_REGISTERS(QID);
       frameFinished(FR, FINISH_EXIT);
       LOAD_REGISTERS(QID);
@@ -2532,7 +2532,7 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
   setFramePredicate(FR, DEF);
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
-  if ( true(FR, FR_WATCHED) )
+  if ( ison(FR, FR_WATCHED) )
   { SAVE_REGISTERS(QID);
     frameFinished(FR, FINISH_EXIT);
     LOAD_REGISTERS(QID);
@@ -2540,13 +2540,13 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
       THROW_EXCEPTION;
   }
 
-  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
   { SAVE_REGISTERS(QID);
     DEF = getProcDefinedDefinition(DEF);
     LOAD_REGISTERS(QID);
   }
 
-  if ( true(DEF, P_TRANSPARENT) )
+  if ( ison(DEF, P_TRANSPARENT) )
   { FR->context = ctx0;
     FR->level++;
     clear(FR, FR_CLEAR_NEXT);
@@ -2554,7 +2554,7 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
   } else
   { lcoSetNextFrameFlags(FR);
   }
-  if ( true(DEF, HIDE_CHILDS) )
+  if ( ison(DEF, HIDE_CHILDS) )
     set(FR, FR_HIDE_CHILDS);
 
   setFramePredicate(FR, DEF);
@@ -2563,7 +2563,7 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
 END_VMI
 
 VMI(I_TCALL, 0, 0, ())
-{ if ( true(FR, FR_WATCHED) )
+{ if ( ison(FR, FR_WATCHED) )
   { SAVE_REGISTERS(QID);
     frameFinished(FR, FINISH_EXIT);
     LOAD_REGISTERS(QID);
@@ -2573,7 +2573,7 @@ VMI(I_TCALL, 0, 0, ())
 
   tcallSetNextFrameFlags(FR);
   FR->clause = NULL;
-  if ( true(DEF, HIDE_CHILDS) )
+  if ( ison(DEF, HIDE_CHILDS) )
     set(FR, FR_HIDE_CHILDS);
 
   VMH_GOTO(depart_or_retry_continue);
@@ -2999,9 +2999,9 @@ VMH(c_cut, 1, (Choice), (och))
     { DEBUG(MSG_CUT, Sdprintf("Discarding [%d] %s\n",
 			      levelFrame(fr2), predicateName(fr2->predicate)));
 
-      assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
+      assert(fr2->clause || ison(fr2->predicate, P_FOREIGN));
 
-      if ( true(fr2, FR_WATCHED) )
+      if ( ison(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
 
 	BFR = ch;
@@ -3033,7 +3033,7 @@ VMH(c_cut, 1, (Choice), (och))
   if ( (void *)och > (void *)FR )
   { lTop = (LocalFrame)(och+1);
   } else
-  { int nvar = (true(FR->predicate, P_FOREIGN)
+  { int nvar = (ison(FR->predicate, P_FOREIGN)
 			? (int)FR->predicate->functor->arity
 			: FR->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(FR, nvar);
@@ -3314,7 +3314,7 @@ this supervisor (see resetProcedure()). The task of this is to
 VMI(S_VIRGIN, 0, 0, ())
 { lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
-  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
   { SAVE_REGISTERS(QID);
     DEF = getProcDefinedDefinition(DEF);
     LOAD_REGISTERS(QID);
@@ -3328,7 +3328,7 @@ VMI(S_VIRGIN, 0, 0, ())
     if ( DEF->impl.any.defined )
       VMH_GOTO(depart_or_retry_continue);
 #ifdef O_PLMT
-  } else if ( true(DEF, P_THREAD_LOCAL) )
+  } else if ( ison(DEF, P_THREAD_LOCAL) )
   { DEF = getLocalProcDefinition(DEF);
     setFramePredicate(FR, DEF);
     setGenerationFrame(FR);
@@ -4808,10 +4808,10 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 END_VMH
 
 VMI(I_FREDO, 0, 0, ())
-{ DEBUG(0, assert(true(DEF, P_FOREIGN)));
+{ DEBUG(0, assert(ison(DEF, P_FOREIGN)));
 
   if ( unlikely(LD->alerted) && is_signalled() )
-  { if ( false(DEF, P_SIG_ATOMIC) )
+  { if ( isoff(DEF, P_SIG_ATOMIC) )
     { SAVE_REGISTERS(QID);
       handleSignals();
       LOAD_REGISTERS(QID);
@@ -5107,7 +5107,7 @@ again:
   start_tracer = FALSE;
   if ( !catchfr_ref &&
        !PL_same_term(exception_term, exception_printed) &&
-       false(QueryFromQid(QID), PL_Q_CATCH_EXCEPTION) )
+       isoff(QueryFromQid(QID), PL_Q_CATCH_EXCEPTION) )
   { term_t rc;
 
     SAVE_REGISTERS(QID);
@@ -5231,7 +5231,7 @@ again:
 	      LOAD_REGISTERS(QID)
 	    });
 
-      if ( true(FR, FR_WATCHED) )
+      if ( ison(FR, FR_WATCHED) )
       { SAVE_REGISTERS(QID);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT);
 	LOAD_REGISTERS(QID);
@@ -5295,7 +5295,7 @@ again:
 
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       discardFrame(FR);
-      if ( true(FR, FR_WATCHED) )
+      if ( ison(FR, FR_WATCHED) )
       { SAVE_REGISTERS(QID);
 	frameFinished(FR, FINISH_EXCEPT);
 	LOAD_REGISTERS(QID);
@@ -5359,7 +5359,7 @@ again:
     QF->exception = PL_copy_term_ref(exception_term);
 
     SAVE_REGISTERS(QID);
-    resumeAfterException(false(QF, PL_Q_PASS_EXCEPTION), outofstack);
+    resumeAfterException(isoff(QF, PL_Q_PASS_EXCEPTION), outofstack);
     LOAD_REGISTERS(QID);
     if ( PL_pending(SIG_GC) )
     { SAVE_REGISTERS(QID);
@@ -5550,7 +5550,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
   if ( isAtom(goal) )
   { Atom ap = atomValue(goal);
 
-    if ( true(ap->type, PL_BLOB_TEXT) || goal == ATOM_nil )
+    if ( ison(ap->type, PL_BLOB_TEXT) || goal == ATOM_nil )
     { functor = lookupFunctorDef(word2atom(goal), callargs);
       arity   = 0;
       args    = NULL;
@@ -5585,11 +5585,11 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
       functor = lookupFunctorDef(fd->name, arity + callargs);
 
     if ( is_call0 ) /* checks unique to the I_USERCALL0 case */
-    { if ( false(fd, CONTROL_F) &&
+    { if ( isoff(fd, CONTROL_F) &&
 	   !(fd->name == ATOM_call && fd->arity > 8) )
       { /* common case, nothing to do */
-      } else if ( true(FR, FR_INRESET) )
-      { if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
+      } else if ( ison(FR, FR_INRESET) )
+      { if ( isoff(fd, CONTROL_F) && fd->name != ATOM_call )
 	{ /* arity > 8 will raise existence error */
 	} else
 	{ DEF = GD->procedures.dmeta_call1->definition;
@@ -5762,7 +5762,7 @@ END_VMH
 
 VMH(mcall_cont, 1, (Module), (module))
 { setNextFrameFlags(NFR, FR);
-  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     setFramePredicate(NFR, DEF);	/* TBD */
@@ -5784,7 +5784,7 @@ VMH(mcall_cont, 1, (Module), (module))
     FR = FR->parent;
   }
 
-  if ( true(DEF, P_TRANSPARENT) )
+  if ( ison(DEF, P_TRANSPARENT) )
     setContextModule(NFR, module);
 
   VMH_GOTO(normal_call);
@@ -6588,11 +6588,11 @@ next_choice:
 #endif
 
     leaveFrame(FR);
-    if ( true(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
+    if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       FR->clause = NULL;
-      if ( true(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
+      if ( ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
       { SAVE_REGISTERS(QID);
 	ssu_or_det_failed(FR);
 	LOAD_REGISTERS(QID);
@@ -6665,7 +6665,7 @@ next_choice:
 	    LOAD_REGISTERS(QID);
 	    ch = BFR;			/* can be shifted */
 
-	    if ( true(FR->predicate, P_FOREIGN) &&
+	    if ( ison(FR->predicate, P_FOREIGN) &&
 		 ( action == ACTION_FAIL ||
 		   action == ACTION_IGNORE ||
 		   action == ACTION_RETRY ||
@@ -6797,12 +6797,12 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: CATCH\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-	    if ( true(ch->frame, FR_WATCHED) )
+	    if ( ison(ch->frame, FR_WATCHED) )
       { DiscardMark(ch->mark);
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
-	if ( true(ch->frame, FR_CLEANUP) )
+	if ( ison(ch->frame, FR_CLEANUP) )
 	{ SAVE_REGISTERS(QID);
 	  callCleanupHandler(ch->frame, FINISH_FAIL);
 	  LOAD_REGISTERS(QID);

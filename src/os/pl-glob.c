@@ -126,7 +126,7 @@ typedef struct
 
 static const char *compile_pattern(compiled_pattern *pattern, const char *s,
 				   int curl, int flags);
-static int match_pattern(matchcode *pattern, const char *s, int flags);
+static bool match_pattern(matchcode *pattern, const char *s, int flags);
 
 #define Output(c)  addBuffer(&Out->pattern, c, matchcode)
 #define Here()	   entriesBuffer(&Out->pattern, matchcode)
@@ -394,7 +394,7 @@ wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
 
   if ( options &&
        !PL_scan_options(options, 0, "wildcard_option",
-		     wildcard_options, &case_sensitive) )
+			wildcard_options, &case_sensitive) )
     return FALSE;
   if ( !case_sensitive )
     mflags |= M_IGNCASE;

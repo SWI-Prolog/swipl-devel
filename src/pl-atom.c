@@ -265,9 +265,9 @@ PL_register_blob_type(PL_blob_t *type)
 
 	t->next = type;
       }
-      if ( true(type, PL_BLOB_TEXT) )
+      if ( ison(type, PL_BLOB_TEXT) )
       { type->rank = ++GD->atoms.text_rank;
-	if ( true(type, PL_BLOB_WCHAR) )
+	if ( ison(type, PL_BLOB_WCHAR) )
 	  type->padding = sizeof(pl_wchar_t);
 	else
 	  type->padding = sizeof(char);
@@ -520,7 +520,7 @@ is activated.
 
 static int
 same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
-{ if ( false(type, PL_BLOB_NOCOPY) )
+{ if ( isoff(type, PL_BLOB_NOCOPY) )
     return length == 0 || memcmp(s, a->name, length) == 0;
   else
     return s == a->name;
@@ -537,7 +537,7 @@ lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
 
-  if ( true(type, PL_BLOB_NOCOPY) )
+  if ( ison(type, PL_BLOB_NOCOPY) )
     v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
   else
     v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
@@ -550,7 +550,7 @@ redo:
   acquire_atom_bucket(table+v);
   DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
 
-  if ( true(type, PL_BLOB_UNIQUE) )
+  if ( ison(type, PL_BLOB_UNIQUE) )
   { for(a = table[v]; a; a = a->next)
     { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
       ref = a->references;
@@ -595,7 +595,7 @@ redo:
   a = reserveAtom();
   a->length = length;
   a->type = type;
-  if ( false(type, PL_BLOB_NOCOPY) )
+  if ( isoff(type, PL_BLOB_NOCOPY) )
   { if ( type->padding )
     { size_t pad = type->padding;
 
@@ -616,12 +616,12 @@ redo:
   a->hash_value = v0;
 #endif
 
-  if ( true(type, PL_BLOB_UNIQUE) )
+  if ( ison(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
     if ( !( !GD->atoms.rehashing &&	/* See (**) above */
             COMPARE_AND_SWAP_PTR(&table[v], head, a) &&
 	    table == GD->atoms.table->table ) )
-    { if ( false(type, PL_BLOB_NOCOPY) )
+    { if ( isoff(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
       a->type = ATOM_TYPE_INVALID;
       a->name = "<race>";
@@ -858,7 +858,7 @@ invalidateAtom(Atom a, unsigned int ref)
     Sfprintf(atomLogFd, "Invalidated `%s'\n", a->name);
 #endif
 
-  if ( true(a->type, PL_BLOB_UNIQUE) )
+  if ( ison(a->type, PL_BLOB_UNIQUE) )
   { AtomTable table;
     uintptr_t mask;
 
@@ -884,7 +884,7 @@ invalidateAtom(Atom a, unsigned int ref)
     }
   }
 
-  if ( false(a->type, PL_BLOB_NOCOPY) )
+  if ( isoff(a->type, PL_BLOB_NOCOPY) )
   { size_t slen = a->length + a->type->padding;
     ATOMIC_SUB(&GD->statistics.atom_string_space, slen);
     ATOMIC_ADD(&GD->statistics.atom_string_space_freed, slen);
@@ -1359,7 +1359,7 @@ checkAtoms_src(const char *file, int line)
 	  trap_gdb();
 	}
 
-	if ( true(a->type, PL_BLOB_UNIQUE) )
+	if ( ison(a->type, PL_BLOB_UNIQUE) )
 	{ if ( !findAtomSelf(a) )
 	  { Sdprintf("%s%d: cannot find self: %p\n", file, line, a);
 	  }
@@ -1427,7 +1427,7 @@ redo:
       if ( ATOM_IS_RESERVED(ref) )
       { if ( !ATOM_IS_VALID(ref) )
 	  goto redo;
-	if ( true(a->type, PL_BLOB_UNIQUE) )
+	if ( ison(a->type, PL_BLOB_UNIQUE) )
 	{ size_t v;
 	  v = a->hash_value & mask;
 	  a->next = newtab->table[v];
@@ -1639,7 +1639,7 @@ cleanupAtoms(void)
       else if ( GD->atoms.gc_hook )
         (*GD->atoms.gc_hook)(a->atom);
 
-      if ( false(a->type, PL_BLOB_NOCOPY) )
+      if ( isoff(a->type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
     }
   }
@@ -1698,7 +1698,7 @@ current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
       if ( PL_is_blob(a, &bt) )
       { if ( type )
 	  return PL_unify_atom(type, bt->atom_name);
-	else if ( false(bt, PL_BLOB_TEXT) )
+	else if ( isoff(bt, PL_BLOB_TEXT) )
 	  return FALSE;
 
 	succeed;
@@ -1757,7 +1757,7 @@ current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
 	      return FALSE;
 	    }
 	  }
-	} else if ( false(btype, PL_BLOB_TEXT) )
+	} else if ( isoff(btype, PL_BLOB_TEXT) )
 	{ PL_unregister_atom(atom->atom);
 	  continue;
 	}

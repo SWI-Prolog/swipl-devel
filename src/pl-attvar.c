@@ -607,7 +607,7 @@ restoreWakeup(DECL_LD wakeup_state *state)
       Word p = (Word)(fr+1);
 
       if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
-      { if ( true(state, WAKEUP_KEEP_URGENT_EXCEPTION) )
+      { if ( ison(state, WAKEUP_KEEP_URGENT_EXCEPTION) )
 	{ if ( classify_exception_p(p) >= classify_exception(exception_term) )
 	    restore_exception(p);
 	} else if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
