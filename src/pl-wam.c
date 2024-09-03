@@ -247,7 +247,7 @@ updateAlerted(PL_local_data_t *ld)
    thread performs a stack-shift.
 */
 
-int
+bool
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( IS_VALID_SIGNAL(sig) && ld )
   { int alerted;
@@ -2847,7 +2847,7 @@ PL_cut_query(qid_t qid)
 	PL_close_foreign_frame(qf->foreign_frame);
 
       if ( isoff(qf, PL_Q_DETERMINISTIC) )
-      { int exbefore = (exception_term != 0);
+      { bool exbefore = (exception_term != 0);
 
 	discard_query(qid);
 	qf = QueryFromQid(qid);
@@ -2914,7 +2914,7 @@ PL_current_query(void)
   return 0;
 }
 
-int
+bool
 PL_can_yield(void)
 { GET_LD
 

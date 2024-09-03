@@ -223,7 +223,7 @@ dict_options(DECL_LD term_t dict, int flags, const char *opttype,
 #define vscan_options(list, flags, name, specs, args) \
 	LDFUNC(vscan_options, list, flags, name, specs, args)
 
-static int
+static bool
 vscan_options(DECL_LD term_t options, int flags, const char *opttype,
 	      const PL_option_t *specs, va_list args)
 { const PL_option_t *s;
@@ -318,10 +318,10 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
 }
 
 
-int
+bool
 PL_scan_options(DECL_LD term_t options, int flags, const char *opttype,
 		const PL_option_t *specs, ...)
-{ int rc;
+{ bool rc;
   va_list args;
 
   va_start(args, specs);
@@ -331,10 +331,10 @@ PL_scan_options(DECL_LD term_t options, int flags, const char *opttype,
   return rc;
 }
 
-API_STUB(int)
+API_STUB(bool)
 (PL_scan_options)(term_t options, int flags, const char *opttype,
 		  PL_option_t *specs, ...)
-( int rc;
+( bool rc;
   va_list args;
 
   valid_term_t(options);

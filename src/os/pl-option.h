@@ -47,7 +47,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-COMMON(int)	PL_scan_options(term_t list, int flags, const char *opttype,
+COMMON(bool)	PL_scan_options(term_t list, int flags, const char *opttype,
 				const PL_option_t specs[], ...);
 
 #undef LDFUNC_DECLARATIONS

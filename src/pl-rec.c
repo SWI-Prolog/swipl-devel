@@ -1207,7 +1207,7 @@ typedef struct
 
 static void skipSizeInt(CopyInfo b);
 
-static inline int
+static inline int		/* true or MEMORY_OVERFLOW */
 init_copy_vars(copy_info *info, uint n)
 { if ( n > 0 )
   { Word *p;
@@ -1565,7 +1565,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 }
 
 
-int
+int				/* true or *_OVERFLOW */
 copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 { copy_info b;
   int rc;
@@ -1847,7 +1847,7 @@ freeRecordRef(RecordRef r)
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
 
-int
+bool
 PL_recorded_external(const char *rec, term_t t)
 { GET_LD
   copy_info b;
@@ -1938,7 +1938,7 @@ PL_recorded_external(const char *rec, term_t t)
 }
 
 
-int
+bool
 PL_erase_external(char *rec)
 { PL_free(rec);
   return true;

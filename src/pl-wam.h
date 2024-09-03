@@ -71,7 +71,7 @@ int		PL_next_solution(qid_t qid);
 bool		foreignWakeup(term_t ex);
 void		resumeAfterException(int clear, Stack outofstack);
 void		updateAlerted(PL_local_data_t *ld);
-int		raiseSignal(PL_local_data_t *ld, int sig);
+bool		raiseSignal(PL_local_data_t *ld, int sig);
 int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);

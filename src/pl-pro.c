@@ -440,7 +440,7 @@ Note that the caller must provide a   foreign context. We cannot do that
 here because closing will loose the exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 callProlog(Module module, term_t goal, int flags, term_t *ex)
 { GET_LD
   term_t reset=0, g, ex2 = 0;
@@ -471,7 +471,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       *ex = exception_term;
 
     PL_reset_term_refs(g);
-    fail;
+    return false;
   }
 
   /* Quick check for sig_atomic(true) resulting from the call_cleanup
@@ -485,7 +485,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   { int arity = arityFunctor(fd);
     term_t args;
     qid_t qid = 0;
-    int n, rval;
+    int n;
+    bool rval;
 
     if ( (args = PL_new_term_refs(arity)) )
     { for(n=0; n<arity; n++)

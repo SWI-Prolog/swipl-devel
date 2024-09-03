@@ -162,7 +162,7 @@ STRYLOCK(IOSTREAM *s)
 
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
-extern int			reportStreamError(IOSTREAM *s);
+extern bool			reportStreamError(IOSTREAM *s);
 extern record_t			PL_record(term_t t);
 extern int			PL_thread_self(void);
 

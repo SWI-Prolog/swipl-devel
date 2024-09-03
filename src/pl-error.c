@@ -815,20 +815,20 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 		 *	  TYPICAL ERRORS	*
 		 *******************************/
 
-int
+bool
 PL_instantiation_error(term_t actual)
 { (void)actual;
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
 
-int
+bool
 PL_uninstantiation_error(term_t actual)
 { valid_term_t(actual);
   return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
 }
 
-int
+bool
 PL_representation_error(const char *representation)
 { atom_t r = PL_new_atom(representation);
   int rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, r);
@@ -838,14 +838,14 @@ PL_representation_error(const char *representation)
 }
 
 
-int
+bool
 PL_type_error(const char *expected, term_t actual)
 { valid_term_t(actual);
   return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
 }
 
 
-int
+bool
 PL_domain_error(const char *expected, term_t actual)
 { valid_term_t(actual);
   atom_t a = PL_new_atom(expected);
@@ -856,7 +856,7 @@ PL_domain_error(const char *expected, term_t actual)
 }
 
 
-int
+bool
 PL_existence_error(const char *type, term_t actual)
 { valid_term_t(actual);
   atom_t a = PL_new_atom(type);
@@ -867,7 +867,7 @@ PL_existence_error(const char *type, term_t actual)
 }
 
 
-int
+bool
 PL_permission_error(const char *op, const char *type, term_t obj)
 { valid_term_t(obj);
   atom_t t = PL_new_atom(type);
@@ -880,8 +880,7 @@ PL_permission_error(const char *op, const char *type, term_t obj)
   return rc;
 }
 
-
-int
+bool
 PL_resource_error(const char *resource)
 { atom_t r = PL_new_atom(resource);
   int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
@@ -898,7 +897,7 @@ PL_no_memory(void)
 }
 
 
-int
+bool
 PL_syntax_error(const char *msg, IOSTREAM *in)
 { GET_LD
   term_t ex, loc;
@@ -1021,14 +1020,14 @@ PL_get_atom_ex(DECL_LD term_t t, atom_t *a)
 }
 
 
-API_STUB(int)
+API_STUB(bool)
 (PL_get_atom_ex)(term_t t, atom_t *a)
 ( valid_term_t(t);
   return PL_get_atom_ex(t, a);
 )
 
 
-int
+bool
 PL_get_integer_ex(term_t t, int *i)
 { GET_LD
   valid_term_t(t);
@@ -1053,13 +1052,13 @@ PL_get_long_ex(DECL_LD term_t t, long *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
-API_STUB(int)
+API_STUB(bool)
 (PL_get_long_ex)(term_t t, long *i)
 ( valid_term_t(t);
   return PL_get_long_ex(t, i);
 )
 
-int
+bool
 PL_get_int64_ex(term_t t, int64_t *i)
 { GET_LD
   valid_term_t(t);
@@ -1084,7 +1083,7 @@ PL_get_intptr_ex(DECL_LD term_t t, intptr_t *i)
 #endif
 }
 
-API_STUB(int)
+API_STUB(bool)
 (PL_get_intptr_ex)(term_t t, intptr_t *i)
 ( valid_term_t(t);
   return PL_get_intptr_ex(t, i);
@@ -1234,13 +1233,13 @@ PL_get_uint64_ex(DECL_LD term_t t, uint64_t *i)
 { return pl_get_uint64(t, i, true);
 }
 
-API_STUB(int)
+API_STUB(bool)
 (PL_get_size_ex)(term_t t, size_t *i)
 ( valid_term_t(t);
   return PL_get_size_ex(t, i);
 )
 
-int
+bool
 PL_get_bool_ex(term_t t, int *i)
 { valid_term_t(t);
   if ( PL_get_bool(t, i) )
@@ -1250,7 +1249,7 @@ PL_get_bool_ex(term_t t, int *i)
 }
 
 
-int
+bool
 PL_get_char_ex(term_t t, int *p, int eof)
 { valid_term_t(t);
   if ( PL_get_char(t, p, eof) )
@@ -1260,7 +1259,7 @@ PL_get_char_ex(term_t t, int *p, int eof)
 }
 
 
-int
+bool
 PL_get_pointer_ex(term_t t, void **addrp)
 { GET_LD
   valid_term_t(t);
@@ -1271,7 +1270,7 @@ PL_get_pointer_ex(term_t t, void **addrp)
 }
 
 
-int
+bool
 PL_unify_list_ex(term_t l, term_t h, term_t t)
 { GET_LD
   valid_term_t(l);
@@ -1288,7 +1287,7 @@ PL_unify_list_ex(term_t l, term_t h, term_t t)
 }
 
 
-int
+bool
 PL_unify_nil_ex(term_t l)
 { valid_term_t(l);
   if ( PL_unify_nil(l) )
@@ -1301,7 +1300,7 @@ PL_unify_nil_ex(term_t l)
 }
 
 
-int
+bool
 PL_get_list_ex(term_t l, term_t h, term_t t)
 { GET_LD
   valid_term_t(l);
@@ -1317,7 +1316,7 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
-int
+bool
 PL_get_nil_ex(term_t l)
 { if ( PL_exception(0) )
     return false;
@@ -1332,7 +1331,7 @@ PL_get_nil_ex(term_t l)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
-int
+bool
 PL_unify_bool_ex(term_t t, int val)
 { GET_LD
   int v;

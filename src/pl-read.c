@@ -5539,7 +5539,7 @@ PRED_IMPL("term_string", 2, term_string, 0)
 }
 
 
-int
+bool
 PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
 { GET_LD
   read_data rd;
@@ -5603,13 +5603,13 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
 }
 
 
-int
+bool
 PL_chars_to_term(const char *s, term_t t)
 { return PL_put_term_from_chars(t, REP_ISO_LATIN_1, (size_t)-1, s);
 }
 
 
-int
+bool
 PL_wchars_to_term(const wchar_t *s, term_t t)
 { GET_LD
   int rc;

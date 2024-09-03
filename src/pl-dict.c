@@ -685,7 +685,7 @@ PL_is_dict(DECL_LD term_t t)
   return false;
 }
 
-API_STUB(int)
+API_STUB(bool)
 (PL_is_dict)(term_t t)
 ( valid_term_t(t);
   return PL_is_dict(t);
@@ -1730,7 +1730,7 @@ retry:
 Part of FLI
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_get_dict_key(atom_t key, term_t dict, term_t value)
 { GET_LD
   word d;

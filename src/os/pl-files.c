@@ -541,7 +541,7 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 }
 
 
-int
+bool
 PL_get_file_name(term_t n, char **namep, int flags)
 { char buf[PATH_MAX];
   char ospath[PATH_MAX];
@@ -562,7 +562,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
 }
 
 
-int
+bool
 PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
 { char buf[PATH_MAX];
   char ospath[PATH_MAX];

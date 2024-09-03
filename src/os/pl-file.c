@@ -572,19 +572,19 @@ tryGetStream(IOSTREAM *s)
   return NULL;
 }
 
-static int
+static bool
 releaseStream(IOSTREAM *s)
 { if ( s->magic == SIO_MAGIC )
     return Sunlock(s) == 0;
   return true;
 }
 
-int
+bool
 PL_release_stream(IOSTREAM *s)
 { return streamStatus(s);
 }
 
-int
+bool
 PL_release_stream_noerror(IOSTREAM *s)
 { if ( !releaseStream(s) )
     PL_clear_exception();
@@ -603,9 +603,9 @@ PL_acquire_stream(IOSTREAM *s)
 		 *	      ERRORS		*
 		 *******************************/
 
-static int symbol_no_stream(atom_t symbol);
+static bool symbol_no_stream(atom_t symbol);
 
-static int
+static bool
 no_stream(term_t t, atom_t name)
 { if ( t )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
@@ -613,12 +613,12 @@ no_stream(term_t t, atom_t name)
     return symbol_no_stream(name);
 }
 
-static int
+static bool
 not_a_stream(term_t t)
 { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
 }
 
-static int
+static bool
 symbol_no_stream(atom_t symbol)
 { GET_LD
   term_t t;
@@ -630,7 +630,7 @@ symbol_no_stream(atom_t symbol)
     return false;
 }
 
-static int
+static bool
 symbol_not_a_stream(atom_t symbol)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -639,7 +639,7 @@ symbol_not_a_stream(atom_t symbol)
 }
 
 
-static int
+static bool
 symbol_stream_pair_not_allowed(atom_t symbol)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -782,7 +782,7 @@ static PL_blob_t stream_blob =
 #define SH_NOPAIR   0x20		/* Do not allow for a pair */
 
 #define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
-static int
+static bool
 get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 { stream_ref *ref;
   PL_blob_t *type;
@@ -885,7 +885,7 @@ noent:
 
 
 #define term_stream_handle(t, s, flags) LDFUNC(term_stream_handle, t, s, flags)
-static int
+static bool
 term_stream_handle(DECL_LD term_t t, IOSTREAM **s, int flags)
 { atom_t a;
 
@@ -896,14 +896,14 @@ term_stream_handle(DECL_LD term_t t, IOSTREAM **s, int flags)
 }
 
 
-int
+bool
 PL_get_stream_handle(term_t t, IOSTREAM **s)
 { GET_LD
 
   return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR);
 }
 
-int
+bool
 PL_get_stream(term_t t, IOSTREAM **s, int flags)
 { GET_LD
   atom_t a;
@@ -914,7 +914,7 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
   return PL_get_stream_from_blob(a, s, flags);
 }
 
-int
+bool
 PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
@@ -929,11 +929,11 @@ PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 }
 
 
-static int
+static bool
 unify_stream_ref(term_t t, IOSTREAM *s)
 { GET_LD
   stream_ref ref;
-  int rval;
+  bool rval;
 
   memset(&ref, 0, sizeof(ref));
   if ( s->flags & SIO_INPUT )
@@ -950,10 +950,10 @@ unify_stream_ref(term_t t, IOSTREAM *s)
 }
 
 
-int
+bool
 PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 { GET_LD
-  int rval;
+  bool rval;
   stream_context *ctx;
   int i;
 
@@ -975,7 +975,7 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 }
 
 
-int
+bool
 PL_unify_stream(term_t t, IOSTREAM *s)
 { (void)getStreamContext(s);		/* get stream known to Prolog */
 
@@ -1236,7 +1236,7 @@ these streams too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__
-static int
+static bool
 isConsoleStream(IOSTREAM *s)
 { int i = standardStreamIndexFromStream(s);
 
@@ -1247,7 +1247,7 @@ isConsoleStream(IOSTREAM *s)
 #endif
 
 
-int
+bool
 reportStreamError(IOSTREAM *s)
 { if ( GD->cleaning >= CLN_IO ||
        isConsoleStream(s) )
@@ -1337,10 +1337,10 @@ reportStreamError(IOSTREAM *s)
 }
 
 
-int
+bool
 streamStatus(IOSTREAM *s)
 { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
-  { int ret = reportStreamError(s);
+  { bool ret = reportStreamError(s);
     return releaseStream(s) && ret;
   }
 
@@ -1422,7 +1422,7 @@ to a write-error), an exception is  generated.
 MT: We assume the stream is locked and will unlock it here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 closeStream(IOSTREAM *s)
 { if ( s == Sinput )
   { Sclearerr(s);
@@ -1433,11 +1433,11 @@ closeStream(IOSTREAM *s)
     return releaseStream(s);
   } else
   { if ( !Sferror(s) && Sflush(s) < 0 )
-    { int rc = reportStreamError(s);
+    { bool rc = reportStreamError(s);
       Sclose(s);
       return rc;
     }
-    return (Sclose(s) == 0);		/* will unlock as well */
+    return Sclose(s) == 0;		/* will unlock as well */
   }
 }
 

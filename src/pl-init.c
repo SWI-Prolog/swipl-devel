@@ -1035,7 +1035,7 @@ openResourceDB(int is_hash_bang)
 }
 
 
-int
+bool
 PL_is_initialised(int *argc, char ***argv)
 { if ( GD->initialised )
   { if ( argc )
@@ -1050,7 +1050,7 @@ PL_is_initialised(int *argc, char ***argv)
 }
 
 
-int
+bool
 PL_winitialise(int argc, wchar_t **wargv)
 { char **argv;
   tmp_buffer b;
@@ -1124,7 +1124,7 @@ Steps:
           from options.txt.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_initialise(int argc, char **argv)
 { int is_hash_bang = false;
   const char *rcpath = "<none>";
@@ -1320,7 +1320,7 @@ PL_initialise(int argc, char **argv)
 }
 
 
-int
+bool
 PL_set_resource_db_mem(const unsigned char *data, size_t size)
 { if ( (GD->resources.DB = zip_open_archive_mem(data, size, RC_RDONLY)) )
     return true;

@@ -660,7 +660,7 @@ Out of stack exception context:
   - Global storage only reachable through choice points
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
@@ -730,7 +730,7 @@ outOfStack(void *stack, stack_overflow_action how)
 }
 
 
-int
+bool
 raiseStackOverflow(int overflow)
 { GET_LD
   Stack s;
@@ -1214,7 +1214,7 @@ PL_free(void *mem)
 }
 
 
-int
+bool
 PL_linger(void *mem)
 {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)

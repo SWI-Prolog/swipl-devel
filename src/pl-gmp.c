@@ -2242,7 +2242,7 @@ mpq_set_double(mpq_t r, double f)	/* float -> nice rational */
 		 *	 PUBLIC INTERFACE	*
 		 *******************************/
 
-int
+bool
 PL_get_mpz(term_t t, mpz_t mpz)
 { GET_LD
   Word p = valTermRef(t);
@@ -2272,7 +2272,7 @@ PL_get_mpz(term_t t, mpz_t mpz)
 }
 
 
-int
+bool
 PL_get_mpq(term_t t, mpq_t mpq)
 { if ( PL_is_rational(t) )
   { GET_LD
@@ -2306,7 +2306,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
 }
 
 
-int
+bool
 PL_unify_mpz(term_t t, mpz_t mpz)
 { GET_LD
   number n;
@@ -2323,7 +2323,7 @@ PL_unify_mpz(term_t t, mpz_t mpz)
 }
 
 
-int
+bool
 PL_unify_mpq(term_t t, mpq_t mpq)
 { GET_LD
   number n;

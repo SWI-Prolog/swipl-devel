@@ -2162,7 +2162,7 @@ pl_write_term(term_t term, term_t options)
 }
 
 
-int
+bool
 PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 { write_options options;
   int rc;

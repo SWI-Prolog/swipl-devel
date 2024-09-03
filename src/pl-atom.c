@@ -303,7 +303,7 @@ PL_find_blob_type(const char *name)
 
 
 
-int
+bool
 PL_unregister_blob_type(PL_blob_t *type)
 { size_t index;
   int i, last=false;

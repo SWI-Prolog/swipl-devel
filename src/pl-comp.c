@@ -8558,7 +8558,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 		 *	      FLI		*
 		 *******************************/
 
-int
+bool
 PL_assert(term_t term, module_t module, int flags)
 { GET_LD
   ClauseRef where = CL_END;

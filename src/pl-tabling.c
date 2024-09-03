@@ -1339,7 +1339,7 @@ init_delay_list(void)
 }
 
 
-int
+bool
 PL_get_delay_list(term_t t)
 { GET_LD
 

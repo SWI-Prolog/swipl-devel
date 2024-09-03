@@ -888,7 +888,7 @@ ground(DECL_LD Word p)
 }
 
 
-int
+bool
 PL_is_ground(term_t t)
 { GET_LD
 
@@ -1215,7 +1215,7 @@ PL_is_acyclic(DECL_LD term_t t)
 }
 
 
-API_STUB(int)
+API_STUB(bool)
 (PL_is_acyclic)(term_t t)
 ( return PL_is_acyclic(t); )
 

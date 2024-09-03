@@ -83,8 +83,8 @@ int		getTextInputStream(term_t t, IOSTREAM **s);
 int		getBinaryInputStream(term_t t, IOSTREAM **s);
 int		getTextOutputStream(term_t t, IOSTREAM **s);
 int		getBinaryOutputStream(term_t t, IOSTREAM **s);
-int		reportStreamError(IOSTREAM *s);
-int		streamStatus(IOSTREAM *s);
+bool		reportStreamError(IOSTREAM *s);
+bool		streamStatus(IOSTREAM *s);
 int		setFileNameStream(IOSTREAM *s, atom_t name);
 atom_t		fileNameStream(IOSTREAM *s);
 int		getSingleChar(IOSTREAM *s, int signals);
@@ -108,7 +108,7 @@ int		unifyTime(term_t t, time_t time);
 #ifdef __WINDOWS__
 word		pl_make_fat_filemap(term_t dir);
 #endif
-int		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
+bool		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(IOSTREAM *s);
 void		popOutputContext(void);
 int		setupOutputRedirect(term_t to,

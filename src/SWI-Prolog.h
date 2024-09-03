@@ -366,10 +366,10 @@ typedef struct PL_extension
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);
 PL_EXPORT(void)		PL_register_extensions_in_module(const char *module, const PL_extension *e);
-PL_EXPORT(int)		PL_register_foreign(const char *name, int arity,
+PL_EXPORT(bool)		PL_register_foreign(const char *name, int arity,
 					    pl_function_t func,
 					    int flags, ...);
-PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
+PL_EXPORT(bool)		PL_register_foreign_in_module(const char *module,
 						      const char *name, int arity,
 						      pl_function_t func,
 						      int flags, ...);
@@ -388,7 +388,7 @@ PL_EXPORT(void)		PL_license(const char *license, const char *module);
 PL_EXPORT(module_t)	PL_context(void);
 PL_EXPORT(atom_t)	PL_module_name(module_t module);
 PL_EXPORT(module_t)	PL_new_module(atom_t name);
-PL_EXPORT(int)		PL_strip_module(term_t in, module_t *m, term_t out) WUNUSED;
+PL_EXPORT(bool)		PL_strip_module(term_t in, module_t *m, term_t out) WUNUSED;
 
 		 /*******************************
 		 *	     CONSTANTS		*
@@ -421,8 +421,8 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 					/* PL_Q_EXT_STATUS return codes */
 #define PL_S_NOT_INNER	       -2	/* Query is not inner query */
 #define PL_S_EXCEPTION	       -1	/* Query raised exception */
-#define PL_S_FALSE		0	/* Query failed */
-#define PL_S_TRUE		1	/* Query succeeded with choicepoint */
+#define PL_S_FALSE		0	/* Query failed (=false) */
+#define PL_S_TRUE		1	/* Query succeeded with choicepoint (=true)*/
 #define PL_S_LAST		2	/* Query succeeded without CP */
 #define PL_S_YIELD	      255	/* Foreign yield */
 
@@ -436,7 +436,7 @@ PL_EXPORT(void)		PL_discard_foreign_frame(fid_t cid);
 PL_EXPORT(predicate_t)	PL_pred(functor_t f, module_t m);
 PL_EXPORT(predicate_t)	PL_predicate(const char *name, int arity,
 				     const char* module);
-PL_EXPORT(int)		PL_predicate_info(predicate_t pred,
+PL_EXPORT(bool)		PL_predicate_info(predicate_t pred,
 					  atom_t *name, size_t *arity,
 					  module_t *module);
 
@@ -444,20 +444,20 @@ PL_EXPORT(int)		PL_predicate_info(predicate_t pred,
 PL_EXPORT(qid_t)	PL_open_query(module_t m, int flags,
 				      predicate_t pred, term_t t0);
 PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
-PL_EXPORT(int)		PL_close_query(qid_t qid);
-PL_EXPORT(int)		PL_cut_query(qid_t qid);
+PL_EXPORT(int)		PL_close_query(qid_t qid); /* true,false or PL_S_NOT_INNER */
+PL_EXPORT(int)		PL_cut_query(qid_t qid);   /* true,false or PL_S_NOT_INNER */
 PL_EXPORT(qid_t)	PL_current_query(void);
 PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
-PL_EXPORT(int)		PL_can_yield(void);
+PL_EXPORT(bool)		PL_can_yield(void);
 
 			/* Simplified (but less flexible) call-back */
-PL_EXPORT(int)		PL_call(term_t t, module_t m) WUNUSED;
-PL_EXPORT(int)		PL_call_predicate(module_t m, int flags,
+PL_EXPORT(bool)		PL_call(term_t t, module_t m) WUNUSED;
+PL_EXPORT(bool)		PL_call_predicate(module_t m, int flags,
 					  predicate_t pred, term_t t0); /* TODO: WUNUSED */
 			/* Handling exceptions */
 PL_EXPORT(term_t)	PL_exception(qid_t qid);
-PL_EXPORT(int)		PL_raise_exception(term_t exception);
-PL_EXPORT(int)		PL_throw(term_t exception); /* WDEPRECATED */
+PL_EXPORT(bool)		PL_raise_exception(term_t exception);
+PL_EXPORT(bool)		PL_throw(term_t exception); /* WDEPRECATED */
 PL_EXPORT(void)		PL_clear_exception(void);
 			/* Engine-based coroutining */
 PL_EXPORT(term_t)	PL_yielded(qid_t qid);
@@ -472,7 +472,7 @@ PL_EXPORT(term_t)	PL_yielded(qid_t qid);
 #define PL_CREATE_THREAD_LOCAL	0x0010
 #define PL_CREATE_INCREMENTAL	0x0020
 
-PL_EXPORT(int)		PL_assert(term_t term, module_t m, int flags);
+PL_EXPORT(bool)		PL_assert(term_t term, module_t m, int flags);
 
 
 
@@ -495,7 +495,7 @@ PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
 PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a); /* WDEPRECATED */
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
-PL_EXPORT(int)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
+PL_EXPORT(bool)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
 					unsigned int flags);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
@@ -521,43 +521,43 @@ PL_EXPORT(int)		PL_functor_arity(functor_t f);
 PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
 
 			/* Get C-values from Prolog terms */
-PL_EXPORT(int)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
-PL_EXPORT(int)		PL_get_bool(term_t t, int *value) WUNUSED;
-PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
+PL_EXPORT(bool)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
+PL_EXPORT(bool)		PL_get_bool(term_t t, int *value) WUNUSED;
+PL_EXPORT(bool)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
-PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
-PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags) WUNUSED;
-PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
+PL_EXPORT(bool)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
+PL_EXPORT(bool)		PL_get_chars(term_t t, char **s, unsigned int flags) WUNUSED;
+PL_EXPORT(bool)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags) WUNUSED;
-PL_EXPORT(int)		PL_get_atom_nchars(term_t t, size_t *len, char **a) WUNUSED;
-PL_EXPORT(int)		PL_get_list_nchars(term_t l,
+PL_EXPORT(bool)		PL_get_atom_nchars(term_t t, size_t *len, char **a) WUNUSED;
+PL_EXPORT(bool)		PL_get_list_nchars(term_t l,
 					   size_t *len, char **s,
 					   unsigned int flags) WUNUSED;
-PL_EXPORT(int)		PL_get_nchars(term_t t,
+PL_EXPORT(bool)		PL_get_nchars(term_t t,
 				      size_t *len, char **s,
 				      unsigned int flags) WUNUSED;
-PL_EXPORT(int)		PL_get_integer(term_t t, int *i) WUNUSED;
-PL_EXPORT(int)		PL_get_long(term_t t, long *i) WUNUSED;
-PL_EXPORT(int)		PL_get_intptr(term_t t, intptr_t *i) WUNUSED;
-PL_EXPORT(int)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
-PL_EXPORT(int)		PL_get_float(term_t t, double *f) WUNUSED;
-PL_EXPORT(int)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
-PL_EXPORT(int)		PL_get_name_arity_sz(term_t t, atom_t *name,
+PL_EXPORT(bool)		PL_get_integer(term_t t, int *i) WUNUSED;
+PL_EXPORT(bool)		PL_get_long(term_t t, long *i) WUNUSED;
+PL_EXPORT(bool)		PL_get_intptr(term_t t, intptr_t *i) WUNUSED;
+PL_EXPORT(bool)		PL_get_pointer(term_t t, void **ptr) WUNUSED;
+PL_EXPORT(bool)		PL_get_float(term_t t, double *f) WUNUSED;
+PL_EXPORT(bool)		PL_get_functor(term_t t, functor_t *f) WUNUSED;
+PL_EXPORT(bool)		PL_get_name_arity_sz(term_t t, atom_t *name,
 					     size_t *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_compound_name_arity_sz(term_t t, atom_t *name,
+PL_EXPORT(bool)		PL_get_compound_name_arity_sz(term_t t, atom_t *name,
 						      size_t *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_name_arity(term_t t, atom_t *name,
+PL_EXPORT(bool)		PL_get_name_arity(term_t t, atom_t *name,
 					  int *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
+PL_EXPORT(bool)		PL_get_compound_name_arity(term_t t, atom_t *name,
 						   int *arity) WUNUSED;
-PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
-PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
-PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
-PL_EXPORT(int)		PL_get_dict_key(atom_t key, term_t dict, term_t value) WUNUSED;
-PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
-PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
-PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
-PL_EXPORT(int)		PL_get_nil(term_t l) WUNUSED;
+PL_EXPORT(bool)		PL_get_module(term_t t, module_t *module) WUNUSED;
+PL_EXPORT(bool)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(bool)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(bool)		PL_get_dict_key(atom_t key, term_t dict, term_t value) WUNUSED;
+PL_EXPORT(bool)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
+PL_EXPORT(bool)		PL_get_head(term_t l, term_t h) WUNUSED;
+PL_EXPORT(bool)		PL_get_tail(term_t l, term_t t) WUNUSED;
+PL_EXPORT(bool)		PL_get_nil(term_t l) WUNUSED;
 PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED;
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 #define PL_FOR_DICT_SORTED	0x1
@@ -568,79 +568,79 @@ PL_EXPORT(int)		PL_for_dict(term_t dict,
 
 			/* Verify types */
 PL_EXPORT(int)		PL_term_type(term_t t);
-PL_EXPORT(int)		PL_is_variable(term_t t);
-PL_EXPORT(int)		PL_is_ground(term_t t);
-PL_EXPORT(int)		PL_is_atom(term_t t);
-PL_EXPORT(int)		PL_is_integer(term_t t);
-PL_EXPORT(int)		PL_is_string(term_t t);
-PL_EXPORT(int)		PL_is_float(term_t t);
-PL_EXPORT(int)		PL_is_rational(term_t t);
-PL_EXPORT(int)		PL_is_compound(term_t t);
-PL_EXPORT(int)		PL_is_callable(term_t t);
-PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
-PL_EXPORT(int)		PL_is_list(term_t t);
-PL_EXPORT(int)		PL_is_dict(term_t t);
-PL_EXPORT(int)		PL_is_pair(term_t t);
-PL_EXPORT(int)		PL_is_atomic(term_t t);
-PL_EXPORT(int)		PL_is_number(term_t t);
-PL_EXPORT(int)		PL_is_acyclic(term_t t);
+PL_EXPORT(bool)		PL_is_variable(term_t t);
+PL_EXPORT(bool)		PL_is_ground(term_t t);
+PL_EXPORT(bool)		PL_is_atom(term_t t);
+PL_EXPORT(bool)		PL_is_integer(term_t t);
+PL_EXPORT(bool)		PL_is_string(term_t t);
+PL_EXPORT(bool)		PL_is_float(term_t t);
+PL_EXPORT(bool)		PL_is_rational(term_t t);
+PL_EXPORT(bool)		PL_is_compound(term_t t);
+PL_EXPORT(bool)		PL_is_callable(term_t t);
+PL_EXPORT(bool)		PL_is_functor(term_t t, functor_t f);
+PL_EXPORT(bool)		PL_is_list(term_t t);
+PL_EXPORT(bool)		PL_is_dict(term_t t);
+PL_EXPORT(bool)		PL_is_pair(term_t t);
+PL_EXPORT(bool)		PL_is_atomic(term_t t);
+PL_EXPORT(bool)		PL_is_number(term_t t);
+PL_EXPORT(bool)		PL_is_acyclic(term_t t);
 
 			/* Assign to term-references */
-PL_EXPORT(int)		PL_put_variable(term_t t);
-PL_EXPORT(int)		PL_put_atom(term_t t, atom_t a);
-PL_EXPORT(int)		PL_put_bool(term_t t, int val);
-PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
-PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_chars(term_t t, int flags,
+PL_EXPORT(bool)		PL_put_variable(term_t t);
+PL_EXPORT(bool)		PL_put_atom(term_t t, atom_t a);
+PL_EXPORT(bool)		PL_put_bool(term_t t, int val);
+PL_EXPORT(bool)		PL_put_atom_chars(term_t t, const char *chars);
+PL_EXPORT(bool)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_chars(term_t t, int flags,
 				     size_t len, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
-PL_EXPORT(int)		PL_put_string_nchars(term_t t, size_t len, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_list_nchars(term_t t, size_t l, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_list_ncodes(term_t t, size_t l, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_integer(term_t t, long i) WUNUSED;
-PL_EXPORT(int)		PL_put_pointer(term_t t, void *ptr) WUNUSED;
-PL_EXPORT(int)		PL_put_float(term_t t, double f) WUNUSED;
-PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
-PL_EXPORT(int)		PL_put_list(term_t l) WUNUSED;
-PL_EXPORT(int)		PL_put_nil(term_t l);
-PL_EXPORT(int)		PL_put_term(term_t t1, term_t t2) WUNUSED;
+PL_EXPORT(bool)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
+PL_EXPORT(bool)		PL_put_string_nchars(term_t t, size_t len, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_list_nchars(term_t t, size_t l, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_list_ncodes(term_t t, size_t l, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_put_integer(term_t t, long i) WUNUSED;
+PL_EXPORT(bool)		PL_put_pointer(term_t t, void *ptr) WUNUSED;
+PL_EXPORT(bool)		PL_put_float(term_t t, double f) WUNUSED;
+PL_EXPORT(bool)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
+PL_EXPORT(bool)		PL_put_list(term_t l) WUNUSED;
+PL_EXPORT(bool)		PL_put_nil(term_t l);
+PL_EXPORT(bool)		PL_put_term(term_t t1, term_t t2) WUNUSED;
 PL_EXPORT(int)		PL_put_dict(term_t t, atom_t tag, size_t len,
 				    const atom_t *keys, term_t values) WUNUSED;
 PL_EXPORT(atom_t)	_PL_cons_small_int(int64_t v);
 PL_EXPORT(void)		_PL_unregister_keys(size_t len, atom_t *keys);
 
 			/* construct a functor or list-cell */
-PL_EXPORT(int)		PL_cons_functor(term_t h, functor_t f, ...) WUNUSED;
-PL_EXPORT(int)		PL_cons_functor_v(term_t h, functor_t fd, term_t a0) WUNUSED;
-PL_EXPORT(int)		PL_cons_list(term_t l, term_t h, term_t t) WUNUSED;
+PL_EXPORT(bool)		PL_cons_functor(term_t h, functor_t f, ...) WUNUSED;
+PL_EXPORT(bool)		PL_cons_functor_v(term_t h, functor_t fd, term_t a0) WUNUSED;
+PL_EXPORT(bool)		PL_cons_list(term_t l, term_t h, term_t t) WUNUSED;
 
 			/* Unify term-references */
-PL_EXPORT(int)		PL_unify(term_t t1, term_t t2) WUNUSED;
-PL_EXPORT(int)		PL_unify_atom(term_t t, atom_t a) WUNUSED;
-PL_EXPORT(int)		PL_unify_atom_chars(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_unify_list_chars(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_unify_list_codes(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_unify_string_chars(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_unify_atom_nchars(term_t t, size_t l, const char *s) WUNUSED;
-PL_EXPORT(int)		PL_unify_list_ncodes(term_t t, size_t l, const char *s) WUNUSED;
-PL_EXPORT(int)		PL_unify_list_nchars(term_t t, size_t l, const char *s) WUNUSED;
-PL_EXPORT(int)		PL_unify_string_nchars(term_t t,
+PL_EXPORT(bool)		PL_unify(term_t t1, term_t t2) WUNUSED;
+PL_EXPORT(bool)		PL_unify_atom(term_t t, atom_t a) WUNUSED;
+PL_EXPORT(bool)		PL_unify_atom_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_unify_list_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_unify_list_codes(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_unify_string_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(bool)		PL_unify_atom_nchars(term_t t, size_t l, const char *s) WUNUSED;
+PL_EXPORT(bool)		PL_unify_list_ncodes(term_t t, size_t l, const char *s) WUNUSED;
+PL_EXPORT(bool)		PL_unify_list_nchars(term_t t, size_t l, const char *s) WUNUSED;
+PL_EXPORT(bool)		PL_unify_string_nchars(term_t t,
 					       size_t len,
 					       const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_unify_bool(term_t t, int n) WUNUSED;
-PL_EXPORT(int)		PL_unify_integer(term_t t, intptr_t n) WUNUSED;
-PL_EXPORT(int)		PL_unify_float(term_t t, double f) WUNUSED;
-PL_EXPORT(int)		PL_unify_pointer(term_t t, void *ptr) WUNUSED;
-PL_EXPORT(int)		PL_unify_functor(term_t t, functor_t f) WUNUSED;
-PL_EXPORT(int)		PL_unify_compound(term_t t, functor_t f) WUNUSED;
-PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t) WUNUSED;
-PL_EXPORT(int)		PL_unify_nil(term_t l) WUNUSED;
-PL_EXPORT(int)		PL_unify_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
-PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a) WUNUSED;
-PL_EXPORT(int)		PL_unify_term(term_t t, ...) WUNUSED;
-PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
+PL_EXPORT(bool)		PL_unify_bool(term_t t, int n) WUNUSED;
+PL_EXPORT(bool)		PL_unify_integer(term_t t, intptr_t n) WUNUSED;
+PL_EXPORT(bool)		PL_unify_float(term_t t, double f) WUNUSED;
+PL_EXPORT(bool)		PL_unify_pointer(term_t t, void *ptr) WUNUSED;
+PL_EXPORT(bool)		PL_unify_functor(term_t t, functor_t f) WUNUSED;
+PL_EXPORT(bool)		PL_unify_compound(term_t t, functor_t f) WUNUSED;
+PL_EXPORT(bool)		PL_unify_list(term_t l, term_t h, term_t t) WUNUSED;
+PL_EXPORT(bool)		PL_unify_nil(term_t l) WUNUSED;
+PL_EXPORT(bool)		PL_unify_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(bool)		PL_unify_arg(int index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(bool)		PL_unify_term(term_t t, ...) WUNUSED;
+PL_EXPORT(bool)		PL_unify_chars(term_t t, int flags,
 				       size_t len, const char *s) WUNUSED;
 
 		 /*******************************
@@ -654,13 +654,13 @@ PL_EXPORT(int)		PL_skip_list(term_t list, term_t tail, size_t *len);
 		 *    WIDE CHARACTER VERSIONS	*
 		 *******************************/
 
-PL_EXPORT(int)		PL_put_wchars(term_t t, int type,
+PL_EXPORT(bool)		PL_put_wchars(term_t t, int type,
 				      size_t len, const pl_wchar_t *s) WUNUSED;
-PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
+PL_EXPORT(bool)		PL_unify_wchars(term_t t, int type,
 					size_t len, const pl_wchar_t *s) WUNUSED;
-PL_EXPORT(int)		PL_unify_wchars_diff(term_t t, term_t tail, int type,
+PL_EXPORT(bool)		PL_unify_wchars_diff(term_t t, term_t tail, int type,
 					size_t len, const pl_wchar_t *s) WUNUSED;
-PL_EXPORT(int)		PL_get_wchars(term_t l,
+PL_EXPORT(bool)		PL_get_wchars(term_t l,
 				      size_t *length, pl_wchar_t **s,
 				      unsigned flags) WUNUSED;
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
@@ -671,60 +671,60 @@ PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
 		 *******************************/
 
 
-PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i) WUNUSED;
-PL_EXPORT(int)		PL_get_uint64(term_t t, uint64_t *i) WUNUSED;
-PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value) WUNUSED;
-PL_EXPORT(int)		PL_unify_uint64(term_t t, uint64_t value) WUNUSED;
-PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i) WUNUSED;
-PL_EXPORT(int)		PL_put_uint64(term_t t, uint64_t i) WUNUSED;
+PL_EXPORT(bool)		PL_get_int64(term_t t, int64_t *i) WUNUSED;
+PL_EXPORT(bool)		PL_get_uint64(term_t t, uint64_t *i) WUNUSED;
+PL_EXPORT(bool)		PL_unify_int64(term_t t, int64_t value) WUNUSED;
+PL_EXPORT(bool)		PL_unify_uint64(term_t t, uint64_t value) WUNUSED;
+PL_EXPORT(bool)		PL_put_int64(term_t t, int64_t i) WUNUSED;
+PL_EXPORT(bool)		PL_put_uint64(term_t t, uint64_t i) WUNUSED;
 
 
 		 /*******************************
 		 *     ATTRIBUTED VARIABLES	*
 		 *******************************/
 
-PL_EXPORT(int)		PL_is_attvar(term_t t);
-PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
+PL_EXPORT(bool)		PL_is_attvar(term_t t);
+PL_EXPORT(bool)		PL_get_attr(term_t v, term_t a);
 
 
 		 /*******************************
 		 *           TABLING            *
 		 *******************************/
 
-PL_EXPORT(int)		PL_get_delay_list(term_t l);
+PL_EXPORT(bool)		PL_get_delay_list(term_t l);
 
 
 		 /*******************************
 		 *	      ERRORS		*
 		 *******************************/
 
-PL_EXPORT(int)		PL_get_atom_ex(term_t t, atom_t *a);
-PL_EXPORT(int)		PL_get_integer_ex(term_t t, int *i);
-PL_EXPORT(int)		PL_get_long_ex(term_t t, long *i);
-PL_EXPORT(int)		PL_get_int64_ex(term_t t, int64_t *i);
-PL_EXPORT(int)		PL_get_uint64_ex(term_t t, uint64_t *i);
-PL_EXPORT(int)		PL_get_intptr_ex(term_t t, intptr_t *i);
-PL_EXPORT(int)		PL_get_size_ex(term_t t, size_t *i);
-PL_EXPORT(int)		PL_get_bool_ex(term_t t, int *i);
-PL_EXPORT(int)		PL_get_float_ex(term_t t, double *f);
-PL_EXPORT(int)		PL_get_char_ex(term_t t, int *p, int eof);
-PL_EXPORT(int)		PL_unify_bool_ex(term_t t, int val);
-PL_EXPORT(int)		PL_get_pointer_ex(term_t t, void **addrp);
-PL_EXPORT(int)		PL_unify_list_ex(term_t l, term_t h, term_t t);
-PL_EXPORT(int)		PL_unify_nil_ex(term_t l);
-PL_EXPORT(int)		PL_get_list_ex(term_t l, term_t h, term_t t);
-PL_EXPORT(int)		PL_get_nil_ex(term_t l);
+PL_EXPORT(bool)		PL_get_atom_ex(term_t t, atom_t *a);
+PL_EXPORT(bool)		PL_get_integer_ex(term_t t, int *i);
+PL_EXPORT(bool)		PL_get_long_ex(term_t t, long *i);
+PL_EXPORT(bool)		PL_get_int64_ex(term_t t, int64_t *i);
+PL_EXPORT(bool)		PL_get_uint64_ex(term_t t, uint64_t *i);
+PL_EXPORT(bool)		PL_get_intptr_ex(term_t t, intptr_t *i);
+PL_EXPORT(bool)		PL_get_size_ex(term_t t, size_t *i);
+PL_EXPORT(bool)		PL_get_bool_ex(term_t t, int *i);
+PL_EXPORT(bool)		PL_get_float_ex(term_t t, double *f);
+PL_EXPORT(bool)		PL_get_char_ex(term_t t, int *p, int eof);
+PL_EXPORT(bool)		PL_unify_bool_ex(term_t t, int val);
+PL_EXPORT(bool)		PL_get_pointer_ex(term_t t, void **addrp);
+PL_EXPORT(bool)		PL_unify_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(bool)		PL_unify_nil_ex(term_t l);
+PL_EXPORT(bool)		PL_get_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(bool)		PL_get_nil_ex(term_t l);
 
-PL_EXPORT(int)		PL_instantiation_error(term_t culprit);
-PL_EXPORT(int)		PL_uninstantiation_error(term_t culprit);
-PL_EXPORT(int)		PL_representation_error(const char *resource);
-PL_EXPORT(int)		PL_type_error(const char *expected, term_t culprit);
-PL_EXPORT(int)		PL_domain_error(const char *expected, term_t culprit);
-PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
-PL_EXPORT(int)		PL_permission_error(const char *operation,
+PL_EXPORT(bool)		PL_instantiation_error(term_t culprit);
+PL_EXPORT(bool)		PL_uninstantiation_error(term_t culprit);
+PL_EXPORT(bool)		PL_representation_error(const char *resource);
+PL_EXPORT(bool)		PL_type_error(const char *expected, term_t culprit);
+PL_EXPORT(bool)		PL_domain_error(const char *expected, term_t culprit);
+PL_EXPORT(bool)		PL_existence_error(const char *type, term_t culprit);
+PL_EXPORT(bool)		PL_permission_error(const char *operation,
 					    const char *type, term_t culprit);
-PL_EXPORT(int)		PL_resource_error(const char *resource);
-PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
+PL_EXPORT(bool)		PL_resource_error(const char *resource);
+PL_EXPORT(bool)		PL_syntax_error(const char *msg, IOSTREAM *in);
 
 		 /*******************************
 		 *	       BLOBS		*
@@ -758,23 +758,23 @@ typedef struct PL_blob_t
   atom_t		atom_name;	/* Name as atom */
 } PL_blob_t;
 
-PL_EXPORT(int)		PL_is_blob(term_t t, PL_blob_t **type);
-PL_EXPORT(int)		PL_unify_blob(term_t t, void *blob, size_t len,
+PL_EXPORT(bool)		PL_is_blob(term_t t, PL_blob_t **type);
+PL_EXPORT(bool)		PL_unify_blob(term_t t, void *blob, size_t len,
 				      PL_blob_t *type);
 PL_EXPORT(atom_t)	PL_new_blob(void *blob, size_t len, PL_blob_t *type);
-PL_EXPORT(int)		PL_put_blob(term_t t, void *blob, size_t len,
+PL_EXPORT(bool)		PL_put_blob(term_t t, void *blob, size_t len,
 				    PL_blob_t *type);
-PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, size_t *len,
+PL_EXPORT(bool)		PL_get_blob(term_t t, void **blob, size_t *len,
 				    PL_blob_t **type);
 
 PL_EXPORT(void*)	PL_blob_data(atom_t a,
 				     size_t *len,
 				     struct PL_blob_t **type);
-PL_EXPORT(int)		PL_free_blob(atom_t blob);
+PL_EXPORT(bool)		PL_free_blob(atom_t blob);
 
 PL_EXPORT(void)		PL_register_blob_type(PL_blob_t *type);
 PL_EXPORT(PL_blob_t*)	PL_find_blob_type(const char* name);
-PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
+PL_EXPORT(bool)		PL_unregister_blob_type(PL_blob_t *type);
 
 
 #ifdef __GNU_MP__
@@ -783,10 +783,10 @@ PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
 		 *	       GMP		*
 		 *******************************/
 
-PL_EXPORT(int)	PL_get_mpz(term_t t, mpz_t mpz) WUNUSED;
-PL_EXPORT(int)	PL_get_mpq(term_t t,  mpq_t mpq) WUNUSED;
-PL_EXPORT(int)	PL_unify_mpz(term_t t, mpz_t mpz) WUNUSED;
-PL_EXPORT(int)	PL_unify_mpq(term_t t, mpq_t mpq) WUNUSED;
+PL_EXPORT(bool)	PL_get_mpz(term_t t, mpz_t mpz) WUNUSED;
+PL_EXPORT(bool)	PL_get_mpq(term_t t,  mpq_t mpq) WUNUSED;
+PL_EXPORT(bool)	PL_unify_mpz(term_t t, mpz_t mpz) WUNUSED;
+PL_EXPORT(bool)	PL_unify_mpq(term_t t, mpq_t mpq) WUNUSED;
 
 #endif /*__GNU_MP__*/
 
@@ -803,8 +803,8 @@ PL_EXPORT(int)	PL_unify_mpq(term_t t, mpq_t mpq) WUNUSED;
 #define PL_FILE_EXECUTE		0x40	/* demand execute-access */
 #define PL_FILE_NOERRORS	0x80	/* do not raise exceptions */
 
-PL_EXPORT(int)		PL_get_file_name(term_t n, char **name, int flags);
-PL_EXPORT(int)		PL_get_file_nameW(term_t n, wchar_t **name, int flags);
+PL_EXPORT(bool)		PL_get_file_name(term_t n, char **name, int flags);
+PL_EXPORT(bool)		PL_get_file_nameW(term_t n, wchar_t **name, int flags);
 PL_EXPORT(void)		PL_changed_cwd(void); /* foreign code changed CWD */
 PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 
@@ -850,7 +850,7 @@ PL_EXPORT(term_t)	PL_new_nil_ref(void);
 */
 
 PL_EXPORT(int)		PL_cvt_encoding(void);
-PL_EXPORT(int)		PL_cvt_set_encoding(int enc);
+PL_EXPORT(bool)		PL_cvt_set_encoding(int enc);
 PL_EXPORT(void)		SP_set_state(int state);
 PL_EXPORT(int)		SP_get_state(void);
 
@@ -860,7 +860,7 @@ PL_EXPORT(int)		SP_get_state(void);
 		 *******************************/
 
 PL_EXPORT(int)		PL_compare(term_t t1, term_t t2);
-PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
+PL_EXPORT(bool)		PL_same_compound(term_t t1, term_t t2);
 
 		 /*******************************
 		 *	     MESSAGES		*
@@ -878,8 +878,8 @@ PL_EXPORT(int)		PL_same_compound(term_t t1, term_t t2);
 #endif
 #endif
 
-PL_EXPORT(int)		PL_warning(const char *fmt, ...) WPRINTF12;
-PL_EXPORT(int)		PL_warningX(const char *fmt, ...);
+PL_EXPORT(bool)		PL_warning(const char *fmt, ...) WPRINTF12;
+PL_EXPORT(bool)		PL_warningX(const char *fmt, ...);
 PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(void)		PL_api_error(const char *fmt, ...) WPRINTF12;
 PL_EXPORT(void)		PL_system_error(const char *fmt, ...) WPRINTF12;
@@ -889,20 +889,20 @@ PL_EXPORT(void)		PL_system_error(const char *fmt, ...) WPRINTF12;
 		 *******************************/
 
 PL_EXPORT(record_t)	PL_record(term_t term);
-PL_EXPORT(int)		PL_recorded(record_t record, term_t term);
+PL_EXPORT(bool)		PL_recorded(record_t record, term_t term);
 PL_EXPORT(void)		PL_erase(record_t record);
 PL_EXPORT(record_t)	PL_duplicate_record(record_t r);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
-PL_EXPORT(int)		PL_recorded_external(const char *rec, term_t term);
-PL_EXPORT(int)		PL_erase_external(char *rec);
+PL_EXPORT(bool)		PL_recorded_external(const char *rec, term_t term);
+PL_EXPORT(bool)		PL_erase_external(char *rec);
 
 		 /*******************************
 		 *	   PROLOG FLAGS		*
 		 *******************************/
 
 #define PL_set_feature  PL_set_prolog_flag /* compatibility */
-PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
+PL_EXPORT(bool)		PL_set_prolog_flag(const char *name, int type, ...);
 
 
 		 /*******************************
@@ -911,9 +911,9 @@ PL_EXPORT(int)		PL_set_prolog_flag(const char *name, int type, ...);
 
 PL_EXPORT(PL_atomic_t)	_PL_get_atomic(term_t t);
 PL_EXPORT(void)		_PL_put_atomic(term_t t, PL_atomic_t a);
-PL_EXPORT(int)		PL_unify_atomic(term_t t, PL_atomic_t a);
-PL_EXPORT(int)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
-PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
+PL_EXPORT(bool)		PL_unify_atomic(term_t t, PL_atomic_t a);
+PL_EXPORT(bool)		_PL_get_arg_sz(size_t index, term_t t, term_t a);
+PL_EXPORT(bool)		_PL_get_arg(int index, term_t t, term_t a);
 
 
 		 /*******************************
@@ -986,13 +986,13 @@ PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 
 					/* Make IOSTREAM known to Prolog */
 #define PL_open_stream  PL_unify_stream	/* compatibility */
-PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
-PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
-PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
-PL_EXPORT(int)		PL_get_stream_from_blob(atom_t a, IOSTREAM**s, int flags);
+PL_EXPORT(bool)		PL_unify_stream(term_t t, IOSTREAM *s);
+PL_EXPORT(bool)		PL_get_stream_handle(term_t t, IOSTREAM **s);
+PL_EXPORT(bool)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
+PL_EXPORT(bool)		PL_get_stream_from_blob(atom_t a, IOSTREAM**s, int flags);
 PL_EXPORT(IOSTREAM*)	PL_acquire_stream(IOSTREAM *s);
-PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
-PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);
+PL_EXPORT(bool)		PL_release_stream(IOSTREAM *s);
+PL_EXPORT(bool)		PL_release_stream_noerror(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
 					 const char *rc_class,
@@ -1039,7 +1039,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_PARTIAL		  0x1000000 /* Partial output */
 #define PL_WRT_NO_CHARESCAPES	  0x2000000 /* Do not Output ISO escapes */
 
-PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
+PL_EXPORT(bool)	PL_write_term(IOSTREAM *s,
 			     term_t term,
 			     int precedence,
 			     int flags);
@@ -1051,11 +1051,11 @@ PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 
 PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
-PL_EXPORT(int)  PL_put_term_from_chars(term_t t, int flags,
+PL_EXPORT(bool)  PL_put_term_from_chars(term_t t, int flags,
 				       size_t len, const char *s);
-PL_EXPORT(int)	PL_chars_to_term(const char *chars,
+PL_EXPORT(bool)	PL_chars_to_term(const char *chars,
 				term_t term);
-PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
+PL_EXPORT(bool)	PL_wchars_to_term(const pl_wchar_t *chars,
 				 term_t term);
 
 
@@ -1072,12 +1072,12 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 #define PL_CLEANUP_FAILED      -1
 #define PL_CLEANUP_RECURSIVE   -2
 
-PL_EXPORT(int)		PL_initialise(int argc, char **argv);
-PL_EXPORT(int)		PL_winitialise(int argc, wchar_t **argv);
-PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
-PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
+PL_EXPORT(bool)		PL_initialise(int argc, char **argv);
+PL_EXPORT(bool)		PL_winitialise(int argc, wchar_t **argv);
+PL_EXPORT(bool)		PL_is_initialised(int *argc, char ***argv);
+PL_EXPORT(bool)		PL_set_resource_db_mem(const unsigned char *data,
 					       size_t size);
-PL_EXPORT(int)		PL_toplevel(void);
+PL_EXPORT(bool)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork(void);
 PL_EXPORT(int)		PL_halt(int status);
@@ -1131,7 +1131,7 @@ PL_EXPORT(void *)	PL_realloc(void *mem, size_t size);
 PL_EXPORT(void *)	PL_malloc_unmanaged(size_t size);
 PL_EXPORT(void *)	PL_malloc_atomic_unmanaged(size_t size);
 PL_EXPORT(void)		PL_free(void *mem);
-PL_EXPORT(int)		PL_linger(void *mem);
+PL_EXPORT(bool)		PL_linger(void *mem);
 
 
 		/********************************
@@ -1149,7 +1149,7 @@ typedef int  (*PL_agc_hook_t)(atom_t a);
 PL_EXPORT(PL_dispatch_hook_t)	PL_dispatch_hook(PL_dispatch_hook_t);
 PL_EXPORT(void)			PL_abort_hook(PL_abort_hook_t);
 PL_EXPORT(void)			PL_initialise_hook(PL_initialise_hook_t);
-PL_EXPORT(int)			PL_abort_unhook(PL_abort_hook_t);
+PL_EXPORT(bool)			PL_abort_unhook(PL_abort_hook_t);
 PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 
 
@@ -1185,7 +1185,7 @@ typedef struct
 #define PL_OPTION(name, type) { 0, type, name }
 #define PL_OPTIONS_END	      { 0, _OPT_END, (const char*)0 }
 
-PL_EXPORT(int)	PL_scan_options(term_t options, int flags, const char *opttype,
+PL_EXPORT(bool)	PL_scan_options(term_t options, int flags, const char *opttype,
 				PL_option_t specs[], ...);
 
 
@@ -1216,7 +1216,7 @@ typedef struct pl_sigaction
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int); /* WDEPRECATED */
 PL_EXPORT(int)  PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old);
 PL_EXPORT(void)	PL_interrupt(int sig);
-PL_EXPORT(int)	PL_raise(int sig);
+PL_EXPORT(bool)	PL_raise(int sig);
 PL_EXPORT(int)	PL_handle_signals(void);
 PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 
@@ -1427,10 +1427,10 @@ typedef struct
   } value;
 } xpceref_t;
 
-PL_EXPORT(int)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(int)	_PL_unify_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(int)	_PL_put_xpce_reference_i(term_t t, uintptr_t r);
-PL_EXPORT(int)	_PL_put_xpce_reference_a(term_t t, atom_t name);
+PL_EXPORT(bool)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(bool)	_PL_unify_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(bool)	_PL_put_xpce_reference_i(term_t t, uintptr_t r);
+PL_EXPORT(bool)	_PL_put_xpce_reference_a(term_t t, atom_t name);
 
 
 
