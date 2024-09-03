@@ -51,6 +51,7 @@
 
 #include <signal.h>
 #include <stddef.h>
+#include <stdbool.h>
 #ifdef _MSC_VER
 #include <stdint.h>
 #pragma warning(disable : 4996)	/* deprecate open() etc */
