@@ -21,14 +21,14 @@ C and use Prolog as an embedded logical engine.
 
 \section{Overview of the Interface}		\label{sec:foreignoverview}
 
-A special include file called \file{SWI-Prolog.h} should be included
-with each C source file that is to be loaded via the foreign interface.
-The installation process installs this file in the directory
+The include file \file{SWI-Prolog.h} should be included with each C
+source file that is to be loaded via the foreign interface.  The
+installation process installs this file in the directory
 \file{include} in the SWI-Prolog home directory (\exam{?-
-current_prolog_flag(home, Home).}). This C header file defines various
-data types, macros and functions that can be used to communicate with
-SWI-Prolog. Functions and macros can be divided into the following
-categories:
+  current_prolog_flag(home, Home).}). This C header file defines
+various data types, macros and functions that can be used to
+communicate with SWI-Prolog. Functions and macros can be divided into
+the following categories:
 
 \begin{shortlist}
     \item Analysing Prolog terms
@@ -445,6 +445,69 @@ To make the code compile silently again, change the types you use to
 represent arity from \ctype{int} to \ctype{size_t}. Please be aware that
 \ctype{size_t} is \emph{unsigned}.  At some point representing arity
 as \ctype{int} will be dropped completely.
+
+
+\subsubsection{Notes on C API bool return values}
+\label{sec:c-api-bool}
+
+Most of the SWI-Prolog C-API consists of C functions that return a
+Boolean result.  Up to version 9.3.10, these functions are defined to
+return \ctype{int}.  Later versions define these functions to return
+the \ctype{bool}.  This type is provided by the standard header
+\file{stdbool.h} and will be supported as a native type starting with
+the C23 standard, which introduces the keywords \const{false},
+\const{true} and \const{bool}.  \file{SWI-Prolog.h} defines the
+constants \const{FALSE} and \const{TRUE}.  These constants are
+consistent with \const{false}, and \const{true} and may be used
+interchangeably. Future versions will deprecate \const{FALSE} and
+\const{TRUE}.  As of version 9.3.11 \file{SWI-Prolog.h} includes
+\file{stdbool.h} and thus provides the standard names.
+
+The Boolean result \const{true} indicates success, while \const{false}
+may indicate an error or \jargon{logical failure}.  Which of the two
+happened can be examined by calling PL_exception(0), which returns a
+\ctype{term_t} of value 0 if there was a logical failure.  Otherwise
+the returned term reference is a handle to the Prolog exception.
+Typically there is no need to test whether or not there has been an
+exception.  Instead, the implementation of a foreign predicate can
+often simply return \const{false} in case some API returned
+\const{false}.  Prolog will map this to logical failure or raise the
+pending exception.  The C~API defines several groups of \ctype{bool}
+functions that behave consistently.  Note that errors which as the
+Prolog term handle (\ctype{term_t}) not being a valid is not reported
+through the API.  If this is detected PL_api_error() is called, which
+aborts the process with a diagnostic message.  If not detected, such
+errors lead to \jargon{undefined behaviour} (read: arbitrary crashes
+or wrong behaviour now or later).
+
+\begin{description}
+  \definition{PL_is_*()}
+  These are \jargon{type checking} functions.  They have no side effects
+  and no error conditions.  Returning \const{false} implies the argument
+  is not of the tested type.
+  \definition{PL_get_*()}
+  This group extracts C value from a Prolog term.  If the term is not
+  of the expected type or the C value cannot represent the value the
+  function returns \const{false}.  No exception is raised.
+  \definition{PL_get_*_ex()}
+  This group is similar to PL_get_*(), but raises a Prolog exception.
+  The exception is either an \const{instantiation_error} in case the
+  term is unbound but should not be, a \const{type_error} in case
+  the term is of the wrong type or a \const{representation_error}
+  in case the C type cannot represent the Prolog value (e.g., a C
+  \ctype{int} while the Prolog integer is out of reach for this type).
+  \definition{PL_put_*()}
+  This group converts C data to a Prolog term.  Such a function
+  returning \const{false} always raises a \const{resource_error},
+  indicating that Prolog does not have sufficient resources to
+  store the result.
+  \definition{PL_unify_*()}
+  This group unifies a Prolog term to a converted C value.   Here,
+  the failure can be \jargon{logical} if the unification failed
+  because the term was already bound to some other value or the
+  failure may be the result of a resource error as with the
+  PL_put_*() group.
+\end{description}
 
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
