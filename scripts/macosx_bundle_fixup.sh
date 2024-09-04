@@ -31,8 +31,7 @@ fi
 
 printf "Fixing app bundle in $app\n"
 
-ARCH=$($app/Contents/MacOS/swipl --arch)
-moduledir=$app/Contents/swipl/lib/$ARCH
+moduledir=$app/Contents/PlugIns/swipl
 frameworkdir=$app/Contents/Frameworks
 
 if [ ! -z "$deployqt" ]; then

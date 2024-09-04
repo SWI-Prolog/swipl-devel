@@ -1984,6 +1984,9 @@ initPrologFlags(void)
 #endif
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, true, 0);
+#ifdef BUILD_MACOS_BUNDLE
+  setPrologFlag("bundle", FT_BOOL|FF_READONLY, true, 0);
+#endif
 #endif
 #ifdef __ANDROID__
   setPrologFlag("android", FT_BOOL|FF_READONLY, true, 0);
@@ -1997,6 +2000,9 @@ initPrologFlags(void)
 #endif
 
 #if __WINDOWS__
+  #if SWIPL_INSTALL_WIN_BUNDLE
+  setPrologFlag("bundle", FT_BOOL|FF_READONLY, true, 0);
+  #endif
   #if __CONDA__ || MSYS2
   setPrologFlag("xdg", FT_BOOL, true, 0);
   #endif

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2023, University of Amsterdam
+    Copyright (c)  1995-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -619,15 +619,19 @@ env_add_dll_dir(Var, Postfix) :-
 :- multifile
     user:file_search_path/2.
 
+:- if((current_prolog_flag(apple, true),
+       current_prolog_flag(bundle, true))).
+user:file_search_path(foreign, swi('../../PlugIns/swipl')).
+:- elif(current_prolog_flag(apple_universal_binary, true)).
+user:file_search_path(foreign, swi('lib/fat-darwin'))
+:- elif((current_prolog_flag(windows, true),
+	 current_prolog_flag(bundle, true))).
+user:file_search_path(foreign, swi(bin)).
+:- else.
 user:file_search_path(foreign, swi(ArchLib)) :-
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(SoLib)) :-
-    (   current_prolog_flag(windows, true)
-    ->  SoLib = bin
-    ;   SoLib = lib
-    ).
-
+:- endif.
 
                  /*******************************
                  *            MESSAGES          *

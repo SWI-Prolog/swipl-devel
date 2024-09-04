@@ -1439,6 +1439,12 @@ Current break-level. The initial top level (started with
 \cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
 threads that are not running a top-level loop.
 
+    \prologflagitem{bundle}{bool}{r}
+True when SWI-Prolog is installed as a stand-alone bundle.  This is
+set for both the Windows and MacOS binary packages as distributed
+from the SWI-Prolog download page.  This is used to adjust the
+file search configuration.
+
     \prologflagitem{c_cc}{atom}{rw}
 Name of the C compiler used to compile SWI-Prolog.  Normally one of
 \const{gcc}, \const{clang} or \const{cc}.  See \secref{plld}.

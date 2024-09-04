@@ -1068,9 +1068,6 @@ user:file_search_path(library, swi(library)).
 user:file_search_path(library, swi(library/clp)).
 user:file_search_path(library, Dir) :-
     '$ext_library_directory'(Dir).
-user:file_search_path(foreign, swi(ArchLib)) :-
-    current_prolog_flag(apple_universal_binary, true),
-    ArchLib = 'lib/fat-darwin'.
 user:file_search_path(path, Dir) :-
     getenv('PATH', Path),
     current_prolog_flag(path_sep, Sep),

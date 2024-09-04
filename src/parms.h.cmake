@@ -17,3 +17,5 @@
 #define C_LIBS            ""
 #define C_PLLIB           "-lswipl"
 #define C_LDFLAGS         ""
+#cmakedefine BUILD_MACOS_BUNDLE "@MACOSX_BUNDLE_BUNDLE_NAME@"
+#cmakedefine SWIPL_INSTALL_WIN_BUNDLE 1

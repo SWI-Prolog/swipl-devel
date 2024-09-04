@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -2251,6 +2251,8 @@ known_flag(unix).
 known_flag(windows).
 known_flag(wine_version).
 known_flag(xpce).
+known_flag(bundle).
+known_flag(apple_universal_binary).
 
 		 /*******************************
 		 *             MACROS		*
