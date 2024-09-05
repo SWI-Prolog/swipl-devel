@@ -1342,7 +1342,7 @@ the C compiler used to compile this version of SWI-Prolog defines
 \verb$__APPLE__$.  Note that the \prologflag{unix} is also defined
 for MacOSX.
 
-    \prologflag{apple_universal_binary}{bool}{r}
+    \prologflagitem{apple_universal_binary}{bool}{r}
 If present and \const{true}, SWI-Prolog has been build as a
 \jargon{universal binary}.  Universal binaries contain native
 executable code for multiple architectures.  Currently the
