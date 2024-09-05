@@ -83,7 +83,7 @@ done
 
 # Code signing
 
-if [ ! -z "CODESIGN_ID" ]; then
+if [ ! -z "$CODESIGN_ID" ]; then
     loginkeychain="$(security login-keychain | tr -d ' "')"
 
     sign()
