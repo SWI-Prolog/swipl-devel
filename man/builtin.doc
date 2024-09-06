@@ -28,15 +28,15 @@ community.  We use the following definitions:%
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
-++&	At call time, the argument must be \jargon{ground}, i.e., the
+\texttt{++} &	At call time, the argument must be \jargon{ground}, i.e., the
         argument may not contain any variables that are still unbound. \\
-+ &	At call time, the argument must be instantiated to a term satisfying
+\texttt{+} &	At call time, the argument must be instantiated to a term satisfying
         some (informal) type specification. The argument need not necessarily
 	be ground.
         For example, the term \exam{[_]} is a list, although its only
 	member is the anonymous variable, which is always unbound (and thus
         nonground). \\
-- &	Argument is an \emph{output} argument. It may or may not be bound at
+\texttt{-} &	Argument is an \emph{output} argument. It may or may not be bound at
         call-time. If the argument is bound at call time, the goal behaves
 	as if the argument were unbound, and then unified with that term after
 	the goal succeeds. This is what is called being \jargon{steadfast}:
@@ -52,10 +52,10 @@ community.  We use the following definitions:%
         bound or involved in constraints, \const{det} effectively becomes
         \const{semidet}, and \const{multi} effectively becomes
         \const{nondet}. \\
---&	At call time, the argument must be unbound. This is typically used by
+\texttt{--} &	At call time, the argument must be unbound. This is typically used by
         predicates that	create `something' and return a handle to the created
         object,	such as open/3, which creates a \jargon{stream}. \\
-? &	At call time, the argument must be bound to a \emph{partial term}
+\texttt{?} &	At call time, the argument must be bound to a \emph{partial term}
         (a term which may or may not be ground) satisfying some (informal) type
         specification. Note that an unbound variable \emph{is} a partial
         term. Think of the argument as either providing input or accepting
@@ -63,12 +63,12 @@ community.  We use the following definitions:%
         For example, in	\exam{stream_property(S, reposition(Bool))}, the
         \const{reposition} part of the term provides input and the
         unbound-at-call-time \arg{Bool} variable accepts output. \\
-: &	Argument is a \jargon{meta-argument}, for example a term that can be
+\texttt{:} &	Argument is a \jargon{meta-argument}, for example a term that can be
         called as goal. The predicate is thus a \jargon{meta-predicate}. This
         flag implies \chr{+}. \\
-@ &	Argument will not be further instantiated than it is at call-time.
+\texttt{@} &	Argument will not be further instantiated than it is at call-time.
         Typically used for type tests. \\
-! &	Argument contains a mutable structure that may be modified using
+\texttt{!} &	Argument contains a mutable structure that may be modified using
 	setarg/3 or nb_setarg/3. \\
 \hline
 \end{tabular}
