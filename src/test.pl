@@ -88,38 +88,6 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 
                  /*******************************
-                 *             CYCLIC           *
-                 *******************************/
-
-cyclic(term_hash-1) :-
-    X = f(X), term_hash(X, T),
-    integer(T).
-cyclic(streq-1) :-
-    X = [X], Y = [Y], X =@= Y.
-cyclic(test-1) :-
-    X = f(X),
-    cyclic_term(X).
-cyclic(test-2) :-
-    X = f(X),
-    cyclic_term(a(X, a)).
-cyclic(test-3) :-
-    X = f(X),
-    cyclic_term(a(a, X)).
-cyclic(test-4) :-
-    acyclic_term(f(x)).
-cyclic(test-5) :-
-    acyclic_term(_).
-cyclic(test-6) :-
-    X = f(a), acyclic_term(a(X, X)).
-cyclic(list-1) :-
-    L = [a|L], \+ is_list(L).
-cyclic(sort-1) :-
-    L = [a,b,c|L],
-    sort(L, List),
-    List == [a,b,c].
-
-
-                 /*******************************
                  *          UNIFIABLE           *
                  *******************************/
 

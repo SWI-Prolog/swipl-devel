@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2016, University of Amsterdam
-                         VU University Amsterdam
+    Copyright (c)  2016-2024, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,7 +41,8 @@
 
 test_acyclic :-
 	run_tests( [ acyclic_terms,
-	             cyclic_terms
+	             cyclic_terms,
+		     cyclic_misc
 	           ]).
 
 
@@ -271,3 +273,34 @@ test(long_list_is_cyclic) :-
 	cyclic_term(List).
 
 :- end_tests(cyclic_terms).
+
+:- begin_tests(cyclic_misc).
+
+test(term_hash_1) :-
+    X = f(X), term_hash(X, T),
+    integer(T).
+test(streq_1) :-
+    X = [X], Y = [Y], X =@= Y.
+test(test_1) :-
+    X = f(X),
+    cyclic_term(X).
+test(test_2) :-
+    X = f(X),
+    cyclic_term(a(X, a)).
+test(test_3) :-
+    X = f(X),
+    cyclic_term(a(a, X)).
+test(test_4) :-
+    acyclic_term(f(x)).
+test(test_5) :-
+    acyclic_term(_).
+test(test_6) :-
+    X = f(a), acyclic_term(a(X, X)).
+test(list_1) :-
+    L = [a|L], \+ is_list(L).
+test(sort_1) :-
+    L = [a,b,c|L],
+    sort(L, List),
+    List == [a,b,c].
+
+:- end_tests(cyclic_misc).
