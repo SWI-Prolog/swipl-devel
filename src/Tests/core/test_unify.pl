@@ -47,7 +47,8 @@ unification is wrong you won't get as far as running this test :-)
 
 test_unify :-
 	run_tests([ unify,
-		    can_compare
+		    can_compare,
+		    unifiable
 		  ]).
 
 :- begin_tests(unify).
@@ -111,3 +112,29 @@ test(ground, fail) :-
 	?=(a,X).
 
 :- end_tests(can_compare).
+
+:- begin_tests(unifiable).
+
+test(unifiable_1, S == [X=1]) :-
+    unifiable(X, 1, S).
+test(unifiable_2) :-
+    unifiable(a(X,X), a(Y,Z), S),
+    S == [Z=X, Y=X].
+test(gc_1) :-
+    trim_stacks,
+    (   between(2, 10, N),
+        Len is 1<<N,
+        numlist(1, Len, L1),
+        attvar_list(Len, L2),
+        unifiable(L1, L2, _Unifier),
+        fail
+    ;   true
+    ).
+
+attvar_list(0, []) :- !.
+attvar_list(N, [H|T]) :-
+    freeze(H, integer(H)),
+    N2 is N - 1,
+    attvar_list(N2, T).
+
+:- end_tests(unifiable).
