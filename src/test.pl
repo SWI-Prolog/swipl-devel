@@ -86,42 +86,6 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 :- setenv('TZ', 'CET').
 
-                 /*******************************
-                 *             UNIFY            *
-                 *******************************/
-
-%       Some cyclic unification tests (normal unification should be fixed
-%       already).
-
-unify(cycle-1) :-                       % Kuniaki Mukai
-    X = f(Y), Y=f(X), X=Y.
-unify(cycle-2) :-                       % Kuniaki Mukai
-    X = f(X), Y=f(Y), X=f(Y).
-
-
-                 /*******************************
-                 *    UNIFY-WITH-OCCURS-CHECK   *
-                 *******************************/
-
-occurs_check(simple-1) :-
-    \+ unify_with_occurs_check(A, list(A)).
-occurs_check(simple-2) :-
-    unify_with_occurs_check(_A, _B).
-occurs_check(attvar-1) :-               % test wakeup
-    freeze(X, X = Y),
-    unify_with_occurs_check(X, a),
-    Y == a.
-occurs_check(attvar-2) :-               % test occurs-check
-    freeze(A, true),
-    \+ unify_with_occurs_check(A, list(A)).
-occurs_check(attvar-3) :-
-    freeze(A, true),
-    unify_with_occurs_check(A, A).
-occurs_check(attvar-4) :-
-    freeze(A, true),
-    freeze(B, true),
-    unify_with_occurs_check(A, B).
-
 
                  /*******************************
                  *             CYCLIC           *
@@ -2411,8 +2375,6 @@ script_failed(File, Except) :-
                  *        TEST MAIN-LOOP        *
                  *******************************/
 
-testset(unify).
-testset(occurs_check).
 testset(unifiable).
 testset(arithmetic).
 testset(arithmetic_functions).

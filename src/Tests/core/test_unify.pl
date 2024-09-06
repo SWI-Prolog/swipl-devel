@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2015, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -89,6 +90,11 @@ test(unify_fv, true) :-
 	unify_fv(a).
 test(unify_arity_0, X == f()) :-
 	unify_ar0(X).
+
+test(cycle_1) :-                       % Kuniaki Mukai
+    X = f(Y), Y=f(X), X=Y.
+test(cycle_2) :-                       % Kuniaki Mukai
+    X = f(X), Y=f(Y), X=f(Y).
 
 :- end_tests(unify).
 
