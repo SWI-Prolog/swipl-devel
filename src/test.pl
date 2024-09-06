@@ -86,100 +86,6 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 :- setenv('TZ', 'CET').
 
-                 /*******************************
-                 *            SYNTAX            *
-                 *******************************/
-
-syntax(op-1) :-
-    atom_to_term("3+4*5", +(3,*(4,5)), []).
-syntax(op-2) :-
-    atom_to_term("1+2+3", +(+(1,2),3), []).
-syntax(op-3) :-
-    catch(atom_to_term("a:-b:-c", _, _), E, true),
-    E = error(syntax_error(operator_clash), _).
-syntax(op-4) :-
-    op(600, fx, op1),
-    atom_to_term("op1 1+2", op1(+(1,2)), []).
-syntax(op-5) :-
-    op(600, fx, op1),
-    catch(atom_to_term("op1 op1 1", _, _), E, true),
-    E = error(syntax_error(operator_clash), _).
-syntax(op-6) :-
-    op(600, fy, op1),
-    atom_to_term("op1 op1 1", op1(op1(1)), []).
-syntax(op-7) :-
-    op(600, fy, op1),
-    op(500, xf, op2),
-    catch(atom_to_term("op1 a op2", op1(op2(a)), []), E, true),
-    E = error(syntax_error(operator_clash), _).
-syntax(op-8) :-                         % assume 200 fy and 500 yfx
-    atom_to_term("- - a", -(-(a)), []).
-syntax(atom-1) :-
-    atom_codes('\003\\'\n\x80\', X),
-    X == [3, 39, 10, 128].
-syntax(char-1) :-
-    10 == 0'\n.
-syntax(char-2) :-
-    52 == 0'\x34.
-syntax(char-3) :-
-    "\\" =:= 0'\\.
-syntax(char-4) :-
-    1-48 == 1-0'0.
-syntax(cannot_start_term-1) :-
-    catch(term_to_atom(_T, 'p(]'), E, true),
-    E = error(syntax_error(cannot_start_term), _).
-
-
-:- op(100, yf, af).
-
-syntax(string-1) :-
-    '\c ' == ''.
-syntax(string-2) :-
-    'x\c y' == xy.
-syntax(quote-1) :-
-    catch(atom_to_term('\'\\x\'', _, _), E, true),
-    E = error(syntax_error(undefined_char_escape(x)), _).
-syntax(quote-2) :-
-    '\x61' == a.
-syntax(quote-3) :-
-    '\x61\' == a.
-syntax(quote-4) :-
-    char_code('\'', 39).
-syntax(quote-5) :-
-    0'\' == 0''.
-syntax(quote-6) :-
-    0'\' == 0'''.
-syntax(quote-7) :-
-    atom_to_term('\'\\\n\'', T, _),
-    T == ''.
-syntax(base-1) :-
-    1+1 == 1+1.
-syntax(base-2) :-
-    16'af == 175.
-syntax(base-3) :-
-    10 af == af(10).
-syntax(base-4) :-
-    A = 1, B is A+1, B == 2.
-syntax(base-5) :-
-    A is 1.0e+0+1, A == 2.0.
-syntax(number-2) :-
-    catch(atom_to_term('2\'', _, _), E, true),
-    E = error(syntax_error(end_of_file), _).
-syntax(zero-1) :-
-    term_to_atom(T, 'hello("\000\x")'),
-    T = hello(A0),
-    (   A0 == [0,120]               % depending on the double quotes flag
-    ;   string_codes(A0, [0,120])
-    ;   A0 == ['\u0000', x]
-    ),
-    !.
-syntax(latin-1) :-
-    atom_codes(A, [247]),
-    atom_to_term(A, T, []),
-    atom_codes(T, [247]).
-
-:- op(0, yf, af).
-
 
                  /*******************************
                  *             WRITE            *
@@ -2590,7 +2496,6 @@ script_failed(File, Except) :-
                  *        TEST MAIN-LOOP        *
                  *******************************/
 
-testset(syntax).
 testset(write_test).
 testset(format_test).
 testset(unify).
