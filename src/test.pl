@@ -88,53 +88,6 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 
                  /*******************************
-                 *             WRITE            *
-                 *******************************/
-
-:- op(200, fx, op_fa).
-
-write_test(q-1) :-
-    T = -(0),
-    term_to_atom(T, X),
-    term_to_atom(T2, X),
-    T == T2.
-write_test(q-2) :-
-    T = +(0),
-    term_to_atom(T, X),
-    term_to_atom(T2, X),
-    T == T2.
-write_test(q-3) :-
-    term_to_atom(+(a), X), X == '+a'.
-write_test(q-4) :-
-    term_to_atom('/*', X), X == '\'/*\''.   %0'
-write_test(q-5) :-
-    term_to_atom('/**', X), X == '\'/**\''.
-write_test(q-6) :-
-    term_to_atom('*/*', X), X == '*/*'.
-write_test(q-7) :-
-    term_to_atom(p((0|a)), X), X == 'p((0|a))'.
-write_test(q-8) :-
-    term_to_atom(p((a|b)), X), X == 'p((a|b))'.
-write_test(q-9) :-
-    term_to_atom(., X), X == '\'.\''.
-write_test(op-1) :-
-    term_to_atom(-((a,b)), X), X == '- (a,b)'.
-write_test(op-2) :-
-    term_to_atom(op_fa((a,b)), X), X == 'op_fa (a,b)'.
-write_test(op-3) :-
-    term_to_atom(dynamic((a,b)), X), X == 'dynamic a,b'.
-write_test(c-1) :-
-    T = [a,b,c|T],
-    term_to_atom(T, X),
-    term_to_atom(@(T2,S2), X),
-    maplist(call, S2),
-    T2 =@= T.
-write_test(s-1) :-
-    term_to_atom([(a,b)], X),
-    X = '[(a,b)]'.
-
-
-                 /*******************************
                  *            FORMAT            *
                  *******************************/
 
@@ -2496,7 +2449,6 @@ script_failed(File, Except) :-
                  *        TEST MAIN-LOOP        *
                  *******************************/
 
-testset(write_test).
 testset(format_test).
 testset(unify).
 testset(occurs_check).

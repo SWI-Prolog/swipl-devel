@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -50,7 +50,8 @@ test_write :-
 		    write_canonical,
 		    write_quoted,
 		    write_variable_names,
-		    write_float
+		    write_float,
+		    write_misc
 		  ]).
 
 :- meta_predicate
@@ -237,6 +238,49 @@ test(nan) :-
 	abs(Float) < 2.
 
 :- end_tests(write_float).
+
+:- begin_tests(write_misc).
+
+:- op(200, fx, fx200).
+
+test(q_1, T == T2) :-
+    T = -(0),
+    term_to_atom(T, X),
+    term_to_atom(T2, X).
+test(q_2, T == T2) :-
+    T = +(0),
+    term_to_atom(T, X),
+    term_to_atom(T2, X).
+test(q_3, X == '+a') :-
+    term_to_atom(+(a), X).
+test(q_4, X == '\'/*\'') :-
+    term_to_atom('/*', X).
+test(q_5, X == '\'/**\'') :-
+    term_to_atom('/**', X).
+test(q_6, X == '*/*') :-
+    term_to_atom('*/*', X).
+test(q_7, X == 'p((0|a))') :-
+    term_to_atom(p((0|a)), X).
+test(q_8, X == 'p((a|b))') :-
+    term_to_atom(p((a|b)), X).
+test(q_9, X == '\'.\'') :-
+    term_to_atom(., X).
+test(op_1, X == '- (a,b)') :-
+    term_to_atom(-((a,b)), X).
+test(op_2, X == "fx200 (a,b)") :-
+    context_module(M),
+    term_string(fx200((a,b)), X, [module(M)]).
+test(op_3, X == 'dynamic a,b') :-
+    term_to_atom(dynamic((a,b)), X).
+test(c_1, T2 =@= T) :-
+    T = [a,b,c|T],
+    term_to_atom(T, X),
+    term_to_atom(@(T2,S2), X),
+    maplist(call, S2).
+test(s_1, X = '[(a,b)]') :-
+    term_to_atom([(a,b)], X).
+
+:- end_tests(write_misc).
 
 write_encoding(Goal, Encoding, String) :-
 	setup_call_cleanup(
