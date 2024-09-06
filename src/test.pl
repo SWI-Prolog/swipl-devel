@@ -86,44 +86,6 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 :- setenv('TZ', 'CET').
 
-
-                 /*******************************
-                 *            FORMAT            *
-                 *******************************/
-
-format_test(intD-1) :-
-    format(atom(X), '~D', [1000]),
-    X == '1,000'.
-format_test(intD-2) :-
-    format(atom(X), '~2D', [1000]),
-    X == '10.00'.
-format_test(intD-3) :-
-    format(atom(X), '~2D', [100000]),
-    X == '1,000.00'.
-format_test(intr-1) :-
-    format(atom(X), '~16r', [1000]),
-    X == '3e8'.
-format_test(intR-1) :-
-    format(atom(X), '~16R', [1000]),
-    X == '3E8'.
-format_test(large_float-1) :-
-    format(atom(X), '~6f', [1e100]),
-    atom_length(X, Len),
-    Len == 108.                     % 1 with 100 0s + ".000000" = 108.
-format_test(oncodes-1) :-
-    format(codes(C), 'hello ~w', [world]),
-    atom_codes('hello world', C).
-format_test(oncodes-2) :-
-    format(codes(C,T), 'hello ~w', [world]),
-    atom_codes('hello world', HW),
-    append(HW, T2, C2),
-    C-T =@= C2-T2.
-format_test(onstring-1) :-
-    format(string(S), 'hello ~w', [world]),
-    string(S),
-    atom_string('hello world', S).
-
-
                  /*******************************
                  *             UNIFY            *
                  *******************************/
@@ -2449,7 +2411,6 @@ script_failed(File, Except) :-
                  *        TEST MAIN-LOOP        *
                  *******************************/
 
-testset(format_test).
 testset(unify).
 testset(occurs_check).
 testset(unifiable).

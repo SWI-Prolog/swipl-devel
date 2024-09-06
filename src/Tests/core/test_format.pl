@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -69,5 +69,29 @@ test(radix, error(domain_error(radix, 37))) :-
 	format(string(_), '~37r', [5]).
 test(asterisk, error(format('no or negative integer for `*\' argument'))) :-
     format('~t~*|', [-1]).
+test(intD_1, X == '1,000') :-
+    format(atom(X), '~D', [1000]).
+test(intD_2, X == '10.00') :-
+    format(atom(X), '~2D', [1000]).
+test(intD_3, X == '1,000.00') :-
+    format(atom(X), '~2D', [100000]).
+test(intr_1, X == '3e8') :-
+    format(atom(X), '~16r', [1000]).
+test(intR_1, X == '3E8') :-
+    format(atom(X), '~16R', [1000]).
+test(large_float_1, Len == 108) :-
+    format(atom(X), '~6f', [1e100]),
+    atom_length(X, Len).                     % 1 with 100 0s + ".000000" = 108.
+test(oncodes_1) :-
+    format(codes(C), 'hello ~w', [world]),
+    atom_codes('hello world', C).
+test(oncodes_2, C-T =@= C2-T2) :-
+    format(codes(C,T), 'hello ~w', [world]),
+    atom_codes('hello world', HW),
+    append(HW, T2, C2).
+test(onstring_1) :-
+    format(string(S), 'hello ~w', [world]),
+    string(S),
+    atom_string('hello world', S).
 
 :- end_tests(format).
