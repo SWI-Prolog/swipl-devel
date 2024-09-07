@@ -8,7 +8,6 @@ on:
   pull_request:
     branches:
       - master
-      - rwlocks-test-update
 
 jobs:
   build:
