@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - rwlocks-test-update
   pull_request:
     branches:
       - master
+      - rwlocks-test-update
 
 jobs:
   build:
