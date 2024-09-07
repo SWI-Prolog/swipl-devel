@@ -31,8 +31,6 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- asserta(user:file_search_path(library, './library')).
-
 :- module(test_rwlocks,
 	  [ test_rwlocks/0
 	  ]).
