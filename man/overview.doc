@@ -3735,21 +3735,17 @@ frames used to call predicates as well as choice points. The
 \jargon{global stack} (also called \jargon{heap}) contains terms,
 floats, strings and large integers. Finally, the \jargon{trail stack}
 records variable bindings and assignments to support
-\jargon{backtracking}. The internal data representation limits these
-stacks to 128~MB (each) on 32-bit processors. More generally to
-$\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes, which implies they are
-virtually unlimited on 64-bit machines.
+\jargon{backtracking}.  Except for available memory, there is no
+\jargon{hard limit} for the sizes of the stacks.\footnote{As of
+version 9.3.6.  Older versions have a hard limit on 32-bit hardware
+of 128Mb for each stack.}
 
-As of version 7.7.14, the stacks are restricted by the writeable flag
-\prologflag{stack_limit} or the command line option
-\cmdlineoption{--stack-limit}. This flag limits the combined size of the
-three stacks per thread. The default limit is currently 512~Mbytes on
-32-bit machines, which imposes no additional limit considering the
-128~Mbytes hard limit on 32-bit and 1~Gbytes on 64-bit machines.
-
-Considering portability, applications that need to modify the default
-limits are advised to do so using the Prolog flag
-\prologflag{stack_limit}.
+The combined stack size (per thread) has a \jargon{soft limit}
+implemented by the writeable flag \prologflag{stack_limit} or the
+command line option \cmdlineoption{--stack-limit}.  Currently the
+default limit is 1Gb.  Considering portability, applications that need
+to modify the default limits are advised to do so using the Prolog
+flag \prologflag{stack_limit}.
 
 \begin{table}
 \begin{center}
@@ -3765,12 +3761,13 @@ Area name & Description \\
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (last call optimisation). \\
- \bf global stack & The global stack is used
-                       to store terms created during Prolog's
-                       execution. Terms on this stack will be reclaimed
-                       by backtracking to a point before the term
+ \bf global stack & The global stack is used to store terms, strings,
+	               big integers, rational numbers and floating
+		       numbers created during Prolog's
+                       execution. Data on this stack is reclaimed
+                       by backtracking to a point before the data
                        was created or by garbage collection (provided the
-                       term is no longer referenced). \\
+                       data is no longer referenced). \\
 \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
@@ -3810,16 +3807,17 @@ the head), which is limited to 1024.  Raising this limit is easy and
 relatively cheap; removing it is harder.
 
     \item[Atoms and Strings]
-SWI-Prolog has no limits on the length of atoms and strings. The number
-of atoms is limited to 16777216 (16M) on 32-bit machines. On 64-bit
-machines this is virtually unlimited. See also \secref{atomgc}.
-
-    \item[Memory areas]
-On 32-bit hardware, SWI-Prolog data is packed in a 32-bit word, which
-contains both type and value information. The size of the various memory
-areas is limited to 128~MB for each of the areas, except for the program
-heap, which is not limited.  On 64-bit hardware there are no meaningful
-limits.
+SWI-Prolog has no limits on the length of atoms or strings. The number
+of atoms is unlimited. Atoms are subject to garbage collection. See
+\secref{atomgc}. Both atoms and strings can represent all Unicode code
+points, including 0 (\verb$\u0000$). Currently, SWI-Prolog uses a
+separate representation for ISO~Latin~1 text (code points
+$0\ldots{}255$) and text that includes higher code points. The latter is
+represented using the C \ctype{wchar_t} type. On most systems this
+implies UCS-4, i.e., 32-bit unsigned integers. On Windows
+\ctype{wchar_t} uses UTF-16, which implies that it cannot represent the
+code points reserved for \jargon{surrogate pairs} as single code points.
+Future versions may switch to using UTF-8 throughout.
 
     \item[Nesting of terms]
 Most built-in predicates that process Prolog terms create an explicitly
@@ -3832,16 +3830,13 @@ to crash in an uncontrolled way (i.e., not mapped to a Prolog exception
 that can be caught).
 
     \item[Integers]
-On most systems SWI-Prolog is compiled with support for unbounded
-integers by means of the GNU GMP library. In practice this means that
-integers are bound by the global stack size. Too large integers cause a
-\except{resource_error}. On systems that lack GMP, integers are 64-bit
-on 32- as well as 64-bit machines.
-
-Integers up to the value of the \prologflag{max_tagged_integer} Prolog
-flag are represented more efficiently on the stack. For integers that
-appear in clauses, the value (below \prologflag{max_tagged_integer} or
-not) has little impact on the size of the clause.
+SWI-Prolog has two integer representations. \jargon{Tagged integers} are
+currently limited to 57~bits.\footnote{Before version 9.3.6, tagged
+integers on 32-bit systems had 25~bits and there was a third
+representation for 64~bit integers.} Unbounded integers are by default
+provided by the GNU GMP library. Alternatively, they may be provided by
+the bundled LibBf library. The system can be built without support for
+unbounded integers.
 
     \item[Floating point numbers]
 Floating point numbers are represented as C-native double precision
