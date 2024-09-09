@@ -8338,7 +8338,9 @@ stack_avail(DECL_LD)
   { void *here = &cinfo;
 
     avail = (char*)here - (char*)cinfo->base;
+#if !defined(__SANITIZE_ADDRESS__) /* ASAN memory allocator breaks the following test */
     assert(avail > 0);		/* stack grows down */
+#endif
   }
 
   return (size_t)avail;
