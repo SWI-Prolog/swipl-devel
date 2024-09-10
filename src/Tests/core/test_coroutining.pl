@@ -1,6 +1,6 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
+    Author:        Ulrich Neumerkel and Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2020, University of Amsterdam
@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 
 Note that the when/2 tests are written by Ulrich Neumerkel and subject
-to the GPL-2 license.
+to the GPL-2.0-or-later license.
 */
 
 

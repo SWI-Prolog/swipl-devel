@@ -48,7 +48,6 @@ preserve the original license.
 
 @author  Paulo Moura
 @author  Jan Wielemaker
-@licence GPL+SWI-exception or Artistic 2.0
 @see	 predicate_property/2, property =iso=.
 */
 
