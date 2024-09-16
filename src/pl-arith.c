@@ -1243,7 +1243,6 @@ error:
 int
 valueExpression(DECL_LD term_t expr, number *n)
 { Word p = valTermRef(expr);
-  int rc;
 
   deRef(p);
   if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
@@ -1257,8 +1256,17 @@ valueExpression(DECL_LD term_t expr, number *n)
     return true;
   }
 
+/* Exception is guarded at PL_next_solution() anyway, but clang
+   crashes, at least on Linux and the Emscripten version.
+*/
+
+#ifndef __clang__
+  return evalExpression(expr, n);
+#else
+  int rc;
   EXCEPTION_GUARDED(rc=evalExpression(expr, n), rc=false);
   return rc;
+#endif
 }
 
 
