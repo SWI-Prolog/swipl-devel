@@ -343,22 +343,31 @@ check_pthread_setname_np()
 endif(HAVE_PTHREAD_SETNAME_NP)
 
 check_c_source_compiles(
-    "#include <sys/types.h>
-     #include <linux/unistd.h>
+    "#define _GNU_SOURCE
+     #include <unistd.h>
      int main()
-     { _syscall0(pid_t,gettid);
-       return 0;
+     { return gettid();
      }"
-    HAVE_GETTID_MACRO)
-if(NOT HAVE_GETTID_MACRO)
+    HAVE_GETTID_FUNCTION)
+if(NOT HAVE_GETTID_FUNCTION)
   check_c_source_compiles(
-      "#include <unistd.h>
-       #include <sys/syscall.h>
+      "#include <sys/types.h>
+       #include <linux/unistd.h>
        int main()
-       { syscall(__NR_gettid);
-	 return 0;
+       { _syscall0(pid_t,gettid);
+         return 0;
        }"
-      HAVE_GETTID_SYSCALL)
+      HAVE_GETTID_MACRO)
+  if(NOT HAVE_GETTID_FUNCTION AND NOT HAVE_GETTID_MACRO)
+    check_c_source_compiles(
+	"#include <unistd.h>
+	 #include <sys/syscall.h>
+	 int main()
+	 { syscall(__NR_gettid);
+	   return 0;
+	 }"
+        HAVE_GETTID_SYSCALL)
+  endif()
 endif()
 
 endif(CMAKE_USE_PTHREADS_INIT)
