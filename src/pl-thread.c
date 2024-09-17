@@ -1958,7 +1958,7 @@ set_system_thread_id(PL_thread_info_t *info)
   info->has_tid = true;
 #if defined(HAVE_GETTID_SYSCALL)
   info->pid = syscall(__NR_gettid);
-#elif defined(HAVE_GETTID_MACRO)
+#elif defined(HAVE_GETTID_FUNCTION) || defined(HAVE_GETTID_MACRO)
   info->pid = gettid();
 #elif defined(__CYGWIN__)
   info->pid = getpid();
