@@ -416,6 +416,7 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --long [value]
     ->  true
     ;   T == []
     ),
+    !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
     opt_parse(T, Positional, OptionsT, M, POptions).
