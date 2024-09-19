@@ -173,10 +173,10 @@ interrupt(_Sig) :-
 %         Disjunctive type.  Disjunction can be used create long
 %         options with optional values.   For example, using the type
 %         ``nonneg|boolean``, for an option `http` handles ``--http``
-%         as http(true), ``--no-http`` as http(false), ``--http=3000``
-%         and ``--http 3000`` as http(3000).  With an optional boolean
-%         an option is considered boolean if it is the last or the next
-%         argument starts with a hyphen (``-``).
+%         as http(true), ``--no-http`` as http(false) and ``--http=3000``
+%         as http(3000). Note that with an optional boolean a option is
+%         considered boolean unless it has a value written as
+%         ``--longopt=value``.
 %       - boolean(Default)
 %       - boolean
 %         Boolean options are special.  They do not take a value except
@@ -411,11 +411,6 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --no-long, --nolong
 take_long_(Long, T, Positional, Options, M, POptions) :- % --long [value]
     in(M:opt_type(Long, Name, Type)),
     type_optional_bool(Type, Value),
-    (   T = [VAtom|_],
-        sub_atom(VAtom, 0, _, _, -)
-    ->  true
-    ;   T == []
-    ),
     !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
