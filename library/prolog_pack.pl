@@ -631,7 +631,7 @@ search_info(download(_)).
 %     * test(Boolean)
 %       If `true` (default), run the pack tests.
 %     * git(+Boolean)
-%       If `true` (default `false` unless `URL` ends with =.git=),
+%       If `true` (default `false` unless `URL` ends with ``.git``),
 %       assume the URL is a GIT repository.
 %     * link(+Boolean)
 %       Can be used if the installation source is a local directory
@@ -3346,7 +3346,7 @@ read_selection(Max, Choice) :-
 %
 %   Ask for confirmation.
 %
-%   @param Default is one of =yes=, =no= or =none=.
+%   @arg Default is one of `yes`, `no` or `none`.
 
 confirm(_Question, Default, Options) :-
     Default \== none,
