@@ -3578,18 +3578,23 @@ install_label([unpack]) -->
 install_label(_) -->
     [ ansi(bold, 'Download packs?', []) ].
 
-install_plan([], []) -->
-    [].
-install_plan([H|T], [AH|AT]) -->
-    install_step(H, AH), [nl],
-    install_plan(T, AT).
 
-install_step(Info, keep) -->
+install_plan(Plan, Actions) -->
+    install_plan(Plan, Actions, Sec),
+    sec_warning(Sec).
+
+install_plan([], [], _) -->
+    [].
+install_plan([H|T], [AH|AT], Sec) -->
+    install_step(H, AH, Sec), [nl],
+    install_plan(T, AT, Sec).
+
+install_step(Info, keep, _Sec) -->
     { Info.get(keep) == true },
     !,
     [ '  Keep ' ], msg_pack(Info), [ ' at version ~w'-[Info.version] ],
     msg_can_upgrade(Info).
-install_step(Info, Action) -->
+install_step(Info, Action, Sec) -->
     { From = Info.get(upgrade),
       VFrom = From.version,
       VTo = Info.get(version),
@@ -3600,46 +3605,62 @@ install_step(Info, Action) -->
     },
     [ Label ], msg_pack(Info),
     [ ' from version ~w to ~w'- [From.version, Info.get(version)] ],
-    install_from(Info, Action).
-install_step(Info, Action) -->
+    install_from(Info, Action, Sec).
+install_step(Info, Action, Sec) -->
     { _From = Info.get(upgrade) },
     [ '  Upgrade '  ], msg_pack(Info),
-    install_from(Info, Action).
-install_step(Info, Action) -->
+    install_from(Info, Action, Sec).
+install_step(Info, Action, Sec) -->
     { Dep = Info.get(dependency_for) },
     [ '  Install ' ], msg_pack(Info),
     [ ' at version ~w as dependency for '-[Info.version],
       ansi(code, '~w', [Dep])
     ],
-    install_from(Info, Action),
+    install_from(Info, Action, Sec),
     msg_downloads(Info).
-install_step(Info, Action) -->
+install_step(Info, Action, Sec) -->
     { Info.get(commit) == 'HEAD' },
     !,
     [ '  Install ' ], msg_pack(Info), [ ' at current GIT HEAD'-[] ],
-    install_from(Info, Action),
+    install_from(Info, Action, Sec),
     msg_downloads(Info).
-install_step(Info, link) -->
+install_step(Info, link, _Sec) -->
     { Info.get(link) == true,
       uri_file_name(Info.get(url), Dir)
     },
     !,
     [ '  Install ' ], msg_pack(Info), [ ' as symlink to ', url(Dir) ].
-install_step(Info, Action) -->
+install_step(Info, Action, Sec) -->
     [ '  Install ' ], msg_pack(Info), [ ' at version ~w'-[Info.get(version)] ],
-    install_from(Info, Action),
+    install_from(Info, Action, Sec),
     msg_downloads(Info).
-install_step(Info, Action) -->
+install_step(Info, Action, Sec) -->
     [ '  Install ' ], msg_pack(Info),
-    install_from(Info, Action),
+    install_from(Info, Action, Sec),
     msg_downloads(Info).
 
-install_from(Info, download) -->
+install_from(Info, download, Sec) -->
     { download_url(Info.url) },
     !,
-    [ ' from ', url(Info.url) ].
-install_from(Info, unpack) -->
-    [ ' from ', url(Info.url) ].
+    [ ' from '  ], msg_url(Info.url, Sec).
+install_from(Info, unpack, Sec) -->
+    [ ' from '  ], msg_url(Info.url, Sec).
+
+msg_url(URL, unsafe) -->
+    { atomic(URL),
+      atom_concat('http://', Rest, URL)
+    },
+    [ ansi(error, '~w', ['http://']), '~w'-[Rest] ].
+msg_url(URL, _) -->
+    [ url(URL) ].
+
+sec_warning(Sec) -->
+    { var(Sec) },
+    !.
+sec_warning(unsafe) -->
+    [ ansi(warning, '  WARNING: The installation plan includes downloads \c
+                                from insecure HTTP servers.', []), nl
+    ].
 
 msg_downloads(Info) -->
     { Downloads = Info.get(all_downloads),
