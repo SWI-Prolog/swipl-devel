@@ -623,7 +623,7 @@ env_add_dll_dir(Var, Postfix) :-
        current_prolog_flag(bundle, true))).
 user:file_search_path(foreign, swi('../../PlugIns/swipl')).
 :- elif(current_prolog_flag(apple_universal_binary, true)).
-user:file_search_path(foreign, swi('lib/fat-darwin'))
+user:file_search_path(foreign, swi('lib/fat-darwin')).
 :- elif((current_prolog_flag(windows, true),
 	 current_prolog_flag(bundle, true))).
 user:file_search_path(foreign, swi(bin)).
