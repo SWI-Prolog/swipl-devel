@@ -2918,6 +2918,17 @@ publish_download(Infos, Options) :-
     register_downloads(Infos, [do_publish(Pack)|Options1]).
 publish_download(_Infos, _Options).
 
+%!  download_data(+Info, -Data) is semidet.
+%
+%   If we downloaded and installed Info, unify Data with the information
+%   that we share with the pack registry. That is a term
+%
+%       download(URL, Hash, Metadata).
+%
+%   Where URL is location of the GIT   repository or URL of the download
+%   archive. Hash is either the  GIT  commit   hash  or  the SHA1 of the
+%   archive file.
+
 download_data(Info, Data),
     Info.get(git) == true =>                % Git clone
     Data = download(URL, Hash, Metadata),
