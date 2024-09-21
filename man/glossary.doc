@@ -215,7 +215,7 @@ Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.
 Short for \g{non deterministic}.
 
     \glossitem{non deterministic}\index{non deterministic}%
-A \g{non deterministic} predicate is a predicate that mail fail or
+A \g{non deterministic} predicate is a predicate that may fail or
 succeed any number of times.
 
     \glossitem{operator}\index{operator}%
