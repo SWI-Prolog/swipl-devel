@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2023, SWI-Prolog Solutions b.v.
+    Copyright (c)  2023-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ pack_command(list,    "List packages").
 pack_command(find,    "Find packages").
 pack_command(search,  "Alias for `find`").
 pack_command(info,    "Print info on a pack").
-pack_command(install, "Install a package").
+pack_command(install, "Install or upgrade a package").
 pack_command(remove,  "Uninstall a package").
 pack_command(publish, "Register a pack with swi-prolog.org").
 pack_command(help,    "Help on command (also swipl pack command -h)").
@@ -140,7 +140,7 @@ pack_install:opt_help(link,           "Install from local directory using \c
 pack_install:opt_help(version,        "Restrict the version.").
 pack_install:opt_help(branch,         "Checkout GIT branch.").
 pack_install:opt_help(commit,         "Checkout GIT commit.").
-pack_install:opt_help(server,         "Server to contact for finding packages").
+pack_install:opt_help(server,         "Server to contact for finding packages. \c                                       Default is https://www.swi-prolog.org.").
 
 pack_install:opt_help(help(usage),
                       " install [option ...] pack ...").
@@ -155,6 +155,7 @@ pack_install:opt_meta(rebuild,	   'WHEN').
 pack_install:opt_meta(url,	   'URL').
 pack_install:opt_meta(branch,	   'BRANCH').
 pack_install:opt_meta(commit,	   'HASH').
+pack_install:opt_meta(server,	   'URL').
 
 pack_publish:opt_type(git,      git,            boolean).
 pack_publish:opt_type(sign,     sign,           boolean).
@@ -245,9 +246,14 @@ usage :-
     argv_usage(debug).
 
 opt_help(help(header),
-         [ ansi(bold, 'Manage SWI-Prolog packages',  []),
-           nl
-         ]).
+         md("__Manage SWI-Prolog packs__
+
+            SWI-Prolog packs are community contributed libraries
+            and applications.  You can find the available packs at
+
+                https://www.swi-prolog.org/pack/list
+
+            ")).
 opt_help(help(usage),
          [ ' [option ...] '-[],
            ansi(bold, 'command', []),
