@@ -66,7 +66,8 @@
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).
 :- use_module(library(debug), [assertion/1]).
-:- use_module(library(pairs), [pairs_keys/2]).
+:- use_module(library(pairs),
+              [pairs_keys/2, map_list_to_pairs/3, pairs_values/2]).
 :- autoload(library(git)).
 :- autoload(library(sgml)).
 :- autoload(library(sha)).
@@ -76,6 +77,7 @@
 :- autoload(library(prolog_versions), [require_version/3, cmp_versions/3]).
 :- autoload(library(ugraphs), [vertices_edges_to_ugraph/3, ugraph_layers/2]).
 :- autoload(library(process), [process_which/2]).
+:- autoload(library(aggregate), [aggregate_all/3]).
 
 :- meta_predicate
     pack_install_local(2, +, +).
@@ -777,7 +779,7 @@ pack_default_options(URL, Pack, OptsIn, Options) :-      % (7)
     pack_version_file(Pack, Version, URL),
     download_url(URL),
     !,
-    available_download_versions(URL, Available),
+    available_download_versions(URL, Available, Options),
     Available = [URLVersion-LatestURL|_],
     NewOptions = [url(LatestURL)|VersionOptions],
     version_options(Version, URLVersion, Available, VersionOptions),
@@ -954,8 +956,9 @@ pack_install_set(Pairs, Dir, Options) :-
         )
     ),
     local_packs(Dir, Existing),
-    pack_resolve(Pairs, Existing, AllVersions, Plan, Options),
+    pack_resolve(Pairs, Existing, AllVersions, Plan0, Options),
     !,                                      % for now, only first plan
+    maplist(hsts_info(Options), Plan0, Plan),
     Options1 = [pack_directory(Dir)|Options],
     download_plan(Pairs, Plan, PlanB, Options1),
     register_downloads(PlanB, Options),
@@ -963,6 +966,12 @@ pack_install_set(Pairs, Dir, Options) :-
     build_plan(PlanB, Built, Options1),
     publish_download(PlanB, Options),
     work_done(Pairs, Plan, PlanB, Built, Options).
+
+hsts_info(Options, Info0, Info) :-
+    hsts(Info0.get(url), URL, Options),
+    !,
+    Info = Info0.put(url, URL).
+hsts_info(_Options, Info, Info).
 
 %!  known_media(+Pair) is semidet.
 %
@@ -1924,9 +1933,10 @@ pack_download_from_url(URL, PackTopDir, Pack, Options) :-
     run_process(path(git), [clone, URL, PackDir|Extra], []),
     git_checkout_version(PackDir, [update(false)|Options]),
     option(pack_dir(PackDir), Options, _).
-pack_download_from_url(URL, PackTopDir, Pack, Options) :-
-    download_url(URL),
+pack_download_from_url(URL0, PackTopDir, Pack, Options) :-
+    download_url(URL0),
     !,
+    hsts(URL0, URL, Options),
     directory_file_path(PackTopDir, Pack, PackDir),
     prepare_pack_dir(PackDir, Options),
     pack_download_dir(PackTopDir, DownLoadDir),
@@ -2140,13 +2150,36 @@ pack_download_dir(PackTopDir, DownLoadDir) :-
 %   from them.
 
 download_url(URL) :-
+    url_scheme(URL, Scheme),
+    download_scheme(Scheme).
+
+url_scheme(URL, Scheme) :-
     atom(URL),
     uri_components(URL, Components),
-    uri_data(scheme, Components, Scheme),
-    download_scheme(Scheme).
+    uri_data(scheme, Components, Scheme).
 
 download_scheme(http).
 download_scheme(https).
+
+%!  hsts(+URL0, -URL, +Options) is det.
+%
+%   HSTS (HTTP Strict Transport Security) is   standard by which means a
+%   site asks to always use HTTPS. For  SWI-Prolog packages we now force
+%   using HTTPS for all  downloads.  This   may  be  overrules using the
+%   option insecure(true), which  may  also  be   used  to  disable  TLS
+%   certificate  checking.  Note  that  the   pack  integrity  is  still
+%   protected by its SHA1 hash.
+
+hsts(URL0, URL, Options) :-
+    option(insecure(true), Options, false),
+    !,
+    URL = URL0.
+hsts(URL0, URL, _Options) :-
+    url_scheme(URL0, http),
+    !,
+    uri_edit(scheme(https), URL0, URL).
+hsts(URL, URL, _Options).
+
 
 %!  pack_post_install(+Pack, +PackDir, +Options) is det.
 %
@@ -2966,23 +2999,24 @@ message_severity(exception(_), error, _).
                  *        WILDCARD URIs         *
                  *******************************/
 
-%!  available_download_versions(+URL, -Versions:list(atom)) is det.
+%!  available_download_versions(+URL, -Versions:list(atom), +Options) is det.
 %
 %   Deal with wildcard URLs, returning a  list of Version-URL pairs,
 %   sorted by version.
 %
 %   @tbd    Deal with protocols other than HTTP
 
-available_download_versions(URL, Versions) :-
+available_download_versions(URL, Versions, _Options) :-
     wildcard_pattern(URL),
-    github_url(URL, User, Repo),
+    github_url(URL, User, Repo),            % demands https
     !,
     findall(Version-VersionURL,
             github_version(User, Repo, Version, VersionURL),
             Versions).
-available_download_versions(URL, Versions) :-
-    wildcard_pattern(URL),
+available_download_versions(URL, Versions, Options) :-
+    wildcard_pattern(URL0),
     !,
+    hsts(URL0, URL, Options),
     file_directory_name(URL, DirURL0),
     ensure_slash(DirURL0, DirURL),
     print_message(informational, pack(query_versions(DirURL))),
@@ -3002,7 +3036,7 @@ available_download_versions(URL, Versions) :-
     versioned_urls(MatchingURLs, VersionedURLs),
     sort_version_pairs(VersionedURLs, Versions),
     print_message(informational, pack(found_versions(Versions))).
-available_download_versions(URL, [Version-URL]) :-
+available_download_versions(URL, [Version-URL], _Options) :-
     (   pack_version_file(_Pack, Version0, URL)
     ->  Version = Version0
     ;   Version = '0.0.0'
