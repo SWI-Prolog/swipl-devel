@@ -5265,7 +5265,9 @@ C compiler.
 
 The following is a very simple example going through all the steps
 outlined above. It provides an arithmetic expression evaluator. We will
-call the application \program{calc} and define it in the files \file{calc.c}
+call the application \program{calc} and define it in the files
+\file{calc.c}\footnote{A similar C++ program is in
+\href{https://www.swi-prolog.org/pldoc/man?section=cpp2}{C++ interface to SWI-Prolog (Version 2)}.}
 and \file{calc.pl}.  The Prolog file is simple:
 
 \begin{code}
