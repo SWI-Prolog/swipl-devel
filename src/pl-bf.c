@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2022, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,10 @@ default_free(void *ptr, size_t size)
 { free(ptr);
 }
 
-mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc, .free_func = default_free };
+mp_alloc_wrapper alloc_wrapper = {
+  .realloc_func = default_realloc,
+  .free_func = default_free
+};
 
 static void *
 my_bf_realloc(void *opaque, void *ptr, size_t size)
@@ -73,4 +76,3 @@ void
 bf_not_implemented(const char *msg)
 { Sdprintf("LibBF: Not implemented: %s\n", msg);
 }
-

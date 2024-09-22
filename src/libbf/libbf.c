@@ -163,6 +163,26 @@ static inline slimb_t sat_add(slimb_t a, slimb_t b)
     return r;
 }
 
+static void*
+cache_realloc(void *opaque, void *ptr, size_t new)
+{ return realloc(ptr, new);
+}
+
+static void
+cache_free(void *opaque, void *ptr, size_t size)
+{ free(ptr);
+}
+
+#define CACHE_MALLOC_BEGIN(__ctx) \
+  { bf_realloc_func_t *__raf = __ctx->realloc_func; \
+    bf_free_func_t *__rf = __ctx->free_func; \
+    __ctx->realloc_func = cache_realloc; \
+    __ctx->free_func = cache_free;
+#define CACHE_MALLOC_END(__ctx)	 \
+    __ctx->realloc_func = __raf; \
+    __ctx->free_func = __rf; \
+  }
+
 #define malloc(s) malloc_is_forbidden(s)
 #define free(p) free_is_forbidden(p)
 #define realloc(p, s) realloc_is_forbidden(p, s)
@@ -4173,7 +4193,9 @@ int bf_const_pi(bf_t *T, limb_t prec, bf_flags_t flags)
 void bf_clear_cache(bf_context_t *s)
 {
 #ifdef USE_FFT_MUL
+    CACHE_MALLOC_BEGIN(s);
     fft_clear_cache(s);
+    CACHE_MALLOC_END(s);
 #endif
     bf_const_free(&s->log2_cache);
     bf_const_free(&s->pi_cache);
@@ -7782,18 +7804,11 @@ static no_inline void mul_trig(NTTLimb *buf,
 
 #endif /* !AVX2 */
 
-static no_inline NTTLimb *get_trig(BFNTTState *s,
-				   int k, int inverse, int m_idx)
-{
-    NTTLimb *tab;
+static no_inline NTTLimb *get_trig_mk_cache(BFNTTState *s,
+					    int k, int inverse, int m_idx)
+{   NTTLimb *tab;
     limb_t i, n2, c, c_mul, m, c_mul_inv;
 
-    if (k > NTT_TRIG_K_MAX)
-	return NULL;
-
-    tab = s->ntt_trig[m_idx][inverse][k];
-    if (tab)
-	return tab;
     n2 = (limb_t)1 << (k - 1);
     m = ntt_mods[m_idx];
 #ifdef __AVX2__
@@ -7817,6 +7832,25 @@ static no_inline NTTLimb *get_trig(BFNTTState *s,
     }
     s->ntt_trig[m_idx][inverse][k] = tab;
     return tab;
+}
+
+static no_inline NTTLimb *get_trig(BFNTTState *s,
+				   int k, int inverse, int m_idx)
+{
+    NTTLimb *tab;
+
+    if (k > NTT_TRIG_K_MAX)
+	return NULL;
+
+    tab = s->ntt_trig[m_idx][inverse][k];
+    if (tab)
+	return tab;
+
+    NTTLimb *rc;
+    CACHE_MALLOC_BEGIN(s->ctx);
+    rc = get_trig_mk_cache(s, k, inverse, m_idx);
+    CACHE_MALLOC_END(s->ctx);
+    return rc;
 }
 
 void fft_clear_cache(bf_context_t *s1)
