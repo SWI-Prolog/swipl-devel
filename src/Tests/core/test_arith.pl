@@ -599,6 +599,24 @@ test(ar_add_ui) :-                       % check realloc of gmp number
     A = 1000000000000000000000,
     X is A+1,
     X == 1000000000000000000001.
+test(bf_trig_alloc, Len == 7634) :-
+    exponential_div(3,16000,R),
+    format(string(S), '~d', [R]),
+    string_length(S, Len).
+
+% From Ciao playground
+% Mostly testing mememory management that was broken for in
+% LibBF get_trig() which maintains a cache.
+exponential_div(_Base, 0, 1) :-
+    !.
+exponential_div(Base, Exp, Res):-
+    Exp > 0,
+    HalfExp is Exp // 2,
+    exponential_div(Base, HalfExp, HalfRes),
+    (   Exp mod 2 =:= 0
+    ->  Res is HalfRes*HalfRes
+    ;   Res is HalfRes*HalfRes*Base
+    ).
 
 :- endif.
 

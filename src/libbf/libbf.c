@@ -24,6 +24,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
+#ifdef __STDC_NO_ATOMICS__
+#define _Atomic
+#else
+#include <stdatomic.h>
+#endif
 #include <math.h>
 #include <string.h>
 #include <assert.h>
@@ -7339,7 +7344,7 @@ typedef struct BFNTTState {
 
     limb_t ntt_proot_pow[NB_MODS][2][NTT_PROOT_2EXP + 1];
     limb_t ntt_proot_pow_inv[NB_MODS][2][NTT_PROOT_2EXP + 1];
-    NTTLimb *ntt_trig[NB_MODS][2][NTT_TRIG_K_MAX + 1];
+    _Atomic (NTTLimb*)ntt_trig[NB_MODS][2][NTT_TRIG_K_MAX + 1];
     /* 1/2^n mod m */
     limb_t ntt_len_inv[NB_MODS][NTT_PROOT_2EXP + 1][2];
 #if defined(__AVX2__)
@@ -7804,6 +7809,15 @@ static no_inline void mul_trig(NTTLimb *buf,
 
 #endif /* !AVX2 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+This code creates a cache that lives  as long as we do not destroy the
+LibBF  context.  We  share a  single context  for the  entire process.
+Where  we  normally allocate  LibBF  memory  for SWI-Prolog  from  the
+stacks,  we need  to  use permanent  storage here.   That  is what  is
+achieved by CACHE_MALLOC_BEGIN() ... CACHE_MALLOC_END().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static no_inline NTTLimb *get_trig_mk_cache(BFNTTState *s,
 					    int k, int inverse, int m_idx)
 {   NTTLimb *tab;
@@ -7830,7 +7844,17 @@ static no_inline NTTLimb *get_trig_mk_cache(BFNTTState *s,
 #endif
 	c = mul_mod_fast2(c, c_mul, m, c_mul_inv);
     }
+#ifdef __STDC_NO_ATOMICS__
+    /* May leak, but not so likely and still thread-safe */
     s->ntt_trig[m_idx][inverse][k] = tab;
+#else
+    NTTLimb *nulllimb = NULL;
+    if ( !atomic_compare_exchange_strong(&s->ntt_trig[m_idx][inverse][k],
+					 &nulllimb, tab) )
+    { ntt_free(s, tab);
+      tab = s->ntt_trig[m_idx][inverse][k];
+    }
+#endif
     return tab;
 }
 
