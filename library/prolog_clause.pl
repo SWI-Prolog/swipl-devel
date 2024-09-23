@@ -95,11 +95,16 @@ clause_info/4 as below can be slow.
 %
 %   Defined options are:
 %
-%     * variable_names(-Names)
-%     Unify Names with the variable names list (Name=Var) as
-%     returned by read_term/3.  This argument is intended for
-%     reporting source locations and refactoring based on
-%     analysis of the compiled code.
+%     - variable_names(-Names)
+%       Unify Names with the variable names list (Name=Var) as
+%       returned by read_term/3.  This argument is intended for
+%       reporting source locations and refactoring based on
+%       analysis of the compiled code.
+%     - head(-Head)
+%     - body(-Body)
+%       Get the head and body as terms.   This is similar to
+%       clause/3, but a seperate call would break the variable
+%       identity.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
     clause_info(ClauseRef, File, TermPos, NameOffset, []).
