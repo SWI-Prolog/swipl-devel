@@ -165,6 +165,7 @@ pack_publish:opt_type(register, register,       boolean).
 pack_publish:opt_type(isolated, isolated,       boolean).
 pack_publish:opt_type(dir,      pack_directory, directory(write)).
 pack_publish:opt_type(clean,    clean,          boolean(write)).
+pack_publish:opt_type(server,   server,         atom).
 
 pack_publish:opt_help(register,       "Register at pack repository").
 pack_publish:opt_help(isolated,       "Isolate from my other packs").
@@ -174,6 +175,7 @@ pack_publish:opt_help(git,            "Publish from GIT repository").
 pack_publish:opt_help(sign,           "Sign the git release tag").
 pack_publish:opt_help(force,          "Force (update) the git release tag").
 pack_publish:opt_help(branch,         "Branch used for releases").
+pack_publish:opt_help(server,         "Server to publish package on. \c                                                 Default is https://www.swi-prolog.org.").
 pack_publish:opt_help(help(usage),
                       " publish [option ...] url|dir").
 pack_publish:opt_help(
@@ -207,6 +209,7 @@ pack_publish:opt_help(
         |})).
 
 pack_publish:opt_meta(branch, 'BRANCH').
+pack_publish:opt_meta(server, 'URL').
 
 cli_pack_list([], Options) =>
     pack_list('', [installed(true)|Options]).
