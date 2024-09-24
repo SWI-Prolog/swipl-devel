@@ -36,7 +36,7 @@
 :- use_module(library(main)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(apply)).
-:- use_module(library(lists)).
+:- use_module(library(strings)).
 :- use_module(library(dcg/basics)).
 
 :- initialization(main, main).
@@ -174,6 +174,37 @@ pack_publish:opt_help(git,            "Publish from GIT repository").
 pack_publish:opt_help(sign,           "Sign the git release tag").
 pack_publish:opt_help(force,          "Force (update) the git release tag").
 pack_publish:opt_help(branch,         "Branch used for releases").
+pack_publish:opt_help(help(usage),
+                      " publish [option ...] url|dir").
+pack_publish:opt_help(
+    help(header),
+    md({|string||
+        | # Publish a SWI-Prolog pack
+        |
+        |})).
+pack_publish:opt_help(
+    help(footer),
+    md({|string||
+        | Once your pack is completed, it may be registered at
+        | ``https://www.swi-prolog.org/pack/list``.  The __publish__
+        | sub command of ``swipl pack`` installs your pack from the
+        | given location, notmally in an isolated temporary directory.
+        | After successful installation it informs the pack registry
+        | of the new pack and deletes the temporary directory.
+        |
+        | # Examples:
+        |
+        | The typical command to publish a pack from a git repository is
+        |
+        |     swipl pack publish .
+        |
+        | The above requires the _origin_ of the repo to point at a publically
+        | accessible git repository.
+        |
+        | If your pack is hosted as archive, the typical command is
+        |
+        |     swipl pack publish https://mydomain.org/mydownloads/mypack-1.2.3.zip
+        |})).
 
 pack_publish:opt_meta(branch, 'BRANCH').
 
