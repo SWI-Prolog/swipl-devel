@@ -1688,7 +1688,9 @@ prolog_version_dotted(Version) :-
 %   system.
 
 is_prolog_token(Token), cmp(Token, prolog, _Cmp, _Version) => true.
-is_prolog_token(prolog:_Feature) => true.
+is_prolog_token(prolog:Feature), atom(Feature) => true.
+is_prolog_token(prolog:Feature), flag_value_feature(Feature, _Flag, _Value) =>
+    true.
 is_prolog_token(_) => fail.
 
 %!  prolog_satisfies(+Token) is semidet.
@@ -1716,7 +1718,8 @@ prolog_satisfies(prolog:Feature), flag_value_feature(Feature, Flag, Value) =>
 
 flag_value_feature(Feature, Flag, Value) :-
     compound(Feature),
-    compound_name_arguments(Feature, Flag, [Value]).
+    compound_name_arguments(Feature, Flag, [Value]),
+    atom(Flag).
 
 
                  /*******************************
@@ -1810,7 +1813,6 @@ pack_git_info(GitDir, Hash, [git(true), installed_size(Bytes)|Info]) :-
 dir_metadata(GitDir, Info) :-
     directory_file_path(GitDir, 'pack.pl', InfoFile),
     read_file_to_terms(InfoFile, Info, [encoding(utf8)]),
-    must_be(ground, Info),
     maplist(valid_term(pack_info_term), Info).
 
 %!  download_file_sanity_check(+Archive, +Pack, +Info) is semidet.
@@ -2156,7 +2158,8 @@ download_url(URL) :-
 url_scheme(URL, Scheme) :-
     atom(URL),
     uri_components(URL, Components),
-    uri_data(scheme, Components, Scheme).
+    uri_data(scheme, Components, Scheme),
+    atom(Scheme).
 
 download_scheme(http).
 download_scheme(https).
