@@ -638,7 +638,7 @@ usage_text(M:Which) -->
     !,
     (   {Which == header ; Which == description}
     ->  user_text(M:Help), [nl, nl]
-    ;   [nl], user_text(M:Help)
+    ;   [nl, nl], user_text(M:Help)
     ).
 usage_text(_) -->
     [].
