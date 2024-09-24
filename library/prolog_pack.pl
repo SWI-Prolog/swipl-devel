@@ -2883,11 +2883,21 @@ git_archive_version('HEAD', _).
 %!  publish_download(+Infos, +Options) is semidet.
 %!  register_downloads(+Infos, +Options) is det.
 %
-%   Register our downloads with the pack server.
+%   Register our downloads with the  pack server. The publish_download/2
+%   version is used to  register  a   specific  pack  after successfully
+%   installing the pack.  In this scenario, we
+%
+%     1. call register_downloads/2 with publish(Pack) that must be
+%        a no-op.
+%     2. build and test the pack
+%     3. call publish_download/2, which calls register_downloads/2
+%        after replacing publish(Pack) by do_publish(Pack).
 
 register_downloads(_, Options) :-
     option(register(false), Options),
-    \+ option(do_publish(_), Options),
+    !.
+register_downloads(_, Options) :-
+    option(publish(_), Options),
     !.
 register_downloads(Infos, Options) :-
     convlist(download_data, Infos, Data),
@@ -2902,7 +2912,7 @@ register_downloads(Infos, Options) :-
             (   Reply = true(Actions),
                 memberchk(Pack-Result, Actions)
             ->  (   registered(Result)
-                ->  true
+                ->  print_message(informational, pack(published(Info, Result)))
                 ;   print_message(error, pack(publish_failed(Info, Result))),
                     fail
                 )
@@ -3566,6 +3576,10 @@ message(git_tag_out_of_sync(Tag)) -->
       ' differs from this tag at the origin'
     ].
 
+message(published(Info, At)) -->
+    [ 'Published pack ' ], msg_pack(Info), msg_info_version(Info),
+    [' to be installed from '],
+    msg_published_address(At).
 message(publish_failed(Info, Reason)) -->
     [ 'Pack ' ], msg_pack(Info), [ ' at version ~w'-[Info.version] ],
     msg_publish_failed(Reason).
@@ -3577,6 +3591,11 @@ msg_publish_failed(download) -->
     [' was already published?'].
 msg_publish_failed(Status) -->
     [ ' failed for unknown reason (~p)'-[Status] ].
+
+msg_published_address(git(URL)) -->
+    msg_url(URL, _).
+msg_published_address(file(URL)) -->
+    msg_url(URL, _).
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
@@ -3725,6 +3744,12 @@ msg_pack(Pack) -->
     [ ansi(code, '~w', [Pack]) ].
 msg_pack(Info) -->
     msg_pack(Info.pack).
+
+msg_info_version(Info) -->
+    [ ansi(code, '@~w', [Info.get(version)]) ],
+    !.
+msg_info_version(_Info) -->
+    [].
 
 %!  msg_build_plan(+Plan)//
 %
