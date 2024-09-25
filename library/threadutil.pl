@@ -301,8 +301,7 @@ interactor(Title) :-
     !,
     thread_self(Me),
     thread_create(thread_run_interactor(Me, Title), _Id,
-                  [ detached(true),
-                    debug(false)
+                  [ detached(true)
                   ]),
     thread_get_message(Msg),
     (   Msg = title(Title0)
