@@ -36,6 +36,7 @@
 :- module(thread_util,
           [ threads/0,                  % List available threads
             join_threads/0,             % Join all terminated threads
+            with_stopped_threads/2,     % :Goal, +Options
             thread_has_console/0,       % True if thread has a console
             attach_console/0,           % Create a new console for thread.
             attach_console/1,           % ?Title
@@ -57,6 +58,9 @@
             interactor/1                % ?Title
           )).
 :- endif.
+
+:- meta_predicate
+    with_stopped_threads(0, +).
 
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(backcomp),[thread_at_exit/1]).
@@ -119,6 +123,58 @@ rip_thread(thread{id:id, status:Status}) :-
     Status \== running,
     \+ thread_self(Id),
     thread_join(Id, _).
+
+%!  with_stopped_threads(:Goal, Options) is det.
+%
+%   Stop all threads except the caller   while  running once(Goal). Note
+%   that this is in the thread user   utilities as this is not something
+%   that should be used  by  normal   applications.  Notably,  this  may
+%   _deadlock_ if the current thread  requires   input  from  some other
+%   thread to complete Goal or one of   the  stopped threads has a lock.
+%   Options:
+%
+%     - stop_nodebug_threads(+Boolean)
+%       If `true` (default `false`), also stop threads created with
+%       the debug(false) option.
+%     - except(+List)
+%       Do not stop threads from this list.
+%
+%   @bug Note that the threads are stopped when they process signals. As
+%   signal handling may be  delayed,  this   implies  they  need  not be
+%   stopped before Goal starts.
+
+:- dynamic stopped_except/1.
+
+with_stopped_threads(_, _) :-
+    stopped_except(_),
+    !.
+with_stopped_threads(Goal, Options) :-
+    thread_self(Me),
+    setup_call_cleanup(
+        asserta(stopped_except(Me), Ref),
+        ( stop_other_threads(Me, Options),
+          once(Goal)
+        ),
+        erase(Ref)).
+
+stop_other_threads(Me, Options) :-
+    findall(T, stop_thread(Me, T, Options), Stopped),
+    broadcast(stopped_threads(Stopped)).
+
+stop_thread(Me, Thread, Options) :-
+    option(except(Except), Options, []),
+    (   option(stop_nodebug_threads(true), Options)
+    ->  thread_property(Thread, status(running))
+    ;   debug_target(Thread)
+    ),
+    Me \== Thread,
+    \+ memberchk(Thread, Except),
+    catch(thread_signal(Thread, stopped_except), error(_,_), fail).
+
+stopped_except :-
+    thread_wait(\+ stopped_except(_),
+                [ wait_preds([stopped_except/1])
+                ]).
 
 %!  thread_has_console is semidet.
 %
