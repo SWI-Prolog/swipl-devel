@@ -2230,6 +2230,7 @@ known_flag(android).
 known_flag(android_api).
 known_flag(apple).
 known_flag(asan).
+known_flag(break_level).
 known_flag(conda).
 known_flag(dde).
 known_flag(emscripten).
