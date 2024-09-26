@@ -567,6 +567,12 @@ permission error is raised if \arg{Queue} refers to (the default queue
 of) a thread. Other threads that are waiting for \arg{Queue} using
 thread_get_message/2 receive an existence error.
 
+    \predicate[semidet]{is_message_queue}{1}{@Term}
+True if \arg{Term} refers to an existing message queue.  This predicate
+can not block and has no error conditions.  Note that message queues may
+be destroyed asynchronously by another thread and \jargon{anonymous}
+message queues may be garbage collected asynchronously.
+
     \predicate[det]{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
 not advised) to get messages from the queue of other threads.  This

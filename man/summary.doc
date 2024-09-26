@@ -378,6 +378,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_engine}{1}{Type check for an engine handle}
 \predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{is_message_queue}{1}{Type check for a message queue}
 \predicatesummary{is_most_general_term}{1}{Type check for general term}
 \predicatesummary{is_object}{1}{WASM: Test JavaScript object}
 \predicatesummary{is_object}{2}{WASM: Test JavaScript object and class}
