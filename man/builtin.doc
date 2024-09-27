@@ -8314,7 +8314,7 @@ The use of rational numbers with unbounded integers allows for exact
 integer or \jargon{fixed point} arithmetic under addition, subtraction,
 multiplication, division and exponentiation (\funcref{^}{2}). Support
 for rational numbers depends on the Prolog flag
-\prologflag{prefer_rationals}. If this is \const{true} (default), the
+\prologflag{prefer_rationals}. If this is \const{true}, the
 number division function (\funcref{/}{2}) and exponentiation function
 (\funcref{^}{2}) generate a rational number on integer and rational
 arguments and read/1 and friends read \verb$[-+][0-9_ ]+/[0-9_ ]+$ into
