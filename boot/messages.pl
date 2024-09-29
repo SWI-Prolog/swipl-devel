@@ -384,6 +384,11 @@ syntax_error(undefined_char_escape(C)) -->
     [ 'Unknown character escape in quoted atom or string: `\\~w\''-[C] ].
 syntax_error(void_not_allowed) -->
     [ 'Empty argument list "()"' ].
+syntax_error(Term) -->
+    { compound(Term),
+      compound_name_arguments(Term, Syntax, [Text])
+    }, !,
+    [ '~w expected, found '-[Syntax], ansi(code, '"~w"', [Text]) ].
 syntax_error(Message) -->
     [ '~w'-[Message] ].
 
