@@ -983,6 +983,12 @@ Issues:
 	* Sub-second times
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __WINDOWS__
+typedef int32_t stime_t;
+#else
+typedef time_t stime_t;
+#endif
+
 static  foreign_t
 pl_format_time(term_t out, term_t format, term_t time, int posix)
 { struct taia taia;
@@ -990,7 +996,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
   struct ftm tb;
   int weekday, yearday;
   wchar_t *fmt;
-  time_t unixt;
+  stime_t unixt;
   int64_t ut64;
   size_t fmtlen;
   redir_context ctx;
@@ -1006,11 +1012,12 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
 
     leapsecs_sub(&tai);
     ut64 = tai.x - TAI_UTC_OFFSET;
-    unixt = (time_t) ut64;
+    unixt = (stime_t) ut64;
 
     if ( (int64_t)unixt == ut64 )
-    { tb.utcoff = tz_offset();
-      PL_localtime_r(&unixt, &tb.tm);
+    { time_t ta = unixt;
+      tb.utcoff = tz_offset();
+      PL_localtime_r(&ta, &tb.tm);
       tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
       if ( tb.tm.tm_isdst > 0 )
       { tb.utcoff -= 3600;

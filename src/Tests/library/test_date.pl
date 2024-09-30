@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2006-2021, University of Amsterdam
+    Copyright (c)  2006-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -225,6 +225,10 @@ test(iso_8601, T =:= 1165536000) :-
 	parse_time('2006-W49-5', iso_8601, T).
 test(iso_8601, T =:= 1165536000) :-
 	parse_time('2006-342', iso_8601, T).
+test(iso_8601, S == '1732-02-22') :-
+	parse_time('1732-02-22', iso_8601, Stamp),
+	assertion(Stamp =:= -7506086400),
+	format_time(atom(S), '%Y-%m-%d', Stamp).
 
 :- end_tests(parse_time).
 
