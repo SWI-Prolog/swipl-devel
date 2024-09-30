@@ -262,16 +262,6 @@ get_voff_arg(int i, term_t t, term_t a, int *val)
 
 
 static int
-get_float_arg(int i, term_t t, term_t a, double *val)
-{ GET_LD
-
-  _PL_get_arg(i, t, a);
-
-  return PL_get_float_ex(a, val);
-}
-
-
-static int
 get_dst_arg(int i, term_t t, term_t a, int *val)
 { GET_LD
   atom_t name;
@@ -296,6 +286,29 @@ get_dst_arg(int i, term_t t, term_t a, int *val)
   return PL_get_bool_ex(a, val);	/* generate an error */
 }
 
+static int
+get_v_float_arg(int i, term_t t, term_t a, double *val, bool *v, double def)
+{ _PL_get_arg(i, t, a);
+  if ( PL_is_variable(a) && *v )
+  { *val = def;
+    return PL_unify_float(a, def);
+  } else
+  { *v = false;
+    return PL_get_float_ex(a, val);
+  }
+}
+
+static int
+get_v_int_arg(int i, term_t t, term_t a, int *val, bool *v, int def)
+{ _PL_get_arg(i, t, a);
+  if ( PL_is_variable(a) && *v )
+  { *val = def;
+    return PL_unify_integer(a, def);
+  } else
+  { *v = false;
+    return PL_get_integer_ex(a, val);
+  }
+}
 
 static int
 get_ftm(term_t t, ftm *ftm)
@@ -306,12 +319,16 @@ get_ftm(term_t t, ftm *ftm)
   memset(ftm, 0, sizeof(*ftm));
 
   if ( (date9=PL_is_functor(t, FUNCTOR_date9)) )
-  { if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
-	 get_int_arg  (2, t, tmp, &ftm->tm.tm_mon)  &&
-	 get_int_arg  (3, t, tmp, &ftm->tm.tm_mday) &&
-	 get_int_arg  (4, t, tmp, &ftm->tm.tm_hour) &&
-	 get_int_arg  (5, t, tmp, &ftm->tm.tm_min)  &&
-	 get_float_arg(6, t, tmp, &ftm->sec)	    &&
+  { bool v = true;
+
+    if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
+
+	 get_v_float_arg(6, t, tmp, &ftm->sec, &v, 0.0)      &&
+	 get_v_int_arg  (5, t, tmp, &ftm->tm.tm_min, &v, 0)  &&
+	 get_v_int_arg  (4, t, tmp, &ftm->tm.tm_hour, &v, 0) &&
+	 get_v_int_arg  (3, t, tmp, &ftm->tm.tm_mday, &v, 1) &&
+	 get_v_int_arg  (2, t, tmp, &ftm->tm.tm_mon,  &v, 1) &&
+
 	 get_voff_arg (7, t, tmp, &ftm->utcoff)     &&
 	 get_tz_arg   (8, t, tmp, &ftm->tzname)     &&
 	 get_dst_arg  (9, t, tmp, &ftm->isdst) )

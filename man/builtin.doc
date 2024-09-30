@@ -10395,12 +10395,19 @@ to extract the local time, \const{'UTC'} to extract a UTC time or an
 integer describing the seconds west of Greenwich.
 
     \predicate{date_time_stamp}{2}{+DateTime, -TimeStamp}
-Compute the timestamp from a {date}/9 term.  Values for month, day,
-hour, minute or second need not be normalized.  This flexibility
-allows for easy computation of the time at any given number of
-these units from a given timestamp.  Normalization can be achieved
-following this call with stamp_date_time/3.  This example computes
-the date 200 days after 2006-07-14:
+Compute the timestamp from a \funcref{date}{9} term.  Values for month, day,
+hour, minute or second may be left unbound from the right, i.e.,
+seconds may be unbound, or seconds and minutes, etc.  It is not
+allowed to specify the seconds and leave one of the more significant
+fields unbound.  Unbound values unified to their lowest possible
+value.
+
+Values for month, day, hour, minute or second need not be
+\jargon{normalized}.  This flexibility allows for easy computation of
+the time at any given number of these units from a given timestamp.
+Normalization can be achieved following this call with
+stamp_date_time/3.  This example computes the date 200 days after
+2006-07-14:
 
 \begin{code}
 ?- date_time_stamp(date(2006,7,214,0,0,0,0,-,-), Stamp),
