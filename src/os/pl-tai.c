@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -35,6 +35,7 @@
 */
 
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+#define _XOPEN_SOURCE				/* get strptime() */
 
 #include "../pl-incl.h"
 #include "../pl-fli.h"
@@ -1065,14 +1066,69 @@ PRED_IMPL("format_time", 4, format_time4, 0)
   return pl_format_time(A1, A2, A3, posix);
 }
 
+#ifdef HAVE_STRPTIME
+#define UNSET INT_MIN
+
+static int
+unify_int_arg(term_t t, term_t a, int arg, int value)
+{ if ( value != UNSET )
+  { return ( PL_get_arg(arg, t, a) &&
+	     PL_unify_integer(a, value) );
+  }
+
+  return true;
+}
+
+static
+PRED_IMPL("strptime", 3, strptime, 0)
+{ PRED_LD
+  struct tm tm = {
+    .tm_sec = UNSET,
+    .tm_min = UNSET,
+    .tm_hour = UNSET,
+    .tm_mday = UNSET,
+    .tm_mon = UNSET,
+    .tm_year = UNSET,
+    .tm_wday = UNSET,
+    .tm_yday = UNSET,
+    .tm_isdst = UNSET
+  };
+
+  char *time, *fmt;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
+
+  if ( PL_get_chars(A1, &time, flags) &&
+       PL_get_chars(A2, &fmt, flags) &&
+       PL_unify_functor(A3, FUNCTOR_date9) )
+  { char *end = strptime(time, fmt, &tm);
+    if ( end && !*end )
+    { term_t tmp = PL_new_term_ref();
+
+      if ( tm.tm_year != UNSET )
+	tm.tm_year += 1900;
+      return ( unify_int_arg(A3, tmp, 1, tm.tm_year) &&
+	       unify_int_arg(A3, tmp, 2, tm.tm_mon) &&
+	       unify_int_arg(A3, tmp, 3, tm.tm_mday) &&
+	       unify_int_arg(A3, tmp, 4, tm.tm_hour) &&
+	       unify_int_arg(A3, tmp, 5, tm.tm_min) &&
+	       unify_int_arg(A3, tmp, 6, tm.tm_sec) );
+    }
+  }
+
+  return false;
+}
+#endif
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
-
 
 BeginPredDefs(tai)
   PRED_DEF("stamp_date_time", 3, stamp_date_time, 0)
   PRED_DEF("date_time_stamp", 2, date_time_stamp, 0)
   PRED_DEF("format_time",     3, format_time3,    0)
   PRED_DEF("format_time",     4, format_time4,    0)
+#ifdef HAVE_STRPTIME
+  PRED_DEF("strptime",	      3, strptime,	  0)
+#endif
 EndPredDefs
