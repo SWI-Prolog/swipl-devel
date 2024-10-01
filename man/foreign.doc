@@ -2397,6 +2397,20 @@ Wide character version of PL_chars_to_term().
     \arg{chr} and any occurrence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the
     \prologflag{character_escapes} Prolog flag.
+
+\cfunction{int}{PL_for_dict}{term_t dict, func, void *closure, int flags}
+    Iterates over \arg{dict}, calling \arg{func} for each item.  The
+    \arg{func} has type
+    \ctype{bool (*func)(term_t key, term_t value, void *closure)}
+    where \arg{closure} is given in the call to PL_for_dict(), and
+    \arg{key} and \arg{value} are the processed item's key-value pair.
+    If \arg{func} returns a non-\const{0} value, the iteration stops
+    and PL_for_dict() returns that value; otherwise, all pairs are
+    processed and PL_for_dict() returns \const{0}.  If \arg{flags}
+    contains \const{PL_FOR_DICT_SORTED}, the key-value pairs are
+    processed in the standard order of terms; otherwise the processing
+    order is unspecified.
+
 \end{description}
 
 
