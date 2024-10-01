@@ -558,7 +558,7 @@ PL_EXPORT(bool)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(bool)		PL_get_tail(term_t l, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_nil(term_t l) WUNUSED;
-PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED;
+PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED; /* deprecated - doesn't handle big ints, rationals, etc */
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 #define PL_FOR_DICT_SORTED	0x1
 PL_EXPORT(int)		PL_for_dict(term_t dict,
