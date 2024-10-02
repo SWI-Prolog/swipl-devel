@@ -4625,7 +4625,7 @@ copy_exception(DECL_LD term_t ex, term_t bin)
   }
 
   Sdprintf("WARNING: mapped exception to abort due to stack overflow\n");
-  PL_put_atom(bin, ATOM_aborted);
+  PL_put_atom(bin, ATOM_abort);
   return true;
 }
 
@@ -4636,9 +4636,7 @@ classify_exception_p(DECL_LD Word p)
   if ( isVar(*p) )
   { return EXCEPT_NONE;
   } else if ( isAtom(*p) )
-  { if ( *p == ATOM_aborted )
-      return EXCEPT_ABORT;
-    if ( *p == ATOM_time_limit_exceeded )
+  { if ( *p == ATOM_time_limit_exceeded )
       return EXCEPT_TIMEOUT;
   } else if ( hasFunctor(*p, FUNCTOR_error2) )
   { p = argTermP(*p, 0);

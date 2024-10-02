@@ -5080,7 +5080,7 @@ again:
 	});
 
   if ( debugstatus.suspendTrace == false && !rewritten++ &&
-       !uncachableException(exception_term) && /* e.g., $aborted */
+       !uncachableException(exception_term) &&		/* unwind(_) */
        !resourceException(exception_term) )
   { int rc;
 

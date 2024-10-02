@@ -397,8 +397,6 @@ assertion_failed(Reason, G) :-
 assertion_failed.
 
 assertion_rethrow(time_limit_exceeded).
-assertion_rethrow('$aborted').
-
 
                  /*******************************
                  *           EXPANSION          *

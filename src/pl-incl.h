@@ -1935,7 +1935,7 @@ typedef enum except_class
   EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
   EXCEPT_TIMEOUT,			/* time_limit_exceeded */
   EXCEPT_UNWIND,			/* unwind(Term) */
-  EXCEPT_ABORT,				/* '$aborted' or unwind(abort) */
+  EXCEPT_ABORT,				/* unwind(abort) */
   EXCEPT_THREAD_EXIT,			/* unwind(thread_exit(Term)) */
   EXCEPT_HALT				/* unwind(halt(Code) */
 } except_class;

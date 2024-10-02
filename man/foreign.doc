@@ -3682,15 +3682,7 @@ print_message/2 through the C interface.
 Generate an exception (as throw/1) and return \const{FALSE}. If there is
 already a pending exception, the most urgent exception is kept; and if both
 are of the same urgency, the new exception is kept.  Urgency
-of exceptions is defined as
-
-\begin{enumerate}
-    \item abort (\verb|'$aborted'|).
-    \item \const{time_limit_exceeded} (see call_with_time_limit/2).
-    \item \const{resource_error} exceptions.
-    \item Other \term{error}{Formal, ImplDef} exceptions.
-    \item Other exceptions.
-\end{enumerate}
+of exceptions is described in secref{urgentexceptions}.
 
 
 This function is rarely used directly. Instead, errors are typically

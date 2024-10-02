@@ -556,7 +556,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 '$initialise' :-
     catch(initialise_prolog, E, initialise_error(E)).
 
-initialise_error('$aborted') :- !.
+initialise_error(unwind(abort)) :- !.
 initialise_error(E) :-
     print_message(error, initialization_exception(E)),
     fail.

@@ -74,10 +74,10 @@ wasm_query_loop :-
 
 %!  wasm_abort
 %
-%   Execution aborted by userthe
+%   Execution aborted by user.
 
 wasm_abort :-
-    print_message(error, '$aborted'),
+    print_message(error, unwind(abort)),
     abort.
 
 with_heartbeat(Goal) :-

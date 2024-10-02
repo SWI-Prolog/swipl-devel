@@ -404,10 +404,7 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
     return ACTION_CONTINUE;
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
-  { Word p = valTermRef(LD->exception.pending);
-
-    deRef(p);
-    if ( *p == ATOM_aborted )
+  { if ( classify_exception(LD->exception.pending) >= EXCEPT_ABORT )
       return ACTION_CONTINUE;
   }
 

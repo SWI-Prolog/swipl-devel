@@ -711,7 +711,7 @@ outOfStack(void *stack, stack_overflow_action how)
       } else
       { Sdprintf("ERROR: Out of global-stack.\n"
 		 "ERROR: No room for exception term.  Aborting.\n");
-	*valTermRef(LD->exception.bin) = ATOM_aborted;
+	*valTermRef(LD->exception.bin) = ATOM_abort;
       }
       exception_term = exception_bin;
 

@@ -144,8 +144,6 @@ translate_message2(error(ISO, SWI)) -->
     swi_extra(SWI).
 translate_message2(unwind(Term)) -->
     unwind_message(Term).
-translate_message2('$aborted') -->
-    [ 'Execution Aborted' ].
 translate_message2(message_lines(Lines), L, T) :- % deal with old C-warning()
     make_message_lines(Lines, L, T).
 translate_message2(format(Fmt, Args)) -->

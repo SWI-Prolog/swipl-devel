@@ -103,7 +103,8 @@ restore_after_exception(term_t except)
   debugmode(DBG_OFF, NULL);
   if ( classify_exception(except) == EXCEPT_ABORT )
   { rc = ( callEventHook(PLEV_ABORT) &&
-	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
+	   printMessage(ATOM_informational, PL_FUNCTOR, FUNCTOR_unwind1,
+			                      PL_ATOM, ATOM_abort) );
   }
 
   return rc;
@@ -570,11 +571,11 @@ abortProlog(void)
   LD->exception.processing = true;	/* allow using spare stack */
 
   if ( (fid = PL_open_foreign_frame()) &&
-       (ex = PL_new_term_ref()) )
+       (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1, PL_ATOM, ATOM_abort) )
   { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
     clearSegStack(&LD->cycle.vstack);
 
-    PL_put_atom(ex, ATOM_aborted);
     rc = PL_raise_exception(ex);
     PL_close_foreign_frame(fid);
   }

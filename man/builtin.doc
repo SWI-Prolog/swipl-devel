@@ -3004,9 +3004,7 @@ Raising an exception fails due to lack of resources, e.g., lack of
 stack space to store the exception. In this case a resource exception is
 raised. If that too fails the system tries to raise a resource exception
 without (stack) context. If that fails it will raise the exception
-\verb='$aborted'=, also raised by abort/0. As no stack space is
-required for processing this atomic exception, this should always
-succeed.
+\term{unwind}{abort}, also raised by abort/0.
     \item
 Certain \jargon{callback} operations raise an exception while processing
 another exception or a previous callback already raised an exception
@@ -3022,7 +3020,9 @@ If the most urgent exceptions needs to be preserved, the following
 exception ordering is respected, preserving the topmost matching error.
 
 \begin{enumerate}
-    \item \verb='$aborted'= (abort/0)
+    \item \verb=unwind(halt(_))= (halt/1)
+    \item \verb=unwind(thread_exit(_))= (thread_exit/1)
+    \item \verb=unwind(abort)= (abort/0)
     \item \verb$time_limit_exceeded$ (call_with_time_limit/2)
     \item \term{error}{\term{resource_error}{Resource}, Context}
     \item \term{error}{Formal, Context}
@@ -11277,11 +11277,11 @@ Abort the Prolog execution and restart the top level. If the
 restarted instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
-\verb='$aborted'=. This exception can be caught using catch/3, but the
-recovery goal is wrapped with a predicate that prunes the choice points
-of the recovery goal (i.e., as once/1) and re-throws the exception.
-This is illustrated in the example below, where we press control-C
-and `a'.  See also \secref{urgentexceptions}.
+\term{unwind}{abort}. This exception can be caught using catch/3, but
+the recovery goal is wrapped with a predicate that prunes the choice
+points of the recovery goal (i.e., as once/1) and re-throws the
+exception. This is illustrated in the example below, where we press
+control-C and `a'. See also \secref{urgentexceptions}.
 
 \begin{code}
 ?- catch((repeat,fail), E, true).

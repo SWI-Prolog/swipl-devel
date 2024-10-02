@@ -649,11 +649,11 @@ catch_with_backtrace(Goal, Ball, Recover) :-
 
 %!  '$recover_and_rethrow'(:Goal, +Term)
 %
-%   This goal is used to wrap  the   catch/3  recover handler if the
-%   exception is not supposed to be   `catchable'.  An example of an
-%   uncachable exception is '$aborted', used   by abort/0. Note that
-%   we cut to ensure  that  the   exception  is  not delayed forever
-%   because the recover handler leaves a choicepoint.
+%   This goal is used  to  wrap  the   catch/3  recover  handler  if the
+%   exception is not  supposed  to  be   `catchable'.  This  applies  to
+%   exceptions of the shape unwind(Term).  Note   that  we cut to ensure
+%   that the exception is  not  delayed   forever  because  the  recover
+%   handler leaves a choicepoint.
 
 :- public '$recover_and_rethrow'/2.
 
