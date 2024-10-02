@@ -2940,6 +2940,52 @@ This is good practice for a \jargon{catch-all} wrapper around an
 application.  See also main/0 from library \pllib{main}.
 \end{description}
 
+\subsection{Unwind exceptions}
+\label{sec:unwind-exceptions}
+
+Starting with SWI-Prolog 9.3.13, SWI-Prolog introduces a new class of
+reserved exceptions.  An exception of the shape \term{unwind}{Term} is
+handled special by catch/3 and friends.  Rather than simply calling the
+\arg{Recover} goal (third argument), catch/3 acts as if called as
+
+\begin{code}
+    catch(Goal, Ball, call_cleanup(once(Recover), throw(Ball)))
+\end{code}
+
+The above implies that cleanup that may be required on exceptions should
+use call_cleanup/2 (or one of its variations) or should perform the
+cleanup in the \arg{Recover} goal.  For example, the following does
+\textbf{not properly cleanup after an exception}:
+
+\begin{code}
+    (   catch(Goal, Error, true)
+    ->  (   var(Error)
+        ->  <no exception>
+        ;   <cleanup>	   % NOT called on throw(unwind(...))
+            ...
+\end{code}
+
+This implies that, unless the user ensures \arg{Recover} does not
+terminate, the exception will unwind the entire Prolog stack. While
+foreign code that catches these exceptions should propagate them to
+the parent environment, we cannot enforce this behaviour.
+
+Currently, this mechanism defines these values for \arg{Term}:
+
+\begin{description}
+    \termitem{abort}{}
+Abort the current Prolog thread.   This exception is raised by abort/0.
+Previous versions raised \verb|'$aborted'| using the same
+\jargon{unwind} semantics.
+    \termitem{halt}{Status}
+In the standard setup, if \term{unwind}{\term{halt}{Status}} is
+raised in the \const{main} thread, this system halts with exit code
+\arg{Status}
+    \termitem{thread_exit}{ExitValue}
+This exception is raised by thread_exit/1.  See this predicate for
+details.
+\end{description}
+
 
 \subsection{Urgency of exceptions}
 \label{sec:urgentexceptions}

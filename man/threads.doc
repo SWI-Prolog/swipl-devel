@@ -231,18 +231,19 @@ and detach themselves just before completion. This way they leave no
 traces on normal completion and their reason for failure can be
 inspected.
 
-    \predicate[deprecated]{thread_exit}{1}{+Term}
+    \predicate{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as
 result state for thread_join/2.  If the thread has the attribute
 \term{detached}{true} it terminates, but its exit status cannot be
 retrieved using thread_join/2, making the value of \arg{Term} irrelevant.
 The Prolog stacks and C thread are reclaimed.
 
-The current implementation does not guarantee proper releasing of all
-mutexes and proper cleanup in setup_call_cleanup/3, etc. Please use the
-exception mechanism (throw/1) to abort execution using non-standard
-control.  The predicate thread_exit/1 has been dropped from the Windows
-versions due to issues with the implementation in \const{pthread-win32}.
+The current implementation is based on the reserved
+\term{unwind}{\term{thread_exit}{Term}} exception.  This implies that,
+unlike the previous implementation that was based on the C
+pthread_exit() function, the implementation is safe from the Prolog
+point of view.  However, it is limited by the semantics of the
+\jargon{unwind exceptions}.  See \secref{unwind-exceptions} for details.
 
     \predicate{thread_initialization}{1}{:Goal}
 Run \arg{Goal} when thread is started.  This predicate is similar to
