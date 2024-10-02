@@ -166,7 +166,7 @@ query_loop(atom_t goal, int loop)
 
     p = PL_pred(PL_new_functor(goal, 0), MODULE_system);
 
-    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
+    if ( (qid=PL_open_query(MODULE_system, PL_Q_NORMAL|PL_Q_EXCEPT_HALT, p, 0)) )
     { rc = PL_next_solution(qid);
     } else
     { error:

@@ -78,7 +78,6 @@ foreign_t	pl_sub_atom(term_t atom,
 foreign_t	pl_repeat(control_t h);
 foreign_t	pl_fail(void);
 foreign_t	pl_true(void);
-foreign_t	pl_halt(term_t code);
 int		pl_statistics_ld(term_t k, term_t value,
 				 PL_local_data_t *ld);
 int		set_pl_option(const char *name, const char *value);

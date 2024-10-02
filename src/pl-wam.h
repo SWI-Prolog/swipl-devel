@@ -53,6 +53,7 @@
 #define	foreignWakeup(ex)		LDFUNC(foreignWakeup, ex)
 #define	existingChoice(ch)		LDFUNC(existingChoice, ch)
 #define grow_trail_ptr(p)		LDFUNC(grow_trail_ptr, p)
+#define handles_unwind(qid, flags)	LDFUNC(handles_unwind, qid, flags)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -77,6 +78,7 @@ Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
 int		existingChoice(Choice ch);
 int		grow_trail_ptr(Word p);
+bool		handles_unwind(qid_t qid, unsigned int flags);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);
 #endif

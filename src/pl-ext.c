@@ -104,7 +104,6 @@ static const PL_extension foreigns[] = {
   FRG("win_module_file",	2, pl_win_module_file,		0),
 #endif
 
-  FRG("halt",			1, pl_halt,		      ISO),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("break",			0, pl_break,			0),
 

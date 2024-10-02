@@ -2074,6 +2074,41 @@ isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
   return 0;
 }
 
+bool
+handles_unwind(DECL_LD qid_t qid, unsigned int flags)
+{ if ( HAS_LD )
+  { if ( !qid )
+      qid = LD->query->qid;
+    if ( qid )
+    { for(QueryFrame qf = QueryFromQid(qid); qf; qf=qf->parent)
+      { if ( ison(qf, flags) )
+	  return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+#define print_unhandled_exception(qid, ball) \
+	LDFUNC(print_unhandled_exception, qid, ball)
+
+static bool
+print_unhandled_exception(DECL_LD qid_t qid, term_t ex)
+{ except_class exclass = classify_exception(ex);
+
+  if ( exclass == EXCEPT_ABORT )
+    return false;
+  if ( exclass == EXCEPT_THREAD_EXIT && PL_thread_self() <= 1 )
+    return false;
+  if ( exclass == EXCEPT_HALT && handles_unwind(qid, PL_Q_EXCEPT_HALT) )
+    return false;
+
+  return printMessage(ATOM_error,
+		      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		        PL_TERM, ex);
+}
+
 
 #define uncachableException(t) LDFUNC(uncachableException, t)
 static word

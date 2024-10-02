@@ -5226,11 +5226,12 @@ pl_true()		/* just to define it */
 { succeed;
 }
 
-foreign_t
-pl_halt(term_t code)
-{ GET_LD
+static
+PRED_IMPL("halt", 1, halt, 0)
+{ PRED_LD
   int status;
   atom_t a;
+  term_t code = A1;
 
   if ( PL_get_atom(code, &a) )
   { if ( a == ATOM_abort )
@@ -5243,6 +5244,17 @@ pl_halt(term_t code)
       return false;
   } else if ( !PL_get_integer_ex(code, &status) )
   { return false;
+  }
+
+  if ( handles_unwind(NULL, PL_Q_EXCEPT_HALT) )
+  { term_t ex;
+
+    DEBUG(MSG_CLEANUP, Sdprintf("Halt using exception\n"));
+    if ( (ex=PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
+			     PL_FUNCTOR, FUNCTOR_halt1,
+		               PL_INT, status) )
+      return PL_raise_exception(ex);
   }
 
   PL_halt(status);
@@ -6327,4 +6339,5 @@ BeginPredDefs(prims)
   PRED_DEF("$seek_list", 4, seek_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
   PRED_DEF("$urgent_exception", 3, urgent_exception, 0)
+  PRED_DEF("halt", 1, halt, 0)
 EndPredDefs
