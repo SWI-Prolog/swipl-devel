@@ -245,6 +245,9 @@ pthread_exit() function, the implementation is safe from the Prolog
 point of view.  However, it is limited by the semantics of the
 \jargon{unwind exceptions}.  See \secref{unwind-exceptions} for details.
 
+This predicate raises a \const{permission_error} if it is known
+that the thread cannot handle this case.
+
     \predicate{thread_initialization}{1}{:Goal}
 Run \arg{Goal} when thread is started.  This predicate is similar to
 initialization/1, but is intended for initialization operations of

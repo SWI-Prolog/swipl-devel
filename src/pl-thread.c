@@ -2095,7 +2095,9 @@ start_thread(void *closure)
       { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
 	ex = exception_term;
       } else
-      { rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+      { rval  = callProlog(info->module, goal,
+			   PL_Q_CATCH_EXCEPTION|PL_Q_EXCEPT_THREAD_EXIT,
+			   &ex);
       }
     }
 
@@ -2843,6 +2845,27 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
     free_thread_info(release);
 
   succeed;
+}
+
+static
+PRED_IMPL("thread_exit", 1, thread_exit, 0)
+{ PRED_LD
+
+  if ( handles_unwind(NULL, PL_Q_EXCEPT_THREAD_EXIT) )
+  { term_t ex;
+
+    return ( (ex=PL_new_term_ref()) &&
+	     PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
+			         PL_FUNCTOR, FUNCTOR_thread_exit1,
+			           PL_TERM, A1) &&
+	     PL_raise_exception(ex) );
+  } else
+  { term_t tid;
+
+    return ( (tid=PL_new_term_ref()) &&
+	     unify_thread_id(tid, LD->thread.info) &&
+	     PL_permission_error("exit", "thread", tid) );
+  }
 }
 
 #endif /*O_PLMT*/
@@ -8408,6 +8431,7 @@ BeginPredDefs(thread)
   PRED_DEF("thread_alias",           1, thread_alias,	       0)
   PRED_DEF("thread_detach",	     1,	thread_detach,	       PL_FA_ISO)
   PRED_DEF("thread_join",	     2,	thread_join,	       0)
+  PRED_DEF("thread_exit",            1, thread_exit,           0)
   PRED_DEF("thread_statistics",	     3,	thread_statistics,     0)
   PRED_DEF("is_thread",		     1,	is_thread,	       0)
   PRED_DEF("$thread_sigwait",	     1, thread_sigwait,	       0)

@@ -2099,7 +2099,7 @@ print_unhandled_exception(DECL_LD qid_t qid, term_t ex)
 
   if ( exclass == EXCEPT_ABORT )
     return false;
-  if ( exclass == EXCEPT_THREAD_EXIT && PL_thread_self() <= 1 )
+  if ( exclass == EXCEPT_THREAD_EXIT && handles_unwind(qid, PL_Q_EXCEPT_THREAD_EXIT) )
     return false;
   if ( exclass == EXCEPT_HALT && handles_unwind(qid, PL_Q_EXCEPT_HALT) )
     return false;
@@ -2738,7 +2738,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     flags = PL_Q_NORMAL;
   else if ( flags == false )
     flags = PL_Q_NODEBUG;
-  flags &= 0xff;			/* mask reserved flags */
+  flags &= ~PL_Q_DETERMINISTIC;		/* mask reserved flags */
 
   qf->magic		= QID_MAGIC;
   qf->foreign_frame	= 0;

@@ -33,19 +33,10 @@
 */
 
 :- module('$threads',
-          [ thread_exit/1               % +Term
+          [
           ]).
 
 /** <module> Thread related system predicates
 
 @tbd Move more code here
 */
-
-%!  thread_exit(+Term)
-
-thread_exit(Term) :-
-    thread_self(main),
-    !,
-    '$permission_error'(thread_exit(Term), thread, main).
-thread_exit(Term) :-
-    throw(unwind(thread_exit(Term))).

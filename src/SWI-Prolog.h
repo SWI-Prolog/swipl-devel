@@ -417,6 +417,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_Q_EXCEPT_HALT	0x0080	/* Handles unwind(halt(Status)) */
 #ifdef PL_KERNEL
 #define PL_Q_DETERMINISTIC	0x0100	/* call was deterministic */
+#define PL_Q_EXCEPT_THREAD_EXIT	0x0200	/* Handles unwind(thread_exit(Term)) */
 #endif
 
 					/* PL_Q_EXT_STATUS return codes */
