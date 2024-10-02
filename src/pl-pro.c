@@ -109,6 +109,29 @@ restore_after_exception(term_t except)
   return rc;
 }
 
+static int
+halt_from_exception(term_t ex)
+{ GET_LD
+  Word p = valTermRef(ex);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_unwind1) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    if ( hasFunctor(*p, FUNCTOR_halt1) )
+    { p = argTermP(*p, 0);
+      deRef(p);
+      if ( isTaggedInt(*p) )
+      { uintptr_t status = valInt(*p);
+
+	return PL_halt(status&0xff);
+      }
+    }
+  }
+
+  return false;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
@@ -152,8 +175,12 @@ query_loop(atom_t goal, int loop)
     }
 
     if ( !rc && (except = PL_exception(qid)) )
-    { if ( classify_exception(except) == EXCEPT_ABORT )
+    { except_class exclass = classify_exception(except);
+
+      if ( exclass == EXCEPT_ABORT )
 	Sclearerr(Suser_input);
+      if ( exclass == EXCEPT_HALT && PL_thread_self() <= 1 )
+	halt_from_exception(except);
 
       if ( Sferror(Suser_input) ||
 	   Sferror(Suser_output) ||

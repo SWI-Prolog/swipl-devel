@@ -1142,6 +1142,7 @@ F gc			6
 F goal_expansion	2
 F ground		1
 F grouping		1
+F halt			1
 F hat			2
 F hash			4
 F id			1
