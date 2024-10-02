@@ -97,12 +97,11 @@ resetProlog(int clear_stacks)
 static int
 restore_after_exception(term_t except)
 { GET_LD
-  atom_t a;
   int rc = true;
 
   tracemode(false, NULL);
   debugmode(DBG_OFF, NULL);
-  if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+  if ( classify_exception(except) == EXCEPT_ABORT )
   { rc = ( callEventHook(PLEV_ABORT) &&
 	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
   }

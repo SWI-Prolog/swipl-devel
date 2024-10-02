@@ -934,6 +934,7 @@ A unload		"unload"
 A unlock		"unlock"
 A unlocked		"unlocked"
 A untable		"untable"
+A unwind		"unwind"
 A up			"up"
 A update		"update"
 A upper			"upper"
@@ -1299,6 +1300,7 @@ F type_error		2
 F undefinterc		4
 F unify_determined	2
 F uninstantiation_error	1
+F unwind		1
 F var			1
 F waiting		1
 F wakeup		3

@@ -4652,6 +4652,20 @@ classify_exception_p(DECL_LD Word p)
     return EXCEPT_ERROR;
   } else if ( hasFunctor(*p, FUNCTOR_time_limit_exceeded1) )
   { return EXCEPT_TIMEOUT;
+  } else if ( hasFunctor(*p, FUNCTOR_unwind1) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    if ( isAtom(*p) )
+    { if ( *p == ATOM_abort )
+	return EXCEPT_ABORT;
+    } else if ( hasFunctor(*p, FUNCTOR_halt1) )
+    { return EXCEPT_HALT;
+    } else if ( hasFunctor(*p, FUNCTOR_thread_exit1) )
+    { return EXCEPT_THREAD_EXIT;
+    }
+
+    return EXCEPT_UNWIND;
   }
 
   return EXCEPT_OTHER;

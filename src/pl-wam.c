@@ -2081,7 +2081,8 @@ uncachableException(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   deRef(p);
-  if ( *p == ATOM_aborted )
+  if ( hasFunctor(*p, FUNCTOR_unwind1) ||
+       *p == ATOM_aborted )		/* compat */
     return *p;
 
   return 0;

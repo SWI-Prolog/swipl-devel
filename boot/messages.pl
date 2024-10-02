@@ -142,6 +142,8 @@ translate_message2(error(ISO, SWI)) -->
     swi_location(SWI),
     term_message(ISO),
     swi_extra(SWI).
+translate_message2(unwind(Term)) -->
+    unwind_message(Term).
 translate_message2('$aborted') -->
     [ 'Execution Aborted' ].
 translate_message2(message_lines(Lines), L, T) :- % deal with old C-warning()
@@ -641,6 +643,23 @@ thread_context -->
     ['[Thread ~w] '-[Id]].
 thread_context -->
     [].
+
+		 /*******************************
+		 *        UNWIND MESSAGES	*
+		 *******************************/
+
+unwind_message(Var) -->
+    { var(Var) }, !,
+    [ 'Unknown unwind message: ~p'-[Var] ].
+unwind_message(abort) -->
+    [ 'Execution Aborted' ].
+unwind_message(halt(_)) -->
+    [].
+unwind_message(thread_exit(Term)) -->
+    [ 'Invalid thread_exit/1.  Payload: ~p'-[Term] ].
+unwind_message(Term) -->
+    [ 'Unknown "unwind" exception: ~p'-[Term] ].
+
 
                  /*******************************
                  *        NORMAL MESSAGES       *

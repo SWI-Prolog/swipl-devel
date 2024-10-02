@@ -1923,13 +1923,21 @@ struct recordRef
 		 *	EXCEPTION CLASSES	*
 		 *******************************/
 
+/* Exception classification is used to define exception priorities:
+   If an exception causes an exception with a higher rank (lower in
+   the list below), use the highest ranked exception
+*/
+
 typedef enum except_class
 { EXCEPT_NONE = 0,			/* no exception */
   EXCEPT_OTHER,				/* any other exception */
   EXCEPT_ERROR,				/* ISO error(Formal,Context) */
   EXCEPT_RESOURCE,			/* ISO error(resource_error(_), _) */
   EXCEPT_TIMEOUT,			/* time_limit_exceeded */
-  EXCEPT_ABORT				/* '$aborted' */
+  EXCEPT_UNWIND,			/* unwind(Term) */
+  EXCEPT_ABORT,				/* '$aborted' or unwind(abort) */
+  EXCEPT_THREAD_EXIT,			/* unwind(thread_exit(Term)) */
+  EXCEPT_HALT				/* unwind(halt(Code) */
 } except_class;
 
 
