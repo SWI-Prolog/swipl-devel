@@ -1785,14 +1785,15 @@ interruptHandler(int sig)
     return;
   }
 
-#if HAVE_PTHREAD_EXIT
   if ( LD->thread.exit_requested )
-  { term_t rval = PL_new_term_ref();
-    PL_put_atom(rval, ATOM_true);
-    pl_thread_exit(rval);
-    assert(0);				/* should not return */
+  { term_t ex;
+
+    if ( (ex=PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
+		             PL_FUNCTOR, FUNCTOR_thread_exit1,
+		               PL_ATOM, ATOM_true) )
+      return;
   }
-#endif
 #endif
 
 #if __unix__				/* actually, asynchronous signal handling */

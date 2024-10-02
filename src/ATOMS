@@ -1292,6 +1292,7 @@ F trace			1
 F traceinterc		3
 F tracing		1
 F thread		1
+F thread_exit		1
 F tripwire		2
 F true			0
 F truncate		1

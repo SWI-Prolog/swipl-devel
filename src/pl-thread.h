@@ -518,10 +518,6 @@ int		exitPrologThreads(void);
 bool		aliasThread(int tid, atom_t type, atom_t name);
 foreign_t	pl_thread_create(term_t goal, term_t id,
 				 term_t options);
-#if HAVE_PTHREAD_EXIT
-foreign_t	pl_thread_exit(term_t retcode);
-#endif
-
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);
 #ifdef O_ENGINES

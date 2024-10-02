@@ -127,7 +127,10 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
 if(WIN32)
-  set(SWIPL_DATA_boot ${SWIPL_DATA_boot} menu.pl)
+  list(APPEND SWIPL_DATA_boot menu.pl)
+endif()
+if(O_PLMT)
+  list(APPEND SWIPL_DATA_boot threads.pl)
 endif()
 prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 

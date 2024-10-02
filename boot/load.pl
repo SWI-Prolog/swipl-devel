@@ -74,3 +74,8 @@
              tabling,
              user:topvars
            ]).
+
+:- if(current_prolog_flag(threads, true)).
+:- consult(threads).
+:- endif.
+

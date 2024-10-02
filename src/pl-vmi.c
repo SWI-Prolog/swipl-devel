@@ -5116,7 +5116,9 @@ again:
     LOAD_REGISTERS(QID);
 
     if ( !rc )					/* uncaught exception */
-    { SAVE_REGISTERS(QID);
+    { except_class exclass;
+
+      SAVE_REGISTERS(QID);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { DEBUG(MSG_THROW,
@@ -5135,7 +5137,8 @@ again:
 	  }
 	  PL_put_term(exception_printed, exception_term);
 	}
-      } else if ( classify_exception(exception_term) != EXCEPT_ABORT )
+      } else if ( (exclass=classify_exception(exception_term)) != EXCEPT_ABORT ||
+		  (exclass == EXCEPT_THREAD_EXIT && PL_thread_self() <= 1) )
       { int rc = printMessage(ATOM_error,
 			      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
 				PL_TERM, exception_term);

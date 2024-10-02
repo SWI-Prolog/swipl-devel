@@ -2031,15 +2031,24 @@ set_thread_completion(PL_thread_info_t *info, int rc, term_t ex)
   { info->status = PL_THREAD_SUCCEEDED;
   } else
   { if ( ex )
-    { if ( info->detached )
-	info->return_value = 0;
-      else
-	info->return_value = PL_record(ex);
+    { GET_LD
+      if ( info->detached )
+      { info->return_value = 0;
+      } else if ( classify_exception(ex) == EXCEPT_THREAD_EXIT &&
+		  PL_get_arg(1, ex, ex) &&	/* get rid of unwind() */
+		  PL_get_arg(1, ex, ex) )	/* get rid of thread_exit() */
+      { info->return_value = PL_record(ex);
+	info->status = PL_THREAD_EXITED;
+	goto out;
+      } else
+      { info->return_value = PL_record(ex);
+      }
       info->status = PL_THREAD_EXCEPTION;
     } else
     { info->status = PL_THREAD_FAILED;
     }
   }
+out:
   PL_UNLOCK(L_THREAD);
 }
 
@@ -2095,7 +2104,8 @@ start_thread(void *closure)
       { int print = true;
 
 	if ( LD->thread.exit_requested )
-	{ if ( classify_exception(ex) == EXCEPT_ABORT )
+	{ except_class exclass = classify_exception(ex);
+	  if ( exclass >= EXCEPT_ABORT )
 	    print = false;
 	}
 
@@ -2794,29 +2804,6 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 
   return rval;
 }
-
-
-#if HAVE_PTHREAD_EXIT
-foreign_t
-pl_thread_exit(term_t retcode)
-{ GET_LD
-  PL_thread_info_t *info = LD->thread.info;
-
-  PL_LOCK(L_THREAD);
-  info->status = PL_THREAD_EXITED;
-  info->return_value = PL_record(retcode);
-  PL_UNLOCK(L_THREAD);
-
-  DEBUG(MSG_THREAD, Sdprintf("thread_exit(%d)\n", info->pl_tid));
-
-  for(QueryFrame qf=LD->query; qf; qf = qf->parent)
-    freeHeap(qf->qid, sizeof(*qf->qid));
-
-  pthread_exit(NULL);
-  assert(0);
-  fail;
-}
-#endif
 
 
 static
