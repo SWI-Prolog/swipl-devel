@@ -557,6 +557,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
     catch(initialise_prolog, E, initialise_error(E)).
 
 initialise_error(unwind(abort)) :- !.
+initialise_error(unwind(halt(_))) :- !.
 initialise_error(E) :-
     print_message(error, initialization_exception(E)),
     fail.
