@@ -104,7 +104,7 @@ restore_after_exception(term_t except)
   if ( classify_exception(except) == EXCEPT_ABORT )
   { rc = ( callEventHook(PLEV_ABORT) &&
 	   printMessage(ATOM_informational, PL_FUNCTOR, FUNCTOR_unwind1,
-			                      PL_ATOM, ATOM_abort) );
+					      PL_ATOM, ATOM_abort) );
   }
 
   return rc;
@@ -145,7 +145,7 @@ debugger.  Return: false: failed, true: success, -1: exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-query_loop(atom_t goal, int loop)
+query_loop(atom_t goal, bool loop)
 { GET_LD
   int rc;
   int clear_stacks = (LD->query == NULL);
@@ -166,7 +166,8 @@ query_loop(atom_t goal, int loop)
 
     p = PL_pred(PL_new_functor(goal, 0), MODULE_system);
 
-    if ( (qid=PL_open_query(MODULE_system, PL_Q_NORMAL|PL_Q_EXCEPT_HALT, p, 0)) )
+    if ( (qid=PL_open_query(MODULE_system,
+			    PL_Q_NORMAL|PL_Q_EXCEPT_HALT, p, 0)) )
     { rc = PL_next_solution(qid);
     } else
     { error:
@@ -198,7 +199,7 @@ query_loop(atom_t goal, int loop)
       break;
 #ifdef O_ENGINES
     if (LD->thread.exit_requested)
-      loop = 0;
+      loop = false;
 #endif
   } while(loop);
 
@@ -558,12 +559,12 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 }
 
 
-int
+bool
 abortProlog(void)
 { GET_LD
   fid_t fid;
   term_t ex;
-  int rc = false;
+  bool rc = false;
 
   pl_notrace();
   Sreset();				/* Discard pending IO */
@@ -593,6 +594,39 @@ PRED_IMPL("abort", 0, abort, 0)
 { return abortProlog();
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Raise  unwind(halt(Code))   and  return  `true`.   May   fail  without
+exception if we are in an environment where this won't work or with an
+exception if we cannot allocate the exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+raise_halt_exception(DECL_LD int code)
+{ pl_notrace();
+  Sreset();				/* Discard pending IO */
+
+  LD->exception.processing = true;	/* allow using spare stack */
+
+  if ( handles_unwind(NULL, PL_Q_EXCEPT_HALT) )
+  { fid_t fid;
+    term_t ex;
+
+    DEBUG(MSG_CLEANUP, Sdprintf("Halt using exception\n"));
+    if ( (fid=PL_open_foreign_frame()) &&
+	 (ex=PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
+			     PL_FUNCTOR, FUNCTOR_halt1,
+			       PL_INT, code) )
+    { PL_raise_exception(ex);
+      PL_close_foreign_frame(fid);
+      return true;
+    }
+    if ( fid )
+      PL_discard_foreign_frame(fid);
+  }
+
+  return false;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 prologToplevel is called with various goals

@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,19 +40,26 @@
 #ifndef _PL_PRO_H
 #define _PL_PRO_H
 
+#if USE_LD_MACROS
+#define	raise_halt_exception(code)	LDFUNC(raise_halt_exception, code)
+#endif /*USE_LD_MACROS*/
+
 		 /*******************************
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#define LDFUNC_DECLARATIONS
 foreign_t	pl_break(void);
 int		currentBreakLevel(void);
 bool		callProlog(Module module, term_t goal, int flags, term_t *ex);
-int		abortProlog(void);
+bool		abortProlog(void);
+bool		raise_halt_exception(int code);
 bool		prologToplevel(atom_t toplevel);
-int		query_loop(atom_t goal, int loop);
+int		query_loop(atom_t goal, bool loop);
 foreign_t	pl_metacut(void);
 word		checkDataEx(Word p, int flags);
 int		getAccessLevelMask(atom_t a, access_level_t *val);
 atom_t		accessLevel(void);
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_PRO_H*/

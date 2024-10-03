@@ -47,6 +47,7 @@
 #include "pl-read.h"
 #include "pl-util.h"
 #include "pl-funct.h"
+#include "pl-pro.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-cstack.h"
@@ -5246,19 +5247,10 @@ PRED_IMPL("halt", 1, halt, 0)
   { return false;
   }
 
-  if ( handles_unwind(NULL, PL_Q_EXCEPT_HALT) )
-  { term_t ex;
+  if ( !raise_halt_exception(status) )
+    PL_halt(status);
 
-    DEBUG(MSG_CLEANUP, Sdprintf("Halt using exception\n"));
-    if ( (ex=PL_new_term_ref()) &&
-	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
-			     PL_FUNCTOR, FUNCTOR_halt1,
-		               PL_INT, status) )
-      return PL_raise_exception(ex);
-  }
-
-  PL_halt(status);
-  fail;					/* exception? */
+  fail;
 }
 
 #if defined(O_LIMIT_DEPTH) || defined(O_INFERENCE_LIMIT)
