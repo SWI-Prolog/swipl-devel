@@ -4992,6 +4992,7 @@ haltProlog(int status)
 #if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
   status &= ~PL_CLEANUP_NO_RECLAIM_MEMORY;
 #endif
+  status &= ~PL_HALT_WITH_EXCEPTION;
 
   switch( PL_cleanup(status) )
   { case PL_CLEANUP_CANCELED:
@@ -5003,12 +5004,20 @@ haltProlog(int status)
   }
 }
 
-int
+bool
 PL_halt(int status)
-{ if ( haltProlog(status) )
+{ int code = (status&PL_CLEANUP_STATUS_MASK);
+
+  GD->halt_status = code;
+  if ( (status & PL_HALT_WITH_EXCEPTION) &&
+       raise_halt_exception(code, false) )
+    return false;
+
+  if ( haltProlog(status) )
     exit(status);
 
-  return false;
+  GD->halt_status = 0;		/* cancelled */
+  return true;
 }
 
 #ifndef SIGABRT

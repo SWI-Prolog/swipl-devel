@@ -47,7 +47,6 @@
 #include "pl-read.h"
 #include "pl-util.h"
 #include "pl-funct.h"
-#include "pl-pro.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-cstack.h"
@@ -5247,10 +5246,7 @@ PRED_IMPL("halt", 1, halt, 0)
   { return false;
   }
 
-  if ( !raise_halt_exception(status) )
-    PL_halt(status);
-
-  fail;
+  return PL_halt(status|PL_HALT_WITH_EXCEPTION);
 }
 
 #if defined(O_LIMIT_DEPTH) || defined(O_INFERENCE_LIMIT)

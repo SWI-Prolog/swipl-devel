@@ -601,13 +601,13 @@ exception if we cannot allocate the exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-raise_halt_exception(DECL_LD int code)
+raise_halt_exception(DECL_LD int code, bool force)
 { pl_notrace();
   Sreset();				/* Discard pending IO */
 
   LD->exception.processing = true;	/* allow using spare stack */
 
-  if ( handles_unwind(NULL, PL_Q_EXCEPT_HALT) )
+  if ( force || handles_unwind(NULL, PL_Q_EXCEPT_HALT) )
   { fid_t fid;
     term_t ex;
 

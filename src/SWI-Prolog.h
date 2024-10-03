@@ -1068,6 +1068,7 @@ PL_EXPORT(bool)	PL_wchars_to_term(const pl_wchar_t *chars,
 #define PL_CLEANUP_STATUS_MASK		(0x0ffff)
 #define PL_CLEANUP_NO_RECLAIM_MEMORY	(0x10000)
 #define PL_CLEANUP_NO_CANCEL		(0x20000)
+#define PL_HALT_WITH_EXCEPTION		(0x40000)
 
 #define PL_CLEANUP_CANCELED	0
 #define PL_CLEANUP_SUCCESS	1
@@ -1082,7 +1083,7 @@ PL_EXPORT(bool)		PL_set_resource_db_mem(const unsigned char *data,
 PL_EXPORT(bool)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork(void);
-PL_EXPORT(int)		PL_halt(int status);
+PL_EXPORT(bool)		PL_halt(int status);
 
 		 /*******************************
 		 *	  DYNAMIC LINKING	*

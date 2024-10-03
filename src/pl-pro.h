@@ -41,7 +41,8 @@
 #define _PL_PRO_H
 
 #if USE_LD_MACROS
-#define	raise_halt_exception(code)	LDFUNC(raise_halt_exception, code)
+#define	raise_halt_exception(code, force) \
+	LDFUNC(raise_halt_exception, code, force)
 #endif /*USE_LD_MACROS*/
 
 		 /*******************************
@@ -53,7 +54,7 @@ foreign_t	pl_break(void);
 int		currentBreakLevel(void);
 bool		callProlog(Module module, term_t goal, int flags, term_t *ex);
 bool		abortProlog(void);
-bool		raise_halt_exception(int code);
+bool		raise_halt_exception(int code, bool force);
 bool		prologToplevel(atom_t toplevel);
 int		query_loop(atom_t goal, bool loop);
 foreign_t	pl_metacut(void);

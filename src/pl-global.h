@@ -101,6 +101,7 @@ struct PL_global_data
   int		io_initialised;		/* I/O system has been initialised */
   cleanup_status cleaning;		/* Inside PL_cleanup() */
   int		halt_cancelled;		/* Times halt was cancelled */
+  int		halt_status;		/* For killing threads */
   unsigned int	bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
