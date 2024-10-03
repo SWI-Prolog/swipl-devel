@@ -40,9 +40,9 @@
 typedef enum
 { PL_CHARS_VIRGIN = 0,			/* not initialised */
   PL_CHARS_MALLOC,			/* malloced data */
-  PL_CHARS_RING,			/* stored in the buffer ring */
+  PL_CHARS_STACK,			/* stored in the buffer ring */
   PL_CHARS_HEAP,			/* stored in program area (atoms) */
-  PL_CHARS_STACK,			/* stored on the global stack */
+  PL_CHARS_PROLOG_STACK,			/* stored on the global stack */
   PL_CHARS_LOCAL			/* stored in in-line buffer */
 } PL_chars_alloc_t;
 

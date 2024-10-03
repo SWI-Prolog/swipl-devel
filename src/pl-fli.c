@@ -883,7 +883,7 @@ get_string_text(DECL_LD word w, PL_chars_t *text)
   { text->text.w   = getCharsWString(w, &text->length);
     text->encoding = ENC_WCHAR;
   }
-  text->storage   = PL_CHARS_STACK;
+  text->storage   = PL_CHARS_PROLOG_STACK;
   text->canonical = true;
 
   succeed;

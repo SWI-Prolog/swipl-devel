@@ -103,7 +103,7 @@ PL_save_text(PL_chars_t *text, int flags)
     addMultipleBuffer(b, text->text.t, bl, char);
     text->text.t = baseBuffer(b, char);
 
-    text->storage = PL_CHARS_RING;
+    text->storage = PL_CHARS_STACK;
   } else if ( text->storage == PL_CHARS_MALLOC )
   { Buffer b = findBuffer(BUF_STACK);
     size_t bl = bufsize_text(text, text->length+1);
@@ -112,7 +112,7 @@ PL_save_text(PL_chars_t *text, int flags)
     PL_free_text(text);
     text->text.t = baseBuffer(b, char);
 
-    text->storage = PL_CHARS_RING;
+    text->storage = PL_CHARS_STACK;
   }
 
   return true;
@@ -127,7 +127,7 @@ corrupted if GC/shift comes along.
 static int
 PL_from_stack_text(PL_chars_t *text, int flags)
 { if ( !(flags&BUF_ALLOW_STACK) )
-  { if ( text->storage == PL_CHARS_STACK )
+  { if ( text->storage == PL_CHARS_PROLOG_STACK )
     { size_t bl = bufsize_text(text, text->length+1);
 
       if ( bl < sizeof(text->buf) )
@@ -139,7 +139,7 @@ PL_from_stack_text(PL_chars_t *text, int flags)
 
 	addMultipleBuffer(b, text->text.t, bl, char);
 	text->text.t = baseBuffer(b, char);
-	text->storage = PL_CHARS_RING;
+	text->storage = PL_CHARS_STACK;
       }
     }
   }
@@ -252,7 +252,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	b->top = b->base + strlen(b->base);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
-	text->storage = PL_CHARS_RING;
+	text->storage = PL_CHARS_STACK;
 
 	break;
       }
@@ -271,7 +271,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 	b->top += strlen(b->top);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
-	text->storage = PL_CHARS_RING;
+	text->storage = PL_CHARS_STACK;
 
 	break;
       }
@@ -338,7 +338,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
       goto error;
     }
 
-    text->storage   = PL_CHARS_RING;
+    text->storage   = PL_CHARS_STACK;
     text->canonical = true;
   } else if ( (flags & CVT_VARIABLE) && isVar(w) )
   { text->text.t   = varName(l, text->buf);
@@ -559,7 +559,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
       } else
       { Word p0, p;
 
-	if ( text->storage == PL_CHARS_STACK &&   /* text from a string */
+	if ( text->storage == PL_CHARS_PROLOG_STACK &&   /* text from a string */
 	     ( !hasGlobalSpace(text->length*3+1) ||
 	       !hasLocalSpace(sizeof(word)) ) &&  /* no shift/GC needed */
 	     !PL_from_stack_text(text, 0) )	  /* shift/gc; if we cannot */
@@ -811,7 +811,7 @@ PL_unify_text_range(term_t term, const PL_chars_t *text,
   }
 
   PL_chars_t sub;
-  sub.storage = text->storage == PL_CHARS_STACK ? PL_CHARS_STACK : PL_CHARS_HEAP;
+  sub.storage = text->storage == PL_CHARS_PROLOG_STACK ? PL_CHARS_PROLOG_STACK : PL_CHARS_HEAP;
   if ( text->encoding == ENC_ISO_LATIN_1 )
   { sub.text.t    = (char*)as;
     sub.length    = (const char*)ae - (const char *)as;
@@ -878,7 +878,7 @@ PL_promote_text(PL_chars_t *text)
 
       text->text.w   = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
-      text->storage  = PL_CHARS_RING;
+      text->storage  = PL_CHARS_STACK;
     }
   }
 
@@ -940,7 +940,7 @@ PL_demote_text(PL_chars_t *text, int flags)
       addBuffer(b, EOS, char);
 
       text->text.t   = baseBuffer(b, char);
-      text->storage  = PL_CHARS_RING;
+      text->storage  = PL_CHARS_STACK;
       text->encoding = ENC_ISO_LATIN_1;
     }
   }
@@ -1084,7 +1084,7 @@ PL_mb_text(PL_chars_t *text, int flags)
     text->text.t    = baseBuffer(b, char);
     text->encoding  = target;
     text->canonical = (target == ENC_ISO_LATIN_1);
-    text->storage   = PL_CHARS_RING;
+    text->storage   = PL_CHARS_STACK;
   }
 
   succeed;
@@ -1550,7 +1550,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    addBuffer(b, EOS, char);
 	    text->text.t   = baseBuffer(b, char);
 	    text->encoding = ENC_UTF8;
-	    text->storage  = PL_CHARS_RING;
+	    text->storage  = PL_CHARS_STACK;
 
 	    break;
 	  }
@@ -1640,7 +1640,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	      addBuffer(b, EOS, short);
 	      text->text.t   = baseBuffer(b, char);
 	      text->encoding = encoding;
-	      text->storage  = PL_CHARS_RING;
+	      text->storage  = PL_CHARS_STACK;
 
 	      return true;
 	    }

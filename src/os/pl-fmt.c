@@ -335,8 +335,8 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   }
 
   switch(fmt.storage)			/* format can do call-back! */
-  { case PL_CHARS_RING:
-    case PL_CHARS_STACK:
+  { case PL_CHARS_STACK:
+    case PL_CHARS_PROLOG_STACK:
       PL_save_text(&fmt, BUF_MALLOC);
       break;
     default:
