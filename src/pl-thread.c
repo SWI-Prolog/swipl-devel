@@ -1153,9 +1153,10 @@ exitPrologThreads(void)
 	      }
 	    }
 
-	    if ( PL_thread_raise(i, SIG_PLABORT) )
+	    if ( PL_thread_raise(i, SIG_PLHALT) )
 	    { DEBUG(MSG_CLEANUP_THREAD,
-		    Sdprintf("Sent abort to %d%d\n", i));
+		    Sdprintf("Sent unwind(halt(%d)) to %d\n",
+			     GD->halt_status, i));
 	      canceled++;
 	    }
 	  }
@@ -2856,8 +2857,8 @@ PRED_IMPL("thread_exit", 1, thread_exit, 0)
 
     return ( (ex=PL_new_term_ref()) &&
 	     PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_unwind1,
-			         PL_FUNCTOR, FUNCTOR_thread_exit1,
-			           PL_TERM, A1) &&
+				 PL_FUNCTOR, FUNCTOR_thread_exit1,
+				   PL_TERM, A1) &&
 	     PL_raise_exception(ex) );
   } else
   { term_t tid;

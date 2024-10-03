@@ -345,6 +345,7 @@ static struct signame
 #endif
   { SIG_CLAUSE_GC,     "prolog:clause_gc",     0 },
   { SIG_PLABORT,       "prolog:abort",         0 },
+  { SIG_PLHALT,        "prolog:halt",          0 },
 
   { -1,		NULL,     0}
 };
@@ -853,6 +854,17 @@ abort_handler(int sig)
   abortProlog();
 }
 
+static void
+halt_handler(int sig)
+{ GET_LD
+  (void)sig;
+
+  if ( !raise_halt_exception(GD->halt_status, true) )
+  { Sdprintf("Failed to raise unwind(halt(%d))\n", GD->halt_status);
+    abortProlog();
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The idea behind alert_handler() is to  make blocking system calls return
@@ -918,6 +930,7 @@ initSignals(DECL_LD)
   PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
+  PL_signal(SIG_PLHALT|PL_SIGSYNC,        halt_handler);
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
 #endif

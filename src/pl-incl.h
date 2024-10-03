@@ -2222,11 +2222,12 @@ typedef enum virtual_signum
   VSIG_THREAD_SIGNAL,
   VSIG_CLAUSE_GC,
   VSIG_PLABORT,
+  VSIG_PLHALT,
   VSIG_TUNE_GC,
   VSIG_MAX
 } virtual_signum;
 
-#define NUM_VSIGS 6 /* Preprocessor can see this constant */
+#define NUM_VSIGS 7 /* Preprocessor can see this constant */
 static_assertion(NUM_VSIGS == VSIG_MAX); /* Make sure it matches the enum */
 static_assertion(NUM_SIGNALS >= VSIG_MAX && NUM_SIGNALS < 128); /* Sanity check, 128 is arbitrary */
 static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS <= MAXSIGNAL);
@@ -2241,6 +2242,7 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 #endif
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+VSIG_CLAUSE_GC)
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+VSIG_PLABORT)
+#define SIG_PLHALT	  (SIG_PROLOG_OFFSET+VSIG_PLHALT)
 #define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+VSIG_TUNE_GC)
 
 /* The "search for a free signal" functionality of PL_sigaction starts after
