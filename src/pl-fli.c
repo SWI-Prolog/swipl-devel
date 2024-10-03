@@ -1819,13 +1819,19 @@ bool
 PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { GET_LD
   PL_chars_t text;
+  buf_mark_t mark;
 
   valid_term_t(l);
+  if ( (flags&BUF_MALLOC) )
+    PL_mark_string_buffers(&mark);
+
   if ( !PL_get_text(l, &text, flags) )
     return false;
-
   PL_promote_text(&text);
   PL_save_text(&text, flags);
+
+  if ( (flags&BUF_MALLOC) )
+    PL_release_string_buffers_from_mark(mark);
 
   if ( length )
     *length = text.length;
