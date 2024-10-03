@@ -11296,8 +11296,16 @@ flags \prologflag{on_error} or \prologflag{on_warning} is set to
 \const{status} and there have been errors or warnings.
 
     \predicate[ISO]{halt}{1}{+Status}
-Terminate Prolog execution with \arg{Status}. This predicate calls
-PL_halt() which preforms the following steps:
+Terminate Prolog execution with \arg{Status}.  When possible, raise
+the exeption \term{unwind}{\term{halt}{Status}}.  Currently, this is
+used when halt/1 is called in the \const{main} thread and there is no
+intermediate C function on the stack that called PL_next_solution()
+without the \const{PL_Q_PASS_EXCEPTION} flag.  Future versions may
+also use signal based exit from threads.
+
+After the exception bubbled up to the top or if the halt exeption could
+not be raised, system termination starts. System termination (see also
+PL_halt()) preforms the following steps:
 
     \begin{enumerate}
     \item Set the Prolog flag \prologflag{exit_status} to \arg{Status}.
@@ -11313,9 +11321,11 @@ PL_halt() which preforms the following steps:
     \item Perform the following system cleanup actions:
 
     \begin{itemize}
-    \item Cancel all threads, calling thread_at_exit/1 registered
-          termination hooks.  Threads not responding within 1 second
-	  are cancelled forcefully.
+    \item Raise \term{unwind}{\term{halt}{Status}} in all running threads.
+    \item Wait for a maximum of 1 second for all threads to respond to
+          this exception. Registered thread_at_exit/1 hooks are
+	  executed. Threads not responding within 1 second are cancelled
+	  forcefully.
     \item Flush I/O and close all streams except for standard I/O.
     \item Reset the terminal if its properties were changed.
     \item Remove temporary files and incomplete compilation output.

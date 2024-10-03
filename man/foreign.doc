@@ -5066,10 +5066,28 @@ is intended to be used in combination with fork():
 The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
-    \cfunction{int}{PL_halt}{int status}
+    \cfunction{bool}{PL_halt}{int status}
+    Terminate the Prolog process as halt/1.  The behaviour depends on
+    several flags:
+
+    \begin{description}
+      \termitem{PL_HALT_WITH_EXCEPTION}{}
+      When specified, try to raise \term{unwind}{\term{halt}{status}}.
+      If this is not possible, ignore this flag.  Return \const{false}.
+      \termitem{PL_CLEANUP_NO_RECLAIM_MEMORY}{}
+      Never reclaim the memory, leaving this task to the OS.  This
+      is the default unless the system is compiled for debugging.
+      \termitem{PL_CLEANUP_NO_CANCEL}{}
+      Do not allow hooks to cancel halting the system.
+    \end{description}
+    
+Unless \const{PL_HALT_WITH_EXCEPTION} was specified and effective,
 Clean up the Prolog environment using PL_cleanup() and if successful
-call exit() with the status argument.  Returns \const{FALSE} if exit
-was cancelled by PL_cleanup().
+call exit() with the status argument.  Returns \const{true} if exit
+was cancelled by PL_cleanup().\footnote{Versions up to 9.3.12 returned
+\const{false} on cancel.  If necessary, the two behaviours can be
+distinguished based on the existence of the
+\const{PL_HALT_WITH_EXCEPTION} macro.}
 \end{description}
 
 
