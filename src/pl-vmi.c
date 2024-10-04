@@ -5054,9 +5054,11 @@ VMH(b_throw, 0, (), ())
 	});
 
   if ( has_emergency_space(&LD->stacks.local, sizeof(struct localFrame)) )
-    fid = open_foreign_frame();
-  else
-    fid = 0;
+  { fid = open_foreign_frame();
+  } else			/* Fatal */
+  { LD->outofstack = &LD->stacks.local;
+    outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
+  }
 
 again:
   SAVE_REGISTERS(QID);
