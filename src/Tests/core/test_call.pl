@@ -373,5 +373,11 @@ a(_).
 test(exit_nondet, fail) :-
 	catch((true;throw(homer_simpson(38))),_E,true),
 	fail.
+test(partial_unification, X == 1) :-
+	t1(X).
+
+t1(X) :- catch(t2(X), f(1,2), X = 1).
+t2(X) :- catch(t3, f(2,1), X = 2).
+t3 :- throw(f(_,2)).
 
 :- end_tests(catch).

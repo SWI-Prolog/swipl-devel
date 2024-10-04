@@ -1977,9 +1977,9 @@ findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define findCatcher(fr, ch, ex) LDFUNC(findCatcher, fr, ch, ex)
+#define findCatcher(fid, fr, ch, ex) LDFUNC(findCatcher, fid, fr, ch, ex)
 static term_t
-findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex)
+findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
@@ -2004,6 +2004,9 @@ findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex)
       set(fr, FR_CATCHED);
       return consTermRef(fr);
     }
+
+    if ( fid )
+      PL_rewind_foreign_frame(fid);
   }
 
   return 0;
@@ -2106,7 +2109,7 @@ print_unhandled_exception(DECL_LD qid_t qid, term_t ex)
 
   return printMessage(ATOM_error,
 		      PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		        PL_TERM, ex);
+			PL_TERM, ex);
 }
 
 

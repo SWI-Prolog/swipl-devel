@@ -5060,7 +5060,7 @@ VMH(b_throw, 0, (), ())
 
 again:
   SAVE_REGISTERS(QID);
-  catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term);
+  catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
   LOAD_REGISTERS(QID);
   DEBUG(MSG_THROW,
 	{ if ( catchfr_ref )
