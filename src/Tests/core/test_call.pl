@@ -375,6 +375,16 @@ test(exit_nondet, fail) :-
 	fail.
 test(partial_unification, X == 1) :-
 	t1(X).
+test(attvar, R==true) :-
+	freeze(E, fail),
+	catch(catch(throw(a), E, R=false),
+	      a, R=true).
+test(nested, E2==b) :-
+	freeze(E, throw(b)),
+	catch(catch(throw(a), E, true), E2, true).
+test(urgent, error(instantiation_error)) :-
+	freeze(E, throw(b)),
+	catch(atom_concat(_,_,_), E, true).
 
 t1(X) :- catch(t2(X), f(1,2), X = 1).
 t2(X) :- catch(t3, f(2,1), X = 2).
