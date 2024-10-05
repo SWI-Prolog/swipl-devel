@@ -5055,9 +5055,10 @@ VMH(b_throw, 0, (), ())
 
   if ( has_emergency_space(&LD->stacks.local, sizeof(struct localFrame)) )
   { fid = open_foreign_frame();
-  } else			/* Fatal */
-  { LD->outofstack = &LD->stacks.local;
-    outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
+  } else			/* fatal */
+  { LD->outofstack = (Stack)&LD->stacks.local;
+    outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
+    assert(0);
   }
 
 again:
@@ -5090,7 +5091,7 @@ again:
     rc = exception_hook(QID, consTermRef(FR), catchfr_ref);
     LOAD_REGISTERS(QID);
 
-    if ( rc && fid )
+    if ( rc )
     { DEBUG(MSG_THROW,
 	    Sdprintf("Exception was rewritten to: ");
 	    PL_write_term(Serror, exception_term, 1200, 0);
@@ -5102,8 +5103,7 @@ again:
       goto again;
     }
   }
-  if ( fid )
-    PL_close_foreign_frame(fid);
+  PL_close_foreign_frame(fid);
 
 #if O_DEBUGGER
   start_tracer = false;
