@@ -61,6 +61,9 @@ flags:
 	Get an \jargon{output stream}.  See \const{SIO_INPUT} for
         details.  If neither \const{SIO_OUTPUT} nor \const{SIO_INPUT}
 	is given \arg{t} may not be a \jargon{pair}.
+    \definition{\const{SIO_TRYLOCK}}
+	Return \const{FALSE} if the stream cannot be locked
+        immediately.  No error is generated.
     \definition{\const{SIO_NOERROR}}
 	If the function fails no exception is produced.
     \end{description}

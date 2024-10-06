@@ -283,6 +283,8 @@ typedef struct io_stream
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
 #define SIO_REPPLU	SmakeFlag(32)	/* Bad char --> Prolog \uXXXX */
 
+#define SIO_TRYLOCK	SIO_CLOSING     /* Used by PL_get_stream() */
+
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
 #define	SIO_SEEK_END	2	/* From end of file.  */

@@ -780,6 +780,7 @@ static PL_blob_t stream_blob =
 #define SH_OUTPUT   0x08		/* We want an output stream */
 #define SH_INPUT    0x10		/* We want an input stream */
 #define SH_NOPAIR   0x20		/* Do not allow for a pair */
+#define SH_TRYLOCK  0x40		/* Fail if we cannot lock */
 
 #define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
 static bool
@@ -828,6 +829,12 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
     { assert( s->magic == SIO_MAGIC || s->magic == SIO_CMAGIC );
       *sp = s;
       return true;
+    } else if ( flags & SH_TRYLOCK )
+    { if ( (s=tryGetStream(s)) )
+      { *sp = s;
+	return true;
+      } else
+	return false;			/* exception */
     } else if ( (s=getStream(s)) )
     { *sp = s;
       return true;
@@ -859,6 +866,12 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 	  { *sp = stream;
 	    return true;
 	  }
+	} else if ( flags & SH_TRYLOCK )
+	{ if ( (s=tryGetStream(stream)) )
+	  { *sp = s;
+	    return true;
+	  } else
+	    return false;		/* exception? */
 	} else if ( (*sp = getStream(stream)) )
 	  return true;
 	goto noent;
@@ -921,6 +934,7 @@ PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 
   if ( flags&SIO_INPUT   ) myflags |= SH_INPUT;
   if ( flags&SIO_OUTPUT  ) myflags |= SH_OUTPUT;
+  if ( flags&SIO_TRYLOCK ) myflags |= SH_TRYLOCK;
   if ( flags&SIO_NOERROR ) myflags &= ~SH_ERRORS;
   if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
     myflags |= SH_NOPAIR;
