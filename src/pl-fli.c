@@ -1130,12 +1130,19 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
   if ( PL_get_integer(p, &i) && i >= mn && i <= mx )
   { *c = (char)i;
     return true;
-  } else if ( PL_get_text(p, &txt, CVT_ATOM|CVT_STRING|CVT_LIST) )
-  { if ( txt.length == 1 && txt.encoding == ENC_ISO_LATIN_1 )
+  } else
+  { bool rc;
+    PL_STRINGS_MARK();
+    if ( PL_get_text(p, &txt, CVT_ATOM|CVT_STRING|CVT_LIST) &&
+	 txt.length == 1 && txt.encoding == ENC_ISO_LATIN_1 )
     { *c = txt.text.t[0];
-      return true;			/* can never be allocated */
+      rc = true;			/* can never be allocated */
+    } else
+    { rc = false;
     }
-    PL_free_text(&txt);
+    PL_STRINGS_RELEASE();
+    if ( rc )
+      return true;
   }
 
   if ( PL_is_integer(p) )
@@ -1732,9 +1739,10 @@ PL_get_atom_nchars(term_t t, size_t *len, char **s)
 bool
 PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
 { PL_chars_t text;
+  bool rc;
 
   valid_atom_t(a);
-  if ( !get_atom_text(a, &text) )
+  if ( !get_atom_text(a, &text) ) /* always PL_CHARS_HEAP */
   { if ( (flags&CVT_EXCEPTION) )
     { term_t t;
       return ((t = PL_new_term_ref()) &&
@@ -1744,19 +1752,18 @@ PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
     return false;
   }
 
-  if ( PL_mb_text(&text, flags) )
-  { PL_save_text(&text, flags);
+  PL_STRINGS_MARK_IF_MALLOC(flags);
+  rc = ( PL_mb_text(&text, flags) &&
+	 PL_save_text(&text, flags) );
+  PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
-    if ( len )
+  if ( rc )
+  { if ( len )
       *len = text.length;
     *s = text.text.t;
-
-    return true;
-  } else
-  { PL_free_text(&text);
-
-    return false;
   }
+
+  return rc;
 }
 
 
@@ -1819,25 +1826,22 @@ bool
 PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { GET_LD
   PL_chars_t text;
-  buf_mark_t mark;
+  bool rc;
 
   valid_term_t(l);
-  if ( (flags&BUF_MALLOC) )
-    PL_mark_string_buffers(&mark);
+  PL_STRINGS_MARK_IF_MALLOC(flags);
+  rc = ( PL_get_text(l, &text, flags) &&
+	 PL_promote_text(&text) &&
+	 PL_save_text(&text, flags) );
+  PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
-  if ( !PL_get_text(l, &text, flags) )
-    return false;
-  PL_promote_text(&text);
-  PL_save_text(&text, flags);
+  if ( rc )
+  { if ( length )
+      *length = text.length;
+    *s = text.text.w;
+  }
 
-  if ( (flags&BUF_MALLOC) )
-    PL_release_string_buffers_from_mark(mark);
-
-  if ( length )
-    *length = text.length;
-  *s = text.text.w;
-
-  return true;
+  return rc;
 }
 
 
@@ -1845,24 +1849,22 @@ bool
 PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
 { GET_LD
   PL_chars_t text;
+  bool rc;
 
   valid_term_t(l);
-  if ( !PL_get_text(l, &text, flags) )
-    return false;
+  PL_STRINGS_MARK_IF_MALLOC(flags);
+  rc = ( PL_get_text(l, &text, flags) &&
+	 PL_mb_text(&text, flags) &&
+	 PL_save_text(&text, flags) );
+  PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
-  if ( PL_mb_text(&text, flags) )
-  { PL_save_text(&text, flags);
-
-    if ( length )
+  if ( rc )
+  { if ( length )
       *length = text.length;
     *s = text.text.t;
-
-    return true;
-  } else
-  { PL_free_text(&text);
-
-    return false;
   }
+
+  return rc;
 }
 
 
@@ -1878,23 +1880,24 @@ PL_get_text_as_atom(term_t t, atom_t *a, int flags)
   valid_term_t(t);
   word w = valHandle(t);
   PL_chars_t text;
+  atom_t ta;
+  bool rc;
 
   if ( isAtom(w) )
   { *a = (atom_t) w;
     return true;
   }
 
-  if ( PL_get_text(t, &text, flags) )
-  { atom_t ta = textToAtom(&text);
+  PL_STRINGS_MARK();
+  if ( PL_get_text(t, &text, flags) &&
+       (ta=textToAtom(&text)) )
+  { *a = ta;
+    rc = true;
+  } else
+    rc = false;
+  PL_STRINGS_RELEASE();
 
-    PL_free_text(&text);
-    if ( ta )
-    { *a = ta;
-      return true;
-    }
-  }
-
-  return false;
+  return rc;
 }
 
 

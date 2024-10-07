@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -137,5 +137,18 @@ text_chr(const PL_chars_t *t, int chr)
 
   return (size_t)-1;
 }
+
+		/*******************************
+		*         STRING BUFFERS       *
+		*******************************/
+
+#define PL_STRINGS_MARK_IF_MALLOC(flags) \
+	{ buf_mark_t __PL_mark; \
+	  if ( flags&BUF_MALLOC ) \
+	    PL_mark_string_buffers(&__PL_mark);
+#define PL_STRINGS_RELEASE_IF_MALLOC(flags) \
+	  if ( flags&BUF_MALLOC ) \
+	    PL_release_string_buffers_from_mark(__PL_mark); \
+	}
 
 #endif /*PL_TEXT_H_INCLUDED*/
