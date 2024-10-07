@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2023, University of Amsterdam
+    Copyright (c)  2006-2024, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -142,11 +142,11 @@ permission_error(Operation, PermissionType, Culprit) :-
 %   is, but if some variables are bound   to appropriate values it would
 %   be acceptable.
 %
-%   @param  FormalSubTerm is the term that needs (further)
-%           instantiation. Unfortunately, the ISO error does not allow
-%           for passing this term along with the error, but we pass it
-%           to this predicate for documentation purposes and to allow
-%           for future enhancement.
+%   @arg  FormalSubTerm is the term that needs (further)
+%         instantiation. Unfortunately, the ISO error does not allow
+%         for passing this term along with the error, but we pass it
+%         to this predicate for documentation purposes and to allow
+%         for future enhancement.
 
 instantiation_error(_FormalSubTerm) :-
     throw(error(instantiation_error, _)).
@@ -204,11 +204,11 @@ resource_error(Resource) :-
 %!  must_be(+Type, @Term) is det.
 %
 %   True if Term satisfies the type constraints for Type. Defined
-%   types are =atom=, =atomic=, =between=, =boolean=, =callable=,
-%   =chars=, =codes=, =text=, =compound=, =constant=, =float=,
-%   =integer=, =nonneg=, =positive_integer=, =negative_integer=,
-%   =nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%   =symbol=, =var=, =rational=, =encoding=, =dict= and =string=.
+%   types are `atom`, `atomic`, `between`, `boolean`, `callable`,
+%   `chars`, `codes`, `text`, `compound`, `constant`, `float`,
+%   `integer`, `nonneg`, `positive_integer`, `negative_integer`,
+%   `nonvar`, `number`, `oneof`, `list`, `list_or_partial_list`,
+%   `symbol`, `var`, `rational`, `encoding`, `dict` and `string`.
 %
 %   Most of these types are defined by an arity-1 built-in predicate
 %   of the same name. Below  is  a   brief  definition  of the other
@@ -218,7 +218,7 @@ resource_error(Resource) :-
 %   | any | any term |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
-%   | boolean | One of =true= or =false= |
+%   | boolean | One of `true` or `false` |
 %   | callable | Atom or compound term |
 %   | char | Atom of length 1 |
 %   | chars | Proper list of 1-character atoms |
@@ -241,13 +241,13 @@ resource_error(Resource) :-
 %   | proper_list | Same as list |
 %   | stream | A stream name or valid stream handle; see is_stream/1 |
 %   | symbol | Same as `atom` |
-%   | text | One of =atom=, =string=, =chars= or =codes= |
+%   | text | One of `atom`, `string`, `chars` or `codes` |
 %   | type | Term is a valid type specification |
 %
 %   In  addition,  types   may   be    composed   using   `TypeA,TypeB`,
 %   `TypeA;TypeB` and negated using `\Type`.
 %
-%   @throws instantiation_error if Term is insufficiently
+%   @error instantiation_error if Term is insufficiently
 %   instantiated and type_error(Type, Term) if Term is not of Type.
 
 must_be(Type, X) :-
@@ -357,7 +357,8 @@ is_of_type(Type, _) :-
 has_type(any, _).
 has_type(atom, X)         :- atom(X).
 has_type(atomic, X)       :- atomic(X).
-has_type(between(L,U), X) :- (   integer(L)
+has_type(between(L,U), X) :-
+    (   integer(L)
     ->  integer(X), between(L,U,X)
     ;   number(X), X >= L, X =< U
     ).
