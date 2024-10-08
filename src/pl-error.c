@@ -51,7 +51,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 #include <errno.h>
 #endif
 
-static int
+static bool
 put_name_arity(term_t t, functor_t f)
 { GET_LD
   FunctorDef fdef = valueFunctor(f);
@@ -94,7 +94,7 @@ rewrite_callable(atom_t *expected, term_t actual)
 }
 
 
-static int
+static bool
 evaluation_error(term_t formal, atom_t which)
 { GET_LD
   return PL_unify_term(formal,
@@ -102,7 +102,7 @@ evaluation_error(term_t formal, atom_t which)
 			 PL_ATOM, which);
 }
 
-int
+bool
 PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 { GET_LD
   char msgbuf[50];
@@ -111,7 +111,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   va_list args;
   int do_throw = false;
   fid_t fid;
-  int rc;
+  bool rc;
   int msg_rep = REP_UTF8;
 
   if ( exception_term )			/* do not overrule older exception */
@@ -891,7 +891,7 @@ PL_resource_error(const char *resource)
 }
 
 
-int
+bool
 PL_no_memory(void)
 { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 }
@@ -955,15 +955,26 @@ and true if the printing succeeded or merely failed.
 
 #define OK_RECURSIVE 10
 
-int
+bool
 printMessage(atom_t severity, ...)
+{ va_list args;
+  bool rc;
+
+  va_start(args, severity);
+  rc = printMessagev(severity, args);
+  va_end(args);
+
+  return rc;
+}
+
+bool
+printMessagev(atom_t severity, va_list args)
 { GET_LD
   valid_atom_t(severity);
   wakeup_state wstate;
   term_t av;
   predicate_t pred = PROCEDURE_print_message2;
-  va_list args;
-  int rc;
+  bool rc;
 
   if ( ++LD->in_print_message >= OK_RECURSIVE*3 )
     fatalError("printMessage(): recursive call\n");
@@ -973,10 +984,8 @@ printMessage(atom_t severity, ...)
   }
 
   av = PL_new_term_refs(2);
-  va_start(args, severity);
   PL_put_atom(av+0, severity);
   rc = PL_unify_termv(av+1, args);
-  va_end(args);
 
   if ( rc )
   { if ( isDefinedProcedure(pred) && LD->in_print_message <= OK_RECURSIVE )
@@ -1011,7 +1020,7 @@ printMessage(atom_t severity, ...)
 		 *    ERROR-CHECKING *_get()	*
 		 *******************************/
 
-int
+bool
 PL_get_atom_ex(DECL_LD term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     succeed;
@@ -1041,10 +1050,10 @@ PL_get_integer_ex(term_t t, int *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
-int
+bool
 PL_get_long_ex(DECL_LD term_t t, long *i)
 { if ( PL_get_long(t, i) )
-    succeed;
+    return true;
 
   if ( PL_is_integer(t) )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_long);
@@ -1073,7 +1082,7 @@ PL_get_int64_ex(term_t t, int64_t *i)
 }
 
 
-int
+bool
 PL_get_intptr_ex(DECL_LD term_t t, intptr_t *i)
 {
 #if SIZEOF_LONG != SIZEOF_VOIDP && SIZEOF_VOIDP == 8
@@ -1104,7 +1113,7 @@ fits_size(int64_t val)
 #define fits_size(v) true
 #endif
 
-int
+bool
 PL_get_size_ex(DECL_LD term_t t, size_t *i)
 { number n;
   Word p = valTermRef(t);
@@ -1169,7 +1178,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 }
 
 
-int
+bool
 pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 { number n;
   Word p = valTermRef(t);
@@ -1228,7 +1237,7 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
   return ex ? PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t) : false;
 }
 
-int
+bool
 PL_get_uint64_ex(DECL_LD term_t t, uint64_t *i)
 { return pl_get_uint64(t, i, true);
 }
@@ -1349,31 +1358,31 @@ PL_unify_bool_ex(term_t t, int val)
 }
 
 
-int
-PL_get_arg_ex(int n, term_t term, term_t arg)
+bool
+PL_get_arg_ex(size_t n, term_t term, term_t arg)
 { GET_LD
   valid_term_t(term);
   valid_term_t(arg);
 
   if ( PL_get_arg(n, term, arg) )
-  { succeed;
+  { return true;
   } else
-  { term_t a = PL_new_term_ref();
+  { term_t a;
 
-    PL_put_integer(a, n);
-
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, a);
+    return ( (a=PL_new_term_ref()) &&
+	     PL_put_uint64(a, n) &&
+	     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, a) );
   }
 }
 
 
-int
+bool
 PL_get_module_ex(term_t name, Module *m)
 { valid_term_t(name);
   if ( !PL_get_module(name, m) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, name);
 
-  succeed;
+  return true;
 }
 
 

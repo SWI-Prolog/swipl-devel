@@ -115,18 +115,19 @@ typedef enum
 
 #define LDFUNC_DECLARATIONS
 
-int		PL_error(const char *pred, int arity, const char *msg,
+bool		PL_error(const char *pred, int arity, const char *msg,
 			 PL_error_code id, ...);
-int		PL_no_memory(void);
-int		printMessage(atom_t severity, ...) WUNUSED;
-int		PL_get_atom_ex(term_t t, atom_t *a);
-int		PL_get_size_ex(term_t t, size_t *i);
-int		pl_get_uint64(term_t t, uint64_t *i, int ex);
-int		PL_get_uint64_ex(term_t t, uint64_t *i);
-int		PL_get_module_ex(term_t name, module_t *m);
-int		PL_get_arg_ex(int n, term_t term, term_t arg);
-int		PL_get_long_ex(term_t t, long *i);
-int		PL_get_intptr_ex(term_t t, intptr_t *i);
+bool		PL_no_memory(void);
+bool		printMessage(atom_t severity, ...) WUNUSED;
+bool		printMessagev(atom_t severity, va_list args) WUNUSED;
+bool		PL_get_atom_ex(term_t t, atom_t *a) WUNUSED;
+bool		PL_get_size_ex(term_t t, size_t *i) WUNUSED;
+bool		pl_get_uint64(term_t t, uint64_t *i, int ex) WUNUSED;
+bool		PL_get_uint64_ex(term_t t, uint64_t *i) WUNUSED;
+bool		PL_get_module_ex(term_t name, module_t *m) WUNUSED;
+bool		PL_get_arg_ex(size_t n, term_t term, term_t arg) WUNUSED;
+bool		PL_get_long_ex(term_t t, long *i) WUNUSED;
+bool		PL_get_intptr_ex(term_t t, intptr_t *i) WUNUSED;
 
 #undef LDFUNC_DECLARATIONS
 
