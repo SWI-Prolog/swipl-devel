@@ -2047,6 +2047,7 @@ initPrologFlags(void)
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("packs", FT_BOOL, GD->cmdline.packs, 0);
   setPrologFlag("heartbeat", FT_INTEGER, (intptr_t)0);
+  setPrologFlag("halt_grace_time", FT_FLOAT, (double)1.0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");

@@ -1759,6 +1759,10 @@ number support.
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.
 
+    \prologflagitem{halt_grace_time}{float}{rw}
+Time halt/1 waits for other threads to die gracefully.  Default
+is 1 second.
+
     \prologflagitem{heartbeat}{integer}{rw}
 If not zero, call prolog:heartbeat/0 every $N$ inferences.  $N$ is
 rounded to a multiple of 16.

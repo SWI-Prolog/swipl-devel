@@ -73,6 +73,7 @@
 #include "pl-prims.h"
 #include "pl-supervisor.h"
 #include "pl-coverage.h"
+#include "os/pl-prologflag.h"
 #include <stdio.h>
 #include <math.h>
 #include <errno.h>
@@ -568,6 +569,7 @@ static void	print_trace(int depth);
 static void timespec_diff(struct timespec *diff,
 			  const struct timespec *a, const struct timespec *b);
 static int  timespec_sign(const struct timespec *t);
+static void timespec_add_double(struct timespec *ts, double tmo);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -1105,6 +1107,25 @@ dummy_handler(int sig)
 }
 #endif
 
+static double
+halt_grace_time(void)
+{ GET_LD
+  fid_t fid;
+  term_t tmp;
+  double t;
+
+  if ( !( (fid=PL_open_foreign_frame()) &&
+	  (tmp=PL_new_term_ref()) &&
+	  PL_get_prolog_flag(ATOM_halt_grace_time, tmp) &&
+	  PL_get_float(tmp, &t) ) )
+    t = 1.0;
+
+  if ( fid )
+    PL_discard_foreign_frame(fid);
+
+  return t;
+}
+
 int
 exitPrologThreads(void)
 { int rc = true;
@@ -1170,13 +1191,16 @@ exitPrologThreads(void)
   }
 
   if ( canceled > 0 )		    /* see (*) above */
-  {
+  { double grace_time = halt_grace_time();
+
 #ifdef USE_TIMER_WAIT
     DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (alarm timer)\n", canceled));
     struct itimerval timeout = {0};
     struct sigaction act = {0};
+    double ip, fp=modf(grace_time,&ip);
 
-    timeout.it_value.tv_sec = 1;
+    timeout.it_value.tv_sec = (time_t)ip;
+    timeout.it_value.tv_nsec = (long)(fp*1000000000.0);
     act.sa_handler = dummy_handler;
 
     if ( sigaction(SIGALRM, &act, NULL) != 0 ||
@@ -1198,8 +1222,7 @@ exitPrologThreads(void)
     struct timespec deadline;
 
     get_current_timespec(&deadline);
-    deadline.tv_nsec += 1000000000; /* 1 sec */
-    carry_timespec_nanos(&deadline);
+    timespec_add_double(&deadline, grace_time);
 
     while(canceled > 0)
     { if ( sem_timedwait(sem_canceled_ptr, &deadline) == 0 )
@@ -4928,6 +4951,16 @@ static const PL_option_t timeout_options[] =
 	   false (leading to failure).
 */
 
+static void
+timespec_add_double(struct timespec *ts, double tmo)
+{ double ip, fp=modf(tmo,&ip);
+
+  ts->tv_sec  += (time_t)ip;
+  ts->tv_nsec += (long)(fp*1000000000.0);
+  carry_timespec_nanos(ts);
+}
+
+
 #define process_deadline_options(options, ts, pts, rs, prs) \
 	LDFUNC(process_deadline_options, options, ts, pts, rs, prs)
 
@@ -4978,11 +5011,8 @@ process_deadline_options(DECL_LD term_t options,
   // was set to now + timeout.
   if ( tmo != DBL_MAX )
   { if ( tmo > 0.0 )
-    { double ip, fp=modf(tmo,&ip);
-
-      timeout.tv_sec  = now.tv_sec + (time_t)ip;
-      timeout.tv_nsec = now.tv_nsec + (long)(fp*1000000000.0);
-      carry_timespec_nanos(&timeout);
+    { timeout = now;
+      timespec_add_double(&timeout, tmo);
       if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
 	dlop = &timeout;
     } else if ( tmo == 0.0 )
