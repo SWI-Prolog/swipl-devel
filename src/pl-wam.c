@@ -2150,9 +2150,12 @@ print_unhandled_exception(DECL_LD qid_t qid, term_t ex)
 
   if ( exclass == EXCEPT_ABORT )
     return false;
-  if ( exclass == EXCEPT_THREAD_EXIT && handles_unwind(qid, PL_Q_EXCEPT_THREAD_EXIT) )
+  if ( exclass == EXCEPT_THREAD_EXIT &&
+       handles_unwind(qid, PL_Q_EXCEPT_THREAD_EXIT) )
     return false;
-  if ( exclass == EXCEPT_HALT && handles_unwind(qid, PL_Q_EXCEPT_HALT) )
+  if ( exclass == EXCEPT_HALT &&
+       (handles_unwind(qid, PL_Q_EXCEPT_HALT) ||
+	GD->cleaning != CLN_NORMAL ) )
     return false;
 
   return printMessage(ATOM_error,
