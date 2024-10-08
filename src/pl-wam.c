@@ -1099,6 +1099,26 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return true;
     }
+    case B_ARG_CF:		/* call(arg(C,T,F)) */
+    { Word       gt = allocGlobal(2+1+3);
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word       tm = varFrameP(fr, (int)PC[2]);
+      Word       a  = varFrameP(fr, (int)PC[3]);
+
+      if ( !gt )
+	return false;
+
+      setVar(*a);
+      gt[0] = FUNCTOR_arg3;
+      gt[1] = (word)PC[1];
+      unify_gl(&gt[2], tm, has_firstvar);
+      unify_gl(&gt[3], a, has_firstvar);
+      gt[4] = FUNCTOR_call1;
+      gt[5] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consPtr(&gt[4], STG_GLOBAL|TAG_COMPOUND);
+
+      return true;
+    }
     case B_EQ_VC:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto vc_2;
     case B_NEQ_VC:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto vc_2;
     case B_UNIFY_VC: clean = 0x0; ftor = FUNCTOR_equals2;           goto vc_2;
