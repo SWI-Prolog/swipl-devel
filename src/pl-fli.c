@@ -5533,6 +5533,19 @@ PL_fatal_error(const char *fm, ...)
 }
 
 
+bool
+PL_print_message(atom_t severity, ...)
+{ va_list args;
+  bool rc;
+
+  va_start(args, severity);
+  rc = printMessagev(severity, args);
+  va_end(args);
+
+  return rc;
+}
+
+
 		/********************************
 		*            ACTIONS            *
 		*********************************/

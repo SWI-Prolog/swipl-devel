@@ -4259,6 +4259,14 @@ trapped the error and backtrace of the C and Prolog stacks.  This
 function is used by the C~API and may be used by other language
 bindings to report invalid use of the API.  This function causes
 the process to be terminated.
+
+\cfunction{bool}{PL_print_message}{atom_t severity, \ldots}
+Calls print_message/2 using a term constructed from the remaining
+arguments that are passed to PL_unify_term().  This is similar
+to setting up a call to print_message/2 using PL_call_predicate(),
+except that it saves and restores possibly pending exceptions and
+delayed goals.  The \arg{severity} argument must be valid for
+print_message/2.
 \end{description}
 
 \subsection{Environment Control from Foreign Code}
