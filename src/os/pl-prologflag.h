@@ -39,11 +39,6 @@
 #define _PL_PROLOGFLAG_H
 #include "../pl-incl.h"
 
-#if USE_LD_MACROS
-#define pl_prolog_flag5(key, value, local, access, type, ctx) \
-	LDFUNC(pl_prolog_flag5, key, value, local, access, type, ctx)
-#endif
-
 		 /*******************************
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
@@ -51,9 +46,7 @@
 #define LDFUNC_DECLARATIONS
 void		setPrologFlag(const char *name, unsigned int flags, ...);
 int		set_prolog_flag(term_t key, term_t value, unsigned short flags);
-foreign_t	pl_prolog_flag5(term_t key, term_t value,
-				term_t local, term_t access, term_t type,
-				control_t h);
+bool		PL_get_prolog_flag(atom_t name, term_t value);
 int		setDoubleQuotes(atom_t a, unsigned int *flagp);
 int		setBackQuotes(atom_t a, unsigned int *flagp);
 int		setRationalSyntax(atom_t a, unsigned int *flagp);

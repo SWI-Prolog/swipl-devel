@@ -68,7 +68,6 @@
 #include <dlfcn.h>
 #endif
 
-#undef bool
 #define ison(s, a)         ((s)->flags & (a))
 #define isoff(s, a)        (!ison((s), (a)))
 
@@ -1570,7 +1569,10 @@ typedef struct
   Module module;
 } prolog_flag_enum;
 
-foreign_t
+#define pl_prolog_flag5(key, value, scope, access, type, h) \
+	LDFUNC(pl_prolog_flag5, key, value, scope, access, type, h)
+
+static foreign_t
 pl_prolog_flag5(DECL_LD term_t key, term_t value,
 		term_t scope, term_t access, term_t type,
 		control_t h)
@@ -1693,6 +1695,32 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
   freeHeap(e, sizeof(*e));
 
   fail;
+}
+
+bool
+PL_get_prolog_flag(atom_t name, term_t value)
+{ GET_LD
+  fid_t fid;
+  term_t key;
+  bool rc;
+
+  if ( (fid=PL_open_foreign_frame()) &&
+       (key=PL_new_term_ref()) &&
+       PL_put_atom(key, name) )
+  { struct foreign_context ctx = {
+      .context = 0,
+      .control = FRG_FIRST_CALL,
+      .engine  = LD
+    };
+
+    rc = pl_prolog_flag5(key, value, 0, 0, 0, &ctx);
+  } else
+    rc = false;
+
+  if ( fid )
+    PL_close_foreign_frame(fid);
+
+  return rc;
 }
 
 static

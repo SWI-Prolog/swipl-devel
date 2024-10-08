@@ -1014,16 +1014,11 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     term_t tmp     = PL_new_term_ref();
     char msg[3];
     const char *pp = portPrompt(flags&PORT_MASK);
-    struct foreign_context ctx;
 
     frame = (LocalFrame)valTermRef(fref);
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
-    PL_put_atom(tmp, ATOM_debugger_write_options);
-    ctx.context = 0;
-    ctx.control = FRG_FIRST_CALL;
-    ctx.engine  = LD;
-    if ( !pl_prolog_flag5(tmp, options, 0, 0, 0, &ctx) )
+    if ( !PL_get_prolog_flag(ATOM_debugger_write_options, options) )
       PL_put_nil(options);
     PL_unify_stream_or_alias(tmp, out);
 
