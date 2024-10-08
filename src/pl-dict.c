@@ -1408,7 +1408,7 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
       ctx.head = PL_new_term_refs(2);
       ctx.tmp  = ctx.head+1;
 
-      if ( PL_get_arg(1, dict, ctx.tmp) &&
+      if ( _PL_get_arg(1, dict, ctx.tmp) &&
 	   PL_unify(ctx.tmp, A2) &&
 	   _PL_for_dict(dict, put_pair, &ctx, PL_FOR_DICT_SORTED) == 0 )
 	return PL_unify_nil_ex(ctx.tail);
