@@ -431,7 +431,8 @@ pp(Term, Ctx, Options) :-               % handle operators
             ;   modify_context(Ctx2, [priority=Left], Ctx3),
                 pp(Arg1, Ctx3, Options),
                 format(Out, '~w~w~w', [Space,QName,Space]),
-                modify_context(Ctx2, [priority=Right], Ctx4),
+                line_position(Out, NIndent),
+                modify_context(Ctx2, [priority=Right, indent=NIndent], Ctx4),
                 pp(Arg2, Ctx4, Options)
             )
         ;   (   ToWide == true,
@@ -441,7 +442,7 @@ pp(Term, Ctx, Options) :-               % handle operators
                 format(Out, '( ', []),
                 NIndent is Indent + 2,
                 modify_context(Ctx2,
-                           [space=Space, indent=NIndent, priority=Pri],
+                               [space=Space, indent=NIndent, priority=Pri],
                                Ctx3),
                 pp_infix_list(List, QName, 0, Ctx3, Options),
                 indent(Out, Indent, Options),
