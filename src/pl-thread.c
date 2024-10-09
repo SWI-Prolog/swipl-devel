@@ -1194,13 +1194,14 @@ exitPrologThreads(void)
   { double grace_time = halt_grace_time();
 
 #ifdef USE_TIMER_WAIT
-    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (alarm timer)\n", canceled));
+    DEBUG(MSG_CLEANUP_THREAD,
+	  Sdprintf("Waiting for %d threads (alarm timer)\n", canceled));
     struct itimerval timeout = {0};
     struct sigaction act = {0};
     double ip, fp=modf(grace_time,&ip);
 
     timeout.it_value.tv_sec = (time_t)ip;
-    timeout.it_value.tv_nsec = (long)(fp*1000000000.0);
+    timeout.it_value.tv_usec = (long)(fp*1000000.0);
     act.sa_handler = dummy_handler;
 
     if ( sigaction(SIGALRM, &act, NULL) != 0 ||
