@@ -382,6 +382,8 @@ assertion(G) :-
 assertion_failed(Reason, G) :-
     prolog:assertion_failed(Reason, G),
     !.
+assertion_failed(unwind(_), _) :-
+    !.
 assertion_failed(Reason, _) :-
     assertion_rethrow(Reason),
     !,
