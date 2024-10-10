@@ -521,7 +521,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
   Word fin  = fd->arguments;
   Word dend = din+arityFunctor(dd->definition);
   Word fend = fin+arityFunctor(fd->definition);
-  size_t left = 0;
+  Word out0 = gTop, out = out0+2; /* dict functor and var */
   int rc;
 
   /* unify the tags */
@@ -538,7 +538,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
     deRef2(din+1, d);
     deRef2(fin+1, f);
 
-    if ( *d == *f )
+    if ( *d == *f )		/* same keys */
     { if ( (rc = unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
 	return rc;
       din += 2;
@@ -546,49 +546,39 @@ select_dict(DECL_LD word del, word from, word *new_dict)
     } else if ( *d < *f )
     { return false;
     } else
-    { fin += 2;
-      left++;
+    { if ( new_dict )
+      { if ( out+2 <= gMax )
+	{ *out++ = linkValI(fin);
+	  *out++ = *f;
+	} else
+	  return GLOBAL_OVERFLOW;
+      }
+      fin += 2;
     }
   }
   if ( din < dend )
-    return false;
-  left += (fend-fin)/2;
+  { return false;
+  } else if ( new_dict )
+  { if ( out+(fend-fin) <= gMax )
+    { while(fin < fend)
+      { Word f;
 
-  if ( !new_dict )
-    return true;
-
-  if ( gTop+2+2*left <= gMax )
-  { Word out = gTop;
-
-    *new_dict = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
-
-    *out++ = dict_functor(left);
-    setVar(*out++);			/* tag for new dict */
-
-    din = dd->arguments+1;
-    fin = fd->arguments+1;
-
-    while(left > 0)
-    { Word d, f;
-
-      deRef2(din+1, d);
-      deRef2(fin+1, f);
-      if ( *d == *f )
-      { din += 2;
-	fin += 2;
-      } else
-      { *out++ = linkValI(fin);
+	deRef2(fin+1, f);
+	*out++ = linkValI(fin);
 	*out++ = *f;
 	fin += 2;
-	left--;
       }
-    }
-    gTop = out;
 
+      *new_dict = consPtr(out0, TAG_COMPOUND|STG_GLOBAL);
+      size_t nsz = (out-out0-2)/2;
+      *out0++ = dict_functor(nsz);
+      setVar(*out0);		/* out dict is anonymous */
+      gTop = out;
+      return true;
+    } else
+      return GLOBAL_OVERFLOW;
+  } else
     return true;
-  }
-
-  return GLOBAL_OVERFLOW;
 }
 
 
@@ -1648,13 +1638,18 @@ PRED_IMPL("select_dict", 3, select_dict, 0)
 retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
-  { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
+  { static int call = 0;
+
+    if ( call++ == 2 )
+      trap_gdb();
+    int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
 
     switch(rc)
     { case true:
       { term_t t = PL_new_term_ref();
 
 	*valTermRef(t) = r;
+	PL_check_data(t);
 	return PL_unify(A3, t);
       }
       case false:
