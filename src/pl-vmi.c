@@ -5055,8 +5055,9 @@ VMH(b_throw, 0, (), ())
 
   if ( has_emergency_space(&LD->stacks.local, sizeof(struct localFrame)) )
   { fid = open_foreign_frame();
-  } else			/* fatal */
-  { LD->outofstack = (Stack)&LD->stacks.local;
+  } else		/* fatal */
+  { fid = 0;		/* Silence Clang; outOfStack() does not return */
+    LD->outofstack = (Stack)&LD->stacks.local;
     outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
     assert(0);
   }
