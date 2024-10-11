@@ -1638,11 +1638,7 @@ PRED_IMPL("select_dict", 3, select_dict, 0)
 retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
-  { static int call = 0;
-
-    if ( call++ == 2 )
-      trap_gdb();
-    int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
+  { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
 
     switch(rc)
     { case true:
