@@ -1836,6 +1836,87 @@ retry:
   return false;
 }
 
+/** '$get_dict_kv'(+Index, +Dict, -K, -V)
+    '$get_dict_kv'(+Index, +Dict1, +Dict2, -K, -V1, -V2)
+*/
+
+#define get_dict_kv(t0, arity)			\
+	LDFUNC(get_dict_kv, t0, arity)
+
+static bool
+get_dict_kv(DECL_LD term_t t0, int arity)
+{ size_t i;
+
+  if ( !PL_get_size_ex(t0, &i) || i == 0 )
+    return false;
+
+  Word p = valTermRef(t0+1);
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+    size_t darity = arityFunctor(f->definition);
+
+    if ( !is_dict_functor(f->definition) )
+      return PL_type_error("dict", t0+1);
+
+    if ( i > darity/2 )
+      return false;
+    i--;
+
+    size_t dict_count = (arity-2)/2;
+    size_t key_arg = t0+1+dict_count;
+    term_t value = PL_new_term_ref();
+    term_t key = PL_new_term_ref();
+
+    for(size_t di=0; di < dict_count; di++)
+    { term_t dict = t0+1+di;
+
+      if ( di > 0 && !PL_is_functor(dict, f->definition) )
+      { if ( !PL_is_dict(dict) )
+	  return PL_type_error("dict", dict);
+	else
+	  return PL_domain_error("compatible_dict", dict);
+      }
+      _PL_get_arg(2+i*2, dict, value);
+      _PL_get_arg(3+i*2, dict, key);
+
+      if ( !PL_unify(key_arg, key) )
+      { if ( di == 0 )
+	  return false;
+	return PL_domain_error("compatible_dict", dict);
+      }
+
+      if ( !PL_unify(key_arg+1+di, value) )
+	return false;
+    }
+
+    return true;
+  }
+
+  return PL_type_error("dict", t0+1);
+}
+
+static
+PRED_IMPL("$get_dict_kv", 4, get_dict_kv, 0)
+{ PRED_LD
+
+  return get_dict_kv(A1, 4);
+}
+
+static
+PRED_IMPL("$get_dict_kv", 6, get_dict_kv, 0)
+{ PRED_LD
+
+  return get_dict_kv(A1, 6);
+}
+
+static
+PRED_IMPL("$get_dict_kv", 8, get_dict_kv, 0)
+{ PRED_LD
+
+  return get_dict_kv(A1, 8);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Part of FLI
@@ -1884,4 +1965,7 @@ BeginPredDefs(dict)
   PRED_DEF("select_dict",    3, select_dict,    0)
   PRED_DEF(":<",	     2, select_dict,    0)
   PRED_DEF(">:<",	     2, punify_dict,    0)
+  PRED_DEF("$get_dict_kv",   4, get_dict_kv,    0)
+  PRED_DEF("$get_dict_kv",   6, get_dict_kv,    0)
+  PRED_DEF("$get_dict_kv",   8, get_dict_kv,    0)
 EndPredDefs
