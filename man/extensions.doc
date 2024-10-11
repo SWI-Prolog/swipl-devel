@@ -1124,6 +1124,17 @@ is a duplicate key.
 Bi-directional mapping between a dict and an ordered list of pairs
 (see \secref{pairs}).
 
+    \predicate{dict_same_keys}{2}{?Dict1, ?Dict2}
+True when \arg{Dict1} and \arg{Dict2} have the same set of keys.  The
+\jargon{tag} is not considered.  This predicate is semidet if both
+arguments are instantiated to a dict.  If one is instantiated to a
+dict and the other is unbound, it generates a dict with the same
+keys and unbound tag and values.  The predicate is_dict/2 may be
+used test tag equivalence or unify the tags.   This predicate
+raises an \const{instantiation_error} if both argument are unbound
+or a \const{type_error} if one of the arguments is neither a dict
+nor a variable.
+
     \predicate{put_dict}{3}{+New, +DictIn, -DictOut}
 \arg{DictOut} is a new dict created by replacing or adding key-value pairs
 from \arg{New} to \arg{Dict}. \arg{New} is either a dict or a valid input

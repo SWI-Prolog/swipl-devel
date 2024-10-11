@@ -418,6 +418,7 @@ suggest predicates from a keyword.
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{dict_create}{3}{Create a dict from data}
 \predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
+\predicatesummary{dict_same_keys}{2}{True when dicts have the same keys}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
