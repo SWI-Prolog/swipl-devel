@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015, VU University Amsterdam
+    Copyright (c)  2015-2024, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,10 @@
 */
 
 :- module(dicts,
-          [ dicts_same_tag/2,           % +List, -Tag
+          [ mapdict/2,                  % :Goal, +Dict
+            mapdict/3,                  % :Goal, ?Dict1, ?Dict2
+            mapdict/4,                  % :Goal, ?Dict1, ?Dict2, ?Dict3
+            dicts_same_tag/2,           % +List, -Tag
             dict_size/2,                % +Dict, -KeyCount
             dict_keys/2,                % +Dict, -Keys
             dicts_same_keys/2,          % +DictList, -Keys
@@ -49,9 +53,13 @@
 :- autoload(library(lists),[append/2,append/3]).
 :- autoload(library(ordsets),[ord_subtract/3]).
 :- autoload(library(pairs),[pairs_keys/2,pairs_keys_values/3]).
+:- autoload(library(error), [domain_error/2, must_be/2]).
 
 
 :- meta_predicate
+    mapdict(2, +),
+    mapdict(3, ?, ?),
+    mapdict(4, ?, ?, ?),
     dicts_to_same_keys(+,3,-),
     dicts_to_compounds(?,+,3,?).
 
@@ -62,6 +70,75 @@ to make lists of dicts  consistent   by  adding missing keys, converting
 between lists of compounds and lists of dicts, joining and slicing lists
 of dicts.
 */
+
+%!  mapdict(:Goal, +Dict).
+%!  mapdict(:Goal, ?Dict, ?Dict2).
+%!  mapdict(:Goal, ?Dict, ?Dict2, ?Dict3).
+%
+%   True when all dicts have the same   set  of keys and call(Goal, Key,
+%   V1, ...) is true for all keys  in   the  dicts.  At least one of the
+%   dicts must be instantiated.
+%
+%   @error instantiation_error if no dict is bound
+%   @error type_error(dict, Culprit) if one of the dict arguments is not
+%   a dict.
+%   @error domain_error(incompatible_dict, Culprit) if Culprit does not
+%   have the same keys as one of the other dicts.
+
+mapdict(Goal, Dict) :-
+    mapdict_(1, Goal, Dict).
+
+mapdict_(I, Goal, D1) :-
+    (   '$get_dict_kv'(I, D1, K, V1)
+    ->  call(Goal, K, V1),
+        I2 is I+1,
+        mapdict_(I2, Goal, D1)
+    ;   true
+    ).
+
+mapdict(Goal, Dict1, Dict2) :-
+    (   dict_same_keys(Dict1, Dict2)
+    ->  mapdict_(1, Goal, Dict1, Dict2)
+    ;   domain_error(incompatible_dict, Dict2)
+    ).
+
+mapdict_(I, Goal, D1, D2) :-
+    (   '$get_dict_kv'(I, D1, D2, K, V1, V2)
+    ->  call(Goal, K, V1, V2),
+        I2 is I+1,
+        mapdict_(I2, Goal, D1, D2)
+    ;   true
+    ).
+
+
+mapdict(Goal, Dict1, Dict2, Dict3) :-
+    (   nonvar(Dict1)
+    ->  dict_same_keys(Dict1, Dict2),
+        dict_same_keys(Dict1, Dict3)
+    ;   nonvar(Dict2)
+    ->  dict_same_keys(Dict1, Dict2),
+        dict_same_keys(Dict1, Dict3)
+    ;   dict_same_keys(Dict3, Dict2),
+        dict_same_keys(Dict3, Dict1)
+    ),
+    !,
+    mapdict_(1, Goal, Dict1, Dict2, Dict3).
+mapdict(_Goal, Dict1, Dict2, Dict3) :-
+    (   nonvar(Dict3)
+    ->  domain_error(incompatible_dict, Dict3)
+    ;   nonvar(Dict2)
+    ->  domain_error(incompatible_dict, Dict2)
+    ;   domain_error(incompatible_dict, Dict1)
+    ).
+
+mapdict_(I, Goal, D1, D2, D3) :-
+    (   '$get_dict_kv'(I, D1, D2, D3, K, V1, V2, V3)
+    ->  call(Goal, K, V1, V2, V3),
+        I2 is I+1,
+        mapdict_(I2, Goal, D1, D2, D3)
+    ;   true
+    ).
+
 
 %!  dicts_same_tag(+List, -Tag) is semidet.
 %
