@@ -603,7 +603,6 @@ exception if we cannot allocate the exception.
 bool
 raise_halt_exception(DECL_LD int code, bool force)
 { pl_notrace();
-  Sreset();				/* Discard pending IO */
 
   LD->exception.processing = true;	/* allow using spare stack */
 
