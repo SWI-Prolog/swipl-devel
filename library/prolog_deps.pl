@@ -38,7 +38,7 @@
           [ file_autoload_directives/3,      % +File, -Directives, +Options
             file_auto_import/2               % +File, +Options
           ]).
-:- use_module(library(apply), [convlist/3, maplist/3]).
+:- use_module(library(apply), [convlist/3, maplist/3, exclude/3]).
 :- use_module(library(filesex), [copy_file/2]).
 :- use_module(library(lists), [select/3, append/3, member/2]).
 :- use_module(library(option), [option/2, option/3]).
@@ -117,7 +117,8 @@ user:file_search_path(noautoload, library(pce(prolog/lib))).
 
 file_autoload_directives(File, Directives, Options) :-
     xref_source(File),
-    findall(Head, distinct(Head, undefined(File, Head, Options)), Missing),
+    findall(Head, distinct(Head, undefined(File, Head, Options)), Missing0),
+    clean_missing(Missing0, Missing),
     option(update(Old), Options, []),
     convlist(missing_autoload(File, Old), Missing, Pairs),
     keysort(Pairs, Pairs1),
@@ -217,6 +218,23 @@ built_in_predicate(Goal) :-
 defined(File, Callable) :-
     xref_defined(File, Callable, How),
     How \= imported(_).
+
+%!  clean_missing(+Missing0, -Missing) is det.
+%
+%   Hack to deal with library(main) and library(optparse) issues.
+%
+%   @tbd Needs a more fundamental solution.
+
+clean_missing(Missing0, Missing) :-
+    memberchk(main, Missing0),
+    memberchk(argv_options(_,_,_), Missing0),
+    !,
+    exclude(argv_option_hook, Missing0, Missing).
+clean_missing(Missing, Missing).
+
+argv_option_hook(opt_type(_,_,_)).
+argv_option_hook(opt_help(_,_)).
+argv_option_hook(opt_meta(_,_)).
 
 
 		 /*******************************
