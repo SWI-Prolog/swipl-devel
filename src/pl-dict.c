@@ -593,7 +593,52 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
    two pass process.
 */
 
-#define select_dict(del, from, new_dict) LDFUNC(select_dict, del, from, new_dict)
+#define unify_left_dict(del, from) \
+	LDFUNC(unify_left_dict, del, from)
+
+static int
+unify_left_dict(DECL_LD word del, word from)
+{ Functor dd = valueTerm(del);
+  Functor fd = valueTerm(from);
+  Word din  = dd->arguments;
+  Word fin  = fd->arguments;
+  Word dend = din+arityFunctor(dd->definition);
+  Word fend = fin+arityFunctor(fd->definition);
+  int rc;
+
+  /* unify the tags */
+  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
+    return rc;
+
+  /* advance to first v+k entry */
+  din++;
+  fin++;
+
+  while(din < dend && fin < fend)
+  { Word d, f;
+
+    deRef2(din+1, d);
+    deRef2(fin+1, f);
+
+    if ( *d == *f )		/* same keys */
+    { if ( (rc = unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
+	return rc;
+      din += 2;
+      fin += 2;
+    } else if ( *d < *f )
+    { return false;
+    } else
+    { fin += 2;
+    }
+  }
+
+  return din == dend;
+}
+
+
+#define select_dict(del, from, new_dict) \
+	LDFUNC(select_dict, del, from, new_dict)
+
 static int
 select_dict(DECL_LD word del, word from, word *new_dict)
 { Functor dd = valueTerm(del);
@@ -1784,14 +1829,14 @@ retry:
 
 
 static
-PRED_IMPL(":<", 2, select_dict, 0)
+PRED_IMPL(":<", 2, unify_left_dict, 0)
 { PRED_LD
   term_t dt = PL_new_term_refs(2);
 
 retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
-  { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), NULL);
+  { int rc = unify_left_dict(*valTermRef(dt+0), *valTermRef(dt+1));
 
     switch(rc)
     { case true:
@@ -1963,7 +2008,7 @@ BeginPredDefs(dict)
   PRED_DEF("del_dict",	     4, del_dict,	0)
   PRED_DEF("get_dict",       5, get_dict,       0)
   PRED_DEF("select_dict",    3, select_dict,    0)
-  PRED_DEF(":<",	     2, select_dict,    0)
+  PRED_DEF(":<",	     2, unify_left_dict,0)
   PRED_DEF(">:<",	     2, punify_dict,    0)
   PRED_DEF("$get_dict_kv",   4, get_dict_kv,    0)
   PRED_DEF("$get_dict_kv",   6, get_dict_kv,    0)
