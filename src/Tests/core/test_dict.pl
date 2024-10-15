@@ -231,6 +231,12 @@ test('select_dict/3') :-
 	\+ select_dict(a{k1:v2}, a{k1:v1}, _).
 test('select_dict/3') :-
 	\+ select_dict(a{k2:v1}, a{k1:v1}, _).
+test('select_dict/3', Done == true) :-
+	freeze(VA, Done=true),
+	A = _{ key: VA },
+	B = _{ key: vb },
+	select_dict(A, B, Rest),
+	assertion(Rest =@= _{}).
 test(':</2') :-
 	T{k1:V1} :< a{k1:v1, k2:v2},
 	T == a, V1 == v1.
