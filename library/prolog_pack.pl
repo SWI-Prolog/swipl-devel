@@ -1415,8 +1415,9 @@ build_plan(Plan, Ordered, Options) :-
     (   ToBuild == []
     ->  Ordered = []
     ;   order_builds(ToBuild, Ordered),
-        confirm(build_plan(Ordered), yes, Options),
-        maplist(exec_plan_rebuild_step(Options), Ordered)
+        reverse(Ordered, Reversed),
+        confirm(build_plan(Ordered), yes, Reversed),
+        maplist(exec_plan_rebuild_step(Options), Reversed)
     ).
 
 needs_rebuild_from_info(Options, Info) :-
