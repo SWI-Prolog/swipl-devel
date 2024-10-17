@@ -330,6 +330,18 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
+#ifdef SIGEMT
+  { SIGEMT,	"emt",    0},
+#endif
+#ifdef SIGSYS
+  { SIGSYS,	"sys",    0},
+#endif
+#ifdef SIGWINCH
+  { SIGWINCH,	"winch",  0},
+#endif
+#ifdef SIGINFO
+  { SIGINFO,	"info",   0},
+#endif
 #endif /*HAVE_OS_SIGNALS*/
 
 /* The signals below here are recorded as Prolog interrupts, but
