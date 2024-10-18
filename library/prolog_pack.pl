@@ -1453,19 +1453,24 @@ is_built(PackDir, _Options) :-
 %   packages that rely on them as they may need them during the build.
 
 order_builds(ToBuild, Ordered) :-
-    findall(Pack-Dep, dep_edge(ToBuild, Pack, Dep), Edges),
+    findall(DepForPack-Pack, dep_edge(ToBuild, Pack, DepForPack), Edges),
     maplist(get_dict(pack), ToBuild, Packs),
     vertices_edges_to_ugraph(Packs, Edges, Graph),
     ugraph_layers(Graph, Layers),
     append(Layers, PackNames),
     maplist(pack_info_from_name(ToBuild), PackNames, Ordered).
 
-dep_edge(Infos, Pack, Dep) :-
+%!  dep_edge(+Infos, -Pack, -DepForPack) is nondet.
+%
+%   True when DepForPack  is  a  dependency   for  Pack.  Both  Pack and
+%   DepForPack are pack _names.
+
+dep_edge(Infos, Pack, DepForPack) :-
     member(Info, Infos),
     Pack = Info.pack,
-    member(Dep, Info.get(dependency_for)),
+    member(DepForPack, Info.get(dependency_for)),
     (   member(DepInfo, Infos),
-        DepInfo.pack == Dep
+        DepInfo.pack == DepForPack
     ->  true
     ).
 
