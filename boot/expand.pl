@@ -377,7 +377,8 @@ list_pos(Var, _, _, _) :-
     var(Var),
     !.
 list_pos(list_position(F,T,Elems0,none), Elems0,
-         list_position(F,T,Elems,none),  Elems).
+         list_position(F,T,Elems,none),  Elems) :-
+    !.
 list_pos(Pos, [Pos], Elems, Elems).
 
 
