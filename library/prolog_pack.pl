@@ -3037,7 +3037,7 @@ available_download_versions(URL, Versions, _Options) :-
     findall(Version-VersionURL,
             github_version(User, Repo, Version, VersionURL),
             Versions).
-available_download_versions(URL, Versions, Options) :-
+available_download_versions(URL0, Versions, Options) :-
     wildcard_pattern(URL0),
     !,
     hsts(URL0, URL, Options),
