@@ -287,6 +287,10 @@ pce_style(prolog_bindings_view,
           [ background_active(black),
             background_inactive(grey50)
           ]).
+pce_style(prolog_source_structure,
+          [ background(black),
+            colour(white)
+          ]).
 
 %!  prolog_source_view:port_style(+Port, -StyleAttributes)
 %
