@@ -1800,8 +1800,8 @@ stack overflow.
 #define THROW_MAGIC 42424242
 
 typedef struct exception_frame		/* PL_throw exception environments */
-{ struct exception_frame *parent;	/* parent frame */
-  int		magic;			/* THROW_MAGIC */
+{ struct exception_frame * volatile parent;	/* parent frame */
+  volatile int	  magic;			/* THROW_MAGIC */
   jmp_buf	exception_jmp_env;	/* longjmp environment */
 } exception_frame;
 
