@@ -4391,7 +4391,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
  * buffer is short.  Thanks to Samer Abdallah for sorting this out.
  *
  * (*) On failure, wcsxfrm() normally returns the required size.
- * The official docs are not completely explicit abut this though
+ * The official docs are not completely explicit about this though
  * and it appears MacOS 15 (beta) does not, requiring another
  * iteration.  We now allow for 5 iterations ...
  */

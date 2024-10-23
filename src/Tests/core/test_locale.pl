@@ -352,8 +352,10 @@ test(group, Atom == '1.\u2009234.\u2009567,89') :-
 
 :- begin_tests(collation_key).
 
-test('WCSXFRM_BUFFER_OVERRUN', true) :-
-	findall(C, between(32,1000,C), Codes),
+% MacOS 15 wcsxfrm(() returns invalid data
+test('WCSXFRM_BUFFER_OVERRUN',
+     [condition(\+ current_prolog_flag(apple, true))]) :-
+	findall(C, (between(32,1000,C), code_type(C, print)), Codes),
 	atom_codes(Atom, Codes),
 	collation_key(Atom, _Key).
 
