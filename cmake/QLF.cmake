@@ -58,7 +58,8 @@ function(add_swipl_target name)
   add_custom_command(
       OUTPUT ${my_OUTPUT}
       BYPRODUCTS ${my_BYPRODUCTS}
-      COMMAND ${PROG_SWIPL} ${options} ${my_OPTIONS}
+      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
+	      ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
