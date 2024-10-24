@@ -135,7 +135,8 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "${input}"
+	COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
+		${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "${input}"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts}
 	VERBATIM)
