@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2020, VU University Amsterdam
+    Copyright (c)  2005-2024, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,16 +35,16 @@
 */
 
 :- module(nb_set,
-          [ empty_nb_set/1,             % -EmptySet
-            add_nb_set/2,               % +Key, !Set
-            add_nb_set/3,               % +Key, !Set, ?New
-            gen_nb_set/2,               % +Set, -Key
-            size_nb_set/2,              % +Set, -Size
-            nb_set_to_list/2            % +Set, -List
+          [ empty_nb_set/1,		 % -EmptySet
+            add_nb_set/2,		 % +Key, !Set
+            add_nb_set/3,		 % +Key, !Set, ?New
+            size_nb_set/2,		 % +Set, -Size
+            nb_set_to_list/2,		 % +Set, -List
+            gen_nb_set/2                 % +Set, -Key
           ]).
-:- autoload(library(lists),[member/2,append/2]).
-:- autoload(library(terms),[term_factorized/3]).
-
+:- autoload(library(apply), [maplist/2]).
+:- autoload(library(terms), [term_factorized/3]).
+:- use_module(library(debug), [assertion/1]).
 
 /** <module> Non-backtrackable sets
 
@@ -55,23 +56,26 @@ that is built using non-backtrackable primitives, notably nb_setarg/3.
 The original version of this library   used  binary trees which provides
 immediate ordering. As the trees were   not  balanced, performance could
 get   really   poor.   The   complexity   of   balancing   trees   using
-non-backtrackable primitives is too high.
+non-backtrackable primitives is too high. The  next iteration used _open
+hash tables_, while the current incarnation   uses _closed hash tables_,
+providing better perfomance and less space usage.
 
 @author Jan Wielemaker
 */
 
-initial_size(32).                       % initial hash-table size
+initial_capacity(4).                       % initial hash-table size
 
 %!  empty_nb_set(-Set)
 %
 %   Create an empty non-backtrackable set.
 
-empty_nb_set(nb_set(Buckets, 0)) :-
-    initial_size(Size),
-    '$filled_array'(Buckets, buckets, Size, []).
+empty_nb_set(NbSet) :-
+    initial_capacity(Capacity),
+    Empty = empty(1),
+    '$filled_array'(Buckets, buckets, Capacity, Empty),
+    NbSet = nb_set(Empty, Capacity, 0, Buckets).
 
 %!  add_nb_set(+Key, !Set) is det.
-%!  add_nb_set(+Key, !Set, ?New) is semidet.
 %!  add_nb_set(+Key, !Set, ?New) is semidet.
 %
 %   Insert Key into the set. If  a   variant  (see  =@=/2) of Key is
@@ -86,26 +90,63 @@ empty_nb_set(nb_set(Buckets, 0)) :-
 add_nb_set(Key, Set) :-
     add_nb_set(Key, Set, _).
 add_nb_set(Key, Set, New) :-
-    arg(1, Set, Buckets),
-    compound_name_arity(Buckets, _, BCount),
-    hash_key(Key, BCount, Hash),
-    arg(Hash, Buckets, Bucket),
-    (   member(X, Bucket),
-        Key =@= X
-    ->  New = false
-    ;   New = true,
-        duplicate_term(Key, Copy),
-        nb_linkarg(Hash, Buckets, [Copy|Bucket]),
-        arg(2, Set, Size0),
-        Size is Size0+1,
-        nb_setarg(2, Set, Size),
-        (   Size > BCount
-        ->  rehash(Set)
-        ;   true
-        )
+    Set = nb_set(Empty, Capacity, Size, Buckets),
+    key_hash(Key, Hash),
+    index(Hash, Capacity, KIndex),
+        arg(KIndex, Buckets, StoredKey),
+        (   same_term(StoredKey, Empty)
+        ->  !,
+            New = true,
+            nb_setarg(KIndex, Buckets, Key),
+            NSize is Size+1,
+            nb_setarg(3, Set, NSize),
+            (   NSize > Capacity*0.5
+            ->  rehash(Set)
+            ;   true
+            )
+        ;   Key =@= StoredKey
+        ->  !,
+            New = false
+        ).
+
+%!  index(+Hash, +Capacity, -Index) is nondet.
+%
+%   Generate  candidate  values  for  Index,  starting  from  `Hash  mod
+%   Capacity`, round tripping to 1 when Capacity is reached.
+
+index(Hash, Capacity, KIndex) :-
+    KIndex0 is (Hash mod Capacity) + 1,
+    next(KIndex0, Capacity, KIndex).
+
+next(KIndex, _, KIndex).
+next(KIndex0, Capacity, KIndex) :-
+    KIndex1 is KIndex0+1,
+    (   KIndex1 < Capacity
+    ->  next(KIndex1, Capacity, KIndex)
+    ;   next(1, Capacity, KIndex)
     ).
 
-%!  hash_key(+Term, +BucketCount, -Key) is det.
+rehash(Set) :-
+    Set = nb_set(Empty, Capacity, Size, Buckets),
+    NCapacity is Capacity*2,
+    '$filled_array'(NBuckets, buckets, NCapacity, Empty),
+    nb_setarg(2, Set, NCapacity),
+    nb_setarg(3, Set, 0),
+    nb_linkarg(4, Set, NBuckets),
+    forall(between(1, Capacity, I),
+           reinsert(I, Empty, Buckets, Set)),
+    arg(3, Set, NewSize),
+    assertion(NewSize == Size).
+
+:- det(reinsert/4).
+reinsert(KIndex, Empty, Buckets, Set) :-
+    arg(KIndex, Buckets, Key),
+    (   same_term(Key, Empty)
+    ->  true
+    ;   add_nb_set(Key, Set, true)
+    ).
+
+%!  hash_key(+Key, -Hash:integer) is det.
 %
 %   Compute a hash for Term. Note that variant_hash/2 currently does
 %   not handle cyclic terms, so use  term_factorized/3 to get rid of
@@ -113,55 +154,54 @@ add_nb_set(Key, Set, New) :-
 %   cyclic terms are involved.
 
 :- if(catch((A = f(A), variant_hash(A,_)), _, fail)).
-hash_key(Term, BCount, Key) :-
-    variant_hash(Term, IntHash),
-    Key is (IntHash mod BCount)+1.
+key_hash(Key, Hash) :-
+    variant_hash(Key, Hash).
 :- else.
-hash_key(Term, BCount, Key) :-
+key_hash(Key, Hash) :-
     acyclic_term(Key),
     !,
-    variant_hash(Term, IntHash),
-    Key is (IntHash mod BCount)+1.
-hash_key(Term, BCount, Key) :-
-    term_factorized(Term, Skeleton, Substiution),
-    variant_hash(Skeleton+Substiution, IntHash),
-    Key is (IntHash mod BCount)+1.
+    variant_hash(Key, Hash).
+key_hash(Key, Hash) :-
+    term_factorized(Key, Skeleton, Substiution),
+    variant_hash(Skeleton+Substiution, Hash).
 :- endif.
 
-rehash(Set) :-
-    arg(1, Set, Buckets0),
-    compound_name_arity(Buckets0, Name, Arity0),
-    Arity is Arity0*2,
-    '$filled_array'(Buckets, Name, Arity, []),
-    nb_setarg(1, Set, Buckets),
-    nb_setarg(2, Set, 0),
-    (  arg(_, Buckets0, Chain),
-       member(Key, Chain),
-       add_nb_set(Key, Set, _),
-       fail
-    ;  true
+%!  nb_set_to_list(+NBSet, -OrdSet) is det.
+%!  nb_set_to_list(-NBSet, +List) is det.
+%
+%   Get the elements of a an nb_set.   OrdSet  is sorted to the standard
+%   order of terms, providing a set representation that is compatible to
+%   library(ordsets).
+
+nb_set_to_list(NBSet, Set),
+    NBSet = nb_set(Empty, Capacity, _Size, Buckets) =>
+    buckets_to_list(1, Empty, Capacity, Buckets, List0),
+    sort(List0, Set).
+
+buckets_to_list(KIndex, Empty, Capacity, Buckets, List) :-
+    (   arg(KIndex, Buckets, Key)
+    ->  (   same_term(Empty, Key)
+        ->  KIndex1 is KIndex+1,
+            buckets_to_list(KIndex1, Empty, Capacity, Buckets, List)
+        ;   List = [Key|List1],
+            KIndex1 is KIndex+2,
+            buckets_to_list(KIndex1, Empty, Capacity, Buckets, List1)
+        )
+    ;   List = []
     ).
 
-%!  nb_set_to_list(+Set, -List)
-%
-%   Get the elements of a an nb_set. List is sorted to the standard
-%   order of terms.
-
-nb_set_to_list(nb_set(Buckets, _Size), OrdSet) :-
-    compound_name_arguments(Buckets, _, Args),
-    append(Args, List),
-    sort(List, OrdSet).
-
-%!  gen_nb_set(+Set, -Key)
+%!  gen_nb_set(+Set, -Key) is nondet.
 %
 %   Enumerate the members of a set in the standard order of terms.
 
-gen_nb_set(Set, Key) :-
-    nb_set_to_list(Set, OrdSet),
-    member(Key, OrdSet).
+gen_nb_set(nb_set(Empty, Capacity, _Size, Buckets), Key) =>
+    between(1, Capacity, KIndex),
+    arg(KIndex, Buckets, Key),
+    \+ same_term(Empty, Key).
 
-%!  size_nb_set(+Set, -Size)
+%!  size_nb_set(+Set, -Size) is det.
 %
 %   Unify Size with the number of elements in the set
 
-size_nb_set(nb_set(_, Size), Size).
+size_nb_set(nb_set(_Empty, _Capacity, Sz, _Buckets), Size) =>
+    Size = Sz.
