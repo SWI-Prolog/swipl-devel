@@ -63,51 +63,68 @@ describe the procedure for using a foreign  resource (DLL in Windows and
 shared object in Unix) called =mylib=.
 
 First, one must  assemble  the  resource   and  make  it  compatible  to
-SWI-Prolog. The details for this vary between platforms. The swipl-ld(1)
-utility can be used to deal with this  in a portable manner. The typical
-commandline is:
+SWI-Prolog.  The  details  for   this    vary   between  platforms.  The
+``swipl-ld(1)`` utility can be used to  deal   with  this  in a portable
+manner. The typical commandline is:
 
-        ==
-        swipl-ld -o mylib file.{c,o,cc,C} ...
-        ==
+```
+swipl-ld -shared -o mylib file.{c,o,cc,C} ...
+```
 
 Make  sure  that  one  of   the    files   provides  a  global  function
-=|install_mylib()|=  that  initialises  the  module    using   calls  to
-PL_register_foreign(). Here is a  simple   example  file  mylib.c, which
-creates a Windows MessageBox:
+``install_mylib()``  that  initialises  the  module    using   calls  to
+PL_register_foreign(). Below is a simple example file ``mylib.c``, which
+prints a "hello" message. Note that we use SWI-Prolog's Sprintf() rather
+than  C  standard  printf()  to  print    the  outout  through  Prolog's
+`current_output`  stream,  making  the  example    work  in  a  windowed
+environment. The standard C printf() works in a console environment, but
+this bypasses Prolog's output redirection.  Also   note  the  use of the
+standard C ``bool`` type, which is supported  in 9.2.x and more actively
+promoted in the 9.3.x development series.
 
-    ==
-    #include <windows.h>
-    #include <SWI-Prolog.h>
+```
+#include <SWI-Prolog.h>
+#include <SWI-Stream.h>
+#include <stdbool.h>
 
-    static foreign_t
-    pl_say_hello(term_t to)
-    { char *a;
+static foreign_t
+pl_say_hello(term_t to)
+{ char *s;
 
-      if ( PL_get_atom_chars(to, &a) )
-      { MessageBox(NULL, a, "DLL test", MB_OK|MB_TASKMODAL);
+  if ( PL_get_chars(to, &s, CVT_ALL|REP_UTF8) )
+  { Sprintf("hello %Us", s);
 
-        PL_succeed;
-      }
+    return true;
+  }
 
-      PL_fail;
-    }
+  return false;
+}
 
-    install_t
-    install_mylib()
-    { PL_register_foreign("say_hello", 1, pl_say_hello, 0);
-    }
-    ==
+install_t
+install_mylib(void)
+{ PL_register_foreign("say_hello", 1, pl_say_hello, 0);
+}
+```
 
 Now write a file mylib.pl:
 
-    ==
-    :- module(mylib, [ say_hello/1 ]).
-    :- use_foreign_library(foreign(mylib)).
-    ==
+```
+:- module(mylib, [ say_hello/1 ]).
+:- use_foreign_library(foreign(mylib)).
+```
 
 The file mylib.pl can be loaded as a normal Prolog file and provides the
-predicate defined in C.
+predicate defined in C. The generated   ``mylib.so`` (or ``.dll``, etc.)
+must be placed in a directory searched  for using the Prolog search path
+`foreign` (see absolute_file_name/3). To  load   this  from  the current
+directory, we can use the ``-p alias=dir`` option:
+
+```
+swipl -p foreign=. mylib.pl
+?- say_hello(world).
+hello world
+true.
+```
 */
 
 :- meta_predicate
