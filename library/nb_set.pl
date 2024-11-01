@@ -42,7 +42,6 @@
             nb_set_to_list/2,		 % +Set, -List
             gen_nb_set/2                 % +Set, -Key
           ]).
-:- autoload(library(apply), [maplist/2]).
 :- autoload(library(terms), [term_factorized/3]).
 :- use_module(library(debug), [assertion/1]).
 
@@ -100,7 +99,7 @@ add_nb_set(Key, Set, New) :-
             nb_setarg(KIndex, Buckets, Key),
             NSize is Size+1,
             nb_setarg(3, Set, NSize),
-            (   NSize > Capacity*0.5
+            (   NSize > Capacity//2
             ->  rehash(Set)
             ;   true
             )
@@ -120,11 +119,8 @@ index(Hash, Capacity, KIndex) :-
 
 next(KIndex, _, KIndex).
 next(KIndex0, Capacity, KIndex) :-
-    KIndex1 is KIndex0+1,
-    (   KIndex1 < Capacity
-    ->  next(KIndex1, Capacity, KIndex)
-    ;   next(1, Capacity, KIndex)
-    ).
+    KIndex1 is 1+(KIndex0 mod Capacity),
+    next(KIndex1, Capacity, KIndex).
 
 rehash(Set) :-
     Set = nb_set(Empty, Capacity, Size, Buckets),
