@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2017, VU University Amsterdam
+    Copyright (c)  2015-2024, VU University Amsterdam
+			     SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,8 +48,6 @@
 :- autoload(library(error),
 	    [domain_error/2,must_be/2,instantiation_error/1]).
 :- autoload(library(lists),[reverse/2,member/2]).
-:- autoload(library(nb_set),
-	    [empty_nb_set/1,add_nb_set/3,size_nb_set/2]).
 :- autoload(library(option),[option/3]).
 :- autoload(library(ordsets),[ord_subtract/3]).
 
@@ -74,27 +73,27 @@ want to eliminate duplicates of the first part of the conjunction. Below
 we give both the classical  solution   for  solving variations of (a(X),
 b(X)) and the ones using this library side-by-side.
 
-  $ Avoid duplicates of earlier steps :
+  - Avoid duplicates of earlier steps <br>
 
-    ==
+    ```
       setof(X, a(X), Xs),               distinct(a(X)),
       member(X, Xs),                    b(X)
       b(X).
-    ==
+    ```
 
     Note that the distinct/1 based solution returns the first result
     of distinct(a(X)) immediately after a/1 produces a result, while
     the setof/3 based solution will first compute all results of a/1.
 
-  $ Only try b(X) only for the top-10 a(X) :
+  - Only try b(X) only for the top-10 a(X) <br>
 
-    ==
+    ```
       setof(X, a(X), Xs),               limit(10, order_by([desc(X)], a(X))),
       reverse(Xs, Desc),                b(X)
       first_max_n(10, Desc, Limit),
       member(X, Limit),
       b(X)
-    ==
+    ```
 
     Here we see power of composing primitives from this library and
     staying within the paradigm of pure non-deterministic relational
@@ -139,21 +138,48 @@ b(X)) and the ones using this library side-by-side.
 %   code below, but answers are  returned   as  soon  as they become
 %   available rather than first computing the complete answer set.
 %
-%     ==
+%     ```
 %     distinct(Goal) :-
 %         findall(Goal, Goal, List),
 %         list_to_set(List, Set),
 %         member(Goal, Set).
-%     ==
+%     ```
 
 distinct(Goal) :-
     distinct(Goal, Goal).
 distinct(Witness, Goal) :-
     term_variables(Witness, Vars),
     Witness1 =.. [v|Vars],
-    empty_nb_set(Set),
+    setup_call_cleanup(
+        trie_new(Trie),
+        distinct_gen(Trie, Goal, Witness1),
+        trie_destroy(Trie)).
+
+distinct_gen(Trie, Goal, Witness) :-
     call(Goal),
-    add_nb_set(Witness1, Set, true).
+    trieable(Witness, ForTrie),
+    trie_insert(Trie, ForTrie).
+
+trieable(Term, ForTrie) :-
+    acyclic_term(Term),
+    term_attvars(Term, []),
+    !,
+    ForTrie = t(Term).
+trieable(Term, ForTrie) :-
+    copy_term(Term, Term2),
+    term_attvars(Term2, AttVars),
+    maplist(attrs, AttVars, AttVals),
+    ForTrie0 = a(Term2, AttVals),
+    (   acyclic_term(ForTrie0)
+    ->  ForTrie = ForTrie0
+    ;   term_factorized(ForTrie0, Plain, Assign),
+        ForTrie = c(Plain, Assign)
+    ).
+
+attrs(Var, Atts) :-
+    get_attrs(Var, Atts),
+    del_attrs(Var).
+
 
 %!  reduced(:Goal).
 %!  reduced(?Witness, :Goal, +Options).
@@ -176,17 +202,27 @@ reduced(Witness, Goal, Options) :-
     option(size_limit(SizeLimit), Options, 10_000),
     term_variables(Witness, Vars),
     Witness1 =.. [v|Vars],
-    empty_nb_set(Set),
-    State = state(Set),
-    call(Goal),
-    reduced_(State, Witness1, SizeLimit).
+    setup_call_cleanup(
+        reduced_init(State),
+        reduced_next(State, Goal, Witness1, SizeLimit),
+        reduced_exit(State)).
 
-reduced_(State, Witness1, SizeLimit) :-
+reduced_init(State) :-
+    trie_new(Set),
+    State = state(Set).
+
+reduced_exit(state(Trie)) :-
+    trie_destroy(Trie).
+
+reduced_next(State, Goal, Witness, SizeLimit) :-
+    call(Goal),
     arg(1, State, Set),
-    add_nb_set(Witness1, Set, true),
-    size_nb_set(Set, Size),
+    trieable(Witness, ForTrie),
+    trie_insert(Set, ForTrie),
+    trie_property(Set, node_count(Size)),
     (   Size > SizeLimit
-    ->  empty_nb_set(New),
+    ->  trie_destroy(Set),
+        trie_new(New),
         nb_setarg(1, State, New)
     ;   true
     ).
