@@ -39,6 +39,12 @@
 :- use_module(library(rwlocks)).
 :- use_module(library(thread)).
 
+% Declare dynamic predicates for thread safety
+:- thread_local
+    started/1,                % Used in priority_handling test
+    read_done/1,             % Used in concurrent_reads test
+    read_attempted/1.        % Used in write_blocks_reads test
+
 test_rwlocks :-
 	run_tests([ rwlocks
 		  ]).
@@ -87,35 +93,50 @@ rethrow(Exception) :-
     throw(Exception).
 
 test(concurrent_reads, [thread]) :-
-    flag(concurrent_read_counter, _, 0),
+    retractall(read_done(_)),
     message_queue_create(Queue),
     thread_create(with_rwlock(test_lock,
-                              (flag(concurrent_read_counter, X, X+1),
+                              (thread_self(Id),
+                               assertz(read_done(Id)),
+                               % Wait for other thread to also get read lock
+                               thread_get_message(Queue, other_done),
                                thread_send_message(Queue, done)),
-                              read),
+                              read,
+                              [timeout(1)]),  % Timeout to prevent deadlock
                  T1, []),
     thread_create(with_rwlock(test_lock,
-                              (flag(concurrent_read_counter, Y, Y+1),
+                              (thread_self(Id),
+                               assertz(read_done(Id)),
+                               % Signal first thread we're done
+                               thread_send_message(Queue, other_done),
                                thread_send_message(Queue, done)),
-                              read),
+                              read,
+                              [timeout(1)]),  % Timeout to prevent deadlock
                  T2, []),
+    % Wait for both threads to complete
     thread_get_message(Queue, done),
     thread_get_message(Queue, done),
     maplist(thread_join, [T1, T2]),
-    flag(concurrent_read_counter, FinalCount, FinalCount),
-    debug(test_rwlocks, 'Final concurrent read count: ~w', [FinalCount]),
-    assertion(FinalCount == 2),
+    % Verify both threads completed
+    findall(Id, read_done(Id), Threads),
+    length(Threads, Count),
+    assertion(Count == 2),
     message_queue_destroy(Queue).
 
 test(write_blocks_reads, [thread]) :-
-    flag(read_counter, _, 0),
+    retractall(read_attempted(_)),
     message_queue_create(Queue),
+    % Start write thread and wait for it to acquire the lock
     thread_create(with_rwlock(test_lock,
-                              thread_send_message(Queue, write_done),
+                              (thread_send_message(Queue, write_ready),
+                               thread_get_message(Queue, continue)),
                               write),
                  WriteThread, []),
+    thread_get_message(Queue, write_ready),
+    % Try to get read lock while write lock is held
     thread_create((   catch(with_rwlock(test_lock,
-                                        (flag(read_counter, _, 1), fail),
+                                        (thread_self(Id),
+                                         assertz(read_attempted(Id))),
                                         read,
                                         [timeout(0.5)]),
                             time_limit_exceeded(rwlock),
@@ -124,13 +145,18 @@ test(write_blocks_reads, [thread]) :-
                   ;   thread_send_message(Queue, read_succeeded)
                   ),
                  ReadThread, []),
-    thread_get_message(Queue, write_done),
+    % Wait for read attempt to complete
     thread_get_message(Queue, ReadResult),
+    % Allow write thread to finish
+    thread_send_message(Queue, continue),
+    % Clean up threads
     maplist(thread_join, [WriteThread, ReadThread]),
-    flag(read_counter, ReadCount, ReadCount),
-    debug(test_rwlocks, 'Read result: ~w, Read count: ~w', [ReadResult, ReadCount]),
+    % Verify read was blocked (no read_attempted facts should exist)
+    findall(Id, read_attempted(Id), ReadAttempts),
+    length(ReadAttempts, AttemptCount),
+    debug(test_rwlocks, 'Read result: ~w, Read attempts: ~w', [ReadResult, AttemptCount]),
     assertion(ReadResult == read_blocked),
-    assertion(ReadCount == 0),
+    assertion(AttemptCount == 0),
     message_queue_destroy(Queue).
 
 test(invalid_mode, [throws(error(type_error(rwlock_mode, invalid), _))]) :-
