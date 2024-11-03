@@ -138,6 +138,7 @@ endfunction()
 #   - term//2 should move from `pengines` to `http`
 
 set(SWIPL_PKG_DEPS_RDF clib semweb sgml)
+set(SWIPL_PKG_DEPS_plunit clib)
 set(SWIPL_PKG_DEPS_archive clib)
 set(SWIPL_PKG_DEPS_clib sgml)
 set(SWIPL_PKG_DEPS_ltx2htm clib)
