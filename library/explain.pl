@@ -185,8 +185,7 @@ known_predicate(M:Head) :-
     (   predicate_property(M2:Head, imported_from(M))
     ->  true
     ;   M = M2
-    ),
-    !.
+    ).
 known_predicate(Pred) :-
     predicate_property(Pred, undefined).
 known_predicate(_:Head) :-
