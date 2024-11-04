@@ -183,7 +183,7 @@ attach_packs(_, _).
 register_packs_from(Dir) :-
     (   user:file_search_path(pack, Dir)
     ->  true
-    ;   asserta(user:file_search_path(pack, Dir))
+    ;   assertz(user:file_search_path(pack, Dir))
     ).
 
 attach_packages([], _, _).
