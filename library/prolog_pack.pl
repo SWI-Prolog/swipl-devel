@@ -1491,7 +1491,7 @@ exec_plan_rebuild_step(Options, Info) :-
 
 %!  attach_from_info(+Options, +Info) is det.
 %
-%   Make the package visible.  Similar to pack_make_available/3.
+%   Make the package visible.
 
 attach_from_info(_Options, Info) :-
     Info.get(keep) == true,
@@ -2200,7 +2200,7 @@ hsts(URL, URL, _Options).
 pack_post_install(Pack, PackDir, Options) :-
     post_install_foreign(Pack, PackDir, Options),
     post_install_autoload(PackDir, Options),
-    attach_packs(PackDir, [duplicate(warning)]).
+    pack_attach(PackDir, [duplicate(warning)]).
 
 %!  pack_rebuild is det.
 %!  pack_rebuild(+Pack) is det.
