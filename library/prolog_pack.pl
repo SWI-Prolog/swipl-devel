@@ -2164,8 +2164,9 @@ download_url(URL) :-
 url_scheme(URL, Scheme) :-
     atom(URL),
     uri_components(URL, Components),
-    uri_data(scheme, Components, Scheme),
-    atom(Scheme).
+    uri_data(scheme, Components, Scheme0),
+    atom(Scheme0),
+    Scheme = Scheme0.
 
 download_scheme(http).
 download_scheme(https).
