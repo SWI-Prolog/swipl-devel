@@ -93,26 +93,26 @@ vertices([Vertex-_|Graph], [Vertex|Vertices]) :-
     vertices(Graph, Vertices).
 
 
-%!  vertices_edges_to_ugraph(+Vertices, +Edges, -UGraph) is det.
+%!  vertices_edges_to_ugraph(+Vertices:list, +Edges:pairs, -UGraph) is det.
 %
-%   Create a UGraph from Vertices and edges.   Given  a graph with a
-%   set of Vertices and a set of   Edges,  Graph must unify with the
-%   corresponding S-representation. Note that   the vertices without
-%   edges will appear in Vertices but not  in Edges. Moreover, it is
-%   sufficient for a vertice to appear in Edges.
+%   Create a UGraph from Vertices and Edges.  UGraph must unify with the
+%   corresponding S-representation. Note  that  vertices   that  do  not
+%   appear in any of the Edges appear in UGraph as `Vertice-[]`. The set
+%   of vertices in UGraph is the union of Vertices and all vertices that
+%   appear in the Edges pairs.
 %
-%   ==
+%   ```
 %   ?- vertices_edges_to_ugraph([],[1-3,2-4,4-5,1-5], L).
 %   L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
-%   ==
+%   ```
 %
-%   In this case all  vertices  are   defined  implicitly.  The next
-%   example shows three unconnected vertices:
+%   In this case all vertices are   defined implicitly. The next example
+%   shows three unconnected vertices:
 %
-%   ==
-%   ?- vertices_edges_to_ugraph([6,7,8],[1-3,2-4,4-5,1-5], L).
+%   ```
+%   ?- vertices_edges_to_ugraph([1,2,6,7,8],[1-3,2-4,4-5,1-5], L).
 %   L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[], 6-[], 7-[], 8-[]]
-%   ==
+%   ```
 
 vertices_edges_to_ugraph(Vertices, Edges, Graph) :-
     sort(Edges, EdgeSet),
