@@ -987,6 +987,7 @@ suggest predicates from a keyword.
 \opsummary{1200}{fx}{:-}{Introduces a directive}
 \opsummary{1200}{fx}{?-}{Introduces a directive}
 \opsummary{1200}{xfx}{-->}{DCGrammar: rewrite}
+\opsummary{1200}{xfx}{==>}{DCGrammar: rewrite}
 \opsummary{1200}{xfx}{:-}{head \Sneck{} body. separator}
 \end{summarylist}
 

@@ -290,6 +290,20 @@ a term \exam{Head :- Body} and for a single sided unification rule
 it is a term \exam{Head {=>} Body}.
 \end{description}
 
+\subsection{Single sided unification for Definite Clause Grammars}
+\label{sec:ssu-dcg}
+
+Single sided unification is attractive for \jargon{generative DCG
+rules}, i.e., DCG rules that are used to \jargon{serialize} some term.
+In that context they avoid unwanted matching on variables and provide
+better error messages in case not all possible terms are described by
+the grammar. Single sided unification has no practical use for parsing
+because the arguments are typically \jargon{output} arguments.
+
+If the head of an SSU DCG rules is a term \verb$Head, Extra$,
+\arg{Extra} is interpreted as a \jargon{push back list} if it is a list
+and as an SSU \jargon{guard} otherwise.  The guard is \emph{not} subject
+to DCG expansion, i.e., it is interpreted as if enclosed by \verb${}$.
 
 \subsection{SSU: Future considerations}
 \label{sec:ssu-future}
