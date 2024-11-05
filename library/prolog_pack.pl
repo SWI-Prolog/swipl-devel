@@ -1453,24 +1453,25 @@ is_built(PackDir, _Options) :-
 %   packages that rely on them as they may need them during the build.
 
 order_builds(ToBuild, Ordered) :-
-    findall(DepForPack-Pack, dep_edge(ToBuild, Pack, DepForPack), Edges),
+    findall(Pack-Dependent, dep_edge(ToBuild, Pack, Dependent), Edges),
     maplist(get_dict(pack), ToBuild, Packs),
     vertices_edges_to_ugraph(Packs, Edges, Graph),
     ugraph_layers(Graph, Layers),
     append(Layers, PackNames),
     maplist(pack_info_from_name(ToBuild), PackNames, Ordered).
 
-%!  dep_edge(+Infos, -Pack, -DepForPack) is nondet.
+%!  dep_edge(+Infos, -Pack, -Dependent) is nondet.
 %
-%   True when DepForPack  is  a  dependency   for  Pack.  Both  Pack and
-%   DepForPack are pack _names.
+%   True when Pack needs to be installed   as a dependency of Dependent.
+%   Both Pack and Dependent are pack _names_. I.e., this implies that we
+%   must build Pack _before_ Dependent.
 
-dep_edge(Infos, Pack, DepForPack) :-
+dep_edge(Infos, Pack, Dependent) :-
     member(Info, Infos),
     Pack = Info.pack,
-    member(DepForPack, Info.get(dependency_for)),
+    member(Dependent, Info.get(dependency_for)),
     (   member(DepInfo, Infos),
-        DepInfo.pack == DepForPack
+        DepInfo.pack == Dependent
     ->  true
     ).
 
