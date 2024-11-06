@@ -1825,8 +1825,12 @@ printCrashContext(const char *btname)
 	print_backtrace_named("GC");
       }
     }
-    Sdprintf("\n\nPROLOG STACK:\n");
-    PL_backtrace(10, btflags);
+    Sdprintf("\n\nPROLOG STACK (without arguments):\n");
+    PL_backtrace(10, PL_BT_SAFE);
+    if ( !(btflags&PL_BT_SAFE) )
+    { Sdprintf("\n\nPROLOG STACK (with arguments; may crash if data is corrupted):\n");
+      PL_backtrace(10, btflags);
+    }
   }
 
   running = false;
