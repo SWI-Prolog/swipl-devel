@@ -170,23 +170,13 @@ max_char(octet, 255).
 max_char(text, 0xfffff).		% Only if Locale is UTF-8!  How to test?
 max_char(iso_latin_1, 255).
 max_char(utf8, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff		% Full Unicode range
-	).
+	current_prolog_flag(max_char_code, Max).
 max_char(utf16be, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff		% Full Unicode range
-	).
+	current_prolog_flag(max_char_code, Max).
 max_char(utf16le, Max) :-
 	max_char(utf16be, Max).
 max_char(wchar_t, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff
-	).
-
+	current_prolog_flag(max_char_code, Max).
 
 save_list(File, Codes, Enc) :-
 	open(File, write, Out, [encoding(Enc)]),
