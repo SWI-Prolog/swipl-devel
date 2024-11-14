@@ -386,7 +386,8 @@ typedef struct
   } op;				/* Name of the operator */
   unsigned isblock : 1;		/* [...] or {...} operator */
   unsigned isterm : 1;		/* Union is a term */
-  char	kind;			/* kind (prefix/postfix/infix) */
+  char	kind;			/* kind (OP_PREFIX, ...) */
+  unsigned char type;		/* OP_FX, ... */
   short	left_pri;		/* priority at left-hand */
   short	right_pri;		/* priority at right hand */
   short	op_pri;			/* priority of operator */
@@ -3720,6 +3721,7 @@ isOp(DECL_LD op_entry *e, unsigned char kind, ReadData _PL_rd)
 
   if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
     fail;
+  e->type   = type;
   e->kind   = kind;
   e->op_pri = pri;
 
@@ -3877,8 +3879,18 @@ typedef enum
 } reduce_side;
 
 static bool
-must_reduce(const op_entry *sop, const op_entry *fop reduce_side side)
+must_reduce(const op_entry *sop, const op_entry *fop, reduce_side side)
 { int cpri = side == REDUCE_LEFT ? fop->left_pri : fop->right_pri;
+
+  if ( cpri == sop->op_pri )
+  { /* Deal with `fy 2 yf`, `1 xfy 2 yfx 3`, etc.  */
+
+    if ( ((sop->kind == OP_PREFIX || sop->kind == OP_INFIX) &&
+	  sop->op_pri == sop->right_pri) &&
+	 ((fop->kind == OP_POSTFIX || fop->kind == OP_INFIX) &&
+	  fop->op_pri == fop->left_pri) )
+      return false;
+  }
 
   return cpri >= sop->op_pri;
 }

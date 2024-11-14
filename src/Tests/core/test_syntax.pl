@@ -145,10 +145,10 @@ test(r1, T == fy(fy(1))) :-
     term_string_(T, "fy fy 1").
 test(r2, T == xfy(1, xfy(2,3))) :-
     term_string_(T, "1 xfy 2 xfy 3").
-test(r3, [T == xfy(1, yfx(2,3)), blocked(bug)]) :-
+test(r3, T == xfy(1, yfx(2,3))) :-
     term_string_(T, "1 xfy 2 yfx 3").
-test(r4, [T == fy(yf(2)), blocked(bug)]) :-
-    term_string_(T, "fy 2 fy").
+test(r4, T == fy(yf(2))) :-
+    term_string_(T, "fy 2 yf").
 test(r5, T == yf(yf(1))) :-
     term_string_(T, "1 yf yf").
 test(r6, T == yfx(yfx(1,2),3)) :-
