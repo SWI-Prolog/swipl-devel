@@ -1037,7 +1037,7 @@ NaN_value(double f)
 
 static char *
 writeNaN(double f, char *buf)
-{ format_float(NaN_value(f), buf);
+{ format_float(NaN_value(f), 3, 'e', buf);
   strcat(buf, "NaN");
   return buf;
 }
@@ -1129,7 +1129,7 @@ format_special_float(double f, char *buf)
 
 
 char *
-format_float(double f, char *buf)
+format_float(double f, int N, char E, char *buf)
 { char *end, *o=buf, *s;
   int decpt, sign;
 
@@ -1137,14 +1137,16 @@ format_float(double f, char *buf)
     return s;
 
   s = dtoa(f, 0, 30, &decpt, &sign, &end);
-  DEBUG(2, Sdprintf("decpt=%d, sign=%d, len = %d, '%s'\n",
-		    decpt, sign, end-s, s));
+  DEBUG(MSG_WRITE_FLOAT,
+	Sdprintf("dtoa(): decpt=%d, sign=%d, len = %d, '%s'\n",
+		 decpt, sign, end-s, s));
 
   if ( sign )
     *o++ = '-';
 
   if ( decpt <= 0 )			/* decimal dot before */
-  { if ( decpt <= -4 )
+  { int e = decpt-1;
+    if ( N < 0 || e < -N-1 )
     { *o++ = s[0];
       *o++ = '.';
       if ( end-s > 1 )
@@ -1152,7 +1154,7 @@ format_float(double f, char *buf)
 	o += end-s-1;
       } else
 	*o++ = '0';
-      sprintf(o, "e%d", decpt-1);
+      sprintf(o, "%c%03d", E, e);
     } else
     { int i;
 
@@ -1163,7 +1165,7 @@ format_float(double f, char *buf)
       memcpy(o, s, end-s);
       o[end-s] = 0;
     }
-  } else if ( end-s > decpt )		/* decimal dot inside */
+  } else if ( N >=0 && end-s > decpt ) /* decimal dot inside */
   { memcpy(o, s, decpt);
     o += decpt;
     *o++ = '.';
@@ -1171,23 +1173,27 @@ format_float(double f, char *buf)
     o[end-s-decpt] = 0;
   } else				/* decimal dot after */
   { int i;
-    int trailing = decpt-(int)(end-s);
+    int d = (int)(end-s);
+    int trailing = decpt-d;
+    int exp = trailing+d-1;
 
-    if ( decpt > 15 )			/* over precision: use eE */
+    DEBUG(MSG_WRITE_FLOAT,
+	  Sdprintf("trailing = %d; exp=%d; d=%d; N=%d\n",
+		   trailing, exp, d, N));
+    if ( N < 0 || exp >= N+d )	/* over precision: use eE */
     { *o++ = s[0];
       *o++ = '.';
-      if ( end-s > 1 )
-      { trailing += (int)(end-s)-1;
-	memcpy(o, s+1, end-s-1);
-	o += end-s-1;
+      if ( d > 1 )
+      { memcpy(o, s+1, d-1);
+	o += d-1;
       } else
 	*o++ = '0';
-      sprintf(o, "e+%d", trailing);
+      sprintf(o, "%c+%02d", E, exp);
     } else				/* within precision trail with .0 */
     { memcpy(o, s, end-s);
       o += end-s;
 
-      for(i=(int)(end-s); i<decpt; i++)
+      for(i=d; i<decpt; i++)
 	*o++ = '0';
       *o++ = '.';
       *o++ = '0';
@@ -1278,7 +1284,7 @@ WriteNumber(Number n, write_options *options)
     case V_FLOAT:
     { char buf[100];
 
-      format_float(n->value.f, buf);
+      format_float(n->value.f, 3, 'e', buf);
       return PutToken(buf, options->out);
     }
     default:

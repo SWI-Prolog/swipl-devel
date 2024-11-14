@@ -9768,6 +9768,23 @@ Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
     \fmtchar{G}
 Floating point in {\bf E} or {\bf f} notation, whichever is shorter.
 
+    \fmtchar{h}
+    \nodescription
+    \fmtchar{H}
+Print a floating point number with the minimal number of digits such
+that read/1 produces exactly (as in \predref{==}{2}) the same number.
+The argument specifies whether a number is written using exponential
+notation (using \textbf{e} (h) or \textbf{E} (H)) or fixed point
+notation (as \verb$~f$).  If the argument is -1, the number is always
+written using exponential notation.  Otherwise, number is written
+using exponential notation if the exponent is less than \arg{Arg}-1
+or greater than \arg{Arg}+\arg{d}, where \arg{d} is the number of
+digits emitted to establish the required precision.   Using an
+argument larger than the the maximum exponent such as \verb$~999h$
+never uses exponential notation.   The default argument is 3.  The
+predicate write/1 and friends act as if using the format \verb$~3h$.
+This option is compatible to SICStus Prolog.
+
     \fmtchar{i}
 Ignore next argument of the argument list. Produces no output.
 

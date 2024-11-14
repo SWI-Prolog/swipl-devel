@@ -803,7 +803,7 @@ isCurrentArithFunction(functor_t f)
 }
 
 
-int
+bool
 check_float(Number n)
 { PL_error_code code = ERR_NO_ERROR;
 #ifdef HAVE_FPCLASSIFY

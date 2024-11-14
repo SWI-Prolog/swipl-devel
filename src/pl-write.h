@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -68,7 +69,7 @@ int		writeAttributeMask(atom_t name);
 int		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
 int		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 int		writeAtomToStream(IOSTREAM *s, atom_t atom);
-char *		format_float(double f, char *buf);
+char *		format_float(double f, int N, char E, char *buf);
 int		unquoted_atom(atom_t a);
 strnumstat	make_nan(double *f);
 double		NaN_value(double f);

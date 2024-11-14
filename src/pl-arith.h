@@ -3,10 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2023, University of Amsterdam
-                         VU University Amsterdam
-			 CWI, Amsterdam
-			 SWI-Prolog Solutions b.v.
+    Copyright (c)  2023-2024, University of Amsterdam
+                              VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,7 @@ Number		growArithStack(void);
 void		freeArithLocalData(PL_local_data_t *ld);
 int		ar_sign_i(Number n1);
 int		ar_signbit(Number n1);
-int		check_float(Number n);
+bool		check_float(Number n);
 int		ar_rdiv_mpz(Number n1, Number n2, Number r);
 int		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 int		is_arith_flag(atom_t k);

@@ -80,7 +80,7 @@ typedef struct
 } format_state;
 
 #define BUFSIZE		1024
-#define DEFAULT		(-1)
+#define DEFAULT		INT_MIN
 #define SHIFT		{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
 			  { FMT_ERROR("not enough arguments"); \
@@ -488,9 +488,17 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
 	  int mod_colon = false;	/* Used colon modifier */
+	  bool neg = false;
 	  predicate_t proc;
 					/* Get the numeric argument */
 	  c = get_chr_from_text(fmt, ++here);
+	  if ( c == '-' )
+	  { neg = true;
+	    c = get_chr_from_text(fmt, ++here);
+	    if ( !isDigitW(c) )
+	    { FMT_ERROR("invalid argument");
+	    }
+	  }
 
 	  if ( isDigitW(c) )
 	  { arg = c - '0';
@@ -509,7 +517,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		arg = arg2;
 		here++;
 	      } else
+	      { if ( neg )
+		  arg = -arg;
 		break;
+	      }
 	    }
 	  } else if ( c == '*' )
 	  { NEED_ARG;
@@ -597,6 +608,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'f':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
+	      case 'h':
+	      case 'H':			/* Precise */
 		{ AR_CTX
 		  number n;
 		  union {
@@ -1358,15 +1371,20 @@ the following algorithm, courtesy of Jan Burse:
 
 static char *
 formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
-{ if ( arg == DEFAULT )
-  { arg = 6;
-  } else if ( arg < 0 )
+{ bool use_h = how == 'h' || how == 'H';
+
+  if ( arg == DEFAULT )
+  { arg = use_h ? 3 : 6;
+  } else if ( arg < 0 && !use_h )
   { GET_LD
     term_t a = PL_new_term_ref();
     PL_put_integer(a, arg);
     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, a);
     return NULL;
   }
+
+  if ( use_h && !promoteToFloatNumber(f) )
+    return NULL;
 
   switch(f->type)
   {
@@ -1698,26 +1716,36 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
   }
 #endif /* O_GMP OR O_BF */
     case V_INTEGER:
-      promoteToFloatNumber(f);
+      if ( !promoteToFloatNumber(f) )
+	return NULL;
       /*FALLTHROUGH*/
     case V_FLOAT:
     { char tmp[12];
       int written = arg+20;
       int size = 0;
 
-      Ssprintf(tmp, "%%.%d%c", arg, how);
-      while(written >= size)
-      { size = written+1;
-
-	if ( !growBuffer(out, size) )
+      if ( how == 'h' || how == 'H' )
+      { if ( !growBuffer(out, 100) )
 	{ PL_no_memory();
 	  return NULL;
 	}
-	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
+	format_float(f->value.f, arg, how == 'H' ? 'E' : 'e', out->base);
+	written = strlen(out->base);
+      } else
+      { Ssprintf(tmp, "%%.%d%c", arg, how);
+	while(written >= size)
+	{ size = written+1;
+
+	  if ( !growBuffer(out, size) )
+	  { PL_no_memory();
+	    return NULL;
+	  }
+	  written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
 #ifdef __WINDOWS__
-	if ( written < 0 )	/* pre-C99 Windows snprintf() returns -1 */
-	  written = size*2;
+	  if ( written < 0 )	/* pre-C99 Windows snprintf() returns -1 */
+	    written = size*2;
 #endif
+	}
       }
 
 #ifdef __WINDOWS__
