@@ -1455,8 +1455,8 @@ promoteIntNumber(Number n)
 #else
   GET_LD
 
-    if ( truePrologFlag(PLFLAG_ISO) )
-      return PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
+  if ( truePrologFlag(PLFLAG_ISO) )
+    return PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
   return promoteToFloatNumber(n);
 #endif

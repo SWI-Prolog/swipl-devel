@@ -6535,6 +6535,12 @@ a space (default) or newline if the \term{nl}{true} option is also
 given.\footnote{Compatible with
 \href{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}{ECLiPSe}}
 
+    \termitem{float_format}{+Atom}
+Print floating point numbers using format/2 as \term{format}{Atom,
+[Float]}. The default is \verb$~h$. This option is compatible with
+SICStus. See format/2 for valid format specifiers and the
+\const{integer_format} option for additional comments.
+
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term representation (<functor>(<args>
 \ldots)) will be used for all terms.  Otherwise (default), operators
@@ -6542,6 +6548,16 @@ will be used where appropriate.\footnote{In traditional systems this
 flag also stops the syntactic sugar notation for lists and brace terms.
 In SWI-Prolog, these are controlled by the separate options
 \const{dotlists} and \const{brace_terms}}.
+
+    \termitem{integer_format}{+Atom}
+Print integers using format/2 as \term{format}{Atom, [Int]}.  The
+default is \verb$~d$. This allows to print integers using an
+alternative \jargon{radix}, using e.g.\, \verb$~16r$ or \verb$0x~16r$
+or to use digit grouping using e.g.\ \verb$~D$. Note that the user
+is reponsible to provide a format that produces valid Prolog syntax if
+the term must be readable by Prolog.  The format must accept exactly
+one argument.  If that is not satisfied, printing an integer results
+in an exception.  See format/2 for for valid format specifiers.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
@@ -9700,12 +9716,12 @@ stream and uses the position information of the temporary stream to
 update its notion of the position.  Notable ansi_format/3 cooperates
 properly in callbacks.\footnote{As of version 8.3.30}.
 
-Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
-and \chr{G}) accept an arithmetic expression as argument. This is
-introduced to handle rational numbers transparently (see
-\secref{rational}).  The floating point conversions allow for unlimited
-precision for printing rational numbers in decimal form.  E.g., the
-following will write as many 3's as you want by changing the `50'.
+Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f},
+\chr{g}, \chr{G}, \chr{h} and \chr{H}) accept an arithmetic expression
+as argument. This is introduced to handle rational numbers transparently
+(see \secref{rational}). The floating point conversions allow for
+unlimited precision for printing rational numbers in decimal form. E.g.,
+the following will write as many 3's as you want by changing the `50'.
 
 \begin{code}
 ?- format('~50f', [10 rdiv 3]).

@@ -100,6 +100,16 @@ double		PL_nan(void);
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
+static inline bool
+isIntegerNumber(const Number n)
+{
+#if O_BIGNUM
+  return n->type <= V_MPZ;
+#else
+  return n->type <= V_INTEGER;
+#endif
+}
+
 #define allocArithStack(_) LDFUNC(allocArithStack, _)
 static inline Number
 allocArithStack(DECL_LD)

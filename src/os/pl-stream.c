@@ -730,7 +730,7 @@ static inline void
 update_linepos(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  if ( c > '\r' )			/* speedup the 99% case a bit */
+  if ( likely(c > '\r') )	/* speedup the 99% case a bit */
   { p->linepos++;
     return;
   }
@@ -942,7 +942,6 @@ put_code(int c, IOSTREAM *s)
 	  return -1;
 	break;
       }
-    simple:
       if ( put_byte(c, s) < 0 )
 	return -1;
       break;
@@ -952,7 +951,9 @@ put_code(int c, IOSTREAM *s)
 	  return -1;
 	break;
       }
-      goto simple;
+      if ( put_byte(c, s) < 0 )
+	return -1;
+      break;
     case ENC_ANSI:
     { char b[PL_MB_LEN_MAX];
       size_t n;
@@ -981,8 +982,11 @@ put_code(int c, IOSTREAM *s)
     { char buf[6];
       char *p, *end;
 
-      if ( c < 128 )
-	goto simple;
+      if ( likely(c < 128) )
+      { if ( put_byte(c, s) < 0 )
+	  return -1;
+	break;
+      }
 
       end = utf8_put_char(buf, c);
       for(p=buf; p<end; p++)

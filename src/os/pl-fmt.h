@@ -5,7 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2024, University of Amsterdam
                          VU University Amsterdam
-		         CWI, Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,5 +39,7 @@
 
 COMMON(char *)	formatInteger(PL_locale *locale, int div, int radix,
 			      bool smll, Number n, Buffer out);
+COMMON(bool)	do_format(IOSTREAM *fd, PL_chars_t *fmt,
+			  int argc, term_t argv, Module m);
 
 #endif /*FMT_H_INCLUDED*/

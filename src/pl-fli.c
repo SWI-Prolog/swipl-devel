@@ -869,7 +869,7 @@ get_atom_ptr_text(Atom a, PL_chars_t *text)
   text->storage   = PL_CHARS_HEAP;
   text->canonical = true;
 
-  succeed;
+  return true;
 }
 
 

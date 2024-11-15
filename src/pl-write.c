@@ -68,16 +68,12 @@
 #define HAVE_FPCLASSIFY 1
 #endif
 
-#define RADIX_DECIMAL -10
-#define RADIX_HEX     -16
-#define RADIX_OCTAL    -8
-#define RADIX_BINARY   -2
-
 typedef struct
 { unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
-  int	radix;				/* Radix for printing integers */
+  atom_t integer_format;		/* How to format integers */
+  atom_t float_format;			/* How to format floats */
   atom_t spacing;			/* Where to insert spaces */
   Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
@@ -87,8 +83,9 @@ typedef struct
 } write_options;
 
 #define WRITE_OPTIONS_DEFAULTS \
-	{ .radix = RADIX_DECIMAL, \
-	  .spacing = ATOM_standard \
+	{ .spacing = ATOM_standard, \
+	  .integer_format = ATOM_int_format_specifier, \
+	  .float_format = ATOM_float_format_specifier \
 	}
 
 #define W_OP_ARG	1		/* writeTerm() location argument */
@@ -1295,73 +1292,60 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 #endif
 
 static bool
-put_radix(int radix, IOSTREAM *out)
-{ if ( radix > 0 )
-  { char tmp[16];
-    snprintf(tmp, sizeof(tmp), "%d'", radix);
-    return !!PutToken(tmp, out);
-  } else if ( radix == RADIX_HEX )
-  { return !!PutToken("0x", out);
-  } else if ( radix == RADIX_OCTAL )
-  { return !!PutToken("0o", out);
-  } else if ( radix == RADIX_BINARY )
-  { return !!PutToken("0b", out);
-  } else
-  { assert(0);
-    return false;
-  }
+separate_number(IOSTREAM *s, Number n, PL_chars_t *fmt)
+{ int c;
+
+  if ( fmt->length > 0 )
+    c = text_get_char(fmt, 0);
+  else
+    c = -1;
+
+  if ( !(c >= 0 && c != '~') )
+    c = ar_signbit(n) < 0 ? '-' : '0';
+
+  if ( needSpace(c, s) )
+    return Putc(' ', s);
+
+  return true;
 }
 
-static bool
-writeNumber(Number n, write_options *options)
-{
-#ifdef O_GMP
-  GET_LD
-#endif
+#define writeNumber(t, options) LDFUNC(writeNumber, t, options)
 
-  switch(n->type)
+static bool
+writeNumber(DECL_LD term_t t, write_options *options)
+{ number n;
+
+  PL_get_number(t, &n);
+
+  switch(n.type)
   { case V_INTEGER:
+    case V_FLOAT:
 #ifdef O_BIGNUM
     case V_MPZ:
 #endif
-    { tmp_buffer b;
-      bool rc;
-      int radix = options->radix >= 0 ? options->radix
-				      : -options->radix;
+    { PL_chars_t fmt;
 
-      initBuffer(&b);
-      char *s = formatInteger(NULL, 0, radix, true, n, (Buffer)&b);
-      if ( s )
-      { if ( options->radix != RADIX_DECIMAL )
-	  rc = ( put_radix(options->radix, options->out) &&
-		 PutString(s, options->out) );
-	else
-	  rc = !!PutToken(s, options->out);
-      } else
-	rc = false;
-      discardBuffer(&b);
+      get_atom_text(n.type == V_FLOAT ? options->float_format
+				      : options->integer_format,
+		    &fmt);
+      if ( !separate_number(options->out, &n, &fmt) )
+	return false;
 
-      return rc;
+      return do_format(options->out, &fmt, 1, t, options->module);
     }
 #ifdef O_BIGNUM
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
       char sep = ison(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
 
-      num[0] = *mpq_numref(n->value.mpq);
-      den[0] = *mpq_denref(n->value.mpq);
+      num[0] = *mpq_numref(n.value.mpq);
+      den[0] = *mpq_denref(n.value.mpq);
       return ( writeMPZ(num, options) &&
 	       Sputcode(sep, options->out) != EOF &&
 	       (options->out->lastc = EOF) &&
 	       writeMPZ(den, options) );
     }
 #endif
-    case V_FLOAT:
-    { char buf[100];
-
-      format_float(buf, sizeof(buf), n->value.f, 3, 'e');
-      return !!PutToken(buf, options->out);
-    }
     default:
       assert(0);
       return false;			/* make compiler happy */
@@ -1389,11 +1373,7 @@ writePrimitive(term_t t, write_options *options)
     return writeAtom(a, options);
 
   if ( PL_is_number(t) )		/* beware of automatic conversion */
-  { number n;
-
-    PL_get_number(t, &n);
-    return writeNumber(&n, options);
-  }
+    return writeNumber(t, options);
 
 #if O_STRING
   if ( PL_is_string(t) )
@@ -2079,7 +2059,8 @@ static const PL_option_t write_term_options[] =
   { ATOM_nl,			    OPT_BOOL },
   { ATOM_fullstop,		    OPT_BOOL },
   { ATOM_no_lists,		    OPT_BOOL },
-  { ATOM_radix,			    OPT_TERM },
+  { ATOM_integer_format,	    OPT_ATOM },
+  { ATOM_float_format,		    OPT_ATOM },
   { NULL_ATOM,			    0 }
 };
 
@@ -2093,7 +2074,6 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int numbervars  = -1;			/* not set */
   int portray     = false;
   term_t gportray = 0;
-  term_t radix    = 0;
   atom_t bq       = 0;
   int  charescape = -1;			/* not set */
   int charescape_unicode = -1;
@@ -2119,7 +2099,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 			&options.max_depth, &mname,
 			&bq, &attr, &priority, &partial, &options.spacing,
 			&blobs, &cycles, &varnames, &nl, &fullstop,
-			&no_lists, &radix) )
+			&no_lists,
+			&options.integer_format,
+			&options.float_format) )
     return false;
 
   if ( attr == ATOM_nil )
@@ -2176,26 +2158,6 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
       return false;
     if ( isoff(&options, PL_WRT_BLOB_PORTRAY) )
       portray = true;
-  }
-  if ( radix )
-  { atom_t a;
-    int r;
-
-    if ( PL_get_atom(radix, &a) )
-    { if ( a == ATOM_decimal )
-	options.radix = RADIX_DECIMAL;
-      else if ( a == ATOM_hex )
-	options.radix = RADIX_HEX;
-      else if ( a == ATOM_octal )
-	options.radix = RADIX_OCTAL;
-      else if ( a == ATOM_binary )
-	options.radix = RADIX_BINARY;
-      else
-	return PL_domain_error("radix", radix);
-    } else if ( PL_get_integer(radix, &r) && r >= 2 && r <= 36 )
-    { options.radix = r;
-    } else
-      return PL_domain_error("radix", radix);
   }
   if ( numbervars == -1 )
     numbervars = (portray ? true : false);

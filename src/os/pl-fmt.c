@@ -86,7 +86,8 @@ typedef struct
 			  } \
 			}
 #define FMT_ERROR(fmt)	return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
-#define FMT_ARG(c, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, c, a)
+#define FMT_ARG(s, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, s, a)
+#define FMT_ARGC(c, a)  do { char f[2] = {(char)c}; FMT_ARG(f, a); } while(0)
 #define FMT_EXEPTION()	return false
 
 
@@ -96,14 +97,24 @@ static PL_locale prolog_locale =
 };
 
 
-static int
-update_column(int col, int c)
-{ switch(c)
-  { case '\n':	return 0;
-    case '\r':  return 0;
-    case '\t':	return (col + 1) | 0x7;
-    case '\b':	return (col <= 0 ? 0 : col - 1);
-    default:	return col + 1;
+static inline void
+update_column(format_state *state, int c)
+{ if ( likely(c >= ' ') )
+  { state->column++;
+  } else
+  { switch(c)
+    { case '\n':
+	state->column = 0;
+	break;
+      case '\t':
+	state->column = (state->column+1)|0x7;
+      case '\b':
+	if ( likely(state->column>0) )
+	  state->column--;
+	break;
+      default:
+	state->column++;
+    }
   }
 }
 
@@ -114,7 +125,7 @@ UTF-8 format in the state's `buffer'.   The  `buffered' field represents
 the number of UTF-8 characters in the buffer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static WUNUSED int
+static WUNUSED bool
 outchr(format_state *state, int chr)
 { if ( state->pending_rubber )
   { if ( chr > 0x7f )
@@ -134,7 +145,7 @@ outchr(format_state *state, int chr)
       return false;
   }
 
-  state->column = update_column(state->column, chr);
+  update_column(state, chr);
 
   return true;
 }
@@ -161,35 +172,50 @@ outstring(format_state *state, const char *s, size_t len)
   }
 
   for(q=s; q < e; q++)
-    state->column = update_column(state->column, *q&0xff);
+    update_column(state, *q&0xff);
 
   return true;
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
-  while(s<e)
-  { int chr;
+  if ( !state->pending_rubber )
+  { while(s<e)
+    { int chr = s[0];
 
-    PL_utf8_code_point(&s, e, &chr);
-    if ( !outchr(state, chr) )
-      return false;
+      if ( likely(chr < 0x80) )
+	s++;
+      else
+	PL_utf8_code_point(&s, e, &chr);
+
+      if ( Sputcode(chr, state->out) < 0 )
+	return false;
+      update_column(state, chr);
+    }
+  } else
+  { while(s<e)
+    { int chr;
+
+      PL_utf8_code_point(&s, e, &chr);
+      if ( !outchr(state, chr) )
+	return false;
+    }
   }
 
   return true;
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 oututf80(format_state *state, const char *s)
 { return oututf8(state, s, strlen(s));
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 outtext(format_state *state, PL_chars_t *txt)
 { switch(txt->encoding)
   { case ENC_ISO_LATIN_1:
@@ -218,9 +244,6 @@ outtext(format_state *state, PL_chars_t *txt)
 
 #define format_predicates (GD->format.predicates)
 
-static int	update_column(int, Char);
-static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt,
-			  int ac, term_t av, Module m);
 static void	distribute_rubber(struct rubber *, int, int);
 static WUNUSED int emit_rubber(format_state *state);
 
@@ -462,7 +485,7 @@ end_sub_format(sub_state *state, int rc)
 		*       ACTUAL FORMATTING	*
 		********************************/
 
-static bool
+bool
 do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
@@ -609,23 +632,25 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'G':			/* shortest of 'f' and 'E' */
 	      case 'h':
 	      case 'H':			/* Precise */
-		{ AR_CTX
-		  number n;
-		  union {
-		  tmp_buffer b;
+		{ number n;
+		  union
+		  { tmp_buffer b;
 		    buffer b1;
 		  } u;
 		  PL_locale *l;
+		  AR_CTX
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !valueExpression(argv, &n) )
-		  { char f[2];
+		  if ( !PL_get_number(argv, &n) )
+		  { if ( !valueExpression(argv, &n) )
+		    { char f[2];
 
-		    f[0] = (char)c;
-		    f[1] = EOS;
-		    AR_CLEANUP();
-		    FMT_ARG(f, argv); /* returns error */
+		      f[0] = (char)c;
+		      f[1] = EOS;
+		      AR_CLEANUP();
+		      FMT_ARG(f, argv); /* returns error */
+		    }
 		  }
 		  SHIFT;
 
@@ -651,22 +676,26 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
 	      case 'I':			/* Prolog 1_000_000 */
-		{ AR_CTX
-		  number i;
+		{ number i;
 		  tmp_buffer b;
 		  char *si;
+		  AR_CTX
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !valueExpression(argv, &i) ||
-		       !toIntegerNumber(&i, 0) )
-		  { char f[2];
-
-		    f[0] = (char)c;
-		    f[1] = EOS;
-		    AR_CLEANUP();
-		    FMT_ARG(f, argv);
+		  if ( !PL_get_number(argv, &i) )
+		  { if ( !valueExpression(argv, &i) )
+		    { AR_CLEANUP();
+		      FMT_ARGC(c, argv); /* return with error */
+		    }
 		  }
+		  if ( !isIntegerNumber(&i) )
+		  { if ( !toIntegerNumber(&i, 0) )
+		    { AR_CLEANUP();
+		      FMT_ARGC(c, argv);
+		    }
+		  }
+
 		  SHIFT;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
@@ -894,7 +923,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    { rc = false;
 		      goto out;
 		    }
-		    state.column = update_column(state.column, '\n');
+		    update_column(&state, '\n');
 
 		    state.rub[0].where = state.buffered;
 		    state.rub[0].pad = nl_and_reindent;
