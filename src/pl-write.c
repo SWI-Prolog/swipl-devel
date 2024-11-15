@@ -51,6 +51,7 @@
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-prologflag.h"
+#include "os/pl-fmt.h"
 #include <stdio.h>			/* sprintf() */
 #include <errno.h>
 #ifdef HAVE_LOCALE_H
@@ -67,10 +68,16 @@
 #define HAVE_FPCLASSIFY 1
 #endif
 
+#define RADIX_DECIMAL -10
+#define RADIX_HEX     -16
+#define RADIX_OCTAL    -8
+#define RADIX_BINARY   -2
+
 typedef struct
 { unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
+  int	radix;				/* Radix for printing integers */
   atom_t spacing;			/* Where to insert spaces */
   Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
@@ -78,6 +85,11 @@ typedef struct
   term_t write_options;			/* original write options */
   term_t prec_opt;			/* term in write options with prec */
 } write_options;
+
+#define WRITE_OPTIONS_DEFAULTS \
+	{ .radix = RADIX_DECIMAL, \
+	  .spacing = ATOM_standard \
+	}
 
 #define W_OP_ARG	1		/* writeTerm() location argument */
 
@@ -497,7 +509,7 @@ needSpace(int c, IOSTREAM *s)
 }
 
 
-static int
+static int			/* false, true, TRUE_WITH_SPACE */
 PutOpenToken(int c, IOSTREAM *s)
 { if ( needSpace(c, s) )
   { TRY(Putc(' ', s));
@@ -508,7 +520,7 @@ PutOpenToken(int c, IOSTREAM *s)
 }
 
 
-static int
+static int			/* false, true, TRUE_WITH_SPACE */
 PutToken(const char *s, IOSTREAM *stream)
 { if ( s[0] )
   { int rc;
@@ -523,7 +535,7 @@ PutToken(const char *s, IOSTREAM *stream)
 }
 
 
-static int
+static int			/* false, true, TRUE_WITH_SPACE */
 PutTokenN(const char *s, size_t len, IOSTREAM *stream)
 { if ( len > 0 )
   { int rc;
@@ -546,7 +558,7 @@ openbrace to avoid interpretation as a term.   E.g. not (a,b) instead of
 not(a,b).  Reported by Stefan.Mueller@dfki.de.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static int			/* false, true, TRUE_WITH_SPACE */
 PutOpenBrace(IOSTREAM *s)
 { int rc;
 
@@ -781,19 +793,18 @@ writeAtom(atom_t a, write_options *options)
 }
 
 
-int
+bool
 writeAtomToStream(IOSTREAM *s, atom_t atom)
-{ write_options options;
+{ write_options options = WRITE_OPTIONS_DEFAULTS;
 
-  memset(&options, 0, sizeof(options));
   options.out = s;
   options.module = MODULE_user;
 
-  return writeAtom(atom, &options);
+  return !!writeAtom(atom, &options);
 }
 
 
-int
+bool
 writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   const pl_wchar_t *s = (const pl_wchar_t*)a->name;
@@ -835,7 +846,7 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 }
 
 #ifdef O_RESERVED_SYMBOLS
-int
+bool
 writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   const char *s = a->name;
@@ -843,7 +854,7 @@ writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
   const char *e = &s[len];
 
   if ( atom == ATOM_nil )
-    return PutToken("[]", fd);
+    return !!PutToken("[]", fd);
 
   if ( (flags&PL_WRT_QUOTED) )
   { char quote = '\'';
@@ -1035,14 +1046,6 @@ NaN_value(double f)
 }
 
 
-static char *
-writeNaN(double f, char *buf)
-{ format_float(NaN_value(f), 3, 'e', buf);
-  strcat(buf, "NaN");
-  return buf;
-}
-
-
 strnumstat
 make_nan(double *f)
 { union ieee754_double u;
@@ -1058,39 +1061,53 @@ make_nan(double *f)
 }
 
 
-static char *
-writeINF(double f, char *buf)
+static size_t
+writeNaN(char *buf, size_t len, double f)
+{ size_t sz = format_float(buf, len, NaN_value(f), 3, 'e');
+
+  if ( sz+4 < len )
+    strcpy(buf+sz, "NaN");
+  return sz+3;
+}
+
+static size_t
+writeINF(char *buf, size_t len, double f)
 { number n;
 
   n.value.f = f;
   n.type = V_FLOAT;
 
   if ( ar_signbit(&n) < 0 )
-    return strcpy(buf, "-1.0Inf");
-  else
-    return strcpy(buf, "1.0Inf");
+  { if ( len >= 8 )
+      strcpy(buf, "-1.0Inf");
+    return 7;
+  } else
+  { if ( len >= 7 )
+      strcpy(buf, "1.0Inf");
+    return 6;
+  }
 }
 
 
-static char *
-format_special_float(double f, char *buf)
+static size_t
+format_special_float(char *buf, size_t len, double f)
 {
 #ifdef HAVE_FPCLASSIFY
   switch(fpclassify(f))
   { case FP_NAN:
-      return writeNaN(f, buf);
+      return writeNaN(buf, len, f);
     case FP_INFINITE:
-      return writeINF(f, buf);
+      return writeINF(buf, len, f);
   }
 #else
 #ifdef HAVE_FPCLASS
   switch(fpclass(f))
   { case FP_SNAN:
     case FP_QNAN:
-      return writeNaN(f, buf);
+      return writeNaN(buf, len, f);
     case FP_NINF:
     case FP_PINF:
-      return writeINF(f, buf);
+      return writeINF(buf, len, f);
     case FP_NDENORM:		/* pos/neg denormalized non-zero */
     case FP_PDENORM:
     case FP_NNORM:			/* pos/neg normalized non-zero */
@@ -1104,73 +1121,95 @@ format_special_float(double f, char *buf)
   switch(_fpclass(f))
   { case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
-      return writeNaN(f, buf);
+      return writeNaN(buf, len, f);
     case _FPCLASS_NINF:
     case _FPCLASS_PINF:
-      return writeINF(f, buf);
+      return writeINF(buf, len, f);
   }
 #else
 #ifdef HAVE_ISINF
   if ( isinf(f) )
-  { return writeINF(f, buf);
+  { return writeINF(buf, len, f);
   } else
 #endif
 #ifdef HAVE_ISNAN
   if ( isnan(f) )
-  { return writeNaN(f, buf);
+  { return writeNaN(buf, len, f);
   }
 #endif
 #endif /*HAVE__FPCLASS*/
 #endif /*HAVE_FPCLASS*/
 #endif /*HAVE_FPCLASSIFY*/
 
-  return NULL;
+  return 0;
 }
 
 
-char *
-format_float(double f, int N, char E, char *buf)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Format a float in fixed point or exponential notation with the minimal
+number of digits such that it is read back to the same value.
+
+Parameters:
+  - `buf` is where the result is stored.
+  - `size` is the size of `buf`
+  - `f` is the float to be formatted
+  - `N` is the number as used by format `~Nh`.  See format/2.
+  - `E` is 'e' or 'E'
+
+Return:
+  - Number of characters output, minus the terminating 0
+  - If truncated, the return value >= size
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+size_t
+format_float(char *buf, size_t size, double f, int N, char E)
 { char *end, *o=buf, *s;
   int decpt, sign;
+  size_t sz;
+  char *limit = &buf[size];
 
-  if ( (s=format_special_float(f, buf)) )
-    return s;
+  if ( (sz=format_special_float(buf, size, f)) )
+    return sz;
 
   s = dtoa(f, 0, 30, &decpt, &sign, &end);
   DEBUG(MSG_WRITE_FLOAT,
 	Sdprintf("dtoa(): decpt=%d, sign=%d, len = %d, '%s'\n",
 		 decpt, sign, end-s, s));
 
+#define OUT(c) \
+	do { if ( o<limit ) *o++ = (c); else o++; } while(0)
+#define OUTN(s,n) \
+	do { if ( o+(n) <= limit ) memcpy(o, s, (n)); o+=(n); } while(0)
+#define OUTS(s) OUTN(s, strlen(s))
+
   if ( sign )
-    *o++ = '-';
+    OUT('-');
 
   if ( decpt <= 0 )			/* decimal dot before */
   { int e = decpt-1;
     if ( N < 0 || e < -N-1 )
-    { *o++ = s[0];
-      *o++ = '.';
+    { OUT(s[0]);
+      OUT('.');
       if ( end-s > 1 )
-      { memcpy(o, s+1, end-s-1);
-	o += end-s-1;
+      { OUTN(s+1, end-s-1);
       } else
-	*o++ = '0';
-      sprintf(o, "%c%03d", E, e);
+	OUT('0');
+      char eb[16];
+      snprintf(eb, sizeof(eb), "%c%03d", E, e);
+      OUTS(eb);
     } else
     { int i;
 
-      *o++ = '0';
-      *o++ = '.';
+      OUT('0');
+      OUT('.');
       for(i=0; i < -decpt; i++)
-	*o++ = '0';
-      memcpy(o, s, end-s);
-      o[end-s] = 0;
+	OUT('0');
+      OUTN(s, end-s);
     }
   } else if ( N >=0 && end-s > decpt ) /* decimal dot inside */
-  { memcpy(o, s, decpt);
-    o += decpt;
-    *o++ = '.';
-    memcpy(o, s+decpt, end-s-decpt);
-    o[end-s-decpt] = 0;
+  { OUTN(s, decpt);
+    OUT('.');
+    OUTN(s+decpt, end-s-decpt);
   } else				/* decimal dot after */
   { int i;
     int d = (int)(end-s);
@@ -1181,33 +1220,36 @@ format_float(double f, int N, char E, char *buf)
 	  Sdprintf("trailing = %d; exp=%d; d=%d; N=%d\n",
 		   trailing, exp, d, N));
     if ( N < 0 || exp >= N+d )	/* over precision: use eE */
-    { *o++ = s[0];
-      *o++ = '.';
+    { OUT(s[0]);
+      OUT('.');
       if ( d > 1 )
-      { memcpy(o, s+1, d-1);
-	o += d-1;
+      { OUTN(s+1, d-1);
       } else
-	*o++ = '0';
-      sprintf(o, "%c+%02d", E, exp);
+	OUT('0');
+      char eb[16];
+      snprintf(eb, sizeof(eb), "%c+%02d", E, exp);
+      OUTS(eb);
     } else				/* within precision trail with .0 */
-    { memcpy(o, s, end-s);
-      o += end-s;
+    { OUTN(s, end-s);
 
       for(i=d; i<decpt; i++)
-	*o++ = '0';
-      *o++ = '.';
-      *o++ = '0';
-      *o = 0;
+	OUT('0');
+      OUT('.');
+      OUT('0');
     }
   }
 
   freedtoa(s);
 
-  return buf;
+  if ( o < limit )
+    *o = 0;
+  else if ( size > 0 )
+    buf[size-1] = 0;
+  return o-buf;
 }
 
 #ifdef O_BIGNUM
-static int
+static bool
 mpz_get_str_ex(char *buf, int base, mpz_t mpz)
 { int rc;
 
@@ -1223,12 +1265,12 @@ mpz_get_str_ex(char *buf, int base, mpz_t mpz)
 
 
 #define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
-static int
+static bool
 writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 { char tmp[1024];
   char *buf;
   size_t sz = (mpz_sizeinbase(mpz, 2)*10)/3 + 10; /* log2(10)=3.322 */
-  int rc;
+  bool rc;
 
   if ( sz <= sizeof(tmp) )
     buf = tmp;
@@ -1252,8 +1294,26 @@ writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 }
 #endif
 
-static int
-WriteNumber(Number n, write_options *options)
+static bool
+put_radix(int radix, IOSTREAM *out)
+{ if ( radix > 0 )
+  { char tmp[16];
+    snprintf(tmp, sizeof(tmp), "%d'", radix);
+    return !!PutToken(tmp, out);
+  } else if ( radix == RADIX_HEX )
+  { return !!PutToken("0x", out);
+  } else if ( radix == RADIX_OCTAL )
+  { return !!PutToken("0o", out);
+  } else if ( radix == RADIX_BINARY )
+  { return !!PutToken("0b", out);
+  } else
+  { assert(0);
+    return false;
+  }
+}
+
+static bool
+writeNumber(Number n, write_options *options)
 {
 #ifdef O_GMP
   GET_LD
@@ -1261,14 +1321,29 @@ WriteNumber(Number n, write_options *options)
 
   switch(n->type)
   { case V_INTEGER:
-    { char buf[32];
-
-      sprintf(buf, "%" PRId64, n->value.i);
-      return PutToken(buf, options->out);
-    }
 #ifdef O_BIGNUM
     case V_MPZ:
-      return writeMPZ(n->value.mpz, options);
+#endif
+    { tmp_buffer b;
+      bool rc;
+      int radix = options->radix >= 0 ? options->radix
+				      : -options->radix;
+
+      initBuffer(&b);
+      char *s = formatInteger(NULL, 0, radix, true, n, (Buffer)&b);
+      if ( s )
+      { if ( options->radix != RADIX_DECIMAL )
+	  rc = ( put_radix(options->radix, options->out) &&
+		 PutString(s, options->out) );
+	else
+	  rc = !!PutToken(s, options->out);
+      } else
+	rc = false;
+      discardBuffer(&b);
+
+      return rc;
+    }
+#ifdef O_BIGNUM
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
       char sep = ison(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
@@ -1284,8 +1359,8 @@ WriteNumber(Number n, write_options *options)
     case V_FLOAT:
     { char buf[100];
 
-      format_float(n->value.f, 3, 'e', buf);
-      return PutToken(buf, options->out);
+      format_float(buf, sizeof(buf), n->value.f, 3, 'e');
+      return !!PutToken(buf, options->out);
     }
     default:
       assert(0);
@@ -1317,7 +1392,7 @@ writePrimitive(term_t t, write_options *options)
   { number n;
 
     PL_get_number(t, &n);
-    return WriteNumber(&n, options);
+    return writeNumber(&n, options);
   }
 
 #if O_STRING
@@ -2004,6 +2079,7 @@ static const PL_option_t write_term_options[] =
   { ATOM_nl,			    OPT_BOOL },
   { ATOM_fullstop,		    OPT_BOOL },
   { ATOM_no_lists,		    OPT_BOOL },
+  { ATOM_radix,			    OPT_TERM },
   { NULL_ATOM,			    0 }
 };
 
@@ -2017,6 +2093,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int numbervars  = -1;			/* not set */
   int portray     = false;
   term_t gportray = 0;
+  term_t radix    = 0;
   atom_t bq       = 0;
   int  charescape = -1;			/* not set */
   int charescape_unicode = -1;
@@ -2032,11 +2109,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int no_lists    = false;
   term_t varnames = 0;
   IOSTREAM *s = NULL;
-  write_options options;
+  write_options options = WRITE_OPTIONS_DEFAULTS;
   int rc;
-
-  memset(&options, 0, sizeof(options));
-  options.spacing = ATOM_standard;
 
   if ( !PL_scan_options(opts, 0, "write_option", write_term_options,
 			&quoted, &quote_non_ascii, &ignore_ops, &dotlists, &braceterms,
@@ -2045,8 +2119,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 			&options.max_depth, &mname,
 			&bq, &attr, &priority, &partial, &options.spacing,
 			&blobs, &cycles, &varnames, &nl, &fullstop,
-			&no_lists) )
-    fail;
+			&no_lists, &radix) )
+    return false;
 
   if ( attr == ATOM_nil )
   { options.flags |= LD->prolog_flag.write_attributes;
@@ -2102,6 +2176,26 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
       return false;
     if ( isoff(&options, PL_WRT_BLOB_PORTRAY) )
       portray = true;
+  }
+  if ( radix )
+  { atom_t a;
+    int r;
+
+    if ( PL_get_atom(radix, &a) )
+    { if ( a == ATOM_decimal )
+	options.radix = RADIX_DECIMAL;
+      else if ( a == ATOM_hex )
+	options.radix = RADIX_HEX;
+      else if ( a == ATOM_octal )
+	options.radix = RADIX_OCTAL;
+      else if ( a == ATOM_binary )
+	options.radix = RADIX_BINARY;
+      else
+	return PL_domain_error("radix", radix);
+    } else if ( PL_get_integer(radix, &r) && r >= 2 && r <= 36 )
+    { options.radix = r;
+    } else
+      return PL_domain_error("radix", radix);
   }
   if ( numbervars == -1 )
     numbervars = (portray ? true : false);
@@ -2170,10 +2264,9 @@ pl_write_term(term_t term, term_t options)
 
 bool
 PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
-{ write_options options;
+{ write_options options = WRITE_OPTIONS_DEFAULTS;
   int rc;
 
-  memset(&options, 0, sizeof(options));
   options.flags	    = flags & ~PL_WRT_NEWLINE;
   options.out	    = s;
   options.module    = MODULE_user;
@@ -2202,10 +2295,9 @@ do_write2(term_t stream, term_t term, int flags, int canonical)
   IOSTREAM *s;
 
   if ( getTextOutputStream(stream, &s) )
-  { write_options options;
+  { write_options options = WRITE_OPTIONS_DEFAULTS;
     int rc;
 
-    memset(&options, 0, sizeof(options));
     options.flags     = flags;
     if ( !canonical )
       options.flags |= LD->prolog_flag.write_attributes;

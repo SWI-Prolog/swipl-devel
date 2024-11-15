@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2017, VU University Amsterdam
+    Copyright (c)  2013-2024, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,6 +44,13 @@
 
 static int	compareReservedSymbol(atom_t h1, atom_t h2);
 
+static int
+blob_write_reserved_symbol(IOSTREAM *fd, atom_t atom, int flags)
+{ bool rc = writeReservedSymbol(fd, atom, flags);
+
+  return rc ? 1 : -1;
+}
+
 static PL_blob_t reserved_symbol =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
@@ -50,7 +58,7 @@ static PL_blob_t reserved_symbol =
   "reserved_symbol",
   NULL,					/* release */
   compareReservedSymbol,		/* compare */
-  writeReservedSymbol,			/* write */
+  blob_write_reserved_symbol,		/* write */
   NULL,					/* acquire */
   NULL,					/* save load to/from .qlf files */
   NULL,

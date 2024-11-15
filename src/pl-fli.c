@@ -787,6 +787,13 @@ static int	compareUCSAtom(atom_t h1, atom_t h2);
 static int	saveUCSAtom(atom_t a, IOSTREAM *fd);
 static atom_t	loadUCSAtom(IOSTREAM *fd);
 
+static int
+blob_write_usc_atom(IOSTREAM *fd, atom_t atom, int flags)
+{ bool rc = writeUCSAtom(fd, atom, flags);
+
+  return rc ? 1 : -1;
+}
+
 static PL_blob_t ucs_atom =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE|PL_BLOB_TEXT|PL_BLOB_WCHAR,
@@ -794,7 +801,7 @@ static PL_blob_t ucs_atom =
   "ucs_text",
   NULL,					/* release */
   compareUCSAtom,			/* compare */
-  writeUCSAtom,				/* write */
+  blob_write_usc_atom,			/* write */
   NULL,					/* acquire */
   saveUCSAtom,				/* save load to/from .qlf files */
   loadUCSAtom

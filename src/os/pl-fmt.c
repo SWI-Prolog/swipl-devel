@@ -51,14 +51,13 @@ source should also use format() to produce error messages, etc.
 #include <stdio.h>
 #include <math.h>
 #include <fenv.h>
+#include "pl-fmt.h"
 #ifdef __WINDOWS__
 #include "../pl-nt.h"
 #endif
 
 typedef foreign_t (*Func1)(term_t a1);
 
-static char *	formatInteger(PL_locale *locale, int div, int radix,
-			     bool smll, Number n, Buffer out);
 static char *	formatFloat(PL_locale *locale, int how, int arg,
 			    Number f, Buffer out);
 
@@ -1052,7 +1051,15 @@ revert_string(char *s, size_t len)
   }
 }
 
-static char *
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Format the integer  `i` to the buffer `out`.  `div`  is for supporting
+fixed point numbers.   `radix` is the base and  `smll` defines whether
+to use capitals (`false`) or  lowercase letters for digit values above
+9.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+char *
 formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
 { const char *grouping = NULL;
@@ -1725,12 +1732,24 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       int size = 0;
 
       if ( how == 'h' || how == 'H' )
-      { if ( !growBuffer(out, 100) )
-	{ PL_no_memory();
-	  return NULL;
+      { size_t space = 32;
+
+	for(int n=0; n<2; n++)
+	{ size_t sz;
+
+	  if ( !growBuffer(out, space) )
+	  { PL_no_memory();
+	    return NULL;
+	  }
+	  sz = format_float(out->base, space, f->value.f,
+			    arg, how == 'H' ? 'E' : 'e');
+	  if ( sz < space )
+	  { written = sz;
+	    break;
+	  } else
+	  { space = sz+1;
+	  }
 	}
-	format_float(f->value.f, arg, how == 'H' ? 'E' : 'e', out->base);
-	written = strlen(out->base);
       } else
       { Ssprintf(tmp, "%%.%d%c", arg, how);
 	while(written >= size)
