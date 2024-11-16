@@ -9758,7 +9758,10 @@ according to the locale of the output stream.  See \secref{locale}.
     \fmtchar{D}
 Same as {\bf d}, but makes large values easier to read by inserting a
 comma every three digits left or right of the dot.  This is the same
-as \verb$~:d$, but using the fixed English locale.
+as \verb$~:d$, but using the fixed English locale.  If \textbf{D} is
+modified using the colon (\verb$~:D$), it uses the Prolog grouping
+character \chr{_}.  See also setup_prolog_integer_grouping/0.  Future
+versions may also support line breaks in big integers.
 
     \fmtchar{e}
 Output next argument as a floating point number in exponential

@@ -704,9 +704,15 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    static char grouping[] = {3,0};
 
 		    if ( c == 'D' )
-		    { ltmp.thousands_sep = L",";
-		      ltmp.decimal_point = L".";
-		      ltmp.grouping = grouping;
+		    { if ( mod_colon )
+		      { ltmp.thousands_sep = L"_";
+			ltmp.decimal_point = L".";
+			ltmp.grouping = grouping;
+		      } else
+		      { ltmp.thousands_sep = L",";
+			ltmp.decimal_point = L".";
+			ltmp.grouping = grouping;
+		      }
 		      l = &ltmp;
 		    } else if ( mod_colon )
 		    { l = fd->locale;
