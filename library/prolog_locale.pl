@@ -33,33 +33,27 @@
 */
 
 :- module(prolog_locale,
-          [ setup_prolog_locale/0
+          [ setup_prolog_integer_grouping/0
           ]).
 
 /** <module> Tweak the locale for Prolog development
 */
 
-%!  setup_prolog_locale is det.
+%!  setup_prolog_integer_grouping is det.
 %
-%   This sets up  the  locale  to   use  Prolog  friendly  numbers  with
-%   grouping. I.e., after running setup_prolog_locale/0, we get:
+%   This sets up the Prolog toplevel and  debugger to write numbers with
+%   grouping. I.e., after running   setup_prolog_integer_grouping/0,  we
+%   get:
 %
 %   ```
 %   ?- A is 1<<100.
 %   A = 1_267_650_600_228_229_401_496_703_205_376.
 %   ```
 
-setup_prolog_locale :-
-    locale_create(_, default,
-                  [ alias(prolog),
-                    decimal_point('.'),
-                    thousands_sep('_'),
-                    grouping([repeat(3)])
-                  ]),
-    set_locale(prolog),
-    add_write_option(answer_write_options, integer_format('~:d')),
-    add_write_option(debugger_write_options, integer_format('~:d')),
-    add_write_option(print_write_options, integer_format('~:d')).
+setup_prolog_integer_grouping :-
+    add_write_option(answer_write_options, integer_format('~:D')),
+    add_write_option(debugger_write_options, integer_format('~:D')),
+    add_write_option(print_write_options, integer_format('~:D')).
 
 add_write_option(Set, Option),
     current_prolog_flag(Set, List) =>
