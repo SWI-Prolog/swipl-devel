@@ -184,7 +184,7 @@ oututf8(format_state *state, const char *s, size_t len)
 
   if ( !state->pending_rubber )
   { while(s<e)
-    { int chr = s[0];
+    { int chr = s[0]&0xff;
 
       if ( likely(chr < 0x80) )
 	s++;
