@@ -58,10 +58,10 @@ setup_prolog_locale :-
                   ]),
     set_locale(prolog),
     add_write_option(answer_write_options, integer_format('~:d')),
-    add_write_option(debug_write_options, integer_format('~:d')),
+    add_write_option(debugger_write_options, integer_format('~:d')),
     add_write_option(print_write_options, integer_format('~:d')).
 
-add_write_option(Set, Option) :-
-    current_prolog_flag(Set, List),
+add_write_option(Set, Option),
+    current_prolog_flag(Set, List) =>
     set_prolog_flag(Set, [Option|List]).
 
