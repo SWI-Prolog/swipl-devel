@@ -52,6 +52,7 @@
 #define	PL_next_solution(qid)		LDFUNC(PL_next_solution, qid)
 #define	foreignWakeup(ex)		LDFUNC(foreignWakeup, ex)
 #define	existingChoice(ch)		LDFUNC(existingChoice, ch)
+#define	existingFrame(fr)		LDFUNC(existingFrame, fr)
 #define grow_trail_ptr(p)		LDFUNC(grow_trail_ptr, p)
 #define handles_unwind(qid, flags)	LDFUNC(handles_unwind, qid, flags)
 #endif /*USE_LD_MACROS*/
@@ -76,7 +77,8 @@ bool		raiseSignal(PL_local_data_t *ld, int sig);
 int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
-int		existingChoice(Choice ch);
+bool		existingChoice(Choice ch);
+bool		existingFrame(LocalFrame fr);
 int		grow_trail_ptr(Word p);
 bool		handles_unwind(qid_t qid, unsigned int flags);
 #ifdef O_DEBUG

@@ -2521,7 +2521,7 @@ chp_chars(Choice ch)
 #endif
 
 
-int
+bool
 existingChoice(DECL_LD Choice ch)
 { if ( onStack(local, ch) && onStack(local, ch->frame) &&
        (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG )
@@ -2534,6 +2534,24 @@ existingChoice(DECL_LD Choice ch)
   }
 
   return false;
+}
+
+
+bool
+existingFrame(DECL_LD LocalFrame fr)
+{ for(;;)
+  { if ( !onStack(local, fr) )
+      return false;
+    if ( !isFrame(fr) )
+      return false;
+
+    if ( fr->parent )
+    { fr = fr->parent;
+    } else
+    { QueryFrame qf = queryOfFrame(fr);
+      return qf->magic == QID_MAGIC;
+    }
+  }
 }
 
 
