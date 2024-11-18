@@ -1173,6 +1173,7 @@ format_float(char *buf, size_t size, double f, int N, char E)
 	Sdprintf("dtoa(): decpt=%d, sign=%d, len = %d, '%s'\n",
 		 decpt, sign, end-s, s));
 
+#undef OUT				/* minwindef.h */
 #define OUT(c) \
 	do { if ( o<limit ) *o++ = (c); else o++; } while(0)
 #define OUTN(s,n) \
@@ -1235,6 +1236,10 @@ format_float(char *buf, size_t size, double f, int N, char E)
       OUT('0');
     }
   }
+
+#undef OUTN
+#undef OUTS
+#undef OUT
 
   freedtoa(s);
 
