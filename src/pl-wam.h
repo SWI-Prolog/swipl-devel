@@ -79,7 +79,7 @@ Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
 bool		existingChoice(Choice ch);
 bool		existingFrame(LocalFrame fr);
-int		grow_trail_ptr(Word p);
+bool		grow_trail_ptr(Word p);
 bool		handles_unwind(qid_t qid, unsigned int flags);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);
@@ -90,7 +90,7 @@ char *		chp_chars(Choice ch);
 #define getProcDefinition(proc)	getLocalProcDefinition(proc->definition)
 
 #define trail_ptr(p) LDFUNC(trail_ptr, p)
-static inline int
+static inline bool
 trail_ptr(DECL_LD Word p)
 { if ( hasTrailSpace(1) )
   { (tTop++)->address = p;

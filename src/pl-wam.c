@@ -256,7 +256,8 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
     do
     { alerted = ld->alerted;
-    } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+    } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, alerted,
+				    alerted|ALERT_SIGNAL) );
 
     return true;
   }
@@ -268,7 +269,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
 int
 pendingSignal(PL_local_data_t *ld, int sig)
 { if ( IS_VALID_SIGNAL(sig) && ld )
-  { return WSIGMASK_ISSET(ld->signal.pending, sig) ? true : false;
+  { return WSIGMASK_ISSET(ld->signal.pending, sig);
   }
 
   return -1;
@@ -1440,10 +1441,10 @@ default_action:
 Trail a raw pointer after we know there is insufficient tail space.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 grow_trail_ptr(DECL_LD Word p)
 { PushPtr(p);
-  int rc = ensureGlobalSpace(0, ALLOW_GC);
+  bool rc = ensureGlobalSpace(0, ALLOW_GC);
   PopPtr(p);
   if ( !rc )
     return false;

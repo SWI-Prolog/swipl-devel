@@ -75,7 +75,7 @@ assignment. The attribute list remains   accessible  through the trailed
 assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_get_attr(DECL_LD term_t t, term_t a)
 { Word p = valTermRef(t);
 
@@ -84,10 +84,10 @@ PL_get_attr(DECL_LD term_t t, term_t a)
   { Word ap = valPAttVar(*p);
 
     *valTermRef(a) = makeRefG(ap);	/* reference, so we can assign */
-    succeed;
+    return true;
   }
 
-  fail;
+  return false;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -204,7 +204,7 @@ assignAttVar(DECL_LD Word av, Word value)
   return;
 }
 
-int
+bool
 bind_attvar_const(DECL_LD Word p, word c)
 { if ( !hasGlobalSpace(0) )
   { PushPtr(p); PushVal(c);
@@ -249,7 +249,7 @@ alloc_attvar(DECL_LD)
 }
 
 
-int
+bool
 on_attvar_chain(Word avp)
 { GET_LD
   Word p, next;
@@ -532,7 +532,7 @@ apply. The environment has size 1 if there  is a pending exception, 2 if
 a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 saveWakeup(DECL_LD wakeup_state *state, int forceframe)
 { state->flags = 0;
   state->outofstack = LD->outofstack;
