@@ -1425,9 +1425,7 @@ class Query {
 	return { done: true };
       case prolog.PL_S_LAST:
 	this.close();
-	return { done: true,
-		 value: this.map ? this.map.call(this, argv) : argv
-	       };
+        /*FALLTHROUGH*/
       case prolog.PL_S_TRUE:
 	return { done: false,
 		 value: this.map ? this.map.call(this, argv) : argv
