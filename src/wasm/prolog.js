@@ -174,9 +174,10 @@ class Prolog
   { let argv0 = this.args || [];
     argv0.unshift("swipl");
     let argv = argv0.map(function(arg) {
-	return this.module.allocate(
-	    this.module.intArrayFromString(arg),
-	    'i8', this.module.ALLOC_NORMAL);
+      const len = lengthBytesUTF8(arg);
+      const s = _malloc(len+1);
+      stringToUTF8(arg, s, len);
+      return s;
     }, this);
     var ptr = _malloc(argv.length * 4);
     argv.forEach(function(arg, i) {
