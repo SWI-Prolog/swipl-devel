@@ -400,7 +400,7 @@ unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
     ).
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
-    unify_clause2(Head :- Body, Compiled1, Module, TermPos0, TermPos).
+    unify_clause2((Head :- Body), Compiled1, Module, TermPos0, TermPos).
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause2(Read, Decompiled, Module, TermPos0, TermPos).
 
