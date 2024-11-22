@@ -2442,6 +2442,19 @@ application modules or for a specific module.  It is strongly advised
 to keep the \const{error} default and use dynamic/1 and/or multifile/1
 to specify possible non-existence of a predicate.
 
+    \prologflagitem{unknown_option}{ignore,warning,error}{rw}
+Determines the behaviour if a predicate that processes an option list
+is passed an option that is not understood by the predicate.  The ISO
+standard dictates raising a \const{domain_error} exception.  This is
+considered impractical as it makes it hard to write portable code if
+different Prolog systems support different options and it makes it
+hard to write predicates that process options and pass some of the
+options to one predicate and others to some other predicate.  For
+example, a predicate reading a file to a list of terms must distribute
+options to open/4 and read_term/3.  SWI-Prolog has always ignored
+unknown options unless in ISO mode (see the \prologflag{iso} flag).
+This flag provides full control over how options are processed.
+
     \prologflagitem{unload_foreign_libraries}{bool}{rw}
 If \const{true} (default \const{false}), unload all loaded foreign
 libraries.  Default is \const{false} because modern OSes reclaim the

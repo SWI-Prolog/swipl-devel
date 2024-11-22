@@ -487,7 +487,7 @@ setRationalSyntax(atom_t a, unsigned int *flagp)
 
 
 
-static int
+static bool
 setUnknown(term_t value, atom_t a, Module m)
 { unsigned int flags = m->flags & ~(UNKNOWN_MASK);
 
@@ -522,6 +522,22 @@ setUnknown(term_t value, atom_t a, Module m)
   return true;
 }
 
+
+static bool
+setUnknownOption(term_t value, atom_t a)
+{ GET_LD
+
+  if ( a == ATOM_ignore )
+  { LD->prolog_flag.unknown_option = OPT_UNKNOWN_IGNORE;
+  } else if ( a == ATOM_warning )
+  { LD->prolog_flag.unknown_option = OPT_UNKNOWN_WARNING;
+  } else if ( a == ATOM_error )
+  { LD->prolog_flag.unknown_option = OPT_UNKNOWN_ERROR;
+  } else
+    return PL_domain_error("unknown_option", value);
+
+  return true;
+}
 
 static int
 checkOnError(term_t value, atom_t a, atom_t key)
@@ -1123,6 +1139,8 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, unsigned shor
       { rval = setRationalSyntax(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
+      } else if ( k == ATOM_unknown_option )
+      { rval = setUnknownOption(value, a);
       } else if ( k == ATOM_on_error || k == ATOM_on_warning )
       { rval = checkOnError(value, a, k);
       } else if ( k == ATOM_write_attributes )
@@ -1980,6 +1998,8 @@ initPrologFlags(void)
   setPrologFlag("portable_vmi", FT_BOOL, true, PLFLAG_PORTABLE_VMI);
   setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");
+  setPrologFlag("unknown_option", FT_ATOM, "ignore");
+  LD->prolog_flag.unknown_option = OPT_UNKNOWN_IGNORE;
   setPrologFlag("debug", FT_BOOL, false, 0);
   setPrologFlag("debug_on_interrupt", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUG_ON_INTERRUPT),

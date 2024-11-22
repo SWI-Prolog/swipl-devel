@@ -935,6 +935,7 @@ A uninstantiation_error	"uninstantiation_error"
 A unique		"unique"
 A univ			"=.."
 A unknown		"unknown"
+A unknown_option	"unknown_option"
 A unlimited		"unlimited"
 A unload		"unload"
 A unlock		"unlock"
@@ -1308,6 +1309,7 @@ F type_error		2
 F undefinterc		4
 F unify_determined	2
 F uninstantiation_error	1
+F unknown_option	2
 F unwind		1
 F var			1
 F waiting		1

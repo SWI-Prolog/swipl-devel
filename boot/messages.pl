@@ -786,6 +786,8 @@ prolog_message(unknown_in_module_user) -->
     ].
 prolog_message(untable(PI)) -->
     [ 'Reconsult: removed tabling for ~p'-[PI] ].
+prolog_message(unknown_option(Set, Opt)) -->
+    [ 'Unknown ~w option: ~p'-[Set, Opt] ].
 
 
                  /*******************************
