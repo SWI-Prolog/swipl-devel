@@ -176,7 +176,7 @@ class Prolog
     let argv = argv0.map(function(arg) {
       const len = lengthBytesUTF8(arg);
       const s = _malloc(len+1);
-      stringToUTF8(arg, s, len);
+      stringToUTF8(arg, s, len+1);
       return s;
     }, this);
     var ptr = _malloc(argv.length * 4);
