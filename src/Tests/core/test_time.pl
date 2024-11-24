@@ -55,7 +55,7 @@ test_time :-
 
 test(get_time) :-
     get_time(Now),
-    assertion(Now > (2018-1970)*365*24*3600),
-    assertion(Now < (2030-1970)*365*24*3600).
+    assertion(Now > (2024-1970)*365*24*3600),
+    assertion(Now < (2050-1970)*365*24*3600).
 
 :- end_tests(time).
