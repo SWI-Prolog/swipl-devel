@@ -44,7 +44,7 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-void		initBuildIns(void);
+void		initBuildIns(bool signonly);
 void		cleanupExtensions(void);
 void            rememberExtensions(const char *module,
 				   const PL_extension *e);

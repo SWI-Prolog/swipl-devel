@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2022, University of Amsterdam
+    Copyright (c)  2012-2024, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -99,8 +99,12 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #endif
 
 static int	usage(void);
-static int	giveVersionInfo(const char *a);
+static bool	giveVersionInfo(const char *a);
 static bool	vsysError(const char *errtype, const char *fm, va_list args);
+static const char* abi_version(void);
+
+#define ABI_MAX 50
+static char abi_version_buf[ABI_MAX];
 
 #define	optionString(s) { if (argc > 1) \
 			  { if ( s ) remove_string(s); \
@@ -224,6 +228,75 @@ opt_append(opt_list **l, const char *s)
   return true;
 }
 
+static void
+remove_trailing_whitespace(char *s)
+{ char *e = s+strlen(s);
+  while(e>s && e[-1] <= ' ')
+    e--;
+  *e = EOS;
+}
+
+
+#define BAD_HOME_NO_ABI       -1
+#define BAD_HOME_BAD_ABI      -2
+#define BAD_HOME_ABI_MISMATCH -3
+#define BAD_HOME_NO_DIR       -4
+
+static int
+match_abi_version(const char *required, const char *match)
+{ return strcmp(required, match) == 0 ? 1 : BAD_HOME_ABI_MISMATCH;
+}
+
+static int
+check_home(const char *dir)
+{ char abi_file_name[PATH_MAX];
+  char abi_buf[ABI_MAX];
+  IOSTREAM *fd;
+
+  Ssnprintf(abi_file_name, sizeof(abi_file_name),
+	    "%s/ABI", dir);
+  if ( (fd = Sopen_file(abi_file_name, "r")) )
+  { char *abi_string = Sfgets(abi_buf, sizeof(abi_buf), fd);
+    Sclose(fd);
+    if ( abi_string )
+    { remove_trailing_whitespace(abi_string);
+      return match_abi_version(abi_version(), abi_string);
+    } else
+    { return BAD_HOME_BAD_ABI;
+    }
+  } else
+  { if ( ExistsDirectory(dir) )
+      return BAD_HOME_NO_ABI;
+    else
+      return BAD_HOME_NO_DIR;
+  }
+
+  return false;
+}
+
+static void
+warn_bad_home(const char *prefix, const char *dir, int code)
+{ const char *why = "?";
+
+  switch(code)
+  { case BAD_HOME_NO_ABI:
+      why = "no ABI file";
+      break;
+    case BAD_HOME_BAD_ABI:
+      why = "invalid ABI file";
+      break;
+    case BAD_HOME_ABI_MISMATCH:
+      why = "ABI mismatch";
+      break;
+    case BAD_HOME_NO_DIR:
+      why = "no such directory";
+      break;
+  }
+
+  Sdprintf("%s%s: %s\n", prefix, dir, why);
+}
+
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the installation location  of   the  SWI-Prolog  resources, notably
@@ -240,127 +313,229 @@ If `--home` is given (without a dir),   follow the above steps exept for
 status 1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
-findHome(const char *symbols, int argc, const char **argv)
-{ char *home = NULL;
-  char *maybe_home;
-  char envbuf[PATH_MAX];
-  char plp[PATH_MAX];
-  const char *homeopt = find_longopt("home", argc, argv);
-  const char *val;
-  const char *envvar;
+/* Try to find the home directory from PLHOMEVAR_1 or PLHOMEVAR_2
+ */
 
-  if ( homeopt && (val=is_longopt(homeopt, "home")) && val[0] )
-  { if ( (home=PrologPath(val, plp, sizeof(plp))) )
-      return store_string(home);
-    return NULL;
-  }
+#if defined(PLHOMEVAR_1) || defined(PLHOMEVAR_2)
+static char *
+findHomeFromEnvironment(char *buf, size_t size)
+{ char envbuf[PATH_MAX];
+  const char *envvar;
+  char *home;
 
 #ifdef PLHOMEVAR_1
-  if ( !(maybe_home = Getenv((envvar=PLHOMEVAR_1), envbuf, sizeof(envbuf))) )
+  if ( !(home = Getenv((envvar=PLHOMEVAR_1), envbuf, sizeof(envbuf))) )
   {
 #ifdef PLHOMEVAR_2
-    maybe_home = Getenv((envvar=PLHOMEVAR_2), envbuf, sizeof(envbuf));
+    home = Getenv((envvar=PLHOMEVAR_2), envbuf, sizeof(envbuf));
 #endif
   }
-  if ( maybe_home &&
-       (maybe_home = PrologPath(maybe_home, plp, sizeof(plp))) &&
-       ExistsDirectory(maybe_home) )
-  { home = maybe_home;
-    DEBUG(MSG_INITIALISE,
-	  Sdprintf("Found home using env %s\n", envvar));
-    goto out;
+
+  if ( home && (home = PrologPath(home, buf, size)) )
+  { DEBUG(MSG_INITIALISE,
+	  Sdprintf("Trying home from env %s\n", envvar));
   }
   (void)envvar;
+
+  return home;
+#endif
+
+  return NULL;
+}
 #endif
 
 #ifdef PLHOMEFILE
-  if ( (maybe_home = (char*)symbols) )
-  { char buf[PATH_MAX];
+static char *
+findHomeFromExecutable(const char *symbols, char *buf, size_t size)
+{ char *home;
+
+  if ( (home = (char*)symbols) )
+  { char linkfile[PATH_MAX];	/* PLHOMEFILE ("swipl.home") */
     char parent[PATH_MAX];
     IOSTREAM *fd;
     char *pparent;
 
-    if ( !(pparent=DirName(DirName(AbsoluteFile(maybe_home,parent,sizeof(parent)),
+    if ( !(pparent=DirName(DirName(AbsoluteFile(home,parent,sizeof(parent)),
 				   parent),
 			   parent)) ||
 	 strlen(PLHOMEFILE) + 1 + strlen(pparent) + 1 > sizeof(parent) )
-      fatalError("File name too long: %s", home);
+    { fatalError("File name too long: %s", home);
+      return NULL;
+    }
 
-    Ssnprintf(buf, sizeof(buf), "%s/" PLHOMEFILE, pparent);
+    Ssnprintf(linkfile, sizeof(linkfile), "%s/" PLHOMEFILE, pparent);
 
-    if ( (fd = Sopen_file(buf, "r")) )
-    { DEBUG(MSG_INITIALISE, Sdprintf("Found home link file %s\n", buf));
+    if ( (fd = Sopen_file(linkfile, "r")) )
+    { char linkbuf[PATH_MAX];
+      char *link = Sfgets(linkbuf, sizeof(linkbuf), fd);
 
-      if ( Sfgets(buf, sizeof(buf), fd) )
-      { size_t l = strlen(buf);
+      Sclose(fd);
+      DEBUG(MSG_INITIALISE, Sdprintf("Found home link file %s\n", linkfile));
 
-	while(l > 0 && buf[l-1] <= ' ')
-	  l--;
-	buf[l] = EOS;
+      if ( link )
+      { remove_trailing_whitespace(link);
 
 #if O_XOS
-      { char buf2[PATH_MAX];
-	_xos_canonical_filename(buf, buf2, PATH_MAX, 0);
-	strcpy(buf, buf2);
-      }
+	char buf2[PATH_MAX];
+	_xos_canonical_filename(link, buf2, sizeof(buf2), 0);
+	strcpy(link, buf2);
 #endif
-
-	if ( !IsAbsolutePath(buf) )
+	if ( !IsAbsolutePath(link) )
 	{ char buf2[PATH_MAX];
 
-	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
-	       !(maybe_home = AbsoluteFile(buf2, plp, sizeof(plp))) )
-	    fatalError("Path name too long: %s/%s", parent, buf);
+	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, link) < 0 ||
+	       !(home = AbsoluteFile(buf2, buf, size)) )
+	  { fatalError("Path name too long: %s/%s", parent, link);
+	    return NULL;
+	  }
 	} else
-	{ if ( !(maybe_home = AbsoluteFile(buf, plp, sizeof(plp))) )
-	    fatalError("Path name too long: %s/%s", buf);
+	{ if ( !(home = AbsoluteFile(link, buf, size)) )
+	  { fatalError("Path name too long: %s", link);
+	    return NULL;
+	  }
 	}
 
-	if ( ExistsDirectory(maybe_home) )
-	{ home = maybe_home;
-	  DEBUG(MSG_INITIALISE,
-		Sdprintf("Found home %s using link file\n", home));
-	}
+	DEBUG(MSG_INITIALISE,
+	      Sdprintf("Trying home %s from link file\n", home));
+	return home;
       }
-      Sclose(fd);
     }
   }
+
+  return NULL;
+}
 #endif /*PLHOMEFILE*/
+
+/* Find home is absoluteFile(dirName(symbols)+"/"+PLRELHOME)
+ */
+
 #ifdef PLRELHOME
-  if ( !home && symbols )
+static char *
+findRelHome(const char *symbols, char *buf, size_t size)
+{ char *home;
+
+  if ( symbols )
   { char bindir[PATH_MAX];
     char *o;
 
     strcpy(bindir, symbols);
     DirName(bindir, bindir);
     if ( strlen(bindir)+strlen(PLRELHOME)+2 > sizeof(bindir) )
-      fatalError("Executable path name too long");
+    { fatalError("Executable path name too long");
+      return NULL;
+    }
     o = bindir+strlen(bindir);
     *o++ = '/';
     strcpy(o, PLRELHOME);
-    if ( ExistsDirectory(bindir) )
-    { if ( !(home=AbsoluteFile(bindir, plp, sizeof(plp))) )
-	fatalError("Executable path name too long");
-      DEBUG(MSG_INITIALISE,
-	    Sdprintf("Found home using %s from %s\n", PLRELHOME, symbols));
+    if ( !(home=AbsoluteFile(bindir, buf, size)) )
+    { fatalError("Executable path name too long");
+      return NULL;
+    }
+    DEBUG(MSG_INITIALISE,
+	  Sdprintf("Trying home %s from dir(%s)/" PLRELHOME "\n", home, symbols));
+    return home;
+  }
+
+  return NULL;
+}
+#endif
+
+
+static char *
+searchHome(const char *symbols, bool verbose)
+{ char *home = NULL;
+  char plp[PATH_MAX];
+  const char *source;
+  const char *ctx;
+
+#ifdef __WINDOWS__
+#define ENVA "%"
+#define ENVZ "%"
+#else
+#define ENVA "$"
+#define ENVZ ""
+#endif
+
+  for(int i=0; ; i++)
+  { ctx = NULL;
+    switch(i)
+    {
+#if defined(PLHOMEVAR_1) || defined(PLHOMEVAR_2)
+      case 0:
+	source = "environment " ENVA PLHOMEVAR_1 ENVZ
+		 " or " ENVA PLHOMEVAR_2 ENVZ;
+	home = findHomeFromEnvironment(plp, sizeof(plp));
+	break;
+#endif
+#ifdef PLHOMEFILE
+      case 1:
+	source = "using \"" PLHOMEFILE "\" from";
+	ctx = symbols;
+	home = findHomeFromExecutable(symbols, plp, sizeof(plp));
+	break;
+#endif
+#ifdef PLRELHOME
+      case 2:
+	source = PLRELHOME " relative relative to";
+	ctx = symbols;
+	home = findRelHome(symbols, plp, sizeof(plp));
+	break;
+#endif
+#ifdef PLHOME
+      case 3:
+	source = "compiled in";
+	home = PrologPath(PLHOME, plp, sizeof(plp));
+#endif
+      default:
+	return NULL;
+    }
+
+    int rc = 0;
+    if ( home && (rc=check_home(home)) > 0 )
+    { char abs[PATH_MAX];
+
+      if ( !IsAbsolutePath(home) &&
+	   !(home=AbsoluteFile(home, abs, sizeof(abs))) )
+      { fatalError("Executable path name too long");
+	return NULL;
+      }
+
+      return store_string(home);
+    } else if ( verbose )
+    { if ( ctx )
+	Sdprintf("  Tried source: %s \"%s\"\n", source, ctx);
+      else
+	Sdprintf("  Tried source: %s\n", source);
+      if ( home )
+	warn_bad_home("    Found ", home, rc);
     }
   }
-#endif
+}
 
-#ifdef PLHOME
-  if ( !home &&
-       ( (maybe_home = PrologPath(PLHOME, plp, sizeof(plp))) &&
-	 ExistsDirectory(maybe_home)
-       ) )
-  { home = maybe_home;
-    DEBUG(MSG_INITIALISE, Sdprintf("Using compiled-in home at %s\n", PLHOME));
+static char *
+findHome(const char *symbols, int argc, const char **argv)
+{ char *home = NULL;
+  const char *homeopt = find_longopt("home", argc, argv);
+  const char *val;
+
+  if ( homeopt && (val=is_longopt(homeopt, "home")) && val[0] )
+  { char tmp[PATH_MAX];
+    char plp[PATH_MAX];
+
+    if ( (home=PrologPath(val, tmp, sizeof(tmp))) &&
+	 (home=AbsoluteFile(home, plp, sizeof(plp))) )
+    { home = store_string(home);
+      int rc = check_home(home);
+      if ( rc < 0 )
+	warn_bad_home("WARNING: Invalid SWI-Prolog home directory ", home, rc);
+      return home;
+    } else
+    { fatalError("--home option too long");
+      return NULL;
+    }
   }
-#endif
 
-out:
-  if ( home )
-    home = store_string(home);
+  home = searchHome(symbols, false);
 
   if ( homeopt )
   { if ( home )
@@ -373,6 +548,17 @@ out:
   }
 
   return home;
+}
+
+static void
+fatalNoResources(void)
+{ if ( systemDefaults.home )
+  { fatalError("Could not find system resources at %s", systemDefaults.home);
+  } else
+  { Sdprintf("FATAL: could not find SWI-Prolog home\n");
+    searchHome(GD->paths.executable, true);
+    exit(1);
+  }
 }
 
 /*
@@ -1157,11 +1343,11 @@ PL_initialise(int argc, char **argv)
 #endif
 
   if ( !GD->resources.DB )
-  { if ( (GD->resources.DB = zip_open_archive(GD->paths.executable, RC_RDONLY)) )
+  { if ( (GD->resources.DB=zip_open_archive(GD->paths.executable, RC_RDONLY)) )
       rcpath = GD->paths.executable;
 #ifdef __WINDOWS__
     else if ( !streq(GD->paths.module, GD->paths.executable) &&
-	      (GD->resources.DB = zip_open_archive(GD->paths.module, RC_RDONLY)) )
+	      (GD->resources.DB=zip_open_archive(GD->paths.module, RC_RDONLY)) )
       rcpath = GD->paths.module;
 #endif
   }
@@ -1208,7 +1394,7 @@ PL_initialise(int argc, char **argv)
     { IOSTREAM *opts = NULL;
 
       if ( !(GD->resources.DB = openResourceDB(is_hash_bang)) )
-	fatalError("Could not find system resources");
+	fatalNoResources();
       rcpath = zipper_file(GD->resources.DB);
 
       opts = SopenZIP(GD->resources.DB, "$prolog/options.txt", RC_RDONLY);
@@ -1435,16 +1621,25 @@ version(void)
 #define PLPKGNAME "swipl"
 #endif
 
-static int
+static const char *
 abi_version(void)
-{ initDefaultOptions();
-  setupProlog();
-  Sprintf(PLPKGNAME "-abi-%d-%d-%08x-%08x\n",
-	  PL_FLI_VERSION,
-	  PL_QLF_LOADVERSION,
-	  GD->foreign.signature,
-	  VM_SIGNATURE);
-  PL_cleanup(0);
+{ if ( !abi_version_buf[0] )
+  { initBuildIns(true);
+    snprintf(abi_version_buf, sizeof(abi_version_buf),
+	     PLPKGNAME "-abi-%d-%d-%08x-%08x",
+	     PL_FLI_VERSION,
+	     PL_QLF_LOADVERSION,
+	     GD->foreign.signature,
+	     VM_SIGNATURE);
+  }
+
+  return abi_version_buf;
+}
+
+
+static bool
+print_abi_version(void)
+{ Sprintf("%s\n", abi_version());
 
   return true;
 }
@@ -1458,7 +1653,7 @@ arch(void)
 }
 
 
-static int
+static bool
 giveVersionInfo(const char *a)
 { const char *v;
 
@@ -1472,7 +1667,7 @@ giveVersionInfo(const char *a)
   if ( (v=is_longopt(a, "version")) && !*v )
     return version();
   if ( (v=is_longopt(a, "abi_version")) && !*v )
-    return abi_version();
+    return print_abi_version();
 
   return false;
 }

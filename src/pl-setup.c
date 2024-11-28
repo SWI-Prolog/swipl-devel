@@ -150,7 +150,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
-  initBuildIns();
+  initBuildIns(false);
   DEBUG(1, Sdprintf("Malloc binding ...\n"));
   initMalloc();
   DEBUG(1, Sdprintf("Operators ...\n"));

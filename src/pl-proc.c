@@ -396,7 +396,7 @@ resetProcedure(Procedure proc, bool isnew)
     ATOMIC_SUB(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
 
   uint64_t flags0, flags;
-  int userpred = stringAtom(def->functor->name)[0] != '$';
+  bool userpred = stringAtom(def->functor->name)[0] != '$';
   do
   { flags0 = def->flags;
     flags  = flags0 ^ (flags0 & ~(SPY_ME|P_DIRTYREG));
