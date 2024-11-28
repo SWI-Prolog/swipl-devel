@@ -316,7 +316,12 @@ add_custom_command(
 				   -b ${SWIPL_BUILD_HOME}/boot/init.pl
     DEPENDS ${DEP_SWIPL_FOR_BOOT} ${SWIPL_BOOT_FILES}
 )
-add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE})
+add_custom_command(
+    OUTPUT  ${SWIPL_ABI_FILE}
+    COMMAND ${PROG_SWIPL_FOR_BOOT} --abi-version > "${SWIPL_ABI_FILE}"
+    DEPENDS ${DEP_SWIPL_FOR_BOOT}
+)
+add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE})
 
 add_custom_target(library_index)
 
@@ -656,7 +661,7 @@ install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
 )
-install(FILES ${SWIPL_BOOT_FILE}
+install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
 if(MINGW)
