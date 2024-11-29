@@ -443,11 +443,7 @@ findRelHome(const char *symbols, char *buf, size_t size)
 
 static char *
 searchHome(const char *symbols, bool verbose)
-{ char *home = NULL;
-  char plp[PATH_MAX];
-  const char *source;
-  const char *ctx;
-
+{
 #ifdef __WINDOWS__
 #define ENVA "%"
 #define ENVZ "%"
@@ -457,38 +453,45 @@ searchHome(const char *symbols, bool verbose)
 #endif
 
   for(int i=0; ; i++)
-  { ctx = NULL;
+  { char plp[PATH_MAX];
+    char *home = NULL;
+    const char *source = NULL;
+    const char *ctx = NULL;
+
     switch(i)
-    {
+    { case 0:
 #if defined(PLHOMEVAR_1) || defined(PLHOMEVAR_2)
-      case 0:
 	source = "environment " ENVA PLHOMEVAR_1 ENVZ
 		 " or " ENVA PLHOMEVAR_2 ENVZ;
 	home = findHomeFromEnvironment(plp, sizeof(plp));
-	break;
 #endif
-#ifdef PLHOMEFILE
+	break;
       case 1:
+#ifdef PLHOMEFILE
 	source = "using \"" PLHOMEFILE "\" from";
 	ctx = symbols;
 	home = findHomeFromExecutable(symbols, plp, sizeof(plp));
-	break;
 #endif
-#ifdef PLRELHOME
+	break;
       case 2:
+#ifdef PLRELHOME
 	source = PLRELHOME " relative relative to";
 	ctx = symbols;
 	home = findRelHome(symbols, plp, sizeof(plp));
-	break;
 #endif
-#ifdef PLHOME
+	break;
       case 3:
+#ifdef PLHOME
 	source = "compiled in";
 	home = PrologPath(PLHOME, plp, sizeof(plp));
 #endif
+	break;
       default:
 	return NULL;
     }
+
+    if ( !source )
+      continue;
 
     int rc = 0;
     if ( home && (rc=check_home(home)) > 0 )
