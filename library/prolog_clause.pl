@@ -264,7 +264,8 @@ try_open_source(File, In) :-
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
     make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term),
     !.
-make_varnames((Head --> _Body), _, Offsets, Names, Bindings) :-
+make_varnames(ReadClause, _, Offsets, Names, Bindings) :-
+    dcg_head(ReadClause, Head),
     !,
     functor(Head, _, Arity),
     In is Arity,
@@ -278,6 +279,9 @@ make_varnames(_, _, Offsets, Names, Bindings) :-
     length(Offsets, L),
     functor(Bindings, varnames, L),
     do_make_varnames(Offsets, Names, Bindings).
+
+dcg_head((Head --> _Body), Head).
+dcg_head((Head ==> _Body), Head).
 
 do_make_varnames([], _, _).
 do_make_varnames([N=Var|TO], Names, Bindings) :-
