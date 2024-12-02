@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2023, University of Amsterdam
+    Copyright (c)  2009-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -222,6 +222,8 @@ non_terminal_decl(Clause, Decl) :-
 non_terminal_decl(Clause, Clause).
 
 clause_head(Head:-_, Head) :- !.
+clause_head((Head,_=>_), Head) :- !.
+clause_head(Head=>_, Head) :- !.
 clause_head(Head, Head).
 
 
