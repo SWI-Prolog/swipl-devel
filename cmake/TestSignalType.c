@@ -4,13 +4,13 @@
 # undef signal
 #endif
 #ifdef __cplusplus
-extern "C" void (*signal (int, void (*)(int)))(int);
+extern "C"
 #else
-void (*signal ()) ();
+void ( *signal(int signum, void (*handler)(int)) ) (int);
 #endif
 
 int
-main ()
+main(int argc, char **argv)
 {
   return 0;
 }
