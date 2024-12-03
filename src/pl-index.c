@@ -2503,26 +2503,25 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 	int an = a->args[0]-1;
 
 	if ( (key=keys[an]) )
-	{ assessAddKey(a, key, nvcomp[an]);
-	} else
-	{ a->var_count++;
-	  goto next_assessment;
-	}
+	  assessAddKey(a, key, nvcomp[an]);
+	else
+	  a->var_count++;
       } else					/* multi-argument index */
       { word key[MAX_MULTI_INDEX];
 	int  harg;
+	bool isvar = false;
 
 	for(harg=0; a->args[harg]; harg++)
 	{ if ( !(key[harg] = keys[a->args[harg]-1]) )
-	  { a->var_count++;
-	    goto next_assessment;
+	  { isvar = true;
+	    break;
 	  }
 	}
-
-	assessAddKey(a, murmur_key(key, sizeof(word)*harg), false);
+	if ( isvar )
+	  a->var_count++;
+	else
+	  assessAddKey(a, murmur_key(key, sizeof(word)*harg), false);
       }
-    next_assessment:
-      ;
     }
   }
 }
