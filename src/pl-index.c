@@ -2239,9 +2239,12 @@ going into the recursive indexes  we  loose   the  context  to  find the
 unbound clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 assess_remove_duplicates(hash_assessment *a, size_t clause_count)
-{ if ( !a->keys )
+{ a->speedup = 0.0;
+  a->list    = false;
+
+  if ( !a->keys )
     return false;
 
   key_asm *s = a->keys;
@@ -2251,8 +2254,6 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   size_t fc = 0;
   size_t i  = 0;
   float A=0.0, Q=0.0;
-
-  a->speedup = 0.0;
 
   qsort(a->keys, a->size, sizeof(key_asm), compar_keys);
   for( ; s<e; s++)
@@ -2443,21 +2444,31 @@ indexableCompound(Code pc)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Access a number of arguments on their suitability for a set of clauses.
+
+@param ac is the highest argument considered.  This is max(arity,MAXINDEXARG)
+@param hash_assessment holds the assessments we want to establish.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
-assess_scan_clauses(ClauseList clist, size_t arity,
+assess_scan_clauses(ClauseList clist, iarg_t ac,
 		    hash_assessment *assessments, int assess_count,
 		    IndexContext ctx)
 { hash_assessment *a;
   ClauseRef cref;
   int i;
-  bit_vector *ai = alloca(sizeof_bitvector(arity));
+  bit_vector *ai = alloca(sizeof_bitvector(ac));
   int kp[MAXINDEXARG+1];			/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXINDEXARG];
   char nvcomp[MAXINDEXARG];
 
-  init_bitvector(ai, arity);
+  /* Find the arguments we must check.  Assessments may be for
+     multiple arguments.
+   */
+  init_bitvector(ai, ac);
   for(i=0, a=assessments; i<assess_count; i++, a++)
   { int j;
 
@@ -2468,12 +2479,15 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     }
   }
 
-  for(i=0; i<arity; i++)
+  /* kp[] is an array of arguments we must check, ending in -1
+   */
+  for(i=0; i<ac; i++)
   { if ( true_bit(ai, i) )
       kp[nk++] = i;
   }
   kp[nk] = -1;
 
+  /* Step through the clause list */
   for(cref=clist->first_clause; cref; cref=cref->next)
   { Clause cl = cref->value.clause;
     Code pc;
@@ -2484,6 +2498,7 @@ assess_scan_clauses(ClauseList clist, size_t arity,
 
     pc = skipToTerm(cref->value.clause, ctx->position);
 
+    /* fill keys[i] with the value of arg kp[i] */
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )
 	pc = skipArgs(pc, kpp[0]-carg);
