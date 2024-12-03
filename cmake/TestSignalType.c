@@ -5,9 +5,8 @@
 #endif
 #ifdef __cplusplus
 extern "C"
-#else
-void ( *signal(int signum, void (*handler)(int)) ) (int);
 #endif
+void ( *signal(int signum, void (*handler)(int)) ) (int);
 
 int
 main(int argc, char **argv)
