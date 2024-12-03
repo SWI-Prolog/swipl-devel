@@ -97,15 +97,19 @@ typedef struct index_context
 } index_context, *IndexContext;
 
 #if USE_LD_MACROS
-#define	bestHash(av, ac, clist, min_speedup, hints, ctx)	LDFUNC(bestHash, av, ac, clist, min_speedup, hints, ctx)
-#define	setClauseChoice(chp, cref, generation)			LDFUNC(setClauseChoice, chp, cref, generation)
-#define	first_clause_guarded(argv, argc, clist, ctx)		LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
+#define	bestHash(av, ac, clist, min_speedup, hints, ctx) \
+	LDFUNC(bestHash, av, ac, clist, min_speedup, hints, ctx)
+#define	setClauseChoice(chp, cref, generation) \
+	LDFUNC(setClauseChoice, chp, cref, generation)
+#define	first_clause_guarded(argv, argc, clist, ctx) \
+	LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
-static int	bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
-			 hash_hints *hints, IndexContext ctx);
+static bool	bestHash(Word av, iarg_t ac, ClauseList clist,
+			 float min_speedup, hash_hints *hints,
+			 IndexContext ctx);
 static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
 				  IndexContext ctx);
 static void	replaceIndex(Definition def, ClauseList cl,
@@ -431,7 +435,8 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
   hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
-#define STATIC_RELOADING() (LD->reload.generation && isoff(ctx->predicate, P_DYNAMIC))
+#define STATIC_RELOADING() (LD->reload.generation && \
+			    isoff(ctx->predicate, P_DYNAMIC))
 
   if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
@@ -560,7 +565,8 @@ simple:
 
 
 ClauseRef
-firstClause(DECL_LD Word argv, LocalFrame fr, Definition def, ClauseChoice chp)
+firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
+	    ClauseChoice chp)
 { ClauseRef cref;
   index_context ctx;
 
@@ -2562,11 +2568,10 @@ expected speedup is
 *hints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
+static bool
+bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 	 hash_hints *hints, IndexContext ctx)
-{ int i;
-  assessment_set aset;
+{ assessment_set aset;
   hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
@@ -2584,23 +2589,24 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
   }
 
 					/* Step 1: find instantiated args */
-  for(i=0; i<ac; i++)
+  for(iarg_t i=0; i<ac; i++)
   { if ( canIndex(av[i]) )
       instantiated[ninstantiated++] = (iarg_t)i;
   }
 
-					/* Step 2: find non-yet assessed args */
-  for(i=0; i<ninstantiated; i++)
-  { int arg = instantiated[i];
+					/* Step 2: find new unassessed args*/
+  for(int i=0; i<ninstantiated; i++)
+  { iarg_t arg = instantiated[i];
 
     if ( !clist->args[arg].assessed )
-    { ia[0] = (iarg_t)(arg+1);
+    { ia[0] = arg+1;
       alloc_assessment(&aset, ia);
     }
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
+  { int i;
+    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
 
     for(i=0, a=aset.assessments; i<aset.count; i++, a++)
     { arg_info *ainfo = &clist->args[a->args[0]-1];
@@ -2634,8 +2640,8 @@ bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
     free_assessment_set(&aset);
   }
 
-					/* Step 4: find the best (single) arg */
-  for(i=0; i<ninstantiated; i++)
+				/* Step 4: find the best (single) arg */
+  for(int i=0; i<ninstantiated; i++)
   { int arg = instantiated[i];
     arg_info *ainfo = &clist->args[arg];
 

@@ -1610,7 +1610,7 @@ struct clause_bucket
 };
 
 #define MAX_MULTI_INDEX  4
-#define MAXINDEXARG    254
+#define MAXINDEXARG    254		/* must fit iarg_t  */
 #define MAXINDEXDEPTH    7
 #define END_INDEX_POS  255
 
