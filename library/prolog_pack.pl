@@ -1405,35 +1405,30 @@ plan_unsatisfied_requirements([H|T], Plan) -->
 
 %!  build_plan(+Plan, -Built, +Options) is det.
 %
-%    Run post installation steps.  We   build  dependencies before their
-%    dependents, so we first do a topological sort on the packs based on
-%    the pack dependencies.
+%   Run post installation steps.  We   build  dependencies  before their
+%   dependents, so we first do a topological  sort on the packs based on
+%   the pack dependencies.
 
 build_plan(Plan, Ordered, Options) :-
-    partition(needs_rebuild_from_info(Options), Plan, ToBuild, NoBuild),
+    maplist(decide_autoload_pack(Options), Plan, Plan1),
+    partition(needs_rebuild_from_info(Options), Plan1, ToBuild, NoBuild),
     maplist(attach_from_info(Options), NoBuild),
     (   ToBuild == []
-    ->  Ordered = []
+    ->  post_install_autoload(NoBuild),
+        Ordered = []
     ;   order_builds(ToBuild, Ordered),
         confirm(build_plan(Ordered), yes, Options),
         maplist(exec_plan_rebuild_step(Options), Ordered)
     ).
 
-needs_rebuild_from_info(Options, Info) :-
-    needs_rebuild(Info.installed, Options).
-
-%!  needs_rebuild(+PackDir, +Options) is semidet.
+%!  needs_rebuild_from_info(+Options, +Info) is semidet.
 %
-%   True when we need to rebuilt the pack in PackDir.
+%   True when we need to rebuilt the pack.
 
-needs_rebuild(PackDir, Options) :-
-    (   is_foreign_pack(PackDir, _),
-        \+ is_built(PackDir, Options)
-    ->  true
-    ;   is_autoload_pack(PackDir, Options),
-        post_install_autoload(PackDir, Options),
-        fail
-    ).
+needs_rebuild_from_info(Options, Info) :-
+    PackDir = Info.installed,
+    is_foreign_pack(PackDir, _),
+    \+ is_built(PackDir, Options).
 
 %!  is_built(+PackDir, +Options) is semidet.
 %
@@ -1487,7 +1482,7 @@ pack_info_from_name(Infos, Pack, Info) :-
 
 exec_plan_rebuild_step(Options, Info) :-
     print_message(informational, pack(build(Info.pack, Info.installed))),
-    pack_post_install(Info.pack, Info.installed, Options),
+    pack_post_install(Info, Options),
     attach_from_info(Options, Info).
 
 %!  attach_from_info(+Options, +Info) is det.
@@ -2191,7 +2186,7 @@ hsts(URL0, URL, _Options) :-
 hsts(URL, URL, _Options).
 
 
-%!  pack_post_install(+Pack, +PackDir, +Options) is det.
+%!  pack_post_install(+Info, +Options) is det.
 %
 %   Process post installation work.  Steps:
 %
@@ -2199,9 +2194,11 @@ hsts(URL, URL, _Options).
 %     - Register directory as autoload library
 %     - Attach the package
 
-pack_post_install(Pack, PackDir, Options) :-
+pack_post_install(Info, Options) :-
+    Pack = Info.pack,
+    PackDir = Info.installed,
     post_install_foreign(Pack, PackDir, Options),
-    post_install_autoload(PackDir, Options),
+    post_install_autoload(Info),
     pack_attach(PackDir, [duplicate(warning)]).
 
 %!  pack_rebuild is det.
@@ -2329,20 +2326,43 @@ foreign_file('conanfile.py',   conan).
                  *           AUTOLOAD           *
                  *******************************/
 
-%!  post_install_autoload(+PackDir, +Options)
+%!  post_install_autoload(+InfoOrList) is det.
 %
 %   Create an autoload index if the package demands such.
 
-post_install_autoload(PackDir, Options) :-
-    is_autoload_pack(PackDir, Options),
-    !,
+post_install_autoload(List), is_list(List) =>
+    maplist(post_install_autoload, List).
+post_install_autoload(Info),
+    _{installed:PackDir, autoload:true} :< Info =>
     directory_file_path(PackDir, prolog, PrologLibDir),
     make_library_index(PrologLibDir).
-post_install_autoload(_, _).
+post_install_autoload(Info) =>
+    directory_file_path(Info.installed, 'prolog/INDEX.pl', IndexFile),
+    (   exists_file(IndexFile)
+    ->  E = error(_,_),
+        print_message(warning, pack(delete_autoload_index(Info.pack, IndexFile))),
+        catch(delete_file(IndexFile), E,
+              print_message(warning, E))
+    ;   true
+    ).
 
-is_autoload_pack(PackDir, Options) :-
-    option(autoload(true), Options, true),
-    pack_info_term(PackDir, autoload(true)).
+%!  decide_autoload_pack(+Options, +Info0, -Info) is det.
+%
+%   Add autoload:true to Info if the  pack   needs  to be configured for
+%   autoloading.
+
+decide_autoload_pack(Options, Info0, Info) :-
+    is_autoload_pack(Info0.pack, Info0.installed, Options),
+    !,
+    Info = Info0.put(autoload, true).
+decide_autoload_pack(_, Info, Info).
+
+is_autoload_pack(_Pack, _PackDir, Options) :-
+    option(autoload(true), Options),
+    !.
+is_autoload_pack(Pack, PackDir, Options) :-
+    pack_info_term(PackDir, autoload(true)),
+    confirm(autoload(Pack), no, Options).
 
 
                  /*******************************
@@ -2394,7 +2414,11 @@ pack_remove_forced(Pack) :-
           error(existence_error(pack, Pack), _),
           fail),
     !,
-    print_message(informational, pack(remove(BaseDir))),
+    (   read_link(BaseDir, _, Target)
+    ->  What = link(Target)
+    ;   What = directory
+    ),
+    print_message(informational, pack(remove(What, BaseDir))),
     delete_directory_and_contents(BaseDir).
 pack_remove_forced(Pack) :-
     unattached_pack(Pack, BaseDir),
@@ -3483,10 +3507,14 @@ message(dependency_issues(Issues)) -->
 message(depends(Pack, Deps)) -->
     [ 'The following packs depend on `~w\':'-[Pack], nl ],
     pack_list(Deps).
-message(remove(PackDir)) -->
+message(remove(link(To), PackDir)) -->
+    [ 'Removing ', url(PackDir), nl, '    as link to ', url(To) ].
+message(remove(directory, PackDir)) -->
     [ 'Removing ~q and contents'-[PackDir] ].
 message(remove_existing_pack(PackDir)) -->
     [ 'Remove old installation in ~q'-[PackDir] ].
+message(delete_autoload_index(Pack, Index)) -->
+    [ 'Pack ' ], msg_pack(Pack), [ ': deleting autoload index ', url(Index) ].
 message(download_plan(Plan)) -->
     [ ansi(bold, 'Installation plan:', []), nl ],
     install_plan(Plan, Actions),
@@ -3495,6 +3523,11 @@ message(build_plan(Plan)) -->
     [ ansi(bold, 'The following packs have post install scripts:', []), nl ],
     msg_build_plan(Plan),
     [ nl, ansi(bold, 'Run scripts?', []) ].
+message(autoload(Pack)) -->
+    [ 'Pack ' ], msg_pack(Pack),
+    [ ' prefers to be added as autoload library',
+      nl, ansi(bold, 'Allow?', [])
+    ].
 message(no_meta_data(BaseDir)) -->
     [ 'Cannot find pack.pl inside directory ~q.  Not a package?'-[BaseDir] ].
 message(search_no_matches(Name)) -->
