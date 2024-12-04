@@ -201,12 +201,13 @@ multi_valued([H|T], LabelFmt, [LabelFmt|LT], Values) :-
     multi_valued(T, LabelFmt, LT, MoreValues).
 
 
-pvalue_column(29).
+pvalue_column(31).
 print_property_value(Prop-Fmt, Values) :-
     !,
     pvalue_column(C),
-    atomic_list_concat(['~w:~t~*|', Fmt, '~n'], Format),
-    format(Format, [Prop,C|Values]).
+    ansi_format(comment, '% ~w:~t~*|', [Prop, C]),
+    ansi_format(code, Fmt, Values),
+    ansi_format([], '~n', []).
 
 pack_info(Name, Level, Info) :-
     '$pack':pack(Name, BaseDir),
@@ -236,6 +237,7 @@ pack_level_info(_,    requires(_),      'Requires',                -).
 pack_level_info(_,    conflicts(_),     'Conflicts with',          -).
 pack_level_info(_,    replaces(_),      'Replaces packages',       -).
 pack_level_info(info, library(_),	'Provided libraries',      -).
+pack_level_info(info, autoload(_),	'Autoload',                -).
 
 pack_default(Level, Infos, Def) :-
     pack_level_info(Level, ITerm, _Format, Def),
@@ -260,7 +262,11 @@ pack_info_term(BaseDir, library(Lib)) :-
     expand_file_name(Pattern, Files),
     maplist(atom_concat(LibDir), Plain, Files),
     convlist(base_name, Plain, Libs),
-    member(Lib, Libs).
+    member(Lib, Libs),
+    Lib \== 'INDEX'.
+pack_info_term(BaseDir, autoload(true)) :-
+    atom_concat(BaseDir, '/prolog/INDEX.pl', IndexFile),
+    exists_file(IndexFile).
 pack_info_term(BaseDir, automatic(Boolean)) :-
     once(pack_status_dir(BaseDir, automatic(Boolean))).
 pack_info_term(BaseDir, built(Arch, Prolog)) :-
