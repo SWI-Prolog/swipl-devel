@@ -1649,6 +1649,7 @@ struct definition
     impl_local   local;			/* P_THREAD_LOCAL predicates */
   } impl;
   uint64_t	flags;			/* booleans (P_*) */
+  iarg_t	primary_index;		/* ArgNo for primary index (0=1) */
   unsigned int  shared;			/* #procedures sharing this def */
   Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */

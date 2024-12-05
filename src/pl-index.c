@@ -511,8 +511,10 @@ retry:
    * search for other indexes.
    */
 
-  if ( (chp->key = indexOfWord(argv[0])) &&
-       (clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX || STATIC_RELOADING()) )
+  iarg_t pindex = ctx->predicate->primary_index;
+  if ( (chp->key = indexOfWord(argv[pindex])) &&
+       ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
+	 STATIC_RELOADING()) )
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation);
@@ -2496,7 +2498,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
     if ( ison(cl, CL_ERASED) )
       continue;
 
-    pc = skipToTerm(cref->value.clause, ctx->position);
+    pc = skipToTerm(cl, ctx->position);
 
     /* fill keys[i] with the value of arg kp[i] */
     for(kpp=kp; kpp[0] >= 0; kpp++)
@@ -2731,6 +2733,45 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   return false;
 }
 
+		 /*******************************
+		 *      DEFAULT INDEX ARG       *
+		 *******************************/
+
+static void
+modify_primary_index_arg(Definition def, iarg_t an)
+{ if ( def->primary_index != an )
+  { for(ClauseRef cref=def->impl.clauses.first_clause;
+	cref;
+	cref=cref->next)
+    { Clause cl = cref->value.clause;
+
+      argKey(cl->codes, an, &cref->d.key);
+    }
+
+    def->primary_index = an;
+  }
+}
+
+static
+PRED_IMPL("index", 2, index, PL_FA_TRANSPARENT)
+{ Procedure proc;
+  int an;
+
+  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+    return false;
+  Definition def = proc->definition;
+
+  if ( !PL_get_integer_ex(A2, &an) )
+    return false;
+  if ( an < 1 || an > def->functor->arity || an > MAXINDEXARG )
+    return PL_domain_error("arity", A2);
+
+  modify_primary_index_arg(def, an-1);
+
+  return true;
+}
+
+
 
 		 /*******************************
 		 *  PREDICATE PROPERTY SUPPORT	*
@@ -2945,4 +2986,5 @@ initClauseIndexing(void)
 		 *******************************/
 
 BeginPredDefs(index)
+  PRED_DEF("index", 2, index, PL_FA_TRANSPARENT)
 EndPredDefs
