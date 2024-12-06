@@ -1292,6 +1292,8 @@ We assume the compiler will optimise this properly.
 	  } \
 	}
 
+typedef unsigned char iarg_t;	/* index argument */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1449,7 +1451,6 @@ typedef struct impl_local
   LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
 } impl_local, *ImplLocal;
 
-
 typedef struct clause_list
 { arg_info     *args;			/* Meta and indexing info */
   ClauseRef	first_clause;		/* clause list of procedure */
@@ -1458,7 +1459,8 @@ typedef struct clause_list
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
-  unsigned int	jiti_tried;		/* number of times we tried to find */
+  iarg_t	jiti_tried;		/* number of times we tried to find */
+  iarg_t	primary_index;		/* Index used to link clauses */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref
@@ -1614,8 +1616,6 @@ struct clause_bucket
 #define MAXINDEXDEPTH    7
 #define END_INDEX_POS  255
 
-typedef unsigned char iarg_t;		/* index argument */
-
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
   unsigned int	 size;			/* # clauses */
@@ -1649,7 +1649,6 @@ struct definition
     impl_local   local;			/* P_THREAD_LOCAL predicates */
   } impl;
   uint64_t	flags;			/* booleans (P_*) */
-  iarg_t	primary_index;		/* ArgNo for primary index (0=1) */
   unsigned int  shared;			/* #procedures sharing this def */
   Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */

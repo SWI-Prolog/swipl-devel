@@ -270,7 +270,9 @@ argument we are processing.
 TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define nextClauseFromBucket(ci, argv, ctx) LDFUNC(nextClauseFromBucket, ci, argv, ctx)
+#define nextClauseFromBucket(ci, argv, ctx) \
+	LDFUNC(nextClauseFromBucket, ci, argv, ctx)
+
 static ClauseRef
 nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 { ClauseRef cref;
@@ -511,7 +513,7 @@ retry:
    * search for other indexes.
    */
 
-  iarg_t pindex = ctx->predicate->primary_index;
+  iarg_t pindex = clist->primary_index;
   if ( (chp->key = indexOfWord(argv[pindex])) &&
        ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
 	 STATIC_RELOADING()) )
@@ -2739,8 +2741,10 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 
 static void
 modify_primary_index_arg(Definition def, iarg_t an)
-{ if ( def->primary_index != an )
-  { for(ClauseRef cref=def->impl.clauses.first_clause;
+{ ClauseList clist = &def->impl.clauses;
+
+  if ( clist->primary_index != an )
+  { for(ClauseRef cref = clist->first_clause;
 	cref;
 	cref=cref->next)
     { Clause cl = cref->value.clause;
@@ -2748,18 +2752,22 @@ modify_primary_index_arg(Definition def, iarg_t an)
       argKey(cl->codes, an, &cref->d.key);
     }
 
-    def->primary_index = an;
+    clist->primary_index = an;
   }
 }
 
 static
-PRED_IMPL("index", 2, index, PL_FA_TRANSPARENT)
+PRED_IMPL("$index", 2, index, PL_FA_TRANSPARENT)
 { Procedure proc;
   int an;
 
   if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
     return false;
   Definition def = proc->definition;
+  ClauseList clist = &def->impl.clauses;
+
+  if ( PL_is_variable(A2) )
+    return PL_unify_integer(A2, clist->primary_index);
 
   if ( !PL_get_integer_ex(A2, &an) )
     return false;
@@ -2986,5 +2994,5 @@ initClauseIndexing(void)
 		 *******************************/
 
 BeginPredDefs(index)
-  PRED_DEF("index", 2, index, PL_FA_TRANSPARENT)
+  PRED_DEF("$index", 2, index, PL_FA_TRANSPARENT)
 EndPredDefs
