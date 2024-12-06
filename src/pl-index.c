@@ -444,6 +444,47 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
   return NULL;
 }
 
+/* Add a new index to the clause list if it provides a speedup of at
+ * least `min_speedup`.  Return:
+ *
+ *   - CI_RETRY
+ *     Someone invalidated the index while we were building it or
+ *     waiting for a thread to complete it.
+ *   - NULL
+ *     There is no better index possible
+ *   - A ClauseIndex
+ *     All went fine
+ */
+
+#define CI_RETRY ((ClauseIndex)1)
+
+#define	createIndex(av, ac, clist, min_speedup, ctx) \
+	LDFUNC(createIndex, av, ac, clist, min_speedup, ctx)
+
+static ClauseIndex
+createIndex(DECL_LD Word argv, iarg_t argc, const ClauseList clist,
+	    float min_speedup, IndexContext ctx)
+{ hash_hints hints;
+
+  if ( bestHash(argv, argc, clist, min_speedup, &hints, ctx) )
+  { ClauseIndex ci;
+
+    if ( (ci=hashDefinition(clist, &hints, ctx)) )
+    { while ( ci->incomplete )
+	wait_for_index(ci);
+      if ( ci->invalid )
+	return CI_RETRY;
+
+      return ci;
+    }
+
+    return CI_RETRY;
+  }
+
+  return NULL;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
 for finding the next clause in chp.
@@ -541,25 +582,18 @@ retry:
     /* TBD: Avoid trying this every goal */
   }
 
-  if ( !STATIC_RELOADING() &&
-       bestHash(argv, argc, clist, 0.0, &hints, ctx) )
+  if ( !STATIC_RELOADING() )
   { ClauseIndex ci;
 
-    if ( (ci=hashDefinition(clist, &hints, ctx)) )
-    { int hi;
-
-      while ( ci->incomplete )
-	wait_for_index(ci);
-      if ( ci->invalid )
+    if ( (ci=createIndex(argv, argc, clist, 0.0, ctx)) )
+    { if ( unlikely(ci == CI_RETRY) )
 	goto retry;
 
       chp->key = indexKeyFromArgv(ci, argv);
       assert(chp->key);
-      hi = hashIndex(chp->key, ci->buckets);
+      unsigned int hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
       return nextClauseFromBucket(ci, argv, ctx);
-    } else
-    { goto retry;
     }
   }
 
