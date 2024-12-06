@@ -484,6 +484,23 @@ createIndex(DECL_LD Word argv, iarg_t argc, const ClauseList clist,
   return NULL;
 }
 
+#define	first_clause_unindexed(clist, ctx) \
+	LDFUNC(first_clause_unindexed, clist, ctx)
+
+static ClauseRef
+first_clause_unindexed(DECL_LD const ClauseList clist, const IndexContext ctx)
+{ for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+    { ClauseChoice chp = ctx->chp;
+
+      chp->key = 0;
+      setClauseChoice(chp, cref->next, ctx->generation);
+      return cref;
+    }
+  }
+
+  return NULL;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
@@ -507,7 +524,8 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
 			    isoff(ctx->predicate, P_DYNAMIC))
 
   if ( unlikely(argc == 0) )
-    goto simple;			/* TBD: alt supervisor */
+    return first_clause_unindexed(clist, ctx);
+
   if ( unlikely(argc > MAXINDEXARG) )
     argc = MAXINDEXARG;
 
@@ -595,16 +613,7 @@ retry:
     return nextClauseArg1(chp, ctx->generation);
   }
 
-simple:
-  for(cref = clist->first_clause; cref; cref = cref->next)
-  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
-    { chp->key = 0;
-      setClauseChoice(chp, cref->next, ctx->generation);
-      break;
-    }
-  }
-
-  return cref;
+  return first_clause_unindexed(clist, ctx);
 }
 
 
