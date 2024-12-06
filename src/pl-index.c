@@ -418,6 +418,24 @@ iargsName(const iarg_t args[MAX_MULTI_INDEX], char *buf)
 }
 #endif
 
+static ClauseIndex
+existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
+{ for(; *cip; cip++)
+  { ClauseIndex ci = *cip;
+    word k;
+
+    if ( ISDEADCI(ci) )
+      continue;
+
+    if ( (k=indexKeyFromArgv(ci, argv)) )
+    { *keyp = k;
+      return ci;
+    }
+  }
+
+  return NULL;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
 for finding the next clause in chp.
@@ -447,21 +465,9 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
 
 retry:
   if ( (cip=clist->clause_indexes) )
-  { ClauseIndex best_index = NULL;
+  { ClauseIndex best_index;
 
-    for(; *cip; cip++)
-    { ClauseIndex ci = *cip;
-      word k;
-
-      if ( ISDEADCI(ci) )
-	continue;
-
-      if ( (k=indexKeyFromArgv(ci, argv)) )
-      { best_index = ci;
-	chp->key = k;
-	break;
-      }
-    }
+    best_index = existing_hash(cip, argv, &chp->key);
 
     if ( best_index )
     { int hi;
