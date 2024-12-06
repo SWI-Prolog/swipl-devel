@@ -149,8 +149,8 @@ NOTE: Indirects should not collide  with   functor_t  to  allow for deep
 indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
-hashIndex(word key, int buckets)
+static inline unsigned int
+hashIndex(word key, unsigned int buckets)
 { unsigned int k = MurmurHashWord(key, MURMUR_SEED);
 
   return k & (buckets-1);
@@ -418,6 +418,14 @@ iargsName(const iarg_t args[MAX_MULTI_INDEX], char *buf)
 }
 #endif
 
+// If we got an index use this to see whether we should
+// try finding a better one because it is poor
+static bool
+consider_better_index(ClauseIndex const ci, unsigned int nclauses)
+{ return ( nclauses > MIN_CLAUSES_FOR_INDEX &&
+	   (float)nclauses/ci->speedup > MIN_SPEEDUP_RATIO );
+}
+
 static ClauseIndex
 existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
 { for(; *cip; cip++)
@@ -470,40 +478,39 @@ retry:
     best_index = existing_hash(cip, argv, &chp->key);
 
     if ( best_index )
-    { int hi;
+    { if ( unlikely(!best_index->good) )
+      { if ( !STATIC_RELOADING() &&
+	     consider_better_index(best_index, clist->number_of_clauses) )
+	{ DEBUG(MSG_JIT_POOR,
+		Sdprintf("Poor index %s of %s (trying to find better)\n",
+			 iargsName(best_index->args, NULL),
+			 predicateName(ctx->predicate)));
 
-      if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX &&
-	   (float)clist->number_of_clauses/best_index->speedup > MIN_SPEEDUP_RATIO &&
-	   !STATIC_RELOADING() )
-      { DEBUG(MSG_JIT_POOR,
-	      Sdprintf("Poor index %s of %s (trying to find better)\n",
-		       iargsName(best_index->args, NULL),
-		       predicateName(ctx->predicate)));
+	  if ( bestHash(argv, argc, clist, best_index->speedup,
+			&hints, ctx) )
+	  { ClauseIndex ci;
 
-	if ( bestHash(argv, argc, clist, best_index->speedup,
-		      &hints, ctx) )
-	{ ClauseIndex ci;
+	    DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
+				    PL_thread_self(),
+				    iargsName(hints.args, NULL)));
 
-	  DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
-				  PL_thread_self(),
-				  iargsName(hints.args, NULL)));
-
-	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
-	  { chp->key = indexKeyFromArgv(ci, argv);
-	    assert(chp->key);
-	    best_index = ci;
-	  } else
-	  { goto retry;
+	    if ( (ci=hashDefinition(clist, &hints, ctx)) )
+	    { chp->key = indexKeyFromArgv(ci, argv);
+	      assert(chp->key);
+	      best_index = ci;
+	    } else
+	    { goto retry;
+	    }
 	  }
+	}
+
+	if ( best_index->incomplete )
+	{ wait_for_index(best_index);
+	  goto retry;
 	}
       }
 
-      if ( best_index->incomplete )
-      { wait_for_index(best_index);
-	goto retry;
-      }
-
-      hi = hashIndex(chp->key, best_index->buckets);
+      unsigned int hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(best_index, argv, ctx);
     }
@@ -1728,6 +1735,8 @@ See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
   ci->resize_below = ci->size/4;
 
   completed_index(ci);
+  if ( !consider_better_index(ci, clist->number_of_clauses) )
+    ci->good = true;		/* `good` means complete and sufficient */
 
   return ci;
 }
