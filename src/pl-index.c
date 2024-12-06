@@ -530,7 +530,7 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
     argc = MAXINDEXARG;
 
 retry:
-  if ( (cip=clist->clause_indexes) )
+  while ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
 
     best_index = existing_hash(cip, argv, &chp->key);
@@ -548,7 +548,7 @@ retry:
 
 	  if ( (ci=createIndex(argv, argc, clist, 0.0, ctx)) )
 	  { if ( unlikely(ci == CI_RETRY) )
-	      goto retry;
+	      continue;
 
 	    chp->key = indexKeyFromArgv(ci, argv);
 	    assert(chp->key);
@@ -558,7 +558,7 @@ retry:
 
 	if ( best_index->incomplete )
 	{ wait_for_index(best_index);
-	  goto retry;
+	  continue;
 	}
       }
 
@@ -566,6 +566,8 @@ retry:
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(best_index, argv, ctx);
     }
+
+    break;
   }
 
   if ( unlikely(clist->number_of_clauses == 0) )
