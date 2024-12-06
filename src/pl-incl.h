@@ -1658,10 +1658,6 @@ struct definition
 #if defined(__SANITIZE_ADDRESS__)
   char	       *name;			/* Name for debugging */
 #endif
-#ifdef O_PROF_PENTIUM
-  int		prof_index;		/* index in profiling */
-  char	       *prof_name;		/* name in profiling */
-#endif
 };
 
 struct definition_chain
