@@ -501,7 +501,6 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
 		     IndexContext ctx)
 { ClauseRef cref;
   ClauseIndex *cip;
-  hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
 #define STATIC_RELOADING() (LD->reload.generation && \
@@ -522,26 +521,20 @@ retry:
     { if ( unlikely(!best_index->good) )
       { if ( !STATIC_RELOADING() &&
 	     consider_better_index(best_index, clist->number_of_clauses) )
-	{ DEBUG(MSG_JIT_POOR,
+	{ ClauseIndex ci;
+
+	  DEBUG(MSG_JIT_POOR,
 		Sdprintf("Poor index %s of %s (trying to find better)\n",
 			 iargsName(best_index->args, NULL),
 			 predicateName(ctx->predicate)));
 
-	  if ( bestHash(argv, argc, clist, best_index->speedup,
-			&hints, ctx) )
-	  { ClauseIndex ci;
+	  if ( (ci=createIndex(argv, argc, clist, 0.0, ctx)) )
+	  { if ( unlikely(ci == CI_RETRY) )
+	      goto retry;
 
-	    DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
-				    PL_thread_self(),
-				    iargsName(hints.args, NULL)));
-
-	    if ( (ci=hashDefinition(clist, &hints, ctx)) )
-	    { chp->key = indexKeyFromArgv(ci, argv);
-	      assert(chp->key);
-	      best_index = ci;
-	    } else
-	    { goto retry;
-	    }
+	    chp->key = indexKeyFromArgv(ci, argv);
+	    assert(chp->key);
+	    best_index = ci;
 	  }
 	}
 
