@@ -1726,7 +1726,7 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
 			  iargsName(hints->args, NULL), 2<<hints->ln_buckets,
 			  hints->list ? "lists" : "clauses"));
 
-#if defined(O_PLMT) && !defined(NDEBUG)
+#if defined(O_PLMT) && defined(O_DEBUG)
 { GET_LD
   assert(LD->thread.info->access.predicate == ctx->predicate);
 }
