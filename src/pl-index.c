@@ -593,7 +593,8 @@ retry:
       return cref;
     /* else duplicate; see whether we can create a deep index */
     /* TBD: Avoid trying this every goal */
-  }
+  } else
+    cref = NULL;
 
   if ( !STATIC_RELOADING() )
   { ClauseIndex ci;
@@ -611,7 +612,10 @@ retry:
   }
 
   if ( chp->key )
-  { chp->cref = clist->first_clause;
+  { if ( cref )
+      return cref;
+
+    chp->cref = clist->first_clause;
     return nextClauseArg1(chp, ctx->generation);
   }
 
