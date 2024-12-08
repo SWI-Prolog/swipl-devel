@@ -515,6 +515,18 @@ searchHome(const char *symbols, bool verbose)
   }
 }
 
+static bool
+is_boot_session(int argc, const char **argv)
+{ for(int i=0; i<argc && argv[i]; i++)
+  { if ( strcmp(argv[i], "-b") == 0 )
+      return true;
+    if ( strcmp(argv[i], "--") == 0 )
+      break;
+  }
+
+  return false;
+}
+
 static char *
 findHome(const char *symbols, int argc, const char **argv)
 { char *home = NULL;
@@ -529,7 +541,7 @@ findHome(const char *symbols, int argc, const char **argv)
 	 (home=AbsoluteFile(home, plp, sizeof(plp))) )
     { home = store_string(home);
       int rc = check_home(home);
-      if ( rc < 0 )
+      if ( rc < 0 && !is_boot_session(argc, argv) )
 	warn_bad_home("WARNING: Invalid SWI-Prolog home directory ", home, rc);
       return home;
     } else

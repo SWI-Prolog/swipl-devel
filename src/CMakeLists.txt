@@ -312,7 +312,7 @@ configure_file(version.h.in version.h)
 add_custom_command(
     OUTPUT  ${SWIPL_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E remove -f ${SWIPL_BOOT_FILE}
-    COMMAND ${PROG_SWIPL_FOR_BOOT} -q -O -o ${SWIPL_BOOT_FILE}
+    COMMAND ${PROG_SWIPL_FOR_BOOT} --home=${SWIPL_BUILD_HOME} -q -O -o ${SWIPL_BOOT_FILE}
 				   -b ${SWIPL_BUILD_HOME}/boot/init.pl
     DEPENDS ${DEP_SWIPL_FOR_BOOT} ${SWIPL_BOOT_FILES}
 )
