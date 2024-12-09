@@ -112,6 +112,7 @@
     (thread_local)/3,               % Head, Src, Line
     (multifile)/3,                  % Head, Src, Line
     (public)/3,                     % Head, Src, Line
+    (declared)/4,	            % Head, How, Src, Line
     defined/3,                      % Head, Src, Line
     meta_goal/3,                    % Head, Called, Src
     foreign/3,                      % Head, Src, Line
@@ -535,6 +536,7 @@ xref_clean(Source) :-
     retractall(dynamic(_, Src, Line)),
     retractall(multifile(_, Src, Line)),
     retractall(public(_, Src, Line)),
+    retractall(declared(_, _, Src, Line)),
     retractall(defined(_, Src, Line)),
     retractall(meta_goal(_, _, Src)),
     retractall(foreign(_, Src, Line)),
@@ -650,7 +652,10 @@ xref_defined2(local(Line), Src, Called) :-
 xref_defined2(foreign(Line), Src, Called) :-
     foreign(Called, Src, Line).
 xref_defined2(constraint(Line), Src, Called) :-
-    constraint(Called, Src, Line).
+    (   constraint(Called, Src, Line)
+    ->  true
+    ;   declared(Called, chr_constraint, Src, Line)
+    ).
 xref_defined2(imported(From), Src, Called) :-
     imported(Called, Src, From).
 xref_defined2(dcg, Src, Called) :-
@@ -2421,10 +2426,22 @@ process_chr(==>(Head, Body), Src) :-
     mode(chr, Src),
     chr_head(Head, H, Src),
     chr_body(Body, H, Src).
-process_chr((:- chr_constraint(_)), Src) :-
+process_chr((:- chr_constraint(Decls)), Src) :-
     (   mode(chr, Src)
     ->  true
     ;   assert(mode(chr, Src))
+    ),
+    chr_decls(Decls, Src).
+
+chr_decls((A,B), Src) =>
+    chr_decls(A, Src),
+    chr_decls(B, Src).
+chr_decls(Head, Src) =>
+    generalise_term(Head, Gen),
+    (   declared(Gen, chr_constraint, Src, _)
+    ->  true
+    ;   current_source_line(Line),
+        assertz(declared(Gen, chr_constraint, Src, Line))
     ).
 
 chr_head(X, _, _) :-
