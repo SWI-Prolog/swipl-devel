@@ -221,6 +221,10 @@ merge_options(New, OldDict, Dict),
     is_dict(OldDict) =>
     dict_options(NewDict, New),
     put_dict(NewDict, OldDict, Dict).
+merge_options(NewDict, OldList, List),
+    is_dict(NewDict) =>
+    dict_options(NewDict, NewList),
+    merge_option_lists(NewList, OldList, List).
 merge_options(NewList, OldList, List),
     is_list(NewList), is_list(OldList) =>
     merge_option_lists(NewList, OldList, List).
