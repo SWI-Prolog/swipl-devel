@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2023, University of Amsterdam
+    Copyright (c)  2014-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -41,6 +41,7 @@
 :- autoload(library(option),
             [merge_options/3, select_option/3, select_option/4,
              option/2, option/3]).
+:- autoload(library(error), [must_be/2]).
 
 /** <module> Pretty Print Prolog terms
 
@@ -91,17 +92,17 @@ etc.
 %     - indent_arguments(+Spec)
 %       Defines how arguments of compound terms are placed.  Defined
 %       values are:
-%       $ `false` :
-%       Simply place them left to right (no line-breaks)
-%       $ `true` :
-%       Place them vertically, aligned with the open bracket (not
-%       implemented)
-%       $ `auto` (default) :
-%       As horizontal if line-width is not exceeded, vertical
-%       otherwise.  See also auto_indent_arguments(Int)
-%       $ An integer :
-%       Place them vertically aligned, <N> spaces to the right of
-%       the beginning of the head.
+%       - `false` <br>
+%          Simply place them left to right (no line-breaks)
+%       - `true` <br>
+%          Place them vertically, aligned with the open bracket (not
+%          implemented)
+%       - `auto` (default) <br>
+%         As horizontal if line-width is not exceeded, vertical
+%         otherwise.  See also auto_indent_arguments(Int)
+%       - An integer <br>
+%         Place them vertically aligned, <N> spaces to the right of
+%         the beginning of the head.
 %     - auto_indent_arguments(+Integer)
 %       Used by indent_arguments(auto) to decide whether to introduce
 %       a newline after the `(` or not.  If specified and > 0, this
@@ -109,8 +110,11 @@ etc.
 %       "hanging" mode is used if otherwise the indentation increment
 %       is twice this value.
 %     - operators(+Boolean)
-%       This is the inverse of the write_term/3 option `ignore_ops`.
-%       Default is to respect them.
+%       Deprecated.  This is the inverse of the write_term/3 option
+%       `ignore_ops`. Default is to respect them. If either `operators`
+%       or the `ignore_ops` in `write_options` is specified, both are
+%       consistently set. If both are specified, the `ignore_ops`
+%       options in the `write_options` is respected.
 %     - write_options(+List)
 %       List of options passed to write_term/3 for terms that are
 %       not further processed.  Default:
@@ -127,14 +131,28 @@ etc.
 %       If `true` (default `false`), add a newline to the output.
 
 print_term(Term, Options) :-
+    combine_options(Options, Options1),
+    \+ \+ print_term_2(Term, Options1).
+
+combine_options(Options0, Options) :-
     defaults(Defs0),
     select_option(write_options(WrtDefs), Defs0, Defs),
-    select_option(write_options(WrtUser), Options, Options1, []),
-    merge_options(WrtUser, WrtDefs, WrtOpts),
+    select_option(write_options(WrtUser), Options0, Options1, []),
+    (   option(ignore_ops(_), WrtUser)
+    ->  WrtUser1 = WrtUser
+    ;   option(operators(Ops), Options0)
+    ->  must_be(boolean, Ops),
+        neg(Ops, IgnoreOps),
+        WrtUser1 = [ignore_ops(IgnoreOps)|WrtUser]
+    ;   WrtUser1 = WrtUser
+    ),
+    merge_options(WrtUser1, WrtDefs, WrtOpts),
     merge_options(Options1, Defs, Options2),
     Options3 = [write_options(WrtOpts)|Options2],
-    default_margin(Options3, Options4),
-    \+ \+ print_term_2(Term, Options4).
+    default_margin(Options3, Options).
+
+neg(true, false).
+neg(false, true).
 
 print_term_2(Term, Options) :-
     prepare_term(Term, Template, Cycles, Constraints),
@@ -214,7 +232,6 @@ defaults([ output(user_output),
            depth(0),
            indent_arguments(auto),
            auto_indent_arguments(4),
-           operators(true),
            write_options([ quoted(true),
                            numbervars(true),
                            portray(true),
@@ -346,7 +363,8 @@ pp(Term, Ctx, Options) :-               % handle operators
     compound_name_arity(Term, Name, Arity),
     current_op(Prec, Type, Name),
     match_op(Type, Arity, Kind, Prec, Left, Right),
-    option(operators(true), Options),
+    option(write_options(WrtOptions), Options, []),
+    option(ignore_ops(false), WrtOptions, false),
     !,
     quoted_op(Name, QName),
     option(output(Out), Options),
