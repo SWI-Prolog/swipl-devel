@@ -96,7 +96,7 @@ void		unblockGC(int flags);	/* re-allow garbage collect */
 		 *******************************/
 
 #define ensureLocalSpace_ex(bytes) LDFUNC(ensureLocalSpace_ex, bytes)
-static inline int
+static inline bool
 ensureLocalSpace_ex(DECL_LD size_t bytes)
 { int rc;
 
@@ -109,15 +109,22 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
   return raiseStackOverflow(rc);
 }
 
-#define ensureStackSpace_ex(gcells, tcells, flags) LDFUNC(ensureStackSpace_ex, gcells, tcells, flags)
-static inline int
+#define ensureStackSpace_ex(gcells, tcells, flags) \
+	LDFUNC(ensureStackSpace_ex, gcells, tcells, flags)
+
+static inline bool
 ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
-{ if ( hasStackSpace(gcells, tcells) )
+{ int rc;
+
+  if ( hasStackSpace(gcells, tcells) )
     return true;
 
-  return f_ensureStackSpace(gcells+BIND_GLOBAL_SPACE,
-			    tcells+BIND_TRAIL_SPACE,
-			    flags);
+  if ( (rc=f_ensureStackSpace(gcells+BIND_GLOBAL_SPACE,
+			      tcells+BIND_TRAIL_SPACE,
+			      flags)) == true )
+    return true;
+
+  return raiseStackOverflow(rc);
 }
 
 #endif /*_PL_GC_H*/

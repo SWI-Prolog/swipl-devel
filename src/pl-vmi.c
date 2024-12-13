@@ -231,9 +231,7 @@ END_VMH
 	  __rc = ensureStackSpace(g, t);		\
 	  LOAD_REGISTERS(QID);				\
 	  if ( __rc != true )				\
-	  { raiseStackOverflow(__rc);			\
 	    THROW_EXCEPTION;				\
-	  }						\
 	} while(0)
 
 /* Can be used for debugging to always force GC at a place */

@@ -38,9 +38,10 @@
           [ explain/1,
             explain/2
           ]).
-:- autoload(library(apply),[maplist/2,maplist/3]).
+:- autoload(library(apply),[maplist/2]).
 :- autoload(library(lists),[flatten/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
+:- autoload(library(solution_sequences), [distinct/2]).
 
 :- if(exists_source(library(pldoc/man_index))).
 :- autoload(library(pldoc/man_index), [man_object_property/2]).
@@ -146,7 +147,7 @@ explain(Name/Arity, Explanation) :-
     Arity >= 0,
     !,
     functor(Head, Name, Arity),
-    known_predicate(Module:Head),
+    distinct(Module, known_predicate(Module:Head)),
     (   Module == system
     ->  true
     ;   \+ predicate_property(Module:Head, imported_from(_))

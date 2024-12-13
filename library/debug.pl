@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2023, University of Amsterdam
+    Copyright (c)  2002-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -488,3 +488,10 @@ debug_topic(debug_topic(_, TopicString, false, _To)) -->
 :- multifile sandbox:safe_meta/2.
 
 sandbox:safe_meta(prolog_debug:assertion(X), [X]).
+
+		 /*******************************
+		 *  SUPPRESS AUTOLOAD WARNINGS	*
+		 *******************************/
+
+'$nowarn_autoload'(debug/1, _).
+'$nowarn_autoload'(nodebug/1, _).

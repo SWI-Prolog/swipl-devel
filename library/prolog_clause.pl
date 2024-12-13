@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2023, University of Amsterdam
+    Copyright (c)  2005-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -264,7 +264,8 @@ try_open_source(File, In) :-
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
     make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term),
     !.
-make_varnames((Head --> _Body), _, Offsets, Names, Bindings) :-
+make_varnames(ReadClause, _, Offsets, Names, Bindings) :-
+    dcg_head(ReadClause, Head),
     !,
     functor(Head, _, Arity),
     In is Arity,
@@ -278,6 +279,11 @@ make_varnames(_, _, Offsets, Names, Bindings) :-
     length(Offsets, L),
     functor(Bindings, varnames, L),
     do_make_varnames(Offsets, Names, Bindings).
+
+dcg_head((Head,_ --> _Body), Head).
+dcg_head((Head   --> _Body), Head).
+dcg_head((Head,_ ==> _Body), Head).
+dcg_head((Head   ==> _Body), Head).
 
 do_make_varnames([], _, _).
 do_make_varnames([N=Var|TO], Names, Bindings) :-
@@ -400,7 +406,13 @@ unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
     ).
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
-    unify_clause2(Head :- Body, Compiled1, Module, TermPos0, TermPos).
+    unify_clause2((Head :- Body), Compiled1, Module, TermPos0, TermPos).
+unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
+    Read = (_ ==> _),
+    ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
+    Compiled2 \= (_ ==> _),
+    !,
+    unify_clause(Compiled2, Compiled1, Module, TermPos1, TermPos).
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause2(Read, Decompiled, Module, TermPos0, TermPos).
 

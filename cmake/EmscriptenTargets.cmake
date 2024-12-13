@@ -33,10 +33,12 @@ set_target_properties(swipl PROPERTIES
 # link the resource file into the main executable.
 
 set(WASM_BOOT_FILE "${WASM_PRELOAD_DIR}/boot.prc")
+set(WASM_ABI_FILE "${WASM_PRELOAD_DIR}/ABI")
 add_custom_command(
     OUTPUT ${WASM_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${WASM_PRELOAD_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_BOOT_FILE} ${WASM_BOOT_FILE}
+    COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_ABI_FILE} ${WASM_ABI_FILE}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
 			     ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}/library
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home library_index

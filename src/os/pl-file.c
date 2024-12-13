@@ -3084,18 +3084,34 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
       }
       case ENC_UTF16BE:
       case ENC_UTF16LE:
+#if SIZEOF_WCHAR_T == 2
+      case ENC_WCHAR:
+#endif
       { size_t count = 0;
 	const char *us = buf;
 	const char *es = buf+n;
 	size_t done = 0, i;
+	bool be;		/* big endian */
+
+#if SIZEOF_WCHAR_T == 2
+	if ( s->encoding == ENC_WCHAR )
+	{ union
+	  { wchar_t wc;
+	    char c[2];
+	  } t = { .wc = 'A' };
+	  be = t.c[1] == 'A';
+	} else
+#endif
+	{ be = s->encoding == ENC_UTF16BE;
+	}
 
 	while(us+2<=es)
-	{ int c = get_ucs2(us, s->encoding == ENC_UTF16BE);
+	{ int c = get_ucs2(us, be);
 
 	  us += 2;
 	  if ( IS_UTF16_LEAD(c) )
 	  { if ( us+2 <= es )
-	    { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
+	    { int c2 = get_ucs2(us, be);
 
 	      if ( IS_UTF16_TRAIL(c2) )
 	      { count++;
@@ -3121,7 +3137,6 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
 
-#if SIZEOF_WCHAR_T > 2
 	  if ( IS_UTF16_LEAD(c) )
 	  { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
 
@@ -3129,7 +3144,6 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	    us += 2;
 	    c = utf16_decode(c, c2);
 	  }
-#endif
 
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
@@ -3142,6 +3156,7 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	re_buffer(s, buf+done, n-done);
 	break;
       }
+#if SIZEOF_WCHAR_T != 2
       case ENC_WCHAR:
       { const pl_wchar_t *ws = (const pl_wchar_t*)buf;
 	size_t count = (size_t)n/sizeof(pl_wchar_t);
@@ -3167,6 +3182,7 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	re_buffer(s, buf+done, n-done);
 	break;
       }
+#endif
       case ENC_UNKNOWN:
       default:
 	assert(0);

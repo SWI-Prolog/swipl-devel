@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
+    Copyright (c)  2024, University of Amsterdam
+                         VU University Amsterdam
 			 CWI, Amsterdam
     All rights reserved.
 
@@ -33,29 +34,12 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_time, [test_time/0]).
-:- use_module(library(plunit)).
-:- use_module(library(debug)).
+#ifndef FMT_H_INCLUDED
+#define FMT_H_INCLUDED
 
-/** <module> Misc tests
+COMMON(char *)	formatInteger(PL_locale *locale, int div, int radix,
+			      bool smll, Number n, Buffer out);
+COMMON(bool)	do_format(IOSTREAM *fd, PL_chars_t *fmt,
+			  int argc, term_t argv, Module m);
 
-Tests that are hard to classify
-
-@author	Jan Wielemaker
-*/
-
-test_time :-
-    run_tests([ time
-	      ]).
-
-:- begin_tests(time).
-
-% Make sure wall time produces somewhat sane values. This should trigger
-% invalid 23/64 bit time_t operations.  Move the window in 2030!
-
-test(get_time) :-
-    get_time(Now),
-    assertion(Now > (2024-1970)*365*24*3600),
-    assertion(Now < (2050-1970)*365*24*3600).
-
-:- end_tests(time).
+#endif /*FMT_H_INCLUDED*/

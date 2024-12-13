@@ -56,11 +56,11 @@
 #define LDFUNC_DECLARATIONS
 
 void		assignAttVar(Word av, Word value);
-int		bind_attvar_const(Word p, word c);
-int		saveWakeup(wakeup_state *state, int forceframe);
+bool		bind_attvar_const(Word p, word c);
+bool		saveWakeup(wakeup_state *state, int forceframe);
 void		restoreWakeup(wakeup_state *state);
-int		PL_get_attr(term_t t, term_t a);
-int		on_attvar_chain(Word avp);
+bool		PL_get_attr(term_t t, term_t a);
+bool		on_attvar_chain(Word avp);
 Word		alloc_attvar(void);
 
 #undef LDFUNC_DECLARATIONS

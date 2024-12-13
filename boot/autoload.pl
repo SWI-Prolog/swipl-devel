@@ -966,10 +966,15 @@ current_autoload(M:File, Context, Term) :-
 		 *            CHECK		*
 		 *******************************/
 
+%!  warn_autoload(+TargetModule, :PI) is det.
+%
+%   @arg PI is of the shape LoadModule:Name/Arity.
+
 warn_autoload(TargetModule, PI) :-
     current_prolog_flag(warn_autoload, true),
     \+ current_prolog_flag(xref, true),
     \+ nb_current('$autoload_warning', true),
+    \+ nowarn_autoload(TargetModule, PI),
     '$pi_head'(PI, Head),
     source_file(Head, File),
     expansion_hook(P),
@@ -986,6 +991,25 @@ expansion_hook(user:goal_expansion(_,_)).
 expansion_hook(user:goal_expansion(_,_,_,_)).
 expansion_hook(system:goal_expansion(_,_)).
 expansion_hook(system:goal_expansion(_,_,_,_)).
+
+%!  nowarn_autoload(+TargetModule, +LoadModulePI) is semidet.
+%
+%   True when LoadModule:'$nowarn_autoload'(PI,TargetModule)  is defined
+%   and true.
+%
+%   @tbd As is, these  facts  must  be   defined  by  the  library being
+%   autoloaded. Possibly we want a specific autoload declaration. As all
+%   this only affects the Prolog libraries,   we can always change this.
+%   One option might be this, where `How`   is one of `true`, `false` or
+%   `warning`.
+%
+%      :- autoloadable(PI, How)
+
+nowarn_autoload(TargetModule, LoadModule:PI) :-
+    NoWarn = LoadModule:'$nowarn_autoload'(PI,TargetModule),
+    '$c_current_predicate'(_, NoWarn),
+    \+ '$get_predicate_attribute'(NoWarn, imported, _From),
+    call(NoWarn).
 
 
                  /*******************************

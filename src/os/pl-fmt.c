@@ -51,14 +51,13 @@ source should also use format() to produce error messages, etc.
 #include <stdio.h>
 #include <math.h>
 #include <fenv.h>
+#include "pl-fmt.h"
 #ifdef __WINDOWS__
 #include "../pl-nt.h"
 #endif
 
 typedef foreign_t (*Func1)(term_t a1);
 
-static char *	formatInteger(PL_locale *locale, int div, int radix,
-			     bool smll, Number n, Buffer out);
 static char *	formatFloat(PL_locale *locale, int how, int arg,
 			    Number f, Buffer out);
 
@@ -80,14 +79,15 @@ typedef struct
 } format_state;
 
 #define BUFSIZE		1024
-#define DEFAULT		(-1)
+#define DEFAULT		INT_MIN
 #define SHIFT		{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
 #define FMT_ERROR(fmt)	return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
-#define FMT_ARG(c, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, c, a)
+#define FMT_ARG(s, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, s, a)
+#define FMT_ARGC(c, a)  do { char f[2] = {(char)c}; FMT_ARG(f, a); } while(0)
 #define FMT_EXEPTION()	return false
 
 
@@ -97,14 +97,24 @@ static PL_locale prolog_locale =
 };
 
 
-static int
-update_column(int col, int c)
-{ switch(c)
-  { case '\n':	return 0;
-    case '\r':  return 0;
-    case '\t':	return (col + 1) | 0x7;
-    case '\b':	return (col <= 0 ? 0 : col - 1);
-    default:	return col + 1;
+static inline void
+update_column(format_state *state, int c)
+{ if ( likely(c >= ' ') )
+  { state->column++;
+  } else
+  { switch(c)
+    { case '\n':
+	state->column = 0;
+	break;
+      case '\t':
+	state->column = (state->column+1)|0x7;
+      case '\b':
+	if ( likely(state->column>0) )
+	  state->column--;
+	break;
+      default:
+	state->column++;
+    }
   }
 }
 
@@ -115,7 +125,7 @@ UTF-8 format in the state's `buffer'.   The  `buffered' field represents
 the number of UTF-8 characters in the buffer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static WUNUSED int
+static WUNUSED bool
 outchr(format_state *state, int chr)
 { if ( state->pending_rubber )
   { if ( chr > 0x7f )
@@ -135,7 +145,7 @@ outchr(format_state *state, int chr)
       return false;
   }
 
-  state->column = update_column(state->column, chr);
+  update_column(state, chr);
 
   return true;
 }
@@ -162,35 +172,50 @@ outstring(format_state *state, const char *s, size_t len)
   }
 
   for(q=s; q < e; q++)
-    state->column = update_column(state->column, *q&0xff);
+    update_column(state, *q&0xff);
 
   return true;
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
-  while(s<e)
-  { int chr;
+  if ( !state->pending_rubber )
+  { while(s<e)
+    { int chr = s[0]&0xff;
 
-    PL_utf8_code_point(&s, e, &chr);
-    if ( !outchr(state, chr) )
-      return false;
+      if ( likely(chr < 0x80) )
+	s++;
+      else
+	PL_utf8_code_point(&s, e, &chr);
+
+      if ( Sputcode(chr, state->out) < 0 )
+	return false;
+      update_column(state, chr);
+    }
+  } else
+  { while(s<e)
+    { int chr;
+
+      PL_utf8_code_point(&s, e, &chr);
+      if ( !outchr(state, chr) )
+	return false;
+    }
   }
 
   return true;
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 oututf80(format_state *state, const char *s)
 { return oututf8(state, s, strlen(s));
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 outtext(format_state *state, PL_chars_t *txt)
 { switch(txt->encoding)
   { case ENC_ISO_LATIN_1:
@@ -219,9 +244,6 @@ outtext(format_state *state, PL_chars_t *txt)
 
 #define format_predicates (GD->format.predicates)
 
-static int	update_column(int, Char);
-static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt,
-			  int ac, term_t av, Module m);
 static void	distribute_rubber(struct rubber *, int, int);
 static WUNUSED int emit_rubber(format_state *state);
 
@@ -463,7 +485,7 @@ end_sub_format(sub_state *state, int rc)
 		*       ACTUAL FORMATTING	*
 		********************************/
 
-static bool
+bool
 do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
@@ -488,9 +510,17 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
 	  int mod_colon = false;	/* Used colon modifier */
+	  bool neg = false;
 	  predicate_t proc;
 					/* Get the numeric argument */
 	  c = get_chr_from_text(fmt, ++here);
+	  if ( c == '-' )
+	  { neg = true;
+	    c = get_chr_from_text(fmt, ++here);
+	    if ( !isDigitW(c) )
+	    { FMT_ERROR("invalid argument");
+	    }
+	  }
 
 	  if ( isDigitW(c) )
 	  { arg = c - '0';
@@ -509,7 +539,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		arg = arg2;
 		here++;
 	      } else
+	      { if ( neg )
+		  arg = -arg;
 		break;
+	      }
 	    }
 	  } else if ( c == '*' )
 	  { NEED_ARG;
@@ -597,23 +630,27 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'f':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
-		{ AR_CTX
-		  number n;
-		  union {
-		  tmp_buffer b;
+	      case 'h':
+	      case 'H':			/* Precise */
+		{ number n;
+		  union
+		  { tmp_buffer b;
 		    buffer b1;
 		  } u;
 		  PL_locale *l;
+		  AR_CTX
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !valueExpression(argv, &n) )
-		  { char f[2];
+		  if ( !PL_get_number(argv, &n) )
+		  { if ( !valueExpression(argv, &n) )
+		    { char f[2];
 
-		    f[0] = (char)c;
-		    f[1] = EOS;
-		    AR_CLEANUP();
-		    FMT_ARG(f, argv); /* returns error */
+		      f[0] = (char)c;
+		      f[1] = EOS;
+		      AR_CLEANUP();
+		      FMT_ARG(f, argv); /* returns error */
+		    }
 		  }
 		  SHIFT;
 
@@ -639,22 +676,26 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
 	      case 'I':			/* Prolog 1_000_000 */
-		{ AR_CTX
-		  number i;
+		{ number i;
 		  tmp_buffer b;
 		  char *si;
+		  AR_CTX
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !valueExpression(argv, &i) ||
-		       !toIntegerNumber(&i, 0) )
-		  { char f[2];
-
-		    f[0] = (char)c;
-		    f[1] = EOS;
-		    AR_CLEANUP();
-		    FMT_ARG(f, argv);
+		  if ( !PL_get_number(argv, &i) )
+		  { if ( !valueExpression(argv, &i) )
+		    { AR_CLEANUP();
+		      FMT_ARGC(c, argv); /* return with error */
+		    }
 		  }
+		  if ( !isIntegerNumber(&i) )
+		  { if ( !toIntegerNumber(&i, 0) )
+		    { AR_CLEANUP();
+		      FMT_ARGC(c, argv);
+		    }
+		  }
+
 		  SHIFT;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
@@ -663,9 +704,15 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    static char grouping[] = {3,0};
 
 		    if ( c == 'D' )
-		    { ltmp.thousands_sep = L",";
-		      ltmp.decimal_point = L".";
-		      ltmp.grouping = grouping;
+		    { if ( mod_colon )
+		      { ltmp.thousands_sep = L"_";
+			ltmp.decimal_point = L".";
+			ltmp.grouping = grouping;
+		      } else
+		      { ltmp.thousands_sep = L",";
+			ltmp.decimal_point = L".";
+			ltmp.grouping = grouping;
+		      }
 		      l = &ltmp;
 		    } else if ( mod_colon )
 		    { l = fd->locale;
@@ -882,7 +929,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    { rc = false;
 		      goto out;
 		    }
-		    state.column = update_column(state.column, '\n');
+		    update_column(&state, '\n');
 
 		    state.rub[0].where = state.buffered;
 		    state.rub[0].pad = nl_and_reindent;
@@ -1039,7 +1086,15 @@ revert_string(char *s, size_t len)
   }
 }
 
-static char *
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Format the integer  `i` to the buffer `out`.  `div`  is for supporting
+fixed point numbers.   `radix` is the base and  `smll` defines whether
+to use capitals (`false`) or  lowercase letters for digit values above
+9.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+char *
 formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
 { const char *grouping = NULL;
@@ -1358,15 +1413,20 @@ the following algorithm, courtesy of Jan Burse:
 
 static char *
 formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
-{ if ( arg == DEFAULT )
-  { arg = 6;
-  } else if ( arg < 0 )
+{ bool use_h = how == 'h' || how == 'H';
+
+  if ( arg == DEFAULT )
+  { arg = use_h ? 3 : 6;
+  } else if ( arg < 0 && !use_h )
   { GET_LD
     term_t a = PL_new_term_ref();
     PL_put_integer(a, arg);
     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, a);
     return NULL;
   }
+
+  if ( use_h && !promoteToFloatNumber(f) )
+    return NULL;
 
   switch(f->type)
   {
@@ -1698,26 +1758,48 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
   }
 #endif /* O_GMP OR O_BF */
     case V_INTEGER:
-      promoteToFloatNumber(f);
+      if ( !promoteToFloatNumber(f) )
+	return NULL;
       /*FALLTHROUGH*/
     case V_FLOAT:
     { char tmp[12];
       int written = arg+20;
       int size = 0;
 
-      Ssprintf(tmp, "%%.%d%c", arg, how);
-      while(written >= size)
-      { size = written+1;
+      if ( how == 'h' || how == 'H' )
+      { size_t space = 32;
 
-	if ( !growBuffer(out, size) )
-	{ PL_no_memory();
-	  return NULL;
+	for(int n=0; n<2; n++)
+	{ size_t sz;
+
+	  if ( !growBuffer(out, space) )
+	  { PL_no_memory();
+	    return NULL;
+	  }
+	  sz = format_float(out->base, space, f->value.f,
+			    arg, how == 'H' ? 'E' : 'e');
+	  if ( sz < space )
+	  { written = sz;
+	    break;
+	  } else
+	  { space = sz+1;
+	  }
 	}
-	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
+      } else
+      { Ssprintf(tmp, "%%.%d%c", arg, how);
+	while(written >= size)
+	{ size = written+1;
+
+	  if ( !growBuffer(out, size) )
+	  { PL_no_memory();
+	    return NULL;
+	  }
+	  written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
 #ifdef __WINDOWS__
-	if ( written < 0 )	/* pre-C99 Windows snprintf() returns -1 */
-	  written = size*2;
+	  if ( written < 0 )	/* pre-C99 Windows snprintf() returns -1 */
+	    written = size*2;
 #endif
+	}
       }
 
 #ifdef __WINDOWS__

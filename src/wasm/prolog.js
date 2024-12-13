@@ -174,9 +174,10 @@ class Prolog
   { let argv0 = this.args || [];
     argv0.unshift("swipl");
     let argv = argv0.map(function(arg) {
-	return this.module.allocate(
-	    this.module.intArrayFromString(arg),
-	    'i8', this.module.ALLOC_NORMAL);
+      const len = lengthBytesUTF8(arg);
+      const s = _malloc(len+1);
+      stringToUTF8(arg, s, len+1);
+      return s;
     }, this);
     var ptr = _malloc(argv.length * 4);
     argv.forEach(function(arg, i) {
@@ -1395,7 +1396,10 @@ class Query {
     prolog.open_queries.push(this);
   }
 
-  [Symbol.iterator]() { return this; }
+  [Symbol.iterator]() {
+    this.is_iterator = true;
+    return this;
+  }
 
   next()
   { const prolog = this.prolog;
@@ -1409,15 +1413,16 @@ class Query {
 
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
-      { if ( (this.flags & prolog.PL_Q_NORMAL) )
+      { /* `value` is `undefined` */
+	if ( (this.flags & prolog.PL_Q_NORMAL) )
 	{ this.close();
-	  return { done: true, error: true }
+	  return { done: !this.is_iterator, error: true }
 	} else
 	{ const msg = prolog.message_to_string(
 				 prolog.bindings.PL_exception(this.qid));
 	  console.log(msg);
 	  this.close();
-	  return { done: true, error: true, message: msg };
+	  return { done: !this.is_iterator, error: true, message: msg };
 	}
       }
       case prolog.PL_S_FALSE:
@@ -1425,7 +1430,7 @@ class Query {
 	return { done: true };
       case prolog.PL_S_LAST:
 	this.close();
-	return { done: true,
+        return { done: !this.is_iterator,
 		 value: this.map ? this.map.call(this, argv) : argv
 	       };
       case prolog.PL_S_TRUE:

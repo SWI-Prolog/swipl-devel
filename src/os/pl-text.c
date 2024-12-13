@@ -282,11 +282,23 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
     text->encoding  = ENC_ISO_LATIN_1;
     text->canonical = true;
   } else if ( (flags & CVT_FLOAT) && isFloat(w) )
-  { format_float(valFloat(w), text->buf);
-    text->text.t    = text->buf;
-    text->length    = strlen(text->text.t);
+  { size_t sz = format_float(text->buf, sizeof(text->buf),
+			     valFloat(w), 3, 'e');
+    if ( sz < sizeof(text->buf) )
+    { text->text.t    = text->buf;
+      text->length    = sz;
+      text->storage   = PL_CHARS_LOCAL;
+    } else
+    { Buffer b  = findBuffer(BUF_STACK);
+
+      if ( !growBuffer(b, sz+1) )
+	outOfCore();
+      format_float(b->base, sz+1, valFloat(w), 3, 'e');
+      text->text.t  = baseBuffer(b, char);
+      text->length  = sz;
+      text->storage = PL_CHARS_STACK;
+    }
     text->encoding  = ENC_ISO_LATIN_1;
-    text->storage   = PL_CHARS_LOCAL;
     text->canonical = true;
   } else if ( (flags & CVT_LIST) )
   { Buffer b;

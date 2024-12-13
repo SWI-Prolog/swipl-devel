@@ -801,7 +801,8 @@ options(Type, ShortOpt, LongOpts, Meta) -->
     sequence(option(Type, Meta), [', '-[]], Opts).
 
 option(boolean, _, Opt) -->
-    opt(Opt).
+    opt(Opt),
+    !.
 option(_Type, [Meta], Opt) -->
     \+ { short_opt(Opt) },
     !,

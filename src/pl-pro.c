@@ -846,7 +846,7 @@ last_arg:
   { Word a = addressIndirect(*p);
 
     assert(!is_marked(p));
-    if ( !((uintptr_t)a&(sizeof(word)-1)) == 0 )
+    if ( (uintptr_t)a & (sizeof(word)-1) )
       printk(context, "Indirect at %p is unaligned", a);
     if ( !onGlobal(a) )
       printk(context, "Indirect at %p not on global stack", a);

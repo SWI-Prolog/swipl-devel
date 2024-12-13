@@ -6535,6 +6535,12 @@ a space (default) or newline if the \term{nl}{true} option is also
 given.\footnote{Compatible with
 \href{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}{ECLiPSe}}
 
+    \termitem{float_format}{+Atom}
+Print floating point numbers using format/2 as \term{format}{Atom,
+[Float]}. The default is \verb$~h$. This option is compatible with
+SICStus. See format/2 for valid format specifiers and the
+\const{integer_format} option for additional comments.
+
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term representation (<functor>(<args>
 \ldots)) will be used for all terms.  Otherwise (default), operators
@@ -6542,6 +6548,16 @@ will be used where appropriate.\footnote{In traditional systems this
 flag also stops the syntactic sugar notation for lists and brace terms.
 In SWI-Prolog, these are controlled by the separate options
 \const{dotlists} and \const{brace_terms}}.
+
+    \termitem{integer_format}{+Atom}
+Print integers using format/2 as \term{format}{Atom, [Int]}.  The
+default is \verb$~d$. This allows to print integers using an
+alternative \jargon{radix}, using e.g.\, \verb$~16r$ or \verb$0x~16r$
+or to use digit grouping using e.g.\ \verb$~D$. Note that the user
+is reponsible to provide a format that produces valid Prolog syntax if
+the term must be readable by Prolog.  The format must accept exactly
+one argument.  If that is not satisfied, printing an integer results
+in an exception.  See format/2 for for valid format specifiers.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
@@ -8111,7 +8127,7 @@ and modules.
 \begin{center}
 \begin{tabular}{|r|D{f}{f}{-1}|p{4in}|}
 \hline
-1200 & xfx & \op{-->}, \op{:-}, \op{=>} \\
+1200 & xfx & \op{-->}, \op{:-}, \op{=>}, \op{==>} \\
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
 	    \op{meta_predicate},
@@ -8640,13 +8656,13 @@ Rational number division. This function is only available if
 SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
-    \infixfunction{gcd}{+IntExpr1}{+IntExpr2}
+    \function{gcd}{2}{+IntExpr1, +IntExpr2}
 Result is the greatest common divisor of \arg{IntExpr1} and
 \arg{IntExpr2}. The GCD is always a positive integer. If either
 expression evaluates to zero the GCD is the result of the other
 expression.
 
-    \infixfunction{lcm}{+IntExpr1}{+IntExpr2}
+    \function{lcm}{2}{+IntExpr1, +IntExpr2}
 Result is the least common multiple of \arg{IntExpr1},
 \arg{IntExpr2}.\bug{If the system is compiled for bounded integers only
 \funcref{lcm}{2} produces an integer overflow if the product of the two
@@ -9700,12 +9716,12 @@ stream and uses the position information of the temporary stream to
 update its notion of the position.  Notable ansi_format/3 cooperates
 properly in callbacks.\footnote{As of version 8.3.30}.
 
-Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
-and \chr{G}) accept an arithmetic expression as argument. This is
-introduced to handle rational numbers transparently (see
-\secref{rational}).  The floating point conversions allow for unlimited
-precision for printing rational numbers in decimal form.  E.g., the
-following will write as many 3's as you want by changing the `50'.
+Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f},
+\chr{g}, \chr{G}, \chr{h} and \chr{H}) accept an arithmetic expression
+as argument. This is introduced to handle rational numbers transparently
+(see \secref{rational}). The floating point conversions allow for
+unlimited precision for printing rational numbers in decimal form. E.g.,
+the following will write as many 3's as you want by changing the `50'.
 
 \begin{code}
 ?- format('~50f', [10 rdiv 3]).
@@ -9742,7 +9758,10 @@ according to the locale of the output stream.  See \secref{locale}.
     \fmtchar{D}
 Same as {\bf d}, but makes large values easier to read by inserting a
 comma every three digits left or right of the dot.  This is the same
-as \verb$~:d$, but using the fixed English locale.
+as \verb$~:d$, but using the fixed English locale.  If \textbf{D} is
+modified using the colon (\verb$~:D$), it uses the Prolog grouping
+character \chr{_}.  See also setup_prolog_integer_grouping/0.  Future
+versions may also support line breaks in big integers.
 
     \fmtchar{e}
 Output next argument as a floating point number in exponential
@@ -9767,6 +9786,23 @@ Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
 
     \fmtchar{G}
 Floating point in {\bf E} or {\bf f} notation, whichever is shorter.
+
+    \fmtchar{h}
+    \nodescription
+    \fmtchar{H}
+Print a floating point number with the minimal number of digits such
+that read/1 produces exactly (as in \predref{==}{2}) the same number.
+The argument specifies whether a number is written using exponential
+notation (using \textbf{e} (h) or \textbf{E} (H)) or fixed point
+notation (as \verb$~f$).  If the argument is -1, the number is always
+written using exponential notation.  Otherwise, number is written
+using exponential notation if the exponent is less than \arg{Arg}-1
+or greater than \arg{Arg}+\arg{d}, where \arg{d} is the number of
+digits emitted to establish the required precision.   Using an
+argument larger than the the maximum exponent such as \verb$~999h$
+never uses exponential notation.   The default argument is 3.  The
+predicate write/1 and friends act as if using the format \verb$~3h$.
+This option is compatible to SICStus Prolog.
 
     \fmtchar{i}
 Ignore next argument of the argument list. Produces no output.
@@ -11734,7 +11770,6 @@ functors        & Total number of defined name/arity pairs \\
 functor_space   & Bytes used to represent functors \\
 global          & Allocated size of the global stack in bytes \\
 globalused      & Number of bytes in use on the global stack \\
-globallimit     & Size to which the global stack is allowed to grow \\
 global_shifts	& Number of global stack expansions \\
 heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
 inferences      & Total number of passes via the call and redo ports
@@ -11743,12 +11778,10 @@ inferences      & Total number of passes via the call and redo ports
 modules         & Total number of defined modules \\
 local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\
-locallimit      & Size to which the local stack is allowed to grow \\
 localused       & Number of bytes in use on the local stack \\
 table_space_used& Amount of bytes in use by the thread's answer tables \\
 trail           & Allocated size of the trail stack in bytes \\
 trail_shifts	& Number of trail stack expansions \\
-traillimit      & Size to which the trail stack is allowed to grow \\
 trailused       & Number of bytes in use on the trail stack \\
 shift_time	& Time spent in stack-shifts \\
 self_cputime	& (User) {\sc cpu} time since thread was started in seconds \\

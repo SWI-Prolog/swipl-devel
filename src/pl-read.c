@@ -386,7 +386,8 @@ typedef struct
   } op;				/* Name of the operator */
   unsigned isblock : 1;		/* [...] or {...} operator */
   unsigned isterm : 1;		/* Union is a term */
-  char	kind;			/* kind (prefix/postfix/infix) */
+  char	kind;			/* kind (OP_PREFIX, ...) */
+  unsigned char type;		/* OP_FX, ... */
   short	left_pri;		/* priority at left-hand */
   short	right_pri;		/* priority at right hand */
   short	op_pri;			/* priority of operator */
@@ -3720,6 +3721,7 @@ isOp(DECL_LD op_entry *e, unsigned char kind, ReadData _PL_rd)
 
   if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
     fail;
+  e->type   = type;
   e->kind   = kind;
   e->op_pri = pri;
 
@@ -3868,27 +3870,54 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
 }
 
 
-#define reduce_one_op(cstate, cpri) \
-	LDFUNC(reduce_one_op, cstate, cpri)
+#define reduce_one_op(cstate, op, side)		\
+  LDFUNC(reduce_one_op, cstate, op, side)
+
+typedef enum
+{ REDUCE_LEFT,
+  REDUCE_RIGHT
+} reduce_side;
+
+static bool
+must_reduce(const op_entry *sop, const op_entry *fop, reduce_side side)
+{ int cpri = side == REDUCE_LEFT ? fop->left_pri : fop->right_pri;
+
+  if ( cpri == sop->op_pri )
+  { /* Deal with `fy 2 yf`, `1 xfy 2 yfx 3`, etc.  */
+
+    if ( ((sop->kind == OP_PREFIX || sop->kind == OP_INFIX) &&
+	  sop->op_pri == sop->right_pri) &&
+	 ((fop->kind == OP_POSTFIX || fop->kind == OP_INFIX) &&
+	  fop->op_pri == fop->left_pri) )
+      return false;
+  }
+
+  return cpri >= sop->op_pri;
+}
 
 static int
-reduce_one_op(DECL_LD cterm_state *cstate, short cpri)
+reduce_one_op(DECL_LD cterm_state *cstate,
+	      const op_entry *op, reduce_side side)
 { ReadData _PL_rd = cstate->rd;
+  int cpri = side == REDUCE_LEFT ? op->left_pri : op->right_pri;
 
-  if ( cstate->out_n > 0 && cstate->side_n > 0 &&
-	 cpri >= SideOp(cstate->side_p)->op_pri )
-  { int rc;
+  if ( cstate->out_n > 0 && cstate->side_n > 0 )
+  { op_entry *sop = SideOp(cstate->side_p);
 
-    rc = can_reduce(SideOp(cstate->side_p), cpri, cstate->out_n, cstate->rd);
-    if ( rc > 0 )
-    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd) )
-	return -1;
-      if ( SideOp(cstate->side_p)->kind == OP_INFIX )
-	cstate->out_n--;
-      PopOp(cstate);
+    if ( must_reduce(sop, op, side) )
+    { int rc;
+
+      rc = can_reduce(sop, cpri, cstate->out_n, cstate->rd);
+      if ( rc > 0 )
+      { if ( !build_op_term(sop, cstate->rd) )
+	  return -1;
+	if ( sop->kind == OP_INFIX )
+	  cstate->out_n--;
+	PopOp(cstate);
+      }
+
+      return rc;
     }
-
-    return rc;
   }
 
   return false;
@@ -3896,22 +3925,22 @@ reduce_one_op(DECL_LD cterm_state *cstate, short cpri)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Combine operators from the side queue and out queue as long as there are
-sufficient operators and operands and the   priority  of the operator is
-lower or equal to the context.
+Combine operators from  the side queue and out queue  as long as there
+are sufficient operators and operands as requested by the left side of
+the given operator.
 
 Returns: true:   Ok
 	 false:  Error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define reduce_op(cstate, cpri) \
-	LDFUNC(reduce_op, cstate, cpri)
+#define reduce_op(cstate, op) \
+	LDFUNC(reduce_op, cstate, op)
 
-static int
-reduce_op(DECL_LD cterm_state *cstate, short cpri)
+static bool
+reduce_op(DECL_LD cterm_state *cstate, const op_entry *op)
 { int rc;
 
-  while((rc=reduce_one_op(cstate, cpri)) == true)
+  while((rc=reduce_one_op(cstate, op, REDUCE_LEFT)) == true)
     ;
 
   return !rc;		/* false --> true, -1 --> false */
@@ -4076,6 +4105,7 @@ static int
 complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd)
 { op_entry in_op;
+  op_entry end_op;
   term_t pin;
   Token token;
   cterm_state cstate =
@@ -4087,6 +4117,7 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 
   if ( _PL_rd->strictness == 0 )
     maxpri = OP_MAXPRIORITY+1;
+  end_op.left_pri = maxpri;
 
   in_op.left_pri = 0;
   in_op.right_pri = 0;
@@ -4146,7 +4177,7 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	if ( !modify_op(&cstate, in_op.left_pri) )
 	  return false;
 	if ( cstate.rmo == 1 )
-	{ if ( !reduce_op(&cstate, in_op.left_pri) )
+	{ if ( !reduce_op(&cstate, &in_op) )
 	    return false;
 	  cstate.rmo--;
 	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
@@ -4161,21 +4192,24 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	if ( !modify_op(&cstate, in_op.left_pri) )
 	  return false;
 	if ( cstate.rmo == 1 )
-	{ short cpri = maxpri;
+	{ op_entry *red_op = &end_op;
+	  reduce_side side = REDUCE_LEFT;
 
-	  if ( !reduce_op(&cstate, in_op.left_pri) )
+	  if ( !reduce_op(&cstate, &in_op) )
 	    return false;
 
 	  if ( cstate.side_n > 0 )
 	  { op_entry *prev = SideOp(cstate.side_p);
 	    if ( prev->kind == OP_PREFIX || prev->kind == OP_INFIX )
-	      cpri = prev->right_pri;
+	    { red_op = prev;
+	      side = REDUCE_RIGHT;
+	    }
 	  }
 
 	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
 	    return false;
 	  PushOp();
-	  if ( reduce_one_op(&cstate, cpri) == -1 )
+	  if ( reduce_one_op(&cstate, red_op, side) == -1 )
 	    return false;
 	  continue;
 	}
@@ -4202,7 +4236,7 @@ exit:
   unget_token();			/* the full-stop or punctuation */
   if ( !modify_op(&cstate, maxpri) )
     return false;
-  if ( !reduce_op(&cstate, maxpri) )
+  if ( !reduce_op(&cstate, &end_op) )
     return false;
 
   if ( cstate.out_n == 1 && cstate.side_n == 0 ) /* simple term */

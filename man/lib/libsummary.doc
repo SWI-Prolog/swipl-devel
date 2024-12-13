@@ -87,6 +87,9 @@
 \libsummary{error}
 \input{summaries.d/error.tex}
 
+\libsummary{exceptions}
+\input{summaries.d/exceptions.tex}
+
 \libsummary{fastrw}
 \input{summaries.d/fastrw.tex}
 

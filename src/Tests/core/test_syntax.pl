@@ -38,8 +38,15 @@
 :- use_module(library(plunit)).
 
 test_syntax :-
-    run_tests([ syntax
+    run_tests([ syntax,
+                iso_op_table_6
               ]).
+
+:- meta_predicate
+    term_string_(-, :).
+
+term_string_(Term, M:String) :-
+    term_string(Term, String, [module(M)]).
 
 :- begin_tests(syntax).
 
@@ -126,3 +133,26 @@ test(latin_1) :-
     atom_codes(T, [247]).
 
 :- end_tests(syntax).
+
+:- begin_tests(iso_op_table_6).
+
+:- op(100, fy,  fy).
+:- op(100, xfy, xfy).
+:- op(100, yfx, yfx).
+:- op(100, yf,  yf).
+
+test(r1, T == fy(fy(1))) :-
+    term_string_(T, "fy fy 1").
+test(r2, T == xfy(1, xfy(2,3))) :-
+    term_string_(T, "1 xfy 2 xfy 3").
+test(r3, T == xfy(1, yfx(2,3))) :-
+    term_string_(T, "1 xfy 2 yfx 3").
+test(r4, T == fy(yf(2))) :-
+    term_string_(T, "fy 2 yf").
+test(r5, T == yf(yf(1))) :-
+    term_string_(T, "1 yf yf").
+test(r6, T == yfx(yfx(1,2),3)) :-
+    term_string_(T, "1 yfx 2 yfx 3").
+
+:- end_tests(iso_op_table_6).
+

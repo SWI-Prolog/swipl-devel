@@ -35,18 +35,17 @@
 #ifndef PL_STRING_H_INCLUDED
 #define PL_STRING_H_INCLUDED
 
-COMMON(char *) 		store_string(const char *s);
-COMMON(void) 		remove_string(char *s);
-COMMON(char) 		digitName(int n, int small);
-COMMON(int) 		digitValue(int b, int c);
-COMMON(bool) 		strprefix(const char *string, const char *prefix);
-COMMON(bool) 		strpostfix(const char *string, const char *postfix);
-COMMON(bool) 		stripostfix(const char *string, const char *postfix);
+COMMON(char *)		store_string(const char *s);
+COMMON(void)		remove_string(char *s);
+COMMON(int)		digitValue(int b, int c);
+COMMON(bool)		strprefix(const char *string, const char *prefix);
+COMMON(bool)		strpostfix(const char *string, const char *postfix);
+COMMON(bool)		stripostfix(const char *string, const char *postfix);
 #ifndef HAVE_STRCASECMP
-COMMON(int) 		strcasecmp(const char *s1, const char *s2);
+COMMON(int)		strcasecmp(const char *s1, const char *s2);
 #endif
 #ifndef HAVE_STRLWR
-COMMON(char *) 		strlwr(char *s);
+COMMON(char *)		strlwr(char *s);
 #endif
 #ifndef HAVE_MBSCOLL
 COMMON(int)		mbscoll(const char *s1, const char *s2);
@@ -54,5 +53,17 @@ COMMON(int)		mbscoll(const char *s1, const char *s2);
 #ifndef HAVE_MBSCASECOLL
 COMMON(int)		mbscasecoll(const char *s1, const char *s2);
 #endif
+
+/*  Return the character representing some digit.
+
+ ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+
+static inline char
+digitName(int n, int smll)
+{ if (n <= 9)
+    return (char)(n + '0');
+  return (char)(n + (smll ? 'a' : 'A') - 10);
+}
+
 
 #endif /*PL_STRING_H_INCLUDED*/

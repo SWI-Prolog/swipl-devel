@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2023, University of Amsterdam
+    Copyright (c)  2009-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -192,8 +192,9 @@ call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
     ;   call_term_expansion(T, Term0, Pos0, Term, Pos)
     ).
 
-expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
-    dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1),
+expand_term_2(DCGRule, Pos0, Expanded, Pos) :-
+    is_dcg(DCGRule),
+    dcg_translate_rule(DCGRule, Pos0, Expanded0, Pos1),
     !,
     expand_bodies(Expanded0, Pos1, Expanded1, Pos),
     non_terminal_decl(Expanded1, Expanded).
@@ -202,6 +203,10 @@ expand_term_2(Term0, Pos0, Term, Pos) :-
     !,
     expand_bodies(Term0, Pos0, Term, Pos).
 expand_term_2(Term, Pos, Term, Pos).
+
+is_dcg(_-->_) => true.
+is_dcg(_==>_) => true.
+is_dcg(_)     => fail.
 
 non_terminal_decl(Clause, Decl) :-
     \+ current_prolog_flag(xref, true),
@@ -217,6 +222,8 @@ non_terminal_decl(Clause, Decl) :-
 non_terminal_decl(Clause, Clause).
 
 clause_head(Head:-_, Head) :- !.
+clause_head((Head,_=>_), Head) :- !.
+clause_head(Head=>_, Head) :- !.
 clause_head(Head, Head).
 
 

@@ -196,13 +196,11 @@ static const PL_extension foreigns[] = {
 #define SIGNATURE_SEED (0x1a3be34a)
 
 static unsigned int
-predicate_signature(const Definition def)
+predicate_signature(const char *name, size_t arity, uint64_t flags)
 { char str[256];
 
-  Ssprintf(str, "%s/%zd/0x%" PRIx64,
-	   stringAtom(def->functor->name),
-	   def->functor->arity,
-	   def->flags);
+  Ssnprintf(str, sizeof(str), "%s/%zd/0x%" PRIx64,
+	    name, arity, flags);
 
   return MurmurHashAligned2(str, strlen(str), SIGNATURE_SEED);
 }
@@ -303,46 +301,133 @@ cleanupExtensions(void)
   ext_head = ext_tail = NULL;
 }
 
+static uint64_t
+builtin_pred_flags(short regflags, uint64_t defflags)
+{ uint64_t flags = defflags|P_FOREIGN|HIDE_CHILDS|P_LOCKED;
 
+  if ( regflags & PL_FA_NOTRACE )	   flags &= ~TRACE_ME;
+  if ( regflags & PL_FA_TRANSPARENT )      flags |= P_TRANSPARENT;
+  if ( regflags & PL_FA_NONDETERMINISTIC ) flags |= P_NONDET;
+  if ( regflags & PL_FA_VARARGS )	   flags |= P_VARARG;
+  if ( regflags & PL_FA_CREF )		   flags |= P_FOREIGN_CREF;
+  if ( regflags & PL_FA_ISO )		   flags |= P_ISO;
+  if ( regflags & PL_FA_SIG_ATOMIC )       flags |= P_SIG_ATOMIC;
+
+  return flags;
+}
 
 static void
-registerBuiltins(const PL_extension *f)
+registerBuiltins(const PL_extension *f, bool signonly)
 { Module m = MODULE_system;
 
   for(; f->predicate_name; f++)
-  { Procedure proc;
-    atom_t name	= PL_new_atom(f->predicate_name);
-    functor_t fdef = lookupFunctorDef(name, f->arity);
+  { bool userpred = f->predicate_name[0] != '$';
+    uint64_t defflags = userpred ? TRACE_ME : 0;
+    uint64_t flags = builtin_pred_flags(f->flags, defflags);
 
-    PL_unregister_atom(name);
-    if ( (proc = lookupProcedure(fdef, m)) )
-    { Definition def = proc->definition;
-      set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
-
-      if ( f->flags & PL_FA_NOTRACE )	       clear(def, TRACE_ME);
-      if ( f->flags & PL_FA_TRANSPARENT )      set(def, P_TRANSPARENT);
-      if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
-      if ( f->flags & PL_FA_VARARGS )	       set(def, P_VARARG);
-      if ( f->flags & PL_FA_CREF )	       set(def, P_FOREIGN_CREF);
-      if ( f->flags & PL_FA_ISO )	       set(def, P_ISO);
-      if ( f->flags & PL_FA_SIG_ATOMIC )       set(def, P_SIG_ATOMIC);
-
-      def->impl.foreign.function = f->function;
-      createForeignSupervisor(def, f->function);
-
-      if ( !extensions_loaded )
-	GD->foreign.signature ^= predicate_signature(def);
+    if ( signonly )
+    { if ( !extensions_loaded )
+	GD->foreign.signature ^= predicate_signature(f->predicate_name,
+						     f->arity,
+						     flags);
     } else
-    { assert(0);
+    { Procedure proc;
+      atom_t name    = PL_new_atom(f->predicate_name);
+      functor_t fdef = lookupFunctorDef(name, f->arity);
+
+      PL_unregister_atom(name);
+      if ( (proc = lookupProcedure(fdef, m)) )
+      { Definition def = proc->definition;
+	assert(def->flags == defflags);
+	def->flags = flags;
+	def->impl.foreign.function = f->function;
+	createForeignSupervisor(def, f->function);
+      } else
+      { assert(0);
+      }
     }
   }
 }
 
+static void
+setBuiltinPredicateProperties(void)
+{ Module m = MODULE_system;
+
+#define LOOKUPPROC(name)					      \
+	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
+	  DEBUG(CHK_SECURE, assert(GD->procedures.name)); \
+	}
+
+  LOOKUPPROC(dgarbage_collect1);
+  LOOKUPPROC(catch3);
+  LOOKUPPROC(reset3);
+  LOOKUPPROC(dmeta_call1);
+  LOOKUPPROC(true0);
+  LOOKUPPROC(fail0);
+  LOOKUPPROC(equals2);
+  LOOKUPPROC(is2);
+  LOOKUPPROC(strict_equal2);
+  LOOKUPPROC(not_strict_equal2);
+  LOOKUPPROC(arg3);
+  LOOKUPPROC(print_message2);
+  LOOKUPPROC(dcall1);
+  LOOKUPPROC(dthread_init0);
+  LOOKUPPROC(dc_call_prolog0);
+  LOOKUPPROC(dinit_goal3);
+#ifdef O_ATTVAR
+  LOOKUPPROC(dwakeup1);
+#endif
+
+  GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
+					      PL_new_module(ATOM_prolog));
+  PROCEDURE_exception_hook5  =
+    PL_predicate("prolog_exception_hook", 5, "prolog");
+  PROCEDURE_tune_gc3 =
+    PL_predicate("tune_gc", 3, "prolog");
+					/* allow debugging in call/1 */
+  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
+  set(PROCEDURE_dcall1->definition, P_DYNAMIC|P_LOCKED);
+
+  PL_meta_predicate(PL_predicate("assert",           1, "system"), ":");
+  PL_meta_predicate(PL_predicate("asserta",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assertz",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assert",           2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("asserta",          2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("assertz",          2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("retract",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("retractall",       1, "system"), ":");
+  PL_meta_predicate(PL_predicate("clause",           2, "system"), ":?");
+
+  PL_meta_predicate(PL_predicate("format",           2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("format",           3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("format_predicate", 2, "system"), "+0");
+
+  PL_meta_predicate(PL_predicate("notrace",          1, "system"), "0");
+  PL_meta_predicate(PL_predicate("with_mutex",       2, "system"), "+0");
+  PL_meta_predicate(PL_predicate("with_output_to",   2, "system"), "+0");
+#ifdef O_PLMT
+  PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
+  PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
+  PL_meta_predicate(PL_predicate("thread_wait",	     2, "system"), "0:");
+  PL_meta_predicate(PL_predicate("thread_update",    2, "system"), "0:");
+#endif
+  PL_meta_predicate(PL_predicate("thread_idle",      2, "system"), "0+");
+  PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
+  PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("unwrap_predicate", 2, "system"), ":?");
+  PL_meta_predicate(PL_predicate("prolog_listen",    2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("prolog_listen",    3, "system"), "+:+");
+  PL_meta_predicate(PL_predicate("prolog_unlisten",  2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("with_tty_raw",     1, "system"), "0");
+  PL_meta_predicate(PL_predicate("sig_atomic",       1, "system"), "0");
+}
 
 #define DECL_PLIST(id) \
 	extern const PL_extension PL_predicates_from_ ## id[]
 #define REG_PLIST(id) \
-	registerBuiltins(PL_predicates_from_ ## id)
+  registerBuiltins(PL_predicates_from_ ## id, signonly)
 
 DECL_PLIST(alloc);
 DECL_PLIST(atom);
@@ -409,13 +494,11 @@ DECL_PLIST(wasm);
 #endif
 
 void
-initBuildIns(void)
-{ ExtensionCell ecell;
-  Module m = MODULE_system;
+initBuildIns(bool signonly)
+{ if ( !signonly )
+    initProcedures();
 
-  initProcedures();
-
-  registerBuiltins(foreigns);
+  registerBuiltins(foreigns, signonly);
   REG_PLIST(alloc);
   REG_PLIST(atom);
   REG_PLIST(arith);
@@ -492,77 +575,12 @@ initBuildIns(void)
   REG_PLIST(wasm);
 #endif
 
-#define LOOKUPPROC(name) \
-	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
-	  DEBUG(CHK_SECURE, assert(GD->procedures.name)); \
-	}
+  if ( !signonly )
+  { setBuiltinPredicateProperties();
 
-  LOOKUPPROC(dgarbage_collect1);
-  LOOKUPPROC(catch3);
-  LOOKUPPROC(reset3);
-  LOOKUPPROC(dmeta_call1);
-  LOOKUPPROC(true0);
-  LOOKUPPROC(fail0);
-  LOOKUPPROC(equals2);
-  LOOKUPPROC(is2);
-  LOOKUPPROC(strict_equal2);
-  LOOKUPPROC(not_strict_equal2);
-  LOOKUPPROC(arg3);
-  LOOKUPPROC(print_message2);
-  LOOKUPPROC(dcall1);
-  LOOKUPPROC(dthread_init0);
-  LOOKUPPROC(dc_call_prolog0);
-  LOOKUPPROC(dinit_goal3);
-#ifdef O_ATTVAR
-  LOOKUPPROC(dwakeup1);
-#endif
-  GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
-					      PL_new_module(PL_new_atom("prolog")));
-  PROCEDURE_exception_hook5  =
-	PL_predicate("prolog_exception_hook", 5, "prolog");
-  PROCEDURE_tune_gc3 =
-	PL_predicate("tune_gc", 3, "prolog");
-					/* allow debugging in call/1 */
-  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
-  set(PROCEDURE_dcall1->definition, P_DYNAMIC|P_LOCKED);
+    for(ExtensionCell ecell = ext_head; ecell; ecell = ecell->next )
+      bindExtensions(ecell->module, ecell->extensions);
 
-  PL_meta_predicate(PL_predicate("assert",           1, "system"), ":");
-  PL_meta_predicate(PL_predicate("asserta",          1, "system"), ":");
-  PL_meta_predicate(PL_predicate("assertz",          1, "system"), ":");
-  PL_meta_predicate(PL_predicate("assert",           2, "system"), ":-");
-  PL_meta_predicate(PL_predicate("asserta",          2, "system"), ":-");
-  PL_meta_predicate(PL_predicate("assertz",          2, "system"), ":-");
-  PL_meta_predicate(PL_predicate("retract",          1, "system"), ":");
-  PL_meta_predicate(PL_predicate("retractall",       1, "system"), ":");
-  PL_meta_predicate(PL_predicate("clause",           2, "system"), ":?");
-
-  PL_meta_predicate(PL_predicate("format",           2, "system"), "+:");
-  PL_meta_predicate(PL_predicate("format",           3, "system"), "++:");
-  PL_meta_predicate(PL_predicate("format_predicate", 2, "system"), "+0");
-
-  PL_meta_predicate(PL_predicate("notrace",          1, "system"), "0");
-  PL_meta_predicate(PL_predicate("with_mutex",       2, "system"), "+0");
-  PL_meta_predicate(PL_predicate("with_output_to",   2, "system"), "+0");
-#ifdef O_PLMT
-  PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
-  PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
-  PL_meta_predicate(PL_predicate("thread_wait",	     2, "system"), "0:");
-  PL_meta_predicate(PL_predicate("thread_update",    2, "system"), "0:");
-#endif
-  PL_meta_predicate(PL_predicate("thread_idle",      2, "system"), "0+");
-  PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
-  PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
-  PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
-  PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
-  PL_meta_predicate(PL_predicate("unwrap_predicate", 2, "system"), ":?");
-  PL_meta_predicate(PL_predicate("prolog_listen",    2, "system"), "+:");
-  PL_meta_predicate(PL_predicate("prolog_listen",    3, "system"), "+:+");
-  PL_meta_predicate(PL_predicate("prolog_unlisten",  2, "system"), "+:");
-  PL_meta_predicate(PL_predicate("with_tty_raw",     1, "system"), "0");
-  PL_meta_predicate(PL_predicate("sig_atomic",       1, "system"), "0");
-
-  for( ecell = ext_head; ecell; ecell = ecell->next )
-    bindExtensions(ecell->module, ecell->extensions);
-
-  extensions_loaded = true;
+    extensions_loaded = true;
+  }
 }

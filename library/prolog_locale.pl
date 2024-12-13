@@ -1,10 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-			 CWI, Amsterdam
+    Copyright (c)  2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,29 +32,30 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_time, [test_time/0]).
-:- use_module(library(plunit)).
-:- use_module(library(debug)).
+:- module(prolog_locale,
+          [ setup_prolog_integer_grouping/0
+          ]).
 
-/** <module> Misc tests
-
-Tests that are hard to classify
-
-@author	Jan Wielemaker
+/** <module> Tweak the locale for Prolog development
 */
 
-test_time :-
-    run_tests([ time
-	      ]).
+%!  setup_prolog_integer_grouping is det.
+%
+%   This sets up the Prolog toplevel and  debugger to write numbers with
+%   grouping. I.e., after running   setup_prolog_integer_grouping/0,  we
+%   get:
+%
+%   ```
+%   ?- A is 1<<100.
+%   A = 1_267_650_600_228_229_401_496_703_205_376.
+%   ```
 
-:- begin_tests(time).
+setup_prolog_integer_grouping :-
+    add_write_option(answer_write_options, integer_format('~:D')),
+    add_write_option(debugger_write_options, integer_format('~:D')),
+    add_write_option(print_write_options, integer_format('~:D')).
 
-% Make sure wall time produces somewhat sane values. This should trigger
-% invalid 23/64 bit time_t operations.  Move the window in 2030!
+add_write_option(Set, Option),
+    current_prolog_flag(Set, List) =>
+    set_prolog_flag(Set, [Option|List]).
 
-test(get_time) :-
-    get_time(Now),
-    assertion(Now > (2024-1970)*365*24*3600),
-    assertion(Now < (2050-1970)*365*24*3600).
-
-:- end_tests(time).

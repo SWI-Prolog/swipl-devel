@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2023, University of Amsterdam
+    Copyright (c)  2009-2024, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -70,8 +70,8 @@ DCG compiler no longer needs to do so.
 dcg_translate_rule(Rule, Clause) :-
     dcg_translate_rule(Rule, _, Clause, _).
 
-dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B0,B1), Pos) :-
-    !,
+dcg_translate_rule((LP,MNT-->RP), Pos0, Clause, Pos) =>
+    Clause = (H:-B0,B1),
     f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
     f2_pos(PosH0, PosLP0, PosMNT0, PosH, PosLP, PosMNT),
     '$current_source_module'(M),
@@ -79,7 +79,32 @@ dcg_translate_rule(((LP,MNT)-->RP), Pos0, (H:-B0,B1), Pos) :-
     dcg_extend(LP, PosLP0, S0, SR, H, PosLP),
     dcg_body(RP, PosRP0, Qualify, S0, S1, B0, PosRP),
     dcg_body(MNT, PosMNT0, Qualify, SR, S1, B1, PosMNT).
-dcg_translate_rule((LP-->RP), Pos0, (H:-B), Pos) :-
+dcg_translate_rule((LP-->RP), Pos0, Clause, Pos) =>
+    Clause = (H:-B),
+    f2_pos(Pos0, PosLP0, PosRP0, Pos, PosLP, PosRP),
+    dcg_extend(LP, PosLP0, S0, S, H, PosLP),
+    '$current_source_module'(M),
+    Qualify = q(M,M,_),
+    dcg_body(RP, PosRP0, Qualify, S0, S, B, PosRP).
+dcg_translate_rule((LP,MNT==>RP), Pos0, Clause, Pos), is_list(MNT) =>
+    Clause = (H=>B0,B1),
+    f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
+    f2_pos(PosH0, PosLP0, PosMNT0, PosH, PosLP, PosMNT),
+    '$current_source_module'(M),
+    Qualify = q(M,M,_),
+    dcg_extend(LP, PosLP0, S0, SR, H, PosLP),
+    dcg_body(RP, PosRP0, Qualify, S0, S1, B0, PosRP),
+    dcg_body(MNT, PosMNT0, Qualify, SR, S1, B1, PosMNT).
+dcg_translate_rule((LP,Grd==>RP), Pos0, Clause, Pos) =>
+    Clause = (H,Grd=>B),
+    f2_pos(Pos0, PosH0, PosRP0, Pos, PosH, PosRP),
+    f2_pos(PosH0, PosLP0, PosGrd, PosH, PosLP, PosGrd),
+    dcg_extend(LP, PosLP0, S0, S, H, PosLP),
+    '$current_source_module'(M),
+    Qualify = q(M,M,_),
+    dcg_body(RP, PosRP0, Qualify, S0, S, B, PosRP).
+dcg_translate_rule((LP==>RP), Pos0, Clause, Pos) =>
+    Clause = (H=>B),
     f2_pos(Pos0, PosLP0, PosRP0, Pos, PosLP, PosRP),
     dcg_extend(LP, PosLP0, S0, S, H, PosLP),
     '$current_source_module'(M),

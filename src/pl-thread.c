@@ -2199,6 +2199,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
+  ldnew->prolog_flag.unknown_option = ldold->prolog_flag.unknown_option;
 #ifdef O_BIGNUM
   ldnew->arith.rat                = ldold->arith.rat;
 #endif

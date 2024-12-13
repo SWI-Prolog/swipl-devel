@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022-20244, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -79,17 +79,24 @@ user:file_search_path(scasp,  Dir) :-
 :- endif.
 
 
-:- initialization(server_loop, main).
+:- initialization(main, main).
 
-opt_type(port, port, nonneg).
+opt_type(port,        port,        nonneg).
+opt_type(p,           port,        nonneg).
+opt_type(interactive, interactive, boolean).
+opt_type(i,           i,           boolean).
+
 opt_help(port, "Port to listen to (default 8080)").
+opt_help(interactive, "Become interactive").
 
-server :-
-    current_prolog_flag(argv, Argv),
-    argv_options(Argv, _Positonal, Options),
+server(Options) :-
     merge_options(Options, [port(8080)], Options1),
     http_server(Options1).
 
-server_loop :-
-    server,
-    thread_get_message(quit).
+main(Argv) :-
+    argv_options(Argv, _Pos, Options),
+    server(Options),
+    (   option(interactive(true), Options)
+    ->  cli_enable_development_system
+    ;   thread_get_message(quit)
+    ).

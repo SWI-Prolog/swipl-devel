@@ -42,6 +42,7 @@ documented at all.
 \input{debug}
 \input{dicts}
 \input{error}
+\input{exceptions}
 \input{fastrw}
 \input{gensym}
 \input{heaps}

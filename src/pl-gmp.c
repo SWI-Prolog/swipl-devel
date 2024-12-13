@@ -698,7 +698,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 }
 
 
-int
+bool
 get_int64(DECL_LD word w, int64_t *ip)
 { if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
   { *ip = valInt(w);
@@ -1464,7 +1464,7 @@ affected by GC/shift.  The intented scenario is:
   }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+int				/* true, false, _*OVERFLOW */
 put_number(DECL_LD Word at, Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
@@ -1627,7 +1627,7 @@ API_STUB(int)
 		 *	     PROMOTION		*
 		 *******************************/
 
-int
+bool
 promoteToFloatNumber(Number n)
 { switch(n->type)
   { case V_INTEGER:
@@ -1653,14 +1653,14 @@ promoteToFloatNumber(Number n)
     }
 #endif
     case V_FLOAT:
-      break;
+      return true;
   }
 
   return check_float(n);
 }
 
 
-int
+bool
 promoteNumber(Number n, numtype t)
 { switch(t)
   { case V_INTEGER:
@@ -1681,13 +1681,13 @@ promoteNumber(Number n, numtype t)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-same_type_numbers(n1, n2)
+make_same_type_numbers(n1, n2)
     Upgrade both numbers to the `highest' type of both. Number types are
     defined in the enum-type numtype, which is supposed to define a
     total ordering between the number types.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 make_same_type_numbers(Number n1, Number n2)
 { if ( (int)n1->type > (int)n2->type )
     return promoteNumber(n2, n1->type);

@@ -786,6 +786,8 @@ prolog_message(unknown_in_module_user) -->
     ].
 prolog_message(untable(PI)) -->
     [ 'Reconsult: removed tabling for ~p'-[PI] ].
+prolog_message(unknown_option(Set, Opt)) -->
+    [ 'Unknown ~w option: ~p'-[Set, Opt] ].
 
 
                  /*******************************
@@ -2011,7 +2013,6 @@ default_theme(message(Level),         Attrs) :-
     prolog:message_prefix_hook/2.
 :- thread_local
     user:thread_message_hook/3.
-:- '$hide'((push_msg/1,pop_msg/0)).
 :- '$notransact'((user:message_hook/3,
                   prolog:message_prefix_hook/2,
                   user:thread_message_hook/3)).
@@ -2027,9 +2028,9 @@ print_message(Level, _Term) :-
     !.
 print_message(Level, Term) :-
     setup_call_cleanup(
-        push_msg(Term, Stack),
+        notrace(push_msg(Term, Stack)),
         ignore(print_message_guarded(Level, Term)),
-        pop_msg(Stack)),
+        notrace(pop_msg(Stack))),
     !.
 print_message(Level, Term) :-
     (   Level \== silent

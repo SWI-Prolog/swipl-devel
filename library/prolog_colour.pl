@@ -674,6 +674,26 @@ colourise_term((Head --> Body), TB,                     % TBD: expansion!
     colour_item(neck(-->),          TB, FF-FT),
     colourise_extended_head(Head, 2, TB, HP),
     colourise_dcg(Body, Head,       TB, BP).
+colourise_term(((Head,RHC) ==> Body), TB,
+               term_position(F,T,FF,FT,
+                             [ term_position(_,_,_,_,[HP,RHCP]),
+                               BP
+                             ])) :-
+    !,
+    extend(Head, 2, HeadEx),
+    colour_item(grammar_rule,        TB, F-T),
+    colour_item(rule_condition,      TB, RHCP),
+    colourise_body(RHC, HeadEx,      TB, RHCP),
+    colour_item(neck(==>),           TB, FF-FT),
+    colourise_extended_head(Head, 2, TB, HP),
+    colourise_dcg(Body, Head,        TB, BP).
+colourise_term((Head ==> Body), TB,                     % TBD: expansion!
+               term_position(F,T,FF,FT,[HP,BP])) :-
+    !,
+    colour_item(grammar_rule,       TB, F-T),
+    colour_item(neck(==>),          TB, FF-FT),
+    colourise_extended_head(Head, 2, TB, HP),
+    colourise_dcg(Body, Head,       TB, BP).
 colourise_term(:->(Head, Body), TB,
                term_position(F,T,FF,FT,[HP,BP])) :-
     !,
@@ -3209,6 +3229,8 @@ syntax_message(neck(=>)) -->
     [ 'Rule' ].
 syntax_message(neck(-->)) -->
     [ 'Grammar rule' ].
+syntax_message(neck(==>)) -->
+    [ 'SSU Grammar rule' ].
 syntax_message(macro(String)) -->
     [ 'Macro indicator (expands to ~s)'-[String] ].
 syntax_message(flag_name(Name)) -->

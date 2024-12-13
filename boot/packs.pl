@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2023, VU University Amsterdam
+    Copyright (c)  2012-2024, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -265,9 +265,16 @@ prolog_dir(PackDir, PrologDir) :-
 update_autoload(PrologDir) :-
     atom_concat(PrologDir, '/INDEX.pl', IndexFile),
     (   exists_file(IndexFile)
-    ->  reload_library_index
+    ->  add_autoload_directory(PrologDir)
     ;   true
     ).
+
+add_autoload_directory(Dir) :-
+    (   user:file_search_path(autoload, Dir)
+    ->  true
+    ;   assertz(user:file_search_path(autoload, Dir))
+    ),
+    reload_library_index.
 
 foreign_dir(Pack, PackDir, ForeignDir) :-
     atomic_list_concat([PackDir, '/lib'], ForeignBaseDir),

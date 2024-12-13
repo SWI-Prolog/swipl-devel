@@ -61,7 +61,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 90314
+#define PLVERSION 90316
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -1178,7 +1178,12 @@ typedef enum
 #define OPT_TYPE_MASK	0xff
 #define OPT_INF		0x100		/* allow 'inf' */
 
-#define OPT_ALL		0x1		/* flags */
+#define OPT_UNKNOWN_DEFAULT 0x0		/* Default (from flag) */
+#define OPT_UNKNOWN_ERROR   0x1		/* Unknown Prolog flags raise error */
+#define OPT_UNKNOWN_IGNORE  0x2		/* Unknown Prolog flags are ignored */
+#define OPT_UNKNOWN_WARNING 0x3		/* Unknown Prolog flags warn */
+#define OPT_UNKNOWN_MASK    0x3
+#define OPT_ALL OPT_UNKNOWN_ERROR	/* Compatibility; deprecated */
 
 typedef struct
 { atom_t		name;		/* Name of option */

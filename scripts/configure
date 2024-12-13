@@ -94,6 +94,16 @@ case $config in
     ;;
 esac
 
+# c23
+#
+# Enable C23 mode
+
+case $config in
+  *c23*)
+    CFLAGS+=" -std=gnu23"
+    ;;
+esac
+
 # test
 #
 # Install the  tests along  with the  executable.  Allows  running the

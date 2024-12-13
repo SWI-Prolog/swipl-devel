@@ -107,6 +107,7 @@ pack_list:opt_help(server,    "Use as `--no-server` or `server=URL`").
 
 pack_install:opt_type(url,      url,            atom).
 pack_install:opt_type(dir,      pack_directory, directory(write)).
+pack_install:opt_type(autoload, autoload,	boolean).
 pack_install:opt_type(global,   global,         boolean).
 pack_install:opt_type(y,        interactive,    boolean(false)).
 pack_install:opt_type(quiet,    silent,         boolean).
@@ -130,6 +131,8 @@ pack_install:opt_help(pack_directory, "Install in DIR/<pack>").
 pack_install:opt_help(global,         "Install system-wide (default: user)").
 pack_install:opt_help(interactive,    "Use default answers (non-interactive)").
 pack_install:opt_help(silent,         "Do not print informational feedback").
+pack_install:opt_help(autoload,       "Make the library available for \c
+                                       autoloading").
 pack_install:opt_help(upgrade,        "Upgrade the package").
 pack_install:opt_help(insecure,       "Do not check TLS certificates").
 pack_install:opt_help(rebuild,        "Rebuilt foreign components").

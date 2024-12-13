@@ -67,18 +67,6 @@ remove_string(char *s)
 		 *	     NUMBERS		*
 		 *******************************/
 
-/*  Return the character representing some digit.
-
- ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-char
-digitName(int n, int smll)
-{ if (n <= 9)
-    return (char)(n + '0');
-  return (char)(n + (smll ? 'a' : 'A') - 10);
-}
-
-
 /*  Return the value of a digit when transforming a number of base 'b'.
     Return '-1' if it is an illegal digit.
 

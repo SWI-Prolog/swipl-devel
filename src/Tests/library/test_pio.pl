@@ -32,11 +32,13 @@
 :- use_module(library(plunit)).
 :- use_module(library(readutil)).
 :- use_module(library(pio)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
 test_pio :-
-	run_tests([ phrase_from_file,
-		    read_pending_input
-		  ]).
+    run_tests([ phrase_from_file,
+                read_pending_input
+              ]).
 
 
 :- begin_tests(phrase_from_file, []).
@@ -45,8 +47,8 @@ test_pio :-
 
 seq([]) --> [].
 seq([E|Es]) -->
-	[E],
-	seq(Es).
+    [E],
+    seq(Es).
 
 get_all(Codes) -->
     seq(Codes),
@@ -57,64 +59,64 @@ get_all(Codes) -->
 
 
 cfc(Content,Tmp) :-
-	tmp_file(plunit_pio,Tmp),
-	open(Tmp,write,Out),
-	format(Out,'~s',[Content]),
-	close(Out).
+    tmp_file(plunit_pio,Tmp),
+    open(Tmp,write,Out),
+    format(Out,'~s',[Content]),
+    close(Out).
 
 df(Tmp) :-
-	delete_file(Tmp).
+    delete_file(Tmp).
 
 test(null, [setup(cfc("",Null)),cleanup(df(Null)) ]) :-
-	phrase_from_file([],Null).
+    phrase_from_file([],Null).
 test(null, [setup(cfc("",Null)),cleanup(df(Null)), fail]) :-
-	phrase_from_file("a",Null).
+    phrase_from_file("a",Null).
 test(null, [setup(cfc("",Null)),cleanup(df(Null)), nondet]) :-
-	phrase_from_file(([]|"a"),Null).
+    phrase_from_file(([]|"a"),Null).
 test(null, [setup(cfc("",Null)),cleanup(df(Null)), nondet]) :-
-	phrase_from_file(("a"|[]),Null).
+    phrase_from_file(("a"|[]),Null).
 test(null, [setup(cfc("",Null)),cleanup(df(Null)), nondet]) :-
-	phrase_from_file(...,Null).
+    phrase_from_file(...,Null).
 test(null, [setup(cfc("",Null)),cleanup(df(Null))]) :-
-	phrase_from_file(([],[],{true}),Null).
+    phrase_from_file(([],[],{true}),Null).
 
 
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)) ]) :-
-	phrase_from_file("aba",ABA).
+    phrase_from_file("aba",ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)) ]) :-
-	phrase_from_file(("aca"|"aba"),ABA).
+    phrase_from_file(("aca"|"aba"),ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), nondet]) :-
-	phrase_from_file(("abx"|"aba"|"ada"),ABA).
+    phrase_from_file(("abx"|"aba"|"ada"),ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)) ]) :-
-	phrase_from_file([A,_,A], ABA).
+    phrase_from_file([A,_,A], ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), nondet ]) :-
-	phrase_from_file(([A],...,[A]), ABA).
+    phrase_from_file(([A],...,[A]), ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), fail ]) :-
-	phrase_from_file((...,[A,A],...), ABA).
+    phrase_from_file((...,[A,A],...), ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), fail ]) :-
-	phrase_from_file((...,"c",...), ABA).
+    phrase_from_file((...,"c",...), ABA).
 test(aba, [setup(cfc("aba",ABA)),cleanup(df(ABA)), nondet ]) :-
-	phrase_from_file((seq(Seq),...,seq(Seq)), ABA),
-	Seq = [_|_].
+    phrase_from_file((seq(Seq),...,seq(Seq)), ABA),
+    Seq = [_|_].
 
 test(abc_nodebug, [ Codes == `abc`,
-		    setup(cfc("abc",ABC)), cleanup(df(ABC))
-		  ]) :-
-	setup_call_cleanup(
-	    (	current_prolog_flag(debug, Old),
-		set_prolog_flag(debug, false)
-	    ),
-	    phrase_from_file(get_all(Codes), ABC),
-	    set_prolog_flag(debug, Old)).
+                    setup(cfc("abc",ABC)), cleanup(df(ABC))
+                  ]) :-
+    setup_call_cleanup(
+        (   current_prolog_flag(debug, Old),
+            set_prolog_flag(debug, false)
+        ),
+        phrase_from_file(get_all(Codes), ABC),
+        set_prolog_flag(debug, Old)).
 test(abc_debug, [ Codes == `abc`,
-		  setup(cfc("abc",ABC)), cleanup(df(ABC))
-		]) :-
-	setup_call_cleanup(
-	    (	current_prolog_flag(debug, Old),
-		set_prolog_flag(debug, true)
-	    ),
-	    phrase_from_file(get_all(Codes), ABC),
-	    set_prolog_flag(debug, Old)).
+                  setup(cfc("abc",ABC)), cleanup(df(ABC))
+                ]) :-
+    setup_call_cleanup(
+        (   current_prolog_flag(debug, Old),
+            set_prolog_flag(debug, true)
+        ),
+        phrase_from_file(get_all(Codes), ABC),
+        set_prolog_flag(debug, Old)).
 
 
 :- end_tests(phrase_from_file).
@@ -122,104 +124,102 @@ test(abc_debug, [ Codes == `abc`,
 
 :- begin_tests(read_pending_input, [sto(rational_trees)]).
 
+%!  test_pe(+Length, +BufSize, +Encoding) is det.
+%
+%   Test reading using  read_pending_input/3  by   creating  a  file
+%   holding Length random character codes and reading this using the
+%   given BufSize. The file is encoded using Encoding and the random
+%   characters satisfy this encoding.
+
 test_pe(N, BF, Enc) :-
-	tmp_file(plunit_pio, Tmp),
-	call_cleanup(test_pe(N, BF, Enc, Tmp), delete_file(Tmp)).
+    tmp_file(plunit_pio, Tmp),
+    call_cleanup(test_pe(N, BF, Enc, Tmp), delete_file(Tmp)).
 
 test_pe(N, BF, Enc, Tmp) :-
-	length(List, N),
-	maplist(random_code(Enc), List),
-	test_list(List, BF, Enc, Tmp).
+    length(List, N),
+    maplist(random_code(Enc), List),
+    test_list(List, BF, Enc, Tmp).
 
 test_list(List, BF, Enc, Tmp) :-
-	save_list(Tmp, List, Enc),
-	open(Tmp, read, In, [encoding(Enc), bom(false)]),
-	set_stream(In, buffer_size(BF)),
-	stream_to_lazy_list(In, Lazy),
-	(   List = Lazy
-	->  close(In)
-	;   format('List: ~w~n', [List]),
-	    (	last(Lazy, _)
-	    ->	format('Lazy: ~w~n', [Lazy])
-	    ;	format('Lazy: cannot materialize~n')
-	    ),
-	    close(In),
-	    read_file_to_codes(Tmp, Codes, [encoding(Enc)]),
-	    (	Codes == List
-	    ->	format('File content ok~n')
-	    ;	Codes == Lazy
-	    ->	format('File content BAD, but read consistently~n')
-	    ;	format('File content BAD, and read inconsistently~n')
-	    ),
-	    fail
-	).
+    save_list(Tmp, List, Enc),
+    open(Tmp, read, In, [encoding(Enc), bom(false)]),
+    set_stream(In, buffer_size(BF)),
+    stream_to_lazy_list(In, Lazy),
+    (   List = Lazy
+    ->  close(In)
+    ;   format('List: ~w~n', [List]),
+        (   last(Lazy, _)
+        ->  format('Lazy: ~w~n', [Lazy])
+        ;   format('Lazy: cannot materialize~n')
+        ),
+        close(In),
+        read_file_to_codes(Tmp, Codes, [encoding(Enc)]),
+        (   Codes == List
+        ->  format('File content ok~n')
+        ;   Codes == Lazy
+        ->  format('File content BAD, but read consistently~n')
+        ;   format('File content BAD, and read inconsistently~n')
+        ),
+        fail
+    ).
 
 :- if(fail).
 % Keep around to get a better indication of the error location
 cmp_lists([], [], _).
-cmp_lists([H|T1], [H|T2], C0) :- !,
-	C1 is C0+1,
-	cmp_lists(T1, T2, C1).
+cmp_lists([H|T1], [H|T2], C0) :-
+    !,
+    C1 is C0+1,
+    cmp_lists(T1, T2, C1).
 cmp_lists(L1, L2, C) :-
-	format('~NCommon: ~d~nLeft: ~w~nRight: ~w~n', [C, L1, L2]).
+    format('~NCommon: ~d~nLeft: ~w~nRight: ~w~n', [C, L1, L2]).
 :- endif.
 
 
 max_char(ascii, 127).
 max_char(octet, 255).
-max_char(text, 0xfffff).		% Only if Locale is UTF-8!  How to test?
+max_char(text, 0xfffff).                % Only if Locale is UTF-8!  How to test?
 max_char(iso_latin_1, 255).
 max_char(utf8, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff		% Full Unicode range
-	).
+    current_prolog_flag(max_char_code, Max).
 max_char(utf16be, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff		% Full Unicode range
-	).
+    current_prolog_flag(max_char_code, Max).
 max_char(utf16le, Max) :-
-	max_char(utf16be, Max).
+    max_char(utf16be, Max).
 max_char(wchar_t, Max) :-
-	(   current_prolog_flag(windows, true)
-	->  Max = 0xffff		% UCS-2
-	;   Max = 0xfffff
-	).
-
+    current_prolog_flag(max_char_code, Max).
 
 save_list(File, Codes, Enc) :-
-	open(File, write, Out, [encoding(Enc)]),
-	format(Out, '~s', [Codes]),
-	close(Out).
+    open(File, write, Out, [encoding(Enc)]),
+    format(Out, '~s', [Codes]),
+    close(Out).
 
 random_code(Enc, Code) :-
-	max_char(Enc, Max),
-	repeat,
-	Code is 1+random(Max-1),
-	\+ forbidden(Code),
-	!.
+    max_char(Enc, Max),
+    repeat,
+    Code is 1+random(Max-1),
+    \+ forbidden(Code),
+    !.
 
 forbidden(0'\r).
 forbidden(Code) :-
-	surrogate_point(Code).
+    surrogate_point(Code).
 
 surrogate_point(Code) :-
-	between(0xD800, 0xDFFF, Code).
+    between(0xD800, 0xDFFF, Code).
 
 test(ascii) :-
-	test_pe(1000, 25, ascii).
+    test_pe(1000, 25, ascii).
 test(octet) :-
-	test_pe(1000, 25, octet).
+    test_pe(1000, 25, octet).
 test(iso_latin_1) :-
-	test_pe(1000, 25, iso_latin_1).
+    test_pe(1000, 25, iso_latin_1).
 test(utf8) :-
-	test_pe(1000, 25, utf8).
+    test_pe(1000, 25, utf8).
 test(utf16be) :-
-	test_pe(1000, 25, utf16be).
+    test_pe(1000, 25, utf16be).
 test(utf16le) :-
-	test_pe(1000, 25, utf16le).
+    test_pe(1000, 25, utf16le).
 test(wchar_t) :-
-	test_pe(1000, 25, wchar_t).
+    test_pe(1000, 25, wchar_t).
 
 :- end_tests(read_pending_input).

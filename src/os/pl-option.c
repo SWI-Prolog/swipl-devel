@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    Copyright (c)  2011-2024, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -43,6 +43,7 @@ Option list (or dict) processing.  See PL_scan_options() for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAXOPTIONS 64
+#define HAS_OPT_MODE(f,m) (((f)&OPT_UNKNOWN_MASK) == (m))
 
 typedef union
 { int      *b;				/* boolean value */
@@ -157,7 +158,8 @@ typedef struct dictopt_ctx
   int			flags;
 } dictopt_ctx;
 
-#define dict_option(key, value, last, closure) LDFUNC(dict_option, key, value, last, closure)
+#define dict_option(key, value, last, closure) \
+	LDFUNC(dict_option, key, value, last, closure)
 
 static int
 dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
@@ -177,14 +179,23 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
     }
   }
 
-  if ( (ctx->flags&OPT_ALL) )
+  if ( !HAS_OPT_MODE(ctx->flags, OPT_UNKNOWN_IGNORE) )
   { term_t kv;
-    int rc = ( (kv=PL_new_term_ref()) &&
-	       PL_cons_functor(kv, FUNCTOR_colon2, key, value) &&
-	       PL_domain_error(ctx->opttype, kv)
-	     );
-    (void)rc;
-    return -1;
+
+    if ( !((kv=PL_new_term_ref()) &&
+	   PL_cons_functor(kv, FUNCTOR_colon2, key, value)) )
+      return -1;
+
+    if ( HAS_OPT_MODE(ctx->flags, OPT_UNKNOWN_ERROR) )
+    { if ( !PL_domain_error(ctx->opttype, kv) )
+	return -1;
+      return -1;
+    }
+    if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR, FUNCTOR_unknown_option2,
+			   PL_CHARS, ctx->opttype,
+			   PL_TERM, kv) )
+      return -1;
   }
 
   return 0;				/* unprocessed key */
@@ -217,7 +228,7 @@ dict_options(DECL_LD term_t dict, int flags, const char *opttype,
   ctx.flags   = flags;
   ctx.opttype = opttype;
 
-  return _PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? true : false;
+  return _PL_for_dict(dict, dict_option, &ctx, 0) == 0;
 }
 
 #define vscan_options(list, flags, name, specs, args) \
@@ -235,8 +246,8 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
   int count = 0;
   (void)opttype;
 
-  if ( truePrologFlag(PLFLAG_ISO) )
-    flags |= OPT_ALL;
+  if ( flags == OPT_UNKNOWN_DEFAULT )
+    flags = LD->prolog_flag.unknown_option;
 
   for( n=0, s = specs; s->name; s++, n++ )
   { if ( n >= MAXOPTIONS )
@@ -272,13 +283,11 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
 	_PL_get_arg(2, head, val);
       } else if ( arity == 1 )
       { _PL_get_arg(1, head, val);
-      } else if ( arity == 0 )
+      } else if ( arity == 0 && !truePrologFlag(PLFLAG_ISO) )
       { implicit_true = true;
       } else
       { goto itemerror;
       }
-    } else if ( PL_is_variable(head) )
-    { return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     } else
     { itemerror:
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_option, head);
@@ -301,10 +310,14 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
       }
     }
 
-    if ( !s->name && (implicit_true || (flags & OPT_ALL)) )
-    { if ( implicit_true )
-	goto itemerror;
-      return PL_domain_error(opttype, head);
+    if ( !s->name && !HAS_OPT_MODE(flags, OPT_UNKNOWN_IGNORE) )
+    { if ( HAS_OPT_MODE(flags, OPT_UNKNOWN_ERROR) )
+	return PL_domain_error(opttype, head);
+      if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR, FUNCTOR_unknown_option2,
+			   PL_CHARS, opttype,
+			   PL_TERM, head) )
+	return false;
     }
   }
 

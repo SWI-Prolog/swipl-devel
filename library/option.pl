@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2003-2018, University of Amsterdam
+    Copyright (c)  2003-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,29 +62,21 @@ arguments results in more readable code, and   the  list nature makes it
 easy to extend the list of options accepted by a predicate. Option lists
 come in two styles, both of which are handled by this library.
 
-        $ Name(Value) :
-        This is the preferred style.
+  - Name(Value) <br>
+    This is the preferred style.
+  - Name = Value <br>
+    This is often used, but deprecated.
 
-        $ Name = Value :
-        This is often used, but deprecated.
+SWI-Prolog _dicts_ provide a  convenient   and  efficient alternative to
+option lists. For this reason, both   built-in predicates and predicates
+that use this library support dicts transparantly.
 
-Processing options inside time-critical code   (loops) can cause serious
-overhead. One possibility is to define   a  record using library(record)
-and initialise this using make_<record>/2. In addition to providing good
-performance, this also provides type-checking and central declaration of
-defaults.
-
-  ==
-  :- record atts(width:integer=100, shape:oneof([box,circle])=box).
-
-  process(Data, Options) :-
-          make_atts(Options, Attributes),
-          action(Data, Attributes).
-
-  action(Data, Attributes) :-
-          atts_shape(Attributes, Shape),
-          ...
-  ==
+Processing option lists inside  time-critical   code  (loops)  can cause
+serious  overhead.  The  above  mentioned    _dicts_  is  the  preferred
+mitigation. A more portable alternative  is   to  define  a record using
+library(record) and initialise this using   make_<record>/2. In addition
+to providing good performance,  this   also  provides  type-checking and
+central declaration of defaults.
 
 Options typically have exactly one argument.   The  library does support
 options  with  0  or  more  than    one   argument  with  the  following
@@ -95,45 +88,19 @@ restrictions:
     otherwise.
   - meta_options/3 can only qualify options with exactly one argument.
 
-@tbd    We should consider putting many options in an assoc or record
-        with appropriate preprocessing to achieve better performance.
 @see    library(record)
 @see    Option processing capabilities may be declared using the
         directive predicate_options/3.
 */
 
-%!  option(?Option, +OptionList, +Default) is semidet.
+%!  option(?Option, +Options) is semidet.
 %
-%   Get  an  Option  from  OptionList.  OptionList  can  use  the
-%   Name=Value as well as the Name(Value) convention.
-%
-%   @param Option   Term of the form Name(?Value).
-
-option(Opt, Options, Default) :-
-    is_dict(Options),
-    !,
-    functor(Opt, Name, 1),
-    (   get_dict(Name, Options, Val)
-    ->  true
-    ;   Val = Default
-    ),
-    arg(1, Opt, Val).
-option(Opt, Options, Default) :-        % make option processing stead-fast
-    functor(Opt, Name, Arity),
-    functor(GenOpt, Name, Arity),
-    (   get_option(GenOpt, Options)
-    ->  Opt = GenOpt
-    ;   arg(1, Opt, Default)
-    ).
-
-
-%!  option(?Option, +OptionList) is semidet.
-%
-%   Get an Option from OptionList. OptionList can use the Name=Value
-%   as well as the Name(Value)  convention.   Fails  silently if the
-%   option does not appear in OptionList.
+%   Get an Option from Options. Fails silently   if  the option does not
+%   appear in Options. If Option appears  multiple times in Options, the
+%   first value is used.
 %
 %   @arg Option   Term of the form Name(?Value).
+%   @arg Options is a list of Name(Value) or `Name=Value` or a dict.
 
 option(Opt, Options), is_dict(Options) =>
     functor(Opt, Name, 1),
@@ -156,20 +123,50 @@ get_option(Opt, Options) :-
     !.
 
 
+%!  option(?Option, +Options, +Default) is det.
+%
+%   Get an Option from Options. If Option   does  not appear in Options,
+%   unify the value with Default. If   Option  appears multiple times in
+%   Options, the first value is used. For example
+%
+%       ?- option(max_depth(D), [x(a), max_depth(20)], 10).
+%       D = 20.
+%       ?- option(max_depth(D), [x(a)], 10).
+%       D = 10.
+%
+%   @arg Option Term of the form Name(?Value).
+%   @arg Options is a list of Name(Value) or `Name=Value` or a dict.
+
+option(Opt, Options, Default), is_dict(Options) =>
+    functor(Opt, Name, 1),
+    (   get_dict(Name, Options, Val)
+    ->  true
+    ;   Val = Default
+    ),
+    arg(1, Opt, Val).
+option(Opt, Options, Default), is_list(Options) =>
+    functor(Opt, Name, Arity),
+    functor(GenOpt, Name, Arity),
+    (   get_option(GenOpt, Options)
+    ->  Opt = GenOpt
+    ;   arg(1, Opt, Default)
+    ).
+
 %!  select_option(?Option, +Options, -RestOptions) is semidet.
 %
-%   Get and remove Option from an option list. As option/2, removing
-%   the matching option from  Options   and  unifying  the remaining
-%   options with RestOptions.
+%   Get and remove Option  from  Options.   As  option/2,  removing  the
+%   matching option from Options and unifying the remaining options with
+%   RestOptions. If Option appears multiple times  in Options, the first
+%   value is used. Note that if Options contains multiple terms that are
+%   compatible to Option, the first is used   to set the value of Option
+%   and the duplicate appear in RestOptions.
 
-select_option(Opt, Options0, Options) :-
-    is_dict(Options0),
-    !,
+select_option(Opt, Options0, Options), is_dict(Options0) =>
     functor(Opt, Name, 1),
     get_dict(Name, Options0, Val),
     arg(1, Opt, Val),
     del_dict(Name, Options0, Val, Options).
-select_option(Opt, Options0, Options) :-        % stead-fast
+select_option(Opt, Options0, Options), is_list(Options0) =>
     functor(Opt, Name, Arity),
     functor(GenOpt, Name, Arity),
     get_option(GenOpt, Options0, Options),
@@ -189,9 +186,7 @@ get_option(Opt, Options0, Options) :-
 %   but if Option is not  in  Options,   its  value  is unified with
 %   Default and RestOptions with Options.
 
-select_option(Option, Options, RestOptions, Default) :-
-    is_dict(Options),
-    !,
+select_option(Option, Options, RestOptions, Default), is_dict(Options) =>
     functor(Option, Name, 1),
     (   del_dict(Name, Options, Val, RestOptions)
     ->  true
@@ -199,7 +194,7 @@ select_option(Option, Options, RestOptions, Default) :-
         RestOptions = Options
     ),
     arg(1, Option, Val).
-select_option(Option, Options, RestOptions, Default) :-
+select_option(Option, Options, RestOptions, Default), is_list(Options) =>
     functor(Option, Name, Arity),
     functor(GenOpt, Name, Arity),
     (   get_option(GenOpt, Options, RestOptions)
@@ -211,21 +206,36 @@ select_option(Option, Options, RestOptions, Default) :-
 
 %!  merge_options(+New, +Old, -Merged) is det.
 %
-%   Merge two option lists. Merged is a sorted list of options using
-%   the canonical format Name(Value) holding   all  options from New
-%   and Old, after removing conflicting options from Old.
+%   Merge two option sets. If Old is a dict, Merged is a dict. Otherwise
+%   Merged is a sorted  list  of   options  using  the  canonical format
+%   Name(Value) holding all options from  New   and  Old, after removing
+%   conflicting options from Old.
 %
-%   Multi-values options (e.g.,  proxy(Host,   Port))  are  allowed,
-%   where both option-name and arity  define   the  identity  of the
-%   option.
+%   Multi-values options (e.g., proxy(Host, Port))   are  allowed, where
+%   both option-name and arity define the identity of the option.
 
-merge_options([], Old, Merged) :-
+merge_options(NewDict, OldDict, Dict),
+    is_dict(NewDict), is_dict(OldDict) =>
+    put_dict(NewDict, OldDict, Dict).
+merge_options(New, OldDict, Dict),
+    is_dict(OldDict) =>
+    dict_options(NewDict, New),
+    put_dict(NewDict, OldDict, Dict).
+merge_options(NewDict, OldList, List),
+    is_dict(NewDict) =>
+    dict_options(NewDict, NewList),
+    merge_option_lists(NewList, OldList, List).
+merge_options(NewList, OldList, List),
+    is_list(NewList), is_list(OldList) =>
+    merge_option_lists(NewList, OldList, List).
+
+merge_option_lists([], Old, Merged) :-
     !,
     canonicalise_options(Old, Merged).
-merge_options(New, [], Merged) :-
+merge_option_lists(New, [], Merged) :-
     !,
     canonicalise_options(New, Merged).
-merge_options(New, Old, Merged) :-
+merge_option_lists(New, Old, Merged) :-
     canonicalise_options(New, NCanonical),
     canonicalise_options(Old, OCanonical),
     sort(NCanonical, NSorted),
@@ -295,12 +305,12 @@ canonicalise_option(H, H).
 %   Whether an option name  is   module-sensitive  is  determined by
 %   calling call(IsMeta, Name). Here is an example:
 %
-%   ==
-%           meta_options(is_meta, OptionsIn, Options),
-%           ...
+%   ```
+%       meta_options(is_meta, OptionsIn, Options),
+%       ...
 %
 %   is_meta(callback).
-%   ==
+%   ```
 %
 %   Meta-options must have exactly one  argument. This argument will
 %   be qualified.
@@ -308,13 +318,11 @@ canonicalise_option(H, H).
 %   @tbd    Should be integrated with declarations from
 %           predicate_options/3.
 
-meta_options(IsMeta, Context:Options0, Options) :-
-    is_dict(Options0),
-    !,
+meta_options(IsMeta, Context:Options0, Options), is_dict(Options0) =>
     dict_pairs(Options0, Class, Pairs0),
     meta_options(Pairs0, IsMeta, Context, Pairs),
     dict_pairs(Options, Class, Pairs).
-meta_options(IsMeta, Context:Options0, Options) :-
+meta_options(IsMeta, Context:Options0, Options), is_list(Options0) =>
     must_be(list, Options0),
     meta_options(Options0, IsMeta, Context, Options).
 
