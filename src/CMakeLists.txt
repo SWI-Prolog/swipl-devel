@@ -461,12 +461,17 @@ function(libswipl_properties lib outname)
   else()
     set(LIB_PREFIX)
   endif()
-
-  set_target_properties(${lib} PROPERTIES
-			OUTPUT_NAME ${LIB_PREFIX}${outname}
-			VERSION ${SWIPL_VERSION_STRING}
-			SOVERSION ${SWIPL_VERSION_MAJOR}
-			GNUtoMS ON)
+  if(SWIPL_OMIT_SOVERSION)
+    set_target_properties(${lib} PROPERTIES
+                          OUTPUT_NAME ${LIB_PREFIX}${outname}
+                          GNUtoMS ON)
+  else()
+    set_target_properties(${lib} PROPERTIES
+                          OUTPUT_NAME ${LIB_PREFIX}${outname}
+                          VERSION ${SWIPL_VERSION_STRING}
+                          SOVERSION ${SWIPL_VERSION_MAJOR}
+                          GNUtoMS ON)
+  endif()
   target_include_directories(${lib} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
