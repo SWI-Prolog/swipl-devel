@@ -49,9 +49,9 @@ option(SWIPL_SHARED_LIB
 option(SWIPL_VERSIONED_DIR
        "Install into a versioned directory"
        OFF)
-option(SWIPL_OMIT_SOVERSION
-       "Omit version properties for libswipl"
-       OFF)
+option(SWIPL_SO_VERSIONS
+       "Set the version properties of the library"
+       ON)
 option(SWIPL_INSTALL_IN_LIB
        "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
        OFF)

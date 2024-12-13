@@ -461,15 +461,15 @@ function(libswipl_properties lib outname)
   else()
     set(LIB_PREFIX)
   endif()
-  if(SWIPL_OMIT_SOVERSION)
-    set_target_properties(${lib} PROPERTIES
-                          OUTPUT_NAME ${LIB_PREFIX}${outname}
-                          GNUtoMS ON)
-  else()
+  if(SWIPL_SO_VERSIONS)
     set_target_properties(${lib} PROPERTIES
                           OUTPUT_NAME ${LIB_PREFIX}${outname}
                           VERSION ${SWIPL_VERSION_STRING}
                           SOVERSION ${SWIPL_VERSION_MAJOR}
+                          GNUtoMS ON)
+  else()
+    set_target_properties(${lib} PROPERTIES
+                          OUTPUT_NAME ${LIB_PREFIX}${outname}
                           GNUtoMS ON)
   endif()
   target_include_directories(${lib} INTERFACE
