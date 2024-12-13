@@ -46,6 +46,9 @@ endif()
 option(SWIPL_SHARED_LIB
        "Put kernel in a shared library"
        ON)
+option(SWIPL_SO_VERSIONS
+       "Set the version properties of libswipl"
+       ON)
 option(SWIPL_VERSIONED_DIR
        "Install into a versioned directory"
        OFF)
