@@ -719,6 +719,7 @@ pred_attrib(Attrib, Head,
     functor(Term, Name, Arity).
 
 attrib_name(dynamic,                dynamic,                true).
+attrib_name(incremental,            incremental,            true).
 attrib_name(volatile,               volatile,               true).
 attrib_name(thread_local,           thread_local,           true).
 attrib_name(multifile,              multifile,              true).
