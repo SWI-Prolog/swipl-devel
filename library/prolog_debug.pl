@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021-2023, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2024, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -259,9 +259,15 @@ expand_trap(Explicit, Formal) =>
 %
 %   Define short hands for commonly used exceptions.
 
-trap_alias(det, determinism_error(_Pred, _Declared, _Observed, property)).
-trap_alias(=>,  existence_error(rule, _)).
-
+trap_alias(det,                  determinism_error(_Pred, _Declared, _Observed, property)).
+trap_alias(=>,			 existence_error(rule, _)).
+trap_alias(existence_error,      existence_error(_,_)).
+trap_alias(type_error,           type_error(_,_)).
+trap_alias(domain_error,         domain_error(_,_)).
+trap_alias(permission_error,     permission_error(_,_,_)).
+trap_alias(representation_error, representation_error(_)).
+trap_alias(resource_error,       resource_error(_)).
+trap_alias(syntax_error,         syntax_error(_)).
 
 trapping :-
     findall(exception(Name, Term, NotCaught, Caught),
