@@ -352,7 +352,9 @@ assign_in_dict(DECL_LD Word dp, Word val)
 }
 
 
-#define put_dict(dict, size, nv, new_dict) LDFUNC(put_dict, dict, size, nv, new_dict)
+#define put_dict(dict, size, nv, new_dict) \
+	LDFUNC(put_dict, dict, size, nv, new_dict)
+
 static int
 put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
 { Functor data = valueTerm(dict);
@@ -439,6 +441,11 @@ put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Push a new dict to the global stack   that  has the same keys as `dict`,
+but whose tag and values are all set to variables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define copy_keys_dict(dict, new_dict) \
 	LDFUNC(copy_keys_dict, dict, new_dict)
 
@@ -448,13 +455,13 @@ copy_keys_dict(DECL_LD word dict, word *new_dict)
   size_t arity = arityFunctor(data->definition);
   Word new, out, in, in_end;
 
-  if ( gTop+1 > gMax )
+  if ( gTop+1+arity > gMax )
     return GLOBAL_OVERFLOW;
 
   new    = gTop;
   out    = new;
-  *out++ = data->definition;
-  setVar(*out++);
+  *out++ = data->definition;		/* copy C'dict functor */
+  setVar(*out++);			/* set tag to var */
   in     = data->arguments+1;
   in_end = in+arity-1;
 
