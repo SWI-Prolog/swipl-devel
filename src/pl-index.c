@@ -270,6 +270,70 @@ argument we are processing.
 TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define nextClauseFromList(ci, argv, ctx) \
+	LDFUNC(nextClauseFromList, ci, argv, ctx)
+
+static ClauseRef
+nextClauseFromList(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
+{ ClauseRef cref;
+  word key = ctx->chp->key;
+
+  DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
+  assert(ci->is_list);
+  assert(ci->args[1] == 0);
+
+non_indexed:
+  for(cref = ctx->chp->cref; cref; cref = cref->next)
+  { if ( cref->d.key == key )
+    { ClauseList cl = &cref->value.clauses;
+      ClauseRef cr;
+
+      DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
+
+      if ( isFunctor(cref->d.key) && ctx->depth < MAXINDEXDEPTH )
+      { int an = ci->args[0]-1;
+	Word a = argv+an;
+	Functor at;
+	size_t argc;
+
+	deRef(a);
+	assert(isTerm(*a));
+	at = valueTerm(*a);
+	argv = at->arguments;
+	argc = arityFunctor(at->definition);
+
+	ctx->position[ctx->depth++] = (iarg_t)an;
+	ctx->position[ctx->depth]   = END_INDEX_POS;
+
+	DEBUG(MSG_INDEX_DEEP,
+	      Sdprintf("Recursive index for %s at level %d\n",
+		       keyName(cref->d.key), ctx->depth));
+	return first_clause_guarded(argv, argc, cl, ctx);
+      }
+
+      ctx->chp->key = 0;		/* See (*) */
+      for(cr=cl->first_clause; cr; cr=cr->next)
+      { if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
+	{ setClauseChoice(ctx->chp, cr->next, ctx->generation);
+	  return cr;
+	}
+      }
+
+      return NULL;
+    }
+  }
+
+  if ( key )
+  { key = 0;
+    DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying non-indexed\n"));
+    goto non_indexed;
+  } else
+  { DEBUG(MSG_INDEX_FIND, Sdprintf("Not found\n"));
+  }
+
+  return NULL;
+}
+
 #define nextClauseFromBucket(ci, argv, ctx) \
 	LDFUNC(nextClauseFromBucket, ci, argv, ctx)
 
@@ -279,61 +343,7 @@ nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
   word key = ctx->chp->key;
 
   if ( ci->is_list )
-  { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
-
-    assert(ci->args[1] == 0);
-
-  non_indexed:
-    for(cref = ctx->chp->cref; cref; cref = cref->next)
-    { if ( cref->d.key == key )
-      { ClauseList cl = &cref->value.clauses;
-	ClauseRef cr;
-
-	DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
-
-	if ( isFunctor(cref->d.key) && ctx->depth < MAXINDEXDEPTH )
-	{ int an = ci->args[0]-1;
-	  Word a = argv+an;
-	  Functor at;
-	  size_t argc;
-
-	  deRef(a);
-	  assert(isTerm(*a));
-	  at = valueTerm(*a);
-	  argv = at->arguments;
-	  argc = arityFunctor(at->definition);
-
-	  ctx->position[ctx->depth++] = (iarg_t)an;
-	  ctx->position[ctx->depth]   = END_INDEX_POS;
-
-	  DEBUG(MSG_INDEX_DEEP,
-		Sdprintf("Recursive index for %s at level %d\n",
-			 keyName(cref->d.key), ctx->depth));
-	  return first_clause_guarded(argv, argc, cl, ctx);
-	}
-
-	ctx->chp->key = 0;		/* See (*) */
-	for(cr=cl->first_clause; cr; cr=cr->next)
-	{ if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
-	  { setClauseChoice(ctx->chp, cr->next, ctx->generation);
-	    return cr;
-	  }
-	}
-
-	return NULL;
-      }
-    }
-
-    if ( key )
-    { key = 0;
-      DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying non-indexed\n"));
-      goto non_indexed;
-    } else
-    { DEBUG(MSG_INDEX_FIND, Sdprintf("Not found\n"));
-    }
-
-    return NULL;
-  }
+    return nextClauseFromList(ci, argv, ctx);
 
   for(cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( (!cref->d.key || key == cref->d.key) &&
