@@ -14,6 +14,7 @@ generator=Ninja
 export CC=
 export CXX=
 opts=
+cmake=cmake
 
 config=$(basename $(pwd))
 
@@ -181,6 +182,7 @@ case $config in
 	source $WASM_HOME/emsdk/emsdk_env.sh
 	TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
+	cmake="emcmake cmake"
 	build_type=Release
 	LDFLAGS+=" -s STACK_SIZE=1048576"
 	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
@@ -234,7 +236,7 @@ fi
 cat > configure << EOF
 # Created by ../scripts/configure for $config at $(date)
 
-$using cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+$using $cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
 EOF
 chmod +x configure
 
