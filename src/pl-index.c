@@ -342,7 +342,7 @@ nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 { ClauseRef cref;
   word key = ctx->chp->key;
 
-  if ( ci->is_list )
+  if ( unlikely(ci->is_list) )
     return nextClauseFromList(ci, argv, ctx);
 
   for(cref = ctx->chp->cref; cref; cref = cref->next)
@@ -376,7 +376,7 @@ nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
    is free for CGC.
 */
 
-static void
+static inline void
 setClauseChoice(DECL_LD ClauseChoice chp, ClauseRef cref, gen_t generation)
 { while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
     cref = cref->next;
