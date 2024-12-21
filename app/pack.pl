@@ -94,16 +94,18 @@ pack_remove:opt_type(deps, dependencies, boolean).
 pack_remove:opt_help(interactive,  "Use default answers (non-interactive)").
 pack_remove:opt_help(dependencies, "Remove dependencies as well?").
 
-pack_list:opt_type(installed, installed, boolean).
-pack_list:opt_type(i,	      installed, boolean).
-pack_list:opt_type(outdated,  outdated,  boolean).
-pack_list:opt_type(server,    server,    (boolean|atom)).
+pack_list:opt_type(installed, installed,      boolean).
+pack_list:opt_type(i,         installed,      boolean).
+pack_list:opt_type(outdated,  outdated,       boolean).
+pack_list:opt_type(server,    server,         (boolean|atom)).
+pack_list:opt_type(dir,       pack_directory, directory).
 
 pack_list:opt_meta(server, 'URL|false').
 
-pack_list:opt_help(installed, "Only list installed packages").
-pack_list:opt_help(outdated,  "Only list packages that can be upgraded").
-pack_list:opt_help(server,    "Use as `--no-server` or `server=URL`").
+pack_list:opt_help(installed,      "Only list installed packages").
+pack_list:opt_help(outdated,       "Only list packages that can be upgraded").
+pack_list:opt_help(server,         "Use as `--no-server` or `server=URL`").
+pack_list:opt_help(pack_directory, "Directory for --installed").
 
 pack_install:opt_type(url,      url,            atom).
 pack_install:opt_type(dir,      pack_directory, directory(write)).
@@ -214,6 +216,10 @@ pack_publish:opt_help(
 pack_publish:opt_meta(branch, 'BRANCH').
 pack_publish:opt_meta(server, 'URL').
 
+cli_pack_list(Pos, Options),
+    select_option(pack_directory(Dir), Options, Options1) =>
+    attach_packs(Dir, [replace(true)]),
+    cli_pack_list(Pos, [installed(true)|Options1]).
 cli_pack_list([], Options) =>
     pack_list('', [installed(true)|Options]).
 cli_pack_list([Search], Options) =>
