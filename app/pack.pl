@@ -38,6 +38,7 @@
 :- use_module(library(apply)).
 :- use_module(library(strings)).
 :- use_module(library(dcg/basics)).
+:- use_module(library(lists)).
 
 :- initialization(main, main).
 
@@ -63,6 +64,9 @@ pack(info, Argv) =>
 pack(install, Argv) =>
     pack_install:argv_options(Argv, Pos, Options),
     cli_pack_install(Pos, Options).
+pack(rebuild, Argv) =>
+    pack_rebuild:argv_options(Argv, Pos, Options),
+    cli_pack_rebuild(Pos, Options).
 pack(remove, Argv) =>
     pack_remove:argv_options(Argv, Pos, Options),
     cli_pack_remove(Pos, Options).
@@ -76,12 +80,13 @@ pack(help, [Command]) =>
 pack(_, _) =>
     argv_usage(debug).
 
-pack_command(list,    "List packages").
-pack_command(find,    "Find packages").
+pack_command(list,    "List packs").
+pack_command(find,    "Find packs").
 pack_command(search,  "Alias for `find`").
 pack_command(info,    "Print info on a pack").
-pack_command(install, "Install or upgrade a package").
-pack_command(remove,  "Uninstall a package").
+pack_command(install, "Install or upgrade a pack").
+pack_command(rebuild, "Recompile foreign parts for a pack").
+pack_command(remove,  "Uninstall a pack").
 pack_command(publish, "Register a pack with swi-prolog.org").
 pack_command(help,    "Help on command (also swipl pack command -h)").
 
@@ -161,6 +166,12 @@ pack_install:opt_meta(url,	   'URL').
 pack_install:opt_meta(branch,	   'BRANCH').
 pack_install:opt_meta(commit,	   'HASH').
 pack_install:opt_meta(server,	   'URL').
+
+pack_rebuild:opt_type(dir, pack_directory, directory).
+
+pack_rebuild:opt_help(help(usage),
+                      " rebuild [--dir=DIR] [pack ...]").
+pack_rebuild:opt_help(pack_directory, "Rebuild packs in directory").
 
 pack_publish:opt_type(git,      git,            boolean).
 pack_publish:opt_type(sign,     sign,           boolean).
@@ -244,6 +255,15 @@ cli_pack_install(Packs, Options), Packs \== [] =>
     cli(pack_install(Packs, Options1)).
 cli_pack_install(_, _) =>
     argv_usage(pack_install:debug).
+
+cli_pack_rebuild(Packs, Options),
+    select_option(pack_directory(Dir), Options, Options1) =>
+    attach_packs(Dir, [replace(true)]),
+    cli_pack_rebuild(Packs, [installed(true)|Options1]).
+cli_pack_rebuild([], _Options) =>
+    cli(pack_rebuild).
+cli_pack_rebuild(Packs, _Options) =>
+    cli(forall(member(Pack, Packs), pack_rebuild(Pack))).
 
 cli_pack_remove(Packs, Options), Packs \== [] =>
     cli(forall(member(Pack, Packs), pack_remove(Pack, Options))).
