@@ -91,7 +91,9 @@ pack_command(publish, "Register a pack with swi-prolog.org").
 pack_command(help,    "Help on command (also swipl pack command -h)").
 
 pack_find:opt_type(_,_,_) :- fail.
-pack_info:opt_type(_,_,_) :- fail.
+
+pack_info:opt_type(dir, pack_directory, directory).
+pack_infodlist:opt_help(pack_directory, "Pack directory").
 
 pack_remove:opt_type(y,    interactive,  boolean(false)).
 pack_remove:opt_type(deps, dependencies, boolean).
@@ -245,6 +247,10 @@ cli_pack_find([Search], Options) =>
 cli_pack_find(_, _) =>
     argv_usage(pack_find:debug).
 
+cli_pack_info(Pos, Options),
+    select_option(pack_directory(Dir), Options, Options1) =>
+    attach_packs(Dir, [replace(true)]),
+    cli_pack_info(Pos, Options1).
 cli_pack_info([Pack], _) =>
     cli(pack_info(Pack)).
 cli_pack_info(_, _) =>
