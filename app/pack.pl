@@ -93,13 +93,15 @@ pack_command(help,    "Help on command (also swipl pack command -h)").
 pack_find:opt_type(_,_,_) :- fail.
 
 pack_info:opt_type(dir, pack_directory, directory).
-pack_infodlist:opt_help(pack_directory, "Pack directory").
+pack_info:opt_help(pack_directory, "Pack directory").
 
-pack_remove:opt_type(y,    interactive,  boolean(false)).
-pack_remove:opt_type(deps, dependencies, boolean).
+pack_remove:opt_type(y,    interactive,    boolean(false)).
+pack_remove:opt_type(deps, dependencies,   boolean).
+pack_remove:opt_type(dir,  pack_directory, directory).
 
-pack_remove:opt_help(interactive,  "Use default answers (non-interactive)").
-pack_remove:opt_help(dependencies, "Remove dependencies as well?").
+pack_remove:opt_help(interactive,    "Use default answers (non-interactive)").
+pack_remove:opt_help(dependencies,   "Remove dependencies as well?").
+pack_remove:opt_help(pack_directory, "Remove pack below directory").
 
 pack_list:opt_type(installed, installed,      boolean).
 pack_list:opt_type(i,         installed,      boolean).
@@ -265,12 +267,16 @@ cli_pack_install(_, _) =>
 cli_pack_rebuild(Packs, Options),
     select_option(pack_directory(Dir), Options, Options1) =>
     attach_packs(Dir, [replace(true)]),
-    cli_pack_rebuild(Packs, [installed(true)|Options1]).
+    cli_pack_rebuild(Packs, Options1).
 cli_pack_rebuild([], _Options) =>
     cli(pack_rebuild).
 cli_pack_rebuild(Packs, _Options) =>
     cli(forall(member(Pack, Packs), pack_rebuild(Pack))).
 
+cli_pack_remove(Packs, Options),
+    select_option(pack_directory(Dir), Options, Options1) =>
+    attach_packs(Dir, [replace(true)]),
+    cli_pack_remove(Packs, Options1).
 cli_pack_remove(Packs, Options), Packs \== [] =>
     cli(forall(member(Pack, Packs), pack_remove(Pack, Options))).
 cli_pack_remove(_, _) =>
