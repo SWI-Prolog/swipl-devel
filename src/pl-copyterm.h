@@ -46,8 +46,10 @@ typedef struct fastheap_term
 #if USE_LD_MACROS
 #define	term_to_fastheap(t)			LDFUNC(term_to_fastheap, t)
 #define	put_fastheap(fht, t)			LDFUNC(put_fastheap, fht, t)
-#define	duplicate_term(in, copy)		LDFUNC(duplicate_term, in, copy)
-#define	size_abstract_term(in, copy, abstract)	LDFUNC(size_abstract_term, in, copy, abstract)
+#define	duplicate_term(in, copy, nshare, share) \
+	LDFUNC(duplicate_term, in, copy, nshare, share)
+#define	size_abstract_term(in, copy, abstract) \
+	LDFUNC(size_abstract_term, in, copy, abstract)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -55,7 +57,8 @@ typedef struct fastheap_term
 fastheap_term*	term_to_fastheap(term_t t);
 void		free_fastheap(fastheap_term *fht);
 int		put_fastheap(fastheap_term *fht, term_t t);
-bool		duplicate_term(term_t in, term_t copy);
+bool		duplicate_term(term_t in, term_t copy,
+			       size_t nshare, term_t share);
 bool		size_abstract_term(term_t in, term_t copy,
 				   size_t abstract);
 

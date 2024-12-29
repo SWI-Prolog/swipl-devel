@@ -108,6 +108,8 @@ variables.
 
 typedef struct cp_options
 { size_t abstract;
+  size_t nshare;
+  term_t share;
   unsigned int flags;
 } cp_options;
 
@@ -176,9 +178,22 @@ end_loop:
 }
 
 
-#define mark_for_duplicate(p, flags) LDFUNC(mark_for_duplicate, p, flags)
+static bool
+share_for_duplicate(const Functor t, const cp_options *options)
+{ for(size_t i=0; i<options->nshare; i++)
+  { Word p = valTermRef(options->share+i);
+    if ( t == valueTerm(*p) )
+      return true;
+  }
+
+  return false;
+}
+
+#define mark_for_duplicate(p, options) \
+	LDFUNC(mark_for_duplicate, p, options)
+
 static int
-mark_for_duplicate(DECL_LD Word p, int flags)
+mark_for_duplicate(DECL_LD Word p, const cp_options *options)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
@@ -187,7 +202,7 @@ mark_for_duplicate(DECL_LD Word p, int flags)
   again:
     switch(tag(*p))
     { case TAG_ATTVAR:
-      { if ( flags & COPY_ATTRS )
+      { if ( ison(options, COPY_ATTRS) )
 	{ p = valPAttVar(*p);
 	  goto again;
 	}
@@ -202,10 +217,15 @@ mark_for_duplicate(DECL_LD Word p, int flags)
       }
       case TAG_COMPOUND:
       { Functor t = valueTerm(*p);
-	int arity = arityFunctor(t->definition);
+	size_t arity = arityFunctor(t->definition);
 
 	if ( virgin(t->definition) )
-	{ set_visited(t->definition);
+	{ if ( options->nshare &&
+	       share_for_duplicate(t, options) )
+	  { set_ground(t->definition);
+	    continue;
+	  }
+	  set_visited(t->definition);
 	} else
 	{ if ( visited_once(t->definition) )
 	    set_shared(t->definition);
@@ -765,7 +785,7 @@ again:
       return rc;
     }
   } else if ( isoff(options, COPY_ABSTRACT) )
-  { if ( (rc=mark_for_duplicate(from, options->flags)) != true )
+  { if ( (rc=mark_for_duplicate(from, options)) != true )
     { cp_unmark(from, options->flags);
       return rc;
     }
@@ -836,8 +856,12 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
 
 
 bool
-duplicate_term(DECL_LD term_t in, term_t copy)
-{ const cp_options opts = { .abstract = (size_t)-1, .flags = COPY_ATTRS };
+duplicate_term(DECL_LD term_t in, term_t copy, size_t nshare, term_t share)
+{ const cp_options opts = { .abstract = (size_t)-1,
+			    .nshare = nshare,
+			    .share = share,
+			    .flags = COPY_ATTRS
+			  };
 
   return copy_term_refs(in, copy, 0, &opts);
 }
@@ -933,7 +957,7 @@ term_to_fastheap(DECL_LD term_t t)
   size_t indirect_cells = 0;
   Word indirects;
 
-  if ( !duplicate_term(t, copy) )
+  if ( !duplicate_term(t, copy, 0, 0) )
     return NULL;
   gcopy = valTermRef(copy);
   gtop  = gTop;
@@ -1094,7 +1118,7 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
   } else
   { term_t copy = PL_new_term_ref();
 
-    if ( duplicate_term(A1, copy) )
+    if ( duplicate_term(A1, copy, 0, 0) )
       return PL_unify(copy, A2);
 
     fail;

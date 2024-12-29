@@ -2521,21 +2521,35 @@ unify_vp(DECL_LD Word vp, Word val)
 }
 
 
+#define may_share_in_duplicate(p) LDFUNC(may_share_in_duplicate, p)
+
+static term_t
+may_share_in_duplicate(DECL_LD Word p)
+{ deRef(p);
+  if ( isTerm(*p) )
+  { term_t share = PL_new_term_ref();
+    *valTermRef(share) = *p;
+    return share;
+  }
+
+  return 0;
+}
+
 #define setarg(n, term, value, flags) LDFUNC(setarg, n, term, value, flags)
 static foreign_t
 setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
 { size_t arity, argn;
-  atom_t name;
   Word a, v;
 
   if ( !PL_get_size_ex(n, &argn) )
     return false;
-  if ( argn == 0 )
-    return false;
-  if ( !PL_get_name_arity(term, &name, &arity) )
+  a = valTermRef(term);
+  deRef(a);
+  if ( !isTerm(*a) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
+  arity = arityTerm(*a);
 
-  if ( argn > arity )
+  if ( argn == 0 || argn > arity )
     return false;
 
   if ( (flags & SETARG_BACKTRACKABLE) )
@@ -2568,8 +2582,10 @@ setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
     if ( storage(*v) == STG_GLOBAL )
     { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
+	term_t keep = may_share_in_duplicate(argTermP(*a, argn-1));
+	size_t nshare = keep ? 1 : 0;
 
-	if ( !duplicate_term(value, copy) )
+	if ( !duplicate_term(value, copy, nshare, keep) )
 	  return false;
 	value = copy;
       }

@@ -1722,7 +1722,7 @@ retry:
     { if ( !(flags & SETDICT_LINK) )
       { term_t copy = PL_new_term_ref();
 
-	if ( !duplicate_term(value, copy) )
+	if ( !duplicate_term(value, copy, 0, 0) )
 	  return false;
 	value = copy;
 	val = valTermRef(value);

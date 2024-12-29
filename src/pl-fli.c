@@ -4603,7 +4603,7 @@ copy_exception(DECL_LD term_t ex, term_t bin)
 { fid_t fid;
 
   if ( (fid=PL_open_foreign_frame()) )
-  { if ( duplicate_term(ex, bin) )
+  { if ( duplicate_term(ex, bin, 0, 0) )
     { ok:
       PL_close_foreign_frame(fid);
       return true;
@@ -4618,7 +4618,7 @@ copy_exception(DECL_LD term_t ex, term_t bin)
 	if ( (arg = PL_new_term_ref()) &&
 	     (av  = PL_new_term_refs(2)) &&
 	     PL_get_arg(1, ex, arg) &&
-	     duplicate_term(arg, av+0) &&
+	     duplicate_term(arg, av+0, 0, 0) &&
 	     PL_cons_functor_v(bin, FUNCTOR_error2, av) )
 	{ Sdprintf("WARNING: Removed error context due to stack overflow\n");
 	  goto ok;
