@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2023, VU University Amsterdam
+    Copyright (c)  2013-2024, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v
     All rights reserved.
@@ -751,7 +751,7 @@ safe_primitive(system:b_getval(_,_)).
 safe_primitive(system:b_setval(Var,_)) :-
     safe_global_var(Var).
 safe_primitive(system:nb_getval(_,_)).
-safe_primitive('$syspreds':nb_setval(Var,_)) :-
+safe_primitive(system:nb_setval(Var,_)) :-
     safe_global_var(Var).
 safe_primitive(system:nb_linkval(Var,_)) :-
     safe_global_var(Var).

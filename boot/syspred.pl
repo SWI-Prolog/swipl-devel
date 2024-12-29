@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -77,7 +77,6 @@
             rule/3,                             % :Head, -Rule, ?Ref
             numbervars/3,                       % +Term, +Start, -End
             term_string/3,                      % ?Term, ?String, +Options
-            nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
             sig_block/1,                        % :Pattern
@@ -1406,19 +1405,6 @@ term_string(Term, String, Options) :-
     ;   '$merge_options'(_{quoted:true}, Options, Options1)
     ),
     format(string(String), '~W', [Term, Options1]).
-
-
-                 /*******************************
-                 *             GVAR             *
-                 *******************************/
-
-%!  nb_setval(+Name, +Value) is det.
-%
-%   Bind the non-backtrackable variable Name with a copy of Value
-
-nb_setval(Name, Value) :-
-    duplicate_term(Value, Copy),
-    nb_linkval(Name, Copy).
 
 
 		 /*******************************

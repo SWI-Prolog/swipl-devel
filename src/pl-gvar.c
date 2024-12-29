@@ -39,6 +39,7 @@
 #include "pl-gc.h"
 #include "pl-wam.h"
 #include "pl-prims.h"
+#include "pl-copyterm.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -148,11 +149,40 @@ SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
 	    2 more allocGlobal(1) makes g+t<3+3
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define setval_duplicate(new, old) \
+	LDFUNC(setval_duplicate, new, old)
+
+static word
+setval_duplicate(DECL_LD word new, word old)
+{ if ( isTerm(new) )
+  { term_t from = PL_new_term_ref();
+    term_t copy = PL_new_term_ref();
+    term_t shared = 0;
+    size_t nshared = 0;
+    *valTermRef(from) = new;
+
+    if ( isTerm(old) )
+    { shared = PL_new_term_ref();
+      *valTermRef(shared) = old;
+      nshared = 1;
+    }
+    if ( duplicate_term(from, copy, nshared, shared) )
+      return *valTermRef(copy);
+    else
+      return 0;
+  } else
+  { return new;
+  }
+}
+
+#define SETVAL_BACKTRACKABLE 0x1
+#define SETVAL_LINK	     0x2
+
 #define setval(var, value, backtrackable) \
 	LDFUNC(setval, var, value, backtrackable)
 
 static bool
-setval(DECL_LD term_t var, term_t value, int backtrackable)
+setval(DECL_LD term_t var, term_t value, unsigned int flags)
 { atom_t name;
   Word p;
   word w, old;
@@ -191,7 +221,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
   if ( isAtom(old) )
     PL_unregister_atom(word2atom(old));
 
-  if ( backtrackable )
+  if ( (flags&SETVAL_BACKTRACKABLE) )
   { Word p;
 
     if ( isRef(old) )
@@ -209,7 +239,13 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
     TrailAssignment(p);
     *p = w;
   } else
-  { if ( storage(old) == STG_GLOBAL )
+  { bool old_on_global = storage(old) == STG_GLOBAL;
+
+    if ( !(flags&SETVAL_LINK) )
+    { if ( !(w = setval_duplicate(w, old)) )
+	return false;
+    }
+    if ( old_on_global )
       LD->gvar.grefs--;
 
     updateHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)w);
@@ -356,10 +392,17 @@ error:
 
 
 static
+PRED_IMPL("nb_setval", 2, nb_setval, 0)
+{ PRED_LD
+
+  return setval(A1, A2, 0);
+}
+
+static
 PRED_IMPL("nb_linkval", 2, nb_linkval, 0)
 { PRED_LD
 
-  return setval(A1, A2, false);
+  return setval(A1, A2, SETVAL_LINK);
 }
 
 
@@ -375,7 +418,7 @@ static
 PRED_IMPL("b_setval", 2, b_setval, 0)
 { PRED_LD
 
-  return setval(A1, A2, true);
+  return setval(A1, A2, SETVAL_BACKTRACKABLE);
 }
 
 static
@@ -477,6 +520,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 BeginPredDefs(gvar)
   PRED_DEF("b_setval",   2, b_setval,   0)
   PRED_DEF("b_getval",   2, b_getval,   0)
+  PRED_DEF("nb_setval",  2, nb_setval,  0)
   PRED_DEF("nb_linkval", 2, nb_linkval, 0)
   PRED_DEF("nb_getval",  2, nb_getval,  0)
   PRED_DEF("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
