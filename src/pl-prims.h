@@ -51,7 +51,6 @@
 #define	skip_list(l, tailp)		LDFUNC(skip_list, l, tailp)
 #define	is_acyclic(p)			LDFUNC(is_acyclic, p)
 #define	numberVars(t, opts, n)		LDFUNC(numberVars, t, opts, n)
-#define	duplicate_term(in, copy)	LDFUNC(duplicate_term, in, copy)
 #define	pl_statistics_ld(k, value, ld)	LDFUNC(pl_statistics_ld, k, value, ld)
 #define	ground(p)			LDFUNC(ground, p)
 #define	PL_same_term(t1, t2)		LDFUNC(PL_same_term, t1, t2)
@@ -70,7 +69,6 @@ intptr_t	skip_list(Word l, Word *tailp);
 intptr_t	lengthList(term_t list, int errors);
 int		is_acyclic(Word p);
 intptr_t	numberVars(term_t t, nv_options *opts, intptr_t n);
-int		duplicate_term(term_t in, term_t copy);
 word		stringToList(char *s);
 foreign_t	pl_sub_atom(term_t atom,
 			    term_t before, term_t len, term_t after,

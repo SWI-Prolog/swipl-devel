@@ -39,6 +39,7 @@
 #include "pl-prims.h"
 #include "pl-arith.h"
 #include "pl-attvar.h"
+#include "pl-copyterm.h"
 #include "pl-fli.h"
 #include "pl-gc.h"
 #include "pl-wam.h"

@@ -65,6 +65,7 @@
 #include "pl-ext.h"
 #include "pl-rec.h"
 #include "pl-trace.h"
+#include "pl-copyterm.h"
 #include <errno.h>
 
 #ifdef __SANITIZE_ADDRESS__

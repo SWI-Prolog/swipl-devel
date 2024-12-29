@@ -43,6 +43,7 @@
 #include "pl-fli.h"
 #include "pl-gc.h"
 #include "pl-gvar.h"
+#include "pl-copyterm.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Dicts are associative arrays,  where  keys   are  either  atoms  or small

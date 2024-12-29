@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, VU University Amsterdam
+    Copyright (c)  2024, VU University Amsterdam
 			 CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,6 +46,7 @@ typedef struct fastheap_term
 #if USE_LD_MACROS
 #define	term_to_fastheap(t)			LDFUNC(term_to_fastheap, t)
 #define	put_fastheap(fht, t)			LDFUNC(put_fastheap, fht, t)
+#define	duplicate_term(in, copy)		LDFUNC(duplicate_term, in, copy)
 #define	size_abstract_term(in, copy, abstract)	LDFUNC(size_abstract_term, in, copy, abstract)
 #endif /*USE_LD_MACROS*/
 
@@ -53,7 +55,8 @@ typedef struct fastheap_term
 fastheap_term*	term_to_fastheap(term_t t);
 void		free_fastheap(fastheap_term *fht);
 int		put_fastheap(fastheap_term *fht, term_t t);
-int		size_abstract_term(term_t in, term_t copy,
+bool		duplicate_term(term_t in, term_t copy);
+bool		size_abstract_term(term_t in, term_t copy,
 				   size_t abstract);
 
 #undef LDFUNC_DECLARATIONS
