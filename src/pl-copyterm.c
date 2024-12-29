@@ -782,7 +782,7 @@ again:
 #define copy_term_refs(from, to, vars, abstract, flags) \
 	LDFUNC(copy_term_refs, from, to, vars, abstract, flags)
 
-static int
+static bool
 copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
 	       size_t abstract, int flags)
 { for(;;)

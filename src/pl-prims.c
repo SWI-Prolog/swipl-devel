@@ -2569,7 +2569,7 @@ setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
       { term_t copy = PL_new_term_ref();
 
 	if ( !duplicate_term(value, copy) )
-	  fail;
+	  return false;
 	value = copy;
       }
 
