@@ -48,7 +48,7 @@
 
 void	destroyGlobalVars(void);
 void	freezeGlobal(void);
-int	gvar_value(atom_t name, Word p);
+bool	gvar_value(atom_t name, Word p);
 
 #undef LDFUNC_DECLARATIONS
 

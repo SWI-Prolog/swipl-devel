@@ -148,15 +148,17 @@ SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
 	    2 more allocGlobal(1) makes g+t<3+3
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define setval(var, value, backtrackable) LDFUNC(setval, var, value, backtrackable)
-static int
+#define setval(var, value, backtrackable) \
+	LDFUNC(setval, var, value, backtrackable)
+
+static bool
 setval(DECL_LD term_t var, term_t value, int backtrackable)
 { atom_t name;
   Word p;
   word w, old;
 
   if ( !PL_get_atom_ex(var, &name) )
-    fail;
+    return false;
 
   if ( !hasGlobalSpace(3) )		/* also ensures trail for */
   { int rc;				/* TrailAssignment() */
@@ -185,7 +187,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
     old = new_gvar(name, ATOM_no_value);
 
   if ( w == old )
-    succeed;
+    return true;
   if ( isAtom(old) )
     PL_unregister_atom(word2atom(old));
 
@@ -219,7 +221,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
       PL_register_atom(word2atom(w));
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -282,7 +284,7 @@ auto_define_gvar(atom_t name)
    fix this if this function is to be used for other purposes.
 */
 
-int
+bool
 gvar_value(DECL_LD atom_t name, Word p)
 { if ( LD->gvar.nb_vars )
   { word w;
@@ -297,7 +299,7 @@ gvar_value(DECL_LD atom_t name, Word p)
 
 
 #define is_gval(w) LDFUNC(is_gval, w)
-static int
+static bool
 is_gval(DECL_LD word w)
 { if ( isRef(w) )
     w = *unRef(w);
@@ -306,14 +308,16 @@ is_gval(DECL_LD word w)
 }
 
 
-#define getval(var, value, raise_error) LDFUNC(getval, var, value, raise_error)
-static int
-getval(DECL_LD term_t var, term_t value, int raise_error)
+#define getval(var, value, raise_error) \
+	LDFUNC(getval, var, value, raise_error)
+
+static bool
+getval(DECL_LD term_t var, term_t value, bool raise_error)
 { atom_t name;
   int i;
 
   if ( !PL_get_atom_ex(var, &name) )
-    fail;
+    return false;
 
   for(i=0; i<2; i++)
   { word w;
