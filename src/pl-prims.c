@@ -2488,10 +2488,6 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 }
 
 
-#define SETARG_BACKTRACKABLE    0x1
-#define SETARG_LINK		0x2
-
-
 /* unify_vp() assumes *vp is a variable and binds it to val.
    The assignment is *not* trailed. As no allocation takes
    place, there are no error conditions.
@@ -2535,14 +2531,11 @@ may_share_in_duplicate(DECL_LD Word p)
   return 0;
 }
 
-#define setarg(n, term, value, flags) LDFUNC(setarg, n, term, value, flags)
-static foreign_t
-setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
-{ size_t arity, argn;
+bool
+setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
+{ size_t arity;
   Word a, v;
 
-  if ( !PL_get_size_ex(n, &argn) )
-    return false;
   a = valTermRef(term);
   deRef(a);
   if ( !isTerm(*a) )
@@ -2605,12 +2598,24 @@ setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
   return true;
 }
 
+#define setarg_t(arg, term, value, flags) \
+	LDFUNC(setarg_t, arg, term, value, flags)
+
+static inline bool
+setarg_t(DECL_LD term_t arg, term_t term, term_t value, unsigned int flags)
+{ size_t argn;
+
+  if ( !PL_get_size_ex(arg, &argn) || argn == 0 )
+    return false;
+
+  return setarg(argn, term, value, flags);
+}
 
 static
 PRED_IMPL("setarg", 3, setarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, SETARG_BACKTRACKABLE);
+  return setarg_t(A1, A2, A3, SETARG_BACKTRACKABLE);
 }
 
 
@@ -2618,7 +2623,7 @@ static
 PRED_IMPL("nb_setarg", 3, nb_setarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, 0);
+  return setarg_t(A1, A2, A3, 0);
 }
 
 
@@ -2626,7 +2631,7 @@ static
 PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, SETARG_LINK);
+  return setarg_t(A1, A2, A3, SETARG_LINK);
 }
 
 

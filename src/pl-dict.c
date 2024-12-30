@@ -1707,45 +1707,14 @@ Backtrackable destructive assignment, similar to setarg/3.
 static bool
 setdict(DECL_LD term_t key, term_t dict, term_t value, unsigned int flags)
 { word k, m;
-  Word val;
-
-retry:
-  val = valTermRef(value);
-  deRef(val);
-
-  if ( (flags&SETDICT_BACKTRACKABLE) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-      goto retry;
-    }
-  } else
-  { if ( storage(*val) == STG_GLOBAL )
-    { if ( !(flags & SETDICT_LINK) )
-      { term_t copy = PL_new_term_ref();
-
-	if ( !duplicate_term(value, copy, 0, 0) )
-	  return false;
-	value = copy;
-	val = valTermRef(value);
-	deRef(val);
-      }
-      freezeGlobal();
-    }
-  }
 
   if ( get_dict_ex(dict, &m, true) &&
        get_name_ex(key, &k) )
   { Word vp;
+    size_t arg;
 
-    if ( (vp=dict_lookup_ptr(m, k, NULL)) )
-    { if ( (flags&SETDICT_BACKTRACKABLE) )
-	TrailAssignment(vp);
-      unify_vp(vp, val);
-      return true;
-    }
+    if ( (vp=dict_lookup_ptr(m, k, &arg)) )
+      return setarg(arg*2, dict, value, flags);
 
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
 		    ATOM_key, key, dict);
@@ -1759,7 +1728,7 @@ static
 PRED_IMPL("b_set_dict", 3, b_set_dict, 0)
 { PRED_LD
 
-  return setdict(A1, A2, A3, SETDICT_BACKTRACKABLE);
+  return setdict(A1, A2, A3, SETARG_BACKTRACKABLE);
 }
 
 static
@@ -1773,7 +1742,7 @@ static
 PRED_IMPL("nb_link_dict", 3, nb_link_dict, 0)
 { PRED_LD
 
-  return setdict(A1, A2, A3, SETDICT_LINK);
+  return setdict(A1, A2, A3, SETARG_LINK);
 }
 
 

@@ -55,6 +55,7 @@
 #define	ground(p)			LDFUNC(ground, p)
 #define	PL_same_term(t1, t2)		LDFUNC(PL_same_term, t1, t2)
 #define do_unify(t1, t2)		LDFUNC(do_unify, t1, t2)
+#define setarg(n, term, value, flags)   LDFUNC(setarg, n, term, value, flags)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -86,8 +87,12 @@ int		PL_factorize_term(term_t term,
 int		PL_var_occurs_in(term_t var, term_t value);
 void		raiseInferenceLimitException(void);
 int		PL_same_term(term_t t1, term_t t2);
+bool		setarg(size_t argn, term_t term, term_t value,
+		       unsigned int flags);
 
 #undef LDFUNC_DECLARATIONS
 
+#define SETARG_BACKTRACKABLE    0x1
+#define SETARG_LINK		0x2
 
 #endif /*_PL_PRIMS_H*/
