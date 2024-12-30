@@ -40,6 +40,7 @@
             aggregate/4,                % +Templ, +Discrim, :Goal, -Result
             aggregate_all/3,            % +Templ, :Goal, -Result
             aggregate_all/4,            % +Templ, +Discrim, :Goal, -Result
+            foldall/4,			% :Folder, :Goal, +V0, -V)
             foreach/2,                  % :Generator, :Goal
             free_variables/4            % :Generator, :Template, +Vars0, -Vars
           ]).
@@ -55,11 +56,12 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-    foreach(0,0),
     aggregate(?,^,-),
     aggregate(?,?,^,-),
     aggregate_all(?,0,-),
-    aggregate_all(?,?,0,-).
+    aggregate_all(?,?,0,-),
+    foldall(2,0,+,-),
+    foreach(0,0).
 
 /** <module> Aggregation operators on backtrackable predicates
 
@@ -179,6 +181,8 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 %   The Template values `count`, sum(X),   max(X),  min(X), max(X,W) and
 %   min(X,W) are processed incrementally rather than using findall/3 and
 %   run in constant memory.
+%
+%   @see foldall/4 to "fold" over all answers.
 
 aggregate_all(Var, _, _) :-
     var(Var),
@@ -536,6 +540,38 @@ state0(sum,   0, _).
 state1(bag, X, L, [X|L]) :- !.
 state1(set, X, L, [X|L]) :- !.
 state1(_,   X, X, _).
+
+
+		 /*******************************
+		 *             FOLDALL		*
+		 *******************************/
+
+%!  foldall(:Folder, :Goal, +V0, -V) is det.
+%
+%   Use Folder to fold V0 to V using all answers of Goal. This predicate
+%   generates all answers  for  Goal  and   for  each  answer  it  calls
+%   call(Folder,V0,V1). This predicate  provides   behaviour  similar to
+%   aggregate_all/3-4, but operates in  constant   space  and allows for
+%   custom aggregation (Folder) operators. The example below uses plus/3
+%   to realise aggregate_all(sum(X), between(1,10,X), Sum).
+%
+%       ?- foldall(plus(X), between(1,10,X), 0, Sum).
+%       Sum = 55
+%
+%   The implementation uses  nb_setarg/3   for  non-backtrackable  state
+%   updates.
+%
+%   @see aggregate_all/3-4, foldl/4-7, nb_setarg/3.
+
+foldall(Op, Goal, V0, V) :-
+    State = state(V0),
+    (   call(Goal),
+          arg(1, State, S0),
+          call(Op, S0, S),
+          nb_setarg(1, State, S),
+          fail
+    ;   arg(1, State, V)
+    ).
 
 
                  /*******************************
