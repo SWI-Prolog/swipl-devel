@@ -44,6 +44,8 @@
 #define AC_TERM_WALK_LRD 1
 #include "pl-termwalk.c"
 
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *	    COPY TERM		*
@@ -178,8 +180,11 @@ end_loop:
 }
 
 
+#define share_for_duplicate(t, options) \
+	LDFUNC(share_for_duplicate, t, options)
+
 static bool
-share_for_duplicate(const Functor t, const cp_options *options)
+share_for_duplicate(DECL_LD const Functor t, const cp_options *options)
 { for(size_t i=0; i<options->nshare; i++)
   { Word p = valTermRef(options->share+i);
     if ( t == valueTerm(*p) )
