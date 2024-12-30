@@ -556,7 +556,7 @@ retry:
 			 iargsName(best_index->args, NULL),
 			 predicateName(ctx->predicate)));
 
-	  if ( (ci=createIndex(argv, argc, clist, 0.0, ctx)) )
+	  if ( (ci=createIndex(argv, argc, clist, best_index->speedup, ctx)) )
 	  { if ( unlikely(ci == CI_RETRY) )
 	      continue;
 
@@ -2676,7 +2676,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 					/* Step 1: find instantiated args */
   for(iarg_t i=0; i<ac; i++)
   { if ( canIndex(av[i]) )
-      instantiated[ninstantiated++] = (iarg_t)i;
+      instantiated[ninstantiated++] = i;
   }
 
 					/* Step 2: find new unassessed args*/
