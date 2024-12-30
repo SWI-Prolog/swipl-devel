@@ -388,7 +388,7 @@ extract_key(DECL_LD Word p1, int argc, const word *argv, int pair)
       { if ( termIsDict(*p1) )
 	{ Word vp;
 
-	  if ( (vp = dict_lookup_ptr(*p1, argv[0])) )
+	  if ( (vp = dict_lookup_ptr(*p1, argv[0], NULL)) )
 	  { p1 = vp;
 	    goto next;
 	  }

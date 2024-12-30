@@ -114,8 +114,8 @@ is_dict_term(DECL_LD word w)
 		 *******************************/
 
 #define get_dict_ex(t, dp, ex) LDFUNC(get_dict_ex, t, dp, ex)
-static int
-get_dict_ex(DECL_LD term_t t, Word dp, int ex)
+static bool
+get_dict_ex(DECL_LD term_t t, Word dp, bool ex)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -131,8 +131,7 @@ get_dict_ex(DECL_LD term_t t, Word dp, int ex)
   if ( !ex )
     return false;
 
-  PL_type_error("dict", t);
-  return false;
+  return PL_type_error("dict", t),false;
 }
 
 
@@ -171,23 +170,26 @@ dict_lookup_ptr() returns a pointer to the value for a given key
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-dict_lookup_ptr(DECL_LD word dict, word name)
+dict_lookup_ptr(DECL_LD word dict, word name, size_t *arg)
 { Functor data = valueTerm(dict);
-  int arity = arityFunctor(data->definition);
-  int l = 1, h = arity/2;
+  size_t arity = arityFunctor(data->definition);
+  size_t l = 1, h = arity/2;
 
   if ( arity == 1 )
     return NULL;			/* empty */
   assert(arity%2 == 1);
 
   for(;;)
-  { int m = (l+h)/2;
+  { size_t m = (l+h)/2;
     Word p;
 
     deRef2(&data->arguments[m*2], p);
 
     if ( *p == name )
+    { if ( arg )
+	*arg = m;
       return p-1;
+    }
 
     if ( l == h )
       return NULL;
@@ -1356,7 +1358,7 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
       if ( is_dict_key(*np) )
       { Word vp;
 
-	if ( (vp=dict_lookup_ptr(dict, *np)) )
+	if ( (vp=dict_lookup_ptr(dict, *np, NULL)) )
 	  return unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT);
 
 	if ( ex )
@@ -1443,7 +1445,7 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
   if ( !get_name_ex(A1, &key) ||
        !(*valTermRef(av+1) = key) ||
        !get_create_dict_ex(A2, dt) ||
-       !(vp=dict_lookup_ptr(*valTermRef(dt), key)) ||
+       !(vp=dict_lookup_ptr(*valTermRef(dt), key, NULL)) ||
        !unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT) ||
        !PL_put_term(av+0, A5) )
     return false;
@@ -1699,9 +1701,11 @@ Backtrackable destructive assignment, similar to setarg/3.
 #define SETDICT_BACKTRACKABLE    0x1
 #define SETDICT_LINK		0x2
 
-#define setdict(key, dict, value, flags) LDFUNC(setdict, key, dict, value, flags)
-static int
-setdict(DECL_LD term_t key, term_t dict, term_t value, int flags)
+#define setdict(key, dict, value, flags) \
+	LDFUNC(setdict, key, dict, value, flags)
+
+static bool
+setdict(DECL_LD term_t key, term_t dict, term_t value, unsigned int flags)
 { word k, m;
   Word val;
 
@@ -1736,7 +1740,7 @@ retry:
        get_name_ex(key, &k) )
   { Word vp;
 
-    if ( (vp=dict_lookup_ptr(m, k)) )
+    if ( (vp=dict_lookup_ptr(m, k, NULL)) )
     { if ( (flags&SETDICT_BACKTRACKABLE) )
 	TrailAssignment(vp);
       unify_vp(vp, val);
@@ -1791,7 +1795,7 @@ retry:
        get_name_ex(A1, &key) )
   { Word vp;
 
-    if ( (vp=dict_lookup_ptr(*valTermRef(mt), key)) &&
+    if ( (vp=dict_lookup_ptr(*valTermRef(mt), key, NULL)) &&
 	 unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT) )
     { int rc;
       word new;
@@ -2007,7 +2011,7 @@ PL_get_dict_key(atom_t key, term_t dict, term_t value)
 
   if ( !get_dict_ex(dict, &d, false) )
     return false;
-  if ( (vp=dict_lookup_ptr(d, key)) )
+  if ( (vp=dict_lookup_ptr(d, key, NULL)) )
   { *valTermRef(value) = linkValI(vp);
     return true;
   }
