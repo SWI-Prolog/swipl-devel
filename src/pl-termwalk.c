@@ -75,42 +75,27 @@ clearTermAgenda(term_agenda *a)
 }
 
 
-#define nextTermAgenda(a) LDFUNC(nextTermAgenda, a)
 static inline Word
-nextTermAgenda(DECL_LD term_agenda *a)
-{ Word p;
-
-  if ( unlikely(a->work.size == 0) &&
+nextTermAgendaNoDeRef(term_agenda *a)
+{ if ( unlikely(a->work.size == 0) &&
        !popSegStack(&a->stack, &a->work, aNode) )
     return NULL;
 
   a->work.size--;
-  p = a->work.location++;
-  deRef(p);
+  return a->work.location++;
+}
+
+
+#define nextTermAgenda(a) LDFUNC(nextTermAgenda, a)
+static inline Word
+nextTermAgenda(DECL_LD term_agenda *a)
+{ Word p = nextTermAgendaNoDeRef(a);
+
+  if ( p )
+    deRef(p);
 
   return p;
 }
-
-
-static inline Word
-nextTermAgendaNoDeRef(term_agenda *a)
-{ Word p;
-
-  if ( a->work.size > 0 )
-  { ok:
-    a->work.size--;
-    p = a->work.location++;
-
-    return p;
-  }
-
-  if ( popSegStack(&a->stack, &a->work, aNode) )
-    goto ok;
-
-  return NULL;
-}
-
-
 
 
 		 /*******************************
@@ -119,12 +104,14 @@ nextTermAgendaNoDeRef(term_agenda *a)
 
 static inline int
 pushWorkAgenda(term_agenda *a, size_t amount, Word start)
-{ if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, a->work, aNode) )
-      return false;
+{ if ( amount )
+  { if ( a->work.size > 0 )
+    { if ( !pushSegStack(&a->stack, a->work, aNode) )
+	return false;
+    }
+    a->work.location = start;
+    a->work.size = amount;
   }
-  a->work.location = start;
-  a->work.size = amount;
 
   return true;
 }
