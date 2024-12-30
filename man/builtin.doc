@@ -10028,9 +10028,19 @@ the requested variable does not exist.
 
 \begin{description}
     \predicate{nb_setval}{2}{+Name, +Value}
-Associates a copy of \arg{Value} created with duplicate_term/2
-with the atom \arg{Name}.  Note that this can be used to set an
-initial value other than \const{[]} prior to backtrackable assignment.
+Associates a copy of \arg{Value} created with duplicate_term/2 with the
+atom \arg{Name}. Note that this can be used to set an initial value
+other than \const{[]} prior to backtrackable assignment. Starting with
+version 9.3.18, if the new \arg{Value} contains the old value, the old
+value is \textbf{not} copied.  This implies that \nopredref{push}{1}
+below has complexity O(1), regardless of the length of the list
+\arg{Old}.
+
+\begin{code}
+push(Var, Value) :-
+    nb_getval(Var, Old),
+    nb_setval(Var, [Value|Old]).
+\end{code}
 
     \predicate{nb_getval}{2}{+Name, -Value}
 The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
