@@ -83,6 +83,17 @@ case $config in
     ;;
 esac
 
+# gcov
+#
+# Prepare for coverage analysis
+
+case $config in
+  *gcov*)
+    opts+=" -DGCOV=ON -DINSTALL_TESTS=ON"
+    CFLAGS+=" -fno-inline"
+    ;;
+esac
+
 # c11
 #
 # Enable pedantic C11 checking for GCC.  Use for compliancy testing as
