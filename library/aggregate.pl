@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
                               VU University Amsterdam
                               CWI Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,11 +36,11 @@
 */
 
 :- module(aggregate,
-          [ foreach/2,                  % :Generator, :Goal
-            aggregate/3,                % +Templ, :Goal, -Result
+          [ aggregate/3,                % +Templ, :Goal, -Result
             aggregate/4,                % +Templ, +Discrim, :Goal, -Result
             aggregate_all/3,            % +Templ, :Goal, -Result
             aggregate_all/4,            % +Templ, +Discrim, :Goal, -Result
+            foreach/2,                  % :Generator, :Goal
             free_variables/4            % :Generator, :Template, +Vars0, -Vars
           ]).
 :- autoload(library(apply),[maplist/4,maplist/5]).
@@ -76,27 +77,26 @@ smallest_country(Name, Area) :-
 
 There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3 and aggregate/4), distinguished on two properties.
 
-    $ aggregate vs. aggregate_all :
-    The aggregate predicates use setof/3 (aggregate/4) or bagof/3
-    (aggregate/3), dealing with existential qualified variables
-    (`Var^Goal`) and providing multiple solutions for the remaining free
-    variables in `Goal`. The aggregate_all/3 predicate uses findall/3,
-    implicitly qualifying all free variables and providing exactly one
-    solution, while aggregate_all/4 uses sort/2 over solutions that
-    Discriminator (see below) generated using findall/3.
+    - aggregate vs. aggregate_all <br>
+      The aggregate predicates use setof/3 (aggregate/4) or bagof/3
+      (aggregate/3), dealing with existential qualified variables
+      (`Var^Goal`) and providing multiple solutions for the remaining
+      free variables in `Goal`. The aggregate_all/3 predicate uses
+      findall/3, implicitly qualifying all free variables and providing
+      exactly one solution, while aggregate_all/4 uses sort/2 over
+      solutions that Discriminator (see below) generated using
+      findall/3.
 
-    $ The Discriminator argument :
-    The versions with 4 arguments deduplicate redundant solutions of
-    Goal. Solutions for which both the template variables and
-    Discriminator are identical will be treated as one solution. For
-    example, if we wish to compute the total population of all
-    countries, and for some reason =|country(belgium, 11000000)|= may
-    succeed twice, we can use the following to avoid counting the
-    population of Belgium twice:
+    - The Discriminator argument <br>
+      The versions with 4 arguments deduplicate redundant solutions of
+      Goal. Solutions for which both the template variables and
+      Discriminator are identical will be treated as one solution. For
+      example, if we wish to compute the total population of all
+      countries, and for some reason =|country(belgium, 11000000)|= may
+      succeed twice, we can use the following to avoid counting the
+      population of Belgium twice:
 
-    ==
-        aggregate(sum(P), Name, country(Name, P), Total)
-    ==
+          aggregate(sum(P), Name, country(Name, P), Total)
 
 All aggregation predicates support  the   following  operators  below in
 Template. In addition, they allow for  an arbitrary named compound term,
@@ -104,28 +104,28 @@ where each of the arguments is a term  from the list below. For example,
 the term r(min(X), max(X)) computes both the minimum and maximum binding
 for X.
 
-        * count
-        Count number of solutions.  Same as sum(1).
-        * sum(Expr)
-        Sum of Expr for all solutions.
-        * min(Expr)
-        Minimum of Expr for all solutions.
-        * min(Expr, Witness)
-        A term min(Min, Witness), where Min is the minimal version
-        of Expr over all solutions, and Witness is any other template
-        applied to solutions that produced Min.  If multiple
-        solutions provide the same minimum, Witness corresponds to
-        the first solution.
-        * max(Expr)
-        Maximum of Expr for all solutions.
-        * max(Expr, Witness)
-        As min(Expr, Witness), but producing the maximum result.
-        * set(X)
-        An ordered set with all solutions for X.
-        * bag(X)
-        A list of all solutions for X.
+  - count
+    Count number of solutions.  Same as sum(1).
+  - sum(Expr)
+    Sum of Expr for all solutions.
+  - min(Expr)
+    Minimum of Expr for all solutions.
+  - min(Expr, Witness)
+    A term min(Min, Witness), where Min is the minimal version of
+    Expr over all solutions, and Witness is any other template
+    applied to solutions that produced Min. If multiple solutions
+    provide the same minimum, Witness corresponds to the first
+    solution.
+  - max(Expr)
+    Maximum of Expr for all solutions.
+  - max(Expr, Witness)
+    As min(Expr, Witness), but producing the maximum result.
+  - set(X)
+    An ordered set with all solutions for X.
+  - bag(X)
+    A list of all solutions for X.
 
-*Acknowledgements*
+__Acknowledgements__
 
 _|The development of this library was sponsored by SecuritEase,
   http://www.securitease.com
@@ -318,11 +318,11 @@ clean_body(Goal, Goal).
 %   Determine which parts of the goal we must remember in the
 %   findall/3 pattern.
 %
-%   @param Post is a body-term that evaluates expressions to reduce
+%   @arg Post is a body-term that evaluates expressions to reduce
 %               storage requirements.
-%   @param Vars is a list of intermediate variables that must be
+%   @arg Vars is a list of intermediate variables that must be
 %               added to the existential variables for bagof/3.
-%   @param Aggregate defines the aggregation operation to execute.
+%   @arg Aggregate defines the aggregation operation to execute.
 
 template_to_pattern(Term, Pattern, Goal, Vars, Aggregate) :-
     templ_to_pattern(Term, Pattern, Goal, Vars, Aggregate),
