@@ -454,9 +454,16 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
   return NULL;
 }
 
-/* Add a new index to the clause list if it provides a speedup of at
- * least `min_speedup`.  Return:
+/* Add a new index  to the clause list if it provides  a speedup of at
+ * least `min_speedup`.  This is called if the best index is "poor" or
+ * linear primary  clause index scanning  does not work  because there
+ * are too many clauses or the argument is not instantiated.
  *
+ * We  call  bestHash()  to  find  the  best  possible  index.   Next,
+ * hashDefinition() first checks whether this index already exists and
+ * creates it otherwise.
+ *
+ * Return:
  *   - CI_RETRY
  *     Someone invalidated the index while we were building it or
  *     waiting for a thread to complete it.
