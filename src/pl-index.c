@@ -2727,7 +2727,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 
 				/* Step 4: find the best (single) arg */
   for(int i=0; i<ninstantiated; i++)
-  { int arg = instantiated[i];
+  { iarg_t arg = instantiated[i];
     arg_info *ainfo = &clist->args[arg];
 
     if ( ainfo->speedup > best_speedup )
@@ -2737,7 +2737,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   }
 
   if ( best >= 0 &&
-       (float)clist->number_of_clauses/best_speedup > 3 )
+       (float)clist->number_of_clauses/best_speedup > 3.0f )
   { int ok, m, n;
 
     sort_assessments(clist, instantiated, ninstantiated);
