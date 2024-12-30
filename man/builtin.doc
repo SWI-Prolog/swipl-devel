@@ -7410,18 +7410,17 @@ to attach information to attributed variables (see~\secref{attvar}).
 
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
-the given \arg{Value} as setarg/3, but on backtracking the assignment
-is \emph{not} reversed.  If \arg{Value} is not atomic, it is duplicated
+the given \arg{Value} as setarg/3, but on backtracking the assignment is
+\emph{not} reversed. If \arg{Value} is not atomic, it is duplicated
 using duplicate_term/2. This predicate uses the same technique as
-nb_setval/2.  We therefore refer to the description of nb_setval/2
-for details on non-backtrackable assignment of terms.  This predicate
-is compatible with GNU-Prolog \term{setarg}{A,T,V,false}, removing the
-type restriction on \arg{Value}.  See also nb_linkarg/3.  Below
-is an example for counting the number of solutions of a goal.  Note
-that this implementation is thread-safe, reentrant and capable of
-handling exceptions.  Realising these features with a traditional
-implementation based on assert/retract or flag/3 is much more
-complicated.
+nb_setval/2. We therefore refer to the description of nb_setval/2 for
+details on non-backtrackable assignment of terms. This predicate is
+compatible with GNU-Prolog \term{setarg}{A,T,V,false}, removing the type
+restriction on \arg{Value}. Below is an example for counting the number
+of solutions of a goal. Note that this implementation is thread-safe,
+reentrant and capable of handling exceptions. Realising these features
+with a traditional implementation based on assert/retract or flag/3 is
+much more complicated.
 
 \begin{code}
 :- meta_predicate
@@ -7437,6 +7436,8 @@ succeeds_n_times(Goal, Times) :-
 	;   arg(1, Counter, Times)
 	).
 \end{code}
+
+See also nb_linkarg/3 and foldall/4.
 
     \predicate{nb_linkarg}{3}{+Arg, +Term, +Value}
 As nb_setarg/3, but like nb_linkval/2 it does \emph{not} duplicate
