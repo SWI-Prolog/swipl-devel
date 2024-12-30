@@ -80,19 +80,15 @@ static inline Word
 nextTermAgenda(DECL_LD term_agenda *a)
 { Word p;
 
-  if ( a->work.size > 0 )
-  { ok:
-    a->work.size--;
-    p = a->work.location++;
-    deRef(p);
+  if ( unlikely(a->work.size == 0) &&
+       !popSegStack(&a->stack, &a->work, aNode) )
+    return NULL;
 
-    return p;
-  }
+  a->work.size--;
+  p = a->work.location++;
+  deRef(p);
 
-  if ( popSegStack(&a->stack, &a->work, aNode) )
-    goto ok;
-
-  return NULL;
+  return p;
 }
 
 
