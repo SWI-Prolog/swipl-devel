@@ -2648,6 +2648,44 @@ best_assessment(hash_assessment *assessments, int count, size_t clause_count)
   return best;
 }
 
+static void
+access_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
+			 IndexContext ctx)
+{ hash_assessment *a;
+  int i;
+
+  assess_scan_clauses(clist, ac, aset->assessments, aset->count, ctx);
+
+  for(i=0, a=aset->assessments; i<aset->count; i++, a++)
+  { arg_info *ainfo = &clist->args[a->args[0]-1];
+
+    if ( assess_remove_duplicates(a, clist->number_of_clauses) )
+    { DEBUG(MSG_JIT,
+	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
+		     iargsName(a->args, NULL),
+		     predicateName(ctx->predicate),
+		     a->speedup, a->stdev));
+
+      ainfo->speedup    = a->speedup;
+      ainfo->list       = a->list;
+      ainfo->ln_buckets = MSB(a->size)&0x1f;
+    } else
+    { ainfo->speedup    = 0.0;
+      ainfo->list       = false;
+      ainfo->ln_buckets = 0;
+
+      DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
+			      iargsName(a->args, NULL),
+			      predicateName(ctx->predicate)));
+    }
+
+    ainfo->assessed = true;
+
+    if ( a->keys )
+      free(a->keys);
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
@@ -2675,13 +2713,11 @@ static bool
 bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 	 hash_hints *hints, IndexContext ctx)
 { assessment_set aset;
-  hash_assessment *a;
   int best = -1;
   float best_speedup = 0.0;
   iarg_t ia[MAX_MULTI_INDEX] = {0};
   iarg_t *instantiated;
   int ninstantiated = 0;
-
 
 					/* Step 1: find instantiated args */
   instantiated = alloca(ac*sizeof(*instantiated));
@@ -2711,38 +2747,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { int i;
-    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
-
-    for(i=0, a=aset.assessments; i<aset.count; i++, a++)
-    { arg_info *ainfo = &clist->args[a->args[0]-1];
-
-      if ( assess_remove_duplicates(a, clist->number_of_clauses) )
-      { DEBUG(MSG_JIT,
-	      Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
-		       iargsName(a->args, NULL),
-		       predicateName(ctx->predicate),
-		       a->speedup, a->stdev));
-
-	ainfo->speedup    = a->speedup;
-	ainfo->list       = a->list;
-	ainfo->ln_buckets = MSB(a->size)&0x1f;
-      } else
-      { ainfo->speedup    = 0.0;
-	ainfo->list       = false;
-	ainfo->ln_buckets = 0;
-
-	DEBUG(MSG_JIT, Sdprintf("Assess index %s of %s: not indexable\n",
-				iargsName(a->args, NULL),
-				predicateName(ctx->predicate)));
-      }
-
-      ainfo->assessed = true;
-
-      if ( a->keys )
-	free(a->keys);
-    }
-
+  { access_candidate_indexes(ac, clist, &aset, ctx);
     free_assessment_set(&aset);
   }
 
