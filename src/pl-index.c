@@ -2682,19 +2682,22 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   iarg_t *instantiated;
   int ninstantiated = 0;
 
+
+					/* Step 1: find instantiated args */
   instantiated = alloca(ac*sizeof(*instantiated));
-  init_assessment_set(&aset);
+  for(iarg_t i=0; i<ac; i++)
+  { if ( canIndex(av[i]) )
+      instantiated[ninstantiated++] = i;
+  }
+
+  if ( ninstantiated == 0 )
+    return false;
+  init_assessment_set(&aset);		/* Prepare for assessment */
   if ( !clist->args )
   { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
     memset(ai, 0, ac*sizeof(*ai));
     if ( !COMPARE_AND_SWAP_PTR(&clist->args, NULL, ai) )
       freeHeap(ai, ac*sizeof(*ai));
-  }
-
-					/* Step 1: find instantiated args */
-  for(iarg_t i=0; i<ac; i++)
-  { if ( canIndex(av[i]) )
-      instantiated[ninstantiated++] = i;
   }
 
 					/* Step 2: find new unassessed args*/
@@ -2802,11 +2805,12 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 
   DEBUG(MSG_JIT, Sdprintf("  found %d candidate arguments\n", ok));
 
-  if ( ok >= 2 && ++clist->jiti_tried <= ac )
+  if ( ok >= 2 && clist->jiti_tried <= ac )
   { assessment_set aset;
     iarg_t ia[MAX_MULTI_INDEX] = {0};
     hash_assessment *nbest;
 
+    clist->jiti_tried++;
     init_assessment_set(&aset);
     for(m=1; m<ok; m++)
     { ia[1] = instantiated[m]+1;
