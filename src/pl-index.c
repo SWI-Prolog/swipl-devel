@@ -103,6 +103,9 @@ typedef struct index_context
 	LDFUNC(setClauseChoice, chp, cref, generation)
 #define	first_clause_guarded(argv, argc, clist, ctx) \
 	LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
+#define find_multi_argument_hash(ac, clist, inst, ninst, msu, hints, ctx) \
+	LDFUNC(find_multi_argument_hash, ac, clist, inst, ninst, \
+	       msu, hints, ctx)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -131,6 +134,10 @@ static Code	skipToTerm(Clause clause, const iarg_t *position);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(const ClauseIndex ci);
 static void	completed_index(ClauseIndex ci);
+static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
+					 iarg_t *inst, int ninst,
+					 float min_speedup,
+					 hash_hints *hints, IndexContext ctx);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -2284,10 +2291,14 @@ best_hash_assessment(const void *p1, const void *p2, void *ctx)
   const arg_info *i1 = &clist->args[*a1];
   const arg_info *i2 = &clist->args[*a2];
 
-  return i1->speedup - i2->speedup > 0 ? -1 :
-	 i1->speedup - i2->speedup < 0 ?  1 : 0;
+  return i1->speedup - i2->speedup > 0.0 ? -1 :
+	 i1->speedup - i2->speedup < 0.0 ?  1 : 0;
 }
 
+
+/* Sort assessments, represented by their argument position on
+ * `clist` by decreasing speedup, i.e., best first.
+ */
 
 static void
 sort_assessments(ClauseList clist,
@@ -2743,71 +2754,92 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
     }
   }
 
-  if ( best >= 0 &&
-       (float)clist->number_of_clauses/best_speedup > 3.0f )
-  { int ok, m, n;
-
-    sort_assessments(clist, instantiated, ninstantiated);
-    for( ok=0;
-	 ok<ninstantiated &&
-	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
-	 ok++ )
-      ;
-
-    if ( ok >= 2 && ++clist->jiti_tried <= ac )
-    { hash_assessment *nbest;
-
-      DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
-			      "; %d promising arguments\n",
+  if ( best >= 0 )		/* Found at least one index */
+  { if ( (float)clist->number_of_clauses/best_speedup > 3.0f &&
+	 ninstantiated > 1 )	/* ... but not a real good one ... */
+    { DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
+			      "; trying multi-argument index\n",
 			      predicateName(ctx->predicate),
 			      clist->number_of_clauses,
-			      best+1, best_speedup, ok));
+			      best+1, best_speedup));
 
-      init_assessment_set(&aset);
-      for(m=1; m<ok; m++)
-      { ia[1] = instantiated[m]+1;
-	for(n=0; n<m; n++)
-	{ ia[0] = instantiated[n]+1;
-	  alloc_assessment(&aset, ia);
-	}
-      }
-
-      assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
-      nbest = best_assessment(aset.assessments, aset.count,
-			      clist->number_of_clauses);
-      if ( nbest && nbest->speedup > best_speedup*MIN_SPEEDUP )
-      { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
-				predicateName(ctx->predicate),
-				iargsName(nbest->args, NULL),
-				nbest->speedup));
-	memset(hints, 0, sizeof(*hints));
-	memcpy(hints->args, nbest->args, sizeof(nbest->args));
-	hints->ln_buckets = MSB(nbest->size);
-	hints->speedup    = nbest->speedup;
-
-	free_keys_in_assessment_set(&aset);
-	free_assessment_set(&aset);
+      if ( find_multi_argument_hash(ac, clist, instantiated, ninstantiated,
+				    best_speedup*MIN_SPEEDUP, hints, ctx) )
 	return true;
-      }
-      free_keys_in_assessment_set(&aset);
-      free_assessment_set(&aset);
     }
-  }
 
-  if ( best >= 0 && best_speedup > min_speedup )
-  { arg_info *ainfo = &clist->args[best];
+    if ( best_speedup > min_speedup )
+    { arg_info *ainfo = &clist->args[best];
 
-    memset(hints, 0, sizeof(*hints));
-    hints->args[0]    = (iarg_t)(best+1);
-    hints->ln_buckets = ainfo->ln_buckets;
-    hints->speedup    = ainfo->speedup;
-    hints->list       = ainfo->list;
+      memset(hints, 0, sizeof(*hints));
+      hints->args[0]    = (iarg_t)(best+1);
+      hints->ln_buckets = ainfo->ln_buckets;
+      hints->speedup    = ainfo->speedup;
+      hints->list       = ainfo->list;
 
-    return true;
+      return true;
+    }
   }
 
   return false;
 }
+
+
+
+static bool
+find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
+			 iarg_t *instantiated, int ninstantiated,
+			 float min_speedup,
+			 hash_hints *hints, IndexContext ctx)
+{ int ok, m, n;
+
+  sort_assessments(clist, instantiated, ninstantiated);
+  for( ok=0;
+       ok<ninstantiated &&
+	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
+       ok++ )
+    ;
+
+  DEBUG(MSG_JIT, Sdprintf("  found %d candidate arguments\n", ok));
+
+  if ( ok >= 2 && ++clist->jiti_tried <= ac )
+  { assessment_set aset;
+    iarg_t ia[MAX_MULTI_INDEX] = {0};
+    hash_assessment *nbest;
+
+    init_assessment_set(&aset);
+    for(m=1; m<ok; m++)
+    { ia[1] = instantiated[m]+1;
+      for(n=0; n<m; n++)
+      { ia[0] = instantiated[n]+1;
+	alloc_assessment(&aset, ia);
+      }
+    }
+
+    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
+    nbest = best_assessment(aset.assessments, aset.count,
+			    clist->number_of_clauses);
+    if ( nbest && nbest->speedup > min_speedup )
+    { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
+			      predicateName(ctx->predicate),
+			      iargsName(nbest->args, NULL),
+			      nbest->speedup));
+      memset(hints, 0, sizeof(*hints));
+      memcpy(hints->args, nbest->args, sizeof(nbest->args));
+      hints->ln_buckets = MSB(nbest->size);
+      hints->speedup    = nbest->speedup;
+
+      free_keys_in_assessment_set(&aset);
+      free_assessment_set(&aset);
+      return true;
+    }
+    free_keys_in_assessment_set(&aset);
+    free_assessment_set(&aset);
+  }
+
+  return false;
+}
+
 
 		 /*******************************
 		 *      DEFAULT INDEX ARG       *
