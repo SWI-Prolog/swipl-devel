@@ -70,8 +70,8 @@ bool		decompileHead(Clause clause, term_t head);
 int		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
 Code		skipArgs(Code PC, int skip);
-int		argKey(Code PC, int skip, word *key);
-int		arg1Key(Code PC, word *key);
+bool		argKey(Code PC, int skip, word *key);
+bool		arg1Key(Code PC, word *key);
 bool		decompile(Clause clause, term_t term, term_t bindings);
 word		pl_nth_clause(term_t p, term_t n, term_t ref,
 			      control_t h);

@@ -592,7 +592,7 @@ linkValI(Word p)
 }
 
 #define is_signalled(_) LDFUNC(is_signalled, _)
-static inline int
+static inline bool
 is_signalled(DECL_LD)
 { sigmask_t msk = 0;
 
@@ -620,8 +620,15 @@ register_attvar(DECL_LD Word gp)
   LD->attvar.attvars = gp;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+True when clause  is visible at generation.  This notably  needs to be
+critically aligned with committing  or discarding transactions.  These
+operations       update      cl->generation.erased       and      next
+cl->generation.created.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define visibleClause(cl, gen) LDFUNC(visibleClause, cl, gen)
-static inline int
+static inline bool
 visibleClause(DECL_LD Clause cl, gen_t gen)
 { gen_t c, e;
 
@@ -645,7 +652,7 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
 }
 
 #define visibleClauseCNT(cl, gen) LDFUNC(visibleClauseCNT, cl, gen)
-static inline int
+static inline bool
 visibleClauseCNT(DECL_LD Clause cl, gen_t gen)
 { if ( likely(visibleClause(cl, gen)) )
     return true;

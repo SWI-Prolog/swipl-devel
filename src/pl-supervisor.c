@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2022, University of Amsterdam
+    Copyright (c)  2008-2024, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -125,12 +125,7 @@ DET code:  I_FOPEN,     I_FCALLDETVA|I_FCALLDET<N>,   I_FEXITDET
 NDET code: I_FOPENNDET, I_FCALLNDETVA|I_FCALLNDET<N>, I_FEXITNDET, I_FREDO
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_PROF_PENTIUM
-#include "pentium.h"
-static int prof_foreign_index = (I_HIGHEST+20);
-#endif
-
-int
+bool
 createForeignSupervisor(Definition def, Func f)
 { assert(ison(def, P_FOREIGN));
 
@@ -169,13 +164,7 @@ createForeignSupervisor(Definition def, Func f)
     def->codes = codes;
   }
 
-#ifdef O_PROF_PENTIUM
-  assert(prof_foreign_index < MAXPROF);
-  def->prof_index = prof_foreign_index++;
-  def->prof_name  = strdup(predicateName(def));
-#endif
-
-  succeed;
+  return true;
 }
 
 
@@ -412,7 +401,7 @@ chainPredicateSupervisor(Definition def, Code post)
 		 *	      ENTRIES		*
 		 *******************************/
 
-int
+bool
 createUndefSupervisor(Definition def)
 { Code codes;
 
@@ -464,11 +453,11 @@ setSupervisor(Definition def, Code codes)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 setDefaultSupervisor() is synchronised with  unloadFile() (reconsult/1).
-Seems this is not yet enough to   stop all racer conditions between this
+Seems this is not yet enough to   stop all race  conditions between this
 code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 setDefaultSupervisor(Definition def)
 { if ( isoff(def, P_LOCKED_SUPERVISOR) )
   { Code codes, old;
@@ -535,10 +524,11 @@ ends in I_EXIT, such that generic code  walkers will always find the end
 of the sequence.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAKE_SV1(name, i) { PL_code_data.supervisors.name[0] = (code)0; \
-			    PL_code_data.supervisors.name[1] = encode(i); \
-			    PL_code_data.supervisors.name[2] = encode(I_EXIT); \
-			  }
+#define MAKE_SV1(name, i) \
+  { PL_code_data.supervisors.name[0] = (code)0;				\
+    PL_code_data.supervisors.name[1] = encode(i);			\
+    PL_code_data.supervisors.name[2] = encode(I_EXIT);			\
+  }
 
 void
 initSupervisors(void)

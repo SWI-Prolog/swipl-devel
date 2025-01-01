@@ -4812,9 +4812,11 @@ machine code.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c.
+
+@return `true` when argument can be indexed
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 argKey(Code PC, int skip, word *key)
 { if ( skip > 0 )
     PC = skipArgs(PC, skip);
@@ -4887,7 +4889,7 @@ argKey(Code PC, int skip, word *key)
       case I_SSU_COMMIT:
       case I_SSU_CHOICE:
 	*key = 0;
-	fail;
+	return false;
       case I_NOP:
       case I_CHP:
 	continue;
@@ -4900,7 +4902,7 @@ argKey(Code PC, int skip, word *key)
 	Sdprintf("Unexpected VM code %" PRIuPTR " at %p\n", c, PC);
 	Sdprintf("\topcode=%s\n", codeTable[c].name);
 	assert(0);
-	fail;
+	return false;
     }
   }
 }
@@ -4912,7 +4914,7 @@ first argument. This is used  by   listSupervisor().  This used to share
 with argKey(), but argKey() is time critical and merging complicates it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 arg1Key(Code PC, word *key)
 { for(;;)
   { code c = decode(*PC++);
@@ -4964,7 +4966,7 @@ arg1Key(Code PC, word *key)
       case I_SSU_CHOICE:
       case I_SSU_COMMIT:
 	*key = 0;
-	fail;
+	return false;
       case I_NOP:
       case I_CHP:
 	continue;
@@ -4975,7 +4977,7 @@ arg1Key(Code PC, word *key)
 #endif
       default:
 	assert(0);
-	fail;
+	return false;
     }
   }
 

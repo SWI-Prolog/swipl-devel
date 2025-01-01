@@ -1292,6 +1292,8 @@ We assume the compiler will optimise this properly.
 	  } \
 	}
 
+typedef unsigned char iarg_t;	/* index argument */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1449,7 +1451,6 @@ typedef struct impl_local
   LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
 } impl_local, *ImplLocal;
 
-
 typedef struct clause_list
 { arg_info     *args;			/* Meta and indexing info */
   ClauseRef	first_clause;		/* clause list of procedure */
@@ -1458,7 +1459,8 @@ typedef struct clause_list
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
-  unsigned int	jiti_tried;		/* number of times we tried to find */
+  iarg_t	jiti_tried;		/* number of times we tried to find */
+  iarg_t	primary_index;		/* Index used to link clauses */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref
@@ -1610,11 +1612,9 @@ struct clause_bucket
 };
 
 #define MAX_MULTI_INDEX  4
-#define MAXINDEXARG    254
+#define MAXINDEXARG    254		/* must fit iarg_t  */
 #define MAXINDEXDEPTH    7
 #define END_INDEX_POS  255
-
-typedef unsigned char iarg_t;		/* index argument */
 
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
@@ -1625,6 +1625,7 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned	 incomplete : 1;	/* Index is incomplete */
   unsigned	 invalid : 1;		/* Index is invalid */
+  unsigned	 good : 1;		/* Index is (near) perfect */
   iarg_t	 args[MAX_MULTI_INDEX];	/* Indexed arguments */
   iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
@@ -1657,10 +1658,6 @@ struct definition
   struct table_props *tabling;		/* Extended properties for tabling */
 #if defined(__SANITIZE_ADDRESS__)
   char	       *name;			/* Name for debugging */
-#endif
-#ifdef O_PROF_PENTIUM
-  int		prof_index;		/* index in profiling */
-  char	       *prof_name;		/* name in profiling */
 #endif
 };
 
