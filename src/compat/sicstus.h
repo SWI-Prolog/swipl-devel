@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2011, VU University Amsterdam
+    Copyright (c)  2010-2024, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -281,9 +282,38 @@ SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
   { int i;
 
     for(i=0; i<arity; i++)
-      PL_put_term(argv+i, arg[i]);
+    { if ( !PL_put_term(argv+i, arg[i]) )
+	return false;
+    }
 
     return PL_cons_functor_v(term, f, argv);
+  }
+
+  return false;
+}
+
+
+static __inline int
+SP_cons_functor(SP_term_ref term, SP_atom name, int arity, ...)
+{ functor_t f = PL_new_functor(name, arity);
+  term_t argv;
+
+  if ( (argv=PL_new_term_refs(arity)) )
+  { int i;
+    va_list args;
+    int rc = true;
+
+    va_start(args, arity);
+    for(i=0; i<arity; i++)
+    { SP_term_ref a = va_arg(args, SP_term_ref);
+      if ( !PL_put_term(argv+i, a) )
+      { rc = false;
+	break;
+      }
+    }
+    va_end(args);
+
+    return rc && PL_cons_functor_v(term, f, argv);
   }
 
   return false;
@@ -316,7 +346,7 @@ SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
 static __inline int
 SP_query(SP_pred_ref predicate, ...)
 { atom_t name;
-  int i, arity;
+  size_t i, arity;
   module_t module;
   fid_t fid;
   qid_t qid;
@@ -361,7 +391,7 @@ SP_query(SP_pred_ref predicate, ...)
 static __inline int
 SP_query_cut_fail(SP_pred_ref predicate, ...)
 { atom_t name;
-  int i, arity;
+  size_t i, arity;
   module_t module;
   fid_t fid;
   qid_t qid;

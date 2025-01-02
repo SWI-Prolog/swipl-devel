@@ -211,7 +211,7 @@ set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
 set(SWIPL_DATA_library_dialect_hprolog format.pl)
 set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl ordsets.pl
-    README.TXT sockets.pl swipl-lfr.pl system.pl terms.pl timeout.pl)
+    README.TXT sockets.pl system.pl terms.pl timeout.pl)
 set(SWIPL_DATA_library_dialect_sicstus4 aggregate.pl between.pl clpfd.pl
     file_systems.pl lists.pl ordsets.pl samsort.pl sets.pl sockets.pl
     system.pl terms.pl timeout.pl types.pl)
@@ -229,7 +229,7 @@ endif()
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
 
-set(SWIPL_DATA_app pack.pl app.pl qlf.pl README.md)
+set(SWIPL_DATA_app pack.pl app.pl qlf.pl splfr.pl README.md)
 
 ################
 # Custom targets and commands
