@@ -92,7 +92,7 @@ possible, this is not a trivial process. You need to do the following:
 
 ---++ License
 
-This code is licenced under the BSD-2
+This code is licensed under the BSD-2
 
 @tbd	Move all Windows hacks to os/windows.  At the moment, there are
 	definitions in pl-nt.c pl-main.c pl-ntconsole.c, pl-init.c

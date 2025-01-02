@@ -363,7 +363,7 @@ by fresh variables.
 \arg{AttVars} is a list of all attributed variables in \arg{Term} and
 its attributes. That is, term_attvars/2 works recursively through
 attributes. This predicate is cycle-safe. The goal
-\term{term_attvars}{Term, []} in an efficient test that \arg{Term} has
+\term{term_attvars}{Term, []} is an efficient test that \arg{Term} has
 \emph{no} attributes; scanning the term is aborted after the first
 attributed variable is found.
 \end{description}

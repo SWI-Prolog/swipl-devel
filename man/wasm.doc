@@ -162,7 +162,7 @@ file \arg{Id}.  The \arg{Id} is optional.  When omitted it generates
 \verb$/string/1$, \verb$/string/2$, \ldots.
 
     \cfunction{Promise}{Prolog.load_scripts}{}
-Load all scripts from the current docement that have their \const{type}
+Load all scripts from the current document that have their \const{type}
 set to \const{text/prolog}.  The file reference for the loaded script
 is \exam{/script/Id}, where \arg{Id} is derived from (1) the
 \const{id} of the script, (2) the \const{name} of the script or (3)
@@ -411,7 +411,7 @@ where the identifier is a unique number of each unique variable.
     \definition{Integer}
 Translate to a JavaScript \ctype{Number} when possible or
 \ctype{BigInt} otherwise.  Currently JavaScript \ctype{Number}
-can represent integers upto $2^{53}$ precisely.
+can represent integers up to $2^{53}$ precisely.
     \definition{Rational}
 Translate to a JavaScript \ctype{Prolog.Rational} instance.
     \definition{Float}
@@ -486,7 +486,7 @@ following ``functions'' are handled directly by the implementation.
     Returns a \ctype{Boolean} indicating whether the object is an
     instance of \arg{ClassName}.  Note that the class name must be
     an atom and as JavaScript class names normally start with a
-    capital, the names dypically need to be quoted using \emph{single}
+    capital, the names typically need to be quoted using \emph{single}
     quotes.  For example:
 \begin{code}
 ?- W := window, T := W.instanceof('Window').

@@ -722,7 +722,7 @@ interface. It was added after discussion with with Mattijs van Otterdijk
 aiming for using SWI-Prolog together with Rust's
 \href{https://rust-lang.github.io/async-book/01_getting_started/01_chapter.html}{asynchronous
 programming} support.  Note that this feature is related to the engine
-API as described in \secref{engines}.  It uis different though.  Where
+API as described in \secref{engines}.  It is different though.  Where
 the Prolog engine API allows for communicating with a Prolog engine,
 the facilities of this section merely allow an engine to suspend, to
 be resumed later.
@@ -1545,7 +1545,7 @@ return a pointer into Prolog's `buffer stack' (see \secref{foreign-strings}).
 				   const pl_wchar_t *s}
 \textit{Put} text from a wide character array in \arg{t}.
 Arguments are the same as PL_unify_wchars().\footnote{The current
-implemention uses PL_put_variable() followed by PL_unify_wchars().}
+implementation uses PL_put_variable() followed by PL_unify_wchars().}
 
     \cfunction{bool}{PL_unify_wchars}{term_t +t, int type,
 				     size_t len,
@@ -1596,7 +1596,7 @@ atoms, each on a line.  Please note the following:
           ones without the \const{_ex} suffix, but they raise  type,
 	  domain, or instantiation errors when the input is invalid;
 	  whereas the plain version may only raise resource exceptions
-	  if the request cannot be fullfilled due to resource
+	  if the request cannot be fulfilled due to resource
 	  exhaustion.
     \item PL_get_nil_ex() is designed to propagate an already
           raised exception.
@@ -1759,7 +1759,7 @@ PL_record().
 \end{description}
 
 The ISO standard demands that if an option is repeated the \emph{last}
-occurance holds. This implies that PL_scan_options() must scan the
+occurrence holds. This implies that PL_scan_options() must scan the
 option list to the end.
 \end{description}
 
@@ -2183,7 +2183,7 @@ copy of the Prolog term. The only thing that is allowed to be done
 with an argument to a foreign predicate (such as \arg{env}) is
 unification; for anything that might over-write the term, you must use
 a copy created by PL_copy_term_ref(). The name PL_unify_list() is
-slightly misleading - it unifies the first argumment (\arg{l} but
+slightly misleading - it unifies the first argument (\arg{l} but
 \emph{overwrites} the second (\arg{h}) and third (\arg{t}) arguments.
 
 \begin{code}
@@ -3015,7 +3015,7 @@ with the given type.  This performs the following steps:
 	  is bound to something else, this fails.
 \end{enumerate}
 
-It is possible that a blob referencing critial resources is created
+It is possible that a blob referencing critical resources is created
 after which the unification fails. Typically these resources are
 eventually reclaimed because the new blob is not referenced and
 reclaimed by the atom garbage collector. As described with the
@@ -3410,7 +3410,7 @@ test_setup_call_cleanup(X) :-
 where PL_next_solution() returns \const{TRUE} on the first result and
 the \exam{throw(error)} will only run when PL_cut_query() or
 PL_close_query() is run. On the other hand, if the goal in
-setup_call_cleanup/3 has completed (failure, exception, determinitic
+setup_call_cleanup/3 has completed (failure, exception, deterministic
 success), the cleanup handler will have done its work before control
 gets back to Prolog and therefore PL_next_solution() will have
 generated the exception. The return value \const{PL_S_NOT_INNER} is
@@ -3668,7 +3668,7 @@ Both for C functions implementing a predicate and when Prolog is called
 while the main control of the process is in C, user code should always
 check for exceptions. As explained above, C functions implementing a
 predicate should normally cleanup and return with \const{FALSE}. If the
-C function whishes to continue it may call PL_clear_exception(). Note
+C function wishes to continue it may call PL_clear_exception(). Note
 that this may cause any exception to be ignored, including \emph{time
 outs} and \emph{abort}. Typically the user should check the exception
 details before ignoring an exception (using \exam{PL_exception(0)} or
@@ -3686,7 +3686,7 @@ of exceptions is described in secref{urgentexceptions}.
 
 
 This function is rarely used directly. Instead, errors are typically
-raised using the functions in \secref{cerror} or the C api functions
+raised using the functions in \secref{cerror} or the C API functions
 that end in \exam{_ex} such as PL_get_atom_ex(). Below we give an
 example returning an exception from a foreign predicate the verbose way.
 Note that the exception is raised in a sequence of actions connected
@@ -4335,7 +4335,7 @@ mp_set_memory_functions() in the GMP documentation. The action returns
 Query version information.  This function may be called before
 PL_initialise().  If the key is unknown the function returns 0.
 See \secref{abi-versions} for a more in-depth discussion on
-binary compatibility.  Versions upto SWI-Prolog 8.5.2 defined
+binary compatibility.  Versions up to SWI-Prolog 8.5.2 defined
 this function as PL_version().  It was renamed to avoid a conflict
 with Perl affecting
 \href{https://github.com/salva/p5-Language-Prolog-Yaswi}{Yaswi}.
@@ -5088,7 +5088,7 @@ meaningful application.
       \termitem{PL_CLEANUP_NO_CANCEL}{}
       Do not allow hooks to cancel halting the system.
     \end{description}
-    
+
 Unless \const{PL_HALT_WITH_EXCEPTION} was specified and effective,
 Clean up the Prolog environment using PL_cleanup() and if successful
 call exit() with the status argument.  Returns \const{true} if exit

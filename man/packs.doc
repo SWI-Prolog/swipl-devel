@@ -498,7 +498,7 @@ Contains the directory holding the SWI-Prolog home.
   \definition{\const{SWIPL_ARCH} (\const{SWIARCH})}
 contains the machine architecture identifier.
   \definition{\const{SWIPL_MODULE_DIR} (\const{PACKSODIR})}
-constains the destination directory for shared objects/DLLs
+contains the destination directory for shared objects/DLLs
 relative to a Prolog pack, i.e., \file{lib/\$SWIARCH}.
   \definition{\const{SWIPL_MODULE_LIB} (\const{SWISOLIB})}
 The SWI-Prolog library or an empty string when it is not required
@@ -661,7 +661,7 @@ add_library(environ MODULE c/environ.c)
 # from the target on systems that define a common library file prefix
 target_link_swipl(environ)
 
-# Install the foreign taget. `${swipl_module_dir}` contains the
+# Install the foreign target. `${swipl_module_dir}` contains the
 # directory for installing modules for this architecture.
 
 install(TARGETS environ

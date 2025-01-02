@@ -840,7 +840,7 @@ goal at the first safe opportunity. The mechanism was introduced with
 two goals in mind: (1) running a goal inside a thread for debugging
 purposes such as enabling the status or get access thread-specific data
 and (2) force a thread to abort its current goal by inserting an
-exeption into its control flow.
+exception into its control flow.
 
 Over time, more complicated use cases have been identified that may
 result in multiple signals that occur (nearly) simultaneous. As of
@@ -906,14 +906,14 @@ thread signalling in more detail. The following notes apply for
 	  to backtrackable global variables remain.
     \item If \arg{Goal} \emph{fails}, no action is taken, i.e., failure
 	  is not considered a special condition.
-    \item If \arg{Goal} \emph{raises an exception} the exeception is
+    \item If \arg{Goal} \emph{raises an exception} the exception is
           propagated into the environment.  This allows for forcefully
 	  stopping the target thread.  The system uses this to implement
 	  abort/0 and call_with_time_limit/2.
     \item Code into which signals may be injected must make sure to use
           setup_call_cleanup/3 and friends to ensure proper cleanup in
 	  the case of an exception. This is good practice anyway to
-	  guard against unpredicatable exceptions such as resource
+	  guard against unpredictable exceptions such as resource
 	  exhaustion.
     \item \arg{Goal} may use stack inspection such as prolog_frame_attribute/3
           to determine what the thread is doing.

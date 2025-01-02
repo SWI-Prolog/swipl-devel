@@ -1308,7 +1308,7 @@ suffix(Suffix, List) :-
 \end{code}
 
 Note that these directives can only appear as separate terms in the
-input. SWI-Prolog accomodates syntax extensions under conditional
+input. SWI-Prolog accommodates syntax extensions under conditional
 compilation by silently ignoring syntax errors when in the
 \jargon{false} branch. This allow, for example, for the code below. With
 rational number support \exam{1r3} denotes the rational number 1/3 while
@@ -1526,7 +1526,7 @@ messages from (initialization) directives.
 
 This allows the user to fine tune the behaviour on errors and, for
 example, halt the process on a non-zero error count right after
-loading the file wth errors using the code below.
+loading the file with errors using the code below.
 
 \begin{code}
 :- multifile user:message_hook/3.
@@ -1641,7 +1641,7 @@ value: the atom \const{user}. When specified, files loaded indirectly
 from \arg{File} that to not come from the Prolog library are included
 into the \fileext{qlf} file. This may be used to generate a single file
 from an application. The result is comparable to a \jargon{save state}
-(see qsave_program/2) with the folowing differences:
+(see qsave_program/2) with the following differences:
 
 	\begin{itemize}
 	\item Only your application code is included.  The Prolog
@@ -2017,11 +2017,11 @@ Clearly, \arg{A} and \arg{B} are not identical, so either
 
 \item
 Assume \exam{A @< B}.  But then, \exam{s(A,1) @> s(B,0)} i.e.,
-\exam{B @< A}. Contradicton.
+\exam{B @< A}. Contradiction.
 
 \item
 Assume \exam{A @> B}.  But then, \exam{s(A,1) @< s(B,0)} i.e.,
-\exam{B @< A}. Contradicton.
+\exam{B @< A}. Contradiction.
 \end{itemize}
 \end{quote}
 
@@ -2419,7 +2419,7 @@ ignore(_).
 
 Note that a plain variable as a body term acts as call/1 and the above
 is equivalent to the code below.  SWI-Prolog produces the same code for
-these two progams and listing/1 prints the program above.
+these two programs and listing/1 prints the program above.
 
 \begin{code}
 ignore(Goal) :- Goal, !.
@@ -6502,7 +6502,7 @@ Default is taken from the reference module (see below).
 
     \termitem{character_escapes_unicode}{Bool}
 If \const{true} and \term{character_escapes}{true} and
-\term{quoted}{true} are active escapted characters are written using
+\term{quoted}{true} are active escaped characters are written using
 \verb$\uXXXX$ or \verb$\UXXXXXXXX$ syntax.  The default depends on the
 Prolog flag \prologflag{character_escapes_unicode}
 
@@ -6554,7 +6554,7 @@ Print integers using format/2 as \term{format}{Atom, [Int]}.  The
 default is \verb$~d$. This allows to print integers using an
 alternative \jargon{radix}, using e.g.\, \verb$~16r$ or \verb$0x~16r$
 or to use digit grouping using e.g.\ \verb$~D$. Note that the user
-is reponsible to provide a format that produces valid Prolog syntax if
+is responsible to provide a format that produces valid Prolog syntax if
 the term must be readable by Prolog.  The format must accept exactly
 one argument.  If that is not satisfied, printing an integer results
 in an exception.  See format/2 for for valid format specifiers.
@@ -6622,7 +6622,7 @@ write_value(Value) :-
 \end{code}
 
 In addition, if the priority is not 1200 or 999 this assumes we are
-printing an operant of an operator.  If \arg{Term} is an atom that is
+printing an operand of an operator.  If \arg{Term} is an atom that is
 also an operator it will always be embraced.\footnote{If the priority
 is 1200 it is assumed to be a toplevel term and if the priority is
 999 it is assumed to be a list element or argument of a compound term.}
@@ -7144,7 +7144,7 @@ As functor/3, but designed to work with zero-arity terms (e.g.,
 \const{compound}, \const{callable} or \const{atomic}. \arg{Type}
 \emph{must} be instantiated if \arg{Name} is an atom and \arg{Arity} is
 0 (zero).  In other cases \arg{Type} may be a variable.  This predicate
-is true if \arg{Term} (either initially or after haveing been created
+is true if \arg{Term} (either initially or after having been created
 from \arg{Name} and \arg{Type}) and \arg{Type} are related as below
 
     \begin{itemize}
@@ -7850,7 +7850,7 @@ in terms of code_type/2.
     \predicate{char_type}{2}{?Char, ?Type}
 Tests or generates alternative \arg{Type}s or \arg{Char}s. The character
 types are inspired by the standard C \file{<ctype.h>} primitives. The
-types are sensititve to the active \jargon{locale}, see setlocale/3.
+types are sensitive to the active \jargon{locale}, see setlocale/3.
 Most of the \arg{Type}s are mapped to the Unicode classification
 functions from \file{<wctype.h>}, e.g., \const{alnum} uses iswalnum().
 The types \const{prolog_var_start}, \const{prolog_atom_start},
@@ -8423,7 +8423,7 @@ A = 17/6
 
 SWI-Prolog uses rational number arithmetic if the Prolog flag
 \prologflag{prefer_rationals} is \const{true} and if this is defined for
-a function on the given operants. This results in perfectly precise
+a function on the given operands. This results in perfectly precise
 answers. Unfortunately rational numbers can get really large and, if a
 precise answer is not needed, a big waste of memory and CPU time. In
 such cases one should use floating point arithmetic.  The Prolog flag
@@ -8437,7 +8437,7 @@ truncating functions such as \funcref{round}{1}, \funcref{rational}{1}
 or \funcref{float_integer_part}{1}.
 
 Float arithmetic is typically forced by using a floating point constant
-as initial value or operant. Alternatively, the \funcref{float}{1}
+as initial value or operand. Alternatively, the \funcref{float}{1}
 function forces conversion of the argument.
 
 \subsubsection{IEEE 754 floating point arithmetic}
@@ -8614,7 +8614,7 @@ precise results when possible. The pitfall is that in general rational
 arithmetic is slower and can become very slow and produce huge numbers
 that require a lot of (global stack) memory. Code for which the exact
 results provided by rational numbers is not needed should force float
-results by making one of the operants float, for example by dividing by
+results by making one of the operands float, for example by dividing by
 \exam{10.0} rather than \exam{10} or by using \funcref{float}{1}. Note
 that when one of the arguments is forced to a float the division is a
 float operation while if the result is forced to the float the division
@@ -8686,7 +8686,7 @@ if \arg{Expr1} < \arg{Expr2}, 0 if they are equal, and 1 if
 \arg{Expr1} > \arg{Expr2}.  Evaluates to NaN if either or both
 \arg{Expr1} and \arg{Expr2} are NaN and the Prolog flag
 \prologflag{float_undefined} is set to \const{nan}.  See also
-\funcref{minr}{2} amd \funcref{maxr}{2}.
+\funcref{minr}{2} and \funcref{maxr}{2}.
 
 This function relates to the Prolog numerical comparison predicates
 \predref{>}{2}, \predref{=:=}{2}, etc.  The Prolog numerical
@@ -8754,7 +8754,7 @@ flag \prologflag{float_undefined} is set to \const{nan} and one of the
 arguments evaluates to NaN, the result is NaN.
 
 The function \funcref{maxr}{2} is similar, but uses exact (rational)
-comparision if \arg{Expr1} and \arg{Expr2} have a different type,
+comparison if \arg{Expr1} and \arg{Expr2} have a different type,
 propagate the rational (integer) rather and the float if the two
 compare equal and propagate the non-NaN value in case one is NaN.
 
@@ -10385,15 +10385,15 @@ the category \const{messages}.
 \subsection{Apple specific Operating System Interaction}
 \label{sec:apple}
 
-Non-portable Apple MacOS specific predicates are prefixed woth
+Non-portable Apple MacOS specific predicates are prefixed with
 \const{apple_}.
 
 \begin{description}
     \predicate{apple_current_locale_identifier}{1}{-Identifier}
 Unify \arg{Identifier} with the value for CFLocaleGetIdentifier() of the
 Apple current locale. The \arg{Identifier} is an atom that consists of
-the primary language identifier, e.g., \const{en} for english followed
-by an undercore and an identifier for the \jargon{Region} in the MacOS
+the primary language identifier, e.g., \const{en} for English followed
+by an underscore and an identifier for the \jargon{Region} in the MacOS
 \jargon{Language \& Region} preferences.  For example, with the primary
 language set to ``English (UK)'' and the \textit{Region} to ``United
 Kingdom'' we get \const{en_GB}.  This relates to the locale identifier
@@ -10873,7 +10873,7 @@ mapped to Prolog exceptions using a generic function that receives the
 \const{directory}), the term that describes the object (name) of the
 file system and the \const{errno} value. Unfortunately, the resulting
 exceptions are often misleading. For example, calling make_directory/1
-such that it must create mutiple directories (e.g., \const{d1/d2/d3})
+such that it must create multiple directories (e.g., \const{d1/d2/d3})
 returns an existence error on the directory \const{d1/d2/d3} rather than
 the missing component. On Windows the situation is even worse because
 many of its runtime functions distinguish only a few error codes. For
@@ -11317,7 +11317,7 @@ If the \argoption{-t}{toplevel} command line option is given, this goal
 is started instead of entering the default interactive top level
 (prolog/0).
 
-Notably the gui based versions (\program{swipl-win} on Windows and
+Notably the GUI based versions (\program{swipl-win} on Windows and
 MacOS) provide the menu \textsf{Run/New thread} that opens a new
 toplevel that runs concurrently with the initial toplevel. The
 concurrent toplevel can be used to examine the program, in particular
@@ -11351,13 +11351,13 @@ flags \prologflag{on_error} or \prologflag{on_warning} is set to
 
     \predicate[ISO]{halt}{1}{+Status}
 Terminate Prolog execution with \arg{Status}.  When possible, raise
-the exeption \term{unwind}{\term{halt}{Status}}.  Currently, this is
+the exception \term{unwind}{\term{halt}{Status}}.  Currently, this is
 used when halt/1 is called in the \const{main} thread and there is no
 intermediate C function on the stack that called PL_next_solution()
 without the \const{PL_Q_PASS_EXCEPTION} flag.  Future versions may
 also use signal based exit from threads.
 
-After the exception bubbled up to the top or if the halt exeption could
+After the exception bubbled up to the top or if the halt exception could
 not be raised, system termination starts. System termination (see also
 PL_halt()) preforms the following steps:
 
@@ -11753,7 +11753,7 @@ calling thread \emph{and} has been \jargon{joined} by the calling
 thread. The new keys \const{self_cputime} and \const{self_inferences}
 may be used to get statistics for the calling thread only. Both keys
 also exist in the single threaded version, where the ``self'' key
-always returns the same value as the onle without ``self''.
+always returns the same value as the one without ``self''.
 
 \begin{table}
 \begin{center}
@@ -11776,7 +11776,7 @@ cputime         & (User) {\sc cpu} time since thread was started in seconds.
 		  Includes {\sc cpu} time in completed \jargon{child threads}.
 		  See also \const{self_cputime} and \const{process_cputime}. \\
 epoch		& Time stamp when thread was started \\
-errors		& Number of error mesages printed \\
+errors		& Number of error messages printed \\
 functors        & Total number of defined name/arity pairs \\
 functor_space   & Bytes used to represent functors \\
 global          & Allocated size of the global stack in bytes \\
@@ -11816,7 +11816,7 @@ engines_created & MT-version: number of created engines \\
 threads_peak	& MT-version: highest id handed out.  This is a fair but
 		  possibly not 100\% accurate value for the highest
 		  number of threads since the process was created. \\
-warnings	& Number of warning mesages printed \\
+warnings	& Number of warning messages printed \\
 \hline
 \end{tabular}
 \end{center}

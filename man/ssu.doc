@@ -258,7 +258,7 @@ unification may be moved into the head.
 \end{quote}
 
 
-\subsection{Consequenses of {=>} single sided unification rules}
+\subsection{Consequences of {=>} single sided unification rules}
 \label{sec:ssu-consequences}
 
 The \funcref{=>}{2} construct is handled by the low-level compiler if no

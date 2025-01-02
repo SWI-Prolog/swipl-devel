@@ -291,7 +291,7 @@ freed by the caller when done. Example:
       ...
       Sclose(fd);
       ...
-      if ( s != buf )		  // appearently moved
+      if ( s != buf )		  // apparently moved
 	Sfree(s);
     }
 \end{code}
@@ -787,7 +787,7 @@ the encoding are:
 Set the encoding for \arg{s} to \arg{new_enc} and, if \arg{old_enc} is
 not \const{NULL}, return the old encoding.  This function may fail,
 returning -1 if the Scontrol_function() of the stream returns -1 on
-the \const{SIO_SETENCODING} request.  On succcess it returns 0.  If
+the \const{SIO_SETENCODING} request.  On success it returns 0.  If
 \arg{new_enc} is \const{ENC_OCTET} the stream is switched to binary
 mode.  Otherwise text mode is enabled.
 

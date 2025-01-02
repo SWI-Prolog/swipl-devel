@@ -152,7 +152,7 @@ File to use for the emulator or executable used by the startup script.
 Default is the running Prolog image \emph{after} following symbolic
 links, e.g., \file{/usr/lib/swipl/lib/x86_64-linux/swipl}.  To create
 a saved state based on the public executable such that it can run on
-multiple archirectures one can use e.g.
+multiple architectures one can use e.g.
 
 \begin{code}
 $ swipl -o myexe --emulator=$(which swipl) -c myload.pl
@@ -331,7 +331,7 @@ The volatile/1 directive may be used to prevent saving the clauses of
 predicates that hold such references. The saved program must
 reinitialise such references using the normal program initialization
 techniques: use initialization/1,2 directives, explicitly create them
-by the entry point or make the various components recreate the contextx
+by the entry point or make the various components recreate the context
 lazily when required.
 
     \item

@@ -591,7 +591,7 @@ The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
     \cmdlineoptionitem*{--table-space}{=size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
-use. It is a memnonic for \textbf{M}emoizing.} answers for
+use. It is a mnemonic for \textbf{M}emoizing.} answers for
 \jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
 512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}.
@@ -1870,7 +1870,7 @@ ISO Prolog flag describing there is no maximum arity to compound terms.
 
     \prologflagitem{max_char_code}{integer}{r}
 Highest (Unicode) code point that is supported.  SWI-Prolog supports
-all Unicode code points from 0 (zero) upto and including the value of
+all Unicode code points from 0 (zero) up to and including the value of
 this flag. Currently \const{0xffff} on Windows (UCS-2) and
 \const{0x10ffff} on most other platforms.
 
@@ -2079,7 +2079,7 @@ prefer arithmetic to produce rational numbers over floats. This implies:
 	\item Division (\funcref{/}{2}) of two integers produces a
 	rational number.
 	\item Power (\funcref{^}{2}) of two integers produces a
-	rational number, \emph{also} if the second operant is a
+	rational number, \emph{also} if the second operand is a
 	negative number.  For example, \verb$2^(-2)$ evaluates to
 	\verb$1/4$.
     \end{itemize}
@@ -2226,7 +2226,7 @@ If set to \const{true}, loading a relative file name from source code
 searches relative to the location of the source file as well as relative
 to the working directory. Searching relative to the working directory is
 deprecated and a warning is printed if the file is found this way.
-Furture versions are likely to change the default to
+Future versions are likely to change the default to
 \const{false}.\footnote{Searching the working directory was supported up
 to version 9.3.8. Version 9.3.9 disabled this and version 9.3.10
 re-enables it with a warning.}
@@ -3193,7 +3193,7 @@ of the Unicode block in which they appear. Currently this is supported
 for integers, rational numbers (see \secref{syntax-rational-numbers})
 and floating point numbers. In any number, \emph{all} digits must come
 from the same block, i.e., if the nominator of a rational is uses
-Indian script, so must the demoninator.  All special characters such
+Indian script, so must the denominator.  All special characters such
 as the sign, rational separator, floating point \chr{.}, and floating
 point exponent must use their usual ASCII character.
 
@@ -3536,7 +3536,7 @@ term unified too is moved into the head (providing indexing) and places
 where this term is used simply use the corresponding argument. The
 explicit unification is removed. Decompilation (clause/2) reverses this
 process, but may not produce exactly the same term.  The re-inserted
-unfications are ordered according to the argument position and the
+unifications are ordered according to the argument position and the
 variable is always on the left hand of the \predref{=}{2}.  Thus,
 
 \begin{code}
@@ -3562,7 +3562,7 @@ Additional notes:
     still moved into the head.  The decompiler does not inverse the
     process in that case.  Thus, \exam{p(X) :- X = a.} is fully
     equivalent to \exam{p(a).}
-    \item Currently this optimziation is enabled regardless of the
+    \item Currently this optimisation is enabled regardless of the
     Prolog flag \prologflag{optimise}.  As this optimization harms
     source-level debugging, this may not be desirable.  On the other
     hand we do not want determinism to depend on optimization while

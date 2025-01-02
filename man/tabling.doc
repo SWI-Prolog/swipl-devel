@@ -816,7 +816,7 @@ Any monotonic table that depends on \nopredref{my_data}{2} will be
 populated correctly and build a dependency. Next, if a new answer is
 added to the external data the user must call incr_propagate_calls/1
 from the Prolog library \pllib{increval}. Similarly, when an answer is
-removed from the extenal data we use incr_invalidate_calls/1. Both
+removed from the external data we use incr_invalidate_calls/1. Both
 notification calls must be made \emph{after} the external data has been
 updated, i.e., \nopredref{my_data}{2} must reflect the new situation
 before calling incr_propagate_calls/1 or incr_invalidate_calls/1.
@@ -1242,7 +1242,7 @@ predicates. \arg{Specification} is compatible with table/1, although
 tabling with \jargon{answer subsumption} may be removed using a
 name/arity specification. The untable/1 predicate is first of all
 intended for examining the effect of various tabling scenarios on a
-particuar program interactively from the toplevel.
+particular program interactively from the toplevel.
 
 Note that although using untable/1 followed by table/1 may be used to
 flush all tables associated with the given predicate(s), flushing tables
