@@ -55,8 +55,8 @@ suggest predicates from a keyword.
 \predicatesummary{abolish_all_tables}{0}{Abolish computed tables}
 \predicatesummary{abolish_module_tables}{1}{Abolish all tables in a module}
 \predicatesummary{abolish_monotonic_tables}{0}{Abolish all monotonic tables}
-\predicatesummary{abolish_nonincremental_tables}{0}{Abolish non-auttomatic tables}
-\predicatesummary{abolish_nonincremental_tables}{1}{Abolish non-auttomatic tables}
+\predicatesummary{abolish_nonincremental_tables}{0}{Abolish non-automatic tables}
+\predicatesummary{abolish_nonincremental_tables}{1}{Abolish non-automatic tables}
 \predicatesummary{abolish_private_tables}{0}{Abolish tables of this thread}
 \predicatesummary{abolish_shared_tables}{0}{Abolish tables shared between threads}
 \predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
@@ -96,7 +96,7 @@ suggest predicates from a keyword.
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
-\predicatesummary{atom_concat}{3}{Contatenate two atoms}
+\predicatesummary{atom_concat}{3}{Concatenate two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
@@ -125,7 +125,7 @@ suggest predicates from a keyword.
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
-\predicatesummary{call_cleanup}{2}{Guard a goal with a cleaup-handler}
+\predicatesummary{call_cleanup}{2}{Guard a goal with a cleanup-handler}
 \predicatesummary{call_dcg}{3}{As phrase/3 without type checking}
 \predicatesummary{call_delays}{2}{Get the condition associated with an answer}
 \predicatesummary{call_residue_vars}{2}{Find residual attributed variables}
@@ -228,7 +228,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{det}{1}{Declare predicates as deterministic}
-\predicatesummary{deterministic}{1}{Test deterministicy of current clause}
+\predicatesummary{deterministic}{1}{Test determinicity of current clause}
 \predicatesummary{dif}{2}{Constrain two terms to be different}
 \predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
@@ -577,7 +577,7 @@ suggest predicates from a keyword.
 \predicatesummary{qsave_program}{2}{Create runtime application}
 \predicatesummary{quasi_quotation_syntax}{1}{Declare quasi quotation syntax}
 \predicatesummary{quasi_quotation_syntax_error}{1}{Raise syntax error}
-\predicatesummary{radial_restraint}{0}{Tabbling radial restraint was violated}
+\predicatesummary{radial_restraint}{0}{Tabling radial restraint was violated}
 \predicatesummary{random_property}{1}{Query properties of random generation}
 \predicatesummary{rational}{1}{Type check for a rational number}
 \predicatesummary{rational}{3}{Decompose a rational}
@@ -588,7 +588,7 @@ suggest predicates from a keyword.
 \predicatesummary{read_pending_codes}{3}{Fetch buffered input from a stream}
 \predicatesummary{read_pending_chars}{3}{Fetch buffered input from a stream}
 \predicatesummary{read_string}{3}{Read a number of characters into a string}
-\predicatesummary{read_string}{5}{Read string upto a delimiter}
+\predicatesummary{read_string}{5}{Read string up to a delimiter}
 \predicatesummary{read_term}{2}{Read term with options}
 \predicatesummary{read_term}{3}{Read term with options from stream}
 \predicatesummary{read_term_from_atom}{3}{Read term with options from atom}
@@ -833,7 +833,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeln}{2}{Write term, followed by a newline to a stream}
 \predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
 \predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
-\predicatesummary{write_length}{3}{Dermine \#characters to output a term}
+\predicatesummary{write_length}{3}{Determine \#characters to output a term}
 \predicatesummary{write_term}{2}{Write term with options}
 \predicatesummary{write_term}{3}{Write term with options to stream}
 \predicatesummary{writef}{1}{Formatted write}

@@ -412,7 +412,7 @@ No runtime overhead is incurred in static type checking.
 
 \item Dynamic type checking checks at runtime, during program execution,
       whether the arguments of CHR constraints respect their declared types.
-      The \predref{when}{2} co-routining library is used to delay dynamic type
+      The \predref{when}{2} coroutining library is used to delay dynamic type
       checks until variables are instantiated.
 
       The kind of error detected by dynamic type checking is where a functor

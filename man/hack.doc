@@ -300,7 +300,7 @@ Prolog thread that disables the debugger on all recursion levels deeper
 than the level of the variable.  See also prolog_skip_frame/1.
 \end{description}
 
-\section{Simmulating a debugger interrupt}
+\section{Simulating a debugger interrupt}
 \label{sec:interrupt}
 
 \begin{description}
@@ -558,7 +558,7 @@ Called by abort/0.
     \termitem{erase}{DbRef}
 Called on an erased recorded database reference or clause. Note that a
 retracted clauses is not immediately removed. Clauses are reclaimed by
-garbage_collect_clauses/0, which is normally executed automatially in
+garbage_collect_clauses/0, which is normally executed automatically in
 the \const{gc} thread. This specific channel is used by clause_info/5 to
 reclaim source layout of reclaimed clauses.  User applications should
 typically use the \arg{PredicateIndicator} channel.
@@ -624,7 +624,7 @@ Updated p/1: retractall end(user:p(_12294))
     The hook is called before the clause is removed.  If the hook
     fails, the clause is not removed.
 	\termitem{retractall}{}
-    The begining and end of retractall/1 is indicated with
+    The beginning and end of retractall/1 is indicated with
     the \arg{Action} \const{retractall}.  The context argument
     is \term{start}{Head} or \term{end}{Head}.
         \termitem{rollback}{Action}

@@ -71,7 +71,7 @@ with \mbox{\tt X = <value>} if it can prove the goal for a certain
 \arg{X}. The user can type the semi-colon (;) or spacebar. If you want
 another solution. Use the \textsc{return} key if you do not want to see
 the more answers. Prolog completes the output a full stop (.) if the
-user uses the \textsc{return} key or Prolog \emph{knowns} there are no
+user uses the \textsc{return} key or Prolog \emph{knows} there are no
 more answers. If Prolog cannot find (more) answers, it writes
 \textbf{false.} Finally, Prolog can answer using an error message to
 indicate the query or program contains an error.

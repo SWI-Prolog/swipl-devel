@@ -90,7 +90,7 @@ requirements.
 \begin{description}
     \predicate{license}{0}{}
 Evaluate the license conditions of all loaded components.  If the system
-contains one or more components that are licenced under GPL-like
+contains one or more components that are licensed under GPL-like
 restrictions the system indicates this program may only be distributed
 under the \const{GPL} license as well as which components prohibit the
 use of other license conditions.  Likewise for for LGPL components.
