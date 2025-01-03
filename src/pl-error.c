@@ -1068,12 +1068,9 @@ API_STUB(bool)
 )
 
 bool
-PL_get_int64_ex(term_t t, int64_t *i)
-{ GET_LD
-  valid_term_t(t);
-
-  if ( PL_get_int64(t, i) )
-    succeed;
+PL_get_int64_ex(DECL_LD term_t t, int64_t *i)
+{ if ( PL_get_int64(t, i) )
+    return true;
 
   if ( PL_is_integer(t) )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
@@ -1081,6 +1078,11 @@ PL_get_int64_ex(term_t t, int64_t *i)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
+API_STUB(bool)
+(PL_get_int64_ex)(term_t t, int64_t *i)
+( valid_term_t(t);
+  return PL_get_int64_ex(t, i);
+)
 
 bool
 PL_get_intptr_ex(DECL_LD term_t t, intptr_t *i)

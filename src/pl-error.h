@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2024, University of Amsterdam
+    Copyright (c)  1997-2025, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -108,6 +108,7 @@ typedef enum
 #define	PL_get_atom_ex(t, a)		LDFUNC(PL_get_atom_ex, t, a)
 #define	PL_get_size_ex(t, i)		LDFUNC(PL_get_size_ex, t, i)
 #define	pl_get_uint64(t, i, ex)		LDFUNC(pl_get_uint64, t, i, ex)
+#define	PL_get_int64_ex(t, i)		LDFUNC(PL_get_int64_ex, t, i)
 #define	PL_get_uint64_ex(t, i)		LDFUNC(PL_get_uint64_ex, t, i)
 #define PL_get_long_ex(t, i)		LDFUNC(PL_get_long_ex, t, i)
 #define PL_get_intptr_ex(t, i)		LDFUNC(PL_get_intptr_ex, t, i)
@@ -123,6 +124,7 @@ bool		printMessagev(atom_t severity, va_list args) WUNUSED;
 bool		PL_get_atom_ex(term_t t, atom_t *a) WUNUSED;
 bool		PL_get_size_ex(term_t t, size_t *i) WUNUSED;
 bool		pl_get_uint64(term_t t, uint64_t *i, int ex) WUNUSED;
+bool		PL_get_int64_ex(term_t t, int64_t *i) WUNUSED;
 bool		PL_get_uint64_ex(term_t t, uint64_t *i) WUNUSED;
 bool		PL_get_module_ex(term_t name, module_t *m) WUNUSED;
 bool		PL_get_arg_ex(size_t n, term_t term, term_t arg) WUNUSED;
