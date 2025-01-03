@@ -60,14 +60,7 @@ edit the first line to reflect the location of SWI-Prolog.
 :- debug(swipl_frl).
 
 main(Argv) :-
-    append(Opts, [Stop|Rest], Argv),
-    (   Stop == '--'
-    ->  Inputs = Rest
-    ;   \+ sub_atom(Stop, 0, _, _, '--')
-    ->  Inputs = [Stop|Rest]
-    ),
-    !,
-    argv_options(Opts, _, Options),
+    argv_options(Argv, Inputs, Options, [unknown_option(pass)]),
     (   catch(swipl_frl(Inputs, Options), Error,
               (     print_message(error, Error),
                     halt(1)
@@ -80,11 +73,16 @@ main(Argv) :-
 opt_type(cflag, cflag, atom).
 
 opt_help(help(header),
-	 "Emulator for SICStus splfr").
+	 md("# Emulator for SICStus splfr\n\n\c
+             The `splfr` app provides a partial emulation for the \c
+             SICStus Prolog way of linking foreign resources.
+             ")).
 opt_help(help(usage),
 	 " [option ...] inputs ...").
 opt_help(help(footer),
-	 "Very incomplete!").
+         md("The command line should have exactly one Prolog file. \c
+             All remaining options except for the documented options are \c
+             passed to the C compiler.")).
 opt_help(cflag,
 	 "Flags to pass to the C compiler").
 
