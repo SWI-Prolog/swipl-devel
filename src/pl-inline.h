@@ -751,6 +751,13 @@ mask) and may never be 0.
 #define KEY_INDEX_MAX 4
 
 static inline word
+clean_index_key(word key)
+{ key &= ~((word)STG_GLOBAL);
+  if ( !key ) key = 1;
+  return key;
+}
+
+static inline word
 murmur_key(const void *ptr, size_t n)
 { word k;
 
@@ -770,10 +777,7 @@ murmur_key(const void *ptr, size_t n)
   { k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
   }
 
-  k &= ~((word)STG_GLOBAL);
-  if ( !k ) k = 1;
-
-  return k;
+  return clean_index_key(k);
 }
 
 		 /*******************************

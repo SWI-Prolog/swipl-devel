@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -393,19 +393,25 @@ setClauseChoice(DECL_LD ClauseChoice chp, ClauseRef cref, gen_t generation)
 
 
 static inline word
+join_multi_arg_keys(const word *key, unsigned int len)
+{ word k = MurmurHashAligned2(key, sizeof(word)*len, MURMUR_SEED);
+  return clean_index_key(k);
+}
+
+static inline word
 indexKeyFromArgv(ClauseIndex ci, Word argv)
 { if ( likely(ci->args[1] == 0) )
   { return indexOfWord(argv[ci->args[0]-1]);
   } else
   { word key[MAX_MULTI_INDEX];
-    int  harg;
+    unsigned int harg;
 
     for(harg=0; ci->args[harg]; harg++)
     { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1])) )
 	return 0;
     }
 
-    return murmur_key(key, sizeof(word)*harg);
+    return join_multi_arg_keys(key, harg);
   }
 }
 
@@ -1438,7 +1444,7 @@ indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
       return key;
     return 0;
   } else
-  { word key[MAX_MULTI_INDEX];			/* TBD: special case for 1 arg */
+  { word key[MAX_MULTI_INDEX];
     int  pcarg = 1;
     int  harg;
 
@@ -1452,7 +1458,7 @@ indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
 	return 0;
     }
 
-    return murmur_key(key, sizeof(word)*harg);
+    return join_multi_arg_keys(key, harg);
   }
 }
 
@@ -2624,7 +2630,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
 	if ( isvar )
 	  a->var_count++;
 	else
-	  assessAddKey(a, murmur_key(key, sizeof(word)*harg), false);
+	  assessAddKey(a, join_multi_arg_keys(key, harg), false);
       }
     }
   }
