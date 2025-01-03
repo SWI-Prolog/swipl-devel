@@ -37,6 +37,8 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(main)).
+:- use_module(library(debug)).
+:- use_module(library(optparse)).
 
 /** <module> Test library(main) option processing
 */
@@ -170,6 +172,22 @@ test(term, Opt =@= [term(p(_))]) :-
     argv_options(['-t', 'p(X)'], _Pos, Opt, []).
 test(term, Opt =@= [term(p(X)-['X'=X])]) :-
     argv_options(['--tv', 'p(X)'], _Pos, Opt, []).
+test(pass, Pos == ['--x', v]) :-
+    argv_options(['--x', v], Pos, Opt, [unknown_option(pass)]),
+    assertion(Opt == []).
+test(pass, Pos == ['--x', v]) :-
+    argv_options(['--atom', a, '--x', v], Pos, Opt, [unknown_option(pass)]),
+    assertion(Opt == [atom(a)]).
+test(pass, Pos == ['--x', v]) :-
+    argv_options(['--atom', a, '--x', v, '-i', '42'], Pos, Opt,
+                 [unknown_option(pass)]),
+    assertion(Opt == [atom(a), integer(42)]).
+test(pass_short, Pos == ['-z', v]) :-
+    argv_options(['-z', v], Pos, Opt, [unknown_option(pass)]),
+    assertion(Opt == []).
+test(pass_short, Pos == ['-z', v]) :-
+    argv_options(['-zi', '42', v], Pos, Opt, [unknown_option(pass)]),
+    assertion(Opt == [integer(42)]).
 
 :- end_tests(argv_options_typed).
 

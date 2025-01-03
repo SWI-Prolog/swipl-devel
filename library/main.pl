@@ -47,14 +47,18 @@
           ]).
 :- use_module(library(debug), [debug/1]).
 :- autoload(library(apply), [maplist/2, maplist/3, partition/4]).
-:- autoload(library(lists), [append/3]).
+:- autoload(library(lists),
+            [append/3, max_list/2, sum_list/2, list_to_set/2, member/2]).
 :- autoload(library(pairs), [pairs_keys/2, pairs_values/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
 :- autoload(library(prolog_debug), [spy/1]).
 :- autoload(library(dcg/high_order), [sequence//3, sequence//2]).
-:- autoload(library(option), [option/2]).
+:- autoload(library(option), [option/2, option/3]).
 :- if(exists_source(library(doc_markdown))).
 :- autoload(library(doc_markdown), [print_markdown/2]).
+:- autoload(library(gui_tracer), [gspy/1]).
+:- autoload(library(threadutil), [tspy/1]).
+
 :- endif.
 
 :- meta_predicate
@@ -264,6 +268,16 @@ argv_options(_:Argv, Positional, Options) :-
 %       positional argument, returning options that follow this
 %       argument as positional arguments.  E.g, ``-x file -y``
 %       results in positional arguments `[file, '-y']`
+%     - unknown_option(+Mode)
+%       One of `error` (default) or `pass`.  Using `pass`, the
+%       option is passed in Positional.  Multi-flag short options
+%       may be processed partially.  For example, if ``-v`` is defined
+%       and `-iv` is in Argv, Positional receives `'-i'` and the
+%       option defined with ``-v`` is added to Options.
+%
+%   @tbd When passing unknown options we may wish to process multi-flag
+%   options as a whole or not at all rather than passing the unknown
+%   flags.
 
 argv_options(Argv, Positional, Options, POptions) :-
     option(on_error(halt(Code)), POptions),
@@ -374,6 +388,8 @@ opt_parse([H|T], Positional, Options, M, POptions) =>
     opt_parse(T, PT, Options, M, POptions).
 
 
+%!  take_long(+LongOpt, +Argv, -Positional, -Option, +M, +POptions) is det.
+
 take_long(Long, T, Positional, Options, M, POptions) :- % --long=Value
     sub_atom(Long, B, _, A, =),
     !,
@@ -385,6 +401,10 @@ take_long(Long, T, Positional, Options, M, POptions) :- % --long=Value
 	Opt =.. [Name,Value],
 	Options = [Opt|OptionsT],
 	opt_parse(T, Positional, OptionsT, M, POptions)
+    ;   option(unknown_option(pass), POptions, error)
+    ->  atom_concat(--, Long, Opt),
+        Positional = [Opt|PositionalT],
+        opt_parse(T, PositionalT, Options, M, POptions)
     ;   opt_error(unknown_option(M:LName0))
     ).
 take_long(LName0, T, Positional, Options, M, POptions) :- % --long
@@ -425,18 +445,34 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --long
 	opt_parse(T1, Positional, OptionsT, M, POptions)
     ;   opt_error(missing_value(Long, Type))
     ).
+take_long_(Long,  T, Positional, Options, M, POptions) :-
+    option(unknown_option(pass), POptions, error),
+    !,
+    atom_concat(--, Long, Opt),
+    Positional = [Opt|PositionalT],
+    opt_parse(T, PositionalT, Options, M, POptions).
 take_long_(Long, _, _, _, M, _) :-
     opt_error(unknown_option(M:Long)).
 
-take_shorts([], T, Positional, Options, M, POptions) :-
+%!  take_shorts(+OptChars, +Argv, -Positional, -Options, +M, +POptions)
+
+take_shorts(OptChars, Argv, Positional, Options, M, POptions) :-
+    take_shorts_(OptChars, OptLeft, Argv, Positional0, Options, M, POptions),
+    (   OptLeft == []
+    ->  Positional = Positional0
+    ;   atom_chars(Pass, [-|OptLeft]),
+        Positional = [Pass|Positional0]
+    ).
+
+take_shorts_([], [], T, Positional, Options, M, POptions) :-
     opt_parse(T, Positional, Options, M, POptions).
-take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
+take_shorts_([H|T], Pass, Argv, Positional, Options, M, POptions) :-
     opt_bool_type(H, Name, Value, M),
     !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
-    take_shorts(T, Argv, Positional, OptionsT, M, POptions).
-take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
+    take_shorts_(T, Pass, Argv, Positional, OptionsT, M, POptions).
+take_shorts_([H|T], Pass, Argv, Positional, Options, M, POptions) :-
     in(M:opt_type(H, Name, Type)),
     !,
     (   T == []
@@ -444,16 +480,19 @@ take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
 	->  opt_value(Type, H, VAtom, Value),
 	    Opt =.. [Name,Value],
 	    Options = [Opt|OptionsT],
-	    take_shorts(T, ArgvT, Positional, OptionsT, M, POptions)
+	    take_shorts_(T, Pass, ArgvT, Positional, OptionsT, M, POptions)
 	;   opt_error(missing_value(H, Type))
 	)
     ;   atom_chars(VAtom, T),
 	opt_value(Type, H, VAtom, Value),
 	Opt =.. [Name,Value],
 	Options = [Opt|OptionsT],
-	take_shorts([], Argv, Positional, OptionsT, M, POptions)
+	take_shorts_([], Pass, Argv, Positional, OptionsT, M, POptions)
     ).
-take_shorts([H|_], _, _, _, M, _) :-
+take_shorts_([H|T], [H|Pass], Argv, Positional, Options, M, POptions) :-
+    option(unknown_option(pass), POptions, error), !,
+    take_shorts_(T, Pass, Argv, Positional, Options, M, POptions).
+take_shorts_([H|_], _, _, _, _, M, _) :-
     opt_error(unknown_option(M:H)).
 
 opt_bool_type(Opt, Name, Value, M) :-
@@ -1160,3 +1199,5 @@ prolog:called_by(argv_options(_,_,_),
 		   opt_help(_,_),
 		   opt_meta(_,_)
 		 ]).
+prolog:called_by(argv_options(_,_,_,_), Called) :-
+    prolog:called_by(argv_options(_,_,_), Called).
