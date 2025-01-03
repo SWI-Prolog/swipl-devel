@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2023, University of Amsterdam
+    Copyright (c)  2002-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -56,9 +56,6 @@
 :- autoload(library(option), [option/2, option/3]).
 :- if(exists_source(library(doc_markdown))).
 :- autoload(library(doc_markdown), [print_markdown/2]).
-:- autoload(library(gui_tracer), [gspy/1]).
-:- autoload(library(threadutil), [tspy/1]).
-
 :- endif.
 
 :- meta_predicate
