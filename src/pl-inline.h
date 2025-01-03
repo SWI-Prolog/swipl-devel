@@ -762,7 +762,7 @@ murmur_key(const void *ptr, size_t n)
 
     for(size_t i=0; i<KEY_INDEX_MAX-2; i++)
       data[i] = in[i];
-    data[KEY_INDEX_MAX-2] = in[n/sizeof(word)-1];
+    data[KEY_INDEX_MAX-2] = in[n/sizeof(word)-2];
     data[KEY_INDEX_MAX-1] = n;
 
     k = MurmurHashAligned2(data, sizeof(word)*4, MURMUR_SEED);
