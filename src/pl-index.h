@@ -47,6 +47,8 @@
 #define	firstClause(av, fr, def, next)	LDFUNC(firstClause, av, fr, def, next)
 #define	nextClause(chp, argv, fr, def)	LDFUNC(nextClause, chp, argv, fr, def)
 #define getIndexOfTerm(t)		LDFUNC(getIndexOfTerm, t)
+#define ci_set_flag(value, key)		LDFUNC(ci_set_flag, value, key)
+#define ci_get_flag(term, key)		LDFUNC(ci_get_flag, term, key)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -72,7 +74,10 @@ int		checkClauseIndexSizes(Definition def, int nindexable);
 void		checkClauseIndexes(Definition def);
 void		listIndexGenerations(Definition def, gen_t gen);
 size_t		sizeofClauseIndexes(Definition def);
-void		initClauseIndexing();
+void		initClauseIndexing(void);
+bool		ci_is_flag(atom_t key);
+bool		ci_set_flag(term_t value, atom_t key);
+bool		ci_get_flag(term_t t, atom_t key);
 
 #undef LDFUNC_DECLARATIONS
 

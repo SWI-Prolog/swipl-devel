@@ -47,6 +47,7 @@
 #include "pl-ctype.h"
 #include "pl-funct.h"
 #include "../pl-arith.h"
+#include "../pl-index.h"
 #include "../pl-tabling.h"
 #include "../pl-fli.h"
 #include "../pl-write.h"
@@ -930,6 +931,8 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, unsigned shor
       return tbl_set_restraint_flag(value, k) ? PSEUDO_FLAG : NULL;
     if ( is_arith_flag(k) )
       return set_arith_flag(value, k) ? PSEUDO_FLAG : NULL;
+    if ( ci_is_flag(k) )
+      return ci_set_flag(value, k) ? PSEUDO_FLAG : NULL;
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
@@ -1504,6 +1507,8 @@ unify_prolog_flag_value(DECL_LD Module m, atom_t key, prolog_flag *f, term_t val
   { return tbl_get_restraint_flag(val, key) == true;
   } else if ( is_arith_flag(key) )
   { return get_arith_flag(val, key) == true;
+  } else if ( ci_is_flag(key) )
+  { return ci_get_flag(val, key);
   }
 
   switch(f->flags & FT_MASK)

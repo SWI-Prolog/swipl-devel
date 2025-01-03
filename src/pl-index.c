@@ -39,6 +39,7 @@
 #include "pl-rsort.h"
 #include "pl-util.h"
 #include "pl-proc.h"
+#include "os/pl-prologflag.h"
 #include "pl-fli.h"
 #include "pl-wam.h"
 #include <math.h>
@@ -3158,18 +3159,111 @@ out:
   return rc;
 }
 
+		 /*******************************
+		 *         PROLOG FLAGS         *
+		 *******************************/
+
+typedef struct ci_flag
+{ const char  *name;
+  atom_t       symbol;
+  unsigned int type;
+  union {
+    float *f;
+    int   *i;
+  } ptr;
+} ci_flag;
+
+#define CI_FFLAG(conf) \
+  { .name = "ci_" #conf, .type = FT_FLOAT, .ptr.f = &GD->clause_index.conf }
+#define CI_IFLAG(conf) \
+  { .name = "ci_" #conf, .type = FT_INTEGER, .ptr.i = &GD->clause_index.conf }
+
+static ci_flag ciflags[] =
+{ CI_FFLAG(min_speedup),
+  CI_FFLAG(max_var_fraction),
+  CI_FFLAG(min_speedup_ratio),
+  CI_IFLAG(max_lookahead),
+  CI_IFLAG(min_clauses),
+  { .name = 0 }
+};
+
+bool
+ci_is_flag(atom_t key)
+{ for(ci_flag *f = ciflags; f->name; f++)
+  { if ( !f->symbol )
+      f->symbol = PL_new_atom(f->name);
+    if ( f->symbol == key )
+      return true;
+  }
+
+  return false;
+}
+
+bool
+ci_set_flag(DECL_LD term_t t, atom_t key)
+{ for(ci_flag *f = ciflags; f->name; f++)
+  { if ( !f->symbol )
+      f->symbol = PL_new_atom(f->name);
+    if ( f->symbol == key )
+    { if ( f->type == FT_FLOAT )
+      { double d;
+	if ( PL_get_float_ex(t, &d) )
+	{ *f->ptr.f = d;
+	  return true;
+	}
+	return false;
+      } else
+      { int i;
+	if ( PL_get_integer_ex(t, &i) )
+	{ *f->ptr.i = i;
+	  return true;
+	}
+	return false;
+      }
+    }
+  }
+
+  assert(0);
+  return false;
+}
+
+bool
+ci_get_flag(DECL_LD term_t t, atom_t key)
+{ for(ci_flag *f = ciflags; f->name; f++)
+  { if ( !f->symbol )
+      f->symbol = PL_new_atom(f->name);
+    if ( f->symbol == key )
+    { if ( f->type == FT_FLOAT )
+	return PL_unify_float(t, *f->ptr.f);
+      else
+	return PL_unify_integer(t, *f->ptr.i);
+    }
+  }
+  assert(0);
+  return false;
+}
 
 		 /*******************************
 		 *             INIT             *
 		 *******************************/
 
+#define CI_CONF(name) GD->clause_index.name
+
 void
 initClauseIndexing(void)
-{ GD->clause_index.min_speedup       = 1.5f;
-  GD->clause_index.max_var_fraction  = 0.1f;
-  GD->clause_index.min_speedup_ratio = 10.0f;
-  GD->clause_index.max_lookahead     = 100;
-  GD->clause_index.min_clauses       = 10;
+{ CI_CONF(min_speedup)       = 1.5f;
+  CI_CONF(max_var_fraction)  = 0.1f;
+  CI_CONF(min_speedup_ratio) = 3.0f;
+  CI_CONF(max_lookahead)     = 100;
+  CI_CONF(min_clauses)       = 10;
+
+  for(ci_flag *f = ciflags; f->name; f++)
+  { f->symbol = 0;		/* allow restarting */
+    if ( f->type == FT_FLOAT )
+      setPrologFlag(f->name, f->type, *f->ptr.f);
+    else
+      setPrologFlag(f->name, f->type, *f->ptr.i);
+  }
 }
 
 

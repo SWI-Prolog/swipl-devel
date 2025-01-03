@@ -1488,6 +1488,29 @@ If \const{true} (default), write/1 and friends write escaped characters
 using the \verb$\uXXXX$ or \verb$\UXXXXXXXX$ syntax rather than the
 ISO Prolog \verb$\x<hex>\$ syntax.  SWI-Prolog reads both.
 
+    \prologflagitem{ci_speedup}{float}{rw}
+Consider generating a hash for clause indexing if the hash has
+a speedup of at least this flag.  Default is 1.5.
+
+    \prologflagitem{ci_max_var_fraction}{float}{rw}
+Do not create a clause indexing hash table of the argument is
+unbound in the clause for more than this fraction of clauses.
+Default is 0.1.
+
+    \prologflagitem{ci_min_speedup_ratio}{float}{rw}
+Consider adding a multi-argument hash if it is at lease this
+values as efficient.  Default is 3.0.
+
+    \prologflagitem{ci_max_lookahead}{integer}{rw}
+If a clause is found, scan the clause list of a possible
+alternative match for at max this number of clauses.  Default
+is 100.
+
+    \prologflagitem{ci_min_clauses}{integer}{rw}
+If the primary index argument (first) is instantiated, still
+consider a hash of the predicate has more than this number of
+clauses.  Default is 10.
+
     \prologflagitem{cmake_build_type}{atom}{ro}
 Provides the \href{https://cmake.org/}{cmake} \jargon{build type} used
 to build this version of SWI-Prolog.
@@ -3362,13 +3385,12 @@ ERROR: is/2: Type error: `expression' expected, found
 
 \index{jitindex}\index{indexing,jiti}%
 SWI-Prolog provides `just-in-time' indexing over multiple
-arguments.\footnote{JIT indexing was added in version 5.11.29 (Oct.
-2011).} `Just-in-time' means that clause indexes are not built by the
-compiler (or asserta/1 for dynamic predicates), but on the first call
-to such a predicate where an index might help (i.e., a call where at
-least one argument is instantiated).  This section describes the rules
-used by the indexing logic.  Note that this logic is not `set in stone'.
-The indexing capabilities of the system will change. Although this
+arguments. `Just-in-time' means that clause indexes are not built by the
+compiler (or asserta/1 for dynamic predicates), but on the first call to
+such a predicate where an index might help (i.e., a call where at least
+one argument is instantiated). This section describes the rules used by
+the indexing logic. Note that this logic is not `set in stone'. The
+indexing capabilities of the system will change. Although this
 inevitably leads to some regressing on some particular use cases, we
 strive to avoid significant slowdowns.
 
@@ -3443,6 +3465,9 @@ clauses has doubled since the predicate was last assessed or shrinks
 below one fourth. A subsequent call reassesses the statistics of the
 dynamic predicate and, when applicable, creates a new index.
 
+Jit indexing is controlled by a set of Prolog flags whose names starts
+with \const{ci_}, e.g., \prologflag{ci_min_speedup}. See
+current_prolog_flag/2.
 
 \subsection{Deep indexing}
 \label{sec:deep-indexing}
