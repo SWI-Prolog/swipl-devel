@@ -412,7 +412,7 @@ pushVolatileAtom(DECL_LD atom_t a)
 typedef unsigned int bitv_chunk;
 typedef struct bit_vector
 { size_t size;
-  bitv_chunk chunk[1];				/* bits */
+  bitv_chunk chunk[];				/* bits */
 } bit_vector;
 #define BITSPERE (sizeof(bitv_chunk)*8)
 

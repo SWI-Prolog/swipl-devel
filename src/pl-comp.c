@@ -353,10 +353,10 @@ typedef struct _varDef
 
 typedef struct
 { unsigned int	isize;
-  unsigned int	entry[1];
+  unsigned int	entry[];
 } var_table, *VarTable;
 
-#define sizeofVarTable(isize) (offsetof(var_table, entry) + sizeof(int)*(isize))
+#define sizeofVarTable(isize) (offsetof(var_table, entry[isize]))
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
 #define BITSPERINT (int)(sizeof(int)*8)
