@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2721,18 +2721,17 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   size_t i, arity;
   Word ap;
   size_t lneeded;
-  static int top_initialized = false;
-  static struct clause clause;
-  static struct clause_ref cref;
 
-  if ( !top_initialized )
-  { clause.predicate = PROCEDURE_dc_call_prolog->definition;
-    clause.generation.erased = ~(gen_t)0;
-    clause.code_size = 1;
-    clause.codes[0] = encode(I_EXITQUERY);
-    cref.value.clause = &clause;
+  if ( !GD->clauses.top_clause )
+  { Clause cl = allocHeapOrHalt(sizeofClause(1));
 
-    top_initialized = true;
+    memset(cl, 0, sizeofClause(1));
+    cl->predicate = PROCEDURE_dc_call_prolog->definition;
+    cl->generation.erased = ~(gen_t)0;
+    cl->code_size = 1;
+    cl->codes[0] = encode(I_EXITQUERY);
+    GD->clauses.top_cref.value.clause = cl;
+    GD->clauses.top_clause = cl;	/* MT-safe as a init is a single thread */
   }
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
@@ -2782,7 +2781,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   top->parent        = NULL;
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
   top->programPointer= NULL;
-  top->clause        = &cref;
+  top->clause        = &GD->clauses.top_cref;
 #ifdef O_PROFILE
   if ( LD->profile.active )
     top->prof_node = profCall(top->predicate);
@@ -2801,7 +2800,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->parent         = top;
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
-  fr->programPointer = clause.codes;
+  fr->programPointer = GD->clauses.top_clause->codes;
 
   DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);

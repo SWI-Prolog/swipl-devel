@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2024, University of Amsterdam
+    Copyright (c)  1997-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -389,6 +389,8 @@ struct PL_global_data
     int		cgc_space_factor;	/* Max total/margin garbage */
     double	cgc_stack_factor;	/* Price to scan stack space */
     double	cgc_clause_factor;	/* Pce to scan clauses */
+    Clause	top_clause;		/* See PL_open_query() */
+    struct clause_ref top_cref;		/* Its reference */
   } clauses;
 
   struct

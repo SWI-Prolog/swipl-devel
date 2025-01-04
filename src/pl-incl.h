@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam,
+    Copyright (c)  1985-2025, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1419,7 +1419,7 @@ struct clause
   unsigned int		references;	/* # ClauseRef pointing at me */
   unsigned int		tr_erased_no;	/* # transactions that erased me */
   code			code_size;	/* size of ->codes */
-  code			codes[1];	/* VM codes of clause */
+  code			codes[];	/* VM codes of clause */
 };
 
 typedef struct arg_info
