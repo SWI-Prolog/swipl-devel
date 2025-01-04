@@ -1602,7 +1602,7 @@ struct mark
 
 struct functor
 { word		definition;	/* Tagged definition pointer */
-  word		arguments[1];	/* arguments vector */
+  word		arguments[];	/* arguments vector */
 };
 
 struct clause_bucket
