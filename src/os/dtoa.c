@@ -521,7 +521,7 @@ extern "C" char *dtoa(double d, int mode, int ndigits,
 Bigint {
 	struct Bigint *next;
 	int k, maxwds, sign, wds;
-	ULong x[1];
+	ULong x[];
 	};
 
  typedef struct Bigint Bigint;
@@ -550,9 +550,9 @@ Balloc
 	else {
 		x = 1 << k;
 #ifdef Omit_Private_Memory
-		rv = (Bigint *)MALLOC(sizeof(Bigint) + (x-1)*sizeof(ULong));
+		rv = (Bigint *)MALLOC(offsetof(struct Bigint, x[x]));
 #else
-		len = (sizeof(Bigint) + (x-1)*sizeof(ULong) + sizeof(double) - 1)
+		len = (offsetof(struct Bigint, x[x]) + sizeof(double) - 1)
 			/sizeof(double);
 		if (k <= Kmax && pmem_next - private_mem + len <= PRIVATE_mem) {
 			rv = (Bigint*)pmem_next;
