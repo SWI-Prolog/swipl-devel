@@ -1672,11 +1672,12 @@ colourise_expression(Compound, TB, Pos) :-
     !,
     (   dict_field_extraction(Compound)
     ->  colourise_term_arg(Compound, TB, Pos)
-    ;   current_arithmetic_function(Compound)
-    ->  colour_item(function, TB, FF-FT)
-    ;   colour_item(no_function, TB, FF-FT)
-    ),
-    colourise_expression_args(Compound, TB, Pos).
+    ;   (   current_arithmetic_function(Compound)
+        ->  colour_item(function, TB, FF-FT)
+        ;   colour_item(no_function, TB, FF-FT)
+        ),
+        colourise_expression_args(Compound, TB, Pos)
+    ).
 colourise_expression(Atom, TB, Pos) :-
     atom(Atom),
     !,
