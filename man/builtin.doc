@@ -9393,8 +9393,8 @@ keysort(Pairs, Sorted) :- sort(1, @=<, Pairs, Sorted).
 \end{code}
 
 The following example sorts a list of rows, for example resulting from
-csv_read_file/2) ascending on the 3th column and descending on the 4th
-column:
+csv_read_file/2) ascending on the 3rd column and descending on the 4th
+column (for sets of rows where the 3rd column is equal):
 
 \begin{code}
     sort(4, @>=, Rows0, Rows1),
