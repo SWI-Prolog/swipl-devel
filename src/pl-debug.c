@@ -3,7 +3,7 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -180,6 +180,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_JIT_DELINDEX),
   DEBUG_TOPIC(MSG_JIT_POOR),
+  DEBUG_TOPIC(MSG_JIT_PRIMARY),
 
   DEBUG_TOPIC(MSG_RECONSULT),
   DEBUG_TOPIC(MSG_RECONSULT_PRED),

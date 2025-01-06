@@ -1320,9 +1320,9 @@ fix_ssu(p_reload *r, Clause clause)
 }
 
 
-int
+bool
 setMetapredicateSource(DECL_LD SourceFile sf, Procedure proc,
-		       arg_info *args)
+		       const arg_info *args)
 { associateSource(sf, proc);
 
   if ( sf->reload )

@@ -67,8 +67,8 @@ ClauseRef	assertProcedureSource(SourceFile sf, Procedure proc,
 				      Clause clause);
 int		setAttrProcedureSource(SourceFile sf, Procedure proc,
 				       uint64_t attr, int val);
-int		setMetapredicateSource(SourceFile sf, Procedure proc,
-				       arg_info *args);
+bool		setMetapredicateSource(SourceFile sf, Procedure proc,
+				       const arg_info *args);
 int		exportProcedureSource(SourceFile sf, Module module,
 				      Procedure proc);
 void		registerReloadModule(SourceFile sf, Module module);

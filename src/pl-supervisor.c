@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2024, University of Amsterdam
+    Copyright (c)  2008-2025, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -41,6 +41,7 @@
 #include "pl-wrap.h"
 #include "pl-tabling.h"
 #include "pl-util.h"
+#include "pl-index.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
@@ -463,6 +464,7 @@ setDefaultSupervisor(Definition def)
   { Code codes, old;
 
     PL_LOCK(L_PREDICATE);
+    update_primary_index(def);
     old = def->codes;
     codes = createSupervisor(def);
     if ( equalSupervisors(old, codes) )

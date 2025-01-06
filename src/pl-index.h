@@ -49,6 +49,7 @@
 #define getIndexOfTerm(t)		LDFUNC(getIndexOfTerm, t)
 #define ci_set_flag(value, key)		LDFUNC(ci_set_flag, value, key)
 #define ci_get_flag(term, key)		LDFUNC(ci_get_flag, term, key)
+#define update_primary_index(def)	LDFUNC(update_primary_index, def)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -78,6 +79,7 @@ void		initClauseIndexing(void);
 bool		ci_is_flag(atom_t key);
 bool		ci_set_flag(term_t value, atom_t key);
 bool		ci_get_flag(term_t t, atom_t key);
+void		update_primary_index(Definition def);
 
 #undef LDFUNC_DECLARATIONS
 

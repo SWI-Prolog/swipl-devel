@@ -142,6 +142,10 @@ static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
 
 #undef LDFUNC_DECLARATIONS
 
+/* We are reloading static code */
+#define STATIC_RELOADING(pred) (LD->reload.generation && \
+				isoff(pred, P_DYNAMIC))
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
 of buckets. This used to be simple, but now that our tag bits are on the
@@ -562,9 +566,6 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
 
-#define STATIC_RELOADING() (LD->reload.generation && \
-			    isoff(ctx->predicate, P_DYNAMIC))
-
   if ( unlikely(argc == 0) )
     return first_clause_unindexed(clist, ctx);
 
@@ -579,7 +580,7 @@ retry:
 
     if ( best_index )
     { if ( unlikely(!best_index->good) )
-      { if ( !STATIC_RELOADING() &&
+      { if ( !STATIC_RELOADING(ctx->predicate) &&
 	     consider_better_index(best_index->speedup,
 				   clist->number_of_clauses) )
 	{ ClauseIndex ci;
@@ -626,7 +627,7 @@ retry:
   iarg_t pindex = clist->primary_index;
   if ( (chp->key = indexOfWord(argv[pindex])) &&
        ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
-	 STATIC_RELOADING()) )
+	 STATIC_RELOADING(ctx->predicate)) )
   { chp->cref = clist->first_clause;
 
     cref = nextClauseArg1(chp, ctx->generation);
@@ -639,7 +640,7 @@ retry:
   } else
     cref = NULL;
 
-  if ( !STATIC_RELOADING() )
+  if ( !STATIC_RELOADING(ctx->predicate) )
   { ClauseIndex ci;
 
     if ( (ci=createIndex(argv, argc, clist, NULL, ctx)) )
@@ -2901,6 +2902,65 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 		 *      PRIMARY INDEX ARG       *
 		 *******************************/
 
+static bool
+mode_arg_is_unbound(Definition def, int arg0)
+{ return def->impl.any.args[arg0].meta == MA_VAR;
+}
+
+static int
+clause_first_nonvar_arg(Definition def, Clause cl)
+{ Code PC = cl->codes;
+  int arity = (int)def->functor->arity;
+
+  for(int arg0=0; arg0 < arity; arg0++)
+  { word k;
+
+    if ( !mode_arg_is_unbound(def, arg0) && argKey(PC, 0, &k) )
+      return arg0;
+    PC = skipArgs(PC, 1);
+  }
+
+  return arity;
+}
+
+/* Find the 0-based argument on which to place the primary index.
+ *
+ * @return -1 if there is no meaningful primary index.
+ */
+
+static int
+preferred_primary_index(Definition def)
+{ ClauseList clist = &def->impl.clauses;
+
+  if ( def->functor->arity == 0 )
+    return -1;
+
+  /* is primary index ok? */
+  if ( !mode_arg_is_unbound(def, clist->primary_index) )
+  { for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+    { if ( ison(cref->value.clause, CL_ERASED) )
+	continue;
+      if ( cref->d.key )		/* yes */
+	return clist->primary_index;
+    }
+  }
+
+  int pi = (int)def->functor->arity;
+  for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+  { if ( ison(cref->value.clause, CL_ERASED) )
+      continue;
+
+    int first_nonvar = clause_first_nonvar_arg(def, cref->value.clause);
+    if ( first_nonvar < pi )
+      pi = first_nonvar;
+  }
+
+  if ( pi < (int)def->functor->arity )
+    return pi;
+
+  return -1;
+}
+
 /* The primary index  argument is the clause argument  used to compute
  * the  `cref->d.key`  that is  used  for  the  fast linear  scan  for
  * clauses.  This  mechanism is used  instead of  a hash table  if the
@@ -2929,6 +2989,30 @@ modify_primary_index_arg(Definition def, iarg_t an)
     }
 
     clist->primary_index = an;
+  }
+}
+
+void
+update_primary_index(DECL_LD Definition def)
+{ unsigned int noc = def->impl.clauses.number_of_clauses;
+
+  if ( noc < MIN_CLAUSES_FOR_INDEX &&
+       isoff(def, P_DYNAMIC|P_MULTIFILE) &&
+       !STATIC_RELOADING(def) )
+  { int arg0 = def->impl.clauses.primary_index;
+    int argn = preferred_primary_index(def);
+    if ( argn >= 0 )
+    { if ( argn != arg0 )
+      { DEBUG(MSG_JIT_PRIMARY,
+	      Sdprintf("Set primary index for %s (%d clauses) to %d\n",
+		       predicateName(def), noc, argn+1));
+	modify_primary_index_arg(def, argn);
+      }
+    } else
+    { DEBUG(MSG_JIT_PRIMARY,
+	    Sdprintf("No index for %s (%d clauses)\n",
+		     predicateName(def), noc));
+    }
   }
 }
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -82,8 +82,8 @@ int		checkModifySystemProc(functor_t f);
 int		overruleImportedProcedure(Procedure proc, Module target);
 foreign_t	pl_current_predicate(term_t name, term_t functor, control_t h);
 void		clear_meta_declaration(Definition def);
-void		setMetapredicateMask(Definition def, arg_info *args);
-int		isTransparentMetamask(Definition def, arg_info *args);
+void		setMetapredicateMask(Definition def, const arg_info *args);
+bool		isTransparentMetamask(Definition def, const arg_info *args);
 ClauseRef	assertDefinition(Definition def, Clause clause,
 				 ClauseRef where);
 ClauseRef	assertProcedure(Procedure proc, Clause clause,

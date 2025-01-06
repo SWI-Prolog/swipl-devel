@@ -1992,10 +1992,10 @@ the declaration contains at least one meta-argument (: or 0..9).
 		predicate head has arguments 0..9, :,+,-,?
 */
 
-int
-isTransparentMetamask(Definition def, arg_info *args)
+bool
+isTransparentMetamask(Definition def, const arg_info *args)
 { size_t i, arity = def->functor->arity;
-  int transparent = false;
+  bool transparent = false;
 
   for(i=0; i<arity && !transparent; i++)
   { int ma = args[i].meta;
@@ -2008,7 +2008,7 @@ isTransparentMetamask(Definition def, arg_info *args)
 
 
 void
-setMetapredicateMask(Definition def, arg_info *args)
+setMetapredicateMask(Definition def, const arg_info *args)
 { size_t i, arity = def->functor->arity;
 
   for(i=0; i<arity; i++)
@@ -2022,7 +2022,7 @@ setMetapredicateMask(Definition def, arg_info *args)
 }
 
 
-static int
+static bool
 meta_declaration(term_t spec)
 { GET_LD
   term_t head = PL_new_term_ref();
@@ -2076,15 +2076,18 @@ meta_declaration(term_t spec)
     }
   }
 
+  bool rc;
   if ( ReadingSource )
   { SourceFile sf = lookupSourceFile(source_file_name, true);
-    int rc = setMetapredicateSource(sf, proc, args);
+    rc = setMetapredicateSource(sf, proc, args);
     releaseSourceFile(sf);
-    return rc;
   } else
   { setMetapredicateMask(proc->definition, args);
-    return true;
+    rc = true;
   }
+  PL_reset_term_refs(head);
+
+  return rc;
 }
 
 
