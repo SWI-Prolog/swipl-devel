@@ -1709,7 +1709,8 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
   term_t modified = A2;
 
   if ( PL_get_atom_ex(file, &name) )
-  { int isfile, i;
+  { bool isfile;
+    int i;
     double mtime;
 
     if ( PL_get_integer(modified, &i) && i == 0 )
@@ -1723,7 +1724,7 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
     SourceFile sf = lookupSourceFile(name, true);
 
     sf->mtime = mtime;
-    sf->isfile = isfile&1;
+    sf->isfile = isfile;
     startConsult(sf);
     releaseSourceFile(sf);
 
