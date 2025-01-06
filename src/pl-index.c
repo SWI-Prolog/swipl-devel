@@ -679,7 +679,8 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
   ctx.depth       = 0;
   ctx.position[0] = END_INDEX_POS;
 
-  MEMORY_ACQUIRE();			/* sync with retract_clause() */
+  if ( ison(def, P_DYNAMIC) )
+    MEMORY_ACQUIRE();			/* sync with retract_clause() */
   acquire_def(def);
   cref = first_clause_guarded(argv,
 			      def->functor->arity,
