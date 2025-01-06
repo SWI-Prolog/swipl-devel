@@ -1410,7 +1410,7 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
     return NULL;
   }
 
-  argKey(clause->codes, 0, &key);
+  argKey(clause->codes, def->impl.clauses.primary_index, &key);
   if ( !(cref=newClauseRef(clause, key)) )
   { freeClause(clause);
     return PL_no_memory(),NULL;

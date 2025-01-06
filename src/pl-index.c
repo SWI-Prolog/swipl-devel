@@ -2860,10 +2860,23 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
   return false;
 }
 
-
 		 /*******************************
-		 *      DEFAULT INDEX ARG       *
+		 *      PRIMARY INDEX ARG       *
 		 *******************************/
+
+/* The primary index  argument is the clause argument  used to compute
+ * the  `cref->d.key`  that is  used  for  the  fast linear  scan  for
+ * clauses.  This  mechanism is used  instead of  a hash table  if the
+ * primary  argument is  instantiated and  the predicate  has at  most
+ * `MIN_CLAUSES_FOR_INDEX`.
+ *
+ * Note that  changing this is  not thread-safe.   One way to  make it
+ * thread safe is to  set all keys to zero before,  so all clauses are
+ * considered candidates.   Then we change  `clist->primary_index` and
+ * finally we set all keys.   Alternatively, we can change this inside
+ * setDefaultSupervisor(),   which  is   executed  before   the  first
+ * execution of the predicate.
+ */
 
 static void
 modify_primary_index_arg(Definition def, iarg_t an)
@@ -2882,8 +2895,15 @@ modify_primary_index_arg(Definition def, iarg_t an)
   }
 }
 
+/** '$primary_index'(:PI, +Arg)
+ *
+ * Change the primary index for PI to be Arg (1-based).
+ *
+ * @bug This is __not thread safe__
+ */
+
 static
-PRED_IMPL("$index", 2, index, PL_FA_TRANSPARENT)
+PRED_IMPL("$primary_index", 2, primary_index, PL_FA_TRANSPARENT)
 { Procedure proc;
   int an;
 
@@ -3120,5 +3140,5 @@ initClauseIndexing(void)
 		 *******************************/
 
 BeginPredDefs(index)
-  PRED_DEF("$index", 2, index, PL_FA_TRANSPARENT)
+  PRED_DEF("$primary_index", 2, primary_index, PL_FA_TRANSPARENT)
 EndPredDefs
