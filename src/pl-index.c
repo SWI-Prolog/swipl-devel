@@ -2932,9 +2932,6 @@ static int
 preferred_primary_index(Definition def)
 { ClauseList clist = &def->impl.clauses;
 
-  if ( def->functor->arity == 0 )
-    return -1;
-
   /* is primary index ok? */
   if ( !mode_arg_is_unbound(def, clist->primary_index) )
   { for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
@@ -2994,25 +2991,32 @@ modify_primary_index_arg(Definition def, iarg_t an)
 
 void
 update_primary_index(DECL_LD Definition def)
-{ unsigned int noc = def->impl.clauses.number_of_clauses;
+{ if ( def->functor->arity > 0 )
+  { unsigned int noc = def->impl.clauses.number_of_clauses;
 
-  if ( noc < MIN_CLAUSES_FOR_INDEX &&
-       isoff(def, P_DYNAMIC|P_MULTIFILE) &&
-       !STATIC_RELOADING(def) )
-  { int arg0 = def->impl.clauses.primary_index;
-    int argn = preferred_primary_index(def);
-    if ( argn >= 0 )
-    { if ( argn != arg0 )
-      { DEBUG(MSG_JIT_PRIMARY,
-	      Sdprintf("Set primary index for %s (%d clauses) to %d\n",
-		       predicateName(def), noc, argn+1));
-	modify_primary_index_arg(def, argn);
+    def->impl.clauses.unindexed = false;
+
+    if ( noc < MIN_CLAUSES_FOR_INDEX &&
+	 isoff(def, P_DYNAMIC|P_MULTIFILE) &&
+	 !STATIC_RELOADING(def) )
+    { int arg0 = def->impl.clauses.primary_index;
+      int argn = preferred_primary_index(def);
+      if ( argn >= 0 )
+      { if ( argn != arg0 )
+	{ DEBUG(MSG_JIT_PRIMARY,
+		Sdprintf("Set primary index for %s (%d clauses) to %d\n",
+			 predicateName(def), noc, argn+1));
+	  modify_primary_index_arg(def, argn);
+	}
+      } else
+      { def->impl.clauses.unindexed = true;
+	DEBUG(MSG_JIT_PRIMARY,
+	      Sdprintf("No index for %s (%d clauses)\n",
+		       predicateName(def), noc));
       }
-    } else
-    { DEBUG(MSG_JIT_PRIMARY,
-	    Sdprintf("No index for %s (%d clauses)\n",
-		     predicateName(def), noc));
     }
+  } else
+  { def->impl.clauses.unindexed = true;
   }
 }
 

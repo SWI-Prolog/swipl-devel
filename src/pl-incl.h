@@ -1459,6 +1459,7 @@ typedef struct clause_list
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
+  unsigned	unindexed : 1;		/* no index possible */
   iarg_t	jiti_tried;		/* number of times we tried to find */
   iarg_t	primary_index;		/* Index used to link clauses */
 } clause_list, *ClauseList;
