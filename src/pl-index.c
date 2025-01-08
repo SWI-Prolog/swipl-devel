@@ -2279,7 +2279,7 @@ free_assessment_set(assessment_set *as)
     free(as->assessments);
 }
 
-static hash_assessment *			/* TBD: resource error */
+static hash_assessment *
 alloc_assessment(assessment_set *as, iarg_t *ia)
 { hash_assessment *a;
 
@@ -2287,10 +2287,18 @@ alloc_assessment(assessment_set *as, iarg_t *ia)
   { size_t newbytes = sizeof(*as->assessments)*2*as->allocated;
 
     if ( as->assessments == as->buf )
-    { as->assessments = malloc(newbytes);
-      memcpy(as->assessments, as->buf, sizeof(as->buf));
+    { void *mem = malloc(newbytes);
+      if ( mem )
+      { as->assessments = mem;
+	memcpy(as->assessments, as->buf, sizeof(as->buf));
+      } else
+	return NULL;
     } else
-    { as->assessments = realloc(as->assessments, newbytes);
+    { void *mem = realloc(as->assessments, newbytes);
+      if ( mem )
+	as->assessments = mem;
+      else
+	return NULL;
     }
     as->allocated *= 2;
   }
