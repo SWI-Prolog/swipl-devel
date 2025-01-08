@@ -83,10 +83,10 @@
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
 
 typedef struct hash_hints
-{ iarg_t	args[MAX_MULTI_INDEX];	/* Hash these arguments */
-  float		speedup;		/* Expected speedup */
-  unsigned int	ln_buckets;		/* Lg2 of #buckets to use */
+{ float		speedup;		/* Expected speedup */
   unsigned	list : 1;		/* Use a list per key */
+  unsigned	ln_buckets : 5;		/* Lg2 of #buckets to use */
+  iarg_t	args[MAX_MULTI_INDEX];	/* Hash these arguments */
 } hash_hints;
 
 typedef struct index_context
@@ -2766,6 +2766,24 @@ better_index(ClauseIndex better_than, float speedup, float min_speedup)
   return true;
 }
 
+static void
+cp_hints_from_arg_info(hash_hints *hints, iarg_t arg0, const arg_info *ai)
+{ memset(hints, 0, sizeof(*hints));
+  hints->args[0]    = (iarg_t)(arg0+1);
+  hints->ln_buckets = ai->ln_buckets;
+  hints->speedup    = ai->speedup;
+  hints->list       = ai->list;
+}
+
+static void
+cp_hints_from_assessment(hash_hints *hints, const hash_assessment *a)
+{ memset(hints, 0, sizeof(*hints));
+  memcpy(hints->args, a->args, sizeof(a->args));
+  hints->ln_buckets = MSB(a->size)&0x1f;
+  hints->speedup    = a->speedup;
+  hints->list       = a->list;
+}
+
 static bool
 bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, ClauseIndex better_than,
 	 hash_hints *hints, IndexContext ctx)
@@ -2831,11 +2849,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, ClauseIndex better_than,
     if ( better_index(better_than, best_speedup, MIN_SPEEDUP) )
     { arg_info *ainfo = &clist->args[best];
 
-      memset(hints, 0, sizeof(*hints));
-      hints->args[0]    = (iarg_t)(best+1);
-      hints->ln_buckets = ainfo->ln_buckets;
-      hints->speedup    = ainfo->speedup;
-      hints->list       = ainfo->list;
+      cp_hints_from_arg_info(hints, best, ainfo);
 
       return true;
     }
@@ -2908,6 +2922,291 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
   }
 
   return false;
+}
+
+
+		 /*******************************
+		 *    ASSESSMENT FROM PROLOG    *
+		 *******************************/
+
+/* Find all candidate indexes.  A candidate index is one of
+ *
+ *   - A single argument index better than MIN_SPEEDUP
+ *   - A multi argument index better than MIN_SPEEDUP times the best
+ *     single argument index it is built from.  This implies that
+ *     candidates are constructed from indexes of at least MIN_SPEEDUP
+ *     and less than number_of_clauses/MIN_SPEEDUP.
+ *
+ * Arguments  with mode  `-` are  excluded from  the evaluation.   The
+ * discovered indexes are sorted by quality.
+ *
+ * @param nphints is the size of  the hints structure on entry.  It is
+ * updated to the number of candidates.  As we limit to 2 arguments at
+ * the  moment,  given  N  candidate arguments,  there  are  maximally
+ * N+N*(N-1) or simply N^2 possible indexes.  If the maximum is lower,
+ * we only  compute the top.   If the max is  much lower, we  only use
+ * heuristics to limit the number  of two-argument indexes and thus we
+ * may not end up with the ideal.
+ */
+
+static int
+cmp_assessment(const void *p1, const void *p2)
+{ const hash_assessment *a1 = p1;
+  const hash_assessment *a2 = p2;
+
+  return SCALAR_TO_CMP(a1->speedup, a2->speedup);
+}
+
+static bool
+candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
+		  IndexContext ctx)
+{ int max_hints = *nphints;
+  int nhints = 0;
+
+  assessment_set aset;		/* fill missing assessments */
+  init_assessment_set(&aset);
+  for(iarg_t i=0; i<ac; i++)
+  { arg_info *ai;
+
+    if ( ctx->depth == 0 && mode_arg_is_unbound(ctx->predicate, i) )
+      continue;
+
+    if ( !((ai = &clist->args[i]) && ai->assessed) )
+    { iarg_t ia[] = {i+1, 0};
+      alloc_assessment(&aset, ia);
+    }
+  }
+  assess_candidate_indexes(ac, clist, &aset, ctx);
+  free_assessment_set(&aset);
+
+				/* Sort by quality */
+  iarg_t *assessments = alloca(sizeof(*assessments)*ac);
+  int nassessments = 0;
+  for(iarg_t i=0; i<ac; i++)
+  { const arg_info *ai = &clist->args[i];
+    if ( ai && ai->assessed )
+      assessments[nassessments++] = i;
+  }
+  if ( nassessments == 0 )
+  { *nphints = 0;
+    return true;
+  }
+  sort_assessments(clist, assessments, nassessments);
+
+  /* Add the real  good ones to `hints` and create  the bracket f,t of
+   * candidates for multi-argument indexes.
+   */
+  int f,t;
+  for(f=0; f<nassessments; f++)
+  { const arg_info *ai = &clist->args[f];
+
+    if ( (float)clist->number_of_clauses/ai->speedup < MIN_SPEEDUP )
+    { if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX ||
+	   clist->primary_index != f )
+      { if ( nhints < max_hints )
+	{ cp_hints_from_arg_info(&hints[nhints++], f, ai);
+	} else
+	{ *nphints = nhints;
+	  return true;
+	}
+      }
+    } else
+      break;
+  }
+  for(t=nassessments; t>=f+1; )
+  { const arg_info *ai = &clist->args[t-1];
+    if ( ai->speedup < MIN_SPEEDUP )
+      t--;
+    else
+      break;
+  }
+  const iarg_t *single_candidates = assessments+f;
+  int           single_candidates_count = t-f;
+
+  if ( t-f >= 2 )		/* Add least two candidates */
+  { iarg_t ia[MAX_MULTI_INDEX] = {0};
+
+    for(;;)			/* If far too many, take the middle ones */
+    { int l1 = t-f;		/* as these are the most promising */
+
+      if ( l1 < 2 )
+      { *nphints = nhints;
+	return true;
+      }
+      l1--;
+      if ( l1*l1 > max_hints-nhints )
+      { if ( f%2 == 0 )
+	  f++;
+	else
+	  t--;
+      } else
+	break;
+    }
+
+    init_assessment_set(&aset);
+    for(int m=f+1; m<t; m++)
+    { ia[1] = assessments[m]+1;
+      for(int n=f; n<m; n++)
+      { ia[0] = assessments[n]+1;
+	alloc_assessment(&aset, ia);
+      }
+    }
+    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
+    hash_assessment **alist = alloca(sizeof(*alist)*aset.count);
+    hash_assessment **ap = alist;
+    for(int i=0; i<aset.count; i++)
+    { bool poor = false;
+      hash_assessment *a = aset.assessments+i;
+
+      assess_remove_duplicates(a, clist->number_of_clauses);
+      for(int j=0; j<2; j++)
+      { const arg_info *ai = &clist->args[a->args[j]-1];
+	if ( a->speedup < ai->speedup*MIN_SPEEDUP )
+	{ poor = true;
+	  break;
+	}
+      }
+      if ( !poor )
+	*ap++ = a;
+    }
+    qsort(alist, ap-alist, sizeof(*alist), cmp_assessment);
+
+    /* merge single and multiple argument indexes by speedup */
+    hash_assessment **a = alist;
+    int single = 0;
+    while( nhints < max_hints )
+    { if ( single < single_candidates_count )
+      { int si = single_candidates[single];
+				/* skip the primary index */
+	if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
+	     clist->primary_index == si )
+	{ single++;
+	  continue;
+	}
+	const arg_info *ai = &clist->args[si];
+	if ( a < ap )
+	{ if ( (*a)->speedup > ai->speedup )
+	  { cp_hints_from_assessment(&hints[nhints++], *a++);
+	  } else
+	  { cp_hints_from_arg_info(&hints[nhints++], si, ai);
+	    single++;
+	  }
+	} else
+	{ cp_hints_from_arg_info(&hints[nhints++], si, ai);
+	  single++;
+	}
+      } else if ( a < ap )
+      { cp_hints_from_assessment(&hints[nhints++], *a++);
+      } else
+	break;
+    }
+  }
+
+  *nphints = nhints;
+  return true;
+}
+
+static atom_t i_tag_arg_info;
+static atom_t i_tag_hash_info;
+static atom_t i_keys[4];
+
+static void
+init_dict_keys(void)
+{ if ( !i_tag_arg_info )
+  { i_keys[0] = PL_new_atom("speedup");
+    i_keys[1] = PL_new_atom("ln_buckets");
+    i_keys[2] = PL_new_atom("list");
+    i_keys[3] = PL_new_atom("arguments");
+    i_tag_hash_info = PL_new_atom("hash_info");
+    i_tag_arg_info  = PL_new_atom("arg_info");
+  }
+}
+
+#define put_args(t, args) LDFUNC(put_args, t, args)
+
+static bool
+put_args(DECL_LD term_t t, const iarg_t args[MAX_MULTI_INDEX])
+{ const iarg_t *ep;
+
+  for(ep=args; ep-args < MAX_MULTI_INDEX && *ep; ep++)
+    ;
+  PL_put_nil(t);
+  term_t el = PL_new_term_ref();
+  if ( !el )
+    return false;
+  while( ep > args )
+  { ep--;
+    if ( !PL_put_integer(el, *ep) ||
+	 !PL_cons_list(t, el, t) )
+      return false;
+  }
+  PL_reset_term_refs(el);
+
+  return true;
+}
+
+#define put_hints(t, hints) LDFUNC(put_hints, t, hints)
+
+static bool
+put_hints(DECL_LD term_t t, const hash_hints *hints)
+{ term_t values;
+
+  init_dict_keys();
+  bool rc = ( (values = PL_new_term_refs(4)) &&
+	      PL_put_float(values+0, hints->speedup) &&
+	      PL_put_integer(values+1, hints->ln_buckets) &&
+	      PL_put_bool(values+2, hints->list) &&
+	      put_args(values+3, hints->args) &&
+	      PL_put_dict(t, i_tag_hash_info, 4, i_keys, values) );
+  if ( rc )
+    PL_reset_term_refs(values);
+
+  return rc;
+}
+
+
+/** '$candidate_indexes'(+PI, -Indexes, +Max)
+ */
+
+static
+PRED_IMPL("$candidate_indexes", 3, $candidate_indexes, PL_FA_TRANSPARENT)
+{ Procedure proc;
+  int max;
+
+  if ( !get_procedure(A1, &proc, 0, GP_RESOLVE|GP_NAMEARITY) )
+    return false;
+  if ( !PL_get_integer_ex(A3, &max) )
+    return false;
+  if ( max < 0 )
+    return PL_domain_error("not_less_than_zero", A3);
+
+  hash_hints *hints = malloc(sizeof(*hints)*max);
+  if ( !hints )
+    return PL_no_memory();
+
+  Definition def = proc->definition;
+  size_t arity = def->functor->arity;
+  iarg_t ac = arity < MAXINDEXARG ? (iarg_t)arity : MAXINDEXARG;
+  index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS };
+  candidate_indexes(ac, &def->impl.clauses, hints, &max, &ctx);
+
+  term_t tail = PL_copy_term_ref(A2);
+  term_t head = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
+
+  bool rc = true;
+  for(int i=0; i<max; i++)
+  { if ( !put_hints(tmp, hints+i) ||
+	 !PL_unify_list(tail, head, tail) ||
+	 !PL_unify(head, tmp) )
+    { rc = false;
+      break;
+    }
+  }
+  rc = rc && PL_unify_nil(tail);
+  free(hints);
+
+  return rc;
 }
 
 		 /*******************************
@@ -3347,7 +3646,9 @@ ci_get_flag(DECL_LD term_t t, atom_t key)
 
 void
 initClauseIndexing(void)
-{ CI_CONF(min_speedup)       = 1.5f;
+{ i_tag_arg_info = 0;
+
+  CI_CONF(min_speedup)       = 1.5f;
   CI_CONF(max_var_fraction)  = 0.1f;
   CI_CONF(min_speedup_ratio) = 3.0f;
   CI_CONF(max_lookahead)     = 100;
@@ -3368,5 +3669,6 @@ initClauseIndexing(void)
 		 *******************************/
 
 BeginPredDefs(index)
-  PRED_DEF("$primary_index", 2, primary_index, PL_FA_TRANSPARENT)
+  PRED_DEF("$primary_index",     2, primary_index,      PL_FA_TRANSPARENT)
+  PRED_DEF("$candidate_indexes", 3, $candidate_indexes, PL_FA_TRANSPARENT)
 EndPredDefs
