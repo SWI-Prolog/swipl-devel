@@ -2246,25 +2246,24 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
  * the predefined VSIG numbers */
 #define SIG_USER_OFFSET	  (SIG_PROLOG_OFFSET+VSIG_MAX)
 
-/* Get a zero-based array index for this signal */
-#define SIGNAL_INDEX(sig)	((sig) - MINSIGNAL)
 /* Return the signal given an array index */
 #define SIGNAL_FROM_INDEX(idx)	((idx) + MINSIGNAL)
 /* Is this a valid signal number? */
 #define IS_VALID_SIGNAL(sig)	((sig) >= MINSIGNAL && (sig) <= MAXSIGNAL)
 /* Is this a virtual signal? */
 #define IS_VSIG(sig)		((sig) >= SIG_PROLOG_OFFSET)
-
-#if O_DEBUG
-#undef SIGNAL_INDEX
+/* Get a zero-based array index for this signal */
 static inline int
 SIGNAL_INDEX(int sig)
-{ assert(IS_VALID_SIGNAL(sig));
+{
+#if O_DEBUG
+  assert(IS_VALID_SIGNAL(sig));
+#endif
   return sig - MINSIGNAL;
 }
-#endif
 
-/* We want fast types for signal bitmasks; on a 64-bit arch this is probably the same as uint64_t */
+/* We want fast types for signal bit masks; on a 64-bit arch
+ * this is probably the same as uint64_t */
 typedef uint_fast32_t		sigmask_t;
 
 /* How many bits can fit in a single sigmask_t? */
