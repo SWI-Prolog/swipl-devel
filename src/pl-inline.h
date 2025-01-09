@@ -414,7 +414,11 @@ typedef struct bit_vector
 { size_t size;
   bitv_chunk chunk[];				/* bits */
 } bit_vector;
+
 #define BITSPERE (sizeof(bitv_chunk)*8)
+#define CHUNKS_BITVECTOR(bits) (((bits)+BITSPERE-1)/BITSPERE)
+#define SIZEOF_BITVECTOR(bits) offsetof(struct bit_vector, \
+					chunk[CHUNKS_BITVECTOR(bits)])
 
 static inline size_t
 sizeof_bitvector(size_t bits)
@@ -423,15 +427,20 @@ sizeof_bitvector(size_t bits)
 
 static inline void
 init_bitvector(bit_vector *v, size_t bits)
-{ size_t bytes = offsetof(struct bit_vector, chunk[(bits+BITSPERE-1)/BITSPERE]);
+{ size_t bytes = SIZEOF_BITVECTOR(bits);
 
   memset(v, 0, bytes);
   v->size = bits;
 }
 
+#define local_bitvector(name, bits) \
+  bit_vector *name = alloca(SIZEOF_BITVECTOR(bits)); \
+  memset(name->chunk, 0, CHUNKS_BITVECTOR(bits)*sizeof(*name->chunk)); \
+  name->size = bits;
+
 static inline bit_vector *
 new_bitvector(size_t size)
-{ size_t bytes = offsetof(struct bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
+{ size_t bytes = SIZEOF_BITVECTOR(size);
   bit_vector *v = allocHeapOrHalt(bytes);
 
   memset(v, 0, bytes);
@@ -441,21 +450,21 @@ new_bitvector(size_t size)
 
 static inline void
 free_bitvector(bit_vector *v)
-{ size_t bytes = offsetof(struct bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
+{ size_t bytes = SIZEOF_BITVECTOR(v->size);
 
   freeHeap(v, bytes);
 }
 
 static inline void
 clear_bitvector(bit_vector *v)
-{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+{ size_t chunks = CHUNKS_BITVECTOR(v->size);
 
   memset(v->chunk, 0, chunks*sizeof(bitv_chunk));
 }
 
 static inline void
 setall_bitvector(bit_vector *v)
-{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+{ size_t chunks = CHUNKS_BITVECTOR(v->size);
 
   memset(v->chunk, 0xff, chunks*sizeof(bitv_chunk));
 }
