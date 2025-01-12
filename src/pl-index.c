@@ -566,7 +566,7 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
 
-  if ( unlikely(argc == 0) )
+  if ( clist->unindexed || argc == 0 )
     return first_clause_unindexed(clist, ctx);
 
   if ( unlikely(argc > MAXINDEXARG) )
