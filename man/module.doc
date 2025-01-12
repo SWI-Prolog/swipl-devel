@@ -503,7 +503,6 @@ pred/1 into mypred/1.
 :- reexport(module_6, except([pred/1 as mypred])).
 \end{code}
 
-
 \begin{description}
     \predicate{reexport}{1}{+Files}
 Load and import predicates as use_module/1 and re-export all imported
@@ -512,8 +511,9 @@ declaration.
 
     \predicate{reexport}{2}{+File, +Import}
 Import from \arg{File} as use_module/2 and re-export the imported
-predicates. The reexport declarations must immediately follow the module
-declaration.
+predicates.  All formats accepted by use_module/2 for \arg{Import}
+are accepted.  The reexport declarations must immediately follow the
+module declaration.
 \end{description}
 
 

@@ -376,16 +376,15 @@ Specify what to import from the loaded module. The default for
 use_module/1 is \const{all}. \arg{Import} is passed from the second
 argument of use_module/2. Traditionally it is a list of predicate
 indicators to import. As part of the SWI-Prolog/YAP integration, we also
-support \arg{Pred} as \arg{Name} to import a predicate under another
-name. Finally, \arg{Import} can be the term \term{except}{Exceptions},
-where \arg{Exceptions} is a list of predicate indicators that specify
-predicates that are \emph{not} imported or \arg{Pred} as \arg{Name}
-terms to denote renamed predicates. See also reexport/2 and
-use_module/2.%
-	\bug{\arg{Name}/\arg{Arity} as \arg{NewName} is currently
-	     implemented using a \jargon{link clause}.  This harms
-	     efficiency and does not allow for querying the relation
-	     through predicate_property/2.}
+support ``\arg{Pred} \const{as} \arg{Name}'' to import a predicate under
+another name. Finally, \arg{Import} can be the term
+\term{except}{Exceptions}, where \arg{Exceptions} is a list of predicate
+indicators that specify predicates that are \emph{not} imported or
+\arg{Pred} as \arg{Name} terms to denote renamed predicates. See also
+reexport/2 and use_module/2.\bug{\arg{Name}/\arg{Arity} as
+\arg{NewName} is currently implemented using a \jargon{link clause}.
+This harms efficiency and does not allow for querying the relation
+through predicate_property/2.}
 
 If \arg{Import} equals \const{all}, all operators are imported as well.
 Otherwise, operators are \emph{not} imported. Operators can be imported

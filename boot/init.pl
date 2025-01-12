@@ -3443,9 +3443,11 @@ load_files(Module:Files, Options) :-
 
 %!  '$import_list'(+TargetModule, +FromModule, +Import, +Reexport) is det.
 %
-%   Import from FromModule to TargetModule. Import  is one of =all=,
+%   Import from FromModule to TargetModule. Import  is one of `all`,
 %   a list of optionally  mapped  predicate   indicators  or  a term
 %   except(Import).
+%
+%   @arg Reexport is a bool asking to re-export our imports or not.
 
 '$import_list'(_, _, Var, _) :-
     var(Var),
@@ -3467,12 +3469,23 @@ load_files(Module:Files, Options) :-
     '$import_except'(Spec, Source, Export, Import),
     '$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, Import, Reexport) :-
-    !,
     is_list(Import),
     !,
-    '$import_all'(Import, Target, Source, Reexport, strong).
+    '$exported_ops'(Source, Ops, []),
+    '$expand_ops'(Import, Ops, Import1),
+    '$import_all'(Import1, Target, Source, Reexport, strong).
 '$import_list'(_, _, Import, _) :-
     '$type_error'(import_specifier, Import).
+
+'$expand_ops'([], _, []).
+'$expand_ops'([H|T0], Ops, Imports) :-
+    nonvar(H), H = op(_,_,_),
+    !,
+    '$include'('$can_unify'(H), Ops, Ops1),
+    '$append'(Ops1, T1, Imports),
+    '$expand_ops'(T0, Ops, T1).
+'$expand_ops'([H|T0], Ops, [H|T1]) :-
+    '$expand_ops'(T0, Ops, T1).
 
 
 '$import_except'([], _, List, List).
@@ -3532,6 +3545,11 @@ load_files(Module:Files, Options) :-
 
 
 %!  '$import_all'(+Import, +Context, +Source, +Reexport, +Strength)
+%
+%   Import Import from Source into Context.   If Reexport is `true`, add
+%   the imported material to the  exports   of  Context.  If Strength is
+%   `weak`, definitions in Context overrule the   import. If `strong`, a
+%   local definition is considered an error.
 
 '$import_all'(Import, Context, Source, Reexport, Strength) :-
     '$import_all2'(Import, Context, Source, Imported, ImpOps, Strength),
@@ -4231,6 +4249,8 @@ compile_aux_clauses(Clauses) :-
     ),
     '$include'(G, T0, T).
 
+'$can_unify'(A, B) :-
+    \+ A \= B.
 
 %!  length(?List, ?N)
 %
