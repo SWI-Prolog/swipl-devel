@@ -3047,7 +3047,7 @@ PRED_IMPL("$primary_index", 2, primary_index, PL_FA_TRANSPARENT)
   ClauseList clist = &def->impl.clauses;
 
   if ( PL_is_variable(A2) )
-    return PL_unify_integer(A2, clist->primary_index);
+    return PL_unify_integer(A2, clist->primary_index+1);
 
   if ( !PL_get_integer_ex(A2, &an) )
     return false;
