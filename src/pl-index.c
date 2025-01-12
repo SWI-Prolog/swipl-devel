@@ -97,21 +97,21 @@ typedef struct index_context
 } index_context, *IndexContext;
 
 #if USE_LD_MACROS
-#define	bestHash(av, ac, clist, min_speedup, hints, ctx) \
-	LDFUNC(bestHash, av, ac, clist, min_speedup, hints, ctx)
+#define	bestHash(av, ac, clist, better_than, hints, ctx) \
+	LDFUNC(bestHash, av, ac, clist, better_than, hints, ctx)
 #define	setClauseChoice(chp, cref, generation) \
 	LDFUNC(setClauseChoice, chp, cref, generation)
 #define	first_clause_guarded(argv, argc, clist, ctx) \
 	LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
-#define find_multi_argument_hash(ac, clist, inst, ninst, msu, hints, ctx) \
+#define find_multi_argument_hash(ac, clist, inst, ninst, bthan, hints, ctx) \
 	LDFUNC(find_multi_argument_hash, ac, clist, inst, ninst, \
-	       msu, hints, ctx)
+	       bthan, hints, ctx)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
 static bool	bestHash(Word av, iarg_t ac, ClauseList clist,
-			 float min_speedup, hash_hints *hints,
+			 ClauseIndex better_than, hash_hints *hints,
 			 IndexContext ctx);
 static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
 				  IndexContext ctx);
@@ -136,7 +136,7 @@ static void	wait_for_index(const ClauseIndex ci);
 static void	completed_index(ClauseIndex ci);
 static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
 					 iarg_t *inst, int ninst,
-					 float min_speedup,
+					 ClauseIndex better_than,
 					 hash_hints *hints, IndexContext ctx);
 
 #undef LDFUNC_DECLARATIONS
@@ -441,12 +441,21 @@ iargsName(const iarg_t args[MAX_MULTI_INDEX], char *buf)
 }
 #endif
 
-// If we got an index use this to see whether we should
-// try finding a better one because it is poor
-static bool
-consider_better_index(ClauseIndex const ci, unsigned int nclauses)
+/* Given an index  with speedup for nclauses, should  we always accept
+ * this or should we see whether there might be a better one?
+ *
+ * Reliance on  `MIN_CLAUSES_FOR_INDEX` seems  dubious as this  is not
+ * about using the simple primary index or not.  It also seems dubious
+ * to use `MIN_SPEEDUP_RATIO` rather than simply `MIN_SPEEDUP`.
+ *
+ * In  most cases  it seems  we should  explore all  options and  then
+ * decide.
+ */
+
+static inline bool
+consider_better_index(float speedup, unsigned int nclauses)
 { return ( nclauses > MIN_CLAUSES_FOR_INDEX &&
-	   (float)nclauses/ci->speedup > MIN_SPEEDUP_RATIO );
+	   (float)nclauses/speedup > MIN_SPEEDUP_RATIO );
 }
 
 static ClauseIndex
@@ -476,7 +485,9 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
  * hashDefinition() first checks whether this index already exists and
  * creates it otherwise.
  *
- * Return:
+ * @param better_than is an optional clause index.  When present
+ * we are trying to improve on that index.
+ * @return:
  *   - CI_RETRY
  *     Someone invalidated the index while we were building it or
  *     waiting for a thread to complete it.
@@ -488,15 +499,15 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
 
 #define CI_RETRY ((ClauseIndex)1)
 
-#define	createIndex(av, ac, clist, min_speedup, ctx) \
-	LDFUNC(createIndex, av, ac, clist, min_speedup, ctx)
+#define	createIndex(av, ac, clist, better_than, ctx) \
+	LDFUNC(createIndex, av, ac, clist, better_than, ctx)
 
 static ClauseIndex
 createIndex(DECL_LD Word argv, iarg_t argc, const ClauseList clist,
-	    float min_speedup, IndexContext ctx)
+	    ClauseIndex better_than, IndexContext ctx)
 { hash_hints hints;
 
-  if ( bestHash(argv, argc, clist, min_speedup, &hints, ctx) )
+  if ( bestHash(argv, argc, clist, better_than, &hints, ctx) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(clist, &hints, ctx)) )
@@ -568,7 +579,8 @@ retry:
     if ( best_index )
     { if ( unlikely(!best_index->good) )
       { if ( !STATIC_RELOADING() &&
-	     consider_better_index(best_index, clist->number_of_clauses) )
+	     consider_better_index(best_index->speedup,
+				   clist->number_of_clauses) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT_POOR,
@@ -576,7 +588,7 @@ retry:
 			 iargsName(best_index->args, NULL),
 			 predicateName(ctx->predicate)));
 
-	  if ( (ci=createIndex(argv, argc, clist, best_index->speedup, ctx)) )
+	  if ( (ci=createIndex(argv, argc, clist, best_index, ctx)) )
 	  { if ( unlikely(ci == CI_RETRY) )
 	      continue;
 
@@ -629,7 +641,7 @@ retry:
   if ( !STATIC_RELOADING() )
   { ClauseIndex ci;
 
-    if ( (ci=createIndex(argv, argc, clist, 0.0, ctx)) )
+    if ( (ci=createIndex(argv, argc, clist, NULL, ctx)) )
     { if ( unlikely(ci == CI_RETRY) )
 	goto retry;
 
@@ -1807,7 +1819,7 @@ See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
   ci->resize_below = ci->size/4;
 
   completed_index(ci);
-  if ( !consider_better_index(ci, clist->number_of_clauses) )
+  if ( !consider_better_index(ci->speedup, clist->number_of_clauses) )
     ci->good = true;		/* `good` means complete and sufficient */
 
   return ci;
@@ -2347,7 +2359,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   key_asm *e = &s[a->size];
   word c = 0;				/* invalid key */
   size_t fc = 0;
-  size_t i  = 0;
+  size_t i  = 0;			/* #unique keys */
   float A=0.0, Q=0.0;
 
   qsort(a->keys, a->size, sizeof(key_asm), compar_keys);
@@ -2660,7 +2672,7 @@ best_assessment(hash_assessment *assessments, int count, size_t clause_count)
  */
 
 static void
-access_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
+assess_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
 			 IndexContext ctx)
 { hash_assessment *a;
   int i;
@@ -2697,6 +2709,18 @@ access_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
   }
 }
 
+static arg_info *
+ensure_arg_info(ClauseList clist, iarg_t ac)
+{ if ( !clist->args )
+  { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
+    memset(ai, 0, ac*sizeof(*ai));
+    if ( !COMPARE_AND_SWAP_PTR(&clist->args, NULL, ai) )
+      freeHeap(ai, ac*sizeof(*ai));
+  }
+
+  return clist->args;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bestHash() finds the best argument for creating a hash, given a concrete
@@ -2716,12 +2740,20 @@ expected speedup is
 	----------------------------------
 	#clauses - #var + #var * #distinct
 
-@returns true if a best hash was found.  Details on the best hash are in
+@return `true` if a best hash was found.  Details on the best hash are in
 *hints.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline bool
+better_index(ClauseIndex better_than, float speedup, float min_speedup)
+{ if ( better_than )
+    return speedup > better_than->speedup*min_speedup;
+
+  return true;
+}
+
 static bool
-bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
+bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, ClauseIndex better_than,
 	 hash_hints *hints, IndexContext ctx)
 { assessment_set aset;
   int best = -1;
@@ -2740,12 +2772,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   if ( ninstantiated == 0 )
     return false;
   init_assessment_set(&aset);		/* Prepare for assessment */
-  if ( !clist->args )
-  { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
-    memset(ai, 0, ac*sizeof(*ai));
-    if ( !COMPARE_AND_SWAP_PTR(&clist->args, NULL, ai) )
-      freeHeap(ai, ac*sizeof(*ai));
-  }
+  ensure_arg_info(clist, ac);
 
 					/* Step 2: find new unassessed args*/
   for(int i=0; i<ninstantiated; i++)
@@ -2758,7 +2785,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { access_candidate_indexes(ac, clist, &aset, ctx);
+  { assess_candidate_indexes(ac, clist, &aset, ctx);
     free_assessment_set(&aset);
   }
 
@@ -2774,7 +2801,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   }
 
   if ( best >= 0 )		/* Found at least one index */
-  { if ( (float)clist->number_of_clauses/best_speedup > 3.0f &&
+  { if ( consider_better_index(best_speedup, clist->number_of_clauses) &&
 	 ninstantiated > 1 )	/* ... but not a real good one ... */
     { DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; trying multi-argument index\n",
@@ -2783,11 +2810,11 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
 			      best+1, best_speedup));
 
       if ( find_multi_argument_hash(ac, clist, instantiated, ninstantiated,
-				    best_speedup*MIN_SPEEDUP, hints, ctx) )
+				    better_than, hints, ctx) )
 	return true;
     }
 
-    if ( best_speedup > min_speedup )
+    if ( better_index(better_than, best_speedup, MIN_SPEEDUP) )
     { arg_info *ainfo = &clist->args[best];
 
       memset(hints, 0, sizeof(*hints));
@@ -2803,12 +2830,21 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, float min_speedup,
   return false;
 }
 
-
+/* Try to find an index over multiple arguments if all single argument
+ * indexes  provide poor  selectivity.   As is,  we  only combine  two
+ * indexes,  although the  code  is  prepared to  combine  up to  with
+ * `MAX_MULTI_INDEX` arguments in  a single index.
+ *
+ * @param instantiated contains the argument that are instantiated and
+ * (thus) candidates for the multi-argument  index.  Note that none of
+ * the indexes is  really good as in that case  we would have selected
+ * this good one.
+ */
 
 static bool
 find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 			 iarg_t *instantiated, int ninstantiated,
-			 float min_speedup,
+			 ClauseIndex better_than,
 			 hash_hints *hints, IndexContext ctx)
 { int ok, m, n;
 
@@ -2839,7 +2875,7 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
     assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
     nbest = best_assessment(aset.assessments, aset.count,
 			    clist->number_of_clauses);
-    if ( nbest && nbest->speedup > min_speedup )
+    if ( nbest && better_index(better_than, nbest->speedup, MIN_SPEEDUP) )
     { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 			      predicateName(ctx->predicate),
 			      iargsName(nbest->args, NULL),
@@ -2986,7 +3022,7 @@ sizeofClauseIndexes(Definition def)
 }
 
 
-static int
+static bool
 unify_clause_index(term_t t, ClauseIndex ci)
 { GET_LD
   term_t where = PL_new_term_ref();
@@ -3047,8 +3083,10 @@ unify_clause_index(term_t t, ClauseIndex ci)
 }
 
 
-#define add_deep_indexes(ci, head, tail) LDFUNC(add_deep_indexes, ci, head, tail)
-static int
+#define add_deep_indexes(ci, head, tail) \
+	LDFUNC(add_deep_indexes, ci, head, tail)
+
+static bool
 add_deep_indexes(DECL_LD ClauseIndex ci, term_t head, term_t tail)
 { size_t i;
 

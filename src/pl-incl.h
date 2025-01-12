@@ -1425,7 +1425,7 @@ struct clause
 typedef struct arg_info
 { float		speedup;		/* Computed speedup */
   unsigned	list	   : 1;		/* Index using lists */
-  unsigned	ln_buckets : 5;		/* lg2(bucket count) */
+  unsigned	ln_buckets : 5;		/* lg2(bucket count) (max 4G buckets) */
   unsigned	assessed   : 1;		/* Value was assessed */
   unsigned int	meta	   : 4;		/* Meta-argument info */
 } arg_info;
