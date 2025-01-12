@@ -60,6 +60,10 @@ define ninja
   end
 end
 
+define boot
+  run --home=home -q -O -o home/boot.prc -b home/boot/init.pl
+end
+
 # Re-run the current program until it  crashes. Not SWI-Prolog specific,
 # but too easy to forget.
 
