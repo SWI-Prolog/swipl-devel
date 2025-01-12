@@ -42,6 +42,7 @@
 #include "pl-tabling.h"
 #include "pl-util.h"
 #include "pl-index.h"
+#include "pl-proc.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
@@ -270,30 +271,45 @@ The code is
 
 static Code
 listSupervisor(Definition def)
-{ if ( def->impl.clauses.number_of_clauses == 2 )
+{ size_t arity = def->functor->arity;
+
+  if ( def->impl.clauses.number_of_clauses == 2 && arity > 0 )
   { ClauseRef cref[2];
     word c[2];
     int found = getClauses(def, cref, 2);
 
-    if ( found == 2 &&
-	 arg1Key(cref[0]->value.clause->codes, &c[0]) &&
-	 arg1Key(cref[1]->value.clause->codes, &c[1]) &&
-	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
-	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
-    { Code codes = allocCodes(3);
+    if ( found == 2 )
+    { Code pc1 = cref[0]->value.clause->codes;
+      Code pc2 = cref[1]->value.clause->codes;
+      int h_void1 = 0;
+      int h_void2 = 0;
 
-      DEBUG(1, Sdprintf("List supervisor for %s\n", predicateName(def)));
+      for(size_t arg=0; arg<arity; arg++)
+      { if ( !mode_arg_is_unbound(def, arg) )
+	{ if ( arg1Key(pc1, &c[0]) &&
+	       arg1Key(pc2, &c[1]) &&
+	       ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
+		 (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
+	  { Code codes = allocCodes(4);
 
-      codes[0] = encode(S_LIST);
-      if ( c[0] == ATOM_nil )
-      { codes[1] = ptr2code(cref[0]);
-	codes[2] = ptr2code(cref[1]);
-      } else
-      { codes[1] = ptr2code(cref[1]);
-	codes[2] = ptr2code(cref[0]);
+	    DEBUG(1, Sdprintf("List supervisor for %s\n", predicateName(def)));
+
+	    codes[0] = encode(S_LIST);
+	    codes[1] = (code)arg;
+	    if ( c[0] == ATOM_nil )
+	    { codes[2] = ptr2code(cref[0]);
+	      codes[3] = ptr2code(cref[1]);
+	    } else
+	    { codes[2] = ptr2code(cref[1]);
+	      codes[3] = ptr2code(cref[0]);
+	    }
+
+	    return codes;
+	  }
+	}
+	pc1 = skipArgs(pc1, 1, &h_void1);
+	pc2 = skipArgs(pc2, 1, &h_void2);
       }
-
-      return codes;
     }
   }
 

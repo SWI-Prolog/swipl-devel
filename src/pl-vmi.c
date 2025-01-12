@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2024, University of Amsterdam
+    Copyright (c)  2008-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -3724,27 +3724,28 @@ END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-S_LIST: Predicate consisting of two clauses, one of them using [] and
-the other [_|_].
+S_LIST(ArgN, NilClause, ListClause):
+Predicate consisting of two clauses, one of them using [] and
+the other [_|_] for argument ArgN (0-based)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
+VMI(S_LIST, 0, 3, (CA1_INTEGER, CA1_CLAUSEREF, CA1_CLAUSEREF))
 { ClauseRef cref;
   Word k;
 
   ARGP = argFrameP(FR, 0);
-  deRef2(ARGP, k);
+  deRef2(ARGP+PC[0], k);
   if ( isList(*k) )
-    cref = code2ptr(ClauseRef, PC[1]);
+    cref = code2ptr(ClauseRef, PC[2]);
   else if ( isNil(*k) )
-    cref = code2ptr(ClauseRef, PC[0]);
+    cref = code2ptr(ClauseRef, PC[1]);
   else if ( canBind(*k) )
   { PC = SUPERVISOR(staticp) + 1;
     VMI_GOTO(S_STATIC);
   } else
     FRAME_FAILED;
 
-  PC += 2;
+  PC += 3;
 
   TRUST_CLAUSE(cref);
 }
