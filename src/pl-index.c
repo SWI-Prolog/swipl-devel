@@ -769,7 +769,7 @@ copytpos(iarg_t *to, const iarg_t *from)
 
 
 static ClauseIndex
-newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
+newClauseIndexTable(hash_hints *hints, IndexContext ctx)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int buckets;
   size_t bytes;
@@ -778,7 +778,8 @@ newClauseIndexTable(iarg_t *hap, hash_hints *hints, IndexContext ctx)
   bytes = sizeof(struct clause_bucket) * buckets;
 
   memset(ci, 0, sizeof(*ci));
-  memcpy(ci->args, hap, sizeof(ci->args));
+  static_assert(sizeof(ci->args) == sizeof(hints->args));
+  memcpy(ci->args, hints->args, sizeof(ci->args));
   ci->buckets	 = buckets;
   ci->is_list	 = hints->list;
   ci->incomplete = true;
@@ -1795,7 +1796,7 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
       }
     }
   }
-  ci = newClauseIndexTable(hints->args, hints, ctx);
+  ci = newClauseIndexTable(hints, ctx);
   insertIndex(ctx->predicate, clist, ci);
   UNLOCKDEF(ctx->predicate);
 
