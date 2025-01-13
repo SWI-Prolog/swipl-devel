@@ -768,27 +768,31 @@ copytpos(iarg_t *to, const iarg_t *from)
 }
 
 
-static ClauseIndex
-newClauseIndexTable(hash_hints *hints, IndexContext ctx)
-{ ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
-  unsigned int buckets;
-  size_t bytes;
+static bool
+realize_clause_index(ClauseIndex ci)
+{ size_t bytes = sizeof(struct clause_bucket) * ci->buckets;
+  ClauseBucket buckets = allocHeapOrHalt(bytes);
+  memset(buckets, 0, bytes);
+  bool rc = COMPARE_AND_SWAP_PTR(&ci->entries, NULL, buckets);
+  if ( rc )
+    ATOMIC_INC(&GD->statistics.indexes.created);
+  return rc;
+}
 
-  buckets = 2<<hints->ln_buckets;
-  bytes = sizeof(struct clause_bucket) * buckets;
+static ClauseIndex
+newClauseIndexTable(hash_hints *hints, bool realised, IndexContext ctx)
+{ ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
 
   memset(ci, 0, sizeof(*ci));
   static_assert(sizeof(ci->args) == sizeof(hints->args));
   memcpy(ci->args, hints->args, sizeof(ci->args));
-  ci->buckets	 = buckets;
+  ci->buckets	 = 2<<hints->ln_buckets;
   ci->is_list	 = hints->list;
   ci->incomplete = true;
   ci->speedup	 = hints->speedup;
-  ci->entries	 = allocHeapOrHalt(bytes);
   copytpos(ci->position, ctx->position);
-
-  memset(ci->entries, 0, bytes);
-  ATOMIC_INC(&GD->statistics.indexes.created);
+  if ( realised )
+    realize_clause_index(ci);
 
   return ci;
 }
@@ -1796,7 +1800,7 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
       }
     }
   }
-  ci = newClauseIndexTable(hints, ctx);
+  ci = newClauseIndexTable(hints, true, ctx);
   insertIndex(ctx->predicate, clist, ci);
   UNLOCKDEF(ctx->predicate);
 
