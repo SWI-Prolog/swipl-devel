@@ -1831,10 +1831,14 @@ See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
 }
 
 
+/* create a copy of an array of clause indexes, optionally inserting
+ * `add` ordered by `speedup`.
+ */
+
 static ClauseIndex *
-copyIndex(ClauseIndex *org, int extra)
+copyIndex(ClauseIndex *org, ClauseIndex add)
 { ClauseIndex *ncip;
-  int size = extra;
+  int size = add ? 1 : 0;
 
   if ( org )
   { ClauseIndex *cip;
@@ -1848,7 +1852,6 @@ copyIndex(ClauseIndex *org, int extra)
 
   if ( size )
   { ClauseIndex *ncipo;
-    int i;
 
     ncipo = ncip = allocHeapOrHalt((size+1)*sizeof(*ncip));
     if ( org )
@@ -1857,11 +1860,17 @@ copyIndex(ClauseIndex *org, int extra)
       for(cip=org; *cip; cip++)
       { ClauseIndex ci = *cip;
 	if ( !ISDEADCI(ci) )
+	{ if ( add && add->speedup >= ci->speedup )
+	  { *ncipo++ = add;
+	    add = NULL;
+	  }
 	  *ncipo++ = ci;
+	}
       }
     }
-    for(i=0; i<extra; i++)
-      *ncipo++ = DEAD_INDEX;
+    if ( add )
+      *ncipo++ = add;
+    assert(ncipo-ncip == size);
     *ncipo = NULL;
   } else
     ncip = NULL;
@@ -1973,7 +1982,7 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
   }
 
   if ( !isSortedIndexes(cl->clause_indexes) )
-  { cip = copyIndex(cl->clause_indexes, 0);
+  { cip = copyIndex(cl->clause_indexes, NULL);
     sortIndexes(cip);
     setIndexes(def, cl, cip);
   }
@@ -2002,35 +2011,49 @@ deleteIndex(Definition def, ClauseList clist, ClauseIndex ci)
   assert(0);
 }
 
+/* Insert ci into clist->clause_indexes.  This is called while holding
+ * LOCKDEF(def).
+ */
+
+static ClauseIndex
+next_clause_index(ClauseIndex *cip)
+{ for(; *cip; cip++)
+  { ClauseIndex ci = *cip;
+    if ( !ISDEADCI(ci) )
+      return ci;
+  }
+
+  return NULL;
+}
 
 static void
-insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
+insertIndex(Definition def, ClauseList clist, ClauseIndex add)
 { ClauseIndex *ocip;
 
   if ( (ocip=clist->clause_indexes) )
-  { ClauseIndex *cip = ocip;
-    ClauseIndex *ncip;
+  { ClauseIndex prev = NULL;
+    for(ClauseIndex *cip = ocip; *cip; cip++)
+    { ClauseIndex ci = *cip;
 
-    for(; *cip; cip++)
-    { if ( ISDEADCI(*cip) )
-      { *cip = ci;
-	if ( isSortedIndexes(ocip) )
+      if ( ISDEADCI(ci) )
+      { ClauseIndex next = next_clause_index(cip+1);
+	if ( (!prev || prev->speedup >= add->speedup) &&
+	     (!next || next->speedup <= add->speedup) )
+	{ *cip = add;
 	  return;
-	*cip = DEAD_INDEX;
+	}
+      } else
+      { prev = ci;
       }
     }
 
-    ncip = copyIndex(ocip, 1);
-    for(cip=ncip; *cip; cip++)
-    { if ( ISDEADCI(*cip) )
-	*cip = ci;
-    }
-    sortIndexes(ncip);
+    DEBUG(0, assert(isSortedIndexes(ocip)));
+    ClauseIndex *ncip = copyIndex(ocip, add);
     setIndexes(def, clist, ncip);
   } else
   { ClauseIndex *cip = allocHeapOrHalt(2*sizeof(*cip));
 
-    cip[0] = ci;
+    cip[0] = add;
     cip[1] = NULL;
     clist->clause_indexes = cip;
   }
