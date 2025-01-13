@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -56,7 +57,6 @@
 
           genarg/3,
 
-          (mode)/1,
           no_style_check/1,
           otherwise/0,
           simple/1,
@@ -287,24 +287,6 @@ q_style_option(Option, Option).
 no_style_check(QOption) :-
     q_style_option(QOption, SWIOption),
     style_check(-SWIOption).
-
-
-                /********************************
-                *         DIRECTIVES            *
-                *********************************/
-
-%!  mode(+ModeDecl) is det.
-%
-%   Ignore a DEC10/Quintus `:-   mode(Head)`  declaration. Typically
-%   these declarations are written in   operator  form. The operator
-%   declaration is not part of the   Quintus  emulation library. The
-%   following declaration is compatible with Quintus:
-%
-%     ==
-%     :- op(1150, fx, [(mode)]).
-%     ==
-
-mode(_).
 
 
                  /*******************************

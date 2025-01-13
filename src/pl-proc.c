@@ -1989,7 +1989,7 @@ P_META indicates that meta_info is   valid. P_TRANSPARENT indicates that
 the declaration contains at least one meta-argument (: or 0..9).
 
 @param HeadList	Comma separated list of predicates heads, where each
-		predicate head has arguments 0..9, :,+,-,?
+		predicate head has arguments 0..9, :,^,//,+,-,?
 */
 
 bool
@@ -2024,10 +2024,11 @@ setMetapredicateMask(Definition def, const arg_info *args)
 }
 
 
+#define meta_declaration(spec, ismeta) LDFUNC(meta_declaration, spec, ismeta)
+
 static bool
-meta_declaration(term_t spec)
-{ GET_LD
-  term_t head = PL_new_term_ref();
+meta_declaration(DECL_LD term_t spec, bool ismeta)
+{ term_t head = PL_new_term_ref();
   term_t arg = PL_new_term_ref();
   Procedure proc;
   atom_t name;
@@ -2048,16 +2049,13 @@ meta_declaration(term_t spec)
 
     _PL_get_arg(i+1, head, arg);
 
-    if ( PL_is_integer(arg) )
+    if ( ismeta && PL_is_integer(arg) )
     { unsigned int e;
 
       if ( !PL_cvt_i_uint(arg, &e) )
 	return false;
       if ( e > 9 )
-      { domain_error:
-	return PL_error(NULL, 0, "0..9",
-			ERR_DOMAIN, ATOM_meta_argument_specifier, arg);
-      }
+	return PL_domain_error("meta_argument_specifier", arg);
       args[i].meta = e&0xf;
     } else if ( PL_get_atom(arg, &ma) )
     { unsigned int m;
@@ -2065,16 +2063,18 @@ meta_declaration(term_t spec)
       if      ( ma == ATOM_plus )          m = MA_NONVAR;
       else if ( ma == ATOM_minus )         m = MA_VAR;
       else if ( ma == ATOM_question_mark ) m = MA_ANY;
-      else if ( ma == ATOM_star )	   m = MA_ANY; /* * mapped to ? */
+      else if ( !ismeta ) return PL_domain_error("mode", arg);
+      else if ( ma == ATOM_star )	   m = MA_ANY; /* `*` mapped to ? */
       else if ( ma == ATOM_colon )         m = MA_META;
       else if ( ma == ATOM_hat )           m = MA_HAT;
       else if ( ma == ATOM_gdiv )          m = MA_DCG;
-      else goto domain_error;
+      else return PL_domain_error("meta_argument_specifier", arg);
 
       args[i].meta = m&0xf;
+    } else if ( ismeta )
+    { return PL_type_error("meta_argument_specifier", arg);
     } else
-    { return PL_error(NULL, 0, "0..9",
-			ERR_TYPE, ATOM_meta_argument_specifier, arg);;
+    { return PL_type_error("mode", arg);
     }
   }
 
@@ -2092,26 +2092,39 @@ meta_declaration(term_t spec)
   return rc;
 }
 
+#define meta_predicate(spec, ismeta) LDFUNC(meta_predicate, spec, ismeta)
 
-static
-PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
-{ PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
+static bool
+meta_predicate(DECL_LD term_t spec, bool ismeta)
+{ term_t tail = PL_copy_term_ref(spec);
   term_t head = PL_new_term_ref();
 
   while ( PL_is_functor(tail, FUNCTOR_comma2) )
   { _PL_get_arg(1, tail, head);
-    if ( !meta_declaration(head) )
+    if ( !meta_declaration(head, ismeta) )
       return false;
     _PL_get_arg(2, tail, tail);
   }
 
-  if ( !meta_declaration(tail) )
+  if ( !meta_declaration(tail, ismeta) )
     return false;
 
   return true;
 }
 
+static
+PRED_IMPL("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return meta_predicate(A1, true);
+}
+
+static
+PRED_IMPL("mode", 1, mode, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return meta_predicate(A1, false);
+}
 
 #define unify_meta_argument(head, def, i) LDFUNC(unify_meta_argument, head, def, i)
 static int
@@ -4240,6 +4253,7 @@ BeginPredDefs(proc)
 	   PL_FA_TRANSPARENT)
   PRED_DEF("$default_predicate", 2, default_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
+  PRED_DEF("mode", 1, mode, PL_FA_TRANSPARENT)
   PRED_DEF("$get_clause_attribute", 3, get_clause_attribute, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)

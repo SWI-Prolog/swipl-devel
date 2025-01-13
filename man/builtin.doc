@@ -4715,6 +4715,27 @@ Set the corresponding property.  See multifile/1, discontiguous/1
 and volatile/1.
     \end{description}
 
+    \prefixop{mode}{+Head, \ldots}
+Define the \jargon{modes} for the predicates referenced by the
+comma-separated list \arg{Head}. Each argument of each head is a
+\jargon{mode specifier}. Defined specifiers are \chr{+}, \chr{-} and
+\chr{?}. Mode declarations have a long history in Prolog. This predicate
+uses the definitions derived from e.g., Quintus Prolog and used for
+documentation in the ISO standard. The specifiers declare whether or not
+an argument is \jargon{unbound} at \emph{call time}. The \chr{+}
+declares that the argument is nonvar/1, the \chr{-} declares the
+argument is var/1 and \chr{?} makes no claim.
+
+Several Prolog systems define \const{mode} as an operator using the
+declaration below.  Currently we do not define the operator.
+\begin{code}
+:- op(1150, fx, mode).
+\end{code}
+
+SWI-Prolog uses the mode information for its just-in-time clause
+indexing as described in \secref{jitindex}. JIT only uses the \chr{-}
+specifier to avoid examining that argument as a candidate for indexing.
+
     \predicate{compile_predicates}{1}{:ListOfPredicateIndicators}
 Compile a list of specified dynamic predicates (see dynamic/1 and
 assert/1) into normal static predicates.  This call tells the Prolog
@@ -4973,6 +4994,11 @@ unify \arg{Head} with the head-pattern.  The head-pattern is a
 compound term with the same name and arity as the predicate where each
 argument of the term is a meta-predicate specifier.  See meta_predicate/1
 for details.
+
+    \termitem{mode}{Head}
+If the mode for the predicate is defined using mode/1.  Head is a term
+as in the property \term{meta_predicate}{Head}, but the specifiers are
+limited to \const{+}, \const{-} and \const{?}.
 
     \termitem{monotonic}{}
 True if the predicate is tabled or dynamic using monotonic propagation.

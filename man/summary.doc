@@ -432,6 +432,7 @@ suggest predicates from a keyword.
 \predicatesummary{message_to_string}{2}{Translate message-term to string}
 \predicatesummary{meta_predicate}{1}{Declare access to other predicates}
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
+\oppredsummary{mode}{1}{Define the mode for predicates}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
 \predicatesummary{module}{3}{Declare a module with language options}

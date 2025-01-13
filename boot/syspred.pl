@@ -826,6 +826,10 @@ define_or_generate(Pred) :-
 '$predicate_property'(transparent, Pred) :-
     '$get_predicate_attribute'(Pred, transparent, 1).
 '$predicate_property'(meta_predicate(Pattern), Pred) :-
+    '$get_predicate_attribute'(Pred, transparent, 1),
+    '$get_predicate_attribute'(Pred, meta_predicate, Pattern).
+'$predicate_property'(mode(Pattern), Pred) :-
+    '$get_predicate_attribute'(Pred, transparent, 0),
     '$get_predicate_attribute'(Pred, meta_predicate, Pattern).
 '$predicate_property'(file(File), Pred) :-
     '$get_predicate_attribute'(Pred, file, File).
