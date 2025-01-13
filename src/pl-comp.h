@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022-2024, University of Amsterdam
+    Copyright (c)  2022-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -69,7 +69,7 @@ Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
 int		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
-Code		skipArgs(Code PC, int skip);
+Code		skipArgs(Code PC, int skip, int *in_hvoid);
 bool		argKey(Code PC, int skip, word *key);
 bool		arg1Key(Code PC, word *key);
 bool		decompile(Clause clause, term_t term, term_t bindings);

@@ -1154,6 +1154,7 @@ resortDictsInCodes(Code PC, Code end)
 	  kv_code *kv_pos;
 	  Code c_tmp;
 	  Code fields_start, fs;
+	  int h_void = 0;
 
 	  if ( fields <= KV_PREALOCATED )
 	    kv_pos = kv_buf;
@@ -1166,14 +1167,14 @@ resortDictsInCodes(Code PC, Code end)
 	    PC[0] = encode(H_VOID);
 	    PC[1] = encode(H_VOID);
 	  }
-	  PC = skipArgs(PC, 1);		/* skip the type */
+	  PC = skipArgs(PC, 1, &h_void); /* skip the type */
 	  fields_start = PC;
 
 	  for(f = 0; f < fields; f++)
 	  { Code PCv = PC;
 
 	    kv_pos[f].start = PC-fields_start;
-	    PC = skipArgs(PC, 1);	/* skip value */
+	    PC = skipArgs(PC, 1, &h_void); /* skip value */
 
 	    code op = fetchop(PC);
 	    switch(op)

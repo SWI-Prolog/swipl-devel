@@ -4701,20 +4701,31 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-skipArgs() skips arguments. When used inside  a clause-head and the skip
-is into the middle  of  a  H_VOID_N,   it  returns  the  location of the
+skipArgs() skips  arguments. When  used inside  a clause-head  and the
+skip is into the middle of a  H_VOID_N, it returns the location of the
 H_VOID_N.
 
-(*) resortDictsInClause() uses this to skip  values   in  the dict. As a
-dict is essentially a compound, if the last  value is H_VOID, it will be
-optimised away, resulting in <key-code>,   H_POP  instead of <key-code>,
-H_VOID, H_POP.
+@param in_hvoid must initially  be set to a pointer to  0.  It is used
+to skip H_VOID_N in small steps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
-skipArgs(Code PC, int skip)
+skipArgs(Code PC, int skip, int *in_hvoid)
 { int nested = 0;
   Code nextPC;
+
+  if ( *in_hvoid )
+  { assert(*PC == encode(H_VOID_N));
+    if ( skip > *in_hvoid )
+    { skip -= *in_hvoid;
+      *in_hvoid = 0;
+    } else
+    { (*in_hvoid) -= skip;
+      if ( *in_hvoid == 0 )
+	return stepPC(PC);
+      return PC;
+    }
+  }
 
   for(;; PC=nextPC)
   { code c = decode(*PC);
@@ -4741,7 +4752,7 @@ skipArgs(Code PC, int skip)
 	  return nextPC;
 	if ( nested >= 0 )
 	  continue;
-	return PC;			/* See (*) */
+	return PC;
       case H_ATOM:
       case H_SMALLINT:
       case H_SMALLINTW:
@@ -4780,7 +4791,9 @@ skipArgs(Code PC, int skip)
 	  continue;
 	skip -= (int)PC[1];
 	if ( skip <= 0 )
+	{ *in_hvoid = -skip;
 	  return PC;
+	}
 	continue;
       case I_EXITFACT:
       case I_EXIT:
@@ -4819,7 +4832,9 @@ pl-index.c.
 bool
 argKey(Code PC, int skip, word *key)
 { if ( skip > 0 )
-    PC = skipArgs(PC, skip);
+  { int h_void = 0;
+    PC = skipArgs(PC, skip, &h_void);
+  }
 
   for(;;)
   { code c = decode(*PC++);

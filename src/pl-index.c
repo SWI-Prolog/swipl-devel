@@ -131,7 +131,8 @@ static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef where);
 static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 				      IndexContext ctx);
-static Code	skipToTerm(Clause clause, const iarg_t *position);
+static Code	skipToTerm(Clause clause, const iarg_t *position,
+			   int *in_hvoid);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(const ClauseIndex ci);
 static void	completed_index(ClauseIndex ci);
@@ -1445,14 +1446,15 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
-{ Code PC = skipToTerm(cl, ci->position);
+{ int h_void = 0;
+  Code PC = skipToTerm(cl, ci->position, &h_void);
 
   if ( likely(ci->args[1] == 0) )
   { int arg = ci->args[0] - 1;
     word key;
 
     if ( arg > 0 )
-      PC = skipArgs(PC, arg);
+      PC = skipArgs(PC, arg, &h_void);
     if ( end )
       *end = PC;
     if ( argKey(PC, 0, &key) )
@@ -1467,7 +1469,7 @@ indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
 
     for(harg=0; ci->args[harg]; harg++)
     { if ( ci->args[harg] > pcarg )
-	PC = skipArgs(PC, ci->args[harg]-pcarg);
+	PC = skipArgs(PC, ci->args[harg]-pcarg, &h_void);
       pcarg = ci->args[harg];
       if ( !argKey(PC, 0, &key[harg]) )
 	return 0;
@@ -2486,7 +2488,7 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(Clause clause, const iarg_t *position)
+skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
 { int an;
   Code pc = clause->codes;
 
@@ -2498,7 +2500,7 @@ skipToTerm(Clause clause, const iarg_t *position)
 		   an, clauseNo(clause, 0), predicateName(clause->predicate)));
 
     if ( an > 0 )
-      pc = skipArgs(pc, an);
+      pc = skipArgs(pc, an, in_hvoid);
   again:
     c = decode(*pc);
     switch(c)
@@ -2610,16 +2612,17 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   { Clause cl = cref->value.clause;
     Code pc;
     int carg = 0;
+    int h_void = 0;
 
     if ( ison(cl, CL_ERASED) )
       continue;
 
-    pc = skipToTerm(cl, ctx->position);
+    pc = skipToTerm(cl, ctx->position, &h_void);
 
     /* fill keys[i] with the value of arg kp[i] */
     for(kpp=kp; kpp[0] >= 0; kpp++)
     { if ( kpp[0] > carg )
-	pc = skipArgs(pc, kpp[0]-carg);
+	pc = skipArgs(pc, kpp[0]-carg, &h_void);
       carg = kpp[0];
       argKey(pc, 0, &keys[kpp[0]]);
       nvcomp[kpp[0]] = false;
@@ -2915,13 +2918,14 @@ static int
 clause_first_nonvar_arg(Definition def, Clause cl)
 { Code PC = cl->codes;
   int arity = (int)def->functor->arity;
+  int h_void = 0;
 
   for(int arg0=0; arg0 < arity; arg0++)
   { word k;
 
     if ( !mode_arg_is_unbound(def, arg0) && argKey(PC, 0, &k) )
       return arg0;
-    PC = skipArgs(PC, 1);
+    PC = skipArgs(PC, 1, &h_void);
   }
 
   return arity;
