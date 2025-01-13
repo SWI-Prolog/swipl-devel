@@ -3401,18 +3401,25 @@ they are presented.
 \begin{itemlist}
     \item [Special purpose code]
 Currently two special cases are recognised by the compiler: static code
-with exactly one clause and static code with two clauses, one where the
-first argument is the empty list (\verb$[]$) and one where the first
-argument is a non-empty list (\verb$[_|_]$).
+with exactly one clause and static code with two clauses, one where some
+argument is the empty list (\verb$[]$) and one where the same argument
+is a non-empty list (\verb$[_|_]$). Note that if this argument is an
+\jargon{output argument}, semantics are preserved, but efficiency
+suffers slightly. This slow-down can be avoided using mode/1 to declare
+the argument as \chr{-}.\footnote{Up to version 9.3.18, only the first
+argument was considered.}
 
-    \item [Linear scan on first argument]
-The principal clause list maintains a \jargon{key} for the first
-argument. An indexing key is either a constant or a functor (name/arity
-reference). Calls with an instantiated first argument and less than
-10 clauses perform a linear scan for a possible matching clause using
-this index key.  If the result is deterministic it is used.  Otherwise
-the system looks for better indexes.\footnote{Up to 7.7.2 this result
-was used also when non-deterministic.}.
+    \item [Linear scan on primary index argument]
+The principal clause list maintains a \jargon{key}, normally for the
+first argument. An indexing key is either a constant or a functor
+(name/arity reference). Calls with an instantiated primary index
+argument and less than 10 clauses perform a linear scan for a possible
+matching clause using this index key. If the result is deterministic it
+is used. Otherwise the system looks for better indexes.\footnote{Up to
+7.7.2 this result was used also when non-deterministic.}.  The primary
+index argument is the first argument for which at least one of the
+clauses has an indexable (nonvar) value for that argument.\footnote{Up
+to version 9.3.18, the primary index was fixed to the first argument.}
 
     \item [Hash lookup]
 If none of the above applies, the system considers the available hash
