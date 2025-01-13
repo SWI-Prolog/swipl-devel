@@ -3200,12 +3200,14 @@ static ClauseIndex
 get_existing_index(ClauseIndex **from, const hash_hints *hints)
 { ClauseIndex *cip = *from;
 
-  for(; *cip; cip++)
-  { ClauseIndex ci = *cip;
-    if ( !ISDEADCI(ci) )
-    { if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
-      { *from = cip+1;
-	return ci;
+  if ( cip )
+  { for(; *cip; cip++)
+    { ClauseIndex ci = *cip;
+      if ( !ISDEADCI(ci) )
+      { if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
+	{ *from = cip+1;
+	  return ci;
+	}
       }
     }
   }
@@ -3581,65 +3583,78 @@ sizeofClauseIndexes(Definition def)
   return size;
 }
 
+/* Unify `t` with a dict representing a (hash) index.  Keys are:
+ *
+ *   - arguments: list of arguments hashed.
+ *   - position:  Argument nesting.  [] is a toplevel index.
+ *     [1,2] is an index in the 2nd argument of the 1st argument
+ *     of the predicate.
+ *   - buckets: # buckets of the hash
+ *   - speedup: Expected speedup (a float)
+ *   - list: Has sub indexes
+ *   - size: Bytes used for the index
+ *   - realised: bool indicating whether the index is realised.
+ */
+
+static atom_t i_tag_hash = 0;
+static atom_t i_index_keys[7];
+
+static void
+init_index_keys(void)
+{ if ( !i_tag_hash )
+  { i_index_keys[0] = PL_new_atom("arguments");
+    i_index_keys[1] = PL_new_atom("position");
+    i_index_keys[2] = PL_new_atom("buckets");
+    i_index_keys[3] = PL_new_atom("speedup");
+    i_index_keys[4] = PL_new_atom("list");
+    i_index_keys[5] = PL_new_atom("size");
+    i_index_keys[6] = PL_new_atom("realised");
+    i_tag_hash = PL_new_atom("hash");
+  }
+}
+
+#define unify_clause_index(t, ci) LDFUNC(unify_clause_index, t, ci)
 
 static bool
-unify_clause_index(term_t t, ClauseIndex ci)
-{ GET_LD
-  term_t where = PL_new_term_ref();
-  term_t tmp  = PL_new_term_ref();
+unify_clause_index(DECL_LD term_t t, ClauseIndex ci)
+{ term_t values, pos, tmp;
 
-  if ( !(where=PL_new_term_ref()) ||
-       !(tmp =PL_new_term_ref()) )
+  if ( !(values=PL_new_term_refs(7)) ||
+       !(tmp=PL_new_term_ref()) )
     return false;
 
-  if ( ci->args[1] )
-  { int i;
+  if ( !put_args(values+0, ci->args) )
+    return false;
 
-    PL_put_nil(where);
-    for(i=MAX_MULTI_INDEX-1; i>= 0; i--)
-    { if ( ci->args[i] )
-      { if ( !PL_put_integer(tmp, ci->args[i]) ||
-	     !PL_cons_list(where, tmp, where) )
-	  return false;
-      }
-    }
+  pos = values+1;
+  if ( !PL_put_nil(pos) )
+    return false;
 
-    if ( !PL_cons_functor(where, FUNCTOR_multi1, where) )
-      return false;
-  } else
-  { if ( !PL_put_integer(where, ci->args[0]) ||
-	 !PL_cons_functor(where, FUNCTOR_single1, where) )
+  iarg_t *ap = ci->position;
+  while(*ap != END_INDEX_POS)
+    ap++;
+  for(--ap; ap >= ci->position; ap--)
+  { if ( !PL_put_integer(tmp, (*ap)+1) ||
+	 !PL_cons_list(pos, tmp, pos) )
       return false;
   }
 
-  if ( ci->position[0] != END_INDEX_POS )
-  { iarg_t *ap = ci->position;
-    term_t nil;
+  if ( !PL_unify_int64(values+2, ci->buckets) ||
+       !PL_unify_float(values+3, ci->speedup) ||
+       !PL_unify_bool(values+4,  ci->is_list) ||
+       !PL_unify_int64(values+5, sizeofClauseIndex(ci)) ||
+       !PL_unify_bool(values+6,  ci->entries != NULL) )
+    return false;
 
-    if ( !(nil=PL_new_term_ref()) ||
-	 !PL_put_nil(nil) ||
-	 !PL_cons_functor(where, FUNCTOR_dot2, where, nil) )
-      return false;
+  init_index_keys();
 
-    while(*ap != END_INDEX_POS)
-      ap++;
-    for(--ap; ap >= ci->position; ap--)
-    { if ( !PL_put_integer(tmp, (*ap)+1) ||
-	   !PL_cons_list(where, tmp, where) )
-	return false;
-    }
-    if ( !PL_cons_functor(where, FUNCTOR_deep1, where) )
-      return false;
-  }
+  bool rc = ( PL_put_dict(tmp, i_tag_hash, 7, i_index_keys, values) &&
+	      PL_unify(t, tmp) );
 
-  return PL_unify_term(t,
-		       PL_FUNCTOR, FUNCTOR_minus2,
-			 PL_TERM, where,
-			 PL_FUNCTOR, FUNCTOR_hash4,
-			   PL_INT, (int)ci->buckets,
-			   PL_DOUBLE, (double)ci->speedup,
-			   PL_INT64, (int64_t)sizeofClauseIndex(ci),
-			   PL_BOOL, ci->is_list);
+  if ( rc )
+    PL_reset_term_refs(values);
+
+  return rc;
 }
 
 
@@ -3814,6 +3829,7 @@ ci_get_flag(DECL_LD term_t t, atom_t key)
 void
 initClauseIndexing(void)
 { i_tag_arg_info = 0;
+  i_tag_hash = 0;
 
   CI_CONF(min_speedup)       = 1.5f;
   CI_CONF(max_var_fraction)  = 0.1f;

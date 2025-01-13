@@ -234,9 +234,12 @@
 	    \definition{{\it #2} #1}\ignorespaces}
 
 %	\dictitem{tag}{Args}
+%	\keyitem{Key}{Value}
 
 \newcommand{\dictitem}[2]{%
 	    \definition{#1\{{\it #2}\}}\ignorespaces}
+\newcommand{\keyitem}[2]{%
+	    \definition{\textbf{#1}: \textit{#1}}\ignorespaces}
 
 %	\term{functor}{Args}
 %	\infixterm{functor}{Left}{Right}

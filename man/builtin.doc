@@ -4941,28 +4941,39 @@ flag is not set to \const{fail} in the target module.
 
     \termitem{indexed}{Indexes}
 \arg{Indexes} is a list of additional (hash) indexes on the predicate.
-Each element of the list is a term \arg{ArgSpec}-\arg{Index}.
-\arg{ArgSpec} denotes the indexed argument(s) and is one of
+Each element of the list is a dict holding the following keys:
 
 \begin{description}
-    \termitem{single}{Argument}
-Hash on a single argument.  \arg{Argument} is the 1-based argument
-number.
-    \termitem{multi}{ArgumentList}
-Hash on a combination of arguments.
-    \termitem{deep}{Position}
-Index on a sub-argument.  Position is a list holding first the
-argument of the predicate then the argument into the compound
-and recursively into deeper compound terms.
+    \keyitem{arguments}{List}
+1-based argument numbers of the predicate or compound used for the
+index.
+    \keyitem{position}{List}
+1-based argument numbers to find the compound for a \jargon{deep}
+index.  Empty list (\verb$[]$) for predicate arguments.  A list
+\verb$[1,2]$ implies we index on the 2nd argument of the 1st
+argument of the predicate, i.e., on the \arg{I} in the
+head \exam{p(f(_,I))}
+    \keyitem{buckets}{Count}
+Number of buckets of the hash
+    \keyitem{list}{Boolean}
+The hash is a \jargon{deep} index, i.e., it points at compounds
+and there may be sub-indexes on these compounds.
+    \keyitem{realised}{Boolean}
+If \const{false}, the index is associated with the predicate but
+not filled.  It will be filled if the predicate is called such that
+this index is at least \prologflag{ci_min_speedup} times better than
+the best already realised index.
+    \keyitem{size}{Bytes}
+Memory usage in bytes of the index.
+    \keyitem{speedup}{Float}
+Estimated speedup.  The basic value is the number of unique values
+in the argument of the clauses to which this index applies.  The
+value is reduced when there are clauses with a variable in this
+position and when the standard deviation for the sets of clauses
+with the same value is high, i.e., we prefer indexes where the
+number of candidate clauses is similar, regardless of the value
+used in the call.
 \end{description}
-
-\arg{Index} is a term \term{hash}{Buckets, Speedup, Size, IsList}. Here
-\arg{Buckets} is the number of buckets in the hash and \arg{Speedup} is
-the expected speedup relative to trying all clauses linearly, \arg{Size}
-is the size of the index in memory in bytes and finally, \arg{IsList}
-indicates that a list is created for all clauses with the same key. This
-is used to create \jargon{deep indexes} for the arguments of compound
-terms.
 
 \textbf{Note:} This predicate property should be used for analysis and
 statistics only. The exact representation of \arg{Indexes} may change

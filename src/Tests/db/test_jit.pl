@@ -61,19 +61,21 @@ This module tests behaviour of the just-in-time indexes.
     has_hashes(:, ?),
     not_hashed(:).
 
+%!  has_hashes(+Pred, +Hashes:List) is semidet.
+%
+%   Verify that Pred hash single  argument   hashes  on the arguments in
+%   List.
+%
+%   @tbd Deal with deep and multi argument hashes.
+
 has_hashes(P, Hashes) :-
-    maplist(index, Hashes, RIndexed),
+    sort(Hashes, SHashes),
     predicate_property(P, indexed(Indexed)),
-    maplist(pindex, Indexed, PIndexed),
-    msort(PIndexed, RIndexed).
+    maplist(hash_arg, Indexed, Args),
+    sort(Args, SHashes).
 
-index(N, [N]-_) :- integer(N), !.
-index(L, L-_).
-
-pindex(single(I)-Hash, [I]-Hash).
-pindex(multi(List)-Hash, List-Hash).
-pindex(deep(_)-_, _) :-
-    assertion(fail).
+hash_arg(Dict, Arg) :-
+    [Arg] = Dict.arguments.
 
 not_hashed(P) :-
     \+ predicate_property(P, indexed(_)).
