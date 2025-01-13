@@ -229,6 +229,9 @@ suggest predicates from a keyword.
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{det}{1}{Declare predicates as deterministic}
 \predicatesummary{deterministic}{1}{Test determinicity of current clause}
+\predicatesummary{dict_create}{3}{Create a dict from data}
+\predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
+\predicatesummary{dict_same_keys}{2}{True when dicts have the same keys}
 \predicatesummary{dif}{2}{Constrain two terms to be different}
 \predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
@@ -416,9 +419,6 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
-\predicatesummary{dict_create}{3}{Create a dict from data}
-\predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
-\predicatesummary{dict_same_keys}{2}{True when dicts have the same keys}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
