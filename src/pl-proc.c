@@ -2000,7 +2000,9 @@ isTransparentMetamask(Definition def, const arg_info *args)
   for(i=0; i<arity && !transparent; i++)
   { int ma = args[i].meta;
     if ( MA_NEEDS_TRANSPARENT(ma) )
-      transparent = true;
+    { transparent = true;
+      break;
+    }
   }
 
   return transparent;
