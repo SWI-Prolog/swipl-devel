@@ -2911,11 +2911,6 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 		 *      PRIMARY INDEX ARG       *
 		 *******************************/
 
-static bool
-mode_arg_is_unbound(Definition def, int arg0)
-{ return def->impl.any.args[arg0].meta == MA_VAR;
-}
-
 static int
 clause_first_nonvar_arg(Definition def, Clause cl)
 { Code PC = cl->codes;

@@ -146,6 +146,12 @@ lookupDefinition(functor_t f, Module m)
   return proc ? proc->definition : NULL;
 }
 
+/* The nth-0 argument of def has mode `-`
+ */
 
+static inline bool
+mode_arg_is_unbound(Definition def, int arg0)
+{ return def->impl.any.args[arg0].meta == MA_VAR;
+}
 
 #endif /*_PL_PROC_H*/
