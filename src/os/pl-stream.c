@@ -1725,6 +1725,15 @@ Sset_exception(IOSTREAM *s, term_t ex)
       } else
       { r = s->exception = PL_record(ex);
       }
+
+      /* If the current exception is associated with the
+       * stream we should clear it.  It will be re-raised
+       * by reportStreamError(), which clears the exception
+       * from the stream again.
+       */
+      term_t pending = PL_exception(0);
+      if ( pending && PL_compare(ex,pending) == CMP_EQUAL )
+	PL_clear_exception();
     }
 
     s->flags = nflags;
