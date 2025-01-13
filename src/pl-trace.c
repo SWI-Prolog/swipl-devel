@@ -2627,12 +2627,8 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
       return PL_unify_int64(A3, offset);
     return false;
   } else if ( key == ATOM_clause )
-  { if ( ch->type == CHP_CLAUSE )
-    { return PL_unify_clref(A3, ch->value.clause.cref->value.clause);
-    } else if ( choice_type_atom(ch) == ATOM_clause )
-    { Sdprintf("S_ALLCLAUSES not yet supported\n");
-    }
-    return false;
+  { assert(ch->type == CHP_CLAUSE);
+    return PL_unify_clref(A3, ch->value.clause.cref->value.clause);
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 

@@ -2007,9 +2007,6 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case S_TRUSTME:			/* Consider supervisor handling! */
       case S_LIST:
 	return PC-1;
-      case S_NEXTCLAUSE:
-	mark_alt_clauses(state->frame, state->frame->clause->next);
-	return PC-1;
       case I_FREDO:
 	mark_arguments(state->frame);
 	return PC-1;
