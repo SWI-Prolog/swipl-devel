@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -2570,6 +2570,7 @@ def_goal_colours(public(_),              built_in-[declarations(public)]).
 def_goal_colours(det(_),                 built_in-[declarations(det)]).
 def_goal_colours(table(_),               built_in-[declarations(table)]).
 def_goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
+def_goal_colours(mode(_),                built_in-[meta_declarations]).
 def_goal_colours(consult(_),             built_in-[file]).
 def_goal_colours(include(_),             built_in-[file]).
 def_goal_colours(ensure_loaded(_),       built_in-[file]).
