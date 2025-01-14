@@ -399,8 +399,12 @@ list_void_declarations :-
     P = _:_,
     (   predicate_property(P, undefined),
         (   '$get_predicate_attribute'(P, meta_predicate, Pattern),
-            print_message(warning,
-                          check(void_declaration(P, meta_predicate(Pattern))))
+            (   '$get_predicate_attribute'(P, transparent, 1)
+            ->   print_message(warning,
+                               check(void_declaration(P, meta_predicate(Pattern))))
+            ;    print_message(warning,
+                               check(void_declaration(P, mode(Pattern))))
+            )
         ;   void_attribute(Attr),
             '$get_predicate_attribute'(P, Attr, 1),
             print_message(warning,
@@ -948,7 +952,7 @@ prolog:message(check(Msg, Goal, Context)) -->
     check_message(Msg).
 prolog:message(check(void_declaration(P, Decl))) -->
     predicate(P),
-    [ ' is declared as ~p, but has no clauses'-[Decl] ].
+    [ ' is declared with ', ansi(code, '~p', [Decl]), ' but has no clauses' ].
 
 undefined_procedures([]) -->
     [].
@@ -987,14 +991,14 @@ predicate(Module:Name/Arity) -->
       predicate_name(Module:Head, PName)
     },
     !,
-    [ '~w'-[PName] ].
+    [ ansi(code, '~w', [PName]) ].
 predicate(Module:Head) -->
     { atom(Module),
       callable(Head),
       predicate_name(Module:Head, PName)
     },
     !,
-    [ '~w'-[PName] ].
+    [ ansi(code, '~w', [PName]) ].
 predicate(Name/Arity) -->
     { atom(Name),
       integer(Arity)
