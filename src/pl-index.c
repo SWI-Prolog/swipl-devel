@@ -1661,7 +1661,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where)
     for(; n; n--, ch++)
       addClauseBucket(ch, cl, key, arg1key, where, ci->is_list);
   } else
-  { int hi = hashIndex(key, ci->buckets);
+  { unsigned int hi = hashIndex(key, ci->buckets);
 
     DEBUG(MSG_INDEX_UPDATE, Sdprintf("Storing in bucket %d\n", hi));
     ci->size += addClauseBucket(&ch[hi], cl, key, arg1key, where, ci->is_list);
