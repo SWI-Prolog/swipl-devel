@@ -907,7 +907,7 @@ addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
       while ( ci->incomplete )
 	wait_for_index(ci);
       if ( ci->invalid )
-	return;
+	continue;
 
       if ( ci->size >= ci->resize_above ||
 	   !addClauseToIndex(ci, clause, where) )
