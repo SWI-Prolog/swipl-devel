@@ -134,7 +134,8 @@ static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
 static Code	skipToTerm(Clause clause, const iarg_t *position,
 			   int *in_hvoid);
 static void	unalloc_index_array(void *p);
-static void	wait_for_index(const ClauseIndex ci);
+static void	wait_for_index(ClauseIndex ci, ClauseList clist,
+			       IndexContext ctx);
 static void	completed_index(ClauseIndex ci);
 static bool	realize_clause_index(ClauseIndex ci);
 static ClauseIndex fill_clause_index(ClauseIndex ci, ClauseList clist,
@@ -143,7 +144,8 @@ static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
 					 iarg_t *inst, int ninst,
 					 ClauseIndex better_than,
 					 hash_hints *hints, IndexContext ctx);
-
+static bool	set_candidate_indexes(Definition def, ClauseList clist,
+				      int max);
 #undef LDFUNC_DECLARATIONS
 
 /* We are reloading static code */
@@ -521,7 +523,7 @@ createIndex(DECL_LD Word argv, iarg_t argc, const ClauseList clist,
 
     if ( (ci=hashDefinition(clist, &hints, ctx)) )
     { while ( ci->incomplete )
-	wait_for_index(ci);
+	wait_for_index(ci, clist, ctx);
       if ( ci->invalid )
 	return CI_RETRY;
 
@@ -584,7 +586,8 @@ retry:
 
     if ( best_index )
     { if ( unlikely(!best_index->good) )
-      { if ( !STATIC_RELOADING(ctx->predicate) &&
+      { if ( !clist->fixed_indexes &&
+	     !STATIC_RELOADING(ctx->predicate) &&
 	     consider_better_index(best_index->speedup,
 				   clist->number_of_clauses) )
 	{ ClauseIndex ci;
@@ -605,13 +608,8 @@ retry:
 	}
 
 	if ( best_index->incomplete )
-	{ if ( !best_index->entries && realize_clause_index(best_index) )
-	  { if ( !fill_clause_index(best_index, clist, ctx) )
-	      continue;		/* retry */
-	  } else
-	  { wait_for_index(best_index);
-	    continue;
-	  }
+	{ wait_for_index(best_index, clist, ctx);
+	  continue;
 	}
       }
 
@@ -623,8 +621,26 @@ retry:
     break;
   }
 
+  iarg_t pindex = clist->primary_index;
+  chp->key = indexOfWord(argv[pindex]);
+
+  if ( clist->fixed_indexes )
+  { if ( chp->key )
+    { chp->cref = clist->first_clause;
+      return nextClauseArg1(chp, ctx->generation);
+    } else
+      return first_clause_unindexed(clist, ctx);
+  }
+
   if ( unlikely(clist->number_of_clauses == 0) )
     return NULL;
+
+  if ( isoff(ctx->predicate,
+	     P_DYNAMIC|P_MULTIFILE|P_THREAD_LOCAL|P_FOREIGN) &&
+       ctx->depth == 0 )
+  { set_candidate_indexes(ctx->predicate, clist, 10);
+    goto retry;
+  }
 
   /* Try first argument indexing if the first argument can be indexed and
    * we have less than MIN_CLAUSES_FOR_INDEX clauses.  Accept if we have
@@ -633,12 +649,10 @@ retry:
    * search for other indexes.
    */
 
-  iarg_t pindex = clist->primary_index;
-  if ( (chp->key = indexOfWord(argv[pindex])) &&
+  if ( chp->key &&
        ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
 	 STATIC_RELOADING(ctx->predicate)) )
   { chp->cref = clist->first_clause;
-
     cref = nextClauseArg1(chp, ctx->generation);
     if ( !cref ||
 	 !(chp->cref && chp->cref->d.key == chp->key &&
@@ -920,7 +934,7 @@ addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
 	continue;
 
       while ( ci->incomplete )
-	wait_for_index(ci);
+	wait_for_index(ci, cl, NULL);
       if ( ci->invalid )
 	continue;
 
@@ -1560,13 +1574,13 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) )
+      if ( ISDEADCI(ci) || !ci->entries )
 	continue;
 
       while( ci->incomplete )
-	wait_for_index(ci);
+	wait_for_index(ci, NULL, NULL);
       if ( ci->invalid )
-	return;
+	continue;
 
       if ( ison(def, P_DYNAMIC) )
       { if ( def->impl.clauses.number_of_clauses < ci->resize_below )
@@ -1757,10 +1771,23 @@ delClauseFromIndex(Definition def, Clause cl)
 
 
 static void
-wait_for_index(const ClauseIndex ci)
-{ DEBUG(MSG_JIT, Sdprintf("[%d] waiting for index %p ...\n",
-			  PL_thread_self(), ci));
+wait_for_index(const ClauseIndex ci, ClauseList clist, IndexContext ctx)
+{ if ( !ci->entries && ctx && realize_clause_index(ci) )
+  { DEBUG(MSG_JIT,
+	  { char an[64];
+	    Sdprintf("[%d] realising index %s for %s\n",
+		     PL_thread_self(), iargsName(ci->args, an),
+		     predicateName(ctx->predicate)); });
+
+    if ( !fill_clause_index(ci, clist, ctx) )
+    { ci->invalid = true;
+      return;
+    }
+  }
+
 #ifdef O_PLMT
+  DEBUG(MSG_JIT, Sdprintf("[%d] waiting for index %p ...\n",
+			  PL_thread_self(), ci));
   pthread_mutex_lock(&GD->thread.index.mutex);
   if ( ci->incomplete )
     pthread_cond_wait(&GD->thread.index.cond, &GD->thread.index.mutex);
@@ -3237,7 +3264,10 @@ set_candidate_indexes(Definition def, ClauseList clist, int max)
     }
     cip[max] = NULL;
     setIndexes(def, clist, cip);
+    clist->fixed_indexes = true;
     UNLOCKDEF(def);
+  } else
+  { clist->fixed_indexes = true;
   }
 
   return true;
