@@ -2570,7 +2570,11 @@ skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
 }
 
 
-static int
+/* True if  the compound at `pc`  can be indexed.  This  is similar to
+ * arg1Key(), but we keep it more  simple.
+ */
+
+static bool
 indexableCompound(Code pc)
 { pc = stepPC(pc);				/* skip functor */
 
@@ -2578,6 +2582,8 @@ indexableCompound(Code pc)
   { switch(decode(*pc))
     { case H_FIRSTVAR:
       case H_VAR:
+      case H_VOID:
+      case H_VOID_N:
 	continue;
       case H_POP:
 	return false;
@@ -2607,7 +2613,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   int nk = 0;					/* number of key args */
   int *kpp;
   word keys[MAXINDEXARG];
-  char nvcomp[MAXINDEXARG];
+  bool nvcomp[MAXINDEXARG];
 
   /* Find the arguments we must check.  Assessments may be for
      multiple arguments.
