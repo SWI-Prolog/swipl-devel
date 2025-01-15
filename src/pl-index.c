@@ -111,7 +111,7 @@ typedef struct index_context
 
 #define LDFUNC_DECLARATIONS
 
-static bool	bestHash(Word av, iarg_t ac, ClauseList clist,
+static bool	bestHash(Word av, size_t ac, ClauseList clist,
 			 ClauseIndex better_than, hash_hints *hints,
 			 IndexContext ctx);
 static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
@@ -514,7 +514,7 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
 	LDFUNC(createIndex, av, ac, clist, better_than, ctx)
 
 static ClauseIndex
-createIndex(DECL_LD Word argv, iarg_t argc, const ClauseList clist,
+createIndex(DECL_LD Word argv, size_t argc, const ClauseList clist,
 	    ClauseIndex better_than, IndexContext ctx)
 { hash_hints hints;
 
@@ -575,11 +575,8 @@ first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
   if ( clist->unindexed || argc == 0 )
     return first_clause_unindexed(clist, ctx);
 
-  if ( unlikely(argc > MAXINDEXARG) )
-    argc = MAXINDEXARG;
-
 retry:
-  while ( (cip=clist->clause_indexes) )
+  if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
 
     best_index = existing_hash(cip, argv, &chp->key);
@@ -599,7 +596,7 @@ retry:
 
 	  if ( (ci=createIndex(argv, argc, clist, best_index, ctx)) )
 	  { if ( unlikely(ci == CI_RETRY) )
-	      continue;
+	      goto retry;
 
 	    chp->key = indexKeyFromArgv(ci, argv);
 	    assert(chp->key);
@@ -609,7 +606,7 @@ retry:
 
 	if ( best_index->incomplete )
 	{ wait_for_index(best_index, clist, ctx);
-	  continue;
+	  goto retry;
 	}
       }
 
@@ -617,8 +614,6 @@ retry:
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(best_index, argv, ctx);
     }
-
-    break;
   }
 
   iarg_t pindex = clist->primary_index;
@@ -2898,7 +2893,7 @@ cp_hints_from_assessment(hash_hints *hints, const hash_assessment *a)
 }
 
 static bool
-bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, ClauseIndex better_than,
+bestHash(DECL_LD Word av, size_t argc, ClauseList clist, ClauseIndex better_than,
 	 hash_hints *hints, IndexContext ctx)
 { assessment_set aset;
   int best = -1;
@@ -2906,6 +2901,7 @@ bestHash(DECL_LD Word av, iarg_t ac, ClauseList clist, ClauseIndex better_than,
   iarg_t ia[MAX_MULTI_INDEX] = {0};
   iarg_t *instantiated;
   int ninstantiated = 0;
+  iarg_t ac = argc > MAXINDEXARG ? MAXINDEXARG : (iarg_t)argc;
 
 					/* Step 1: find instantiated args */
   instantiated = alloca(ac*sizeof(*instantiated));
