@@ -129,8 +129,9 @@ static void	addClauseToListIndexes(Definition def, ClauseList cl,
 static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
-static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
-				      IndexContext ctx);
+static ClauseRef first_clause_guarded(const Word argv, size_t argc,
+				      ClauseList clist,
+				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,
 			   int *in_hvoid);
 static void	unalloc_index_array(void *p);
@@ -566,14 +567,11 @@ TBD:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
-		     IndexContext ctx)
+first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
+		     const IndexContext ctx)
 { ClauseRef cref;
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
-
-  if ( clist->unindexed || argc == 0 )
-    return first_clause_unindexed(clist, ctx);
 
 retry:
   if ( (cip=clist->clause_indexes) )
@@ -616,10 +614,15 @@ retry:
     }
   }
 
+  /* If `clist->unindexed`, no primary index is possible. */
+
+  if ( clist->unindexed || argc == 0 )
+    return first_clause_unindexed(clist, ctx);
+
   iarg_t pindex = clist->primary_index;
   chp->key = indexOfWord(argv[pindex]);
 
-  if ( clist->fixed_indexes )
+  if ( clist->fixed_indexes )	/* set_candidate_indexes() has been run */
   { if ( chp->key )
     { chp->cref = clist->first_clause;
       return nextClauseArg1(chp, ctx->generation);
@@ -3409,7 +3412,11 @@ PRED_IMPL("$candidate_indexes", 3, candidate_indexes, PL_FA_TRANSPARENT)
  * @return -1 if there is no meaningful primary index.
  */
 
-static bool
+#define PINDEX_POSSIBLE		(0)
+#define PINDEX_IMPOSSIBLE	(-1)
+#define PINDEX_MAYBEDEEP	(-2)
+
+static int
 can_be_primary_index(ClauseList clist, int arg0)
 { bool first = true;
   word key;
@@ -3425,15 +3432,27 @@ can_be_primary_index(ClauseList clist, int arg0)
     { first = false;
       key = clkey;
     } else if ( key != clkey )
-      return true;
+      return PINDEX_POSSIBLE;
   }
 
-  return false;
+  if ( !first && isFunctor(key) )
+    return PINDEX_MAYBEDEEP;
+
+  return PINDEX_IMPOSSIBLE;
 }
+
+/* Find the argument to use as primary index.  Returns one of
+ *
+ *   - An index (>=0)
+ *   - PINDEX_IMPOSSIBLE: no meaningful indexing possible
+ *   - PINDEX_MAYBEDEEP: some arg has all the same functor;
+ *     maybe we can make a deep index.
+ */
 
 static int
 preferred_primary_index(Definition def)
 { ClauseList clist = &def->impl.clauses;
+  int rc = PINDEX_IMPOSSIBLE;
 
   /* is primary index ok? */
   if ( !mode_arg_is_unbound(def, clist->primary_index) )
@@ -3448,16 +3467,22 @@ preferred_primary_index(Definition def)
       } else if ( key != cref->d.key )
 	return clist->primary_index;
     }
+    if ( !first && isFunctor(key) )
+      rc = PINDEX_MAYBEDEEP;
   }
 
   for(size_t a=0; a<def->functor->arity; a++)
   { if ( a != clist->primary_index &&
-	 !mode_arg_is_unbound(def, a) &&
-	 can_be_primary_index(clist, a) )
-      return (int)a;
+	 !mode_arg_is_unbound(def, a) )
+    { int c = can_be_primary_index(clist, a);
+      if ( c == PINDEX_POSSIBLE )
+	return (int)a;
+      if ( c == PINDEX_MAYBEDEEP )
+	rc = PINDEX_MAYBEDEEP;
+    }
   }
 
-  return -1;
+  return rc;
 }
 
 /* The primary index  argument is the clause argument  used to compute
@@ -3516,7 +3541,9 @@ update_primary_index(DECL_LD Definition def)
 	  modify_primary_index_arg(def, argn);
 	}
       } else
-      { clist->unindexed = true;
+      { if ( argn == PINDEX_MAYBEDEEP )
+	  set_candidate_indexes(def, clist, 10);
+	clist->unindexed = true;
 	DEBUG(MSG_JIT_PRIMARY,
 	      Sdprintf("No index for %s (%d clauses)\n",
 		       predicateName(def), noc));
