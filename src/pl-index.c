@@ -3518,38 +3518,6 @@ update_primary_index(DECL_LD Definition def)
   }
 }
 
-/** '$primary_index'(:PI, +Arg)
- *
- * Change the primary index for PI to be Arg (1-based).
- *
- * @bug This is __not thread safe__
- */
-
-static
-PRED_IMPL("$primary_index", 2, primary_index, PL_FA_TRANSPARENT)
-{ Procedure proc;
-  int an;
-
-  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
-    return false;
-  Definition def = proc->definition;
-  ClauseList clist = &def->impl.clauses;
-
-  if ( PL_is_variable(A2) )
-    return PL_unify_integer(A2, clist->primary_index+1);
-
-  if ( !PL_get_integer_ex(A2, &an) )
-    return false;
-  if ( an < 1 || an > def->functor->arity || an > MAXINDEXARG )
-    return PL_domain_error("arity", A2);
-
-  modify_primary_index_arg(def, an-1);
-
-  return true;
-}
-
-
-
 		 /*******************************
 		 *  PREDICATE PROPERTY SUPPORT	*
 		 *******************************/
@@ -3884,7 +3852,6 @@ initClauseIndexing(void)
 #define META PL_FA_TRANSPARENT
 
 BeginPredDefs(index)
-  PRED_DEF("$primary_index",         2, primary_index,         META)
   PRED_DEF("$candidate_indexes",     3, candidate_indexes,     META)
   PRED_DEF("$set_candidate_indexes", 2, set_candidate_indexes, META)
 EndPredDefs

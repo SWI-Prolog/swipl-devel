@@ -3593,7 +3593,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
        !PL_get_functor(head, &fd) ||
        ( !(proc = visibleProcedure(fd, module)) &&
 	 !(proc = isCurrentProcedure(fd, module)) ) )
-    fail;
+    return false;
 
   def = proc->definition;
 
@@ -3602,13 +3602,13 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
 
   if ( key == ATOM_imported )
   { if ( module == def->module )
-      fail;
+      return false;
     return PL_unify_atom(value, def->module->name);
   } else if ( key == ATOM_indexed )
   { return unify_index_pattern(proc, value);
   } else if ( key == ATOM_meta_predicate )
   { if ( isoff(def, P_META) )
-      fail;
+      return false;
     return unify_meta_pattern(proc, value);
   } else if ( key == ATOM_exported )
   { return PL_unify_integer(value, isPublicModule(module, proc));
@@ -3649,18 +3649,18 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   } else if ( key == ATOM_number_of_clauses )
   { size_t num_clauses;
     if ( def->flags & P_FOREIGN )
-      fail;
+      return false;
 
     def = getProcDefinition(proc);
     num_clauses = num_visible_clauses(def, key, 0);
     if ( num_clauses == 0 && isoff(def, P_DYNAMIC) )
-      fail;
+      return false;
     return PL_unify_int64(value, num_clauses);
   } else if ( key == ATOM_last_modified_generation )
   { gen_t g;
 
     if ( def->flags & P_FOREIGN )
-      fail;
+      return false;
     def = getProcDefinition(proc);
     if ( ison(def, P_TRANSACT) && LD->transaction.generation )
       g = transaction_last_modified_predicate(def);
@@ -3670,15 +3670,20 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
     return PL_unify_int64(value, g);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
-      fail;
+      return false;
 
     def = getProcDefinition(proc);
     if ( def->impl.clauses.number_of_clauses == 0 && isoff(def, P_DYNAMIC) )
-      fail;
+      return false;
     return PL_unify_integer(value, num_visible_clauses(def, key, 0));
   } else if ( key == ATOM_size )
   { def = getProcDefinition(proc);
     return PL_unify_integer(value, sizeof_predicate(def));
+  } else if ( key == ATOM_primary_index )
+  { const ClauseList clist = &def->impl.clauses;
+    if ( !clist->unindexed )
+      return PL_unify_integer(value, clist->primary_index);
+    return false;
   } else if ( tbl_is_predicate_attribute(key) )
   { return tbl_get_predicate_attribute(def, key, value);
   } else if ( (att = attribute_mask(key)) )
@@ -3865,10 +3870,10 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
 
   if ( (att&SPY_ME) )
   { if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
-      fail;
+      return false;
   } else
   { if ( !get_procedure(pred, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
-      fail;
+      return false;
   }
   def = proc->definition;
 
@@ -3890,10 +3895,10 @@ PRED_IMPL("$default_predicate", 2, default_predicate, PL_FA_TRANSPARENT)
   if ( get_procedure(A1, &p1, 0, GP_FIND) &&
        get_procedure(A2, &p2, 0, GP_FIND) )
   { if ( p1->definition == p2->definition || !isDefinedProcedure(p1) )
-      succeed;
+      return true;
   }
 
-  fail;
+  return false;
 }
 
 
