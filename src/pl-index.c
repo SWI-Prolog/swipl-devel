@@ -2457,7 +2457,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   key_asm *o = a->keys-1;
   key_asm *e = &s[a->size];
   word c = 0;				/* invalid key */
-  size_t fc = 0;
+  size_t fc = 0;			/* #indexable compounds */
   size_t i  = 0;			/* #unique keys */
   float A=0.0, Q=0.0;
 
@@ -2507,7 +2507,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
-    if ( a->speedup < 0.8*(float)clause_count &&
+    if ( a->speedup < (float)clause_count/MIN_SPEEDUP &&
 	 a->funct_count > 0 &&
 	 a->var_count == 0 )		/* See (*) */
     { a->list = true;
@@ -2896,7 +2896,8 @@ cp_hints_from_assessment(hash_hints *hints, const hash_assessment *a)
 }
 
 static bool
-bestHash(DECL_LD Word av, size_t argc, ClauseList clist, ClauseIndex better_than,
+bestHash(DECL_LD Word av, size_t argc,
+	 ClauseList clist, ClauseIndex better_than,
 	 hash_hints *hints, IndexContext ctx)
 { assessment_set aset;
   int best = -1;
