@@ -284,8 +284,8 @@ unallocProcedure(Procedure proc)
 				 predicateName(def), proc));
 
   if ( unshareDefinition(def) == 0 )
-  { def->module = NULL;
-    DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
+  { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
+    def->module = NULL;
     destroyDefinition(def);
   }
   if ( proc->source_no )
