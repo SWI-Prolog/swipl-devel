@@ -3498,15 +3498,19 @@ modify_primary_index_arg(Definition def, iarg_t an)
 
 void
 update_primary_index(DECL_LD Definition def)
-{ if ( def->functor->arity > 0 )
-  { unsigned int noc = def->impl.clauses.number_of_clauses;
+{ ClauseList clist = &def->impl.clauses;
 
-    def->impl.clauses.unindexed = false;
+  if ( clist->pindex_verified )
+    return;
+  clist->pindex_verified = true;
+
+  if ( def->functor->arity > 0 )
+  { unsigned int noc = clist->number_of_clauses;
 
     if ( noc < MIN_CLAUSES_FOR_INDEX &&
-	 isoff(def, P_DYNAMIC|P_MULTIFILE) &&
+	 isoff(def, P_DYNAMIC|P_MULTIFILE|P_THREAD_LOCAL|P_FOREIGN) &&
 	 !STATIC_RELOADING(def) )
-    { int arg0 = def->impl.clauses.primary_index;
+    { int arg0 = clist->primary_index;
       int argn = preferred_primary_index(def);
       if ( argn >= 0 )
       { if ( argn != arg0 )
@@ -3516,14 +3520,14 @@ update_primary_index(DECL_LD Definition def)
 	  modify_primary_index_arg(def, argn);
 	}
       } else
-      { def->impl.clauses.unindexed = true;
+      { clist->unindexed = true;
 	DEBUG(MSG_JIT_PRIMARY,
 	      Sdprintf("No index for %s (%d clauses)\n",
 		       predicateName(def), noc));
       }
     }
   } else
-  { def->impl.clauses.unindexed = true;
+  { clist->unindexed = true;
   }
 }
 

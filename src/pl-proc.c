@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2022, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -3681,8 +3681,13 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
     return PL_unify_integer(value, sizeof_predicate(def));
   } else if ( key == ATOM_primary_index )
   { const ClauseList clist = &def->impl.clauses;
+    if ( !clist->pindex_verified )
+    { LOCKDEF(def);
+      update_primary_index(def);
+      UNLOCKDEF(def);
+    }
     if ( !clist->unindexed )
-      return PL_unify_integer(value, clist->primary_index);
+      return PL_unify_integer(value, (int)clist->primary_index+1);
     return false;
   } else if ( tbl_is_predicate_attribute(key) )
   { return tbl_get_predicate_attribute(def, key, value);

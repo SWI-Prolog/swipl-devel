@@ -1463,6 +1463,7 @@ typedef struct clause_list
   unsigned int	number_of_rules;	/* number of real rules */
   unsigned	unindexed : 1;		/* no index possible */
   unsigned	fixed_indexes : 1;	/* Do not search for alternatives */
+  unsigned	pindex_verified : 1;	/* Primary index is verified */
   iarg_t	jiti_tried;		/* number of times we tried to find */
   iarg_t	primary_index;		/* Index used to link clauses */
 } clause_list, *ClauseList;

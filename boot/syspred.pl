@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -880,6 +880,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
 '$predicate_property'(size(Bytes), Pred) :-
     '$get_predicate_attribute'(Pred, size, Bytes).
+'$predicate_property'(primary_index(Arg), Pred) :-
+    '$get_predicate_attribute'(Pred, primary_index, Arg).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(prolog:prolog_exception_hook/5).
