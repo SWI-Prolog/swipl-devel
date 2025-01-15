@@ -146,7 +146,7 @@ static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
 					 ClauseIndex better_than,
 					 hash_hints *hints, IndexContext ctx);
 static bool	set_candidate_indexes(Definition def, ClauseList clist,
-				      int max);
+				      int max, bool lock);
 #undef LDFUNC_DECLARATIONS
 
 /* We are reloading static code */
@@ -636,7 +636,7 @@ retry:
   if ( isoff(ctx->predicate,
 	     P_DYNAMIC|P_MULTIFILE|P_THREAD_LOCAL|P_FOREIGN) &&
        ctx->depth == 0 )
-  { set_candidate_indexes(ctx->predicate, clist, 10);
+  { set_candidate_indexes(ctx->predicate, clist, 10, true);
     goto retry;
   }
 
@@ -3037,9 +3037,8 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
   return false;
 }
 
-
 		 /*******************************
-		 *    ASSESSMENT FROM PROLOG    *
+		 *    FIND CANDIDATE INDEXES    *
 		 *******************************/
 
 /* Find all candidate indexes.  A candidate index is one of
@@ -3070,13 +3069,13 @@ cmp_assessment(const void *p1, const void *p2)
   return SCALAR_TO_CMP(a1->speedup, a2->speedup);
 }
 
-static bool
-candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
-		  IndexContext ctx)
-{ int max_hints = *nphints;
-  int nhints = 0;
+/* ensure clist->args[a] is filled for all arguments (<ac)
+ */
 
-  assessment_set aset;		/* fill missing assessments */
+static void
+assess_all_arguments(iarg_t ac, ClauseList clist, const IndexContext ctx)
+{ assessment_set aset;
+
   init_assessment_set(&aset);
   for(iarg_t i=0; i<ac; i++)
   { arg_info *ai;
@@ -3091,13 +3090,78 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
   }
   assess_candidate_indexes(ac, clist, &aset, ctx);
   free_assessment_set(&aset);
+}
+
+/* Create the "good" indexes.
+ *
+ * @param assessments is an array of 0-based arguments for clist.
+ */
+
+static int
+create_good_indexes(const ClauseList clist,
+		    const iarg_t *assessments, int nassessments,
+		    hash_hints *hints, int *nphints, int max_hints)
+{ int nhints = *nphints;
+  int i;
+
+  for(i=0; i<nassessments && nhints < max_hints ; i++)
+  { int arg0 = assessments[i];
+    const arg_info *ai = &clist->args[arg0];
+
+    if ( (float)clist->number_of_clauses/ai->speedup < MIN_SPEEDUP )
+    { if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX ||
+	   clist->primary_index != arg0 )
+	cp_hints_from_arg_info(&hints[nhints++], arg0, ai);
+    } else
+      break;
+  }
+
+  *nphints = nhints;
+  return i;
+}
+
+/* Create the deep indexes and remove  bad indexes.  Note that a "bad"
+ * list index may in be good after we realise the secondary indexes.
+ */
+static void
+create_deep_indexes(const ClauseList clist,
+		    iarg_t *assessments, int *npassessments,
+		    hash_hints *hints, int *nphints, int max_hints)
+{ int nhints = *nphints;
+  int nassessments = *npassessments;
+  iarg_t *keep = assessments;
+
+  for(int i=0; i<nassessments; i++)
+  { int arg0 = assessments[i];
+    const arg_info *ai = &clist->args[arg0];
+
+    if ( ai->list && nhints < max_hints )
+      cp_hints_from_arg_info(&hints[nhints++], arg0, ai);
+    else if ( ai->speedup > MIN_SPEEDUP )
+      *keep++ = arg0;
+  }
+
+  *npassessments = keep-assessments;
+  *nphints = nhints;
+}
+
+
+
+static bool
+candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
+		  IndexContext ctx)
+{ int max_hints = *nphints;
+  int nhints = 0;
+				/* Assess all non-yet-assessed arguments */
+  assess_all_arguments(ac, clist, ctx);
 
 				/* Sort by quality */
   iarg_t *assessments = alloca(sizeof(*assessments)*ac);
   int nassessments = 0;
   for(iarg_t i=0; i<ac; i++)
   { const arg_info *ai = &clist->args[i];
-    if ( ai && ai->assessed && ai->speedup > MIN_SPEEDUP )
+    if ( ai && ai->assessed &&
+	 (ai->speedup > MIN_SPEEDUP || ai->list) )
       assessments[nassessments++] = i;
   }
   if ( nassessments == 0 )
@@ -3106,38 +3170,28 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
   }
   sort_assessments(clist, assessments, nassessments);
 
-  /* Add the real  good ones to `hints` and create  the bracket f,t of
-   * candidates for multi-argument indexes.
-   */
-  int f,t;
-  for(f=0; f<nassessments; f++)
-  { const arg_info *ai = &clist->args[f];
-
-    if ( (float)clist->number_of_clauses/ai->speedup < MIN_SPEEDUP )
-    { if ( clist->number_of_clauses > MIN_CLAUSES_FOR_INDEX ||
-	   clist->primary_index != f )
-      { if ( nhints < max_hints )
-	{ cp_hints_from_arg_info(&hints[nhints++], f, ai);
-	} else
-	{ *nphints = nhints;
-	  return true;
-	}
-      }
-    } else
-      break;
+  /* Create the good ones.  They are best and need not be combined */
+  int good = create_good_indexes(clist,
+				 assessments, nassessments,
+				 hints, &nhints, max_hints);
+  if ( nhints == max_hints )
+  { *nphints = nhints;
+    return true;
   }
-  for(t=nassessments; t>=f+1; )
-  { const arg_info *ai = &clist->args[t-1];
-    if ( ai->speedup < MIN_SPEEDUP )
-      t--;
-    else
-      break;
-  }
-  const iarg_t *single_candidates = assessments+f;
-  int           single_candidates_count = t-f;
+  assessments += good;
+  nassessments -= good;
 
-  if ( t-f >= 2 )		/* Add least two candidates */
-  { iarg_t ia[MAX_MULTI_INDEX] = {0};
+  /* Create the poor deep indexes and remove the other poor ones */
+  create_deep_indexes(clist, assessments, &nassessments,
+		      hints, &nhints, max_hints);
+  if ( nhints == max_hints )
+  { *nphints = nhints;
+    return true;
+  }
+
+  if ( nassessments >= 2 )	/* Add least two candidates */
+  { int f=0, t=nassessments;
+    iarg_t ia[MAX_MULTI_INDEX] = {0};
 
     for(;;)			/* If far too many, take the middle ones */
     { int l1 = t-f;		/* as these are the most promising */
@@ -3156,6 +3210,7 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
 	break;
     }
 
+    assessment_set aset;
     init_assessment_set(&aset);
     for(int m=f+1; m<t; m++)
     { ia[1] = assessments[m]+1;
@@ -3188,8 +3243,8 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
     hash_assessment **a = alist;
     int single = 0;
     while( nhints < max_hints )
-    { if ( single < single_candidates_count )
-      { int si = single_candidates[single];
+    { if ( single < nassessments )
+      { iarg_t si = assessments[single];
 				/* skip the primary index */
 	if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
 	     clist->primary_index == si )
@@ -3243,7 +3298,7 @@ get_existing_index(ClauseIndex **from, const hash_hints *hints)
 }
 
 static bool
-set_candidate_indexes(Definition def, ClauseList clist, int max)
+set_candidate_indexes(Definition def, ClauseList clist, int max, bool lock)
 { hash_hints *hints = alloca(sizeof(*hints)*max);
   index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS };
   iarg_t ac = def->functor->arity > MAXINDEXARG ? MAXINDEXARG
@@ -3253,7 +3308,8 @@ set_candidate_indexes(Definition def, ClauseList clist, int max)
   if ( max > 0 )
   { ClauseIndex *cip = allocHeapOrHalt((max+1)*sizeof(*cip));
 
-    LOCKDEF(def);
+    if ( lock )
+      LOCKDEF(def);
     ClauseIndex *org = clist->clause_indexes;
     for(int i=0; i<max; i++)
     { ClauseIndex ei = get_existing_index(&org, &hints[i]);
@@ -3265,7 +3321,8 @@ set_candidate_indexes(Definition def, ClauseList clist, int max)
     cip[max] = NULL;
     setIndexes(def, clist, cip);
     clist->fixed_indexes = true;
-    UNLOCKDEF(def);
+    if ( lock )
+      UNLOCKDEF(def);
   } else
   { clist->fixed_indexes = true;
   }
@@ -3293,7 +3350,7 @@ PRED_IMPL("$set_candidate_indexes", 2, set_candidate_indexes,
   if ( max < 0 )
     return PL_domain_error("not_less_than_zero", A3);
 
-  return set_candidate_indexes(def, &def->impl.clauses, max);
+  return set_candidate_indexes(def, &def->impl.clauses, max, true);
 }
 
 
@@ -3543,7 +3600,7 @@ update_primary_index(DECL_LD Definition def)
 	}
       } else
       { if ( argn == PINDEX_MAYBEDEEP )
-	  set_candidate_indexes(def, clist, 10);
+	  set_candidate_indexes(def, clist, 10, false);
 	clist->unindexed = true;
 	DEBUG(MSG_JIT_PRIMARY,
 	      Sdprintf("No index for %s (%d clauses)\n",
