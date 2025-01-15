@@ -3404,27 +3404,36 @@ PRED_IMPL("$candidate_indexes", 3, candidate_indexes, PL_FA_TRANSPARENT)
 		 *      PRIMARY INDEX ARG       *
 		 *******************************/
 
-static int
-clause_first_nonvar_arg(Definition def, Clause cl)
-{ Code PC = cl->codes;
-  int arity = (int)def->functor->arity;
-  int h_void = 0;
-
-  for(int arg0=0; arg0 < arity; arg0++)
-  { word k;
-
-    if ( !mode_arg_is_unbound(def, arg0) && argKey(PC, 0, &k) )
-      return arg0;
-    PC = skipArgs(PC, 1, &h_void);
-  }
-
-  return arity;
-}
-
 /* Find the 0-based argument on which to place the primary index.
+ *
+ * This  must be  an  argument for  which  argKey() returns  different
+ * values.  Note  that non-var  is not  good as  there is  also little
+ * point testing the same value over and over again.
  *
  * @return -1 if there is no meaningful primary index.
  */
+
+static bool
+can_be_primary_index(ClauseList clist, int arg0)
+{ bool first = true;
+  word key;
+
+  for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+  { word clkey;
+
+    if ( ison(cref->value.clause, CL_ERASED) )
+      continue;
+
+    argKey(cref->value.clause->codes, arg0, &clkey);
+    if ( first )
+    { first = false;
+      key = clkey;
+    } else if ( key != clkey )
+      return true;
+  }
+
+  return false;
+}
 
 static int
 preferred_primary_index(Definition def)
@@ -3432,26 +3441,25 @@ preferred_primary_index(Definition def)
 
   /* is primary index ok? */
   if ( !mode_arg_is_unbound(def, clist->primary_index) )
-  { for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+  { bool first = true;
+    word key;
+    for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
     { if ( ison(cref->value.clause, CL_ERASED) )
 	continue;
-      if ( cref->d.key )		/* yes */
+      if ( first )
+      { first = false;
+	key = cref->d.key;
+      } else if ( key != cref->d.key )
 	return clist->primary_index;
     }
   }
 
-  int pi = (int)def->functor->arity;
-  for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
-  { if ( ison(cref->value.clause, CL_ERASED) )
-      continue;
-
-    int first_nonvar = clause_first_nonvar_arg(def, cref->value.clause);
-    if ( first_nonvar < pi )
-      pi = first_nonvar;
+  for(size_t a=0; a<def->functor->arity; a++)
+  { if ( a != clist->primary_index &&
+	 !mode_arg_is_unbound(def, a) &&
+	 can_be_primary_index(clist, a) )
+      return (int)a;
   }
-
-  if ( pi < (int)def->functor->arity )
-    return pi;
 
   return -1;
 }
@@ -3484,6 +3492,7 @@ modify_primary_index_arg(Definition def, iarg_t an)
     }
 
     clist->primary_index = an;
+    clist->unindexed = false;
   }
 }
 
