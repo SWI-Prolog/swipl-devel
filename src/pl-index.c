@@ -1608,19 +1608,17 @@ deleteIndexesDefinition(Definition def)
   ClauseIndex *cip0;
 
   if ( (cip0=clist->clause_indexes) )
-  { ClauseIndex *cip;
-
-    for(cip = cip0; *cip; cip++)
+  { clist->clause_indexes = NULL;
+    for(ClauseIndex *cip = cip0; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
 	continue;
 
-      deleteIndexP(def, clist, cip);
+      unallocClauseIndexTable(ci);
     }
 
     freeHeap(cip0, 0);
-    clist->clause_indexes = NULL;
   }
 }
 
@@ -1975,7 +1973,7 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
       if ( (a=old->args[i]) )
       { arg_info *ai = &cl->args[a-1];
 
-	ai->assessed = 0;
+	ai->assessed = false;
       }
     }
 
