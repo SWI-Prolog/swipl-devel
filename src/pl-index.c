@@ -3063,10 +3063,10 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 
 static int
 cmp_assessment(const void *p1, const void *p2)
-{ const hash_assessment *a1 = p1;
-  const hash_assessment *a2 = p2;
+{ hash_assessment * const *a1 = p1;
+  hash_assessment * const *a2 = p2;
 
-  return SCALAR_TO_CMP(a1->speedup, a2->speedup);
+  return SCALAR_TO_CMP((*a1)->speedup, (*a2)->speedup);
 }
 
 /* ensure clist->args[a] is filled for all arguments (<ac)
@@ -3084,7 +3084,7 @@ assess_all_arguments(iarg_t ac, ClauseList clist, const IndexContext ctx)
       continue;
 
     if ( !((ai = &clist->args[i]) && ai->assessed) )
-    { iarg_t ia[] = {i+1, 0};
+    { iarg_t ia[MAX_MULTI_INDEX] = {i+1, 0};
       alloc_assessment(&aset, ia);
     }
   }
