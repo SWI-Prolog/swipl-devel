@@ -80,7 +80,7 @@ void		registerReloadModule(SourceFile sf, Module module);
 #ifdef O_DEBUG
 void		acquireSourceFile_d(SourceFile f,
 				    const char *file, unsigned int line);
-int		releaseSourceFile_d(SourceFile f,
+bool		releaseSourceFile_d(SourceFile f,
 				    const char *file, unsigned int line);
 #define acquireSourceFile(f) acquireSourceFile_d(f, __FILE__, __LINE__)
 #define releaseSourceFile(f) releaseSourceFile_d(f, __FILE__, __LINE__)
