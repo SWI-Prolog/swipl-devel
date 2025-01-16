@@ -350,7 +350,7 @@ classify_exception(DECL_LD term_t exception)
   return classify_exception_p(p);
 }
 
-FLI_INLINE int
+FLI_INLINE int			/* -1, false, true */
 PL_pending(DECL_LD int sig)
 { return pendingSignal(LD, sig);
 }
