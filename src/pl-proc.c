@@ -253,7 +253,7 @@ delayedDestroyDefinition(Definition def)
 		     predicateName(def));
 	  });
     unregisterDirtyDefinition(def);
-    deleteIndexes(&def->impl.clauses, true);
+    deleteIndexes(def, &def->impl.clauses, true);
     unallocDefinition(def);
   }
 }
@@ -410,11 +410,8 @@ resetProcedure(Procedure proc, bool isnew)
   if ( def->tabling )
     tbl_reset_tabling_attributes(def);
 
-  if ( isnew )
-  { deleteIndexes(&def->impl.clauses, true);
-    freeCodesDefinition(def, false);
-  } else
-    freeCodesDefinition(def, true);	/* carefully sets to S_VIRGIN */
+  deleteIndexes(def, &def->impl.clauses, isnew);
+  freeCodesDefinition(def, !isnew);
 }
 
 

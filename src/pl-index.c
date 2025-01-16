@@ -799,7 +799,7 @@ freeClauseListRef(ClauseRef cref)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr, next;
 
-  deleteIndexes(cl, true);
+  deleteIndexes(NULL, cl, true);
 
   for(cr=cl->first_clause; cr; cr=next)
   { next = cr->next;
@@ -1573,39 +1573,56 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 
 void
-deleteIndexes(ClauseList clist, int isnew)
+deleteIndexes(Definition def, ClauseList clist, bool isnew)
 { ClauseIndex *cip0;
 
-  assert(isnew);			/* TBD for non-new */
+  if ( isnew )
+  { if ( (cip0=clist->clause_indexes) )
+    { ClauseIndex *cip;
 
-  if ( (cip0=clist->clause_indexes) )
-  { ClauseIndex *cip;
+      for(cip = cip0; *cip; cip++)
+      { ClauseIndex ci = *cip;
 
-    for(cip = cip0; *cip; cip++)
-    { ClauseIndex ci = *cip;
+	if ( ISDEADCI(ci) )
+	  continue;
 
-      if ( ISDEADCI(ci) )
-	continue;
+	unallocClauseIndexTable(ci);
+      }
 
-      unallocClauseIndexTable(ci);
+      unalloc_index_array(cip0);
+      clist->clause_indexes = NULL;
     }
+  } else
+  { if ( (cip0=clist->clause_indexes) )
+    { ClauseIndex *cip;
 
-    unalloc_index_array(cip0);
-    clist->clause_indexes = NULL;
+      for(cip = cip0; *cip; cip++)
+      { ClauseIndex ci = *cip;
+
+	if ( ISDEADCI(ci) )
+	  continue;
+	deleteIndexP(def, clist, cip);
+      }
+    }
   }
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Only called from destroyDefinition(), which is only called when removing
-a temporary module or during  final  cleanup.   So,  there  are  no more
-references.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/* Called when it is safe to reclaim all indexes.  I.e.,
+   - When terminating and Prolog is stopped
+   - If it is a thread-local definition and we cleanup the thread
+   - If it is a temporary module that we are cleaning
+*/
 
 void
 deleteIndexesDefinition(Definition def)
 { ClauseList clist = &def->impl.clauses;
   ClauseIndex *cip0;
+
+  assert(GD->cleaning != CLN_NORMAL ||
+	 ison(def, P_LOCALISED) ||
+	 !def->module ||
+	 def->module->class == ATOM_temporary);
 
   if ( (cip0=clist->clause_indexes) )
   { clist->clause_indexes = NULL;

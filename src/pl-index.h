@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -69,7 +69,7 @@ void		clearTriedIndexes(Definition def);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 bool		unify_index_pattern(Procedure proc, term_t value);
-void		deleteIndexes(ClauseList cl, int isnew);
+void		deleteIndexes(Definition def, ClauseList cl, bool isnew);
 void		deleteIndexesDefinition(Definition def);
 int		checkClauseIndexSizes(Definition def, int nindexable);
 void		checkClauseIndexes(Definition def);
