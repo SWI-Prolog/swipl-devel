@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2024, University of Amsterdam,
+    Copyright (c)  1999-2025, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2578,7 +2578,9 @@ unify_thread_id(term_t id, PL_thread_info_t *info)
    simply a limitation of status pulling.
 */
 
-#define unify_engine_status(status, info) LDFUNC(unify_engine_status, status, info)
+#define unify_engine_status(status, info) \
+	LDFUNC(unify_engine_status, status, info)
+
 static int
 unify_engine_status(DECL_LD term_t status, PL_thread_info_t *info)
 { return PL_unify_atom(status, ATOM_suspended);
@@ -2966,7 +2968,9 @@ thread_id_propery(DECL_LD void *ctx, term_t prop)
   return PL_unify_integer(prop, info->pl_tid);
 }
 
-#define thread_alias_propery(info, prop) LDFUNC(thread_alias_propery, info, prop)
+#define thread_alias_propery(info, prop) \
+	LDFUNC(thread_alias_propery, info, prop)
+
 static int
 thread_alias_propery(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
@@ -6917,7 +6921,7 @@ gc_sig_request(int sig)
 }
 
 
-static int
+static bool
 signalGCThreadCond(int tid, int sig)
 { (void)tid;
 
@@ -7015,7 +7019,7 @@ PRED_IMPL("$gc_stop", 0, gc_stop, 0)
 
 #endif /*O_PLMT*/
 
-int
+bool
 signalGCThread(int sig)
 { GET_LD
 
@@ -7032,7 +7036,7 @@ signalGCThread(int sig)
 }
 
 
-int
+bool
 isSignalledGCThread(DECL_LD int sig)
 {
 #ifdef O_PLMT
@@ -7040,7 +7044,7 @@ isSignalledGCThread(DECL_LD int sig)
   { return (GD->thread.gc.requests & gc_sig_request(sig)) != 0;
   } else
 #endif
-  { return PL_pending(sig);
+  { return PL_pending(sig) == true;
   }
 }
 
@@ -7636,14 +7640,11 @@ localiseDefinition(Definition def)
     L_PREDICATE mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef offsetof
-#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
-#endif
+#define registerLocalDefinition(def) LDFUNC(registerLocalDefinition, def)
 
 static void
-registerLocalDefinition(Definition def)
-{ GET_LD
-  DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
+registerLocalDefinition(DECL_LD Definition def)
+{ DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
   cell->definition = def;
   cell->next = LD->thread.local_definitions;
@@ -7749,7 +7750,7 @@ free_ldef_vector(LocalDefinitions ldefs)
 
 
 Definition
-localiseDefinition(Definition def)
+localiseDefinition(DECL_LD Definition def)
 { Definition local = allocHeapOrHalt(sizeof(*local));
   size_t bytes = sizeof(arg_info)*def->functor->arity;
 
@@ -7759,6 +7760,7 @@ localiseDefinition(Definition def)
     memcpy(local->impl.any.args, def->impl.any.args, bytes);
   }
   clear(local, P_THREAD_LOCAL|P_DIRTYREG);	/* remains P_DYNAMIC */
+  set(local, P_LOCALISED);
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
   ATOMIC_INC(&GD->statistics.predicates);
@@ -8007,13 +8009,11 @@ Find the summed size of the local stack.   This is a measure for the CGC
 marking cost.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 cgc_thread_stats(DECL_LD cgc_stats *stats)
 {
 #ifdef O_PLMT
-  int i;
-
-  for(i=1; i<=GD->thread.highest_id; i++)
+  for(int i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
     PL_local_data_t *ld = acquire_ldata(info);
 
@@ -8045,13 +8045,11 @@ cgc_thread_stats(DECL_LD cgc_stats *stats)
 		 *    HASH-TABLE KVS IN USE     *
 		 *******************************/
 
-int
+bool
 pl_kvs_in_use(KVS kvs)
 {
 #ifdef O_PLMT
-  int i;
-
-  for(i=1; i<=GD->thread.highest_id; i++)
+  for(int i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
     if ( info && info->access.kvs == kvs )
     { return true;
@@ -8067,7 +8065,7 @@ pl_kvs_in_use(KVS kvs)
 		 *      ATOM-TABLE IN USE       *
 		 *******************************/
 
-int
+bool
 pl_atom_table_in_use(AtomTable atom_table)
 {
 #ifdef O_PLMT
@@ -8085,7 +8083,7 @@ pl_atom_table_in_use(AtomTable atom_table)
 }
 
 
-int
+bool
 pl_atom_bucket_in_use(Atom *bucket)
 {
 #ifdef O_PLMT
@@ -8185,7 +8183,7 @@ predicates_in_use(void)
 		 *     FUNCTOR-TABLE IN USE     *
 		 *******************************/
 
-int
+bool
 pl_functor_table_in_use(FunctorTable functor_table)
 {
 #ifdef O_PLMT
@@ -8411,7 +8409,7 @@ stack_avail(DECL_LD)
 #endif
 
 
-int
+bool
 require_c_stack(DECL_LD size_t needed)
 {
 #if O_PLMT && !defined(__SANITIZE_ADDRESS__)
