@@ -72,7 +72,7 @@ static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
 static void	freeClauseRef(ClauseRef cref);
-static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
+static bool	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def);
 static void	unregisterDirtyDefinition(Definition def);
 static gen_t	ddi_oldest_generation(DirtyDefInfo ddi);
@@ -484,7 +484,7 @@ isStaticSystemProcedure(functor_t fd)
 }
 
 
-int
+bool
 checkModifySystemProc(functor_t fd)
 { Procedure proc;
 
@@ -492,11 +492,11 @@ checkModifySystemProc(functor_t fd)
        ison(proc->definition, P_ISO) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
-  succeed;
+  return true;
 }
 
 
-int
+bool
 overruleImportedProcedure(Procedure proc, Module target)
 { GET_LD
   Definition def = proc->definition;	/* we do *not* want a thread-local version */
@@ -525,8 +525,7 @@ overruleImportedProcedure(Procedure proc, Module target)
 	  return false;
       }
 
-      abolishProcedure(proc, target);
-      return true;
+      return abolishProcedure(proc, target);
     }
   }
 
@@ -614,7 +613,7 @@ get_arity(term_t t, int extra, int maxarity, int *arity)
 }
 
 
-int
+bool
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { GET_LD
   term_t head;
@@ -636,26 +635,26 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
     _PL_get_arg(1, head, a);
     if ( !PL_get_atom_ex(a, &name) )
-      fail;
+      return false;
     _PL_get_arg(2, head, a);
     if ( !get_arity(a,
 		    (dcgpi ? 2 : 0),
 		    (how&GF_PROCEDURE) ? MAXARITY : -1,
 		    &arity ) )
-      fail;
+      return false;
     *fdef = PL_new_functor(name, arity);
     if ( h )
       PL_put_term(h, head);
 
-    succeed;
+    return true;
   } else if ( !(how&GF_NAMEARITY) && PL_get_functor(head, fdef) )
   { if ( h )
       PL_put_term(h, head);
 
-    succeed;
+    return true;
   } else
   { if ( how & GP_TYPE_QUIET )
-      fail;
+      return false;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE,
 		      ATOM_predicate_indicator, head);
@@ -663,13 +662,13 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 }
 
 
-int
+bool
 get_head_functor(DECL_LD term_t head, functor_t *fdef, int how)
 { FunctorDef fd;
 
   if ( !PL_get_functor(head, fdef) )
   { if ( how&GP_TYPE_QUIET )
-      fail;
+      return false;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   }
@@ -678,7 +677,7 @@ get_head_functor(DECL_LD term_t head, functor_t *fdef, int how)
 
   if ( fd->arity > MAXARITY )
   { if ( how&GP_TYPE_QUIET )
-    { fail;
+    { return false;
     } else
     { char buf[100];
 
@@ -691,14 +690,14 @@ get_head_functor(DECL_LD term_t head, functor_t *fdef, int how)
 
   if ( !isCallableAtom(fd->name) )
   { if ( how&GP_TYPE_QUIET )
-    { fail;
+    { return false;
     } else
     { return PL_error(NULL, 0, NULL,
 		      ERR_TYPE, ATOM_callable, head);
     }
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -733,7 +732,7 @@ get_module(DECL_LD atom_t mname, int how)
 }
 
 
-int
+bool
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { GET_LD
   atom_t mname = 0;
@@ -744,7 +743,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   if ( (how&GP_NAMEARITY) )
   { if ( !get_functor(descr, &fdef, &m, h,
 		      GF_PROCEDURE|(how&GP_TYPE_QUIET)) )
-      fail;
+      return false;
   } else
   { term_t head = PL_new_term_ref();
     Word p;
@@ -760,7 +759,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       PL_put_term(h, head);
 
     if ( !get_head_functor(head, &fdef, how) )
-      fail;
+      return false;
   }
 
   switch( how & GP_HOW_MASK )
@@ -784,7 +783,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       { *proc = p;
 	break;
       }
-      fail;				/* permission error */
+      return false;		/* permission error */
     case GP_RESOLVE:
       if ( (p = resolveProcedure(fdef, m)) )
       { *proc = p;
@@ -795,12 +794,12 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       assert(0);
   }
 out:
-  succeed;
+  return true;
 
 notfound:
   if ( (how & GP_EXISTENCE_ERROR) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, descr);
-  fail;
+  return false;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1642,7 +1641,7 @@ also used by  trie_gen_compiled/3  to  get   rid  of  the  clauses  that
 represent tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 retract_clause(DECL_LD Clause clause, gen_t generation)
 { Definition def = clause->predicate;
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
@@ -2174,7 +2173,7 @@ unify_meta_pattern(Procedure proc, term_t head)
 }
 
 
-int
+bool
 PL_meta_predicate(predicate_t proc, const char *spec_s)
 { Definition def = proc->definition;
   int arity = def->functor->arity;
@@ -2412,7 +2411,7 @@ ddi_reset(DirtyDefInfo ddi)
   ddi->flags = DDI_MARKING;
 }
 
-int
+bool
 ddi_contains_gen(DirtyDefInfo ddi, gen_t access)
 { if ( isoff(ddi, DDI_INTERVALS) )
   { int i;
@@ -2485,7 +2484,7 @@ ddi_add_access_gen(DirtyDefInfo ddi, gen_t access)
   }
 }
 
-int
+bool
 ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Buffer tr_starts, Clause cl)
 { assert(ison(ddi, DDI_MARKING));
 
@@ -2506,18 +2505,14 @@ ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Buffer tr_starts, Clause cl)
   }
 
   if ( isoff(ddi, DDI_INTERVALS) )
-  { int i;
-
-    for(i=0; i<ddi->count; i++)
+  { for(int i=0; i<ddi->count; i++)
     { if ( GLOBALLY_VISIBLE_CLAUSE(cl, ddi->access[i]) )
 	return false;
     }
   } else
-  { int i;
+  { assert(ddi->count == 2);
 
-    assert(ddi->count == 2);
-
-    for(i=0; i<ddi->count; )
+    for(int i=0; i<ddi->count; )
     { gen_t f = ddi->access[i++];
       gen_t t = ddi->access[i++];
 
@@ -3715,7 +3710,7 @@ setDetDefinition(Definition def, bool isdet)
 }
 
 
-static int
+static bool
 setDynamicDefinition_unlocked(Definition def, bool isdyn)
 { GET_LD
 
@@ -3739,9 +3734,9 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
 }
 
 
-int
+bool
 setDynamicDefinition(Definition def, bool isdyn)
-{ int rc;
+{ bool rc;
 
   LOCKDEF(def);
   rc = setDynamicDefinition_unlocked(def, isdyn);
@@ -3750,11 +3745,10 @@ setDynamicDefinition(Definition def, bool isdyn)
   return rc;
 }
 
-int
+bool
 setThreadLocalDefinition(Definition def, bool val)
 {
 #ifdef O_ENGINES
-
   LOCKDEF(def);
   if ( (val && ison(def, P_THREAD_LOCAL)) ||
        (!val && isoff(def, P_THREAD_LOCAL)) )
@@ -3788,12 +3782,12 @@ setThreadLocalDefinition(Definition def, bool val)
   else
     clear(def, P_VOLATILE|P_THREAD_LOCAL);
 
-  succeed;
+  return true;
 #endif
 }
 
 
-static int
+static bool
 setClausableDefinition(Definition def, int val)
 { GET_LD
 
@@ -3809,9 +3803,9 @@ setClausableDefinition(Definition def, int val)
   return true;
 }
 
-int
-setAttrDefinition(Definition def, uint64_t attr, int val)
-{ int rc;
+bool
+setAttrDefinition(Definition def, uint64_t attr, bool val)
+{ bool rc;
 
   if ( attr == P_DYNAMIC )
   { rc = setDynamicDefinition(def, val);
@@ -3975,7 +3969,7 @@ running predicate is reloaded because the clauses cannot be wiped.
 seen this predicate, so it isn't there.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 { GET_LD
   Definition def = proc->definition;
@@ -3989,7 +3983,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 			 _PL_PREDICATE_INDICATOR, proc) )
       return false;
 			/* ... then abolish */
-    abolishProcedure(proc, def->module);
+    return abolishProcedure(proc, def->module);
   } else if ( isoff(def, P_MULTIFILE) )
   { ClauseRef first;
 
@@ -4022,7 +4016,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 	  return false;
       }
 			/* again, _after_ the printMessage() */
-      abolishProcedure(proc, def->module);
+      return abolishProcedure(proc, def->module);
     }
   }
 
