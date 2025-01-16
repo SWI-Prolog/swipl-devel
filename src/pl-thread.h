@@ -516,6 +516,7 @@ static inline	PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
 
 #if USE_LD_MACROS
 #define localiseDefinition(def)		LDFUNC(localiseDefinition, def)
+#define unify_thread_id(id, info)	LDFUNC(unify_thread_id, id, info)
 #endif /*USE_LD_MACROS*/
 #define LDFUNC_DECLARATIONS
 
@@ -526,7 +527,7 @@ foreign_t	pl_thread_create(term_t goal, term_t id,
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);
 #ifdef O_ENGINES
-int		unify_thread_id(term_t id, PL_thread_info_t *info);
+bool		unify_thread_id(term_t id, PL_thread_info_t *info);
 #endif
 int		enableThreads(int enable);
 

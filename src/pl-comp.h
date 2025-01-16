@@ -77,7 +77,7 @@ word		pl_nth_clause(term_t p, term_t n, term_t ref,
 			      control_t h);
 void		wamListClause(Clause clause);
 Code		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
-int		unify_definition(Module ctx, term_t head, Definition def,
+bool		unify_definition(Module ctx, term_t head, Definition def,
 				 term_t thehead, int flags);
 void		cleanupBreakPoints(void);
 code		replacedBreak(Code PC);

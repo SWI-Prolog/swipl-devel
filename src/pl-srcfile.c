@@ -359,7 +359,7 @@ acquireSourceFileNo(int index)
 }
 
 
-int
+bool
 #ifdef O_DEBUG
 releaseSourceFile_d(SourceFile sf, const char *file, unsigned int line)
 #else
@@ -393,7 +393,7 @@ releaseSourceFile(SourceFile sf)
     PL_UNLOCK(L_SRCFILE);
 
     if ( name )
-    { int rc = clearSourceAdmin(name);
+    { bool rc = clearSourceAdmin(name);
       PL_unregister_atom(name);
 
       return rc;
@@ -403,7 +403,7 @@ releaseSourceFile(SourceFile sf)
   return true;
 }
 
-int
+bool
 releaseSourceFileNo(int index)
 { SourceFile sf;
 
@@ -413,7 +413,7 @@ releaseSourceFileNo(int index)
   return true;
 }
 
-int
+bool
 hasProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
@@ -1222,9 +1222,9 @@ associateSource(SourceFile sf, Procedure proc)
 
 #define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
 
-int
+bool
 setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
-		       uint64_t attr, int val)
+		       uint64_t attr, bool val)
 { if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 
@@ -1413,10 +1413,9 @@ registerReloadModule(SourceFile sf, Module module)
 }
 
 
-int
-exportProcedureSource(SourceFile sf, Module module, Procedure proc)
-{ GET_LD
-  m_reload *r;
+bool
+exportProcedureSource(DECL_LD SourceFile sf, Module module, Procedure proc)
+{ m_reload *r;
 
   if ( sf->reload && sf->reload->modules &&
        (r = lookupHTablePP(sf->reload->modules, module)) )
@@ -1572,11 +1571,19 @@ end_reconsult_proc(DECL_LD SourceFile sf, Procedure proc, p_reload *r)
   return dropped_access;
 }
 
+/* Finish up a _reconsult_.  During  a reconsult the compiler adds and
+   removes clauses to static predicates using the `reload` generation:
+   - The reloading thread sees the file as empty at start and sees
+     the clauses being added as a first load.
+   - Other threads see no change during the reload and an _atomic_
+     change to the new state during the execution of endReconsult().
+ */
 
-static int
-endReconsult(SourceFile sf)
-{ GET_LD
-  sf_reload *reload;
+#define endReconsult(sf) LDFUNC(endReconsult, sf)
+
+static bool
+endReconsult(DECL_LD SourceFile sf)
+{ sf_reload *reload;
 
   if ( (reload=sf->reload) )
   { size_t accessed_preds = reload->procedures->size;
@@ -1683,7 +1690,7 @@ There are two options.
     This way other threads can happily keep running.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 startConsult(SourceFile sf)
 { acquireSourceFile(sf);
   if ( sf->count++ > 0 )		/* This is a re-consult */
@@ -1735,9 +1742,9 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 }
 
 
-int
-endConsult(SourceFile sf)
-{ int rc;
+bool
+endConsult(DECL_LD SourceFile sf)
+{ bool rc;
 
   sf->current_procedure = NULL;
   rc = endReconsult(sf);

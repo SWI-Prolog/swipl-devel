@@ -1678,7 +1678,9 @@ PL_thread_self(void)
 
 int
 PL_unify_thread_id(term_t t, int i)
-{ if ( i < 1 ||
+{ GET_LD
+
+  if ( i < 1 ||
        i > GD->thread.highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED ||
        GD->thread.threads[i]->status == PL_THREAD_RESERVED )
@@ -2557,10 +2559,9 @@ create_thread_handle(DECL_LD PL_thread_info_t *info)
 }
 
 
-int
-unify_thread_id(term_t id, PL_thread_info_t *info)
-{ GET_LD
-  thread_handle *th;
+bool
+unify_thread_id(DECL_LD term_t id, PL_thread_info_t *info)
+{ thread_handle *th;
 
   if ( (th = create_thread_handle(info)) )
   { atom_t name = th->alias ? th->alias : th->symbol;

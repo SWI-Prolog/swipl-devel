@@ -1476,11 +1476,9 @@ export/1 exports a procedure specified by its name and arity or
 head from the context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-exportProcedure(Module module, Procedure proc)
-{ GET_LD
-
-  updateHTableWP(module->public,
+bool
+exportProcedure(DECL_LD const Module module, const Procedure proc)
+{ updateHTableWP(module->public,
 		 proc->definition->functor->functor,
 		 proc);
 
@@ -1488,7 +1486,7 @@ exportProcedure(Module module, Procedure proc)
 }
 
 #define export_pi1(pi, module) LDFUNC(export_pi1, pi, module)
-static int
+static bool
 export_pi1(DECL_LD term_t pi, Module module)
 { functor_t fd;
   Procedure proc;
@@ -1502,7 +1500,7 @@ export_pi1(DECL_LD term_t pi, Module module)
 
   if ( ReadingSource )
   { SourceFile sf = lookupSourceFile(source_file_name, true);
-    int rc = exportProcedureSource(sf, module, proc);
+    bool rc = exportProcedureSource(sf, module, proc);
     releaseSourceFile(sf);
     return rc;
   } else
@@ -1511,7 +1509,7 @@ export_pi1(DECL_LD term_t pi, Module module)
 }
 
 #define export_pi(pi, module, depth) LDFUNC(export_pi, pi, module, depth)
-static int
+static bool
 export_pi(DECL_LD term_t pi, Module module, int depth)
 { if ( !PL_strip_module(pi, &module, pi) )
     return false;

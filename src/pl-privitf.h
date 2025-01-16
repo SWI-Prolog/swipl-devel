@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2025, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@
 
 int	PL_get_char(term_t c, int *p, int eof);
 int	PL_unify_char(term_t chr, int c, int mode);
-int	PL_unify_predicate(term_t head, predicate_t pred, int how);
+bool	PL_unify_predicate(term_t head, predicate_t pred, int how);
 
 
 

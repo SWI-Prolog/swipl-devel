@@ -91,8 +91,8 @@ const event_type PL_events[] =
   {0}
 };
 
-static int
-link_event(event_list *list, event_callback *cb, int last)
+static bool
+link_event(event_list *list, event_callback *cb, bool last)
 { LOCK_LIST(list);
   if ( !list->head )
   { list->head = list->tail = cb;
@@ -121,8 +121,9 @@ get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 }
 
 
-static int
-add_event_hook(event_list *list, atom_t name, int last, term_t closure, int argc)
+static bool
+add_event_hook(event_list *list, atom_t name,
+	       bool last, term_t closure, int argc)
 { GET_LD
   Module m = NULL;
   event_callback *cb;
@@ -189,8 +190,9 @@ get_event_list(event_list **list)
   return *list;
 }
 
-int
-register_event_hook(event_list **list, atom_t name, int last, term_t closure, int argc)
+bool
+register_event_hook(event_list **list, atom_t name,
+		    bool last, term_t closure, int argc)
 { return add_event_hook(get_event_list(list), name, last, closure, argc);
 }
 
@@ -338,8 +340,9 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 }
 
 
-int
-register_event_function(event_list **list, atom_t name, int last, int (*func)(),
+bool
+register_event_function(event_list **list, atom_t name,
+			bool last, int (*func)(),
 			void *closure, int argc)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
@@ -588,11 +591,10 @@ PL_call_event_hook(pl_event_type ev, ...)
  * hook
  */
 
-int
-PL_call_event_hook_va(pl_event_type ev, va_list args)
-{ GET_LD
-  wakeup_state wstate;
-  int rc = true;
+bool
+PL_call_event_hook_va(DECL_LD pl_event_type ev, va_list args)
+{ wakeup_state wstate;
+  bool rc = true;
   event_list *list = *event_list_location(ev);
   term_t av;
   const event_type *event_decl = &PL_events[ev];

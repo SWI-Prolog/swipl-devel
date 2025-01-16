@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,7 @@
 #define	acquireModulePtr(module)		LDFUNC(acquireModulePtr, module)
 #define	stripModule(term, module, flags)	LDFUNC(stripModule, term, module, flags)
 #define	stripModuleName(term, name)		LDFUNC(stripModuleName, term, name)
+#define exportProcedure(module, proc)		LDFUNC(exportProcedure, module, proc)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -70,7 +72,7 @@ int		getUnknownModule(Module m);
 Word		stripModule(Word term, Module *module, int flags);
 Word		stripModuleName(Word term, atom_t *name);
 bool		isPublicModule(Module module, Procedure proc);
-int		exportProcedure(Module module, Procedure proc);
+bool		exportProcedure(const Module module, const Procedure proc);
 int		declareModule(atom_t name, atom_t class, atom_t super,
 			      SourceFile sf, int line,
 			      int rdef);

@@ -6550,14 +6550,15 @@ unify_functor(term_t t, functor_t fd, int how)
 }
 
 
-int
+bool
 PL_unify_predicate(term_t head, predicate_t pred, int how)
 { return unify_definition(MODULE_user, head, pred->definition, 0, how);
 }
 
 
-int
-unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int how)
+bool
+unify_definition(Module ctx, term_t head, Definition def,
+		 term_t thehead, int how)
 { GET_LD
 
   if ( PL_is_variable(head) )
@@ -6582,7 +6583,7 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 	PL_put_term(thehead, tmp);
     }
 
-    succeed;
+    return true;
   } else
   { term_t h;
 
@@ -6599,7 +6600,7 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 	  if ( !PL_get_atom(h, &a) ||
 	       !(m = isCurrentModule(a)) ||
 	       !isSuperModule(def->module, m) )
-	    fail;
+	    return false;
 	}
       } else
       { PL_unify_atom(h, ATOM_garbage_collected);
@@ -6612,10 +6613,10 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
     if ( unify_functor(h, def->functor->functor, how) )
     { if ( thehead )
 	PL_put_term(thehead, h);
-      succeed;
+      return true;
     }
 
-    fail;
+    return false;
   }
 }
 
