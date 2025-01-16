@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2024, University of Amsterdam
+    Copyright (c)  2008-2025, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -40,8 +40,8 @@
 #define _PL_SUPERVISOR_H
 
 Code		allocCodes(size_t len);
-void		freeCodesDefinition(Definition def, int linger);
-void		freeSupervisor(Definition def, Code code, int linger);
+void		freeCodesDefinition(Definition def, bool linger);
+void		freeSupervisor(Definition def, Code code, bool linger);
 bool		createForeignSupervisor(Definition def, Func f);
 bool		createUndefSupervisor(Definition def);
 Code		createSupervisor(Definition def);

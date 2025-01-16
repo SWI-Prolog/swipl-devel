@@ -84,7 +84,7 @@ free_codes_ptr(void *ptr)
 
 
 void
-freeSupervisor(Definition def, Code codes, int do_linger)
+freeSupervisor(Definition def, Code codes, bool do_linger)
 { size_t size = (size_t)codes[-1];
 
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
@@ -97,7 +97,7 @@ freeSupervisor(Definition def, Code codes, int do_linger)
 
 
 void
-freeCodesDefinition(Definition def, int do_linger)
+freeCodesDefinition(Definition def, bool do_linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
