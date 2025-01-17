@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam,
+    Copyright (c)  1985-2025, University of Amsterdam,
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -70,10 +70,27 @@ an overview of dependencies.
 
 %!  explain(@Term) is det
 %
-%   Give an explanation on Term. The  argument   may  be any Prolog data
-%   object. If the argument is an atom,  a term of the form `Name/Arity`
-%   or a term of the form   `Module:Name/Arity`, explain/1 describes the
-%   predicate as well as possible references to it. See also gxref/0.
+%   Give an explanation on Term. Term  can   be  any Prolog data object.
+%   Some terms have a specific meaning:
+%
+%     - A (partial) reference to a predicate gives the predicates,
+%       its main properties and references to the predicates.  Partial
+%       references are:
+%       - Module:Name/Arity
+%       - Module:Head
+%       - Name/Arity
+%       - Name//Arity
+%       - Name
+%       - Module:Name
+%     - Some predicate properties.  This lists predicates as above
+%       the have this property.  The specification can be of the
+%       shape `Module:Property` or just `Property`.  The qualified
+%       version limits the result to predicates defined in Module.
+%       Supported properties are:
+%       - dynamic
+%       - thread_local
+%       - multifile
+%       - tabled
 
 explain(Item) :-
     explain(Item, Explanation),
@@ -100,16 +117,22 @@ explain(I, [isa(I, 'an integer')]) :-
 explain(F, [isa(F, 'a floating point number')]) :-
     float(F),
     !.
-explain(Q, [isa(Q, 'a rational (Q) number')]) :-
+explain(Q, [isa(Q, 'a rational (Q) number'),T]) :-
     rational(Q),
+    (   catch(F is float(Q), error(evaluation_error(_),_), fail)
+    ->  T = ' with approximate floating point value ~w'-[F]
+    ;   T = ' that can not be represented as a floating point number'
+    ),
     !.
-explain(S, [isa(S, 'a string')]) :-
+explain(S, [isa(S, 'a string of length ~D'-[Len])]) :-
     string(S),
+    string_length(S, Len),
     !.
 explain([], [isa([], 'a special constant denoting an empty list')]) :-
     !.
-explain(A, [isa(A, 'an atom')]) :-
-    atom(A).
+explain(A, [isa(A, 'an atom of length ~D'-[Len])]) :-
+    atom(A),
+    atom_length(A, Len).
 explain(A, Explanation) :-
     atom(A),
     current_op(Pri, F, A),
@@ -133,7 +156,13 @@ explain(List, Explanation) :-
     !,
     length(List, L),
     !,
-    Explanation = [isa(List, 'is a not-closed list with ~d elements'-[L])].
+    Explanation = [isa(List, 'is a not-closed list with ~D elements'-[L])].
+explain(Dict, Explanation) :-
+    is_dict(Dict, Tag),
+    !,
+    dict_pairs(Dict, Tag, Pairs),
+    length(Pairs, Count),
+    Explanation = [isa(Dict, 'is a dict with tag ~p and ~D keys'-[Tag, Count])].
 explain(Name//NTArity, Explanation) :-
     atom(Name),
     integer(NTArity),
@@ -158,14 +187,14 @@ explain(Module:Name/Arity, Explanation) :-
     !,
     functor(Head, Name, Arity),
     explain_predicate(Module:Head, Explanation).
+explain(Module:Property, Explanation) :-
+    atom(Property),
+    explain_property(Property, Module, Explanation).
 explain(Module:Head, Explanation) :-
-    callable(Head),
+    atom(Module), callable(Head),
+    predicate_property(Module:Head, _),
     !,
     explain_predicate(Module:Head, Explanation).
-explain(Dict, Explanation) :-
-    is_dict(Dict, Tag),
-    !,
-    Explanation = [isa(Dict, 'a dict with tag ~q'-[Tag]) ].
 explain(Term, Explanation) :-
     compound(Term),
     compound_name_arity(Term, _Name, Arity),
@@ -222,7 +251,30 @@ explain_atom(A, Explanation) :-
     predicate_property(Module:Head, undefined),
     functor(Head, A, _),
     explain_predicate(Module:Head, Explanation).
+explain_atom(A, Explanation) :-
+    explain_property(A, _, Explanation).
 
+%!  explain_property(+Property, ?Module, -Explanation) is nondet
+%
+%   Explain  predicates  that  have  some    property.  Only  does  user
+%   predicates.
+
+explain_property(Prop, M, Explanation) :-
+    explainable_property(Prop),
+    (   var(M)
+    ->  freeze(M, module_property(M, class(user)))
+    ;   true
+    ),
+    Pred = M:_,
+    predicate_property(Pred, Prop),
+    \+ predicate_property(Pred, imported_from(_)),
+    \+ hide_reference(Pred),
+    explain_predicate(Pred, Explanation).
+
+explainable_property(dynamic).
+explainable_property(thread_local).
+explainable_property(multifile).
+explainable_property(tabled).
 
                 /********************************
                 *            FUNCTOR             *
@@ -247,10 +299,20 @@ explain_functor(Head, Explanation) :-
                 *********************************/
 
 lproperty(built_in,     [' built-in']).
+lproperty(thread_local, [' thread-local']).
 lproperty(dynamic,      [' dynamic']).
 lproperty(multifile,    [' multifile']).
 lproperty(transparent,  [' meta']).
 
+tproperty(Pred, Explanation) :-
+    (   predicate_property(Pred, number_of_clauses(Count))
+    ->  Explanation = [' with ~D clauses '-[Count]]
+    ;   predicate_property(Pred, thread_local)
+    ->  thread_self(Me),
+        Explanation = [' without clauses in thread ',
+                       ansi(code, '~p', [Me]) ]
+    ;   Explanation = [' without clauses']
+    ).
 tproperty(Pred, [' imported from module ', module(Module)]) :-
     predicate_property(Pred, imported(Module)).
 tproperty(Pred, [' defined in ', url(File:Line)]) :-
@@ -288,8 +350,13 @@ explain_predicate(Pred, Explanation) :-
                 U3),
         flatten([U0, U1, U2, U3], Explanation)
     ).
-:- if(current_predicate(man_object_property/2)).
 explain_predicate(Pred, Explanation) :-
+    distinct(Explanation, predicate_summary(Pred, Explanation)).
+explain_predicate(Pred, Explanation) :-
+    referenced(Pred, Explanation).
+
+:- if(current_predicate(man_object_property/2)).
+predicate_summary(Pred, Explanation) :-
     Pred = _Module:Head,
     functor(Head, Name, Arity),
     man_object_property(Name/Arity, summary(Summary)),
@@ -297,9 +364,11 @@ explain_predicate(Pred, Explanation) :-
     current_prolog_flag(home, Home),
     sub_atom(File, 0, _, _, Home),
     Explanation = [indent, 'Summary: "~w"'-[Summary] ].
+:- else.
+predicate_summary(_Pred, _Explanation) :-
+    fail.
 :- endif.
-explain_predicate(Pred, Explanation) :-
-    referenced(Pred, Explanation).
+
 
                 /********************************
                 *          REFERENCES           *
@@ -395,6 +464,7 @@ hide_reference(prolog_xref:imported(_,_,_)).
 hide_reference(prolog_xref:pred_comment(_,_,_,_)).
 hide_reference(_:'$mode'(_,_)).
 hide_reference(_:'$pldoc'(_,_,_,_)).
+hide_reference(_:'$pldoc_link'(_,_)).
 hide_reference(prolog_manual_index:man_index(_,_,_,_,_)).
 
 
