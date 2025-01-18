@@ -573,6 +573,12 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
 
+  /* If `clist->unindexed`, no primary index is possible. */
+
+  if ( clist->unindexed || argc == 0 )
+    return first_clause_unindexed(clist, ctx);
+
+  /* Deal with possible hashes */
 retry:
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
@@ -613,11 +619,6 @@ retry:
       return nextClauseFromBucket(best_index, argv, ctx);
     }
   }
-
-  /* If `clist->unindexed`, no primary index is possible. */
-
-  if ( clist->unindexed || argc == 0 )
-    return first_clause_unindexed(clist, ctx);
 
   iarg_t pindex = clist->primary_index;
   chp->key = indexOfWord(argv[pindex]);
@@ -3601,9 +3602,10 @@ update_primary_index(DECL_LD Definition def)
       } else
       { if ( argn == PINDEX_MAYBEDEEP )
 	  set_candidate_indexes(def, clist, 10, false);
-	clist->unindexed = true;
+	clist->unindexed = clist->clause_indexes == NULL;
 	DEBUG(MSG_JIT_PRIMARY,
-	      Sdprintf("No index for %s (%d clauses)\n",
+	      if ( clist->unindexed )
+		Sdprintf("No index for %s (%d clauses)\n",
 		       predicateName(def), noc));
       }
     }
