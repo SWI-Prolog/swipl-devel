@@ -241,11 +241,11 @@ getIndexOfTerm(DECL_LD term_t t)
 }
 
 
-#define nextClauseArg1(chp, ctx) \
-	LDFUNC(nextClauseArg1, chp, ctx)
+#define next_clause_primary_index(chp, ctx) \
+	LDFUNC(next_clause_primary_index, chp, ctx)
 
 static inline ClauseRef
-nextClauseArg1(DECL_LD ClauseChoice chp, const IndexContext ctx)
+next_clause_primary_index(DECL_LD ClauseChoice chp, const IndexContext ctx)
 { ClauseRef cref = chp->cref;
   word key = chp->key;
 
@@ -563,11 +563,11 @@ createIndex(DECL_LD Word argv, size_t argc, const ClauseList clist,
   return NULL;
 }
 
-#define	first_clause_unindexed(ctx) \
-	LDFUNC(first_clause_unindexed, ctx)
+#define	next_clause_unindexed(ctx) \
+	LDFUNC(next_clause_unindexed, ctx)
 
 static ClauseRef
-first_clause_unindexed(DECL_LD const IndexContext ctx)
+next_clause_unindexed(DECL_LD const IndexContext ctx)
 { for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
   { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
     { ctx->chp->key = 0;
@@ -601,7 +601,7 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
 
   if ( clist->unindexed || argc == 0 )
   { chp->cref = clist->first_clause;
-    return first_clause_unindexed(ctx);
+    return next_clause_unindexed(ctx);
   }
 
   /* Deal with possible hashes */
@@ -652,9 +652,9 @@ retry:
   if ( clist->fixed_indexes )	/* set_candidate_indexes() has been run */
   { chp->cref = clist->first_clause;
     if ( chp->key )
-      return nextClauseArg1(chp, ctx);
+      return next_clause_primary_index(chp, ctx);
     else
-      return first_clause_unindexed(ctx);
+      return next_clause_unindexed(ctx);
   }
 
   if ( unlikely(clist->number_of_clauses == 0) )
@@ -678,7 +678,7 @@ retry:
        ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
 	 STATIC_RELOADING(ctx->predicate)) )
   { chp->cref = clist->first_clause;
-    cref = nextClauseArg1(chp, ctx);
+    cref = next_clause_primary_index(chp, ctx);
     if ( !cref ||
 	 !(chp->cref && chp->cref->d.key == chp->key &&
 	   cref->d.key == chp->key) )
@@ -708,11 +708,11 @@ retry:
       return cref;
 
     chp->cref = clist->first_clause;
-    return nextClauseArg1(chp, ctx);
+    return next_clause_primary_index(chp, ctx);
   }
 
   chp->cref = clist->first_clause;
-  return first_clause_unindexed(ctx);
+  return next_clause_unindexed(ctx);
 }
 
 
@@ -760,9 +760,9 @@ nextClause(DECL_LD ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
       .generation = generationFrame(fr)
     };
   if ( !chp->key )			/* not indexed */
-  { cref = first_clause_unindexed(&ctx);
+  { cref = next_clause_unindexed(&ctx);
   } else
-  { cref = nextClauseArg1(chp, &ctx);
+  { cref = next_clause_primary_index(chp, &ctx);
   }
   release_def(def);
 
