@@ -719,13 +719,13 @@ ClauseRef
 firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
 	    ClauseChoice chp)
 { ClauseRef cref;
-  index_context ctx;
-
-  ctx.generation  = generationFrame(fr);
-  ctx.predicate   = def;
-  ctx.chp         = chp;
-  ctx.depth       = 0;
-  ctx.position[0] = END_INDEX_POS;
+  index_context ctx =
+    { .generation  = generationFrame(fr),
+      .predicate   = def,
+      .chp         = chp,
+      .depth       = 0,
+      .position[0] = END_INDEX_POS
+    };
 
   if ( ison(def, P_DYNAMIC) )
     MEMORY_ACQUIRE();			/* sync with retract_clause() */
