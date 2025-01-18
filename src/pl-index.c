@@ -242,29 +242,29 @@ getIndexOfTerm(DECL_LD term_t t)
 }
 
 
-#define nextClauseArg1(chp, generation) \
-	LDFUNC(nextClauseArg1, chp, generation)
+#define nextClauseArg1(chp, ctx) \
+	LDFUNC(nextClauseArg1, chp, ctx)
 
 static inline ClauseRef
-nextClauseArg1(DECL_LD ClauseChoice chp, gen_t generation)
+nextClauseArg1(DECL_LD ClauseChoice chp, const IndexContext ctx)
 { ClauseRef cref = chp->cref;
   word key = chp->key;
 
   for( ; cref; cref = cref->next)
   { if ( (!cref->d.key || key == cref->d.key) &&
-	 visibleClauseCNT(cref->value.clause, generation))
+	 visibleClauseCNT(cref->value.clause, ctx->generation))
     { ClauseRef result = cref;
       int maxsearch = MAX_LOOKAHEAD;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( (!cref->d.key || key == cref->d.key) )
-	{ if ( visibleClauseCNT(cref->value.clause, generation) )
+	{ if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
 	  { chp->cref = cref;
 	    return result;
 	  }
 	}
 	if ( --maxsearch == 0 )
-	{ setClauseChoice(chp, cref, generation);
+	{ setClauseChoice(chp, cref, ctx->generation);
 	  return result;
 	}
       }
@@ -564,12 +564,12 @@ createIndex(DECL_LD Word argv, size_t argc, const ClauseList clist,
   return NULL;
 }
 
-#define	first_clause_unindexed(clist, ctx) \
-	LDFUNC(first_clause_unindexed, clist, ctx)
+#define	first_clause_unindexed(cref, ctx) \
+	LDFUNC(first_clause_unindexed, cref, ctx)
 
 static ClauseRef
-first_clause_unindexed(DECL_LD const ClauseList clist, const IndexContext ctx)
-{ for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+first_clause_unindexed(DECL_LD ClauseRef cref, const IndexContext ctx)
+{ for(; cref; cref = cref->next)
   { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
     { ClauseChoice chp = ctx->chp;
 
@@ -603,7 +603,7 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
   /* If `clist->unindexed`, no primary index is possible. */
 
   if ( clist->unindexed || argc == 0 )
-    return first_clause_unindexed(clist, ctx);
+    return first_clause_unindexed(clist->first_clause, ctx);
 
   /* Deal with possible hashes */
 retry:
@@ -653,9 +653,9 @@ retry:
   if ( clist->fixed_indexes )	/* set_candidate_indexes() has been run */
   { if ( chp->key )
     { chp->cref = clist->first_clause;
-      return nextClauseArg1(chp, ctx->generation);
+      return nextClauseArg1(chp, ctx);
     } else
-      return first_clause_unindexed(clist, ctx);
+      return first_clause_unindexed(clist->first_clause, ctx);
   }
 
   if ( unlikely(clist->number_of_clauses == 0) )
@@ -679,7 +679,7 @@ retry:
        ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
 	 STATIC_RELOADING(ctx->predicate)) )
   { chp->cref = clist->first_clause;
-    cref = nextClauseArg1(chp, ctx->generation);
+    cref = nextClauseArg1(chp, ctx);
     if ( !cref ||
 	 !(chp->cref && chp->cref->d.key == chp->key &&
 	   cref->d.key == chp->key) )
@@ -709,10 +709,10 @@ retry:
       return cref;
 
     chp->cref = clist->first_clause;
-    return nextClauseArg1(chp, ctx->generation);
+    return nextClauseArg1(chp, ctx);
   }
 
-  return first_clause_unindexed(clist, ctx);
+  return first_clause_unindexed(clist->first_clause, ctx);
 }
 
 
@@ -748,29 +748,27 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
 
 ClauseRef
 nextClause(DECL_LD ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
-{ gen_t generation = generationFrame(fr);
-  ClauseRef cref;
+{ ClauseRef cref;
 
   (void)argv;				/* we want to use these later */
-  (void)def;				/* to create secondary indexes */
 
   MEMORY_ACQUIRE();
   acquire_def(def);
+  index_context ctx =
+    { .chp = chp,
+      .predicate = def,
+      .generation = generationFrame(fr)
+    };
   if ( !chp->key )			/* not indexed */
-  { for(cref=chp->cref; cref; cref = cref->next)
-    { if ( visibleClauseCNT(cref->value.clause, generation) )
-      { setClauseChoice(chp, cref->next, generation);
-	break;
-      }
-    }
+  { cref = first_clause_unindexed(chp->cref, &ctx);
   } else
-  { cref = nextClauseArg1(chp, generation);
+  { cref = nextClauseArg1(chp, &ctx);
   }
   release_def(def);
 
   DEBUG(CHK_SECURE,
 	assert(!cref || !chp->cref ||
-	       visibleClause(chp->cref->value.clause, generation)));
+	       visibleClause(chp->cref->value.clause, ctx.generation)));
 
   return cref;
 }
