@@ -48,6 +48,12 @@
 #define LD LOCAL_LD
 
 		 /*******************************
+		 *           FEATURES           *
+		 *******************************/
+
+#define O_INDEX_QUICK_TEST 1
+
+		 /*******************************
 		 *	     PARAMETERS		*
 		 *******************************/
 
@@ -427,6 +433,23 @@ indexKeyFromArgv(ClauseIndex ci, Word argv)
   }
 }
 
+#ifdef O_INDEX_QUICK_TEST
+static inline bool
+is_var(Word p)
+{ deRef(p);
+  return canBind(*p);
+}
+
+static inline bool
+is_satifies_index(const ClauseIndex ci, const Word argv)
+{ for(int i=0; i<MAX_MULTI_INDEX && ci->args[i]; i++)
+  { if ( is_var(&argv[ci->args[i]-1]) )
+      return false;
+  }
+  return true;
+}
+#endif
+
 
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
 static char *
@@ -479,9 +502,13 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
     if ( ISDEADCI(ci) )
       continue;
 
-    if ( (k=indexKeyFromArgv(ci, argv)) )
-    { *keyp = k;
-      return ci;
+#if O_INDEX_QUICK_TEST
+    if ( ci->entries || is_satifies_index(ci, argv) )
+#endif
+    { if ( (k=indexKeyFromArgv(ci, argv)) )
+      { *keyp = k;
+	return ci;
+      }
     }
   }
 
