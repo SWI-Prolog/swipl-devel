@@ -418,34 +418,10 @@ nextClauseFromList(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 
 static ClauseRef
 nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
-{ ClauseRef cref;
-  word key = ctx->chp->key;
-
-  if ( unlikely(ci->is_list) )
+{ if ( unlikely(ci->is_list) )
     return nextClauseFromList(ci, argv, ctx);
 
-  for(cref = ctx->chp->cref; cref; cref = cref->next)
-  { if ( (!cref->d.key || key == cref->d.key) &&
-	 visibleClauseCNT(cref->value.clause, ctx->generation))
-    { ClauseRef result = cref;
-      int maxsearch = MAX_LOOKAHEAD;
-
-      for( cref = cref->next; cref; cref = cref->next )
-      { if ( ((!cref->d.key || key == cref->d.key) &&
-	      visibleClauseCNT(cref->value.clause, ctx->generation)) ||
-	     --maxsearch == 0 )
-	{ setClauseChoice(cref, ctx);
-
-	  return result;
-	}
-      }
-      ctx->chp->cref = NULL;
-
-      return result;
-    }
-  }
-
-  return NULL;
+  return next_clause_primary_index(ctx);
 }
 
 /* Make sure the ClauseChoice contains a pointer to a clause that
