@@ -232,6 +232,10 @@ indexOfWord(word w)
   }
 }
 
+word
+index_of_word(word w)
+{ return indexOfWord(w);
+}
 
 word
 getIndexOfTerm(DECL_LD term_t t)

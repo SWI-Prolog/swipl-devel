@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2024, VU University Amsterdam
+    Copyright (c)  2017-2025, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -55,6 +55,7 @@
 #include "os/pl-prologflag.h"
 #include "pl-termhash.h"
 #include "pl-variant.h"
+#include "pl-index.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -2584,41 +2585,6 @@ clearThreadTablingData(PL_local_data_t *ld)
 		 *   CALL SUBSUPTION INDEXING	*
 		 *******************************/
 
-/* TBD: Share with pl-index.c */
-
-static word
-indexOfWord(word w)
-{ for(;;)
-  { switch(tag(w))
-    { case TAG_VAR:
-      case TAG_ATTVAR:
-	return 0;
-      case TAG_ATOM:
-	break;				/* atom_t */
-      case TAG_INTEGER:
-	if ( storage(w) == STG_INLINE )
-	  break;
-      /*FALLTHROUGH*/
-      case TAG_STRING:
-      case TAG_FLOAT:
-      { Word p = addressIndirect(w);
-	size_t n = wsizeofInd(*p);
-
-	return murmur_key(p+1, n*sizeof(*p));
-      }
-      case TAG_COMPOUND:
-	w = *valPtr(w);			/* functor_t */
-	break;
-      case TAG_REFERENCE:
-	w = *unRef(w);
-	continue;
-    }
-
-    return w;
-  }
-}
-
-
 #define suspension_keys(instance) LDFUNC(suspension_keys, instance)
 static sindex_key *
 suspension_keys(DECL_LD term_t instance)
@@ -2635,7 +2601,7 @@ suspension_keys(DECL_LD term_t instance)
       arity = SINDEX_MAX;
 
     for(i=0; i<arity; i++)
-    { word ki = indexOfWord(f->arguments[i]);
+    { word ki = index_of_word(f->arguments[i]);
 
       if ( ki )
       { k->argn = i+1;
@@ -4471,7 +4437,7 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	  arity = SINDEX_MAX;
 
 	for(i=0; i<arity; i++)
-	  state->keys[i].key = (unsigned int)indexOfWord(f->arguments[i]);
+	  state->keys[i].key = (unsigned int)index_of_word(f->arguments[i]);
 
 	state->keys_inited = true;
       }

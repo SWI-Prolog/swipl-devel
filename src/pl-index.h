@@ -80,6 +80,7 @@ bool		ci_is_flag(atom_t key);
 bool		ci_set_flag(term_t value, atom_t key);
 bool		ci_get_flag(term_t t, atom_t key);
 void		update_primary_index(Definition def);
+word		index_of_word(word w);
 
 #undef LDFUNC_DECLARATIONS
 
