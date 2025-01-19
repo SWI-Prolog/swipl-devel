@@ -357,22 +357,20 @@ TBD: Keep a flag telling whether there are non-indexable clauses.
 
 static ClauseRef
 nextClauseFromList(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
-{ ClauseRef cref;
-  word key = ctx->chp->key;
+{ word key = ctx->chp->key;
 
   DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
   assert(ci->is_list);
   assert(ci->args[1] == 0);
 
-non_indexed:
-  for(cref = ctx->chp->cref; cref; cref = cref->next)
+  for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( cref->d.key == key )
     { ClauseList cl = &cref->value.clauses;
 
       DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
 
       if ( isFunctor(cref->d.key) && ctx->depth < MAXINDEXDEPTH )
-      { int an = ci->args[0]-1;
+      { iarg_t an = ci->args[0]-1;
 	Word a = argv+an;
 	Functor at;
 	size_t argc;
@@ -383,7 +381,7 @@ non_indexed:
 	argv = at->arguments;
 	argc = arityFunctor(at->definition);
 
-	ctx->position[ctx->depth++] = (iarg_t)an;
+	ctx->position[ctx->depth++] = an;
 	ctx->position[ctx->depth]   = END_INDEX_POS;
 
 	DEBUG(MSG_INDEX_DEEP,
@@ -399,9 +397,15 @@ non_indexed:
   }
 
   if ( key )
-  { key = 0;
-    DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying non-indexed\n"));
-    goto non_indexed;
+  { ctx->chp->key = 0;
+    DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying variables\n"));
+    for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
+    { if ( !cref->d.key )
+      { ClauseList cl = &cref->value.clauses;
+	ctx->chp->cref = cl->first_clause;
+	return next_clause_unindexed(ctx);
+      }
+    }
   } else
   { DEBUG(MSG_INDEX_FIND, Sdprintf("Not found\n"));
   }
