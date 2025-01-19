@@ -159,6 +159,9 @@ static bool	set_candidate_indexes(Definition def, ClauseList clist,
 #define STATIC_RELOADING(pred) (LD->reload.generation && \
 				isoff(pred, P_DYNAMIC))
 
+/* Same as !cref->d.key || cref->d.key == k */
+#define cref_matches(cref, k) (((cref)->d.key == 0) | ((cref)->d.key == (k)))
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
 of buckets. This used to be simple, but now that our tag bits are on the
@@ -283,12 +286,12 @@ next_clause_primary_index(DECL_LD const IndexContext ctx)
 #if O_INDEX_STATIC
   if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
   { for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
-    { if ( (!cref->d.key || key == cref->d.key) )
+    { if ( cref_matches(cref, key) )
       { ClauseRef result = cref;
 	int maxsearch = MAX_LOOKAHEAD;
 
 	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( (!cref->d.key || key == cref->d.key) || --maxsearch == 0 )
+	{ if ( cref_matches(cref, key) || --maxsearch == 0 )
 	  { ctx->chp->cref = cref;
 	    return result;
 	  }
@@ -301,13 +304,13 @@ next_clause_primary_index(DECL_LD const IndexContext ctx)
   } else
 #endif /*O_INDEX_STATIC*/
   { for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
-    { if ( (!cref->d.key || key == cref->d.key) &&
+    { if ( cref_matches(cref, key) &&
 	   visibleClauseCNT(cref->value.clause, ctx->generation))
       { ClauseRef result = cref;
 	int maxsearch = MAX_LOOKAHEAD;
 
 	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( (!cref->d.key || key == cref->d.key) )
+	{ if ( cref_matches(cref, key) )
 	  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
 	    { ctx->chp->cref = cref;
 	      return result;
