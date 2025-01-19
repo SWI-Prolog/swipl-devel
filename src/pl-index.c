@@ -52,6 +52,7 @@
 		 *******************************/
 
 #define O_INDEX_QUICK_TEST 1
+#define O_INDEX_STATIC	   1
 
 		 /*******************************
 		 *	     PARAMETERS		*
@@ -232,7 +233,7 @@ indexOfWord(word w)
   }
 }
 
-word
+word				/* non-inlined version used in tabling */
 index_of_word(word w)
 { return indexOfWord(w);
 }
@@ -245,6 +246,35 @@ getIndexOfTerm(DECL_LD term_t t)
 }
 
 
+#define	next_clause_unindexed(ctx) \
+	LDFUNC(next_clause_unindexed, ctx)
+
+static ClauseRef
+next_clause_unindexed(DECL_LD const IndexContext ctx)
+{
+#if O_INDEX_STATIC
+  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  { for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
+    { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+      { ctx->chp->key = 0;
+	setClauseChoice(cref->next, ctx);
+	return cref;
+      }
+    }
+  } else
+#endif
+  { for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
+    { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+      { ctx->chp->key = 0;
+	setClauseChoice(cref->next, ctx);
+	return cref;
+      }
+    }
+  }
+
+  return NULL;
+}
+
 #define next_clause_primary_index(ctx) \
 	LDFUNC(next_clause_primary_index, ctx)
 
@@ -252,27 +282,52 @@ static inline ClauseRef
 next_clause_primary_index(DECL_LD const IndexContext ctx)
 { word key = ctx->chp->key;
 
-  for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
-  { if ( (!cref->d.key || key == cref->d.key) &&
-	 visibleClauseCNT(cref->value.clause, ctx->generation))
-    { ClauseRef result = cref;
-      int maxsearch = MAX_LOOKAHEAD;
+#if O_INDEX_STATIC
+  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  { for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
+    { if ( (!cref->d.key || key == cref->d.key) )
+      { ClauseRef result = cref;
+	int maxsearch = MAX_LOOKAHEAD;
 
-      for( cref = cref->next; cref; cref = cref->next )
-      { if ( (!cref->d.key || key == cref->d.key) )
-	{ if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+	for( cref = cref->next; cref; cref = cref->next )
+	{ if ( (!cref->d.key || key == cref->d.key) )
 	  { ctx->chp->cref = cref;
 	    return result;
 	  }
+	  if ( --maxsearch == 0 )
+	  { setClauseChoice(cref, ctx);
+	    return result;
+	  }
 	}
-	if ( --maxsearch == 0 )
-	{ setClauseChoice(cref, ctx);
-	  return result;
-	}
-      }
-      ctx->chp->cref = NULL;
+	ctx->chp->cref = NULL;
 
-      return result;
+	return result;
+      }
+    }
+  } else
+#endif /*O_INDEX_STATIC*/
+  { for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
+    { if ( (!cref->d.key || key == cref->d.key) &&
+	   visibleClauseCNT(cref->value.clause, ctx->generation))
+      { ClauseRef result = cref;
+	int maxsearch = MAX_LOOKAHEAD;
+
+	for( cref = cref->next; cref; cref = cref->next )
+	{ if ( (!cref->d.key || key == cref->d.key) )
+	  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
+	    { ctx->chp->cref = cref;
+	      return result;
+	    }
+	  }
+	  if ( --maxsearch == 0 )
+	  { setClauseChoice(cref, ctx);
+	    return result;
+	  }
+	}
+	ctx->chp->cref = NULL;
+
+	return result;
+      }
     }
   }
 
@@ -313,7 +368,6 @@ non_indexed:
   for(cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( cref->d.key == key )
     { ClauseList cl = &cref->value.clauses;
-      ClauseRef cr;
 
       DEBUG(MSG_INDEX_DEEP, Sdprintf("Deep index for %s\n", keyName(key)));
 
@@ -339,14 +393,8 @@ non_indexed:
       }
 
       ctx->chp->key = 0;		/* See (*) */
-      for(cr=cl->first_clause; cr; cr=cr->next)
-      { if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
-	{ setClauseChoice(cr->next, ctx);
-	  return cr;
-	}
-      }
-
-      return NULL;
+      ctx->chp->cref = cl->first_clause;
+      return next_clause_unindexed(ctx);
     }
   }
 
@@ -561,22 +609,6 @@ createIndex(DECL_LD Word argv, size_t argc, const ClauseList clist,
     }
 
     return CI_RETRY;
-  }
-
-  return NULL;
-}
-
-#define	next_clause_unindexed(ctx) \
-	LDFUNC(next_clause_unindexed, ctx)
-
-static ClauseRef
-next_clause_unindexed(DECL_LD const IndexContext ctx)
-{ for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
-  { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
-    { ctx->chp->key = 0;
-      setClauseChoice(cref->next, ctx);
-      return cref;
-    }
   }
 
   return NULL;
