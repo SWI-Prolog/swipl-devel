@@ -433,8 +433,13 @@ nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 
 static inline void
 setClauseChoice(DECL_LD ClauseRef cref, const IndexContext ctx)
-{ while ( cref && !visibleClauseCNT(cref->value.clause, ctx->generation) )
-    cref = cref->next;
+{
+#if O_INDEX_STATIC
+  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+#endif
+  { while ( cref && !visibleClauseCNT(cref->value.clause, ctx->generation) )
+      cref = cref->next;
+  }
 
   ctx->chp->cref = cref;
 }
