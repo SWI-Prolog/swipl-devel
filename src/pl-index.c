@@ -207,14 +207,14 @@ indexOfWord(word w)
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_INTEGER:
-	if ( storage(w) == STG_INLINE )
+	if ( likely(storage(w) == STG_INLINE) )
 	  break;
 #if O_BIGNUM
 	return bignum_index(addressIndirect(w));
 #else
 	assert(0);
 #endif
-      case TAG_STRING:
+      case TAG_STRING:		/* TODO: Only consider part of a long string */
       case TAG_FLOAT:
       { Word p = addressIndirect(w);
 	size_t n = wsizeofInd(*p);
@@ -254,13 +254,12 @@ next_clause_unindexed(DECL_LD const IndexContext ctx)
 {
 #if O_INDEX_STATIC
   if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
-  { for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
-    { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
-      { ctx->chp->key = 0;
-	setClauseChoice(cref->next, ctx);
-	return cref;
-      }
+  { ClauseRef cref = ctx->chp->cref;
+    if ( cref )
+    { ctx->chp->key = 0;
+      ctx->chp->cref = cref->next;
     }
+    return cref;
   } else
 #endif
   { for(ClauseRef cref=ctx->chp->cref; cref; cref = cref->next)
@@ -270,9 +269,8 @@ next_clause_unindexed(DECL_LD const IndexContext ctx)
 	return cref;
       }
     }
+    return NULL;
   }
-
-  return NULL;
 }
 
 #define next_clause_primary_index(ctx) \
@@ -290,12 +288,8 @@ next_clause_primary_index(DECL_LD const IndexContext ctx)
 	int maxsearch = MAX_LOOKAHEAD;
 
 	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( (!cref->d.key || key == cref->d.key) )
+	{ if ( (!cref->d.key || key == cref->d.key) || --maxsearch == 0 )
 	  { ctx->chp->cref = cref;
-	    return result;
-	  }
-	  if ( --maxsearch == 0 )
-	  { setClauseChoice(cref, ctx);
 	    return result;
 	  }
 	}
@@ -360,8 +354,8 @@ nextClauseFromList(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 { word key = ctx->chp->key;
 
   DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
-  assert(ci->is_list);
-  assert(ci->args[1] == 0);
+  DEBUG(0, assert(ci->is_list));
+  DEBUG(0, assert(ci->args[1] == 0));
 
   for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
   { if ( cref->d.key == key )
@@ -376,7 +370,7 @@ nextClauseFromList(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 	size_t argc;
 
 	deRef(a);
-	assert(isTerm(*a));
+	DEBUG(0, assert(isTerm(*a)));
 	at = valueTerm(*a);
 	argv = at->arguments;
 	argc = arityFunctor(at->definition);
