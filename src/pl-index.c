@@ -666,11 +666,11 @@ retry:
     goto retry;
   }
 
-  /* Try first argument indexing if the first argument can be indexed and
-   * we have less than MIN_CLAUSES_FOR_INDEX clauses.  Accept if we have
-   * no clause or the next candidate has a different key.   If the next
-   * candidate has the same key, deep indexing may help us, so we will
-   * search for other indexes.
+  /* Try the primary index if  the corresponding argument is bound and
+   * we have  less than  MIN_CLAUSES_FOR_INDEX clauses.  Accept  if we
+   * have no clause or the next candidate has a different key.  If the
+   * next candidate has the same key, deep indexing may help us, so we
+   * will search for other indexes.
    */
 
   if ( chp->key &&
@@ -702,16 +702,14 @@ retry:
     }
   }
 
-  if ( chp->key )
-  { if ( cref )
-      return cref;
-
-    chp->cref = clist->first_clause;
-    return next_clause_primary_index(ctx);
-  }
+  if ( cref )			/* from next_clause_primary_index() call */
+    return cref;
 
   chp->cref = clist->first_clause;
-  return next_clause_unindexed(ctx);
+  if ( chp->key )
+    return next_clause_primary_index(ctx);
+  else
+    return next_clause_unindexed(ctx);
 }
 
 
