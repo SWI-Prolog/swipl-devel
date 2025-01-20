@@ -86,7 +86,8 @@
 		 *	       TYPES		*
 		 *******************************/
 
-#define DEAD_INDEX   ((ClauseIndex)1)
+static const struct clause_index dead_index = {};
+#define DEAD_INDEX   ((ClauseIndex)(&dead_index))
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
 
 typedef struct hash_hints
@@ -471,20 +472,44 @@ indexKeyFromArgv(ClauseIndex ci, Word argv)
 }
 
 #ifdef O_INDEX_QUICK_TEST
+/* Perform  a  quick  test  whether  a virtual  clause  index  can  be
+ * activated.
+ *
+ * is_var() is optimized on the fact  that in most cases a variable is
+ * a  one-step  reference  and  this  function  is  mostly  called  on
+ * variables.
+ */
+
 static inline bool
 is_var(Word p)
-{ deRef(p);
-  return canBind(*p);
+{ if ( likely(isRef(*p)) )
+    p = unRef(*p);
+
+  for(;;)
+  { if ( canBind(*p) )
+      return true;
+    if ( unlikely(isRef(*p)) )
+      p = unRef(*p);
+    else
+      return false;
+  }
 }
 
 static inline bool
 is_satifies_index(const ClauseIndex ci, const Word argv)
-{ for(int i=0; i<MAX_MULTI_INDEX && ci->args[i]; i++)
-  { if ( is_var(&argv[ci->args[i]-1]) )
+{ iarg_t a0 = ci->args[0];
+
+  if ( a0 == 0 || is_var(&argv[a0-1]) )
+    return false;		/* DEAD_INDEX and var first arg */
+
+  for(int i=1; i<MAX_MULTI_INDEX && (a0=ci->args[i]); i++)
+  { if ( is_var(&argv[a0-1]) )
       return false;
   }
   return true;
 }
+#else
+#define is_satifies_index(ci,argv) true
 #endif
 
 
@@ -536,12 +561,7 @@ existing_hash(ClauseIndex *cip, const Word argv, Word keyp)
   { ClauseIndex ci = *cip;
     word k;
 
-    if ( ISDEADCI(ci) )
-      continue;
-
-#if O_INDEX_QUICK_TEST
     if ( ci->entries || is_satifies_index(ci, argv) )
-#endif
     { if ( (k=indexKeyFromArgv(ci, argv)) )
       { *keyp = k;
 	return ci;
