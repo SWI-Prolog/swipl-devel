@@ -1034,8 +1034,9 @@ with one operation, it turns out to be faster as well.
 #define P_TRANSACT		FLAG64(35) /* Subject to transactions */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
 				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
+#define P_RELOADING		P_MODIFIED /* We are reloading */
 /* flags for p_reload data (reconsult) */
-#define P_MODIFIED		FLAG64(36) /* Clause list as modified */
+#define P_MODIFIED		FLAG64(36) /* Clause list is modified */
 #define P_NEW			FLAG64(37) /* New predicate */
 #define P_NO_CLAUSES		FLAG64(38) /* Foreign or thread local */
 #define P_CHECK_SSU		FLAG64(39) /* Check mixed => and :- */

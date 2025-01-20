@@ -162,6 +162,10 @@ static bool	set_candidate_indexes(Definition def, ClauseList clist,
 /* Same as !cref->d.key || cref->d.key == k */
 #define cref_matches(cref, k) (((cref)->d.key == 0) | ((cref)->d.key == (k)))
 
+/* True if we do not need to check the generation */
+#define is_clean_predicate(def) \
+	isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG|P_RELOADING)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
 of buckets. This used to be simple, but now that our tag bits are on the
@@ -256,7 +260,7 @@ static ClauseRef
 next_clause_unindexed(DECL_LD const IndexContext ctx)
 {
 #if O_INDEX_STATIC
-  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  if ( is_clean_predicate(ctx->predicate) )
   { ClauseRef cref = ctx->chp->cref;
     if ( cref )
     { ctx->chp->key = 0;
@@ -284,7 +288,7 @@ next_clause_primary_index(DECL_LD const IndexContext ctx)
 { word key = ctx->chp->key;
 
 #if O_INDEX_STATIC
-  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  if ( is_clean_predicate(ctx->predicate) )
   { for(ClauseRef cref = ctx->chp->cref; cref; cref = cref->next)
     { if ( cref_matches(cref, key) )
       { ClauseRef result = cref;
@@ -432,7 +436,7 @@ static inline void
 setClauseChoice(DECL_LD ClauseRef cref, const IndexContext ctx)
 {
 #if O_INDEX_STATIC
-  if ( !isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  if ( !is_clean_predicate(ctx->predicate) )
 #endif
   { while ( cref &&
 	    !visibleClauseCNT(cref->value.clause, ctx->generation) )

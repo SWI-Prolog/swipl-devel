@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2024, VU University Amsterdam
+    Copyright (c)  2014-2025, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -936,6 +936,7 @@ startReconsultFile(SourceFile sf)
 	  cl->generation.erased = r->reload_gen;
 	}
 	release_def(def);
+	set(def, P_RELOADING);
 	clear(def, P_DISCONTIGUOUS);		/* will be reinstantiated */
       }
       if ( ison(def, P_AUTOLOAD) )
@@ -1034,24 +1035,28 @@ reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 }
 
 
-static int
-isRedefinedProcedure(Procedure proc, gen_t gen)
-{ GET_LD
-  Definition def = proc->definition;
+/* True if `proc` has at least one globally visible clause */
+
+#define isRedefinedProcedure(proc, gen) \
+	LDFUNC(isRedefinedProcedure, proc, gen)
+
+static bool
+isRedefinedProcedure(DECL_LD const Procedure proc, gen_t gen)
+{ Definition def = proc->definition;
   ClauseRef c;
-  int ret = false;
+  bool rc = false;
 
   acquire_def(def);
   for(c = def->impl.clauses.first_clause; c; c = c->next)
   { Clause cl = c->value.clause;
     if ( GLOBALLY_VISIBLE_CLAUSE(cl, gen) )
-    { ret = true;
+    { rc = true;
       break;
     }
   }
   release_def(def);
 
-  return ret;
+  return rc;
 }
 
 
@@ -1530,8 +1535,8 @@ delete_pending_clauses(DECL_LD SourceFile sf, Definition def, p_reload *r)
     if ( def->functor->functor == FUNCTOR_dtabled2 )
       untable_from_clause(c);
 
-    c->generation.erased = rl->reload_gen;
     set(r, P_MODIFIED);
+    c->generation.erased = rl->reload_gen;
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("  %s: deleted clause %d\n",
 		   predicateName(def),

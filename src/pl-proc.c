@@ -1967,6 +1967,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
 
       registerDirtyDefinition(def);
     }
+    clear(def, P_MODIFIED);
 
     DEBUG(CHK_SECURE, checkDefinition(def));
   }
