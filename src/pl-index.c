@@ -787,18 +787,19 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
 
 
 ClauseRef
-nextClause(DECL_LD ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
+nextClause(DECL_LD const ClauseChoice chp, const Word argv,
+	   const LocalFrame fr, const Definition def)
 { ClauseRef cref;
 
   (void)argv;				/* we want to use these later */
 
   MEMORY_ACQUIRE();
   acquire_def(def);
-  index_context ctx =
-    { .chp = chp,
-      .predicate = def,
-      .generation = generationFrame(fr)
-    };
+  index_context ctx;
+  ctx.chp = chp;
+  ctx.predicate = def;
+  ctx.generation = generationFrame(fr);
+
   if ( !chp->key )			/* not indexed */
   { cref = next_clause_unindexed(&ctx);
   } else

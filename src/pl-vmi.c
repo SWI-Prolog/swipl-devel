@@ -6388,23 +6388,28 @@ END_VMH
 		 *	   BACKTRACKING		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The  rest  of  this  giant  file  handles  backtracking. This used to be
-very complicated, but as of pl-3.3.6, choice-points are explicit objects
-and life is a lot easier. In the old days we distinquished between three
-cases to get here. We leave that   it for documentation purposes as well
-as to investigate optimization in the future.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/* CLAUSE_FAILED
+   We get here if unification of the head failed.
+ */
 
-// clause_failed:
-// body_failed:
+VMH(unify_backtrack, 0, (), ())
+{ QF = QueryFromQid(QID);	/* ARGP is pushed an unknown amount */
+  aTop = QF->aSave;
+
+  VMH_GOTO(shallow_backtrack);
+}
+END_VMH
+
+/* BODY_FAILED
+   We get here if execution of the body failed.  This happens if some
+   body goal is translated into a VM instruction and this instruction
+   fails.
+ */
 VMH(shallow_backtrack, 0, (), ())
-{ Choice ch = BFR;				/* shallow backtracking */
+{ Choice ch = BFR;
 
   if ( FR == ch->frame )
   { Undo(ch->mark);
-    QF = QueryFromQid(QID);
-    aTop = QF->aSave;
 
     if ( ch->type == CHP_JUMP )
     { DiscardMark(ch->mark);
@@ -6418,32 +6423,37 @@ VMH(shallow_backtrack, 0, (), ())
     { ARGP = argFrameP(FR, 0);
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	FRAME_FAILED;		/* can happen if scan-ahead was too short */
+      Word nTop = argFrameP(FR, CL->value.clause->variables);
       PC = CL->value.clause->codes;
       UMODE = uread;
 
-      if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
-      { DiscardMark(ch->mark);		/* is this needed? */
+      if ( f_hasSpace(nTop, lMax, LOCAL_MARGIN, 1) )
+      { if ( (Word)ch != nTop ) /* Choice point needs to move */
+	{ Choice nch = (Choice)nTop;
+	  memmove(nch, ch, sizeof(*ch));
+	  BFR = ch = nch;
+	}
+
 	if ( ch->value.clause.cref )
-	{ Mark(ch->mark);
-	  lTop = (LocalFrame)(ch+1);
+	{ lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	} else if ( unlikely(debugstatus.debugging) )
 	{ ch->type = CHP_DEBUG;
-	  Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	}
 
+	DiscardMark(ch->mark);
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
-      } else				/* Choice point needs to move */
+      } else	       /* We need GC/shift to move the choice point */
       { struct clause_choice chp;
 
 	DiscardMark(ch->mark);
 	BFR = ch->parent;
 	chp = ch->value.clause;
-	lTop = (LocalFrame)argFrameP(FR, CL->value.clause->variables);
+	lTop = (LocalFrame)nTop;
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
 	if ( chp.cref )

@@ -57,8 +57,8 @@
 word		getIndexOfTerm(term_t t);
 ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseChoice next);
-ClauseRef	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
-			   Definition def);
+ClauseRef	nextClause(const ClauseChoice chp, const Word argv,
+			   const LocalFrame fr, const Definition def);
 int		addClauseToIndexes(Definition def, Clause cl,
 				   ClauseRef where);
 void		delClauseFromIndex(Definition def, Clause cl);

@@ -1517,7 +1517,7 @@ reclaim_attvars(DECL_LD Word after)
 
 #define __do_undo(m) LDFUNC(__do_undo, m)
 static inline void
-__do_undo(DECL_LD mark *m)
+__do_undo(DECL_LD const mark *m)
 { TrailEntry tt = tTop;
   TrailEntry mt = m->trailtop.as_ptr;
 
@@ -2417,7 +2417,7 @@ choice_type last_choice;
 #endif
 
 #define FRAME_FAILED		GO(deep_backtrack)
-#define CLAUSE_FAILED		GO(shallow_backtrack)
+#define CLAUSE_FAILED		GO(unify_backtrack)
 #define BODY_FAILED		GO(shallow_backtrack)
 #ifdef O_DEBUGGER
 #define TRACE_RETRY		VMH_GOTO(retry)
