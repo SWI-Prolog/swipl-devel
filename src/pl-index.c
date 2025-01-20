@@ -435,9 +435,10 @@ static inline void
 setClauseChoice(DECL_LD ClauseRef cref, const IndexContext ctx)
 {
 #if O_INDEX_STATIC
-  if ( isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
+  if ( !isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG) )
 #endif
-  { while ( cref && !visibleClauseCNT(cref->value.clause, ctx->generation) )
+  { while ( cref &&
+	    !visibleClauseCNT(cref->value.clause, ctx->generation) )
       cref = cref->next;
   }
 
