@@ -2587,23 +2587,42 @@ skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
 
 /* True if  the compound at `pc`  can be indexed.  This  is similar to
  * arg1Key(), but we keep it more  simple.
+ *
+ * As  we consider  a  compound  indexable, we  never  go into  nested
+ * compounds.
+ *
+ * @param pc points at the term.
  */
 
 static bool
 indexableCompound(Code pc)
-{ pc = stepPC(pc);				/* skip functor */
-
-  for(;; pc = stepPC(pc))
+{ for(;; pc = stepPC(pc))
   { switch(decode(*pc))
-    { case H_FIRSTVAR:
-      case H_VAR:
-      case H_VOID:
-      case H_VOID_N:
-	continue;
-      case H_POP:
+    { case H_LIST_FF:
 	return false;
+      case I_CHP:
+	continue;
+      case H_FUNCTOR:
+      case H_RFUNCTOR:
+      case H_LIST:
+      case H_RLIST:
+	pc = stepPC(pc);				/* skip functor */
+	for(;; pc = stepPC(pc))
+	{ switch(decode(*pc))
+	  { case H_FIRSTVAR:
+	    case H_VAR:
+	    case H_VOID:
+	    case H_VOID_N:
+	      continue;		/* Try next argument */
+	    case H_POP:
+	      return false;		/* End of argument list */
+	    default:
+	      return true;		/* Indexable */
+	  }
+	}
       default:
-	return true;
+	assert(0);
+	return false;
     }
   }
 }
