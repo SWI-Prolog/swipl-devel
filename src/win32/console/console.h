@@ -63,7 +63,7 @@ typedef struct
 { int		 first;
   int		 last;
   int		 size;			/* size of the buffer */
-  TCHAR	        *buffer;		/* character buffer */
+  TCHAR		*buffer;		/* character buffer */
   int		 flags;			/* flags for the queue */
 } rlc_queue, *RlcQueue;
 
@@ -151,6 +151,8 @@ _export size_t		rlc_write(rlc_console c, TCHAR *buf, size_t cnt);
 _export int		rlc_close(rlc_console c);
 _export int		rlc_flush_output(rlc_console c);
 
+_export wchar_t	       *rlc_clipboard_text(rlc_console c);
+
 _export int		getch(rlc_console c);
 _export int		getche(rlc_console c);
 _export int		getkey(rlc_console c);
@@ -229,7 +231,7 @@ _export TCHAR	*read_line(rlc_console console);
 _export int	rlc_complete_file_function(RlcCompleteData data);
 _export void	rlc_init_history(rlc_console c, int size);
 _export void	rlc_add_history(rlc_console c, const TCHAR *line);
-_export int	rlc_bind(int chr, const char *fname);
+_export bool	rlc_bind(int chr, const char *fname);
 _export int	rlc_for_history(
 		    rlc_console b,
 		    int (*handler)(void *ctx, int no, const TCHAR *line),

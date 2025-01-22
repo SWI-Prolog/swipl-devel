@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2016, University of Amsterdam
+    Copyright (c)  1999-2025, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -228,7 +229,6 @@ static void     rlc_reinit_line(RlcData b, int line);
 static void	rlc_free_line(RlcData b, int line);
 static int	rlc_between(RlcData b, int f, int t, int v);
 static void	free_user_data(RlcData b);
-
 static RlcQueue	rlc_make_queue(int size);
 static int	rlc_from_queue(RlcQueue q);
 static int	rlc_is_empty_queue(RlcQueue q);
@@ -1008,7 +1008,7 @@ typed_char(RlcData b, int chr)
 
   if ( chr == Control('C') )
     rlc_interrupt(b);
-  else if ( chr == Control('V') || chr == Control('Y') )
+  else if ( chr == Control('V') )
     rlc_paste(b);
   else if ( b->queue )
     rlc_add_queue(b, b->queue, chr);
@@ -2900,26 +2900,44 @@ rlc_putansi(RlcData b, int chr)
 		 *	      CUT/PASTE		*
 		 *******************************/
 
-static void
-rlc_paste(RlcData b)
-{ HGLOBAL mem;
+wchar_t *
+rlc_clipboard_text(rlc_console c)
+{ RlcData b = rlc_get_data(c);
 
-  if ( b->window && OpenClipboard(b->window) )
-  { if ( (mem = GetClipboardData(CF_UNICODETEXT)) )
+  if ( OpenClipboard(b->window) )
+  { wchar_t *str = NULL;
+    HGLOBAL mem;
+
+    if ( (mem = GetClipboardData(CF_UNICODETEXT)) )
     { wchar_t *data = GlobalLock(mem);
-      RlcQueue q = b->queue;
+      int o = 0;
 
-      if ( q )
-      { for(int i=0; data[i]; i++)
-	{ rlc_add_queue(b, q, data[i]);
-	  if ( data[i] == '\r' && data[i+1] == '\n' )
-	    i++;
-	}
+      str = rlc_malloc(sizeof(*str)*(wcslen(data)+1));
+      for(int i=0; data[i]; i++)
+      { str[o++] = data[i];
+	if ( data[i] == '\r' && data[i+1] == '\n' )
+	  i++;
       }
+      str[o] = EOS;
 
       GlobalUnlock(mem);
     }
     CloseClipboard();
+    return str;
+  }
+
+  return NULL;
+}
+
+static void
+rlc_paste(RlcData b)
+{ RlcQueue q = b->queue;
+  wchar_t *text = NULL;
+
+  if ( b->window && q && (text=rlc_clipboard_text(b)) )
+  { for(int i=0; text[i]; i++)
+      rlc_add_queue(b, q, text[i]);
+    rlc_free(text);
   }
 }
 
@@ -3207,6 +3225,7 @@ ScreenRows(rlc_console c)
 		 *******************************/
 
 #define QN(q, i) ((i)+1 >= (q)->size ? 0 : (i)+1)
+#define QP(q, i) ((i)-1 < 0 ? (q)->size-1 : (i)-1)
 
 
 RlcQueue
@@ -3294,7 +3313,6 @@ rlc_from_queue(RlcQueue q)
 
   return -1;
 }
-
 
 		 /*******************************
 		 *	   BUFFERED I/O		*
