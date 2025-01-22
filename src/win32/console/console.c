@@ -792,7 +792,7 @@ rlc_get_options(rlc_console_attr *attr)
   reg_get_int(key, _T("Width"),        20,	 80,    300, &attr->width);
   reg_get_int(key, _T("Height"),        5,	 24,    100, &attr->height);
   reg_get_int(key, _T("X"),		 minx, minx,   maxx, &attr->x);
-  reg_get_int(key, _T("Y"),	         miny, miny,   maxy, &attr->y);
+  reg_get_int(key, _T("Y"),		 miny, miny,   maxy, &attr->y);
 }
 
   reg_get_str(key, _T("FaceName"), attr->face_name,
@@ -2904,29 +2904,13 @@ static void
 rlc_paste(RlcData b)
 { HGLOBAL mem;
 
-  if ( b->window )
-  { OpenClipboard(b->window);
-    if ( (mem = GetClipboardData(CF_UNICODETEXT)) )
+  if ( b->window && OpenClipboard(b->window) )
+  { if ( (mem = GetClipboardData(CF_UNICODETEXT)) )
     { wchar_t *data = GlobalLock(mem);
-      int i;
       RlcQueue q = b->queue;
 
       if ( q )
-      { for(i=0; data[i]; i++)
-	{ rlc_add_queue(b, q, data[i]);
-	  if ( data[i] == '\r' && data[i+1] == '\n' )
-	    i++;
-	}
-      }
-
-      GlobalUnlock(mem);
-    } else if ( (mem = GetClipboardData(CF_TEXT)) )
-    { char far *data = GlobalLock(mem);
-      int i;
-      RlcQueue q = b->queue;
-
-      if ( q )
-      { for(i=0; data[i]; i++)
+      { for(int i=0; data[i]; i++)
 	{ rlc_add_queue(b, q, data[i]);
 	  if ( data[i] == '\r' && data[i+1] == '\n' )
 	    i++;
