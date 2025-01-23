@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -50,12 +50,18 @@
 #endif
 #endif
 
+/* define SWIPL_WINDOWS_NATIVE_ACCESS to 1 if you want the native
+ * Windows types for Swinhandle() and Swinsock()
+ */
+
 #ifdef __WINDOWS__
+#if SWIPL_WINDOWS_NATIVE_ACCESS
 #include <winsock2.h>
 #include <windows.h>
-#else
-#include <unistd.h>
 #endif
+#else  /*__WINDOWS__*/
+#include <unistd.h>
+#endif	/*__WINDOWS__*/
 
 #include <stdarg.h>
 #include <wchar.h>
@@ -478,7 +484,7 @@ PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sopen_iri_or_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
-#ifdef __WINDOWS__
+#if SWIPL_WINDOWS_NATIVE_ACCESS
 PL_EXPORT(int)		Swin_open_osfhandle(HANDLE h, int flags);
 PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
 PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);

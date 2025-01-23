@@ -36,6 +36,7 @@
 */
 
 #ifdef __WINDOWS__
+#define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include "windows/uxnt.h"
 #include "config/wincfg.h"
 #include <winsock2.h>

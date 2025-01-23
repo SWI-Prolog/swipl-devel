@@ -49,6 +49,7 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG_MT 1*/
 
 #ifdef __WINDOWS__
+#define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include <winsock2.h>
 #include <windows.h>
 #endif
