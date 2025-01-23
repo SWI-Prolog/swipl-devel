@@ -484,7 +484,7 @@ PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sopen_iri_or_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
-#if SWIPL_WINDOWS_NATIVE_ACCESS
+#if defined(__WINDOWS__) && SWIPL_WINDOWS_NATIVE_ACCESS
 PL_EXPORT(int)		Swin_open_osfhandle(HANDLE h, int flags);
 PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
 PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
