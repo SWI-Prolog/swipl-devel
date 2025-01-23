@@ -871,7 +871,7 @@ newClauseIndexTable(hash_hints *hints, bool realised, IndexContext ctx)
 { ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
 
   memset(ci, 0, sizeof(*ci));
-  static_assert(sizeof(ci->args) == sizeof(hints->args));
+  static_assertion(sizeof(ci->args) == sizeof(hints->args));
   memcpy(ci->args, hints->args, sizeof(ci->args));
   ci->buckets	 = 2<<hints->ln_buckets;
   ci->is_list	 = hints->list;
