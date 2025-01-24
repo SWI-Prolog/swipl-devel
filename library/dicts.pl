@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2024, VU University Amsterdam
+    Copyright (c)  2015-2025, VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -55,6 +55,7 @@
 :- autoload(library(pairs),[pairs_keys/2,pairs_keys_values/3]).
 :- autoload(library(error), [domain_error/2, must_be/2]).
 
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
     mapdict(2, +),
