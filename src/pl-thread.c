@@ -3571,11 +3571,11 @@ signal_is_blocked(DECL_LD thread_sig *sg)
   { term_t av = PL_new_term_refs(1);
     term_t m  = PL_new_term_ref();
 
-    startCritical();
+    startCritical();		/* do not handle signals */
     rc = ( PL_put_atom(m, sg->module->name) &&
 	   PL_recorded(sg->goal, av+0) &&
 	   PL_cons_functor(av+0, FUNCTOR_colon2, m, av+0) &&
-	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av)
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION|PL_Q_NODEBUG, pred, av)
 	 );
     rc = endCritical() && rc;
 
