@@ -7867,14 +7867,14 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 
 #else /*O_PLMT*/
 
-int
+bool
 signalGCThread(int sig)
 { GET_LD
 
   return raiseSignal(LD, sig);
 }
 
-int
+bool
 isSignalledGCThread(DECL_LD int sig)
 { return PL_pending(sig);
 }
