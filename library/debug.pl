@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2024, University of Amsterdam
+    Copyright (c)  2002-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -250,9 +250,9 @@ topic_to_string(Topic, String) :-
     term_string(Topic, String, [quoted(true), numbervars(true)]).
 
 :- multifile
-    prolog_debug_tools:debugging_hook/0.
+    prolog_debug_tools:debugging_hook/1.
 
-prolog_debug_tools:debugging_hook :-
+prolog_debug_tools:debugging_hook(_DebugMode) :-
     (   debugging(_, true, _)
     ->  list_debug_topics([active(true)])
     ).

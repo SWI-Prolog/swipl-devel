@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021-2024, SWI-Prolog Solutions b.v.
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2021-2025, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -152,34 +152,36 @@ pi_to_head(Name/Arity, Head) :-
 %
 %   Report current status of the debugger.
 
+:- '$hide'(debugging/0).
 debugging :-
-    '$notrace'(debugging_).
+    current_prolog_flag(debug, DebugMode),
+    '$notrace'(debugging_(DebugMode)).
 
-debugging_ :-
-    prolog:debug_control_hook(debugging),
+debugging_(DebugMode) :-
+    prolog:debug_control_hook(debugging(DebugMode)),
     !.
-debugging_ :-
-    (   current_prolog_flag(debug, true)
-    ->  print_message(informational, debugging(on)),
-        findall(H, spy_point(H), SpyPoints),
+debugging_(DebugMode) :-
+    print_message(informational, debugging(DebugMode)),
+    (   DebugMode == true
+    ->  findall(H, spy_point(H), SpyPoints),
         print_message(informational, spying(SpyPoints))
-    ;   print_message(informational, debugging(off))
+    ;   true
     ),
     trapping,
-    forall(debugging_hook, true).
+    forall(debugging_hook(DebugMode), true).
 
 spy_point(Module:Head) :-
     current_predicate(_, Module:Head),
     '$get_predicate_attribute'(Module:Head, spy, 1),
     \+ predicate_property(Module:Head, imported_from(_)).
 
-%!  debugging_hook
+%!  debugging_hook(+DebugMode)
 %
-%   Multifile hook that is called   as  forall(debugging_hook, true) and
-%   that may be used  to  extend   the  information  printed  from other
-%   debugging libraries.
+%   Multifile hook that is   called as forall(debugging_hook(DebugMode),
+%   true) and that may be used to   extend  the information printed from
+%   other debugging libraries.
 
-:- multifile debugging_hook/0.
+:- multifile debugging_hook/1.
 
 
 		 /*******************************

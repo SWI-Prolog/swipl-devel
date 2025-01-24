@@ -348,9 +348,9 @@ list_tracing :-
     print_message(informational, tracing(Tracing)).
 
 :- multifile
-    prolog_debug_tools:debugging_hook/0.
+    prolog_debug_tools:debugging_hook/1.
 
-prolog_debug_tools:debugging_hook :-
+prolog_debug_tools:debugging_hook(_DebugMode) :-
     (   tracing(_:_, _)
     ->  list_tracing
     ).

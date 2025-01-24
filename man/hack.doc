@@ -679,11 +679,12 @@ nospy/1.
     \termitem{nospyall}{}
 Hook in nospyall/0.  Should remove all spy points.  This hook is
 called in a failure-driven loop.
-    \termitem{debugging}{}
-Hook in debugging/0.  It can be used in two ways.  It can report
-the status of the additional debug points controlled by the above
-hooks and fail to let the system report the others, or it succeeds,
-overruling the entire behaviour of debugging/0.
+    \termitem{debugging}{DebugMode}
+Hook in debugging/0. \arg{DebugMode} holds the current value of the
+\prologflag{debug} flag. The hook can be used in two ways. It can report
+the status of the additional debug points controlled by the above hooks
+and fail to let the system report the others, or it succeeds, overruling
+the entire behaviour of debugging/0.
 \end{description}
 
     \predicate{prolog:help_hook}{1}{+Action}
