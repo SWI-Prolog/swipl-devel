@@ -69,7 +69,7 @@ endif()
 
 # Create swipl-web.js, swipl-web.wasm, swipl-web.data
 set(WASM_WEB_LINK_FLAGS
-    --preload-file ${WASM_PRELOAD_DIR}@swipl)
+    --preload-file ${WASM_PRELOAD_DIR}@swipl -Wno-unused-main)
 join_list(WASM_WEB_LINK_FLAGS_STRING " "
 	  ${WASM_WEB_LINK_FLAGS} ${WASM_DIST_LINK_FLAGS})
 add_executable(swipl-web ${SWIPL_SRC})
@@ -82,7 +82,7 @@ set_property(TARGET swipl-web PROPERTY LINK_DEPENDS
 
 # Create swipl-bundle.js
 set(WASM_BUNDLE_LINK_FLAGS
-    -s SINGLE_FILE
+    -s SINGLE_FILE -Wno-unused-main
     --embed-file ${WASM_PRELOAD_DIR}@swipl)
 join_list(WASM_BUNDLE_LINK_FLAGS_STRING " "
 	  ${WASM_BUNDLE_LINK_FLAGS} ${WASM_DIST_LINK_FLAGS})
@@ -96,7 +96,7 @@ set_property(TARGET swipl-bundle PROPERTY LINK_DEPENDS
 
 # Create swipl-bundle-no-data.js
 set(WASM_NO_DATA_BUNDLE_LINK_FLAGS
-    -s SINGLE_FILE)
+    -s SINGLE_FILE -Wno-unused-main)
 join_list(WASM_NO_DATA_BUNDLE_LINK_FLAGS_STRING " "
 	  ${WASM_NO_DATA_BUNDLE_LINK_FLAGS} ${WASM_DIST_LINK_FLAGS})
 add_executable(swipl-bundle-no-data ${SWIPL_SRC})
