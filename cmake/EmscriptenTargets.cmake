@@ -50,8 +50,7 @@ add_dependencies(wasm_preload wasm_preload_dir)
 # Next, build the binaries for deployment.
 # Build the browser-deployed binary with a bit different linker flags.
 
-set(POSTJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
-set(PREJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/pre.js)
+set(PREJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
 
 set(WASM_DIST_LINK_FLAGS
     -s WASM=1
@@ -60,8 +59,7 @@ set(WASM_DIST_LINK_FLAGS
     -s NO_EXIT_RUNTIME=0
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
-    --pre-js ${PREJS}
-    --post-js ${POSTJS})
+    --pre-js ${PREJS})
 list(APPEND WASM_DIST_LINK_FLAGS ${WASM_SHARED_LINK_FLAGS})
 if(MULTI_THREADED)
   list(APPEND WASM_DIST_LINK_FLAGS
