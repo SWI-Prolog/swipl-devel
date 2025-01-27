@@ -15,6 +15,7 @@ export CC=
 export CXX=
 opts=
 cmake=cmake
+os=any
 
 config=$(basename $(pwd))
 
@@ -38,6 +39,33 @@ case $config in
     export CC=clang
     export CXX=clang++
     ;;
+esac
+
+# wasm
+# termux
+#
+# Build for specific targets
+
+case $config in
+    *wasm*)
+        os=wasm
+	WASM_HOME=${WASM_HOME-$HOME/wasm}
+	source $WASM_HOME/emsdk/emsdk_env.sh
+	TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
+	cmake="emcmake cmake"
+	build_type=Release
+	LDFLAGS+=" -s STACK_SIZE=1048576"
+	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
+	opts+=" -DCMAKE_FIND_ROOT_PATH=$WASM_HOME"
+	opts+=" -DUSE_GMP=OFF"
+	opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	;;
+    *termux*)
+	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
+	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
+	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
+	;;
 esac
 
 # nogmp
@@ -171,7 +199,11 @@ case $config in
     build_type=PGO
     ;;
   *debug*)
-    build_type=Debug
+    if [ $os == wasm ]; then
+        LDFLAGS+=" -sASSERTIONS"
+    else
+        build_type=Debug
+    fi
     ;;
   *asan*)
     build_type=Sanitize
@@ -180,32 +212,6 @@ case $config in
     build_type=Sanitize
     opts+=" -DSANITIZE=undefined"
     ;;
-esac
-
-# wasm
-# termux
-#
-# Build for specific targets
-
-case $config in
-    *wasm*)
-	WASM_HOME=$HOME/wasm
-	source $WASM_HOME/emsdk/emsdk_env.sh
-	TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
-	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
-	cmake="emcmake cmake"
-	build_type=Release
-	LDFLAGS+=" -s STACK_SIZE=1048576"
-	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
-	opts+=" -DCMAKE_FIND_ROOT_PATH=$HOME/wasm"
-	opts+=" -DUSE_GMP=OFF"
-	opts+=" -DINSTALL_DOCUMENTATION=OFF"
-	;;
-    *termux*)
-	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
-	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
-	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
-	;;
 esac
 
 function confirm ()
@@ -257,5 +263,10 @@ chmod +x configure
 [ -z "$CXX" ]     || echo "export CXX=$CXX"               >> .envrc
 [ -z "$CFLAGS" ]  || echo "export CFLAGS="'"'$CFLAGS'"'   >> .envrc
 [ -z "$LDFLAGS" ] || echo "export LDFLAGS="'"'$LDFLAGS'"' >> .envrc
-
+case $config in
+    *wasm*)
+        echo "export WASM_HOME="'"'$WASM_HOME'"'         >> .envrc
+	echo "export EMSDK_QUIET=1"			 >> .envrc
+	echo "source "'$'"WASM_HOME/emsdk/emsdk_env.sh"	 >> .envrc
+esac
 ./configure
