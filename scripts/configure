@@ -95,6 +95,9 @@ esac
 # equal for Clang (and WASM) and much faster for MSVC
 
 case $config in
+  *novmif*)
+    opts+=" -DVMI_FUNCTIONS=OFF"
+    ;;
   *vmif*)
     opts+=" -DVMI_FUNCTIONS=ON"
     ;;
