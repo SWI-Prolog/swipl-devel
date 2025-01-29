@@ -74,7 +74,7 @@ means that these calls are identical:
 @see    apply_macros.pl provides compile-time expansion for part of this
         library.
 @see    http://www.cs.otago.ac.nz/staffpriv/ok/pllib.htm
-@see    Unit test code in src/Tests/library/test_apply.pl
+@see    Unit test code in tests/library/test_apply.pl
 @tbd    Add include/4, include/5, exclude/4, exclude/5
 */
 

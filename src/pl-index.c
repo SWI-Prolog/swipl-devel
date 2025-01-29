@@ -1952,7 +1952,7 @@ Adding a pause here creates  a window where other threads may mark clauses
 as erased (CL_ERASED).  This prevents them being added to the just-created
 index.
 
-See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
+See the test_cgc_1 test case in tests/GC/test_cgc_1.pl
 
   usleep(1000);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

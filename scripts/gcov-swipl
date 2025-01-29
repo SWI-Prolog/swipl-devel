@@ -25,7 +25,7 @@
 # second only covers the core tests, not the package tests.
 #
 #     ../scripts/gcov-swipl ../bench/run.pl
-#     ../scripts/gcov-swipl -q ../src/test.pl
+#     ../scripts/gcov-swipl -q ../tests/test.pl
 
 gcov=gcov
 if [ -f configure ]; then

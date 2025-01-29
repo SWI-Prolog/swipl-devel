@@ -124,7 +124,7 @@ subunifier([X=Y|T], OrNode) :-
 %   result of how unifiable acts on  sharing subterms. This is prevented
 %   by simplify_ornode/3.
 %
-%   @see test 14 in src/Tests/attvar/test_dif.pl.
+%   @see test 14 in tests/attvar/test_dif.pl.
 
 dif_c_c_l(Unifier, OrNode, U) :-
     extend_ornode(OrNode, List, Tail),

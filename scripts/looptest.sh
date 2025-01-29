@@ -11,7 +11,7 @@ run=1
 
 runtest()
 { echo "### Run $run ###"
-  src/swipl "-f" "none" "--no-packs" "--on-error=status" "-q" "../src/test.pl" "--no-core" "$1"
+  src/swipl "-f" "none" "--no-packs" "--on-error=status" "-q" "../tests/test.pl" "--no-core" "$1"
 }
 
 while runtest $1; do run=$(($run+1)); done

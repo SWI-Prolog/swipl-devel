@@ -19,12 +19,12 @@ end
 
 define qpl
   dont-repeat
-  run -q -f ../src/test.pl -O -F none
+  run -q -f ../tests/test.pl -O -F none
 end
 
 define test
   dont-repeat
-  run -q -f ../src/test.pl -O -F none -g test,halt -t 'halt(1)'
+  run -q -f ../tests/test.pl -O -F none -g test,halt -t 'halt(1)'
 end
 
 define boot

@@ -580,48 +580,6 @@ elseif(PROFILE_GUIDED_OPTIMIZATION)
   endif()
 endif()
 
-################
-# Testing
-
-add_custom_target(check
-    COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
-
-set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
-    compile charset eclipse clp GC save files transaction
-    xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
-    xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
-    xsb/sub_tests)
-if(MULTI_THREADED)
-  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait signals)
-endif()
-if(O_BIGNUM)
-  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
-endif()
-
-add_test(NAME swipl:abi-version
-	 COMMAND ${PROG_SWIPL} --abi-version)
-add_test(NAME swipl:basic
-	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
-	 -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
-foreach(test ${SWIPL_TEST_DIRS})
-  add_test(NAME swipl:${test}
-	   COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
-	   -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
-endforeach()
-
-# Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
-function(install_tests)
-   set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
-   install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
-           DESTINATION ${INSTALL_TESTS_DIR})
-   install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
-           DESTINATION ${INSTALL_TESTS_DIR}/)
-endfunction()
-
-if(INSTALL_TESTS)
-install_tests()
-endif()
-
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)

@@ -79,7 +79,7 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 :- print_message(informational, test(main_suite)).
 
-% The test-suite Tests/library/test_date.pl depends on  the timezone. As
+% The  test-suite  library/test_date.pl  depends  on  the  timezone.  As
 % correct results are only  provided  for   the  CET  (Central European)
 % timezone we use this. Timezone cannot be  changed at runtime, so we do
 % this early.
@@ -1977,35 +1977,35 @@ wide_character_types :-
 %
 %   Enumerate directories holding tests.
 
-testdir('Tests/unprotected').
-testdir('Tests/core').
-testdir('Tests/attvar').
-testdir('Tests/debug').
-testdir('Tests/library').
-testdir('Tests/compile').
-testdir('Tests/charset').
-testdir('Tests/eclipse').
-testdir('Tests/files').
-testdir('Tests/clp').
-testdir('Tests/GC').
-testdir('Tests/thread') :-
+testdir('unprotected').
+testdir('core').
+testdir('attvar').
+testdir('debug').
+testdir('library').
+testdir('compile').
+testdir('charset').
+testdir('eclipse').
+testdir('files').
+testdir('clp').
+testdir('GC').
+testdir('thread') :-
     current_prolog_flag(threads, true).
-testdir('Tests/thread_wait') :-
+testdir('thread_wait') :-
     current_prolog_flag(threads, true).
-testdir('Tests/transaction').
-testdir('Tests/save').
-testdir('Tests/tabling').
-testdir('Tests/xsb/basic_tests').
-testdir('Tests/xsb/ai_tests').
-testdir('Tests/xsb/ptq').
-testdir('Tests/xsb/neg_tests').
-testdir('Tests/xsb/delay_tests').
-testdir('Tests/xsb/wfs_tests').
-testdir('Tests/xsb/table_tests').
-testdir('Tests/xsb/incremental_tests').
-testdir('Tests/xsb/nonmt_tests').
-testdir('Tests/xsb/sub_tests').
-testdir('Tests/rational') :-
+testdir('transaction').
+testdir('save').
+testdir('tabling').
+testdir('xsb/basic_tests').
+testdir('xsb/ai_tests').
+testdir('xsb/ptq').
+testdir('xsb/neg_tests').
+testdir('xsb/delay_tests').
+testdir('xsb/wfs_tests').
+testdir('xsb/table_tests').
+testdir('xsb/incremental_tests').
+testdir('xsb/nonmt_tests').
+testdir('xsb/sub_tests').
+testdir('rational') :-
     current_prolog_flag(bounded, false).
 
 :- dynamic
@@ -2046,8 +2046,8 @@ test:opt_help(output,         "When to write test output").
 %       If `false` (default `true`), run the _core_ tests from this
 %       file.
 %     - subdirs(+DirsOrFalse)
-%       Either `false` (do not run tests from =Tests=) or a list
-%       of directories below =Tests=
+%       Either `false` (do not run tests from sub directories or
+%       a list of directories below swi(tests)
 %     - packages(true)
 %       Test all packages (from test_installation/1)
 %     - package(+Package)
@@ -2056,9 +2056,7 @@ test:opt_help(output,         "When to write test output").
 test(_, Options) :-
     option(list_test_dirs(true), Options),
     !,
-    forall(testdir(Dir),
-           ( atom_concat('Tests/', Id, Dir),
-             writeln(Id))).
+    forall(testdir(Dir), writeln(Dir)).
 test(Files, Options) :-
     retractall(failed(_)),
     retractall(blocked(_,_)),
@@ -2082,8 +2080,8 @@ test(Files, Options) :-
 
 %!  scripts(+Files, +Options) is det.
 %
-%   Test the core system  using  the   test  scripts  in the =Tests=
-%   directory.
+%   Test the core system using  the  test   scripts  in  one  of the sub
+%   directories of swi(tests)
 
 scripts(_Files, Options) :-
     option(subdirs(false), Options),
@@ -2092,10 +2090,8 @@ scripts([], _Options) :-
     !,
     forall(testdir(Dir), run_test_scripts(Dir)).
 scripts(Dirs, _Options) :-
-    forall(member(Dir, Dirs),
-           (   atom_concat('Tests/', Dir, TestDir),
-               run_test_scripts(TestDir)
-           )).
+    forall(member(TestDir, Dirs),
+           run_test_scripts(TestDir)).
 
 
                  /*******************************

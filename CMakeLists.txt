@@ -262,17 +262,52 @@ if(INSTALL_DOCUMENTATION)
 	  DESTINATION ${SWIPL_INSTALL_DOC}/packages)
 endif(INSTALL_DOCUMENTATION)
 
+################################################################
+# Testing
+
+set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
+    compile charset eclipse clp GC save files transaction
+    xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
+    xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
+    xsb/sub_tests)
+if(MULTI_THREADED)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait signals)
+endif()
+if(O_BIGNUM)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
+endif()
+
+add_test(NAME swipl:abi-version
+	 COMMAND ${PROG_SWIPL} --abi-version)
+add_test(NAME swipl:basic
+	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	 -q ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.pl --no-subdirs)
+foreach(test ${SWIPL_TEST_DIRS})
+  add_test(NAME swipl:${test}
+	   COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	   -q ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.pl --no-core ${test})
+endforeach()
+
 # Install a prolog script to run tests on target device
 # in which ctest is not available
 if(INSTALL_TESTS)
   set(INSTALL_TESTS_DIR ${SWIPL_INSTALL_PREFIX}/test)
   set(PKGS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/packages)
   set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
+
+# Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
+function(install_tests)
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
+  install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/tests/
+          DESTINATION ${INSTALL_TESTS_DIR}
+	  PATTERN "*~" EXCLUDE)
   #Move test db to installation
   install(FILES       ${INSTALL_TESTS_DB}
-	  DESTINATION ${INSTALL_TESTS_DIR}
-	  COMPONENT   Tests)
+	  DESTINATION ${INSTALL_TESTS_DIR})
   file(REMOVE ${INSTALL_TESTS_DB})
+endfunction()
+
+install_tests()
 endif(INSTALL_TESTS)
 
 # Add the packages

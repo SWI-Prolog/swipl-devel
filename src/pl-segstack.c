@@ -229,8 +229,8 @@ Therefore $collect_findall_bag/2 locks if it needs to call the expensive
 chunk-popping popTopOfSegStack_().
 
 With thanks to Eugeniy Meshcheryakov for   finding this and running many
-tests. The issue is triggered by Tests/thread_agc_findall.pl, notably on
-slow single core hardware.
+tests. The issue  is   triggered  by tests/thread/thread_agc_findall.pl,
+notably on slow single core hardware.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
