@@ -328,6 +328,7 @@ rb_apply(t(Nil,OldTree), Key, Goal, NewTree2) =>
     NewTree2 = t(Nil,NewTree),
     apply(OldTree, Key, Goal, NewTree).
 
+:- meta_predicate apply(+,?,2,-).
 %apply(black('',_,_,''), _, _, _) :- !, fail.
 apply(black(Left,Key0,Val0,Right), Key, Goal,
       black(NewLeft,Key0,Val,NewRight)) :-
