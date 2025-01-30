@@ -450,6 +450,7 @@ PL_EXPORT(int)		PL_close_query(qid_t qid); /* true,false or PL_S_NOT_INNER */
 PL_EXPORT(int)		PL_cut_query(qid_t qid);   /* true,false or PL_S_NOT_INNER */
 PL_EXPORT(qid_t)	PL_current_query(void);
 PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
+PL_EXPORT(term_t)	PL_query_arguments(qid_t qid);
 PL_EXPORT(bool)		PL_can_yield(void);
 
 			/* Simplified (but less flexible) call-back */

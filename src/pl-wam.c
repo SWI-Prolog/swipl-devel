@@ -2927,7 +2927,7 @@ restore_after_query(QueryFrame qf)
 }
 
 
-int
+int				/* true,false or PL_S_NOT_INNER */
 PL_cut_query(qid_t qid)
 { int rc = true;
 
@@ -2961,7 +2961,7 @@ PL_cut_query(qid_t qid)
 }
 
 
-int
+int				/* true,false or PL_S_NOT_INNER */
 PL_close_query(qid_t qid)
 { int rc = true;
 
@@ -3024,6 +3024,16 @@ PL_query_engine(qid_t qid)
 { return qid->engine;
 }
 
+term_t
+PL_query_arguments(qid_t qid)
+{ WITH_LD(qid->engine)
+  { QueryFrame qf = QueryFromQid(qid);
+    if ( qf->magic == QID_MAGIC )
+      return consTermRef(argFrameP(&qf->frame, 0));
+    PL_api_error("PL_query_arguments(): invalid qid");
+  }
+  return 0;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_exception(qid) is used to extract exceptions   from an query executed
