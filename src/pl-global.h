@@ -579,6 +579,14 @@ struct PL_local_data
     uint64_t	frequency;		/* How often do we fire */
   } yield;
 
+#ifdef __EMSCRIPTEN__
+  struct
+  { term_t yield_request;		/* See '$await'/2 in wasm/pl-wasm.c */
+    term_t yield_result;
+    bool   yield_unified;
+  } wasm;
+#endif
+
   struct
   { uint64_t	inferences;		/* inferences in this thread */
     uint64_t	last_cputime;		/* milliseconds last CPU time */
