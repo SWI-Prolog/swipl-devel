@@ -75,25 +75,23 @@ WASM_variable_id(term_t t)
  * Out
  */
 
-static term_t yield_request = 0;
-static term_t yield_result  = 0;
-static int    yield_unified = false;
-
 static
 PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
-{ switch(CTX_CNTRL)
+{ PRED_LD
+
+  switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
-    { yield_request = A1;
-      yield_result  = A2;
-      yield_unified = false;
-      PL_yield_address(&yield_request);
+    { LD->wasm.yield_request = A1;
+      LD->wasm.yield_result  = A2;
+      LD->wasm.yield_unified = false;
+      PL_yield_address(&LD->wasm.yield_request);
     }
     case PL_RESUME:
-    { int rc = yield_unified;
+    { bool rc = LD->wasm.yield_unified;
 
-      yield_request = 0;
-      yield_result  = 0;
-      yield_unified = false;
+      LD->wasm.yield_request = 0;
+      LD->wasm.yield_result  = 0;
+      LD->wasm.yield_unified = false;
 
       return rc;
     }
@@ -105,12 +103,14 @@ PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
 
 term_t
 WASM_yield_request(void)
-{ return yield_request;
+{ GET_LD
+  return LD->wasm.yield_request;
 }
 
 void
 WASM_set_yield_result(term_t result)
-{ yield_unified = PL_unify(yield_result, result);
+{ GET_LD
+  LD->wasm.yield_unified = PL_unify(LD->wasm.yield_result, result);
 }
 
 static
