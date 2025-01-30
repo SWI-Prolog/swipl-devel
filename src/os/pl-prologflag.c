@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1925,6 +1925,7 @@ initPrologFlags(void)
 #endif
 #ifdef O_PLMT
   setPrologFlag("threads",	FT_BOOL, !GD->options.nothreads, 0);
+  setPrologFlag("engines",	FT_BOOL, true, 0);
   if ( GD->options.xpce >= 0 )
     setPrologFlag("xpce",	FT_BOOL, GD->options.xpce, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, (intptr_t)0);
@@ -1934,6 +1935,9 @@ initPrologFlags(void)
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, false, 0);
   setPrologFlag("gc_thread",    FT_BOOL|FF_READONLY, false, PLFLAG_GCTHREAD);
+#ifdef O_ENGINES
+  setPrologFlag("engines",	FT_BOOL, true, 0);
+#endif
 #endif
 #ifdef O_DDE
   setPrologFlag("dde", FT_BOOL|FF_READONLY, true, 0);

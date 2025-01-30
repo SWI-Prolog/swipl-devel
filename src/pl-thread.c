@@ -1107,6 +1107,7 @@ dummy_handler(int sig)
 }
 #endif
 
+#ifdef O_PLMT
 static double
 halt_grace_time(void)
 { GET_LD
@@ -1125,6 +1126,7 @@ halt_grace_time(void)
 
   return t;
 }
+#endif
 
 int
 exitPrologThreads(void)

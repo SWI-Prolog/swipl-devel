@@ -2955,6 +2955,10 @@ static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #define WEAK_TRY_CALL_VOID(Name, ...) \
 	(WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : (void)0)
 
+#if defined(O_ENGINES) && !defined(O_PLMT)
+extern struct PL_local_data *PL_current_engine_ptr;
+#endif
+
 #include "pl-util.h"			/* (Debug) utilities */
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */

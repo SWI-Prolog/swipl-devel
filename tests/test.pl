@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2023, University of Amsterdam
+    Copyright (c)  1996-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1944,6 +1944,8 @@ testset(wctype) :-
     wide_character_types.
 testset(thread) :-
     current_prolog_flag(threads, true).
+testset(engines) :-
+    current_prolog_flag(engines, true).
 testset(mutex) :-
     current_prolog_flag(threads, true).
 

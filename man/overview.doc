@@ -1667,6 +1667,11 @@ default emulator.
 Format of the SWI-Prolog executable, e.g. \const{elf} for when
 \file{swipl} is an ELF binary file.
 
+    \prologflagitem{engines}{bool}{r}
+True if engines are supported.  This is always the case on the
+multi-threaded versions.   Engines may be enabled on single
+threaded versions of SWI-Prolog.
+
     \prologflagitem{exit_status}{integer}{r}
 Set by halt/1 to its argument, making the exit status available to
 hooks registered with at_halt/1.

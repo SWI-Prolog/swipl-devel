@@ -776,12 +776,12 @@ struct PL_local_data
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     int magic;				/* PL_THREAD_MAGIC (checking) */
     int exit_requested;			/* Thread is asked to exit */
+    struct _PL_thread_info_t *creator;	/* Thread that created me */
+    uint64_t creator_seq_id;		/* Seq id of creater */
 #ifdef O_PLMT
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
     thread_wait_for *waiting_for;	/* thread_wait/2 info */
     alert_channel alert;		/* How to alert the thread */
-    struct _PL_thread_info_t *creator;	/* Thread that created me */
-    uint64_t creator_seq_id;		/* Seq id of creater */
     double child_cputime;		/* Time of completed children */
     uint64_t child_inferences;		/* Inferences in children */
 #endif

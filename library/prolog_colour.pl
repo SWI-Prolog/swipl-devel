@@ -2255,6 +2255,7 @@ known_flag(break_level).
 known_flag(conda).
 known_flag(dde).
 known_flag(emscripten).
+known_flag(engines).
 known_flag(executable_format).
 known_flag(gc_thread).
 known_flag(gmp_version).
