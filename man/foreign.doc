@@ -3440,6 +3440,14 @@ Return the engine to which \arg{qid} belongs.  Note that interacting
 with a query or the Prolog terms associated with a query requires the
 engine to be \jargon{current}.  See PL_set_engine().
 
+    \cfunction{term_t}{PL_query_arguments}{qid_t qid}
+Return a \ctype{term_t} handle to the first argument of the main goal
+of the query \arg{qid}.  This allows for enumerating a query and
+acting on the binding of one of the arguments without additional
+context. Note that the returned \ctype{term_t} is \emph{not} the same
+handle that was used in PL_open_query() to pass the arguments. The
+content of the returned vector, however, is the same.
+
     \cfunction{bool}{PL_call_predicate}{module_t m, int flags,
 				       predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),

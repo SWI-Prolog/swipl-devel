@@ -162,6 +162,21 @@ in_foreign_frame(DECL_LD Word p)
   return NULL;
 }
 
+#define in_query_arguments(p)	LDFUNC(in_query_arguments, p)
+static bool
+in_query_arguments(DECL_LD Word p)
+{ for(QueryFrame qf = LD->query; qf; qf=qf->parent)
+  { LocalFrame fr = &qf->frame;
+    if ( p > argFrameP(fr, 0) )
+    { size_t arity = fr->predicate->functor->arity;
+      if ( p < argFrameP(fr, arity) )
+	return true;
+    }
+  }
+
+  return false;
+}
+
 void
 valid_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
@@ -171,7 +186,9 @@ valid_term_t(DECL_LD term_t t)
   if ( *p == ATOM_term_t_free )
     PL_api_error("invalid term_t %zd (freed)", (size_t)t);
 
-  if ( in_foreign_argv(p) || in_foreign_frame(p) )
+  if ( in_foreign_argv(p) ||
+       in_foreign_frame(p) ||
+       in_query_arguments(p) )
     return;
 
   PL_api_error("invalid term_t %zd (not in any foreign frame)", (size_t)t);
