@@ -89,6 +89,16 @@ case $config in
     ;;
 esac
 
+# engines
+#
+# Include engine support, also in single threaded versions.
+
+case $config in
+  *engines*)
+    opts+=" -DENGINES=ON"
+    ;;
+esac
+
 # vmif
 #
 # Implement VMI instructions as functions.  Slower on GCC, about
