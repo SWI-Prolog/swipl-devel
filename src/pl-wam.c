@@ -2722,18 +2722,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Word ap;
   size_t lneeded;
 
-  if ( !GD->clauses.top_clause )
-  { Clause cl = allocHeapOrHalt(sizeofClause(1));
-
-    memset(cl, 0, sizeofClause(1));
-    cl->predicate = PROCEDURE_dc_call_prolog->definition;
-    cl->generation.erased = ~(gen_t)0;
-    cl->code_size = 1;
-    cl->codes[0] = encode(I_EXITQUERY);
-    GD->clauses.top_cref.value.clause = cl;
-    GD->clauses.top_clause = cl;	/* MT-safe as a init is a single thread */
-  }
-
   DEBUG(2, { FunctorDef f = proc->definition->functor;
 	     size_t n;
 
@@ -3551,3 +3539,17 @@ resumebreak:
   assert(0);
   return false;
 } /* end of PL_next_solution() */
+
+
+void
+initVM(void)
+{ Clause cl = allocHeapOrHalt(sizeofClause(1));
+
+  memset(cl, 0, sizeofClause(1));
+  cl->predicate = PROCEDURE_dc_call_prolog->definition;
+  cl->generation.erased = ~(gen_t)0;
+  cl->code_size = 1;
+  cl->codes[0] = encode(I_EXITQUERY);
+  GD->clauses.top_cref.value.clause = cl;
+  GD->clauses.top_clause = cl;
+}

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -84,6 +84,7 @@ bool		handles_unwind(qid_t qid, unsigned int flags);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);
 #endif
+void		initVM(void);
 
 #undef LDFUNC_DECLARATIONS
 
