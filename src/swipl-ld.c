@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2019, University of Amsterdam
+    Copyright (c)  2010-2025, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1006,7 +1007,7 @@ setLibDir(const char *libdir)
 
 
 static void
-fillDefaultOptions()
+fillDefaultOptions(void)
 { char tmp[1024];
   char *defcxx = PROG_CXX;
 
@@ -1073,13 +1074,16 @@ fillDefaultOptions()
   }
   sprintf(tmp, "%s/include", plbase);
   prependArgList(&includedirs, tmp);
+  sprintf(tmp, "-D_SWIPL_HOME=%s", plbase);
+  ensureOption(&coptions, tmp);
+  ensureOption(&cppoptions, tmp);
 }
 
 		 /*******************************
 		 *	   PROLOG OPTIONS	*
 		 *******************************/
 static void
-getPrologOptions()
+getPrologOptions(void)
 { FILE *fd;
   char cmd[512];
 
@@ -1768,5 +1772,3 @@ main(int argc, char **argv)
 
   return 0;
 }
-
-

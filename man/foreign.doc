@@ -5273,12 +5273,26 @@ is passed.
 		       \cmdlineoption{-D\arg{definition}}}{}
 These options are passed to the C compiler.  By default, the include
 directory containing \file{SWI-Prolog.h} is passed.  \program{swipl-ld} adds
-two additional \argoption*{-D}{def} flags:
+three additional \argoption*{-D}{def} flags:
 \begin{description}
 \cmdlineoptionitem*{-D}{\const{__SWI_PROLOG__}}
 Indicates the code is to be connected to SWI-Prolog.
 \cmdlineoptionitem*{-D}{\const{__SWI_EMBEDDED__}}
 Indicates the creation of an embedded program.
+\cmdlineoptionitem*{-D}{\const{_SWIPL_HOME=...}}
+Provides the current SWI-Prolog home. This is used by
+\file{SWI-Prolog.h} to define the \const{SWIPL_HOME} macro to a string
+holding the home directory. This may be used to construct the
+commandline argument \verb$--home=<dir>$.  For example
+\begin{code}
+int
+main(int argc, char **argv)
+{ char *av[] = {argv[0], "--home=" SWIPL_HOME, "-q", NULL};
+  int ac = sizeof(av)/sizeof(*av)-1;
+  if ( !PL_initialise(ac, argv) )
+    PL_halt(1);
+}
+\end{code}
 \end{description}
     \cmdlineoptionitem{}{*.o \bnfor{}
 			 *.c \bnfor{}

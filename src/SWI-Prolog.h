@@ -1479,6 +1479,13 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
 #endif
 
+/* Provide SWIPL_HOME when compiling using swipl-ld. */
+#ifdef _SWIPL_HOME
+#define _pl_xstr(a) _pl_str(a)
+#define _pl_str(a) #a
+#define SWIPL_HOME _pl_xstr(_SWIPL_HOME)
+#endif
+
 #ifdef __cplusplus
 }
 #endif
