@@ -584,7 +584,10 @@ deleteHTable(DECL_LD Table ht, table_key_t name)
 
 void
 clearHTable(Table ht)
-{ GET_LD
+{
+#if O_PLMT
+  GET_LD
+#endif
   KVS kvs;
   size_t idx = 0;
   table_key_t n = NULL_KEY;
@@ -626,7 +629,10 @@ clearHTable(Table ht)
 
 Table
 copyHTable(Table src_ht)
-{ GET_LD
+{
+#if O_PLMT
+  GET_LD
+#endif
   Table dest_ht;
   KVS src_kvs, dest_kvs;
   int idx = 0;

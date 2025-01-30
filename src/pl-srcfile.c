@@ -1253,7 +1253,10 @@ setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
 
 static void
 check_ssu(p_reload *r)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
   Definition def = r->predicate;
   ClauseRef cref;
   int errors = 0;
@@ -1456,7 +1459,10 @@ delete_old_predicate(SourceFile sf, Procedure proc)
   size_t deleted;
 
   if ( def->functor->functor == FUNCTOR_dtabled2 )
-  { GET_LD
+  {
+#ifdef O_PLMT
+    GET_LD
+#endif
     ClauseRef c;
 
     acquire_def(def);

@@ -253,7 +253,10 @@ not known.
 
 functor_t
 isCurrentFunctor(atom_t atom, size_t arity)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
   unsigned int v;
   int buckets;
   FunctorDef *table;

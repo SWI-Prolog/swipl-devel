@@ -3551,7 +3551,10 @@ num_visible_clauses(DECL_LD Definition def, atom_t key, gen_t gen)
 
 size_t
 sizeof_predicate(Definition def)
-{ GET_LD
+{
+#if O_PLMT
+  GET_LD
+#endif
   size_t size = sizeof(*def);
 
   size += sizeof_supervisor(def->codes);
@@ -4174,7 +4177,10 @@ listGenerations(Definition def)
 
 void
 checkDefinition(Definition def)
-{ GET_LD
+{
+#if O_PLMT
+  GET_LD
+#endif
   unsigned int nc;
   ClauseRef cref;
   unsigned int erased = 0;

@@ -2225,7 +2225,10 @@ checkClauseIndexes(Definition def)
 { ClauseIndex *cip;
 
   if ( (cip=def->impl.clauses.clause_indexes)  )
-  { GET_LD
+  {
+#if O_PLMT
+    GET_LD
+#endif
 
     for(; *cip; cip++ )
     { ClauseIndex ci = *cip;
@@ -3722,7 +3725,10 @@ sizeofClauseIndex(ClauseIndex ci)
 
 size_t
 sizeofClauseIndexes(Definition def)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
   ClauseIndex *cip;
   size_t size = 0;
 

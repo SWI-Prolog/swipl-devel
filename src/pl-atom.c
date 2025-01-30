@@ -1303,7 +1303,10 @@ is_volatile_atom(atom_t a)
 
 static int
 findAtomSelf(Atom a)
-{ GET_LD
+{
+#if O_PLMT
+  GET_LD
+#endif
   Atom *table;
   int buckets;
   Atom head, ap;
