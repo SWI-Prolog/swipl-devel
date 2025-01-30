@@ -41,7 +41,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_ABI_FILE} ${WASM_ABI_FILE}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
 			     ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}/library
-    DEPENDS ${SWIPL_BOOT_FILE} prolog_home library_index
+    DEPENDS ${SWIPL_BOOT_FILE} prolog_home bootfile library_index
     VERBATIM)
 
 add_custom_target(wasm_preload_dir DEPENDS ${WASM_BOOT_FILE})
