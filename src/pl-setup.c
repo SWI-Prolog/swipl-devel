@@ -95,7 +95,7 @@ static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 #undef LDFUNC_DECLARATIONS
 
-int
+bool
 setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
@@ -792,7 +792,7 @@ alt_segv_handler(int sig)
 }
 #endif
 
-int
+bool
 initGuardCStack(void)
 {
 #ifdef O_C_STACK_GUARDED
@@ -1307,7 +1307,7 @@ startCritical(DECL_LD)
 }
 
 
-int
+bool
 endCritical(DECL_LD)
 { if ( --LD->critical == 0 && LD->alerted && exception_term )
     return false;
@@ -1475,7 +1475,7 @@ both at system startup to create the stack   for the main thread as from
 pl-thread.c to create stacks for Prolog threads.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 initPrologStacks(size_t limit)
 { GET_LD
 
@@ -1649,7 +1649,7 @@ freeStacks(DECL_LD)
 }
 
 
-int
+void
 trim_stack(Stack s)
 { if ( s->spare < s->def_spare )
   { ssize_t reduce = s->def_spare - s->spare;
@@ -1666,8 +1666,6 @@ trim_stack(Stack s)
     s->max = addPointer(s->max, -reduce);
     s->spare += reduce;
   }
-
-  return false;
 }
 
 
@@ -1846,7 +1844,7 @@ no_local_ld(void)
 		 *	     PREDICATES		*
 		 *******************************/
 
-int
+bool
 set_stack_limit(size_t limit)
 { GET_LD
 

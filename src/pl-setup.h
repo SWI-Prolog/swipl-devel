@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -55,9 +55,9 @@
 
 #define LDFUNC_DECLARATIONS
 
-int		setupProlog(void);
+bool		setupProlog(void);
 void		startCritical(void);
-int		endCritical(void);
+bool		endCritical(void);
 void		dispatch_signal(int sig, int sync);
 handler_t	set_sighandler(int sig, handler_t func);
 void		blockSignals(sigset_t *mask);
@@ -69,9 +69,9 @@ void		resetSignals(void);
 void		cleanupSignals(void);
 int		handleSignals(void);
 void		terminate_on_signal(int signo);
-int		initGuardCStack(void);
+bool		initGuardCStack(void);
 
-int		initPrologStacks(size_t limit);
+bool		initPrologStacks(size_t limit);
 void		initPrologLocalData(void);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
@@ -79,9 +79,8 @@ void		trimStacks(int resize);
 void		emptyStacks(void);
 void		freeStacks(void);
 void		freePrologLocalData(PL_local_data_t *ld);
-int		ensure_room_stack(Stack s, size_t n, int ex);
-int		trim_stack(Stack s);
-int		set_stack_limit(size_t limit);
+void		trim_stack(Stack s);
+bool		set_stack_limit(size_t limit);
 const char *	signal_name(int sig);
 
 #undef LDFUNC_DECLARATIONS
