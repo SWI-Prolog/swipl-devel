@@ -537,8 +537,13 @@ static int will_exec;			/* process will exec soon */
 
 #define LDFUNC_DECLARATIONS
 
-static void	destroy_message_queue(message_queue *queue);
+#if O_PLMT
 static void	destroy_thread_message_queue(message_queue *queue);
+static void	destroy_message_queue(message_queue *queue);
+#else
+#define destroy_thread_message_queue(q) ((void)0)
+#define destroy_message_queue(q) ((void)0)
+#endif
 static void	init_message_queue(message_queue *queue, size_t max_size);
 static size_t	sizeof_message_queue(message_queue *queue);
 static size_t	sizeof_local_definitions(PL_local_data_t *ld);
@@ -552,13 +557,15 @@ static void	destroy_interactor(thread_handle *th, int gc);
 static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
 
+static void	initMessageQueues(void);
+static bool	get_thread(term_t t, PL_thread_info_t **info, bool warn);
+#if O_PLMT
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked(term_t t, message_queue **queue);
 static int	get_message_queue(term_t t, message_queue **queue);
 static void	release_message_queue(message_queue *queue);
-static void	initMessageQueues(void);
-static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
-static int	is_alive(int status);
+static bool	is_alive(int status);
+#endif /*O_PLMT*/
 static void	init_predicate_references(PL_local_data_t *ld);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
@@ -566,10 +573,12 @@ static void	print_trace(int depth);
 #define		print_trace(depth) (void)0
 #endif
 
+#if O_PLMT
 static void timespec_diff(struct timespec *diff,
 			  const struct timespec *a, const struct timespec *b);
 static int  timespec_sign(const struct timespec *t);
 static void timespec_add_double(struct timespec *ts, double tmo);
+#endif /*O_PLMT*/
 
 #undef LDFUNC_DECLARATIONS
 
@@ -1862,6 +1871,7 @@ PL_thread_raise(int tid, int sig)
 }
 
 
+#ifdef O_PLMT
 #define thread_wait_signal(_) LDFUNC(thread_wait_signal, _)
 static int
 thread_wait_signal(DECL_LD)
@@ -1934,7 +1944,7 @@ PRED_IMPL("$thread_sigwait", 1, thread_sigwait, 0)
 
   return false;
 }
-
+#endif
 
 
 const char *
@@ -2471,8 +2481,8 @@ symbol_thread_handle(atom_t a)
 }
 
 
-static int
-get_thread(term_t t, PL_thread_info_t **info, int warn)
+static bool
+get_thread(term_t t, PL_thread_info_t **info, bool warn)
 { GET_LD
   int i = -1;
   atom_t a;
@@ -2899,12 +2909,12 @@ PRED_IMPL("thread_exit", 1, thread_exit, 0)
   }
 }
 
-#endif /*O_PLMT*/
-
-
 static
 PRED_IMPL("thread_alias", 1, thread_alias, 0)
-{ PRED_LD
+{
+#ifdef O_PLMT
+  PRED_LD
+#endif
   PL_thread_info_t *info = LD->thread.info;
   thread_handle *th;
   atom_t alias;
@@ -2921,6 +2931,7 @@ PRED_IMPL("thread_alias", 1, thread_alias, 0)
 	   aliasThread(PL_thread_self(), ATOM_thread, alias) );
 }
 
+#endif /*O_PLMT*/
 
 static size_t
 sizeof_thread(PL_thread_info_t *info)
@@ -3227,6 +3238,7 @@ enumerate:
 }
 
 
+#if O_PLMT
 static
 PRED_IMPL("is_thread", 1, is_thread, 0)
 { PL_thread_info_t *info;
@@ -3312,7 +3324,7 @@ error:
   return rc;
 }
 #endif /*HAVE_SCHED_SETAFFINITY*/
-
+#endif /*O_PLMT*/
 
 		 /*******************************
 		 *	     CLEANUP		*
@@ -3333,6 +3345,7 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
   return register_event_function(list, 0, false, func, closure, 0);
 }
 
+#if O_PLMT
 		 /*******************************
 		 *	   THREAD SIGNALS	*
 		 *******************************/
@@ -3345,17 +3358,16 @@ typedef struct _thread_sig
 } thread_sig;
 
 
-static int
+static bool
 is_alive(int status)
 { switch(status)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
-      succeed;
+      return true;
     default:
-      fail;
+      return false;
   }
 }
-
 
 static
 PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
@@ -3405,7 +3417,6 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
 
   return rc;
 }
-
 
 void
 updatePendingThreadSignals(DECL_LD)
@@ -3560,11 +3571,11 @@ unblock_signals(DECL_LD)
 #define signal_is_blocked(sg) \
 	LDFUNC(signal_is_blocked, sg)
 
-static int
+static bool
 signal_is_blocked(DECL_LD thread_sig *sg)
 { predicate_t pred;
   fid_t fid;
-  int rc = false;
+  bool rc = false;
 
   pred = _PL_predicate("signal_is_blocked", 1, "$syspreds",
 		       &GD->procedures.signal_is_blocked1);
@@ -3735,6 +3746,10 @@ freeThreadSignals(PL_local_data_t *ld)
   }
 }
 
+#else /*O_PLMT*/
+static void freeThreadSignals(PL_local_data_t *ld) {}
+       void executeThreadSignals(int sig) {}
+#endif /*O_PLMT*/
 
 		 /*******************************
 		 *	    INTERACTORS		*
@@ -4250,6 +4265,7 @@ typedef struct thread_message
 } thread_message;
 
 
+#if O_PLMT
 #define create_thread_message(msg) LDFUNC(create_thread_message, msg)
 static thread_message *
 create_thread_message(DECL_LD term_t msg)
@@ -4361,6 +4377,7 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
 
   return true;
 }
+#endif /*O_PLMT*/
 
 
 		 /*******************************
@@ -4383,6 +4400,7 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
 
 #define RETRY_BLOCK ((struct timespec *)1)
 
+#if O_PLMT
 static void
 timespec_set_dbl(struct timespec *spec, double stamp)
 { double ip, fp;
@@ -4403,16 +4421,12 @@ timespec_diff(struct timespec *diff,
   }
 }
 
-
-#ifdef O_PLMT
 static void
 timespec_add(struct timespec *spec, const struct timespec *add)
 { spec->tv_sec  += add->tv_sec;
   spec->tv_nsec += add->tv_nsec;
   carry_timespec_nanos(spec);
 }
-#endif
-
 
 static int
 timespec_sign(const struct timespec *t)
@@ -4423,7 +4437,6 @@ timespec_sign(const struct timespec *t)
 
 }
 
-
 static int
 timespec_cmp(const struct timespec *a, const struct timespec *b)
 { struct timespec diff;
@@ -4432,6 +4445,7 @@ timespec_cmp(const struct timespec *a, const struct timespec *b)
 
   return timespec_sign(&diff);
 }
+#endif /*O_PLMT*/
 
 
 void
@@ -4609,8 +4623,6 @@ dispatch_cond_wait(DECL_LD message_queue *queue, queue_wait_type wait,
 
   return rc;
 }
-
-#endif /*O_PLMT*/
 
 #ifdef O_QUEUE_STATS
 static uint64_t getmsg  = 0;
@@ -4807,7 +4819,6 @@ get_message(DECL_LD message_queue *queue, term_t msg,
   }
 }
 
-
 #define peek_message(queue, msg) LDFUNC(peek_message, queue, msg)
 static int
 peek_message(DECL_LD message_queue *queue, term_t msg)
@@ -4868,7 +4879,6 @@ destroy_message_queue(message_queue *queue)
 #endif
 }
 
-
 /* destroy the input queue of a thread.  We have to take care of the case
    where our input queue is been waited for by another thread.  This is
    similar to message_queue_destroy/1.
@@ -4893,11 +4903,12 @@ destroy_thread_message_queue(message_queue *q)
       done = true;
     simpleMutexUnlock(&q->mutex);
   }
-#endif
 
   destroy_message_queue(q);
+#endif
 }
 
+#endif /*O_PLMT*/
 
 static void
 init_message_queue(message_queue *queue, size_t max_size)
@@ -4929,6 +4940,7 @@ sizeof_message_queue(message_queue *queue)
   return size;
 }
 
+#if O_PLMT
 					/* Prolog predicates */
 
 static const PL_option_t timeout_options[] =
@@ -4968,7 +4980,6 @@ timespec_add_double(struct timespec *ts, double tmo)
   ts->tv_nsec += (long)(fp*1000000000.0);
   carry_timespec_nanos(ts);
 }
-
 
 #define process_deadline_options(options, ts, pts, rs, prs) \
 	LDFUNC(process_deadline_options, options, ts, pts, rs, prs)
@@ -5444,7 +5455,6 @@ release_message_queue(message_queue *queue)
   }
 }
 
-
 static
 PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 { int rval;
@@ -5455,7 +5465,6 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 
   return rval;
 }
-
 
 static const PL_option_t message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
@@ -5485,7 +5494,7 @@ PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
   q = unlocked_message_queue_create(A1, max_size);
   PL_UNLOCK(L_THREAD);
 
-  return q ? true : false;
+  return !!q;
 }
 
 
@@ -5899,6 +5908,11 @@ PRED_IMPL("thread_peek_message", 2, thread_peek_message_2, 0)
   return rc;
 }
 
+#else
+
+static void	initMessageQueues(void) {}
+
+#endif /*O_PLMT*/
 
 #if O_PLMT
 		 /*******************************
@@ -7052,7 +7066,7 @@ isSignalledGCThread(DECL_LD int sig)
 }
 
 
-
+#ifdef O_PLMT
 
 		 /*******************************
 		 *	     STATISTICS		*
@@ -7115,7 +7129,6 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 }
 
 
-#ifdef O_PLMT
 #ifdef __WINDOWS__
 
 /* How to make the memory visible?
@@ -7524,7 +7537,10 @@ ThreadCPUTime(DECL_LD int which)
 void
 forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *, void* ctx),
 			      void *ctx)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
   int me = PL_thread_self();
   int i;
 

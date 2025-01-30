@@ -3722,7 +3722,10 @@ sizeofClauseIndex(ClauseIndex ci)
 
 size_t
 sizeofClauseIndexes(Definition def)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
   ClauseIndex *cip;
   size_t size = 0;
 
