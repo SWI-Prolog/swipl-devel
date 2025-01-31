@@ -34,7 +34,31 @@ set_target_properties(swipl PROPERTIES
 
 set(WASM_BOOT_FILE "${WASM_PRELOAD_DIR}/boot.prc")
 set(WASM_ABI_FILE "${WASM_PRELOAD_DIR}/ABI")
-add_custom_command(
+
+find_program(PROG_RSYNC rsync)
+if(PROG_RSYNC)
+  set(RSYNC_DEL_FLAGS -r --ignore-existing --delete)
+else()
+  set(PROG_RSYNC :)
+endif()
+
+# On Linux we use  hard links using GNU cp -l.   Using soft links does
+# not work  as it makes  the preload  file system holds  just dangling
+# symlinks.   Using links  makes sure  edits in  the Prolog  files are
+# reflected in the output.
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  message("${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}")
+  add_custom_command(
+    OUTPUT ${WASM_BOOT_FILE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${WASM_PRELOAD_DIR}
+    COMMAND cp -Llf ${SWIPL_BOOT_FILE} ${WASM_BOOT_FILE}
+    COMMAND cp -Llf ${SWIPL_ABI_FILE} ${WASM_ABI_FILE}
+    COMMAND cp -LlRf ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}
+    COMMAND ${PROG_RSYNC} ${RSYNC_DEL_FLAGS} ${SWIPL_BUILD_LIBRARY}/ ${WASM_PRELOAD_DIR}/library
+    DEPENDS ${SWIPL_BOOT_FILE} prolog_home bootfile library_index
+    VERBATIM)
+else()
+  add_custom_command(
     OUTPUT ${WASM_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${WASM_PRELOAD_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_BOOT_FILE} ${WASM_BOOT_FILE}
@@ -43,6 +67,7 @@ add_custom_command(
 			     ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}/library
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home bootfile library_index
     VERBATIM)
+endif()
 
 add_custom_target(wasm_preload_dir DEPENDS ${WASM_BOOT_FILE})
 add_dependencies(wasm_preload wasm_preload_dir)
