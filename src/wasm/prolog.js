@@ -261,8 +261,8 @@ const class_abortable_promise = (class AbortablePromise extends Promise {
 
 class Prolog
 { constructor(module, args)
-  { this.module = module;
-    this.args = args;
+  { this.module = module;		// Emscripten module
+    this.args = args;			// Prolog initialization args
     this.lastyieldat = 0;
     this.functor_arg_names_ = {};
     this.objects = {};			// id --> Object
@@ -274,6 +274,8 @@ class Prolog
     this.__bind_foreign_functions();
     this.__export_classes();
     this.__initialize();
+
+    this.main_engine = this.current_engine();
   }
 
 
@@ -514,9 +516,11 @@ class Prolog
       PL_query_arguments: this.module.cwrap(
 	'PL_query_arguments', 'number', ['number']),
       PL_set_query_data: this.module.cwrap(
-	'PL_set_query_data', 'number', 'number', 'number', ['number']),
+	'PL_set_query_data', 'number', ['number', 'number', 'number']),
       PL_query_data: this.module.cwrap(
-	'PL_query_data', 'number', 'number', ['number']),
+	'PL_query_data', 'number', ['number', 'number']),
+      PL_current_engine: this.module.cwrap(
+	'PL_current_engine', 'number', []),
       PL_create_engine: this.module.cwrap(
 	'PL_create_engine', 'number', ['number']),
       PL_destroy_engine: this.module.cwrap(
@@ -524,7 +528,7 @@ class Prolog
       _PL_switch_engine: this.module.cwrap(
 	'_PL_switch_engine', 'number', ['number']),
       _PL_reset_engine: this.module.cwrap(
-	'_PL_reset_engine', 'number', 'number', ['number']),
+	'_PL_reset_engine', 'number', ['number', 'number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(
@@ -538,6 +542,13 @@ class Prolog
       js_get_obj: this.module.cwrap(
 	'js_get_obj', 'number', ['number'])
     };
+  }
+
+  current_engine()
+  { const e = this.bindings.PL_current_engine();
+    if ( e )
+      return e;
+    // else `undefined`
   }
 
 /**
@@ -588,6 +599,29 @@ class Prolog
       return rc;
     }
     return false;				/* Throw? */
+  }
+
+/**
+ * Run code using a given engine.
+ * @param engine is the engine to use
+ * @param func is the code to execute under this engine.
+ */
+
+  with_engine(engine, func)
+  { const old = this.bindings._PL_switch_engine(engine);
+    let rc;
+    if ( old )
+      rc = func.call(this);
+    this.bindings._PL_reset_engine(old);
+    return rc;
+  }
+
+  create_engine()
+  { return this.bindings.PL_create_engine(0);
+  }
+
+  destroy_engine(engine)
+  { return !!this.bindings.PL_destroy_engine(engine);
   }
 
   __string_to_c(string)
@@ -1524,6 +1558,10 @@ class Query {
     this.argv   = argv;
     this.frame  = fid;
     prolog.open_queries.push(this);
+  }
+
+  engine() {
+    return this.prolog.bindings.PL_query_engine(this.qid);
   }
 
   [Symbol.iterator]() {
