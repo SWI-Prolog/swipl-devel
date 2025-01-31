@@ -1363,6 +1363,7 @@ PL_EXPORT(const char*) PL_w32_running_under_wine(void);
 #define PL_ENGINE_INVAL	2		/* engine doesn't exist */
 #define PL_ENGINE_INUSE	3		/* engine is in use */
 
+PL_EXPORT(PL_engine_t)	PL_current_engine(void);
 PL_EXPORT(PL_engine_t)	PL_create_engine(PL_thread_attr_t *attributes);
 PL_EXPORT(int)		PL_set_engine(PL_engine_t engine, PL_engine_t *old);
 PL_EXPORT(bool)		PL_destroy_engine(PL_engine_t engine);
