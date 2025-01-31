@@ -1400,6 +1400,10 @@ in \secref{foreign-yield}.
 \end{itemlist}
 
 \begin{description}
+    \cfunction{PL_engine_t}{PL_current_engine}{}
+Returns the current engine of the calling thread or \const{NULL} if
+the thread has no Prolog engine.
+
     \cfunction{PL_engine_t}{PL_create_engine}{PL_thread_attr_t *attributes}
 Create a new Prolog engine. \arg{attributes} is described with
 PL_thread_attach_engine(). Any thread can make this call after

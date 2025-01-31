@@ -554,7 +554,6 @@ static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static thread_handle *symbol_thread_handle(atom_t a);
 static void	destroy_interactor(thread_handle *th, int gc);
-static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
 
 static void	initMessageQueues(void);
@@ -6735,7 +6734,7 @@ attachConsole(void)
 		 *	      ENGINES		*
 		 *******************************/
 
-static PL_engine_t
+PL_engine_t
 PL_current_engine(void)
 { GET_LD
 
