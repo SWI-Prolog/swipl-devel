@@ -1272,8 +1272,8 @@ Without creating an engine, a thread can only use functions that do
 The system supports two models.  \Secref{threadoneone} describes the
 original one-to-one mapping.  In this schema a native thread attaches
 a Prolog thread if it needs to call Prolog and detaches it when
-finished, as opposed to the model from \secref{threadmanymany}, where
-threads temporarily use a Prolog engine.
+finished, as opposed to the model from \secref{c-engines},
+where threads temporarily use a Prolog engine.
 
 \subsection{A Prolog thread for each native thread (one-to-one)}
 \label{sec:threadoneone}
@@ -1282,9 +1282,9 @@ In the one-to-one model, the thread that called PL_initialise() has a
 Prolog engine attached. If another C thread in the system wishes to call
 Prolog it must first attach an engine using PL_thread_attach_engine()
 and call PL_thread_destroy_engine() after all Prolog work is finished.
-This model is especially suitable with long running threads that need
-to do Prolog work regularly.  See \secref{threadmanymany} for the
-alternative many-to-many model.
+This model is especially suitable with long running threads that need to
+do Prolog work regularly. See \secref{c-engines} for the alternative
+many-to-many model.
 
 \begin{description}
     \cfunction{int}{PL_thread_self}{}
@@ -1340,7 +1340,7 @@ returned.  On success it returns the Prolog identifier for the thread
 (as returned by PL_thread_self()). If an error occurs, -1 is returned.
 If this Prolog is not compiled for multithreading, -2 is returned.
 
-    \cfunction{int}{PL_thread_destroy_engine}{}
+    \cfunction{bool}{PL_thread_destroy_engine}{}
 Destroy the Prolog engine in the calling thread. Only takes effect if
 PL_thread_destroy_engine() is called as many times as
 PL_thread_attach_engine() in this thread.  Returns \const{TRUE} on
@@ -1368,20 +1368,18 @@ same FIFO queue as used by thread_at_exit/1.
 		 %         MANY-TO-MANY		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Pooling Prolog engines (many-to-many)}
-\label{sec:threadmanymany}
+\subsection{Using Prolog engines from C}
+\label{sec:c-engines}
 
-In this model Prolog engines live as entities that are independent from
-threads.  If a thread needs to call Prolog it takes one of the engines
-from the pool and returns the engine when done.  This model is suitable
-in the following identified cases:
+Prolog engines live as entities that are independent from threads. They
+are always supported in the multi-threaded version and may be enabled in
+the single threaded version by providing \exam{-DENGINES=ON} during the
+\program{cmake} configuration. Multiple threads may use a pool of
+engines for handling calls to Prolog. A single thread may use multiple
+engines to achieve \jargon{coroutining}. Engines are suitable in the
+following identified cases:
 
 \begin{itemlist}
-    \item [Compatibility with the single-threaded version]
-In the single-threaded version, foreign threads must serialise access to
-the one and only thread engine.  Functions from this section allow
-sharing one engine among multiple threads.
-
     \item [Many native threads with infrequent Prolog work]
 Prolog threads are expensive in terms of memory and time to create and
 destroy them.  For systems that use a large number of threads that only
@@ -1394,6 +1392,11 @@ interface for SWI-Prolog. .NET distributes work for an active internet
 connection over a pool of threads.  If a Prolog engine contains the state
 for a connection, it must be possible to detach the engine from a
 thread and re-attach it to another thread handling the same connection.
+
+    \item [Achieving coroutines]
+A single thread may use engines to implement \jargon{coroutining}.  This
+is notably interesting when combined with \jargon{yielding} as described
+in \secref{foreign-yield}.
 \end{itemlist}
 
 \begin{description}
@@ -1407,7 +1410,7 @@ handle.
 In the single-threaded version this call always returns \const{NULL},
 indicating failure.
 
-    \cfunction{int}{PL_destroy_engine}{PL_engine_t e}
+    \cfunction{bool}{PL_destroy_engine}{PL_engine_t e}
 Destroy the given engine.  Destroying an engine is only allowed if the
 engine is not attached to any thread or attached to the calling thread.
 On success this function returns \const{TRUE}, on failure the return
@@ -1425,15 +1428,25 @@ changed. This can be used to query the current engine. This call returns
 \const{PL_ENGINE_INUSE} if the engine is currently in use by another
 thread.
 
-Engines can be changed at any time.  For example, it is allowed to
-select an engine to initiate a Prolog goal, detach it and at a later
-moment execute the goal from another thread. Note, however, that the
+Engines can be changed at any time. For example, it is allowed to select
+an engine to initiate a Prolog goal, detach it and at a later moment
+execute the goal from another thread. Note, however, that the
 \ctype{term_t}, \ctype{qid_t} and \ctype{fid_t} types are interpreted
 relative to the engine for which they are created. Behaviour when
-passing one of these types from one engine to another is undefined.
+passing one of these types from one engine to another is undefined. The
+engine to which a query belongs can be requested using PL_query_engine()
 
-In the single-threaded version this call only succeeds if \arg{engine}
-refers to the main engine.
+In versions that do not support engines this call only succeeds if
+\arg{engine} refers to the main engine.
+
+\cmacro{void} {PL_WITH_ENGINE}{PL_engine_t e}
+This macro implements a C \jargon{for-loop} where the body is executed
+with the engine \arg{e} as current engine.   The body is executed
+exactly once.  After completion of the body the current engine of the
+calling thread is restored to old state (either the old current engine
+or no engine).  The user may use \const{break} to terminate the body
+early. The user \emph{may not} use \const{return}. Using \const{return}
+does not reset the old engine.
 \end{description}
 
 
