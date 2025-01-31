@@ -2763,6 +2763,13 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   IS_WORD_ALIGNED(qf);
   qf->saved_ltop = lTop;
+  if ( (qf->qid = malloc(sizeof(*qf->qid))) )
+  { struct queryRef qr = { .engine=LD, .offset=consTermRef(qf) };
+    *qf->qid = qr;
+  } else
+  { PL_resource_error("memory");
+    return (qid_t)0;
+  }
 					/* fill top-frame */
   top		     = &qf->top_frame;
   IS_WORD_ALIGNED(top);
@@ -2866,9 +2873,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   environment_frame = fr;
   qf->parent = LD->query;
   LD->query = qf;
-  qf->qid = allocHeapOrHalt(sizeof(*qf->qid));
-  qf->qid->engine = LD;
-  qf->qid->offset = consTermRef(qf);
 
   DEBUG(2, Sdprintf("QID=%p\n", QidFromQuery(qf)));
   updateAlerted(LD);
@@ -2953,7 +2957,7 @@ PL_cut_query(qid_t qid)
       restore_after_query(qf);
       qf->magic = QID_CMAGIC;		/* disqualify the frame */
 
-      freeHeap(qid, sizeof(*qid));
+      free(qid);
     }
   }
 
@@ -2989,7 +2993,7 @@ PL_close_query(qid_t qid)
 
       restore_after_query(qf);
       qf->magic = QID_CMAGIC;		/* disqualify the frame */
-      freeHeap(qid, sizeof(*qid));
+      free(qid);
     }
   }
 
