@@ -398,6 +398,13 @@ class Prolog
     this.PL_S_LAST		 = 2;
     this.PL_S_YIELD		 = 255;
 
+    this.PL_ENGINE_MAIN		 = 1;
+    this.PL_ENGINE_CURRENT	 = 2;
+    this.PL_ENGINE_NONE		 = 3;
+    this.PL_ENGINE_SET		 = 0;
+    this.PL_ENGINE_INVAL	 = 2;
+    this.PL_ENGINE_INUSE	 = 3;
+
     this.PL_WRT_QUOTED		 = 0x0001;
     this.PL_WRT_NEWLINE		 = 0x2000;
   }
@@ -502,6 +509,14 @@ class Prolog
 	'PL_exception', 'number', ['number']),
       PL_raise_exception: this.module.cwrap(
 	'PL_raise_exception', 'number', ['number']),
+      PL_create_engine: this.module.cwrap(
+	'PL_create_engine', 'number', ['number']),
+      PL_destroy_engine: this.module.cwrap(
+	'PL_destroy_engine', 'number', ['number']),
+      _PL_switch_engine: this.module.cwrap(
+	'_PL_switch_engine', 'number', ['number']),
+      _PL_reset_engine: this.module.cwrap(
+	'_PL_reset_engine', 'number', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(

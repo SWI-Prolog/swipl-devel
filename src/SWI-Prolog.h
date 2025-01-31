@@ -1330,7 +1330,7 @@ PL_EXPORT(int)	PL_unify_thread_id(term_t t, int i);
 PL_EXPORT(int)	PL_get_thread_id_ex(term_t t, int *idp);
 PL_EXPORT(int)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
-PL_EXPORT(int)	PL_thread_destroy_engine(void);
+PL_EXPORT(bool)	PL_thread_destroy_engine(void);
 PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  int global);
@@ -1343,11 +1343,16 @@ PL_EXPORT(const char*) PL_w32_running_under_wine(void);
 #endif
 
 		 /*******************************
-		 *	 ENGINES (MT-ONLY)	*
+		 *	     ENGINES		*
 		 *******************************/
+
+/* Requires multi-threading or engine support enabled.  In
+ * both cases the flag `engines` is `true`.
+ */
 
 #define PL_ENGINE_MAIN	  ((PL_engine_t)0x1)
 #define PL_ENGINE_CURRENT ((PL_engine_t)0x2)
+#define PL_ENGINE_NONE    ((PL_engine_t)0x3)
 
 #define PL_ENGINE_SET   0		/* engine set successfully */
 #define PL_ENGINE_INVAL	2		/* engine doesn't exist */
@@ -1355,7 +1360,15 @@ PL_EXPORT(const char*) PL_w32_running_under_wine(void);
 
 PL_EXPORT(PL_engine_t)	PL_create_engine(PL_thread_attr_t *attributes);
 PL_EXPORT(int)		PL_set_engine(PL_engine_t engine, PL_engine_t *old);
-PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
+PL_EXPORT(bool)		PL_destroy_engine(PL_engine_t engine);
+PL_EXPORT(PL_engine_t)	_PL_switch_engine(PL_engine_t e);
+PL_EXPORT(PL_engine_t)	_PL_reset_engine(PL_engine_t old);
+
+#define PL_WITH_ENGINE(e)			\
+  for(PL_engine_t old = _PL_switch_engine(e);	\
+      old;					\
+      old = _PL_reset_engine(old))		\
+    for(bool __we = true; __we; __we=false)
 
 
 		 /*******************************

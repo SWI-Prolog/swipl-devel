@@ -6700,7 +6700,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 }
 
 
-int
+bool
 PL_thread_destroy_engine(void)
 { GET_LD
 
@@ -6822,9 +6822,9 @@ PL_create_engine(PL_thread_attr_t *attributes)
 }
 
 
-int
+bool
 PL_destroy_engine(PL_engine_t e)
-{ int rc;
+{ bool rc;
 
   if ( e == PL_current_engine() )
   { rc = PL_thread_destroy_engine();
@@ -6842,6 +6842,27 @@ PL_destroy_engine(PL_engine_t e)
   return rc;
 }
 
+/* These functions support the PL_WITH_ENGINE(e) macro.
+ */
+
+PL_engine_t
+_PL_switch_engine(PL_engine_t e)
+{ PL_engine_t old = NULL;
+  if ( PL_set_engine(e, &old) == PL_ENGINE_SET )
+  { if ( !old )
+      old = PL_ENGINE_NONE;
+    return old;
+  }
+  return NULL;
+}
+
+PL_engine_t
+_PL_reset_engine(PL_engine_t old)
+{ if ( old == PL_ENGINE_NONE )
+    old = NULL;
+  PL_set_engine(old, NULL);
+  return NULL;
+}
 
 #ifdef O_PLMT
 		 /*******************************
@@ -7922,7 +7943,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 { return -2;
 }
 
-int
+bool
 PL_thread_destroy_engine()
 { return false;
 }
