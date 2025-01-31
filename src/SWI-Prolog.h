@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2024, University of Amsterdam
+    Copyright (c)  2008-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -428,6 +428,8 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_S_LAST		2	/* Query succeeded without CP */
 #define PL_S_YIELD	      255	/* Foreign yield */
 
+#define PL_MAX_QUERY_DATA	2	/* Max offset for PL_query_data() */
+
 			/* Foreign context frames */
 PL_EXPORT(fid_t)	PL_open_foreign_frame(void);
 PL_EXPORT(void)		PL_rewind_foreign_frame(fid_t cid);
@@ -452,6 +454,9 @@ PL_EXPORT(qid_t)	PL_current_query(void);
 PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
 PL_EXPORT(term_t)	PL_query_arguments(qid_t qid);
 PL_EXPORT(bool)		PL_can_yield(void);
+PL_EXPORT(void*)	PL_set_query_data(qid_t qid, unsigned int offset,
+					  void *data);
+PL_EXPORT(void*)	PL_query_data(qid_t qid, unsigned int offset);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(bool)		PL_call(term_t t, module_t m) WUNUSED;

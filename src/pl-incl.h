@@ -1812,6 +1812,7 @@ typedef struct exception_frame		/* PL_throw exception environments */
 typedef struct queryRef
 { PL_engine_t	engine;			/* Engine for the query */
   uintptr_t	offset;			/* queryFrane offset in local stack */
+  void*		data[PL_MAX_QUERY_DATA];/* User data */
 } *QueryRef;
 
 #define QF_NODEBUG		0x0001	/* debug-able query */

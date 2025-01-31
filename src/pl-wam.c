@@ -3039,6 +3039,25 @@ PL_query_arguments(qid_t qid)
   return 0;
 }
 
+void *
+PL_set_query_data(qid_t qid, unsigned int offset, void*data)
+{ if ( offset < PL_MAX_QUERY_DATA )
+  { void *old = qid->data[offset];
+    qid->data[offset] = data;
+    return old;
+  }
+  PL_api_error("PL_set_query_data(): invalid offset");
+  return NULL;
+}
+
+void *
+PL_query_data(qid_t qid, unsigned int offset)
+{ if ( offset < PL_MAX_QUERY_DATA )
+    return qid->data[offset];
+  PL_api_error("PL_query_data(): invalid offset");
+  return NULL;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_exception(qid) is used to extract exceptions   from an query executed
 using  PL_next_solution().  The  term-reference  itself   is  no  longer
