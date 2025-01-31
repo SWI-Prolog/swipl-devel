@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WASM engine demo</title>
+</head>
+<body>
+<style>
+.title  { font-weight: bold; font-size: 150%; font-family: reset;
+	  margin-top: 1.5ex; margin-bottom: 1ex; display: block; }
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+#output { margin-top: 1.5ex; }
+#tests  { margin-bottom: 0.5ex; }
+</style>
+<h2>Embedded SWI-Prolog demo and tests using engines</h2>
+<p>
+  This page provides examples for using <i>engines</i> in the WASM
+  version.  Despite the WASM version is single threaded, Engines
+  allow for coroutining and asynchronous behaviour similar to
+  JavaScript <i>async</i> functions.
+</p>
+<div id="controls">
+  <div id="tests"></div>
+  <button onClick="select_all(true)">Select all</button>
+  <button onClick="select_all(false)">Deselect all</button>
+  <button onClick="run_selected_tests()">Run selected tests</button>
+</div>
+<div id="output"></div>
+
+<!-- Load prolog -->
+<script src="/wasm/swipl-bundle.js"></script>
+
+<script>
+output   = document.getElementById('output');
+test_div = document.getElementById('tests');
+
+let Prolog;
+let Module;
+var options = {
+    arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
+};
+
+SWIPL(options).then(async (module) =>
+{ Module = module;
+  Prolog = Module.prolog;
+
+  Prolog.consult("test.pl").then(() => {});
+  test_menu();
+});
+
+var tests = [];
+function test_menu() {
+  for(let i=0; i<tests.length; i++) {
+    const t = tests[i];
+    const c = t.checked === false ? "" : "checked";
+    test_div.innerHTML += `<div><input type="checkbox" value="${i}" name="test" ${c}><label>${t.name}</label></div>`;
+  }
+}
+
+function select_all(val) {
+  const s = document.querySelectorAll("input[type=checkbox][name=test]");
+  s.forEach(e => e.checked = val);
+}
+
+function show_test_title(title)
+{ const hdr = document.createElement("h4");
+  hdr.innerHTML = title;
+  const out = document.createElement("div");
+  output.appendChild(hdr);
+  output.appendChild(out);
+
+  return out;
+}
+
+function getPromiseFromEvent(item, event) {
+  return new Promise((resolve) => {
+    const listener = (ev) => {
+      item.removeEventListener(event, listener);
+      resolve(ev);
+    }
+    item.addEventListener(event, listener);
+  })
+}
+
+function done_test(test) {
+  const event = new CustomEvent("done", {detail: test});
+  output.dispatchEvent(event);
+}
+
+async function run_selected_tests() {
+  output.innerHTML = "";
+  const s = Array.from(
+    document.querySelectorAll("input[type=checkbox][name=test]:checked"),
+    e => parseInt(e.value));
+
+  for(let i=0; i<s.length; i++) {
+    const test = tests[s[i]];
+    const out  = show_test_title(test.title || test.name);
+    const rc = test.func.call(test, out);
+    if ( rc instanceof Promise ) {
+      rc = await rc;
+    }
+    console.log(rc, "Waiting to complete");
+    const ev = await getPromiseFromEvent(output, "done")
+    console.log("Test done: ", ev.detail.name);
+  }
+}
+
+		 /*******************************
+		 *            TESTS             *
+		 *******************************/
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Simple forEach() counter",
+	     func: test_foreach
+	   });
+function test_foreach(out)
+{ Prolog.forEach(
+  "between(1,30,X),sleep(0.3)",
+  (a) => print(out, ` ${a.X}`, {color:"darkgreen"}))
+  .then(() => done_test(this));
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Same, using an async function and setTimeout()",
+	     func: test_foreach_await
+	   });
+function test_foreach_await(out)
+{ setTimeout(async () => {
+    await Prolog.forEach(
+      "between(1,30,X),sleep(0.1)",
+      (a) => print(out, ` ${a.X}`, {color:"darkgreen"}));
+    done_test(this);
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Same, expicitly using main engine",
+	     func: test_foreach_main
+	   });
+function test_foreach_main(out)
+{ setTimeout(async () => {
+    await Prolog.engines["main"]
+    .forEach("between(1,30,X),sleep(0.1)",
+	     (a) => print(out, ` ${a.X}`, {color:"darkgreen"}));
+    done_test(this);
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Same, using a new engine",
+	     func: test_foreach_engine
+	   });
+function test_foreach_engine(out)
+{ setTimeout(async () => {
+    const e1 = new Prolog.Engine("e1");
+    await e1.forEach("between(1,30,X),sleep(0.1)",
+		     (a) => print(out, ` ${a.X}`, {color:"blue"}));
+    e1.close();
+    done_test(this);
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "two async engines counting",
+	     func: two_async_engines
+	   });
+function two_async_engines(out)
+{ const test = this;
+
+  setTimeout(async () => {
+    const e1 = new Prolog.Engine("e1");
+    await e1.forEach("between(1,20,X),sleep(0.1)",
+		     (a) => print(out, ` ${a.X}`, {color: "blue"}));
+    e1.close();
+  });
+
+  setTimeout(async () => {
+    const e2 = new Prolog.Engine("e2");
+    await e2.forEach("between(21,30,X),sleep(0.2)",
+		     (a) => print(out, ` ${a.X}`, {color: "darkred"}));
+    e2.close();
+    done_test(test);
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Using engines as coroutines",
+	     func: two_coroutines
+	   });
+function two_coroutines(out)
+{ const e1 = new Prolog.Engine();
+  const e2 = new Prolog.Engine();
+
+  const q1 = e1.query("between( 1,10,X)");
+  const q2 = e2.query("between(11,20,X)");
+
+  try
+  { for(;;)
+    { const n1 = q1.next();
+      const n2 = q2.next();
+      const v1 = n1.done ? null : n1.value.X;
+      const v2 = n2.done ? null : n2.value.X;
+      if ( n1.done && n2.done )
+	break;
+
+      println(out, `e1: ${v1}, e2: ${v2}`);
+    }
+  } finally
+  { q1.close();
+    q2.close();
+    e1.close();
+    e2.close();
+  }
+}
+
+
+		 /*******************************
+		 *           PRINTING           *
+		 *******************************/
+
+function isElement(element)
+{ return ( element instanceof Element ||
+           element instanceof HTMLDocument );
+}
+
+/** print([to], line, [opts])
+ */
+function print(...argv)
+{ const node = document.createElement('span');
+  let out = output;
+
+  if ( isElement(argv[0]) )
+  { out = argv[0];
+    argv.shift();
+  }
+  const line = argv[0];
+  opts = argv[1];
+  opts = opts||{};
+
+  const cls = opts.cls||"stdout";
+  if ( typeof(line) === "object" )
+    line = JSON.stringify(line);
+  if ( opts.nl )
+    line += '\n';
+  if ( opts.background )
+    node.style['background'] = opts.background;
+  if ( opts.color )
+    node.style['color'] = opts.color;
+
+  node.className = cls;
+  node.textContent = line;
+  out.appendChild(node);
+};
+
+function println(cls, ...line)
+{ line.forEach((e) => print(e, {cls:cls}));
+  output.appendChild(document.createElement('br'));
+}
+
+function time(msg, func)
+{ const t0 = Date.now();
+  const rc = func.call(window);
+  const t1 = Date.now();
+
+  println("stdout", `${msg} took ${(t1-t0)}ms`);
+
+  return rc;
+}
+
+</script>
+</body>
+</html>

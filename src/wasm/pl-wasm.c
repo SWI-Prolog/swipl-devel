@@ -3,9 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2022-2025, SWI-Prolog Solutions.h
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -81,13 +79,15 @@ PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
 
   switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
-    { LD->wasm.yield_request = A1;
+    { DEBUG(MSG_WASM_ASYNC, Sdprintf("$await: wait on engine %p\n", LD));
+      LD->wasm.yield_request = A1;
       LD->wasm.yield_result  = A2;
       LD->wasm.yield_unified = false;
       PL_yield_address(&LD->wasm.yield_request);
     }
     case PL_RESUME:
-    { bool rc = LD->wasm.yield_unified;
+    { DEBUG(MSG_WASM_ASYNC, Sdprintf("$await: resume on engine %p\n", LD));
+      bool rc = LD->wasm.yield_unified;
 
       LD->wasm.yield_request = 0;
       LD->wasm.yield_result  = 0;
@@ -110,6 +110,14 @@ WASM_yield_request(void)
 void
 WASM_set_yield_result(term_t result)
 { GET_LD
+
+  DEBUG(MSG_WASM_ASYNC,
+	Sdprintf("set_yield_result: on engine %p; "
+		 "LD->wasm.yield_result = %zd\n",
+		 LD, LD->wasm.yield_result));
+  if ( !LD->wasm.yield_result )
+    PL_api_error("WASM_set_yield_result(): not in await/2");
+
   LD->wasm.yield_unified = PL_unify(LD->wasm.yield_result, result);
 }
 
