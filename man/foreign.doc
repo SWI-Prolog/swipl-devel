@@ -808,18 +808,17 @@ start_connection(IOSTREAM *c)
 { predicate_t p = PL_predicate("handle_connection", 1, "user");
 
   PL_engine_t e = PL_create_engine(NULL);
-  PL_engine_t old;
-  if ( PL_set_engine(e, &old) )
+  qid_t q = NULL;
+  PL_WITH_ENGINE(e)
   { term_t av = PL_new_term_refs(1);
     PL_unify_stream(av+0, c);
-    qid_t q = PL_open_query(e, NULL,
-			    PL_Q_CATCH_EXCEPTION|
-			        PL_Q_ALLOW_YIELD|
-			         PL_Q_EXT_STATUS,
-			    p, av);
-    PL_set_engine(old, NULL);
-    return q;
-  } /* else error */
+    q = PL_open_query(e, NULL,
+		      PL_Q_CATCH_EXCEPTION|
+		      PL_Q_ALLOW_YIELD|
+		      PL_Q_EXT_STATUS,
+		      p, av);
+  }
+  return q;
 }
 \end{code}
 
@@ -833,15 +832,11 @@ requires the query's engine to be current anyway.}
 \begin{code}
 int
 PL_engine_next_solution(qid_t qid)
-{ PL_engine_t old;
-  int rc;
+{ int rc = FALSE;
 
-  if ( PL_set_engine(PL_query_engine(qid), &old) == PL_ENGINE_SET )
+  PL_WITH_ENGINE(PL_query_engine(qid))
   { rc = PL_next_solution(qid);
-
-    PL_set_engine(old, NULL);
-  } else
-    rc = FALSE;
+  }
 
   return rc;
 }
@@ -3447,6 +3442,13 @@ acting on the binding of one of the arguments without additional
 context. Note that the returned \ctype{term_t} is \emph{not} the same
 handle that was used in PL_open_query() to pass the arguments. The
 content of the returned vector, however, is the same.
+
+    \cfunction{void*}{PL_set_query_data}{qid_t qid, unsigned int offset, void* data}
+    \nodescription
+    \cfunction{void*}{PL_query_data}{qid_t qid, unsigned int offset}
+Associate user data with a query.  \arg{offset} must be smaller than
+\const{PL_MAX_QUERY_DATA} (currently 2).  PL_set_query_data() returns
+the old value.
 
     \cfunction{bool}{PL_call_predicate}{module_t m, int flags,
 				       predicate_t pred, term_t +t0}

@@ -509,6 +509,14 @@ class Prolog
 	'PL_exception', 'number', ['number']),
       PL_raise_exception: this.module.cwrap(
 	'PL_raise_exception', 'number', ['number']),
+      PL_query_engine: this.module.cwrap(
+	'PL_query_engine', 'number', ['number']),
+      PL_query_arguments: this.module.cwrap(
+	'PL_query_arguments', 'number', ['number']),
+      PL_set_query_data: this.module.cwrap(
+	'PL_set_query_data', 'number', 'number', 'number', ['number']),
+      PL_query_data: this.module.cwrap(
+	'PL_query_data', 'number', 'number', ['number']),
       PL_create_engine: this.module.cwrap(
 	'PL_create_engine', 'number', ['number']),
       PL_destroy_engine: this.module.cwrap(
