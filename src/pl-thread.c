@@ -7982,9 +7982,9 @@ PL_create_engine(PL_thread_attr_t *attributes)
 { return NULL;
 }
 
-int
+bool
 PL_destroy_engine(PL_engine_t e)
-{ fail;
+{ return false;
 }
 
 void

@@ -2277,7 +2277,7 @@ CGC builds on the following components and invariants:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define considerClauseGC(_) LDFUNC(considerClauseGC, _)
-static int
+static bool
 considerClauseGC(DECL_LD)
 { size_t pending  = GD->clauses.erased_size - GD->clauses.erased_size_last;
   size_t codesize = GD->statistics.codes*sizeof(code);
@@ -2294,7 +2294,7 @@ considerClauseGC(DECL_LD)
   }
 
   if ( LD->statistics.inferences > LD->clauses.cgc_inferences )
-  { int rgc;
+  { bool rgc;
 
     LD->clauses.cgc_inferences = LD->statistics.inferences + 500;
 
@@ -2310,11 +2310,11 @@ considerClauseGC(DECL_LD)
 	     (double)stats.dirty_pred_clauses*GD->clauses.cgc_clause_factor );
     rgc = rgc && (GD->cleaning == CLN_NORMAL);
     DEBUG(MSG_CGC_CONSIDER,
-	  Sdprintf("GCG? [%s] %ld skipped; lsize=%ld; clauses=%ld\n",
+	  Sdprintf("GCG? [%s] %lld skipped; lsize=%zd; clauses=%zd\n",
 		   rgc ? "Y" : " ",
-		   (long)stats.erased_skipped,
-		   (long)stats.local_size,
-		   (long)stats.dirty_pred_clauses));
+		   (long long)stats.erased_skipped,
+		   stats.local_size,
+		   stats.dirty_pred_clauses));
 
     return rgc;
   }
