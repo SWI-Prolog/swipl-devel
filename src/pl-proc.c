@@ -2621,15 +2621,7 @@ registerDirtyDefinition(DECL_LD Definition def)
   if ( !isSignalledGCThread(SIG_CLAUSE_GC) &&	/* already asked for */
        !GD->clauses.cgc_active &&	/* currently running */
        considerClauseGC() )
-  { if ( GD->clauses.db_erased_refs > GD->clauses.erased / 10 )
-    { DEBUG(MSG_CGC_CONSIDER,
-	    Sdprintf("CGC: %ld of %ld erased clauses has a clause ref; "
-		     "asking for AGC\n",
-		     (long)GD->clauses.db_erased_refs,
-		     (long)GD->clauses.erased));
-      signalGCThread(SIG_ATOM_GC);
-    }
-    signalGCThread(SIG_CLAUSE_GC);
+  { signalGCThread(SIG_CLAUSE_GC);
   }
 }
 
