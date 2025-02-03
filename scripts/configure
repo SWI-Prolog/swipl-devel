@@ -214,9 +214,8 @@ case $config in
   *debug*)
     if [ $os == wasm ]; then
         LDFLAGS+=" -sASSERTIONS"
-    else
-        build_type=Debug
     fi
+    build_type=Debug
     ;;
   *asan*)
     build_type=Sanitize
