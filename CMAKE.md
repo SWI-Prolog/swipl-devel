@@ -96,8 +96,9 @@ and libraries that are built.
   | Option                        | Description                           |
   | ----------------------------- | ------------------------------------- |
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads       |
+  | `-DENGINES=OFF`               | Drop support for Prolog engines       |
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
-  | `-DUSE_GMP=ON`                | Use GMP instead of bundled LibBF      |
+  | `-DUSE_GMP=OFF`               | Use bundled LibBF instead of GMP      |
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
   | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
@@ -291,6 +292,41 @@ symbolic link created at `$HOME/bin/` will have precedence over, e.g.,
 `/usr/bin/swipl`. Delete the created symbolic link if you would like to
 come back to the distribution-based installed version.
 
+### Multiple configurations using scripts/configure
+
+As building in a subdirectory does not  modify the sources, you may have
+multiple  build  directories  holding   built    systems   in  different
+configurations. Each of these may be executed using `src/swipl` from the
+build directory. This is supported   by  the script `scripts/configure`.
+This script is executed in a  clean   build  directory. It assembles the
+command line options and environment for   running  `cmake` and building
+the system based on the name of the build directory. The general name of
+the build directory is as below, where   each _feat_ enables or disables
+some feature or aspect of the  build.   Check  the script for recognised
+features.
+
+    build.feat1-feat2-...
+
+For example, to build  a  system  using   the  `clang`  C  compiler with
+AddressSanitizer, use
+
+    mkdir build.clang.asan
+    cd build.clang.asan
+    ../script/configure
+    (direnv allow)
+    ninja
+
+The script writes a  script  `configure`   to  the  build directory that
+allows you to inspect or re-run   the  configuration and, if environment
+variables are required, a file  `.envrc`   for  the  `direnv` utility to
+manage the environment when running a shell in the build directory.
+
+A typical set of versions for development is
+
+  - `build` for a clean default Release build
+  - `build.pgo` for a PGO optimized Release build
+  - `build.debug` for a Debug build
+  - `build.asan` for using AddressSanitizer (see below)
 
 ### Testing
 
