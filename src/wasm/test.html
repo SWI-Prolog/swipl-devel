@@ -109,23 +109,46 @@ function select_all(val) {
   s.forEach(e => e.checked = val);
 }
 
+function getPromiseFromEvent(item, event) {
+  return new Promise((resolve) => {
+    const listener = (ev) => {
+      item.removeEventListener(event, listener);
+      resolve(ev);
+    }
+    item.addEventListener(event, listener);
+  })
+}
+
+function done_test(test) {
+  const event = new CustomEvent("done", {detail: test});
+  output.dispatchEvent(event);
+}
+
 async function run_selected_tests() {
   output.innerHTML = "";
-  const s = Array
+  const selected = Array
 	.from(document.querySelectorAll(
 	  "input[type=checkbox][name=test]:checked"),
 	      e => parseInt(e.value));
-  for(let i=0; i<s.length; i++) {
-    const test = tests[s[i]];
+
+  run_tests(0, selected);
+  await getPromiseFromEvent(output, "done");
+  print(output, "All done", {color: "green", nl:true});
+}
+
+async function run_tests(i, selected)
+{ if ( i < selected.length )
+  { const test = tests[selected[i]];
     const out = show_test_title(test.name);
     const rc = test.call.call(test, out);
     if ( rc instanceof Promise ) {
       console.log(`Test ${test.name} returned a Promise}`);
       await rc;
     }
-  }
+    setTimeout(() => run_tests(i+1, selected));
+  } else
+    done_test("all");
 }
-
 
 /* Prepare the test cases
 */
