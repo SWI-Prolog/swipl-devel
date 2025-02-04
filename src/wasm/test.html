@@ -79,81 +79,59 @@ SWIPL(options).then((module) =>
   Prolog = Module.prolog;
 
   Prolog.consult("test.pl")
-        .then(() => run());
+  .then(() => {
+    test_menu();
+    setup();
+  });
 });
 
-
-  var tests =
-      [ { name: "p(X) with loop",
-	  call: run_p
-	},
-	{ name: "p(X) with iterator",
-	  call: run_p_with_iterator
-	},
-	{ name: "p(X) from string with iterator",
-	  call: run_p_from_string_with_iterator
-	},
-	{ name: "ground goal with iterator",
-	  call: run_ground_with_iterator
-	},
-	{ name: "Round trip data",
-	  call: test_data_round_trip
-	},
-	{ name: "Sum array of integers in Prolog",
-	  call: test_sum_list
-	},
-	{ name: "Test big integer exchange",
-	  call: test_bigint
-	},
-	{ name: "Test simple error handling",
-	  call: test_error
-	},
-	{ name: "Test long running queries with sleep",
-	  call: test_foreach_1
-	},
-	{ name: "Test long running queries with sleep and error",
-	  call: test_foreach_2
-	},
-	{ name: "Test long running computation",
-	  call: () => test_fib(35)
-	},
-	{ name: "Test long running computation (configurable)",
-	  call: test_fib,
-	  checked: false
-	}
-      ];
-
+var tests = [];
+function test_menu() {
   for(let i=0; i<tests.length; i++) {
     const t = tests[i];
     const c = t.checked === false ? "" : "checked";
     test_div.innerHTML += `<div><input type="checkbox" value="${i}" name="test" ${c}><label>${t.name}</label></div>`;
   }
+}
 
-  function select_all(val) {
-    const s = document.querySelectorAll("input[type=checkbox][name=test]");
-    s.forEach(e => e.checked = val);
-  }
+function show_test_title(title)
+{ const hdr = document.createElement("h4");
+  hdr.innerHTML = title;
+  const out = document.createElement("div");
+  output.appendChild(hdr);
+  output.appendChild(out);
 
-  async function run_selected_tests() {
-    output.innerHTML = "";
-    const s = Array.from(document.querySelectorAll("input[type=checkbox][name=test]:checked"),
-			 e => parseInt(e.value));
-    for(let i=0; i<s.length; i++) {
-      const test = tests[s[i]];
-      const rc = test.call();
-      if ( rc instanceof Promise ) {
-	await rc;
-      }
+  return out;
+}
+
+function select_all(val) {
+  const s = document.querySelectorAll("input[type=checkbox][name=test]");
+  s.forEach(e => e.checked = val);
+}
+
+async function run_selected_tests() {
+  output.innerHTML = "";
+  const s = Array
+	.from(document.querySelectorAll(
+	  "input[type=checkbox][name=test]:checked"),
+	      e => parseInt(e.value));
+  for(let i=0; i<s.length; i++) {
+    const test = tests[s[i]];
+    const out = show_test_title(test.name);
+    const rc = test.call.call(test, out);
+    if ( rc instanceof Promise ) {
+      console.log(`Test ${test.name} returned a Promise}`);
+      await rc;
     }
   }
+}
 
 
-/* Run test test cases.
+/* Prepare the test cases
 */
 
-function run()
+function setup()
 { Prolog.set_arg_names("point", ["x", "y"]);
-
 }
 
 /* Get all results from p/1, showing iteration over Prolog answers
@@ -163,16 +141,18 @@ function run()
    reclaimed.
 */
 
-function run_p()
-{ println("title", "Printing results from p/1 as objects using a loop");
-
-  Prolog.with_frame(() =>
+////////////////////////////////////////////////////////////////
+tests.push({ name: "p(X) with loop",
+	     call: run_p
+	   });
+function run_p(out)
+{ Prolog.with_frame(() =>
       { let av = Prolog.new_term_ref(1);
 	let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av);
 	let n = 0;
 
 	while(q.next().value)
-	{ println("stdout",
+	{ println(out,
 		  `${++n} `,
 		  Prolog.get_chars(av, Prolog.CVT_WRITEQ), " -> ",
 		  Prolog.toJSON(av));
@@ -182,52 +162,66 @@ function run_p()
       });
 }
 
+////////////////////////////////////////////////////////////////
+tests.push({ name: "p(X) with iterator",
+	     call: run_p_with_iterator
+	   });
+
 /* Same as above, but using the JavaScript iterator (for..of) to enumerate
    the results.  We still need the frame to get rid of `av`.
 */
 
-function run_p_with_iterator()
-{ println("title", "Using an iterator for p/1");
-
-  Prolog.with_frame(() =>
+function run_p_with_iterator(out)
+{ Prolog.with_frame(() =>
   { let av = Prolog.new_term_ref(1);
     let n = 0;
 
     for(const r of Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av,
 				(v) => Prolog.toJSON(v)))
-    { println("stdout", r);
+    { println(out, r);
     }
   });
 }
 
-/* Pass a query from a string.  As the allocation of term references now happens
-   completely in the `Prolog.query()` call, the `with_frame()` happens inside the
-   interface and we no longer have to worry about leaks.
+////////////////////////////////////////////////////////////////
+tests.push({ name: "p(X) from string with iterator",
+	     call: run_p_from_string_with_iterator
+	   });
+
+/* Pass a query from a string.  As the allocation of term references
+   now happens completely in the `Prolog.query()` call, the
+   `with_frame()` happens inside the interface and we no longer have
+   to worry about leaks.
 */
 
-function run_p_from_string_with_iterator()
-{ println("title", "Using an iterator for p/1 and call string");
-
-  let n = 0;
+function run_p_from_string_with_iterator(out)
+{ let n = 0;
 
   for(const r of Prolog.query("p(X)"))
-  { println("stdout", r.X);
+  { println(out, r.X);
   }
 }
 
+////////////////////////////////////////////////////////////////
+tests.push({ name: "ground goal with iterator",
+	     call: run_ground_with_iterator
+	   });
 
-function run_ground_with_iterator()
-{ println("title", "Running ground query");
-
-  println("stdout", Prolog.query("true").once());
-  println("stdout", Prolog.query("false").once());
-  println("stdout", Prolog.query("functor(_,_,_)").once());
+function run_ground_with_iterator(out)
+{ println(out, Prolog.query("true").once());
+  println(out, Prolog.query("false").once());
+  println(out, Prolog.query("functor(_,_,_)").once());
 }
 
 
-/* This test tests round trip of data.   We start with a JavaScript object, pass it
-   to Prolog with returns it using u/3 defined as u(X,X,S), where S returns
-   the Prolog string representation for X.
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Round trip data",
+	     call: test_data_round_trip
+	   });
+
+/* This test tests round trip of data.  We start with a JavaScript
+   object, pass it to Prolog with returns it using u/3 defined as
+   u(X,X,S), where S returns the Prolog string representation for X.
 */
 
 class Point {
@@ -237,8 +231,9 @@ class Point {
   }
 }
 
-function test_data_round_trip()
-{ trip(42,
+function test_data_round_trip(out)
+{ trip(out,
+       42,
        2n**200n,
        3.14,
        new Prolog.Rational(1,3),
@@ -254,16 +249,18 @@ function test_data_round_trip()
       );
 }
 
-function trip(...args)
-{ println("title", "Demonstrating round trip object -> Prolog -> object");
-
-  args.forEach((obj) =>
+function trip(out, ...args)
+{ args.forEach((obj) =>
   { const rc = Prolog.query("u(In,Out,S)", {In:obj}).once();
 
-    println("stdout", obj, " -> ", rc.S, " -> ", rc.Out);
+    println(out, obj, " -> ", rc.S, " -> ", rc.Out);
   });
 }
 
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Sum array of integers in Prolog",
+	     call: test_sum_list
+	   });
 
 /* Test calling a simple deterministic predicate.  Evaluates the performance
    for exchanging data.  test_error() tests what happens when the predicate
@@ -275,10 +272,8 @@ function sum_list(list)
 { return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
 }
 
-function test_sum_list()
-{ println("title", "Sum JavaScript list in Prolog");
-
-  sum_list([]);		// do the required autoloading
+function test_sum_list(out)
+{ sum_list([]);		// do the required autoloading
   [ 1,
     10,
     100,
@@ -292,71 +287,92 @@ function test_sum_list()
       list.push(i);
 
     const sum = time("sum_list()", () => sum_list(list));
-    println("stdout", `Sum of 1..${len} is ${sum}`);
+    println(out, `Sum of 1..${len} is ${sum}`);
   });
 }
 
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Test big integer exchange",
+	     call: test_bigint
+	   });
 /* Test data round trip for really big integers and some critial values.
 */
 
-function test_bigint()
-{ println("title", "Big integer handling");
-
-  [0,31,32,62,63,64,200].forEach((i) =>
+function test_bigint(out)
+{ [0,31,32,62,63,64,200].forEach((i) =>
   { const rc = Prolog.query("bigint(I, Pos, Neg)", {I:i}).once();
     const pos = rc.Pos;
     const neg = rc.Neg;
 
-    println("stdout", `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
+    println(out, `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
 
-    const vin = BigInt(2)**BigInt(i);
-    const out = Prolog.query("In = Out", {In:vin}).once().Out;
+    const vin  = BigInt(2)**BigInt(i);
+    const vout = Prolog.query("In = Out", {In:vin}).once().Out;
 
-    if ( vin === BigInt(out) )
-      println("stdout", `Round trip passed`);
+    if ( vin === BigInt(vout) )
+      println(out, `Round trip passed`);
     else
-      println("stderr", `Round trip: ${vin} -> ${out}`);
+      println(out, `Round trip: ${vin} -> ${vout}`);
   });
 }
 
-function test_error()
-{ println("title", "Test error handling");
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Test simple error handling",
+	     call: test_error
+	   });
 
-  const sum = sum_list(["aap", "noot", "mies"]);
-  println("stdout", `Sum is ${sum}`);
+function test_error(out)
+{ const sum = sum_list(["aap", "noot", "mies"]);
+  println(out, `Sum is ${sum}`);
 }
 
-function test_foreach_1()
-{ println("title", "Run long running goal");
-  return Prolog.forEach("between(1,3,X),sleep(0.5)",
-			(r) => println("stdout", r.X))
-           .then((n) => println("stdout", `Got ${n} answers`))
-           .catch((e) => println("stderr", `Got error ${e}`));
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Test long running queries with sleep",
+	     call: test_foreach_1
+	   });
+
+function test_foreach_1(out)
+{ return Prolog.forEach("between(1,3,X),sleep(0.5)",
+			(r) => println(out, r.X))
+           .then((n) => println(out, `Got ${n} answers`))
+           .catch((e) => println(out, `Got error ${e}`));
 }
 
-function test_foreach_2(mx)
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Test long running queries with sleep and error",
+	     call: (out) => test_foreach_2(out)
+	   });
+
+function test_foreach_2(out, mx)
 { mx = mx||5;
 
   println("title", "Run long running goal; show exception");
   return Prolog.forEach("between(1,MAX,X),sleep(0.5),Y is 1/(3-X)",
 			{MAX:mx},
-			(r) => println("stdout", r.X))
-           .then((n) => println("stdout", `Got ${n} answers`))
-           .catch((e) => println("stderr", `Got error ${e}`));
+			(r) => println(out, r.X))
+           .then((n) => println(out, `Got ${n} answers`))
+           .catch((e) => println(out, `Got error ${e}`));
 }
 
-  function test_fib(n) {
-    if ( n === undefined ) {
-      output.innerHTML += `<form onsubmit="return fib_n(this)">
-                             <input name="n" type="number" min="1" max="40" value="22">
-			     <button type="submit">Run</button>
-                           </form>`;
-    } else {
-      println("title", `Testing async fib(${n})`);
-      println("stdout", `While computing the <textarea> must be responsive
+tests.push({ name: "Test long running computation",
+	     call: (out) => test_fib(out, 35)
+	   });
+tests.push({ name: "Test long running computation (configurable)",
+	     call: test_fib,
+	     checked: false
+	   });
+
+function test_fib(out, n) {
+  if ( n === undefined ) {
+    out.innerHTML += `<form onsubmit="return fib_n(this)">
+                        <input name="n" type="number" min="1" max="40" value="22">
+			<button type="submit">Run</button>
+                      </form>`;
+  } else {
+    println(out, `While computing the <textarea> must be responsive
 and it is possible to abort the computation`);
 
-      output.innerHTML += `
+    out.innerHTML += `
 <div>
 <textarea cols="50" placeholder="Type here to see interaction"></textarea>
 </div>
@@ -364,49 +380,74 @@ and it is possible to abort the computation`);
 <button id="abort" onclick="Prolog.abort()">Abort</button>
 </div>`;
 
-      return Prolog.forEach("time(fib(X,Y))", {X:n})
-	.then((a) => println("stdout", `fib(${n}) => ${a[0].Y}`))
-	.catch((e) => println("stderr", `Got error ${e}`))
-	.finally(() => document.getElementById("abort").disabled = true);
-    }
+    return Prolog.forEach("time(fib(X,Y))", {X:n})
+      .then((a) => println(out, `fib(${n}) => ${a[0].Y}`))
+      .catch((e) => print(out, `Got error ${e}`, {color:"red", nl:true}))
+      .finally(() => document.getElementById("abort").disabled = true);
   }
+}
 
-  function fib_n(e) {
-    const n = e.elements.n.value;
-    test_fib(parseInt(n));
-    return false;
-  }
+function fib_n(e) {
+  const n = e.elements.n.value;
+  test_fib(parseInt(n));
+  return false;
+}
 
-  /* Callback test */
+/* Callback test */
 
-  function add_one(i)
-  { return i+1;
-  }
+function add_one(i)
+{ return i+1;
+}
 
 
 		 /*******************************
-		 *	   SIMPLE PRINT		*
+		 *           PRINTING           *
 		 *******************************/
 
-function print(line, cls, nl)
-{ const node = document.createElement('span');
+function isElement(element)
+{ return ( element instanceof Element ||
+           element instanceof HTMLDocument );
+}
 
-  cls = cls||"stdout";
+/** print([to], line, [opts])
+ */
+function print(...argv)
+{ const node = document.createElement('span');
+  let out = output;
+
+  if ( isElement(argv[0]) )
+  { out = argv[0];
+    argv.shift();
+  }
+  let line = argv[0];
+  opts = argv[1];
+  opts = opts||{};
+
+  const cls = opts.cls||"stdout";
   if ( typeof(line) === "object" )
     line = JSON.stringify(line);
-  if ( nl )
+  if ( opts.nl )
     line += '\n';
+  if ( opts.background )
+    node.style['background'] = opts.background;
+  if ( opts.color )
+    node.style['color'] = opts.color;
 
   node.className = cls;
   node.textContent = line;
-  output.appendChild(node);
+  out.appendChild(node);
 };
 
-function println(cls, ...line)
-{ line.forEach((e) => print(e, cls));
-  output.appendChild(document.createElement('br'));
+function println(to, ...line)
+{ let out = output;
+  if ( isElement(to) )
+  { out = to;
+    line.forEach((e) => print(to, e, {cls:"stdout"}));
+  } else
+  { line.forEach((e) => print(e, {cls:to}));
+  }
+  out.appendChild(document.createElement('br'));
 }
-
 
 function time(msg, func)
 { const t0 = Date.now();

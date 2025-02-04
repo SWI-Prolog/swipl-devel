@@ -241,7 +241,7 @@ function print(...argv)
   { out = argv[0];
     argv.shift();
   }
-  const line = argv[0];
+  let line = argv[0];
   opts = argv[1];
   opts = opts||{};
 
