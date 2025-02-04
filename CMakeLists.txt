@@ -23,7 +23,7 @@ option(MULTI_THREADED
        ON)
 option(ENGINES
        "Enable multiple Prolog engines"
-       OFF)
+       ON)
 option(VMI_FUNCTIONS
        "Create a function for each VM instruction"
        ${DEFAULT_VMI_FUNCTIONS})
