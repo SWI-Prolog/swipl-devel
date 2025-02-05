@@ -306,6 +306,81 @@ Closes the query.  This can be used inside the iterator to stop
 further enumeration.
 \end{description}
 
+\subsection{Using engines}
+\label{sec:wasm-engines}
+
+The WASM version of SWI-Prolog supports \jargon{engines}.  The initial
+engine is called \const{main}.  Additional engines can be used to
+enumerate answers of multiple open queries as well as for implementing
+\jargon{coroutines}.  Combined with JavaScript \jargon{async} functions,
+engines can provide \jargon{cooperative multi-threading}.  For example,
+to enumerate the answers of two queries we may use the following code
+
+\begin{code}
+  const e1 = new Prolog.Engine({auto_close:true});
+  const e2 = new Prolog.Engine({auto_close:true});
+
+  const q1 = e1.query(Query1);  // see Prolog.query()
+  const q2 = e2.query(Query2);
+  
+  try
+  { for(;;)
+    { const n1 = q1.next();
+      const n2 = q2.next();
+      if ( n1.done && n2.done )
+        break;
+      // Handle answers
+    }
+  } finally
+  { q1.close(); // also closes e1
+    q2.close();
+  }
+  ...
+\end{code}
+
+Engines can also be used to create a cooperative thread.  The example
+below creates a Prolog task that prints the numbers 1..20 to the
+console, one number every second.
+
+\begin{code}
+  ...
+  setTimeout(async () => {
+    const e = new Prolog.Engine({auto_close:true});
+    await e.forEach("between(1,20,X),sleep(1)",
+		    (a) => console.out(a.X));
+  });
+\end{code}
+
+\begin{description}
+  \cfunction{Engine}{Prolog.Engine}{[name], [options]}
+  Create a new engine.  The \arg{name} argument names the engine.  When
+  omitted, engines are named \const{engine}$N$, where $N$ is defined by
+  a counter. The \arg{options} argument provides additional configuration.
+  Both arguments are optional.
+  \begin{description}
+    \definition{Boolean \const{auto_close}}
+    When \const{true} (default \const{false}, closing the last query
+    associated with the engine also closes the engine.
+  \end{description}
+
+  \cfunction{undefined}{close}{}
+  Terminate the engine.  This may be called safely multiple times on
+  the same instance.
+
+  \cfunction{Boolean}{Engine.call}{Goal}
+  \nodescription
+  \cfunction{Object}{query}{...args}
+  \nodescription
+  \cfunction{Object}{forEach}{goal, ...args}
+  \nodescription
+  \cfunction{Any}{with_frame}{function, persist}
+  Same as the corresponding methods on class \class{Prolog}, using
+  the specified engine for running the Prolog goals.
+
+  \cfunction{Any}{with}{function}
+  Run \arg{function} using the specified \class{Engine} instance.
+\end{description}
+
 
 \subsection{Translating data between JavaScript and Prolog}
 \label{sec:wasm-data-conversion}
