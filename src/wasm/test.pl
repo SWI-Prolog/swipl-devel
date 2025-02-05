@@ -20,6 +20,12 @@ p(_{}).
 p(_{name: "Jan", city: "Amsterdam"}).
 p(user{name: "Jan", city: "Amsterdam"}).
 
+%!  s(X)
+%
+%   Simple predicate for testing call performance
+
+s(1).
+
 u(X,X,S) :-
     format(string(S), '~q', [X]).
 

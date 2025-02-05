@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WASM benchmarks</title>
+</head>
+<body>
+<style>
+.title  { font-weight: bold; font-size: 150%; font-family: reset;
+	  margin-top: 1.5ex; margin-bottom: 1ex; display: block; }
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+#bench {
+  position: relative;
+  margin-top: 2ex;
+  width: 80%;
+  margin-left: 2ex;
+  border: 1px solid #888;
+  border-collapse: collapse;
+}
+#bench tr:nth-child(even) {
+  background-color: #ddd;
+}
+th.benchmark {
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+th.unit { text-align: left; }
+td.num, th.num { text-align: right; }
+td.unit { font-style: italic; }
+th.unit, td.unit { padding-left: 5px; white-space: nowrap;}
+#output { margin-top: 1.5ex; }
+#tests  { margin-bottom: 0.5ex; }
+</style>
+<h2>Benchmarking the SWI-Prolog WASM JavaScript interface</h2>
+<p>
+  This page provides several benchmarks for using the SWI-Prolog WASM
+  version in JavaScript.
+</p>
+<div id="controls">
+  <div id="tests"></div>
+  <button onClick="select_all(true)">Select all</button>
+  <button onClick="select_all(false)">Deselect all</button>
+  <button onClick="run_selected_tests()">Run selected benchmarks</button>
+</div>
+<table id="bench">
+  <tr>
+  <th class="benchmark">Benchmark</th>
+  <th class="num">Iterations</th>
+  <th class="num">Time</th>
+  <th class="unit">Unit</th>
+  </tr>
+</table>
+<h4>Output</h4>
+<div id="output"></div>
+
+<!-- Load prolog -->
+<script src="/wasm/swipl-bundle.js"></script>
+
+<script>
+output   = document.getElementById('output');
+test_div = document.getElementById('tests');
+table    = document.getElementById('bench');
+
+let Prolog;
+let Module;
+var options = {
+    arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
+};
+
+SWIPL(options).then((module) =>
+{ Module = module;
+  Prolog = Module.prolog;
+  Prolog.consult("test.pl").then(()=>{});
+  test_menu();
+});
+
+var tests = [];
+function test_menu() {
+  for(let i=0; i<tests.length; i++) {
+    const t = tests[i];
+    const c = t.checked === false ? "" : "checked";
+    test_div.innerHTML += `<div><input type="checkbox" value="${i}" name="test" ${c}><label>${t.name}</label></div>`;
+  }
+}
+
+function select_all(val) {
+  const s = document.querySelectorAll("input[type=checkbox][name=test]");
+  s.forEach(e => e.checked = val);
+}
+
+function show_test_title(test)
+{ const hdr = document.createElement("h4");
+  hdr.innerHTML = test.title||test.name;
+  const out = document.createElement("div");
+  output.appendChild(hdr);
+  output.appendChild(out);
+
+  return out;
+}
+
+function getPromiseFromEvent(item, event) {
+  return new Promise((resolve) => {
+    const listener = (ev) => {
+      item.removeEventListener(event, listener);
+      resolve(ev);
+    }
+    item.addEventListener(event, listener);
+  })
+}
+
+function done_test(test) {
+  const event = new CustomEvent("done", {detail: test});
+  output.dispatchEvent(event);
+}
+
+async function wait_test() {
+  const ev = await getPromiseFromEvent(output, "done");
+  return ev.detail;
+}
+
+async function run_selected_tests() {
+  output.innerHTML = "";
+  table.querySelectorAll("tr:not(:first-child)").forEach(e => e.remove());
+  const selected = Array.from(
+    document.querySelectorAll("input[type=checkbox][name=test]:checked"),
+    e => parseInt(e.value));
+
+  run_benchmarks(0, selected);
+  await getPromiseFromEvent(output, "done");
+  print(output, "All done", {color: "green", nl:true});
+}
+
+async function run_benchmarks(i, selected)
+{ if ( i < selected.length )
+  { const bm = tests[selected[i]];
+    const out = show_test_title(bm);
+    if ( bm.isasync )
+      await async_run_benchmark(out, bm);
+    else
+      run_benchmark(out, bm);
+
+    setTimeout(() => run_benchmarks(i+1, selected));
+  } else
+    done_test("all");
+}
+
+function run_benchmark(out, bm)
+{ if ( !bm.iterations )
+    bm.iterations = 1000;
+  const iter = bm.iterations;
+  const data = bm.setup ? bm.setup.call(bm) : {};
+
+  time(out, bm, async () => {
+    for(let i=0; i<iter; i++)
+      bm.func.call(bm, out, data);
+  });
+
+  if ( bm.cleanup )
+    bm.cleanup.call(bm, data);
+}
+
+async function async_run_benchmark(out, bm)
+{ if ( !bm.iterations )
+    bm.iterations = 1000;
+  const iter = bm.iterations;
+  const data = bm.setup ? bm.setup.call(bm) : {};
+
+  async function arun() {
+    for(let i=0; i<iter; i++)
+    { const rc = bm.func.call(bm, out, data);
+      if ( rc instanceof Promise )
+	await rc;
+    }
+  }
+
+  await async_time(out, bm, arun);
+
+  if ( bm.cleanup )
+    bm.cleanup.call(bm, data);
+}
+
+		 /*******************************
+		 *         BENCHMARKS           *
+		 *******************************/
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Prolog.query().once() on s/1",
+	     iterations: 10000,
+	     func: bench_query_pred_s
+	   });
+function bench_query_pred_s(out, data)
+{ Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(1);
+    let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "s/1", av);
+
+    q.once();
+    Prolog.toJSON(av);
+    q.close();
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Prolog.query().once() on s/1 with cached predicate",
+	     iterations: 10000,
+	     setup: () => { return {pred: Prolog.predicate("s/1")} },
+	     func: bench_query_cached_pred_s
+	   });
+function bench_query_cached_pred_s(out, data)
+{ Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(1);
+    let q = Prolog.query(0, Prolog.PL_Q_NORMAL, data.pred, av);
+
+    q.once();
+    Prolog.toJSON(av);
+    q.close();
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Prolog.query().once() on \"s(X)\"",
+	     iterations: 10000,
+	     func: bench_query_s
+	   });
+function bench_query_s(out, data)
+{ let rc = Prolog.query("s(X)").once();
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Prolog.forEach() on \"s(X)\"",
+	     iterations: 1000,
+	     isasync: true,
+	     func: bench_foreach_s
+	   });
+function bench_foreach_s(out, data)
+{ return Prolog.forEach("s(X)", (a)=>{});
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Enumerate between(1,100,_) using " +
+		   "Prolog.query() with predicate",
+	     iterations: 100,
+	     answers: 100,
+	     func: bench_query_iter_between_pred
+	   });
+function bench_query_iter_between_pred(out, data)
+{ Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(3);
+    Prolog.toProlog(1, av+0);
+    Prolog.toProlog(this.answers, av+1);
+    const q = Prolog.query(0, Prolog.PL_Q_NORMAL, "between/3", av);
+
+    while(!q.next().done)
+    { const rc = Prolog.toJSON(av+2);
+    }
+
+    q.close();
+  });
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Enumerate between(1,100,_) using " +
+		   "for(a of Prolog.query()) on string",
+	     iterations: 100,
+	     answers: 100,
+	     func: bench_query_iter_between
+	   });
+function bench_query_iter_between(out, data)
+{ for(const r of Prolog.query("between(1,Max,X)", {Max: this.answers}))
+  { // println(out, r.X);
+  }
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: "Create and destroy an engine",
+	     iterations: 1000,
+	     func: bench_engine_create
+	   });
+function bench_engine_create(out, data)
+{ e = new Prolog.Engine();
+  e.close();
+}
+
+		 /*******************************
+		 *           PRINTING           *
+		 *******************************/
+
+function isElement(element)
+{ return ( element instanceof Element ||
+           element instanceof HTMLDocument );
+}
+
+/** print([to], line, [opts])
+ */
+function print(...argv)
+{ const node = document.createElement('span');
+  let out = output;
+
+  if ( isElement(argv[0]) )
+  { out = argv[0];
+    argv.shift();
+  }
+  let line = argv[0];
+  opts = argv[1];
+  opts = opts||{};
+
+  const cls = opts.cls||"stdout";
+  if ( typeof(line) === "object" )
+    line = JSON.stringify(line);
+  if ( opts.nl )
+    line += '\n';
+  if ( opts.background )
+    node.style['background'] = opts.background;
+  if ( opts.color )
+    node.style['color'] = opts.color;
+
+  node.className = cls;
+  node.textContent = line;
+  out.appendChild(node);
+};
+
+function println(cls, ...line)
+{ line.forEach((e) => print(e, {cls:cls}));
+  output.appendChild(document.createElement('br'));
+}
+
+function add_result_to_table(bm, us)
+{ const body = table.querySelector("tbody");
+  let unit = "μs/iter";
+  let iterations = bm.iterations.toLocaleString();
+  if ( bm.answers )
+  { unit = "μs/answer"
+    us = us/bm.answers;
+    iterations += `×${bm.answers}`
+  }
+  body.innerHTML += `<tr><th class="benchmark">${bm.name}</th><td class="num">${iterations}</td><td class="num">${us}</td><td class="unit">${unit}</td></tr>`
+}
+
+function time(out, bm, func)
+{ const t0 = Date.now();
+  const rc = func.call(bm);
+  const t1 = Date.now();
+  const ms = t1-t0;
+  const us = 1000*ms/bm.iterations;
+
+  print(out, `${bm.iterations} iterations took ${ms}ms (${us}μs/iteration)`);
+  add_result_to_table(bm, us);
+
+  return rc;
+}
+
+async function async_time(out, bm, func)
+{ const t0 = Date.now();
+  const rc = await func.call(bm);
+  const t1 = Date.now();
+  const ms = t1-t0;
+  const us = 1000*ms/bm.iterations;
+
+  print(out, `${bm.iterations} iterations took ${ms}ms (${us}μs/iteration)`);
+  add_result_to_table(bm, us);
+  done_test(bm);
+
+  return rc;
+}
+
+</script>
+</body>
+</html>

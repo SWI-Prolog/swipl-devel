@@ -548,7 +548,7 @@ class Prolog
 
   __init_main_engine(name)
   { const eid = this.bindings.PL_current_engine();
-    return new this.Engine(name, this, eid);
+    return new this.Engine(name, {prolog:this, eid:eid});
   }
 
 /**
@@ -562,8 +562,7 @@ class Prolog
     { if ( this.__id_engines[eid] )
       { return this.__id_engines[eid];
       } else
-      { const id = "engine" + ++this.__engine_id;
-	return new this.Engine(id, this, eid);
+      { return new this.Engine(undefined, {prolog:this, eid:eid});
       }
     }
     // else `undefined`
@@ -827,14 +826,16 @@ class Prolog
     this.toProlog(input, av+1);
     const q = new Query(this, 0, this.PL_Q_CATCH_EXCEPTION,
 			"wasm_call_string/3", av,
-			(a) => this.toJSON(a+2),
-			fid);
+			{ map: (a) => this.toJSON(a+2),
+			  frame: fid
+			});
     q.from_text = true;
     return q;
   }
 
   __query(module, flags, pred, argv, map, fid)
-  { return new Query(this, module, flags, pred, argv, map, fid);
+  { return new Query(this, module, flags, pred, argv,
+		     { map:map, frame:fid});
   }
 
   /**
@@ -870,8 +871,9 @@ class Prolog
     const q = new Query(this, this.MODULE_user,
 			this.PL_Q_ALLOW_YIELD|this.PL_Q_CATCH_EXCEPTION,
 			"wasm_call_string_with_heartbeat/3", av,
-			(a) => this.toJSON(a+2),
-			fid);
+			{ map: (a) => this.toJSON(a+2),
+			  frame: fid
+			});
 
     return new Promise(function(resolve, reject) {
       let answers = callback ? 0 : [];
@@ -1150,7 +1152,8 @@ class Prolog
     const term = this.new_term_ref();
     if ( !this.chars_to_term(goal, term) )
       throw new Error('Query has a syntax error: ' + query);
-    const q = new Query(this, module, flags, pred_call1, term, undefined, fid);
+    const q = new Query(this, module, flags, pred_call1, term,
+			{ frame:fid });
     return q.next_yieldable();
   }
 
@@ -1525,34 +1528,73 @@ class Prolog
 
 
 /**
- * class Engine
+ * class Engine([name], [options])
+ *
+ * @param {String} [name] is the identifier name of the engine.  When
+ * omitted, a _genid_ `engine<n>` is created.
+ * @param {Prolog} [options.prolog] identifies the Prolog instance.
+ * Only used to create the initial engine.
+ * @param {engine_t} [options.eid] is the WASM identifier for the engine.
+ * @param {Boolean}  [options.auto_close] Causes the engine to be closed
+ * when the last query is closed.
  */
 
 const class_engine = (class Engine{
-  /* Engine([name], [prolog], [eid])
-   */
-  constructor(name, prolog, eid)
-  { prolog = prolog||Module.prolog;
-    name = name||("engine" + ++prolog.__engine_id);
-    if ( prolog.engines[name] )
+  constructor(...argv)
+  { let name;
+    let options = {};
+
+    if ( typeof argv[0] === 'object' )
+    { options = argv[0];
+    } else if ( typeof argv[0] === 'string' )
+    { name = argv[0];
+      if ( typeof argv[1] === 'object' )
+      { options = argv[1];
+      }
+    }
+
+    const prolog = options.prolog||Module.prolog;
+    if ( name && prolog.engines[name] )
       return prolog.engines[name];
-    if ( !eid )
-      eid = prolog.bindings.PL_create_engine(0);
+    name = name||("engine" + ++prolog.__engine_id);
+    const eid = options.eid ? options.eid
+                            : prolog.bindings.PL_create_engine(0);
     this.name = name;
     this.eid = eid;
     this.prolog = prolog;
+    this.open = true;
     prolog.__id_engines[eid] = this;
     prolog.engines[name]   = this;
     this.open_queries = [];
     this.lastyieldat = 0;
+    this.auto_close = !!options.auto_close;
+  }
+
+  __push_query(q)
+  { this.open_queries.push(q);
+  }
+
+  __pop_query(q)
+  { this.__must_be_innermost_query(q);
+    this.open_queries.pop();
+    if ( this.auto_close && this.open_queries.length == 0 )
+      this.close();
+  }
+
+  __must_be_innermost_query(q)
+  { if ( q != this.open_queries.at(-1) )
+      throw new Error("Attempt to access not innermost query");
   }
 
   close()
-  { if ( this.name === "main" )
-      throw new Error('Cannot close "main" engine')
-    this.prolog.bindings.PL_destroy_engine(this.eid);
-    delete this.prolog.__id_engines[this.eid];
-    delete this.prolog.engines[this.name];
+  { if ( this.open )
+    { if ( this.name === "main" )
+        throw new Error('Cannot close "main" engine')
+      this.prolog.bindings.PL_destroy_engine(this.eid);
+      delete this.prolog.__id_engines[this.eid];
+      delete this.prolog.engines[this.name];
+      this.open = false;
+    }
   }
 
 
@@ -1601,25 +1643,25 @@ const class_engine = (class Engine{
 });
 
 /**
- * Open a new query.  Signatures:
+ * Open a new query.  Signature:
  *
- *  1) module:{String|0},
- *     flags:{Integer},
- *     predicate:{String|predicate_t},
- *     argv:{term_t}
- *     [map]:{Function}
- *     [fid]:{fid_t}
- *  2) module:{String|0},
- *     flags:{Integer},
- *     predicate:{String|predicate_t},
- *     argv:{Array}
+ *     new Query(module:{String|0},
+ *               flags:{Integer},
+ *               predicate:{String|predicate_t},
+ *               argv:{term_t}
+ *               [options]: {Object}
  *
  * @param {String} [module] Optional module name
+ * @param {Function} [options.map] Function to map `term_t` into
+ *        properties of the Query.next() result object.
+ * @param {fid_t} [options.frame] Prolog frame used to create
+ *        the query.  Must be closed when the query is closed.
  */
 
 class Query {
-  constructor(prolog, module, flags, pred, argv, map, fid)
-  { module = typeof module === "string" ? prolog.new_module(module) : 0;
+  constructor(prolog, module, flags, pred, argv, options)
+  { options = options||{};
+    module = typeof module === "string" ? prolog.new_module(module) : 0;
     if ( typeof(pred) === "string" )
       pred = prolog.predicate(pred);
     flags |= prolog.PL_Q_EXT_STATUS;
@@ -1628,15 +1670,14 @@ class Query {
 		    prolog.PL_Q_NORMAL)) )
       flags |= prolog.PL_Q_CATCH_EXCEPTION;
 
-    this.flags  = flags;
-    this.prolog = prolog;
-    this.engine = prolog.current_engine();
-    this.map    = map;
-    this.qid    = prolog.bindings.PL_open_query(module, flags, pred, argv);
-    this.open   = true;
-    this.argv   = argv;
-    this.frame  = fid;
-    this.engine.open_queries.push(this);
+    this.options = options;
+    this.flags   = flags;
+    this.prolog  = prolog;
+    this.engine  = prolog.current_engine();
+    this.qid     = prolog.bindings.PL_open_query(module, flags, pred, argv);
+    this.open    = true;
+    this.argv    = argv;
+    this.engine.__push_query(this);
   }
 
   [Symbol.iterator]() {
@@ -1659,8 +1700,13 @@ class Query {
     if ( !this.open )
       return { done: true };
 
-    if ( this != engine.open_queries.at(-1) )
-      console.log("Attempt for Query.next() on not innermost query");
+    engine.__must_be_innermost_query(this);
+
+    function map_result(query, argv)
+    { if ( query.options.map )
+        return query.options.map.call(query, argv);
+      return argv;
+    }
 
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
@@ -1681,14 +1727,14 @@ class Query {
 	return { done: true };
       case prolog.PL_S_LAST:
       { const rc = { done: !this.is_iterator,
-		     value: this.map ? this.map.call(this, argv) : argv
+		     value: map_result(this, argv)
 		   };
 	this.__close();
         return rc;
       }
       case prolog.PL_S_TRUE:
 	return { done: false,
-		 value: this.map ? this.map.call(this, argv) : argv
+		 value: map_result(this, argv)
 	       };
       case prolog.PL_S_YIELD:
       { let request = prolog.yield_request();
@@ -1814,14 +1860,11 @@ class Query {
     { const prolog = this.prolog;
       const engine = this.engine;
 
-      if ( this != engine.open_queries.at(-1) )
-	console.log("Attempt for Query.close() on not innermost query");
-      engine.open_queries.pop();
-
       this.prolog.bindings.PL_cut_query(this.qid);
-      if ( this.frame )
-	this.prolog.bindings.PL_discard_foreign_frame(this.frame);
+      if ( this.options.frame )
+	this.prolog.bindings.PL_discard_foreign_frame(this.options.frame);
       this.open = false;
+      engine.__pop_query(this);
     }
   }
 }
