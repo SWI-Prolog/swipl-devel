@@ -1223,7 +1223,7 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, unsigned shor
       { if ( i < 0 )
 	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_not_less_than_zero, value),NULL;
-	LD->yield.frequency = i/16;
+	LD->yield.frequency = (i+15)/16;
       }
 
       f->value.i = i;
