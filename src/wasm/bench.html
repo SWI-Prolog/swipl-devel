@@ -72,7 +72,7 @@ table    = document.getElementById('bench');
 let Prolog;
 let Module;
 var options = {
-    arguments: ["-q"],
+  arguments: ["-q", "-O"],
     locateFile: (file) => '/wasm/' + file,
     on_output: print
 };
@@ -245,11 +245,12 @@ function bench_foreach_s(out, data)
 { return Prolog.forEach("s(X)", (a)=>{});
 }
 
+const between_n = 100;
 ////////////////////////////////////////////////////////////////
-tests.push({ name: "Enumerate between(1,100,_) using " +
+tests.push({ name: `Enumerate between(1,${between_n},_) using ` +
 		   "Prolog.query() with predicate",
 	     iterations: 100,
-	     answers: 100,
+	     answers: between_n,
 	     func: bench_query_iter_between_pred
 	   });
 function bench_query_iter_between_pred(out, data)
@@ -268,16 +269,64 @@ function bench_query_iter_between_pred(out, data)
 }
 
 ////////////////////////////////////////////////////////////////
-tests.push({ name: "Enumerate between(1,100,_) using " +
+tests.push({ name: `Enumerate between(1,${between_n},_) using ` +
 		   "for(a of Prolog.query()) on string",
 	     iterations: 100,
-	     answers: 100,
+	     answers: between_n,
 	     func: bench_query_iter_between
 	   });
 function bench_query_iter_between(out, data)
 { for(const r of Prolog.query("between(1,Max,X)", {Max: this.answers}))
   { // println(out, r.X);
   }
+}
+
+////////////////////////////////////////////////////////////////
+tests.push({ name: `Enumerate between(1,${between_n},_) using forEach()`,
+	     iterations: 100,
+	     answers: between_n,
+	     func: bench_query_foreach_between
+	   });
+function bench_query_foreach_between(out, data)
+{ return Prolog.forEach("between(1,Max,X)", {Max: this.answers},
+			(a) => {});
+}
+
+////////////////////////////////////////////////////////////////
+const fib_n = 20;
+
+tests.push({ name: `Prolog.query() on "fib(${fib_n},X)"`,
+	     iterations: 10,
+	     isasync: true,
+	     func: bench_query_fib
+	   });
+function bench_query_fib(out, data)
+{ Prolog.query("fib(N,Fib)", {N:fib_n}).once();
+}
+
+tests.push({ name: `Async Prolog.forEach() on "fib(${fib_n},X)"`,
+	     iterations: 10,
+	     isasync: true,
+	     func: bench_foreach_fib
+	   });
+function bench_foreach_fib(out, data)
+{ return Prolog.forEach("fib(N,Fib)", {N:fib_n},
+//			(a)=>{print(out, `fib(${fib_n}) = ${a.Fib}`)}
+			(a)=>{}
+		       );
+}
+
+let fib_heartbeat = 16;
+tests.push({ name: `Async Prolog.forEach() on "fib(${fib_n},X)" (heartbeat ${fib_heartbeat})`,
+	     iterations: 10,
+	     isasync: true,
+	     func: bench_foreach_fib_opts
+	   });
+function bench_foreach_fib_opts(out, data)
+{ return Prolog.forEach("fib(N,Fib)", {N:fib_n},
+//			(a)=>{print(out, `fib(${fib_n}) = ${a.Fib}`, {nl:true})},
+			(a)=>{},
+			{heartbeat:fib_heartbeat});
 }
 
 ////////////////////////////////////////////////////////////////

@@ -817,20 +817,46 @@ class Prolog
       return this.query2(...argv)
   }
 
-  query2(goal, input)
-  { const fid = this.bindings.PL_open_foreign_frame();
-    const av = this.new_term_ref(3);
+  /** Run a  query from a  goal represented  as a string,  an optional
+   * input object and optional options.
+   *
+   * @param {String} goal provides the goal using valid Prolog syntax
+   * @param {Object} [input] provides bindings for a subset of the
+   * variables in `goal`.  The remaining variables that do not start
+   * with an `_` are used to form the result object.
+   * @param {Boolean} [options.engine] If `true`, run the goal in a
+   * temporary engine.  Default is to use the current engine.  See
+   * also Engine.query()
+   */
 
-    input = input||{};
-    this.put_chars(av+0, goal);
-    this.toProlog(input, av+1);
-    const q = new Query(this, 0, this.PL_Q_CATCH_EXCEPTION,
-			"wasm_call_string/3", av,
-			{ map: (a) => this.toJSON(a+2),
-			  frame: fid
-			});
-    q.from_text = true;
-    return q;
+  query2(goal, input, options)
+  { const prolog = this;
+
+    function __query(goal, input, options)
+    { const fid = prolog.bindings.PL_open_foreign_frame();
+      const av = prolog.new_term_ref(3);
+
+      input = input||{};
+      options = options||{};
+      prolog.put_chars(av+0, goal);
+      prolog.toProlog(input, av+1);
+
+      const q = new Query(prolog, 0, prolog.PL_Q_CATCH_EXCEPTION,
+			  "wasm_call_string/3", av,
+			  { map: (a) => prolog.toJSON(a+2),
+			    frame: fid,
+			    ...options
+			  });
+      q.from_text = true;
+      return q;
+    }
+
+    if ( options && options.engine )
+    { const e = new prolog.Engine({auto_close:true});
+      return e.with(() => __query(goal, input, options))
+    } else
+    { return __query(goal, input, options)
+    }
   }
 
   __query(module, flags, pred, argv, map, fid)
@@ -841,80 +867,96 @@ class Prolog
   /**
    * Run a possibly long running goal and process its answers.
    * Signature:
-   *  - foreach(goal, [input], [callback])
+   *  - foreach(goal, [input], [callback], [options])
    * @return {Promise} that is resolved on completion and rejected on
    * a Prolog exception.
    */
 
-
   forEach(goal, ...args)
   { const prolog = this;
-    const fid = this.bindings.PL_open_foreign_frame();
-    const av = this.new_term_ref(3);
-    let callback;
     let input;
+    let callback;
+    let options;
 
     if ( typeof(args[0]) === "object" )
     { input = args[0];
-      callback = args[1];
+      args.shift();
     } else
-    { input = {};
-      callback = args[0];
+      input = {};
+
+    if ( typeof(args[0]) === "function" )
+    { callback = args[0];
+      args.shift();
     }
 
-    if ( callback !== undefined && typeof(callback) !== "function" )
-      throw TypeError("callback must be a function");
+    if ( typeof(args[0]) === "object" )
+    { options = args[0];
+    } else
+      options = {};
 
-    this.put_chars(av+0, goal);
-    this.toProlog(input, av+1);
+    function __foreach(goal, input, callback, heartbeat)
+    { const fid = prolog.bindings.PL_open_foreign_frame();
+      const av = prolog.new_term_ref(4);
+      prolog.put_chars(av+0, goal);
+      prolog.toProlog(input, av+1);
+      if ( heartbeat !== undefined )
+	prolog.toProlog(heartbeat, av+3);
 
-    const q = new Query(this, this.MODULE_user,
-			this.PL_Q_ALLOW_YIELD|this.PL_Q_CATCH_EXCEPTION,
-			"wasm_call_string_with_heartbeat/3", av,
-			{ map: (a) => this.toJSON(a+2),
-			  frame: fid
-			});
+      const q = new Query(prolog, prolog.MODULE_user,
+			  prolog.PL_Q_ALLOW_YIELD|prolog.PL_Q_CATCH_EXCEPTION,
+			  "wasm_call_string_with_heartbeat/4", av,
+			  { map: (a) => prolog.toJSON(a+2),
+			    frame: fid
+			  });
 
-    return new Promise(function(resolve, reject) {
-      let answers = callback ? 0 : [];
+      return new Promise(function(resolve, reject) {
+	let answers = callback ? 0 : [];
 
-      function next_foreach(rc)
-      { while(true)
-	{ if ( rc.yield !== undefined )
-	  { switch(rc.yield)
-	    { case "beat":
-		return setTimeout(() =>
-		  q.engine.with(() =>
-		    next_foreach(rc.resume("true"))));
-	      case "builtin":
-		return rc.resume((rc) => next_foreach(rc));
-	      default:		// unsupported yield
-		throw(rc);
+	function next_foreach(rc)
+	{ while(true)
+	  { if ( rc.yield !== undefined )
+	    { switch(rc.yield)
+	      { case "beat":
+		  return setTimeout(() =>
+		    q.engine.with(() =>
+		      next_foreach(rc.resume("true"))));
+		case "builtin":
+		  return rc.resume((rc) => next_foreach(rc));
+		default:		// unsupported yield
+		  throw(rc);
+	      }
+	    } else if ( rc.value )
+	    { if ( callback )
+	      { answers++;
+		callback.call(prolog, rc.value);
+	      } else
+	      { answers.push(rc.value);
+	      }
+
+	      if ( rc.done == false )
+	      { rc = q.next_yieldable();
+		continue;
+	      }
 	    }
-	  } else if ( rc.value )
-	  { if ( callback )
-	    { answers++;
-	      callback.call(prolog, rc.value);
-	    } else
-	    { answers.push(rc.value);
-	    }
 
-	    if ( rc.done == false )
-	    { rc = q.next_yieldable();
-	      continue;
-	    }
+	    q.close();
+	    if ( rc.error )
+	      return reject(rc.message);
+	    if ( rc.done )
+	      return resolve(answers);
 	  }
-
-	  q.close();
-	  if ( rc.error )
-	    return reject(rc.message);
-	  if ( rc.done )
-	    return resolve(answers);
 	}
-      }
 
-      return next_foreach(q.next_yieldable());
-    });
+	return next_foreach(q.next_yieldable());
+      });
+    } // end __foreach()
+
+    if ( options.engine )
+    { const e = new prolog.Engine({auto_close:true});
+      return e.with(() => __foreach(goal, input, callback, options.heartbeat))
+    } else
+    { return __foreach(goal, input, callback, options.heartbeat);
+    }
   }
 
 

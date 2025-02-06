@@ -198,6 +198,8 @@ Prolog.call("set_prolog_flag(stack_limit, 10 000 000)");
     \cfunction{Query}{Prolog.query}{Goal}
     \nodescription
     \cfunction{Query}{Prolog.query}{Goal, Input}
+    \nodescription
+    \cfunction{Query}{Prolog.query}{Goal, Input, Options}
 Create a Prolog query from a \ctype{String}, optionally binding Prolog
 variables embedded in \arg{Goal} from properties of the \ctype{Object}
 \arg{Input}. The returned object is an instance of class \ctype{Query}.
@@ -228,28 +230,48 @@ object returned by \cfuncref{Query.once}{} does not contain the
 function fib(in, out)
 { return Prolog.query("fib(In,Out)", {In:in}).once().Out;
 }
-
 \end{code}
-
 
 The \exam{.query()} method is indented for fast queries that do not
 require the \jargon{yield} mechanism, i.e., the execution should not
 require asynchronous operations and the browser is not responsive
-during the execution.
+during the execution.  Use \cfuncref{Prolog.forEach}{} for asynchronous
+queries.
 
-    \cfunction{Promise}{Prolog.forEach}{Goal}
-    \nodescription
-    \cfunction{Promise}{Prolog.forEach}{Goal, OnAnswer}
-    \nodescription
-    \cfunction{Promise}{Prolog.forEach}{Goal, Input}
-    \nodescription
-    \cfunction{Promise}{Prolog.forEach}{Goal, Input, OnAnswer}
+The optional \arg{Options} parameter defines the following options
+
+\begin{description}
+  \keyitem{engine}{Boolean}
+  If \const{true}, run the query in a temporary engine.  Note that
+  JavaScript can only interact with the \jargon{innermost query} of an
+  engine.  By using a new engine we can interact with multiple queries,
+  using them as \jargon{coroutines}. \cfuncref{Prolog.Engine}{} for details.
+\end{description}
+
+    \cfunction{Promise}{Prolog.forEach}{Goal, [Input], [OnAnswer], [Options]}
 This method executes \arg{Goal} asynchronously. This implies that
 \arg{Goal} may execute asynchronous operations and the browser remains
 responsive while executing \arg{Goal}.  \arg{Goal} and \arg{Input} are
-processed as with \exam{.query()}. For each answer, \arg{OnAnswer} is a
-\ctype{Function} that is called with a \ctype{Object} that holds the
-bindings for the output arguments of \arg{Goal}.
+processed as with \cfuncref{Prolog.query}{}.  If \arg{OnAnswer} is
+provided, this \ctype{Function} is called with a \ctype{Object} that
+holds the bindings for the output arguments of \arg{Goal} for each
+answer.  \arg{Options} supports the following options
+
+\begin{description}
+  \keyitem{engine}{Boolean}
+  If \const{true}, create an engine that will be destroyed when the
+  query completes.
+  \keyitem{heartbeat}{Integer}
+  Sets the \jargon{heartbeat rate}.  This is the number of Prolog
+  inferences executed before yielding.  The default is 10,000.
+  Lower values improve interactive behaviour but lower Prolog
+  performance.
+\end{description}
+
+All default parameters may be omitted.  A JavaScript type check is
+used to discover whether the \arg{Input} or \arg{OnAnswer} parameter
+is omitted.  Use an empty \arg{Input} to specify \arg{Options} without
+inputs, e.g. \verb$forEach(goal, {}, {engine:true})$
 
 The returned \ctype{Promise} is resolved when the query completes. The
 value passed to the \exam{.then()} method of the \ctype{Promise} is the
@@ -257,10 +279,20 @@ number of answers if \arg{OnAnswer} is provided or an \ctype{Array} of
 answers if \arg{OnAnswer} is omitted.  If \arg{Goal} raises an exception
 the \ctype{Promise} is rejected.
 
-Multiple calls to Prolog can be activated at any time.	Prolog processes
-such queries in \jargon{LIFO} \jargon{(Last In, First Out)} mode.  If
-queries need to be processed sequentially use JavaScript \const{await}
-or the \exam{Promise.finally()} method to wait for completion.
+Multiple calls to Prolog can be activated on the same engine at any
+time. Prolog processes such queries in \jargon{LIFO} \jargon{(Last In,
+  First Out)} mode.  If queries need to be processed sequentially use
+JavaScript \const{await} or the \exam{Promise.finally()} method to
+wait for completion.  Multiple \cfuncref{Prolog.forEach}{} queries
+that run in separate engines act as \jargon{cooperative threads},
+i.e., all make progress.  For example, a goal can be started to run
+as cooperative thread using:
+\begin{code}
+  setTimeout(async () => {
+    await Prolog.forEach(goal, input, onanswer,
+			 {engine:true});
+  });
+\end{code}
 \end{description}
 
 

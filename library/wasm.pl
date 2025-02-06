@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2022-2025, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,8 @@
           [ wasm_query_loop/0,
             wasm_abort/0,
             wasm_call_string/3,         % +String, +Input, -Output
-	    wasm_call_string_with_heartbeat/3,
-				        % +String, +Input, -Output
+	    wasm_call_string_with_heartbeat/4,
+				        % +String, +Input, -Output, Rate
             is_object/1,                % @Term
             is_object/2,                % @Term,?Class
             (:=)/2,                     % -Result, +Call
@@ -54,7 +54,6 @@
 :- autoload(library(apply), [exclude/3, maplist/3]).
 :- autoload(library(terms), [mapsubterms/3]).
 :- autoload(library(error), [instantiation_error/1, existence_error/2]).
-:- autoload(library(option), [dict_options/2]).
 
 :- use_module(library(uri), [uri_is_global/1, uri_normalized/3]).
 :- use_module(library(debug), [debug/3]).
@@ -64,13 +63,16 @@
 
 :- meta_predicate
    wasm_call_string(:, +, -),
-   wasm_call_string_with_heartbeat(:, +, -),
-   with_heartbeat(0).
+   wasm_call_string_with_heartbeat(:, +, -, +),
+   with_heartbeat(0, +).
+
+:- create_prolog_flag(wasm_heartbeat, 10_000, [type(integer), keep(true)]).
 
 %!  wasm_query_loop
 
 wasm_query_loop :-
-    with_heartbeat('$toplevel':'$query_loop').
+    current_prolog_flag(wasm_heartbeat, Rate),
+    with_heartbeat('$toplevel':'$query_loop', Rate).
 
 %!  wasm_abort
 %
@@ -80,10 +82,10 @@ wasm_abort :-
     print_message(error, unwind(abort)),
     abort.
 
-with_heartbeat(Goal) :-
+with_heartbeat(Goal, Rate) :-
     current_prolog_flag(heartbeat, Old),
     setup_call_cleanup(
-        set_prolog_flag(heartbeat, 10 000),
+        set_prolog_flag(heartbeat, Rate),
 	call(Goal),
         set_prolog_flag(heartbeat, Old)).
 
@@ -130,8 +132,12 @@ not_in_projection(Input, Name=Value) :-
     ;   sub_atom(Name, 0, _, _, '_')
     ).
 
-wasm_call_string_with_heartbeat(String, Input, Dict) :-
-    with_heartbeat(wasm_call_string(String, Input, Dict)).
+wasm_call_string_with_heartbeat(String, Input, Dict, Rate) :-
+    (   var(Rate)
+    ->  current_prolog_flag(wasm_heartbeat, Rate)
+    ;   true
+    ),
+    with_heartbeat(wasm_call_string(String, Input, Dict), Rate).
 
 
 %!  await(+Request, -Result) is det.

@@ -117,13 +117,15 @@ async function run_selected_tests() {
 		 *            TESTS             *
 		 *******************************/
 
+const speed = 0.05;
+
 ////////////////////////////////////////////////////////////////
 tests.push({ name: "Simple forEach() counter",
 	     func: test_foreach
 	   });
 function test_foreach(out)
 { Prolog.forEach(
-  "between(1,30,X),sleep(0.3)",
+  "between(1,30,X),sleep(Speed)", {Speed:speed},
   (a) => print(out, ` ${a.X}`, {color:"darkgreen"}))
   .then(() => done_test(this));
 }
@@ -135,7 +137,7 @@ tests.push({ name: "Same, using an async function and setTimeout()",
 function test_foreach_await(out)
 { setTimeout(async () => {
     await Prolog.forEach(
-      "between(1,30,X),sleep(0.1)",
+      "between(1,30,X),sleep(Speed)", {Speed:speed},
       (a) => print(out, ` ${a.X}`, {color:"darkgreen"}));
     done_test(this);
   });
@@ -148,7 +150,7 @@ tests.push({ name: "Same, expicitly using main engine",
 function test_foreach_main(out)
 { setTimeout(async () => {
     await Prolog.engines["main"]
-    .forEach("between(1,30,X),sleep(0.1)",
+    .forEach("between(1,30,X),sleep(Speed)", {Speed:speed},
 	     (a) => print(out, ` ${a.X}`, {color:"darkgreen"}));
     done_test(this);
   });
@@ -161,7 +163,7 @@ tests.push({ name: "Same, using a new engine",
 function test_foreach_engine(out)
 { setTimeout(async () => {
     const e1 = new Prolog.Engine("e1");
-    await e1.forEach("between(1,30,X),sleep(0.1)",
+    await e1.forEach("between(1,30,X),sleep(Speed)", {Speed:speed},
 		     (a) => print(out, ` ${a.X}`, {color:"blue"}));
     e1.close();
     done_test(this);
@@ -176,17 +178,15 @@ function two_async_engines(out)
 { const test = this;
 
   setTimeout(async () => {
-    const e1 = new Prolog.Engine("e1");
-    await e1.forEach("between(1,20,X),sleep(0.1)",
-		     (a) => print(out, ` ${a.X}`, {color: "blue"}));
-    e1.close();
+    await Prolog.forEach("between(1,20,X),sleep(Speed)", {Speed:speed},
+			 (a) => print(out, ` ${a.X}`, {color: "blue"}),
+			 {engine:true});
   });
 
   setTimeout(async () => {
-    const e2 = new Prolog.Engine("e2");
-    await e2.forEach("between(21,30,X),sleep(0.2)",
-		     (a) => print(out, ` ${a.X}`, {color: "darkred"}));
-    e2.close();
+    await Prolog.forEach("between(21,30,X),sleep(Speed)", {Speed:speed*2},
+			 (a) => print(out, ` ${a.X}`, {color: "darkred"}),
+			 {engine:true});
     done_test(test);
   });
 }
@@ -196,28 +196,18 @@ tests.push({ name: "Using engines as coroutines",
 	     func: two_coroutines
 	   });
 function two_coroutines(out)
-{ const e1 = new Prolog.Engine();
-  const e2 = new Prolog.Engine();
+{ const q1 = Prolog.query("between( 1,10,X)", {}, {engine:true});
+  const q2 = Prolog.query("between(11,20,X)", {}, {engine:true});
 
-  const q1 = e1.query("between( 1,10,X)");
-  const q2 = e2.query("between(11,20,X)");
+  for(;;)
+  { const n1 = q1.next();
+    const n2 = q2.next();
+    const v1 = n1.done ? null : n1.value.X;
+    const v2 = n2.done ? null : n2.value.X;
+    if ( n1.done && n2.done )
+      break;
 
-  try
-  { for(;;)
-    { const n1 = q1.next();
-      const n2 = q2.next();
-      const v1 = n1.done ? null : n1.value.X;
-      const v2 = n2.done ? null : n2.value.X;
-      if ( n1.done && n2.done )
-	break;
-
-      println(out, `e1: ${v1}, e2: ${v2}`);
-    }
-  } finally
-  { q1.close();
-    q2.close();
-    e1.close();
-    e2.close();
+    println(out, `e1: ${v1}, e2: ${v2}`);
   }
 }
 
