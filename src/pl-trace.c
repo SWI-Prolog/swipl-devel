@@ -464,6 +464,14 @@ We are in searching mode; should we actually give this port?
     }
   }
 
+  if ( ison(LD->query, PL_Q_TRACE_WITH_YIELD) &&
+       ison(LD->query, PL_Q_ALLOW_YIELD) )
+  { if ( LD->trace.yielded_action == ACTION_NONE )
+      return ACTION_YIELD;
+    else
+      return LD->trace.yielded_action;
+  }
+
   { bool rc;
     SAVE_PTRS();
     rc = saveWakeup(&wstate, false);
