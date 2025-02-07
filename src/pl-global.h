@@ -726,6 +726,7 @@ struct PL_local_data
   { FindData	find;			/* /<ports> <goal> in tracer */
     struct
     { int	resume_action;		/* Restart after yield */
+      int	port;			/* Port on which we stopped */
     } yield;
   } trace;
 

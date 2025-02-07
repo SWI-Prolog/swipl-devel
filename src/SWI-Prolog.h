@@ -427,6 +427,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_S_FALSE		0	/* Query failed (=false) */
 #define PL_S_TRUE		1	/* Query succeeded with choicepoint (=true)*/
 #define PL_S_LAST		2	/* Query succeeded without CP */
+#define PL_S_YIELD_DEBUG      254	/* Yield on behalf of the debugger */
 #define PL_S_YIELD	      255	/* Foreign yield */
 
 #define PL_MAX_QUERY_DATA	2	/* Max offset for PL_query_data() */

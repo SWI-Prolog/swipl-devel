@@ -2334,6 +2334,24 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 
 
 		 /*******************************
+		 *         YIELD DEBUG          *
+		 *******************************/
+
+#define debug_yield(port) LDFUNC(debug_yield, port)
+
+static int
+debug_yield(DECL_LD int port)
+{ QueryFrame qf = LD->query;
+
+  LD->trace.yield.port = port;
+  qf->foreign_frame = PL_open_foreign_frame();
+  qf->yield.term = PL_new_term_ref();
+
+  return PL_S_YIELD_DEBUG;
+}
+
+
+		 /*******************************
 		 *	  TAIL-RECURSION	*
 		 *******************************/
 

@@ -2021,6 +2021,8 @@ VMH(depart_or_retry_continue, 0, (), ())
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
 	case ACTION_ABORT:  THROW_EXCEPTION;
+	case ACTION_YIELD:  SAVE_REGISTERS(QID);
+			    SOLUTION_RETURN(debug_yield(CALL_PORT));
 	case ACTION_RETRY:
 	  if ( debugstatus.retryFrame )
 	    TRACE_RETRY;		/* otherwise retrying the call-port */
