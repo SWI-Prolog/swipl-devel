@@ -724,6 +724,7 @@ struct PL_local_data
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
+    int		yielded_action;		/* Restart after yield */
   } trace;
 
   struct findall_state *bags;		/* findall/3 store  */
