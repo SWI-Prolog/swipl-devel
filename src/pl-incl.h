@@ -1622,6 +1622,17 @@ struct clause_bucket
 #define MAXINDEXDEPTH    7
 #define END_INDEX_POS  255
 
+#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
+#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
+#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
+#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
+
+typedef struct wakeup_state
+{ fid_t		fid;			/* foreign frame reference */
+  Stack		outofstack;		/* Stack we are out of */
+  unsigned int	flags;			/* WAKEUP_STATE_* */
+} wakeup_state;
+
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
   unsigned int	 size;			/* # clauses */
@@ -1835,7 +1846,8 @@ struct queryFrame
   term_t	exception;		/* Exception term */
 #endif
   struct
-  { term_t	term;			/* Handle to exchange data */
+  { term_t	  term;			/* Handle to exchange data */
+    wakeup_state  wstate;		/* state saved using saveWakeup() */
   } yield;
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned int	flags;
@@ -2545,24 +2557,6 @@ typedef struct
 
 
 		 /*******************************
-		 *	      WAKEUP		*
-		 *******************************/
-
-#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
-#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
-#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
-#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
-
-typedef struct wakeup_state
-{ fid_t		fid;			/* foreign frame reference */
-  Stack		outofstack;		/* Stack we are out of */
-  unsigned int	flags;			/* WAKEUP_STATE_* */
-} wakeup_state;
-
-
-
-
-		 /*******************************
 		 *	    STREAM I/O		*
 		 *******************************/
 
@@ -2677,17 +2671,16 @@ typedef struct
 		*            DEBUGGER           *
 		*********************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Tracer communication declarations.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#define PL_TRACE_ACTION_NONE	 0
+#define PL_TRACE_ACTION_CONTINUE 1
+#define PL_TRACE_ACTION_RETRY	 2
+#define PL_TRACE_ACTION_FAIL	 3
+#define PL_TRACE_ACTION_IGNORE	 4
+#define PL_TRACE_ACTION_AGAIN	 5
+#define PL_TRACE_ACTION_ABORT	 6 /* only for Prolog interception */
+#define PL_TRACE_ACTION_YIELD	 7
 
-#define ACTION_CONTINUE	0
-#define ACTION_RETRY	1
-#define ACTION_FAIL	2
-#define ACTION_IGNORE	3
-#define ACTION_AGAIN	4
-#define ACTION_ABORT	5		/* only for Prolog interception */
-
+#define NO_PORT		0x000
 #define CALL_PORT	0x001		/* port masks */
 #define EXIT_PORT	0x002
 #define FAIL_PORT	0x004

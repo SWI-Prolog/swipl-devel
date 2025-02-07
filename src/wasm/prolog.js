@@ -395,11 +395,15 @@ class Prolog
     this.PL_Q_PASS_EXCEPTION	 = 0x0010;
     this.PL_Q_ALLOW_YIELD	 = 0x0020;
     this.PL_Q_EXT_STATUS	 = 0x0040;
+    this.PL_Q_EXCEPT_HALT	 = 0x0080;
+    this.PL_Q_TRACE_WITH_YIELD	 = 0x0100;
 
+    this.PL_S_NOT_INNER		 = -2;
     this.PL_S_EXCEPTION		 = -1;
     this.PL_S_FALSE		 = 0;
     this.PL_S_TRUE		 = 1;
     this.PL_S_LAST		 = 2;
+    this.PL_S_YIELD_DEBUG	 = 254;
     this.PL_S_YIELD		 = 255;
 
     this.PL_ENGINE_MAIN		 = 1;
@@ -410,6 +414,9 @@ class Prolog
     this.PL_ENGINE_INUSE	 = 3;
 
     this.PL_WRT_QUOTED		 = 0x0001;
+    this.PL_WRT_IGNOREOPS	 = 0x0002;
+    this.PL_WRT_NUMBERVARS	 = 0x0004;
+    this.PL_WRT_PORTRAY		 = 0x0008;
     this.PL_WRT_NEWLINE		 = 0x2000;
   }
 
@@ -531,6 +538,10 @@ class Prolog
 	'_PL_switch_engine', 'number', ['number']),
       _PL_reset_engine: this.module.cwrap(
 	'_PL_reset_engine', 'number', ['number', 'number']),
+      PL_set_trace_action: this.module.cwrap(
+	'PL_set_trace_action', 'number', ['number']),
+      PL_get_trace_action: this.module.cwrap(
+	'PL_get_trace_action', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(
@@ -1011,11 +1022,26 @@ class Prolog
 
   write(term, opts)
   { opts = opts||{};
-
+    let s;
     const precedence = opts.precedence||1200;
-    const flags	   = opts.flags == undefined ? this.PL_WRT_QUOTED|this.PL_WRT_NEWLINE
-					       : flags;
-    let s = undefined;
+    let   flags	     = opts.flags === undefined
+			? (this.PL_WRT_QUOTED|this.PL_WRT_NEWLINE)
+			: opts.flags;
+
+    const map = { "quoted":     this.PL_WRT_QUOTED,
+		  "ignore_ops": this.PL_WRT_IGNOREOPS,
+		  "portray":    this.PL_WRT_PORTRAY,
+		  "numbervars": this.PL_WRT_NUMBERVARS,
+		  "nl":         this.PL_WRT_NEWLINE
+		};
+
+    for(k in map)
+    { if ( opts[k] === true )
+      { flags |= map[k];
+      } else if ( opts[k] === false )
+      { flags &= ~map[k];
+      }
+    }
 
     if ( opts.stream )
     { if ( typeof(stream) === "string" )

@@ -408,16 +408,17 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #ifdef PL_KERNEL
 #define PL_Q_DEBUG		0x0001	/* = true for backward compatibility */
 #endif
-#define PL_Q_NORMAL		0x0002	/* normal usage */
-#define PL_Q_NODEBUG		0x0004	/* use this one */
+#define PL_Q_NORMAL		0x0002	/* debug/print exceptions, pass bool */
+#define PL_Q_NODEBUG		0x0004	/* Run in nodebug mode */
 #define PL_Q_CATCH_EXCEPTION	0x0008	/* handle exceptions in C */
 #define PL_Q_PASS_EXCEPTION	0x0010	/* pass to parent environment */
 #define PL_Q_ALLOW_YIELD	0x0020	/* Support I_YIELD */
 #define PL_Q_EXT_STATUS		0x0040	/* Return extended status */
 #define PL_Q_EXCEPT_HALT	0x0080	/* Handles unwind(halt(Status)) */
+#define PL_Q_TRACE_WITH_YIELD	0x0100	/* Yield for debug actions */
 #ifdef PL_KERNEL
-#define PL_Q_DETERMINISTIC	0x0100	/* call was deterministic */
-#define PL_Q_EXCEPT_THREAD_EXIT	0x0200	/* Handles unwind(thread_exit(Term)) */
+#define PL_Q_DETERMINISTIC	0x1000	/* call was deterministic */
+#define PL_Q_EXCEPT_THREAD_EXIT	0x2000	/* Handles unwind(thread_exit(Term)) */
 #endif
 
 					/* PL_Q_EXT_STATUS return codes */
@@ -426,6 +427,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_S_FALSE		0	/* Query failed (=false) */
 #define PL_S_TRUE		1	/* Query succeeded with choicepoint (=true)*/
 #define PL_S_LAST		2	/* Query succeeded without CP */
+#define PL_S_YIELD_DEBUG      254	/* Yield on behalf of the debugger */
 #define PL_S_YIELD	      255	/* Foreign yield */
 
 #define PL_MAX_QUERY_DATA	2	/* Max offset for PL_query_data() */
@@ -469,6 +471,13 @@ PL_EXPORT(bool)		PL_throw(term_t exception); /* WDEPRECATED */
 PL_EXPORT(void)		PL_clear_exception(void);
 			/* Engine-based coroutining */
 PL_EXPORT(term_t)	PL_yielded(qid_t qid);
+
+		 /*******************************
+		 *  COROUTINING BASED DEBUGGER  *
+		 *******************************/
+
+PL_EXPORT(bool)		PL_set_trace_action(term_t action);
+PL_EXPORT(bool)		PL_get_trace_context(term_t goal);
 
 
 		 /*******************************

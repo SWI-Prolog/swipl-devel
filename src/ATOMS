@@ -468,6 +468,7 @@ A last			"last"
 A last_modified_generation "last_modified_generation"
 A lazy			"lazy"
 A lcm			"lcm"
+A leap			"leap"
 A level			"level"
 A lgamma		"lgamma"
 A li			"li"
@@ -1142,6 +1143,7 @@ F float_integer_part	1
 F floor			1
 F foreign_function	1
 F frame			3
+F frame			4
 F frame_finished	1
 F fresh			2
 F gcd			2

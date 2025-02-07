@@ -66,7 +66,8 @@ p2(X) :- sp2(X).
 
 sp2(1).
 
-np(X) :- np2(X).
+np(X) :- np1(X).
+np1(X) :- np2(X).
 
 np2(1).
 np2(2).

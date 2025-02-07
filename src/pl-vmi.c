@@ -1786,7 +1786,7 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
   if ( unlikely(LD->alerted) )
-  {
+  { Coverage(FR, UNIFY_PORT);
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action;
@@ -1795,20 +1795,9 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
       clearUninitialisedVarsFrame(FR, PC);
       action = tracePort(FR, BFR, UNIFY_PORT, PC);
       LOAD_REGISTERS(QID);
-
-      switch( action )
-      { case ACTION_RETRY:
-	  TRACE_RETRY;
-	case ACTION_FAIL:
-	  FRAME_FAILED;
-	case ACTION_ABORT:
-	  THROW_EXCEPTION;
-      }
+      VMH_GOTO(debug_unify_continue, action);
     }
 #endif /*O_DEBUGGER*/
-
-    Coverage(FR, UNIFY_PORT);
-
     CHECK_WAKEUP;
   }
   NEXT_INSTRUCTION;
@@ -2017,14 +2006,7 @@ VMH(depart_or_retry_continue, 0, (), ())
       SAVE_REGISTERS(QID);
       rc = tracePort(FR, BFR, CALL_PORT, NULL);
       LOAD_REGISTERS(QID);
-      switch( rc )
-      { case ACTION_FAIL:   FRAME_FAILED;
-	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
-	case ACTION_ABORT:  THROW_EXCEPTION;
-	case ACTION_RETRY:
-	  if ( debugstatus.retryFrame )
-	    TRACE_RETRY;		/* otherwise retrying the call-port */
-      }					/* is a no-op */
+      VMH_GOTO(debug_call_continue, rc);
     }
 #endif /*O_DEBUGGER*/
   } /* end of if (LD->alerted) */
@@ -2033,7 +2015,6 @@ VMH(depart_or_retry_continue, 0, (), ())
   NEXT_INSTRUCTION;
 }
 END_VMH
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_DEPART: implies it is the last subclause   of  the clause. This is the
@@ -2158,13 +2139,12 @@ from C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXIT, VIF_BREAK, 0, ())
-{ LocalFrame leave;
-
-  if ( unlikely(LD->alerted != 0) )
+{ if ( unlikely(LD->alerted != 0) )
   { if ( (LD->alerted&ALERT_BUFFER) )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
     }
+    Coverage(FR, EXIT_PORT);
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -2174,23 +2154,17 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
       action = tracePort(FR, BFR, EXIT_PORT, PC);
       LOAD_REGISTERS(QID);
 
-      switch( action )
-      { case ACTION_RETRY:
-	  TRACE_RETRY;
-	case ACTION_FAIL:
-	  discardChoicesAfter(FR, FINISH_CUT);
-	  FRAME_FAILED;
-	case ACTION_ABORT:
-	  THROW_EXCEPTION;
-      }
-
-      if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
-	BFR = BFR->parent;
+      VMH_GOTO(debug_exit_continue, action);
     }
 #endif /*O_DEBUGGER*/
-
-    Coverage(FR, EXIT_PORT);
   }
+
+  VMH_GOTO(exit_continue);
+}
+END_VMI
+
+VMH(exit_continue, 0, (), ())
+{ LocalFrame leave;
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = ison(FR, FR_WATCHED) ? FR : NULL;
@@ -2226,7 +2200,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 
   NEXT_INSTRUCTION;
 }
-END_VMI
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2252,9 +2226,9 @@ VMI(I_EXITFACT, 0, 0, ())
       LOAD_REGISTERS(QID);
 
       switch( action )
-      { case ACTION_RETRY:
+      { case PL_TRACE_ACTION_RETRY:
 	  TRACE_RETRY;
-	case ACTION_ABORT:
+	case PL_TRACE_ACTION_ABORT:
 	  THROW_EXCEPTION;
       }
     }
@@ -2374,7 +2348,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   SAVE_REGISTERS(QID);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  QF->foreign_frame = PL_open_foreign_frame();
+  saveWakeup(&QF->yield.wstate, true);
   QF->yield.term = PL_new_term_ref();
   p = argFrameP(FR, 0);
   if ( isVar(*p) )
@@ -2594,8 +2568,8 @@ VMI(I_DET, VIF_BREAK, 0, ())
 END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CUT: !. Task is to detroy  all   choicepoints  newer  then the current
-frame. If we are in  debug-mode  we   create  a  new  CHP_DEBUG frame to
+I_CUT: !. Task  is to destroy all choicepoints newer  then the current
+frame. If  we are  in debug-mode  we create a  new CHP_DEBUG  frame to
 provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2607,49 +2581,12 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { int rc;
-    Choice ch;
-    mark m;
+  { int action;
 
     SAVE_REGISTERS(QID);
-    rc = tracePort(FR, BFR, CUT_CALL_PORT, PC);
+    action = tracePort(FR, BFR, CUT_CALL_PORT, PC);
     LOAD_REGISTERS(QID);
-    switch( rc )
-    { case ACTION_RETRY:
-	TRACE_RETRY;
-      case ACTION_FAIL:
-	FRAME_FAILED;
-      case ACTION_ABORT:
-	THROW_EXCEPTION;
-    }
-
-    if ( (ch = findStartChoice(FR, BFR)) )
-    { m = ch->mark;
-      SAVE_REGISTERS(QID);
-      dbg_discardChoicesAfter(FR, FINISH_CUT);
-      LOAD_REGISTERS(QID);
-      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
-      ch = newChoice(CHP_DEBUG, FR);
-      ch->mark = m;
-    } else
-    { dbg_discardChoicesAfter(FR, FINISH_CUT);
-      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
-    }
-    ARGP = argFrameP(lTop, 0);
-    if ( exception_term )
-      THROW_EXCEPTION;
-
-    SAVE_REGISTERS(QID);
-    rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC);
-    LOAD_REGISTERS(QID);
-    switch( rc )
-    { case ACTION_RETRY:
-	TRACE_RETRY;
-      case ACTION_FAIL:
-	FRAME_FAILED;
-      case ACTION_ABORT:
-	THROW_EXCEPTION;
-    }
+    VMH_GOTO(debug_cut_call_continue, action);
   } else
 #endif
   { SAVE_REGISTERS(QID);
@@ -3428,7 +3365,8 @@ VMI(S_STATIC, 0, 0, ())
 
   if ( !(cl = firstClause(ARGP, FR, DEF, &chp)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
-    if ( debugstatus.debugging )
+    if ( debugstatus.debugging ||
+	 ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
       newChoice(CHP_DEBUG, FR);
 
     FRAME_FAILED;
@@ -4922,44 +4860,24 @@ Note that exceptions are placed on the stack using PL_raise_exception(),
 which uses duplicate_term() and  freezeGlobal()   to  make the exception
 term immune for undo operations.
 
-(*) If the exception is not caught, we  try to print it and enable trace
-mode. However, we should be careful about   this  if the exception is an
-out-of-stack exception because the trace runs in Prolog and is likely to
-run fatally out of stack if we start the tracer immediately. That is the
-role of trace_if_space(). As long as there is no space, the exception is
-unwinded until there is space. Unfortunately,   this  means that some of
-the context of the exception is lost. Note that  we need to run GC if we
-ran out of global stack because  the   stack  is  frozen to preserve the
-exception ball.
-
-Overflow exceptions are supposed to be rare,   but  need to be processed
-with care to avoid a fatal overflow   when  processing the exception and
-its cleanup or debug actions.  We want two things:
-
-  - Get, before doing any calls to Prolog, a sensible amount of free
-    space.
-  - GC and trim before resuming normal execution to free up and
-    deallocate as much as possible space.
-
-On each unwind action, we must  reset Stack->gced_size and increment the
-inference count to make sure that the  time   we  run  out of memory the
-system will actually consider GC. See considerGarbageCollect().
+This huge  VM instruction is  broken into a  number of VMH  helpers to
+make it  easier to track the  dependencies and follow the  flow.  When
+using VMI  functions, these are  simple tail calls and  otherwise they
+are  `goto`  instructions  that  will   be  removed  by  the  compiler
+optimizer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
-{ PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
+{ PL_raise_exception(consTermRef(argFrameP(lTop, 0)));
   THROW_EXCEPTION;				/* sets origin */
 }
 END_VMI
 
 VMH(b_throw, 0, (), ())
 { term_t catchfr_ref;
-  int start_tracer;
   Stack outofstack;
-  int rewritten;
 
   LD->fast_condition = NULL;		/* A_FUNC exceptions */
-  rewritten = 0;
   QF  = QueryFromQid(QID);
   aTop = QF->aSave;
   assert(exception_term);
@@ -4989,49 +4907,73 @@ VMH(b_throw, 0, (), ())
     assert(0);
   }
 
-again:
-  SAVE_REGISTERS(QID);
-  catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
-  LOAD_REGISTERS(QID);
-  DEBUG(MSG_THROW,
-	{ if ( catchfr_ref )
-	  { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
-	    Sdprintf("[%d]: found catcher at %ld\n",
-		     PL_thread_self(), (long)levelFrame(fr));
-	  } else
-	  { Sdprintf("[%d]: not caught\n", PL_thread_self());
-	  }
-	});
-
-  DEBUG(CHK_SECURE,
-	{ SAVE_REGISTERS(QID);
-	  checkData(valTermRef(exception_term));
-	  checkStacks(NULL);
-	  LOAD_REGISTERS(QID);
-	});
-
-  if ( debugstatus.suspendTrace == false && !rewritten++ &&
-       !uncachableException(exception_term) &&		/* unwind(_) */
-       !resourceException(exception_term) )
-  { int rc;
-
-    SAVE_REGISTERS(QID);
-    rc = exception_hook(QID, consTermRef(FR), catchfr_ref);
+  /* find the catching frame and try to rewrite the exception */
+  for(int rewritten=0; rewritten<=1; rewritten++)
+  { SAVE_REGISTERS(QID);
+    catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
     LOAD_REGISTERS(QID);
+    DEBUG(MSG_THROW,
+	  { if ( catchfr_ref )
+	    { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
+	      Sdprintf("[%d]: found catcher at %u\n",
+		       PL_thread_self(), levelFrame(fr));
+	    } else
+	    { Sdprintf("[%d]: not caught\n", PL_thread_self());
+	    }
+	  });
 
-    if ( rc )
-    { DEBUG(MSG_THROW,
-	    Sdprintf("Exception was rewritten to: ");
-	    PL_write_term(Serror, exception_term, 1200, 0);
-	    Sdprintf(" (retrying)\n"));
+    DEBUG(CHK_SECURE,
+	  { SAVE_REGISTERS(QID);
+	    checkData(valTermRef(exception_term));
+	    checkStacks(NULL);
+	    LOAD_REGISTERS(QID);
+	  });
 
-      PL_rewind_foreign_frame(fid);
-      if ( catchfr_ref )
-	clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
-      goto again;
+    /* Try to rewrite "normal" exceptions.  This is in particular done
+       to decorate exceptions with context information.  We do this at
+       most once.
+     */
+    if ( debugstatus.suspendTrace == false && !rewritten &&
+	 !uncachableException(exception_term) &&		/* unwind(_) */
+	 !resourceException(exception_term) )
+    { bool rc;
+
+      SAVE_REGISTERS(QID);
+      rc = exception_hook(QID, consTermRef(FR), catchfr_ref);
+      LOAD_REGISTERS(QID);
+
+      if ( rc )
+      { DEBUG(MSG_THROW,
+	      Sdprintf("Exception was rewritten to: ");
+	      PL_write_term(Serror, exception_term, 1200, 0);
+	      Sdprintf(" (retrying)\n"));
+
+	PL_rewind_foreign_frame(fid);
+	if ( catchfr_ref )
+	  clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
+	continue;
+      }
     }
-  }
+    break;
+  } /* Ends "rewritten" loop */
   PL_close_foreign_frame(fid);
+  VMH_GOTO(b_throw_debug, catchfr_ref, outofstack);
+}
+END_VMH
+
+/* By now, we  have checked the basic environment,  found the catching
+ * frame and (optionally) finished  rewriting the exception.  The next
+ * task to  figure out whether or  not we want to  start the debugger.
+ * We want to start the debugger if the exception is not caught in the
+ * current query.
+ *
+ * In fact, we start the debugger, unless there is insufficient space.
+ * In that  case we set  `start_tracer` and start the  debugger during
+ * stack unwinding when enough stack space has been recovered.
+ */
+
+VMH(b_throw_debug, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{ bool start_tracer;
 
 #if O_DEBUGGER
   start_tracer = false;
@@ -5073,164 +5015,150 @@ again:
   }
 
   if ( debugstatus.debugging )
-  { for( ;
-	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
-	 PC = FR->programPointer,
-	 FR = FR->parent )
-    { Choice ch = findStartChoice(FR, LD->choicepoints);
-      void *l_top;
+    VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack,
+	     start_tracer, PL_TRACE_ACTION_NONE);
+  else
+    VMH_GOTO(b_throw_unwind, catchfr_ref, outofstack);
+}
+END_VMH
 
-      environment_frame = FR;
-      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
-      LD->statistics.inferences++;	/* box exit, needed for GC */
+/* Unwind the stack in debug mode
+ */
 
-      if ( ch )
-      { int printed = PL_same_term(exception_printed, exception_term);
-	term_t chref = consTermRef(ch);
-	int rc;
+VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstack, start_tracer, action))
+{ Choice ch;
 
-	lTop = (LocalFrame)(BFR+1);
-	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(QID);
-		checkStacks(NULL);
-		LOAD_REGISTERS(QID);
-	      });
-	SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT);
-	LOAD_REGISTERS(QID);
-	ch = (Choice)valTermRef(chref);
-	Undo(ch->mark);
-	DiscardMark(ch->mark);
-	clearLocalVariablesFrame(FR);
-	PL_put_term(LD->exception.pending, exception_term);
-	if ( printed )
-	  PL_put_term(exception_printed, exception_term);
-
-	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(QID);
-		checkStacks(NULL);
-		LOAD_REGISTERS(QID);
-		ch = (Choice)valTermRef(chref);
-	      });
-
-	SAVE_REGISTERS(QID);
-	rc = tracePort(FR, ch, EXCEPTION_PORT, PC);
-	LOAD_REGISTERS(QID);
-
-	switch( rc )
-	{ case ACTION_RETRY:
-	    SAVE_REGISTERS(QID);
-	    discardChoicesAfter(FR, FINISH_CUT);
-	    resumeAfterException(true, outofstack);
-	    LOAD_REGISTERS(QID);
-	    DEF = FR->predicate;
-	    FR->clause = NULL;
-	    VMH_GOTO(depart_or_retry_continue);
-	  case ACTION_ABORT:
-	    THROW_EXCEPTION;
-	}
-
-	setVar(*valTermRef(LD->exception.pending));
-      }
-
-					/* discard as much as we can from the local stack */
-      l_top = argFrameP(FR, FR->predicate->functor->arity);
-      FR->clause = NULL;		/* We do not care about the arguments */
-      DEBUG(MSG_UNWIND_EXCEPTION,
-	    Sdprintf("l_top above [%d] %s: %p\n",
-		     (int)FR->level, predicateName(FR->predicate), l_top));
-      if ( l_top < (void*)(BFR+1) )
-      { DEBUG(MSG_UNWIND_EXCEPTION,
-	      Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
-	l_top = (void*)(BFR+1);
-      }
-      lTop = l_top;
-
-      while(fli_context > (FliFrame)lTop)
-	fli_context = fli_context->parent;
-
-      DEBUG(CHK_SECURE,
-	    { size_t clean = (char*)lMax - (char*)lTop;
-	      SAVE_REGISTERS(QID);
-	      memset(lTop, 0xfb, clean);
-	      checkStacks(NULL);
-	      LOAD_REGISTERS(QID)
-	    });
-
-      if ( ison(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT);
-	LOAD_REGISTERS(QID);
-	discardFrame(FR);
-	SAVE_REGISTERS(QID);
-	frameFinished(FR, FINISH_EXCEPT);
-	LOAD_REGISTERS(QID);
-      } else
-      { SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
-	LOAD_REGISTERS(QID);
-	discardFrame(FR);
-      }
-
-      if ( start_tracer )		/* See (*) */
-      {	SAVE_REGISTERS(QID);
-	exceptionUnwindGC();
-	LOAD_REGISTERS(QID);
-
-	DEBUG(MSG_STACK_OVERFLOW,
-	      Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
-		       usedStack(global),
-		       usedStack(local),
-		       usedStack(trail)));
-
-	if ( trace_if_space() )
-	{ int rc;
-	  start_tracer = false;
-	  SAVE_REGISTERS(QID);
-	  LD->critical++;		/* do not handle signals */
-	  trimStacks(false);
-	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
-	  (void)rc;
-	  LD->critical--;
-	  LOAD_REGISTERS(QID);
-	}
-      }
-    }
-
-    if ( start_tracer )
-    { Sdprintf("Failed to print resource exception due to lack of space\n");
-      SAVE_REGISTERS(QID);
-      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-      LOAD_REGISTERS(QID);
-    }
+  if ( action == PL_TRACE_ACTION_NONE )
+  { assert(FR == environment_frame);
   } else
-#endif /*O_DEBUGGER*/
-  { DEBUG(3, Sdprintf("Unwinding for exception\n"));
-
-    for( ;
-	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
-	 PC = FR->programPointer,
-	 FR = FR->parent )
-    { environment_frame = FR;
-      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
-      LD->statistics.inferences++;	/* box exit, needed for GC */
-
-      SAVE_REGISTERS(QID);
-      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
-      LOAD_REGISTERS(QID);
-
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-      discardFrame(FR);
-      if ( ison(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(QID);
-	frameFinished(FR, FINISH_EXCEPT);
-	LOAD_REGISTERS(QID);
-      }
-      DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
-    }
+  { FR = environment_frame;
+    ch = findStartChoice(FR, BFR);
+    goto trace_resume_exception;
   }
 
-					/* re-fetch (test cleanup(clean-5)) */
+  for( ;
+       FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+       PC = FR->programPointer, FR = FR->parent )
+  { ch = findStartChoice(FR, BFR);
+    environment_frame = FR;
+    ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
+    LD->statistics.inferences++;	/* box exit, needed for GC */
+
+    if ( ch )
+    { bool printed = PL_same_term(exception_printed, exception_term);
+      term_t chref = consTermRef(ch);
+
+      lTop = (LocalFrame)(BFR+1);
+      DEBUG(CHK_SECURE,
+	    { SAVE_REGISTERS(QID);
+	      checkStacks(NULL);
+	      LOAD_REGISTERS(QID);
+	    });
+      SAVE_REGISTERS(QID);
+      dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT);
+      LOAD_REGISTERS(QID);
+      ch = (Choice)valTermRef(chref);
+      Undo(ch->mark);
+      DiscardMark(ch->mark);
+      clearLocalVariablesFrame(FR);
+      PL_put_term(LD->exception.pending, exception_term);
+      if ( printed )
+	PL_put_term(exception_printed, exception_term);
+
+      DEBUG(CHK_SECURE,
+	    { SAVE_REGISTERS(QID);
+	      checkStacks(NULL);
+	      LOAD_REGISTERS(QID);
+	      ch = (Choice)valTermRef(chref);
+	    });
+
+      SAVE_REGISTERS(QID);
+      action = tracePort(FR, ch, EXCEPTION_PORT, PC);
+      LOAD_REGISTERS(QID);
+
+    trace_resume_exception:
+      switch( action )
+      { case PL_TRACE_ACTION_RETRY:
+	  SAVE_REGISTERS(QID);
+	  discardChoicesAfter(FR, FINISH_CUT);
+	  resumeAfterException(true, outofstack);
+	  LOAD_REGISTERS(QID);
+	  DEF = FR->predicate;
+	  FR->clause = NULL;
+	  VMH_GOTO(depart_or_retry_continue);
+	case PL_TRACE_ACTION_ABORT:
+	  THROW_EXCEPTION;
+	case PL_TRACE_ACTION_YIELD:
+	  LD->trace.yield.exception.catchfr_ref = catchfr_ref;
+	  LD->trace.yield.exception.outofstack  = outofstack;
+	  SAVE_REGISTERS(QID);
+	  SOLUTION_RETURN(debug_yield(EXCEPTION_PORT));
+      }
+
+      setVar(*valTermRef(LD->exception.pending));
+    }
+
+    /* discard as much as we can from the local stack */
+    SAVE_REGISTERS(QID);
+    dbg_except_unwind_ltop();
+    dbg_except_discard_frame();
+    LOAD_REGISTERS(QID);
+
+    if ( start_tracer && dbg_except_start_tracer() )
+      start_tracer = false;
+  }
+
+  if ( start_tracer )
+  { Sdprintf("Failed to print resource exception due to lack of space\n");
+    SAVE_REGISTERS(QID);
+    PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+    LOAD_REGISTERS(QID);
+  }
+
+  VMH_GOTO(b_throw_resume, catchfr_ref, outofstack);
+}
+END_VMH
+#endif /*O_DEBUGGER*/
+
+/* Normal (nodebug)  version of  the stack unwinding.   This is  a lot
+ * simpler.
+ */
+
+VMH(b_throw_unwind, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{ DEBUG(3, Sdprintf("Unwinding for exception\n"));
+
+  for( ;
+       FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+       PC = FR->programPointer, FR = FR->parent )
+  { environment_frame = FR;
+    ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
+    LD->statistics.inferences++;	/* box exit, needed for GC */
+
+    SAVE_REGISTERS(QID);
+    dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
+    LOAD_REGISTERS(QID);
+
+    lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+    discardFrame(FR);
+    if ( ison(FR, FR_WATCHED) )
+    { SAVE_REGISTERS(QID);
+      frameFinished(FR, FINISH_EXCEPT);
+      LOAD_REGISTERS(QID);
+    }
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
+  }
+
+  VMH_GOTO(b_throw_resume, catchfr_ref, outofstack);
+}
+END_VMH
+
+/* We completed unwinding the  stack.  `b_throw_resume` either resumes
+ * by  executing the  3rd argument  of a  catch/3 predicate  or causes
+ * PL_next_solution() to return if there is no catcher.
+ */
+
+VMH(b_throw_resume, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{					/* re-fetch (test cleanup(clean-5)) */
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   LD->statistics.inferences++;		/* box exit, needed for GC */
 
@@ -6465,92 +6393,87 @@ VMH(shallow_backtrack, 0, (), ())
       }
     }
   }
-  VMH_GOTO(deep_backtrack);
+  VMH_GOTO(deep_backtrack, PL_TRACE_ACTION_NONE);
 }
 END_VMH
 
+/* We get  here from FRAME_FAILED  if there  is no matching  clause, a
+ * foreign predicate failed or a debugger fail was initiated.  We also
+ * get here if the body of an executing clause failed and there are no
+ * CHP_JUMP or alternative clauses left.
+ *
+ * In debug mode, there is normally a CHP_DEBUG choicepoint created to
+ * allow the  tracer to  backtrack to  the state at  the start  of the
+ * frame.
+ */
 
-// frame_failed:
-VMH(deep_backtrack, 0, (), ())
-{
-#ifdef O_DEBUGGER
-  term_t ch0_ref = BFR ? consTermRef(BFR) : 0;
-#endif
-  Choice ch;
+VMH(deep_backtrack, 1, (int), (trace_action))
+{ DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
-  DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
+#define LEAVE_FAILED_FRAME(fr) \
+  do							      \
+  { leaveFrame(FR);					      \
+    if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) ) \
+    { SAVE_REGISTERS(QID);				      \
+      frameFailed(FR);					      \
+      LOAD_REGISTERS(QID);				      \
+      if ( exception_term )				      \
+	THROW_EXCEPTION;				      \
+    }							      \
+  } while(0)
 
 next_choice:
-  ch = BFR;
-					/* leave older frames */
-  for(; (void *)FR > (void *)ch; FR = FR->parent)
-  {
-#ifdef O_DEBUGGER
-    if ( unlikely(debugstatus.debugging) && isDebugFrame(FR) )
-    { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
+  if ( unlikely(debugstatus.debugging) )
+  { if ( trace_action != PL_TRACE_ACTION_NONE ) /* TODO: What if debugstatus */
+      goto yield_fail_resume;			/* was changed? */
 
-      DEBUG(MSG_BACKTRACK,
+    if ( isDebugFrame(FR) &&
+	 BFR->frame == FR && BFR->type == CHP_DEBUG )
+    { DEBUG(MSG_BACKTRACK,
 	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
-      if ( sch )
-      { int rc;
-	Choice ch0 = findChoiceBeforeFrame(FR, sch);
+      Undo(BFR->mark);
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
 
-	ch0_ref = ch0 ? consTermRef(ch0) : 0;
-	Undo(sch->mark);
-	environment_frame = FR;
-	FR->clause = NULL;
-	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	SAVE_REGISTERS(QID);
-	rc = tracePort(FR, BFR, FAIL_PORT, NULL);
-	LOAD_REGISTERS(QID);
-	ch = BFR;			/* can be shifted */
-
-	switch( rc )
-	{ case ACTION_RETRY:
-	    environment_frame = FR;
-	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED|FR_SKIPPED);
-	    VMH_GOTO(depart_or_retry_continue);
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
-	}
-      } else
-      { ch0_ref = 0;
-	DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
-			  levelFrame(FR), predicateName(FR->predicate)));
-      }
-    }
-#endif
-
-    leaveFrame(FR);
-    if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
-    { environment_frame = FR;
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+      environment_frame = FR;
       FR->clause = NULL;
-      if ( ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
-      { SAVE_REGISTERS(QID);
-	ssu_or_det_failed(FR);
-	LOAD_REGISTERS(QID);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
+      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       SAVE_REGISTERS(QID);
-      frameFinished(FR, FINISH_FAIL);
+      trace_action = tracePort(FR, BFR, FAIL_PORT, NULL);
       LOAD_REGISTERS(QID);
-      ch = BFR;			/* can be shifted */
-      if ( exception_term )
-	THROW_EXCEPTION;
+
+    yield_fail_resume:
+      switch( trace_action )
+      { case PL_TRACE_ACTION_RETRY:
+	  environment_frame = FR;
+	  DEF = FR->predicate;
+	  clear(FR, FR_CATCHED|FR_SKIPPED);
+	  VMH_GOTO(depart_or_retry_continue);
+	case PL_TRACE_ACTION_ABORT:
+	  THROW_EXCEPTION;
+	case PL_TRACE_ACTION_YIELD:
+	  SAVE_REGISTERS(QID);
+	  SOLUTION_RETURN(debug_yield(FAIL_PORT));
+	default:
+	  LEAVE_FAILED_FRAME(FR);
+	  environment_frame = FR = FR->parent;
+	  trace_action = PL_TRACE_ACTION_NONE;
+	  goto next_choice;
+      }
     }
   }
 
-  environment_frame = FR = ch->frame;
-  Undo(ch->mark);
+  for(; (void *)FR > (void *)BFR; FR = FR->parent)
+    LEAVE_FAILED_FRAME(FR);
+
+  environment_frame = FR = BFR->frame;
+  Undo(BFR->mark);
   QF = QueryFromQid(QID);
   aTop = QF->aSave;
   DEF  = FR->predicate;
 #ifdef O_DEBUG_BACKTRACK
-  last_choice = ch->type;
+  last_choice = BFR->type;
 #endif
 
   if ( unlikely(LD->alerted) )
@@ -6561,67 +6484,33 @@ next_choice:
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
-      lTop = (LocalFrame)(ch+1);
+      lTop = (LocalFrame)(BFR+1);
       FR->clause = NULL;
       if ( LD->mark_bar != NO_MARK_BAR )
 	LD->mark_bar = gTop;
       SAVE_REGISTERS(QID);
       rc = run_undo_hooks();
       LOAD_REGISTERS(QID);
-      ch = BFR;			/* can be shifted */
       if ( !rc )
 	THROW_EXCEPTION;
     }
-    Profile(profFail(ch->prof_node));
+    Profile(profFail(BFR->prof_node));
   }
 
-  switch(ch->type)
+  switch(BFR->type)
   { case CHP_JUMP:
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: Jump in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      PC   = ch->value.pc;
-      DiscardMark(ch->mark);
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
+      PC   = BFR->value.pc;
+      DiscardMark(BFR->mark);
+      lTop = (LocalFrame)(BFR);
+      BFR  = BFR->parent;
       ARGP = argFrameP(lTop, 0);
       LD->statistics.inferences++;
       if ( unlikely(LD->alerted) )
       {
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP);
-
-	  if ( fr )
-	  { int action;
-
-	    SAVE_REGISTERS(QID);
-	    action = tracePort(fr, BFR, REDO_PORT, ch->value.pc);
-	    LOAD_REGISTERS(QID);
-	    ch = BFR;			/* can be shifted */
-
-	    if ( ison(FR->predicate, P_FOREIGN) &&
-		 ( action == ACTION_FAIL ||
-		   action == ACTION_IGNORE ||
-		   action == ACTION_RETRY ||
-		   action == ACTION_ABORT
-		 ) )
-	      discardForeignFrame(FR);
-
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-		TRACE_RETRY;
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
-	  }
-	}
-#endif
 #ifdef O_INFERENCE_LIMIT
 	if ( LD->statistics.inferences >= LD->inference_limit.limit )
 	{ SAVE_REGISTERS(QID);
@@ -6631,23 +6520,46 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 #endif
+#ifdef O_DEBUGGER
+	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP);
+
+	  if ( fr )
+	  { int action;
+
+	    SAVE_REGISTERS(QID);
+	    action = tracePort(fr, BFR, REDO_PORT, BFR->value.pc);
+	    LOAD_REGISTERS(QID);
+
+	    if ( ison(FR->predicate, P_FOREIGN) &&
+		 ( action == PL_TRACE_ACTION_FAIL ||
+		   action == PL_TRACE_ACTION_IGNORE ||
+		   action == PL_TRACE_ACTION_RETRY ||
+		   action == PL_TRACE_ACTION_ABORT
+		 ) )
+	      discardForeignFrame(FR);
+
+	    LD->trace.yield.redo.is_jump = true;
+	    VMH_GOTO(debug_redo_continue, action);
+	  }
+	}
+#endif
       }
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
     { Clause clause;
-      struct clause_choice chp;
+      struct clause_choice chp = BFR->value.clause;
 
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: Clause in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
-      DiscardMark(ch->mark);
-      BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
-	goto next_choice;	/* Can happen of look-ahead was too short */
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
+      if ( !(CL = nextClause(&chp, ARGP, FR, DEF)) )
+	goto next_choice;	  /* Can happen of look-ahead was too short */
 
-      chp    = ch->value.clause;
       clause = CL->value.clause;
       PC     = clause->codes;
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
@@ -6664,6 +6576,16 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 
+#ifdef O_INFERENCE_LIMIT
+	if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(QID);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(QID);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
 	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE);
@@ -6675,38 +6597,17 @@ next_choice:
 	    clearLocalVariablesFrame(FR);
 	    action = tracePort(fr, BFR, REDO_PORT, NULL);
 	    LOAD_REGISTERS(QID);
-	    ch = BFR;			/* can be shifted */
 
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-		VMH_GOTO(depart_or_retry_continue);
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
+	    LD->trace.yield.redo.is_jump = false;
+	    LD->trace.yield.redo.chp = chp;
+	    VMH_GOTO(debug_redo_continue, action);
 	  }
-
-	  if ( !chp.cref )
-	    newChoice(CHP_DEBUG, FR);
-	}
-#endif
-
-#ifdef O_INFERENCE_LIMIT
-	if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(QID);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(QID);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
 	}
 #endif
       }
 
       if ( chp.cref )
-      { ch = newChoice(CHP_CLAUSE, FR);
+      { Choice ch = newChoice(CHP_CLAUSE, FR);
 	ch->value.clause = chp;
       }
 			/* require space for the args of the next frame */
@@ -6718,7 +6619,7 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: TOP\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      DiscardMark(ch->mark);
+      DiscardMark(BFR->mark);
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
@@ -6733,38 +6634,261 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: CATCH\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-	    if ( ison(ch->frame, FR_WATCHED) )
-      { DiscardMark(ch->mark);
-	environment_frame = FR = ch->frame;
-	lTop = (LocalFrame)(ch+1);
+	    if ( ison(BFR->frame, FR_WATCHED) )
+      { DiscardMark(BFR->mark);
+	environment_frame = FR = BFR->frame;
+	lTop = (LocalFrame)(BFR+1);
 	FR->clause = NULL;
-	if ( ison(ch->frame, FR_CLEANUP) )
+	if ( ison(BFR->frame, FR_CLEANUP) )
 	{ SAVE_REGISTERS(QID);
-	  callCleanupHandler(ch->frame, FINISH_FAIL);
+	  callCleanupHandler(BFR->frame, FINISH_FAIL);
 	  LOAD_REGISTERS(QID);
 	} else
-	{ set(ch->frame, FR_CATCHED);
+	{ set(BFR->frame, FR_CATCHED);
 	}
-	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;
       } else
-      { set(ch->frame, FR_CATCHED);
+      { set(BFR->frame, FR_CATCHED);
       }
-      /*FALLTHROUGH*/
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
+      goto next_choice;
     case CHP_DEBUG:			/* Just for debugging purposes */
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: %s: DEBUG\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-#ifdef O_DEBUGGER
-      ch0_ref = consTermRef(ch);
-#endif
-      BFR = ch->parent;
-      DiscardMark(ch->mark);
+      if ( ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) &&
+	   BFR->frame == FR )
+      { bool rc;
+	SAVE_REGISTERS(QID);
+	rc = ssu_or_det_failed(FR);
+	LOAD_REGISTERS(QID);
+	if ( !rc )
+	{ assert(exception_term);
+	  THROW_EXCEPTION;
+	}
+      }
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
       goto next_choice;
   }
   assert(0);
   SOLUTION_RETURN(false);
+}
+END_VMH
+
+		 /*******************************
+		 *      YIELD BASED DEBUG       *
+		 *******************************/
+
+/* The   helpers   below   implement   continuations   after   calling
+ * tracePort().   These  are placed  in  separate  helpers to  support
+ * _yielding_ from  the debugger.   The strategy is  the same  for all
+ * helpers:
+ *
+ *   - We jump to the helper after calling tracePort()
+ *   - If tracePort returned PL_TRACE_ACTION_YIELD, we yield
+ *   - If PL_next_solution() is resumed, we get called again
+ *     through VMH(debug_resume), now with the real action.
+ */
+
+VMH(debug_call_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_FAIL:   FRAME_FAILED;
+    case PL_TRACE_ACTION_IGNORE: VMI_GOTO(I_EXIT);
+    case PL_TRACE_ACTION_ABORT:  THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CALL_PORT));
+    case PL_TRACE_ACTION_RETRY:
+      if ( debugstatus.retryFrame )
+	TRACE_RETRY;		/* otherwise retrying the call-port */
+  }				/* is a no-op */
+
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(debug_exit_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      discardChoicesAfter(FR, FINISH_CUT);
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(EXIT_PORT));
+  }				/* is a no-op */
+
+  if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+    BFR = BFR->parent;
+
+  VMH_GOTO(exit_continue);
+}
+END_VMH
+
+VMH(debug_unify_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(UNIFY_PORT));
+  }
+  CHECK_WAKEUP;
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(debug_redo_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_IGNORE:
+      VMI_GOTO(I_EXIT);
+    case PL_TRACE_ACTION_RETRY:
+      if ( LD->trace.yield.redo.is_jump )
+	TRACE_RETRY;
+      else
+	VMH_GOTO(depart_or_retry_continue);
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(REDO_PORT));
+  }
+
+  if ( !LD->trace.yield.redo.is_jump )
+  { struct clause_choice chp = LD->trace.yield.redo.chp;
+
+    Clause clause = CL->value.clause;
+    PC            = clause->codes;
+    lTop          = (LocalFrame)argFrameP(FR, clause->variables);
+    UMODE         = uread;
+
+    if ( chp.cref )
+    { Choice ch = newChoice(CHP_CLAUSE, FR);
+      ch->value.clause = chp;
+    } else
+    { newChoice(CHP_DEBUG, FR);
+    }
+    ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
+  }
+
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(debug_cut_call_continue, 1, (int), (action))
+{ Choice ch;
+  mark m;
+
+  switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CUT_CALL_PORT));
+  }
+
+  if ( (ch = findStartChoice(FR, BFR)) )
+  { m = ch->mark;
+    SAVE_REGISTERS(QID);
+    dbg_discardChoicesAfter(FR, FINISH_CUT);
+    LOAD_REGISTERS(QID);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+    ch = newChoice(CHP_DEBUG, FR);
+    ch->mark = m;
+  } else
+  { dbg_discardChoicesAfter(FR, FINISH_CUT);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+  }
+  ARGP = argFrameP(lTop, 0);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  SAVE_REGISTERS(QID);
+  action = tracePort(FR, BFR, CUT_EXIT_PORT, PC);
+  LOAD_REGISTERS(QID);
+
+  VMH_GOTO(debug_cut_exit_continue, action);
+}
+END_VMH
+
+VMH(debug_cut_exit_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CUT_EXIT_PORT));
+  }
+
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+/* We come here  from PL_next_solution() initial code  if the debugger
+ * caused  PL_next_solution()  to  return with  PL_S_YIELD_DEBUG.   We
+ * simply dispatch to the relevant debug continuation.
+ */
+
+VMH(debug_resume, 0, (), ())
+{ int port = LD->trace.yield.port;
+  int action = LD->trace.yield.resume_action;
+  LD->trace.yield.port = NO_PORT;
+  LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
+  if ( LD->trace.yield.nodebug )
+  { SAVE_REGISTERS(QID);
+    tracemode(false, NULL);
+    debugmode(DBG_OFF, NULL);
+    LOAD_REGISTERS(QID);
+  }
+  switch( port )
+  { case CALL_PORT:
+      VMH_GOTO(debug_call_continue, action);
+    case EXIT_PORT:
+      VMH_GOTO(debug_exit_continue, action);
+    case FAIL_PORT:
+      VMH_GOTO(deep_backtrack, action);
+    case REDO_PORT:
+      VMH_GOTO(debug_redo_continue, action);
+    case UNIFY_PORT:
+      VMH_GOTO(debug_unify_continue, action);
+    case CUT_CALL_PORT:
+      VMH_GOTO(debug_cut_call_continue, action);
+    case CUT_EXIT_PORT:
+      VMH_GOTO(debug_cut_exit_continue, action);
+    case EXCEPTION_PORT:
+    { term_t catchfr_ref = LD->trace.yield.exception.catchfr_ref;
+      Stack outofstack = LD->trace.yield.exception.outofstack;
+      bool start_tracer = LD->trace.yield.exception.start_tracer;
+      memset(&LD->trace.yield.exception, 0,
+	     sizeof(LD->trace.yield.exception));
+      VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack, start_tracer,
+	       action);
+    }
+    default:
+      assert(0);
+      NEXT_INSTRUCTION;		/* keep compiler happy */
+  }
 }
 END_VMH

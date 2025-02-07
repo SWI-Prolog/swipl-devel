@@ -230,7 +230,7 @@ pl_break1(atom_t goal)
   IOSTREAM *outSave      = Scurout;
   intptr_t skipSave      = debugstatus.skiplevel;
   int  suspSave          = debugstatus.suspendTrace;
-  int  traceSave;
+  bool traceSave;
   debug_type debugSave;
   tbl_status tblstat;
 

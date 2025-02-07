@@ -533,7 +533,7 @@ a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-saveWakeup(DECL_LD wakeup_state *state, int forceframe)
+saveWakeup(DECL_LD wakeup_state *state, bool forceframe)
 { state->flags = 0;
   state->outofstack = LD->outofstack;
 
@@ -596,6 +596,22 @@ restore_wakeup(DECL_LD Word p)
   DEBUG(1, pl_writeln(LD->attvar.head));
 }
 
+
+term_t
+wakeup_state_exception(DECL_LD const wakeup_state *state)
+{ if ( state->fid && ison(state, WAKEUP_STATE_EXCEPTION) )
+  { FliFrame fr = (FliFrame) valTermRef(state->fid);
+    Word p = (Word)(fr+1);
+
+    if ( ison(state, WAKEUP_KEEP_URGENT_EXCEPTION) &&
+	 classify_exception_p(p) < classify_exception(exception_term) )
+      return 0;
+
+    return consTermRef(p);
+  }
+
+  return 0;
+}
 
 void
 restoreWakeup(DECL_LD wakeup_state *state)

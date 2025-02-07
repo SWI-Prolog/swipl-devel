@@ -543,8 +543,8 @@ struct PL_local_data
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
     term_t	fr_rewritten;		/* processed by exception_hook() */
-    int		in_hook;		/* inside exception_hook() */
-    int		processing;		/* processing an exception */
+    bool	in_hook;		/* inside exception_hook() */
+    bool	processing;		/* processing an exception */
     exception_frame *throw_environment;	/* PL_throw() environments */
   } exception;
 
@@ -724,6 +724,20 @@ struct PL_local_data
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
+    struct
+    { char	resume_action;		/* Restart after yield */
+      short	port;			/* Port on which we stopped */
+      bool	nodebug;		/* continue in nodebug mode */
+      struct
+      { bool	is_jump;		/* Distinguish the two REDO ports */
+	struct clause_choice chp;	/* Clause redo context */
+      } redo;
+      struct
+      { term_t	catchfr_ref;		/* Catching frame reference */
+	Stack	outofstack;		/* We are processing an out-of-stack */
+	bool	start_tracer;		/* Start debugger asap */
+      } exception;
+    } yield;
   } trace;
 
   struct findall_state *bags;		/* findall/3 store  */
