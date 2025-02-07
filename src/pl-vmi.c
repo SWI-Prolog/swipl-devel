@@ -2023,9 +2023,8 @@ VMH(depart_or_retry_continue, 0, (), ())
 	case ACTION_ABORT:  THROW_EXCEPTION;
 	case ACTION_RETRY:
 	  if ( debugstatus.retryFrame )
-	    TRACE_RETRY;			/* otherwise retrying the call-port */
-					/* is a no-op */
-      }
+	    TRACE_RETRY;		/* otherwise retrying the call-port */
+      }					/* is a no-op */
     }
 #endif /*O_DEBUGGER*/
   } /* end of if (LD->alerted) */
