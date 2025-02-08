@@ -2677,19 +2677,6 @@ typedef struct
 		*            DEBUGGER           *
 		*********************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Tracer communication declarations.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define ACTION_NONE	0
-#define ACTION_CONTINUE	1
-#define ACTION_RETRY	2
-#define ACTION_FAIL	3
-#define ACTION_IGNORE	4
-#define ACTION_AGAIN	5
-#define ACTION_ABORT	6		/* only for Prolog interception */
-#define ACTION_YIELD	7
-
 #define NO_PORT		0x000
 #define CALL_PORT	0x001		/* port masks */
 #define EXIT_PORT	0x002

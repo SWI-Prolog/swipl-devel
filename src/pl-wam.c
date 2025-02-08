@@ -3552,7 +3552,7 @@ variables used in the B_THROW instruction.
       { int port = LD->trace.yield.port;
 	int action = LD->trace.yield.resume_action;
 	LD->trace.yield.port = NO_PORT;
-	LD->trace.yield.resume_action = ACTION_NONE;
+	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
 	switch( port )
 	{ case CALL_PORT:
 	    VMH_GOTO(debug_call_continue, action);

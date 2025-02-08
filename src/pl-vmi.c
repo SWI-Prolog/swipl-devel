@@ -1797,11 +1797,11 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
       LOAD_REGISTERS(QID);
 
       switch( action )
-      { case ACTION_RETRY:
+      { case PL_TRACE_ACTION_RETRY:
 	  TRACE_RETRY;
-	case ACTION_FAIL:
+	case PL_TRACE_ACTION_FAIL:
 	  FRAME_FAILED;
-	case ACTION_ABORT:
+	case PL_TRACE_ACTION_ABORT:
 	  THROW_EXCEPTION;
       }
     }
@@ -2029,12 +2029,12 @@ END_VMH
 
 VMH(debug_call_continue, 1, (int), (action))
 { switch( action )
-  { case ACTION_FAIL:   FRAME_FAILED;
-    case ACTION_IGNORE: VMI_GOTO(I_EXIT);
-    case ACTION_ABORT:  THROW_EXCEPTION;
-    case ACTION_YIELD:  SAVE_REGISTERS(QID);
+  { case PL_TRACE_ACTION_FAIL:   FRAME_FAILED;
+    case PL_TRACE_ACTION_IGNORE: VMI_GOTO(I_EXIT);
+    case PL_TRACE_ACTION_ABORT:  THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:  SAVE_REGISTERS(QID);
                         SOLUTION_RETURN(debug_yield(CALL_PORT));
-    case ACTION_RETRY:
+    case PL_TRACE_ACTION_RETRY:
       if ( debugstatus.retryFrame )
 	TRACE_RETRY;		/* otherwise retrying the call-port */
   }				/* is a no-op */
@@ -2184,12 +2184,12 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
       LOAD_REGISTERS(QID);
 
       switch( action )
-      { case ACTION_RETRY:
+      { case PL_TRACE_ACTION_RETRY:
 	  TRACE_RETRY;
-	case ACTION_FAIL:
+	case PL_TRACE_ACTION_FAIL:
 	  discardChoicesAfter(FR, FINISH_CUT);
 	  FRAME_FAILED;
-	case ACTION_ABORT:
+	case PL_TRACE_ACTION_ABORT:
 	  THROW_EXCEPTION;
       }
 
@@ -2261,9 +2261,9 @@ VMI(I_EXITFACT, 0, 0, ())
       LOAD_REGISTERS(QID);
 
       switch( action )
-      { case ACTION_RETRY:
+      { case PL_TRACE_ACTION_RETRY:
 	  TRACE_RETRY;
-	case ACTION_ABORT:
+	case PL_TRACE_ACTION_ABORT:
 	  THROW_EXCEPTION;
       }
     }
@@ -2624,11 +2624,11 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     rc = tracePort(FR, BFR, CUT_CALL_PORT, PC);
     LOAD_REGISTERS(QID);
     switch( rc )
-    { case ACTION_RETRY:
+    { case PL_TRACE_ACTION_RETRY:
 	TRACE_RETRY;
-      case ACTION_FAIL:
+      case PL_TRACE_ACTION_FAIL:
 	FRAME_FAILED;
-      case ACTION_ABORT:
+      case PL_TRACE_ACTION_ABORT:
 	THROW_EXCEPTION;
     }
 
@@ -2652,11 +2652,11 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC);
     LOAD_REGISTERS(QID);
     switch( rc )
-    { case ACTION_RETRY:
+    { case PL_TRACE_ACTION_RETRY:
 	TRACE_RETRY;
-      case ACTION_FAIL:
+      case PL_TRACE_ACTION_FAIL:
 	FRAME_FAILED;
-      case ACTION_ABORT:
+      case PL_TRACE_ACTION_ABORT:
 	THROW_EXCEPTION;
     }
   } else
@@ -5127,7 +5127,7 @@ again:
 	LOAD_REGISTERS(QID);
 
 	switch( rc )
-	{ case ACTION_RETRY:
+	{ case PL_TRACE_ACTION_RETRY:
 	    SAVE_REGISTERS(QID);
 	    discardChoicesAfter(FR, FINISH_CUT);
 	    resumeAfterException(true, outofstack);
@@ -5135,7 +5135,7 @@ again:
 	    DEF = FR->predicate;
 	    FR->clause = NULL;
 	    VMH_GOTO(depart_or_retry_continue);
-	  case ACTION_ABORT:
+	  case PL_TRACE_ACTION_ABORT:
 	    THROW_EXCEPTION;
 	}
 
@@ -6516,12 +6516,12 @@ next_choice:
 	ch = BFR;			/* can be shifted */
 
 	switch( rc )
-	{ case ACTION_RETRY:
+	{ case PL_TRACE_ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
 	    clear(FR, FR_CATCHED|FR_SKIPPED);
 	    VMH_GOTO(depart_or_retry_continue);
-	    case ACTION_ABORT:
+	    case PL_TRACE_ACTION_ABORT:
 	      THROW_EXCEPTION;
 	}
       } else
@@ -6611,21 +6611,21 @@ next_choice:
 	    ch = BFR;			/* can be shifted */
 
 	    if ( ison(FR->predicate, P_FOREIGN) &&
-		 ( action == ACTION_FAIL ||
-		   action == ACTION_IGNORE ||
-		   action == ACTION_RETRY ||
-		   action == ACTION_ABORT
+		 ( action == PL_TRACE_ACTION_FAIL ||
+		   action == PL_TRACE_ACTION_IGNORE ||
+		   action == PL_TRACE_ACTION_RETRY ||
+		   action == PL_TRACE_ACTION_ABORT
 		 ) )
 	      discardForeignFrame(FR);
 
 	    switch( action )
-	    { case ACTION_FAIL:
+	    { case PL_TRACE_ACTION_FAIL:
 		FRAME_FAILED;
-	      case ACTION_IGNORE:
+	      case PL_TRACE_ACTION_IGNORE:
 		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
+	      case PL_TRACE_ACTION_RETRY:
 		TRACE_RETRY;
-	      case ACTION_ABORT:
+	      case PL_TRACE_ACTION_ABORT:
 		THROW_EXCEPTION;
 	    }
 	  }
@@ -6687,13 +6687,13 @@ next_choice:
 	    ch = BFR;			/* can be shifted */
 
 	    switch( action )
-	    { case ACTION_FAIL:
+	    { case PL_TRACE_ACTION_FAIL:
 		FRAME_FAILED;
-	      case ACTION_IGNORE:
+	      case PL_TRACE_ACTION_IGNORE:
 		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
+	      case PL_TRACE_ACTION_RETRY:
 		VMH_GOTO(depart_or_retry_continue);
-	      case ACTION_ABORT:
+	      case PL_TRACE_ACTION_ABORT:
 		THROW_EXCEPTION;
 	    }
 	  }
