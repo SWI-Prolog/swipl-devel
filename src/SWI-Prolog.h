@@ -471,6 +471,7 @@ PL_EXPORT(bool)		PL_throw(term_t exception); /* WDEPRECATED */
 PL_EXPORT(void)		PL_clear_exception(void);
 			/* Engine-based coroutining */
 PL_EXPORT(term_t)	PL_yielded(qid_t qid);
+PL_EXPORT(bool)		PL_set_trace_action(int action);
 
 
 		 /*******************************

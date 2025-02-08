@@ -3548,7 +3548,19 @@ variables used in the B_THROW instruction.
 	THROW_EXCEPTION;
       DEF = FR->predicate;
       QF->yield.term = 0;
-      NEXT_INSTRUCTION;
+      if ( LD->trace.yield.port != NO_PORT )
+      { int port = LD->trace.yield.port;
+	int action = LD->trace.yield.resume_action;
+	LD->trace.yield.port = NO_PORT;
+	LD->trace.yield.resume_action = ACTION_NONE;
+	switch( port )
+	{ case CALL_PORT:
+	    VMH_GOTO(debug_call_continue, action);
+	  default:
+	    assert(0);
+	}
+      } else
+	NEXT_INSTRUCTION;
     } else
       BODY_FAILED;
   } else
