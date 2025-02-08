@@ -476,6 +476,17 @@ PL_EXPORT(term_t)	PL_yielded(qid_t qid);
 		 *  COROUTINING BASED DEBUGGER  *
 		 *******************************/
 
+#ifdef PL_KERNEL
+#define PL_TRACE_ACTION_NONE	 0
+#define PL_TRACE_ACTION_YIELD	 7
+#endif
+#define PL_TRACE_ACTION_CONTINUE 1
+#define PL_TRACE_ACTION_RETRY	 2
+#define PL_TRACE_ACTION_FAIL	 3
+#define PL_TRACE_ACTION_IGNORE	 4
+#define PL_TRACE_ACTION_AGAIN	 5
+#define PL_TRACE_ACTION_ABORT	 6 /* only for Prolog interception */
+
 PL_EXPORT(bool)		PL_set_trace_action(int action);
 PL_EXPORT(bool)		PL_get_trace_context(term_t goal);
 
