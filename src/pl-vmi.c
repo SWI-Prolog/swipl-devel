@@ -2017,16 +2017,7 @@ VMH(depart_or_retry_continue, 0, (), ())
       SAVE_REGISTERS(QID);
       rc = tracePort(FR, BFR, CALL_PORT, NULL);
       LOAD_REGISTERS(QID);
-      switch( rc )
-      { case ACTION_FAIL:   FRAME_FAILED;
-	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
-	case ACTION_ABORT:  THROW_EXCEPTION;
-	case ACTION_YIELD:  SAVE_REGISTERS(QID);
-			    SOLUTION_RETURN(debug_yield(CALL_PORT));
-	case ACTION_RETRY:
-	  if ( debugstatus.retryFrame )
-	    TRACE_RETRY;		/* otherwise retrying the call-port */
-      }					/* is a no-op */
+      VMH_GOTO(debug_call_continue, rc);
     }
 #endif /*O_DEBUGGER*/
   } /* end of if (LD->alerted) */
@@ -2036,6 +2027,22 @@ VMH(depart_or_retry_continue, 0, (), ())
 }
 END_VMH
 
+VMH(debug_call_continue, 1, (int), (action))
+{ switch( action )
+  { case ACTION_FAIL:   FRAME_FAILED;
+    case ACTION_IGNORE: VMI_GOTO(I_EXIT);
+    case ACTION_ABORT:  THROW_EXCEPTION;
+    case ACTION_YIELD:  SAVE_REGISTERS(QID);
+                        SOLUTION_RETURN(debug_yield(CALL_PORT));
+    case ACTION_RETRY:
+      if ( debugstatus.retryFrame )
+	TRACE_RETRY;		/* otherwise retrying the call-port */
+  }				/* is a no-op */
+
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
+}
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_DEPART: implies it is the last subclause   of  the clause. This is the

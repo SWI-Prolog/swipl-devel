@@ -2690,6 +2690,7 @@ Tracer communication declarations.
 #define ACTION_ABORT	6		/* only for Prolog interception */
 #define ACTION_YIELD	7
 
+#define NO_PORT		0x000
 #define CALL_PORT	0x001		/* port masks */
 #define EXIT_PORT	0x002
 #define FAIL_PORT	0x004

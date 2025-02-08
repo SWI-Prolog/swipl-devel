@@ -464,7 +464,8 @@ We are in searching mode; should we actually give this port?
     }
   }
 
-  if ( alltrue(LD->query, PL_Q_TRACE_WITH_YIELD|PL_Q_ALLOW_YIELD) )
+  if ( alltrue(LD->query, PL_Q_TRACE_WITH_YIELD|PL_Q_ALLOW_YIELD) &&
+       (port&(CALL_PORT)) )
   { if ( LD->trace.yield.resume_action == ACTION_NONE )
       return ACTION_YIELD;
     else
@@ -2641,6 +2642,18 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 
+}
+
+		 /*******************************
+		 *     YIELD TRACE SUPPORT      *
+		 *******************************/
+
+bool
+PL_set_trace_action(int action)
+{ GET_LD
+
+  LD->trace.yield.resume_action = action;
+  return true;
 }
 
 
