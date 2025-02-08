@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -71,7 +72,7 @@ foreign_t	pl_leash(term_t old, term_t new);
 foreign_t	pl_visible(term_t old, term_t new);
 foreign_t	pl_debuglevel(term_t old, term_t new);
 foreign_t	pl_prolog_current_frame(term_t fr);
-int		PL_put_frame(term_t t, LocalFrame fr);
+bool		PL_put_frame(term_t t, LocalFrame fr);
 void		PL_put_choice(term_t t, Choice ch);
 
 #undef LDFUNC_DECLARATIONS
