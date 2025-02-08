@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -99,7 +99,7 @@ PL_unify_frame(term_t t, LocalFrame fr)
 }
 
 
-int
+bool
 PL_put_frame(term_t t, LocalFrame fr)
 { GET_LD
 
@@ -270,7 +270,7 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 static void		interruptHandler(int sig);
-static int		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
+static bool		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -967,12 +967,47 @@ static const portname portnames[] =
 };
 
 
-static int
+#define put_frame_message(t, frame, PC, flags) \
+	LDFUNC(put_frame_message, t, frame, PC, flags)
+
+static bool
+put_frame_message(DECL_LD term_t t, LocalFrame frame, Code PC,
+		  unsigned int flags)
+{ term_t av;
+  term_t fref = consTermRef(frame);
+  bool rc = true;
+
+  if ( !(av=PL_new_term_refs(3)) )
+    return false;
+
+  if ( !PL_put_frame(av+0, (LocalFrame)valTermRef(fref)) )
+    return false;
+
+  for(const portname *pn = portnames; pn->flags; pn++)
+  { if ( flags & pn->flags )
+    { rc = PL_put_atom(av+1, pn->name);
+      break;
+    }
+  }
+
+  if ( ison(frame->predicate, P_FOREIGN) )
+    rc = PL_put_atom(av+2, ATOM_foreign);
+  else if ( PC && frame->clause )
+    rc = PL_put_intptr(av+2, PC-frame->clause->value.clause->codes);
+  else
+    rc = PL_put_nil(av+2);
+
+  return rc && PL_cons_functor_v(t, FUNCTOR_frame3, av);
+}
+
+
+
+static bool
 writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
   wakeup_state wstate;
   Definition def = frame->predicate;
-  int rc = true;
+  bool rc = true;
 
   if ( !saveWakeup(&wstate, true) )
   { rc = false;
@@ -983,38 +1018,12 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
   { Sfprintf(out, " (%d): %s\n",
 	     levelFrame(frame), predicateName(frame->predicate));
   } else if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
-  { term_t fr   = PL_new_term_ref();
-    term_t port = PL_new_term_ref();
-    term_t pc   = PL_new_term_ref();
-    const portname *pn = portnames;
+  { term_t msg = PL_new_term_ref(); /* safe because of saveWakeup() */
 
-    if ( ison(def, P_FOREIGN) )
-      PL_put_atom(pc, ATOM_foreign);
-    else if ( PC && frame->clause )
-      rc = PL_put_intptr(pc, PC-frame->clause->value.clause->codes);
-    else
-      PL_put_nil(pc);
-
-    if ( rc )
-      PL_put_frame(fr, frame);
-
-    if ( rc )
-    { for(; pn->flags; pn++)
-      { if ( flags & pn->flags )
-	{ PL_put_atom(port, pn->name);
-	  break;
-	}
-      }
-    }
-
-    if ( rc )
+    if ( put_frame_message(msg, frame, PC, flags) )
     { IOSTREAM *old = Suser_error;
       Suser_error = out;
-      rc = printMessage(ATOM_debug,
-			PL_FUNCTOR, FUNCTOR_frame3,
-			  PL_TERM, fr,
-			  PL_TERM, port,
-			  PL_TERM, pc);
+      rc = printMessage(ATOM_debug, PL_TERM, msg);
       Suser_error = old;
     }
   } else
@@ -2654,6 +2663,16 @@ PL_set_trace_action(int action)
 
   LD->trace.yield.resume_action = action;
   return true;
+}
+
+bool
+PL_get_trace_context(term_t msg)
+{ GET_LD
+  LocalFrame frame = LD->environment;
+  Code pc = LD->query->registers.pc;
+  int port = LD->trace.yield.port;
+
+  return put_frame_message(msg, frame, pc, port);
 }
 
 
