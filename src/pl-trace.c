@@ -134,16 +134,16 @@ PL_get_frame(term_t r, LocalFrame *fr)
 }
 
 
-void
+bool
 PL_put_choice(term_t t, Choice ch)
 { GET_LD
 
   if ( ch )
   { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
 
-    PL_put_intptr(t, (Word)ch - (Word)lBase);
+    return PL_put_intptr(t, (Word)ch - (Word)lBase);
   } else
-    PL_put_atom(t, ATOM_none);
+    return PL_put_atom(t, ATOM_none);
 }
 
 
@@ -270,7 +270,8 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 static void		interruptHandler(int sig);
-static bool		writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC,
+static bool		writeFrameGoal(IOSTREAM *out,
+				       LocalFrame frame, Choice bfr, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -498,7 +499,7 @@ All failed.  Things now are upto the normal Prolog tracer.
 
 again:
   SAVE_PTRS();
-  writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACING);
+  writeFrameGoal(Suser_error, frame, bfr, PC, port|WFG_TRACING);
   RESTORE_PTRS();
 
   if (debugstatus.leashing & port)
@@ -1002,50 +1003,64 @@ put_frame_port(DECL_LD term_t t, LocalFrame frame, int port, Code PC)
   }
 }
 
-#define put_frame_message(t, frame, PC, flags) \
-	LDFUNC(put_frame_message, t, frame, PC, flags)
+#define put_frame_message(t, frame, bfr, PC, flags)	\
+	LDFUNC(put_frame_message, t, frame, bfr, PC, flags)
+
+#define SAVE_PTRS3() \
+	frameref = consTermRef(frame); \
+	chref    = consTermRef(bfr); \
+	pcref    = (onStack(local, PC) ? consTermRef(PC) : 0);
+#define RESTORE_PTRS3() \
+	frame = (LocalFrame)valTermRef(frameref); \
+	bfr   = (Choice)valTermRef(chref); \
+	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
 static bool
-put_frame_message(DECL_LD term_t t, LocalFrame frame, Code PC,
+put_frame_message(DECL_LD term_t t, LocalFrame frame, Choice bfr, Code PC,
 		  unsigned int flags)
 { term_t av;
-  term_t frameref, pcref;
+  term_t frameref, pcref, chref;
   bool rc = true;
 
-  SAVE_PTRS2();
+  SAVE_PTRS3();
 
-  if ( !(av=PL_new_term_refs(3)) )
+  if ( !(av=PL_new_term_refs(4)) )
     return false;
 
-  RESTORE_PTRS2();
+  RESTORE_PTRS3();
   if ( !PL_put_frame(av+0, frame) )
     return false;
 
-  RESTORE_PTRS2();
-  if ( !put_frame_port(av+1, frame, flags&PORT_MASK, PC) )
+  RESTORE_PTRS3();
+  if ( !PL_put_choice(av+1, bfr) )
     return false;
 
-  RESTORE_PTRS2();
+  RESTORE_PTRS3();
+  if ( !put_frame_port(av+2, frame, flags&PORT_MASK, PC) )
+    return false;
+
+  RESTORE_PTRS3();
   if ( ison(frame->predicate, P_FOREIGN) )
-    rc = PL_put_atom(av+2, ATOM_foreign);
+    rc = PL_put_atom(av+3, ATOM_foreign);
   else if ( PC && frame->clause )
     rc = PL_put_intptr(av+2, PC-frame->clause->value.clause->codes);
   else
-    rc = PL_put_nil(av+2);
+    rc = PL_put_nil(av+3);
 
-  return rc && PL_cons_functor_v(t, FUNCTOR_frame3, av);
+  return rc && PL_cons_functor_v(t, FUNCTOR_frame4, av);
 }
-#undef SAVE_PTRS2
-#undef RESTORE_PTRS2
 
 
 static bool
-writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
+writeFrameGoal(IOSTREAM *out, LocalFrame frame, Choice bfr,
+	       Code PC, unsigned int flags)
 { GET_LD
+  term_t frameref, pcref, chref;
   wakeup_state wstate;
   Definition def = frame->predicate;
   bool rc = true;
 
+  SAVE_PTRS3();
   if ( !saveWakeup(&wstate, true) )
   { rc = false;
     goto out;
@@ -1057,7 +1072,8 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
   } else if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
   { term_t msg = PL_new_term_ref(); /* safe because of saveWakeup() */
 
-    if ( put_frame_message(msg, frame, PC, flags) )
+    RESTORE_PTRS3();
+    if ( put_frame_message(msg, frame, bfr, PC, flags) )
     { IOSTREAM *old = Suser_error;
       Suser_error = out;
       rc = printMessage(ATOM_debug, PL_TERM, msg);
@@ -1065,14 +1081,13 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     }
   } else
   { debug_type debugSave = debugstatus.debugging;
-    term_t fref    = consTermRef((Word)frame);
     term_t goal    = PL_new_term_ref();
     term_t options = PL_new_term_ref();
     term_t tmp     = PL_new_term_ref();
     char msg[3];
     const char *pp = portPrompt(flags&PORT_MASK);
 
-    frame = (LocalFrame)valTermRef(fref);
+    RESTORE_PTRS3();
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
     if ( !PL_get_prolog_flag(ATOM_debugger_write_options, options) )
@@ -1083,7 +1098,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     msg[1] = ison(def, SPY_ME)	      ? '*' : ' ';
     msg[2] = EOS;
 
-    frame = (LocalFrame)valTermRef(fref);
+    RESTORE_PTRS3();
     Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
       Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
@@ -1103,6 +1118,8 @@ out:
   restoreWakeup(&wstate);
   return rc;
 }
+#undef SAVE_PTRS2
+#undef RESTORE_PTRS2
 
 /*  Write those frames on the stack that have alternatives left.
 
@@ -1116,7 +1133,10 @@ alternatives(Choice ch)
   { if ( ch->type == CHP_DEBUG )
       continue;
     if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
-      writeFrameGoal(Suser_error, ch->frame, NULL, WFG_CHOICE);
+    { term_t chref = consTermRef(ch);
+      writeFrameGoal(Suser_error, ch->frame, ch, NULL, WFG_CHOICE);
+      ch = (Choice)valTermRef(chref);
+    }
   }
 }
 
@@ -1263,7 +1283,7 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
     PL_describe_context(ctx, buf, sizeof(buf));
     Sfprintf(out, "  %s\n", buf);
   } else
-  { writeFrameGoal(out, ctx->fr, ctx->pc, WFG_BACKTRACE);
+  { writeFrameGoal(out, ctx->fr, LD->choicepoints, ctx->pc, WFG_BACKTRACE);
   }
 }
 
@@ -2690,7 +2710,7 @@ PL_get_trace_context(term_t msg)
   Code pc = LD->query->registers.pc;
   int port = LD->trace.yield.port;
 
-  return put_frame_message(msg, frame, pc, port);
+  return put_frame_message(msg, frame, LD->choicepoints, pc, port);
 }
 
 

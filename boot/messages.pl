@@ -1642,17 +1642,28 @@ tracing_list([trace(Head, Ports)|T]) -->
     translate_message(trace(Head, Ports)),
     tracing_list(T).
 
-prolog_message(frame(Frame, backtrace, _PC)) -->
+% frame(+Frame, +Choice, +Port, +PC) - Print for the debugger.
+prolog_message(frame(Frame, _Choice, backtrace, _PC)) -->
     !,
     { prolog_frame_attribute(Frame, level, Level)
     },
     [ ansi(frame(level), '~t[~D] ~10|', [Level]) ],
     frame_context(Frame),
     frame_goal(Frame).
-prolog_message(frame(Frame, choice, PC)) -->
+prolog_message(frame(Frame, _Choice, choice, PC)) -->
     !,
     prolog_message(frame(Frame, backtrace, PC)).
-prolog_message(frame(_, cut_call(_PC), _)) --> !, [].
+prolog_message(frame(_, _Choice, cut_call(_PC), _)) --> !.
+prolog_message(frame(Frame, _Choice, Port, _PC)) -->
+    frame_flags(Frame),
+    port(Port),
+    frame_level(Frame),
+    frame_context(Frame),
+    frame_depth_limit(Port, Frame),
+    frame_goal(Frame),
+    [ flush ].
+
+% frame(:Goal, +Trace)		- Print for trace/2
 prolog_message(frame(Goal, trace(Port))) -->
     !,
     thread_context,
@@ -1665,14 +1676,6 @@ prolog_message(frame(Goal, trace(Port, Id))) -->
     [ ' T ' ],
     port(Port, Id),
     goal(Goal).
-prolog_message(frame(Frame, Port, _PC)) -->
-    frame_flags(Frame),
-    port(Port),
-    frame_level(Frame),
-    frame_context(Frame),
-    frame_depth_limit(Port, Frame),
-    frame_goal(Frame),
-    [ flush ].
 
 frame_goal(Frame) -->
     { prolog_frame_attribute(Frame, goal, Goal)

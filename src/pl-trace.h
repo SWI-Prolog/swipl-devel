@@ -73,7 +73,7 @@ foreign_t	pl_visible(term_t old, term_t new);
 foreign_t	pl_debuglevel(term_t old, term_t new);
 foreign_t	pl_prolog_current_frame(term_t fr);
 bool		PL_put_frame(term_t t, LocalFrame fr);
-void		PL_put_choice(term_t t, Choice ch);
+bool		PL_put_choice(term_t t, Choice ch);
 
 #undef LDFUNC_DECLARATIONS
 
