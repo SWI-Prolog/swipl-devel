@@ -1388,14 +1388,14 @@ PL_backtrace_string(int depth, int flags)
   return NULL;
 }
 
-#define process_trace_action(frame, port, action) \
-	LDFUNC(process_trace_action, frame, port, action)
+#define process_trace_action(frame, port, action, nodebugp)		\
+  LDFUNC(process_trace_action, frame, port, action, nodebugp)
 
 static int
-process_trace_action(DECL_LD LocalFrame frame, int port, term_t action)
+process_trace_action(DECL_LD LocalFrame frame, int port,
+		     term_t action, bool *nodebugp)
 { atom_t a;
   int rval;
-  bool nodebug = false;
 
   if ( PL_get_atom(action, &a) )
   { if ( a == ATOM_continue )
@@ -1404,7 +1404,7 @@ process_trace_action(DECL_LD LocalFrame frame, int port, term_t action)
       rval = PL_TRACE_ACTION_CONTINUE;
     } else if ( a == ATOM_nodebug )
     { rval = PL_TRACE_ACTION_CONTINUE;
-      nodebug = true;
+      *nodebugp = true;
     } else if ( a == ATOM_fail )
     { rval = PL_TRACE_ACTION_FAIL;
     } else if ( a == ATOM_skip )
@@ -1436,11 +1436,6 @@ process_trace_action(DECL_LD LocalFrame frame, int port, term_t action)
       PL_warning("prolog_trace_interception/4: bad argument to retry/1");
   }
 
-  if ( nodebug )
-  { tracemode(false, NULL);
-    debugmode(DBG_OFF, NULL);
-  }
-
   return rval;
 }
 
@@ -1465,6 +1460,7 @@ static int
 traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { GET_LD
   int rval = -1;		/* Use built-in C debugger */
+  bool nodebug = false;
   predicate_t proc;
   term_t ex;
 
@@ -1492,15 +1488,14 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     RESTORE_PTRS();
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, proc, argv)) )
+    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+			       proc, argv)) )
       goto out;
     if ( PL_next_solution(qid) )
     { RESTORE_PTRS();
-      rval = process_trace_action(frame, port, argv+3);
+      rval = process_trace_action(frame, port, argv+3, &nodebug);
     } else if ( (ex=PL_exception(qid)) )
-    { bool nodebug = false;
-
-      if ( classify_exception(ex) == EXCEPT_ABORT )
+    { if ( classify_exception(ex) == EXCEPT_ABORT )
       { rval = PL_TRACE_ACTION_ABORT;
       } else
       { if ( printMessage(ATOM_error, PL_TERM, ex) )
@@ -1515,15 +1510,15 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = PL_TRACE_ACTION_CONTINUE;
 	}
       }
-      if ( nodebug )
-      { tracemode(false, NULL);
-	debugmode(DBG_OFF, NULL);
-      }
     }
 
   out:
     if ( qid ) PL_cut_query(qid);
     if ( cid ) PL_close_foreign_frame(cid);
+    if ( nodebug )		/* Is restored by PL_cut_query() */
+    { tracemode(false, NULL);
+      debugmode(DBG_OFF, NULL);
+    }
   }
 
   return rval;
@@ -2698,8 +2693,10 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 bool
 PL_set_trace_action(term_t action)
 { GET_LD
+  bool nodebug;
   int rc = process_trace_action(LD->environment,
-				LD->trace.yield.port, action);
+				LD->trace.yield.port, action,
+				&nodebug);
 
   if ( rc >= 0 )
   { LD->trace.yield.resume_action = rc;
