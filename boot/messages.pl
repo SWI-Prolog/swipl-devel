@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2024, University of Amsterdam
+    Copyright (c)  1997-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1652,7 +1652,7 @@ prolog_message(frame(Frame, backtrace, _PC)) -->
 prolog_message(frame(Frame, choice, PC)) -->
     !,
     prolog_message(frame(Frame, backtrace, PC)).
-prolog_message(frame(_, cut_call, _)) --> !, [].
+prolog_message(frame(_, cut_call(_PC), _)) --> !, [].
 prolog_message(frame(Goal, trace(Port))) -->
     !,
     thread_context,
@@ -1735,8 +1735,9 @@ port(Port, _Id-Level) -->
     [ '[~d] '-[Level] ],
     port(Port).
 
-port(Port) -->
-    { port_name(Port, Name)
+port(PortTerm) -->
+    { functor(PortTerm, Port, _),
+      port_name(Port, Name)
     },
     !,
     [ ansi(port(Port), '~w: ', [Name]) ].
