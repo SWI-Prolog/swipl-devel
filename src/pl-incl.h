@@ -2677,6 +2677,15 @@ typedef struct
 		*            DEBUGGER           *
 		*********************************/
 
+#define PL_TRACE_ACTION_NONE	 0
+#define PL_TRACE_ACTION_CONTINUE 1
+#define PL_TRACE_ACTION_RETRY	 2
+#define PL_TRACE_ACTION_FAIL	 3
+#define PL_TRACE_ACTION_IGNORE	 4
+#define PL_TRACE_ACTION_AGAIN	 5
+#define PL_TRACE_ACTION_ABORT	 6 /* only for Prolog interception */
+#define PL_TRACE_ACTION_YIELD	 7
+
 #define NO_PORT		0x000
 #define CALL_PORT	0x001		/* port masks */
 #define EXIT_PORT	0x002
