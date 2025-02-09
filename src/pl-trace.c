@@ -1331,6 +1331,62 @@ PL_backtrace_string(int depth, int flags)
   return NULL;
 }
 
+#define process_trace_action(frame, port, action) \
+	LDFUNC(process_trace_action, frame, port, action)
+
+static int
+process_trace_action(DECL_LD LocalFrame frame, int port, term_t action)
+{ atom_t a;
+  int rval;
+  bool nodebug = false;
+
+  if ( PL_get_atom(action, &a) )
+  { if ( a == ATOM_continue )
+    { if ( !(port & EXIT_PORT) )
+	clear(frame, FR_SKIPPED);
+      rval = PL_TRACE_ACTION_CONTINUE;
+    } else if ( a == ATOM_nodebug )
+    { rval = PL_TRACE_ACTION_CONTINUE;
+      nodebug = true;
+    } else if ( a == ATOM_fail )
+    { rval = PL_TRACE_ACTION_FAIL;
+    } else if ( a == ATOM_skip )
+    { if ( (port & (CALL_PORT|REDO_PORT)) )
+      { debugstatus.skiplevel = levelFrame(frame);
+	set(frame, FR_SKIPPED);
+      }
+      rval = PL_TRACE_ACTION_CONTINUE;
+    } else if ( a == ATOM_up )
+    { debugstatus.skiplevel = levelFrame(frame) - 1;
+      rval = PL_TRACE_ACTION_CONTINUE;
+    } else if ( a == ATOM_retry )
+    { debugstatus.retryFrame = consTermRef(frame);
+      rval = PL_TRACE_ACTION_RETRY;
+    } else if ( a == ATOM_ignore )
+    { rval = PL_TRACE_ACTION_IGNORE;
+    } else if ( a == ATOM_abort )
+    { rval = PL_TRACE_ACTION_ABORT;
+    } else
+      PL_warning("Unknown trace action: %s", stringAtom(a));
+  } else if ( PL_is_functor(action, FUNCTOR_retry1) )
+  { LocalFrame fr;
+    term_t arg = PL_new_term_ref();
+
+    if ( PL_get_arg(1, action, arg) && PL_get_frame(arg, &fr) )
+    { debugstatus.retryFrame = consTermRef(fr);
+      rval = PL_TRACE_ACTION_RETRY;
+    } else
+      PL_warning("prolog_trace_interception/4: bad argument to retry/1");
+  }
+
+  if ( nodebug )
+  { tracemode(false, NULL);
+    debugmode(DBG_OFF, NULL);
+  }
+
+  return rval;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Trace interception mechanism.  Whenever the tracer wants to perform some
@@ -1351,30 +1407,28 @@ This predicate is supposed to return one of the following atoms:
 static int
 traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { GET_LD
-  int rval = -1;			/* Default C-action */
+  int rval;
   predicate_t proc;
   term_t ex;
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
   if ( !getProcDefinition(proc)->impl.any.defined )
-    return rval;
+    return -1;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
   { fid_t cid=0;
     qid_t qid=0;
     LocalFrame fr = NULL;
     term_t frameref, chref, frref, pcref;
-    term_t argv, rarg;
+    term_t argv;
     atom_t portname = NULL_ATOM;
     functor_t portfunc = 0;
-    int nodebug = false;
 
     SAVE_PTRS();
     if ( !(cid=PL_open_foreign_frame()) )
       goto out;
     argv = PL_new_term_refs(4);
-    rarg = argv+3;
 
     switch(port)
     { case CALL_PORT:	   portname = ATOM_call;         break;
@@ -1418,50 +1472,12 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, proc, argv)) )
       goto out;
     if ( PL_next_solution(qid) )
-    { atom_t a;
-
-      RESTORE_PTRS();
-
-      if ( PL_get_atom(rarg, &a) )
-      { if ( a == ATOM_continue )
-	{ if ( !(port & EXIT_PORT) )
-	    clear(frame, FR_SKIPPED);
-	  rval = PL_TRACE_ACTION_CONTINUE;
-	} else if ( a == ATOM_nodebug )
-	{ rval = PL_TRACE_ACTION_CONTINUE;
-	  nodebug = true;
-	} else if ( a == ATOM_fail )
-	{ rval = PL_TRACE_ACTION_FAIL;
-	} else if ( a == ATOM_skip )
-	{ if ( (port & (CALL_PORT|REDO_PORT)) )
-	  { debugstatus.skiplevel = levelFrame(frame);
-	    set(frame, FR_SKIPPED);
-	  }
-	  rval = PL_TRACE_ACTION_CONTINUE;
-	} else if ( a == ATOM_up )
-	{ debugstatus.skiplevel = levelFrame(frame) - 1;
-	  rval = PL_TRACE_ACTION_CONTINUE;
-	} else if ( a == ATOM_retry )
-	{ debugstatus.retryFrame = consTermRef(frame);
-	  rval = PL_TRACE_ACTION_RETRY;
-	} else if ( a == ATOM_ignore )
-	{ rval = PL_TRACE_ACTION_IGNORE;
-	} else if ( a == ATOM_abort )
-	{ rval = PL_TRACE_ACTION_ABORT;
-	} else
-	  PL_warning("Unknown trace action: %s", stringAtom(a));
-      } else if ( PL_is_functor(rarg, FUNCTOR_retry1) )
-      { LocalFrame fr;
-	term_t arg = PL_new_term_ref();
-
-	if ( PL_get_arg(1, rarg, arg) && PL_get_frame(arg, &fr) )
-	{ debugstatus.retryFrame = consTermRef(fr);
-	  rval = PL_TRACE_ACTION_RETRY;
-	} else
-	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
-      }
+    { RESTORE_PTRS();
+      rval = process_trace_action(frame, port, argv+3);
     } else if ( (ex=PL_exception(qid)) )
-    { if ( classify_exception(ex) == EXCEPT_ABORT )
+    { bool nodebug = false;
+
+      if ( classify_exception(ex) == EXCEPT_ABORT )
       { rval = PL_TRACE_ACTION_ABORT;
       } else
       { if ( printMessage(ATOM_error, PL_TERM, ex) )
@@ -1476,16 +1492,15 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = PL_TRACE_ACTION_CONTINUE;
 	}
       }
+      if ( nodebug )
+      { tracemode(false, NULL);
+	debugmode(DBG_OFF, NULL);
+      }
     }
 
   out:
     if ( qid ) PL_cut_query(qid);
     if ( cid ) PL_close_foreign_frame(cid);
-
-    if ( nodebug )
-    { tracemode(false, NULL);
-      debugmode(DBG_OFF, NULL);
-    }
   }
 
   return rval;
