@@ -2044,6 +2044,29 @@ VMH(debug_call_continue, 1, (int), (action))
 }
 END_VMH
 
+VMH(debug_exit_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      discardChoicesAfter(FR, FINISH_CUT);
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(EXIT_PORT));
+  }				/* is a no-op */
+
+  if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+    BFR = BFR->parent;
+
+  VMH_GOTO(exit_continue);
+}
+END_VMH
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_DEPART: implies it is the last subclause   of  the clause. This is the
 entry point for last call optimisation.
@@ -2167,13 +2190,12 @@ from C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXIT, VIF_BREAK, 0, ())
-{ LocalFrame leave;
-
-  if ( unlikely(LD->alerted != 0) )
+{ if ( unlikely(LD->alerted != 0) )
   { if ( (LD->alerted&ALERT_BUFFER) )
     { LD->alerted &= ~ALERT_BUFFER;
       release_string_buffers_from_frame(FR);
     }
+    Coverage(FR, EXIT_PORT);
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -2183,23 +2205,17 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
       action = tracePort(FR, BFR, EXIT_PORT, PC);
       LOAD_REGISTERS(QID);
 
-      switch( action )
-      { case PL_TRACE_ACTION_RETRY:
-	  TRACE_RETRY;
-	case PL_TRACE_ACTION_FAIL:
-	  discardChoicesAfter(FR, FINISH_CUT);
-	  FRAME_FAILED;
-	case PL_TRACE_ACTION_ABORT:
-	  THROW_EXCEPTION;
-      }
-
-      if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
-	BFR = BFR->parent;
+      VMH_GOTO(debug_exit_continue, action);
     }
 #endif /*O_DEBUGGER*/
-
-    Coverage(FR, EXIT_PORT);
   }
+
+  VMH_GOTO(exit_continue);
+}
+END_VMI
+
+VMH(exit_continue, 0, (), ())
+{ LocalFrame leave;
 
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = ison(FR, FR_WATCHED) ? FR : NULL;
@@ -2235,7 +2251,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 
   NEXT_INSTRUCTION;
 }
-END_VMI
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
