@@ -946,26 +946,61 @@ put_frame_goal(term_t goal, LocalFrame frame)
   return true;
 }
 
+#define put_frame_port(t, frame, port, PC) \
+	LDFUNC(put_frame_port, t, frame, port, PC)
 
-typedef struct
-{ unsigned int flags;			/* flag mask */
-  atom_t name;				/* name */
-} portname;
+#define SAVE_PTRS2() \
+	frameref = consTermRef(frame); \
+	pcref    = (onStack(local, PC) ? consTermRef(PC) : 0);
+#define RESTORE_PTRS2() \
+	frame = (LocalFrame)valTermRef(frameref); \
+	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
-static const portname portnames[] =
-{ { WFG_BACKTRACE,  ATOM_backtrace },
-  { WFG_CHOICE,     ATOM_choice },
-  { CALL_PORT,	    ATOM_call },
-  { EXIT_PORT,	    ATOM_exit },
-  { FAIL_PORT,	    ATOM_fail },
-  { REDO_PORT,	    ATOM_redo },
-  { UNIFY_PORT,	    ATOM_unify },
-  { CUT_CALL_PORT,  ATOM_cut_call },
-  { CUT_EXIT_PORT,  ATOM_cut_exit },
-  { EXCEPTION_PORT, ATOM_exception },
-  { 0,		    NULL_ATOM }
-};
+static bool
+put_frame_port(DECL_LD term_t t, LocalFrame frame, int port, Code PC)
+{ atom_t portname = NULL_ATOM;
+  functor_t portfunc = 0;
+  term_t frameref, pcref;
 
+  SAVE_PTRS2();
+
+  switch(port)
+  { case CALL_PORT:	 portname = ATOM_call;      break;
+    case REDO_PORT:	 portfunc = FUNCTOR_redo1;  break;
+    case EXIT_PORT:	 portname = ATOM_exit;      break;
+    case FAIL_PORT:	 portname = ATOM_fail;      break;
+    case UNIFY_PORT:	 portname = ATOM_unify;	    break;
+    case WFG_BACKTRACE:  portname = ATOM_backtrace; break;
+    case WFG_CHOICE:     portname = ATOM_choice;    break;
+    case EXCEPTION_PORT:
+      return PL_unify_term(t,
+			   PL_FUNCTOR, FUNCTOR_exception1,
+			   PL_TERM, LD->exception.pending);
+    case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
+    case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
+    default:
+      assert(0);
+      return false;
+  }
+
+  RESTORE_PTRS2();
+
+  if ( portname )
+  { return PL_put_atom(t, portname);
+  } else
+  { size_t pcn;
+
+    assert(portfunc);
+    if ( PC && isoff(frame->predicate, P_FOREIGN) && frame->clause )
+      pcn = PC - frame->clause->value.clause->codes;
+    else
+      pcn = 0;
+
+    return PL_unify_term(t,
+			 PL_FUNCTOR, portfunc,
+			   PL_INTPTR, pcn);
+  }
+}
 
 #define put_frame_message(t, frame, PC, flags) \
 	LDFUNC(put_frame_message, t, frame, PC, flags)
@@ -974,22 +1009,23 @@ static bool
 put_frame_message(DECL_LD term_t t, LocalFrame frame, Code PC,
 		  unsigned int flags)
 { term_t av;
-  term_t fref = consTermRef(frame);
+  term_t frameref, pcref;
   bool rc = true;
+
+  SAVE_PTRS2();
 
   if ( !(av=PL_new_term_refs(3)) )
     return false;
 
-  if ( !PL_put_frame(av+0, (LocalFrame)valTermRef(fref)) )
+  RESTORE_PTRS2();
+  if ( !PL_put_frame(av+0, frame) )
     return false;
 
-  for(const portname *pn = portnames; pn->flags; pn++)
-  { if ( flags & pn->flags )
-    { rc = PL_put_atom(av+1, pn->name);
-      break;
-    }
-  }
+  RESTORE_PTRS2();
+  if ( !put_frame_port(av+1, frame, flags&PORT_MASK, PC) )
+    return false;
 
+  RESTORE_PTRS2();
   if ( ison(frame->predicate, P_FOREIGN) )
     rc = PL_put_atom(av+2, ATOM_foreign);
   else if ( PC && frame->clause )
@@ -999,7 +1035,8 @@ put_frame_message(DECL_LD term_t t, LocalFrame frame, Code PC,
 
   return rc && PL_cons_functor_v(t, FUNCTOR_frame3, av);
 }
-
+#undef SAVE_PTRS2
+#undef RESTORE_PTRS2
 
 
 static bool
@@ -1407,7 +1444,7 @@ This predicate is supposed to return one of the following atoms:
 static int
 traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { GET_LD
-  int rval;
+  int rval = -1;		/* Use built-in C debugger */
   predicate_t proc;
   term_t ex;
 
@@ -1422,49 +1459,15 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     LocalFrame fr = NULL;
     term_t frameref, chref, frref, pcref;
     term_t argv;
-    atom_t portname = NULL_ATOM;
-    functor_t portfunc = 0;
 
     SAVE_PTRS();
     if ( !(cid=PL_open_foreign_frame()) )
       goto out;
     argv = PL_new_term_refs(4);
 
-    switch(port)
-    { case CALL_PORT:	   portname = ATOM_call;         break;
-      case REDO_PORT:	   portfunc = FUNCTOR_redo1;     break;
-      case EXIT_PORT:	   portname = ATOM_exit;         break;
-      case FAIL_PORT:	   portname = ATOM_fail;         break;
-      case UNIFY_PORT:	   portname = ATOM_unify;	 break;
-      case EXCEPTION_PORT:
-	if ( !PL_unify_term(argv,
-			    PL_FUNCTOR, FUNCTOR_exception1,
-			      PL_TERM, LD->exception.pending) )
-	  goto out;
-	break;
-      case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
-      case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
-      default:
-	assert(0);
-	goto out;
-    }
     RESTORE_PTRS();
-
-    if ( portname )
-    { PL_put_atom(argv, portname);
-    } else if ( portfunc )
-    { int pcn;
-
-      if ( PC && isoff(frame->predicate, P_FOREIGN) && frame->clause )
-	pcn = (int)(PC - frame->clause->value.clause->codes);
-      else
-	pcn = 0;
-
-      if ( !PL_unify_term(argv,
-			  PL_FUNCTOR, portfunc,
-			    PL_INT, pcn) )
-	goto out;
-    }
+    if ( !put_frame_port(argv+0, frame, port, PC) )
+      goto out;
 
     RESTORE_PTRS();
     PL_put_frame(argv+1, frame);
