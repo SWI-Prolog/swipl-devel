@@ -1043,7 +1043,7 @@ put_frame_message(DECL_LD term_t t, LocalFrame frame, Choice bfr, Code PC,
   if ( ison(frame->predicate, P_FOREIGN) )
     rc = PL_put_atom(av+3, ATOM_foreign);
   else if ( PC && frame->clause )
-    rc = PL_put_intptr(av+2, PC-frame->clause->value.clause->codes);
+    rc = PL_put_intptr(av+3, PC-frame->clause->value.clause->codes);
   else
     rc = PL_put_nil(av+3);
 
@@ -2696,11 +2696,17 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 		 *******************************/
 
 bool
-PL_set_trace_action(int action)
+PL_set_trace_action(term_t action)
 { GET_LD
+  int rc = process_trace_action(LD->environment,
+				LD->trace.yield.port, action);
 
-  LD->trace.yield.resume_action = action;
-  return true;
+  if ( rc >= 0 )
+  { LD->trace.yield.resume_action = rc;
+    return true;
+  }
+
+  return false;			/* But, what to do? */
 }
 
 bool
