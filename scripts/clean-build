@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# Completely remove all contents from a build directory, but leave
+# experimental files in tact.
+
+if [ ! -f CMakeCache.txt ]; then
+   echo "Not a build directory"
+   exit 1
+fi
+
+for f in *; do
+    case "$f" in
+	build|configure|*.pl|*.c|*.py|*.md)
+	;;
+	*)
+	    rm -rf $f
+	    ;;
+    esac
+done
