@@ -1142,6 +1142,7 @@ F float_integer_part	1
 F floor			1
 F foreign_function	1
 F frame			3
+F frame			4
 F frame_finished	1
 F fresh			2
 F gcd			2
