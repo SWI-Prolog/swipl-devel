@@ -3556,6 +3556,8 @@ variables used in the B_THROW instruction.
 	switch( port )
 	{ case CALL_PORT:
 	    VMH_GOTO(debug_call_continue, action);
+	  case EXIT_PORT:
+	    VMH_GOTO(debug_exit_continue, action);
 	  default:
 	    assert(0);
 	}
