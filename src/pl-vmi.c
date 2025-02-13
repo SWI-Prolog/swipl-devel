@@ -6490,17 +6490,16 @@ VMH(shallow_backtrack, 0, (), ())
       }
     }
   }
-  VMH_GOTO(deep_backtrack);
+  VMH_GOTO(deep_backtrack, PL_TRACE_ACTION_NONE);
 }
 END_VMH
 
 
 // frame_failed:
-VMH(deep_backtrack, 0, (), ())
+VMH(deep_backtrack, 1, (int), (trace_action))
 { DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
-next_choice:
-					/* leave older frames */
+next_choice:			/* leave older frames */
   for(; (void *)FR > (void *)BFR; FR = FR->parent)
   {
 #ifdef O_DEBUGGER
@@ -6511,24 +6510,27 @@ next_choice:
 	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
       if ( sch )
-      { int rc;
+      { if ( trace_action == PL_TRACE_ACTION_NONE )
+	{ Undo(sch->mark);
+	  environment_frame = FR;
+	  FR->clause = NULL;
+	  lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+	  SAVE_REGISTERS(QID);
+	  trace_action = tracePort(FR, BFR, FAIL_PORT, NULL);
+	  LOAD_REGISTERS(QID);
+	}
 
-	Undo(sch->mark);
-	environment_frame = FR;
-	FR->clause = NULL;
-	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	SAVE_REGISTERS(QID);
-	rc = tracePort(FR, BFR, FAIL_PORT, NULL);
-	LOAD_REGISTERS(QID);
-
-	switch( rc )
+	switch( trace_action )
 	{ case PL_TRACE_ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
 	    clear(FR, FR_CATCHED|FR_SKIPPED);
 	    VMH_GOTO(depart_or_retry_continue);
-	    case PL_TRACE_ACTION_ABORT:
-	      THROW_EXCEPTION;
+	  case PL_TRACE_ACTION_ABORT:
+	    THROW_EXCEPTION;
+	  case PL_TRACE_ACTION_YIELD:
+	    SAVE_REGISTERS(QID);
+	    SOLUTION_RETURN(debug_yield(FAIL_PORT));
 	}
       } else
       { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",

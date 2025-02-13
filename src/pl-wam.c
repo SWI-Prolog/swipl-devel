@@ -2420,12 +2420,15 @@ copyFrameArguments(DECL_LD LocalFrame from, LocalFrame to, size_t argc)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(helper) do { backtrack_from_line = __LINE__; VMH_GOTO(helper); } while(0)
+#define GO(helper, ...)				\
+  do { backtrack_from_line = __LINE__;		\
+    VMH_GOTO(helper, __VA_ARGS__);		\
+  } while(0)
 #else
-#define GO(helper) VMH_GOTO(helper)
+#define GO(helper, ...) VMH_GOTO(helper, __VA_ARGS__)
 #endif
 
-#define FRAME_FAILED		GO(deep_backtrack)
+#define FRAME_FAILED		GO(deep_backtrack, PL_TRACE_ACTION_NONE)
 #define CLAUSE_FAILED		GO(unify_backtrack)
 #define BODY_FAILED		GO(shallow_backtrack)
 #ifdef O_DEBUGGER
@@ -3549,6 +3552,8 @@ variables used in the B_THROW instruction.
 	    VMH_GOTO(debug_call_continue, action);
 	  case EXIT_PORT:
 	    VMH_GOTO(debug_exit_continue, action);
+	  case FAIL_PORT:
+	    VMH_GOTO(deep_backtrack, action);
 	  default:
 	    assert(0);
 	}

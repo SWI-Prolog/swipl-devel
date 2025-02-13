@@ -466,7 +466,7 @@ We are in searching mode; should we actually give this port?
   }
 
   if ( alltrue(LD->query, PL_Q_TRACE_WITH_YIELD|PL_Q_ALLOW_YIELD) &&
-       (port&(CALL_PORT|EXIT_PORT)) )
+       (port&(CALL_PORT|EXIT_PORT|FAIL_PORT)) )
   { if ( LD->trace.yield.resume_action == PL_TRACE_ACTION_NONE )
       return PL_TRACE_ACTION_YIELD;
     else
