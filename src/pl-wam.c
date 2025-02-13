@@ -878,12 +878,14 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 
 
 #define frameFinished(fr, reason) LDFUNC(frameFinished, fr, reason)
-static int
+static bool
 frameFinished(DECL_LD LocalFrame fr, enum finished reason)
 { if ( ison(fr, FR_CLEANUP) )
-  { size_t fref = consTermRef(fr);
+  { term_t fref = consTermRef(fr);
     callCleanupHandler(fr, reason);
     fr = (LocalFrame)valTermRef(fref);
+    if ( exception_term )
+      return false;
   }
 
   if ( ison(fr, FR_DEBUG) )
@@ -892,6 +894,22 @@ frameFinished(DECL_LD LocalFrame fr, enum finished reason)
   return true;
 }
 
+#define frameFailed(fr) LDFUNC(frameFailed, fr)
+static bool
+frameFailed(DECL_LD LocalFrame fr)
+{ environment_frame = fr;
+  lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
+
+  if ( ison(fr, FR_SSU_DET|FR_DET|FR_DETGUARD) )
+  { term_t fref = consTermRef(fr);
+    ssu_or_det_failed(fr);
+    fr = (LocalFrame)valTermRef(fref);
+    if ( exception_term )
+      return false;
+  }
+
+  return frameFinished(fr, FINISH_FAIL);
+}
 
 #define mustBeCallable(call) LDFUNC(mustBeCallable, call)
 static int
@@ -2423,12 +2441,16 @@ copyFrameArguments(DECL_LD LocalFrame from, LocalFrame to, size_t argc)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(helper) do { backtrack_from_line = __LINE__; VMH_GOTO(helper); } while(0)
+#define GO(...)					\
+  do						\
+  { backtrack_from_line = __LINE__;		\
+    VMH_GOTO(__VA_ARGS__);			\
+  } while(0)
 #else
-#define GO(helper) VMH_GOTO(helper)
+#define GO(...) VMH_GOTO(__VA_ARGS__)
 #endif
 
-#define FRAME_FAILED		GO(deep_backtrack)
+#define FRAME_FAILED		GO(deep_backtrack, PL_TRACE_ACTION_NONE)
 #define CLAUSE_FAILED		GO(unify_backtrack)
 #define BODY_FAILED		GO(shallow_backtrack)
 #ifdef O_DEBUGGER
@@ -2459,12 +2481,10 @@ choice_type last_choice;
      functions should be called again using FRG_CUTTED context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static inline void
 leaveFrame(LocalFrame fr)
-{ //Definition def = fr->predicate;
-
-  fr->clause = NULL;
-  leaveDefinition(def);
+{ fr->clause = NULL;
+  leaveDefinition(fr->predicate);
 }
 
 
@@ -3543,19 +3563,8 @@ variables used in the B_THROW instruction.
       DEF = FR->predicate;
       QF->yield.term = 0;
       if ( LD->trace.yield.port != NO_PORT )
-      { int port = LD->trace.yield.port;
-	int action = LD->trace.yield.resume_action;
-	LD->trace.yield.port = NO_PORT;
-	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
-	switch( port )
-	{ case CALL_PORT:
-	    VMH_GOTO(debug_call_continue, action);
-	  case EXIT_PORT:
-	    VMH_GOTO(debug_exit_continue, action);
-	  default:
-	    assert(0);
-	}
-      } else
+        VMH_GOTO(debug_resume);
+      else
 	NEXT_INSTRUCTION;
     } else
       BODY_FAILED;
