@@ -1948,15 +1948,6 @@ findStartChoice(LocalFrame fr, Choice ch)
   return NULL;
 }
 
-
-static Choice
-findChoiceBeforeFrame(LocalFrame fr, Choice ch)
-{ while ( (void*)ch > (void*)fr )
-    ch = ch->parent;
-
-  return ch;
-}
-
 #endif /*O_DEBUGGER*/
 
 
