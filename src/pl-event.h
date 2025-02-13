@@ -124,13 +124,13 @@ event_list_location(pl_event_type ev)
 }
 
 
-static inline int WUNUSED
+static inline bool WUNUSED
 callEventHook(pl_event_type ev, ...)
 { event_list **listp = event_list_location(ev);
 
   if ( *listp )
   { va_list args;
-    int rc;
+    bool rc;
 
     va_start(args, ev);
     rc = PL_call_event_hook_va(ev, args);

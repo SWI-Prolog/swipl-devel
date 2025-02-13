@@ -6507,6 +6507,18 @@ END_VMH
 VMH(deep_backtrack, 1, (int), (trace_action))
 { DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
+#define LEAVE_FAILED_FRAME(fr) \
+  do							      \
+  { leaveFrame(FR);					      \
+    if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) ) \
+    { SAVE_REGISTERS(QID);				      \
+      frameFailed(FR);					      \
+      LOAD_REGISTERS(QID);				      \
+      if ( exception_term )				      \
+	THROW_EXCEPTION;				      \
+    }							      \
+  } while(0)
+
   if ( unlikely(debugstatus.debugging) &&
        isDebugFrame(FR) &&
        BFR->frame == FR && BFR->type == CHP_DEBUG )
@@ -6537,34 +6549,15 @@ VMH(deep_backtrack, 1, (int), (trace_action))
       case PL_TRACE_ACTION_YIELD:
 	SAVE_REGISTERS(QID);
 	SOLUTION_RETURN(debug_yield(FAIL_PORT));
+      default:
+	LEAVE_FAILED_FRAME(FR);
+	environment_frame = FR = FR->parent;
+	FRAME_FAILED;
     }
   }
 
-  /* Dispose of non-debuggable frames that have been created
-   * after BFR.
-   * TODO: Moving ssu_or_det_failed into frameFinished() saves
-   * save/restore of registers and checking exceptions.
-   */
   for(; (void *)FR > (void *)BFR; FR = FR->parent)
-  { leaveFrame(FR);
-    if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
-    { environment_frame = FR;
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-      FR->clause = NULL;
-      if ( ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
-      { SAVE_REGISTERS(QID);
-	ssu_or_det_failed(FR);
-	LOAD_REGISTERS(QID);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-      SAVE_REGISTERS(QID);
-      frameFinished(FR, FINISH_FAIL);
-      LOAD_REGISTERS(QID);
-      if ( exception_term )
-	THROW_EXCEPTION;
-    }
-  }
+    LEAVE_FAILED_FRAME(FR);
 
   environment_frame = FR = BFR->frame;
   Undo(BFR->mark);

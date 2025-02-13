@@ -878,12 +878,14 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 
 
 #define frameFinished(fr, reason) LDFUNC(frameFinished, fr, reason)
-static int
+static bool
 frameFinished(DECL_LD LocalFrame fr, enum finished reason)
 { if ( ison(fr, FR_CLEANUP) )
-  { size_t fref = consTermRef(fr);
+  { term_t fref = consTermRef(fr);
     callCleanupHandler(fr, reason);
     fr = (LocalFrame)valTermRef(fref);
+    if ( exception_term )
+      return false;
   }
 
   if ( ison(fr, FR_DEBUG) )
@@ -892,6 +894,22 @@ frameFinished(DECL_LD LocalFrame fr, enum finished reason)
   return true;
 }
 
+#define frameFailed(fr) LDFUNC(frameFailed, fr)
+static bool
+frameFailed(DECL_LD LocalFrame fr)
+{ environment_frame = fr;
+  lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
+
+  if ( ison(fr, FR_SSU_DET|FR_DET|FR_DETGUARD) )
+  { term_t fref = consTermRef(fr);
+    ssu_or_det_failed(fr);
+    fr = (LocalFrame)valTermRef(fref);
+    if ( exception_term )
+      return false;
+  }
+
+  return frameFinished(fr, FINISH_FAIL);
+}
 
 #define mustBeCallable(call) LDFUNC(mustBeCallable, call)
 static int
@@ -2462,12 +2480,10 @@ choice_type last_choice;
      functions should be called again using FRG_CUTTED context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static inline void
 leaveFrame(LocalFrame fr)
-{ //Definition def = fr->predicate;
-
-  fr->clause = NULL;
-  leaveDefinition(def);
+{ fr->clause = NULL;
+  leaveDefinition(fr->predicate);
 }
 
 
