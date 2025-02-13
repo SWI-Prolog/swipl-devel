@@ -725,8 +725,10 @@ struct PL_local_data
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
     struct
-    { int	resume_action;		/* Restart after yield */
-      int	port;			/* Port on which we stopped */
+    { char	resume_action;		/* Restart after yield */
+      char	port;			/* Port on which we stopped */
+      bool	redo_is_jump;		/* Distinguish the two REDO ports */
+      struct clause_choice chp;		/* Clause redo context */
     } yield;
   } trace;
 
