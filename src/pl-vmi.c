@@ -6494,52 +6494,59 @@ VMH(shallow_backtrack, 0, (), ())
 }
 END_VMH
 
+/* We get  here from FRAME_FAILED  if there  is no matching  clause, a
+ * foreign predicate failed or a debugger fail was initiated.  We also
+ * get here if the body of an executing clause failed and there are no
+ * CHP_JUMP or alternative clauses left.
+ *
+ * In debug mode, there is normally a CHP_DEBUG choicepoint created to
+ * allow the  tracer to  backtrack to  the state at  the start  of the
+ * frame.
+ */
 
-// frame_failed:
 VMH(deep_backtrack, 1, (int), (trace_action))
 { DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
-next_choice:			/* leave older frames */
-  for(; (void *)FR > (void *)BFR; FR = FR->parent)
-  {
-#ifdef O_DEBUGGER
-    if ( unlikely(debugstatus.debugging) && isDebugFrame(FR) )
-    { Choice sch = findStartChoice(FR, BFR);
+  if ( unlikely(debugstatus.debugging) &&
+       isDebugFrame(FR) &&
+       BFR->frame == FR && BFR->type == CHP_DEBUG )
+  { if ( trace_action == PL_TRACE_ACTION_NONE )
+    { DEBUG(MSG_BACKTRACK,
+	  Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
+      Undo(BFR->mark);
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
 
-      if ( sch )
-      { if ( trace_action == PL_TRACE_ACTION_NONE )
-	{ Undo(sch->mark);
-	  environment_frame = FR;
-	  FR->clause = NULL;
-	  lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	  SAVE_REGISTERS(QID);
-	  trace_action = tracePort(FR, BFR, FAIL_PORT, NULL);
-	  LOAD_REGISTERS(QID);
-	}
-
-	switch( trace_action )
-	{ case PL_TRACE_ACTION_RETRY:
-	    environment_frame = FR;
-	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED|FR_SKIPPED);
-	    VMH_GOTO(depart_or_retry_continue);
-	  case PL_TRACE_ACTION_ABORT:
-	    THROW_EXCEPTION;
-	  case PL_TRACE_ACTION_YIELD:
-	    SAVE_REGISTERS(QID);
-	    SOLUTION_RETURN(debug_yield(FAIL_PORT));
-	}
-      } else
-      { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
-			  levelFrame(FR), predicateName(FR->predicate)));
-      }
+      environment_frame = FR;
+      FR->clause = NULL;
+      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+      SAVE_REGISTERS(QID);
+      trace_action = tracePort(FR, BFR, FAIL_PORT, NULL);
+      LOAD_REGISTERS(QID);
     }
-#endif
 
-    leaveFrame(FR);
+    switch( trace_action )
+    { case PL_TRACE_ACTION_RETRY:
+	environment_frame = FR;
+	DEF = FR->predicate;
+	clear(FR, FR_CATCHED|FR_SKIPPED);
+	VMH_GOTO(depart_or_retry_continue);
+      case PL_TRACE_ACTION_ABORT:
+	THROW_EXCEPTION;
+      case PL_TRACE_ACTION_YIELD:
+	SAVE_REGISTERS(QID);
+	SOLUTION_RETURN(debug_yield(FAIL_PORT));
+    }
+  }
+
+  /* Dispose of non-debuggable frames that have been created
+   * after BFR.
+   * TODO: Moving ssu_or_det_failed into frameFinished() saves
+   * save/restore of registers and checking exceptions.
+   */
+  for(; (void *)FR > (void *)BFR; FR = FR->parent)
+  { leaveFrame(FR);
     if ( ison(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
@@ -6658,7 +6665,7 @@ next_choice:			/* leave older frames */
       DiscardMark(BFR->mark);
       BFR = BFR->parent;
       if ( !(CL = nextClause(&chp, ARGP, FR, DEF)) )
-	goto next_choice;	/* Can happen of look-ahead was too short */
+	FRAME_FAILED;	  /* Can happen of look-ahead was too short */
 
       clause = CL->value.clause;
       PC     = clause->codes;
@@ -6769,7 +6776,7 @@ next_choice:			/* leave older frames */
 		     predicateName(DEF)));
       DiscardMark(BFR->mark);
       BFR = BFR->parent;
-      goto next_choice;
+      FRAME_FAILED;
   }
   assert(0);
   SOLUTION_RETURN(false);
