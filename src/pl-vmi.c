@@ -6497,31 +6497,22 @@ END_VMH
 
 // frame_failed:
 VMH(deep_backtrack, 0, (), ())
-{
-#ifdef O_DEBUGGER
-  term_t ch0_ref = BFR ? consTermRef(BFR) : 0;
-#endif
-  Choice ch;
-
-  DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
+{ DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
 
 next_choice:
-  ch = BFR;
 					/* leave older frames */
-  for(; (void *)FR > (void *)ch; FR = FR->parent)
+  for(; (void *)FR > (void *)BFR; FR = FR->parent)
   {
 #ifdef O_DEBUGGER
     if ( unlikely(debugstatus.debugging) && isDebugFrame(FR) )
-    { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
+    { Choice sch = findStartChoice(FR, BFR);
 
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
       if ( sch )
       { int rc;
-	Choice ch0 = findChoiceBeforeFrame(FR, sch);
 
-	ch0_ref = ch0 ? consTermRef(ch0) : 0;
 	Undo(sch->mark);
 	environment_frame = FR;
 	FR->clause = NULL;
@@ -6529,7 +6520,6 @@ next_choice:
 	SAVE_REGISTERS(QID);
 	rc = tracePort(FR, BFR, FAIL_PORT, NULL);
 	LOAD_REGISTERS(QID);
-	ch = BFR;			/* can be shifted */
 
 	switch( rc )
 	{ case PL_TRACE_ACTION_RETRY:
@@ -6541,8 +6531,7 @@ next_choice:
 	      THROW_EXCEPTION;
 	}
       } else
-      { ch0_ref = 0;
-	DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
+      { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
 			  levelFrame(FR), predicateName(FR->predicate)));
       }
     }
@@ -6563,19 +6552,18 @@ next_choice:
       SAVE_REGISTERS(QID);
       frameFinished(FR, FINISH_FAIL);
       LOAD_REGISTERS(QID);
-      ch = BFR;			/* can be shifted */
       if ( exception_term )
 	THROW_EXCEPTION;
     }
   }
 
-  environment_frame = FR = ch->frame;
-  Undo(ch->mark);
+  environment_frame = FR = BFR->frame;
+  Undo(BFR->mark);
   QF = QueryFromQid(QID);
   aTop = QF->aSave;
   DEF  = FR->predicate;
 #ifdef O_DEBUG_BACKTRACK
-  last_choice = ch->type;
+  last_choice = BFR->type;
 #endif
 
   if ( unlikely(LD->alerted) )
@@ -6586,30 +6574,29 @@ next_choice:
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
-      lTop = (LocalFrame)(ch+1);
+      lTop = (LocalFrame)(BFR+1);
       FR->clause = NULL;
       if ( LD->mark_bar != NO_MARK_BAR )
 	LD->mark_bar = gTop;
       SAVE_REGISTERS(QID);
       rc = run_undo_hooks();
       LOAD_REGISTERS(QID);
-      ch = BFR;			/* can be shifted */
       if ( !rc )
 	THROW_EXCEPTION;
     }
-    Profile(profFail(ch->prof_node));
+    Profile(profFail(BFR->prof_node));
   }
 
-  switch(ch->type)
+  switch(BFR->type)
   { case CHP_JUMP:
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: Jump in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      PC   = ch->value.pc;
-      DiscardMark(ch->mark);
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
+      PC   = BFR->value.pc;
+      DiscardMark(BFR->mark);
+      lTop = (LocalFrame)(BFR);
+      BFR  = BFR->parent;
       ARGP = argFrameP(lTop, 0);
       LD->statistics.inferences++;
       if ( unlikely(LD->alerted) )
@@ -6622,9 +6609,8 @@ next_choice:
 	  { int action;
 
 	    SAVE_REGISTERS(QID);
-	    action = tracePort(fr, BFR, REDO_PORT, ch->value.pc);
+	    action = tracePort(fr, BFR, REDO_PORT, BFR->value.pc);
 	    LOAD_REGISTERS(QID);
-	    ch = BFR;			/* can be shifted */
 
 	    if ( ison(FR->predicate, P_FOREIGN) &&
 		 ( action == PL_TRACE_ACTION_FAIL ||
@@ -6660,19 +6646,18 @@ next_choice:
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
     { Clause clause;
-      struct clause_choice chp;
+      struct clause_choice chp = BFR->value.clause;
 
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: Clause in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
-      DiscardMark(ch->mark);
-      BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
+      if ( !(CL = nextClause(&chp, ARGP, FR, DEF)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
 
-      chp    = ch->value.clause;
       clause = CL->value.clause;
       PC     = clause->codes;
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
@@ -6700,7 +6685,6 @@ next_choice:
 	    clearLocalVariablesFrame(FR);
 	    action = tracePort(fr, BFR, REDO_PORT, NULL);
 	    LOAD_REGISTERS(QID);
-	    ch = BFR;			/* can be shifted */
 
 	    switch( action )
 	    { case PL_TRACE_ACTION_FAIL:
@@ -6731,7 +6715,7 @@ next_choice:
       }
 
       if ( chp.cref )
-      { ch = newChoice(CHP_CLAUSE, FR);
+      { Choice ch = newChoice(CHP_CLAUSE, FR);
 	ch->value.clause = chp;
       }
 			/* require space for the args of the next frame */
@@ -6743,7 +6727,7 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: TOP\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      DiscardMark(ch->mark);
+      DiscardMark(BFR->mark);
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
@@ -6758,23 +6742,22 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: CATCH\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-	    if ( ison(ch->frame, FR_WATCHED) )
-      { DiscardMark(ch->mark);
-	environment_frame = FR = ch->frame;
-	lTop = (LocalFrame)(ch+1);
+	    if ( ison(BFR->frame, FR_WATCHED) )
+      { DiscardMark(BFR->mark);
+	environment_frame = FR = BFR->frame;
+	lTop = (LocalFrame)(BFR+1);
 	FR->clause = NULL;
-	if ( ison(ch->frame, FR_CLEANUP) )
+	if ( ison(BFR->frame, FR_CLEANUP) )
 	{ SAVE_REGISTERS(QID);
-	  callCleanupHandler(ch->frame, FINISH_FAIL);
+	  callCleanupHandler(BFR->frame, FINISH_FAIL);
 	  LOAD_REGISTERS(QID);
 	} else
-	{ set(ch->frame, FR_CATCHED);
+	{ set(BFR->frame, FR_CATCHED);
 	}
-	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;
       } else
-      { set(ch->frame, FR_CATCHED);
+      { set(BFR->frame, FR_CATCHED);
       }
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
@@ -6782,11 +6765,8 @@ next_choice:
 	    Sdprintf("    REDO #%zd: %s: DEBUG\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-#ifdef O_DEBUGGER
-      ch0_ref = consTermRef(ch);
-#endif
-      BFR = ch->parent;
-      DiscardMark(ch->mark);
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
       goto next_choice;
   }
   assert(0);
