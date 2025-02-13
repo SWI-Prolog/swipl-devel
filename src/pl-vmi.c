@@ -6519,12 +6519,15 @@ VMH(deep_backtrack, 1, (int), (trace_action))
     }							      \
   } while(0)
 
-  if ( unlikely(debugstatus.debugging) &&
-       isDebugFrame(FR) &&
-       BFR->frame == FR && BFR->type == CHP_DEBUG )
-  { if ( trace_action == PL_TRACE_ACTION_NONE )
+next_choice:
+  if ( unlikely(debugstatus.debugging) )
+  { if ( trace_action != PL_TRACE_ACTION_NONE )
+      goto yield_fail_resume;
+
+    if ( isDebugFrame(FR) &&
+	 BFR->frame == FR && BFR->type == CHP_DEBUG )
     { DEBUG(MSG_BACKTRACK,
-	  Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
+	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
       Undo(BFR->mark);
       DiscardMark(BFR->mark);
@@ -6536,23 +6539,25 @@ VMH(deep_backtrack, 1, (int), (trace_action))
       SAVE_REGISTERS(QID);
       trace_action = tracePort(FR, BFR, FAIL_PORT, NULL);
       LOAD_REGISTERS(QID);
-    }
 
-    switch( trace_action )
-    { case PL_TRACE_ACTION_RETRY:
-	environment_frame = FR;
-	DEF = FR->predicate;
-	clear(FR, FR_CATCHED|FR_SKIPPED);
-	VMH_GOTO(depart_or_retry_continue);
-      case PL_TRACE_ACTION_ABORT:
-	THROW_EXCEPTION;
-      case PL_TRACE_ACTION_YIELD:
-	SAVE_REGISTERS(QID);
-	SOLUTION_RETURN(debug_yield(FAIL_PORT));
-      default:
-	LEAVE_FAILED_FRAME(FR);
-	environment_frame = FR = FR->parent;
-	FRAME_FAILED;
+    yield_fail_resume:
+      switch( trace_action )
+      { case PL_TRACE_ACTION_RETRY:
+	  environment_frame = FR;
+	  DEF = FR->predicate;
+	  clear(FR, FR_CATCHED|FR_SKIPPED);
+	  VMH_GOTO(depart_or_retry_continue);
+	case PL_TRACE_ACTION_ABORT:
+	  THROW_EXCEPTION;
+	case PL_TRACE_ACTION_YIELD:
+	  SAVE_REGISTERS(QID);
+	  SOLUTION_RETURN(debug_yield(FAIL_PORT));
+	default:
+	  LEAVE_FAILED_FRAME(FR);
+	  environment_frame = FR = FR->parent;
+	  trace_action = PL_TRACE_ACTION_NONE;
+	  goto next_choice;
+      }
     }
   }
 
@@ -6624,7 +6629,7 @@ VMH(deep_backtrack, 1, (int), (trace_action))
 
 	    switch( action )
 	    { case PL_TRACE_ACTION_FAIL:
-		FRAME_FAILED;
+		goto next_choice;
 	      case PL_TRACE_ACTION_IGNORE:
 		VMI_GOTO(I_EXIT);
 	      case PL_TRACE_ACTION_RETRY:
@@ -6658,7 +6663,7 @@ VMH(deep_backtrack, 1, (int), (trace_action))
       DiscardMark(BFR->mark);
       BFR = BFR->parent;
       if ( !(CL = nextClause(&chp, ARGP, FR, DEF)) )
-	FRAME_FAILED;	  /* Can happen of look-ahead was too short */
+	goto next_choice;	  /* Can happen of look-ahead was too short */
 
       clause = CL->value.clause;
       PC     = clause->codes;
