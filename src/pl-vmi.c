@@ -6780,3 +6780,21 @@ next_choice:
   SOLUTION_RETURN(false);
 }
 END_VMH
+
+VMH(debug_resume, 0, (), ())
+{ int port = LD->trace.yield.port;
+  int action = LD->trace.yield.resume_action;
+  LD->trace.yield.port = NO_PORT;
+  LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
+  switch( port )
+  { case CALL_PORT:
+      VMH_GOTO(debug_call_continue, action);
+    case EXIT_PORT:
+      VMH_GOTO(debug_exit_continue, action);
+    case FAIL_PORT:
+      VMH_GOTO(deep_backtrack, action);
+    default:
+      assert(0);
+  }
+}
+END_VMH

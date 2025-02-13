@@ -2441,12 +2441,13 @@ copyFrameArguments(DECL_LD LocalFrame from, LocalFrame to, size_t argc)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(helper, ...)				\
-  do { backtrack_from_line = __LINE__;		\
-    VMH_GOTO(helper, __VA_ARGS__);		\
+#define GO(...)					\
+  do						\
+  { backtrack_from_line = __LINE__;		\
+    VMH_GOTO(__VA_ARGS__);			\
   } while(0)
 #else
-#define GO(helper, ...) VMH_GOTO(helper, __VA_ARGS__)
+#define GO(...) VMH_GOTO(__VA_ARGS__)
 #endif
 
 #define FRAME_FAILED		GO(deep_backtrack, PL_TRACE_ACTION_NONE)
@@ -3562,21 +3563,8 @@ variables used in the B_THROW instruction.
       DEF = FR->predicate;
       QF->yield.term = 0;
       if ( LD->trace.yield.port != NO_PORT )
-      { int port = LD->trace.yield.port;
-	int action = LD->trace.yield.resume_action;
-	LD->trace.yield.port = NO_PORT;
-	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
-	switch( port )
-	{ case CALL_PORT:
-	    VMH_GOTO(debug_call_continue, action);
-	  case EXIT_PORT:
-	    VMH_GOTO(debug_exit_continue, action);
-	  case FAIL_PORT:
-	    VMH_GOTO(deep_backtrack, action);
-	  default:
-	    assert(0);
-	}
-      } else
+        VMH_GOTO(debug_resume);
+      else
 	NEXT_INSTRUCTION;
     } else
       BODY_FAILED;
