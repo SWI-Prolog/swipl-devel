@@ -6521,8 +6521,8 @@ VMH(deep_backtrack, 1, (int), (trace_action))
 
 next_choice:
   if ( unlikely(debugstatus.debugging) )
-  { if ( trace_action != PL_TRACE_ACTION_NONE )
-      goto yield_fail_resume;
+  { if ( trace_action != PL_TRACE_ACTION_NONE ) /* TODO: What if debugstatus */
+      goto yield_fail_resume;			/* was changed? */
 
     if ( isDebugFrame(FR) &&
 	 BFR->frame == FR && BFR->type == CHP_DEBUG )
@@ -6608,6 +6608,15 @@ next_choice:
       LD->statistics.inferences++;
       if ( unlikely(LD->alerted) )
       {
+#ifdef O_INFERENCE_LIMIT
+	if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(QID);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(QID);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
 	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP);
@@ -6627,26 +6636,9 @@ next_choice:
 		 ) )
 	      discardForeignFrame(FR);
 
-	    switch( action )
-	    { case PL_TRACE_ACTION_FAIL:
-		goto next_choice;
-	      case PL_TRACE_ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case PL_TRACE_ACTION_RETRY:
-		TRACE_RETRY;
-	      case PL_TRACE_ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
+	    LD->trace.yield.redo_is_jump = true;
+	    VMH_GOTO(debug_redo_continue, action);
 	  }
-	}
-#endif
-#ifdef O_INFERENCE_LIMIT
-	if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(QID);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(QID);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
 	}
 #endif
       }
@@ -6681,6 +6673,16 @@ next_choice:
 	    THROW_EXCEPTION;
 	}
 
+#ifdef O_INFERENCE_LIMIT
+	if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(QID);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(QID);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
 	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE);
@@ -6693,30 +6695,10 @@ next_choice:
 	    action = tracePort(fr, BFR, REDO_PORT, NULL);
 	    LOAD_REGISTERS(QID);
 
-	    switch( action )
-	    { case PL_TRACE_ACTION_FAIL:
-		FRAME_FAILED;
-	      case PL_TRACE_ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case PL_TRACE_ACTION_RETRY:
-		VMH_GOTO(depart_or_retry_continue);
-	      case PL_TRACE_ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
+	    LD->trace.yield.redo_is_jump = false;
+	    LD->trace.yield.chp = chp;
+	    VMH_GOTO(debug_redo_continue, action);
 	  }
-
-	  if ( !chp.cref )
-	    newChoice(CHP_DEBUG, FR);
-	}
-#endif
-
-#ifdef O_INFERENCE_LIMIT
-	if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(QID);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(QID);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
 	}
 #endif
       }
@@ -6781,6 +6763,45 @@ next_choice:
 }
 END_VMH
 
+VMH(debug_redo_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_IGNORE:
+      VMI_GOTO(I_EXIT);
+    case PL_TRACE_ACTION_RETRY:
+      if ( LD->trace.yield.redo_is_jump )
+	TRACE_RETRY;
+      else
+	VMH_GOTO(depart_or_retry_continue);
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(REDO_PORT));
+  }
+
+  if ( !LD->trace.yield.redo_is_jump )
+  { struct clause_choice chp = LD->trace.yield.chp;
+
+    Clause clause = CL->value.clause;
+    PC            = clause->codes;
+    lTop          = (LocalFrame)argFrameP(FR, clause->variables);
+    UMODE         = uread;
+
+    if ( chp.cref )
+    { Choice ch = newChoice(CHP_CLAUSE, FR);
+      ch->value.clause = chp;
+    } else
+    { newChoice(CHP_DEBUG, FR);
+    }
+    ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
+  }
+
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
 VMH(debug_resume, 0, (), ())
 { int port = LD->trace.yield.port;
   int action = LD->trace.yield.resume_action;
@@ -6793,6 +6814,8 @@ VMH(debug_resume, 0, (), ())
       VMH_GOTO(debug_exit_continue, action);
     case FAIL_PORT:
       VMH_GOTO(deep_backtrack, action);
+    case REDO_PORT:
+      VMH_GOTO(debug_redo_continue, action);
     default:
       assert(0);
   }
