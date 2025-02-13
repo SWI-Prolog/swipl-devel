@@ -36,6 +36,9 @@
 */
 
 /*#define O_DEBUG 1*/
+#ifdef O_DEBUG
+#define O_DEBUG_BACKTRACK 1
+#endif
 #define USE_FLI_INLINES 1
 #define USE_ALLOC_INLINES 1
 
