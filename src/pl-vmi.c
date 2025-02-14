@@ -4947,6 +4947,12 @@ Note that exceptions are placed on the stack using PL_raise_exception(),
 which uses duplicate_term() and  freezeGlobal()   to  make the exception
 term immune for undo operations.
 
+This huge  VM instruction is  broken into a  number of VMH  helpers to
+make it  easier to track the  dependencies and follow the  flow.  When
+using VMI  functions, these are  simple tail calls and  otherwise they
+are  `goto`  instructions  that  will   be  removed  by  the  compiler
+optimizer.
+
 (*) If the exception is not caught, we  try to print it and enable trace
 mode. However, we should be careful about   this  if the exception is an
 out-of-stack exception because the trace runs in Prolog and is likely to
@@ -5059,6 +5065,10 @@ again:
   VMH_GOTO(b_throw_cont, catchfr_ref, outofstack);
 }
 END_VMH
+
+/* By now, we have checked the basic environment, found the catching
+ * frame and (optionally) finished rewriting the exception.
+ */
 
 VMH(b_throw_cont, 2, (term_t, Stack), (catchfr_ref, outofstack))
 { bool start_tracer;
@@ -5260,7 +5270,17 @@ VMH(b_throw_cont, 2, (term_t, Stack), (catchfr_ref, outofstack))
     }
   }
 
-					/* re-fetch (test cleanup(clean-5)) */
+  VMH_GOTO(b_throw_resume, catchfr_ref, outofstack);
+}
+END_VMH
+
+/* We completed unwinding the  stack.  `b_throw_resume` either resumes
+ * by  executing the  3rd argument  of a  catch/3 predicate  or causes
+ * PL_next_solution() to return if there is no catcher.
+ */
+
+VMH(b_throw_resume, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{					/* re-fetch (test cleanup(clean-5)) */
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   LD->statistics.inferences++;		/* box exit, needed for GC */
 
