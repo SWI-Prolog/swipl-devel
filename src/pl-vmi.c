@@ -5067,15 +5067,22 @@ VMH(b_throw, 0, (), ())
     break;
   } /* Ends "rewritten" loop */
   PL_close_foreign_frame(fid);
-  VMH_GOTO(b_throw_cont, catchfr_ref, outofstack);
+  VMH_GOTO(b_throw_debug, catchfr_ref, outofstack);
 }
 END_VMH
 
-/* By now, we have checked the basic environment, found the catching
- * frame and (optionally) finished rewriting the exception.
+/* By now, we  have checked the basic environment,  found the catching
+ * frame and (optionally) finished  rewriting the exception.  The next
+ * task to  figure out whether or  not we want to  start the debugger.
+ * We want to start the debugger if the exception is not caught in the
+ * current query.
+ *
+ * In fact, we start the debugger, unless there is insufficient space.
+ * In that  case we set  `start_tracer` and start the  debugger during
+ * stack unwinding when enough stack space has been recovered.
  */
 
-VMH(b_throw_cont, 2, (term_t, Stack), (catchfr_ref, outofstack))
+VMH(b_throw_debug, 2, (term_t, Stack), (catchfr_ref, outofstack))
 { bool start_tracer;
 
 #if O_DEBUGGER
@@ -5117,7 +5124,15 @@ VMH(b_throw_cont, 2, (term_t, Stack), (catchfr_ref, outofstack))
     }
   }
 
-  if ( debugstatus.debugging )
+  VMH_GOTO(b_throw_cont_unwind, catchfr_ref, outofstack, start_tracer);
+}
+END_VMH
+
+/* Unwind the stack, either in debug mode or in nodebug mode.
+ */
+
+VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, start_tracer))
+{ if ( debugstatus.debugging )
   { for( ;
 	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
 	 PC = FR->programPointer,
