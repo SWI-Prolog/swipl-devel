@@ -5132,162 +5132,170 @@ END_VMH
  */
 
 VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, start_tracer))
-{ if ( debugstatus.debugging )
-  { for( ;
-	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
-	 PC = FR->programPointer,
-	 FR = FR->parent )
-    { Choice ch = findStartChoice(FR, LD->choicepoints);
-      void *l_top;
+{ if ( !debugstatus.debugging )
+    VMH_GOTO(b_throw_cont_unwind_ndebug, catchfr_ref, outofstack);
 
-      environment_frame = FR;
-      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
-      LD->statistics.inferences++;	/* box exit, needed for GC */
+  for( ;
+       FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+       PC = FR->programPointer, FR = FR->parent )
+  { Choice ch = findStartChoice(FR, LD->choicepoints);
+    void *l_top;
 
-      if ( ch )
-      { int printed = PL_same_term(exception_printed, exception_term);
-	term_t chref = consTermRef(ch);
-	int rc;
+    environment_frame = FR;
+    ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
+    LD->statistics.inferences++;	/* box exit, needed for GC */
 
-	lTop = (LocalFrame)(BFR+1);
-	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(QID);
-		checkStacks(NULL);
-		LOAD_REGISTERS(QID);
-	      });
-	SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT);
-	LOAD_REGISTERS(QID);
-	ch = (Choice)valTermRef(chref);
-	Undo(ch->mark);
-	DiscardMark(ch->mark);
-	clearLocalVariablesFrame(FR);
-	PL_put_term(LD->exception.pending, exception_term);
-	if ( printed )
-	  PL_put_term(exception_printed, exception_term);
+    if ( ch )
+    { bool printed = PL_same_term(exception_printed, exception_term);
+      term_t chref = consTermRef(ch);
+      int action;
 
-	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(QID);
-		checkStacks(NULL);
-		LOAD_REGISTERS(QID);
-		ch = (Choice)valTermRef(chref);
-	      });
-
-	SAVE_REGISTERS(QID);
-	rc = tracePort(FR, ch, EXCEPTION_PORT, PC);
-	LOAD_REGISTERS(QID);
-
-	switch( rc )
-	{ case PL_TRACE_ACTION_RETRY:
-	    SAVE_REGISTERS(QID);
-	    discardChoicesAfter(FR, FINISH_CUT);
-	    resumeAfterException(true, outofstack);
-	    LOAD_REGISTERS(QID);
-	    DEF = FR->predicate;
-	    FR->clause = NULL;
-	    VMH_GOTO(depart_or_retry_continue);
-	  case PL_TRACE_ACTION_ABORT:
-	    THROW_EXCEPTION;
-	}
-
-	setVar(*valTermRef(LD->exception.pending));
-      }
-
-					/* discard as much as we can from the local stack */
-      l_top = argFrameP(FR, FR->predicate->functor->arity);
-      FR->clause = NULL;		/* We do not care about the arguments */
-      DEBUG(MSG_UNWIND_EXCEPTION,
-	    Sdprintf("l_top above [%d] %s: %p\n",
-		     (int)FR->level, predicateName(FR->predicate), l_top));
-      if ( l_top < (void*)(BFR+1) )
-      { DEBUG(MSG_UNWIND_EXCEPTION,
-	      Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
-	l_top = (void*)(BFR+1);
-      }
-      lTop = l_top;
-
-      while(fli_context > (FliFrame)lTop)
-	fli_context = fli_context->parent;
+      lTop = (LocalFrame)(BFR+1);
+      DEBUG(CHK_SECURE,
+	    { SAVE_REGISTERS(QID);
+	      checkStacks(NULL);
+	      LOAD_REGISTERS(QID);
+	    });
+      SAVE_REGISTERS(QID);
+      dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT);
+      LOAD_REGISTERS(QID);
+      ch = (Choice)valTermRef(chref);
+      Undo(ch->mark);
+      DiscardMark(ch->mark);
+      clearLocalVariablesFrame(FR);
+      PL_put_term(LD->exception.pending, exception_term);
+      if ( printed )
+	PL_put_term(exception_printed, exception_term);
 
       DEBUG(CHK_SECURE,
-	    { size_t clean = (char*)lMax - (char*)lTop;
-	      SAVE_REGISTERS(QID);
-	      memset(lTop, 0xfb, clean);
+	    { SAVE_REGISTERS(QID);
 	      checkStacks(NULL);
-	      LOAD_REGISTERS(QID)
+	      LOAD_REGISTERS(QID);
+	      ch = (Choice)valTermRef(chref);
 	    });
 
-      if ( ison(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT);
-	LOAD_REGISTERS(QID);
-	discardFrame(FR);
-	SAVE_REGISTERS(QID);
-	frameFinished(FR, FINISH_EXCEPT);
-	LOAD_REGISTERS(QID);
-      } else
-      { SAVE_REGISTERS(QID);
-	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
-	LOAD_REGISTERS(QID);
-	discardFrame(FR);
-      }
-
-      if ( start_tracer )		/* See (*) */
-      {	SAVE_REGISTERS(QID);
-	exceptionUnwindGC();
-	LOAD_REGISTERS(QID);
-
-	DEBUG(MSG_STACK_OVERFLOW,
-	      Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
-		       usedStack(global),
-		       usedStack(local),
-		       usedStack(trail)));
-
-	if ( trace_if_space() )
-	{ int rc;
-	  start_tracer = false;
-	  SAVE_REGISTERS(QID);
-	  LD->critical++;		/* do not handle signals */
-	  trimStacks(false);
-	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
-	  (void)rc;
-	  LD->critical--;
-	  LOAD_REGISTERS(QID);
-	}
-      }
-    }
-
-    if ( start_tracer )
-    { Sdprintf("Failed to print resource exception due to lack of space\n");
       SAVE_REGISTERS(QID);
-      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      action = tracePort(FR, ch, EXCEPTION_PORT, PC);
       LOAD_REGISTERS(QID);
+
+      switch( action )
+      { case PL_TRACE_ACTION_RETRY:
+	  SAVE_REGISTERS(QID);
+	  discardChoicesAfter(FR, FINISH_CUT);
+	  resumeAfterException(true, outofstack);
+	  LOAD_REGISTERS(QID);
+	  DEF = FR->predicate;
+	  FR->clause = NULL;
+	  VMH_GOTO(depart_or_retry_continue);
+	case PL_TRACE_ACTION_ABORT:
+	  THROW_EXCEPTION;
+      }
+
+      setVar(*valTermRef(LD->exception.pending));
     }
-  } else
-#endif /*O_DEBUGGER*/
-  { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
-    for( ;
-	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
-	 PC = FR->programPointer,
-	 FR = FR->parent )
-    { environment_frame = FR;
-      ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
-      LD->statistics.inferences++;	/* box exit, needed for GC */
+    /* discard as much as we can from the local stack */
+    l_top = argFrameP(FR, FR->predicate->functor->arity);
+    FR->clause = NULL;		/* We do not care about the arguments */
+    DEBUG(MSG_UNWIND_EXCEPTION,
+	  Sdprintf("l_top above [%d] %s: %p\n",
+		   (int)FR->level, predicateName(FR->predicate), l_top));
+    if ( l_top < (void*)(BFR+1) )
+    { DEBUG(MSG_UNWIND_EXCEPTION,
+	    Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
+      l_top = (void*)(BFR+1);
+    }
+    lTop = l_top;
 
+    while(fli_context > (FliFrame)lTop)
+      fli_context = fli_context->parent;
+
+    DEBUG(CHK_SECURE,
+	  { size_t clean = (char*)lMax - (char*)lTop;
+	    SAVE_REGISTERS(QID);
+	    memset(lTop, 0xfb, clean);
+	    checkStacks(NULL);
+	    LOAD_REGISTERS(QID);
+	  });
+
+    if ( ison(FR, FR_WATCHED) )
+    { SAVE_REGISTERS(QID);
+      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT);
+      LOAD_REGISTERS(QID);
+      discardFrame(FR);
       SAVE_REGISTERS(QID);
+      frameFinished(FR, FINISH_EXCEPT);
+      LOAD_REGISTERS(QID);
+    } else
+    { SAVE_REGISTERS(QID);
       dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
       LOAD_REGISTERS(QID);
-
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       discardFrame(FR);
-      if ( ison(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(QID);
-	frameFinished(FR, FINISH_EXCEPT);
+    }
+
+    if ( start_tracer )		/* See (*) */
+    { SAVE_REGISTERS(QID);
+      exceptionUnwindGC();
+      LOAD_REGISTERS(QID);
+
+      DEBUG(MSG_STACK_OVERFLOW,
+	    Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
+		     usedStack(global),
+		     usedStack(local),
+		     usedStack(trail)));
+
+      if ( trace_if_space() )
+      { int rc;
+	start_tracer = false;
+	SAVE_REGISTERS(QID);
+	LD->critical++;		/* do not handle signals */
+	trimStacks(false);
+	rc = printMessage(ATOM_error, PL_TERM, exception_term);
+	(void)rc;
+	LD->critical--;
 	LOAD_REGISTERS(QID);
       }
-      DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
     }
+  }
+
+  if ( start_tracer )
+  { Sdprintf("Failed to print resource exception due to lack of space\n");
+    SAVE_REGISTERS(QID);
+    PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+    LOAD_REGISTERS(QID);
+  }
+
+  VMH_GOTO(b_throw_resume, catchfr_ref, outofstack);
+}
+END_VMH
+#endif /*O_DEBUGGER*/
+
+/* Normal (nodebug)  version of  the stack unwinding.   This is  a lot
+ * simpler.
+ */
+
+VMH(b_throw_cont_unwind_ndebug, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{ DEBUG(3, Sdprintf("Unwinding for exception\n"));
+
+  for( ;
+       FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+       PC = FR->programPointer, FR = FR->parent )
+  { environment_frame = FR;
+    ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
+    LD->statistics.inferences++;	/* box exit, needed for GC */
+
+    SAVE_REGISTERS(QID);
+    dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
+    LOAD_REGISTERS(QID);
+
+    lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+    discardFrame(FR);
+    if ( ison(FR, FR_WATCHED) )
+    { SAVE_REGISTERS(QID);
+      frameFinished(FR, FINISH_EXCEPT);
+      LOAD_REGISTERS(QID);
+    }
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   }
 
   VMH_GOTO(b_throw_resume, catchfr_ref, outofstack);
