@@ -4979,7 +4979,6 @@ END_VMI
 
 VMH(b_throw, 0, (), ())
 { term_t catchfr_ref;
-  int start_tracer;
   Stack outofstack;
   int rewritten;
 
@@ -5057,6 +5056,12 @@ again:
     }
   }
   PL_close_foreign_frame(fid);
+  VMH_GOTO(b_throw_cont, catchfr_ref, outofstack);
+}
+END_VMH
+
+VMH(b_throw_cont, 2, (term_t, Stack), (catchfr_ref, outofstack))
+{ bool start_tracer;
 
 #if O_DEBUGGER
   start_tracer = false;
