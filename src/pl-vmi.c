@@ -5139,7 +5139,6 @@ VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, sta
        FR && FR > (LocalFrame)valTermRef(catchfr_ref);
        PC = FR->programPointer, FR = FR->parent )
   { Choice ch = findStartChoice(FR, LD->choicepoints);
-    void *l_top;
 
     environment_frame = FR;
     ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
@@ -5195,28 +5194,9 @@ VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, sta
     }
 
     /* discard as much as we can from the local stack */
-    l_top = argFrameP(FR, FR->predicate->functor->arity);
-    FR->clause = NULL;		/* We do not care about the arguments */
-    DEBUG(MSG_UNWIND_EXCEPTION,
-	  Sdprintf("l_top above [%d] %s: %p\n",
-		   (int)FR->level, predicateName(FR->predicate), l_top));
-    if ( l_top < (void*)(BFR+1) )
-    { DEBUG(MSG_UNWIND_EXCEPTION,
-	    Sdprintf("Include choice points: %p -> %p\n", l_top, (void*)(BFR+1)));
-      l_top = (void*)(BFR+1);
-    }
-    lTop = l_top;
-
-    while(fli_context > (FliFrame)lTop)
-      fli_context = fli_context->parent;
-
-    DEBUG(CHK_SECURE,
-	  { size_t clean = (char*)lMax - (char*)lTop;
-	    SAVE_REGISTERS(QID);
-	    memset(lTop, 0xfb, clean);
-	    checkStacks(NULL);
-	    LOAD_REGISTERS(QID);
-	  });
+    SAVE_REGISTERS(QID);
+    dbg_except_unwind_ltop(FR);
+    LOAD_REGISTERS(QID);
 
     if ( ison(FR, FR_WATCHED) )
     { SAVE_REGISTERS(QID);

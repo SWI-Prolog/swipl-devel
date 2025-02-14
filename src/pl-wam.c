@@ -2703,6 +2703,44 @@ dbg_discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
   }
 }
 
+/* Discard as much  as possible of the local stack  while unwinding an
+ * exception.   We need  to include  the current  environment and  the
+ * predicate arguments, but not the local variables (hence, we set the
+ * fr->clause to NULL).  We also  need the last choicepoint.  Finally,
+ * we can dispose of foreign environments above the new lTop.
+ */
+
+#define dbg_except_unwind_ltop(fr) \
+	LDFUNC(dbg_except_unwind_ltop, fr)
+
+static void
+dbg_except_unwind_ltop(DECL_LD LocalFrame fr)
+{ void *e_top = argFrameP(fr, fr->predicate->functor->arity);
+  void *c_top = LD->choicepoints+1;
+
+  fr->clause = NULL;	/* We do not care about the local variables */
+  DEBUG(MSG_UNWIND_EXCEPTION,
+	Sdprintf("e_top above [%u] %s: %p\n",
+		 fr->level, predicateName(fr->predicate), e_top));
+  if ( e_top < c_top )
+  { DEBUG(MSG_UNWIND_EXCEPTION,
+	  Sdprintf("Include choice points: %p -> %p\n",
+		   e_top, c_top));
+    e_top = c_top;
+  }
+  lTop = e_top;
+
+  while(fli_context > (FliFrame)lTop)
+    fli_context = fli_context->parent;
+
+  /* Verify we didn't mess up anything */
+  DEBUG(CHK_SECURE,
+	{ size_t clean = (char*)lMax - (char*)lTop;
+	  memset(lTop, 0xfb, clean);
+	  checkStacks(NULL);
+	});
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
