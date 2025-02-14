@@ -2710,12 +2710,13 @@ dbg_discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
  * we can dispose of foreign environments above the new lTop.
  */
 
-#define dbg_except_unwind_ltop(fr) \
-	LDFUNC(dbg_except_unwind_ltop, fr)
+#define dbg_except_unwind_ltop(_) \
+	LDFUNC(dbg_except_unwind_ltop, _)
 
 static void
-dbg_except_unwind_ltop(DECL_LD LocalFrame fr)
-{ void *e_top = argFrameP(fr, fr->predicate->functor->arity);
+dbg_except_unwind_ltop(DECL_LD)
+{ LocalFrame fr = LD->environment;
+  void *e_top = argFrameP(fr, fr->predicate->functor->arity);
   void *c_top = LD->choicepoints+1;
 
   fr->clause = NULL;	/* We do not care about the local variables */
@@ -2792,6 +2793,25 @@ dbg_except_start_tracer(DECL_LD)
   }
 
   return false;
+}
+
+/* Discard the innermost frame during exception unwinding in debug
+ * mode.  Note that we need to use `LD->environment` explicitly as
+ * garbage collections and stack shifts may change the frame;
+ */
+
+#define dbg_except_discard_frame(_) LDFUNC(dbg_except_discard_frame, _)
+
+static void
+dbg_except_discard_frame(DECL_LD)
+{ if ( ison(LD->environment, FR_WATCHED) )
+  { dbg_discardChoicesAfter(LD->environment, FINISH_EXTERNAL_EXCEPT);
+    discardFrame(LD->environment);
+    frameFinished(LD->environment, FINISH_EXCEPT);
+  } else
+  { dbg_discardChoicesAfter(LD->environment, FINISH_EXTERNAL_EXCEPT_UNDO);
+    discardFrame(LD->environment);
+  }
 }
 
 

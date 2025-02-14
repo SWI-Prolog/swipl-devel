@@ -5172,23 +5172,9 @@ VMH(b_throw_unwind_debug, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, st
 
     /* discard as much as we can from the local stack */
     SAVE_REGISTERS(QID);
-    dbg_except_unwind_ltop(FR);
+    dbg_except_unwind_ltop();
+    dbg_except_discard_frame();
     LOAD_REGISTERS(QID);
-
-    if ( ison(FR, FR_WATCHED) )
-    { SAVE_REGISTERS(QID);
-      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT);
-      LOAD_REGISTERS(QID);
-      discardFrame(FR);
-      SAVE_REGISTERS(QID);
-      frameFinished(FR, FINISH_EXCEPT);
-      LOAD_REGISTERS(QID);
-    } else
-    { SAVE_REGISTERS(QID);
-      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO);
-      LOAD_REGISTERS(QID);
-      discardFrame(FR);
-    }
 
     if ( start_tracer && dbg_except_start_tracer() )
       start_tracer = false;
