@@ -3559,7 +3559,10 @@ variables used in the B_THROW instruction.
     { LOAD_REGISTERS(qid);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       if ( exception_term )
+      { LD->trace.yield.port = NO_PORT;
+	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
 	THROW_EXCEPTION;
+      }
       DEF = FR->predicate;
       QF->yield.term = 0;
       if ( LD->trace.yield.port != NO_PORT )

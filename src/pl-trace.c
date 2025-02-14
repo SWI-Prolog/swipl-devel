@@ -411,10 +411,14 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
        (isoff(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
     return PL_TRACE_ACTION_CONTINUE;		/* not tracing and no spy-point */
   if ( debugstatus.skiplevel < levelFrame(frame) )
-    return PL_TRACE_ACTION_CONTINUE;		/* skipped */
+    return PL_TRACE_ACTION_CONTINUE;		/* skipping */
   if ( debugstatus.skiplevel == levelFrame(frame) &&
        (port & (REDO_PORT|CUT_PORT|UNIFY_PORT)) )
     return PL_TRACE_ACTION_CONTINUE;		/* redo, unify or ! in skipped pred */
+  if ( debugstatus.skiplevel == levelFrame(frame) )
+  { clear(frame, FR_SKIPPED);			/* skip finished */
+    debugstatus.skiplevel = SKIP_VERY_DEEP;
+  }
   if ( isoff(def, TRACE_ME) )
     return PL_TRACE_ACTION_CONTINUE;		/* non-traced predicate */
   if ( (!(debugstatus.visible & port)) )
@@ -892,7 +896,7 @@ stack, so their identity is unaffected.   Variables  pushed by B_VOID do
 change identity as they become a reference pointer into the goal term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 put_frame_goal(term_t goal, LocalFrame frame)
 { GET_LD
   Definition def = frame->predicate;
@@ -1400,9 +1404,7 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
 
   if ( PL_get_atom(action, &a) )
   { if ( a == ATOM_continue )
-    { if ( !(port & EXIT_PORT) )
-	clear(frame, FR_SKIPPED);
-      rval = PL_TRACE_ACTION_CONTINUE;
+    { rval = PL_TRACE_ACTION_CONTINUE;
     } else if ( a == ATOM_nodebug )
     { rval = PL_TRACE_ACTION_CONTINUE;
       *nodebugp = true;
@@ -1416,6 +1418,8 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
       rval = PL_TRACE_ACTION_CONTINUE;
     } else if ( a == ATOM_up )
     { debugstatus.skiplevel = levelFrame(frame) - 1;
+      if ( frame->parent )
+	set(frame->parent, FR_SKIPPED);
       rval = PL_TRACE_ACTION_CONTINUE;
     } else if ( a == ATOM_retry )
     { debugstatus.retryFrame = consTermRef(frame);
@@ -1424,6 +1428,8 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
     { rval = PL_TRACE_ACTION_IGNORE;
     } else if ( a == ATOM_abort )
     { rval = PL_TRACE_ACTION_ABORT;
+      if ( !PL_exception(0) )
+	abortProlog();
     } else
       PL_warning("Unknown trace action: %s", stringAtom(a));
   } else if ( PL_is_functor(action, FUNCTOR_retry1) )
@@ -1972,8 +1978,8 @@ initTracer(DECL_LD)
     enable_debug_on_interrupt(true);
 }
 
-int
-enable_debug_on_interrupt(DECL_LD int enable)
+bool
+enable_debug_on_interrupt(DECL_LD bool enable)
 {
 #if O_SIGNALS && defined(SIGINT)
   if ( enable )
@@ -2014,8 +2020,8 @@ suspendTrace(int suspend)
 }
 
 
-int
-tracemode(int doit, int *old)
+bool
+tracemode(bool doit, bool *old)
 { GET_LD
 
   if ( doit )
@@ -2038,7 +2044,7 @@ tracemode(int doit, int *old)
       LD->trace.find->searching = false;
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -2058,9 +2064,9 @@ Enable the tracer if we have a safe amount of available space. This is
 used to start tracing uncaught overflow exceptions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 trace_if_space(void)
-{ int trace;
+{ bool trace;
 
   if ( have_space_for_debugging() )
   { trace = true;
@@ -2102,7 +2108,7 @@ queries. This behaviour is intended to allow   using  spy and debug from
 PceEmacs that runs its Prolog work in non-debug mode.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 debugmode(debug_type doit, debug_type *old)
 { GET_LD
 
@@ -2144,30 +2150,30 @@ debugmode(debug_type doit, debug_type *old)
 
 #else /*O_DEBUGGER*/
 
-int
-tracemode(int doit, int *old)
-{ succeed;
+bool
+tracemode(bool doit, bool *old)
+{ return true;
 }
 
-int
+bool
 debugmode(debug_type doit, debug_type *old)
-{ succeed;
+{ return true;
 }
 
 #endif
 
 foreign_t
-pl_trace()
+pl_trace(void)
 { return tracemode(true, NULL);
 }
 
 foreign_t
-pl_notrace()
+pl_notrace(void)
 { return tracemode(false, NULL);
 }
 
 foreign_t
-pl_tracing()
+pl_tracing(void)
 { GET_LD
 
   return debugstatus.tracing;
@@ -2195,19 +2201,19 @@ PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_very_deep )
     { debugstatus.skiplevel = SKIP_VERY_DEEP;
-      succeed;
+      return true;
     } else if ( a == ATOM_redo_in_skip )
     { debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
-      succeed;
+      return true;
     }
   }
 
   if ( PL_get_size_ex(new, &sl) )
   { debugstatus.skiplevel = sl;
-    succeed;
+    return true;
   }
 
-  fail;
+  return false;
 }
 
 

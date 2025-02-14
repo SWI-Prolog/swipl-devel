@@ -57,12 +57,12 @@ bool		isDebugFrame(LocalFrame FR);
 int		tracePort(LocalFrame frame, Choice bfr,
 			  int port, Code PC);
 void		initTracer(void);
-int		enable_debug_on_interrupt(int enable);
+bool		enable_debug_on_interrupt(bool enable);
 void		resetTracer(void);
-int		tracemode(int new, int *old);
-int		debugmode(debug_type new, debug_type *old);
-int		trace_if_space(void);
-int		put_frame_goal(term_t goal, LocalFrame frame);
+bool		tracemode(bool new, bool *old);
+bool		debugmode(debug_type new, debug_type *old);
+bool		trace_if_space(void);
+bool		put_frame_goal(term_t goal, LocalFrame frame);
 foreign_t	pl_trace(void);
 foreign_t	pl_notrace(void);
 foreign_t	pl_tracing(void);
