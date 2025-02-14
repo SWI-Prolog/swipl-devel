@@ -4972,7 +4972,7 @@ system will actually consider GC. See considerGarbageCollect().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
-{ PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
+{ PL_raise_exception(consTermRef(argFrameP(lTop, 0)));
   THROW_EXCEPTION;				/* sets origin */
 }
 END_VMI
