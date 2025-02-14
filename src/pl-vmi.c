@@ -4986,10 +4986,8 @@ END_VMI
 VMH(b_throw, 0, (), ())
 { term_t catchfr_ref;
   Stack outofstack;
-  int rewritten;
 
   LD->fast_condition = NULL;		/* A_FUNC exceptions */
-  rewritten = 0;
   QF  = QueryFromQid(QID);
   aTop = QF->aSave;
   assert(exception_term);
@@ -5019,48 +5017,55 @@ VMH(b_throw, 0, (), ())
     assert(0);
   }
 
-again:
-  SAVE_REGISTERS(QID);
-  catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
-  LOAD_REGISTERS(QID);
-  DEBUG(MSG_THROW,
-	{ if ( catchfr_ref )
-	  { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
-	    Sdprintf("[%d]: found catcher at %ld\n",
-		     PL_thread_self(), (long)levelFrame(fr));
-	  } else
-	  { Sdprintf("[%d]: not caught\n", PL_thread_self());
-	  }
-	});
-
-  DEBUG(CHK_SECURE,
-	{ SAVE_REGISTERS(QID);
-	  checkData(valTermRef(exception_term));
-	  checkStacks(NULL);
-	  LOAD_REGISTERS(QID);
-	});
-
-  if ( debugstatus.suspendTrace == false && !rewritten++ &&
-       !uncachableException(exception_term) &&		/* unwind(_) */
-       !resourceException(exception_term) )
-  { int rc;
-
-    SAVE_REGISTERS(QID);
-    rc = exception_hook(QID, consTermRef(FR), catchfr_ref);
+  /* find the catching frame and try to rewrite the exception */
+  for(int rewritten=0; rewritten<=1; rewritten++)
+  { SAVE_REGISTERS(QID);
+    catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
     LOAD_REGISTERS(QID);
+    DEBUG(MSG_THROW,
+	  { if ( catchfr_ref )
+	    { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
+	      Sdprintf("[%d]: found catcher at %ld\n",
+		       PL_thread_self(), (long)levelFrame(fr));
+	    } else
+	    { Sdprintf("[%d]: not caught\n", PL_thread_self());
+	    }
+	  });
 
-    if ( rc )
-    { DEBUG(MSG_THROW,
-	    Sdprintf("Exception was rewritten to: ");
-	    PL_write_term(Serror, exception_term, 1200, 0);
-	    Sdprintf(" (retrying)\n"));
+    DEBUG(CHK_SECURE,
+	  { SAVE_REGISTERS(QID);
+	    checkData(valTermRef(exception_term));
+	    checkStacks(NULL);
+	    LOAD_REGISTERS(QID);
+	  });
 
-      PL_rewind_foreign_frame(fid);
-      if ( catchfr_ref )
-	clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
-      goto again;
+    /* Try to rewrite "normal" exceptions.  This is in particular done
+       to decorate exceptions with context information.  We do this at
+       most once.
+     */
+    if ( debugstatus.suspendTrace == false && !rewritten &&
+	 !uncachableException(exception_term) &&		/* unwind(_) */
+	 !resourceException(exception_term) )
+    { bool rc;
+
+      SAVE_REGISTERS(QID);
+      rc = exception_hook(QID, consTermRef(FR), catchfr_ref);
+      LOAD_REGISTERS(QID);
+
+      if ( rc )
+      { DEBUG(MSG_THROW,
+	      Sdprintf("Exception was rewritten to: ");
+	      PL_write_term(Serror, exception_term, 1200, 0);
+	      Sdprintf(" (retrying)\n"));
+
+	PL_rewind_foreign_frame(fid);
+	if ( catchfr_ref )
+	  clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
+	continue;
+      }
     }
-  }
+    break;
+  } /* Ends "rewritten" loop */
   PL_close_foreign_frame(fid);
   VMH_GOTO(b_throw_cont, catchfr_ref, outofstack);
 }
