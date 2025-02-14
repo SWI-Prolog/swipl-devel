@@ -5245,13 +5245,14 @@ VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, sta
 		     usedStack(trail)));
 
       if ( trace_if_space() )
-      { int rc;
-	start_tracer = false;
+      { start_tracer = false;
 	SAVE_REGISTERS(QID);
 	LD->critical++;		/* do not handle signals */
 	trimStacks(false);
-	rc = printMessage(ATOM_error, PL_TERM, exception_term);
-	(void)rc;
+	if ( !printMessage(ATOM_error, PL_TERM, exception_term) )
+	{ Sdprintf("Failed to print exception message\n");
+	  PL_clear_exception();
+	}
 	LD->critical--;
 	LOAD_REGISTERS(QID);
       }
