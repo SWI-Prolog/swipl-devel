@@ -2261,14 +2261,16 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 #define exception_hook(pqid, fr, catchfr_ref) \
 	LDFUNC(exception_hook, pqid, fr, catchfr_ref)
 
-static int
+static bool
 exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 { if ( PROCEDURE_exception_hook5->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;
       term_t av, ex = 0;
-      int debug, trace, rc;
+      debug_type debug;
+      bool trace;
+      bool rc;
 
       LD->exception.in_hook++;
       if ( !saveWakeup(&wstate, true) )
@@ -2307,7 +2309,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       trace = debugstatus.tracing;
       if ( rc )				/* pass user setting trace/debug */
       { PL_cut_query(qid);
-	if ( debug ) debugstatus.debugging = true;
+	if ( debug ) debugstatus.debugging = debug;
 	if ( trace ) debugstatus.tracing = true;
 	if ( !PL_is_variable(av+1) )
 	  ex = av+1;
