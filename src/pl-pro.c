@@ -566,7 +566,8 @@ abortProlog(void)
   term_t ex;
   bool rc = false;
 
-  pl_notrace();
+  tracemode(false, NULL);
+  debugmode(DBG_OFF, NULL);
   Sreset();				/* Discard pending IO */
 
   LD->exception.processing = true;	/* allow using spare stack */
