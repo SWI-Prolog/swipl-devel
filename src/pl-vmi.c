@@ -4952,29 +4952,6 @@ make it  easier to track the  dependencies and follow the  flow.  When
 using VMI  functions, these are  simple tail calls and  otherwise they
 are  `goto`  instructions  that  will   be  removed  by  the  compiler
 optimizer.
-
-(*) If the exception is not caught, we  try to print it and enable trace
-mode. However, we should be careful about   this  if the exception is an
-out-of-stack exception because the trace runs in Prolog and is likely to
-run fatally out of stack if we start the tracer immediately. That is the
-role of trace_if_space(). As long as there is no space, the exception is
-unwinded until there is space. Unfortunately,   this  means that some of
-the context of the exception is lost. Note that  we need to run GC if we
-ran out of global stack because  the   stack  is  frozen to preserve the
-exception ball.
-
-Overflow exceptions are supposed to be rare,   but  need to be processed
-with care to avoid a fatal overflow   when  processing the exception and
-its cleanup or debug actions.  We want two things:
-
-  - Get, before doing any calls to Prolog, a sensible amount of free
-    space.
-  - GC and trim before resuming normal execution to free up and
-    deallocate as much as possible space.
-
-On each unwind action, we must  reset Stack->gced_size and increment the
-inference count to make sure that the  time   we  run  out of memory the
-system will actually consider GC. See considerGarbageCollect().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
@@ -5124,18 +5101,18 @@ VMH(b_throw_debug, 2, (term_t, Stack), (catchfr_ref, outofstack))
     }
   }
 
-  VMH_GOTO(b_throw_cont_unwind, catchfr_ref, outofstack, start_tracer);
+  if ( debugstatus.debugging )
+    VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack, start_tracer);
+  else
+    VMH_GOTO(b_throw_unwind, catchfr_ref, outofstack);
 }
 END_VMH
 
-/* Unwind the stack, either in debug mode or in nodebug mode.
+/* Unwind the stack in debug mode
  */
 
-VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, start_tracer))
-{ if ( !debugstatus.debugging )
-    VMH_GOTO(b_throw_cont_unwind_ndebug, catchfr_ref, outofstack);
-
-  for( ;
+VMH(b_throw_unwind_debug, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, start_tracer))
+{ for( ;
        FR && FR > (LocalFrame)valTermRef(catchfr_ref);
        PC = FR->programPointer, FR = FR->parent )
   { Choice ch = findStartChoice(FR, LD->choicepoints);
@@ -5213,30 +5190,8 @@ VMH(b_throw_cont_unwind, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, sta
       discardFrame(FR);
     }
 
-    if ( start_tracer )		/* See (*) */
-    { SAVE_REGISTERS(QID);
-      exceptionUnwindGC();
-      LOAD_REGISTERS(QID);
-
-      DEBUG(MSG_STACK_OVERFLOW,
-	    Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
-		     usedStack(global),
-		     usedStack(local),
-		     usedStack(trail)));
-
-      if ( trace_if_space() )
-      { start_tracer = false;
-	SAVE_REGISTERS(QID);
-	LD->critical++;		/* do not handle signals */
-	trimStacks(false);
-	if ( !printMessage(ATOM_error, PL_TERM, exception_term) )
-	{ Sdprintf("Failed to print exception message\n");
-	  PL_clear_exception();
-	}
-	LD->critical--;
-	LOAD_REGISTERS(QID);
-      }
-    }
+    if ( start_tracer && dbg_except_start_tracer() )
+      start_tracer = false;
   }
 
   if ( start_tracer )
@@ -5255,7 +5210,7 @@ END_VMH
  * simpler.
  */
 
-VMH(b_throw_cont_unwind_ndebug, 2, (term_t, Stack), (catchfr_ref, outofstack))
+VMH(b_throw_unwind, 2, (term_t, Stack), (catchfr_ref, outofstack))
 { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
   for( ;

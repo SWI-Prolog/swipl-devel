@@ -2741,6 +2741,59 @@ dbg_except_unwind_ltop(DECL_LD LocalFrame fr)
 	});
 }
 
+/* Try to start the debugger while unwinding an exception.  We run GC,
+ * trying  to free  up space  and then  test whether  there is  enough
+ * space.   That is  also  the moment  when we  can  safely print  the
+ * exception message.
+ *
+ * If the exception is not caught, we try to print it and enable trace
+ * mode. However, we should be careful  about this if the exception is
+ * an out-of-stack exception  because the trace runs in  Prolog and is
+ * likely  to  run  fatally  out  of stack  if  we  start  the  tracer
+ * immediately. That is the role of trace_if_space(). As long as there
+ * is  no  space, the  exception  is  unwound  until there  is  space.
+ * Unfortunately, this means that some of the context of the exception
+ * is lost. Note that we need to run  GC if we ran out of global stack
+ * because the stack is frozen to preserve the exception ball.
+ *
+ * Overflow  exceptions  are supposed  to  be  rare,  but need  to  be
+ * processed with care  to avoid a fatal overflow  when processing the
+ * exception and its cleanup or debug actions.  We want two things:
+ *
+ *   - Get, before doing any calls to Prolog, a sensible amount of free
+ *     space.
+ *   - GC and trim before resuming normal execution to free up and
+ *     deallocate as much as possible space.
+ *
+ * On each unwind action, we must reset Stack->gced_size and increment
+ * the inference count to make sure that the time we run out of memory
+ * the system will actually consider GC. See considerGarbageCollect().
+ */
+
+#define	dbg_except_start_tracer(_) LDFUNC(dbg_except_start_tracer, _)
+
+static bool
+dbg_except_start_tracer(DECL_LD)
+{ exceptionUnwindGC();
+  DEBUG(MSG_STACK_OVERFLOW,
+	Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
+		 usedStack(global),
+		 usedStack(local),
+		 usedStack(trail)));
+  if ( trace_if_space() )
+  { LD->critical++;		/* do not handle signals */
+    trimStacks(false);
+    if ( !printMessage(ATOM_error, PL_TERM, exception_term) )
+    { Sdprintf("Failed to print exception message\n");
+      // PL_clear_exception();		What to do here?
+    }
+    LD->critical--;
+    return true;
+  }
+
+  return false;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
