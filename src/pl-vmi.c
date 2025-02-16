@@ -5102,7 +5102,8 @@ VMH(b_throw_debug, 2, (term_t, Stack), (catchfr_ref, outofstack))
   }
 
   if ( debugstatus.debugging )
-    VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack, start_tracer);
+    VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack,
+	     start_tracer, PL_TRACE_ACTION_NONE);
   else
     VMH_GOTO(b_throw_unwind, catchfr_ref, outofstack);
 }
@@ -5111,8 +5112,14 @@ END_VMH
 /* Unwind the stack in debug mode
  */
 
-VMH(b_throw_unwind_debug, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, start_tracer))
-{ for( ;
+VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstack, start_tracer, action))
+{ if ( action == PL_TRACE_ACTION_NONE )
+  { assert(FR == environment_frame);
+  } else
+  { FR = environment_frame;
+  }
+
+  for( ;
        FR && FR > (LocalFrame)valTermRef(catchfr_ref);
        PC = FR->programPointer, FR = FR->parent )
   { Choice ch = findStartChoice(FR, LD->choicepoints);
@@ -5165,6 +5172,11 @@ VMH(b_throw_unwind_debug, 3, (term_t, Stack, bool), (catchfr_ref, outofstack, st
 	  VMH_GOTO(depart_or_retry_continue);
 	case PL_TRACE_ACTION_ABORT:
 	  THROW_EXCEPTION;
+	case PL_TRACE_ACTION_YIELD:
+	  LD->trace.yield.exception.catchfr_ref = catchfr_ref;
+	  LD->trace.yield.exception.outofstack  = outofstack;
+	  SAVE_REGISTERS(QID);
+	  SOLUTION_RETURN(debug_yield(EXCEPTION_PORT));
       }
 
       setVar(*valTermRef(LD->exception.pending));
@@ -6791,6 +6803,15 @@ VMH(debug_resume, 0, (), ())
       VMH_GOTO(deep_backtrack, action);
     case REDO_PORT:
       VMH_GOTO(debug_redo_continue, action);
+    case EXCEPTION_PORT:
+    { term_t catchfr_ref = LD->trace.yield.exception.catchfr_ref;
+      Stack outofstack = LD->trace.yield.exception.outofstack;
+      bool start_tracer = LD->trace.yield.exception.start_tracer;
+      memset(&LD->trace.yield.exception, 0,
+	     sizeof(LD->trace.yield.exception));
+      VMH_GOTO(b_throw_unwind_debug, catchfr_ref, outofstack, start_tracer,
+	       action);
+    }
     default:
       assert(0);
   }

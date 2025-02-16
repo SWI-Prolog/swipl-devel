@@ -726,9 +726,14 @@ struct PL_local_data
   { FindData	find;			/* /<ports> <goal> in tracer */
     struct
     { char	resume_action;		/* Restart after yield */
-      char	port;			/* Port on which we stopped */
+      short	port;			/* Port on which we stopped */
       bool	redo_is_jump;		/* Distinguish the two REDO ports */
       struct clause_choice chp;		/* Clause redo context */
+      struct
+      { term_t	catchfr_ref;		/* Catching frame reference */
+	Stack	outofstack;		/* We are processing an out-of-stack */
+	bool	start_tracer;		/* Start debugger asap */
+      } exception;
     } yield;
   } trace;
 
