@@ -533,7 +533,7 @@ a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-saveWakeup(DECL_LD wakeup_state *state, int forceframe)
+saveWakeup(DECL_LD wakeup_state *state, bool forceframe)
 { state->flags = 0;
   state->outofstack = LD->outofstack;
 

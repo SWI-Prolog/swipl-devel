@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2024, University of Amsterdam
+    Copyright (c)  2004-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -57,7 +57,7 @@
 
 void		assignAttVar(Word av, Word value);
 bool		bind_attvar_const(Word p, word c);
-bool		saveWakeup(wakeup_state *state, int forceframe);
+bool		saveWakeup(wakeup_state *state, bool forceframe);
 void		restoreWakeup(wakeup_state *state);
 bool		PL_get_attr(term_t t, term_t a);
 bool		on_attvar_chain(Word avp);
