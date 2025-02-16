@@ -2814,6 +2814,18 @@ dbg_except_discard_frame(DECL_LD)
   }
 }
 
+#define is_yieled_exception(t) LDFUNC(is_yieled_exception, t)
+
+static bool
+is_yieled_exception(DECL_LD term_t ex)
+{ if ( LD->trace.yield.port == EXCEPTION_PORT )
+  { term_t yielded = wakeup_state_exception(&LD->query->yield.wstate);
+
+    return yielded && PL_same_term(yielded, ex);
+  }
+
+  return false;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
@@ -3670,16 +3682,16 @@ variables used in the B_THROW instruction.
     PL_close_foreign_frame(fid);
     BODY_FAILED;
   } else if ( QF->yield.term )		/* resume after yield */
-  { restoreWakeup(&QF->yield.wstate);
+  { QF->yield.term = 0;
+    restoreWakeup(&QF->yield.wstate);
     LOAD_REGISTERS(qid);
+    DEF = FR->predicate;
     DEBUG(CHK_SECURE, checkStacks(NULL));
-    if ( exception_term )
+    if ( exception_term && !is_yieled_exception(exception_term) )
     { LD->trace.yield.port = NO_PORT;
       LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
       THROW_EXCEPTION;
     }
-    DEF = FR->predicate;
-    QF->yield.term = 0;
     if ( LD->trace.yield.port != NO_PORT )
       VMH_GOTO(debug_resume);
     else

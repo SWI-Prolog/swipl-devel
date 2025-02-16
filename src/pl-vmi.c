@@ -5113,17 +5113,20 @@ END_VMH
  */
 
 VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstack, start_tracer, action))
-{ if ( action == PL_TRACE_ACTION_NONE )
+{ Choice ch;
+
+  if ( action == PL_TRACE_ACTION_NONE )
   { assert(FR == environment_frame);
   } else
   { FR = environment_frame;
+    ch = findStartChoice(FR, BFR);
+    goto trace_resume_exception;
   }
 
   for( ;
        FR && FR > (LocalFrame)valTermRef(catchfr_ref);
        PC = FR->programPointer, FR = FR->parent )
-  { Choice ch = findStartChoice(FR, LD->choicepoints);
-
+  { ch = findStartChoice(FR, BFR);
     environment_frame = FR;
     ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
     LD->statistics.inferences++;	/* box exit, needed for GC */
@@ -5161,6 +5164,7 @@ VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstac
       action = tracePort(FR, ch, EXCEPTION_PORT, PC);
       LOAD_REGISTERS(QID);
 
+    trace_resume_exception:
       switch( action )
       { case PL_TRACE_ACTION_RETRY:
 	  SAVE_REGISTERS(QID);

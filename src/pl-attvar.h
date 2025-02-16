@@ -48,6 +48,7 @@
 #define	assignAttVar(av, value)		LDFUNC(assignAttVar, av, value)
 #define	bind_attvar_const(av, c)	LDFUNC(bind_attvar_const, av, c)
 #define	saveWakeup(state, forceframe)	LDFUNC(saveWakeup, state, forceframe)
+#define wakeup_state_exception(state)	LDFUNC(wakeup_state_exception, state)
 #define	restoreWakeup(state)		LDFUNC(restoreWakeup, state)
 #define	PL_get_attr(t, a)		LDFUNC(PL_get_attr, t, a)
 #define	alloc_attvar(_)			LDFUNC(alloc_attvar, _)
@@ -58,6 +59,7 @@
 void		assignAttVar(Word av, Word value);
 bool		bind_attvar_const(Word p, word c);
 bool		saveWakeup(wakeup_state *state, bool forceframe);
+term_t		wakeup_state_exception(const wakeup_state *state);
 void		restoreWakeup(wakeup_state *state);
 bool		PL_get_attr(term_t t, term_t a);
 bool		on_attvar_chain(Word avp);
