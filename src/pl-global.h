@@ -543,8 +543,8 @@ struct PL_local_data
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
     term_t	fr_rewritten;		/* processed by exception_hook() */
-    int		in_hook;		/* inside exception_hook() */
-    int		processing;		/* processing an exception */
+    bool	in_hook;		/* inside exception_hook() */
+    bool	processing;		/* processing an exception */
     exception_frame *throw_environment;	/* PL_throw() environments */
   } exception;
 

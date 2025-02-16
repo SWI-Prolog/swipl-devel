@@ -5002,8 +5002,8 @@ VMH(b_throw, 0, (), ())
     DEBUG(MSG_THROW,
 	  { if ( catchfr_ref )
 	    { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
-	      Sdprintf("[%d]: found catcher at %ld\n",
-		       PL_thread_self(), (long)levelFrame(fr));
+	      Sdprintf("[%d]: found catcher at %u\n",
+		       PL_thread_self(), levelFrame(fr));
 	    } else
 	    { Sdprintf("[%d]: not caught\n", PL_thread_self());
 	    }

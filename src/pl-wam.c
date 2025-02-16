@@ -2272,7 +2272,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       bool trace;
       bool rc;
 
-      LD->exception.in_hook++;
+      LD->exception.in_hook = true;
       if ( !saveWakeup(&wstate, true) )
 	return false;
 
@@ -2332,7 +2332,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 
     done:
       restoreWakeup(&wstate);
-      LD->exception.in_hook--;
+      LD->exception.in_hook = false;
 
       return rc;
     } else
