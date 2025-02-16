@@ -1786,7 +1786,7 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
   if ( unlikely(LD->alerted) )
-  {
+  { Coverage(FR, UNIFY_PORT);
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action;
@@ -1795,20 +1795,9 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
       clearUninitialisedVarsFrame(FR, PC);
       action = tracePort(FR, BFR, UNIFY_PORT, PC);
       LOAD_REGISTERS(QID);
-
-      switch( action )
-      { case PL_TRACE_ACTION_RETRY:
-	  TRACE_RETRY;
-	case PL_TRACE_ACTION_FAIL:
-	  FRAME_FAILED;
-	case PL_TRACE_ACTION_ABORT:
-	  THROW_EXCEPTION;
-      }
+      VMH_GOTO(debug_unify_continue, action);
     }
 #endif /*O_DEBUGGER*/
-
-    Coverage(FR, UNIFY_PORT);
-
     CHECK_WAKEUP;
   }
   NEXT_INSTRUCTION;
@@ -6754,6 +6743,23 @@ next_choice:
 }
 END_VMH
 
+VMH(debug_unify_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(UNIFY_PORT));
+  }
+  CHECK_WAKEUP;
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
 VMH(debug_redo_continue, 1, (int), (action))
 { switch( action )
   { case PL_TRACE_ACTION_FAIL:
@@ -6807,6 +6813,8 @@ VMH(debug_resume, 0, (), ())
       VMH_GOTO(deep_backtrack, action);
     case REDO_PORT:
       VMH_GOTO(debug_redo_continue, action);
+    case UNIFY_PORT:
+      VMH_GOTO(debug_unify_continue, action);
     case EXCEPTION_PORT:
     { term_t catchfr_ref = LD->trace.yield.exception.catchfr_ref;
       Stack outofstack = LD->trace.yield.exception.outofstack;
