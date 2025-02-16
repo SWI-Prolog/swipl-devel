@@ -1622,6 +1622,17 @@ struct clause_bucket
 #define MAXINDEXDEPTH    7
 #define END_INDEX_POS  255
 
+#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
+#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
+#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
+#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
+
+typedef struct wakeup_state
+{ fid_t		fid;			/* foreign frame reference */
+  Stack		outofstack;		/* Stack we are out of */
+  unsigned int	flags;			/* WAKEUP_STATE_* */
+} wakeup_state;
+
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
   unsigned int	 size;			/* # clauses */
@@ -1835,7 +1846,8 @@ struct queryFrame
   term_t	exception;		/* Exception term */
 #endif
   struct
-  { term_t	term;			/* Handle to exchange data */
+  { term_t	  term;			/* Handle to exchange data */
+    wakeup_state  wstate;		/* state saved using saveWakeup() */
   } yield;
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned int	flags;
@@ -2542,24 +2554,6 @@ typedef struct
 	    LD->var_names.numbervars_frame = _savedf; \
 	  } \
 	}
-
-
-		 /*******************************
-		 *	      WAKEUP		*
-		 *******************************/
-
-#define WAKEUP_STATE_WAKEUP          0x1 /* State contains a wakeup */
-#define WAKEUP_STATE_EXCEPTION	     0x2 /* State contains an exception */
-#define WAKEUP_STATE_SKIP_EXCEPTION  0x4 /* Do not restore exception from state */
-#define WAKEUP_KEEP_URGENT_EXCEPTION 0x8 /* Keep the most urgent exception */
-
-typedef struct wakeup_state
-{ fid_t		fid;			/* foreign frame reference */
-  Stack		outofstack;		/* Stack we are out of */
-  unsigned int	flags;			/* WAKEUP_STATE_* */
-} wakeup_state;
-
-
 
 
 		 /*******************************

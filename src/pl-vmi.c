@@ -2399,7 +2399,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   SAVE_REGISTERS(QID);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  QF->foreign_frame = PL_open_foreign_frame();
+  saveWakeup(&QF->yield.wstate, true);
   QF->yield.term = PL_new_term_ref();
   p = argFrameP(FR, 0);
   if ( isVar(*p) )

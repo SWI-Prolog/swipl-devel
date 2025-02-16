@@ -2358,7 +2358,7 @@ debug_yield(DECL_LD int port)
 { QueryFrame qf = LD->query;
 
   LD->trace.yield.port = port;
-  qf->foreign_frame = PL_open_foreign_frame();
+  saveWakeup(&qf->yield.wstate, true);
   qf->yield.term = PL_new_term_ref();
 
   return PL_S_YIELD_DEBUG;
@@ -3664,28 +3664,28 @@ variables used in the B_THROW instruction.
   }
 
   DEF = FR->predicate;
-  if ( QF->solutions || QF->yield.term ) /* retry or resume */
+  if ( QF->solutions )			/* retry */
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);
-    if ( QF->yield.term )
-    { LOAD_REGISTERS(qid);
-      DEBUG(CHK_SECURE, checkStacks(NULL));
-      if ( exception_term )
-      { LD->trace.yield.port = NO_PORT;
-	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
-	THROW_EXCEPTION;
-      }
-      DEF = FR->predicate;
-      QF->yield.term = 0;
-      if ( LD->trace.yield.port != NO_PORT )
-        VMH_GOTO(debug_resume);
-      else
-	NEXT_INSTRUCTION;
-    } else
-      BODY_FAILED;
-  } else
-    VMH_GOTO(depart_or_retry_continue);		/* first call */
+    BODY_FAILED;
+  } else if ( QF->yield.term )		/* resume after yield */
+  { restoreWakeup(&QF->yield.wstate);
+    LOAD_REGISTERS(qid);
+    DEBUG(CHK_SECURE, checkStacks(NULL));
+    if ( exception_term )
+    { LD->trace.yield.port = NO_PORT;
+      LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
+      THROW_EXCEPTION;
+    }
+    DEF = FR->predicate;
+    QF->yield.term = 0;
+    if ( LD->trace.yield.port != NO_PORT )
+      VMH_GOTO(debug_resume);
+    else
+      NEXT_INSTRUCTION;
+  } else				/* first call */
+    VMH_GOTO(depart_or_retry_continue);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main entry of the virtual machine cycle.  A branch to `next instruction'
