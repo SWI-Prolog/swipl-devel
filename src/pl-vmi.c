@@ -2016,46 +2016,6 @@ VMH(depart_or_retry_continue, 0, (), ())
 }
 END_VMH
 
-VMH(debug_call_continue, 1, (int), (action))
-{ switch( action )
-  { case PL_TRACE_ACTION_FAIL:   FRAME_FAILED;
-    case PL_TRACE_ACTION_IGNORE: VMI_GOTO(I_EXIT);
-    case PL_TRACE_ACTION_ABORT:  THROW_EXCEPTION;
-    case PL_TRACE_ACTION_YIELD:  SAVE_REGISTERS(QID);
-                        SOLUTION_RETURN(debug_yield(CALL_PORT));
-    case PL_TRACE_ACTION_RETRY:
-      if ( debugstatus.retryFrame )
-	TRACE_RETRY;		/* otherwise retrying the call-port */
-  }				/* is a no-op */
-
-  PC = DEF->codes;
-  NEXT_INSTRUCTION;
-}
-END_VMH
-
-VMH(debug_exit_continue, 1, (int), (action))
-{ switch( action )
-  { case PL_TRACE_ACTION_RETRY:
-      TRACE_RETRY;
-    case PL_TRACE_ACTION_FAIL:
-      discardChoicesAfter(FR, FINISH_CUT);
-      FRAME_FAILED;
-    case PL_TRACE_ACTION_ABORT:
-      THROW_EXCEPTION;
-    case PL_TRACE_ACTION_YIELD:
-      SAVE_REGISTERS(QID);
-      SOLUTION_RETURN(debug_yield(EXIT_PORT));
-  }				/* is a no-op */
-
-  if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
-    BFR = BFR->parent;
-
-  VMH_GOTO(exit_continue);
-}
-END_VMH
-
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_DEPART: implies it is the last subclause   of  the clause. This is the
 entry point for last call optimisation.
@@ -6706,6 +6666,60 @@ next_choice:
 }
 END_VMH
 
+		 /*******************************
+		 *      YIELD BASED DEBUG       *
+		 *******************************/
+
+/* The   helpers   below   implement   continuations   after   calling
+ * tracePort().   These  are placed  in  separate  helpers to  support
+ * _yielding_ from  the debugger.   The strategy is  the same  for all
+ * helpers:
+ *
+ *   - We jump to the helper after calling tracePort()
+ *   - If tracePort returned PL_TRACE_ACTION_YIELD, we yield
+ *   - If PL_next_solution() is resumed, we get called again
+ *     through VMH(debug_resume), now with the real action.
+ */
+
+VMH(debug_call_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_FAIL:   FRAME_FAILED;
+    case PL_TRACE_ACTION_IGNORE: VMI_GOTO(I_EXIT);
+    case PL_TRACE_ACTION_ABORT:  THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CALL_PORT));
+    case PL_TRACE_ACTION_RETRY:
+      if ( debugstatus.retryFrame )
+	TRACE_RETRY;		/* otherwise retrying the call-port */
+  }				/* is a no-op */
+
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(debug_exit_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      discardChoicesAfter(FR, FINISH_CUT);
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(EXIT_PORT));
+  }				/* is a no-op */
+
+  if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+    BFR = BFR->parent;
+
+  VMH_GOTO(exit_continue);
+}
+END_VMH
+
 VMH(debug_unify_continue, 1, (int), (action))
 { switch( action )
   { case PL_TRACE_ACTION_RETRY:
@@ -6818,6 +6832,11 @@ VMH(debug_cut_exit_continue, 1, (int), (action))
   NEXT_INSTRUCTION;
 }
 END_VMH
+
+/* We come here  from PL_next_solution() initial code  if the debugger
+ * caused  PL_next_solution()  to  return with  PL_S_YIELD_DEBUG.   We
+ * simply dispatch to the relevant debug continuation.
+ */
 
 VMH(debug_resume, 0, (), ())
 { int port = LD->trace.yield.port;
