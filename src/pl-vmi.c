@@ -2621,49 +2621,12 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { int rc;
-    Choice ch;
-    mark m;
+  { int action;
 
     SAVE_REGISTERS(QID);
-    rc = tracePort(FR, BFR, CUT_CALL_PORT, PC);
+    action = tracePort(FR, BFR, CUT_CALL_PORT, PC);
     LOAD_REGISTERS(QID);
-    switch( rc )
-    { case PL_TRACE_ACTION_RETRY:
-	TRACE_RETRY;
-      case PL_TRACE_ACTION_FAIL:
-	FRAME_FAILED;
-      case PL_TRACE_ACTION_ABORT:
-	THROW_EXCEPTION;
-    }
-
-    if ( (ch = findStartChoice(FR, BFR)) )
-    { m = ch->mark;
-      SAVE_REGISTERS(QID);
-      dbg_discardChoicesAfter(FR, FINISH_CUT);
-      LOAD_REGISTERS(QID);
-      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
-      ch = newChoice(CHP_DEBUG, FR);
-      ch->mark = m;
-    } else
-    { dbg_discardChoicesAfter(FR, FINISH_CUT);
-      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
-    }
-    ARGP = argFrameP(lTop, 0);
-    if ( exception_term )
-      THROW_EXCEPTION;
-
-    SAVE_REGISTERS(QID);
-    rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC);
-    LOAD_REGISTERS(QID);
-    switch( rc )
-    { case PL_TRACE_ACTION_RETRY:
-	TRACE_RETRY;
-      case PL_TRACE_ACTION_FAIL:
-	FRAME_FAILED;
-      case PL_TRACE_ACTION_ABORT:
-	THROW_EXCEPTION;
-    }
+    VMH_GOTO(debug_cut_call_continue, action);
   } else
 #endif
   { SAVE_REGISTERS(QID);
@@ -6799,6 +6762,63 @@ VMH(debug_redo_continue, 1, (int), (action))
 }
 END_VMH
 
+VMH(debug_cut_call_continue, 1, (int), (action))
+{ Choice ch;
+  mark m;
+
+  switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CUT_CALL_PORT));
+  }
+
+  if ( (ch = findStartChoice(FR, BFR)) )
+  { m = ch->mark;
+    SAVE_REGISTERS(QID);
+    dbg_discardChoicesAfter(FR, FINISH_CUT);
+    LOAD_REGISTERS(QID);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+    ch = newChoice(CHP_DEBUG, FR);
+    ch->mark = m;
+  } else
+  { dbg_discardChoicesAfter(FR, FINISH_CUT);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+  }
+  ARGP = argFrameP(lTop, 0);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  SAVE_REGISTERS(QID);
+  action = tracePort(FR, BFR, CUT_EXIT_PORT, PC);
+  LOAD_REGISTERS(QID);
+
+  VMH_GOTO(debug_cut_exit_continue, action);
+}
+END_VMH
+
+VMH(debug_cut_exit_continue, 1, (int), (action))
+{ switch( action )
+  { case PL_TRACE_ACTION_RETRY:
+      TRACE_RETRY;
+    case PL_TRACE_ACTION_FAIL:
+      FRAME_FAILED;
+    case PL_TRACE_ACTION_ABORT:
+      THROW_EXCEPTION;
+    case PL_TRACE_ACTION_YIELD:
+      SAVE_REGISTERS(QID);
+      SOLUTION_RETURN(debug_yield(CUT_EXIT_PORT));
+  }
+
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
 VMH(debug_resume, 0, (), ())
 { int port = LD->trace.yield.port;
   int action = LD->trace.yield.resume_action;
@@ -6815,6 +6835,10 @@ VMH(debug_resume, 0, (), ())
       VMH_GOTO(debug_redo_continue, action);
     case UNIFY_PORT:
       VMH_GOTO(debug_unify_continue, action);
+    case CUT_CALL_PORT:
+      VMH_GOTO(debug_cut_call_continue, action);
+    case CUT_EXIT_PORT:
+      VMH_GOTO(debug_cut_exit_continue, action);
     case EXCEPTION_PORT:
     { term_t catchfr_ref = LD->trace.yield.exception.catchfr_ref;
       Stack outofstack = LD->trace.yield.exception.outofstack;
