@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2021, University of Amsterdam
+    Copyright (c)  2004-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -56,7 +56,8 @@
 :- multifile stack_guard/1.
 
 :- predicate_options(print_prolog_backtrace/3, 3,
-                     [ subgoal_positions(boolean)
+                     [ subgoal_positions(boolean),
+                       show_file(oneof([absolute, basename]))
                      ]).
 
 /** <module> Examine the Prolog stack
@@ -352,8 +353,11 @@ default_backtrace_options(Options) :-
 %   Options is an option list that accepts:
 %
 %       * subgoal_positions(+Boolean)
-%       If =true=, print subgoal line numbers.  The default depends
-%       on the Prolog flag =backtrace_show_lines=.
+%       If `true`. print subgoal line numbers.  The default depends
+%       on the Prolog flag `backtrace_show_lines`.
+%       * show_file(+How)
+%       How to display the file name.  How is one of `absolute` or
+%       `basename`.
 %
 %   @arg Backtrace is a list of frame(Depth,Location,Goal) terms.
 
@@ -404,9 +408,9 @@ where_no_goal(foreign(PI), _) -->
     [ '~w <foreign>'-[PI] ].
 where_no_goal(call(PI), _) -->
     [ '~w'-[PI] ].
-where_no_goal(pred_line(PredName, File:Line), _) -->
+where_no_goal(pred_line(PredName, File:Line), Options) -->
     !,
-    [ '~w at '-[PredName], url(File:Line) ].
+    [ '~w at '-[PredName] ], file_line(File:Line, Options).
 where_no_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -422,9 +426,9 @@ where_no_goal(meta_call, _) -->
 where_goal(foreign(_), _) -->
     [ ' <foreign>'-[] ],
     !.
-where_goal(pred_line(_PredName, File:Line), _) -->
+where_goal(pred_line(_PredName, File:Line), Options) -->
     !,
-    [ ' at ', url(File:Line) ].
+    [ ' at ' ], file_line(File:Line, Options).
 where_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -449,7 +453,15 @@ where_goal(_, _) -->
     [].
 
 level(Level) -->
-    [ '~|~t[~D]~6+ '-[Level] ].
+    [ ansi(bold, '~|~t[~D]~6+ ', [Level]) ].
+
+file_line(File:Line, Options), option(show_files(basename), Options) ==>
+    { file_base_name(File, Base),
+      format(string(Label), '~w:~d', [Base, Line])
+    },
+    [ url(File:Line, Label) ].
+file_line(File:Line, _Options) ==>
+    [ url(File:Line) ].
 
 warn_nodebug(Backtrace) -->
     { contiguous(Backtrace) },
