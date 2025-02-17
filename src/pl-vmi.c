@@ -6538,7 +6538,7 @@ next_choice:
 		 ) )
 	      discardForeignFrame(FR);
 
-	    LD->trace.yield.redo_is_jump = true;
+	    LD->trace.yield.redo.is_jump = true;
 	    VMH_GOTO(debug_redo_continue, action);
 	  }
 	}
@@ -6597,8 +6597,8 @@ next_choice:
 	    action = tracePort(fr, BFR, REDO_PORT, NULL);
 	    LOAD_REGISTERS(QID);
 
-	    LD->trace.yield.redo_is_jump = false;
-	    LD->trace.yield.chp = chp;
+	    LD->trace.yield.redo.is_jump = false;
+	    LD->trace.yield.redo.chp = chp;
 	    VMH_GOTO(debug_redo_continue, action);
 	  }
 	}
@@ -6743,7 +6743,7 @@ VMH(debug_redo_continue, 1, (int), (action))
     case PL_TRACE_ACTION_IGNORE:
       VMI_GOTO(I_EXIT);
     case PL_TRACE_ACTION_RETRY:
-      if ( LD->trace.yield.redo_is_jump )
+      if ( LD->trace.yield.redo.is_jump )
 	TRACE_RETRY;
       else
 	VMH_GOTO(depart_or_retry_continue);
@@ -6754,8 +6754,8 @@ VMH(debug_redo_continue, 1, (int), (action))
       SOLUTION_RETURN(debug_yield(REDO_PORT));
   }
 
-  if ( !LD->trace.yield.redo_is_jump )
-  { struct clause_choice chp = LD->trace.yield.chp;
+  if ( !LD->trace.yield.redo.is_jump )
+  { struct clause_choice chp = LD->trace.yield.redo.chp;
 
     Clause clause = CL->value.clause;
     PC            = clause->codes;
@@ -6842,6 +6842,12 @@ VMH(debug_resume, 0, (), ())
   int action = LD->trace.yield.resume_action;
   LD->trace.yield.port = NO_PORT;
   LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
+  if ( LD->trace.yield.nodebug )
+  { SAVE_REGISTERS(QID);
+    tracemode(false, NULL);
+    debugmode(DBG_OFF, NULL);
+    LOAD_REGISTERS(QID);
+  }
   switch( port )
   { case CALL_PORT:
       VMH_GOTO(debug_call_continue, action);

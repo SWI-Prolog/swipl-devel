@@ -2706,13 +2706,14 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 bool
 PL_set_trace_action(term_t action)
 { GET_LD
-  bool nodebug;
+  bool nodebug = false;
   int rc = process_trace_action(LD->environment,
 				LD->trace.yield.port, action,
 				&nodebug);
 
   if ( rc >= 0 )
   { LD->trace.yield.resume_action = rc;
+    LD->trace.yield.nodebug = nodebug;
     return true;
   }
 

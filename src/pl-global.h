@@ -727,8 +727,11 @@ struct PL_local_data
     struct
     { char	resume_action;		/* Restart after yield */
       short	port;			/* Port on which we stopped */
-      bool	redo_is_jump;		/* Distinguish the two REDO ports */
-      struct clause_choice chp;		/* Clause redo context */
+      bool	nodebug;		/* continue in nodebug mode */
+      struct
+      { bool	is_jump;		/* Distinguish the two REDO ports */
+	struct clause_choice chp;	/* Clause redo context */
+      } redo;
       struct
       { term_t	catchfr_ref;		/* Catching frame reference */
 	Stack	outofstack;		/* We are processing an out-of-stack */
