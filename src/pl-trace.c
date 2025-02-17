@@ -1409,6 +1409,9 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
     } else if ( a == ATOM_nodebug )
     { rval = PL_TRACE_ACTION_CONTINUE;
       *nodebugp = true;
+    } else if ( a == ATOM_leap )
+    { rval = PL_TRACE_ACTION_CONTINUE;
+      tracemode(false, NULL);
     } else if ( a == ATOM_fail )
     { rval = PL_TRACE_ACTION_FAIL;
     } else if ( a == ATOM_skip )
