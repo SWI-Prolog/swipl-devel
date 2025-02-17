@@ -5046,7 +5046,6 @@ VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstac
     if ( ch )
     { bool printed = PL_same_term(exception_printed, exception_term);
       term_t chref = consTermRef(ch);
-      int action;
 
       lTop = (LocalFrame)(BFR+1);
       DEBUG(CHK_SECURE,
