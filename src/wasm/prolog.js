@@ -400,6 +400,7 @@ class Prolog
     this.PL_S_FALSE		 = 0;
     this.PL_S_TRUE		 = 1;
     this.PL_S_LAST		 = 2;
+    this.PL_S_YIELD_DEBUG	 = 254;
     this.PL_S_YIELD		 = 255;
 
     this.PL_ENGINE_MAIN		 = 1;
@@ -531,6 +532,10 @@ class Prolog
 	'_PL_switch_engine', 'number', ['number']),
       _PL_reset_engine: this.module.cwrap(
 	'_PL_reset_engine', 'number', ['number', 'number']),
+      PL_set_trace_action: this.module.cwrap(
+	'PL_set_trace_action', 'number', ['number']),
+      PL_get_trace_action: this.module.cwrap(
+	'PL_get_trace_action', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(

@@ -6874,6 +6874,7 @@ VMH(debug_resume, 0, (), ())
     }
     default:
       assert(0);
+      NEXT_INSTRUCTION;		/* keep compiler happy */
   }
 }
 END_VMH

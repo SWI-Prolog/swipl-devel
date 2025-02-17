@@ -1437,16 +1437,23 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
       if ( !PL_exception(0) )
 	abortProlog();
     } else
-      PL_warning("Unknown trace action: %s", stringAtom(a));
+    { PL_warning("Unknown trace action: %s", stringAtom(a));
+      rval = PL_TRACE_ACTION_CONTINUE;
+    }
   } else if ( PL_is_functor(action, FUNCTOR_retry1) )
   { LocalFrame fr;
     term_t arg = PL_new_term_ref();
 
     if ( PL_get_arg(1, action, arg) && PL_get_frame(arg, &fr) )
     { debugstatus.retryFrame = consTermRef(fr);
-      rval = PL_TRACE_ACTION_RETRY;
     } else
+    { debugstatus.retryFrame = consTermRef(frame);
       PL_warning("prolog_trace_interception/4: bad argument to retry/1");
+    }
+    rval = PL_TRACE_ACTION_RETRY;
+  } else
+  { PL_warning("Unknown trace action");
+    rval = PL_TRACE_ACTION_CONTINUE;
   }
 
   return rval;
