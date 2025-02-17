@@ -905,6 +905,73 @@ sets of engines that use this type of yielding. As is, these features
 are designed to allow SWI-Prolog for cooperating with languages that
 provide asynchronous functions.
 
+\subsubsection{Implementing a yield based debugger}
+\label{sec:foreign-yield-debug}
+
+Starting with version 9.3.21, the SWI-Prolog foreign interface allows
+you to implement a debugger based on \jargon{yielding}, similar to
+\secref{foreign-yield}.  This implies that instead of using the
+built-in debugger or the prolog_trace_interception/4 hook that is used
+for e.g., driving the GUI debugger, PL_next_solution() returns when
+trace interaction is required.  The embedding system can interact with
+the user and resume PL_next_solution().  This is notably required by
+the WASM described in \secref{wasm} version, where we need to return
+to the browser event loop to interact with the user.  Yielding on
+behalf of the debugger is enabled using the \const{PL_Q_TRACE_WITH_YIELD}
+flag of PL_open_query().  The skeleton or using these facilities is below.
+PL_get_trace_context() retrieves a Prolog term that provides information
+similar to prolog_trace_interception/4.
+
+\begin{code}
+  qid_t qid = PL_open_query(module,
+			    PL_Q_EXT_STATUS|
+			    PL_Q_ALLOW_YIELD|PL_Q_TRACE_WITH_YIELD,
+			    predicate, argv);
+  for(;;)
+  { int rc = PL_next_solution(qid);
+    switch(rc)
+    { case PL_S_YIELD_DEBUG:
+	PL_get_trace_context(msg);
+	trace_reply(msg, action);
+	PL_set_trace_action(action);
+	break;
+      case ...
+    }
+  }
+\end{code}
+
+The trace_reply() is a user defined function that typically calls
+Prolog to display the current goal and requests the user how to
+continue.  PL_set_trace_action() processes the same term as output
+argument of prolog_trace_interception/4, telling Prolog how to
+continue.  One option for trace_reply() is to call a Prolog predicate.
+Below is a partial implementation for such a predicate.  Here,
+\nopredref{trace_reply}{3} uses the character typed by the user to
+derive the trace continuation action.
+
+\begin{code}
+read_trace_reply(Msg, Action) :-
+    print_message(debug, Msg),
+    format(user_error, '? ', []),
+    get_single_char(Code),
+    char_code(Char, Code),
+    trace_reply(Char, Msg, Action).
+\end{code}
+
+\begin{description}
+  \cfunction{bool}{PL_get_trace_context}{term_t -msg}
+  Unify \arg{msg} with a Prolog term of the following shape:
+  \term{frame}{Frame, Choice, Port, PC}.  This provides the same
+  information as passed to prolog_trace_interception/4.  The
+  additional \arg{PC} argument provides the program counter in the
+  executing clause.  The \arg{msg} term may be passed to
+  print_message/2 to print the current port and goal, similarly to the
+  commandline debugger.
+
+  \cfunction{bool}{PL_set_trace_action, term_t +action}
+  Set the continuation action.   Supported values are described with
+  the \arg{Action} argument of prolog_trace_interception/4.
+\end{description}
 
 \subsection{Atoms and functors}
 \label{sec:foreign-atoms}
@@ -3332,6 +3399,10 @@ start the debugger as soon as possible if the Prolog flag
 Support the \const{I_YIELD} instruction for engine-based coroutining.
 See \nopredref{\$engine_yield}{2} in \file{boot/init.pl} for details.
 
+    \definition{\const{PL_Q_TRACE_WITH_YIELD}}
+Allows for implementing a \jargon{yield} based debugger.  See
+\secref{foreign-yield-debug}
+
     \definition{\const{PL_Q_EXT_STATUS}}
 Make PL_next_solution() return extended status.  Instead of only
 \const{TRUE} or \const{FALSE} extended status as illustrated in the
@@ -3348,6 +3419,8 @@ PL_S_FALSE	& FALSE & Query failed \\
 PL_S_TRUE	& TRUE & Query succeeded with choicepoint \\
 PL_S_LAST	& TRUE & Query succeeded without choicepoint \\
 PL_S_YIELD      & n/a  & Query was yielded. See \secref{foreign-yield} \\
+PL_S_YIELD_DEBUG& n/a  & Yielded on behalf of the debugger.
+                         See \secref{foreign-yield-debug} \\
 \end{tabular}
 \end{center}
 \end{description}
