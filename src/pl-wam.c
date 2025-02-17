@@ -1942,16 +1942,25 @@ exceptionUnwindGC(void)
 		 *******************************/
 
 #ifdef O_DEBUGGER
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/*
 findStartChoice(LocalFrame fr, Choice ch)
-    Within the same query, find the choice-point that was created at the
-    start of this frame.  This is used for the debugger at the fail-port
-    as well as for realising retry.
 
-    Note that older versions also considered the initial choicepoint a
-    choicepoint for the initial frame, but this is not correct as the
-    frame may be replaced due to last-call optimisation.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+Within the same  query, find the choice-point that was  created at the
+start of  this frame.  This  is used by the  debugger at the  fail and
+exception ports as well as for  realising retry.  In debug mode, every
+frame  has  a  start  choicepoint.   If no  choicepoint  is  needed  a
+CHP_DEBUG  one  is  created.   When the  debugger  is  trapped  during
+execution in normal mode, such a  port may not exist, which implies we
+cannot trace the fail or exception port and we cannot redo at the exit
+port because we cannot rewind to the state at the call port.
+
+Note that  older versions  also considered  the initial  choicepoint a
+choicepoint for  the initial  frame, but  this is  not correct  as the
+frame may be replaced due to last-call optimisation.
+
+Note that a CHP_JUMP need not  reflect the initial state of the frame,
+but it does for nondet foreign predicates.
+*/
 
 static Choice
 findStartChoice(LocalFrame fr, Choice ch)
@@ -1959,7 +1968,8 @@ findStartChoice(LocalFrame fr, Choice ch)
   { if ( ch->frame == fr )
     { switch ( ch->type )
       { case CHP_JUMP:
-	  continue;			/* might not be at start */
+	  if ( isoff(fr->predicate, P_FOREIGN) )
+	    continue;
 	default:
 	  return ch;
       }
