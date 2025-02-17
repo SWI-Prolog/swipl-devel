@@ -964,15 +964,17 @@ put_frame_goal(term_t goal, LocalFrame frame)
 	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
 static bool
-put_frame_port(DECL_LD term_t t, LocalFrame frame, int port, Code PC)
+put_frame_port(DECL_LD term_t t, LocalFrame frame, unsigned int flags, Code PC)
 { atom_t portname = NULL_ATOM;
   functor_t portfunc = 0;
   term_t frameref, pcref;
+  int port = flags&(PORT_MASK|WFG_BACKTRACE|WFG_CHOICE);
 
   SAVE_PTRS2();
 
   switch(port)
-  { case CALL_PORT:	 portname = ATOM_call;      break;
+  { case NO_PORT:	 portname = ATOM_none;      break;
+    case CALL_PORT:	 portname = ATOM_call;      break;
     case REDO_PORT:	 portfunc = FUNCTOR_redo1;  break;
     case EXIT_PORT:	 portname = ATOM_exit;      break;
     case FAIL_PORT:	 portname = ATOM_fail;      break;
@@ -1042,7 +1044,7 @@ put_frame_message(DECL_LD term_t t, LocalFrame frame, Choice bfr, Code PC,
     return false;
 
   RESTORE_PTRS3();
-  if ( !put_frame_port(av+2, frame, flags&PORT_MASK, PC) )
+  if ( !put_frame_port(av+2, frame, flags, PC) )
     return false;
 
   RESTORE_PTRS3();
