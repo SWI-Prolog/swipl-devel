@@ -4340,7 +4340,7 @@ VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
   FNDET_CONTEXT.predicate = DEF;
 
   SAVE_REGISTERS(QID);
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
+  VMH_GOTO(I_FEXITDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4356,7 +4356,7 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
   vmi_fopen(FR, DEF); /* inline I_FOPEN */
   SAVE_REGISTERS(QID);
 
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
+  VMH_GOTO(I_FEXITDET, (*f)());
 }
 END_VMI
 
@@ -4366,7 +4366,7 @@ END_VMI
   vmi_fopen(FR, DEF); /* inline I_FOPEN */		\
   PC++;							\
   SAVE_REGISTERS(QID);					\
-  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(__VA_ARGS__));
+  VMH_GOTO(I_FEXITDET, (*f)(__VA_ARGS__));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(1, h0);
@@ -4510,7 +4510,7 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
   ndet_func f = code2ptr(ndet_func, *PC++);
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
-  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
+  VMH_GOTO(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4518,14 +4518,14 @@ END_VMI
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 { NdetFunc0 f = code2ptr(NdetFunc0, *PC++);
 
-  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
+  VMH_GOTO(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
 
 #define FCALL_NDETN(ac, ...)						\
   NdetFunc##ac f = code2ptr(NdetFunc##ac, *PC++);			\
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;				\
-  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
+  VMH_GOTO(I_FEXITNDET, (*f)(__VA_ARGS__, &FNDET_CONTEXT));
 
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
