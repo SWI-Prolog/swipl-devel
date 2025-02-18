@@ -3365,7 +3365,8 @@ VMI(S_STATIC, 0, 0, ())
 
   if ( !(cl = firstClause(ARGP, FR, DEF, &chp)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
-    if ( debugstatus.debugging )
+    if ( debugstatus.debugging ||
+	 ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
       newChoice(CHP_DEBUG, FR);
 
     FRAME_FAILED;
@@ -6650,15 +6651,28 @@ next_choice:
       } else
       { set(BFR->frame, FR_CATCHED);
       }
-      /*FALLTHROUGH*/
+      DiscardMark(BFR->mark);
+      BFR = BFR->parent;
+      goto next_choice;
     case CHP_DEBUG:			/* Just for debugging purposes */
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: %s: DEBUG\n",
 		     loffset(FR),
 		     predicateName(DEF)));
+      if ( ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) &&
+	   BFR->frame == FR )
+      { bool rc;
+	SAVE_REGISTERS(QID);
+	rc = ssu_or_det_failed(FR);
+	LOAD_REGISTERS(QID);
+	if ( !rc )
+	{ assert(exception_term);
+	  THROW_EXCEPTION;
+	}
+      }
       DiscardMark(BFR->mark);
       BFR = BFR->parent;
-      FRAME_FAILED;
+      goto next_choice;
   }
   assert(0);
   SOLUTION_RETURN(false);

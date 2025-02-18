@@ -433,10 +433,10 @@ PL_discard_foreign_frame(fid_t id)
 #define determinism_error(fr, bfr, found) \
 	LDFUNC(determinism_error, fr, bfr, found)
 
-static int
+static bool
 determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 { fid_t fid;
-  int rc = false;
+  bool rc = false;
   atom_t a = ATOM_error;
 
   if ( found == ATOM_nondet )
@@ -512,7 +512,7 @@ determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 
 
 #define ssu_or_det_failed(fr) LDFUNC(ssu_or_det_failed, fr)
-static int
+static bool
 ssu_or_det_failed(DECL_LD LocalFrame fr)
 { fid_t fid;
   int rc = false;
