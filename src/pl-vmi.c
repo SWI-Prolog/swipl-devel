@@ -2568,8 +2568,8 @@ VMI(I_DET, VIF_BREAK, 0, ())
 END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CUT: !. Task is to detroy  all   choicepoints  newer  then the current
-frame. If we are in  debug-mode  we   create  a  new  CHP_DEBUG frame to
+I_CUT: !. Task  is to destroy all choicepoints newer  then the current
+frame. If  we are  in debug-mode  we create a  new CHP_DEBUG  frame to
 provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
