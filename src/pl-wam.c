@@ -3196,13 +3196,6 @@ typedef struct register_file
 } register_file;
 
 
-/* Imperative code that gets executed just after entry to an instruction,
- * and just before exit from an instruction (i.e. before goto/return/etc).
- * For profiling/tracing purposes only, and not applied to VMH's.
- */
-#define VMI_ENTER(n)		(void)(n);
-#define VMI_EXIT		(void)0;
-
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
  * get defined per-implementation.
  */
@@ -3213,7 +3206,7 @@ typedef struct register_file
 #define assert_exists(var, message) (void)(var)
 #define VMI(Name,f,na,a)	_VMI_DECLARATION(Name,f,na,a) \
 				{ int __is_vmi = 1; \
-				  { _VMI_PROLOGUE(Name,f,na,a); VMI_ENTER(Name)
+				  { _VMI_PROLOGUE(Name,f,na,a);
 #define END_VMI			    _VMI_EPILOGUE \
 				  } \
 				  assert_exists(__is_vmi, "END_VMI used without VMI!"); \
@@ -3225,11 +3218,11 @@ typedef struct register_file
 				  } \
 				  assert_exists(__is_vmh, "END_VMH used without VMH!"); \
 				}
-#define NEXT_INSTRUCTION	do { VMI_EXIT; _NEXT_INSTRUCTION; } while(0)
-#define VMI_GOTO(n)		do { VMI_EXIT; _VMI_GOTO(n); } while(0)
+#define NEXT_INSTRUCTION	do { _NEXT_INSTRUCTION; } while(0)
+#define VMI_GOTO(n)		do { _VMI_GOTO(n); } while(0)
 #define VMH_GOTO(...)		do { _VMH_GOTO(__VA_ARGS__); } while(0)
-#define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
-#define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
+#define SOLUTION_RETURN(val)	do { _SOLUTION_RETURN(val); } while(0)
+#define VMI_GOTO_CODE(c)	do { _VMI_GOTO_CODE(c); } while(0)
 #define SEPARATE_VMI1		(void)0
 #define SEPARATE_VMI2		(void)0
 
@@ -3238,13 +3231,6 @@ typedef struct register_file
 #define _VMI_EPILOGUE			;
 #define _VMH_PROLOGUE(Name,na,at,an)	;
 #define _VMH_EPILOGUE			;
-
-/* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
-#define VMH_GOTO_AS_VMI(n,...) do { VMI_EXIT; \
-				    VMI_ENTER(n); \
-				    VMH_GOTO(n, __VA_ARGS__); \
-				  } while(0)
-
 
 /* Helper macros for rendering VMH arguments */
 #define HEAD(h, ...) h
