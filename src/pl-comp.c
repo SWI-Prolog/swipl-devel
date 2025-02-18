@@ -394,7 +394,7 @@ typedef struct
 { Module	module;			/* module to compile into */
   Clause	clause;			/* clause we are constructing */
   Procedure	procedure;		/* Procedure it belongs to */
-  int		arity;			/* arity of top-goal */
+  size_t	arity;			/* arity of top-goal */
   unsigned int	vartablesize;		/* size of the vartable */
   bool		islocal;		/* Temporary local clause */
   bool		subclausearg;		/* processing subclausearg */
@@ -1870,7 +1870,7 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
   if ( head )
   { ci->islocal       = false;
     ci->subclausearg  = false;
-    ci->arity         = (int)def->functor->arity;
+    ci->arity         = def->functor->arity;
     ci->procedure     = proc;
     ci->argvars       = 0;
     ci->head_unify    = ( (flags&SSU_CHOICE_CLAUSE) ||
@@ -5049,7 +5049,7 @@ Then we create a term, back up and fill the arguments.
 typedef struct
 { Code	 pc;			/* pc for decompilation */
   Word   argp;			/* argument pointer */
-  int	 arity;			/* Arity of the predicate */
+  size_t arity;			/* Arity of the predicate */
   int	 nvars;			/* size of var block */
   bit_vector *bvar_access;	/* Accessed as b_var<0..arity-1> */
   term_t bvar_args;		/* Arity size vector for moved unifications */
@@ -5162,7 +5162,7 @@ decompileHead(Clause clause, term_t head)
   int rc;
 
   di.nvars       = VAROFFSET(1) + clause->prolog_vars;
-  di.arity       = (int)clause->predicate->functor->arity;
+  di.arity       = clause->predicate->functor->arity;
   di.bindings    = 0;
   di.bvar_access = NULL;
   if ( clause->prolog_vars )
@@ -5625,7 +5625,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   term_t body;
 
   di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
-  di->arity       = (int)clause->predicate->functor->arity;
+  di->arity       = clause->predicate->functor->arity;
   di->bindings    = bindings;
   di->bvar_access = NULL;
   if ( clause->prolog_vars )
@@ -6335,7 +6335,7 @@ decompile_body_range(DECL_LD term_t goal, LocalFrame fr, Clause clause,
   decompileInfo *di = &dinfo;
 
   di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
-  di->arity       = (int)clause->predicate->functor->arity;
+  di->arity       = clause->predicate->functor->arity;
   di->bindings    = 0;
   di->bvar_access = NULL;
   di->pc          = start;
@@ -7813,7 +7813,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   ci.islocal      = false;
   ci.subclausearg = false;
-  ci.arity        = (int)def->functor->arity;
+  ci.arity        = def->functor->arity;
   ci.argvars      = 0;
 
   clause.predicate   = def;
