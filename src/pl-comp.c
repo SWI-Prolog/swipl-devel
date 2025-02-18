@@ -396,12 +396,12 @@ typedef struct
   Procedure	procedure;		/* Procedure it belongs to */
   int		arity;			/* arity of top-goal */
   unsigned int	vartablesize;		/* size of the vartable */
-  int		islocal;		/* Temporary local clause */
-  int		subclausearg;		/* processing subclausearg */
+  bool		islocal;		/* Temporary local clause */
+  bool		subclausearg;		/* processing subclausearg */
+  bool		head_unify;		/* In unifications against arguments */
   int		argvars;		/* islocal argument pseudo vars */
   int		argvar;			/* islocal current pseudo var */
   int		singletons;		/* Marked singletons in disjunctions */
-  int		head_unify;		/* In unifications against arguments */
   int		progress;		/* Periodically check for interrupts */
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
@@ -945,13 +945,13 @@ right_recursion:
       } else if ( isoff(fd, CONTROL_F) )
       { size_t ar = fd->arity;
 
-	ci->subclausearg++;
+	ci->subclausearg = true;
 	for(head = f->arguments, argn = ci->arity; ar-- > 0; head++, argn++)
 	{ nvars = analyseVariables2(head, nvars, argn, ci, depth, false);
 	  if ( nvars < 0 )
 	    break;			/* error */
 	}
-	ci->subclausearg--;
+	ci->subclausearg = false;
 
 	return nvars;
       } /* ci->local && control functor --> fall through to normal case */
@@ -1869,22 +1869,22 @@ compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
 
   if ( head )
   { ci->islocal       = false;
-    ci->subclausearg  = 0;
+    ci->subclausearg  = false;
     ci->arity         = (int)def->functor->arity;
     ci->procedure     = proc;
     ci->argvars       = 0;
     ci->head_unify    = ( (flags&SSU_CHOICE_CLAUSE) ||
-			 (  !(flags & (SSU_COMMIT_CLAUSE)) &&
-			   isoff(def, P_DYNAMIC) &&
-			   truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
-			 )
-		      );
+			  ( !(flags & (SSU_COMMIT_CLAUSE)) &&
+			    isoff(def, P_DYNAMIC) &&
+			    truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
+			  )
+			);
     clause.flags     = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
     ci->islocal      = true;
-    ci->subclausearg = 0;
+    ci->subclausearg = false;
     ci->argvars	     = 1;
     ci->argvar       = 1;
     ci->arity        = 0;
@@ -7812,7 +7812,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
     return false;
 
   ci.islocal      = false;
-  ci.subclausearg = 0;
+  ci.subclausearg = false;
   ci.arity        = (int)def->functor->arity;
   ci.argvars      = 0;
 
