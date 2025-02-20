@@ -120,7 +120,8 @@ typedef foreign_t (*NdetFunc10)(term_t a1, term_t a2, term_t a3, term_t a4,
 				term_t a5, term_t a6, term_t a7, term_t a8,
 				term_t a9, term_t a10, control_t);
 
-
+#define YIELD_TERM_FOREIGN ((term_t)(intptr_t)-1)
+#define YIELD_TERM_DEBUG   ((term_t)(intptr_t)-2)
 
 		 /*******************************
 		 *	     DEBUGGING		*
@@ -2369,7 +2370,7 @@ debug_yield(DECL_LD int port)
 
   LD->trace.yield.port = port;
   saveWakeup(&qf->yield.wstate, true);
-  qf->yield.term = PL_new_term_ref();
+  qf->yield.term = YIELD_TERM_DEBUG;
 
   return PL_S_YIELD_DEBUG;
 }
@@ -2984,6 +2985,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->exception		= 0;
   qf->yield.term        = 0;
+  qf->yield.wstate.fid  = 0;
   qf->registers.fr      = NULL;		/* invalid */
   qf->next_environment  = NULL;		/* see D_BREAK */
 					/* fill frame arguments */
@@ -3678,8 +3680,18 @@ variables used in the B_THROW instruction.
     PL_close_foreign_frame(fid);
     BODY_FAILED;
   } else if ( QF->yield.term )		/* resume after yield */
-  { QF->yield.term = 0;
-    restoreWakeup(&QF->yield.wstate);
+  { if ( QF->foreign_frame )
+    { assert(QF->yield.wstate.fid == 0);
+      fid_t fid = QF->foreign_frame;
+      QF->foreign_frame = 0;
+      PL_close_foreign_frame(fid);
+    } else
+    { assert(QF->foreign_frame == 0);
+      assert(QF->yield.wstate.fid);
+      restoreWakeup(&QF->yield.wstate);
+      QF->yield.wstate.fid = 0;
+    }
+    QF->yield.term = 0;
     LOAD_REGISTERS(qid);
     DEF = FR->predicate;
     DEBUG(CHK_SECURE, checkStacks(NULL));

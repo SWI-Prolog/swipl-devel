@@ -2348,7 +2348,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   SAVE_REGISTERS(QID);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  saveWakeup(&QF->yield.wstate, true);
+  QF->foreign_frame = PL_open_foreign_frame();
   QF->yield.term = PL_new_term_ref();
   p = argFrameP(FR, 0);
   if ( isVar(*p) )
@@ -4655,7 +4655,7 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	}
 	SAVE_REGISTERS(QID);
 	QF->foreign_frame = fid;
-	QF->yield.term = -1;
+	QF->yield.term = YIELD_TERM_FOREIGN;
 #if !O_VMI_FUNCTIONS
 	assert(LD->exception.throw_environment == &THROW_ENV);
 	LD->exception.throw_environment = THROW_ENV.parent;
