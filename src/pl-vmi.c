@@ -4599,6 +4599,7 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 
   LOAD_REGISTERS(QID);
   PC += 3;				/* saved at in I_FOPENNDET */
+  DEBUG(0, assert(*PC == encode(I_FREDO)));
 
   switch(rc)
   { case true:
