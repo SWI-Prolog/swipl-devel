@@ -39,7 +39,7 @@
           ]).
 :- use_module(library(prolog_wrap), []). % make sure it is loaded
 :- autoload(library(error), [instantiation_error/1, domain_error/2]).
-:- autoload(library(lists), [append/3]).
+:- autoload(swi(library/lists), [append/3]).
 
 /** <module> Block: declare suspending predicates
 
