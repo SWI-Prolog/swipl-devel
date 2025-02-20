@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-			 CWI, Amsterdam
+    Copyright (c)  2019-2025, University of Amsterdam
+                              VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -131,6 +132,7 @@ unify_closure(term_t t, Definition def, Code supervisor)
 { closure c;
 
   c.def = *def;
+  c.def.lingering = NULL;
   c.def.impl.wrapped.predicate  = def;
   c.def.impl.wrapped.supervisor = supervisor;
   c.def.codes = SUPERVISOR(wrapper);
@@ -339,6 +341,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
+	def->codes = SUPERVISOR(virgin);
 	setSupervisor(def, codes);
 
 	return true;
