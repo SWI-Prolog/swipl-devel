@@ -40,7 +40,11 @@ endif()
 set(SANITIZE "address" CACHE STRING
   "Value for -fsanitize when using -DCMAKE_BUILD_TYPE=Sanitize (address)")
 
+if(EMSCRIPTEN)
+set(GCC_GFLAGS "-g -gsource-map")
+else()
 set(GCC_GFLAGS "-gdwarf-2 -g3")
+endif()
 if(CMAKE_COMPILER_IS_GNUCC)
   if($ENV{CFLAGS})
     string(REGEX MATCH "-O" match $ENV{CFLAGS})
@@ -92,6 +96,12 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
 elseif(EMSCRIPTEN)
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_EXE_LINKER_FLAGS "-sASSERTIONS"
+      CACHE STRING "LDFLAGS for a Debug build" FORCE)
 elseif(MSVC)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")

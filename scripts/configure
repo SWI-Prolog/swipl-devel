@@ -212,9 +212,6 @@ case $config in
     build_type=PGO
     ;;
   *debug*)
-    if [ $os == wasm ]; then
-        LDFLAGS+=" -sASSERTIONS"
-    fi
     build_type=Debug
     ;;
   *asan*)
