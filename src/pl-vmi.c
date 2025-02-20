@@ -4505,6 +4505,31 @@ VMH(foreign_redo, 0, (), ())
 }
 END_VMH
 
+/* Resume after a foreign predicate returned using PL_yield_address()
+ * PC is pointing at I_FREDO;
+ */
+
+VMH(foreign_resume, 0, (), ())
+{ DEBUG(0, assert(*PC == encode(I_FREDO)));
+  PC -= 3;
+  DEBUG(0, assert(*PC == encode(I_FCALLNDETVA)));
+
+  /* save instead? */
+  for(FliFrame ffr=fli_context; ffr; ffr=ffr->parent)
+  { if ( (void*)ffr->parent < (void*)FR )
+    { FFR_ID = consTermRef(ffr);
+      break;
+    }
+  }
+
+  uintptr_t wcl = (uintptr_t)FR->clause;
+  assert((wcl&FRG_REDO_MASK) == YIELD_PTR);
+  FNDET_CONTEXT.control = FRG_RESUME;
+  FNDET_CONTEXT.context = wcl & ~FRG_REDO_MASK;
+  SAVE_REGISTERS(QID);
+  NEXT_INSTRUCTION;
+}
+END_VMH
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
 { typedef foreign_t (*ndet_func)(term_t h0, size_t arity, struct foreign_context*);
@@ -4638,13 +4663,7 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
       CL = word2ptr(ClauseRef, rc);
 
       if ( (rc&YIELD_PTR) )
-      { fid_t fid;
-
-	ffr = (FliFrame) valTermRef(FFR_ID);
-	fli_context = ffr->parent;
-	lTop = (LocalFrame)(BFR+1);
-	BFR = BFR->parent;
-	fid = PL_open_foreign_frame();
+      { fid_t fid = PL_open_foreign_frame();
 
 	if ( !fid )
 	  THROW_EXCEPTION;
@@ -4695,10 +4714,6 @@ VMI(I_FREDO, 0, 0, ())
     case REDO_PTR:
       FNDET_CONTEXT.control = FRG_REDO;
       FNDET_CONTEXT.context = wcl;
-      break;
-    case YIELD_PTR:
-      FNDET_CONTEXT.control = FRG_RESUME;
-      FNDET_CONTEXT.context = wcl & ~FRG_REDO_MASK;
       break;
     default:
       assert(0);

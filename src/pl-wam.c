@@ -3680,16 +3680,17 @@ variables used in the B_THROW instruction.
     PL_close_foreign_frame(fid);
     BODY_FAILED;
   } else if ( QF->yield.term )			/* resume after yield */
-  { QF->yield.term = 0;
-    if ( QF->yield.term == YIELD_TERM_FOREIGN ) /* PL_yield_address() */
-    { fid_t fid = QF->foreign_frame;
+  { if ( QF->yield.term == YIELD_TERM_FOREIGN ) /* PL_yield_address() */
+    { QF->yield.term = 0;
+      fid_t fid = QF->foreign_frame;
       QF->foreign_frame = 0;
       PL_close_foreign_frame(fid);
       LOAD_REGISTERS(qid);
       DEBUG(CHK_SECURE, checkStacks(NULL));
-      NEXT_INSTRUCTION;
+      VMH_GOTO(foreign_resume);
     } else if ( QF->yield.term == YIELD_TERM_DEBUG ) /* Debugger */
-    { restoreWakeup(&QF->yield.wstate);
+    { QF->yield.term = 0;
+      restoreWakeup(&QF->yield.wstate);
       LOAD_REGISTERS(qid);
       DEF = FR->predicate;
       DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -3700,7 +3701,8 @@ variables used in the B_THROW instruction.
       }
       VMH_GOTO(debug_resume);
     } else				/* Engine yield using I_YIELD */
-    { fid_t fid = QF->foreign_frame;
+    { QF->yield.term = 0;
+      fid_t fid = QF->foreign_frame;
       QF->foreign_frame = 0;
       PL_close_foreign_frame(fid);
       LOAD_REGISTERS(qid);
