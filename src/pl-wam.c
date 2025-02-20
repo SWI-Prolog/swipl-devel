@@ -3679,31 +3679,35 @@ variables used in the B_THROW instruction.
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);
     BODY_FAILED;
-  } else if ( QF->yield.term )		/* resume after yield */
-  { if ( QF->foreign_frame )
-    { assert(QF->yield.wstate.fid == 0);
-      fid_t fid = QF->foreign_frame;
+  } else if ( QF->yield.term )			/* resume after yield */
+  { QF->yield.term = 0;
+    if ( QF->yield.term == YIELD_TERM_FOREIGN ) /* PL_yield_address() */
+    { fid_t fid = QF->foreign_frame;
       QF->foreign_frame = 0;
       PL_close_foreign_frame(fid);
-    } else
-    { assert(QF->foreign_frame == 0);
-      assert(QF->yield.wstate.fid);
-      restoreWakeup(&QF->yield.wstate);
-      QF->yield.wstate.fid = 0;
-    }
-    QF->yield.term = 0;
-    LOAD_REGISTERS(qid);
-    DEF = FR->predicate;
-    DEBUG(CHK_SECURE, checkStacks(NULL));
-    if ( exception_term && !is_yieled_exception(exception_term) )
-    { LD->trace.yield.port = NO_PORT;
-      LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
-      THROW_EXCEPTION;
-    }
-    if ( LD->trace.yield.port != NO_PORT )
-      VMH_GOTO(debug_resume);
-    else
+      LOAD_REGISTERS(qid);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
       NEXT_INSTRUCTION;
+    } else if ( QF->yield.term == YIELD_TERM_DEBUG ) /* Debugger */
+    { restoreWakeup(&QF->yield.wstate);
+      LOAD_REGISTERS(qid);
+      DEF = FR->predicate;
+      DEBUG(CHK_SECURE, checkStacks(NULL));
+      if ( exception_term && !is_yieled_exception(exception_term) )
+      { LD->trace.yield.port = NO_PORT;
+	LD->trace.yield.resume_action = PL_TRACE_ACTION_NONE;
+	THROW_EXCEPTION;
+      }
+      VMH_GOTO(debug_resume);
+    } else				/* Engine yield using I_YIELD */
+    { fid_t fid = QF->foreign_frame;
+      QF->foreign_frame = 0;
+      PL_close_foreign_frame(fid);
+      LOAD_REGISTERS(qid);
+      DEF = FR->predicate;
+      DEBUG(CHK_SECURE, checkStacks(NULL));
+      NEXT_INSTRUCTION;
+    }
   } else				/* first call */
     VMH_GOTO(depart_or_retry_continue);
 
