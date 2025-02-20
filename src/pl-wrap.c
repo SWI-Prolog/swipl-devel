@@ -100,7 +100,8 @@ save_closure(atom_t aref, IOSTREAM *fd)
 { closure *c = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
-  return PL_warning("Cannot save closure <closure>(%s)", predicateName(&c->def));
+  return PL_warning("Cannot save closure <closure>(%s)",
+		    predicateName(&c->def));
 }
 
 
@@ -125,7 +126,7 @@ PL_blob_t _PL_closure_blob =
 };
 
 
-static int
+static bool
 unify_closure(term_t t, Definition def, Code supervisor)
 { closure c;
 
@@ -143,7 +144,7 @@ unify_closure(term_t t, Definition def, Code supervisor)
  * if t is not a closure.
  */
 
-int
+bool
 get_closure_predicate(DECL_LD term_t t, Definition *def)
 { void *data;
   PL_blob_t *type;
@@ -179,7 +180,7 @@ will eventually trap this and re-create an appropriate new supervisor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-resetWrappedSupervisor(Definition def0, int do_linger)
+resetWrappedSupervisor(Definition def0, bool do_linger)
 { Definition def = def0;
   Code codes = def->codes;
 
@@ -245,8 +246,10 @@ assert_wrapper(DECL_LD term_t clause)
 }
 
 
-#define unify_wrapped(wrapped, closure, head) LDFUNC(unify_wrapped, wrapped, closure, head)
-static int
+#define unify_wrapped(wrapped, closure, head) \
+	LDFUNC(unify_wrapped, wrapped, closure, head)
+
+static bool
 unify_wrapped(DECL_LD term_t wrapped, atom_t closure, term_t head)
 { Word from;
 
@@ -268,12 +271,9 @@ retry:
 
       return PL_unify_atomic(wrapped, w);
     } else
-    { int rc;
-
-      if ( (rc = ensureGlobalSpace(1+arity, ALLOW_GC)) == true )
+    { if ( ensureGlobalSpace(1+arity, ALLOW_GC) )
 	goto retry;
-
-      return raiseStackOverflow(rc);
+      return false;
     }
   } else
   { return PL_unify_atom(wrapped, closure);

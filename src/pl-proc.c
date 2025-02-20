@@ -1824,8 +1824,8 @@ clause GC and clause GC calls cannot run in parallel.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, Buffer tr_starts,
-		int *rcp)
+cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start,
+		Buffer tr_starts, bool *rcp)
 { size_t removed = 0;
 
   DEBUG(CHK_SECURE,
@@ -2675,7 +2675,7 @@ the start generation of the clause garbage collector.
 foreign_t
 pl_garbage_collect_clauses(void)
 { GET_LD
-  int rc = true;
+  bool rc = true;
 
   if ( GD->procedures.dirty->size > 0 &&
        COMPARE_AND_SWAP_INT(&GD->clauses.cgc_active, false, true) )

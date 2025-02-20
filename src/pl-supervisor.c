@@ -58,12 +58,13 @@ allocCodes(size_t n)
 
 static void
 freeCodes(Code codes)
-{ size_t size = (size_t)codes[-1];
+{ unregisterWrappedSupervisor(codes); /* holds atom_t references */
 
-  unregisterWrappedSupervisor(codes); /* holds atom_t references */
+  codes--;
+  size_t size = (size_t)codes[0];
 
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-    freeHeap(&codes[-1], (size+1)*sizeof(code));
+    freeHeap(codes, (size+1)*sizeof(code));
 }
 
 
@@ -238,19 +239,18 @@ static Code
 singleClauseSupervisor(Definition def)
 { if ( def->impl.clauses.number_of_clauses == 1 )
   { ClauseRef cref;
-    Code codes = allocCodes(2);
     int found = getClauses(def, &cref, 1);
 
     if ( found == 1 )
     { DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
 			predicateName(def)));
 
+      Code codes = allocCodes(2);
       codes[0] = encode(S_TRUSTME);
       codes[1] = ptr2code(cref);
 
       return codes;
     }
-    freeCodes(codes);
   }
 
   return NULL;
