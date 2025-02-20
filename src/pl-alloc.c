@@ -227,6 +227,11 @@ linger_always(linger_list** list, void (*unalloc)(void *), void *object)
   { linger_list *c = allocHeapOrHalt(sizeof(*c));
     linger_list *o;
 
+    DEBUG(0,
+	  for(linger_list *l = *list; l; l = l->next)
+	  { assert(l->object != object);
+	  });
+
     c->generation = global_generation();
     c->object	  = object;
     c->unalloc	  = unalloc;
