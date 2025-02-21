@@ -3674,13 +3674,9 @@ variables used in the B_THROW instruction.
   }
 
   DEF = FR->predicate;
-  if ( QF->solutions )			/* retry */
-  { fid_t fid = QF->foreign_frame;
-    QF->foreign_frame = 0;
-    PL_close_foreign_frame(fid);
-    BODY_FAILED;
-  } else if ( QF->yield.term )			/* resume after yield */
-  { if ( QF->yield.term == YIELD_TERM_FOREIGN ) /* PL_yield_address() */
+  if ( QF->yield.term )			/* resume after yield */
+  { DEBUG(MSG_YIELD, Sdprintf("Resume %zd\n", QF->yield.term));
+    if ( QF->yield.term == YIELD_TERM_FOREIGN ) /* PL_yield_address() */
     { QF->yield.term = 0;
       fid_t fid = QF->foreign_frame;
       QF->foreign_frame = 0;
@@ -3710,6 +3706,11 @@ variables used in the B_THROW instruction.
       DEBUG(CHK_SECURE, checkStacks(NULL));
       NEXT_INSTRUCTION;
     }
+  } else if ( QF->solutions )		/* retry */
+  { fid_t fid = QF->foreign_frame;
+    QF->foreign_frame = 0;
+    PL_close_foreign_frame(fid);
+    BODY_FAILED;
   } else				/* first call */
     VMH_GOTO(depart_or_retry_continue);
 
