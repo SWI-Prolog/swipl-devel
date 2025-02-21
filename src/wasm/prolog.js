@@ -1035,7 +1035,7 @@ class Prolog
 		  "nl":         this.PL_WRT_NEWLINE
 		};
 
-    for(k in map)
+    for(const k in map)
     { if ( opts[k] === true )
       { flags |= map[k];
       } else if ( opts[k] === false )
