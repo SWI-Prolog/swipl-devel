@@ -4676,6 +4676,7 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	SAVE_REGISTERS(QID);
 	QF->foreign_frame = fid;
 	QF->yield.term = YIELD_TERM_FOREIGN;
+	DEBUG(MSG_YIELD, Sdprintf("Foreign yield\n"));
 #if !O_VMI_FUNCTIONS
 	assert(LD->exception.throw_environment == &THROW_ENV);
 	LD->exception.throw_environment = THROW_ENV.parent;

@@ -241,7 +241,8 @@
 
 #define MSG_WRITE_FLOAT		 370
 
-#define MSG_WASM_ASYNC		 400
+#define MSG_YIELD		 400
+#define MSG_WASM_ASYNC		 401
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

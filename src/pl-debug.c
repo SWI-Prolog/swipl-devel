@@ -241,6 +241,7 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_WRITE_FLOAT),
 
+  DEBUG_TOPIC(MSG_YIELD),
   DEBUG_TOPIC(MSG_WASM_ASYNC),
 
   DEBUG_TOPIC(CHK_SECURE),
