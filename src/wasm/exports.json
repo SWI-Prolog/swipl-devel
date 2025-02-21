@@ -211,6 +211,8 @@
     "_PL_destroy_engine",
     "__PL_switch_engine",
     "__PL_reset_engine",
+    "_PL_set_trace_action",
+    "_PL_get_trace_context",
 
     "_WASM_ttymode",
     "_WASM_bind_standard_streams",

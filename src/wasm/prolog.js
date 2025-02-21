@@ -541,8 +541,8 @@ class Prolog
 	'_PL_reset_engine', 'number', ['number', 'number']),
       PL_set_trace_action: this.module.cwrap(
 	'PL_set_trace_action', 'number', ['number']),
-      PL_get_trace_action: this.module.cwrap(
-	'PL_get_trace_action', 'number', ['number']),
+      PL_get_trace_context: this.module.cwrap(
+	'PL_get_trace_context', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_bind_standard_streams: this.module.cwrap(
@@ -1193,6 +1193,19 @@ class Prolog
     }, true);
   }
 
+  set_trace_action(obj)
+  { this.with_frame(() =>
+    { const term = this.toProlog(obj, undefined, {string:"atom"});
+
+      if ( !term )
+      { console.log("Could not convert", obj);
+	throw("Could not convert JavaScript data to Prolog");
+      }
+
+      this.bindings.PL_set_trace_action(term);
+    }, true);
+  }
+
 /**
  * Call a goal that may yield.  When no yield happens this returns the
  * result of Query.next().  If the predicate called await/2 an
@@ -1207,24 +1220,26 @@ class Prolog
  * key to abort the query immediately.
  *
  * @param {String} goal  Prolog goal to be called
- * @param {String} [module] Module in which to call the goal.
+ * @param {Object} [options] Additional options
+ * @param {String} [options.module] Module in which to call the goal.
  * @return Either the result of Query.next() or a _yield_ request as
  * described above.
  */
 
-  __call_yieldable(goal, module)
+  __call_yieldable(goal, opts)
   { var pred_call1;
-    const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
+    let flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
 
     if ( !pred_call1 )
       pred_call1 = this.predicate("call", 1, "system");
 
+    opts = opts||{};
     const fid = this.bindings.PL_open_foreign_frame();
     const term = this.new_term_ref();
     if ( !this.chars_to_term(goal, term) )
       throw new Error('Query has a syntax error: ' + query);
-    const q = new Query(this, module, flags, pred_call1, term,
-			{ frame:fid });
+    const q = new Query(this, opts.module, flags, pred_call1, term,
+			{ ...opts, frame:fid });
     return q.next_yieldable();
   }
 
@@ -1723,6 +1738,7 @@ const class_engine = (class Engine{
  *               [options]: {Object}
  *
  * @param {String} [module] Optional module name
+ * @param {Object} [options] Optional options
  * @param {Function} [options.map] Function to map `term_t` into
  *        properties of the Query.next() result object.
  * @param {fid_t} [options.frame] Prolog frame used to create
@@ -1740,6 +1756,8 @@ class Query {
 		    prolog.PL_Q_PASS_EXCEPTION|
 		    prolog.PL_Q_NORMAL)) )
       flags |= prolog.PL_Q_CATCH_EXCEPTION;
+    if ( options.debugger )
+      flags |= prolog.PL_Q_TRACE_WITH_YIELD;
 
     this.options = options;
     this.flags   = flags;
@@ -1819,6 +1837,20 @@ class Query {
 		 }
 	       };
       }
+      case prolog.PL_S_YIELD_DEBUG:
+      { const event = prolog.new_term_ref(1);
+	prolog.bindings.PL_get_trace_context(event);
+
+	return { done: false,
+		 value: null,
+		 trace_event: event,
+		 yield: "trace",
+		 resume: (value) =>
+		 { prolog.set_trace_action(value);
+		   return this.__next();
+		 }
+	       };
+      }
     }
   }
 
@@ -1831,7 +1863,7 @@ class Query {
       { let rc = query.__next();
 
 	if ( rc.yield !== undefined )
-	{ let request = rc.yield;
+	{ const request = rc.yield;
 
 	  if ( prolog.abort_request )
 	  { prolog.abort_request = undefined;
@@ -1883,13 +1915,17 @@ class Query {
 			   }
 			 };
 	    return result;
+	  } else if ( request == "trace" )
+	  { rc.resume = (value) =>
+	    { prolog.set_trace_action(value);
+	      return ynext(query);
+	    };
+	  } else	  // Get back here instead of Query.ynext()
+	  { rc.resume = (value) =>
+	    { prolog.set_yield_result(value);
+	      return ynext(query);
+	    };
 	  }
-
-	  // Get back here instead of Query.ynext()
-	  rc.resume = (value) =>
-	  { prolog.set_yield_result(value);
-	    return ynext(query);
-	  };
 	} else if ( rc.done === false )
 	{ rc.resume = () => ynext(query);
 	}

@@ -124,11 +124,12 @@ body {
 }
 
 
-#more { margin-left: 3ex; }
+#more, #trace { margin-left: 3ex; }
 
-#input, #more, #abort, #create-file { display: none }
+#input, #more, #trace, #abort, #create-file { display: none }
 .console.prompt.goal #input { display: flex }
 .console.more        #more  { display: inline-block }
+.console.trace       #trace { display: inline-block }
 .console.run         #abort { display: block }
 .create-file #create-file   { display: inline; }
 
@@ -161,7 +162,7 @@ span.query-collapse { font-size: 90%; }
   <div>
     This is a basic demo of
     a <a href="https://www.swi-prolog.org"
-    target="_blank">SWI-Prolog</a> shell based on SWI-Prolog compiled to 
+    target="_blank">SWI-Prolog</a> shell based on SWI-Prolog compiled to
     <a href="https://webassembly.org/" target="_blank">WASM</a></div>
   <div>Alpha version.
   See <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm"
@@ -177,6 +178,13 @@ span.query-collapse { font-size: 90%; }
 	<div id="more">
 	  <button id="more.next" onclick="reply_more('redo')">Next</button>
 	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
+	</div>
+	<div id="trace">
+	  <button id="trace.continue" onclick="reply_trace('continue')">Step</button>
+	  <button id="trace.skip"     onclick="reply_trace('skip')">Skip</button>
+	  <button id="trace.retry"    onclick="reply_trace('retry')">Retry</button>
+	  <button id="trace.nodebug"  onclick="reply_trace('nodebug')">Continue</button>
+	  <button id="trace.abort"    onclick="reply_trace('abort')">Abort</button>
 	</div>
 	<form class="input" id="input">
 	  <span class="prompt">?- </span><input type="text" name="query"
@@ -241,6 +249,9 @@ load_file(Spec, String) :-
         open(Spec, read, In),
         read_string(In, _Len, String),
         close(In)).
+
+trace_action(print, Msg) :-
+    print_message(debug, Msg).
 
 </script>
 
@@ -350,6 +361,7 @@ let   answer;
 let   answer_ignore_nl = false;
 const input	    = document.getElementById('input');
 const more	    = document.getElementById('more');
+const trace	    = document.getElementById('trace');
 const editor	    = document.getElementById('editor');
 const select_file   = document.getElementById('select-file');
 const abort	    = document.getElementById('abort');
@@ -386,7 +398,7 @@ function pl(s) {
   }
 
 
-  /** Add a structur for a query.  The structure is
+  /** Add a structure for a query.  The structure is
    *
    * ```
    * <div class="query-container">
@@ -683,6 +695,38 @@ function reply_more(action)
   }
 }
 
+// Tracer support
+
+function reply_trace(action)
+{ if ( yield && yield.yield == "trace" )
+  { switch(action)
+    { default:
+        print_output(` [${action}]`, "stderr");
+        break;
+    }
+    set_state("run");
+    next(yield.resume(action));
+  }
+}
+
+function trace_action(action, msg)
+{ const prolog = Prolog;
+
+  return prolog.with_frame(() =>
+  { const av = prolog.new_term_ref(2);
+
+    prolog.put_chars(av+0, action, prolog.PL_ATOM);
+    prolog.bindings.PL_put_term(av+1, msg);
+    const flags = prolog.PL_Q_NODEBUG;
+    const pred  = prolog.predicate("wasm_shell:trace_action/2");
+    const qid   = prolog.bindings.PL_open_query(0, flags, pred, av);
+    const rc    = prolog.bindings.PL_next_solution(qid);
+    prolog.bindings.PL_close_query(qid);
+    return rc;
+  });
+}
+
+
 function set_state(state)
 { terminal.className = "console " + state;
 }
@@ -712,6 +756,12 @@ function next(rc)
         set_state("more");
         document.getElementById("more.next").focus();
         break;
+      case "trace":
+      { trace_action("print", yield.trace_event);
+        set_state("trace");
+        document.getElementById("trace.continue").focus();
+        break;
+      }
       case "builtin":
         rc.resume((rc)=>next(rc));
         break;
@@ -724,7 +774,8 @@ function next(rc)
 
 function toplevel()
 { let rc = Prolog.call("wasm_query_loop",
-		       { async:true
+		       { async:true,
+			 debugger:true
 		       });
 
   next(rc);
