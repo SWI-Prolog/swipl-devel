@@ -5156,6 +5156,8 @@ VMH(b_throw_unwind, 2, (term_t, Stack), (catchfr_ref, outofstack))
     LOAD_REGISTERS(QID);
 
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+    while ( (void*)fli_context > (void*)FR )
+      fli_context = fli_context->parent;
     discardFrame(FR);
     if ( ison(FR, FR_WATCHED) )
     { SAVE_REGISTERS(QID);
