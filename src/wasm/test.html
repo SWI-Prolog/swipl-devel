@@ -32,8 +32,13 @@
 </div>
 <div id="output"></div>
 
-<!-- Load prolog -->
+<!-- Load prolog.  Using the bundle provides a single file solution,
+     which is nice for deployment.  Using `swipl-web.js` allows for
+     generating a debug version.  Single file bundles do not support
+     a .map file.
+  -->
 <script src="/wasm/swipl-bundle.js"></script>
+<!-- <script src="/wasm/swipl-web.js"></script> -->
 
 <script>
 output   = document.getElementById('output');
