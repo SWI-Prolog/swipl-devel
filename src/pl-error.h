@@ -99,7 +99,8 @@ typedef enum
   ERR_PERMISSION_SSU_DEF,	/* Definition def */
   ERR_DETERMINISM,		/* Definition def, atom_t expect,
 				   atom_t found, atom_t decl */
-  ERR_DET_GOAL			/* term_t goal, atom_t expect, atom_t found */
+  ERR_DET_GOAL,			/* term_t goal, atom_t expect, atom_t found */
+  ERR_PERMISSION_YIELD		/* void */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))

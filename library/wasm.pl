@@ -498,5 +498,8 @@ prolog:message(JsError) -->
       Msg := JsError.toString()
     },
     [ 'JavaScript: ~w'-[Msg] ].
+prolog:message(error(permission_error(yield, engine, Engine),
+                     context(system:'$await'/2, _))) -->
+    [ 'await/2 is only allowed in Prolog.forEach() queries' ].
 prolog:error_message(js_error(Msg)) -->
     [ 'JavaScript: ~w'-[Msg] ].

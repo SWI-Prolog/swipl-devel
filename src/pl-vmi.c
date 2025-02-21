@@ -4669,8 +4669,8 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	  THROW_EXCEPTION;
 
 	QF = QueryFromQid(QID);
-	if ( !(QF->flags&PL_Q_ALLOW_YIELD) ) /* TBD: Error */
-	{ PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
+	if ( !(QF->flags&PL_Q_ALLOW_YIELD) )
+	{ PL_error(NULL, 0, "not an async query", ERR_PERMISSION_YIELD);
 	  THROW_EXCEPTION;
 	}
 	SAVE_REGISTERS(QID);

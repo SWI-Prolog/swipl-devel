@@ -388,6 +388,18 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_CHARS, vmi);
       break;
     }
+    case ERR_PERMISSION_YIELD:
+    { term_t t;
+      rc = ( (t=PL_new_term_ref()) &&
+	     pl_thread_self(t) &&
+	     PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_permission_error3,
+			     PL_ATOM, ATOM_yield,
+			     PL_ATOM, ATOM_engine,
+			     PL_TERM, t) );
+      PL_reset_term_refs(t);
+      break;
+    }
     case ERR_NOT_IMPLEMENTED_PROC:
     { const char *name = va_arg(args, const char *);
       int arity = va_arg(args, int);
