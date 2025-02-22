@@ -36,6 +36,7 @@
 #include <emscripten.h>
 
 PL_EXPORT(const char *)		WASM_ttymode(void);
+PL_EXPORT(void)			WASM_bind_standard_streams(void);
 PL_EXPORT(term_t)		WASM_yield_request(void);
 PL_EXPORT(void)			WASM_set_yield_result(term_t result);
 PL_EXPORT(size_t)		WASM_variable_id(term_t t);
@@ -244,6 +245,44 @@ js_get_obj(term_t t)
   return -1;
 }
 
+		 /*******************************
+		 *       STANDARD STREAMS       *
+		 *******************************/
+
+static IOFUNCTIONS orig_functions;
+static IOFUNCTIONS wasm_functions;
+
+static void
+wasm_flush(void *handle)
+{ int32_t fd = (int32_t)(intptr_t)handle;
+
+  EM_ASM({ flush_std_stream($0); }, fd);
+}
+
+static ssize_t
+wasm_write_std(void *handle, char *buf, size_t size)
+{ ssize_t rc = orig_functions.write(handle, buf, size);
+  if ( rc == size )
+    wasm_flush(handle);
+  return rc;
+}
+
+static int
+wasm_control_std(void *handle, int cmd, void *closure)
+{ int rc = orig_functions.control(handle, cmd, closure);
+  if ( rc == 0 && cmd == SIO_FLUSHOUTPUT )
+    wasm_flush(handle);
+  return rc;
+}
+
+void
+WASM_bind_standard_streams(void)
+{ orig_functions = wasm_functions = *Serror->functions;
+  wasm_functions.write = wasm_write_std;
+  wasm_functions.control = wasm_control_std;
+  Serror->functions = &wasm_functions;
+  Soutput->functions = &wasm_functions;
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

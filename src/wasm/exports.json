@@ -213,6 +213,7 @@
     "__PL_reset_engine",
 
     "_WASM_ttymode",
+    "_WASM_bind_standard_streams",
     "_WASM_yield_request",
     "_WASM_set_yield_result",
     "_WASM_variable_id",

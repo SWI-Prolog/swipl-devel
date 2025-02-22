@@ -296,6 +296,7 @@ class Prolog
     if (!this.bindings.PL_initialise(argv.length, ptr)) {
 	throw new Error('SWI-Prolog initialisation failed.');
     }
+    this.bindings.WASM_bind_standard_streams();
     this.MODULE_user = this.new_module("user");
     this.call("set_prolog_flag(color_term, false).");
     this.call("set_prolog_flag(debug_on_error, false)");
@@ -544,6 +545,8 @@ class Prolog
 	'PL_get_trace_action', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
+      WASM_bind_standard_streams: this.module.cwrap(
+	'WASM_bind_standard_streams', 'number', []),
       WASM_yield_request: this.module.cwrap(
 	'WASM_yield_request', 'number', []),
       WASM_set_yield_result: this.module.cwrap(
@@ -2067,6 +2070,13 @@ function release_registered_object(id)
   delete prolog.objects[id];
 }
 
+function flush_std_stream(s)
+{ if ( s == 1 )
+  { flush("stdout");
+  } else if ( s == 2 )
+  { flush("stderr");
+  }
+}
 
 if ( globalThis.BigInt.prototype.toJSON === undefined )
 { globalThis.BigInt.prototype.toJSON = function ()
