@@ -32,6 +32,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+let prolog;
+
 		 /*******************************
 		 *	  MODULE DEFAULTS	*
 		 *******************************/
@@ -230,6 +232,22 @@ const class_blob = (class PrologBlob {
   }
 });
 
+const class_term = (class PrologTerm {
+  constructor(arg)
+  { this.$t = "term_t";
+    if ( typeof arg === "string" )
+    { const h = prolog.new_term_ref();
+
+      if ( !prolog.chars_to_term(arg, h) )
+	throw new Error(`Query has a syntax error: ${arg}`);
+      this.term_t = h;
+    } else if ( typeof arg == "number" )
+    { this.term_t = arg;
+    } else
+    { throw new Error(`String or term handle expected.  Found ${arg}`);
+    }
+  }
+});
 
 const class_abortable_promise = (class AbortablePromise extends Promise {
   constructor(executer)
@@ -277,6 +295,7 @@ class Prolog
     this.__id_engines = {};		// id --> Engine
     this.engines = {};			// name --> Engine
     this.main_engine = this.__init_main_engine("main");
+    prolog = this;
   }
 
 
@@ -308,6 +327,7 @@ class Prolog
     this.String	  = class_string;
     this.Rational = class_rational;
     this.Compound = class_compound;
+    this.Term     = class_term;
     this.List	  = class_list;
     this.Blob	  = class_blob;
     this.Promise  = class_abortable_promise;
@@ -589,24 +609,28 @@ class Prolog
  * @param {String}  goal Goal to run
  * @param {String}  [opts.module] Module in which to call Goal
  * @param {Boolean} [opts.async]  Call as yieldable
+ * @param {Boolean} [opts.nodebug]  Do not debug the goal
  */
 
   call(goal, opts)
-  { opts = opts||{};
-
-    if ( typeof(goal) === "string" )
-    { if ( opts.async )
+  { if ( typeof(goal) === "string" )
+    { if ( opts && opts.async )
       { return this.__call_yieldable(goal, opts);
       } else
       { return this.with_frame(function()
-	{ const term = this.new_term_ref();
+	{ if ( opts )		// not possible during initialization
+	  { return !!this
+	    .query("call(Goal)",
+		   {Goal:new this.Term(goal)}, opts)
+	    .once();
+	  } else
+	  { const term = this.new_term_ref();
 
-	  if ( !this.chars_to_term(goal, term) )
-	    throw new Error(`Query has a syntax error: ${query}`);
+	    if ( !this.chars_to_term(goal, term) )
+	      throw new Error(`Query has a syntax error: ${query}`);
 
-	  const module = opts.module ? this.new_module(opts.module)
-				     : this.MODULE_user;
-	  return !!this.bindings.PL_call(term, module);
+	    return !!this.bindings.PL_call(term, this.MODULE_user);
+	  }
 	});
       }
     }
@@ -1483,6 +1507,10 @@ class Prolog
 	      { rc = toList(term, data.v, data.t);
 		break;
 	      }
+	      case "term_t":
+	      { rc = prolog.bindings.PL_put_term(term, data.term_t);
+		break;
+	      }
 	      default:
 	      { console.log(`Object with invalid $t:${data.$t}`);
 	      }
@@ -1758,6 +1786,8 @@ class Query {
       flags |= prolog.PL_Q_CATCH_EXCEPTION;
     if ( options.debugger )
       flags |= prolog.PL_Q_TRACE_WITH_YIELD;
+    if ( options.nodebug )
+      flags |= prolog.PL_Q_NODEBUG;
 
     this.options = options;
     this.flags   = flags;
