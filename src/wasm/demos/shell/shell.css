@@ -113,7 +113,6 @@ body {
 
 #query { flex-grow: 1; margin: 0px 10px;}
 
-.stderr { color: red; }
 .stderr, .stdout, .query {
     white-space: pre-wrap;
     font-family: monospace;

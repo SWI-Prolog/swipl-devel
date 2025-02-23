@@ -443,11 +443,11 @@ function toplevel()
 let Prolog;
 let Module;
 var options = {
-    arguments: [],
-    locateFile: function(file) { // not needed with swipl-bundle.js
-	return '/wasm/' + file;
-    },
-    on_output: print_output
+  arguments: [],
+  locateFile: function(file) { // not needed with swipl-bundle.js
+    return '/wasm/' + file;
+  },
+  on_output: print_output
 };
 
 SWIPL(options).then(async (module) =>
@@ -457,6 +457,7 @@ SWIPL(options).then(async (module) =>
       Prolog.call("set_prolog_flag(tty_control, true)");
       Prolog.call("set_prolog_flag(color_term, true)");
       Prolog.call("set_stream(user_output, tty(true))");
+      Prolog.call("set_stream(user_error, tty(true))");
       Prolog.call("working_directory(_, '/prolog')");
       await Prolog.load_scripts();
       await Prolog.consult("wasm_shell.pl");
