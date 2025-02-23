@@ -43,7 +43,8 @@
 :- use_module(library(main)).
 :- use_module(library(option)).
 
-user:file_search_path(web, '../src/wasm').
+user:file_search_path(web, '../src/wasm/demos').
+user:file_search_path(web, '../src/wasm/demos/shell').
 user:file_search_path(web, 'src').
 user:file_search_path(scasp,  Dir) :-
     getenv('SCASP_HOME', Dir).
