@@ -63,5 +63,24 @@ load_file(Spec, String) :-
         read_string(In, _Len, String),
         close(In)).
 
-trace_action(print, Msg) :-
+%!  trace_action(+Action, +Message) is det.
+%
+%   Perform actions on behalf of the debugger, such as printing the
+%   current goal, etc.
+%
+%   @arg Message is a term frame(Frame, Choice, Port, PC) as provided
+%   by PL_get_trace_context()
+
+trace_action(print, Msg) =>
     print_message(debug, Msg).
+trace_action(goals, frame(Frame,_Choice,_Port,_PC)) =>
+    dbg_backtrace(Frame, 5).
+
+dbg_backtrace(Frame, Depth) :-
+    get_prolog_backtrace(Depth, Stack,
+                         [ frame(Frame),
+                           goal_term_depth(10)
+                         ]),
+    print_prolog_backtrace(user_error, Stack,
+                           [ show_files(basename)
+                           ]).

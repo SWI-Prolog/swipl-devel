@@ -317,13 +317,18 @@ function reply_more(action)
 
 function reply_trace(action)
 { if ( yield && yield.yield == "trace" )
-  { switch(action)
-    { default:
-        print_output(` [${action}]`, "stderr");
-        break;
+  { print_output(` [${action}]`, "stderr");
+
+    switch(action)
+    { case "goals":
+      { trace_action("goals", yield.trace_event);
+	break;
+      }
+      default:
+      { set_state("run");
+	next(yield.resume(action));
+      }
     }
-    set_state("run");
-    next(yield.resume(action));
   }
 }
 
@@ -343,6 +348,25 @@ function trace_action(action, msg)
     return rc;
   });
 }
+
+const trace_shortcuts = {
+  " ":     "continue",
+  "Enter": "continue",
+  "c":     "continue",
+  "g":	   "goals",
+  "r":	   "retry",
+  "s":	   "skip",
+  "n":     "nodebug",
+  "a":	   "abort"
+};
+
+trace.addEventListener("keypress", (ev) => {
+  const action = trace_shortcuts[ev.key];
+  if ( action )
+  { ev.preventDefault();
+    reply_trace(action);
+  }
+});
 
 		 /*******************************
 		 *       TOPLEVEL STATES        *
