@@ -119,6 +119,9 @@ body {
     font-family: monospace;
     overflow-wrap: anywhere;
 }
+.bold { font-weight: bold; }
+.underline { text-decoration: underline; }
+
 div.query, span.prompt { font-weight: bold; }
 .query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
 .query-answer:nth-child(even) { background-color: #eee; }

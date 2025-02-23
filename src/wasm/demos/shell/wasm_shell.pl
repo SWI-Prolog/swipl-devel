@@ -34,6 +34,7 @@
 
 :- module(wasm_shell, []).
 :- use_module(library(wasm)).
+:- use_module(library(ansi_term)).
 
 :- multifile prolog_edit:edit_source/1.
 

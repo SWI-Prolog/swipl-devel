@@ -109,7 +109,7 @@ loadCss("https://eu.swi-prolog.org/download/codemirror/theme/prolog.css");
 		 *    PROLOG OUTPUT STREAMS     *
 		 *******************************/
 
-function print_output(line, cls) {
+function print_output(line, cls, sgr) {
   if ( line.trim() == "" && answer && answer_ignore_nl )
   { answer_ignore_nl = false;
     return;
@@ -118,6 +118,16 @@ function print_output(line, cls) {
   const node = document.createElement('span');
   node.className = cls;
   node.textContent = line;
+  if ( sgr )
+  { if ( sgr.color )
+      node.style.color = sgr.color;
+    if ( sgr.background_color )
+      node.background_color.color = sgr.background_color;
+    if ( sgr.bold )
+      node.classList.add("bold");
+    if ( sgr.underline )
+      node.classList.add("underline");
+  }
   (answer||output).appendChild(node);
 };
 
@@ -445,6 +455,8 @@ SWIPL(options).then(async (module) =>
       Prolog = Module.prolog;
       Module.FS.mkdir("/prolog");
       Prolog.call("set_prolog_flag(tty_control, true)");
+      Prolog.call("set_prolog_flag(color_term, true)");
+      Prolog.call("set_stream(user_output, tty(true))");
       Prolog.call("working_directory(_, '/prolog')");
       await Prolog.load_scripts();
       await Prolog.consult("wasm_shell.pl");

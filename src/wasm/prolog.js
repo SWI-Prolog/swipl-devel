@@ -64,22 +64,214 @@ Module.noInitialRun = true;
     stream flushed.
 */
 
+const ansi_color =		// xterm default color palette
+      { 0: "#000000",
+	1: "#cd0000",
+	2: "#00cd00",
+	3: "#cdcd00",
+	4: "#0000ee",
+	5: "#cd00cd",
+	6: "#00cdcd",
+	7: "#e5e5e5",
+	8: "#7f7f7f",
+	9: "#ff0000",
+	10: "#00ff00",
+	11: "#ffff00",
+	12: "#5c5cff",
+	13: "#ff00ff",
+	14: "#00ffff",
+	15: "#ffffff"
+      };
+
+function new_ansi_state()
+{ return(
+  { state: "initial",
+    argv: [],
+    argstat: 0,
+    sgr:
+    { color: undefined,
+      background_color: undefined,
+      bold: false,
+      underline: false
+    }
+  });
+}
+
+function set_sgr(sgr, codes)
+{ codes.forEach((code) => {
+    if ( code == 0 )
+    { sgr.bold = false;
+      sgr.underline = false;
+      sgr.color = undefined;
+      sgr.background_color = undefined;
+    } else if ( code >= 30 && code <= 39 )
+    { if ( code == 39 )
+      { sgr.color = undefined;
+      } else
+      { sgr.color = ansi_color[code-30];
+      }
+    } else if ( code >= 40 && code <= 49 )
+    { if ( code == 49 )
+      { sgr.background_color = undefined;
+      } else
+      { sgr.background_color = ansi_color[code-40];
+      }
+    } else if ( code >= 90 && code <= 99 )
+    { if ( code == 99 )
+      { sgr.color = undefined;
+      } else
+      { sgr.color = ansi_color[code-90+8];
+      }
+    } else if ( code >= 100 && code <= 109 )
+    { if ( code == 109 )
+      { sgr.background_color = undefined;
+      } else
+      { sgr.background_color = ansi_color[code-100+8];
+      }
+    } else if ( code == 1 )
+    { sgr.bold = true;
+    } else if ( code == 4 )
+    { sgr.underline = true;
+    }
+  });
+}
+
+function set_ansi(sgr, cmd)
+{ switch(cmd.cmd)
+  { case "sgr":
+    { set_sgr(sgr, cmd.argv);
+    }
+  }
+}
+
+/**
+ * @param {Object} ansi_state contains the current state for ANSI
+ * decoding
+ * @param {Number} c is the next character from the stream
+ * @return {Number|Object|undefined} If `c` is eaten by the decoder return
+ * `undefined`.  If `c` is uninterpreted, return it.  If an ANSI sequence
+ * is completed return an object holding `cmd` and `argv`.
+ */
+
+function decode_ansi(ansi_state, c)
+{ switch(ansi_state.state)
+  { case "initial":
+    { if ( c == 27 )
+      { ansi_state.state = "esc";
+	return;
+      } else
+      { return c;
+      }
+    }
+    case "esc":
+    { if ( c == 91 )		// '['
+      { ansi_state.state = "ansi";
+	ansi_state.argv = [];
+	return;
+      } else
+      { return c;
+	ansi_state.state = "initial";
+      }
+    }
+    case "ansi":
+    { if ( c >= 48 && c <= 57 )	// 0..9
+      { if ( !ansi_state.argstat )
+	{ ansi_state.argv.push(c-48);
+	  ansi_state.argstat = 1;
+	} else
+	{ const i = ansi_state.argv.length-1;
+	  ansi_state.argv[i] = ansi_state.argv[i] * 10 + (c - 48);
+	}
+	return;
+      } else if ( !ansi_state.argstat && c == 45 )	// -
+      { ansi_state.argstat = -1;
+	return;
+      } else if ( ansi_state.argstat )
+      { const i = ansi_state.argv.length-1;
+	ansi_state.argv[i] *= ansi_state.argstat;
+	ansi_state.argstat = 0;
+      }
+
+      if ( c == 59 )		// ';'
+	return;
+
+      ansi_state.state = "initial";
+
+      switch(c)
+      { case 72:		// 'H'
+	case 102:		// 'f'
+	{ return { cmd: "set_caret",
+		   argv: [arg(1, 0), arg(2,0)]
+		 }
+	}
+	case 65:		// 'A'
+	{ return cmd("caret_up");
+	}
+	case 66:		// 'B'
+	{ return cmd("caret_down");
+	}
+	case 67:		// 'C'
+	{ return cmd("caret_forward");
+	}
+	case 68:		// 'D'
+	{ return cmd("caret_backward");
+	}
+	case 115:		// 's'
+	{ return { cmd: "save_caret_position"
+		 };
+	}
+	case 117:		// 'u'
+	{ return { cmd: "restore_caret_position"
+		 };
+	}
+	case 74:		// 'J'
+	{ if ( ansi_state.argv[0] == 2 )
+	  { return { cmd: "erase_display"
+		   };
+	  }
+	}
+	case 75:		// 'K'
+	{ return { cmd: "erase_line"
+		 };
+	}
+	case 109:		// 'm'
+	{ if ( ansi_state.argv.length == 0 )
+	    ansi_state.argv.push(0);
+	  return { cmd: "sgr",
+		   argv: ansi_state.argv
+		 };
+	}
+      }
+    }
+  }
+}
+
 let decoder;
-let buffers =
-    {  stdout: [],
-       stderr: []
-    };
+const buffers =
+      {  stdout: { buf: [],
+		   ansi: new_ansi_state()
+		 },
+	 stderr: { buf: [],
+		   ansi: new_ansi_state()
+		 }
+      };
 
 function write(to, c)
-{ const buf = buffers[to];
+{ const buf = buffers[to].buf;
 
-  if ( c == 10 && buf.length == 0 )
-    buf.push(32);
   if ( c )
-    buf.push(c);
-
-  if ( c == 10 || c == null )
-    flush(to);
+  { c = decode_ansi(buffers[to].ansi, c);
+    if ( typeof c === "number" )
+    { if ( c == 10 && buf.length == 0 )
+        buf.push(32);
+      buf.push(c);
+      if ( c == 10 || c == null )
+	flush(to);
+    } else if ( c !== undefined )
+    { flush(to);
+      set_ansi(buffers[to].ansi.sgr, c);
+    }
+  }
 }
 
 function decode(bytes)
@@ -98,11 +290,12 @@ function decode(bytes)
 }
 
 function flush(to)
-{ if ( buffers[to].length )
-  { const line = decode(buffers[to]);
+{ const buf = buffers[to].buf;
+  if ( buf.length )
+  { const line = decode(buf);
 
-    Module.on_output(line, to);
-    buffers[to] = [];
+    Module.on_output(line, to, buffers[to].ansi.sgr);
+    buffers[to].buf = [];
   }
 }
 
