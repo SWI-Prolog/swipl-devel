@@ -1,0 +1,135 @@
+:root {
+    --margin: 10px;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    width: 100%; height: 100%; margin: var(--margin);
+    overflow: hidden;
+}
+
+.header {
+    padding-bottom: 5px;
+}
+
+#logo {
+    width: 5ex;
+    float: left;
+    margin-right: 2ex;
+}
+
+.content {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    width: calc(100% - 2*var(--margin));
+}
+
+#left {
+    position: relative;
+    box-sizing: border-box;
+    height: calc(100% - 2*var(--margin)); border: 1px solid black;
+}
+
+.scroll-wrapper {
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    padding: 5px;
+    overflow: auto; display: flex; flex-direction: column-reverse;
+}
+.scroll-start-at-top { flex: 1 1 0%; }
+
+.editor-container {
+    height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
+}
+
+#editor {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-wrapper {
+    border: 1px solid black;
+    padding: 1px;
+    position: relative;
+    flex-grow: 1;
+}
+
+#editor-files button, #editor-files select { height: 26px; }
+
+#editor-files select option.url { color: blue; }
+
+#file {
+    box-sizing: border-box;
+    border: 0px;
+    resize: none;
+    width: 100%; height: 100%;
+}
+
+.CodeMirror {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    font-size: 130%;
+}
+
+.editor-buttons {
+    margin-top: var(--margin);
+}
+
+#input {
+    margin-top: 5px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+
+#more, #trace { margin-left: 3ex; }
+
+#input, #more, #trace, #abort, #create-file { display: none }
+.console.prompt.goal #input { display: flex }
+.console.more        #more  { display: inline-block }
+.console.trace       #trace { display: inline-block }
+.console.run         #abort { display: block }
+.create-file #create-file   { display: inline; }
+
+#query { flex-grow: 1; margin: 0px 10px;}
+
+.stderr { color: red; }
+.stderr, .stdout, .query {
+    white-space: pre-wrap;
+    font-family: monospace;
+    overflow-wrap: anywhere;
+}
+div.query, span.prompt { font-weight: bold; }
+.query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
+.query-answer:nth-child(even) { background-color: #eee; }
+
+.query-container, .query-answer { position: relative; }
+span.query-buttons { position: absolute; right: 5px; top: 1px; padding: 0px; margin: 0px;
+		     cursor: pointer; color: #666}
+span.query-buttons > span { margin-left: 0.5ex; border: 1px;}
+span.query-buttons > span:hover { color: black; border: 1px solid black;}
+.query-container.collapsed > .query-answers { display: none; }
+.query-container span.query-collapse:before { content: "\1401" }
+.query-container.collapsed span.query-collapse:before { content: "\1405" }
+span.query-collapse { font-size: 90%; }
+
