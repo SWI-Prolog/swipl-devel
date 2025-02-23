@@ -44,16 +44,26 @@ and browse to http://localhost:8080/
 	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
 	</div>
 	<div id="trace">
-	  <button id="trace.continue" onclick="reply_trace('continue')">Step</button>
-	  <button id="trace.skip"     onclick="reply_trace('skip')">Skip</button>
-	  <button id="trace.retry"    onclick="reply_trace('retry')">Retry</button>
-	  <button id="trace.nodebug"  onclick="reply_trace('nodebug')">Continue</button>
-	  <button id="trace.abort"    onclick="reply_trace('abort')">Abort</button>
+	  <button id="trace.creep"
+		  title="Creep (c,Space,Enter)"
+		  onclick="reply_trace('creep')">↳</button>
+	  <button id="trace.skip"
+		  title="Skip (s)"
+		  onclick="reply_trace('skip')">⏭</button>
+	  <button id="trace.retry"
+		  title="Retry (r)"
+		  onclick="reply_trace('retry')">↻</button>
+	  <button id="trace.nodebug"
+		  title="Nodebug (n)"
+		  onclick="reply_trace('nodebug')">▶</button>
+	  <button id="trace.abort"
+		  title="Abort (a)"
+		  onclick="reply_trace('abort')">⏹</button>
 	</div>
-	<form class="input" id="input">
-	  <span class="prompt">?- </span><input type="text" name="query"
-						id="query" autocomplete="off">
-	</form>
+	<div id="input">
+	<span class="prompt">?- </span><input type="text" name="query"
+					      id="query" autocomplete="off">
+	</div>
 	<form class="abort" id="abort">
 	  <button>Abort</button>
 	</form>

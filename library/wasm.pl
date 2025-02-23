@@ -53,8 +53,8 @@
           ]).
 :- autoload(library(apply), [exclude/3, maplist/3]).
 :- autoload(library(terms), [mapsubterms/3]).
-:- autoload(library(error), [instantiation_error/1, existence_error/2]).
-
+:- autoload(library(error),
+            [instantiation_error/1, existence_error/2, permission_error/3]).
 :- use_module(library(uri), [uri_is_global/1, uri_normalized/3]).
 :- use_module(library(debug), [debug/3]).
 
@@ -167,6 +167,14 @@ await(Request, Result) :-
 is_async :-
     '$can_yield'.
 
+
+%!  must_be_async(+Message) is det.
+
+must_be_async(_) :-
+    is_async,
+    !.
+must_be_async(Message) :-
+    permission_error(run, goal, Message).
 
 %!  sleep(+Seconds)
 %
@@ -313,6 +321,8 @@ js_script(String, _Options) :-
 
 user:prolog_load_file(Module:File, Options) :-
     file_url(File, URL),
+    debug(load_file(url), '~p resolves to ~p', [File, URL]),
+    must_be_async(load_file(File)),
     load_options(URL, Options, Options1, Modified),
     (   already_loaded(URL, Modified)
     ->  '$already_loaded'(File, URL, Module, Options)
@@ -324,6 +334,11 @@ user:prolog_load_file(Module:File, Options) :-
             load_files(Module:URL, [stream(In)|Options2]),
             close(In))
     ).
+
+%!  file_url(+FileSpec, -URL) is semidet.
+%
+%   True when FileSpec refers to a URL, i.e., we must load the file from
+%   the internet.
 
 file_url(File, _), compound(File), compound_name_arity(File, _, 1) =>
     !,

@@ -236,7 +236,7 @@ function query(query)
   { set_state("run");
     next(yield.resume(query));
   } else
-  { pl(query);
+  { Prolog.call(query);
   }
 }
 
@@ -244,27 +244,21 @@ function query(query)
 		 *        ENTER A QUERY         *
 		 *******************************/
 
-input.addEventListener('submit', (e) =>
-{ e.preventDefault();
+function submitQuery(input)
+{ let query = input.value;
+  input.value = '';
 
-  if ( yield && yield.yield == "goal" )
-  { let query = e.target.elements.query.value;
-    e.target.elements.query.value = '';
+  if ( ! /\.\s*/.test(query) )
+    query += ".";
+  history.stack.push(query);
+  history.current = null;
+  add_query(query);
 
-    if ( ! /\.\s*/.test(query) )
-      query += ".";
-    history.stack.push(query);
-    history.current = null;
-    add_query(query);
+  set_state("run");
+  next(yield.resume(query));
+}
 
-    set_state("run");
-    next(yield.resume(query));
-  } else
-  { alert("Not waiting for a query");
-  }
-}, false);
-
-input.addEventListener("keydown", (event) =>
+input.addEventListener("keyup", (event) =>
 { if ( event.defaultPrevented ) return;
 
   switch(event.key)
@@ -286,6 +280,11 @@ input.addEventListener("keydown", (event) =>
 	}
       }
       break;
+    case "Enter":
+    { const query = input.querySelector("#query");
+      submitQuery(query);
+      break;
+    }
     default:
       return;
   }
@@ -327,11 +326,14 @@ function reply_more(action)
 
 function reply_trace(action)
 { if ( yield && yield.yield == "trace" )
-  { print_output(` [${action}]`, "stderr");
+  { print_output(` [${action}]`, "stderr", {color: "#888"});
+    Prolog.call("nl(user_error)", {nodebug:true});
 
     switch(action)
     { case "goals":
-      { trace_action("goals", yield.trace_event);
+      case "listing":
+      case "help":
+      { trace_action(action, yield.trace_event);
 	break;
       }
       default:
@@ -360,20 +362,26 @@ function trace_action(action, msg)
 }
 
 const trace_shortcuts = {
-  " ":     "continue",
-  "Enter": "continue",
-  "c":     "continue",
+  " ":     "creep",
+  "Enter": "creep",
+  "a":	   "abort",
+  "c":     "creep",
   "g":	   "goals",
+  "l":	   "leap",
+  "L":	   "listing",
   "r":	   "retry",
   "s":	   "skip",
   "n":     "nodebug",
-  "a":	   "abort"
+  "u":	   "up",
+  "?":	   "help"
 };
 
-trace.addEventListener("keypress", (ev) => {
+trace.addEventListener("keyup", (ev) => {
+  if ( ev.defaultPrevented ) return;
   const action = trace_shortcuts[ev.key];
   if ( action )
   { ev.preventDefault();
+    ev.stopPropagation();
     reply_trace(action);
   }
 });
@@ -405,7 +413,7 @@ function next(rc)
       case "goal":
         set_state("prompt goal");
         answer = undefined;
-        input.elements.query.focus();
+        input.querySelector("#query").focus();
         break;
       case "more":
         set_state("more");
@@ -414,7 +422,7 @@ function next(rc)
       case "trace":
       { trace_action("print", yield.trace_event);
         set_state("trace");
-        document.getElementById("trace.continue").focus();
+        document.getElementById("trace.creep").focus();
         break;
       }
       case "builtin":
@@ -422,7 +430,11 @@ function next(rc)
         break;
     }
   } else if ( rc.error )
-  { console.log("Unhandled exception; restarting");
+  { if ( rc.message == "Execution Aborted" )
+    { Prolog.call("print_message(informational, unwind(abort))");
+    } else
+    { console.log("Unhandled exception; restarting", rc);
+    }
     toplevel();
   }
 }

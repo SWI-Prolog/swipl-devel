@@ -76,6 +76,15 @@ trace_action(print, Msg) =>
     print_message(debug, Msg).
 trace_action(goals, frame(Frame,_Choice,_Port,_PC)) =>
     dbg_backtrace(Frame, 5).
+trace_action(listing, frame(Frame,_Choice,_Port,_PC)) =>
+    prolog_frame_attribute(Frame, predicate_indicator, Pred),
+    listing(Pred).
+trace_action(help, _) =>
+    Actions := trace_shortcuts,
+    dict_pairs(Actions, _, Pairs),
+    transpose_pairs(Pairs, Transposed),
+    group_pairs_by_key(Transposed, Grouped),
+    print_message(information, trace_help_table(Grouped)).
 
 dbg_backtrace(Frame, Depth) :-
     get_prolog_backtrace(Depth, Stack,
@@ -85,3 +94,50 @@ dbg_backtrace(Frame, Depth) :-
     print_prolog_backtrace(user_error, Stack,
                            [ show_files(basename)
                            ]).
+
+                /*******************************
+                *           MESSAGES           *
+                *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(trace_help_table(Entries)) -->
+    help_table(Entries).
+
+help_table([]) ==>
+    [].
+help_table([H1]) ==>
+    help_entry(H1, 1).
+help_table([H1,H2|T]) ==>
+    help_entry(H1, 1),
+    help_entry(H2, 40),
+    [nl],
+    help_table(T).
+
+
+help_entry(Action-Keys, Column) ==>
+    { maplist(key_name, Keys, Keys1),
+      atomics_to_string(Keys1, ", ", Key),
+      HelpCol is Column+12
+    },
+    [ '~t~*|'-[Column],  ansi([bold, fg(black)], '~w', Key),
+      '~t~*|'-[HelpCol]
+    ],
+    action_help(Action).
+
+key_name(' ', 'SPC') :- !.
+key_name('Enter', 'RET') :- !.
+key_name(Key, Key).
+
+action_help(abort)   ==> ['Abort query'].
+action_help(creep)   ==> ['Step to next port'].
+action_help(goals)   ==> ['Print backtrace'].
+action_help(help)    ==> ['Show this menu'].
+action_help(leap)    ==> ['Continue to next spy point'].
+action_help(listing) ==> ['List current predicate'].
+action_help(nodebug) ==> ['Continue without debugging'].
+action_help(retry)   ==> ['Retry current goal'].
+action_help(skip)    ==> ['Step over current goal'].
+action_help(up)      ==> ['Step out current goal'].
+action_help(A)       ==> ['~w'-[A]].

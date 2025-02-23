@@ -2023,16 +2023,13 @@ class Query {
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
       { /* `value` is `undefined` */
-	if ( (this.flags & prolog.PL_Q_NORMAL) )
-	{ this.__close();
-	  return { done: !this.is_iterator, error: true }
-	} else
-	{ const msg = prolog.message_to_string(
-				 prolog.bindings.PL_exception(this.qid));
+	const msg = prolog.message_to_string(prolog.bindings.PL_exception(this.qid));
+	if ( this.flags & prolog.PL_Q_NORMAL)
+	  console.error(msg);
+	else
 	  console.log(msg);
-	  this.__close();
-	  return { done: !this.is_iterator, error: true, message: msg };
-	}
+	this.__close();
+	return { done: !this.is_iterator, error: true, message: msg };
       }
       case prolog.PL_S_FALSE:
 	this.__close();
