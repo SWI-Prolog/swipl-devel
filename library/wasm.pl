@@ -58,6 +58,8 @@
 :- use_module(library(uri), [uri_is_global/1, uri_normalized/3]).
 :- use_module(library(debug), [debug/3]).
 
+:- set_prolog_flag(generate_debug_info, false).
+
 /** <module> WASM version support
 */
 
