@@ -1915,7 +1915,9 @@ class Query {
 			   }
 			 };
 	    return result;
-	  } else if ( request == "trace" )
+	  }
+
+	  if ( request == "trace" )
 	  { rc.resume = (value) =>
 	    { prolog.set_trace_action(value);
 	      return ynext(query);
