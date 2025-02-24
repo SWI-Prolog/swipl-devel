@@ -135,3 +135,10 @@ span.query-buttons > span:hover { color: black; border: 1px solid black;}
 .query-container.collapsed span.query-collapse:before { content: "\1405" }
 span.query-collapse { font-size: 90%; }
 
+span.exch-files {
+    float: right;
+    text-decoration: none;
+}
+
+span.exch-files input.upload-file { display: none; }
+span.exch-files.upload-armed input.upload-file { display: inline; }

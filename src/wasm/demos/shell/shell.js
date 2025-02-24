@@ -482,18 +482,19 @@ async function addExamples()
   });
 
   if ( Array.isArray(json) && json.length > 0 )
-  { const sep = document.createElement("option");
+  { const select = select_file;
+    const sep = document.createElement("option");
     sep.textContent = "Demos";
     sep.disabled = true;
-    select_file.appendChild(sep);
+    select.appendChild(sep);
 
     json.forEach((ex) =>
-      { if ( !hasFileOption("/prolog/"+ex.name) )
+      { if ( !hasFileOption(select, "/prolog/"+ex.name) )
 	{ const opt = document.createElement("option");
 	  opt.className = "url";
 	  opt.value = "/wasm/examples/"+ex.name;
 	  opt.textContent = (ex.comment||ex.name) + " (demo)";
-	  select_file.appendChild(opt);
+	  select.appendChild(opt);
 	}
       });
   }
@@ -542,24 +543,28 @@ function baseName(path)
 { return path.split("/").pop();
 }
 
-function hasFileOption(name)
-{ let found = false;
+function hasFileOption(select, name)
+{ return !!Array.from(select.childNodes).find((n) => n.value == name );
+}
 
-  Array.from(select_file.childNodes).forEach((n) => {
-    if ( n.value == name )
-      found = true;
-  });
-
-  return found;
+function demoOptionSep(select)
+{ return Array.from(select_file.childNodes).find(
+  (n) => n.value == "Demos" && n.disabled);
 }
 
 function addFileOption(name)
-{ if ( !hasFileOption(name) )
+{ const select = select_file;
+
+  if ( !hasFileOption(select, name) )
   { const node = document.createElement('option');
     node.textContent = baseName(name);
     node.value = name;
     node.selected = true;
-    select_file.appendChild(node);
+    const sep = demoOptionSep(select);
+    if ( sep )
+      select.insertBefore(node, sep);
+    else
+      select.appendChild(node);
   }
 }
 
@@ -571,12 +576,13 @@ function switchToFile(name)
   });
 
   if ( files.current != name )
-  { if ( file.current )
-      saveFile(file.current);
+  { if ( files.current )
+      saveFile(files.current);
     files.current = name;
     if ( !files.list.includes(name) )
       files.list.push(name);
     loadFile(name);
+    updateDownload(name);
   }
 }
 
@@ -624,6 +630,62 @@ document.getElementById("select-file").onchange = (e) => {
   { switchToFile(opt.value);
   }
 }
+
+		 /*******************************
+		 *       UP AND DOWNLOAD        *
+		 *******************************/
+
+function updateDownload(name)
+{ const btn = document.querySelector("a.btn.download");
+  if ( btn )
+  { name = baseName(name);
+    btn.download = name;
+    btn.title = `Download ${name}`;
+    btn.href = "download";
+  }
+}
+
+document.querySelector("a.btn.download").addEventListener("click", (ev) => {
+  const text = cm.getValue();
+  const data = new Blob([text]);
+  const btn = ev.target;
+  btn.href = URL.createObjectURL(data);
+});
+
+function readAsText(file) {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onerror = reject;
+        fr.onload = () => {
+            resolve(fr.result);
+        }
+        fr.readAsText(file);
+    });
+}
+
+async function download_files(files)
+{ for(let i=0; i<files.length; i++)
+  { const file = files[i];
+    const content = await readAsText(file);
+    const name = "/prolog/" + baseName(file.name);
+    addFileOption(name);
+    switchToFile(name);
+    cm.setValue(content);
+    saveFile(name);
+  }
+}
+
+document.querySelector("a.btn.upload").addEventListener("click", (ev) => {
+  const exch = ev.target.closest("span.exch-files");
+  if ( exch.classList.contains("upload-armed") )
+  { const files = exch.querySelector('input.upload-file').files;
+    download_files(files).then(() => {
+      exch.classList.remove("upload-armed");
+    });
+  } else
+  { exch.classList.add("upload-armed")
+  }
+});
 
 		 /*******************************
 		 *        PERSIST FILES         *
