@@ -42,8 +42,8 @@
             read_stream_to_codes/3,     % +Stream, -Codes, ?Tail
             read_file_to_codes/3,       % +File, -Codes, +Options
 
-            read_line_to_string/2,      % +Stream, -Line (without trailing \n)
-            read_file_to_string/3,      % +File, -Codes, +Options
+            read_line_to_string/2,      % +Stream, -String (without trailing \n)
+            read_file_to_string/3,      % +File, -String, +Options
 
             read_file_to_terms/3        % +File, -Terms, +Options
           ]).
