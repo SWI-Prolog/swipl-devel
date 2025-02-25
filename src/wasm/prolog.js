@@ -756,6 +756,8 @@ class Prolog
 	'PL_set_trace_action', 'number', ['number']),
       PL_get_trace_context: this.module.cwrap(
 	'PL_get_trace_context', 'number', ['number']),
+      PL_prompt_string: this.module.cwrap(
+	'PL_prompt_string', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_bind_standard_streams: this.module.cwrap(
@@ -1791,6 +1793,12 @@ class Prolog
     _free(ptr);
 
     return rc;
+  }
+
+  prompt_string(fd)
+  { const bytes = this.bindings.PL_prompt_string(fd||0)
+    if ( bytes )
+      return this.module.UTF8ToString(bytes);
   }
 
 // If t is compound and index is between 1 and arity (inclusive),

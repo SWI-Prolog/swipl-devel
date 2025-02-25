@@ -105,7 +105,7 @@ body {
 #more, #trace { margin-left: 3ex; }
 
 #input, #more, #trace, #abort, #create-file, #keyboard { display: none }
-.console.prompt.goal #input { display: flex }
+.console.prompt      #input { display: flex }
 .console.more        #more  { display: inline-block }
 .console.trace       #trace { display: inline-block }
 .console.run:not(.key) #abort { display: block }
@@ -117,7 +117,7 @@ body {
 #keyboard:focus { outline: 0px; }
 #keyboard > span { color: #888; font-style: italic; font-size: 90%; }
 
-.stderr, .stdout, .query {
+.stderr, .stdout, .query-header {
     white-space: pre-wrap;
     font-family: monospace;
     overflow-wrap: anywhere;
@@ -125,8 +125,8 @@ body {
 .bold { font-weight: bold; }
 .underline { text-decoration: underline; }
 
-div.query, span.prompt { font-weight: bold; }
-.query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
+div.query-header, span.prompt { font-weight: bold; }
+.query-header { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
 .query-answer:nth-child(even) { background-color: #eee; }
 
 .query-container, .query-answer { position: relative; }

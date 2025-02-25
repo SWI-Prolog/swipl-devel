@@ -1048,7 +1048,7 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
 read_query(_Prompt, Goal, Bindings) :-
     '$can_yield',
     !,
-    await(goal, GoalString),
+    await(query, GoalString),
     term_string(Goal, GoalString, [variable_names(Bindings)]).
 :- endif.
 read_query(Prompt, Goal, Bindings) :-

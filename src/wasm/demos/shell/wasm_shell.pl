@@ -108,6 +108,38 @@ system:get_single_char(Code) :-
 system:tty_size(Rows, Columns) :-
     [Rows,Columns] := tty_size().
 
+reading_tty :-
+    current_input(Input),
+    reading_tty(Input).
+
+reading_tty(Input) :-
+    stream_property(Input, tty(true)).
+
+read_from_user(What, Term, Options) :-
+    await(What, Text),
+    term_string(Term, Text, Options).
+
+:- wrap_predicate(system:read(Term), tty, Closure,
+                  (   reading_tty
+                  ->  read_from_user(term, Term, [])
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:read(Stream, Term), tty, Closure,
+                  (   reading_tty(Stream)
+                  ->  read_from_user(term, Term, [])
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:read_term(Term, Options), tty, Closure,
+                  (   reading_tty
+                  ->  read_from_user(term, Term, Options)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:read_term(Stream, Term, Options), tty, Closure,
+                  (   reading_tty(Stream)
+                  ->  read_from_user(term, Term, Options)
+                  ;   Closure
+                  )).
+
 
                 /*******************************
                 *           MESSAGES           *

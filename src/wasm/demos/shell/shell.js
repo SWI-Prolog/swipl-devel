@@ -192,7 +192,7 @@ function current_answer()
  *
  * ```
  * <div class="query-container">
- *   <div class="query">?- betweenl(1,3,X).</div
+ *   <div class="query-header">?- betweenl(1,3,X).</div
  *   <div class="query-answers">
  *     <div class="query-answer">
  *       <span class="stdout">X = 1;</span>
@@ -225,7 +225,7 @@ function add_query(query)
     query_collapsed(prev, true);
 
   div1.className = "query-container";
-  div2.className = "query";
+  div2.className = "query-header";
   div3.className = "query-answers";
   div4.className = "query-answer";
   div1.appendChild(btns);
@@ -270,13 +270,13 @@ function next_answer()
   }
 }
 
-/** Run a query.
+/** Run a query.  Used for e.g., consulting the current file.
  * @param {String} query is the query to run.
  */
 function query(query)
 { add_query(query);
 
-  if ( yield && yield.yield == "goal" )
+  if ( yield && yield.yield == "query" )
   { set_state("run");
     next(yield.resume(query));
   } else
@@ -288,18 +288,40 @@ function query(query)
 		 *        ENTER A QUERY         *
 		 *******************************/
 
-function submitQuery(input)
-{ let query = input.value;
+function submitQuery(queryElem)
+{ const input = queryElem.querySelector("#query");
+  let query = input.value;
   input.value = '';
 
   if ( ! /\.\s*/.test(query) )
     query += ".";
-  history.stack.push(query);
-  history.current = null;
-  add_query(query);
+
+  if ( queryElem.ex_target == "query" )
+  { history.stack.push(query);
+    history.current = null;
+    add_query(query);
+  }
 
   set_state("run");
   next(yield.resume(query));
+}
+
+function focusInput(queryElem, why)
+{ const input  = queryElem.querySelector("#query");
+  const prompt = queryElem.querySelector("span.prompt");
+  switch(why)
+  { case "query":
+    { prompt.textContent = "?-";
+      break;
+    }
+    default:
+    { const s = Prolog.prompt_string(0)||"|: ";
+      prompt.textContent = s;
+    }
+  }
+  input.placeholder = `Please enter a ${why}`;
+  input.focus();
+  queryElem.ex_target = why;
 }
 
 input.addEventListener("keyup", (event) =>
@@ -325,8 +347,7 @@ input.addEventListener("keyup", (event) =>
       }
       break;
     case "Enter":
-    { const query = input.querySelector("#query");
-      submitQuery(query);
+    { submitQuery(input);
       break;
     }
     default:
@@ -454,10 +475,12 @@ function next(rc)
     switch(rc.yield)
     { case "beat":
         return setTimeout(() => next(yield.resume("true")), 0);
-      case "goal":
-        set_state("prompt goal");
+      case "query":
         answer = undefined;
-        input.querySelector("#query").focus();
+        /*FALLTHROUGH*/
+      case "term":
+        set_state("prompt "+rc.yield);
+        focusInput(input, rc.yield);
         break;
       case "more":
         set_state("more");
@@ -512,6 +535,7 @@ SWIPL(options).then(async (module) =>
       Module.FS.mkdir("/prolog");
       Prolog.call("set_prolog_flag(tty_control, true)");
       Prolog.call("set_prolog_flag(color_term, true)");
+      Prolog.call("set_stream(user_input, tty(true))");
       Prolog.call("set_stream(user_output, tty(true))");
       Prolog.call("set_stream(user_error, tty(true))");
       Prolog.call("working_directory(_, '/prolog')");

@@ -66,6 +66,7 @@
     "_PL_get_tail",
     "_PL_get_nil",
     "_PL_skip_list",
+    "_PL_prompt_string",
     "_PL_put_variable",
     "_PL_put_atom",
     "_PL_put_bool",
