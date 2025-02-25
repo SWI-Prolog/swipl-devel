@@ -36,7 +36,7 @@
 		 *   CONSTANTS AND COMPONENTS   *
 		 *******************************/
 
-const default_file  = "/prolog/program.pl";
+const default_file  = "/prolog/scratch.pl";
 
 const terminal	    = document.getElementById('console');
 const output	    = document.getElementById('output');
@@ -570,17 +570,35 @@ document.getElementById('file-name').onkeydown = (e) => {
   }
 };
 
+function deleteFile(file)
+{ const select = select_file;
+  const opt = hasFileOption(select, file);
+  let to = opt.nextElementSibling;
+  const sep = demoOptionSep(select);
+  if ( !to || to == sep )
+    to = opt.previousElementSibling;
+  if ( !to )
+    to = default_file;
+  switchToFile(to.value);
+  opt.parentNode.removeChild(opt);
+  files.list = files.list.filter((n) => (n != file));
+  localStorage.removeItem(file);
+  Module.FS.unlink(file);
+}
+
 document.getElementById('delete-file').onclick = (e) => {
   e.preventDefault();
   const del = selectedFile();
 
-  if ( del != default_file )
-  { switchToFile(default_file);
-    files.list = files.list.filter((n) => (n != del));
-    localStorage.removeItem(del);
-  } else
+  if ( del == default_file )
   { alert("Cannot delete the default file");
+    return;
   }
+  if ( !del.startsWith("/prolog/") )
+  { alert("Cannot delete system files");
+    return;
+  }
+  deleteFile(del);
 };
 
 function baseName(path)
@@ -588,12 +606,12 @@ function baseName(path)
 }
 
 function hasFileOption(select, name)
-{ return !!Array.from(select.childNodes).find((n) => n.value == name );
+{ return Array.from(select.childNodes).find((n) => n.value == name );
 }
 
 function demoOptionSep(select)
 { return Array.from(select_file.childNodes).find(
-  (n) => n.value == "Demos" && n.disabled);
+  (n) => n.textContent == "Demos" && n.disabled);
 }
 
 function addFileOption(name)
