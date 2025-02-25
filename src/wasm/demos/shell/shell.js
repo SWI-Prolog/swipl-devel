@@ -48,6 +48,7 @@ const trace	    = document.getElementById('trace');
 const editor	    = document.getElementById('editor');
 const select_file   = document.getElementById('select-file');
 const abort	    = document.getElementById('abort');
+const keyboard	    = document.getElementById('keyboard');
 let   yield	    = null;
 let   abort_request = false;
 let   history       = { stack: [], current: null };
@@ -130,6 +131,49 @@ function print_output(line, cls, sgr) {
   }
   (answer||output).appendChild(node);
 };
+
+
+function getPromiseFromEvent(item, event) {
+  return new Prolog.Promise((resolve) => {
+    const listener = (ev) => {
+      item.removeEventListener(event, listener);
+      resolve(ev);
+    }
+    item.addEventListener(event, listener);
+  })
+}
+
+async function get_single_char()
+{ terminal.classList.add("key");
+  keyboard.focus();
+  const ev = await getPromiseFromEvent(keyboard, "keyup");
+  terminal.classList.remove("key");
+  return ev.keyCode;
+}
+
+function getCharSize(element)
+{ if ( !element.char_size )
+  { let temp = document.createElement("span");
+    temp.className = "stdout";
+    temp.textContent = "test";
+    element.appendChild(temp);
+    const rect = temp.getBoundingClientRect();
+    element.char_size = { h: rect.height,
+			  w: rect.width/4
+			};
+    element.removeChild(temp);
+  }
+  return element.char_size;
+}
+
+function tty_size()
+{ const tty = document.querySelector("div.console");
+  const wrapper = tty.closest("div.scroll-wrapper");
+  const charsz = getCharSize(output);
+  return [ Math.floor(wrapper.clientHeight/charsz.h),
+	   Math.floor(wrapper.clientWidth/charsz.w)
+	 ];
+}
 
 		 /*******************************
 		 *       OUTPUT STRUCTURE       *

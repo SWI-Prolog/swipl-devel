@@ -95,6 +95,20 @@ dbg_backtrace(Frame, Depth) :-
                            [ show_files(basename)
                            ]).
 
+
+                /*******************************
+                *         TTY SUPPORT          *
+                *******************************/
+
+:- abolish(system:get_single_char/1).
+system:get_single_char(Code) :-
+    Promise := get_single_char(),
+    await(Promise, Code).
+
+system:tty_size(Rows, Columns) :-
+    [Rows,Columns] := tty_size().
+
+
                 /*******************************
                 *           MESSAGES           *
                 *******************************/

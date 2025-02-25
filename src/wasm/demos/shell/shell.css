@@ -104,14 +104,18 @@ body {
 
 #more, #trace { margin-left: 3ex; }
 
-#input, #more, #trace, #abort, #create-file { display: none }
+#input, #more, #trace, #abort, #create-file, #keyboard { display: none }
 .console.prompt.goal #input { display: flex }
 .console.more        #more  { display: inline-block }
 .console.trace       #trace { display: inline-block }
-.console.run         #abort { display: block }
+.console.run:not(.key) #abort { display: block }
+.console.key         #keyboard { display : block }
 .create-file #create-file   { display: inline; }
 
 #query { flex-grow: 1; margin: 0px 10px;}
+
+#keyboard:focus { outline: 0px; }
+#keyboard > span { color: #888; font-style: italic; font-size: 90%; }
 
 .stderr, .stdout, .query {
     white-space: pre-wrap;
