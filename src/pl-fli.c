@@ -5300,15 +5300,21 @@ PL_prompt_string(int fd)
   IOSTREAM *s;
 
   if ( (s=Suser_input) && fd == Sfileno(s) )
-  { atom_t a = PrologPrompt();		/* TBD: deal with UTF-8 */
+  { atom_t a = PrologPrompt();
 
     if ( a )
-    { PL_chars_t txt;
+    { PL_chars_t text;
+      unsigned int flags = REP_UTF8;
+      bool rc;
 
-      if ( get_atom_text(a, &txt) )
-      { if ( txt.encoding == ENC_ISO_LATIN_1 )
-	  return txt.text.t;
-      }
+      PL_STRINGS_MARK_IF_MALLOC(flags);
+      rc = ( get_atom_text(a, &text) &&
+	     PL_mb_text(&text, flags) &&
+	     PL_save_text(&text, flags) );
+      PL_STRINGS_RELEASE_IF_MALLOC(flags);
+
+      if ( rc )
+	return text.text.t;
     }
   }
 
