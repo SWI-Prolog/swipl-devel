@@ -63,7 +63,7 @@ must be escaped according to the  rules   of  the target language or the
     {|Syntax||Quotation|}
     ==
 
-While reading a Prolog term, and if   the  Prolog flag =quasi_quotes= is
+While reading a Prolog term, and if   the  Prolog flag =quasi_quotations= is
 set to =true= (which is the case if  this library is loaded), the parser
 collects quasi quotations. After reading the final full stop, the parser
 makes the call below. Here, `SyntaxName` is the functor name of `Syntax`
@@ -118,6 +118,8 @@ simple, quasi quotation parser for HTML.
         by Michael Hendricks.
 @see    [Why it's nice to be quoted: quasiquoting for
         haskell](http://www.cs.tufts.edu/comp/150FP/archive/geoff-mainland/quasiquoting.pdf)
+@see    [Why it's nice to be quoted: quasiquoting for
+        Prolog](https://www.swi-prolog.org/download/publications/quasiquoting.pdf)
 */
 
 
