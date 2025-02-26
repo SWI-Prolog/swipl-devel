@@ -32,7 +32,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(wasm_shell, []).
+:- module(wasm_shell, [ cls/0,          %
+                        html/1          % +HTMLTerm
+                      ]).
 :- use_module(library(wasm)).
 :- use_module(library(prolog_wrap), [wrap_predicate/4]).
 :- use_module(library(ansi_term), []).
@@ -46,6 +48,15 @@
 :- autoload(library(uri), [uri_is_global/1]).
 :- autoload(library(utf8), [utf8_codes/3]).
 :- autoload(library(dcg/basics), [string/3, number/3, remainder//1]).
+:- autoload(library(http/html_write), [html/3, print_html/1]).
+
+:- meta_predicate
+    html(:).
+
+% imported from library(wasm).  This enables development.
+:- op(700, xfx, :=).           % Result := Expression
+:- op(50,  fx,  #).            % #Value
+:- op(40,  yf,  []).           % Expr[Expr]
 
 :- public
     shell_init/1,
@@ -217,6 +228,28 @@ read_from_user(What, Term, Options) :-
 :- wrap_predicate(system:'$consult_user'(_Id), tty, _Closure,
                   (   print_message(warning, wasm(consult_user)),
                       fail)).
+
+%!  cls
+%
+%   Clear the output window.
+
+cls :-
+    document.getElementById("output").innerHTML := "".
+
+%!  html(:Term)
+%
+%   Insert  HTML  into  the  current answer  using  SWI-Prolog's  HTML
+%   generation infra structure.   For example:
+%
+%       ?- html(['Hello ', b(world)]).
+
+html(Term) :-
+    phrase(html(Term), Tokens),
+    with_output_to(string(HTML), print_html(Tokens)),
+    Div := document.createElement("div"),
+    Div.className := "write",
+    Div.innerHTML := HTML,
+    _ := current_answer().appendChild(Div).
 
 
                 /*******************************

@@ -21,7 +21,7 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - Replace toplevel emscripten conditional code with wrapping
  - Turn into a new GIT submodule?
  - Allow save/load from GitHub?
- - Add cls/0 and html/1 predicates to wasm_shell.pl
+ - Add cls/0 and html/1 predicates to wasm_shell.pl					[done]
  - Extend debugger
    - Support more commands
    - Sync source window with current location?

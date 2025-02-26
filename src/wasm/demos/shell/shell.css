@@ -124,6 +124,7 @@ body {
 }
 .bold { font-weight: bold; }
 .underline { text-decoration: underline; }
+div.write { display: contents; }
 
 div.query-header, span.prompt { font-weight: bold; }
 .query-header { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}

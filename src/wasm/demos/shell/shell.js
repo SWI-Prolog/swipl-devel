@@ -597,7 +597,7 @@ SWIPL(options).then(async (module) =>
       Prolog = Module.prolog;
       Module.FS.mkdir(user_dir);
       await Prolog.load_scripts();
-      await Prolog.consult("wasm_shell.pl");
+      await Prolog.consult("wasm_shell.pl", {module:"system"});
       Prolog.query("wasm_shell:shell_init(Dir)", {Dir:user_dir}).once();
       initCodeMirror(toplevel);
     });
