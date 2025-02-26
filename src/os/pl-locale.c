@@ -443,7 +443,7 @@ typedef struct
   PL_locale *l;				/* current locale */
   const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
-  int allocated;			/* Is allocated */
+  bool allocated;			/* Is allocated */
 } lprop_enum;
 
 
