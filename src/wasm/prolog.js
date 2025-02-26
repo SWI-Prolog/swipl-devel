@@ -983,7 +983,13 @@ class Prolog
  */
 
   consult(...args)
-  { return this.forEach("load_files(user:Files)", {Files:args});
+  { if ( args.length > 0 && typeof args[args.length-1] === "object" )
+    { options = args.pop();
+    } else
+    { options = {};
+    }
+    const module = options.module||"user";
+    return this.forEach("load_files(M:Files)", {M:module, Files:args});
   }
 
   load_string(s, id)

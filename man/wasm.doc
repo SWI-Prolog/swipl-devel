@@ -169,12 +169,16 @@ is \exam{/script/Id}, where \arg{Id} is derived from (1) the
 being the nth Prolog script in the document.  When resolved, the promise
 returns an array with the names of the loaded scripts.
 
-    \cfunction{Promise}{Prolog.consult}{...Sources}
+    \cfunction{Promise}{Prolog.consult}{...Sources[, Options]}
 Load the given \arg{Sources}. Each source is either a file from the
 local file system, e.g., \exam{library(lists)} or a URL. The sources are
 downloaded and processed sequentially. This uses
 \cfuncref{Prolog.forEach}{} calling load_files/1. The returned
-\ctype{Promise} returns 1 on success.
+\ctype{Promise} returns 1 on success.  If the last argument is an
+object, it is treated as options.  Currently the only option processed
+is \const{module} that defines the module into which a non-module file
+is loaded or into which the exports of a module file are imported.  Default
+is \const{"user"}.
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
