@@ -585,7 +585,7 @@ function toplevel()
 let Prolog;
 let Module;
 var options = {
-  arguments: [],
+  arguments: ['-g', 'true'],
   locateFile: function(file) { // not needed with swipl-bundle.js
     return '/wasm/' + file;
   },
@@ -599,6 +599,7 @@ SWIPL(options).then(async (module) =>
       await Prolog.load_scripts();
       await Prolog.consult("wasm_shell.pl", {module:"system"});
       Prolog.query("wasm_shell:shell_init(Dir)", {Dir:user_dir}).once();
+      Prolog.call("version");
       initCodeMirror(toplevel);
     });
 
