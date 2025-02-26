@@ -436,29 +436,43 @@ location_label(File:Line, Label) =>
 location_label(File, Label) =>
     format(string(Label), '~w', [File]).
 
-ansi_hyperlink(Stream, Location, Label) :-
-    hyperlink(Stream, url(Location, Label)),
-    !.
-ansi_hyperlink(Stream, File:Line:Column, Label) :-
-    !,
+ansi_hyperlink(Stream, Location, Label),
+    hyperlink(Stream, url(Location, Label)) =>
+    true.
+ansi_hyperlink(Stream, File:Line:Column, Label) =>
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w#~d:~d\e\\~w\e]8;;\e\\',
                [ URI, Line, Column, Label ])
     ;   format(Stream, '~w', [Label])
     ).
-ansi_hyperlink(Stream, File:Line, Label) :-
+ansi_hyperlink(Stream, File:Line, Label) =>
     !,
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w#~w\e\\~w\e]8;;\e\\',
                [ URI, Line, Label ])
     ;   format(Stream, '~w', [Label])
     ).
-ansi_hyperlink(Stream, File, Label) :-
+ansi_hyperlink(Stream, URL, Label), is_url(URL) =>
+    format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
+               [ URL, Label ]).
+ansi_hyperlink(Stream, File, Label) =>
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
                [ URI, Label ])
     ;   format(Stream, '~w', [Label])
     ).
+
+is_url(URL) :-
+    (   atom(URL)
+    ->  true
+    ;   string(URL)
+    ),
+    url_prefix(Prefix),
+    sub_string(URL, 0, _, _, Prefix).
+
+url_prefix('http://').
+url_prefix('https://').
+
 
 %!  url_file_name(-URL, +File) is semidet.
 %
