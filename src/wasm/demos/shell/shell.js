@@ -275,11 +275,16 @@ function add_query(query)
   const div3 = document.createElement("div");
   const div4 = document.createElement("div");
   const btns = document.createElement("span");
+  const edit = document.createElement("span");
   const close = document.createElement("span");
   const icon = document.createElement("span");
   btns.className = "query-buttons";
+  edit.textContent = "\u270E";
+  edit.title = "Copy query to input";
   close.textContent = "\u2715";
   icon.className = "query-collapse";
+  icon.title = "Collapse/expand answer";
+  btns.appendChild(edit);
   btns.appendChild(icon);
   btns.appendChild(close);
 
@@ -297,6 +302,11 @@ function add_query(query)
   div3.appendChild(div4);
   div2.textContent = `?- ${query}`;
   answer = div4;
+  edit.addEventListener("click", () => {
+    const queryElem = input.querySelector("#query");
+    queryElem.value = query;
+    queryElem.focus();
+  });
   close.addEventListener("click", () => div1.remove(), false);
   icon.addEventListener(
     "click",

@@ -32,7 +32,7 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - Show answer terms using HTML?
    - History search (Ctrl-R)?
    - Show history
-   - Add button to reuse query
+   - Add button to reuse query										[done]
  - Provide a dark mode
 
 ## Bugs
