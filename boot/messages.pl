@@ -1283,12 +1283,17 @@ prolog_message(threads) -->
     [].
 prolog_message(copyright) -->
     [ 'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.', nl,
-      'Please run ?- license. for legal details.'
+      'Please run ', ansi(code, '?- license.', []), ' for legal details.'
     ].
 prolog_message(documentaton) -->
-    [ 'For online help and background, visit https://www.swi-prolog.org', nl,
-      'For built-in help, use ?- help(Topic). or ?- apropos(Word).'
-    ].
+    [ 'For online help and background, visit ', url('https://www.swi-prolog.org') ],
+    (   { exists_source(library(help)) }
+    ->  [ nl,
+          'For built-in help, use ', ansi(code, '?- help(Topic).', []),
+          ' or ', ansi(code, '?- apropos(Word).', [])
+        ]
+    ;   []
+    ).
 prolog_message(about) -->
     [ 'SWI-Prolog version (' ],
     prolog_message(threads),
