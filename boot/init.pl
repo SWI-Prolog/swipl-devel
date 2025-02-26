@@ -2240,9 +2240,17 @@ consult(M:X) :-
     flag('$user_consult', N, N+1),
     NN is N + 1,
     atom_concat('user://', NN, Id),
-    load_files(M:Id, [stream(user_input), check_script(false), silent(false)]).
+    '$consult_user'(M:Id).
 consult(List) :-
     load_files(List, [expand(true)]).
+
+%!  '$consult_user'(:Id) is det.
+%
+%   Handle ``?- [user].``. This is a   separate  predicate, such that we
+%   can easily wrap this for the browser version.
+
+'$consult_user'(Id) :-
+    load_files(Id, [stream(user_input), check_script(false), silent(false)]).
 
 %!  load_files(:File, +Options)
 %

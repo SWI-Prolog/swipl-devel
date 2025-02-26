@@ -214,6 +214,10 @@ read_from_user(What, Term, Options) :-
                   ;   Closure
                   )).
 
+:- wrap_predicate(system:'$consult_user'(_Id), tty, _Closure,
+                  (   print_message(warning, wasm(consult_user)),
+                      fail)).
+
 
                 /*******************************
                 *           MESSAGES           *
@@ -224,6 +228,10 @@ read_from_user(What, Term, Options) :-
 
 prolog:message(trace_help_table(Entries)) -->
     help_table(Entries).
+prolog:message(wasm(consult_user)) -->
+    [ ansi(code, '?- [user].', []), ' is not supported in the browser', nl,
+      'version. Please use the scratch.pl file or create a new file.'
+    ].
 
 help_table([]) ==>
     [].
