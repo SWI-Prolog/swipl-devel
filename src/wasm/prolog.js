@@ -168,10 +168,40 @@ function decode_ansi(ansi_state, c)
       { ansi_state.state = "ansi";
 	ansi_state.argv = [];
 	return;
+      } else if ( c == 93 )	// ']'
+      { ansi_state.state = "link";
+	ansi_state.must_see = [56, 59, 59]; // 8;;
+	return;
       } else
-      { return c;
-	ansi_state.state = "initial";
+      { ansi_state.state = "initial";
+	return c;
       }
+    }
+    case "link":
+    { if ( c != ansi_state.must_see.shift() )
+      { ansi_state.state = "initial";
+	return c;
+      }
+      if ( ansi_state.must_see.length == 0 )
+      { ansi_state.chars = [];
+	ansi_state.state = "linkarg";
+      }
+      return;
+    }
+    case "linkarg":
+    { ansi_state.chars.push(c);
+      const end = [27, 93, 56, 59, 59, 27, 92]; // \e]8;;\e\\
+
+      if ( c == 92 &&		// '\\'
+	   ends_with(ansi_state.chars, end) )
+      { ansi_state.chars.splice(-end.length);
+	const text = decode(ansi_state.chars);
+	ansi_state.state = "initial";
+	return { cmd: "link",
+		 argv: text.split("\x1b\\")
+	       }
+      }
+      return;
     }
     case "ansi":
     { if ( c >= 48 && c <= 57 )	// 0..9
@@ -182,18 +212,25 @@ function decode_ansi(ansi_state, c)
 	{ const i = ansi_state.argv.length-1;
 	  ansi_state.argv[i] = ansi_state.argv[i] * 10 + (c - 48);
 	}
+	ansi_state.state = "ansi";
 	return;
       } else if ( !ansi_state.argstat && c == 45 )	// -
       { ansi_state.argstat = -1;
+	ansi_state.state = "ansi";
 	return;
       } else if ( ansi_state.argstat )
       { const i = ansi_state.argv.length-1;
-	ansi_state.argv[i] *= ansi_state.argstat;
-	ansi_state.argstat = 0;
+	if ( i >= 0 )
+	{ ansi_state.argv[i] *= ansi_state.argstat;
+	  ansi_state.argstat = 0;
+	} else
+	{ ansi_state.state = "initial";
+	  return c;
+	}
       }
 
       if ( c == 59 )		// ';'
-	return;
+        return;
 
       ansi_state.state = "initial";
 
@@ -244,6 +281,20 @@ function decode_ansi(ansi_state, c)
       }
     }
   }
+
+  function ends_with(array, end)
+  { let a = array.length-1;
+    let e = end.length-1;
+
+    if ( a >= e )
+    { while(e >= 0 && array[a] == end[e])
+      { a--; e--;
+      }
+      if ( e == -1 )
+	return true;
+    }
+    return false;
+  }
 }
 
 let decoder;
@@ -269,7 +320,14 @@ function write(to, c)
 	flush(to);
     } else if ( c !== undefined )
     { flush(to);
-      set_ansi(buffers[to].ansi.sgr, c);
+      switch(c.cmd)
+      { case "link":
+	{ Module.on_output(c.argv[1], to, {link:c.argv[0]});
+	}
+	default:
+	{ set_ansi(buffers[to].ansi.sgr, c);
+	}
+      }
     }
   }
 }

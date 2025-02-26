@@ -116,19 +116,27 @@ function print_output(line, cls, sgr) {
     return;
   }
 
-  const node = document.createElement('span');
-  node.className = cls;
-  node.textContent = line;
-  if ( sgr )
-  { if ( sgr.color )
+  console.log(line, cls, sgr);
+
+  let node;
+  if ( sgr && sgr.link )
+  { node = document.createElement('a');
+    node.href = sgr.link;
+  } else
+  { node = document.createElement('span');
+    if ( sgr )
+    { if ( sgr.color )
       node.style.color = sgr.color;
-    if ( sgr.background_color )
-      node.background_color.color = sgr.background_color;
-    if ( sgr.bold )
-      node.classList.add("bold");
-    if ( sgr.underline )
-      node.classList.add("underline");
+      if ( sgr.background_color )
+	node.background_color.color = sgr.background_color;
+      if ( sgr.bold )
+	node.classList.add("bold");
+      if ( sgr.underline )
+	node.classList.add("underline");
+    }
   }
+  node.classList.add(cls);
+  node.textContent = line;
   (answer||output).appendChild(node);
 };
 
