@@ -36,7 +36,8 @@
 		 *   CONSTANTS AND COMPONENTS   *
 		 *******************************/
 
-const default_file  = "/prolog/scratch.pl";
+const user_dir      = "/prolog"
+const default_file  = `${user_dir}/scratch.pl`;
 
 const terminal	    = document.getElementById('console');
 const output	    = document.getElementById('output');
@@ -56,6 +57,13 @@ let   files	    = { current: default_file,
 			list: [default_file]
 		      };
 
+function user_file(file)
+{ return `${user_dir}/${file}`;
+}
+
+function is_user_file(file)
+{ return file.startsWith(`${user_dir}/`);
+}
 
 		 /*******************************
 		 *          CODEMIRROR          *
@@ -105,6 +113,42 @@ function loadCss(url)
 
 loadCss("https://eu.swi-prolog.org/download/codemirror/theme/prolog.css");
 
+/**
+ * Go to a given 1-based line number
+ *
+ * @param {number} line
+ * @param {Object} [options]
+ * @param {number} [options.linepos] Go to a specific column
+ */
+
+function cm_goto(cm, line, options)
+{ options  = options||{};
+  const ch = options.linepos||0;
+
+  function clearSearchMarkers(cm)
+  { if ( cm._searchMarkers !== undefined )
+    { for(let i=0; i<cm._searchMarkers.length; i++)
+      cm._searchMarkers[i].clear();
+      cm.off("cursorActivity", clearSearchMarkers);
+    }
+    cm._searchMarkers = [];
+  }
+
+  clearSearchMarkers(cm);
+  line = line-1;
+
+  cm.setCursor({line:line,ch:ch});
+  cm._searchMarkers.push(
+    cm.markText({line:line, ch:0},
+		{line:line, ch:cm.getLine(line).length},
+		{ className:"CodeMirror-search-match",
+		  clearOnEnter: true,
+		  clearWhenEmpty: true,
+		  title: "Target line"
+		}));
+  cm.on("cursorActivity", clearSearchMarkers);
+}
+
 
 		 /*******************************
 		 *    PROLOG OUTPUT STREAMS     *
@@ -116,12 +160,12 @@ function print_output(line, cls, sgr) {
     return;
   }
 
-  console.log(line, cls, sgr);
-
   let node;
   if ( sgr && sgr.link )
   { node = document.createElement('a');
     node.href = sgr.link;
+    node.target = "_blank";
+    node.addEventListener("click", tty_link);
   } else
   { node = document.createElement('span');
     if ( sgr )
@@ -139,6 +183,17 @@ function print_output(line, cls, sgr) {
   node.textContent = line;
   (answer||output).appendChild(node);
 };
+
+
+function tty_link(ev)
+{ const a = ev.target;
+  const to = a.href;
+  if ( to.startsWith("file://") )
+  { ev.preventDefault();
+    Prolog.query("wasm_shell:tty_link(Link)", {Link:to}).once();
+  }
+  // Use default action
+}
 
 
 function getPromiseFromEvent(item, event) {
@@ -540,15 +595,10 @@ var options = {
 SWIPL(options).then(async (module) =>
     { Module = module;
       Prolog = Module.prolog;
-      Module.FS.mkdir("/prolog");
-      Prolog.call("set_prolog_flag(tty_control, true)");
-      Prolog.call("set_prolog_flag(color_term, true)");
-      Prolog.call("set_stream(user_input, tty(true))");
-      Prolog.call("set_stream(user_output, tty(true))");
-      Prolog.call("set_stream(user_error, tty(true))");
-      Prolog.call("working_directory(_, '/prolog')");
+      Module.FS.mkdir(user_dir);
       await Prolog.load_scripts();
       await Prolog.consult("wasm_shell.pl");
+      Prolog.query("wasm_shell:shell_init(Dir)", {Dir:user_dir}).once();
       initCodeMirror(toplevel);
     });
 
@@ -565,7 +615,7 @@ async function addExamples()
     select.appendChild(sep);
 
     json.forEach((ex) =>
-      { if ( !hasFileOption(select, "/prolog/"+ex.name) )
+      { if ( !hasFileOption(select, user_file(ex.name)) )
 	{ const opt = document.createElement("option");
 	  opt.className = "url";
 	  opt.value = "/wasm/examples/"+ex.name;
@@ -626,7 +676,7 @@ document.getElementById('delete-file').onclick = (e) => {
   { alert("Cannot delete the default file");
     return;
   }
-  if ( !del.startsWith("/prolog/") )
+  if ( !is_user_file(del) )
   { alert("Cannot delete system files");
     return;
   }
@@ -689,7 +739,7 @@ document.getElementById('create-button').onclick = e => {
   { if ( ! /\.pl$/.test(name) )
       name += ".pl";
 
-    name = "/prolog/"+name;
+    name = user_file(name);
 
     addFileOption(name);
     switchToFile(name);
@@ -715,7 +765,7 @@ document.getElementById("select-file").onchange = (e) => {
     .then((s) => {
       const name = baseName(opt.value);
       opt.className = "local";
-      opt.value = "/prolog/" + name;
+      opt.value = user_file(name);
       opt.textContent = name;
       Module.FS.writeFile(opt.value, s);
       switchToFile(opt.value);
@@ -761,7 +811,7 @@ async function download_files(files)
 { for(let i=0; i<files.length; i++)
   { const file = files[i];
     const content = await readAsText(file);
-    const name = "/prolog/" + baseName(file.name);
+    const name = user_file(baseName(file.name));
     addFileOption(name);
     switchToFile(name);
     cm.setValue(content);
@@ -786,11 +836,13 @@ document.querySelector("a.btn.upload").addEventListener("click", (ev) => {
 		 *******************************/
 
 function persistsFile(name)
-{ try
-  { let content = Module.FS.readFile(name, { encoding: 'utf8' });
-    localStorage.setItem(name, content);
-  } catch(e)
-  { localStorage.removeItem(name);
+{ if ( is_user_file(name) )
+  { try
+    { let content = Module.FS.readFile(name, { encoding: 'utf8' });
+      localStorage.setItem(name, content);
+    } catch(e)
+    { localStorage.removeItem(name);
+    }
   }
 }
 
@@ -829,8 +881,10 @@ function loadFile(name)
   }
 }
 
-function saveFile(name)
-{ Module.FS.writeFile(name, cm.getValue());
+function saveFile(name, force)
+{ if ( force || is_user_file(name) )
+  { Module.FS.writeFile(name, cm.getValue());
+  }
 }
 
 let autosave = true;

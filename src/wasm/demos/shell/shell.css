@@ -146,3 +146,7 @@ span.exch-files {
 
 span.exch-files input.upload-file { display: none; }
 span.exch-files.upload-armed input.upload-file { display: inline; }
+
+.CodeMirror-search-match {
+  background-color: yellow;
+}

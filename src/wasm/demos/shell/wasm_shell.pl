@@ -34,7 +34,32 @@
 
 :- module(wasm_shell, []).
 :- use_module(library(wasm)).
-:- use_module(library(ansi_term)).
+:- use_module(library(prolog_wrap), [wrap_predicate/4]).
+:- use_module(library(ansi_term), []).
+:- use_module(library(debug), [debug/3]).
+
+:- autoload(library(apply), [maplist/3]).
+:- autoload(library(listing), [listing/1]).
+:- autoload(library(pairs), [transpose_pairs/2, group_pairs_by_key/2]).
+:- autoload(library(prolog_stack),
+            [get_prolog_backtrace/3, print_prolog_backtrace/3]).
+:- autoload(library(uri), [uri_is_global/1]).
+:- autoload(library(utf8), [utf8_codes/3]).
+:- autoload(library(dcg/basics), [string/3, number/3, remainder//1]).
+
+:- public
+    shell_init/1,
+    tty_link/1,
+    trace_action/2.
+
+shell_init(UserDir) :-
+    set_prolog_flag(tty_control, true),
+    set_prolog_flag(color_term, true),
+    set_prolog_flag(hyperlink_term, true),
+    set_stream(user_input, tty(true)),
+    set_stream(user_output, tty(true)),
+    set_stream(user_error, tty(true)),
+    working_directory(_, UserDir).
 
 :- multifile prolog_edit:edit_source/1.
 
@@ -44,13 +69,20 @@
 %   right line.
 
 prolog_edit:edit_source(Spec) :-
+    edit_source(Spec).
+
+edit_source(Spec) :-
     memberchk(file(File), Spec),
     load_file(File, String),
     _ := addFileOption(#File),
     _ := switchToFile(#File),
     _ := cm.setValue(String),
     (   memberchk(line(Line), Spec)
-    ->  _ := cm.scrollIntoView(_{line:Line, ch:0}, 200)
+    ->  (   memberchk(linepos(LinePos), Spec)
+        ->  Options = _{linepos:LinePos}
+        ;   Options = _{}
+        ),
+        _ := cm_goto(cm, Line, Options)
     ;   true
     ).
 
@@ -63,6 +95,48 @@ load_file(Spec, String) :-
         open(Spec, read, In),
         read_string(In, _Len, String),
         close(In)).
+
+%!  tty_link(+Link) is det.
+%
+%   Handle a terminal hyperlink to ``file://`` links
+
+tty_link(Link) :-
+    debug(tty(hyperlink), 'Opening tty link ~p~n', [Link]),
+    string_concat("file://", Encoded, Link),
+    string_codes(Encoded, Codes),
+    phrase(percent_decode(UTF8), Codes),
+    phrase(utf8_codes(FileCodes), UTF8),
+    phrase(link_location(Location), FileCodes),
+    edit_source(Location).
+
+percent_decode([H|T]) -->
+    "%", [D1, D2],
+    { code_type(D1, xdigit(X1)),
+      code_type(D2, xdigit(X2)),
+      !,
+      H is (X1<<4) + X2
+    },
+    percent_decode(T).
+percent_decode([H|T]) -->
+    [H],
+    !,
+    percent_decode(T).
+percent_decode([]) -->
+    [].
+
+link_location([file(File),line(Line),linepos(Column)]) -->
+    string(Codes), "#", number(Line), ":", number(Column),
+    !,
+    { atom_codes(File, Codes) }.
+link_location([file(File),line(Line)]) -->
+    string(Codes), "#", number(Line),
+    !,
+    { atom_codes(File, Codes) }.
+link_location([file(File)]) -->
+    remainder(Codes),
+    !,
+    { atom_codes(File, Codes) }.
+
 
 %!  trace_action(+Action, +Message) is det.
 %
