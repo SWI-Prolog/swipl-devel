@@ -892,9 +892,15 @@ let autosave = true;
 window.onunload = (e) =>
 { if ( autosave )
   { localStorage.setItem("history", JSON.stringify(history));
-    localStorage.setItem("files",   JSON.stringify(files));
+    const l = files.list.filter((n) => is_user_file(n)||n == default_file);
+    const save =
+	  { list: l,
+	    current: l.includes(files.current) ? files.current : default_file
+	  };
 
-    files.list.forEach((f) => persistsFile(f));
+    localStorage.setItem("files",   JSON.stringify(save));
+
+    save.list.forEach((f) => persistsFile(f));
   }
 }
 
