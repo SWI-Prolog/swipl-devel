@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2024, VU University Amsterdam
+    Copyright (c)  2015-2025, VU University Amsterdam
 			     SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -428,3 +428,12 @@ group_by(By, Template, Goal, Bag) :-
     ordered_term_variables(By+Template, UVars),
     ord_subtract(GVars, UVars, ExVars),
     bagof(Template, ExVars^Goal, Bag).
+
+
+                /*******************************
+                *           SANDBOX            *
+                *******************************/
+
+:- multifile sandbox:safe_meta_predicate/1.
+
+sandbox:safe_meta_predicate(solution_sequences:distinct/2).
