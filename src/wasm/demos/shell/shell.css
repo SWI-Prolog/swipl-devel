@@ -117,6 +117,9 @@ body {
 #keyboard:focus { outline: 0px; }
 #keyboard > span { color: #888; font-style: italic; font-size: 90%; }
 
+#output {
+    font-family: monospace;
+}
 .stderr, .stdout, .query-header {
     white-space: pre-wrap;
     font-family: monospace;
