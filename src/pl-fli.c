@@ -2849,6 +2849,8 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
 
   if ( w )
   { setHandle(t, w);
+    if ( flags == PL_ATOM )
+      PL_unregister_atom(w);
     rc = true;
   }
 
