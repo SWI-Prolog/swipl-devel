@@ -49,6 +49,8 @@
 :- autoload(library(utf8), [utf8_codes/3]).
 :- autoload(library(dcg/basics), [string/3, number/3, remainder//1]).
 :- autoload(library(http/html_write), [html/3, print_html/1]).
+:- autoload(library(ansi_term), [ansi_format/3]).
+:- autoload(library(lists), [append/3]).
 
 :- meta_predicate
     html(:).
@@ -202,6 +204,7 @@ reading_tty(Input) :-
 
 read_from_user(What, Term, Options) :-
     await(What, Text),
+    echo(Text),
     term_string(Term, Text, Options).
 
 :- wrap_predicate(system:read(Term), tty, Closure,
@@ -224,6 +227,73 @@ read_from_user(What, Term, Options) :-
                   ->  read_from_user(term, Term, Options)
                   ;   Closure
                   )).
+% Single character input
+:- wrap_predicate(system:get_code(Code), tty, Closure,
+                  (   reading_tty
+                  ->  read_tty(code, Code)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:get_code(Stream, Code), tty, Closure,
+                  (   reading_tty(Stream)
+                  ->  read_tty(code, Code)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:get_char(Code), tty, Closure,
+                  (   reading_tty
+                  ->  read_tty(char, Code)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:get_char(Stream, Code), tty, Closure,
+                  (   reading_tty(Stream)
+                  ->  read_tty(char, Code)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:get0(Code), tty, Closure,
+                  (   reading_tty
+                  ->  read_tty(code, Code)
+                  ;   Closure
+                  )).
+:- wrap_predicate(system:get(Code), tty, Closure,
+                  (   reading_tty
+                  ->  read_tty(get, Code)
+                  ;   Closure
+                  )).
+
+read_tty(As, Result) :-
+    nb_current(tty_line, Line),
+    Line = [H|T],
+    !,
+    nb_setval(tty_line, T),
+    read_type(As, H, Result).
+read_tty(As, Result) :-
+    await(line, Text),
+    echo(Text),
+    string_codes(Text, Codes),
+    append(Codes, [10], Line),
+    nb_setval(tty_line, Line),
+    read_tty(As, Result).
+
+echo(Text) :-
+    current_prompt(Prompt),
+    ansi_format(bold, '~w', [Prompt]),
+    ansi_format(fg(blue), '~w~n', [Text]).
+
+current_prompt(Prompt) :-
+    prompt1(Prompt),
+    !.
+current_prompt(Prompt) :-
+    prompt(Prompt, Prompt),
+    !.
+
+read_type(code, Code, Res) =>
+    Res = Code.
+read_type(char, Code, Char) =>
+    char_code(Char, Code).
+read_type(get, Code, Res) =>
+    (   code_type(Code, space)
+    ->  read_tty(get, Res)
+    ;   Res = Code
+    ).
 
 :- wrap_predicate(system:'$consult_user'(_Id), tty, _Closure,
                   (   print_message(warning, wasm(consult_user)),

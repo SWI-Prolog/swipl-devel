@@ -366,8 +366,11 @@ function submitQuery(queryElem)
   let query = input.value;
   input.value = '';
 
-  if ( ! /\.\s*/.test(query) )
-    query += ".";
+  if ( queryElem.ex_target == "query" ||
+       queryElem.ex_target == "term" )
+  { if ( ! /\.\s*/.test(query) )
+      query += ".";
+  }
 
   if ( queryElem.ex_target == "query" )
   { history.stack.push(query);
@@ -552,6 +555,7 @@ function next(rc)
         answer = undefined;
         /*FALLTHROUGH*/
       case "term":
+      case "line":
         set_state("prompt "+rc.yield);
         focusInput(input, rc.yield);
         break;
