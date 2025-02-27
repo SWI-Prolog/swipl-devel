@@ -63,7 +63,8 @@
 :- public
     shell_init/1,
     tty_link/1,
-    trace_action/2.
+    trace_action/2,
+    complete_input/4.
 
 shell_init(UserDir) :-
     set_prolog_flag(tty_control, true),
@@ -298,6 +299,26 @@ read_type(get, Code, Res) =>
 :- wrap_predicate(system:'$consult_user'(_Id), tty, _Closure,
                   (   print_message(warning, wasm(consult_user)),
                       fail)).
+
+%!  complete_input(+Before, +After, -Delete, -Completions) is det.
+%
+%   Perform completion on a query.
+
+:- dynamic complete_input_loaded/0.
+complete_input(Before,After,Delete,Completions) :-
+    complete_input_loaded,
+    !,
+    prolog:complete_input(Before,After,Delete,Completions).
+complete_input(Before,After,Delete,Completions) :-
+    use_module(library(console_input)),
+    asserta(complete_input_loaded),
+    !,
+    prolog:complete_input(Before,After,Delete,Completions).
+
+
+                /*******************************
+                *         HTML SUPPORT         *
+                *******************************/
 
 %!  cls
 %

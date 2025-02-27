@@ -400,6 +400,44 @@ function focusInput(queryElem, why)
   queryElem.ex_target = why;
 }
 
+input.addEventListener("keydown", (event) =>
+{ if ( event.key == "Tab" )
+  { const elem   = input.querySelector("#query");
+    const caret  = elem.selectionStart;
+    const all    = elem.value;
+    const before = all.slice(0,caret);
+    const after  = caret == all.length ? "" : all.slice(caret-all.length);
+
+    function commonPrefix(words)
+    { let i = 0;
+
+      while(words[0][i] && words.every(w => w[i] === words[0][i]))
+	i++;
+      return words[0].slice(0, i);
+    }
+
+    function setCompletion(to, del)
+    { elem.value = ( before.slice(0, before.length-del.length) +
+		     to +
+		     after );
+    }
+
+    const res = Prolog.query(
+      "wasm_shell:complete_input(Before,After,Delete,Completions)",
+      {Before:before, After:after}).once();
+
+    if ( res.Completions.length == 1 )
+    { setCompletion(res.Completions[0], res.Delete.v);
+    } else if ( res.Completions.length > 1 )
+    { const common = commonPrefix(res.Completions);
+      if ( common.length > 0 )
+	setCompletion(common, res.Delete.v);
+    }
+
+    event.preventDefault();
+  }
+});
+
 input.addEventListener("keyup", (event) =>
 { if ( event.defaultPrevented ) return;
 
