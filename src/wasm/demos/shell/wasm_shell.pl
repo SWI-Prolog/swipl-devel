@@ -39,13 +39,14 @@
 :- use_module(library(prolog_wrap), [wrap_predicate/4]).
 :- use_module(library(ansi_term), []).
 :- use_module(library(debug), [debug/3]).
+:- use_module(library(uri), [uri_is_global/1]).
+:- use_module(library(option), [option/2]).
 
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(listing), [listing/1]).
 :- autoload(library(pairs), [transpose_pairs/2, group_pairs_by_key/2]).
 :- autoload(library(prolog_stack),
             [get_prolog_backtrace/3, print_prolog_backtrace/3]).
-:- autoload(library(uri), [uri_is_global/1]).
 :- autoload(library(utf8), [utf8_codes/3]).
 :- autoload(library(dcg/basics), [string/3, number/3, remainder//1]).
 :- autoload(library(http/html_write), [html/3, print_html/1]).
@@ -299,6 +300,35 @@ read_type(get, Code, Res) =>
 :- wrap_predicate(system:'$consult_user'(_Id), tty, _Closure,
                   (   print_message(warning, wasm(consult_user)),
                       fail)).
+
+:- wrap_predicate(system:absolute_file_name(Spec, Path, Options), wasm, Closure,
+                  (   wasm_absolute_file_name(Spec, Path, Options)
+                  ->  true
+                  ;   Closure
+                  )).
+
+wasm_absolute_file_name(Spec, Path, Options) :-
+    compound(Spec),
+    compound_name_arity(Spec, _Alias, 1),
+    option_extension(Ext, Options),
+    \+ memberchk(wasm(true), Options),
+    absolute_file_name(Spec, Path0, [wasm(true),solutions(all)]),
+    uri_is_global(Path0),
+    ensure_extension(Path0, Ext, Path).
+
+option_extension(Ext, Options) :-
+    option(file_type(Type), Options),
+    type_extension(Type, Ext).
+
+type_extension(prolog, pl).
+type_extension(source, pl).
+
+ensure_extension(File0, Ext, File) :-
+    file_name_extension(_, Ext, File0),
+    !,
+    File = File0.
+ensure_extension(File0, Ext, File) :-
+    file_name_extension(File0, Ext, File).
 
 %!  complete_input(+Before, +After, -Delete, -Completions) is det.
 %

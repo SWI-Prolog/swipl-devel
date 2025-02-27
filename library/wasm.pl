@@ -55,7 +55,7 @@
 :- autoload(library(terms), [mapsubterms/3]).
 :- autoload(library(error),
             [instantiation_error/1, existence_error/2, permission_error/3]).
-:- use_module(library(uri), [uri_is_global/1, uri_normalized/3]).
+:- use_module(library(uri), [uri_is_global/1, uri_normalized/3, uri_normalized/2]).
 :- use_module(library(debug), [debug/3]).
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -350,9 +350,11 @@ system:term_expansion((:- include(Path)), Expansion) :-
 %   True when FileSpec refers to a URL, i.e., we must load the file from
 %   the internet.
 
-file_url(File, _), compound(File), compound_name_arity(File, _, 1) =>
-    !,
-    fail.                               % Alias(Path)
+file_url(Spec, URL), compound(Spec), compound_name_arity(Spec, _, 1) =>
+    absolute_file_name(Spec, URL0, [solutions(all)]),
+    uri_is_global(URL0),
+    ensure_extension(URL0, pl, URL1),
+    uri_normalized(URL1, URL).
 file_url(File, URL), atom(File), uri_is_global(File) =>
     URL = File.
 file_url(File, URL), relative_path(File, Path) =>

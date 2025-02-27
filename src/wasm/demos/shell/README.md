@@ -16,6 +16,7 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - Allow for embedding, i.e., create a Prolog instance on a
      `<div>`, optionally holding the Prolog code.
  - Support more input predicates
+   - get_code/1, etc.						[done]
    - library(readutil)
    - Wrap libraries automatically after they are loaded?
    - Replace toplevel emscripten conditional code with wrapping
@@ -32,10 +33,10 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - Show answer terms using HTML?
    - History search (Ctrl-R)?
    - Show history
-   - Add button to reuse query										[done]
+   - Add button to reuse query					[done]
  - Provide a dark mode
 
 ## Bugs
 
  - include/1 when loading from the web.				[fixed]
- - absolute_file_name/3 should handle URLs
+ - absolute_file_name/3 should handle URLs		[fixed]
