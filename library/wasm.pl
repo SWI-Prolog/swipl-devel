@@ -317,7 +317,9 @@ js_script(String, _Options) :-
 %
 %   Hook for load_files/2 that allows loading files from URLs.
 
-:- multifile user:prolog_load_file/2.
+:- multifile
+    user:prolog_load_file/2,
+    system:term_expansion/2.
 
 user:prolog_load_file(Module:File, Options) :-
     file_url(File, URL),
@@ -334,6 +336,14 @@ user:prolog_load_file(Module:File, Options) :-
             load_files(Module:URL, [stream(In)|Options2]),
             close(In))
     ).
+
+:- multifile system:term_expansion/2.
+system:term_expansion((:- include(Path)), Expansion) :-
+    file_url(Path, URL),
+    must_be_async(include(Path)),
+    fetch(URL, text, String),
+    open_string(String, Stream),
+    Expansion = (:- include(stream(URL, Stream, [close(true)]))).
 
 %!  file_url(+FileSpec, -URL) is semidet.
 %
