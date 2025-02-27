@@ -7151,9 +7151,10 @@ prolog/0) sets the prompt for the first prompt (see prompt1/1) to
 the term, subsequent lines are prompted for using the prompt as defined
 by prompt/2.
 
-    \predicate{prompt1}{1}{+Prompt}
+    \predicate{prompt1}{1}{?Prompt}
 Sets the prompt for the next line to be read.  Continuation lines will
-be read using the prompt defined by prompt/2.
+be read using the prompt defined by prompt/2.  If \arg{Prompt} is
+unbound it is unified with the current first-line prompt.
 \end{description}
 
 \section{Analysing and Constructing Terms}	\label{sec:manipterm}
