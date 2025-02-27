@@ -530,14 +530,14 @@ globalSpaceRequirement(PL_chars_t *text)
 #define unify_text(term, tail, text, type) \
 	LDFUNC(unify_text, term, tail, text, type)
 
-static int
+static bool
 unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
 
       if ( a )
-      { int rval = PL_unify_atomic(term, a);
+      { bool rval = PL_unify_atomic(term, a);
 
 	PL_unregister_atom(a);
 	return rval;
@@ -691,7 +691,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	  }
 	}
 
-	int rc = CLOSE_SEQ_STRING(p, p0, tail, term, l );
+	bool rc = CLOSE_SEQ_STRING(p, p0, tail, term, l );
 	PL_reset_term_refs(l);
 	return rc;
       }

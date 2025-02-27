@@ -2823,7 +2823,7 @@ PL_put_chars(term_t t, int flags, size_t len, const char *s)
   valid_user_term_t(t);
   PL_chars_t text;
   word w = 0;
-  int rc = false;
+  bool rc = false;
 
   if ( len == (size_t)-1 )
     len = strlen(s);
