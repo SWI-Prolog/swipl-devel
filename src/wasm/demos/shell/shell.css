@@ -112,7 +112,7 @@ body {
 .console.key         #keyboard { display : block }
 .create-file #create-file   { display: inline; }
 
-#query { flex-grow: 1; margin: 0px 10px;}
+#input input { flex-grow: 1; margin: 0px 10px;}
 
 #keyboard:focus { outline: 0px; }
 #keyboard > span { color: #888; font-style: italic; font-size: 90%; }

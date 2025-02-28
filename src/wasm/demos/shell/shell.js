@@ -303,7 +303,7 @@ function add_query(query)
   div2.textContent = `?- ${query}`;
   answer = div4;
   edit.addEventListener("click", () => {
-    const queryElem = input.querySelector("#query");
+    const queryElem = input.querySelector("input");
     queryElem.value = query;
     queryElem.focus();
   });
@@ -362,7 +362,7 @@ function query(query)
 		 *******************************/
 
 function submitQuery(queryElem)
-{ const input = queryElem.querySelector("#query");
+{ const input = queryElem.querySelector("input");
   let query = input.value;
   input.value = '';
 
@@ -383,7 +383,7 @@ function submitQuery(queryElem)
 }
 
 function focusInput(queryElem, why)
-{ const input  = queryElem.querySelector("#query");
+{ const input  = queryElem.querySelector("input");
   const prompt = queryElem.querySelector("span.prompt");
   switch(why)
   { case "query":
@@ -402,7 +402,7 @@ function focusInput(queryElem, why)
 
 input.addEventListener("keydown", (event) =>
 { if ( event.key == "Tab" )
-  { const elem   = input.querySelector("#query");
+  { const elem   = input.querySelector("input");
     const caret  = elem.selectionStart;
     const all    = elem.value;
     const before = all.slice(0,caret);
