@@ -368,8 +368,12 @@ function submitQuery(queryElem)
 
   if ( queryElem.ex_target == "query" ||
        queryElem.ex_target == "term" )
-  { if ( ! /\.\s*/.test(query) )
-      query += ".";
+  { if ( query.trim() == "" )
+    { return false;
+    } else
+    { if ( ! /\.\s*/.test(query) )
+        query += ".";
+    }
   }
 
   if ( queryElem.ex_target == "query" )
@@ -380,6 +384,7 @@ function submitQuery(queryElem)
 
   set_state("run");
   next(yield.resume(query));
+  return true;
 }
 
 function focusInput(queryElem, why)
