@@ -34,9 +34,13 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - History search (Ctrl-R)?
    - Show history
    - Add button to reuse query					[done]
+   - Input completion?  Currently minimal completion using
+     [tab].  Should show box as you type.
+   - How to deal with halt/0,1 and `end_of_file`?  Probably
+     best to ignore.
  - Provide a dark mode
 
 ## Bugs
 
  - include/1 when loading from the web.				[fixed]
- - absolute_file_name/3 should handle URLs		[fixed]
+ - absolute_file_name/3 should handle URLs			[fixed]
