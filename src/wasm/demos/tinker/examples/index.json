@@ -1,0 +1,13 @@
+[ { "name": "scasp.pl",
+    "comment": "Load s(CASP) with a simple demo"
+  },
+  { "name": "html.pl",
+    "comment": "Illustrate interacting with the browser"
+  },
+  { "name": "chat80.pl",
+    "comment": "Run CHAT80 in the browser"
+  },
+  { "name": "bench.pl",
+    "comment": "Load \"van Roy\" benchmark suite from GitHub"
+  }
+]

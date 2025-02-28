@@ -1,6 +1,6 @@
 # SWI-Prolog in the browser
 
-Public demo at https://wasm.swi-prolog.org/wasm/shell
+Public demo at https://wasm.swi-prolog.org/wasm/tinker
 
 ## TODO
 
@@ -12,7 +12,7 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - sCASP
    - CHR
    - ...
- - Turn shell.js into one or more proper modules, using classes.
+ - Turn tinker.js into one or more proper modules, using classes.
    - Allow for embedding, i.e., create a Prolog instance on a
      `<div>`, optionally holding the Prolog code.
  - Support more input predicates
@@ -22,7 +22,7 @@ Public demo at https://wasm.swi-prolog.org/wasm/shell
    - Replace toplevel emscripten conditional code with wrapping
  - Turn into a new GIT submodule?
  - Allow save/load from GitHub?
- - Add cls/0 and html/1 predicates to wasm_shell.pl		[done]
+ - Add cls/0 and html/1 predicates to tinker.pl		[done]
  - Extend debugger
    - Support more commands
    - Sync source window with current location?

@@ -32,7 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(wasm_shell, [ cls/0,          %
+:- module(tinker, [ cls/0,          %
                         html/1          % +HTMLTerm
                       ]).
 :- use_module(library(wasm)).
@@ -62,12 +62,12 @@
 :- op(40,  yf,  []).           % Expr[Expr]
 
 :- public
-    shell_init/1,
+    tinker_init/1,
     tty_link/1,
     trace_action/2,
     complete_input/4.
 
-shell_init(UserDir) :-
+tinker_init(UserDir) :-
     set_prolog_flag(tty_control, true),
     set_prolog_flag(color_term, true),
     set_prolog_flag(hyperlink_term, true),
@@ -310,6 +310,7 @@ read_type(get, Code, Res) =>
 wasm_absolute_file_name(Spec, Path, Options) :-
     compound(Spec),
     compound_name_arity(Spec, _Alias, 1),
+    nonvar(Options),                    % Deal with old arguments
     option_extension(Ext, Options),
     \+ memberchk(wasm(true), Options),
     absolute_file_name(Spec, Path0, [wasm(true),solutions(all)]),

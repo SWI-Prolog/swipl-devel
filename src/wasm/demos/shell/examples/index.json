@@ -1,7 +1,0 @@
-[ { "name": "scasp_pq.pl",
-    "comment": "Load s(CASP) from a URL and run a simple query"
-  },
-  { "name": "html.pl",
-    "comment": "Illustrate interacting with the browser"
-  }
-]

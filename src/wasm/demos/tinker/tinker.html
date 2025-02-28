@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <!--
 
-This is the test file  for  SWI-Prolog   WebAssembly  build.  It must be
-served through a web server. An example server is provided by server.pl.
-To use it, build the wasm version   in  e.g., `build.wasm` and from this
-directory, run
+    This is SWI-Tinker, a SWI-Prolog interactive playground running in
+    your browser.  It must be served  through a web server. An example
+    server  is provided  by  server.pl.   To use  it,  build the  wasm
+    version in e.g., `build.wasm` and from this directory, run
 
-    swipl ../src/wasm/server.pl
+	swipl ../src/wasm/server.pl
 
-and browse to http://localhost:8080/
+    and browse to http://localhost:8080/
 -->
 
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SWI-Prolog WebAssembly build test</title>
+  <title>SWI-Tinker</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.css">
-  <link rel="stylesheet" href="shell.css">
+  <link rel="stylesheet" href="tinker.css">
   <link rel="icon" type="image/x-icon" href="https://www.swi-prolog.org/download/logo/swipl-64x64.ico">
 </head>
 <body>
@@ -24,8 +24,10 @@ and browse to http://localhost:8080/
 <div class="header">
   <img id="logo" alt="SWI-Prolog logo" src="https://www.swi-prolog.org/download/logo/swipl-128.png">
   <div>
-    This is a <a href="https://www.swi-prolog.org"
-    target="_blank">SWI-Prolog</a> shell based on SWI-Prolog compiled to
+    This is <a href="https://www.swi-prolog.org"
+    target="_blank">SWI-Tinker</a>, a version
+    of <a href="https://www.swi-prolog.org"
+    target="_blank">SWI-Prolog</a> compiled to
     <a href="https://webassembly.org/" target="_blank">WASM</a></div>
   <div>Beta version.
   See <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm"
@@ -130,7 +132,7 @@ and browse to http://localhost:8080/
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
 
 <!-- Glue it all together -->
-<script src="shell.js"></script>
+<script src="tinker.js"></script>
 
 </body>
 </html>

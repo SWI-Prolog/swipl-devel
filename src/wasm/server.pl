@@ -44,15 +44,16 @@
 :- use_module(library(option)).
 
 user:file_search_path(web, '../src/wasm/demos').
-user:file_search_path(web, '../src/wasm/demos/shell').
+user:file_search_path(web, '../src/wasm/demos/tinker').
 user:file_search_path(web, 'src').
 user:file_search_path(scasp,  Dir) :-
     getenv('SCASP_HOME', Dir).
 
 :- http_handler('/', http_redirect(see_other, '/wasm/'), []).
-:- http_handler('/wasm/shell', reply_html_test('shell.html'), []).
-:- http_handler('/wasm/test',  reply_html_test('test.html'), []).
-:- http_handler('/wasm/cbg',   reply_html_test('cbg.html'), []).
+:- http_handler('/wasm/shell',  http_redirect(see_other, '/wasm/tinker'), []).
+:- http_handler('/wasm/tinker', reply_html_test('tinker.html'), []).
+:- http_handler('/wasm/test',   reply_html_test('test.html'), []).
+:- http_handler('/wasm/cbg',    reply_html_test('cbg.html'), []).
 :- http_handler('/wasm/',
                 http_reply_from_files(web(.), [static_gzip(true)]), [prefix]).
 
@@ -74,7 +75,7 @@ reply_html_test(File, Request) :-
 opt_type(port,        port,        nonneg).
 opt_type(p,           port,        nonneg).
 opt_type(interactive, interactive, boolean).
-opt_type(i,           i,           boolean).
+opt_type(i,           interactive, boolean).
 
 opt_help(port, "Port to listen to (default 8080)").
 opt_help(interactive, "Become interactive").

@@ -190,7 +190,7 @@ function tty_link(ev)
   const to = a.href;
   if ( to.startsWith("file://") )
   { ev.preventDefault();
-    Prolog.query("wasm_shell:tty_link(Link)", {Link:to}).once();
+    Prolog.query("tinker:tty_link(Link)", {Link:to}).once();
   }
   // Use default action
 }
@@ -423,7 +423,7 @@ input.addEventListener("keydown", (event) =>
     }
 
     const res = Prolog.query(
-      "wasm_shell:complete_input(Before,After,Delete,Completions)",
+      "tinker:complete_input(Before,After,Delete,Completions)",
       {Before:before, After:after}).once();
 
     if ( res.Completions.length == 1 )
@@ -532,7 +532,7 @@ function trace_action(action, msg)
     prolog.put_chars(av+0, action, prolog.PL_ATOM);
     prolog.bindings.PL_put_term(av+1, msg);
     const flags = prolog.PL_Q_NODEBUG;
-    const pred  = prolog.predicate("wasm_shell:trace_action/2");
+    const pred  = prolog.predicate("tinker:trace_action/2");
     const qid   = prolog.bindings.PL_open_query(0, flags, pred, av);
     const rc    = prolog.bindings.PL_next_solution(qid);
     prolog.bindings.PL_close_query(qid);
@@ -649,8 +649,8 @@ SWIPL(options).then(async (module) =>
       Prolog = Module.prolog;
       Module.FS.mkdir(user_dir);
       await Prolog.load_scripts();
-      await Prolog.consult("wasm_shell.pl", {module:"system"});
-      Prolog.query("wasm_shell:shell_init(Dir)", {Dir:user_dir}).once();
+      await Prolog.consult("tinker.pl", {module:"system"});
+      Prolog.query("tinker:tinker_init(Dir)", {Dir:user_dir}).once();
       Prolog.call("version");
       initCodeMirror(toplevel);
     });

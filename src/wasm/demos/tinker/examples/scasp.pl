@@ -3,9 +3,15 @@
 % seconds to process.  After loading you  can run e.g. (not the second
 % `?`, which calls scasp/2.
 %
-%    ?- ? p.
+%    ?- ? opera(Day).
 
 :- use_module('https://raw.githubusercontent.com/SWI-Prolog/sCASP/master/prolog/scasp.pl').
 
-p :- not q.
-q :- not p.
+opera(D) :- not home(D).
+home(D):- not opera(D).
+home(monday).
+
+false :- baby(D), opera(D).
+
+baby(tuesday).
+
