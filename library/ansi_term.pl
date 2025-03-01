@@ -452,9 +452,6 @@ ansi_hyperlink(Stream, File:Line, Label) =>
                [ URI, Line, Label ])
     ;   format(Stream, '~w', [Label])
     ).
-ansi_hyperlink(Stream, URL, Label), is_url(URL) =>
-    format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
-               [ URL, Label ]).
 ansi_hyperlink(Stream, File, Label) =>
     (   url_file_name(URI, File)
     ->  format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
@@ -472,6 +469,7 @@ is_url(URL) :-
 
 url_prefix('http://').
 url_prefix('https://').
+url_prefix('file://').
 
 
 %!  url_file_name(-URL, +File) is semidet.
@@ -479,6 +477,9 @@ url_prefix('https://').
 %   Same as uri_file_name/2 in mode (-,+), but   as a core library we do
 %   not wish to depend on the `clib` package and its foreign support.
 
+url_file_name(URL, File) :-
+    is_url(File), !,
+    URL = File.
 url_file_name(URL, File) :-
     current_prolog_flag(hyperlink_term, true),
     absolute_file_name(File, AbsFile),
