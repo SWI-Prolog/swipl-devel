@@ -69,7 +69,7 @@ open_resource(Module:RcName, Stream, Options) :-
     ->  absolute_file_name(FileSpec, File),
         open(File, read, Stream, Options)
     ;   '$rc_handle'(Zipper),
-        zip_close(Zipper, Clone),
+        zip_clone(Zipper, Clone),
         tag_rc_name(Module, RcName, TaggedName),
         zipper_goto(Clone, file(TaggedName))
     ->  zipper_open_current(Clone, Stream,
