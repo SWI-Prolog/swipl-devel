@@ -282,14 +282,16 @@ as the record is not in the proper format.
 This function fails if its execution would require a stack-shift of GC!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-canUnifyTermWithGoal(LocalFrame fr)
-{ GET_LD
-  find_data *find = LD->trace.find;
+#define canUnifyTermWithGoal(fr) \
+	LDFUNC(canUnifyTermWithGoal, fr)
+
+static bool
+canUnifyTermWithGoal(DECL_LD LocalFrame fr)
+{ find_data *find = LD->trace.find;
 
   switch(find->type)
   { case TRACE_FIND_ANY:
-      succeed;
+      return true;
     case TRACE_FIND_NAME:
       return find->goal.name == fr->predicate->functor->name;
     case TRACE_FIND_TERM:
@@ -299,12 +301,12 @@ canUnifyTermWithGoal(LocalFrame fr)
 	if ( (cid=PL_open_foreign_frame()) )
 	{ term_t t = PL_new_term_ref();
 	  term_t frref = consTermRef(fr);
-	  int i, arity = fr->predicate->functor->arity;
-	  int rval = true;
+	  size_t i, arity = fr->predicate->functor->arity;
+	  bool rval = true;
 
 	  if ( copyRecordToGlobal(t, find->goal.term.term,
 				  ALLOW_GC|ALLOW_SHIFT) < 0 )
-	    fail;
+	    return false;
 	  for(i=0; i<arity; i++)
 	  { Word a, b;
 
@@ -325,14 +327,34 @@ canUnifyTermWithGoal(LocalFrame fr)
 	}
       }
 
-      fail;
+      return false;
     }
     default:
       assert(0);
-      fail;
+      return false;
   }
 }
 
+#define keep_searching(port, frame) LDFUNC(keep_searching, port, frame)
+
+static bool
+keep_searching(DECL_LD int port, LocalFrame frame)
+{ if ( LD->trace.find &&  LD->trace.find->searching )
+  { DEBUG(2, Sdprintf("Searching\n"));
+
+    if ( (port & LD->trace.find->port) )
+    { if ( canUnifyTermWithGoal(frame) )
+      { LD->trace.find->searching = false; /* Got you */
+	return false;
+      }
+      return true;
+    } else
+    { return true;
+    }
+  }
+
+  return false;
+}
 
 static const char *
 portPrompt(int port)
@@ -373,6 +395,20 @@ returns to the WAM interpreter how to continue the execution:
 	fr    = (frref ? (LocalFrame)valTermRef(frref) : NULL); \
 	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
+#define clear_skip(port, frame, action) \
+	LDFUNC(clear_skip, port, frame, action)
+
+static inline int
+clear_skip(DECL_LD int port, LocalFrame frame, int action)
+{ if ( port != CALL_PORT &&
+       debugstatus.skiplevel == levelFrame(frame) )
+  { clear(frame, FR_SKIPPED);			// skip finished
+    debugstatus.skiplevel = SKIP_VERY_DEEP;
+  }
+
+  return action;
+}
+
 int
 tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
 { int action = PL_TRACE_ACTION_CONTINUE;
@@ -380,6 +416,7 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
   term_t frameref, chref, frref, pcref;
   Definition def = frame->predicate;
   LocalFrame fr = NULL;
+  bool rc;
 
   if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
        debugstatus.suspendTrace )		/* called back */
@@ -387,66 +424,51 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
   { if ( classify_exception(LD->exception.pending) >= EXCEPT_ABORT )
-      return PL_TRACE_ACTION_CONTINUE;
+      return clear_skip(port, frame, PL_TRACE_ACTION_CONTINUE);
   }
 
+  /* not tracing and no spy-point */
   if ( !debugstatus.tracing &&
        (isoff(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
-    return PL_TRACE_ACTION_CONTINUE;		/* not tracing and no spy-point */
+    return PL_TRACE_ACTION_CONTINUE;
+  /* skipping */
   if ( debugstatus.skiplevel < levelFrame(frame) )
-    return PL_TRACE_ACTION_CONTINUE;		/* skipping */
+    return PL_TRACE_ACTION_CONTINUE;
+  /* redo, unify or ! in skipped pred */
   if ( debugstatus.skiplevel == levelFrame(frame) &&
        (port & (REDO_PORT|CUT_PORT|UNIFY_PORT)) )
-    return PL_TRACE_ACTION_CONTINUE;		/* redo, unify or ! in skipped pred */
-  if ( debugstatus.skiplevel == levelFrame(frame) )
-  { clear(frame, FR_SKIPPED);			/* skip finished */
-    debugstatus.skiplevel = SKIP_VERY_DEEP;
-  }
+    return PL_TRACE_ACTION_CONTINUE;
+  /* non-traced predicate */
   if ( isoff(def, TRACE_ME) )
-    return PL_TRACE_ACTION_CONTINUE;		/* non-traced predicate */
+    return clear_skip(port, frame, PL_TRACE_ACTION_CONTINUE);
+  /* wrong port */
   if ( (!(debugstatus.visible & port)) )
-    return PL_TRACE_ACTION_CONTINUE;		/* wrong port */
+    return clear_skip(port, frame, PL_TRACE_ACTION_CONTINUE);
+  /* redo or ! in system predicates */
   if ( (ison(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
        (port & CUT_PORT) )
-    return PL_TRACE_ACTION_CONTINUE;		/* redo or ! in system predicates */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-We are in searching mode; should we actually give this port?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  if ( LD->trace.find &&  LD->trace.find->searching )
-  { DEBUG(2, Sdprintf("Searching\n"));
-
-    if ( (port & LD->trace.find->port) )
-    { int rc;
-
-      SAVE_PTRS();
-      rc = canUnifyTermWithGoal(frame);
-      RESTORE_PTRS()
-      if ( rc )
-	LD->trace.find->searching = false; /* Got you */
-      return PL_TRACE_ACTION_CONTINUE;		/* Continue the search */
-    } else
-    { return PL_TRACE_ACTION_CONTINUE;		/* Continue the search */
-    }
-  }
-
+    return clear_skip(port, frame, PL_TRACE_ACTION_CONTINUE);
+  /* We are searching */
+  SAVE_PTRS();
+  rc = keep_searching(port, frame);
+  RESTORE_PTRS();
+  if ( rc )
+    return clear_skip(port, frame, PL_TRACE_ACTION_CONTINUE);
+  /* We debug using yield */
   if ( alltrue(LD->query, PL_Q_TRACE_WITH_YIELD|PL_Q_ALLOW_YIELD) &&
        (port&(CALL_PORT|EXIT_PORT|FAIL_PORT|REDO_PORT|
 	      EXCEPTION_PORT|UNIFY_PORT)) )
   { if ( LD->trace.yield.resume_action == PL_TRACE_ACTION_NONE )
       return PL_TRACE_ACTION_YIELD;
     else
-      return LD->trace.yield.resume_action;
+      return clear_skip(port, frame, LD->trace.yield.resume_action);
   }
 
-  { bool rc;
-    SAVE_PTRS();
-    rc = saveWakeup(&wstate, false);
-    RESTORE_PTRS();
-    if ( !rc )
-      return action;
-  }
+  SAVE_PTRS();
+  rc = saveWakeup(&wstate, false);
+  RESTORE_PTRS();
+  if ( !rc )
+    return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Do the Prolog trace interception.
@@ -459,12 +481,10 @@ Do the Prolog trace interception.
     goto out;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-All failed.  Things now are upto the normal Prolog tracer.
+All failed.  Things now are upto the built-in Prolog tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  action = PL_TRACE_ACTION_CONTINUE;
-
 again:
+  action = PL_TRACE_ACTION_CONTINUE;
   SAVE_PTRS();
   writeFrameGoal(Suser_error, frame, bfr, PC, port|WFG_TRACING);
   RESTORE_PTRS();
@@ -509,13 +529,16 @@ again:
 out:
   restoreWakeup(&wstate);
   if ( action == PL_TRACE_ACTION_ABORT )
+  { SAVE_PTRS();
     abortProlog();
+    RESTORE_PTRS();
+  }
 
-  return action;
+  return clear_skip(port, frame, action);
 }
 
 
-static int
+static bool
 setupFind(char *buf)
 { GET_LD
   char *s;
@@ -526,10 +549,10 @@ setupFind(char *buf)
   if ( *s == EOS )			/* No specification: repeat */
   { if ( !LD->trace.find || !LD->trace.find->port )
     { Sfprintf(Sdout, "[No previous search]\n");
-      fail;
+      return false;
     }
     LD->trace.find->searching = true;
-    succeed;
+    return true;
   }
   for( ; *s && !isBlank(*s); s++ )	/* Parse the port specification */
   { switch( *s )
@@ -541,7 +564,7 @@ setupFind(char *buf)
       case 'a':	port |= CALL_PORT|REDO_PORT|FAIL_PORT|EXIT_PORT|UNIFY_PORT;
 				    continue;
       default:  Sfprintf(Sdout, "[Illegal port specification]\n");
-		fail;
+		return false;
     }
   }
   for( ; *s && isBlank(*s); s++)	/* Skip blanks */
@@ -562,7 +585,7 @@ setupFind(char *buf)
 
     if ( !PL_chars_to_term(s, t) )
     { PL_discard_foreign_frame(cid);
-      fail;
+      return false;
     }
 
     if ( find->type == TRACE_FIND_TERM && find->goal.term.term )
@@ -577,11 +600,11 @@ setupFind(char *buf)
       { find->type = TRACE_FIND_TERM;
       } else
       { Sfprintf(Sdout, "ERROR: no memory to safe find target\n");
-	fail;
+	return false;
       }
     } else
     { Sfprintf(Sdout, "[Illegal goal specification]\n");
-      fail;
+      return false;
     }
 
     find->port      = port;
@@ -595,7 +618,7 @@ setupFind(char *buf)
     PL_discard_foreign_frame(cid);
   }
 
-  succeed;
+  return true;
 }
 
 
