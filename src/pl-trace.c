@@ -275,23 +275,6 @@ static bool		writeFrameGoal(IOSTREAM *out,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-redoFrame() returns the latest skipped frame or NULL if  no  such  frame
-exists.   This  is used to give the redo port of the goal skipped rather
-than the redo port of some subgoal of this port.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static LocalFrame
-redoFrame(LocalFrame fr, Code *PC)
-{ while( fr && isoff(fr, FR_SKIPPED))
-  { *PC = fr->programPointer;
-    fr = parentFrame(fr);
-  }
-
-  return fr;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 canUnifyTermWithGoal() is used to check whether the given frame satisfies
 the /search specification.  This function cannot use the `neat' interface
 as the record is not in the proper format.
@@ -426,28 +409,6 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
   if ( (ison(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
        (port & CUT_PORT) )
     return PL_TRACE_ACTION_CONTINUE;		/* redo or ! in system predicates */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Give a trace on the skipped goal for a redo.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  { Code pc2 = NULL;
-
-    if ( port == REDO_PORT && debugstatus.skiplevel == SKIP_VERY_DEEP &&
-	 (fr = redoFrame(frame, &pc2)) != NULL )
-    { int rc;
-
-      debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
-      SAVE_PTRS();
-      rc = tracePort(fr, bfr, REDO_PORT, pc2);
-      assert(rc != PL_TRACE_ACTION_YIELD); /* TODO */
-      RESTORE_PTRS();
-      debugstatus.skiplevel = levelFrame(fr);
-      set(fr, FR_SKIPPED);		/* cleared by "creep" */
-
-      return rc;
-    }
-  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We are in searching mode; should we actually give this port?
