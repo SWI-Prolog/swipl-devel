@@ -647,7 +647,7 @@ ships with a \program{cmake} \jargon{include} file named
 Comments in the file below explain the various steps of the process.
 
 \begin{code}
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(swipl-pack-environ)
 
 # Include swipl.cmake from the running SWI-Prolog's home

@@ -14,13 +14,10 @@ all use Ninja. Drop `-G Ninja` to use classical Unix make.
 
 ## Getting cmake
 
-Building SWI-Prolog requires cmake version 3.9  or later (*). Many Linux
+Building SWI-Prolog requires cmake version  3.10   or  later. Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
 from https://cmake.org/download/
-
-(*) The ODBC package requires 3.9.  For the rest 3.5 should suffice.
-
 
 ## Native build
 
