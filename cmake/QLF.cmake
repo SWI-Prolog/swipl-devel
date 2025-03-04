@@ -71,6 +71,7 @@ function(add_swipl_target name)
   if(NOT my_NOINSTALL)
     list(GET my_OUTPUT 0 primary)
     string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${primary}")
+    string(REGEX REPLACE "^/*([^/].*)" "\\1" rel "${rel}")
     get_filename_component(rel ${rel} DIRECTORY)
     install(FILES ${primary}
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
