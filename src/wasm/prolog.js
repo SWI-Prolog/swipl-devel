@@ -443,7 +443,7 @@ const class_rational = (class PrologRational {
 });
 
 const class_compound = (class PrologCompound {
-  constructor(name, args)
+  constructor(name, ...args)
   { this.$t = "t";
     this.functor = name;
     this[name] = args;
