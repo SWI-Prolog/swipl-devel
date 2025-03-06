@@ -65,9 +65,10 @@
 */
 
 :- meta_predicate
-   wasm_call_string(:, +, -),
-   wasm_call_string_with_heartbeat(:, +, -, +),
-   with_heartbeat(0, +).
+    wasm_query(:),
+    wasm_call_string(:, +, -),
+    wasm_call_string_with_heartbeat(:, +, -, +),
+    with_heartbeat(0, +).
 
 :- create_prolog_flag(wasm_heartbeat, 10_000, [type(integer), keep(true)]).
 
@@ -77,13 +78,16 @@ wasm_query_loop :-
     current_prolog_flag(wasm_heartbeat, Rate),
     with_heartbeat('$toplevel':'$query_loop', Rate).
 
-%!  wasm_query(+Query:string)
+%!  wasm_query(:Query:string)
 %
 %   Execute a single query
 
-wasm_query(String) :-
+wasm_query(M:String) :-
     term_string(Query, String, [variable_names(Bindings)]),
-    '$execute_query'(Query, Bindings, _Truth).
+    current_prolog_flag(wasm_heartbeat, Rate),
+    with_heartbeat(
+        '$execute_query'(M:Query, Bindings, _Truth),
+        Rate).
 
 %!  wasm_abort
 %
