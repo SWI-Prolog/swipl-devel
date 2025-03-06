@@ -49,7 +49,8 @@
 
             op(700, xfx, :=),           % Result := Expression
             op(50,  fx,  #),            % #Value
-            op(40,  yf,  [])            % Expr[Expr]
+            op(40,  yf,  []),           % Expr[Expr]
+            wasm_query/1                % +Query:string
           ]).
 :- autoload(library(apply), [exclude/3, maplist/3]).
 :- autoload(library(terms), [mapsubterms/3]).
@@ -75,6 +76,14 @@
 wasm_query_loop :-
     current_prolog_flag(wasm_heartbeat, Rate),
     with_heartbeat('$toplevel':'$query_loop', Rate).
+
+%!  wasm_query(+Query:string)
+%
+%   Execute a single query
+
+wasm_query(String) :-
+    term_string(Query, String, [variable_names(Bindings)]),
+    '$execute_query'(Query, Bindings, _Truth).
 
 %!  wasm_abort
 %
