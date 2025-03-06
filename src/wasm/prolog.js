@@ -855,6 +855,18 @@ class Prolog
     // else `undefined`
   }
 
+  __put_goal(goal, term) {
+    if ( typeof goal === "string" ) {
+      if ( !this.chars_to_term(goal, term) )
+	throw new Error(`Query has a syntax error: ${query}`);
+    } else if ( typeof goal === "object" &&
+		goal instanceof this.Compound ) {
+      this.toProlog(goal, term);
+    } else {
+      throw new TypeError("string or compound expected");
+    }
+  }
+
 /**
  * Call a Prolog goal.  This function deals with many variations to
  * call Prolog.
@@ -865,27 +877,23 @@ class Prolog
  * @param {Boolean} [opts.nodebug]  Do not debug the goal
  */
 
-  call(goal, opts)
-  { if ( typeof(goal) === "string" )
-    { if ( opts && opts.async )
-      { return this.__call_yieldable(goal, opts);
-      } else
-      { return this.with_frame(function()
-	{ if ( opts )		// not possible during initialization
-	  { return !!this
+  call(goal, opts) {
+    if ( opts && opts.async ) {
+      return this.__call_yieldable(goal, opts);
+    } else {
+      return this.with_frame(function() {
+	if ( opts ) {		// not possible during initialization
+	  return !!this
 	    .query("call(Goal)",
 		   {Goal:new this.Term(goal)}, opts)
 	    .once();
-	  } else
-	  { const term = this.new_term_ref();
+	} else {
+	  const term = this.new_term_ref();
 
-	    if ( !this.chars_to_term(goal, term) )
-	      throw new Error(`Query has a syntax error: ${query}`);
-
-	    return !!this.bindings.PL_call(term, this.MODULE_user);
-	  }
-	});
-      }
+	  this.__put_goal(goal, term);
+	  return !!this.bindings.PL_call(term, this.MODULE_user);
+	}
+      });
     }
   }
 
@@ -1509,17 +1517,12 @@ class Prolog
  */
 
   __call_yieldable(goal, opts)
-  { var pred_call1;
-    let flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
-
-    if ( !pred_call1 )
-      pred_call1 = this.predicate("call", 1, "system");
-
-    opts = opts||{};
+  { opts = opts||{};
+    const pred_call1 = this.predicate("call", 1, "system");
+    const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
     const fid = this.bindings.PL_open_foreign_frame();
     const term = this.new_term_ref();
-    if ( !this.chars_to_term(goal, term) )
-      throw new Error('Query has a syntax error: ' + query);
+    this.__put_goal(goal, term);
     const q = new Query(this, opts.module, flags, pred_call1, term,
 			{ ...opts, frame:fid });
     return q.next_yieldable();
