@@ -3682,8 +3682,8 @@ PRED_IMPL("prompt1", 1, prompt1, 0)
 
   if ( PL_get_atom(A1, &a) )
   { prompt1(a);
-  } else if ( PL_is_variable(A1) && LD->prompt.first )
-  { return PL_unify_atom(A1, LD->prompt.first);
+  } else if ( PL_is_variable(A1) )
+  { return LD->prompt.first && PL_unify_atom(A1, LD->prompt.first);
   } else if ( PL_get_text(A1, &txt,  CVT_ALL|CVT_EXCEPTION) )
   { prompt1(textToAtom(&txt));
   } else
