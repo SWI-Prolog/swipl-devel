@@ -193,23 +193,43 @@ PL_get_choice(term_t r, Choice *chp)
 #ifdef O_DEBUGGER
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-isDebugFrame(LocalFrame FR) is true if this call  must be visible in the
+isDebugFrame(frame, port) is true if this call   must  be visible in the
 tracer. `No-debug' code has HIDE_CHILDS. Calls to  it must be visible if
 the parent is a debug frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-isDebugFrame(LocalFrame FR)
+isDebugFrame(const LocalFrame FR, int port)
 { if ( isoff(FR->predicate, TRACE_ME) )
     return false;			/* hidden predicate */
 
   if ( isoff(FR->predicate, HIDE_CHILDS) )
     return true;			/* user pred */
 
-  if ( FR->parent )
-  { LocalFrame parent = FR->parent;
+  LocalFrame parent = FR->parent;
+  if ( alltrue(FR->predicate, P_NOPROFILE|HIDE_CHILDS) &&
+       parent && alltrue(parent->predicate, P_NOPROFILE|HIDE_CHILDS) )
+  { DEBUG(MSG_TRACE_FRAME,
+	  Sdprintf("noprof system-system: [%u] %s; parent [%u] %s\n",
+		   levelFrame(FR), predicateName(FR->predicate),
+		   levelFrame(parent), predicateName(parent->predicate)));
+    return false;
+  }
 
-    if ( levelFrame(FR) == levelFrame(parent)+1 )
+  for(;
+      parent && ison(parent->predicate, P_NOPROFILE);
+      parent=parent->parent)
+    ;
+
+  DEBUG(MSG_TRACE_FRAME,
+	{ if ( parent )
+	    Sdprintf("isDebugFrame(): FR [%u] %s; parent [%u] %s\n",
+		     levelFrame(FR), predicateName(FR->predicate),
+		     levelFrame(parent), predicateName(parent->predicate));
+	});
+
+  if ( parent )
+  { if ( levelFrame(FR) == levelFrame(parent)+1 )
     {					/* not last-call optimized */
       if ( isoff(parent->predicate, HIDE_CHILDS) )
 	return true;			/* user calls system */
@@ -419,11 +439,11 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
   bool rc;
 
   DEBUG(MSG_TRACE_PORT,
-	Sdprintf("tracePort([%zd] %s %s\n",
+	Sdprintf("tracePort(): [%u] %s %s?\n",
 		 levelFrame(frame), portPrompt(port),
 		 predicateName(frame->predicate)));
 
-  if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
+  if ( (!isDebugFrame(frame, port) && !SYSTEM_MODE) || /* hidden */
        debugstatus.suspendTrace )		/* called back */
     return PL_TRACE_ACTION_CONTINUE;
 
@@ -1129,7 +1149,7 @@ alternatives(Choice ch)
   for(; ch; ch = ch->parent)
   { if ( ch->type == CHP_DEBUG )
       continue;
-    if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
+    if ( (isDebugFrame(ch->frame, 0) || SYSTEM_MODE) )
     { term_t chref = consTermRef(ch);
       writeFrameGoal(Suser_error, ch->frame, ch, NULL, WFG_CHOICE);
       ch = (Choice)valTermRef(chref);
@@ -1285,7 +1305,7 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 }
 
 
-#define SHOW_FRAME(fr) ( isDebugFrame(fr) || !(flags&PL_BT_USER) )
+#define SHOW_FRAME(fr) ( isDebugFrame(fr, 0) || !(flags&PL_BT_USER) )
 
 static void
 _PL_backtrace(IOSTREAM *out, int depth, int flags)
@@ -1337,7 +1357,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 	}
       } else
       { if ( same_proc >= 10 )
-	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
+	{ if ( isDebugFrame(rctx.fr, 0) || !(flags&PL_BT_USER) )
 	  { writeContextFrame(out, &rctx, flags);
 	    depth--;
 	  }
@@ -2567,7 +2587,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     if ( SYSTEM_MODE )
     { a = ATOM_true;
     } else
-    { if ( isDebugFrame(fr) )
+    { if ( isDebugFrame(fr, 0) )
 	a = ATOM_false;
       else
 	a = ATOM_true;

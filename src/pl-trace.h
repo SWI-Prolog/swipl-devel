@@ -53,7 +53,7 @@
 #define LDFUNC_DECLARATIONS
 
 void		suspendTrace(int suspend);	/* suspend/resume tracing */
-bool		isDebugFrame(LocalFrame FR);
+bool		isDebugFrame(const LocalFrame FR, int port);
 int		tracePort(LocalFrame frame, Choice bfr,
 			  int port, Code PC);
 void		initTracer(void);

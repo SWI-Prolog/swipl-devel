@@ -6446,7 +6446,7 @@ next_choice:
   { if ( trace_action != PL_TRACE_ACTION_NONE ) /* TODO: What if debugstatus */
       goto yield_fail_resume;			/* was changed? */
 
-    if ( isDebugFrame(FR) &&
+    if ( isDebugFrame(FR, FAIL_PORT) &&
 	 BFR->frame == FR && BFR->type == CHP_DEBUG )
     { DEBUG(MSG_BACKTRACK,
 	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));

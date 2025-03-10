@@ -2248,7 +2248,7 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 
   if ( SYSTEM_MODE )
     return fr;				/* system mode; debug everything */
-  if ( isDebugFrame(fr) && isoff(fr->predicate, HIDE_CHILDS) )
+  if ( isDebugFrame(fr, REDO_PORT) && isoff(fr->predicate, HIDE_CHILDS) )
     return fr;				/* normal user code */
   for( ; fr && fr->parent && ison(fr->parent->predicate, HIDE_CHILDS);
        fr = fr->parent)
