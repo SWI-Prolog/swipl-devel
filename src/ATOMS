@@ -1250,7 +1250,6 @@ F representation_error	1
 F representation_errors 1
 F reset			3
 F resource_error	1
-F retry			1
 F rollback		1
 F round			1
 F roundtoward		2

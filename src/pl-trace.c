@@ -400,7 +400,7 @@ returns to the WAM interpreter how to continue the execution:
 
 static inline int
 clear_skip(DECL_LD int port, LocalFrame frame, int action)
-{ if ( port != CALL_PORT &&
+{ if ( !(port & (CALL_PORT|CUT_PORT|UNIFY_PORT)) &&
        debugstatus.skiplevel == levelFrame(frame) )
   { clear(frame, FR_SKIPPED);			// skip finished
     debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -1386,7 +1386,8 @@ PL_backtrace_string(int depth, int flags)
 static int
 process_trace_action(DECL_LD LocalFrame frame, int port,
 		     term_t action, bool *nodebugp)
-{ atom_t a;
+{ atom_t a, name;
+  size_t arity;
   int rval;
 
   if ( PL_get_atom(action, &a) )
@@ -1424,17 +1425,26 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
     { PL_warning("Unknown trace action: %s", stringAtom(a));
       rval = PL_TRACE_ACTION_CONTINUE;
     }
-  } else if ( PL_is_functor(action, FUNCTOR_retry1) )
+  } else if ( PL_get_name_arity(action, &name, &arity) && arity == 1 )
   { LocalFrame fr;
     term_t arg = PL_new_term_ref();
 
-    if ( PL_get_arg(1, action, arg) && PL_get_frame(arg, &fr) )
-    { debugstatus.retryFrame = consTermRef(fr);
-    } else
-    { debugstatus.retryFrame = consTermRef(frame);
-      PL_warning("prolog_trace_interception/4: bad argument to retry/1");
+    if ( !(PL_get_arg(1, action, arg) && PL_get_frame(arg, &fr)) )
+    { PL_warning("prolog_trace_interception/4: bad frame");
+      fr = frame;
     }
-    rval = PL_TRACE_ACTION_RETRY;
+
+    if ( name == ATOM_retry )
+    { debugstatus.retryFrame = consTermRef(fr);
+      rval = PL_TRACE_ACTION_RETRY;
+    } else if ( name == ATOM_skip )
+    { debugstatus.skiplevel = levelFrame(fr);
+      set(fr, FR_SKIPPED);
+      rval = PL_TRACE_ACTION_CONTINUE;
+    } else
+    { PL_warning("Unknown trace action");
+      rval = PL_TRACE_ACTION_CONTINUE;
+    }
   } else
   { PL_warning("Unknown trace action");
     rval = PL_TRACE_ACTION_CONTINUE;
@@ -2214,21 +2224,6 @@ PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
 }
 
 
-static
-PRED_IMPL("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
-{ PRED_LD
-  LocalFrame fr;
-
-  if ( !PL_get_frame(A1, &fr) || !fr )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, A1);
-
-  debugstatus.skiplevel = levelFrame(fr);
-  set(fr, FR_SKIPPED);
-
-  return true;
-}
-
-
 foreign_t
 pl_spy(term_t p)
 { GET_LD
@@ -2730,7 +2725,6 @@ BeginPredDefs(trace)
   PRED_DEF("prolog_current_choice", 1, prolog_current_choice, 0)
   PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, PL_FA_TRANSPARENT)
   PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
-  PRED_DEF("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
   PRED_DEF("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
   PRED_DEF("prolog_interrupt", 0, prolog_interrupt, PL_FA_NOTRACE)
 EndPredDefs

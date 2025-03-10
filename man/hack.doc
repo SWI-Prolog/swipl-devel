@@ -245,8 +245,13 @@ Retry the given frame.  This must be a parent of the current
 frame.
     \termitem{skip}{}
 Skip over the current goal (i.e., \jargon{skip} in the command line debugger).
+    \termitem{skip}{Frame}
+Skip to the end the execution of \arg{Frame}.  This is used to implement
+\jargon{finish} on an arbitrary frame in the GUI debugger.
     \termitem{up}{}
 Skip to the parent goal (i.e., \jargon{up} in the command line debugger).
+This is the same as \term{skip}{Frame} using the parent frame of the
+current frame.
 \end{description}
 
 Together with the predicates described in \secref{debugger}
@@ -284,14 +289,6 @@ user:prolog_trace_interception(Port, Frame, Choice, Action) :-
     ;   arg(1, State, Action)
     ).
 \end{code}
-
-    \predicate{prolog_skip_frame}{1}{-Frame}
-Indicate \arg{Frame} as a skipped frame and set the `skip level' (see
-prolog_skip_level/2 to the recursion depth of \arg{Frame}.  The effect
-of the skipped flag is that a redo on a child of this frame is handled
-differently.  First, a \const{redo} trace is called for the child, where
-the skip level is set to \const{redo_in_skip}.  Next, the skip level is
-set to skip level of the skipped frame.
 
     \predicate{prolog_skip_level}{2}{-Old, +New}
 Unify \arg{Old} with the old value of `skip level' and then set this
