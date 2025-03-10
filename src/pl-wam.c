@@ -1008,7 +1008,7 @@ unify_gl(DECL_LD Word g, Word l, int has_firstvar)
 
 
 #define put_call_goal(t, proc) LDFUNC(put_call_goal, t, proc)
-static int
+static bool
 put_call_goal(DECL_LD term_t t, Procedure proc)
 { FunctorDef fd  = proc->definition->functor;
 
@@ -1017,16 +1017,15 @@ put_call_goal(DECL_LD term_t t, Procedure proc)
     LocalFrame NFR = LD->query->next_environment;
     Word ap        = argFrameP(NFR, 0);
     Word gp	   = gt;
-    int i;
 
     if ( !gt )
       return false;			/* could not allocate */
 
     DEBUG(MSG_TRACE,
-	  Sdprintf("Copy %d call args from %p\n", fd->arity, ap));
+	  Sdprintf("Copy %zd call args from %p\n", fd->arity, ap));
 
     *gp++ = fd->functor;
-    for(i=0; i<fd->arity; i++)
+    for(size_t i=0; i<fd->arity; i++)
       unify_gl(gp++, ap++, false);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
   } else
@@ -2244,8 +2243,8 @@ of redo.  We always show redo for an external redo.
 #define dbgRedoFrame(fr, cht) LDFUNC(dbgRedoFrame, fr, cht)
 static LocalFrame
 dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
-{ DEBUG(MSG_TRACE, Sdprintf("REDO on [%d] %s\n",
-			    (int)levelFrame(fr), predicateName(fr->predicate)));
+{ DEBUG(MSG_TRACE_REDO, Sdprintf("REDO on [%u] %s\n",
+				 levelFrame(fr), predicateName(fr->predicate)));
 
   if ( SYSTEM_MODE )
     return fr;				/* system mode; debug everything */
@@ -2254,7 +2253,7 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
   for( ; fr && fr->parent && ison(fr->parent->predicate, HIDE_CHILDS);
        fr = fr->parent)
     ;					/* find top of hidden children */
-  DEBUG(MSG_TRACE, if ( fr )
+  DEBUG(MSG_TRACE_REDO, if ( fr )
 	Sdprintf("REDO user frame of [%d] %s%s\n",
 		 (int)levelFrame(fr),
 		 predicateName(fr->predicate),

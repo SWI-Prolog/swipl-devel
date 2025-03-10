@@ -418,6 +418,11 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
   LocalFrame fr = NULL;
   bool rc;
 
+  DEBUG(MSG_TRACE_PORT,
+	Sdprintf("tracePort([%zd] %s %s\n",
+		 levelFrame(frame), portPrompt(port),
+		 predicateName(frame->predicate)));
+
   if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
        debugstatus.suspendTrace )		/* called back */
     return PL_TRACE_ACTION_CONTINUE;

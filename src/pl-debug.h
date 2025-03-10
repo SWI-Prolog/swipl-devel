@@ -66,7 +66,6 @@
 #define MSG_INDEX_FIND		 22
 #define MSG_INDEX_UPDATE	 23
 #define MSG_INDEX_DEEP		 24
-#define MSG_TRACE		 25
 
 #define MSG_QLF_INTEGER		 26
 #define MSG_QLF_FLOAT		 27
@@ -155,6 +154,11 @@
 #define	MSG_STACK_OVERFLOW	 127
 #define MSG_UNWIND_EXCEPTION	 128
 #define MSG_AGC_CONSIDER	 129
+
+#define MSG_TRACE		 140
+#define MSG_TRACE_REDO		 141
+#define MSG_TRACE_RETRY		 142
+#define MSG_TRACE_PORT		 143
 
 #define MSG_ATTVAR_LINK		 150
 #define MSG_CALL_RESIDUE_VARS	 151

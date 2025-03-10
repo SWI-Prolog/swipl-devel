@@ -404,11 +404,11 @@ VMH(retry, 0, (), ())
   { term_t rframe_ref = consTermRef(rframe);
 
     if ( rframe0 != rframe )
-    { DEBUG(MSG_TRACE,
+    { DEBUG(MSG_TRACE_RETRY,
 	    Sdprintf("[No retry-information for requested frame]\n"));
     }
 
-    DEBUG(MSG_TRACE,
+    DEBUG(MSG_TRACE_RETRY,
 	  Sdprintf("[Retrying frame %d running %s]\n",
 		   (Word)rframe - (Word)lBase,
 		   predicateName(rframe->predicate)));
