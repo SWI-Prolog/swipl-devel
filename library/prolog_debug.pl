@@ -280,13 +280,14 @@ trapping :-
 :- dynamic   prolog:prolog_exception_hook/5.
 :- multifile prolog:prolog_exception_hook/5.
 
-%!  exception_hook(+ExIn, -ExOut, +Frame, +Catcher) is failure.
+%!  exception_hook(+ExIn, -ExOut, +Frame, +Catcher, +DebugMode) is
+%!                 failure.
 %
 %   Trap exceptions and consider whether or not to start the tracer.
 
 :- public exception_hook/5.
 
-exception_hook(Ex, Ex, _Frame, Catcher, _Debug) :-
+exception_hook(Ex, Ex, Frame, Catcher, _Debug) :-
     thread_self(Me),
     thread_property(Me, debug(true)),
     broadcast(debug(exception(Ex))),
@@ -297,8 +298,21 @@ exception_hook(Ex, Ex, _Frame, Catcher, _Debug) :-
     ;   Catcher == none,
         NotCaught == true
     ),
+    \+ direct_catch(Frame),
     trace, fail.
 
+%!  direct_catch(+Frame) is semidet.
+%
+%   True if we are dealing with a  catch(SytemPred, _, _), i.e., a catch
+%   directly wrapped around a call to  a   built-in.  In that case it is
+%   highly unlikely that we want the debugger to step in.
+
+direct_catch(Frame) :-
+    prolog_frame_attribute(Frame, parent, Parent),
+    prolog_frame_attribute(Parent, predicate_indicator, system:catch/3),
+    prolog_frame_attribute(Frame, Level, MyLevel),
+    prolog_frame_attribute(Parent, Level, CatchLevel),
+    MyLevel =:= CatchLevel+1.
 
 %!  install_exception_hook
 %
