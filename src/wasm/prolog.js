@@ -2188,13 +2188,13 @@ class Query {
 			     { result.cont = cont;
 			       request
 			       .then((value) =>
-				 { query.engine.with(() => {
+				 { return query.engine.with(() => {
 				     prolog.set_yield_result(value);
 				     cont.call(prolog, ynext(query));
 				   })
 				 })
 			       .catch((error) =>
-				 { query.engine.with(() => {
+				 { return query.engine.with(() => {
 				     prolog.set_yield_result({$error: error});
 				     cont.call(prolog, ynext(query));
 				   })
@@ -2211,19 +2211,24 @@ class Query {
 	    return result;
 	  }
 
-	  if ( request == "trace" )
-	  { rc.resume = (value) =>
-	    { prolog.set_trace_action(value);
-	      return ynext(query);
-	    };
-	  } else	  // Get back here instead of Query.ynext()
-	  { rc.resume = (value) =>
-	    { prolog.set_yield_result(value);
-	      return ynext(query);
+	  // Get back here instead of Query.ynext()
+	  if ( request == "trace" ) {
+	    rc.resume = (value) => {
+	      return query.engine.with(() => {
+		prolog.set_trace_action(value);
+		return ynext(query);
+	      });
+	    }
+	  } else {
+	    rc.resume = (value) => {
+	      return query.engine.with(() => {
+		prolog.set_yield_result(value);
+		return ynext(query);
+	      });
 	    };
 	  }
-	} else if ( rc.done === false )
-	{ rc.resume = () => ynext(query);
+	} else if ( rc.done === false ) {
+	  rc.resume = () => ynext(query);
 	}
 
 	return rc;
