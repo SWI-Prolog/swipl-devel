@@ -1289,6 +1289,7 @@ class Prolog
 	f.timer = undefined;
 	f.reject("abort");
       }
+      return true;
     }
 
     return new this.Promise(f);

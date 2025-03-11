@@ -164,7 +164,7 @@ await(Request, Result) :-
     '$await'(Request, Result0),
     (   is_dict(Result0),
         get_dict('$error', Result0, Error)
-    ->  (   Error == abort
+    ->  (   Error == "abort"
         ->  wasm_abort
         ;   throw(Error)
         )
