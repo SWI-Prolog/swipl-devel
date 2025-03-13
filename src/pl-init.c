@@ -1440,8 +1440,10 @@ PL_initialise(int argc, char **argv)
 
   if ( !setupProlog() )
     return false;
-#ifdef O_PLMT
+#ifdef O_ENGINES
   aliasThread(PL_thread_self(), ATOM_thread, ATOM_main);
+#endif
+#ifdef O_PLMT
   enableThreads(!GD->options.nothreads);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
