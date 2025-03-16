@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -215,6 +215,8 @@ first. The last byte has its 0x80 mask set.
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
 #define PRED_DET         0x04		/* Determinism flag */
+#define PRED_MULTIFILE	 0x08		/* Multifile */
+#define PRED_DYNAMIC	 0x10		/* Dynamic */
 
 #define CLAUSE_UNIT_CLAUSE 0x01
 #define CLAUSE_SSU_COMMIT  0x02
@@ -1152,14 +1154,16 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
 { unsigned int flags = qlfGetUInt32(state->wicFd);
 
   if ( !skip )
-  { unsigned long lflags = 0L;
+  { GET_LD
+    unsigned long lflags = 0L;
 
-    if ( flags & PRED_SYSTEM )
-      lflags |= P_LOCKED;
-    if ( flags & PRED_HIDE_CHILDS )
-      lflags |= HIDE_CHILDS;
-    if ( flags & PRED_DET )
-      lflags |= P_DET;
+    if ( flags & PRED_SYSTEM )	    lflags |= P_LOCKED;
+    if ( flags & PRED_HIDE_CHILDS ) lflags |= HIDE_CHILDS;
+    if ( flags & PRED_DET )         lflags |= P_DET;
+    if ( !hasClausesDefinition(def) )
+    { if ( flags & PRED_DYNAMIC )   lflags |= P_DYNAMIC|P_TRANSACT;
+      if ( flags & PRED_MULTIFILE ) lflags |= P_MULTIFILE;
+    }
 
     set(def, lflags);
   }
@@ -1430,7 +1434,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
   if ( !skip && state->currentSource )
   { if ( def->impl.any.defined )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
-      { int rc = printMessage(ATOM_error, exception_term);
+      { bool rc = printMessage(ATOM_error, exception_term);
 	(void)rc;
 	PL_clear_exception();
 	skip = true;
@@ -2963,18 +2967,19 @@ predicateFlags(Definition def, atom_t sclass)
     return (PRED_SYSTEM|PRED_HIDE_CHILDS);
   }
 
-  if ( ison(def, P_LOCKED) )
-    flags |= PRED_SYSTEM;
-  if ( ison(def, HIDE_CHILDS) )
-    flags |= PRED_HIDE_CHILDS;
-  if ( ison(def, P_DET) )
-    flags |= PRED_DET;
+  if ( ison(def, P_LOCKED) )     flags |= PRED_SYSTEM;
+  if ( ison(def, HIDE_CHILDS) )  flags |= PRED_HIDE_CHILDS;
+  if ( ison(def, P_DET) )        flags |= PRED_DET;
+  if ( ison(def, P_MULTIFILE) )  flags |= PRED_MULTIFILE;
+  if ( ison(def, P_DYNAMIC) )    flags |= PRED_DYNAMIC;
 
   return flags;
 }
 
 
-#define openPredicateWic(state, def, sclass) LDFUNC(openPredicateWic, state, def, sclass)
+#define openPredicateWic(state, def, sclass) \
+	LDFUNC(openPredicateWic, state, def, sclass)
+
 static void
 openPredicateWic(DECL_LD wic_state *state, Definition def, atom_t sclass)
 { if ( def != state->currentPred)
