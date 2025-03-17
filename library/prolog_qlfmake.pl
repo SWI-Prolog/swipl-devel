@@ -238,6 +238,9 @@ excluded(File) :-
     file_base_name(File, 'MKINDEX.pl'),
     !.
 excluded(File) :-
+    file_base_name(File, 'CLASSINDEX.pl'),
+    !.
+excluded(File) :-
     qlf_part_of(File, Main),
     !,
     report_excluded(excluded(part(Main), File)).
@@ -343,9 +346,13 @@ user:file_search_path(doc,   swi(xpce/prolog/lib/doc)).
                 *           FEEDBACK           *
                 *******************************/
 
+progress(_PlFile) :-
+    current_prolog_flag(verbose, silent),
+    !.
 progress(PlFile) :-
     stream_property(user_output, tty(true)),
     current_prolog_flag(color_term, true),
+    \+ debugging(qlf_make),
     !,
     ansi_format(comment, '\r~w ...', [PlFile]),
     format(user_output, '\e[K', []),
