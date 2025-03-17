@@ -2358,6 +2358,10 @@ load_files(Module:Files, Options) :-
     '$spec_extension'(Spec, Ext),       % user explicitly specified
     user:prolog_file_type(Ext, prolog),
     !.
+'$qlf_file'(_, FullFile, FullFile, compile, _) :-
+    current_prolog_flag(source, true),
+    access_file(FullFile, read),
+    !.
 '$qlf_file'(Spec, FullFile, LoadFile, Mode, Options) :-
     '$compilation_mode'(database),
     file_name_extension(Base, PlExt, FullFile),
@@ -2365,7 +2369,7 @@ load_files(Module:Files, Options) :-
     user:prolog_file_type(QlfExt, qlf),
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
-	(   '$qlf_out_of_date'(FullFile, QlfFile, Why)
+        (   '$qlf_out_of_date'(FullFile, QlfFile, Why)
 	->  (   access_file(QlfFile, write)
 	    ->  print_message(informational,
 			      qlf(recompile(Spec, FullFile, QlfFile, Why))),
@@ -2394,7 +2398,6 @@ load_files(Module:Files, Options) :-
 	LoadFile = FullFile
     ).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
-
 
 %!  '$qlf_out_of_date'(+PlFile, +QlfFile, -Why) is semidet.
 %

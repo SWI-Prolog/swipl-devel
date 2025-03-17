@@ -2249,7 +2249,22 @@ flag is \const{false} if the hosting OS does not support signal handling
 or the command line option \cmdlineoption{--no-signals} is active.  See
 \secref{sigembedded} for details.
 
-    \prologflagitem{source_search_working_directory}{rw}
+    \prologflagitem{source}{bool}{rw}
+If \const{true}, ignore \fileext{qlf} files if there is a
+corresponding \fileext{pl} file.  The provided \fileext{qlf} files in
+the library are compiled with optimization enabled (see
+\prologflag{optimise}), macro expansion enabled (see
+\pllib{apply_macros}) and debug/3 and assertion/1 statements removed.
+Using this flag loads the source, providing better support for
+debugging.  If a debugging session may benefit from better access to
+the debugging facilities of the libraries, either set this Prolog flag
+at the start of the load file for your program or start Prolog as
+
+\begin{code}
+swipl -Dsource [option ...] myfile.pl ...
+\end{code}
+
+    \prologflagitem{source_search_working_directory}{bool}{rw}
 If set to \const{true}, loading a relative file name from source code
 searches relative to the location of the source file as well as relative
 to the working directory. Searching relative to the working directory is
