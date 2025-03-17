@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1348,10 +1348,6 @@ absolute_file_name(Spec, Path, Options) :-
     '$member'(Elem, List).
 '$one_or_member'(Elem, Elem).
 
-
-'$file_type_extensions'(source, Exts) :-       % SICStus 3.9 compatibility
-    !,
-    '$file_type_extensions'(prolog, Exts).
 '$file_type_extensions'(Type, Exts) :-
     '$current_module'('$bags', _File),
     !,
@@ -1386,6 +1382,8 @@ absolute_file_name(Spec, Path, Options) :-
 user:prolog_file_type(pl,       prolog).
 user:prolog_file_type(prolog,   prolog).
 user:prolog_file_type(qlf,      prolog).
+user:prolog_file_type(pl,       source).
+user:prolog_file_type(prolog,   source).
 user:prolog_file_type(qlf,      qlf).
 user:prolog_file_type(Ext,      executable) :-
     current_prolog_flag(shared_object_extension, Ext).
