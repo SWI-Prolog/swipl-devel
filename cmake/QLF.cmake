@@ -20,7 +20,7 @@ function(add_swipl_target name)
   set(options --no-packs "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
       my "QUIET;QLF;NOINSTALL"
-         "COMMENT;COMMAND;APP"
+         "COMMENT;COMMAND;APP;WORKING_DIRECTORY"
          "OUTPUT;BYPRODUCTS;SCRIPT;DEPENDS;OPTIONS;LIBS"
          ${ARGN})
 
@@ -61,6 +61,7 @@ function(add_swipl_target name)
       COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
 	      ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
+      WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
       DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
       VERBATIM)
@@ -175,4 +176,3 @@ function(qcompile)
 			COMMENT "-- QLF compiling library(${f})")
   endforeach()
 endfunction()
-
