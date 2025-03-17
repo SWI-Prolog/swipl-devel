@@ -327,6 +327,18 @@ add_custom_target(library_index)
 
 library_index(${SWIPL_DATA_INDEXED_DIRS})
 
+if(INSTALL_QLF)
+  add_swipl_target(library_qlf
+		   QUIET
+		   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		   OUTPUT __library_QLF_files__
+		   NOINSTALL
+		   DEPENDS library_index
+		   SCRIPT ${CMAKE_BINARY_DIR}/home/library/prolog_qlfmake.pl
+		   COMMAND "qlf_make"
+		   COMMENT "QLF compile library")
+endif()
+
 add_custom_target(core ALL
     DEPENDS swipl bootfile
 )

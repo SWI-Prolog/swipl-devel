@@ -123,6 +123,9 @@ endif()
   set(v_test OFF)
 
   add_custom_target(${target})
+if(INSTALL_QLF)
+  add_dependencies(library_qlf ${target})
+endif()
 
   set(mode)
 

@@ -178,6 +178,16 @@ case $config in
     ;;
 esac
 
+# qlf
+#
+# Compile entire library to qlf
+
+case $config in
+  *qlf*)
+    opts+=" -DINSTALL_QLF=ON"
+    ;;
+esac
+
 # native tuning
 #
 # Optimize for local CPU

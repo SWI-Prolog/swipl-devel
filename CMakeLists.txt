@@ -97,6 +97,9 @@ option(BUILD_SWIPL_LD
 option(INSTALL_TESTS
        "Install script and files needed to run tests of the final installation"
        OFF)
+option(INSTALL_QLF
+       "Build and install .qlf files for all libraries"
+       OFF)
 option(GCOV
        "Compile for coverage analysis using gcov (gcc)"
        OFF)
