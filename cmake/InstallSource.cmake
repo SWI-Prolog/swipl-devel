@@ -2,7 +2,7 @@
 # copied from the sources to their installation location.
 #
 # We want to use this to create a shadow data tree in the
-# CMAKE_BINARY_DIRECTORY such that we can run the full system
+# CMAKE_BINARY_DIR such that we can run the full system
 # without installing it
 
 # ${SWIPL_BUILD_HOME} holds the direcory where we link the Prolog
@@ -139,17 +139,89 @@ function(install_in_home name)
 		"Cannot link from build home: ${file} does not exist")
       endif()
       add_symlink_command(${file} ${buildhome}/${base})
-      set(deps ${deps} ${buildhome}/${base})
+      cmake_path(SET dep NORMALIZE ${buildhome}/${base})
+      set(deps ${deps} ${dep})
     endforeach()
 
     add_custom_target(
 	${name} ALL
 	DEPENDS ${deps})
     add_dependencies(prolog_home ${name})
+
+    install_qlfs(${my_DESTINATION} ${deps})
   endif()
 endfunction()
 
 function(install_src name)
   install_in_home(${name} ${ARGN})
   install(${ARGN})
+endfunction()
+
+set(noqlf_pattern
+    ".*/INDEX[.]pl"
+    ".*/MKINDEX[.]pl"
+    "home/boot/.*[.]pl"
+    "home/app/.*[.]pl"
+    ".*/demo/.*[.]pl"
+    "home/doc/.*"
+    "home/xpce/prolog/boot/.*[.]pl"
+    "home/xpce/prolog/lib/compatibility/.*[.]pl"
+    "home/xpce/prolog/contrib/.*"
+    "home/library/ext/ltx2htm/sty_.*[.]pl")
+set(noqlf_file
+    home/library/tabling.pl
+    home/library/prolog_qlfmake.pl
+    home/library/theme/dark.pl
+    home/xpce/prolog/lib/swi_compatibility.pl
+    home/xpce/prolog/lib/english/pce_messages.pl
+    home/xpce/prolog/lib/trace/gui.pl
+    home/xpce/prolog/lib/trace/util.pl
+    home/xpce/prolog/lib/trace/source.pl
+    home/xpce/prolog/lib/trace/settings.pl
+    home/xpce/prolog/lib/trace/viewterm.pl
+    home/xpce/prolog/lib/trace/clause.pl
+    home/xpce/prolog/lib/trace/stack.pl
+    home/xpce/prolog/lib/trace/pprint.pl
+    home/xpce/prolog/lib/xref/quintus.pl
+    home/xpce/prolog/lib/xref/sicstus.pl
+    home/xpce/prolog/lib/emacs/language_mode.pl
+    home/xpce/prolog/lib/emacs/outline_mode.pl
+    home/xpce/prolog/lib/emacs/server.pl
+    home/xpce/prolog/lib/emacs/help_buffer.pl
+    home/xpce/prolog/lib/emacs/window.pl
+    home/xpce/prolog/lib/emacs/bookmarks.pl
+    home/xpce/prolog/lib/emacs/buffer.pl
+    home/xpce/prolog/lib/emacs/buffer_menu.pl
+    home/xpce/prolog/lib/emacs/fundamental_mode.pl
+    home/xpce/prolog/lib/emacs/application.pl
+    home/xpce/prolog/lib/emacs/history.pl
+    home/library/ext/http/http/dcg_basics.pl)
+
+function(install_qlfs destination)
+  string(LENGTH ${CMAKE_BINARY_DIR}/ binlen)
+  set(qlf)
+  foreach(plfile ${ARGN})
+    if ( plfile MATCHES "[.]pl$" )
+      string(SUBSTRING ${plfile} ${binlen} -1 plfile)
+      set(skip OFF)
+      if(${plfile} IN_LIST noqlf_file)
+	set(skip ON)
+      endif()
+      if(NOT skip)
+	foreach(pat ${noqlf_pattern})
+	  if(NOT skip AND plfile MATCHES ${pat})
+	    set(skip ON)
+	  endif()
+	endforeach()
+      endif()
+      if(NOT skip)
+	string(REGEX REPLACE "[.]pl$" ".qlf" qlffile ${plfile})
+	list(APPEND qlf ${CMAKE_BINARY_DIR}/${qlffile})
+      endif()
+    endif()
+  endforeach()
+  if ( qlf )
+    #message("QLF: install FILES ${qlf} DESTINATION ${destination}")
+    install(FILES ${qlf} DESTINATION ${destination})
+  endif()
 endfunction()
