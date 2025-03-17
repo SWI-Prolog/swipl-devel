@@ -91,29 +91,30 @@ allow for restricting the system, define   the  layout of the filesystem
 and libraries that are built.
 
   | Option                        | Description                           |
-  | ----------------------------- | ------------------------------------- |
-  | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads       |
-  | `-DENGINES=OFF`               | Drop support for Prolog engines       |
-  | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
-  | `-DUSE_GMP=OFF`               | Use bundled LibBF instead of GMP      |
-  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
-  | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
-  | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
-  | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
-  | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
-  | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
-  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
-  | `-DSWIPL_CC=<string>`         | Default for `c_cc` flag               |
-  | `-DSWIPL_CXX=<string>`        | Default for `c_cxx` flag              |
-  | `-DSWIPL_PACKAGES=OFF`        | Only build the core system            |
-  | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages               |
-  | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages            |
-  | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface               |
-  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                  |
-  | `-DSWIPL_PACKAGE_LIST=List`   | ;-separated list of packages          |
-  | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests     |
-  | `-DINSTALL_TESTS=ON`          | Add tests to installed system         |
-  | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs         |
+  | ----------------------------- | -------------------------------------- |
+  | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads        |
+  | `-DENGINES=OFF`               | Drop support for Prolog engines        |
+  | `-DUSE_SIGNALS=OFF`           | Drop signal support                    |
+  | `-DUSE_GMP=OFF`               | Use bundled LibBF instead of GMP       |
+  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`       |
+  | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions  |
+  | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib      |
+  | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`         |
+  | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system  |
+  | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib`  |
+  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`       |
+  | `-DSWIPL_CC=<string>`         | Default for `c_cc` flag                |
+  | `-DSWIPL_CXX=<string>`        | Default for `c_cxx` flag               |
+  | `-DSWIPL_PACKAGES=OFF`        | Only build the core system             |
+  | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages                |
+  | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages             |
+  | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface                |
+  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                   |
+  | `-DSWIPL_PACKAGE_LIST=List`   | ;-separated list of packages           |
+  | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests      |
+  | `-DINSTALL_TESTS=ON`          | Add tests to installed system          |
+  | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs          |
+  | `-DINSTALL_QLF=ON`            | Compile and install library .qlf files |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
