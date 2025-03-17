@@ -1131,7 +1131,8 @@ assertProcedureSource(DECL_LD SourceFile sf, Procedure proc, Clause clause)
     if ( (cref = reload->current_clause) )
     { ClauseRef cref2;
 
-      if ( equal_clause(cref->value.clause, clause) )
+      if ( equal_clause(cref->value.clause, clause) &&
+	   isoff(cref->value.clause, CL_ERASED) )
       { DEBUG(MSG_RECONSULT_CLAUSE,
 	      Sdprintf("  Keeping clause %d\n",
 		       clauseNo(cref->value.clause, reload->generation)));
