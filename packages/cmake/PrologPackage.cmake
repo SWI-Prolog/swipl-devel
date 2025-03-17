@@ -245,6 +245,7 @@ endif()
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install(FILES ${_genlibs}
 	      DESTINATION ${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd})
+      install_qlfs(${SWIPL_INSTALL_LIBRARY}/ext/${SWIPL_PKG}/${sd} ${_genlibs})
     endif()
   endforeach()
 
