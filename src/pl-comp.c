@@ -6533,7 +6533,7 @@ unify_definition(+Module, ?Head, +Def, -TheHead, flags)
     This function properly deals with module-inheritance, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 unify_functor(term_t t, functor_t fd, int how)
 { GET_LD
 

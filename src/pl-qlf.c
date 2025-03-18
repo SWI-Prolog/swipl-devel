@@ -95,15 +95,14 @@ Below is an informal description of the format of a `.qlf' file:
 
 <wic-file>	::=	<magic code>
 			<version number>
-			<bits-per-word>
+			<vm signature>
 			<home>				% a <string>
 			{<statement>}
 			'T'
 ----------------------------------------------------------------
 <qlf-file>	::=	<qlf-magic>
 			<version-number>
-			<bits-per-word>
-			'F' <string>			% path of qlf file
+			<vm signature>
 			{'L' <include>}
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
@@ -312,11 +311,11 @@ static bool	loadStatement(wic_state *state, int c, int skip);
 static bool	loadPart(wic_state *state, Module *module, int skip);
 static bool	loadInModule(wic_state *state, int skip);
 static bool	loadInclude(wic_state *state, int skip);
-static int	qlfVersion(wic_state *state, const char *magic, int *vp);
+static bool	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
-static int	qlfIsCompatible(wic_state *state, const char *magic);
+static bool	qlfIsCompatible(wic_state *state, const char *magic);
 static void	qlfPutInt64(int64_t len, IOSTREAM *fd);
 static int64_t	qlfGetInt64(IOSTREAM *fd);
 
@@ -422,7 +421,7 @@ qlfLoadError_ctx(wic_state *state, char *file, int line)
 { fatalError("%s: QLF format error at index = %ld (%s:%d)",
 	     state->wicFile, Stell(state->wicFd), file, line);
 
-  fail;
+  return false;
 }
 
 #define qlfLoadError(state) qlfLoadError_ctx(state, __FILE__, __LINE__)
@@ -1814,7 +1813,7 @@ the module where it is a multifile one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-qlfLoadSource(wic_state *state)
+qlfLoadSource(wic_state *state, SourceFile sf)
 { IOSTREAM *fd = state->wicFd;
   char *str = qlfGetString(fd, NULL);
   double time = qlfGetDouble(fd);
@@ -1831,19 +1830,35 @@ qlfLoadSource(wic_state *state)
 	if ( !streq(stringAtom(fname), str) )
 	  Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
-  state->currentSource = lookupSourceFile(fname, true);
-  PL_unregister_atom(fname);		/* locked with sourceFile */
-  state->currentSource->mtime = time;
-  state->currentSource->system = !!(ftype == 's' || ftype == 'S');
-  state->currentSource->isfile = !!(ftype == 's' || ftype == 'u');
+  memset(sf, 0, sizeof(*sf));
+  sf->name   = fname;
+  sf->mtime  = time;
+  sf->system = !!(ftype == 's' || ftype == 'S');
+  sf->isfile = !!(ftype == 's' || ftype == 'u');
+
+  return true;
+}
+
+static bool
+qlfActivateSource(wic_state *state)
+{ struct sourceFile sf;
+
+  if ( !qlfLoadSource(state, &sf) )
+    return false;
+
+  state->currentSource = lookupSourceFile(sf.name, true);
+  PL_unregister_atom(sf.name);		/* locked with sourceFile */
+  state->currentSource->mtime  = sf.mtime;
+  state->currentSource->system = sf.system;
+  state->currentSource->isfile = sf.isfile;
+
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
   else
     startConsult(state->currentSource);
 
-  succeed;
+  return true;
 }
-
 
 #define loadModuleProperties(state, m, skip) LDFUNC(loadModuleProperties, state, m, skip)
 static bool
@@ -1903,7 +1918,7 @@ loadModuleProperties(DECL_LD wic_state *state, Module m, int skip)
     break;
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -1934,7 +1949,7 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
 	{ Module m;
 	  int line;
 
-	  qlfLoadSource(state);
+	  qlfActivateSource(state);
 	  line = qlfGetInt32(fd);
 	  DEBUG(MSG_QLF_SECTION,
 		Sdprintf("\tSource = %s:%d\n",
@@ -1949,7 +1964,7 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
 	  } else
 	  { if ( !declareModule(mname, NULL_ATOM, NULL_ATOM,
 				state->currentSource, line, false) )
-	      fail;
+	      return false;
 	  }
 
 	  if ( module )
@@ -1963,12 +1978,12 @@ loadPart(DECL_LD wic_state *state, Module *module, int skip)
       }
 
       if ( !loadModuleProperties(state, LD->modules.source, skip) )
-	fail;
+	return false;
 
       break;
     }
     case 'F':
-    { qlfLoadSource(state);
+    { qlfActivateSource(state);
 
       if ( module )
 	*module = NULL;
@@ -2068,6 +2083,29 @@ loadInclude(DECL_LD wic_state *state, int skip)
   return true;
 }
 
+#define qlfLoadIncludes(state, skip) LDFUNC(qlfLoadIncludes, state, skip)
+
+static void
+qlfLoadIncludes(DECL_LD wic_state *state, bool skip)
+{ IOSTREAM *fd = state->wicFd;
+
+  for(;;)
+  { int c = Qgetc(fd);
+
+    switch(c)
+    { case 'Q':
+	break;
+      case 'I':			/* load version 68 files */
+      case 'L':
+	loadInclude(state, skip);
+	continue;
+      default:
+	qlfLoadError(state);
+    }
+
+    break;
+  }
+}
 
 		 /*******************************
 		 *	WRITING .QLF FILES	*
@@ -3163,11 +3201,11 @@ writeSourceMarks(wic_state *state)
 	error(qlf_format_error(File, Message), _)
 */
 
-static int
+static bool
 qlfError(wic_state *state, const char *error, ...)
 { va_list args;
   char message[LINESIZ];
-  int rc;
+  bool rc;
   const char *file = state->wicFile;
 
   if ( !file )
@@ -3201,8 +3239,10 @@ qlfError(wic_state *state, const char *error, ...)
 }
 
 
-#define qlfSourceInfo(state, offset, list) LDFUNC(qlfSourceInfo, state, offset, list)
-static int
+#define qlfSourceInfo(state, offset, list) \
+	LDFUNC(qlfSourceInfo, state, offset, list)
+
+static bool
 qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 { IOSTREAM *s = state->wicFd;
   char *str;
@@ -3220,11 +3260,119 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 }
 
 
-static int
-open_qlf_file(const char *file, IOSTREAM **sp)
-{ int sl;
+/* Return information about the primary module of a QLF file.
+ * This unifies `minfo` with a dict holding
+ *   - module:Name
+ *   - class:ModuleClass
+ *   - file:File
+ *   - exports:list(PI)
+ */
 
-  if ( (sl=file_name_is_iri(file)) )
+static const atom_t mkeys[] =
+{ ATOM_module,
+  ATOM_class,
+  ATOM_exports,
+  ATOM_file
+};
+
+#define qlfModuleInfo(state, info) LDFUNC(qlfModuleInfo, state, info)
+
+static bool
+qlfModuleInfo(DECL_LD wic_state *state, term_t minfo)
+{ IOSTREAM *fd = state->wicFd;
+
+  pushXrIdTable(state);
+  qlfLoadIncludes(state, true);	/* Skip {'L' <include>} */
+
+  switch(Qgetc(fd))
+  { case 'M':
+    { atom_t mname = word2atom(loadXR(state));
+      int c = Qgetc(fd);
+      term_t av;		/* dict keys */
+      term_t exports;		/* export list */
+      term_t extail;		/* tail of exports */
+      term_t head;		/* tmp for building exports */
+      size_t dlen = 3;		/* #used dict keys */
+
+      if ( !(av      = PL_new_term_refs(4)) ||
+	   !(exports = av+2) ||
+	   !(head    = PL_new_term_ref()) ||
+	   !(extail  = PL_copy_term_ref(exports)) )
+	return false;
+
+      PL_unify_atom(av+0, mname);
+      PL_unregister_atom(mname);
+
+      /* deal with the source */
+      switch(c)
+      { case '-':
+	  break;		/* no source */
+	case 'F':
+	{ struct sourceFile sf = {0};
+	  if ( !qlfLoadSource(state, &sf) )
+	    return false;
+	  if ( !PL_unify_atom(av+3, sf.name) )
+	    return false;
+	  PL_unregister_atom(sf.name);
+	  dlen++;
+	  int line = qlfGetInt32(fd);
+	  (void)line;
+	  break;
+	}
+	default:
+	  return qlfLoadError(state);
+      }
+
+      /* deal with the properties */
+      for(;;)
+      { switch(Qgetc(fd))
+	{ case 'C':		/* module class */
+	  { atom_t class = word2atom(loadXR(state));
+	    if ( !PL_unify_atom(av+1, class) )
+	      return false;
+	    PL_unregister_atom(class);
+	    continue;
+	  }
+	  case 'S':		/* super */
+	  { atom_t super = word2atom(loadXR(state));
+	    PL_unregister_atom(super);
+	    continue;
+	  }
+	  case 'E':
+	  { functor_t f = (functor_t) loadXR(state);
+
+	    if ( PL_unify_list(extail, head, extail) &&
+		 unify_functor(head, f, GP_NAMEARITY) )
+	      continue;
+	    return false;
+	  }
+	  case 'X':
+	    break;
+	  default:
+	    return qlfLoadError(state);
+	}
+	break;
+      }
+      if ( !PL_unify_nil(extail) )
+	return false;
+
+      bool rc = ( PL_put_dict(head, ATOM_dyndict, dlen, mkeys, av) &&
+		  PL_unify(minfo, head) );
+      PL_reset_term_refs(av);
+      return rc;
+    }
+    case 'F':
+      return false;
+    default:
+      return qlfLoadError(state);
+  }
+
+  return false;
+}
+
+static bool
+open_qlf_file(const char *file, IOSTREAM **sp)
+{ if ( file_name_is_iri(file) )
   { IOSTREAM *s;
 
     if ( !iri_hook(file, IRI_OPEN, ATOM_read, 0, &s) )
@@ -3251,19 +3399,22 @@ open_qlf_file(const char *file, IOSTREAM **sp)
 
 #define Q_VERSION 0x01
 
-#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0, flags) \
-	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0, flags)
+#define qlfInfo(file, cversion, minload, fversion, csig, fsig,		\
+		minfo, files0, flags)					\
+	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig,  \
+	       minfo, files0, flags)
 
-static foreign_t
+static bool
 qlfInfo(DECL_LD const char *file,
 	term_t cversion, term_t minload, term_t fversion,
 	term_t csig, term_t fsig,
+	term_t minfo,
 	term_t files0, int flags)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
   size_t *qlfstart = NULL;
-  foreign_t rval = false;
+  bool rval = false;
   wic_state state;
 
   memset(&state, 0, sizeof(state));
@@ -3276,6 +3427,7 @@ qlfInfo(DECL_LD const char *file,
   if ( (flags&Q_VERSION) )
   { int vm_signature;
 
+    /* Current system QLF versions */
     if ( !PL_unify_integer(cversion, PL_QLF_VERSION) ||
 	 !PL_unify_integer(minload, PL_QLF_LOADVERSION) ||
 	 !PL_unify_int64(csig, (unsigned int)VM_SIGNATURE) )
@@ -3285,8 +3437,7 @@ qlfInfo(DECL_LD const char *file,
 	 !PL_unify_integer(fversion, lversion) )
       goto out;
 
-    vm_signature = qlfGetInt32(s);		/* TBD: provide to Prolog layer */
-
+    vm_signature = qlfGetInt32(s);
     if ( !PL_unify_int64(fsig, (unsigned int)vm_signature) )
       goto out;
   } else
@@ -3294,11 +3445,18 @@ qlfInfo(DECL_LD const char *file,
       goto out;
   }
 
+  if ( minfo || files0 )
+  { if ( !pushPathTranslation(&state, file, 0) )
+      goto out;
+  }
+
+  if ( minfo )
+  { if ( !qlfModuleInfo(&state, minfo) )
+      goto out;
+  }
+
   if ( files0 )
   { term_t files = PL_copy_term_ref(files0);
-
-    if ( !pushPathTranslation(&state, file, 0) )
-      goto out;
 
     if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     { qlfError(&state, "seek to index failed: %s", OsError());
@@ -3366,7 +3524,7 @@ PRED_IMPL("$qlf_versions", 6, qlf_versions, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, 0, Q_VERSION);
+  return qlfInfo(name, A2, A3, A4, A5, A6, 0, 0, Q_VERSION);
 }
 
 /** '$qlf_is_compatible'(+File) is det.
@@ -3383,7 +3541,7 @@ PRED_IMPL("$qlf_is_compatible", 1, qlf_is_compatible, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, 0, 0, 0, 0, 0, 0, 0);
+  return qlfInfo(name, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 /** '$qlf_sources'(+File, -SourceFiles) is det.
@@ -3401,7 +3559,25 @@ PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, 0, 0, 0, 0, 0, A2, 0);
+  return qlfInfo(name, 0, 0, 0, 0, 0, 0, A2, 0);
+}
+
+
+/** '$qlf_module'(+File, -ModuleInfo:dict) is det.
+ *
+ * Extract  the principal  module  defined  by the  Qlf  file and  its
+ * properties.  Fails (silently) if File does not define a module.
+ */
+
+static
+PRED_IMPL("$qlf_module", 2, qlf_module, 0)
+{ PRED_LD
+  char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    return false;
+
+  return qlfInfo(name, 0, 0, 0, 0, 0, A2, 0, 0);
 }
 
 
@@ -3470,7 +3646,8 @@ qlfClose(DECL_LD wic_state *state)
 }
 
 
-static int
+/* Verify magic and read file version */
+static bool
 qlfVersion(wic_state *state, const char *exp_magic, int *vp)
 { IOSTREAM *s = state->wicFd;
   char mbuf[100];
@@ -3582,7 +3759,7 @@ popPathTranslation(wic_state *state)
   }
 }
 
-static int
+static bool
 qlfIsCompatible(wic_state *state, const char *magic)
 { int lversion;
   int vm_signature;
@@ -3602,7 +3779,6 @@ qlfIsCompatible(wic_state *state, const char *magic)
   return true;
 }
 
-
 #define qlfLoad(state, module) LDFUNC(qlfLoad, state, module)
 static bool
 qlfLoad(DECL_LD wic_state *state, Module *module)
@@ -3616,14 +3792,14 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
   { PL_chars_t text;
 
     if ( !get_atom_text(file, &text) )
-      fail;
+      return false;
     if ( !PL_mb_text(&text, REP_FN) )
     { PL_free_text(&text);
-      fail;
+      return false;
     }
     state->wicFile = store_string(text.text.t);
     if ( !(absloadname = AbsoluteFile(state->wicFile, tmp, sizeof(tmp))) )
-      fail;
+      return false;
     PL_free_text(&text);
   } else
   { absloadname = NULL;
@@ -3636,28 +3812,12 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
     return false;
 
   pushXrIdTable(state);
-  for(;;)
-  { int c = Qgetc(fd);
-
-    switch(c)
-    { case 'Q':
-	break;
-      case 'I':			/* load version 68 files */
-      case 'L':
-	loadInclude(state, false);
-	continue;
-      default:
-	qlfLoadError(state);
-    }
-
-    break;
-  }
-
+  qlfLoadIncludes(state, false);
   rval = loadPart(state, module, false);
   popXrIdTable(state);
   popPathTranslation(state);
 
-  if ( state->errors.invalid_wide_chars )
+  if ( state->errors.invalid_wide_chars ) /* TODO: Should no longer be needed */
     Sdprintf("WARNING: %d wide characters could not be represented as UCS-2\n",
 	     state->errors.invalid_wide_chars);
 
@@ -3782,7 +3942,7 @@ PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
   { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
-      fail;
+      return false;
 
     return qlfStartModule(state, m);
   }
@@ -3800,7 +3960,7 @@ PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
   { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
-      fail;
+      return false;
 
     return qlfStartSubModule(state, m);
   }
@@ -3818,7 +3978,7 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
   { atom_t a;
 
     if ( !PL_get_atom_ex(A1, &a) )
-      fail;
+      return false;
 
     return qlfStartFile(state, lookupSourceFile(a, true));
   }
@@ -3940,9 +4100,9 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 
   m = oldsrc;
   if ( !PL_strip_module(qstream, &m, stream) )
-    fail;
+    return false;
   if ( !PL_get_stream_handle(stream, &fd) )
-    fail;
+    return false;
 
   memset(&state, 0, sizeof(state));
   state.wicFd = fd;
@@ -3965,7 +4125,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
     return PL_unify_integer(module, 0);
   }
 
-  fail;
+  return false;
 }
 
 
@@ -3994,7 +4154,7 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
 
   if ( !PL_scan_options(A2, 0, "state_option", open_wic_options,
 			&obfuscate) )
-    fail;
+    return false;
 
   if ( PL_get_stream_handle(A1, &fd) )
   { wic_state *state = allocHeapOrHalt(sizeof(*state));
@@ -4009,7 +4169,7 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
     succeed;
   }
 
-  fail;					/* PL_get_stream_handle() */
+  return false;					/* PL_get_stream_handle() */
 					/* throws exception */
 }
 
@@ -4028,7 +4188,7 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
     succeed;
   }
 
-  fail;
+  return false;
 }
 
 /* TBD: The mapping table maps atom->atom or functor->functor and can
@@ -4178,7 +4338,7 @@ PRED_IMPL("$import_wic", 3, import_wic, 0)
     if ( !PL_get_module(A1, &m) ||
 	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) ||
 	 !PL_get_atom_ex(A3, &strength) )
-      fail;
+      return false;
 
     return importWic(state, lookupProcedure(fd, m), strength);
   }
@@ -4247,7 +4407,7 @@ directiveClause(term_t directive, term_t clause, const char *functor)
   if ( !PL_get_name_arity(clause, &name, &arity) ||
        arity != 1 ||
        !streq(stringAtom(name), functor) )
-    fail;
+    return false;
 
   _PL_get_arg(1, clause, d0);
   if ( PL_get_functor(d0, &f) && f == FUNCTOR_colon2 )
@@ -4361,7 +4521,7 @@ compileFile(wic_state *state, const char *file)
 
   DEBUG(MSG_QLF_BOOT, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp, sizeof(tmp))) )
-    fail;
+    return false;
   DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 
   if ( PL_unify_chars(f, PL_ATOM|REP_MB, (size_t)-1, path) )
@@ -4611,6 +4771,7 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_versions",	    6, qlf_versions,	     0)
   PRED_DEF("$qlf_is_compatible",    1, qlf_is_compatible,    0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
+  PRED_DEF("$qlf_module",	    2, qlf_module,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)

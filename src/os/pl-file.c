@@ -3838,7 +3838,7 @@ file_name_to_atom(const char *fn)
 		 *	     IRI HOOKS		*
 		 *******************************/
 
-int
+int /* returns length of iri scheme, i.e., 4 for `http://` */
 file_name_is_iri(const char *path)
 { const char *s;
 

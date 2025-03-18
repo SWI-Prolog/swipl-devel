@@ -83,7 +83,7 @@ void		cleanupBreakPoints(void);
 code		replacedBreak(Code PC);
 code		replacedBreakUnlocked(Code PC);
 int		clearBreakPointsClause(Clause clause) WUNUSED;
-int		unify_functor(term_t t, functor_t fd, int how);
+bool		unify_functor(term_t t, functor_t fd, int how);
 void		vm_list(Code code, Code end);
 Module		clauseBodyContext(const Clause cl);
 
