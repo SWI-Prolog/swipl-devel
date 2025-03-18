@@ -2291,8 +2291,7 @@ load_files(Module:Files, Options) :-
 
 '$load_one_file'(Spec, Module, Options) :-
     atomic(Spec),
-    '$option'(expand(Expand), Options, false),
-    Expand == true,
+    '$option'(expand(true), Options, false),
     !,
     expand_file_name(Spec, Expanded),
     (   Expanded = [Load]
