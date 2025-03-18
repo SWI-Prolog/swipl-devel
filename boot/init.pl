@@ -2531,11 +2531,12 @@ load_files(Module:Files, Options) :-
     ->  Extra = [file_errors(fail)]
     ;   Extra = []
     ),
-    absolute_file_name(File, FullFile,
+    absolute_file_name(File, AbsFile,
 		       [ file_type(prolog),
 			 access(read)
 		       | Extra
 		       ]),
+    '$admin_file'(AbsFile, FullFile),
     '$register_resolved_source_path'(File, FullFile).
 
 '$register_resolved_source_path'(File, FullFile) :-
@@ -3060,23 +3061,44 @@ load_files(Module:Files, Options) :-
     source_location(FromFile, Line),
     !,
     '$master_file'(FromFile, MasterFile),
-    '$check_load_non_module'(File, Module),
+    '$admin_file'(File, PlFile),
+    '$check_load_non_module'(PlFile, Module),
     '$add_dialect'(Options, Options1),
     '$load_ctx_options'(Options1, Options2),
     '$store_admin_clause'(
-	system:'$load_context_module'(File, Module, Options2),
+	system:'$load_context_module'(PlFile, Module, Options2),
 	_Layout, MasterFile, FromFile:Line).
 '$assert_load_context_module'(File, Module, Options) :-
-    '$check_load_non_module'(File, Module),
+    '$admin_file'(File, PlFile),
+    '$check_load_non_module'(PlFile, Module),
     '$add_dialect'(Options, Options1),
     '$load_ctx_options'(Options1, Options2),
-    (   clause('$load_context_module'(File, Module, _), true, Ref),
+    (   clause('$load_context_module'(PlFile, Module, _), true, Ref),
 	\+ clause_property(Ref, file(_)),
 	erase(Ref)
     ->  true
     ;   true
     ),
-    assertz('$load_context_module'(File, Module, Options2)).
+    assertz('$load_context_module'(PlFile, Module, Options2)).
+
+%!  '$admin_file'(+File, -PlFile) is det.
+%
+%   Get the canonical Prolog file name in case File is a .qlf file. Note
+%   that all source admin uses the Prolog file names rather than the qlf
+%   file names.
+
+'$admin_file'(QlfFile, PlFile) :-
+    file_name_extension(_, qlf, QlfFile),
+    '$qlf_module'(QlfFile, Info),
+    get_dict(file, Info, PlFile),
+    !.
+'$admin_file'(File, File).
+
+%!  '$add_dialect'(+Options0, -Options) is det.
+%
+%   If we are in a dialect  environment,   add  this to the load options
+%   such  that  the  load  context  reflects  the  correct  options  for
+%   reloading this file.
 
 '$add_dialect'(Options0, Options) :-
     current_prolog_flag(emulated_dialect, Dialect), Dialect \== swi,

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -607,7 +607,7 @@ restore_sandbox(Sandboxed) :-
     autoload_from(PI, LoadModule, FullFile),
     do_autoload(FullFile, PI, LoadModule).
 
-%!  autoload_from(+PI, -LoadModule, -File) is semidet.
+%!  autoload_from(+PI, -LoadModule, -PlFile) is semidet.
 %
 %   True when PI can be defined  by   loading  File which is defined the
 %   module LoadModule.
@@ -648,7 +648,7 @@ autoload_in(user_or_explicit, explicit, _).
 autoload_in(user_or_explicit, _,        user).
 
 
-%!  do_autoload(+File, :PI, +LoadModule) is det.
+%!  do_autoload(Library, :PI, +LoadModule) is det.
 %
 %   Load File, importing PI into the qualified  module. File is known to
 %   define LoadModule. There are three cases:
@@ -660,25 +660,37 @@ autoload_in(user_or_explicit, _,        user).
 %       verifies the predicate really exists, but doesn't validate
 %       that it is defined.
 %     - We must load the module and import the target predicate.
+%
+%   @arg Library is an absolute file   name, either without extension or
+%   with the source (.pl) extension.
 
 do_autoload(Library, Module:Name/Arity, LoadModule) :-
     functor(Head, Name, Arity),
     '$update_autoload_level'([autoload(true)], Old),
     verbose_autoload(Module:Name/Arity, Library),
+    loadable_file(Library, File),
     '$compilation_mode'(OldComp, database),
     (   Module == LoadModule
-    ->  ensure_loaded(Module:Library)
+    ->  ensure_loaded(Module:File)
     ;   (   '$c_current_predicate'(_, LoadModule:Head),
             '$get_predicate_attribute'(LoadModule:Head, defined, 1),
             \+ '$loading'(Library)
         ->  Module:import(LoadModule:Name/Arity)
-        ;   use_module(Module:Library, [Name/Arity])
+        ;   use_module(Module:File, [Name/Arity])
         ),
         warn_autoload(Module, LoadModule:Name/Arity)
     ),
     '$set_compilation_mode'(OldComp),
     '$set_autoload_level'(Old),
     '$c_current_predicate'(_, Module:Head).
+
+loadable_file(PlFile, File) :-
+    exists_file(PlFile), !,
+    File = PlFile.
+loadable_file(PlFile, Base) :-
+    file_name_extension(Base, pl, PlFile),
+    !.
+loadable_file(File, File).
 
 verbose_autoload(PI, Library) :-
     current_prolog_flag(verbose_autoload, true),
@@ -752,32 +764,37 @@ library_info(Spec, _, FullFile, Module, Exports) :-
     (   \+ '$loading_file'(FullFile, _Queue, _LoadThread)
     ->  '$current_module'(Module, FullFile),
         '$module_property'(Module, exports(Exports))
-    ;   library_info_from_file(FullFile, Module, Exports)
+    ;   library_info_from_file(FullFile, _, Module, Exports)
     ).
 library_info(Spec, Context, FullFile, Module, Exports) :-
     (   Context = (Path:_Line)
     ->  Extra = [relative_to(Path)]
     ;   Extra = []
     ),
-    (   absolute_file_name(Spec, FullFile,
+    (   absolute_file_name(Spec, AbsFile,
                            [ file_type(prolog),
                              access(read),
                              file_errors(fail)
                            | Extra
                            ])
-    ->  '$register_resolved_source_path'(Spec, FullFile),
-        library_info_from_file(FullFile, Module, Exports)
+    ->  library_info_from_file(AbsFile, FullFile, Module, Exports),
+        '$register_resolved_source_path'(Spec, FullFile)
     ;   autoload_error(Context, no_file(Spec)),
         fail
     ).
 
-library_info_from_file(FullFile, Module, Exports) :-
+library_info_from_file(QlfFile, PlFile, Module, Exports) :-
+    file_name_extension(_, qlf, QlfFile),
+    !,
+    '$qlf_module'(QlfFile, Info),
+    _{module:Module, exports:Exports, file:PlFile} :< Info.
+library_info_from_file(PlFile, PlFile, Module, Exports) :-
     setup_call_cleanup(
         '$set_source_module'(OldModule, system),
         setup_call_cleanup(
-            '$open_source'(FullFile, In, State, [], []),
+            '$open_source'(PlFile, In, State, [], []),
             '$term_in_file'(In, _Read, _RLayout, Term, _TLayout, _Stream,
-                            [FullFile], []),
+                            [PlFile], []),
             '$close_source'(State, true)),
         '$set_source_module'(OldModule)),
     (   Term = (:- module(Module, Exports))
@@ -921,6 +938,8 @@ valid_import_list([H0|T0], [H|T]) :-
 %
 %   Put an `autoload` flag on all   predicates declared using autoload/2
 %   to prevent duplicates or the user defining the same predicate.
+%
+%   @arg File is the first argument of autoload/1,2
 
 register_autoloads([], _, _, _).
 register_autoloads([PI|T], Module, File, Context) :-
