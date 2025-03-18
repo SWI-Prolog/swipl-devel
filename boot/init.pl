@@ -2522,21 +2522,43 @@ load_files(Module:Files, Options) :-
 %!  '$resolve_source_path'(+File, -FullFile, +Options) is semidet.
 %
 %   Resolve a source file specification to   an absolute path. May throw
-%   existence and other errors.
+%   existence and other errors.  Attempts:
+%
+%     1. Do a regular file search
+%     2. Find a known source file.  This is used if the actual file was
+%        loaded from a .qlf file.
+%     3. Fail silently if if(exists) is in Options
+%     4. Raise a existence_error(source_sink, File)
 
-'$resolve_source_path'(File, FullFile, Options) :-
-    (   '$option'(if(If), Options),
-	If == exists
-    ->  Extra = [file_errors(fail)]
-    ;   Extra = []
-    ),
+'$resolve_source_path'(File, FullFile, _Options) :-
     absolute_file_name(File, AbsFile,
 		       [ file_type(prolog),
-			 access(read)
-		       | Extra
+			 access(read),
+                         file_errors(fail)
 		       ]),
+    !,
     '$admin_file'(AbsFile, FullFile),
     '$register_resolved_source_path'(File, FullFile).
+'$resolve_source_path'(File, FullFile, _Options) :-
+    absolute_file_name(File, FullFile,
+		       [ file_type(prolog),
+                         solutions(all),
+                         file_errors(fail)
+		       ]),
+    source_file(FullFile),
+    !.
+'$resolve_source_path'(_File, _FullFile, Options) :-
+    '$option'(if(exists), Options),
+    !,
+    fail.
+'$resolve_source_path'(File, _FullFile, _Options) :-
+    '$existence_error'(source_sink, File).
+
+%!  '$register_resolved_source_path'(+Spec, -FullFile) is det.
+%
+%   If Spec is Path(File), cache where  we   found  the  file. This both
+%   avoids many lookups on the  file  system   and  avoids  that Spec is
+%   resolved to different locations.
 
 '$register_resolved_source_path'(File, FullFile) :-
     (   compound(File)
