@@ -756,7 +756,14 @@ goal_name_arity(Head, Head, 0).
 
 %!  library_info(+Spec, +AutoloadContext, -FullFile, -Module, -Exports)
 %
-%   Find information about a library.
+%   Find information about a library. Spec  is the file specification as
+%   it appears in the  autoload/1,2  call.   AutoloadContext  is  a term
+%   File:Line, providing the location of the directive.
+%
+%   @arg FullFile is the source (.pl) file in canonical (absolute)
+%   notation.
+%   @arg Module is the module defined in FullFile
+%   @arg Exports is a list of predicate indicators.
 
 library_info(Spec, _, FullFile, Module, Exports) :-
     '$resolved_source_path'(Spec, FullFile, []),
@@ -779,6 +786,15 @@ library_info(Spec, Context, FullFile, Module, Exports) :-
                            ])
     ->  library_info_from_file(AbsFile, FullFile, Module, Exports),
         '$register_resolved_source_path'(Spec, FullFile)
+    ;   absolute_file_name(Spec, FullFile,
+                           [ file_type(prolog),
+                             solutions(all),
+                             file_errors(fail)
+                           | Extra
+                           ]),
+        source_file(FullFile),
+        '$current_module'(Module, FullFile)
+    ->  '$module_property'(Module, exports(Exports))
     ;   autoload_error(Context, no_file(Spec)),
         fail
     ).
