@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -619,7 +619,7 @@ apply_define(Def) :-
 	->  true
 	;   Value = Value0
 	),
-	create_prolog_flag(Flag, Value, [warn_not_accessed])
+	create_prolog_flag(Flag, Value, [warn_not_accessed(true)])
     ).
 apply_define(Def) :-
     atom_concat('no-', Flag, Def),
@@ -636,7 +636,7 @@ set_user_boolean_flag(Flag, Value) :-
     ;   set_prolog_flag(Flag, Value)
     ).
 set_user_boolean_flag(Flag, Value) :-
-    create_prolog_flag(Flag, Value, [warn_not_accessed]).
+    create_prolog_flag(Flag, Value, [warn_not_accessed(true)]).
 
 text_flag_value(integer, Text, Int) :-
     atom_number(Text, Int),

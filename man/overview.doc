@@ -2700,6 +2700,11 @@ is a list of the options below.  See also \prologflag{user_flags}.
         If the flag has a value, but this value is incompatible with the
         specified type, a warning is printed and the flag gets the
         value and type specified by this call to create_prolog_flag/3.
+
+        \termitem{warn_not_accessed}{+Boolean}
+        If \const{true} and the flag is never read using
+        current_prolog_flag/2, print a warning.  This option is used
+        for options set using the commandline option \verb$-D<flag>[=<value>]$.
     \end{description}
 \end{description}
 

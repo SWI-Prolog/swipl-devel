@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, VU University Amsterdam
+    Copyright (c)  2011-2025, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -145,7 +145,8 @@
 		       sandboxed(boolean),
 		       scope_settings(boolean),
 		       silent(boolean),
-		       stream(any)
+		       stream(any),
+                       '$qlf'(atom)
 		     ]).
 :- predicate_options(system:qcompile/2, 2,
 		     [ pass_to(system:load_files/2, 2)
@@ -158,7 +159,8 @@
 		       type(( oneof([boolean,atom,integer,float,term])
                             ; compound(oneof(list(atom)))
                             )),
-		       keep(boolean)
+		       keep(boolean),
+                       warn_not_accessed(boolean)
 		     ]).
 :- predicate_options(system:qsave_program/2, 2,
 		     [ local(nonneg),
