@@ -880,16 +880,17 @@ materialize_autoload(Count) :-
 
 materialize_autoload(M, State) :-
     (   current_autoload(M:File, Context, Import),
-        library_info(File, Context, FullFile, _LoadModule, _Exports),
+        library_info(File, Context, PlFile, _LoadModule, _Exports),
         arg(1, State, N0),
         N is N0+1,
         nb_setarg(1, State, N),
+        loadable_file(PlFile, LoadFile),
         (   Import == all
-        ->  verbose_autoload(M:all, FullFile),
-            use_module(M:FullFile)
+        ->  verbose_autoload(M:all, PlFile),
+            use_module(M:LoadFile)
         ;   Import = import(Preds)
-        ->  verbose_autoload(M:Preds, FullFile),
-            use_module(M:FullFile, Preds)
+        ->  verbose_autoload(M:Preds, PlFile),
+            use_module(M:LoadFile, Preds)
         ),
         fail
     ;   true
