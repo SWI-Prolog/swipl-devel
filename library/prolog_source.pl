@@ -358,21 +358,29 @@ load_quasi_quotation_syntax(SM:Path, Syntax) :-
     !,
     use_module(SM:Path, [Syntax/4]).
 
-%!  module_decl(+FileSpec, -Path, -Decl) is semidet.
+%!  module_decl(+FileSpec, -Source, -Exports) is semidet.
 %
 %   If FileSpec refers to a Prolog  module   file,  unify  Path with the
 %   canonical file path to the file and Decl with the second argument of
 %   the module declaration.
 
-module_decl(Spec, Path, Decl) :-
+module_decl(Spec, Source, Exports) :-
     absolute_file_name(Spec, Path,
                        [ file_type(prolog),
                          file_errors(fail),
                          access(read)
                        ]),
+    module_decl_(Path, Source, Exports).
+
+module_decl_(Path, Source, Exports) :-
+    file_name_extension(_, qlf, Path),
+    !,
+    '$qlf_module'(Path, Info),
+    _{file:Source, export:Exports} :< Info.
+module_decl_(Path, Path, Exports) :-
     setup_call_cleanup(
         prolog_open_source(Path, In),
-        read_module_decl(In, Decl),
+        read_module_decl(In, Exports),
         prolog_close_source(In)).
 
 read_module_decl(In, Decl) :-

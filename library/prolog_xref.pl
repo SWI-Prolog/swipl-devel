@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2023, University of Amsterdam
+    Copyright (c)  2006-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -2011,40 +2011,45 @@ requires(PI, Src) :-
 
 %!  xref_public_list(+Spec, +Source, +Options) is semidet.
 %
-%   Find meta-information about File. This predicate reads all terms
-%   upto the first term that is not  a directive. It uses the module
-%   and  meta_predicate  directives  to   assemble  the  information
-%   in Options.  Options processed:
+%   Find meta-information about File.  If  Spec   resolves  to  a Prolog
+%   source file, this predicate reads all terms upto the first term that
+%   is not a directive. If Spec resolves to a SWI-Prolog `.qlf` file, it
+%   extracts part of the information from  the   QLF  file.  It uses the
+%   module and meta_predicate directives to  assemble the information in
+%   Options. Options processed:
 %
-%     * path(-Path)
-%     Path is the full path name of the referenced file.
-%     * module(-Module)
-%     Module is the module defines in Spec.
-%     * exports(-Exports)
-%     Exports is a list of predicate indicators and operators
-%     collected from the module/2 term and reexport declarations.
-%     * public(-Public)
-%     Public declarations of the file.
-%     * meta(-Meta)
-%     Meta is a list of heads as they appear in meta_predicate/1
-%     declarations.
-%     * silent(+Boolean)
-%     Do not print any messages or raise exceptions on errors.
+%     - path(-Path)
+%       Path is the full path name of the referenced file.  If Spec
+%       resolves to a .qlf file, Path is the name of the embedded
+%       Prolog file.
+%     - module(-Module)
+%       Module is the module defines in Spec.
+%     - exports(-Exports)
+%       Exports is a list of predicate indicators and operators
+%       collected from the module/2 term and reexport declarations.
+%     - public(-Public)
+%       Public declarations of the file.  Currently always `[]` for
+%       .qlf files.
+%     - meta(-Meta)
+%       Meta is a list of heads as they appear in meta_predicate/1
+%       declarations. Currently always `[]` for .qlf files.
+%     - silent(+Boolean)
+%       Do not print any messages or raise exceptions on errors.
 %
 %   The information collected by this predicate   is  cached. The cached
 %   data is considered valid as long  as   the  modification time of the
 %   file does not change.
 %
-%   @param Source is the file from which Spec is referenced.
+%   @arg Source is the file from which Spec is referenced.
 
 xref_public_list(File, Src, Options) :-
-    option(path(Path), Options, _),
+    option(path(Source), Options, _),
     option(module(Module), Options, _),
     option(exports(Exports), Options, _),
     option(public(Public), Options, _),
     option(meta(Meta), Options, _),
     xref_source_file(File, Path, Src, Options),
-    public_list(Path, Module, Meta, Exports, Public, Options).
+    public_list(Path, Source, Module, Meta, Exports, Public, Options).
 
 %!  xref_public_list(+File, -Path, -Export, +Src) is semidet.
 %!  xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
@@ -2057,26 +2062,27 @@ xref_public_list(File, Src, Options) :-
 %
 %   These predicates fail if File is not a module-file.
 %
-%   @param  Path is the canonical path to File
-%   @param  Module is the module defined in Path
-%   @param  Export is a list of predicate indicators.
-%   @param  Meta is a list of heads as they appear in
-%           meta_predicate/1 declarations.
-%   @param  Src is the place from which File is referenced.
+%   @arg  Path is the canonical path to File
+%   @arg  Module is the module defined in Path
+%   @arg  Export is a list of predicate indicators.
+%   @arg  Meta is a list of heads as they appear in
+%         meta_predicate/1 declarations.
+%   @arg  Src is the place from which File is referenced.
 %   @deprecated New code should use xref_public_list/3, which
-%           unifies all variations using an option list.
+%         unifies all variations using an option list.
 
-xref_public_list(File, Path, Export, Src) :-
+xref_public_list(File, Source, Export, Src) :-
     xref_source_file(File, Path, Src),
-    public_list(Path, _, _, Export, _, []).
-xref_public_list(File, Path, Module, Export, Meta, Src) :-
+    public_list(Path, Source, _, _, Export, _, []).
+xref_public_list(File, Source, Module, Export, Meta, Src) :-
     xref_source_file(File, Path, Src),
-    public_list(Path, Module, Meta, Export, _, []).
-xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
+    public_list(Path, Source, Module, Meta, Export, _, []).
+xref_public_list(File, Source, Module, Export, Public, Meta, Src) :-
     xref_source_file(File, Path, Src),
-    public_list(Path, Module, Meta, Export, Public, []).
+    public_list(Path, Source, Module, Meta, Export, Public, []).
 
-%!  public_list(+Path, -Module, -Meta, -Export, -Public, +Options)
+%!  public_list(+Path, -Source, -Module, -Meta, -Export, -Public,
+%!              +Options) is det.
 %
 %   Read the public information for Path.  Options supported are:
 %
@@ -2084,30 +2090,35 @@ xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
 %       If `true`, ignore (syntax) errors.  If not specified the default
 %       is inherited from xref_source/2.
 
-:- dynamic  public_list_cache/6.
-:- volatile public_list_cache/6.
+:- dynamic  public_list_cache/7.
+:- volatile public_list_cache/7.
 
-public_list(Path, Module, Meta, Export, Public, _Options) :-
-    public_list_cache(Path, Modified,
+public_list(Path, Source, Module, Meta, Export, Public, _Options) :-
+    public_list_cache(Path, Source, Modified,
                       Module0, Meta0, Export0, Public0),
     time_file(Path, ModifiedNow),
     (   abs(Modified-ModifiedNow) < 0.0001
     ->  !,
         t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0)
-    ;   retractall(public_list_cache(Path, _, _, _, _, _)),
+    ;   retractall(public_list_cache(Path, _, _, _, _, _, _)),
         fail
     ).
-public_list(Path, Module, Meta, Export, Public, Options) :-
-    public_list_nc(Path, Module0, Meta0, Export0, Public0, Options),
+public_list(Path, Source, Module, Meta, Export, Public, Options) :-
+    public_list_nc(Path, Source, Module0, Meta0, Export0, Public0, Options),
     (   Error = error(_,_),
         catch(time_file(Path, Modified), Error, fail)
-    ->  asserta(public_list_cache(Path, Modified,
+    ->  asserta(public_list_cache(Path, Source, Modified,
                                   Module0, Meta0, Export0, Public0))
     ;   true
     ),
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
-public_list_nc(Path, Module, Meta, Export, Public, Options) :-
+public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
+    file_name_extension(_, qlf, Path),
+    !,
+    '$qlf_module'(Path, Info),
+    _{module:Module, export:Export, file:Source} :< Info.
+public_list_nc(Path, Path, Module, Meta, Export, Public, Options) :-
     in_temporary_module(
         TempModule,
         true,
@@ -2222,14 +2233,14 @@ reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
 reexport_files([H|T], Src, Meta, MT, Export, ET, Public, PT) :-
     !,
     xref_source_file(H, Path, Src),
-    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    public_list(Path, _Source, _Module, Meta0, Export0, Public0, []),
     append(Meta0, MT1, Meta),
     append(Export0, ET1, Export),
     append(Public0, PT1, Public),
     reexport_files(T, Src, MT1, MT, ET1, ET, PT1, PT).
 reexport_files(Spec, Src, Meta, MT, Export, ET, Public, PT) :-
     xref_source_file(Spec, Path, Src),
-    public_list(Path, _Module, Meta0, Export0, Public0, []),
+    public_list(Path, _Source, _Module, Meta0, Export0, Public0, []),
     append(Meta0, MT, Meta),
     append(Export0, ET, Export),
     append(Public0, PT, Public).
