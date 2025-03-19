@@ -152,14 +152,26 @@ function(install_in_home name)
   endif()
 endfunction()
 
+# wrapper around install(). Processes  RENAME,   DESTINATION  and FILES.
+# This populates ${CMAKE_BINARY_DIR}/home with symlinks  and calls CMake
+# install()  to  install   the   result.    If   INSTALL_QLF   is   set,
+# install_in_home() calls install_qlfs(DESTINATION, file ...)
+#
+# Installing   .qlf   files    must    be     kept    in    sync    with
+# library(prolog_qlfmake).
+
 function(install_src name)
   install_in_home(${name} ${ARGN})
-  install(${ARGN})
+  install_prolog_src(${ARGN})
 endfunction()
 
-set(noqlf_pattern
+set(index_patteern
     ".*/INDEX[.]pl"
     ".*/MKINDEX[.]pl"
+    ".*/CLASSINDEX[.]pl")
+
+set(noqlf_pattern
+    ${index_patteern}
     "home/boot/.*[.]pl"
     "home/app/.*[.]pl"
     ".*/demo/.*[.]pl"
@@ -168,6 +180,7 @@ set(noqlf_pattern
     "home/xpce/prolog/lib/compatibility/.*[.]pl"
     "home/xpce/prolog/contrib/.*"
     "home/library/ext/ltx2htm/sty_.*[.]pl")
+
 set(noqlf_file
     home/library/tabling.pl
     home/library/prolog_qlfmake.pl
@@ -196,6 +209,39 @@ set(noqlf_file
     home/xpce/prolog/lib/emacs/application.pl
     home/xpce/prolog/lib/emacs/history.pl
     home/library/ext/http/http/dcg_basics.pl)
+
+set(include_src_pattern
+    "library/tabling[.]pl$"
+    "theme/[^/]*[.]pl$"
+    "ltx2htm/sty_[^/]*[.]pl$"
+    "xref/quintus[.]pl$"
+    "xref/sicstus[.]pl$"
+    "http/dcg_basics[.]pl$"
+    "trace/pprint[.]pl$")
+
+function(install_prolog_src)
+  if(INSTALL_PROLOG_SRC)
+    install(${ARGN})
+  else()
+    set(argv)
+    foreach(plfile ${ARGN})
+      set(skip OFF)
+      get_filename_component(base ${plfile} NAME)
+      if ( base MATCHES "[.]pl$" AND NOT base STREQUAL "INDEX.pl" )
+        set(skip ON)
+        foreach(pat ${include_src_pattern})
+	  if(skip AND plfile MATCHES ${pat})
+	    set(skip OFF)
+	  endif()
+	endforeach()
+      endif()
+      if ( NOT skip )
+        list(APPEND argv ${plfile})
+      endif()
+    endforeach()
+    install(${argv})
+  endif()
+endfunction()
 
 function(install_qlfs destination)
   if(INSTALL_QLF)

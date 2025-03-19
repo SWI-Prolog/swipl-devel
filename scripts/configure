@@ -188,6 +188,16 @@ case $config in
     ;;
 esac
 
+# nosrc
+#
+# Do NOT install the library .pl files (only the .qlf files)
+
+case $config in
+  *nosrc*)
+    opts+=" -DINSTALL_PROLOG_SRC=OFF"
+    ;;
+esac
+
 # native tuning
 #
 # Optimize for local CPU

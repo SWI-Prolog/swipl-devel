@@ -100,6 +100,9 @@ option(INSTALL_TESTS
 option(INSTALL_QLF
        "Build and install .qlf files for all libraries"
        OFF)
+option(INSTALL_PROLOG_SRC
+       "Install the Prolog sources (.pl files)"
+       ON)
 option(GCOV
        "Compile for coverage analysis using gcov (gcc)"
        OFF)

@@ -167,10 +167,15 @@ size_stat(PlFile, PlSize, QlfSize) :-
 %   True when LibFiles is a list of  all   files  for  which a .QLF file
 %   needs to be build.  This means, all .pl files __except__:
 %
-%     - `INDEX.pl` and `MKINDEX.pl`
+%     - `INDEX.pl`, `MKINDEX.pl` and `CLASSINDEX.pl`
 %     - Files that are part of an aggregate .QLF file
 %     - Files that are explicitly excluded as specified by exclude/1
 %       or exclude_dir/1.
+%
+%   These rules must be kept   in  sync with `cmake/InstallSource.cmake`
+%   that creates CMake install targets for  the   .qlf  files. We need a
+%   better solution for this using a  common   set  of rules that can be
+%   interpreted by both Prolog and CMake.
 
 system_lib_files(LibFiles) :-
     findall(Dir, system_lib_dir(Dir), Dirs),

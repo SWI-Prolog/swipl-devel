@@ -115,6 +115,7 @@ and libraries that are built.
   | `-DINSTALL_TESTS=ON`          | Add tests to installed system          |
   | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs          |
   | `-DINSTALL_QLF=ON`            | Compile and install library .qlf files |
+  | `-DINSTALL_PROLOG_SRC=OFF`    | Do not install library .pl files       |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
