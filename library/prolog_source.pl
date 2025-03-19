@@ -376,7 +376,7 @@ module_decl_(Path, Source, Exports) :-
     file_name_extension(_, qlf, Path),
     !,
     '$qlf_module'(Path, Info),
-    _{file:Source, export:Exports} :< Info.
+    _{file:Source, exports:Exports} :< Info.
 module_decl_(Path, Path, Exports) :-
     setup_call_cleanup(
         prolog_open_source(Path, In),

@@ -2117,7 +2117,7 @@ public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
     file_name_extension(_, qlf, Path),
     !,
     '$qlf_module'(Path, Info),
-    _{module:Module, export:Export, file:Source} :< Info.
+    _{module:Module, exports:Export, file:Source} :< Info.
 public_list_nc(Path, Path, Module, Meta, Export, Public, Options) :-
     in_temporary_module(
         TempModule,
