@@ -783,6 +783,7 @@ collect(Src, File, In, Options) :-
     ;   CommentOptions = [ comments(Comments) ]
     ),
     repeat,
+        E = error(_,_),
         catch(prolog_read_source_term(
                   In, Term, Expanded,
                   [ term_position(TermPos)
@@ -800,9 +801,6 @@ collect(Src, File, In, Options) :-
     !,
     set_prolog_flag(xref_store_comments, OldStore).
 
-report_syntax_error(E, _, _) :-
-    fatal_error(E),
-    throw(E).
 report_syntax_error(_, _, Options) :-
     option(silent(true), Options),
     !,
@@ -813,9 +811,6 @@ report_syntax_error(E, Src, _Options) :-
     ;   true
     ),
     fail.
-
-fatal_error(time_limit_exceeded).
-fatal_error(error(resource_error(_),_)).
 
 %!  update_condition(+Term) is det.
 %
@@ -1130,7 +1125,7 @@ process_directive(style_check(X), _) :-
     style_check(X).
 process_directive(encoding(Enc), _) :-
     (   xref_input_stream(Stream)
-    ->  catch(set_stream(Stream, encoding(Enc)), _, true)
+    ->  catch(set_stream(Stream, encoding(Enc)), error(_,_), true)
     ;   true                        % can this happen?
     ).
 process_directive(pce_expansion:push_compile_operators, _) :-
@@ -1938,7 +1933,8 @@ process_use_module2(File, Import, Src, Reexport) :-
     load_module_if_needed(File),
     (   xref_source_file(File, Path, Src)
     ->  assert(uses_file(File, Src, Path)),
-        (   catch(public_list(Path, _, Meta, Export, _Public, []), _, fail)
+        (   catch(public_list(Path, _Source, _Module, Meta, Export, _Public, []),
+                  error(_,_), fail)
         ->  assert_import(Src, Import, Export, Path, Reexport),
             forall((  member(Head, Meta),
                       imported(Head, _, Path)
@@ -2146,7 +2142,8 @@ public_list_cleanup(In, state(OldM, OldXref)) :-
 
 
 read_directives(In, Options, State) -->
-    {  repeat,
+    {  E = error(_,_),
+       repeat,
        catch(prolog_read_source_term(In, Term, Expanded,
                                      [ process_comment(true),
                                        syntax_errors(error)
@@ -2184,7 +2181,7 @@ terms(H, State, State) -->
     ).
 
 eval_cond(Cond, true) :-
-    catch(Cond, _, fail),
+    catch(Cond, error(_,_), fail),
     !.
 eval_cond(_, false).
 
