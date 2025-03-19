@@ -217,7 +217,8 @@ set(include_src_pattern
     "xref/quintus[.]pl$"
     "xref/sicstus[.]pl$"
     "http/dcg_basics[.]pl$"
-    "trace/pprint[.]pl$")
+    "trace/pprint[.]pl$"
+    "lib/swi_compatibility[.]pl")
 
 function(install_prolog_src)
   if(INSTALL_PROLOG_SRC)
