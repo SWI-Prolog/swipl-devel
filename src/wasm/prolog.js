@@ -1131,6 +1131,8 @@ class Prolog
    * @param {Boolean} [options.engine] If `true`, run the goal in a
    * temporary engine.  Default is to use the current engine.  See
    * also Engine.query()
+   * @param {string} [options.string] Describes the target type for
+   * JavaScript strings.  One of `atom` or `string` (default)
    */
 
   query2(goal, input, options)
@@ -1143,7 +1145,10 @@ class Prolog
       input = input||{};
       options = options||{};
       prolog.put_chars(av+0, goal);
-      prolog.toProlog(input, av+1);
+      if ( options.string )
+	prolog.toProlog(input, av+1, {string:options.string});
+      else
+	prolog.toProlog(input, av+1);
 
       const q = new Query(prolog, 0, prolog.PL_Q_CATCH_EXCEPTION,
 			  "wasm_call_string/3", av,
