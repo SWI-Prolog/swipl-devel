@@ -1820,87 +1820,128 @@ self_bounded(binding([Name], Value, [])) :-
 %   Read the continuation entered by the user.
 
 :- if(current_prolog_flag(emscripten, true)).
-get_respons(Action, _Chp) :-
+get_respons(Action, Chp) :-
     '$can_yield',
     !,
-    await(more, ActionS),
-    atom_string(Action, ActionS).
+    repeat,
+        await(more, CommandS),
+        atom_string(Command, CommandS),
+        more_action(Command, Chp, Action),
+        (   Action == again
+        ->  print_message(query, query(action)),
+            fail
+        ;   !
+        ).
 :- endif.
 get_respons(Action, Chp) :-
     repeat,
         flush_output(user_output),
-        get_single_char(Char),
-        answer_respons(Char, Chp, Action),
+        get_single_char(Code),
+        find_more_command(Code, Command, Feedback, Style),
+        (   Style \== '-'
+        ->  print_message(query, if_tty([ansi(Style, '~w', [Feedback])]))
+        ;   true
+        ),
+        more_action(Command, Chp, Action),
         (   Action == again
         ->  print_message(query, query(action)),
             fail
         ;   !
         ).
 
-answer_respons(Char, _, again) :-
-    '$in_reply'(Char, '?h'),
-    !,
-    print_message(help, query(help)).
-answer_respons(Char, _, redo) :-
-    '$in_reply'(Char, ';nrNR \t'),
-    !,
-    print_message(query, if_tty([ansi(bold, ';', [])])).
-answer_respons(Char, _, redo) :-
-    '$in_reply'(Char, 'tT'),
-    !,
-    trace,
-    save_debug,
-    print_message(query, if_tty([ansi(bold, '; [trace]', [])])).
-answer_respons(Char, _, continue) :-
-    '$in_reply'(Char, 'ca\n\ryY.'),
-    !,
-    print_message(query, if_tty([ansi(bold, '.', [])])).
-answer_respons(0'b, _, show_again) :-
-    !,
-    break.
-answer_respons(0'*, Chp, show_again) :-
-    !,
-    print_last_chpoint(Chp).
-answer_respons(Char, _, show_again) :-
-    current_prolog_flag(answer_write_options, Options0),
-    print_predicate(Char, Pred, Options0, Options),
-    !,
-    print_message(query, if_tty(['~w'-[Pred]])),
-    set_prolog_flag(answer_write_options, Options).
-answer_respons(-1, _, show_again) :-
-    !,
-    print_message(query, halt('EOF')),
-    halt(0).
-answer_respons(Char, _, again) :-
-    print_message(query, no_action(Char)).
+find_more_command(-1, end_of_file, 'EOF', warning) :-
+    !.
+find_more_command(Code, Command, Feedback, Style) :-
+    more_command(Command, Atom, Feedback, Style),
+    '$in_reply'(Code, Atom),
+    !.
+find_more_command(Code, again, '', -) :-
+    print_message(query, no_action(Code)).
 
-%!  print_predicate(+Code, -Change, +Options0, -Options) is semidet.
+more_command(help,        '?h',        '',          -).
+more_command(redo,        ';nrNR \t',  ';',         bold).
+more_command(trace,       'tT',        '; [trace]', comment).
+more_command(continue,    'ca\n\ryY.', '.',         bold).
+more_command(break,       'b',         '',          -).
+more_command(choicepoint, '*',         '',          -).
+more_command(write,       'w',         '[write]',   comment).
+more_command(print,       'p',         '[print]',   comment).
+more_command(depth_inc,   '+',         Change,      comment) :-
+    (   print_depth(Depth0)
+    ->  depth_step(Step),
+        NewDepth is Depth0*Step,
+        format(atom(Change), '[max_depth(~D)]', [NewDepth])
+    ;   Change = 'no max_depth'
+    ).
+more_command(depth_dec,   '-',         Change,      comment) :-
+    (   print_depth(Depth0)
+    ->  depth_step(Step),
+        NewDepth is max(1, Depth0//Step),
+        format(atom(Change), '[max_depth(~D)]', [NewDepth])
+    ;   Change = '[max_depth(10)]'
+    ).
+
+more_action(help, _, Action) =>
+    Action = again,
+    print_message(help, query(help)).
+more_action(redo, _, Action) =>			% Next
+    Action = redo.
+more_action(trace, _, Action) =>
+    Action = redo,
+    trace,
+    save_debug.
+more_action(continue, _, Action) =>             % Stop
+    Action = continue.
+more_action(break, _, Action) =>
+    Action = show_again,
+    break.
+more_action(choicepoint, Chp, Action) =>
+    Action = show_again,
+    print_last_chpoint(Chp).
+more_action(end_of_file, _, Action) =>
+    Action = show_again,
+    halt(0).
+more_action(again, _, Action) =>
+    Action = again.
+more_action(Command, _, Action),
+    current_prolog_flag(answer_write_options, Options0),
+    print_predicate(Command, Options0, Options) =>
+    Action = show_again,
+    set_prolog_flag(answer_write_options, Options).
+
+print_depth(Depth) :-
+    current_prolog_flag(answer_write_options, Options),
+    memberchk(max_depth(Depth), Options),
+    !.
+
+%!  print_predicate(+Action, +Options0, -Options) is semidet.
 %
 %   Modify  the  `answer_write_options`  value  according  to  the  user
 %   command.
 
-print_predicate(0'w, [write], Options0, Options) :-
+print_predicate(write, Options0, Options) :-
     edit_options([-portrayed(true),-portray(true)],
                  Options0, Options).
-print_predicate(0'p, [print], Options0, Options) :-
+print_predicate(print, Options0, Options) :-
     edit_options([+portrayed(true)],
                  Options0, Options).
-print_predicate(0'+, [Change], Options0, Options) :-
+print_predicate(depth_inc, Options0, Options) :-
     (   '$select'(max_depth(D0), Options0, Options1)
-    ->  D is D0*10,
-        format(string(Change), 'max_depth(~D)', [D]),
+    ->  depth_step(Step),
+        D is D0*Step,
         Options = [max_depth(D)|Options1]
-    ;   Options = Options0,
-        Change = 'no max_depth'
+    ;   Options = Options0
     ).
-print_predicate(0'-, [Change], Options0, Options) :-
+print_predicate(depth_dec, Options0, Options) :-
     (   '$select'(max_depth(D0), Options0, Options1)
-    ->  D is max(1, D0//10),
+    ->  depth_step(Step),
+        D is max(1, D0//Step),
         Options = [max_depth(D)|Options1]
     ;   D = 10,
         Options = [max_depth(D)|Options0]
-    ),
-    format(string(Change), 'max_depth(~D)', [D]).
+    ).
+
+depth_step(5).
 
 edit_options([], Options, Options).
 edit_options([H|T], Options0, Options) :-

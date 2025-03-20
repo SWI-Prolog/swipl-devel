@@ -1344,15 +1344,27 @@ query_result(yes(Bindings, Delays, Residuals)) -->
 query_result(more(Bindings, Delays, Residuals)) -->
     result(Bindings, Delays, Residuals),
     prompt(more, Bindings, Delays, Residuals).
+:- if(current_prolog_flag(emscripten, true)).
 query_result(help) -->
     [ ansi(bold, '  Possible actions:', []), nl,
-      '  ; (n,r,space,TAB): redo              | t:         trace&redo'-[], nl,
-      '  *:                 show choicepoint  | c (a,RET): stop'-[], nl,
-      '  w:                 write             | p:         print'-[], nl,
-      '  +:                 max_depth*10      | -:         max_depth//10'-[], nl,
-      '  b:                 break             | h (?):     help'-[],
+      '  ; (n,r,space): redo              | t:       trace&redo'-[], nl,
+      '  *:             show choicepoint  | . (c,a): stop'-[], nl,
+      '  w:             write             | p:       print'-[], nl,
+      '  +:             max_depth*5       | -:       max_depth//5'-[], nl,
+      '  h (?):         help'-[],
       nl, nl
     ].
+:- else.
+query_result(help) -->
+    [ ansi(bold, '  Possible actions:', []), nl,
+      '  ; (n,r,space,TAB): redo              | t:           trace&redo'-[], nl,
+      '  *:                 show choicepoint  | . (c,a,RET): stop'-[], nl,
+      '  w:                 write             | p:           print'-[], nl,
+      '  +:                 max_depth*5       | -:           max_depth//5'-[], nl,
+      '  b:                 break             | h (?):       help'-[],
+      nl, nl
+    ].
+:- endif.
 query_result(action) -->
     [ 'Action? '-[], flush ].
 query_result(confirm) -->
