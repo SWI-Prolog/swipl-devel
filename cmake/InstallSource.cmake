@@ -173,7 +173,6 @@ set(index_patteern
 set(noqlf_pattern
     ${index_patteern}
     "home/boot/.*[.]pl"
-    "home/app/.*[.]pl"
     ".*/demo/.*[.]pl"
     "home/doc/.*"
     "home/xpce/prolog/boot/.*[.]pl"

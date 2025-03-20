@@ -186,12 +186,17 @@ system_lib_files(LibFiles) :-
 
 system_lib_dir(LibDir) :-
     working_directory(PWD, PWD),
-    absolute_file_name(library(.), LibDir,
+    source_alias(Alias),
+    absolute_file_name(Alias, LibDir,
                        [ file_type(directory),
                          solutions(all),
                          access(read)
                        ]),
     sub_atom(LibDir, 0, _, _, PWD).
+
+source_alias(library(.)).
+source_alias(app(.)).
+
 
 %!  dir_files(+Dir, -Files) is det.
 %
