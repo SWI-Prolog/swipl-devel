@@ -2351,9 +2351,16 @@ load_files(Module:Files, Options) :-
 '$qlf_file'(Spec, _, Spec, stream, Options) :-
     '$option'(stream(_), Options),      % stream: no choice
     !.
-'$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
+'$qlf_file'(Spec, FullFile, LoadFile, compile, _) :-
     '$spec_extension'(Spec, Ext),       % user explicitly specified
-    user:prolog_file_type(Ext, prolog),
+    (   user:prolog_file_type(Ext, qlf)
+    ->  absolute_file_name(Spec, LoadFile,
+                           [ file_type(qlf),
+                             access(read)
+                           ])
+    ;   user:prolog_file_type(Ext, prolog)
+    ->  LoadFile = FullFile
+    ),
     !.
 '$qlf_file'(_, FullFile, FullFile, compile, _) :-
     current_prolog_flag(source, true),
@@ -2444,11 +2451,13 @@ load_files(Module:Files, Options) :-
 
 '$spec_extension'(File, Ext) :-
     atom(File),
+    !,
     file_name_extension(_, Ext, File).
 '$spec_extension'(Spec, Ext) :-
     compound(Spec),
     arg(1, Spec, Arg),
-    '$spec_extension'(Arg, Ext).
+    '$segments_to_atom'(Arg, File),
+    file_name_extension(_, Ext, File).
 
 
 %!  '$load_file'(+Spec, +ContextModule, +Options) is det.
