@@ -517,11 +517,7 @@ start_pldoc.
 %   Load Prolog files specified from the commandline.
 
 load_associated_files(Files) :-
-    (   '$member'(File, Files),
-        load_files(user:File, [expand(false)]),
-        fail
-    ;   true
-    ).
+    load_files(user:Files).
 
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
