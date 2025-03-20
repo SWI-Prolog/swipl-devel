@@ -75,12 +75,12 @@ qcompile_([H|T], M, Options) :-
     qcompile_(H, M, Options),
     qcompile_(T, M, Options).
 qcompile_(FileName, Module, Options) :-
-    absolute_file_name(FileName,
-                       [ file_type(prolog),
+    absolute_file_name(FileName, Absolute,
+                       [ file_type(source),
                          access(read),
                          file_errors(fail),
                          solutions(all)
-                       ], Absolute),
+                       ]),
     file_name_extension(ABase, PlExt, Absolute),
     \+ user:prolog_file_type(PlExt, qlf),
     !,
@@ -88,10 +88,10 @@ qcompile_(FileName, Module, Options) :-
     file_name_extension(ABase, QlfExt, Qlf),
     load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
 qcompile_(FileName, _Module, _Options) :-
-    absolute_file_name(FileName,
+    absolute_file_name(FileName, Absolute,
                        [ file_type(prolog),
                          access(read)
-                       ], Absolute),
+                       ]),
     file_name_extension(_ABase, PlExt, Absolute),
     user:prolog_file_type(PlExt, qlf),
     throw(error(permission_error(compile, qlf, Absolute),
