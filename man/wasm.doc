@@ -250,6 +250,11 @@ The optional \arg{Options} parameter defines the following options
   JavaScript can only interact with the \jargon{innermost query} of an
   engine.  By using a new engine we can interact with multiple queries,
   using them as \jargon{coroutines}. \cfuncref{Prolog.Engine}{} for details.
+  \keyitem{string}{Type}
+  Prolog type to use for JavaScript strings when converting the input.
+  Default is \const{string}.  Alternatively one may use \const{atom}.
+  \keyitem{nodebug}{Boolean}
+  If set to \const{true}, the execution cannot be seen in the debugger.
 \end{description}
 
     \cfunction{Promise}{Prolog.forEach}{Goal, [Input], [OnAnswer], [Options]}
