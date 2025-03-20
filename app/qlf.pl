@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2023, SWI-Prolog Solutions b.v.
+    Copyright (c)  2023-2025, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -260,28 +260,46 @@ qlf_update(File, _) :-
     !,
     ansi_format(warning, 'Ignoring ~w: not a QLF file~n', [File]).
 qlf_update(File, Options) :-
-    qlf_up_to_date(File),
-    !,
-    (   option(all(true), Options)
-    ->  print_message(informational, qlf(recompile(File, all))),
+    qlf_up_to_date(File, Status),
+    (   Status == up_to_date
+    ->  (   option(all(true), Options)
+        ->  print_message(informational, qlf(recompile(File, all))),
+            cli_qlf_compile(File, Options)
+        ;   true
+        )
+    ;   Status == no_source
+    ->  true
+    ;   print_message(informational, qlf(recompile(File, update))),
         cli_qlf_compile(File, Options)
-    ;   true
     ).
-qlf_update(File, Options) :-
-    print_message(informational, qlf(recompile(File, update))),
-    cli_qlf_compile(File, Options).
 
-qlf_up_to_date(File) :-
+%!  qlf_up_to_date(+QlfFile, -Status) is det.
+%
+%   Status is one of
+%
+%     - no_source
+%     - up_to_date
+%     - out_of_date(Modified)
+
+qlf_up_to_date(File, Status) :-
     '$qlf_versions'(File, CurrentVersion, _MinLOadVersion, FileVersion,
                     CurrentSignature, FileSignature),
     FileVersion == CurrentVersion,
     CurrentSignature == FileSignature,
     time_file(File, TQLF),
     '$qlf_sources'(File, Sources),
-    E = error(_,_),
-    forall(member(S, Sources),
-          ( catch(time_file(S, TS), E, fail),
-            TS < TQLF)).
+    (   forall(member(S, Sources), \+ exists_file(S))
+    ->  Status = no_source
+    ;   include(outofdate(TQLF), Sources, Modified)
+    ->  (   Modified == []
+        ->  Status = up_to_date
+        ;   Status = out_of_date(Modified)
+        )
+    ).
+
+outofdate(TQLF, Source) :-
+    catch(time_file(Source, TS), error(_,_), fail),
+    TS > TQLF.
 
 %!  cli_qlf_list(+Files, +Options) is det.
 %
@@ -309,11 +327,13 @@ qlf_list(File, _) :-
     !,
     ansi_format(warning, 'Ignoring ~w: not a QLF file~n', [File]).
 qlf_list(File, _Options) :-
-    qlf_up_to_date(File),
-    !,
-    print_message(information, qlf(list(File, "up to date"))).
-qlf_list(File, _Options) :-
-    print_message(warning,     qlf(list(File, "needs to be rebuild"))).
+    qlf_up_to_date(File, Status),
+    list_status(Status, Level),
+    print_message(Level, qlf(list(File, Status))).
+
+list_status(no_source, information).
+list_status(up_to_date, information).
+list_status(out_of_date(_), warning).
 
 
 		 /*******************************
@@ -395,8 +415,12 @@ prolog:message(qcompile(extra, File, Dependencies)) -->
     sequence(file, Dependencies, [nl]).
 prolog:message(qlf(delete_file(File, Reason))) -->
     [ 'Deleting ~w (~w)'-[File, Reason] ].
-prolog:message(qlf(list(File, Reason))) -->
-    [ '~w (~w)'-[File, Reason] ].
+prolog:message(qlf(list(File, no_source))) -->
+    [ '~w (no source)'-[File] ].
+prolog:message(qlf(list(File, up_to_date))) -->
+    [ '~w (up to date)'-[File] ].
+prolog:message(qlf(list(File, out_of_date(_Modified)))) -->
+    [ '~w (needs to be rebuild)'-[File] ].
 
 file(File) -->
     [ '  ', url(File) ].
