@@ -254,7 +254,13 @@ in the cmake _build_ directory. If possible,   the files from the source
 tree that do not need modification are   created  as _symbolic links_ to
 the real sources. This  implies  that  `src/swipl`   can  be  used  as a
 complete development environment and library   and system predicates can
-be edited using edit/1 and friends.
+be edited using edit/1 and  friends.   Note  that current cmake supports
+``-DCMAKE_INSTALL_MODE=ABS_SYMLINK``,  installing  the    system   using
+symbolic links to provide  a  similar   result.  The  advantage of using
+``-DCMAKE_INSTALL_MODE=ABS_SYMLINK`` is that all files are in the target
+position while this is  not  the  case   when  running  from  the  build
+directory. The disadvantage is that  ``ninja   install``  must  still be
+executed on changes such as adding new files to the library.
 
 The script `scripts/swi-activate` may be used   to  create symlinks from
 `$HOME/bin` to the version in the  current   working  directory. It may
