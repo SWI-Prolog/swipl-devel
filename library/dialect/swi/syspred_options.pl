@@ -120,7 +120,7 @@
 		     [ extensions(list(atom)),
 		       relative_to(atom),
 		       access(oneof([read,write,append,execute,exist,none])),
-		       file_type(oneof([txt,prolog,source,executable,directory])),
+		       file_type(oneof([txt,prolog,source,qlf,executable,directory])),
 		       file_errors(oneof([fail,error])),
 		       solutions(oneof([first,all])),
 		       expand(boolean)
