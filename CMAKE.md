@@ -46,6 +46,14 @@ as follows:
     ctest -j 8
     ninja install
 
+If you wish the installed files to be symbolic links to your build
+directory, set the `CMAKE_INSTALL_MODE` environment variable first:
+(e.g.: `export CMAKE_INSTALL_MODE=ABS_SYMLINK`) - this is mainly
+useful for testing changes to the library without re-running `ninja
+install`); for changes to the C source, you'll still need to re-run
+`ninja install`. Also, you may need to set the options `-DINSTALL_QLF`
+and `-DINSTALL_PROLOG_SRC`.
+
 ### Upgrading
 
 In most cases the following should  update   an  installed system to the
