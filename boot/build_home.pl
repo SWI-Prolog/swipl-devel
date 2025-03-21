@@ -169,12 +169,8 @@ add_package_path(_) :-
 add_package_path(PkgBinDir) :-
     assertz(user:file_search_path(foreign, PkgBinDir)).
 
-:- if(\+ current_prolog_flag(emscripten, true)).
-% disabled as we do not (yet) have packages and opendir() is broken
-% and this directory_files/2 raises an exception.
 :- forall(swipl_package(Pkg, PkgBinDir),
 	  add_package(Pkg, PkgBinDir)).
-:- endif.
 
 %!  set_version_info
 %
