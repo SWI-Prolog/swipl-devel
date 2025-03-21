@@ -141,7 +141,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     edit.pl shell.pl check.pl heaps.pl console_input.pl
     tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl
     oset.pl ordsets.pl occurs.pl lists.pl pprint.pl atom.pl
-    www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl
+    url.pl utf8.pl main.pl assoc.pl nb_set.pl
     qpforeign.pl dif.pl when.pl ugraphs.pl streams.pl
     operators.pl date.pl
     prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl
@@ -153,7 +153,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     optparse.pl arithmetic.pl writef.pl predicate_options.pl
     random.pl prolog_breakpoints.pl prolog_autoload.pl
     prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
-    prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
+    prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
@@ -174,10 +174,12 @@ else()
   endif()
 endif()
 if(EMSCRIPTEN)
-  set(SWIPL_DATA_library ${SWIPL_DATA_library} wasm.pl dom.pl)
+  list(APPEND SWIPL_DATA_library wasm.pl dom.pl)
+else()
+  list(APPEND SWIPL_DATA_library prolog_pack.pl git.pl www_browser.pl)
 endif()
 if(NOT STATIC_EXTENSIONS)
-  set(SWIPL_DATA_library ${SWIPL_DATA_library} shlib.pl)
+  list(APPEND SWIPL_DATA_library shlib.pl)
 endif()
 if(MULTI_THREADED)
   list(APPEND SWIPL_DATA_library threadutil.pl thread.pl thread_pool.pl
@@ -202,7 +204,7 @@ endif()
 
 set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 
-set(SWIPL_DATA_library_unicode blocks.pl unicode_data.pl)
+set(SWIPL_DATA_library_unicode blocks.pl)
 
 set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
     sicstus.pl sicstus4.pl yap.pl xsb.pl)
@@ -211,25 +213,33 @@ set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
 set(SWIPL_DATA_library_dialect_hprolog format.pl)
 set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl ordsets.pl
-    README.TXT sockets.pl system.pl terms.pl timeout.pl)
+    README.TXT terms.pl)
 set(SWIPL_DATA_library_dialect_sicstus4 aggregate.pl between.pl clpfd.pl
-    file_systems.pl lists.pl ordsets.pl samsort.pl sets.pl sockets.pl
-    system.pl terms.pl timeout.pl types.pl)
+    lists.pl ordsets.pl samsort.pl sets.pl terms.pl types.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
     curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
+set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_cmake swipl.cmake)
+set(SWIPL_DATA_app app.pl qlf.pl README.md)
 
 if(MULTI_THREADED)
 list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)
 endif()
 
-set(SWIPL_DATA_demo likes.pl README.md)
-set(SWIPL_DATA_cmake swipl.cmake)
+if(NOT EMSCRIPTEN)
+list(APPEND SWIPL_DATA_library_unicode  unicode_data.pl)
+list(APPEND SWIPL_DATA_library_dialect_sicstus
+     sockets.pl	timeout.pl system.pl)
+list(APPEND SWIPL_DATA_library_dialect_sicstus4
+     file_systems.pl sockets.pl	timeout.pl system.pl)
+list(APPEND SWIPL_DATA_app
+     pack.pl splfr.pl)
+endif()
 
-set(SWIPL_DATA_app pack.pl app.pl qlf.pl splfr.pl README.md)
 
 ################
 # Custom targets and commands
