@@ -122,10 +122,13 @@ preload_pldoc.
 preload(Spec, Imports) :-
     absolute_file_name(Spec, File,
                        [ extensions([pl]),
-                         access(read)
+                         access(read),
+                         file_errors(fail)
                        ]),
+    !,
     qlf_make(File),
     use_module(File, Imports).
+preload(_, _).
 
 %!  qlf_needs_rebuild(+PlFile:atom) is semidet.
 %
