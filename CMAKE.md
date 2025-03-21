@@ -151,6 +151,12 @@ In particular, see
 [FindPython.cmake](https://cmake.org/cmake/help/latest/module/FindPython.html)
 to control the Python version used by the Janus interface to Python.
 
+For example, if you want to use a particular Python library (for example from a 
+(`conda`) environment), you
+can use the option `-DPython_LIBRARY:FILEPATH=/path/to/your/library`
+and `-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE` to make sure the library
+is found also at runtime.
+
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
 
