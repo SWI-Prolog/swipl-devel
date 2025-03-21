@@ -40,7 +40,9 @@
 :- use_module(library(lists)).
 :- use_module(library(ansi_term)).
 :- use_module(library(apply)).
+:- if(exists_source(library(pldoc))).
 :- use_module(library(pldoc)).
+:- endif.
 
 /** <module> Compile the library to QLF format
 
@@ -72,8 +74,7 @@ qlf_make :-
     set_prolog_flag(optimise, true),
     set_prolog_flag(optimise_debug, true),
     preload(library(apply_macros), []),
-    preload(library(pldoc), [doc_collect/1]),
-    doc_collect(false),
+    preload_pldoc,
     qmake_aggregates,
     system_lib_files(Files),
     include(qlf_needs_rebuild, Files, Rebuild),
@@ -99,6 +100,18 @@ qlf_make(Spec) :-
 qcompile_(PlFile) :-
     progress(PlFile),
     qcompile(PlFile, [imports([])]).
+
+%!  preload_pldoc is det.
+%
+%   Preload the documentation system and disable it.  We need to do this
+%   to avoid embedding the system documentation into the .qlf files.
+
+preload_pldoc :-
+    exists_source(library(pldoc)),
+    !,
+    preload(library(pldoc), [doc_collect/1]),
+    doc_collect(false).
+preload_pldoc.
 
 %!  preload(+Spec, +Imports) is det.
 %
@@ -325,6 +338,8 @@ qmake_aggregates :-
            qmake_aggregate(Spec)).
 
 qmake_aggregate(Spec) :-
+    exists_source(Spec),
+    !,
     qlf_make(Spec),
     absolute_file_name(Spec, PlFile,
                        [ file_type(prolog),
@@ -334,6 +349,7 @@ qmake_aggregate(Spec) :-
     '$qlf_sources'(QlfFile, Sources),
     forall(member(S, Sources),
            assertz(qlf_part_of(S, PlFile))).
+qmake_aggregate(_).
 
 aggregate_qlf(library(pce)).
 aggregate_qlf(library(trace/trace)).
