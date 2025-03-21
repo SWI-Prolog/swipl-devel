@@ -47,6 +47,7 @@
 user:file_search_path(web, '../src/wasm/demos').
 user:file_search_path(web, '../src/wasm/demos/tinker').
 user:file_search_path(web, 'src').
+user:file_search_path(wasm_library, 'home').
 user:file_search_path(scasp,  Dir) :-
     getenv('SCASP_HOME', Dir).
 
@@ -58,6 +59,9 @@ user:file_search_path(scasp,  Dir) :-
 :- http_handler('/wasm/',       index, []).
 :- http_handler('/wasm/',
                 http_reply_from_files(web(.), [static_gzip(true)]), [prefix]).
+:- http_handler('/wasm/swipl/',
+                http_reply_from_files(wasm_library(.),
+                                      [static_gzip(true)]), [prefix]).
 
 
 reply_html_test(File, Request) :-
