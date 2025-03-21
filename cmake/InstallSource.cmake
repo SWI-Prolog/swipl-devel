@@ -219,6 +219,10 @@ set(include_src_pattern
     "trace/pprint[.]pl$"
     "lib/swi_compatibility[.]pl")
 
+set(WASM_prolog_src
+    tabling.pl
+    theme/dark.pl)
+
 function(install_prolog_src)
   if(INSTALL_PROLOG_SRC)
     install(${ARGN})
