@@ -76,6 +76,7 @@ qlf_make :-
     preload(library(apply_macros), []),
     preload_pldoc,
     qmake_aggregates,
+    preload_xpce,
     system_lib_files(Files),
     include(qlf_needs_rebuild, Files, Rebuild),
     maplist(qcompile_, Rebuild),
@@ -112,6 +113,16 @@ preload_pldoc :-
     preload(library(pldoc), [doc_collect/1]),
     doc_collect(false).
 preload_pldoc.
+
+%!  preload_xpce is det.
+%
+%   Deal with ordering issues in the xpce build. We should probably do a
+%   partial ordering of files to reduce  the   build  time as well as to
+%   avoid ordering issues.
+
+preload_xpce :-
+    preload(library(emacs_extend), []),
+    preload(library(emacs/text_mode), []).
 
 %!  preload(+Spec, +Imports) is det.
 %
