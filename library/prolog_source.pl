@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2022, University of Amsterdam
+    Copyright (c)  2006-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -37,6 +37,7 @@
 :- module(prolog_source,
           [ prolog_read_source_term/4,  % +Stream, -Term, -Expanded, +Options
             read_source_term_at_location/3, %Stream, -Term, +Options
+            prolog_file_directives/3,   % +File, -Directives, +Options
             prolog_open_source/2,       % +Source, -Stream
             prolog_close_source/1,      % +Stream
             prolog_canonical_source/2,  % +Spec, -Id
@@ -55,6 +56,7 @@
 :- autoload(library(lists), [member/2, last/2, select/3, append/3, selectchk/3]).
 :- autoload(library(operators), [push_op/3, push_operators/1, pop_operators/0]).
 :- autoload(library(option), [select_option/4, option/3, option/2]).
+:- autoload(library(modules),[in_temporary_module/3]).
 
 
 /** <module> Examine Prolog source-files
@@ -605,6 +607,105 @@ load_qq_and_retry(_Pos, Syntax, Module, Context, _Stream, _Term, _Options) :-
 prolog:quasi_quotation_syntax(html,       library(http/html_write)).
 prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
+
+%!  prolog_file_directives(+File, -Directives, +Options) is det.
+%
+%   True when Directives is a list  of   directives  that  appear in the
+%   source  file  File.  Reading   directives    stops   at   the  first
+%   non-directive term. Processing deals with   expand_term/2 as well as
+%   conditional compilation.  Options processed:
+%
+%     - canonical_source(-Source)
+%       Unify Source with the canonical source identifier as also
+%       used by library(prolog_xref).
+%     - silent(+Boolean)
+%       If `true` (default `false`), do not report syntax errors and
+%       other errors.
+
+prolog_file_directives(File, Directives, Options) :-
+    option(canonical_source(Path), Options, _),
+    prolog_canonical_source(File, Path),
+    in_temporary_module(
+        TempModule,
+        true,
+        read_directives(TempModule, Path, Directives, Options)).
+
+read_directives(TempModule, Path, Directives, Options) :-
+    setup_call_cleanup(
+        read_directives_setup(TempModule, Path, In, State),
+        phrase(read_directives(In, Options, [true]), Directives),
+        read_directives_cleanup(In, State)).
+
+read_directives_setup(TempModule, Path, In, state(OldM, OldXref)) :-
+    prolog_open_source(Path, In),
+    '$set_source_module'(OldM, TempModule),
+    current_prolog_flag(xref, OldXref),
+    set_prolog_flag(xref, true).
+
+read_directives_cleanup(In, state(OldM, OldXref)) :-
+    '$set_source_module'(OldM),
+    set_prolog_flag(xref, OldXref),
+    prolog_close_source(In).
+
+read_directives(In, Options, State) -->
+    {  E = error(_,_),
+       repeat,
+       catch(prolog_read_source_term(In, Term, Expanded,
+                                     [ process_comment(true),
+                                       syntax_errors(error)
+                                     ]),
+             E, report_syntax_error(E, Options))
+    -> nonvar(Term),
+       Term = (:-_)
+    },
+    !,
+    terms(Expanded, State, State1),
+    read_directives(In, Options, State1).
+read_directives(_, _, _) --> [].
+
+report_syntax_error(_, Options) :-
+    option(silent(true), Options),
+    !,
+    fail.
+report_syntax_error(E, _Options) :-
+    print_message(warning, E),
+    fail.
+
+terms(Var, State, State) --> { var(Var) }, !.
+terms([H|T], State0, State) -->
+    !,
+    terms(H, State0, State1),
+    terms(T, State1, State).
+terms((:-if(Cond)), State0, [True|State0]) -->
+    !,
+    { eval_cond(Cond, True) }.
+terms((:-elif(Cond)), [True0|State], [True|State]) -->
+    !,
+    { eval_cond(Cond, True1),
+      elif(True0, True1, True)
+    }.
+terms((:-else), [True0|State], [True|State]) -->
+    !,
+    { negate(True0, True) }.
+terms((:-endif), [_|State], State) -->  !.
+terms(H, State, State) -->
+    (   {State = [true|_]}
+    ->  [H]
+    ;   []
+    ).
+
+eval_cond(Cond, true) :-
+    catch(Cond, error(_,_), fail),
+    !.
+eval_cond(_, false).
+
+elif(true,  _,    else_false) :- !.
+elif(false, true, true) :- !.
+elif(True,  _,    True).
+
+negate(true,       false).
+negate(false,      true).
+negate(else_false, else_false).
 
                  /*******************************
                  *           SOURCES            *

@@ -74,7 +74,6 @@
 :- autoload(library(dialect),[expects_dialect/1]).
 :- autoload(library(error),[must_be/2,instantiation_error/1]).
 :- autoload(library(lists),[member/2,append/2,append/3,select/3]).
-:- autoload(library(modules),[in_temporary_module/3]).
 :- autoload(library(operators),[push_op/3]).
 :- autoload(library(option),[option/2,option/3]).
 :- autoload(library(ordsets),[ord_intersect/2,ord_intersection/3]).
@@ -83,7 +82,8 @@
 	    [ prolog_canonical_source/2,
 	      prolog_open_source/2,
 	      prolog_close_source/1,
-	      prolog_read_source_term/4
+	      prolog_read_source_term/4,
+              prolog_file_directives/3
 	    ]).
 
 :- if(exists_source(library(shlib))).
@@ -2115,83 +2115,8 @@ public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
     '$qlf_module'(Path, Info),
     _{module:Module, exports:Export, file:Source} :< Info.
 public_list_nc(Path, Path, Module, Meta, Export, Public, Options) :-
-    in_temporary_module(
-        TempModule,
-        true,
-        public_list_diff(TempModule, Path, Module,
-                         Meta, [], Export, [], Public, [], Options)).
-
-
-public_list_diff(TempModule,
-                 Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
-    setup_call_cleanup(
-        public_list_setup(TempModule, Path, In, State),
-        phrase(read_directives(In, Options, [true]), Directives),
-        public_list_cleanup(In, State)),
-    public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
-
-public_list_setup(TempModule, Path, In, state(OldM, OldXref)) :-
-    prolog_open_source(Path, In),
-    '$set_source_module'(OldM, TempModule),
-    set_xref(OldXref).
-
-public_list_cleanup(In, state(OldM, OldXref)) :-
-    '$set_source_module'(OldM),
-    set_prolog_flag(xref, OldXref),
-    prolog_close_source(In).
-
-
-read_directives(In, Options, State) -->
-    {  E = error(_,_),
-       repeat,
-       catch(prolog_read_source_term(In, Term, Expanded,
-                                     [ process_comment(true),
-                                       syntax_errors(error)
-                                     ]),
-             E, report_syntax_error(E, -, Options))
-    -> nonvar(Term),
-       Term = (:-_)
-    },
-    !,
-    terms(Expanded, State, State1),
-    read_directives(In, Options, State1).
-read_directives(_, _, _) --> [].
-
-terms(Var, State, State) --> { var(Var) }, !.
-terms([H|T], State0, State) -->
-    !,
-    terms(H, State0, State1),
-    terms(T, State1, State).
-terms((:-if(Cond)), State0, [True|State0]) -->
-    !,
-    { eval_cond(Cond, True) }.
-terms((:-elif(Cond)), [True0|State], [True|State]) -->
-    !,
-    { eval_cond(Cond, True1),
-      elif(True0, True1, True)
-    }.
-terms((:-else), [True0|State], [True|State]) -->
-    !,
-    { negate(True0, True) }.
-terms((:-endif), [_|State], State) -->  !.
-terms(H, State, State) -->
-    (   {State = [true|_]}
-    ->  [H]
-    ;   []
-    ).
-
-eval_cond(Cond, true) :-
-    catch(Cond, error(_,_), fail),
-    !.
-eval_cond(_, false).
-
-elif(true,  _,    else_false) :- !.
-elif(false, true, true) :- !.
-elif(True,  _,    True).
-
-negate(true,       false).
-negate(false,      true).
-negate(else_false, else_false).
+    prolog_file_directives(Path, Directives, Options),
+    public_list(Directives, Path, Module, Meta, [], Export, [], Public, []).
 
 public_list([(:- module(Module, Export0))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-
