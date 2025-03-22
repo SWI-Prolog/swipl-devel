@@ -52,7 +52,7 @@
 :- autoload(library(http/html_write), [html/3, print_html/1]).
 :- autoload(library(lynx/html_text), [html_text/2]).
 :- autoload(pldoc(doc_man), [man_page/4]).
-:- autoload(pldoc(doc_modes), [mode/2]).
+:- autoload(pldoc(doc_modes), [(mode)/2]).
 :- autoload(pldoc(doc_words), [doc_related_word/3]).
 :- autoload(pldoc(man_index), [man_object_property/2, doc_object_identifier/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
