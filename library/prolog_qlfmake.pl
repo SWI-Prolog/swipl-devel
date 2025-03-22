@@ -42,6 +42,9 @@
 :- use_module(library(apply)).
 :- if(exists_source(library(pldoc))).
 :- use_module(library(pldoc)).
+:- use_module(library(prolog_source)).
+:- use_module(library(dcg/high_order)).
+
 :- endif.
 
 /** <module> Compile the library to QLF format
@@ -79,7 +82,8 @@ qlf_make :-
     preload_xpce,
     system_lib_files(Files),
     include(qlf_needs_rebuild, Files, Rebuild),
-    maplist(qcompile_, Rebuild),
+    report_work(Files, Rebuild),
+    qcompile_files(Rebuild),
     size_stats(Files).
 
 %!  qlf_make(+Spec) is det.
@@ -96,6 +100,21 @@ qlf_make(Spec) :-
     (   qlf_needs_rebuild(PlFile)
     ->  qcompile_(PlFile)
     ;   true
+    ).
+
+qcompile_files([]) => true.
+qcompile_files([+H|T]) =>
+    qcompile_(H),
+    qcompile_files(T).
+qcompile_files([H|T]) =>
+    file_dependencies(H, Deps),
+    intersection(Deps, T, Deps1),
+    (   Deps1 == []
+    ->  qcompile_(H),
+        qcompile_files(T)
+    ;   subtract(T, Deps1, T1),
+        append([Deps1, [+H], T1], Agenda),
+        qcompile_files(Agenda)
     ).
 
 qcompile_(PlFile) :-
@@ -184,6 +203,69 @@ size_stat(PlFile, PlSize, QlfSize) :-
     size_file(QlfFile, QlfSize).
 
 :- dynamic qlf_part_of/2.               % Part, Whole
+
+                /*******************************
+                *         DEPENDENCIES         *
+                *******************************/
+
+%!  file_dependencies(+File, -Deps:ordset) is det.
+%
+%   True when Deps is a  list  of   absolute  file  names  that form the
+%   dependencies of File. This examines the file loading directives.
+
+file_dependencies(File, Deps) :-
+    prolog_file_directives(File, Directives, []),
+    phrase(file_deps(Directives), Deps0),
+    maplist(absolute_path(File), Deps0, Deps1),
+    sort(Deps1, Deps).
+
+file_deps([]) ==>
+    [].
+file_deps([H|T]) ==>
+    file_dep(H),
+    file_deps(T).
+
+file_dep((:- Dir)) ==>
+    (   { directive_file(Dir, Files) }
+    ->  file_or_files(Files)
+    ;   []
+    ).
+file_dep(_) ==>
+    [].
+
+file_or_files(Files), is_list(Files) ==>
+    sequence(file, Files).
+file_or_files(File) ==>
+    file(File).
+
+file(File) -->
+    [File].
+
+directive_file(ensure_loaded(File), File).
+directive_file(consult(File), File).
+directive_file(load_files(File, _), File).
+directive_file(use_module(File), File).
+directive_file(use_module(File, _), File).
+directive_file(autoload(File), File).
+directive_file(autoload(File, _), File).
+directive_file(reexport(File), File).
+directive_file(reexport(File, _), File).
+
+absolute_path(RelativeTo, _:Spec, File) =>
+    absolute_path(RelativeTo, Spec, File).
+absolute_path(_RelativeTo, Spec, File),
+    compound(Spec), compound_name_arity(Spec, _, 1) =>
+    absolute_file_name(Spec, File,
+                       [ access(read),
+                         file_type(source)
+                       ]).
+absolute_path(RelativeTo, Spec, File) =>
+    absolute_file_name(Spec, File,
+                       [ relative_to(RelativeTo),
+                         access(read),
+                         file_type(source)
+                       ]).
+
 
                 /*******************************
                 *       FIND CANDIDATES        *
@@ -386,6 +468,11 @@ user:file_search_path(doc,   swi(xpce/prolog/lib/doc)).
                 *           FEEDBACK           *
                 *******************************/
 
+report_work(Files, Rebuild) :-
+    length(Files, AllFiles),
+    length(Rebuild, NeedsRebuild),
+    print_message(informational, qlf_make(planning(AllFiles, NeedsRebuild))).
+
 progress(_PlFile) :-
     current_prolog_flag(verbose, silent),
     !.
@@ -412,11 +499,17 @@ report_excluded(_).
 prolog:message(qlf_make(Msg)) -->
     message(Msg).
 
-message(size(Count, Qlfize, PlSize)) -->
+message(planning(_AllFiles, 0)) ==>
+    [].
+message(planning(AllFiles, AllFiles)) ==>
+    [ 'Building ~D qlf files'-[AllFiles] ].
+message(planning(AllFiles, NeedsRebuild)) ==>
+    [ '~D qlf files.  ~D need to be rebuild'-[AllFiles, NeedsRebuild] ].
+message(size(Count, Qlfize, PlSize)) ==>
     [ '~D qlf files take ~D bytes.  Source ~D bytes'-
       [Count, Qlfize, PlSize]
     ].
-message(excluded(Reason, File)) -->
+message(excluded(Reason, File)) ==>
     [ 'Excluded ', url(File) ],
     excl_reason(Reason).
 
