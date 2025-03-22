@@ -132,27 +132,24 @@ locate(Path, file(Path), [file(Path)]) :-
     \+ exists_directory(Path).
 locate(Pattern, file(Path), [file(Path)]) :-
     atom(Pattern),
-    catch(expand_file_name(Pattern, Files), _, fail),
+    catch(expand_file_name(Pattern, Files), error(_,_), fail),
     member(Path, Files),
     exists_file(Path),
     \+ exists_directory(Path).
 locate(FileBase, file(File), [file(File)]) :-
     atom(FileBase),
-    absolute_file_name(FileBase,
-                       [ file_type(prolog),
+    absolute_file_name(FileBase, File,
+                       [ file_type(source),
                          access(read),
                          file_errors(fail)
-                       ],
-                       File),
-    \+ exists_directory(File).
+                       ]).
 locate(FileSpec, file(File), [file(File)]) :-
-    catch(absolute_file_name(FileSpec,
-                             [ file_type(prolog),
+    catch(absolute_file_name(FileSpec, File,
+                             [ file_type(source),
                                access(read),
                                file_errors(fail)
-                             ],
-                             File),
-          _, fail).
+                             ]),
+          error(_,_), fail).
 locate(FileBase, source_file(Path), [file(Path)]) :-
     atom(FileBase),
     source_file(Path),
@@ -184,19 +181,17 @@ locate(Name//DCGArity, FullSpec, Location) :-
 locate(Name/Arity, library(File), [file(PlPath)]) :-
     atom(Name),
     '$in_library'(Name, Arity, Path),
-    (   absolute_file_name(library(.),
+    (   absolute_file_name(library(.), Dir,
                            [ file_type(directory),
                              solutions(all)
-                           ],
-                           Dir),
+                           ]),
         atom_concat(Dir, File0, Path),
         atom_concat(/, File, File0)
-    ->  absolute_file_name(Path,
-                           [ file_type(prolog),
+    ->  absolute_file_name(Path, PlPath,
+                           [ file_type(source),
                              access(read),
                              file_errors(fail)
-                           ],
-                           PlPath)
+                           ])
     ;   fail
     ).
 locate(Module:Name, Module:Name/Arity, Location) :-
@@ -473,7 +468,9 @@ do_select_location([], Spec, _) :-
     !,
     print_message(warning, edit(not_found(Spec))),
     fail.
-do_select_location([Location-_Spec], _, Location) :- !.
+do_select_location([Location-_Spec], _, Location) :-
+    existing_location(Location),
+    !.
 do_select_location(Pairs, _, Location) :-
     print_message(help, edit(select)),
     list_pairs(Pairs, 0, N),
@@ -481,6 +478,10 @@ do_select_location(Pairs, _, Location) :-
     read_number(N, I),
     nth1(I, Pairs, Location-_Spec),
     !.
+
+existing_location(Location) :-
+    memberchk(file(File), Location),
+    access_file(File, read).
 
 list_pairs([], N, N).
 list_pairs([H|T], N0, N) :-
@@ -588,11 +589,11 @@ aliased_path(Path, Len-Spec) :-
     member(Alias, Aliases),
     Alias \== autoload,             % confusing and covered by something else
     Term =.. [Alias, '.'],
-    absolute_file_name(Term,
+    absolute_file_name(Term, Prefix,
                        [ file_type(directory),
                          file_errors(fail),
                          solutions(all)
-                       ], Prefix),
+                       ]),
     atom_concat(Prefix, Local0, Path),
     remove_leading_slash(Local0, Local),
     atom_length(Local, Len),
