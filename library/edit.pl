@@ -65,6 +65,7 @@ an editor.
     locate/2,                       % +FullSpec, -Location
     select_location/3,              % +Pairs, +Spec, -Location
     exists_location/1,              % +Location
+    user_select/2,                  % +Max, -I
     edit_source/1,                  % +Location
     edit_command/2,                 % +Editor, -Command
     load/0.                         % provides load-hooks
@@ -473,7 +474,7 @@ do_select_location(Pairs, _, Location) :-
     (   End == 1
     ->  fail
     ;   Max is End - 1,
-        read_number(Max, I),
+        user_selection(Max, I),
         memberchk(I-(Location-_Spec), NPairs)
     ).
 
@@ -496,6 +497,13 @@ number_location(Pair, N-Pair, N, N1) :-
     !,
     N1 is N+1.
 number_location(Pair, 0-Pair, N, N).
+
+user_selection(Max, I) :-
+    user_select(Max, I),
+    !.
+user_selection(Max, I) :-
+    print_message(help, edit(choose(Max))),
+    read_number(Max, I).
 
 %!  read_number(+Max, -X) is semidet.
 %
@@ -536,7 +544,8 @@ message(select(NPairs)) -->
     sequence(target, [nl], NPairs).
 message(select(NPairs)) -->
     [ 'Please select item to edit:', nl ],
-    sequence(target, [nl], NPairs),
+    sequence(target, [nl], NPairs).
+message(choose(_Max)) -->
     [ nl, 'Your choice? ', flush ].
 message(waiting_for_editor) -->
     [ 'Waiting for editor ... ', flush ].
