@@ -38,15 +38,16 @@
           [ edit/1,                     % +Spec
             edit/0
           ]).
-:- autoload(library(lists),[member/2,append/3]).
-:- autoload(library(make),[make/0]).
+:- autoload(library(lists), [member/2, append/3, select/3]).
+:- autoload(library(make), [make/0]).
 :- if(exists_source(library(pce))).
-:- autoload(library(pce),[in_pce_thread/1]).
-:- autoload(library(pce_emacs),[emacs/1]).
+:- autoload(library(pce), [in_pce_thread/1]).
+:- autoload(library(pce_emacs), [emacs/1]).
 :- endif.
-:- autoload(library(prolog_breakpoints),[breakpoint_property/2]).
-:- autoload(library(apply), [foldl/5]).
+:- autoload(library(prolog_breakpoints), [breakpoint_property/2]).
+:- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
+:- autoload(library(readutil), [read_line_to_string/2]).
 
 
 % :- set_prolog_flag(generate_debug_info, false).
@@ -63,6 +64,7 @@ an editor.
     locate/3,                       % +Partial, -FullSpec, -Location
     locate/2,                       % +FullSpec, -Location
     select_location/3,              % +Pairs, +Spec, -Location
+    exists_location/1,              % +Location
     edit_source/1,                  % +Location
     edit_command/2,                 % +Editor, -Command
     load/0.                         % provides load-hooks
@@ -114,46 +116,44 @@ edit :-
                  *            LOCATE            *
                  *******************************/
 
-%!  locate(+Spec, -FullSpec, -Location)
+%!  locate(+Spec, -FullSpec, -Location:dict)
 
-locate(FileSpec:Line, file(Path, line(Line)), [file(Path), line(Line)]) :-
+locate(FileSpec:Line, file(Path, line(Line)), #{file:Path, line:Line}) :-
     integer(Line), Line >= 1,
     ground(FileSpec),                      % so specific; do not try alts
     !,
-    locate(FileSpec, _, [file(Path)]).
+    locate(FileSpec, _, #{file:Path}).
 locate(FileSpec:Line:LinePos,
        file(Path, line(Line), linepos(LinePos)),
-       [file(Path), line(Line), linepos(LinePos)]) :-
+       #{file:Path, line:Line, linepos:LinePos}) :-
     integer(Line), Line >= 1,
     integer(LinePos), LinePos >= 1,
     ground(FileSpec),                      % so specific; do not try alts
     !,
-    locate(FileSpec, _, [file(Path)]).
-locate(Path, file(Path), [file(Path)]) :-
+    locate(FileSpec, _, #{file:Path}).
+locate(Path, file(Path), #{file:Path}) :-
     atom(Path),
-    exists_file(Path),
-    \+ exists_directory(Path).
-locate(Pattern, file(Path), [file(Path)]) :-
+    exists_file(Path).
+locate(Pattern, file(Path), #{file:Path}) :-
     atom(Pattern),
     catch(expand_file_name(Pattern, Files), error(_,_), fail),
     member(Path, Files),
-    exists_file(Path),
-    \+ exists_directory(Path).
-locate(FileBase, file(File), [file(File)]) :-
+    exists_file(Path).
+locate(FileBase, file(File), #{file:File}) :-
     atom(FileBase),
     absolute_file_name(FileBase, File,
                        [ file_type(source),
                          access(read),
                          file_errors(fail)
                        ]).
-locate(FileSpec, file(File), [file(File)]) :-
+locate(FileSpec, file(File), #{file:File}) :-
     catch(absolute_file_name(FileSpec, File,
                              [ file_type(source),
                                access(read),
                                file_errors(fail)
                              ]),
           error(_,_), fail).
-locate(FileBase, source_file(Path), [file(Path)]) :-
+locate(FileBase, source_file(Path),  #{file:Path}) :-
     atom(FileBase),
     source_file(Path),
     file_base_name(Path, File),
@@ -161,7 +161,7 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
     ->  true
     ;   file_name_extension(FileBase, _, File)
     ).
-locate(FileBase, include_file(Path), [file(Path)]) :-
+locate(FileBase, include_file(Path),  #{file:Path}) :-
     atom(FileBase),
     setof(Path, include_file(Path), Paths),
     member(Path, Paths),
@@ -181,7 +181,7 @@ locate(Name//DCGArity, FullSpec, Location) :-
         locate(Name/Arity, FullSpec, Location)
     ;   locate(Name/_, FullSpec, Location) % demand arity >= 2
     ).
-locate(Name/Arity, library(File), [file(PlPath)]) :-
+locate(Name/Arity, library(File),  #{file:PlPath}) :-
     atom(Name),
     '$in_library'(Name, Arity, Path),
     (   absolute_file_name(library(.), Dir,
@@ -219,9 +219,8 @@ include_file(Path) :-
 %
 %   Locate object from the specified location.
 
-locate(file(File, line(Line)), [file(File), line(Line)]).
-locate(file(File), [file(File)]).
-locate(Module:Name/Arity, [file(File), line(Line)]) :-
+locate(file(File, line(Line)), #{file:File, line:Line}).
+locate(Module:Name/Arity, #{file:File, line:Line}) :-
     (   atom(Name), integer(Arity)
     ->  functor(Head, Name, Arity)
     ;   Head = _                    % leave unbound
@@ -240,25 +239,25 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
     functor(Head, Name, Arity),     % bind arity
     predicate_property(Module:Head, file(File)),
     predicate_property(Module:Head, line_count(Line)).
-locate(module(Module), [file(Path)|Rest]) :-
+locate(module(Module), Location) :-
     atom(Module),
     module_property(Module, file(Path)),
     (   module_property(Module, line_count(Line))
-    ->  Rest = [line(Line)]
-    ;   Rest = []
+    ->  Location = #{file:Path, line:Line}
+    ;   Location = #{file:Path}
     ).
 locate(breakpoint(Id), Location) :-
     integer(Id),
     breakpoint_property(Id, clause(Ref)),
     (   breakpoint_property(Id, file(File)),
         breakpoint_property(Id, line_count(Line))
-    ->  Location = [file(File),line(Line)]
+    ->  Location =  #{file:File, line:Line}
     ;   locate(clause(Ref), Location)
     ).
-locate(clause(Ref), [file(File), line(Line)]) :-
+locate(clause(Ref), #{file:File, line:Line}) :-
     clause_property(Ref, file(File)),
     clause_property(Ref, line_count(Line)).
-locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
+locate(clause(Ref, _PC), #{file:File, line:Line}) :- % TBD: use clause
     clause_property(Ref, file(File)),
     clause_property(Ref, line_count(Line)).
 
@@ -288,15 +287,8 @@ do_edit_source(Location) :-             % PceEmacs
     pceemacs(Editor),
     current_prolog_flag(gui, true),
     !,
-    memberchk(file(File), Location),
-    (   memberchk(line(Line), Location)
-    ->  (   memberchk(linepos(LinePos), Location)
-        ->  Pos = (File:Line:LinePos)
-        ;   Pos = (File:Line)
-        )
-    ;   Pos = File
-    ),
-    in_pce_thread(emacs(Pos)).
+    location_url(Location, URL),        % File[:Line[:LinePos]]
+    in_pce_thread(emacs(URL)).
 :- endif.
 do_edit_source(Location) :-             % External editor
     external_edit_command(Location, Command),
@@ -310,8 +302,7 @@ do_edit_source(Location) :-             % External editor
     ).
 
 external_edit_command(Location, Command) :-
-    memberchk(file(File), Location),
-    memberchk(line(Line), Location),
+    #{file:File, line:Line} :< Location,
     editor(Editor),
     file_base_name(Editor, EditorFile),
     file_name_extension(Base, _, EditorFile),
@@ -324,7 +315,7 @@ external_edit_command(Location, Command) :-
     !,
     atom_codes(Command, S).
 external_edit_command(Location, Command) :-
-    memberchk(file(File), Location),
+    #{file:File} :< Location,
     editor(Editor),
     file_base_name(Editor, EditorFile),
     file_name_extension(Base, _, EditorFile),
@@ -337,9 +328,9 @@ external_edit_command(Location, Command) :-
     !,
     atom_codes(Command, S).
 external_edit_command(Location, Command) :-
-    memberchk(file(File), Location),
+    #{file:File} :< Location,
     editor(Editor),
-    atomic_list_concat(['"', Editor, '" "', File, '"'], Command).
+    format(string(Command), '"~w" "~w"', [Editor, File]).
 
 pceemacs(pce_emacs).
 pceemacs(built_in).
@@ -425,11 +416,11 @@ merge_locations([L1|T1], Locations) :-
 merge_locations(Locations, Locations).
 
 same_location(L, L, L).
-same_location([file(F1)], [file(F2)], [file(F)]) :-
+same_location(#{file:F1}, #{file:F2}, #{file:F}) :-
     best_same_file(F1, F2, F).
-same_location([file(F1),line(L)], [file(F2)], [file(F),line(L)]) :-
+same_location(#{file:F1, line:Line}, #{file:F2}, #{file:F, line:Line}) :-
     best_same_file(F1, F2, F).
-same_location([file(F1)], [file(F2),line(L)], [file(F),line(L)]) :-
+same_location(#{file:F1}, #{file:F2, line:Line}, #{file:F, line:Line}) :-
     best_same_file(F1, F2, F).
 
 best_same_file(F1, F2, F) :-
@@ -486,8 +477,17 @@ do_select_location(Pairs, _, Location) :-
         memberchk(I-(Location-_Spec), NPairs)
     ).
 
+%!  existing_location(+Location) is semidet.
+%
+%   True when Location can be edited.  By   default  that means that the
+%   file exists. This facility is hooked   to allow for alternative ways
+%   to reach the source, e.g., by lazily downloading it.
+
 existing_location(Location) :-
-    memberchk(file(File), Location),
+    exists_location(Location),
+    !.
+existing_location(Location) :-
+    #{file:File} :< Location,
     access_file(File, read).
 
 number_location(Pair, N-Pair, N, N1) :-
@@ -579,28 +579,24 @@ edit_location(Location, true) ==>
     [ url(URL, Label) ].
 
 location_label(Location, Label) :-
-    memberchk(file(File), Location),
-    memberchk(line(Line), Location),
+    #{file:File, line:Line} :< Location,
     !,
     short_filename(File, ShortFile),
     format(string(Label), '~w:~d', [ShortFile, Line]).
 location_label(Location, Label) :-
-    memberchk(file(File), Location),
+    #{file:File} :< Location,
     !,
     short_filename(File, ShortFile),
     format(string(Label), '~w', [ShortFile]).
 
 location_url(Location, File:Line:LinePos) :-
-    memberchk(file(File), Location),
-    memberchk(line(Line), Location),
-    memberchk(linepos(LinePos), Location),
+    #{file:File, line:Line, linepos:LinePos} :< Location,
     !.
 location_url(Location, File:Line) :-
-    memberchk(file(File), Location),
-    memberchk(line(Line), Location),
+    #{file:File, line:Line} :< Location,
     !.
 location_url(Location, File) :-
-    memberchk(file(File), Location).
+    #{file:File} :< Location.
 
 %!  short_filename(+Path, -Spec) is det.
 %
