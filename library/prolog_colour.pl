@@ -2247,6 +2247,7 @@ colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
 
 % Some flags are know, but can be unset.
+known_flag(associated_file).
 known_flag(android).
 known_flag(android_api).
 known_flag(apple).
