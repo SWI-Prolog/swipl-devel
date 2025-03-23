@@ -434,6 +434,8 @@ best_same_file(F1, F2, F) :-
     ;   F = F2
     ).
 
+merge_specs(Spec, Spec, Spec) :-
+    !.
 merge_specs(Spec1, Spec2, Spec) :-
     merge_specs_(Spec1, Spec2, Spec),
     !.
