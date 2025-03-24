@@ -1931,18 +1931,20 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 
 process_use_module2(File, Import, Src, Reexport) :-
     load_module_if_needed(File),
-    (   xref_source_file(File, Path, Src)
-    ->  assert(uses_file(File, Src, Path)),
-        (   catch(public_list(Path, _Source, _Module, Meta, Export, _Public, []),
-                  error(_,_), fail)
-        ->  assert_import(Src, Import, Export, Path, Reexport),
-            forall((  member(Head, Meta),
-                      imported(Head, _, Path)
-                   ),
-                   process_meta_head(Src, Head))
-        ;   true
-        )
-    ;   assert(uses_file(File, Src, '<not_found>'))
+    (   catch(xref_public_list(File, Src,
+                               [ path(Path),
+                                 exports(Export),
+                                 meta(Meta)
+                               ]),
+              error(_,_),
+              fail)
+    ->  assertz(uses_file(File, Src, Path)),
+        assert_import(Src, Import, Export, Path, Reexport),
+        forall((  member(Head, Meta),
+                  imported(Head, _, Path)
+               ),
+               process_meta_head(Src, Head))
+    ;   assertz(uses_file(File, Src, '<not_found>'))
     ).
 
 
@@ -2110,13 +2112,19 @@ public_list(Path, Source, Module, Meta, Export, Public, Options) :-
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
 public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
-    file_name_extension(_, qlf, Path),
+    is_qlf_file(Path),
     !,
     '$qlf_module'(Path, Info),
     _{module:Module, exports:Export, file:Source} :< Info.
 public_list_nc(Path, Path, Module, Meta, Export, Public, Options) :-
+    exists_file(Path),
+    !,
     prolog_file_directives(Path, Directives, Options),
     public_list(Directives, Path, Module, Meta, [], Export, [], Public, []).
+public_list_nc(Path, Path, Module, [], Export, [], _Options) :-
+    qlf_pl_file(QlfFile, Path),
+    '$qlf_module'(QlfFile, Info),
+    _{module:Module, exports:Export} :< Info.
 
 public_list([(:- module(Module, Export0))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-
@@ -2888,11 +2896,42 @@ xref_source_file(Spec, _, Src, _Options) :-
 do_xref_source_file(Spec, File, Options) :-
     nonvar(Spec),
     option(file_type(Type), Options, prolog),
-    absolute_file_name(Spec, File,
+    absolute_file_name(Spec, File0,
                        [ file_type(Type),
                          access(read),
                          file_errors(fail)
                        ]),
+    !,
+    qlf_pl_file(File0, File).
+
+%!  qlf_pl_file(?QlfFile, ?PlFile) is semidet.
+
+qlf_pl_file(QlfFile, PlFile) :-
+    nonvar(QlfFile),
+    is_qlf_file(QlfFile),
+    !,
+    '$qlf_module'(QlfFile, Info),
+    #{file:PlFile} :< Info.
+qlf_pl_file(QlfFile, PlFile) :-
+    nonvar(PlFile),
+    !,
+    (   file_name_extension(Base, Ext, PlFile),
+        user:prolog_file_type(Ext, source)
+    ->  true
+    ),
+    (   user:prolog_file_type(QlfExt, qlf),
+        file_name_extension(Base, QlfExt, QlfFile),
+        exists_file(QlfFile)
+    ->  true
+    ),
+    '$qlf_module'(QlfFile, Info),
+    #{file:PlFile} :< Info,
+    !.
+qlf_pl_file(PlFile, PlFile).
+
+is_qlf_file(QlfFile) :-
+    file_name_extension(_, Ext, QlfFile),
+    user:prolog_file_type(Ext, qlf),
     !.
 
 %!  canonical_source(?Source, ?Src) is det.
