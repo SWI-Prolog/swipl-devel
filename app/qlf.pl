@@ -109,11 +109,15 @@ qlf_info:opt_type(source,    source,    boolean).
 qlf_info:opt_type(s,         source,    boolean).
 qlf_info:opt_type(version,   version,   boolean).
 qlf_info:opt_type(v,         version,   boolean).
+qlf_info:opt_type(exports,   exports,   boolean).
+qlf_info:opt_type(e,         exports,   boolean).
 
 qlf_info:opt_help(help(usage),
                   " info [option ...] file").
 qlf_info:opt_help(source,
                   "List the source files from which this QLF file was created").
+qlf_info:opt_help(exports,
+                  "List exported predicates").
 qlf_info:opt_help(version,
                   "List version information about QLF file").
 
@@ -187,6 +191,12 @@ cli_qlf_info(File, Options) :-
     '$qlf_sources'(File, Sources),
     forall(member(F, Sources),
            writeln(F)).
+cli_qlf_info(File, Options) :-
+    option(exports(true), Options),
+    !,
+    '$qlf_module'(File, Info),
+    forall(member(PI, Info.exports),
+           writeln(PI)).
 cli_qlf_info(File, _Options) :-
     '$qlf_versions'(File, CurrentVersion, MinLOadVersion, FileVersion,
                     CurrentSignature, FileSignature),
