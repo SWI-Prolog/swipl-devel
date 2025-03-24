@@ -211,6 +211,7 @@ set(noqlf_file
 
 set(include_src_pattern
     "library/tabling[.]pl$"
+    "library/prolog_qlfmake[.]pl$"
     "theme/[^/]*[.]pl$"
     "ltx2htm/sty_[^/]*[.]pl$"
     "xref/quintus[.]pl$"
