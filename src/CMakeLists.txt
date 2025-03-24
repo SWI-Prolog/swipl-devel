@@ -119,8 +119,12 @@ set(SWIPL_DATA_DIRS
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
+    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
     demo cmake app)
+
+if(NOT EMSCRIPTEN)
+  list(APPEND SWIPL_DATA_DIRS library/build)
+endif()
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
