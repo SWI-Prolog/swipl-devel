@@ -173,11 +173,10 @@ set(index_patteern
 set(noqlf_pattern
     ${index_patteern}
     "home/boot/.*[.]pl"
-    ".*/demo/.*[.]pl"
     "home/doc/.*"
+    "home/demo/.*"
     "home/xpce/prolog/boot/.*[.]pl"
     "home/xpce/prolog/lib/compatibility/.*[.]pl"
-    "home/xpce/prolog/contrib/.*"
     "home/library/ext/ltx2htm/sty_.*[.]pl")
 
 set(noqlf_file

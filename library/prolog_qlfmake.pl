@@ -290,12 +290,15 @@ system_lib_dir(LibDir) :-
     absolute_file_name(Alias, LibDir,
                        [ file_type(directory),
                          solutions(all),
+                         file_errors(fail),
                          access(read)
                        ]),
     sub_atom(LibDir, 0, _, _, PWD).
 
 source_alias(library(.)).
 source_alias(app(.)).
+source_alias(pce('prolog/demo')).
+source_alias(pce('prolog/contrib')).
 
 
 %!  dir_files(+Dir, -Files) is det.
