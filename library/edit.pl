@@ -86,7 +86,8 @@ edit_no_trace(Spec) :-
     findall(Location-FullSpec,
             locate(Spec, FullSpec, Location),
             Pairs0),
-    merge_locations(Pairs0, Pairs),
+    sort(Pairs0, Pairs1),
+    merge_locations(Pairs1, Pairs),
     do_select_location(Pairs, Spec, Location),
     do_edit_source(Location).
 
@@ -435,6 +436,9 @@ best_same_file(F1, F2, F) :-
     ).
 
 merge_specs(Spec, Spec, Spec) :-
+    !.
+merge_specs(file(F1), file(F2), file(F)) :-
+    best_same_file(F1, F2, F),
     !.
 merge_specs(Spec1, Spec2, Spec) :-
     merge_specs_(Spec1, Spec2, Spec),
