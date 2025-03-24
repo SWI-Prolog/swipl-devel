@@ -205,7 +205,7 @@ size_stat(PlFile, PlSize, QlfSize) :-
 file_dependencies(File, Deps) :-
     prolog_file_directives(File, Directives, []),
     phrase(file_deps(Directives), Deps0),
-    maplist(absolute_path(File), Deps0, Deps1),
+    convlist(absolute_path(File), Deps0, Deps1),
     sort(Deps1, Deps).
 
 file_deps([]) ==>
@@ -246,13 +246,15 @@ absolute_path(_RelativeTo, Spec, File),
     compound(Spec), compound_name_arity(Spec, _, 1) =>
     absolute_file_name(Spec, File,
                        [ access(read),
-                         file_type(source)
+                         file_type(source),
+                         file_errors(fail)
                        ]).
 absolute_path(RelativeTo, Spec, File) =>
     absolute_file_name(Spec, File,
                        [ relative_to(RelativeTo),
                          access(read),
-                         file_type(source)
+                         file_type(source),
+                         file_errors(fail)
                        ]).
 
 
