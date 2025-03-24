@@ -102,7 +102,8 @@
                        module(atom),
                        register_called(oneof([all,non_iso,non_built_in])),
                        comments(oneof([store,collect,ignore])),
-                       process_include(boolean)
+                       process_include(boolean),
+                       stream(stream)
                      ]).
 
 
@@ -239,7 +240,7 @@ module defined by `Source`.
 %
 %   True when the cross-referencer should   not  include Callable as
 %   being   called.   This   is    determined     by    the   option
-%   =register_called=.
+%   `register_called`.
 
 hide_called(Callable, Src) :-
     xoption(Src, register_called(Which)),
@@ -291,23 +292,25 @@ verbose(Src) :-
 %   done and the source is not modified.  Checking for modifications
 %   is only done for files.  Options processed:
 %
-%     * silent(+Boolean)
-%     If =true= (default =false=), emit warning messages.
-%     * module(+Module)
-%     Define the initial context module to work in.
-%     * register_called(+Which)
-%     Determines which calls are registerd.  Which is one of
-%     =all=, =non_iso= or =non_built_in=.
-%     * comments(+CommentHandling)
-%     How to handle comments.  If =store=, comments are stored into
-%     the database as if the file was compiled. If =collect=,
-%     comments are entered to the xref database and made available
-%     through xref_mode/2 and xref_comment/4.  If =ignore=,
-%     comments are simply ignored. Default is to =collect= comments.
-%     * process_include(+Boolean)
-%     Process the content of included files (default is `true`).
+%     - silent(+Boolean)
+%       If `true` (default `false`), emit warning messages.
+%     - module(+Module)
+%       Define the initial context module to work in.
+%     - register_called(+Which)
+%       Determines which calls are registerd.  Which is one of
+%       `all`, `non_iso` or `non_built_in` (default).
+%     - comments(+CommentHandling)
+%       How to handle comments. If `store`, comments are stored into the
+%       database as if the file was compiled. If `collect`, comments are
+%       entered  to  the  xref  database   and  made  available  through
+%       xref_mode/2 and xref_comment/4. If `ignore`, comments are simply
+%       ignored. Default is to `collect` comments.
+%     - process_include(+Boolean)
+%       Process the content of included files (default is `true`).
+%     - stream(+Stream)
+%       Process the input from Stream rather than opening Source.
 %
-%   @param Source   File specification or XPCE buffer
+%   @arg Source   File specification or XPCE buffer
 
 xref_source(Source) :-
     xref_source(Source, []).
@@ -351,11 +354,16 @@ is_global_url(File) :-
     atom_codes(Scheme, Codes),
     maplist(between(0'a, 0'z), Codes).
 
-xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
+xref_setup(Src, In, Options, state(CleanIn, Dialect, Xref, [SRef|HRefs])) :-
     maplist(assert_option(Src), Options),
     assert_default_options(Src),
     current_prolog_flag(emulated_dialect, Dialect),
-    prolog_open_source(Src, In),
+    (   option(stream(Stream), Options)
+    ->  In = Stream,
+        CleanIn = true
+    ;   prolog_open_source(Src, In),
+        CleanIn = prolog_close_source(In)
+    ),
     set_initial_mode(In, Options),
     asserta(xref_input(Src, In), SRef),
     set_xref(Xref),
@@ -395,6 +403,7 @@ assert_option(Src, process_include(Boolean)) :-
     !,
     must_be(boolean, Boolean),
     assert(xoption(Src, process_include(Boolean))).
+assert_option(_, _).
 
 assert_default_options(Src) :-
     (   xref_option_default(Opt),
@@ -416,8 +425,8 @@ xref_option_default(process_include(true)).
 %
 %   Restore processing state according to the saved State.
 
-xref_cleanup(state(In, Dialect, Xref, Refs)) :-
-    prolog_close_source(In),
+xref_cleanup(state(CleanIn, Dialect, Xref, Refs)) :-
+    call(CleanIn),
     set_prolog_flag(emulated_dialect, Dialect),
     set_prolog_flag(xref, Xref),
     maplist(erase, Refs).
