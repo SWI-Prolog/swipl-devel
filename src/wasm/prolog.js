@@ -995,8 +995,13 @@ class Prolog
     if ( args.length > 0 && typeof args[args.length-1] === "object" )
     { options = args.pop();
     }
+    const opts = {};
+    if ( options.engine )
+      opts.engine = options.engine;
     const module = options.module||"user";
-    return this.forEach("load_files(M:Files)", {M:module, Files:args});
+    return this.forEach("load_files(M:Files)",
+			{M:module, Files:args},
+			opts);
   }
 
   load_string(s, id)
