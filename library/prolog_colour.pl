@@ -111,7 +111,8 @@ This module defines reusable code to colourise Prolog source.
                  module,
                  stream,
                  closure,
-                 singletons).
+                 singletons,
+                 current_variable).
 
 colour_state_source_id(State, SourceID) :-
     colour_state_source_id_list(State, SourceIDList),
@@ -491,9 +492,11 @@ colourise_query(QueryString, TB) :-
 %
 %   Options:
 %
-%     * subterm_positions(-TermPos)
-%     Return complete term-layout.  If an error is read, this is a
-%     term error_position(StartClause, EndClause, ErrorPos)
+%     - subterm_positions(-TermPos)
+%       Return complete term-layout.  If an error is read, this is a
+%       term error_position(StartClause, EndClause, ErrorPos)
+%     - current_variable(+VarName)
+%       Variable to highlight
 
 prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
     to_list(SourceId, SourceIdList),
@@ -517,6 +520,7 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
           operators(Ops),
           error(Error),
           subterm_positions(TermPos),
+          variable_names(VarNames),
           singletons(Singletons0),
           comments(Comments)
         | Opts
@@ -524,6 +528,7 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
     (   var(Error)
     ->  warnable_singletons(Singletons0, Singletons),
         colour_state_singletons(TB, Singletons),
+        set_current_variable(TB, VarNames, Options),
         colour_item(range, TB, TermPos),            % Call to allow clearing
         colourise_term(Term, TB, TermPos, Comments)
     ;   character_count(Stream, End),
@@ -544,6 +549,9 @@ show_syntax_error(TB, Pos:Message, Range) :-
 show_syntax_error(TB, _:Message, Range) :-
     colour_item(syntax_error(Message, Range), TB, Range).
 
+%!  singleton(@Var, +TB) is semidet.
+%
+%   True when Var is a singleton.
 
 singleton(Var, TB) :-
     colour_state_singletons(TB, Singletons),
@@ -554,6 +562,18 @@ member_var(V, [_=V2|_]) :-
     !.
 member_var(V, [_|T]) :-
     member_var(V, T).
+
+set_current_variable(TB, VarNames, Options) :-
+    option(current_variable(Name), Options),
+    memberchk(Name=CV, VarNames),
+    !,
+    colour_state_current_variable(TB, CV).
+set_current_variable(_, _, _).
+
+current_variable(Var, TB) :-
+    colour_state_current_variable(TB, Current),
+    Var == Current.
+
 
 %!  colourise_term(+Term, +TB, +Termpos, +Comments)
 %
@@ -1556,6 +1576,8 @@ colourise_term_arg(Var, TB, Pos) :-                     % variable
     !,
     (   singleton(Var, TB)
     ->  colour_item(singleton, TB, Pos)
+    ;   current_variable(Var, TB)
+    ->  colour_item(current_variable, TB, Pos)
     ;   colour_item(var, TB, Pos)
     ).
 colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :-
