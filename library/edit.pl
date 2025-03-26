@@ -248,6 +248,7 @@ prolog_source(File, File).
 %   Locate object from the specified location.
 
 locate(file(File, line(Line)), #{file:File, line:Line}).
+locate(file(File), #{file:File}).
 locate(Module:Name/Arity, #{file:File, line:Line}) :-
     (   atom(Name), integer(Arity)
     ->  functor(Head, Name, Arity)
