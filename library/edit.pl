@@ -143,18 +143,10 @@ locate(Pattern, file(Path), #{file:Path}) :-
     exists_file(Path).
 locate(FileBase, file(File), #{file:File}) :-
     atom(FileBase),
-    absolute_file_name(FileBase, File,
-                       [ file_type(source),
-                         access(read),
-                         file_errors(fail)
-                       ]).
+    find_source(FileBase, File).
 locate(FileSpec, file(File), #{file:File}) :-
-    catch(absolute_file_name(FileSpec, File,
-                             [ file_type(source),
-                               access(read),
-                               file_errors(fail)
-                             ]),
-          error(_,_), fail).
+    is_file_search_spec(FileSpec),
+    find_source(FileSpec, File).
 locate(FileBase, source_file(Path),  #{file:Path}) :-
     atom(FileBase),
     source_file(Path),
@@ -192,11 +184,7 @@ locate(Name/Arity, library(File),  #{file:PlPath}) :-
                            ]),
         atom_concat(Dir, File0, Path),
         atom_concat(/, File, File0)
-    ->  absolute_file_name(Path, PlPath,
-                           [ file_type(source),
-                             access(read),
-                             file_errors(fail)
-                           ])
+    ->  find_source(Path, PlPath)
     ;   fail
     ).
 locate(Module:Name, Module:Name/Arity, Location) :-
@@ -215,6 +203,44 @@ locate(Spec, Spec, Location) :-
 
 include_file(Path) :-
     source_file_property(Path, included_in(_,_)).
+
+%!  is_file_search_spec(@Spec) is semidet.
+%
+%   True if Spec is valid pattern for absolute_file_name/3.
+
+is_file_search_spec(Spec) :-
+    compound(Spec),
+    compound_name_arguments(Spec, Alias, [Arg]),
+    is_file_spec(Arg),
+    user:file_search_path(Alias, _),
+    !.
+
+is_file_spec(Name), atom(Name) => true.
+is_file_spec(Name), string(Name) => true.
+is_file_spec(Term), cyclic_term(Term) => fail.
+is_file_spec(A/B) => is_file_spec(A), is_file_spec(B).
+
+%!  find_source(++FileSpec, =File) is semidet.
+%
+%   Find a source file from FileSpec.  If FileSpec resolves to a .qlf
+%   file, File is the embedded `.pl` file (which may not exist).
+
+find_source(FileSpec, File) :-
+    catch(absolute_file_name(FileSpec, File0,
+                             [ file_type(prolog),
+                               access(read),
+                               file_errors(fail)
+                             ]),
+          error(_,_), fail),
+    prolog_source(File0, File).
+
+prolog_source(File0, File) :-
+    file_name_extension(_, Ext, File0),
+    user:prolog_file_type(Ext, qlf),
+    !,
+    '$qlf_module'(File0, Info),
+    File = Info.get(file).
+prolog_source(File, File).
 
 
 %!  locate(+Spec, -Location)
