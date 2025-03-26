@@ -2121,12 +2121,9 @@ public_list(Path, Source, Module, Meta, Export, Public, Options) :-
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
 public_list_nc(Path, Source, Module, Meta, Export, Public, _Options) :-
-    file_name_extension(Base, _Ext, Path),
-    '$autoload':library_index(_, Module, Base),
+    public_list_from_index(Path, Module, Meta, Export, Public),
     !,
-    qlf_pl_file(Path, Source),
-    findall(Head, '$autoload':library_index(Head, Module, Base), Heads),
-    autoload_public_list(Heads, Meta, Export, Public).
+    qlf_pl_file(Path, Source).
 public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
     is_qlf_file(Path),
     !,
@@ -2266,26 +2263,55 @@ public_decls((A,B)) -->
 public_decls(A) -->
     [A].
 
-%!  autoload_public_list(+Heads, -Meta, -Export, -Public) is det.
+%!  public_list_from_index(+Path, -Module, -Meta, -Exports, -Public) is semidet.
 %
-%   Extract the meta arguments  and  exports   from  the  autoload index
-%   declarations.
+%   Read the exports for  Path  from  the   INDEX.pl  file  in  the same
+%   directory.
 
-autoload_public_list([], [], [], []).
-autoload_public_list([op:_|T], Meta, Export, Public) :-
+public_list_from_index(Path, Module, Meta, Export, Public) :-
+    file_name_extension(BasePath, _Ext, Path),
+    file_directory_name(BasePath, Dir),
+    atom_concat(Dir, '/INDEX.pl', IndexFile),
+    exists_file(IndexFile),
+    file_base_name(BasePath, Base),
+    setup_call_cleanup(
+        '$push_input_context'(autoload_index),
+        setup_call_cleanup(
+            open(IndexFile, read, In),
+            index_public_list(In, Base, Module, Meta, Export, Public),
+            close(In)),
+        '$pop_input_context').
+
+index_public_list(In, Base, Module, Meta, Export, Public) :-
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, Meta, Export, Public).
+
+index_public_list(end_of_file, _In, _Base, _Module, [], [], []).
+index_public_list(index(op:_, Module, Base), In, Base, Module, Meta, Export, Public) :-
     !,
-    autoload_public_list(T, Meta, Export, Public).
-autoload_public_list([(public):Head|T], Meta, Export, [PI|Public]) :-
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, Meta, Export, Public).
+index_public_list(index((public):Head, Module, Base), In, Base, Module, Meta, Export, [PI|Public]) :-
     !,
     pi_head(PI, Head),
-    autoload_public_list(T, Meta, Export, Public).
-autoload_public_list([H|T], Meta, [E|ET], Public) :-
-    pi_head(E, H),
-    (   meta_mode(H)
-    ->  Meta = [H|MetaT]
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, Meta, Export, Public).
+index_public_list(index(Head, Module, Base), In, Base, Module, Meta, [PI|Export], Public) :-
+    !,
+    pi_head(PI, Head),
+    (   meta_mode(Head)
+    ->  Meta = [Head|MetaT]
     ;   Meta = MetaT
     ),
-    autoload_public_list(T, MetaT, ET, Public).
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, MetaT, Export, Public).
+index_public_list(index(Name, Arity, Module, Base), In, Base, Module, Meta, [Name/Arity|Export], Public) :-
+    !,
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, Meta, Export, Public).
+index_public_list(_, In, Base, Module, Meta, Export, Public) :-
+    read_term(In, Term, []),
+    index_public_list(Term, In, Base, Module, Meta, Export, Public).
 
 meta_mode(H) :-
     compound(H),
@@ -2299,8 +2325,6 @@ meta_arg(I) :-
 meta_arg(:).
 meta_arg(^).
 meta_arg(//).
-
-
 
                  /*******************************
                  *             INCLUDE          *
