@@ -84,6 +84,8 @@ user:file_search_path(autoload, Dir) :-
 %   name (excluding extension) of the library and module declared in
 %   that file.
 
+'$find_library'(_Module, :, 2, _LoadModule, _Library) :-
+    !, fail.
 '$find_library'(Module, Name, Arity, LoadModule, Library) :-
     load_library_index(Name, Arity),
     functor(Head, Name, Arity),
@@ -101,12 +103,14 @@ user:file_search_path(autoload, Dir) :-
 '$in_library'(Name, Arity, Path) :-
     atom(Name), integer(Arity),
     !,
+    Name/Arity \= (:)/2,
     load_library_index(Name, Arity),
     functor(Head, Name, Arity),
     library_index(Head, _, Path).
 '$in_library'(Name, Arity, Path) :-
     load_library_index(Name, Arity),
     library_index(Head, _, Path),
+    Head \= _:_,
     functor(Head, Name, Arity).
 
 %!  '$define_predicate'(:Head)
@@ -299,10 +303,10 @@ read_index_from_stream(Dir, In, M) :-
     !.
 
 assert_index(end_of_file, _, _) :- !.
-assert_index(index(Head, Module, File), Dir, M) :-
+assert_index(index(Term, Module, File), Dir, M) :-
     !,
     atomic_list_concat([Dir, '/', File], Path),
-    assertz(M:library_index(Head, Module, Path)),
+    assertz(M:library_index(Term, Module, Path)),
     fail.
 assert_index(index(Name, Arity, Module, File), Dir, M) :-
     !,                                          % Read old index format
@@ -445,27 +449,30 @@ install_index(Out, Catcher, StagedIndex, Index) :-
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
-    (   catch(exports(File, Module, Exports, Meta), E,
+    (   catch(exports(File, Module, Exports, Meta, Public), E,
               print_message(warning, E)),
         nonvar(Module)
     ->  atom_concat(DirS, Local, File),
         file_name_extension(Base, _, Local),
-        forall(index_term(Exports, Meta, Term),
+        forall(index_term(Exports, Meta, Public, Term),
                format(Fd, 'index(~k, ~k, ~k).~n',
                       [Term, Module, Base]))
     ;   true
     ),
     index_files(Files, DirS, Fd).
 
-index_term(Exports, Meta, Term) :-
+index_term(Exports, Meta, _Public, Term) :-
     '$member'(Export, Exports),
     ground(Export),
     export_term(Export, Meta, Term).
+index_term(_Exports, _Meta, Publics, (public):Head) :-
+    '$member'(Public, Publics),
+    '$pi_head'(Public, Head).
 
 export_term(Op, _Meta, Term) :-
     Op = op(_Pri,_Type,_Name),
     !,
-    Term = Op.
+    Term = op:Op.
 export_term(PI, Meta, Head) :-
     '$pi_head'(PI, Head),
     (   '$member'(Head, Meta)
@@ -499,32 +506,32 @@ index_header(Fd):-
 
 :- public exports/3.                            % using by library(prolog_deps).
 exports(File, Module, Exports) :-
-    exports(File, Module, Exports, _Meta).
+    exports(File, Module, Exports, _Meta, _Public).
 
-exports(File, Module, Exports, Meta) :-
+exports(File, Module, Exports, Meta, Public) :-
     (   current_prolog_flag(xref, Old)
     ->  true
     ;   Old = false
     ),
     setup_call_cleanup(
         set_prolog_flag(xref, true),
-        snapshot(exports_(File, Module, Exports, Meta)),
+        snapshot(exports_(File, Module, Exports, Meta, Public)),
         set_prolog_flag(xref, Old)).
 
-exports_(File, Module, Exports, Meta) :-
-    State = state(true, _, [], []),
+exports_(File, Module, Exports, Meta, Public) :-
+    State = state(true, _, [], [], []),
     (   '$source_term'(File,
                        _Read,_RLayout,
                        Term,_TermLayout,
                        _Stream,
                        [ syntax_errors(quiet)
                        ]),
-        (   Term = (:- module(M,Public)),
-            is_list(Public),
+        (   Term = (:- module(M,ModuleExports)),
+            is_list(ModuleExports),
             arg(1, State, true)
         ->  nb_setarg(1, State, false),
             nb_setarg(2, State, M),
-            nb_setarg(3, State, Public),
+            nb_setarg(3, State, ModuleExports),
             fail
         ;   nb_setarg(1, State, false),
             fail
@@ -533,6 +540,12 @@ exports_(File, Module, Exports, Meta) :-
             arg(3, State, E0),
             '$append'(E0, PIs, E1),
             nb_setarg(3, State, E1),
+            fail
+        ;   Term = (:- public(Public))
+        ->  phrase(export_pi(Public), PIs),
+            arg(5, State, E0),
+            '$append'(E0, PIs, E1),
+            nb_setarg(5, State, E1),
             fail
         ;   Term = (:- meta_predicate(Heads)),
             phrase(meta(Heads), M1),
@@ -556,7 +569,8 @@ exports_(File, Module, Exports, Meta) :-
     ),
     arg(2, State, Module),
     arg(3, State, Exports),
-    arg(4, State, Meta).
+    arg(4, State, Meta),
+    arg(5, State, Public).
 
 export_pi(Var) -->
     { var(Var) },

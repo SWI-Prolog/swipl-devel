@@ -2120,13 +2120,13 @@ public_list(Path, Source, Module, Meta, Export, Public, Options) :-
     ),
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
-public_list_nc(Path, Source, Module, Meta, Export, [], _Options) :-
+public_list_nc(Path, Source, Module, Meta, Export, Public, _Options) :-
     file_name_extension(Base, _Ext, Path),
     '$autoload':library_index(_, Module, Base),
     !,
     qlf_pl_file(Path, Source),
     findall(Head, '$autoload':library_index(Head, Module, Base), Heads),
-    autoload_public_list(Heads, Meta, Export).
+    autoload_public_list(Heads, Meta, Export, Public).
 public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
     is_qlf_file(Path),
     !,
@@ -2266,22 +2266,26 @@ public_decls((A,B)) -->
 public_decls(A) -->
     [A].
 
-%!  autoload_public_list(+Heads, -Meta, -Export) is det.
+%!  autoload_public_list(+Heads, -Meta, -Export, -Public) is det.
 %
 %   Extract the meta arguments  and  exports   from  the  autoload index
 %   declarations.
 
-autoload_public_list([], [], []).
-autoload_public_list([op(_,_,_)|T], Meta, Export) :-
+autoload_public_list([], [], [], []).
+autoload_public_list([op:_|T], Meta, Export, Public) :-
     !,
-    autoload_public_list(T, Meta, Export).
-autoload_public_list([H|T], Meta, [E|ET]) :-
+    autoload_public_list(T, Meta, Export, Public).
+autoload_public_list([(public):Head|T], Meta, Export, [PI|Public]) :-
+    !,
+    pi_head(PI, Head),
+    autoload_public_list(T, Meta, Export, Public).
+autoload_public_list([H|T], Meta, [E|ET], Public) :-
     pi_head(E, H),
     (   meta_mode(H)
     ->  Meta = [H|MetaT]
     ;   Meta = MetaT
     ),
-    autoload_public_list(T, MetaT, ET).
+    autoload_public_list(T, MetaT, ET, Public).
 
 meta_mode(H) :-
     compound(H),
