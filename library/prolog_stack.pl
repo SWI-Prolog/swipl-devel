@@ -319,9 +319,13 @@ copy_pairs([K-V0|T0], N, MaxArity, [K-V|T]) :-
 %   of a stack-trace as produced by get_prolog_backtrace/2.  Defined
 %   properties are:
 %
-%     * level(Level)
-%     * predicate(PI)
-%     * location(File:Line)
+%     - level(Level)
+%     - predicate(PI)
+%     - goal(Term)
+%     - location(File:Line)
+%       This property is only available if Frame executes a Prolog
+%       clause, the program counter is known and the clause layout
+%       can be retrieved.
 
 prolog_stack_frame_property(frame(Level,_,_), level(Level)).
 prolog_stack_frame_property(frame(_,Where,_), predicate(PI)) :-
