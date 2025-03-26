@@ -299,12 +299,16 @@ read_index_from_stream(Dir, In, M) :-
     !.
 
 assert_index(end_of_file, _, _) :- !.
-assert_index(index(Name, Arity, Module, File), Dir, M) :-
+assert_index(index(Head, Module, File), Dir, M) :-
     !,
-    functor(Head, Name, Arity),
     atomic_list_concat([Dir, '/', File], Path),
     assertz(M:library_index(Head, Module, Path)),
     fail.
+assert_index(index(Name, Arity, Module, File), Dir, M) :-
+    !,                                          % Read old index format
+    functor(Head, Name, Arity),
+    head_meta_any(Head),
+    assert_index(index(Head, Module, File), Dir, M).
 assert_index(Term, Dir, _) :-
     print_message(error, illegal_autoload_index(Dir, Term)),
     fail.
@@ -441,28 +445,44 @@ install_index(Out, Catcher, StagedIndex, Index) :-
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
-    (   catch(exports(File, Module, Public), E,
+    (   catch(exports(File, Module, Exports, Meta), E,
               print_message(warning, E)),
         nonvar(Module)
     ->  atom_concat(DirS, Local, File),
         file_name_extension(Base, _, Local),
-        forall(public_predicate(Public, Name/Arity),
-               format(Fd, 'index((~k), ~k, ~k, ~k).~n',
-                      [Name, Arity, Module, Base]))
+        forall(index_term(Exports, Meta, Term),
+               format(Fd, 'index(~k, ~k, ~k).~n',
+                      [Term, Module, Base]))
     ;   true
     ),
     index_files(Files, DirS, Fd).
 
-public_predicate(Public, PI) :-
-    '$member'(PI0, Public),
-    canonical_pi(PI0, PI).
+index_term(Exports, Meta, Term) :-
+    '$member'(Export, Exports),
+    ground(Export),
+    export_term(Export, Meta, Term).
 
-canonical_pi(Var, _) :-
-    var(Var), !, fail.
-canonical_pi(Name/Arity, Name/Arity).
-canonical_pi(Name//A0,   Name/Arity) :-
-    Arity is A0 + 2.
+export_term(Op, _Meta, Term) :-
+    Op = op(_Pri,_Type,_Name),
+    !,
+    Term = Op.
+export_term(PI, Meta, Head) :-
+    '$pi_head'(PI, Head),
+    (   '$member'(Head, Meta)
+    ->  true
+    ;   head_meta_any(Head)
+    ).
 
+head_meta_any(Head) :-
+    (   atom(Head)
+    ->  true
+    ;   compound_name_arguments(Head, _, Args),
+        meta_any(Args)
+    ).
+
+meta_any([]).
+meta_any([?|T]) :-
+    meta_any(T).
 
 index_header(Fd):-
     format(Fd, '/*  Creator: make/0~n~n', []),
@@ -470,22 +490,29 @@ index_header(Fd):-
     format(Fd, '*/~n~n', []).
 
 %!  exports(+File, -Module, -Exports) is det.
+%!  exports(+File, -Module, -Exports, -Meta) is det.
 %
-%   Get the exports from a library as a list of PIs.
+%   Get the exports from a library as  a   list  of PIs. Exports are all
+%   exports of the module header (including  op/3 terms) and encountered
+%   export/1  directives.  Meta  are  all    heads  in  meta_predicate/1
+%   declarations.
 
 :- public exports/3.                            % using by library(prolog_deps).
 exports(File, Module, Exports) :-
+    exports(File, Module, Exports, _Meta).
+
+exports(File, Module, Exports, Meta) :-
     (   current_prolog_flag(xref, Old)
     ->  true
     ;   Old = false
     ),
     setup_call_cleanup(
         set_prolog_flag(xref, true),
-        snapshot(exports_(File, Module, Exports)),
+        snapshot(exports_(File, Module, Exports, Meta)),
         set_prolog_flag(xref, Old)).
 
-exports_(File, Module, Exports) :-
-    State = state(true, _, []),
+exports_(File, Module, Exports, Meta) :-
+    State = state(true, _, [], []),
     (   '$source_term'(File,
                        _Read,_RLayout,
                        Term,_TermLayout,
@@ -507,6 +534,11 @@ exports_(File, Module, Exports) :-
             '$append'(E0, PIs, E1),
             nb_setarg(3, State, E1),
             fail
+        ;   Term = (:- meta_predicate(Heads)),
+            phrase(meta(Heads), M1),
+            arg(4, State, M0),
+            '$append'(M0, M1, M2),
+            nb_setarg(4, State, M2)
         ;   Term = (:- use_foreign_library(Lib)),
             nonvar(Lib),
             arg(2, State, M),
@@ -523,7 +555,8 @@ exports_(File, Module, Exports) :-
     ;   true
     ),
     arg(2, State, Module),
-    arg(3, State, Exports).
+    arg(3, State, Exports),
+    arg(4, State, Meta).
 
 export_pi(Var) -->
     { var(Var) },
@@ -535,6 +568,17 @@ export_pi((A,B)) -->
 export_pi(PI) -->
     { ground(PI) },
     [PI].
+
+meta(Var) -->
+    { var(Var) },
+    !.
+meta((A,B)) -->
+    !,
+    meta(A),
+    meta(B).
+meta(Head) -->
+    { callable(Head) },
+    [Head].
 
 
                  /*******************************
@@ -993,6 +1037,12 @@ pi_in_exports(PI, Exports) :-
     '$member'(E, Exports),
     canonical_pi(E, PI),
     !.
+
+canonical_pi(Var, _) :-
+    var(Var), !, fail.
+canonical_pi(Name/Arity, Name/Arity).
+canonical_pi(Name//A0,   Name/Arity) :-
+    Arity is A0 + 2.
 
 current_autoload(M:File, Context, Term) :-
     '$get_predicate_attribute'(M:'$autoload'(_,_,_), defined, 1),
