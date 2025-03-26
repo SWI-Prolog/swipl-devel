@@ -482,11 +482,19 @@ make_directive(Lib, Import, (:- autoload(Lib, Import)), _).
     autoload_directories/1,
     index_checked_at/1.
 
+%!  noautoload(+Head, -File) is semidet.
+%
+%   True when Head can be loaded from   File.  Where the autoload system
+%   only considers the autoload directories,   this version searches all
+%   indexed directories.
+
 noautoload(Head, File) :-
     functor(Head, Name, Arity),
+    functor(GenHead, Name, Arity),
     context_module(Here),
     '$autoload':load_library_index(Here:Name, Arity, Here:noautoload('INDEX')),
-    library_index(Head, _, File).
+    library_index(GenHead, _, File),
+    !.
 
 
 		 /*******************************
