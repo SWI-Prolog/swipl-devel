@@ -347,7 +347,7 @@ safe_push_op(P, T, N0, State) :-
 
 fix_operators((:- Directive), M, Src) :-
     ground(Directive),
-    catch(process_directive(Directive, M, Src), _, true),
+    catch(process_directive(Directive, M, Src), error(_,_), true),
     !.
 fix_operators(_, _, _).
 
@@ -355,7 +355,7 @@ fix_operators(_, _, _).
     prolog:xref_update_syntax/2.
 
 process_directive(Directive, M, _Src) :-
-    prolog:xref_update_syntax(Directive, M),
+    prolog:xref_update_syntax((:- Directive), M),
     !.
 process_directive(style_check(X), _, _) :-
     !,

@@ -228,24 +228,26 @@ requires_library((:- draw_begin_shape(_,_,_,_)),   library(pcedraw)).
 requires_library((:- use_module(library(pce))),    library(pce)).
 requires_library((:- pce_begin_class(_,_)),        library(pce)).
 requires_library((:- pce_begin_class(_,_,_)),      library(pce)).
+requires_library((:- html_meta(_)),                library(http/html_write)).
 
 %!  update_state(+Term, +Expanded, +Module) is det.
 %
-%   Update operators and style-check options from the expanded term.
+%   Update operators and style-check options from Term or Expanded.
 
 :- multifile
     pce_expansion:push_compile_operators/1,
     pce_expansion:pop_compile_operators/0.
 
-update_state(Raw, _, _) :-
-    Raw == (:- pce_end_class),
-    !,
+update_state((:- pce_end_class), _, _) =>
     ignore(pce_expansion:pop_compile_operators).
-update_state(Raw, _, SM) :-
-    subsumes_term((:- pce_extend_class(_)), Raw),
-    !,
+update_state((:- pce_extend_class(_)), _, SM) =>
     pce_expansion:push_compile_operators(SM).
-update_state(_Raw, Expanded, M) :-
+update_state(Raw, _, Module),
+    catch(prolog:xref_update_syntax(Raw, Module),
+          error(_,_),
+          fail) =>
+    true.
+update_state(_Raw, Expanded, M) =>
     update_state(Expanded, M).
 
 update_state(Var, _) :-
@@ -264,10 +266,15 @@ update_state((:- Directive), M) :-
 update_state((?- Directive), M) :-
     !,
     update_state((:- Directive), M).
+update_state(html_write:html_meta_head(Head,Module,Meta), _M) :-
+    (   html_write:html_meta_head(Head,Module,Meta)
+    ->  true
+    ;   assertz(html_write:html_meta_head(Head,Module,Meta))
+    ).
 update_state(_, _).
 
 update_directive(Directive, Module) :-
-    prolog:xref_update_syntax(Directive, Module),
+    prolog:xref_update_syntax((:- Directive), Module),
     !.
 update_directive(module(Module, Public), _) :-
     atom(Module),
