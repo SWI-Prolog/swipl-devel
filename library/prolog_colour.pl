@@ -346,7 +346,8 @@ safe_push_op(P, T, N0, State) :-
 %   by the cross-referencer.
 
 fix_operators((:- Directive), M, Src) :-
-    ground(Directive),
+    callable(Directive),
+    acyclic_term(Directive),
     catch(process_directive(Directive, M, Src), error(_,_), true),
     !.
 fix_operators(_, _, _).
@@ -354,33 +355,28 @@ fix_operators(_, _, _).
 :- multifile
     prolog:xref_update_syntax/2.
 
-process_directive(Directive, M, _Src) :-
-    prolog:xref_update_syntax((:- Directive), M),
-    !.
-process_directive(style_check(X), _, _) :-
-    !,
+process_directive(Directive, M, _Src),
+    ground(Directive),
+    prolog:xref_update_syntax((:- Directive), M) =>
+    true.
+process_directive(style_check(X), _, _), ground(X) =>
     style_check(X).
-process_directive(set_prolog_flag(Flag, Value), M, _) :-
-    syntax_flag(Flag),
-    !,
+process_directive(set_prolog_flag(Flag, Value), M, _),
+    ground(Flag+Value),
+    syntax_flag(Flag) =>
     set_prolog_flag(M:Flag, Value).
-process_directive(M:op(P,T,N), _, Src) :-
-    !,
+process_directive(M:op(P,T,N), _, Src), ground(M) =>
     process_directive(op(P,T,N), M, Src).
-process_directive(op(P,T,N), M, Src) :-
-    !,
+process_directive(op(P,T,N), M, Src), ground(op(P,T,N)) =>
     safe_push_op(P, T, M:N, Src).
-process_directive(module(_Name, Export), M, Src) :-
-    !,
+process_directive(module(_Name, Export), M, Src), ground(Export) =>
     forall(member(op(P,A,N), Export),
            safe_push_op(P,A,M:N, Src)).
-process_directive(use_module(Spec), _, Src) :-
-    !,
+process_directive(use_module(Spec), _, Src), ground(Spec) =>
     catch(process_use_module1(Spec, Src), _, true).
-process_directive(use_module(Spec, Imports), _, Src) :-
-    !,
+process_directive(use_module(Spec, Imports), _, Src), ground(Spec), is_list(Imports) =>
     catch(process_use_module2(Spec, Imports, Src), _, true).
-process_directive(Directive, _, Src) :-
+process_directive(Directive, _, Src), ground(Directive) =>
     prolog_source:expand((:-Directive), Src, _).
 
 syntax_flag(character_escapes).
