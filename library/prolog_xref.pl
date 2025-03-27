@@ -221,7 +221,8 @@ module defined by `Source`.
     prolog:meta_goal/2,             % +Goal, -Pattern
     prolog:hook/1,                  % +Callable
     prolog:generated_predicate/1,   % :PI
-    prolog:no_autoload_module/1.    % Module is not suitable for autoloading.
+    prolog:no_autoload_module/1,    % Module is not suitable for autoloading.
+    prolog:xref_source_time/2.      % +Source, =Modified
 
 :- meta_predicate
     prolog:generated_predicate(:).
