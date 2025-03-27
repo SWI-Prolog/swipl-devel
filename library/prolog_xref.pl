@@ -2288,7 +2288,7 @@ index_public_list(In, Base, Module, Meta, Export, Public) :-
     index_public_list(Term, In, Base, Module, Meta, Export, Public).
 
 index_public_list(end_of_file, _In, _Base, _Module, [], [], []).
-index_public_list(index(op:_, Module, Base), In, Base, Module, Meta, Export, Public) :-
+index_public_list(index(op:Op, Module, Base), In, Base, Module, Meta, [Op|Export], Public) :-
     !,
     read_term(In, Term, []),
     index_public_list(Term, In, Base, Module, Meta, Export, Public).
