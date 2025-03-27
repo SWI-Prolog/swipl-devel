@@ -2708,7 +2708,7 @@ def_style(head(exported,_),        [colour(blue), bold(true)]).
 def_style(head(public(_),_),       [colour('#016300'), bold(true)]).
 def_style(head(extern(_),_),       [colour(blue), bold(true)]).
 def_style(head(dynamic,_),         [colour(magenta), bold(true)]).
-def_style(head(multifile,_),       [colour(navy_blue), bold(true)]).
+def_style(head(multifile(_),_),    [colour(navy_blue), bold(true)]).
 def_style(head(unreferenced,_),    [colour(red), bold(true)]).
 def_style(head(hook,_),            [colour(blue), underline(true)]).
 def_style(head(meta,_),            []).
