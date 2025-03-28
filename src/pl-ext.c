@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v
@@ -489,6 +489,7 @@ DECL_PLIST(undo);
 DECL_PLIST(error);
 DECL_PLIST(coverage);
 DECL_PLIST(xterm);
+DECL_PLIST(argnames);
 #ifdef __EMSCRIPTEN__
 DECL_PLIST(wasm);
 #endif
@@ -568,6 +569,7 @@ initBuildIns(bool signonly)
   REG_PLIST(undo);
   REG_PLIST(error);
   REG_PLIST(xterm);
+  REG_PLIST(argnames);
 #ifdef O_COVERAGE
   REG_PLIST(coverage);
 #endif

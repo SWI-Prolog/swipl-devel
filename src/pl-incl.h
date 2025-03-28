@@ -2037,6 +2037,7 @@ struct module
   TableWP	procedures;	/* predicates associated with module */
   TableWP	public;		/* public predicates associated */
   TableWP	operators;	/* local operator declarations */
+  TableWP	static_dicts;	/* Static dict declarations */
   ListCell	supers;		/* Import predicates from here */
   ListCell	lingering;	/* Lingering definitions */
   size_t	code_size;	/* #Bytes used for its procedures */
