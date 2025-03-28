@@ -222,8 +222,9 @@ visibleOperator(Module m, atom_t name, int kind)
 }
 
 
-int
-currentOperator(Module m, atom_t name, int kind, unsigned char *type, short *priority)
+bool
+currentOperator(Module m, atom_t name, int kind,
+		unsigned char *type, short *priority)
 { operator *op;
 
   assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
@@ -243,11 +244,11 @@ currentOperator(Module m, atom_t name, int kind, unsigned char *type, short *pri
 		     *priority,
 		     PL_atom_chars(m->name)));
 
-      succeed;
+      return true;
     }
   }
 
-  fail;
+  return false;
 }
 
 

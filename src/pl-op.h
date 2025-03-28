@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -43,7 +43,7 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-int		currentOperator(Module m, atom_t name, int kind,
+bool		currentOperator(Module m, atom_t name, int kind,
 				unsigned char *type, short *priority);
 int		priorityOperator(Module m, atom_t atom);
 void		initOperators(void);
