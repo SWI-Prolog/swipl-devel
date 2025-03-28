@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -3364,7 +3364,7 @@ readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
 
 
 #define ensureSpaceForTermRefs(n) LDFUNC(ensureSpaceForTermRefs, n)
-static inline int
+static inline bool
 ensureSpaceForTermRefs(DECL_LD size_t n)
 { return ensureLocalSpace(n*sizeof(word));
 }
@@ -3420,17 +3420,18 @@ build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
    and pushes the result back to the term-stack. The stack first
    contains:
 
-	class, key1, value1, key2, value2, ...
+	tag, key1, value1, key2, value2, ...
 */
 
 #define build_dict(pairs, _PL_rd) LDFUNC(build_dict, pairs, _PL_rd)
-static int
+static bool
 build_dict(DECL_LD int pairs, ReadData _PL_rd)
 { int arity = pairs*2+1;
   term_t *argv = term_av(-arity, _PL_rd);
   word w;
   Word argp;
-  int i, rc;
+  int i;
+  bool rc;
   int index_buf[64];
   int *indexes = index_buf;
 
@@ -3457,17 +3458,17 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
   }
 
   if ( !hasGlobalSpace(pairs*2+2) &&
-       (rc=ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT)) != true )
-    return rc;
-  if ( (rc=ensureSpaceForTermRefs(arity)) != true )
-    return rc;
+       !ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT) )
+    return false;
+  if ( !ensureSpaceForTermRefs(arity) )
+    return false;
 
   DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));
   argp = gTop;
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += pairs*2+2;
   *argp++ = dict_functor(pairs);
-  readValHandle(argv[0], argp++, _PL_rd); /* the class */
+  readValHandle(argv[0], argp++, _PL_rd); /* the tag */
 
   for(i=0; i<pairs; i++)
   { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd); /* value */
