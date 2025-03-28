@@ -339,15 +339,16 @@ unallocModule(Module m)
     if ( LD->modules.typein == m ) LD->modules.typein = MODULE_user;
   }
 
-  if ( m->public )     destroyHTableWP(m->public);
-  if ( m->procedures ) destroyHTableWP(m->procedures);
-  if ( m->operators )  destroyHTableWP(m->operators);
-  if ( m->supers )     unallocList(m->supers);
+  if ( m->public )       destroyHTableWP(m->public);
+  if ( m->procedures )   destroyHTableWP(m->procedures);
+  if ( m->operators )    destroyHTableWP(m->operators);
+  if ( m->static_dicts ) destroyHTableWP(m->static_dicts);
+  if ( m->supers )       unallocList(m->supers);
 #ifdef O_PLMT
-  if ( m->mutex )      freeSimpleMutex(m->mutex);
-  if ( m->wait )       free_wait_area(m->wait);
+  if ( m->mutex )        freeSimpleMutex(m->mutex);
+  if ( m->wait )         free_wait_area(m->wait);
 #endif
-  if ( m->lingering )  freeLingeringDefinitions(m->lingering);
+  if ( m->lingering )    freeLingeringDefinitions(m->lingering);
 
   freeHeap(m, sizeof(*m));
 }
