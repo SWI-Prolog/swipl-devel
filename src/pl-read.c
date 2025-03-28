@@ -45,6 +45,7 @@
 #include "os/pl-prologflag.h"
 #include "pl-umap.c"			/* Unicode map */
 #include "pl-dict.h"
+#include "pl-argnames.h"
 #include "pl-fli.h"
 #include "pl-prims.h"
 #include "pl-pro.h"
@@ -600,7 +601,7 @@ Error term:
 #define syntaxError(what, rd) \
 	do { errorWarning(what, 0, rd); fail; } while(0)
 #define syntaxError1(what, arg, rd) \
-	do { errorWarningA1(what, arg, 0, rd); fail; } while(0)
+	do { GET_LD errorWarningA1(what, arg, 0, rd); fail; } while(0)
 
 const char *
 str_number_error(strnumstat rc)
@@ -754,14 +755,16 @@ makeErrorTerm(const char *id_str, const char *id_arg,
 }
 
 
+#define errorWarningA1(id_str, id_arg, id_string, _PL_rd) \
+	LDFUNC(errorWarningA1, id_str, id_arg, id_string, _PL_rd)
+
 static bool
-errorWarningA1(const char *id_str, const char *id_arg,
+errorWarningA1(DECL_LD const char *id_str, const char *id_arg,
 	       term_t id_term, ReadData _PL_rd)
-{ GET_LD
-  term_t ex;
+{ term_t ex;
 
   if ( Sferror(rb.stream) )		/* Stream error; will be reported */
-    fail;				/* elsewhere */
+    return false;			/* elsewhere */
 
   LD->exception.processing = true;	/* allow using spare stack */
 
@@ -778,23 +781,40 @@ errorWarningA1(const char *id_str, const char *id_arg,
       PL_raise_exception(ex);
   }
 
-  fail;
+  return false;
 }
 
 
+#define errorWarning(id_str, id_term, _PL_rd) \
+	LDFUNC(errorWarning, id_str, id_term, _PL_rd)
+
 static bool
-errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+errorWarning(DECL_LD const char *id_str, term_t id_term, ReadData _PL_rd)
 { return errorWarningA1(id_str, NULL, id_term, _PL_rd);
 }
 
+#define numberError(rc, _PL_rd) LDFUNC(numberError, rc, _PL_rd)
 
-static int
-numberError(strnumstat rc, ReadData _PL_rd)
+static bool
+numberError(DECL_LD strnumstat rc, ReadData _PL_rd)
 { return errorWarning(str_number_error(rc), 0, _PL_rd);
 }
 
+#define duplicateKeyWarning(key, _PL_rd) \
+  LDFUNC(duplicateKeyWarning, key, _PL_rd)
 
-static int
+static bool
+duplicateKeyWarning(DECL_LD term_t key, ReadData _PL_rd)
+{ term_t ex = PL_new_term_ref();
+
+  return ( PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
+			   PL_TERM, key) &&
+	   errorWarningA1("duplicate_key", NULL, ex, _PL_rd)
+         );
+}
+
+static bool
 singletonWarning(term_t term, const char *which, const char **vars, int nvars)
 { GET_LD
   fid_t fid;
@@ -803,9 +823,9 @@ singletonWarning(term_t term, const char *which, const char **vars, int nvars)
   { term_t l = PL_new_term_ref();
     term_t a = PL_copy_term_ref(l);
     term_t h = PL_new_term_ref();
-    int n, rc = true;
+    bool rc = true;
 
-    for(n=0; n<nvars; n++)
+    for(int n=0; n<nvars; n++)
     { if ( !(rc=PL_unify_list(a, h, a)) ||
 	   !(rc=PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n])) )
 	break;
@@ -831,9 +851,9 @@ singletonWarning(term_t term, const char *which, const char **vars, int nvars)
 	true	redo
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 reportReadError(ReadData rd)
-{ int rc;
+{ bool rc;
 
   if ( rd->on_error == ATOM_error )
     return PL_raise_exception(rd->exception);
@@ -2442,7 +2462,8 @@ again:
 	{ chr = (chr<<4)+dv;
 	} else
 	{ if ( _PL_rd )
-	  { last_token_start = (unsigned char*)errpos;
+	  { GET_LD
+	    last_token_start = (unsigned char*)errpos;
 	    errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
 	  }
 	  return ESC_ERROR;
@@ -2450,7 +2471,8 @@ again:
       }
       if ( !VALID_CODE_POINT(chr) )
       { if ( _PL_rd )
-	{ last_token_start = (unsigned char*)errpos;
+	{ GET_LD
+	  last_token_start = (unsigned char*)errpos;
 	  errorWarning("Illegal character code", 0, _PL_rd);
 	}
 	return ESC_ERROR;
@@ -2483,7 +2505,8 @@ again:
 	  c = *in++;
 	  if ( !VALID_CODE_POINT(chr) )
 	  { if ( _PL_rd )
-	    { last_token_start = (unsigned char*)errpos;
+	    { GET_LD
+	      last_token_start = (unsigned char*)errpos;
 	      errorWarning("Illegal character code", 0, _PL_rd);
 	    }
 	    return ESC_ERROR;
@@ -2497,7 +2520,8 @@ again:
       } else
       { undef:
 	if ( _PL_rd )
-	{ char tmp[2];
+	{ GET_LD
+	  char tmp[2];
 
 	  tmp[0] = (char)c;
 	  tmp[1] = EOS;
@@ -2574,7 +2598,8 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 
       goto next;
     } else if ( in > ein )
-    { errorWarning("end_of_file_in_string", 0, _PL_rd);
+    { GET_LD
+      errorWarning("end_of_file_in_string", 0, _PL_rd);
       return false;
     }
 
@@ -2625,7 +2650,9 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
     }
   }
 
-  return errorWarning("end_of_file_in_quasi_quotation", 0, _PL_rd);
+  { GET_LD
+    return errorWarning("end_of_file_in_quasi_quotation", 0, _PL_rd);
+  }
 }
 #endif /*O_QUASIQUOTATIONS*/
 
@@ -3415,6 +3442,67 @@ build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
   return true;
 }
 
+#define buildArgNamesTerm(pairs, argv, _PL_rd) \
+	LDFUNC(buildArgNamesTerm, pairs, argv, _PL_rd)
+
+static int
+buildArgNamesTerm(DECL_LD int pairs, term_t *argv, ReadData _PL_rd)
+{ word tag = *valTermRef(argv[0]);
+  const argnames *an;
+
+  if ( isAtom(tag) && (an=lookupArgNames(_PL_rd->module, tag)) )
+  { size_t arity = arityArgNames(an);
+
+    if ( !ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT) )
+      return false;
+    if ( !ensureSpaceForTermRefs(arity) )
+      return false;
+
+    Word argp = gTop;
+    word w    = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
+    gTop     += arity+1;
+    *argp     = an->functor;
+    for(size_t i=1; i<=arity; i++)
+      setVar(argp[i]);
+    bit_vector *set = new_bitvector(arity+1); /* 1..arity */
+
+    for(int i=0; i<pairs; i++)
+    { word key = *valTermRef(argv[i*2+1]);
+      size_t iarg = argNamesArg(an, key);
+
+      if ( iarg > 0 )
+      {	if ( true_bit(set, iarg) )
+	{ free_bitvector(set);
+	  return duplicateKeyWarning(argv[i*2+1], _PL_rd);
+	} else
+	{ set_bit(set, iarg);
+	  readValHandle(argv[i*2+2], &argp[iarg], _PL_rd); /* value */
+	}
+      } else
+      { free_bitvector(set);
+
+	if ( isAtom(key) )
+	{ term_t av;
+	  return ( (av=PL_new_term_refs(2)) &&
+		   PL_put_atom(av+0, _PL_rd->module->name) &&
+		   PL_put_functor(av+1, an->functor) &&
+		   PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
+		   PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
+			    ATOM_key, argv[i*2+1], av) );
+	} else
+	{ return PL_type_error("argname", argv[i*2+1]);
+	}
+      }
+    }
+
+    free_bitvector(set);
+    setHandle(argv[0], w);
+    truncate_term_stack(&argv[1], _PL_rd);
+    return true;
+  }
+
+  return -1;			/* not a static dict */
+}
 
 /* build_dict(int pairs, ...) builds a dict from the data on the stack.
    and pushes the result back to the term-stack. The stack first
@@ -3431,9 +3519,12 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
   word w;
   Word argp;
   int i;
-  bool rc;
   int index_buf[64];
   int *indexes = index_buf;
+
+  int rca;
+  if ( (rca=buildArgNamesTerm(pairs, argv, _PL_rd)) != -1 )
+    return rca;
 
   if ( pairs > 64 )
   { if ( !(indexes = malloc(sizeof(int)*pairs)) )
@@ -3443,13 +3534,7 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
     indexes[i] = i;
 
   if ( (i=dict_order_term_refs(argv+1, indexes, pairs)) )
-  { term_t ex = PL_new_term_ref();
-
-    rc = ( PL_unify_term(ex,
-			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
-			   PL_TERM, argv[indexes[i]*2+1]) &&
-	   errorWarningA1("duplicate_key", NULL, ex, _PL_rd)
-	 );
+  { bool rc = duplicateKeyWarning(argv[indexes[i]*2+1], _PL_rd);
 
     if ( indexes != index_buf )
       free(indexes);
@@ -3457,8 +3542,7 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
     return rc;
   }
 
-  if ( !hasGlobalSpace(pairs*2+2) &&
-       !ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT) )
+  if ( !ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT) )
     return false;
   if ( !ensureSpaceForTermRefs(arity) )
     return false;
@@ -3968,11 +4052,14 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 	case ')':
 	case '}':
 	case ']':
+	{ GET_LD
 	  errorWarning("cannot_start_term", 0, _PL_rd);
 	  return -1;
+	}
 	case '|':
 	  if ( !must_be_op )
-	  { errorWarning("quoted_punctuation", 0, _PL_rd);
+	  { GET_LD
+	    errorWarning("quoted_punctuation", 0, _PL_rd);
 	    return -1;
 	  }
 	  return true;
@@ -4242,10 +4329,9 @@ exit:
 
   if ( cstate.out_n == 1 && cstate.side_n == 0 ) /* simple term */
   { out_entry *e = out_op(-1, _PL_rd);
-    int rc;
 
-    if ( positions && (rc=PL_unify(positions, e->tpos)) != true )
-      return rc;
+    if ( positions && !PL_unify(positions, e->tpos) )
+      return false;
     PopOut();
 
     return true;
@@ -4254,15 +4340,14 @@ exit:
   if ( cstate.out_n == 0 && cstate.side_n == 1 ) /* single operator */
   { op_entry *op = SideOp(cstate.side_p);
     term_t term = alloc_term(_PL_rd);
-    int rc;
 
     if ( !op->isblock )
       PL_put_atom(term, op->op.atom);
     else
       PL_put_term(term, op->op.block);
 
-    if ( positions && (rc=PL_unify(positions, op->tpos)) != true )
-      return rc;
+    if ( positions && !PL_unify(positions, op->tpos) )
+      return false;
 
     PopOp(&cstate);
 
@@ -4595,7 +4680,9 @@ is_key_token(Token token, ReadData _PL_rd)
    in pl-dict.c
 */
 
-#define read_dict(token, positions, _PL_rd) LDFUNC(read_dict, token, positions, _PL_rd)
+#define read_dict(token, positions, _PL_rd) \
+	LDFUNC(read_dict, token, positions, _PL_rd)
+
 static inline int
 read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { int pairs = 0;
