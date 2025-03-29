@@ -395,6 +395,7 @@ exclude(library(chr/chr_translate_bootstrap2)).
 exclude(library(trace/pprint)).
 exclude(library(xref/quintus)).
 exclude(library(xref/sicstus)).
+exclude(library(pldoc/hooks)).
 
 excluded_directory(Dir) :-
     exclude_dir(Spec),

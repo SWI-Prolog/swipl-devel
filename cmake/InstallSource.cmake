@@ -183,6 +183,7 @@ set(noqlf_file
     home/library/tabling.pl
     home/library/prolog_qlfmake.pl
     home/library/theme/dark.pl
+    home/library/ext/pldoc/pldoc/hooks.pl
     home/xpce/prolog/lib/swi_compatibility.pl
     home/xpce/prolog/lib/english/pce_messages.pl
     home/xpce/prolog/lib/trace/gui.pl
@@ -213,6 +214,7 @@ set(include_src_pattern
     "library/prolog_qlfmake[.]pl$"
     "theme/[^/]*[.]pl$"
     "ltx2htm/sty_[^/]*[.]pl$"
+    "hooks[.]pl$"			# Should only match pldoc/hooks.pl
     "xref/quintus[.]pl$"
     "xref/sicstus[.]pl$"
     "http/dcg_basics[.]pl$"
