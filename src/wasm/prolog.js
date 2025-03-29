@@ -1032,14 +1032,28 @@ class Prolog
     return name;
   }
 
+  /**
+   * Bind an event to a Prolog goal.
+   * @param {object} [options]
+   * @param {bool} [options.async] If `true`, run the handler
+   * asynchronously, i.e., using {@link Prolog#forEach}. Otherwise
+   * use {@link Prolog#query} to call the handler on the global
+   * Prolog engine.
+   */
 
-  bind(e, on, goal, options)
-  { const prolog = this;
+  bind(e, on, goal, options) {
+    const prolog = this;
     options = options||{};
 
-    e.addEventListener(on, (ev) => {
-      prolog.query(goal, {...options, Event__:ev}).once();
-    });
+    if ( options.async ) {
+      e.addEventListener(on, async (ev) => {
+	prolog.forEach(goal, {...options, engine:true, Event__:ev});
+      });
+    } else {
+      e.addEventListener(on, (ev) => {
+	prolog.query(goal, {...options, Event__:ev}).once();
+      });
+    }
   }
 
   fetch(url, opts, type)
