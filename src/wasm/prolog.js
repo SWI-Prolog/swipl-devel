@@ -1033,11 +1033,12 @@ class Prolog
   }
 
 
-  bind(e, on, goal)
+  bind(e, on, goal, options)
   { const prolog = this;
+    options = options||{};
 
-    e.addEventListener(on, (ev) =>
-    { prolog.query(goal, {Event__:ev}).once();
+    e.addEventListener(on, (ev) => {
+      prolog.query(goal, {...options, Event__:ev}).once();
     });
   }
 
