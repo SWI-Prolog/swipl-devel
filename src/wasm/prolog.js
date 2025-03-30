@@ -1034,6 +1034,11 @@ class Prolog
 
   /**
    * Bind an event to a Prolog goal.
+   * @param {HTMLElement} elem Elem on which to listen for events
+   * @param {string} on Event type we listen for.  Passed to
+   * addEventListener().
+   * @param {string} goal Prolog goal to execute
+   * @param {object} [input] Optional input parameters for `goal`.
    * @param {object} [options]
    * @param {bool} [options.async] If `true`, run the handler
    * asynchronously, i.e., using {@link Prolog#forEach}. Otherwise
@@ -1041,17 +1046,21 @@ class Prolog
    * Prolog engine.
    */
 
-  bind(e, on, goal, options) {
+  bind(elem, on, goal, input, options) {
     const prolog = this;
     options = options||{};
 
     if ( options.async ) {
-      e.addEventListener(on, async (ev) => {
-	prolog.forEach(goal, {...options, engine:true, Event__:ev});
+      elem.addEventListener(on, async (ev) => {
+	prolog.forEach(goal,
+		       {...input, Event__:ev},
+		       {...options, engine:true});
       });
     } else {
-      e.addEventListener(on, (ev) => {
-	prolog.query(goal, {...options, Event__:ev}).once();
+      elem.addEventListener(on, (ev) => {
+	prolog.query(goal,
+		     {...input, Event__:ev},
+		     options).once();
       });
     }
   }
@@ -2355,7 +2364,7 @@ function prolog_js_call(request, result)
       if ( typeof(func) === "function"  )
 	return func.apply(obj, args);
       else
-	console.log("ERROR: Function", fname, "is not defined on", obj);
+	console.err(`Function ${fname} is not defined on ${obj}`);
     }
 
     for(let i=0; i<ar.length; i++)
