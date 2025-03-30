@@ -1,17 +1,11 @@
 <html>
+  <head>
+  <title>SWI-Prolog DOM manipulation and event handling</title>
+  </head>
   <body>
-    <p>This demo illustrates that we can use a JavaScript object in a
-      DOM bind/4 call.  Note that this prevents the passed object
-      (the Button) to be reclaimed.  It is in general better to use
-      find the addressed object(s) by navigating the DOM from the
-      event <code>target</code> or find the object from their class
-      or <code>id</code> property.
-    </p>
-    <p>
-      If you click the button, the label of the button is changed.
-    </p>
+    <h1>Handling events in Prolog</h1>
+
     <script src="/wasm/swipl-bundle.js"></script>
-    </script>
     <script>
       let Prolog;
       let Module;
@@ -25,22 +19,86 @@
         Prolog.load_scripts()
       })();
     </script>
-    <script id="main" type="text/prolog">
+
+    <p>This demo illustrates event handling using the
+       <a href="https://tau-prolog.org/">Tau-Prolog</a> compatible
+       <code>library(dom)</code>.  We show two versions, one using
+       exclusively the Tau-Prolog module and one using SWI-Prolog's
+       general calling to JavaScript.
+
+    <p>
+      If you click the buttons, the label of the clicked button is changed.
+    </p>
+
+    <h2>Using Tau-Prolog library(dom)</h2>
+
+    <p>This version uses Tau-Prolog library(dom) library to manipulate
+    the DOM and bind the event handling.
+    </p>
+
+    <div id="tau-demo"></div>
+
+    <script id="tau-button-demo" type="text/prolog">
+      :- module(tau_demo, []).
       :- use_module(library(dom)).
 
       :- initialization(run).
 
       run :-
         create(button, Button),
+	set_html(Button, "click"),
+	get_by_id("tau-demo", Div),
+	append_child(Div, Button),
+        bind(Button, click, Ev, test(Ev)).
+
+      test(Ev) :-
+        event_property(Ev, target, Button),
+	get_html(Button, Text),
+	string_concat(Text, " and again", NewText),
+	set_html(Button, NewText).
+    </script>
+
+    <pre id="tau-button-src">
+    </pre>
+
+    <script>
+    document.getElementById("tau-button-src").textContent =
+      document.getElementById("tau-button-demo").textContent;
+    </script>
+
+    <h2>Using SWI-Prolog's JavaScript</h2>
+
+    <p>This versions uses SWI-Prolog's general JavaScript interface.  This
+    version passes the button element rather than the event.  Passing the
+    event is also possible using the reserved variable name <var>Event__</var>.
+    </p>
+
+    <div id="swi-demo"></div>
+
+    <script id="swi-button-demo" type="text/prolog">
+      :- module(swi_demo, []).
+
+      :- initialization(run).
+
+      run :-
+        Button := document.createElement("button"),
         Button.innerHTML := "click",
-        _ := document.body.appendChild(Button),
-        bind(Button, click, _, test(Button)).
+	_ := document.getElementById("swi-demo").appendChild(Button),
+	_ := prolog.bind(Button, "click", "swi_demo:test(Button)", #{'Button':Button}).
 
       test(Button) :-
-	_ := console.log(Button),  
-	Text := Button.innerHTML,
-	string_concat(Text, " and again", NewText),
-	Button.innerHTML := NewText.
+        Text := Button.innerHTML,
+        string_concat(Text, " and again", NewText),
+        Button.innerHTML := NewText.
     </script>
+
+    <pre id="swi-button-src">
+    </pre>
+
+    <script>
+    document.getElementById("swi-button-src").textContent =
+      document.getElementById("swi-button-demo").textContent;
+    </script>
+
   </body>
 </html>
