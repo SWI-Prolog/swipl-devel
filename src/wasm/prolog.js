@@ -1329,6 +1329,33 @@ class Prolog
     return new this.Promise(f);
   }
 
+  /**
+   * Create an abortable Promise that waits for an event on
+   * an HTMLElement.
+   *
+   * @param {HTMLElement} item The element on which the event is expected
+   * @param {string} eventType The event type as used by addEventListener()
+   * @return {Promise} A promise that is accepted if the event occurs
+   * and returns the event.  The promise can be aborted, in which case
+   * it is rejected.
+   */
+  promise_event(item, eventType) {
+    const f = function(resolve, reject) {
+      f.reject = reject;
+      const listener = (ev) => {
+	item.removeEventListener(eventType, listener);
+	resolve(ev);
+      }
+      item.addEventListener(eventType, listener);
+      f.abort = function() {
+	item.removeEventListener(eventType, listener);
+	f.reject("abort");
+      }
+    }
+
+    return new this.Promise(f);
+  }
+
 /**
  * @return {IOSTREAM*} as a number (pointer)
  */
