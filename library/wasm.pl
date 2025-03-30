@@ -268,7 +268,8 @@ call1(Getter, One), atom(Getter) =>
 call1(Call, One), is_func(Call) =>
     call_func(Call, One).
 
-call_first(#Value, One) =>
+call_first(#Value0, One) =>
+    unwrap_hash(Value0, Value),
     One = _{v:Value}.
 call_first(Getter, One), atom(Getter) =>
     One = Getter.
@@ -287,6 +288,10 @@ call_func(Call, One) :-
     maplist(call_chain, Args, Chains),
     One = _{f:Pred, args:Chains}.
 
+unwrap_hash(#V0, V), acyclic_term(V0) =>
+    unwrap_hash(V0, V).
+unwrap_hash(V0, V) =>
+    V = V0.
 
 :- multifile
     system:goal_expansion/2.
