@@ -49,10 +49,9 @@
 	set_html(Button, "click"),
 	get_by_id("tau-demo", Div),
 	append_child(Div, Button),
-        bind(Button, click, Ev, test(Ev)).
+        bind(Button, click, _, test(Button)).
 
-      test(Ev) :-
-        event_property(Ev, target, Button),
+      test(Button) :-
 	get_html(Button, Text),
 	string_concat(Text, " and again", NewText),
 	set_html(Button, NewText).

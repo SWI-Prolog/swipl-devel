@@ -360,24 +360,13 @@ style(Elem, Attr, Style) =>
 %!  bind_async(+Elem, +EventType, -Event, :Goal) is det.
 %
 %   Bind EventType on Elem to call Goal. If  Event appears in Goal is is
-%   bound to the current  event.  Goal   may  contain  JavaScript object
-%   references. Using this feature asserts a   mapping  that holds these
-%   JavaScript object references in  the   Prolog  database. Neither the
-%   clause, nor the referenced JavaScript objects   will be reclaimed if
-%   the object to which this event is  bound is deleted. In other words,
-%   do not use JavaScript objects in  the   bind/4  call for objects for
-%   which many instances are created and later destroyed. If you need to
-%   deal with volatile objects, find these object from the event or some
-%   permanent object by navigating the DOM.
+%   bound to the current  event.
 %
 %   The bind_async/4 variation runs the event   handler  on a new Prolog
 %   _engine_ using Prolog.forEach().  This implies that the handler runs
 %   asynchronously and all its solutions are enumerated.
 %
 %   @compat bind_async/5 is a SWI-Prolog extension to the Tau library
-
-:- dynamic js_obj_bound/2 as volatile.
-:- public js_obj_call/3.
 
 bind(Elem, On, Ev, Goal) :-
     bind(Elem, On, Ev, Goal, #{}).
@@ -386,26 +375,19 @@ bind_async(Elem, On, Ev, Goal) :-
     bind(Elem, On, Ev, Goal, #{async:true}).
 
 bind(Elem, On, Ev, Goal, Options) :-
-    foldsubterms(map_object, Goal, Goal1, [], Map),
+    foldsubterms(map_object, Goal, Goal1, t(1,[],[]), t(_,VarNames,Map)),
     Map \== [],
-    gensym(js_obj_binding, Id),
-    asserta(js_obj_bound(Id, Map)),
-    maplist(arg(1), Map, Vars),
-    bind(Elem, On, Ev, dom:js_obj_call(Id, Vars, Goal1), Options).
+    dict_pairs(Input, #, Map),
+    term_string(Goal1, String, [variable_names(['Event__'=Ev|VarNames])]),
+    _ := prolog.bind(Elem, #On, String, Input, Options).
 bind(Elem, On, Ev, Goal, Options) :-
     term_string(Goal, String, [variable_names(['Event__'=Ev])]),
     _ := prolog.bind(Elem, #On, String, Options).
 
-map_object(Obj, Var, Map, [Var=Obj|Map]) :-
-    is_object(Obj).
-
-js_obj_call(Id, Vars, Goal) :-
-    js_obj_bound(Id, Map),
-    maplist(arg(1), Map, Vars),
-    maplist(bind_js_obj, Map),
-    call(Goal).
-
-bind_js_obj(X=X).
+map_object(Obj, Var, t(N0,VN,Map), t(N,[VarName=Var|VN], [VarName-Obj|Map])) :-
+    is_object(Obj),
+    N is N0+1,
+    format(atom(VarName), 'JsObject__~d__', [N0]).
 
 %!  unbind(+Elem, +EventType) is det.
 %
