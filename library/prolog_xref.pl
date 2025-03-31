@@ -2980,6 +2980,17 @@ do_xref_source_file(Spec, File, Options) :-
                        ]),
     !,
     qlf_pl_file(File0, File).
+do_xref_source_file(Spec, File, Options) :-
+    atom(Spec), % handle absolute /file/to/source.pl without sources
+    file_name_extension(Base, Ext, Spec),
+    user:prolog_file_type(Ext, source),
+    option(file_type(prolog), Options, prolog),
+    absolute_file_name(Base, File0,
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail)
+                       ]),
+    qlf_pl_file(File0, File).
 
 %!  qlf_pl_file(?QlfFile, ?PlFile) is semidet.
 
