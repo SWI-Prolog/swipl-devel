@@ -103,14 +103,15 @@ main(Argv) :-
                 *          DEMO INDEX          *
                 *******************************/
 
-demo(tinker,         "SWI-Tinker, a SWI-Prolog playground").
-demo(cbg,            "A port of Paul Brown's Tau-Prolog application").
-demo('chat80.html',  "Embed the CHAT80 question answering system").
-demo('bind.html',    "Illustrates binding an event, passing a \c
-                      DOM object to Prolog").
-demo(test,           "Demo and tests calling Prolog").
-demo('engines.html', "Demo and test for using engines").
-demo('bench.html',   "Benchmark the JavaScript interface").
+demo(tinker,           "SWI-Tinker, a SWI-Prolog playground").
+demo(cbg,              "A port of Paul Brown's Tau-Prolog application").
+demo('doge/doge.html', "A port of Doge, a Tau-Prolog example").
+demo('chat80.html',    "Embed the CHAT80 question answering system").
+demo('bind.html',      "Illustrates binding an event, passing a \c
+                        DOM object to Prolog").
+demo(test,             "Demo and tests calling Prolog").
+demo('engines.html',   "Demo and test for using engines").
+demo('bench.html',     "Benchmark the JavaScript interface").
 
 index(_Request) :-
     reply_html_page(
