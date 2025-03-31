@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020-2024, VU University Amsterdam
+    Copyright (c)  2020-2025, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -57,7 +57,8 @@
                 xref_module/2,
                 xref_called/4,
                 xref_defined/3,
-                xref_built_in/1
+                xref_built_in/1,
+                xref_public_list/3
               ]).
 :- use_module(library(readutil), [read_file_to_string/3]).
 :- use_module(library(solution_sequences), [distinct/2]).
@@ -254,7 +255,7 @@ missing_autoload(Src, Directives, Head, File-Head) :-
                          relative_to(SrcFile),
                          access(read)
                        ]),
-    exports(File, Exports),
+    xref_public_list(File, SrcFile, [exports(Exports)]),
     member(PI, Exports),
     is_pi(PI),
     pi_head(PI, Head),
@@ -262,12 +263,12 @@ missing_autoload(Src, Directives, Head, File-Head) :-
 missing_autoload(_Src, _, Head, File-Head) :-
     predicate_property(Head, autoload(File0)),
     !,
-    (   absolute_file_name(File0, File,
+    (   absolute_file_name(File0, File1,
                            [ access(read),
                              file_type(prolog),
                              file_errors(fail)
                            ])
-    ->  true
+    ->  qlf_pl_file(File1, File)
     ;   File = File0
     ).
 missing_autoload(_Src, _, Head, File-Head) :-
@@ -319,11 +320,12 @@ update_directive(Src, Dir0, Deps0, Deps, Dir) :-
                          relative_to(SrcFile),
                          access(read)
                        ]),
+    qlf_pl_file(File, PlFile),
     select(DepFile-Heads, Deps0, Deps),
-    same_dep_file(DepFile, File),
+    same_dep_file(DepFile, PlFile),
     !,
     (   Dir0 =.. [Pred,File0,Imports]
-    ->  exports(File, Exports),
+    ->  xref_public_list(PlFile, SrcFile, [exports(Exports)]),
         maplist(head_pi(Exports), Heads, PIs),
         subtract_pis(PIs, Imports, New),
         append(Imports, New, NewImports),
@@ -336,6 +338,14 @@ directive_file(use_module(File,_), File).
 directive_file(autoload(File),     File).
 directive_file(autoload(File,_),   File).
 
+qlf_pl_file(File, PlFile) :-
+    file_name_extension(_Base, Ext, File),
+    user:prolog_file_type(Ext, qlf),
+    !,
+    '$qlf_module'(File, Info),
+    PlFile = Info.get(file).
+qlf_pl_file(File, File).
+
 same_dep_file(File, File) :-
     !.
 same_dep_file(Dep, _File) :-
@@ -347,13 +357,6 @@ same_dep_file(Dep, File) :-
     file_name_extension(Dep, Ext, DepFile),
     same_file(DepFile, File),
     !.
-
-exports(File, Public) :-
-    E = error(_,_),
-    catch('$autoload':exports(File, _Module, Public), E,
-          (   print_message(warning, E),
-              Public = []
-          )).
 
 is_pi(Name/Arity), atom(Name), integer(Arity) => true.
 is_pi(Name//Arity), atom(Name), integer(Arity) => true.
