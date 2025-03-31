@@ -2391,7 +2391,7 @@ function prolog_js_call(request, result)
       if ( typeof(func) === "function"  )
 	return func.apply(obj, args);
       else
-	console.err(`Function ${fname} is not defined on ${obj}`);
+	console.error(`Function ${fname} is not defined on ${obj}`);
     }
 
     for(let i=0; i<ar.length; i++)
