@@ -56,6 +56,7 @@
             parent_of/2,                % ?Child, ?Parent
             prepend_child/2,            % +Elem, +Child
             remove/1,                   % +Elem
+            remove_class/2,             % +Elem, +Class
             set_attr/3,                 % +Elem, +Attr, +Value
             set_html/2,                 % +Elem, +HTML:string
             set_style/3,                % +Elem, +Attr, +Value
@@ -287,6 +288,13 @@ prepend_child(Elem, Child) :-
 
 remove(Elem) :-
     _ := Elem.remove().
+
+%!  remove_class(+Elem, +Class) is det.
+%
+%   Remove Class from the classList of Elem.
+
+remove_class(Elem, Class) :-
+    _ := Elem.classList.remove(#Class).
 
 %!  set_attr(+Elem, +Attr, +Value) is det.
 %
