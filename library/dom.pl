@@ -74,6 +74,7 @@
 :- use_module(autoload(apply), [maplist/3]).
 :- use_module(autoload(lists), [member/2]).
 :- use_module(autoload(dcg/basics), [number//1, whites//0, string//1]).
+:- use_module(library(error), [representation_error/1]).
 
 /** <module> Tau-Prolog compatible DOM manipulation
 
