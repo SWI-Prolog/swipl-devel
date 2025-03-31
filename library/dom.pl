@@ -72,7 +72,8 @@
           ]).
 :- use_module(wasm).
 :- use_module(autoload(apply), [maplist/3]).
-:- use_module(library(lists), [member/2]).
+:- use_module(autoload(lists), [member/2]).
+:- use_module(autoload(dcg/basics), [number//1, whites//0, string//1]).
 
 /** <module> Tau-Prolog compatible DOM manipulation
 
@@ -211,16 +212,50 @@ get_html(Elem, HTML) :-
 %
 %   True when Value is the computed value for the given style attribute.
 %   If the computed style is undefined, Value  is unified to the element
-%   style.
+%   style. The DOM  style  string  is   translated  into  a  Prolog term
+%   according to these rules:
+%
+%     - px(N) maps to Npx
+%     - '%'(N) maps to N%
+%     - url(URL) maps to url("URL")
+%     - rgb(R,G,B) maps to rgb(R,G,B)
 
 get_style(Elem, Attr, Value) :-
-    (   Value0 := document.defaultView.getComputedStyle(Elem).Attr,
-        Value0 \== undefined,
-        Value0 \== ""
+    (   String0 := document.defaultView.getComputedStyle(Elem).Attr,
+        String0 \== undefined,
+        String0 \== ""
+    ->  String = String0
+    ;   String := Elem.style.Attr,
+        String \== undefined
+    ),
+    string_codes(String, Codes),
+    (   phrase(style_to_prolog(Value0), Codes)
     ->  Value = Value0
-    ;   Value := Elem.style.Attr,
-        Value \== undefined
+    ;   Value = String
     ).
+
+style_to_prolog(Value) -->
+    number(N), whites,
+    (   "px", whites
+    ->  { Value = px(N) }
+    ;   "%", whites
+    ->  { Value = '%'(N) }
+    ).
+style_to_prolog(Value) -->
+    "url(", quote(Q), string(S), quote(Q), ")",
+    !,
+    { atom_codes(URL, S),
+      Value = url(URL)
+    }.
+style_to_prolog(Value) -->
+    "rgb(", wnumber(R), ",", wnumber(G), ",", wnumber(B), ")",
+    !,
+    { Value = rgb(R,G,B) }.
+
+quote(double) --> "\"".
+quote(single) --> "\'".
+
+wnumber(N) --> whites, number(N), whites.
 
 %!  has_class(+Elem, +Class) is semidet.
 %
@@ -316,10 +351,28 @@ set_html(Elem, HTML) :-
 
 %!  set_style(+Elem, +Attr, +Value) is det.
 %
-%   Set a style attribute for Elem.
+%   Set a style attribute for Elem.  Value is either an atom, string or
+%   term as defined by get_style/3.
 
 set_style(Elem, Attr, Value) :-
-    Elem.style.Attr := Value.
+    prolog_to_style(Value, String),
+    Elem.style.Attr := #String.
+
+prolog_to_style(px(N), Style) =>
+    format(string(Style), '~wpx', [N]).
+prolog_to_style('%'(N), Style) =>
+    format(string(Style), '~w%', [N]).
+prolog_to_style(url(URL), Style) =>
+    (   \+ sub_atom(URL, _, _, _, '"')
+    ->  format(string(Style), 'url("~w")', [URL])
+    ;   \+ sub_atom(URL, _, _, _, '\'')
+    ->  format(string(Style), 'url(\'~w\')', [URL])
+    ;   representation_error(url)
+    ).
+prolog_to_style(rgb(R,G,B), Style) =>
+    format(string(Style), 'rgb(~w,~w,~w)', [R,G,B]).
+prolog_to_style(Value, Style) =>
+    Style = Value.
 
 %!  sibling(?Elem1, ?Elem2) is semidet.
 %
