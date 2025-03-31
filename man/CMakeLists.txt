@@ -5,6 +5,10 @@ include(Documentation)
 
 set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 
+option(SWIPL_DOC_SERVER
+       "Document files that are not part of the installed system"
+       $ENV{SWIPL_DOC_SERVER})
+
 # Libraries documented in .doc files
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
@@ -97,6 +101,8 @@ function(pldoc tex input)
     set(options
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
         --out=${tex})
+    set(ploptions
+        -f none --no-packs)
     set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
 
@@ -136,7 +142,7 @@ function(pldoc tex input)
     add_custom_command(
 	OUTPUT  ${tex}
 	COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
-		${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "${input}"
+		${PROG_SWIPL} ${ploptions} ${PLDOC2TEX} ${options} "${input}"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts}
 	VERBATIM)
@@ -218,6 +224,16 @@ pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
 if(MULTI_THREADED)
   pldoc(libprofile.tex "library(prolog_profile)" --subsection)
+endif()
+
+if(SWIPL_DOC_SERVER)
+# Install documentation for files we do not serve
+  pldoc(lib/wasmlib.tex "${CMAKE_SOURCE_DIR}/library/wasm.pl"
+	OPTIONS "--file_synopsis=library(wasm)"
+	DEPENDS ${CMAKE_SOURCE_DIR}/library/wasm.pl)
+  pldoc(lib/dom.tex  "${CMAKE_SOURCE_DIR}/library/dom.pl"
+	OPTIONS "--file_synopsis=library(dom)"
+        DEPENDS ${CMAKE_SOURCE_DIR}/library/dom.pl)
 endif()
 
 # Check that we do not have both a .doc file and extract from the

@@ -84,6 +84,10 @@
 \libsummary{dicts}
 \input{summaries.d/dicts.tex}
 
+\IfFileExists{summaries.d/dom.tex}{
+\libsummary{dom}
+\input{summaries.d/dom.tex}}{}
+
 \libsummary{error}
 \input{summaries.d/error.tex}
 
@@ -272,6 +276,10 @@ This library is only available on Windows systems.
 
 \libsummary{url}
 \input{summaries.d/url.tex}
+
+\IfFileExists{summaries.d/wasmlib.tex}{
+\libsummary{wasm}
+\input{summaries.d/wasmlib.tex}}{}
 
 \libsummary{www_browser}
 \input{summaries.d/wwwbrowser.tex}

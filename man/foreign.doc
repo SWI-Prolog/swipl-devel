@@ -915,12 +915,13 @@ built-in debugger or the prolog_trace_interception/4 hook that is used
 for e.g., driving the GUI debugger, PL_next_solution() returns when
 trace interaction is required.  The embedding system can interact with
 the user and resume PL_next_solution().  This is notably required by
-the WASM described in \secref{wasm} version, where we need to return
-to the browser event loop to interact with the user.  Yielding on
-behalf of the debugger is enabled using the \const{PL_Q_TRACE_WITH_YIELD}
-flag of PL_open_query().  The skeleton or using these facilities is below.
-PL_get_trace_context() retrieves a Prolog term that provides information
-similar to prolog_trace_interception/4.
+the WASM described in \secref{wasm-version} version, where we need to
+return to the browser event loop to interact with the user. Yielding on
+behalf of the debugger is enabled using the
+\const{PL_Q_TRACE_WITH_YIELD} flag of PL_open_query(). The skeleton or
+using these facilities is below. PL_get_trace_context() retrieves a
+Prolog term that provides information similar to
+prolog_trace_interception/4.
 
 \begin{code}
   qid_t qid = PL_open_query(module,

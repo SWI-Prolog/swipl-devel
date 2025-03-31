@@ -5,8 +5,8 @@
 Most today's platforms are native 64 bit and 64 bit applications are
 to be preferred.  The current version of SWI-Prolog primarily targets
 64 bit platforms.  32-bit platforms are still supported as they are
-used on embedded devices and the WASM (Web Assembly, see \secref{wasm})
-still has poor support for 64 bits.
+used on embedded devices and the WASM (Web Assembly, see
+\secref{wasm-version}) still has poor support for 64 bits.
 
 While the (currently) stable 9.2 series still has a real 32 bit
 version were Prolog data structures are based on 32 bit \jargon{word}

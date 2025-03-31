@@ -1,5 +1,5 @@
 \chapter{Using SWI-Prolog in your browser (WASM)}
-\label{sec:wasm}
+\label{sec:wasm-version}
 
 The SWI-Prolog WebAssembly (WASM) port lets you run SWI-Prolog
 directly in your browser.  This is a fairly comprehensive version of
@@ -750,3 +750,6 @@ promise_sleep(time)
   return new Prolog.Promise(f);
 }
 \end{code}
+
+\InputIfFileExists{lib/wasmlib}{}{}
+\InputIfFileExists{lib/dom}{}{}
