@@ -183,7 +183,7 @@ get_by_class(Parent, Class, Elem) :-
 
 get_by_id(Id, Elem) :-
     Elem := document.getElementById(#Id),
-    Elem \== undefined.
+    Elem \== null.
 
 %!  get_by_name(+Name, -Elem) is nondet.
 %
