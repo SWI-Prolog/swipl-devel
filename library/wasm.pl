@@ -78,7 +78,7 @@ the browser's DOM.
 
 :- create_prolog_flag(wasm_heartbeat, 10_000, [type(integer), keep(true)]).
 
-%!  wasm_query(:Query:string)
+%   wasm_query(:Query:string)
 %
 %   Execute a single query as done by  the regular Prolog toplevel. This
 %   is used by SWI-Tinker, the SWI-Prolog WASM shell.  The query loop is
@@ -92,7 +92,7 @@ wasm_query(M:String) :-
         '$execute_query'(M:Query, Bindings, _Truth),
         Rate).
 
-%!  wasm_abort
+%   wasm_abort
 %
 %   Execution aborted by user.
 
@@ -110,7 +110,7 @@ with_heartbeat(Goal, Rate) :-
 :- multifile
     prolog:heartbeat/0.
 
-%!  prolog:heartbeat
+%   prolog:heartbeat
 %
 %   Called after setting the Prolog  flag   `heartbeat`  to non-zero. If
 %   possible, we yield control back to JavaScript
@@ -126,9 +126,9 @@ prolog:heartbeat :-
     ;   true
     ).
 
-%!  wasm_call_string(+Goal:string, +Input, -Result) is nondet.
-%!  wasm_call_string_with_heartbeat(+Goal:string, +Input, -Result,
-%!                                  ?Rate) is nondet.
+%   wasm_call_string(+Goal:string, +Input, -Result) is nondet.
+%   wasm_call_string_with_heartbeat(+Goal:string, +Input, -Result,
+%                                   ?Rate) is nondet.
 %
 %   Run a Prolog goal from  a  string,   returning  a  dict  holding the
 %   variable bindings in Result. Variables   starting with an underscore
@@ -347,7 +347,7 @@ js_script(String, _Options) :-
     _ := eval(String).
 
 
-%!  user:prolog_load_file(:File, +Options) is semidet.
+%   user:prolog_load_file(:File, +Options) is semidet.
 %
 %   Hook for load_files/2 that allows loading files from URLs.
 
@@ -536,7 +536,7 @@ fetch(URL, As, Data) :-
     ).
 
 
-%!  prolog:confirm(+Message, -Boolean) is semidet.
+%   prolog:confirm(+Message, -Boolean) is semidet.
 %
 %   Conform  some  action.   Currently uses  the  browser's  confirm()
 %   method.
