@@ -33,8 +33,7 @@
 */
 
 :- module(wasm,
-          [ wasm_query_loop/0,
-            wasm_abort/0,
+          [ wasm_abort/0,
             wasm_call_string/3,         % +String, +Input, -Output
 	    wasm_call_string_with_heartbeat/4,
 				        % +String, +Input, -Output, Rate
@@ -62,6 +61,13 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> WASM version support
+
+This library is only available in the   WASM version. It provides helper
+predicates for the JavaScript part as  well as Prolog utility predicates
+that help in communicating with JavaScript.
+
+@see library(dom) implements a Tau-Prolog compatible Prolog interface to
+the browser's DOM.
 */
 
 :- meta_predicate
@@ -72,15 +78,12 @@
 
 :- create_prolog_flag(wasm_heartbeat, 10_000, [type(integer), keep(true)]).
 
-%!  wasm_query_loop
-
-wasm_query_loop :-
-    current_prolog_flag(wasm_heartbeat, Rate),
-    with_heartbeat('$toplevel':'$query_loop', Rate).
-
 %!  wasm_query(:Query:string)
 %
-%   Execute a single query
+%   Execute a single query as done by  the regular Prolog toplevel. This
+%   is used by SWI-Tinker, the SWI-Prolog WASM shell.  The query loop is
+%   in JavaScript, allowing for multiple concurrent queries on different
+%   SWI-Prolog _engines_.
 
 wasm_query(M:String) :-
     term_string(Query, String, [variable_names(Bindings)]),
@@ -124,6 +127,8 @@ prolog:heartbeat :-
     ).
 
 %!  wasm_call_string(+Goal:string, +Input, -Result) is nondet.
+%!  wasm_call_string_with_heartbeat(+Goal:string, +Input, -Result,
+%!                                  ?Rate) is nondet.
 %
 %   Run a Prolog goal from  a  string,   returning  a  dict  holding the
 %   variable bindings in Result. Variables   starting with an underscore
@@ -134,6 +139,11 @@ prolog:heartbeat :-
 %       console.log(answer.X);
 %     }
 %   ```
+%
+%   The   wasm_call_string_with_heartbeat/4   variation   is   used   by
+%   Prolog.forEach() to run a Prolog goal  with auto-yielding every Rate
+%   inferences. If Rate is unbound, it is   unified  to the value of the
+%   Prolog flag `wasm_heartbeat`.
 
 wasm_call_string(M:String, Input, Dict) :-
     term_string(Goal, String, [variable_names(Map)]),
@@ -157,8 +167,14 @@ wasm_call_string_with_heartbeat(String, Input, Dict, Rate) :-
 
 %!  await(+Request, -Result) is det.
 %
-%   Call asynchronous behavior.  Request is normally a JavaScript
-%   Promise instance.
+%   Call asynchronous behavior. Request is normally a JavaScript Promise
+%   instance. If we want Prolog to wait   for  some task to complete, we
+%   first write a JavaScript function  that   returns  a  `Promise` that
+%   resolves when the task is complete. Next,   we use `:=/2` to get the
+%   `Promise` and finally we use await/2 to   wait for the `Promise`. On
+%   success, Result is unified to the value with which the `Promise` was
+%   resolved. If the `Promise` is  rejected,   this  predicate raises an
+%   exception using the value passed to `reject()`.
 
 await(Request, Result) :-
     '$await'(Request, Result0),
