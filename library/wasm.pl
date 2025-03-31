@@ -33,32 +33,39 @@
 */
 
 :- module(wasm,
-          [ wasm_abort/0,
+          [ wasm_query/1,               % +Query:string
             wasm_call_string/3,         % +String, +Input, -Output
 	    wasm_call_string_with_heartbeat/4,
 				        % +String, +Input, -Output, Rate
             is_object/1,                % @Term
             is_object/2,                % @Term,?Class
             (:=)/2,                     % -Result, +Call
-	    await/2,			% +Request, - Result
+	    await/2,			% +Request, =Result
             is_async/0,
-            sleep/1,
+            sleep/1,                    % +Time
+            bind/4,                     % +Elem, +EventType, -Event, :Goal
+            bind_async/4,               % +Elem, +EventType, -Event, :Goal
+            unbind/2,                   % +Elem, +EventType
+            wait/3,                     % +Elem, +EventType, =Event
             js_script/2,                % +String, +Options
             fetch/3,			% +URL, +Type, -Value
 
             op(700, xfx, :=),           % Result := Expression
             op(50,  fx,  #),            % #Value
-            op(40,  yf,  []),           % Expr[Expr]
-            wasm_query/1                % +Query:string
+            op(40,  yf,  [])            % Expr[Expr]
           ]).
 :- autoload(library(apply), [exclude/3, maplist/3]).
-:- autoload(library(terms), [mapsubterms/3]).
+:- autoload(library(terms), [mapsubterms/3, foldsubterms/5]).
 :- autoload(library(error),
             [instantiation_error/1, existence_error/2, permission_error/3]).
 :- use_module(library(uri), [uri_is_global/1, uri_normalized/3, uri_normalized/2]).
 :- use_module(library(debug), [debug/3]).
 
 :- set_prolog_flag(generate_debug_info, false).
+
+:- meta_predicate
+    bind(+,+,-,0),
+    bind_async(+,+,-,0).
 
 /** <module> WASM version support
 
@@ -91,14 +98,6 @@ wasm_query(M:String) :-
     with_heartbeat(
         '$execute_query'(M:Query, Bindings, _Truth),
         Rate).
-
-%   wasm_abort
-%
-%   Execution aborted by user.
-
-wasm_abort :-
-    print_message(error, unwind(abort)),
-    abort.
 
 with_heartbeat(Goal, Rate) :-
     current_prolog_flag(heartbeat, Old),
@@ -165,7 +164,7 @@ wasm_call_string_with_heartbeat(String, Input, Dict, Rate) :-
     with_heartbeat(wasm_call_string(String, Input, Dict), Rate).
 
 
-%!  await(+Request, -Result) is det.
+%!  await(+Request, =Result) is det.
 %
 %   Call asynchronous behavior. Request is normally a JavaScript Promise
 %   instance. If we want Prolog to wait   for  some task to complete, we
@@ -175,13 +174,18 @@ wasm_call_string_with_heartbeat(String, Input, Dict, Rate) :-
 %   success, Result is unified to the value with which the `Promise` was
 %   resolved. If the `Promise` is  rejected,   this  predicate raises an
 %   exception using the value passed to `reject()`.
+%
+%   @see sleep/1, fetch/3 and wait/3 in this library use await/2.
+%   @error permission_error(run, goal, Goal) if the current query is
+%   not aynchronous.
 
 await(Request, Result) :-
+    must_be_async(await(Request, Result)),
     '$await'(Request, Result0),
     (   is_dict(Result0),
         get_dict('$error', Result0, Error)
     ->  (   Error == "abort"
-        ->  wasm_abort
+        ->  abort
         ;   throw(Error)
         )
     ;   Result = Result0
@@ -205,17 +209,98 @@ must_be_async(_) :-
 must_be_async(Message) :-
     permission_error(run, goal, Message).
 
-%!  sleep(+Seconds)
+                /*******************************
+                *       ALLOW . IN :=/2        *
+                *******************************/
+
+:- multifile
+    system:goal_expansion/2.
+
+system:goal_expansion(In, Out) :-
+    In = (_Left := _Right),
+    mapsubterms(dot_list, In, Out),
+    Out \== In.
+
+dot_list(Dot, List) :-
+    compound(Dot),
+    compound_name_arguments(Dot,  '.', [A1, A2]),
+    List = A1[A2].
+
+%!  sleep(+Seconds) is det.
 %
 %   Sleep by yielding when possible. Note   that this defines sleep/1 in
 %   `user`, overruling system:sleep/1.
 
 sleep(Seconds) :-
     (   is_async
-    ->  Promise := prolog[promise_sleep(Seconds)],
+    ->  Promise := prolog.promise_sleep(Seconds),
         await(Promise, _)
     ;   system:sleep(Seconds)
     ).
+
+                /*******************************
+                *        EVENT HANDLING        *
+                *******************************/
+
+%!  bind(+Elem, +EventType, -Event, :Goal) is det.
+%!  bind_async(+Elem, +EventType, -Event, :Goal) is det.
+%
+%   Bind EventType on Elem to call Goal. If  Event appears in Goal is is
+%   bound to the current  event.
+%
+%   The bind_async/4 variation runs the event   handler  on a new Prolog
+%   _engine_ using Prolog.forEach().  This implies that the handler runs
+%   asynchronously and all its solutions are enumerated.
+%
+%   @compat bind_async/5 is a SWI-Prolog extension to the Tau library
+
+bind(Elem, On, Ev, Goal) :-
+    bind(Elem, On, Ev, Goal, #{}).
+
+bind_async(Elem, On, Ev, Goal) :-
+    bind(Elem, On, Ev, Goal, #{async:true}).
+
+bind(Elem, On, Ev, Goal, Options) :-
+    foldsubterms(map_object, Goal, Goal1, t(1,[],[]), t(_,VarNames,Map)),
+    Map \== [],
+    dict_pairs(Input, #, Map),
+    term_string(Goal1, String, [variable_names(['Event__'=Ev|VarNames])]),
+    _ := prolog.bind(Elem, #On, String, Input, Options).
+bind(Elem, On, Ev, Goal, Options) :-
+    term_string(Goal, String, [variable_names(['Event__'=Ev])]),
+    _ := prolog.bind(Elem, #On, String, Options).
+
+map_object(Obj, Var, t(N0,VN,Map), t(N,[VarName=Var|VN], [VarName-Obj|Map])) :-
+    is_object(Obj),
+    N is N0+1,
+    format(atom(VarName), 'JsObject__~d__', [N0]).
+
+%!  unbind(+Elem, +EventType) is det.
+%
+%   Remove the event listener for EventType.
+
+unbind(Elem, EventType) :-
+    _ := Elem.removeEventListener(#EventType).
+
+%!  unbind(+Elem, +EventType, :Goal) is det.
+%
+%   Remove the event listener for EventType that executes Goal.
+%   @tbd Implement.  How do we do this?  We somehow need to be
+%   able to find the function from Goal.
+
+%!  wait(+Elem, +EventType, =Event) is det.
+%
+%   Make the calling task wait for EventType   on  Elem. If the event is
+%   triggered, Event is unified with the event object.
+
+wait(Elem, EventType, Event) :-
+    must_be_async(wait/3),
+    Promise := prolog.promise_event(Elem, #EventType),
+    await(Promise, Event).
+
+                /*******************************
+                *      JAVASCRIPT CALLING      *
+                *******************************/
 
 %!  is_object(@Term) is semidet.
 %!  is_object(@Term, ?Class) is semidet.
@@ -308,19 +393,6 @@ unwrap_hash(#V0, V), acyclic_term(V0) =>
     unwrap_hash(V0, V).
 unwrap_hash(V0, V) =>
     V = V0.
-
-:- multifile
-    system:goal_expansion/2.
-
-system:goal_expansion(In, Out) :-
-    In = (_Left := _Right),
-    mapsubterms(dot_list, In, Out),
-    Out \== In.
-
-dot_list(Dot, List) :-
-    compound(Dot),
-    compound_name_arguments(Dot,  '.', [A1, A2]),
-    List = A1[A2].
 
 %!  js_script(+String, +Options) is det.
 %

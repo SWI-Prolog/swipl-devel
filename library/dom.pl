@@ -62,7 +62,6 @@
             sibling/2,                  % ?Elem1, ?Elem2
             style/3,                    % +Elem, +Attr, ?Style
             bind/4,                     % +Elem, +EventType, -Event, :Goal
-            bind_async/4,               % +Elem, +EventType, -Event, :Goal
             event_property/3,           % +Event, +Prop, -Value
             prevent_default/1,          % +Event
             unbind/2,                   % +Elem, +EventType
@@ -71,32 +70,17 @@
             toggle/1                    % +Elem
           ]).
 :- use_module(wasm).
-:- use_module(autoload(apply), [maplist/3, maplist/2]).
-:- use_module(library(gensym), [gensym/2]).
+:- use_module(autoload(apply), [maplist/3]).
 :- use_module(library(lists), [member/2]).
-:- use_module(library(terms), [foldsubterms/5]).
 
 /** <module> Tau-Prolog compatible DOM manipulation
 
 This  module  is  part  of  the  WASM  distribution  of  SWI-Prolog.  It
-implements the Tau-Prolog DOM library.
-
-__Status__
-
-Implements all "DOM Manipulation" predicates   of  the Tau library(dom).
-The implementation is barely tested though and details may be different.
-
-All the "Events" predicates except for unbind/3 are implemented.
-
-All the "Effects" predicates are implemented.
+implements the Tau-Prolog DOM  library.   The  event  handling predicate
+bind/4 is implemented in the low-level library(wasm).
 
 @see https://tau-prolog.org/documentation#prolog
 */
-
-:- meta_predicate
-    bind(+,+,-,0),
-    bind_async(+,+,-,0).
-
 
                 /*******************************
                 *       DOM MANIPULATION       *
@@ -152,15 +136,15 @@ body(Body) :-
 create(TagName, Elem) :-
     Elem := document.createElement(#TagName).
 
-%!  document(-Document) is det.
+%!  document(=Document) is det.
 %
 %   True when Document is the HTML element representing the document.
 
 document(Document) :-
     Document := document.
 
-%!  get_attr(+Elem, +Name, -Value) is semidet.
-%!  get_attribute(+Elem, +Name, -Value) is semidet.
+%!  get_attr(+Elem, +Name, =Value) is semidet.
+%!  get_attribute(+Elem, +Name, =Value) is semidet.
 %
 %   Get an attribute (property) from a   JavaScript object. Fails if the
 %   attribute is `undefined`.
@@ -207,7 +191,7 @@ get_by_name(Name, Elem) :-
     Set := document.getElementsByName(#Name).toList(),
     member(Elem, Set).
 
-%!  get_by_tag(+TagName, -Elem) is nondet.
+%!  get_by_tag(+TagName, =Elem) is nondet.
 %
 %   True when Elem is an HTML element with tag Tag.
 
@@ -222,7 +206,7 @@ get_by_tag(Tag, Elem) :-
 get_html(Elem, HTML) :-
     HTML := Elem.innerHTML.
 
-%!  get_style(+Elem, +Attr, =Value) is det.
+%!  get_style(+Elem, +Attr, =Value) is semidet.
 %
 %   True when Value is the computed value for the given style attribute.
 %   If the computed style is undefined, Value  is unified to the element
@@ -233,7 +217,8 @@ get_style(Elem, Attr, Value) :-
         Value0 \== undefined,
         Value0 \== ""
     ->  Value = Value0
-    ;   Value := Elem.style.Attr
+    ;   Value := Elem.style.Attr,
+        Value \== undefined
     ).
 
 %!  has_class(+Elem, +Class) is semidet.
@@ -243,7 +228,7 @@ get_style(Elem, Attr, Value) :-
 has_class(Elem, Class) :-
     true := Elem.classList.contains(#Class).
 
-%!  head(-Elem) is det.
+%!  head(=Elem) is det.
 %
 %   True when Elem is the HTML Element that holds the head.
 
@@ -356,57 +341,13 @@ style(Elem, Attr, Style) =>
                 *            EVENTS            *
                 *******************************/
 
-%!  bind(+Elem, +EventType, -Event, :Goal) is det.
-%!  bind_async(+Elem, +EventType, -Event, :Goal) is det.
-%
-%   Bind EventType on Elem to call Goal. If  Event appears in Goal is is
-%   bound to the current  event.
-%
-%   The bind_async/4 variation runs the event   handler  on a new Prolog
-%   _engine_ using Prolog.forEach().  This implies that the handler runs
-%   asynchronously and all its solutions are enumerated.
-%
-%   @compat bind_async/5 is a SWI-Prolog extension to the Tau library
-
-bind(Elem, On, Ev, Goal) :-
-    bind(Elem, On, Ev, Goal, #{}).
-
-bind_async(Elem, On, Ev, Goal) :-
-    bind(Elem, On, Ev, Goal, #{async:true}).
-
-bind(Elem, On, Ev, Goal, Options) :-
-    foldsubterms(map_object, Goal, Goal1, t(1,[],[]), t(_,VarNames,Map)),
-    Map \== [],
-    dict_pairs(Input, #, Map),
-    term_string(Goal1, String, [variable_names(['Event__'=Ev|VarNames])]),
-    _ := prolog.bind(Elem, #On, String, Input, Options).
-bind(Elem, On, Ev, Goal, Options) :-
-    term_string(Goal, String, [variable_names(['Event__'=Ev])]),
-    _ := prolog.bind(Elem, #On, String, Options).
-
-map_object(Obj, Var, t(N0,VN,Map), t(N,[VarName=Var|VN], [VarName-Obj|Map])) :-
-    is_object(Obj),
-    N is N0+1,
-    format(atom(VarName), 'JsObject__~d__', [N0]).
-
-%!  unbind(+Elem, +EventType) is det.
-%
-%   Remove the event listener for EventType.
-
-unbind(Elem, EventType) :-
-    Elem.removeEventListener(#EventType).
-
-%!  unbind(+Elem, +EventType, :Goal) is det.
-%
-%   Remove the event listener for EventType that executes Goal.
-%   @tbd Implement.  How do we do this?
-
-%!  event_property(+Event, +Prop, -Value)
+%!  event_property(+Event, +Prop, =Value) is semidet.
 %
 %   Extract a property from the event.
 
 event_property(Event, Prop, Value) :-
-    Value := Event.Prop.
+    Value := Event.Prop,
+    Value \== undefined.
 
 %!  prevent_default(+Event) is det.
 %

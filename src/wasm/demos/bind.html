@@ -49,7 +49,7 @@
 	set_html(Button, "click"),
 	get_by_id("tau-demo", Div),
 	append_child(Div, Button),
-        bind(Button, click, _, test(Button)).
+        bind(Button, click, _Ev, test(Button)).
 
       test(Button) :-
 	get_html(Button, Text),
@@ -65,11 +65,15 @@
       document.getElementById("tau-button-demo").textContent;
     </script>
 
-    <h2>Using SWI-Prolog's JavaScript</h2>
+    <h2>Using SWI-Prolog's JavaScript binding</h2>
 
-    <p>This versions uses SWI-Prolog's general JavaScript interface.  This
-    version passes the button element rather than the event.  Passing the
-    event is also possible using the reserved variable name <var>Event__</var>.
+    <p>
+      This versions uses SWI-Prolog's general JavaScript interface for
+      manipulating the DOM.  Note that <code>bind/4</code> is part of
+      the low level <code>library(wasm)</code>.  In
+      addition, <code>library(wasm)</code>
+      provides <code>bind_async/4</code> which makes the event-handler
+      create a new asynchronous task.
     </p>
 
     <div id="swi-demo"></div>
@@ -83,7 +87,7 @@
         Button := document.createElement("button"),
         Button.innerHTML := "click",
 	_ := document.getElementById("swi-demo").appendChild(Button),
-	_ := prolog.bind(Button, "click", "swi_demo:test(Button)", #{'Button':Button}).
+      bind(Button, click, _Ev, test(Button)).
 
       test(Button) :-
         Text := Button.innerHTML,
