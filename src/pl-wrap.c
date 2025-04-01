@@ -58,7 +58,7 @@ predicate _supervisor_:
     - A pointer to P in impl.wrapped.predicate
     - A pointer to P's supervisor in impl.wrapped.supervisor
     - A supervisor running S_WRAP.
-  - I_USERCALLN picks up call(Closure, Arg ...) and sets up a
+  - I_CALLN picks up call(Closure, Arg ...) and sets up a
     call using the closure's copy.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

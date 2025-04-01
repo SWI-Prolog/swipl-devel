@@ -3117,7 +3117,7 @@ appropriate calling instruction.
       { if ( fdef->arity == 1 )
 	  Output_0(ci, I_CALL1);
 	else
-	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
+	  Output_1(ci, I_CALLN, (code)(fdef->arity - 1));
 	return true;
       }
     }
@@ -6085,7 +6085,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 #if O_CATCHTHROW
 	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
 #endif
-	case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
+	case I_CALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
 							f_common:
 			    BUILD_TERM(f);
 			    pushed++;

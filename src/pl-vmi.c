@@ -5334,7 +5334,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 }
 END_VMI
 
-#endif
+#endif/*O_CALL_AT_MODULE*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALLM deals with qualified calls. The unfortunate  task is to sort out
@@ -5380,7 +5380,7 @@ VMI(I_CALL1, VIF_BREAK, 0, ())
 	});
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  VMH_GOTO(i_usercall_common, a, 0, true);
+  VMH_GOTO(i_metacall_common, a, 0, true);
 }
 END_VMI
 
@@ -5408,7 +5408,7 @@ generate a local clause while  passing  call(<call/N>)   for  N  >  8 to
 '$meta_call'/1 however leads to an infinite loop. For now we generate an
 undefined predicate for call/N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
+VMH(i_metacall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 { word goal;
   int arity = 0;
   functor_t functor = -1;
@@ -5608,10 +5608,10 @@ VMH(call_type_error, 0, (), ())
 END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_USERCALLN: translation of call(Goal, Arg1, ...)
+I_CALLN: translation of call(Goal, Arg1, ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
+VMI(I_CALLN, VIF_BREAK, 1, (CA1_INTEGER))
 { Word a;
   int callargs = (int)*PC++;
 
@@ -5619,7 +5619,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   a = argFrameP(NFR, 0);		/* get the (now) instantiated */
   deRef(a);				/* variable */
 
-  VMH_GOTO(i_usercall_common, a, callargs, false);
+  VMH_GOTO(i_metacall_common, a, callargs, false);
 }
 END_VMI
 

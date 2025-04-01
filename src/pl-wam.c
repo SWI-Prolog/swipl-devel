@@ -1101,7 +1101,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return PL_cons_functor_v(t, FUNCTOR_call1, g);
     }
-    case I_USERCALLN:			/* call(call(G, ...)) */
+    case I_CALLN:			/* call(call(G, ...)) */
     { int      extra = (int)PC[1];
       functor_t   cf = PL_new_functor(ATOM_call, 1+extra);
       LocalFrame NFR = LD->query->next_environment;
@@ -3509,7 +3509,7 @@ static vmi_instr jmp_table[] =
 /* This macro must ensure that two identical VMI instructions do not get
  * merged onto the same address by the compiler, causing decompilation
  * which translates the addresses back into the VMI number to fail.
- * initWamTable() verfies this does not happen.  We have two versions
+ * initWamTable() verifies this does not happen.  We have two versions
  * to deal with jumps from to VMI to the same implementation.
  */
 #define SEPARATE_VMI1 \
