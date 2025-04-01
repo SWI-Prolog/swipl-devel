@@ -3443,8 +3443,10 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
     { p = valHandleP(t);
       deRef(p);
       return bindConst(p, w);
-    } else if ( rc == LOCAL_OVERFLOW )
+#ifndef O_BIGNUM
+    } else if ( rc == LOCAL_OVERFLOW ) /* no bignums and doesn't fit */
     { return PL_representation_error("int64");
+#endif
     } else
     { return raiseStackOverflow(rc);
     }
