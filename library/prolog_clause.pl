@@ -442,9 +442,9 @@ unify_clause2(Read, Decompiled, _, TermPos, TermPos) :-
     Read = Decompiled.
 unify_clause2(Read, Compiled1, Module, TermPos0, TermPos) :-
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
-    match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
-                                        % I don't know ...
-unify_clause2(_, _, _, _, _) :-
+    match_module(Compiled2, Compiled1, Module, TermPos1, TermPos),
+    !.
+unify_clause2(_, _, _, _, _) :-       % I don't know ...
     debug(clause_info, 'Could not unify clause', []),
     fail.
 
