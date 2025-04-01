@@ -747,7 +747,7 @@ REFERENCES
 Common Prolog objects typedefs. Note that   code is word-aligned for two
 reasons. First of all, we want to get   the maximum speed and second, we
 must ensure that sizeof(struct clause) is  a multiple of sizeof(word) to
-place them on the stack (see I_USERCALL).
+place them on the stack (see I_CALL1).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define SIZEOF_WORD  8
@@ -1399,8 +1399,7 @@ typedef struct functor_table
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on
-behalf  of  I_USERCALL.  This   is   verified    in   an   assertion  in
-checkCodeTable().
+behalf of I_CALL1. This is verified in an assertion in checkCodeTable().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define sizeofClause(n) (offsetof(struct clause, codes[n]))

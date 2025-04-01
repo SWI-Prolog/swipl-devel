@@ -4819,7 +4819,7 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
 
 /* Update pointer if it contains a pointer in the local stack.  Used for
    updating PC, as this might point to a locally compiled clause by
-   I_USERCALL0.
+   I_CALL1.
 */
 
 #define update_local_pointer(p, ls) LDFUNC(update_local_pointer, p, ls)
@@ -4887,7 +4887,7 @@ update_environments(DECL_LD LocalFrame fr, intptr_t ls, intptr_t gs)
     { update_pointer(&fr->parent, ls);
 
       update_local_pointer(&fr->programPointer, ls);
-					/* I_USERCALL0 compiled clause */
+					/* I_CALL1 compiled clause */
       if ( fr->clause )
       { if ( fr->predicate == PROCEDURE_dcall1->definition )
 	{ assert(onStackArea(local, fr->clause));

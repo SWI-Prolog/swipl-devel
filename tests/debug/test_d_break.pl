@@ -98,7 +98,7 @@ t_break(a_eq) :- A = 3, B = 3, A =:= B.
 t_break(a_ne) :- A = 2, B = 3, A =\= B.
 t_break(a_is) :- B = 3, v(A), A is B*3.	% TBD: fails after callback!
 t_break(a_firstvar_is(_)) :- B = 3, A is B*3, v(A).
-t_break(i_usercall0) :- A = c0, call(A).
+t_break(i_call1) :- A = c0, call(A).
 t_break(i_usercalln(_)) :- A = v, call(A, V), v(V).
 t_break(i_departm(_,_)) :- test:c0.
 t_break(i_callm(_,_)) :- test:c0, c1.

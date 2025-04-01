@@ -1799,7 +1799,7 @@ form `module1:head :- body' is compiled,  `module1' is used to determine
 relate terms to procedures in the body.
 
 A special consideration is the compilation   of  goals to support call/1
-(see I_USERCALL0 in pl-wam.c). When compiling  such clauses, lTop points
+(see I_CALL1 in pl-wam.c). When compiling  such clauses, lTop points
 to the location to build the new   clause and `head' is the NULL-pointer
 to indicate our clause has no head.   After compilation, the stack looks
 as below:
@@ -2953,7 +2953,7 @@ compileSubClause(Word arg, code call, compileInfo *ci)
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A non-void variable. Create a I_USERCALL0 instruction for it.
+A non-void variable. Create a I_CALL1 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   if ( isIndexedVarTerm(*arg) >= 0 )
   { int rc;
@@ -2981,7 +2981,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     }
 #endif
 
-    Output_0(ci, I_USERCALL0);
+    Output_0(ci, I_CALL1);
     succeed;
   }
 
@@ -3115,7 +3115,7 @@ appropriate calling instruction.
 #endif
 	 )
       { if ( fdef->arity == 1 )
-	  Output_0(ci, I_USERCALL0);
+	  Output_0(ci, I_CALL1);
 	else
 	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	return true;
@@ -6209,7 +6209,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    pushed++;
 			    continue;
 			  }
-      case I_USERCALL0:	    BUILD_TERM(FUNCTOR_call1);
+      case I_CALL1:	    BUILD_TERM(FUNCTOR_call1);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR

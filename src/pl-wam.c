@@ -1095,7 +1095,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 	       PL_cons_functor_v(t, FUNCTOR_at_sign2, av) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
-    case I_USERCALL0:
+    case I_CALL1:
     { LocalFrame NFR = LD->query->next_environment;
       term_t       g = consTermRef(argFrameP(NFR, 0));
 
