@@ -4984,7 +4984,7 @@ read_term(DECL_LD term_t term, ReadData rd)
     goto out;
   }
 
-  if ( rd->cycles && PL_is_functor(result[0], FUNCTOR_xpceref2) )
+  if ( rd->cycles && PL_is_functor(result[0], FUNCTOR_at_sign2) )
     rc = instantiate_template(term, result[0]);
   else
     rc = PL_unify(term, result[0]);

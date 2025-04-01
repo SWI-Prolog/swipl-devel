@@ -349,7 +349,7 @@ registerControlFunctors()
     FUNCTOR_colon2,			/* Module:Goal */
     FUNCTOR_dollar1,			/* $(Goal) */
 #ifdef O_CALL_AT_MODULE
-    FUNCTOR_xpceref2,			/* Goal@Module */
+    FUNCTOR_at_sign2,			/* Goal@Module */
 #endif
     (functor_t) 0
   };

@@ -57,6 +57,7 @@ A assert		"assert"
 A asserta		"asserta"
 A assertz		"assertz"
 A at			"at"
+A at_sign		"@"
 A at_equals		"=@="
 A at_exit		"at_exit"
 A at_larger		"@>"
@@ -995,7 +996,6 @@ A xfx			"xfx"
 A xfy			"xfy"
 A xml			"xml"
 A xor			"xor"
-A xpceref		"@"
 A yf			"yf"
 A yfx			"yfx"
 A yield			"yield"
@@ -1019,6 +1019,8 @@ F asinh			1
 F assert		1
 F asserta		1
 F assertz		1
+F at_sign		1
+F at_sign		2
 F atan			1
 F atan			2
 F atanh			1
@@ -1323,5 +1325,3 @@ F warning		3
 F worklist		5
 F write_errors		1
 F xor			2
-F xpceref		1
-F xpceref		2

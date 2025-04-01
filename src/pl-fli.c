@@ -2475,7 +2475,7 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
     return false;
 
   fd = word2functor(valueTerm(w)->definition);
-  if ( fd == FUNCTOR_xpceref1 )		/* @ref */
+  if ( fd == FUNCTOR_at_sign1 )		/* @ref */
   { Word p = argTermP(w, 0);
 
     do
@@ -3098,7 +3098,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   p = gTop;
   gTop += 2;
   setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
-  *p++ = FUNCTOR_xpceref1;
+  *p++ = FUNCTOR_at_sign1;
   *p++ = w;
 
   return true;
@@ -3113,7 +3113,7 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 
   if ( a )
   { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-    *a++ = FUNCTOR_xpceref1;
+    *a++ = FUNCTOR_at_sign1;
     *a++ = name;
     return true;
   }
@@ -4053,13 +4053,13 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
       gTop += 2;
       c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
-      *a++ = FUNCTOR_xpceref1;
+      *a++ = FUNCTOR_at_sign1;
       *a++ = put_xpce_ref_arg(ref);
 
       bindConst(p, c);
       return true;
     }
-    if ( hasFunctor(*p, FUNCTOR_xpceref1) )
+    if ( hasFunctor(*p, FUNCTOR_at_sign1) )
     { Word a = argTermP(*p, 0);
 
       deRef(a);

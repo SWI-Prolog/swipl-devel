@@ -5472,7 +5472,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
       { Clause cl;
 	int rc;
 
-	if ( fd->functor == FUNCTOR_xpceref2 &&
+	if ( fd->functor == FUNCTOR_at_sign2 &&
 	     !checkCallAtContextInstantiation(a) )
 	  THROW_EXCEPTION;
 

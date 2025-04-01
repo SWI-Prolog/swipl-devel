@@ -1951,7 +1951,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
 	 !PL_factorize_term(term, template, substitutions) ||
 	 !reunify_acyclic_substitutions(substitutions, cycles, options) ||
 	 !PL_unify_term(at_term,
-			PL_FUNCTOR, FUNCTOR_xpceref2,
+			PL_FUNCTOR, FUNCTOR_at_sign2,
 			  PL_TERM, template,
 			  PL_TERM, cycles) )
       return false;

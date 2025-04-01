@@ -2460,7 +2460,7 @@ right_argument:
 
 	return rc;
 #ifdef O_CALL_AT_MODULE
-      } else if ( fd == FUNCTOR_xpceref2 )	/* Call@Module */
+      } else if ( fd == FUNCTOR_at_sign2 )	/* Call@Module */
       { target_module atsave = ci->at_context;
 	int rc;
 
@@ -2961,7 +2961,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   metacall:
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
-    { Output_1(ci, B_FUNCTOR, FUNCTOR_xpceref2);
+    { Output_1(ci, B_FUNCTOR, FUNCTOR_at_sign2);
     }
 #endif
     if ( ci->colon_context.type != TM_NONE )
@@ -6177,7 +6177,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    } else
 			    { *ARGP++ = makeVarRef(cm);
 			    }
-			    BUILD_TERM(FUNCTOR_xpceref2);
+			    BUILD_TERM(FUNCTOR_at_sign2);
 			    pushed++;
 			    continue;
 			  }
@@ -6193,7 +6193,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			      BUILD_TERM(FUNCTOR_colon2);
 			    }
 			    *ARGP++ = cm->name;
-			    BUILD_TERM(FUNCTOR_xpceref2);
+			    BUILD_TERM(FUNCTOR_at_sign2);
 			    pushed++;
 			    continue;
 			  }
