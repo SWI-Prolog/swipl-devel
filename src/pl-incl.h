@@ -1116,8 +1116,8 @@ Macros for environment frames (local stack frames)
 #define FR_SKIPPED		(0x0002) /* We have skipped on this frame */
 #define FR_MARKED		(0x0004) /* GC */
 #define FR_MARKED_PRED		(0x0008) /* GC predicates/clauses */
-#define FR_DEBUG		(0x0010) /* GUI debugger */
-#define FR_CATCHED		(0x0020) /* Frame caught an exception */
+#define FR_NOTIFY		(0x0010) /* Notify destruction (GUI debugger)*/
+#define FR_CAUGHT		(0x0020) /* Frame caught an exception */
 #define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4 */
@@ -1126,7 +1126,7 @@ Macros for environment frames (local stack frames)
 #define FR_DET			(0x0800) /* Declared det */
 #define FR_DETGUARD		(0x1000) /* Frame is guarded for determinism */
 #define FR_DETGUARD_SET		(0x2000) /* Flag was set on this frame */
-#define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
+#define FR_WATCHED (FR_CLEANUP|FR_NOTIFY)
 
 #define FR_MAGIC_MASK		(0xffff0000)
 #define FR_MAGIC_MASK2		(0xfff00000)
@@ -1205,7 +1205,7 @@ typedef uint64_t lgen_t;
 	do { (f)->generation = (gen); } while(0)
 #endif
 
-#define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
+#define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CAUGHT|\
 			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
 #define FR_CLEAR_NEXT	(FR_LCO_CLEAR|FR_DET|FR_DETGUARD)
 #define FR_CLEAR_ALWAYS (FR_CONTEXT|FR_DETGUARD_SET)

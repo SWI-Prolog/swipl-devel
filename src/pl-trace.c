@@ -2420,7 +2420,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   if ( !PL_strip_module(value, &m, value) )
     return false;
 
-  set(fr, FR_DEBUG);			/* explicit call to do this? */
+  set(fr, FR_NOTIFY);			/* explicit call to do this? */
 
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();

@@ -820,7 +820,7 @@ Note that the cleanup handler is called while protected against signals.
 
 static void
 callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
-{ if ( isoff(fr, FR_CATCHED) )		/* from handler */
+{ if ( isoff(fr, FR_CAUGHT) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
     size_t arg_catcher = 0;
@@ -847,7 +847,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 	assert(0);
     }
 
-    set(fr, FR_CATCHED);
+    set(fr, FR_CAUGHT);
 
 			/* Unify the catcher */
     if ( arg_catcher )
@@ -889,7 +889,7 @@ frameFinished(DECL_LD LocalFrame fr, enum finished reason)
       return false;
   }
 
-  if ( ison(fr, FR_DEBUG) )
+  if ( ison(fr, FR_NOTIFY) )
     return callEventHook(PLEV_FRAMEFINISHED, fr);
 
   return true;
@@ -2036,7 +2036,7 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
 
   while(fr)
   { if ( fr->predicate == catch3 &&
-	 isoff(fr, FR_CATCHED) &&      /* not thrown from recover */
+	 isoff(fr, FR_CAUGHT) &&      /* not thrown from recover */
 	 (void*)fr <= (void*)ch )      /* not call-port of catch/3 */
     { int rc;
       term_t tref, catcher;
@@ -2056,7 +2056,7 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
       { DEBUG(MSG_THROW, Sdprintf("Unified for frame %ld\n", (long)tref));
 	restoreWakeup(&wstate);
 	PL_put_term(exception_term, ex);
-	set(fr, FR_CATCHED);
+	set(fr, FR_CAUGHT);
 	return consTermRef(fr);
       } else
       { if ( ex2 && !isVar(*valTermRef(ex2)) )

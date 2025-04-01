@@ -1939,7 +1939,7 @@ VMH(depart_or_retry_continue, 0, (), ())
 					  /* The catch is not yet installed, */
 					  /* so we ignore it */
 	  if ( FR->predicate == PROCEDURE_catch3->definition )
-	    set(FR, FR_CATCHED);
+	    set(FR, FR_CAUGHT);
 
 	  THROW_EXCEPTION;
 	}
@@ -4856,7 +4856,7 @@ VMI(I_EXITCATCH, 0, 0, ())
     } else
     { BFR = bfr->parent;
     }
-    set(FR, FR_CATCHED);
+    set(FR, FR_CAUGHT);
   }
 
   VMI_GOTO(I_EXIT);
@@ -4967,7 +4967,7 @@ VMH(b_throw, 0, (), ())
 
 	PL_rewind_foreign_frame(fid);
 	if ( catchfr_ref )
-	  clear((LocalFrame)valTermRef(catchfr_ref), FR_CATCHED);
+	  clear((LocalFrame)valTermRef(catchfr_ref), FR_CAUGHT);
 	continue;
       }
     }
@@ -6469,7 +6469,7 @@ next_choice:
 	{ case PL_TRACE_ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED|FR_SKIPPED);
+	    clear(FR, FR_CAUGHT|FR_SKIPPED);
 	    VMH_GOTO(depart_or_retry_continue);
 	  case PL_TRACE_ACTION_ABORT:
 	    THROW_EXCEPTION;
@@ -6668,12 +6668,12 @@ next_choice:
 	  callCleanupHandler(BFR->frame, FINISH_FAIL);
 	  LOAD_REGISTERS(QID);
 	} else
-	{ set(BFR->frame, FR_CATCHED);
+	{ set(BFR->frame, FR_CAUGHT);
 	}
 	if ( exception_term )
 	  THROW_EXCEPTION;
       } else
-      { set(BFR->frame, FR_CATCHED);
+      { set(BFR->frame, FR_CAUGHT);
       }
       DiscardMark(BFR->mark);
       BFR = BFR->parent;
