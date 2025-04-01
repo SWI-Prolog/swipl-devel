@@ -4246,6 +4246,22 @@ stepDynPC(Code PC, const code_info *ci)
   return PC;
 }
 
+const Code
+prevPC(const Clause clause, const Code pc)
+{ const Code end = &clause->codes[clause->codes[-1]];
+
+  if ( pc >= clause->codes && pc < end )
+  { for(Code p = clause->codes; p < end; )
+    { Code n = stepPC(p);
+      if ( n == pc )
+	return p;
+      p = n;
+    }
+  }
+
+  return NULL;
+}
+
 
 		/********************************
 		*  PROLOG DATA BASE MANAGEMENT  *

@@ -53,8 +53,8 @@ void		cleanupWamTable(void);
 void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
 int		get_head_and_body_clause(term_t clause,
-				 term_t head, term_t body,
-				 Module *m, int *flags);
+					 term_t head, term_t body,
+					 Module *m, int *flags);
 Procedure	lookupBodyProcedure(functor_t functor, Module tm);
 int		compileClause(Clause *cp, Word head, Word body,
 			      Procedure proc, Module module,
@@ -72,6 +72,7 @@ int		det_goal_error(LocalFrame fr, Code PC,
 Code		skipArgs(Code PC, int skip, int *in_hvoid);
 bool		argKey(Code PC, int skip, word *key);
 bool		arg1Key(Code PC, word *key);
+const Code	prevPC(const Clause clause, const Code pc);
 bool		decompile(Clause clause, term_t term, term_t bindings);
 word		pl_nth_clause(term_t p, term_t n, term_t ref,
 			      control_t h);

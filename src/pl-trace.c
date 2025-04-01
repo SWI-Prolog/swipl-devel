@@ -192,10 +192,50 @@ PL_get_choice(term_t r, Choice *chp)
 
 #ifdef O_DEBUGGER
 
+/**
+ * True when `FR` is created through a meta-call
+ */
+
+static bool
+is_meta_call(const LocalFrame fr)
+{ const LocalFrame parent = fr->parent;
+
+  if ( parent && levelFrame(fr) == levelFrame(parent)+1 &&
+       isoff(fr->predicate, P_FOREIGN) )
+  { Clause cl = parent->clause->value.clause;
+    const Code pc = prevPC(cl, fr->programPointer);
+
+    if ( pc )
+    { switch(fetchop(pc))
+      { case I_CALL1:
+	case I_CALLATM:
+	case I_DEPARTATMV:
+	case I_CALLATMV:
+	case I_CALLM:
+	case I_CALLN:
+	  return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-isDebugFrame(frame, port) is true if this call   must  be visible in the
-tracer. `No-debug' code has HIDE_CHILDS. Calls to  it must be visible if
-the parent is a debug frame.
+isDebugFrame(frame, port) is true if this  call must be visible in the
+tracer.  We  consider system  code and  user code.   System predicates
+have  the flag  `HIDE_CHILDS` set.   The original  idea was  that user
+calls are  always visible, as  system predicates directly  called from
+user predicates.  In addition, we may show
+
+  - User hooks into system predicates, i.e., multifile predicates
+    called by system predicates.
+  - Calls from system meta-predicates if the meta-predicate itself
+    is called directly from user code and this is the actual meta
+    call.
+
+Note that if we run in debug  mode there is no last call optimization,
+making this a lot simpler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -207,25 +247,32 @@ isDebugFrame(const LocalFrame FR, int port)
     return true;			/* user pred */
 
   LocalFrame parent = FR->parent;
-  if ( alltrue(FR->predicate, P_NOPROFILE|HIDE_CHILDS) &&
-       parent && alltrue(parent->predicate, P_NOPROFILE|HIDE_CHILDS) )
-  { DEBUG(MSG_TRACE_FRAME,
-	  Sdprintf("noprof system-system: [%u] %s; parent [%u] %s\n",
-		   levelFrame(FR), predicateName(FR->predicate),
-		   levelFrame(parent), predicateName(parent->predicate)));
-    return false;
-  }
+  if ( parent )
+  { if ( alltrue(FR->predicate, P_NOPROFILE|HIDE_CHILDS) &&
+	 alltrue(parent->predicate, P_NOPROFILE|HIDE_CHILDS) )
+    { DEBUG(MSG_TRACE_FRAME,
+	    Sdprintf("noprof system-system: [%u] %s; parent [%u] %s\n",
+		     levelFrame(FR), predicateName(FR->predicate),
+		     levelFrame(parent), predicateName(parent->predicate)));
+      return false;
+    }
 
-  for(;
-      parent && ison(parent->predicate, P_NOPROFILE);
-      parent=parent->parent)
-    ;
+    for(;
+	parent && ison(parent->predicate, P_NOPROFILE);
+	parent=parent->parent)
+      ;
+  }
 
   DEBUG(MSG_TRACE_FRAME,
 	{ if ( parent )
-	    Sdprintf("isDebugFrame(): FR [%u] %s; parent [%u] %s\n",
-		     levelFrame(FR), predicateName(FR->predicate),
-		     levelFrame(parent), predicateName(parent->predicate));
+	    Sdprintf("isDebugFrame(): FR [%u%s] %s; parent [%s] [%u%s] %s\n",
+		     levelFrame(FR),
+		     ison(FR->predicate, HIDE_CHILDS) ? "H" : "",
+		     predicateName(FR->predicate),
+		     ison(parent, FR_HIDE_CHILDS) ? "H" : "",
+		     levelFrame(parent),
+		     ison(parent->predicate, HIDE_CHILDS) ? "H" : "",
+		     predicateName(parent->predicate));
 	});
 
   if ( parent )
@@ -235,7 +282,7 @@ isDebugFrame(const LocalFrame FR, int port)
 	return true;			/* user calls system */
       return false;			/* system calls system */
     } else
-    { if ( isoff(parent, FR_HIDE_CHILDS) )
+    { if ( isoff(parent, FR_HIDE_CHILDS) && is_meta_call(FR) )
 	return true;
       return false;
     }
