@@ -3,7 +3,7 @@
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
                    Jan Wielemaker (SWI-Prolog port)
                    Fabrizio Riguzzi (mode directed tabling)
-    Copyright (c) 2016-2021, Benoit Desouter,
+    Copyright (c) 2016-2025, Benoit Desouter,
                              Jan Wielemaker,
                              Fabrizio Riguzzi
                              SWI-Prolog Solutions b.v.
@@ -115,6 +115,8 @@ goal_expansion(tdebug(Goal), Expansion) :-
     ).
 
 :- if(current_prolog_flag(prolog_debug, true)).
+:- autoload(library(debug), [debug/3]).
+
 wl_goal(tnot(WorkList), ~(Goal), Skeleton) :-
     !,
     '$tbl_wkl_table'(WorkList, ATrie),
