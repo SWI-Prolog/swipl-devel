@@ -1464,7 +1464,8 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
 
   if ( PL_get_atom(action, &a) )
   { if ( a == ATOM_continue || a == ATOM_creep )
-    { rval = PL_TRACE_ACTION_CONTINUE;
+    { debugstatus.tracing = true;
+      rval = PL_TRACE_ACTION_CONTINUE;
     } else if ( a == ATOM_nodebug )
     { rval = PL_TRACE_ACTION_CONTINUE;
       *nodebugp = true;
