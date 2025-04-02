@@ -4248,7 +4248,7 @@ stepDynPC(Code PC, const code_info *ci)
 
 const Code
 prevPC(const Clause clause, const Code pc)
-{ const Code end = &clause->codes[clause->codes[-1]];
+{ const Code end = &clause->codes[clause->code_size];
 
   if ( pc >= clause->codes && pc < end )
   { for(Code p = clause->codes; p < end; )
