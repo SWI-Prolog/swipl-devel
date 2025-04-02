@@ -60,6 +60,7 @@
             [instantiation_error/1, existence_error/2, permission_error/3]).
 :- use_module(library(uri), [uri_is_global/1, uri_normalized/3, uri_normalized/2]).
 :- use_module(library(debug), [debug/3]).
+:- autoload(library(dcg/high_order), [sequence/5]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -638,3 +639,28 @@ prolog:message(error(permission_error(yield, engine, _Engine),
     [ 'await/2 is only allowed in Prolog.forEach() queries' ].
 prolog:error_message(js_error(Msg)) -->
     [ 'JavaScript: ~w'-[Msg] ].
+prolog:error_message(js_eval_error(Msg, Chain)) -->
+    [ 'JavaScript: Could not evaluate ' ],
+    sequence(msg_call1, [.], Chain),
+    msg_noeval(Msg).
+
+msg_call1(Dict) -->
+    { is_dict(Dict),
+      _{f:Name, args:Args} :< Dict,
+      !,
+      compound_name_arguments(Term, Name, Args)
+    },
+    [ '~p'-[Term] ].
+msg_call1(Dict) -->
+    { is_dict(Dict),
+      _{v:Value} :< Dict,
+      !
+    },
+    [ '~p'-[Value] ].
+msg_call1(Term) -->
+    [ '~p'-[Term] ].
+
+msg_noeval('TypeError: obj is undefined') -->
+    [ ' (undefined)' ].
+msg_noeval(Msg) -->
+    [ ': ~w'-[Msg] ].

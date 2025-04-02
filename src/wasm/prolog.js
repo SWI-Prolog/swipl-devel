@@ -2387,19 +2387,22 @@ function prolog_js_call(request, result)
 	}
       }
 
+      if ( obj == null || obj == undefined )
+	throw new TypeError(`${obj} has no attribute ${fname}`);
+
       const func = obj[fname];
       if ( typeof(func) === "function"  )
 	return func.apply(obj, args);
       else
-	console.error(`Function ${fname} is not defined on ${obj}`);
+	throw new TypeError(`${obj}.${fname} is not a function`);
     }
 
-    for(let i=0; i<ar.length; i++)
-    { const next = ar[i];
+    for(let i=0; i<ar.length; i++) {
+      const next = ar[i];
 
-      if ( typeof(next) === "string" )
-      { if ( i == 0 )
-	{ switch(next)
+      if ( typeof(next) === "string" ) {
+	if ( i == 0 ) {
+	  switch(next)
 	  { case "prolog":
 	      obj = prolog;
 	      break;
@@ -2409,13 +2412,15 @@ function prolog_js_call(request, result)
 	    default:
 	      obj = eval(next);
 	  }
-	} else
-	{ obj = obj[next];
+	} else if ( obj == null || obj == undefined ) {
+	  throw new TypeError(`${obj} has no attribute ${next}`);
+	} else {
+	  obj = obj[next];
 	}
-      } else if ( next.v !== undefined )
-      { obj = next.v;
-      } else
-      { const args = next.args.map((v) => eval_chain(v));
+      } else if ( next.v !== undefined ) {
+	obj = next.v;
+      } else {
+	const args = next.args.map((v) => eval_chain(v));
 
 	obj = eval_one(obj, next.f, args);
       }
@@ -2424,28 +2429,31 @@ function prolog_js_call(request, result)
     return obj;
   }
 
-  try
-  { return prolog.with_frame(() =>
-    { const ar = prolog.toJSON(request, { string: "string" });
+  try {
+    return prolog.with_frame(() => {
+      const ar = prolog.toJSON(request, { string: "string" });
       let obj;
 
-      if ( ar.setter )
-      { const target = eval_chain(ar.target);
+      if ( ar.setter ) {
+	const target = eval_chain(ar.target);
 	const value  = eval_chain(ar.value);
 	target[ar.setter] = value;
 	obj = true;
-      } else
-      { obj = eval_chain(ar);
+      } else {
+	obj = eval_chain(ar);
       }
 
       return prolog.unify(result, prolog.toProlog(obj));
     }, false);
-  } catch (e)
-  { return prolog.bindings.PL_raise_exception(
-      prolog.toProlog(new prolog.Compound("error",
-					  [ new prolog.Compound("js_error", [e.toString()]),
-					    new prolog.Var()
-					  ])));
+  } catch (e) {
+    return prolog.bindings.PL_raise_exception(
+      prolog.toProlog(new prolog.Compound(
+	"error",
+	new prolog.Compound("js_eval_error",
+			    e.toString(),
+			    new prolog.Term(request)),
+	new prolog.Var()
+	)));
   }
 }
 
