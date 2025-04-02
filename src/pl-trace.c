@@ -2767,7 +2767,8 @@ PL_set_trace_action(term_t action)
 				&nodebug);
 
   if ( rc >= 0 )
-  { LD->trace.yield.resume_action = rc;
+  { clear_skip(LD->trace.yield.port, LD->environment, rc);
+    LD->trace.yield.resume_action = rc;
     LD->trace.yield.nodebug = nodebug;
     return true;
   }
