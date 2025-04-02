@@ -2305,9 +2305,7 @@ pl_spy(term_t p)
   { Definition def = getProcDefinition(proc);
 
     if ( isoff(def, SPY_ME) )
-    { LOCKDEF(def);
-      set(def, SPY_ME);
-      UNLOCKDEF(def);
+    { set(def, SPY_ME);
       if ( !printMessage(ATOM_informational,
 			 PL_FUNCTOR_CHARS, "spy", 1,
 			   PL_TERM, p) )
@@ -2328,9 +2326,7 @@ pl_nospy(term_t p)
   { Definition def = getProcDefinition(proc);
 
     if ( ison(def, SPY_ME) )
-    { LOCKDEF(def);
-      clear(def, SPY_ME);
-      UNLOCKDEF(def);
+    { clear(def, SPY_ME);
       return printMessage(ATOM_informational,
 			  PL_FUNCTOR_CHARS, "nospy", 1,
 			    PL_TERM, p);
