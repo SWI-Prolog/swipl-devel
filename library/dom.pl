@@ -336,7 +336,7 @@ remove_class(Elem, Class) :-
 set_attr(Elem, value, Value) =>
     Elem.value := #Value.
 set_attr(Elem, Name, Value) =>
-    _ := Elem.setAttribute(Name, #Value).
+    _ := Elem.setAttribute(#Name, #Value).
 
 
 %!  set_html(+Elem, +HTML:string) is det.
