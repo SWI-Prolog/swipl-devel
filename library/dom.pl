@@ -116,14 +116,10 @@ append_child(Elem, Child) :-
 %   setAttribute() or getAttribute() methods  unless   Name  is `value`.
 %   @see get_attr/3 and set_attr/3.
 
-attr(Elem, value, Value), ground(Value) =>
-    Elem.value := Value.
-attr(Elem, value, Value) =>
-    Value := Elem.value.
-attr(Elem, Name, Value), ground(Value) =>
-    _ := Elem.setAttribute(Name, Value).
-attr(Elem, Name, Value) =>
-    Value := Elem.getAttribute(Name).
+attr(Elem, Attr, Value), ground(Value) =>
+    set_attr(Elem, Attr, Value).
+attr(Elem, Attr, Value) =>
+    get_attribute(Elem, Attr, Value).
 
 %!  body(-Body) is det.
 %
