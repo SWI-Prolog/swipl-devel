@@ -33,21 +33,263 @@
 */
 
 :- module(dom,
-          [ bind/4,                     % +Elem, +EventType, -Event, :Goal
+          [ html//1,                    % +Spec
+            append_html/2,              % +Elem, :Spec
+            bind/4,                     % +Elem, +EventType, -Event, :Goal
             bind_async/4,               % +Elem, +EventType, -Event, :Goal
             unbind/2,                   % +Elem, +EventType
-            wait/3                      % +Elem, +EventType, =Event
+            wait/3,                     % +Elem, +EventType, =Event
+
+            (html_meta)/1,              % +Spec
+
+            op(1150, fx, html_meta)
           ]).
 :- use_module(wasm).
+:- use_module(library(http/html_decl),
+              [(html_meta)/1, html_no_content/1, op(_,_,_)]).
+:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(lists), [member/2]).
+:- autoload(library(terms), [foldsubterms/5]).
 
 :- meta_predicate
     bind(+,+,-,0),
     bind_async(+,+,-,0).
 
+:- html_meta
+    append_html(+, html),
+    html(html, ?, ?).
+
 /** <module> Browser DOM manipulation
+
+This library allows manipulating the browser DOM and bind event handlers
+to create and manage interactive pages. All manipulations to the DOM can
+be done using `:=/2` from library(wasm), e.g.
+
+    ?- Elem := document.createElement("div").
+
+This library leverages html//1 interface   as introduced for server-side
+HTML generation to create complex DOM   structures from Prolog terms. It
+provides three ways to facilitate reuse.
+
+  - Use `\Rule` in the global structure. This calls the DCG `Rule`,
+    which should call html//1 to add any structure in this place. This
+    approach is compatible to html//1 as used for server-side
+    generation.
+  - Create the global structure and use `Var=Spec` to get access to some
+    of the _containers_ and later fill them using append_html/2.
+  - Create sub structures using html//1 and use them in html//1 calls
+    that create the global structure.
 
 @see library(dialect/tau/dom).
 */
+
+%!  append_html(+Elem, :HTML) is det.
+%
+%   Extend the HTMLElement Elem using  DOM   elements  created from Spec
+%   using html//1.   For example:
+%
+%       ?- Elem := document.getElementById("mydiv"),
+%          append_html(Elem, [ "Hello ", b(world), "!"]).
+%
+%   @see html//1.
+
+append_html(Elem, Spec) :-
+    phrase(html(Spec), NewChildren),
+    forall(member(Child, NewChildren),
+           _ := Elem.appendChild(Child)).
+
+%!  html(:Spec)//
+%
+%   This DCG transforms a DOM specification   into a list of HTMLElement
+%   objects.   This   predicate   is    similar     to    html//1   from
+%   library(http/html_write).  The differences are:
+%
+%     - This predicate creates a list of HTMLElement JavaScript objects
+%       rather than a list of HTML _tokens_.  The translation is done by
+%       means of JavaScript calls that create and manage objects.
+%     - This version allows for nodes to be specified as `Var=Spec`.
+%       This processes Spec normally and binds `Var` to the created
+%       element.
+%
+%   The following terms are processed:
+%
+%     - Var=Spec
+%       Create Spec and bind Var to the created node.
+%     - Format-Args
+%       Create a text node from the result of calling format/3.
+%     - &(Entity)
+%       Create a text node with one character if Entity is an
+%       integer or a ``<span>`` holding the entity otherwise.
+%     - \Rule
+%       Call call(Rule), allowing for a user-defined rule.  This
+%       rule should call html//1 to produce elements.
+%     - M:Rule
+%       As `\Rule`, but calling in a module.  This is the same as
+%       \(M:Rule).
+%     - List
+%       Emit each element of the list.
+%     - Compound
+%       This must but a term Tag(Content) or Tag(Attributes,Content).
+%       If Tag is an HTML element that has no content, a single
+%       argument is intepreted as Tag(Attributes).  Attributes
+%       is either a single attribute of a list of attributes.  Each
+%       attribute is either term Attr(Value) or `Attr=Value`.  If
+%       Value is a list, it is concatenated with a separating space.
+%     - JavaScriptObjecty
+%       This should be an HTMLElement.  It is inserted at this place.
+%     - Atomic
+%       Atomic data creates a text node.
+
+html(M:Spec) -->
+    html(Spec, M).
+
+html(Var=Spec, M) ==>
+    peek(Var),
+    html(Spec, M).
+html(Fmt-Args, M) ==>
+    { format(string(Text), Fmt, M:Args),
+      Elem := document.createTextNode(Text)
+    },
+    [Elem].
+html(&(Code), _), integer(Code) ==>
+    { string_codes(Text, [Code]),
+       Elem := document.createTextNode(Text)
+    },
+    [Elem].
+html(&(Entity), _), atom(Entity) ==>
+    { Elem := document.createElement("span"),
+      format(string(String), '&#~d;', [Entity]),
+      Elem.innerHTML = String
+    },
+    [Elem].
+html(M:Rule, _) ==>
+    call(M:Rule).
+html(\Rule, M) ==>
+    call(M:Rule).
+html(List, M), is_list(List) ==>
+    html_list(List, M).
+html(Spec, M),
+	compound(Spec),
+	compound_name_arguments(Spec, Tag, Args) ==>
+    html_(Tag, Args, M).
+html(Spec, _), string(Spec) ==>
+    { Elem := document.createTextNode(Spec)
+    },
+    [Elem].
+html(Spec, _), is_object(Spec) ==>
+    [Spec].
+html(Spec, _), atomic(Spec) ==>
+    { Elem := document.createTextNode(#Spec)
+    },
+    [Elem].
+
+html_list([], _) ==>
+    [].
+html_list([H|T], M) ==>
+    html(H, M),
+    html_list(T, M).
+
+html_(Tag, Args, M) -->
+    [Elem],
+    { Elem := document.createElement(#Tag),
+      configure_element(Args, Tag, Elem, Content),
+      phrase(html(Content, M), Children),
+      forall(member(Child, Children),
+             _ := Elem.appendChild(Child))
+    }.
+
+%!  configure_element(+Args, +Tag, +Elem, -Content) is det.
+%
+%   configure Elem by applying attributes. Content is either `[]` or the
+%   member of Args that specifies the content.
+
+configure_element([Attrs,Content0], _, Elem, Content) =>
+    apply_attributes(Attrs, Elem),
+    Content = Content0.
+configure_element([Attrs], Tag, Elem, Content), html_no_content(Tag) =>
+    Content = [],
+    apply_attributes(Attrs, Elem).
+configure_element([Content0], _, _, Content) =>
+    Content = Content0.
+configure_element([], _, _, Content) =>
+    Content = [].
+
+%!  apply_attributes(+Attrs, +Elem) is det.
+%
+%   Apply all attributes to Elem.  In   general  that calls `Elem.Attr =
+%   Value`, but some attributes need  to   be  treated  special. Notably
+%   `class`  must  set  `className`   (or    modify   `classList`)   and
+%   `'data-field'=Value` must modify the `dataset` attribute
+
+apply_attributes(Attrs, Elem), is_list(Attrs) =>
+    maplist(apply_attribute(Elem), Attrs).
+apply_attributes(Attr, Elem) =>
+    apply_attribute(Elem, Attr).
+
+apply_attribute(Elem, Attr),
+	compound(Attr),
+	compound_name_arguments(Attr, Name, [Value]) =>
+    apply_attribute(Elem, Name, Value).
+apply_attribute(Elem, Name=Value) =>
+    apply_attribute(Elem, Name, Value).
+
+apply_attribute(Elem, Name, List), is_list(List) =>
+    atomics_to_string(List, ' ', Value),
+    apply_attribute_(Elem, Name, Value).
+apply_attribute(Elem, Name, Value), string(Value) =>
+    apply_attribute_(Elem, Name, Value).
+apply_attribute(Elem, Name, A+B) =>
+    string_concat(A, B, Value),
+    apply_attribute_(Elem, Name, Value).
+apply_attribute(Elem, Name, Value) =>
+    apply_attribute_(Elem, Name, #Value).
+
+apply_attribute_(Elem, class, Classes) =>
+    Elem.className := Classes.
+apply_attribute_(Elem, data-Data, Value) =>
+    set_data(Elem, Data, Value).
+apply_attribute_(Elem, Attr, Value), atom_concat('data-', Data, Attr) =>
+    set_data(Elem, Data, Value).
+apply_attribute_(Elem, Attr, Value) =>
+    Elem.Attr := Value.
+
+%!  set_data(+Elem, +Name, +Value) is det.
+%
+%   Add a camelCase version of Name  to   Elem.dataset  with  Value as a
+%   string.
+
+set_data(Elem, D1-Ds, Value) =>
+    maplist(camelCase1, Ds, DL),
+    atomic_list_concat([D1|DL], Data),
+    Elem.dataset.Data := #Value.
+set_data(Elem, Data0, Value), sub_atom(Data0, _, _, _, -) =>
+    dataCamelCase(Data0, Data),
+    Elem.dataset.Data := #Value.
+set_data(Elem, Data, Value) =>
+    Elem.dataset.Data := #Value.
+
+camelCase1(Atom, Camel) :-
+    atom_codes(Atom, Codes),
+    phrase(camelCase(Codes), CamelCodes),
+    atom_codes(Camel, CamelCodes).
+
+dataCamelCase(Name, Camel) :-
+    atom_codes(Name, Codes),
+    phrase(camelSkip(Codes), CamelCodes),
+    atom_codes(Camel, CamelCodes).
+
+camelCase([]) --> [].
+camelCase([H|T]) -->
+    { code_type(H, to_lower(U)) },
+    [U],
+    camelSkip(T).
+
+camelSkip([]) --> [].
+camelSkip([0'-|T]) --> !, camelCase(T).
+camelSkip([H|T]) --> !, [H], camelSkip(T).
+
+peek(Var, L, L) :- L = [Var|_].
+
 
                 /*******************************
                 *        EVENT HANDLING        *
