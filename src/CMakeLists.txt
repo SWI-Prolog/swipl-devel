@@ -122,7 +122,9 @@ set(SWIPL_DATA_DIRS
     library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
     demo cmake app)
 
-if(NOT EMSCRIPTEN)
+if(EMSCRIPTEN)
+  list(APPEND SWIPL_DATA_DIRS library/dialect/tau)
+else()
   list(APPEND SWIPL_DATA_DIRS library/build)
 endif()
 
@@ -211,7 +213,7 @@ set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 set(SWIPL_DATA_library_unicode blocks.pl)
 
 set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
-    sicstus.pl sicstus4.pl yap.pl xsb.pl)
+    sicstus.pl sicstus4.pl yap.pl xsb.pl tau.pl)
 
 set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
@@ -222,6 +224,7 @@ set(SWIPL_DATA_library_dialect_sicstus4 aggregate.pl between.pl clpfd.pl
     lists.pl ordsets.pl samsort.pl sets.pl terms.pl types.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
+set(SWIPL_DATA_library_dialect_tau dom.pl)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
     curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)

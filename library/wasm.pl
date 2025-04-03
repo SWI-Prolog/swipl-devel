@@ -42,11 +42,8 @@
             (:=)/2,                     % -Result, +Call
 	    await/2,			% +Request, =Result
             is_async/0,
+            must_be_async/1,            % +ForWhat
             sleep/1,                    % +Time
-            bind/4,                     % +Elem, +EventType, -Event, :Goal
-            bind_async/4,               % +Elem, +EventType, -Event, :Goal
-            unbind/2,                   % +Elem, +EventType
-            wait/3,                     % +Elem, +EventType, =Event
             js_script/2,                % +String, +Options
             fetch/3,			% +URL, +Type, -Value
 
@@ -63,10 +60,6 @@
 :- autoload(library(dcg/high_order), [sequence/5]).
 
 :- set_prolog_flag(generate_debug_info, false).
-
-:- meta_predicate
-    bind(+,+,-,0),
-    bind_async(+,+,-,0).
 
 /** <module> WASM version support
 
@@ -201,8 +194,12 @@ await(Request, Result) :-
 is_async :-
     '$can_yield'.
 
-
 %!  must_be_async(+Message) is det.
+%
+%   True when the engine is in async state (see is_async/0).
+%
+%   @error permission_error(run, goal, Message) if the  system is not in
+%   async state.
 
 must_be_async(_) :-
     is_async,
@@ -239,65 +236,6 @@ sleep(Seconds) :-
     ;   system:sleep(Seconds)
     ).
 
-                /*******************************
-                *        EVENT HANDLING        *
-                *******************************/
-
-%!  bind(+Elem, +EventType, -Event, :Goal) is det.
-%!  bind_async(+Elem, +EventType, -Event, :Goal) is det.
-%
-%   Bind EventType on Elem to call Goal. If  Event appears in Goal is is
-%   bound to the current  event.
-%
-%   The bind_async/4 variation runs the event   handler  on a new Prolog
-%   _engine_ using Prolog.forEach().  This implies that the handler runs
-%   asynchronously and all its solutions are enumerated.
-%
-%   @compat bind_async/5 is a SWI-Prolog extension to the Tau library
-
-bind(Elem, On, Ev, Goal) :-
-    bind(Elem, On, Ev, Goal, #{}).
-
-bind_async(Elem, On, Ev, Goal) :-
-    bind(Elem, On, Ev, Goal, #{async:true}).
-
-bind(Elem, On, Ev, Goal, Options) :-
-    foldsubterms(map_object, Goal, Goal1, t(1,[],[]), t(_,VarNames,Map)),
-    Map \== [],
-    dict_pairs(Input, #, Map),
-    term_string(Goal1, String, [variable_names(['Event__'=Ev|VarNames])]),
-    _ := prolog.bind(Elem, #On, String, Input, Options).
-bind(Elem, On, Ev, Goal, Options) :-
-    term_string(Goal, String, [variable_names(['Event__'=Ev])]),
-    _ := prolog.bind(Elem, #On, String, Options).
-
-map_object(Obj, Var, t(N0,VN,Map), t(N,[VarName=Var|VN], [VarName-Obj|Map])) :-
-    is_object(Obj),
-    N is N0+1,
-    format(atom(VarName), 'JsObject__~d__', [N0]).
-
-%!  unbind(+Elem, +EventType) is det.
-%
-%   Remove the event listener for EventType.
-
-unbind(Elem, EventType) :-
-    _ := Elem.removeEventListener(#EventType).
-
-%!  unbind(+Elem, +EventType, :Goal) is det.
-%
-%   Remove the event listener for EventType that executes Goal.
-%   @tbd Implement.  How do we do this?  We somehow need to be
-%   able to find the function from Goal.
-
-%!  wait(+Elem, +EventType, =Event) is det.
-%
-%   Make the calling task wait for EventType   on  Elem. If the event is
-%   triggered, Event is unified with the event object.
-
-wait(Elem, EventType, Event) :-
-    must_be_async(wait/3),
-    Promise := prolog.promise_event(Elem, #EventType),
-    await(Promise, Event).
 
                 /*******************************
                 *      JAVASCRIPT CALLING      *
