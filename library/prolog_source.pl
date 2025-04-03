@@ -228,7 +228,7 @@ requires_library((:- draw_begin_shape(_,_,_,_)),   library(pcedraw)).
 requires_library((:- use_module(library(pce))),    library(pce)).
 requires_library((:- pce_begin_class(_,_)),        library(pce)).
 requires_library((:- pce_begin_class(_,_,_)),      library(pce)).
-requires_library((:- html_meta(_)),                library(http/html_write)).
+requires_library((:- html_meta(_)),                library(http/html_decl)).
 
 %!  update_state(+Term, +Expanded, +Module) is det.
 %
