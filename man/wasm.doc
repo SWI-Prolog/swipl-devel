@@ -371,7 +371,7 @@ to enumerate the answers of two queries we may use the following code
 
   const q1 = e1.query(Query1);  // see Prolog.query()
   const q2 = e2.query(Query2);
-  
+
   try
   { for(;;)
     { const n1 = q1.next();
@@ -753,3 +753,4 @@ promise_sleep(time)
 
 \InputIfFileExists{lib/wasmlib}{}{}
 \InputIfFileExists{lib/dom}{}{}
+\InputIfFileExists{lib/taudom}{}{}

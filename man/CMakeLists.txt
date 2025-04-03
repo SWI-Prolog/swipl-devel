@@ -234,6 +234,10 @@ if(SWIPL_DOC_SERVER)
   pldoc(lib/dom.tex  "${CMAKE_SOURCE_DIR}/library/dom.pl"
 	OPTIONS "--file_synopsis=library(dom)"
         DEPENDS ${CMAKE_SOURCE_DIR}/library/dom.pl)
+  pldoc(lib/taudom.tex  "${CMAKE_SOURCE_DIR}/library/dialect/tau/dom.pl"
+	OPTIONS "--file_synopsis=library(dialect/tau/dom)"
+		"--label=taudom"
+        DEPENDS ${CMAKE_SOURCE_DIR}/library/dialect/tau/dom.pl)
 endif()
 
 # Check that we do not have both a .doc file and extract from the

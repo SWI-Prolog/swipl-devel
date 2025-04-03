@@ -70,7 +70,7 @@
             show/1,                     % +Elem
             toggle/1                    % +Elem
           ]).
-:- use_module(library(wasm)).
+:- use_module('../../wasm').
 :- use_module('../../dom', [bind/4, unbind/2]).
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [representation_error/1]).
