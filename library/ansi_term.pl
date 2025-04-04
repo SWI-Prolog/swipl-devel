@@ -479,6 +479,7 @@ url_prefix('file://').
 
 url_file_name(URL, File) :-
     is_url(File), !,
+    current_prolog_flag(hyperlink_term, true),
     URL = File.
 url_file_name(URL, File) :-
     current_prolog_flag(hyperlink_term, true),
