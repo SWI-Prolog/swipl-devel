@@ -32,10 +32,13 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define USE_FLI_INLINES 1
 #include "pl-incl.h"
 #include "pl-argnames.h"
 #include "pl-comp.h"
 #include "pl-wam.h"
+#include "pl-dict.h"
+#include "pl-fli.h"
 #include "os/pl-buffer.h"
 
 #define META PL_FA_TRANSPARENT
@@ -243,19 +246,19 @@ unify_argnames(term_t t, const argnames *an)
   return false;
 }
 
-#define get_argnames_link(t, error) LDFUNC(get_argnames_link, t, error)
+#define get_argnames_link(t, plain, error) \
+	LDFUNC(get_argnames_link, t, plain, error)
 
 const argnames_link *
-get_argnames_link(DECL_LD term_t t, bool error)
+get_argnames_link(DECL_LD term_t t, term_t plain, bool error)
 { Module m = NULL;
-  term_t decl;
   atom_t name;
 
-  if ( !(decl=PL_new_term_ref()) ||
-       !PL_strip_module(t, &m, decl) )
+  if ( !(plain || (plain=PL_new_term_ref())) ||
+       !PL_strip_module(t, &m, plain) )
     return false;
 
-  if ( PL_get_name_arity(t, &name, NULL) )
+  if ( PL_get_name_arity(plain, &name, NULL) )
   { const argnames_link *link = lookupArgNamesLink(m, name);
     if ( !link && error )
       return PL_existence_error("argnames", t),NULL;
@@ -267,11 +270,12 @@ get_argnames_link(DECL_LD term_t t, bool error)
   return false;
 }
 
-#define get_argnames(t, error) LDFUNC(get_argnames, t, error)
+#define get_argnames(t, plain, error) \
+	LDFUNC(get_argnames, t, plain, error)
 
 const argnames *
-get_argnames(DECL_LD term_t t, bool error)
-{ const argnames_link *link = get_argnames_link(t, error);
+get_argnames(DECL_LD term_t t, term_t plain, bool error)
+{ const argnames_link *link = get_argnames_link(t, plain, error);
 
   if ( link )
     return link->argnames;
@@ -335,6 +339,73 @@ importArgNames(DECL_LD Module into, Module from, atom_t name,
 
     return true;
   }
+}
+
+		 /*******************************
+		 *       DICT INTEGRATION       *
+		 *******************************/
+
+#define argnamesToDict(t, d, tag, nonvar) \
+	LDFUNC(argnamesToDict, t, d, tag, nonvar)
+
+static size_t
+nonvarArgs(term_t t)
+{ Word p = valTermRef(t);
+  deRef(p);
+  assert(isTerm(*p));
+  size_t arity = arityTerm(*p);
+  Word a = argTermP(*p, 0);
+  size_t count = 0;
+
+  for(size_t i=0; i<arity; i++, a++)
+  { Word a2;
+    deRef2(a, a2);
+    if ( !isVar(*a2) )
+      count++;
+  }
+
+  return count;
+}
+
+static bool
+argnamesToDict(DECL_LD term_t t, term_t d, atom_t tag, bool nonvar)
+{ term_t c;
+  const argnames *an;
+
+  if ( (c=PL_new_term_ref()) &&
+       (an=get_argnames(t, c, true)) )
+  { size_t arity = nonvar ? nonvarArgs(c) : arityArgNames(an);
+    Word dict = allocGlobal(2+arity*2);
+
+    if ( dict )
+    { Word p = dict;
+      Word s = valTermRef(c);
+
+      deRef(s);
+      s = argTermP(*s, 0);
+
+      *p++ = dict_functor(arity);
+      *p++ = tag ? tag : nameFunctor(an->functor);
+      for(size_t i=0; i<arity; i++)
+      { if ( nonvar )
+	{ Word a;
+	  deRef2(&s[i], a);
+	  if ( isVar(*a) )
+	    continue;
+	}
+	*p++ = linkValNoG(&s[i]);
+	*p++ = an->names[i];
+      }
+
+      if ( dict_order(dict, NULL) != true )
+	return false;
+
+      setHandle(d, consPtr(dict, TAG_COMPOUND|STG_GLOBAL));
+      return true;
+    }
+  }
+
+  return false;
 }
 
 
@@ -523,7 +594,7 @@ PRED_IMPL("arg_name", 3, arg_name,
 
   switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
-    { an = get_argnames(A1, true);
+    { an = get_argnames(A1, 0, true);
 
       if ( an )
       { int64_t iai;
@@ -549,7 +620,7 @@ PRED_IMPL("arg_name", 3, arg_name,
       }
     }
     case FRG_REDO:
-      an = get_argnames(A1, true);
+      an = get_argnames(A1, 0, true);
       arity = arityArgNames(an);
       ai = CTX_INT;
       break;
@@ -579,7 +650,7 @@ PRED_IMPL("arg_name", 3, arg_name,
 static
 PRED_IMPL("$argnames_property", 3, argnames_property, META)
 { PRED_LD
-  const argnames_link *link = get_argnames_link(A1, false);
+    const argnames_link *link = get_argnames_link(A1, 0, false);
   atom_t prop;
 
   if ( link && PL_get_atom_ex(A2, &prop) )
@@ -627,6 +698,28 @@ PRED_IMPL("$export_argnames", 1, export_argnames, META)
   return exportArgNames(from, name, true);
 }
 
+static const PL_option_t argnames_dict_options[] =
+{ { ATOM_tag,	    OPT_ATOM },
+  { ATOM_nonvar,    OPT_BOOL },
+  { NULL_ATOM,      0 }
+};
+
+
+
+
+static
+PRED_IMPL("argnames_dict", 3, argnames_dict, META)
+{ PRED_LD
+  atom_t tag;
+  int nonvar = false;
+
+  if ( !PL_scan_options(A3, 0, "argnames_dict_options", argnames_dict_options,
+			&tag, &nonvar) )
+    return false;
+
+  /* TBD: bi-directional */
+  return argnamesToDict(A1, A2, tag, nonvar);
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -639,4 +732,5 @@ BeginPredDefs(argnames)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
   PRED_DEF("$import_argnames",   1, import_argnames,   META)
   PRED_DEF("$export_argnames",   1, export_argnames,   META)
+  PRED_DEF("argnames_dict",      3, argnames_dict,     META)
 EndPredDefs
