@@ -710,15 +710,24 @@ static const PL_option_t argnames_dict_options[] =
 static
 PRED_IMPL("argnames_dict", 3, argnames_dict, META)
 { PRED_LD
-  atom_t tag;
+  atom_t tag = 0;
   int nonvar = false;
+  term_t tmp = PL_new_term_ref();
+  Module m = NULL;
 
   if ( !PL_scan_options(A3, 0, "argnames_dict_options", argnames_dict_options,
 			&tag, &nonvar) )
     return false;
 
-  /* TBD: bi-directional */
-  return argnamesToDict(A1, A2, tag, nonvar);
+  if ( !PL_strip_module(A1, &m, tmp) )
+    return false;
+  if ( !PL_is_variable(tmp) )
+  { return ( argnamesToDict(A1, tmp, tag, nonvar) &&
+	     PL_unify(tmp, A2) );
+  } else
+  { assert(0);
+    return false;
+  }
 }
 
 		 /*******************************
