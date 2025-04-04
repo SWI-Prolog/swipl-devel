@@ -34,7 +34,11 @@
 
 #include "pl-incl.h"
 #include "pl-argnames.h"
+#include "pl-comp.h"
 #include "os/pl-buffer.h"
+
+#define META PL_FA_TRANSPARENT
+#define NDET PL_FA_NONDETERMINISTIC
 
 #define AN_EXPORTED	0x1
 #define AN_REDEFINE	0x2
@@ -238,10 +242,10 @@ unify_argnames(term_t t, const argnames *an)
   return false;
 }
 
-#define get_argnames(t, error) LDFUNC(get_argnames, t, error)
+#define get_argnames_link(t, error) LDFUNC(get_argnames_link, t, error)
 
-const argnames *
-get_argnames(DECL_LD term_t t, bool error)
+const argnames_link *
+get_argnames_link(DECL_LD term_t t, bool error)
 { Module m = NULL;
   term_t decl;
   atom_t name;
@@ -251,16 +255,28 @@ get_argnames(DECL_LD term_t t, bool error)
     return false;
 
   if ( PL_get_name_arity(t, &name, NULL) )
-  { const argnames *an = lookupArgNames(m, name);
-    if ( !an && error )
+  { const argnames_link *link = lookupArgNamesLink(m, name);
+    if ( !link && error )
       return PL_existence_error("argnames", t),NULL;
-    return an;
+    return link;
   }
   if ( PL_is_callable(t) )
     return PL_type_error("callable", t),NULL;
 
   return false;
 }
+
+#define get_argnames(t, error) LDFUNC(get_argnames, t, error)
+
+const argnames *
+get_argnames(DECL_LD term_t t, bool error)
+{ const argnames_link *link = get_argnames_link(t, error);
+
+  if ( link )
+    return link->argnames;
+  return NULL;
+}
+
 
 		 /*******************************
 		 *      MODULE OPERATIONS       *
@@ -559,16 +575,32 @@ PRED_IMPL("arg_name", 3, arg_name,
   return false;
 }
 
+static
+PRED_IMPL("$argnames_property", 3, argnames_property, META)
+{ PRED_LD
+  const argnames_link *link = get_argnames_link(A1, false);
+  atom_t prop;
+
+  if ( link && PL_get_atom_ex(A2, &prop) )
+  { if ( prop == ATOM_arity )
+      return PL_unify_int64(A3, arityArgNames(link->argnames));
+    if ( prop == ATOM_functor )
+      return unify_functor(A3, link->argnames->functor, GP_NAMEARITY);
+    if ( prop == ATOM_exported )
+      return PL_unify_bool(A3, link->exported);
+    return PL_domain_error("argnames_property", A2);
+  }
+
+  return FALSE;
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
-#define META PL_FA_TRANSPARENT
-#define NDET PL_FA_NONDETERMINISTIC
-
 BeginPredDefs(argnames)
-  PRED_DEF("argnames",         2, argnames,         META)
-  PRED_DEF("arg_name",         3, arg_name,         META|NDET)
-  PRED_DEF("current_argnames", 2, current_argnames, META|NDET)
+  PRED_DEF("argnames",           2, argnames,          META)
+  PRED_DEF("arg_name",           3, arg_name,          META|NDET)
+  PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
+  PRED_DEF("$argnames_property", 3, argnames_property, META)
 EndPredDefs
