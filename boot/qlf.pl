@@ -103,13 +103,26 @@ qcompile_(FileName, _Module, _Options) :-
 
 '$qload_file'(File, Module, Action, LoadedModule, Options) :-
     setup_call_cleanup(
-        open(File, read, In, [type(binary)]),
+        qopen(File, In, Ref),
         setup_call_cleanup(
             '$save_lex_state'(LexState, Options),
             '$qload_stream'(In, Module,
                             Action, LoadedModule, Options),
             '$restore_lex_state'(LexState)),
-        close(In)).
+        qclose(In, Ref)).
+
+%!  qopen(+File, -Stream, -Ref) is det.
+%
+%   Open  a  .qlf  file  and   push    '$load_input'/2   to   make  sure
+%   prolog_load_context(file, File) works correctly.
+
+qopen(File, In, Ref) :-
+    open(File, read, In, [type(binary)]),
+    asserta(system:'$load_input'(File, In), Ref).
+
+qclose(In, Ref) :-
+    erase(Ref),
+    close(In).
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
     '$qlf_load'(Module:In, LM),
