@@ -41,6 +41,7 @@
 
 static bool equalArgNames(const argnames *a1, const argnames *a2);
 static void freeArgNamesLink(argnames_link *link);
+static bool unify_argnames(term_t t, const argnames *an);
 
 static void
 freeArgNamesSymbol(table_key_t name, table_value_t value)
@@ -48,6 +49,51 @@ freeArgNamesSymbol(table_key_t name, table_value_t value)
 	Sdprintf("freeArgNamesSymbol(%s)\n",
 		 PL_atom_chars((atom_t)name)));
   freeArgNamesLink(val2ptr(value));
+}
+
+static TableWP
+moduleArgNamesTable(Module m)
+{ if ( !m->static_dicts )
+  { TableWP ht = newHTableWP(4);
+    ht->free_symbol = freeArgNamesSymbol;
+    if ( !COMPARE_AND_SWAP_PTR(&m->static_dicts, NULL, ht) )
+      destroyHTableWP(ht);
+  }
+
+  return m->static_dicts;
+}
+
+#define registerArgNames(m, name, an, flags)	\
+	LDFUNC(registerArgNames, m, name, an, flags)
+
+static bool
+registerArgNames(DECL_LD Module m, atom_t name,
+		 argnames *an, unsigned int flags)
+{ TableWP table = moduleArgNamesTable(m);
+  argnames_link *link = allocHeap(sizeof(*link));
+  link->exported = !!(flags&AN_EXPORTED);
+  link->argnames = an;
+
+  argnames_link *old;
+  if ( (flags&AN_REDEFINE) )
+  { old = updateHTableWP(table, name, link);
+    if ( old != link )
+      freeArgNamesLink(old);
+  } else
+  { if ( (old=addHTableWP(table, name, link)) != link )
+    { bool eq = equalArgNames(an, old->argnames);
+      freeArgNamesLink(link);
+      if ( !eq )
+      { term_t ex;
+
+	return ( (ex=PL_new_term_ref()) &&
+		 unify_argnames(ex, an) &&
+		 PL_permission_error("define", "argnames", ex) );
+      }
+    }
+  }
+
+  return true;
 }
 
 #define createArgNames(m, decl, flags) \
@@ -61,13 +107,6 @@ createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
   if ( PL_get_name_arity(decl, &name, &arity) )
   { tmp_buffer buf;
     term_t arg = PL_new_term_ref();
-
-    if ( !m->static_dicts )
-    { TableWP ht = newHTableWP(4);
-      ht->free_symbol = freeArgNamesSymbol;
-      if ( !COMPARE_AND_SWAP_PTR(&m->static_dicts, NULL, ht) )
-	destroyHTableWP(ht);
-    }
 
     initBuffer(&buf);
     for(size_t i=1; i<=arity; i++)
@@ -93,24 +132,7 @@ createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
     for(size_t i=0; i<arity; i++)
       PL_register_atom(an->names[i]);
 
-    argnames_link *link = allocHeap(sizeof(*link));
-    link->exported = !!(flags&AN_EXPORTED);
-    link->argnames = an;
-
-    argnames_link *old;
-    if ( (flags&AN_REDEFINE) )
-    { old = updateHTableWP(m->static_dicts, name, link);
-      if ( old != link )
-	freeArgNamesLink(old);
-    } else
-    { if ( (old=addHTableWP(m->static_dicts, name, link)) != link )
-      { bool eq = equalArgNames(an, old->argnames);
-	freeArgNamesLink(link);
-	if ( !eq )
-	  return PL_permission_error("define", "argnames", decl);
-      }
-    }
-    return true;
+    return registerArgNames(m, name, an, flags);
   } else
   { return PL_type_error("compound", decl);
   }
@@ -152,9 +174,9 @@ freeArgNamesLink(argnames_link *link)
 
 #define lookupArgNamesLink(m, name) LDFUNC(lookupArgNamesLink, m, name)
 
-static const argnames_link *
+static argnames_link *
 lookupArgNamesLink(DECL_LD const Module m, atom_t name)
-{ const argnames_link *link;
+{ argnames_link *link;
   ListCell c;
 
   if ( m->static_dicts &&
@@ -171,7 +193,7 @@ lookupArgNamesLink(DECL_LD const Module m, atom_t name)
 
 const argnames *
 lookupArgNames(DECL_LD const Module m, atom_t name)
-{ const argnames_link *link = lookupArgNamesLink(m, name);
+{ argnames_link *link = lookupArgNamesLink(m, name);
   if ( link )
     return link->argnames;
   return NULL;
@@ -240,6 +262,64 @@ get_argnames(DECL_LD term_t t, bool error)
   return false;
 }
 
+		 /*******************************
+		 *      MODULE OPERATIONS       *
+		 *******************************/
+
+static bool
+noArgNames(Module m, atom_t name)
+{ term_t av;
+
+  return ( (av=PL_new_term_refs(2)) &&
+	   PL_put_atom(av+0, m->name) &&
+	   PL_put_atom(av+1, name) &&
+	   PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
+	   PL_existence_error("argnames", av+0) );
+}
+
+#define exportArgNames(m, name, export) \
+	LDFUNC(exportArgNames, m, name, export)
+
+static bool
+exportArgNames(DECL_LD Module m, atom_t name, bool export)
+{ argnames_link *link = lookupArgNamesLink(m, name);
+
+  if ( link )
+  { link->exported = export;
+    return true;
+  }
+
+  return noArgNames(m, name);
+}
+
+#define importArgNames(info, from, name, flags) \
+	LDFUNC(importArgNames, info, from, name, flags)
+
+static bool
+importArgNames(DECL_LD Module into, Module from, atom_t name,
+	       unsigned int flags)
+{ if ( name )
+  { argnames_link *link = lookupArgNamesLink(from, name);
+    if ( link )
+    { return registerArgNames(into, name, link->argnames, flags);
+    } else
+    { return noArgNames(from, name);
+    }
+  } else
+  { if ( from->static_dicts )
+    { FOR_TABLE(from->static_dicts, k, v)
+      { argnames_link *link = val2ptr(v);
+	if ( link->exported )
+	{ if ( !importArgNames(into, from, k, flags) )
+	    return false;
+	}
+      }
+    }
+
+    return true;
+  }
+}
+
 
 		 /*******************************
 		 *      PROLOG PREDICATES       *
@@ -287,7 +367,8 @@ scanVisibleArgNames(Module m, atom_t name, Buffer b, bool inherit)
 
   if ( m->static_dicts )
   { FOR_TABLE(m->static_dicts, n, v)
-    { addBuffer(b, val2ptr(v), argnames*);
+    { argnames_link *link = val2ptr(v);
+      addBuffer(b, link->argnames, argnames*);
     }
   }
 
