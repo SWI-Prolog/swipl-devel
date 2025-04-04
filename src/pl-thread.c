@@ -1602,7 +1602,7 @@ to ensure we can  access  GD->thread.threads[i]   at  any  time  without
 locking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static void
 resizeThreadMax(void)
 { int newmax = GD->thread.thread_max*2;
   PL_thread_info_t **newinfo, **oldinfo;
@@ -1615,8 +1615,6 @@ resizeThreadMax(void)
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
   linger(&GD->thread.lingering, PL_free, oldinfo);
-
-  return true;
 }
 
 
