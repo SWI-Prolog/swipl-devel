@@ -40,16 +40,18 @@
 #define AN_REDEFINE	0x2
 
 static bool equalArgNames(const argnames *a1, const argnames *a2);
-static void freeArgNames(argnames *an);
+static void freeArgNamesLink(argnames_link *link);
 
 static void
 freeArgNamesSymbol(table_key_t name, table_value_t value)
 { DEBUG(MSG_CLEANUP,
-	Sdprintf("freeArgNamesSymbol(%s)\n", PL_atom_chars((atom_t)name)));
-  freeArgNames(val2ptr(value));
+	Sdprintf("freeArgNamesSymbol(%s)\n",
+		 PL_atom_chars((atom_t)name)));
+  freeArgNamesLink(val2ptr(value));
 }
 
-#define createArgNames(m, decl, flags) LDFUNC(createArgNames, m, decl, flags)
+#define createArgNames(m, decl, flags) \
+	LDFUNC(createArgNames, m, decl, flags)
 
 static bool
 createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
@@ -83,7 +85,6 @@ createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
     argnames *an = allocHeap(sizeof(*an));
     memset(an, 0, sizeof(*an));
     an->references = 1;
-    an->exported   = !!(flags&AN_EXPORTED);
     an->module     = m;
     an->functor    = PL_new_functor(name, arity);
     an->names      = allocHeap(sizeof(*an->names)*arity);
@@ -92,15 +93,19 @@ createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
     for(size_t i=0; i<arity; i++)
       PL_register_atom(an->names[i]);
 
-    argnames *old;
+    argnames_link *link = allocHeap(sizeof(*link));
+    link->exported = !!(flags&AN_EXPORTED);
+    link->argnames = an;
+
+    argnames_link *old;
     if ( (flags&AN_REDEFINE) )
-    { old = updateHTableWP(m->static_dicts, name, an);
-      if ( old != an )
-	freeArgNames(old);
+    { old = updateHTableWP(m->static_dicts, name, link);
+      if ( old != link )
+	freeArgNamesLink(old);
     } else
-    { if ( (old=addHTableWP(m->static_dicts, name, an)) != an )
-      { bool eq = equalArgNames(an, old);
-	freeArgNames(an);
+    { if ( (old=addHTableWP(m->static_dicts, name, link)) != link )
+      { bool eq = equalArgNames(an, old->argnames);
+	freeArgNamesLink(link);
 	if ( !eq )
 	  return PL_permission_error("define", "argnames", decl);
       }
@@ -139,20 +144,36 @@ freeArgNames(argnames *an)
   }
 }
 
-const argnames *
-lookupArgNames(DECL_LD const Module m, atom_t name)
-{ const argnames *an;
+static void
+freeArgNamesLink(argnames_link *link)
+{ freeArgNames(link->argnames);
+  freeHeap(link, sizeof(*link));
+}
+
+#define lookupArgNamesLink(m, name) LDFUNC(lookupArgNamesLink, m, name)
+
+static const argnames_link *
+lookupArgNamesLink(DECL_LD const Module m, atom_t name)
+{ const argnames_link *link;
   ListCell c;
 
   if ( m->static_dicts &&
-       (an=lookupHTableWP(m->static_dicts, name)) )
-    return an;
+       (link=lookupHTableWP(m->static_dicts, name)) )
+    return link;
 
   for(c = m->supers; c; c=c->next)
-  { if ( (an = lookupArgNames(c->value, name)) )
-      return an;
+  { if ( (link = lookupArgNamesLink(c->value, name)) )
+      return link;
   }
 
+  return NULL;
+}
+
+const argnames *
+lookupArgNames(DECL_LD const Module m, atom_t name)
+{ const argnames_link *link = lookupArgNamesLink(m, name);
+  if ( link )
+    return link->argnames;
   return NULL;
 }
 
