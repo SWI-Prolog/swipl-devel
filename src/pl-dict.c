@@ -75,7 +75,7 @@ static bool PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
 #define DICT_GET_TERM	0x08
 
 functor_t
-dict_functor(int pairs)
+dict_functor(size_t pairs)
 { if ( pairs < CACHED_DICT_FUNCTORS )
   { if ( GD->dict.dict_functors[pairs] )
       return GD->dict.dict_functors[pairs];
