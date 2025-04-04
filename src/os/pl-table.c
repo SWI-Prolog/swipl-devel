@@ -416,8 +416,9 @@ redo:
 }
 
 
-int
-htable_iter(Table ht, KVS kvs, size_t *index, table_key_t *name, table_value_t *value)
+bool
+htable_iter(Table ht, KVS kvs, size_t *index,
+	    table_key_t *name, table_value_t *value)
 { size_t idx = *index;
   table_key_t n = NULL_KEY;
   table_value_t v = NULL_VALUE;
@@ -714,7 +715,7 @@ freeTableEnum(TableEnum e)
 }
 
 
-int
+bool
 advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value)
 { DEBUG(MSG_HASH_TABLE_ENUM,
         Sdprintf("advanceTableEnum(). e: %p, ht: %p, kvs: %p, idx: %d\n",

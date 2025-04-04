@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -132,8 +132,8 @@ void		clearHTable(Table ht);
 Table		copyHTable(Table org);
 TableEnum	newTableEnum(Table ht);
 void		freeTableEnum(TableEnum e);
-int		advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value);
-int		htable_iter(Table ht, KVS kvs, size_t *idx,
+bool		advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value);
+bool		htable_iter(Table ht, KVS kvs, size_t *idx,
 			    table_key_t *name, table_value_t *value);
 size_t		sizeofTable(Table ht);
 
