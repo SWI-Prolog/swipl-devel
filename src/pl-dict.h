@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2024, VU University Amsterdam
+    Copyright (c)  2013-2025, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -47,7 +47,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-int	PL_is_dict(term_t t);
+bool	PL_is_dict(term_t t);
 int	pl_for_dict(term_t dict,
 		   int LDFUNCP (*func)(term_t key,
 			       term_t value,
@@ -60,7 +60,7 @@ functor_t dict_functor(int pairs);
 int	  dict_order(Word dict, Word dupl);
 int	  dict_order_term_refs(term_t *av, int *indexes, int cnt);
 Word	  dict_lookup_ptr(word dict, word name, size_t *arg);
-int	  resortDictsInClause(Clause clause);
+bool	  resortDictsInClause(Clause clause);
 void	  resortDictsInTerm(term_t t);
 
 #undef LDFUNC_DECLARATIONS
@@ -69,7 +69,7 @@ void	  resortDictsInTerm(term_t t);
 	pl_for_dict(dict, LDFUNC_REF(funcname), closure, flags)
 
 #define termIsDict(w) LDFUNC(termIsDict, w)
-static inline int
+static inline bool
 termIsDict(DECL_LD word w)
 { Functor f = valueTerm(w);
   FunctorDef fd = valueFunctor(f->definition);
@@ -77,7 +77,7 @@ termIsDict(DECL_LD word w)
   return ( fd->name == ATOM_dict && fd->arity%2 == 1 );
 }
 
-static inline int
+static inline bool
 is_dict_key(word w)
 { return isAtom(w) || isTaggedInt(w);
 }

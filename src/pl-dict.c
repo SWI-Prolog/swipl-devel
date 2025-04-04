@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2024, VU University Amsterdam
+    Copyright (c)  2013-2025, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -67,7 +67,7 @@ The term has the following layout on the global stack:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
+static bool PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
 #define DICT_GET_ALL	0xff
 #define DICT_GET_PAIRS	0x01
 #define DICT_GET_EQUALS	0x02
@@ -302,7 +302,7 @@ compare_term_refs(DECL_LD const int *ip1, const int *ip2, order_term_refs *ctx)
   assert(!isRef(*p));
   assert(!isRef(*q));
 
-  return (*p<*q ? -1 : *p>*q ? 1 : 0);
+  return SCALAR_TO_CMP(*p, *q);
 }
 
 
@@ -749,8 +749,10 @@ get_name_ex(DECL_LD term_t t, Word np)
 }
 
 
-#define get_name_value(p, name, value, m, flags) LDFUNC(get_name_value, p, name, value, m, flags)
-static int
+#define get_name_value(p, name, value, m, flags) \
+	LDFUNC(get_name_value, p, name, value, m, flags)
+
+static bool
 get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
 { const char *type;
 
@@ -807,7 +809,7 @@ get_name_value(DECL_LD Word p, Word name, Word value, mark *m, int flags)
 		 *	 FOREIGN SUPPORT	*
 		 *******************************/
 
-int
+bool
 PL_is_dict(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
@@ -836,7 +838,7 @@ API_STUB(bool)
 /* Turn data into a dict if it is not already a dict.
  */
 
-static int
+static bool
 PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 { GET_LD
   word dupl;
@@ -1131,7 +1133,7 @@ fix_firstvars(Code start, Code end)
   }
 }
 
-static int
+static bool
 resortDictsInCodes(Code PC, Code end)
 {
   for( ; PC < end; PC = stepPC(PC) )
@@ -1242,7 +1244,7 @@ resortDictsInCodes(Code PC, Code end)
   return true;
 }
 
-int
+bool
 resortDictsInClause(Clause clause)
 { Code PC, end;
 
