@@ -35,6 +35,7 @@
 #include "pl-incl.h"
 #include "pl-argnames.h"
 #include "pl-comp.h"
+#include "pl-wam.h"
 #include "os/pl-buffer.h"
 
 #define META PL_FA_TRANSPARENT
@@ -594,6 +595,39 @@ PRED_IMPL("$argnames_property", 3, argnames_property, META)
   return FALSE;
 }
 
+static
+PRED_IMPL("$import_argnames", 1, import_argnames, META)
+{ PRED_LD
+  Module destination = contextModule(environment_frame);
+  Module source = NULL;
+  term_t a1 = PL_new_term_ref();
+  atom_t name;
+
+  if ( !PL_strip_module(A1, &source, a1) )
+    return false;
+  if ( PL_is_variable(a1) )
+    name = 0;
+  else if ( !PL_get_atom_ex(a1, &name) )
+    return false;
+
+  return importArgNames(destination, source, name, 0);
+}
+
+static
+PRED_IMPL("$export_argnames", 1, export_argnames, META)
+{ Module from = NULL;
+  term_t a1 = PL_new_term_ref();
+  atom_t name;
+
+  if ( !PL_strip_module(A1, &from, a1) )
+    return false;
+  if ( !PL_get_atom_ex(a1, &name) )
+    return false;
+
+  return exportArgNames(from, name, true);
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -603,4 +637,6 @@ BeginPredDefs(argnames)
   PRED_DEF("arg_name",           3, arg_name,          META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
+  PRED_DEF("$import_argnames",   1, import_argnames,   META)
+  PRED_DEF("$export_argnames",   1, export_argnames,   META)
 EndPredDefs
