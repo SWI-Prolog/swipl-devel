@@ -39,11 +39,15 @@
 
 typedef struct argnames
 { int	     references;	/* Allow for sharing */
-  bool	     exported;		/* Whether the dict is exported */
   Module     module;		/* Module of definition */
   functor_t  functor;		/* Functor to create an instance */
   atom_t    *names;		/* Names of the arguments */
 } argnames;
+
+typedef struct argnames_link
+{ argnames  *argnames;
+  bool	     exported;
+} argnames_link;
 
 #if USE_LD_MACROS
 #define lookupArgNames(m, name) LDFUNC(lookupArgNames, m, name)
