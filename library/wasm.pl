@@ -369,7 +369,7 @@ js_script(String, _Options) :-
 user:prolog_load_file(Module:File, Options) :-
     file_url(File, URL),
     debug(load_file(url), '~p resolves to ~p', [File, URL]),
-    must_be_async(load_file(File)),
+    must_be_async(load_file(File, URL)),
     load_options(URL, Options, Options1, Modified),
     (   already_loaded(URL, Modified)
     ->  '$already_loaded'(File, URL, Module, Options)
