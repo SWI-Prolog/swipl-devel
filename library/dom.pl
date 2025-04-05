@@ -59,6 +59,9 @@
     append_html(+, html),
     html(html, ?, ?).
 
+:- multifile
+    html_dom/2.                         % HTMLAttr, DOMAttr
+
 /** <module> Browser DOM manipulation
 
 This library allows manipulating the browser DOM and bind event handlers
@@ -135,6 +138,9 @@ append_html(Elem, Spec) :-
 %       is either a single attribute of a list of attributes.  Each
 %       attribute is either term Attr(Value) or `Attr=Value`.  If
 %       Value is a list, it is concatenated with a separating space.
+%       The attribute names can either be the HTML name in lowercase
+%       or the DOM camelCase attribute name.   HTML names are mapped
+%       by the multifile predicate html_dom/2.
 %     - JavaScriptObjecty
 %       This should be an HTMLElement.  It is inserted at this place.
 %     - Atomic
@@ -219,7 +225,7 @@ configure_element([], _, _, Content) =>
 %   Apply all attributes to Elem.  In   general  that calls `Elem.Attr =
 %   Value`, but some attributes need  to   be  treated  special. Notably
 %   `class`  must  set  `className`   (or    modify   `classList`)   and
-%   `'data-field'=Value` must modify the `dataset` attribute
+%   `'data-field'=Value` must modify the `dataset` attribute.
 
 apply_attributes(Attrs, Elem), is_list(Attrs) =>
     maplist(apply_attribute(Elem), Attrs).
@@ -244,14 +250,58 @@ apply_attribute(Elem, Name, A+B) =>
 apply_attribute(Elem, Name, Value) =>
     apply_attribute_(Elem, Name, #Value).
 
-apply_attribute_(Elem, class, Classes) =>
-    Elem.className := Classes.
+apply_attribute_(Elem, HTMLAttr, Classes),
+    html_dom(HTMLAttr, DOMAttr) =>
+    Elem.DOMAttr := Classes.
 apply_attribute_(Elem, data-Data, Value) =>
     set_data(Elem, Data, Value).
 apply_attribute_(Elem, Attr, Value), atom_concat('data-', Data, Attr) =>
     set_data(Elem, Data, Value).
 apply_attribute_(Elem, Attr, Value) =>
     Elem.Attr := Value.
+
+%!  mapping of HTML attribute names to DOM element attributes.
+%
+%   @see https://stackoverflow.com/questions/14544481/is-there-a-mapping-from-html-property-names-to-dom-propety-names
+
+html_dom(acceptcharset, acceptCharset).
+html_dom(accesskey, accessKey).
+html_dom(bgcolor, bgColor).
+html_dom(cellindex, cellIndex).
+html_dom(cellpadding, cellPadding).
+html_dom(cellspacing, cellSpacing).
+html_dom(choff, chOff).
+html_dom(class, className).
+html_dom(codebase, codeBase).
+html_dom(codetype, codeType).
+html_dom(colspan, colSpan).
+html_dom(datetime, dateTime).
+html_dom(checked, defaultChecked).
+html_dom(selected, defaultSelected).
+html_dom(value, defaultValue).
+html_dom(frameborder, frameBorder).
+html_dom(httpequiv, httpEquiv).
+html_dom(longdesc, longDesc).
+html_dom(marginheight, marginHeight).
+html_dom(marginwidth, marginWidth).
+html_dom(maxlength, maxLength).
+html_dom(nohref, noHref).
+html_dom(noresize, noResize).
+html_dom(noshade, noShade).
+html_dom(nowrap, noWrap).
+html_dom(readonly, readOnly).
+html_dom(rowindex, rowIndex).
+html_dom(rowspan, rowSpan).
+html_dom(sectionrowindex, sectionRowIndex).
+html_dom(selectedindex, selectedIndex).
+html_dom(tabindex, tabIndex).
+html_dom(tbodies, tBodies).
+html_dom(tfoot, tFoot).
+html_dom(thead, tHead).
+html_dom(url, 'URL').
+html_dom(usemap, useMap).
+html_dom(valign, vAlign).
+html_dom(valuetype, valueType).
 
 %!  set_data(+Elem, +Name, +Value) is det.
 %
