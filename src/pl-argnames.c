@@ -246,11 +246,11 @@ unify_argnames(term_t t, const argnames *an)
   return false;
 }
 
-#define get_argnames_link(t, plain, error) \
-	LDFUNC(get_argnames_link, t, plain, error)
+#define get_argnames_link(t, plain, module, error)	\
+	LDFUNC(get_argnames_link, t, plain, module, error)
 
 const argnames_link *
-get_argnames_link(DECL_LD term_t t, term_t plain, bool error)
+get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, bool error)
 { Module m = NULL;
   atom_t name;
 
@@ -262,6 +262,8 @@ get_argnames_link(DECL_LD term_t t, term_t plain, bool error)
   { const argnames_link *link = lookupArgNamesLink(m, name);
     if ( !link && error )
       return PL_existence_error("argnames", t),NULL;
+    if ( module )
+      *module = m;
     return link;
   }
   if ( PL_is_callable(t) )
@@ -275,7 +277,7 @@ get_argnames_link(DECL_LD term_t t, term_t plain, bool error)
 
 const argnames *
 get_argnames(DECL_LD term_t t, term_t plain, bool error)
-{ const argnames_link *link = get_argnames_link(t, plain, error);
+{ const argnames_link *link = get_argnames_link(t, plain, NULL, error);
 
   if ( link )
     return link->argnames;
@@ -658,7 +660,8 @@ PRED_IMPL("arg_name", 3, arg_name,
 static
 PRED_IMPL("$argnames_property", 3, argnames_property, META)
 { PRED_LD
-    const argnames_link *link = get_argnames_link(A1, 0, false);
+  Module m = NULL;
+  const argnames_link *link = get_argnames_link(A1, 0, &m, false);
   atom_t prop;
 
   if ( link && PL_get_atom_ex(A2, &prop) )
@@ -668,6 +671,9 @@ PRED_IMPL("$argnames_property", 3, argnames_property, META)
       return unify_functor(A3, link->argnames->functor, GP_NAMEARITY);
     if ( prop == ATOM_exported )
       return PL_unify_bool(A3, link->exported);
+    if ( prop == ATOM_imported )
+      return ( m != link->argnames->module &&
+	       PL_unify_atom(A4, link->argnames->module->name) );
     return PL_domain_error("argnames_property", A2);
   }
 
