@@ -156,7 +156,7 @@ equalArgNames(const argnames *a1, const argnames *a2)
   return false;
 }
 
-const argnames *
+static argnames *
 duplicateArgNames(argnames *an)
 { ATOMIC_INC(&an->references);
   return an;
@@ -324,7 +324,8 @@ importArgNames(DECL_LD Module into, Module from, atom_t name,
 { if ( name )
   { argnames_link *link = lookupArgNamesLink(from, name);
     if ( link )
-    { return registerArgNames(into, name, link->argnames, flags);
+    { return registerArgNames(into, name, duplicateArgNames(link->argnames),
+			      flags);
     } else
     { return noArgNames(from, name);
     }

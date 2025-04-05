@@ -57,7 +57,6 @@ typedef struct argnames_link
 const argnames* lookupArgNames(const Module m, atom_t name);
 size_t		argNamesArg(const argnames *an, atom_t aname);
 size_t		arityArgNames(const argnames *an);
-const argnames* duplicateArgNames(argnames *an);
 #undef LDFUNC_DECLARATIONS
 
 #endif /*PL_ARGNAMES_H_INCLUDED*/
