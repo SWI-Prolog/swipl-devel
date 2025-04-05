@@ -425,21 +425,29 @@ PRED_IMPL("argnames", 2, argnames, PL_FA_TRANSPARENT)
   Module m = NULL;
   term_t decl = PL_new_term_ref();
   int exported = false;
-  int redefine = false;\
+  int redefine = false;
   unsigned int flags = 0;
 
   if ( !PL_strip_module(A1, &m, decl) )
     return false;
-  if ( !PL_scan_options(A2, 0, "argnames_options", argnames_options,
-			&exported, &redefine) )
-    return false;
-  if ( exported )
-    flags |= AN_EXPORTED;
-  if ( redefine )
-    flags |= AN_REDEFINE;
+  if ( CTX_ARITY == 2 )
+  { if ( !PL_scan_options(A2, 0, "argnames_options", argnames_options,
+			  &exported, &redefine) )
+      return false;
+    if ( exported )
+      flags |= AN_EXPORTED;
+    if ( redefine )
+      flags |= AN_REDEFINE;
+  }
 
   return createArgNames(m, decl, flags);
 }
+
+static
+PRED_IMPL("argnames", 1, argnames, PL_FA_TRANSPARENT)
+{ return pl_argnames2_va(PL__t0, PL__ac, PL__ctx);
+}
+
 
 /** current_argnames(?Name, :Term) is nondet.
  */
@@ -735,6 +743,7 @@ PRED_IMPL("argnames_dict", 3, argnames_dict, META)
 		 *******************************/
 
 BeginPredDefs(argnames)
+  PRED_DEF("argnames",           1, argnames,          META)
   PRED_DEF("argnames",           2, argnames,          META)
   PRED_DEF("arg_name",           3, arg_name,          META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
