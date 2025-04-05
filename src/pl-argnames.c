@@ -673,7 +673,7 @@ PRED_IMPL("$argnames_property", 3, argnames_property, META)
       return PL_unify_bool(A3, link->exported);
     if ( prop == ATOM_imported )
       return ( m != link->argnames->module &&
-	       PL_unify_atom(A4, link->argnames->module->name) );
+	       PL_unify_atom(A3, link->argnames->module->name) );
     return PL_domain_error("argnames_property", A2);
   }
 
