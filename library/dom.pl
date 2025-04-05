@@ -260,7 +260,9 @@ apply_attribute_(Elem, Attr, Value), atom_concat('data-', Data, Attr) =>
 apply_attribute_(Elem, Attr, Value) =>
     Elem.Attr := Value.
 
-%!  mapping of HTML attribute names to DOM element attributes.
+%!  html_dom(?HTMLAttr, ?DOMAttr)
+%
+%   Mapping of HTML attribute names to DOM element attributes.
 %
 %   @see https://stackoverflow.com/questions/14544481/is-there-a-mapping-from-html-property-names-to-dom-propety-names
 
