@@ -725,7 +725,7 @@ static const PL_option_t argnames_dict_options[] =
 static
 PRED_IMPL("argnames_dict", 3, argnames_dict, META)
 { PRED_LD
-  atom_t tag = 0;
+  atom_t tag = ATOM_dyndict;
   int nonvar = false;
   term_t tmp = PL_new_term_ref();
   Module m = NULL;
