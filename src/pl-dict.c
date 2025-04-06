@@ -67,7 +67,14 @@ The term has the following layout on the global stack:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
+#define PL_get_dict_ex(m, data, tag, dict, flags) \
+	LDFUNC(PL_get_dict_ex, m, data, tag, dict, flags)
+
+#define LDFUNC_DECLARATIONS
+static bool PL_get_dict_ex(const Module m, term_t data,
+			   term_t tag, term_t dict, int flags);
+#undef LDFUNC_DECLARATIONS
+
 #define DICT_GET_ALL	0xff
 #define DICT_GET_PAIRS	0x01
 #define DICT_GET_EQUALS	0x02
@@ -156,8 +163,8 @@ get_create_dict_ex(DECL_LD term_t t, term_t dt)
     }
   }
 
-  if ( PL_get_dict_ex(t, 0, dt, DICT_GET_ALL) )
-  { assert(isTerm(*valTermRef(dt)));
+  if ( PL_get_dict_ex(NULL, t, 0, dt, DICT_GET_ALL) )
+  { assert(isTerm(*valTermRef(dt))); /* validate no reference */
     return true;
   }
 
@@ -839,9 +846,9 @@ API_STUB(bool)
  */
 
 static bool
-PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
-{ GET_LD
-  word dupl;
+PL_get_dict_ex(DECL_LD const Module m, term_t data,
+	       term_t tag, term_t dict, int flags)
+{ word dupl;
 
   if ( PL_is_dict(data) )
   { PL_put_term(dict, data);
@@ -1429,7 +1436,7 @@ PRED_IMPL("get_dict", 3, get_dict, PL_FA_NONDETERMINISTIC)
 
 
 static
-PRED_IMPL("get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
 { return pl_get_dict(PL__t0, PL__ac, true, PL__ctx);
 }
 
@@ -1489,7 +1496,7 @@ PRED_IMPL("dict_create", 3, dict_create, 0)
 { PRED_LD
   term_t m = PL_new_term_ref();
 
-  if ( PL_get_dict_ex(A3, A2, m, DICT_GET_ALL) )
+  if ( PL_get_dict_ex(NULL, A3, A2, m, DICT_GET_ALL) )
     return PL_unify(A1, m);
 
   return false;
@@ -1547,7 +1554,7 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
   } else
   { term_t m = PL_new_term_ref();
 
-    if ( PL_get_dict_ex(A3, A2, m, DICT_GET_PAIRS) )
+    if ( PL_get_dict_ex(NULL, A3, A2, m, DICT_GET_PAIRS) )
       return PL_unify(A1, m);
   }
 
