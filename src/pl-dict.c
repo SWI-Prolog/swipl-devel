@@ -36,6 +36,7 @@
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-dict.h"
+#include "pl-argnames.h"
 #include "pl-rsort.h"
 #include "pl-funct.h"
 #include "pl-prims.h"
@@ -922,9 +923,14 @@ PL_get_dict_ex(DECL_LD const Module m, term_t data,
     }
   }					/* TBD: {name:value, ...} */
 
-//  if ( m )
+  if ( m )
+  { atom_t name;
+    const argnames *an;
 
-
+    if ( PL_get_name_arity(data, &name, NULL) &&
+	 (an=lookupArgNames(m, name)) )
+      return argnamesToDict(an, data, dict, ATOM_dyndict, false);
+  }
 
   return PL_type_error("dict-data", data);
 }

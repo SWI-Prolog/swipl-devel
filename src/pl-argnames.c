@@ -348,9 +348,6 @@ importArgNames(DECL_LD Module into, Module from, atom_t name,
 		 *       DICT INTEGRATION       *
 		 *******************************/
 
-#define argnamesToDict(t, d, tag, nonvar) \
-	LDFUNC(argnamesToDict, t, d, tag, nonvar)
-
 static size_t
 nonvarArgs(term_t t)
 { Word p = valTermRef(t);
@@ -370,42 +367,37 @@ nonvarArgs(term_t t)
   return count;
 }
 
-static bool
-argnamesToDict(DECL_LD term_t t, term_t d, atom_t tag, bool nonvar)
-{ term_t c;
-  const argnames *an;
+bool
+argnamesToDict(DECL_LD const argnames *an, term_t c, term_t d,
+	       atom_t tag, bool nonvar)
+{ size_t arity = nonvar ? nonvarArgs(c) : arityArgNames(an);
+  Word dict = allocGlobal(2+arity*2);
 
-  if ( (c=PL_new_term_ref()) &&
-       (an=get_argnames(t, c, true)) )
-  { size_t arity = nonvar ? nonvarArgs(c) : arityArgNames(an);
-    Word dict = allocGlobal(2+arity*2);
+  if ( dict )
+  { Word p = dict;
+    Word s = valTermRef(c);
 
-    if ( dict )
-    { Word p = dict;
-      Word s = valTermRef(c);
+    deRef(s);
+    s = argTermP(*s, 0);
 
-      deRef(s);
-      s = argTermP(*s, 0);
-
-      *p++ = dict_functor(arity);
-      *p++ = tag ? tag : nameFunctor(an->functor);
-      for(size_t i=0; i<arity; i++)
-      { if ( nonvar )
-	{ Word a;
-	  deRef2(&s[i], a);
-	  if ( isVar(*a) )
-	    continue;
-	}
-	*p++ = linkValNoG(&s[i]);
-	*p++ = an->names[i];
+    *p++ = dict_functor(arity);
+    *p++ = tag ? tag : nameFunctor(an->functor);
+    for(size_t i=0; i<arity; i++)
+    { if ( nonvar )
+      { Word a;
+	deRef2(&s[i], a);
+	if ( isVar(*a) )
+	  continue;
       }
-
-      if ( dict_order(dict, NULL) != true )
-	return false;
-
-      setHandle(d, consPtr(dict, TAG_COMPOUND|STG_GLOBAL));
-      return true;
+      *p++ = linkValNoG(&s[i]);
+      *p++ = an->names[i];
     }
+
+    if ( dict_order(dict, NULL) != true )
+      return false;
+
+    setHandle(d, consPtr(dict, TAG_COMPOUND|STG_GLOBAL));
+    return true;
   }
 
   return false;
@@ -771,7 +763,8 @@ PRED_IMPL("argnames_to_dict", 3, argnames_to_dict, META)
   if ( !PL_strip_module(A1, &m, tmp) )
     return false;
   if ( !PL_is_variable(tmp) )
-  { return ( argnamesToDict(A1, tmp, tag, nonvar) &&
+  { const argnames *an = get_argnames(A1, tmp, true);
+    return ( an && argnamesToDict(an, tmp, tmp, tag, nonvar) &&
 	     PL_unify(tmp, A2) );
   } else
   { assert(0);

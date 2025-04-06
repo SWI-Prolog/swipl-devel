@@ -51,12 +51,16 @@ typedef struct argnames_link
 
 #if USE_LD_MACROS
 #define lookupArgNames(m, name) LDFUNC(lookupArgNames, m, name)
+#define argnamesToDict(an,c,d,tag,nv) LDFUNC(argnamesToDict,an,c,d,tag,nv)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 const argnames* lookupArgNames(const Module m, atom_t name);
 size_t		argNamesArg(const argnames *an, atom_t aname);
 size_t		arityArgNames(const argnames *an);
+bool		argnamesToDict(const argnames *an, term_t c, term_t d,
+			       atom_t tag, bool nonvar);
+
 #undef LDFUNC_DECLARATIONS
 
 #endif /*PL_ARGNAMES_H_INCLUDED*/
