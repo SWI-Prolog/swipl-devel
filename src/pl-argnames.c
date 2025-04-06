@@ -411,6 +411,40 @@ argnamesToDict(DECL_LD term_t t, term_t d, atom_t tag, bool nonvar)
   return false;
 }
 
+/* dictToArgNames(+dict, argnames*, -term) */
+
+#define dictToArgNames(dict, an, argnames) \
+	LDFUNC(dictToArgNames, dict, an, argnames)
+
+static bool
+dictToArgNames(DECL_LD term_t dict, const argnames *an, term_t argnames)
+{ size_t arity = arityArgNames(an);
+  Word p = allocGlobal(1+arity);
+
+  if ( p )
+  { Word dp = valTermRef(dict);
+    deRef(dp);
+
+    if ( !termIsDict(*dp) )
+    { gTop = p;
+      return PL_type_error("dict", dict);
+    }
+
+    setHandle(argnames, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+    *p++ = an->functor;
+    for(size_t i=0; i<arity; i++, p++)
+    { Word vp = dict_lookup_ptr(*dp, an->names[i], NULL);
+      if ( vp )
+	*p = linkValNoG(vp);
+      else
+	setVar(*p);
+    }
+
+    return true;
+  }
+
+  return false;
+}
 
 		 /*******************************
 		 *      PROLOG PREDICATES       *
@@ -723,7 +757,7 @@ static const PL_option_t argnames_dict_options[] =
 
 
 static
-PRED_IMPL("argnames_dict", 3, argnames_dict, META)
+PRED_IMPL("argnames_to_dict", 3, argnames_to_dict, META)
 { PRED_LD
   atom_t tag = ATOM_dyndict;
   int nonvar = false;
@@ -745,6 +779,24 @@ PRED_IMPL("argnames_dict", 3, argnames_dict, META)
   }
 }
 
+static
+PRED_IMPL("dict_to_argnames", 3, dict_to_argnames, META)
+{ PRED_LD
+  term_t tmp = PL_new_term_ref();
+  Module m = NULL;
+  atom_t name;
+
+  if ( !PL_strip_module(A2, &m, tmp) ||
+       !PL_get_atom_ex(tmp, &name) )
+    return false;
+  const argnames_link *link = lookupArgNamesLink(m, name);
+  if ( !link )
+    return PL_existence_error("argnames", A2);
+
+  return ( dictToArgNames(A1, link->argnames, tmp) &&
+	   PL_unify(A3, tmp) );
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -757,5 +809,6 @@ BeginPredDefs(argnames)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
   PRED_DEF("$import_argnames",   1, import_argnames,   META)
   PRED_DEF("$export_argnames",   1, export_argnames,   META)
-  PRED_DEF("argnames_dict",      3, argnames_dict,     META)
+  PRED_DEF("argnames_to_dict",   3, argnames_to_dict,  META)
+  PRED_DEF("dict_to_argnames",   3, dict_to_argnames,  META)
 EndPredDefs
