@@ -164,7 +164,7 @@ duplicateArgNames(argnames *an)
 
 static void
 freeArgNames(argnames *an)
-{ if ( ATOMIC_DEC(&an->references) )
+{ if ( ATOMIC_DEC(&an->references) == 0 )
   { size_t arity = PL_functor_arity(an->functor);
 
     for(size_t i=0; i<arity; i++)
