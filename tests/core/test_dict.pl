@@ -357,7 +357,7 @@ test(field, X == 3) :-
 test(no_field, error(existence_error(key,d,Dict))) :-
 	Dict = _{a:1,b:2,c:3},
 	ground(Dict.d).
-test(no_dict, error(type_error(dict, "hello"))) :-
+test(no_dict, error(type_error(dict_data, "hello"))) :-
 	ground("hello".x).
 
 :- end_tests(dict_dot3).

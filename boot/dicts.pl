@@ -37,6 +37,8 @@
           [ '.'/3                               % +Left, +Right, -Result
           ]).
 
+:- module_transparent((.)/3).
+
 %!  .(+R, +L, -Result)
 %
 %   Evaluate dot expressions. Note that  '$get_dict_ex' fails if the

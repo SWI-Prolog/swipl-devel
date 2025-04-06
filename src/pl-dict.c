@@ -932,7 +932,7 @@ PL_get_dict_ex(DECL_LD const Module m, term_t data,
       return argnamesToDict(an, data, dict, ATOM_dyndict, false);
   }
 
-  return PL_type_error("dict-data", data);
+  return PL_type_error("dict_data", data);
 }
 
 
@@ -2019,7 +2019,7 @@ PL_get_dict_key(atom_t key, term_t dict, term_t value)
 BeginPredDefs(dict)
   PRED_DEF("is_dict",	     1, is_dict,	0)
   PRED_DEF("is_dict",	     2, is_dict,	0)
-  PRED_DEF("dict_create",    3, dict_create,    0)
+  PRED_DEF("dict_create",    3, dict_create,    PL_FA_TRANSPARENT)
   PRED_DEF("dict_pairs",     3, dict_pairs,     0)
   PRED_DEF("dict_same_keys", 2, dict_same_keys, 0)
   PRED_DEF("put_dict",	     3, put_dict,       0)
