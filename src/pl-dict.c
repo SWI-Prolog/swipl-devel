@@ -922,6 +922,10 @@ PL_get_dict_ex(DECL_LD const Module m, term_t data,
     }
   }					/* TBD: {name:value, ...} */
 
+//  if ( m )
+
+
+
   return PL_type_error("dict-data", data);
 }
 
@@ -1494,10 +1498,13 @@ representations for Data are:
 static
 PRED_IMPL("dict_create", 3, dict_create, 0)
 { PRED_LD
-  term_t m = PL_new_term_ref();
+  term_t tmp = PL_new_term_ref();
+  Module m = contextModule(environment_frame);
 
-  if ( PL_get_dict_ex(NULL, A3, A2, m, DICT_GET_ALL) )
-    return PL_unify(A1, m);
+  if ( !PL_strip_module(A3, &m, tmp) )
+    return false;
+  if ( PL_get_dict_ex(m, tmp, A2, tmp, DICT_GET_ALL) )
+    return PL_unify(A1, tmp);
 
   return false;
 }
