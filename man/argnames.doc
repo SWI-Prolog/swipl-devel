@@ -167,4 +167,21 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
 \label{sec:argnames-macros}
 
 The library \pllib{argnames} installs macro expansion that provides
-compile time conversion of names into constants
+compile time conversion of names into constants.  Defined expansions
+are:
+
+\begin{description}
+  \definition{\arg{Key} of \arg{Argnames}}
+  Expands to the argument index of \arg{Key} in \arg{Argnames}.  This
+  index can be used with e.g. arg/3 or sort/4.
+  \definition{\arg{property(arity} of \arg{Argnames}}
+  Expands to the arity of the argnames named \arg{Argnames}.
+  \definition{\arg{property(functor} of \arg{Argnames}}
+  Expands to a term \arg{Name}/\arg{Arity} that describes the functor
+  of \arg{Argnames}.  This is convenient if the argnames is used as a
+  predicate.  For example
+
+\begin{code}
+:- dynamic property(functor) of book.
+\end{code}    
+\end{description}
