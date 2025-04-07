@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2024, University of Amsterdam
+    Copyright (c)  2009-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -42,30 +42,18 @@
             call_dcg/3                  % :Rule, ?State0, ?State
           ]).
 
-                /********************************
-                *        GRAMMAR RULES          *
-                *********************************/
+/** <module> Grammar rule (DCG) compiler
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The DCG compiler. The original code was copied from C-Prolog and written
-by Fernando Pereira, EDCAAD, Edinburgh,  1984.   Since  then many people
-have modified and extended this code. It's a nice mess now and it should
-be redone from scratch. I won't be doing   this  before I get a complete
-spec explaining all an implementor needs to   know  about DCG. I'm a too
-basic user of this facility myself (though   I  learned some tricks from
-people reporting bugs :-)
+This module provides the  term-expansion  rules   for  DCGs  as  well as
+phrase/2,3 and call_dcg/3 for calling DCGs. The original code was copied
+from C-Prolog and written by Fernando  Pereira, EDCAAD, Edinburgh, 1984.
+Since then many people have modified and extended this code.
 
-The original version contained '$t_tidy'/2  to   convert  ((a,b),  c) to
-(a,(b,c)). As the resulting code is the   same,  this was removed. Since
-version 8.5.6 we also removed moving matches   to the first literal into
-the head as this is done by the compiler, e.g.
-
-   t --> [x]
-
-Translated  into  `t(L0,L)  :-  L0  =   [x|L]`.  SWI-Prolog  moves  head
-unifications immedately following the neck into   the  head and thus the
-DCG compiler no longer needs to do so.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+DCGs have for a long time been a moving target, notably when it comes to
+dealing with cuts and unification delaying   for  calls to non-DCG code.
+This has slowly converged. This implementation   attempts  to be closely
+compatible to the pending ISO standard for DCGs.
+*/
 
 dcg_translate_rule(Rule, Clause) :-
     dcg_translate_rule(Rule, _, Clause, _).
