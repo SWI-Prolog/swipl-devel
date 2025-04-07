@@ -132,9 +132,6 @@ dcg_body(List, P0, _, S, SR, C, P) :-
         (   is_list(List)
         ->  '$append'(List, SR, OL),        % open the list
             C = (S = OL)
-        ;   '$skip_list'(_, List, Tail),
-            var(Tail)
-        ->  C = '$append'(List, SR, S)      % TBD: Can be optimized
         ;   '$type_error'(list_or_partial_list, List)
         )
     ;   string(List)                        % double_quotes = string
