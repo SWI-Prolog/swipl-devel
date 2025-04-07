@@ -543,7 +543,8 @@ PRED_IMPL("current_argnames", 2, current_argnames,
       if ( PL_get_name_arity(a2, &name, &arity) )
       { if ( !mt )		/* specified module */
 	{ if ( (an=lookupArgNames(m, name)) )
-	    return unify_argnames(a2, an);
+	    return ( unify_argnames(a2, an) &&
+		     PL_unify_atom(A1, name) );
 	  return false;
 	}
       } else if ( !PL_is_variable(a2) )
@@ -662,6 +663,11 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
 		return unify_arg(i, plain, Value);
 	    }
 	  }
+#if 0
+	  if ( Value )
+	    return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
+			    ATOM_key, Term, Name);
+#endif
 	  return false;
 	}
 	if ( Arg && PL_get_int64(Arg, &iai) )
@@ -743,7 +749,7 @@ PRED_IMPL("$argnames_property", 3, argnames_property, META)
     return PL_domain_error("argnames_property", A2);
   }
 
-  return FALSE;
+  return false;
 }
 
 static

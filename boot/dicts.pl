@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2013-2015, University of Amsterdam
+    Copyright (c)  2013-2025, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,10 @@
           [ '.'/3                               % +Left, +Right, -Result
           ]).
 
-:- module_transparent((.)/3).
+:- module_transparent((
+       (.)/3,
+       dot_implicit_dict/3,
+       from_argnames/3)).
 
 %!  .(+R, +L, -Result)
 %
@@ -51,8 +55,7 @@
     ;   is_dict(Data, Tag)
     ->  eval_dict_function(Func, Tag, Data, Value)
     ;   is_dict_func(Func)
-    ->  dict_create(Dict, _, Data),
-        '$get_dict_ex'(Func, Dict, Value)
+    ->  dot_implicit_dict(Func, Data, Value)
     ;   '$type_error'(dict_function, Func)
     ).
 
@@ -63,6 +66,37 @@ is_dict_func(get(_,_)).
 is_dict_func(put(_)).
 is_dict_func(put(_,_)).
 
+dot_implicit_dict(Func, Data, Value),
+    compound(Data),
+    '$argnames_property'(Data, arity, _) =>
+    from_argnames(Func, Data, Value).
+dot_implicit_dict(Func, Data, Value) =>
+    dict_create(Dict, #, Data),
+    '.'(Dict, Func, Value).
+
+from_argnames(Key, Data, Value), atom(Key) =>
+    (   get_argnames(Key, Data, Value0)
+    ->  Value = Value0
+    ;   '$existence_error'(arg_name, Key, Data)
+    ).
+from_argnames(Key, Data, Value), var(Key) =>
+    get_argnames(Key, Data, Value).
+from_argnames(get(Key), Data, Value) =>
+    get_argnames(Key, Data, Value).
+from_argnames(get(Key, Default), Data, Value) =>
+    (   get_argnames(Key, Data, Value)
+    ->  true
+    ;   Value = Default
+    ).
+from_argnames(put(New), Data, Value) =>
+    dict_create(Dict, #, Data),
+    put_dict(New, Dict, Value).
+from_argnames(put(Key, New), Data, Value), atomic(Key) =>
+    dict_create(Dict, #, Data),
+    put_dict(Key, Dict, New, Value).
+from_argnames(put(Key, New), Data, Value) =>
+    dict_create(Dict, #, Data),
+    put_dict_path(Key, Dict, New, Value).
 
 %!  eval_dict_function(+Func, +Tag, +Dict, -Value)
 %
