@@ -277,8 +277,12 @@ unify_argnames(term_t t, const argnames *an)
 #define get_argnames_link(t, plain, module, error)	\
 	LDFUNC(get_argnames_link, t, plain, module, error)
 
-const argnames_link *
-get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, bool error)
+#define AN_ERR_EXISTENCE 0x1
+#define AN_ERR_TYPE      0x2
+#define AN_DECL		 0x4
+
+static const argnames_link *
+get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, int flags)
 { Module m = NULL;
   atom_t name;
 
@@ -286,25 +290,34 @@ get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, bool error)
        !PL_strip_module(t, &m, plain) )
     return false;
 
-  if ( PL_get_name_arity(plain, &name, NULL) )
-  { const argnames_link *link = lookupArgNamesLink(m, name);
-    if ( !link && error )
-      return PL_existence_error("argnames", t),NULL;
-    if ( module )
-      *module = m;
-    return link;
+  if ( !(flags&AN_DECL) )
+  { Word p = valTermRef(plain);
+    deRef(p);
+    if ( isTerm(*p) )
+    { name = nameFunctor(functorTerm(*p));
+    } else
+    { if ( (flags&AN_ERR_TYPE) )
+	PL_type_error("compound", t);
+      return NULL;
+    }
+  } else if ( !PL_get_name_arity(plain, &name, NULL) )
+  { return PL_type_error("callable", t),NULL;
   }
-  if ( PL_is_callable(t) )
-    return PL_type_error("callable", t),NULL;
 
-  return false;
+  const argnames_link *link = lookupArgNamesLink(m, name);
+  if ( !link && (flags&AN_ERR_EXISTENCE) )
+    return PL_existence_error("argnames", t),NULL;
+  if ( module )
+    *module = m;
+
+  return link;
 }
 
 #define get_argnames(t, plain, error) \
 	LDFUNC(get_argnames, t, plain, error)
 
 const argnames *
-get_argnames(DECL_LD term_t t, term_t plain, bool error)
+get_argnames(DECL_LD term_t t, term_t plain, int error)
 { const argnames_link *link = get_argnames_link(t, plain, NULL, error);
 
   if ( link )
@@ -674,7 +687,7 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
   switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
     { if ( Value ) plain = PL_new_term_ref();
-      an = get_argnames(Term, plain, true);
+      an = get_argnames(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
 
       if ( an )
       { int64_t iai;
@@ -706,11 +719,13 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
 	{ ai = 0;
 	  break;
 	}
+      } else
+      { return false;
       }
     }
     case FRG_REDO:
       if ( Value ) plain = PL_new_term_ref();
-      an = get_argnames(Term, plain, true);
+      an = get_argnames(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
       arity = arityArgNames(an);
       ai = CTX_INT;
       break;
@@ -760,7 +775,7 @@ static
 PRED_IMPL("$argnames_property", 3, argnames_property, META)
 { PRED_LD
   Module m = NULL;
-  const argnames_link *link = get_argnames_link(A1, 0, &m, false);
+  const argnames_link *link = get_argnames_link(A1, 0, &m, AN_DECL);
   atom_t prop;
 
   if ( link && PL_get_atom_ex(A2, &prop) )
@@ -835,7 +850,7 @@ PRED_IMPL("argnames_to_dict", 3, argnames_to_dict, META)
   if ( !PL_strip_module(A1, &m, tmp) )
     return false;
   if ( !PL_is_variable(tmp) )
-  { const argnames *an = get_argnames(A1, tmp, true);
+  { const argnames *an = get_argnames(A1, tmp, AN_ERR_EXISTENCE|AN_ERR_TYPE);
     return ( an && argnamesToDict(an, tmp, tmp, tag, nonvar) &&
 	     PL_unify(tmp, A2) );
   } else
