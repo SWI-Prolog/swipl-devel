@@ -25,7 +25,7 @@ set(DOC_CORE abstract.tex intro.tex overview.tex builtin.tex module.tex
     foreign.tex wasm.tex runtime.tex hack.tex summary.tex xpce.tex glossary.tex
     ide.tex license.tex threads.tex engines.tex streams.tex
     attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex ssu.tex
-    tabling.tex packs.tex)
+    tabling.tex packs.tex argnames.tex)
 if(MULTI_THREADED)
 list(APPEND DOC_CORE profile.tex)
 endif()

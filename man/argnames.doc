@@ -107,7 +107,7 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
 \subsection{Predicates acting on argnames}
 \label{sec:argnames-predicates}
 
-\begin{predicates}
+\begin{description}
   \predicate{argnames}{1}{:Compound}
   Declare argnames for the name of \arg{Compound}.  Each argument
   of \arg{Compound} must be an atom that specifies the name of the
@@ -119,7 +119,7 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
   may integrate this into arg/3.  Raises an \const{existence_error}
   if \arg{Term} is not declared using argnames/1 and a \const{type_error}
   if \arg{Term} is not a compound term.
-  
+
   \predicate{arg_name}{3}{:Term, ?Arg, ?Name}
   True when \arg{Name} is the name of the \arg{Arg}-th argument of
   the argnames \arg{Term}.
@@ -160,4 +160,11 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
   Create an argnames term from the properties of \arg{Dict}.  Properties
   in \arg{Dict} that do not appear in the argnames \arg{Tag} are
   silently ignored.
-\end{predicates}
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Macro expansion for argnames}
+\label{sec:argnames-macros}
+
+The library \pllib{argnames} installs macro expansion that provides
+compile time conversion of names into constants

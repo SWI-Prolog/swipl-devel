@@ -1430,6 +1430,9 @@ trees to allow for cheaper updates. One of the issues is that the
 representation must either be kept canonical or unification must be
 extended to compensate for alternate representations.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{argnames.tex}
+
 
 % ================================================================
 \section{Integration of strings and dicts in the libraries}
