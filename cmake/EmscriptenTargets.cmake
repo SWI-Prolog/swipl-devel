@@ -81,6 +81,7 @@ if(PKG_CHR)
       cp -LlRf ${chr_files} ${WASM_PRELOAD_DIR}/library/ext/chr/)
   set(CP_CHR2
       cp -LlRf ${chr_chr_files} ${WASM_PRELOAD_DIR}/library/ext/chr/chr/)
+  list(APPEND wasm_preload_depends chr)
 else()
   set(CP_CHR1 :)
   set(CP_CHR2 :)
