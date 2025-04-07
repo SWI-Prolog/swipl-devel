@@ -44,6 +44,9 @@
     argnames_property(:, ?).
 
 /** <module> argnames support
+
+This library provides additional argnames  support. Notably, it provides
+term-expansion for `Property of Argnames` terms.
 */
 
 %!  argnames_property(:NameOrTerm, ?Property) is nondet.
@@ -82,25 +85,40 @@ argnames_property_(imported_from(Module), Name) :-
                 *        TERM EXPANSION        *
                 *******************************/
 
+:- multifile
+    system:term_expansion/2,
+    system:goal_expansion/2.
+
 argnames_term_expansion(GoalIn, GoalOut) :-
     sub_term(Sub, GoalIn),
     nonvar(Sub),
     Sub = (_ of _),
-    mapsubterms(map_argnames, GoalIn, GoalOut).
+    !,
+    mapsubterms(map_argnames, GoalIn, GoalOut),
+    GoalIn \== GoalOut.
 
 map_argnames(Prop of ArgNames, Expanded) =>
     prolog_load_context(module, M),
     expand_property(Prop, M:ArgNames, Expanded).
+map_argnames(_, _) =>
+    fail.
 
-expand_property(Key, ArgNames, Arg), atom(Key) =>
-    (   arg_name(ArgNames, Arg, Key)
-    ->  true
-    ;   existence_error(arg_name, Key, ArgNames)
+expand_property(Key, M:ArgNames, Arg), atom(Key) =>
+    (   current_argnames(ArgNames, M:Decl)
+    ->  (   arg(Arg0, Decl, Key)
+        ->  Arg = Arg0
+        ;   existence_error(argnames, Key, M:ArgNames)
+        )
+    ;   existence_error(argnames, M:ArgNames)
     ).
 expand_property(property(arity), ArgNames, Arity) =>
     argnames_property(ArgNames, arity(Arity)).
 expand_property(property(functor), ArgNames, Functor) =>
     argnames_property(ArgNames, functor(Functor)).
 
-system:term_expansion(In, Out) :-
-    argnames_term_expansion(In, Out).
+system:term_expansion((Head0 :- Body), Clause) :-
+    argnames_term_expansion(Head0, Head),
+    Clause = (Head:-Body).
+
+system:goal_expansion(GoalIn, GoalOut) :-
+    argnames_term_expansion(GoalIn, GoalOut).

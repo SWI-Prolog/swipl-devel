@@ -42,6 +42,7 @@
 test_argnames :-
     run_tests([ argnames_decl,
                 argnames,
+                argnames_expand,
                 export_argnames,
                 import_argnames,
                 argnames_dict
@@ -105,6 +106,19 @@ test(arg, error(type_error(compound, hello))) :-
     get_argnames(x, hello, _).
 
 :- end_tests(argnames).
+
+:- begin_tests(argnames_expand).
+:- argnames(box(x,y,w,h)).
+
+test(arg, X == 1) :-
+    arg(x of box, box{x:1}, X).
+test(arg, Arity == 4) :-
+    Arity = property(arity) of box.
+test(arg, Functor == box/4) :-
+    Functor = property(functor) of box.
+
+:- end_tests(argnames_expand).
+
 
 :- begin_tests(export_argnames).
 :- argnames(book(author, title, year, publisher), [ exported(true) ]).
