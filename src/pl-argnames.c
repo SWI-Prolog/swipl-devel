@@ -105,6 +105,21 @@ registerArgNames(DECL_LD Module m, atom_t name,
   return true;
 }
 
+#define isDuplicateKey(buf, key) LDFUNC(isDuplicateKey, buf, key)
+
+static bool
+isDuplicateKey(DECL_LD const Buffer buf, atom_t name)
+{ const atom_t *found = baseBuffer(buf, const atom_t);
+  const size_t  count = entriesBuffer(buf, const atom_t);
+
+  for(size_t i=0; i<count; i++)
+  { if ( found[i] == name )
+      return true;
+  }
+
+  return false;
+}
+
 #define createArgNames(m, decl, flags) \
 	LDFUNC(createArgNames, m, decl, flags)
 
@@ -117,13 +132,25 @@ createArgNames(DECL_LD Module m, term_t decl, unsigned int flags)
   { tmp_buffer buf;
     term_t arg = PL_new_term_ref();
 
+    if ( arity == 0 )
+    { if ( PL_is_compound(decl) )
+	return PL_error(NULL, 0, "no arguments",
+			ERR_DOMAIN, ATOM_argnames, decl);
+      else
+	return PL_type_error("compound", decl);
+    }
     initBuffer(&buf);
     for(size_t i=1; i<=arity; i++)
     { atom_t aname;
 
       _PL_get_arg(i, decl, arg);
       if ( PL_get_atom_ex(arg, &aname) )
-      { addBuffer(&buf, aname, atom_t);
+      { if ( isDuplicateKey((Buffer)&buf, aname) )
+	{ discardBuffer(&buf);
+	  return PL_error(NULL, 0, "duplicate key",
+			  ERR_DOMAIN, ATOM_argnames, decl);
+	}
+	addBuffer(&buf, aname, atom_t);
       } else
       { discardBuffer(&buf);
 	return false;
