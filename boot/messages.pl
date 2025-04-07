@@ -1532,7 +1532,7 @@ extra_line -->
 
 prolog_message(if_tty(Message)) -->
     (   {current_prolog_flag(tty_control, true)}
-    ->  [ at_same_line | Message ]
+    ->  [ at_same_line ], list(Message)
     ;   []
     ).
 prolog_message(halt(Reason)) -->
@@ -1990,6 +1990,9 @@ code(Term) -->
 
 code(Format, Term) -->
     [ ansi(code, Format, [Term]) ].
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
 
 
 		 /*******************************
