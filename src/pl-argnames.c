@@ -38,6 +38,7 @@
 #include "pl-comp.h"
 #include "pl-wam.h"
 #include "pl-dict.h"
+#include "pl-prims.h"
 #include "pl-fli.h"
 #include "os/pl-buffer.h"
 
@@ -622,42 +623,61 @@ PRED_IMPL("current_argnames", 2, current_argnames,
   return false;
 }
 
-static
-PRED_IMPL("arg_name", 3, arg_name,
-	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+#define unify_arg(i, plain, value) LDFUNC(unify_arg, i, plain, value)
+
+static bool
+unify_arg(DECL_LD size_t i, term_t plain, term_t Value)
+{ Word p = valTermRef(plain);
+  deRef(p);
+  assert(isTerm(*p));
+  assert(i < arityTerm(*p));
+  p = argTermP(*p, i);
+  return unify_ptrs(p, valTermRef(Value), 0);
+}
+
+static foreign_t
+pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
+	    control_t PL__ctx)
 { PRED_LD
   const argnames *an;
   size_t ai, arity;
+  term_t plain = 0;
 
   switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
-    { an = get_argnames(A1, 0, true);
+    { if ( Value ) plain = PL_new_term_ref();
+      an = get_argnames(Term, plain, true);
 
       if ( an )
       { int64_t iai;
 	atom_t name;
 	arity = arityArgNames(an);
 
-	if ( PL_get_atom(A3, &name) )
+	if ( PL_get_atom(Name, &name) )
 	{ for(size_t i=0; i<arity; i++)
 	  { if ( an->names[i] == name )
-	      return PL_unify_int64(A2, i+1);
+	    { if ( Arg )
+		return PL_unify_int64(Arg, i+1);
+	      else
+		return unify_arg(i, plain, Value);
+	    }
 	  }
 	  return false;
 	}
-	if ( PL_get_int64(A2, &iai) )
+	if ( Arg && PL_get_int64(Arg, &iai) )
 	{ if ( iai >= 1 && iai <= arity )
-	    return PL_unify_atom(A3, an->names[iai-1]);
+	    return PL_unify_atom(Name, an->names[iai-1]);
 	  return false;
 	}
-	if ( PL_is_variable(A2) && PL_is_variable(A3) )
+	if ( (!Arg || PL_is_variable(Arg)) && PL_is_variable(Name) )
 	{ ai = 0;
 	  break;
 	}
       }
     }
     case FRG_REDO:
-      an = get_argnames(A1, 0, true);
+      if ( Value ) plain = PL_new_term_ref();
+      an = get_argnames(Term, plain, true);
       arity = arityArgNames(an);
       ai = CTX_INT;
       break;
@@ -670,8 +690,9 @@ PRED_IMPL("arg_name", 3, arg_name,
 
   fid_t fid = PL_open_foreign_frame();
   for(; ai < arity; ai++)
-  { if ( PL_unify_int64(A2, ai+1) &&
-	 PL_unify_atom(A3, an->names[ai]) )
+  { if ( (!Arg || PL_unify_int64(Arg, ai+1)) &&
+	 PL_unify_atom(Name, an->names[ai]) &&
+	 unify_arg(ai, plain, Value) )
     { PL_close_foreign_frame(fid);
       if ( ai == arity-1 )
 	return true;
@@ -682,6 +703,24 @@ PRED_IMPL("arg_name", 3, arg_name,
   PL_close_foreign_frame(fid);
 
   return false;
+}
+
+/** arg_name(:Term, ?Arg, ?Name) is nondet.
+ */
+
+static
+PRED_IMPL("arg_name", 3, arg_name,
+	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ return pl_arg_name(A1, A2, A3, 0, PL__ctx);
+}
+
+/** get_argnames(?Name, :Term, ?Value) is nondet.
+ */
+
+static
+PRED_IMPL("get_argnames", 3, get_argnames,
+	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ return pl_arg_name(A2, 0, A1, A3, PL__ctx);
 }
 
 static
@@ -797,6 +836,7 @@ PRED_IMPL("dict_to_argnames", 3, dict_to_argnames, META)
 BeginPredDefs(argnames)
   PRED_DEF("argnames",           1, argnames,          META)
   PRED_DEF("argnames",           2, argnames,          META)
+  PRED_DEF("get_argnames",       3, get_argnames,      META|NDET)
   PRED_DEF("arg_name",           3, arg_name,          META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
