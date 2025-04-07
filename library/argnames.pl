@@ -33,11 +33,18 @@
 */
 
 :- module(argnames,
-          [ argnames_property/2         % :NameOrTerm, ?Property
+          [ argnames_property/2,        % :NameOrTerm, ?Property
+            op(650, xfx, of)            % Key of Argnames
           ]).
+:- use_module(library(error)).
+:- use_module(library(occurs)).
+:- use_module(library(terms)).
 
 :- meta_predicate
     argnames_property(:, ?).
+
+/** <module> argnames support
+*/
 
 %!  argnames_property(:NameOrTerm, ?Property) is nondet.
 %
@@ -69,3 +76,31 @@ argnames_property_(exported(Exported), Name) :-
     '$argnames_property'(Name, exported, Exported).
 argnames_property_(imported_from(Module), Name) :-
     '$argnames_property'(Name, imported, Module).
+
+
+                /*******************************
+                *        TERM EXPANSION        *
+                *******************************/
+
+argnames_term_expansion(GoalIn, GoalOut) :-
+    sub_term(Sub, GoalIn),
+    nonvar(Sub),
+    Sub = (_ of _),
+    mapsubterms(map_argnames, GoalIn, GoalOut).
+
+map_argnames(Prop of ArgNames, Expanded) =>
+    prolog_load_context(module, M),
+    expand_property(Prop, M:ArgNames, Expanded).
+
+expand_property(Key, ArgNames, Arg), atom(Key) =>
+    (   arg_name(ArgNames, Arg, Key)
+    ->  true
+    ;   existence_error(arg_name, Key, ArgNames)
+    ).
+expand_property(property(arity), ArgNames, Arity) =>
+    argnames_property(ArgNames, arity(Arity)).
+expand_property(property(functor), ArgNames, Functor) =>
+    argnames_property(ArgNames, functor(Functor)).
+
+system:term_expansion(In, Out) :-
+    argnames_term_expansion(In, Out).
