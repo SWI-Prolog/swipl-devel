@@ -1,0 +1,163 @@
+\section{Argnames: compound terms with named arguments}
+\label{sec:argnames}
+
+While \jargon{dict}, as described in \secref{bidicts}, introduce terms
+that map a dynamic set of keys to values, there is also a need for and
+tradition in using names (atoms) to access arguments in compound
+terms.  For example, a program may use a term \term{book}{Author,
+  Title, Year, Publisher} to represent a book.   Text books such
+as \cite{Keefe:90} suggest defining predicates as below to access
+\jargon{fields} in such a term:
+
+\begin{code}
+book_author(book(Author,_,_,_), Author).
+set_book_author(Author,
+		book(_,Title,Year,Publisher),
+		book(Author,Title,Year,Publisher)).
+\end{code}
+
+This mechanism is automated by \pllib{record}, which translates a
+declaration \verb$:- record book(author, title, year, publisher).$
+into a set of predicates to create, access and update such terms.
+
+Alternatively, Ciao introduces \jargon{argnames} and ECLiPSe
+\jargon{struct} that that exploit compile time term rewriting to
+create compound terms from a partial set of named arguments.  The
+ECLiPSe version uses the same syntax as SWI-Prolog \jargon{dicts}
+while the Ciao version uses \verb@tag${k1=>v1,k2=>v2}@.  This
+section explains the SWI-Prolog implementation for named arguments
+that is under discussion as a PIP between the Ciao, ECLiPSe and
+XSB teams.
+
+Compound terms with named arguments are both related to and
+fundamentally different from SWI-Prolog dicts.  Nevertheless,
+they use the same syntax.  Below is a list of important rules
+and properties to keep in mind.
+
+\begin{itemize}
+  \item The \jargon{tag} for argnames is always an atom.  Argnames
+    must be declared using argnames/1 and the declaration is local
+    to a module.  Argnames declaration follow the visibility rules
+    of \jargon{operators}.
+  \item The predicates read_term/2 and friends translate an expression
+    \verb$tag{k1:v1,k2:v2,...}$ into a compound if \arg{tag} is a
+    visible argnames declaration on the current module.   Otherwise
+    such a term is translated into a dict.  Ongoing discussion in
+    the PIP meetings tend to \textbf{only} accept \verb$#$ as a
+    tag for a \jargon{dynamic dict}.  As is, SWI-Prolog accepts
+    any key for a dict.  Future versions may require to declare
+    a tag as mapping to a dynamic dict and raise a syntax error
+    if a tag is neither declared as argnames nor as dict.
+  \item While dict keys can be atoms or small integers, argnames
+    keys are restricted to atoms.
+\end{itemize}
+
+\subsection{Usage of argnames and their relation to dicts}
+\label{sec:argnames-usage}
+
+Both argnames and dicts represent a set of named properties.  Argnames
+map directly to a compound term.  The argnames syntax provides a
+convenient syntax for creating compound terms from a subset of the
+arguments of the compound term, leaving other arguments unbound.  For
+example if we would like to represent a table in Prolog that has many
+arguments we can use argnames for convenient access.
+
+\begin{code}
+:- argnames(book(author, title, year, publisher).
+
+book('Douglas Adams',
+     'The Hitchhiker\'s Guide to the Galaxy',
+     1979,
+     'Pan Books').
+...
+\end{code}
+
+Now we can access the publication years of all books by
+\textit{Douglas Adams} using the query
+\verb$book{author:'Douglas Adams', year:Year}$ without worrying about
+the order of the columns or the other defined columns.
+
+Argnames are particularly suitable for the above scenario.  The
+situation is more complicated when it comes to passing structured data
+around in programs.  Argnames and dicts can both satisfy this
+requirement.  Argnames require a declaration and cannot be extended at
+runtime, while it is possible to create dicts at runtime with an
+arbitrary set of \jargon{keys}.  Argnames use a controlled set of
+keys, can be mixed with regular compound terms, can be used as
+predicate heads and queries and can be manipulated with standard
+Prolog predicates such as arg/3, functor/3, \predref{=..}{2}, etc.
+Dicts come with a distinct set of predicates that provide similar
+operations.  Using the above predicates on dicts is poorly defined.
+The storage requirements of an Argnames is independent from the
+specified keys.  The storage requirements of dicts is linear with the
+number of keys.  Argnames require less storage if more than half of
+the keys are used.
+
+
+\subsection{Integration with dicts}
+\label{sec:argnames-dicts}
+
+The dict interface described in \secref{bidicts} understands argnames.
+This implies that argnames are subject to automatic conversion to dicts
+in the same way as other recognised data structures, such as lists of
+pairs, lists of \exam{Name=Value} and lists of \exam{Name(Value)} terms.
+Simple extraction of a key, as in \exam{Value = Argnames.Key} bypasses
+the conversion, i.e., this is directly mapped to get_argnames/3.
+
+\subsection{Predicates acting on argnames}
+\label{sec:argnames-predicates}
+
+\begin{predicates}
+  \predicate{argnames}{1}{:Compound}
+  Declare argnames for the name of \arg{Compound}.  Each argument
+  of \arg{Compound} must be an atom that specifies the name of the
+  corresponding argument.  Duplicate argument names are not allowed.
+
+  \predicate{get_argnames}{3}{?Name, :Term, ?Value}
+  True when \arg{Value} appears at the argument named by \arg{Name}
+  of \arg{Term}.  This is the named version of arg/3.  Future versions
+  may integrate this into arg/3.  Raises an \const{existence_error}
+  if \arg{Term} is not declared using argnames/1 and a \const{type_error}
+  if \arg{Term} is not a compound term.
+  
+  \predicate{arg_name}{3}{:Term, ?Arg, ?Name}
+  True when \arg{Name} is the name of the \arg{Arg}-th argument of
+  the argnames \arg{Term}.
+
+  \predicate{current_argnames}{2}{?Name, ?Decl}
+  True when \arg{Decl} is the declaration of a visible argnames
+  with tag \arg{Name}.  \arg{Decl} is a compound holding the argument
+  names as passed to argnames/1.
+
+  \predicate{argnames_property}{2}{:NameOrTerm, ?Property}
+  True when \arg{Property} is a property of the argnames denoted by
+  \arg{NameOrTerm}.  Defined properties are:
+  \begin{description}
+    \termitem{arity}{?Integer}
+    True when \arg{Integer} is the number of arguments of the argnames.
+    \termitem{functor}{?NameArity}
+    True when \arg{NameArity} is a term \exam{Name/Arity} that describes
+    the functor of the compound term.
+    \termitem{exported}{?Boolean}
+    If \const{true}, the argnames is exported from the current module.
+    \termitem{imported_from}{?Module}
+    If the argnames is imported, \arg{Module} is unified to the module
+    in which it is declared.
+  \end{description}
+
+  \predicate{argnames_to_dict}{3}{+Argnames, -Dict, +Options}
+  Create a dict from \arg{Argnames}.  Options processed:
+  \begin{description}
+    \termitem{tag}{+Tag}
+    Tag to use for the created dict.  Defaults to \chr{#}.  Currently
+    it is not allowed for \arg{Tag} to be unbound.
+    \termitem{nonvar}{+Boolean}
+    If \const{true} (default \const{false}), omit unbound arguments
+    from \arg{Argnames}.
+  \end{description}
+
+  \predicate{dict_to_argnames}{+Dict, +Tag, -Argnames}
+  Create an argnames term from the properties of \arg{Dict}.  Properties
+  in \arg{Dict} that do not appear in the argnames \arg{Tag} are
+  silently ignored.
+\end{predicates}
