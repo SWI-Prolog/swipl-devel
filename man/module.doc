@@ -668,20 +668,47 @@ cannot be used. The interface below provides for import/export from
 modules that are not created using a module file.
 
 \begin{description}
-    \predicate{export}{1}{+PredicateIndicator, \ldots}
-Add predicates to the public list of the context module.  This implies
-the predicate will be imported into another module if this module is
-imported with use_module/[1,2].  Note that predicates are normally
-exported using the directive module/2. export/1 is meant to handle
-export from dynamically created modules.
+    \predicate{export}{1}{:Export}
+Export predicates, operators and argnames.  \arg{Export} is a
+\jargon{comma list} of entities to export.  Supported entities
+are:
 
-    \predicate{import}{1}{+PredicateIndicator, \ldots}
-Import predicates \arg{PredicateIndicator} into the current context
-module. \arg{PredicateIndicator} must specify the source module using
-the \mbox{<module>:<pi>} construct. Note that predicates are
-normally imported using one of the directives use_module/[1,2].
-The import/1 alternative is meant for handling imports into dynamically
-created modules.  See also export/1 and export_list/2.
+\begin{description}
+    \termitem{op}{+Priority,+Type,+Name}
+Define and export the given operator.  See op/3.
+    \termitem{argnames}{+Declaration}
+Define and export an \jargon{argnames}.  See argnames/1.
+    \definition{Predicate Indicator}
+Export the given predicate.
+\end{description}
+
+Exported entities are imported into another module if this module is
+imported with use_module/[1,2]. Note that predicates are normally
+exported using the directive module/2. export/1 is meant to handle
+export from dynamically created modules.  For example
+
+\begin{code}
+:- export(( p/1,
+	    op(500, xfx, $$),
+	    argnames(point(x,y)))).
+\end{code}
+
+    \predicate{import}{1}{:Import}
+Import entities from the specified source into the calling context.
+The argument is the same as for export/1, except that for operators
+and argnames the specification need not be ground.   All matching
+operators and argnames are imported.  For example:
+
+\begin{code}
+:- import(my_utils:( p/1,
+		     op(_,_,_),
+		     argnames(_))).
+\end{code}
+
+Note that entities are normally imported using use_module/1 or
+use_module/2.  Where use_module/1 and use_module/2 refer to the
+source module using a \textit{file specification}, import/1 uses
+the name of the module itself.
 \end{description}
 
 
