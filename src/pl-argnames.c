@@ -341,21 +341,6 @@ noArgNames(Module m, atom_t name)
 	   PL_existence_error("argnames", av+0) );
 }
 
-#define exportArgNames(m, name, export) \
-	LDFUNC(exportArgNames, m, name, export)
-
-static bool
-exportArgNames(DECL_LD Module m, atom_t name, bool export)
-{ argnames_link *link = lookupArgNamesLink(m, name);
-
-  if ( link )
-  { link->exported = export;
-    return true;
-  }
-
-  return noArgNames(m, name);
-}
-
 #define importArgNames(info, from, name, flags) \
 	LDFUNC(importArgNames, info, from, name, flags)
 
@@ -803,28 +788,11 @@ PRED_IMPL("$import_argnames", 1, import_argnames, META)
   return importArgNames(destination, source, name, 0);
 }
 
-static
-PRED_IMPL("$export_argnames", 1, export_argnames, META)
-{ Module from = NULL;
-  term_t a1 = PL_new_term_ref();
-  atom_t name;
-
-  if ( !PL_strip_module(A1, &from, a1) )
-    return false;
-  if ( !PL_get_atom_ex(a1, &name) )
-    return false;
-
-  return exportArgNames(from, name, true);
-}
-
 static const PL_option_t argnames_dict_options[] =
 { { ATOM_tag,	    OPT_ATOM },
   { ATOM_nonvar,    OPT_BOOL },
   { NULL_ATOM,      0 }
 };
-
-
-
 
 static
 PRED_IMPL("argnames_to_dict", 3, argnames_to_dict, META)
@@ -879,7 +847,6 @@ BeginPredDefs(argnames)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
   PRED_DEF("$import_argnames",   1, import_argnames,   META)
-  PRED_DEF("$export_argnames",   1, export_argnames,   META)
   PRED_DEF("argnames_to_dict",   3, argnames_to_dict,  META)
   PRED_DEF("dict_to_argnames",   3, dict_to_argnames,  META)
 EndPredDefs
