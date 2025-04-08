@@ -3540,26 +3540,28 @@ load_files(Module:Files, Options) :-
 '$import_list'(_, _, Var, _) :-
     var(Var),
     !,
-    throw(error(instantitation_error, _)).
+    '$instantiation_error'(Var).
 '$import_list'(Target, Source, all, Reexport) :-
     !,
-    '$exported_ops'(Source, Import, Predicates),
+    '$exported_ops'(Source, Ops),
     '$module_property'(Source, exports(Predicates)),
-    '$import_all'(Import, Target, Source, Reexport, weak).
+    '$append'([Ops,Predicates], Imports),
+    '$import_all'(Imports, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, except(Spec), Reexport) :-
     !,
-    '$exported_ops'(Source, Export, Predicates),
+    '$exported_ops'(Source, Ops),
     '$module_property'(Source, exports(Predicates)),
+    '$append'([Predicates,Ops], Exports),
     (   is_list(Spec)
     ->  true
     ;   throw(error(type_error(list, Spec), _))
     ),
-    '$import_except'(Spec, Source, Export, Import),
+    '$import_except'(Spec, Source, Exports, Import),
     '$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, Import, Reexport) :-
     is_list(Import),
     !,
-    '$exported_ops'(Source, Ops, []),
+    '$exported_ops'(Source, Ops),
     '$expand_ops'(Import, Ops, Import1),
     '$import_all'(Import1, Target, Source, Reexport, strong).
 '$import_list'(_, _, Import, _) :-
@@ -3695,16 +3697,16 @@ load_files(Module:Files, Options) :-
 '$list_to_conj'([H|T], (H,Rest)) :-
     '$list_to_conj'(T, Rest).
 
-%!  '$exported_ops'(+Module, -Ops, ?Tail) is det.
+%!  '$exported_ops'(+Module, -Ops) is det.
 %
 %   Ops is a list of op(P,A,N) terms representing the operators
 %   exported from Module.
 
-'$exported_ops'(Module, Ops, Tail) :-
+'$exported_ops'(Module, Ops) :-
     '$c_current_predicate'(_, Module:'$exported_op'(_,_,_)),
     !,
-    findall(op(P,A,N), Module:'$exported_op'(P,A,N), Ops, Tail).
-'$exported_ops'(_, Ops, Ops).
+    findall(op(P,A,N), Module:'$exported_op'(P,A,N), Ops).
+'$exported_ops'(_, []).
 
 '$exported_op'(Module, P, A, N) :-
     '$c_current_predicate'(_, Module:'$exported_op'(_,_,_)),

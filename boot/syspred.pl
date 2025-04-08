@@ -1096,7 +1096,7 @@ module_property(Module, Property) :-
 property_module(Property, Module) :-
     module_property(Property),
     (   Property = exported_operators(List)
-    ->  '$exported_ops'(Module, List, [])
+    ->  '$exported_ops'(Module, List)
     ;   '$module_property'(Module, Property)
     ).
 
