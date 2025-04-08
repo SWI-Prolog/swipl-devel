@@ -3876,7 +3876,10 @@ import(Export) :-
     '$import_ops'(Dest, Source, Op).
 '$import'(argnames(Argnames), Source, Dest) :-
     !,
-    functor(Argnames, Name, _),
+    (   compound(Argnames)
+    ->  functor(Argnames, Name, _)
+    ;   Name = Argnames
+    ),
     @('$import_argnames'(Source:Name), Dest).
 '$import'(PI, Source, Dest) :-
     @('$import_predicate'(Source:PI), Dest).
