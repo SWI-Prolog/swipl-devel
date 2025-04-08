@@ -125,7 +125,7 @@ test(prop, Exported == true) :-
 :- end_tests(export_argnames).
 
 :- begin_tests(import_argnames).
-:- '$import_argnames'(plunit_export_argnames:_All).
+:- import(plunit_export_argnames:argnames(_All)).
 
 test(book, A =@= book(_,'Tom Sawyer',_,_)) :-
     A = book{title:'Tom Sawyer'}.

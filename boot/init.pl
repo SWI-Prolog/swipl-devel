@@ -3815,6 +3815,42 @@ export(Module:Export) :-
 '$export'(PI, Module) :-
     '$export_predicate'(Module:PI).
 
+%!  import(:Import) is det.
+
+:- module_transparent import/1.
+import(Var) :-
+    var(Var),
+    !,
+    '$instantiation_error'(Var).
+import(Source:Export) :-
+    !,
+    context_module(Dest),
+    '$import'(Export, Source, Dest).
+import(Export) :-
+    context_module(Dest),
+    '$import'(Export, -, Dest).
+
+'$import'(Var, _, _) :-
+    var(Var),
+    '$instantiation_error'(Var).
+'$import'((A,B), Source, Dest) :-
+    '$import'(A, Source, Dest),
+    '$import'(B, Source, Dest).
+'$import'(M:Import, _, Dest) :-
+    !,
+    '$import'(Import, M, Dest).
+'$import'(Op, Source, Dest) :-
+    Op = op(_,_,_),
+    !,
+    '$import_ops'(Dest, Source, Op).
+'$import'(ArgNames, Source, Dest) :-
+    ArgNames = argnames(Name),
+    !,
+    @('$import_argnames'(Source:Name), Dest).
+'$import'(PI, Source, Dest) :-
+    @('$import_predicate'(Source:PI), Dest).
+
+
 %!  '$execute_directive'(:Goal, +File, +Options) is det.
 %
 %   Execute the argument of :- or ?- while loading a file.

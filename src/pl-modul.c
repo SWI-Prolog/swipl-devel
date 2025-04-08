@@ -1779,7 +1779,7 @@ retry:
 }
 
 static
-PRED_IMPL("import", 1, import, PL_FA_TRANSPARENT)
+PRED_IMPL("$import_predicate", 1, import_predicate, PL_FA_TRANSPARENT)
 { PRED_LD
 
   return import(A1, 0);
@@ -1842,7 +1842,7 @@ BeginPredDefs(module)
   PRED_DEF("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
-  PRED_DEF("import", 1, import, PL_FA_TRANSPARENT)
+  PRED_DEF("$import_predicate", 1, import_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
   PRED_DEF("$export_predicate", 1, export_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
