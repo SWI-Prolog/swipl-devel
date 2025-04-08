@@ -711,9 +711,9 @@ xref_module(Source, Module) :-
 %
 %   True when Source tries to load a file using Spec.
 %
-%   @param Spec is a specification for absolute_file_name/3
-%   @param Path is either an absolute file name of the target
-%          file or the atom =|<not_found>|=.
+%   @arg Spec is a specification for absolute_file_name/3
+%   @arg Path is either an absolute file name of the target
+%        file or the atom =|<not_found>|=.
 
 xref_uses_file(Source, Spec, Path) :-
     prolog_canonical_source(Source, Src),
@@ -725,7 +725,7 @@ xref_uses_file(Source, Spec, Path) :-
 %   setup the environment for incremental parsing of a term from the
 %   source-file.
 %
-%   @param Op       Term of the form op(Priority, Type, Name)
+%   @arg Op Term of the form op(Priority, Type, Name)
 
 xref_op(Source, Op) :-
     prolog_canonical_source(Source, Src),
@@ -2693,7 +2693,7 @@ assert_xmodule_callable([PI|T], M, Src, From) :-
 
 %!  assert_op(+Src, +Op) is det.
 %
-%   @param Op       Ground term op(Priority, Type, Name).
+%   @arg Op       Ground term op(Priority, Type, Name).
 
 assert_op(Src, op(P,T,M:N)) :-
     (   '$current_source_module'(M)
