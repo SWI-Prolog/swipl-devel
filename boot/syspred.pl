@@ -1123,18 +1123,6 @@ module(Module) :-
     '$set_typein_module'(Module),
     print_message(warning, no_current_module(Module)).
 
-%!  working_directory(-Old, +New)
-%
-%   True when Old is the current working directory and the working
-%   directory has been updated to New.
-
-working_directory(Old, New) :-
-    '$cwd'(Old),
-    (   Old == New
-    ->  true
-    ;   '$chdir'(New)
-    ).
-
 
                  /*******************************
                  *            TRIES             *
@@ -1291,6 +1279,17 @@ tmp_file_stream(File, Stream, Options) :-
     '$tmp_file_stream'(Ext, Enc, File, Stream),
     set_stream(Stream, file_name(File)).
 
+%!  working_directory(-Old, +New)
+%
+%   True when Old is the current working directory and the working
+%   directory has been updated to New.
+
+working_directory(Old, New) :-
+    '$cwd'(Old),
+    (   Old == New
+    ->  true
+    ;   '$chdir'(New)
+    ).
 
                 /********************************
                 *        MEMORY MANAGEMENT      *
