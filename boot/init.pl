@@ -3811,7 +3811,7 @@ export(Module:Export) :-
     '$export_ops'([Op], Module, File).
 '$export'(argnames(Decl), Module) :-
     !,
-    argnames(Module:Decl, [exported(true)]).
+    '$argnames'(Module:Decl, [exported(true)]).
 '$export'(PI, Module) :-
     '$export_predicate'(Module:PI).
 

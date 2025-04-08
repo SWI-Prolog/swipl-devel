@@ -490,7 +490,7 @@ static const PL_option_t argnames_options[] =
 };
 
 static
-PRED_IMPL("argnames", 2, argnames, PL_FA_TRANSPARENT)
+PRED_IMPL("$argnames", 2, argnames, PL_FA_TRANSPARENT)
 { PRED_LD
   Module m = NULL;
   term_t decl = PL_new_term_ref();
@@ -874,7 +874,7 @@ PRED_IMPL("dict_to_argnames", 3, dict_to_argnames, META)
 
 BeginPredDefs(argnames)
   PRED_DEF("argnames",           1, argnames,          META)
-  PRED_DEF("argnames",           2, argnames,          META)
+  PRED_DEF("$argnames",          2, argnames,          META)
   PRED_DEF("named_arg",          3, named_arg,         META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
