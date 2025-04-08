@@ -91,13 +91,13 @@ test(prop, Exported == false) :-
 test(prop, fail) :-
     argnames_property(point, imported_from(_)).
 test(arg, X == 1) :-
-    get_argnames(x, point{x:1}, X).
+    named_arg(x, point{x:1}, X).
 test(arg, error(existence_error(argnames, nopoint{x:1}))) :-
-    get_argnames(x, nopoint{x:1}, _).
+    named_arg(x, nopoint{x:1}, _).
 test(arg, error(type_error(compound, 3.14))) :-
-    get_argnames(x, 3.14, _).
+    named_arg(x, 3.14, _).
 test(arg, error(type_error(compound, hello))) :-
-    get_argnames(x, hello, _).
+    named_arg(x, hello, _).
 
 :- end_tests(argnames).
 

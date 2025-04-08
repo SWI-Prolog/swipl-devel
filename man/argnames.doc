@@ -102,7 +102,7 @@ This implies that argnames are subject to automatic conversion to dicts
 in the same way as other recognised data structures, such as lists of
 pairs, lists of \exam{Name=Value} and lists of \exam{Name(Value)} terms.
 Simple extraction of a key, as in \exam{Value = Argnames.Key} bypasses
-the conversion, i.e., this is directly mapped to get_argnames/3.
+the conversion, i.e., this is directly mapped to named_arg/3.
 
 \subsection{Predicates acting on argnames}
 \label{sec:argnames-predicates}
@@ -113,7 +113,7 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
   of \arg{Compound} must be an atom that specifies the name of the
   corresponding argument.  Duplicate argument names are not allowed.
 
-  \predicate{get_argnames}{3}{?Name, :Term, ?Value}
+  \predicate{named_arg}{3}{?Name, :Term, ?Value}
   True when \arg{Value} appears at the argument named by \arg{Name}
   of \arg{Term}.  This is the named version of arg/3.  Future versions
   may integrate this into arg/3.  Raises an \const{existence_error}

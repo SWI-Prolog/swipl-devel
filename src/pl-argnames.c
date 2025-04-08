@@ -274,15 +274,15 @@ unify_argnames(term_t t, const argnames *an)
   return false;
 }
 
-#define get_argnames_link(t, plain, module, error)	\
-	LDFUNC(get_argnames_link, t, plain, module, error)
+#define named_arg_link(t, plain, module, error)	\
+	LDFUNC(named_arg_link, t, plain, module, error)
 
 #define AN_ERR_EXISTENCE 0x1
 #define AN_ERR_TYPE      0x2
 #define AN_DECL		 0x4
 
 static const argnames_link *
-get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, int flags)
+named_arg_link(DECL_LD term_t t, term_t plain, Module *module, int flags)
 { Module m = NULL;
   atom_t name;
 
@@ -313,12 +313,12 @@ get_argnames_link(DECL_LD term_t t, term_t plain, Module *module, int flags)
   return link;
 }
 
-#define get_argnames(t, plain, error) \
-	LDFUNC(get_argnames, t, plain, error)
+#define named_arg(t, plain, error) \
+	LDFUNC(named_arg, t, plain, error)
 
 const argnames *
-get_argnames(DECL_LD term_t t, term_t plain, int error)
-{ const argnames_link *link = get_argnames_link(t, plain, NULL, error);
+named_arg(DECL_LD term_t t, term_t plain, int error)
+{ const argnames_link *link = named_arg_link(t, plain, NULL, error);
 
   if ( link )
     return link->argnames;
@@ -687,7 +687,7 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
   switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
     { if ( Value ) plain = PL_new_term_ref();
-      an = get_argnames(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
+      an = named_arg(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
 
       if ( an )
       { int64_t iai;
@@ -725,7 +725,7 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
     }
     case FRG_REDO:
       if ( Value ) plain = PL_new_term_ref();
-      an = get_argnames(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
+      an = named_arg(Term, plain, AN_ERR_EXISTENCE|AN_ERR_TYPE);
       arity = arityArgNames(an);
       ai = CTX_INT;
       break;
@@ -753,11 +753,11 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
   return false;
 }
 
-/** get_argnames(?Name, :Term, ?Value) is nondet.
+/** named_arg(?Name, :Term, ?Value) is nondet.
  */
 
 static
-PRED_IMPL("get_argnames", 3, get_argnames,
+PRED_IMPL("named_arg", 3, named_arg,
 	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 { return pl_arg_name(A2, 0, A1, A3, PL__ctx);
 }
@@ -766,7 +766,7 @@ static
 PRED_IMPL("$argnames_property", 3, argnames_property, META)
 { PRED_LD
   Module m = NULL;
-  const argnames_link *link = get_argnames_link(A1, 0, &m, AN_DECL);
+  const argnames_link *link = named_arg_link(A1, 0, &m, AN_DECL);
   atom_t prop;
 
   if ( link && PL_get_atom_ex(A2, &prop) )
@@ -841,7 +841,7 @@ PRED_IMPL("argnames_to_dict", 3, argnames_to_dict, META)
   if ( !PL_strip_module(A1, &m, tmp) )
     return false;
   if ( !PL_is_variable(tmp) )
-  { const argnames *an = get_argnames(A1, tmp, AN_ERR_EXISTENCE|AN_ERR_TYPE);
+  { const argnames *an = named_arg(A1, tmp, AN_ERR_EXISTENCE|AN_ERR_TYPE);
     return ( an && argnamesToDict(an, tmp, tmp, tag, nonvar) &&
 	     PL_unify(tmp, A2) );
   } else
@@ -875,7 +875,7 @@ PRED_IMPL("dict_to_argnames", 3, dict_to_argnames, META)
 BeginPredDefs(argnames)
   PRED_DEF("argnames",           1, argnames,          META)
   PRED_DEF("argnames",           2, argnames,          META)
-  PRED_DEF("get_argnames",       3, get_argnames,      META|NDET)
+  PRED_DEF("named_arg",          3, named_arg,         META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
   PRED_DEF("$import_argnames",   1, import_argnames,   META)

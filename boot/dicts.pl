@@ -75,16 +75,16 @@ dot_implicit_dict(Func, Data, Value) =>
     '.'(Dict, Func, Value).
 
 from_argnames(Key, Data, Value), atom(Key) =>
-    (   get_argnames(Key, Data, Value0)
+    (   named_arg(Key, Data, Value0)
     ->  Value = Value0
     ;   '$existence_error'(arg_name, Key, Data)
     ).
 from_argnames(Key, Data, Value), var(Key) =>
-    get_argnames(Key, Data, Value).
+    named_arg(Key, Data, Value).
 from_argnames(get(Key), Data, Value) =>
-    get_argnames(Key, Data, Value).
+    named_arg(Key, Data, Value).
 from_argnames(get(Key, Default), Data, Value) =>
-    (   get_argnames(Key, Data, Value)
+    (   named_arg(Key, Data, Value)
     ->  true
     ;   Value = Default
     ).
