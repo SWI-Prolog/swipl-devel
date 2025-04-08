@@ -889,7 +889,12 @@ are:
 	\termitem{exported_operators}{-ListOfOperators}
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
-	Succeeds with an empty list if the module exports no operators.
+	Succeeds with an empty list if the module does not export
+        operators.
+	\termitem{exported_argnames}{-ListOfArgNames}
+	True if \arg{Module} exports the given argnames. Each element
+        is a term as used in the argnames/1 declaration.  Succeeds
+        with an empty list if the module does not export argnames.
 	\termitem{size}{-Bytes}
 	Total size in bytes used to represent the module.  This includes
 	the module itself, its (hash) tables and the summed size of

@@ -1097,6 +1097,9 @@ property_module(Property, Module) :-
     module_property(Property),
     (   Property = exported_operators(List)
     ->  '$exported_ops'(Module, List)
+    ;   Property = exported_argnames(List)
+    ->  '$exported_argnames'(Module, List0),
+        unwrap_argnames(List0, List)
     ;   '$module_property'(Module, Property)
     ).
 
@@ -1105,10 +1108,16 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(exported_argnames(_)).
 module_property(size(_)).
 module_property(program_size(_)).
 module_property(program_space(_)).
 module_property(last_modified_generation(_)).
+
+unwrap_argnames([], []).
+unwrap_argnames([argnames(Term)|T0], [Term|T]) :-
+    unwrap_argnames(T0, T).
+
 
 %!  module(+Module) is det.
 %
