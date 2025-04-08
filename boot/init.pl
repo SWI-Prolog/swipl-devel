@@ -3543,19 +3543,12 @@ load_files(Module:Files, Options) :-
     '$instantiation_error'(Var).
 '$import_list'(Target, Source, all, Reexport) :-
     !,
-    '$exported_ops'(Source, Ops),
-    '$module_property'(Source, exports(Predicates)),
-    '$append'([Ops,Predicates], Imports),
-    '$import_all'(Imports, Target, Source, Reexport, weak).
+    '$module_exports'(Source, Exports),
+    '$import_all'(Exports, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, except(Spec), Reexport) :-
     !,
-    '$exported_ops'(Source, Ops),
-    '$module_property'(Source, exports(Predicates)),
-    '$append'([Predicates,Ops], Exports),
-    (   is_list(Spec)
-    ->  true
-    ;   throw(error(type_error(list, Spec), _))
-    ),
+    '$module_exports'(Source, Exports),
+    '$must_be'(list, Spec),
     '$import_except'(Spec, Source, Exports, Import),
     '$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, Import, Reexport) :-
@@ -3566,6 +3559,17 @@ load_files(Module:Files, Options) :-
     '$import_all'(Import1, Target, Source, Reexport, strong).
 '$import_list'(_, _, Import, _) :-
     '$type_error'(import_specifier, Import).
+
+%!  '$module_exports'(+Module, -Exports) is det.
+%
+%   True when Exports is the known export list from Module. Exports is a
+%   list of op/3, argnames/1 and predicate indicators.
+
+'$module_exports'(Module, Exports) :-
+    '$exported_ops'(Module, Ops),
+    '$exported_argnames'(Module, ArgNames),
+    '$module_property'(Module, exports(Predicates)),
+    '$append'([Ops, ArgNames, Predicates], Exports).
 
 '$expand_ops'([], _, []).
 '$expand_ops'([H|T0], Ops, Imports) :-
@@ -3642,23 +3646,18 @@ load_files(Module:Files, Options) :-
 %   local definition is considered an error.
 
 '$import_all'(Import, Context, Source, Reexport, Strength) :-
-    '$import_all2'(Import, Context, Source, Imported, ImpOps, Strength),
-    (   Reexport == true,
-	(   '$list_to_conj'(Imported, Conj)
-	->  export(Context:Conj),
-	    '$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
-	;   true
-	),
-	source_location(File, _Line),
-	'$export_ops'(ImpOps, Context, File)
+    '$import_all2'(Import, Context, Source, Imported, Strength),
+    (   Reexport == true
+    ->  export(Context:Imported),
+        '$ifcompiling'('$add_directive_wic'(export(Context:Imported)))
     ;   true
     ).
 
-%!  '$import_all2'(+Imports, +Context, +Source, -Imported, -ImpOps, +Strength)
+%!  '$import_all2'(+Imports, +Context, +Source, -Imported, +Strength)
 
-'$import_all2'([], _, _, [], [], _).
+'$import_all2'([], _, _, [], _).
 '$import_all2'([PI as NewName|Rest], Context, Source,
-	       [NewName/Arity|Imported], ImpOps, Strength) :-
+	       [NewName/Arity|Imported], Strength) :-
     !,
     '$canonical_pi'(PI, Name/Arity),
     length(Args, Arity),
@@ -3679,23 +3678,23 @@ load_files(Module:Files, Options) :-
 	      E, '$print_message'(error, E))
     ;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
     ),                                       % duplicate load
-    '$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
-'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported,
-	       [op(P,A,N)|ImpOps], Strength) :-
+    '$import_all2'(Rest, Context, Source, Imported, Strength).
+'$import_all2'([op(P,A,N)|Rest], Context, Source, [op(P,A,N)|Imported],
+	       Strength) :-
     !,
-    '$import_ops'(Context, Source, op(P,A,N)),
-    '$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
-'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], ImpOps, Strength) :-
+    @(import(Source:op(P,A,N)), Context),
+    '$import_all2'(Rest, Context, Source, Imported, Strength).
+'$import_all2'([argnames(N)|Rest], Context, Source, [argnames(N)|Imported],
+	       Strength) :-
+    !,
+    @(import(Source:argnames(N)), Context),
+    '$import_all2'(Rest, Context, Source, Imported, Strength).
+'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], Strength) :-
     Error = error(_,_),
-    catch(Context:'$import'(Source:Pred, Strength), Error,
+    catch(@('$import'(Source:Pred, Strength),Context), Error,
 	  print_message(error, Error)),
     '$ifcompiling'('$import_wic'(Source, Pred, Strength)),
-    '$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
-
-
-'$list_to_conj'([One], One) :- !.
-'$list_to_conj'([H|T], (H,Rest)) :-
-    '$list_to_conj'(T, Rest).
+    '$import_all2'(Rest, Context, Source, Imported, Strength).
 
 %!  '$exported_ops'(+Module, -Ops) is det.
 %
@@ -3734,6 +3733,22 @@ load_files(Module:Files, Options) :-
     ;   true
     ).
 
+%!  '$exported_argnames'(+Source, -ArgNames) is det.
+%
+%   True when ArgNames is a list  of argnames declarations exported from
+%   Source.
+
+'$exported_argnames'(Source, ArgNames) :-
+    current_argnames(_, Source:_),  % avoid findall/3 before it is defined
+    !,
+    findall(AN, current_argnames(_, Source:AN), ANList),
+    writeln(Source:ANList),
+    '$include'('$exported_argname'(Source), ANList, ArgNames).
+'$exported_argnames'(_, []).
+
+'$exported_argname'(Source, AN) :-
+    functor(AN, Name, _),
+    '$argnames_property'(Source:Name, exported, true).
 
 %!  '$export_list'(+Declarations, +Module, -Ops)
 %
@@ -3800,6 +3815,10 @@ export(Module:Export) :-
 '$export'(Var, _) :-
     var(Var),
     '$instantiation_error'(Var).
+'$export'(List, Module) :-
+    is_list(List),
+    !,
+    '$export_list'(List, Module).
 '$export'((A,B), Module) :-
     '$export'(A, Module),
     '$export'(B, Module).
@@ -3816,6 +3835,12 @@ export(Module:Export) :-
     '$argnames'(Module:Decl, [exported(true)]).
 '$export'(PI, Module) :-
     '$export_predicate'(Module:PI).
+
+'$export_list'([], _).
+'$export_list'([H|T], Module) :-
+    '$export'(H, Module),
+    '$export_list'(T, Module).
+
 
 %!  import(:Import) is det.
 
