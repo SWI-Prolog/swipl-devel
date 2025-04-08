@@ -342,7 +342,7 @@ unallocModule(Module m)
   if ( m->public )       destroyHTableWP(m->public);
   if ( m->procedures )   destroyHTableWP(m->procedures);
   if ( m->operators )    destroyHTableWP(m->operators);
-  if ( m->static_dicts ) destroyHTableWP(m->static_dicts);
+  if ( m->argnames ) destroyHTableWP(m->argnames);
   if ( m->supers )       unallocList(m->supers);
 #ifdef O_PLMT
   if ( m->mutex )        freeSimpleMutex(m->mutex);

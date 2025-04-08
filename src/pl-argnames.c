@@ -62,14 +62,14 @@ freeArgNamesSymbol(table_key_t name, table_value_t value)
 
 static TableWP
 moduleArgNamesTable(Module m)
-{ if ( !m->static_dicts )
+{ if ( !m->argnames )
   { TableWP ht = newHTableWP(4);
     ht->free_symbol = freeArgNamesSymbol;
-    if ( !COMPARE_AND_SWAP_PTR(&m->static_dicts, NULL, ht) )
+    if ( !COMPARE_AND_SWAP_PTR(&m->argnames, NULL, ht) )
       destroyHTableWP(ht);
   }
 
-  return m->static_dicts;
+  return m->argnames;
 }
 
 #define registerArgNames(m, name, an, flags)	\
@@ -215,8 +215,8 @@ lookupArgNamesLink(DECL_LD const Module m, atom_t name)
 { argnames_link *link;
   ListCell c;
 
-  if ( m->static_dicts &&
-       (link=lookupHTableWP(m->static_dicts, name)) )
+  if ( m->argnames &&
+       (link=lookupHTableWP(m->argnames, name)) )
     return link;
 
   for(c = m->supers; c; c=c->next)
@@ -356,8 +356,8 @@ importArgNames(DECL_LD Module into, Module from, atom_t name,
     { return noArgNames(from, name);
     }
   } else
-  { if ( from->static_dicts )
-    { FOR_TABLE(from->static_dicts, k, v)
+  { if ( from->argnames )
+    { FOR_TABLE(from->argnames, k, v)
       { argnames_link *link = val2ptr(v);
 	if ( link->exported )
 	{ if ( !importArgNames(into, from, k, flags) )
@@ -521,8 +521,8 @@ scanVisibleArgNames(Module m, atom_t name, Buffer b, bool inherit)
     return;
   }
 
-  if ( m->static_dicts )
-  { FOR_TABLE(m->static_dicts, n, v)
+  if ( m->argnames )
+  { FOR_TABLE(m->argnames, n, v)
     { argnames_link *link = val2ptr(v);
       cargname found = {.argnames = link->argnames, .module = m};
       addBuffer(b, found, cargname);

@@ -152,10 +152,19 @@ the conversion, i.e., this is directly mapped to named_arg/3.
     from \arg{Argnames}.
   \end{description}
 
-  \predicate{dict_to_argnames}{+Dict, +Tag, -Argnames}
+  \predicate{dict_to_argnames}{3}{+Dict, :Tag, -Argnames}
   Create an argnames term from the properties of \arg{Dict}.  Properties
   in \arg{Dict} that do not appear in the argnames \arg{Tag} are
-  silently ignored.
+  silently ignored.  Note that this implies that if tha argnames and
+  \arg{Dict} have no common keys \arg{Argnames} is a compound with
+  only variables.  For example, given \term{point}{x,y,z}.
+  \begin{code}
+?- dict_to_argnames(#{x:1}, point, Point).
+Point = point(1,_,_).
+% `type` is ignored
+?- dict_to_argnames(#{y:2, type:'3d'}, point, Point).
+Point = point(_,2,_).
+  \end{code}
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
