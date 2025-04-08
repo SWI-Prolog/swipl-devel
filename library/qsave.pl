@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2024, University of Amsterdam
+    Copyright (c)  1995-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -536,6 +536,7 @@ save_program(RC, SaveClass, Options) :-
           save_imports,
           save_prolog_flags(Options),
           save_operators(Options),
+          save_argnames,
           save_format_predicates
         ),
         ( '$close_wic',
@@ -916,6 +917,37 @@ save_module_operators(M) :-
            (   feedback('~n~t~8|~w ', [op(P,T,M:N)]),
                '$add_directive_wic'(op(P,T,M:N))
            )).
+
+
+                /*******************************
+                *           ARGNAMES           *
+                *******************************/
+
+%!  save_argnames is det.
+%
+%   Save known argnames declarations. First saves the local and exported
+%   declarations and then the imports.
+
+save_argnames :-
+    feedback('~nARGNAMES~n', []),
+    forall(argname_decl(Decl),
+           (   feedback('~n~t~8|~w ', [Decl]),
+               '$add_directive_wic'(Decl)
+           )),
+    feedback('~n', []).
+
+argname_decl(Decl) :-                   % exported and local
+    current_argnames(Name, M:T),
+    (   '$argnames_property'(M:Name, exported, true)
+    ->  Decl = '$argnames'(M:T, [exported(true)])
+    ;   '$argnames_property'(M:Name, imported, _)
+    ->  fail
+    ;   Decl = argnames(M:T)
+    ).
+argname_decl(Decl) :-                   % imported
+    current_argnames(Name, M:_),
+    '$argnames_property'(M:Name, imported, From),
+    Decl = @('$import_argnames'(From:Name), M).
 
 
                  /*******************************
