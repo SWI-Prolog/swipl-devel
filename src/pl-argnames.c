@@ -507,6 +507,11 @@ PRED_IMPL("argnames", 1, argnames, PL_FA_TRANSPARENT)
 /** current_argnames(?Name, :Term) is nondet.
  */
 
+typedef struct cargname
+{ argnames *argnames;
+  Module    module;
+} cargname;
+
 static void
 scanVisibleArgNames(Module m, atom_t name, Buffer b, bool inherit)
 { if ( !m )
@@ -519,7 +524,8 @@ scanVisibleArgNames(Module m, atom_t name, Buffer b, bool inherit)
   if ( m->static_dicts )
   { FOR_TABLE(m->static_dicts, n, v)
     { argnames_link *link = val2ptr(v);
-      addBuffer(b, link->argnames, argnames*);
+      cargname found = {.argnames = link->argnames, .module = m};
+      addBuffer(b, found, cargname);
     }
   }
 
@@ -530,6 +536,45 @@ scanVisibleArgNames(Module m, atom_t name, Buffer b, bool inherit)
       scanVisibleArgNames(c->value, name, b, inherit);
   }
 }
+
+static int
+cmp_argnames_ptr(const void *p1, const void *p2)
+{ cargname const *c1 = p1;
+  cargname const *c2 = p2;
+
+  if ( c1->argnames == c2->argnames )
+    return SCALAR_TO_CMP((uintptr_t)c1->module, (uintptr_t)c2->module);
+  else
+    return SCALAR_TO_CMP((uintptr_t)c1->argnames, (uintptr_t)c2->argnames);
+}
+
+
+static void
+removeDuplicateArgNames(Buffer buf, bool ism)
+{ qsort(baseBuffer(buf, cargname*),
+	entriesBuffer(buf, cargname*),
+	sizeof(cargname),
+	cmp_argnames_ptr);
+
+  cargname *b0 = baseBuffer(buf, cargname);
+  cargname *e  = b0+entriesBuffer(buf, cargname);
+  cargname *o  = b0;
+  cargname *b  = b0;
+
+  while(b<e)
+  { cargname a = *b;
+    *o++ = a;
+    if ( ism )			/* module given */
+    { for(b++; b<e && b->argnames == a.argnames; b++)
+	;
+    } else
+    { for(b++; b<e && memcmp(b, &a, sizeof(a)) == 0; b++)
+	;
+    }
+  }
+  seekBuffer(buf, o-b0, cargname);
+}
+
 
 typedef struct
 { buffer	buffer;
@@ -593,6 +638,7 @@ PRED_IMPL("current_argnames", 2, current_argnames,
       e->index = 0;
       e->var_module = !!mt;
       scanVisibleArgNames(mt?NULL:m, name, b, true);
+      removeDuplicateArgNames(b, !mt);
       break;
     }
     case FRG_REDO:
@@ -624,14 +670,12 @@ PRED_IMPL("current_argnames", 2, current_argnames,
   }
 
   fid_t fid = PL_open_foreign_frame();
-  size_t mx = entriesBuffer(b, const argnames*);
-  const argnames **match = &baseBuffer(b, const argnames*)[e->index];
+  size_t mx = entriesBuffer(b, cargname);
+  const cargname *match = &baseBuffer(b, cargname)[e->index];
   for(; e->index++<mx; match++)
-  { an = *match;
-
-    if ( PL_unify_atom(A1, nameFunctor(an->functor)) &&
-	 (!mt || PL_unify_atom(mt, an->module->name)) &&
-	 unify_argnames(a2, an) )
+  { if ( PL_unify_atom(A1, nameFunctor(match->argnames->functor)) &&
+	 (!mt || PL_unify_atom(mt, match->module->name)) &&
+	 unify_argnames(a2, match->argnames) )
     { if ( e->index == mx )
       { discardBuffer(&e->buffer);
         freeHeap(e, sizeof(*e));
