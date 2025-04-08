@@ -3284,7 +3284,7 @@ equivalent to \verb$t(X, X)$, which is \emph{different} from
 \verb$t(_, _)$.
 
 As Unicode requires variables to start with an underscore in many
-languages, this schema needs to be extended.%
+languages, this schema has been extended.%
 	\footnote{After a proposal by Richard O'Keefe.}
 First we define the two classes of named variables.
 
@@ -3305,13 +3305,27 @@ any named singleton variables appearing more than once are reported.
 Below are some examples with warnings in the right column.  Singleton
 messages can be suppressed using the style_check/1 directive.
 
+Finally, variables named \verb$_<digit>$ are never subject to style
+checking.  These variable names are emitted by write/1 and friends.
+This exception can also be used to pass singletons to debug/3.
+Passing singletons to debug/3 is otherwise problematic as using a
+normal variable results in a singleton warning when optimization
+removes the debug/3 statement while using a named anonymous variable
+results in a \jargon{multiton} warning.  For example:
+
+\begin{code}
+p(X) :-
+    q(X,_0Y),
+    debug(demo, 'q/2 says ~p', [_0Y]).
+\end{code}
+
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
 test(_).	& \\
 test(_a).	& Singleton variables: [_a] \\
-test(_12).	& Singleton variables: [_12] \\
 test(A).	& Singleton variables: [A] \\
+test(_12).	& \\
 test(_A).	& \\
 test(__a).	& \\
 test(_, _).	& \\
