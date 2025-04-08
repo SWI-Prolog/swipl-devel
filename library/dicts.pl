@@ -376,9 +376,9 @@ dicts_to_compounds(Dicts, Keys, OnEmpty, Compounds) :-
     maplist(dict_to_compound(Keys, OnEmpty), Dicts, Compounds).
 
 dict_to_compound(Keys, OnEmpty, Dict, Row) :-
-    is_dict(Dict, Tag),
+    is_dict(Dict, Tag0),
     !,
-    default_tag(Tag, row),
+    default_tag(Tag0, row, Tag),
     maplist(key_value(Dict, OnEmpty), Keys, Values),
     compound_name_arguments(Row, Tag, Values).
 dict_to_compound(Keys, _, Dict, Row) :-
@@ -387,8 +387,10 @@ dict_to_compound(Keys, _, Dict, Row) :-
     pairs_keys_values(Pairs, Keys, Values),
     dict_pairs(Dict, Tag, Pairs).
 
-default_tag(Tag, Tag) :- !.
-default_tag(_, _).
+default_tag(Tag0, _, Tag), atom(Tag0) =>
+    Tag = Tag0.
+default_tag(_, Default, Tag) =>
+    Tag = Default.
 
 key_value(Dict, OnEmpty, Key, Value) :-
     (   get_dict(Key, Dict, Value0)
