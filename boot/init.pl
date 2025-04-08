@@ -3787,6 +3787,34 @@ load_files(Module:Files, Options) :-
     ),
     '$store_admin_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
 
+%!  export(:Export) is det.
+%
+%   Export an object.
+
+:- meta_predicate export(:).
+export(Module:Export) :-
+    '$export'(Export, Module).
+
+'$export'(Var, _) :-
+    var(Var),
+    '$instantiation_error'(Var).
+'$export'((A,B), Module) :-
+    '$export'(A, Module),
+    '$export'(B, Module).
+'$export'(Op, Module) :-
+    Op = op(_Pri,_Type,_Name),
+    !,
+    (   source_location(File, _Line)
+    ->  true
+    ;   throw(error(context_error(nodirective, export(Module:Op)), _))
+    ),
+    '$export_ops'([Op], Module, File).
+'$export'(argnames(Decl), Module) :-
+    !,
+    argnames(Module:Decl, [exported(true)]).
+'$export'(PI, Module) :-
+    '$export_predicate'(Module:PI).
+
 %!  '$execute_directive'(:Goal, +File, +Options) is det.
 %
 %   Execute the argument of :- or ?- while loading a file.

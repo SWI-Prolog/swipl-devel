@@ -1534,7 +1534,7 @@ export_pi(DECL_LD term_t pi, Module module, int depth)
 
 
 static
-PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
+PRED_IMPL("$export_predicate", 1, export_predicate, PL_FA_TRANSPARENT)
 { PRED_LD
   Module module = NULL;
 
@@ -1785,6 +1785,9 @@ PRED_IMPL("import", 1, import, PL_FA_TRANSPARENT)
   return import(A1, 0);
 }
 
+/** '$import'(+Pred, +Strength) is det.
+ */
+
 static
 PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
 { PRED_LD
@@ -1841,7 +1844,7 @@ BeginPredDefs(module)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
   PRED_DEF("import", 1, import, PL_FA_TRANSPARENT)
   PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
-  PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
+  PRED_DEF("$export_predicate", 1, export_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
   PRED_DEF("$destroy_module", 1, destroy_module, 0)
   PRED_DEF("$current_source_module", 1, current_source_module, 0)

@@ -115,7 +115,7 @@ test(arg, Functor == box/4) :-
 
 
 :- begin_tests(export_argnames).
-:- argnames(book(author, title, year, publisher), [ exported(true) ]).
+:- export(argnames(book(author, title, year, publisher))).
 
 test(book, A =@= book(_,_,1986,_)) :-
     A = book{year:1986}.
