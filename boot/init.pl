@@ -3742,13 +3742,17 @@ load_files(Module:Files, Options) :-
     current_argnames(_, Source:_),  % avoid findall/3 before it is defined
     !,
     findall(AN, current_argnames(_, Source:AN), ANList),
-    writeln(Source:ANList),
-    '$include'('$exported_argname'(Source), ANList, ArgNames).
+    '$argname_decls'(ANList, Source, ArgNames).
 '$exported_argnames'(_, []).
 
-'$exported_argname'(Source, AN) :-
-    functor(AN, Name, _),
-    '$argnames_property'(Source:Name, exported, true).
+'$argname_decls'([], _, []).
+'$argname_decls'([AN|T], Source, Exports) :-
+    (   functor(AN, Name, _),
+        '$argnames_property'(Source:Name, exported, true)
+    ->  Exports = [argnames(AN)|ET]
+    ;   Exports = ET
+    ),
+    '$argname_decls'(T, Source, ET).
 
 %!  '$export_list'(+Declarations, +Module, -Ops)
 %
@@ -3870,9 +3874,9 @@ import(Export) :-
     Op = op(_,_,_),
     !,
     '$import_ops'(Dest, Source, Op).
-'$import'(ArgNames, Source, Dest) :-
-    ArgNames = argnames(Name),
+'$import'(argnames(Argnames), Source, Dest) :-
     !,
+    functor(Argnames, Name, _),
     @('$import_argnames'(Source:Name), Dest).
 '$import'(PI, Source, Dest) :-
     @('$import_predicate'(Source:PI), Dest).
