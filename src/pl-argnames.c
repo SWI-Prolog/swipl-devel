@@ -753,15 +753,6 @@ pl_arg_name(term_t Term, term_t Arg, term_t Name, term_t Value,
   return false;
 }
 
-/** arg_name(:Term, ?Arg, ?Name) is nondet.
- */
-
-static
-PRED_IMPL("arg_name", 3, arg_name,
-	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
-{ return pl_arg_name(A1, A2, A3, 0, PL__ctx);
-}
-
 /** get_argnames(?Name, :Term, ?Value) is nondet.
  */
 
@@ -885,7 +876,6 @@ BeginPredDefs(argnames)
   PRED_DEF("argnames",           1, argnames,          META)
   PRED_DEF("argnames",           2, argnames,          META)
   PRED_DEF("get_argnames",       3, get_argnames,      META|NDET)
-  PRED_DEF("arg_name",           3, arg_name,          META|NDET)
   PRED_DEF("current_argnames",   2, current_argnames,  META|NDET)
   PRED_DEF("$argnames_property", 3, argnames_property, META)
   PRED_DEF("$import_argnames",   1, import_argnames,   META)

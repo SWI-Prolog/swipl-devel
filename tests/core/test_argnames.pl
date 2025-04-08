@@ -90,12 +90,6 @@ test(prop, Exported == false) :-
     argnames_property(point, exported(Exported)).
 test(prop, fail) :-
     argnames_property(point, imported_from(_)).
-test(name, Name == x) :-
-    arg_name(point(_,_,_), 1, Name).
-test(name, Name == z) :-
-    arg_name(point(_,_,_), 3, Name).
-test(arg, Arg == 2) :-
-    arg_name(point(_,_,_), Arg, y).
 test(arg, X == 1) :-
     get_argnames(x, point{x:1}, X).
 test(arg, error(existence_error(argnames, nopoint{x:1}))) :-
@@ -141,8 +135,6 @@ test(prop, From = plunit_export_argnames) :-
     argnames_property(book, imported_from(From)).
 test(inherit, Term =@= planet(earth, _)) :-
     Term = planet{name:earth}.
-test(inherit, Name == radius) :-
-     arg_name(planet(_,_), 2, Name).
 test(inherit, From == test_argnames) :-
     argnames_property(planet, imported_from(From)).
 

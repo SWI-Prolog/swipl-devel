@@ -120,10 +120,6 @@ the conversion, i.e., this is directly mapped to get_argnames/3.
   if \arg{Term} is not declared using argnames/1 and a \const{type_error}
   if \arg{Term} is not a compound term.
 
-  \predicate{arg_name}{3}{:Term, ?Arg, ?Name}
-  True when \arg{Name} is the name of the \arg{Arg}-th argument of
-  the argnames \arg{Term}.
-
   \predicate{current_argnames}{2}{?Name, ?Decl}
   True when \arg{Decl} is the declaration of a visible argnames
   with tag \arg{Name}.  \arg{Decl} is a compound holding the argument
@@ -183,5 +179,5 @@ are:
 
 \begin{code}
 :- dynamic property(functor) of book.
-\end{code}    
+\end{code}
 \end{description}
