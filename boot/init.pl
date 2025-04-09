@@ -2067,14 +2067,10 @@ compiling :-
 		     include_file(start(Level,
 					file(File, Path)))),
     '$last'([Parent|Parents], Owner),
-    (   (   '$compilation_mode'(database)
-	;   '$qlf_current_source'(Owner)
-	)
-    ->  '$store_admin_clause'(
-	    system:'$included'(Parent, Line, Path, Time),
-	    _, Owner, SrcFile:Line)
-    ;   '$qlf_include'(Owner, Parent, Line, Path, Time)
-    ).
+    '$store_admin_clause'(
+        system:'$included'(Parent, Line, Path, Time),
+        _, Owner, SrcFile:Line, database),
+    '$ifcompiling'('$qlf_include'(Owner, Parent, Line, Path, Time)).
 '$record_included'(_, _, _, _, true).
 
 %!  '$master_file'(+File, -MasterFile)
@@ -3937,22 +3933,31 @@ load_files(Module:Files, Options) :-
 		*********************************/
 
 %!  '$store_admin_clause'(+Clause, ?Layout, +Owner, +SrcLoc) is det.
+%!  '$store_admin_clause'(+Clause, ?Layout, +Owner, +SrcLoc, +Mode) is det.
 %
 %   Store a clause into the   database  for administrative purposes.
 %   This bypasses sanity checking.
 
 '$store_admin_clause'(Clause, Layout, Owner, SrcLoc) :-
+    '$compilation_mode'(Mode),
+    '$store_admin_clause'(Clause, Layout, Owner, SrcLoc, Mode).
+
+'$store_admin_clause'(Clause, Layout, Owner, SrcLoc, Mode) :-
     Owner \== (-),
     !,
     setup_call_cleanup(
 	'$start_aux'(Owner, Context),
-	'$store_admin_clause2'(Clause, Layout, Owner, SrcLoc),
+	'$store_admin_clause2'(Clause, Layout, Owner, SrcLoc, Mode),
 	'$end_aux'(Owner, Context)).
-'$store_admin_clause'(Clause, Layout, File, SrcLoc) :-
-    '$store_admin_clause2'(Clause, Layout, File, SrcLoc).
+'$store_admin_clause'(Clause, Layout, File, SrcLoc, Mode) :-
+    '$store_admin_clause2'(Clause, Layout, File, SrcLoc, Mode).
 
 '$store_admin_clause2'(Clause, _Layout, File, SrcLoc) :-
-    (   '$compilation_mode'(database)
+    '$compilation_mode'(Mode),
+    '$store_admin_clause2'(Clause, _Layout, File, SrcLoc, Mode).
+
+'$store_admin_clause2'(Clause, _Layout, File, SrcLoc, Mode) :-
+    (   Mode == database
     ->  '$record_clause'(Clause, File, SrcLoc)
     ;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	'$qlf_assert_clause'(Ref, development)
