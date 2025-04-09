@@ -971,7 +971,7 @@ autoload(M:File) :-
     source_context(Context),
     (   current_autoload(M:File, _, import(all))
     ->  true
-    ;   assert_autoload(M:'$autoload'(File, Context, all))
+    ;   assert_autoload(M, File, Context, all)
     ).
 
 autoload(M:File, Imports) :-
@@ -987,7 +987,7 @@ autoload(M:File, Imports0) :-
     register_autoloads(Imports, M, File, Context),
     (   current_autoload(M:File, _, import(Imports))
     ->  true
-    ;   assert_autoload(M:'$autoload'(File, Context, import(Imports)))
+    ;   assert_autoload(M, File, Context, import(Imports))
     ).
 
 source_context(Path:Line) :-
@@ -995,9 +995,17 @@ source_context(Path:Line) :-
     !.
 source_context(-).
 
-assert_autoload(Clause) :-
+assert_autoload(Module, File, Context, Imports) :-
+    set_admin_properties(Module),
+    Clause = Module:'$autoload'(File, Context, Imports),
     '$initialization_context'(Source, Ctx),
     '$store_admin_clause2'(Clause, _Layout, Source, Ctx).
+
+set_admin_properties(Module) :-
+    predicate_property(Module:'$autoload'(_,_,_), discontiguous),
+    !.
+set_admin_properties(Module) :-
+    discontiguous(Module:'$autoload'/3).
 
 valid_imports(Imports0, Imports) :-
     '$must_be'(list, Imports0),
