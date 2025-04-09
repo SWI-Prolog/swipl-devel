@@ -178,7 +178,8 @@ Below is an informal description of the format of a `.qlf' file:
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
-<include>	::=	<owner> <parent> <line> <file> <time>
+<include>	::=	<file> <owner> <parent> <line> <time>
+			(files as UTF-8 strings)
 
 Integers are stored in  a  packed  format   to  reduce  the  size of the
 intermediate code file as  99%  of  them   is  normally  small,  but  in
@@ -249,7 +250,7 @@ typedef struct path_translated
 typedef struct qlf_state
 { char *save_dir;			/* Directory saved */
   char *load_dir;			/* Directory loading */
-  int	has_moved;			/* Paths must be translated */
+  bool	has_moved;			/* Paths must be translated */
   path_translated *translated;		/* Translated paths */
   struct qlf_state *previous;		/* previous saved state (reentrance) */
 } qlf_state;
@@ -1812,23 +1813,28 @@ the file from which a clause originates  will remove the one loaded with
 the module where it is a multifile one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
-qlfLoadSource(wic_state *state, SourceFile sf)
-{ IOSTREAM *fd = state->wicFd;
-  char *str = qlfGetString(fd, NULL);
-  double time = qlfGetDouble(fd);
-  int ftype = Qgetc(fd);
-  atom_t fname;
-
+static atom_t
+loadFileName(wic_state *state)
+{ char *str = qlfGetString(state->wicFd, NULL);
   if ( !str )
   { fatalError("Invalid QLF: illegal string");
-    return false;
+    return 0;
   }
-  fname = qlfFixSourcePath(state, str);
+  atom_t fname = qlfFixSourcePath(state, str);
 
   DEBUG(MSG_QLF_PATH,
 	if ( !streq(stringAtom(fname), str) )
 	  Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
+
+  return fname;
+}
+
+static bool
+qlfLoadSource(wic_state *state, SourceFile sf)
+{ IOSTREAM *fd = state->wicFd;
+  atom_t fname = loadFileName(state);
+  double time = qlfGetDouble(fd);
+  int ftype = Qgetc(fd);
 
   memset(sf, 0, sizeof(*sf));
   sf->name   = fname;
@@ -2054,11 +2060,19 @@ loadInclude(DECL_LD wic_state *state, int skip)
   DEBUG(MSG_QLF_INCLUDE, Sdprintf("Loading include from %ld ",
 				  Stell(state->wicFd)));
 
-  owner = word2atom(loadXR(state));
-  pn    = word2atom(loadXR(state));
-  line  = qlfGetInt32(fd);
-  fn    = word2atom(loadXR(state));
-  time  = qlfGetDouble(fd);
+  if ( state->saved_version >= 70 )
+  { fn    = loadFileName(state);
+    owner = loadFileName(state);
+    pn    = loadFileName(state);
+    line  = qlfGetInt32(fd);
+    time  = qlfGetDouble(fd);
+  } else
+  { owner = word2atom(loadXR(state));
+    pn    = word2atom(loadXR(state));
+    line  = qlfGetInt32(fd);
+    fn    = word2atom(loadXR(state));
+    time  = qlfGetDouble(fd);
+  }
 
   DEBUG(MSG_QLF_INCLUDE, Sdprintf("(%s)\n ", PL_atom_chars(fn)));
 
@@ -3826,22 +3840,31 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
 
 
 static bool
-qlfSaveSource(wic_state *state, SourceFile f)
+qlfSaveFileName(wic_state *state, atom_t name)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
   PL_chars_t text;
 
   PL_STRINGS_MARK();
-  get_atom_text(f->name, &text);
+  get_atom_text(name, &text);
   PL_mb_text(&text, REP_UTF8);
+  qlfPutString(text.text.t, text.length, fd);
+  PL_STRINGS_RELEASE();
+
+  return true;
+}
+
+
+static bool
+qlfSaveSource(wic_state *state, SourceFile f)
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
 
   sourceMark(state);
   Sputc('F', fd);
-  qlfPutString(text.text.t, text.length, fd);
+  qlfSaveFileName(state, f->name);
   qlfPutDouble(f->mtime, fd);
   Sputc(src_file_status(f), fd);
-  PL_STRINGS_RELEASE();
-
   state->currentSource = f;
 
   succeed;
@@ -4022,10 +4045,10 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
 				    PL_atom_chars(fn),
 				    Stell(state->wicFd)));
     Sputc('L', fd);
-    saveXR(state, owner);
-    saveXR(state, pn);
+    qlfSaveFileName(state, fn);
+    qlfSaveFileName(state, owner);
+    qlfSaveFileName(state, pn);
     qlfPutInt64(line, fd);
-    saveXR(state, fn);
     qlfPutDouble(time, fd);
 
     return true;
