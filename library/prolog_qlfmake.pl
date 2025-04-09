@@ -151,7 +151,9 @@ preload(_, _).
 
 %!  qlf_needs_rebuild(+PlFile:atom) is semidet.
 %
-%   True when PlFile needs to be recompiled.
+%   True when PlFile  needs  to  be   recompiled.  This  currently  only
+%   considers the immediate  source  file,   __not__  included  files or
+%   imported files that define operators, goal or term expansion rules.
 
 qlf_needs_rebuild(PlFile) :-
     pl_qlf_file(PlFile, QlfFile),
@@ -199,7 +201,18 @@ size_stat(PlFile, PlSize, QlfSize) :-
 %!  file_dependencies(+File, -Deps:ordset) is det.
 %
 %   True when Deps is a  list  of   absolute  file  names  that form the
-%   dependencies of File. This examines the file loading directives.
+%   dependencies of File. These dependencies are   used to determine the
+%   order in which we compile the units.   This  does __not__ state that
+%   the compilation process depends  on   these  dependencies.  But, qlf
+%   compiling a module does load  these   dependencies,  either from the
+%   source or created .qlf file. Only   if the loaded dependency exports
+%   macros (term/goal expansion rules) or operators  we actually need to
+%   have the depedencies compiled before us.   Still,  qlf compiling the
+%   dependencies before speeds up the compilation of this file.
+%
+%   This predicate examines the file loading  directives. Note that Deps
+%   does __not__ contain files  loaded  using   include/1  as  we do not
+%   create .qlf files for these.
 
 file_dependencies(File, Deps) :-
     prolog_file_directives(File, Directives, []),
