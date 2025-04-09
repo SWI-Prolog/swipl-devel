@@ -165,10 +165,9 @@ qlf_needs_rebuild(PlFile) :-
     ->  true
     ;   time_file(QlfFile, QlfTime),
         '$qlf_sources'(QlfFile, Sources),
-        forall(member(S, Sources),
-               (   time_file(S, STime),
-                   STime > QlfTime+1
-               ))
+        member(S, Sources),
+        time_file(S, STime),
+        STime > QlfTime+1
     ).
 
 pl_qlf_file(PlFile, QlfFile) :-
