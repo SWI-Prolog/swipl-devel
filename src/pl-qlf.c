@@ -3259,18 +3259,20 @@ qlfError(wic_state *state, const char *error, ...)
 static bool
 qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 { IOSTREAM *s = state->wicFd;
-  char *str;
   term_t head = PL_new_term_ref();
   atom_t fname;
 
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return qlfError(state, "seek to %zd failed: %s", offset, OsError());
-  if ( Sgetc(s) != 'F' || !(str=qlfGetString(s, NULL)) )
-    return qlfError(state, "invalid string (offset %zd)", offset);
-  fname = qlfFixSourcePath(state, str);
+  int type = Sgetc(s);
+  if ( !(type == 'F' || type == 'L') )
+    return qlfError(state, "No file at offset %zd", offset);
+  fname = loadFileName(state);
 
-  return PL_unify_list(list, head, list) &&
-	 PL_unify_atom(head, fname);
+  bool rc = (PL_unify_list(list, head, list) &&
+	     PL_unify_atom(head, fname));
+  PL_reset_term_refs(head);
+  return rc;
 }
 
 
@@ -4044,6 +4046,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     DEBUG(MSG_QLF_INCLUDE, Sdprintf("Saving include of %s from %ld\n",
 				    PL_atom_chars(fn),
 				    Stell(state->wicFd)));
+    sourceMark(state);
     Sputc('L', fd);
     qlfSaveFileName(state, fn);
     qlfSaveFileName(state, owner);
