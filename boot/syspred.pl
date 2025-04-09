@@ -367,11 +367,12 @@ canonical_source_file(Spec, File) :-
     File = Spec.
 canonical_source_file(Spec, File) :-
     absolute_file_name(Spec, File,
-                       [ file_type(prolog),
-                         access(read),
+                       [ file_type(source),
+                         solutions(all),
                          file_errors(fail)
                        ]),
-    source_file(File).
+    source_file(File),
+    !.
 
 
 %!  exists_source(+Source) is semidet.
