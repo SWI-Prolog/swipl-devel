@@ -99,7 +99,7 @@ option(INSTALL_TESTS
        OFF)
 option(INSTALL_QLF
        "Build and install .qlf files for all libraries"
-       OFF)
+       ON)
 option(INSTALL_PROLOG_SRC
        "Install the Prolog sources (.pl files)"
        ON)
