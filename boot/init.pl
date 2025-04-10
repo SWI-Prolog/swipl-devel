@@ -2715,7 +2715,9 @@ load_files(Module:Files, Options) :-
     !,
     setup_call_catcher_cleanup(
 	'$qstart'(StageQlf, Module, State),
-	'$do_load_file'(File, FullFile, Module, Action, Options),
+	( '$do_load_file'(File, FullFile, Module, Action, Options),
+          '$qlf_add_dependencies'(FullFile)
+        ),
 	Catcher,
 	'$qend'(State, Catcher, StageQlf, QlfOut)).
 '$qdo_load_file2'(File, FullFile, Module, Action, Options) :-
@@ -2735,6 +2737,35 @@ load_files(Module:Files, Options) :-
 '$set_source_module'(OldModule, Module) :-
     '$current_source_module'(OldModule),
     '$set_source_module'(Module).
+
+%!  '$qlf_add_dependencies'(+File) is det.
+%
+%   Add compilation dependencies. These are files   that are loaded into
+%   Module that define term or goal expansion rules.
+
+'$qlf_add_dependencies'(File) :-
+    forall('$dependency'(File, DepFile),
+           '$qlf_dependency'(DepFile)).
+
+'$dependency'(File, DepFile) :-
+    '$current_module'(Module, File),
+    '$load_context_module'(DepFile, Module, _Options),
+    '$source_defines_expansion'(DepFile).
+
+% Also used by autoload.pl
+'$source_defines_expansion'(File) :-
+    '$expansion_hook'(P),
+    source_file(P, File),
+    !.
+
+'$expansion_hook'(user:goal_expansion(_,_)).
+'$expansion_hook'(user:goal_expansion(_,_,_,_)).
+'$expansion_hook'(system:goal_expansion(_,_)).
+'$expansion_hook'(system:goal_expansion(_,_,_,_)).
+'$expansion_hook'(user:term_expansion(_,_)).
+'$expansion_hook'(user:term_expansion(_,_,_,_)).
+'$expansion_hook'(system:term_expansion(_,_)).
+'$expansion_hook'(system:term_expansion(_,_,_,_)).
 
 %!  '$do_load_file'(+Spec, +FullFile, +ContextModule,
 %!                  -Action, +Options) is det.

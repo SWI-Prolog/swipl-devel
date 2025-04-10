@@ -1090,23 +1090,13 @@ warn_autoload(TargetModule, PI) :-
     \+ nowarn_autoload(TargetModule, PI),
     '$pi_head'(PI, Head),
     source_file(Head, File),
-    source_defines_expansion(File),
+    '$source_defines_expansion'(File),
     setup_call_cleanup(
         b_setval('$autoload_warning', true),
         print_message(warning,
                       deprecated(autoload(TargetModule, File, PI, expansion))),
         nb_delete('$autoload_warning')).
 warn_autoload(_, _).
-
-source_defines_expansion(File) :-
-    expansion_hook(P),
-    source_file(P, File),
-    !.
-
-expansion_hook(user:goal_expansion(_,_)).
-expansion_hook(user:goal_expansion(_,_,_,_)).
-expansion_hook(system:goal_expansion(_,_)).
-expansion_hook(system:goal_expansion(_,_,_,_)).
 
 %!  nowarn_autoload(+TargetModule, +LoadModulePI) is semidet.
 %
