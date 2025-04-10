@@ -67,8 +67,8 @@ qlf(update, Argv) =>
     argv_options(qlf_update:Argv, Files, Options),
     cli_qlf_update(Files, Options).
 qlf(info, Argv) =>
-    argv_options(qlf_info:Argv, [File], Options),
-    cli_qlf_info(File, Options).
+    argv_options(qlf_info:Argv, Files, Options),
+    cli_qlf_info(Files, Options).
 qlf(list, Argv) =>
     argv_options(qlf_list:Argv, Pos, Options),
     cli_qlf_list(Pos, Options).
@@ -185,37 +185,55 @@ commands -->
 		 *          SUB COMMANDS	*
 		 *******************************/
 
-cli_qlf_info(File, Options) :-
+cli_qlf_info([], _Options) :-
+    argv_usage(qlf_info:debug),
+    halt(1).
+cli_qlf_info([File], Options) :-
+    cli_qlf_info_1(File, Options).
+cli_qlf_info(Files, Options) :-
+    forall(member(File, Files),
+           cli_qlf_info_n(File, Options)).
+
+cli_qlf_info_n(File, Options) :-
+    ansi_format(bold, '~w~n', [File]),
+    cli_qlf_info_1(File, [indent(2)|Options]).
+
+cli_qlf_info_1(File, Options) :-
     option(source(true), Options),
     !,
     '$qlf_sources'(File, Sources),
     forall(member(F, Sources),
-           write_source(F)).
-cli_qlf_info(File, Options) :-
+           write_source(F, Options)).
+cli_qlf_info_1(File, Options) :-
     option(exports(true), Options),
     !,
     '$qlf_module'(File, Info),
+    option(indent(Indent), Options, 0),
     forall(member(PI, Info.exports),
-           writeln(PI)).
-cli_qlf_info(File, _Options) :-
+           format('~t~*|~q~n', [Indent, PI])).
+cli_qlf_info_1(File, Options) :-
     '$qlf_versions'(File, CurrentVersion, MinLOadVersion, FileVersion,
                     CurrentSignature, FileSignature),
-    format('QLF version: ~p (current ~p, compatibility ~p)~n',
-           [ FileVersion, CurrentVersion, MinLOadVersion ]),
-    format('VM signature: 0x~16r (compatibility ox~16r)~n',
-           [ FileSignature, CurrentSignature ]),
-    (   catch('$qlf_is_compatible'(File), _, fail)
+    option(indent(Indent), Options, 0),
+    format('~t~*|QLF version: ~p (current ~p, compatibility ~p)~n',
+           [ Indent, FileVersion, CurrentVersion, MinLOadVersion ]),
+    format('~t~*|VM signature: 0x~16r (compatibility ox~16r)~n',
+           [ Indent, FileSignature, CurrentSignature ]),
+    (   catch('$qlf_is_compatible'(File), error(_,_), fail)
     ->  true
     ;   ansi_format(warning,
-                    'QLF file is incompatible with this version of Prolog~n', [])
+                    '~t~*|QLF file is incompatible with this \c
+                    version of Prolog~n', [Indent])
     ).
 
-write_source(source(File)) =>
-    format('s ~w~n', [File]).
-write_source(include(File)) =>
-    format('i ~w~n', [File]).
-write_source(dependency(File)) =>
-    format('d ~w~n', [File]).
+write_source(Dep, Options) :-
+    dep(Dep, Indicator, File),
+    option(indent(Indent), Options, 0),
+    format('~t~*|~w ~w~n', [Indent, Indicator, File]).
+
+dep(source(File),     s, File).
+dep(include(File),    i, File).
+dep(dependency(File), d, File).
 
 %!  cli_qlf_clean(+Files, +Options) is det.
 %
