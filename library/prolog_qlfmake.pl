@@ -168,7 +168,8 @@ qlf_needs_rebuild(PlFile) :-
     ;   time_file(QlfFile, QlfTime),
         '$qlf_sources'(QlfFile, Sources),
         member(S, Sources),
-        time_file(S, STime),
+        arg(1, S, File),
+        time_file(File, STime),
         STime > QlfTime+1
     ).
 
@@ -450,7 +451,7 @@ qmake_aggregate(Spec) :-
                        ]),
     pl_qlf_file(PlFile, QlfFile),
     '$qlf_sources'(QlfFile, Sources),
-    forall(member(S, Sources),
+    forall(member(source(S), Sources),
            assertz(qlf_part_of(S, PlFile))).
 qmake_aggregate(_).
 

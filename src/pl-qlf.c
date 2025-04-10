@@ -105,6 +105,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<vm signature>
 			{'L' <include>}
 			'Q' <qlf-part>
+			<trailer>
 <qlf-magic>	::=	<string>
 <qlf-module>	::=	<qlf-header>
 			<size>				% size in bytes
@@ -180,6 +181,9 @@ Below is an informal description of the format of a `.qlf' file:
 <word>		::=	<4 byte entity>
 <include>	::=	<file> <owner> <parent> <line> <time>
 			(files as UTF-8 strings)
+<trailer>	::=	{'D' <file>}			% file dependencies
+			{<mark-offset>}			% file offset of files
+			<offset-count>			% #mark offsets
 
 Integers are stored in  a  packed  format   to  reduce  the  size of the
 intermediate code file as  99%  of  them   is  normally  small,  but  in
@@ -3260,17 +3264,25 @@ static bool
 qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 { IOSTREAM *s = state->wicFd;
   term_t head = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
   atom_t fname;
+  functor_t type;
 
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return qlfError(state, "seek to %zd failed: %s", offset, OsError());
-  int type = Sgetc(s);
-  if ( !(type == 'F' || type == 'L') )
-    return qlfError(state, "No file at offset %zd", offset);
+  switch(Sgetc(s))
+  { case 'F': type = FUNCTOR_source1;     break;
+    case 'L': type = FUNCTOR_include1;    break;
+    case 'D': type = FUNCTOR_dependency1; break;
+    default:
+      return qlfError(state, "No file at offset %zd", offset);
+  }
   fname = loadFileName(state);
 
-  bool rc = (PL_unify_list(list, head, list) &&
-	     PL_unify_atom(head, fname));
+  bool rc = ( PL_put_atom(tmp, fname) &&
+	      PL_cons_functor_v(tmp, type, tmp) &&
+	      PL_unify_list(list, head, list) &&
+	      PL_unify(head, tmp) );
   PL_reset_term_refs(head);
   return rc;
 }
@@ -4062,6 +4074,25 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
 
 
 static
+PRED_IMPL("$qlf_dependency", 1, $qlf_dependency, 0)
+{ PRED_LD
+  atom_t file;
+  wic_state *state;
+
+  if ( PL_get_atom_ex(A1, &file) &&
+       (state=LD->qlf.write_state) )
+  { sourceMark(state);
+    Sputc('D', state->wicFd);
+    qlfSaveFileName(state, file);
+
+    return true;
+  }
+
+  return false;
+}
+
+
+static
 PRED_IMPL("$qlf_end_part", 0, qlf_end_part, 0)
 { PRED_LD
   wic_state *state;
@@ -4805,6 +4836,7 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_start_file",	    1, qlf_start_file,	     0)
   PRED_DEF("$qlf_current_source",   1, qlf_current_source,   0)
   PRED_DEF("$qlf_include",          5, qlf_include,          0)
+  PRED_DEF("$qlf_dependency",       1, $qlf_dependency,      0)
   PRED_DEF("$qlf_end_part",	    0, qlf_end_part,	     0)
   PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
   PRED_DEF("$qlf_close",	    0, qlf_close,	     0)

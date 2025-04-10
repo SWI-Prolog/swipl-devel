@@ -190,7 +190,7 @@ cli_qlf_info(File, Options) :-
     !,
     '$qlf_sources'(File, Sources),
     forall(member(F, Sources),
-           writeln(F)).
+           write_source(F)).
 cli_qlf_info(File, Options) :-
     option(exports(true), Options),
     !,
@@ -209,6 +209,13 @@ cli_qlf_info(File, _Options) :-
     ;   ansi_format(warning,
                     'QLF file is incompatible with this version of Prolog~n', [])
     ).
+
+write_source(source(File)) =>
+    format('s ~w~n', [File]).
+write_source(include(File)) =>
+    format('i ~w~n', [File]).
+write_source(dependency(File)) =>
+    format('d ~w~n', [File]).
 
 %!  cli_qlf_clean(+Files, +Options) is det.
 %
@@ -298,9 +305,10 @@ qlf_up_to_date(File, Status) :-
     CurrentSignature == FileSignature,
     time_file(File, TQLF),
     '$qlf_sources'(File, Sources),
-    (   forall(member(S, Sources), \+ exists_file(S))
+    maplist(arg(1), Sources, Files),
+    (   forall(member(S, Files), \+ exists_file(S))
     ->  Status = no_source
-    ;   include(outofdate(TQLF), Sources, Modified)
+    ;   include(outofdate(TQLF), Files, Modified)
     ->  (   Modified == []
         ->  Status = up_to_date
         ;   Status = out_of_date(Modified)
@@ -389,9 +397,10 @@ cli_qlf_compile(File, Options) :-
     (   option(expect_deps(Deps), Options)
     ->  file_name_extension(Base, qlf, QlfFile),
         '$qlf_sources'(QlfFile, Sources),
+        maplist(arg(1), Sources, Files),
         maplist(absolute_file_name, Deps, Canonical),
-        subtract(Sources, Canonical, Missing),
-        subtract(Canonical, Sources, Extra),
+        subtract(Files, Canonical, Missing),
+        subtract(Canonical, Files, Extra),
         (   Missing == []
         ->  true
         ;   print_message(warning, qcompile(missing, Base, Missing))

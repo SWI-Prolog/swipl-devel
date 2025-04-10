@@ -221,6 +221,7 @@ A defined		"defined"
 A deflated		"deflated"
 A delete		"delete"
 A denominator		"denominator"
+A dependency		"dependency"
 A dependent		"dependent"
 A depth			"depth"
 A depth_limit_exceeded	"depth_limit_exceeded"
@@ -424,6 +425,7 @@ A import_type		"import_type"
 A imported		"imported"
 A imported_procedure	"imported_procedure"
 A cont_inactive		"<inactive>"
+A include		"include"
 A incomplete		"incomplete"
 A incremental		"incremental"
 A index			"index"
@@ -788,6 +790,7 @@ A skipped		"skipped"
 A smaller		"<"
 A smaller_equal		"=<"
 A softcut		"*->"
+A source		"source"
 A source_sink		"source_sink"
 A space			"space"
 A spacing		"spacing"
@@ -1083,6 +1086,7 @@ F decimal_point		1
 F deep			1
 F detached		1
 F determinism_error	4
+F dependency		1
 F dexit			2
 F dforeign_registered   2
 F dgarbage_collect	1
@@ -1165,6 +1169,7 @@ F if			1
 F ifthen		2
 F import_into		1
 F inf			0
+F include		1
 F input			0
 F input			4
 F integer		1
@@ -1273,6 +1278,7 @@ F size			1
 F smaller		2
 F smaller_equal		2
 F softcut		2
+F source		1
 F spy			1
 F sqrt			1
 F ssu_commit		2
