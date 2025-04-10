@@ -328,8 +328,8 @@ property_source_file(module(M), File) :-
     ;   '$current_module'(M, File)
     ).
 property_source_file(load_context(Module, Location, Options), File) :-
-    '$time_source_file'(File, _, user),
     clause(system:'$load_context_module'(File, Module, Options), true, Ref),
+    '$time_source_file'(File, _, user),
     (   clause_property(Ref, file(FromFile)),
         clause_property(Ref, line_count(FromLine))
     ->  Location = FromFile:FromLine
