@@ -113,7 +113,7 @@ qlf_info:opt_type(exports,   exports,   boolean).
 qlf_info:opt_type(e,         exports,   boolean).
 
 qlf_info:opt_help(help(usage),
-                  " info [option ...] file").
+                  " info [option ...] file ...").
 qlf_info:opt_help(source,
                   "List the source files from which this QLF file was created").
 qlf_info:opt_help(exports,
@@ -123,8 +123,8 @@ qlf_info:opt_help(version,
 
 qlf_list:opt_type(recursive, recursive, boolean).
 qlf_list:opt_type(r,         recursive, boolean).
-qlf_list:opt_type(all,       all,       boolean).
-qlf_list:opt_type(a,         all,       boolean).
+qlf_list:opt_type(update,    update,    boolean).
+qlf_list:opt_type(u,         update,    boolean).
 
 qlf_list:opt_help(help(header),
                    [ansi(bold, "List .qlf files and their status.", [])]).
@@ -132,8 +132,8 @@ qlf_list:opt_help(help(usage),
                   " list [option ...] [file-or-directory ...]").
 qlf_list:opt_help(recursive,
                   "Recurse into subdirectories").
-qlf_list:opt_help(all,
-                  "Also act on valid and up-to-date QLF files").
+qlf_list:opt_help(update,
+                  "Only list files that need updating").
 
 qlf_clean:opt_type(Flag, Opt, Type) :- qlf_list:opt_type(Flag, Opt, Type).
 qlf_clean:opt_help(help(header),
@@ -201,17 +201,48 @@ cli_qlf_info_n(File, Options) :-
 cli_qlf_info_1(File, Options) :-
     option(source(true), Options),
     !,
-    '$qlf_sources'(File, Sources),
-    forall(member(F, Sources),
-           write_source(F, Options)).
+    cli_qlf_info_source(File, Options).
 cli_qlf_info_1(File, Options) :-
     option(exports(true), Options),
     !,
+    cli_qlf_info_exports(File, Options).
+cli_qlf_info_1(File, Options) :-
+    option(version(true), Options),
+    !,
+    cli_qlf_info_version(File, Options).
+cli_qlf_info_1(File, Options) :-
+    select_option(indent(OldIndent), Options, Options1, 0),
+    Indent is OldIndent+2,
+    SectionOptions = [indent(Indent)|Options1],
+    ansi_format(bold, '~t~*|Versions~n', [OldIndent]),
+    cli_qlf_info_version(File, SectionOptions),
+    ansi_format(bold, '~t~*|Sources~n', [OldIndent]),
+    cli_qlf_info_source(File, SectionOptions),
+    ansi_format(bold, '~t~*|Exports~n', [OldIndent]),
+    cli_qlf_info_exports(File, SectionOptions).
+
+
+cli_qlf_info_source(File, Options) :-
+    '$qlf_sources'(File, Sources),
+    forall(member(F, Sources),
+           write_source(F, Options)).
+
+write_source(Dep, Options) :-
+    dep(Dep, Indicator, File),
+    option(indent(Indent), Options, 0),
+    format('~t~*|~w ~w~n', [Indent, Indicator, File]).
+
+dep(source(File),     s, File).
+dep(include(File),    i, File).
+dep(dependency(File), d, File).
+
+cli_qlf_info_exports(File, Options) :-
     '$qlf_module'(File, Info),
     option(indent(Indent), Options, 0),
     forall(member(PI, Info.exports),
            format('~t~*|~q~n', [Indent, PI])).
-cli_qlf_info_1(File, Options) :-
+
+cli_qlf_info_version(File, Options) :-
     '$qlf_versions'(File, CurrentVersion, MinLOadVersion, FileVersion,
                     CurrentSignature, FileSignature),
     option(indent(Indent), Options, 0),
@@ -225,15 +256,6 @@ cli_qlf_info_1(File, Options) :-
                     '~t~*|QLF file is incompatible with this \c
                     version of Prolog~n', [Indent])
     ).
-
-write_source(Dep, Options) :-
-    dep(Dep, Indicator, File),
-    option(indent(Indent), Options, 0),
-    format('~t~*|~w ~w~n', [Indent, Indicator, File]).
-
-dep(source(File),     s, File).
-dep(include(File),    i, File).
-dep(dependency(File), d, File).
 
 %!  cli_qlf_clean(+Files, +Options) is det.
 %
@@ -362,14 +384,23 @@ qlf_list(File, _) :-
          user:prolog_file_type(Ext, qlf) ),
     !,
     ansi_format(warning, 'Ignoring ~w: not a QLF file~n', [File]).
-qlf_list(File, _Options) :-
+qlf_list(File, Options) :-
     qlf_up_to_date(File, Status),
-    list_status(Status, Level),
-    print_message(Level, qlf(list(File, Status))).
+    list_status(Status, Indicator, Level),
+    (   option(update(true), Options)
+    ->  (   Status = out_of_date(_)
+        ->  format('~w~n', [File])
+        ;   true
+        )
+    ;   (   stream_property(current_output, tty(true))
+        ->  print_message(Level, qlf(list(File, Status)))
+        ;   format('~w ~w~n', [Indicator, File])
+        )
+    ).
 
-list_status(no_source, information).
-list_status(up_to_date, information).
-list_status(out_of_date(_), warning).
+list_status(no_source,      b, information).
+list_status(up_to_date,     s, information).
+list_status(out_of_date(_), u, warning).
 
 
 		 /*******************************
