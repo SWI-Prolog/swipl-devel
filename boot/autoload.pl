@@ -969,10 +969,7 @@ autoload(M:File) :-
 autoload(M:File) :-
     '$must_be'(filespec, File),
     source_context(Context),
-    (   current_autoload(M:File, _, import(all))
-    ->  true
-    ;   assert_autoload(M, File, Context, all)
-    ).
+    assert_autoload(M, File, Context, all).
 
 autoload(M:File, Imports) :-
     (   \+ autoload_in(M, explicit)
@@ -985,16 +982,24 @@ autoload(M:File, Imports0) :-
     valid_imports(Imports0, Imports),
     source_context(Context),
     register_autoloads(Imports, M, File, Context),
-    (   current_autoload(M:File, _, import(Imports))
-    ->  true
-    ;   assert_autoload(M, File, Context, import(Imports))
-    ).
+    assert_autoload(M, File, Context, import(Imports)).
 
 source_context(Path:Line) :-
     source_location(Path, Line),
     !.
 source_context(-).
 
+%!  assert_autoload(+Module, +File, +Context, +Imports) is det.
+%
+%   Assert that Module can autoload  predicates   defines  in Imports by
+%   loading File. Context provides the file owner of the declaration.
+%
+%   @arg Imports is either `all`  or   imports(List).  That latter comes
+%   from an autoload/2 directive.
+
+assert_autoload(Module, File, _, Imports) :-
+    current_autoload(Module:File, _, Imports),
+    !.
 assert_autoload(Module, File, Context, Imports) :-
     set_admin_properties(Module),
     Clause = Module:'$autoload'(File, Context, Imports),
@@ -1085,15 +1090,18 @@ warn_autoload(TargetModule, PI) :-
     \+ nowarn_autoload(TargetModule, PI),
     '$pi_head'(PI, Head),
     source_file(Head, File),
-    expansion_hook(P),
-    source_file(P, File),
-    !,
+    source_defines_expansion(File),
     setup_call_cleanup(
         b_setval('$autoload_warning', true),
         print_message(warning,
                       deprecated(autoload(TargetModule, File, PI, expansion))),
         nb_delete('$autoload_warning')).
 warn_autoload(_, _).
+
+source_defines_expansion(File) :-
+    expansion_hook(P),
+    source_file(P, File),
+    !.
 
 expansion_hook(user:goal_expansion(_,_)).
 expansion_hook(user:goal_expansion(_,_,_,_)).

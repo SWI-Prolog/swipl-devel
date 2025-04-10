@@ -3952,6 +3952,7 @@ load_files(Module:Files, Options) :-
 '$store_admin_clause'(Clause, Layout, File, SrcLoc, Mode) :-
     '$store_admin_clause2'(Clause, Layout, File, SrcLoc, Mode).
 
+:- public '$store_admin_clause2'/4.     % Used by autoload.pl
 '$store_admin_clause2'(Clause, _Layout, File, SrcLoc) :-
     '$compilation_mode'(Mode),
     '$store_admin_clause2'(Clause, _Layout, File, SrcLoc, Mode).
