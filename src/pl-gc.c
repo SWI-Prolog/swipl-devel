@@ -4292,7 +4292,7 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 
 #endif /* O_DEBUG */
 
-int
+bool
 PL_check_stacks(void)
 {
 #ifdef HAVE_CHECK_STACKS
@@ -4609,7 +4609,7 @@ sizeStackP(s). i.e. we can't increase the stacks  but the 1 byte request
 is seen as satisfiable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
   Stack s = NULL;

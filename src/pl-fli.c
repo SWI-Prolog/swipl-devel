@@ -5585,16 +5585,16 @@ PL_print_message(atom_t severity, ...)
 		*            ACTIONS            *
 		*********************************/
 
-int
+bool
 PL_action(int action, ...)
-{ int rval = true;
+{ bool rval = true;
   va_list args;
 
   va_start(args, action);
 
   switch(action)
   { case PL_ACTION_TRACE:
-      rval = (int)pl_trace();
+      rval = (bool)pl_trace();
       break;
     case PL_ACTION_DEBUG:
       debugmode(DBG_ALL, NULL);
@@ -5625,7 +5625,7 @@ PL_action(int action, ...)
 #endif
       break;
     case PL_ACTION_BREAK:
-      rval = (int)pl_break();
+      rval = (bool)pl_break();
       break;
     case PL_ACTION_HALT:
     { int a = va_arg(args, int);
@@ -5635,7 +5635,7 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_ABORT:
-      rval = (int)abortProlog();
+      rval = abortProlog();
       break;
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);
@@ -5648,12 +5648,12 @@ PL_action(int action, ...)
     case PL_ACTION_WRITE:
     { GET_LD
       char *s = va_arg(args, char *);
-      rval = Sfputs(s, Scurout) < 0 ? false : true;
+      rval = Sfputs(s, Scurout) == 0;
       break;
     }
     case PL_ACTION_FLUSH:
     { GET_LD
-      rval = Sflush(Scurout);
+      rval = Sflush(Scurout) == 0;
       break;
     }
     case PL_ACTION_ATTACH_CONSOLE:

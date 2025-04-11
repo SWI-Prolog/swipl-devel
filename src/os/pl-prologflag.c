@@ -1380,7 +1380,7 @@ lookupFlag(atom_t key)
 }
 
 
-int
+bool
 PL_current_prolog_flag(atom_t name, int type, void *value)
 { prolog_flag *f;
 

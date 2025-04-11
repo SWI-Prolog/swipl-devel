@@ -1266,14 +1266,14 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_BT_SAFE		0x1	/* Do not try to print goals */
 #define PL_BT_USER		0x2	/* Only show user-goals */
 
-PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
+PL_EXPORT(bool)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void)	PL_on_halt(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_exit_hook(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_backtrace(int depth, int flags);
 PL_EXPORT(char *) PL_backtrace_string(int depth, int flags);
-PL_EXPORT(int)	PL_check_data(term_t data);
-PL_EXPORT(int)	PL_check_stacks(void);
-PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
+PL_EXPORT(bool)	PL_check_data(term_t data);
+PL_EXPORT(bool)	PL_check_stacks(void);
+PL_EXPORT(bool)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 
 
 		 /*******************************

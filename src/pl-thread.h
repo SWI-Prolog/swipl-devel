@@ -535,7 +535,7 @@ int		enableThreads(int enable);
 const char *	threadName(int id);
 void		executeThreadSignals(int sig);
 foreign_t	pl_attach_xterm(term_t in, term_t out);
-int		attachConsole(void);
+bool		attachConsole(void);
 Definition	localiseDefinition(Definition def);
 LocalDefinitions new_ldef_vector(void);
 void		free_ldef_vector(LocalDefinitions ldefs);

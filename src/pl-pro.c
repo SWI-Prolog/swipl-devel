@@ -975,7 +975,7 @@ checkData(Word p)
 
 #endif /* TEST */
 
-int
+bool
 PL_check_data(term_t data)
 {
 #ifdef HAVE_CHECK_DATA

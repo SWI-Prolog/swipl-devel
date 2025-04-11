@@ -4262,7 +4262,7 @@ Create a flag with an integer as value. The argument must be of type
 
 
 \begin{description}
-    \cfunction{int}{PL_current_prolog_flag}{atom_t name, int type, void *value}
+    \cfunction{bool}{PL_current_prolog_flag}{atom_t name, int type, void *value}
 Retrieve the value of a Prolog flag from C.  \arg{name} is the name of the
 flag as an \const{atom_t} (see current_prolog_flag/2).
 \arg{type} specifies the kind of value to be retrieved, it is one
@@ -4364,7 +4364,7 @@ print_message/2.
 \label{sec:foreign-control-prolog}
 
 \begin{description}
-\cfunction{int}{PL_action}{int, ...}
+\cfunction{bool}{PL_action}{int, ...}
 Perform some action on the Prolog system. \arg{int} describes the
 action. Remaining arguments depend on the requested action. The actions
 are listed below:
@@ -5645,14 +5645,14 @@ The source distribution provides the script \file{scripts/swipl-bt} that
 exploits \program{gdb} and PL_backtrace_string() to print stack traces
 in various formats for a SWI-Prolog process, given its process id.
 
-    \cfunction{int}{PL_check_data}{term_t data}
+    \cfunction{bool}{PL_check_data}{term_t data}
     Check the consistency of the term \arg{data}.  Returns \const{TRUE}
     this is actually implemented in the current version and
     \const{FALSE} otherwise.  The actual implementation only exists
     if the system is compiled with the cflag \const{-DO_DEBUG} or
     \const{-DO_MAINTENANCE}.  This is \emph{not} the default.
 
-    \cfunction{int}{PL_check_stacks}{}
+    \cfunction{bool}{PL_check_stacks}{}
     Check the consistency of the runtime stacks of the calling thread.
     Returns \const{TRUE} this is actually implemented in the current
     version and \const{FALSE} otherwise. The actual implementation only exists

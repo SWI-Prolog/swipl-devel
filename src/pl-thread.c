@@ -6714,11 +6714,11 @@ PL_thread_destroy_engine(void)
 }
 
 
-int
+bool
 attachConsole(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
-  int rval;
+  bool rval;
   predicate_t pred = PL_predicate("attach_console", 0, "user");
 
   rval = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, 0);
