@@ -951,7 +951,10 @@ test(ex17) :-
 :- end_tests(tabling_ex17).
 
 
-:- begin_tests(tabling_clpfd, [cleanup(abolish_all_tables)]).
+:- begin_tests(tabling_clpfd,
+               [ cleanup(abolish_all_tables),
+                 condition(\+ has_trie_attvar_support)
+               ]).
 
 :- table fib/2.
 :- use_module(library(clpfd)).
@@ -1364,3 +1367,10 @@ feedback(Fmt) :- debug(tabling, Fmt, []).
 feedback(Fmt,Args) :- debug(tabling, Fmt, Args).
 end       :- debug(tabling, 'end',   []).
 end(I)    :- debug(tabling, 'end ~w',   [I]).
+
+has_trie_attvar_support :-
+    trie_new(T),
+    put_attr(X, x, t),
+    catch(trie_insert(T, f(X)),
+          error(type_error(free_of_attvar, _),_),
+          fail).

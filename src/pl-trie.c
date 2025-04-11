@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2024, VU University Amsterdam
+    Copyright (c)  2016-2025, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+//#define O_TRIE_ATTVAR 1
 #define NO_TRIE_GEN_HELPERS 1
 #include "pl-incl.h"
 #include "pl-comp.h"
@@ -49,6 +50,7 @@
 #include "pl-util.h"
 #include "pl-attvar.h"
 #include "pl-pro.h"
+#include "os/pl-buffer.h"
 #define NO_AC_TERM_WALK 1
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
@@ -100,22 +102,38 @@ typedef struct ukey_state
   size_t	vars_allocated;		/* # variables allocated */
   Word*		vars;
   size_t        a_offset;		/* For resetting the argument stack */
+#ifdef O_TRIE_ATTVAR
+  tmp_buffer	attvars;		/* Read-mode attvar */
+#endif
   Word		var_buf[NVARS_FAST];	/* quick var buffer */
 } ukey_state;
 
+#ifdef O_TRIE_ATTVAR
+typedef struct
+{ Word attvar;
+  Word value;
+} ukey_attvar;
+#endif
+
 #if USE_LD_MACROS
-#define	unify_key(state, key)			LDFUNC(unify_key, state, key)
-#define	init_ukey_state(state, trie, p)		LDFUNC(init_ukey_state, state, trie, p)
-#define	destroy_ukey_state(state)		LDFUNC(destroy_ukey_state, state)
+#define	unify_key(state, key)		LDFUNC(unify_key, state, key)
+#define	init_ukey_state(state, trie, p, reinit) \
+	LDFUNC(init_ukey_state, state, trie, p, reinit)
+#define	destroy_ukey_state(state)	LDFUNC(destroy_ukey_state, state)
+#define finalize_ukey_state(state)	LDFUNC(finalize_ukey_state, state)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
 static int	unify_key(ukey_state *state, word key);
-static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
+static void	init_ukey_state(ukey_state *state, trie *trie, Word p,
+				bool reinit);
 static void	destroy_ukey_state(ukey_state *state);
 static void	set_trie_clause_general_undefined(Clause cl);
 static void	trie_destroy(trie *trie);
+#ifdef O_TRIE_ATTVAR
+static int	finalize_ukey_state(ukey_state *state);
+#endif
 
 #undef LDFUNC_DECLARATIONS
 
@@ -650,7 +668,9 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 }
 
 
-#define follow_node(trie, n, value, add) LDFUNC(follow_node, trie, n, value, add)
+#define follow_node(trie, n, value, add) \
+	LDFUNC(follow_node, trie, n, value, add)
+
 static trie_node *
 follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 { trie_node *child;
@@ -665,7 +685,9 @@ follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 }
 
 
-#define trie_intern_indirect(trie, w, add) LDFUNC(trie_intern_indirect, trie, w, add)
+#define trie_intern_indirect(trie, w, add) \
+	LDFUNC(trie_intern_indirect, trie, w, add)
+
 static word
 trie_intern_indirect(DECL_LD trie *trie, word w, int add)
 { for(;;)
@@ -716,6 +738,21 @@ Return:
   - TRIE_LOOKUP_CONTAINS_ATTVAR
   - TRIE_LOOKUP_CYCLIC
 
+# Variable handling
+
+When a fresh variable is encountered, we push its location onto `vars`
+and replace it with the variable number and the TAG_VAR.  Next time we
+find this variable we simply use the stored word.  Thus, f(X,X) is
+
+    <functor><var 1><var 1>POP
+
+In  theory, we  could do  singleton  detection and  only use  variable
+numbers for singletons.  The price is  though that this needs an extra
+pass.
+
+__Attributed__ variables  are replaced  by <attvar  N> using  the same
+conventions as for normal variables.   In addition to the location, we
+also need to push the address of the attribute to be able to restore.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -770,18 +807,38 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  }
 	  addBuffer(vars, p, Word);
 	  w2 = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
-	  if ( tag(w) == TAG_VAR )
+	  if ( tag(w) == TAG_VAR ) /* otherwise abstracted */
 	    *p = w2;
 	  w = w2;
 	}
         node = follow_node(trie, node, w, add);
 	break;
       case TAG_ATTVAR:
+#ifdef O_TRIE_ATTVAR
+	if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
+	{ Word ap = valPAttVar(w);
+	  if ( var_number++ == 0 && !vars )
+	  { vars = &varb;
+	    initBuffer(vars);
+	  }
+	  addBuffer(vars, p, Word);
+	  addBuffer(vars, ap, Word);
+	  w = ((((word)var_number))<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC;
+	  *p = w;
+	  node = follow_node(trie, node, w, add);
+	  if ( !node )
+	    break;
+	  compounds++;
+	  pushWorkAgenda_P(&agenda, 1, ap);
+	  break;
+	}
+	node = follow_node(trie, node, w, add);
+#else
 	rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
-
-        prune_error(trie, node);
-        node = NULL;
-        break;
+	prune_error(trie, node);
+	node = NULL;
+#endif
+	break;
       case TAG_COMPOUND:
       { if ( unlikely(aleft == 0) )
 	{ rc = TRIE_ABSTRACTED;
@@ -826,7 +883,13 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
     for(; pp < ep; pp++)
     { Word vp = *pp;
       if ( tag(*vp) == TAG_VAR )
-	setVar(*vp);
+      { setVar(*vp);
+#ifdef O_TRIE_ATTVAR
+      } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
+      { Word ap = *++pp;
+	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
+#endif
+      }
     }
     if ( vars == &varb )
       discardBuffer(vars);
@@ -946,25 +1009,35 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
   { ukey_state ustate;
     size_t i;
 
+    init_ukey_state(&ustate, trie_ptr, valTermRef(term), false);
   retry:
     Mark(m);
-    init_ukey_state(&ustate, trie_ptr, valTermRef(term));
+    int rcu = true;
     for(i=kc; i-- > 0; )
-    { int rcu = unify_key(&ustate, keys[i]);
+    { rcu = unify_key(&ustate, keys[i]);
 
       if ( rcu != true )
-      { destroy_ukey_state(&ustate);
-	if ( rcu == false )
-	{ rc = false;
-	  goto out;
-	}
-	Undo(m);
-	if ( (rc=makeMoreStackSpace(rc, ALLOW_GC)) )
-	  goto retry;
-	else
-	  goto out;
-      }
+	break;
     }
+#ifdef O_TRIE_ATTVAR
+    if ( rcu == true )
+      rcu = finalize_ukey_state(&ustate);
+#endif
+
+    if ( rcu != true )
+    { destroy_ukey_state(&ustate);
+      if ( rcu == false )
+      { rc = false;
+	goto out;
+      }
+      Undo(m);
+      if ( (rc=makeMoreStackSpace(rcu, ALLOW_GC)) )
+      { init_ukey_state(&ustate, trie_ptr, valTermRef(term), true);
+	goto retry;
+      } else
+	goto out;
+    }
+
     destroy_ukey_state(&ustate);
     break;
   }
@@ -1615,18 +1688,67 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  */
 
 static void
-init_ukey_state(DECL_LD ukey_state *state, trie *trie, Word p)
+init_ukey_state(DECL_LD ukey_state *state, trie *trie, Word p, bool reinit)
 { state->trie = trie;
   state->ptr  = p;
   state->umode = uread;
   state->max_var_seen = 0;
   state->a_offset = aTop-aBase;
+#ifdef O_TRIE_ATTVAR
+  if ( reinit )
+    emptyBuffer(&state->attvars, 8192);
+  else
+    initBuffer(&state->attvars);
+#endif
 }
+
+#ifdef O_TRIE_ATTVAR
+static int
+finalize_ukey_state(DECL_LD ukey_state *state)
+{ const ukey_attvar *av  = baseBuffer(&state->attvars, const ukey_attvar);
+  const ukey_attvar *end = topBuffer(&state->attvars, const ukey_attvar);
+
+  for (; av < end; av++ )
+  { if ( hasGlobalSpace(0) )
+    { Word p;
+
+      deRef2(av->value, p);
+      if ( isAttVar(*av->attvar) && !isVar(*p) )
+      { assignAttVar(av->attvar, p);
+      } else
+      { int rc = unify_ptrs(av->attvar, p, ALLOW_RETCODE);
+	if ( rc != true )
+	  return rc;
+      }
+    } else
+    { return GLOBAL_OVERFLOW;
+    }
+  }
+
+  return true;
+}
+
+static ukey_attvar *
+orig_attvar(ukey_state *state, Word attvar)
+{ ukey_attvar *avl = baseBuffer(&state->attvars, ukey_attvar);
+  ukey_attvar *end = topBuffer(&state->attvars, ukey_attvar);
+
+  for( ; avl < end; avl++)
+  { if ( avl->attvar == attvar )
+      return avl;
+  }
+
+  assert(0);
+}
+#endif
 
 static void
 destroy_ukey_state(DECL_LD ukey_state *state)
 { if ( state->max_var_seen && state->vars != state->var_buf )
     PL_free(state->vars);
+#ifdef O_TRIE_ATTVAR
+  discardBuffer(&state->attvars);
+#endif
   aTop = aBase + state->a_offset;
 }
 
@@ -1655,6 +1777,27 @@ find_var(ukey_state *state, size_t index)
   return &state->vars[index];
 }
 
+
+/**
+ * Take one  step in unifying  a term with  a sequence of  trie nodes.
+ * `state->ptr` is where  we are in the  term and `key` is  the key of
+ * the next  trie node to  consider.  The  `state` holds the  state of
+ * this state machine.
+ *
+ * Like the VM  unification, this engine uses an  _argument stack_ and
+ * distinguishes _read_  and _write_ mode.   We are in _read_  mode as
+ * long as  we are  matching an existing  structure.  If  the existing
+ * structure is  a variable and the  key is a functor,  we process the
+ * arguments in _write_ mode.
+ *
+ * Handling attributed variables is complicated.  In _write_ mode, the
+ * first encounter creates the attvar and subsequent create references
+ * to it.   In _read_ mode,  we cannot simply unify  as we do  not yet
+ * have  the attributes.   Thus,  we push  the  term-location and  the
+ * attvar to `state->attvars`  and at the end we deal  with it.  If we
+ * find  an attvar  in read  mode for  the second  time, we  unify the
+ * corresponding term values.
+ */
 
 static int			/* bool or *_OVERFLOW */
 unify_key(DECL_LD ukey_state *state, word key)
@@ -1781,6 +1924,47 @@ unify_key(DECL_LD ukey_state *state, word key)
 
       break;
     }
+    assert(0);
+#ifdef O_TRIE_ATTVAR
+    case TAG_ATTVAR|STG_STATIC:
+    { size_t index = (size_t)(key>>LMASK_BITS);
+      Word *v = find_var(state, index);
+
+      DEBUG(MSG_TRIE_PUT_TERM,
+	    Sdprintf("unify_key(): Attvar %zd at %p\n", index, *v));
+
+      if ( !*v )
+      { pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
+	if ( hasGlobalSpace(0) )
+	{ Word gp = gTop;
+	  register_attvar(gp);
+	  gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
+	  state->ptr = &gp[2];
+	  gTop += 3;
+	  *v = &gp[1];
+	  if ( state->umode == uwrite )
+	  { *p = makeRefG(&gp[1]);
+	  } else
+	  { ukey_attvar av = {.attvar = &gp[1], .value = p};
+	    addBuffer(&state->attvars, av, ukey_attvar);
+	    state->umode = uwrite;
+	  }
+	  return true;
+	} else
+	  return GLOBAL_OVERFLOW;
+      } else
+      { if ( state->umode == uwrite )
+	{ *state->ptr = makeRefG(*v);
+	} else
+	{ ukey_attvar *orig = orig_attvar(state, *v);
+	  int rc = unify_ptrs(orig->value, p, ALLOW_RETCODE);
+	  if ( rc != true )
+	    return rc;
+	}
+	return true;
+      }
+    }
+#endif /*O_TRIE_ATTVAR*/
     assert(0);
     case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
     case STG_GLOBAL|TAG_STRING:
@@ -2014,10 +2198,17 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 	if ( !has_key ||
 	     k == children.key->key ||
 	     tagex(children.key->key) == TAG_VAR ||
+#ifdef O_TRIE_ATTVAR
+	     tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC) ||
+#endif
 	     IS_TRIE_KEY_POP(children.key->key) )
 	{ word key = children.key->key;
 
-	  if ( tagex(children.key->key) == TAG_VAR )
+	  if ( tagex(children.key->key) == TAG_VAR
+#ifdef O_TRIE_ATTVAR
+	       || tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC)
+#endif
+	     )
 	    dstate->prune = false;
 
 	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
@@ -2201,25 +2392,33 @@ Unify term with the term represented a trie path (list of trie_choice).
 Returns one of true, false or *_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define unify_trie_path(term, tn, gstate) LDFUNC(unify_trie_path, term, tn, gstate)
-static int
+#define unify_trie_path(term, tn, gstate) \
+	LDFUNC(unify_trie_path, term, tn, gstate)
+
+static int		      /* bool or _*OVERFLOW */
 unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
-{ ukey_state ustate;
+{ int rc;
+  ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
-  init_ukey_state(&ustate, gstate->trie, valTermRef(term));
+  init_ukey_state(&ustate, gstate->trie, valTermRef(term), false);
   for( ; ch < top; ch++ )
-  { int rc;
-
-    if ( (rc=unify_key(&ustate, ch->key)) != true )
+  { if ( (rc=unify_key(&ustate, ch->key)) != true )
     { destroy_ukey_state(&ustate);
       return rc;
     }
   }
+#ifdef O_TRIE_ATTVAR
+  if ( (rc=finalize_ukey_state(&ustate)) != true )
+  { destroy_ukey_state(&ustate);
+    return rc;
+  }
+#endif
 
   destroy_ukey_state(&ustate);
   *tn = ch[-1].child;
+  DEBUG(0, PL_check_data(term));
 
   return true;
 }

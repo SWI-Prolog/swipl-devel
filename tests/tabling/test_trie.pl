@@ -115,7 +115,10 @@ test(insert_cycle, [sto(rational_trees)]) :-
 	catch(trie_insert(T, X, noot), E, true),
 	assertion(E = error(type_error(acyclic_term, X),_)),
 	\+ trie_gen(T, _, _).
-test(insert_attvar, error(type_error(free_of_attvar,f(_)))) :-
+test(insert_attvar,
+     [ error(type_error(free_of_attvar,f(_))),
+       condition(\+has_trie_attvar_support)
+     ]) :-
 	trie_new(T),
 	freeze(X, true),
 	trie_insert(T, f(X), noot).
@@ -195,3 +198,10 @@ test_var(X, Y) :-
 	trie_gen(T, f(X, Y)).
 
 :- end_tests(trie).
+
+has_trie_attvar_support :-
+    trie_new(T),
+    put_attr(X, x, t),
+    catch(trie_insert(T, f(X)),
+          error(type_error(free_of_attvar, _),_),
+          fail).
