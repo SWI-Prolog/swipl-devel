@@ -153,17 +153,17 @@ registerWakeup(DECL_LD Word name, Word value)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 assignAttVar(Word var, Word value)		(var := value)
 
-Assign  value  to  the  given  attributed    variable,   adding  a  term
-wake(Attribute, Value, Tail) to the global variable resembling the goals
-that should be awoken.
+Assign  value  to  the  given   attributed  variable,  adding  a  term
+wake(Attribute,  Value, Tail)  to the  global variable  resembling the
+goals that should be awoken.
 
-Before calling, av *must* point to   a  dereferenced attributed variable
-and value to a legal value.
+Before calling, var *must* point to a dereferenced attributed variable
+and value to  a legal value.  The  caller must also ensure  7 words of
+free global  and 6  words of  free trail stack.   The simplest  way to
+check this is using hasGlobalSpace(0)
 
-The predicate unifiable/3 relies on  the   trailed  pattern left by this
+The predicate unifiable/3  relies on the trailed pattern  left by this
 function. If you change this you must also adjust unifiable/3.
-
-SHIFT-SAFE: returns true, GLOBAL_OVERFLOW or TRAIL_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
