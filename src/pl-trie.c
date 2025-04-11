@@ -299,7 +299,7 @@ get_child(DECL_LD trie_node *n, word key)
 }
 
 
-int
+bool
 is_leaf_trie_node(trie_node *n)
 { trie_children children = n->children;
 
@@ -652,7 +652,7 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 
 #define follow_node(trie, n, value, add) LDFUNC(follow_node, trie, n, value, add)
 static trie_node *
-follow_node(DECL_LD trie *trie, trie_node *n, word value, int add)
+follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 { trie_node *child;
 
   if ( (child=get_child(n, value)) )
@@ -720,7 +720,7 @@ Return:
 
 int
 trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
-		     Word k, int add, size_abstract *abstract,
+		     Word k, bool add, size_abstract *abstract,
 		     TmpBuffer vars)
 { term_agenda_P agenda;
   size_t var_number = 0;
@@ -856,7 +856,7 @@ get_trie_from_node(trie_node *node)
 }
 
 
-int
+bool
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
   { if ( tagex(node->key) == TAG_VAR )
@@ -901,13 +901,13 @@ print_keys(Word k, size_t kc)
 
 #define MAX_FAST 256
 
-int
+bool
 unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
 { word fast[MAX_FAST];
   Word keys = fast;
   size_t keys_allocated = MAX_FAST;
   size_t kc = 0;
-  int rc = true;
+  bool rc = true;
   trie *trie_ptr;
   mark m;
   int is_secondary = ison(node, TN_SECONDARY);
@@ -950,10 +950,14 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
     Mark(m);
     init_ukey_state(&ustate, trie_ptr, valTermRef(term));
     for(i=kc; i-- > 0; )
-    { if ( (rc=unify_key(&ustate, keys[i])) != true )
+    { int rcu = unify_key(&ustate, keys[i]);
+
+      if ( rcu != true )
       { destroy_ukey_state(&ustate);
-	if ( rc == false )
+	if ( rcu == false )
+	{ rc = false;
 	  goto out;
+	}
 	Undo(m);
 	if ( (rc=makeMoreStackSpace(rc, ALLOW_GC)) )
 	  goto retry;
@@ -1108,7 +1112,7 @@ unify_trie(DECL_LD term_t t, trie *trie)
 { return PL_unify_atom(t, trie->symbol);
 }
 
-int
+bool
 get_trie(term_t t, trie **tp)
 { void *data;
   PL_blob_t *type;
@@ -1129,7 +1133,7 @@ get_trie(term_t t, trie **tp)
 }
 
 
-int
+bool
 get_trie_noex(term_t t, trie **tp)
 { void *data;
   PL_blob_t *type;
@@ -1145,7 +1149,7 @@ get_trie_noex(term_t t, trie **tp)
 }
 
 
-int
+bool
 trie_error(int rc, term_t culprit)
 { switch(rc)
   { case TRIE_LOOKUP_CONTAINS_ATTVAR:
@@ -1157,7 +1161,7 @@ trie_error(int rc, term_t culprit)
   }
 }
 
-int
+bool
 trie_trie_error(int rc, trie *trie)
 { GET_LD
   term_t t;
@@ -1652,7 +1656,7 @@ find_var(ukey_state *state, size_t index)
 }
 
 
-static int
+static int			/* bool or *_OVERFLOW */
 unify_key(DECL_LD ukey_state *state, word key)
 { Word p = state->ptr;
 

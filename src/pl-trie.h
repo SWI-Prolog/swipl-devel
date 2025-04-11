@@ -180,18 +180,18 @@ void	prune_node(trie *trie, trie_node *n);
 void	prune_trie(trie *trie, trie_node *root,
 		   void (*free)(trie_node *node, void *ctx), void *ctx);
 trie *	get_trie_from_node(trie_node *node);
-int	is_ground_trie_node(trie_node *node);
-int	is_leaf_trie_node(trie_node *n);
-int	get_trie(term_t t, trie **tp);
-int	get_trie_noex(term_t t, trie **tp);
-int	unify_trie_term(trie_node *node, trie_node **parent,
+bool	is_ground_trie_node(trie_node *node);
+bool	is_leaf_trie_node(trie_node *n);
+bool	get_trie(term_t t, trie **tp);
+bool	get_trie_noex(term_t t, trie **tp);
+bool	unify_trie_term(trie_node *node, trie_node **parent,
 			term_t term);
 int	trie_lookup_abstract(trie *trie,
 			     trie_node *root, trie_node **nodep, Word k,
-			     int add, size_abstract *abstract,
+			     bool add, size_abstract *abstract,
 			     TmpBuffer vars);
-int	trie_error(int rc, term_t culprit);
-int	trie_trie_error(int rc, trie *trie);
+bool	trie_error(int rc, term_t culprit);
+bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);
 trie *	symbol_trie(atom_t symbol);
 int	put_trie_value(term_t t, trie_node *node);
