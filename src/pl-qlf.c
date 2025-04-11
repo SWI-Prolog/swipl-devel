@@ -3871,8 +3871,7 @@ qlfSaveFileName(wic_state *state, atom_t name)
 
 static bool
 qlfSaveSource(wic_state *state, SourceFile f)
-{ GET_LD
-  IOSTREAM *fd = state->wicFd;
+{ IOSTREAM *fd = state->wicFd;
 
   sourceMark(state);
   Sputc('F', fd);
@@ -3881,7 +3880,7 @@ qlfSaveSource(wic_state *state, SourceFile f)
   Sputc(src_file_status(f), fd);
   state->currentSource = f;
 
-  succeed;
+  return true;
 }
 
 
