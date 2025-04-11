@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2024, VU University Amsterdam
+    Copyright (c)  2016-2025, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define O_TRIE_ATTVAR 1
 #define NO_TRIE_GEN_HELPERS 1
 #include "pl-incl.h"
 #include "pl-comp.h"
@@ -650,7 +651,9 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 }
 
 
-#define follow_node(trie, n, value, add) LDFUNC(follow_node, trie, n, value, add)
+#define follow_node(trie, n, value, add) \
+	LDFUNC(follow_node, trie, n, value, add)
+
 static trie_node *
 follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 { trie_node *child;
@@ -665,7 +668,9 @@ follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 }
 
 
-#define trie_intern_indirect(trie, w, add) LDFUNC(trie_intern_indirect, trie, w, add)
+#define trie_intern_indirect(trie, w, add) \
+	LDFUNC(trie_intern_indirect, trie, w, add)
+
 static word
 trie_intern_indirect(DECL_LD trie *trie, word w, int add)
 { for(;;)
@@ -716,6 +721,21 @@ Return:
   - TRIE_LOOKUP_CONTAINS_ATTVAR
   - TRIE_LOOKUP_CYCLIC
 
+# Variable handling
+
+When a fresh variable is encountered, we push its location onto `vars`
+and replace it with the variable number and the TAG_VAR.  Next time we
+find this variable we simply use the stored word.  Thus, f(X,X) is
+
+    <functor><var 1><var 1>POP
+
+In  theory, we  could do  singleton  detection and  only use  variable
+numbers for singletons.  The price is  though that this needs an extra
+pass.
+
+__Attributed__ variables  are replaced  by <attvar  N> using  the same
+conventions as for normal variables.   In addition to the location, we
+also need to push the address of the attribute to be able to restore.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -770,18 +790,37 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  }
 	  addBuffer(vars, p, Word);
 	  w2 = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
-	  if ( tag(w) == TAG_VAR )
+	  if ( tag(w) == TAG_VAR ) /* otherwise abstracted */
 	    *p = w2;
 	  w = w2;
 	}
         node = follow_node(trie, node, w, add);
 	break;
       case TAG_ATTVAR:
+#ifdef O_TRIE_ATTVAR
+	if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
+	{ Word ap = valPAttVar(w);
+	  if ( var_number++ == 0 && !vars )
+	  { vars = &varb;
+	    initBuffer(vars);
+	  }
+	  addBuffer(vars, p, Word);
+	  addBuffer(vars, ap, Word);
+	  w = ((((word)var_number))<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC;
+	  *p = w;
+	  node = follow_node(trie, node, w, add);
+	  if ( !node )
+	    break;
+	  pushWorkAgenda_P(&agenda, 1, ap);
+	  break;
+	}
+	node = follow_node(trie, node, w, add);
+#else
 	rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
-
-        prune_error(trie, node);
-        node = NULL;
-        break;
+	prune_error(trie, node);
+	node = NULL;
+#endif
+	break;
       case TAG_COMPOUND:
       { if ( unlikely(aleft == 0) )
 	{ rc = TRIE_ABSTRACTED;
@@ -826,7 +865,13 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
     for(; pp < ep; pp++)
     { Word vp = *pp;
       if ( tag(*vp) == TAG_VAR )
-	setVar(*vp);
+      { setVar(*vp);
+#ifdef O_TRIE_ATTVAR
+      } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
+      { Word ap = *++pp;
+	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
+#endif
+      }
     }
     if ( vars == &varb )
       discardBuffer(vars);
@@ -1781,6 +1826,31 @@ unify_key(DECL_LD ukey_state *state, word key)
 
       break;
     }
+    assert(0);
+#ifdef O_TRIE_ATTVAR
+    case TAG_ATTVAR|STG_STATIC:
+    { size_t index = (size_t)(key>>LMASK_BITS);
+      Word *v = find_var(state, index);
+
+      if ( state->umode == uwrite )
+      { if ( !*v )
+	{ Word av;
+
+	  pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
+	  if ( (av=allocGlobalNoShift(1)) )
+	  { *p = consPtr(av, TAG_ATTVAR|STG_GLOBAL);
+	    state->ptr = av;
+	    return true;
+	  } else
+	    return GLOBAL_OVERFLOW;
+	} else
+	{ *state->ptr = makeRefG(*v);
+	}
+      } else
+      { assert(0);		/* TBD */
+      }
+    }
+#endif
     assert(0);
     case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
     case STG_GLOBAL|TAG_STRING:
