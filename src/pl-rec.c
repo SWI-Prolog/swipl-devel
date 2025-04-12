@@ -1381,10 +1381,10 @@ copy_record(DECL_LD Word p, CopyInfo b)
       }
 #if O_ATTVAR
       case PL_TYPE_ATTVAR:
-      { intptr_t n = fetchSizeInt(b);
+      { size_t n = fetchSizeInt(b);
 
 	DEBUG(MSG_REC_ATTVAR,
-	      Sdprintf("Restore attvar %ld at %p\n", (long)n, &b->gstore[1]));
+	      Sdprintf("Restore attvar %zd at %p\n", n, &b->gstore[1]));
 	register_attvar(b->gstore);
 	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
 	*p = makeRefG(&b->gstore[1]);
