@@ -115,7 +115,8 @@ goal_expansion(tdebug(Goal), Expansion) :-
     ).
 
 :- if(current_prolog_flag(prolog_debug, true)).
-:- autoload(library(debug), [debug/3]).
+:- set_prolog_flag(optimise_debug, false).
+:- autoload(library(debug), [debug/3, debugging/1]).
 
 wl_goal(tnot(WorkList), ~(Goal), Skeleton) :-
     !,

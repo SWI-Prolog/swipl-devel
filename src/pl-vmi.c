@@ -5944,6 +5944,7 @@ VMI(T_TRIE_GEN2, 0, 0, ())
 { Word ap;
   size_t nvars = FR->clause->value.clause->prolog_vars - TRIE_VAR_OFFSET;
 
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   DEBUG(MSG_TRIE_VM, Sdprintf("T_TRIE_GEN: %zd vars\n", nvars));
 
   setVar(argFrame(FR, 2));
@@ -5975,6 +5976,7 @@ VMI(T_TRIE_GEN3, 0, 0, ())
 { Word ap;
   size_t nvars = FR->clause->value.clause->prolog_vars - TRIE_VAR_OFFSET;
 
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   DEBUG(MSG_TRIE_VM, Sdprintf("T_TRIE_GEN: %zd vars\n", nvars));
 
   *TrieTermP     = ATOM_nil;
@@ -6057,9 +6059,7 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
     word c;
 
     /* 4 extra for the '$targp3' cell for TriePushArgP() */
-    assert(isVar(*p));				/* no attvars in our tests */
     ENSURE_STACK_SPACE(1+arity+4+6, 6, deRef2(TrieCurrentP, p));
-    assert(isVar(*p));				/* no attvars in our tests */
     ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -6176,6 +6176,109 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
+/* This does the same  as unify_key() for `TAG_ATTVAR|STG_STATIC`.  We
+   wrap the attributes  into a tuple, where the first  argument is the
+   current location (`vi->address` in  unify_key()), the second is the
+   attributed variable  and the  3rd is the  location where  where the
+   attributes  will be  build.  See  T_FUNCTOR for  the equivalent  of
+   pushing the functor.
+ */
+
+VMI(T_TRY_ATTVARA, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+  VMI_GOTO(T_ATTVARA);
+}
+END_VMI
+VMI(T_ATTVARA, 0, 1, (CA1_INTEGER))
+{
+#ifdef O_TRIE_ATTVAR
+  intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
+  ENSURE_STACK_SPACE(6+4+6, 6, (void)0);
+  Word vp = TrieVarP(offset);
+
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_ATTVARA %zd\n", offset));
+  if ( isVar(*vp) )		/* first encounter */
+  { Word gp, p;
+    word tuple;			/* att(Target,AttVar,Atts) */
+
+    gp = gTop;
+    register_attvar(gp);
+    gp[1] = consPtr(&gp[5], TAG_ATTVAR|STG_GLOBAL);
+    gp[2] = FUNCTOR_att3;
+    gp[3] = linkValI(TrieCurrentP);
+    gp[4] = makeRefG(&gp[1]);
+    setVar(gp[5]);
+    gTop += 6;
+    tuple = consPtr(&gp[2], TAG_COMPOUND|STG_GLOBAL);
+    Trail(vp, tuple);
+    TriePushArgP();
+    TrailAssignment(TrieTermP);
+    TrailAssignment(TrieOffset);
+    *TrieTermP  = tuple;
+    *TrieOffset = consInt(3);
+    deRef2(&gp[3], p);
+    if ( isVar(*p) )		  /* write mode */
+      Trail(p, makeRefG(&gp[1])); /* link to attributed var */
+    DEBUG(MSG_TRIE_VM, pl_writeln(consTermRef(vp)));
+  } else			/* 2nd or later encounter */
+  { Functor vi = valueTerm(*vp);
+    assert(vi->definition == FUNCTOR_att3);
+
+    if ( isVar(*TrieCurrentP) )
+    { DEBUG(MSG_TRIE_VM,
+	    Sdprintf("T_ATTVARA (not first) write mode\n"));
+      Trail(TrieCurrentP, vi->arguments[1]);
+    } else
+    { int rc;
+
+      SAVE_REGISTERS(QID);
+      rc = unify_ptrs(&vi->arguments[0], TrieCurrentP, ALLOW_GC);
+      LOAD_REGISTERS(QID);
+      if ( !rc )
+      { if ( exception_term )
+	  THROW_EXCEPTION;
+	CLAUSE_FAILED;
+      }
+    }
+
+    TrieNextArg();
+  }
+#endif /*O_TRIE_ATTVAR*/
+  NEXT_INSTRUCTION;
+}
+END_VMI
+
+VMI(T_TRY_ATTVARZ, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+  VMI_GOTO(T_ATTVARZ);
+}
+END_VMI
+VMI(T_ATTVARZ, 0, 1, (CA1_INTEGER))
+{
+#ifdef O_TRIE_ATTVAR
+  intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_ATTVARZ %zd\n", offset));
+
+  ENSURE_STACK_SPACE(0,0,(void)0);
+  Word vp = TrieVarP(offset);
+  Functor vi = valueTerm(*vp);
+  assert(vi->definition == FUNCTOR_att3);
+  Word p2, av;
+  deRef2(&vi->arguments[0], p2);
+  deRef2(&vi->arguments[1], av);
+  if ( p2 != av )
+  { DEBUG(MSG_TRIE_VM, Sdprintf("T_ATTVARZ %zd: read mode\n", offset));
+    if ( !isVar(*p2) )
+    { assignAttVar(unRef(vi->arguments[1]), p2);
+    } else
+    { Trail(p2, vi->arguments[1]);
+    }
+  }
+
+#endif /*O_TRIE_ATTVAR*/
+  NEXT_INSTRUCTION;
+}
+END_VMI
 
 VMI(T_TRY_FLOAT, 0, 1+CODES_PER_DOUBLE, (CA1_JUMP,CA1_FLOAT))
 { TRIE_TRY;
@@ -6329,6 +6432,13 @@ VMH(t_const, 1, (word), (c))
   CLAUSE_FAILED;
 }
 END_VMH
+
+VMI(T_CHECKWAKEUP, 0, 0, ())
+{ DEBUG(CHK_SECURE, checkStacks(NULL));
+  CHECK_WAKEUP;
+  NEXT_INSTRUCTION;
+}
+END_VMI;
 
 		 /*******************************
 		 *	   BACKTRACKING		*

@@ -2339,11 +2339,30 @@ clear_variant_table(trie **vtriep)
 static functor_t fast_ret_functor[VAR_SKEL_FAST] = {0};
 
 #define unify_trie_ret(ret, vars) LDFUNC(unify_trie_ret, ret, vars)
-static int
+
+static size_t
+trie_ret_arity(Word const *pp, Word const *ep)
+{
+#ifdef O_TRIE_ATTVAR
+  size_t arity = 0;
+
+  for(Word const *ap = pp; ap<ep; ap++)
+  { if ( isAttVar(**ap) )
+      ap++;
+    arity++;
+  }
+
+  return arity;
+#else
+  return ep-pp;
+#endif
+}
+
+static int /* bool or *_OVERFLOW */
 unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 { Word *pp = baseBuffer(vars, Word);
   Word *ep = topBuffer(vars, Word);
-  size_t arity = ep-pp;
+  size_t arity = trie_ret_arity(pp, ep);
   functor_t vf;
 
   assert(arity > 0);
@@ -2368,10 +2387,10 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
       { *p++ = makeRefG(ap);
 #ifdef O_TRIE_ATTVAR
       } else if ( isAttVar(*ap) )
-      { *p = makeRefG(ap);
-	p += 2;			/* skip attribute */
+      { *p++ = makeRefG(ap);
+	pp++;			/* skip attribute */
 #endif
-      } else
+      } else			/* can this happen? */
       { *p++ = *ap;
       }
     }
@@ -4516,8 +4535,12 @@ out_fail:
  *   - A worklist pointer
  */
 
-#define tbl_variant_table(closure, variant, Trie, abstract, status, ret, is_monotonic, flags) LDFUNC(tbl_variant_table, closure, variant, Trie, abstract, status, ret, is_monotonic, flags)
-static int
+#define tbl_variant_table(closure, variant, Trie, abstract,	    \
+			  status, ret, is_monotonic, flags)	    \
+	LDFUNC(tbl_variant_table, closure, variant, Trie, abstract, \
+	       status, ret, is_monotonic, flags)
+
+static bool
 tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
 		  term_t abstract, term_t status, term_t ret,
 		  term_t is_monotonic, int flags)
@@ -4558,8 +4581,10 @@ static
 PRED_IMPL("$tbl_variant_table", 6, tbl_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, 0, A4, A5, A6,
-			   AT_CREATE);
+  bool rc = tbl_variant_table(A1, A2, A3, 0, A4, A5, A6,
+			      AT_CREATE);
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+  return rc;
 }
 
 

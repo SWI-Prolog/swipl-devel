@@ -947,6 +947,8 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       rc = false;
   }
 
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
   return rc;
 }
 
@@ -1070,9 +1072,9 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
     }
 
     if ( rcu != true )
-    { destroy_ukey_state(&ustate);
-      if ( rcu == false )
-      { rc = false;
+    { if ( rcu == false )
+      { destroy_ukey_state(&ustate);
+	rc = false;
 	goto out;
       }
       Undo(m);
@@ -1091,6 +1093,7 @@ out:
   if ( keys != fast )
     free(keys);
 
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   return rc;
 }
 
@@ -1924,7 +1927,7 @@ unify_key(DECL_LD ukey_state *state, word key)
       varinfo *vi = find_var(state, index);
 
       DEBUG(MSG_TRIE_PUT_TERM,
-	    Sdprintf("unify_key(): Attvar %zd at %p\n", index, vi->address));
+	    Sdprintf("U Attvar %zd at %p\n", index, vi->address));
 
       if ( !vi->address )
       { pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
@@ -1952,7 +1955,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	  if ( rc != true )
 	    return rc;
 	}
-	return true;
+	break;
       }
     }
     case TAG_ATTVAR|STG_RESERVED:
@@ -2010,7 +2013,10 @@ unify_key(DECL_LD ukey_state *state, word key)
       pushVolatileAtom(word2atom(key));
       /*FALLTHROUGH*/
     case TAG_INTEGER:
-    { if ( state->umode == uwrite )
+    { DEBUG(MSG_TRIE_PUT_TERM,
+	    char buf[64];
+	    Sdprintf("U %s\n", print_val(key, buf)));
+      if ( state->umode == uwrite )
       { *p = key;
       } else
       { deRef(p);
@@ -2816,6 +2822,9 @@ typedef struct trie_compile_state
 { trie	       *trie;				/* Trie we are working on */
   bool		try;				/* There are alternatives */
   bool		last_is_fail;			/* Ends in I_FAIL */
+#ifdef O_TRIE_ATTVAR
+  bool		has_attvars;			/* Trie contains attvars */
+#endif
   size_t	else_loc;			/* last else */
   size_t	maxvar;				/* Highest var index */
   tmp_buffer	codes;				/* Output instructions */
@@ -2953,20 +2962,35 @@ static bool
 compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 { term_agenda_P agenda;
   size_t var_number = 0;
+  size_t voffset = state->maxvar;
   tmp_buffer varb;
   int rc = true;
   int compounds = 0;
   Word p;
+#ifdef O_TRIE_ATTVAR
+  tmp_buffer attvarb;
+  TmpBuffer attvars = NULL;
+  attvar_mark *avm = NULL;
+#endif
 
   initTermAgenda_P(&agenda, 1, v);
   while( (p=nextTermAgenda_P(&agenda)) )
   { size_t popn;
 
     if ( (popn = IS_AC_TERM_POP(p)) )
-    { if ( popn == 1 )
+    { compounds -= popn;
+
+      if ( popn == 1 )
 	add_vmi(state, T_POP);
       else
 	add_vmi_d(state, T_POPN, (code)popn);
+
+#ifdef O_TRIE_ATTVAR
+      if ( avm && avm->compound_depth == compounds )
+      { size_t index = (*avm->attvar)>>LMASK_BITS;
+	add_vmi_d(state, T_ATTVARZ, (code)index);
+      }
+#endif
     } else
     { word w = *p;
 
@@ -2976,20 +3000,54 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 
 	  if ( isVar(w) )
 	  { if ( var_number++ == 0 )
-	    { initBuffer(&varb);
-	    }
+	      initBuffer(&varb);
+	    index = var_number+voffset;
+	    if ( index > state->maxvar )
+	      state->maxvar = index;
 	    addBuffer(&varb, p, Word);
-	    *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	    *p = w = ((((word)index))<<LMASK_BITS)|TAG_VAR;
 	  }
-	  index = (size_t)(w>>LMASK_BITS);
-	  if ( index > state->maxvar )
-	    state->maxvar = index;
 	  add_vmi_d(state, T_VAR, (code)index);
 	  break;
 	}
 	case TAG_ATTVAR:
+#ifdef O_TRIE_ATTVAR
+	  if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
+	  { Word ap = valPAttVar(w);
+	    if ( var_number++ == 0 )
+	      initBuffer(&varb);
+	    size_t index = var_number+voffset;
+	    if ( index > state->maxvar )
+	      state->maxvar = var_number;
+	    state->has_attvars = true;
+
+	    addBuffer(&varb, p, Word);
+	    addBuffer(&varb, ap, Word);
+	    w = ((((word)index))<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC;
+	    *p = w;
+	    add_vmi_d(state, T_ATTVARA, (code)index);
+	    if ( !attvars )
+	    { attvars = &attvarb;
+	      initBuffer(attvars);
+	    }
+	    avm = allocFromBuffer(attvars, sizeof(*avm));
+	    avm->compound_depth = compounds;
+	    avm->attvar = p;
+	    DEBUG(MSG_TRIE_PUT_TERM,
+		  Sdprintf("Opened attvar at %p\n", p));
+	    compounds++;
+	    pushWorkAgenda_P0(&agenda, 1, ap);
+	  } else
+	  { DEBUG(MSG_TRIE_PUT_TERM,
+		  Sdprintf("Shared attvar at %p\n", p));
+	    size_t index = w>>LMASK_BITS;
+	    add_vmi_d(state, T_ATTVARA, (code)index);
+	  }
+	  break;
+#else
 	  rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
 	  goto out;
+#endif
 	case TAG_ATOM:			/* TBD: register */
 	  add_vmi_d(state, T_ATOM, (code)w);
 	  break;
@@ -3039,9 +3097,20 @@ out:
 
     for(; pp < ep; pp++)
     { Word vp = *pp;
-      setVar(*vp);
+      if ( tag(*vp) == TAG_VAR )
+      { setVar(*vp);
+#ifdef O_TRIE_ATTVAR
+      } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
+      { Word ap = *++pp;
+	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
+#endif
+      }
     }
     discardBuffer(&varb);
+#ifdef O_TRIE_ATTVAR
+    if ( attvars == &attvarb )
+      discardBuffer(attvars);
+#endif
   }
 
   if ( rc != true )
@@ -3085,16 +3154,36 @@ next:
 	add_vmi_d(state, T_FUNCTOR, (code)key);
       break;
     }
+#if O_TRIE_ATTVAR
+    case TAG_ATTVAR|STG_STATIC:
+    case TAG_ATTVAR|STG_RESERVED:
+      state->has_attvars = true;
+#endif
+    /*FALLTHROUGH*/
     case TAG_VAR:
     { size_t index = (size_t)(key>>LMASK_BITS);
+      vmi c;
 
       if ( index > state->maxvar )
 	state->maxvar = index;
 
       if ( state->try )
-	add_vmi_else_d(state, T_TRY_VAR, (code)index);
-      else
-	add_vmi_d(state, T_VAR, (code)index);
+      { switch(tagex(key))
+	{ case TAG_VAR:                 c = T_TRY_VAR; break;
+	  case TAG_ATTVAR|STG_STATIC:   c = T_TRY_ATTVARA; break;
+	  case TAG_ATTVAR|STG_RESERVED: c = T_TRY_ATTVARZ; break;
+	  default: assert(0);
+	}
+	add_vmi_else_d(state, c, (code)index);
+      } else
+      { switch(tagex(key))
+	{ case TAG_VAR:                 c = T_VAR; break;
+	  case TAG_ATTVAR|STG_STATIC:   c = T_ATTVARA; break;
+	  case TAG_ATTVAR|STG_RESERVED: c = T_ATTVARZ; break;
+	  default: assert(0);
+	}
+	add_vmi_d(state, c, (code)index);
+      }
       break;
     }
     case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
@@ -3215,6 +3304,7 @@ children:
 	  PL_reset_term_refs(t2);
 	}
       }
+      add_vmi(state, T_CHECKWAKEUP);
       add_vmi(state, I_EXIT);
       state->last_is_fail = false;
     } else
@@ -3223,6 +3313,7 @@ children:
     }
   }
 
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   return true;
 }
 

@@ -157,9 +157,10 @@ test(gen_compiled2_instantiated, GData =@= Data) :-
 	setof(GD, (member(GD, Data), trie_gen_compiled(T, GD)), GData).
 test(gen_compiled3_free, GData =@= KVData) :-
 	setof(D, data(D), Data),
-	pairs_keys_values(KVData, Data, Data),
+	copy_term(Data, Copy),
+	pairs_keys_values(KVData, Data, Copy),
 	trie_new(T),
-	maplist(trie_insert(T), Data, Data),
+	maplist(trie_insert(T), Data, Copy),
 	setof(GK-GV, trie_gen_compiled(T, GK, GV), GData).
 test(gen_compiled3_cycle, error(type_error(acyclic_term,_))) :-
 	trie_new(T),
