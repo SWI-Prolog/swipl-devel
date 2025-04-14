@@ -2608,11 +2608,11 @@ PRED_IMPL("trie_lookup_delete", 3, trie_lookup_delete, 0)
 
 typedef struct trie_compile_state
 { trie	       *trie;				/* Trie we are working on */
-  int		try;				/* There are alternatives */
-  int		last_is_fail;			/* Ends in I_FAIL */
-  tmp_buffer	codes;				/* Output instructions */
+  bool		try;				/* There are alternatives */
+  bool		last_is_fail;			/* Ends in I_FAIL */
   size_t	else_loc;			/* last else */
   size_t	maxvar;				/* Highest var index */
+  tmp_buffer	codes;				/* Output instructions */
 } trie_compile_state;
 
 static void
@@ -2734,9 +2734,16 @@ add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
 #endif
 }
 
+/* If the  trie is a  map (rather than  a set), the  non-compiled trie
+ * stores  the  value  as  a  record.   This  function  is  called  by
+ * compile_trie_node()  on the  value extracted  from the  record.  It
+ * translates the value into T_* instructions that are very similar to
+ * the H_* unification instructions.
+ */
 
 #define compile_trie_value(v, state) LDFUNC(compile_trie_value, v, state)
-static int
+
+static bool
 compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 { term_agenda_P agenda;
   size_t var_number = 0;
@@ -2831,16 +2838,22 @@ out:
     discardBuffer(&varb);
   }
 
+  if ( rc != true )
+  { rc = trie_error(rc, pushWordAsTermRef(v));
+    popTermRef();
+  }
+
   return rc;
 }
 
 
 #define compile_trie_node(n, state) LDFUNC(compile_trie_node, n, state)
-static int
+
+static bool
 compile_trie_node(DECL_LD trie_node *n, trie_compile_state *state)
 { trie_children children;
   word key;
-  int rc;
+  bool rc;
 
 next:
   children = n->children;
@@ -2959,9 +2972,9 @@ children:
 	    goto next;
 	  }
 
-	  if ( (rc=compile_trie_node(n, state)) != true )
+	  if ( !compile_trie_node(n, state) )
 	  { freeTableEnum(e);
-	    return rc;
+	    return false;
 	  }
 	  fixup_else(state);
 	}
@@ -3008,7 +3021,7 @@ children:
 }
 
 
-static int
+static bool
 fixup_last_fail(trie_compile_state *state)
 { if ( state->last_is_fail )
     add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
@@ -3016,11 +3029,11 @@ fixup_last_fail(trie_compile_state *state)
 }
 
 
-static int
+static bool
 create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 { size_t code_size = entriesBuffer(&state->codes, code);
   size_t size      = sizeofClause(code_size);
-  //size_t clsize    = size + SIZEOF_CREF_CLAUSE;
+//size_t clsize    = size + SIZEOF_CREF_CLAUSE;
   Clause cl;
 
   cl = PL_malloc_atomic(size);
@@ -3030,7 +3043,8 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   cl->prolog_vars = TRIE_VAR_OFFSET + state->maxvar;
   cl->variables = cl->prolog_vars;	/* 2: pseudo arity */
   set(cl, UNIT_CLAUSE);			/* no body */
-  memcpy(cl->codes, baseBuffer(&state->codes, code), sizeOfBuffer(&state->codes));
+  memcpy(cl->codes, baseBuffer(&state->codes, code),
+	 sizeOfBuffer(&state->codes));
   *cp = cl;
 
   ATOMIC_ADD(&GD->statistics.codes, cl->code_size);
@@ -3072,6 +3086,8 @@ retry:
 	      goto retry;
 	    }
 	  }
+	} else
+	{ dbref = ATOM_error;
 	}
 	PL_close_foreign_frame(fid);
       } else

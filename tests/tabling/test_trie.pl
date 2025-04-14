@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2024, University of Amsterdam
+    Copyright (c)  2017-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -158,6 +158,11 @@ test(gen_compiled3_free, GData =@= KVData) :-
 	trie_new(T),
 	maplist(trie_insert(T), Data, Data),
 	setof(GK-GV, trie_gen_compiled(T, GK, GV), GData).
+test(gen_compiled3_cycle, error(type_error(acyclic_term,_))) :-
+	trie_new(T),
+	X = f(X),
+	trie_insert(T, x, X),
+	forall(trie_gen_compiled(T, K, V), writeln(K-V)).
 
 :- if(current_prolog_flag(bounded, false)).
 data(Big) :- Big is random(1<<200).
