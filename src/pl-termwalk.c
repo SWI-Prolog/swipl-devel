@@ -264,7 +264,7 @@ nextTermAgenda_P(DECL_LD term_agenda_P *a)
 		 *	  PUSH VARIATIONS	*
 		 *******************************/
 
-static inline int
+static inline bool
 pushWorkAgenda_P(term_agenda_P *a, size_t amount, Word start)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNode_P) )
@@ -272,6 +272,18 @@ pushWorkAgenda_P(term_agenda_P *a, size_t amount, Word start)
     a->work.depth = 1;
   } else
     a->work.depth++;
+
+  a->work.location = start;
+  a->work.size     = amount;
+
+  return true;
+}
+
+static inline bool		/* Avoid last-argument POP merge */
+pushWorkAgenda_P0(term_agenda_P *a, size_t amount, Word start)
+{ if ( !pushSegStack(&a->stack, a->work, aNode_P) )
+    return false;
+  a->work.depth = 1;
 
   a->work.location = start;
   a->work.size     = amount;

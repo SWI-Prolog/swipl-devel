@@ -97,15 +97,9 @@ typedef enum
 typedef struct ukey_state
 { trie	       *trie;			/* Trie for indirects */
   Word		ptr;			/* current location */
-  unify_mode	umode;			/* unification mode */
-  size_t	max_var_seen;
-  size_t	vars_allocated;		/* # variables allocated */
-  Word*		vars;
   size_t        a_offset;		/* For resetting the argument stack */
-#ifdef O_TRIE_ATTVAR
-  tmp_buffer	attvars;		/* Read-mode attvar */
-#endif
-  Word		var_buf[NVARS_FAST];	/* quick var buffer */
+  unify_mode	umode;			/* unification mode */
+  tmp_buffer	vars;
 } ukey_state;
 
 #ifdef O_TRIE_ATTVAR
@@ -120,21 +114,15 @@ typedef struct
 #define	init_ukey_state(state, trie, p, reinit) \
 	LDFUNC(init_ukey_state, state, trie, p, reinit)
 #define	destroy_ukey_state(state)	LDFUNC(destroy_ukey_state, state)
-#define finalize_ukey_state(state)	LDFUNC(finalize_ukey_state, state)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
-
 static int	unify_key(ukey_state *state, word key);
 static void	init_ukey_state(ukey_state *state, trie *trie, Word p,
 				bool reinit);
 static void	destroy_ukey_state(ukey_state *state);
 static void	set_trie_clause_general_undefined(Clause cl);
 static void	trie_destroy(trie *trie);
-#ifdef O_TRIE_ATTVAR
-static int	finalize_ukey_state(ukey_state *state);
-#endif
-
 #undef LDFUNC_DECLARATIONS
 
 
@@ -735,7 +723,7 @@ Return:
     Ok (found or inserted)
   - TRIE_ABSTRACTED
     Ok, but abstracted
-  - TRIE_LOOKUP_CONTAINS_ATTVAR
+  - TRIE_LOOKUP_CONTAINS_ATTVAR (unless O_TRIE_ATTVAR is activated)
   - TRIE_LOOKUP_CYCLIC
 
 # Variable handling
@@ -750,10 +738,24 @@ In  theory, we  could do  singleton  detection and  only use  variable
 numbers for singletons.  The price is  though that this needs an extra
 pass.
 
-__Attributed__ variables  are replaced  by <attvar  N> using  the same
-conventions as for normal variables.   In addition to the location, we
-also need to push the address of the attribute to be able to restore.
+__Attributed__ variables are represented as  below, where the <N> uses
+the same  numbering as for variables.   When pushing to the  stack, we
+both both  push the  location of  the attvar and  the location  of the
+attributes.
+
+    <begin_attvar N> <attributes ...> <pop> <end_attvar N>
+
+<begin_attvar N> is (N<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC
+<end_attvar N>   is (N<<LMASK_BITS)|TAG_ATTVAR|STG_RESERVED
+<pop>		 is TRIE_KEY_POP(popn), compensating for the push
+                    for writing the attributes and restoring read/write
+                    umode.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct attvar_mark
+{ size_t compound_depth;
+  Word   attvar;
+} attvar_mark;
 
 int
 trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
@@ -762,10 +764,15 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 { term_agenda_P agenda;
   size_t var_number = 0;
   int rc = true;
-  size_t compounds = 0;
+  size_t compounds = 0;		/* Nesting depth */
   tmp_buffer varb;
   size_abstract sa = {.from_depth = 1, .size = (size_t)-1};
   size_t aleft = (size_t)-1;
+#ifdef O_TRIE_ATTVAR
+  tmp_buffer attvarb;
+  TmpBuffer attvars = NULL;
+  attvar_mark *avm = NULL;
+#endif
 
   TRIE_STAT_INC(trie, lookups);
   if ( !node )
@@ -786,9 +793,32 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       if ( compounds > 0 )
       { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
 	  break;
+#ifdef O_TRIE_ATTVAR
+	if ( avm && avm->compound_depth == compounds )
+	{ word w = (*avm->attvar)|STG_RESERVED;
+	  DEBUG(MSG_TRIE_PUT_TERM,
+		Sdprintf("Finished attvar at %p\n", avm->attvar));
+	  (void)popBufferP(attvars, attvar_mark);
+	  avm--;
+	  if ( !(node = follow_node(trie, node, w, add)) )
+	    break;
+	}
+#endif
 	continue;
       } else
+      {
+#ifdef O_TRIE_ATTVAR
+	if ( avm && avm->compound_depth == compounds )
+	{ word w = (*avm->attvar)|STG_RESERVED;
+	  DEBUG(MSG_TRIE_PUT_TERM,
+		Sdprintf("Finished attvar at %p\n", avm->attvar));
+	  if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
+	    break;
+	  node = follow_node(trie, node, w, add);
+	}
+#endif
 	break;				/* finished toplevel */
+      }
     }
 
     if ( compounds == sa.from_depth )
@@ -828,11 +858,22 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  node = follow_node(trie, node, w, add);
 	  if ( !node )
 	    break;
+	  if ( !attvars )
+	  { attvars = &attvarb;
+	    initBuffer(attvars);
+	  }
+	  avm = allocFromBuffer(attvars, sizeof(*avm));
+	  avm->compound_depth = compounds;
+	  avm->attvar = p;
+	  DEBUG(MSG_TRIE_PUT_TERM,
+		Sdprintf("Opened attvar at %p\n", p));
 	  compounds++;
-	  pushWorkAgenda_P(&agenda, 1, ap);
-	  break;
+	  pushWorkAgenda_P0(&agenda, 1, ap);
+	} else
+	{ DEBUG(MSG_TRIE_PUT_TERM,
+		Sdprintf("Shared attvar at %p\n", p));
+	  node = follow_node(trie, node, w, add);
 	}
-	node = follow_node(trie, node, w, add);
 #else
 	rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
 	prune_error(trie, node);
@@ -893,6 +934,10 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
     }
     if ( vars == &varb )
       discardBuffer(vars);
+#ifdef O_TRIE_ATTVAR
+    if ( attvars == &attvarb )
+      discardBuffer(attvars);
+#endif
   }
 
   if ( rc > 0 )
@@ -922,7 +967,11 @@ get_trie_from_node(trie_node *node)
 bool
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
-  { if ( tagex(node->key) == TAG_VAR )
+  { if ( tagex(node->key) == TAG_VAR
+#ifdef O_TRIE_ATTVAR
+	 || tagex(node->key) == (TAG_ATTVAR|STG_STATIC)
+#endif
+       )
       return false;
   }
 
@@ -1019,10 +1068,6 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
       if ( rcu != true )
 	break;
     }
-#ifdef O_TRIE_ATTVAR
-    if ( rcu == true )
-      rcu = finalize_ukey_state(&ustate);
-#endif
 
     if ( rcu != true )
     { destroy_ukey_state(&ustate);
@@ -1692,91 +1737,35 @@ init_ukey_state(DECL_LD ukey_state *state, trie *trie, Word p, bool reinit)
 { state->trie = trie;
   state->ptr  = p;
   state->umode = uread;
-  state->max_var_seen = 0;
   state->a_offset = aTop-aBase;
-#ifdef O_TRIE_ATTVAR
-  if ( reinit )
-    emptyBuffer(&state->attvars, 8192);
+  if ( unlikely(reinit) )
+   emptyBuffer(&state->vars, (size_t)-1);
   else
-    initBuffer(&state->attvars);
-#endif
+    initBuffer(&state->vars);
 }
-
-#ifdef O_TRIE_ATTVAR
-static int
-finalize_ukey_state(DECL_LD ukey_state *state)
-{ const ukey_attvar *av  = baseBuffer(&state->attvars, const ukey_attvar);
-  const ukey_attvar *end = topBuffer(&state->attvars, const ukey_attvar);
-
-  for (; av < end; av++ )
-  { if ( hasGlobalSpace(0) )
-    { Word p;
-
-      deRef2(av->value, p);
-      if ( isAttVar(*av->attvar) && !isVar(*p) )
-      { assignAttVar(av->attvar, p);
-      } else
-      { int rc = unify_ptrs(av->attvar, p, ALLOW_RETCODE);
-	if ( rc != true )
-	  return rc;
-      }
-    } else
-    { return GLOBAL_OVERFLOW;
-    }
-  }
-
-  return true;
-}
-
-static ukey_attvar *
-orig_attvar(ukey_state *state, Word attvar)
-{ ukey_attvar *avl = baseBuffer(&state->attvars, ukey_attvar);
-  ukey_attvar *end = topBuffer(&state->attvars, ukey_attvar);
-
-  for( ; avl < end; avl++)
-  { if ( avl->attvar == attvar )
-      return avl;
-  }
-
-  assert(0);
-}
-#endif
 
 static void
 destroy_ukey_state(DECL_LD ukey_state *state)
-{ if ( state->max_var_seen && state->vars != state->var_buf )
-    PL_free(state->vars);
-#ifdef O_TRIE_ATTVAR
-  discardBuffer(&state->attvars);
-#endif
+{ discardBuffer(&state->vars);
   aTop = aBase + state->a_offset;
 }
 
-static Word*
-find_var(ukey_state *state, size_t index)
-{ if ( index > state->max_var_seen )
-  { assert(index == state->max_var_seen+1);
+typedef struct varinfo
+{ Word address;			/* Address of the var/value */
+#ifdef O_TRIE_ATTVAR
+  Word attributes;		/* Location of attributes */
+#endif
+} varinfo;
 
-    if ( !state->max_var_seen )
-    { state->vars_allocated = NVARS_FAST;
-      state->vars = state->var_buf;
-    } else if ( index >= state->vars_allocated )
-    { if ( state->vars == state->var_buf )
-      { state->vars = PL_malloc(sizeof(*state->vars)*NVARS_FAST*2);
-	memcpy(state->vars, state->var_buf, sizeof(*state->vars)*NVARS_FAST);
-      } else
-      { state->vars = PL_realloc(state->vars,
-				 sizeof(*state->vars)*state->vars_allocated*2);
-      }
-      state->vars_allocated *= 2;
-    }
-    state->vars[index] = NULL;
-    state->max_var_seen = index;
+static varinfo*
+find_var(ukey_state *state, size_t index) /* index is 1.. */
+{ if ( index > entriesBuffer(&state->vars, varinfo) )
+  { varinfo *vi = allocFromBuffer(&state->vars, sizeof(varinfo));
+    memset(vi, 0, sizeof(*vi));
   }
 
-  return &state->vars[index];
+  return &baseBuffer(&state->vars, varinfo)[index-1];
 }
-
 
 /**
  * Take one  step in unifying  a term with  a sequence of  trie nodes.
@@ -1803,16 +1792,20 @@ static int			/* bool or *_OVERFLOW */
 unify_key(DECL_LD ukey_state *state, word key)
 { Word p = state->ptr;
 
+#define POPN(n) do {					    \
+    Word __wp;						    \
+    aTop -= n;						    \
+    __wp = *aTop;					    \
+    state->umode = ((int)(uintptr_t)__wp & uwrite);	    \
+    state->ptr   = (Word)((intptr_t)__wp &~uwrite);	    \
+  } while(0)
+
   switch(tagex(key))
   { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
     { size_t popn = IS_TRIE_KEY_POP(key);
-      Word wp;
 
       assert(popn);
-      aTop -= popn;
-      wp = *aTop;
-      state->umode = ((int)(uintptr_t)wp & uwrite);
-      state->ptr   = (Word)((intptr_t)wp&~uwrite);
+      POPN(popn);
 
       DEBUG(MSG_TRIE_PUT_TERM,
 	    Sdprintf("U Popped(%zd) %zd, mode=%d\n",
@@ -1892,32 +1885,32 @@ unify_key(DECL_LD ukey_state *state, word key)
     assert(0);
     case TAG_VAR:
     { size_t index = (size_t)(key>>LMASK_BITS);
-      Word *v = find_var(state, index);
+      varinfo *vi = find_var(state, index);
 
       DEBUG(MSG_TRIE_PUT_TERM,
 	    { char b1[64]; char b2[64];
 	      Sdprintf("var %zd at %s (v=%p, *v=%s)\n",
 		       index,
 		       print_addr(state->ptr,b1),
-		       v, print_addr(*v,b2));
+		       vi, print_addr(vi->address,b2));
 	    });
 
       if ( state->umode == uwrite )
-      { if ( !*v )
+      { if ( !vi->address )
 	{ setVar(*state->ptr);
-	  *v = state->ptr;
+	  vi->address = state->ptr;
 	} else
-	{ *state->ptr = makeRefG(*v);
+	{ *state->ptr = makeRefG(vi->address);
 	}
       } else
       { deRef(p);
 
-	if ( !*v )
-	{ *v = state->ptr;
+	if ( !vi->address )
+	{ vi->address = state->ptr;
 	} else
 	{ int rc;
 
-	  if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE)) != true )
+	  if ( (rc=unify_ptrs(state->ptr, vi->address, ALLOW_RETCODE)) != true )
 	    return rc;
 	}
       }
@@ -1928,12 +1921,12 @@ unify_key(DECL_LD ukey_state *state, word key)
 #ifdef O_TRIE_ATTVAR
     case TAG_ATTVAR|STG_STATIC:
     { size_t index = (size_t)(key>>LMASK_BITS);
-      Word *v = find_var(state, index);
+      varinfo *vi = find_var(state, index);
 
       DEBUG(MSG_TRIE_PUT_TERM,
-	    Sdprintf("unify_key(): Attvar %zd at %p\n", index, *v));
+	    Sdprintf("unify_key(): Attvar %zd at %p\n", index, vi->address));
 
-      if ( !*v )
+      if ( !vi->address )
       { pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
 	if ( hasGlobalSpace(0) )
 	{ Word gp = gTop;
@@ -1941,28 +1934,46 @@ unify_key(DECL_LD ukey_state *state, word key)
 	  gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
 	  state->ptr = &gp[2];
 	  gTop += 3;
-	  *v = &gp[1];
+	  vi->address = p;
+	  vi->attributes = &gp[1];
 	  if ( state->umode == uwrite )
-	  { *p = makeRefG(&gp[1]);
-	  } else
-	  { ukey_attvar av = {.attvar = &gp[1], .value = p};
-	    addBuffer(&state->attvars, av, ukey_attvar);
-	    state->umode = uwrite;
-	  }
+	    *p = makeRefG(&gp[1]);
+	  else
+	    state->umode = uwrite; /* wait for end (TAG_ATTVAR|STG_RESERVED) */
+
 	  return true;
 	} else
 	  return GLOBAL_OVERFLOW;
       } else
       { if ( state->umode == uwrite )
-	{ *state->ptr = makeRefG(*v);
+	{ *state->ptr = makeRefG(vi->attributes);
 	} else
-	{ ukey_attvar *orig = orig_attvar(state, *v);
-	  int rc = unify_ptrs(orig->value, p, ALLOW_RETCODE);
+	{ int rc = unify_ptrs(vi->address, p, ALLOW_RETCODE);
 	  if ( rc != true )
 	    return rc;
 	}
 	return true;
       }
+    }
+    case TAG_ATTVAR|STG_RESERVED:
+    { if ( state->umode == uread )
+      { size_t index = (size_t)(key>>LMASK_BITS);
+	varinfo *vi = find_var(state, index);
+	if ( hasGlobalSpace(0) )
+	{ Word p2;
+
+	  deRef2(vi->address, p2);
+	  if ( !isVar(*p2) )
+	  { assignAttVar(vi->attributes, p2);
+	  } else
+	  { int rc = unify_ptrs(vi->attributes, vi->address, ALLOW_RETCODE);
+	    if ( rc != true )
+	      return rc;
+	  }
+	} else
+	  return GLOBAL_OVERFLOW;
+      }
+      return true;
     }
 #endif /*O_TRIE_ATTVAR*/
     assert(0);
@@ -2023,6 +2034,8 @@ unify_key(DECL_LD ukey_state *state, word key)
   state->ptr++;
 
   return true;
+
+#undef POPN
 }
 
 
@@ -2409,12 +2422,6 @@ unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
       return rc;
     }
   }
-#ifdef O_TRIE_ATTVAR
-  if ( (rc=finalize_ukey_state(&ustate)) != true )
-  { destroy_ukey_state(&ustate);
-    return rc;
-  }
-#endif
 
   destroy_ukey_state(&ustate);
   *tn = ch[-1].child;
