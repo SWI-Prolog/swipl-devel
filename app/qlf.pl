@@ -135,15 +135,19 @@ qlf_list:opt_help(recursive,
 qlf_list:opt_help(update,
                   "Only list files that need updating").
 
-qlf_clean:opt_type(Flag, Opt, Type) :- qlf_list:opt_type(Flag, Opt, Type).
+qlf_clean:opt_type(recursive, recursive, boolean).
+qlf_clean:opt_type(r,         recursive, boolean).
+qlf_clean:opt_type(all,       all,       boolean).
+qlf_clean:opt_type(a,         all,       boolean).
+
 qlf_clean:opt_help(help(header),
                    [ansi(bold, "Delete out-of-date .qlf files.", [])]).
 qlf_clean:opt_help(help(usage),
                    " clean [option ...] [file-or-directory ...]").
-qlf_clean:opt_help(Opt, Message) :-
-    qlf_list:opt_help(Opt, Message),
-    atom(Opt).
-
+qlf_clean:opt_help(recursive,
+                  "Recurse into subdirectories").
+qlf_clean:opt_help(all,
+                  "Clean all .qlf files").
 
 %!  usage
 %
@@ -447,7 +451,7 @@ cli_qlf_compile(File, Options) :-
     ->  file_name_extension(Base, qlf, QlfFile),
         '$qlf_sources'(QlfFile, Sources),
         maplist(arg(1), Sources, Files),
-        maplist(absolute_file_name, Deps, Canonical),
+        maplist(absolute_deb, Deps, Canonical),
         subtract(Files, Canonical, Missing),
         subtract(Canonical, Files, Extra),
         (   Missing == []
@@ -460,6 +464,16 @@ cli_qlf_compile(File, Options) :-
         )
     ;   true
     ).
+
+absolute_deb(Deb, File) :-
+    catch(term_string(Term, Deb), error(_,_), fail),
+    absolute_file_name(Term, File,
+                       [ access(read),
+                         file_type(source)
+                       ]),
+    !.
+absolute_deb(Deb, File) :-
+    absolute_file_name(Deb, File).
 
 preload(X) :-
     atom_concat('lib:', File, X),
@@ -477,10 +491,10 @@ preload(X) :-
 
 prolog:message(qcompile(missing, File, Dependencies)) -->
     [ 'The following dependencies for ~p are not listed'-[File], nl ],
-    sequence(file, Dependencies, [nl]).
+    sequence(file, [nl], Dependencies).
 prolog:message(qcompile(extra, File, Dependencies)) -->
     [ 'The following dependencies for ~p are not needed'-[File], nl ],
-    sequence(file, Dependencies, [nl]).
+    sequence(file, [nl], Dependencies).
 prolog:message(qlf(delete_file(File, Reason))) -->
     [ 'Deleting ~w (~w)'-[File, Reason] ].
 prolog:message(qlf(list(File, no_source))) -->
