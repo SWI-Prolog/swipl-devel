@@ -362,8 +362,8 @@ add_custom_target(core ALL
 
 # Precompile some popular larger libraries to .QLF
 set(SWIPL_QLF_BASE ${SWIPL_BUILD_HOME}/library)
-add_qcompile_target(prolog_colour)
-add_qcompile_target(prolog_xref)
+add_qcompile_target(prolog_colour EXPECTDEPS "library(debug)" "library(record)")
+add_qcompile_target(prolog_xref EXPECTDEPS "library(debug)")
 
 # The C config file
 configure_file(config.h.cmake config.h)

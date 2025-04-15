@@ -94,7 +94,7 @@ endfunction()
 
 function(add_qcompile_target target)
   if(NOT INSTALL_QLF)
-    cmake_parse_arguments(my "" "" "SOURCES;DEPENDS;PRELOAD" ${ARGN})
+    cmake_parse_arguments(my "" "" "SOURCES;DEPENDS;EXPECTDEPS;PRELOAD" ${ARGN})
 
     prepend(src ${SWIPL_QLF_BASE}/ ${my_SOURCES})
     set(src ${src} ${SWIPL_QLF_BASE}/${target}.pl)
@@ -106,11 +106,14 @@ function(add_qcompile_target target)
       set(extra)
     endif()
 
+    set(expectdeps ${src} ${my_EXPECTDEPS})
+
     add_swipl_target(
 	qlf-${tname}
 	OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
 	APP qlf
-	OPTIONS compile ${SWIPL_QLF_BASE}/${target} --expect-deps ${src} ${extra}
+	OPTIONS compile ${SWIPL_QLF_BASE}/${target}
+	        --expect-deps ${expectdeps} ${extra}
 	COMMENT "QLF compiling ${target}.qlf"
 	DEPENDS ${src} ${my_DEPENDS})
   endif()
