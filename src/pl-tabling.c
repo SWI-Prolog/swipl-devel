@@ -2365,9 +2365,15 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
     { Word ap = *pp;
 
       if ( isVar(*ap) )
-	*p++ = makeRefG(ap);
-      else
-	*p++ = *ap;
+      { *p++ = makeRefG(ap);
+#ifdef O_TRIE_ATTVAR
+      } else if ( isAttVar(*ap) )
+      { *p = makeRefG(ap);
+	p += 2;			/* skip attribute */
+#endif
+      } else
+      { *p++ = *ap;
+      }
     }
 
     if ( PL_is_variable(ret) )
