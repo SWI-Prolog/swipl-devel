@@ -3221,9 +3221,9 @@ writeSourceMarks(wic_state *state)
 
 static bool
 qlfError(wic_state *state, const char *error, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   char message[LINESIZ];
-  bool rc;
   const char *file = state->wicFile;
 
   if ( !file )
@@ -3233,15 +3233,8 @@ qlfError(wic_state *state, const char *error, ...)
   Svsnprintf(message, sizeof(message), error, args);
   va_end(args);
 
-  if ( GD->bootsession )
-  { fatalError("%s: %s", file, message);
-    rc = false;				/* keep compiler happy */
-    exit(1);
-  } else
-  { GET_LD
-    term_t ex, fn;
-
-    rc = ( (ex=PL_new_term_ref()) &&
+  term_t ex, fn;
+  return ( (ex=PL_new_term_ref()) &&
 	   (fn=PL_new_term_ref()) &&
 	   PL_unify_chars(fn, PL_ATOM|REP_FN, (size_t)-1, file) &&
 	   PL_unify_term(ex,
@@ -3251,9 +3244,6 @@ qlfError(wic_state *state, const char *error, ...)
 			     PL_CHARS, message,
 			   PL_VARIABLE) &&
 	   PL_raise_exception(ex) );
-  }
-
-  return rc;
 }
 
 
@@ -3550,7 +3540,7 @@ PRED_IMPL("$qlf_versions", 6, qlf_versions, 0)
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
-    fail;
+    return false;
 
   return qlfInfo(name, A2, A3, A4, A5, A6, 0, 0, Q_VERSION);
 }
@@ -3567,7 +3557,7 @@ PRED_IMPL("$qlf_is_compatible", 1, qlf_is_compatible, 0)
   char *name;
 
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
-    fail;
+    return false;
 
   return qlfInfo(name, 0, 0, 0, 0, 0, 0, 0, 0);
 }
