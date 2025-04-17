@@ -843,9 +843,15 @@ visit(black(L,K,V,R),L0,Lf) =>
 
 :- meta_predicate map(?,2,?,?).  % this is required.
 
-%!  rb_map(+T, :Goal) is semidet.
+%!  rb_map(+Tree, :G, -NewTree) is semidet.
 %
-%   True if call(Goal, Value) is true for all nodes in T.
+%   For all nodes Key in the tree Tree, if the value associated with key
+%   Key is Val0 in tree Tree, and   if call(G,Val0,ValF) holds, then the
+%   value  associated  with  Key  in   NewTree    is   ValF.   Fails  if
+%   call(G,Val0,ValF)  is  not  satisfiable  for  all   Val0.  If  G  is
+%   non-deterministic, rb_map/3 will backtrack over  all possible values
+%   from call(G,Val0,ValF). You should not depend   on the order of tree
+%   traversal (currently: key order).
 
 rb_map(t(Nil,Tree),Goal,NewTree2) =>
     NewTree2 = t(Nil,NewTree),
@@ -866,15 +872,9 @@ map(black(L,K,V,R),Goal,NewTree,Nil) =>
 
 :- meta_predicate map(?,1).  % this is required.
 
-%!  rb_map(+Tree, :G, -NewTree) is semidet.
+%!  rb_map(+T, :Goal) is semidet.
 %
-%   For all nodes Key in the tree Tree, if the value associated with key
-%   Key is Val0 in tree Tree, and   if call(G,Val0,ValF) holds, then the
-%   value  associated  with  Key  in   NewTree    is   ValF.   Fails  if
-%   call(G,Val0,ValF)  is  not  satisfiable  for  all   Val0.  If  G  is
-%   non-deterministic, rb_map/3 will backtrack over  all possible values
-%   from call(G,Val0,ValF). You should not depend   on the order of tree
-%   traversal (currently: key order).
+%   True if call(Goal, Value) is true for all nodes in T.
 
 rb_map(t(_,Tree),Goal) =>
     map(Tree,Goal).
