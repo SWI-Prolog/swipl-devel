@@ -343,10 +343,16 @@ qlf_update(File, Options) :-
 %     - out_of_date(Modified)
 
 qlf_up_to_date(File, Status) :-
-    '$qlf_versions'(File, CurrentVersion, _MinLOadVersion, FileVersion,
+    '$qlf_versions'(File, CurrentVersion, MinLoadVersion, FileVersion,
                     CurrentSignature, FileSignature),
+    up_to_date(File, CurrentVersion, MinLoadVersion, FileVersion,
+               CurrentSignature, FileSignature, Status).
+
+up_to_date(File, CurrentVersion, _MinLoadVersion, FileVersion,
+           CurrentSignature, FileSignature, Status) :-
     FileVersion == CurrentVersion,
     CurrentSignature == FileSignature,
+    !,
     time_file(File, TQLF),
     '$qlf_sources'(File, Sources),
     maplist(arg(1), Sources, Files),
@@ -358,6 +364,9 @@ qlf_up_to_date(File, Status) :-
         ;   Status = out_of_date(Modified)
         )
     ).
+up_to_date(_File, _CurrentVersion, _MinLoadVersion, _FileVersion,
+           _CurrentSignature, _FileSignature, incompatible).
+
 
 outofdate(TQLF, Source) :-
     catch(time_file(Source, TS), error(_,_), fail),
@@ -402,9 +411,10 @@ qlf_list(File, Options) :-
         )
     ).
 
-list_status(no_source,      b, information).
-list_status(up_to_date,     s, information).
-list_status(out_of_date(_), u, warning).
+list_status(no_source,      'b', information).
+list_status(up_to_date,     's', information).
+list_status(out_of_date(_), 'u', warning).
+list_status(incompatible,   'I', warning).
 
 
 		 /*******************************
@@ -503,6 +513,8 @@ prolog:message(qlf(list(File, up_to_date))) -->
     [ '~w (up to date)'-[File] ].
 prolog:message(qlf(list(File, out_of_date(_Modified)))) -->
     [ '~w (needs to be rebuild)'-[File] ].
+prolog:message(qlf(list(File, incompatible))) -->
+    [ '~w (incompatible)'-[File] ].
 
 file(File) -->
     [ '  ', url(File) ].
