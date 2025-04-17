@@ -6191,7 +6191,7 @@ VMI(T_TRY_ATTVARA, 0, 2, (CA1_JUMP,CA1_INTEGER))
 END_VMI
 VMI(T_ATTVARA, 0, 1, (CA1_INTEGER))
 {
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
   ENSURE_STACK_SPACE(6+4+6, 6, (void)0);
   Word vp = TrieVarP(offset);
@@ -6255,7 +6255,7 @@ VMI(T_TRY_ATTVARZ, 0, 2, (CA1_JUMP,CA1_INTEGER))
 END_VMI
 VMI(T_ATTVARZ, 0, 1, (CA1_INTEGER))
 {
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
   DEBUG(MSG_TRIE_VM, Sdprintf("T_ATTVARZ %zd\n", offset));
 

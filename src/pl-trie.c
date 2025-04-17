@@ -34,7 +34,6 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-//#define O_TRIE_ATTVAR 1
 #define NO_TRIE_GEN_HELPERS 1
 #include "pl-incl.h"
 #include "pl-comp.h"
@@ -102,7 +101,7 @@ typedef struct ukey_state
   tmp_buffer	vars;
 } ukey_state;
 
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 typedef struct
 { Word attvar;
   Word value;
@@ -768,7 +767,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
   tmp_buffer varb;
   size_abstract sa = {.from_depth = 1, .size = (size_t)-1};
   size_t aleft = (size_t)-1;
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   tmp_buffer attvarb;
   TmpBuffer attvars = NULL;
   attvar_mark *avm = NULL;
@@ -793,7 +792,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       if ( compounds > 0 )
       { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
 	  break;
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	if ( avm && avm->compound_depth == compounds )
 	{ word w = (*avm->attvar)|STG_RESERVED;
 	  DEBUG(MSG_TRIE_PUT_TERM,
@@ -807,7 +806,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	continue;
       } else
       {
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	if ( avm && avm->compound_depth == compounds )
 	{ word w = (*avm->attvar)|STG_RESERVED;
 	  DEBUG(MSG_TRIE_PUT_TERM,
@@ -844,7 +843,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
         node = follow_node(trie, node, w, add);
 	break;
       case TAG_ATTVAR:
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
 	{ Word ap = valPAttVar(w);
 	  if ( var_number++ == 0 && !vars )
@@ -925,7 +924,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
     { Word vp = *pp;
       if ( tag(*vp) == TAG_VAR )
       { setVar(*vp);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
       } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
       { Word ap = *++pp;
 	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
@@ -934,7 +933,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
     }
     if ( vars == &varb )
       discardBuffer(vars);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
     if ( attvars == &attvarb )
       discardBuffer(attvars);
 #endif
@@ -970,7 +969,7 @@ bool
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
   { if ( tagex(node->key) == TAG_VAR
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	 || tagex(node->key) == (TAG_ATTVAR|STG_STATIC)
 #endif
        )
@@ -1755,7 +1754,7 @@ destroy_ukey_state(DECL_LD ukey_state *state)
 
 typedef struct varinfo
 { Word address;			/* Address of the var/value */
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   Word attributes;		/* Location of attributes */
 #endif
 } varinfo;
@@ -1921,7 +1920,7 @@ unify_key(DECL_LD ukey_state *state, word key)
       break;
     }
     assert(0);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
     case TAG_ATTVAR|STG_STATIC:
     { size_t index = (size_t)(key>>LMASK_BITS);
       varinfo *vi = find_var(state, index);
@@ -2217,14 +2216,14 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 	if ( !has_key ||
 	     k == children.key->key ||
 	     tagex(children.key->key) == TAG_VAR ||
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	     tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC) ||
 #endif
 	     IS_TRIE_KEY_POP(children.key->key) )
 	{ word key = children.key->key;
 
 	  if ( tagex(children.key->key) == TAG_VAR
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	       || tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC)
 #endif
 	     )
@@ -2616,7 +2615,7 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 { PRED_LD
   trie *trie;
 
-#ifdef O_TRIE_STATS
+#if O_TRIE_STATS
   static atom_t ATOM_lookup_count = 0;
   static atom_t ATOM_gen_call_count = 0;
   static atom_t ATOM_invalidated = 0;
@@ -2669,7 +2668,7 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { trie_stats stats;
 	stat_trie(trie, &stats);
 	return PL_unify_int64(arg, stats.hashes);
-#ifdef O_TRIE_STATS
+#if O_TRIE_STATS
       } else if ( name == ATOM_lookup_count )
       { return PL_unify_int64(arg, trie->stats.lookups);
       } else if ( name == ATOM_gen_call_count)
@@ -2822,7 +2821,7 @@ typedef struct trie_compile_state
 { trie	       *trie;				/* Trie we are working on */
   bool		try;				/* There are alternatives */
   bool		last_is_fail;			/* Ends in I_FAIL */
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   bool		has_attvars;			/* Trie contains attvars */
 #endif
   size_t	else_loc;			/* last else */
@@ -2967,7 +2966,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
   int rc = true;
   int compounds = 0;
   Word p;
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   tmp_buffer attvarb;
   TmpBuffer attvars = NULL;
   attvar_mark *avm = NULL;
@@ -2985,7 +2984,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
       else
 	add_vmi_d(state, T_POPN, (code)popn);
 
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
       if ( avm && avm->compound_depth == compounds )
       { size_t index = (*avm->attvar)>>LMASK_BITS;
 	add_vmi_d(state, T_ATTVARZ, (code)index);
@@ -3011,7 +3010,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  break;
 	}
 	case TAG_ATTVAR:
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
 	  if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
 	  { Word ap = valPAttVar(w);
 	    if ( var_number++ == 0 )
@@ -3099,7 +3098,7 @@ out:
     { Word vp = *pp;
       if ( tag(*vp) == TAG_VAR )
       { setVar(*vp);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
       } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
       { Word ap = *++pp;
 	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
@@ -3107,7 +3106,7 @@ out:
       }
     }
     discardBuffer(&varb);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
     if ( attvars == &attvarb )
       discardBuffer(attvars);
 #endif

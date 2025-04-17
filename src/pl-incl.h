@@ -208,6 +208,8 @@ handy for it someone wants to add a data type to the system.
       Include low-level coverage analysis code.
   O_VALIDATE_API
       Include validity checks for the API functions
+  O_TRIE_ATTVAR
+      Support attributed variables in tries and tabling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -234,6 +236,7 @@ handy for it someone wants to add a data type to the system.
 #define O_CALL_RESIDUE		1
 #define O_GVAR			1
 #define O_CYCLIC		1
+#define O_TRIE_ATTVAR		1
 #define O_MITIGATE_SPECTRE	1
 #define O_ROUND_UP_DOWN		1
 #define O_COVERAGE		1

@@ -2343,7 +2343,7 @@ static functor_t fast_ret_functor[VAR_SKEL_FAST] = {0};
 static size_t
 trie_ret_arity(Word const *pp, Word const *ep)
 {
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
   size_t arity = 0;
 
   for(Word const *ap = pp; ap<ep; ap++)
@@ -2385,7 +2385,7 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 
       if ( isVar(*ap) )
       { *p++ = makeRefG(ap);
-#ifdef O_TRIE_ATTVAR
+#if O_TRIE_ATTVAR
       } else if ( isAttVar(*ap) )
       { *p++ = makeRefG(ap);
 	pp++;			/* skip attribute */
@@ -9217,7 +9217,7 @@ deadlock.
 static void
 stat_deadlock(trie *atrie)
 {
-#ifdef O_TRIE_STATS
+#if O_TRIE_STATS
   int mytid = atrie->tid;
   trie *t = NULL;
   int tid = mytid;
