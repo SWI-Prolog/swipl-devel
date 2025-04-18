@@ -3005,6 +3005,8 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	      state->maxvar = index;
 	    addBuffer(&varb, p, Word);
 	    *p = w = ((((word)index))<<LMASK_BITS)|TAG_VAR;
+	  } else
+	  { index = (size_t)(w>>LMASK_BITS);
 	  }
 	  add_vmi_d(state, T_VAR, (code)index);
 	  break;
@@ -3171,7 +3173,7 @@ next:
 	{ case TAG_VAR:                 c = T_TRY_VAR; break;
 	  case TAG_ATTVAR|STG_STATIC:   c = T_TRY_ATTVARA; break;
 	  case TAG_ATTVAR|STG_RESERVED: c = T_TRY_ATTVARZ; break;
-	  default: assert(0);
+	  default: assert(0);           c = 0;
 	}
 	add_vmi_else_d(state, c, (code)index);
       } else
@@ -3179,7 +3181,7 @@ next:
 	{ case TAG_VAR:                 c = T_VAR; break;
 	  case TAG_ATTVAR|STG_STATIC:   c = T_ATTVARA; break;
 	  case TAG_ATTVAR|STG_RESERVED: c = T_ATTVARZ; break;
-	  default: assert(0);
+	  default: assert(0);		c = 0;
 	}
 	add_vmi_d(state, c, (code)index);
       }
