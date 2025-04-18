@@ -3935,11 +3935,15 @@ multiple threads may retract the same clause as both threads respect the
 logical update view.
 
     \predicate[ISO,det]{retractall}{1}{+Head}
-All facts or clauses in the database for which the \arg{head}
-unifies with \arg{Head} are removed. If \arg{Head} refers to a predicate
-that is not defined, it is implicitly created as a dynamic predicate.
-See also dynamic/1.\footnote{The ISO standard only allows using
-dynamic/1 as a \jargon{directive}.}
+All facts or clauses in the database for which the \arg{head} unifies
+with \arg{Head} are removed.  If all arguments of \arg{Head} are
+non-sharing variables (see is_most_general_term/1), all clauses are
+removed without inspecting the clauses.  Cleaning all clauses of a
+dynamic predicate must use retractall/1 rather than abolish/1 as the
+latter completely wipes the predicate, including its properties.  If
+\arg{Head} refers to a predicate that is not defined, it is implicitly
+created as a dynamic predicate.  See also dynamic/1.\footnote{The ISO
+standard only allows using dynamic/1 as a \jargon{directive}.}
 
     \predicate[ISO]{asserta}{1}{+Term}
 \nodescription
@@ -3978,25 +3982,24 @@ used to access this clause with clause/3 and erase/1.
 \index{logical,update view}%
 \index{immediate, update view}%
 \index{update view}%
-Traditionally, Prolog systems used the \jargon{immediate update view}:
-new clauses became visible to predicates backtracking over dynamic
-predicates immediately, and retracted clauses became invisible
-immediately.
+SWI-Prolog adheres to the \jargon{logical update view}, where
+backtrackable predicates that enter the definition of a predicate will
+not see any changes (either caused by assert/1 or retract/1) to the
+predicate.  This view is the ISO standard.  Logical updates are
+realised by keeping \jargon{generation} information on clauses.  Each
+change to the database causes an increment of the generation of the
+database.  Each goal is tagged with the generation in which it was
+started.  Each clause is flagged with the generation it was created in
+as well as the generation it was erased.  Only clauses with a
+`created' \ldots `erased' interval that encloses the generation of the
+current goal are considered visible.  The generation mechanism is also
+used to implement \jargon{transactions} See \secref{transactions}.
 
-Starting with SWI-Prolog 3.3.0 we adhere to the \jargon{logical update
-view}, where backtrackable predicates that enter the definition of a
-predicate will not see any changes (either caused by assert/1 or
-retract/1) to the predicate.  This view is the ISO standard, the
-most commonly used and the most `safe'.%
-    \footnote{For example, using the immediate update view, no call to a
-	      dynamic predicate is deterministic.}
-Logical updates are realised by keeping reference counts on predicates
-and \jargon{generation} information on clauses.  Each change to the
-database causes an increment of the generation of the database.  Each
-goal is tagged with the generation in which it was started.  Each clause
-is flagged with the generation it was created in as well as the generation
-it was erased from.  Only clauses with a `created' \ldots `erased' interval
-that encloses the generation of the current goal are considered visible.
+Erased clauses are (eventually) reclaimed by the clause garbage
+collector implemented by garbage_collect_clauses/0.  By default, the
+clause garbage collector runs in a thread named \const{gc}, together
+with the atom garbage collector (garbage_collect_atoms/0).  See also
+the Prolog flag \prologflag{gc_thread}.
 
 
 \subsubsection{Indexing databases}			\label{sec:hashterm}
