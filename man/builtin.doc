@@ -5167,7 +5167,11 @@ clause/2 only promises \jargon{semantic equivalence}.
 Equivalent to clause/2, but unifies \arg{Reference} with a unique
 reference to the clause (see also assert/2, erase/1). If \arg{Reference}
 is instantiated to a reference the clause's head and body will be
-unified with \arg{Head} and \arg{Body}.
+unified with \arg{Head} and \arg{Body}.  The \arg{Reference} is a
+\jargon{blob} (see \secref{blob}), which implies it is subject to
+\jargon{atom garbage collection}.  The \arg{Reference} provides
+safe access to the clause while it exists and generates a reliable
+existence_error exception after the clause has been erased.
 
     \predicate{nth_clause}{3}{?Pred, ?Index, ?Reference}
 Provides access to the clauses of a predicate using their index number.
