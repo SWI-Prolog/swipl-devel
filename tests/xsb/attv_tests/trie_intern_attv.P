@@ -1,0 +1,53 @@
+/* File:      trie_intern_attv.P
+** Author(s): Baoqiu Cui
+**
+** $Id: trie_intern_attv.P,v 1.2 2004-11-17 21:43:37 tswift Exp $
+*/
+
+:- import put_attr/3, get_attr/3 from machine.
+:- import new_trie/1, trie_intern/4, trie_interned/4 from intern.
+
+test :-
+	test1,
+	test2.
+
+test1 :-
+	put_attr(X, ti, v(1)),
+	new_trie(R),
+	trie_intern(f(X,X), R, _Leaf1, _Ret),
+
+	% Call trie_interned/4 with Leaf as a variable, _Leaf2.  So
+	% function trie_interned() will be used.
+	
+	trie_interned(f(X1, X2), R, _Leaf2, _),
+	get_attr(X1, ti, V1),
+	nonvar(V1), V1 = v(1),
+	get_attr(X2, ti, V2),
+	nonvar(V2), V1 = v(1),
+
+	% Now update the attr of X2
+	put_attr(X2, ti, v(111)),
+	get_attr(X1, ti, NewV1),
+	NewV1 = v(111),
+	writeln('Passed trie_intern_attv test1!').
+
+test2 :-
+	put_attr(X, ti, v(1)),
+	new_trie(R),
+	trie_intern(f(X,X), R, Leaf, _Ret),
+
+	% Call trie_interned/4 with Leaf as an integer, Leaf.  So
+	% function bottom_up_unify() will be used.
+	
+	trie_interned(TT, R, Leaf, _),
+	TT = f(X1, X2),
+	get_attr(X1, ti,  V1),
+	nonvar(V1), V1 = v(1),
+	get_attr(X2, ti, V2),
+	nonvar(V2), V1 = v(1),
+
+	% Now update the attr of X2
+	put_attr(X2, ti, v(111)),
+	get_attr(X1, ti, NewV1),
+	NewV1 = v(111),
+	writeln('Passed trie_intern_attv test2!').

@@ -1,0 +1,7 @@
+Passed copyterm_attv test (copy_term/2)!
+test_cyclic_term_3(f(A,A))
+== test_cyclic_term is OK
+test_list(f(A,[A]))
+== test_sharing_3 is OK
+== test_sharing is OK
+test_struct(f(A,g(A)))

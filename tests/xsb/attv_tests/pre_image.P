@@ -1,0 +1,27 @@
+/* File:      pre_image.P
+** Author(s): Baoqiu Cui
+**
+** $Id: pre_image.P,v 1.1 1999-11-04 23:04:29 cbaoqiu Exp $
+*/
+
+:- import put_attributes/2, get_attributes/3 from machine.
+:- import attv_unify/2 from machine.
+
+test :-
+	put_attributes(X, v(a)),
+	put_attributes(Y, v(b)),
+	p(X,Y),
+	write('X-Y = '), writeln(X-Y),
+	fail.
+
+test :- writeln('-------------------------').
+	
+verify_attributes(Var, Value) :-
+	attv_unify(Var, Value).
+
+p(X,Y) :-
+	X = 5,
+	(q(Y); r(Y)).
+
+q(6).
+r(7).

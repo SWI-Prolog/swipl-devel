@@ -1,0 +1,169 @@
+/* File:      tabled_attv.P
+** Author(s): Baoqiu Cui
+** 
+** Some tests for tabled attributed variables.
+** $Id: tabled_attv.P,v 1.5 2004-11-17 21:43:37 tswift Exp $
+*/
+
+:- import put_attr/3, get_attr/3 from machine.
+:- import install_verify_attribute_handler/4 from machine.
+:- import get_atts/2, put_atts/2 from atts.
+:- import attv_unify/2 from machine.
+
+test :-
+	test_table1,
+	test_table2,
+	test_data_backtrack,
+	writeln('PASSED tabled_attv').
+
+:- install_verify_attribute_handler(unif,AttrVal,Targ,dummy_handler(Targ,AttrVal)).
+
+dummy_handler(Var, Value) :-
+	(var(Var) -> 
+	    attv_unify(Var, Value)
+	 ;  Var == Value).
+
+:- table p/3.
+
+test_table1 :-
+	put_attr(X, unif, v(1)),
+	put_attr(X, unif,v(2,2)),
+	put_attr(X, unif,v(3,3,3)),
+	put_attr(X, unif,[]),
+	put_attr(X, unif,v(4,4,4,4)),
+	Y = X,
+	put_attr(Z, unif, vz(1)),
+	p(X, f(Y,Z), W),
+	call(true),				% to be removed (???)
+	get_attr(Z, unif, VZ), VZ = vz(5,5,5,5,5),
+	X == Y,
+	get_attr(W, unif, VW), VW = vw(1),
+	writeln('First time of test_table1: OK'),
+	fail.
+test_table1 :-
+	put_attr(X, unif,v(4,4,4,4)),
+	Y = X,
+	put_attr(Z, unif, vz(1)),
+	writeln('Before call p/3'),
+	p(X, f(Y,Z), W),
+	get_attr(Z, unif, VZ), VZ = vz(5,5,5,5,5),
+	X == Y,
+	get_attr(W, unif, VW), VW = vw(1),
+	writeln('Second time of test_table1: OK').
+
+p(_A,B,C) :-
+	B = f(_Y,Z),
+	put_attr(Z, unif,vz(5,5,5,5,5)),
+	put_attr(C, unif, vw(1)).
+
+%-----------------------------------------------------------------------
+
+:- table p/5.
+
+test_table2 :-
+	put_attr(A1, unif, v1(1)),
+	put_attr(A2, unif, v2(2)),
+	put_attr(A3, unif, v3(3)),
+	p(X, A1, A2, A3, A2),
+	writeln('out of first call'),
+	call(true),				% to be removed (???)
+	X = f(A1, A2, A3, A4, New),
+	A1 == 5,
+	get_attr(A4, unif, V2), nonvar(V2), V2 = v2(22),
+	get_attr(A3, unif, V3), nonvar(V3), V3 = v3(3),
+	get_attr(New, unif, V5), nonvar(V5), V5 = v5(5),
+	writeln('First time of test_table2 is OK'),
+	fail.
+
+test_table2 :-
+	put_attr(A1, unif, v1(1)),
+	put_attr(A2, unif, v2(2)),
+	put_attr(A3, unif, v3(3)),
+	p(X, A1, A2, A3, A2),
+	call(true),				% to be removed (???)
+	X = f(A1, A2, A3, A4, New),
+	A1 == 5,
+	get_attr(A4, unif, V2), nonvar(V2), V2 = v2(22),
+	get_attr(A3, unif, V3), nonvar(V3), V3 = v3(3),
+	get_attr(New, unif, V5), nonvar(V5), V5 = v5(5),
+	writeln('Second time of test_table2 is OK').
+
+p(X, A1, A2, A3, A4) :-
+	X = f(A1, A2, A3, A4, New),
+	get_attr(A2, unif, V2),
+	write('in p/5: V2 = '), writeln(V2),
+	attv_unify(A1, 5),
+	put_attr(A2, unif, v2(22)),
+	get_attr(A2, unif, NewV2),
+	write('in p/5: NewV2 = '), writeln(NewV2),
+	put_attr(New, unif, v5(5)).
+
+%-----------------------------------------------------------------------
+
+% Test data types (attv is bound to STRUCT, NUMCON, LIST) and
+% backtracking of trie code.
+
+test_data_backtrack :-
+	put_attr(A1, v(1)),
+	put_attr(A2, v(2)),
+	put_attr(A3, v(3)),
+	p4(A1,A2,A3),
+	call(true),				% to be removed (???)
+	nonvar(A1), A1 = f(X,2,Y),
+	nonvar(A2), A2 = 'string',
+	nonvar(A3), A3 = [A,b,C], A == X, C == Y,
+	writeln('First time of test_data_backtrack is OK'),
+	fail.
+test_data_backtrack :-
+	test_data_backtrack_1,
+	test_data_backtrack_2,
+	test_data_backtrack_3,
+	writeln('Second time of test_data_backtrack is OK').
+
+test_data_backtrack_1 :-
+	put_attr(A1, v(1)),
+	put_attr(A2, v(2)),
+	put_attr(A3, v(3)),
+	p4(A1,A2,A3),
+	call(true),				% to be removed (???)
+	nonvar(A1), A1 = f(X,2,Y),
+	nonvar(A2), A2 = 'string',
+	nonvar(A3), A3 = [A,b,C], A == X, C == Y,
+	writeln('Second time (1) is OK').
+test_data_backtrack_2 :-
+	put_attr(A1, v(1)),
+	put_attr(A2, v(2)),
+	put_attr(A3, v(3)),
+	p4(A1,A2,A3),
+	call(true),				% to be removed (???)
+	get_attr(A1, V11, _), nonvar(V11), V11 = v(11),
+	get_attr(A2, V22, _), nonvar(V22), V22 = v(22),
+	get_attr(A3, V33, _), nonvar(V33), V33 = v(33),
+	writeln('Second time (2) is OK').
+test_data_backtrack_3 :-
+	put_attr(A1, v(1)),
+	put_attr(A2, v(2)),
+	put_attr(A3, v(3)),
+	p4(A1, A2, A3),
+	call(true),				% to be removed (???)
+	get_attr(A1, V111, _), nonvar(V111), V111 = v(111),
+	get_attr(A2, V222, _), nonvar(V222), V222 = v(222),
+	get_attr(A3, V333, _), nonvar(V333), V333 = v(333),
+	writeln('Second time (3) is OK').
+
+:- table p4/3.
+
+p4(A1, A2, A3) :- p4(A1, A2, A3).
+
+p4(A1, A2, A3) :-
+	attv_unify(A1, f(X, 2, Y)),
+	attv_unify(A2, 'string'),
+	attv_unify(A3, [X, b, Y]).
+p4(A1, A2, A3) :-
+	put_attr(A1, v(11)),
+	put_attr(A2, v(22)),
+	put_attr(A3, v(33)).
+p4(A1, A2, A3) :-
+	put_attr(A1, v(111)),
+	put_attr(A2, v(222)),
+	put_attr(A3, v(333)).

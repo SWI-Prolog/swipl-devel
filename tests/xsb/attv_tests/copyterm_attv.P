@@ -1,0 +1,98 @@
+/* File:      copyterm_attv.P
+** Author(s): Baoqiu Cui, Swift
+**
+** $Id: copyterm_attv.P,v 1.3 2004-11-17 21:43:37 tswift Exp $
+*/
+
+:- import put_attr/3, get_attr/3 from machine.
+:- import install_attribute_portray_hook/3 from machine.
+:- import numbervars/1 from num_vars.
+:- import copy_term_nat/2 from basics.
+
+:- install_attribute_portray_hook(ct,Attr,portray_ct(Attr)).
+
+portray_ct(Attr):- (numbervars(Attr),write(Attr),fail ; true).
+
+test :-
+      test_sharing,
+      test_cyclic_term,
+      writeln('Passed copyterm_attv test (copy_term/2)!'),
+      fail.
+test :-
+      test_sharing_3,
+      test_cyclic_term_3,
+      fail.
+test:- test_list,fail.
+test:- test_struct,fail.
+test.
+
+test_sharing :-
+	put_attr(X, ct, v(a)),
+	copy_term(f(X,g(X)), T),
+	T = f(Y,g(Z)),			% Y and Z are shared in T
+	put_attr(Y, ct, v(b)),	% so update Y will also update Z
+	get_attr(Y, ct, VY),
+	get_attr(Z, ct, VZ),
+	nonvar(VY), VY = v(b),
+	nonvar(VZ), VZ = v(b),
+	put_attr(A, ct, v(123)),	% Test shared attvs in a functor
+	copy_term(f(A,A), G),
+	G = f(B,C),
+	put_attr(B, ct, v(456)),
+	get_attr(C, ct, VC),
+	nonvar(VC), VC = v(456),
+	writeln('== test_sharing is OK').
+
+test_cyclic_term :-
+	put_attr(X, ct, v(Y,a)),
+	put_attr(Y, ct, v(X,b)),
+	copy_term(f(X,X), f(NewX1, NewX2)),
+	NewX1 == NewX2,
+	get_attr(NewX2, ct, VX),
+	nonvar(VX), VX = v(NewY, a),
+	get_attr(NewY, ct,  VY),
+	nonvar(VY), VY = v(XinY, b),
+	XinY == NewX1,
+	writeln('== test_cyclic_term is OK').
+
+test_sharing_3 :-
+	put_attr(X, ct, v(a)),
+	copy_term_nat(f(X,g(X)), T),
+	T = f(Y,g(Z)),			% Y and Z are shared in T
+	put_attr(Y, ct, v(b)),	% so update Y will also update Z
+	get_attr(Y, ct, VY),
+	get_attr(Z, ct, VZ),
+	nonvar(VY), VY = v(b),
+	nonvar(VZ), VZ = v(b),
+	put_attr(A, ct, v(123)),	% Test shared attvs in a functor
+	copy_term_nat(f(A,A), G),
+	G = f(B,C),
+	put_attr(B, ct, v(456)),
+	get_attr(C, ct, VC),
+	nonvar(VC), VC = v(456),
+	writeln('== test_sharing_3 is OK').
+
+test_cyclic_term_3 :-
+	put_attr(X, ct, v(Y,a)),
+	put_attr(Y, ct, v(X,b)),
+	copy_term_nat(f(X,X), f(NewX1, NewX2)),
+	NewX1 == NewX2,
+        numbervars(f(NewX1, NewX2)),
+        writeln(test_cyclic_term_3(f(NewX1, NewX2))).
+%	writeln('== test_cyclic_term_3 is OK').
+
+test_struct:- 
+	put_attr(X, ct, v(a)),
+%	writeln(f(X,X)),
+	copy_term_nat(f(X,g(X)), T),
+	numbervars(T),
+	writeln(test_struct(T)).
+
+test_list:- 
+	put_attr(X, ct, v(a)),
+%	writeln(f(X,X)),
+	copy_term_nat(f(X,[X]), T),
+	numbervars(T),
+	writeln(test_list(T)).
+
+

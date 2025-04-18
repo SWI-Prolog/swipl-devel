@@ -1,0 +1,40 @@
+/* File:      trie_assert_attv2.P
+** Author(s): Baoqiu Cui
+**
+** $Id: trie_assert_attv2.P,v 1.3 1999-11-14 18:34:34 cbaoqiu Exp $
+*/
+
+:- import put_attributes/2, get_attributes/3, attv_unify/2 from machine.
+
+:- index(p/2, trie).
+:- index(q/2, trie).
+
+test :- test1,
+	test2.
+
+verify_attributes(Var, Value) :-
+	% write('  -- verify: '), writeln(Var-Value),
+	attv_unify(Var, Value).
+
+test1 :-
+	put_attributes(X, v(1)),
+	assert(p(X,X)),
+	fail.
+test1 :-
+	p(5, Y),
+	call(true),
+	Y == 5,
+	writeln('== test1 is OK').
+
+%-----------------------------------------------------------------------
+test2 :-
+	assert(q(5, 'string')),
+	fail.
+test2 :-
+	put_attributes(X, v(1)),
+	put_attributes(Y, v(2)),
+	q(X, Y),
+	call(true),
+	X == 5,
+	Y == 'string',
+	writeln('== test2 is OK').

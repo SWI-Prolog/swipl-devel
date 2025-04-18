@@ -1,0 +1,59 @@
+/* File:      interrupt1.P
+** Author(s): Baoqiu Cui
+** 
+** $Id: interrupt1.P,v 1.3 2004-11-17 21:43:37 tswift Exp $
+*/
+
+:- import get_attr/3, put_attr/3 from machine.
+:- import install_verify_attribute_handler/4 from machine.
+:- import attv_unify/2 from machine.
+
+test :-	test1.
+
+% In LOCAL mode, verify_attributes/2 will be called twice: the first
+% time is when `X = 5' is evaluated, the second time is when the trie
+% code is executed to return an answer from the completed answer trie.
+
+:- install_verify_attribute_handler(bind,AttrValue,Target,dummy_handler(AttrValue,Target)).
+
+
+dummy_handler(Value,Target) :-
+	writeln(valtarg(Value,Target)),
+	(var(Target) -> 
+	    get_attr(Target,bind, Atts),
+	    writeln('In verify_attributes/2:'),
+	    write('   Var''s attribute = '), writeln(Atts),
+	    write('   Value = '), writeln(Value),
+	    attv_unify(Target, Value)
+	 ;  
+	(var(Value) -> 
+	    writeln('In verify_attributes/2:'),
+	    get_attr(Value,bind, Atts),
+	    write('   Var''s attribute = '), writeln(Atts),
+	    write('   Value = '), writeln(Value),
+	    attv_unify(Value,Target)
+	  ; 
+	    true) ).
+
+test1 :-
+	put_attr(X, bind,v(a)),
+	p(X),
+	write('First time: X = '), writeln(X),	% should be 5
+	fail.
+test1 :-
+	put_attr(X, bind,v(a)),
+	p(X),
+	write('Second time: X = '), writeln(X).	% should be 5
+
+% An instruction `check_interrupt' has to be just added before
+% `new_answer_dealloc', because there is no more `call's before an
+% answer is put into the answer table.  For example, in the following
+% example, if we don't add `check_interrupt' before
+% `new_answer_dealloc', verify_attributes/2 will be called after the
+% WRONG answer p(X) (where X is still an attv) has been put into the
+% answer table.
+
+:- table p/1.
+
+p(X) :- X = 5.
+

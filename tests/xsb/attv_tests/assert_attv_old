@@ -1,0 +1,22 @@
+First time of test_clause1
+First time of test_clause2
+First time of test_fact1
+First time of test_fact2
+Passed assert_attv!
+Passed test_clause1
+Passed test_clause2
+Passed test_fact1
+Passed test_fact2
+Passed test_sharing!
+Second time of test_clause1
+Second time of test_clause2
+Second time of test_fact1
+Second time of test_fact2
+p(555, X1) is OK
+p(X2, abc) is OK
+p(X3, Y3) is OK
+p(X4, X4) is OK
+q(A,B,123,D) is OK
+q(f(5, Y1), Z1) is OK
+retract is OK
+v(1)

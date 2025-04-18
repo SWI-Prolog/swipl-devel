@@ -1,0 +1,13 @@
+Before call p/3
+First time of test_data_backtrack is OK
+First time of test_table1: OK
+First time of test_table2 is OK
+PASSED tabled_attv
+Second time (1) is OK
+Second time (2) is OK
+Second time (3) is OK
+Second time of test_data_backtrack is OK
+Second time of test_table1: OK
+Second time of test_table2 is OK
+in p/5: NewV2 = v2(22)
+in p/5: V2 = v2(2)

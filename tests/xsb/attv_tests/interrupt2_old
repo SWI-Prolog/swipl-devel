@@ -1,0 +1,14 @@
+   Value = 5
+   Value = 6
+   Value = 7
+   Value = 7
+   Var's attribute = v(a)
+   Var's attribute = v(b)
+   Var's attribute = v(c)
+   Var's attribute = v(c)
+In verify_attributes/2:
+In verify_attributes/2:
+In verify_attributes/2:
+In verify_attributes/2:
+X = 7
+Y = 7

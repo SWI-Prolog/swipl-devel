@@ -1,0 +1,15 @@
+?-
+     machine:put_attr(V2,aaaa,[=(x,X)]),
+     assert:assert(
+            (
+              abc(qqq(V1, [X], Y, V2, ppp(V1))) :- true, rrr([X,Y])
+	      		  ),
+            3,
+            1
+          ).
+
+
+test :- abc(qqq(V1, [a], b, _, ppp(V1))),writeln(succeeded).
+
+rrr([a,b]).
+

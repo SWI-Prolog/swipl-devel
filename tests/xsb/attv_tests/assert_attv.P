@@ -1,0 +1,235 @@
+/* File:      assert_attv.P
+** Author(s): Baoqiu Cui
+**
+** $Id: assert_attv.P,v 1.2 2004-11-17 21:43:37 tswift Exp $
+*/
+
+:- import put_attr/3, get_attr/3, install_verify_attribute_handler/4 from machine.
+:- import attv_unify/2 from machine.
+
+:- install_verify_attribute_handler(as,AttrVal,Targ,dummy_handler(Targ,AttrVal)).
+
+dummy_handler(Value, Target) :-
+	(var(Target) -> 
+	    attv_unify(Target,Value)
+	 ;  true).
+
+test :-
+	test_fact1,
+	test_fact2,
+	test_sharing,
+	test_clause1,
+	test_clause2,
+	writeln('Passed assert_attv!').
+
+test_fact1 :-
+	writeln('First time of test_fact1'),
+  	put_attr(X, as, v(a)),
+	assert(p(X,X)),
+	fail.
+
+test_fact1 :-
+	writeln('Second time of test_fact1'),
+	p(555, X1), call(true),
+	X1 == 555,
+	writeln('p(555, X1) is OK'),
+
+	p(X2, abc), call(true),
+	X2 == abc,
+	writeln('p(X2, abc) is OK'),
+
+	put_attr(X3, as, v(b)),
+	p(X3, Y3), call(true),
+	get_attr(Y3, as,  VY3),
+	nonvar(VY3), VY3 = v(b),
+	writeln('p(X3, Y3) is OK'),
+
+	put_attr(X4, as, v(234)),
+	p(X4,X4), call(true),
+	get_attr(X4, as,  VX4),
+	nonvar(VX4), VX4 = v(234),
+	writeln('p(X4, X4) is OK'),
+
+	put_attr(X5, as, v(a)),
+	retract(p(X5,X5)),
+	((p(555, X5))
+	 ->	get_attr(X5, as, VX5),
+		writeln(VX5),
+		writeln('Error!')
+	 ;	writeln('retract is OK')
+	),
+	writeln('Passed test_fact1').
+
+test_fact2 :-
+	writeln('First time of test_fact2'),
+	put_attr(X, as, v(a)),
+	put_attr(Y, as, v(b)),
+ 	assert(q(f(X,X), X)),
+	assert(q(f(X,Y), g(Y,X), X, Y)),
+	fail.
+
+test_fact2 :-
+	writeln('Second time of test_fact2'),
+	q(f(5, Y1), Z1), call(true),
+	Y1 == 5,
+	Z1 == 5,
+	writeln('q(f(5, Y1), Z1) is OK'),
+	q(A,B,123,D), call(true),
+	A = f(C1, D), C1 == 123,
+	B = g(D, C2), C2 == 123,
+	writeln('q(A,B,123,D) is OK'),
+	writeln('Passed test_fact2').
+
+test_sharing :-
+        put_attr(X, as, v(1)),
+        assert(p0(X,X)),
+        fail.
+test_sharing :-
+        p0(X,Y),
+        get_attr(X, as, VX),
+        nonvar(VX), VX = v(1), writeln(VX),
+        % update the attribute of X (== Y)
+        put_attr(X, as, v(11)),
+        get_attr(Y,as,  VY),
+        nonvar(VY), VY = v(11),
+        writeln('Passed test_sharing!').
+
+
+% test_clause1: no NEW attv in the body
+% =====================================
+test_clause1 :-
+	writeln('First time of test_clause1'),
+	put_attr(X, as, v(a)),
+	assert((p1(X) :- q1(f(X), 1), r1(g(2,X)))),
+	assert(q1(f(5),1)),
+	assert(r1(_)),
+	fail.
+test_clause1 :-
+	writeln('Second time of test_clause1'),
+	p1(5),
+	writeln('Passed test_clause1').
+
+
+% test_clause2: NEW attv(s) in the body
+% =====================================
+test_clause2 :-
+	writeln('First time of test_clause2'),
+	put_attr(X, as, v(a)),
+	assert((p2(Y) :- q2(X), call(true), Y is X+1)),
+	assert((q2(Z) :- Z = 5)),
+	fail.
+test_clause2 :-
+	writeln('Second time of test_clause2'),
+	p2(Y), call(true),
+	Y == 6,
+	writeln('Passed test_clause2').
+
+end_of_file.
+
+------------------------------------------------------------------------
+			      N O T E S
+------------------------------------------------------------------------
+
+1) assert((p(X) :- q(X, Y, f(11), [22,33], f(Z,44)))).
+	
+	fail - - -
+	test_heap - - 2 0
+
+	puttvar - 6 6
+	
+	putstr - - 7 0x37d968
+	bldnumcon - - - 0xb
+	
+	putlist - - 9
+	bldnumcon - - - 0x21
+	bldcon - - - 0x179824
+	putlist - - 8
+	bldnumcon - - - 0x16
+	bldtval - - 9
+	
+	putstr - - 10 0x334990
+	bldtvar - - 11
+	bldnumcon - - - 0x2c
+	
+	movreg - 6 2
+	movreg - 7 3
+	movreg - 8 4
+	movreg - 10 5
+	execute - - - 0x37d980
+	Now add clref to chain:
+
+2) put_attr(X, v(a)),
+   assert((p1(X) :- q1(1,X))),
+   assert(q1(1,X)).
+
+	test_heap - - 2 0
+	getattv - - 1
+	unitvar - - 3
+	getstr - - 3 0x81e98b8
+	unicon - - - 0x81ba6e4
+	movreg - 1 2
+	putnumcon - - 1 0x1
+	execute - - - 0x81eb170
+	Now add clref to chain:
+
+3) put_attr(X, v(a)),
+   assert((p1(X) :- q1(f(X), 1), r1(g(2,X)))).
+
+	test_heap - - 2 0
+
+	getattv - - 1
+	unitvar - - 3
+	getstr - - 3 0x81e98b8
+	unicon - - - 0x81ba6e4
+
+	putstr - - 4 0x81eb180	% f/1
+	bldtval - - 1		% X
+	putstr - - 3 0x81eb1a8	% q1/2
+	bldtval - - 4		% f(X)
+	bldnumcon - - - 0x1	% 1
+
+	putstr - - 6 0x81eaec8	% g/2
+	bldnumcon - - - 0x2	% 2
+	bldtval - - 1		% X
+	putstr - - 5 0x81eb1d0	% r1/1
+	bldtval - - 6		% g(2,X)
+	movreg - 3 1		% q1(f(X),1)
+	movreg - 5 2		% r1(g(2,X))
+	execute - - - 0x81ae180
+	Now add clref to chain:
+
+4) put_attr(X, v(a)),
+   assert((p2(Y):- q2(X))).
+
+	test_heap - - 2 0
+	putstr - - 4 0x81e9bb8	% v/1
+	bldcon - - - 0x81ba9a4	% a
+	putattv - - 3		% X
+	bldtval - - 4		% v(a) -- the attribute
+	movreg - 3 1
+	execute - - - 0x81eb5c0
+
+5) put_attr(X, v(a)),
+   assert((p2(Y) :- q2(X), writeln([1,X]))),
+
+	test_heap - - 2 0
+	putstr - - 5 0x81db578	% v/1
+	bldcon - - - 0x81baa64	% a
+	putattv - - 4		% X
+	bldtval - - 5		% v(a)
+	putstr - - 3 0x81dbde8	% q2/1 <-- Reg 3
+	bldtval - - 4		% X
+	putlist - - 8		% []/2 <-- Reg 8
+	bldtval - - 4		% X
+	bldcon - - - 0x819dee4	% nil
+	putlist - - 7		% []/2 <-- Reg 7
+	bldnumcon - - - 0x1	% 1
+	bldtval - - 8		% [X]
+	putstr - - 6 0x81ade08	% writeln/1 <-- Reg 6
+	bldtval - - 7		% [1,X]
+	movreg - 3 1		% q2(X)
+	movreg - 6 2		% writeln([1,X])
+	execute - - - 0x81ae500
+	Now add clref to chain:
+
+------------------------------------------------------------------------

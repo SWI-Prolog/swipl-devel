@@ -1,0 +1,124 @@
+/* File:      attv_test.P
+** Author(s): Baoqiu Cui
+** 
+** This file contains some basic tests for attributed variables.
+** $Id: attv_test.P,v 1.9 2011-03-13 00:33:51 tswift Exp $
+*/
+
+:- import put_attr/3, get_attr/3, install_verify_attribute_handler/4 from machine.
+:- import get_atts/2, put_atts/2 from atts.
+:- import attv_unify/2 from machine.
+
+test :-
+	test_deref,
+	test_update,
+	test_unify,
+	test_attv_interrupt,
+	test_attv_disj_interrupt,
+	test_implict_unify,
+	test_cut1,
+	test_cut2,
+	writeln('PASSED attv_test!').
+
+:- install_verify_attribute_handler(nounif,AttrVal,Targ,dummy_handler(Targ,AttrVal)).
+:- install_verify_attribute_handler(unif,AttrVal,Targ,fail(Targ,AttrVal)).
+
+fail(_,_):- fail.
+
+dummy_handler(Value, Target) :-
+	(var(Target) -> 
+	    get_attr(Target, _, Atts)
+	 ;  Atts = Target),
+	write('Var''s attribute = '), writeln(Atts),
+	write('Value = '), writeln(Value).
+
+test_deref :-
+	Y2 = Y, Y = X,
+	put_attr(X, nounif,v(1)),
+	put_attr(X, nounif,v(2)),
+	get_attr(X, nounif, V1),
+	nonvar(V1), V1 = v(2),
+	get_attr(Y, nounif,V3),
+	nonvar(V3), V3 = v(2),
+	put_attr(X, nounif, _),
+	get_attr(X, nounif, V2),
+	var(V2),
+	get_attr(Y, nounif, V4),
+	var(V4),
+	put_attr(Y2, nounif, v(3)),
+	get_attr(Y2, nounif, V5),
+	nonvar(V5), V5 = v(3),
+	writeln('== test_deref OK').
+	
+test_update :-
+	put_attr(X, _nounif,v(1,2,3)),
+	(put_attr(X, _nounif,v(2,3,4)),
+	 put_attr(X, _nounif,v(3,4,5)),
+	 get_attr(X, _nounif,V),
+	 nonvar(V), V = v(3,4,5),
+	 writeln('== test_update 1 OK')
+         ;
+	 get_attr(X, _nounif,Vold ),
+	 nonvar(Vold), Vold = v(1,2,3),
+	 writeln('== test_update 2 OK')
+	),
+	fail.
+test_update.
+
+test_unify :-
+	put_attr(X, nounif,v(1)),
+	Y = X,	% notice the order: op2 = X
+	X = Z,
+	get_attr(Y, nounif,VY),
+	nonvar(VY), VY = v(1),
+	get_attr(Z, nounif,VZ),
+	nonvar(VZ), VZ = v(1),
+	writeln('== test_unify OK').
+
+test_attv_interrupt :-
+	put_attr(X, nounif,v(1)),
+	Y = 5,
+	Y = X,	% unify(ATTV, Y) ???
+	writeln('== test_attv_interrupt OK').
+
+test_attv_disj_interrupt :-
+	put_attr(X, nounif,v(12)),
+	Y = 7,
+	Y = X,	% unify(ATTV, Y) ???
+	(writeln(disjunct_A) ; writeln(disjunct_B)),
+	writeln('== test_attv_disj_interrupt OK'),
+	fail.
+test_attv_disj_interrupt.
+
+test_implict_unify :-
+	put_attr(X, nounif,v(11)),
+	put_attr(Y, nounif,v(22)),
+	handle_interrupts([(X,a), (Y,b)]),
+	X == a, Y == b,
+	writeln('== test_implict_unify OK').
+
+test_cut1 :-
+	put_attr(X, unif, v(30)),
+	Y = 1,
+	X=Y,
+	!,
+	writeln('== test_cut1 FAILED').
+test_cut1 :-
+	writeln('== test_cut1 SUCCEEDED').
+
+test_cut2 :-
+	put_attr(X, nounif, v(30)),
+	Y=2,
+	p(X,Y,1,2,3,4).
+
+p(X,X,A,B,C,D) :- !, q(A,B,C,D), writeln('== test_cut2 SUCCEEDED').
+p(_,_,_,_,_,_) :- writeln('== test_cut2 FAILED').
+
+q(1,2,3,4).
+
+handle_interrupts([]) :- !.
+handle_interrupts([(Var,Value)|Ints]) :-
+	get_attr(Var, nounif, Atts),
+	write('Attribute = '), writeln(Atts),
+	attv_unify(Var, Value),
+	handle_interrupts(Ints).

@@ -1,0 +1,110 @@
+/* File:      general.P
+** Author(s): Baoqiu Cui / Swift
+**
+** $Id: general.P,v 1.8 2011-10-16 19:26:50 tswift Exp $
+*/
+
+:- xsb_flag(verboseness,3).
+
+:- import put_attr/3, get_attr/3, install_verify_attribute_handler/4 from machine.
+
+%:- attribute dom/1, name/2.
+
+/* tests 1 and 2 rely on get_calls.  */
+:- set_prolog_flag(max_table_subgoal_size,20).
+
+test :- test1,
+	test2,
+	(test3 ; true),
+	test4,
+	(test5 ; true),
+	test6.
+
+:- install_verify_attribute_handler(general2,AttrVal,Targ,fail(Targ,AttrVal)).
+
+fail(_,_):- fail.
+
+%-----------------------------------------------------------------------
+% test1: one attv contains two normal vars, so in total there
+% are 3 vars in ret/n
+%-----------------------------------------------------------------------
+test1 :-
+	put_attr(X, general, dom(f(_T1,T2,T2))),
+	put_attr(X, general1, name(baoqiu, cui)),
+	p(X),
+	fail.
+test1 :-
+	get_calls(p(_X), Cs, Ret),
+	get_returns(Cs, Ret),
+	Ret = ret(A,_,_),
+	get_attr(A, general, dom(f(Var1,Var2,Var3))),
+	Var1 \== Var2, Var2 == Var3,
+	get_attr(A, general1, name(baoqiu, cui)),
+	writeln('test1 is OK').
+
+%-----------------------------------------------------------------------
+% test2: cyclic attributed variable
+%-----------------------------------------------------------------------
+test2 :-
+	put_attr(X, general, dom(5)),
+	put_attr(X, general1, name(X, cui)), % cyclic attv
+	p(X),
+	fail.
+test2 :-
+	get_calls(p(_X), Cs, Ret),
+	get_returns(Cs, Ret),
+	Ret = ret(A),
+	get_attr(A, general, dom(Five)),
+	writeln(Five),
+	get_attr(A, general1, name(B, cui)), % A == B
+	A == B,
+	get_attr(B, general, dom(Five2)),
+	writeln(Five2),
+	writeln('test2 is OK').
+
+:- table p/1.
+p(_).
+
+%-----------------------------------------------------------------------
+% test2: cyclic attributed variable
+%-----------------------------------------------------------------------
+
+:- table q/1.
+q(X):- put_attr(X,general2,splat).
+
+% Test 3 should NOT succeed.
+test3:- 
+	put_attr(X,general2,bug),
+	q(X),
+	writeln('test3: splatted bug with table').
+
+% Test 4 should succeed.
+test4:- 
+	put_attr(X,general2,bug),
+	r(X),
+	writeln('test4: splatted bug without table').
+
+% Test 5 should NOT succeed.
+test5:- 
+	put_attr(X,general2,bug),
+	r(Y), X = Y,
+	writeln('test5: splatted bug without table but w. unification').
+
+r(X):- put_attr(X,general2,splat).
+
+% Test 6 catches error handling for attvs in subs tables (and tests catch/throw)
+:- table s1/1.
+:- use_subsumptive_tabling s1/1.
+
+s1(_).
+
+test6:- catch(test6_1,error(table_error,_Ctxt),writeln('test6 properly caught')).
+
+test6_1:- 
+	put_attr(X,general5,bug),
+	s1(X),
+	writeln('test6: attv call to subsumptive table.').
+
+
+%--------------
+
