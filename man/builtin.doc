@@ -4342,13 +4342,19 @@ implementation is rather immature.   In particular, the following
 limitations currently apply:
 
 \begin{shortlist}
-    \item Tries are not thread-safe.
+    \item Tries only offer partial thread-safety.  Multiple threads
+          may concurrently insert values in a trie.  Concurrent
+          deletion and concurrent non-deterministic access is
+          not supported.
     \item Tries should not be modified while non-deterministic
           predicates such as trie_gen/3 are running on the trie.
-    \item Terms cannot have \jargon{attributed variables}.
     \item Terms cannot be \jargon{cyclic}.  Possibly this will
 	  not change because cyclic terms can only be supported
           after creating a canonical form of the term.
+    \item Starting with SWI-Prolog 9.3.23, tries support attributed
+          variables both in for keys and values.  Tries holding
+          attributed variables can also be \jargon{compiled} using
+          trie_gen_compiled/2 or trie_gen_compiled/3.
 \end{shortlist}
 
 \textbf{We give the definition of these predicates for reference and
