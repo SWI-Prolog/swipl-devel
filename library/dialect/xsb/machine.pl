@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, VU University Amsterdam
+    Copyright (c)  2019-2025, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,12 @@
 
             abolish_table_info/0,
             close_open_tables/1,          % ?
+
+            get_attr/3,
+            put_attr/3,
+            del_attr/2,
+            install_verify_attribute_handler/4, % +Mod, −AttrValue,
+                                                % −Target, +Handler)
 
             str_cat/3,
 
@@ -88,6 +95,14 @@ abolish_table_info.
 %   exceptions, so it is unclear what this should do?
 
 close_open_tables(_).
+
+%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target, +Handler)
+%
+%   Install attr_unify_hook/2 for Mod.
+
+install_verify_attribute_handler(Mod, AttrValue, Target, Handler) :-
+    retractall(Mod:attr_unify_hook(_,_)),
+    asserta(Mod:(attr_unify_hook(AttrValue, Target) :- Handler)).
 
 %!  str_cat(+Atom1, +Atom2, -Atom3)
 
