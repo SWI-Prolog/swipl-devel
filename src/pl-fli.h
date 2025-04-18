@@ -169,16 +169,16 @@ bool		PL_unify_int64(term_t t1, int64_t);
 bool		PL_unify_int64_ex(term_t t1, int64_t);
 bool		PL_unify_functor(term_t t, functor_t f);
 bool		PL_unify_nil(term_t t);
-FLI_INLINE int	PL_get_atom(term_t t1, atom_t *a);
+FLI_INLINE bool	PL_get_atom(term_t t1, atom_t *a);
 bool		PL_get_text_as_atom(term_t t, atom_t *a, int flags);
-FLI_INLINE int	PL_put_variable(term_t t1);
-FLI_INLINE int	PL_put_atom(term_t t1, atom_t a);
-FLI_INLINE int	PL_put_integer(term_t t1, long i);
-FLI_INLINE int	PL_put_int64(term_t t, int64_t i);
-FLI_INLINE int	PL_put_intptr(term_t t1, intptr_t i);
-FLI_INLINE int	PL_is_atomic(term_t t);
-FLI_INLINE int	PL_is_functor(term_t t, functor_t f);
-FLI_INLINE int	PL_is_variable(term_t t);
+FLI_INLINE bool	PL_put_variable(term_t t1);
+FLI_INLINE bool	PL_put_atom(term_t t1, atom_t a);
+FLI_INLINE bool	PL_put_integer(term_t t1, long i);
+FLI_INLINE bool	PL_put_int64(term_t t, int64_t i);
+FLI_INLINE bool	PL_put_intptr(term_t t1, intptr_t i);
+FLI_INLINE bool	PL_is_atomic(term_t t);
+FLI_INLINE bool	PL_is_functor(term_t t, functor_t f);
+FLI_INLINE bool	PL_is_variable(term_t t);
 bool		PL_strip_module_flags(term_t q, module_t *m,
 				      term_t t, int flags) WUNUSED;
 bool		PL_strip_module_ex(term_t raw, module_t *m,
@@ -200,7 +200,7 @@ bool		PL_unify_bool(term_t t, int val);
 bool		PL_unify_pointer(term_t t, void *ptr);
 bool		PL_unify_float(term_t t, double f);
 bool		PL_get_list(term_t l, term_t h, term_t t);
-FLI_INLINE int	PL_is_atom(term_t t);
+FLI_INLINE bool	PL_is_atom(term_t t);
 bool		PL_unify_list(term_t l, term_t h, term_t t);
 bool		PL_cons_list(term_t l, term_t head, term_t tail);
 bool		PL_cons_list_v(term_t list, size_t count, term_t elems);
@@ -249,52 +249,46 @@ bool		get_string_text(word w, PL_chars_t *text);
 #define valHandleP(h)		valTermRef(h)
 
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_get_atom(DECL_LD term_t t, atom_t *a)
 { word w = valHandle(t);
 
   if ( isAtom(w) )
   { *a = (atom_t) w;
-    succeed;
+    return true;
   }
-  fail;
+  return false;
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_is_variable(DECL_LD term_t t)
 { word w = valHandle(t);
 
   return canBind(w);
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_is_atom(DECL_LD term_t t)
 { word w = valHandle(t);
 
-  if ( isTextAtom(w) )
-    return true;
-
-  return false;
+  return isTextAtom(w);
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_is_functor(DECL_LD term_t t, functor_t f)
 { word w = valHandle(t);
 
-  if ( hasFunctor(w, f) )
-    succeed;
-
-  fail;
+  return hasFunctor(w, f);
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_is_atomic(DECL_LD term_t t)
 { word w = valHandle(t);
 
   return !!isAtomic(w);
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_put_variable(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
@@ -302,13 +296,13 @@ PL_put_variable(DECL_LD term_t t)
   return true;
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_put_atom(DECL_LD term_t t, atom_t a)
 { setHandle(t, a);
   return true;
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_put_int64(DECL_LD term_t t, int64_t i)
 { word w = consInt(i);
 
@@ -320,12 +314,12 @@ PL_put_int64(DECL_LD term_t t, int64_t i)
   return true;
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_put_integer(DECL_LD term_t t, long i)
 { return PL_put_int64(t, i);
 }
 
-FLI_INLINE int
+FLI_INLINE bool
 PL_put_intptr(DECL_LD term_t t, intptr_t i)
 { return PL_put_int64(t, i);
 }
