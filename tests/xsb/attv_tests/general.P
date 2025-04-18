@@ -4,7 +4,7 @@
 ** $Id: general.P,v 1.8 2011-10-16 19:26:50 tswift Exp $
 */
 
-:- xsb_flag(verboseness,3).
+% :- xsb_flag(verboseness,3).
 
 :- import put_attr/3, get_attr/3, install_verify_attribute_handler/4 from machine.
 
@@ -73,19 +73,19 @@ p(_).
 q(X):- put_attr(X,general2,splat).
 
 % Test 3 should NOT succeed.
-test3:- 
+test3:-
 	put_attr(X,general2,bug),
 	q(X),
 	writeln('test3: splatted bug with table').
 
 % Test 4 should succeed.
-test4:- 
+test4:-
 	put_attr(X,general2,bug),
 	r(X),
 	writeln('test4: splatted bug without table').
 
 % Test 5 should NOT succeed.
-test5:- 
+test5:-
 	put_attr(X,general2,bug),
 	r(Y), X = Y,
 	writeln('test5: splatted bug without table but w. unification').
@@ -93,14 +93,13 @@ test5:-
 r(X):- put_attr(X,general2,splat).
 
 % Test 6 catches error handling for attvs in subs tables (and tests catch/throw)
-:- table s1/1.
-:- use_subsumptive_tabling s1/1.
+:- table s1/1 as subsumptive.
 
 s1(_).
 
 test6:- catch(test6_1,error(table_error,_Ctxt),writeln('test6 properly caught')).
 
-test6_1:- 
+test6_1:-
 	put_attr(X,general5,bug),
 	s1(X),
 	writeln('test6: attv call to subsumptive table.').

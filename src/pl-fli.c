@@ -2546,16 +2546,11 @@ PL_is_blob(term_t t, PL_blob_t **type)
   return false;
 }
 
-
-bool
-PL_is_attvar(term_t t)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
-
-  return isAttVar(w) ? true : false;
-}
-
+API_STUB(bool)
+(PL_is_attvar)(term_t t)
+( valid_term_t(t);
+  return PL_is_attvar(t);
+)
 
 bool
 PL_is_integer(term_t t)
@@ -2678,15 +2673,11 @@ API_STUB(bool)
 )
 
 
-bool
-PL_is_number(term_t t)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
-
-  return !!isNumber(w);
-}
-
+API_STUB(bool)
+(PL_is_number)(term_t t)
+( valid_term_t(t);
+  return PL_is_number(t);
+)
 
 #ifdef O_STRING
 bool

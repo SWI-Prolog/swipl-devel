@@ -89,8 +89,10 @@
 #define	PL_put_int64(t, i)			LDFUNC(PL_put_int64, t, i)
 #define	PL_put_intptr(t1, i)			LDFUNC(PL_put_intptr, t1, i)
 #define	PL_is_atomic(t)				LDFUNC(PL_is_atomic, t)
+#define PL_is_number(t)				LDFUNC(PL_is_number, t)
 #define	PL_is_functor(t, f)			LDFUNC(PL_is_functor, t, f)
 #define	PL_is_variable(t)			LDFUNC(PL_is_variable, t)
+#define	PL_is_attvar(t)				LDFUNC(PL_is_attvar, t)
 #define	PL_strip_module_flags(q, m, t, flags)	LDFUNC(PL_strip_module_flags, q, m, t, flags)
 #define	PL_strip_module_ex(raw, m, plain)	LDFUNC(PL_strip_module_ex, raw, m, plain)
 #define	PL_get_integer(t, i)			LDFUNC(PL_get_integer, t, i)
@@ -177,8 +179,10 @@ FLI_INLINE bool	PL_put_integer(term_t t1, long i);
 FLI_INLINE bool	PL_put_int64(term_t t, int64_t i);
 FLI_INLINE bool	PL_put_intptr(term_t t1, intptr_t i);
 FLI_INLINE bool	PL_is_atomic(term_t t);
+FLI_INLINE bool	PL_is_number(term_t t);
 FLI_INLINE bool	PL_is_functor(term_t t, functor_t f);
 FLI_INLINE bool	PL_is_variable(term_t t);
+FLI_INLINE bool	PL_is_attvar(term_t t);
 bool		PL_strip_module_flags(term_t q, module_t *m,
 				      term_t t, int flags) WUNUSED;
 bool		PL_strip_module_ex(term_t raw, module_t *m,
@@ -275,6 +279,13 @@ PL_is_atom(DECL_LD term_t t)
 }
 
 FLI_INLINE bool
+PL_is_attvar(DECL_LD term_t t)
+{ word w = valHandle(t);
+
+  return isAttVar(w);
+}
+
+FLI_INLINE bool
 PL_is_functor(DECL_LD term_t t, functor_t f)
 { word w = valHandle(t);
 
@@ -286,6 +297,13 @@ PL_is_atomic(DECL_LD term_t t)
 { word w = valHandle(t);
 
   return !!isAtomic(w);
+}
+
+FLI_INLINE bool
+PL_is_number(DECL_LD term_t t)
+{ word w = valHandle(t);
+
+  return isNumber(w);
 }
 
 FLI_INLINE bool
