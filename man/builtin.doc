@@ -3973,6 +3973,124 @@ Equivalent to asserta/1, assertz/1, assert/1, but in addition unifies
 used to access this clause with clause/3 and erase/1.
 \end{description}
 
+\subsubsection{Update view}			\label{sec:update}
+
+\index{logical,update view}%
+\index{immediate, update view}%
+\index{update view}%
+Traditionally, Prolog systems used the \jargon{immediate update view}:
+new clauses became visible to predicates backtracking over dynamic
+predicates immediately, and retracted clauses became invisible
+immediately.
+
+Starting with SWI-Prolog 3.3.0 we adhere to the \jargon{logical update
+view}, where backtrackable predicates that enter the definition of a
+predicate will not see any changes (either caused by assert/1 or
+retract/1) to the predicate.  This view is the ISO standard, the
+most commonly used and the most `safe'.%
+    \footnote{For example, using the immediate update view, no call to a
+	      dynamic predicate is deterministic.}
+Logical updates are realised by keeping reference counts on predicates
+and \jargon{generation} information on clauses.  Each change to the
+database causes an increment of the generation of the database.  Each
+goal is tagged with the generation in which it was started.  Each clause
+is flagged with the generation it was created in as well as the generation
+it was erased from.  Only clauses with a `created' \ldots `erased' interval
+that encloses the generation of the current goal are considered visible.
+
+
+\subsubsection{Indexing databases}			\label{sec:hashterm}
+
+\index{indexing,term-hashes}%
+
+The indexing capabilities of SWI-Prolog are described in
+\secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
+applicable argument, pairs of arguments and indexes on the arguments of
+compound terms when applicable. Extended JIT indexing is not widely
+supported among Prolog implementations. Programs that aim at
+portability should consider using term_hash/2 and term_hash/4 to design
+their database such that indexing on constant or functor (name/arity
+reference) on the first argument is sufficient. In some cases, using the
+predicates below to add one or more additional columns (arguments) to a
+database predicate may improve performance. The overall design of code
+using these predicates is given below. Note that as term_hash/2 leaves
+the hash unbound if \arg{Term} is not ground. This causes the lookup to
+be fast if \arg{Term} is ground and correct (but slow) otherwise.
+
+\begin{code}
+:- dynamic
+    x/2.
+
+assert_x(Term) :-
+    term_hash(Term, Hash),
+    assertz(x(Hash, Term)).
+
+x(Term) :-
+    term_hash(Term, Hash),
+    x(Hash, Term).
+\end{code}
+
+
+\begin{description}
+    \predicate[det]{term_hash}{2}{+Term, -HashKey}
+If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
+with a positive integer value that may be used as a hash key to the
+value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
+an unbound variable.  Hash keys are in the range $0 \ldots 16,777,215$,
+the maximal integer that can be stored efficiently on both 32 and 64
+bit platforms.
+
+This predicate may be used to build hash tables as well as to exploit
+argument indexing to find complex terms more quickly.
+
+The hash key does not rely on temporary information like addresses of
+atoms and may be assumed constant over different invocations and
+versions of SWI-Prolog.\footnote{Last change: version 5.10.4} Hashes
+differ between big and little endian machines. The term_hash/2 predicate
+is cycle-safe.\bug{All arguments that (indirectly) lead to a cycle
+have the same hash key.}
+
+    \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
+As term_hash/2, but only considers \arg{Term} to the specified
+\arg{Depth}.   The top-level term has depth 1, its arguments have
+depth 2, etc.  That is, $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
+hashes atomic values or the functor and arity of a compound term,
+not its arguments; $\arg{Depth} = 2$ also indexes the immediate
+arguments, etc.
+
+\arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
+must be in the range $[1 \ldots 2147483647]$.
+
+    \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
+Compute a SHA1-hash from \arg{Term}. The hash is represented as a
+40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
+produces a hash key for non-ground terms. The hash is invariant over
+variable-renaming (see \predref{=@=}{2}) and constants over different
+invocations of Prolog.\bug{The hash depends on word order
+(big/little-endian) and the wordsize (32/64 bits).}
+
+This predicate raises an exception when trying to compute the hash on
+a cyclic term or attributed term.  Attributed terms are not handled
+because subsumes_chk/2 is not considered well defined for attributed
+terms.  Cyclic terms are not supported because this would require
+establishing a canonical cycle.  That is, given A=[a|A] and B=[a,a|B],
+\arg{A} and \arg{B} should produce the same hash.  This is not
+(yet) implemented.
+
+This hash was developed for lookup of solutions to a goal stored in a
+table.  By using a cryptographic hash, heuristic algorithms can often
+ignore the possibility of hash collisions and thus avoid storing the
+goal term itself as well as testing using \predref{=@=}{2}.
+
+    \predicate[det]{variant_hash}{2}{+Term, -HashKey}
+Similar to variant_sha1/2, but using a non-cryptographic hash and
+produces an integer result like term_hash/2. This version does deal with
+attributed variables, processing them as normal variables.  This hash is
+primarily intended to speedup finding variant terms in a set of terms.
+\bug{As variant_sha1/2, cyclic terms result in an exception.}
+\end{description}
+
+
 \subsubsection{Transactions}
 \label{sec:transactions}
 
@@ -4489,125 +4607,6 @@ In addition, a number of additional properties are defined on
     Number of bytes in the IDG node representation.
     \end{description}
 \end{description}
-
-
-\subsection{Update view}			\label{sec:update}
-
-\index{logical,update view}%
-\index{immediate, update view}%
-\index{update view}%
-Traditionally, Prolog systems used the \jargon{immediate update view}:
-new clauses became visible to predicates backtracking over dynamic
-predicates immediately, and retracted clauses became invisible
-immediately.
-
-Starting with SWI-Prolog 3.3.0 we adhere to the \jargon{logical update
-view}, where backtrackable predicates that enter the definition of a
-predicate will not see any changes (either caused by assert/1 or
-retract/1) to the predicate.  This view is the ISO standard, the
-most commonly used and the most `safe'.%
-    \footnote{For example, using the immediate update view, no call to a
-	      dynamic predicate is deterministic.}
-Logical updates are realised by keeping reference counts on predicates
-and \jargon{generation} information on clauses.  Each change to the
-database causes an increment of the generation of the database.  Each
-goal is tagged with the generation in which it was started.  Each clause
-is flagged with the generation it was created in as well as the generation
-it was erased from.  Only clauses with a `created' \ldots `erased' interval
-that encloses the generation of the current goal are considered visible.
-
-
-\subsection{Indexing databases}			\label{sec:hashterm}
-
-\index{indexing,term-hashes}%
-
-The indexing capabilities of SWI-Prolog are described in
-\secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
-applicable argument, pairs of arguments and indexes on the arguments of
-compound terms when applicable. Extended JIT indexing is not widely
-supported among Prolog implementations. Programs that aim at
-portability should consider using term_hash/2 and term_hash/4 to design
-their database such that indexing on constant or functor (name/arity
-reference) on the first argument is sufficient. In some cases, using the
-predicates below to add one or more additional columns (arguments) to a
-database predicate may improve performance. The overall design of code
-using these predicates is given below. Note that as term_hash/2 leaves
-the hash unbound if \arg{Term} is not ground. This causes the lookup to
-be fast if \arg{Term} is ground and correct (but slow) otherwise.
-
-\begin{code}
-:- dynamic
-    x/2.
-
-assert_x(Term) :-
-    term_hash(Term, Hash),
-    assertz(x(Hash, Term)).
-
-x(Term) :-
-    term_hash(Term, Hash),
-    x(Hash, Term).
-\end{code}
-
-
-\begin{description}
-    \predicate[det]{term_hash}{2}{+Term, -HashKey}
-If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
-with a positive integer value that may be used as a hash key to the
-value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
-an unbound variable.  Hash keys are in the range $0 \ldots 16,777,215$,
-the maximal integer that can be stored efficiently on both 32 and 64
-bit platforms.
-
-This predicate may be used to build hash tables as well as to exploit
-argument indexing to find complex terms more quickly.
-
-The hash key does not rely on temporary information like addresses of
-atoms and may be assumed constant over different invocations and
-versions of SWI-Prolog.\footnote{Last change: version 5.10.4} Hashes
-differ between big and little endian machines. The term_hash/2 predicate
-is cycle-safe.\bug{All arguments that (indirectly) lead to a cycle
-have the same hash key.}
-
-    \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
-As term_hash/2, but only considers \arg{Term} to the specified
-\arg{Depth}.   The top-level term has depth 1, its arguments have
-depth 2, etc.  That is, $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
-hashes atomic values or the functor and arity of a compound term,
-not its arguments; $\arg{Depth} = 2$ also indexes the immediate
-arguments, etc.
-
-\arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
-must be in the range $[1 \ldots 2147483647]$.
-
-    \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
-Compute a SHA1-hash from \arg{Term}. The hash is represented as a
-40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
-produces a hash key for non-ground terms. The hash is invariant over
-variable-renaming (see \predref{=@=}{2}) and constants over different
-invocations of Prolog.\bug{The hash depends on word order
-(big/little-endian) and the wordsize (32/64 bits).}
-
-This predicate raises an exception when trying to compute the hash on
-a cyclic term or attributed term.  Attributed terms are not handled
-because subsumes_chk/2 is not considered well defined for attributed
-terms.  Cyclic terms are not supported because this would require
-establishing a canonical cycle.  That is, given A=[a|A] and B=[a,a|B],
-\arg{A} and \arg{B} should produce the same hash.  This is not
-(yet) implemented.
-
-This hash was developed for lookup of solutions to a goal stored in a
-table.  By using a cryptographic hash, heuristic algorithms can often
-ignore the possibility of hash collisions and thus avoid storing the
-goal term itself as well as testing using \predref{=@=}{2}.
-
-    \predicate[det]{variant_hash}{2}{+Term, -HashKey}
-Similar to variant_sha1/2, but using a non-cryptographic hash and
-produces an integer result like term_hash/2. This version does deal with
-attributed variables, processing them as normal variables.  This hash is
-primarily intended to speedup finding variant terms in a set of terms.
-\bug{As variant_sha1/2, cyclic terms result in an exception.}
-\end{description}
-
 
 \section{Declaring predicate properties}	\label{ch:dynamic}
 \label{sec:declare}
