@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2023, SWI-Prolog Solutions b.v.
+    Copyright (c)  2023-2025, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,15 @@
     profile(0, +),
     profile_procedure_data(:, -).
 
+:- create_prolog_flag(profile_ports, true,
+                      [ keep(true),
+                        type(oneof([true,false,classic]))
+                      ]).
+:- create_prolog_flag(profile_sample_rate, 200.0,
+                      [ keep(true),
+                        type(float)
+                      ]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Execution profiler
@@ -71,19 +80,23 @@ library(swi/pce_profile).
 %   and jump to predicate implementations.  Without   the  GUI, a simple
 %   textual report is generated. Defined options are:
 %
-%     * time(Which)
-%     Profile `cpu` or `wall` time.  The default is CPU time.
-%     * sample_rate(Rate)
-%     Samples per second, any numeric value between 1 and 1000
-%     * ports(Bool)
-%     Specifies ports counted - `true` (all ports), `false` (call
-%     port only) or `classic` (all with some errors).
-%     Accomodates space/accuracy tradeoff building call tree.
-%     * top(N)
-%     When generating a textual report, show the top N predicates.
-%     * cumulative(Bool)
-%     If `true` (default `false`), show cumulative output in
-%     a textual report.
+%     - time(Which)
+%       Profile `cpu` or `wall` time.  The default is CPU time.
+%     - sample_rate(Rate)
+%       Samples per second, any numeric value between 1 and 1000.
+%       Default is defined by the Prolog flag `profile_sample_rate`,
+%       which defaults to 200.
+%     - ports(Bool)
+%       Specifies ports counted - `true` (all ports), `false` (call
+%       port only) or `classic` (all with some errors).
+%       Accomodates space/accuracy tradeoff building call tree.
+%       Default is defined by the Prolog flag `profile_ports`,
+%       which defaults to `true`.
+%     - top(N)
+%       When generating a textual report, show the top N predicates.
+%     - cumulative(Bool)
+%       If `true` (default `false`), show cumulative output in
+%       a textual report.
 %
 %   @tbd The textual input reflects only part of the information.
 %   @see show_coverage/2 from library(test_cover).
@@ -92,11 +105,13 @@ profile(Goal) :-
     profile(Goal, []).
 
 profile(Goal0, Options) :-
+    current_prolog_flag(profile_ports, DefPorts),
+    current_prolog_flag(profile_sample_rate, DefRate),
     option(time(Which), Options, cpu),
     time_name(Which, How),
-    option(ports(Ports), Options, classic),
+    option(ports(Ports), Options, DefPorts),
     must_be(oneof([true,false,classic]),Ports),
-    option(sample_rate(Rate), Options, 200),
+    option(sample_rate(Rate), Options, DefRate),
     must_be(between(1.0,1000), Rate),
     expand_goal(Goal0, Goal),
     call_cleanup('$profile'(Goal, How, Ports, Rate),
