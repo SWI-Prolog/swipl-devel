@@ -6248,12 +6248,7 @@ VMI(T_ATTVARA, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
-VMI(T_TRY_ATTVARZ, 0, 2, (CA1_JUMP,CA1_INTEGER))
-{ TRIE_TRY;
-  VMI_GOTO(T_ATTVARZ);
-}
-END_VMI
-VMI(T_ATTVARZ, 0, 1, (CA1_INTEGER))
+VMH(t_attvarz, 1, (bool), (istable))
 {
 #if O_TRIE_ATTVAR
   intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
@@ -6269,13 +6264,39 @@ VMI(T_ATTVARZ, 0, 1, (CA1_INTEGER))
   if ( p2 != av )
   { DEBUG(MSG_TRIE_VM, Sdprintf("T_ATTVARZ %zd: read mode\n", offset));
     if ( !isVar(*p2) )
-    { assignAttVar(unRef(vi->arguments[1]), p2);
+    { if ( istable )
+      { TrailAssignment(p2);
+	*p2 = vi->arguments[1]; /* must be a reference */
+      } else
+      {	assignAttVar(unRef(vi->arguments[1]), p2);
+      }
     } else
     { Trail(p2, vi->arguments[1]);
     }
   }
-
 #endif /*O_TRIE_ATTVAR*/
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMI(T_TRY_ATTVARZ, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+  VMI_GOTO(T_ATTVARZ);
+}
+END_VMI
+VMI(T_ATTVARZ, 0, 1, (CA1_INTEGER))
+{ VMH_GOTO(t_attvarz, false);
+  NEXT_INSTRUCTION;
+}
+END_VMI
+
+VMI(T_TRY_ATTVARZT, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+  VMI_GOTO(T_ATTVARZT);
+}
+END_VMI
+VMI(T_ATTVARZT, 0, 1, (CA1_INTEGER))
+{ VMH_GOTO(t_attvarz, true);
   NEXT_INSTRUCTION;
 }
 END_VMI

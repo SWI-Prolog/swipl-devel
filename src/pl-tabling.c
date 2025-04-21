@@ -2206,14 +2206,20 @@ restore_tabling_status(tbl_status *state)
 
 
 		 /*******************************
-		 *     THREAD VARIANT TABLE	*
+		 *     (THREAD) VARIANT TABLE	*
 		 *******************************/
 
 static void release_variant_table_node(trie *trie, trie_node *node);
 
+/* Get the variant  table.  If `shared` is `true`, this  is for shared
+ * tabling.  Otherwise  it is for  (thread) local tabling.   This trie
+ * maps call variants to answer tables.
+ */
+
 #define variant_table(shared) LDFUNC(variant_table, shared)
+
 static trie *
-variant_table(DECL_LD int shared)
+variant_table(DECL_LD bool shared)
 { trie **tp;
   alloc_pool *pool;
 
@@ -2257,7 +2263,7 @@ variant_table(DECL_LD int shared)
 	  acquire_trie(t);			/* bit misuse */
 	}
       } else
-      { PL_unregister_atom(symb);			/* destroyed by atom-GC */
+      { PL_unregister_atom(symb);		/* destroyed by atom-GC */
       }
     }
   }
@@ -2314,7 +2320,7 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 }
 
 
-static int
+static bool
 is_variant_trie(trie *trie)
 { return trie->release_node == release_variant_table_node;
 }
@@ -2460,7 +2466,7 @@ get_answer_table(DECL_LD Definition def, term_t t, term_t ret, atom_t *clrefp,
   Word v;
   tmp_buffer vars;
   mark m;
-  int shared;
+  bool shared;
   size_abstract sa = {.from_depth = 2, .size = (size_t)-1};
 
 #ifdef O_PLMT
@@ -2528,7 +2534,7 @@ retry:
 
       if ( !(atrie = trie_create(pool)) )
 	return NULL;
-      set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
+      set(atrie, TRIE_ISTABLE|((flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET));
       atrie->data.predicate = def;
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;

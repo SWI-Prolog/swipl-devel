@@ -1966,7 +1966,12 @@ unify_key(DECL_LD ukey_state *state, word key)
 
 	  deRef2(vi->address, p2);
 	  if ( !isVar(*p2) )
-	  { assignAttVar(vi->attributes, p2);
+	  { if ( ison(state->trie, TRIE_ISTABLE) )
+	    { TrailAssignment(p2);
+	      *p2 = makeRefG(vi->attributes);
+	    } else
+	    { assignAttVar(vi->attributes, p2);
+	    }
 	  } else
 	  { int rc = unify_ptrs(vi->attributes, vi->address, ALLOW_RETCODE);
 	    if ( rc != true )
@@ -3174,7 +3179,12 @@ next:
       { switch(tagex(key))
 	{ case TAG_VAR:                 c = T_TRY_VAR; break;
 	  case TAG_ATTVAR|STG_STATIC:   c = T_TRY_ATTVARA; break;
-	  case TAG_ATTVAR|STG_RESERVED: c = T_TRY_ATTVARZ; break;
+	  case TAG_ATTVAR|STG_RESERVED:
+	    if ( ison(state->trie, TRIE_ISTABLE) )
+	      c = T_TRY_ATTVARZT;
+	    else
+	      c = T_TRY_ATTVARZ;
+	    break;
 	  default: assert(0);           c = 0;
 	}
 	add_vmi_else_d(state, c, (code)index);
@@ -3182,7 +3192,12 @@ next:
       { switch(tagex(key))
 	{ case TAG_VAR:                 c = T_VAR; break;
 	  case TAG_ATTVAR|STG_STATIC:   c = T_ATTVARA; break;
-	  case TAG_ATTVAR|STG_RESERVED: c = T_ATTVARZ; break;
+	  case TAG_ATTVAR|STG_RESERVED:
+	    if ( ison(state->trie, TRIE_ISTABLE) )
+	      c = T_ATTVARZT;
+	    else
+	      c = T_ATTVARZ;
+	    break;
 	  default: assert(0);		c = 0;
 	}
 	add_vmi_d(state, c, (code)index);
