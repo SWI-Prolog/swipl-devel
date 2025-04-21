@@ -46,7 +46,7 @@
             del_attr/2,
             attv_unify/2,                       % AttVar, Value
             install_verify_attribute_handler/4, % +Mod, −AttrValue,
-                                                % −Target, +Handler)
+                                                % −Target, :Handler)
 
             str_cat/3,
 
@@ -69,6 +69,9 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(prolog_stack)).
+
+:- meta_predicate
+    install_verify_attribute_handler(+, -, -, 0).
 
 %!  gc_heap
 %
@@ -107,7 +110,7 @@ close_open_tables(_).
 
 attv_unify(X, X).
 
-%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target, +Handler)
+%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target, :Handler)
 %
 %   Install attr_unify_hook/2 for Mod.
 
