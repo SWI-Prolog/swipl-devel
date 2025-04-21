@@ -44,6 +44,7 @@
             get_attr/3,
             put_attr/3,
             del_attr/2,
+            attv_unify/2,                       % AttVar, Value
             install_verify_attribute_handler/4, % +Mod, −AttrValue,
                                                 % −Target, +Handler)
 
@@ -96,6 +97,16 @@ abolish_table_info.
 
 close_open_tables(_).
 
+                /*******************************
+                *     ATTRIBUTED VARIABLES     *
+                *******************************/
+
+%!  attv_unify(?AttVar, ?Value) is semidet.
+%
+%   I don't see the difference to unification.
+
+attv_unify(X, X).
+
 %!  install_verify_attribute_handler(+Mod, −AttrValue, −Target, +Handler)
 %
 %   Install attr_unify_hook/2 for Mod.
@@ -103,6 +114,11 @@ close_open_tables(_).
 install_verify_attribute_handler(Mod, AttrValue, Target, Handler) :-
     retractall(Mod:attr_unify_hook(_,_)),
     asserta(Mod:(attr_unify_hook(AttrValue, Target) :- Handler)).
+
+
+                /*******************************
+                *             MISC             *
+                *******************************/
 
 %!  str_cat(+Atom1, +Atom2, -Atom3)
 
