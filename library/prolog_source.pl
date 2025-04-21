@@ -266,10 +266,11 @@ update_state((:- Directive), M) :-
 update_state((?- Directive), M) :-
     !,
     update_state((:- Directive), M).
-update_state(html_write:html_meta_head(Head,Module,Meta), _M) :-
-    (   html_write:html_meta_head(Head,Module,Meta)
+update_state(MetaDecl, _M) :-
+    MetaDecl = html_write:html_meta_head(_Head,_Module,_Meta),
+    (   clause(MetaDecl, true)
     ->  true
-    ;   assertz(html_write:html_meta_head(Head,Module,Meta))
+    ;   assertz(MetaDecl)
     ).
 update_state(_, _).
 
