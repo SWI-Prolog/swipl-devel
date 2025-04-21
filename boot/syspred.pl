@@ -1589,13 +1589,13 @@ run_undo([H|T], E0, E) :-
     run_undo(T, E2, E).
 
 
-%!  '$wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body) is det.
+%!  '$wrap_predicate'(:Head, +Name, -Closure, -Wrapped, :Body) is det.
 %
 %   Would be nicer to have this   from library(prolog_wrap), but we need
 %   it for tabling, so it must be a system predicate.
 
 :- meta_predicate
-    '$wrap_predicate'(:, +, -, -, +).
+    '$wrap_predicate'(:, +, -, -, 0).
 
 '$wrap_predicate'(M:Head, WName, Closure, call(Wrapped), Body) :-
     callable_name_arguments(Head, PName, Args),
@@ -1611,7 +1611,8 @@ run_undo([H|T], E0, E) :-
     volatile(PI),
     module_transparent(PI),
     WHead =.. [WrapName|Args],
-    '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
+    wrapped_clause(M, WHead, Body, Clause),
+    '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, Clause).
 
 callable_name_arguments(Head, PName, Args) :-
     atom(Head),
@@ -1628,3 +1629,6 @@ callable_name_arity(Head, PName, Arity) :-
     Arity = 0.
 callable_name_arity(Head, PName, Arity) :-
     compound_name_arity(Head, PName, Arity).
+
+wrapped_clause(M, WHead, M:Body, M:(WHead :- Body)) :- !.
+wrapped_clause(M, WHead, MB:Body, M:(WHead :- MB:Body)).
