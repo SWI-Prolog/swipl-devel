@@ -156,7 +156,10 @@ get_calls(Goal0, Trie, Return) :-
     '$tbl_implementation'(Goal0, M:Goal),
     M:'$table_mode'(Goal, Table, Moded),
     trie_gen(VariantTrie, M:Table, Trie),
-    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton),
+    '$tbl_table_status'(Trie, _Status, ATable, Skeleton),
+    term_attvars(ATable+Skeleton, AttVars),
+    maplist(del_attrs, AttVars),
+    ATable = M:Table,
     extend_return(Moded, Skeleton, Return).
 
 %!  get_returns(+ATrie, -Return) is nondet.
