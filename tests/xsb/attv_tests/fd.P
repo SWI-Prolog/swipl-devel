@@ -1,9 +1,9 @@
 %% File: fd.P
 %%
-%% A simple finite domain constrait solver implemented using the lowlevel 
-%% attributes variables interface.  
+%% A simple finite domain constrait solver implemented using the lowlevel
+%% attributes variables interface.
 
-:- import put_attr/3, get_attr/3, del_attr/3, 
+:- import put_attr/3, get_attr/3,
    install_verify_attribute_handler/4 from machine.
 :- import memberchk/2,member/2 from basics.
 
@@ -30,13 +30,13 @@ intersection([H|T], L2, [H|L3]) :-
 intersection([_|T], L2, L3) :-
         intersection(T, L2, L3).
 
-domain(X, Dom) :- 
-        var(Dom), !, 
-        get_attr(X, fd, Dom). 
-domain(X, List) :- 
-        List = [El|Els],                     % at least one element 
+domain(X, Dom) :-
+        var(Dom), !,
+        get_attr(X, fd, Dom).
+domain(X, List) :-
+        List = [El|Els],                     % at least one element
         (Els = []                            % exactly one element
-         -> X = El                           % implied binding 
+         -> X = El                           % implied binding
         ;  put_attr(Fresh, fd, List),       % create a new attributed variable
            X = Fresh                         % may call verify_attributes/2
         ).

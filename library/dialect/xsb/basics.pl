@@ -47,6 +47,7 @@
 
             ground/1,
             copy_term/2,
+            copy_term_nat/2,
 
             log_ith/3, log_ith_bound/3, log_ith_new/3, log_ith_to_list/2,
             logk_ith/4,

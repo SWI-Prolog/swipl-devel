@@ -1,14 +1,19 @@
 /* File:      tabled_attv.P
 ** Author(s): Baoqiu Cui
-** 
+**
 ** Some tests for tabled attributed variables.
 ** $Id: tabled_attv.P,v 1.5 2004-11-17 21:43:37 tswift Exp $
 */
 
 :- import put_attr/3, get_attr/3 from machine.
 :- import install_verify_attribute_handler/4 from machine.
-:- import get_atts/2, put_atts/2 from atts.
 :- import attv_unify/2 from machine.
+
+:- if(current_prolog_flag(dialect,swi)).
+term_expansion(put_attr(Var, Value),
+	       put_attr(Var, Mod, Value)) :-
+	prolog_load_context(module, Mod).
+:- endif.
 
 test :-
 	test_table1,
@@ -19,7 +24,7 @@ test :-
 :- install_verify_attribute_handler(unif,AttrVal,Targ,dummy_handler(Targ,AttrVal)).
 
 dummy_handler(Var, Value) :-
-	(var(Var) -> 
+	(var(Var) ->
 	    attv_unify(Var, Value)
 	 ;  Var == Value).
 

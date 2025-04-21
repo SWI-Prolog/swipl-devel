@@ -47,6 +47,7 @@
             attv_unify/2,                       % AttVar, Value
             install_verify_attribute_handler/4, % +Mod, −AttrValue,
                                                 % −Target, :Handler)
+            install_attribute_portray_hook/3,   % +Mod, −AttrValue, :Handler
 
             str_cat/3,
 
@@ -65,13 +66,15 @@
 
             xsb_backtrace/1,              % -Backtrace
             xwam_state/2                  % +Id, -Value
-          ]).
+            ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(prolog_stack)).
 
 :- meta_predicate
     install_verify_attribute_handler(+, -, -, 0).
+:- multifile
+    system:term_expansion/2.
 
 %!  gc_heap
 %
@@ -106,18 +109,29 @@ close_open_tables(_).
 
 %!  attv_unify(?AttVar, ?Value) is semidet.
 %
-%   I don't see the difference to unification.
+%   Unify AttVar with Value without causing a   wakeup. If AttVar is not
+%   an attributed variable, this is a normal unification.
 
-attv_unify(X, X).
+attv_unify(AttVar, Value) :-
+    '$attv_unify'(AttVar, Value).
 
-%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target, :Handler)
+%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target,
+%!                                   :Handler) is det.
+%!  install_attribute_portray_hook(+Mod, −AttrValue, :Handler) is det.
 %
-%   Install attr_unify_hook/2 for Mod.
+%   Install attributed variable hooks for Mod.
 
 install_verify_attribute_handler(Mod, AttrValue, Target, Handler) :-
     retractall(Mod:attr_unify_hook(_,_)),
     asserta(Mod:(attr_unify_hook(AttrValue, Target) :- Handler)).
+install_attribute_portray_hook(Mod, AttrValue, Handler) :-
+    retractall(Mod:attr_portray_hook(_,_)),
+    asserta(Mod:(attr_portray_hook(AttrValue, _Var) :- Handler)).
 
+system:term_expansion((:-install_verify_attribute_handler(Mod, AttrValue, Target, Handler)),
+                      (Mod:attr_unify_hook(AttrValue, Target) :- Handler)).
+system:term_expansion((:-install_attribute_portray_hook(Mod, AttrValue, Handler)),
+                      (Mod:attr_portray_hook(AttrValue, _Var) :- Handler)).
 
                 /*******************************
                 *             MISC             *

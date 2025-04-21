@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2017, University of Amsterdam
+    Copyright (c)  2004-2025, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1218,7 +1219,30 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   return false;
 }
 
+/** '$attv_unify'(+AttVar, +Value) is semidet.
+ *
+ * Unify AttVar with Value without causing a wakeup.  If AttVar is not
+ * an attributed variable, this is a normal unification.
+ *
+ * @compat This implements XSB attv_unify/2.
+ */
 
+static
+PRED_IMPL("$attv_unify", 2, attv_unify, 0)
+{ if ( ensureStackSpace(0,0) )
+  { Word av = valTermRef(A1);
+    deRef(av);
+
+    if ( isAttVar(*av) )
+    { TrailAssignment(av);
+      *av = linkValG(valTermRef(A2));
+      return true;
+    }
+    return PL_unify(A1, A2);
+  }
+
+  return false;
+}
 
 #ifdef O_CALL_RESIDUE
 
@@ -1447,16 +1471,17 @@ PRED_IMPL("$call_residue_vars_end", 0, call_residue_vars_end, 0)
 		 *******************************/
 
 BeginPredDefs(attvar)
-  PRED_DEF("attvar",    1, attvar,    0)
-  PRED_DEF("put_attr",  3, put_attr,  0)
-  PRED_DEF("get_attr",  3, get_attr,  0)
-  PRED_DEF("del_attr",  2, del_attr2, 0)
-  PRED_DEF("del_attrs", 1, del_attrs, 0)
-  PRED_DEF("get_attrs", 2, get_attrs, 0)
-  PRED_DEF("put_attrs", 2, put_attrs, 0)
-  PRED_DEF("$freeze",   2, freeze,    0)
+  PRED_DEF("attvar",		   1, attvar,		   0)
+  PRED_DEF("put_attr",		   3, put_attr,		   0)
+  PRED_DEF("get_attr",		   3, get_attr,		   0)
+  PRED_DEF("del_attr",		   2, del_attr2,	   0)
+  PRED_DEF("del_attrs",		   1, del_attrs,	   0)
+  PRED_DEF("get_attrs",		   2, get_attrs,	   0)
+  PRED_DEF("put_attrs",		   2, put_attrs,	   0)
+  PRED_DEF("$freeze",		   2, freeze,		   0)
   PRED_DEF("$eval_when_condition", 2, eval_when_condition, 0)
-  PRED_DEF("$suspend", 3, suspend, PL_FA_TRANSPARENT)
+  PRED_DEF("$suspend",		   3, suspend,		   PL_FA_TRANSPARENT)
+  PRED_DEF("$attv_unify",	   2, attv_unify,	   0)
 #ifdef O_CALL_RESIDUE
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
   PRED_DEF("$call_residue_vars_start", 0, call_residue_vars_start, 0)

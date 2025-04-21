@@ -275,7 +275,7 @@ set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
     compile charset eclipse clp GC save files transaction
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
-    xsb/sub_tests)
+    xsb/sub_tests xsb/attv_tests)
 if(MULTI_THREADED)
   list(APPEND SWIPL_TEST_DIRS thread thread_wait signals)
 endif()

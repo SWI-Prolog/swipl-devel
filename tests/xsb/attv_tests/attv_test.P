@@ -1,12 +1,11 @@
 /* File:      attv_test.P
 ** Author(s): Baoqiu Cui
-** 
+**
 ** This file contains some basic tests for attributed variables.
 ** $Id: attv_test.P,v 1.9 2011-03-13 00:33:51 tswift Exp $
 */
 
 :- import put_attr/3, get_attr/3, install_verify_attribute_handler/4 from machine.
-:- import get_atts/2, put_atts/2 from atts.
 :- import attv_unify/2 from machine.
 
 test :-
@@ -26,7 +25,7 @@ test :-
 fail(_,_):- fail.
 
 dummy_handler(Value, Target) :-
-	(var(Target) -> 
+	(var(Target) ->
 	    get_attr(Target, _, Atts)
 	 ;  Atts = Target),
 	write('Var''s attribute = '), writeln(Atts),
@@ -49,16 +48,16 @@ test_deref :-
 	get_attr(Y2, nounif, V5),
 	nonvar(V5), V5 = v(3),
 	writeln('== test_deref OK').
-	
+
 test_update :-
-	put_attr(X, _nounif,v(1,2,3)),
-	(put_attr(X, _nounif,v(2,3,4)),
-	 put_attr(X, _nounif,v(3,4,5)),
-	 get_attr(X, _nounif,V),
+	put_attr(X, attv_test_nounif,v(1,2,3)),
+	(put_attr(X, attv_test_nounif,v(2,3,4)),
+	 put_attr(X, attv_test_nounif,v(3,4,5)),
+	 get_attr(X, attv_test_nounif,V),
 	 nonvar(V), V = v(3,4,5),
 	 writeln('== test_update 1 OK')
          ;
-	 get_attr(X, _nounif,Vold ),
+	 get_attr(X, attv_test_nounif,Vold ),
 	 nonvar(Vold), Vold = v(1,2,3),
 	 writeln('== test_update 2 OK')
 	),

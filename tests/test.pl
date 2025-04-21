@@ -2007,6 +2007,7 @@ testdir('xsb/table_tests').
 testdir('xsb/incremental_tests').
 testdir('xsb/nonmt_tests').
 testdir('xsb/sub_tests').
+testdir('xsb/attv_tests').
 testdir('rational') :-
     current_prolog_flag(bounded, false).
 
