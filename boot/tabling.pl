@@ -2232,10 +2232,14 @@ eval_dl_in_residual(G) :-
     eval_subgoal_in_residual(SGF, Return).
 
 more_general_table(G, Trie) :-
+    term_attvars(G, []),
+    !,
     term_variables(G, Vars),
     '$tbl_variant_table'(VariantTrie),
     trie_gen(VariantTrie, G, Trie),
     is_most_general_term(Vars).
+more_general_table(G, _Trie) :-
+    '$type_error'(free_of_attvar, G).
 
 :- table eval_subgoal_in_residual/2.
 
