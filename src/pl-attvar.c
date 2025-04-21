@@ -257,6 +257,7 @@ on_attvar_chain(Word avp)
   for(p = LD->attvar.attvars; p; p = next)
   { Word avp0 = p+1;
     next = isRef(*p) ? unRef(*p) : NULL;
+    assert(next < p);
 
     if ( avp0 == avp )
       return true;

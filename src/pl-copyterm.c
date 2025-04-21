@@ -921,7 +921,7 @@ continuations as needed for tabling.
 
 #define REL_END (~(unsigned int)0)
 
-static int
+static bool
 needs_relocation(word w)
 { return ( isTerm(w) || isRef(w) || isIndirect(w) || isAtom(w) );
 }
@@ -1033,18 +1033,14 @@ free_fastheap(fastheap_term *fht)
 }
 
 
-int
+bool
 put_fastheap(DECL_LD fastheap_term *fht, term_t t)
 { Word p, o;
   size_t offset;
   unsigned int *r;
 
-  if ( !hasGlobalSpace(fht->data_len) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT) )
+    return false;
 
   o = gTop;
   memcpy(o, fht->data, fht->data_len*sizeof(word));
@@ -1075,12 +1071,13 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
   { return PL_unify(A1, A2);
   } else
   { term_t copy = PL_new_term_ref();
-    const cp_options opts = { .abstract = (size_t)-1, .flags = COPY_SHARE|COPY_ATTRS };
+    const cp_options opts = { .abstract = (size_t)-1,
+			      .flags = COPY_SHARE|COPY_ATTRS };
 
     if ( copy_term_refs(A1, copy, 0, &opts) )
       return PL_unify(copy, A2);
 
-    fail;
+    return false;
   }
 }
 
@@ -1088,10 +1085,11 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 #define copy_term_4(vs0, t0, vs, t, flags) \
 	LDFUNC(copy_term_4, vs0, t0, vs, t, flags)
 
-static int
+static bool
 copy_term_4(DECL_LD term_t vs0, term_t t0, term_t vs, term_t t, int flags)
 { term_t term, copy;
-  const cp_options opts = { .abstract = (size_t)-1, .flags = COPY_SHARE|COPY_MARKED|flags };
+  const cp_options opts = { .abstract = (size_t)-1,
+			    .flags = COPY_SHARE|COPY_MARKED|flags };
 
   return ( (term = PL_new_term_ref()) &&
 	   (copy = PL_new_term_ref()) &&
@@ -1126,7 +1124,7 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
     if ( duplicate_term(A1, copy, 0, 0) )
       return PL_unify(copy, A2);
 
-    fail;
+    return false;
   }
 }
 
@@ -1140,7 +1138,7 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
   if ( copy_term_refs(A1, copy, 0, &opts) )
     return PL_unify(copy, A2);
 
-  fail;
+  return false;
 }
 
 

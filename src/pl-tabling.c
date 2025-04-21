@@ -133,7 +133,7 @@ typedef struct
 
 #define LDFUNC_DECLARATIONS
 
-static int	destroy_answer_trie(trie *atrie);
+static bool	destroy_answer_trie(trie *atrie);
 static void	free_worklist(worklist *wl);
 static void	clean_worklist(worklist *wl);
 static void	destroy_depending_worklists(worklist *wl0);
@@ -150,13 +150,13 @@ static trie_node* wkl_mode_add_answer(worklist *wl, trie *trie, term_t answer,
 static int	tbl_put_moded_args(term_t t, trie_node *node);
 static void	del_child_component(tbl_component *parent, tbl_component *child);
 static void	free_components_set(component_set *cs, int destroy);
-static int	unify_skeleton(trie *trie, term_t wrapper, term_t skel);
+static bool	unify_skeleton(trie *trie, term_t wrapper, term_t skel);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 static void	print_delay(const char *msg,
 			    trie_node *variant, trie_node *answer);
 static void	print_answer(const char *msg, trie_node *answer);
-static int	put_delay_info(term_t t, trie_node *answer);
+static bool	put_delay_info(term_t t, trie_node *answer);
 static void	print_answer_table(trie *atrie, const char *msg, ...);
 #endif
 static int	simplify_component(tbl_component *scc);
@@ -167,7 +167,7 @@ static void	reeval_complete(trie *atrie);
 static void	reset_reevaluation(trie *atrie);
 static int	unify_component_status(term_t t, tbl_component *scc);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
-static int	table_is_incomplete(trie *trie);
+static bool	table_is_incomplete(trie *trie);
 static int	idg_add_edge(trie *atrie, trie *ctrie);
 static int	idg_set_current_wl(term_t wlref);
 #ifdef O_PLMT
@@ -3310,19 +3310,19 @@ table_status(DECL_LD trie *trie)
 }
 
 
-static int
+static bool
 table_is_incomplete(trie *trie)
 { return ( WL_IS_WORKLIST(trie->data.worklist) &&
 	   isoff(trie, TRIE_COMPLETE) );
 }
 
 
-static int
+static bool
 unify_skeleton(DECL_LD trie *atrie, term_t wrapper, term_t skeleton)
-{ if ( !wrapper )
-    wrapper = PL_new_term_ref();
+{ if ( !wrapper && !(wrapper=PL_new_term_ref()) )
+    return false;
 
-  if ( atrie->data.variant && wrapper &&
+  if ( atrie->data.variant &&
        unify_trie_term(atrie->data.variant, NULL, wrapper) )
   { worklist *wl = atrie->data.worklist;
     Definition def = WL_IS_WORKLIST(wl) ? wl->predicate : NULL;
@@ -3335,7 +3335,7 @@ unify_skeleton(DECL_LD trie *atrie, term_t wrapper, term_t skeleton)
 }
 
 
-static int
+static bool
 get_scc(term_t t, tbl_component **cp)
 { void *ptr;
 
@@ -3354,7 +3354,7 @@ get_scc(term_t t, tbl_component **cp)
 }
 
 #define get_worklist(t, wlp) LDFUNC(get_worklist, t, wlp)
-static int
+static bool
 get_worklist(DECL_LD term_t t, worklist **wlp)
 { void *ptr;
 
@@ -3365,12 +3365,11 @@ get_worklist(DECL_LD term_t t, worklist **wlp)
     return true;
   }
 
-  PL_type_error("worklist", t);
-  return false;
+  return PL_type_error("worklist", t),false;
 }
 
 
-static int
+static bool
 tnot_get_worklist(term_t t, worklist **wlp, int *is_tnot)
 { GET_LD
   void *ptr;
@@ -3395,8 +3394,7 @@ tnot_get_worklist(term_t t, worklist **wlp, int *is_tnot)
     }
   }
 
-  PL_type_error("worklist", t);
-  return false;
+  return PL_type_error("worklist", t),false;
 }
 
 
@@ -3416,7 +3414,7 @@ tbl_add_worklist(trie *atrie, tbl_component *scc)
 }
 
 
-static int
+static bool
 destroy_answer_trie(trie *atrie)
 { if ( atrie->data.variant)
   { trie *vtrie = get_trie_from_node(atrie->data.variant);
@@ -3439,7 +3437,7 @@ destroy_answer_trie(trie *atrie)
 }
 
 
-static int
+static bool
 delayed_destroy_table(trie *atrie)
 { if ( table_is_incomplete(atrie) )
   { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
@@ -3451,7 +3449,7 @@ delayed_destroy_table(trie *atrie)
   return false;
 }
 
-static int
+static bool
 abolish_table(trie *atrie)
 { if ( atrie->data.worklist == WL_DYNAMIC )
     return true;		/* quickly ignore dynamic pseudo tables */
@@ -5222,8 +5220,10 @@ typedef struct
 /** '$tbl_answer'(+Trie, -Answer, -Condition) is nondet.
  */
 
-#define put_delay_set(cond, di, set, ctx) LDFUNC(put_delay_set, cond, di, set, ctx)
-static int
+#define put_delay_set(cond, di, set, ctx) \
+	LDFUNC(put_delay_set, cond, di, set, ctx)
+
+static bool
 put_delay_set(DECL_LD term_t cond, delay_info *di, delay_set *set,
 	      answer_ctx *ctx)
 { delay *base, *top;
@@ -5329,8 +5329,10 @@ put_delay_set(DECL_LD term_t cond, delay_info *di, delay_set *set,
   return true;
 }
 
-#define unify_delay_info(t, answer, ctxp) LDFUNC(unify_delay_info, t, answer, ctxp)
-static int
+#define unify_delay_info(t, answer, ctxp) \
+	LDFUNC(unify_delay_info, t, answer, ctxp)
+
+static bool
 unify_delay_info(DECL_LD term_t t, trie_node *answer, void *ctxp)
 { delay_info *di;
 
@@ -5368,14 +5370,14 @@ unify_delay_info(DECL_LD term_t t, trie_node *answer, void *ctxp)
 }
 
 #if O_DEBUG
-static int
+static bool
 put_delay_info(term_t t, trie_node *answer)
 { GET_LD
   answer_ctx ctx;
 
-  ctx.skel = PL_new_term_ref();			/* TBD */
-  PL_put_variable(t);
-  return unify_delay_info(t, answer, &ctx);
+  return ( (ctx.skel = PL_new_term_ref()) &&
+	   PL_put_variable(t) &&
+	   unify_delay_info(t, answer, &ctx) );
 }
 #endif
 
@@ -5424,8 +5426,10 @@ PRED_IMPL("$tbl_answer_c", 4, tbl_answer_c, PL_FA_NONDETERMINISTIC)
 }
 
 
-#define unify_delay_info_dl(t, answer, ctx) LDFUNC(unify_delay_info_dl, t, answer, ctx)
-static int
+#define unify_delay_info_dl(t, answer, ctx) \
+	LDFUNC(unify_delay_info_dl, t, answer, ctx)
+
+static bool
 unify_delay_info_dl(DECL_LD term_t t, trie_node *answer, void *ctx)
 { (void) ctx;
 
@@ -5490,8 +5494,10 @@ typedef struct
 { term_t atrie;
 } update_dl_ctx;
 
-#define answer_update_delay_list(wrapper, answer, vctx) LDFUNC(answer_update_delay_list, wrapper, answer, vctx)
-static int
+#define answer_update_delay_list(wrapper, answer, vctx) \
+	LDFUNC(answer_update_delay_list, wrapper, answer, vctx)
+
+static bool
 answer_update_delay_list(DECL_LD term_t wrapper, trie_node *answer, void *vctx)
 { update_dl_ctx *ctx = vctx;
 

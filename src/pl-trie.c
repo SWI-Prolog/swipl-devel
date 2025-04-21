@@ -2438,7 +2438,7 @@ unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
 
 foreign_t
 trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
-	     term_t Data, int LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
+	     term_t Data, bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	     void *ctx, control_t PL__ctx)
 { PRED_LD
   trie_gen_state state_buf;
@@ -2556,7 +2556,7 @@ next:;
 
 foreign_t
 trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
-	 term_t Data, int LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
+	 term_t Data, bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	 void *ctx, control_t PL__ctx)
 { if ( CTX_CNTRL == FRG_FIRST_CALL )
   { trie *trie;
@@ -2595,8 +2595,10 @@ PRED_IMPL("trie_gen", 2, trie_gen, PL_FA_NONDETERMINISTIC)
 { return trie_gen(A1, 0, A2, 0, 0, NULL, NULL, PL__ctx);
 }
 
-#define unify_node_id(t, answer, ctx) LDFUNC(unify_node_id, t, answer, ctx)
-static int
+#define unify_node_id(t, answer, ctx) \
+	LDFUNC(unify_node_id, t, answer, ctx)
+
+static bool
 unify_node_id(DECL_LD term_t t, trie_node *answer, void *ctx)
 { (void) ctx;
 

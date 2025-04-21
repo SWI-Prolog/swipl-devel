@@ -201,12 +201,12 @@ foreign_t trie_gen_raw(
 	      trie *trie, trie_node *root,
 	      term_t Key, term_t Value,
 	      term_t Data,
-	      int LDFUNCP (*unify_data)(term_t, trie_node*, void*),
+	      bool LDFUNCP (*unify_data)(term_t, trie_node*, void*),
 	      void *ctx, control_t PL__ctx);
 foreign_t clear_trie_gen_state(void *ctx);
 foreign_t trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 		   term_t Data,
-		   int LDFUNCP (*unify_data)(term_t, trie_node*, void*),
+		   bool LDFUNCP (*unify_data)(term_t, trie_node*, void*),
 		   void *ctx, control_t PL__ctx);
 void *	map_trie_node(trie_node *n,
 		      void* (*map)(trie_node *n, void *ctx), void *ctx);

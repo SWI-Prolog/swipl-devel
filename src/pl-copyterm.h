@@ -56,7 +56,7 @@ typedef struct fastheap_term
 
 fastheap_term*	term_to_fastheap(term_t t);
 void		free_fastheap(fastheap_term *fht);
-int		put_fastheap(fastheap_term *fht, term_t t);
+bool		put_fastheap(fastheap_term *fht, term_t t);
 bool		duplicate_term(term_t in, term_t copy,
 			       size_t nshare, term_t share);
 bool		size_abstract_term(term_t in, term_t copy,
