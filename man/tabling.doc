@@ -934,6 +934,49 @@ SWI-Prolog's \jargon{continuation based} tabling offers the opportunity
 to perform \jargon{completion} using multiple threads.
 
 
+\section{Tabling and constraints}
+\label{sec:tabling-constraints}
+
+Starting with version 9.3.24, SWI-Prolog offers some support for
+tabled execution with constraints (attributed variables, see
+\secref{attvar}) All relevant data structures support attributed
+variables, notably tries (see \secref{trie}).  The basic attributed
+variable and tabling with attributed variables tests from XSB have
+been ported and integrated in SWI-Prolog's test suite.\footnote{Thanks
+to Theresa Swift and David Warren.}  Some remarks:
+
+\begin{itemize}
+\item The \jargon{variant} is defined by the attributes and their
+  values.  Note however that SWI-Prolog represents multiple attributes
+  in a linked list where the ordering depends on the order in which
+  the attributes were added while, ideally, the order is not relevant
+  for the semantics of attributes.
+\item Solving a goal with attributed variables may \emph{modify}
+  attributes.  As a result, enumeration of answers from the completed
+  trie \emph{replaces} attributes rather than unifying with the
+  attributes.  The new set of attributes is always a copy of the
+  original set of attributes.  For example:
+
+\begin{code}
+:- use_module(library(clpfd)).
+:- table p/1.
+
+p(X) :- X #>= 1, X #=< 6.
+p(20).
+\end{code}
+
+\begin{code}
+?- X #> 0, p(X).
+X in 1..6 ;
+X = 20.
+\end{code}
+
+  Note that this behaviour is unlike trie_gen/2.  If an attributed
+  variable is inserted into a trie, trie_gen/2 unifies the stored
+  attributed term with the second argument of the call.
+\end{itemize}
+
+
 \section{Tabling restraints: bounded rationality and tripwires}
 \label{sec:tabling-restraints}
 
