@@ -952,8 +952,7 @@ test(ex17) :-
 
 
 :- begin_tests(tabling_clpfd,
-               [ cleanup(abolish_all_tables),
-                 condition(\+ has_trie_attvar_support)
+               [ cleanup(abolish_all_tables)
                ]).
 
 :- table fib/2.
@@ -962,12 +961,22 @@ test(ex17) :-
 fib(1, 1).
 fib(2, 2).
 fib(N, X) :-
-    N #> 2, N1 #= N-1, N2 #= N-2,
+    N #> 2, N #< 10,              % #< 10 to ensure termination
+    N1 #= N-1, N2 #= N-2,
     fib(N1, X1),
     fib(N2, X2),
     X #= X1+X2.
 
-test(fib_error, error(type_error(free_of_attvar, _))) :-
+test(fib_error,
+     [ condition(has_trie_attvar_support),
+       N == 6,
+       nondet
+     ]) :-
+	fib(N, 13).
+test(fib_error,
+     [ error(type_error(free_of_attvar, _)),
+       condition(\+ has_trie_attvar_support)
+     ]) :-
 	fib(_N, 13).
 
 :- end_tests(tabling_clpfd).
