@@ -923,7 +923,12 @@ continuations as needed for tabling.
 
 static bool
 needs_relocation(word w)
-{ return ( isTerm(w) || isRef(w) || isIndirect(w) || isAtom(w) );
+{ return ( isTerm(w) ||
+	   isAttVar(w) ||
+	   isRef(w) ||
+	   isIndirect(w) ||
+	   isAtom(w)		/* no relocation, but (un)register */
+         );
 }
 
 #define PTR_SHIFT LMASK_BITS
@@ -938,14 +943,19 @@ relocate_down(word w, size_t offset)
   }
 }
 
-#define relocate_up(w, offset) LDFUNC(relocate_up, w, offset)
-static word
-relocate_up(DECL_LD word w, size_t offset)
-{ if ( isAtom(w) )
+#define relocate_up(p, offset) LDFUNC(relocate_up, p, offset)
+static void
+relocate_up(DECL_LD Word p, size_t offset)
+{ word w = *p;
+
+  if ( isAtom(w) )
   { pushVolatileAtom(word2atom(w));
-    return w;
+  } else if ( w == TAG_ATTVAR )
+  { assert(isAttVar(p[1]));
+    register_attvar(p);
+    DEBUG(0, assert(on_attvar_chain(p+1)));
   } else
-  { return (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
+  { *p = (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
   }
 }
 
@@ -993,7 +1003,14 @@ term_to_fastheap(DECL_LD term_t t)
 
   offset = (size_t)gcopy;
   for(p=gcopy, o=fht->data, r=fht->relocations; p<gtop; p++)
-  { if ( needs_relocation(*p) )
+  { if ( p+1<gTop && isAttVar(p[1]) )
+    { assert(isVar(*p) || isRef(*p));
+      DEBUG(0, assert(on_attvar_chain(p+1)));
+      size_t this_rel = p-gcopy;
+      *o++ = TAG_ATTVAR;
+      *r++ = this_rel-last_rel;
+      last_rel = this_rel;
+    } else if ( needs_relocation(*p) )
     { size_t this_rel = p-gcopy;
 
       if ( isIndirect(*p) )
@@ -1048,7 +1065,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
   offset = (size_t)o;
   for(r = fht->relocations, p=o; *r != REL_END; r++)
   { p += *r;
-    *p = relocate_up(*p, offset);
+    relocate_up(p, offset);
   }
 
   gTop += fht->data_len;
