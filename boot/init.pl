@@ -2778,11 +2778,11 @@ load_files(Module:Files, Options) :-
     '$qlf_file'(File, FullFile, Absolute, Mode, Options),
     (   Mode == qcompile
     ->  qcompile(Module:File, Options)
-    ;   '$do_load_file_2'(File, Absolute, Module, Action, Options)
+    ;   '$do_load_file_2'(File, FullFile, Absolute, Module, Action, Options)
     ).
 
-'$do_load_file_2'(File, Absolute, Module, Action, Options) :-
-    '$source_file_property'(Absolute, number_of_clauses, OldClauses),
+'$do_load_file_2'(File, FullFile, Absolute, Module, Action, Options) :-
+    '$source_file_property'(FullFile, number_of_clauses, OldClauses),
     statistics(cputime, OldTime),
 
     '$setup_load'(ScopedFlags, OldSandBoxed, OldVerbose, OldAutoLevel, OldXRef,
@@ -2824,7 +2824,7 @@ load_files(Module:Files, Options) :-
 
     '$import_from_loaded_module'(LM, Module, Options),
 
-    '$source_file_property'(Absolute, number_of_clauses, NewClauses),
+    '$source_file_property'(FullFile, number_of_clauses, NewClauses),
     statistics(cputime, Time),
     ClausesCreated is NewClauses - OldClauses,
     TimeUsed is Time - OldTime,
