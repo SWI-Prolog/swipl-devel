@@ -187,6 +187,9 @@ set(noqlf_pattern
 set(noqlf_file
     home/library/tabling.pl
     home/library/prolog_qlfmake.pl
+    home/library/win_menu.pl
+    home/library/check_installation.pl
+    home/library/threadutil.pl
     home/library/theme/dark.pl
     home/library/ext/pldoc/pldoc/hooks.pl
     home/xpce/prolog/lib/swi_compatibility.pl

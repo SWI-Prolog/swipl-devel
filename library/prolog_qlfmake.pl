@@ -398,6 +398,9 @@ last_segment(A, L), atomic(A) =>
     L = A.
 
 exclude(library(prolog_qlfmake)).
+exclude(library(win_menu)).
+exclude(library(threadutil)).
+exclude(library(check_installation)).
 exclude(library(sty_pldoc)).
 exclude(library(sty_xpce)).
 exclude(library(tabling)).
