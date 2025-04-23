@@ -133,10 +133,12 @@ static void initHeapDebug(void);
 #define CMD_INITIAL	0
 #define CMD_ESC		1
 #define CMD_ANSI	2
+#define CMD_LINK	3
+#define CMD_LINKARG	4
 
 #define GWL_DATA	0		/* offset for client data */
 
-#define CHG_RESET	0		/* unchenged */
+#define CHG_RESET	0		/* unchanged */
 #define CHG_CHANGED	1		/* changed, but no clear */
 #define CHG_CLEAR	2		/* clear */
 #define CHG_CARET	4		/* caret has moved */
@@ -214,6 +216,12 @@ static void	rlc_extend_selection(RlcData b, int x, int y);
 static void	rlc_word_selection(RlcData b, int x, int y);
 static int	rlc_has_selection(RlcData b);
 static void	rlc_set_selection(RlcData b, int sl, int sc, int el, int ec);
+static bool	rlc_clicked_link(RlcData b, int x, int y);
+static const TCHAR *rlc_over_link(RlcData b, int x, int y);
+static href    *rlc_add_link(TextLine tl, const TCHAR *link,
+			     int start, int len);
+static void	rlc_free_link(href *hr);
+static void	rcl_check_links(TextLine tl);
 static void	rlc_copy(RlcData b);
 static void	rlc_destroy(RlcData b);
 static void	rlc_request_redraw(RlcData b);
@@ -243,6 +251,7 @@ static RlcInterruptHook _rlc_interrupt_hook;
 static RlcResizeHook    _rlc_resize_hook;
 static RlcMenuHook	_rlc_menu_hook;
 static RlcMessageHook	_rlc_message_hook;
+static RlcLinkHook	_rlc_link_hook;
 static int _rlc_copy_output_to_debug_output=0;	/* != 0: copy to debugger */
 static int	emulate_three_buttons;
 static HWND	emu_hwnd;		/* Emulating for this window */
@@ -250,9 +259,12 @@ static HWND	emu_hwnd;		/* Emulating for this window */
 static void _rlc_create_kill_window(RlcData b);
 static DWORD WINAPI window_loop(LPVOID arg);	/* console window proc */
 
+//#define _DEBUG 1
 #ifdef _DEBUG
 #include <stdarg.h>
 static void Dprintf(const TCHAR *fmt, ...);
+static void Dprint_links(TextLine tl, const TCHAR *msg);
+static void Dprint_line(TextLine tl, bool links);
 static void Dprint_lines(RlcData b, int from, int to);
 #define DEBUG(Code) Code
 
@@ -280,19 +292,25 @@ rlc_check_assertions(RlcData b)
   assert(b->caret_x >= 0 && b->caret_x < b->width);
 					/* TBD: debug properly */
 /*assert(rlc_between(b, b->window_start, window_last, b->caret_y));*/
+  (void)window_last;
 
   for(y=0; y<b->height; y++)
   { TextLine tl = &b->lines[y];
 
     assert(tl->size >= 0 && tl->size <= b->width);
+    (void)tl;
   }
 }
 
-#else
+#else/*_DEBUG*/
 
 #define DEBUG(Code) ((void)0)
-#define rlc_check_assertions(b)
-#endif
+#define rlc_check_assertions(b) ((void)0)
+static inline void Dprintf(const TCHAR *fmt, ...) {}
+static inline void Dprint_links(TextLine tl, const TCHAR *msg) {}
+static inline void Dprint_line(TextLine tl, bool links) {}
+static inline void Dprint_lines(RlcData b, int from, int to) {}
+#endif/*_DEBUG*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rlc_long_name(TCHAR *buffer)
@@ -1225,19 +1243,24 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_LBUTTONUP:
+      POINTS pt;
+      pt = MAKEPOINTS(lParam);
+      if ( rlc_clicked_link(b, pt.x, pt.y) )
+	return 0;
+      /*FALLTHROUGH*/
     case WM_RBUTTONUP:
-    if ( emu_hwnd == hwnd )
-    { if ( wParam & (MK_RBUTTON|MK_LBUTTON) )
-	goto middle_up;
-      else
-      { emu_hwnd = 0;
+      if ( emu_hwnd == hwnd )
+      { if ( wParam & (MK_RBUTTON|MK_LBUTTON) )
+	{ goto middle_up;
+	} else
+	{ emu_hwnd = 0;
+	  return 0;
+	}
+      } else
+      { rlc_copy(b);
+
 	return 0;
       }
-    } else
-    { rlc_copy(b);
-
-      return 0;
-    }
 
     case WM_LBUTTONDBLCLK:
     { POINTS pt = MAKEPOINTS(lParam);
@@ -1267,6 +1290,21 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       return 0;
     }
 
+    case WM_SETCURSOR:
+    { if ( LOWORD(lParam) == HTCLIENT )
+      { POINT pt;
+
+	GetCursorPos(&pt);              // Get screen coordinates
+	ScreenToClient(b->window, &pt);
+	const TCHAR *href = rlc_over_link(b, pt.x, pt.y);
+	if ( href )
+	  SetCursor(b->link_cursor);
+	else
+	  SetCursor(b->cursor);
+	return true;
+      }
+      break;
+    }
     case WM_MOUSEMOVE:
     { POINTS pt = MAKEPOINTS(lParam);
 
@@ -1661,6 +1699,53 @@ rlc_start_selection(RlcData b, int x, int y)
   rlc_set_selection(b, l, c, l, c);
 }
 
+static bool
+rlc_clicked_link(RlcData b, int x, int y)
+{ if ( _rlc_link_hook )
+  { int l, c;
+
+    rlc_translate_mouse(b, x, y, &l, &c);
+    if ( b->sel_unit == SEL_CHAR &&
+	 b->sel_org_line == l &&
+	 b->sel_org_char == c )
+    { TextLine tl = &b->lines[l];
+      for(href *hr=tl->links; hr; hr = hr->next)
+      { if ( c >= hr->start && c <= hr->start + hr->length )
+	{ DEBUG(Dprintf(_T("Clicked link %ls\n"), hr->link));
+	  return (*_rlc_link_hook)(b, hr->link);
+	}
+      }
+    }
+  }
+
+  return false;
+}
+
+static const TCHAR *
+rlc_over_link(RlcData b, int x, int y)
+{ if ( _rlc_link_hook )
+  { int l, c;
+
+    rlc_translate_mouse(b, x, y, &l, &c);
+    { TextLine tl = &b->lines[l];
+      if ( c < tl->size )
+      { text_char *chr = &tl->text[c];
+	if ( TF_LINK(chr->flags) )
+	{ DEBUG(Dprintf(_T("On link at %d,%d\n"), l, c));
+	  for(href *hr=tl->links; hr; hr = hr->next)
+	  { if ( c >= hr->start && c <= hr->start + hr->length )
+	    { DEBUG(Dprintf(_T("  link: %d(%d) -> \"%ls\"\n"),
+			    hr->start, hr->length, hr->link));
+	      return hr->link;
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  return NULL;
+}
 
 static int				/* v >= f && v <= t */
 rlc_between(RlcData b, int f, int t, int v)
@@ -2150,8 +2235,8 @@ rlc_resize_pixel_units(RlcData b, int w, int h)
   rlc_resize(b, nw, nh);
 
   if ( _rlc_resize_hook )
-    (*_rlc_resize_hook)(b->width, b->window_size);
-  else
+  { (*_rlc_resize_hook)(b->width, b->window_size);
+  } else
   {
 #ifdef SIGWINCH
     raise(SIGWINCH);
@@ -2327,6 +2412,8 @@ rlc_make_buffer(int w, int h)
   b->imodeswitch    = false;
   b->lhead	    = NULL;
   b->ltail	    = NULL;
+  b->cursor         = LoadCursor(NULL, IDC_IBEAM);
+  b->link_cursor    = LoadCursor(NULL, IDC_HAND);
   InitializeCriticalSection(&b->lock);
 
   memset(b->lines, 0, sizeof(text_line) * h);
@@ -2356,9 +2443,12 @@ rlc_shift_lines_down(RlcData b, int line)
     rlc_free_line(b, b->first);
 					/* copy the lines */
   for(p=i, i = NextLine(b, i); p != line; p=i, i = NextLine(b, i))
-    b->lines[p] = b->lines[i];
+  { b->lines[p] = b->lines[i];
+    b->lines[p].line_no = p;
+  }
 
   b->lines[line].text       = NULL;	/* make this one `free' */
+  b->lines[line].links      = NULL;
   b->lines[line].size       = 0;
   b->lines[line].adjusted   = true;
   b->lines[line].softreturn = false;
@@ -2371,6 +2461,7 @@ rlc_shift_lines_up(RlcData b, int line)
 
   while(line != b->first)
   { b->lines[line] = b->lines[prev];
+    b->lines[line].line_no = line;
     line = prev;
     prev = PrevLine(b, prev);
   }
@@ -2379,6 +2470,123 @@ rlc_shift_lines_up(RlcData b, int line)
   b->first = NextLine(b, b->first);
 }
 
+static void
+unlink_href(TextLine from, href *hr)
+{ for(href **hp = &from->links; *hp; hp = &(*hp)->next)
+  { if ( *hp == hr )
+    { *hp = hr->next;
+      return;
+    }
+  }
+  assert(0);
+}
+
+static void
+move_href(href *hr, TextLine from, TextLine to)
+{ unlink_href(from, hr);
+  hr->next = to->links;
+  to->links = hr;
+}
+
+/* Update  links after  `moved` chars  were moved  from `l1`  to `l2`.
+ * `l1` has all the links, `l2` has none as it is a fresh line.
+ */
+static void
+update_links(TextLine l1, TextLine l2, int moved)
+{ href *next;
+
+  Dprint_links(l1, _T("l1"));
+  Dprint_links(l2, _T("l2"));
+  for(href *hr = l1->links; hr; hr=next)
+  { next = hr->next;
+
+    if ( hr->start > l1->size )	/* move completely */
+    { move_href(hr, l1, l2);
+      hr->start -= l1->size;
+    } else if ( hr->start + hr->length > l1->size )
+    { rlc_add_link(l2, hr->link, 0, hr->start + hr->length - l1->size);
+      hr->length = l1->size - hr->start;
+    }
+  }
+  Dprint_links(l1, _T("l1 (after)"));
+  Dprint_links(l2, _T("l2 (after)"));
+
+  rcl_check_links(l1);
+  rcl_check_links(l2);
+}
+
+static void
+move_link_positions(TextLine tl, int offset)
+{ for(href *hr = tl->links; hr; hr=hr->next)
+    hr->start += offset;
+}
+
+static void
+move_links(TextLine from, TextLine to)
+{ href *next;
+
+  Dprintf(_T("Move links from %p to %p\n"), from, to);
+  Dprint_links(from, _T("On from"));
+  Dprint_links(to, _T("On to"));
+  for(href *hr = from->links; hr; hr=next)
+  { next = hr->next;
+    unlink_href(from, hr);
+    for(href *hr2 = to->links; hr2; hr2=hr2->next)
+    { if ( hr->start+hr->length == hr2->start &&
+	   wcscmp(hr->link, hr2->link) == 0 )
+      {	Dprintf(_T("Rejoin split link\n"));
+	hr2->start = hr->start;
+	hr2->length += hr->length;
+	rlc_free_link(hr);
+	goto next_link;
+      }
+    }
+    Dprintf(_T("Moved %p\n"), hr);
+    hr->next = to->links;
+    to->links = hr;
+  next_link:
+    ;
+  }
+
+  Dprint_links(to, _T("After move"));
+}
+
+static void
+move_links_soft(TextLine from, TextLine to)
+{ href *next;
+
+  Dprintf(_T("Move links from %p to %p\n"), from, to);
+  Dprint_links(from, _T("On from"));
+  Dprint_links(to, _T("On to"));
+  for(href *hr = from->links; hr; hr=next)
+  { next = hr->next;
+    if ( hr->start >= from->size )
+    { unlink_href(from, hr);
+      hr->start -= from->size;
+      for(href *hr2 = to->links; hr2; hr2=hr2->next)
+      { if ( hr->start+hr->length == hr2->start &&
+	     wcscmp(hr->link, hr2->link) == 0 )
+	{ Dprintf(_T("Rejoin split link\n"));
+	  hr2->start = hr->start;
+	  hr2->length += hr->length;
+	  rlc_free_link(hr);
+	  goto next_link;
+	}
+      }
+      Dprintf(_T("Moved %p\n"), hr);
+      hr->next = to->links;
+      to->links = hr;
+    } else if ( hr->start + hr->length > from->size )
+    { rlc_add_link(to, hr->link, 0, hr->start + hr->length - from->size);
+      hr->length = from->size - hr->start;
+    }
+  next_link:
+    ;
+  }
+
+  Dprint_links(from, _T("From after move"));
+  Dprint_links(to, _T("To after move"));
+}
 
 
 static void
@@ -2400,19 +2608,22 @@ rlc_resize(RlcData b, int w, int h)
     if ( tl->text && tl->adjusted == false )
       rlc_adjust_line(b, i);
 
+    Dprintf(_T("%03d: sz=%d %s\n"), i, tl->size,
+	    tl->softreturn ? "(soft)" : "");
     if ( tl->size > w )
-    { if ( !tl->softreturn )		/* hard --> soft */
-      { TextLine pl;
-
+    { Dprintf(_T("  Truncate\n"));
+      if ( !tl->softreturn )		/* hard --> soft */
+      { Dprintf(_T("    hard -> soft\n"));
+	Dprint_lines(b, i, i);
 	rlc_shift_lines_down(b, i);
-	DEBUG(Dprint_lines(b, b->first, b->first));
 	DEBUG(Dprintf(_T("b->first = %d, b->last = %d\n"), b->first, b->last));
-	pl = &b->lines[PrevLine(b, i)];	/* this is the moved line */
-	tl->text = rlc_malloc((pl->size - w)*sizeof(text_char));
-	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(text_char));
+	TextLine pl = &b->lines[PrevLine(b, i)]; /* this is the moved line */
+	int moved = pl->size - w;
+	tl->text = rlc_malloc(moved*sizeof(text_char));
+	memmove(tl->text, &pl->text[w], moved*sizeof(text_char));
 	DEBUG(Dprintf(_T("Copied %d chars from line %d to %d\n"),
-		      pl->size - w, pl - b->lines, i));
-	tl->size = pl->size - w;
+		      moved, pl - b->lines, i));
+	tl->size = moved;
 	tl->adjusted = true;
 	tl->softreturn = false;
 	pl->softreturn = true;
@@ -2420,11 +2631,13 @@ rlc_resize(RlcData b, int w, int h)
 	pl->size = w;
 	pl->adjusted = true;
 	i = (int)(pl - b->lines);
-	DEBUG(Dprint_lines(b, b->first, b->last));
+	update_links(pl, tl, moved);
+//	DEBUG(Dprint_lines(b, b->first, b->last));
       } else				/* put in next line */
       { TextLine nl;
 	int move = tl->size - w;
 
+	Dprintf(_T("    soft\n"));
 	if ( i == b->last )
 	  rlc_add_line(b);
 	nl = &b->lines[NextLine(b, i)];
@@ -2433,19 +2646,28 @@ rlc_resize(RlcData b, int w, int h)
 	memmove(nl->text, &tl->text[w], move*sizeof(text_char));
 	nl->size += move;
 	tl->size = w;
+	move_link_positions(nl, move);
+	move_links_soft(tl, nl);
       }
     } else if ( tl->text && tl->softreturn && tl->size < w )
     { TextLine nl;
 
+      Dprintf(_T("  Merge\n"));
       if ( i == b->last )
 	rlc_add_line(b);
       nl = &b->lines[NextLine(b, i)];
 
-      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(text_char));
+      nl->text = rlc_realloc(nl->text,
+			     (nl->size + tl->size)*sizeof(text_char));
       memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(text_char));
+      move_link_positions(nl, tl->size);
       memmove(nl->text, tl->text, tl->size*sizeof(text_char));
+      move_links(tl, nl);
+
       nl->size += tl->size;
       nl->adjusted = true;
+      rcl_check_links(nl);
+
       rlc_shift_lines_up(b, i);
     }
 
@@ -2475,11 +2697,27 @@ rlc_reinit_line(RlcData b, int line)
 { TextLine tl = &b->lines[line];
 
   tl->text	 = NULL;
+  tl->links      = NULL;
   tl->adjusted   = false;
   tl->size       = 0;
   tl->softreturn = false;
 }
 
+static void
+rlc_free_link(href *hr)
+{ rlc_free(hr->link);
+  rlc_free(hr);
+}
+
+static void
+rlc_free_links(href *links)
+{ href *next;
+
+  for(; links; links=next)
+  { next = links->next;
+    rlc_free_link(links);
+  }
+}
 
 static void
 rlc_free_line(RlcData b, int line)
@@ -2487,6 +2725,11 @@ rlc_free_line(RlcData b, int line)
   if ( tl->text )
   { rlc_free(tl->text);
     rlc_reinit_line(b, line);
+  }
+  href *links = tl->links;
+  if ( links )
+  { tl->links = NULL;
+    rlc_free_links(links);
   }
 }
 
@@ -2536,6 +2779,7 @@ rlc_open_line(RlcData b)
   b->lines[i].adjusted   = false;
   b->lines[i].size       = 0;
   b->lines[i].softreturn = false;
+  b->lines[i].line_no    = i;
 }
 
 
@@ -2700,15 +2944,16 @@ rlc_restore_caret_position(RlcData b)
 
 
 static void
+rlc_erase_saved_lines(RlcData b)
+{ b->first = b->window_start;
+}
+
+static void
 rlc_erase_display(RlcData b)
-{ int i = b->window_start;
-  int last = rlc_add_lines(b, b->window_start, b->window_size);
+{ TextLine tl = &b->lines[b->window_start];
 
-  do
-  { b->lines[i].size = 0;
-    i = NextLine(b, i);
-  } while ( i != last );
-
+  tl->size = 0;
+  b->last = b->window_start;
   b->changed |= CHG_CHANGED|CHG_CLEAR|CHG_CARET;
 
   rlc_set_caret(b, 0, 0);
@@ -2770,10 +3015,90 @@ rlc_put(RlcData b, int chr)
   rlc_caret_forward(b, 1);
 }
 
+static void
+rcl_check_links(TextLine tl)
+{
+#if _DEBUG
+  int links = 0;
+
+  for(int x=0; x<tl->size; x++)
+  { if ( TF_LINK(tl->text[x].flags) )
+    { int start = x;
+      links++;
+      for(; x<tl->size && TF_LINK(tl->text[x].flags); x++)
+	;
+      int len = x-start;
+      href *hr;
+      for(hr = tl->links; hr; hr=hr->next)
+      { if ( hr->start == start && hr->length == len )
+	  break;
+      }
+      if ( !hr )
+      { Dprintf(_T("CHECK: %03d could not find href for %d(%d); got: "),
+		tl->line_no, start, len);
+	for(hr = tl->links; hr; hr=hr->next)
+	  Dprintf(_T(" %d(%d)"), hr->start, hr->length);
+	Dprintf(_T("\n"));
+      }
+    }
+  }
+
+  int refs = 0;
+  for(href *hr = tl->links; hr; hr=hr->next)
+    refs++;
+  if ( refs != links )
+  { Dprintf(_T("CHECK: %03d found %d links; expected %d\n"),
+	    tl->line_no, links, refs);
+    Dprint_line(tl, true);
+  }
+#endif
+}
+
+static href *
+rlc_add_link(TextLine tl, const TCHAR *link, int start, int len)
+{ href *hr = rlc_malloc(sizeof(*hr));
+
+  hr->link = rlc_malloc((wcslen(link)+1)*sizeof(*link));
+  wcscpy(hr->link, link);
+  hr->start = start;
+  hr->length = len;
+  hr->next = tl->links;
+  tl->links = hr;
+  return hr;
+}
+
+static href *
+rlc_register_link(RlcData b, const TCHAR *link, int len)
+{ TextLine tl = &b->lines[b->caret_y];
+  return rlc_add_link(tl, link, b->caret_x, len);
+}
+
+static void
+rlc_put_link(RlcData b, const TCHAR *label, const TCHAR *link)
+{ text_flags flags0 = b->sgr_flags;
+  rlc_sgr(b, 34);	/* blue */
+  rlc_sgr(b, 4);	/* underline */
+  int y = b->caret_y;
+  href *hr = rlc_register_link(b, link, wcslen(label));
+  b->sgr_flags = TF_SET_LINK(b->sgr_flags, true);
+  for( ; *label; label++)
+  { rlc_put(b, *label);
+    if ( b->caret_y != y )	/* moved to next line */
+    { size_t left = wcslen(label)-1;
+      hr->length -= left;
+      rcl_check_links(&b->lines[y]);
+      hr = rlc_register_link(b, link, left);
+      y = b->caret_y;
+    }
+  }
+  rcl_check_links(&b->lines[y]);
+  b->sgr_flags = flags0;
+}
+
 #ifdef _DEBUG
-#define CMD(c) {cmd = _T(#c); c;}
+#define CMD(c) do {cmd = _T(#c); c;} while(0)
 #else
-#define CMD(c) {c;}
+#define CMD(c) do {c;} while(0)
 #endif
 
 static void
@@ -2816,11 +3141,69 @@ rlc_putansi(RlcData b, int chr)
 	  b->argc    = 0;
 	  b->argstat = 0;		/* no arg */
 	  break;
+	case ']':
+	  b->cmdstat = CMD_LINK;
+	  b->must_see = "8;;";
+	  break;
 	default:
 	  b->cmdstat = CMD_INITIAL;
 	  break;
       }
       break;
+    case CMD_LINK:
+      if ( b->must_see && b->must_see[0] == chr )
+      { b->must_see++;
+	if ( !b->must_see[0] )
+	{ b->cmdstat = CMD_LINKARG;
+	  b->link_len = 0;
+	  b->must_see = NULL;
+	}
+	break;
+      } else
+      { b->cmdstat = CMD_INITIAL;
+	break;
+      }
+    case CMD_LINKARG:
+      if ( b->link_len < ANSI_MAX_LINK-1 )
+      { const TCHAR *end = _T("\e]8;;\e\\");
+	const TCHAR *sep = _T("\e\\");
+	const size_t endl = wcslen(end);
+	const size_t sepl = wcslen(sep);
+	b->link[b->link_len++] = chr;
+	b->link[b->link_len] = 0;
+	if ( chr == '\\' &&
+	     b->link_len >= endl &&
+	     memcmp(end, &b->link[b->link_len-endl],
+		    endl*sizeof(end[0])) == 0 )
+	{ b->link_len -= endl;
+	  b->cmdstat = CMD_INITIAL;
+	  b->link[b->link_len] = 0;
+	  TCHAR *label = wcsstr(b->link, sep);
+	  TCHAR *link;
+	  if ( label )
+	  { *label = 0;
+	    label += sepl;
+	    link = b->link;
+	  } else
+	  { label = b->link;
+	    link = NULL;
+	  }
+	  DEBUG(Dprintf(_T("Link: \"%ls\", Label \"%ls\"\n"), link, label));
+	  if ( link )
+	  { rlc_put_link(b, label, link);
+	  } else
+	  { for( ; *label; label++)
+	      rlc_put(b, *label);
+	  }
+	}
+	break;
+      } else			/* too long; process as text */
+      { b->cmdstat = CMD_INITIAL;
+	b->link[b->link_len] = 0;
+	for(TCHAR *split=b->link; *split; split++)
+	  rlc_put(b, *split);
+	break;
+      }
     case CMD_ANSI:			/* ESC [ */
       if ( _istdigit((wint_t)chr) )
       { if ( !b->argstat )
@@ -2876,6 +3259,8 @@ rlc_putansi(RlcData b, int chr)
 	case 'J':
 	  if ( b->argv[0] == 2 )
 	    CMD(rlc_erase_display(b));
+	  else if ( b->argv[0] == 3 )
+	    CMD(rlc_erase_saved_lines(b));
 	  break;
 	case 'K':
 	  CMD(rlc_erase_line(b));
@@ -2893,6 +3278,9 @@ rlc_putansi(RlcData b, int chr)
   }
 
   rlc_check_assertions(b);
+#ifdef _DEBUG
+  (void)cmd;
+#endif
 }
 
 
@@ -3576,7 +3964,7 @@ rlc_icon(rlc_console c, HICON icon)
 }
 
 
-int
+bool
 rlc_window_pos(rlc_console c,
 	       HWND hWndInsertAfter,
 	       int x, int y, int w, int h,
@@ -3661,6 +4049,14 @@ rlc_interrupt_hook(RlcInterruptHook new)
 { RlcInterruptHook old = _rlc_interrupt_hook;
 
   _rlc_interrupt_hook = new;
+  return old;
+}
+
+RlcLinkHook
+rlc_link_hook(RlcLinkHook new)
+{ RlcLinkHook old = _rlc_link_hook;
+
+  _rlc_link_hook = new;
   return old;
 }
 
@@ -3820,29 +4216,59 @@ initHeapDebug(void)
 #endif /*initHeapDebug*/
 
 #ifdef _DEBUG
+#define LOGFILE "swipl-win.log"
+
+#ifdef LOGFILE
+static FILE *log = NULL;
+#endif
 
 static void
 Dprintf(const TCHAR *fmt, ...)
-{ TCHAR buf[1024];
-  va_list args;
+{ va_list args;
 
   va_start(args, fmt);
+#ifdef LOGFILE
+  if ( !log )
+    log = fopen(LOGFILE, "w");
+  if ( log )
+  { vfwprintf(log, fmt, args);
+    fflush(log);
+  }
+#else
+  TCHAR buf[1024];
   vswprintf(buf, sizeof(buf)/sizeof(TCHAR), fmt, args);
-  va_end(args);
-
   OutputDebugString(buf);
+#endif
+  va_end(args);
+}
+
+static void
+Dprint_links(TextLine tl, const TCHAR *msg)
+{ if ( tl->links )
+  { Dprintf(_T("%03d %ls:"), tl->line_no, msg);
+    for(href *hr = tl->links; hr; hr=hr->next)
+      Dprintf(_T(" %p = %d(%d) -> %ls"), hr, hr->start, hr->length, hr->link);
+    Dprintf(_T("\n"));
+  }
+}
+
+static void
+Dprint_line(TextLine tl, bool links)
+{ TCHAR buf[4096];
+  TCHAR *o = buf;
+
+  for(int x=0; x<tl->size; x++)
+    *o++ = tl->text[x].code;
+  *o = EOS;
+  Dprintf(_T("%03d: (%03d) \"%ls\"\n"), tl->line_no, tl->size, buf);
+  if ( links && tl->links )
+    Dprint_links(tl, _T("  links"));
 }
 
 static void
 Dprint_lines(RlcData b, int from, int to)
-{ TCHAR buf[1024];
-
-  for( ; ; from = NextLine(b, from))
-  { TextLine tl = &b->lines[from];
-
-    memcpy(buf, tl->text, tl->size);
-    buf[tl->size] = EOS;
-    Dprintf(_T("%03d: (0x%08x) \"%s\"\n"), from, tl->text, buf);
+{ for( ; ; from = NextLine(b, from))
+  { Dprint_line(&b->lines[from], true);
 
     if ( from == to )
       break;

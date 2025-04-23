@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2012, University of Amsterdam
+    Copyright (c)  2002-2025, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -54,6 +55,7 @@ typedef struct _history
 		 *******************************/
 
 #define ANSI_MAX_ARGC     10		/* Ansi-escape sequence argv */
+#define ANSI_MAX_LINK	4096		/* 4-K max URL length */
 #define MAXPROMPT         80		/* max size of prompt */
 #define OQSIZE		4096		/* output queue size */
 #define MAX_USER_VALUES	  10		/* max user data-handles */
@@ -67,10 +69,17 @@ typedef unsigned short text_flags;
 
 #define ANSI_COLOR_DEFAULT 31
 
+/* Encode color and attributes in a 16 bit entity:
+ *   - 5 bit (0..4) foreground color
+ *   - 5 bit (5..9) background color
+ *   - 1 bit (10)   bold
+ *   - 1 bit (11)   underline (not implemented)
+ */
 #define TF_FG(f)	((f)&0x1f)	/* foreground */
 #define TF_BG(f)	(((f)>>5)&0x1f)	/* background */
 #define TF_BOLD(f)	((f)&(1<<10))	/* bold */
 #define TF_UNDERLINE(f)	((f)&(1<<11))	/* underline */
+#define TF_LINK(f)	((f)&(1<<12))	/* inside a link */
 
 #define TF_DEFAULT (ANSI_COLOR_DEFAULT | ANSI_COLOR_DEFAULT<<5)
 
@@ -78,18 +87,28 @@ typedef unsigned short text_flags;
 #define TF_SET_BG(f,c)		(((f)&~(0x1f<<5))|((c)<<5))
 #define TF_SET_BOLD(f,v)	(((f)&~(1<<10))|((v)<<10))
 #define TF_SET_UNDERLINE(f,v)	(((f)&~(1<<11))|((v)<<11))
+#define TF_SET_LINK(f,v)	(((f)&~(1<<12))|((v)<<12))
 
 typedef struct
 { TCHAR		 code;			/* character code */
   text_flags	 flags;			/* flags for the text */
 } text_char;
 
+typedef struct href
+{ TCHAR		*link;			/* Hyperlink target */
+  int		 start;			/* start of label */
+  int		 length;		/* #chars of label */
+  struct href   *next;			/* Next in chain */
+} href;
+
 typedef struct
 { text_char     *text;			/* the storage */
+  href          *links;			/* Hyperlinks */
   unsigned short size;			/* #characters in line */
   unsigned	 adjusted : 1;		/* line has been adjusted? */
   unsigned	 changed : 1;		/* line needs redraw */
   unsigned	 softreturn : 1;	/* wrapped line */
+  int		 line_no;		/* The number of the line */
 } text_line, *TextLine;
 
 typedef struct
@@ -119,8 +138,11 @@ typedef struct
   int		sel_end_char;		/* ending char for selection */
   int		cmdstat;		/* for parsing ANSI escape */
   int		argstat;		/* argument status ANSI */
+  char const   *must_see;		/* \e]8;; link decoding */
   int		argc;			/* argument count for ANSI */
   int		argv[ANSI_MAX_ARGC];	/* argument vector for ANSI */
+  TCHAR		link[ANSI_MAX_LINK];	/* Max URL length */
+  int		link_len;		/* # chars in `link` */
   int		scaret_x;		/* saved-caret X */
   int		scaret_y;		/* saved-caret Y */
   HWND		window;			/* MS-Window window handle */
@@ -132,6 +154,8 @@ typedef struct
   COLORREF	sel_foreground;		/* Selection foreground */
   COLORREF	sel_background;		/* Selection background */
   COLORREF	ansi_color[16];		/* ANSI colors (8 normal + 8 bright) */
+  HANDLE	cursor;			/* Default cursor */
+  HANDLE	link_cursor;		/* Cursor when hovering a link */
   text_flags	sgr_flags;		/* Current SGR flags */
   int		cw;			/* character width */
   int		ch;			/* character height */
@@ -147,7 +171,7 @@ typedef struct
   int		win_x;			/* window top-left corner */
   int		win_y;			/* window top-left corner */
 					/* output queue */
-  TCHAR	        output_queue[OQSIZE];	/* The output queue */
+  TCHAR		output_queue[OQSIZE];	/* The output queue */
   int		output_queued;		/* # characters in the queue */
   struct
   { TCHAR *line;			/* buffered line */
@@ -229,5 +253,3 @@ rlc_get_data(rlc_console c)
 
   return _rlc_stdio;
 }
-
-

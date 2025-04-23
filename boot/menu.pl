@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2011, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2002-2025, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,17 +52,17 @@ prolog:on_menu(Label) :-
     catch(Action, Error,
           print_message(error, Error)).
 
-%       win_has_menu
+%!  win_has_menu
 %
-%       Test whether the system provides the menu interface
+%   Test whether the system provides the menu interface
 
 win_has_menu :-
     current_predicate(_, '$win_insert_menu_item'(_, _, _)).
 
-%       win_insert_menu_item(+Popup, +Item, +Before, :Goal)
+%!  win_insert_menu_item(+Popup, +Item, +Before, :Goal)
 %
-%       Add a menu-item to the PLWIN.EXE menu.  See the reference manual
-%       for details.
+%   Add a menu-item to the PLWIN.EXE menu.  See the reference manual for
+%   details.
 
 win_insert_menu_item(Popup, --, Before, _Goal) :-
     !,

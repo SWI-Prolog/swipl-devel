@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2022, University of Amsterdam
+    Copyright (c)  1996-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -732,6 +732,20 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
   return rlc_insert_menu(PL_current_console(), l, b);
 }
 
+static void
+open_link(const TCHAR *name)
+{ fid_t fid = PL_open_foreign_frame();
+  predicate_t pred = PL_predicate("on_link", 1, "prolog");
+  module_t m = PL_new_module(PL_new_atom("prolog"));
+  term_t a0 = PL_new_term_ref();
+  size_t len = _tcslen(name);
+
+  if ( PL_unify_wchars(a0, PL_ATOM, len, name) )
+    PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
+
+  PL_discard_foreign_frame(fid);
+}
+
 		 /*******************************
 		 *	      THREADS		*
 		 *******************************/
@@ -789,6 +803,7 @@ create_interactor()
 
 #define WM_SIGNALLED (WM_USER+1)
 #define WM_MENU	     (WM_USER+2)
+#define WM_LINK	     (WM_USER+3)
 
 static LRESULT WINAPI
 pl_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -800,6 +815,13 @@ pl_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     { const TCHAR *name = (const TCHAR *)lParam;
 
       call_menu(name);
+
+      return 0;
+    }
+    case WM_LINK:
+    { const TCHAR *href = (const TCHAR *)lParam;
+
+      open_link(href);
 
       return 0;
     }
@@ -941,6 +963,18 @@ menu_select(rlc_console c, const TCHAR *name)
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
       PostMessage((HWND)hwnd, WM_MENU, 0, (LPARAM)name);
   }
+}
+
+static bool
+link_clicked(rlc_console c, const TCHAR *href)
+{ uintptr_t hwnd;
+
+  if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
+  { PostMessage((HWND)hwnd, WM_LINK, 0, (LPARAM)href);
+    return true;
+  }
+
+  return false;
 }
 
 static LRESULT
@@ -1142,8 +1176,10 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
+  rlc_link_hook(link_clicked);
   rlc_message_hook(message_proc);
   PL_set_prolog_flag("console_menu", PL_BOOL, true);
+  PL_set_prolog_flag("hyperlink_term", PL_BOOL, true);
 #ifdef O_PLMT
   rlc_insert_menu_item(c, _T("&Run"), _T("&New thread"), NULL);
 #endif

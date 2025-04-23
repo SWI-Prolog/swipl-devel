@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2019, University of Amsterdam
+    Copyright (c)  2002-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,11 +38,12 @@
 :- module(win_menu,
           [ init_win_menus/0
           ]).
-:- autoload(library(apply),[maplist/4]).
-:- autoload(library(edit),[edit/1]).
-:- autoload(library(lists),[select/3,append/3]).
-:- autoload(library(pce),[get/8]).
-:- autoload(library(www_browser),[expand_url_path/2,www_open_url/1]).
+:- autoload(library(apply), [maplist/4]).
+:- autoload(library(edit), [edit/1]).
+:- autoload(library(lists), [select/3, append/3]).
+:- autoload(library(pce), [get/3]).
+:- autoload(library(www_browser), [expand_url_path/2, www_open_url/1]).
+:- autoload(library(uri), [uri_file_name/2, uri_components/2, uri_data/3]).
 
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -325,12 +327,44 @@ prolog_file_pattern(Pattern) :-
     user:prolog_file_type(Ext, prolog),
     atom_concat('*.', Ext, Pattern).
 
+                /*******************************
+                *      CONSOLE HYPERLINKS      *
+                *******************************/
 
-:- if(current_prolog_flag(windows, true)).
+prolog:on_link(Link) :-
+    tty_link(Link).
+
+%!  tty_link(+Link) is det.
+%
+%   Handle a terminal hyperlink to ``file://`` links
+
+tty_link(Link) :-
+    uri_file_name(Link, File),
+    !,
+    uri_components(Link, Components),
+    uri_data(fragment, Components, Fragment),
+    fragment_location(Fragment, File, Location),
+    call(edit(Location)).
+tty_link(URL) :-
+    call(www_open_url(URL)).
+
+fragment_location(Fragment, File, file(File)) :-
+    var(Fragment),
+    !.
+fragment_location(Fragment, File, File:Line:Column) :-
+    split_string(Fragment, ":", "", [LineS,ColumnS]),
+    !,
+    number_string(Line, LineS),
+    number_string(Column, ColumnS).
+fragment_location(Fragment, File, File:Line) :-
+    atom_number(Fragment, Line).
+
 
                  /*******************************
                  *          APPLICATION         *
                  *******************************/
+
+:- if(current_prolog_flag(windows, true)).
 
 %!  init_win_app
 %

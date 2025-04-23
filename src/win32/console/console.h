@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2012, University of Amsterdam
+    Copyright (c)  1999-2025, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -100,6 +101,7 @@ typedef void	(*RlcInterruptHook)(rlc_console, int); /* Hook for Control-C */
 typedef void	(*RlcResizeHook)(int, int); /* Hook for window change */
 typedef void	(*RlcMenuHook)(rlc_console, const TCHAR *id); /* Hook for menu-selection */
 typedef void	(*RlcFreeDataHook)(uintptr_t data); /* release data */
+typedef bool	(*RlcLinkHook)(rlc_console, const TCHAR *); /* link href */
 
 #ifdef __WINDOWS__			/* <windows.h> is included */
 					/* rlc_color(which, ...) */
@@ -110,7 +112,7 @@ typedef void	(*RlcFreeDataHook)(uintptr_t data); /* release data */
 
 _export HANDLE	rlc_hinstance(void);	/* hInstance of WinMain() */
 _export HWND	rlc_hwnd(rlc_console c); /* HWND of console window */
-_export int	rlc_window_pos(rlc_console c,
+_export bool	rlc_window_pos(rlc_console c,
 			       HWND hWndInsertAfter,
 			       int x, int y, int w, int h,
 			       UINT flags); /* resize/reposition window */
@@ -132,6 +134,7 @@ _export RlcRenderAllHook rlc_render_all_hook(RlcRenderAllHook renderallhook);
 _export RlcInterruptHook rlc_interrupt_hook(RlcInterruptHook interrupthook);
 _export RlcResizeHook	rlc_resize_hook(RlcResizeHook resizehook);
 _export RlcMenuHook	rlc_menu_hook(RlcMenuHook menuhook);
+_export RlcLinkHook	rlc_link_hook(RlcLinkHook linkhook);
 _export int		rlc_copy_output_to_debug_output(int docopy);
 
 _export rlc_console	rlc_create_console(rlc_console_attr *attr);
