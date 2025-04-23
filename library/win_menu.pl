@@ -206,14 +206,16 @@ insert_associated_file :-
     win_insert_menu_item('&File', Label, '&New ...', edit(file(File))).
 insert_associated_file.
 
+create_win_menu :-
+    Check = win_has_menu,
+    current_predicate(Check/0),
+    call(Check),
+    !,
+    init_win_menus.
+create_win_menu.
 
-:- if(current_predicate(win_has_menu/0)).
-:- initialization
-   (   win_has_menu
-   ->  init_win_menus
-   ;   true
-   ).
-:- endif.
+:- initialization(create_win_menu).
+
 
                  /*******************************
                  *            ACTIONS           *
