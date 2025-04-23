@@ -498,6 +498,9 @@ do_select_location([], Spec, _) :-
     !,
     print_message(warning, edit(not_found(Spec))),
     fail.
+do_select_location([#{file:File}-file(File)], _, Location) :-
+    !,
+    Location = #{file:File}.
 do_select_location([Location-_Spec], _, Location) :-
     existing_location(Location),
     !.
