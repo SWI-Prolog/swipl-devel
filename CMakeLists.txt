@@ -5,6 +5,15 @@ set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
 cmake_minimum_required(VERSION 3.10)
 project(SWI-Prolog)
 
+if(CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  message(FATAL_ERROR
+	  " Can not build in the source directory.\n"
+	  " Please create a subdirectory and build in that directory.  E.g.\n"
+	  "     mkdir build\n"
+	  "     cd build\n"
+	  "     cmake [option ...] ..")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # While GCC is good at optimization large   functions, MSVC is bad at it
