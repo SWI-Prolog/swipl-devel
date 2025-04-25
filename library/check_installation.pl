@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2024, VU University Amsterdam
+    Copyright (c)  2014-2025, VU University Amsterdam
                               CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -686,7 +686,7 @@ strip_stack(Error, Error).
 details(Properties) -->
     { issue_url(Properties, URL), !
     },
-    [ nl, 'See ~w'-[URL] ].
+    [ nl, 'See '-[], url(URL) ].
 details(_) --> [].
 
 explain(Messages) -->
