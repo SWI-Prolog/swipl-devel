@@ -2055,6 +2055,10 @@ rcl_paint_text(RlcData b, HDC hdc,
       else
 	SetBkColor(hdc, b->ansi_color[TF_BG(flags)]);
 
+      HFONT old_font = NULL;
+      if ( TF_UNDERLINE(flags) )
+	old_font = (HFONT)SelectObject(hdc, b->hfont_underlined);
+
       TextOut(hdc, *cx, ty, t, segment);
       if ( TF_BOLD(flags) )
       { SetBkMode(hdc, TRANSPARENT);
@@ -2063,6 +2067,9 @@ rcl_paint_text(RlcData b, HDC hdc,
 	SetBkMode(hdc, OPAQUE);
       }
       *cx += tchar_width(b, hdc, t, segment);
+
+      if ( old_font )
+	SelectObject(hdc, old_font);
     }
   }
 }
@@ -2274,6 +2281,10 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
 
       if ( !(b->hfont = CreateFontIndirect(&lfont)) )
 	b->hfont = GetStockObject(ANSI_FIXED_FONT);
+
+      lfont.lfUnderline = true;
+      if ( !(b->hfont_underlined = CreateFontIndirect(&lfont)) )
+	b->hfont_underlined = b->hfont;
     }
   } else
     b->hfont = GetStockObject(ANSI_FIXED_FONT);
