@@ -346,5 +346,8 @@ endif()
 # Check for environment variables that may cause the build to fail
 include(CheckEnv)
 
+# Configure and install desktop integration files.
+include(Desktop)
+
 # Packaging
 include(Pack)

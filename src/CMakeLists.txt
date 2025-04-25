@@ -231,7 +231,7 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
-set(SWIPL_DATA_app app.pl qlf.pl README.md)
+set(SWIPL_DATA_app app.pl qlf.pl sys.pl README.md)
 
 if(MULTI_THREADED)
 list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)

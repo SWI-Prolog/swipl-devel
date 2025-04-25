@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=SWI-Prolog
+Exec=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_ARCH_EXE@/swipl-win %f
+Icon=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_DESKTOP@/swipl.png
+Type=Application
+Terminal=false
+StartupWMClass=SWI-Prolog
+MimeType=application/x-prolog
