@@ -148,7 +148,9 @@ typedef struct
   HWND		window;			/* MS-Window window handle */
   int		has_focus;		/* Application has the focus */
   HFONT		hfont;			/* Windows font handle */
-  HFONT		hfont_underlined;	/* Windows font handle for underline */
+  HFONT		hfont_bold;		/* bold */
+  HFONT		hfont_underlined;	/* underlined */
+  HFONT		hfont_bold_underlined;  /* bold + underlined */
   int		fixedfont;		/* Font is fixed */
   COLORREF	foreground;		/* Foreground (text) color */
   COLORREF	background;		/* Background color */
