@@ -543,6 +543,7 @@ keep_line_pos(_, G) :-
 %   integers in the range 0..65535.
 
 ansi_get_color(Which0, RGB) :-
+    \+ current_prolog_flag(console_menu, true),
     stream_property(user_input, tty(true)),
     stream_property(user_output, tty(true)),
     stream_property(user_error, tty(true)),
