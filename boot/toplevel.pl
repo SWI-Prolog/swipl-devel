@@ -56,8 +56,8 @@
                  *         VERSION BANNER       *
                  *******************************/
 
-:- dynamic
-    prolog:version_msg/1.
+:- dynamic prolog:version_msg/1.
+:- multifile prolog:version_msg/1.
 
 %!  version is det.
 %

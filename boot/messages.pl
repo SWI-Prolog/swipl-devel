@@ -663,6 +663,9 @@ unwind_message(Term) -->
                  *        NORMAL MESSAGES       *
                  *******************************/
 
+:- dynamic prolog:version_msg/1.
+:- multifile prolog:version_msg/1.
+
 prolog_message(welcome) -->
     [ 'Welcome to SWI-Prolog (' ],
     prolog_message(threads),
