@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2024, VU University Amsterdam
+    Copyright (c)  2005-2025, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -180,7 +180,7 @@ buckets_to_list(KIndex, Empty, Capacity, Buckets, List) :-
         ->  KIndex1 is KIndex+1,
             buckets_to_list(KIndex1, Empty, Capacity, Buckets, List)
         ;   List = [Key|List1],
-            KIndex1 is KIndex+2,
+            KIndex1 is KIndex+1,
             buckets_to_list(KIndex1, Empty, Capacity, Buckets, List1)
         )
     ;   List = []
