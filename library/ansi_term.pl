@@ -439,23 +439,13 @@ location_label(File, Label) =>
 ansi_hyperlink(Stream, Location, Label),
     hyperlink(Stream, url(Location, Label)) =>
     true.
-ansi_hyperlink(Stream, File:Line:Column, Label) =>
-    (   url_file_name(URI, File)
-    ->  format(Stream, '\e]8;;~w#~d:~d\e\\~w\e]8;;\e\\',
-               [ URI, Line, Column, Label ])
-    ;   format(Stream, '~w', [Label])
-    ).
-ansi_hyperlink(Stream, File:Line, Label) =>
-    !,
-    (   url_file_name(URI, File)
-    ->  format(Stream, '\e]8;;~w#~w\e\\~w\e]8;;\e\\',
-               [ URI, Line, Label ])
-    ;   format(Stream, '~w', [Label])
-    ).
-ansi_hyperlink(Stream, File, Label) =>
-    (   url_file_name(URI, File)
-    ->  format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
-               [ URI, Label ])
+ansi_hyperlink(Stream, Location, Label) =>
+    (   location_url(Location, URL)
+    ->  keep_line_pos(Stream,
+                      format(Stream, '\e]8;;~w\e\\', [URL])),
+        format(Stream, '~w', [Label]),
+        keep_line_pos(Stream,
+                      format(Stream, '\e]8;;\e\\', []))
     ;   format(Stream, '~w', [Label])
     ).
 
@@ -470,6 +460,15 @@ is_url(URL) :-
 url_prefix('http://').
 url_prefix('https://').
 url_prefix('file://').
+
+location_url(File:Line:Column, URL) =>
+    url_file_name(FileURL, File),
+    format(string(URL), '~w#~d:~d', [FileURL, Line, Column]).
+location_url(File:Line, URL) =>
+    url_file_name(FileURL, File),
+    format(string(URL), '~w#~w', [FileURL, Line]).
+location_url(File, URL) =>
+    url_file_name(URL, File).
 
 
 %!  url_file_name(-URL, +File) is semidet.
