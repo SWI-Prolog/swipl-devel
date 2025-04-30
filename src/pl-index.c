@@ -683,7 +683,10 @@ retry:
       }
 
       unsigned int hi = hashIndex(chp->key, best_index->buckets);
-      chp->cref = best_index->entries[hi].head;
+      const ClauseBucket bkt = &best_index->entries[hi];
+      if ( bkt->key && chp->key != bkt->key )
+	return NULL;
+      chp->cref = bkt->head;
       return nextClauseFromBucket(best_index, argv, ctx);
     }
   }
@@ -1129,6 +1132,10 @@ addClauseBucket(ClauseBucket ch, Clause cl,
     addToClauseList(cr, cl, arg1key, where);
   } else
   { cr = newClauseRef(cl, key);
+    if ( !ch->head )
+      ch->key = key;
+    else if ( ch->key != key )
+      ch->key = 0;		/* collision */
   }
 
   if ( is_list )

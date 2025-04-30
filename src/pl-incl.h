@@ -1614,9 +1614,10 @@ struct functor
 };
 
 struct clause_bucket
-{ ClauseRef	head;
-  ClauseRef	tail;
-  unsigned int	dirty;			/* # of garbage clauses */
+{ ClauseRef	head;		/* Head of clause list */
+  ClauseRef	tail;		/* Tail of clause list */
+  word		key;		/* Unrestricted key if no collisions */
+  unsigned int	dirty;		/* # of garbage clauses */
 };
 
 #define MAX_MULTI_INDEX  4
