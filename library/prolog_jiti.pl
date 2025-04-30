@@ -41,8 +41,8 @@
             jiti_suggest_modes/0
           ]).
 :- autoload(library(apply), [maplist/2, foldl/4, convlist/3]).
-:- autoload(library(dcg/basics), [number/3]).
-:- autoload(library(ansi_term), [ansi_format/3]).
+:- autoload(library(dcg/basics), [number//1]).
+:- autoload(library(ansi_term), [ansi_format/3, ansi_hyperlink/3]).
 :- autoload(library(prolog_code), [pi_head/2, most_general_goal/2]).
 :- autoload(library(listing), [portray_clause/1]).
 :- autoload(library(lists), [append/2]).
@@ -103,39 +103,55 @@ jiti_list(Spec) :-
     jiti_list(Head).
 jiti_list(Head) :-
     tty_width(TTYW),
-    findall(Head-Indexed,
+    findall(PI-Indexed,
             (   predicate_property(Head, indexed(Indexed)),
-                \+ predicate_property(Head, imported_from(_))
-            ), Pairs),
-    PredColW is TTYW-41,
+                \+ predicate_property(Head, imported_from(_)),
+                pi_head(PI, Head)
+            ), Pairs0),
+    sort(Pairs0, Pairs),
+    PredColW is TTYW-47,
     TableWidth is TTYW-1,
-    ansi_format(bold, 'Predicate~*|~w ~t~10+~w ~t~w~14+ ~t~w~9+ ~t~w~7+~n',
-                [PredColW, '#Clauses', 'Index','Buckets','Speedup','Flags']),
+    ansi_format(bold, 'Predicate~*|~w ~t~10+~w ~t~w~14+ ~t~w~9+ ~t~w~6+ ~t~w~6+~n',
+                [PredColW, '#Clauses', 'Index','Buckets','Speedup','Coll','Flags']),
     format('~`\u2015t~*|~n', [TableWidth]),
     maplist(print_indexes(PredColW), Pairs).
 
-print_indexes(PredColW, Head-List) :-
-    foldl(print_index(PredColW, Head), List, 1, _).
+print_indexes(PredColW, PI-List) :-
+    foldl(print_index(PredColW, PI), List, 1, _).
 
 :- det(print_index/5).
-print_index(PredColW, QHead, Dict, N, N1) :-
-    QHead = (M:Head),
+print_index(PredColW, PI0, Dict, N, N1) :-
+    pi_head(PI0, Head),
+    head_pi(Head, PI),                  % Create DCG PI
     N1 is N+1,
     _{arguments:Args, position:Pos,
-      buckets:Buckets, speedup:Speedup, list:List, realised:R} :< Dict,
-    predicate_property(M:Head, number_of_clauses(CCount)),
-    head_pi(QHead, PI),
+      buckets:Buckets, speedup:Speedup, list:List, realised:R,
+      collisions:Collisions0} :< Dict,
+    predicate_property(Head, number_of_clauses(CCount)),
     phrase(iarg_spec(Pos, Args), ArgsS),
     phrase(iflags(List, R), Flags),
     istyle(R, Style),
+    icoll(R, List, Collisions0, Collisions),
     CCountColZ is PredColW+8,
     (   N == 1
-    ->  ansi_format(bold, '~q', [PI]),
+    ->  format_pi(PI),
         format(' ~t~D~*|  ', [CCount, CCountColZ])
     ;   format(' ~t~*|  ', [CCountColZ])
     ),
-    ansi_format(Style, '~|~s ~t~D~14+ ~t~1f~9+  ~s~n',
-                [ArgsS,Buckets,Speedup,Flags]).
+    ansi_format(Style, '~|~s ~t~D~14+ ~t~1f~9+ ~t~w~6+ ~s~n',
+                [ArgsS,Buckets,Speedup,Collisions,Flags]).
+
+format_pi(PI) :-
+    pi_head(PI, Head),
+    predicate_property(Head, file(File)),
+    predicate_property(Head, line_count(Line)),
+    !,
+    format(string(Label), '~q', [PI]),
+    ansi_hyperlink(user_output, File:Line, Label).
+format_pi(PI) :-
+    ansi_format(bold, '~q', [PI]).
+
+%!  iarg_spec(+Position, +Args)//
 
 iarg_spec([], [N]) ==>
     number(N).
@@ -171,6 +187,11 @@ irealised(true)  ==> "".
 
 istyle(true, code).
 istyle(false, comment).
+
+icoll(true,  false, Collisions0, Collisions) =>
+    Collisions = Collisions0.
+icoll(_, _, _, Collisions) =>
+    Collisions = '-'.
 
 head_pi(Head, PI) :-
     predicate_property(Head, non_terminal),

@@ -3790,6 +3790,21 @@ sizeofClauseIndexes(Definition def)
   return size;
 }
 
+static size_t
+collisionCount(const ClauseIndex ci)
+{ size_t cc = 0;
+
+  if ( ci->entries )
+  { for(size_t i=0; i<ci->buckets; i++)
+    { const ClauseBucket bkt = &ci->entries[i];
+      if ( bkt->head && !bkt->key )
+	cc++;
+    }
+  }
+
+  return cc;
+}
+
 /* Unify `t` with a dict representing a (hash) index.  Keys are:
  *
  *   - arguments: list of arguments hashed.
@@ -3801,10 +3816,12 @@ sizeofClauseIndexes(Definition def)
  *   - list: Has sub indexes
  *   - size: Bytes used for the index
  *   - realised: bool indicating whether the index is realised.
+ *   - collisions: # buckets that represent multiple keys
  */
 
+#define NUM_INDEX_KEYS 8
 static atom_t i_tag_hash = 0;
-static atom_t i_index_keys[7];
+static atom_t i_index_keys[NUM_INDEX_KEYS];
 
 static void
 init_index_keys(void)
@@ -3816,6 +3833,8 @@ init_index_keys(void)
     i_index_keys[4] = PL_new_atom("list");
     i_index_keys[5] = PL_new_atom("size");
     i_index_keys[6] = PL_new_atom("realised");
+    i_index_keys[7] = PL_new_atom("collisions");
+    // NUM_INDEX_KEYS = 8
     i_tag_hash = PL_new_atom("hash");
   }
 }
@@ -3826,7 +3845,7 @@ static bool
 unify_clause_index(DECL_LD term_t t, ClauseIndex ci)
 { term_t values, pos, tmp;
 
-  if ( !(values=PL_new_term_refs(7)) ||
+  if ( !(values=PL_new_term_refs(NUM_INDEX_KEYS)) ||
        !(tmp=PL_new_term_ref()) )
     return false;
 
@@ -3850,16 +3869,17 @@ unify_clause_index(DECL_LD term_t t, ClauseIndex ci)
        !PL_unify_float(values+3, ci->speedup) ||
        !PL_unify_bool(values+4,  ci->is_list) ||
        !PL_unify_int64(values+5, sizeofClauseIndex(ci)) ||
-       !PL_unify_bool(values+6,  ci->entries != NULL) )
+       !PL_unify_bool(values+6,  ci->entries != NULL) ||
+       !PL_unify_int64(values+7, collisionCount(ci)) )
     return false;
 
   init_index_keys();
 
-  bool rc = ( PL_put_dict(tmp, i_tag_hash, 7, i_index_keys, values) &&
+  bool rc = ( PL_put_dict(tmp, i_tag_hash, NUM_INDEX_KEYS, i_index_keys,
+			  values) &&
 	      PL_unify(t, tmp) );
 
-  if ( rc )
-    PL_reset_term_refs(values);
+  PL_reset_term_refs(values);
 
   return rc;
 }
