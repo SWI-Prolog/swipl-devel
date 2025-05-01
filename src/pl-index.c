@@ -167,6 +167,22 @@ static bool	set_candidate_indexes(Definition def, ClauseList clist,
 #define is_clean_predicate(def) \
 	isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG|P_RELOADING)
 
+/* Map  a word  to  a hash  bucket offset.   This  now uses  Fibonacci
+   hashing.  See https://en.wikipedia.org/wiki/Hash_function
+
+   Possibly we should store the shift with the ClauseIndex?
+ */
+
+static inline unsigned int
+hashIndex(word key, unsigned int buckets)
+{ const int  key_bits = sizeof(key)*8;
+  const word fib64 = 0x9E3779B97F4A7C15LL;
+  const int  shift = key_bits-MSB(buckets);
+
+  key ^= key >> shift;
+  return (fib64*key) >> shift;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
 of buckets. This used to be simple, but now that our tag bits are on the
@@ -181,13 +197,6 @@ guarantee that the value is non-0 for indexable values.
 NOTE: Indirects should not collide  with   functor_t  to  allow for deep
 indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static inline unsigned int
-hashIndex(word key, unsigned int buckets)
-{ unsigned int k = MurmurHashWord(key, MURMUR_SEED);
-
-  return k & (buckets-1);
-}
 
 static inline int
 canIndex(word w)
