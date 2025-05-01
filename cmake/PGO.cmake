@@ -134,8 +134,7 @@ function(run_pgo_program exec_target) # run_pgo_program(exec_target [args...])
   endif()
   add_custom_command(OUTPUT ${PGO_RUN_STAMP} APPEND
         DEPENDS "${exec_target}${PGO_SUFFIX}"
-        COMMAND ${executable} ${ARGN}
-        VERBATIM)
+        COMMAND ${executable} ${ARGN})
   # if we rebuild the binary, we have to clear the pgo data
   add_custom_command(TARGET "${exec_target}${PGO_SUFFIX}"
         POST_BUILD
@@ -147,8 +146,7 @@ endfunction()
 function(use_pgo_data) # use_pgo_data(targets...)
   if(PGO_RUN_STAMP)
     add_custom_command(OUTPUT ${PGO_RUN_STAMP} APPEND
-          COMMAND ${CMAKE_COMMAND} -E touch ${PGO_RUN_STAMP}
-          VERBATIM)
+          COMMAND ${CMAKE_COMMAND} -E touch ${PGO_RUN_STAMP})
   endif()
   string(REPLACE ";" " " use_flags "${PGO_USE_FLAGS}")
   foreach(t IN LISTS ARGV)
