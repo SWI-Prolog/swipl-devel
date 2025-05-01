@@ -469,12 +469,14 @@ setall_bitvector(bit_vector *v)
   memset(v->chunk, 0xff, chunks*sizeof(bitv_chunk));
 }
 
-static inline void
+static inline bool		/* true when set, false when already set */
 set_bit(bit_vector *v, size_t which)
 { size_t e = which/BITSPERE;
   size_t b = which%BITSPERE;
 
+  bool rc = (v->chunk[e]&((bitv_chunk)1<<b)) == 0;
   v->chunk[e] |= ((bitv_chunk)1<<b);
+  return rc;
 }
 
 static inline void
@@ -485,7 +487,7 @@ clear_bit(bit_vector *v, size_t which)
   v->chunk[e] &= ~((bitv_chunk)1<<b);
 }
 
-static inline int
+static inline bool
 true_bit(bit_vector *v, size_t which)
 { size_t e = which/BITSPERE;
   size_t b = which%BITSPERE;

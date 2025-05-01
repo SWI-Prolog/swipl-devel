@@ -2537,9 +2537,7 @@ perfect_size(hash_assessment *a)
 
     for( ; kp < ke; kp++)
     { unsigned int i = hashIndex(kp->key, buckets);
-      if ( !true_bit(filled, i) )
-	set_bit(filled, i);
-      else
+      if ( !set_bit(filled, i) )
 	break;
     }
     if ( kp == ke )
