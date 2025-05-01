@@ -50,8 +50,15 @@ implements the following sub commands
 :- use_module(library(dcg/basics)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(filesex)).
-:- use_module(library(process)).
 :- use_module(library(apply)).
+
+:- if(absolute_file_name(path('update-desktop-database'), _,
+                         [ access(execute),
+                           file_errors(fail)
+                         ])).
+freedesktop.
+:- endif.
+freedesktop :- fail.
 
 :- initialization(main, main).
 
@@ -62,10 +69,15 @@ main(_) :-
     usage,
     halt(1).
 
+:- if(freedesktop).
 sys(desktop, Argv) =>
     argv_options(sys_desktop:Argv, Pos, Options),
     cli_sys_desktop(Pos, Options).
+:- endif.
+sys(_, _) =>
+    fail.
 
+:- if(freedesktop).
 sys_desktop:opt_type(global,   global,   boolean).
 sys_desktop:opt_type(g,        global,   boolean).
 sys_desktop:opt_type(mime,     mime,     boolean).
@@ -78,6 +90,8 @@ sys_desktop:opt_help(global,
 sys_desktop:opt_help(mime,
                      "Use --no-mime to stop installing \c
                       the x-prolog MIME type").
+
+:- use_module(library(process)).
 
 cli_sys_desktop([], Options) =>
     cli_sys_desktop([install], Options).
@@ -242,7 +256,7 @@ location(mime,        user,   '~/.local/share/mime').
 location(mime,        global, '/usr/share/mime').
 location(application, user,   '~/.local/share/applications').
 location(application, global, '/usr/share/applications').
-
+:- endif. /*freedesktop*/
 
                 /*******************************
                 *       OVERALL COMMANDS       *
