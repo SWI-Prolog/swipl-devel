@@ -2520,6 +2520,36 @@ compar_keys(const void *p1, const void *p2)
 }
 
 
+/* Figure out the minimum hash size to arrive at a perfect hash,
+ * i.e., a hash without duplicates.  The hash assessment has an
+ * array of a->size key_asm structs.
+ */
+
+static unsigned int
+perfect_size(hash_assessment *a)
+{ unsigned int ln_buckets = MSB(a->size)&0x1f;
+  unsigned int buckets    = 2<<ln_buckets;
+
+  for ( ; buckets <= 32; buckets *= 2, ln_buckets++ )
+  { local_bitvector(filled, buckets);
+    key_asm *kp = a->keys;
+    key_asm *ke = &kp[a->size];
+
+    for( ; kp < ke; kp++)
+    { unsigned int i = hashIndex(kp->key, buckets);
+      if ( !true_bit(filled, i) )
+	set_bit(filled, i);
+      else
+	break;
+    }
+    if ( kp == ke )
+      return ln_buckets;
+  }
+
+  return ln_buckets;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Only the final call gets a clause_count > 0. Here we do the remainder of
 the assessment. We could consider  for   a  separate  function to merely
@@ -2790,10 +2820,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   { int j;
 
     for(j=0; a->args[j]; j++)
-    { if ( !true_bit(ai, a->args[j]-1) )
-      { set_bit(ai, a->args[j]-1);
-      }
-    }
+      set_bit(ai, a->args[j]-1);
   }
 
   /* kp[] is an array of arguments we must check, ending in -1
@@ -2902,7 +2929,7 @@ assess_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
 
       ainfo->speedup    = a->speedup;
       ainfo->list       = a->list;
-      ainfo->ln_buckets = MSB(a->size)&0x1f;
+      ainfo->ln_buckets = perfect_size(a)&0x1f;
     } else
     { ainfo->speedup    = 0.0;
       ainfo->list       = false;
