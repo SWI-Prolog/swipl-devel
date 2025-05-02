@@ -6552,10 +6552,8 @@ unify_definition(+Module, ?Head, +Def, -TheHead, flags)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-unify_functor(term_t t, functor_t fd, int how)
-{ GET_LD
-
-  if ( how&GP_NAMEARITY )
+unify_functor(DECL_LD term_t t, functor_t fd, int how)
+{ if ( how&GP_NAMEARITY )
   { FunctorDef fdef = valueFunctor(fd);
 
     return PL_unify_term(t,
@@ -6640,7 +6638,7 @@ unify_definition(Module ctx, term_t head, Definition def,
 
 
 #define unify_atom_compound(t1, t2) LDFUNC(unify_atom_compound, t1, t2)
-static int
+static bool
 unify_atom_compound(DECL_LD term_t t1, term_t t2)
 { if ( !PL_unify(t1, t2) )
   { Word p1 = valTermRef(t1);
@@ -6668,7 +6666,7 @@ unify_atom_compound(DECL_LD term_t t1, term_t t2)
 
 
 #define unify_head(h, d) LDFUNC(unify_head, h, d)
-static int
+static bool
 unify_head(DECL_LD term_t h, term_t d)
 { if ( !unify_atom_compound(h, d) )
   { term_t h1, d1;
@@ -6688,7 +6686,7 @@ unify_head(DECL_LD term_t h, term_t d)
 
 
 #define protected_predicate(def) LDFUNC(protected_predicate, def)
-static int
+static bool
 protected_predicate(DECL_LD Definition def)
 { if ( ison(def, P_FOREIGN) ||
        (   isoff(def, (P_DYNAMIC|P_CLAUSABLE)) &&
@@ -7262,10 +7260,11 @@ machine code. Returns pointer to the next   instruction or NULL if there
 is an error or unification failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define unify_vmi(t, bp) LDFUNC(unify_vmi, t, bp)
+
 static Code
-unify_vmi(term_t t, Code bp)
-{ GET_LD
-  code op = decode(*bp);
+unify_vmi(DECL_LD term_t t, Code bp)
+{ code op = decode(*bp);
   const code_info *ci;
   int rc;
 
@@ -7552,23 +7551,23 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
       fail;
     base = proc->definition->codes;
     if ( !base )
-      fail;
+      return false;
     len = supervisorLength(base);
   }
 
   if ( !PL_get_intptr_ex(offset, &pcoffset) )
-    fail;
+    return false;
   if ( pcoffset < 0 || pcoffset > (intptr_t)len )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
   if ( pcoffset == (intptr_t)len )
-    fail;
+    return false;
 
   PC = base + pcoffset;
 
   if ( (next=unify_vmi(instruction, PC)) )
     return PL_unify_int64(noffset, next-base);
 
-  fail;
+  return false;
 }
 
 
