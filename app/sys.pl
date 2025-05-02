@@ -40,7 +40,13 @@ This _app_ implements administrative tasks  for SWI-Prolog. It currently
 implements the following sub commands
 
   - desktop
-    Install or remove desktop integration.
+    Install or remove desktop integration.  The `xdg-mime` program can
+    be used to verify the result, e.g.
+
+        > xdg-mime query filetype myfile.prolog
+        application/x-prolog
+        > xdg-mime query default application/x-prolog
+        swipl-win.desktop
 */
 
 :- use_module(library(main)).
@@ -127,9 +133,8 @@ install_desktop(Spec, Options) :-
 install_desktop(_, _).
 
 fix_desktop_paths(Codes0, Codes, App) :-
-    app_executable(App, Exe),
+    app_executable(App, Exec),
     app_icon(App, IconBase),
-    format(string(Exec), '"~w" %f', [Exe]),
     replace_desktop_var('Exec', Exec, Codes0, Codes1),
     current_prolog_flag(home, Home),
     format(string(Icon), '~w/desktop/~w', [Home, IconBase]),
@@ -139,11 +144,13 @@ replace_desktop_var(Var, Value, Codes0, Codes) :-
     atom_codes(Var, VarCodes),
     atom_codes(Value, ValueCodes),
     phrase((string(Pre), "\n",
-            string(VarCodes), "=", string(_), "\n",
+            string(VarCodes), "=", whites, string(_), blank(C),
             remainder(Post)),
            Codes0),
     !,
-    append([Pre, `\n`, VarCodes, `=`, ValueCodes, `\n`, Post], Codes).
+    append([Pre, `\n`, VarCodes, `=`, ValueCodes, [C], Post], Codes).
+
+blank(C) --> [C], { code_type(C, space) }.
 
 %!  install_mime(+Spec, +Options) is det.
 
@@ -218,10 +225,10 @@ app_executable(App, AbsExe) :-
 app_executable(App, AbsExe) :-
     current_prolog_flag(executable, Exe),
     file_directory_name(Exe, ExeDir),
-    directory_file_path(ExeDir, App, Exe),
-    exists_file(Exe),
+    directory_file_path(ExeDir, App, AppExe),
+    exists_file(AppExe),
     !,
-    absolute_file_name(Exe, AbsExe).
+    absolute_file_name(AppExe, AbsExe).
 app_executable('swipl-win', AbsExe) :-
     current_prolog_flag(executable, Exe),
     file_base_name(Exe, swipl),
