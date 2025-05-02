@@ -2265,12 +2265,14 @@ colourise_prolog_flag_name(Name, TB, Pos) :-
     colourise_term(Name, TB, Pos).
 
 % Some flags are know, but can be unset.
-known_flag(associated_file).
 known_flag(android).
 known_flag(android_api).
 known_flag(apple).
+known_flag(apple_universal_binary).
 known_flag(asan).
+known_flag(associated_file).
 known_flag(break_level).
+known_flag(bundle).
 known_flag(conda).
 known_flag(dde).
 known_flag(emscripten).
@@ -2279,6 +2281,7 @@ known_flag(executable_format).
 known_flag(gc_thread).
 known_flag(gmp_version).
 known_flag(gui).
+known_flag(linux).
 known_flag(max_rational_size).
 known_flag(mitigate_spectre).
 known_flag(msys2).
@@ -2293,8 +2296,6 @@ known_flag(unix).
 known_flag(windows).
 known_flag(wine_version).
 known_flag(xpce).
-known_flag(bundle).
-known_flag(apple_universal_binary).
 
 		 /*******************************
 		 *             MACROS		*

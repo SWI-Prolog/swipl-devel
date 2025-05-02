@@ -2040,6 +2040,9 @@ initPrologFlags(void)
 #ifdef __unix__
   setPrologFlag("unix", FT_BOOL|FF_READONLY, true, 0);
 #endif
+#ifdef __linux__
+  setPrologFlag("linux", FT_BOOL|FF_READONLY, true, 0);
+#endif
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, true, 0);
 #ifdef BUILD_MACOS_BUNDLE

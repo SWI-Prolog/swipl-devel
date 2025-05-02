@@ -1877,6 +1877,10 @@ Currently, this flag is reliable on Windows and POSIX systems
 providing the dladdr() function.  This function is provided on Linux
 and MacOS.
 
+    \prologflagitem{linux}{bool}{r}
+If present and \const{true}, the OS is some form of Linux. See
+also \prologflag{unix}.
+
     \prologflagitem{malloc}{atom}{r}
 Set after a successful identification of the used malloc()
 implementation.  Currently possibly values are \const{tcmalloc} and
@@ -2468,8 +2472,8 @@ is disabled. See also the \cmdlineoption{--no-tty} command line option.
 If present and \const{true}, the operating system is some version of
 Unix. Defined if the C compiler used to compile this version of
 SWI-Prolog either defines \verb$__unix__$ or \const{unix}. On other
-systems this flag is not available.  See also \prologflag{apple}
-and \prologflag{windows}.
+systems this flag is not available.  See also \prologflag{linux},
+\prologflag{apple} and \prologflag{windows}.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered. If
