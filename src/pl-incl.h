@@ -1533,25 +1533,27 @@ typedef struct gc_stats
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
-#define CA1_PROC	1	/* code arg 1 is procedure */
-#define CA1_FUNC	2	/* code arg 1 is functor */
-#define CA1_DATA	3	/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
-#define CA1_INTEGER	4	/* code value as integer */
-#define CA1_WORD	5	/* word value as integer (CODES_PER_WORD) */
-#define CA1_FLOAT	6	/* next CODES_PER_DOUBLE are double */
-#define CA1_STRING	7	/* inlined string */
-#define CA1_MPZ		8	/* GNU mpz number */
-#define CA1_MPQ		9	/* GNU mpq number */
-#define CA1_MODULE     10	/* a module */
-#define CA1_VAR	       11	/* a variable(-offset) */
-#define CA1_FVAR       12	/* a variable(-offset), used as `firstvar' */
-#define CA1_CHP	       13	/* ChoicePoint (also variable(-offset)) */
-#define CA1_FOREIGN    14	/* Foreign function pointer */
-#define CA1_CLAUSEREF  15	/* Clause reference */
-#define CA1_JUMP       16	/* Instructions to skip */
-#define CA1_AFUNC      17	/* Number of arithmetic function */
-#define CA1_TRIE_NODE  18	/* Tabling: answer trie node with delays */
-#define CA1_END	       19	/* Highest+1 */
+typedef enum vm_arg_type
+{ CA1_PROC = 1,         /* code arg 1 is procedure */
+  CA1_FUNC,		/* code arg 1 is functor */
+  CA1_DATA,		/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
+  CA1_INTEGER,		/* code value as integer */
+  CA1_WORD,		/* word value as integer (CODES_PER_WORD) */
+  CA1_FLOAT,		/* next CODES_PER_DOUBLE are double */
+  CA1_STRING,		/* inlined string */
+  CA1_MPZ,		/* GNU mpz number */
+  CA1_MPQ,		/* GNU mpq number */
+  CA1_MODULE,		/* a module */
+  CA1_VAR,		/* a variable(-offset) */
+  CA1_FVAR,		/* a variable(-offset), used as `firstvar' */
+  CA1_CHP,		/* ChoicePoint (also variable(-offset)) */
+  CA1_FOREIGN,		/* Foreign function pointer */
+  CA1_CLAUSEREF,	/* Clause reference */
+  CA1_JUMP,		/* Instructions to skip */
+  CA1_AFUNC,		/* Number of arithmetic function */
+  CA1_TRIE_NODE,	/* Tabling: answer trie node with delays */
+  CA1_END		/* Highest+1 */
+} vm_arg_type;
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 #define VIF_LCO        0x02	/* We have LCO support for this */
