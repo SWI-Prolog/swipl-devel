@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2023, VU University Amsterdam
+    Copyright (c)  2010-2025, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -70,8 +70,8 @@ The behavior of this library is controlled by two Prolog flags:
 :- multifile
     prolog:console_color/2,                     % +Term, -AnsiAttrs
     supports_get_color/0,
-    hyperlink/2.                                % +Stream, +Spec
-
+    hyperlink/2,                                % +Stream, +Spec
+    tty_url_hook/2.                             % +For, -URL
 
 color_term_flag_default(true) :-
     stream_property(user_input, tty(true)),
@@ -461,6 +461,15 @@ url_prefix('http://').
 url_prefix('https://').
 url_prefix('file://').
 
+%!  location_url(+Location, -URL) is det.
+%
+%   Translate Location into a (file) URL.   This  predicate is hooked by
+%   tty_url_hook/2  with  the  same  signature  to  allow  for  actions,
+%   location specifiers or URL schemes.
+
+location_url(Location, URL),
+    tty_url_hook(Location, URL0) =>
+    URL = URL0.
 location_url(File:Line:Column, URL) =>
     url_file_name(FileURL, File),
     format(string(URL), '~w#~d:~d', [FileURL, Line, Column]).
@@ -469,6 +478,10 @@ location_url(File:Line, URL) =>
     format(string(URL), '~w#~w', [FileURL, Line]).
 location_url(File, URL) =>
     url_file_name(URL, File).
+
+%!  tty_url_hook(+Location, -URL)
+%
+%   Hook for location_url/2.
 
 
 %!  url_file_name(-URL, +File) is semidet.
