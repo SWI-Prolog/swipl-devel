@@ -7442,34 +7442,33 @@ static const code_info *lookup_vmi(atom_t name);
 const char *ca1_name[] = {
   NULL,
   "proc",				/* 1 */
-  "func",				/* 2 */
-  "data",				/* 3 */
-  "integer",				/* 4 */
-  "int64",				/* 5 */
-  "float",				/* 6 */
-  "string",				/* 7 */
-  "mpz",				/* 8 */
-  "mpq",				/* 9 */
-  "module",				/* 10 */
-  "var",				/* 11 */
-  "fvar",				/* 12 */
-  "chp",				/* 13 */
-  "foreign",				/* 14 */
-  "clauseref",				/* 15 */
-  "jump",				/* 16 */
-  "afunc",				/* 17 */
-  "trie_node"				/* 18 */
+  "lproc",
+  "func",
+  "data",
+  "integer",
+  "int64",
+  "float",
+  "string",
+  "mpz",
+  "mpq",
+  "module",
+  "var",
+  "fvar",
+  "chp",
+  "foreign",
+  "clauseref",
+  "jump",
+  "afunc",
+  "trie_node"
 };
 static atom_t ca1_info[CA1_END];
 
 static void
 fill_ca1_info(void)
-{ if ( !ca1_info[CA1_END-1] )
-  { int i;
-
-    for(i=1; i < CA1_END; i++)
-    { ca1_info[i] = PL_new_atom(ca1_name[i]);
-    }
+{ static_assertion(sizeof(ca1_name)/sizeof(ca1_name[0]) == CA1_END);
+  if ( !ca1_info[CA1_END-1] )
+  { for(int i=1; i < CA1_END; i++)
+      ca1_info[i] = PL_new_atom(ca1_name[i]);
   }
 }
 

@@ -2490,7 +2490,6 @@ problem.
     clause has `prolog_vars`.
   - If we first change the context to the new predicate we can perform
     the callbacks, but we still need to fix the calling context.
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_LCALL, 0, 1, (CA1_LPROC))

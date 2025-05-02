@@ -1533,6 +1533,7 @@ typedef struct gc_stats
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
+/* keep ca1_name[] in pl-comp.c in sync with this */
 typedef enum vm_arg_type
 { CA1_PROC = 1,         /* Procedure */
   CA1_LPROC,		/* Procedure, stored in qlf as functor */
