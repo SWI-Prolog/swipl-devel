@@ -52,13 +52,11 @@ implements the following sub commands
 :- use_module(library(filesex)).
 :- use_module(library(apply)).
 
-:- if(absolute_file_name(path('update-desktop-database'), _,
-                         [ access(execute),
-                           file_errors(fail)
-                         ])).
-freedesktop.
-:- endif.
+:- if(current_prolog_flag(unix,true)).
+freedesktop.   % at least, it can have freedesktop and all should compile
+:- else.
 freedesktop :- fail.
+:- endif.
 
 :- initialization(main, main).
 
