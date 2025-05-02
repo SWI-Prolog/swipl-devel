@@ -1833,7 +1833,7 @@ frame,  fill  the next frame and initialise the machine registers.  Then
 execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_CALL, VIF_BREAK, 1, (CA1_PROC))
+VMI(I_CALL, VIF_BREAK, 1, (CA1_LPROC))
 { Procedure proc = code2ptr(Procedure, *PC++);
 
   NFR = lTop;
@@ -2028,7 +2028,7 @@ runs normal I_CALL. This isn't too  bad,   as  it only affects the first
 call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
+VMI(I_DEPART, VIF_BREAK, 1, (CA1_LPROC))
 { Procedure proc = code2ptr(Procedure, *PC++);
 
   if ( (void *)BFR <= (void *)FR &&
@@ -2493,7 +2493,7 @@ problem.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_LCALL, 0, 1, (CA1_PROC))
+VMI(I_LCALL, 0, 1, (CA1_LPROC))
 { Procedure proc = code2ptr(Procedure, *PC++);
   Module ctx0 = contextModule(FR);
 

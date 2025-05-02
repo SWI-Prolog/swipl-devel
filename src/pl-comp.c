@@ -7113,6 +7113,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 
 	switch(ats[an++])
 	{ case CA1_PROC:
+	  case CA1_LPROC:
 	  { size_t i;
 	    Procedure proc = code2ptr(Procedure, PC[an]);
 	    rc = unify_definition(MODULE_user, term, getProcDefinition(proc), 0, 0);
@@ -7199,6 +7200,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	while(ats[an])
 	{ switch(ats[an++])
 	  { case CA1_PROC:
+	    case CA1_LPROC:
 	    { Procedure pa = code2ptr(Procedure, PC[an]);
 	      Definition def = getProcDefinition(pa);
 
@@ -7342,6 +7344,7 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_PROC:
+	case CA1_LPROC:
 	{ Procedure proc = code2ptr(Procedure, *bp++);
 
 	  rc = unify_definition(MODULE_user, av+an, proc->definition, 0,
@@ -7753,6 +7756,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      break;
 	    }
 	    case CA1_PROC:
+	    case CA1_LPROC:
 	    { Procedure proc;
 
 	      if ( get_procedure(a, &proc, 0, GP_CREATE|GP_NAMEARITY) )

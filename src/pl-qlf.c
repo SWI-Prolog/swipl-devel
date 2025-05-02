@@ -1555,6 +1555,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  for(n=0; ats[n]; n++)
 	  { switch(ats[n])
 	    { case CA1_PROC:
+	      case CA1_LPROC:
 	      { addCode(loadXR(state));
 		break;
 	      }
@@ -2871,6 +2872,7 @@ saveWicClause(wic_state *state, Clause clause)
     for(n=0; ats[n]; n++)
     { switch(ats[n])
       { case CA1_PROC:
+	case CA1_LPROC:
 	{ Procedure p = code2ptr(Procedure, *bp++);
 	  saveXRProc(state, p);
 	  break;

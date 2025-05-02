@@ -1534,10 +1534,11 @@ typedef struct gc_stats
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
 typedef enum vm_arg_type
-{ CA1_PROC = 1,         /* code arg 1 is procedure */
-  CA1_FUNC,		/* code arg 1 is functor */
-  CA1_DATA,		/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
-  CA1_INTEGER,		/* code value as integer */
+{ CA1_PROC = 1,         /* Procedure */
+  CA1_LPROC,		/* Procedure, stored in qlf as functor */
+  CA1_FUNC,		/* functor_t */
+  CA1_DATA,		/* word: atom or small int */
+  CA1_INTEGER,		/* integer (casted to/from `code`) */
   CA1_WORD,		/* word value as integer (CODES_PER_WORD) */
   CA1_FLOAT,		/* next CODES_PER_DOUBLE are double */
   CA1_STRING,		/* inlined string */

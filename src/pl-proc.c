@@ -4053,6 +4053,7 @@ remoduleClause(Clause cl, Module old, Module new)
       for(an=0; ats[an]; an++)
       { switch(ats[an])
 	{ case CA1_PROC:
+	  case CA1_LPROC:
 	  { Procedure op = code2ptr(Procedure, PC[an+1]);
 
 	    if ( op->definition->module != MODULE_system )
