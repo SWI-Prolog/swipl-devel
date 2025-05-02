@@ -111,8 +111,8 @@ term_in_clause(CRef, List, Term) :-
 	find_term(List, (Head:-Body), Term).
 
 ok_literal(i_enter, _).			% Head: not much point checking
-ok_literal(i_call(_:X/0), X).
-ok_literal(i_depart(_:X/0), X).
+ok_literal(i_call(X/0), X).
+ok_literal(i_depart(X/0), X).
 
 
 find_term([], Term, Term).

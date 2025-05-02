@@ -7342,8 +7342,13 @@ unify_vmi(DECL_LD term_t t, Code bp)
 	  rc = true;
 	  break;
 	}
-	case CA1_PROC:
 	case CA1_LPROC:
+	{ Procedure proc = code2ptr(Procedure, *bp++);
+	  rc = unify_functor(av+an, proc->definition->functor->functor,
+			     GP_NAMEARITY);
+	  break;
+	}
+	case CA1_PROC:
 	{ Procedure proc = code2ptr(Procedure, *bp++);
 
 	  rc = unify_definition(MODULE_user, av+an, proc->definition, 0,
