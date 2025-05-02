@@ -149,7 +149,7 @@ format_pi(PI) :-
     format(string(Label), '~q', [PI]),
     ansi_hyperlink(user_output, File:Line, Label).
 format_pi(PI) :-
-    ansi_format(bold, '~q', [PI]).
+    format('~q', [PI]).
 
 %!  iarg_spec(+Position, +Args)//
 

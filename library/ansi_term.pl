@@ -341,7 +341,7 @@ hex_color(D1,V) :-
 %   Hook that allows  for  mapping  abstract   terms  to  concrete  ANSI
 %   attributes. This hook  is  used  by   _theme_  files  to  adjust the
 %   rendering based on  user  preferences   and  context.  Defaults  are
-%   defined in the file `boot/messages.pl`.
+%   defined in the file `boot/messages.pl`, default_theme/2.
 %
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.
