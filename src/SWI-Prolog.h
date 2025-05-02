@@ -79,7 +79,7 @@ numbers are atomic type.
 #define PL_FLI_VERSION      2		/* PL_*() functions */
 #define	PL_REC_VERSION      3		/* PL_record_external(), fastrw */
 #define PL_QLF_LOADVERSION 68		/* load all versions later >= X */
-#define PL_QLF_VERSION     70		/* save version number */
+#define PL_QLF_VERSION     71		/* save version number */
 
 
 		 /*******************************

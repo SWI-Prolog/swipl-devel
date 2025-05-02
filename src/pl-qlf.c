@@ -1457,10 +1457,11 @@ loadPredicate(DECL_LD wic_state *state, int skip)
       case 'L':
 	loadInclude(state, false);
 	continue;
-      case 'C':
+      case 'C':			/* next clause */
       { int has_dicts = 0;
 	tmp_buffer buf;
 	vm_rlabel_state lstate;
+	Module ctx = def->module;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	initBuffer(&buf);
@@ -1554,8 +1555,19 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 
 	  for(n=0; ats[n]; n++)
 	  { switch(ats[n])
-	    { case CA1_PROC:
-	      case CA1_LPROC:
+	    { case CA1_LPROC:
+	      { if ( state->saved_version >= 71 )
+		{ functor_t f = word2functor(loadXR(state));
+		  Procedure proc = isCurrentProcedure(f, MODULE_system);
+
+		  if ( !proc || isoff(proc->definition, P_ISO) )
+		    proc = lookupProcedure(f, ctx);
+		  addCode(ptr2code(proc));
+		  break;
+		}
+	      }
+	      /*FALLTHROUGH*/
+	      case CA1_PROC:
 	      { addCode(loadXR(state));
 		break;
 	      }
@@ -1583,8 +1595,12 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		break;
 	      }
 	      case CA1_MODULE:
-		addCode(loadXR(state));
+	      { Module m = (Module)loadXR(state);
+		addCode(m);
+		if ( op == I_CONTEXT )
+		  ctx = m;
 		break;
+	      }
 	      case CA1_JUMP:
 	      { unsigned lbl = qlfGetUInt32(fd);
 		size_t off = entriesBuffer(&buf, code);
@@ -2872,9 +2888,13 @@ saveWicClause(wic_state *state, Clause clause)
     for(n=0; ats[n]; n++)
     { switch(ats[n])
       { case CA1_PROC:
-	case CA1_LPROC:
 	{ Procedure p = code2ptr(Procedure, *bp++);
 	  saveXRProc(state, p);
+	  break;
+	}
+	case CA1_LPROC:
+	{ Procedure p = code2ptr(Procedure, *bp++);
+	  saveXRFunctor(state, p->definition->functor->functor);
 	  break;
 	}
 	case CA1_MODULE:
