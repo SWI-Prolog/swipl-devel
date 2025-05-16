@@ -1001,7 +1001,16 @@ PL_unify_stream(term_t t, IOSTREAM *s)
 IOSTREAM **				/* provide access to Suser_input, */
 _PL_streams(void)			/* Suser_output and Suser_error */
 { GET_LD
-  return &Suser_input;
+  return LD ? &Suser_input : NULL;
+}
+
+IOSTREAM *				/* provide access to Suser_input, */
+_PL_stream(int which)			/* Suser_output and Suser_error */
+{ GET_LD
+  if ( LD )
+    return LD->IO.streams[which];
+
+  return NULL;
 }
 
 
