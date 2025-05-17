@@ -2274,6 +2274,8 @@ do_write2(term_t stream, term_t term, int flags, int canonical)
       options.flags |= PL_WRT_CHARESCAPES;
     if ( ison(options.module, BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
+    if ( ison(options.module, RAT_NATURAL) )
+      options.flags |= PL_WRT_RAT_NATURAL;
 
     PutOpenToken(EOF, s);		/* reset this */
     rc = writeTopTerm(term, 1200, &options);
