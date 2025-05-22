@@ -314,19 +314,18 @@ human_thread_id(Thread, Id) :-
 %   Windows console. We can also provide it   for the X11 xterm(1) based
 %   console if we use the BSD libedit based command line editor.
 
-:- if((current_prolog_flag(readline, editline),
-       exists_source(library(editline)))).
 enable_line_editing(_In, _Out, _Err) :-
     current_prolog_flag(readline, editline),
+    exists_source(library(editline)),
+    use_module(library(editline)),
     !,
-    el_wrap.
-:- endif.
+    call(el_wrap).
 enable_line_editing(_In, _Out, _Err).
 
-:- if(current_predicate(el_unwrap/1)).
 disable_line_editing(_In, _Out, _Err) :-
-    el_unwrap(user_input).
-:- endif.
+    current_predicate(el_unwrap/1),
+    !,
+    call(el_unwrap(user_input)).
 disable_line_editing(_In, _Out, _Err).
 
 
