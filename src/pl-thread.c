@@ -3374,12 +3374,27 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   PL_thread_info_t *info;
   PL_local_data_t *ld;
   int rc;
+  int sig;
 
   term_t thread = A1;
   term_t goal   = A2;
 
   if ( !PL_strip_module(goal, &m, goal) )
     return false;
+
+  if ( PL_get_integer(goal, &sig) )
+  { if ( sig >= 1 && sig < SIG_ATOM_GC )
+    { PL_LOCK(L_THREAD);
+      rc = get_thread(thread, &info, true);
+      if ( rc && !(rc=is_alive(info->status)) )
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
+      PL_thread_raise(info->pl_tid, sig);
+      PL_UNLOCK(L_THREAD);
+      return true;
+    } else
+    { return PL_domain_error("signal", goal);
+    }
+  }
 
   sg = allocHeapOrHalt(sizeof(*sg));
   sg->next    = NULL;

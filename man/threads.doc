@@ -919,6 +919,11 @@ thread signalling in more detail. The following notes apply for
           to determine what the thread is doing.
 \end{itemize}
 
+If \arg{Goal} is an integer, it is taken as a signal number and this
+signal is raised in the target \arg{ThreadId}.  Signal numbers range
+between 1 and 32.  The predicate current_signal/3 can be used to map
+signal names to signal numbers and inspect the handler.
+
     \predicate[det]{sig_pending}{1}{-List}
 True when \arg{List} contains all signals submitted using
 thread_signal/2 that are not yet processed. This includes signals
