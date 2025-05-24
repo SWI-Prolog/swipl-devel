@@ -185,7 +185,7 @@ query_loop(atom_t goal, bool loop)
 	halt_from_exception(except);
 
       if ( !validUserStreams() )
-	return -1;
+	loop = false;
 
       restore_after_exception(except);
       rc = -1;
