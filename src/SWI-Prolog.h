@@ -1351,7 +1351,7 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  int global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
-PL_EXPORT(int)	PL_w32thread_raise(DWORD dwTid, int sig);
+PL_EXPORT(bool)	PL_w32thread_raise(DWORD dwTid, int sig);
 PL_EXPORT(int)	PL_wait_for_console_input(void *handle);
 PL_EXPORT(int)	PL_w32_wrap_ansi_console(void);
 PL_EXPORT(const char*) PL_w32_running_under_wine(void);

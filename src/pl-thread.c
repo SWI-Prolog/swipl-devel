@@ -559,9 +559,9 @@ static void	detach_engine(PL_engine_t e);
 static void	initMessageQueues(void);
 static bool	get_thread(term_t t, PL_thread_info_t **info, bool warn);
 #if O_PLMT
-static int	unify_queue(term_t t, message_queue *q);
-static int	get_message_queue_unlocked(term_t t, message_queue **queue);
-static int	get_message_queue(term_t t, message_queue **queue);
+static bool	unify_queue(term_t t, message_queue *q);
+static bool	get_message_queue_unlocked(term_t t, message_queue **queue);
+static bool	get_message_queue(term_t t, message_queue **queue);
 static void	release_message_queue(message_queue *queue);
 static bool	is_alive(int status);
 #endif /*O_PLMT*/
@@ -593,8 +593,8 @@ static void timespec_add_double(struct timespec *ts, double tmo);
 		 *     RUNTIME ENABLE/DISABLE	*
 		 *******************************/
 
-int
-enableThreads(int enable)
+bool
+enableThreads(bool enable)
 {
 #if O_PLMT
   if ( enable )
@@ -619,7 +619,7 @@ enableThreads(int enable)
   }
 #endif
 
-  succeed;
+  return true;
 }
 
 
@@ -1330,7 +1330,7 @@ aliasThread(int tid, atom_t type, atom_t name)
 { GET_LD
   PL_thread_info_t *info;
   thread_handle *th;
-  int rc = true;
+  bool rc = true;
 
   PL_LOCK(L_THREAD);
   if ( !threadTable )
@@ -1721,7 +1721,7 @@ PL_w32thread_raise(DWORD id, int sig)
     handling in the Win32 platform.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_w32thread_raise(DWORD id, int sig)
 { int i;
 
@@ -2138,7 +2138,8 @@ start_thread(void *closure)
     }
 
     if ( !rval && info->detached )
-    { if ( ex )
+    { fid_t fid = PL_open_foreign_frame();
+      if ( ex )
       { int print = true;
 
 	if ( LD->thread.exit_requested )
@@ -2162,6 +2163,7 @@ start_thread(void *closure)
 			     PL_ATOM, ATOM_fail) )
 	  PL_clear_exception();		/* The thread is dead anyway */
       }
+      PL_close_foreign_frame(fid);
     }
 
     set_thread_completion(info, rval, ex);
@@ -2591,21 +2593,21 @@ unify_thread_id(DECL_LD term_t id, PL_thread_info_t *info)
 #define unify_engine_status(status, info) \
 	LDFUNC(unify_engine_status, status, info)
 
-static int
+static bool
 unify_engine_status(DECL_LD term_t status, PL_thread_info_t *info)
 { return PL_unify_atom(status, ATOM_suspended);
 }
 
 
-static int
+static bool
 unify_thread_status(term_t status, PL_thread_info_t *info,
-		    thread_status stat, int lock)
+		    thread_status stat, bool lock)
 { GET_LD
 
   switch(stat)
   { case PL_THREAD_CREATED:
     case PL_THREAD_RUNNING:
-    { int rc = false;
+    { bool rc = false;
       if ( info->is_engine )
       { if ( lock ) PL_LOCK(L_THREAD);
 	if ( !info->has_tid )
@@ -2616,7 +2618,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info,
     }
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
-      int rc = true;
+      bool rc = true;
 
       if ( info->return_value )
       { if ( lock ) PL_LOCK(L_THREAD);
@@ -2638,7 +2640,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info,
       return PL_unify_atom(status, ATOM_false);
     case PL_THREAD_EXCEPTION:
     { term_t tmp = PL_new_term_ref();
-      int rc = true;
+      bool rc = true;
 
       if ( lock ) PL_LOCK(L_THREAD);
       if ( info->return_value )
@@ -2661,7 +2663,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info,
     }
     default:
       DEBUG(MSG_THREAD, Sdprintf("info->status = %d\n", info->status));
-      fail;				/* can happen in current_thread/2 */
+      return false;		/* can happen in current_thread/2 */
   }
 }
 
@@ -2854,7 +2856,7 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
   PL_LOCK(L_THREAD);
   if ( !get_thread(A1, &info, true) )
   { PL_UNLOCK(L_THREAD);
-    fail;
+    return false;
   }
 
   if ( !info->detached )
@@ -2882,7 +2884,7 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
   if ( release )
     free_thread_info(release);
 
-  succeed;
+  return true;
 }
 
 static
@@ -3274,7 +3276,7 @@ static
 PRED_IMPL("thread_affinity", 3, thread_affinity, 0)
 { PRED_LD
   PL_thread_info_t *info;
-  int rc;
+  bool rc;
 
   PL_LOCK(L_THREAD);
   if ( (rc=get_thread(A1, &info, true)) )
@@ -3373,7 +3375,7 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   thread_sig *sg = NULL;
   PL_thread_info_t *info;
   PL_local_data_t *ld;
-  int rc;
+  bool rc;
   int sig;
 
   term_t thread = A1;
@@ -5265,7 +5267,7 @@ initMessageQueues(void)
   PL_register_blob_type(&message_queue_blob);
 }
 
-static int
+static bool
 unify_queue(term_t t, message_queue *q)
 { GET_LD
 
@@ -5345,7 +5347,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
    level code must use get_message_queue();
 */
 
-static int
+static bool
 get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
 { atom_t name;
   word id = 0;
@@ -5412,9 +5414,9 @@ get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
 /* Get a message queue and lock it
 */
 
-static int
+static bool
 get_message_queue(DECL_LD term_t t, message_queue **queue)
-{ int rc;
+{ bool rc;
   message_queue *q;
   PL_blob_t *type;
   void *data;
@@ -5469,7 +5471,7 @@ release_message_queue(message_queue *queue)
 
 static
 PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
-{ int rval;
+{ bool rval;
 
   PL_LOCK(L_THREAD);
   rval = (unlocked_message_queue_create(A1, 0) ? true : false);
@@ -5495,7 +5497,7 @@ PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
   if ( !PL_scan_options(A2, 0, "queue_option", message_queue_options,
 			&alias,
 			&max_size) )
-    fail;
+    return false;
 
   if ( alias )
   { if ( !PL_unify_atom(A1, alias) )
@@ -6773,7 +6775,7 @@ detach_engine(PL_engine_t e)
 }
 
 
-int
+int				/* returns PL_ENGINE_* */
 PL_set_engine(PL_engine_t new, PL_engine_t *old)
 { PL_engine_t current = PL_current_engine();
 
@@ -7119,13 +7121,13 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 { PRED_LD
   PL_thread_info_t *info;
   PL_local_data_t *ld;
-  int rval;
+  bool rval;
   atom_t k;
 
   PL_LOCK(L_THREAD);
   if ( !get_thread(A1, &info, true) )
   { PL_UNLOCK(L_THREAD);
-    fail;
+    return false;
   }
 
   if ( !(ld=info->thread_data) )

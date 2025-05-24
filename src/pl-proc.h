@@ -62,7 +62,7 @@
 Procedure	lookupProcedure(functor_t f, Module m) WUNUSED;
 void		unallocProcedure(Procedure proc);
 Procedure	isCurrentProcedure(functor_t f, Module m);
-int		importDefinitionModule(Module m,
+bool		importDefinitionModule(Module m,
 				       Definition def, int flags);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
 ClauseRef	hasClausesDefinition(Definition def);

@@ -529,7 +529,7 @@ int		PL_thread_self(void);
 #ifdef O_ENGINES
 bool		unify_thread_id(term_t id, PL_thread_info_t *info);
 #endif
-int		enableThreads(int enable);
+bool		enableThreads(bool enable);
 
 
 const char *	threadName(int id);

@@ -333,12 +333,12 @@ Add (import) a definition to a module.  Used by loadImport() for loading
 states and QLF files. Must be merged with import/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 importDefinitionModule(Module m, Definition def, int flags)
 { GET_LD
   functor_t functor = def->functor->functor;
   Procedure proc;
-  int rc = true;
+  bool rc = true;
 
   LOCKMODULE(m);
   if ( (proc = lookupHTableWP(m->procedures, functor)) )
@@ -573,7 +573,7 @@ shareDefinition(Definition def)
 }
 
 
-int
+int /* returns new access count */
 unshareDefinition(Definition def)
 { return ATOMIC_DEC(&def->shared);
 }
