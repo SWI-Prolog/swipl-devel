@@ -988,6 +988,15 @@ printMessagev(atom_t severity, va_list args)
   predicate_t pred = PROCEDURE_print_message2;
   bool rc;
 
+  if ( Sferror(Suser_error) )
+  { if ( !Sferror(Serror) )
+    { Sdprintf("[%d] printMessage(): Cannot write to user_error\n",
+	       PL_thread_self());
+    }
+    return true;		/* no success, but also no exception */
+  }
+
+
   if ( ++LD->in_print_message >= OK_RECURSIVE*3 )
     fatalError("printMessage(): recursive call\n");
   if ( !saveWakeup(&wstate, true) )
@@ -1006,13 +1015,13 @@ printMessagev(atom_t severity, va_list args)
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
     { Sfprintf(Serror, "print_message/2: recursive call: ");
       if ( ReadingSource )
-	Sfprintf(Serror, "%s:%d ",
+	Sdprintf("%s:%d ",
 		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
       PL_backtrace(5, 1);
     } else				/* in_print_message == 2 */
-    { Sfprintf(Serror, "printMessage(): recursive call\n");
+    { Sdprintf("printMessage(): recursive call\n");
     }
   }
 

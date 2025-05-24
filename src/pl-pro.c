@@ -184,9 +184,7 @@ query_loop(atom_t goal, bool loop)
       if ( exclass == EXCEPT_HALT && PL_thread_self() <= 1 )
 	halt_from_exception(except);
 
-      if ( Sferror(Suser_input) ||
-	   Sferror(Suser_output) ||
-	   Sferror(Suser_error) )
+      if ( !validUserStreams() )
 	return -1;
 
       restore_after_exception(except);

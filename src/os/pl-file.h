@@ -65,6 +65,7 @@ typedef enum iri_op
 #define	getBinaryOutputStream(t, s)	LDFUNC(getBinaryOutputStream, t, s)
 #define pushOutputContext(s)		LDFUNC(pushOutputContext, s)
 #define popOutputContext(_)		LDFUNC(popOutputContext, _)
+#define validUserStreams(_)		LDFUNC(validUserStreams, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -72,6 +73,7 @@ typedef enum iri_op
 /* pl-file.c */
 void		initIO(void);
 void		dieIO(void);
+bool		validUserStreams(void);
 void		referenceStandardStreams(PL_local_data_t *ld);
 void		unreferenceStandardStreams(PL_local_data_t *ld);
 void		copyStandardStreams(PL_local_data_t *ldnew,

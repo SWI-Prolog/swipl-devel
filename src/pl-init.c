@@ -2241,7 +2241,8 @@ vwarning(const char *fm, va_list args)
     }
   }
 
-  if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
+  if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
+       validUserStreams() )
     pl_trace();
 
   return false;

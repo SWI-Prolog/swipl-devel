@@ -1437,6 +1437,18 @@ dieIO(void)
   }
 }
 
+/* True if the  three standard user streams are not  in an error mode.
+ * Getting in  an error state is  typically the case for  threads that
+ * run  the REPL  loop.  When  in error  state, should  we switch  the
+ * output streams  back to Soutput  and Serror?  Surely not  the input
+ * stream as that may deadlock.
+ */
+bool
+validUserStreams(DECL_LD)
+{ return ( !Sferror(Suser_input) &&
+	   !Sferror(Suser_output) &&
+	   !Sferror(Suser_error) );
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 closeStream() performs Prolog-level closing. Most important right now is
