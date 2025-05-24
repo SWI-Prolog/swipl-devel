@@ -1025,12 +1025,15 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
     trim_stacks,
     trim_heap,
     repeat,
-      read_query(Prompt, Query, Bindings),
-      prompt(_, Old),
-      catch(call_expand_query(Query, ExpandedQuery,
-                              Bindings, ExpandedBindings),
-            Error,
-            (print_message(error, Error), fail)),
+      (   catch(read_query(Prompt, Query, Bindings),
+                error(io_error(_,_),_), fail)
+      ->  prompt(_, Old),
+          catch(call_expand_query(Query, ExpandedQuery,
+                                  Bindings, ExpandedBindings),
+                Error,
+                (print_message(error, Error), fail))
+      ;   thread_exit(io_error)
+      ),
     !.
 
 
