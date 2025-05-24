@@ -1032,7 +1032,8 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
                                   Bindings, ExpandedBindings),
                 Error,
                 (print_message(error, Error), fail))
-      ;   thread_exit(io_error)
+      ;   set_prolog_flag(debug_on_error, false),
+          thread_exit(io_error)
       ),
     !.
 

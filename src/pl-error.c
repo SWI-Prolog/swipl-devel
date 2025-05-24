@@ -1019,7 +1019,7 @@ printMessagev(atom_t severity, va_list args)
 	}
       }
     } else
-    { if ( !Sferror(Serror) )
+    { if ( !Sferror(Serror) && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { Sdprintf("[%d] printMessage(): Cannot write to user_error:\n",
 		 PL_thread_self());
 	rc = PL_write_term(Serror, av+1, 1200, 0);
