@@ -208,6 +208,16 @@ case $config in
     ;;
 esac
 
+# SDL
+#
+# Use SDL graphics for xpce
+
+case $config in
+  *sdl*)
+    opts+=" -DSDL=ON"
+    ;;
+esac
+
 # malloc
 #
 # Use  malloc  instead  of  tcmalloc.  Currently  required  for  using
