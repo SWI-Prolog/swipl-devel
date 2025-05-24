@@ -2794,7 +2794,8 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   if ( info == LD->thread.info ||
        info->detached ||
        !COMPARE_AND_SWAP_INT(&info->joining_by, 0, PL_thread_self()) )
-  { return PL_error("thread_join", 2,
+  { PL_UNLOCK(L_THREAD);
+    return PL_error("thread_join", 2,
 		    info->joining_by ? "Already being joined" :
 		    info->detached   ? "Cannot join detached thread"
 				     : "Cannot join self",
