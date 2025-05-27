@@ -1339,21 +1339,21 @@ write_bindings(Bindings, ResidueVars, Delays, DetOrChp) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
-    write_bindings2(Bindings1, Residuals, Delays1, DetOrChp).
+    write_bindings2(Bindings, Bindings1, Residuals, Delays1, DetOrChp).
 
-write_bindings2([], Residuals, Delays, _) :-
+write_bindings2(OrgBindings, [], Residuals, Delays, _) :-
     current_prolog_flag(prompt_alternatives_on, groundness),
     !,
-    name_vars([], t(Residuals, Delays)),
+    name_vars(OrgBindings, [], t(Residuals, Delays)),
     print_message(query, query(yes(Delays, Residuals))).
-write_bindings2(Bindings, Residuals, Delays, true) :-
+write_bindings2(OrgBindings, Bindings, Residuals, Delays, true) :-
     current_prolog_flag(prompt_alternatives_on, determinism),
     !,
-    name_vars(Bindings, t(Residuals, Delays)),
+    name_vars(OrgBindings, Bindings, t(Residuals, Delays)),
     print_message(query, query(yes(Bindings, Delays, Residuals))).
-write_bindings2(Bindings, Residuals, Delays, Chp) :-
+write_bindings2(OrgBindings, Bindings, Residuals, Delays, Chp) :-
     repeat,
-        name_vars(Bindings, t(Residuals, Delays)),
+        name_vars(OrgBindings, Bindings, t(Residuals, Delays)),
         print_message(query, query(more(Bindings, Delays, Residuals))),
         get_respons(Action, Chp),
     (   Action == redo
@@ -1364,29 +1364,30 @@ write_bindings2(Bindings, Residuals, Delays, Chp) :-
         print_message(query, query(done))
     ).
 
-%!  name_vars(+Bindings, +Term) is det.
+%!  name_vars(+OrgBinding, +Bindings, +Term) is det.
 %
 %   Give a name ``_[A-Z][0-9]*`` to all variables   in Term, that do not
 %   have a name due to Bindings. Singleton   variables in Term are named
 %   `_`. The behavior depends on these Prolog flags:
 %
 %     - toplevel_name_variables
-%       Only act when `true`, else name_vars/2 is a no-op.
+%       Only act when `true`, else name_vars/3 is a no-op.
 %     - toplevel_print_anon
 %
 %   Variables are named by unifying them to `'$VAR'(Name)`
 %
 %   @arg Bindings is a list Name=Value
 
-name_vars(Bindings, Term) :-
+name_vars(OrgBindings, Bindings, Term) :-
     current_prolog_flag(toplevel_name_variables, true),
     answer_flags_imply_numbervars,
     !,
     '$term_multitons'(t(Bindings,Term), Vars),
-    name_vars_(Vars, Bindings, 0),
+    bindings_var_names(OrgBindings, Bindings, VarNames),
+    name_vars_(Vars, VarNames, 0),
     term_variables(t(Bindings,Term), SVars),
     anon_vars(SVars).
-name_vars(_Bindings, _Term).
+name_vars(_OrgBindings, _Bindings, _Term).
 
 name_vars_([], _, _).
 name_vars_([H|T], Bindings, N) :-
@@ -1398,12 +1399,12 @@ anon_vars([]).
 anon_vars(['$VAR'('_')|T]) :-
     anon_vars(T).
 
-%!  name_var(+Bindings, -Name, +N0, -N) is det.
+%!  name_var(+Reserved, -Name, +N0, -N) is det.
 %
 %   True when Name is a valid name for   a new variable where the search
-%   is guided by the number N0. Name may not appear in Bindings.
+%   is guided by the number N0. Name may not appear in Reserved.
 
-name_var(Bindings, Name, N0, N) :-
+name_var(Reserved, Name, N0, N) :-
     between(N0, infinite, N1),
     I is N1//26,
     J is 0'A + N1 mod 26,
@@ -1411,22 +1412,40 @@ name_var(Bindings, Name, N0, N) :-
     ->  format(atom(Name), '_~c', [J])
     ;   format(atom(Name), '_~c~d', [J, I])
     ),
-    (   current_prolog_flag(toplevel_print_anon, false)
-    ->  true
-    ;   \+ is_bound(Bindings, Name)
-    ),
+    \+ memberchk(Name, Reserved),
     !,
     N is N1+1.
 
-is_bound([binding(Vars,_Value,_Subst)|T], Name) :-
-    (   in_vars(Vars, Name)
-    ->  true
-    ;   is_bound(T, Name)
-    ).
+%!  bindings_var_names(+OrgBindings, +TransBindings, -VarNames) is det.
+%
+%   Find the joined set of variable names   in the original bindings and
+%   translated bindings. When generating new names,  we better also omit
+%   names  that  appear  in  the  original  bindings  (but  not  in  the
+%   translated bindigns).
 
-in_vars(Name, Name) :- !.
-in_vars(Names, Name) :-
-    '$member'(Name, Names).
+bindings_var_names(OrgBindings, TransBindings, VarNames) :-
+    phrase(bindings_var_names_(OrgBindings), VarNames0, Tail),
+    phrase(bindings_var_names_(TransBindings), Tail, []),
+    sort(VarNames0, VarNames).
+
+%!  bindings_var_names_(+Bindings)// is det.
+%
+%   Produce a list of variable names that appear in Bindings. This deals
+%   both with the single and joined representation of bindings.
+
+bindings_var_names_([]) --> [].
+bindings_var_names_([H|T]) -->
+    binding_var_names(H),
+    bindings_var_names_(T).
+
+binding_var_names(binding(Vars,_Value,_Subst)) ==>
+    var_names(Vars).
+binding_var_names(Name=_Value) ==>
+    [Name].
+
+var_names([]) --> [].
+var_names([H|T]) --> [H], var_names(T).
+
 
 %!  answer_flags_imply_numbervars
 %
@@ -1510,10 +1529,10 @@ collect_residual_goals([H|T]) -->
 
 prolog:translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals) :-
     translate_bindings(Bindings0, Bindings, ResVars, ResGoals, Residuals),
-    name_vars(Bindings, t(ResVars, ResGoals, Residuals)).
+    name_vars(Bindings0, Bindings, t(ResVars, ResGoals, Residuals)).
 
 % should not be required.
-prolog:name_vars(Bindings, Term) :- name_vars(Bindings, Term).
+prolog:name_vars(Bindings, Term) :- name_vars([], Bindings, Term).
 
 translate_bindings(Bindings0, Bindings, ResidueVars, Residuals) :-
     prolog:residual_goals(ResidueGoals, []),
