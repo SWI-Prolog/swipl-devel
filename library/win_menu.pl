@@ -40,10 +40,11 @@
           ]).
 :- autoload(library(apply), [maplist/4]).
 :- autoload(library(edit), [edit/1]).
-:- autoload(library(lists), [select/3, append/3]).
+:- autoload(library(lists), [select/3, append/3, member/2]).
 :- autoload(library(pce), [get/3]).
 :- autoload(library(www_browser), [expand_url_path/2, www_open_url/1]).
 :- autoload(library(uri), [uri_file_name/2, uri_components/2, uri_data/3]).
+:- autoload(library(readutil), [read_line_to_codes/2]).
 
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -529,6 +530,47 @@ action_path_menu(ActionItem, Path, Label, win_menu:Action) :-
 
 add_to_mru(_, _).
 refresh_mru.
+
+:- endif.
+
+                /*******************************
+                *       HISTORY SUPPORT        *
+                *******************************/
+
+:- if(current_predicate('$rl_history'/1)).
+
+:- multifile
+    prolog:history/2.
+
+prolog:history(_, load(File)) :-
+    access_file(File, read),
+    !,
+    setup_call_cleanup(
+        open(File, read, In, [encoding(utf8)]),
+        read_history(In),
+        close(In)).
+prolog:history(_, load(_)).
+
+read_history(In) :-
+    repeat,
+    read_line_to_codes(In, Codes),
+    (   Codes == end_of_file
+    ->  !
+    ;   atom_codes(Line, Codes),
+        rl_add_history(Line),
+        fail
+    ).
+
+prolog:history(_, save(File)) :-
+    '$rl_history'(Lines),
+    (   Lines \== []
+    ->  setup_call_cleanup(
+            open(File, write, Out, [encoding(utf8)]),
+            forall(member(Line, Lines),
+                   format(Out, '~w~n', [Line])),
+            close(Out))
+    ;   true
+    ).
 
 :- endif.
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, VU University Amsterdam
+    Copyright (c)  2011-2025, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,9 +38,6 @@
           [ prolog_history/1
           ]).
 :- autoload(library(base32),[base32/2]).
-:- autoload(library(lists),[member/2]).
-:- autoload(library(readutil),[read_line_to_codes/2]).
-
 
 :- multifile
     prolog:history/2.
@@ -148,40 +146,3 @@ prolog_history(enable) :-
     set_prolog_flag(save_history, true).
 prolog_history(_) :-
     set_prolog_flag(save_history, false).
-
-		 /*******************************
-		 *      SWIPL-WIN SUPPORT	*
-		 *******************************/
-
-:- if(current_predicate('$rl_history'/1)).
-prolog:history(_, load(File)) :-
-    access_file(File, read),
-    !,
-    setup_call_cleanup(
-        open(File, read, In, [encoding(utf8)]),
-        read_history(In),
-        close(In)).
-prolog:history(_, load(_)).
-
-read_history(In) :-
-    repeat,
-    read_line_to_codes(In, Codes),
-    (   Codes == end_of_file
-    ->  !
-    ;   atom_codes(Line, Codes),
-        rl_add_history(Line),
-        fail
-    ).
-
-prolog:history(_, save(File)) :-
-    '$rl_history'(Lines),
-    (   Lines \== []
-    ->  setup_call_cleanup(
-            open(File, write, Out, [encoding(utf8)]),
-            forall(member(Line, Lines),
-                   format(Out, '~w~n', [Line])),
-            close(Out))
-    ;   true
-    ).
-
-:- endif.
