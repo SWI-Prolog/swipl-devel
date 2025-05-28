@@ -62,7 +62,7 @@ function(add_swipl_target name)
   add_custom_command(
       OUTPUT ${my_OUTPUT}
       BYPRODUCTS ${my_BYPRODUCTS}
-      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
+      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
 	      ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
