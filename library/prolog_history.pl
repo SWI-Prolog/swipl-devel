@@ -116,15 +116,14 @@ write_history(_).
 %
 %   Execute Action on  the  history.   Action is one of
 %
-%     * enable
-%     Enable history. First loads history for the current directory.
-%     Loading the history is done at most once.
-%     * disable
-%     Sets the Prolog flag =save_history= to =false=, such that the
-%     history is not saved on halt.
+%     - enable
+%       Enable history. First loads history for the current directory.
+%       Loading the history is done at most once.
+%     - disable
+%       Sets the Prolog flag =save_history= to =false=, such that the
+%       history is not saved on halt.
 
-:- dynamic
-    history_loaded/1.
+:- thread_local history_loaded/1.
 
 load_dir_history(File) :-
     (   exists_file(File),
