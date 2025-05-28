@@ -120,8 +120,11 @@ write_history(_).
 %       Enable history. First loads history for the current directory.
 %       Loading the history is done at most once.
 %     - disable
-%       Sets the Prolog flag =save_history= to =false=, such that the
+%       Sets the Prolog flag `save_history` to `false`, such that the
 %       history is not saved on halt.
+%     - save
+%       If there is a history loaded from a file, save the current
+%       history back into that file if `save_history` is `true`
 
 :- thread_local history_loaded/1.
 
@@ -132,16 +135,24 @@ load_dir_history(File) :-
     ;   true
     ).
 
-prolog_history(enable) :-
-    history_loaded(_),
-    !.
-prolog_history(enable) :-
-    catch(dir_history_file('.', File), E,
-          (print_message(warning, E),fail)),
-    catch(load_dir_history(File), E,
-          print_message(warning, E)),
-    !,
-    at_halt(write_history(File)),
-    set_prolog_flag(save_history, true).
-prolog_history(_) :-
+prolog_history(enable) =>
+    (   history_loaded(_)
+    ->  true
+    ;   catch(dir_history_file('.', File), E,
+              (print_message(warning, E),fail)),
+        catch(load_dir_history(File), E,
+              print_message(warning, E)),
+        (   thread_self(main)
+        ->  at_halt(write_history(File))
+        ;   true
+        ),
+        set_prolog_flag(save_history, true)
+    ).
+prolog_history(disable) =>
     set_prolog_flag(save_history, false).
+prolog_history(save) =>
+    (   history_loaded(File)
+    ->  write_history(File)
+    ;   true
+    ).
+
