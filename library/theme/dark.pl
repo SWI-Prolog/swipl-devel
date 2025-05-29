@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2025, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -254,6 +255,23 @@ pce_set_defaults :-
 %   Set XPCE class variales for Class. This  is normally done by loading
 %   a _resource file_, but doing it from   Prolog keeps the entire theme
 %   in a single file.
+
+% Epilog (next generation swipl-win)
+
+pce_style(terminal_image,
+          [ background(black),
+            colour(white),
+            selection_style(style(background := yellow, colour := black))
+          ]).
+
+% Dialog
+
+/* Needs support in xpce.
+pce_style(text_item,
+          [ colour(white),
+            elevation(elevation('0,25mm', background := black))
+          ]).
+*/
 
 % PceEmacs
 
