@@ -714,7 +714,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   double time;
   PL_local_data_t *old_ld;
 #ifdef O_PLMT
-  int acknowledge;
+  bool acknowledge;
 #endif
 
   { GET_LD
@@ -745,6 +745,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       if ( ld->stacks.argument.base )		/* are stacks initialized? */
       { WITH_LD(ld) startCritical();
 	info->in_exit_hooks = true;
+	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("%d: calling exit hooks\n",
+					   PL_thread_self()));
 	if ( LD == ld )
 	  rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
 	else
