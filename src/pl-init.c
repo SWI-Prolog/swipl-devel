@@ -98,7 +98,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <mcheck.h>
 #endif
 
-static int	usage(void);
+static bool	usage(void);
 static bool	giveVersionInfo(const char *a);
 static bool	vsysError(const char *errtype, const char *fm, va_list args);
 static const char* abi_version(void);
@@ -1534,7 +1534,7 @@ PL_set_resource_db_mem(const unsigned char *data, size_t size)
 
 typedef const char *cline;
 
-static int
+static bool
 usage(void)
 { char tmp[PATH_MAX];
 
@@ -2248,6 +2248,29 @@ vwarning(const char *fm, va_list args)
   return false;
 }
 
+static
+PRED_IMPL("$run_state", 1, run_state, 0)
+{ const char *rstate;
+
+  switch(GD->cleaning)
+  { case CLN_NORMAL:
+      rstate = "normal";
+      break;
+    case CLN_PROLOG:
+      rstate = "cleanup_prolog";
+      break;
+    case CLN_FOREIGN:
+      rstate = "cleanup_foreign";
+      break;
+    case CLN_IO:
+    case CLN_SHARED:
+    case CLN_DATA:
+      assert(0);
+      return false;
+  }
+
+  return PL_unify_atom_chars(A1, rstate);
+}
 
 
 
@@ -2256,5 +2279,6 @@ vwarning(const char *fm, va_list args)
 		 *******************************/
 
 BeginPredDefs(init)
-  PRED_DEF("$usage", 0, usage, 0)
+  PRED_DEF("$usage",     0, usage,     0)
+  PRED_DEF("$run_state", 1, run_state, 0)
 EndPredDefs
