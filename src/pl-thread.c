@@ -1113,6 +1113,7 @@ static void
 dummy_handler(int sig)
 { (void)sig;
 
+  DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Timout waiting for threads to die\n"));
   exit_wait_timeout = true;
 }
 #endif
@@ -1138,9 +1139,9 @@ halt_grace_time(void)
 }
 #endif
 
-int
+bool
 exitPrologThreads(void)
-{ int rc = true;
+{ bool rc = true;
 #ifdef O_PLMT
   int i;
   int me = PL_thread_self();
@@ -1221,7 +1222,9 @@ exitPrologThreads(void)
       Sdprintf("WARNING: Failed to install timeout for shutdown\n");
 
     while(canceled > 0)
-    { if ( sem_wait(sem_canceled_ptr) == 0 )
+    { int rval = sem_wait(sem_canceled_ptr);
+      DEBUG(MSG_CLEANUP_THREAD, Sdprintf("sem_wait() returned %d\n", rval));
+      if ( rval == 0 )
       { canceled--;
 	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left %d", canceled));
       } else
