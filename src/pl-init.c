@@ -2265,6 +2265,7 @@ PRED_IMPL("$run_state", 1, run_state, 0)
     case CLN_IO:
     case CLN_SHARED:
     case CLN_DATA:
+    default:
       assert(0);
       return false;
   }
