@@ -569,6 +569,32 @@ initialise_prolog :-
     '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
     init_debug_flags,
     start_pldoc,                                % handle --pldoc[=port]
+    main_thread_init.
+
+%!  main_thread_init
+%
+%   Deal with the _Epilog_ toplevel. If  the   flag  `epilog` is set and
+%   xpce is around, create an epilog window   and complete the user part
+%   of the initialization in the epilog thread.
+
+main_thread_init :-
+    current_prolog_flag(epilog, true),
+    thread_self(main),
+    current_prolog_flag(xpce, true),
+    exists_source(library(epilog)),
+    !,
+    use_module(library(epilog)),
+    call(epilog([ init(user_thread_init),
+                  main(true)
+                ])).
+main_thread_init :-
+    user_thread_init.
+
+%!  user_thread_init
+%
+%   Complete the toplevel startup.  This may run in a separate thread.
+
+user_thread_init :-
     opt_attach_packs,
     argv_prolog_files(Files, ScriptMode),
     load_init_file(ScriptMode),                 % -f file
