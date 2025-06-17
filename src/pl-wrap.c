@@ -476,8 +476,6 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
       *cp = cls->def.impl.wrapped.supervisor;
 
       freeSupervisor(def, codes, true);
-      PL_unregister_atom(aref);
-      PL_unregister_atom(wname);
 
       return true;
     }
