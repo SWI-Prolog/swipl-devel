@@ -9,6 +9,7 @@ set breakpoint pending on
 break trap_gdb
 break sysError
 break __assert_fail
+break PL_api_error
 set breakpoint pending off
 
 # Pass signals that are commonly used and not needed for debugging
