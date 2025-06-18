@@ -94,17 +94,16 @@ hasConsole(void)
 }
 
 
-int
+bool
 PL_wait_for_console_input(void *handle)
-{ BOOL rc;
-  HANDLE hConsole = handle;
+{ HANDLE hConsole = handle;
 
   for(;;)
-  { rc = MsgWaitForMultipleObjects(1,
-				   &hConsole,
-				   false,	/* wait for either event */
-				   INFINITE,
-				   QS_ALLINPUT);
+  { DWORD rc = MsgWaitForMultipleObjects(1,
+					 &hConsole,
+					 false,	/* wait for either event */
+					 INFINITE,
+					 QS_ALLINPUT);
 
     if ( rc == WAIT_OBJECT_0+1 )
     { MSG msg;

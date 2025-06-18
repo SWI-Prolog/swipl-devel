@@ -100,10 +100,10 @@ flush_ansi(ansi_stream *as)
 
     if (as->handletype == HDL_CONSOLE)
     { rc = WriteConsoleW(as->hConsole,
-		         &as->buffer[written],
-		         (DWORD)(as->buffered-written),
-		         &done,
-		         NULL);
+			 &as->buffer[written],
+			 (DWORD)(as->buffered-written),
+			 &done,
+			 NULL);
     } else
     { rc = WriteFile(as->hConsole,
                      &as->buffer[written],
@@ -501,7 +501,7 @@ init_output(void *handle, CONSOLE_SCREEN_BUFFER_INFO *info)
 }
 
 
-int
+bool
 PL_w32_wrap_ansi_console(void)
 { HANDLE hIn    = GetStdHandle(STD_INPUT_HANDLE);
   HANDLE hOut   = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -517,7 +517,7 @@ PL_w32_wrap_ansi_console(void)
   }
 
   saved_functions       = Sinput->functions;
-  con_functions	        = *Sinput->functions;
+  con_functions		= *Sinput->functions;
   con_functions.read    = Sread_win32_console;
   con_functions.write   = write_ansi;
   con_functions.close   = close_ansi;
