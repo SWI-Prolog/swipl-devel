@@ -4136,11 +4136,11 @@ compile_aux_clauses(Clauses) :-
 
 '$install_staged_file'(exit, Staged, Target, error) :-
     !,
-    rename_file(Staged, Target).
+    win_rename_file(Staged, Target).
 '$install_staged_file'(exit, Staged, Target, OnError) :-
     !,
     InstallError = error(_,_),
-    catch(rename_file(Staged, Target),
+    catch(win_rename_file(Staged, Target),
 	  InstallError,
 	  '$install_staged_error'(OnError, InstallError, Staged, Target)).
 '$install_staged_file'(_, Staged, _, _OnError) :-
@@ -4156,6 +4156,20 @@ compile_aux_clauses(Clauses) :-
     ->  fail
     ;   print_message(warning, Error)
     ).
+
+%!  win_rename_file(+From, +To) is det.
+%
+%   Retry installing to deal with  possible   permission  errors  due to
+%   Windows sharing violations.
+
+:- if(current_prolog_flag(windows, true)).
+win_rename_file(From, To) :-
+    between(1, 10, _),
+    catch(rename_file(From, To), error(permission_error(rename, file, _),_), (sleep(0.1),fail)),
+    !.
+:- endif.
+win_rename_file(From, To) :-
+    rename_file(From, To).
 
 
 		 /*******************************
