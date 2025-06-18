@@ -434,10 +434,8 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
       isRaw = true;
   }
 
-  if ( !running_under_wine )
-  { if ( !PL_wait_for_console_input(as->hConsole) )
-      goto error;
-  }
+  if ( !PL_wait_for_console_input(as->hConsole) )
+    goto error;
 
   if ( isRaw )
     memset(buffer, 0, size);		/* see (*) */
