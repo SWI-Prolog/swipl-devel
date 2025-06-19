@@ -398,6 +398,11 @@ control_ansi(void *handle, int op, void *data)
       *fp = (int)(intptr_t)as->saved_handle; /* is one of 0,1,2 */
       return 0;
     }
+    case SIO_GETWINHANDLE:
+    { HANDLE *dp = data;
+      *dp = as->hConsole;
+      return 0;
+    }
     default:
       return -1;
   }

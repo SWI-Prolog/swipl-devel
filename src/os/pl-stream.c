@@ -3706,8 +3706,15 @@ Sfileno(IOSTREAM *s)
 
 HANDLE
 Swinhandle(IOSTREAM *s)
-{ int fd = Sfileno(s);
+{ HANDLE h = NULL;
 
+  if ( s->functions->control &&
+       (*s->functions->control)(s->handle,
+				SIO_GETWINHANDLE,
+				(void *)&h) == 0 )
+    return h;
+
+  int fd = Sfileno(s);
   if ( fd >= 0 )
     return (HANDLE)_get_osfhandle(fd);
 

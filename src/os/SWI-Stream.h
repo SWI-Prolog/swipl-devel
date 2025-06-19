@@ -336,6 +336,9 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #endif
 #define SIO_GETPENDING    (7)		/* get #pending bytes */
 #define SIO_GETREPOSITION (8)		/* Test if stream is repositionable */
+#ifdef __WINDOWS__
+#define SIO_GETWINHANDLE  (9)		/* Get underlying handle */
+#endif
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
