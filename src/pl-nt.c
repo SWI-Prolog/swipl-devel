@@ -35,6 +35,7 @@
 */
 
 #ifdef __WINDOWS__
+#define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #include <psapi.h>
@@ -95,8 +96,11 @@ hasConsole(void)
 
 
 bool
-PL_wait_for_console_input(void *handle)
-{ HANDLE hConsole = handle;
+PL_wait_for_console_input(IOSTREAM *input)
+{ HANDLE hConsole = Swinhandle(input);
+
+  if ( !hConsole )
+    return true;
 
   for(;;)
   { DWORD rc = MsgWaitForMultipleObjects(1,

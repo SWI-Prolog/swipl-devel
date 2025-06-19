@@ -51,5 +51,6 @@ int		ms_snprintf(char *buffer, size_t count,
 void		getDefaultsFromRegistry(void);
 const char*	WinError(void);
 char *		findModulePath(const char *module, char *buf, size_t len);
+bool		PL_wait_for_console_input(IOSTREAM *input);
 
 #endif /*_PL_NT_H*/

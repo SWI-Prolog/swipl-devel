@@ -67,6 +67,9 @@
 #include "pl-trace.h"
 #include "pl-copyterm.h"
 #include <errno.h>
+#ifdef __WINDOWS__
+#include "pl-nt.h"
+#endif
 
 #ifdef __SANITIZE_ADDRESS__
 #include <sanitizer/lsan_interface.h>
@@ -5350,7 +5353,7 @@ achieved through the plterm DLL (see  win32/console). For this reason we
 do never want this code in Windows.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 input_on_stream(IOSTREAM *in)
 { int fd = Sfileno(in);
 
@@ -5368,7 +5371,7 @@ input_on_stream(IOSTREAM *in)
 #if defined(FD_SETSIZE) && !defined(__WINDOWS__)
   if ( fd >= FD_SETSIZE )
   { Sdprintf("input_on_fd(%d) > FD_SETSIZE\n", fd);
-    return 1;
+    return true;
   }
 #endif
 
@@ -5379,6 +5382,13 @@ input_on_stream(IOSTREAM *in)
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
 #endif
+}
+
+#elif __WINDOWS__
+
+static bool
+input_on_stream(IOSTREAM *in)
+{ return PL_wait_for_console_input(in);
 }
 
 #else
