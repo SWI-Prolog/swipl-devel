@@ -1122,12 +1122,7 @@ adviced for public usage.  They  are   intended  to  provide an abstract
 interface for the GNU readline  interface   as  defined  in the readline
 package.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-					/* PL_dispatch() modes */
-#define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */
-#define PL_DISPATCH_WAIT      1		/* Dispatch till input available */
-#define PL_DISPATCH_INSTALLED 2		/* dispatch function installed? */
 
-PL_EXPORT(int)		PL_dispatch(int fd, int wait);
 PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);
 PL_EXPORT(char *)	PL_prompt_string(int fd);
 PL_EXPORT(void)		PL_write_prompt(int dowrite);
@@ -1158,14 +1153,20 @@ PL_EXPORT(bool)		PL_linger(void *mem);
 		*             HOOKS		*
 		********************************/
 
+					/* PL_dispatch() modes */
+#define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */
+#define PL_DISPATCH_WAIT      1		/* Dispatch till input available */
+#define PL_DISPATCH_INSTALLED 2		/* dispatch function installed? */
+
 #define PL_DISPATCH_INPUT   0		/* There is input available */
 #define PL_DISPATCH_TIMEOUT 1		/* Dispatch timeout */
 
-typedef int  (*PL_dispatch_hook_t)(int fd);
+typedef int  (*PL_dispatch_hook_t)(IOSTREAM *fd);
 typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
+PL_EXPORT(bool)			PL_dispatch(IOSTREAM *fd, int wait);
 PL_EXPORT(PL_dispatch_hook_t)	PL_dispatch_hook(PL_dispatch_hook_t);
 PL_EXPORT(void)			PL_abort_hook(PL_abort_hook_t);
 PL_EXPORT(void)			PL_initialise_hook(PL_initialise_hook_t);

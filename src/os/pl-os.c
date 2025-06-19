@@ -2169,31 +2169,34 @@ ResetStdin(void)
 static ssize_t
 Sread_terminal(void *handle, char *buf, size_t size)
 { GET_LD
-  intptr_t h = (intptr_t)handle;
-  int fd = (int)h;
+  ssize_t rc;
   source_location oldsrc = LD->read_source;
 
-  if ( LD->prompt.next &&
-       isoff(Sinput, SIO_RAW) &&
-       ison(Sinput, SIO_ISATTY) )
-    PL_write_prompt(true);
-  else if ( ison(Soutput, SIO_ISATTY) )
-    Sflush(Suser_output);
+  if ( Sinput->handle == handle )
+  { if ( LD->prompt.next &&
+	 isoff(Sinput, SIO_RAW) &&
+	 ison(Sinput, SIO_ISATTY) )
+      PL_write_prompt(true);
+    else if ( ison(Soutput, SIO_ISATTY) )
+      Sflush(Suser_output);
 
-  PL_dispatch(fd, PL_DISPATCH_WAIT);
-  size = (*GD->os.org_terminal.read)(handle, buf, size);
+    PL_dispatch(Sinput, PL_DISPATCH_WAIT);
+    rc = (*GD->os.org_terminal.read)(handle, buf, size);
 
-  if ( size == 0 )			/* end-of-file */
-  { if ( fd == 0 )
-    { Sclearerr(Suser_input);
+    if ( rc == 0 )			/* end-of-file */
+    { if ( Sinput == Suser_input )
+      { Sclearerr(Suser_input);
+	LD->prompt.next = true;
+      }
+    } else if ( rc > 0 && buf[rc-1] == '\n' )
       LD->prompt.next = true;
-    }
-  } else if ( size > 0 && buf[size-1] == '\n' )
-    LD->prompt.next = true;
 
-  LD->read_source = oldsrc;
+    LD->read_source = oldsrc;
+  } else
+  { rc = (*GD->os.org_terminal.read)(handle, buf, size);
+  }
 
-  return size;
+  return rc;
 }
 
 void

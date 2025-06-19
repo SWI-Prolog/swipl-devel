@@ -5351,8 +5351,9 @@ do never want this code in Windows.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-input_on_fd(int fd)
-{
+input_on_stream(IOSTREAM *in)
+{ int fd = Sfileno(in);
+
 #ifdef HAVE_POLL
   struct pollfd fds[1];
 
@@ -5381,24 +5382,24 @@ input_on_fd(int fd)
 }
 
 #else
-#define input_on_fd(fd) 1
+#define input_on_stream(fd) 1	/* TBD: Wait on console handle */
 #endif
 
 
-int
-PL_dispatch(int fd, int wait)
+bool
+PL_dispatch(IOSTREAM *in, int wait)
 { if ( wait == PL_DISPATCH_INSTALLED )
     return GD->foreign.dispatch_events ? true : false;
 
   if ( GD->foreign.dispatch_events && PL_thread_self() <= 1 )
   { if ( wait == PL_DISPATCH_WAIT )
-    { while( !input_on_fd(fd) )
+    { while( !input_on_stream(in) )
       { if ( PL_handle_signals() < 0 )
 	  return false;
-	(*GD->foreign.dispatch_events)(fd);
+	(*GD->foreign.dispatch_events)(in);
       }
     } else
-    { (*GD->foreign.dispatch_events)(fd);
+    { (*GD->foreign.dispatch_events)(in);
       if ( PL_handle_signals() < 0 )
 	  return false;
     }
