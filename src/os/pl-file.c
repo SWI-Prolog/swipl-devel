@@ -2552,7 +2552,7 @@ PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
 
 extern IOFUNCTIONS Smemfunctions;
 
-int
+bool
 tellString(char **s, size_t *size, IOENC enc)
 { GET_LD
   IOSTREAM *stream;
@@ -2565,8 +2565,8 @@ tellString(char **s, size_t *size, IOENC enc)
 }
 
 
-int
-toldString()
+bool
+toldString(void)
 { GET_LD
   IOSTREAM *s = getStream(Scurout);
 
