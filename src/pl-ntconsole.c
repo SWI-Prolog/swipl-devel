@@ -439,7 +439,7 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
       isRaw = true;
   }
 
-  if ( !PL_wait_for_console_input(as->hConsole) )
+  if ( !PL_wait_for_console_input(Suser_input) )
     goto error;
 
   if ( isRaw )
