@@ -2602,7 +2602,6 @@ predicate work on pipes, serial devices, etc.
 #ifndef __WINDOWS__
 typedef int SOCKET;
 #define INVALID_SOCKET -1
-#define Swinsock(s) Sfileno(s)
 #define NFDS(max) (max+1)			/* see also S__wait() */
 #else
 #define NFDS(n) 0
@@ -2704,7 +2703,11 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     { if ( !PL_get_stream(head, &s, SIO_INPUT) )
 	goto out;
 
+#ifdef __WINDOWS__
       if ( (fd = Swinsock(s)) == INVALID_SOCKET )
+#else
+      if ( (fd = Sfileno(s)) == INVALID_SOCKET )
+#endif
       { releaseStream(s);
 	PL_domain_error("waitable_stream", head);
 	goto out;
