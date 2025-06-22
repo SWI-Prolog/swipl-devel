@@ -5284,20 +5284,19 @@ PL_ttymode(IOSTREAM *s)
 
 
 void
-PL_prompt_next(int fd)
+PL_prompt_next(IOSTREAM *in)
 { GET_LD
 
-  if ( fd == 0 )
+  if ( in == Suser_input )
     LD->prompt.next = true;
 }
 
 
 char *
-PL_prompt_string(int fd)
+PL_prompt_string(IOSTREAM *in)
 { GET_LD
-  IOSTREAM *s;
 
-  if ( (s=Suser_input) && fd == Sfileno(s) )
+  if ( in == Suser_input )
   { atom_t a = PrologPrompt();
 
     if ( a )

@@ -1118,15 +1118,14 @@ PL_EXPORT(int)		PL_dlclose(void *handle);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: the functions in this section are   not  documented, as as yet not
-adviced for public usage.  They  are   intended  to  provide an abstract
-interface for the GNU readline  interface   as  defined  in the readline
-package.
+adviced for public usage.  They  are   intended commandline editors such
+as GNU readline or libedit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);
-PL_EXPORT(char *)	PL_prompt_string(int fd);
-PL_EXPORT(void)		PL_write_prompt(int dowrite);
-PL_EXPORT(void)		PL_prompt_next(int fd);
+PL_EXPORT(char *)	PL_prompt_string(IOSTREAM *in);
+PL_EXPORT(void)		PL_write_prompt(bool dowrite);
+PL_EXPORT(void)		PL_prompt_next(IOSTREAM *in);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
 PL_EXPORT(pl_wchar_t*)	PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,

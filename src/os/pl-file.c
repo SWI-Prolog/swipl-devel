@@ -1824,7 +1824,7 @@ PRED_IMPL("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
 
 
 void
-PL_write_prompt(int dowrite)
+PL_write_prompt(bool dowrite)
 { GET_LD
   IOSTREAM *s = getStream(Suser_output);
 
