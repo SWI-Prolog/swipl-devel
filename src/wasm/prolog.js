@@ -1923,10 +1923,13 @@ class Prolog
     return rc;
   }
 
-  prompt_string(fd)
-  { const bytes = this.bindings.PL_prompt_string(fd||0)
-    if ( bytes )
-      return this.module.UTF8ToString(bytes);
+  prompt_string(fd) {
+    if ( fd == 0 ) {
+      iostream = this.stream("user_input");
+      const bytes = this.bindings.PL_prompt_string(iostream);
+      if ( bytes )
+	return this.module.UTF8ToString(bytes);
+    }
   }
 
 // If t is compound and index is between 1 and arity (inclusive),
