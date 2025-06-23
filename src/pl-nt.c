@@ -96,6 +96,20 @@ hasConsole(void)
 
 
 bool
+win_input_ready(IOSTREAM *input)
+{ HANDLE hConsole = Swinhandle(input);
+  if ( !hConsole )
+    return false;
+  if ( WaitForSingleObject(hConsole, 0) == WAIT_OBJECT_0 )
+  { DWORD count;
+    GetNumberOfConsoleInputEvents(hConsole, &count);
+    return count > 0;
+  }
+  return false;
+}
+
+
+bool
 PL_wait_for_console_input(IOSTREAM *input)
 { HANDLE hConsole = Swinhandle(input);
 

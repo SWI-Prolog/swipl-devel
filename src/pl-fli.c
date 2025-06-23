@@ -5387,7 +5387,7 @@ input_on_stream(IOSTREAM *in)
 
 static bool
 input_on_stream(IOSTREAM *in)
-{ return PL_wait_for_console_input(in);
+{ return win_input_ready(in);
 }
 
 #else
