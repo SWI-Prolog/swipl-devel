@@ -22,50 +22,11 @@ build_pdf()
 
 # Build the Windows version using the Docker from
 # https://github.com/SWI-Prolog/docker-swipl-build-mingw.git
-#
-# Comment to build locally. See README.win32   for the setup. Be warned,
-# this is complicated! Disabled profile   guide optimization for Windows
-# as it is broken in recent   Ubuntu  releases. Linking the instrumented
-# binary fails due to a missing  symbols   in  libgcov.a.  The Docker is
-# based on Fedora.
 
 MINGW_DOCKER_DIR=$HOME/src/docker/docker-swipl-build-mingw
 
-build_win32()
-{ if [ ! -z "$MINGW_DOCKER_DIR" ]; then
-    make -C $MINGW_DOCKER_DIR win32
-  else
-    rm -rf build.win32
-    mkdir build.win32
-    ( cd build.win32
-      cmake -DCMAKE_BUILD_TYPE=Release \
-            -DSWIPL_CC=gcc.exe -DSWIPL_CXX=g++.exe \
-	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
-	    -DJAVA_COMPATIBILITY=ON \
-	    -G Ninja ..
-      ninja
-      cpack
-    )
-  fi
-}
-
 build_win64()
-{ if [ ! -z "$MINGW_DOCKER_DIR" ]; then
-    make -C $MINGW_DOCKER_DIR win64
-  else
-  rm -rf build.win64
-    mkdir build.win64
-    ( cd build.win64
-      cmake -DCMAKE_BUILD_TYPE=Release \
-            -DSWIPL_CC=gcc.exe -DSWIPL_CXX=g++.exe \
-	    -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
-	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
-	    -DJAVA_COMPATIBILITY=ON \
-	    -G Ninja ..
-      ninja
-      cpack
-    )
-  fi
+{ make -C $MINGW_DOCKER_DIR SWIPLSRC=`pwd` win64
 }
 
 # Used on the M1 where we build using Clang and Qt
@@ -169,7 +130,6 @@ list_built()
     list_file build.macosx-gcc/swipl-${version}-1.x86_64.dmg
     list_file build.macosx/swipl-${version}-1.x86_64.dmg
   else
-    ls -l build.win32/swipl-${version}-1.x86.exe
     ls -l build.win64/swipl-${version}-1.x64.exe
     ls -l build.pdf/man/SWI-Prolog-$version.pdf
     ls -l ../swipl-$version.tar.gz
@@ -189,7 +149,6 @@ force_build()
     fi
   else
     build_pdf
-    build_win32
     build_win64
     build_source
     [ "$PPA" = no ] || build_PPAs
@@ -205,10 +164,6 @@ upload_file()
 { if [ -f "$2" ]; then
     rsync -Pvu "$2" ${PUBLIC}/$1
   fi
-}
-
-upload_win32()
-{ upload_file bin build.win32/swipl-${version}-1.x86.exe
 }
 
 upload_win64()
@@ -240,7 +195,6 @@ upload()
 { if [ $(uname) = Darwin ]; then
     upload_macosx
   else
-    upload_win32
     upload_win64
     upload_pdf
     upload_src
