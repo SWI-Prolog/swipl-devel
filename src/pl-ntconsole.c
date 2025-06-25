@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2018, University of Amsterdam
+    Copyright (c)  1995-2025, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     Copyright (C): 2009-2017, SCIENTIFIC SOFTWARE AND SYSTEMS LIMITED
     All rights reserved.
 
@@ -34,13 +35,12 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #define WINDOWS_LEAN_AND_MEAN 1
 #include <winsock2.h>
 #include <windows.h>
 #include "pl-incl.h"
 #include "pl-nt.h"
-
-static int running_under_wine = false;
 
 #define ANSI_MAGIC		(0x734ab9de)
 #define ANSI_BUFFER_SIZE	(256)
@@ -513,8 +513,6 @@ PL_w32_wrap_ansi_console(void)
   HANDLE hError = GetStdHandle(STD_ERROR_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO info;
 
-  running_under_wine = (PL_w32_running_under_wine() != NULL);
-
   if ( hIn    == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR ||
        hOut   == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(hOut,&info)||
        hError == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR )
@@ -538,4 +536,23 @@ PL_w32_wrap_ansi_console(void)
 
   PL_set_prolog_flag("tty_control", PL_BOOL, true);
   return true;
+}
+
+
+bool
+win32_console_size(IOSTREAM *s, int *cols, int *rows)
+{ if ( s )
+  { HANDLE h = Swinhandle(s);
+
+    if ( h )
+    { CONSOLE_SCREEN_BUFFER_INFO csbi;
+      if ( GetConsoleScreenBufferInfo(h, &csbi) )
+      { *cols = csbi.dwSize.X;
+	*rows = csbi.dwSize.Y;
+	return true;
+      }
+    }
+  }
+
+  return false;
 }

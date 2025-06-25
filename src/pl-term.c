@@ -326,6 +326,7 @@ PRED_IMPL("tty_put", 2, pl_tty_put, 0)
 #else /* ~TGETENT */
 
 #ifdef __WINDOWS__
+#include "pl-ntconsole.h"
 
 static void *
 getModuleFunction(const char *module, const char *name)
@@ -343,26 +344,30 @@ getModuleFunction(const char *module, const char *name)
 static
 PRED_IMPL("tty_size", 2, tty_size, 0)
 { PRED_LD
-  int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
-  int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
+  int rows, cols;
 
   term_t r = A1;
   term_t c = A2;
 
-  if ( ScreenCols && ScreenRows )
-  { void *(*get_console)(void) = getModuleFunction(NULL, "PL_current_console");
-    void *con = (get_console ? (*get_console)() : NULL);
-    int rows = (*ScreenRows)(con);
-    int cols = (*ScreenCols)(con);
+  /* First, try console app */
+  if ( !win32_console_size(Suser_output, &cols, &rows) )
+  { /* Native Windows swipl-win.exe */
+    int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
+    int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
 
-    if ( PL_unify_integer(r, rows) &&
-	 PL_unify_integer(c, cols) )
-      succeed;
+    if ( ScreenCols && ScreenRows )
+    { void *(*get_console)(void);
 
-    fail;
+      get_console = getModuleFunction(NULL, "PL_current_console");
+      void *con = (get_console ? (*get_console)() : NULL);
+      rows = (*ScreenRows)(con);
+      cols = (*ScreenCols)(con);
+    } else
+      return  notImplemented("tty_size", 2);
   }
 
-  return notImplemented("tty_size", 2);
+  return ( PL_unify_integer(r, rows) &&
+	   PL_unify_integer(c, cols) );
 }
 
 #define HAVE_PL_TTY_SIZE 1
