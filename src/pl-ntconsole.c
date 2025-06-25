@@ -507,15 +507,22 @@ init_output(void *handle, CONSOLE_SCREEN_BUFFER_INFO *info)
 
 
 bool
+win_isconsole(HANDLE h)
+{ DWORD mode;
+  return GetConsoleMode(h, &mode);
+}
+
+bool
 PL_w32_wrap_ansi_console(void)
 { HANDLE hIn    = GetStdHandle(STD_INPUT_HANDLE);
   HANDLE hOut   = GetStdHandle(STD_OUTPUT_HANDLE);
   HANDLE hError = GetStdHandle(STD_ERROR_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO info;
 
-  if ( hIn    == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR ||
-       hOut   == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(hOut,&info)||
-       hError == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR )
+  if ( hIn    == INVALID_HANDLE_VALUE || !win_isconsole(hIn) ||
+       hOut   == INVALID_HANDLE_VALUE || !win_isconsole(hOut) ||
+       hError == INVALID_HANDLE_VALUE || !win_isconsole(hError) ||
+       !GetConsoleScreenBufferInfo(hOut, &info) )
   { return false;
   }
 
@@ -538,6 +545,12 @@ PL_w32_wrap_ansi_console(void)
   return true;
 }
 
+
+/**
+ * Get the screen size of the console.
+ * @param s A Prolog stream that refers to the console output.  Normally
+ * `Suser_output`.
+ */
 
 bool
 win32_console_size(IOSTREAM *s, int *cols, int *rows)

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -41,6 +41,7 @@
 #include "config/wincfg.h"
 #include <winsock2.h>
 #include "../pl-nt.h"
+#include "../pl-ntconsole.h"
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
@@ -3314,16 +3315,6 @@ For now, we use PL_malloc_uncollectable(). In   the  end, this is really
 one of the object-types we want to leave to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __WINDOWS__
-#define isatty(fd) win_isatty(fd)
-static int
-win_isatty(int fd)
-{ HANDLE h = (HANDLE)_get_osfhandle(fd);
-
-  return GetFileType(h) == FILE_TYPE_CHAR;
-}
-#endif
-
 #ifndef FD_CLOEXEC			/* This is not defined in MacOS */
 #define FD_CLOEXEC 1
 #endif
@@ -3371,7 +3362,11 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   if ( s->fileno >= 0 )
   { int fd = (int)s->fileno;
 
+#ifdef __WINDOWS__
+    if ( win_isconsole(s) )
+#else
     if ( isatty(fd) )
+#endif
       s->flags |= SIO_ISATTY;
 
 #if defined(F_SETFD)
@@ -4310,7 +4305,17 @@ static const IOSTREAM S__iob0[] =
 };
 
 
-static int S__initialised = false;
+static bool S__initialised = false;
+
+#ifdef __WINDOWS__
+#define isatty(fd) win_isatty(fd)
+static bool
+win_isatty(int fd)
+{ HANDLE h = (HANDLE)_get_osfhandle(fd);
+  DWORD mode;
+  return GetConsoleMode(h, &mode);
+}
+#endif
 
 void
 SinitStreams(void)

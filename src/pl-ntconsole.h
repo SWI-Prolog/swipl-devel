@@ -37,6 +37,7 @@
 #ifndef PL_NTCONSOLE_H_INCLUDED
 #define PL_NTCONSOLE_H_INCLUDED
 
+bool win_isconsole(HANDLE h);
 bool win32_console_size(IOSTREAM *s, int *cols, int *rows);
 
 #endif/*PL_NTCONSOLE_H_INCLUDED*/
