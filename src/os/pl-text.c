@@ -602,7 +602,7 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-	    if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
+	    if ( !(p0 = p = INIT_SEQ_STRING(PL_text_length(text))) )
 	      return false;
 
 	    if ( type == PL_CODE_LIST )
