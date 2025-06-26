@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2023, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -51,7 +51,7 @@
 #undef LD
 #define LD LOCAL_LD
 
-static int text_representation_error(PL_chars_t *text, IOENC enc);
+static bool text_representation_error(PL_chars_t *text, IOENC enc);
 static int text_error(PL_chars_t *text, int rc);
 
 		 /*******************************
@@ -892,7 +892,7 @@ PL_promote_text(PL_chars_t *text)
 }
 
 
-static int
+static bool
 PL_demote_text(PL_chars_t *text, int flags)
 { if ( text->encoding != ENC_ISO_LATIN_1 )
   { if ( text->storage == PL_CHARS_MALLOC )
@@ -951,7 +951,8 @@ PL_demote_text(PL_chars_t *text, int flags)
     }
   }
 
-  succeed;
+  text->canonical = true;
+  return true;
 }
 
 
@@ -1153,7 +1154,7 @@ PL_canonicalise_text(PL_chars_t *text)
       case ENC_WCHAR:
       { const pl_wchar_t *w;
 	const pl_wchar_t *e;
-	int wide;
+	bool wide;
 
 #if SIZEOF_WCHAR_T == 2
       case_wchar:
@@ -1184,6 +1185,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	if ( !wide )
 	  return PL_demote_text(text, 0);
 
+	text->canonical = true;
 	return true;
       }
       case ENC_UTF16LE:		/* assume text->length is in bytes */
@@ -1434,7 +1436,7 @@ PL_canonicalise_text(PL_chars_t *text)
 }
 
 
-static int
+static bool
 text_representation_error(PL_chars_t *text, IOENC enc)
 { char msg[100];
 

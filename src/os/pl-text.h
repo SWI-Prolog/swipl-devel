@@ -100,7 +100,7 @@ size_t  utf16_text_length(const PL_chars_t *text);
 
 static inline size_t
 PL_text_length(const PL_chars_t *text)
-{ assert(text->canonical);
+{ assert(text->encoding == ENC_ISO_LATIN_1 || text->encoding == ENC_WCHAR);
 #if SIZEOF_WCHAR_T == 2
   if ( text->encoding == ENC_WCHAR )
     return utf16_text_length(text);
