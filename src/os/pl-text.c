@@ -148,32 +148,26 @@ PL_from_stack_text(PL_chars_t *text, int flags)
 }
 
 
-size_t
-PL_text_length(const PL_chars_t *text)
-{ assert(text->canonical);
-
 #if SIZEOF_WCHAR_T == 2
-  if ( text->encoding == ENC_WCHAR )
-  { const wchar_t *s = (const wchar_t *)text->text.t;
-    const wchar_t *e = &s[text->length];
-    size_t count = 0;
+size_t
+utf16_text_length(const PL_chars_t *text)
+{ assert(text->encoding == ENC_WCHAR);
 
-    while(s < e)
-    { int c = *s++;
+  const wchar_t *s = (const wchar_t *)text->text.t;
+  const wchar_t *e = &s[text->length];
+  size_t count = 0;
 
-      count++;
-      if ( IS_UTF16_LEAD(c) )
-	s++;
-    }
+  while(s < e)
+  { int c = *s++;
 
-    return count;
+    count++;
+    if ( IS_UTF16_LEAD(c) )
+      s++;
   }
-#endif
 
-  return text->length;
+  return count;
 }
-
-
+#endif
 
 #define INT64_DIGITS 20
 

@@ -1689,15 +1689,21 @@ compareAtoms(atom_t w1, atom_t w2)
 }
 
 
-#define compareStrings(w1, w2) LDFUNC(compareStrings, w1, w2)
+#define compareStrings(w1, w2, eq) LDFUNC(compareStrings, w1, w2, eq)
 static int
-compareStrings(DECL_LD word w1, word w2)
+compareStrings(DECL_LD word w1, word w2, bool eq)
 { PL_chars_t t1, t2;
   size_t len;
 
   get_string_text(w1, &t1);
   get_string_text(w2, &t2);
-  len = (t1.length > t2.length ? t1.length : t2.length);
+  if ( eq && ( t1.encoding != t2.encoding ||
+	       t1.length   != t2.length ) )
+    return CMP_NOTEQ;
+
+  size_t len1 = PL_text_length(&t1);
+  size_t len2 = PL_text_length(&t2);
+  len = (len1 > len2 ? len1 : len2);
 
   return PL_cmp_text(&t1, 0, &t2, 0, len);
 }
@@ -1786,7 +1792,7 @@ tests (alphabetical order) are skipped and the call returns NOTEQ.
 
 #define compare_primitives(p1, p2, eq) LDFUNC(compare_primitives, p1, p2, eq)
 static int
-compare_primitives(DECL_LD Word p1, Word p2, int eq)
+compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 { word t1, t2;
   word w1, w2;
 
@@ -1853,7 +1859,7 @@ compare_primitives(DECL_LD Word p1, Word p2, int eq)
     case TAG_ATOM:
       return eq ? CMP_NOTEQ : compareAtoms(word2atom(w1), word2atom(w2));
     case TAG_STRING:
-      return compareStrings(w1, w2);
+      return compareStrings(w1, w2, eq);
     case TAG_COMPOUND:
       return CMP_COMPOUND;
     default:

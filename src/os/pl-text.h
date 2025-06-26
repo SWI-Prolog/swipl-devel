@@ -81,7 +81,7 @@ typedef struct
 
 #define LDFUNC_DECLARATIONS
 
-int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
+bool	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
 int	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
 
@@ -96,7 +96,18 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);
 int	PL_save_text(PL_chars_t *text, int flags);
-size_t  PL_text_length(const PL_chars_t *text);
+size_t  utf16_text_length(const PL_chars_t *text);
+
+static inline size_t
+PL_text_length(const PL_chars_t *text)
+{ assert(text->canonical);
+#if SIZEOF_WCHAR_T == 2
+  if ( text->encoding == ENC_WCHAR )
+    return utf16_text_length(text);
+#endif
+  return text->length;
+}
+
 
 int		PL_get_text(term_t l, PL_chars_t *text, int flags);
 atom_t		textToAtom(PL_chars_t *text);
