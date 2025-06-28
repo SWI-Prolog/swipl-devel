@@ -291,10 +291,25 @@ read_index(Index, M) :-
     setup_call_cleanup(
         '$push_input_context'(autoload_index),
         setup_call_cleanup(
-            open(Index, read, In),
+            win_open_index(Index, In),
             read_index_from_stream(Dir, In, M),
             close(In)),
         '$pop_input_context').
+
+%!  win_open_index(+Index, -Stream) is det.
+%
+%   Open an INDEX.pl file. When concurrently   building the index we may
+%   run into sharing violations on Windows.
+
+:- if(current_prolog_flag(windows, true)).
+win_open_index(Index, In) :-
+    between(1, 10, _),
+    catch(open(Index, read, In, [encoding(utf8)]),
+          error(permission_error(open, source_sink, _),_), (sleep(0.1),fail)),
+    !.
+:- endif.
+win_open_index(Index, In) :-
+    open(Index, read, In, [encoding(utf8)]).
 
 read_index_from_stream(Dir, In, M) :-
     repeat,
