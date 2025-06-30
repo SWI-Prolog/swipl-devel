@@ -157,6 +157,16 @@ case $config in
     ;;
 esac
 
+# nogui
+#
+# Disable building the GUI
+
+case $config in
+  *nogui*)
+    opts+=" -DSWIPL_PACKAGES_X=OFF"
+    ;;
+esac
+
 # test
 #
 # Install the  tests along  with the  executable.  Allows  running the
