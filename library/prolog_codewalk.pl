@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2023, VU University Amsterdam
+    Copyright (c)  2012-2025, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -564,6 +564,8 @@ walk_called(Goal, Module, TermPos, OTerm) :-
 walk_called(Goal, Module, _, OTerm) :-
     evaluate(Goal, Module, OTerm),
     !.
+walk_called(autoload_call(_), _, _, _) :-
+    !.		% Should we continue, but just not report?
 walk_called(Goal, M, TermPos, OTerm) :-
     (   (   predicate_property(M:Goal, imported_from(IM))
         ->  true
