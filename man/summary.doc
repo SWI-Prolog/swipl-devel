@@ -111,6 +111,7 @@ suggest predicates from a keyword.
 \predicatesummary{autoload}{1}{Declare a file for autoloading}
 \predicatesummary{autoload}{2}{Declare a file for autoloading specific predicates}
 \predicatesummary{autoload_all}{0}{Autoload all predicates now}
+\predicatesummary{autoload_call}{1}{Call after autoloading}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{await}{2}{WASM: Wait for a Promise}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}

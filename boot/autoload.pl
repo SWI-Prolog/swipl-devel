@@ -50,13 +50,16 @@
             autoload/1,                         % +File
             autoload/2,                         % +File, +Imports
 
-            require/1				% +Predicates
+            autoload_call/1,                    % :Goal
+
+            require/1                           % +Predicates
           ]).
 
 :- meta_predicate
     '$autoload'(:),
     autoload(:),
     autoload(:, +),
+    autoload_call(0),
     require(:).
 
 :- dynamic
@@ -774,6 +777,17 @@ verbose_autoload(PI, Library) :-
 verbose_autoload(PI, Library) :-
     print_message(silent, autoload(PI, Library)).
 
+%!  autoload_call(:Goal)
+%
+%   Call Goal, optionally autoloading it first.
+
+autoload_call(Goal) :-
+    '$pi_head'(PI, Goal),
+    (   current_predicate(PI)
+    ->  true
+    ;   '$autoload'(PI)
+    ),
+    call(Goal).
 
 %!  autoloadable(:Head, -File) is nondet.
 %

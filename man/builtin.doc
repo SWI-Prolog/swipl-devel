@@ -2444,6 +2444,13 @@ fake the presence of \nopredref{call}{9..}. Full logical behaviour,
 generating all these pseudo predicates, is probably undesirable and will
 become impossible if \jargon{max_arity} is removed.}
 
+    \predicate{autoload_call}{1}{:Goal}
+As call/1, but first trigger the autoloader if \arg{Goal} is not
+defined. The autoloader is used, even if the flag \prologflag{autoload}
+is \const{false}. In addition, using this predicate causes the
+dependency checker, e.g., list_undefined/0, to ignore the argument.
+This predicate is particularly used to call into the development tools.
+
     \predicate[deprecated]{apply}{2}{:Goal, +List}
 Append the members of \arg{List} to the arguments of \arg{Goal} and call
 the resulting term. For example: \exam{apply(plus(1), [2, X])} calls
