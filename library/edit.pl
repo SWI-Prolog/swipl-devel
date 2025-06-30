@@ -40,10 +40,6 @@
           ]).
 :- autoload(library(lists), [member/2, append/3, select/3]).
 :- autoload(library(make), [make/0]).
-:- if(exists_source(library(pce))).
-:- autoload(library(pce), [in_pce_thread/1]).
-:- autoload(library(pce_emacs), [emacs/1]).
-:- endif.
 :- autoload(library(prolog_breakpoints), [breakpoint_property/2]).
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
@@ -310,15 +306,13 @@ locate(clause(Ref, _PC), #{file:File, line:Line}) :- % TBD: use clause
 do_edit_source(Location) :-             % hook
     edit_source(Location),
     !.
-:- if(current_predicate(emacs/1)).
 do_edit_source(Location) :-             % PceEmacs
     current_prolog_flag(editor, Editor),
-    pceemacs(Editor),
+    is_pceemacs(Editor),
     current_prolog_flag(gui, true),
     !,
     location_url(Location, URL),        % File[:Line[:LinePos]]
-    in_pce_thread(emacs(URL)).
-:- endif.
+    run_pce_emacs(URL).
 do_edit_source(Location) :-             % External editor
     external_edit_command(Location, Command),
     print_message(informational, edit(waiting_for_editor)),
@@ -361,8 +355,15 @@ external_edit_command(Location, Command) :-
     editor(Editor),
     format(string(Command), '"~w" "~w"', [Editor, File]).
 
-pceemacs(pce_emacs).
-pceemacs(built_in).
+is_pceemacs(pce_emacs).
+is_pceemacs(built_in).
+
+%!  run_pce_emacs(+URL) is semidet.
+%
+%   Dynamically load and run emacs/1.
+
+run_pce_emacs(URL) :-
+    autoload_call(in_pce_thread(autoload_call(emacs(URL)))).
 
 %!  editor(-Editor)
 %
@@ -375,7 +376,7 @@ editor(Editor) :-                       % $EDITOR
         catch(getenv(Var, Editor), _, fail), !
     ;   Editor == default
     ->  catch(getenv('EDITOR', Editor), _, fail), !
-    ;   \+ pceemacs(Editor)
+    ;   \+ is_pceemacs(Editor)
     ->  !
     ).
 editor(Editor) :-                       % User defaults
