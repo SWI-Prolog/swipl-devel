@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1833,6 +1833,12 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	    { TRY(PutBar(options));
 	    } else if ( functor == ATOM_fdot )
 	    { TRY(PutToken(".", out));
+	    } else if ( functor == ATOM_divide &&
+			ison(options, PL_WRT_RAT_NATURAL) &&
+			PL_is_integer(arg) &&
+			_PL_get_arg(1, t, arg) &&
+			PL_is_number(arg) )
+	    { TRY(PutString(" / ", out));
 	    } else
 	    { switch(writeAtom(functor, options))
 	      { case false:
