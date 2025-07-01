@@ -348,7 +348,8 @@ pp(Dict, Ctx, Options) :-
         option(right_margin(RM), Options),
         Indent + Width < RM         % fits on a line, simply write
     ->  pprint(Dict, Ctx, Options)
-    ;   compound_indent(Out, '~q{ ', Tag, Indent, Nindent, Options),
+    ;   option(write_options(WrtOpts), Options),
+        compound_indent(Out, '~W{ '-[Tag,WrtOpts], Indent, Nindent, Options),
         context(Ctx, depth, Depth),
         NDepth is Depth + 1,
         modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx0),
@@ -488,7 +489,8 @@ pp(Term, Ctx, Options) :-               % compound
         Indent + Width < RM         % fits on a line, simply write
     ->  pprint(Term, Ctx, Options)
     ;   compound_name_arguments(Term, Name, Args),
-        compound_indent(Out, '~q(', Name, Indent, Nindent, Options),
+        option(write_options(WrtOpts), Options),
+        compound_indent(Out, '~W('-[Name,WrtOpts], Indent, Nindent, Options),
         context(Ctx, depth, Depth),
         NDepth is Depth + 1,
         modify_context(Ctx,
@@ -499,9 +501,9 @@ pp(Term, Ctx, Options) :-               % compound
         write(Out, ')')
     ).
 
-compound_indent(Out, Format, Functor, Indent, Nindent, Options) :-
+compound_indent(Out, Format-Args, Indent, Nindent, Options) :-
     option(indent_arguments(IndentStyle), Options),
-    format(string(Buf2), Format, [Functor]),
+    format(string(Buf2), Format, Args),
     write(Out, Buf2),
     atom_length(Buf2, FunctorIndent),
     (   IndentStyle == auto,
