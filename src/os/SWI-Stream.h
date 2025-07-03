@@ -250,7 +250,8 @@ typedef struct io_stream
   void *		context;	/* getStreamContext() */
   struct PL_locale *	locale;		/* Locale associated to stream */
   intptr_t		fileno;		/* File number if this is associated to a file */
-  intptr_t		reserved[3];	/* reserved for extension */
+  uintptr_t		tty_size;	/* Size of terminal (2 shorts) */
+  intptr_t		reserved[2];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -457,6 +458,8 @@ PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence); /* WDEPRECATED */ /* use Sseek64() */
 PL_EXPORT(long)		Stell(IOSTREAM *s); /* WDEPRECATED */ /* use Stell64() */
+PL_EXPORT(int)		Ssetttysize(IOSTREAM *s, short cols, short rows);
+PL_EXPORT(int)		Sgetttysize(IOSTREAM *s, short *cols, short *rows);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(int)		Sgcclose(IOSTREAM *s, int flags);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);

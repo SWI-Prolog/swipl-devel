@@ -2017,6 +2017,37 @@ Stell(IOSTREAM *s)
 }
 
 
+/**
+ * Set/get the notion  of the size of the console.   Typically used on
+ * `Suser_output`  on systems  where we  have  no other  means to  get
+ * access to the size.  This  notably concerns Epilog on Windows which
+ * communicates using  Windows pipes.  This  implies we have  no POSIX
+ * tty/pty, not a Windows (pseudo) console.
+ */
+
+int
+Ssetttysize(IOSTREAM *s, short cols, short rows)
+{ if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  s->tty_size = (cols<<16) + rows;
+  return 0;
+}
+
+int
+Sgetttysize(IOSTREAM *s, short *cols, short *rows)
+{ if ( s->magic != SIO_MAGIC )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  *cols = s->tty_size >> 16;
+  *rows = s->tty_size & 0xffff;
+  return 0;
+}
+
 		 /*******************************
 		 *	      CLOSE		*
 		 *******************************/

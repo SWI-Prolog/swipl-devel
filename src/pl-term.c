@@ -345,6 +345,7 @@ static
 PRED_IMPL("tty_size", 2, tty_size, 0)
 { PRED_LD
   int rows, cols;
+  short srows=0, scols=0;
 
   term_t r = A1;
   term_t c = A2;
@@ -362,6 +363,10 @@ PRED_IMPL("tty_size", 2, tty_size, 0)
       void *con = (get_console ? (*get_console)() : NULL);
       rows = (*ScreenRows)(con);
       cols = (*ScreenCols)(con);
+    } else if ( Sgetttysize(Suser_output, &srows, &scols) == 0 &&
+		srows > 0 && scols > 0 )
+    { rows = srows;
+      cols = scols;
     } else
       return  notImplemented("tty_size", 2);
   }
