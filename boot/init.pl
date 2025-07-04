@@ -4672,9 +4672,9 @@ cancel_halt(Reason) :-
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
        '$load_wic_files'(system:[LoadFile]),
-       (   current_prolog_flag(windows, true)
-       ->  atom_concat(Dir, '/menu.pl', MenuFile),
-	   '$load_wic_files'(system:[MenuFile])
+       (   atom_concat(Dir, '/menu.pl', MenuFile),
+           exists_file(MenuFile)
+       ->  '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
        '$boot_message'('SWI-Prolog boot files loaded~n', []),

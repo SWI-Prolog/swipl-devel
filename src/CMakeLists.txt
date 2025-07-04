@@ -132,7 +132,7 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
     autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
-if(WIN32)
+if(WIN32 AND NOT EPILOG)
   list(APPEND SWIPL_DATA_boot menu.pl)
 endif()
 if(O_PLMT)
@@ -168,15 +168,15 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     prolog_debug.pl prolog_versions.pl prolog_evaluable.pl macros.pl
     prolog_coverage.pl prolog_locale.pl exceptions.pl prolog_qlfmake.pl)
 if(INSTALL_DOCUMENTATION)
-  set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
+  list(APPEND SWIPL_DATA_library help.pl)
 endif()
 if(WIN32)
-  set(SWIPL_DATA_library ${SWIPL_DATA_library}
-      dde.pl win_menu.pl progman.pl)
-else()
+  list(APPEND SWIPL_DATA_library dde.pl win_menu.pl progman.pl)
+endif()
+if(NOT EPILOG)
   has_package(swipl-win HAVE_SWIPL_WIN)
-  if(HAVE_SWIPL_WIN)
-    set(SWIPL_DATA_library ${SWIPL_DATA_library} win_menu.pl)
+  if(HAVE_SWIPL_WIN OR WIN32)
+    list(APPEND SWIPL_DATA_library win_menu.pl)
   endif()
 endif()
 if(EMSCRIPTEN)
@@ -459,6 +459,16 @@ if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
 
+if(EPILOG)
+# May want GUI target and icon for Windows?
+add_executable(swipl-win ${SWIPL_SRC})
+target_compile_options(swipl-win PRIVATE -DSWIPL_EPILOG)
+target_link_libraries(swipl-win ${SWIPL_LIBRARIES} libswipl)
+if(MINGW)
+  target_link_options(swipl-win PRIVATE -municode)
+endif()
+endif()
+
 # build the library
 if(SWIPL_SHARED_LIB AND NOT EMSCRIPTEN AND NOT STATIC_EXTENSIONS)
   set(LIBSWIPL_TYPE SHARED)
@@ -656,6 +666,10 @@ install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
 install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
+if(EPILOG)
+install(TARGETS swipl-win RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
+endif()
+
 if(MINGW)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libswipl.dll.a
 	DESTINATION ${LIBSWIPL_DIR}
@@ -737,6 +751,10 @@ if(SWIPL_INSTALL_AS_LINK)
 install(DIRECTORY DESTINATION bin)
 ilink(/${SWIPL_INSTALL_ARCH_EXE}/swipl
       /bin/swipl)
+if(EPILOG)
+ilink(/${SWIPL_INSTALL_ARCH_EXE}/swipl-win
+      /bin/swipl-win)
+endif()
 ilink(/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
       /bin/swipl-ld)
 endif()

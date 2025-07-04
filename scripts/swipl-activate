@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Simple script to activate swipl from the current cmake build directory
-# by linking it from $HOME/bin. May  be   called  as below to activate a
-# version that was installed  from  the   current  directory  using  the
-# command below:
+# Simple  script  to  activate  swipl from  the  current  cmake  build
+# directory by linking  it from $HOME/.local/bin or  $HOME/bin. May be
+# called as  below to activate a  version that was installed  from the
+# current directory using the command below:
 #
 #     swipl-activate --installed
 #
@@ -15,6 +15,26 @@
 swipl=
 swiplwin=
 swiplld=
+
+dir-in-path()
+{ arr=$(echo $PATH | tr ":" "\n")
+  for x in $arr; do
+      if [ "$x" = "$1" ]; then
+	  return 0	
+      fi
+  done
+  return 1
+}
+
+if [ -d $HOME/.local/bin ] && dir-in-path $HOME/.local/bin; then
+    bindir=$HOME/.local/bin
+elif [ -d $HOME/bin ] && dir-in-path $HOME/bin; then
+    bindir=$HOME/bin
+else
+    echo "ERROR: Cannot find personal bin directory."
+    exit 1
+fi
+
 
 if [ "$1" = "--installed" ]; then
 
@@ -35,33 +55,36 @@ if [ "$1" = "--installed" ]; then
 else
 
   if [ -x src/swipl ]; then
-    swipl=$(pwd)/src/swipl
-    if [ -x src/swipl-ld ]; then
-      swiplld=$(pwd)/src/swipl-ld
-    fi
-    if [ -x packages/swipl-win/swipl-win ]; then
-      swiplwin=$(pwd)/packages/swipl-win/swipl-win
-    fi
+      swipl=$(pwd)/src/swipl
+      if [ -x src/swipl-ld ]; then
+	  swiplld=$(pwd)/src/swipl-ld
+      fi
+      if [ -x src/swipl-win ]; then
+	  swiplwin=$(pwd)/src/swipl-win
+      elif [ -x packages/swipl-win/swipl-win ]; then
+	  swiplwin=$(pwd)/packages/swipl-win/swipl-win
+      fi
   else
-    echo "Please run from Cmake build directory"
-    exit 1
+      echo "Please run from Cmake build directory"
+      exit 1
   fi
 
 fi
 
+echo "Personal bin directory: $bindir"
 echo "Activating $swipl"
 
-rm -f $HOME/bin/swipl
-(cd $HOME/bin && ln -s $swipl)
+rm -f $bindir/swipl
+(cd $bindir && ln -s $swipl)
 if [ ! -z "$swiplld" ]; then
   echo "       and $swiplld"
-  rm -f $HOME/bin/swipl-ld
-  (cd $HOME/bin && ln -s $swiplld)
+  rm -f $bindir/swipl-ld
+  (cd $bindir && ln -s $swiplld)
 fi
 if [ ! -z "$swiplwin" ]; then
   echo "       and $swiplwin"
-  rm -f $HOME/bin/swipl-win
-  (cd $HOME/bin && ln -s $swiplwin)
+  rm -f $bindir/swipl-win
+  (cd $bindir && ln -s $swiplwin)
 fi
 
 if [ ! -z "$SWI_HOME_DIR" ]; then

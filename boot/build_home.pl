@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2023, VU University Amsterdam
-			      CWI, Amsterdam
-			      SWI-Prolog Solutions b.v.
+    Copyright (c)  2018-2025, VU University Amsterdam
+			CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without

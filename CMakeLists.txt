@@ -130,6 +130,9 @@ option(CCACHE
 option(VALIDATE_API
        "Add runtime argument checks for PL_*() functions"
        ON)
+option(EPILOG
+       "Configure Prolog for using the XPCE Epilog interface"
+       OFF)
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")

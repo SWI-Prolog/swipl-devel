@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 */
 
 #include <stdio.h>
+#include <stdbool.h>
 #ifndef __WINDOWS__
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
@@ -136,6 +138,9 @@ main(int argc, char **argv)
 
   force_malloc_dependency();
 
+#if SWIPL_EPILOG
+  PL_set_prolog_flag("epilog", PL_BOOL, true);
+#endif
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 

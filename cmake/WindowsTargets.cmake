@@ -2,6 +2,7 @@
 
 set(SWIPL_C_STACK_SIZE 4194304)
 
+if(NOT EPILOG)
 # build plterm.dll
 add_subdirectory(win32/console)
 
@@ -18,3 +19,4 @@ target_link_libraries(swipl-win ${SWIPLWIN_LIBRARIES})
 target_include_directories(swipl-win BEFORE PRIVATE
 			   ${CMAKE_CURRENT_BINARY_DIR}
 			   ${CMAKE_CURRENT_SOURCE_DIR})
+endif(NOT EPILOG)

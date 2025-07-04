@@ -218,13 +218,13 @@ case $config in
     ;;
 esac
 
-# SDL
+# EPILOG
 #
-# Use SDL graphics for xpce
+# Build with Epilog console.  Drops readline and swipl-win.
 
 case $config in
-  *sdl*)
-    opts+=" -DSDL=ON"
+  *epilog*)
+    opts+=" -DEPILOG=ON"
     ;;
 esac
 
