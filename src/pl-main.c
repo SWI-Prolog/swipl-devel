@@ -50,11 +50,13 @@
 #include "SWI-Prolog.h"
 #include <signal.h>
 
+#if !SWIPL_EPILOG
 #ifndef O_CTRLC
 #define O_CTRLC 1
 #endif
 #ifndef O_ANSI_COLORS
 #define O_ANSI_COLORS 1
+#endif
 #endif
 #ifndef HAVE_WMAIN
 #define HAVE_WMAIN 1

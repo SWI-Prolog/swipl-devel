@@ -460,8 +460,11 @@ if(MINGW)
 endif()
 
 if(EPILOG)
-# May want GUI target and icon for Windows?
+if(WIN32)
+add_executable(swipl-win WIN32 ${SWIPL_SRC} swipl.rc)
+else()
 add_executable(swipl-win ${SWIPL_SRC})
+endif()
 target_compile_options(swipl-win PRIVATE -DSWIPL_EPILOG)
 target_link_libraries(swipl-win ${SWIPL_LIBRARIES} libswipl)
 if(MINGW)
