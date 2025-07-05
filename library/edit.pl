@@ -215,6 +215,7 @@ is_file_spec(Name), atom(Name) => true.
 is_file_spec(Name), string(Name) => true.
 is_file_spec(Term), cyclic_term(Term) => fail.
 is_file_spec(A/B) => is_file_spec(A), is_file_spec(B).
+is_file_spec(_) => fail.
 
 %!  find_source(++FileSpec, =File) is semidet.
 %
