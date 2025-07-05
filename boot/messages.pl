@@ -636,7 +636,9 @@ swi_comment(Msg) -->
 
 
 thread_context -->
-    { thread_self(Me), Me \== main, thread_property(Me, id(Id)) },
+    { \+ current_prolog_flag(toplevel_thread, true),
+      thread_self(Id)
+    },
     !,
     ['[Thread ~w] '-[Id]].
 thread_context -->
@@ -2231,8 +2233,8 @@ add_message_context1(time(Format), Prefix0, Prefix) :-
     format_time(string(S), Format, Now),
     atomics_to_string([Prefix0, S, ' '], Prefix).
 add_message_context1(thread, Prefix0, Prefix) :-
+    \+ current_prolog_flag(toplevel_thread, true),
     thread_self(Id0),
-    Id0 \== main,
     !,
     (   atom(Id0)
     ->  Id = Id0
