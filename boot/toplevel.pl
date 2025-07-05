@@ -272,7 +272,12 @@ thread_initialization(Goal) :-
     call(Goal),
     !.
 
+%!  '$thread_init'
+%
+%   Called by start_thread() from pl-thread.c before the thread's goal.
+
 '$thread_init' :-
+    set_prolog_flag(toplevel_thread, false),
     (   '$at_thread_initialization'(Goal),
         (   call(Goal)
         ->  fail
@@ -999,11 +1004,22 @@ prolog :-
 '$query_loop' :-
     break_level(BreakLev),
     setup_call_cleanup(
-        notrace(call_repl_loop_hook(begin, BreakLev)),
+        notrace(call_repl_loop_hook(begin, BreakLev, IsToplevel)),
         '$query_loop'(BreakLev),
-        notrace(call_repl_loop_hook(end, BreakLev))).
+        notrace(call_repl_loop_hook(end, BreakLev, IsToplevel))).
 
-call_repl_loop_hook(BeginEnd, BreakLev) :-
+call_repl_loop_hook(begin, BreakLev, IsToplevel) =>
+    (   current_prolog_flag(toplevel_thread, IsToplevel)
+    ->  true
+    ;   IsToplevel = false
+    ),
+    set_prolog_flag(toplevel_thread, true),
+    call_repl_loop_hook_(begin, BreakLev).
+call_repl_loop_hook(end, BreakLev, IsToplevel) =>
+    set_prolog_flag(toplevel_thread, IsToplevel),
+    call_repl_loop_hook_(end, BreakLev).
+
+call_repl_loop_hook_(BeginEnd, BreakLev) :-
     forall(prolog:repl_loop_hook(BeginEnd, BreakLev), true).
 
 

@@ -2435,6 +2435,10 @@ When \const{true} (default \const{false}), print residual variables as
 detected by call_residue_vars/2 that do not appear in the bindings
 returned by the goal.
 
+    \prologflagitem{toplevel_thread}{bool}{rw}
+When \const{true}, this thread is running a toplevel REPL loop.  See
+prolog/0.
+
     \prologflagitem{toplevel_var_size}{int}{rw}
 Maximum size counted in literals of a term returned as a binding for a
 variable in a top-level query that is saved for re-use using the
