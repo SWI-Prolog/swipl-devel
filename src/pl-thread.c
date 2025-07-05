@@ -627,7 +627,7 @@ enableThreads(bool enable)
 		 *	 THREAD ALLOCATION	*
 		 *******************************/
 
-static int
+static bool
 initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
