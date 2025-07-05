@@ -362,48 +362,6 @@ fragment_location(Fragment, File, File:Line) :-
 
 
                  /*******************************
-                 *          APPLICATION         *
-                 *******************************/
-
-:- if(current_prolog_flag(windows, true)).
-
-%!  init_win_app
-%
-%   If Prolog is started using --win_app, try to change directory
-%   to <My Documents>\Prolog.
-
-init_win_app :-
-    current_prolog_flag(associated_file, _),
-    !.
-init_win_app :-
-    '$cmd_option_val'(win_app, true),
-    !,
-    catch(my_prolog, E, print_message(warning, E)).
-init_win_app.
-
-my_prolog :-
-    win_folder(personal, MyDocs),
-    atom_concat(MyDocs, '/Prolog', PrologDir),
-    (   ensure_dir(PrologDir)
-    ->  working_directory(_, PrologDir)
-    ;   working_directory(_, MyDocs)
-    ).
-
-
-ensure_dir(Dir) :-
-    exists_directory(Dir),
-    !.
-ensure_dir(Dir) :-
-    catch(make_directory(Dir), E, (print_message(warning, E), fail)).
-
-
-:- initialization
-   init_win_app.
-
-:- endif. /*windows*/
-
-
-                 /*******************************
                  *             MacOS            *
                  *******************************/
 

@@ -573,6 +573,7 @@ initialise_prolog :-
     set_toplevel,                               % set `toplevel_goal` flag from -t
     '$set_file_search_paths',                   % handle -p alias=dir[:dir]*
     init_debug_flags,
+    setup_app,
     start_pldoc,                                % handle --pldoc[=port]
     main_thread_init.
 
@@ -882,6 +883,45 @@ load_setup_file(File) :-
                        if(not_loaded)
                      ]), _, fail).
 
+
+%!  setup_app is det.
+%
+%   When running as an "app", behave as such. The behaviour depends on
+%   the platform.
+%
+%     - Windows
+%       If Prolog is started using --win_app, try to change directory
+%       to <My Documents>\Prolog.
+
+:- if(current_prolog_flag(windows,true)).
+
+setup_app :-
+    current_prolog_flag(associated_file, _),
+    !.
+setup_app :-
+    '$cmd_option_val'(win_app, true),
+    !,
+    catch(my_prolog, E, print_message(warning, E)).
+setup_app.
+
+my_prolog :-
+    win_folder(personal, MyDocs),
+    atom_concat(MyDocs, '/Prolog', PrologDir),
+    (   ensure_dir(PrologDir)
+    ->  working_directory(_, PrologDir)
+    ;   working_directory(_, MyDocs)
+    ).
+
+ensure_dir(Dir) :-
+    exists_directory(Dir),
+    !.
+ensure_dir(Dir) :-
+    catch(make_directory(Dir), E, (print_message(warning, E), fail)).
+
+:- else.
+% Other platforms.
+setup_app.
+:- endif.
 
 :- '$hide'('$toplevel'/0).              % avoid in the GUI stacktrace
 
