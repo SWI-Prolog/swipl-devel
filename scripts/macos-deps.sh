@@ -35,6 +35,9 @@ PCRE2_VERSION=10.42
 FFI_VERSION=3.4.4
 YAML_VERSION=0.2.5
 READLINE_VERSION=8.2
+SDL3_VERSION=3.2.16
+CAIRO_VERSION=1.18.4
+PANGO_VERSION=1.56.4
 
 # installation prefix.  This path should not have spaces in one of the
 # directory names.
@@ -314,6 +317,85 @@ build_libyaml()
   )
 }
 
+download_sdl3()
+{ SDL3_FILE=SDL3-$SDL3_VERSION.tar.gz
+
+  [ -f $SDL3_FILE ] || \
+    curl -L -o $SDL3_FILE https://github.com/libsdl-org/SDL/releases/download/release-$SDL3_VERSION/$SDL3_FILE
+  tar xzf $SDL3_FILE
+}
+
+build_sdl3()
+{ ( cd SDL3-$SDL3_VERSION
+    mkdir -p build && cd build
+    cmake .. \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSDL_VIDEO=ON \
+      -DSDL_AUDIO=ON \
+      -DSDL_RENDER=ON \
+      -DSDL_EVENTS=ON \
+      -DSDL_COCOA=ON \
+      -DSDL_X11=OFF \
+      -DSDL_WAYLAND=OFF \
+      -DSDL_DIRECTFB=OFF \
+      -DSDL_VULKAN=OFF \
+      -DSDL_METAL=ON \
+      -DSDL_TEST=OFF \
+      -DSDL_SHARED=ON \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
+      -DCMAKE_OSX_ARCHITECTURES="arm64 x86_64"
+
+    make -j$(sysctl -n hw.ncpu)
+    make install
+  )
+}
+
+download_cairo()
+{ CAIRO_FILE=cairo-$CAIRO_VERSION.tar.xz
+
+  [ -f $CAIRO_FILE ] || \
+    curl -L -o $CAIRO_FILE https://cairographics.org/releases/$CAIRO_FILE
+  tar xf $CAIRO_FILE
+}
+
+build_cairo()
+{ ( cd cairo-$CAIRO_VERSION
+    ./configure --prefix=$PREFIX \
+      --enable-quartz --disable-xlib --disable-win32 \
+      --disable-gl --disable-directfb \
+      --enable-shared \
+      CFLAGS="$CFLAGS"
+
+    make -j$(sysctl -n hw.ncpu)
+    make install
+  )
+}
+
+download_pango()
+{ PANGO_FILE=pango-$PANGO_VERSION.tar.xz
+
+  [ -f $PANGO_FILE ] || \
+    curl -L -o $PANGO_FILE https://download.gnome.org/sources/pango/1.50/$PANGO_FILE
+  tar xf $PANGO_FILE
+}
+
+build_pango()
+{ ( cd pango-$PANGO_VERSION
+    meson setup build \
+      --prefix=$PREFIX \
+      --default-library=shared \
+      -Dintrospection=disabled \
+      -Dtests=false \
+      -Dcairo=enabled \
+      -Dx11=disabled \
+      -Dgtk_doc=false
+
+    meson compile -C build
+    meson install -C build
+  )
+}
+
 
 build_emacs()
 { cp /opt/local/include/emacs-module.h $PREFIX/include
@@ -348,6 +430,9 @@ download_prerequisites()
   download_libpcre2
   download_libffi
   download_libyaml
+  download_sdl3
+  download_cairo
+  download_pango
 }
 
 build_prerequisites()
@@ -364,4 +449,7 @@ build_prerequisites()
   build_libffi
   build_libyaml
   build_emacs
+  build_sdl3
+  build_cairo
+  build_pango
 }
