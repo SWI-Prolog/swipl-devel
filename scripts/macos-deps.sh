@@ -16,7 +16,7 @@
 # because the  configuration of some  of the libraries depends  on the
 # CPU.  E.g., OpenSSL  does not build on the M1  using `-arch x86_64`.
 # pcre   does  not   include  the   JIT  compiler,   etc.   Therefore,
-# unfortunately, we must build the  libraries on a read x86_64 machine
+# unfortunately, we must build the  libraries on a real x86_64 machine
 # and  combine  them  using  the  `macos-import-arch.sh`  script  into
 # universal binaries.
 
@@ -24,17 +24,21 @@ PREFIX="$HOME/deps"
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 GMP_VERSION=6.3.0
-SSL_VERSION=3.2.0
+SSL_VERSION=3.5.1
 JPEG_VERSION=9f
 ZLIB_VERSION=1.3.1
-ARCHIVE_VERSION=3.7.2
+ARCHIVE_VERSION=3.8.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 ODBC_VERSION=2.3.12
-PCRE2_VERSION=10.42
-FFI_VERSION=3.4.4
+PCRE2_VERSION=10.45
+FFI_VERSION=3.5.1
 YAML_VERSION=0.2.5
 READLINE_VERSION=8.2
+SDL3_VERSION=3.2.16
+SDL3_IMAGE_VERSION=3.2.4
+CAIRO_VERSION=1.18.4
+PANGO_VERSION=1.56.4
 
 # installation prefix.  This path should not have spaces in one of the
 # directory names.
@@ -43,11 +47,20 @@ src="$(pwd)"
 ################
 # LDFLAGS allows for running autoconf from a directory
 
+export PYTHON_BIN="/Library/Frameworks/Python.framework/Versions/3.11/bin/"
+export PATH="$PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PYTHON_BIN:/opt/local/bin"
 export LDFLAGS=-L$PREFIX/lib
 export CUFLAGS="-arch x86_64"
 export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
-export CFLAGS="$CMFLAGS"
-#export CFLAGS="$CUFLAGS $CMFLAGS"
+export CWFLAGS="-Wno-nullability-completeness"
+export CIFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
+export CFLAGS="$CIFLAGS $CWFLAGS $CMFLAGS"
+# export CFLAGS="$CFLAGS $CUFLAGS"
+export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
+unset PKG_CONFIG_PATH
+export CMAKE_PREFIX_PATH="$PREFIX;/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+#Not accepted by CMake :(
+export CMAKE_IGNORE_PREFIX_PATH="/usr/local:/opt/local"
 
 config()
 { if [ -r ./configure ]; then
@@ -57,6 +70,32 @@ config()
   fi
 }
 
+
+# Hide Homebrew and Macports to avoid importing dependencies for cairo
+# or pango.  We do need meson  and ninja.  We copy ninja from Macports
+# as it is a simple executable.   We install meson using MacOS Python.
+# Unfortunately MacOS certificates are too  old, so we need to install
+# these as well.
+
+hide_ports()
+{ mkdir -p $PREFIX/bin
+  if [ ! -x $PREFIX/bin/ninja ]; then
+      cp /opt/local/bin/ninja $PREFIX/bin/ninja
+  fi
+
+  sudo chmod 0 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
+  hash -r
+  if [ ! -x $PYTHON_BIN/meson ]; then
+      python3 -m pip install meson
+      python3 -m pip install --user certifi
+  fi
+  export SSL_CERT_FILE=$(python3 -m certifi)
+}
+
+restore_ports()
+{ sudo chmod 755 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
+  hash -r
+}
 
 ###########################
 # Download and install the GMP library.
@@ -224,7 +263,8 @@ build_libarchive()
     ./configure --prefix=$PREFIX --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib \
-    --without-lzmadec --without-lzma --without-lzo2
+    --without-lzmadec --without-lzma --without-lzo2 \
+    --without-libb2 --without-zstd --without-lz4 
     make
     make install
   )
@@ -314,6 +354,139 @@ build_libyaml()
   )
 }
 
+download_sdl3()
+{ SDL3_FILE=SDL3-$SDL3_VERSION.tar.gz
+
+  [ -f $SDL3_FILE ] || \
+    curl -L -o $SDL3_FILE https://github.com/libsdl-org/SDL/releases/download/release-$SDL3_VERSION/$SDL3_FILE
+  tar xzf $SDL3_FILE
+}
+
+build_sdl3()
+{ ( cd SDL3-$SDL3_VERSION
+    mkdir -p build && cd build
+    cmake .. \
+      -G Ninja \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSDL_VIDEO=ON \
+      -DSDL_AUDIO=ON \
+      -DSDL_RENDER=ON \
+      -DSDL_EVENTS=ON \
+      -DSDL_COCOA=ON \
+      -DSDL_X11=OFF \
+      -DSDL_WAYLAND=OFF \
+      -DSDL_DIRECTFB=OFF \
+      -DSDL_VULKAN=OFF \
+      -DSDL_METAL=ON \
+      -DSDL_TEST=OFF \
+      -DSDL_SHARED=ON \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET 
+
+    ninja
+    ninja install
+
+    # Do not use @rpath.   We'll fixup while building the bundle.
+    dylib=$(echo $PREFIX/lib/libSDL3.*.dylib)
+    install_name_tool -id $dylib $dylib
+  )
+}
+
+download_sdl3_image()
+{ SDL3_IMAGE_FILE=SDL_image-release-$SDL3_IMAGE_VERSION.tar.gz
+
+  [ -f $SDL3_IMAGE_FILE ] || \
+    curl -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-$SDL3_IMAGE_VERSION.tar.gz
+  tar xzf $SDL3_IMAGE_FILE
+}
+
+build_sdl3_image()
+{ ( cd SDL_image-release-$SDL3_IMAGE_VERSION
+    mkdir -p build && cd build
+    cmake .. \
+      -G Ninja \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSDLIMAGE_BACKEND_IMAGEIO=ON \
+      -DSDLIMAGE_BACKEND_STB=ON \
+      -DSDLIMAGE_JPG=ON \
+      -DSDLIMAGE_PNG=ON \
+      -DSDLIMAGE_WEBP=OFF \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
+
+    ninja
+    ninja install
+
+    # Do not use @rpath.   We'll fixup while building the bundle.
+    dylib=$(echo $PREFIX/lib/libSDL3_image.*.*.*.dylib)
+    sdl3_dylib=$(echo $PREFIX/lib/libSDL3.*.dylib) 
+    sdl3_base=$(basename "$sdl3_dylib")
+    install_name_tool -id $dylib $dylib
+    install_name_tool -change "@rpath/$sdl3_base" "$sdl3_dylib" "$dylib"
+  )
+}
+
+
+download_cairo()
+{ CAIRO_FILE=cairo-$CAIRO_VERSION.tar.xz
+
+  [ -f $CAIRO_FILE ] || \
+    curl -L -o $CAIRO_FILE https://cairographics.org/releases/$CAIRO_FILE
+  tar xf $CAIRO_FILE
+}
+
+# cairo-1.18.4/subprojects/glib-2.74.0/meson.build:505 needs to be patched
+# Comment #'-Werror=declaration-after-statement'
+build_cairo()
+{ hide_ports
+  ( cd cairo-$CAIRO_VERSION
+    export CFLAGS="$CFLAGS -std=gnu99 -DHAVE_CTIME_R=1 -Wno-error=declaration-after-statement"
+
+    meson setup build \
+      --prefix=$PREFIX \
+      --default-library=shared \
+      -Dtests=disabled \
+      -Dgtk_doc=false \
+      -Dxlib=disabled \
+      -Dxcb=disabled \
+      -Dquartz=enabled \
+      -Dtee=disabled \
+      -Ddwrite=disabled \
+      -Dzlib=enabled \
+      -Dfreetype=enabled
+
+    meson compile -C build
+    meson install -C build
+  )
+  restore_ports
+}
+
+download_pango()
+{ PANGO_FILE=pango-$PANGO_VERSION.tar.xz
+
+  [ -f $PANGO_FILE ] || \
+    curl -L -o $PANGO_FILE https://download.gnome.org/sources/pango/1.56/$PANGO_FILE
+  tar xf $PANGO_FILE
+}
+
+build_pango()
+{ hide_ports		# Make Macports and Homebrew invisible
+  ( cd pango-$PANGO_VERSION
+
+    meson setup build \
+      --prefix=$PREFIX \
+      --default-library=shared \
+      -Dintrospection=disabled \
+      -Dcairo=enabled \
+      -Dharfbuzz:icu=disabled \
+      -Ddocumentation=false
+
+    meson compile -C build
+    meson install -C build
+  )
+  restore_ports
+}
+
 
 build_emacs()
 { cp /opt/local/include/emacs-module.h $PREFIX/include
@@ -348,20 +521,26 @@ download_prerequisites()
   download_libpcre2
   download_libffi
   download_libyaml
+  download_sdl3
+  download_cairo
+  download_pango
 }
 
 build_prerequisites()
-{ build_gmp
+{ build_zlib
+  build_libffi
+  build_libuuid
+  build_gmp
   build_ssl
   build_jpeg
-  build_zlib
   build_readline
   build_libarchive
-  build_libuuid
   build_libdb
   build_odbc
   build_libpcre2
-  build_libffi
   build_libyaml
   build_emacs
+  build_sdl3
+  build_cairo
+  build_pango
 }
