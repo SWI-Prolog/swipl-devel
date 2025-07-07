@@ -73,15 +73,6 @@
 :- autoload(library(prolog_profile), [show_profile/1]).
 :- autoload(library(thread),[call_in_thread/2]).
 
-:- if((\+current_prolog_flag(xpce,false),exists_source(library(pce)))).
-:- autoload(library(gui_tracer),[gdebug/0]).
-:- autoload(library(pce),[send/2]).
-:- else.
-gdebug :-
-    debug.
-:- endif.
-
-
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -352,6 +343,14 @@ interactor :-
     interactor(_).
 
 interactor(Title) :-
+    current_prolog_flag(epilog, true),
+    !,
+    (   nonvar(Title)
+    ->  Options = [title(Title)]
+    ;   Options = []
+    ),
+    autoload_call(epilog(Options)).
+interactor(Title) :-
     can_open_console,
     !,
     thread_self(Me),
@@ -421,10 +420,18 @@ tspy(Spec, ThreadID) :-
 %   spy-points or errors.
 
 tdebug :-
-    forall(debug_target(Id), thread_signal(Id, gdebug)).
+    forall(debug_target(Id), thread_signal(Id, debug_thread)).
 
 tdebug(ThreadID) :-
-    thread_signal(ThreadID, gdebug).
+    thread_signal(ThreadID, debug_thread).
+
+debug_thread :-
+    current_prolog_flag(gui, true),
+    !,
+    autoload_call(gdebug).
+debug_thread :-
+    debug.
+
 
 %!  tnodebug is det.
 %!  tnodebug(+Thread) is det.
@@ -528,7 +535,7 @@ tprofile(Thread) :-
 init_pce :-
     current_prolog_flag(gui, true),
     !,
-    call(send(@(display), open)).   % avoid autoloading
+    autoload_call(send(@(display), open)).
 :- endif.
 init_pce.
 
