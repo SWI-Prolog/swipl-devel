@@ -1,6 +1,7 @@
 #!/bin/sh
 
 deployqt=
+epilog=no
 
 usage()
 { echo "Usage: $0 [--deployqt=prog] app"
@@ -12,6 +13,10 @@ while [ $done = no ]; do
     case "$1" in
 	--deployqt=*)
 	    deployqt="$(echo $1 | sed 's/--deployqt=//')"
+	    shift
+	    ;;
+	--epilog)
+	    epilog=yes
 	    shift
 	    ;;
 	--*)

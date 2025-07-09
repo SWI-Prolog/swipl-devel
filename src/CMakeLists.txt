@@ -410,8 +410,11 @@ config_data_files()
 file(WRITE "${SWIPL_BIN_ROOT}/swipl.home" "home\n")
 file(WRITE "${SWIPL_BIN_ROOT}/src/swipl.home" "../home\n")
 file(WRITE "${SWIPL_BIN_ROOT}/packages/swipl.home" "../home\n")
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl.rc)
-symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/swipl-win.rc)
+set(RC_FILES swipl swipl-win ${EPILOG_APP})
+list(REMOVE_DUPLICATES RC_FILES)
+foreach(rc ${RC_FILES})
+  symlink_or_copy(${SWIPL_BOOT_ROOT}/build_home.pl ${SWIPL_BIN_ROOT}/home/${rc}.rc)
+endforeach()
 # Final swipl.home for installed system
 file(WRITE "${SWIPL_BIN_ROOT}/dot.txt" ".\n")
 file(WRITE "${SWIPL_BIN_ROOT}/dotdot.txt" "..\n")
@@ -460,16 +463,25 @@ if(MINGW)
 endif()
 
 if(EPILOG)
-if(WIN32)
-add_executable(swipl-win WIN32 ${SWIPL_SRC} swipl.rc)
-else()
-add_executable(swipl-win ${SWIPL_SRC})
-endif()
-target_compile_options(swipl-win PRIVATE -DSWIPL_EPILOG)
-target_link_libraries(swipl-win ${SWIPL_LIBRARIES} libswipl)
-if(MINGW)
-  target_link_options(swipl-win PRIVATE -municode)
-endif()
+  if(NOT EPILOG_APP)
+    set(EPILOG_APP swipl-win)
+  endif()
+
+  if(WIN32)
+    add_executable(${EPILOG_APP} WIN32 ${SWIPL_SRC} swipl.rc)
+  elseif(BUILD_MACOS_BUNDLE)
+    add_executable(${EPILOG_APP} MACOSX_BUNDLE ${SWIPL_SRC})
+    set_target_properties(${EPILOG_APP} PROPERTIES
+      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/desktop/Info.plist.in")
+  else()
+    add_executable(${EPILOG_APP} ${SWIPL_SRC})
+  endif()
+
+  target_compile_options(${EPILOG_APP} PRIVATE -DSWIPL_EPILOG)
+  target_link_libraries(${EPILOG_APP} ${SWIPL_LIBRARIES} libswipl)
+  if(MINGW)
+    target_link_options(${EPILOG_APP} PRIVATE -municode)
+  endif()
 endif()
 
 # build the library
@@ -634,6 +646,28 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Create TAGS file for main sources")
 
+# Build the MacOS icon file
+if(EPILOG AND APPLE)
+  set(desktop ${CMAKE_SOURCE_DIR}/desktop)
+
+  set(ICNS_FILE ${CMAKE_CURRENT_BINARY_DIR}/swipl.icns)
+
+  add_custom_command(
+    OUTPUT ${ICNS_FILE}
+    COMMAND sh ${desktop}/make_icns.sh ${desktop}/swipl-256.png ${ICNS_FILE}
+    DEPENDS ${desktop}/make_icns.sh ${desktop}/swipl-256.png
+    COMMENT "Create MacOS icons"
+    VERBATIM
+  )
+
+  add_custom_target(generate_icns ALL DEPENDS ${ICNS_FILE})
+  add_dependencies(${EPILOG_APP} generate_icns)
+
+  if(BUILD_MACOS_BUNDLE)
+    install(FILES ${ICNS_FILE} DESTINATION ${SWIPL_INSTALL_RESOURCES})
+  endif()
+endif()    
+
 # Create cmake config files
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(SWIPLConfigVersion.cmake
@@ -670,7 +704,13 @@ install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
 if(EPILOG)
-install(TARGETS swipl-win RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
+  if(APPLE)
+    install(TARGETS ${EPILOG_APP} BUNDLE DESTINATION .)
+  else()
+    install(
+      TARGETS ${EPILOG_APP}
+      RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
+  endif()
 endif()
 
 if(MINGW)
