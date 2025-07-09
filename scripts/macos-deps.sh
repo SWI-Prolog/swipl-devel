@@ -24,18 +24,19 @@ PREFIX="$HOME/deps"
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 GMP_VERSION=6.3.0
-SSL_VERSION=3.2.0
+SSL_VERSION=3.5.1
 JPEG_VERSION=9f
 ZLIB_VERSION=1.3.1
-ARCHIVE_VERSION=3.7.2
+ARCHIVE_VERSION=3.8.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 ODBC_VERSION=2.3.12
-PCRE2_VERSION=10.42
-FFI_VERSION=3.4.4
+PCRE2_VERSION=10.45
+FFI_VERSION=3.5.1
 YAML_VERSION=0.2.5
 READLINE_VERSION=8.2
 SDL3_VERSION=3.2.16
+SDL3_IMAGE_VERSION=3.2.4
 CAIRO_VERSION=1.18.4
 PANGO_VERSION=1.56.4
 
@@ -46,11 +47,20 @@ src="$(pwd)"
 ################
 # LDFLAGS allows for running autoconf from a directory
 
+export PYTHON_BIN="/Library/Frameworks/Python.framework/Versions/3.11/bin/"
+export PATH="$PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PYTHON_BIN:/opt/local/bin"
 export LDFLAGS=-L$PREFIX/lib
 export CUFLAGS="-arch x86_64"
 export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
-export CFLAGS="$CMFLAGS"
-#export CFLAGS="$CUFLAGS $CMFLAGS"
+export CWFLAGS="-Wno-nullability-completeness"
+export CIFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
+export CFLAGS="$CIFLAGS $CWFLAGS $CMFLAGS"
+#export CFLAGS+=" $CUFLAGS"
+export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
+unset PKG_CONFIG_PATH
+export CMAKE_PREFIX_PATH="$PREFIX;/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+#Not accepted by CMake :(
+export CMAKE_IGNORE_PREFIX_PATH="/usr/local:/opt/local"
 
 config()
 { if [ -r ./configure ]; then
@@ -60,6 +70,25 @@ config()
   fi
 }
 
+
+setup_environment()
+{ sudo chmod 0 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
+  hash -r
+  if [ ! -x $PYTHON_BIN/meson ]; then
+      python3 -m pip install meson
+  fi
+  if [ ! -x $PREFIX/bin/ninja ]; then
+      curl -LO https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip
+      unzip ninja-mac.zip
+      chmod +x ninja
+      mkdir -p $PREFIX/bin
+      mv ninja $PREFIX/bin
+  fi
+}
+
+restore_environment()
+{ sudo chmod 755 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
+}
 
 ###########################
 # Download and install the GMP library.
@@ -329,6 +358,7 @@ build_sdl3()
 { ( cd SDL3-$SDL3_VERSION
     mkdir -p build && cd build
     cmake .. \
+      -G Ninja \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DSDL_VIDEO=ON \
@@ -343,13 +373,51 @@ build_sdl3()
       -DSDL_METAL=ON \
       -DSDL_TEST=OFF \
       -DSDL_SHARED=ON \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-      -DCMAKE_OSX_ARCHITECTURES="arm64 x86_64"
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET 
 
-    make -j$(sysctl -n hw.ncpu)
-    make install
+    ninja
+    ninja install
+
+    # Do not use @rpath.   We'll fixup while building the bundle.
+    dylib=$(echo $PREFIX/lib/libSDL3.*.dylib)
+    install_name_tool -id $dylib $dylib
   )
 }
+
+download_sdl3_image()
+{ SDL3_IMAGE_FILE=SDL_image-release-$SDL_IMAGE_VERSION.tar.gz
+
+  [ -f $SDL3_IMAGE_FILE ] || \
+    curl -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-$SDL3_IMAGE_VERSION.tar.gz
+  tar xzf $SDL3_IMAGE_FILE
+}
+
+build_sdl3_image()
+{ ( cd SDL_image-release-$SDL_IMAGE_VERSION
+    mkdir -p build && cd build
+    cmake .. \
+      -G Ninja \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSDLIMAGE_BACKEND_IMAGEIO=ON \
+      -DSDLIMAGE_BACKEND_STB=ON \
+      -DSDLIMAGE_JPG=ON \
+      -DSDLIMAGE_PNG=ON \
+      -DSDLIMAGE_WEBP=OFF \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
+
+    ninja
+    ninja install
+
+    # Do not use @rpath.   We'll fixup while building the bundle.
+    dylib=$(echo $PREFIX/lib/libSDL3_image.*.*.*.dylib)
+    sdl3_dylib=$(echo $PREFIX/lib/libSDL3.*.dylib) 
+    sdl3_base=$(basename "$sdl3_dylib")
+    install_name_tool -id $dylib $dylib
+    install_name_tool -change "@rpath/$sdl3_base" "$sdl3_dylib" "$dylib"
+  )
+}
+
 
 download_cairo()
 { CAIRO_FILE=cairo-$CAIRO_VERSION.tar.xz
@@ -359,16 +427,27 @@ download_cairo()
   tar xf $CAIRO_FILE
 }
 
+# cairo-1.18.4/subprojects/glib-2.74.0/meson.build:505 needs to be patched
+# Comment #'-Werror=declaration-after-statement'
 build_cairo()
 { ( cd cairo-$CAIRO_VERSION
-    ./configure --prefix=$PREFIX \
-      --enable-quartz --disable-xlib --disable-win32 \
-      --disable-gl --disable-directfb \
-      --enable-shared \
-      CFLAGS="$CFLAGS"
+    export CFLAGS="$CFLAGS -std=gnu99 -DHAVE_CTIME_R=1 -Wno-error=declaration-after-statement"
 
-    make -j$(sysctl -n hw.ncpu)
-    make install
+    meson setup build \
+      --prefix=$PREFIX \
+      --default-library=static \
+      -Dtests=disabled \
+      -Dgtk_doc=false \
+      -Dxlib=disabled \
+      -Dxcb=disabled \
+      -Dquartz=enabled \
+      -Dtee=disabled \
+      -Ddwrite=disabled \
+      -Dzlib=enabled \
+      -Dfreetype=enabled
+
+    meson compile -C build
+    meson install -C build
   )
 }
 
@@ -376,20 +455,27 @@ download_pango()
 { PANGO_FILE=pango-$PANGO_VERSION.tar.xz
 
   [ -f $PANGO_FILE ] || \
-    curl -L -o $PANGO_FILE https://download.gnome.org/sources/pango/1.50/$PANGO_FILE
+    curl -L -o $PANGO_FILE https://download.gnome.org/sources/pango/1.56/$PANGO_FILE
   tar xf $PANGO_FILE
+}
+
+install_pango_subprojects()
+{ mkdir -p $PREFIX/include/cairo 
+  cp pango-$PANGO_VERSION/build/subprojects/cairo/src/libcairo*.dylib $PREFIX/lib/
+  cp pango-$PANGO_VERSION/subprojects/cairo/src/*.h $PREFIX/include/cairo
+  cp pango-$PANGO_VERSION/build/meson-private/cairo.pc $PREFIX/lib/pkgconfig/
 }
 
 build_pango()
 { ( cd pango-$PANGO_VERSION
+
     meson setup build \
       --prefix=$PREFIX \
       --default-library=shared \
       -Dintrospection=disabled \
-      -Dtests=false \
       -Dcairo=enabled \
-      -Dx11=disabled \
-      -Dgtk_doc=false
+      -Dharfbuzz:icu=disabled \
+      -Ddocumentation=false
 
     meson compile -C build
     meson install -C build
@@ -436,17 +522,17 @@ download_prerequisites()
 }
 
 build_prerequisites()
-{ build_gmp
+{ build_zlib
+  build_libffi
+  build_libuuid
+  build_gmp
   build_ssl
   build_jpeg
-  build_zlib
   build_readline
   build_libarchive
-  build_libuuid
   build_libdb
   build_odbc
   build_libpcre2
-  build_libffi
   build_libyaml
   build_emacs
   build_sdl3
