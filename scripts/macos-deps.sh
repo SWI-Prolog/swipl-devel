@@ -16,7 +16,7 @@
 # because the  configuration of some  of the libraries depends  on the
 # CPU.  E.g., OpenSSL  does not build on the M1  using `-arch x86_64`.
 # pcre   does  not   include  the   JIT  compiler,   etc.   Therefore,
-# unfortunately, we must build the  libraries on a read x86_64 machine
+# unfortunately, we must build the  libraries on a real x86_64 machine
 # and  combine  them  using  the  `macos-import-arch.sh`  script  into
 # universal binaries.
 
@@ -55,7 +55,7 @@ export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
 export CWFLAGS="-Wno-nullability-completeness"
 export CIFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
 export CFLAGS="$CIFLAGS $CWFLAGS $CMFLAGS"
-#export CFLAGS+=" $CUFLAGS"
+# export CFLAGS="$CFLAGS $CUFLAGS"
 export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
 unset PKG_CONFIG_PATH
 export CMAKE_PREFIX_PATH="$PREFIX;/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
@@ -88,6 +88,7 @@ setup_environment()
 
 restore_environment()
 { sudo chmod 755 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
+  hash -r
 }
 
 ###########################
@@ -459,15 +460,9 @@ download_pango()
   tar xf $PANGO_FILE
 }
 
-install_pango_subprojects()
-{ mkdir -p $PREFIX/include/cairo 
-  cp pango-$PANGO_VERSION/build/subprojects/cairo/src/libcairo*.dylib $PREFIX/lib/
-  cp pango-$PANGO_VERSION/subprojects/cairo/src/*.h $PREFIX/include/cairo
-  cp pango-$PANGO_VERSION/build/meson-private/cairo.pc $PREFIX/lib/pkgconfig/
-}
-
 build_pango()
-{ ( cd pango-$PANGO_VERSION
+{ setup_environment		# Make Macports and Homebrew invisible
+  ( cd pango-$PANGO_VERSION
 
     meson setup build \
       --prefix=$PREFIX \
@@ -480,6 +475,7 @@ build_pango()
     meson compile -C build
     meson install -C build
   )
+  restore_environment
 }
 
 
