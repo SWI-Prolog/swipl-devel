@@ -34,6 +34,8 @@
 */
 
 :- module(prolog_theme_dark, []).
+:- autoload(library(lists), [member/2]).
+:- autoload(library(pce), [send/2]).
 
 /** <module> SWI-Prolog theme file -- dark
 
@@ -252,7 +254,7 @@ pce_set_defaults :-
 
 %!  pce_style(+Class, -Attributes)
 %
-%   Set XPCE class variales for Class. This  is normally done by loading
+%   Set XPCE class variables for Class. This is normally done by loading
 %   a _resource file_, but doing it from   Prolog keeps the entire theme
 %   in a single file.
 
