@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC ...>
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>@CPACK_BUNDLE_NAME@</string>
+  <key>CFBundleDisplayName</key><string>@CPACK_BUNDLE_NAME@</string>
+  <key>CFBundleIdentifier</key><string>@CPACK_BUNDLE_IDENTIFIER@</string>
+  <key>CFBundleVersion</key><string>@CPACK_BUNDLE_VERSION@</string>
+  <key>CFBundleExecutable</key><string>@CPACK_BUNDLE_EXECUTABLE@</string>
+  <key>CFBundleIconFile</key><string>@CPACK_BUNDLE_ICON@</string>
+  <key>CFBundleCopyright</key><string>@CPACK_BUNDLE_COPYRIGHT@</string>
+</dict>
+</plist>
