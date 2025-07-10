@@ -566,7 +566,6 @@ initialise_error(E) :-
 initialise_prolog :-
     '$clean_history',
     apply_defines,
-    apple_setup_app,                            % MacOS cwd/locale setup for swipl-win
     init_optimise,
     '$run_initialization',
     '$load_system_init_file',                   % -F file
@@ -676,32 +675,6 @@ text_flag_value(term, Text, Term) :-
     term_string(Term, Text, []),
     !.
 text_flag_value(_, Value, Value).
-
-:- if(current_prolog_flag(apple,true)).
-apple_set_working_directory :-
-    (   expand_file_name('~', [Dir]),
-	exists_directory(Dir)
-    ->  working_directory(_, Dir)
-    ;   true
-    ).
-
-apple_set_locale :-
-    (   getenv('LC_CTYPE', 'UTF-8'),
-	apple_current_locale_identifier(LocaleID),
-	atom_concat(LocaleID, '.UTF-8', Locale),
-	catch(setlocale(ctype, _Old, Locale), _, fail)
-    ->  setenv('LANG', Locale),
-        unsetenv('LC_CTYPE')
-    ;   true
-    ).
-
-apple_setup_app :-
-    current_prolog_flag(apple, true),
-    current_prolog_flag(console_menu, true),	% SWI-Prolog.app on MacOS
-    apple_set_working_directory,
-    apple_set_locale.
-:- endif.
-apple_setup_app.
 
 init_optimise :-
     current_prolog_flag(optimise, true),
@@ -917,6 +890,89 @@ ensure_dir(Dir) :-
     !.
 ensure_dir(Dir) :-
     catch(make_directory(Dir), E, (print_message(warning, E), fail)).
+
+:- elif(current_prolog_flag(apple, true)).
+
+setup_app :-
+    apple_set_locale,
+    current_prolog_flag(associated_file, _),
+    !.
+setup_app :-
+    current_prolog_flag(bundle, true),
+    current_prolog_flag(executable, Exe),
+    file_base_name(Exe, 'SWI-Prolog'),
+    !,
+    setup_macos_app,
+    at_halt(save_working_directory).
+setup_app.
+
+apple_set_locale :-
+    (   getenv('LC_CTYPE', 'UTF-8'),
+	apple_current_locale_identifier(LocaleID),
+	atom_concat(LocaleID, '.UTF-8', Locale),
+	catch(setlocale(ctype, _Old, Locale), _, fail)
+    ->  setenv('LANG', Locale),
+        unsetenv('LC_CTYPE')
+    ;   true
+    ).
+
+setup_macos_app :-
+    app_settings(Settings),
+    WD = Settings.get(working_directory),
+    catch(working_directory(_, WD), _, fail),
+    !.
+setup_macos_app :-
+    expand_file_name('~/Documents/Prolog', [PrologDir]),
+    (   exists_directory(PrologDir)
+    ->  true
+    ;   catch(make_directory(PrologDir), MkDirError,
+              print_message(warning, MkDirError))
+    ),
+    catch(working_directory(_, PrologDir), CdError,
+          print_message(warning, CdError)),
+    !.
+setup_macos_app.
+
+save_working_directory :-
+    working_directory(WD, WD),
+    app_settings(Settings),
+    (   Settings.get(working_directory) == WD
+    ->  true
+    ;   save_settings(Settings.put(working_directory, WD))
+    ).
+
+app_settings(Settings) :-
+    app_settings_file(File),
+    access_file(File, read),
+    catch(setup_call_cleanup(
+              open(File, read, In, [encoding(utf8)]),
+              read_term(In, Settings, []),
+              close(In)),
+          Error,
+          (print_message(warning, Error), fail)),
+    !.
+app_settings(#{}).
+
+save_settings(Settings) :-
+    app_settings_file(File),
+    catch(setup_call_cleanup(
+              open(File, write, Out, [encoding(utf8)]),
+              write_term(Out, Settings,
+                         [ quoted(true),
+                           module(system), % default operators
+                           fullstop(true),
+                           nl(true)
+                         ]),
+              close(Out)),
+          Error,
+          (print_message(warning, Error), fail)).
+
+
+app_settings_file(File) :-
+    absolute_file_name(user_app_config('app_settings.pl'), File,
+                       [ access(write),
+                         file_errors(fail)
+                       ]).
 
 :- else.
 % Other platforms.
