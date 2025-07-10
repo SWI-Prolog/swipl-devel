@@ -588,11 +588,13 @@ main_thread_init :-
     current_prolog_flag(xpce, true),
     exists_source(library(epilog)),
     !,
+    setup_theme,
     use_module(library(epilog)),
     call(epilog([ init(user_thread_init),
                   main(true)
                 ])).
 main_thread_init :-
+    setup_theme,
     user_thread_init.
 
 %!  user_thread_init
@@ -621,6 +623,19 @@ user_thread_init :-
             run_main_init(false)                % initialization(Goal, main)
         )
     ).
+
+%!  setup_theme
+
+setup_theme :-
+    current_prolog_flag(theme, Theme),
+    exists_source(library(theme/Theme)),
+    !,
+    use_module(library(theme/Theme)).
+setup_theme.
+
+%!  apply_defines
+%
+%   Handle -Dflag[=value] options
 
 apply_defines :-
     '$cmd_option_val'(defines, Defs),
