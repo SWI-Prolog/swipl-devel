@@ -257,7 +257,8 @@ build_libarchive()
     ./configure --prefix=$PREFIX --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib \
-    --without-lzmadec --without-lzma --without-lzo2
+    --without-lzmadec --without-lzma --without-lzo2 \
+    --without-libb2 --without-zstd --without-lz4 
     make
     make install
   )
@@ -386,7 +387,7 @@ build_sdl3()
 }
 
 download_sdl3_image()
-{ SDL3_IMAGE_FILE=SDL_image-release-$SDL_IMAGE_VERSION.tar.gz
+{ SDL3_IMAGE_FILE=SDL_image-release-$SDL3_IMAGE_VERSION.tar.gz
 
   [ -f $SDL3_IMAGE_FILE ] || \
     curl -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-$SDL3_IMAGE_VERSION.tar.gz
@@ -394,7 +395,7 @@ download_sdl3_image()
 }
 
 build_sdl3_image()
-{ ( cd SDL_image-release-$SDL_IMAGE_VERSION
+{ ( cd SDL_image-release-$SDL3_IMAGE_VERSION
     mkdir -p build && cd build
     cmake .. \
       -G Ninja \
@@ -436,7 +437,7 @@ build_cairo()
 
     meson setup build \
       --prefix=$PREFIX \
-      --default-library=static \
+      --default-library=shared \
       -Dtests=disabled \
       -Dgtk_doc=false \
       -Dxlib=disabled \
