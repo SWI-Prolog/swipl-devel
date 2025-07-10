@@ -9,5 +9,10 @@
   <key>CFBundleExecutable</key><string>@CPACK_BUNDLE_EXECUTABLE@</string>
   <key>CFBundleIconFile</key><string>@CPACK_BUNDLE_ICON@</string>
   <key>CFBundleCopyright</key><string>@CPACK_BUNDLE_COPYRIGHT@</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleSupportedPlatforms</key>
+  <array><string>MacOSX</string></array>
+  <key>LSMinimumSystemVersion</key><string>10.14.0</string>
+  <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
