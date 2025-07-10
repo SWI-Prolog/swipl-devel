@@ -17,3 +17,5 @@ for f in *; do
 	    ;;
     esac
 done
+
+rm -f .ninja_deps .ninja_log
