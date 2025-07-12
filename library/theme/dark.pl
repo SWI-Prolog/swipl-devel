@@ -235,7 +235,7 @@ style(table_mode(_),             [bold(true)]).
 
 
 		 /*******************************
-		 *         GUI DEFAULTS		*
+		 *         GUI DEFAULTS         *
 		 *******************************/
 
 :- op(200, fy,  @).
@@ -244,13 +244,33 @@ style(table_mode(_),             [bold(true)]).
 pce:on_load :-
     pce_set_defaults.
 
+:- initialization
+    setup_if_loaded.
+
+setup_if_loaded :-
+    current_predicate(pce:send/2),
+    !,
+    pce_set_defaults.
+setup_if_loaded.
+
+
+%!  pce_set_defaults
+%
+%   Adjust xpce defaults. This can either be   run before xpce is loaded
+%   or as part of the xpce initialization.
+
 pce_set_defaults :-
     pce_style(Class, Properties),
     member(Prop, Properties),
     Prop =.. [Name,Value],
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
+    update_class_variable(Class, Name, Value),
     fail ; true.
+
+update_class_variable(Class, Name, Value) :-
+    get(class(Class), class_variable, Name, ClassVar),
+    send(ClassVar, value, Value).
 
 %!  pce_style(+Class, -Attributes)
 %
