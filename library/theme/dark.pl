@@ -242,7 +242,7 @@ style(table_mode(_),             [bold(true)]).
 :- op(800, xfx, :=).
 
 pce:on_load :-
-    pce_set_defaults.
+    pce_set_defaults(false).
 
 :- initialization
     setup_if_loaded.
@@ -250,26 +250,27 @@ pce:on_load :-
 setup_if_loaded :-
     current_predicate(pce:send/2),
     !,
-    pce_set_defaults.
+    pce_set_defaults(true).
 setup_if_loaded.
 
 
-%!  pce_set_defaults
+%!  pce_set_defaults(+Loaded)
 %
 %   Adjust xpce defaults. This can either be   run before xpce is loaded
 %   or as part of the xpce initialization.
 
-pce_set_defaults :-
+pce_set_defaults(Loaded) :-
     pce_style(Class, Properties),
     member(Prop, Properties),
     Prop =.. [Name,Value],
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
-    update_class_variable(Class, Name, Value),
+    update_class_variable(Loaded, Class, Name, Value),
     fail ; true.
 
-update_class_variable(Class, Name, Value) :-
-    get(class(Class), class_variable, Name, ClassVar),
+update_class_variable(true, ClassName, Name, Value) :-
+    get(@(classes), member, ClassName, Class),
+    get(Class, class_variable, Name, ClassVar),
     send(ClassVar, value, Value).
 
 %!  pce_style(+Class, -Attributes)
