@@ -466,6 +466,7 @@ if(EPILOG)
   if(NOT EPILOG_APP)
     set(EPILOG_APP swipl-win)
   endif()
+  set(EPILOG_APP "${EPILOG_APP}${PGO_SUFFIX}")
 
   if(WIN32)
     add_executable(${EPILOG_APP} WIN32 ${SWIPL_SRC} swipl.rc)
