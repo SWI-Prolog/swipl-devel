@@ -255,8 +255,10 @@ doc2tex(${DOC_LIB})
 
 add_custom_command(
     OUTPUT  ${DOC}.doc
-    COMMAND ${PROG_SWIPL} -f none --no-packs ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
-                  ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
+    COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	    ${PROG_SWIPL} -f none --no-packs
+               ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
+               ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
     DEPENDS main.doc select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
@@ -321,7 +323,8 @@ prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
     COMMAND ${clean}
-    COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
+    COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	    ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
     COMMAND ${CMAKE_COMMAND} -E touch manual.html
     COMMENT "Generating HTML documentation for core system"
@@ -335,7 +338,8 @@ if(WIN32)
   doc2tex(windows.tex)
   add_custom_command(
       OUTPUT windows.html
-      COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} windows
+      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	      ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
               core latex2html
       VERBATIM)
@@ -349,14 +353,16 @@ if(APPLE)
   add_custom_command(
       OUTPUT  macosx/macosx.tex
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-      COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+              ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
 	                       macosx/macosx.tex
       DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS}
       VERBATIM)
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
-      COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} macosx
+      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	      ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
               core latex2html
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx
