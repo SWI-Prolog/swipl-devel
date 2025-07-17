@@ -12,6 +12,14 @@ break __assert_fail
 break PL_api_error
 set breakpoint pending off
 
+define nosyms
+  set auto-solib-add off
+end
+
+define syms
+  sharedlibrary pl2xpce.so
+end
+
 # Pass signals that are commonly used and not needed for debugging
 handle SIGPIPE noprint nostop pass
 handle SIGUSR1 noprint nostop pass
