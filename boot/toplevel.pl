@@ -972,7 +972,9 @@ running_as_app :-
 :- endif.
 
 
-:- if(use_app_settings(true)).
+:- if((current_predicate(use_app_settings/1),
+       use_app_settings(true))).
+
 
                 /*******************************
                 *    APP WORKING DIRECTORY     *
