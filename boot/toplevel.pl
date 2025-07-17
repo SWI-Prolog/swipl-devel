@@ -907,6 +907,7 @@ ensure_dir(Dir) :-
     catch(make_directory(Dir), E, (print_message(warning, E), fail)).
 
 :- elif(current_prolog_flag(apple, true)).
+use_app_settings(true).                        % Indicate we need app settings
 
 setup_app :-
     apple_set_locale,
@@ -917,24 +918,21 @@ setup_app :-
     current_prolog_flag(executable, Exe),
     file_base_name(Exe, 'SWI-Prolog'),
     !,
-    setup_macos_app,
-    at_halt(save_working_directory).
+    setup_macos_app.
 setup_app.
 
 apple_set_locale :-
     (   getenv('LC_CTYPE', 'UTF-8'),
-	apple_current_locale_identifier(LocaleID),
-	atom_concat(LocaleID, '.UTF-8', Locale),
-	catch(setlocale(ctype, _Old, Locale), _, fail)
+        apple_current_locale_identifier(LocaleID),
+        atom_concat(LocaleID, '.UTF-8', Locale),
+        catch(setlocale(ctype, _Old, Locale), _, fail)
     ->  setenv('LANG', Locale),
         unsetenv('LC_CTYPE')
     ;   true
     ).
 
 setup_macos_app :-
-    app_settings(Settings),
-    WD = Settings.get(working_directory),
-    catch(working_directory(_, WD), _, fail),
+    restore_working_directory,
     !.
 setup_macos_app :-
     expand_file_name('~/Documents/Prolog', [PrologDir]),
@@ -948,13 +946,60 @@ setup_macos_app :-
     !.
 setup_macos_app.
 
+:- elif(current_prolog_flag(emscripten, true)).
+setup_app.
+:- else.
+use_app_settings(true).                        % Indicate we need app settings
+
+% Other (Unix-like) platforms.
+setup_app :-
+    running_as_app,
+    restore_working_directory,
+    !.
+setup_app.
+
+%!  running_as_app is semidet.
+%
+%   True if we were started from the dock.
+
+running_as_app :-
+%   getenv('FLATPAK_SANDBOX_DIR', _),
+    current_prolog_flag(epilog, true),
+    stream_property(In, file_no(0)),
+    \+ stream_property(In, tty(true)),
+    !.
+
+:- endif.
+
+
+:- if(use_app_settings(true)).
+
+                /*******************************
+                *    APP WORKING DIRECTORY     *
+                *******************************/
+
 save_working_directory :-
     working_directory(WD, WD),
     app_settings(Settings),
     (   Settings.get(working_directory) == WD
     ->  true
-    ;   save_settings(Settings.put(working_directory, WD))
+    ;   app_save_settings(Settings.put(working_directory, WD))
     ).
+
+restore_working_directory :-
+    at_halt(save_working_directory),
+    app_settings(Settings),
+    WD = Settings.get(working_directory),
+    catch(working_directory(_, WD), _, fail),
+    !.
+
+                /*******************************
+                *           SETTINGS           *
+                *******************************/
+
+%!  app_settings(-Settings:dict) is det.
+%
+%   Get a dict holding the persistent application settings.
 
 app_settings(Settings) :-
     app_settings_file(File),
@@ -968,7 +1013,11 @@ app_settings(Settings) :-
     !.
 app_settings(#{}).
 
-save_settings(Settings) :-
+%!  app_save_settings(+Settings:dict) is det.
+%
+%   Save the given application settings dict.
+
+app_save_settings(Settings) :-
     app_settings_file(File),
     catch(setup_call_cleanup(
               open(File, write, Out, [encoding(utf8)]),
@@ -988,11 +1037,11 @@ app_settings_file(File) :-
                        [ access(write),
                          file_errors(fail)
                        ]).
+:- endif.% app_settings
 
-:- else.
-% Other platforms.
-setup_app.
-:- endif.
+                /*******************************
+                *           TOPLEVEL           *
+                *******************************/
 
 :- '$hide'('$toplevel'/0).              % avoid in the GUI stacktrace
 
