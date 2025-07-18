@@ -242,7 +242,7 @@ style(table_mode(_),             [bold(true)]).
 :- op(800, xfx, :=).
 
 pce:on_load :-
-    pce_set_defaults(false).
+    pce_set_defaults(true).
 
 :- initialization
     setup_if_loaded.
@@ -266,18 +266,45 @@ pce_set_defaults(Loaded) :-
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
     update_class_variable(Loaded, Class, Name, Value),
+    update_instances(Class, Prop),
     fail ; true.
 
 update_class_variable(true, ClassName, Name, Value) :-
     get(@(classes), member, ClassName, Class),
+    !,
     get(Class, class_variable, Name, ClassVar),
-    send(ClassVar, value, Value).
+    (   get(ClassVar, context, ContextClass),
+        get(ContextClass, name, ClassName)
+    ->  send(ClassVar, value, Value)
+    ;   new(_, class_variable(ClassName, Name, Value))
+    ).
+update_class_variable(_, _, _, _).
+
+update_instances(display, Prop) :-
+    send(@display, Prop).
 
 %!  pce_style(+Class, -Attributes)
 %
 %   Set XPCE class variables for Class. This is normally done by loading
 %   a _resource file_, but doing it from   Prolog keeps the entire theme
 %   in a single file.
+
+% General
+
+pce_style(display,
+          [ foreground(white),
+            background(black)
+          ]).
+
+pce_style(window,
+          [ colour(white),
+            background(black)
+          ]).
+
+pce_style(dialog,
+          [ colour(black),
+            background(grey80)
+          ]).
 
 % Epilog (next generation swipl-win)
 
@@ -289,12 +316,10 @@ pce_style(terminal_image,
 
 % Dialog
 
-/* Needs support in xpce.
 pce_style(text_item,
-          [ colour(white),
+          [ text_colour(white),
             elevation(elevation('0,25mm', background := black))
           ]).
-*/
 
 % PceEmacs
 
