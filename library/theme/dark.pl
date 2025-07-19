@@ -321,6 +321,11 @@ pce_style(text_item,
             elevation(elevation('0,25mm', background := black))
           ]).
 
+pce_style(list_browser,
+          [ selection_style(style(background := yellow, colour := black)),
+            isearch_style(style(background := green, colour := black))
+          ]).
+
 % PceEmacs
 
 pce_style(text_image,
@@ -357,6 +362,16 @@ pce_style(prolog_source_structure,
           [ background(black),
             colour(white)
           ]).
+
+% Profiler
+
+pce_style(prof_details,
+          [ header_background(khaki3)
+          ]).
+pce_style(prof_node_text,
+          [ colour('dodger_blue')
+          ]).
+
 
 %!  prolog_source_view:port_style(+Port, -StyleAttributes)
 %
