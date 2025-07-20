@@ -394,6 +394,18 @@ pce_style(prof_node_text,
           [ colour('dodger_blue')
           ]).
 
+% Cross referencer
+
+pce_style(xref_predicate_text,
+          [ colour(green),
+            colour_autoload(steel_blue),
+            colour_global(steel_blue)
+          ]).
+pce_style(xref_file_graph_node,
+          [ colour(white),
+            background(grey35)
+          ]).
+
 
 %!  prolog_source_view:port_style(+Port, -StyleAttributes)
 %
