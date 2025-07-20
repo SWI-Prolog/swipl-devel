@@ -1452,8 +1452,11 @@ hook(attr_unify_hook(_,_)).
 hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
+hook(goal_expansion(_,_,_,_)).
+hook(term_expansion(_,_,_,_)).
 hook(resource(_,_,_)).
 hook('$pred_option'(_,_,_,_)).
+hook('$nowarn_autoload'(_,_)).
 
 hook(emacs_prolog_colours:goal_classification(_,_)).
 hook(emacs_prolog_colours:goal_colours(_,_)).
