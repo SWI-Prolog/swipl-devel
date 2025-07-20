@@ -311,7 +311,29 @@ pce_style(dialog,
 pce_style(terminal_image,
           [ background(black),
             colour(white),
-            selection_style(style(background := yellow, colour := black))
+            selection_style(style(background := yellow, colour := black)),
+            ansi_colours(vector(colour(black),	   % black
+                                colour(firebrick1),    % red
+                                colour(forestgreen),   % green
+                                colour(goldenrod),     % yellow
+                                colour(steelblue),     % blue
+                                colour(mediumorchid),  % magenta
+                                colour(darkturquoise), % cyan
+                                colour(lightgray),     % white
+                                /* Bright versions */
+                                colour(gray40),	   % black
+                                colour(orangered),     % red
+                                colour(limegreen),     % green
+                                colour(khaki),         % yellow
+                                colour(dodgerblue),    % blue
+                                colour(violet),        % magenta
+                                colour(cyan),          % cyan
+                                colour(snow)           % white
+                               ))
+          ]).
+
+pce_style(text_cursor,
+          [ colour(firebrick1)
           ]).
 
 % Dialog
