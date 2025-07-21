@@ -350,6 +350,7 @@ typedef struct _varDef
 #define VD_MAYBE_UNBALANCED 0x04
 #define VD_UNBALANCED	    0x08
 #define VD_ARGUMENT	    0x10	/* Unified against an argument */
+#define VD_ARGUMENT_DONE    0x20	/* Generated unification code */
 
 typedef struct
 { unsigned int	isize;
@@ -1369,12 +1370,25 @@ isFirstVar(VarTable vt, int n)
 
 
 #define argUnifiedTo(w) LDFUNC(argUnifiedTo, w)
-static Word
+static bool
 argUnifiedTo(DECL_LD word w)
 { VarDef v = varInfo(w);
 
   if ( ison(v, VD_ARGUMENT) )
+    return !!v->arg_value;
+
+  return false;
+}
+
+#define argMoveUnify(w) LDFUNC(argMoveUnify, w)
+static Word
+argMoveUnify(DECL_LD word w)
+{ VarDef v = varInfo(w);
+
+  if ( ison(v, VD_ARGUMENT) && isoff(v, VD_ARGUMENT_DONE) )
+  { set(v, VD_ARGUMENT_DONE);
     return v->arg_value;
+  }
 
   return NULL;
 }
@@ -2704,13 +2718,15 @@ isvar:
 	  Output_0(ci, B_VAR);
 	}
       } else				/* head */
-      { if ( !(where & A_ARG) && first )
+      { if ( !(where & A_ARG) )
 	{ Word p;
 
-	  if ( (p=argUnifiedTo(*arg)) )
+	  if ( (p=argMoveUnify(*arg)) )
 	    return compileArgument(p, where, ci);
-	  Output_0(ci, H_VOID);
-	  return true;
+	  if ( first )
+	  { Output_0(ci, H_VOID);
+	    return true;
+	  }
 	}
 	if ( argUnifiedTo(*arg) )
 	  set(ci->clause, CL_HEAD_TERMS);
@@ -3642,8 +3658,13 @@ right_recursion:
 }
 
 
+/**
+ * Test whether the unification already took place because it
+ * as moved to the head.
+ */
+
 #define isUnifiedArg(a1, a2) LDFUNC(isUnifiedArg, a1, a2)
-static int
+static bool
 isUnifiedArg(DECL_LD Word a1, Word a2)
 { if ( isVarInfo(*a1) )
   { VarDef vd = varInfo(*a1);

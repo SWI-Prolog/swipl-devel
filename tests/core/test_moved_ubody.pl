@@ -101,6 +101,10 @@ s8(D, C) :-
     D = since(_,_),
     C = D.
 
+s9(X, Y) :-
+    X = f(Y),
+    Y = a.
+
 test(decom1, (Head :- Body) =@= (nf_add([B|Bs], CLP, A, As, Cs) :-
                                     A = v(Ka,Pa),
                                     B = v(Kb,Pb),
@@ -142,6 +146,11 @@ test(decomp8, (Head :- Body) =@= (s7(f(A)) :-
     clause(Head, Body).
 test(decomp9, (Head :- Body) =@= (s8(A,B) :- A=since(_,_),B=A)) :-
     Head = s8(_,_),
+    clause(Head, Body).
+test(run9, X+Y == f(a)+a) :-
+    s9(X,Y).
+test(decomp9, (Head :- Body) =@= (s9(f(Y),Y) :- Y = a)) :-
+    Head = s9(_,_),
     clause(Head, Body).
 
 :- end_tests(moved_decompile).
