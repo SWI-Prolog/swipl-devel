@@ -4,5 +4,6 @@ Exec=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_ARCH_EXE@/swipl %f
 Icon=@CMAKE_INSTALL_PREFIX@/@SWIPL_INSTALL_DESKTOP@/swipl-cli.png
 Type=Application
 Terminal=true
-StartupWMClass=SWI-Prolog
+StartupWMClass=@SWIPL_CLI_ID@
+X-AppStream-Identifier=@SWIPL_CLI_ID@
 MimeType=application/x-prolog
