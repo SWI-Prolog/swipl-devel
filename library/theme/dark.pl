@@ -406,6 +406,12 @@ pce_style(xref_file_graph_node,
             background(grey35)
           ]).
 
+% XPCE manual
+
+pce_style(man_editor,
+          [ jump_style(style(colour := green,
+                             underline := true))
+          ]).
 
 %!  prolog_source_view:port_style(+Port, -StyleAttributes)
 %
