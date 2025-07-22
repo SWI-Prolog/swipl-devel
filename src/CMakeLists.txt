@@ -202,7 +202,7 @@ endif()
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
 
-set(SWIPL_DATA_library_theme auto.pl dark.pl)
+set(SWIPL_DATA_library_theme auto.pl dark.pl light.pl)
 
 set(SWIPL_DATA_library_iri_scheme file.pl)
 
