@@ -23,7 +23,6 @@ if(has_xpce OR has_swipl_win)
     DESTINATION ${SWIPL_INSTALL_DESKTOP})
 
   if(UNIX AND NOT APPLE)
-    message("Configuring freedesktop.org desktop files")
     if(has_swipl_win OR EPILOG)
       configure_file(${DESKTOP_SOURCE}/swipl-win.desktop.in
 	${SWIPL_BUILD_HOME}/desktop/swipl-win.desktop)
