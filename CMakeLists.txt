@@ -132,7 +132,7 @@ option(VALIDATE_API
        ON)
 option(EPILOG
        "Configure Prolog for using the XPCE Epilog interface"
-       OFF)
+       ON)
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")
