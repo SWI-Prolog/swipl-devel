@@ -57,9 +57,8 @@ build_macos_universal_binary()
     export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
     CUFLAGS="-arch x86_64"
     export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
-    export CXXFLAGS="$CUFLAGS"
+    export CXXFLAGS="$CFLAGS"
     export PATH=$HOME/deps/bin:$QT_BIN:$PATH
-    CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
 	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
