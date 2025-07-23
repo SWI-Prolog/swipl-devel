@@ -109,7 +109,7 @@ and libraries that are built.
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages                |
   | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages             |
   | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface                |
-  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                   |
+  | `-DSWIPL_PACKAGES_GUI=OFF`    | Drop graphics (xpce)                   |
   | `-DSWIPL_PACKAGE_LIST=List`   | ;-separated list of packages           |
   | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests      |
   | `-DINSTALL_TESTS=ON`          | Add tests to installed system          |
