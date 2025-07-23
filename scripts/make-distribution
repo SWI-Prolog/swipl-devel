@@ -8,7 +8,6 @@ fi
 version=`cat VERSION`
 pdf_build_dir=build.pdf
 PUBLIC="plweb@oehoe:srv/plweb/data/download/devel"
-QT_BIN=$HOME/Qt6.6/6.6.1/macos/bin
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 build_pdf()
@@ -53,12 +52,19 @@ build_macos_universal_binary()
 { rm -rf build.macosx-fat
   mkdir build.macosx-fat
   ( cd build.macosx-fat
+    PREFIX=$HOME/deps
+    export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
+    export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+    CUFLAGS="-arch x86_64"
+    export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
+    export CXXFLAGS="$CUFLAGS"
     export PATH=$HOME/deps/bin:$QT_BIN:$PATH
     CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
 	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
+	      -DPKG_CONFIG_EXECUTABLE=/opt/local/bin/pkg-config \
               -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
 	      -DJAVA_COMPATIBILITY=ON \
