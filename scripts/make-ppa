@@ -15,6 +15,7 @@ buildbin=false
 push=false
 pgpkey=266FF04C52056213BECDDDA04EF5383C7C11B85B
 program="$0"
+branch=master
 
 usage()
 { cat << EOM
@@ -113,6 +114,12 @@ case $TARGET_DISTRO in
     fi
 esac
 
+case $TARGET_DISTRO in
+  jammy|noble)
+    branch=nox
+    shift
+esac
+
 gitd="$(git describe $VTAG)"
 GIT_SHORT_HASH=`echo $gitd | sed 's/.*-\([0-9]*-g.*\)/\1/'`
 if [ "$GIT_SHORT_HASH" = "$gitd" ]; then
@@ -122,6 +129,11 @@ fi
 VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 
 echo "Building package $VERSION for $TARGET_DISTRO"
+
+if [ $branch != master ]; then
+  echo "Using nox configuration"
+  git -C debian checkout $branch
+fi
 
 echo " - Adding entry to changelog"
 
