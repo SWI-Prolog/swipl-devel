@@ -94,8 +94,8 @@ domain_error(Type, Culprit, _Pred, _Arg) :-
 
 %!  print_backtrace(+Backtrace)
 %
-%   This predicate, which is used by XSB’s default error handler, prints
-%   a backtrace structure to XSB’s standard error stream.
+%   This predicate, which is used by XSB's default error handler, prints
+%   a backtrace structure to XSB's standard error stream.
 
 print_backtrace(Backtrace) :-
     print_prolog_backtrace(user_error, Backtrace).

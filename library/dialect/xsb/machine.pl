@@ -45,9 +45,9 @@
             put_attr/3,
             del_attr/2,
             attv_unify/2,                       % AttVar, Value
-            install_verify_attribute_handler/4, % +Mod, −AttrValue,
-                                                % −Target, :Handler)
-            install_attribute_portray_hook/3,   % +Mod, −AttrValue, :Handler
+            install_verify_attribute_handler/4, % +Mod, -AttrValue,
+                                                % -Target, :Handler)
+            install_attribute_portray_hook/3,   % +Mod, -AttrValue, :Handler
 
             str_cat/3,
 
@@ -115,9 +115,9 @@ close_open_tables(_).
 attv_unify(AttVar, Value) :-
     '$attv_unify'(AttVar, Value).
 
-%!  install_verify_attribute_handler(+Mod, −AttrValue, −Target,
+%!  install_verify_attribute_handler(+Mod, -AttrValue, -Target,
 %!                                   :Handler) is det.
-%!  install_attribute_portray_hook(+Mod, −AttrValue, :Handler) is det.
+%!  install_attribute_portray_hook(+Mod, -AttrValue, :Handler) is det.
 %
 %   Install attributed variable hooks for Mod.
 
