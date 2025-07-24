@@ -3626,7 +3626,7 @@ preferred_primary_index(Definition def)
   /* is primary index ok? */
   if ( !mode_arg_is_unbound(def, clist->primary_index) )
   { bool first = true;
-    word key;
+    word key = 0;		/* Keep compiler happy */
     for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
     { if ( ison(cref->value.clause, CL_ERASED) )
 	continue;
