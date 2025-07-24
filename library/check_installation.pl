@@ -118,7 +118,7 @@ component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
 component(library(protobufs), _{}).
-component(library(readline), _{os:unix}).
+%component(library(readline), _{os:unix}).
 component(library(readutil), _{}).
 component(library(rlimit), _{os:unix}).
 component(library(semweb/rdf_db), _{}).
