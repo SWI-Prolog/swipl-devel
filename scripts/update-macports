@@ -35,12 +35,14 @@ if [ -r $file ]; then
     sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
     rmd160=$(openssl rmd160 -provider legacy < $file | cut -d ' ' -f 2)
 
-    url="https://www.swi-prolog.org/download/$series/src/$distfile"
-    sizew=$(curl -s --head "$url" | sed 's/\r$//' | grep ^content-length | cut -d ' ' -f 2)
-    if [ ! "$size" = "$sizew" ]; then
-	echo "ERROR: $url has non-matching size"
-	echo "ERROR:   Expected: $size, found $sizew"
-	exit 1
+    if [ ! -d $portprefix/var/macports/distfiles ]; then 
+	url="https://www.swi-prolog.org/download/$series/src/$distfile"
+	sizew=$(curl -s --head "$url" | sed 's/\r$//' | grep ^content-length | cut -d ' ' -f 2)
+	if [ ! "$size" = "$sizew" ]; then
+	    echo "ERROR: $url has non-matching size"
+	    echo "ERROR:   Expected: $size, found $sizew"
+	    exit 1
+	fi
     fi
 else
     echo "ERROR: Could not find distfile $file"
