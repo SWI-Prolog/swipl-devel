@@ -144,7 +144,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
                 ]),
     expand(Term, TermPos, In, Expanded),
     '$current_source_module'(M),
-    update_state(Term, Expanded, M).
+    update_state(Term, Expanded, M, In).
 prolog_read_source_term(In, Term, Expanded, Options) :-
     '$current_source_module'(M),
     select_option(syntax_errors(SE), Options, RestOptions0, dec10),
@@ -161,7 +161,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
               | FinalOptions
               ]),
     expand(Term, TermPos, In, Expanded),
-    update_state(Term, Expanded, M).
+    update_state(Term, Expanded, M, In).
 
 read_clause_option(syntax_errors(_)).
 read_clause_option(term_position(_)).
@@ -230,7 +230,7 @@ requires_library((:- pce_begin_class(_,_)),        library(pce)).
 requires_library((:- pce_begin_class(_,_,_)),      library(pce)).
 requires_library((:- html_meta(_)),                library(http/html_decl)).
 
-%!  update_state(+Term, +Expanded, +Module) is det.
+%!  update_state(+Term, +Expanded, +Module, +In) is det.
 %
 %   Update operators and style-check options from Term or Expanded.
 
@@ -238,82 +238,87 @@ requires_library((:- html_meta(_)),                library(http/html_decl)).
     pce_expansion:push_compile_operators/1,
     pce_expansion:pop_compile_operators/0.
 
-update_state((:- pce_end_class), _, _) =>
+update_state((:- pce_end_class), _, _, _) =>
     ignore(pce_expansion:pop_compile_operators).
-update_state((:- pce_extend_class(_)), _, SM) =>
+update_state((:- pce_extend_class(_)), _, SM, _) =>
     pce_expansion:push_compile_operators(SM).
-update_state(Raw, _, Module),
+update_state(Raw, _, Module, _),
     catch(prolog:xref_update_syntax(Raw, Module),
           error(_,_),
           fail) =>
     true.
-update_state(_Raw, Expanded, M) =>
-    update_state(Expanded, M).
+update_state(_Raw, Expanded, M, In) =>
+    update_state(Expanded, M, In).
 
-update_state(Var, _) :-
+update_state(Var, _, _) :-
     var(Var),
     !.
-update_state([], _) :-
+update_state([], _, _) :-
     !.
-update_state([H|T], M) :-
+update_state([H|T], M, In) :-
     !,
-    update_state(H, M),
-    update_state(T, M).
-update_state((:- Directive), M) :-
+    update_state(H, M, In),
+    update_state(T, M, In).
+update_state((:- Directive), M, In) :-
     nonvar(Directive),
     !,
-    catch(update_directive(Directive, M), _, true).
-update_state((?- Directive), M) :-
+    catch(update_directive(Directive, M, In), _, true).
+update_state((?- Directive), M, In) :-
     !,
-    update_state((:- Directive), M).
-update_state(MetaDecl, _M) :-
+    update_state((:- Directive), M, In).
+update_state(MetaDecl, _M, _) :-
     MetaDecl = html_write:html_meta_head(_Head,_Module,_Meta),
     (   clause(MetaDecl, true)
     ->  true
     ;   assertz(MetaDecl)
     ).
-update_state(_, _).
+update_state(_, _, _).
 
-update_directive(Directive, Module) :-
+%!  update_directive(+Directive, +Module, +In) is det.
+
+update_directive(Directive, Module, _) :-
     prolog:xref_update_syntax((:- Directive), Module),
     !.
-update_directive(module(Module, Public), _) :-
+update_directive(encoding(Enc), _, In) :-
+    !,
+    set_stream(In, encoding(Enc)).
+update_directive(module(Module, Public), _, _) :-
     atom(Module),
     is_list(Public),
     !,
     '$set_source_module'(Module),
     maplist(import_syntax(_,Module, _), Public).
-update_directive(M:op(P,T,N), SM) :-
+update_directive(M:op(P,T,N), SM, In) :-
     atom(M),
     ground(op(P,T,N)),
     !,
-    update_directive(op(P,T,N), SM).
-update_directive(op(P,T,N), SM) :-
+    update_directive(op(P,T,N), SM, In).
+update_directive(op(P,T,N), SM, _) :-
     ground(op(P,T,N)),
     !,
     strip_module(SM:N, M, PN),
     push_op(P,T,M:PN).
-update_directive(style_check(Style), _) :-
+update_directive(style_check(Style), _, _) :-
     ground(Style),
     style_check(Style),
     !.
-update_directive(use_module(Spec), SM) :-
+update_directive(use_module(Spec), SM, _) :-
     ground(Spec),
     catch(module_decl(Spec, Path, Public), _, fail),
     is_list(Public),
     !,
     maplist(import_syntax(Path, SM, _), Public).
-update_directive(use_module(Spec, Imports), SM) :-
+update_directive(use_module(Spec, Imports), SM, _) :-
     ground(Spec),
     is_list(Imports),
     catch(module_decl(Spec, Path, Public), _, fail),
     is_list(Public),
     !,
     maplist(import_syntax(Path, SM, Imports), Public).
-update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
+update_directive(pce_begin_class_definition(_,_,_,_), SM, _) :-
     pce_expansion:push_compile_operators(SM),
     !.
-update_directive(_, _).
+update_directive(_, _, _).
 
 %!  import_syntax(+Path, +Module, +Imports, +ExportStatement) is det.
 %
@@ -327,7 +332,7 @@ import_syntax(_, M, Imports, Op) :-
     Op = op(_,_,_),
     \+ \+ member(Op, Imports),
     !,
-    update_directive(Op, M).
+    update_directive(Op, M, _).
 import_syntax(Path, SM, Imports, Syntax/4) :-
     \+ \+ member(Syntax/4, Imports),
     load_quasi_quotation_syntax(SM:Path, Syntax),
