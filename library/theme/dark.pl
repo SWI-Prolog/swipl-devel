@@ -155,7 +155,7 @@ style(goal(not_callable,_),      [background(orange)]).
 style(function,                  [colour(cyan)]).
 style(no_function,               [colour(orange)]).
 
-style(option_name,               [colour('#3434ba')]).
+style(option_name,               [colour(dodgerblue)]).
 style(no_option_name,            [colour(orange)]).
 
 style(head(exported,_),          [colour(cyan), bold(true)]).
@@ -173,6 +173,7 @@ style(head(iso,_),               [background(orange), bold(true)]).
 style(head(def_iso,_),           [colour(cyan), bold(true)]).
 style(head(def_swi,_),           [colour(cyan), bold(true)]).
 style(head(_,_),                 [bold(true)]).
+style(rule_condition,            [background(paleturquoise4)]).
 
 style(module(_),                 [colour(light_slate_blue)]).
 style(comment(_),                [colour(green)]).
