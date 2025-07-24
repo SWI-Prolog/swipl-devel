@@ -15,7 +15,7 @@ buildbin=false
 push=false
 pgpkey=266FF04C52056213BECDDDA04EF5383C7C11B85B
 program="$0"
-branch=master
+branch=sdl
 
 usage()
 { cat << EOM
@@ -130,10 +130,8 @@ VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 
 echo "Building package $VERSION for $TARGET_DISTRO"
 
-if [ $branch != master ]; then
-  echo "Using nox configuration"
-  git -C debian checkout $branch
-fi
+echo "Checking out branch $branch"
+git -C debian checkout $branch
 
 echo " - Adding entry to changelog"
 

@@ -102,6 +102,19 @@ ubuntu()
 { $HOME/src/docker/ubuntu/run.sh -C $(pwd) $*
 }
 
+# Build a single PPA in case something went wrong and we need
+# to retry.
+build_PPA
+{ distro=$1
+
+  git checkout ppa
+  git rebase master
+  ubuntu ./scripts/make-ppa --distro=$distro --push
+  git checkout master
+  git submodule update debian
+}
+
+# Build all PPAs
 build_PPAs()
 { git branch -D ppa || true
   git checkout -b ppa
