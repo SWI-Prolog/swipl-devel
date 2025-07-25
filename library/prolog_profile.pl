@@ -148,16 +148,20 @@ show_profile_(Options) :-
     !.
 show_profile_(Options) :-
     prof_statistics(Stat),
-	NetTicks is Stat.ticks-Stat.accounting,
-	NetTime is (NetTicks/Stat.ticks)*Stat.time,
+    NetTicks is Stat.ticks-Stat.accounting,
+    NetTime is (NetTicks/Stat.ticks)*Stat.time,
     Ports = Stat.ports,
     findall(Node, profile_procedure_data(_:_, Node), Nodes),
-	(option(cumulative(false), Options, false) -> SortKey = ticks_self ; SortKey = ticks),
+    (   option(cumulative(false), Options, false)
+    ->  SortKey = ticks_self
+    ;   SortKey = ticks
+    ),
     sort_prof_nodes(SortKey, Nodes, Sorted),
     format_divider,
     format('Number of nodes: ~w~t[ports(~w)]~55|~tTotal time: ~3f seconds~101|~n',
            [Stat.nodes, Ports, NetTime]),
-    format('Predicate~tCalls +~41| Redos~t~49|~t Exits +~58| Fails~tTime:Self +~87| Time:Children~n', []),
+    format('Predicate~tCalls +~41| Redos~t~49|~t \c
+            Exits +~58| Fails~tTime:Self +~87| Time:Children~n', []),
     format_divider,
     option(top(N), Options, 25),
     show_plain(Sorted, N, (NetTicks,NetTime,Ports)).
@@ -177,14 +181,17 @@ show_plain([], _, _) :- format_divider.
 show_plain([H|T], N, Stat) :-
     show_plain(H, Stat),
     N2 is N - 1,
-    (N2 > 0 -> show_plain(T, N2, Stat) ; format_divider).
+    (   N2 > 0
+    ->  show_plain(T, N2, Stat)
+    ;   format_divider
+    ).
 
 show_plain(Node, (NetTicks,NetTime,Ports)) :-
     value(label,                       Node, Pred),
     value(call,                        Node, Call),
-    (Ports == false
-     -> Redo = 0, Exit = 0, Fail = 0
-     ;  value(redo,                    Node, Redo),
+    (   Ports == false
+    ->  Redo = 0, Exit = 0, Fail = 0
+    ;   value(redo,                    Node, Redo),
         value(exit,                    Node, Exit),
         Fail is Call+Redo-Exit
     ),
@@ -196,21 +203,21 @@ format_divider :- format('~`=t~102|~n').
 
 time_collect(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
     once(clusters(Data.callers, CallersCycles)),  % revisit !
-	time_collect_(CallersCycles,NetTicks,NetTime, 
+    time_collect_(CallersCycles,NetTicks,NetTime,
 		0,SelfPC, 0,SelfTime, 0,ChildrenPC, 0,ChildrenTime).
-	 	
-time_collect_([],_NetTicks,_NetTime, 
-	SelfPC,SelfPC,SelfTime,SelfTime,
-	ChildrenPC,ChildrenPC,ChildrenTime,ChildrenTime).
+
+time_collect_([],_NetTicks,_NetTime,
+              SelfPC,SelfPC,SelfTime,SelfTime,
+              ChildrenPC,ChildrenPC,ChildrenTime,ChildrenTime).
 time_collect_([Callers|CallersCycles],NetTicks,NetTime,
-	SelfPCIn,SelfPC, SelfTimeIn,SelfTime,
-	ChildrenPCIn,ChildrenPC, ChildrenTimeIn,ChildrenTime) :-
+              SelfPCIn,SelfPC, SelfTimeIn,SelfTime,
+              ChildrenPCIn,ChildrenPC, ChildrenTimeIn,ChildrenTime) :-
     ticks(Callers, Self, Children),
     PerCentS is 100*Self/NetTicks,      NxtSelfPCIn is SelfPCIn+PerCentS,
     TimeS is PerCentS*NetTime/100,      NxtSelfTimeIn is SelfTimeIn+TimeS,
     PerCentC is 100*Children/NetTicks,  NxtChildrenPCIn is ChildrenPCIn+PerCentC,
     TimeC is PerCentC*NetTime/100,      NxtChildrenTimeIn is ChildrenTimeIn+TimeC,
-	time_collect_(CallersCycles,NetTicks,NetTime,
+    time_collect_(CallersCycles,NetTicks,NetTime,
 	              NxtSelfPCIn,SelfPC, NxtSelfTimeIn,SelfTime,
 	              NxtChildrenPCIn,ChildrenPC, NxtChildrenTimeIn,ChildrenTime).
 
