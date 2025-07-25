@@ -148,23 +148,19 @@ show_profile_(Options) :-
     !.
 show_profile_(Options) :-
     prof_statistics(Stat),
-    sort_on(Options, SortKey),
+	NetTicks is Stat.ticks-Stat.accounting,
+	NetTime is (NetTicks/Stat.ticks)*Stat.time,
+    Ports = Stat.ports,
     findall(Node, profile_procedure_data(_:_, Node), Nodes),
+	(option(cumulative(false), Options, false) -> SortKey = ticks_self ; SortKey = ticks),
     sort_prof_nodes(SortKey, Nodes, Sorted),
-    format('~`=t~69|~n'),
-    format('Total time: ~3f seconds~n', [Stat.time]),
-    format('~`=t~69|~n'),
-    format('~w~t~w =~45|~t~w~60|~t~w~69|~n',
-           [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
-           ]),
-    format('~`=t~69|~n'),
+    format_divider,
+    format('Number of nodes: ~w~t[ports(~w)]~55|~tTotal time: ~3f seconds~101|~n',
+           [Stat.nodes, Ports, NetTime]),
+    format('Predicate~tCalls +~41| Redos~t~49|~t Exits +~58| Fails~tTime:Self +~87| Time:Children~n', []),
+    format_divider,
     option(top(N), Options, 25),
-    show_plain(Sorted, N, Stat, SortKey).
-
-sort_on(Options, ticks_self) :-
-    option(cumulative(false), Options, false),
-    !.
-sort_on(_, ticks).
+    show_plain(Sorted, N, (NetTicks,NetTime,Ports)).
 
 sort_prof_nodes(ticks, Nodes, Sorted) :-
     !,
@@ -175,24 +171,48 @@ sort_prof_nodes(Key, Nodes, Sorted) :-
     sort(Key, >=, Nodes, Sorted).
 
 key_ticks(Node, Ticks) :-
-    Ticks is Node.ticks_self + Node.ticks_siblings.
+	value(ticks,Node,Ticks).
 
-show_plain([], _, _, _).
-show_plain(_, 0, _, _) :- !.
-show_plain([H|T], N, Stat, Key) :-
-    show_plain(H, Stat, Key),
+show_plain([], _, _) :- format_divider.
+show_plain([H|T], N, Stat) :-
+    show_plain(H, Stat),
     N2 is N - 1,
-    show_plain(T, N2, Stat, Key).
+    (N2 > 0 -> show_plain(T, N2, Stat) ; format_divider).
 
-show_plain(Node, Stat, Key) :-
+show_plain(Node, (NetTicks,NetTime,Ports)) :-
     value(label,                       Node, Pred),
     value(call,                        Node, Call),
-    value(redo,                        Node, Redo),
-    value(time(Key, percentage, Stat), Node, Percent),
-    IntPercent is round(Percent*10),
-    Entry is Call + Redo,
-    format('~w~t~D =~45|~t~D+~55|~D ~t~1d%~69|~n',
-           [Pred, Entry, Call, Redo, IntPercent]).
+    (Ports == false
+     -> Redo = 0, Exit = 0, Fail = 0
+     ;  value(redo,                    Node, Redo),
+        value(exit,                    Node, Exit),
+        Fail is Call+Redo-Exit
+    ),
+    time_collect(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
+    format('~w~t~D +~41| ~D~t~49|~t~D +~58| ~D~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
+           [Pred, Call, Redo, Exit, Fail, SelfTime, SelfPC, ChildrenTime, ChildrenPC]).
+
+format_divider :- format('~`=t~102|~n').
+
+time_collect(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
+    once(clusters(Data.callers, CallersCycles)),  % revisit !
+	time_collect_(CallersCycles,NetTicks,NetTime, 
+		0,SelfPC, 0,SelfTime, 0,ChildrenPC, 0,ChildrenTime).
+	 	
+time_collect_([],_NetTicks,_NetTime, 
+	SelfPC,SelfPC,SelfTime,SelfTime,
+	ChildrenPC,ChildrenPC,ChildrenTime,ChildrenTime).
+time_collect_([Callers|CallersCycles],NetTicks,NetTime,
+	SelfPCIn,SelfPC, SelfTimeIn,SelfTime,
+	ChildrenPCIn,ChildrenPC, ChildrenTimeIn,ChildrenTime) :-
+    ticks(Callers, Self, Children),
+    PerCentS is 100*Self/NetTicks,      NxtSelfPCIn is SelfPCIn+PerCentS,
+    TimeS is PerCentS*NetTime/100,      NxtSelfTimeIn is SelfTimeIn+TimeS,
+    PerCentC is 100*Children/NetTicks,  NxtChildrenPCIn is ChildrenPCIn+PerCentC,
+    TimeC is PerCentC*NetTime/100,      NxtChildrenTimeIn is ChildrenTimeIn+TimeC,
+	time_collect_(CallersCycles,NetTicks,NetTime,
+	              NxtSelfPCIn,SelfPC, NxtSelfTimeIn,SelfTime,
+	              NxtChildrenPCIn,ChildrenPC, NxtChildrenTimeIn,ChildrenTime).
 
 
                  /*******************************
@@ -320,15 +340,48 @@ value(label, Data, Label) :-
 value(ticks, Data, Ticks) :-
     !,
     Ticks is Data.ticks_self + Data.ticks_siblings.
-value(time(Key, percentage, Stat), Data, Percent) :-
+value(time(Key, percentage, TotalTicks), Data, Percent) :-
     !,
     value(Key, Data, Ticks),
-    Total = Stat.ticks,
-    Account = Stat.accounting,
-    (   Total-Account > 0
-    ->  Percent is 100 * (Ticks/(Total-Account))
-    ;   Percent is 0.0
+    (TotalTicks > 0
+     -> Percent is 100 * (Ticks/TotalTicks)
+     ;  Percent is 0.0
     ).
 value(Name, Data, Value) :-
     Value = Data.Name.
 
+% ticks/3 and clusters/2 copied from module pce_profile in package xpce
+ticks(Callers, Self, Children) :-
+    ticks(Callers, 0, Self, 0, Children).
+
+ticks([], Self, Self, Sibl, Sibl).
+ticks([H|T],
+      Self0, Self, Sibl0, Sibl) :-
+    arg(1, H, '<recursive>'),
+    !,
+    ticks(T, Self0, Self, Sibl0, Sibl).
+ticks([H|T], Self0, Self, Sibl0, Sibl) :-
+    arg(3, H, ThisSelf),
+    arg(4, H, ThisSibings),
+    Self1 is ThisSelf + Self0,
+    Sibl1 is ThisSibings + Sibl0,
+    ticks(T, Self1, Self, Sibl1, Sibl).
+
+%       clusters(+Relatives, -Cycles)
+%       Organise the relatives by cluster.
+clusters(Relatives, Cycles) :-
+    clusters(Relatives, 0, Cycles).
+
+clusters([], _, []).
+clusters(R, C, [H|T]) :-
+    cluster(R, C, H, T0),
+    C2 is C + 1,
+    clusters(T0, C2, T).
+
+cluster([], _, [], []).
+cluster([H|T0], C, [H|TC], R) :-
+    arg(2, H, C),
+    !,
+    cluster(T0, C, TC, R).
+cluster([H|T0], C, TC, [H|T]) :-
+    cluster(T0, C, TC, T).
