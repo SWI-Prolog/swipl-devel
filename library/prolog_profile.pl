@@ -148,8 +148,8 @@ show_profile_(Options) :-
     !.
 show_profile_(Options) :-
     prof_statistics(Stat),
-	NetTicks is Stat.ticks-Stat.accounting,
-	NetTime is (NetTicks/Stat.ticks)*Stat.time,
+    NetTicks is Stat.ticks-Stat.accounting,
+    NetTime is (NetTicks/Stat.ticks)*Stat.time,
     Ports = Stat.ports,
     findall(Node, profile_procedure_data(_:_, Node), Nodes),
 	(option(cumulative(false), Options, false) -> SortKey = ticks_self ; SortKey = ticks),
@@ -196,7 +196,7 @@ format_divider :- format('~`=t~102|~n').
 
 time_collect(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
     once(clusters(Data.callers, CallersCycles)),  % revisit !
-	time_collect_(CallersCycles,NetTicks,NetTime, 
+    time_collect_(CallersCycles,NetTicks,NetTime, 
 		0,SelfPC, 0,SelfTime, 0,ChildrenPC, 0,ChildrenTime).
 	 	
 time_collect_([],_NetTicks,_NetTime, 
@@ -210,7 +210,7 @@ time_collect_([Callers|CallersCycles],NetTicks,NetTime,
     TimeS is PerCentS*NetTime/100,      NxtSelfTimeIn is SelfTimeIn+TimeS,
     PerCentC is 100*Children/NetTicks,  NxtChildrenPCIn is ChildrenPCIn+PerCentC,
     TimeC is PerCentC*NetTime/100,      NxtChildrenTimeIn is ChildrenTimeIn+TimeC,
-	time_collect_(CallersCycles,NetTicks,NetTime,
+    time_collect_(CallersCycles,NetTicks,NetTime,
 	              NxtSelfPCIn,SelfPC, NxtSelfTimeIn,SelfTime,
 	              NxtChildrenPCIn,ChildrenPC, NxtChildrenTimeIn,ChildrenTime).
 
