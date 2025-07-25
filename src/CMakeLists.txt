@@ -253,8 +253,13 @@ list(APPEND SWIPL_DATA_library_dialect_sicstus4
 if(MULTI_THREADED)
   list(APPEND SWIPL_DATA_library_dialect_sicstus4 timeout.pl)
 endif()
+list(FIND SWIPL_DATA_library prolog_pack.pl HAS_PROLOG_PACK)
+if(NOT (HAS_PROLOG_PACK EQUALS -1))
 list(APPEND SWIPL_DATA_app
-     pack.pl splfr.pl)
+     pack.pl)
+endif()
+list(APPEND SWIPL_DATA_app
+     splfr.pl)
 endif()
 
 
