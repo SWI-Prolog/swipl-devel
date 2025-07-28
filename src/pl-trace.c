@@ -490,9 +490,15 @@ tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
 		 levelFrame(frame), portPrompt(port),
 		 predicateName(frame->predicate)));
 
-  if ( (!isDebugFrame(frame, port) && !SYSTEM_MODE) || /* hidden */
-       debugstatus.suspendTrace )		/* called back */
+  if ( debugstatus.suspendTrace )
+  { DEBUG(MSG_TRACE_PORT, Sdprintf("Suspended\n"));
     return PL_TRACE_ACTION_CONTINUE;
+  }
+
+  if ( (!isDebugFrame(frame, port) && !SYSTEM_MODE) )
+  { DEBUG(MSG_TRACE_PORT, Sdprintf("nodebug frame\n"));
+    return PL_TRACE_ACTION_CONTINUE;
+  }
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
   { if ( classify_exception(LD->exception.pending) >= EXCEPT_ABORT )
