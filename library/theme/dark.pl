@@ -344,6 +344,10 @@ pce_style(text_item,
             elevation(elevation('0,25mm', background := black))
           ]).
 
+pce_style(menu,
+          [ text_colour(white)
+          ]).
+
 pce_style(list_browser,
           [ selection_style(style(background := yellow, colour := black)),
             isearch_style(style(background := green, colour := black))
