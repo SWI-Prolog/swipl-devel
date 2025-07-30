@@ -228,6 +228,8 @@ defined:
 \begin{description}
     \termitem{abort}{}
 Abort execution.  See abort/0.
+    \termitem{halt}{}
+Terminate execution.  See halt/0.
     \termitem{continue}{}
 Continue (i.e., \jargon{creep} in the command line debugger).
     \termitem{fail}{}

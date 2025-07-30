@@ -305,7 +305,7 @@ exitFromDebugger(const char *msg, int status)
     return PL_TRACE_ACTION_ABORT;
   }
 #endif
-  Sfprintf(Sdout, "%sexit (status 4)\n", msg);
+  Sfprintf(Sdout, "%sexit (status %d)\n", msg, status);
   PL_halt(status);
   return -1;
 }
@@ -610,6 +610,8 @@ out:
   { SAVE_PTRS();
     abortProlog();
     RESTORE_PTRS();
+  } else if ( action == PL_TRACE_ACTION_HALT )
+  { exitFromDebugger("Debugger: ", 0);
   }
 
   return clear_skip(port, frame, action);
@@ -1500,6 +1502,8 @@ process_trace_action(DECL_LD LocalFrame frame, int port,
     { rval = PL_TRACE_ACTION_ABORT;
       if ( !PL_exception(0) )
 	abortProlog();
+    } else if ( a == ATOM_halt )
+    { rval = PL_TRACE_ACTION_HALT;
     } else
     { PL_warning("Unknown trace action: %s", stringAtom(a));
       rval = PL_TRACE_ACTION_CONTINUE;
@@ -1588,8 +1592,12 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     { RESTORE_PTRS();
       rval = process_trace_action(frame, port, argv+3, &nodebug);
     } else if ( (ex=PL_exception(qid)) )
-    { if ( classify_exception(ex) == EXCEPT_ABORT )
+    { except_class exclass = classify_exception(ex);
+
+      if ( exclass == EXCEPT_ABORT )
       { rval = PL_TRACE_ACTION_ABORT;
+      } else if ( exclass == EXCEPT_HALT )
+      { rval = PL_TRACE_ACTION_HALT;
       } else
       { if ( printMessage(ATOM_error, PL_TERM, ex) )
 	{ nodebug = true;
