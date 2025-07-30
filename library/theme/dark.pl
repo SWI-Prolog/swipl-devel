@@ -216,7 +216,7 @@ style(op_type(_),                [colour(cyan)]).
 
 style(qq_type,                   [bold(true)]).
 style(qq(_),                     [colour(cyan), bold(true)]).
-style(qq_content(_),             [colour(red4)]).
+style(qq_content(_),             [colour(coral2)]).
 
 style(dict_tag,                  [bold(true)]).
 style(dict_key,                  [bold(true)]).
