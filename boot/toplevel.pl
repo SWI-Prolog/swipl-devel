@@ -606,6 +606,7 @@ user_thread_init :-
     argv_prolog_files(Files, ScriptMode),
     load_init_file(ScriptMode),                 % -f file
     catch(setup_colors, E, print_message(warning, E)),
+    '$load_history',
     win_associated_files(Files),                % swipl-win: cd and update title
     '$load_script_file',                        % -s file (may be repeated)
     load_associated_files(Files),
