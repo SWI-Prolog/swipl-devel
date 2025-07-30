@@ -195,31 +195,19 @@ show_plain(Node, (NetTicks,NetTime,Ports)) :-
         value(exit,                    Node, Exit),
         Fail is Call+Redo-Exit
     ),
-    time_collect(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
-    format('~w~t~D +~41| ~D~t~49|~t~D +~58| ~D~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
+    time_data(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
+    format('~w ~t~D +~41| ~D ~t~49|~t~D +~58| ~D ~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
            [Pred, Call, Redo, Exit, Fail, SelfTime, SelfPC, ChildrenTime, ChildrenPC]).
 
 format_divider :- format('~`=t~102|~n').
 
-time_collect(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
-    once(clusters(Data.callers, CallersCycles)),  % revisit !
-    time_collect_(CallersCycles,NetTicks,NetTime,
-		0,SelfPC, 0,SelfTime, 0,ChildrenPC, 0,ChildrenTime).
-
-time_collect_([],_NetTicks,_NetTime,
-              SelfPC,SelfPC,SelfTime,SelfTime,
-              ChildrenPC,ChildrenPC,ChildrenTime,ChildrenTime).
-time_collect_([Callers|CallersCycles],NetTicks,NetTime,
-              SelfPCIn,SelfPC, SelfTimeIn,SelfTime,
-              ChildrenPCIn,ChildrenPC, ChildrenTimeIn,ChildrenTime) :-
-    ticks(Callers, Self, Children),
-    PerCentS is 100*Self/NetTicks,      NxtSelfPCIn is SelfPCIn+PerCentS,
-    TimeS is PerCentS*NetTime/100,      NxtSelfTimeIn is SelfTimeIn+TimeS,
-    PerCentC is 100*Children/NetTicks,  NxtChildrenPCIn is ChildrenPCIn+PerCentC,
-    TimeC is PerCentC*NetTime/100,      NxtChildrenTimeIn is ChildrenTimeIn+TimeC,
-    time_collect_(CallersCycles,NetTicks,NetTime,
-	              NxtSelfPCIn,SelfPC, NxtSelfTimeIn,SelfTime,
-	              NxtChildrenPCIn,ChildrenPC, NxtChildrenTimeIn,ChildrenTime).
+time_data(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
+    value(ticks_self,Data,Ticks),
+    SelfPC is 100*Ticks/NetTicks,
+    SelfTime is SelfPC*NetTime/100,
+    value(ticks_siblings,Data,ChildrenTicks),
+    ChildrenPC is 100*ChildrenTicks/NetTicks,
+    ChildrenTime is ChildrenPC*NetTime/100.
 
 
                  /*******************************
@@ -356,39 +344,3 @@ value(time(Key, percentage, TotalTicks), Data, Percent) :-
     ).
 value(Name, Data, Value) :-
     Value = Data.Name.
-
-% ticks/3 and clusters/2 copied from module pce_profile in package xpce
-ticks(Callers, Self, Children) :-
-    ticks(Callers, 0, Self, 0, Children).
-
-ticks([], Self, Self, Sibl, Sibl).
-ticks([H|T],
-      Self0, Self, Sibl0, Sibl) :-
-    arg(1, H, '<recursive>'),
-    !,
-    ticks(T, Self0, Self, Sibl0, Sibl).
-ticks([H|T], Self0, Self, Sibl0, Sibl) :-
-    arg(3, H, ThisSelf),
-    arg(4, H, ThisSibings),
-    Self1 is ThisSelf + Self0,
-    Sibl1 is ThisSibings + Sibl0,
-    ticks(T, Self1, Self, Sibl1, Sibl).
-
-%       clusters(+Relatives, -Cycles)
-%       Organise the relatives by cluster.
-clusters(Relatives, Cycles) :-
-    clusters(Relatives, 0, Cycles).
-
-clusters([], _, []).
-clusters(R, C, [H|T]) :-
-    cluster(R, C, H, T0),
-    C2 is C + 1,
-    clusters(T0, C2, T).
-
-cluster([], _, [], []).
-cluster([H|T0], C, [H|TC], R) :-
-    arg(2, H, C),
-    !,
-    cluster(T0, C, TC, R).
-cluster([H|T0], C, TC, [H|T]) :-
-    cluster(T0, C, TC, T).
