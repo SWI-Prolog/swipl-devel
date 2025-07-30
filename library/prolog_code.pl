@@ -269,22 +269,29 @@ predicate_label(PI, Label) :-
     !.
 predicate_label(M:Name/Arity, Label) :-
     !,
-    (   hidden_module(M, Name/Arity)
-    ->  atomic_list_concat([Name, /, Arity], Label)
-    ;   atomic_list_concat([M, :, Name, /, Arity], Label)
+    predicate_name_(Name, PName),
+    (   hidden_module(M, PName/Arity)
+    ->  atomic_list_concat([PName, /, Arity], Label)
+    ;   atomic_list_concat([M, :, PName, /, Arity], Label)
     ).
 predicate_label(M:Name//Arity, Label) :-
     !,
-    (   hidden_module(M, Name//Arity)
-    ->  atomic_list_concat([Name, //, Arity], Label)
-    ;   atomic_list_concat([M, :, Name, //, Arity], Label)
+    predicate_name_(Name, PName),
+   (   hidden_module(M, PName//Arity)
+    ->  atomic_list_concat([PName, //, Arity], Label)
+    ;   atomic_list_concat([M, :, PName, //, Arity], Label)
     ).
 predicate_label(Name/Arity, Label) :-
     !,
-    atomic_list_concat([Name, /, Arity], Label).
+    predicate_name_(Name, PName),
+    atomic_list_concat([PName, /, Arity], Label).
 predicate_label(Name//Arity, Label) :-
     !,
-    atomic_list_concat([Name, //, Arity], Label).
+    predicate_name_(Name, PName),
+    atomic_list_concat([PName, //, Arity], Label).
+
+predicate_name_([], '[]') :- !.  % "compatibility hack"
+predicate_name_(Name, Name).
 
 hidden_module(system, _).
 hidden_module(user, _).
