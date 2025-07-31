@@ -1,57 +1,53 @@
 <html lang="en">
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<title>The SWI-Prolog MacOSX app</title>
 </head>
 <body>
-<h1>The SWI-Prolog MacOSX app</h1>
+<h1>🍎 The SWI-Prolog MacOSX app</h1>
 
 <p>
-<a href="http://www.swi-prolog.org/">SWI-Prolog</a> is an open source
+<a href="https://www.swi-prolog.org/">SWI-Prolog</a> is an open source
 implementation of the Prolog programming language. SWI-Prolog targets at
 developing real-world applications. To achieve this, in concentrates on
 libraries that facilitate interfacing to other software components,
-networking and multi-threading. SWI-Prolog can be used from the
-<code>Terminal</code> application, as an standard Mac application started from
-<code>Finder</code>, under <a
-href="http://www.swi-prolog.org/FAQ/GnuEmacs.html">GNU-Emacs</a> or
-under the <a href="http://sewiki.iai.uni-bonn.de/research/pdt/">Eclipse
-IDE</a>. </p>
+networking and multi-threading. SWI-Prolog can be used from
+<b>Terminal.app</b> as well as as an standard Mac application started
+from <b>Finder</b>. The commandline application can also run under
+several development environments such as GNU-Emacs (see <a
+href="https://eshelyaron.com/sweep.html"> Sweep</a>), Eclipse, VSCode,
+etc. </p>
 
 <h2>Supported MacOSX versions</h2>
 
-<dl>
-<dt><b>MacOS &lt 10.6 (older than Snow Leopard)</b>
-<dd>This binary does <b>not</b> run on MacOS prior to Snow Leopard.  You
-can install SWI-Prolog using <a href="http://www.macports.org/">MacPorts</a>
-on most versions.
-</dd>
-<dt><b>MacOS 10.6 (Snow Leopard)</b>
-<dd>
-The app does <b>not</b> work on MacOS 10.6. The command line executables
-(<code>swipl, swipl-ld</code>) do work.  See <a href="#cmdline">below</a>.
-Note that upgrading Snow Leopard or later to Maverics is free of charge.
-</dd>
-<dt><b>MacOS 10.7 and later</b>
-<dd>
-All features work on these versions of MacOS.
-</dd>
-</dl>
+The bundle contains <em>Universal</em> binaries for <code>arm64</code>
+(Apple Silicon, M*) and <code>x86_64</code> (Intel).
 
-<h3>Using the X11 based development tools</h3>
+Starting with SWI-Prolog 9.3.26, the SWI-Prolog app uses native MacOS
+Quartz graphics and no longer requires the XQuartz X11 application. We
+attempt to support all supported MacOS version. All code is compiled
+using 10.15 as <em>Deployment target</em>. While the commandline
+<code>swipl</code> executable is reported to run under 10.14, the
+GUI is reported <b>not to run</b> under 10.15 while it is reported to
+run on MacOS 14.  Please report the status for intermediate versions.
+
+
+<h3>Using the GUI development tools</h3>
 
 <p>
 The SWI-Prolog development tools, such as the source-level debugger, are
-based on xpce, SWI-Prolog's native graphics toolkit. This toolkit
-<b>requires X11</b>, and in particular <a
-href="http://xquartz.macosforge.org/">Xquartz</a>, <b>even</b> on Mac OS
-X v10.5 to v10.7 where X11 is preinstalled or can be installed as an
-option.  SWI-Prolog's XPCE toolkit is linked against the X11 libraries
-in <code>/opt/X11</code>, Xquartz version 2.7.11.
+based on xpce, SWI-Prolog's native graphics toolkit.  Some of the tools
+can be started from the <b>SWI-Prolog.app</b> menus.  Others are started
+from the Prolog commandline.   Notably, to use the source level debugger,
+use <code>gtrace/0</code> instead of the traditional <code>trace/0</code>
+as below.
 </p>
+<pre>
+?- gtrace, my_goal(...).
+</pre>
 
 <p>
-The SWI-Prolog app can be executed directly from the disk image, can be
+The <b>SWI-Prolog.app</b> can be executed directly from the disk image, can be
 installed in <code>/Applications</code> or in any other location, i.e.,
 it is <i>relocatable</i>. The app advertises itself to the launcher as
 <em>shell</em> for files with extensions <code>.pl</code> and
@@ -62,21 +58,50 @@ it is <i>relocatable</i>. The app advertises itself to the launcher as
 
 <p>
 The traditional command line tools are included in the app. To access
-them from the <code>Terminal</code> application, add the directory
+them from <b>Terminal.app</b>, add the directory
 <code>/Applications/SWI-Prolog.app/Contents/MacOS</code> to
 <code>$PATH</code> (replace with the actual location if you installed
-the app in a different location).
+the app in a different location).  This provides
 </p>
+
+<ul>
+<li><code>swipl</code> The non-gui commandline version of SWI-Prolog.  This version
+can start GUI development tools.  If you do not want that, use the option <code>--nopce</code>
+<li><code>swipl-win</code> This is the same as lauching <b>SWI-Prolog.app</b>, but you can start it from <b>Terminal.app</b> and pass it commandline options.
+</ul>
+
+
+<h2 name="help">Where to get documentation and help?</h2>
+
+<ul class="links">
+  <li class="site">All documentation is available from <a href="https://www.swi-prolog.org/">
+  the SWI-Prolog web site</a>
+  <li class="forum">We have an active <a href="https://swi-prolog.discourse.group/">forum at Discourse</a>
+  <li class="ai">If you have a paid ChatGPT account, you can try <a href="https://chatgpt.com/g/g-680f64cbb9408191923cef3406f62a5c-swi-prolog-assistant">SWI Prolog Assistant</a>
+  <li class="pack">You can find community contributions on the <a href="https://www.swi-prolog.org/pack/list">Packs (add-ons) page</a>
+</ul>
+
 
 <hr>
 <p>
-The Qt based console for this app is developed by Carlo Capelli.
-</p>
-
-<p>
 SWI-Prolog is brought to you by
-many <a href="http://www.swi-prolog.org/Contributors.html">contributors</a>.
+many <a href="https://www.swi-prolog.org/Contributors.html">contributors</a>.
 </p>
 
+<p><b>
+❤️ If you enjoy using SWI-Prolog, please consider <a
+href="https://github.com/sponsors/SWI-Prolog">donating</a> to help
+maintaining and developing the system. ❤️
+</b></p>
+
+<style>
+ul.links { list-style:none; padding-left: 2.5em; }
+ul.links > li::before { display: inline-block; width: 1.5em; margin-left: -2em;
+text-align: center;}
+li.site::before { content: "●"; color: #2b6cb0; }
+li.forum::before { content: "►";  color: #e76f51; }
+li.ai::before { content: "⟡";  color: #4caf50; }
+li.pack::before { content: "🧩"; }
+</style>
 </body>
 </html>
