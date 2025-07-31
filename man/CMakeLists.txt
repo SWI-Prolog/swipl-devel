@@ -9,6 +9,9 @@ option(SWIPL_DOC_SERVER
        "Document files that are not part of the installed system"
        $ENV{SWIPL_DOC_SERVER})
 
+set(SWIPL_COMMAND_OPTIONS
+  -f none --no-packs "--home=${SWIPL_BUILD_HOME}" -DSDL_VIDEODRIVER=dummy)
+
 # Libraries documented in .doc files
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
@@ -76,13 +79,15 @@ function(doc2tex)
       add_custom_command(
 	  OUTPUT ${f}
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS}
+			${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
 	  DEPENDS ${docin} ${DOC2TEX_DEPENDS}
 	  VERBATIM)
     else()
       add_custom_command(
 	  OUTPUT ${f}
-	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS}
+			${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
 	  DEPENDS ${docin} ${DOC2TEX_DEPENDS}
 	  VERBATIM)
     endif()
@@ -141,8 +146,8 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY
-		${PROG_SWIPL} ${ploptions} ${PLDOC2TEX} ${options} "${input}"
+	COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${ploptions}
+			${PLDOC2TEX} ${options} "${input}"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts}
 	VERBATIM)
@@ -255,14 +260,14 @@ doc2tex(${DOC_LIB})
 
 add_custom_command(
     OUTPUT  ${DOC}.doc
-    COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	    ${PROG_SWIPL} -f none --no-packs
+    COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS}
                ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
                ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
     DEPENDS main.doc select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
-    COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${DOC}.doc ${DOC}.tex
+    COMMAND ${PROG_SWIPL}  ${SWIPL_COMMAND_OPTIONS}
+               ${DOC2TEX} ${DOC}.doc ${DOC}.tex
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS}
     VERBATIM)
 
@@ -323,8 +328,8 @@ prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
     COMMAND ${clean}
-    COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	    ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
+    COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS}
+		${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
     COMMAND ${CMAKE_COMMAND} -E touch manual.html
     COMMENT "Generating HTML documentation for core system"
@@ -338,8 +343,7 @@ if(WIN32)
   doc2tex(windows.tex)
   add_custom_command(
       OUTPUT windows.html
-      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	      ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} windows
+      COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
               core latex2html
       VERBATIM)
@@ -353,16 +357,14 @@ if(APPLE)
   add_custom_command(
       OUTPUT  macosx/macosx.tex
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-              ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+      COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
 	                       macosx/macosx.tex
       DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS}
       VERBATIM)
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
-      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	      ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} macosx
+      COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
               core latex2html
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx

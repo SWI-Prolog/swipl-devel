@@ -662,7 +662,7 @@ apply_define(Def) :-
 	->  true
 	;   Value = Value0
 	),
-	create_prolog_flag(Flag, Value, [warn_not_accessed(true)])
+	set_defined(Flag, Value)
     ).
 apply_define(Def) :-
     atom_concat('no-', Flag, Def),
@@ -679,7 +679,7 @@ set_user_boolean_flag(Flag, Value) :-
     ;   set_prolog_flag(Flag, Value)
     ).
 set_user_boolean_flag(Flag, Value) :-
-    create_prolog_flag(Flag, Value, [warn_not_accessed(true)]).
+    set_defined(Flag, Value).
 
 text_flag_value(integer, Text, Int) :-
     atom_number(Text, Int),
@@ -691,6 +691,22 @@ text_flag_value(term, Text, Term) :-
     term_string(Term, Text, []),
     !.
 text_flag_value(_, Value, Value).
+
+set_defined(Flag, Value) :-
+    define_options(Flag, Options), !,
+    create_prolog_flag(Flag, Value, Options).
+
+%!  define_options(+Flag, -Options)
+%
+%   Define the options with which to create   Flag. This can be used for
+%   known flags to control -for example- their type.
+
+define_options('SDL_VIDEODRIVER', []).
+define_options(_, [warn_not_accessed(true)]).
+
+%!  init_optimise
+%
+%   Load library(apply_macros) if ``-O`` is effective.
 
 init_optimise :-
     current_prolog_flag(optimise, true),
