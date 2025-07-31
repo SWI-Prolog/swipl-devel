@@ -399,6 +399,12 @@ pce_style(prof_node_text,
           [ colour('dodger_blue')
           ]).
 
+% Debug messages
+
+pce_style(prolog_debug_browser,
+          [ enabled_style(style(colour := green))
+          ]).
+
 % Cross referencer
 
 pce_style(xref_predicate_text,
