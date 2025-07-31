@@ -37,16 +37,23 @@ Prolog related material.
 \label{sec:macosx-intro}
 
 SWI-Prolog is by origin an Unix application, and not a native Macintosh
-application.  It has been brought to the Mac using the
-\href{http://www.macports.org/}{MacPorts} project, using
-\href{http://xquartz.macosforge.org/}{XQuartz} (Macintosh X11)
-for its graphical capabilities.
+application. Initially, it was ported to MacOS using
+\href{https://www.macports.org/}{MacPorts}. We maintain the MacPorts
+\texttt{Portfile}. There is also a \textit{Formulae} for
+\href{https://brew.sh/}{Homebrew} named \texttt{swi-prolog}. In
+addition, we provide a universal binary \textit{bundle}	that is
+built using dependencies compiled using \file{scripts/macos-deps.sh}
+from the source distribution.
+
+Starting with version 9.3.26, graphics are based on
+\href{https://www.libsdl.org/}{SDL3},
+\href{https://www.cairographics.org/}{Cairo} and
+\href{https://www.gtk.org/docs/architecture/pango}{Pango} and use native
+MacOS cocoa and quartz.
+
 
 \section{Installation}
 \label{sec:macosx-install}
-
-XQuartz should be installed prior to SWI-Prolog installation. The
-installer can be downloaded from the XQuartz web site.
 
 \subsection{Using MacPorts}
 \label{sec:macosx-using}
@@ -61,63 +68,53 @@ using the command below. In addition to the port named
 % sudo port install swi-prolog
 \end{code}
 
-The swi-prolog port depends on \const{readline}, \const{ncurses},
-\const{ncursesw}, \const{gmp} \const{libmcrypt}, \const{zlib},
-\const{expat}, and \const{jpeg}.
-
 \subsection{From the installer}
 \label{sec:macosx-installer}
 
-Opening and installing the meta installer installs the required ports
-from the MacPorts system.  The programs are installed in the directory
-\file{/opt/local/bin}.  The main executable is named \file{swipl}.
+The \href{https://www.swi-prolog.org/Download.html}{download} page
+provides a universal (arm64 and x86_64) MacOS bundle.  The app can
+be executed directly from the installer or be installed by dropping
+it in the \texttt{Application} directory.
+
 
 \section{Running SWI-Prolog}
 \label{sec:macosx-running}
 
-Not being a Macintosh Application, SWI-Prolog must be started from a
-terminal window. This can either be an X11 \program{xterm} or
-\textsf{Terminal.app} from Utilities.  For comfortable usage it is
-necessary to setup some environment variables.  The procedure depends
-on your shell of choice.  On Tiger the default is \program{bash}.  Add
-the following lines to the file \verb$~/.bashrc$ (or create this
-file if it does not yet exist).
+SWI-Prolog for MacOS comes with a commandline program \program{swipl}
+and a GUI program called \program{swipl-win}. If the system is installed
+using Macports or Homebrew, these should be available on your
+\texttt{PATH}. When using the bundle, the GUI can be started by opening
+the application.  You can use the commandline tools from the bundle by
+adding \file{Contents/MacOS} to your \texttt{PATH}.
+
+The commandline version (\program{swipl}) can be started in a terminal:
 
 \begin{code}
-# This allows using Prolog graphics if you use Terminal.app
-if [ -z "$DISPLAY" ]; then export DISPLAY=:0; fi
-
-# This sets up the path
-PATH=$PATH:/opt/local/bin
-\end{code}
-
-Now start \textsf{X11.App} and configure it to autostart at login.  Open
-\textsf{Terminal.app} or \program{xterm} and type
-
-\begin{code}
-% swipl
-Welcome to SWI-Prolog (threaded, 64 bits, version 7.3.33)
+> swipl
+Welcome to SWI-Prolog (threaded, 64 bits, version 9.3.26
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.
 Please run ?- license. for legal details.
 
-For online help and background, visit http://www.swi-prolog.org
+For online help and background, visit https://www.swi-prolog.org
 For built-in help, use ?- help(Topic). or ?- apropos(Word).
 
 ?-
 \end{code}
 
-If X11 is properly configured, the help system of the graphics subsystem
-XPCE can now be started using the command below.
-
-\begin{code}
-?- manpce.
-\end{code}
-
-
 \subsection{Loading a program}
 \label{sec:macosx-loading}
 
-Prolog source files can be loaded by specifying their filename between
+When using the commandline version, a program is normally loaded by
+giving it as an argument, e.g.
+
+\begin{code}
+> swipl myprogram.pl
+<banner>
+?-
+\end{code}
+
+Alternatively, Prolog may be started without a program loaded and
+a source file can be loaded by specifying its filename between
 \verb$[]$.  In addition to a plain filename, files may be searched on
 a named search-path%
 	\footnote{See file_search_path/2 in the manual for details.}
@@ -177,8 +174,7 @@ SWI-Prolog installation directory.
 Finally, you may wish to use the built-in editor called \emph{PceEmacs}.
 This editor provides colourisation support based on real-time parsing
 and cross-reference analysis of the program. It is started using the
-command \verb$?- emacs.$ or can be set as default editor in the
-personalisation file.
+command \verb$?- emacs.$. PceEmacs is the default editor used by edit/1.
 
 
 \subsection{Some useful commands}
@@ -247,6 +243,12 @@ hits.
     \predicate{help}{1}{+Spec}
 Give help on \arg{Spec}, which is normally the name of a predicate or
 C interface function.
+
+    \predicate{explain}{1}{+Term}
+Prints information on \arg{Term}.  \arg{Term} can be any term.  This
+is particularly useful to find where a predicate is defined and where
+it is called by passing either just the name of the predicate or a
+term \arg{Name}/\arg{Arity}.
 \end{description}
 
 
@@ -255,7 +257,7 @@ C interface function.
 
 To use SWI-Prolog with C or C++ code you must install Apples Xcode
 environment, providing \program{gcc}. If all paths are properly
-installed, programs can be linked using the \program{plld} command
+installed, programs can be linked using the \program{swipl-ld} command
 described in the manual.
 
 
@@ -263,53 +265,32 @@ described in the manual.
 \label{sec:macosx-issues}
 
 \begin{itemlist}
-    \item [XPCE and the meta-key]
-By default, the `Meta' key is bound to X11 \jargon{modifier 1} which
-is set by the `Alt' key.  This doesn't work very well for the Mac as
-the Alt key is commonly used to create alternative characters, while
-the Command key, which is used for composing commands, is bound to the
-X11 \jargon{modifier 2}.  For the Apple we therefore bind the XPCE
-meta modifier to the X11 modifier 2.  Wherever the documentation
-mentions Alt-X or Meta-X this must be read as \emph{Command-X}.
+    \item [Key bindings]
+The GUI tools find their origin on Unix, where key bindings are
+primarily based on GNU-Emacs.  GNU-Emacs uses a \jargon{Meta key}
+as \jargon{modifier}.  On MacOS, the \textbf{option} key acts as
+meta key.  This choice is copied from GNU-Emacs for MacOS.  The
+conventional MacOS \textbf{command} key bindings are supported.
 
     \item [Threaded XPCE programs]
-XPCE normally initializes Xlib for multi-threaded access using
-XInitThreads().  It turns out the MacOS X X11 version (tested
-on Tiger) causes a deadlock on certain keys.  We now do not call
-XInitThreads().  As Xlib access is synchronised using the currently
-global XPCE lock and XPCE/Prolog interfacing is designed to have only
-a single Prolog thread talking to XPCE this should not be a serious
-problem.
-
-    \item [XPCE programs do not open]
-A problem has been reported where starting XPCE programs, including the
-IDE components such as help, PceEmacs, etc. causes the program to hang.
-In the end, it turned out the fontconfig/freetype library used by XPCE
-to render Unicode fonts builds a database on first invocation. This
-process can take several minutes. Ones created, XPCE applications start
-quickly.
-
-    \item [Font display issues]
-If fonts do not display correctly (e.g. manpce pages not showing
-bold styles or editor text in `screen' font looking mis-spaced and
-misaligned) you may try to rebuild the X11 font cache by using the
-command \program{sudo /usr/x11r6/bin/ fc-cache}.
+Using SDL graphics, the GUI runs in the main thread.  This implies
+that when using graphical tools from \program{swipl}, these are
+unresponsive while Prolog executes for a longer period of time.
+This problem does not apply for \program{swipl-win}.  In this
+configuration the main thread exclusively processes the GUI and
+user queries are executed in another thread.
 \end{itemlist}
 
 
-\section{The SWI-Prolog community and foundation}
+\section{The SWI-Prolog community}
 \label{sec:macosx-intro}
 
 \subsection{Web-site and mailing lists}
 \label{sec:macosx-mailinglist}
 
-The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
-Part of the web is powered by \href{http://twiki.org/}{TWiki}, a
-\emph{wiki} web that can be edited by any registered user and used to
-exchange ideas, problems and solutions.  The web also provides access
-to the archive of the mailing list and allows to (de)register the
-mailing list.  Finally, it incorporates Bugzilla, the Mozilla project
-bugtracking system, for reporting bugs and tracking issues.
+The SWI-Prolog web-site is located at \url{https://www.swi-prolog.org/}.
+SWI-Prolog has an active forum at
+\url{https://swi-prolog.discourse.group/}.
 
 
 \subsection{About license conditions}
@@ -321,23 +302,24 @@ practice, redistribution and embedding is allowed, as long as
 \emph{modifications} to the SWI-Prolog source are published following
 the Free Software rules.
 
-The SWI-Prolog kernel and foreign libraries are licensed under the
-\emph{Lesser General Public License} (LGPL).  The Prolog files are
-licensed under the normal \emph{General Public License} GPL with
-an additional statement that allows for embedding in proprietary
-software:
+SWI-Prolog is licensed under the \emph{BSD-2} license.  Depending on
+the configuration, it may load libraries with different license terms.
+Notably
 
-\begin{quote}
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
-\end{quote}
+\begin{itemize}
+    \item \href{https://gmplib.org/}{libGMP} is available under the
+    LGPL license.  libGMP can be avoided at built time, replacing
+    it with \href{https://bellard.org/libbf/}{LibBF}.  This provides
+    the same functionality, but typically looses performance when
+    large integers and notably rational numbers are used.
+    \item \href{https://www.gtk.org/docs/architecture/pango}{Pango}
+    also has the LGPL license.  It used by that graphics subsystem
+    and	a core component thereof.
+\end{itemize}
 
-This exception is a proven construct used for \emph{libgcc}, the GNU
-C-compiler runtime library.
+The predicate license/0 may be used to display additional information
+including all components that have no liberal open source license. BSD,
+MIT and Apache are considered liberal licenses.
 
 
 \subsection{Supporting SWI-Prolog}
@@ -348,12 +330,12 @@ There are several ways to support SWI-Prolog:
 \begin{itemize}
     \item Extend the system with contributions
     \item Improve the system by submitting bug reports and patches.
-    \item Link to \url{http://www.swi-prolog.org} and refer to SWI-Prolog
+    \item Link to \url{https://www.swi-prolog.org} and refer to SWI-Prolog
           in publications.
     \item Ask for commercial development or support at
-          \url{http://www.cognitivetools.com/}
+          \url{https://www.swi-prolog.com/}
     \item Support development financially at
-          \url{http://www.swi-prolog.org/donate.html}.
+          \url{https://github.com/sponsors/SWI-Prolog}.
 \end{itemize}
 
 \end{document}
