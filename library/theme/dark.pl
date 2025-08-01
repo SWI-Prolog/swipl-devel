@@ -173,7 +173,7 @@ style(head(iso,_),               [background(orange), bold(true)]).
 style(head(def_iso,_),           [colour(cyan), bold(true)]).
 style(head(def_swi,_),           [colour(cyan), bold(true)]).
 style(head(_,_),                 [bold(true)]).
-style(rule_condition,            [background(paleturquoise4)]).
+style(rule_condition,            [background(darkgreen)]).
 
 style(module(_),                 [colour(light_slate_blue)]).
 style(comment(_),                [colour(green)]).
