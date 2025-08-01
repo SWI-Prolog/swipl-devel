@@ -435,4 +435,6 @@ pce_style(man_editor,
 
 prolog_source_view:port_style(call, [background(forest_green), colour(black)]).
 prolog_source_view:port_style(fail, [background(indian_red),   colour(black)]).
-prolog_source_view:port_style(_,    [colour(black)]).
+prolog_source_view:port_style(redo, [background(yellow3),      colour(black)]).
+prolog_source_view:port_style(Type, [colour(black)]) :-
+    Type \== breakpoint.
