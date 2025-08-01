@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,9 @@
 :- autoload(library(error),
 	    [existence_error/2,instantiation_error/1,must_be/2]).
 :- autoload(library(lists),[nth1/3]).
+
+:- multifile
+    file_style/2.                               % ++FileName, =Style
 
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -211,15 +215,16 @@ ls_(Files) :-
 tagged_file_in_dir(File, Result) :-
     file_base_name(File, Base),
     (   exists_directory(File)
-    ->  atom_concat(Base, /, Result)
-    ;   Result = Base
+    ->  atom_concat(Base, /, Label),
+        Result = dir(File, Label)
+    ;   Result = file(File, Base)
     ).
 
-tag_file(File, Dir) :-
+tag_file(File, dir(File, Label)) :-
     exists_directory(File),
     !,
-    atom_concat(File, /, Dir).
-tag_file(File, File).
+    atom_concat(File, /, Label).
+tag_file(File, file(File,File)).
 
 %!  mv(+From, +To) is det.
 %
@@ -376,11 +381,8 @@ table(I, Array, Layout) -->
       ;   NL = false
       )
     },
-    (   { arg(Index, Array, Atom) }
-    ->  (   { NL == false }
-        ->  [ '~|~w~t~*+'-[Atom, Layout.col_width] ]
-        ;   [ '~w'-[Atom] ]
-        )
+    (   { arg(Index, Array, Item) }
+    ->  table_cell(Item, Layout.col_width, NL)
     ;   []
     ),
     (   { I2 is I+1,
@@ -394,6 +396,47 @@ table(I, Array, Layout) -->
     ;   []
     ).
 
+table_cell(Item, ColWidth, false) -->
+    { label_length(Item, Len),
+      Spaces is ColWidth - Len
+    },
+    table_cell_value(Item),
+    [ '~|~t~*+'-[Spaces] ].
+table_cell(Item, _ColWidth, true) -->
+    table_cell_value(Item).
+
+table_cell_value(dir(_, Label)) ==>
+    [ '~w'-[Label] ].
+table_cell_value(file(File, Label)) ==>
+    (   { file_style(File, Style) }
+    ->  (   { Style == url }
+        ->  [ url(File,Label) ]
+        ;   [ ansi(Style, '~w', [Label]) ]
+        )
+    ;   [ '~w'-[Label] ]
+    ).
+
+%!  file_style(++File, =Style) is det.
+%
+%   True when File should be listed as a terminal hyperlink. The default
+%   only links Prolog source files.
+%
+%   @arg Style is either `url` to make a hyperlink or a valid
+%   style argument for ansi_format/3.
+
+file_style(File, url) :-
+    file_name_extension(_, Ext, File),
+    link_file_extension(Ext),
+    !.
+
+link_file_extension(Ext) :-
+    user:prolog_file_type(Ext,source).
+
+%!  table_layout(+Items, +PageWidth, -Layout:dict) is det.
+%
+%   Compute the number of columns, rows and the column width to create a
+%   tabular layout for Items.
+
 table_layout(Atoms, Width, _{cols:Cols, rows:Rows, col_width:ColWidth}) :-
     length(Atoms, L),
     longest(Atoms, Longest),
@@ -406,10 +449,14 @@ longest(List, Longest) :-
 
 longest([], M, M) :- !.
 longest([H|T], Sofar, M) :-
-    atom_length(H, L),
+    label_length(H, L),
     L >= Sofar,
     !,
     longest(T, L, M).
 longest([_|T], S, M) :-
     longest(T, S, M).
 
+label_length(dir(_, Label), Len) =>
+    atom_length(Label, Len).
+label_length(file(_, Label), Len) =>
+    atom_length(Label, Len).
