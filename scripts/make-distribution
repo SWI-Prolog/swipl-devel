@@ -104,7 +104,7 @@ ubuntu()
 
 # Build a single PPA in case something went wrong and we need
 # to retry.
-build_PPA
+build_PPA()
 { distro=$1
 
   git checkout ppa
