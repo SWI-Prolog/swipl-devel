@@ -121,11 +121,12 @@ Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
 
-Note that many combinations of these options are not properly supported.
-You are strongly encouraged  to  install   the  full  system for desktop
-usage. When installing in lightweight and   server  environments one may
-drop  one  or  more  of  ``SWIPL_PACKAGES_X``,  ``SWIPL_PACKAGES_JAVA``,
-``SWIPL_PACKAGES_ODBC`` and ``INSTALL_DOCUMENTATION``.
+Note  that  many  combinations  of  these  options  are  not  properly
+supported.  You are strongly encouraged to install the full system for
+desktop usage. When installing  in lightweight and server environments
+one    may   drop    one    or    more   of    ``SWIPL_PACKAGES_GUI``,
+``SWIPL_PACKAGES_JAVA``,          ``SWIPL_PACKAGES_ODBC``          and
+``INSTALL_DOCUMENTATION``.
 
 A   specific   list   of    packages     can    be    requestion   using
 `DSWIPL_PACKAGE_LIST` set to a list of package.  The list is checked for
@@ -134,6 +135,26 @@ documentation should be disabled in this   scenario because including it
 includes many packages. For example:
 
     cmake -DINSTALL_DOCUMENTATION=OFF -DSWIPL_PACKAGE_LIST="clib;plunit"
+
+### Customizing GUI fonts
+
+The        GUI        (xpce)         renders        fonts        using
+[Pango](https://www.gtk.org/docs/architecture/pango).   XPCE specifies
+its default  named fonts from  using abstract families  `mono`, `sans`
+and `serif`.   The mapping may be  specified by the user.   There is a
+default  mapping for  Windows, MacOS  and others  (Linux, *BSD,  ...).
+This mapping can be overruled using, e.g., the following CMake option:
+
+	-DSANS_FAMILY='"DejaVu Sans,sans"'
+
+Similarly,  there  are  the ``-DMONO_FAMILY``  and  ``-DSERIF_FAMILY``
+options.   Note that  the argument  is  a C  string that  needs to  be
+protected  against  the  shell.   A  font  specification  is  a  comma
+separated list of  font names that are processed in  order, i.e., if a
+character must be written it uses the first font that provides a glyph
+for this  character.  These CMake  options are primarily  intended for
+creating a port for a particular environment.
+
 
 ## Finding requirements
 
@@ -217,21 +238,6 @@ page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm)
 This page also discusses how to  use the WASM version with Node.js and in
 a browser.
 
-
-### Building a 32-bit version on 64-bit Debian based Linux
-
-Building the 32-bit version on  a  64   bit  platform  can be useful for
-testing and creating  32-bit  .qlf  files   or  saved  states.  A fairly
-complete system is created using the configuration command below.
-
-    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_i386.cmake \
-          -DSWIPL_PACKAGES_X=OFF -DSWIPL_PACKAGES_QT=OFF \
-          -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_PYTHON=OFF \
-          -G Ninja ..
-
-See `cmake/cross/linux_i386.cmake` for  setting  up   the  compiler  and
-libraries.  ``SWIPL_PACKAGES_X``  currently  does  not  work.  This  can
-probably be fixed.
 
 ### Cross-building for targets without an emulator
 
