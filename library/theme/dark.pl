@@ -312,6 +312,11 @@ pce_style(graphical,
             selected_background(white)
           ]).
 
+pce_style(text,
+          [ selection_style(style(background := yellow3,
+                                  colour := black))
+          ]).
+
 % Epilog (next generation swipl-win)
 
 pce_style(terminal_image,
