@@ -10,6 +10,7 @@ break trap_gdb
 break sysError
 break __assert_fail
 break PL_api_error
+break pceAssert
 set breakpoint pending off
 
 define nosyms
