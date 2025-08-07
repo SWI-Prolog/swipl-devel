@@ -1712,8 +1712,12 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
     return false;
 
   if ( LD->transaction.generation && ison(def, P_TRANSACT) )
-  { /* returns -1 on error */
-    return transaction_retract_clause(clause) == true;
+  { int rc;
+
+    if ( (rc=transaction_retract_clause(clause)) == true )
+      return true;
+    if ( rc < 0 )
+      return false;
   }
 
   return retract_clause(clause, 0);
