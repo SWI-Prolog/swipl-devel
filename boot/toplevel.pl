@@ -589,6 +589,7 @@ main_thread_init :-
     exists_source(library(epilog)),
     !,
     setup_theme,
+    catch(setup_backtrace, E, print_message(warning, E)),
     use_module(library(epilog)),
     call(epilog([ init(user_thread_init),
                   main(true)
