@@ -313,7 +313,7 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
   rc = termHashValue(p, &hraw);
 
   if ( rc )
-  { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
+  { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged (portable) */
 
     return PL_unify_integer(A2, hraw);
   }

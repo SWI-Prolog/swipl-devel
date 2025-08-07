@@ -4043,12 +4043,12 @@ x(Term) :-
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
-If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
-with a positive integer value that may be used as a hash key to the
-value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
-an unbound variable.  Hash keys are in the range $0 \ldots 16,777,215$,
-the maximal integer that can be stored efficiently on both 32 and 64
-bit platforms.
+If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is
+unified with a positive integer value that may be used as a hash key
+to the value. If \arg{Term} is not ground, the predicate leaves
+\arg{HashKey} an unbound variable.  Hash keys are in the range $0
+\ldots 72,057,594,037,927,935$, the maximal integer that can be stored
+efficiently (see \prologflag{max_tagged_integer}.
 
 This predicate may be used to build hash tables as well as to exploit
 argument indexing to find complex terms more quickly.
