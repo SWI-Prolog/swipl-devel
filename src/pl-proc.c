@@ -1706,9 +1706,6 @@ bool
 retractClauseDefinition(Definition def, Clause clause, int notify)
 { GET_LD
 
-    if ( strcmp(predicateName(def), "thread_message_hook/3") == 0 )
-      trap_gdb();
-
   if ( def->events && notify &&
        !(LD->transaction.flags&TR_BULK) &&
        !predicate_update_event(def, ATOM_retract, clause, 0) )
