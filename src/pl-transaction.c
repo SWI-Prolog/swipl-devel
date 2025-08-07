@@ -660,6 +660,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.gen_max    = 0;
     LD->transaction.gen_base   = GEN_INFINITE;
     LD->transaction.gen_start  = 0;
+    LD->transaction.flags      = 0;
   }
 
   if ( (flags&TR_BULK) )

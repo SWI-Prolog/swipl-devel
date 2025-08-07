@@ -1706,18 +1706,17 @@ bool
 retractClauseDefinition(Definition def, Clause clause, int notify)
 { GET_LD
 
+    if ( strcmp(predicateName(def), "thread_message_hook/3") == 0 )
+      trap_gdb();
+
   if ( def->events && notify &&
        !(LD->transaction.flags&TR_BULK) &&
        !predicate_update_event(def, ATOM_retract, clause, 0) )
     return false;
 
-  if ( LD->transaction.generation )
-  { int rc;
-
-    if ( (rc=transaction_retract_clause(clause)) == true )
-      return true;
-    if ( rc < 0 )
-      return false;			/* error */
+  if ( LD->transaction.generation && ison(def, P_TRANSACT) )
+  { /* returns -1 on error */
+    return transaction_retract_clause(clause) == true;
   }
 
   return retract_clause(clause, 0);
