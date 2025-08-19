@@ -329,6 +329,10 @@ Defined properties are:
 	\termitem{alias}{Alias}
  \arg{Alias} is the alias name of thread \arg{Id}.
 
+	\termitem{debug}{Boolean}
+Whether the thread is a \jargon{debug} thread.   No-debug threads may be
+created using the \term{debug}{false} option of thread_create/3.
+
 	\termitem{detached}{Boolean}
 Current detached status of the thread.
 
