@@ -1342,13 +1342,13 @@ typedef struct
 
 PL_EXPORT(int)	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
 PL_EXPORT(int)	PL_unify_thread_id(term_t t, int i);
-PL_EXPORT(int)	PL_get_thread_id_ex(term_t t, int *idp);
-PL_EXPORT(int)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
+PL_EXPORT(bool)	PL_get_thread_id_ex(term_t t, int *idp);
+PL_EXPORT(bool)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
 PL_EXPORT(bool)	PL_thread_destroy_engine(void);
-PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
+PL_EXPORT(bool)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
-				  int global);
+				  bool global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 PL_EXPORT(bool)	PL_w32thread_raise(DWORD dwTid, int sig);

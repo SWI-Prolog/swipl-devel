@@ -1376,7 +1376,7 @@ may be gone even before it is   locked. However, locking is not unlikely
 to deadlock during crash analysis ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_get_thread_alias(int tid, atom_t *alias)
 { PL_thread_info_t *info;
   thread_handle *th;
@@ -1703,7 +1703,7 @@ PL_unify_thread_id(term_t t, int i)
 }
 
 
-int
+bool
 PL_get_thread_id_ex(term_t t, int *idp)
 { PL_thread_info_t *info;
 
@@ -2936,6 +2936,38 @@ PRED_IMPL("thread_alias", 1, thread_alias, 0)
 	   aliasThread(PL_thread_self(), ATOM_thread, alias) );
 }
 
+static
+PRED_IMPL("set_thread", 2, set_thread, 0)
+{ PRED_LD
+  PL_thread_info_t *info;
+  atom_t name;
+  size_t arity;
+
+  if ( PL_get_atom(A1, &name) && name == ATOM_self )
+  { info = LD->thread.info;
+  } else if ( !get_thread(A1, &info, true) )
+  { return false;
+  }
+
+  if ( PL_get_name_arity(A2, &name, &arity) && arity == 1 )
+  { term_t arg = PL_new_term_ref();
+    _PL_get_arg(1, A2, arg);
+
+    if ( name == ATOM_debug )
+    { int val;
+      if ( PL_get_bool_ex(arg, &val) )
+      { info->debug = val;
+	return true;
+      }
+      return false;
+    } else
+    { return PL_domain_error("thread_property", A2);
+    }
+  } else
+    return PL_type_error("property", A2);
+}
+
+
 #endif /*O_PLMT*/
 
 static size_t
@@ -3340,8 +3372,8 @@ Request a function to run when the Prolog thread is about to detach, but
 still capable of running Prolog queries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-PL_thread_at_exit(void (*function)(void *), void *closure, int global)
+bool
+PL_thread_at_exit(void (*function)(void *), void *closure, bool global)
 { GET_LD
   event_list **list = global ? &GD->event.hook.onthreadexit
 			     : &LD->event.hook.onthreadexit;
@@ -8025,7 +8057,7 @@ initPrologThreads(void)
 #endif
 }
 
-int
+bool
 PL_get_thread_alias(int tid, atom_t *alias)
 { *alias = ATOM_main;
   return true;
@@ -8520,6 +8552,7 @@ BeginPredDefs(thread)
 
 #ifdef O_PLMT
   PRED_DEF("thread_alias",           1, thread_alias,	       0)
+  PRED_DEF("set_thread",             2, set_thread,            0)
   PRED_DEF("thread_detach",	     1,	thread_detach,	       PL_FA_ISO)
   PRED_DEF("thread_join",	     2,	thread_join,	       0)
   PRED_DEF("thread_exit",            1, thread_exit,           0)
