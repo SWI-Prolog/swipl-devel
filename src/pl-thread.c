@@ -2220,6 +2220,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->prolog_flag.unknown_option = ldold->prolog_flag.unknown_option;
 #ifdef O_BIGNUM
   ldnew->arith.rat                = ldold->arith.rat;
+  ldnew->gmp.max_integer_size	  = ldold->gmp.max_integer_size;
 #endif
   ldnew->arith.f                  = ldold->arith.f;
   if ( ldold->prolog_flag.table )
