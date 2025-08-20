@@ -104,7 +104,7 @@ init_color_term_flag :-
 %!  ansi_format(+ClassOrAttributes, +Format, +Args) is det.
 %
 %   Format text with ANSI  attributes.   This  predicate  behaves as
-%   format/2 using Format and Args, but if the =current_output= is a
+%   format/2 using Format and Args, but if the `current_output` is a
 %   terminal, it adds ANSI escape sequences according to Attributes.
 %   For example, to print a text in bold cyan, do
 %
@@ -130,16 +130,16 @@ init_color_term_flag :-
 %       24-bit (direct color) specification.  The components are
 %       integers in the range 0..255.
 %
-%   Defined color constants are below.  =default=   can  be  used to
+%   Defined color constants are below.  `default`   can  be  used to
 %   access the default color of the terminal.
 %
 %     - black, red, green, yellow, blue, magenta, cyan, white
 %
 %   ANSI sequences are sent if and only if
 %
-%     - The =current_output= has the property tty(true) (see
+%     - The `current_output` has the property tty(true) (see
 %       stream_property/2).
-%     - The Prolog flag =color_term= is =true=.
+%     - The Prolog flag `color_term` is `true`.
 
 ansi_format(Attr, Format, Args) :-
     ansi_format(current_output, Attr, Format, Args).
@@ -147,8 +147,9 @@ ansi_format(Attr, Format, Args) :-
 ansi_format(Stream, Class, Format, Args) :-
     stream_property(Stream, tty(true)),
     current_prolog_flag(color_term, true),
-    !,
     class_attrs(Class, Attr),
+    Attr \== [],
+    !,
     phrase(sgr_codes_ex(Attr), Codes),
     atomic_list_concat(Codes, ;, Code),
     with_output_to(
