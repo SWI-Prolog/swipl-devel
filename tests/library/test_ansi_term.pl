@@ -69,29 +69,29 @@ captured_tty_output(Goal, Output) :-
 
 % Absolute position is accurate even though escape sequences are
 % injected.
-test(absolute_position_output, O = "\e[mx   y\e[0m") :-
-    captured_tty_output(ansi_format([], 'x~t~4|y', []), O).
+test(absolute_position_output, O = "\e[1mx   y\e[0m") :-
+    captured_tty_output(ansi_format([bold], 'x~t~4|y', []), O).
 
 % Same as `absolute_position_output` except instantiated
 test(absolute_position_input) :-
-    captured_tty_output(ansi_format([], 'x~t~4|y', []), "\e[mx   y\e[0m").
+    captured_tty_output(ansi_format([bold], 'x~t~4|y', []), "\e[1mx   y\e[0m").
 
 % Position information is correct after styled output was fully written.
 % Additional outputs have correct positioning information.
-test(multi_position_output, O = "\e[mx   y\e[0m\e[m   z\e[0m") :-
+test(multi_position_output, O = "\e[1mx   y\e[0m\e[1m   z\e[0m") :-
     captured_tty_output(
-        (   ansi_format([], 'x~t~4|y', []),
-            ansi_format([], '~8|z', [])
+        (   ansi_format([bold], 'x~t~4|y', []),
+            ansi_format([bold], '~8|z', [])
         ),
         O
     ).
 
 % format/ansi_format argument compatibility
 
-test(single_nonlist_argument, O = "\e[m(foo)\e[0m") :-
-    captured_tty_output(ansi_format([], '(~w)', foo), O).
+test(single_nonlist_argument, O = "\e[1m(foo)\e[0m") :-
+    captured_tty_output(ansi_format([bold], '(~w)', foo), O).
 
-test(multi_arguments, O = "\e[mfoo bar\e[0m") :-
-    captured_tty_output(ansi_format([], '~w~4|~w', [foo, bar]), O).
+test(multi_arguments, O = "\e[1mfoo bar\e[0m") :-
+    captured_tty_output(ansi_format([bold], '~w~4|~w', [foo, bar]), O).
 
 :- end_tests(ansi_term).
