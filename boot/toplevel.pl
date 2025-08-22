@@ -468,38 +468,12 @@ win_associated_files(Files) :-
     (   Files = [File|_]
     ->  absolute_file_name(File, AbsFile),
         set_prolog_flag(associated_file, AbsFile),
-        set_working_directory(File),
-        set_window_title(Files)
+        forall(prolog:set_app_file_config(Files), true)
     ;   true
     ).
 
-%!  set_working_directory(+File)
-%
-%   When opening as a GUI application, e.g.,  by opening a file from
-%   the Finder/Explorer/..., we typically  want   to  change working
-%   directory to the location of  the   primary  file.  We currently
-%   detect that we are a GUI app  by the Prolog flag `console_menu`,
-%   which is set by swipl-win[.exe].
-
-set_working_directory(File) :-
-    current_prolog_flag(console_menu, true),
-    access_file(File, read),
-    !,
-    file_directory_name(File, Dir),
-    working_directory(_, Dir).
-set_working_directory(_).
-
-set_window_title([File|More]) :-
-    current_predicate(system:window_title/2),
-    !,
-    (   More == []
-    ->  Extra = []
-    ;   Extra = ['...']
-    ),
-    atomic_list_concat(['SWI-Prolog --', File | Extra], ' ', Title),
-    system:window_title(_, Title).
-set_window_title(_).
-
+:- multifile
+    prolog:set_app_file_config/1.               % +Files
 
 %!  start_pldoc
 %
