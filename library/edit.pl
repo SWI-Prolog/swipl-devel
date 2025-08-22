@@ -436,14 +436,16 @@ substitute(_, _, Old, Old).
                  *            SELECT            *
                  *******************************/
 
-merge_locations([L1|T1], Locations) :-
+merge_locations(Locations0, Locations) :-
+    append(Before, [L1|Rest], Locations0),
     L1 = Loc1-Spec1,
-    select(L2, T1, T2),
+    select(L2, Rest, Rest1),
     L2 = Loc2-Spec2,
     same_location(Loc1, Loc2, Loc),
     merge_specs(Spec1, Spec2, Spec),
     !,
-    merge_locations([Loc-Spec|T2], Locations).
+    append([Before, [Loc-Spec], Rest1], Locations1),
+    merge_locations(Locations1, Locations).
 merge_locations(Locations, Locations).
 
 same_location(L, L, L).
