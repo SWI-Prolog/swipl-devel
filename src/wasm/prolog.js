@@ -1924,11 +1924,13 @@ class Prolog
     let rc;
     flags  = flags||(this.CVT_ALL|this.CVT_WRITEQ);
     flags |= this.CVT_EXCEPTION|this.REP_UTF8;
+    const mark = this.bindings.WASM_mark_string_buffers();
     if (this.bindings.PL_get_chars(term, ptr, flags)) {
-	rc = this.module.UTF8ToString(this.module.getValue(ptr, 'i32'));
+      rc = this.module.UTF8ToString(this.module.getValue(ptr, 'i32'));
     } else {
-	rc = null;
+      rc = null;
     }
+    this.bindings.PL_release_string_buffers_from_mark(mark);
     _free(ptr);
 
     return rc;
