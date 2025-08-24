@@ -35,6 +35,7 @@
 #include "../pl-incl.h"
 #include <emscripten.h>
 
+PL_EXPORT(buf_mark_t)		WASM_mark_string_buffers(void);
 PL_EXPORT(const char *)		WASM_ttymode(void);
 PL_EXPORT(void)			WASM_bind_standard_streams(void);
 PL_EXPORT(term_t)		WASM_yield_request(void);
@@ -42,6 +43,13 @@ PL_EXPORT(void)			WASM_set_yield_result(term_t result);
 PL_EXPORT(size_t)		WASM_variable_id(term_t t);
 PL_EXPORT(int)			js_unify_obj(term_t t, int32_t id);
 PL_EXPORT(int32_t)		js_get_obj(term_t t);
+
+buf_mark_t
+WASM_mark_string_buffers(void)
+{ buf_mark_t mark;
+  PL_mark_string_buffers(&mark);
+  return mark;
+}
 
 const char *
 WASM_ttymode(void)

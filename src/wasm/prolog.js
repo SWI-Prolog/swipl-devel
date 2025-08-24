@@ -816,6 +816,10 @@ class Prolog
 	'PL_get_trace_context', 'number', ['number']),
       PL_prompt_string: this.module.cwrap(
 	'PL_prompt_string', 'number', ['number']),
+      PL_release_string_buffers_from_mark: this.module.cwrap(
+	'PL_release_string_buffers_from_mark', 'number', ['number']),
+      WASM_mark_string_buffers: this.module.cwrap(
+	'WASM_mark_string_buffers', 'number', []),
       WASM_ttymode: this.module.cwrap(
 	'WASM_ttymode', 'number', []),
       WASM_bind_standard_streams: this.module.cwrap(
@@ -915,6 +919,13 @@ class Prolog
       return rc;
     }
     return false;				/* Throw? */
+  }
+
+  __with_stacked_strings(func)
+  { const mark = this.bindings.WASM_mark_string_buffers();
+    const rc = func.call(this);
+    this.bindings.PL_release_string_buffers_from_mark(mark);
+    return rc;
   }
 
   __string_to_c(string)
