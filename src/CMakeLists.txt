@@ -242,7 +242,10 @@ list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)
 endif()
 
 if(NOT EMSCRIPTEN)
+has_package(table HAVE_TABLE)
+if(HAVE_TABLE)
 list(APPEND SWIPL_DATA_library_unicode  unicode_data.pl)
+endif()
 list(APPEND SWIPL_DATA_library_dialect_sicstus
      sockets.pl system.pl)
 if(MULTI_THREADED)
