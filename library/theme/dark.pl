@@ -202,7 +202,7 @@ style(class(undefined,_),        [colour(red), underline(true)]).
 style(prolog_data,               [colour(cyan), underline(true)]).
 style(flag_name(_),              [colour(cyan)]).
 style(no_flag_name(_),           [colour(red)]).
-style(unused_import,             [colour(cyan), background(pink)]).
+style(unused_import,             [colour(cyan), background(maroon)]).
 style(undefined_import,          [colour(red)]).
 
 style(constraint(_),             [colour(darkcyan)]).
