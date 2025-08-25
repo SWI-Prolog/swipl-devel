@@ -488,7 +488,6 @@ DECL_PLIST(transaction);
 DECL_PLIST(undo);
 DECL_PLIST(error);
 DECL_PLIST(coverage);
-DECL_PLIST(xterm);
 #ifdef __EMSCRIPTEN__
 DECL_PLIST(wasm);
 #endif
@@ -567,7 +566,6 @@ initBuildIns(bool signonly)
   REG_PLIST(transaction);
   REG_PLIST(undo);
   REG_PLIST(error);
-  REG_PLIST(xterm);
 #ifdef O_COVERAGE
   REG_PLIST(coverage);
 #endif

@@ -51,8 +51,7 @@
             tbacktrace/1,               % +ThreadId,
             tbacktrace/2                % +ThreadId, +Options
           ]).
-:- if((   current_predicate(win_open_console/5)
-      ;   current_predicate('$open_xterm'/5))).
+:- if(current_predicate(win_open_console/5)).
 :- export(( thread_run_interactor/0,    % interactor main loop
             interactor/0,
             interactor/1                % ?Title
@@ -192,8 +191,10 @@ thread_has_console :-
 %
 %   Open a new console window and unify In,  Out and Err with the input,
 %   output and error streams for the new console. This predicate is only
-%   available  if  win_open_console/5  (Windows  or   Qt  swipl-win)  or
-%   '$open_xterm'/5 (POSIX systems with pseudo terminal support).
+%   available  if  win_open_console/5  (Windows  or   Qt  swipl-win)  is
+%   provided.
+%
+%   @tbd Port this to Epilog.
 
 :- multifile xterm_args/1.
 :- dynamic   xterm_args/1.
@@ -212,35 +213,6 @@ open_console(Title, In, Out, Err) :-
 regkey(Key, Key) :-
     atom(Key).
 regkey(_, 'Anonymous').
-
-:- elif(current_predicate('$open_xterm'/5)).
-
-%!  xterm_args(-List) is nondet.
-%
-%   Multifile and dynamic hook that  provides (additional) arguments for
-%   the xterm(1) process opened  for   additional  thread consoles. Each
-%   solution must bind List to a list   of  atomic values. All solutions
-%   are concatenated using append/2 to form the final argument list.
-%
-%   The defaults set  the  colors   to  black-on-light-yellow,  enable a
-%   scrollbar, set the font using  Xft   font  pattern  and prepares the
-%   back-arrow key.
-
-xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
-xterm_args(['-xrm', '*backarrowKey: false']).
-xterm_args(['-fa', 'Ubuntu Mono', '-fs', 12]).
-xterm_args(['-fg', '#000000']).
-xterm_args(['-bg', '#ffffdd']).
-xterm_args(['-sb', '-sl', 1000, '-rightbar']).
-
-can_open_console :-
-    getenv('DISPLAY', _),
-    absolute_file_name(path(xterm), _XTerm, [access(execute)]).
-
-open_console(Title, In, Out, Err) :-
-    findall(Arg, xterm_args(Arg), Args),
-    append(Args, Argv),
-    '$open_xterm'(Title, In, Out, Err, Argv).
 
 :- endif.
 
@@ -273,7 +245,6 @@ attach_console(Title) :-
     set_stream(Err, alias(user_error)),
     set_stream(In,  alias(current_input)),
     set_stream(Out, alias(current_output)),
-    enable_line_editing(In,Out,Err),
     thread_at_exit(detach_console(Id)).
 :- endif.
 attach_console(Title) :-
@@ -298,27 +269,6 @@ human_thread_id(Thread, Alias) :-
     !.
 human_thread_id(Thread, Id) :-
     thread_property(Thread, id(Id)).
-
-%!  enable_line_editing(+In, +Out, +Err) is det.
-%
-%   Enable line editing for the console.  This   is  by built-in for the
-%   Windows console. We can also provide it   for the X11 xterm(1) based
-%   console if we use the BSD libedit based command line editor.
-
-enable_line_editing(_In, _Out, _Err) :-
-    current_prolog_flag(readline, editline),
-    exists_source(library(editline)),
-    use_module(library(editline)),
-    !,
-    call(el_wrap).
-enable_line_editing(_In, _Out, _Err).
-
-disable_line_editing(_In, _Out, _Err) :-
-    current_predicate(el_unwrap/1),
-    !,
-    call(el_unwrap(user_input)).
-disable_line_editing(_In, _Out, _Err).
-
 
 %!  detach_console(+ThreadId) is det.
 %
