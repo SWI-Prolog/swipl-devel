@@ -496,6 +496,15 @@ A common basis for C keywords.
 #define MAYBE_UNUSED
 #endif
 
+#if (defined(__GNUC__) && __GNUC__ >= 13) || \
+    (defined(__clang__) && __clang_major__ >= 17)
+#define ASSUME(expr) __attribute__((assume(expr)))
+#elif defined(_MSC_VER)
+#define ASSUME(expr) __assume(expr)
+#else
+#define ASSUME(expr) assert(expr)
+#endif
+
 #ifdef HAVE___BUILTIN_EXPECT
 #define likely(x)       __builtin_expect((x), 1)
 #define unlikely(x)     __builtin_expect((x), 0)

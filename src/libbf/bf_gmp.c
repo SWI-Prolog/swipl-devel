@@ -513,7 +513,8 @@ mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
 
 static void
 mpz_urandom_2exp(mpz_t r, gmp_randstate_t state, const mp_bitcnt_t szbits)
-{ size_t szbytes = (szbits+7)/8;
+{ ASSUME(szbits > 0);
+  size_t szbytes = (szbits+7)/8;
   unsigned char buf[256];
   unsigned char *data = szbytes <= sizeof(buf) ? buf : malloc(szbytes);
   int byte = 0;

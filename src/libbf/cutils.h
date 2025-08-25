@@ -27,6 +27,15 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+#if (defined(__GNUC__) && __GNUC__ >= 13) || \
+    (defined(__clang__) && __clang_major__ >= 17)
+#define ASSUME(expr) __attribute__((assume(expr)))
+#elif defined(_MSC_VER)
+#define ASSUME(expr) __assume(expr)
+#else
+#define ASSUME(expr) assert(expr)
+#endif
+
 #ifdef _MSC_VER
 #include <intrin.h>
 typedef intptr_t ssize_t;
