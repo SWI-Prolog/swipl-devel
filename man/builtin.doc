@@ -4047,18 +4047,20 @@ If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is
 unified with a positive integer value that may be used as a hash key
 to the value. If \arg{Term} is not ground, the predicate leaves
 \arg{HashKey} an unbound variable.  Hash keys are in the range $0
-\ldots 72,057,594,037,927,935$, the maximal integer that can be stored
-efficiently (see \prologflag{max_tagged_integer}.
+\ldots 72,057,594,037,927,935$ ($2^56$), the maximal integer that can be
+stored efficiently (see \prologflag{max_tagged_integer}.
 
 This predicate may be used to build hash tables as well as to exploit
 argument indexing to find complex terms more quickly.
 
 The hash key does not rely on temporary information like addresses of
 atoms and may be assumed constant over different invocations and
-versions of SWI-Prolog.\footnote{Last change: version 5.10.4} Hashes
-differ between big and little endian machines. The term_hash/2 predicate
-is cycle-safe.\bug{All arguments that (indirectly) lead to a cycle
-have the same hash key.}
+versions of SWI-Prolog.\footnote{Last change: version 9.3.28} The
+term_hash/2 predicate is cycle-safe.\bug{All arguments that (indirectly)
+lead to a cycle have the same hash key.}
+\bug{Hashes differ between big and little endian machines and hashes for
+big integers (currently $> 2^56$) differ depending on the big integer
+\jargon{backend} (GMP or LibBF).  See \prologflag{gmp_version}.}
 
     \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
 As term_hash/2, but only considers \arg{Term} to the specified
