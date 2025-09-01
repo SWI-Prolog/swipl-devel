@@ -1808,12 +1808,20 @@ END_VMI
 I_CONTEXT is used by  non-meta  predicates   that  are  compiled  into a
 different  module  using  <module>:<head>  :-    <body>.  The  I_CONTEXT
 instruction immediately follows the I_ENTER. The argument is the module.
+
+We  only  need  this   for    module-transparent   predicates.  However,
+instructions with a  `CA1_LPROC`  argument   resolve  the  predicate use
+`def->module`, updating the context on `I_CONTEXT`.   As  `m:p :- b` has
+`def->module` set to `m`, we need  the   `I_CONTEXT`  to  get the proper
+module. Considering this is rarely  used,  we   solve  the  issue with a
+single instruction and a runtime test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CONTEXT, 0, 1, (CA1_MODULE))
 { Module m = code2ptr(Module, *PC++);
 
-  setContextModule(FR, m);
+  if ( isoff(DEF, P_TRANSPARENT) )
+    setContextModule(FR, m);
 
   NEXT_INSTRUCTION;
 }

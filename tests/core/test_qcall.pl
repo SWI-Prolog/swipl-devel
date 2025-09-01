@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2012-2014, University of Amsterdam
+    Copyright (c)  2012-2025, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -96,5 +97,8 @@ test(local_argvar, M-C == qm-qm) :-
 	call((m(M),M:(qm(C),qm(C)))).
 test(local_argvar, M-C == qm-qm) :-
 	call((m(M),M:(call(qm(C)),qm(C)))).
+% looped after e6cf5491f543936fcdbcf6693850bf6eb653991c
+test(lproc, B == [binding(['A'], 1, [])]) :-
+	prolog:translate_bindings(['A'=1], B, [], [], _R).
 
 :- end_tests(qualified_calls).

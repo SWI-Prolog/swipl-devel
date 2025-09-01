@@ -2001,8 +2001,7 @@ that have an I_CONTEXT because we need to reset the context.
       if ( isoff(def, P_MFCONTEXT) &&
 	   ( ci->module != def->module ||
 	     ison(proc->definition, P_MULTIFILE)
-	   ) &&
-	   isoff(proc->definition, P_TRANSPARENT) )
+	   ) )
 	set(def, P_MFCONTEXT);
 
       if ( ison(def, P_MFCONTEXT) )
