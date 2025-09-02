@@ -141,12 +141,13 @@ prolog_history(enable) =>
     ;   catch(dir_history_file('.', File), E,
               (print_message(warning, E),fail)),
         catch(load_dir_history(File), E,
-              print_message(warning, E)),
-        (   thread_self(main)
+              print_message(warning, E))
+    ->  (   thread_self(main)
         ->  at_halt(write_history(File))
         ;   true
         ),
         set_prolog_flag(save_history, true)
+    ;   true
     ).
 prolog_history(disable) =>
     set_prolog_flag(save_history, false).
