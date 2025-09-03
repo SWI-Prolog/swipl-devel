@@ -362,6 +362,7 @@ dde_init_constants(void)
   }
 }
 
+#ifdef O_PLMT
 static void
 dde_uninitialise(void *closure)
 { GET_LD
@@ -379,6 +380,7 @@ dde_uninitialise(void *closure)
   FUNCTOR_dde_request4 = 0;
   FUNCTOR_dde_execute3 = 0;
 }
+#endif
 
 
 static DWORD
