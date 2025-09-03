@@ -118,7 +118,8 @@ v(_).
 test(simple_1) :-
     term_hash(aap, X),
     assertion(memberchk(X, [ 3_331_158_974,   % little endian
-			     1509846866       % big endian
+			     1509846866,      % big endian
+			     -963808322	      % WASM
 			   ])).
 
 test(simple_2) :-                  % small int
@@ -132,13 +133,15 @@ test(simple_3) :-                  % Big int
     assertion(memberchk(X, [ 347_171_279,     % little endian
 			     1214499792,      % big endian
 			     3_784_382_378,   % LibBF, little endian
-			     3289800483	      % LibBF, big endian
+			     3289800483,      % LibBF, big endian
+			     -510584918	      % WASM
 			   ])).
 test(simple_4) :-
     A is pi,
     term_hash(A, X),
     assertion(memberchk(X, [ 4_260_353_184,   % little endian
-			     1776496028       % big endian
+			     1776496028,      % big endian
+			     -34614112	      % WASM
 			   ])).
 test(simple_5, X == 1_540_712_431) :-
     string_codes(S, "hello world"),
@@ -146,18 +149,21 @@ test(simple_5, X == 1_540_712_431) :-
 test(compound_1) :-
     term_hash(hello(world), X),
     assertion(memberchk(X, [ 3_978_712_206,   % little endian
-			     3577832249       % big endian
+			     3577832249,      % big endian
+			     -316255090	      % WASM
 			   ])).
 test(compound_2) :-
     A = x(a),
     term_hash(hello(A, A), X),
     assertion(memberchk(X, [ 3_797_822_550,   % little endian
-			     1371988747       % big endian
+			     1371988747,      % big endian
+			     -497144746	      % WASM
 			   ])).
 test(compound_3) :-
     term_hash(hello(x(a), x(a)), X),
     assertion(memberchk(X, [ 3_797_822_550,   % little endian
-			     1371988747       % big endian
+			     1371988747,      % big endian
+			     -497144746	      % WASM
 			   ])).
 
 :- end_tests(term_hash2).
