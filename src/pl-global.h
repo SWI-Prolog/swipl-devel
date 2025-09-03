@@ -426,10 +426,10 @@ struct PL_global_data
     int			highest_id;	/* Highest Id of life thread  */
     int			peak_id;	/* Highest Id of any thread  */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
+#ifdef O_PLMT
 #ifdef __WINDOWS__
     HINSTANCE		instance;	/* Win32 process instance */
 #endif
-#ifdef O_PLMT
     int			enabled;	/* threads are enabled */
     int			mutex_next_id;	/* next id for anonymous mutexes */
     TableWP		mutexTable;	/* Name --> mutex table */

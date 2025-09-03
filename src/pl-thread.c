@@ -1717,7 +1717,7 @@ PL_get_thread_id_ex(term_t t, int *idp)
 
 
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && defined(O_PLMT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_w32thread_raise(DWORD id, int sig)
@@ -1973,7 +1973,9 @@ threadName(int id)
 
 intptr_t
 system_thread_id(PL_thread_info_t *info)
-{ if ( !info )
+{
+#ifdef O_PLMT
+  if ( !info )
   { GET_LD
     if ( LD )
       info = LD->thread.info;
@@ -1988,6 +1990,9 @@ system_thread_id(PL_thread_info_t *info)
 #else
   return (intptr_t)info->tid;
 #endif
+#endif
+#else/*O_PLMT*/
+  return -1;
 #endif
 }
 
@@ -6808,8 +6813,8 @@ detach_engine(PL_engine_t e)
 #ifdef __WINDOWS__
   info->w32id = 0;
 #endif
-#endif
   memset(&info->tid, 0, sizeof(info->tid));
+#endif
   info->c_stack = NULL;
 }
 
