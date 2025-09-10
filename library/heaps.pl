@@ -33,42 +33,44 @@
 */
 
 :- module(heaps,
-          [ add_to_heap/4,              % +Heap0, +Priority, ?Key, -Heap
-            delete_from_heap/4,         % +Heap0, -Priority, +Key, -Heap
+          [ add_to_heap/4,              % +Heap0, +Key, ?Value, -Heap
+            delete_from_heap/4,         % +Heap0, -Key, +Value, -Heap
             empty_heap/1,               % +Heap
-            get_from_heap/4,            % ?Heap0, ?Priority, ?Key, -Heap
+            get_from_heap/4,            % ?Heap0, ?Key, ?Value, -Heap
             heap_size/2,                % +Heap, -Size:int
             heap_to_list/2,             % +Heap, -List:list
             is_heap/1,                  % +Term
             list_to_heap/2,             % +List:list, -Heap
             merge_heaps/3,              % +Heap0, +Heap1, -Heap
-            min_of_heap/3,              % +Heap, ?Priority, ?Key
-            min_of_heap/5,              % +Heap, ?Priority1, ?Key1,
-                                        %        ?Priority2, ?Key2
-            singleton_heap/3            % ?Heap, ?Priority, ?Key
+            min_of_heap/3,              % +Heap, ?Key, ?Value
+            min_of_heap/5,              % +Heap, ?Key1, ?Value1,
+                                        %        ?Key2, ?Value2
+            singleton_heap/3            % ?Heap, ?Key, ?Value
           ]).
 
 /** <module> heaps/priority queues
  *
  * Heaps are data structures that return the entries inserted into them in an
  * ordered fashion, based on a priority. This makes them the data structure of
- * choice for implementing priority queues, a central element of algorithms
- * such as best-first/A* search and Kruskal's minimum-spanning-tree algorithm.
+ * choice for implementing priority queues, a central element of algorithms such
+ * as best-first or A* search and Kruskal's minimum-spanning-tree algorithm.
  *
- * This module implements min-heaps, meaning that items are retrieved in
- * ascending order of key/priority. It was designed to be compatible with
- * the SICStus Prolog library module of the same name. merge_heaps/3 and
- * singleton_heap/3 are SWI-specific extension. The portray_heap/1 predicate
- * is not implemented.
+ * This module implements min-heaps, meaning that key-value items are retrieved in
+ * ascending order of key. In other words, the key determines the priority.  It
+ * was designed to be compatible with the SICStus Prolog library module of the
+ * same name. merge_heaps/3 and singleton_heap/3 are SWI-specific extension. The
+ * portray_heap/1 predicate is not implemented.
  *
- * Although the data items can be arbitrary Prolog data, keys/priorities must
- * be ordered by @=</2. Be careful when using variables as keys, since binding
- * them in between heap operations may change the ordering.
+ * Although the values can be arbitrary Prolog terms, the keys determine the
+ * priority, so keys must be ordered by @=</2. This means that variables can be
+ * used as keys, but binding them in between heap operations may change the
+ * ordering. It also means that rational terms (cyclic trees), for which standard
+ * order is not well-defined, cannot be used as keys.
  *
  * The current version implements pairing heaps. These support insertion and
- * merging both in constant time, deletion of the minimum in logarithmic
- * amortized time (though delete-min, i.e., get_from_heap/3, takes linear time
- * in the worst case).
+ * merging both in constant time, deletion of the minimum in logarithmic amortized
+ * time (though delete-min, i.e., get_from_heap/3, takes linear time in the worst
+ * case).
  *
  * @author Lars Buitinck
  */
@@ -80,19 +82,19 @@
  * PrioX @< PrioY. See predicate is_heap/2, below.
  */
 
-%!  add_to_heap(+Heap0, +Priority, ?Key, -Heap) is semidet.
+%!  add_to_heap(+Heap0, +Key, ?Value, -Heap) is semidet.
 %
-%   Adds Key with priority Priority  to   Heap0,  constructing a new
+%   Adds Value with priority Key  to   Heap0,  constructing a new
 %   heap in Heap.
 
 add_to_heap(heap(Q0,M),P,X,heap(Q1,N)) :-
     meld(Q0,t(X,P,[]),Q1),
     N is M+1.
 
-%!  delete_from_heap(+Heap0, -Priority, +Key, -Heap) is semidet.
+%!  delete_from_heap(+Heap0, -Key, +Value, -Heap) is semidet.
 %
-%   Deletes Key from Heap0, leaving its priority in Priority and the
-%   resulting data structure in Heap.   Fails if Key is not found in
+%   Deletes Value from Heap0, leaving its priority in Key and the
+%   resulting data structure in Heap.   Fails if Value is not found in
 %   Heap0.
 %
 %   @bug This predicate is extremely inefficient and exists only for
@@ -112,17 +114,17 @@ delete_from_heap(Q0,Px,X,Q) :-
 
 empty_heap(heap(nil,0)).
 
-%!  singleton_heap(?Heap, ?Priority, ?Key) is semidet.
+%!  singleton_heap(?Heap, ?Key, ?Value) is semidet.
 %
-%   True if Heap is a heap with the single element Priority-Key.
+%   True if Heap is a heap with the single element Key-Value.
 %
 %   Complexity: constant.
 
 singleton_heap(heap(t(X,P,[]), 1), P, X).
 
-%!  get_from_heap(?Heap0, ?Priority, ?Key, -Heap) is semidet.
+%!  get_from_heap(?Heap0, ?Key, ?Value, -Heap) is semidet.
 %
-%   Retrieves the minimum-priority  pair   Priority-Key  from Heap0.
+%   Retrieves the minimum-priority  pair   Key-Value  from Heap0.
 %   Heap is Heap0 with that pair removed.   Complexity:  logarithmic
 %   (amortized), linear in the worst case.
 
@@ -138,8 +140,8 @@ heap_size(heap(_,N),N).
 
 %!  heap_to_list(+Heap, -List:list) is det.
 %
-%   Constructs a list List  of   Priority-Element  terms, ordered by
-%   (ascending) priority. Complexity: $O(n \log n)$.
+%   Constructs a list List  of   Key-Value  terms, ordered by
+%   (ascending) priority. Complexity: O(N log N).
 
 heap_to_list(Q,L) :-
     to_list(Q,L).
@@ -188,7 +190,7 @@ are_pairing_heaps([Q|Qs], MinP) :-
 
 %!  list_to_heap(+List:list, -Heap) is det.
 %
-%   If List is a list of  Priority-Element  terms, constructs a heap
+%   If List is a list of  Key-Value  terms, constructs a heap
 %   out of List. Complexity: linear.
 
 list_to_heap(Xs,Q) :-
@@ -200,22 +202,22 @@ list_to_heap([P-X|Xs],Q0,Q) :-
     add_to_heap(Q0,P,X,Q1),
     list_to_heap(Xs,Q1,Q).
 
-%!  min_of_heap(+Heap, ?Priority, ?Key) is semidet.
+%!  min_of_heap(+Heap, ?Key, ?Value) is semidet.
 %
-%   Unifies Key with  the  minimum-priority   element  of  Heap  and
-%   Priority with its priority value. Complexity: constant.
+%   Unifies Value with  the  minimum-priority   element  of  Heap  and
+%   Key with its priority value. Complexity: constant.
 
 min_of_heap(heap(t(X,P,_),_), P, X).
 
-%!  min_of_heap(+Heap, ?Priority1, ?Key1, ?Priority2, ?Key2) is semidet.
+%!  min_of_heap(+Heap, ?Key1, ?Value1, ?Key2, ?Value2) is semidet.
 %
 %   Gets the two minimum-priority elements from Heap. Complexity: logarithmic
 %   (amortized).
 %
-%   Do not use this predicate; it exists for compatibility with earlier
-%   implementations of this library and the SICStus counterpart. It performs
-%   a linear amount of work in the worst case that a following get_from_heap
-%   has to re-do.
+%   @bug This predicate is extremely inefficient and exists for compatibility
+%        with earlier implementations of this library and SICStus
+%        compatibility.  It performs a linear amount of work in the worst case
+%        that a following get_from_heap has to re-do.
 
 min_of_heap(Q,Px,X,Py,Y) :-
     get_from_heap(Q,Px,X,Q0),
