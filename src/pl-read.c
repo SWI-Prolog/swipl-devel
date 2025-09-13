@@ -2870,20 +2870,25 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
 					/* base'value number */
   if ( *in == '\'' &&
        zero == '0' &&
-       value->type == V_INTEGER &&
-       value->value.i <= 36 &&
-       value->value.i > 1 &&
-       digitValue((int)value->value.i, in[1]) >= 0 )
-  { in++;
+       value->type == V_INTEGER )
+  { int base = value->value.i;
 
-    if ( !(rc=scan_number(&in, negative, (int)value->value.i, value)) )
-      return rc;			/* number too large */
+    if ( base < 0 )
+      base = -base;
 
-    *end = (ucharp)in;
+    if ( base <= 36 &&
+	 base > 1 &&
+	 digitValue(base, in[1]) >= 0 )
+    { in++;
 
-    return NUM_OK;
+      if ( !(rc=scan_number(&in, negative, base, value)) )
+	return rc;			/* number too large */
+
+      *end = (ucharp)in;
+
+      return NUM_OK;
+    }
   }
-
 					/* floating point numbers */
   if ( *in == '.' && points_at_decimal(in+1, zero) )
   { clearNumber(value);

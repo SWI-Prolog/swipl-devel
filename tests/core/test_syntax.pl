@@ -119,6 +119,8 @@ test(base_5) :-
     A is 1.0e+0+1, A == 2.0.
 test(number_2, error(syntax_error(end_of_file))) :-
     term_string(_, '2\'').
+test(neg_base, N == -47) :-
+    term_string(N, "-16'2f").
 test(zero_1) :-
     term_string(T, 'hello("\000\x")'),
     T = hello(A0),
