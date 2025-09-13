@@ -927,7 +927,7 @@ setup_macos_app :-
     restore_working_directory,
     !.
 setup_macos_app :-
-    expand_file_name('~/Documents/Prolog', [PrologDir]),
+    expand_file_name('~/Prolog', [PrologDir]),
     (   exists_directory(PrologDir)
     ->  true
     ;   catch(make_directory(PrologDir), MkDirError,
