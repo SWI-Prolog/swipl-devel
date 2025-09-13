@@ -2800,7 +2800,11 @@ version_part(Int) --> integer(Int).
 		 *******************************/
 
 have_git :-
-    process_which(path(git), _).
+    process_which(path(git), _),
+    catch(run_process(path(man),['-w', 'git'],[output(_),error(_)]),  % silent
+          error(Err,_),
+          \+ Err = process_error(_,_)  % test succeeds if `man` cmd not present
+         ).
 
 
 %!  git_url(+URL, -Pack) is semidet.
