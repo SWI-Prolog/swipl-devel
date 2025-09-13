@@ -2871,7 +2871,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   if ( *in == '\'' &&
        zero == '0' &&
        value->type == V_INTEGER )
-  { int base = value->value.i;
+  { int64_t base = value->value.i;
 
     if ( base < 0 )
       base = -base;
@@ -2881,7 +2881,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
 	 digitValue(base, in[1]) >= 0 )
     { in++;
 
-      if ( !(rc=scan_number(&in, negative, base, value)) )
+      if ( !(rc=scan_number(&in, negative, (int)base, value)) )
 	return rc;			/* number too large */
 
       *end = (ucharp)in;
