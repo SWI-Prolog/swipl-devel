@@ -1303,7 +1303,7 @@ scan_shared(DECL_LD Word t, Word vart, size_t *count)
 	}
 	shared++;
       } else
-      { int arity = arityFunctor(f->definition);
+      { size_t arity = arityFunctor(f->definition);
 
 	pushWorkAgenda(&agenda, arity, f->arguments);
 	set_marked(d);
