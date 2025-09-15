@@ -52,6 +52,5 @@ void		getDefaultsFromRegistry(void);
 const char*	WinError(void);
 char *		findModulePath(const char *module, char *buf, size_t len);
 bool		win_input_ready(IOSTREAM *input);
-bool		PL_wait_for_console_input(IOSTREAM *input);
 
 #endif /*_PL_NT_H*/

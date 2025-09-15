@@ -439,9 +439,6 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
       isRaw = true;
   }
 
-  if ( !PL_wait_for_console_input(Suser_input) )
-    goto error;
-
   if ( isRaw )
     memset(buffer, 0, size);		/* see (*) */
   rc = ReadConsoleW(as->hConsole,
@@ -464,7 +461,6 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
     return done * sizeof(wchar_t);
   }
 
-error:
   if ( isRaw )
     SetConsoleMode(as->hConsole, mode);
 

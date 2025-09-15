@@ -108,38 +108,6 @@ win_input_ready(IOSTREAM *input)
   return false;
 }
 
-
-bool
-PL_wait_for_console_input(IOSTREAM *input)
-{ HANDLE hConsole = Swinhandle(input);
-
-  if ( !hConsole )
-    return true;
-
-  for(;;)
-  { DWORD rc = MsgWaitForMultipleObjects(1,
-					 &hConsole,
-					 false,	/* wait for either event */
-					 INFINITE,
-					 QS_ALLINPUT);
-
-    if ( rc == WAIT_OBJECT_0+1 )
-    { MSG msg;
-
-      while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
-      { TranslateMessage(&msg);
-	DispatchMessage(&msg);
-      }
-    } else if ( rc == WAIT_OBJECT_0 )
-    { return true;
-    } else
-    { DEBUG(MSG_WIN_API,
-	    Sdprintf("MsgWaitForMultipleObjects(): 0x%x\n", rc));
-    }
-  }
-}
-
-
 		 /*******************************
 		 *	    MESSAGE BOX		*
 		 *******************************/
