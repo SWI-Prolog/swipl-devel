@@ -1431,6 +1431,11 @@ PL_initialise(int argc, char **argv)
   GD->cmdline.appl_argc = argc;
   GD->cmdline.appl_argv = argv;
 
+#ifdef __WINDOWS__
+  if ( truePrologFlag(PLFLAG_TTY_CONTROL) &&
+       !truePrologFlag(PLFLAG_EPILOG) )
+    PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
+#endif
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
   if ( !setupProlog() )

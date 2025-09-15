@@ -54,9 +54,6 @@
 #ifndef O_CTRLC
 #define O_CTRLC 1
 #endif
-#ifndef O_ANSI_COLORS
-#define O_ANSI_COLORS 1
-#endif
 #endif
 #ifndef HAVE_WMAIN
 #define HAVE_WMAIN 1
@@ -132,10 +129,6 @@ main(int argc, char **argv)
 #if O_CTRLC
   main_thread_id = GetCurrentThreadId();
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, true);
-#endif
-
-#if O_ANSI_COLORS
-  PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
 #endif
 
   force_malloc_dependency();
