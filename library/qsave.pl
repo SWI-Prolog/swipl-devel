@@ -991,8 +991,9 @@ copy_foreign_libraries(_ExeFile, _Options) :-
 
 prolog_dll(DLL) :-
     file_base_name(DLL, File),
-    absolute_file_name(foreign(File), DLL,
+    absolute_file_name(foreign(File), Abs,
                        [ solutions(all) ]),
+	same_file(DLL, Abs),
     !.
 
 copy_dll(Dest, DLL) :-
