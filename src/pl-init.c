@@ -1018,11 +1018,8 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "tty", &b)) )
       { if ( rc == true )
-	{ if ( b )
-	    setPrologFlagMask(PLFLAG_TTY_CONTROL);
-	  else
-	    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
-	} else
+	  PL_set_prolog_flag("tty_control", PL_BOOL, b);
+	else
 	  return -1;
       } else if ( (rc=is_bool_opt(s, "pce", &b)) )
       { if ( rc == true )
