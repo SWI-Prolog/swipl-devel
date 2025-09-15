@@ -699,9 +699,7 @@ setupGNUEmacsInferiorMode(void)
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INSIDE_EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-  { GET_LD
-
-    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+  { PL_set_prolog_flag("tty_control", PL_BOOL, false);
     val = true;
 #ifdef __WINDOWS__
     Sinput->flags  |= SIO_ISATTY;
@@ -1095,7 +1093,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 
     if ( streq(s, "tty") )
     { Sdprintf("Warning: `-tty` is deprecated.  Please use `--no-tty`\n");
-      clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+      PL_set_prolog_flag("tty_control", PL_BOOL, false);
       continue;
     }
 
