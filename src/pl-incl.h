@@ -2792,7 +2792,8 @@ typedef enum plflag
   PLFLAG_DEBUG_ON_INTERRUPT,		/* Debug on Control-C */
   PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
   PLFLAG_SHIFT_CHECK,			/* Check suspicious shifts */
-  PLFLAG_AGC_CLOSE_STREAMS		/* AGC may close open streams */
+  PLFLAG_AGC_CLOSE_STREAMS,		/* AGC may close open streams */
+  PLFLAG_EPILOG				/* swipl-win */
 } plflag;
 
 typedef struct

@@ -2074,6 +2074,7 @@ initPrologFlags(void)
   setPrologFlag("encoding", FT_ATOM,
 		stringAtom(PL_encoding_to_atom(LD->encoding)));
 
+  setPrologFlag("epilog", FT_BOOL, FALSE, PLFLAG_EPILOG);
   setPrologFlag("tty_control", FT_BOOL,
 		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
