@@ -961,6 +961,7 @@ save_foreign_libraries(RC, _, Options) :-
            )).
 save_foreign_libraries(_RC, ExeFile, Options) :-
     option(foreign(copy), Options),
+    !,
     copy_foreign_libraries(ExeFile, Options).
 save_foreign_libraries(_, _, _).
 
