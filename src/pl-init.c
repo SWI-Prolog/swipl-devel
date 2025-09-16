@@ -1435,6 +1435,8 @@ PL_initialise(int argc, char **argv)
   if ( truePrologFlag(PLFLAG_TTY_CONTROL) &&
        !truePrologFlag(PLFLAG_EPILOG) )
     PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
+  else
+    PL_set_prolog_flag("color_term", PL_BOOL, false);
 #endif
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
