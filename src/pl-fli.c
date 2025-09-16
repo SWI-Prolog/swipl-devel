@@ -5507,8 +5507,11 @@ PL_set_prolog_flag(const char *name, int type, ...)
     switch(type & ~FF_MASK)
     { case PL_BOOL:
       { int val = va_arg(args, int);
+	unsigned int index = 0;
 
-	setPrologFlag(name, FT_BOOL|flags, val, 0);
+	if ( strcmp(name, "tty_control") == 0 ) /* TODO: Generalize */
+	  index = PLFLAG_TTY_CONTROL;
+	setPrologFlag(name, FT_BOOL|flags, val, index);
 	break;
       }
       case PL_ATOM:

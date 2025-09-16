@@ -839,10 +839,12 @@ initDefaults(void)
   GD->signals.sig_alert      = SIG_ALERT;
 #endif
 
-  if ( systemDefaults.notty )
-    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
-  else
-    setPrologFlagMask(PLFLAG_TTY_CONTROL);
+  if ( !current_prolog_flag("tty_control") )
+  { if ( systemDefaults.notty )
+      clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+    else
+      setPrologFlagMask(PLFLAG_TTY_CONTROL);
+  }
 
   setPrologFlagMask(PLFLAG_DEBUGINFO);
   setPrologFlagMask(PLFLAG_GCTHREAD);

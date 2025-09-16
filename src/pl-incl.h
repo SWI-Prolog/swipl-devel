@@ -254,7 +254,6 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 #ifdef __WINDOWS__
-#define NOTTYCONTROL           true
 #define O_DDE 1
 #define O_DLL 1
 #define O_HASDRIVES 1

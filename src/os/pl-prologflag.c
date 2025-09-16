@@ -111,24 +111,6 @@ static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static void initPrologFlagTable(void);
 
-typedef struct oneof
-{ size_t	count;
-  int		references;
-  atom_t       *values;
-} oneof;
-
-typedef struct _prolog_flag
-{ unsigned short flags;			/* Type | Flags */
-  short		index;			/* index in LD->prolog_flag.mask */
-  union
-  { atom_t	a;			/* value as atom */
-    int64_t	i;			/* value as integer */
-    double	f;			/* value as float */
-    record_t	t;			/* value as term */
-  } value;
-  oneof        *oneof;
-} prolog_flag;
-
 #define unify_prolog_flag_value(m, key, f, val) \
   LDFUNC(unify_prolog_flag_value, m, key, f, val)
 
@@ -1584,6 +1566,24 @@ unify_prolog_flag_type(prolog_flag *f, term_t type)
   return PL_unify_atom(type, a);
 }
 
+prolog_flag *
+current_prolog_flag(const char *name)
+{ if ( GD->atoms.initialised )
+  { atom_t k;
+
+    k = PL_new_atom(name);
+#ifdef O_PLMT
+    GET_LD
+
+    if ( LD && LD->prolog_flag.table )
+      return lookupHTableWP(LD->prolog_flag.table, k);
+#endif
+    if ( GD->prolog_flag.table )
+      return lookupHTableWP(GD->prolog_flag.table, k);
+  }
+
+  return NULL;
+}
 
 typedef struct
 { TableEnum table_enum;
