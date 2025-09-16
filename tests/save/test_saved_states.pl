@@ -157,9 +157,13 @@ set_windows_path.
 
 create_state(File, Output, Args) :-
     me(Me),
-    append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs),
+    append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs0),
+    (   current_prolog_flag(msys2, true)
+    ->  append(AllArgs0, '--foreign=copy', AllArgs1)
+    ;   AllArgs1 = AllArgs0
+    ),
     test_dir(TestDir),
-    debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
+    debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs1]),
     process_create(Me, AllArgs,
                    [ cwd(TestDir),
                      stderr(pipe(Err))
