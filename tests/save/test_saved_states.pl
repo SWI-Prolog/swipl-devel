@@ -155,7 +155,7 @@ set_windows_path :-
     asserta(win_path_set).
 set_windows_path.
 
-create_state(File, Output, Args) :-
+create_state(File, Output, DLLs, Args) :-
     me(Me),
     (   current_prolog_flag(msys2, true)
     ->  append(Args, ['-o', Output, '-c', File, '-f', none, '--foreign=copy'], AllArgs)
@@ -163,6 +163,13 @@ create_state(File, Output, Args) :-
     ),
     test_dir(TestDir),
     debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
+
+    % Keep track of foreign DLLs in TestDir
+    current_prolog_flag(shared_object_extension, Ext),
+    format(atom(Filter), "\\.~w$", Ext), 
+    directory_files(TestDir, Dir0), 
+    include(re_match(Filter), Dir0, DLL0),
+
     process_create(Me, AllArgs,
                    [ cwd(TestDir),
                      stderr(pipe(Err))
@@ -170,6 +177,11 @@ create_state(File, Output, Args) :-
     read_stream_to_codes(Err, ErrOutput),
     close(Err),
     debug(save, 'Saved state', []),
+
+    directory_files(TestDir, Dir1), 
+    include(re_match(Filter), Dir1, DLL1),
+    subtract(DLL1, DLL0, DLLs), % to be deleted when state is removed
+
     assertion(no_error(ErrOutput)).
 
 run_state(Exe, Args, Result) :-
@@ -188,11 +200,14 @@ run_state(Exe, Args, Result) :-
         )),
     assertion(no_error(ErrOutput)).
 
-remove_state(State) :-
+remove_state(State, _) :-
     debugging(save(keep)),
     !,
     print_message(information, format('Created state in "~w"', [State])).
-remove_state(State) :-
+remove_state(State, DLLs) :-
+    maplist(remove_state1, [State | DLLs]).
+
+remove_state1(State) :-
     catch(delete_file(State), _, true).
 
 %!  read_terms(+In:stream, -Data:list)
@@ -229,24 +244,24 @@ wine :-
 test(true, Result == [true]) :-
     state_output(1, Exe),
     call_cleanup(
-        ( create_state('input/plain.pl', Exe, ['-g', echo_true]),
+        ( create_state('input/plain.pl', Exe, DLLs, ['-g', echo_true]),
           run_state(Exe, [], Result)
         ),
-        remove_state(Exe)).
+        remove_state(Exe, DLLs)).
 test(argv, Result == [[aap,noot,mies]]) :-
     state_output(2, Exe),
     call_cleanup(
-        ( create_state('input/plain.pl', Exe, ['-g', echo_argv]),
+        ( create_state('input/plain.pl', Exe, DLLs, ['-g', echo_argv]),
           run_state(Exe, [aap, noot, mies], Result)
         ),
-        remove_state(Exe)).
+        remove_state(Exe, DLLs)).
 test(true, Result == [true]) :-
     state_output(3, Exe),
     call_cleanup(
-        ( create_state('input/data.pl', Exe, ['-g', test]),
+        ( create_state('input/data.pl', Exe, DLLs, ['-g', test]),
           run_state(Exe, [], Result)
         ),
-        remove_state(Exe)).
+        remove_state(Exe, DLLs)).
 
 :- end_tests(saved_state).
 
