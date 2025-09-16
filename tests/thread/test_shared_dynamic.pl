@@ -34,56 +34,56 @@
 */
 
 :- module(test_shared_dynamic,
-	  [ test_shared_dynamic/0,
-	    test_shared_dynamic/2
-	  ]).
+          [ test_shared_dynamic/0,
+            test_shared_dynamic/2
+          ]).
 
 :- dynamic(foo/1).
 :- dynamic(failed/1).
 
 test_shared_dynamic :-
-	test_shared_dynamic(4, 50000).
+    test_shared_dynamic(4, 50000).
 
 test_shared_dynamic(Sessions, N) :-
-	retractall(failed(_)),
-	length(Producers, Sessions),
-	length(Consumers, Sessions),
-	numlist(1, Sessions, Offsets),
-	maplist(create_producer(N, Sessions), Offsets, Producers, Queues),
-	maplist(create_consumer, Queues, Consumers),
-	maplist(thread_join, Producers, PStats),
-	maplist(thread_join, Consumers, CStats),
-	maplist(message_queue_destroy, Queues),
-	maplist(==(true), PStats),
-	maplist(==(true), CStats),
-	\+ failed(_).
+    retractall(failed(_)),
+    length(Producers, Sessions),
+    length(Consumers, Sessions),
+    numlist(1, Sessions, Offsets),
+    maplist(create_producer(N, Sessions), Offsets, Producers, Queues),
+    maplist(create_consumer, Queues, Consumers),
+    maplist(thread_join, Producers, PStats),
+    maplist(thread_join, Consumers, CStats),
+    maplist(message_queue_destroy, Queues),
+    maplist(==(true), PStats),
+    maplist(==(true), CStats),
+    \+ failed(_).
 
 create_producer(N, Incr, Offset, Id, Queue) :-
-	message_queue_create(Queue),
-	thread_create(producer(Queue, N, Incr, Offset), Id, []).
+    message_queue_create(Queue),
+    thread_create(producer(Queue, N, Incr, Offset), Id, []).
 
 producer(Queue, N, Incr, Offset) :-
-	(   between(1, N, X0),
-	    X is Offset+X0*Incr,
-	    assert(foo(X)),
-	    thread_send_message(Queue, X),
-	    fail
-        ;   thread_send_message(Queue, done)
-	).
+    (   between(1, N, X0),
+        X is Offset+X0*Incr,
+        assert(foo(X)),
+        thread_send_message(Queue, X),
+        fail
+    ;   thread_send_message(Queue, done)
+    ).
 
 create_consumer(Queue, Id) :-
-	thread_create(consumer(Queue), Id, []).
+    thread_create(consumer(Queue), Id, []).
 
 consumer(Queue) :-
-        repeat,
-        thread_get_message(Queue, X),
-	(   X == done
-	->  !
-	;   (   retract(foo(X))
-	    ->  true
-	    ;   writeln(failed(X)),
-		assert(failed(X))
-	    ),
-	    fail
-	).
+    repeat,
+    thread_get_message(Queue, X),
+    (   X == done
+    ->  !
+    ;   (   retract(foo(X))
+        ->  true
+        ;   writeln(failed(X)),
+            assert(failed(X))
+        ),
+        fail
+    ).
 
