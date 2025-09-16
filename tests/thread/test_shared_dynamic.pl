@@ -37,6 +37,8 @@
           [ test_shared_dynamic/0,
             test_shared_dynamic/2
           ]).
+:- autoload(library(apply), [maplist/4, maplist/3, maplist/2]).
+:- autoload(library(lists), [numlist/3]).
 
 :- dynamic(foo/1).
 :- dynamic(failed/1).
