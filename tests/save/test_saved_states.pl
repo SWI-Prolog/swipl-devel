@@ -172,9 +172,11 @@ create_state(File, Output, Args) :-
 run_state(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
     set_windows_path,
+    current_prolog_flag(home, HOME), % needed for MSYS2
     process_create(Exe, Args,
                    [ stdout(pipe(Out)),
-                     stderr(pipe(Err))
+                     stderr(pipe(Err)),
+                     environment(['SWI_HOME_DIR'=HOME])
                    ]),
     call_cleanup(
         ( read_terms(Out, Result),
