@@ -2423,11 +2423,12 @@ typedef struct set_stream_info
 #define SS_BOTH		(SS_READ|SS_WRITE)
 #define SS_NOPAIR	(0x4)
 #define SS_EITHER	(SS_BOTH|SS_NOPAIR)
+#define SS_NOLOCK	(0x8)
 
 #define SS_INFO(name, flags) { name, flags }
 
 static const set_stream_info ss_info[] =
-{ SS_INFO(ATOM_alias,		      SS_EITHER),
+{ SS_INFO(ATOM_alias,		      SS_EITHER|SS_NOLOCK),
   SS_INFO(ATOM_buffer,		      SS_BOTH),
   SS_INFO(ATOM_buffer_size,	      SS_BOTH),
   SS_INFO(ATOM_eof_action,	      SS_READ),
@@ -2446,6 +2447,22 @@ static const set_stream_info ss_info[] =
   SS_INFO(ATOM_close_on_exec,	      SS_BOTH),
   SS_INFO((atom_t)0,		      0)
 };
+
+
+static IOSTREAM*
+prop_get_stream(atom_t blob, IOSTREAM *s, bool lock)
+{ if ( lock )
+  { IOSTREAM *s2 = getStream(s);
+    if ( !s2 )
+      symbol_no_stream(blob);
+    return s2;
+  } else
+  { if ( s->magic == SIO_MAGIC )
+      return s;
+    symbol_no_stream(blob);
+    return NULL;
+  }
+}
 
 
 static
@@ -2485,17 +2502,22 @@ found:
       return symbol_stream_pair_not_allowed(sblob);
 
     rc = true;
+    bool lock = !(info->flags&SS_NOLOCK);
     if ( ref->read && (info->flags&SS_READ))
-    { if ( !(s = getStream(ref->read)) )
-	return symbol_no_stream(sblob);
+    { s = prop_get_stream(sblob, ref->read, lock);
+      if ( !s )
+	return false;
       rc = set_stream(s, stream, aname, aval);
-      releaseStream(ref->read);
+      if ( lock )
+	releaseStream(ref->read);
     }
     if ( rc && ref->write && (info->flags&SS_WRITE) )
-    { if ( !(s = getStream(ref->write)) )
-	return symbol_no_stream(sblob);
+    { s = prop_get_stream(sblob, ref->write, lock);
+      if ( !s )
+	return false;
       rc = set_stream(s, stream, aname, aval);
-      releaseStream(ref->write);
+      if ( lock )
+	releaseStream(ref->write);
     }
   } else if ( PL_get_stream_handle(stream, &s) )
   { rc = set_stream(s, stream, aname, aval);
