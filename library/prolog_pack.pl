@@ -2800,7 +2800,15 @@ version_part(Int) --> integer(Int).
 		 *******************************/
 
 have_git :-
-    process_which(path(git), _).
+    process_which(path(git), _),
+    (process_which(path('xcode-select'), XSpath)  % MacOS -> check for "imposter"
+     -> catch(run_process(path('xcode-select'),['-p'],[output(_),error(_)]),  % silent
+              _Err,  % any error -> xcode not installed,
+                     % any `git` in same dir as `xcode-select` is an imposter
+              \+ (file_directory_name(Gpath,Gdir), file_directory_name(XSpath,Gdir))
+             )
+     ;  true         % no `xcode-select`, assume valid `git`
+    ).
 
 
 %!  git_url(+URL, -Pack) is semidet.
