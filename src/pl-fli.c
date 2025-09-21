@@ -5346,10 +5346,8 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that this is  used  to   integrate  X11  event-dispatching into the
-SWI-Prolog  toplevel.  Integration  of  event-handling   in  Windows  is
-achieved through the plterm DLL (see  win32/console). For this reason we
-do never want this code in Windows.
+Note that this is  used  to   integrate  SDL  event-dispatching into the
+SWI-Prolog  toplevel.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
