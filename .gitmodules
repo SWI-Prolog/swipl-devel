@@ -82,9 +82,6 @@
 [submodule "debian"]
 	path = debian
 	url = ../distro-debian.git
-[submodule "packages/swipl-win"]
-	path = packages/swipl-win
-	url = ../packages-swipl-win.git
 [submodule "packages/pengines"]
 	path = packages/pengines
 	url = ../packages-pengines.git
