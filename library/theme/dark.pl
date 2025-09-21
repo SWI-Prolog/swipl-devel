@@ -137,6 +137,8 @@ style(goal(built_in,_),          [colour(cyan)]).
 style(goal(imported(_),_),       [colour(cyan)]).
 style(goal(autoload(_),_),       [colour(dark_cyan)]).
 style(goal(global,_),            [colour(dark_cyan)]).
+style(goal(global(dynamic,_),_), [colour(magenta)]).
+style(goal(global(_,_),_),       [colour(dark_cyan)]).
 style(goal(undefined,_),         [colour(orange)]).
 style(goal(thread_local(_),_),   [colour(magenta), underline(true)]).
 style(goal(dynamic(_),_),        [colour(magenta)]).
