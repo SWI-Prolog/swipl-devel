@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2024, University of Amsterdam
+    Copyright (c)  1999-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
 
@@ -51,11 +51,15 @@
             tbacktrace/1,               % +ThreadId,
             tbacktrace/2                % +ThreadId, +Options
           ]).
-:- if(current_predicate(win_open_console/5)).
-:- export(( thread_run_interactor/0,    % interactor main loop
-            interactor/0,
+:- if(current_prolog_flag(xpce, true)).
+:- export(( interactor/0,
             interactor/1                % ?Title
           )).
+:- autoload(library(epilog),
+            [ epilog/1,
+              epilog_attach/1,
+              ep_has_console/1
+            ]).
 :- endif.
 
 :- meta_predicate
@@ -172,12 +176,11 @@ stopped_except :-
 %
 %   @see attach_console/0
 
-:- dynamic
-    has_console/4.                  % Id, In, Out, Err
-
-thread_has_console(main) :- !.                  % we assume main has one.
+thread_has_console(main) :-
+    !,
+    \+ current_prolog_flag(epilog, true).
 thread_has_console(Id) :-
-    has_console(Id, _, _, _).
+    ep_has_console(Id).
 
 thread_has_console :-
     current_prolog_flag(break_level, _),
@@ -186,35 +189,6 @@ thread_has_console :-
     thread_self(Id),
     thread_has_console(Id),
     !.
-
-%!  open_console(+Title, -In, -Out, -Err) is det.
-%
-%   Open a new console window and unify In,  Out and Err with the input,
-%   output and error streams for the new console. This predicate is only
-%   available  if  win_open_console/5  (Windows  or   Qt  swipl-win)  is
-%   provided.
-%
-%   @tbd Port this to Epilog.
-
-:- multifile xterm_args/1.
-:- dynamic   xterm_args/1.
-
-:- if(current_predicate(win_open_console/5)).
-
-can_open_console.
-
-open_console(Title, In, Out, Err) :-
-    thread_self(Id),
-    regkey(Id, Key),
-    win_open_console(Title, In, Out, Err,
-                     [ registry_key(Key)
-                     ]).
-
-regkey(Key, Key) :-
-    atom(Key).
-regkey(_, 'Anonymous').
-
-:- endif.
 
 %!  attach_console is det.
 %!  attach_console(?Title) is det.
@@ -229,34 +203,17 @@ attach_console :-
 attach_console(_) :-
     thread_has_console,
     !.
-:- if(current_predicate(open_console/4)).
+:- if(current_predicate(epilog_attach/1)).
 attach_console(Title) :-
-    can_open_console,
-    !,
-    thread_self(Id),
-    (   var(Title)
-    ->  console_title(Id, Title)
-    ;   true
-    ),
-    open_console(Title, In, Out, Err),
-    assert(has_console(Id, In, Out, Err)),
-    set_stream(In,  alias(user_input)),
-    set_stream(Out, alias(user_output)),
-    set_stream(Err, alias(user_error)),
-    set_stream(In,  alias(current_input)),
-    set_stream(Out, alias(current_output)),
-    thread_at_exit(detach_console(Id)).
+    thread_self(Me),
+    console_title(Me, Title),
+    epilog_attach([ title(Title)
+                  ]).
 :- endif.
 attach_console(Title) :-
     print_message(error, cannot_attach_console(Title)),
     fail.
 
-:- if(current_predicate(open_console/4)).
-console_title(Thread, Title) :-         % uses tabbed consoles
-    current_prolog_flag(console_menu_version, qt),
-    !,
-    human_thread_id(Thread, Id),
-    format(atom(Title), 'Thread ~w', [Id]).
 console_title(Thread, Title) :-
     current_prolog_flag(system_thread_id, SysId),
     human_thread_id(Thread, Id),
@@ -270,19 +227,6 @@ human_thread_id(Thread, Alias) :-
 human_thread_id(Thread, Id) :-
     thread_property(Thread, id(Id)).
 
-%!  detach_console(+ThreadId) is det.
-%
-%   Destroy the console for ThreadId.
-
-detach_console(Id) :-
-    (   retract(has_console(Id, In, Out, Err))
-    ->  disable_line_editing(In, Out, Err),
-        close(In, [force(true)]),
-        close(Out, [force(true)]),
-        close(Err, [force(true)])
-    ;   true
-    ).
-
 %!  interactor is det.
 %!  interactor(?Title) is det.
 %
@@ -292,57 +236,21 @@ detach_console(Id) :-
 interactor :-
     interactor(_).
 
+:- if(current_predicate(epilog/1)).
 interactor(Title) :-
-    current_prolog_flag(epilog, true),
     !,
     (   nonvar(Title)
     ->  Options = [title(Title)]
     ;   Options = []
     ),
-    autoload_call(epilog(Options)).
-interactor(Title) :-
-    can_open_console,
-    !,
-    thread_self(Me),
-    thread_create(thread_run_interactor(Me, Title), _Id,
-                  [ detached(true)
-                  ]),
-    thread_get_message(Msg),
-    (   Msg = title(Title0)
-    ->  Title = Title0
-    ;   Msg = throw(Error)
-    ->  throw(Error)
-    ;   Msg = false
-    ->  fail
-    ).
+    epilog([ init(true)
+           | Options
+           ]).
+:- endif.
 interactor(Title) :-
     print_message(error, cannot_attach_console(Title)),
     fail.
 
-thread_run_interactor(Creator, Title) :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    Error = error(Formal,_),
-    (   catch(attach_console(Title), Error, true)
-    ->  (   var(Formal)
-        ->  thread_send_message(Creator, title(Title)),
-            print_message(banner, thread_welcome),
-            prolog
-        ;   thread_send_message(Creator, throw(Error))
-        )
-    ;   thread_send_message(Creator, false)
-    ).
-
-%!  thread_run_interactor
-%
-%   Attach a console and run a Prolog toplevel in the current thread.
-
-thread_run_interactor :-
-    set_prolog_flag(query_debug_settings, debug(false, false)),
-    attach_console(_Title),
-    print_message(banner, thread_welcome),
-    prolog.
-
-:- endif.                               % have open_console/4
 
                  /*******************************
                  *          DEBUGGING           *
@@ -519,7 +427,7 @@ prolog:message(joined_threads(Threads)) -->
 prolog:message(threads(Threads)) -->
     thread_list(Threads).
 prolog:message(cannot_attach_console(_Title)) -->
-    [ 'Cannot attach a console (requires swipl-win or POSIX pty support)' ].
+    [ 'Cannot attach a console (requires xpce package)' ].
 
 thread_list(Threads) -->
     { maplist(th_id_len, Threads, Lens),
