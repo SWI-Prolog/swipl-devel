@@ -4672,11 +4672,6 @@ cancel_halt(Reason) :-
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
        '$load_wic_files'(system:[LoadFile]),
-       (   atom_concat(Dir, '/menu.pl', MenuFile),
-           exists_file(MenuFile)
-       ->  '$load_wic_files'(system:[MenuFile])
-       ;   true
-       ),
        '$boot_message'('SWI-Prolog boot files loaded~n', []),
        '$compilation_mode'(OldC, wic),
        '$execute_directive'('$set_source_module'(user), [], []),

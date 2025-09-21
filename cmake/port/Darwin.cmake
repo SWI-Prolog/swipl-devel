@@ -116,78 +116,35 @@ if(BUILD_MACOS_BUNDLE)
 # up.  See URL below for the defined variables.
 # https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
 
-  if(EPILOG)
-    set(CPACK_GENERATOR "DragNDrop")
-    set(SWIPL_APP_NAME SWI-Prolog)
-    set(CPACK_BUNDLE_NAME         "${SWIPL_APP_NAME}")
-    set(CPACK_BUNDLE_EXECUTABLE   "${EPILOG_APP}")
-    set(CPACK_BUNDLE_VERSION      "${SWIPL_VERSION_STRING}")
+  set(CPACK_GENERATOR "DragNDrop")
+  set(SWIPL_APP_NAME SWI-Prolog)
+  set(CPACK_BUNDLE_NAME         "${SWIPL_APP_NAME}")
+  set(CPACK_BUNDLE_EXECUTABLE   "${EPILOG_APP}")
+  set(CPACK_BUNDLE_VERSION      "${SWIPL_VERSION_STRING}")
 
-    set(CPACK_BUNDLE_ICON         "swipl.icns")
-    set(CPACK_BUNDLE_IDENTIFIER   "org.swi-prolog.app")
-    set(CPACK_BUNDLE_COPYRIGHT    "BSD-2")
-    set(CPACK_BUNDLE_PLIST        "${CMAKE_SOURCE_DIR}/desktop/Info.plist.in")
+  set(CPACK_BUNDLE_ICON         "swipl.icns")
+  set(CPACK_BUNDLE_IDENTIFIER   "org.swi-prolog.app")
+  set(CPACK_BUNDLE_COPYRIGHT    "BSD-2")
+  set(CPACK_BUNDLE_PLIST        "${CMAKE_SOURCE_DIR}/desktop/Info.plist.in")
 
-    function(deploy)
-      set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ZZRuntime)
-      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
-	DESTINATION .
-	RENAME Readme.html)
-      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
-	DESTINATION .)
+  function(deploy)
+    set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ZZRuntime)
+    install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
+      DESTINATION .
+      RENAME Readme.html)
+    install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
+      DESTINATION .)
 
-      install(CODE "set(fixup_script ${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh)
-                   ")
-      install(CODE [===[
-        execute_process(COMMAND ln -sf SWI-Prolog swipl-win
-		        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
-        execute_process(COMMAND ${fixup_script} --epilog ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
-      ]===])
-    endfunction()
+    install(CODE "set(fixup_script ${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh)
+		 ")
+    install(CODE [===[
+      execute_process(COMMAND ln -sf SWI-Prolog swipl-win
+		      WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
+      execute_process(COMMAND ${fixup_script} --epilog ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
+    ]===])
+  endfunction()
 
-    deploy()
-  else(EPILOG)			# Qt based swipl-win
-    set(MACOSX_BUNDLE_BUNDLE_NAME "SWI-Prolog")
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${SWIPL_VERSION_STRING}")
-
-    set(X11_ROOT /opt/X11)
-    set(Freetype_ROOT /opt/X11)
-    set(FontConfig_ROOT /opt/X11)
-
-    find_program(MACOS_DEPLOYQT NAMES macdeployqt)
-    if(NOT MACOS_DEPLOYQT)
-      find_package(Qt5 COMPONENTS Widgets REQUIRED)
-      
-      get_target_property(uic_location Qt5::uic IMPORTED_LOCATION)
-      get_filename_component( _dir ${uic_location} DIRECTORY)
-      set(MACOS_DEPLOYQT "${_dir}/macdeployqt")
-      if(NOT EXISTS ${MACOS_DEPLOYQT})
-	message(FATAL_ERROR "Failed to locate macdeployqt executable: [${MACOS_DEPLOYQT}]")
-      endif()
-    endif()
-
-    set(CPACK_GENERATOR "DragNDrop")
-
-    function(deployqt)
-      set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ZZRuntime)
-      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
-	DESTINATION .
-	RENAME Readme.html)
-      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
-	DESTINATION .)
-
-      install(CODE "set(deployqt ${MACOS_DEPLOYQT})
-                  set(fixup_script ${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh)
-                 ")
-      install(CODE [===[
-        execute_process(COMMAND ln -sf SWI-Prolog swipl-win
-		        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
-        execute_process(COMMAND ${fixup_script} --deployqt=${deployqt} ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
-      ]===])
-    endfunction()
-
-    deployqt()
-  endif(EPILOG)
+  deploy()
 endif()
 
 set(CMAKE_MACOSX_RPATH ON)

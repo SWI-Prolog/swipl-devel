@@ -2175,28 +2175,16 @@ if the flag \prologflag{bounded} is \const{false}.
 
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
-values are below. The flag may be set from the user's init file (see
-\secref{initgoal}) to one of \const{false}, \const{readline} or
-\const{editline}. This causes the toplevel not to load a command line
-editor (\const{false}) or load the specified one.  If loading fails
-the flag is set to \const{false}.
+values are below.
 
 \begin{description}
     \termitem{false}{}
 No command line editing is available.
 
-    \termitem{readline}{}
-The library \pllib{readline} is loaded, providing line editing based on
-the GNU readline library.
-
     \termitem{editline}{}
 The library \pllib{editline} is loaded, providing line editing based on
 the BSD libedit.  This is the default if \pllib{editline} is available
 and can be loaded.
-
-    \termitem{swipl_win}{}
-SWI-Prolog uses its own console (\program{swipl-win.exe} on Windows,
-the Qt based \program{swipl-win} on MacOS) which provides line editing.
 \end{description}
 
     \prologflagitem{report_error}{bool}{rw}

@@ -42,7 +42,6 @@ MacOS dependencies for new releases, in particular for OpenSSL.
       - gcc13 (when building for x86_64)
       - cmake
       - openjdk17
-      - Qt 6.6.1
   - Build the SWI-Prolog dependencies according to `scripts/macos-deps.sh`
 
 #### MacOS universal binaries

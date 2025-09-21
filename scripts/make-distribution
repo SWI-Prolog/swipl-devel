@@ -28,26 +28,6 @@ build_win64()
 { make -C $MINGW_DOCKER_DIR SWIPLSRC=`pwd` win64
 }
 
-# Used on the M1 where we build using Clang and Qt
-build_macosx()
-{ rm -rf build.macosx
-  mkdir build.macosx
-  ( cd build.macosx
-    export PATH=$HOME/deps/bin:$QT_BIN:$PATH
-    MACOSX_DEPLOYMENT_TARGET=10.14 \
-	cmake -DCMAKE_BUILD_TYPE=Release \
-	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
-	      -DUSE_GMP=OFF \
-	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
-              -DBUILD_MACOS_BUNDLE=ON \
-	      -DJAVA_COMPATIBILITY=ON \
-	      -G Ninja ..
-    ninja
-    cpack
-  )
-}
-
-
 build_macos_universal_binary()
 { rm -rf build.macosx-fat
   mkdir build.macosx-fat
@@ -74,25 +54,6 @@ build_macos_universal_binary()
   )
 }
 
-
-# Use gcc 13 from Macport `port install gcc13`
-build_macosx_gcc()
-{ rm -rf build.macosx-gcc
-  mkdir build.macosx-gcc
-  ( cd build.macosx-gcc
-    export PATH=$HOME/deps/bin:$QT_BIN:$PATH
-    export CC=gcc-mp-13
-    MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-        cmake -DCMAKE_BUILD_TYPE=PGO \
-	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
-              -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
-              -DBUILD_MACOS_BUNDLE=ON \
-              -DJAVA_COMPATIBILITY=ON \
-              -G Ninja ..
-    ninja
-    cpack
-  )
-}
 
 build_source()
 { ./scripts/make-src-tape

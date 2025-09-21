@@ -23,7 +23,6 @@ set(SWIPL_PACKAGE_LIST_YAML_title    "YAML_support")
 set(SWIPL_PACKAGE_LIST_JAVA_title    "Java_interface")
 set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
-set(SWIPL_PACKAGE_LIST_QT_title      "Qt_console")
 set(SWIPL_PACKAGE_LIST_GUI_title     "XPCE_graphics_subsystem")
 set(SWIPL_PACKAGE_LIST_WASM_title    "WASM_libraries")
 set(SWIPL_PACKAGE_LIST_PYTHON_title  "Python_interface")
@@ -33,9 +32,6 @@ if(EMSCRIPTEN)
 else()
   set(SWIPL_PACKAGE_SETS
       BASIC ARCHIVE ODBC BDB PCRE YAML JAVA PYTHON SSL TIPC TERM GUI)
-if(NOT EPILOG)
-  list(APPEND SWIPL_PACKAGE_SETS QT)
-endif()
 endif()
 
 foreach(pkgset ${SWIPL_PACKAGE_SETS})
@@ -110,9 +106,6 @@ set(SWIPL_PACKAGE_LIST_PYTHON
 
 set(SWIPL_PACKAGE_LIST_TIPC
     tipc)
-
-set(SWIPL_PACKAGE_LIST_QT
-    swipl-win)
 
 set(SWIPL_PACKAGE_LIST_GUI
     xpce)

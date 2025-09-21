@@ -483,7 +483,6 @@ The defined components are:
   | Python_interface     | Python interface (Janus)             |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
   | TIPC_networking      | Linux TIPC network support           |
-  | Qt_console           | Qt windowed interface                |
   | Graphics_subsystem   | The xpce graphics system (needs X11) |
   | Documentation        | System HTML documentation            |
   | Examples             | Example files                        |
