@@ -2222,11 +2222,13 @@ pack_rebuild :-
 pack_rebuild(Pack) :-
     current_pack(Pack, PackDir),
     !,
-    post_install_foreign(Pack, PackDir, [rebuild(true)]).
+    post_install_foreign(Pack, PackDir, [rebuild(true)]),
+	pack_attach(PackDir, [duplicate(replace)]).
 pack_rebuild(Pack) :-
     unattached_pack(Pack, PackDir),
     !,
-    post_install_foreign(Pack, PackDir, [rebuild(true)]).
+    post_install_foreign(Pack, PackDir, [rebuild(true)]),
+	pack_attach(PackDir, [duplicate(replace)]).
 pack_rebuild(Pack) :-
     existence_error(pack, Pack).
 
