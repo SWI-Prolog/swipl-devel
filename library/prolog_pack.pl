@@ -2814,16 +2814,16 @@ have_git :-
     is_sane_git(GIT).
 
 :- if(current_prolog_flag(apple, true)).
+sane_xcode_path -->
+    "Xcode.app/Contents".
+sane_xcode_path -->
+    "CommandLineTools".
+
 is_sane_git('/usr/bin/git') :-
     !,
     process_which(path('xcode-select'), XSpath),
     catch(run_process(XSpath,['-p'],[output(Output),error(_)]), error(_,_), fail),
     once(phrase((string(_), sane_xcode_path), Output, _)).
-
-sane_xcode_path -->
-    "Xcode.app/Contents".
-sane_xcode_path -->
-    "CommandLineTools".
 :- endif.
 is_sane_git(_).
 
