@@ -10868,6 +10868,7 @@ runs the main thread and returns after all windows have been closed.
 Modify the Epilog console attached to the calling thread. Option is one
 of:
 
+\begin{description}
 \termitem{title}{+Title}
 \termitem{foreground}{+Color}
 \termitem{background}{+Color}
@@ -10893,6 +10894,7 @@ This predicate raises \term{existence_error}{epilog, Thread} if the
 (calling) thread has no attached Epilog window.  Threads are started
 in an Epilog window have the Prolog flag \prologflag{console_menu}
 set to \const{true}.
+\end{description}
 \end{description}
 
 
