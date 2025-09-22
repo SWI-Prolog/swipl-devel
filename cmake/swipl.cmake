@@ -20,6 +20,8 @@
 #   - It provides a function swipl_add_test(name) that runs a
 #     test file from test/test_${name}.pl
 
+set(CMAKE_C_STANDARD 11)
+
 if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
   set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
   set(swipl_version    $ENV{SWIPL_VERSION})
