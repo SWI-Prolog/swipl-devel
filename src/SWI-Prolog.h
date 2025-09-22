@@ -210,11 +210,7 @@ typedef _PLS(PL_local_data) *PL_engine_t; /* opaque engine handle */
 typedef _PLQ(word)	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t		pl_wchar_t;	/* Prolog wide character */
-#ifdef __cplusplus
-typedef void *		pl_function_t;      /* pass function as void* */
-#else
-typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
-#endif
+typedef void *		pl_function_t;  /* pass function as void* */
 typedef uintptr_t	buf_mark_t;	/* buffer mark handle */
 
 #define fid_t PL_fid_t			/* avoid AIX name-clash */

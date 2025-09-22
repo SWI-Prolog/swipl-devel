@@ -812,7 +812,7 @@ typedef uintptr_t		code;		/* VM instructions */
 typedef intptr_t		scode;		/* signed VM instruction argument */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
-typedef foreign_t		(*Func)();	/* foreign functions */
+typedef void *			Func;		/* foreign functions */
 typedef int			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */

@@ -4545,7 +4545,7 @@ When registered before initialisation the registration is recorded and
 executed after installing the system predicates and before loading the
 saved state.
 
-Default calling (i.e.\ without \const{PL_FA_VARARGS}) \arg{function} is
+Default calling (i.e., without \const{PL_FA_VARARGS}) \arg{function} is
 passed the same number of \ctype{term_t} arguments as the arity of the predicate
 and, if the predicate is non-deterministic, an extra argument of type
 \ctype{control_t} (see \secref{foreignnondet}). If \const{PL_FA_VARARGS}
@@ -4575,11 +4575,15 @@ atom_checksum(term_t a0, int arity, void* context)
 }
 
 install_t
-install()
+install(void)
 { PL_register_foreign("atom_checksum", 2,
 		      atom_checksum, PL_FA_VARARGS);
 }
 \end{code}
+
+Note that the \arg{function} is documented as \exam{foreign_t
+(*function)()}. The actual prototype uses \exam{void*} as C11 and later
+do not allow for function types with unspecified arguments.
 
 \cfunction{bool}{PL_register_foreign}{const char *name, int arity,
 				     foreign_t (*function)(),

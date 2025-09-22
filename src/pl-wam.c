@@ -662,7 +662,7 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   { typedef foreign_t (*FuncN)(term_t av, size_t argc, control_t);
     (*(FuncN)function)(0, argc, &context);
   } else
-  { CALL_FCUTTED(argc, (*function), &context);
+  { CALL_FCUTTED(argc, function, &context);
   }
   PL_close_foreign_frame(fid);
 }
@@ -670,7 +670,7 @@ discardForeignFrame(DECL_LD LocalFrame fr)
 
 typedef struct finish_reason
 { atom_t	name;			/* name of the reason */
-  int		is_exception;		/* is an exception reason */
+  bool		is_exception;		/* is an exception reason */
 } finish_reason;
 
 enum finished
@@ -694,7 +694,7 @@ static const finish_reason reason_decls[] =
 };
 
 
-static inline int
+static inline bool
 is_exception_finish(enum finished reason)
 { return reason_decls[reason].is_exception;
 }
