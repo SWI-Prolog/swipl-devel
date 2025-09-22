@@ -93,62 +93,23 @@ program.
 
 \subsection{Menu commands}		\label{sec:menu}
 
-The SWI-Prolog console provided by \program{swipl-win.exe} has a menu for
-accessing the most commonly used commands. We assume not all menu
-entries need to be explained in detail.  We make some exceptions:
+The SWI-Prolog Epilog console provided by \program{swipl-win.exe} has a
+menu for accessing the most commonly used commands. We assume not all
+menu entries need to be explained in detail. We make some exceptions:
 
 \begin{description}
     \definition{File/Reload modified files}
 This menu reloads all loaded source files that have been modified
 using the make/0 command described in \secref{commands}.
 
-    \definition{File/Navigator ...}
+    \definition{Tools/Navigator ...}
 Opens an explorer-like view on Prolog files and the predicates they
 contain.
-
-    \definition{Settings/Font ...}
-Allows for changing the font of the console.  On some installations the
-default font gives redraw and cursor dislocation problems.  In this case
-you may wish to select an alternative.  Some built-in commands assume
-non-proportional fonts.
 
     \definition{Settings/User init file ...}
 Edits the user personalisation file.  If no such file exists, it first
 installs a default file as \file{init.pl} that contains commonly
 used settings in comments.
-
-    \definition{Settings/Stack sizes ...}
-Allows for defining the maximum size to which the various Prolog stacks are
-allowed to grow. The system defaults are chosen to make erroneous
-programs fail quickly on modest hardware.  Programs with large data
-structures or many choice points often need larger stacks.  Note that
-an active Prolog process growing over the size of the physical memory of
-your computer can make the system extremely slow.
-
-    \definition{Run/Interrupt}
-Try to interrupt the running Prolog process.  This is the same as
-using \emph{Control-C}.  Sometimes interrupts are not honoured or
-take very long to process.  Closing the window twice provides a
-way to force Prolog to stop.
-
-    \definition{Run/New thread}
-Creates a new interactor window running in a separate thread of
-execution.  This may be used to inspect the database or program
-while the main task continues.
-
-    \definition{Debug/Edit spy points ...}
-Edit break points on predicates. From the PceEmacs editor (see
-\secref{edit}) break points can also be set on specific calls from
-specific clauses.
-
-    \definition{Debug/Graphical debugger ...}
-Use the source-level debugger on the next spy or break point or
-other call that enables the debugger.
-
-    \definition{Help}
-The help menu provides various starting points to related documents.
-Items flagged with {\sf (on www)} open your default internet
-browser on a page of the SWI-Prolog website.
 \end{description}
 
 

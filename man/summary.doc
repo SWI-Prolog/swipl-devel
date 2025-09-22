@@ -263,6 +263,8 @@ suggest predicates from a keyword.
 \predicatesummary{engine_self}{1}{Get handle to running interactor}
 \predicatesummary{engine_yield}{1}{Make term available to caller}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
+\predicatesummary{epilog}{0}{Create a Prolog console}
+\predicatesummary{epilog}{1}{Create a Prolog console}
 \predicatesummary{erase}{1}{Erase a database record or clause}
 \predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
 \predicatesummary{exists_directory}{1}{Check existence of directory}
@@ -625,6 +627,7 @@ suggest predicates from a keyword.
 \predicatesummary{select_dict}{2}{Select matching attributes from a dict}
 \predicatesummary{select_dict}{3}{Select matching attributes from a dict}
 \predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
+\predicatesummary{set_epilog}{1}{Control the SWI-Prolog console}
 \predicatesummary{set_flag}{2}{Set value of a flag}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_locale}{1}{Set the default local}
@@ -813,16 +816,11 @@ suggest predicates from a keyword.
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
-\predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
-\predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
 \predicatesummary{win_process_modules}{1}{Win32 get .exe and .dll files of the process}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_shell}{3}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}
 \predicatesummary{win_get_user_preferred_ui_languages}{2}{Win32: get language preferences}
-\predicatesummary{win_window_color}{2}{Win32: change colors of console window}
-\predicatesummary{win_window_pos}{1}{Win32: change size and position of window}
-\predicatesummary{window_title}{2}{Win32: change title of window}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}
 \predicatesummary{with_output_to}{2}{Write to strings and more}
 \predicatesummary{with_quasi_quotation_input}{3}{Parse quasi quotation from stream}

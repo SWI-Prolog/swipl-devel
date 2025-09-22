@@ -698,10 +698,10 @@ is supported:
 If an xterm compatible terminal emulator is used to run Prolog you may
 wish to load either an explicit theme or \exam{library(theme/auto)}.
 
-    \item[Windows]
-The \program{swipl-win.exe} graphical application can be themed by
+    \item[Epilog Prolog consoles]
+The \program{swipl-win} graphical application can be themed by
 loading a theme file.  The theme file also sets the foreground and
-background colours for the console.
+background colours for the Epilog console.
 \end{description}
 
 
@@ -1569,8 +1569,9 @@ Set to \const{true} when built in a \href{https://docs.conda.io/}{Conda}
 environment.
 
     \prologflagitem{console_menu}{bool}{r}
-Set to \const{true} in \program{swipl-win.exe} to indicate that the console
-supports menus.  See also \secref{plwin}.
+Set to \const{true} when the I/O is bound to an Epilog
+(\program{swipl-win}) Prolog console to indicate that the console
+supports menus. See also \secref{epilog-api}.
 
     \prologflagitem{cpu_count}{integer}{rw}
 Number of physical CPUs or cores in the system. The flag is marked
@@ -1809,10 +1810,6 @@ its library as \file{<home>/library}. Some installations may put
 architecture independent files in a \jargon{shared home} and also
 define \prologflag{shared_home}.  System files can be found using
 absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
-
-    \prologflagitem{hwnd}{integer}{r}
-In \program{swipl-win.exe}, this refers to the MS-Windows window handle of
-the console window.
 
     \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
 ISO Prolog flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
