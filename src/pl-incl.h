@@ -607,12 +607,6 @@ them.  Descriptions:
 #define PLMININT		(-PLMAXINT - 1)
 #define PLMAXINT		((int64_t)(((uint64_t)1<<(INT64BITSIZE-1)) - 1))
 
-#if vax
-#define MAXREAL			(1.701411834604692293e+38)
-#else					/* IEEE double */
-#define MAXREAL			(1.79769313486231470e+308)
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Macros to handle hash tables.  See pl-table.c for  details.   First  the
 sizes  of  the  hash  tables are defined.  Note that these should all be

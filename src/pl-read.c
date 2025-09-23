@@ -39,6 +39,7 @@
 #include "pl-read.h"
 #include "pl-arith.h"
 #include <math.h>
+#include <float.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
@@ -2213,8 +2214,8 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 
 	return NUM_OK;
 #else
-	double maxf =  MAXREAL / 10.0 - 10.0;
-	double minf = -MAXREAL / 10.0 + 10.0;
+	double maxf =  DBL_MAX / 10.0 - 10.0;
+	double minf = -DBL_MAX / 10.0 + 10.0;
 	double tf = (double)t;
 	do
 	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
@@ -2293,8 +2294,8 @@ scan_number(cucharp *s, int negative, int b, Number n)
 	return NUM_OK;
 #else
 
-	double maxf =  MAXREAL / (double) b - (double) b;
-	double minf = -MAXREAL / (double) b + (double) b;
+	double maxf =  DBL_MAX / (double) b - (double) b;
+	double minf = -DBL_MAX / (double) b + (double) b;
 	double tf = (double)t;
 	do
 	{ while((d = digitValue(b, *q)) >= 0)
