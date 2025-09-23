@@ -2507,7 +2507,7 @@ the arithmetic after dividing by the unit size.
 
 #define hasSpace(base, top, size) f_hasSpace(base, top, size, sizeof(*(base)))
 
-static inline int
+static inline bool
 f_hasSpace(void *here, void *top, size_t nelem, size_t esize)
 {
 #if O_DEBUG
