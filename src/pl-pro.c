@@ -110,7 +110,7 @@ restore_after_exception(term_t except)
   return rc;
 }
 
-static int
+static bool
 halt_from_exception(term_t ex)
 { GET_LD
   Word p = valTermRef(ex);
@@ -181,8 +181,12 @@ query_loop(atom_t goal, bool loop)
 
       if ( exclass == EXCEPT_ABORT )
 	Sclearerr(Suser_input);
-      if ( exclass == EXCEPT_HALT && PL_thread_self() <= 1 )
-	halt_from_exception(except);
+      if ( exclass == EXCEPT_HALT )
+      { rc = true;
+	loop = false;
+	if ( PL_thread_self() <= 1 )
+	  halt_from_exception(except);
+      }
 
       if ( !validUserStreams() )
       { rc = true;
