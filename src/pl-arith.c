@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -4511,7 +4511,7 @@ init_random(DECL_LD)
 {
 #ifdef O_BIGNUM
   /* Prefer the Mersenne Twister as we can safe its state */
-  #ifdef HAVE_GMP_RANDINIT_MT
+  #if defined(HAVE_GMP_RANDINIT_MT) || O_BF
     #define O_RANDOM_STATE 1
     #undef gmp_randinit_default
     #define gmp_randinit_default(s) gmp_randinit_mt(s)
