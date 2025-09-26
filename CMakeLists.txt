@@ -28,6 +28,27 @@ else()
   set(DEFAULT_VMI_FUNCTIONS OFF)
 endif()
 
+if(APPLE)
+# tcmalloc breaks setlocale() on MacOS 12 (Monterey)
+  set(DEFAULT_USE_TCMALLOC OFF)
+else()
+  set(DEFAULT_USE_TCMALLOC ON)
+endif()
+
+if(EMSCRIPTEN)
+  set(DEFAULT_EPILOG OFF)
+  set(DEFAULT_CCACHE OFF)
+else()
+  set(DEFAULT_EPILOG ON)
+  set(DEFAULT_CCACHE ON)
+endif()
+
+if(WIN32)
+  set(DEFAULT_SWIPL_INSTALL_AS_LINK OFF)
+else()
+  set(DEFAULT_SWIPL_INSTALL_AS_LINK ON)
+endif()
+
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
@@ -43,16 +64,9 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (LGPL)"
        ON)
-if(APPLE)
-# tcmalloc breaks setlocale() on MacOS 12 (Monterey)
 option(USE_TCMALLOC
        "Use Google tcmalloc instead of default malloc"
-       OFF)
-else()
-option(USE_TCMALLOC
-       "Use Google tcmalloc instead of default malloc"
-       ON)
-endif()
+       ${DEFAULT_USE_TCMALLOC})
 option(SWIPL_SHARED_LIB
        "Put kernel in a shared library"
        ON)
@@ -68,15 +82,9 @@ option(SWIPL_INSTALL_IN_LIB
 option(SWIPL_INSTALL_IN_SHARE
        "Install docs in ${CMAKE_INSTALL_PREFIX}/share/swipl"
        OFF)
-if(WIN32)
 option(SWIPL_INSTALL_AS_LINK
        "Install public binaries using a symlink"
-       OFF)
-else()
-option(SWIPL_INSTALL_AS_LINK
-       "Install public binaries using a symlink"
-       ON)
-endif()
+       ${DEFAULT_SWIPL_INSTALL_AS_LINK})
 option(SWIPL_M32
        "Build 32-bit version on 64-bit Linux using multilib and gcc -m32"
        OFF)
@@ -119,11 +127,6 @@ option(GCOV
 option(STATIC_EXTENSIONS
        "Add foreign extensions statically"
        OFF)
-if(EMSCRIPTEN)
-  set(DEFAULT_CCACHE OFF)
-else()
-  set(DEFAULT_CCACHE ON)
-endif()
 option(CCACHE
        "Use ccache when available"
        ${DEFAULT_CCACHE})
@@ -132,7 +135,7 @@ option(VALIDATE_API
        ON)
 option(EPILOG
        "Configure Prolog for using the XPCE Epilog interface"
-       ON)
+       ${DEFAULT_EPILOG})
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")
