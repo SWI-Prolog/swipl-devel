@@ -497,6 +497,12 @@ if(EPILOG)
 endif()
 
 # build the library
+if(EMSCRIPTEN)
+  set_source_files_properties(pl-wam.c
+			      PROPERTIES COMPILE_FLAGS
+			      "-O2")
+endif()
+
 if(SWIPL_SHARED_LIB AND NOT EMSCRIPTEN AND NOT STATIC_EXTENSIONS)
   set(LIBSWIPL_TYPE SHARED)
 else()
