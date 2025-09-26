@@ -41,10 +41,14 @@ set(SANITIZE "address" CACHE STRING
   "Value for -fsanitize when using -DCMAKE_BUILD_TYPE=Sanitize (address)")
 
 if(EMSCRIPTEN)
-set(GCC_GFLAGS "-g -gsource-map")
+  set(GCC_GFLAGS "-g -gsource-map")
+  if(NOT VMI_FUNCTIONS)	 # Otherwise too many locals in PL_next_solution()
+    set(GCC_GFLAGS "${GCC_GFLAGS} -O1")
+  endif()
 else()
-set(GCC_GFLAGS "-gdwarf-2 -g3")
+  set(GCC_GFLAGS "-gdwarf-2 -g3")
 endif()
+
 if(CMAKE_COMPILER_IS_GNUCC)
   if($ENV{CFLAGS})
     string(REGEX MATCH "-O" match $ENV{CFLAGS})
