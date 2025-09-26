@@ -136,6 +136,9 @@ option(VALIDATE_API
 option(EPILOG
        "Configure Prolog for using the XPCE Epilog interface"
        ${DEFAULT_EPILOG})
+option(WASM_EXCEPTIONS
+       "Use -fwasm-exceptions -sSUPPORT_LONGJMP=wasm"
+       OFF)
 
 set(JNIDIR ""
     CACHE STRING "Directory for linking Java JNI components")

@@ -13,6 +13,9 @@ set(BUILD_SWIPL_LD OFF)
 
 set(SRC_OS_SPECIFIC wasm/pl-wasm.c)
 
+if(WASM_EXCEPTIONS)
+  add_compile_options(-fwasm-exceptions -sSUPPORT_LONGJMP=wasm)
+endif()
 if(MULTI_THREADED)
   add_compile_options(-pthread)
 endif()
