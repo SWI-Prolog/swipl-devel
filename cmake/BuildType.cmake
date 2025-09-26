@@ -49,24 +49,30 @@ else()
   set(GCC_GFLAGS "-gdwarf-2 -g3")
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCC)
-  if($ENV{CFLAGS})
-    string(REGEX MATCH "-O" match $ENV{CFLAGS})
-  endif()
-  if(NOT match)
+if(DEFINED ENV{CFLAGS})
+  string(REGEX MATCH "-O" match $ENV{CFLAGS})
+endif()
+if(match)
+  set(GCC_OPTFLAGS $ENV{CFLAGS})
+else()
+  if(EMSCRIPTEN)
+    set(GCC_OPTFLAGS "-O3 -DNDEBUG")
+  else()
     set(GCC_OPTFLAGS -O2)
   endif()
+endif()
 
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${GCC_GFLAGS} $ENV{CFLAGS}"
+if(CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${GCC_GFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CFLAGS}"
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${GCC_OPTFLAGS} ${GCC_GFLAGS}"
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE "${GCC_OPTFLAGS} $ENV{CFLAGS}"
+  set(CMAKE_C_FLAGS_RELEASE "${GCC_OPTFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
-  set(CMAKE_C_FLAGS_PGO "${GCC_OPTFLAGS} ${GCC_GFLAGS} $ENV{CFLAGS}"
+  set(CMAKE_C_FLAGS_PGO "${GCC_OPTFLAGS} ${GCC_GFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "-O0 ${GCC_GFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CFLAGS}"
+      "-O0 ${GCC_GFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${GCC_GFLAGS} $ENV{CXXFLAGS}"
@@ -78,11 +84,22 @@ if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS_SANITIZE
       "-O0 ${GCC_GFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
+elseif(EMSCRIPTEN)
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_C_FLAGS_RELEASE "${GCC_OPTFLAGS}"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${GCC_OPTFLAGS}"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-sASSERTIONS"
+      CACHE STRING "LDFLAGS for a Debug build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CFLAGS}"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "${GCC_GFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CFLAGS}"
+      "${GCC_GFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
@@ -99,13 +116,6 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-elseif(EMSCRIPTEN)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${GCC_GFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_EXE_LINKER_FLAGS "-sASSERTIONS"
-      CACHE STRING "LDFLAGS for a Debug build" FORCE)
 elseif(MSVC)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
