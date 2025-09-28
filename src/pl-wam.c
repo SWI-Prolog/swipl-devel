@@ -3438,7 +3438,11 @@ FOREACH_VMH(T_EMPTY,
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
 #define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
 #define _NEXT_INSTRUCTION		return PC
+#if O_THROW
 #define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
+#else
+#define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); return NULL
+#endif
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
 #define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
 					return helper_ ## n(VMI_ARG_PASS, __args)
@@ -3622,7 +3626,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
-#if O_VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS && O_THROW
   if (setjmp(EXIT_VM_BUF) != 0)
   { // LD->vmi_registers = old_registers;
     assert(LD->exception.throw_environment == &THROW_ENV);
@@ -3733,6 +3737,10 @@ initialised properly.
     );
 #endif
     PC = VMI_ADDR(*PC)(VMI_ARG_PASS);
+#if !O_THROW
+    if ( !PC )
+      return SOLUTION_RET;
+#endif
   }
 #else /* O_VMI_FUNCTIONS */
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
