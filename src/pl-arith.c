@@ -1260,10 +1260,10 @@ valueExpression(DECL_LD term_t expr, number *n)
    crashes, at least on Linux and the Emscripten version.
 */
 
-#ifndef __clang__
+#if O_THROW && !__clang__
   return evalExpression(expr, n);
 #else
-  int rc;
+  bool rc;
   EXCEPTION_GUARDED(rc=evalExpression(expr, n), rc=false);
   return rc;
 #endif
