@@ -210,6 +210,9 @@ handy for it someone wants to add a data type to the system.
       Include validity checks for the API functions
   O_TRIE_ATTVAR
       Support attributed variables in tries and tabling.
+  O_THROW
+      Use setjmp() in PL_next_solution(), allowing for PL_throw().  This
+      has a 12% performance impact (gcc 15, Fedora 42 on ADM3950X).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -246,6 +249,7 @@ handy for it someone wants to add a data type to the system.
 #ifndef O_RATIONAL_SYNTAX
 #define O_RATIONAL_SYNTAX	RAT_COMPAT
 #endif
+#define O_THROW			1
 
 /* Define either or none of O_DYNAMIC_EXTENSIONS and O_STATIC_EXTENSIONS */
 #if (defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)) \

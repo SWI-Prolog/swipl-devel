@@ -159,7 +159,6 @@
     "_PL_module_name",
     "_PL_new_module",
     "_PL_raise_exception",
-    "_PL_throw",
     "_PL_exception",
     "_PL_clear_exception",
     "_PL_sigaction",

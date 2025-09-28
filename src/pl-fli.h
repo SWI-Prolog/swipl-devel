@@ -222,7 +222,9 @@ void		registerForeignLicenses(void);
 void            bindExtensions(const char *module,
 			       const PL_extension *ext);
 void		initForeign(void);
+#if O_THROW
 bool		PL_rethrow(void);
+#endif
 FLI_INLINE int	PL_pending(int sig);
 bool		PL_clearsig(int sig);
 void		cleanupCodeToAtom(void);

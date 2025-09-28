@@ -109,8 +109,10 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   Definition caller;
   term_t except, formal, swi, msgterm=0;
   va_list args;
-  int do_throw = false;
   fid_t fid;
+#if O_THROW
+  bool do_throw = false;
+#endif
   bool rc;
   int msg_rep = REP_UTF8;
 
@@ -732,7 +734,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			 PL_FUNCTOR, FUNCTOR_existence_error2,
 			   PL_ATOM, ATOM_stream,
 			   PL_POINTER, s);
+#if O_THROW
       do_throw = true;
+#else
+      PL_fatal_error("ERR_CLOSED_STREAM not supported without PL_throw()");
+#endif
       break;
     }
     case ERR_BUSY:
@@ -812,9 +818,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     fatalError("Cannot report error: no memory");
   }
 
+#if O_THROW
   if ( do_throw )
     rc = PL_throw(except);
   else
+#endif
     rc = PL_raise_exception(except);
 
   PL_close_foreign_frame(fid);

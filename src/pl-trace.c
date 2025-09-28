@@ -1985,8 +1985,12 @@ again:
     action_a:
 		unblockSignal(sig);
 		abortProlog();
+#if O_THROW
 		if ( !safe )
 		  PL_rethrow();
+#else
+		PL_fatal_error("Could not abort\n");
+#endif
 		break;
     case 'b':	Sfprintf(Sdout, "break\n");
 		if ( safe )

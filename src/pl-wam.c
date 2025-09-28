@@ -3548,8 +3548,10 @@ PL_next_solution(DECL_LD qid_t qid)
   REGISTERS.nop2 = 0;
 #endif
 
-  Code PC;				/* program counter */
+  Code PC = NULL;			/* program counter */
+#if O_THROW
   exception_frame THROW_ENV;		/* PL_throw() environment */
+#endif
 
 #if O_VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
@@ -3645,6 +3647,7 @@ environment. BFR is volatile, and qid is an argument. These are the only
 variables used in the B_THROW instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if O_THROW
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &LD->exception.throw_environment));
   THROW_ENV.parent = LD->exception.throw_environment;
   if ( setjmp(THROW_ENV.exception_jmp_env) != 0 )
@@ -3671,6 +3674,7 @@ variables used in the B_THROW instruction.
   { THROW_ENV.magic = THROW_MAGIC;
     LD->exception.throw_environment = &THROW_ENV;
   }
+#endif
 
   DEF = FR->predicate;
   if ( QF->yield.term )			/* resume after yield */

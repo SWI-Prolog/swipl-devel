@@ -114,7 +114,11 @@ gmp_too_big(DECL_LD gmp_tb why)
       max.value.i = LD->gmp.max_integer_size;
       PL_error(NULL, 0, "requires more than max_integer_size bytes",
 	       ERR_AR_TRIPWIRE, ATOM_max_integer_size, &max);
+#if O_THROW
       PL_rethrow();
+#else
+      PL_fatal_error("Big number retraint not supported without PL_throw()");
+#endif
     }
     case GMP_TB_STACK:
       outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_THROW);
@@ -122,11 +126,19 @@ gmp_too_big(DECL_LD gmp_tb why)
     case GMP_TB_MALLOC:
     default:
       PL_no_memory();
+#if O_THROW
       PL_rethrow();
+#else
+      PL_fatal_error("Too large big number");
+#endif
   }
 
   abortProlog();		/* Just in case the above fails */
+#if O_THROW
   PL_rethrow();
+#else
+  PL_fatal_error("Too large big number");
+#endif
   return false;
 }
 

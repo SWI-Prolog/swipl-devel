@@ -618,7 +618,10 @@ dispatch_signal(int sig, int sync)
 					/* longjmp.  If that fails, crash */
   if ( is_fatal_signal(sig) )
   { if ( exception_term )
-    { PL_rethrow();
+    {
+#if O_THROW
+      PL_rethrow();
+#endif
       sigCrashHandler(sig);
     }
     exit(4);

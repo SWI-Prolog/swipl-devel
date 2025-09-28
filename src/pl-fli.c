@@ -4738,7 +4738,7 @@ PL_raise_exception(term_t exception)
   return false;
 }
 
-
+#if O_THROW
 bool
 PL_throw(term_t exception)
 { GET_LD
@@ -4760,6 +4760,7 @@ PL_rethrow(void)
 
   return false;
 }
+#endif /*O_THROW*/
 
 
 void

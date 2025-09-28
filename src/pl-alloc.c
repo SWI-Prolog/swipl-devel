@@ -720,11 +720,15 @@ outOfStack(void *stack, stack_overflow_action how)
       }
       exception_term = exception_bin;
 
+#if O_THROW
       if ( how == STACK_OVERFLOW_THROW &&
 	   LD->exception.throw_environment )
       {						/* see PL_throw() */
 	longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
       }
+#else
+      PL_fatal_error("Could not handle stack overflow");
+#endif
 
       return false;
     }
