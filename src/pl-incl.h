@@ -249,7 +249,9 @@ handy for it someone wants to add a data type to the system.
 #ifndef O_RATIONAL_SYNTAX
 #define O_RATIONAL_SYNTAX	RAT_COMPAT
 #endif
+#if !__EMSCRIPTEN__
 #define O_THROW			1
+#endif
 
 /* Define either or none of O_DYNAMIC_EXTENSIONS and O_STATIC_EXTENSIONS */
 #if (defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)) \
