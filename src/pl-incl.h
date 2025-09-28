@@ -811,7 +811,7 @@ typedef intptr_t		scode;		/* signed VM instruction argument */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef void *			Func;		/* foreign functions */
-typedef int			(*ArithF)();	/* arithmetic function */
+typedef bool			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */
 typedef struct functor *	Functor;	/* complex term */

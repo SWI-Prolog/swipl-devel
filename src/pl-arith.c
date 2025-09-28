@@ -137,10 +137,10 @@ problem.
 #endif
 #endif
 
-typedef int (*ArithF0)(Number r);
-typedef int (*ArithF1)(Number n, Number r);
-typedef int (*ArithF2)(Number n1, Number n2, Number r);
-typedef int (*ArithF3)(Number n1, Number n2, Number n3, Number r);
+typedef bool (*ArithF0)(Number r);
+typedef bool (*ArithF1)(Number n, Number r);
+typedef bool (*ArithF2)(Number n1, Number n2, Number r);
+typedef bool (*ArithF3)(Number n1, Number n2, Number n3, Number r);
 
 #if USE_LD_MACROS
 #define	set_roundtoward(p, old)		LDFUNC(set_roundtoward, p, old)
@@ -148,11 +148,11 @@ typedef int (*ArithF3)(Number n1, Number n2, Number n3, Number r);
 
 #define LDFUNC_DECLARATIONS
 
-static int		ar_minus(Number n1, Number n2, Number r);
-static int		mul64(int64_t x, int64_t y, int64_t *r);
-static int		notLessThanZero(const char *f, int a, Number n);
-static int		mustBePositive(const char *f, int a, Number n);
-static int		set_roundtoward(Word p, Number old);
+static bool		ar_minus(Number n1, Number n2, Number r);
+static bool		mul64(int64_t x, int64_t y, int64_t *r);
+static bool		notLessThanZero(const char *f, int a, Number n);
+static bool		mustBePositive(const char *f, int a, Number n);
+static bool		set_roundtoward(Word p, Number old);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -715,7 +715,7 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
    flag `float_undefined`.
  */
 
-static int
+static bool
 ar_cmpr(Number n1, Number n2, Number r)
 { r->type = V_INTEGER;
   r->value.i = cmpReals(n1, n2);
@@ -724,8 +724,7 @@ ar_cmpr(Number n1, Number n2, Number r)
     if ( LD->arith.f.flags & FLT_UNDEFINED )         // check float_undefined flag
     { r->type = V_FLOAT;                             // return NaN
       r->value.f = const_nan;
-    }
-    else
+    } else
       return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);  // error
   }
   return true;
@@ -912,7 +911,7 @@ check_zero_div(int sign_n, Number r, char *func, int arity)
 
 
 #ifdef O_BIGNUM
-static int
+static bool
 check_mpq(Number r)
 { GET_LD
   size_t sz;
@@ -962,15 +961,15 @@ terms that are nested on the left (as   in (1+2)+3, while we only push a
 single pointer for each recursion level in the evaluable term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-pushForMark(segstack *stack, Word p, int wr)
+static bool
+pushForMark(segstack *stack, Word p, bool wr)
 { word w = ptr2word(p)|wr;
 
   return pushSegStack(stack, w, word);
 }
 
 static void
-popForMark(segstack *stack, Word *pp, int *wr)
+popForMark(segstack *stack, Word *pp, bool *wr)
 { word w = 0;
 
   popSegStack(stack, &w, word);
@@ -978,7 +977,7 @@ popForMark(segstack *stack, Word *pp, int *wr)
   *pp = word2ptr(Word, (w & ~(word)0x1));
 }
 
-int
+bool
 evalExpression(DECL_LD term_t expr, number *result)
 { segstack term_stack;
   segstack arg_stack;
@@ -986,13 +985,13 @@ evalExpression(DECL_LD term_t expr, number *result)
   number arg_buf[16];
   number *n = result;
   number n_tmp;
-  int walk_ref = false;
+  bool walk_ref = false;
   Word p;
   Word start;
-  int known_acyclic = false;
+  bool known_acyclic = false;
   int pushed = 0;
   functor_t functor;
-  int signalled;
+  bool signalled;
 
 retry:
   signalled = false;
@@ -1145,12 +1144,12 @@ retry:
 
 	switch(arity)
 	{ case 1:
-	  { int rc;
+	  { bool rc;
 	    number *a0 = topOfSegStack(&arg_stack);
 
 	    rc = (*(ArithF1)f)(a0, n);
 	    clearNumber(a0);
-	    if ( rc == true )
+	    if ( rc )
 	    { *a0 = *n;
 	    } else
 	    { popTopOfSegStack(&arg_stack);
@@ -1160,7 +1159,7 @@ retry:
 	    break;
 	  }
 	  case 2:
-	  { int rc;
+	  { bool rc;
 	    void *a[2];
 
 	    topsOfSegStack(&arg_stack, 2, a);
@@ -1169,7 +1168,7 @@ retry:
 	    clearNumber((number*)a[1]);
 	    popTopOfSegStack(&arg_stack);
 
-	    if ( rc == true )
+	    if ( rc )
 	    { number *n1 = a[1];
 	      *n1 = *n;
 	    } else
@@ -1180,7 +1179,7 @@ retry:
 	    break;
 	  }
 	  case 3:
-	  { int rc;
+	  { bool rc;
 	    void *a[3];
 
 	    topsOfSegStack(&arg_stack, 3, a);
@@ -1191,7 +1190,7 @@ retry:
 	    popTopOfSegStack(&arg_stack);
 	    popTopOfSegStack(&arg_stack);
 
-	    if ( rc == true )
+	    if ( rc )
 	    { number *n2 = a[2];
 	      *n2 = *n;
 	    } else
@@ -1240,7 +1239,7 @@ error:
 }
 
 
-int
+bool
 valueExpression(DECL_LD term_t expr, number *n)
 { Word p = valTermRef(expr);
 
@@ -1393,20 +1392,20 @@ Note that if a double is  out  of   range  for  int64_t,  it never has a
 fractional part.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 toIntegerNumber(Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
-      succeed;
+      return true;
 #ifdef O_BIGNUM
     case V_MPZ:
-      succeed;
+      return true;
     case V_MPQ:				/* never from stacks iff integer */
       if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
       { mpz_clear(mpq_denref(n->value.mpq));
 	n->value.mpz[0] = mpq_numref(n->value.mpq)[0];
 	n->type = V_MPZ;
-	succeed;
+	return true;
       }
       fail;
 #endif
@@ -1447,7 +1446,7 @@ promoteIntNumber() promotes a number of type V_INTEGER to a number with
 larger capacity.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 promoteIntNumber(Number n)
 {
 #ifdef O_BIGNUM
@@ -1461,7 +1460,7 @@ promoteIntNumber(Number n)
   return promoteToFloatNumber(n);
 #endif
 
-  succeed;
+  return true;
 }
 
 
@@ -1470,9 +1469,9 @@ promoteIntNumber(Number n)
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
 
-static int ar_u_minus(Number n1, Number r);
+static bool ar_u_minus(Number n1, Number r);
 
-int
+bool
 ar_add_si(Number n, long add)
 { switch(n->type)
   { case V_INTEGER:
@@ -1492,7 +1491,7 @@ ar_add_si(Number n, long add)
     case V_MPZ:
     { mpz_add_si(n->value.mpz, n->value.mpz, add);
 
-      succeed;
+      return true;
     }
     case V_MPQ:
     { if ( add > 0 )
@@ -1515,11 +1514,11 @@ ar_add_si(Number n, long add)
   }
 
   assert(0);
-  fail;
+  return false;
 }
 
 
-int
+bool
 pl_ar_add(Number n1, Number n2, Number r)
 { if ( !same_type_numbers(n1, n2) )
     return false;
@@ -1567,7 +1566,7 @@ pl_ar_add(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_minus(Number n1, Number n2, Number r)
 { if ( !same_type_numbers(n1, n2) )
     return false;
@@ -1615,7 +1614,7 @@ ar_minus(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_even(Number i)
 { switch(i->type)
   { case V_INTEGER:
@@ -1626,7 +1625,7 @@ ar_even(Number i)
 #endif
     default:
       assert(0);
-      fail;
+      return false;
   }
 }
 
@@ -1646,7 +1645,7 @@ mod(int64_t x, int64_t y)
 }
 
 
-static int
+static bool
 ar_mod(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -1685,7 +1684,7 @@ ar_mod(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 int_too_big(void)
 { GET_LD
 
@@ -1707,7 +1706,7 @@ shift_to_far(Number shift, Number r, int dir)
 }
 
 
-static int
+static bool
 ar_shift(Number n1, Number n2, Number r, int dir)
 { long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
@@ -1778,7 +1777,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	  r->value.i = n1->value.i >> shift;
       }
       r->type = V_INTEGER;
-      succeed;
+      return true;
 #ifdef O_BIGNUM
     case V_MPZ:
     mpz:
@@ -1801,28 +1800,28 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       } else
       { mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift);
       }
-      succeed;
+      return true;
 #endif
     default:
       assert(0);
-      fail;
+      return false;
   }
 }
 
 
-static int
+static bool
 ar_shift_left(Number n1, Number n2, Number r)
 { return ar_shift(n1, n2, r, -1);
 }
 
 
-static int
+static bool
 ar_shift_right(Number n1, Number n2, Number r)
 { return ar_shift(n1, n2, r, 1);
 }
 
 
-static int
+static bool
 same_positive_ints(const char *fname, Number n1, Number n2)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error(fname, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -1895,7 +1894,7 @@ i64_gcd(int64_t a, int64_t b)
 }
 
 
-static int
+static bool
 ar_gcd(Number n1, Number n2, Number r)
 { if ( !same_positive_ints("gcd", n1, n2) )
     return false;
@@ -1920,7 +1919,7 @@ ar_gcd(Number n1, Number n2, Number r)
   return true;
 }
 
-static int
+static bool
 ar_lcm(Number n1, Number n2, Number r)
 { if ( !same_positive_ints("lcm", n1, n2) )
     return false;
@@ -2180,7 +2179,7 @@ CR_FUNC(lgamma)
 /* Unary functions requiring double argument */
 
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
-  static int \
+  static bool \
   name(Number n1, Number r) \
   { if ( !promoteToFloatNumber(n1) ) return false; \
     r->value.f = op(n1->value.f); \
@@ -2192,7 +2191,7 @@ CR_FUNC(lgamma)
 
 #ifdef O_BIGNUM
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
-  static int \
+  static bool \
   name(Number n1, Number n2, Number r) \
   { if ( !toIntegerNumber(n1, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
@@ -2219,7 +2218,7 @@ CR_FUNC(lgamma)
 #else /*O_BIGNUM*/
 
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
-  static int \
+  static bool \
   name(Number n1, Number n2, Number r) \
   { if ( !toIntegerNumber(n1, 0) ) \
       return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
@@ -2240,7 +2239,7 @@ CR_FUNC(lgamma)
 #endif /*O_BIGNUM*/
 
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
-  static int \
+  static bool \
   name(Number n1, Number n2, Number r) \
   { if ( !promoteToFloatNumber(n1) || \
 	 !promoteToFloatNumber(n2) ) return false; \
@@ -2381,7 +2380,7 @@ get_int_exponent(Number n, unsigned long *expp)
 }
 
 /* get -1, 0, or 1 */
-static int
+static bool
 ar_smallint(Number n, int *i)
 { switch(n->type)
   { case V_INTEGER:
@@ -2434,7 +2433,7 @@ pow64(int64_t m, int64_t n, int64_t *resp)	/* *resp = m^n */
 }
 
 
-static int
+static bool
 ar_pow(Number n1, Number n2, Number r)
 { int zero_div_sign;
   int exp_sign;
@@ -2804,7 +2803,7 @@ doreal:
   return check_float(r);
 }
 
-static int
+static bool
 ar_powm(Number base, Number exp, Number mod, Number r)
 {
   if ( !intNumber(base) )
@@ -2868,7 +2867,7 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #define AR_DIV_ZERO_IF(func, arity, n, d, r)  (void)0
 #endif
 
-static int
+static bool
 ar_sqrt(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2880,7 +2879,7 @@ ar_sqrt(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_asin(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2892,7 +2891,7 @@ ar_asin(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_acos(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2904,7 +2903,7 @@ ar_acos(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_log(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2916,7 +2915,7 @@ ar_log(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_log10(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2928,7 +2927,7 @@ ar_log10(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_lgamma(Number n1, Number r)  // custom lgamma() to ensure positive inf
 { if ( !promoteToFloatNumber(n1) )
     return false;
@@ -2951,7 +2950,7 @@ need C99 for the wide-character  support   anyway,  we  should be fairly
 safe.
 */
 
-static int
+static bool
 ar_tdiv(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -2998,7 +2997,7 @@ ar_tdiv(Number n1, Number n2, Number r)
 Result is rnd_i(IntExpr1/IntExpr2), rounded towards -infinity
 */
 
-static int
+static bool
 ar_div(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("div", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3103,11 +3102,11 @@ ar_sign_i(Number n1)
 #endif
     default:
       assert(0);
-      fail;
+      return 0;
   }
 }
 
-static int
+static bool
 ar_sign(Number n1, Number r)
 { if ( n1->type == V_FLOAT )
   { r->value.f = isnan(n1->value.f) ? const_nan :
@@ -3118,7 +3117,7 @@ ar_sign(Number n1, Number r)
     r->type = V_INTEGER;
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -3146,7 +3145,7 @@ ar_signbit(Number n)
 }
 
 
-static int
+static bool
 ar_copysign(Number n1, Number n2, Number r)
 {
   if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
@@ -3166,7 +3165,7 @@ ar_copysign(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_nexttoward(Number n1, Number n2, Number r)
 { if ( promoteToFloatNumber(n1) &&
        promoteToFloatNumber(n2) )
@@ -3181,7 +3180,7 @@ ar_nexttoward(Number n1, Number n2, Number r)
   return false;
 }
 
-static int
+static bool
 set_roundtoward(DECL_LD Word p, Number old)
 { deRef(p);
 
@@ -3204,7 +3203,7 @@ set_roundtoward(DECL_LD Word p, Number old)
   return true;
 }
 
-static int
+static bool
 ar_roundtoward(Number n1, Number n2, Number r)
 { cpNumber(r, n1);
 
@@ -3215,7 +3214,7 @@ ar_roundtoward(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_rem(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3258,13 +3257,13 @@ ar_rem(Number n1, Number n2, Number r)
 
 
 #ifdef O_BIGNUM
-static int
+static bool
 ar_rational(Number n1, Number r)
 { cpNumber(r, n1);
   return promoteToMPQNumber(r);
 }
 
-static int
+static bool
 ar_numerator(Number n1, Number r)
 { if ( intNumber(n1) )
   { cpNumber(r, n1);
@@ -3281,7 +3280,7 @@ ar_numerator(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_denominator(Number n1, Number r)
 { if ( intNumber(n1) )
   { r->type = V_INTEGER;
@@ -3326,7 +3325,7 @@ results with rationalize/1:
     d = p1_q1 - n1->value.f;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 ar_rationalize(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -3353,7 +3352,7 @@ ar_rationalize(Number n1, Number r)
 }
 
 
-int
+bool
 ar_rdiv_mpz(Number n1, Number n2, Number r)
 { if ( mpz_divisible_p(n1->value.mpz, n2->value.mpz) )
   { mpz_init(r->value.mpz);
@@ -3372,7 +3371,7 @@ ar_rdiv_mpz(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_rdiv(Number n1, Number n2, Number r)
 { if ( toIntegerNumber(n1, 0) &&
        toIntegerNumber(n2, 0) )
@@ -3405,7 +3404,7 @@ ar_rdiv(Number n1, Number n2, Number r)
 #endif /*O_BIGNUM*/
 
 
-static int
+static bool
 ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
@@ -3513,7 +3512,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 #define INT64_MIN (LL(1)<<63)
 #endif
 
-static int
+static bool
 mul64(int64_t x, int64_t y, int64_t *r)
 {
 #if HAVE___BUILTIN_MUL_OVERFLOW
@@ -3565,7 +3564,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 }
 
 
-int
+bool
 ar_mul(Number n1, Number n2, Number r)
 { if ( !same_type_numbers(n1, n2) )
     return false;
@@ -3611,12 +3610,12 @@ ar_mul(Number n1, Number n2, Number r)
  * while they compare == for normal float comparison.
  */
 
-static int
+static bool
 is_min_zero(const Number n)
 { return n->type == V_FLOAT && n->value.f == 0.0 && signbit(n->value.f);
 }
 
-static int
+static bool
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
@@ -3643,7 +3642,7 @@ ar_max(Number n1, Number n2, Number r)
 }
 
 
-static int
+static bool
 ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
@@ -3678,7 +3677,7 @@ ar_min(Number n1, Number n2, Number r)
    3. In case one of the arguments is NaN, the other is returned.
 */
 
-static int
+static bool
 ar_maxr(Number n1, Number n2, Number r)
 { switch (cmpReals(n1, n2))
   { case CMP_LESS:
@@ -3706,7 +3705,7 @@ ar_maxr(Number n1, Number n2, Number r)
   return true;
 }
 
-static int
+static bool
 ar_minr(Number n1, Number n2, Number r)
 { switch (cmpReals(n1, n2))
   { case CMP_LESS:
@@ -3734,7 +3733,7 @@ ar_minr(Number n1, Number n2, Number r)
   return true;
 }
 
-static int
+static bool
 ar_negation(Number n1, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("\\", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3759,19 +3758,19 @@ ar_negation(Number n1, Number r)
 }
 
 
-static int
+static bool
 notLessThanZero(const char *f, int a, Number n)
 { return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_zero, n);
 }
 
 
-static int
+static bool
 mustBePositive(const char *f, int a, Number n)
 { return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_one, n);
 }
 
 
-static int
+static bool
 ar_msb(Number n1, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("msb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3821,7 +3820,7 @@ lsb64(int64_t i)
 }
 
 
-static int
+static bool
 ar_lsb(Number n1, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("lsb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3869,7 +3868,7 @@ my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
 }
 
 
-static int
+static bool
 ar_popcount(Number n1, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("popcount", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3906,7 +3905,7 @@ typedef unsigned long mp_bitcnt_t;
 #define MP_BITCNT_T_MIN 0
 #define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
 
-static int
+static bool
 ar_getbit(Number I, Number K, Number r)
 { mp_bitcnt_t bit;
 
@@ -3968,7 +3967,7 @@ ar_getbit(Number I, Number K, Number r)
 }
 
 
-static int
+static bool
 ar_u_minus(Number n1, Number r)
 { r->type = n1->type;
 
@@ -4005,11 +4004,11 @@ ar_u_minus(Number n1, Number r)
       break;
   }
 
-  succeed;
+  return true;
 }
 
 
-static int
+static bool
 ar_u_plus(Number n1, Number r)
 { cpNumber(r, n1);
 
@@ -4017,7 +4016,7 @@ ar_u_plus(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_eval(Number n1, Number r)
 { cpNumber(r, n1);
 
@@ -4025,7 +4024,7 @@ ar_eval(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_abs(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4077,7 +4076,7 @@ PLMININT/PLMAXINT range it is integer  anyway,  so   we  do  not have to
 consider rounding for conversion to MPZ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 ar_integer(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4156,7 +4155,7 @@ ar_integer(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_float(Number n1, Number r)
 { cpNumber(r, n1);
 
@@ -4164,7 +4163,7 @@ ar_float(Number n1, Number r)
 }
 
 
-static int				/* ISO Prolog: R --> Z */
+static bool				/* ISO Prolog: R --> Z */
 ar_floor(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4219,7 +4218,7 @@ ar_floor(Number n1, Number r)
 }
 
 
-static int				/* ISO Prolog: R --> Z */
+static bool				/* ISO Prolog: R --> Z */
 ar_ceil(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4280,7 +4279,7 @@ X is float_integer_part(X) + float_fractional_part(X)
 If X < 0, both float_integer_part(X) and float_integer_part(X) are <= 0
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 ar_float_fractional_part(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4320,7 +4319,7 @@ ar_float_fractional_part(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_float_integer_part(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
@@ -4353,7 +4352,7 @@ ar_float_integer_part(Number n1, Number r)
 }
 
 
-static int
+static bool
 ar_truncate(Number n1, Number r)
 { switch(n1->type)
   {
@@ -4638,7 +4637,7 @@ PRED_IMPL("random_property", 1, random_property, 0)
 #endif
 
 
-static int
+static bool
 ar_random(Number n1, Number r)
 { GET_LD
 
@@ -4700,7 +4699,7 @@ ar_random(Number n1, Number r)
 #define UINT64_MAX (~(uint64_t)0)
 #endif
 
-static int
+static bool
 ar_random_float(Number r)
 { GET_LD
 
@@ -4730,7 +4729,7 @@ ar_random_float(Number r)
 }
 
 
-static int
+static bool
 ar_pi(Number r)
 { r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_PI,INFINITY) : M_PI;
 
@@ -4739,7 +4738,7 @@ ar_pi(Number r)
 }
 
 
-static int
+static bool
 ar_e(Number r)
 { r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_E,INFINITY) : M_E;
 
@@ -4748,7 +4747,7 @@ ar_e(Number r)
 }
 
 
-static int
+static bool
 ar_epsilon(Number r)
 { r->value.f = DBL_EPSILON;
 
@@ -4757,7 +4756,7 @@ ar_epsilon(Number r)
 }
 
 
-static int
+static bool
 ar_inf(Number r)
 { static number n = {0};
 
@@ -4772,7 +4771,7 @@ ar_inf(Number r)
 }
 
 
-static int
+static bool
 ar_nan(Number r)
 { static number n = {0};
 
@@ -4787,7 +4786,7 @@ ar_nan(Number r)
 }
 
 
-static int
+static bool
 ar_cputime(Number r)
 { r->value.f = CpuTime(CPU_USER);
 
