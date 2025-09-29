@@ -20,9 +20,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # While GCC is good at optimization large   functions, MSVC is bad at it
 # and using VMI functions more then   doubles the performance. For Clang
 # the picture is less clear. The difference  is small, with a slight win
-# on either depending on CPU and workload.
+# on either depending on  CPU  and   workload.  Using  Emscripten (WASM)
+# however, using a switch produces the fastest and smallest binary.
 
-if(MSVC OR CMAKE_C_COMPILER_ID STREQUAL Clang)
+if(EMSCRIPTEN)
+  set(DEFAULT_VMI_FUNCTIONS OFF)
+  set(O_LABEL_ADDRESSES OFF)
+elseif(MSVC OR CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(DEFAULT_VMI_FUNCTIONS ON)
 else()
   set(DEFAULT_VMI_FUNCTIONS OFF)

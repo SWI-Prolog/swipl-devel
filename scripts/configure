@@ -55,11 +55,11 @@ case $config in
 	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
 	cmake="emcmake cmake"
 	build_type=Release
-	LDFLAGS+=" -s STACK_SIZE=1048576"
 	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
 	opts+=" -DCMAKE_FIND_ROOT_PATH=$WASM_HOME"
 	opts+=" -DUSE_GMP=OFF"
 	opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	opts+=" -DINSTALL_PROLOG_SRC=OFF"
 	;;
     *termux*)
 	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
