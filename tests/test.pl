@@ -81,10 +81,10 @@ prolog:message(test(no_pkg(Pkg))) -->
 
 % The  test-suite  library/test_date.pl  depends  on  the  timezone.  As
 % correct results are only  provided  for   the  CET  (Central European)
-% timezone we use this. Timezone cannot be  changed at runtime, so we do
-% this early.
+% timezone we use Amsterdam.  Timezone cannot be changed at runtime,  so
+% we do this early.
 
-:- setenv('TZ', 'CET').
+:- setenv('TZ', 'Europe/Amsterdam').
 
 
                  /*******************************
