@@ -84,7 +84,7 @@ prolog:message(test(no_pkg(Pkg))) -->
 % timezone we use this. Timezone cannot be  changed at runtime, so we do
 % this early.
 
-:- setenv('TZ', 'CET').
+:- setenv('TZ', 'Europe/Amsterdam'). % 🍃
 
 
                  /*******************************
