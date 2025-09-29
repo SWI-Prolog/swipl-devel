@@ -63,7 +63,8 @@ set_float_undefined(Old, New) :-
 	       [ condition(current_prolog_flag(bounded, false)),
                  setup(set_float_flags(Old,
                                        [ flag(prefer_rationals,true),
-                                         flag(float_undefined,nan)
+                                         flag(float_undefined,nan),
+                                         flag(rational_syntax,compatibility)
                                        ])),
                  cleanup(set_float_flags(_, Old))
 	       ]).
