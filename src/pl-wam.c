@@ -3352,12 +3352,6 @@ typedef struct register_file
   int	     throwed_from_line;		/* Debugging: line we came from */
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
 #endif
-#if O_VMI_FUNCTIONS
-  int        solution_ret;		/* return value for PL_next_solution, when exit_vm_buf is used */
-# define     SOLUTION_RET		(REGISTERS.solution_ret)
-  jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
-# define     EXIT_VM_BUF		(REGISTERS.exit_vm_buf)
-#endif
   /* Not initialized below here */
   size_t     pl_ar_buf[GMP_STACK_ALLOC];
 #define __PL_ar_buf	(REGISTERS.pl_ar_buf)
@@ -3439,9 +3433,10 @@ FOREACH_VMH(T_EMPTY,
 #define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
 #define _NEXT_INSTRUCTION		return PC
 #if O_THROW
-#define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
+#define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); \
+					longjmp(LD->exception.throw_environment->exception_jmp_env, 2)
 #else
-#define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); return NULL
+#define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); return NULL
 #endif
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
 #define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
@@ -3541,8 +3536,51 @@ API_STUB(int)
 (PL_next_solution)(qid_t qid)
 ( return PL_next_solution(qid); )
 
+#define PL_next_solution_guarded(qid, except) \
+	LDFUNC(PL_next_solution_guarded, qid, except)
+static int PL_next_solution_guarded(DECL_LD qid_t qid, bool except);
+
+/* PL_next_solution() uses  setjmp()/longjmp() to deal  with non-local
+ * exception recovery using PL_throw().   Originally, the setjmp() was
+ * inside  the  real  PL_next_solution(),   but  this  hurts  register
+ * allocation.   we  now  put  this   in  a  wrapper.   This  improves
+ * performance by about 13% on GCC-15 on AMD3950X and 35% for the WASM
+ * version using Emscripten 4.0.15 and Node.js 22.19
+ */
+
 int
 PL_next_solution(DECL_LD qid_t qid)
+{
+#if O_THROW
+  exception_frame throw_env;
+  bool except = false;
+  int jc = setjmp(throw_env.exception_jmp_env);
+
+  if ( jc == 1 )
+  { except = true;
+#if O_VMI_FUNCTIONS
+  } else if ( jc == 2 )
+  { assert(LD->exception.throw_environment == &throw_env);
+    LD->exception.throw_environment = throw_env.parent;
+    return LD->vm.return_code;
+#endif
+  } else
+  { throw_env.magic = THROW_MAGIC; \
+    throw_env.parent = LD->exception.throw_environment;
+    LD->exception.throw_environment = &throw_env;
+  }
+
+  int rc = PL_next_solution_guarded(qid, except);
+  assert(LD->exception.throw_environment == &throw_env);
+  LD->exception.throw_environment = throw_env.parent;
+  return rc;
+#else
+  return PL_next_solution_guarded(qid, false);
+#endif
+}
+
+static int
+PL_next_solution_guarded(DECL_LD qid_t qid, bool except)
 { register_file REGISTERS;
   memset(&REGISTERS, 0, offsetof(register_file,pl_ar_buf));
   QID = qid;
@@ -3553,9 +3591,6 @@ PL_next_solution(DECL_LD qid_t qid)
 #endif
 
   Code PC = NULL;			/* program counter */
-#if O_THROW
-  exception_frame THROW_ENV;		/* PL_throw() environment */
-#endif
 
 #if O_VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
@@ -3626,14 +3661,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
-#if O_VMI_FUNCTIONS && O_THROW
-  if (setjmp(EXIT_VM_BUF) != 0)
-  { // LD->vmi_registers = old_registers;
-    assert(LD->exception.throw_environment == &THROW_ENV);
-    LD->exception.throw_environment = THROW_ENV.parent;
-    return SOLUTION_RET;
-  }
-
+#if O_VMI_FUNCTIONS
 # if VMI_REGISTER_VARIABLES
   /* Now that we've executed our exit setjmp, we can set register vars with impunity */
   __reg_registers = registers;
@@ -3653,8 +3681,7 @@ variables used in the B_THROW instruction.
 
 #if O_THROW
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &LD->exception.throw_environment));
-  THROW_ENV.parent = LD->exception.throw_environment;
-  if ( setjmp(THROW_ENV.exception_jmp_env) != 0 )
+  if ( except )
   { FliFrame ffr;
     GET_LD		/* might be clobbered */
 
@@ -3674,9 +3701,6 @@ variables used in the B_THROW instruction.
     }
 
     THROW_EXCEPTION;
-  } else				/* installation */
-  { THROW_ENV.magic = THROW_MAGIC;
-    LD->exception.throw_environment = &THROW_ENV;
   }
 #endif
 

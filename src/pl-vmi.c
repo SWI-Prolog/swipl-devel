@@ -2320,10 +2320,6 @@ VMI(I_EXITQUERY, 0, 0, ())
 #endif
 
   QF->foreign_frame = PL_open_foreign_frame();
-#if !O_VMI_FUNCTIONS && O_THROW
-  assert(LD->exception.throw_environment == &THROW_ENV);
-  LD->exception.throw_environment = THROW_ENV.parent;
-#endif
 
 #define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
   SOLUTION_RETURN((QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : true);
@@ -2372,10 +2368,6 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
 
   if ( isTaggedInt(*p) )
   { sword code = valInt(*p);
-#if !O_VMI_FUNCTIONS && O_THROW
-    assert(LD->exception.throw_environment == &THROW_ENV);
-    LD->exception.throw_environment = THROW_ENV.parent;
-#endif
 
     assert(code >= INT_MIN && code <= INT_MAX);
     SOLUTION_RETURN((int)code);
@@ -4684,10 +4676,6 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	QF->foreign_frame = fid;
 	QF->yield.term = YIELD_TERM_FOREIGN;
 	DEBUG(MSG_YIELD, Sdprintf("Foreign yield\n"));
-#if !O_VMI_FUNCTIONS && O_THROW
-	assert(LD->exception.throw_environment == &THROW_ENV);
-	LD->exception.throw_environment = THROW_ENV.parent;
-#endif
 	SOLUTION_RETURN(PL_S_YIELD);
       } else
       { ffr = (FliFrame) valTermRef(FFR_ID);
@@ -5254,10 +5242,6 @@ VMH(b_throw_resume, 2, (term_t, Stack), (catchfr_ref, outofstack))
 	    Sdprintf("\n");
 	  });
 
-#if !O_VMI_FUNCTIONS && O_THROW
-    assert(LD->exception.throw_environment == &THROW_ENV);
-    LD->exception.throw_environment = THROW_ENV.parent;
-#endif
     SOLUTION_RETURN((QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : false);
   }
 }
@@ -6785,10 +6769,6 @@ next_choice:
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
-#if !O_VMI_FUNCTIONS && O_THROW
-      assert(LD->exception.throw_environment == &THROW_ENV);
-      LD->exception.throw_environment = THROW_ENV.parent;
-#endif
       SOLUTION_RETURN(false);
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */

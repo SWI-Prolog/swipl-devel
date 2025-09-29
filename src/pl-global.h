@@ -894,6 +894,12 @@ struct PL_local_data
     unsigned int incr_seed;		/* Seed for random stack increments */
 #endif
   } gc;
+
+#if O_VMI_FUNCTIONS
+  struct
+  { int		return_code;		/* SOLUTION_RETURN() */
+  } vm;
+#endif
 };
 
 GLOBAL PL_global_data_t PL_global_data;
