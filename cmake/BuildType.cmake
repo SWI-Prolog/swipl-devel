@@ -114,6 +114,8 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
   set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_C_FLAGS_PGO "${CC_OPTFLAGS} -O3 ${CC_DBGFLAGS}"
+      CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
