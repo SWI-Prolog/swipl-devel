@@ -460,3 +460,10 @@ concat_to_string(Pred, Prefix, Line, Out) :-
     ;   Out = Line
     ).
 
+                /*******************************
+                *           SANDBOX            *
+                *******************************/
+
+:- multifile sandbox:safe_primitive/1.
+
+sandbox:safe_primitive(strings:string(_,_,_,_)).
