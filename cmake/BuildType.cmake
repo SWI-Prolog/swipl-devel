@@ -102,7 +102,8 @@ elseif(EMSCRIPTEN)
       CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-sASSERTIONS"
       CACHE STRING "LDFLAGS for a Debug build" FORCE)
-elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
+elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
+       CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
@@ -119,11 +120,6 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(CMAKE_CXX_FLAGS_SANITIZE
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
-elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
 elseif(MSVC)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
