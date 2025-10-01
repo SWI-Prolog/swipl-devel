@@ -4291,7 +4291,7 @@ get_id(term_t t, Word id)
     }
     *id = f;
   } else
-  { return PL_type_error("identifier", t);
+  { return PL_type_error("identifier", t),false;
   }
 
   return true;

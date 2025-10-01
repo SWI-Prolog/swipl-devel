@@ -756,7 +756,7 @@ typedef struct attvar_mark
   Word   attvar;
 } attvar_mark;
 
-int
+int	/* bool|TRIE_ABSTRACTED|TRIE_LOOKUP_CONTAINS_ATTVAR|TRIE_LOOKUP_CYCLIC */
 trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 		     Word k, bool add, size_abstract *abstract,
 		     TmpBuffer vars)
@@ -1495,7 +1495,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
  */
 
 #define trie_insert(Trie, Key, Value, nodep, update, abstract) LDFUNC(trie_insert, Trie, Key, Value, nodep, update, abstract)
-static int
+static bool
 trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 	    int update, size_abstract *abstract)
 { trie *trie;
@@ -1513,7 +1513,7 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
     } else
     { if ( (Value  && isoff(trie, TRIE_ISMAP)) ||
 	   (!Value && isoff(trie, TRIE_ISSET)) )
-      { return PL_permission_error("insert", "trie", Trie);
+      { return PL_permission_error("insert", "trie", Trie),false;
       }
     }
 
@@ -1646,7 +1646,7 @@ PRED_IMPL("trie_update", 3, trie_update, 0)
 static
 PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
-  trie_node *node;
+  trie_node *node = NULL;	/* avoid warning */
 
   return ( trie_insert(A1, A2, A3, &node, false, NULL) &&
 	   PL_unify_pointer(A4, node) );

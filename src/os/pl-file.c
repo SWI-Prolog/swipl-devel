@@ -616,7 +616,7 @@ no_stream(term_t t, atom_t name)
 
 static bool
 not_a_stream(term_t t)
-{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
+{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t),false;
 }
 
 static bool
