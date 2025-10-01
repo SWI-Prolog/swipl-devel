@@ -84,7 +84,10 @@ void		unblockGC(int flags);	/* re-allow garbage collect */
 
 #undef LDFUNC_DECLARATIONS
 
-/* Convenience macros */
+/* Convenience macros
+   These macros return a bool.  On failure they have raised the
+   appropriate exception.
+ */
 
 #define ensureLocalSpace(n)	likely(ensureLocalSpace_ex(n))
 #define ensureGlobalSpace(n,f)  likely(ensureStackSpace_ex(n,0,f))

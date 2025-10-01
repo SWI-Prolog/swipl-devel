@@ -3383,18 +3383,15 @@ ensureSpaceForTermRefs(DECL_LD size_t n)
 */
 
 #define build_term(atom, arity, _PL_rd) LDFUNC(build_term, atom, arity, _PL_rd)
-static int
+static bool
 build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
 { functor_t functor = lookupFunctorDef(atom, arity);
   word w;
   Word argp;
-  int rc;
 
-  if ( !hasGlobalSpace(arity+1) &&
-       (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != true )
-    return raiseStackOverflow(rc);
-  if ( (rc=ensureSpaceForTermRefs(arity)) != true )
-    return rc;
+  if ( !ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT) ||
+       !ensureSpaceForTermRefs(arity) )
+    return false;
 
   DEBUG(8, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   argp = gTop;
@@ -3465,10 +3462,8 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
     return rc;
   }
 
-  if ( !hasGlobalSpace(pairs*2+2) &&
-       !ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT) )
-    return false;
-  if ( !ensureSpaceForTermRefs(arity) )
+  if ( !ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT) ||
+       !ensureSpaceForTermRefs(arity) )
     return false;
 
   DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));

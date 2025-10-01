@@ -389,7 +389,7 @@ freeSymbolPrologFlagTable(table_key_t name, table_value_t value)
 #endif
 
 
-int
+bool
 setDoubleQuotes(atom_t a, unsigned int *flagp)
 { GET_LD
   unsigned int flags;
@@ -413,11 +413,11 @@ setDoubleQuotes(atom_t a, unsigned int *flagp)
   *flagp &= ~DBLQ_MASK;
   *flagp |= flags;
 
-  succeed;
+  return true;
 }
 
 
-int
+bool
 setBackQuotes(atom_t a, unsigned int *flagp)
 { GET_LD
   unsigned int flags;
@@ -445,7 +445,7 @@ setBackQuotes(atom_t a, unsigned int *flagp)
 }
 
 
-int
+bool
 setRationalSyntax(atom_t a, unsigned int *flagp)
 { GET_LD
   unsigned int flags;
@@ -465,7 +465,7 @@ setRationalSyntax(atom_t a, unsigned int *flagp)
   *flagp &= ~RAT_MASK;
   *flagp |= flags;
 
-  succeed;
+  return true;
 }
 
 
@@ -875,9 +875,10 @@ keep_flag(atom_t k, prolog_flag *f, unsigned short flags, oneof *of, term_t valu
 	LDFUNC(set_prolog_flag_unlocked, m, k, value, flags, of)
 
 static prolog_flag *
-set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, unsigned short flags, oneof *of)
+set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
+			 unsigned short flags, oneof *of)
 { prolog_flag *f;
-  int rval = true;
+  bool rval = true;
 
 					/* set existing Prolog flag */
 #ifdef O_PLMT
@@ -2252,9 +2253,9 @@ setABIVersionPrologFlag(void)
 }
 
 
-int
+bool
 checkPrologFlagsAccess(void)
-{ int rc = true;
+{ bool rc = true;
 
   if ( GD->prolog_flag.table )
   { if ( HAS_LD )
