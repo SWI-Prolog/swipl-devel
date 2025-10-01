@@ -3344,7 +3344,9 @@ statically allocated and thus unique.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
-#define readValHandle(term, argp, _PL_rd) LDFUNC(readValHandle, term, argp, _PL_rd)
+#define readValHandle(term, argp, _PL_rd) \
+	LDFUNC(readValHandle, term, argp, _PL_rd)
+
 static inline void
 readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
 { word w = *valTermRef(term);

@@ -550,12 +550,28 @@ del_dict(DECL_LD word dict, word key, word *new_dict)
 }
 
 
+#define unify_tags(t1, t2, flags)			\
+	LDFUNC(unify_tags, t1, t2, flags)
+
+static int
+unify_tags(DECL_LD Word t1, Word t2, int flags)
+{ deRef(t1);
+  deRef(t2);
+
+  if ( *t1 == ATOM_dyndict || *t2 == ATOM_dyndict )
+    return true;
+
+  return unify_ptrs(t1, t2, flags);
+}
+
 /* partial_unify_dict(dict1, dict2) unifies all common elements of two
    dicts.  It returns true on success, false on a failed unification
    and *_OVERFLOW on some memory overflow
 */
 
-#define partial_unify_dict(dict1, dict2) LDFUNC(partial_unify_dict, dict1, dict2)
+#define partial_unify_dict(dict1, dict2) \
+	LDFUNC(partial_unify_dict, dict1, dict2)
+
 static int
 partial_unify_dict(DECL_LD word dict1, word dict2)
 { Functor d1 = valueTerm(dict1);
@@ -566,8 +582,8 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
   Word end2 = in2+arityFunctor(d2->definition);
   int rc;
 
-  /* unify the tages */
-  if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE)) != true )
+  /* unify the tags */
+  if ( (rc=unify_tags(in1, in2, ALLOW_RETCODE)) != true )
     return rc;
 
   /* advance to first v+k entry */
@@ -594,8 +610,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
   return true;
 }
 
-
-/* select_dict() demands del to be a sub-dict of from and assigns
+/* unify_left_dict() demands del to be a sub-dict of from and assigns
    all remaining values in new.
 
    Note that unify_ptrs() can push data onto the global stack in
@@ -606,7 +621,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
 #define unify_left_dict(del, from) \
 	LDFUNC(unify_left_dict, del, from)
 
-static int
+static int			/* bool or *_OVERFLOW */
 unify_left_dict(DECL_LD word del, word from)
 { Functor dd = valueTerm(del);
   Functor fd = valueTerm(from);
@@ -617,7 +632,7 @@ unify_left_dict(DECL_LD word del, word from)
   int rc;
 
   /* unify the tags */
-  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
+  if ( (rc=unify_tags(din, fin, ALLOW_RETCODE)) != true )
     return rc;
 
   /* advance to first v+k entry */
