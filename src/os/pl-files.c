@@ -880,7 +880,7 @@ PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
 
     if ( !PL_unify_atom(A3, fn) )
     { close(fd);
-      return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, A2);
+      return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 3, A3);
     }
 
     s = Sfdopen(fd, mode);
@@ -888,7 +888,7 @@ PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
     return PL_unify_stream(A4, s);
   } else
   { return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_create, ATOM_temporary_file, A2);
+		    ATOM_create, ATOM_temporary_file, A1);
   }
 }
 
