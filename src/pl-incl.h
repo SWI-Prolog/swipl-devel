@@ -1090,6 +1090,12 @@ with one operation, it turns out to be faster as well.
 #define RAT_COMPAT		(0)
 #define RAT_NATURAL		(0x00000100) /* 1/3 */
 #define RAT_MASK		(RAT_NATURAL)
+#define VARTAG_DICT		(0x00000000) /* _{...} --> old dict */
+#define VARTAG_DYNDICT		(0x00000200) /* _{...} --> #{...} */
+#define VARTAG_ATTVAR		(0x00000400) /* _{...} --> attvar */
+#define VARTAG_ERROR		(0x00000600) /* _{...} --> error */
+#define VARTAG_WARNING		(0x00000800) /* _{...} --> warning + dict */
+#define VARTAG_MASK		(0x00000e00)
 #define UNKNOWN_FAIL		(0x00001000) /* module */
 #define UNKNOWN_WARNING		(0x00002000) /* module */
 #define UNKNOWN_ERROR		(0x00004000) /* module */
