@@ -579,8 +579,7 @@ valHandle(DECL_LD term_t r)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 linkValI(p)  is  an  inlined  version  of  linkVal()  that  assumes  the
 dereferenced value of `p` lives on  the   global  stack. It has no error
-checking (unless compiled for debugging) and fetches the base address of
-the global stack only once.
+checking (unless compiled for debugging).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline word

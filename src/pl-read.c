@@ -56,6 +56,7 @@
 #include "pl-op.h"
 #include "pl-modul.h"
 #include "pl-setup.h"
+#include "pl-attvar.h"
 #include <errno.h>
 
 typedef const unsigned char * cucharp;
@@ -3347,7 +3348,7 @@ statically allocated and thus unique.
 #define readValHandle(term, argp, _PL_rd) \
 	LDFUNC(readValHandle, term, argp, _PL_rd)
 
-static inline void
+static void
 readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
 { word w = *valTermRef(term);
   Variable var;
@@ -3370,6 +3371,17 @@ readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
   setVar(*valTermRef(term));
 }
 
+#define readValHandleConst(term, argp, _PL_rd) \
+	LDFUNC(readValHandleConst, term, argp, _PL_rd)
+
+static void
+readValHandleConst(DECL_LD term_t term, Word argp, ReadData _PL_rd)
+{ word w = *valTermRef(term);
+
+  assert(isConst(w));
+  *argp = w;
+  setVar(*valTermRef(term));
+}
 
 #define ensureSpaceForTermRefs(n) LDFUNC(ensureSpaceForTermRefs, n)
 static inline bool
@@ -3420,6 +3432,110 @@ build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
   return true;
 }
 
+#define unify_in_read(t1, t2) LDFUNC(unify_in_read, t1, t2)
+
+static bool
+unify_in_read(DECL_LD term_t t1, term_t t2)
+{ fid_t fid = PL_open_foreign_frame();
+
+  if ( fid )
+  { if ( PL_unify(t1, t2) )
+    { term_t ex = PL_new_term_ref();
+      if ( foreignWakeup(ex) )
+      { PL_close_foreign_frame(fid);
+	return true;
+      }
+      if ( !isVar(*valTermRef(ex)) )
+      { PL_raise_exception(ex);
+	PL_close_foreign_frame(fid);
+	return false;
+      }
+      PL_rewind_foreign_frame(fid);
+    }
+
+    term_t ex = PL_new_term_ref();
+    bool rc = ( PL_unify_term(ex,
+			      PL_FUNCTOR, FUNCTOR_error2,
+				PL_FUNCTOR, FUNCTOR_representation_error1,
+				  PL_FUNCTOR, FUNCTOR_equals2,
+				    PL_TERM, t1, PL_TERM, t2,
+				PL_VARIABLE) &&
+		PL_raise_exception(ex) );
+    PL_close_foreign_frame(fid);
+    return rc;
+  }
+
+  return false;
+}
+
+/**
+ * Build an attributed variable from data collected for a dict.  We
+ * know the "tag" is a variable.
+ */
+
+#define build_attvar(pairs, _PL_rd) LDFUNC(build_attvar, pairs, _PL_rd)
+static bool
+build_attvar(DECL_LD int pairs, ReadData _PL_rd)
+{ int arity = pairs*2+1;
+  term_t *argv = term_av(-arity, _PL_rd);
+  term_t var_value = 0;		/* X{= : Value} */
+
+  word w = *valTermRef(argv[0]);
+  Variable var = varInfo(w, _PL_rd);
+
+  /* put_attr() needs max 5 cells global and 2 trail */
+  /* First needs 2 more */
+  /* We also need the variable itself and a cell for the value */
+  if ( !ensureStackSpace(1+2+pairs*6, pairs*2) ||
+       !ensureSpaceForTermRefs(2+arity) )
+    return false;
+
+  /* Begin no GC/shift */
+  term_t attvar_term = PL_new_term_ref();
+  Word attvar = alloc_attvar();
+  *valTermRef(attvar_term) = makeRefG(attvar);
+
+  for(int i=0; i<pairs; i++)
+  { word name;
+    Word value = allocGlobalNoShift(1);
+
+    readValHandleConst(argv[i*2+1], &name, _PL_rd);
+    readValHandle(argv[i*2+2],      value, _PL_rd);
+
+    if ( name == ATOM_equals )
+    { var_value = PL_new_term_ref_noshift();
+      assert(var_value);
+      *valTermRef(var_value) = makeRefG(value);
+    } else
+    { bool rc = put_attr(attvar, name, value);
+      assert(rc);
+      (void)rc;
+    }
+  }
+  /* End no GC/shift */
+
+  if ( var_value )
+  { if ( !unify_in_read(attvar_term, var_value) )
+      return false;
+  }
+
+  if ( !var )			/* anonymous */
+  { setHandle(argv[0], *valTermRef(attvar_term));
+  } else
+  { if ( !var->variable )	/* new variable */
+    { var->variable = attvar_term;
+      setHandle(argv[0], *valTermRef(attvar_term));
+    } else			/* existing variable */
+    { if ( !unify_in_read(attvar_term, var->variable) )
+	return false;
+    }
+  }
+
+  truncate_term_stack(&argv[1], _PL_rd);
+
+  return true;
+}
+
 
 /* build_dict(int pairs, ...) builds a dict from the data on the stack.
    and pushes the result back to the term-stack. The stack first
@@ -3435,24 +3551,55 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
   term_t *argv = term_av(-arity, _PL_rd);
   word w;
   Word argp;
-  int i;
   bool rc;
   int index_buf[64];
   int *indexes = index_buf;
+  word tag = 0;
+
+  if ( (_PL_rd->flags&VARTAG_MASK) )
+  { word w = *valTermRef(argv[0]);
+    Variable var;
+
+    if ( isVar(w) ||		/* anonymous (_) */
+	 (var = varInfo(w, _PL_rd)) )
+    { switch( (_PL_rd->flags&VARTAG_MASK) )
+      { case VARTAG_ERROR:
+	{ term_t ex = makeErrorTerm("var_tag", NULL, 0, _PL_rd);
+	  if ( ex )
+	    PL_raise_exception(ex);
+	  return false;
+	}
+	case VARTAG_WARNING:
+	{ term_t ex = makeErrorTerm("warning_var_tag", NULL, 0, _PL_rd);
+	  if ( !ex || !printMessage(ATOM_warning, PL_TERM, ex) )
+	    return false;
+	}
+	/*FALLTHROUGH*/
+	case VARTAG_DYNDICT:
+	  tag = ATOM_dyndict;
+	  break;
+	case VARTAG_ATTVAR:
+	  return build_attvar(pairs, _PL_rd);
+	default:
+	  assert(0);
+      }
+    }
+  }
 
   if ( pairs > 64 )
   { if ( !(indexes = malloc(sizeof(int)*pairs)) )
       return PL_no_memory();
   }
-  for(i=0; i<pairs; i++)
+  for(int i=0; i<pairs; i++)
     indexes[i] = i;
 
-  if ( (i=dict_order_term_refs(argv+1, indexes, pairs)) )
+  int dupl;
+  if ( (dupl=dict_order_term_refs(argv+1, indexes, pairs)) )
   { term_t ex = PL_new_term_ref();
 
     rc = ( PL_unify_term(ex,
 			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
-			   PL_TERM, argv[indexes[i]*2+1]) &&
+			   PL_TERM, argv[indexes[dupl]*2+1]) &&
 	   errorWarningA1("duplicate_key", NULL, ex, _PL_rd)
 	 );
 
@@ -3471,9 +3618,12 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += pairs*2+2;
   *argp++ = dict_functor(pairs);
-  readValHandle(argv[0], argp++, _PL_rd); /* the tag */
+  if ( tag )
+    *argp++ = tag;
+  else
+    readValHandle(argv[0], argp++, _PL_rd); /* the tag */
 
-  for(i=0; i<pairs; i++)
+  for(int i=0; i<pairs; i++)
   { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd); /* value */
     readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd); /* key */
   }
@@ -5313,7 +5463,9 @@ static const PL_option_t read_term_options[] =
 };
 
 
-#define read_term_from_stream(s, term, options) LDFUNC(read_term_from_stream, s, term, options)
+#define read_term_from_stream(s, term, options) \
+	LDFUNC(read_term_from_stream, s, term, options)
+
 static foreign_t
 read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 { term_t tpos = 0;

@@ -310,7 +310,7 @@ make_new_attvar(DECL_LD Word p)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SHIFT-SAFE: Requires 7 global + 2 trail
+SHIFT-SAFE: Requires 7 global + 1 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define put_new_attvar(p, name, value) LDFUNC(put_new_attvar, p, name, value)
@@ -415,7 +415,7 @@ put_att_value(DECL_LD Word vp, atom_t name, Word value)
 
 
 #define put_attr(av, name, value) LDFUNC(put_attr, av, name, value)
-static int
+bool
 put_attr(DECL_LD Word av, atom_t name, Word value)
 { Word vp;
 
