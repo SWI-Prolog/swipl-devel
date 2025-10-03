@@ -657,6 +657,31 @@ writeQuoted(IOSTREAM *stream, const char *text, size_t len, int quote,
 
 #if O_ATTVAR
 static bool
+writeAttributes(term_t t, int prec, write_options *options, int flags)
+{ term_t name  = PL_new_term_ref();
+  term_t value = PL_new_term_ref();
+  term_t att   = PL_new_term_ref();
+
+  for(bool first=true; PL_is_functor(t, FUNCTOR_att3); first = false)
+  { _PL_get_arg(1, t, name);
+    _PL_get_arg(2, t, value);
+    _PL_get_arg(3, t, t);
+
+    if ( !first && !PutComma(options) )
+      return false;
+    if ( !PL_cons_functor(att, FUNCTOR_colon2, name, value) ||
+	 !writeTerm(att, 999, options, W_COMPOUND_ARG) )
+      return false;
+  }
+  if ( !PL_get_nil(t) &&
+       !writeTerm(t, 999, options, W_COMPOUND_ARG) )
+    return false;
+
+  PL_reset_term_refs(name);
+  return true;
+}
+
+static bool
 writeAttVar(term_t av, write_options *options)
 { GET_LD
   char buf[32];
@@ -675,7 +700,7 @@ writeAttVar(term_t av, write_options *options)
     Sputcode('{', options->out);
     a = PL_new_term_ref();
     PL_get_attr(av, a);
-    if ( !writeTerm(a, 1200, options, W_TOP) )
+    if ( !writeAttributes(a, 1200, options, W_TOP) )
       return false;
     Sputcode('}', options->out);
     PL_close_foreign_frame(fid);
