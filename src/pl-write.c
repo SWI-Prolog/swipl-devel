@@ -148,12 +148,12 @@ varName(term_t t, char *name)
 }
 
 
-static int
+static bool
 atomIsVarName(atom_t a)
 { Atom atom = atomValue(a);
 
   if ( isoff(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
-    fail;
+    return false;
   if ( isUCSAtom(atom) )
   { pl_wchar_t *w = (pl_wchar_t*)atom->name;
     size_t len = atom->length / sizeof(pl_wchar_t);
@@ -1949,10 +1949,10 @@ reunify_acyclic_substitutions(term_t substitutions, term_t cycles,
 }
 
 
-static int
+static bool
 writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
-  int rc;
+  bool rc;
   int wflags;
 
   if ( ison(options, PL_WRT_PARTIAL) && prec != 999 && prec != 1200 )
@@ -1999,7 +1999,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
 
 
 #define bind_varnames(names) LDFUNC(bind_varnames, names)
-static int
+static bool
 bind_varnames(DECL_LD term_t names)
 { term_t tail, head, var, namet;
   int check_cycle_after = 1000;

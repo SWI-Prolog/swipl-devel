@@ -164,7 +164,7 @@ decimal_weight(int code)
 /* unquoted_atomW() returns true if text can be written to s as unquoted atom
 */
 
-static int
+static bool
 truePrologFlagNoLD(unsigned int flag)
 { GET_LD
 
@@ -172,7 +172,7 @@ truePrologFlagNoLD(unsigned int flag)
 }
 
 
-int
+bool
 atom_varnameW(const pl_wchar_t *s, size_t len)
 { if ( f_is_prolog_var_start(*s) )
   { for(s++; --len > 0; s++)
@@ -5353,7 +5353,7 @@ callCommentHook(predicate_t comment_hook,
 }
 
 
-int
+bool
 read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
 { read_data rd;
   int rval;

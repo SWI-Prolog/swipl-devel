@@ -60,7 +60,7 @@ int		f_is_decimal(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
 int		unicode_quoted_escape(int c);
-int		atom_varnameW(const pl_wchar_t *s, size_t len);
+bool		atom_varnameW(const pl_wchar_t *s, size_t len);
 int		atom_is_named_var(atom_t name);
 strnumstat	str_number(const unsigned char *string,
 			   unsigned char **end,
@@ -73,7 +73,7 @@ foreign_t	pl_read2(term_t stream, term_t term);
 void		initCharConversion(void);
 foreign_t	pl_char_conversion(term_t in, term_t out);
 foreign_t	pl_current_char_conversion(term_t in, term_t out, control_t h);
-int		read_clause(IOSTREAM *s, term_t term, term_t options);
+bool		read_clause(IOSTREAM *s, term_t term, term_t options);
 
 #undef LDFUNC_DECLARATIONS
 
