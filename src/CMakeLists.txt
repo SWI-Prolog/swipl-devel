@@ -79,7 +79,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-proc.c pl-prof.c pl-read.c pl-rec.c pl-setup.c
     pl-sys.c pl-trace.c pl-util.c pl-qlf.c pl-write.c
     pl-term.c pl-thread.c pl-srcfile.c
-    pl-attvar.c pl-gvar.c pl-btree.c
+    pl-attvar.c pl-gvar.c pl-btree.c pl-termset.c
     pl-init.c pl-gmp.c pl-segstack.c pl-hash.c
     pl-version.c pl-codetable.c pl-supervisor.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c

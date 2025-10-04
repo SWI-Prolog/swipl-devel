@@ -52,6 +52,7 @@
 #include "os/pl-utf8.h"
 #include "os/pl-prologflag.h"
 #include "os/pl-fmt.h"
+#include "pl-termset.h"
 #include <stdio.h>			/* sprintf() */
 #include <errno.h>
 #ifdef HAVE_LOCALE_H
