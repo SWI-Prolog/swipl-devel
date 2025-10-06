@@ -2512,6 +2512,29 @@ If \const{true} (default \const{false}), variables must start with an
 underscore (\chr{_}).  May be changed. This flag is local to the
 module in which it is changed.  See \secref{varprefix}.
 
+    \prologflagitem{var_tag}{Atom}{rw}
+This flag controls the interpretation of \arg{Tag}\{\ldots\} if
+\arg{Tag} is unbound.  Possible values are:
+
+    \begin{description}
+    \termitem{dict}{}
+Read as a dict (see \secref{bidicts}) with unbound tag.  This is the
+current default. The use of unbound tags is deprecated.  In due time
+the default will be changed, ultimately to \const{attvar}.  See
+\secref{ext-dict-compat}.
+    \termitem{attvar}
+Read \verb$Var{...}$ as an attributed variable.  This is likely to
+become the future default.
+    \termitem{#}{}
+Read \verb$Var{...}$ as \verb$#{...}$.  This flag allows to quickly
+assess the impact on your code of using \verb$#{...}$ rather than
+dicts with unbound tags.
+    \termitem{warning}{}
+As \chr{#}, but prints a warning.
+    \termitem{error}{}
+Considers \verb$Var{...}$ a syntax error.
+    \end{description}
+
     \prologflagitem{verbose}{atom}{rw}
 This flag is used by print_message/2.  If its value is \const{silent},
 messages of type \const{informational} and \const{banner} are suppressed.

@@ -856,7 +856,9 @@ Below is an example that illustrates the representation of a typical
 SWI-Prolog version~7 introduces dicts as an abstract object with a
 concrete modern syntax and functional notation for accessing members and
 as well as access functions defined by the user. The syntax for a dict is
-illustrated below. \arg{Tag} is either a variable or an atom. As with
+illustrated below. \arg{Tag} is an atom.\footnote{That \arg{Tag} can
+be a variable. This used to be common for jargon{anonymous} dicts, but
+is now deprecated in favour of the reserved tag \chr{#}.} As with
 compound terms, there is \textbf{no} space between the tag and the
 opening brace. The keys are either atoms or small integers (up to
 \prologflag{max_tagged_integer}). The values are arbitrary Prolog terms
@@ -882,8 +884,8 @@ A = point{x:1, y:2}.
 ?- A = point{y:2, x:1}.
 A = point{x:1, y:2}.
 
-?- A = _{first_name:"Mel", last_name:"Smith"}.
-A = _G1476{first_name:"Mel", last_name:"Smith"}.
+?- A = #{first_name:"Mel", last_name:"Smith"}.
+A = #{first_name:"Mel", last_name:"Smith"}.
 \end{code}
 
 Dicts can be unified following the standard symmetric Prolog unification
@@ -892,18 +894,58 @@ named keys are represented is not relevant. This behaviour is
 illustrated by the following example.
 
 \begin{code}
-?- point{x:1, y:2} = Tag{y:2, x:X}.
-Tag = point,
+?- point{x:1, y:2} = point{y:2, x:X}.
 X = 1.
 \end{code}
 
-\textbf{Note} In the current implementation, two dicts unify only if
-they have the same set of keys and the tags and values associated with
-the keys unify. In future versions, the notion of unification between
-dicts could be modified such that two dicts unify if their tags and the
-values associated with \emph{common} keys unify, turning both dicts into
-a new dict that has the union of the keys of the two original dicts.
+Two dicts unify only if they have the same tag and the same set of keys
+and values associated with the keys unify.  As normal in Prolog, after
+successful unification the two dicts are indistingsable according to
+\predref{==}{2} and compare/3.
 
+\subsection{Dict types and tags}
+\label{sec:ext-dict-compat}
+
+The \href{https://prolog-lang.org/ImplementersForum/PIPs.html}{PIP}
+implementors forum is working on three PIPs related to dicts and their
+syntax: 0102, 0104 and 0109.  These PIPs are converging to the following
+consensus regarding the \verb$Tag{...}$ syntax:
+
+\begin{itemize}
+    \item The \ldots in \verb$Tag{...}$ is a set of \arg{Key}:\arg{Value},
+where \arg{Key} is an atom (and possibly (small) integer) and
+\arg{Value} is any term.   This is compatible to SWI-Prolog.
+    \item The Tag is either
+    \begin{itemize}
+        \item The atom \chr{#}.  This denotes a \jargon{dynamic dict}, which
+	is what our dicts are.
+	\item Any other atom.  This denotes a \jargon{named arguments} or
+	\jargon{struct}.  This syntax is mapped to a compound term whose
+	arity and allowed keys is defined by a declaration.
+	\item A variable.  This is parsed into an \jargon{attributed variable}
+	(see \secref{attvar}).
+    \end{itemize}
+\end{itemize}
+
+Our aim is to support these PIPs. Next to mapping ``any other atom'' to
+a named argument structure, we will support mapping these to a dynamic
+dict, optionally with user-defined functions (see
+\secref{ext-dict-user-functions}).  The transition is guided by the
+Prolog flag \prologflag{var_tag}. Its current default (\const{dict}) is
+compatible with the original dict implementation of SWI-Prolog.
+
+The use of unbound tags is deprecated.  It is recommended to use \chr{#}
+for anonymous dynamic dicts.  The main reason for using unbound tags is
+in using them with the predicates \predref{:<}{2} and \predref{>:<}{2}
+to access a set of keys in a dict with unknown tag.   In the current
+version the \chr{#} tag matches any tag in these predicates. For
+example, to extract the \const{x} and \const{y} from a dict, we can
+now use
+
+\begin{code}
+    ...,
+    #{x:X, y:Y} :< Dict,
+\end{code}
 
 \subsection{Functions on dicts}
 \label{sec:ext-dict-functions}
@@ -1056,20 +1098,20 @@ replacing the value associated with \arg{Key} in a sub-dict of the dict
 on which the function operates. See put_dict/4. Below are some examples:
 
 \begin{code}
-?- A = _{}.put(a, 1).
-A = _G7359{a:1}.
+?- A = #{}.put(a, 1).
+A = #{a:1}.
 
-?- A = _{a:1}.put(a, 2).
-A = _G7377{a:2}.
+?- A = #{a:1}.put(a, 2).
+A = #{a:2}.
 
-?- A = _{a:1}.put(b/c, 2).
-A = _G1395{a:1, b:_G1584{c:2}}.
+?- A = #{a:1}.put(b/c, 2).
+A = #{a:1, b: #{c:2}}.
 
-?- A = _{a:_{b:1}}.put(a/b, 2).
-A = _G1429{a:_G1425{b:2}}.
+?- A = #{a: #{b:1}}.put(a/b, 2).
+A = #{a: #{b:2}}.
 
-?- A = _{a:1}.put(a/b, 2).
-A = _G1395{a:_G1578{b:2}}.
+?- A = #{a:1}.put(a/b, 2).
+A = #{a: #{b:2}}.
 \end{code}
 \end{description}
 
@@ -1142,7 +1184,7 @@ for dict_create/3. This predicate is normally accessed using the
 functional notation. Below are some examples:
 
 \begin{code}
-?- A = point{x:1, y:2}.put(_{x:3}).
+?- A = point{x:1, y:2}.put(#{x:3}).
 A = point{x:3, y:2}.
 
 ?- A = point{x:1, y:2}.put([x=3]).
@@ -1165,8 +1207,8 @@ This predicate can also be accessed by using the functional notation,
 in which case Key can also be a *path* of keys.  For example:
 
 \begin{code}
-?- Dict = _{}.put(a/b, c).
-Dict = _6096{a:_6200{b:c}}.
+?- Dict = #{}.put(a/b, c).
+Dict = #{a: #{b:c}}.
 \end{code}
 
     \predicate{del_dict}{4}{+Key, +DictIn, ?Value, -DictOut}
@@ -1174,37 +1216,36 @@ True when \arg{Key}-\arg{Value} is in \arg{DictIn} and \arg{DictOut}
 contains all associations of \arg{DictIn} except for \arg{Key}.
 
     \infixop[semidet]{:<}{+Select}{+From}
-True when \arg{Select} is a `sub dict' of \arg{From}: the tags
-must unify and all keys in \arg{Select} must appear with unifying
-values in \arg{From}.  \arg{From} may contain keys that are not in
-\arg{Select}.  This operation is frequently used to \emph{match}
-a dict and at the same time extract relevant values from it.
-For example:
+True when \arg{Select} is a `sub dict' of \arg{From}: the tags must
+match and all keys in \arg{Select} must appear with unifying values in
+\arg{From}. Two tags match if the unify or one of the tags is the
+reserved \chr{#} tag. \arg{From} may contain keys that are not in
+\arg{Select}. This operation is frequently used to \emph{match} a dict
+and at the same time extract relevant values from it. For example:
 
 \begin{code}
+plot(Dict, On),
+  #{x:X, y:Y, z:Z} :< Dict =>
+    plot_xyz(X, Y, Z, On).
 plot(Dict, On) :-
-	_{x:X, y:Y, z:Z} :< Dict, !,
-	plot_xyz(X, Y, Z, On).
-plot(Dict, On) :-
-	_{x:X, y:Y} :< Dict, !,
-	plot_xy(X, Y, On).
+  #{x:X, y:Y} :< Dict =>
+    plot_xy(X, Y, On).
 \end{code}
 
 The goal \verb$Select :< From$ is equivalent to
 \term{select_dict}{Select, From, _}.
 
     \predicate[semidet]{select_dict}{3}{+Select, +From, -Rest}
-True when the tags of \arg{Select} and \arg{From} have been unified,
+True when the tags of \arg{Select} and \arg{From} match,
 all keys in \arg{Select} appear in \arg{From} and the corresponding
 values have been unified. The key-value pairs of \arg{From} that do not
 appear in \arg{Select} are used to form an anonymous dict, which is
 unified with \arg{Rest}.  For example:
 
 \begin{code}
-?- select_dict(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
-P = point,
+?- select_dict(#{x:0, y:Y}, point{x:0, y:1, z:2}, R).
 Y = 1,
-R = _{z:2}.
+R = #{z:2}.
 \end{code}
 
 See also \predref{:<}{2} to ignore \arg{Rest} and \predref{>:<}{2} for
@@ -1212,11 +1253,11 @@ a symmetric partial unification of two dicts.
 
     \infixop{>:<}{+Dict1}{+Dict2}
 This operator specifies a \jargon{partial unification} between
-\arg{Dict1} and \arg{Dict2}. It is true when the tags and the values
-associated with all \emph{common} keys have been unified.  The values
-associated to keys that do not appear in the other dict are ignored.
-Partial unification is symmetric.  For example, given a list of dicts,
-find dicts that represent a point with X equal to zero:
+\arg{Dict1} and \arg{Dict2}. It is true when the tags match and the
+values associated with all \emph{common} keys have been unified. The
+values associated to keys that do not appear in the other dict are
+ignored. Partial unification is symmetric. For example, given a list of
+dicts, find dicts that represent a point with X equal to zero:
 
 \begin{code}
     member(Dict, List),
@@ -1343,10 +1384,10 @@ salutation(P) :-
     format('Dear ~w ~w,~n~n', [Title, LastName]).
 
 salutation(P) :-
-    _{first_name:FirstName, last_name:LastName} :< P, !,
+    #{first_name:FirstName, last_name:LastName} :< P, !,
     format('Dear ~w ~w,~n~n', [FirstName, LastName]).
 salutation(P) :-
-    _{title:Title, last_name:LastName} :< P, !,
+    #{title:Title, last_name:LastName} :< P, !,
     format('Dear ~w ~w,~n~n', [Title, LastName]).
 \end{code}
 
