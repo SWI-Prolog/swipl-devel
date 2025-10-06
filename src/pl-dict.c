@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2024, VU University Amsterdam
+    Copyright (c)  2013-2025, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -677,7 +677,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
   int rc;
 
   /* unify the tags */
-  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE)) != true )
+  if ( (rc=unify_tags(din, fin, ALLOW_RETCODE)) != true )
     return rc;
 
   /* advance to first v+k entry */
@@ -719,7 +719,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
 
       *new_dict = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
       *out++ = dict_functor(nsize);
-      setVar(*out++);
+      *out++ = ATOM_dyndict;
 
       Word fe = fin;
       fin  = fd->arguments+1;
