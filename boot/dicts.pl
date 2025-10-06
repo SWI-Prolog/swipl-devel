@@ -124,14 +124,14 @@ put_dict_path(Path/Key, Dict, Old, NewDict, New) :-
     (   get_dict(Key, OldD, Old, NewD, New),
         is_dict(Old)
     ->  true
-    ;   Old = _{},
+    ;   Old = #{},
         put_dict(Key, OldD, New, NewD)
     ).
 put_dict_path(Key, Dict, Old, NewDict, New) :-
     get_dict(Key, Dict, Old, NewDict, New),
     is_dict(Old),
     !.
-put_dict_path(Key, Dict, _{}, NewDict, New) :-
+put_dict_path(Key, Dict, #{}, NewDict, New) :-
     put_dict(Key, Dict, New, NewDict).
 
 %!  get_dict_path(+Path, +Dict, -Value)
