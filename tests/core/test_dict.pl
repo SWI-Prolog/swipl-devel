@@ -210,21 +210,20 @@ test('del_dict/4') :-
 test('del_dict/4') :-
 	\+ del_dict(k1, a{k1:v1}, v2, _).
 test('select_dict/3') :-
-	select_dict(T{}, a{k1:v1, k2:v2}, R),
-	T == a,
-	R =@= _{k1:v1, k2:v2}.
+	select_dict(#{}, a{k1:v1, k2:v2}, R),
+	R =@= #{k1:v1, k2:v2}.
 test('select_dict/3') :-
-	select_dict(T{k1:V1}, a{k1:v1, k2:v2}, R),
-	T == a, V1 == v1,
-	R =@= _{k2:v2}.
+	select_dict(#{k1:V1}, a{k1:v1, k2:v2}, R),
+	V1 == v1,
+	R =@= #{k2:v2}.
 test('select_dict/3') :-
-	select_dict(T{k1:V1, k2:V2}, a{k1:v1, k2:v2}, R),
-	T == a, V1 == v1, V2 == v2,
-	R =@= _{}.
+	select_dict(#{k1:V1, k2:V2}, a{k1:v1, k2:v2}, R),
+	V1 == v1, V2 == v2,
+	R =@= #{}.
 test('select_dict/3') :-
-	select_dict(a{k1:v1, k2:v2}, T{k1:V1, k2:V2}, R),
-	T == a, V1 == v1, V2 == v2,
-	R =@= _{}.
+	select_dict(a{k1:v1, k2:v2}, #{k1:V1, k2:V2}, R),
+	V1 == v1, V2 == v2,
+	R =@= #{}.
 test('select_dict/3') :-
 	\+ select_dict(b{k1:v1}, a{k1:v1}, _).
 test('select_dict/3') :-
@@ -233,10 +232,10 @@ test('select_dict/3') :-
 	\+ select_dict(a{k2:v1}, a{k1:v1}, _).
 test('select_dict/3', Done == true) :-
 	freeze(VA, Done=true),
-	A = _{ key: VA },
-	B = _{ key: vb },
+	A = #{ key: VA },
+	B = #{ key: vb },
 	select_dict(A, B, Rest),
-	assertion(Rest =@= _{}).
+	assertion(Rest =@= #{}).
 test(':</2') :-
 	T{k1:V1} :< a{k1:v1, k2:v2},
 	T == a, V1 == v1.
@@ -269,7 +268,7 @@ test(select, X == 1) :-
 	a{x:X} :< a{x:1, y:2}.
 test(select, fail) :-
 	a{x:_} :< a{y:2}.
-test(select, R =@= _{z:3}) :-		% implicit conversion
+test(select, R =@= #{z:3}) :-		% implicit conversion
 	select_dict([x(1)], [x(1),z(3)], R).
 test(same_keys, true) :-
 	dict_same_keys(#{a:1, b:2}, ${a:x, b:3}).
