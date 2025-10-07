@@ -337,6 +337,7 @@ typedef struct variable
   unsigned int	times;		/* Number of occurences */
   unsigned int	hash_next;	/* Offset for next with same hash */
   word		signature;	/* Pseudo atom */
+  bool		labeled;        /* Used in X{= : Value} */
 } *Variable;
 
 typedef struct token
@@ -1711,6 +1712,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   var->times     = 1;
   var->variable  = 0;
   var->signature = consVarInfo(nv);
+  var->labeled   = false;
   if ( nv >= 16 )
     hashVariable(var, _PL_rd);
 
@@ -1718,7 +1720,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 }
 
 
-static int
+static bool
 warn_singleton(const char *name)	/* Name in UTF-8 */
 { if ( name[0] != '_' )			/* not _*: always warn */
     return true;
@@ -1737,7 +1739,7 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 }
 
 
-static int
+static bool
 warn_multiton(const char *name)
 { if ( !warn_singleton(name) )
   { if ( name[0] == '_' && name[1] )
@@ -1769,7 +1771,7 @@ warn_multiton(const char *name)
 #define IS_MULTITON     2
 
 #define is_singleton(var, type, _PL_rd) LDFUNC(is_singleton, var, type, _PL_rd)
-static int
+static bool
 is_singleton(DECL_LD Variable var, int type, ReadData _PL_rd)
 { if ( var->times == 1 )
   { if ( (type == IS_SINGLETON    && warn_singleton(var->name)) ||
@@ -1854,7 +1856,7 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
       }
     }
 
-    succeed;
+    return true;
   }
 }
 
@@ -1964,7 +1966,7 @@ PRED_IMPL("$qq_open", 2, qq_open, 0)
 
 
 #define parse_quasi_quotations(_PL_rd) LDFUNC(parse_quasi_quotations, _PL_rd)
-static int
+static bool
 parse_quasi_quotations(DECL_LD ReadData _PL_rd)
 { if ( _PL_rd->qq_tail )
   { term_t av;
@@ -3432,40 +3434,57 @@ build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
   return true;
 }
 
-#define unify_in_read(t1, t2) LDFUNC(unify_in_read, t1, t2)
+/** Build a term from X{= : Value}.
+ */
 
-static bool
-unify_in_read(DECL_LD term_t t1, term_t t2)
-{ fid_t fid = PL_open_foreign_frame();
+#define build_labeled_subterm(pairs, _PL_rd) \
+	LDFUNC(build_labeled_subterm, pairs, _PL_rd)
 
-  if ( fid )
-  { if ( PL_unify(t1, t2) )
-    { term_t ex = PL_new_term_ref();
-      if ( foreignWakeup(ex) )
-      { PL_close_foreign_frame(fid);
-	return true;
-      }
-      if ( !isVar(*valTermRef(ex)) )
-      { PL_raise_exception(ex);
-	PL_close_foreign_frame(fid);
+static int
+build_labeled_subterm(DECL_LD int pairs, ReadData _PL_rd)
+{ if ( pairs == 1 )
+  { term_t *argv = term_av(-3, _PL_rd);
+
+    if ( *valTermRef(argv[1]) == ATOM_equals )
+    { word w = *valTermRef(argv[0]);
+      Variable var = varInfo(w, _PL_rd);
+
+      if ( !ensureGlobalSpace(1, ALLOW_GC|ALLOW_SHIFT) ||
+	   !ensureSpaceForTermRefs(1) )
 	return false;
-      }
-      PL_rewind_foreign_frame(fid);
-    }
 
-    term_t ex = PL_new_term_ref();
-    bool rc = ( PL_unify_term(ex,
-			      PL_FUNCTOR, FUNCTOR_error2,
-				PL_FUNCTOR, FUNCTOR_representation_error1,
-				  PL_FUNCTOR, FUNCTOR_equals2,
-				    PL_TERM, t1, PL_TERM, t2,
-				PL_VARIABLE) &&
-		PL_raise_exception(ex) );
-    PL_close_foreign_frame(fid);
-    return rc;
+      if ( !var )		/* `_` */
+      { readValHandle(argv[2], valTermRef(argv[0]), _PL_rd);
+      } else
+      { if ( var->variable )
+	{ if ( PL_is_attvar(var->variable) )
+	  { term_t ex;
+	    return ( (ex=makeErrorTerm("label_on_attvar", NULL, 0, _PL_rd)) &&
+		     PL_raise_exception(ex) );
+	  }
+	  if ( var->labeled )
+	  { term_t ex;
+	    return ( (ex=makeErrorTerm("duplicate_label_value", NULL, 0, _PL_rd)) &&
+		     PL_raise_exception(ex) );
+	  }
+	  if ( !PL_unify(var->variable, argv[2]) )
+	    return false;
+	} else
+	{ var->variable = PL_new_term_ref_noshift();
+	  Word gvar = allocGlobalNoShift(1);
+	  readValHandle(argv[2], gvar, _PL_rd);
+	  setHandle(var->variable, makeRefG(gvar));
+	}
+	var->labeled = true;
+	setHandle(argv[0], *valTermRef(var->variable));
+      }
+
+      truncate_term_stack(&argv[1], _PL_rd);
+      return true;
+    }
   }
 
-  return false;
+  return -1;
 }
 
 /**
@@ -3476,10 +3495,15 @@ unify_in_read(DECL_LD term_t t1, term_t t2)
 #define build_attvar(pairs, _PL_rd) LDFUNC(build_attvar, pairs, _PL_rd)
 static bool
 build_attvar(DECL_LD int pairs, ReadData _PL_rd)
-{ int arity = pairs*2+1;
-  term_t *argv = term_av(-arity, _PL_rd);
-  term_t var_value = 0;		/* X{= : Value} */
+{ int rc = build_labeled_subterm(pairs, _PL_rd);
+  if ( rc >= 0 )
+    return rc;			/* X{= : Value} or error */
 
+  if ( pairs == 0 )		/* X{}: The variable is already at argv[0] */
+    return true;
+
+  int arity = pairs*2+1;
+  term_t *argv = term_av(-arity, _PL_rd);
   word w = *valTermRef(argv[0]);
   Variable var = varInfo(w, _PL_rd);
 
@@ -3491,9 +3515,26 @@ build_attvar(DECL_LD int pairs, ReadData _PL_rd)
     return false;
 
   /* Begin no GC/shift */
-  term_t attvar_term = PL_new_term_ref();
-  Word attvar = alloc_attvar();
-  *valTermRef(attvar_term) = makeRefG(attvar);
+  term_t attvar_term;
+  if ( var )
+  { if ( var->variable )
+    { if ( var->labeled )
+      { term_t ex;
+	return ( (ex=makeErrorTerm("attvar_on_label", NULL, 0, _PL_rd)) &&
+		 PL_raise_exception(ex) );
+      }
+      attvar_term = var->variable;
+    } else
+    { attvar_term = PL_new_term_ref();
+      Word attvar = alloc_attvar();
+      setHandle(attvar_term, makeRefG(attvar));
+      var->variable = attvar_term;
+    }
+  } else			/* `_` */
+  { attvar_term = PL_new_term_ref();
+    Word attvar = alloc_attvar();
+    setHandle(attvar_term, makeRefG(attvar));
+  }
 
   for(int i=0; i<pairs; i++)
   { word name;
@@ -3503,34 +3544,29 @@ build_attvar(DECL_LD int pairs, ReadData _PL_rd)
     readValHandle(argv[i*2+2],      value, _PL_rd);
 
     if ( name == ATOM_equals )
-    { var_value = PL_new_term_ref_noshift();
-      assert(var_value);
-      *valTermRef(var_value) = makeRefG(value);
+    { term_t ex;
+      return ( (ex=makeErrorTerm("label_on_attvar", NULL, 0, _PL_rd)) &&
+	       PL_raise_exception(ex) );
     } else
-    { bool rc = put_attr(attvar, name, value);
+    { Word vp;
+
+      if ( find_attr(valTermRef(attvar_term), name, &vp) )
+      { if ( compareStandard(value, vp, true) != CMP_EQUAL )
+	{ if ( exception_term )
+	    return false;
+	  term_t ex;
+	  return ( (ex=makeErrorTerm("duplicate_attribute", NULL, 0, _PL_rd)) &&
+		   PL_raise_exception(ex) );
+	}
+      }
+
+      bool rc = put_attr(valTermRef(attvar_term), name, value);
       assert(rc);
       (void)rc;
     }
   }
-  /* End no GC/shift */
 
-  if ( var_value )
-  { if ( !unify_in_read(attvar_term, var_value) )
-      return false;
-  }
-
-  if ( !var )			/* anonymous */
-  { setHandle(argv[0], *valTermRef(attvar_term));
-  } else
-  { if ( !var->variable )	/* new variable */
-    { var->variable = attvar_term;
-      setHandle(argv[0], *valTermRef(attvar_term));
-    } else			/* existing variable */
-    { if ( !unify_in_read(attvar_term, var->variable) )
-	return false;
-    }
-  }
-
+  setHandle(argv[0], *valTermRef(attvar_term));
   truncate_term_stack(&argv[1], _PL_rd);
 
   return true;
