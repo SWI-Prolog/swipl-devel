@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -90,8 +90,19 @@ expand_vars(Bindings, Query, Expanded, NewBindings) :-
     current_prolog_flag(toplevel_var_size, Count),
     Count > 0,
     !,
-    phrase(expand_vars(Bindings, Query, Expanded), NewBindings).
+    do_expand_vars(Bindings, Query, Expanded, NewBindings).
 expand_vars(Bindings, Query, Query, Bindings).
+
+do_expand_vars(Bindings, Query, Expanded, NewBindings) :-
+    acyclic_term(Bindings),
+    !,
+    phrase(expand_vars(Bindings, Query, Expanded), NewBindings).
+do_expand_vars(Bindings, Query, Expanded, NewBindings) :-
+    '$factorize_term'(Query, Skel, Assignments),
+    !,
+    phrase(expand_vars(Bindings, Skel+Assignments, Expanded+EAssignments),
+           NewBindings),
+    rebind(EAssignments).
 
 expand_vars(_, Var, Var) -->
     { var(Var) },
@@ -144,6 +155,11 @@ v_member(V, [H|T]) :-
     (   V == H
     ;   v_member(V, T)
     ).
+
+rebind([]).
+rebind([Var=Value|T]) :-
+    Var = Value,
+    rebind(T).
 
 %!  '$save_toplevel_vars'(+Bindings) is det.
 %
