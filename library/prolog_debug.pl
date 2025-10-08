@@ -310,8 +310,8 @@ exception_hook(Ex, Ex, Frame, Catcher, _Debug) :-
 direct_catch(Frame) :-
     prolog_frame_attribute(Frame, parent, Parent),
     prolog_frame_attribute(Parent, predicate_indicator, system:catch/3),
-    prolog_frame_attribute(Frame, Level, MyLevel),
-    prolog_frame_attribute(Parent, Level, CatchLevel),
+    prolog_frame_attribute(Frame, level, MyLevel),
+    prolog_frame_attribute(Parent, level, CatchLevel),
     MyLevel =:= CatchLevel+1.
 
 %!  install_exception_hook
