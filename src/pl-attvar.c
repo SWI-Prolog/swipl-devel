@@ -338,18 +338,16 @@ put_new_attvar(DECL_LD Word p, atom_t name, Word value)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int find_attr(Word av, atom_t name, Word *vp)
+bool find_attr(Word av, atom_t name, Word *vp)
 
 Find the location of the value for   the  attribute named `name'. Return
 true if found or false if not found, leaving vp pointing at the ATOM_nil
 of the end of the list.  Returns false with *vp == NULL if the attribute
 list is invalid.
-
-Caller must ensure 4 cells space on global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define find_attr(av, name, vp) LDFUNC(find_attr, av, name, vp)
-static int
+bool
 find_attr(DECL_LD Word av, atom_t name, Word *vp)
 { Word l;
 
@@ -362,7 +360,7 @@ find_attr(DECL_LD Word av, atom_t name, Word *vp)
 
     if ( isNil(*l) )
     { *vp = l;
-      fail;
+      return false;
     } else if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
@@ -373,17 +371,17 @@ find_attr(DECL_LD Word av, atom_t name, Word *vp)
 	if ( *n == name )
 	{ *vp = &f->arguments[1];
 
-	  succeed;
+	  return true;
 	} else
 	{ l = &f->arguments[2];
 	}
       } else
       { *vp = NULL;			/* bad attribute list */
-	fail;
+	return false;
       }
     } else
     { *vp = NULL;			/* bad attribute list */
-      fail;
+      return false;
     }
   }
 }

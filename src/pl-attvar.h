@@ -52,6 +52,7 @@
 #define	restoreWakeup(state)		LDFUNC(restoreWakeup, state)
 #define	PL_get_attr(t, a)		LDFUNC(PL_get_attr, t, a)
 #define put_attr(av, name, value)	LDFUNC(put_attr, av, name, value)
+#define find_attr(av, name, vp)		LDFUNC(find_attr, av, name, vp)
 #define	alloc_attvar(_)			LDFUNC(alloc_attvar, _)
 #endif /*USE_LD_MACROS*/
 
@@ -66,6 +67,7 @@ bool		PL_get_attr(term_t t, term_t a);
 bool		on_attvar_chain(Word avp);
 Word		alloc_attvar(void);
 bool		put_attr(Word av, atom_t name, Word value);
+bool		find_attr(Word av, atom_t name, Word *vp);
 
 #undef LDFUNC_DECLARATIONS
 
