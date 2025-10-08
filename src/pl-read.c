@@ -90,6 +90,11 @@ static void	  addUTF8Buffer(Buffer b, int c);
 #define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
+/* these functions  must be of type  int (*)(int) as they  are used by
+ * os/pl-ctype.c for function pointers  of this type.  Other functions
+ * in this class return -1 for false and a code point otherwise.
+ */
+
 int
 f_is_prolog_var_start(int c)
 { return (PlUpperW(c) || c == '_');
@@ -157,8 +162,6 @@ decimal_weight(int code)
     return -1;
   }
 }
-
-
 
 
 /* unquoted_atomW() returns true if text can be written to s as unquoted atom
@@ -325,9 +328,6 @@ another read.  Notable raw reading needs to be studied studied once more
 as it  takes  about  30%  of  the  entire  compilation  time  and  looks
 promissing  for  optimisations.   It  also  could  be  made  a  bit more
 readable.
-
-This module is considerably faster when compiled  with  GCC,  using  the
--finline-functions option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct variable
