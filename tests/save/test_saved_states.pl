@@ -72,6 +72,11 @@ test_saved_states :-
            'Skipped saved state files because the system does\n\c
         not offer us enough open files~n', []).
 test_saved_states :-
+    \+ directory_writable,
+    !,
+    format(user_error,
+           'Skipped saved states (current directory not writable)~n', []).
+test_saved_states :-
     run_tests([ saved_state
               ]).
 
@@ -109,6 +114,23 @@ enough_files :-
 enough_files :-
     debug(save(max_files), 'No info on max open files; assuming ok', []).
 :- endif.
+
+%   Skip tests if current directory is not writable.
+directory_writable :-
+    setup_call_cleanup(
+        ( current_prolog_flag(tmp_dir, Old), set_prolog_flag(tmp_dir, .) ),
+        create_temp_file,
+        set_prolog_flag(tmp_dir, Old)
+    ).
+
+create_temp_file :-
+    catch(tmp_file_stream(text, Name, S), Exc, true),
+    (   var(Exc)
+    ->  close(S),
+        delete_file(Name)
+    ;   debug(save(writable), 'Current directory not writable: ~w.', [Exc]),
+        fail
+    ).
 
 %!  state_output(+Id, -FileName)
 %
