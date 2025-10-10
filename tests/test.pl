@@ -1424,9 +1424,10 @@ os(setenv-1) :-
                  *******************************/
 
 io(tell-1) :-
+    current_prolog_flag(tmp_dir, Tmp),
     current_prolog_flag(pid, P),
-    atom_concat(test_x_, P, TestX),
-    atom_concat(test_y_, P, TestY),
+    atomic_list_concat([Tmp, /, test_x_, P], TestX),
+    atomic_list_concat([Tmp, /, test_y_, P], TestY),
     tell(TestX),
     format('~q.~n', [a]),
     tell(TestY),
@@ -1444,8 +1445,9 @@ io(tell-1) :-
     \+ stream_property(_, file_name(TestY)).
 
 io(tell-2) :-
+    current_prolog_flag(tmp_dir, Tmp),
     current_prolog_flag(pid, P),
-    atom_concat(test_y_, P, TestY),
+    atomic_list_concat([Tmp, /, test_y_, P], TestY),
     current_output(OrgOut),
     open_null_stream(Out),
     set_output(Out),
@@ -1507,9 +1509,10 @@ file(cwd-1) :-
     exists_directory(CWD),
     same_file(CWD, '.').
 file(absfile-2) :-                      % canonicaliseDir() caching issues
+    current_prolog_flag(tmp_dir, Tmp),
     current_prolog_flag(pid, Pid),
-    atom_concat('pl-test-x-', Pid, X),
-    atom_concat('pl-test-y-', Pid, Y),
+    atomic_list_concat([Tmp, '/pl-test-x-', Pid], X),
+    atomic_list_concat([Tmp, '/pl-test-y-', Pid], Y),
     atom_concat(X, '/file', XF),
     atom_concat(Y, '/file', YF),
     make_directory(X),
@@ -1545,17 +1548,22 @@ unicode_file_name(Name) :-
     atomic_list_concat([Name0, -, Pid], Name).
 
 unicode_file(mkdir-1) :-                        % create Cyrillic directory
-    unicode_file_name(Dir),
+    current_prolog_flag(tmp_dir, Tmp),
+    unicode_file_name(Dir0),
+    atomic_list_concat([Tmp, /, Dir0], Dir),
     catch(delete_directory(Dir), _, true),
     make_directory(Dir),
     exists_directory(Dir),
     working_directory(Old, Dir),
     working_directory(O2, '..'),
-    same_file(Old, '.'),
+    same_file(Tmp, '.'),
     same_file(O2, Dir),
-    delete_directory(Dir).
+    delete_directory(Dir),
+    working_directory(_, Old).
 unicode_file(file-1) :-                         % create Cyrillic file
-    unicode_file_name(File),
+    current_prolog_flag(tmp_dir, Tmp),
+    unicode_file_name(File0),
+    atomic_list_concat([Tmp, /, File0], File),
     Term = hello(world),
     catch(delete_file(File), _, true),
     open(File, write, Out),
@@ -1649,16 +1657,18 @@ wctype(code_type-6) :-
                  *******************************/
 
 mk_include(Include, Included) :-
+    current_prolog_flag(tmp_dir, Tmp),
     current_prolog_flag(pid, Pid),
-    format(atom(Included), 'test_included_~w.pl', [Pid]),
-    format(atom(Include), 'test_include_~w.pl', [Pid]),
-    file_name_extension(Base, pl, Included),
+    format(atom(Included), '~w/test_included_~w.pl', [Tmp, Pid]),
+    format(atom(Include), '~w/test_include_~w.pl', [Tmp, Pid]),
+    file_name_extension(Base0, pl, Included),
+    directory_file_path(_, Base, Base0),
     open(Included, write, Out1),
     format(Out1, ':- dynamic foo/1.\n', []),
     close(Out1),
 
     open(Include, write, Out2),
-    format(Out2, ':- include(~w).\n', [Base]),
+    format(Out2, ":- include(~w).\n", [Base]),
     format(Out2, 'foo(a).\n', []),
     close(Out2).
 
