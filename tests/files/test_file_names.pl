@@ -472,8 +472,9 @@ cleanup :-
     ).
 
 test_dir(TestDir) :-
+    current_prolog_flag(tmp_dir, Tmp),
     current_prolog_flag(pid, PID),
-    format(atom(TestDir), 'test-dir-~d', [PID]).
+    format(atom(TestDir), '~w/test-dir-~d', [Tmp, PID]).
 
 %!  shadow_entries(+Dir, -Entries) is det.
 %
