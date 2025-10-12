@@ -65,15 +65,16 @@ test(pwd, [condition(not(wine))]) :-
     same_file(Pwd, '.').
 :- if(\+ current_prolog_flag(wine_version, _)).
 test(cat1) :-
-    current_prolog_flag(pid, Pid),
-    format(atom(File), 'pltest-~w.txt', [Pid]),
+    current_prolog_flag(tmp_dir, Tmp),
+	current_prolog_flag(pid, Pid),
+    format(atom(File), '~w/pltest-~w.txt', [Tmp, Pid]),
     (   current_prolog_flag(windows, true)
-    ->  format(atom(Bat), 'pltest-~w.bat', [Pid]),
+    ->  format(atom(Bat), '~w/pltest-~w.bat', [Tmp, Pid]),
         setup_call_cleanup(
             open(Bat, write, Fd1),
             writeln(Fd1, '@findstr .* > %1'),
             close(Fd1)),
-        format(atom(Cmd), 'cmd /c ~w ~w', [Bat, File]),
+        format(atom(Cmd), 'cmd /c "~w" "~w"', [Bat, File]),
         debug(pipe, 'Created BAT script ~q', [Bat])
     ;   format(atom(Cmd), 'cat > ~w', [File])
     ),
