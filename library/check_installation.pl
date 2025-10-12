@@ -504,6 +504,11 @@ check_on_path.
 %       When `false`, do not test the packages
 %     - package(+Package)
 %       Only test package package.
+%
+%   When  running  this  predicate  the   _working  directory_  must  be
+%   writeable and allow for writing  executable   files.  This is due to
+%   tests  for  file  system  interaction    and  tests  for  generating
+%   stand-alone executables.
 
 test_installation :-
     test_installation([]).
