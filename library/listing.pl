@@ -1082,7 +1082,7 @@ pprint(Out, Term, Pri, Options) :-
     ;   is_dict(Term)
     ),
     \+ nowrap_term(Term),
-    setting(listing:line_width, Width),
+    line_width(Width),
     Width > 0,
     (   write_length(Term, Len, [max_length(Width)|Options])
     ->  true
@@ -1101,6 +1101,7 @@ pprint(Out, Term, Pri, Options) :-
                | WrtOptions
                ]).
 
+:- public portray_blob/2.
 portray_blob(Blob, _Options) :-
     blob(Blob, _),
     \+ atom(Blob),
@@ -1210,6 +1211,16 @@ put_tabs(Out, N) :-
     NN is N - 1,
     put_tabs(Out, NN).
 put_tabs(_, _).
+
+line_width(Width) :-
+    stream_property(current_output, tty(true)),
+    catch(tty_size(_Rows, Cols), error(_,_), fail),
+    !,
+    Width is Cols - 2.
+line_width(Width) :-
+    setting(listing:line_width, Width),
+    !.
+line_width(78).
 
 
 %!  inc_indent(+Indent0, +Inc, -Indent)
