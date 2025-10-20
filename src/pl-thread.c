@@ -3018,19 +3018,19 @@ symbol_alias(atom_t symbol)
   return NULL_ATOM;
 }
 
-#define thread_id_propery(info, prop) LDFUNC(thread_id_propery, info, prop)
+#define thread_id_property(info, prop) LDFUNC(thread_id_property, info, prop)
 static bool
-thread_id_propery(DECL_LD void *ctx, term_t prop)
+thread_id_property(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
 
   return PL_unify_integer(prop, info->pl_tid);
 }
 
-#define thread_alias_propery(info, prop) \
-	LDFUNC(thread_alias_propery, info, prop)
+#define thread_alias_property(info, prop) \
+	LDFUNC(thread_alias_property, info, prop)
 
 static bool
-thread_alias_propery(DECL_LD void *ctx, term_t prop)
+thread_alias_property(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
   atom_t symbol, alias;
 
@@ -3041,55 +3041,55 @@ thread_alias_propery(DECL_LD void *ctx, term_t prop)
   return false;
 }
 
-#define thread_status_propery(info, prop) \
-	LDFUNC(thread_status_propery, info, prop)
+#define thread_status_property(info, prop) \
+	LDFUNC(thread_status_property, info, prop)
 
 static bool
-thread_status_propery(DECL_LD void *ctx, term_t prop)
+thread_status_property(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
 
   return unify_thread_status(prop, info, info->status, true);
 }
 
-#define thread_detached_propery(info, prop) \
-	LDFUNC(thread_detached_propery, info, prop)
+#define thread_detached_property(info, prop) \
+	LDFUNC(thread_detached_property, info, prop)
 
 static bool
-thread_detached_propery(DECL_LD void *ctx, term_t prop)
+thread_detached_property(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->detached);
 }
 
-#define thread_debug_propery(info, prop) \
-	LDFUNC(thread_debug_propery, info, prop)
+#define thread_debug_property(info, prop) \
+	LDFUNC(thread_debug_property, info, prop)
 
 static bool
-thread_debug_propery(DECL_LD void *ctx, term_t prop)
+thread_debug_property(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->debug);
 }
 
-#define thread_engine_propery(info, prop) \
-	LDFUNC(thread_engine_propery, info, prop)
+#define thread_engine_property(info, prop) \
+	LDFUNC(thread_engine_property, info, prop)
 
 static bool
-thread_engine_propery(DECL_LD void *ctx, term_t prop)
+thread_engine_property(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->is_engine);
 }
 
-#define thread_thread_propery(info, prop) \
-	LDFUNC(thread_thread_propery, info, prop)
+#define thread_thread_property(info, prop) \
+	LDFUNC(thread_thread_property, info, prop)
 
 static bool
-thread_thread_propery(DECL_LD void *ctx, term_t prop)
+thread_thread_property(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
 
   if ( info->is_engine )
@@ -3105,11 +3105,11 @@ thread_thread_propery(DECL_LD void *ctx, term_t prop)
   return false;
 }
 
-#define thread_tid_propery(info, prop) \
-	LDFUNC(thread_tid_propery, info, prop)
+#define thread_tid_property(info, prop) \
+	LDFUNC(thread_tid_property, info, prop)
 
 static bool
-thread_tid_propery(DECL_LD void *ctx, term_t prop)
+thread_tid_property(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
 
@@ -3123,11 +3123,11 @@ thread_tid_propery(DECL_LD void *ctx, term_t prop)
   return false;
 }
 
-#define thread_size_propery(info, prop) \
-	LDFUNC(thread_size_propery, info, prop)
+#define thread_size_property(info, prop) \
+	LDFUNC(thread_size_property, info, prop)
 
 static bool
-thread_size_propery(DECL_LD void *ctx, term_t prop)
+thread_size_property(DECL_LD void *ctx, term_t prop)
 { size_t size;
   PL_thread_info_t *info = ctx;
 
@@ -3142,15 +3142,15 @@ thread_size_propery(DECL_LD void *ctx, term_t prop)
 }
 
 static const tprop tprop_list [] =
-{ { FUNCTOR_id1,	       LDFUNC_REF(thread_id_propery) },
-  { FUNCTOR_alias1,	       LDFUNC_REF(thread_alias_propery) },
-  { FUNCTOR_status1,	       LDFUNC_REF(thread_status_propery) },
-  { FUNCTOR_detached1,	       LDFUNC_REF(thread_detached_propery) },
-  { FUNCTOR_debug1,	       LDFUNC_REF(thread_debug_propery) },
-  { FUNCTOR_engine1,	       LDFUNC_REF(thread_engine_propery) },
-  { FUNCTOR_thread1,	       LDFUNC_REF(thread_thread_propery) },
-  { FUNCTOR_system_thread_id1, LDFUNC_REF(thread_tid_propery) },
-  { FUNCTOR_size1,	       LDFUNC_REF(thread_size_propery) },
+{ { FUNCTOR_id1,	       LDFUNC_REF(thread_id_property) },
+  { FUNCTOR_alias1,	       LDFUNC_REF(thread_alias_property) },
+  { FUNCTOR_status1,	       LDFUNC_REF(thread_status_property) },
+  { FUNCTOR_detached1,	       LDFUNC_REF(thread_detached_property) },
+  { FUNCTOR_debug1,	       LDFUNC_REF(thread_debug_property) },
+  { FUNCTOR_engine1,	       LDFUNC_REF(thread_engine_property) },
+  { FUNCTOR_thread1,	       LDFUNC_REF(thread_thread_property) },
+  { FUNCTOR_system_thread_id1, LDFUNC_REF(thread_tid_property) },
+  { FUNCTOR_size1,	       LDFUNC_REF(thread_size_property) },
   { 0,			       NULL }
 };
 
