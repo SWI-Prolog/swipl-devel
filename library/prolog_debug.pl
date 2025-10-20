@@ -104,12 +104,19 @@ spy_(Spec) :-
     '$member'(PI, Preds),
         pi_to_head(PI, Head),
         '$define_predicate'(Head),
-        '$spy'(Head),
+        set_spy_point(Head),
     fail.
 spy_(_).
 
+set_spy_point(Head) :-
+    '$get_predicate_attribute'(Head, spy, 1),
+    !,
+    print_message(informational, already_spying(Head)).
+set_spy_point(Head) :-
+    '$spy'(Head).
+
 nospy(Spec) :-
-    '$notrace'(nospy_(Spec)).
+    notrace(nospy_(Spec)).
 
 nospy_(_:X) :-
     var(X),
@@ -131,7 +138,7 @@ nospy_(Spec) :-
 nospy_(_).
 
 nospyall :-
-    '$notrace'(nospyall_).
+    notrace(nospyall_).
 
 nospyall_ :-
     prolog:debug_control_hook(nospyall),
@@ -155,7 +162,7 @@ pi_to_head(Name/Arity, Head) :-
 :- '$hide'(debugging/0).
 debugging :-
     current_prolog_flag(debug, DebugMode),
-    '$notrace'(debugging_(DebugMode)).
+    notrace(debugging_(DebugMode)).
 
 debugging_(DebugMode) :-
     prolog:debug_control_hook(debugging(DebugMode)),

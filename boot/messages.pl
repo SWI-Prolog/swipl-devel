@@ -1606,13 +1606,14 @@ user_version_message(Atom) -->
                  *******************************/
 
 prolog_message(spy(Head)) -->
-    { goal_to_predicate_indicator(Head, Pred)
-    },
-    [ 'Spy point on ~p'-[Pred] ].
+    [ 'New spy point on ' ],
+    goal_predicate(Head).
+prolog_message(already_spying(Head)) -->
+    [ 'Already spying ' ],
+    goal_predicate(Head).
 prolog_message(nospy(Head)) -->
-    { goal_to_predicate_indicator(Head, Pred)
-    },
-    [ 'Spy point removed from ~p'-[Pred] ].
+    [ 'Removed spy point from ' ],
+    goal_predicate(Head).
 prolog_message(trace_mode(OnOff)) -->
     [ 'Trace mode switched to ~w'-[OnOff] ].
 prolog_message(debug_mode(OnOff)) -->
