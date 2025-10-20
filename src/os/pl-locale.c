@@ -363,7 +363,7 @@ getLocaleEx(term_t t, PL_locale **lp)
 #define locale_alias_property(l, prop) \
 	LDFUNC(locale_alias_property, l, prop)
 
-static int		/* locale_property(Mutex, alias(Name)) */
+static bool		/* locale_property(Mutex, alias(Name)) */
 locale_alias_property(DECL_LD void *ctx, term_t prop)
 { PL_locale *l = ctx;
 
@@ -376,7 +376,7 @@ locale_alias_property(DECL_LD void *ctx, term_t prop)
 #define locale_decimal_point_property(l, prop)  \
 	LDFUNC(locale_decimal_point_property, l, prop)
 
-static int		/* locale_property(Locale, decimal_point(Atom)) */
+static bool		/* locale_property(Locale, decimal_point(Atom)) */
 locale_decimal_point_property(DECL_LD void *ctx, term_t prop)
 { PL_locale *l = ctx;
 
@@ -389,7 +389,7 @@ locale_decimal_point_property(DECL_LD void *ctx, term_t prop)
 #define locale_thousands_sep_property(l, prop) \
 	LDFUNC(locale_thousands_sep_property, l, prop)
 
-static int		/* locale_property(Locale, thousands_sep(Atom)) */
+static bool		/* locale_property(Locale, thousands_sep(Atom)) */
 locale_thousands_sep_property(DECL_LD void *ctx, term_t prop)
 { PL_locale *l = ctx;
 
@@ -402,7 +402,7 @@ locale_thousands_sep_property(DECL_LD void *ctx, term_t prop)
 #define locale_grouping_property(l, prop) \
 	LDFUNC(locale_grouping_property, l, prop)
 
-static int		/* locale_property(Locale, grouping(List)) */
+static bool		/* locale_property(Locale, grouping(List)) */
 locale_grouping_property(DECL_LD void *ctx, term_t prop)
 { PL_locale *l = ctx;
 

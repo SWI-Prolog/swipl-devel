@@ -532,20 +532,24 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
 		 *	  MUTEX_PROPERTY	*
 		 *******************************/
 
-#define mutex_alias_property(m, prop) LDFUNC(mutex_alias_property, m, prop)
-static int		/* mutex_property(Mutex, alias(Name)) */
+#define mutex_alias_property(m, prop) \
+	LDFUNC(mutex_alias_property, m, prop)
+
+static bool		/* mutex_property(Mutex, alias(Name)) */
 mutex_alias_property(DECL_LD void *ctx, term_t prop)
 { pl_mutex *m = ctx;
 
   if ( !m->anonymous )
     return PL_unify_atom(prop, m->id);
 
-  fail;
+  return false;
 }
 
 
-#define mutex_status_property(m, prop) LDFUNC(mutex_status_property, m, prop)
-static int		/* mutex_property(Mutex, status(locked(By, Count))) */
+#define mutex_status_property(m, prop) \
+	LDFUNC(mutex_status_property, m, prop)
+
+static bool		/* mutex_property(Mutex, status(locked(By, Count))) */
 mutex_status_property(DECL_LD void *ctx, term_t prop)
 { pl_mutex *m = ctx;
 
@@ -562,7 +566,7 @@ mutex_status_property(DECL_LD void *ctx, term_t prop)
   { return PL_unify_atom(prop, ATOM_unlocked);
   }
 
-  fail;
+  return false;
 }
 
 

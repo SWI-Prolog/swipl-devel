@@ -1204,7 +1204,7 @@ exitPrologThreads(void)
   }
 
   if ( canceled > 0 )		    /* see (*) above */
-  { 
+  {
 #ifdef USE_TIMER_WAIT
 	double grace_time = halt_grace_time();
     DEBUG(MSG_CLEANUP_THREAD,
@@ -3019,7 +3019,7 @@ symbol_alias(atom_t symbol)
 }
 
 #define thread_id_propery(info, prop) LDFUNC(thread_id_propery, info, prop)
-static int
+static bool
 thread_id_propery(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
 
@@ -3029,7 +3029,7 @@ thread_id_propery(DECL_LD void *ctx, term_t prop)
 #define thread_alias_propery(info, prop) \
 	LDFUNC(thread_alias_propery, info, prop)
 
-static int
+static bool
 thread_alias_propery(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
   atom_t symbol, alias;
@@ -3038,11 +3038,13 @@ thread_alias_propery(DECL_LD void *ctx, term_t prop)
        (alias=symbol_alias(symbol)) )
     return PL_unify_atom(prop, alias);
 
-  fail;
+  return false;
 }
 
-#define thread_status_propery(info, prop) LDFUNC(thread_status_propery, info, prop)
-static int
+#define thread_status_propery(info, prop) \
+	LDFUNC(thread_status_propery, info, prop)
+
+static bool
 thread_status_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
@@ -3050,8 +3052,10 @@ thread_status_propery(DECL_LD void *ctx, term_t prop)
   return unify_thread_status(prop, info, info->status, true);
 }
 
-#define thread_detached_propery(info, prop) LDFUNC(thread_detached_propery, info, prop)
-static int
+#define thread_detached_propery(info, prop) \
+	LDFUNC(thread_detached_propery, info, prop)
+
+static bool
 thread_detached_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
@@ -3059,8 +3063,10 @@ thread_detached_propery(DECL_LD void *ctx, term_t prop)
   return PL_unify_bool_ex(prop, info->detached);
 }
 
-#define thread_debug_propery(info, prop) LDFUNC(thread_debug_propery, info, prop)
-static int
+#define thread_debug_propery(info, prop) \
+	LDFUNC(thread_debug_propery, info, prop)
+
+static bool
 thread_debug_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
@@ -3068,8 +3074,10 @@ thread_debug_propery(DECL_LD void *ctx, term_t prop)
   return PL_unify_bool_ex(prop, info->debug);
 }
 
-#define thread_engine_propery(info, prop) LDFUNC(thread_engine_propery, info, prop)
-static int
+#define thread_engine_propery(info, prop) \
+	LDFUNC(thread_engine_propery, info, prop)
+
+static bool
 thread_engine_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
@@ -3077,8 +3085,10 @@ thread_engine_propery(DECL_LD void *ctx, term_t prop)
   return PL_unify_bool_ex(prop, info->is_engine);
 }
 
-#define thread_thread_propery(info, prop) LDFUNC(thread_thread_propery, info, prop)
-static int
+#define thread_thread_propery(info, prop) \
+	LDFUNC(thread_thread_propery, info, prop)
+
+static bool
 thread_thread_propery(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
 
@@ -3095,8 +3105,10 @@ thread_thread_propery(DECL_LD void *ctx, term_t prop)
   return false;
 }
 
-#define thread_tid_propery(info, prop) LDFUNC(thread_tid_propery, info, prop)
-static int
+#define thread_tid_propery(info, prop) \
+	LDFUNC(thread_tid_propery, info, prop)
+
+static bool
 thread_tid_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
   PL_thread_info_t *info = ctx;
@@ -3111,8 +3123,10 @@ thread_tid_propery(DECL_LD void *ctx, term_t prop)
   return false;
 }
 
-#define thread_size_propery(info, prop) LDFUNC(thread_size_propery, info, prop)
-static int
+#define thread_size_propery(info, prop) \
+	LDFUNC(thread_size_propery, info, prop)
+
+static bool
 thread_size_propery(DECL_LD void *ctx, term_t prop)
 { size_t size;
   PL_thread_info_t *info = ctx;
@@ -5622,20 +5636,24 @@ PRED_IMPL("is_message_queue", 1, is_message_queue, 0)
 		 *    MESSAGE QUEUE PROPERTY	*
 		 *******************************/
 
-#define message_queue_alias_property(q, prop) LDFUNC(message_queue_alias_property, q, prop)
-static int		/* message_queue_property(Queue, alias(Name)) */
+#define message_queue_alias_property(q, prop) \
+	LDFUNC(message_queue_alias_property, q, prop)
+
+static bool		/* message_queue_property(Queue, alias(Name)) */
 message_queue_alias_property(DECL_LD void *ctx, term_t prop)
 { message_queue *q = ctx;
 
   if ( !q->anonymous )
     return PL_unify_atom(prop, q->id);
 
-  fail;
+  return false;
 }
 
 
-#define message_queue_size_property(q, prop) LDFUNC(message_queue_size_property, q, prop)
-static int		/* message_queue_property(Queue, size(Size)) */
+#define message_queue_size_property(q, prop) \
+	LDFUNC(message_queue_size_property, q, prop)
+
+static bool		/* message_queue_property(Queue, size(Size)) */
 message_queue_size_property(DECL_LD void *ctx, term_t prop)
 { message_queue *q = ctx;
 
@@ -5643,8 +5661,10 @@ message_queue_size_property(DECL_LD void *ctx, term_t prop)
 }
 
 
-#define message_queue_max_size_property(q, prop) LDFUNC(message_queue_max_size_property, q, prop)
-static int		/* message_queue_property(Queue, max_size(Size)) */
+#define message_queue_max_size_property(q, prop) \
+	LDFUNC(message_queue_max_size_property, q, prop)
+
+static bool		/* message_queue_property(Queue, max_size(Size)) */
 message_queue_max_size_property(DECL_LD void *ctx, term_t prop)
 { message_queue *q = ctx;
   size_t ms;
@@ -5652,11 +5672,13 @@ message_queue_max_size_property(DECL_LD void *ctx, term_t prop)
   if ( (ms=q->max_size) > 0 )
     return PL_unify_integer(prop, ms);
 
-  fail;
+  return false;
 }
 
-#define message_queue_waiting_property(q, prop) LDFUNC(message_queue_waiting_property, q, prop)
-static int		/* message_queue_property(Queue, waiting(Count)) */
+#define message_queue_waiting_property(q, prop) \
+	LDFUNC(message_queue_waiting_property, q, prop)
+
+static bool		/* message_queue_property(Queue, waiting(Count)) */
 message_queue_waiting_property(DECL_LD void *ctx, term_t prop)
 { message_queue *q = ctx;
   int waiting;
@@ -5664,7 +5686,7 @@ message_queue_waiting_property(DECL_LD void *ctx, term_t prop)
   if ( (waiting=q->waiting) > 0 )
     return PL_unify_integer(prop, waiting);
 
-  fail;
+  return false;
 }
 
 static const tprop qprop_list [] =

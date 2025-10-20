@@ -608,7 +608,7 @@ foreign_t	pl_thread_self(term_t self);
 
 typedef struct
 { functor_t functor;			/* functor of property */
-  int LDFUNCP (*function)(DECL_LD void *ctx, term_t a);	/* function to generate */
+  bool LDFUNCP (*function)(DECL_LD void *ctx, term_t a);	/* function to generate */
 } tprop;
 
 #if USE_LD_MACROS
