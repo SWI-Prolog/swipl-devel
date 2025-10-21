@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c) 2008-2022, University of Amsterdam,
+    Copyright (c) 2008-2025, University of Amsterdam,
                              VU University
                              SWI-Prolog Solutions b.v.
     Amsterdam All rights reserved.
@@ -88,10 +88,9 @@ in this library are provided as SWI-Prolog built-ins.
 
 %!  term_size(@Term, -Size) is det.
 %
-%   True if Size is the size  in   _cells_  occupied  by Term on the
-%   global (term) stack. A _cell_ is 4  bytes on 32-bit machines and
-%   8 bytes on 64-bit machines. The  calculation does take _sharing_
-%   into account. For example:
+%   True if Size is the size in _cells_   occupied by Term on the global
+%   (term) stack. A  _cell_  is  8   bytes.  The  calculation  does take
+%   _sharing_ into account and handles _cycles_ correctly. For example:
 %
 %   ```
 %   ?- A = a(1,2,3), term_size(A,S).
