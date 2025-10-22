@@ -3075,27 +3075,19 @@ API_STUB(bool)
 bool
 _PL_put_xpce_reference_i(term_t t, uintptr_t i)
 { GET_LD
-  Word p;
-  word w;
-
   valid_term_t(t);
-  if ( !hasGlobalSpace(2) )
-  { int rc;
+  Word a = allocGlobal(2);
 
-    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
+  if ( a )
+  { word w = consInt(i);
+    assert(valInt(w) == i);
+
+    setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    *a++ = FUNCTOR_at_sign1;
+    *a++ = w;
+    return true;
   }
-
-  w = consInt(i);
-  assert(valInt(w) == i);
-
-  p = gTop;
-  gTop += 2;
-  setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
-  *p++ = FUNCTOR_at_sign1;
-  *p++ = w;
-
-  return true;
+  return false;
 }
 
 

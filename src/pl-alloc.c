@@ -808,14 +808,8 @@ Word
 allocGlobal(DECL_LD size_t n)
 { Word result;
 
-  if ( !hasGlobalSpace(n) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
-      return NULL;
-    }
-  }
+  if ( !ensureGlobalSpace(n, ALLOW_GC) )
+    return NULL;
 
   result = gTop;
   gTop += n;
