@@ -837,7 +837,13 @@ setup_readline :-
         ;   ReadLine = true
         ),
         readline_library(ReadLine, Library),
-        load_setup_file(library(Library))
+        (   load_setup_file(library(Library))
+        ->  true
+        ;   print_message(warning,
+                          error(existence_error(library, library(Library)),
+                                _)),
+            fail
+        )
     ->  set_prolog_flag(readline, Library)
     ;   set_prolog_flag(readline, false)
     ).
@@ -851,7 +857,6 @@ readline_library(false, _) :-
 readline_library(Library, Library).
 
 preferred_readline(editline).
-preferred_readline(readline).
 
 %!  load_setup_file(+File) is semidet.
 %
@@ -861,7 +866,7 @@ load_setup_file(File) :-
     catch(load_files(File,
                      [ silent(true),
                        if(not_loaded)
-                     ]), _, fail).
+                     ]), error(_,_), fail).
 
 
 %!  setup_app is det.
