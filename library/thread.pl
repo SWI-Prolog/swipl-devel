@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2020, University of Amsterdam
+    Copyright (c)  2007-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,12 +46,13 @@
             concurrent_and/3,           % :Generator,:Test,+Options
             first_solution/3,           % -Var, :Goals, +Options
 
-            call_in_thread/2            % +Thread, :Goal
+            call_in_thread/2,           % +Thread, :Goal
+            call_in_thread/3            % +Thread, :Goal, +Options
           ]).
 :- autoload(library(apply), [maplist/2, maplist/3, maplist/4, maplist/5]).
 :- autoload(library(error), [must_be/2, instantiation_error/1]).
 :- autoload(library(lists), [subtract/3, same_length/2, nth0/3]).
-:- autoload(library(option), [option/2, option/3]).
+:- autoload(library(option), [option/2, option/3, meta_options/3]).
 :- autoload(library(ordsets), [ord_intersection/3, ord_union/3]).
 :- use_module(library(debug), [debug/3, assertion/1]).
 
@@ -66,7 +68,8 @@
     concurrent_and(0, 0),
     concurrent_and(0, 0, +),
     first_solution(-, :, +),
-    call_in_thread(+, 0).
+    call_in_thread(+, 0),
+    call_in_thread(+, 0, :).
 
 
 :- predicate_options(concurrent/3, 3,
@@ -724,6 +727,7 @@ thread_option(stack(_)).
 
 
 %!  call_in_thread(+Thread, :Goal) is semidet.
+%!  call_in_thread(+Thread, :Goal, +Options) is semidet.
 %
 %   Run Goal as an interrupt in the context  of Thread. This is based on
 %   thread_signal/2. If waiting times  out,   we  inject  a stop(Reason)
@@ -731,32 +735,51 @@ thread_option(stack(_)).
 %   to run a call_in_thread/2 while the target thread is processing such
 %   an interrupt.
 %
+%   Options are passed to  thread_get_message/3   and  notably allow for
+%   specifying a timeout. If a timeout   is reached, this predicate will
+%   attempt to kill Goal in  Thread  and   act  according  to the option
+%   `on_timeout`.
+%
+%     - on_timeout(:Goal)
+%       If waiting terminates due to a timeout(Time), or deadline(Stamp)
+%       option, call Goal.  The default is throw(time_limit_exceeded).
+%
 %   This predicate is primarily intended   for  debugging and inspection
 %   tasks.
 
 call_in_thread(Thread, Goal) :-
+    call_in_thread(Thread, Goal, []).
+
+call_in_thread(Thread, Goal, _) :-
     must_be(callable, Goal),
     var(Thread),
     !,
     instantiation_error(Thread).
-call_in_thread(Thread, Goal) :-
+call_in_thread(Thread, Goal, _) :-
     thread_self(Thread),
     !,
     once(Goal).
-call_in_thread(Thread, Goal) :-
+call_in_thread(Thread, Goal, Options) :-
+    meta_options(is_meta, Options, Options1),
     term_variables(Goal, Vars),
     thread_self(Me),
     A is random(1 000 000 000),
     thread_signal(Thread, run_in_thread(Goal,Vars,A,Me)),
-    catch(thread_get_message(in_thread(A,Result)),
-          Error,
-          forward_exception(Thread, A, Error)),
-    (   Result = true(Vars)
-    ->  true
-    ;   Result = error(Error)
-    ->  throw(Error)
-    ;   fail
+    (   catch(thread_get_message(Me, in_thread(A,Result), Options1),
+              Error,
+              forward_exception(Thread, A, Error))
+    ->  (   Result = true(Vars)
+        ->  true
+        ;   Result = error(Error)
+        ->  throw(Error)
+        ;   fail
+        )
+    ;   thread_signal(Thread, kill_task(A, stop(time_limit_exceeded))),
+        option(on_timeout(Action), Options1, throw(time_limit_exceeded)),
+        call(Action)
     ).
+
+is_meta(on_timeout).
 
 run_in_thread(Goal, Vars, Id, Sender) :-
     (   catch_with_backtrace(call(Goal), Error, true)
