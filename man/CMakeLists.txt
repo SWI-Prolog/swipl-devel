@@ -43,7 +43,7 @@ add_custom_command(
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
     DEPENDS pldoc2tex.pl swipl core prolog_home
-            pldoc clib sgml http nlp utf8proc
+            pldoc clib json sgml http nlp utf8proc
     VERBATIM)
 
 add_custom_target(
