@@ -103,7 +103,7 @@ component(library(double_metaphone), _{}).
 component(library(editline), _{os:unix}).
 component(library(filesex), _{}).
 component(library(http/http_stream), _{}).
-component(library(http/json), _{}).
+component(library(json), _{}).
 component(library(http/jquery), _{features:jquery_file}).
 component(library(isub), _{}).
 component(library(janus), _{features:python_version}).

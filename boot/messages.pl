@@ -1886,6 +1886,8 @@ deprecated(source_search_working_directory(File, _FullFile)) -->
       'the Prolog flag ',
       ansi(code, source_search_working_directory, []), '.', nl
     ].
+deprecated(moved_library(Old, New)) -->
+    [ 'Library was moved: ~q --> ~q'-[Old, New] ].
 
 load_file(File) -->
     { file_base_name(File, Base),

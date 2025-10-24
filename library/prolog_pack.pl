@@ -63,7 +63,7 @@
 :- use_module(library(dcg/basics)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(http/http_open)).
-:- use_module(library(http/json)).
+:- use_module(library(json)).
 :- use_module(library(http/http_client), []).
 :- use_module(library(debug), [assertion/1]).
 :- use_module(library(pairs),

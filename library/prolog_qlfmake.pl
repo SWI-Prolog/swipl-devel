@@ -406,6 +406,9 @@ exclude(library(sty_xpce)).
 exclude(library(tabling)).
 exclude(library(theme/dark)).
 exclude(library(http/dcg_basics)).
+exclude(library(http/json)).
+exclude(library(http/json_convert)).
+exclude(library(http/js_grammar)).
 exclude(library(chr/chr_translate_bootstrap1)).
 exclude(library(chr/chr_translate_bootstrap2)).
 exclude(library(trace/pprint)).
