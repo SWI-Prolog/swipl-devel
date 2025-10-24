@@ -20,6 +20,7 @@ set(SWIPL_PACKAGE_LIST_ODBC_title    "ODBC_interface")
 set(SWIPL_PACKAGE_LIST_BDB_title     "BerkeleyDB_interface")
 set(SWIPL_PACKAGE_LIST_PCRE_title    "Perl_regex")
 set(SWIPL_PACKAGE_LIST_YAML_title    "YAML_support")
+set(SWIPL_PACKAGE_LIST_JSON_title    "JSON_support")
 set(SWIPL_PACKAGE_LIST_JAVA_title    "Java_interface")
 set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
@@ -31,7 +32,7 @@ if(EMSCRIPTEN)
   set(SWIPL_PACKAGE_SETS WASM)
 else()
   set(SWIPL_PACKAGE_SETS
-      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA PYTHON SSL TIPC TERM GUI)
+      BASIC ARCHIVE ODBC BDB PCRE YAML JSON JAVA PYTHON SSL TIPC TERM GUI)
 endif()
 
 foreach(pkgset ${SWIPL_PACKAGE_SETS})
@@ -95,6 +96,9 @@ set(SWIPL_PACKAGE_LIST_PCRE
 set(SWIPL_PACKAGE_LIST_YAML
     yaml)
 
+set(SWIPL_PACKAGE_LIST_JSON
+    json)
+
 set(SWIPL_PACKAGE_LIST_SSL
     ssl)
 
@@ -144,9 +148,9 @@ set(SWIPL_PKG_DEPS_semweb RDF clib http nlp sgml zlib)
 set(SWIPL_PKG_DEPS_ssl clib http sgml zlib)
 set(SWIPL_PKG_DEPS_tipc clib paxos)
 if(EMSCRIPTEN)
-set(SWIPL_PKG_DEPS_http clib sgml)
+set(SWIPL_PKG_DEPS_http clib sgml json)
 else()
-set(SWIPL_PKG_DEPS_http clib sgml ssl)
+set(SWIPL_PKG_DEPS_http clib sgml json ssl)
 endif()
 
 set(SWIPL_PKG_EXPLICIT)				# Explicitly requested packages
