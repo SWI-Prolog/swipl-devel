@@ -214,7 +214,10 @@ set(noqlf_file
     home/xpce/prolog/lib/emacs/fundamental_mode.pl
     home/xpce/prolog/lib/emacs/application.pl
     home/xpce/prolog/lib/emacs/history.pl
-    home/library/ext/http/http/dcg_basics.pl)
+    home/library/ext/http/http/dcg_basics.pl
+    home/library/ext/json/http/json.pl
+    home/library/ext/json/http/json_convert.pl
+    home/library/ext/json/http/js_grammar.pl)
 
 set(include_src_pattern
     "library/tabling[.]pl$"
