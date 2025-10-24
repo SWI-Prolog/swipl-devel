@@ -118,3 +118,6 @@
 [submodule "packages/swipy"]
 	path = packages/swipy
 	url = ../packages-swipy
+[submodule "packages/json"]
+	path = packages/json
+	url = ../packages-json.git
