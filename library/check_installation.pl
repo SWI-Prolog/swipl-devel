@@ -508,7 +508,8 @@ check_on_path.
 %   When  running  this  predicate  the   _working  directory_  must  be
 %   writeable and allow for writing  executable   files.  This is due to
 %   tests  for  file  system  interaction    and  tests  for  generating
-%   stand-alone executables.
+%   stand-alone executables. Note also that due to its side effects, the
+%   predicate should not be invoked twice in the same session.
 
 test_installation :-
     test_installation([]).
