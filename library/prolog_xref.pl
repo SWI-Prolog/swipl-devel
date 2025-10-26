@@ -227,9 +227,6 @@ module defined by `Source`.
 :- meta_predicate
     prolog:generated_predicate(:).
 
-:- dynamic
-    meta_goal/2.
-
 :- meta_predicate
     process_predicates(2, +, +).
 
@@ -1187,10 +1184,12 @@ process_meta_head(Src, Decl) :-         % swapped arguments for maplist
     (   (   prolog:meta_goal(Head, _)
         ;   prolog:called_by(Head, _, _, _)
         ;   prolog:called_by(Head, _)
-        ;   meta_goal(Head, _)
+        ;   meta_goal(Head, Meta, _Src)
         )
     ->  true
-    ;   assert(meta_goal(Head, Meta, Src))
+    ;   warn_late_meta_predicate(Decl, Src),
+        retractall(meta_goal(Head, _, Src)),
+        assert(meta_goal(Head, Meta, Src))
     ).
 
 meta_args(I, Arity, _, _, []) :-
@@ -1225,6 +1224,13 @@ meta_args(I, Arity, Decl, Head, [H+A|T]) :-             % I --> H+I
 meta_args(I, Arity, Decl, Head, Meta) :-
     I2 is I + 1,
     meta_args(I2, Arity, Decl, Head, Meta).
+
+
+warn_late_meta_predicate(Decl, Src) :-
+    xref_called(Src, Decl, By),
+    !,
+    print_message(warning, meta_predicate_after_call(Decl, By)).
+warn_late_meta_predicate(_, _).
 
 
               /********************************
@@ -1409,7 +1415,7 @@ xref_meta(in_pce_thread(G),     [G]).
 xref_meta(G, Meta) :-                   % call user extensions
     prolog:meta_goal(G, Meta).
 xref_meta(G, Meta) :-                   % Generated from :- meta_predicate
-    meta_goal(G, Meta).
+    meta_goal(G, Meta, _Src).
 
 setof_goal(EG, G) :-
     var(EG), !, G = EG.
@@ -3067,3 +3073,17 @@ rename_goal(Goal0, Name, Goal) :-
         compound_name_arity(Goal, Name, Arity)
     ;   Goal = Name
     ).
+
+
+                /*******************************
+                *           MESSAGES           *
+                *******************************/<
+
+:- multifile prolog:message//1.
+
+prolog:message(meta_predicate_after_call(Decl, By)) -->
+    { pi_head(ByPI, By) },
+    [ ansi(code, ':- meta_predicate(~p)', [Decl]),
+      ' declaration appears after call from '-[],
+      ansi(code, '~p', [ByPI])
+    ].
