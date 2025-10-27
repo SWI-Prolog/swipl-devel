@@ -47,6 +47,7 @@
 :- autoload(library(lists), [nth1/3, member/2]).
 :- autoload(library(prolog_clause), [clause_info/4, clause_name/2]).
 :- autoload(library(apply), [maplist/2]).
+:- autoload(library(broadcast), [broadcast/1]).
 
 
 /** <module> Manage Prolog break-points
@@ -269,6 +270,7 @@ delete_breakpoint(ClauseRef, PC) :-
     call_cleanup(break_message(breakpoint(delete, Id)), erase(Ref)).
 
 break_message(Message) :-
+    broadcast(prolog(Message)),
     print_message(informational, Message).
 
 %!  break_location(+ClauseRef, +PC, -File, -Pos) is det.
