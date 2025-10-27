@@ -1886,7 +1886,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 
     for(; clp < elp; clp++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !PL_unify_clref(head, c) )
+	   !PL_unify_clref(head, *clp) )
       { rc = false;
 	break;
       }
