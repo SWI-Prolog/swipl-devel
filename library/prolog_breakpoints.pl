@@ -46,6 +46,7 @@
 :- autoload(library(error), [existence_error/2]).
 :- autoload(library(lists), [nth1/3, member/2]).
 :- autoload(library(prolog_clause), [clause_info/4, clause_name/2]).
+:- autoload(library(apply), [maplist/2]).
 
 
 /** <module> Manage Prolog break-points
