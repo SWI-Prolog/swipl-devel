@@ -1932,7 +1932,8 @@ wide_character_types :-
 %
 %   Enumerate directories holding tests.
 
-testdir('unprotected').
+testdir('unprotected') :-
+    current_prolog_flag(protect_static_code, false).
 testdir('core').
 testdir('attvar').
 testdir('debug').
