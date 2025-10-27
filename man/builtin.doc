@@ -1528,10 +1528,10 @@ example, halt the process on a non-zero error count right after
 loading the file with errors using the code below.
 
 \begin{code}
-:- multifile user:message_hook/3.
+:- multifile prolog:message_action/2.
 
-user:message_hook(load_file_errors(_File, Errors, _Warnings),
-		  _Level, _Lines) :-
+prolog:message_action(load_file_errors(_File, Errors, _Warnings),
+		      _Level) :-
     Errors > 0,
     halt(1).
 \end{code}
@@ -3359,6 +3359,16 @@ the same as passed to print_message/2. \arg{Lines} is a list of format
 statements as described with print_message_lines/3.  See also
 message_to_string/2.
 
+If calling this hook succeeds, the message is considered printed and no
+further action is taken. Version 9.3.34 introduced
+prolog:message_action/2 to allow modules to act on certain actions.
+Before prolog:message_action/2 was introduced a program could associate
+an action with a message by adding a clause for message_hook/3 that
+realises the desired action and then fails. The problem with this
+approach for actions is that the order of clauses for a multi-file
+predicate is poorly defined.  If the application defines a hook that
+succeeds, this hook may cause intended actions not to take place.
+
 This predicate must be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
@@ -3367,6 +3377,17 @@ As message_hook/3, but this predicate is local to the calling thread
 (see thread_local/1).  This hook is called \emph{before} message_hook/3.
 The `pre-hook' is indented to catch messages they may be produced by
 calling some goal without affecting other threads.
+
+    \predicate[nondet]{prolog:message_action}{2}{+Term, +Kind}
+This hook is called before message_hook/3 as below.  This hook
+appeared in 9.3.34.  It allows to associate side-effects with
+messages in a reliable way by decoupling printing (or reporting
+some other way) from associated side effects.  See also broadcast/1
+from library \pllib{broadcast}.
+
+\begin{code}
+    forall(prolog:message_action(Term, Kind), true).
+\end{code}
 
     \predicate{message_property}{2}{+Kind, ?Property}
 This hook can be used to define additional message kinds and the way

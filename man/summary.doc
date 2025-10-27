@@ -424,6 +424,7 @@ suggest predicates from a keyword.
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
+\predicatesummary{message_action}{2}{\hook{prolog} Associate actions with messages}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_line_element}{2}{\hook{prolog} Intercept print_message_lines/3}
 \predicatesummary{message_property}{2}{\hook{user} Define display of a message}

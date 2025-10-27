@@ -47,7 +47,8 @@
     prolog:message_context//1,      % Context of error messages
     prolog:deprecated//1,	    % Deprecated features
     prolog:message_location//1,     % (File) location of error messages
-    prolog:message_line_element/2.  % Extend printing
+    prolog:message_line_element/2,  % Extend printing
+    prolog:message_action/2.        % Side effects (broadcast)
 :- '$hide'((
     prolog:message//1,
     prolog:error_message//1,
@@ -2071,7 +2072,7 @@ print_message(Level, Term) :-
 print_message(Level, Term) :-
     (   Level \== silent
     ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term]),
-        backtrace(20)
+        autoload_call(backtrace(20))
     ;   true
     ).
 
@@ -2092,7 +2093,11 @@ pop_msg(Stack) :-
 
 print_message_guarded(Level, Term) :-
     (   must_print(Level, Term)
-    ->  (   translate_message(Term, Lines, [])
+    ->  (   prolog:message_action(Term, Level),
+            fail                                % forall/2 is cleaner, but not yet
+        ;   true                                % defined
+        ),
+        (   translate_message(Term, Lines, [])
         ->  (   nonvar(Term),
                 (   notrace(user:thread_message_hook(Term, Level, Lines))
                 ->  true
