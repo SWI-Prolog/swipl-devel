@@ -403,13 +403,12 @@ init_pce.
                  *******************************/
 
 :- multifile
-    user:message_hook/3.
+    prolog:message_action/2.
 
-user:message_hook(trace_mode(on), _, Lines) :-
+prolog:message_action(trace_mode(on), _Level) :-
     \+ thread_has_console,
     \+ current_prolog_flag(gui_tracer, true),
-    catch(attach_console, _, fail),
-    print_message_lines(user_error, '% ', Lines).
+    catch(attach_console, error(_,_), fail).
 
 :- multifile
     prolog:message/3.

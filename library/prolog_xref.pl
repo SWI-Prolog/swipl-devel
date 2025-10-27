@@ -1506,6 +1506,7 @@ hook(user:expand_query(_,_,_,_)).
 hook(user:file_search_path(_,_)).
 hook(user:library_directory(_)).
 hook(user:message_hook(_,_,_)).
+hook(prolog:message_action(_,_)).
 hook(user:portray(_)).
 hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
