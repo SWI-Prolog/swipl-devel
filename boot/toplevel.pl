@@ -602,6 +602,9 @@ user_thread_init :-
 
 %!  setup_theme
 
+:- multifile
+    prolog:theme/1.
+
 setup_theme :-
     current_prolog_flag(theme, Theme),
     exists_source(library(theme/Theme)),
