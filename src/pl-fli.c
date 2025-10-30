@@ -5010,7 +5010,7 @@ __asan_default_options(), providing an alternative   to  the environment
 variable LSAN_OPTIONS=.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 haltProlog(int status)
 { status |= PL_CLEANUP_NO_RECLAIM_MEMORY;
 
