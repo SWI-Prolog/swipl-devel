@@ -1025,7 +1025,7 @@ pl_garbage_collect_atoms(void)
   size_t reclaimed;
   int rc = true;
 
-  if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
+  if ( GD->halt.cleaning != CLN_NORMAL )	/* Cleaning up */
     return true;
 
   if ( !COMPARE_AND_SWAP_INT(&GD->atoms.gc_active, false, true) )
@@ -1388,7 +1388,7 @@ rehashAtoms(void)
   size_t index;
   int i, last=false;
 
-  if ( GD->cleaning != CLN_NORMAL )
+  if ( GD->halt.cleaning != CLN_NORMAL )
     return true;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 

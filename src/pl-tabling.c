@@ -2291,7 +2291,7 @@ reset_answer_table(trie *atrie, int cleanup)
   clear(atrie, TRIE_COMPLETE);
 
   if ( (n=atrie->data.IDG) )
-  { if ( ison(atrie, TRIE_ISSHARED) && GD->cleaning != CLN_DATA )
+  { if ( ison(atrie, TRIE_ISSHARED) && GD->halt.cleaning != CLN_DATA )
     { idg_reset(n);
     } else
     { atrie->data.IDG = NULL;

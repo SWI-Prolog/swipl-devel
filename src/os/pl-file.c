@@ -1273,7 +1273,7 @@ isConsoleStream(IOSTREAM *s)
 
 bool
 reportStreamError(IOSTREAM *s)
-{ if ( GD->cleaning >= CLN_IO ||
+{ if ( GD->halt.cleaning >= CLN_IO ||
        isConsoleStream(s) )
     return true;
 
@@ -1377,7 +1377,7 @@ streamStatus(IOSTREAM *s)
 		 *******************************/
 
 ttybuf	ttytab;				/* saved terminal status on entry */
-int	ttymodified;			/* is tty modified? */
+bool	ttymodified;			/* is tty modified? */
 int	ttyfileno = -1;
 
 typedef struct input_context * InputContext;

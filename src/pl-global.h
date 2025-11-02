@@ -99,9 +99,6 @@ struct PL_global_data
   State		stateList;		/* list of loaded states */
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
-  cleanup_status cleaning;		/* Inside PL_cleanup() */
-  int		halt_cancelled;		/* Times halt was cancelled */
-  int		halt_status;		/* For killing threads */
   unsigned int	bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
@@ -465,6 +462,13 @@ struct PL_global_data
   } date;
 
   struct stack		combined_stack; /* ID for combined stack */
+
+  struct
+  { cleanup_status cleaning;		/* Inside PL_cleanup() */
+    int status;				/* code and flags */
+    int cancelled;			/* Times halt was cancelled */
+    int thread;				/* Initiating thread */
+  } halt;
 };
 
 

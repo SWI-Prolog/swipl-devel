@@ -1728,7 +1728,7 @@ deleteIndexesDefinition(Definition def)
 { ClauseList clist = &def->impl.clauses;
   ClauseIndex *cip0;
 
-  assert(GD->cleaning != CLN_NORMAL ||
+  assert(GD->halt.cleaning != CLN_NORMAL ||
 	 ison(def, P_LOCALISED) ||
 	 !def->module ||
 	 def->module->class == ATOM_temporary);

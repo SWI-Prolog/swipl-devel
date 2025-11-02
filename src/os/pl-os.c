@@ -2241,15 +2241,17 @@ GetTtyState(int fd, struct termios *tio)
   return true;
 }
 
-static int
+static bool
 SetTtyState(int fd, struct termios *tio)
 {
 #ifdef HAVE_TCSETATTR
   if ( tcsetattr(fd, TCSANOW, tio) != 0 )
-  { static int MTOK_warned;			/* MT-OK */
+  { static bool MTOK_warned;			/* MT-OK */
 
-    if ( !MTOK_warned++ )
+    if ( !MTOK_warned )
+    { MTOK_warned = true;
       return warning("Failed to set terminal: %s", OsError());
+    }
   }
 #else
 #ifdef TIOCSETAW
@@ -2261,7 +2263,11 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 
   if ( fd == ttyfileno && ttytab.state )
-    ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
+    ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio)) != 0;
+
+  DEBUG(MSG_TTY,
+	Sdprintf("[%d] SetTtyState(%d): modified = %d\n",
+		 PL_thread_self(), fd, ttymodified));
 
   return true;
 }
@@ -3097,7 +3103,7 @@ accurate, interruptable and restartable.
 #if !defined(PAUSE_DONE) && defined(HAVE_NANOSLEEP)
 #define PAUSE_DONE 1
 
-int
+bool
 Pause(double t)
 { struct timespec req;
   int rc;
@@ -3124,7 +3130,7 @@ Pause(double t)
 #if !defined(PAUSE_DONE) && defined(HAVE_USLEEP)
 #define PAUSE_DONE 1
 
-int
+bool
 Pause(double t)
 { if ( t <= 0.0 )
     return true;
@@ -3140,7 +3146,7 @@ Pause(double t)
 #if !defined(PAUSE_DONE) && defined(HAVE_SELECT)
 #define PAUSE_DONE 1
 
-int
+bool
 Pause(double time)
 { struct timeval timeout;
 
@@ -3175,7 +3181,7 @@ Pause(double time)
 #if !defined(PAUSE_DONE) && defined(HAVE_DOSSLEEP)
 #define PAUSE_DONE 1
 
-int					/* a millisecond granualrity. */
+bool					/* a millisecond granualrity. */
 Pause(double time)			/* the EMX function sleep uses seconds */
 { if ( time <= 0.0 )			/* the select() trick does not work at all. */
     return true;
@@ -3190,7 +3196,7 @@ Pause(double time)			/* the EMX function sleep uses seconds */
 #if !defined(PAUSE_DONE) && defined(HAVE_SLEEP)
 #define PAUSE_DONE 1
 
-int
+bool
 Pause(double t)
 { if ( t <= 0.5 )
     succeed;
@@ -3205,7 +3211,7 @@ Pause(double t)
 #if !defined(PAUSE_DONE) && defined(HAVE_DELAY)
 #define PAUSE_DONE 1
 
-int
+bool
 Pause(double t)
 { delay((int)(t * 1000));
 
@@ -3215,7 +3221,7 @@ Pause(double t)
 #endif /*HAVE_DELAY*/
 
 #ifndef PAUSE_DONE
-int
+bool
 Pause(double t)
 { return notImplemented("sleep", 1);
 }

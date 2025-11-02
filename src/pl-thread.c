@@ -1190,7 +1190,7 @@ exitPrologThreads(void)
 	    if ( PL_thread_raise(i, SIG_PLHALT) )
 	    { DEBUG(MSG_CLEANUP_THREAD,
 		    Sdprintf("Sent unwind(halt(%d)) to %d\n",
-			     GD->halt_status, i));
+			     GD->halt.status&PL_CLEANUP_STATUS_MASK, i));
 	      canceled++;
 	    }
 	  }
@@ -1476,7 +1476,7 @@ thread_gc_loop(void *closure)
     } while ( h && !COMPARE_AND_SWAP_PTR(&gced_threads, h, h->next_free) );
 
     if ( h )
-    { if ( GD->cleaning == CLN_NORMAL )
+    { if ( GD->halt.cleaning == CLN_NORMAL )
 	discard_thread(h);
       PL_free(h);
     } else
@@ -1512,7 +1512,7 @@ start_thread_gc_thread(void)
 
 static void
 gc_thread(thread_handle *ref)
-{ if ( GD->cleaning == CLN_NORMAL )	/* otherwise we are terminating */
+{ if ( GD->halt.cleaning == CLN_NORMAL )	/* otherwise we are terminating */
   {
 #ifdef O_PLMT
     thread_handle *h;
@@ -2332,7 +2332,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
-  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
+  if ( !GD->thread.enabled || GD->halt.cleaning != CLN_NORMAL )
     return PL_error(NULL, 0, "threading disabled",
 		      ERR_PERMISSION,
 		      ATOM_create, ATOM_thread, goal);
@@ -6720,7 +6720,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   }
 
 #ifdef O_PLMT
-  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
+  if ( !GD->thread.enabled || GD->halt.cleaning != CLN_NORMAL )
   {
 #ifdef EPERM				/* FIXME: Better reporting */
     errno = EPERM;
@@ -8264,7 +8264,7 @@ Definition*
 predicates_in_use(void)
 {
 #ifdef O_PLMT
-  if ( GD->cleaning != CLN_DATA )
+  if ( GD->halt.cleaning != CLN_DATA )
   { int i, index=0;
     size_t sz = 32;
 

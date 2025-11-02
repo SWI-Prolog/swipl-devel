@@ -572,7 +572,7 @@ int
 PL_call_event_hook(pl_event_type ev, ...)
 { event_list **listp = event_list_location(ev);
 
-  if ( *listp && GD->cleaning != CLN_DATA )
+  if ( *listp && GD->halt.cleaning != CLN_DATA )
   { va_list args;
     int rc;
 

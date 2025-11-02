@@ -708,7 +708,7 @@ writeAttVar(term_t av, write_options *options)
 
     return true;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
-	      GD->cleaning <= CLN_PROLOG )
+	      GD->halt.cleaning <= CLN_PROLOG )
   { predicate_t pred;
     IOSTREAM *old;
     wakeup_state wstate;
@@ -762,7 +762,7 @@ writeAtom(atom_t a, write_options *options)
 
   if ( (options->flags & PL_WRT_BLOB_PORTRAY) &&
        isoff(atom->type, PL_BLOB_TEXT) &&
-       GD->cleaning <= CLN_PROLOG &&
+       GD->halt.cleaning <= CLN_PROLOG &&
        a != ATOM_nil )
   { GET_LD
     int rc;
@@ -1504,7 +1504,7 @@ static int
 callPortray(term_t arg, int prec, write_options *options)
 { predicate_t pred;
 
-  if ( GD->cleaning > CLN_PROLOG )
+  if ( GD->halt.cleaning > CLN_PROLOG )
     fail;				/* avoid dangerous callbacks */
 
   if ( options->portray_goal )

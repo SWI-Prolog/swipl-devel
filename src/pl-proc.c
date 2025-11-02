@@ -211,7 +211,7 @@ destroyDefinition(Definition def)
     deleteIndexesDefinition(def);
     UNLOCKDEF(def);
     removeClausesPredicate(def, 0, false);
-    if ( GD->cleaning != CLN_DATA )
+    if ( GD->halt.cleaning != CLN_DATA )
     { registerDirtyDefinition(def);
       DEBUG(MSG_PRED_COUNT, Sdprintf("Erased %s at\n", predicateName(def), def));
       def->module = NULL;
@@ -243,8 +243,8 @@ delayedDestroyDefinition(Definition def)
 				 predicateName(def), def));
   assert(def->module == NULL);
   if ( def->impl.clauses.first_clause == NULL ||
-       GD->cleaning == CLN_DATA )
-  { if ( GD->cleaning == CLN_DATA )
+       GD->halt.cleaning == CLN_DATA )
+  { if ( GD->halt.cleaning == CLN_DATA )
       removeClausesPredicate(def, 0, false);
 
     DEBUG(1,
@@ -1159,7 +1159,7 @@ reclaimRetracted(Clause cl)
 	{ GET_LD
 	  table_value_t v = deleteHTablePW(retracted_clauses, cl);
 
-	  if ( v != 1 && GD->cleaning == CLN_NORMAL )
+	  if ( v != 1 && GD->halt.cleaning == CLN_NORMAL )
 	  { Definition def = cl->predicate;
 	    Sdprintf("reclaim not retracted from %s\n", predicateName(def));
 	  }
@@ -1255,7 +1255,7 @@ lingerClauseRef(ClauseRef cref)
 	  assert(0);
 	});
 
-  if ( GD->cleaning != CLN_DATA )
+  if ( GD->halt.cleaning != CLN_DATA )
   { do
     { o = GD->clauses.lingering;
       cref->d.gnext = o;
@@ -1573,7 +1573,7 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   if ( ison(def, P_THREAD_LOCAL) )
     return 0;
 
-  if ( GD->cleaning != CLN_DATA )		/* normal operation */
+  if ( GD->halt.cleaning != CLN_DATA )		/* normal operation */
   { PL_LOCK(L_GENERATION);
     update = global_generation()+1;
     acquire_def(def);
@@ -2285,7 +2285,7 @@ considerClauseGC(DECL_LD)
 
   if ( GD->clauses.cgc_space_factor > 0 &&
        pending > codesize/GD->clauses.cgc_space_factor &&
-       GD->cleaning == CLN_NORMAL )
+       GD->halt.cleaning == CLN_NORMAL )
   { DEBUG(MSG_CGC_CONSIDER,
 	  Sdprintf("CGC? too much garbage: %lld bytes in %lld clauses\n",
 		   (int64_t)GD->clauses.erased_size,
@@ -2308,7 +2308,7 @@ considerClauseGC(DECL_LD)
     rgc =  ( (double)stats.erased_skipped >
 	     (double)stats.local_size*GD->clauses.cgc_stack_factor +
 	     (double)stats.dirty_pred_clauses*GD->clauses.cgc_clause_factor );
-    rgc = rgc && (GD->cleaning == CLN_NORMAL);
+    rgc = rgc && (GD->halt.cleaning == CLN_NORMAL);
     DEBUG(MSG_CGC_CONSIDER,
 	  Sdprintf("GCG? [%s] %lld skipped; lsize=%zd; clauses=%zd\n",
 		   rgc ? "Y" : " ",
@@ -2605,7 +2605,7 @@ oldest generation is 0 and thus no clause reference will be collected.
 
 static void
 registerDirtyDefinition(DECL_LD Definition def)
-{ if ( unlikely(GD->cleaning == CLN_DATA) )
+{ if ( unlikely(GD->halt.cleaning == CLN_DATA) )
     return;
 
   if ( isoff(def, P_DIRTYREG) )

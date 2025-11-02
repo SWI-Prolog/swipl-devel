@@ -876,8 +876,9 @@ halt_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( !raise_halt_exception(GD->halt_status, true) )
-  { Sdprintf("Failed to raise unwind(halt(%d))\n", GD->halt_status);
+  if ( !raise_halt_exception(GD->halt.status, true) )
+  { Sdprintf("Failed to raise unwind(halt(%d))\n",
+	     GD->halt.status&PL_CLEANUP_STATUS_MASK);
     abortProlog();
   }
 }

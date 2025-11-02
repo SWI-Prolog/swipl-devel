@@ -5031,17 +5031,18 @@ haltProlog(int status)
 
 bool
 PL_halt(int status)
-{ int code = (status&PL_CLEANUP_STATUS_MASK);
-
-  GD->halt_status = code;
+{ GD->halt.status = status;
+  GD->halt.thread = PL_thread_self();
   if ( (status & PL_HALT_WITH_EXCEPTION) &&
-       raise_halt_exception(code, false) )
+       raise_halt_exception(status, false) )
     return false;
 
   if ( haltProlog(status) )
     exit(status);
 
-  GD->halt_status = 0;		/* cancelled */
+  GD->halt.status = 0;		/* cancelled */
+  GD->halt.thread = 0;
+
   return true;
 }
 
@@ -5737,7 +5738,7 @@ PL_query(int query)
       return (intptr_t)(cpu*1000.0);
     }
     case PL_QUERY_HALTING:
-    { return (GD->cleaning == CLN_NORMAL ? false : true);
+    { return (GD->halt.cleaning == CLN_NORMAL ? false : true);
     }
     default:
       sysError("PL_query: Illegal query: %d", query);

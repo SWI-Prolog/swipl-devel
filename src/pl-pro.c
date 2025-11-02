@@ -184,7 +184,8 @@ query_loop(atom_t goal, bool loop)
       if ( exclass == EXCEPT_HALT )
       { rc = true;
 	loop = false;
-	if ( PL_thread_self() <= 1 )
+	int me = PL_thread_self();
+	if ( me < 0 || me == GD->halt.thread )
 	  halt_from_exception(except);
       }
 
@@ -606,9 +607,10 @@ exception if we cannot allocate the exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-raise_halt_exception(DECL_LD int code, bool force)
-{ pl_notrace();
+raise_halt_exception(DECL_LD int status, bool force)
+{ int code = (status&PL_CLEANUP_STATUS_MASK);
 
+  pl_notrace();
   LD->exception.processing = true;	/* allow using spare stack */
 
   if ( force || handles_unwind(NULL, PL_Q_EXCEPT_HALT) )

@@ -223,7 +223,7 @@ freeHeap(void *mem, size_t n)
 
 void
 linger_always(linger_list** list, void (*unalloc)(void *), void *object)
-{ if ( GD->cleaning != CLN_DATA )
+{ if ( GD->halt.cleaning != CLN_DATA )
   { linger_list *c = allocHeapOrHalt(sizeof(*c));
     linger_list *o;
 

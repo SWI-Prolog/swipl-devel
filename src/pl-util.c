@@ -142,7 +142,7 @@ predicateName(Definition def)
     return "(nil)";
 
   if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
-  { if ( def->module && GD->cleaning != CLN_DATA )
+  { if ( def->module && GD->halt.cleaning != CLN_DATA )
       strcpy(e, atom_summary(def->module->name, 50));
     else
       strcpy(e, "(nil)");
@@ -296,7 +296,7 @@ isUserSystemPredicate(Definition def)
 { GET_LD
 
   if ( ison(def, P_LOCKED) &&
-       GD->cleaning != CLN_DATA &&
+       GD->halt.cleaning != CLN_DATA &&
        isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;
 

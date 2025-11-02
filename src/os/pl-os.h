@@ -66,7 +66,7 @@ int		CpuCount(void);
 void		setRandom(unsigned int *seed);
 uint64_t	_PL_Random(void);
 void		setOSPrologFlags(void);
-int		Pause(double time);
+bool		Pause(double time);
 
 		/********************************
 		*              FILES            *
@@ -153,7 +153,7 @@ typedef struct
 } ttybuf;
 
 extern ttybuf	ttytab;			/* saved tty status */
-extern int	ttymodified;		/* Did we modify the tty */
+extern bool	ttymodified;		/* Did we modify the tty */
 extern int	ttyfileno;		/* Main TTY file number */
 
 #define IsaTty(fd)	isatty(fd)
