@@ -1147,7 +1147,7 @@ exitPrologThreads(void)
   int me = PL_thread_self();
   int canceled = 0;
 
-  DEBUG(MSG_THREAD, Sdprintf("exitPrologThreads(): me = %d\n", me));
+  DEBUG(MSG_CLEANUP_THREAD, Sdprintf("exitPrologThreads(): me = %d\n", me));
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
