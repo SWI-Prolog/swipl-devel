@@ -751,8 +751,7 @@ run_init_goal(Goal, Ctx) :-
     (   catch_with_backtrace(user:Goal, E, true)
     ->  (   var(E)
         ->  true
-        ;   print_message(error, init_goal_failed(E, Ctx)),
-            halt(2)
+        ;   init_goal_failed(E, Ctx)
         )
     ;   (   current_prolog_flag(verbose, silent)
         ->  Level = silent
@@ -761,6 +760,16 @@ run_init_goal(Goal, Ctx) :-
         print_message(Level, init_goal_failed(failed, Ctx)),
         halt(1)
     ).
+
+init_goal_failed(E, Ctx) :-
+    print_message(error, init_goal_failed(E, Ctx)),
+    init_goal_failed(E).
+
+init_goal_failed(_) :-
+    thread_self(main),
+    !,
+    halt(2).
+init_goal_failed(_).
 
 %!  init_debug_flags is det.
 %
