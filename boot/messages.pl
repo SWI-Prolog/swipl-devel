@@ -1571,14 +1571,15 @@ prolog_message(history(expanded(Event))) -->
     [ '~w.'-[Event] ].
 prolog_message(history(history(Events))) -->
     history_events(Events).
+prolog_message(history(no_history)) -->
+    [ '! event history not supported in this version' ].
 
 history_events([]) -->
     [].
-history_events([Nr/Event|T]) -->
-    [ '~t~w   ~8|~W~W'-[ Nr,
-                         Event, [partial(true)],
-                         '.', [partial(true)]
-                       ],
+history_events([Nr-Event|T]) -->
+    [ ansi(comment, '%', []),
+      ansi(bold, '~t~w ~6|', [Nr]),
+      ansi(code, '~s', [Event]),
       nl
     ],
     history_events(T).

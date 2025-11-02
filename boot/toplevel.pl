@@ -538,7 +538,6 @@ initialise_error(E) :-
     fail.
 
 initialise_prolog :-
-    '$clean_history',
     apply_defines,
     init_optimise,
     '$run_initialization',
@@ -581,7 +580,6 @@ user_thread_init :-
     argv_prolog_files(Files, ScriptMode),
     load_init_file(ScriptMode),                 % -f file
     catch(setup_colors, E, print_message(warning, E)),
-    '$load_history',
     win_associated_files(Files),                % swipl-win: cd and update title
     '$load_script_file',                        % -s file (may be repeated)
     load_associated_files(Files),
@@ -821,18 +819,14 @@ setup_history :-
         load_setup_file(library(prolog_history))
     ->  prolog_history(enable)
     ;   true
-    ),
-    set_default_history,
-    '$load_history'.
+    ).
 
 %!  setup_readline
 %
 %   Setup line editing.
 
 setup_readline :-
-    (   current_prolog_flag(readline, swipl_win)
-    ->  true
-    ;   stream_property(user_input, tty(true)),
+    (   stream_property(user_input, tty(true)),
         current_prolog_flag(tty_control, true),
         \+ getenv('TERM', dumb),
         (   current_prolog_flag(readline, ReadLine)
@@ -1248,6 +1242,9 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
 %   !-based history is enabled. The second is   used  if we have command
 %   line editing.
 
+:- multifile
+    prolog:history/2.
+
 :- if(current_prolog_flag(emscripten, true)).
 read_query(_Prompt, Goal, Bindings) :-
     '$can_yield',
@@ -1256,14 +1253,13 @@ read_query(_Prompt, Goal, Bindings) :-
     term_string(Goal, GoalString, [variable_names(Bindings)]).
 :- endif.
 read_query(Prompt, Goal, Bindings) :-
-    current_prolog_flag(history, N),
-    integer(N), N > 0,
+    prolog:history(current_input, enabled),
     !,
     read_term_with_history(
         Goal,
         [ show(h),
           help('!h'),
-          no_save([trace, end_of_file]),
+          no_save([trace]),
           prompt(Prompt),
           variable_names(Bindings)
         ]).
@@ -1272,7 +1268,6 @@ read_query(Prompt, Goal, Bindings) :-
     repeat,                                 % over syntax errors
     prompt1(Prompt1),
     read_query_line(user_input, Line),
-    '$save_history_line'(Line),             % save raw line (edit syntax errors)
     '$current_typein_module'(TypeIn),
     catch(read_term_from_atom(Line, Goal,
                               [ variable_names(Bindings),
@@ -1281,20 +1276,30 @@ read_query(Prompt, Goal, Bindings) :-
           (   print_message(error, E),
               fail
           )),
-    !,
-    '$save_history_event'(Line).            % save event (no syntax errors)
+    !.
 
-%!  read_query_line(+Input, -Line) is det.
+%!  read_query_line(+Input, -Query:atom) is det.
+%
+%   Read a query as an atom. If Query is '$silent'(Goal), execute `Goal`
+%   in module `user` and read the   next  query. This supports injecting
+%   goals in some GNU-Emacs modes.
 
 read_query_line(Input, Line) :-
     stream_property(Input, error(true)),
     !,
     Line = end_of_file.
 read_query_line(Input, Line) :-
-    catch(read_term_as_atom(Input, Line), Error, true),
+    catch(read_term_as_atom(Input, Line0), Error, true),
     save_debug_after_read,
     (   var(Error)
-    ->  true
+    ->  (   catch(term_string(Goal, Line0), error(_,_), fail),
+            Goal = '$silent'(SilentGoal)
+        ->  Error = error(_,_),
+            catch_with_backtrace(ignore(SilentGoal), Error,
+                                 print_message(error, Error)),
+            read_query_line(Input, Line)
+        ;   Line = Line0
+        )
     ;   catch(print_message(error, Error), _, true),
         (   Error = error(syntax_error(_),_)
         ->  fail
@@ -1347,24 +1352,6 @@ delete_leading_blanks([' '|T0], T) :-
     !,
     delete_leading_blanks(T0, T).
 delete_leading_blanks(L, L).
-
-
-%!  set_default_history
-%
-%   Enable !-based numbered command history. This  is enabled by default
-%   if we are not running under GNU-emacs  and   we  do not have our own
-%   line editing.
-
-set_default_history :-
-    current_prolog_flag(history, _),
-    !.
-set_default_history :-
-    (   (   \+ current_prolog_flag(readline, false)
-        ;   current_prolog_flag(emacs_inferior_process, true)
-        )
-    ->  create_prolog_flag(history, 0, [])
-    ;   create_prolog_flag(history, 25, [])
-    ).
 
 
                  /*******************************

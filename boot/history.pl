@@ -36,22 +36,16 @@
 */
 
 :- module('$history',
-          [ read_term_with_history/2,           % -Term, +Line
-            '$save_history_line'/1,             % +Line
-            '$clean_history'/0,
-            '$load_history'/0,
-            '$save_history_event'/1
+          [ read_term_with_history/2           % -Term, +Line
           ]).
+
+:- multifile
+    prolog:history/2.
 
 %!  read_term_with_history(-Term, +Options)
 %
 %   Read a term guide by Options and  maintain a history similar to most
 %   Unix shells.
-%
-%   When read_history reads a term of   the  form $silent(Goal), it will
-%   call Goal and pretend it has not seen anything. This hook is used by
-%   the GNU-Emacs interface to for   communication between GNU-EMACS and
-%   SWI-Prolog.
 
 read_term_with_history(Term, Options) :-
     '$option'(prompt(Prompt), Options, '~! ?-'),
@@ -75,7 +69,7 @@ read_history_(Raw, _Term, Options) :-
     fail.
 read_history_(Raw, Term, Options) :-
     expand_history(Raw, Expanded, Changed),
-    '$save_history_line'(Expanded),
+    add_to_history(Expanded, Options),
     '$option'(module(Module), Options, Var),
     (   Module == Var
     ->  '$current_typein_module'(Module)
@@ -93,11 +87,7 @@ read_history_(Raw, Term, Options) :-
     (   var(Term0)
     ->  Term = Term0,
         Bindings = Bindings0
-    ;   Term0 = '$silent'(Goal)
-    ->  user:ignore(Goal),
-        read_term_with_history(Term, Options)
-    ;   save_event(Expanded, Options),
-        (   Changed == true
+    ;   (   Changed == true
         ->  print_message(query, history(expanded(Expanded)))
         ;   true
         ),
@@ -110,44 +100,24 @@ read_history_(Raw, Term, Options) :-
 %   Write recorded history events using print_message/2.
 
 list_history :-
-    (   '$history'(Last, _)
-    ->  true
-    ;   Last = 0
-    ),
-    history_depth_(Depth),
-    plus(First, Depth, Last),
-    findall(Nr/Event,
-            (   between(First, Last, Nr),
-                '$history'(Nr, Event)
-            ),
-            Events),
+    prolog:history(current_input, events(Events0)),
+    !,
+    '$reverse'(Events0, Events),
     print_message(query, history(history(Events))).
+list_history :-
+    print_message(query, history(no_history)).
 
-'$clean_history' :-
-    retractall('$history'(_,_)).
-
-%!  '$load_history' is det.
+%!   prompt_history(+Prompt)
 %
-%   Load persistent history using a hook
-
-'$load_history' :-
-    '$clean_history',
-    current_prolog_flag(history, Depth),
-    Depth > 0,
-    catch(prolog:history(current_input, load), _, true), !.
-'$load_history'.
-
-
-%%   prompt_history(+Prompt)
-%
-%    Give prompt, substituting '~!' by the event number.
+%    Set the prompt using prompt1/1,  substituting   '~!'  by  the event
+%    number.
 
 prompt_history('') :-
     !,
     ttyflush.
 prompt_history(Prompt) :-
-    (   '$history'(Last, _)
-    ->  This is Last + 1
+    (   prolog:history(current_input, curr(Curr, _))
+    ->  This is Curr + 1
     ;   This = 1
     ),
     atom_codes(Prompt, SP),
@@ -159,7 +129,8 @@ prompt_history(Prompt) :-
     ),
     ttyflush.
 
-%   substitute(+Old, +New, +String, -Substituted)
+%!  substitute(+Old, +New, +String, -Substituted) is semidet.
+%
 %   substitute first occurence of Old in String by New
 
 substitute(Old, New, String, Substituted) :-
@@ -167,102 +138,30 @@ substitute(Old, New, String, Substituted) :-
     '$append'(Old, Tail, OldAndTail),
     !,
     '$append'(Head, New, HeadAndNew),
-    '$append'(HeadAndNew, Tail, Substituted),
-    !.
+    '$append'(HeadAndNew, Tail, Substituted).
 
-%!  '$save_history_line'(+Line)
+%!  add_to_history(+Line:atom, +Options) is det.
 %
-%   Add Line to the command line editing history.
+%   Add Line to the command line editing history. Line contains the
+%   query as an atom without the Prolog full stop.
 
-:- multifile
-    prolog:history_line/2.
-
-'$save_history_line'(end_of_file) :- !.
-'$save_history_line'(Line) :-
+add_to_history(end_of_file, _) :- !.
+add_to_history(Line, Options) :-
+    '$option'(no_save(NoSave), Options),
+    catch(term_string(Query, Line), error(_,_), fail),
+    nonvar(Query),
+    memberchk(Query, NoSave),
+    !.
+add_to_history(Line, _Options) :-
     format(string(CompleteLine), '~W~W',
            [ Line, [partial(true)],
              '.',  [partial(true)]
            ]),
     catch(prolog:history(user_input, add(CompleteLine)), _, fail),
     !.
-'$save_history_line'(_).
+add_to_history(_, _).
 
-%!  save_event(+Event, +Options)
-%
-%   Save Event into the  history  system unless it appears in the
-%   option `no_save`.
-
-save_event(Event, Options) :-
-    '$option'(no_save(Dont), Options),
-    memberchk(Event, Dont),
-    !.
-save_event(Event, _) :-
-    '$save_history_event'(Event).
-
-%!  '$save_history_event'(+Event) is det.
-%
-%   Save an input line as text into the !- based history. Event is one
-%   of
-%
-%     * a *string*.  The event is added with a next number at the end.
-%     * a *pair*.  The event is added with the given sequence number.
-
-:- thread_local
-    '$history'/2.
-
-'$save_history_event'(Num-String) :-
-    integer(Num), string(String),
-    !,
-    asserta('$history'(Num, String)),
-    truncate_history(Num).
-'$save_history_event'(Event) :-
-    to_string(Event, Event1),
-    !,
-    last_event(Num, String),
-    (   Event1 == String
-    ->  true
-    ;   New is Num + 1,
-        asserta('$history'(New, Event1)),
-        truncate_history(New)
-    ).
-'$save_history_event'(Event) :-
-    '$type_error'(history_event, Event).
-
-last_event(Num, String) :-
-    '$history'(Num, String),
-    !.
-last_event(0, "").
-
-to_string(String, String) :-
-    string(String),
-    !.
-to_string(Atom, String) :-
-    atom_string(Atom, String).
-
-truncate_history(New) :-
-    history_depth_(Depth),
-    remove_history(New, Depth).
-
-remove_history(New, Depth) :-
-    New - Depth =< 0,
-    !.
-remove_history(New, Depth) :-
-    Remove is New - Depth,
-    retract('$history'(Remove, _)),
-    !.
-remove_history(_, _).
-
-%    history_depth_(-Depth)
-%    Define the depth to which to keep the history.
-
-history_depth_(N) :-
-    current_prolog_flag(history, N),
-    integer(N),
-    N > 0,
-    !.
-history_depth_(25).
-
-%    expand_history(+Raw, -Expanded)
+%!   expand_history(+Raw, -Expanded)
 %    Expand Raw using the available history list. Expandations performed
 %    are:
 %
@@ -315,16 +214,38 @@ skip_quoted([C|T0],Q,[C|T], In, Out) :-
     skip_quoted(T0, Q, T, In, Out).
 skip_quoted([], _, [], [], []).
 
-%   get_last_event(-String)
-%   return last event typed as a string
+%!  get_last_event(-Chars) is semidet.
+%
+%   return last event typed as a list of characters without the
+%   Prolog full stop.
 
 get_last_event(Event) :-
-    '$history'(_, Atom),
-    atom_chars(Atom, Event),
+    prolog:history(current_input, first(_Num, String)),
+    string_chars(String, Event0),
+    remove_full_stop(Event0, Event).
     !.
 get_last_event(_) :-
     print_message(query, history(no_event)),
     fail.
+
+remove_full_stop(In, Out) :-
+    phrase(remove_full_stop(Out), In).
+
+remove_full_stop([]) -->
+    spaces, ['.'], spaces,
+    !.
+remove_full_stop([H|T]) -->
+    [H], !,
+    remove_full_stop(T).
+remove_full_stop([]) -->
+    [].
+
+spaces --> space, !, spaces.
+spaces --> [].
+
+space -->
+    [C],
+    { char_type(C, space) }.
 
 %   match_event(+Spec, -Event, -Rest)
 %   Use Spec as a specification of and event and return the event as Event
@@ -347,10 +268,11 @@ find_event([!|Left], Event, Left) :-
 find_event([N|Rest], Event, Left) :-
     code_type(N, digit),
     !,
-    take_number([N|Rest], String, Left),
-    number_codes(Number, String),
-    '$history'(Number, Atom),
-    atom_chars(Atom, Event).
+    take_number([N|Rest], NumCodes, Left),
+    number_codes(Number, NumCodes),
+    prolog:history(current_input, event(Number, String)),
+    string_chars(String, Event0),
+    remove_full_stop(Event0, Event).
 find_event(Spec, Event, Left) :-
     take_string(Spec, String, Left),
     matching_event(String, Event).
@@ -369,12 +291,12 @@ take_number([C|Rest], [C|String], Left) :-
 take_number([C|Rest], [], [C|Rest]) :- !.
 take_number([], [], []).
 
-%   matching_event(+String, -Event)
+%!  matching_event(+String, -Chars) is semidet.
 %
-%   Return first event with prefix String as a Prolog string.
+%   Return first event with prefix String as a list of Prolog chars
+%   without trailing full stop.
 
-matching_event(String, Event) :-
-    '$history'(_, AtomEvent),
-    atom_chars(AtomEvent, Event),
-    '$append'(String, _, Event),
-    !.
+matching_event(String, Chars) :-
+    prolog:history(current_input, prev_str(String, _Num, String)),
+    string_chars(String, Chars0),
+    remove_full_stop(Chars0, Chars).
