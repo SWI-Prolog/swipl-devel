@@ -194,7 +194,7 @@ WinError(void)
 		 *	  SLEEP/1 SUPPORT	*
 		 *******************************/
 
-int
+bool
 Pause(double t)
 { HANDLE h;
 
