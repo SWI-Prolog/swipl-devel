@@ -13,19 +13,20 @@ ICONSET_DIR="temp.iconset"
 
 mkdir -p "$ICONSET_DIR"
 
-# Generate only the essential sizes
-sips -z 16 16     "$INPUT" --out "$ICONSET_DIR/icon_16x16.png"
-sips -z 32 32     "$INPUT" --out "$ICONSET_DIR/icon_16x16@2x.png"
-sips -z 128 128   "$INPUT" --out "$ICONSET_DIR/icon_128x128.png"
-sips -z 256 256   "$INPUT" --out "$ICONSET_DIR/icon_128x128@2x.png"
+resize()
+{ sips -z $1 $1 "$INPUT" --out "$ICONSET_DIR/icon_${2}.png" > /dev/null
+}
 
-# Optionally add 512x512 if desired
-# sips -z 512 512 "$INPUT" --out "$ICONSET_DIR/icon_256x256@2x.png"
+# Generate only the essential sizes
+resize 16 16x16
+resize 32 16x16@2x
+resize 128 128x128
+resize 256 128x128@2x
 
 # Convert to .icns
-iconutil -c icns "$ICONSET_DIR" -o "$OUTPUT"
+iconutil -c icns "$ICONSET_DIR" -o "$OUTPUT" || exit 1
 
 # Clean up
 rm -rf "$ICONSET_DIR"
 
-echo "Created $OUTPUT"
+# echo "Created $OUTPUT"
