@@ -5029,10 +5029,39 @@ haltProlog(int status)
   }
 }
 
+/* Halt the system.  The idea is to stop all threads using exitPrologThreads(),
+   cleanup everything and exit() using the exit status. If supported by
+   the environment, we terminate by raising the exception
+   unwind(halt(Status)). This allows user code to cleanup on the halt
+   exception.   This schema is used by query_loop(), where we ultimately
+   halt after the exception bubbles up to this function and query_loop()
+   calls halt_from_exception().
+
+   If halting is not initiated from the main thread, we signal the main
+   thread, after which we call Pause().   If Pause() returns false, this
+   implies exitPrologThreads() called from the main thread is activated
+   and we forward the exception. If Pause() returns true, the main
+   thread seems incapable of processing the signal and we forcefully
+   shut down the process from the initiating thread.
+ */
+
 bool
 PL_halt(int status)
 { GD->halt.status = status;
   GD->halt.thread = PL_thread_self();
+
+#ifdef O_PLMT
+  if ( GD->halt.thread != 1 )
+  { PL_thread_raise(1, SIG_PLHALT);
+    if ( Pause(halt_grace_time()) )
+    { haltProlog(status);	/* Main thread does not acknowledge */
+      exit(status);
+    } else			/* We are signalled, so all done */
+    { return false;
+    }
+  }
+#endif
+
   if ( (status & PL_HALT_WITH_EXCEPTION) &&
        raise_halt_exception(status, false) )
     return false;

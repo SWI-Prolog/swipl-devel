@@ -551,6 +551,7 @@ intptr_t	system_thread_id(PL_thread_info_t *info);
 void		get_current_timespec(struct timespec *time);
 void		carry_timespec_nanos(struct timespec *time);
 void		free_predicate_references(PL_local_data_t *ld);
+double		halt_grace_time(void);
 #undef LDFUNC_DECLARATIONS
 
 

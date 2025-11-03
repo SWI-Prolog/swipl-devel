@@ -185,7 +185,7 @@ query_loop(atom_t goal, bool loop)
       { rc = true;
 	loop = false;
 	int me = PL_thread_self();
-	if ( me < 0 || me == GD->halt.thread )
+	if ( me < 0 || me == 1 )	/* no threads or main thread */
 	  halt_from_exception(except);
       }
 

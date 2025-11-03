@@ -1118,8 +1118,7 @@ dummy_handler(int sig)
 }
 #endif
 
-#if defined(O_PLMT) && (defined(USE_TIMER_WAIT) || defined(HAVE_SEM_TIMEDWAIT))
-static double
+double
 halt_grace_time(void)
 { GET_LD
   fid_t fid;
@@ -1137,7 +1136,6 @@ halt_grace_time(void)
 
   return t;
 }
-#endif
 
 bool
 exitPrologThreads(void)
@@ -1206,7 +1204,7 @@ exitPrologThreads(void)
   if ( canceled > 0 )		    /* see (*) above */
   {
 #ifdef USE_TIMER_WAIT
-	double grace_time = halt_grace_time();
+    double grace_time = halt_grace_time();
     DEBUG(MSG_CLEANUP_THREAD,
 	  Sdprintf("Waiting for %d threads (alarm timer)\n", canceled));
     struct itimerval timeout = {0};
@@ -1234,7 +1232,7 @@ exitPrologThreads(void)
     }
 
 #elif defined(HAVE_SEM_TIMEDWAIT)
-	double grace_time = halt_grace_time();
+    double grace_time = halt_grace_time();
     DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads (sem_timedwait)\n", canceled));
     struct timespec deadline;
 
