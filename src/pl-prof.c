@@ -62,8 +62,8 @@
 
 #define LDFUNC_DECLARATIONS
 
-static int  identify_def(term_t t, void *handle);
-static int  get_def(term_t t, void **handle);
+static bool identify_def(term_t t, void *handle);
+static bool get_def(term_t t, void **handle);
 static void prof_release_def(void *handle);
 static void profile(intptr_t count);
 static int  thread_prof_ticks(void);
@@ -485,7 +485,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 }
 
 
-static int
+static bool
 identify_def(term_t t, void *handle)
 { return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY|GP_NAMEARITY);
 }
@@ -740,37 +740,28 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
 }
 
 
-static int
+static bool
 get_def(term_t t, void **handle)
 { Procedure proc;
 
   if ( get_procedure(t, &proc, 0, GP_FIND|GP_NAMEARITY) )
   { *handle = proc->definition;
-    succeed;
+    return true;
   }
 
-  fail;
+  return false;
 }
 
 
-static int
+static bool
 get_handle(term_t t, void **handle)
-{ int i;
-
-  for(i=0; i<MAX_PROF_TYPES; i++)
-  { if ( types[i] && types[i]->get )
-    { switch( (*types[i]->get)(t, handle) )
-      { case true:
-	  succeed;
-	case false:
-	  break;
-	default:
-	  assert(0);
-      }
-    }
+{ for(int i=0; i<MAX_PROF_TYPES; i++)
+  { if ( types[i] && types[i]->get &&
+	 (*types[i]->get)(t, handle) )
+      return true;
   }
 
-  fail;
+  return false;
 }
 
 static void
@@ -1265,7 +1256,7 @@ profSetHandle(struct call_node *node, void *handle)
 		 *	 FOREIGN ACCESS		*
 		 *******************************/
 
-int
+bool
 PL_register_profile_type(PL_prof_type_t *type)
 { int i;
 
@@ -1375,7 +1366,7 @@ freeProfileData(void)
 
 #else /* !O_PROFILE */
 
-int
+bool
 PL_register_profile_type(PL_prof_type_t *type)
 { return false;
 }

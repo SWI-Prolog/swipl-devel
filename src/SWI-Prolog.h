@@ -1414,15 +1414,15 @@ PL_EXPORT(int)		PL_advance_hash_table_enum(hash_table_enum_t e,
 		 *******************************/
 
 typedef struct
-{ int	(*unify)(term_t t, void *handle);	/* implementation --> Prolog */
-  int   (*get)(term_t t, void **handle);	/* Prolog --> implementation */
-  void	(*activate)(int active);		/* (de)activate */
+{ bool	(*unify)(term_t t, void *handle);	/* implementation --> Prolog */
+  bool  (*get)(term_t t, void **handle);	/* Prolog --> implementation */
+  void	(*activate)(bool active);		/* (de)activate */
   void  (*release)(void *handle);		/* Release handle */
   void *dummy[4];				/* reserved */
   intptr_t	magic;				/* PROFTYPE_MAGIC */
 } PL_prof_type_t;
 
-PL_EXPORT(int)		PL_register_profile_type(PL_prof_type_t *type);
+PL_EXPORT(bool)		PL_register_profile_type(PL_prof_type_t *type);
 PL_EXPORT(void*)	PL_prof_call(void *handle, PL_prof_type_t *type);
 PL_EXPORT(void)		PL_prof_exit(void *node);
 
