@@ -137,9 +137,13 @@ option(CCACHE
 option(VALIDATE_API
        "Add runtime argument checks for PL_*() functions"
        ON)
+if(MULTI_THREADED)
 option(EPILOG
        "Configure Prolog for using the XPCE Epilog interface"
        ${DEFAULT_EPILOG})
+else()
+set(EPILOG OFF)
+endif()
 option(WASM_EXCEPTIONS
        "Use -fwasm-exceptions -sSUPPORT_LONGJMP=wasm"
        OFF)
