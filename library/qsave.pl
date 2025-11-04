@@ -137,7 +137,8 @@ qsave_program(File) :-
 qsave_program(FileBase, Options0) :-
     meta_options(is_meta, Options0, Options1),
     check_options(Options1),
-    exe_file(FileBase, File, Options1),
+    exe_file(FileBase, ExeFile, Options1),
+    zip_file(FileBase, ZipFile, Options1),
     option(class(SaveClass), Options1, runtime),
     qsave_init_file_option(SaveClass, Options1, Options),
     prepare_entry_points(Options),
@@ -147,41 +148,65 @@ qsave_program(FileBase, Options0) :-
         ( prepare_state(Options),
           create_prolog_flag(saved_program, true, []),
           create_prolog_flag(saved_program_class, SaveClass, []),
-          delete_if_exists(File),    % truncate will crash a Prolog
+          delete_if_exists(ExeFile),    % truncate will crash a Prolog
                                      % running on this state
           setup_call_catcher_cleanup(
-              open(File, write, StateOut, [type(binary)]),
-              write_state(StateOut, SaveClass, File, Options),
+              ( open(ExeFile, write, StateOut, [type(binary)]),
+                open(ZipFile, append, ZipOut, [type(binary)])
+              ),
+              write_state(StateOut, ZipOut, SaveClass,
+                          ExeFile, ZipFile, Options),
               Reason,
-              finalize_state(Reason, StateOut, File))
+              finalize_state(Reason, StateOut, ZipOut, ExeFile, ZipFile))
         ),
         close_map),
     cleanup,
     !.
 
-write_state(StateOut, SaveClass, ExeFile, Options) :-
+write_state(StateOut, ZipOut, SaveClass, _, ZipFile, Options) :-
     make_header(StateOut, SaveClass, Options),
     setup_call_cleanup(
-        zip_open_stream(StateOut, RC, []),
-        write_zip_state(RC, SaveClass, ExeFile, Options),
+        zip_open_stream(ZipOut, RC, []),
+        write_zip_state(RC, SaveClass, ZipFile, Options),
         zip_close(RC, [comment('SWI-Prolog saved state')])),
-    flush_output(StateOut).
+    flush_output(StateOut),
+    flush_output(ZipOut).
 
-write_zip_state(RC, SaveClass, ExeFile, Options) :-
+write_zip_state(RC, SaveClass, ZipFile, Options) :-
     save_options(RC, SaveClass, Options),
     save_resources(RC, SaveClass),
     lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
-    save_foreign_libraries(RC, ExeFile, Options).
+    save_foreign_libraries(RC, ZipFile, Options).
 
-finalize_state(exit, StateOut, File) :-
+status_result(0, exit).
+status_result(_, shell_error).
+
+finalize_state(exit, StateOut, ZipOut, File, File) :-
     close(StateOut),
+    close(ZipOut),
     '$mark_executable'(File).
-finalize_state(!, StateOut, File) :-
+finalize_state(exit, StateOut, ZipOut, File, ZipFile) :-
+    absolute_file_name(path(objcopy), Objcopy, [access(execute), file_errors(fail)]),
+    atomics_to_string([
+            Objcopy,
+            " --add-section .zipdata=", ZipFile,
+            " --set-section-flags .zipdata=readonly,data",
+            " ", File
+        ],
+        Cmd),
+    shell(Cmd, Status),
+    status_result(Status, Result),
+    finalize_state(Result, StateOut, ZipOut, File, File),
+    catch(delete_file(ZipFile),
+          Error,
+          print_message(error, Error)).
+finalize_state(!, StateOut, ZipOut, File, ZipFile) :-
     print_message(warning, qsave(nondet)),
-    finalize_state(exit, StateOut, File).
-finalize_state(_, StateOut, File) :-
+    finalize_state(exit, StateOut, ZipOut, File, ZipFile).
+finalize_state(_, StateOut, ZipOut, File, _) :-
     close(StateOut, [force(true)]),
+    close(ZipOut, [force(true)]),
     catch(delete_file(File),
           Error,
           print_message(error, Error)).
@@ -199,6 +224,13 @@ exe_file(Base, Exe, Options) :-
     !,
     file_name_extension(Base, exe, Exe).
 exe_file(Exe, Exe, _).
+
+zip_file(Base, Zip, Options) :-
+    current_prolog_flag(executable_format, elf),
+    stand_alone(Options),
+    !,
+    file_name_extension(Base, zip, Zip).
+zip_file(Base, Base, _).
 
 delete_if_exists(File) :-
     (   exists_file(File)
