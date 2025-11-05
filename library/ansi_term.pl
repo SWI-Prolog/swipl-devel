@@ -92,8 +92,8 @@ init_color_term_flag :-
                          keep(true)
                        ]).
 
-:- init_color_term_flag.
-
+:- initialization
+    init_color_term_flag.
 
 :- meta_predicate
     keep_line_pos(+, 0).
