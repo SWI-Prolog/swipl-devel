@@ -232,7 +232,7 @@ remove_full_stop(In, Out) :-
     phrase(remove_full_stop(Out), In).
 
 remove_full_stop([]) -->
-    spaces, ['.'], spaces,
+    spaces, ['.'], spaces, eos,
     !.
 remove_full_stop([H|T]) -->
     [H], !,
@@ -246,6 +246,8 @@ spaces --> [].
 space -->
     [C],
     { char_type(C, space) }.
+
+eos([], []).
 
 %   match_event(+Spec, -Event, -Rest)
 %   Use Spec as a specification of and event and return the event as Event
