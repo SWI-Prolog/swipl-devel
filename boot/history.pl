@@ -222,7 +222,7 @@ skip_quoted([], _, [], [], []).
 get_last_event(Event) :-
     prolog:history(current_input, first(_Num, String)),
     string_chars(String, Event0),
-    remove_full_stop(Event0, Event).
+    remove_full_stop(Event0, Event),
     !.
 get_last_event(_) :-
     print_message(query, history(no_event)),
