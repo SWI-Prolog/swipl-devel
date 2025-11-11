@@ -120,7 +120,7 @@ state_output(Id, State) :-
     format(atom(File), 'test_state_~w_~w.exe', [Id, Pid]),
     directory_file_path(Dir, File, State).
 
-me(Exe) :-
+me(Exe, Args) :-
     current_prolog_flag(executable, WinExeOS),
     prolog_to_os_filename(WinExe, WinExeOS),
     file_base_name(WinExe, WinFile),
@@ -128,14 +128,26 @@ me(Exe) :-
     !,
     file_directory_name(WinExe, WinDir),
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
-    prolog_to_os_filename(PlExe, Exe).
-me(MeSH) :-
-    absolute_file_name('swipl.sh', MeSH,
+    prolog_to_os_filename(PlExe, Exe),
+    Args = [].
+me(MeSH, Args) :-
+    absolute_file_name('swipl.sh', MeSH0,
                        [ access(execute),
                          file_errors(fail)
                        ]),
-    !.
-me(Exe) :-
+    !,
+    MeSH = MeSH0,
+    Args = [].
+me(Cmd, Args) :-
+    absolute_file_name('swipl.bat', MeBat,
+                       [ access(execute),
+                         file_errors(fail)
+                       ]),
+    !,
+    Cmd = path('cmd.exe'),
+    prolog_to_os_filename(MeBat, OsName),
+    Args = ['/k', OsName].
+me(Exe, []) :-
     current_prolog_flag(executable, Exe).
 
 :- dynamic
@@ -156,8 +168,8 @@ set_windows_path :-
 set_windows_path.
 
 create_state(File, Output, Args) :-
-    me(Me),
-    append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs),
+    me(Me, Args0),
+    append([Args0, Args, ['-o', Output, '-c', File, '-f', none]], AllArgs),
     test_dir(TestDir),
     debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
     process_create(Me, AllArgs,
@@ -170,6 +182,16 @@ create_state(File, Output, Args) :-
     assertion(no_error(ErrOutput)).
 
 run_state(Exe, Args, Result) :-
+    me(_, []),
+    !,
+    run_state1(Exe, Args, Result).
+
+run_state(Exe, Args, Result) :-
+    me(Me, Args0),
+    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
+    run_state1(Me, AllArgs, Result).
+
+run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
     set_windows_path,
     current_prolog_flag(home, HOME), % needed for MSYS2
