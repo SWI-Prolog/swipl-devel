@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015, University of Amsterdam
+    Copyright (c)  2013-2015-2025, University of Amsterdam
+				   SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -120,7 +121,14 @@ state_output(Id, State) :-
     format(atom(File), 'test_state_~w_~w.exe', [Id, Pid]),
     directory_file_path(Dir, File, State).
 
-me(Exe) :-
+%!  me(-Exe, -Args:list) is det.
+%
+%   True when Exe is the executable to   run  for creating a saved state
+%   and Args is a  list  of  commandline   arguments  to  pass  to  Exe.
+%   Normally, this merely runs `swipl`, but it can be necessary to embed
+%   this into some sort of script.
+
+me(Exe, Args) :-                     % swipl-win --> swipl
     current_prolog_flag(executable, WinExeOS),
     prolog_to_os_filename(WinExe, WinExeOS),
     file_base_name(WinExe, WinFile),
@@ -128,14 +136,27 @@ me(Exe) :-
     !,
     file_directory_name(WinExe, WinDir),
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
-    prolog_to_os_filename(PlExe, Exe).
-me(MeSH) :-
-    absolute_file_name('swipl.sh', MeSH,
+    prolog_to_os_filename(PlExe, Exe),
+    Args = [].
+me(MeSH, Args) :-                    % Using a shell script
+    absolute_file_name('swipl.sh', MeSH0,
                        [ access(execute),
                          file_errors(fail)
                        ]),
-    !.
-me(Exe) :-
+    !,
+    MeSH = MeSH0,
+    Args = [].
+me(Cmd, Args) :-                     % Windows: use .bat file
+    current_prolog_flag(windows, true),
+    absolute_file_name('swipl.bat', MeBat,
+                       [ access(execute),
+                         file_errors(fail)
+                       ]),
+    !,
+    Cmd = path('cmd.exe'),
+    prolog_to_os_filename(MeBat, OsName),
+    Args = ['/c', OsName].
+me(Exe, []) :-                       % What should be the normal case.
     current_prolog_flag(executable, Exe).
 
 :- dynamic
@@ -156,8 +177,8 @@ set_windows_path :-
 set_windows_path.
 
 create_state(File, Output, Args) :-
-    me(Me),
-    append(Args, ['-o', Output, '-c', File, '-f', none], AllArgs),
+    me(Me, Args0),
+    append([Args0, Args, ['-o', Output, '-c', File, '-f', none]], AllArgs),
     test_dir(TestDir),
     debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
     process_create(Me, AllArgs,
@@ -170,6 +191,30 @@ create_state(File, Output, Args) :-
     assertion(no_error(ErrOutput)).
 
 run_state(Exe, Args, Result) :-
+    me(_, []),
+    !,
+    run_state1(Exe, Args, Result).
+
+% If swipl.bat is used, the state needs to be invoked swipl -x state.
+% Typical commands look like this: swipl.bat -x state.exe -- args. For
+% reasons not fully understood, the 2nd unit test (echo_argv) then
+% collates the arguments to one single, returning ['-- aap noot mies']
+% instead of [aap,noot,mies]. Happens only under Windows. The
+% atomic_list_concat/3 in the 5th line avoids this undesired behavior.
+run_state(Exe, Args, Result) :-
+    me(Me, Args0),
+    current_prolog_flag(windows, true),
+    !,
+    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
+    atomic_list_concat(AllArgs, ArgStr),
+    run_state1(Me, [ArgStr], Result).
+
+run_state(Exe, Args, Result) :-
+    me(Me, Args0),
+    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
+    run_state1(Me, AllArgs, Result).
+
+run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
     set_windows_path,
     current_prolog_flag(home, HOME), % needed for MSYS2
