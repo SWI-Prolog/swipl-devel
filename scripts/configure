@@ -66,6 +66,10 @@ case $config in
 	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
 	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
 	;;
+    *homebrew*)
+	# MacOS with dependencies from Homebrew
+	opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
+	;;
 esac
 
 # nogmp
@@ -215,16 +219,6 @@ esac
 case $config in
   *native*)
     CFLAGS+=" -mtune=native -march=native"
-    ;;
-esac
-
-# EPILOG
-#
-# Build with Epilog console.  Drops readline and swipl-win.
-
-case $config in
-  *epilog*)
-    opts+=" -DEPILOG=ON"
     ;;
 esac
 
