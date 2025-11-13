@@ -656,6 +656,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'e':			/* exponential float */
 	      case 'E':			/* Exponential float */
 	      case 'f':			/* float */
+	      case 'F':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
 	      case 'h':
@@ -682,7 +683,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  }
 		  SHIFT;
 
-		  if ( c == 'f' && mod_colon )
+		  if ( (c == 'f' || c == 'F') && mod_colon )
 		    l = fd->locale;
 		  else
 		    l = &prolog_locale;
@@ -889,11 +890,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  break;
 		}
 	      case 'n':			/* \n */
-	      case 'N':			/* \n if not on newline */
 		{ if ( arg == DEFAULT )
 		    arg = 1;
-		  if ( c == 'N' && state.column == 0 )
-		    arg--;
 		  while( arg-- > 0 )
 		  { rc = outchr(&state, '\n');
 		    if ( !rc )
@@ -902,6 +900,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  here++;
 		  break;
 		}
+	      case 'N':			/* \n if not on newline */
+		if ( state.column != 0 )
+		{ rc = outchr(&state, '\n');
+		  if ( !rc )
+		    goto out;
+		}
+		here++;
+		break;
 	      case 't':			/* insert tab */
 		{ if ( state.pending_rubber >= MAXRUBBER )
 		    FMT_ERROR("Too many tab stops");
@@ -1004,15 +1010,13 @@ static void
 distribute_rubber(struct rubber *r, int rn, int space)
 { if ( space > 0 )
   { int s = space / rn;
-    int n, m;
 
-    for(n=0; n < rn; n++)		/* give them equal size */
+    for(int n=0; n < rn; n++)		/* give them equal size */
       r[n].size = s;
 					/* distribute from the center */
     space -= s*rn;
-    for(m = rn / 2, n = 0; space; n++, space--)
-    { r[m + (n % 2 ? n : -n)].size++;
-    }
+    for(int n=rn-1; space; n--, space--)
+      r[n].size++;
   } else
   { int n;
 
@@ -1459,6 +1463,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPZ:
     { switch(how)
       { case 'f':
+	case 'F':
 	{ mpz_init(t1);
 	  mpz_init(t2);
 	  mpz_ui_pow_ui(t1, 10, arg);
@@ -1514,6 +1519,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
       switch(how)
       { case 'f':
+	case 'F':
 	{ mpz_init(t1);
 	  mpz_init(t2);
 	  mpz_ui_pow_ui(t1, 10, arg);
@@ -1729,7 +1735,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       int upcase;
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
 
-      if ( how == 'f' )		/* we must compensate for the integer */
+      if ( how == 'f' || how == 'F' ) /* we must compensate for the integer */
       { mpz_t i;
 	mpz_init(i);
 	mpz_set_q(i, f->value.mpq);
@@ -1742,6 +1748,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       upcase = false;
       switch(how)
       { case 'f':
+	case 'F':
 	  flags = BF_FTOA_FORMAT_FRAC;
 	  break;
 	case 'E':

@@ -86,7 +86,7 @@
 		 *	       TYPES		*
 		 *******************************/
 
-static const struct clause_index dead_index = {};
+static const struct clause_index dead_index = {0}; /* 0 for MSVC broken C11 */
 #define DEAD_INDEX   ((ClauseIndex)(&dead_index))
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
 

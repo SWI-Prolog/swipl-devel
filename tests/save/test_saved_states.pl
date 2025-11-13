@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015, University of Amsterdam
+    Copyright (c)  2013-2015-2025, University of Amsterdam
+				   SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -120,7 +121,14 @@ state_output(Id, State) :-
     format(atom(File), 'test_state_~w_~w.exe', [Id, Pid]),
     directory_file_path(Dir, File, State).
 
-me(Exe, Args) :-
+%!  me(-Exe, -Args:list) is det.
+%
+%   True when Exe is the executable to   run  for creating a saved state
+%   and Args is a  list  of  commandline   arguments  to  pass  to  Exe.
+%   Normally, this merely runs `swipl`, but it can be necessary to embed
+%   this into some sort of script.
+
+me(Exe, Args) :-                     % swipl-win --> swipl
     current_prolog_flag(executable, WinExeOS),
     prolog_to_os_filename(WinExe, WinExeOS),
     file_base_name(WinExe, WinFile),
@@ -130,10 +138,7 @@ me(Exe, Args) :-
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
     prolog_to_os_filename(PlExe, Exe),
     Args = [].
-
-% In embedded systems, swipl may not be invoked directly, but
-% by some shell script.
-me(MeSH, Args) :-
+me(MeSH, Args) :-                    % Using a shell script
     absolute_file_name('swipl.sh', MeSH0,
                        [ access(execute),
                          file_errors(fail)
@@ -141,9 +146,8 @@ me(MeSH, Args) :-
     !,
     MeSH = MeSH0,
     Args = [].
-
-% Windows version
-me(Cmd, Args) :-
+me(Cmd, Args) :-                     % Windows: use .bat file
+    current_prolog_flag(windows, true),
     absolute_file_name('swipl.bat', MeBat,
                        [ access(execute),
                          file_errors(fail)
@@ -152,7 +156,7 @@ me(Cmd, Args) :-
     Cmd = path('cmd.exe'),
     prolog_to_os_filename(MeBat, OsName),
     Args = ['/c', OsName].
-me(Exe, []) :-
+me(Exe, []) :-                       % What should be the normal case.
     current_prolog_flag(executable, Exe).
 
 :- dynamic

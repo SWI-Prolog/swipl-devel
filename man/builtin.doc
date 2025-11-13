@@ -9792,7 +9792,7 @@ stream and uses the position information of the temporary stream to
 update its notion of the position.  Notable ansi_format/3 cooperates
 properly in callbacks.\footnote{As of version 8.3.30}.
 
-Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f},
+Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{F},
 \chr{g}, \chr{G}, \chr{h} and \chr{H}) accept an arithmetic expression
 as argument. This is introduced to handle rational numbers transparently
 (see \secref{rational}). The floating point conversions allow for
@@ -9857,6 +9857,13 @@ is zero (0), the value is printed as an integer. If the colon modifier
 (:) is used, the float is formatted using conventions from the current
 locale, which may define the decimal point as well as grouping of digits
 left of the decimal point.
+
+    \fmtchar{F}
+As \textbf{f}, but used uppercase letters for non-normal floats, e.g.
+\begin{code}
+?- format('~F', [nan]).
+NAN
+\end{code}
 
     \fmtchar{g}
 Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
