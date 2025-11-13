@@ -67,7 +67,7 @@ test(radix, error(domain_error(radix, 1))) :-
 	format(string(_), '~1r', [5]).
 test(radix, error(domain_error(radix, 37))) :-
 	format(string(_), '~37r', [5]).
-test(asterisk, error(format('no or negative integer for `*\' argument'))) :-
+test(asterisk, error(format_argument_type(*, -1))) :-
     format('~t~*|', [-1]).
 test(intD_1, X == '1,000') :-
     format(atom(X), '~D', [1000]).

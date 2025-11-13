@@ -9768,13 +9768,15 @@ representing a positive decimal number, a sequence \exam{`<character>},
 representing the character code value of the character (only useful for
 \fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric argument
 is taken from the next argument of the argument list, which should be a
-positive integer. E.g., the following three examples all pass 46
-(\chr{.}) to \verb$~t$:
+positive integer or an arithmetic expression that evaluates to a
+possitive integer.  The following four examples all pass 46
+(\chr{.}) to \verb$~t$ and use a tab at 72.
 
 \begin{code}
 ?- format('~w ~46t ~w~72|~n', ['Title', 'Page']).
 ?- format('~w ~`.t ~w~72|~n', ['Title', 'Page']).
 ?- format('~w ~*t ~w~72|~n', ['Title', 46, 'Page']).
+?- format('~w ~*t ~w~*|~n', ['Title', 46, 'Page', 80-8]).
 \end{code}
 
 Some format expressions may call back Prolog, i.e., \verb$~p$,
