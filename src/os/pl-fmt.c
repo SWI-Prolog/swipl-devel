@@ -626,7 +626,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_ATOMIC) )
+		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_STRING) )
 		    FMT_ARG("a", argv);
 		  SHIFT;
 		  rc = outtext(&state, &txt);
