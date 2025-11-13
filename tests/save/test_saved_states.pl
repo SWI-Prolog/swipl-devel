@@ -130,6 +130,9 @@ me(Exe, Args) :-
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
     prolog_to_os_filename(PlExe, Exe),
     Args = [].
+
+% In embedded systems, swipl may not be invoked directly, but
+% by some shell script.
 me(MeSH, Args) :-
     absolute_file_name('swipl.sh', MeSH0,
                        [ access(execute),
@@ -138,6 +141,8 @@ me(MeSH, Args) :-
     !,
     MeSH = MeSH0,
     Args = [].
+
+% Windows version
 me(Cmd, Args) :-
     absolute_file_name('swipl.bat', MeBat,
                        [ access(execute),
@@ -146,7 +151,7 @@ me(Cmd, Args) :-
     !,
     Cmd = path('cmd.exe'),
     prolog_to_os_filename(MeBat, OsName),
-    Args = ['/k', OsName].
+    Args = ['/c', OsName].
 me(Exe, []) :-
     current_prolog_flag(executable, Exe).
 
@@ -186,10 +191,17 @@ run_state(Exe, Args, Result) :-
     !,
     run_state1(Exe, Args, Result).
 
+% If swipl.bat is used, the state needs to be invoked swipl -x state.
+% Typical commands look like this: swipl.bat -x state.exe -- args. For
+% reasons not fully understood, the 2nd unit test (echo_argv) then
+% collates the arguments to one single, returning ['-- aap noot mies']
+% instead of [aap,noot,mies]. atomic_list_concat in the 3rd line avoids
+% this undesired behavior.
 run_state(Exe, Args, Result) :-
     me(Me, Args0),
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    run_state1(Me, AllArgs, Result).
+    atomic_list_concat(AllArgs, ArgStr), % Avoid that > 1 args are collated to one
+    run_state1(Me, [ArgStr], Result).
 
 run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
