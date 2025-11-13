@@ -656,6 +656,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'e':			/* exponential float */
 	      case 'E':			/* Exponential float */
 	      case 'f':			/* float */
+	      case 'F':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
 	      case 'h':
@@ -682,7 +683,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  }
 		  SHIFT;
 
-		  if ( c == 'f' && mod_colon )
+		  if ( (c == 'f' || c == 'F') && mod_colon )
 		    l = fd->locale;
 		  else
 		    l = &prolog_locale;
@@ -1459,6 +1460,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPZ:
     { switch(how)
       { case 'f':
+	case 'F':
 	{ mpz_init(t1);
 	  mpz_init(t2);
 	  mpz_ui_pow_ui(t1, 10, arg);
@@ -1514,6 +1516,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
       switch(how)
       { case 'f':
+	case 'F':
 	{ mpz_init(t1);
 	  mpz_init(t2);
 	  mpz_ui_pow_ui(t1, 10, arg);
@@ -1729,7 +1732,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       int upcase;
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
 
-      if ( how == 'f' )		/* we must compensate for the integer */
+      if ( how == 'f' || how == 'F' ) /* we must compensate for the integer */
       { mpz_t i;
 	mpz_init(i);
 	mpz_set_q(i, f->value.mpq);
@@ -1742,6 +1745,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       upcase = false;
       switch(how)
       { case 'f':
+	case 'F':
 	  flags = BF_FTOA_FORMAT_FRAC;
 	  break;
 	case 'E':
