@@ -206,7 +206,7 @@ run_state(Exe, Args, Result) :-
     current_prolog_flag(windows, true),
     !,
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    atomic_list_concat(AllArgs, ArgStr),
+    atomic_list_concat(AllArgs, ' ', ArgStr),
     run_state1(Me, [ArgStr], Result).
 
 run_state(Exe, Args, Result) :-
