@@ -1298,7 +1298,7 @@ bignum_index(const word *p)
 
 #if O_GMP
 
-int
+bool
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { if ( mpz_cmp(mpz, MPZ_MIN_INT64) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_INT64) <= 0 )
@@ -1347,7 +1347,7 @@ mpz_to_uint64(mpz_t mpz, uint64_t *i)
 
 #elif O_BF
 
-int
+bool
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { return bf_get_int64(i, mpz, 0) == 0;
 }
@@ -1397,12 +1397,8 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 #endif
   { long v = mpz_get_si(mpz);
 
-    if ( !hasGlobalSpace(0) )		/* ensure we have room for bindConst */
-    { int rc = ensureGlobalSpace(0, flags);
-
-      if ( rc != true )
-	return rc;
-    }
+    if ( !ensureGlobalSpace(0, flags) )
+      return false;
 
     *at = consInt(v);
     assert(valInt(*at) == v);

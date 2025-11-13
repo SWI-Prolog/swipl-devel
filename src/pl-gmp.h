@@ -115,7 +115,7 @@ char *	loadMPZFromCharp(const char *data, Word r, Word *store);
 char *	loadMPQFromCharp(const char *data, Word r, Word *store);
 char *	skipMPZOnCharp(const char *data);
 char *	skipMPQOnCharp(const char *data);
-int	mpz_to_int64(mpz_t mpz, int64_t *i);
+bool	mpz_to_int64(mpz_t mpz, int64_t *i);
 int	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 void	mpz_init_set_si64(mpz_t mpz, int64_t i);
 double	mpz_to_double(mpz_t n);
