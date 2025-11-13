@@ -123,7 +123,7 @@ state_output(Id, State) :-
 
 %!  me(-Exe, -Args:list) is det.
 %
-%   True when Exe is the executable to   run  for creating a saved state
+%   True when Exe is the executable  to  run  for creating a saved state
 %   and Args is a  list  of  commandline   arguments  to  pass  to  Exe.
 %   Normally, this merely runs `swipl`, but it can be necessary to embed
 %   this into some sort of script.
