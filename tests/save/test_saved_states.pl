@@ -195,13 +195,20 @@ run_state(Exe, Args, Result) :-
 % Typical commands look like this: swipl.bat -x state.exe -- args. For
 % reasons not fully understood, the 2nd unit test (echo_argv) then
 % collates the arguments to one single, returning ['-- aap noot mies']
-% instead of [aap,noot,mies]. atomic_list_concat in the 3rd line avoids
-% this undesired behavior.
+% instead of [aap,noot,mies]. Happens only under Windows. The
+% atomic_list_concat/3 in the 5th line avoids this undesired behavior.
+run_state(Exe, Args, Result) :-
+    me(Me, Args0),
+    current_prolog_flag(windows, true),
+    !,
+    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
+    atomic_list_concat(AllArgs, ArgStr),
+    run_state1(Me, [ArgStr], Result).
+
 run_state(Exe, Args, Result) :-
     me(Me, Args0),
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    atomic_list_concat(AllArgs, ArgStr), % Avoid that > 1 args are collated to one
-    run_state1(Me, [ArgStr], Result).
+    run_state1(Me, AllArgs, Result).
 
 run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
