@@ -1005,15 +1005,13 @@ static void
 distribute_rubber(struct rubber *r, int rn, int space)
 { if ( space > 0 )
   { int s = space / rn;
-    int n, m;
 
-    for(n=0; n < rn; n++)		/* give them equal size */
+    for(int n=0; n < rn; n++)		/* give them equal size */
       r[n].size = s;
 					/* distribute from the center */
     space -= s*rn;
-    for(m = rn / 2, n = 0; space; n++, space--)
-    { r[m + (n % 2 ? n : -n)].size++;
-    }
+    for(int n=rn-1; space; n--, space--)
+      r[n].size++;
   } else
   { int n;
 
