@@ -92,8 +92,10 @@ report(brief).
 :- op(1200,  fy, fixme).
 :- op(1110, xf,  should_fail).
 :- op(1110, xfx, should_give).
+:- op(1110, xfx, should_output).
 :- op(1110, xfx, should_throw).
 :- op(1110, xfx, should_raise).
+:- op(1110, xfx, output).
 
 %%	test(+TestFile) is det.
 %
@@ -166,6 +168,8 @@ interpret_test((Goal should_fail), Name, Stream) :-  !,
         should_fail(Goal, Name, Stream).
 interpret_test((Goal should_give Check), Name, Stream) :-  !,
         should_give(Goal, Check, Name, Stream).
+interpret_test((Goal should_output Check), Name, Stream) :-  !,
+        should_output(Goal, Check, Name, Stream).
 interpret_test((Goal should_throw Ball), Name, Stream) :-  !,
         should_throw(Goal, Ball, Name, Stream).
 interpret_test((Goal should_raise Exception), Name, Stream) :-  !,
@@ -245,14 +249,56 @@ Goal should_give Check :-
             unexpected(Stream, Name, success, failure)
         ).
 
+Goal should_output ExpectedText :-
+        current_output(Stream),
+        catch(should_output(Goal, ExpectedText, Goal, Stream), continue, true).
 
+    should_output(Goal, ExpectedText, Name, Stream) :-
+        ( catch(with_output_to(atom(OutputAtom), Goal), Ball,
+                unexpected(Stream,Name,Goal,success,throw(Ball))) ->
+            atom_chars(OutputAtom, OutputChars),
+            ( output_matches_expected(ExpectedText, OutputChars, OutputAtom) ->
+                expected_outcome(Stream, Name)
+            ;
+                most_readable_text(ExpectedText, MessageText),
+                unexpected(Stream, Name, Goal, output(MessageText), actual_output(OutputAtom))
+            )
+        ; unexpected(Stream, Name, Goal, success, failure)
+        ).
+
+    output_matches_expected(ExpectedText, OutputChars, OutputAtom) :-
+        ( var(ExpectedText)
+        ; ExpectedText == [], OutputChars == []
+        ; atom(ExpectedText), OutputAtom == ExpectedText
+        ; catch(atom_string(OutputAtom, ExpectedText), _, fail)
+        ; ExpectedText = [_|_],
+            ( subsumes_term(ExpectedText, OutputChars)
+            ; chars_codes(OutputChars, OutputCodes),
+              subsumes_term(ExpectedText, OutputCodes)
+            )
+        ), !.
+
+    most_readable_text(T, R) :- atom(T), !, R = T.
+    most_readable_text(T, R) :- catch(string(T),_,fail), !, R = T.
+    most_readable_text(T, R) :-
+        catch(atom_codes(A, T), _, fail),
+        !, R = A.
+    most_readable_text(T, R) :-
+        catch(atom_chars(A, T), _, fail),
+        !, R = A.
+    most_readable_text(T, T).
+
+    chars_codes([], []).
+    chars_codes([Char|Chars], [Code|Codes]) :-
+        char_code(Char, Code),
+        chars_codes(Chars, Codes).
 
 Goal should_throw Ball :-
         current_output(Stream),
         catch(should_throw(Goal, Ball, Goal, Stream), continue, true).
 
     should_throw(Goal, Expected, Name, Stream) :-
-        ( catch(Goal, Ball,
+        ( catch(with_output_to(string(_), Goal), Ball,
                 ( subsumes_term(Expected,Ball) ->
                     expected_outcome(Stream, Name)
                 ;
@@ -282,7 +328,19 @@ unexpected(Stream, Name, Expected, Outcome) :-
         counter_inc(failed_test_count),
         throw(continue).
 
+unexpected(Stream, Name, Goal, Expected, Outcome) :-
+        write(Stream, 'Test '), write(Stream, Name),
+        write(Stream, ': expected '), writeq(Stream, Expected), nl(Stream),
+        write(Stream, '  got '), writeq(Stream, Outcome), nl(Stream),
+        ( print_bad_goal ->
+            write(Stream, '  '), writeq(Stream, Goal), nl(Stream)
+        ;
+            true
+        ),
+        counter_inc(failed_test_count),
+        throw(continue).
 
+print_bad_goal.
 
 %
 % ISO implementation of non-backtrackable counters
