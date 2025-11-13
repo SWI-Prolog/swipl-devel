@@ -890,11 +890,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  break;
 		}
 	      case 'n':			/* \n */
-	      case 'N':			/* \n if not on newline */
 		{ if ( arg == DEFAULT )
 		    arg = 1;
-		  if ( c == 'N' && state.column == 0 )
-		    arg--;
 		  while( arg-- > 0 )
 		  { rc = outchr(&state, '\n');
 		    if ( !rc )
@@ -903,6 +900,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  here++;
 		  break;
 		}
+	      case 'N':			/* \n if not on newline */
+		if ( state.column != 0 )
+		{ rc = outchr(&state, '\n');
+		  if ( !rc )
+		    goto out;
+		}
+		here++;
+		break;
 	      case 't':			/* insert tab */
 		{ if ( state.pending_rubber >= MAXRUBBER )
 		    FMT_ERROR("Too many tab stops");
