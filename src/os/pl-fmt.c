@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -477,9 +477,27 @@ end_sub_format(sub_state *state, int rc)
   return rc;
 }
 
+static bool
+get_int_expression(term_t t, Number i)
+{ if ( !PL_get_number(t, i) &&
+       !valueExpression(t, i) )
+    return false;
 
+  if ( !isIntegerNumber(i) &&
+       !toIntegerNumber(i, 0) )
+    return false;
 
+  if ( i->type == V_MPZ )
+  { int64_t v;
+    if ( mpz_to_int64(i->value.mpz, &v) )
+    { clearNumber(i);
+      i->type = V_INTEGER;
+      i->value.i = v;
+    }
+  }
 
+  return true;
+}
 
 		/********************************
 		*       ACTUAL FORMATTING	*
@@ -545,11 +563,21 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      }
 	    }
 	  } else if ( c == '*' )
-	  { NEED_ARG;
-	    if ( PL_get_integer(argv, &arg) && arg >= 0 )
-	    { SHIFT;
-	    } else
-	      FMT_ERROR("no or negative integer for `*' argument");
+	  { number i;
+	    NEED_ARG;
+	    AR_CTX
+
+	    AR_BEGIN();
+	    if ( !get_int_expression(argv, &i) ||
+		 i.type != V_INTEGER ||
+		 i.value.i < 0 ||
+		 i.value.i > INT_MAX )
+	    { AR_CLEANUP();
+	      FMT_ARGC(c, argv);
+	    }
+	    SHIFT;
+	    arg = i.value.i;
+	    AR_END();
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
 	  { arg = get_chr_from_text(fmt, ++here);
@@ -598,7 +626,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_ATOMIC) )
+		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_STRING) )
 		    FMT_ARG("a", argv);
 		  SHIFT;
 		  rc = outtext(&state, &txt);
@@ -683,20 +711,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !PL_get_number(argv, &i) )
-		  { if ( !valueExpression(argv, &i) )
-		    { AR_CLEANUP();
-		      FMT_ARGC(c, argv); /* return with error */
-		    }
+		  if ( !get_int_expression(argv, &i) )
+		  { AR_CLEANUP();
+		    FMT_ARGC(c, argv); /* return with error */
 		  }
-		  if ( !isIntegerNumber(&i) )
-		  { if ( !toIntegerNumber(&i, 0) )
-		    { AR_CLEANUP();
-		      FMT_ARGC(c, argv);
-		    }
-		  }
-
 		  SHIFT;
+
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
 		  { PL_locale ltmp;

@@ -6,16 +6,6 @@ if(MACOS_UNIVERSAL_BINARY)
   set(SWIPL_ARCH fat-darwin)
 endif()
 
-if(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
-  if(EXISTS /usr/local/bin/brew)
-    set(MACOSX_DEPENDENCIES_FROM HomebrewLocal)
-  elseif(EXISTS /opt/homebrew)
-    set(MACOSX_DEPENDENCIES_FROM HomebrewOpt)
-  else()
-    message(FATAL "Could not find Homebrew in /usr/local nor /opt/homebrew)")
-  endif()
-endif()
-
 function(latest_subdir var dir)
   FILE(GLOB children RELATIVE "${dir}" "${dir}/*")
   set(subdir)
@@ -53,34 +43,19 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
   if(EXISTS /opt/local/libexec/jpeg)
     set(JPEG_ROOT /opt/local/libexec/jpeg)
   endif()
-elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "HomebrewLocal")
-  message("-- Using Homebrew packages from /usr/local")
-  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-      /usr/local/lib)
-  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
-      /usr/local/include)
-
-  if(IS_DIRECTORY /usr/local/opt/openssl)
-    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-  elseif(IS_DIRECTORY /usr/local/opt/openssl@1.1)
-    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1")
-  else()
-    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-  endif()
-
-  set(LibArchive_ROOT /usr/local/opt/libarchive)
-  set(Readline_ROOT /usr/local/opt/readline)
-elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "HomebrewOpt")
+elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   message("-- Using Homebrew packages from /opt/homebrew")
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
       /opt/homebrew/lib)
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
       /opt/homebrew/include)
-
-  # JW: Not sure we need to use the Cellar
   latest_subdir(OPENSSL_ROOT_DIR /opt/homebrew/Cellar/openssl@3/)
   latest_subdir(LibArchive_ROOT /opt/homebrew/Cellar/libarchive)
-  latest_subdir(Readline_ROOT /opt/homebrew/Cellar/readline)
+  latest_subdir(BDB_ROOT /opt/homebrew/Cellar/berkeley-db)
+  set(CMAKE_IGNORE_PATH
+      /opt/local/lib
+      /opt/local/include
+      /opt/local/bin)
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL None)
   message("-- Trying to build without Macports or Homebrew dependencies")
 elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
