@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    Copyright (c)  1985-2025, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -49,6 +49,7 @@
 #define	unify_vp(vp, val)		LDFUNC(unify_vp, vp, val)
 #define	compareStandard(t1, t2, eq)	LDFUNC(compareStandard, t1, t2, eq)
 #define	skip_list(l, tailp)		LDFUNC(skip_list, l, tailp)
+#define lengthList(l, e)		LDFUNC(lengthList, l, e)
 #define	is_acyclic(p)			LDFUNC(is_acyclic, p)
 #define	numberVars(t, opts, n)		LDFUNC(numberVars, t, opts, n)
 #define	pl_statistics_ld(k, value, ld)	LDFUNC(pl_statistics_ld, k, value, ld)
@@ -67,7 +68,7 @@ bool		can_unify(Word t1, Word t2, term_t ex);
 int		compareStandard(Word t1, Word t2, int eq);
 int		compareAtoms(atom_t a1, atom_t a2);
 intptr_t	skip_list(Word l, Word *tailp);
-intptr_t	lengthList(term_t list, int errors);
+intptr_t	lengthList(term_t list, bool errors);
 int		is_acyclic(Word p);
 intptr_t	numberVars(term_t t, nv_options *opts, intptr_t n);
 word		stringToList(char *s);

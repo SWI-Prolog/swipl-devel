@@ -2755,9 +2755,8 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 intptr_t
-lengthList(term_t list, int errors)
-{ GET_LD
-  intptr_t length = 0;
+lengthList(DECL_LD term_t list, bool errors)
+{ intptr_t length = 0;
   Word l = valTermRef(list);
   Word tail;
 
