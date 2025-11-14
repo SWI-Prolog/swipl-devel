@@ -36,6 +36,7 @@
 
 :- module(ansi_term,
           [ ansi_format/3,              % +Attr, +Format, +Args
+            ansi_format/4,              % +Stream, +Attr, +Format, +Args
             ansi_get_color/2,           % +Which, -rgb(R,G,B)
             ansi_hyperlink/2,           % +Stream,+Location
             ansi_hyperlink/3            % +Stream,+URL,+Label
@@ -102,6 +103,7 @@ init_color_term_flag :-
     user:message_property/2.
 
 %!  ansi_format(+ClassOrAttributes, +Format, +Args) is det.
+%!  ansi_format(+Stream, +ClassOrAttributes, +Format, +Args) is det.
 %
 %   Format text with ANSI  attributes.   This  predicate  behaves as
 %   format/2 using Format and Args, but if the `current_output` is a
