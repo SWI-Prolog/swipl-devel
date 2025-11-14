@@ -281,6 +281,9 @@ This library is only available on Windows systems.
 \libsummary{wasm}
 \input{summaries.d/wasmlib.tex}}{}
 
+\libsummary{writef}
+\input{summaries.d/writef.tex}
+
 \libsummary{www_browser}
 \input{summaries.d/wwwbrowser.tex}
 

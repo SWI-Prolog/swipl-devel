@@ -9655,92 +9655,8 @@ structure is inadequate.  Possibly you are looking for maplist/2,
 findall/3 or foreach/2.
 \end{description}
 
-
-\section{Formatted Write}		\label{sec:format}
-
-The current version of SWI-Prolog provides two formatted write
-predicates. The `writef' family (writef/1, writef/2, swritef/3), is
-compatible with Edinburgh C-Prolog and should be considered
-\emph{deprecated}. The `format' family (format/1, format/2, format/3),
-was defined by Quintus Prolog and currently available in many Prolog
-systems, although the details vary.
-
-\subsection{Writef}
-\label{sec:writef}
-
-\begin{description}
-    \predicate[deprecated]{writef}{1}{+Atom}
-Equivalent to \exam{writef(Atom, []).}  See writef/2 for details.
-    \predicate[deprecated]{writef}{2}{+Format, +Arguments}
-Formatted write.  \arg{Format} is an atom whose characters will be printed.
-\arg{Format} may contain certain special character sequences which specify
-certain formatting and substitution actions.  \arg{Arguments} provides
-all the terms required to be output.
-
-Escape sequences to generate a single special character:
-
-\begin{center}
-\begin{tabular}{|l|p{3.5in}|}
-\hline
-\fmtseq{\n}   &  Output a newline character (see also nl/[0,1]) \\
-\fmtseq{\l}   &  Output a line separator (same as \fmtseq{\n}) \\
-\fmtseq{\r}   &  Output a carriage return character (ASCII 13) \\
-\fmtseq{\t}   &  Output the ASCII character TAB (9) \\
-\fmtseq{\\}   &  The character \chr{\} is output \\
-\fmtseq{\%}   &  The character \chr{%} is output \\
-\fmtseq{\nnn} &  where <nnn> is an integer (1-3 digits); the
-		 character with code <nnn> is output
-		 (NB : <nnn> is read as \strong{decimal}) \\
-\hline
-\end{tabular}
-\end{center}
-
-Note that \fmtseq{\l}, \fmtseq{\nnn} and \fmtseq{\\}
-are interpreted differently when character escapes are in effect. See
-\secref{charescapes}.
-
-Escape sequences to include arguments from \arg{Arguments}. Each time a
-\% escape sequence is found in \arg{Format} the next argument from \arg{Arguments} is formatted according to the specification.
-
-\begin{center}
-\begin{tabular}{|l|p{3.5in}|}
-\hline
-\fmtseq{%t}  &  print/1 the next item (mnemonic: term) \\
-\fmtseq{%w}  &  write/1 the next item \\
-\fmtseq{%q}  &  writeq/1 the next item \\
-\fmtseq{%d}  &  Write the term, ignoring operators.  See also
-		write_term/2.  Mnemonic: old Edinburgh display/1 \\
-\fmtseq{%p}  &  print/1 the next item (identical to \fmtseq{%t}) \\
-\fmtseq{%n}  &  Put the next item as a character (i.e., it is
-                a character code) \\
-\fmtseq{%r}  &  Write the next item N times where N is the
-                second item (an integer) \\
-\fmtseq{%s}  &  Write the next item as a String (so it must
-                be a list of characters) \\
-\fmtseq{%f}  &  Perform a ttyflush/0 (no items used) \\
-\fmtseq{%Nc} &  Write the next item Centered in $N$ columns \\
-\fmtseq{%Nl} &  Write the next item Left justified in $N$ columns \\
-\fmtseq{%Nr} &  Write the next item Right justified in $N$ columns.
-                $N$ is a decimal number with at least one digit.
-                The item must be an atom, integer, float or string. \\
-\hline
-\end{tabular}
-\end{center}
-    \predicate[deprecated]{swritef}{3}{-String, +Format, +Arguments}
-Equivalent to writef/2, but ``writes'' the result on \arg{String} instead
-of the current output stream. Example:
-\begin{code}
-?- swritef(S, '%15L%w', ['Hello', 'World']).
-
-S = "Hello          World"
-\end{code}
-    \predicate[deprecated]{swritef}{2}{-String, +Format}
-Equivalent to \exam{swritef(String, Format, []).}
-\end{description}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Format}
-\label{sec:format-predicates}
+\section{Formatted Write}		\label{sec:format}
 
 The format family of predicates is the most versatile and portable way
 to produce textual output. These predicates where introduced by Quintus
@@ -9765,6 +9681,9 @@ SWI-Prolog implements a couple of extensions:
     \predicate{format}{1}{+Format}
     \nodescription
     \predicate{format}{2}{+Format, :Arguments}
+    \nodescription
+    \predicate{format}{3}{+Output, +Format, :Arguments}
+Write formatted output to \arg{Output} or \const{current_output}.
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} is a list of arguments required by the format
 specification.  For backward compatibility, if \arg{Format} needs
@@ -9773,17 +9692,25 @@ argument needs not be nested in a list.   This feature is deprecated
 as it easily leads to mistakes and make static analysis by check/0
 less accurate.
 
-Special sequences start with the tilde (\chr{~}), followed by an
-optional numeric argument, optionally followed by a colon modifier (:),
-\footnote{The colon modifiers is a SWI-Prolog extension, proposed by
-Richard O'Keefe.} followed by a character describing the action to be
+\arg{Output} is normally a stream.  SWI-Prolog's format/3 also accepts
+any other output accepted by with_output_to/2.  For example:
+
+\begin{code}
+?- format(atom(A), '~D', [1000000]).
+A = '1,000,000'
+\end{code}
+
+Format control sequences start with the tilde (\chr{~}), followed
+by an optional numeric argument, optionally followed by a colon modifier
+(:), \footnote{The colon modifiers is a SWI-Prolog extension, proposed
+by Richard O'Keefe.} followed by a character describing the action to be
 undertaken. A numeric argument is either a sequence of digits,
 representing a positive decimal number, a sequence \exam{`<character>},
 representing the character code value of the character (only useful for
-\fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric argument
-is taken from the next argument of the argument list, which should be a
-positive integer or an arithmetic expression that evaluates to a
-possitive integer.  The following four examples all pass 46
+\fmtseq{~t}) or an asterisk (\chr{*}), in which case the numeric
+argument is taken from the next argument of the argument list, which
+should be a positive integer or an arithmetic expression that evaluates
+to a possitive integer. The following four examples all pass 46
 (\chr{.}) to \verb$~t$ and use a tab at 72.
 
 \begin{code}
@@ -9955,13 +9882,19 @@ Prolog systems.  The goal is executed as \verb$\+ \+ Goal$, i.e.,
 bindings created by the goal are discarded.
 
     \fmtchar{t}
-All remaining space between 2 tab stops is distributed equally over
+All remaining space between two tab stops is distributed equally over
 \fmtseq{~t} statements between the tab stops. This space is padded
 with spaces by default. If an argument is supplied, it is taken to be
 the character code of the character used for padding. This can be
 used to do left or right alignment, centering, distributing, etc. See
 also \fmtseq{~|} and \fmtseq{~+} to set tab stops. A tab stop is
-assumed at the start of each line.
+assumed at the start of each line.  If the space between the two tab
+stops cannot be divided by the number of \fmtseq{~t} statements, one
+additional padding character is added to each \fmtseq{~t} statement
+until the tab stop is reached.  Additional padding is added from the
+right.\footnote{Until 9.3.33, additional padding was added from the
+middle.  Current behaviour is defined by PIP-0110.}.
+
     \fmtchar{|}
 Set a tab stop on the current position. If an argument is supplied set
 a tab stop on the position of that argument. This will cause all
@@ -10009,21 +9942,6 @@ will output
                              Statistics
 
 Runtime: .................. 3.45  Inferences: .......... 60,345
-\end{code}
-
-    \predicate{format}{3}{+Output, +Format, :Arguments}
-As format/2, but write the output on the given \arg{Output}. The
-de-facto standard only allows \arg{Output} to be a stream. The
-SWI-Prolog implementation allows all valid arguments for
-with_output_to/2.%
-	\footnote{Earlier versions defined \nopredref{sformat}{3}.
-	These predicates have been moved to the library
-	\pllib{backcomp}.}
-For example:
-
-\begin{code}
-?- format(atom(A), '~D', [1000000]).
-A = '1,000,000'
 \end{code}
 \end{description}
 

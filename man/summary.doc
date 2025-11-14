@@ -697,8 +697,6 @@ suggest predicates from a keyword.
 \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subsumes_term}{2}{One-sided unification test}
 \predicatesummary{succ}{2}{Logical integer successor relation}
-\predicatesummary{swritef}{2}{Formatted write on a string}
-\predicatesummary{swritef}{3}{Formatted write on a string}
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
 \predicatesummary{table}{1}{Declare predicate to be tabled}
@@ -836,8 +834,6 @@ suggest predicates from a keyword.
 \predicatesummary{write_length}{3}{Determine \#characters to output a term}
 \predicatesummary{write_term}{2}{Write term with options}
 \predicatesummary{write_term}{3}{Write term with options to stream}
-\predicatesummary{writef}{1}{Formatted write}
-\predicatesummary{writef}{2}{Formatted write on stream}
 \predicatesummary{writeq}{1}{Write term, insert quotes}
 \predicatesummary{writeq}{2}{Write term, insert quotes on stream}
 \end{summarylist}

@@ -180,7 +180,7 @@ endif()
 # NOTE: lib/libsummary.doc
 
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
-        charsio debug csv lists check random varnumbers
+        charsio debug csv lists check random varnumbers writef
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept
         prolog_jiti tables listing strings terms ugraphs portray_text

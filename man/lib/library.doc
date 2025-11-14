@@ -54,6 +54,7 @@ documented at all.
 \input{macros}
 \input{main}
 \input{nbset}
+\input{writef}
 \input{wwwbrowser}
 \input{occurs}
 \input{option}
