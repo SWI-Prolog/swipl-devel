@@ -784,13 +784,17 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  NEED_ARG;
 		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_LIST|CVT_STRING) )
 		    FMT_ARG("s", argv);
-		  if ( arg != DEFAULT )
-		  { if ( arg < 0 )
-		      arg = 0;
-		    if ( arg < txt.length )
-		      txt.length = arg;
-		  }
+
+		  if ( arg == DEFAULT )
+		    arg = txt.length;
+		  else if ( arg < 0 )
+		    arg = 0;
+		  else if ( arg < txt.length )
+		    txt.length = arg;
+
 		  rc = outtext(&state, &txt);
+		  for(int i=arg-txt.length; rc && i>0; i--)
+		    rc = outchr(&state, ' ');
 		  PL_free_text(&txt);
 		  SHIFT;
 		  if ( !rc )

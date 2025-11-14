@@ -9738,18 +9738,32 @@ S = "Hello          World"
 Equivalent to \exam{swritef(String, Format, []).}
 \end{description}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Format}
 \label{sec:format-predicates}
 
-The format family of predicates is the most versatile and
-portable\footnote{Unfortunately not covered by any standard.} way to
-produce textual output.
+The format family of predicates is the most versatile and portable way
+to produce textual output. These predicates where introduced by Quintus
+Prolog. The SWI-Prolog implementation is compatible with
+\href{https://prolog-lang.org/ImplementersForum/0110-format.html}{PIP-0110}.
+SWI-Prolog implements a couple of extensions:
+
+\begin{itemize}
+    \item Support for \fmtseq{~@} for capturing the output of
+    any predicate.  This extension is implemented by several
+    Prolog systems.
+    \item Support for \fmtseq{~h} and \fmtseq{~H} for more
+    control over floating point number output.  This is compatible
+    with SICStus.
+    \item Support the \chr{:} modifier, notably used to switch
+    between \jargon{locale} specific output and Prolog syntax.
+    \item The predicate format/3 allows for an output specification
+    compatible to with_output_to/2.
+\end{itemize}
 
 \begin{description}
     \predicate{format}{1}{+Format}
-Defined as `\exam{format(Format) :- format(Format, []).}'.  See
-format/2 for details.
-
+    \nodescription
     \predicate{format}{2}{+Format, :Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} is a list of arguments required by the format
@@ -9922,11 +9936,15 @@ digit groups.
 
     \fmtchar{R}
 Same as {\bf r}, but uses uppercase letters for digits above 9.
+
     \fmtchar{s}
 Output text from a list of character codes, characters, string (see
-string/1 and \secref{string}) or atom from the next argument.  If
-an numeric argument is given the string is truncated to this number
-of characters.
+string/1 and \secref{string}) or atom from the next argument. If an
+numeric argument the specified number of characters is emitted. This
+implies the text is truncated if too long or right-padded with spaces if
+it is too short. Note that this way of padding is not in the spirit of
+format/2.  Using \fmtseq{~t} for padding is more flexible and in line
+with the spirit of format/2.
 
     \fmtchar{@}
 Interpret the next argument as a goal and execute it.  Output written
