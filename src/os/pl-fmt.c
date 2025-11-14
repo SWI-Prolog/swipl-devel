@@ -58,9 +58,6 @@ source should also use format() to produce error messages, etc.
 
 typedef foreign_t (*Func1)(term_t a1);
 
-static char *	formatFloat(PL_locale *locale, int how, int arg,
-			    Number f, Buffer out);
-
 #define MAXRUBBER 100
 
 struct rubber
@@ -72,11 +69,17 @@ struct rubber
 typedef struct
 { IOSTREAM *out;			/* our output stream */
   int column;				/* current column */
+  int tab_stop;				/* Last tab stop */
   tmp_buffer buffer;			/* bin for characters with tabs */
   size_t buffered;			/* characters in buffer */
   int pending_rubber;			/* number of not-filled ~t's */
   struct rubber rub[MAXRUBBER];
 } format_state;
+
+static char *	formatFloat(PL_locale *locale, int how, int arg,
+			    Number f, Buffer out);
+static void	distribute_rubber(struct rubber *, int, int);
+static WUNUSED int emit_rubber(format_state *state);
 
 #define BUFSIZE		1024
 #define DEFAULT		INT_MIN
@@ -105,6 +108,7 @@ update_column(format_state *state, int c)
   { switch(c)
     { case '\n':
 	state->column = 0;
+	state->tab_stop = 0;
 	break;
       case '\t':
 	state->column = (state->column+1)|0x7;
@@ -243,10 +247,6 @@ outtext(format_state *state, PL_chars_t *txt)
 
 
 #define format_predicates (GD->format.predicates)
-
-static void	distribute_rubber(struct rubber *, int, int);
-static WUNUSED int emit_rubber(format_state *state);
-
 
 		/********************************
 		*       PROLOG CONNECTION	*
@@ -515,11 +515,11 @@ bool
 do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
-  int tab_stop = 0;			/* padded tab stop */
   unsigned int here = 0;
   int rc = true;
 
   state.out = fd;
+  state.tab_stop = 0;
   state.pending_rubber = 0;
   initBuffer(&state.buffer);
   state.buffered = 0;
@@ -943,7 +943,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
-		  stop = (c == '+' ? tab_stop + arg : arg);
+		  stop = (c == '+' ? state.tab_stop + arg : arg);
 
 		  if ( stop < state.column && mod_colon )
 		    nl_and_reindent = state.pending_rubber ?
@@ -980,7 +980,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      goto out;
 		  }
 
-		  state.column = tab_stop = stop;
+		  state.column = state.tab_stop = stop;
 		  here++;
 		  break;
 		}
