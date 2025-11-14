@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015-2025, University of Amsterdam
-				   SWI-Prolog Solutions b.v.
+    Copyright (c)  2013-2025, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -206,9 +206,8 @@ run_state(Exe, Args, Result) :-
     current_prolog_flag(windows, true),
     !,
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    atomic_list_concat(AllArgs, ArgStr),
+    atomic_list_concat(AllArgs, ' ', ArgStr),
     run_state1(Me, [ArgStr], Result).
-
 run_state(Exe, Args, Result) :-
     me(Me, Args0),
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
