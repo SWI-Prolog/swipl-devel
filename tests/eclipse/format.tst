@@ -56,6 +56,8 @@ format("~6s",[abcdef])          should_output "abcdef".
 format("~6s",[abc])             should_output "abc   ".
 format("~*s",[6,abcdefghi])     should_output "abcdef".
 format("~*s",[4+2,abcdefghi])   should_output "abcdef".
+format("~*s",[4+2,abc])         should_output "abc   ".
+format("~0s",[abc])             should_output "".
 format("~s",[42])               should_throw _something.
 format("~s",[[h,e,l,0'l,0'o]])  should_throw _something.
 format("~s",[[0'h,0'e|_]])      should_throw _something.
@@ -190,6 +192,7 @@ format('~w', [])                should_throw _something.
 format('~w', ['A'+'B'])         should_output "A+B".
 
 
+format('~W', [a+'B',[]])        should_output "a+B".
 format('~W', [a+'B',[quoted(true),ignore_ops(true)]])
                                 should_output "+(a,'B')".
 
@@ -233,4 +236,5 @@ format('^~|a~tb~tc~t~10+$',[])          should_output "^a  b  c   $".
 
 format('^~|~*tabc~*t~10+$',[0'.,95])	should_output "^...abc____$".
 format('^~|~`.tabc~95t~10+$',[])	should_output "^...abc____$".
+format('~*+.~n~3+.~n~*+.~n', [3,3])     should_output "   .\n   .\n   .\n".
 
