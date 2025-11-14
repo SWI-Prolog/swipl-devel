@@ -342,18 +342,26 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   if ( !PL_get_text(format, &fmt, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_STACK) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
-  if ( (argc = (int)lengthList(args, false)) >= 0 )
+  intptr_t len = lengthList(args, false);
+  if ( len >= 0 )
   { term_t head = PL_new_term_ref();
     int n = 0;
 
+    argc = len;
     argv = PL_new_term_refs(argc);
     while( PL_get_list(args, head, args) )
       PL_put_term(argv+n++, head);
   } else
-  { argc = 1;
-    argv = PL_new_term_refs(argc);
+  { Word p = valTermRef(args);
+    deRef(p);
 
-    PL_put_term(argv, args);
+    if ( !isList(*p) )
+    { argc = 1;
+      argv = PL_new_term_refs(argc);
+
+      PL_put_term(argv, args);
+    } else
+      return PL_type_error("list", args);
   }
 
   switch(fmt.storage)			/* format can do call-back! */
