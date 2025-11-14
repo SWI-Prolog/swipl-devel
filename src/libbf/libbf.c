@@ -21,15 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifdef _MSV_VER
-#define __STDC_NO_ATOMICS__ 1
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
 #ifdef __STDC_NO_ATOMICS__
-#define _Atomic
+#define _Atomic(type) type
 #else
 #include <stdatomic.h>
 #endif
