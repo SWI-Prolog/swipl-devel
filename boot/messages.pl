@@ -346,9 +346,17 @@ type_of(Term, Type) :-
     ;   is_stream(Term)   -> Type = stream
     ;   is_dict(Term)     -> Type = dict
     ;   is_list(Term)     -> Type = list
+    ;   Term = [_|_]      -> list_like(Term, Type)
     ;   cyclic_term(Term) -> Type = cyclic
     ;   compound(Term)    -> Type = compound
     ;                        Type = unknown
+    ).
+
+list_like(Term, Type) :-
+    '$skip_list'(_, Term, Tail),
+    (   var(Tail)
+    ->  Type = partial_list
+    ;   Type = invalid_list                      % TBD: Better name?
     ).
 
 blob_type(BlobT, Type) :-
