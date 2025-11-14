@@ -1334,7 +1334,7 @@ getCharExpression(DECL_LD Word p, Number r)
 
     len_not_one:
       PL_error(NULL, 0, "\"x\" must hold one character", ERR_TYPE,
-		 ATOM_nil, pushWordAsTermRef(p));
+	       ATOM_character, pushWordAsTermRef(p));
       popTermRef();
       return false;
     }
