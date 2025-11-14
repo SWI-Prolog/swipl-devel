@@ -53,7 +53,7 @@ format("~s",[[0'a,0'b,0'c]])    should_output "abc".
 format("~s",[[a,b,c]])          should_output "abc".
 format("~6s",[abcdefghi])       should_output "abcdef".
 format("~6s",[abcdef])          should_output "abcdef".
-format("~6s",[abc])             should_output "abc".        % no padding!
+format("~6s",[abc])             should_output "abc   ".
 format("~*s",[6,abcdefghi])     should_output "abcdef".
 format("~*s",[4+2,abcdefghi])   should_output "abcdef".
 format("~s",[42])               should_throw _something.
