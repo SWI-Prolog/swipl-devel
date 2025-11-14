@@ -8,6 +8,8 @@
 	  [ test/1,				% +File
 	    test/2				% +File, +ReportFile
 	  ]).
+:- use_module(library(apply)).
+:- use_module(library(ansi_term)).
 
 /** <module> ECLiPSe test automation
 
@@ -122,7 +124,6 @@ test(FileIn, FileOut) :-
 		close(Out)),
 	    close(In)).
 
-
     test_stream(In, Out) :-
         stream_property(In, file_name(File)),
         format(Out, '~N% Running ECLiPSe tests from file ~w~n', [File]),
@@ -132,7 +133,6 @@ test(FileIn, FileOut) :-
         counter_set(failed_test_count, 0),
         counter_set(skipped_test_count, 0),
         repeat,
-%	    line_count(In, Line),
             catch(catch(read_term(In, Test,
 				  [ module(test_util_iso)
 				  ]), SyntaxError,
@@ -142,8 +142,7 @@ test(FileIn, FileOut) :-
             ( Test \== end_of_file ->
                 counter_inc(test_count),
                 counter_get(test_count, N),
-%               writeq(Out, Test), nl,
-                catch(interpret_test(Test, N/Line, Out), continue, true),
+                catch(interpret_test(Test, t(File,Line,N), Out), continue, true),
                 fail
             ;
                 counter_get(test_count, N),
@@ -313,34 +312,29 @@ Goal should_throw Ball :-
 
 
 
-expected_outcome(Stream, Name) :-
+expected_outcome(Stream, t(_File,Line,TestNo)) =>
 	(   report(brief)
 	->  put_char(Stream, '.'),
 	    flush_output(Stream)
-	;   format(Stream, '~NTest ~w: OK~n', [Name])
+	;   format(Stream, '~NTest ~w at line ~d: OK~n', [TestNo, Line])
 	),
 	counter_inc(succeeded_test_count),
         throw(continue).
 
-unexpected(Stream, Name, Expected, Outcome) :-
-	format(Stream, '~NTest ~w: ~n~texpected ~12|~q,~n~tgot ~12|~q~n',
-	       [Name, Expected, Outcome]),
+unexpected(Stream, t(File,Line,TestNo), Expected, Outcome) =>
+	ansi_format(Stream, error,
+                    '~NTest ~w at ~w:~w: ~n~texpected ~12|~q,~n~tgot ~12|~q~n',
+                    [TestNo, File, Line, Expected, Outcome]),
         counter_inc(failed_test_count),
         throw(continue).
 
-unexpected(Stream, Name, Goal, Expected, Outcome) :-
-        write(Stream, 'Test '), write(Stream, Name),
-        write(Stream, ': expected '), writeq(Stream, Expected), nl(Stream),
-        write(Stream, '  got '), writeq(Stream, Outcome), nl(Stream),
-        ( print_bad_goal ->
-            write(Stream, '  '), writeq(Stream, Goal), nl(Stream)
-        ;
-            true
-        ),
+unexpected(Stream, t(File,Line,TestNo), Goal, Expected, Outcome) =>
+        ansi_format(Stream, error, 'Test ~w at ~w:~w:~n', [TestNo,File,Line]),
+        ansi_format(Stream, error, '  Expected ~p~n', [Expected]),
+        ansi_format(Stream, error, '       Got ~p~n', [Outcome]),
+        ansi_format(Stream, error, '      Goal ~p~n', [Goal]),
         counter_inc(failed_test_count),
         throw(continue).
-
-print_bad_goal.
 
 %
 % ISO implementation of non-backtrackable counters
