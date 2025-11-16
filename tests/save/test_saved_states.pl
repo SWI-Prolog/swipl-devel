@@ -138,14 +138,14 @@ me(Exe, Args) :-                     % swipl-win --> swipl
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
     prolog_to_os_filename(PlExe, Exe),
     Args = [].
-me(MeSH, Args) :-                    % Using a shell script
-    absolute_file_name('swipl.sh', MeSH0,
+me(Sh, Args) :-                      % Using a shell script
+    absolute_file_name('swipl.sh', MeSH,
                        [ access(execute),
                          file_errors(fail)
                        ]),
     !,
-    MeSH = MeSH0,
-    Args = [].
+    Sh = path(sh),
+    Args = [MeSH].
 me(Cmd, Args) :-                     % Windows: use .bat file
     current_prolog_flag(windows, true),
     absolute_file_name('swipl.bat', MeBat,
@@ -175,6 +175,23 @@ set_windows_path :-
     setenv('PATH', Path),
     asserta(win_path_set).
 set_windows_path.
+
+% Create dummy script files swipl.sh/swipl.bat that just invoke swipl
+create_script :-
+    current_prolog_flag(windows, true),
+    !,
+    me(WinExe, []),
+    prolog_to_os_filename(WinExe, WinExeOS),
+    debug(save, 'Creating swipl.bat invoking ~q [~q]', [WinExe, WinExeOS]),
+    open('swipl.bat', write, S, [create([read, write, execute])]),
+    format(S, '@~q, %*~n', [WinExeOS]),
+    close(S).
+create_script :-
+    me(Me, []),
+    debug(save, 'Creating swipl.sh invoking ~q', [Me]),
+    open('swipl.sh', write, S, [create([read, write, execute])]),
+    format(S, '#!/bin/sh~n~q $@~n', [Me]),
+    close(S).
 
 create_state(File, Output, Args) :-
     me(Me, Args0),
@@ -216,11 +233,9 @@ run_state(Exe, Args, Result) :-
 run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
     set_windows_path,
-    current_prolog_flag(home, HOME), % needed for MSYS2
     process_create(Exe, Args,
                    [ stdout(pipe(Out)),
-                     stderr(pipe(Err)),
-                     environment(['SWI_HOME_DIR'=HOME])
+                     stderr(pipe(Err))
                    ]),
     call_cleanup(
         ( read_terms(Out, Result),
@@ -237,6 +252,19 @@ remove_state(State) :-
     print_message(information, format('Created state in "~w"', [State])).
 remove_state(State) :-
     catch(delete_file(State), _, true).
+
+remove_script :-
+    debugging(save(keep)),
+    !,
+    print_message(information, 'Created script swipl.sh/bat').
+remove_script :-
+    current_prolog_flag(windows, true),
+    !,
+    catch(delete_file('swipl.bat'), _, true).
+remove_script :-
+    !,
+    catch(delete_file('swipl.sh'), _, true).
+
 
 %!  read_terms(+In:stream, -Data:list)
 %
@@ -267,6 +295,13 @@ no_error(Codes) :-
 wine :-
     current_prolog_flag(wine_version, _).
 
+noscript :-
+    current_prolog_flag(windows, true),
+    !,
+    \+ access_file('swipl.bat', execute).
+noscript :-
+    \+ access_file('swipl.sh', execute).
+
 :- begin_tests(saved_state, [condition(not(wine))]).
 
 test(true, Result == [true]) :-
@@ -290,6 +325,17 @@ test(true, Result == [true]) :-
           run_state(Exe, [], Result)
         ),
         remove_state(Exe)).
+
+test(script, [condition(noscript), true(Result == [[aap,noot,mies]])]) :-
+    create_script,
+    state_output(4, Exe),
+    call_cleanup(
+        ( create_state('input/plain.pl', Exe, ['-g', echo_argv]),
+          run_state(Exe, [aap, noot, mies], Result)
+        ),
+        ( remove_state(Exe),
+	  remove_script
+        )).
 
 :- end_tests(saved_state).
 
