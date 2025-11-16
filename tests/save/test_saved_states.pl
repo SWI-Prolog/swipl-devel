@@ -334,7 +334,7 @@ test(script, [condition(noscript), true(Result == [[aap,noot,mies]])]) :-
           run_state(Exe, [aap, noot, mies], Result)
         ),
         ( remove_state(Exe),
-	  remove_script
+	      remove_script
         )).
 
 :- end_tests(saved_state).
