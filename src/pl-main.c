@@ -146,6 +146,20 @@ main(int argc, char **argv)
 }
 
 
+
+		/*******************************
+		*       WINDOWS WINMAIN        *
+		*******************************/
+
+#if SWIPL_EPILOG
+#include <windows.h>
+
+int WINAPI
+wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR lpCmdLine, int nShowCmd)
+{ return wmain(__argc, __wargv);
+}
+#endif
+
 		 /*******************************
 		 *   AddressSanitizer support   *
 		 *******************************/
