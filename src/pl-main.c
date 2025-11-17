@@ -151,7 +151,7 @@ main(int argc, char **argv)
 		*       WINDOWS WINMAIN        *
 		*******************************/
 
-#if SWIPL_EPILOG
+#if SWIPL_EPILOG && __WINDOWS__
 #include <windows.h>
 
 int WINAPI
