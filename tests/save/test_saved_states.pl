@@ -79,6 +79,11 @@ test_saved_states :-
 :- dynamic
     test_dir/1.
 
+% Invoke the swipl executable, arguments to prepend, environment variables
+% Example: 
+% swipl('R', ['-s', '-e', 'rswipl::swipl()', '--args'], []).
+:- dynamic user:swipl/3.
+
 :- prolog_load_context(directory, Dir),
    retractall(test_dir(_)),
    asserta(test_dir(Dir)).
@@ -128,7 +133,13 @@ state_output(Id, State) :-
 %   Normally, this merely runs `swipl`, but it can be necessary to embed
 %   this into some sort of script.
 
-me(Exe, Args) :-                     % swipl-win --> swipl
+me(Exe, Args, Env) :-                % User-defined hook
+    user:swipl(Exe0, Args0, Env0),
+    !,
+    Exe = Exe0,
+    Args = Args0,
+    Env = Env0.
+me(Exe, Args, Env) :-                % swipl-win --> swipl
     current_prolog_flag(executable, WinExeOS),
     prolog_to_os_filename(WinExe, WinExeOS),
     file_base_name(WinExe, WinFile),
@@ -137,26 +148,9 @@ me(Exe, Args) :-                     % swipl-win --> swipl
     file_directory_name(WinExe, WinDir),
     atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
     prolog_to_os_filename(PlExe, Exe),
-    Args = [].
-me(Sh, Args) :-                      % Using a shell script
-    absolute_file_name('swipl.sh', MeSH,
-                       [ access(execute),
-                         file_errors(fail)
-                       ]),
-    !,
-    Sh = path(sh),
-    Args = [MeSH].
-me(Cmd, Args) :-                     % Windows: use .bat file
-    current_prolog_flag(windows, true),
-    absolute_file_name('swipl.bat', MeBat,
-                       [ access(execute),
-                         file_errors(fail)
-                       ]),
-    !,
-    Cmd = path('cmd.exe'),
-    prolog_to_os_filename(MeBat, OsName),
-    Args = ['/c', OsName].
-me(Exe, []) :-                       % What should be the normal case.
+    Args = [],
+    Env = [].
+me(Exe, [], []) :-                   % What should be the normal case.
     current_prolog_flag(executable, Exe).
 
 :- dynamic
@@ -176,31 +170,15 @@ set_windows_path :-
     asserta(win_path_set).
 set_windows_path.
 
-% Create dummy script files swipl.sh/swipl.bat that just invoke swipl
-create_script :-
-    current_prolog_flag(windows, true),
-    !,
-    me(WinExe, []),
-    prolog_to_os_filename(WinExe, WinExeOS),
-    debug(save, 'Creating swipl.bat invoking ~q [~q]', [WinExe, WinExeOS]),
-    open('swipl.bat', write, S, [create([read, write, execute])]),
-    format(S, '@~q, %*~n', [WinExeOS]),
-    close(S).
-create_script :-
-    me(Me, []),
-    debug(save, 'Creating swipl.sh invoking ~q', [Me]),
-    open('swipl.sh', write, S, [create([read, write, execute])]),
-    format(S, '#!/bin/sh~n~q $@~n', [Me]),
-    close(S).
-
 create_state(File, Output, Args) :-
-    me(Me, Args0),
+    me(Me, Args0, Env),
     append([Args0, Args, ['-o', Output, '-c', File, '-f', none]], AllArgs),
     test_dir(TestDir),
     debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
     process_create(Me, AllArgs,
                    [ cwd(TestDir),
-                     stderr(pipe(Err))
+                     stderr(pipe(Err)),
+                     environment(Env)
                    ]),
     read_stream_to_codes(Err, ErrOutput),
     close(Err),
@@ -208,9 +186,9 @@ create_state(File, Output, Args) :-
     assertion(no_error(ErrOutput)).
 
 run_state(Exe, Args, Result) :-
-    me(_, []),
+    me(_, [], Env),
     !,
-    run_state1(Exe, Args, Result).
+    run_state1(Exe, Args, Result, Env).
 
 % If swipl.bat is used, the state needs to be invoked swipl -x state.
 % Typical commands look like this: swipl.bat -x state.exe -- args. For
@@ -219,23 +197,24 @@ run_state(Exe, Args, Result) :-
 % instead of [aap,noot,mies]. Happens only under Windows. The
 % atomic_list_concat/3 in the 5th line avoids this undesired behavior.
 run_state(Exe, Args, Result) :-
-    me(Me, Args0),
+    me(Me, Args0, Env),
     current_prolog_flag(windows, true),
     !,
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
     atomic_list_concat(AllArgs, ' ', ArgStr),
-    run_state1(Me, [ArgStr], Result).
+    run_state1(Me, [ArgStr], Result, Env).
 run_state(Exe, Args, Result) :-
-    me(Me, Args0),
+    me(Me, Args0, Env),
     append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    run_state1(Me, AllArgs, Result).
+    run_state1(Me, AllArgs, Result, Env).
 
-run_state1(Exe, Args, Result) :-
+run_state1(Exe, Args, Result, Env) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
     set_windows_path,
     process_create(Exe, Args,
                    [ stdout(pipe(Out)),
-                     stderr(pipe(Err))
+                     stderr(pipe(Err)),
+                     environment(Env)
                    ]),
     call_cleanup(
         ( read_terms(Out, Result),
@@ -252,19 +231,6 @@ remove_state(State) :-
     print_message(information, format('Created state in "~w"', [State])).
 remove_state(State) :-
     catch(delete_file(State), _, true).
-
-remove_script :-
-    debugging(save(keep)),
-    !,
-    print_message(information, 'Created script swipl.sh/bat').
-remove_script :-
-    current_prolog_flag(windows, true),
-    !,
-    catch(delete_file('swipl.bat'), _, true).
-remove_script :-
-    !,
-    catch(delete_file('swipl.sh'), _, true).
-
 
 %!  read_terms(+In:stream, -Data:list)
 %
@@ -295,13 +261,6 @@ no_error(Codes) :-
 wine :-
     current_prolog_flag(wine_version, _).
 
-noscript :-
-    current_prolog_flag(windows, true),
-    !,
-    \+ access_file('swipl.bat', execute).
-noscript :-
-    \+ access_file('swipl.sh', execute).
-
 :- begin_tests(saved_state, [condition(not(wine))]).
 
 test(true, Result == [true]) :-
@@ -325,17 +284,6 @@ test(true, Result == [true]) :-
           run_state(Exe, [], Result)
         ),
         remove_state(Exe)).
-
-test(script, [condition(noscript), true(Result == [[aap,noot,mies]])]) :-
-    create_script,
-    state_output(4, Exe),
-    call_cleanup(
-        ( create_state('input/plain.pl', Exe, ['-g', echo_argv]),
-          run_state(Exe, [aap, noot, mies], Result)
-        ),
-        ( remove_state(Exe),
-	      remove_script
-        )).
 
 :- end_tests(saved_state).
 
