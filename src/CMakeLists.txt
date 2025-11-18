@@ -557,6 +557,7 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
+target_runtime_dependencies(libswipl)
 
 ###################################################################################
 #                         END OF MAIN TARGET DEFINITIONS                          #
@@ -709,6 +710,7 @@ install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
 )
+target_runtime_dependencies(swipl)
 install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
@@ -720,6 +722,7 @@ if(EPILOG)
       TARGETS ${EPILOG_APP}
       RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
   endif()
+  target_runtime_dependencies(${EPILOG_APP})
 endif()
 
 if(MINGW)
@@ -782,6 +785,7 @@ if(BUILD_SWIPL_LD)
 install(TARGETS swipl-ld
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
 )
+target_runtime_dependencies(swipl-ld)
 endif()
 
 if(WIN32)
@@ -808,4 +812,3 @@ ilink(/${SWIPL_INSTALL_ARCH_EXE}/swipl-ld
 endif()
 
 endif(WIN32)
-

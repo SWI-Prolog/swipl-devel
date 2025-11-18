@@ -217,8 +217,15 @@ endif()
     add_dependencies(${target} ${foreign_target})
 
     if((NOT v_test OR INSTALL_TESTS) AND NOT STATIC_EXTENSIONS)
-      install(TARGETS ${foreign_target}
-	      LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
+      if(USE_RUNTIME_DEPENDENCY_SET)
+        install(TARGETS ${foreign_target}
+		RUNTIME_DEPENDENCY_SET ${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME}
+		LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
+	register_runtime_dependency_component(${CMAKE_INSTALL_DEFAULT_COMPONENT_NAME})
+      else()
+        install(TARGETS ${foreign_target}
+		LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
+      endif()
     endif()
   endif()
 

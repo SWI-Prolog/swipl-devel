@@ -169,6 +169,7 @@ include(QLF)
 include(PackageSelection)
 include(Dependencies)
 include(DocDepends)
+include(RuntimeDependencies)
 
 if(GMP_FOUND)
   set(USE_LIBBF_DEFAULT OFF)
@@ -366,6 +367,9 @@ include(CheckEnv)
 
 # Configure and install desktop integration files.
 include(Desktop)
+
+# Install all (DLL) dependencies
+install_target_runtime_dependencies()
 
 # Packaging
 include(Pack)
