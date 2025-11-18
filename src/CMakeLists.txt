@@ -132,9 +132,6 @@ set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
     autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
-if(WIN32 AND NOT EPILOG)
-  list(APPEND SWIPL_DATA_boot menu.pl)
-endif()
 if(O_PLMT)
   list(APPEND SWIPL_DATA_boot threads.pl)
 endif()
@@ -560,10 +557,6 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
-# See https://github.com/python/cpython/issues/65735#issuecomment-1235768965
-# Doesn't seem to work though
-# set_target_properties(libswipl${PGO_SUFFIX} PROPERTIES
-#		        LINK_FLAGS -Wl,-z,global)
 
 ###################################################################################
 #                         END OF MAIN TARGET DEFINITIONS                          #
@@ -792,10 +785,6 @@ install(TARGETS swipl-ld
 endif()
 
 if(WIN32)
-install(TARGETS swipl-win
-	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
-        LIBRARY DESTINATION ${SWIPL_INSTALL_ARCH_LIB}
-)
 # helper dlls (MinGW runtime, pthread-win32, etc.)
 prepend(WIN32_DLL_FILES ${CMAKE_CURRENT_BINARY_DIR}/ ${WIN32_DLLS})
 install(FILES ${WIN32_DLL_FILES} DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
