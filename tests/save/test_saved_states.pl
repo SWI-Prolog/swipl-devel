@@ -47,9 +47,9 @@ has_foreign_lib(Lib) :-
 :- if(has_foreign_lib(process)).
 
 :- use_module(library(plunit)).
-:- use_module(library(lists)).
 :- use_module(library(process)).
 :- use_module(library(filesex)).
+:- use_module(library(lists)).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
 :- if(has_foreign_lib(rlimit)).
@@ -57,9 +57,9 @@ has_foreign_lib(Lib) :-
 :- endif.
 
 % keep debug statements
-:- set_prolog_flag(optimise, false).
+:- set_prolog_flag(optimise_debug, false).
 
-%:- debug(save).
+:- debug(save).
 
 /** <module> Test saved states
 
@@ -121,44 +121,6 @@ state_output(Id, State) :-
     format(atom(File), 'test_state_~w_~w.exe', [Id, Pid]),
     directory_file_path(Dir, File, State).
 
-%!  me(-Exe, -Args:list) is det.
-%
-%   True when Exe is the executable to   run  for creating a saved state
-%   and Args is a  list  of  commandline   arguments  to  pass  to  Exe.
-%   Normally, this merely runs `swipl`, but it can be necessary to embed
-%   this into some sort of script.
-
-me(Exe, Args) :-                     % swipl-win --> swipl
-    current_prolog_flag(executable, WinExeOS),
-    prolog_to_os_filename(WinExe, WinExeOS),
-    file_base_name(WinExe, WinFile),
-    downcase_atom(WinFile, 'swipl-win.exe'),
-    !,
-    file_directory_name(WinExe, WinDir),
-    atomic_list_concat([WinDir, 'swipl.exe'], /, PlExe),
-    prolog_to_os_filename(PlExe, Exe),
-    Args = [].
-me(MeSH, Args) :-                    % Using a shell script
-    absolute_file_name('swipl.sh', MeSH0,
-                       [ access(execute),
-                         file_errors(fail)
-                       ]),
-    !,
-    MeSH = MeSH0,
-    Args = [].
-me(Cmd, Args) :-                     % Windows: use .bat file
-    current_prolog_flag(windows, true),
-    absolute_file_name('swipl.bat', MeBat,
-                       [ access(execute),
-                         file_errors(fail)
-                       ]),
-    !,
-    Cmd = path('cmd.exe'),
-    prolog_to_os_filename(MeBat, OsName),
-    Args = ['/c', OsName].
-me(Exe, []) :-                       % What should be the normal case.
-    current_prolog_flag(executable, Exe).
-
 :- dynamic
     win_path_set/0.
 
@@ -177,11 +139,10 @@ set_windows_path :-
 set_windows_path.
 
 create_state(File, Output, Args) :-
-    me(Me, Args0),
-    append([Args0, Args, ['-o', Output, '-c', File, '-f', none]], AllArgs),
     test_dir(TestDir),
-    debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
-    process_create(Me, AllArgs,
+    append(Args, [ '-o', Output, '-c', File, '-f', none ], AllArgs),
+    debug(save, 'Creating state in ~q using prolog(swipl) ~q', [TestDir, AllArgs]),
+    process_create(prolog(swipl), AllArgs,
                    [ cwd(TestDir),
                      stderr(pipe(Err))
                    ]),
@@ -190,28 +151,24 @@ create_state(File, Output, Args) :-
     debug(save, 'Saved state', []),
     assertion(no_error(ErrOutput)).
 
-run_state(Exe, Args, Result) :-
-    me(_, []),
-    !,
-    run_state1(Exe, Args, Result).
+:- multifile prolog:prolog_tool/4.
+:- dynamic   prolog:prolog_tool/4.
 
-% If swipl.bat is used, the state needs to be invoked swipl -x state.
-% Typical commands look like this: swipl.bat -x state.exe -- args. For
-% reasons not fully understood, the 2nd unit test (echo_argv) then
-% collates the arguments to one single, returning ['-- aap noot mies']
-% instead of [aap,noot,mies]. Happens only under Windows. The
-% atomic_list_concat/3 in the 5th line avoids this undesired behavior.
-run_state(Exe, Args, Result) :-
-    me(Me, Args0),
-    current_prolog_flag(windows, true),
+%!  run_state(+State, +Args, -Result:list) is det.
+%
+%   Run the created saved State. There  are two scenarios. Normally, the
+%   State should be an  executable,  so  we   can  directly  run  it. If
+%   SWI-Prolog is embedded though, this may not   work.  In that case we
+%   must run the equivalent of  ``swipl   -x  State  <args>``. This code
+%   assumes    that    if    prolog:prolog_tool/4      succeeds.     See
+%   prolog:prolog_tool/4 for details.
+
+run_state(State, Args, Result) :-
+    prolog:prolog_tool(swipl, _Prog, Args, _Args1),
     !,
-    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    atomic_list_concat(AllArgs, ' ', ArgStr),
-    run_state1(Me, [ArgStr], Result).
+    run_state1(prolog(swipl), ['-x',State|Args], Result).
 run_state(Exe, Args, Result) :-
-    me(Me, Args0),
-    append([Args0, ['-x', Exe, '--'], Args], AllArgs),
-    run_state1(Me, AllArgs, Result).
+    run_state1(Exe, Args, Result).
 
 run_state1(Exe, Args, Result) :-
     debug(save, 'Running state ~q ~q', [Exe, Args]),
@@ -240,9 +197,12 @@ remove_state(State) :-
 
 %!  read_terms(+In:stream, -Data:list)
 %
-%   True when Data are the Prolog terms on In.
+%   True when Data are the Prolog  terms  on   In.  We  use a 60 seconds
+%   timeout to avoid this test  from   hanging  indefinitely in case the
+%   saved state does not terminate.
 
 read_terms(In, List) :-
+    set_stream(In, timeout(60)),
     read_term(In, T0, []),
     read_terms(T0, In, List).
 
@@ -264,10 +224,7 @@ no_error(Codes) :-
                  *             TESTS            *
                  *******************************/
 
-wine :-
-    current_prolog_flag(wine_version, _).
-
-:- begin_tests(saved_state, [condition(not(wine))]).
+:- begin_tests(saved_state).
 
 test(true, Result == [true]) :-
     state_output(1, Exe),
