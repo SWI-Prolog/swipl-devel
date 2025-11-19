@@ -88,6 +88,8 @@ save_option(autoload,    boolean,
             "Resolve autoloadable predicates").
 save_option(map,         atom,
             "File to report content of the state").
+save_option(home,        atom,
+            "Home directory to use for running SWI-Prolog").
 save_option(stand_alone, boolean,
             "Add emulator at start").
 save_option(traditional, boolean,
