@@ -25,6 +25,7 @@ COREMODULES+=" packages/archive packages/pengines packages/json"
 COREMODULES+=" packages/cql packages/bdb packages/readline packages/libedit"
 COREMODULES+=" packages/pcre packages/yaml packages/paxos packages/redis"
 COREMODULES+=" packages/stomp packages/mqi packages/sweep packages/swipy"
+SUBSUBMODULES="packages/libedit/libedit"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"
@@ -111,7 +112,7 @@ out=$prefix.tar
 # core SWI-Prolog snapshot from GIT
 git archive --format=tar --prefix=$prefix/ "$TAG" > ../$out
 
-#add the submodules
+# add the submodules
 for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`; do
     sha1=`echo $sm | awk -F: '{print $1}'`
     path=`echo $sm | awk -F: '{print $2}'`
@@ -121,6 +122,23 @@ for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`;
     rm tmp.tar
     [ $quiet = true ] || echo ok
 done
+
+# add submodules of the packages. Assumes the submodule is a direct
+# sibling of the package directory.
+for ssm in $SUBSUBMODULES; do
+  super=$(dirname $ssm)
+  module=$(basename $ssm)
+  for sm in `git -C $super submodule status $module | awk '{printf "%s:%s\n", $1, $2}'`; do
+    sha1=`echo $sm | awk -F: '{print $1}'`
+    path=$super/`echo $sm | awk -F: '{print $2}'`
+    [ $quiet = true ] || echo -n "adding module $path at $sha1 ... "
+    git --git-dir $path/.git archive --format=tar --prefix=$prefix/$path/ $sha1 > tmp.tar
+    $tar -Af ../$out tmp.tar
+    rm tmp.tar
+    [ $quiet = true ] || echo ok
+  done
+done
+
 
 cd ..
 ln -s $me $prefix
