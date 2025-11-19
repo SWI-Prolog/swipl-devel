@@ -428,7 +428,9 @@ initialization/[1,2].  See also the Prolog flag
 Use \arg{DIR} as home directory.  See \secref{findhome} for details.
 If \arg{DIR} is omitted, the found location is printed and the process
 exits.  If the location cannot be found an error is printed and the
-process exits with status 1.
+process exits with status~1.  If the home directory is set using this
+option, the environment variable \const{SWI_HOME_DIR} holding the
+specified directory is added to the process.
 
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%

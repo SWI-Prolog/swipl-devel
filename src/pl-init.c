@@ -543,6 +543,7 @@ findHome(const char *symbols, int argc, const char **argv)
       int rc = check_home(home);
       if ( rc < 0 && !is_boot_session(argc, argv) )
 	warn_bad_home("WARNING: Invalid SWI-Prolog home directory ", home, rc);
+      Setenv("SWI_HOME_DIR", home);
       return home;
     } else
     { fatalError("--home option too long");
