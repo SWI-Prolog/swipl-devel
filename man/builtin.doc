@@ -6779,6 +6779,11 @@ needed for proper tokenization by read_term/3.  Currently, the only
 other value is \const{next_argument}, adding a space after a comma
 used to separate arguments in a term or list.
 
+    \termitem{truncated}{-Bool}
+If \term{max_depth}{+Depth} is active and the depth limit has been
+exceeded, \arg{Bool} is unified to \const{true}.  Else it is unified
+to \const{false}.  This option is part of PIP-0105.
+
     \termitem{variable_names}{+List}
 Assign names to variables in \arg{Term}. \arg{List} is a list of terms
 \mbox{\arg{Name} = \arg{Var}}, where \arg{Name} is an atom that

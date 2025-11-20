@@ -73,6 +73,8 @@ typedef struct
 { unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
+  int	max_text;			/* Limit length for atoms/strings */
+  bool  truncated;			/* max_depth was exceeded */
   atom_t integer_format;		/* How to format integers */
   atom_t float_format;			/* How to format floats */
   atom_t spacing;			/* Where to insert spaces */
@@ -1567,7 +1569,8 @@ writeTerm(term_t t, int prec, write_options *options, int flags)
   }
 
   if ( ++options->depth > options->max_depth && options->max_depth )
-  { PutOpenToken('.', options->out);
+  { options->truncated = true;
+    PutOpenToken('.', options->out);
     rval = PutString("...", options->out);
   } else
   { rval = writeTerm2(t, prec, options, flags);
@@ -1596,7 +1599,9 @@ writeList(term_t list, write_options *options)
       if ( PL_get_nil(l) )
 	break;
       if ( ++options->depth >= options->max_depth && options->max_depth )
+      { options->truncated = true;
 	return PutString("|...]", options->out);
+      }
       if ( !PL_is_functor(l, FUNCTOR_dot2) )
       { TRY(Putc('|', options->out));
 	TRY(writeTerm(l, 999, options, W_LIST_TAIL));
@@ -1634,7 +1639,8 @@ writeList(term_t list, write_options *options)
       }
 
       if ( ++options->depth >= options->max_depth && options->max_depth )
-      { if ( !PutToken("...", options->out) )
+      { options->truncated = true;
+	if ( !PutToken("...", options->out) )
 	  return false;
 	while(depth-->0)
 	{ if ( !Putc(')', options->out) )
@@ -2086,10 +2092,12 @@ static const PL_option_t write_term_options[] =
   { ATOM_character_escapes,	    OPT_BOOL },
   { ATOM_character_escapes_unicode, OPT_BOOL },
   { ATOM_max_depth,		    OPT_INT  },
+  { ATOM_max_text,		    OPT_INT  },
+  { ATOM_truncated,		    OPT_TERM },
   { ATOM_module,		    OPT_ATOM },
   { ATOM_back_quotes,		    OPT_ATOM },
   { ATOM_attributes,		    OPT_ATOM },
-  { ATOM_priority,		    OPT_INT },
+  { ATOM_priority,		    OPT_INT  },
   { ATOM_partial,		    OPT_BOOL },
   { ATOM_spacing,		    OPT_ATOM },
   { ATOM_blobs,			    OPT_ATOM },
@@ -2128,6 +2136,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int fullstop    = false;
   int no_lists    = false;
   term_t varnames = 0;
+  term_t truncated = 0;
   IOSTREAM *s = NULL;
   write_options options = WRITE_OPTIONS_DEFAULTS;
   int rc;
@@ -2137,7 +2146,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 			&dotlists, &braceterms,
 			&numbervars, &portray, &portray, &gportray,
 			&charescape, &charescape_unicode,
-			&options.max_depth, &mname,
+			&options.max_depth, &options.max_text, &truncated, &mname,
 			&bq, &attr, &priority, &partial, &options.spacing,
 			&blobs, &cycles, &varnames, &nl, &fullstop,
 			&no_lists,
@@ -2253,6 +2262,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     rc = PutToken(".", s) && Putc(nl ? '\n' : ' ', s);
   else if ( nl )
     rc = Putc('\n', s);
+
+  if ( rc && truncated )
+    rc = PL_unify_bool_ex(truncated, options.truncated);
 
 out:
   END_NUMBERVARS(varnames);
