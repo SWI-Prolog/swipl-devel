@@ -204,7 +204,7 @@ remove_state(State) :-
 read_terms(In, List) :-
     (   current_prolog_flag(windows, true)
     ->  true
-    ;   set_stream(In, timeout(5))
+    ;   set_stream(In, timeout(60))
     ),
     read_term(In, T0, []),
     read_terms(T0, In, List).
