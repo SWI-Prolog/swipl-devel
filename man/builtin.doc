@@ -6650,6 +6650,16 @@ Used by the top level and debugger to limit screen output.  See also
 the Prolog flags \prologflag{answer_write_options} and
 \prologflag{debugger_write_options}.
 
+    \termitem{max_text}{Integer}
+Abbreviate atoms and strings that are longer than \arg{Integer}
+characters.  Currently only implemented if \term{quoted}{false} is
+active.  The abbreviated characters are indicated using elipsis
+($\ldots$), if possible using the Unicode character U-2026 and
+using \texttt{...} otherwise.  On sufficiantly long texts the
+elipsis is followed by the three last characters.  If \arg{Integer}
+is shorter than the elipsis length, it only prints the elipsis. This
+option is defined by PIP-0105.
+
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines
 the default value for the \prologflag{character_escapes} option as well

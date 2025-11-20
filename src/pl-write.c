@@ -430,7 +430,6 @@ PutString(const char *str, IOSTREAM *s)
   return true;
 }
 
-
 static bool
 PutComma(write_options *options)
 { if ( options->spacing == ATOM_next_argument )
@@ -456,6 +455,22 @@ PutStringN(const char *str, size_t length, IOSTREAM *s)
 
   for(i=0; i<length; i++, q++)
   { if ( Sputcode(*q, s) == EOF )
+      return false;
+  }
+
+  return true;
+}
+
+/* Write `length` wide characters from `str`.  Note that
+ * `length` is in characters, __not__ wchar_t units.
+ */
+
+static bool
+PutWStringN(const wchar_t *str, size_t length, IOSTREAM *s)
+{ while(length-- > 0)
+  { int c;
+    str = get_wchar(str, &c);
+    if ( !Putc(c, s) )
       return false;
   }
 
@@ -757,6 +772,110 @@ writeBlob(atom_t a, write_options *options)
   return PutString(">", options->out);
 }
 
+static int
+PutElipsis(IOSTREAM *s, bool first)
+{ int rc = true;
+
+  if ( Scanrepresent(0x2026, s) == 0 )
+  { if ( first && !(rc=PutOpenToken(0x2026, s)) )
+      return false;
+    if ( Sputcode(0x2026, s) == -1 )
+      return false;
+    return rc;
+  } else
+  { if ( first && !(rc=PutOpenToken('.', s)) )
+      return false;
+    TRY(PutString("...", s));
+    return rc;
+  }
+}
+
+static const wchar_t *
+wcs_backskip(const wchar_t *s, size_t len)
+{
+#if SIZEOF_WCHAR_T == 2
+  while(len-- > 0)
+  { s--;
+    if ( IS_UTF16_TRAIL(s) )
+      s--;
+  }
+#else
+  return s-len;
+#endif
+}
+
+static int					/* false, true, TRUE_WITH_SPACE */
+writeText(PL_chars_t *txt, write_options *options)
+{ int rc;
+  size_t len = PL_text_length(txt);
+
+  if ( len == 0 )
+    return true;
+
+  if ( options->max_text )
+  { if ( len > options->max_text )
+    { int el_len = Scanrepresent(0x2026, options->out) == 0 ? 1 : 3;
+      int mt = max(el_len, options->max_text);
+      int kl = mt-el_len;
+      int sl = min(mt-el_len, kl/2);		/* suffix len */
+      int pl = mt-sl-el_len;			/* prefix len */
+
+      switch(txt->encoding)
+      { case ENC_ISO_LATIN_1:
+	{ const char *s = (const char*)txt->text.t;
+	  if ( pl > 0 )
+	  { TRY(rc=PutOpenToken(s[0], options->out));
+	    TRY(PutStringN(s, pl, options->out));
+	    TRY(PutElipsis(options->out, false));
+	  } else
+	  { TRY(rc=PutElipsis(options->out, false));
+	  }
+	  TRY(PutStringN(s+len-sl, sl, options->out));
+	  return rc;
+	}
+	case ENC_WCHAR:
+	{ const wchar_t *s = txt->text.w;
+	  const wchar_t *e = &s[txt->length];
+	  const wchar_t *suffix = wcs_backskip(e, sl);
+
+	  if ( pl > 0 )
+	  { int c;
+	    get_wchar(s, &c);
+	    TRY(rc = PutOpenToken(c, options->out));
+	    TRY(PutWStringN(s, pl, options->out));
+	    TRY(PutElipsis(options->out, false));
+	  } else
+	  { TRY(rc=PutElipsis(options->out, false));
+	  }
+	  TRY(PutWStringN(suffix, sl, options->out));
+	  return rc;
+	}
+        default:
+	  assert(0);
+	  return false;
+      }
+    }
+  }
+
+  switch(txt->encoding)
+  { case ENC_ISO_LATIN_1:
+    { const char *s = (const char*)txt->text.t;
+      TRY(rc=PutOpenToken(s[0], options->out));
+      TRY(PutStringN(s, len, options->out));
+      return rc;
+    }
+    case ENC_WCHAR:
+    { const wchar_t *s = (const wchar_t*)txt->text.t;
+      TRY(rc=PutOpenToken(s[0], options->out));
+      TRY(PutWStringN(s, len, options->out));
+      return rc;
+    }
+    default:
+      assert(0);
+      return false;
+  }
+}
+
 
 static int				/* false, true or TRUE_WITH_SPACE */
 writeAtom(atom_t a, write_options *options)
@@ -787,6 +906,9 @@ writeAtom(atom_t a, write_options *options)
     }
   }
 
+  if ( atom->type->write_ex )
+    return ((*atom->type->write_ex)(a, options) &&
+	    !Sferror(options->out));
   if ( atom->type->write )
     return ((*atom->type->write)(options->out, a, options->flags) &&
 	    !Sferror(options->out));
@@ -814,7 +936,15 @@ writeAtom(atom_t a, write_options *options)
       }
     }
   } else
-    return PutTokenN(atom->name, atom->length, options->out);
+  { PL_chars_t text;
+
+    if ( !get_atom_text(a, &text) )
+    { assert(0);
+      return false;
+    }
+
+    return writeText(&text, options);
+  }
 }
 
 
@@ -828,43 +958,38 @@ writeAtomToStream(IOSTREAM *s, atom_t atom)
   return !!writeAtom(atom, &options);
 }
 
-
 bool
-writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
-{ Atom a = atomValue(atom);
+writeUCSAtom(atom_t atom, void *context)
+{ write_options *options = context;
+  Atom a = atomValue(atom);
   const pl_wchar_t *s = (const pl_wchar_t*)a->name;
   size_t len = a->length/sizeof(pl_wchar_t);
   const pl_wchar_t *e = &s[len];
 
-  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(atom, fd, flags) )
+  if ( (options->flags&PL_WRT_QUOTED) &&
+       !unquoted_atomW(atom, options->out, options->flags) )
   { pl_wchar_t quote = L'\'';
 
-    TRY(PutOpenToken(quote, fd) &&
-	Putc(quote, fd));
+    TRY(PutOpenToken(quote, options->out) &&
+	Putc(quote, options->out));
 
     while(s < e)
     { int c;
 
       s = get_wchar(s, &c);
-      TRY(putQuoted(c, quote, flags, fd));
+      TRY(putQuoted(c, quote, options->flags, options->out));
     }
 
-    return Putc(quote, fd);
-  }
+    return Putc(quote, options->out);
+  } else
+  { PL_chars_t text;
 
-  if ( e > s )
-  { int c;
-
-    get_wchar(s, &c);
-    if ( !PutOpenToken(c, fd) )
+    if ( !get_atom_text(atom, &text) )
+    { assert(0);
       return false;
-
-    while ( s < e )
-    { s = get_wchar(s, &c);
-
-      if ( !Putc(c, fd) )
-	return false;
     }
+
+    return writeText(&text, options);
   }
 
   return true;
@@ -961,35 +1086,7 @@ writeString(term_t t, write_options *options)
     }
     rc = Putc(quote, options->out);
   } else
-  { switch(txt.encoding)
-    { case ENC_ISO_LATIN_1:
-      { const unsigned char *s = (const unsigned char*)txt.text.t;
-	const unsigned char *e = &s[txt.length];
-
-	while(s<e)
-	{ int chr = *s++;
-
-	  if ( !(rc=Putc(chr, options->out)) )
-	    goto out;
-	}
-	break;
-      }
-      case ENC_WCHAR:
-      { const wchar_t *s = txt.text.w;
-	const wchar_t *e = &s[txt.length];
-
-	while(s<e)
-	{ int chr;
-
-	  s = get_wchar(s, &chr);
-	  if ( !(rc=Putc(chr, options->out)) )
-	    goto out;
-	}
-	break;
-      }
-      default:
-	assert(0);
-    }
+  { rc = writeText(&txt, options);
   }
   PL_STRINGS_RELEASE();
 

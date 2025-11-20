@@ -764,8 +764,9 @@ typedef struct PL_blob_t
   atom_t		(*load)(IOSTREAM *s);
   size_t		padding;	/* Required 0-padding */
 					/* private */
-  void *		reserved[9];	/* for future extension */
-  int			registered;	/* Already registered? */
+  void *		reserved[8];	/* for future extension */
+  int			(*write_ex)(atom_t a, void *context);
+  bool			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */
   struct PL_blob_t *    next;		/* next in registered type-chain */
   atom_t		atom_name;	/* Name as atom */

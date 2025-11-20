@@ -66,7 +66,7 @@ foreign_t	pl_writeln2(term_t stream, term_t term);
 foreign_t	pl_writeq2(term_t stream, term_t term);
 foreign_t	pl_print2(term_t stream, term_t term);
 int		writeAttributeMask(atom_t name);
-bool		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
+bool		writeUCSAtom(atom_t atom, void *context);
 bool		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 bool		writeAtomToStream(IOSTREAM *s, atom_t atom);
 size_t		format_float(char *buf, size_t size, double f, int N, char E);

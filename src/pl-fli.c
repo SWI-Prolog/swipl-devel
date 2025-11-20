@@ -809,8 +809,8 @@ static int	saveUCSAtom(atom_t a, IOSTREAM *fd);
 static atom_t	loadUCSAtom(IOSTREAM *fd);
 
 static int
-blob_write_usc_atom(IOSTREAM *fd, atom_t atom, int flags)
-{ bool rc = writeUCSAtom(fd, atom, flags);
+blob_write_usc_atom(atom_t a, void *context)
+{ bool rc = writeUCSAtom(a, context);
 
   return rc ? 1 : -1;
 }
@@ -822,10 +822,11 @@ static PL_blob_t ucs_atom =
   "ucs_text",
   NULL,					/* release */
   compareUCSAtom,			/* compare */
-  blob_write_usc_atom,			/* write */
+  NULL,					/* write */
   NULL,					/* acquire */
   saveUCSAtom,				/* save load to/from .qlf files */
-  loadUCSAtom
+  loadUCSAtom,
+  .write_ex = blob_write_usc_atom
 };
 
 
