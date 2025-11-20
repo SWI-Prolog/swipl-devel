@@ -479,6 +479,7 @@ The defined components are:
   | BerkeleyDB_interface    | BDB interface                                       |
   | Perl_regex              | PCRE2 library binding                               |
   | YAML_support            | Libyaml binding                                     |
+  | JSON_support            | JSON utilities                                      |
   | Java_interface          | Java interface (JPL)                                |
   | Python_interface        | Python interface (Janus)                            |
   | OpenSSL_interface       | Binding to OpenSSL/LibreSSL                         |
