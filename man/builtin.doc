@@ -6616,10 +6616,13 @@ SICStus. See format/2 for valid format specifiers and the
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term representation (<functor>(<args>
 \ldots)) will be used for all terms.  Otherwise (default), operators
-will be used where appropriate.\footnote{In traditional systems this
-flag also stops the syntactic sugar notation for lists and brace terms.
-In SWI-Prolog, these are controlled by the separate options
-\const{dotlists} and \const{brace_terms}}.
+will be used where appropriate.  The ISO standard also dictates lists
+to be written as \verb$.(Head,Tail)$.  SWI-Prolog writes lists using
+Prolog list notation unless the option \term{dotlists}{true} is also
+given.  This is done because SWI-Prolog lists do not use the dot as
+list cell functor.  PIP-0105 added the option \term{portable}{Bool}
+to accomplish unambiguous transfer of terms while maximizing
+readability.
 
     \termitem{integer_format}{+Atom}
 Print integers using format/2 as \term{format}{Atom, [Int]}.  The
@@ -6698,6 +6701,24 @@ printing an operand of an operator.  If \arg{Term} is an atom that is
 also an operator it will always be embraced.\footnote{If the priority
 is 1200 it is assumed to be a toplevel term and if the priority is
 999 it is assumed to be a list element or argument of a compound term.}
+
+    \termitem{portable}{Bool}
+Similar to \term{ignore_ops}{Bool}, but when \const{true}, lists,
+\jargon{brace terms} and the infix operator ``\chr{,}'' are printed
+normally. The name \textit{portable} refers to the fact that any term
+written this way can be read unambigously regardless of differences in
+the (operator) context while providing maximal readability and avoiding
+high stack usage implied by the ISO \const{ignore_ops} list
+representation as \verb$.(a,.(b,[]))$.\footnote{The dotted list notation
+cannot be reduced to list cells before we reach the closing
+parenthesis.} This option is defined by PIP-0105.
+
+For example:
+
+\begin{code}
+?- write_term((a,b+c,[a],{d}), [portable]).
+a,+(b,c),[a],{d}
+\end{code}
 
     \termitem{portray}{Bool}
 Same as \term{portrayed}{Bool}.  Deprecated.

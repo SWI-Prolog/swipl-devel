@@ -1022,7 +1022,7 @@ PL_EXPORT(IOSTREAM *) _PL_stream(int which);
 #define Scurrent_output _PL_stream(4)
 #endif
 
-#define PL_WRT_QUOTED		       0x01 /* quote atoms */
+#define PL_WRT_QUOTED		       0x01 /* quote atoms and strings */
 #define PL_WRT_IGNOREOPS	       0x02 /* ignore list/operators */
 #define PL_WRT_NUMBERVARS	       0x04 /* print $VAR(N) as a variable */
 #define PL_WRT_PORTRAY		       0x08 /* call portray */
@@ -1053,6 +1053,9 @@ PL_EXPORT(IOSTREAM *) _PL_stream(int which);
 #define PL_WRT_QUOTE_NON_ASCII	   0x800000 /* Quote atoms containing non-ascii */
 #define PL_WRT_PARTIAL		  0x1000000 /* Partial output */
 #define PL_WRT_NO_CHARESCAPES	  0x2000000 /* Do not Output ISO escapes */
+#define PL_WRT_INFIX_COMMA	  0x4000000 /* Write (a,b), with PL_WRT_IGNOREOPS */
+
+#define PL_WRT_PORTABLE (PL_WRT_IGNOREOPS|PL_WRT_INFIX_COMMA)
 
 PL_EXPORT(bool)	PL_write_term(IOSTREAM *s,
 			     term_t term,

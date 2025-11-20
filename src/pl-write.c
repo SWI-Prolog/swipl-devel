@@ -1768,7 +1768,8 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
       return false;
     }
 					/* operators */
-    if ( isoff(options, PL_WRT_IGNOREOPS) )
+    if ( isoff(options, PL_WRT_IGNOREOPS) ||
+	 (functor == ATOM_comma && ison(options, PL_WRT_INFIX_COMMA)) )
     { term_t arg;
 
       if ( !(arg=PL_new_term_ref()) )
@@ -2075,6 +2076,7 @@ static const PL_option_t write_term_options[] =
 { { ATOM_quoted,		    OPT_BOOL },
   { ATOM_quote_non_ascii,	    OPT_BOOL },
   { ATOM_ignore_ops,		    OPT_BOOL },
+  { ATOM_portable,		    OPT_BOOL },
   { ATOM_dotlists,		    OPT_BOOL },
   { ATOM_brace_terms,		    OPT_BOOL },
   { ATOM_numbervars,		    OPT_BOOL },
@@ -2106,8 +2108,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 { GET_LD
   int quoted      = false;
   int ignore_ops  = false;
+  int portable    = false;
   int dotlists    = false;
-  int braceterms  = true;
+  int braceterms  = -1;
   int numbervars  = -1;			/* not set */
   int portray     = false;
   term_t gportray = 0;
@@ -2130,7 +2133,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int rc;
 
   if ( !PL_scan_options(opts, 0, "write_option", write_term_options,
-			&quoted, &quote_non_ascii, &ignore_ops, &dotlists, &braceterms,
+			&quoted, &quote_non_ascii, &ignore_ops, &portable,
+			&dotlists, &braceterms,
 			&numbervars, &portray, &portray, &gportray,
 			&charescape, &charescape_unicode,
 			&options.max_depth, &mname,
@@ -2199,16 +2203,18 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( numbervars == -1 )
     numbervars = (portray ? true : false);
 
-  if ( quoted )          options.flags |= PL_WRT_QUOTED;
-  if ( quote_non_ascii ) options.flags |= PL_WRT_QUOTE_NON_ASCII;
-  if ( ignore_ops )      options.flags |= PL_WRT_IGNOREOPS;
-  if ( dotlists )        options.flags |= PL_WRT_DOTLISTS;
-  if ( !braceterms )     options.flags |= PL_WRT_BRACETERMS;
-  if ( numbervars )      options.flags |= PL_WRT_NUMBERVARS;
-  if ( portray )         options.flags |= PL_WRT_PORTRAY;
-  if ( !cycles )         options.flags |= PL_WRT_NO_CYCLES;
-  if ( no_lists )        options.flags |= PL_WRT_NO_LISTS;
-  if ( partial )	 options.flags |= PL_WRT_PARTIAL;
+  if ( quoted )              options.flags |= PL_WRT_QUOTED;
+  if ( quote_non_ascii )     options.flags |= PL_WRT_QUOTE_NON_ASCII;
+  if ( ignore_ops )          options.flags |= PL_WRT_IGNOREOPS|PL_WRT_BRACETERMS;
+  if ( portable )	     options.flags |= PL_WRT_PORTABLE;
+  if ( dotlists )            options.flags |= PL_WRT_DOTLISTS;
+  if ( braceterms == false ) options.flags |= PL_WRT_BRACETERMS;
+  if ( braceterms == true )  options.flags &= ~PL_WRT_BRACETERMS;
+  if ( numbervars )          options.flags |= PL_WRT_NUMBERVARS;
+  if ( portray )             options.flags |= PL_WRT_PORTRAY;
+  if ( !cycles )             options.flags |= PL_WRT_NO_CYCLES;
+  if ( no_lists )            options.flags |= PL_WRT_NO_LISTS;
+  if ( partial )	     options.flags |= PL_WRT_PARTIAL;
   if ( bq )
   { unsigned int flags = 0;
 
