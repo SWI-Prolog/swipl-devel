@@ -202,10 +202,12 @@ remove_state(State) :-
 %   saved state does not terminate.
 
 read_terms(In, List) :-
-    set_stream(In, timeout(60)),
+    (   current_prolog_flag(windows, true)
+    ->  true
+    ;   set_stream(In, timeout(60))
+    ),
     read_term(In, T0, []),
     read_terms(T0, In, List).
-
 read_terms(end_of_file, _, []) :- !.
 read_terms(H, In, [H|T]) :-
     read_term(In, H2, []),
