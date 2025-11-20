@@ -1917,7 +1917,7 @@ getSingleChar(IOSTREAM *stream, int signals)
 static
 PRED_IMPL("with_tty_raw", 1, with_tty_raw, PL_FA_TRANSPARENT)
 { PRED_LD
-  int rval;
+  bool rval;
   ttybuf buf;
   int save;
   IOSTREAM *stream = getStream(Suser_input);
@@ -1926,7 +1926,6 @@ PRED_IMPL("with_tty_raw", 1, with_tty_raw, PL_FA_TRANSPARENT)
     return symbol_no_stream(ATOM_user_input);
   save = ison(Sinput, SIO_ISATTY);
 
-  Slock(stream);
   Sflush(stream);
   if ( save )
     PushTty(stream, &buf, TTY_RAW);
@@ -1935,7 +1934,7 @@ PRED_IMPL("with_tty_raw", 1, with_tty_raw, PL_FA_TRANSPARENT)
 
   if ( save )
     PopTty(stream, &buf, true);
-  Sunlock(stream);
+  releaseStream(stream);
 
   return rval;
 }
