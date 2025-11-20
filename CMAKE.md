@@ -469,23 +469,23 @@ a one-line command):
 
 The defined components are:
 
-  | Component            | Description                          |
-  | -------------------- | ------------------------------------ |
-  | Core_system          | Compiler and core libraries          |
-  | Core_packages        | Packages with few dependencies       |
-  | Archive_interface    | Libarchive binding                   |
-  | Commandline_editors  | Readline and libedit interfaces      |
-  | ODBC_interface       | ODBC binding                         |
-  | BerkeleyDB_interface | BDB interface                        |
-  | Perl_regex           | PCRE2 library binding                |
-  | YAML_support         | Libyaml binding                      |
-  | Java_interface       | Java interface (JPL)                 |
-  | Python_interface     | Python interface (Janus)             |
-  | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
-  | TIPC_networking      | Linux TIPC network support           |
-  | Graphics_subsystem   | The xpce graphics system (needs X11) |
-  | Documentation        | System HTML documentation            |
-  | Examples             | Example files                        |
+  | Component               | Description                                         |
+  | ----------------------- | --------------------------------------------------- |
+  | Core_system             | Compiler and core libraries                         |
+  | Core_packages           | Packages with few dependencies                      |
+  | Archive_interface       | Libarchive binding                                  |
+  | Commandline_editors     | Libedit interface                                   |
+  | ODBC_interface          | ODBC binding                                        |
+  | BerkeleyDB_interface    | BDB interface                                       |
+  | Perl_regex              | PCRE2 library binding                               |
+  | YAML_support            | Libyaml binding                                     |
+  | Java_interface          | Java interface (JPL)                                |
+  | Python_interface        | Python interface (Janus)                            |
+  | OpenSSL_interface       | Binding to OpenSSL/LibreSSL                         |
+  | TIPC_networking         | Linux TIPC network support                          |
+  | XPCE_graphics_subsystem | The xpce graphics system (needs SDL3, pango, cairo) |
+  | Documentation           | System HTML documentation                           |
+  | Examples                | Example files                                       |
 
 See the `debian` subdirectory for the complete   set  of rules we use to
 generate the Ubuntu PPA releases.
