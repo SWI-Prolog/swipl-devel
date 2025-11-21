@@ -656,23 +656,6 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
   return true;
 }
 
-
-
-static bool
-writeQuoted(IOSTREAM *stream, const char *text, size_t len, int quote,
-	    write_options *options)
-{ const unsigned char *s = (const unsigned char *)text;
-
-  TRY(Putc(quote, stream));
-
-  while(len-- > 0)
-  { TRY(putQuoted(*s++, quote, options->flags, stream));
-  }
-
-  return Putc(quote, stream);
-}
-
-
 #if O_ATTVAR
 static bool
 writeAttributes(term_t t, int prec, write_options *options, int flags)
@@ -804,9 +787,44 @@ wcs_backskip(const wchar_t *s, size_t len)
 #endif
 }
 
+static bool
+write_chars(const char *str, size_t len, int quote, write_options *options)
+{ if ( quote )
+  { const unsigned char *s = (const unsigned char*)str;
+    const unsigned char *e = &s[len];
+
+    while(s<e)
+    { int chr = *s++;
+
+      TRY(putQuoted(chr, quote, options->flags, options->out));
+    }
+
+    return true;
+  } else
+  { return PutStringN(str, len, options->out);
+  }
+}
+
+static bool
+write_wchars(const wchar_t *s, size_t len, int quote, write_options *options)
+{ if ( quote )
+  { while(len-- > 0)
+    { int chr;
+
+      s = get_wchar(s, &chr);
+
+      TRY(putQuoted(chr, quote, options->flags, options->out));
+    }
+    return true;
+  } else
+  { return PutWStringN(s, len, options->out);
+  }
+}
+
+
 static int					/* false, true, TRUE_WITH_SPACE */
-writeText(PL_chars_t *txt, write_options *options)
-{ int rc;
+writeText(PL_chars_t *txt, int quote, write_options *options)
+{ int rc = true;
   size_t len = PL_text_length(txt);
 
   if ( len == 0 )
@@ -819,19 +837,30 @@ writeText(PL_chars_t *txt, write_options *options)
       int kl = mt-el_len;
       int sl = min(mt-el_len, kl/2);		/* suffix len */
       int pl = mt-sl-el_len;			/* prefix len */
+      bool quoted_ellipsis = false;
+
+      options->truncated = true;
+
+      if ( !quote && ison(options, PL_WRT_QUOTED) )
+      { quoted_ellipsis = true;
+	quote = '\'';
+	TRY( (rc=PutOpenToken(quote, options->out)) &&
+	     Putc(quote, options->out) );
+      }
 
       switch(txt->encoding)
       { case ENC_ISO_LATIN_1:
 	{ const char *s = (const char*)txt->text.t;
 	  if ( pl > 0 )
-	  { TRY(rc=PutOpenToken(s[0], options->out));
-	    TRY(PutStringN(s, pl, options->out));
+	  { if ( !quote )
+	      TRY(rc=PutOpenToken(s[0], options->out));
+	    TRY(write_chars(s, pl, quote, options));
 	    TRY(PutElipsis(options->out, false));
 	  } else
-	  { TRY(rc=PutElipsis(options->out, false));
+	  { TRY(rc=PutElipsis(options->out, true));
 	  }
-	  TRY(PutStringN(s+len-sl, sl, options->out));
-	  return rc;
+	  TRY(write_chars(s+len-sl, sl, quote, options));
+	  break;
 	}
 	case ENC_WCHAR:
 	{ const wchar_t *s = txt->text.w;
@@ -841,33 +870,39 @@ writeText(PL_chars_t *txt, write_options *options)
 	  if ( pl > 0 )
 	  { int c;
 	    get_wchar(s, &c);
-	    TRY(rc = PutOpenToken(c, options->out));
-	    TRY(PutWStringN(s, pl, options->out));
+	    if ( !quote )
+	      TRY(rc = PutOpenToken(c, options->out));
+	    TRY(write_wchars(s, pl, quote, options));
 	    TRY(PutElipsis(options->out, false));
 	  } else
-	  { TRY(rc=PutElipsis(options->out, false));
+	  { TRY(rc=PutElipsis(options->out, true));
 	  }
-	  TRY(PutWStringN(suffix, sl, options->out));
-	  return rc;
+	  TRY(write_wchars(suffix, sl, quote, options));
+	  break;
 	}
         default:
 	  assert(0);
 	  return false;
       }
+      if ( rc && quoted_ellipsis )
+	TRY(Putc(quote, options->out));
+      return rc;
     }
   }
 
   switch(txt->encoding)
   { case ENC_ISO_LATIN_1:
     { const char *s = (const char*)txt->text.t;
-      TRY(rc=PutOpenToken(s[0], options->out));
-      TRY(PutStringN(s, len, options->out));
+      if ( !quote )
+	TRY(rc=PutOpenToken(s[0], options->out));
+      TRY(write_chars(s, len, quote, options));
       return rc;
     }
     case ENC_WCHAR:
     { const wchar_t *s = (const wchar_t*)txt->text.t;
-      TRY(rc=PutOpenToken(s[0], options->out));
-      TRY(PutWStringN(s, len, options->out));
+      if ( !quote )
+	TRY(rc=PutOpenToken(s[0], options->out));
+      TRY(write_wchars(s, len, quote, options));
       return rc;
     }
     default:
@@ -915,35 +950,37 @@ writeAtom(atom_t a, write_options *options)
   if ( isoff(atom->type, PL_BLOB_TEXT) )
     return writeBlob(a, options);
 
+  PL_chars_t text;
+
+  if ( !get_atom_text(a, &text) )
+  { assert(0);
+    return false;
+  }
+
   if ( ison(options, PL_WRT_QUOTED) )
   { switch( atomType(a, options) )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
       case AT_SPECIAL:
-	return PutToken(atom->name, options->out);
+	return writeText(&text, 0, options);
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
       { int rc;
+	int quote = '\'';
 
-	TRY(rc=PutOpenToken('\'', options->out));
-	TRY(writeQuoted(options->out,
-			atom->name,
-			atom->length,
-			'\'', options));
+	if ( !( (rc=PutOpenToken(quote, options->out)) &&
+		Putc(quote, options->out) &&
+		writeText(&text, quote, options) &&
+		Putc(quote, options->out) ) )
+	  return false;
+
 	return rc;
       }
     }
   } else
-  { PL_chars_t text;
-
-    if ( !get_atom_text(a, &text) )
-    { assert(0);
-      return false;
-    }
-
-    return writeText(&text, options);
+  { return writeText(&text, 0, options);
   }
 }
 
@@ -961,26 +998,21 @@ writeAtomToStream(IOSTREAM *s, atom_t atom)
 bool
 writeUCSAtom(atom_t atom, void *context)
 { write_options *options = context;
-  Atom a = atomValue(atom);
-  const pl_wchar_t *s = (const pl_wchar_t*)a->name;
-  size_t len = a->length/sizeof(pl_wchar_t);
-  const pl_wchar_t *e = &s[len];
+  PL_chars_t text;
+
+  if ( !get_atom_text(atom, &text) )
+  { assert(0);
+    return false;
+  }
 
   if ( (options->flags&PL_WRT_QUOTED) &&
        !unquoted_atomW(atom, options->out, options->flags) )
   { pl_wchar_t quote = L'\'';
 
-    TRY(PutOpenToken(quote, options->out) &&
-	Putc(quote, options->out));
-
-    while(s < e)
-    { int c;
-
-      s = get_wchar(s, &c);
-      TRY(putQuoted(c, quote, options->flags, options->out));
-    }
-
-    return Putc(quote, options->out);
+    return ( PutOpenToken(quote, options->out) &&
+	     Putc(quote, options->out) &&
+	     writeText(&text, quote, options) &&
+	     Putc(quote, options->out) );
   } else
   { PL_chars_t text;
 
@@ -989,7 +1021,7 @@ writeUCSAtom(atom_t atom, void *context)
       return false;
     }
 
-    return writeText(&text, options);
+    return writeText(&text, 0, options);
   }
 
   return true;
@@ -1054,44 +1086,15 @@ writeString(term_t t, write_options *options)
 
     if ( !(rc=Putc(quote, options->out)) )
       goto out;
-
-    switch(txt.encoding)
-    { case ENC_ISO_LATIN_1:
-      { const unsigned char *s = (const unsigned char*)txt.text.t;
-	const unsigned char *e = &s[txt.length];
-
-	while(s<e)
-	{ int chr = *s++;
-
-	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
-	    goto out;
-	}
-	break;
-      }
-      case ENC_WCHAR:
-      { const wchar_t *s = txt.text.w;
-	const wchar_t *e = &s[txt.length];
-
-	while(s<e)
-	{ int chr;
-
-	  s = get_wchar(s, &chr);
-	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
-	    goto out;
-	}
-	break;
-      }
-      default:
-	assert(0);
-    }
-    rc = Putc(quote, options->out);
+    rc = ( writeText(&txt, quote, options) &&
+	   Putc(quote, options->out) );
   } else
-  { rc = writeText(&txt, options);
+  { rc = writeText(&txt, 0, options);
   }
-  PL_STRINGS_RELEASE();
 
 out:
   PL_free_text(&txt);
+  PL_STRINGS_RELEASE();
 
   return rc;
 }

@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2025, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -36,6 +36,8 @@
 :- module(test_write, [test_write/0]).
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
+:- encoding(utf8).
 
 /** <module> Misc tests
 
@@ -51,7 +53,8 @@ test_write :-
 		    write_quoted,
 		    write_variable_names,
 		    write_float,
-		    write_misc
+		    write_misc,
+		    max_text
 		  ]).
 
 :- meta_predicate
@@ -281,6 +284,38 @@ test(s_1, X = '[(a,b)]') :-
     term_to_atom([(a,b)], X).
 
 :- end_tests(write_misc).
+
+:- begin_tests(max_text).
+
+test(string, Out == "\"hello\"") :-
+	max_text(5, "hello", Out, [quoted(true)]).
+test(string, Out == "\"hel…rld\"") :-
+	max_text(7, "hello world", Out, [quoted(true), truncated(Bool)]),
+	assertion(Bool == true).
+test(string, Out == "\"…\"") :-
+	max_text(1, "hello world", Out, [quoted(true)]).
+test(string, Out == "\"h…\"") :-
+	max_text(2, "hello world", Out, [quoted(true)]).
+test(string, Out == "\"h…d\"") :-
+	max_text(3, "hello world", Out, [quoted(true)]).
+test(string, Out == "\"hel…ιος\"") :-
+	max_text(7, "hello υφήλιος", Out, [quoted(true)]).
+test(atom, Out == "'hel…ιος'") :-
+	max_text(7, 'hello υφήλιος', Out, [quoted(true)]).
+test(atom, Out == "hello_υφήλιος") :-
+	max_text(20, hello_υφήλιος, Out, [quoted(true)]).
+test(atom, Out == "'hel…ιος'") :-
+	max_text(7, hello_υφήλιος, Out, [quoted(true)]).
+test(atom, Out == "'\\nhe…ιος'") :-
+	max_text(7, '\nhello_υφήλιος', Out, [quoted(true)]).
+test(atom, Out == "hel…ιος") :-
+	max_text(7, hello_υφήλιος, Out, [quoted(false)]).
+
+max_text(Max, Term, String, Options) :-
+	with_output_to(string(String),
+		       write_term(Term, [max_text(Max)|Options])).
+
+:- end_tests(max_text).
 
 write_encoding(Goal, Encoding, String) :-
 	setup_call_cleanup(

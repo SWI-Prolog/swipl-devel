@@ -6647,18 +6647,24 @@ true.
 \end{code}
 
 Used by the top level and debugger to limit screen output.  See also
-the Prolog flags \prologflag{answer_write_options} and
+the options \term{max_text}{Length} and \term{truncated}{-Bool}
+as well as the prolog flags \prologflag{answer_write_options} and
 \prologflag{debugger_write_options}.
 
-    \termitem{max_text}{Integer}
-Abbreviate atoms and strings that are longer than \arg{Integer}
-characters.  Currently only implemented if \term{quoted}{false} is
-active.  The abbreviated characters are indicated using elipsis
-($\ldots$), if possible using the Unicode character U-2026 and
-using \texttt{...} otherwise.  On sufficiantly long texts the
-elipsis is followed by the three last characters.  If \arg{Integer}
-is shorter than the elipsis length, it only prints the elipsis. This
-option is defined by PIP-0105.
+    \termitem{max_text}{Length}
+Abbreviate atoms and strings that are longer than \arg{Length}
+characters. The abbreviated characters are indicated using elipsis
+($\ldots$), if possible using the Unicode character U-2026 and using
+\texttt{...} otherwise. On sufficiantly long texts the elipsis is
+followed by the three last characters. If \arg{Length} is shorter than
+the elipsis length, it only prints the elipsis. When term{quoted}{true}
+is active, the quotes are not included in the length restriction. The
+text between the quotes represents at max \arg{Length} characters, but
+the lexical representation can be longer due to required escape
+sequences. This option is defined by PIP-0105.\footnote{The current
+draft calls this option \term{text_max}{Max}.  Considering all other
+options and flags use max_*, SWI-Prolog uses \const{max_text}.  This may
+change depending on how PIP-0105 evolves.}
 
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines
@@ -6790,9 +6796,10 @@ other value is \const{next_argument}, adding a space after a comma
 used to separate arguments in a term or list.
 
     \termitem{truncated}{-Bool}
-If \term{max_depth}{+Depth} is active and the depth limit has been
-exceeded, \arg{Bool} is unified to \const{true}.  Else it is unified
-to \const{false}.  This option is part of PIP-0105.
+If \term{max_depth}{+Depth} and/or \term{max_text}{+Length} is
+active and the limit has been exceeded, \arg{Bool} is unified to
+\const{true}. Else it is unified to \const{false}. This option is part
+of PIP-0105.
 
     \termitem{variable_names}{+List}
 Assign names to variables in \arg{Term}. \arg{List} is a list of terms
