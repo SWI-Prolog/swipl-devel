@@ -6657,7 +6657,7 @@ characters. The abbreviated characters are indicated using elipsis
 ($\ldots$), if possible using the Unicode character U-2026 and using
 \texttt{...} otherwise. On sufficiantly long texts the elipsis is
 followed by the three last characters. If \arg{Length} is shorter than
-the elipsis length, it only prints the elipsis. When term{quoted}{true}
+the elipsis length, it only prints the elipsis. When \term{quoted}{true}
 is active, the quotes are not included in the length restriction. The
 text between the quotes represents at max \arg{Length} characters, but
 the lexical representation can be longer due to required escape

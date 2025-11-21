@@ -39,11 +39,8 @@
 :- use_module(library(apply)).
 :- encoding(utf8).
 
-/** <module> Misc tests
+/** <module> Test write_term/2 and friends.
 
-Tests that are hard to classify
-
-@author	Jan Wielemaker
 */
 
 test_write :-
