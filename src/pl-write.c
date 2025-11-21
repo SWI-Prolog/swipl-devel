@@ -564,6 +564,23 @@ PutTokenN(const char *s, size_t len, IOSTREAM *stream)
   return true;
 }
 
+static int
+PutElipsis(IOSTREAM *s, bool first)
+{ int rc = true;
+
+  if ( Scanrepresent(0x2026, s) == 0 )
+  { if ( first && !(rc=PutOpenToken(0x2026, s)) )
+      return false;
+    if ( Sputcode(0x2026, s) == -1 )
+      return false;
+    return rc;
+  } else
+  { if ( first && !(rc=PutOpenToken('.', s)) )
+      return false;
+    TRY(PutString("...", s));
+    return rc;
+  }
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PutOpenBrace()/PutCloseBrace() are used to put  additional braces around
@@ -690,7 +707,9 @@ writeAttVar(term_t av, write_options *options)
   TRY(PutToken(varName(av, buf), options->out));
 
   if ( (options->flags & PL_WRT_ATTVAR_DOTS) )
-  { return PutString("{...}", options->out);
+  { return (Putc('{', options->out) &&
+	    PutElipsis(options->out, false) &&
+	    Putc('}', options->out));
   } else if ( (options->flags & PL_WRT_ATTVAR_WRITE) )
   { fid_t fid;
     term_t a;
@@ -753,24 +772,6 @@ writeBlob(atom_t a, write_options *options)
   }
 
   return PutString(">", options->out);
-}
-
-static int
-PutElipsis(IOSTREAM *s, bool first)
-{ int rc = true;
-
-  if ( Scanrepresent(0x2026, s) == 0 )
-  { if ( first && !(rc=PutOpenToken(0x2026, s)) )
-      return false;
-    if ( Sputcode(0x2026, s) == -1 )
-      return false;
-    return rc;
-  } else
-  { if ( first && !(rc=PutOpenToken('.', s)) )
-      return false;
-    TRY(PutString("...", s));
-    return rc;
-  }
 }
 
 static const wchar_t *
@@ -1656,7 +1657,7 @@ callPortray(term_t arg, int prec, write_options *options)
 static bool
 writeTerm(term_t t, int prec, write_options *options, int flags)
 { GET_LD
-  int rval;
+  bool rval;
   int levelSave = options->depth;
   fid_t fid;
 
@@ -1671,7 +1672,7 @@ writeTerm(term_t t, int prec, write_options *options, int flags)
   if ( ++options->depth > options->max_depth && options->max_depth )
   { options->truncated = true;
     PutOpenToken('.', options->out);
-    rval = PutString("...", options->out);
+    rval = PutElipsis(options->out, true);
   } else
   { rval = writeTerm2(t, prec, options, flags);
   }
@@ -1700,7 +1701,9 @@ writeList(term_t list, write_options *options)
 	break;
       if ( ++options->depth >= options->max_depth && options->max_depth )
       { options->truncated = true;
-	return PutString("|...]", options->out);
+	return ( Putc('|', options->out) &&
+		 PutElipsis(options->out, false) &&
+		 Putc(']', options->out) );
       }
       if ( !PL_is_functor(l, FUNCTOR_dot2) )
       { TRY(Putc('|', options->out));
@@ -1740,7 +1743,7 @@ writeList(term_t list, write_options *options)
 
       if ( ++options->depth >= options->max_depth && options->max_depth )
       { options->truncated = true;
-	if ( !PutToken("...", options->out) )
+	if ( !PutElipsis(options->out, true) )
 	  return false;
 	while(depth-->0)
 	{ if ( !Putc(')', options->out) )
