@@ -1875,7 +1875,8 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
     }
 					/* operators */
     if ( isoff(options, PL_WRT_IGNOREOPS) ||
-	 (functor == ATOM_comma && ison(options, PL_WRT_INFIX_COMMA)) )
+	 ( functor == ATOM_comma && arity == 2 &&
+	   ison(options, PL_WRT_INFIX_COMMA)) )
     { term_t arg;
 
       if ( !(arg=PL_new_term_ref()) )
