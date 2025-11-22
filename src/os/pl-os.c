@@ -379,12 +379,16 @@ WallTime(void)
 
 int
 CpuCount(void)
-{ return sysconf(_SC_NPROCESSORS_CONF);
+{
+#ifdef _SC_NPROCESSORS_ONLN
+  return sysconf(_SC_NPROCESSORS_ONLN);
+#else
+  return sysconf(_SC_NPROCESSORS_CONF);
+#endif
 }
 
-#else
+#elif defined(PROCFS_CPUINFO)
 
-#ifdef PROCFS_CPUINFO
 int
 CpuCount(void)
 { FILE *fd = fopen("/proc/cpuinfo", "r");
@@ -419,9 +423,7 @@ CpuCount(void)
   return 0;
 }
 
-#else /*PROCFS_CPUINFO*/
-
-#ifdef HAVE_SYSCTLBYNAME	/* MacOS X */
+#elif defined(HAVE_SYSCTLBYNAME)	/* MacOS X */
 
 #include <sys/param.h>
 #include <sys/sysctl.h>
@@ -444,12 +446,7 @@ CpuCount(void)
 { return 0;
 }
 
-#endif /*sysctlbyname*/
-
-#endif /*PROCFS_CPUINFO*/
-
-#endif /*HAVE_SC_NPROCESSORS_CONF*/
-
+#endif /*Get CpuCount*/
 
 void
 setOSPrologFlags(void)
