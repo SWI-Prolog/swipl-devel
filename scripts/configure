@@ -2,12 +2,15 @@
 #
 # This helper script is supposed to be executed from a build directory
 # and sets CMake options depending on  the name of the directory.  The
-# build directory shall be called
+# build directory must be called
 #
 #     build.feature1-feature2-...
 #
-# Reconized features can be found  below.  Note that this mechanism is
-# comparable to the _presets_ mechanism of recent CMake versions.
+# Recognized features can be found below, in the various "case $config"
+# statements.  Note that this mechanism is comparable to the
+# _presets_ mechanism of recent CMake versions.
+
+declare -A seen_options  # Requires bash 4 or later 
 
 build_type=RelWithDebInfo
 generator=Ninja
@@ -29,15 +32,18 @@ case $config in
     version=$(echo $config | sed 's/.*gcc-\(\(mp-\)\{0,1\}[0-9]*\).*/\1/')
     export CC=gcc-$version
     export CXX=g++-$version
+    seen_options["gcc-$version"]=1
     ;;
   *clang-[0-9]*)
     version=$(echo $config | sed 's/.*clang-\([0-9]*\).*/\1/')
     export CC=clang-$version
     export CXX=clang++-$version
+    seen_options["clang-$version"]=1
     ;;
   *clang*)
     export CC=clang
     export CXX=clang++
+    seen_options["clang"]=1
     ;;
 esac
 
@@ -60,15 +66,18 @@ case $config in
 	opts+=" -DUSE_GMP=OFF"
 	opts+=" -DINSTALL_DOCUMENTATION=OFF"
 	opts+=" -DINSTALL_PROLOG_SRC=OFF"
+	seen_options["wasm"]=1
 	;;
     *termux*)
 	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
 	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
 	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
+	seen_options["termux"]=1
 	;;
     *homebrew*)
 	# MacOS with dependencies from Homebrew
 	opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
+        seen_options["homebrew"]=1
 	;;
 esac
 
@@ -80,6 +89,7 @@ esac
 case $config in
   *nogmp*|*libbf*)
     opts+=" -DUSE_GMP=OFF"
+    seen_options["nogmp|libbf"]=1
     ;;
 esac
 
@@ -90,6 +100,7 @@ esac
 case $config in
   *single*)
     opts+=" -DMULTI_THREADED=OFF"
+    seen_options["single"]=1
     ;;
 esac
 
@@ -100,6 +111,7 @@ esac
 case $config in
   *engines*)
     opts+=" -DENGINES=ON"
+    seen_options["engines"]=1
     ;;
 esac
 
@@ -111,9 +123,11 @@ esac
 case $config in
   *novmif*)
     opts+=" -DVMI_FUNCTIONS=OFF"
+    seen_options["novmif"]=1
     ;;
   *vmif*)
     opts+=" -DVMI_FUNCTIONS=ON"
+    seen_options["vmif"]=1
     ;;
 esac
 
@@ -125,6 +139,7 @@ case $config in
   *profile*)
     opts+=" -DVMI_FUNCTIONS=ON"
     CFLAGS+=" -fno-inline"
+    seen_options["profile"]=1
     ;;
 esac
 
@@ -136,6 +151,7 @@ case $config in
   *gcov*)
     opts+=" -DGCOV=ON -DINSTALL_TESTS=ON"
     CFLAGS+=" -fno-inline"
+    seen_options["gcov"]=1
     ;;
 esac
 
@@ -148,6 +164,7 @@ esac
 case $config in
   *c11*)
     CFLAGS+=" -pedantic -DPEDANTIC"
+    seen_options["c11"]=1
     ;;
 esac
 
@@ -158,6 +175,7 @@ esac
 case $config in
   *c23*)
     CFLAGS+=" -std=gnu23"
+    seen_options["c23"]=1
     ;;
 esac
 
@@ -168,6 +186,7 @@ esac
 case $config in
   *nogui*)
     opts+=" -DSWIPL_PACKAGES_X=OFF"
+    seen_options["nogui"]=1
     ;;
 esac
 
@@ -179,6 +198,7 @@ esac
 case $config in
   *test*)
     opts+=" -DINSTALL_TESTS=ON"
+    seen_options["test"]=1
     ;;
 esac
 
@@ -189,6 +209,7 @@ esac
 case $config in
   *pdf*)
     opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
+    seen_options["pdf"]=1
     ;;
 esac
 
@@ -199,6 +220,7 @@ esac
 case $config in
   *qlf*)
     opts+=" -DINSTALL_QLF=ON"
+    seen_options["qlf"]=1
     ;;
 esac
 
@@ -209,6 +231,7 @@ esac
 case $config in
   *nosrc*)
     opts+=" -DINSTALL_PROLOG_SRC=OFF"
+    seen_options["nosrc"]=1
     ;;
 esac
 
@@ -219,6 +242,7 @@ esac
 case $config in
   *native*)
     CFLAGS+=" -mtune=native -march=native"
+    seen_options["native"]=1
     ;;
 esac
 
@@ -231,6 +255,7 @@ esac
 case $config in
   *malloc*)
     opts+=" -DUSE_TCMALLOC=OFF"
+    seen_options["malloc"]=1
     ;;
 esac
 
@@ -244,16 +269,20 @@ esac
 case $config in
   *pgo*)
     build_type=PGO
+    seen_options["pgo"]=1
     ;;
   *debug*)
     build_type=Debug
+    seen_options["debug"]=1
     ;;
   *asan*)
     build_type=Sanitize
+    seen_options["asan"]=1
     ;;
   *ubsan*)
     build_type=Sanitize
     opts+=" -DSANITIZE=undefined"
+    seen_options["ubsan"]=1
     ;;
 esac
 
@@ -295,6 +324,16 @@ fi
 
 cat > configure << EOF
 # Created by ../scripts/configure for $config at $(date)
+
+EOF
+echo "# Options:" >>configure
+for seen_key in ${!seen_options[@]}
+do
+    echo "#  " ${seen_key} >>configure
+done | sort
+echo "# (end options)" >>configure
+
+cat >> configure << EOF
 
 $using $cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
 EOF
