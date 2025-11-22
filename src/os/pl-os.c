@@ -377,13 +377,23 @@ WallTime(void)
 
 #ifdef HAVE_SC_NPROCESSORS_CONF
 
+#ifdef _SC_NPROCESSORS_ONLN
+
+int
+CpuCount(void)
+{ return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
+#else
+
 int
 CpuCount(void)
 { return sysconf(_SC_NPROCESSORS_CONF);
 }
 
-#else
+#endif
 
+#else
 #ifdef PROCFS_CPUINFO
 int
 CpuCount(void)
@@ -449,7 +459,6 @@ CpuCount(void)
 #endif /*PROCFS_CPUINFO*/
 
 #endif /*HAVE_SC_NPROCESSORS_CONF*/
-
 
 void
 setOSPrologFlags(void)
