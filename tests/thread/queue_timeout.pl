@@ -50,7 +50,7 @@ test(relative,
        cleanup(message_queue_destroy(Q))
      ]) :-
 	get_time(T0),
-	\+ thread_get_message(Q, _, [timeout(0.01)]),
+	\+ thread_get_message(Q, _, [timeout(0.1)]),
 	get_time(T1),
 	T1 > T0.
 test(abs,
@@ -58,7 +58,7 @@ test(abs,
        cleanup(message_queue_destroy(Q))
      ]) :-
 	get_time(T0),
-	Deadline is T0+0.01,
+	Deadline is T0+0.1,
 	\+ thread_get_message(Q, _, [deadline(Deadline)]),
 	get_time(T1),
 	T1 >= Deadline.
@@ -67,7 +67,7 @@ test(abs_rel,
        cleanup(message_queue_destroy(Q))
      ]) :-
 	get_time(T0),
-	Deadline is T0+0.01,
+	Deadline is T0+0.1,
 	\+ thread_get_message(Q, _, [ deadline(Deadline),
 				      timeout(1)
 				    ]),
@@ -81,7 +81,7 @@ test(abs_rel,
 	get_time(T0),
 	Deadline is T0+1,
 	\+ thread_get_message(Q, _, [ deadline(Deadline),
-				      timeout(0.01)
+				      timeout(0.1)
 				    ]),
 	get_time(T1),
 	T1 > T0,
