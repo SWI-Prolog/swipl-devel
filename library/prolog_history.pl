@@ -144,7 +144,9 @@ prolog_history(enable) =>
               print_message(warning, E))
     ->  (   thread_self(main)
         ->  at_halt(write_history(File))
-        ;   true
+        ;   history_loaded(File)
+        ->  true
+        ;   assertz(history_loaded(File))
         ),
         set_prolog_flag(save_history, true)
     ;   true
