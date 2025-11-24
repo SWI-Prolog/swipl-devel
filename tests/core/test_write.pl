@@ -287,26 +287,26 @@ test(s_1, X = '[(a,b)]') :-
 test(string, Out == "\"hello\"") :-
 	max_text(5, "hello", Out, [quoted(true)]).
 test(string, Out == "\"hel…rld\"") :-
-	max_text(7, "hello world", Out, [quoted(true), truncated(Bool)]),
+	max_text(6, "hello world", Out, [quoted(true), truncated(Bool)]),
 	assertion(Bool == true).
 test(string, Out == "\"…\"") :-
-	max_text(1, "hello world", Out, [quoted(true)]).
+	max_text(0, "hello world", Out, [quoted(true)]).
 test(string, Out == "\"h…\"") :-
-	max_text(2, "hello world", Out, [quoted(true)]).
+	max_text(1, "hello world", Out, [quoted(true)]).
 test(string, Out == "\"h…d\"") :-
-	max_text(3, "hello world", Out, [quoted(true)]).
+	max_text(2, "hello world", Out, [quoted(true)]).
 test(string, Out == "\"hel…ιος\"") :-
-	max_text(7, "hello υφήλιος", Out, [quoted(true)]).
+	max_text(6, "hello υφήλιος", Out, [quoted(true)]).
 test(atom, Out == "'hel…ιος'") :-
-	max_text(7, 'hello υφήλιος', Out, [quoted(true)]).
+	max_text(6, 'hello υφήλιος', Out, [quoted(true)]).
 test(atom, Out == "hello_υφήλιος") :-
 	max_text(20, hello_υφήλιος, Out, [quoted(true)]).
 test(atom, Out == "'hel…ιος'") :-
-	max_text(7, hello_υφήλιος, Out, [quoted(true)]).
+	max_text(6, hello_υφήλιος, Out, [quoted(true)]).
 test(atom, Out == "'\\nhe…ιος'") :-
-	max_text(7, '\nhello_υφήλιος', Out, [quoted(true)]).
+	max_text(6, '\nhello_υφήλιος', Out, [quoted(true)]).
 test(atom, Out == "hel…ιος") :-
-	max_text(7, hello_υφήλιος, Out, [quoted(false)]).
+	max_text(6, hello_υφήλιος, Out, [quoted(false)]).
 
 max_text(Max, Term, String, Options) :-
 	with_output_to(string(String),

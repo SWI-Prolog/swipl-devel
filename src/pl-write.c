@@ -88,7 +88,8 @@ typedef struct
 #define WRITE_OPTIONS_DEFAULTS \
 	{ .spacing = ATOM_standard, \
 	  .integer_format = ATOM_int_format_specifier, \
-	  .float_format = ATOM_float_format_specifier \
+	  .float_format = ATOM_float_format_specifier, \
+	  .max_text = -1 \
 	}
 
 #define W_OP_ARG	1		/* writeTerm() location argument */
@@ -832,13 +833,11 @@ writeText(PL_chars_t *txt, int quote, write_options *options)
   if ( len == 0 )
     return true;
 
-  if ( options->max_text )
+  if ( options->max_text >= 0 )
   { if ( len > options->max_text )
-    { int el_len = Scanrepresent(0x2026, options->out) == 0 ? 1 : 3;
-      int mt = max(el_len, options->max_text);
-      int kl = mt-el_len;
-      int sl = min(mt-el_len, kl/2);		/* suffix len */
-      int pl = mt-sl-el_len;			/* prefix len */
+    { int mt = options->max_text;
+      int sl = min(mt, mt/2);		/* suffix len */
+      int pl = mt-sl;			/* prefix len */
       bool quoted_ellipsis = false;
 
       options->truncated = true;
