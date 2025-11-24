@@ -780,9 +780,10 @@ wcs_backskip(const wchar_t *s, size_t len)
 #if SIZEOF_WCHAR_T == 2
   while(len-- > 0)
   { s--;
-    if ( IS_UTF16_TRAIL(s) )
+    if ( IS_UTF16_TRAIL(s[0]) )
       s--;
   }
+  return s;
 #else
   return s-len;
 #endif
