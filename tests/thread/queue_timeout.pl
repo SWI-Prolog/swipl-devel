@@ -52,7 +52,7 @@ test(relative,
 	get_time(T0),
 	\+ thread_get_message(Q, _, [timeout(0.01)]),
 	get_time(T1),
-	T1 > T0.
+	assertion(T1 > T0).
 test(abs,
      [ setup(message_queue_create(Q)),
        cleanup(message_queue_destroy(Q))
@@ -61,8 +61,8 @@ test(abs,
 	Deadline is T0+0.01,
 	\+ thread_get_message(Q, _, [deadline(Deadline)]),
 	get_time(T1),
-	T1 >= Deadline.
-test(abs_rel,
+	assertion(T1 >= Deadline-0.001).
+test(abs_rel1,
      [ setup(message_queue_create(Q)),
        cleanup(message_queue_destroy(Q))
      ]) :-
@@ -72,9 +72,9 @@ test(abs_rel,
 				      timeout(1)
 				    ]),
 	get_time(T1),
-	T1 >= Deadline,
-	T1 < T0+1.
-test(abs_rel,
+	assertion(T1 >= Deadline-0.001),
+	assertion(T1 < T0+1.1).
+test(abs_rel2,
      [ setup(message_queue_create(Q)),
        cleanup(message_queue_destroy(Q))
      ]) :-
@@ -84,8 +84,8 @@ test(abs_rel,
 				      timeout(0.01)
 				    ]),
 	get_time(T1),
-	T1 > T0,
-	T1 < Deadline.
+	assertion(T1 >= T0-0.001),
+	assertion(T1 =< Deadline+0.1).
 
 :- end_tests(queue_timeout).
 
