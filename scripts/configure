@@ -10,7 +10,7 @@
 # statements.  Note that this mechanism is comparable to the
 # _presets_ mechanism of recent CMake versions.
 
-declare -A seen_options  # Requires bash 4 or later 
+declare -A seen_options  # Requires bash 4 or later
 
 build_type=RelWithDebInfo
 generator=Ninja
@@ -176,6 +176,17 @@ case $config in
   *c23*)
     CFLAGS+=" -std=gnu23"
     seen_options["c23"]=1
+    ;;
+esac
+
+# lsp
+#
+# Generate compile_commands.json to support clangd
+
+case $config in
+  *lsp*)
+    opts+=" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    seen_options["lsp"]=1
     ;;
 esac
 
