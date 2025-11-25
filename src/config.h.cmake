@@ -317,3 +317,35 @@
 #cmakedefine SWIPL_TMP_DIR "@SWIPL_TMP_DIR@"
 
 #cmakedefine MSYS2 @MSYS2@
+
+/* Useful information about the compilation
+   See https://cmake.org/cmake/help/latest/manual/cmake-variables.7.html
+
+   build types: RelWithDebInfo Release Debug
+                (defined in ../cmake/BuildType.cmake): PGO Sanitize DEB
+                not used (cmake predefined build types): MinSizeRel
+*/
+#cmakedefine CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+
+#cmakedefine CMAKE_C_STANDARD "@CMAKE_C_STANDARD@"
+#cmakedefine CMAKE_C_COMPILER "@CMAKE_C_COMPILER@"
+#cmakedefine CMAKE_C_COMPILER_ID "@CMAKE_C_COMPILER_ID@"
+#cmakedefine CMAKE_C_COMPILER_VERSION "@CMAKE_C_COMPILER_VERSION@"
+#cmakedefine CMAKE_C_FLAGS "@CMAKE_C_FLAGS@"
+#cmakedefine CMAKE_C_FLAGS_DEBUG "@CMAKE_C_FLAGS_DEBUG@"
+#cmakedefine CMAKE_C_FLAGS_MINSIZEREL "@CMAKE_C_FLAGS_MINSIZEREL@"
+#cmakedefine CMAKE_C_FLAGS_RELEASE "@CMAKE_C_FLAGS_RELEASE@"
+#cmakedefine CMAKE_C_FLAGS_RELWITHDEBINFO "@CMAKE_C_FLAGS_RELWITHDEGINFO@"
+#cmakedefine CMAKE_C_FLAGS_PGO "@CMAKE_C_FLAGS_PGO@"
+#cmakedefine CMAKE_C_FLAGS_SANITIZE "@CMAKE_C_FLAGS_SANITIZE@"
+#cmakedefine CMAKE_EXE_LINKER_FLAGS_DEBUG "@CMAKE_EXE_LINKER_FLAGS_DEBUG@"
+
+#cmakedefine CMAKE_CXX_STANDARD "@CMAKE_CXX_STANDARD@"
+#cmakedefine CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@"
+#cmakedefine CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@"
+#cmakedefine CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@"
+#cmakedefine CMAKE_CXX_FLAGS "@CMAKE_CXX_FLAGS@"
+#cmakedefine CMAKE_CXX_FLAGS_DEBUG "@CMAKE_CXX_FLAGS_DEBUG@"
+#cmakedefine CMAKE_CXX_FLAGS_MINSIZEREL "@CMAKE_CXX_FLAGS_MINSIZEREL@"
+#cmakedefine CMAKE_CXX_FLAGS_RELEASE "@CMAKE_CXX_FLAGS_RELEASE@"
+#cmakedefine CMAKE_CXX_FLAGS_RELWITHDEBINFO "@CMAKE_CXX_FLAGS_RELWITHDEBINFO@"
