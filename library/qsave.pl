@@ -155,7 +155,7 @@ qsave_program(FileBase, Options0) :-
               open(File, write, StateOut, [type(binary)]),
               write_state(StateOut, SaveClass, File, Options),
               Reason,
-              finalize_state(Reason, StateOut, File))
+              finalize_state(Reason, StateOut, File, Options))
         ),
         close_map),
     cleanup,
@@ -176,17 +176,36 @@ write_zip_state(RC, SaveClass, ExeFile, Options) :-
     save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, ExeFile, Options).
 
-finalize_state(exit, StateOut, File) :-
+finalize_state(exit, StateOut, File, Options) :-
     close(StateOut),
-    '$mark_executable'(File).
-finalize_state(!, StateOut, File) :-
+    '$mark_executable'(File),
+    !,
+    protect_strip(File, Options).
+finalize_state(!, StateOut, File, _Options) :-
     print_message(warning, qsave(nondet)),
     finalize_state(exit, StateOut, File).
-finalize_state(_, StateOut, File) :-
+finalize_state(_, StateOut, File, _Options) :-
     close(StateOut, [force(true)]),
     catch(delete_file(File),
           Error,
           print_message(error, Error)).
+
+% protect stand-alone elf executables from strip clobbering
+protect_strip(Exe, Options) :-
+    option(stand_alone(true), Options, true),
+    current_prolog_flag(executable_format, elf),
+    !,
+    process_create(path(unzip), [Exe], []),
+    file_name_extension(Base, _, Exe),
+    file_name_extension(Base, zip, Zip),
+    process_create(path(zip), ['-r', Zip, '$prolog'], []),
+    file_name_extension(Base, stub, Stub),
+    process_create(path(mv), [Exe, Stub], []),
+    format(string(Zipdata), '.zipdata=~w', Zip),
+    process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Stub, Exe], []),
+    delete_file(Zip),
+    delete_file(Stub).
+protect_strip(_, _).
 
 cleanup :-
     retractall(saved_resource_file(_)).
