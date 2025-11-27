@@ -192,7 +192,7 @@ finalize_state(_, StateOut, File, _Options) :-
 
 % protect stand-alone elf executables from strip clobbering
 protect_strip(Exe, Options) :-
-    option(stand_alone(true), Options, true),
+    option(stand_alone(true), Options),
     current_prolog_flag(executable_format, elf),
     !,
     process_create(path(unzip), [Exe], []),
