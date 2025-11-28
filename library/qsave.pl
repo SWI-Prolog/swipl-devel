@@ -191,17 +191,13 @@ finalize_state(_, StateOut, File, _Options) :-
           print_message(error, Error)).
 
 % protect stand-alone elf executables from strip clobbering
-protect_strip(Exe, Options) :-
+protect_strip(Zip, Options) :-
     option(stand_alone(true), Options),
     current_prolog_flag(executable_format, elf),
     !,
-    process_create(path(unzip), [Exe], []),
-    file_name_extension(Base, _, Exe),
-    delete_file(Exe),
-    file_name_extension(Base, zip, Zip),
-    process_create(path(zip), ['-r', Zip, '$prolog'], []),
     format(string(Zipdata), '.zipdata=~w', Zip),
     current_prolog_flag(executable, Me),
+    file_name_extension(Exe, zip, Zip),
     process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Me, Exe], []),
     delete_file(Zip).
 protect_strip(_, _).
@@ -218,6 +214,11 @@ exe_file(Base, Exe, Options) :-
     file_name_extension(_, '', Base),
     !,
     file_name_extension(Base, exe, Exe).
+exe_file(Base, Zip, Options) :-
+    option(stand_alone(true), Options),
+    current_prolog_flag(executable_format, elf),
+    !,
+    file_name_extension(Base, zip, Zip).
 exe_file(Exe, Exe, _).
 
 delete_if_exists(File) :-
