@@ -155,7 +155,7 @@ qsave_program(FileBase, Options0) :-
               open(File, write, StateOut, [type(binary)]),
               write_state(StateOut, SaveClass, File, Options),
               Reason,
-              finalize_state(Reason, StateOut, File))
+              finalize_state(Reason, StateOut, File, Options))
         ),
         close_map),
     cleanup,
@@ -176,17 +176,30 @@ write_zip_state(RC, SaveClass, ExeFile, Options) :-
     save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, ExeFile, Options).
 
-finalize_state(exit, StateOut, File) :-
+finalize_state(exit, StateOut, File, Options) :-
     close(StateOut),
-    '$mark_executable'(File).
-finalize_state(!, StateOut, File) :-
+    protect_strip(File, Exe, Options),
+    '$mark_executable'(Exe).
+finalize_state(!, StateOut, File, _Options) :-
     print_message(warning, qsave(nondet)),
     finalize_state(exit, StateOut, File).
-finalize_state(_, StateOut, File) :-
+finalize_state(_, StateOut, File, _Options) :-
     close(StateOut, [force(true)]),
     catch(delete_file(File),
           Error,
           print_message(error, Error)).
+
+% If we use objcopy, the zipped state is protected by tools like strip.
+protect_strip(Zip, Exe, Options) :-
+    option(stand_alone(true), Options),
+    current_prolog_flag(executable_format, elf), % Only Unix ELF
+    !,
+    format(string(Zipdata), '.zipdata=~w', Zip),
+    current_prolog_flag(executable, Me),
+    file_name_extension(Exe, zip, Zip),
+    process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Me, Exe], []),
+    delete_file(Zip).
+protect_strip(Exe, Exe, _).
 
 cleanup :-
     retractall(saved_resource_file(_)).
@@ -200,6 +213,11 @@ exe_file(Base, Exe, Options) :-
     file_name_extension(_, '', Base),
     !,
     file_name_extension(Base, exe, Exe).
+exe_file(Base, Zip, Options) :-
+    option(stand_alone(true), Options),
+    current_prolog_flag(executable_format, elf),
+    !,
+    file_name_extension(Base, zip, Zip).
 exe_file(Exe, Exe, _).
 
 delete_if_exists(File) :-
@@ -220,6 +238,10 @@ qsave_init_file_option(_, Options, Options).
                  *******************************/
 
 %!  make_header(+Out:stream, +SaveClass, +Options) is det.
+make_header(_, _, Options) :-
+    option(standalone(true), Options),
+    current_prolog_flag(executable_format, elf),
+    !.
 
 make_header(Out, _, Options) :-
     stand_alone(Options),
