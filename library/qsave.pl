@@ -197,14 +197,13 @@ protect_strip(Exe, Options) :-
     !,
     process_create(path(unzip), [Exe], []),
     file_name_extension(Base, _, Exe),
+    delete_file(Exe),
     file_name_extension(Base, zip, Zip),
     process_create(path(zip), ['-r', Zip, '$prolog'], []),
-    file_name_extension(Base, stub, Stub),
-    process_create(path(mv), [Exe, Stub], []),
     format(string(Zipdata), '.zipdata=~w', Zip),
-    process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Stub, Exe], []),
-    delete_file(Zip),
-    delete_file(Stub).
+    current_prolog_flag(executable, Me),
+    process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Me, Exe], []),
+    delete_file(Zip).
 protect_strip(_, _).
 
 cleanup :-
