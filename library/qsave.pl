@@ -178,9 +178,8 @@ write_zip_state(RC, SaveClass, ExeFile, Options) :-
 
 finalize_state(exit, StateOut, File, Options) :-
     close(StateOut),
-    '$mark_executable'(File),
-    !,
-    protect_strip(File, Options).
+    protect_strip(File, Exe, Options),
+    '$mark_executable'(Exe).
 finalize_state(!, StateOut, File, _Options) :-
     print_message(warning, qsave(nondet)),
     finalize_state(exit, StateOut, File).
@@ -190,17 +189,17 @@ finalize_state(_, StateOut, File, _Options) :-
           Error,
           print_message(error, Error)).
 
-% protect stand-alone elf executables from strip clobbering
-protect_strip(Zip, Options) :-
+% If we use objcopy, the zipped state is protected by tools like strip.
+protect_strip(Zip, Exe, Options) :-
     option(stand_alone(true), Options),
-    current_prolog_flag(executable_format, elf),
+    current_prolog_flag(executable_format, elf), % Only Unix ELF
     !,
     format(string(Zipdata), '.zipdata=~w', Zip),
     current_prolog_flag(executable, Me),
     file_name_extension(Exe, zip, Zip),
     process_create(path(objcopy), ['--add-section', Zipdata, '--set-section-flags', '.zipdata=readonly,data', Me, Exe], []),
     delete_file(Zip).
-protect_strip(_, _).
+protect_strip(Exe, Exe, _).
 
 cleanup :-
     retractall(saved_resource_file(_)).
