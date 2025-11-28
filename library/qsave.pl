@@ -238,6 +238,10 @@ qsave_init_file_option(_, Options, Options).
                  *******************************/
 
 %!  make_header(+Out:stream, +SaveClass, +Options) is det.
+make_header(_, _, Options) :-
+    option(standalone(true), Options),
+    current_prolog_flag(executable_format, elf),
+    !.
 
 make_header(Out, _, Options) :-
     stand_alone(Options),
