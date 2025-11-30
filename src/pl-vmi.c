@@ -6629,7 +6629,6 @@ next_choice:
     { bool rc;
 
       lTop = (LocalFrame)(BFR+1);
-      FR->clause = NULL;
       if ( LD->mark_bar != NO_MARK_BAR )
 	LD->mark_bar = gTop;
       SAVE_REGISTERS(QID);

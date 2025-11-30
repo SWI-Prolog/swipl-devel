@@ -2,10 +2,11 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2021-2025, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -67,6 +68,8 @@ test(error2) :-
           x,
           true),
     \+ a(3).
+test(cleanup, fail) :-                 % issue #1414
+    \+ \+ once((undo(true), fail)).
 
 ok.
 
