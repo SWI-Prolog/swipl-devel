@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2024, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1995-2025, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -108,6 +108,8 @@ save_option(on_error,    oneof([print,halt,status]),
             "How to handle errors").
 save_option(on_warning,  oneof([print,halt,status]),
             "How to handle warnings").
+save_option(zip,         boolean,
+            "If true, create a clean `.zip` file").
 
 term_expansion(save_pred_options,
                (:- predicate_options(qsave_program/2, 2, Options))) :-
@@ -144,6 +146,9 @@ qsave_program(FileBase, Options0) :-
     qsave_init_file_option(SaveClass, Options1, Options),
     prepare_entry_points(Options),
     save_autoload(Options),
+    qsave_state(File, SaveClass, Options).
+
+qsave_state(File, SaveClass, Options) :-
     setup_call_cleanup(
         open_map(Options),
         ( prepare_state(Options),
@@ -155,11 +160,10 @@ qsave_program(FileBase, Options0) :-
               open(File, write, StateOut, [type(binary)]),
               write_state(StateOut, SaveClass, File, Options),
               Reason,
-              finalize_state(Reason, StateOut, File))
+              finalize_state(Reason, StateOut, File, Options))
         ),
         close_map),
-    cleanup,
-    !.
+    cleanup.
 
 write_state(StateOut, SaveClass, ExeFile, Options) :-
     make_header(StateOut, SaveClass, Options),
@@ -176,13 +180,23 @@ write_zip_state(RC, SaveClass, ExeFile, Options) :-
     save_program(RC, SaveClass, Options),
     save_foreign_libraries(RC, ExeFile, Options).
 
-finalize_state(exit, StateOut, File) :-
+%!  finalize_state(+Status, +StateStream:stream, +File:atom, +Options)
+%!                 is det.
+%
+%   Fixpu the result. Normally closes StateStream   used  to create File
+%   and makes the file executable.
+
+finalize_state(exit, StateOut, _File, Options) :-
+    option(zip(true), Options),
+    !,
+    close(StateOut).
+finalize_state(exit, StateOut, File, _Options) :-
     close(StateOut),
     '$mark_executable'(File).
-finalize_state(!, StateOut, File) :-
+finalize_state(!, StateOut, File, Options) :-
     print_message(warning, qsave(nondet)),
-    finalize_state(exit, StateOut, File).
-finalize_state(_, StateOut, File) :-
+    finalize_state(exit, StateOut, File, Options).
+finalize_state(_, StateOut, File, _Options) :-
     close(StateOut, [force(true)]),
     catch(delete_file(File),
           Error,
@@ -194,12 +208,22 @@ cleanup :-
 is_meta(goal).
 is_meta(toplevel).
 
+%!  exe_file(+Base, -Exe, +Options) is det.
+%
+%   True when Exe is the name of the  file we create. This adds ``.exe``
+%   to the given name on Windows.
+
 exe_file(Base, Exe, Options) :-
     current_prolog_flag(windows, true),
     option(stand_alone(true), Options, true),
     file_name_extension(_, '', Base),
     !,
     file_name_extension(Base, exe, Exe).
+exe_file(Base, Exe, Options) :-
+    option(zip(true), Options),
+    file_name_extension(_, '', Base),
+    !,
+    file_name_extension(Base, zip, Exe).
 exe_file(Exe, Exe, _).
 
 delete_if_exists(File) :-
@@ -220,7 +244,13 @@ qsave_init_file_option(_, Options, Options).
                  *******************************/
 
 %!  make_header(+Out:stream, +SaveClass, +Options) is det.
+%
+%   Write the header after which we add   the zip file. This is normally
+%   either ``swipl[.exe]`` or a shell script.
 
+make_header(_Out, _, Options) :-
+    option(zip(true), Options),
+    !.
 make_header(Out, _, Options) :-
     stand_alone(Options),
     !,
