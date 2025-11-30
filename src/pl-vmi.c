@@ -6626,7 +6626,7 @@ next_choice:
       release_string_buffers_from_frame(FR);
     }
     if ( UNDO_SCHEDULED(LD) )
-    { int rc;
+    { bool rc;
 
       lTop = (LocalFrame)(BFR+1);
       FR->clause = NULL;

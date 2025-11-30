@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2022, SWI-Prolog Solutions b.v.
+    Copyright (c)  2022-2925, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -121,7 +121,7 @@ save_undo(term_t goal)
   return lookupBlob((const char*)&r, sizeof(r), &undo_blob, &new);
 }
 
-static int
+static bool
 put_undo(term_t t, atom_t u)
 { record_t *ref = PL_blob_data(u, NULL, NULL);
   record_t r = *ref;
@@ -220,14 +220,14 @@ put_scheduled_undo(DECL_LD term_t list)
   return true;
 }
 
-int
+bool
 run_undo_hooks(DECL_LD)
 { fid_t fid;
 
   if ( (fid=PL_open_foreign_frame()) )
   { predicate_t pred;
     term_t list;
-    int rc;
+    bool rc;
 
     pred = _PL_predicate("$run_undo", 1, "$syspreds", &GD->procedures.drun_undo1);
 

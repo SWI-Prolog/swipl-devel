@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2021-2025, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,7 +49,7 @@
 term_t	init_undo_list(void);
 void	free_undo_data(PL_local_data_t *ld);
 void	push_undo(Word l);
-int	run_undo_hooks(void);
+bool	run_undo_hooks(void);
 
 #undef LDFUNC_DECLARATIONS
 
