@@ -309,6 +309,7 @@
 #cmakedefine O_GMP @O_GMP@
 #cmakedefine O_BF @O_BF@
 #cmakedefine O_VALIDATE_API @O_VALIDATE_API@
+#cmakedefine HAVE___AUTO_TYPE @HAVE___AUTO_TYPE@
 
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW

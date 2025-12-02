@@ -360,6 +360,7 @@ MSB64(int64_t i)
 #endif
 
 #ifndef max
+#ifdef HAVE___AUTO_TYPE
 #define max(x,y) ( \
 	{ __auto_type __x = (x); __auto_type __y = (y); \
           __x > __y ? __x : __y; \
@@ -368,6 +369,10 @@ MSB64(int64_t i)
 	{ __auto_type __x = (x); __auto_type __y = (y); \
           __x < __y ? __x : __y; \
 	})
+#else
+#define max(x,y) ((x) > (y) ? (x) : (y))
+#define min(x,y) ((x) < (y) ? (x) : (y))
+#endif
 #endif
 
 		 /*******************************

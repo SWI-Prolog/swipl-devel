@@ -2375,13 +2375,13 @@ stack guarding when compiling with the address sanitizer.
 #define CMP_NOTEQ     2			/* \== */
 
 /* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */
-#ifdef _MSC_VER
-#define SCALAR_TO_CMP(a,b) (((a) > (b)) - ((a) < (b)))
-#else
+#ifdef HAVE___AUTO_TYPE
 #define SCALAR_TO_CMP(a,b) ( \
 	{ __auto_type __a = (a); __auto_type __b = (b);	\
 	  (__a > __b) - (__a < __b);			\
 	})
+#else
+#define SCALAR_TO_CMP(a,b) (((a) > (b)) - ((a) < (b)))
 #endif
 
 

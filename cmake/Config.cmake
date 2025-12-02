@@ -406,6 +406,15 @@ if(HAVE_SIGNAL AND NOT HAVE_SIGACTION AND NOT EMSCRIPTEN)
 endif()
 
 
+check_c_source_compiles(
+    "int main()
+     { int x = 0;
+       __auto_type my_x = x;
+       return my_x;
+     }"
+    HAVE___AUTO_TYPE)
+
+
 ################
 # Set of features compatible with the old config tools
 
