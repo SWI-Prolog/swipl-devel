@@ -16,7 +16,6 @@ addons:
       - build-essential
       - pkg-config
       - ncurses-dev
-      - libreadline-dev
       - libedit-dev
       - libgmp-dev
       - libssl-dev
@@ -43,7 +42,6 @@ addons:
       - ninja
       - gmp
       - libarchive
-      - readline
       - ossp-uuid
       - openssl
       - libyaml

@@ -34,7 +34,6 @@ ODBC_VERSION=2.3.12
 PCRE2_VERSION=10.45
 FFI_VERSION=3.5.1
 YAML_VERSION=0.2.5
-READLINE_VERSION=8.2
 SDL3_VERSION=3.2.16
 SDL3_IMAGE_VERSION=3.2.4
 CAIRO_VERSION=1.18.4
@@ -225,24 +224,6 @@ build_zlib()
   )
 }
 
-###########################
-# Download and install libreadline
-
-download_readline()
-{ READLINE_FILE=readline-$READLINE_VERSION.tar.gz
-
-  [ -f $READLINE_FILE ] || wget https://ftp.gnu.org/gnu/readline/$READLINE_FILE
-  tar xzf $READLINE_FILE
-}
-
-build_readline()
-{ ( cd readline-$READLINE_VERSION
-    ./configure --prefix=$PREFIX
-    make
-    make install
-  )
-}
-
 #################################
 # Download and install libarchive
 
@@ -264,7 +245,7 @@ build_libarchive()
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib \
     --without-lzmadec --without-lzma --without-lzo2 \
-    --without-libb2 --without-zstd --without-lz4 
+    --without-libb2 --without-zstd --without-lz4
     make
     make install
   )
@@ -381,7 +362,7 @@ build_sdl3()
       -DSDL_METAL=ON \
       -DSDL_TEST=OFF \
       -DSDL_SHARED=ON \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET 
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
 
     ninja
     ninja install
@@ -419,7 +400,7 @@ build_sdl3_image()
 
     # Do not use @rpath.   We'll fixup while building the bundle.
     dylib=$(echo $PREFIX/lib/libSDL3_image.*.*.*.dylib)
-    sdl3_dylib=$(echo $PREFIX/lib/libSDL3.*.dylib) 
+    sdl3_dylib=$(echo $PREFIX/lib/libSDL3.*.dylib)
     sdl3_base=$(basename "$sdl3_dylib")
     install_name_tool -id $dylib $dylib
     install_name_tool -change "@rpath/$sdl3_base" "$sdl3_dylib" "$dylib"
@@ -513,7 +494,6 @@ download_prerequisites()
   download_ssl
   download_jpeg
   download_zlib
-  download_readline
   download_libarchive
   download_libuuid
   download_libdb
@@ -533,7 +513,6 @@ build_prerequisites()
   build_gmp
   build_ssl
   build_jpeg
-  build_readline
   build_libarchive
   build_libdb
   build_odbc

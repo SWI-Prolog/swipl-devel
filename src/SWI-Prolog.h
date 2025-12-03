@@ -1118,8 +1118,8 @@ PL_EXPORT(int)		PL_dlclose(void *handle);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: the functions in this section are   not  documented, as as yet not
-adviced for public usage.  They  are   intended commandline editors such
-as GNU readline or libedit.
+adviced for public usage.  They are  support commandline editors such as
+libedit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);

@@ -1798,13 +1798,6 @@ is 1 second.
 If not zero, call prolog:heartbeat/0 every $N$ inferences.  $N$ is
 rounded to a multiple of 16.
 
-    \prologflagitem{history}{integer}{rw}
-If $\arg{integer}> 0$, support Unix \program{csh(1)}-like history as
-described in \secref{history}. Otherwise, only support reusing commands
-through the command line editor. The default is to set this Prolog flag
-to 0 if a command line editor is provided (see Prolog flag
-\prologflag{readline}) and 15 otherwise.
-
     \prologflagitem{home}{atom}{r}
 SWI-Prolog's notion of the home directory. SWI-Prolog uses its home
 directory to find its startup file as \file{<home>/boot.prc} and to find
@@ -2182,8 +2175,7 @@ No command line editing is available.
 
     \termitem{editline}{}
 The library \pllib{editline} is loaded, providing line editing based on
-the BSD libedit.  This is the default if \pllib{editline} is available
-and can be loaded.
+the BSD libedit.  This is the default if \pllib{editline} is available.
 \end{description}
 
     \prologflagitem{report_error}{bool}{rw}

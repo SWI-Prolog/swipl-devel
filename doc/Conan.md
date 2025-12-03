@@ -5,9 +5,6 @@
   - ncurses-dev
     https://conan.io/center/ncurses
 
-  - libreadline-dev
-    https://conan.io/center/readline
-
   - libedit-dev
     https://conan.io/center/editline
 
