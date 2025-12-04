@@ -93,7 +93,7 @@ set_config()
       c11)			# c11: Enforce strict C11 standard
 	  CFLAGS+=" -pedantic -DPEDANTIC"
 	  ;;
-      gnu23)			# c23: Use gnu23 standard
+      gnu23)			# gnu23: Use gnu23 standard
 	  CFLAGS+=" -std=gnu23"
 	  ;;
       # group: Platform
@@ -118,7 +118,7 @@ set_config()
 	  ;;
       homebrew)			# homebrew: MacOS: use Homebrew dependencies
 	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
-	  ;;  
+	  ;;
       # group: Optimization
       native)			# native: Optimize for native CPU
 	  CFLAGS+=" -mtune=native -march=native"
