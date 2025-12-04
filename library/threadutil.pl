@@ -179,8 +179,10 @@ stopped_except :-
 thread_has_console(main) :-
     !,
     \+ current_prolog_flag(epilog, true).
+:- if(current_predicate(ep_has_console/1)).
 thread_has_console(Id) :-
     ep_has_console(Id).
+:- endif.
 
 thread_has_console :-
     current_prolog_flag(break_level, _),
