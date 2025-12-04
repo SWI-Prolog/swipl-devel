@@ -49,6 +49,8 @@
     prolog:message_location//1,     % (File) location of error messages
     prolog:message_line_element/2,  % Extend printing
     prolog:message_action/2.        % Side effects (broadcast)
+:- dynamic
+    prolog:message_action/2.        % Allow overruling
 :- '$hide'((
     prolog:message//1,
     prolog:error_message//1,
