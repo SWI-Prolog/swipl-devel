@@ -915,7 +915,11 @@ print_c_backtrace(const char *why)
 
 void
 sigCrashHandler(int sig)
-{ GET_LD
+{
+#ifdef O_PLMT
+  GET_LD
+#endif
+
   signal(sig,     SIG_DFL);
 #ifdef SIGALRM
   signal(SIGALRM, SIG_DFL);
