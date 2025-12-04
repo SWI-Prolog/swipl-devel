@@ -6,11 +6,11 @@
 #
 #     build.feature1-feature2-...
 #
-# Recognized features can be found below, in the various "case $config"
-# statements.  Note that this mechanism is comparable to the
-# _presets_ mechanism of recent CMake versions.
+# Recognized features can be found in the function set_config() below.
+# Note that this mechanism is comparable to the _presets_ mechanism of
+# recent CMake versions.
 
-declare -A seen_options  # Requires bash 4 or later
+# Defaults
 
 build_type=RelWithDebInfo
 generator=Ninja
@@ -20,282 +20,185 @@ opts=
 cmake=cmake
 os=any
 
-config=$(basename $(pwd))
+# Get config from build.feat1-feat2 and arguments
 
-# gcc-version
-# clang-version
-#
-# Set the compiler
+if [ "$1" == --help ]; then
+cat <<EOF
+Usage: $0 [feature ...]
 
-case $config in
-  *gcc-*)
-    version=$(echo $config | sed 's/.*gcc-\(\(mp-\)\{0,1\}[0-9]*\).*/\1/')
-    export CC=gcc-$version
-    export CXX=g++-$version
-    seen_options["gcc-$version"]=1
-    ;;
-  *clang-[0-9]*)
-    version=$(echo $config | sed 's/.*clang-\([0-9]*\).*/\1/')
-    export CC=clang-$version
-    export CXX=clang++-$version
-    seen_options["clang-$version"]=1
-    ;;
-  *clang*)
-    export CC=clang
-    export CXX=clang++
-    seen_options["clang"]=1
-    ;;
-esac
+Features come from the build directory named build.feat1-feat2-...
+Optional commandline arguments are added at the end.
 
-# wasm
-# termux
-#
-# Build for specific targets
+Known features are
+EOF
+print_kv()
+{ kv="$1"
+  k="${kv%%:*}"
+  v="${kv#*:}"
+  if [ "$k" = group ]; then
+      printf '\n\033[1m%s\033[0m\n' "$v"
+  else
+      printf '  \033[1m%-15s\033[0m %s\n' "$k" "$v"
+  fi
+}
 
-case $config in
-    *wasm*)
-        os=wasm
-	WASM_HOME=${WASM_HOME-$HOME/wasm}
-	source $WASM_HOME/emsdk/emsdk_env.sh
-	TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
-	[ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
-	cmake="emcmake cmake"
-	build_type=Release
-	opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
-	opts+=" -DCMAKE_FIND_ROOT_PATH=$WASM_HOME"
-	opts+=" -DUSE_GMP=OFF"
-	opts+=" -DINSTALL_DOCUMENTATION=OFF"
-	opts+=" -DINSTALL_PROLOG_SRC=OFF"
-	seen_options["wasm"]=1
-	;;
-    *termux*)
-	opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
-	opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
-	opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
-	seen_options["termux"]=1
-	;;
-    *homebrew*)
-	# MacOS with dependencies from Homebrew
-	opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
-        seen_options["homebrew"]=1
-	;;
-esac
+lines=$(grep '# [^-. ]*: ' $0 | sed 's/[^#]*# \([^-. ]*\): \(.*\)/\1:\2/')
 
-# nogmp
-# libbf
-#
-# Use LibBF rather than LibGMP for unbounded integers, rationals and random
+printf '%s\n' "$lines" | while IFS= read -r line; do
+    print_kv "$line"
+done
 
-case $config in
-  *nogmp*|*libbf*)
-    opts+=" -DUSE_GMP=OFF"
-    seen_options["nogmp|libbf"]=1
-    ;;
-esac
+exit 0
+fi
 
-# single
-#
-# Build the single threaded version
+argv="$@"
+s="$(basename $(pwd))"
+oifs=$IFS
+IFS='-.'
+set -- $s
+shift				# remove build
+IFS=$oifs
+set -- "$@" $argv
+seen_options="$@"
 
-case $config in
-  *single*)
-    opts+=" -DMULTI_THREADED=OFF"
-    seen_options["single"]=1
-    ;;
-esac
+optval()
+{ echo $1 | sed 's/[^=]*=\(.*\)/\1/'
+}
 
-# engines
-#
-# Include engine support, also in single threaded versions.
+# Main switch.  Set environment options and CMake flags based on the
+# selected features.
 
-case $config in
-  *engines*)
-    opts+=" -DENGINES=ON"
-    seen_options["engines"]=1
-    ;;
-esac
+set_config()
+{ case $1 in
+      # group: Select the compiler
+      gcc)			# gcc: Compile using gcc
+	  export CC=gcc
+	  export CXX=g++
+	  ;;
+      gcc=*)			# gcc=version: Compile using gcc-version
+	  version=$(optval $1)
+	  export CC=gcc-$version
+	  export CXX=g++-$version
+	  ;;
+      clang)			# clang: Compile using clang
+	  export CC=clang
+	  export CXX=clang++
+	  ;;
+      clang=*)			# clang=version: Compile using clang-version
+	  version=$(optval $1)
+	  export CC=clang-$version
+	  export CXX=clang++-$version
+	  ;;
+      # group: C standard
+      c11)			# c11: Enforce strict C11 standard
+	  CFLAGS+=" -pedantic -DPEDANTIC"
+	  ;;
+      gnu23)			# c23: Use gnu23 standard
+	  CFLAGS+=" -std=gnu23"
+	  ;;
+      # group: Platform
+      wasm)			# wasm: Setup for Emscripten
+          os=wasm
+	  WASM_HOME=${WASM_HOME-$HOME/wasm}
+	  source $WASM_HOME/emsdk/emsdk_env.sh
+	  TOOLCHAIN=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+	  [ -f $TOOLCHAIN ] || echo "Could not find emscripten toolchain"
+	  cmake="emcmake cmake"
+	  build_type=Release
+	  opts+=" -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN"
+	  opts+=" -DCMAKE_FIND_ROOT_PATH=$WASM_HOME"
+	  opts+=" -DUSE_GMP=OFF"
+	  opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	  opts+=" -DINSTALL_PROLOG_SRC=OFF"
+	  ;;
+      termux)			# termux: Build for Android termux
+	  opts+=" -DPOSIX_SHELL=${PREFIX}/bin/sh"
+	  opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
+	  opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
+	  ;;
+      homebrew)			# homebrew: MacOS: use Homebrew dependencies
+	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
+	  ;;  
+      # group: Optimization
+      native)			# native: Optimize for native CPU
+	  CFLAGS+=" -mtune=native -march=native"
+	  ;;
+      pgo)			# pgo: Optimize using Profile Guided Optimization
+	  build_type=PGO
+	  ;;
+      # group: Debugging
+      debug)			# debug: Compiler for debugging
+	  build_type=Debug
+	  ;;
+      asan)			# asan: Compile with Address sanitizer
+	  build_type=Sanitize
+	  ;;
+      ubsan)			# ubsan: Compile with Undefined sanitizer
+	  build_type=Sanitize
+	  opts+=" -DSANITIZE=undefined"
+	  ;;
+      # group: LSP support files
+      lsp)			# lsp: Generate compile_commands.json
+	  opts+=" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+	  ;;
+      # group: Dependencies
+      libbf)			# libbf: Use LibBF instead of GMP for bignums
+	  opts+=" -DUSE_GMP=OFF"
+	  ;;
+      malloc)			# malloc: Use native malloc instead of tcmalloc
+	  opts+=" -DUSE_TCMALLOC=OFF"
+	  ;;
+      # group: Select thread support
+      single)			# single: Build single-threaded version
+	  opts+=" -DMULTI_THREADED=OFF"
+	  ;;
+      engines)			# engine: Include engine support in single threaded version
+	  opts+=" -DENGINES=ON"
+	  ;;
+      # group: Virtual machine switch
+      novmif)			# novmif: Force compiling VM as C switch
+	  opts+=" -DVMI_FUNCTIONS=OFF"
+	  ;;
+      vimf)			# vimf: Force compiling VM as functions
+	  opts+=" -DVMI_FUNCTIONS=ON"
+	  ;;
+      # group: Profiling and coverage analysis
+      profile)			# profile: Prepare for valgrind profiling
+	  opts+=" -DVMI_FUNCTIONS=ON"
+	  CFLAGS+=" -fno-inline"
+	  ;;
+      gcov)			# gcov: Prepare for test coverage analysis
+	  opts+=" -DGCOV=ON -DINSTALL_TESTS=ON"
+	  CFLAGS+=" -fno-inline"
+	  ;;
+      # group: Select components to enable or disable
+      noqlf)			# noqlf: Do not generate .qlf for library
+	  opts+=" -DINSTALL_QLF=OFF"
+	  ;;
+      nosrc)			# nosrc: Do not install library source
+	  opts+=" -DINSTALL_QLF=ON"
+	  opts+=" -DINSTALL_PROLOG_SRC=OFF"
+	  ;;
+      nogui)			# nogui: Omit the XPCE gui
+	  opts+=" -DSWIPL_PACKAGES_GUI=OFF"
+	  ;;
+      test)			# test: Install tests with the system
+	  opts+=" -DINSTALL_TESTS=ON"
+	  ;;
+      pdf)			# pdf: Build PDF documentation
+	  opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
+	  ;;
+      *)
+	  echo "ERROR: Unknown config option: $1"
+	  exit 1
+	  ;;
+  esac
+}
 
-# vmif
-#
-# Implement VMI instructions as functions.  Slower on GCC, about
-# equal for Clang (and WASM) and much faster for MSVC
-
-case $config in
-  *novmif*)
-    opts+=" -DVMI_FUNCTIONS=OFF"
-    seen_options["novmif"]=1
-    ;;
-  *vmif*)
-    opts+=" -DVMI_FUNCTIONS=ON"
-    seen_options["vmif"]=1
-    ;;
-esac
-
-# profile
-#
-# Use good settings for valgrind based profiling
-
-case $config in
-  *profile*)
-    opts+=" -DVMI_FUNCTIONS=ON"
-    CFLAGS+=" -fno-inline"
-    seen_options["profile"]=1
-    ;;
-esac
-
-# gcov
-#
-# Prepare for coverage analysis
-
-case $config in
-  *gcov*)
-    opts+=" -DGCOV=ON -DINSTALL_TESTS=ON"
-    CFLAGS+=" -fno-inline"
-    seen_options["gcov"]=1
-    ;;
-esac
-
-# c11
-#
-# Enable pedantic C11 checking for GCC.  Use for compliancy testing as
-# it  forces a  less  efficient virtual  machine due  to  the lack  of
-# support for empty structures in C11.
-
-case $config in
-  *c11*)
-    CFLAGS+=" -pedantic -DPEDANTIC"
-    seen_options["c11"]=1
-    ;;
-esac
-
-# c23
-#
-# Enable C23 mode
-
-case $config in
-  *c23*)
-    CFLAGS+=" -std=gnu23"
-    seen_options["c23"]=1
-    ;;
-esac
-
-# lsp
-#
-# Generate compile_commands.json to support clangd
-
-case $config in
-  *lsp*)
-    opts+=" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-    seen_options["lsp"]=1
-    ;;
-esac
-
-# nogui
-#
-# Disable building the GUI
-
-case $config in
-  *nogui*)
-    opts+=" -DSWIPL_PACKAGES_X=OFF"
-    seen_options["nogui"]=1
-    ;;
-esac
-
-# test
-#
-# Install the  tests along  with the  executable.  Allows  running the
-# tests in the installed version using test_installation/0.
-
-case $config in
-  *test*)
-    opts+=" -DINSTALL_TESTS=ON"
-    seen_options["test"]=1
-    ;;
-esac
-
-# PDF docs
-#
-# Build the PDF documentation
-
-case $config in
-  *pdf*)
-    opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
-    seen_options["pdf"]=1
-    ;;
-esac
-
-# qlf
-#
-# Compile entire library to qlf
-
-case $config in
-  *qlf*)
-    opts+=" -DINSTALL_QLF=ON"
-    seen_options["qlf"]=1
-    ;;
-esac
-
-# nosrc
-#
-# Do NOT install the library .pl files (only the .qlf files)
-
-case $config in
-  *nosrc*)
-    opts+=" -DINSTALL_PROLOG_SRC=OFF"
-    seen_options["nosrc"]=1
-    ;;
-esac
-
-# native tuning
-#
-# Optimize for local CPU
-
-case $config in
-  *native*)
-    CFLAGS+=" -mtune=native -march=native"
-    seen_options["native"]=1
-    ;;
-esac
-
-# malloc
-#
-# Use  malloc  instead  of  tcmalloc.  Currently  required  for  using
-# valgrind.  Do not use on  Linux builds aiming at 24x7 multi-threaded
-# services: ptmalloc seems poor at reusing memory in these workloads.
-
-case $config in
-  *malloc*)
-    opts+=" -DUSE_TCMALLOC=OFF"
-    seen_options["malloc"]=1
-    ;;
-esac
-
-# pgo
-# debug
-# asan
-#
-# Select the  build type.  PGO  provides best performance.   Use debug
-# for C level debugging and asan for leak and memory issue detection.
-
-case $config in
-  *pgo*)
-    build_type=PGO
-    seen_options["pgo"]=1
-    ;;
-  *debug*)
-    build_type=Debug
-    seen_options["debug"]=1
-    ;;
-  *asan*)
-    build_type=Sanitize
-    seen_options["asan"]=1
-    ;;
-  *ubsan*)
-    build_type=Sanitize
-    opts+=" -DSANITIZE=undefined"
-    seen_options["ubsan"]=1
-    ;;
-esac
+while [ $# != 0 ]; do
+    set_config $1
+    shift
+done
 
 function confirm ()
 { while true; do
@@ -338,7 +241,7 @@ cat > configure << EOF
 
 EOF
 echo "# Options:" >>configure
-for seen_key in ${!seen_options[@]}
+for seen_key in ${seen_options}
 do
     echo "#  " ${seen_key} >>configure
 done | sort
