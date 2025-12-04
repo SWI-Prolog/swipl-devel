@@ -2,12 +2,15 @@
 
 # SWI-Prolog: A comprehensive Prolog implementation
 
-SWI-Prolog is an open  source  (BSD-2)   implementation  of  the  Prolog
-language with many extensions. It is implemented   in C (version 11) and
-Prolog and is available for many platforms (Linux, practically any POSIX
-like system, MacOS, Windows). All  CPUs   supported  by Debian Linux are
-supported. A prototype running  in  your   browser  based  on  WASM (Web
-Assembly) is available.
+SWI-Prolog  is an  open source  (BSD-2) implementation  of the  Prolog
+language with many extensions. It is implemented in C (version 11) and
+Prolog and  is available  for many  platforms (Linux,  practically any
+POSIX like system, MacOS, Windows). All CPUs supported by Debian Linux
+are supported.   For your  browser or  Node project,  there is  a WASM
+based  [NPM  package](https://www.npmjs.com/package/swipl-wasm).   See
+the                                                        [JavaScript
+API](https://www.swi-prolog.org/pldoc/man?section=wasm-version)    for
+details.
 
 (SWI-)Prolog is a versatile language. It is being used for business rule
 validation, natural language processing, software verification, software
@@ -19,7 +22,6 @@ If you are interested in commercial   assistence to make SWI-Prolog work
 in   your   organization,   please     contact   [SWI-Prolog   Solutions
 b.v.](https://swi-prolog.com/).
 
-
 ## Forking, cloning and submitting patches
 
 This           repository           uses             many           [Git
@@ -29,9 +31,8 @@ _clone_  from  https://github.com/SWI-Prolog/swipl-devel.git   and  then
 associate your clone with your  _fork_   (replace  `me` with your github
 user name).
 
-    git clone https://github.com/SWI-Prolog/swipl-devel.git
+    git clone --recurse-submodules https://github.com/SWI-Prolog/swipl-devel.git
     cd swipl-devel
-    git submodule update --init
     git remote add myfork git@github.com:me/swipl-devel.git
 
 See [How to submit a patch](https://www.swi-prolog.org/howto/SubmitPatch.html)
@@ -53,6 +54,23 @@ and [Build SWI-Prolog from source](https://www.swi-prolog.org/build/)
 Please   find   the   up-to-date   information     on    SWI-Prolog   at
 https://www.swi-prolog.org.
 
+## SWI-Prolog tools
+
+You can use SWI-Prolog simply at the console of your favourite OS with
+any editor to manage the source  code.  For a better experience, there
+are several options:
+
+  - Comprehensive builds include XPCE, SWI-Prolog's native GUI toolkit.
+    This provides the `swipl-win` executable that opens a Prolog terminal.
+	Additional tools include PceEmacs, an Emacs clone with a rich
+	Prolog mode, a source level debugger, profiling tools and much more.
+    XPCE is included in the default binaries for Windows, MacOS and for
+	Linux as [flatpak](https://flathub.org/en/apps/org.swi_prolog.swipl).
+  - Some editors come with a rich mode for (SWI-)Prolog.   Notably
+    GNU-Emacs provides [sweep](https://eshelyaron.com/sweep.html)
+  - Use one of the online versions described below
+
+
 ## Trying SWI-Prolog online
 
 An    online    version    of     SWI-Prolog      is     provided     by
@@ -61,11 +79,12 @@ to sandbox restrictions and does not provide the features most valued in
 SWI-Prolog such as its rich set of interfaces, multi-threading, modules,
 etc.
 
-Alternatively, there is  a WASM (_Web Assembly_)  version available at
-https://wasm.swi-prolog.org/wasm/shell.   This  version has  no  sandbox
-restrictions.  The  WASM build  allows interaction with  the browser's
-DOM, so it allows for interactive Prolog applications running _inside_
-the browser.  It is otherwise rather limited though.
+Alternatively, there is  a WASM (_Web Assembly_)  version available as
+[SWI-Tinker](https://wasm.swi-prolog.org/wasm/tinker).   This  version
+has no sandbox  restrictions.  The WASM build  allows interaction with
+the  browser's  DOM, which  allows  you  to build  interactive  Prolog
+applications  running  _inside_  the   browser.   See  also  our  [NPM
+package](https://www.npmjs.com/package/swipl-wasm).
 
 
 ## Forum/mailing list
