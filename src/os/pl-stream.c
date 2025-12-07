@@ -876,14 +876,14 @@ reperror(int c, IOSTREAM *s)
     const char *q;
 
     if ( (s->flags & SIO_REPPL) )
-    { sprintf(buf, "\\x%X\\", c);
+    { snprintf(buf, sizeof buf, "\\x%X\\", c);
     } else if ( (s->flags & SIO_REPPLU) )
     { if ( c <= 0xffff )
-	sprintf(buf, "\\u%04X", c);
+	snprintf(buf, sizeof buf, "\\u%04X", c);
       else
-	sprintf(buf, "\\U%08X", c);
+	snprintf(buf, sizeof buf, "\\U%08X", c);
     } else
-    { sprintf(buf, "&#%d;", c);
+    { snprintf(buf, sizeof buf, "&#%d;", c);
     }
 
     for(q = buf; *q; q++)

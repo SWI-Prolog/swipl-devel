@@ -1965,7 +1965,7 @@ threadName(int id)
        th->alias )
     return PL_atom_chars(th->alias);
 
-  sprintf(tmp, "%d", id);
+  snprintf(tmp, sizeof tmp, "%d", id);
   return buffer_string(tmp, BUF_STACK);
 }
 

@@ -217,7 +217,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
     char buf[32];			/* Max is H354745078340568300 */
 
     if ( n < 0 )
-    { sprintf(buf, "S_%" PRId64, -n);
+    { snprintf(buf, sizeof buf, "S_%" PRId64, -n);
     } else
     { int i = (int)(n % 26);
       int64_t j = n / 26;
@@ -226,7 +226,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
       { buf[0] = (char)(i+'A');
 	buf[1] = EOS;
       } else
-      { sprintf(buf, "%c%" PRId64, i+'A', j);
+      { snprintf(buf, sizeof buf, "%c%" PRId64, i+'A', j);
       }
     }
 
