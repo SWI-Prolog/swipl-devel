@@ -1100,7 +1100,8 @@ rep_error:
   if ( (flags & CVT_EXCEPTION) )
   { char msg[128];
 
-    sprintf(msg,
+    snprintf(msg,
+	    sizeof msg,
 	    "Cannot represent char U%04x using %s encoding",
 	    norep,
 	    target == ENC_ISO_LATIN_1 ? "ISO Latin-1" : "current locale");
