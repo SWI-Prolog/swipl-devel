@@ -457,9 +457,9 @@ concatArgList(arglist *to, const char *prefix, arglist *from)
 
     buf[0] = UNQUOTED;
     if ( strchr(from->list[n], ' ') )
-      sprintf(buf+1, "%s\"%s\"", prefix, from->list[n]);
+      snprintf(buf+1, sizeof buf-1, "%s\"%s\"", prefix, from->list[n]);
     else
-      sprintf(buf+1, "%s%s", prefix, from->list[n]);
+      snprintf(buf+1, sizeof buf-1, "%s%s", prefix, from->list[n]);
     appendArgList(to, buf);
   }
 }
@@ -978,7 +978,7 @@ tmpPath(char **store, const char *base)
 { if ( !*store )
   { char tmp[PATH_MAX];
 
-    sprintf(tmp, "%s%d", base, (int)getpid());
+    snprintf(tmp, sizeof tmp, "%s%d", base, (int)getpid());
     *store = strdup(tmp);
   }
 }
@@ -1066,15 +1066,15 @@ fillDefaultOptions(void)
   if ( !pllibdir )
   {
 #ifdef __WINDOWS__
-    sprintf(tmp, "%s/lib", plbase);
+    snprintf(tmp, sizeof tmp, "%s/lib", plbase);
 #else
-    sprintf(tmp, "%s/lib/%s", plbase, plarch);
+    snprintf(tmp, sizeof tmp, "%s/lib/%s", plbase, plarch);
 #endif
     prependArgList(&libdirs, tmp);
   }
-  sprintf(tmp, "%s/include", plbase);
+  snprintf(tmp, sizeof tmp, "%s/include", plbase);
   prependArgList(&includedirs, tmp);
-  sprintf(tmp, "-D_SWIPL_HOME=%s", plbase);
+  snprintf(tmp, sizeof tmp, "-D_SWIPL_HOME=%s", plbase);
   ensureOption(&coptions, tmp);
   ensureOption(&cppoptions, tmp);
 }
@@ -1087,7 +1087,7 @@ getPrologOptions(void)
 { FILE *fd;
   char cmd[512];
 
-  sprintf(cmd, "%s --dump-runtime-variables", pl);
+  snprintf(cmd, sizeof cmd, "%s --dump-runtime-variables", pl);
   if ( verbose )
     printf("\teval `%s`\n", cmd);
 
@@ -1150,9 +1150,9 @@ getPrologOptions(void)
     pclose(fd);
 
 #if defined(__WINDOWS__) && defined(HOST_OS_WINDOWS)
-    sprintf(buf, "%s/bin/%s", plbase, PROG_PL);
+    snprintf(buf, sizeof buf, "%s/bin/%s", plbase, PROG_PL);
 #else
-    sprintf(buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
+    snprintf(buf, sizeof buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
 #endif
     defaultPath(&plexe, buf);
   } else
@@ -1334,7 +1334,7 @@ linkBaseExecutable()
 
 #if defined(HOST_TOOLCHAIN_MSC)
 { char tmp[PATH_MAX];
-  sprintf(tmp, "/out:%s", cout);
+  snprintf(tmp, sizeof tmp, "/out:%s", cout);
   prependArgList(&ldoptions, tmp);
 }
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1390,7 +1390,7 @@ linkSharedObject()
 #if defined(HOST_TOOLCHAIN_MSC)
   prependArgList(&ldoptions, "/dll");
 { char tmp[PATH_MAX];
-  sprintf(tmp, "/out:%s", soout);
+  snprintf(tmp, sizeof tmp, "/out:%s", soout);
   prependArgList(&ldoptions, tmp);
 }
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1418,7 +1418,7 @@ linkSharedObject()
 #ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
   { char tmp[PATH_MAX];
     tmp[0] = UNQUOTED;
-    sprintf(&tmp[1], SO_FORMAT_LDFLAGS);
+    snprintf(&tmp[1], sizeof tmp-1, SO_FORMAT_LDFLAGS);
     prependArgList(&ldoptions, tmp);
   }
 #else
