@@ -52,7 +52,7 @@ In most cases the following should  update   an  installed system to the
 latest version:
 
     git pull
-    git submodule update --init
+    git submodule update --init --recursive
     cd build
     cmake ..
     ninja
