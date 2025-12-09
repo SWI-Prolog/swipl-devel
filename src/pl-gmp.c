@@ -184,7 +184,7 @@ mp_alloc(size_t bytes)
   ctx = LD->gmp.context;
 
   size_t fastunits = ROUND_SIZE(bytes)+1;
-  if ( ctx->allocated+fastunits <= GMP_STACK_ALLOC )
+  if ( ctx->allocated+fastunits+1 <= GMP_STACK_ALLOC )
   { size_t *data = &ctx->alloc_buf[ctx->allocated];
     *data++ = fastunits;
     ctx->allocated += fastunits;
@@ -212,7 +212,8 @@ mp_alloc(size_t bytes)
 
 static inline size_t *
 mp_on_stack(ar_context *ctx, void *ptr)
-{ if ( ptr > (void*)ctx->alloc_buf && ptr < (void*)&ctx->alloc_buf[GMP_STACK_ALLOC] )
+{ if ( ptr > (void*)ctx->alloc_buf &&
+       ptr < (void*)&ctx->alloc_buf[GMP_STACK_ALLOC] )
     return &((size_t*)ptr)[-1];
 
   return NULL;
