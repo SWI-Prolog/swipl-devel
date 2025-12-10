@@ -70,6 +70,10 @@ optval()
 
 set_config()
 { case $1 in
+      # group: CMake generator
+      make)			# make: Build using Unix Makefiles
+	  generator="Unix Makefiles"
+	  ;;
       # group: Select the compiler
       gcc)			# gcc: Compile using gcc
 	  export CC=gcc
@@ -228,7 +232,8 @@ using=
 cat << EOF
 # Configure using
 #
-#    $using cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+#    $using cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts
+#    ..
 #
 EOF
 
@@ -249,7 +254,7 @@ echo "# (end options)" >>configure
 
 cat >> configure << EOF
 
-$using $cmake -DCMAKE_BUILD_TYPE=$build_type -G $generator $opts ..
+$using $cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts ..
 EOF
 chmod +x configure
 
