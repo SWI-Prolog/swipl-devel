@@ -325,14 +325,15 @@ void bf_set_inf(bf_t *r, int is_neg)
 int bf_set(bf_t *r, const bf_t *a)
 {
     if (r == a)
-	return 0;
+	  return 0;
     if (bf_resize(r, a->len)) {
-	bf_set_nan(r);
-	return BF_ST_MEM_ERROR;
+	  bf_set_nan(r);
+	  return BF_ST_MEM_ERROR;
     }
     r->sign = a->sign;
     r->expn = a->expn;
-    memcpy(r->tab, a->tab, a->len * sizeof(limb_t));
+    if(a->len) /* avoid UBSAN warning when r->tab == NULL */
+      memcpy(r->tab, a->tab, a->len * sizeof(limb_t));
     return 0;
 }
 
