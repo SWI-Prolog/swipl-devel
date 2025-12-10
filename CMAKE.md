@@ -328,14 +328,16 @@ AddressSanitizer, use
 
     mkdir build.clang.asan
     cd build.clang.asan
-    ../script/configure
+    ../scripts/configure
     (direnv allow)
     ninja
 
 The script writes a  script  `configure`   to  the  build directory that
 allows you to inspect or re-run   the  configuration and, if environment
 variables are required, a file  `.envrc`   for  the  `direnv` utility to
-manage the environment when running a shell in the build directory.
+manage  the  environment when running a shell in the build directory. If
+Unix Makefiles are used instead of Ninja, the generator in the configure
+script should be changed to `"Unix\\ Makefiles"`.
 
 A typical set of versions for development is
 
