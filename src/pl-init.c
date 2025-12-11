@@ -1192,7 +1192,7 @@ Find the resource database.
 #endif
 
 static zipper *
-openResourceDB(int is_hash_bang)
+openResourceDB(bool is_hash_bang)
 { zipper *rc;
   char tmp[PATH_MAX];
   char plp[PATH_MAX];
@@ -1325,11 +1325,11 @@ Steps:
 
 bool
 PL_initialise(int argc, char **argv)
-{ int is_hash_bang = false;
+{ bool is_hash_bang = false;
   const char *rcpath = "<none>";
 
   if ( GD->initialised )
-    succeed;
+    return true;
 
 #ifdef O_DEBUG
   /* Initialize debug flag early, if first argument */
@@ -1350,7 +1350,7 @@ PL_initialise(int argc, char **argv)
   initDefaults();			/* Initialise global defaults */
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
-  { GET_LD
+  GET_LD
 #ifdef O_SIGNALS
     setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
@@ -1524,7 +1524,6 @@ PL_initialise(int argc, char **argv)
   { int status = prologToplevel(PL_new_atom("$initialise"));
     return status;
   }
-  }					/* { GET_LD } */
 }
 
 
