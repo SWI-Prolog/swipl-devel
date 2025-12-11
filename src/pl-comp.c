@@ -3568,7 +3568,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
       }
 
       compileArithArgument(a, ci);
-    } else
+    } else if ( ar )
     { for(a+=ar-1, n=ar; n-- > 0; a--)	/* pushed right to left */
       { if ( !compileArithArgument(a, ci) )
 	  return false;
