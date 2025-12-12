@@ -34,7 +34,7 @@
 
 #define UNROLL(expr) \
   y = M32(state->MT[i]) | L31(state->MT[i+1]); \
-  state->MT[i] = state->MT[expr] ^ (y >> 1) ^ ((((int32_t)(y) << 31) >> 31) & MAGIC); \
+  state->MT[i] = state->MT[expr] ^ (y >> 1) ^ (y & 1 ? MAGIC : 0); \
   ++i;
 
 void
@@ -102,8 +102,7 @@ generate_numbers(MTState *state)
   {
     // i = 623, last step rolls over
     y = M32(state->MT[MT_SIZE-1]) | L31(state->MT[0]);
-    state->MT[MT_SIZE-1] = state->MT[MT_PERIOD-1] ^ (y >> 1) ^ ((((int32_t)(y) << 31) >>
-	  31) & MAGIC);
+    state->MT[MT_SIZE-1] = state->MT[MT_PERIOD-1] ^ (y >> 1) ^ (y & 1 ? MAGIC : 0);
   }
 
   mt_temper(state);
