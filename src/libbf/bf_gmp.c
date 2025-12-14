@@ -826,7 +826,8 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
       int shift = (int)(bytes*8-OP->expn);
       limb_t mask = (1<<shift)-1;
       limb_t low = l&mask;
-      limb_t high = low<<(sizeof(limb_t)*8-shift);
+	  /* Test for shift avoids an UBSAN error that 64-bit low is shifted by expo 64 */  
+      limb_t high = shift ? low<<(sizeof(limb_t)*8-shift) : 0;
       l >>= shift;
 
       *COUNTP = bytes;
@@ -842,7 +843,7 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
 	    low = l&mask;
 	    l>>=shift;
 	    l |= high;
-	    high = low<<(sizeof(limb_t)*8-shift);
+	    high = shift ? low<<(sizeof(limb_t)*8-shift) : 0;
 	  }
 	} else
 	  byte--;
