@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2020, VU University, Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2009-2025, VU University, Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -68,10 +69,11 @@ predicates. A database is always associated with a module. A module that
 wishes to maintain a database must declare  the terms that can be placed
 in the database using the directive persistent/1.
 
-The persistent/1 expands each declaration into four predicates:
+The persistent/1 expands each declaration into five predicates:
 
  - name(Arg, ...)
  - assert_name(Arg, ...)
+ - asserta_name(Arg, ...)
  - retract_name(Arg, ...)
  - retractall_name(Arg, ...)
 
@@ -169,12 +171,12 @@ set_user_role(Name, Role) :-
 %   Declare dynamic database terms. Declarations appear in a
 %   directive and have the following format:
 %
-%   ==
+%   ```
 %   :- persistent
 %           <callable>,
 %           <callable>,
 %           ...
-%   ==
+%   ```
 %
 %   Each specification is a callable term, following the conventions
 %   of library(record), where each argument is of the form
