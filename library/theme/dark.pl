@@ -380,6 +380,9 @@ pce_style(editor,
             isearch_other_style(style(background := pale_turquoise,
                                       colour := black))
           ]).
+pce_style(emacs_toc_bookmark,
+          [ style_hit(style(background := yellow, colour := black))
+          ]).
 
 % Graphical debugger
 
