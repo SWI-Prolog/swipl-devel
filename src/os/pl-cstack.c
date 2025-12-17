@@ -344,76 +344,6 @@ save_backtrace(const char *why)
   return bt;
 }
 
-#ifdef __APPLE__
-/* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
-#define ADDR2LINE_CMD "atos -o \"%s\" %p"
-#else
-/* Emits two lines: "function\nfile:line"  */
-#define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
-#endif
-
-static int
-addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
-{ char cmd[MAXCMD];
-
-  if ( snprintf(cmd, size, ADDR2LINE_CMD, fname, (void*)offset) < size )
-  { FILE *fd;
-
-    if ( (fd=popen(cmd, "r")) )
-    { int c;
-      char *ebuf = &buf[size-1];
-      char *o = buf;
-      const char *sep = "() at ";
-
-#ifdef __APPLE__
-      int field = 0;
-      while((c=fgetc(fd)) != EOF && o<ebuf)
-      { if ( field == 0 )
-	{ if ( c == ' ' )
-	  { if ( o+strlen(sep) < ebuf )
-	    { strcpy(o, sep);
-	      o += strlen(sep);
-	    }
-	    field++;
-	  } else
-	  { *o++ = c;		/* copy the function */
-	  }
-	} else if ( field < 3 )
-	{ if ( c == '(' )	/* skip two '(' */
-	    field++;
-	} else
-	{ if ( c == ')' )	/* copy to ')' */
-	    break;
-	  *o++ = c;
-	}
-      }
-#else
-      int nl = 0;
-      while((c=fgetc(fd)) != EOF && o<ebuf)
-      { if ( c == '\n' )
-	{ nl++;
-
-	  if ( nl == 1 && o+strlen(sep) < ebuf)
-	  { strcpy(o, sep);
-	    o += strlen(sep);
-	  }
-	} else
-	{ *o++ = (char)c;
-	}
-      }
-#endif
-
-      *o = '\0';
-
-      pclose(fd);
-      return o > buf;
-    }
-  }
-
-  return false;
-}
-
-
 static void
 print_trace(btrace *bt, int me)
 { size_t i;
@@ -422,36 +352,13 @@ print_trace(btrace *bt, int me)
   { Sdprintf("C-stack trace labeled \"%s\":\n", bt->why[me]);
 
     for(i=0; i<bt->sizes[me]; i++)
-    { Dl_info info;
+    { char buf[512];
       void *addr = bt->retaddr[me][i];
 
-#ifdef HAVE_DLADDR
-      if ( dladdr(addr, &info) )
-      { uintptr_t offset = (uintptr_t)addr - (uintptr_t)info.dli_fbase;
-
-	if ( info.dli_fname )
-	{ char buf[512];
-
-	  if ( ( strstr(info.dli_fname, ".so")
-#if __APPLE__
-		 || strstr(info.dli_fname, ".dylib")
-#endif
-	       ) &&
-	       addr2line(info.dli_fname, offset, buf, sizeof(buf)) )
-	    Sdprintf("  [%zd] %s [%p]\n", i, buf, addr);
-	  else if ( info.dli_sname )
-	    Sdprintf("  [%zd] %s(%s+0x%tx) [%p]\n",
-		     i, info.dli_fname, info.dli_sname,
-		     (char*)addr-(char*)info.dli_saddr,
-		     addr);
-	  else
-	    Sdprintf("  [%zd] %s(+%p) [%p]\n",
-		     i, info.dli_fname, (void*)offset, addr);
-	} else
-#endif
-	{ Sdprintf("  [%zd] ??? [%p]\n", i, addr);
-	}
-      }
+      if ( addr2line(addr, buf, sizeof(buf)) )
+	Sdprintf("  [%zd] %s [%p]\n", i, buf, addr);
+      else
+	Sdprintf("  [%zd] ??? [%p]\n", i, addr);
     }
   } else
   { Sdprintf("No stack trace\n");
@@ -1196,4 +1103,110 @@ CStackSize(DECL_LD)
 #else /*O_PLMT*/
   return NULL;
 #endif
+}
+
+		/*******************************
+		*          ADDR2LINE           *
+		*******************************/
+
+#ifndef __WINDOWS__
+#define HAVE_ADDR2LINE2 1
+
+#ifdef __APPLE__
+/* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
+#define ADDR2LINE_CMD "atos -o \"%s\" %p"
+#else
+/* Emits two lines: "function\nfile:line"  */
+#define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
+#endif
+
+static int
+addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
+{ char cmd[MAXCMD];
+
+  if ( snprintf(cmd, size, ADDR2LINE_CMD, fname, (void*)offset) < size )
+  { FILE *fd;
+
+    if ( (fd=popen(cmd, "r")) )
+    { int c;
+      char *ebuf = &buf[size-1];
+      char *o = buf;
+      const char *sep = "() at ";
+
+#ifdef __APPLE__
+      int field = 0;
+      while((c=fgetc(fd)) != EOF && o<ebuf)
+      { if ( field == 0 )
+	{ if ( c == ' ' )
+	  { if ( o+strlen(sep) < ebuf )
+	    { strcpy(o, sep);
+	      o += strlen(sep);
+	    }
+	    field++;
+	  } else
+	  { *o++ = c;		/* copy the function */
+	  }
+	} else if ( field < 3 )
+	{ if ( c == '(' )	/* skip two '(' */
+	    field++;
+	} else
+	{ if ( c == ')' )	/* copy to ')' */
+	    break;
+	  *o++ = c;
+	}
+      }
+#else
+      int nl = 0;
+      while((c=fgetc(fd)) != EOF && o<ebuf)
+      { if ( c == '\n' )
+	{ nl++;
+
+	  if ( nl == 1 && o+strlen(sep) < ebuf)
+	  { strcpy(o, sep);
+	    o += strlen(sep);
+	  }
+	} else
+	{ *o++ = (char)c;
+	}
+      }
+#endif
+
+      *o = '\0';
+
+      pclose(fd);
+      return o > buf;
+    }
+  }
+
+  return false;
+}
+#endif/*__WINDOWS__*/
+
+bool
+addr2line(void *addr, char *buf, size_t size)
+{
+#if HAVE_DLADDR && HAVE_ADDR2LINE2
+  Dl_info info;
+
+  if ( dladdr(addr, &info) )
+  { uintptr_t offset = (uintptr_t)addr - (uintptr_t)info.dli_fbase;
+
+    if ( info.dli_fname )
+    { if ( ( strstr(info.dli_fname, ".so")
+#if __APPLE__
+	     || strstr(info.dli_fname, ".dylib")
+#endif
+	   ) )
+      { return addr2line2(info.dli_fname, offset, buf, size);
+      } else if ( info.dli_sname )
+      { snprintf(buf, size, "%s(%s+0x%tx)",
+		 info.dli_fname, info.dli_sname,
+		 (char*)addr-(char*)info.dli_saddr);
+	return true;
+      }
+    }
+  }
+#endif/*HAVE_DLADDR*/
+
+  return false;
 }

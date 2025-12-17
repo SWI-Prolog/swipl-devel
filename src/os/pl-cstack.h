@@ -2,8 +2,9 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2025, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,7 @@ COMMON(void)	print_backtrace(int last);		/* 1..SAVE_TRACES */
 COMMON(void)	print_backtrace_named(const char *why);
 COMMON(void)	initBackTrace(void);
 COMMON(void)	sigCrashHandler(int sig);
+COMMON(bool)	addr2line(void *addr, char *buf, size_t size);
 
 #define LDFUNC_DECLARATIONS
 c_stack_info   *CStackSize(void);
