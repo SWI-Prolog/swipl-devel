@@ -103,14 +103,14 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define LDFUNC_DECLARATIONS
 
 void		initAlloc(void);
-int		initMalloc(void);
+bool		initMalloc(void);
 size_t		heapUsed(void);
 #ifndef DMALLOC
 void *		allocHeap(size_t n);
 void *		allocHeapOrHalt(size_t n);
 void		freeHeap(void *mem, size_t n);
 #endif /*DMALLOC*/
-int		enableSpareStack(Stack s, int always);
+bool		enableSpareStack(Stack s, bool always);
 void		enableSpareStacks(void);
 bool		outOfStack(void *stack, stack_overflow_action how);
 bool		raiseStackOverflow(int which);
@@ -125,8 +125,8 @@ word		globalWString(size_t len, const pl_wchar_t *s);
 char *		getCharsString(word w, size_t *len);
 pl_wchar_t *	getCharsWString(word w, size_t *len);
 Word		newTerm(void);
-int		put_double(Word p, double f, int flags);
-int		equalIndirect(word r1, word r2);
+bool		put_double(Word p, double f, int flags);
+bool		equalIndirect(word r1, word r2);
 ALLOC_INLINE
 size_t		gsizeIndirectFromCode(Code PC);
 word		globalIndirectFromCode(Code *PC);
