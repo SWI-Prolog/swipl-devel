@@ -38,12 +38,14 @@
           [ edit/1,                     % +Spec
             edit/0
           ]).
-:- autoload(library(lists), [member/2, append/3, select/3]).
+:- autoload(library(lists), [member/2, append/3, select/3, append/2]).
 :- autoload(library(make), [make/0]).
 :- autoload(library(prolog_breakpoints), [breakpoint_property/2]).
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
 :- autoload(library(readutil), [read_line_to_string/2]).
+:- autoload(library(dcg/basics), [string/3, integer/3]).
+:- autoload(library(solution_sequences), [distinct/2]).
 
 
 % :- set_prolog_flag(generate_debug_info, false).
@@ -65,6 +67,9 @@ an editor.
     edit_source/1,                  % +Location
     edit_command/2,                 % +Editor, -Command
     load/0.                         % provides load-hooks
+
+:- public
+    predicate_location/2.             % :Pred, -Location
 
 %!  edit(+Spec)
 %
@@ -246,7 +251,7 @@ prolog_source(File, File).
 
 locate(file(File, line(Line)), #{file:File, line:Line}).
 locate(file(File), #{file:File}).
-locate(Module:Name/Arity, #{file:File, line:Line}) :-
+locate(Module:Name/Arity, Location) :-
     (   atom(Name), integer(Arity)
     ->  functor(Head, Name, Arity)
     ;   Head = _                    % leave unbound
@@ -263,8 +268,7 @@ locate(Module:Name/Arity, #{file:File, line:Line}) :-
            predicate_property(Module:Head, imported_from(_))
        ),
     functor(Head, Name, Arity),     % bind arity
-    predicate_property(Module:Head, file(File)),
-    predicate_property(Module:Head, line_count(Line)).
+    predicate_location(Module:Head, Location).
 locate(module(Module), Location) :-
     atom(Module),
     module_property(Module, file(Path)),
@@ -286,6 +290,45 @@ locate(clause(Ref), #{file:File, line:Line}) :-
 locate(clause(Ref, _PC), #{file:File, line:Line}) :- % TBD: use clause
     clause_property(Ref, file(File)),
     clause_property(Ref, line_count(Line)).
+
+%!  predicate_location(:Predicate, -Location) is nondet.
+%
+%   Find the source location of a predicate.
+%
+%   @arg Predicate is a qualified head.  The   module  may be unbound at
+%   entry. It will be bound to the actual implementation module.
+
+predicate_location(Pred, #{file:File, line:Line}) :-
+    copy_term(Pred, Pred2),
+    distinct(Primary, primary_foreign_predicate(Pred2, Primary)),
+    ignore(Pred = Primary),
+    (   predicate_property(Primary, file(File)),
+        predicate_property(Primary, line_count(Line))
+    ->  true
+    ;   '$foreign_predicate_source'(Primary, Source),
+        string_codes(Source, Codes),
+        phrase(addr2line_output(File, Line), Codes)
+    ).
+
+primary_foreign_predicate(Pred, Primary) :-
+    predicate_property(Pred, foreign),
+    (   predicate_property(Pred, imported_from(Source))
+    ->  strip_module(Pred, _, Head),
+        Primary = Source:Head
+    ;   Primary = Pred
+    ).
+
+
+%!  addr2line_output(-File, -Line)// is semidet.
+%
+%   Process the output of the   `addr2line` utility. This implementation
+%   works  for  Linux.  Additional  lines  may    be  needed  for  other
+%   environments.
+
+addr2line_output(File, Line) -->
+    string(_), " at ", string(FileCodes), ":", integer(Line),
+    !,
+    { atom_codes(File, FileCodes) }.
 
 
                  /*******************************

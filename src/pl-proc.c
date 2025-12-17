@@ -4131,6 +4131,33 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
   return true;
 }
 
+static
+PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t pred  = A1;
+  Module module = (Module) NULL;
+  term_t head = PL_new_term_ref();
+  functor_t fd;
+  Procedure proc;
+
+  if ( !PL_strip_module(pred, &module, head) ||
+       !PL_get_functor(head, &fd) ||
+       !(proc = visibleProcedure(fd, module)) )
+    return false;
+
+  Definition def = getProcDefinition(proc);
+  if ( ison(def, P_FOREIGN) )
+  { Func f = def->impl.foreign.function;
+    char buf[1024];
+
+    if ( addr2line(f, buf, sizeof(buf)) )
+      return PL_unify_chars(A2, PL_STRING, (size_t)-1, buf);
+  }
+
+  return false;
+}
+
 
 #if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
@@ -4262,4 +4289,6 @@ BeginPredDefs(proc)
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
   PRED_DEF("$cgc_params", 6, cgc_params, 0)
+  PRED_DEF("$foreign_predicate_source", 2, foreign_predicate_source,
+	   PL_FA_TRANSPARENT)
 EndPredDefs

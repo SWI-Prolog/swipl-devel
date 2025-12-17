@@ -281,7 +281,11 @@ list_predicate(Pred, Context, _) :-
     predicate_property(Pred, foreign),
     !,
     decl_term(Pred, Context, Decl),
-    comment('%   Foreign: ~q~n', [Decl]).
+    comment('%   Foreign: ~q~n', [Decl]),
+    (   '$foreign_predicate_source'(Pred, Source)
+    ->  comment('%   Implemented by ~w~n', [Source])
+    ;   true
+    ).
 list_predicate(Pred, Context, Options) :-
     notify_changed(Pred, Context),
     list_declarations(Pred, Context),
