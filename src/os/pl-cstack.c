@@ -1114,7 +1114,7 @@ CStackSize(DECL_LD)
 
 #ifdef __APPLE__
 /* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
-#define ADDR2LINE_CMD "atos -o \"%s\" %p"
+#define ADDR2LINE_CMD "atos -o \"%s\" --fullPath %p"
 #else
 /* Emits two lines: "function\nfile:line"  */
 #define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
