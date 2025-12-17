@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2025, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -237,9 +237,6 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 #define BTRACE_DONE 1
 #include <execinfo.h>
 #include <string.h>
-#include <dlfcn.h>
-
-#define MAXCMD 1024
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This implementation uses the libgcc unwinding capabilities. If possible,
@@ -1109,8 +1106,11 @@ CStackSize(DECL_LD)
 		*          ADDR2LINE           *
 		*******************************/
 
-#ifndef __WINDOWS__
+#if !defined(__WINDOWS__) && !defined(__EMSCRIPTEN__)
+#include <stdio.h>
+#include <dlfcn.h>
 #define HAVE_ADDR2LINE2 1
+#define MAXCMD 1024
 
 #ifdef __APPLE__
 /* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
@@ -1180,7 +1180,7 @@ addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
 
   return false;
 }
-#endif/*__WINDOWS__*/
+#endif/*!__WINDOWS__ && !__EMSCRIPTEN__ */
 
 bool
 addr2line(void *addr, char *buf, size_t size)
