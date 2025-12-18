@@ -4131,6 +4131,14 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
   return true;
 }
 
+/** '$foreign_predicate_source'(:Pred, -Description:string) is semidet.
+
+True when Description is the `addr2line`  description for the address of
+the implementing function Pred.  Fails silently if Pred is not a foreign
+predicate, there is no support to fetch   the description or there is no
+symbol table in the foreign library that holds the function.
+*/
+
 static
 PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
 	  PL_FA_TRANSPARENT)
@@ -4152,7 +4160,7 @@ PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
     char buf[1024];
 
     if ( addr2line(f, buf, sizeof(buf)) )
-      return PL_unify_chars(A2, PL_STRING, (size_t)-1, buf);
+      return PL_unify_chars(A2, PL_STRING|REP_MB, (size_t)-1, buf);
   }
 
   return false;

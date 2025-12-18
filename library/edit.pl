@@ -44,7 +44,7 @@
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
 :- autoload(library(readutil), [read_line_to_string/2]).
-:- autoload(library(dcg/basics), [string/3, integer/3]).
+:- autoload(library(dcg/basics), [string/3, integer/3, remainder/3]).
 :- autoload(library(solution_sequences), [distinct/2]).
 
 
@@ -328,6 +328,7 @@ primary_foreign_predicate(Pred, Primary) :-
 addr2line_output(File, Line) -->
     string(_), " at ", string(FileCodes), ":", integer(Line),
     !,
+    remainder(_),
     { atom_codes(File, FileCodes) }.
 
 
