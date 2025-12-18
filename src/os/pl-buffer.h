@@ -80,7 +80,7 @@ int	growBuffer(Buffer b, size_t minfree);
 
 #define addBuffer(b, obj, type) \
 	do \
-	{ if ( (b)->max - (b)->top < sizeof(type) )	\
+	{ if ( (b)->top + sizeof(type) > (b)->max )	\
 	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
 	      outOfCore(); \
 	  } \
@@ -150,7 +150,7 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 #define seekBuffer(b, cnt, type) ((b)->top = sizeof(type) * (cnt) + (b)->base)
 #define sizeOfBuffer(b)          ((b)->top - (b)->base)
 #define freeSpaceBuffer(b)	 ((b)->max - (b)->top)
-#define entriesBuffer(b, type)   (sizeOfBuffer(b) / sizeof(type))
+#define entriesBuffer(b, type)   ((type*)(b)->top - (type*)(b)->base)
 #define initBuffer(b)            ((b)->base = (b)->top = (b)->static_buffer, \
 				  (b)->max = (b)->base + \
 				  sizeof((b)->static_buffer))
