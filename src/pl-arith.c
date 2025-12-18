@@ -93,11 +93,6 @@ in this array.
 #define DBL_EPSILON 0.00000000000000022204
 #endif
 
-
-#ifdef fpclassify
-#define HAVE_FPCLASSIFY 1
-#endif
-
 #undef LD
 #define LD LOCAL_LD
 
@@ -805,7 +800,6 @@ isCurrentArithFunction(functor_t f)
 bool
 check_float(Number n)
 { PL_error_code code = ERR_NO_ERROR;
-#ifdef HAVE_FPCLASSIFY
   switch(fpclassify(n->value.f))
   { case FP_NAN:
       code = ERR_AR_UNDEF;
@@ -817,51 +811,6 @@ check_float(Number n)
       code = ERR_AR_OVERFLOW;
       break;
   }
-#else
-#ifdef HAVE_FPCLASS
-  switch(fpclass(n->value.f))
-  { case FP_SNAN:
-    case FP_QNAN:
-      code = ERR_AR_UNDEF;
-      break;
-    case FP_NINF:
-    case FP_PINF:
-      code = ERR_AR_OVERFLOW;
-      break;
-    case FP_NDENORM:			/* pos/neg denormalized non-zero */
-    case FP_PDENORM:
-      code = ERR_AR_UNDERFLOW;
-      break;
-    case FP_NNORM:			/* pos/neg normalized non-zero */
-    case FP_PNORM:
-    case FP_NZERO:			/* pos/neg zero */
-    case FP_PZERO:
-      break;
-  }
-#else
-#ifdef HAVE__FPCLASS
-  switch(_fpclass(n->value.f))
-  { case _FPCLASS_SNAN:
-    case _FPCLASS_QNAN:
-      code = ERR_AR_UNDEF;
-      break;
-    case _FPCLASS_NINF:
-    case _FPCLASS_PINF:
-      code = ERR_AR_OVERFLOW;
-      break;
-  }
-#else
-#ifdef HAVE_ISNAN
-  if ( isnan(n->value.f) )
-    code = ERR_AR_UNDEF;
-#endif
-#ifdef HAVE_ISINF
-  if ( isinf(n->value.f) )
-    code = ERR_AR_OVERFLOW;
-#endif
-#endif /*HAVE__FPCLASS*/
-#endif /*HAVE_FPCLASS*/
-#endif /*HAVE_FPCLASSIFY*/
 
   if ( code != ERR_NO_ERROR )
   { GET_LD

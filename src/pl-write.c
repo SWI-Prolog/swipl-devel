@@ -65,10 +65,6 @@
 #include <ieeefp.h>
 #endif
 
-#ifdef fpclassify
-#define HAVE_FPCLASSIFY 1
-#endif
-
 typedef struct
 { unsigned int flags;			/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
@@ -1217,55 +1213,12 @@ writeINF(char *buf, size_t len, double f)
 
 static size_t
 format_special_float(char *buf, size_t len, double f)
-{
-#ifdef HAVE_FPCLASSIFY
-  switch(fpclassify(f))
+{ switch(fpclassify(f))
   { case FP_NAN:
       return writeNaN(buf, len, f);
     case FP_INFINITE:
       return writeINF(buf, len, f);
   }
-#else
-#ifdef HAVE_FPCLASS
-  switch(fpclass(f))
-  { case FP_SNAN:
-    case FP_QNAN:
-      return writeNaN(buf, len, f);
-    case FP_NINF:
-    case FP_PINF:
-      return writeINF(buf, len, f);
-    case FP_NDENORM:		/* pos/neg denormalized non-zero */
-    case FP_PDENORM:
-    case FP_NNORM:			/* pos/neg normalized non-zero */
-    case FP_PNORM:
-    case FP_NZERO:			/* pos/neg zero */
-    case FP_PZERO:
-      break;
-  }
-#else
-#ifdef HAVE__FPCLASS
-  switch(_fpclass(f))
-  { case _FPCLASS_SNAN:
-    case _FPCLASS_QNAN:
-      return writeNaN(buf, len, f);
-    case _FPCLASS_NINF:
-    case _FPCLASS_PINF:
-      return writeINF(buf, len, f);
-  }
-#else
-#ifdef HAVE_ISINF
-  if ( isinf(f) )
-  { return writeINF(buf, len, f);
-  } else
-#endif
-#ifdef HAVE_ISNAN
-  if ( isnan(f) )
-  { return writeNaN(buf, len, f);
-  }
-#endif
-#endif /*HAVE__FPCLASS*/
-#endif /*HAVE_FPCLASS*/
-#endif /*HAVE_FPCLASSIFY*/
 
   return 0;
 }
