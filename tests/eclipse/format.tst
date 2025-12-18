@@ -238,3 +238,4 @@ format('^~|~*tabc~*t~10+$',[0'.,95])	should_output "^...abc____$".
 format('^~|~`.tabc~95t~10+$',[])	should_output "^...abc____$".
 format('~*+.~n~3+.~n~*+.~n', [3,3])     should_output "   .\n   .\n   .\n".
 
+format('~', [])                         should_throw _something.
