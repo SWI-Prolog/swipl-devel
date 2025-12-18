@@ -1436,7 +1436,7 @@ groupDigits(PL_locale *locale, Buffer b)
 formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 formats a floating point  number  to  a   buffer.  `How'  is  the format
-specifier ([eEfgG]), `arg' the argument.
+specifier ([eEfFgG]), `arg' the argument.
 
 MPZ/MPQ numbers printed using the format specifier `f' are written using
 the following algorithm, courtesy of Jan Burse:
