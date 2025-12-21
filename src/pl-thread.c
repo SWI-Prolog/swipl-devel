@@ -3392,13 +3392,12 @@ still capable of running Prolog queries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-PL_thread_at_exit(void (*function)(void *), void *closure, bool global)
+PL_thread_at_exit(int (*function)(void *, unsigned long), void *closure, bool global)
 { GET_LD
   event_list **list = global ? &GD->event.hook.onthreadexit
 			     : &LD->event.hook.onthreadexit;
-  int (*func)() = (int(*)())function;
 
-  return register_event_function(list, 0, false, func, closure, 0);
+  return register_event_function(list, 0, false, function, closure, 0);
 }
 
 #if O_PLMT
