@@ -1346,7 +1346,7 @@ PL_EXPORT(bool)	PL_get_thread_id_ex(term_t t, int *idp);
 PL_EXPORT(bool)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
 PL_EXPORT(bool)	PL_thread_destroy_engine(void);
-PL_EXPORT(bool)	PL_thread_at_exit(void (*function)(void *),
+PL_EXPORT(bool)	PL_thread_at_exit(int (*function)(void *, unsigned long),
 				  void *closure,
 				  bool global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
