@@ -363,8 +363,8 @@ dde_init_constants(void)
 }
 
 #ifdef O_PLMT
-static void
-dde_uninitialise(void *closure)
+static int
+dde_uninitialise(void *closure, unsigned long unused)
 { GET_LD
   DWORD ddeInst;
 
@@ -379,6 +379,7 @@ dde_uninitialise(void *closure)
   FUNCTOR_dde_disconnect1 = 0;
   FUNCTOR_dde_request4 = 0;
   FUNCTOR_dde_execute3 = 0;
+  return true;
 }
 #endif
 
