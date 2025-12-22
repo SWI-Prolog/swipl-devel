@@ -52,9 +52,13 @@ Event interface
 
 static void	free_event_callback(event_callback *cb);
 
-typedef int (*ev_func0)(void *);
-typedef int (*ev_func1)(void *, term_t);
-typedef int (*ev_func2)(void *, term_t, term_t);
+typedef bool (*ev_func0)(void *);
+typedef bool (*ev_func1)(void *, term_t);
+typedef bool (*ev_func2)(void *, term_t, term_t);
+
+typedef void (*ev_func0v)(void *);
+typedef void (*ev_func1v)(void *, term_t);
+typedef void (*ev_func2v)(void *, term_t, term_t);
 
 #ifdef O_PLMT
 #define INIT_LIST_LOCK(l) recursiveMutexInit(&(l)->lock)
@@ -342,11 +346,12 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 
 bool
 register_event_function(event_list **list, atom_t name,
-			bool last, int (*func)(),
-			void *closure, int argc)
+			bool last, void *func,
+			void *closure, int argc, unsigned int flags)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
   cb->argc = argc;
+  cb->flags = flags;
   cb->function = func;
   cb->closure.pointer = closure;
 
@@ -393,10 +398,12 @@ cleanupEvents(void)
 
 
 
-#define call_event_list(list, argc, argv) LDFUNC(call_event_list, list, argc, argv)
-static int
+#define call_event_list(list, argc, argv) \
+	LDFUNC(call_event_list, list, argc, argv)
+
+static bool
 call_event_list(DECL_LD event_list *list, int argc, term_t argv)
-{ int rc = true;
+{ bool rc = true;
 
   if ( list )
   { event_callback *ev;
@@ -404,19 +411,38 @@ call_event_list(DECL_LD event_list *list, int argc, term_t argv)
     LOCK_LIST(list);
     for(ev = list->head; ev; ev = ev->next)
     { if ( ev->function )
-      { switch(argc)
-	{ case 0:
-	    rc = (*(ev_func0)ev->function)(ev->closure.pointer);
-	    break;
-	  case 1:
-	    rc = (*(ev_func1)ev->function)(ev->closure.pointer, argv+1);
-	    break;
-	  case 2:
-	    rc = (*(ev_func2)ev->function)(ev->closure.pointer, argv+1, argv+2);
-	    break;
-	  default:
+      { if ( ison(ev, EV_CALLBACK_VOID) )
+	{ switch(argc)
+	  { case 0:
+	      (*(ev_func0v)ev->function)(ev->closure.pointer);
+	      break;
+	    case 1:
+	      (*(ev_func1v)ev->function)(ev->closure.pointer, argv+1);
+	      break;
+	    case 2:
+	      (*(ev_func2v)ev->function)(ev->closure.pointer, argv+1, argv+2);
+	      break;
+	    default:
+	      rc = false;
+	      assert(0);
+	  }
+	  if ( PL_exception(0) )
 	    rc = false;
-	    assert(0);
+	} else
+	{ switch(argc)
+	  { case 0:
+	      rc = (*(ev_func0)ev->function)(ev->closure.pointer);
+	      break;
+	    case 1:
+	      rc = (*(ev_func1)ev->function)(ev->closure.pointer, argv+1);
+	      break;
+	    case 2:
+	      rc = (*(ev_func2)ev->function)(ev->closure.pointer, argv+1, argv+2);
+	      break;
+	    default:
+	      rc = false;
+	      assert(0);
+	  }
 	}
       } else if ( ev->closure.term )
       { rc = rc &&

@@ -53,16 +53,20 @@ typedef enum pl_event_type
   PLEV_THIS_THREAD_EXIT			/* This thread has finished */
 } pl_event_type;
 
+#define EV_CALLBACK_BOOL	0x0
+#define EV_CALLBACK_VOID	0x1
+
 typedef struct event_callback
 { atom_t		name;		/* Name of the callback */
   Module		 module;	/* context module */
   Procedure		 procedure;	/* procedure to use */
-  int		       (*function)();	/* C-function */
+  void		        *function;	/* C-function */
   union
   { struct fastheap_term *term;		/* closure */
     void		 *pointer;	/* for C functions */
   } closure;
   int			 argc;		/* #context args */
+  unsigned int		 flags;		/* EV_CALLBACK_* */
   struct event_callback *next;		/* next in chain */
 } event_callback;
 
@@ -101,7 +105,8 @@ bool	PL_call_event_hook_va(pl_event_type ev, va_list args);
 bool	register_event_hook(event_list **list, atom_t name, bool last,
 			    term_t closure, int argc);
 bool	register_event_function(event_list **list, atom_t name, bool last,
-				int (*func)(), void *closure, int argc);
+				void *func, void *closure, int argc,
+				unsigned int flags);
 void	destroy_event_list(event_list **listp);
 int	predicate_update_event(Definition def, atom_t action, Clause cl,
 			       unsigned flags);

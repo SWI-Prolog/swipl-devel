@@ -3398,7 +3398,8 @@ PL_thread_at_exit(void (*function)(void *), void *closure, bool global)
 			     : &LD->event.hook.onthreadexit;
   int (*func)() = (int(*)())function;
 
-  return register_event_function(list, 0, false, func, closure, 0);
+  return register_event_function(list, 0, false,
+				 func, closure, 0, EV_CALLBACK_VOID);
 }
 
 #if O_PLMT
