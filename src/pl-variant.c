@@ -115,8 +115,10 @@ next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
   *rp = a->work.right;
 
   a->work.arg++;
-  a->work.left++;
-  a->work.right++;
+  if( a->work.left )
+	  a->work.left++;
+  if ( a->work.right )
+	  a->work.right++;
 
   return true;
 }
