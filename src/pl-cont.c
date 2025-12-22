@@ -487,7 +487,7 @@ retry:
     pcoffset = (size_t)valInt(*ep++);
 
     lneeded = sizeof(word) +
-	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
+	      (size_t)argFrameP0(cl->variables);
     lroom   = roomStack(local);
     if ( unlikely(lroom < lneeded) )	/* resize the stack */
     { int rc;
