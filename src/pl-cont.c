@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2021, VU University Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2016-2025, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -75,7 +75,7 @@ Where the compiler translates '$reset' into
 #define FRESET_FINDALL  -2
 
 #define findReset(fr, ball, rframe) LDFUNC(findReset, fr, ball, rframe)
-static int
+static int /* true, FRESET_* */
 findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
 { Definition reset3  = PROCEDURE_reset3->definition;
 
@@ -139,11 +139,12 @@ env_functor(int slots)
   return PL_new_functor(ATOM_dcont, arity);
 }
 
+#define put_environment(env, fr, pc, for_copy) \
+	LDFUNC(put_environment, env, fr, pc, for_copy)
 
-static int
-put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
-{ GET_LD
-  term_t fr_ref   = consTermRef(fr);
+static bool
+put_environment(DECL_LD term_t env, LocalFrame fr, Code pc, bool for_copy)
+{ term_t fr_ref   = consTermRef(fr);
   const Clause cl = fr->clause->value.clause;
   int i, slots    = cl->variables;
   size_t bv_bytes = sizeof_bitvector(slots);
@@ -169,15 +170,8 @@ put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
   init_bitvector(active, slots);
   mark_active_environment(active, fr, pc);
 
-  if ( gTop+1+slots >= gMax )
-  { int rc;
-    term_t fr_ref = consTermRef(fr);
-
-    if ( (rc=ensureGlobalSpace(1+slots, ALLOW_GC|ALLOW_SHIFT)) != true )
-      return raiseStackOverflow(rc);
-
-    fr = (LocalFrame)valTermRef(fr_ref);
-  }
+  if ( !ensureGlobalSpace(1+slots, ALLOW_GC|ALLOW_SHIFT) )
+    return false;
 
   fr = (LocalFrame)valTermRef(fr_ref);
   p = gTop;
@@ -265,7 +259,7 @@ an empty continuation. Samer  Abdallah   discovered  that  without this,
 continuations are quite often empty.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 is_last_call(Code PC)
 { for( ; ; PC = stepPC(PC) )
   { code c = fetchop(PC);
@@ -286,9 +280,9 @@ is_last_call(Code PC)
 }
 
 
-static int
+static bool
 put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
-		 int for_copy)
+		 bool for_copy)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
@@ -371,7 +365,7 @@ Performs the following steps:
 */
 
 Code
-shift(DECL_LD term_t ball, int for_copy)
+shift(DECL_LD term_t ball, bool for_copy)
 { term_t reset;
   int rc;
 
@@ -388,7 +382,7 @@ shift(DECL_LD term_t ball, int for_copy)
 			   environment_frame->programPointer,
 			   for_copy) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
-      return false;			/* resource error */
+      return NULL;			/* resource error */
     }
 
     DEBUG(CHK_SECURE, PL_check_data(cont));
@@ -560,14 +554,6 @@ retry:
     return NULL;
   }
 }
-
-
-		 /*******************************
-		 *      PUBLISH PREDICATES	*
-		 *******************************/
-
-BeginPredDefs(cont)
-EndPredDefs
 
 void
 cleanupCont(void)

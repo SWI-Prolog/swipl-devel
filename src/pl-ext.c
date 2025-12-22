@@ -476,7 +476,6 @@ DECL_PLIST(term);
 DECL_PLIST(debug);
 DECL_PLIST(locale);
 DECL_PLIST(dict);
-DECL_PLIST(cont);
 DECL_PLIST(trie);
 DECL_PLIST(tabling);
 DECL_PLIST(mutex);
@@ -555,7 +554,6 @@ initBuildIns(bool signonly)
 #endif
   REG_PLIST(debug);
   REG_PLIST(dict);
-  REG_PLIST(cont);
   REG_PLIST(trie);
   REG_PLIST(tabling);
   REG_PLIST(mutex);
