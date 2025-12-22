@@ -486,18 +486,14 @@ retry:
     cl = cref->value.clause;
     pcoffset = (size_t)valInt(*ep++);
 
-    lneeded = sizeof(word) +
-	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
+    lneeded = ( sizeof(word) +			/* blob (AGC protect) */
+		sizeof(struct localFrame) +	/* new frame */
+		cl->variables * sizeof(word) );	/* arguments to frame */
     lroom   = roomStack(local);
     if ( unlikely(lroom < lneeded) )	/* resize the stack */
-    { int rc;
-
-      if ( (rc=growLocalSpace(roomStack(local)*2, ALLOW_SHIFT))
-	   != true )
-      { raiseStackOverflow(rc);
-	return NULL;
-      }
-      goto retry;
+    { if ( ensureLocalSpace(lneeded) )
+	goto retry;
+      return NULL;
     }
 
     *(Word)top = blob;			/* see (*) */
