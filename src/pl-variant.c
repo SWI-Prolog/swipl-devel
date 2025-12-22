@@ -115,8 +115,10 @@ next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
   *rp = a->work.right;
 
   a->work.arg++;
-  a->work.left++;
-  a->work.right++;
+  if ( a->work.left )		/* The initial dummy node has NULL */
+  { a->work.left++;		/* for left and right and incrementing */
+    a->work.right++;		/* NULL is officially undefined */
+  }
 
   return true;
 }
