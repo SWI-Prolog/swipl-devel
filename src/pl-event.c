@@ -412,7 +412,8 @@ call_event_list(DECL_LD event_list *list, int argc, term_t argv)
     for(ev = list->head; ev; ev = ev->next)
     { if ( ev->function )
       { if ( ison(ev, EV_CALLBACK_VOID) )
-	{ switch(argc)
+	{ assert(argc >= ev->argc);
+	  switch(ev->argc)
 	  { case 0:
 	      (*(ev_func0v)ev->function)(ev->closure.pointer);
 	      break;
