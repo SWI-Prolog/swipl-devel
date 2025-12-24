@@ -414,7 +414,7 @@ static
 PRED_IMPL("format", 3, format, META)
 { PRED_LD
 
-    return format(A1, A2, A3);
+  return format(A1, A2, A3);
 }
 
 static inline int
