@@ -300,7 +300,7 @@ locate(clause(Ref, _PC), #{file:File, line:Line}) :- % TBD: use clause
 
 predicate_location(Pred, #{file:File, line:Line}) :-
     copy_term(Pred, Pred2),
-    distinct(Primary, primary_foreign_predicate(Pred2, Primary)),
+    distinct(Primary, primary_predicate(Pred2, Primary)),
     ignore(Pred = Primary),
     (   predicate_property(Primary, file(File)),
         predicate_property(Primary, line_count(Line))
@@ -310,8 +310,7 @@ predicate_location(Pred, #{file:File, line:Line}) :-
         phrase(addr2line_output(File, Line), Codes)
     ).
 
-primary_foreign_predicate(Pred, Primary) :-
-    predicate_property(Pred, foreign),
+primary_predicate(Pred, Primary) :-
     (   predicate_property(Pred, imported_from(Source))
     ->  strip_module(Pred, _, Head),
         Primary = Source:Head
