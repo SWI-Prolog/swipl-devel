@@ -189,6 +189,9 @@ set_config()
       test)			# test: Install tests with the system
 	  opts+=" -DINSTALL_TESTS=ON"
 	  ;;
+      nodoc)			# nodoc: Do not install HTML docs
+	  opts+=" -DINSTALL_DOCUMENTATION=OFF"
+	  ;;
       pdf)			# pdf: Build PDF documentation
 	  opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
 	  ;;
