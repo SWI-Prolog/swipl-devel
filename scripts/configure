@@ -29,6 +29,10 @@ Usage: $0 [feature ...]
 Features come from the build directory named build.feat1-feat2-...
 Optional commandline arguments are added at the end.
 
+If the environment variable CMAKE_EXTRA_FLAGS is set, its value is
+added after the options from the build directory name (this is useful
+for options such as -DCMAKE_INSTALL_PREFIX).
+
 Known features are
 EOF
 print_kv()
@@ -232,7 +236,7 @@ using=
 cat << EOF
 # Configure using
 #
-#    $using cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts
+#    $using $cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts $CMAKE_EXTRA_FLAGS ..
 #    ..
 #
 EOF
@@ -254,7 +258,7 @@ echo "# (end options)" >>configure
 
 cat >> configure << EOF
 
-$using $cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts ..
+$using $cmake -DCMAKE_BUILD_TYPE=$build_type -G "$generator" $opts $CMAKE_EXTRA_FLAGS ..
 EOF
 chmod +x configure
 
