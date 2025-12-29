@@ -63,7 +63,7 @@ function(add_swipl_target name)
       OUTPUT ${my_OUTPUT}
       BYPRODUCTS ${my_BYPRODUCTS}
       COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	      ${PROG_SWIPL} ${options} ${my_OPTIONS}
+	      -- ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
       DEPENDS core prolog_home
