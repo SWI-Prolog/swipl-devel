@@ -481,15 +481,23 @@ substitute(_, _, Old, Old).
 
 merge_locations(Locations0, Locations) :-
     append(Before, [L1|Rest], Locations0),
-    L1 = Loc1-Spec1,
     select(L2, Rest, Rest1),
-    L2 = Loc2-Spec2,
-    same_location(Loc1, Loc2, Loc),
-    merge_specs(Spec1, Spec2, Spec),
+    merge_location(L1, L2, Loc),
     !,
-    append([Before, [Loc-Spec], Rest1], Locations1),
+    append([Before, [Loc], Rest1], Locations1),
     merge_locations(Locations1, Locations).
 merge_locations(Locations, Locations).
+
+merge_location(Loc1-Spec1, Loc2-Spec2, Loc1-Spec1) :-
+    same_file_location(Loc1,Loc2),
+    better_spec(Spec1, Spec2).
+merge_location(Loc1-Spec1, Loc2-Spec2, Loc-Spec) :-
+    same_location(Loc1, Loc2, Loc),
+    merge_specs(Spec1, Spec2, Spec).
+
+same_file_location(L1, L2) :-
+    #{file:File} :< L1,
+    #{file:File} :< L2.
 
 same_location(L, L, L).
 same_location(#{file:F1}, #{file:F2}, #{file:F}) :-
@@ -531,6 +539,10 @@ is_filespec(Term),
     user:file_search_path(Alias, _) => true.
 is_filespec(_) =>
     fail.
+
+better_spec(class(_), module(_)).
+better_spec(_, FileSpec) :-
+    is_filespec(FileSpec).
 
 %!  select_location(+Pairs, +UserSpec, -Location) is semidet.
 %
