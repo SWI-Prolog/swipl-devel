@@ -327,7 +327,7 @@ result using engine_yield/1, execution proceeds after the engine_yield/1
 call.
 
     \predicate[det]{engine_next_reified}{2}{+Engine, -Term}
-Similar to engine_next/2, but instead of success, failure or or raising
+Similar to engine_next/2, but instead of success, failure or raising
 an exception, \arg{Term} is unified with one of terms below. This
 predicate is provided primarily for compatibility with Lean~Prolog.
 

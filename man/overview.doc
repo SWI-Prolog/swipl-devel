@@ -410,7 +410,7 @@ immediately or appear as the next commandline argument.
 
 Note that many of the commandline options are reflected by a Prolog
 flag. We intend to handle these as synonyms. Currently, some of the
-commandline flags affect the Prolog initilization before loading the
+commandline flags affect the Prolog initialization before loading the
 saved state has completed, while other may not be changed after Prolog
 initialization. For example, future versions will support
 \exam{-Dhome=dir} to change the notion of the Prolog installation
