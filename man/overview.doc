@@ -1150,7 +1150,7 @@ exists_source/1).
 Next, it locates \exam{path(name)} using SWI-Prolog's file search
 mechanism defined by absolute_file_name/3.  After loading this file it
 finds the last goal registered for \const{main} using initialization/2
-as described in \secref{compilation} - if there is no initization
+as described in \secref{compilation} - if there is no initialization
 directive for \const{main}, the program terminates with an error.  By
 default, the application terminates after the entry point terminates.
 The entry point may enable the interactive Prolog REPL loop by calling
