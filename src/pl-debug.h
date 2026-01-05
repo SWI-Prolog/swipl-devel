@@ -122,6 +122,7 @@
 #define MSG_CSTACK		 91
 #define MSG_GMP_ALLOC		 92
 #define MSG_GMP_OVERFLOW	 93
+#define MSG_GMP			 94
 
 						/* GC messages */
 #define	MSG_AGC			 100

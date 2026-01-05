@@ -1303,12 +1303,12 @@ bool
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { if ( mpz_cmp(mpz, MPZ_MIN_INT64) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_INT64) <= 0 )
-  { uint64_t v;
+  { uint64_t v = 0;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
-    DEBUG(2,
-	  { char buf[256];
-	    Sdprintf("Convert %s --> %I64d\n",
+    DEBUG(MSG_GMP,
+	  { char buf[1024];
+	    Sdprintf("Convert %s --> %"PRId64"\n",
 		     mpz_get_str(buf, 10, mpz), v);
 	  });
 
@@ -1334,7 +1334,7 @@ mpz_to_uint64(mpz_t mpz, uint64_t *i)
     return -1;
 
   if ( mpz_cmp(mpz, MPZ_MAX_UINT64) <= 0 )
-  { uint64_t v;
+  { uint64_t v = 0;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
     *i = v;

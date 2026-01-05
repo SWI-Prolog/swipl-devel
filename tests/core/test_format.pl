@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2024, University of Amsterdam
+    Copyright (c)  2008-2026, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -45,28 +45,30 @@ This module is a Unit test for  Prolog format/2, etc.
 */
 
 test_format :-
-	run_tests([ format
-		  ]).
+    run_tests([ format
+	      ]).
 
 :- begin_tests(format).
 
 test(fail, fail) :-
-	format('~@', [fail]).
+    format('~@', [fail]).
 test(fail, throws(error(42))) :-
-	format('~@', [throw(error(42))]).
+    format('~@', [throw(error(42))]).
 test(no_stream, error(existence_error(stream, S))) :-
-	S = stream_dhfuweiu,
-	format(S, fmt, []).
+    S = stream_dhfuweiu,
+    format(S, fmt, []).
 test(atom, A == 'a\n') :-
-	format(atom(A), 'a\n', []).
+    format(atom(A), 'a\n', []).
 test(atom, A == '--++') :-
-	format(atom(A), '~`-t~`+t~4+', []).
+    format(atom(A), '~`-t~`+t~4+', []).
 test(radix, A == "101") :-
-	format(string(A), '~2r', [5]).
+    format(string(A), '~2r', [5]).
 test(radix, error(domain_error(radix, 1))) :-
-	format(string(_), '~1r', [5]).
+    format(string(_), '~1r', [5]).
 test(radix, error(domain_error(radix, 37))) :-
-	format(string(_), '~37r', [5]).
+    format(string(_), '~37r', [5]).
+test(gmp, S == "0") :-
+    format(string(S), '~d', [(2^63>>38)mod 2^24]).
 test(asterisk, error(format_argument_type(*, -1))) :-
     format('~t~*|', [-1]).
 test(intD_1, X == '1,000') :-
