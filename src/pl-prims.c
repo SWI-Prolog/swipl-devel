@@ -1780,7 +1780,7 @@ compareStandard(Word p1, Word p2, int eq)
 
     Var @< AttVar @< Number @< String @< Atom < Term
 
-    OldVar < NewVar	(not relyable)
+    OldVar < NewVar	(not reliable)
     Atom:	alphabetically
     Strings:	alphabetically
     number:	value
@@ -2748,9 +2748,9 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
 
 /*  Determine the length of a list.  Returns:
 
-	len >=  0 if list is proper
-	len == -1 if list is not a list
-	len == -2 if list is incomplete (i.e. tail is unbound)
+	length >=  0 if list is proper
+	length == -1 if list is not a list
+	length == -2 if list is incomplete (i.e. tail is unbound)
 
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
@@ -2936,7 +2936,7 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns	>= 0: Number for next variable variable
+Returns	>= 0: Number for next variable
 	  -1: Error
 	< -1: Out of stack error or ALREADY_NUMBERED or CONTAINS_ATTVAR
 
@@ -3071,7 +3071,7 @@ out:
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns	>= 0: Number for next variable variable
+Returns	>= 0: Number for next variable
 	  -1: Error.  Exception is left in the environment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -3579,10 +3579,12 @@ PRED_IMPL("is_most_general_term", 1, is_most_general_term, 0)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 subsumes is defined as
 
+```
 subsumes(General, Specific) :-
 	term_variables(Specific, SVars),
 	General = Specific,
 	term_variables(SVars, SVars).
+```
 
 Below is the implementation, but we keep  the array of variables instead
 of creating an array and we check whether these are all unique variables
@@ -3601,7 +3603,7 @@ algorithm.
 
 We can enhance on this by combining this with the one-sided unification.
 We could delay scanning specific until we  bind the first variable. This
-will not have any significant  inpact   on  performance for a succeeding
+will not have any significant  impact   on  performance for a succeeding
 subsumes check, but can result in early failure and avoiding the scan of
 specific. This works because  the   one-sided  unification algorithm can
 only succeed in places where it should fail.
@@ -4414,7 +4416,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     return false;
 }
 
-/* MacOS X Mavericks and Yosemite write a char (nul) too many if the
+/* MacOS X Mavericks and Yosemite write a char (0) too many if the
  * buffer is short.  Thanks to Samer Abdallah for sorting this out.
  *
  * (*) On failure, wcsxfrm() normally returns the required size.
@@ -4876,26 +4878,26 @@ second 15 bits for the `after'.
 There are many possibilities (think the semantics are a bit overloaded).
 
     * sub is given
-	+ if len conflicts: fail
+	+ if length conflicts: fail
 	+ if before or after given: test deterministically
 	+ otherwise: search (non-deterministic)
     * two of the integers are given
 	+ generate (deterministic)
     * before is given:
 	+ split the remainder (non-deterministic)
-    * len is given:
+    * length is given:
 	+ enumerate breaks (non-deterministic)
     * after is given:
 	+ split the remainder (non-deterministic)
     * non given:
-	+ enumerate using before and len (non-deterministic)
+	+ enumerate using before and length (non-deterministic)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 enum sub_type
 { SUB_SEARCH,				/* sub given, but no position */
   SUB_SPLIT_TAIL,			/* before given, split tail */
   SUB_SPLIT_HEAD,			/* after given, split head */
-  SUB_SPLIT_LEN,			/* len given, move it */
+  SUB_SPLIT_LEN,			/* length given, move it */
   SUB_ENUM				/* all free */
 };
 
@@ -4958,7 +4960,7 @@ sub_text(DECL_LD term_t atom,
       }
 
       if ( ts.text.t )			/* `sub' given */
-      { if ( SIZE_GIVEN(l) && ls != l ) /* len conflict */
+      { if ( SIZE_GIVEN(l) && ls != l ) /* length conflict */
 	  return false;
 	if ( SIZE_GIVEN(b) )		/* before given: test */
 	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == CMP_EQUAL )
@@ -4990,7 +4992,7 @@ sub_text(DECL_LD term_t atom,
       { if ( b > la )
 	  return false;
 
-	if ( SIZE_GIVEN(l) )		/* len given */
+	if ( SIZE_GIVEN(l) )		/* length given */
 	{ if ( b+l <= la )		/* deterministic fit */
 	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
 		 PL_unify_integer(after, la-b-l) )
@@ -5011,17 +5013,17 @@ sub_text(DECL_LD term_t atom,
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
-	state->n1   = 0;		/* len of the split */
+	state->n1   = 0;		/* length of the split */
 	state->n2   = la;		/* length of the atom */
 	state->n3   = b;		/* length before */
 	break;
       }
 
-      if ( SIZE_GIVEN(l) )		/* no before, len given */
+      if ( SIZE_GIVEN(l) )		/* no before, length given */
       { if ( l > la )
 	  return false;
 
-	if ( SIZE_GIVEN(a) )		/* len and after */
+	if ( SIZE_GIVEN(a) )		/* length and after */
 	{ if ( la >= a+l )
 	  { size_t b2 = la-a-l;
 
@@ -5055,7 +5057,7 @@ sub_text(DECL_LD term_t atom,
       state = allocForeignState(sizeof(*state));
       state->type = SUB_ENUM;
       state->n1	= 0;			/* before */
-      state->n2 = 0;			/* len */
+      state->n2 = 0;			/* length */
       state->n3 = la;			/* total length */
       break;
     }
@@ -5530,7 +5532,7 @@ On first call:
   1. If Result is nonvar, there was the inference limit is exceeded.
      The limit is already reset by '$inference_limit_except'/3, so we
      just indicate that our result is deterministic.
-  2. Else, restore the limit and indicate determinism in Det.
+  2. Else, restore the limit and indicate determinism in Result.
 
 On redo, use Limit to set a new  limit and fail to continue retrying the
 guarded goal.
@@ -5678,10 +5680,10 @@ raiseInferenceLimitException(void)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Fetch runtime statistics. There are two standards  here. One is based on
-old C-Prolog compatibility, exended as required   by  SWI-Prolog and the
-other  is  defined  by  Quintus/SICStus.  The   latter  is  included  if
-QP_STATISTICS is defined. The compatibility   is pretty complete, except
+Fetch runtime statistics.  There are two   standards here.  One is based
+on old C-Prolog compatibility, extended as   required  by SWI-Prolog and
+the other is defined by  Quintus/SICStus.    The  latter  is included if
+QP_STATISTICS is defined.  The compatibility  is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -5705,7 +5707,7 @@ static int
 qp_statistics(DECL_LD atom_t key, int64_t v[])
 { int vn;
 
-  if ( key == ATOM_runtime )		/* compat: exclude gc-time */
+  if ( key == ATOM_runtime )		/* compatibility: exclude GC-time */
   { v[0] = (int64_t)((LD->statistics.user_cputime -
 		      LD->gc.stats.totals.time -
 		      GD->atoms.gc_time) * 1000.0);
