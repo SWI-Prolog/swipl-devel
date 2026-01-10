@@ -2361,7 +2361,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 #define debug_yield(port) LDFUNC(debug_yield, port)
 
 static int
-debug_yield(DECL_LD int port)
+debug_yield(DECL_LD short port)
 { QueryFrame qf = LD->query;
 
   LD->trace.yield.port = port;
