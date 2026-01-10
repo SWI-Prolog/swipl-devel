@@ -226,7 +226,7 @@ END_VMH
 	}
 #define GROW_STACK_SPACE(g, t) \
 	do \
-	{ int __rc;					\
+	{ bool __rc;					\
 	  SAVE_REGISTERS(QID);				\
 	  __rc = ensureStackSpace(g, t);		\
 	  LOAD_REGISTERS(QID);				\

@@ -509,10 +509,10 @@ A common basis for C keywords.
 #endif
 
 #ifdef HAVE___BUILTIN_EXPECT
-#define likely(x)       __builtin_expect((x), 1)
-#define unlikely(x)     __builtin_expect((x), 0)
+#define likely(x)       (__builtin_expect(!!(x), true)  != 0)
+#define unlikely(x)     (__builtin_expect(  (x), false) != 0)
 #else
-#define likely(x)	(x)
+#define likely(x)	(!!(x))
 #define unlikely(x)	(x)
 #endif
 
