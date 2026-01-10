@@ -196,8 +196,7 @@ set_config()
 	  opts+=" -DBUILD_PDF_DOCUMENTATION=ON"
 	  ;;
       *)
-	  echo "ERROR: Unknown config option: $1"
-	  exit 1
+	  echo "WARNING: Unknown config option: $1"
 	  ;;
   esac
 }
