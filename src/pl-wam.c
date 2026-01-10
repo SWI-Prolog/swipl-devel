@@ -1332,7 +1332,9 @@ protect_var(), which creates a  term-reference   to  the local variable,
 such that it is marked from the foreign environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define callBreakHook(frame, bfr, PC, op, pop) LDFUNC(callBreakHook, frame, bfr, PC, op, pop)
+#define callBreakHook(frame, bfr, PC, op, pop) \
+	LDFUNC(callBreakHook, frame, bfr, PC, op, pop)
+
 static break_action
 callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	      Code PC, code op, int *pop)
@@ -1360,14 +1362,8 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
     pc_offset = 0;
 
   /* make enough space to avoid GC/shift in the	critical region*/
-  if ( !hasGlobalSpace(10) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(10, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
-      return BRK_ERROR;
-    }
-  }
+  if ( !ensureGlobalSpace(10, ALLOW_GC) )
+    return BRK_ERROR;
 
   if ( saveWakeup(&wstate, false) )
   { if ( (cid=PL_open_foreign_frame()) )
@@ -1714,14 +1710,14 @@ setContextModule(LocalFrame fr, Module context)
 */
 
 #define is_qualified(p) LDFUNC(is_qualified, p)
-static inline int
+static inline bool
 is_qualified(DECL_LD Word p)
 { return hasFunctor(*p, FUNCTOR_colon2);
 }
 
 
 #define m_qualify_argument(fr, arg) LDFUNC(m_qualify_argument, fr, arg)
-static int
+static bool
 m_qualify_argument(DECL_LD LocalFrame fr, int arg)
 { Word k = varFrameP(fr, arg);
   Word p;
@@ -1731,12 +1727,11 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
   { Word p2;
 
     if ( !hasGlobalSpace(3) )
-    { int rc;
-      term_t fref = consTermRef(fr);
+    { term_t fref = consTermRef(fr);
 
       lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
-      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-	return rc;
+      if ( !ensureGlobalSpace(3, ALLOW_GC) )
+	return false;
 
       fr = (LocalFrame)valTermRef(fref);
       k = varFrameP(fr, arg);
@@ -1793,8 +1788,10 @@ instantiated to avoid teh compiler to generate a meta-call for it. Other
 errors will find their way to the user in other ways.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define checkCallAtContextInstantiation(p) LDFUNC(checkCallAtContextInstantiation, p)
-static int
+#define checkCallAtContextInstantiation(p) \
+	LDFUNC(checkCallAtContextInstantiation, p)
+
+static bool
 checkCallAtContextInstantiation(DECL_LD Word p)
 { Word g, m;
   atom_t pm;
@@ -1881,7 +1878,7 @@ foreignWakeup(DECL_LD term_t ex)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called at the end of handling an exception. We cannot do GC, however, we
 can request it, after it will be executed   at the start of the recovery
-handler. If no GC is needed the is enoush space so, we call trimStacks()
+handler. If no GC is needed the is enough space so, we call trimStacks()
 to re-enable the spare stack-space if applicable.
 
 TBD: In these modern days we can  probably   do  GC. Still, if it is not
@@ -2224,7 +2221,7 @@ resourceException(DECL_LD term_t t)
 dbgRedoFrame(LocalFrame fr)
 
 Find the frame we report  for  a  retry.   If  the  current  frame  is a
-debugable frame, we only debug if it is a user predicate.
+debuggable frame, we only debug if it is a user predicate.
 
 If the current frame  is  not  debuggable   we  have  a  choicepoint  in
 non-debug code. We walk up the stack to   find  a debug frame. If we are
@@ -2385,7 +2382,7 @@ one.   This  should  be  optimised  by the compiler someday, but for the
 moment this will do.
 
 The new arguments block can contain the following types:
-  - Instantiated data (atoms, ints, reals, strings, terms
+  - Instantiated data (atoms, integers, floats, strings, terms
     These can just be copied.
   - Plain variables
     These can just be copied.
@@ -2524,7 +2521,7 @@ discardFrame(DECL_LD LocalFrame fr)
 /* true if fr is in the continuation of frame or the frame of ch or one
  * of its parents.
  */
-static int
+static bool
 in_continuation(LocalFrame fr, LocalFrame frame, Choice ch)
 { for(;;)
   { while(frame > fr)
