@@ -836,7 +836,7 @@ AVARS_MAX
 /*      CHECK_INTERRUPT -7 */
 #define AVARS_MAX      -12
 
-static int
+static bool
 in_branch(const branch_var *from, const branch_var *to, const Word v)
 { for(; from<to; from++)
   { if ( from->vdef->address == v )
