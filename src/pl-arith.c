@@ -2342,7 +2342,7 @@ ar_smallint(Number n, int *i)
     case V_MPZ:
       if ( mpz_cmp_si(n->value.mpz, -1L) >= 0 &&
 	   mpz_cmp_si(n->value.mpz,  1L) <= 0 )
-      { *i = mpz_get_si(n->value.mpz);
+      { *i = (int) mpz_get_si(n->value.mpz);
 	return true;
       }
       return false;
@@ -5158,7 +5158,7 @@ atom_to_rounding(atom_t a, int *m)
 
 
 atom_t
-float_rounding_name(int i)
+float_rounding_name(size_t i)
 { return float_rounding_names[i];
 }
 

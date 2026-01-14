@@ -118,7 +118,7 @@ intermediate representation:
 
 #define M_IGNCASE	0x01
 
-typedef unsigned int matchcode;
+typedef size_t matchcode;
 
 typedef struct
 { tmp_buffer	pattern;
@@ -243,7 +243,8 @@ compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 	continue;
       }
       case '{':
-      { int ai, aj = -1;
+      { size_t ai;
+	ssize_t aj = -1; /* does zero and size_t work, too? */
 
 	for(;;)
 	{ Output(ALT); ai = Here(); Output(0);
@@ -316,7 +317,7 @@ match_pattern(matchcode *p, const char *s, int flags)
 	continue;
       case ANYOF:					/* [...] */
       { int c2;
-	int sz = *p++;
+	size_t sz = *p++;
 	matchcode *anyend = &p[sz];
 
 	PL_utf8_code_point(&s, NULL, &c2);

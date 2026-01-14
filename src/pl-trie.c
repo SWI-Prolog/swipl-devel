@@ -2971,7 +2971,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
   size_t voffset = state->maxvar;
   tmp_buffer varb;
   int rc = true;
-  int compounds = 0;
+  ssize_t compounds = 0;
   Word p;
 #if O_TRIE_ATTVAR
   tmp_buffer attvarb;

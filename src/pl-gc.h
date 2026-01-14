@@ -64,7 +64,7 @@ size_t		nextStackSizeAbove(size_t n);
 int		shiftTightStacks(void);
 int		growStacks(size_t l, size_t g, size_t t);
 size_t		nextStackSize(Stack s, size_t minfree);
-bool		makeMoreStackSpace(int overflow, int flags);
+bool		makeMoreStackSpace(ssize_t overflow, int flags);
 int		f_ensureStackSpace(size_t gcells, size_t tcells,
 				   int flags);
 int		growLocalSpace(size_t bytes, int flags);

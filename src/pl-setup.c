@@ -572,7 +572,7 @@ dispatch_signal(int sig, int sync)
 #endif
   } else if ( ison(sh, PLSIG_THROW) )
   { char *predname;
-    int  arity;
+    size_t arity;
 
     if ( environment_frame )
     { predname = stringAtom(environment_frame->predicate->functor->name);

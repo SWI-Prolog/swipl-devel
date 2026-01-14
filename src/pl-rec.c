@@ -594,7 +594,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
       }
       case TAG_COMPOUND:
       { Functor f = valueTerm(w);
-	int arity;
+	size_t arity;
 	functor_t functor;
 
 #if O_CYCLIC
@@ -1208,7 +1208,7 @@ typedef struct
 static void skipSizeInt(CopyInfo b);
 
 static inline int		/* true or MEMORY_OVERFLOW */
-init_copy_vars(copy_info *info, uint n)
+init_copy_vars(copy_info *info, size_t n)
 { if ( n > 0 )
   { Word *p;
 
@@ -1320,7 +1320,7 @@ fetchExtFloat(CopyInfo b, void *f)
 
 static void
 fetchAtom(DECL_LD CopyInfo b, atom_t *a)
-{ unsigned int len = fetchSizeInt(b);
+{ size_t len = fetchSizeInt(b);
 
   *a = lookupAtom(b->data, len);
 
@@ -1330,7 +1330,7 @@ fetchAtom(DECL_LD CopyInfo b, atom_t *a)
 
 static void
 fetchAtomW(CopyInfo b, atom_t *a)
-{ unsigned int len = fetchSizeInt(b);
+{ size_t len = fetchSizeInt(b);
 
   *a = lookupUCSAtom((const pl_wchar_t*)b->data, len/sizeof(pl_wchar_t));
 
@@ -1339,7 +1339,7 @@ fetchAtomW(CopyInfo b, atom_t *a)
 
 
 static void
-fetchChars(CopyInfo b, unsigned len, Word to)
+fetchChars(CopyInfo b, size_t len, Word to)
 { fetchMultipleBuf(b, (char *)to, len, char);
 }
 
@@ -1463,7 +1463,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
       }
       case PL_TYPE_STRING:
       { size_t lw, len = fetchSizeInt(b);
-	int pad;
+	size_t pad;
 	word hdr;
 
 	lw = (len+sizeof(word))/sizeof(word); /* see globalBlob() */
@@ -1478,7 +1478,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
       }
 #ifdef O_CYCLIC
       case PL_REC_CYCLE:
-      { unsigned offset = fetchSizeInt(b);
+      { size_t offset = fetchSizeInt(b);
 	Word ct = b->gbase+offset;
 
 	*p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
@@ -1486,7 +1486,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
       }
 #endif
     { word fdef;
-      int arity;
+      size_t arity;
       case PL_TYPE_COMPOUND:
 
 	fdef = fetchWord(b);
@@ -1655,7 +1655,7 @@ recursion.   Other   options:   combine     into    copyRecordToGlobal()
 
 static void
 skipAtom(CopyInfo b)
-{ uint len = fetchSizeInt(b);
+{ size_t len = fetchSizeInt(b);
 
   b->data += len;
 }
@@ -1734,20 +1734,20 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
       case PL_TYPE_STRING:
-      { uint len = fetchSizeInt(b);
+      { size_t len = fetchSizeInt(b);
 	b->data += len;
 	continue;
       }
       case PL_TYPE_COMPOUND:
       { word fdef = fetchWord(b);
-	int arity;
+	size_t arity;
 
 	arity = arityFunctor(fdef);
 	work += arity;
 	continue;
       }
       case PL_TYPE_EXT_COMPOUND:
-      { intptr_t arity = fetchSizeInt(b);
+      { size_t arity = fetchSizeInt(b);
 
 	skipAtom(b);
 	work += arity;
@@ -1851,9 +1851,9 @@ bool
 PL_recorded_external(const char *rec, term_t t)
 { GET_LD
   copy_info b;
-  uint gsize;
+  size_t gsize;
   uchar m;
-  int rc;
+  bool rc;
 
   b.base = b.data = rec;
   b.version_map = NULL;
@@ -1915,7 +1915,7 @@ PL_recorded_external(const char *rec, term_t t)
     return false;			/* global stack overflow */
   b.dicts = 0;
   if ( !(m & REC_GROUND) )
-  { uint nvars = fetchSizeInt(&b);
+  { size_t nvars = fetchSizeInt(&b);
 
     if ( (rc=init_copy_vars(&b, nvars)) == true )
     { rc = copy_record(valTermRef(t), &b);

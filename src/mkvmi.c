@@ -283,7 +283,7 @@ mystrlwr(char *to, const char *from)	/* my*: Windows name conflict */
 { char *s;
 
   for(s=to; *from; from++)
-  { *s++ = tolower(*from);
+  { *s++ = (char) tolower(*from);
   }
   *s = '\0';
 

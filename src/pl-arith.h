@@ -90,7 +90,7 @@ int		get_arith_flag(term_t val, atom_t k);
 int		set_arith_flag(term_t val, atom_t k);
 void		set_rounding(int mode);
 int		atom_to_rounding(atom_t a, int *m);
-atom_t		float_rounding_name(int m);
+atom_t		float_rounding_name(size_t m);
 double		PL_nan(void);
 
 #undef LDFUNC_DECLARATIONS

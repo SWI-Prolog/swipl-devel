@@ -75,7 +75,7 @@ static int PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
 #define DICT_GET_TERM	0x08
 
 functor_t
-dict_functor(int pairs)
+dict_functor(size_t pairs)
 { if ( pairs < CACHED_DICT_FUNCTORS )
   { if ( GD->dict.dict_functors[pairs] )
       return GD->dict.dict_functors[pairs];
@@ -214,7 +214,7 @@ dict_lookup_ptr(DECL_LD word dict, word name, size_t *arg)
 
 #define dict_ordered(data, count, dupl) LDFUNC(dict_ordered, data, count, dupl)
 static int
-dict_ordered(DECL_LD Word data, int count, Word dupl)
+dict_ordered(DECL_LD Word data, size_t count, Word dupl)
 { int ordered = true;
   Word n1, n2;
 
@@ -264,7 +264,7 @@ compare_dict_entry(const void *a, const void *b, void *arg)
 int
 dict_order(DECL_LD Word dict, Word dupl)
 { Functor data = (Functor)dict;
-  int arity = arityFunctor(data->definition);
+  size_t arity = arityFunctor(data->definition);
 
   assert(arity%2 == 1);
 
@@ -359,9 +359,9 @@ assign_in_dict(DECL_LD Word dp, Word val)
 	LDFUNC(put_dict, dict, size, nv, new_dict)
 
 static int
-put_dict(DECL_LD word dict, int size, Word nv, word *new_dict)
+put_dict(DECL_LD word dict, size_t size, Word nv, word *new_dict)
 { Functor data = valueTerm(dict);
-  int arity = arityFunctor(data->definition);
+  size_t arity = arityFunctor(data->definition);
   Word new, out, in, in_end, nv_end;
   int modified = false;
 
@@ -516,7 +516,7 @@ same_keys_dict(DECL_LD word dict1, word dict2)
 static int
 del_dict(DECL_LD word dict, word key, word *new_dict)
 { Functor data = valueTerm(dict);
-  int arity = arityFunctor(data->definition);
+  size_t arity = arityFunctor(data->definition);
   Word new, out, in, in_end;
 
   assert(arity%2 == 1);
@@ -941,7 +941,7 @@ the standard order of terms.
 
 typedef struct cmp_dict_index_data
 { Word  data;
-  int  *indexes;
+  size_t *indexes;
   PL_local_data_t *ld;
 } cmp_dict_index_data;
 
@@ -1014,10 +1014,10 @@ pl_for_dict(DECL_LD term_t dict,
 	   void *closure,
 	   int flags)
 { term_t av = PL_new_term_refs(2);
-  int i, arity, pairs;
+  size_t i, arity, pairs;
   Word p = valTermRef(dict);
-  int index_buf[256];
-  int *indexes = NULL;
+  size_t index_buf[256];
+  size_t *indexes = NULL;
   int rc = 0;
 
   deRef(p);
@@ -1029,7 +1029,7 @@ pl_for_dict(DECL_LD term_t dict,
 
     if ( pairs < 256 )
       indexes = index_buf;
-    else if ( !(indexes = malloc(pairs*sizeof(int))) )
+    else if ( !(indexes = malloc(pairs*sizeof(size_t))) )
       return PL_no_memory();
 
     for(i=0; i<pairs; i++)
@@ -1039,12 +1039,12 @@ pl_for_dict(DECL_LD term_t dict,
     ctx.data = argTermP(*p,1);
     ctx.indexes = indexes;
 
-    sort_r(indexes, pairs, sizeof(int), cmp_dict_index, &ctx);
+    sort_r(indexes, pairs, sizeof(size_t), cmp_dict_index, &ctx);
   }
 
   for(i=0; i < pairs; )
   { Word p = valTermRef(dict);
-    int in;
+    size_t in;
 
     if ( indexes )
     { in = indexes[i]*2+1;
@@ -1163,13 +1163,13 @@ resortDictsInCodes(Code PC, Code end)
 	if ( fd->name == ATOM_dict &&
 	     fd->arity > 1 &&
 	     fd->arity%2 == 1 )
-	{ int f, fields = fd->arity/2;
+	{ size_t f, fields = fd->arity/2;
 	  kv_code kv_buf[KV_PREALOCATED];
 	  code c_buf[C_PREALLOCATED];
 	  kv_code *kv_pos;
 	  Code c_tmp;
 	  Code fields_start, fs;
-	  int h_void = 0;
+	  size_t h_void = 0;
 
 	  if ( fields <= KV_PREALOCATED )
 	    kv_pos = kv_buf;
@@ -1360,7 +1360,7 @@ which these pairs are enumerated is _undefined_.
 static foreign_t
 pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
 { PRED_LD
-  int i;
+  size_t i;
   word dict;
 
   switch( CTX_CNTRL )
@@ -1392,11 +1392,11 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
     }
     case FRG_REDO:
     { Functor f;
-      int arity;
+      size_t arity;
       fid_t fid;
       Word p;
 
-      i = (int)CTX_INT + 2;
+      i = CTX_INT + 2;
       p = valTermRef(A2);
       deRef(p);
       dict = *p;
@@ -1639,7 +1639,7 @@ PRED_IMPL("put_dict", 3, put_dict, 0)
   { retry:
     Mark(fli_context->mark);
     Functor f2 = valueTerm(*valTermRef(dt+1));
-    int arity = arityFunctor(f2->definition);
+    size_t arity = arityFunctor(f2->definition);
     word new;
     int rc;
 

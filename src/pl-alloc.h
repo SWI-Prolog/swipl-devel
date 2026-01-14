@@ -113,7 +113,7 @@ void		freeHeap(void *mem, size_t n);
 bool		enableSpareStack(Stack s, bool always);
 void		enableSpareStacks(void);
 bool		outOfStack(void *stack, stack_overflow_action how);
-bool		raiseStackOverflow(int which);
+bool		raiseStackOverflow(ssize_t which);
 void		outOfCore(void) NORETURN;
 Word		allocGlobal(size_t words);
 Word		allocGlobalNoShift(size_t words);

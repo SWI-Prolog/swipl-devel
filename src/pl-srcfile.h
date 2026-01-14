@@ -58,8 +58,8 @@ bool		startConsult(SourceFile f);
 bool		endConsult(SourceFile f);
 size_t		highSourceFileIndex(void);
 SourceFile	lookupSourceFile(atom_t name, int create);
-bool		releaseSourceFileNo(int index);
-SourceFile	indexToSourceFile(int index);
+bool		releaseSourceFileNo(size_t index);
+SourceFile	indexToSourceFile(size_t index);
 void		cleanupSourceFiles(void);
 void		unlinkSourceFileModule(SourceFile sf, Module m);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
@@ -84,10 +84,10 @@ bool		releaseSourceFile_d(SourceFile f,
 				    const char *file, unsigned int line);
 #define acquireSourceFile(f) acquireSourceFile_d(f, __FILE__, __LINE__)
 #define releaseSourceFile(f) releaseSourceFile_d(f, __FILE__, __LINE__)
-void		acquireSourceFileNo(int index);
+void		acquireSourceFileNo(size_t index);
 #else
 void		acquireSourceFile(SourceFile sf);
-void		acquireSourceFileNo(int index);
+void		acquireSourceFileNo(size_t index);
 bool		releaseSourceFile(SourceFile f);
 #endif
 

@@ -1153,7 +1153,7 @@ Macros for environment frames (local stack frames)
 #define killFrame(fr)		clear(fr, (FR_MAGIC_MASK&~FR_MAGIC_MASK2))
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
-#define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
+#define VAROFFSET(var)		((var)+(ARGOFFSET/sizeof(word)))
 #define VARNUM(i)		((int)((i) - (ARGOFFSET / (int) sizeof(word))))
 
 #define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
@@ -1427,12 +1427,12 @@ struct clause
     volatile gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  unsigned int		variables;	/* # of variables for frame */
-  unsigned int		prolog_vars;	/* # real Prolog variables */
+  size_t		variables;	/* # of variables for frame */
+  size_t		prolog_vars;	/* # real Prolog variables */
   unsigned int		flags;		/* Flag field holding: */
   unsigned int		line_no;	/* Source line-number */
-  unsigned int		source_no;	/* Index of source-file */
-  unsigned int		owner_no;	/* Index of owning source-file */
+  size_t		source_no;	/* Index of source-file */
+  size_t		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
   unsigned int		tr_erased_no;	/* # transactions that erased me */
   code			code_size;	/* size of ->codes */
@@ -1474,7 +1474,7 @@ typedef struct clause_list
   ClauseRef	last_clause;		/* last clause of list */
   ClauseIndex  *clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
-  unsigned int	erased_clauses;		/* number of erased clauses in set */
+  size_t	erased_clauses;		/* number of erased clauses in set */
   unsigned int	number_of_rules;	/* number of real rules */
   unsigned	unindexed : 1;		/* no index possible */
   unsigned	fixed_indexes : 1;	/* Do not search for alternatives */
@@ -1729,7 +1729,7 @@ typedef struct definition_refs
 struct procedure
 { Definition	definition;		/* definition of procedure */
   unsigned int  flags;			/* PROC_WEAK */
-  unsigned int	source_no;		/* Source I'm assigned to */
+  size_t	source_no;		/* Source I'm assigned to */
 };
 
 struct localFrame
@@ -2027,7 +2027,7 @@ struct sourceFile
   int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
   unsigned int	number_of_clauses;	/* number of clauses */
-  unsigned int	index;			/* index number (1,2,...) */
+  size_t	index;			/* index number (1,2,...) */
   unsigned int	references;		/* Reference count */
   unsigned	isfile     : 1;		/* Is a real file */
   unsigned	system     : 1;		/* system sourcefile: do not reload */
@@ -2305,7 +2305,7 @@ SIGNAL_INDEX(int sig)
 typedef uint_fast32_t		sigmask_t;
 
 /* How many bits can fit in a single sigmask_t? */
-#define SIGMASK_WIDTH		(sizeof(sigmask_t) * 8)
+#define SIGMASK_WIDTH		((int) sizeof(sigmask_t) * 8)
 /* How many sigmask_t's does it take to store all supported signals? */
 #define SIGMASK_WORDS		((NUM_SIGNALS + SIGMASK_WIDTH - 1) / SIGMASK_WIDTH)
 /* Which sigmask word is this signal in? */

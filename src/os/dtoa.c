@@ -539,7 +539,7 @@ Balloc
 	int x;
 	Bigint *rv;
 #ifndef Omit_Private_Memory
-	unsigned int len;
+	size_t len;
 #endif
 
 	ACQUIRE_DTOA_LOCK(0);

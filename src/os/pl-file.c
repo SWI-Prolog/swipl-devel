@@ -3891,7 +3891,7 @@ file_name_is_iri(const char *path)
     s++;
   if ( s >= path+2 &&				/* >= two letter scheme */
        s[0] == ':' && s[1] == '/' && s[2] == '/' )
-    return s-path;
+    return (int) (s-path); /* safe cast */
 
   return 0;
 }

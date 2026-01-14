@@ -1563,7 +1563,7 @@ MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 size_t
-removeClausesPredicate(Definition def, int sfindex, int fromfile)
+removeClausesPredicate(Definition def, size_t sfindex, int fromfile)
 { GET_LD
   ClauseRef c, next;
   size_t deleted = 0;
@@ -2125,7 +2125,7 @@ PRED_IMPL("mode", 1, mode, PL_FA_TRANSPARENT)
 
 #define unify_meta_argument(head, def, i) LDFUNC(unify_meta_argument, head, def, i)
 static int
-unify_meta_argument(DECL_LD term_t head, Definition def, int i)
+unify_meta_argument(DECL_LD term_t head, Definition def, size_t i)
 { term_t arg = PL_new_term_ref();
   int m = def->impl.any.args[i].meta;
 
@@ -2156,8 +2156,8 @@ unify_meta_pattern(Procedure proc, term_t head)
   Definition def = proc->definition;
 
   if ( PL_unify_functor(head, def->functor->functor) )
-  { int arity = def->functor->arity;
-    int i;
+  { size_t arity = def->functor->arity;
+    size_t i;
 
     for(i=0; i<arity; i++)
     { if ( !unify_meta_argument(head, def, i) )
@@ -2174,8 +2174,8 @@ unify_meta_pattern(Procedure proc, term_t head)
 bool
 PL_meta_predicate(predicate_t proc, const char *spec_s)
 { Definition def = proc->definition;
-  int arity = def->functor->arity;
-  int i;
+  size_t arity = def->functor->arity;
+  size_t i;
   int transparent = false;
   const unsigned char *s = (const unsigned char*)spec_s;
 
@@ -2234,7 +2234,7 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 
 void
 clear_meta_declaration(Definition def)
-{ int i;
+{ size_t i;
 
   for(i=0; i<def->functor->arity; i++)
     def->impl.any.args[i].meta = MA_ANY;
@@ -3252,9 +3252,10 @@ PRED_IMPL("retract", 1, retract,
 
 
 #define allVars(argc, argv) LDFUNC(allVars, argc, argv)
-static int
-allVars(DECL_LD int argc, Word argv)
-{ int i, r, allvars = true;
+static bool
+allVars(DECL_LD size_t argc, Word argv)
+{ size_t i, r;
+  bool allvars = true;
   Word *reset = alloca(argc*sizeof(Word));
 
   for(i=0; i<argc; i++)
@@ -3311,7 +3312,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   argv = valTermRef(thehead);
   deRef(argv);
   if ( isTerm(*argv) )
-  { int arity = arityTerm(*argv);
+  { size_t arity = arityTerm(*argv);
     argv = argTermP(*argv, 0);
 
     allvars = allVars(arity, argv);

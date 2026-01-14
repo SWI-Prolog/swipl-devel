@@ -2262,7 +2262,7 @@ get_cpuset(term_t affinity, cpu_set_t *set)
 { GET_LD
   term_t head, tail;
   int n=0;
-  int cpu_count = CpuCount();
+  size_t cpu_count = CpuCount();
 
   if ( !(tail = PL_copy_term_ref(affinity)) ||
        !(head = PL_new_term_ref()) )
@@ -2270,16 +2270,16 @@ get_cpuset(term_t affinity, cpu_set_t *set)
 
   CPU_ZERO(set);
   while(PL_get_list_ex(tail, head, tail))
-  { int i;
+  { int64_t i;
 
-    if ( !PL_get_integer_ex(head, &i) )
+    if ( !PL_get_int64_ex(head, &i) )
       return false;
     if ( i < 0 )
       return PL_domain_error("not_less_than_zero", head);
     if ( i >= cpu_count )
       return PL_existence_error("cpu", head);
 
-    CPU_SET(i, set);
+    CPU_SET((size_t) i, set); /* safe cast */
 
     if ( n++ == 100 && !PL_is_acyclic(tail) )
       return PL_type_error("list", tail);
@@ -2961,7 +2961,7 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
     if ( name == ATOM_debug )
     { int val;
       if ( PL_get_bool_ex(arg, &val) )
-      { info->debug = val;
+      { info->debug = (val == true);
 	return true;
       }
       return false;

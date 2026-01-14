@@ -1621,7 +1621,7 @@ localDefinition(DECL_LD Definition def)
 }
 
 void
-destroyLocalDefinition(Definition def, unsigned int tid)
+destroyLocalDefinition(Definition def, size_t tid)
 { size_t idx = MSB(tid);
   LocalDefinitions v = def->impl.local.local;
   Definition local;
@@ -1651,7 +1651,7 @@ getLocalProcDefinition(DECL_LD Definition def)
 
 
 Definition
-getProcDefinitionForThread(Definition def, unsigned int tid)
+getProcDefinitionForThread(Definition def, size_t tid)
 { size_t idx = MSB(tid);
   LocalDefinitions v = def->impl.local.local;
 

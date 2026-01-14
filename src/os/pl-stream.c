@@ -2043,8 +2043,8 @@ Sgetttysize(IOSTREAM *s, short *cols, short *rows)
     return -1;
   }
 
-  *cols = s->tty_size >> 16;
-  *rows = s->tty_size & 0xffff;
+  *cols = (short) (s->tty_size >> 16); /* safe cast */
+  *rows = (short) (s->tty_size & 0xffff); /* safe cast */
   return 0;
 }
 

@@ -264,7 +264,7 @@ const debug_topic debug_topics[] =
 
 static const debug_topic *
 get_next_debug_topic(const char *topic, const debug_topic *dt)
-{ int cmplen = strlen(topic) + 1;
+{ size_t cmplen = strlen(topic) + 1;
   if (cmplen > 1 && topic[cmplen-2] == '*')
     cmplen -= 2;
   for (dt = dt ? dt + 1 : debug_topics; dt->name; dt++)
@@ -293,11 +293,11 @@ debug_high_code(void)
 
 static int
 prolog_debug_topic(const char *topic, int flag)
-{ long level;
+{ int level;
   char *end;
   int success = false;
 
-  level = strtol(topic, &end, 10);
+  level = (int) strtol(topic, &end, 10); /* safe cast, debug_level in 0..9 */
   if ( end > topic && *end == EOS )
   { GD->debug_level = level;
     success = true;
