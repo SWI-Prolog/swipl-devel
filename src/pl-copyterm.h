@@ -39,7 +39,7 @@
 
 typedef struct fastheap_term
 { size_t data_len;
-  unsigned int *relocations;			/* Relocation points */
+  size_t *relocations;				/* Relocation points */
   Word data;					/* the actual data */
 } fastheap_term;
 

@@ -740,7 +740,7 @@ outOfStack(void *stack, stack_overflow_action how)
 
 
 bool
-raiseStackOverflow(int overflow)
+raiseStackOverflow(ssize_t overflow)
 { GET_LD
   Stack s;
 

@@ -78,8 +78,8 @@ We provide two answer completion strategies:
 #define SINDEX_MAX	32
 
 typedef struct sindex_key
-{ unsigned	argn;
-  unsigned	key;
+{ size_t	argn;
+  size_t	key;
 } sindex_key;
 
 typedef struct suspension
@@ -97,7 +97,7 @@ typedef struct
   cluster      *acp;		/* Current answer cluster */
   cluster      *scp;		/* Current suspension cluster */
   answer       *answer;		/* Current answer */
-  int		acp_index;	/* Index in anser cluster */
+  size_t	acp_index;	/* Index in answer cluster */
   struct
   { suspension *base;
     suspension *top;
@@ -974,7 +974,7 @@ create_delay_set(delay_info *di)
   return NULL;
 }
 
-static int
+static size_t
 add_to_delay_set(delay_info *di, delay_set *ds,
 		 trie *variant, trie_node *answer)
 { delay *d;
@@ -1050,9 +1050,9 @@ equal_delay(const delay *a, const delay *b)
 static int
 equal_delay_set(const delay *delays, const delay_set *a, const delay_set *b)
 { if ( a->size == b->size )
-  { unsigned int ia = a->offset;
-    unsigned int ib = b->offset;
-    unsigned int ea = a->offset + a->size;
+  { size_t ia = a->offset;
+    size_t ib = b->offset;
+    size_t ea = a->offset + a->size;
 
     for( ; ia < ea; ia++, ib++)
     { if ( !equal_delay(&delays[ia], &delays[ib]) )
@@ -1292,7 +1292,7 @@ retry:
 
       if ( tshare || !simplify_delay_set(di, ds) )
       { delay *d = baseBuffer(&di->delays, delay);
-	unsigned int i, e = ds->offset+ds->size;
+	size_t i, e = ds->offset+ds->size;
 
 	for(i=ds->offset; i<e; i++)
 	{ if ( d[i].variant )
@@ -1634,12 +1634,12 @@ Answer to propagate is <wl,panswer> with truth result.
 This answer is propagate to `answer`
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 propagate_to_answer(spf_agenda *agenda, worklist *wl,
 		    trie_node *panswer, int result, trie_node *answer)
 { delay_info *di;
   trie *variant = wl->table;
-  int found = false;
+  bool found = false;
 
   DEBUG(MSG_TABLING_SIMPLIFY, print_answer("  to", answer));
 
@@ -1648,8 +1648,8 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
     delay *db = baseBuffer(&di->delays, delay);
 
     for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
-    { unsigned o;
-      unsigned oe = ds->offset+ds->size;
+    { size_t o;
+      size_t oe = ds->offset+ds->size;
 
       for(o=ds->offset; o<oe; o++)
       { delay *d = &db[o];
@@ -1928,7 +1928,7 @@ positive delay elements.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_AC_EAGER
-static int
+static bool
 has_positive_dl(trie_node *n)
 { delay_info *di;
 
@@ -1937,8 +1937,8 @@ has_positive_dl(trie_node *n)
     delay *db = baseBuffer(&di->delays, delay);
 
     for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
-    { unsigned o;
-      unsigned oe = ds->offset+ds->size;
+    { size_t o;
+      size_t oe = ds->offset+ds->size;
 
       for(o=ds->offset; o<oe; o++)
       { delay *d = &db[o];
@@ -2892,12 +2892,12 @@ free_cluster(cluster *c)
     free_suspension_cluster(c);
 }
 
-static int
+static size_t
 acp_size(cluster *c)
 { return entriesBuffer(&c->members, answer);
 }
 
-static int
+static size_t
 scp_size(cluster *c)
 { return entriesBuffer(&c->members, suspension);
 }
@@ -4357,8 +4357,8 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       { cluster *acp, *scp;
 
 	if ( (acp=wl->riac) && (scp=acp->next) )
-	{ int sz_acp = acp_size(acp);
-	  int sz_scp = scp_size(scp);
+	{ size_t sz_acp = acp_size(acp);
+	  size_t sz_scp = scp_size(scp);
 
 	  wkl_swap_clusters(wl, acp, scp);
 
@@ -7050,7 +7050,7 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
       } else if ( !table_is_incomplete(n->atrie) &&
 		  !n->mono_reevaluating &&
 		  (n->monotonic ? n->falsecount > 0 : true /* see (***) */) )
-      { int fc = ATOMIC_DEC(&n->falsecount);	/* Decrement falsecount */
+      { size_t fc = ATOMIC_DEC(&n->falsecount);	/* Decrement falsecount */
 
 	assert(fc >= 0);
 	if ( fc == 0 )
@@ -7207,7 +7207,7 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
   { idg_node *n;
 
     if ( (n=atrie->data.IDG) )
-      return PL_get_integer_ex(A2, &n->falsecount);
+      return PL_get_size_ex(A2, &n->falsecount);
 
     return false;
   }

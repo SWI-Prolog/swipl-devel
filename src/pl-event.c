@@ -127,7 +127,7 @@ get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 
 static bool
 add_event_hook(event_list *list, atom_t name,
-	       bool last, term_t closure, int argc)
+	       bool last, term_t closure, size_t argc)
 { GET_LD
   Module m = NULL;
   event_callback *cb;
@@ -196,7 +196,7 @@ get_event_list(event_list **list)
 
 bool
 register_event_hook(event_list **list, atom_t name,
-		    bool last, term_t closure, int argc)
+		    bool last, term_t closure, size_t argc)
 { return add_event_hook(get_event_list(list), name, last, closure, argc);
 }
 
@@ -347,7 +347,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 bool
 register_event_function(event_list **list, atom_t name,
 			bool last, void *func,
-			void *closure, int argc, unsigned int flags)
+			void *closure, size_t argc, unsigned int flags)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
   cb->argc = argc;
@@ -556,7 +556,7 @@ sendDelayedEvents(int noerror)
   if ( --LD->event.delay_nesting == 0 )
   { Buffer b = LD->event.buffered;
     delayed_event *dev = baseBuffer(b, delayed_event);
-    int count = entriesBuffer(b, delayed_event);
+    size_t count = entriesBuffer(b, delayed_event);
 
     LD->event.buffered = NULL;
 

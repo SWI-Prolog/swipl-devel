@@ -117,7 +117,7 @@ typedef enum
 
 #define LDFUNC_DECLARATIONS
 
-bool		PL_error(const char *pred, int arity, const char *msg,
+bool		PL_error(const char *pred, size_t arity, const char *msg,
 			 PL_error_code id, ...);
 bool		PL_no_memory(void);
 bool		printMessage(atom_t severity, ...) WUNUSED;

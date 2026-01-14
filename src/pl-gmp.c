@@ -845,8 +845,8 @@ load_mpz_bits(const char *data, size_t size, size_t limpsize, int neg, Word p)
 { mpz_t mpz;
 
 #if O_GMP
-  mpz->_mp_size  = limpsize;
-  mpz->_mp_alloc = limpsize;
+  mpz->_mp_size  = (int) limpsize; /* dubious */
+  mpz->_mp_alloc = (int) limpsize; /* dubious */
   mpz->_mp_d     = (mp_limb_t*)p;
 
   mpz_import(mpz, size, 1, 1, 1, 0, data);
@@ -892,7 +892,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   *p++ = m;
   p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
   p[wsize+MPZ_STACK_EXTRA] = m;
-  *p++ = mpz_size_stack(neg ? -limbsize : limbsize);
+  *p++ = mpz_size_stack((int) (neg ? -limbsize : limbsize)); /* dubious cast */
 #if O_BF
   *p++ = bf.expn;
 #endif
@@ -934,11 +934,11 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
-  *p++ = mpq_size_stack(num_neg ? -num_limbsize : num_limbsize);
+  *p++ = mpq_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = num_bf.expn;
 #endif
-  *p++ = mpq_size_stack(den_neg ? -den_limbsize : den_limbsize);
+  *p++ = mpq_size_stack((int) (den_neg ? -den_limbsize : den_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = den_bf.expn;
 #endif
@@ -2112,7 +2112,7 @@ mpz_fdiv(mpz_t a, mpz_t b)
   mpz_clear(aa);
   mpz_clear(bb);
 
-  return ldexp(d, (long)sa - (long)sb);
+  return ldexp(d, (int) ((long)sa - (long)sb)); /* dubious cast */
 }
 
 /* Convert MPZ to a double by appropriate rounding of result from mpz_get_d */

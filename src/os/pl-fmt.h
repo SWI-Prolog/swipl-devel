@@ -40,6 +40,6 @@
 COMMON(char *)	formatInteger(PL_locale *locale, int div, int radix,
 			      bool smll, Number n, Buffer out);
 COMMON(bool)	do_format(IOSTREAM *fd, PL_chars_t *fmt,
-			  int argc, term_t argv, Module m);
+			  size_t argc, term_t argv, Module m);
 
 #endif /*FMT_H_INCLUDED*/

@@ -522,14 +522,14 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 	    return E_CYCLE;
 	  default:
 	  { FunctorDef fd = valueFunctor(f);
-	    int arity = arityFunctor(f);
+	    size_t arity = arityFunctor(f); /* was int, may affect code below */
 
 	    Atom fn = atomValue(fd->name);
 
 	    HASH("T", 1);
 	    HASH(&fn->length, sizeof(fn->length));
 	    HASH(fn->name, (unsigned long)fn->length);
-	    HASH(&arity, sizeof(arity));
+	    HASH(&arity, sizeof(arity));   /* here */
 	  }
 	}
 	continue;
@@ -849,12 +849,13 @@ VOID_RETURN sha1_begin(sha1_ctx ctx[1])
 /* SHA1 hash data in an array of bytes into hash buffer and */
 /* call the hash_compile function as required.              */
 
-VOID_RETURN sha1_hash(const unsigned char data[], unsigned long len, sha1_ctx ctx[1])
+VOID_RETURN sha1_hash(const unsigned char data[], long unsigned int len, sha1_ctx ctx[1])
 {   uint32_t pos = (uint32_t)(ctx->count[0] & SHA1_MASK),
             space = SHA1_BLOCK_SIZE - pos;
     const unsigned char *sp = data;
 
-    if((ctx->count[0] += len) < len)
+    ctx->count[0] = (uint32_t) (ctx->count[0] + len);
+    if(ctx->count[0] < len)
         ++(ctx->count[1]);
 
     while(len >= space)     /* tranfer whole blocks if possible  */

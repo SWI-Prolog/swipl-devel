@@ -140,7 +140,7 @@ static ClauseRef first_clause_guarded(const Word argv, size_t argc,
 				      ClauseList clist,
 				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,
-			   int *in_hvoid);
+			   ssize_t *in_hvoid);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(ClauseIndex ci, ClauseList clist,
 			       IndexContext ctx);
@@ -180,7 +180,7 @@ hashIndex(word key, unsigned int buckets)
   const int  shift = key_bits-MSB(buckets);
 
   key ^= key >> shift;
-  return (fib64*key) >> shift;
+  return (unsigned int) ((fib64*key) >> shift);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1446,8 +1446,8 @@ cleanClauseIndexes(Definition def, ClauseList cl, DirtyDefInfo ddi,
 
 void
 clearTriedIndexes(Definition def)
-{ int arity = def->functor->arity;
-  int i;
+{ size_t arity = def->functor->arity;
+  size_t i;
 
   for(i=0; i<arity; i++)
   { arg_info *ainfo = &def->impl.clauses.args[i];
@@ -1556,7 +1556,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
-{ int h_void = 0;
+{ ssize_t h_void = 0;
   Code PC = skipToTerm(cl, ci->position, &h_void);
 
   if ( likely(ci->args[1] == 0) )
@@ -2688,7 +2688,7 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
+skipToTerm(Clause clause, const iarg_t *position, ssize_t *in_hvoid)
 { int an;
   Code pc = clause->codes;
 
@@ -2834,7 +2834,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   { Clause cl = cref->value.clause;
     Code pc;
     int carg = 0;
-    int h_void = 0;
+    ssize_t h_void = 0;
 
     if ( ison(cl, CL_ERASED) )
       continue;
@@ -3073,7 +3073,7 @@ bestHash(DECL_LD Word av, size_t argc,
     if ( better_index(better_than, best_speedup, MIN_SPEEDUP) )
     { arg_info *ainfo = &clist->args[best];
 
-      cp_hints_from_arg_info(hints, best, ainfo);
+      cp_hints_from_arg_info(hints, (iarg_t) best, ainfo); /* dubious cast */
 
       return true;
     }
@@ -3134,7 +3134,7 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 			      nbest->speedup));
       memset(hints, 0, sizeof(*hints));
       memcpy(hints->args, nbest->args, sizeof(nbest->args));
-      hints->ln_buckets = MSB(nbest->size);
+      hints->ln_buckets = MSB(nbest->size) & 0x1F; /* dubious cast */
       hints->speedup    = nbest->speedup;
 
       free_keys_in_assessment_set(&aset);
@@ -3216,7 +3216,7 @@ create_good_indexes(const ClauseList clist,
   int i;
 
   for(i=0; i<nassessments && nhints < max_hints ; i++)
-  { int arg0 = assessments[i];
+  { iarg_t arg0 = assessments[i];
     const arg_info *ai = &clist->args[arg0];
 
     if ( (float)clist->number_of_clauses/ai->speedup < MIN_SPEEDUP )
@@ -3243,7 +3243,7 @@ create_deep_indexes(const ClauseList clist,
   iarg_t *keep = assessments;
 
   for(int i=0; i<nassessments; i++)
-  { int arg0 = assessments[i];
+  { iarg_t arg0 = assessments[i];
     const arg_info *ai = &clist->args[arg0];
 
     if ( ai->list && nhints < max_hints )
@@ -3252,7 +3252,7 @@ create_deep_indexes(const ClauseList clist,
       *keep++ = arg0;
   }
 
-  *npassessments = keep-assessments;
+  *npassessments = (int) (keep-assessments); /* dubious cast */
   *nphints = nhints;
 }
 
@@ -3586,7 +3586,7 @@ PRED_IMPL("$candidate_indexes", 3, candidate_indexes, PL_FA_TRANSPARENT)
 #define PINDEX_MAYBEDEEP	(-2)
 
 static int
-can_be_primary_index(ClauseList clist, int arg0)
+can_be_primary_index(ClauseList clist, size_t arg0)
 { bool first = true;
   word key;
 
@@ -3707,7 +3707,7 @@ update_primary_index(DECL_LD Definition def)
 	{ DEBUG(MSG_JIT_PRIMARY,
 		Sdprintf("Set primary index for %s (%d clauses) to %d\n",
 			 predicateName(def), noc, argn+1));
-	  modify_primary_index_arg(def, argn);
+	  modify_primary_index_arg(def, (iarg_t) argn); /* dubious cast, but argn >= 0 */
 	}
       } else
       { if ( argn == PINDEX_MAYBEDEEP )
@@ -4012,7 +4012,7 @@ ci_set_flag(DECL_LD term_t t, atom_t key)
     { if ( f->type == FT_FLOAT )
       { double d;
 	if ( PL_get_float_ex(t, &d) )
-	{ *f->ptr.f = d;
+	{ *f->ptr.f = (float) d; /* safe cast */
 	  return true;
 	}
 	return false;

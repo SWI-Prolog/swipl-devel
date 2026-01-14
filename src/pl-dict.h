@@ -56,7 +56,7 @@ int	pl_for_dict(term_t dict,
 		   void *closure,
 		   int flags);
 
-functor_t dict_functor(int pairs);
+functor_t dict_functor(size_t pairs);
 int	  dict_order(Word dict, Word dupl);
 int	  dict_order_term_refs(term_t *av, int *indexes, int cnt);
 Word	  dict_lookup_ptr(word dict, word name, size_t *arg);

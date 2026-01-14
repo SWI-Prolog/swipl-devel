@@ -102,7 +102,8 @@ valid functors appear in the array.
 static void
 registerFunctor(FunctorDef fd)
 { size_t index;
-  int idx, amask;
+  int idx;
+  size_t amask;
 
   index = ATOMIC_INC(&GD->functors.highest) - 1;
   idx = MSB(index);

@@ -515,7 +515,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
   proc = resolveProcedure(fd, module);
 
-  { int arity = arityFunctor(fd);
+  { size_t arity = arityFunctor(fd);
     term_t args;
     qid_t qid = 0;
     int n;

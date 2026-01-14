@@ -334,7 +334,7 @@ static foreign_t
 format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
 { GET_LD
   term_t argv;
-  int argc = 0;
+  size_t argc = 0;
   term_t args = PL_copy_term_ref(Args);
   int rval;
   PL_chars_t fmt;
@@ -345,9 +345,9 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   intptr_t len = lengthList(args, false);
   if ( len >= 0 )
   { term_t head = PL_new_term_ref();
-    int n = 0;
+    size_t n = 0;
 
-    argc = len;
+    argc = (size_t) len; /* safe cast */
     argv = PL_new_term_refs(argc);
     while( PL_get_list(args, head, args) )
       PL_put_term(argv+n++, head);
@@ -512,7 +512,7 @@ get_int_expression(term_t t, Number i)
 		********************************/
 
 bool
-do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
+do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
   unsigned int here = 0;
@@ -584,7 +584,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      FMT_ARGC(c, argv);
 	    }
 	    SHIFT;
-	    arg = i.value.i;
+	    arg = (int) i.value.i; /* dubious cast */
 	    AR_END();
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
@@ -794,14 +794,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    FMT_ARG("s", argv);
 
 		  if ( arg == DEFAULT )
-		    arg = txt.length;
+		    arg = (int) txt.length; /* dubious cast */
 		  else if ( arg < 0 )
 		    arg = 0;
 		  else if ( arg < txt.length )
 		    txt.length = arg;
 
 		  rc = outtext(&state, &txt);
-		  for(int i=arg-txt.length; rc && i>0; i--)
+		  for(size_t i=arg-txt.length; rc && i>0; i--)
 		    rc = outchr(&state, ' ');
 		  PL_free_text(&txt);
 		  SHIFT;
@@ -1496,7 +1496,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  if ( mpz_sgn(t1) == 0 )
 	  { exp = 0;
 	  } else
-	  { exp = mpz_sizeinbase(t1, 10)-1;  /* guess exponent */
+	  { exp = (int) mpz_sizeinbase(t1, 10)-1;  /* guess exponent */ /* dubiuos cast */
 	    mpz_ui_pow_ui(t2, 10, exp);
 	    if (mpz_cmp(t2, t1) > 0) exp--;  /* correct exponent */
 
@@ -1524,10 +1524,10 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPQ:
     { char tmp[12];
       size_t size;
-      int written;
+      size_t written;
       int fbits;
-      int digits;
-      int padding;
+      size_t digits;
+      size_t padding;
 
       switch(how)
       { case 'f':
@@ -1613,7 +1613,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 	  if (mpz_cmpabs(mpq_numref(f->value.mpq), mpq_denref(f->value.mpq)) >= 0)
 	  { mpz_tdiv_q(t1, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq));
-	    exp = mpz_sizeinbase(t1, 10)-1;     /* guess exponent */
+	    exp = (int) mpz_sizeinbase(t1, 10)-1; /* guess exponent */ /* safe cast */
 	    mpz_ui_pow_ui(t2, 10, exp);
 	    if (mpz_cmpabs(t2, t1) > 0) exp--;  /* correct exponent */
 	  } else
@@ -1623,7 +1623,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	    mpz_set(t1, mpq_numref(f->value.mpq));
 	    mpz_abs(t1, t1);
 	    mpz_tdiv_q(t1, mpq_denref(f->value.mpq), t1);
-	    exp = 0-mpz_sizeinbase(t1, 10);     /* guess exponent */
+	    exp = (int) (0-mpz_sizeinbase(t1, 10)); /* guess exponent */ /* safe cast */
 	    mpz_ui_pow_ui(t2, 10, abs(exp)-1);
 	    mpq_set_z(tq1, t1);
 	    mpq_inv(tq2, f->value.mpq);
@@ -1802,8 +1802,8 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       /*FALLTHROUGH*/
     case V_FLOAT:
     { char tmp[12];
-      int written = arg+20;
-      int size = 0;
+      size_t written = arg+20;
+      size_t size = 0;
 
       if ( how == 'h' || how == 'H' )
       { size_t space = 32;

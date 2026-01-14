@@ -155,11 +155,11 @@ initWamTable(DECL_LD)
 						  sizeof(char));
 
   for(n = 0; n < I_HIGHEST; n++)
-  { int index = wam_table[n]-dewam_table_offset;
+  { size_t index = wam_table[n]-dewam_table_offset;
     dewam_table[index] = (unsigned char) 0;
   }
   for(n = 0; n < I_HIGHEST; n++)
-  { int index = wam_table[n]-dewam_table_offset;
+  { size_t index = wam_table[n]-dewam_table_offset;
     if ( dewam_table[index] )		/* See SEPARATE_VMI */
       fatalError("WAM Table mismatch: wam_table[%d(%s)] == wam_table[%d(%s)]\n",
 		 dewam_table[index], codeTable[dewam_table[index]].name,
@@ -369,8 +369,8 @@ typedef struct branch_var
 } branch_var;
 
 typedef struct
-{ int		var;			/* Variable for local cuts */
-  int		nextvar;
+{ size_t	var;			/* Variable for local cuts */
+  size_t	nextvar;
   code		instruction;		/* Instruction to use: C_CUT/C_LCUT */
 } cutInfo;
 
@@ -566,14 +566,14 @@ static void	resetVars(DECL_LD);
 
 #define getVarDef(i) LDFUNC(getVarDef, i)
 static VarDef
-getVarDef(DECL_LD int i)
+getVarDef(DECL_LD ssize_t i)
 { VarDef vd;
   VarDef *vardefs = LD->comp.vardefs;
-  int nvd = LD->comp.nvardefs;
+  ssize_t nvd = LD->comp.nvardefs;
 
   if ( i >= nvd )
   { VarDef *vdp;
-    int onvd = nvd, n;
+    ssize_t onvd = nvd, n;
 
     while ( i >= nvd )
       nvd = nvd > 0 ? (nvd*2) : 32;
@@ -605,9 +605,9 @@ getVarDef(DECL_LD int i)
 
 #define resetVarDefs(n) LDFUNC(resetVarDefs, n)
 static void
-resetVarDefs(DECL_LD int n)		/* set addresses of first N to NULL */
+resetVarDefs(DECL_LD ssize_t n)		/* set addresses of first N to NULL */
 { VarDef *vd;
-  int nvd = LD->comp.nvardefs;
+  ssize_t nvd = LD->comp.nvardefs;
 
   if ( n > nvd )			/* allocates them */
     getVarDef(n-1);
@@ -631,7 +631,7 @@ void
 freeVarDefs(PL_local_data_t *ld)
 { if ( ld->comp.vardefs )
   { VarDef *vardefs = ld->comp.vardefs;
-    int i, count=ld->comp.nvardefs;
+    size_t i, count=ld->comp.nvardefs;
 
     ld->comp.vardefs = NULL;
     ld->comp.nvardefs = 0;
@@ -850,8 +850,8 @@ in_branch(const branch_var *from, const branch_var *to, const Word v)
 #define analyseVariables2(head, nvars, argn, ci, depth, control) \
 	LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
 
-static int
-analyseVariables2(DECL_LD Word head, int nvars, int argn,
+static ssize_t
+analyseVariables2(DECL_LD Word head, ssize_t nvars, ssize_t argn,
 		  CompileInfo ci, int depth, int control)
 {
 right_recursion:
@@ -860,7 +860,7 @@ right_recursion:
 
   if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
   { VarDef vd;
-    int index;
+    ssize_t index;
 
     if ( argn >= 0 && argn < ci->arity )
     { index = argn;
@@ -916,7 +916,7 @@ right_recursion:
   if ( isTerm(*head) )
   { Functor f = valueTerm(*head);
     FunctorDef fd = valueFunctor(f->definition);
-    int rc;
+    ssize_t rc;
 
 #if O_TIGHT_CSTACK
 #define CYCLE_CHECK_AT 1000
@@ -1166,12 +1166,12 @@ has not been implemented yet)
 /*	AVARS_MAX      -12 */
 
 #define analyse_variables(head, body, ci) LDFUNC(analyse_variables, head, body, ci)
-static int
+static ssize_t
 analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
-{ int nv, nvars = 0;
+{ ssize_t nv, nvars = 0;
   int n;
   int body_voids = 0;
-  int arity = ci->arity;
+  size_t arity = ci->arity;
 
   if ( arity > 0 )
     resetVarDefs(arity);
@@ -1403,12 +1403,12 @@ into C_VAR_N(5,4), where the example 4 represents the sequence length.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct c_var_state
-{ int at;
-  int count;
+{ size_t at;
+  size_t count;
 } c_var_state;
 
 static void
-c_var(c_var_state *s, int at, compileInfo *ci)
+c_var(c_var_state *s, size_t at, compileInfo *ci)
 { if ( s->count == 0 )
   { s->count = 1;
     s->at = at;
@@ -1550,7 +1550,7 @@ isFirstVarP(DECL_LD Word p, compileInfo *ci, int *i)
 }
 
 
-static int
+static size_t
 allocChoiceVar(CompileInfo ci)
 {
 #if 0
@@ -1563,7 +1563,7 @@ allocChoiceVar(CompileInfo ci)
 		      ATOM_max_frame_size);
   }
 #else
-  int var = VAROFFSET(ci->clause->variables++);
+  size_t var = VAROFFSET(ci->clause->variables++);
 
   if ( ci->clause->variables == 0 )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
@@ -1840,7 +1840,7 @@ play around with variable tables.
 
 #define compileClauseGuarded(ci, cp, head, body, proc, module, warnings, flags) \
 	LDFUNC(compileClauseGuarded, ci, cp, head, body, proc, module, warnings, flags)
-static int compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
+static ssize_t compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
 				Procedure proc, Module module, term_t warnings,
 				int flags);
 
@@ -1854,12 +1854,12 @@ cleanupCompile(DECL_LD CompileInfo ci)
 }
 #endif
 
-int
+ssize_t
 compileClause(DECL_LD Clause *cp, Word head, Word body,
 	      Procedure proc, Module module, term_t warnings,
 	      int flags)
 { compileInfo ci;			/* data base for the compiler */
-  int rc;
+  ssize_t rc;
 
   ci.progress = 0;
   initBuffer(&ci.codes);
@@ -1872,14 +1872,14 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
   return rc;
 }
 
-static int
+static ssize_t
 compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
 		     Procedure proc, Module module, term_t warnings,
 		     int flags)
 { struct clause clause = {0};
   Clause cl;
   Definition def = getProcDefinition(proc);
-  int rc;
+  ssize_t rc;
 
   if ( head )
   { ci->islocal       = false;
@@ -2315,7 +2315,7 @@ right_argument:
 	deRef(a0);
 	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
 	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
-	{ int var;
+	{ size_t var;
 	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
@@ -2378,7 +2378,7 @@ right_argument:
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 ||		/* A -> B */
 		  fd == FUNCTOR_softcut2 )		/* A *-> B */
-      { int var;
+      { size_t var;
 	int rv;
 	int hard = (fd == FUNCTOR_ifthen2);
 	cutInfo cutsave = ci->cut;
@@ -2403,7 +2403,7 @@ right_argument:
 	succeed;
       } else if ( fd == FUNCTOR_not_provable1 ||	/* \+/1 */
 		  fd == FUNCTOR_dollar1 )		/* $/1 */
-      { int var;
+      { size_t var;
 	size_t tc_or, tc_det;
 	VarTable vsave;
 	int rv;
@@ -4369,7 +4369,7 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	Sdprintf(" ... "););
 
   for(;;)
-  { int rc;
+  { ssize_t rc;
 
     h = valTermRef(head);
     b = valTermRef(body);
@@ -4748,7 +4748,7 @@ to skip H_VOID_N in small steps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
-skipArgs(Code PC, int skip, int *in_hvoid)
+skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid)
 { int nested = 0;
   Code nextPC;
 
@@ -4827,7 +4827,7 @@ skipArgs(Code PC, int skip, int *in_hvoid)
       case H_VOID_N:
 	if ( nested )
 	  continue;
-	skip -= (int)PC[1];
+	skip -= PC[1];
 	if ( skip <= 0 )
 	{ *in_hvoid = -skip;
 	  return PC;
@@ -4868,9 +4868,9 @@ pl-index.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-argKey(Code PC, int skip, word *key)
+argKey(Code PC, size_t skip, word *key)
 { if ( skip > 0 )
-  { int h_void = 0;
+  { ssize_t h_void = 0;
     PC = skipArgs(PC, skip, &h_void);
   }
 
@@ -5088,7 +5088,7 @@ typedef struct
 { Code	 pc;			/* pc for decompilation */
   Word   argp;			/* argument pointer */
   size_t arity;			/* Arity of the predicate */
-  int	 nvars;			/* size of var block */
+  size_t nvars;			/* size of var block */
   bit_vector *bvar_access;	/* Accessed as b_var<0..arity-1> */
   term_t bvar_args;		/* Arity size vector for moved unifications */
   term_t variables;		/* variable table (PL_new_term_refs() array) */
@@ -5904,7 +5904,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    continue;
 			  }
 	case A_ROUNDTOWARDS_A:
-			  { int i = *PC++;
+			  { size_t i = *PC++;
 			    *ARGP++ = float_rounding_name(i);
 			    continue;
 			  }
@@ -8011,8 +8011,8 @@ add_1_if_not_at_end(DECL_LD Code PC, Code end, term_t tail)
 }
 
 
-static int
-not_breakable(atom_t op, Clause clause, int offset)
+static bool
+not_breakable(atom_t op, Clause clause, size_t offset)
 { GET_LD
   term_t av;
 
@@ -8327,7 +8327,7 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
 
 typedef struct
 { Clause	clause;			/* Associated clause */
-  int		offset;			/* Offset of the instruction */
+  size_t	offset;			/* Offset of the instruction */
   code		saved_instruction;	/* The instruction saved */
 } break_point, *BreakPoint;
 
@@ -8342,8 +8342,8 @@ Concurrency issues are avoided because both  setBreak and clearBreak are
 called with L_BREAK locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int				/* must hold L_BREAK */
-matching_unify_break(Clause clause, int offset, code op)
+static size_t				/* must hold L_BREAK */
+matching_unify_break(Clause clause, size_t offset, code op)
 { switch(op)
   { case B_UNIFY_VAR:
     case B_UNIFY_FIRSTVAR:
@@ -8386,7 +8386,7 @@ cleanupBreakPoints(void)
 #define BRK_EXISTS 2
 
 static int				/* must hold L_BREAK */
-setBreak(Clause clause, int offset)	/* offset is already verified */
+setBreak(Clause clause, size_t offset)	/* offset is already verified */
 { GET_LD
   int second_bp = false;
   Code PC;
@@ -8429,7 +8429,7 @@ set_second:
 
 
 static int				/* must hold L_BREAK */
-clearBreak(Clause clause, int offset)
+clearBreak(Clause clause, size_t offset)
 { GET_LD
   Code PC, PC0;
   BreakPoint bp;
@@ -8479,7 +8479,7 @@ clearBreakPointsClause(Clause clause)
     FOR_TABLE(breakTable, name, value)
     { BreakPoint bp = val2ptr(value);
       if ( bp->clause == clause )
-      { int offset = bp->offset;
+      { size_t offset = bp->offset;
 	clearBreak(clause, bp->offset);
 	rc = callEventHook(PLEV_RETRACTNOBREAK, clause, offset) && rc;
       }

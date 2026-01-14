@@ -377,7 +377,7 @@ WallTime(void)
 
 #ifdef HAVE_SC_NPROCESSORS_CONF
 
-int
+size_t
 CpuCount(void)
 {
 #ifdef _SC_NPROCESSORS_ONLN
@@ -389,7 +389,7 @@ CpuCount(void)
 
 #elif defined(PROCFS_CPUINFO)
 
-int
+size_t
 CpuCount(void)
 { FILE *fd = fopen("/proc/cpuinfo", "r");
 
@@ -450,10 +450,10 @@ CpuCount(void)
 
 void
 setOSPrologFlags(void)
-{ int cpu_count = CpuCount();
+{ size_t cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)cpu_count); /* dubious cast */
 }
 #endif
 
@@ -1009,7 +1009,7 @@ initExpand(void)
     { char *e;
 
       if ( (e = strchr(cpaths, ':')) )
-      { int l = e-cpaths;
+      { size_t l = e-cpaths;
 
 	strncpy(buf, cpaths, l);
 	buf[l] = EOS;
@@ -2945,7 +2945,8 @@ findExecutable(const char *av0, char *buffer, size_t buflen)
 
 #if __unix__				/* argv[0] can be an #! script! */
   if ( file )
-  { int n, fd;
+  { size_t n;
+    int fd;
     char buf[PATH_MAX];
 					/* Fails if mode is x-only, but */
 					/* then it can't be a script! */

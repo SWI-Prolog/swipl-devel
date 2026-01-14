@@ -4468,7 +4468,7 @@ PL_pred(functor_t functor, module_t module)
 
 
 predicate_t
-PL_predicate(const char *name, int arity, const char *module)
+PL_predicate(const char *name, size_t arity, const char *module)
 { Module m;
   atom_t a    = lookupAtom(name, strlen(name));
   functor_t f = lookupFunctorDef(a, arity);
@@ -4487,7 +4487,7 @@ PL_predicate(const char *name, int arity, const char *module)
 }
 
 
-/* _PL_predicate(const char *name, int arity, const char *module, moved to pl-fli.h */
+/* _PL_predicate(const char *name, size_t arity, const char *module, moved to pl-fli.h */
 
 
 bool

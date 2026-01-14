@@ -643,8 +643,8 @@ struct PL_local_data
 
   struct
   { VarDef *	vardefs;		/* compiler variable analysis */
-    int		nvardefs;
-    int		filledVars;
+    size_t	nvardefs;
+    size_t	filledVars;
   } comp;
 
   struct

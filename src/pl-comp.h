@@ -60,7 +60,7 @@ int		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m, int *flags);
 Procedure	lookupBodyProcedure(functor_t functor, Module tm);
-int		compileClause(Clause *cp, Word head, Word body,
+ssize_t		compileClause(Clause *cp, Word head, Word body,
 			      Procedure proc, Module module,
 			      term_t warnings, int flags);
 Clause		assert_term(term_t term, Module m, ClauseRef where,
@@ -73,8 +73,8 @@ Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
 int		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
-Code		skipArgs(Code PC, int skip, int *in_hvoid);
-bool		argKey(Code PC, int skip, word *key);
+Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
+bool		argKey(Code PC, size_t skip, word *key);
 bool		arg1Key(Code PC, word *key);
 const Code	prevPC(const Clause clause, const Code pc);
 bool		decompile(Clause clause, term_t term, term_t bindings);

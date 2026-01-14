@@ -103,7 +103,7 @@ evaluation_error(term_t formal, atom_t which)
 }
 
 bool
-PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
+PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 { GET_LD
   char msgbuf[50];
   Definition caller;
