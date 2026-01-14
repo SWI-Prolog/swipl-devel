@@ -939,8 +939,8 @@ do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
     if ( (f = (functor_t) loadXR(state)) &&
 	 (c2 = PL_new_term_ref()) &&
 	 PL_unify_functor(term, f) )
-    { int arity = arityFunctor(f);
-      int n;
+    { size_t arity = arityFunctor(f);
+      size_t n;
 
       for(n=0; n < arity; n++)
       { _PL_get_arg(n+1, term, c2);
@@ -1181,8 +1181,11 @@ mpz_hdr_size(ssize_t hdrsize, mpz_t mpz, size_t *wszp)
   size_t limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
   size_t wsize    = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
 
-  mpz->_mp_size  = limpsize;
-  mpz->_mp_alloc = limpsize;
+  /* In pl-gmp.c, we have
+   * DEBUG(0, assert(sizeof(mpz->_mp_size) == sizeof(int)));
+   */
+  mpz->_mp_size  = (int) limpsize; /* dubious */
+  mpz->_mp_alloc = (int) limpsize;
 
   *wszp = wsize;
 }
@@ -1473,8 +1476,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 
 	{ SourceFile of = word2ptr(SourceFile, loadXR(state));
 	  SourceFile sf = word2ptr(SourceFile, loadXR(state));
-	  unsigned int ono = (of ? of->index : 0);
-	  unsigned int sno = (sf ? sf->index : 0);
+	  size_t ono = (of ? of->index : 0);
+	  size_t sno = (sf ? sf->index : 0);
 	  if ( sf )
 	  { acquireSourceFile(sf);
 	    if ( of != sf )
@@ -1633,8 +1636,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		int   c0 = Qgetc(fd);
 
 		if ( c0 == 'B' )
-		{ int lw = (l+sizeof(word))/sizeof(word);
-		  int pad = (lw*sizeof(word) - l);
+		{ size_t lw = (l+sizeof(word))/sizeof(word);
+		  size_t pad = (lw*sizeof(word) - l);
 		  Word bp;
 		  char *s;
 
@@ -1652,7 +1655,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		{ size_t i;
 		  size_t  bs = (l+1)*sizeof(pl_wchar_t);
 		  size_t  lw = (bs+sizeof(word))/sizeof(word);
-		  int    pad = (lw*sizeof(word) - bs);
+		  size_t  pad = (lw*sizeof(word) - bs);
 		  word	   m = mkBlobHdr(lw, pad, TAG_STRING);
 		  IOENC oenc = fd->encoding;
 
@@ -2372,9 +2375,9 @@ savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 
 static int
 savedXR(DECL_LD wic_state *state, void *xr)
-{ unsigned int id;
+{ uint32_t id;
 
-  if ( (id = (unsigned int)lookupHTable(state->savedXRTable, ptr2key(xr))) )
+  if ( (id = (uint32_t) lookupHTable(state->savedXRTable, ptr2key(xr))) )
   { IOSTREAM *fd = state->wicFd;
 
     Sputc(XR_REF, fd);
@@ -2382,7 +2385,7 @@ savedXR(DECL_LD wic_state *state, void *xr)
 
     succeed;
   } else
-  { id = ++state->savedXRTableId;
+  { id = (uint32_t) ++state->savedXRTableId; /* dubious cast */
     addNewHTable(state->savedXRTable, ptr2key(xr), id);
   }
 
@@ -2395,12 +2398,12 @@ savedXR(DECL_LD wic_state *state, void *xr)
 static int
 savedXRConstant(DECL_LD wic_state *state, word w)
 { word key = w;
-  unsigned int id;
+  uint32_t id;
 
   assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
   assert((w&0x3));			/* Cannot conflict with pointers */
 
-  if ( (id = (unsigned int)lookupHTable(state->savedXRTable, key)) )
+  if ( (id = (uint32_t)lookupHTable(state->savedXRTable, key)) )
   { IOSTREAM *fd = state->wicFd;
 
     Sputc(XR_REF, fd);
@@ -2408,7 +2411,7 @@ savedXRConstant(DECL_LD wic_state *state, word w)
 
     succeed;
   } else
-  { id = ++state->savedXRTableId;
+  { id = (uint32_t) ++state->savedXRTableId; /* dubious cast */
     addNewHTable(state->savedXRTable, key, id);
     if ( isAtom(w) )
     { DEBUG(MSG_QLF_XR, Sdprintf("REG: %s\n", stringAtom(w)));
@@ -2611,7 +2614,7 @@ do_save_qlf_term(DECL_LD wic_state *state, Word t)
       qlfPutInt64(id, fd);
     } else
     { Word q = argTermP(*t, 0);
-      int n, arity = arityFunctor(f);
+      size_t n, arity = arityFunctor(f);
 
       Sputc('t', fd);
       saveXRFunctor(state, f);
@@ -2626,10 +2629,11 @@ do_save_qlf_term(DECL_LD wic_state *state, Word t)
 
 
 #define saveQlfTerm(state, t) LDFUNC(saveQlfTerm, state, t)
-static int
+static bool
 saveQlfTerm(DECL_LD wic_state *state, term_t t)
 { IOSTREAM *fd = state->wicFd;
-  intptr_t nvars, rc=true;
+  intptr_t nvars;
+  bool rc=true;
   fid_t cid;
   nv_options options;
 
@@ -2826,8 +2830,8 @@ saveWicClause(wic_state *state, Clause clause)
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->source_no));
-  qlfPutUInt32(clause->prolog_vars, fd);
-  qlfPutUInt32(clause->variables, fd);
+  qlfPutUInt32((uint32_t) clause->prolog_vars, fd); /* dubious cast */
+  qlfPutUInt32((uint32_t) clause->variables, fd);   /* dubious cast */
   qlfPutUInt32(clauseFlags(clause), fd);
 
   bp = clause->codes;
@@ -3213,9 +3217,9 @@ sourceMark(wic_state *state)
 }
 
 
-static int
+static void
 writeSourceMarks(wic_state *state)
-{ long n = 0;
+{ size_t n = 0;
   SourceMark pn, pm = state->source_mark_head;
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("Writing source marks: "));
@@ -3224,16 +3228,14 @@ writeSourceMarks(wic_state *state)
   { pn = pm->next;
 
     DEBUG(MSG_QLF_SECTION, Sdprintf(" %d", pm->file_index));
-    qlfPut4BytesInt(pm->file_index, state->wicFd);
+    qlfPut4BytesInt((int32_t) pm->file_index, state->wicFd); /* dubious cast */
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   state->source_mark_head = state->source_mark_tail = NULL;
 
   DEBUG(MSG_QLF_SECTION, Sdprintf("\nWritten %d marks\n", n));
-  qlfPut4BytesInt(n, state->wicFd);
-
-  return 0;
+  qlfPut4BytesInt((int32_t) n, state->wicFd); /* dubious cast */
 }
 
 /* Raise an error of the format

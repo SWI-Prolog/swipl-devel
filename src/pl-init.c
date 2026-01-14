@@ -1048,7 +1048,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
 	long sig = strtol(optval, &e, 10);
 
 	if ( e > optval && *e == EOS && sig >= 0 && sig < 32 )
-	  GD->signals.sig_alert = sig;
+	  GD->signals.sig_alert = (int) sig;
 	else
 	  return -1;
 #endif

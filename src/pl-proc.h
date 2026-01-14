@@ -99,7 +99,7 @@ void		acquire_clause(Clause cl);
 void		release_clause(Clause cl);
 ClauseRef	newClauseRef(Clause cl, word key);
 size_t		removeClausesPredicate(Definition def,
-				       int sfindex, int fromfile);
+				       size_t sfindex, int fromfile);
 void		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 					   p_reload *r);
 void		destroyDefinition(Definition def);
@@ -150,7 +150,7 @@ lookupDefinition(functor_t f, Module m)
  */
 
 static inline bool
-mode_arg_is_unbound(Definition def, int arg0)
+mode_arg_is_unbound(Definition def, size_t arg0)
 { return def->impl.any.args[arg0].meta == MA_VAR;
 }
 

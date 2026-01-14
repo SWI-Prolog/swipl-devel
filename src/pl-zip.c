@@ -893,7 +893,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int flags = (CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_UTF8);
   char *extra = NULL;
   char *comment = NULL;
-  int extralen = 0;
+  size_t extralen = 0;
   double ftime = (double)time(NULL);
   int level = 6;
   atom_t method = ATOM_deflated;

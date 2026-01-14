@@ -171,8 +171,8 @@ typedef struct delay
 } delay;
 
 typedef struct delay_set
-{ unsigned	     offset;		/* offset in delays */
-  unsigned	     size;		/* size of the conjunction */
+{ size_t	     offset;		/* offset in delays */
+  size_t	     size;		/* size of the conjunction */
   unsigned	     active;		/* active members of conjunction */
 } delay_set;
 
@@ -207,7 +207,7 @@ typedef struct idg_node
   unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
   unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
   unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
-  int		falsecount;		/* Invalidate count */
+  size_t	falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS
   struct
   { uint64_t	invalidated;		/* # times it was invalidated */

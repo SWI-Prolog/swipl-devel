@@ -281,8 +281,8 @@ listSupervisor(Definition def)
     if ( found == 2 )
     { Code pc1 = cref[0]->value.clause->codes;
       Code pc2 = cref[1]->value.clause->codes;
-      int h_void1 = 0;
-      int h_void2 = 0;
+      size_t h_void1 = 0;
+      size_t h_void2 = 0;
 
       for(size_t arg=0; arg<arity; arg++)
       { if ( !mode_arg_is_unbound(def, arg) )
@@ -382,7 +382,7 @@ chainPredicateSupervisor(Definition def, Code post)
 
     if ( ison(def, P_META) && ison(def, P_TRANSPARENT) )
     { unsigned int i;
-      int loffset = -1;
+      ssize_t loffset = -1;
 
       for(i=0; i < def->functor->arity; i++)
       { int ma = def->impl.any.args[i].meta;

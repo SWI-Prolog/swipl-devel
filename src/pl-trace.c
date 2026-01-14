@@ -326,9 +326,9 @@ static bool		hasAlternativesFrame(LocalFrame);
 static void		alternatives(Choice);
 static int		exceptionDetails(void);
 static int		listGoal(LocalFrame frame);
-static LocalFrame	frameAtLevel(LocalFrame frame, int at_depth,
+static LocalFrame	frameAtLevel(LocalFrame frame, ssize_t at_depth,
 				     bool interactive);
-static int		saveGoal(LocalFrame frame, int at_depth,
+static int		saveGoal(LocalFrame frame, ssize_t at_depth,
 				 bool interactive);
 static int		traceInterception(LocalFrame, Choice, int, Code);
 static int		traceAction(char *cmd,
@@ -724,7 +724,7 @@ static int
 traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 	    bool interactive)
 { GET_LD
-  int num_arg;				/* numeric argument */
+  ssize_t num_arg;			/* numeric argument */
   int def_arg = true;			/* arg is default */
   char *s;
 
@@ -965,7 +965,7 @@ bool
 put_frame_goal(term_t goal, LocalFrame frame)
 { GET_LD
   Definition def = frame->predicate;
-  int argc = def->functor->arity;
+  size_t argc = def->functor->arity;
   term_t fref = consTermRef((Word)frame);
 
   if ( !PL_unify_functor(goal, def->functor->functor) )
@@ -1291,7 +1291,7 @@ listGoal(LocalFrame frame)
 
 
 static LocalFrame
-frameAtLevel(LocalFrame frame, int at_depth, bool interactive)
+frameAtLevel(LocalFrame frame, ssize_t at_depth, bool interactive)
 { GET_LD
 
   if ( at_depth )
@@ -1317,7 +1317,7 @@ frameAtLevel(LocalFrame frame, int at_depth, bool interactive)
 
 
 static int
-saveGoal(LocalFrame frame, int at_depth, bool interactive)
+saveGoal(LocalFrame frame, ssize_t at_depth, bool interactive)
 { GET_LD
   fid_t fid;
   int rc = false;
@@ -1363,7 +1363,7 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 #define SHOW_FRAME(fr) ( isDebugFrame(fr, 0) || !(flags&PL_BT_USER) )
 
 static void
-_PL_backtrace(IOSTREAM *out, int depth, int flags)
+_PL_backtrace(IOSTREAM *out, ssize_t depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1381,7 +1381,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 
     if ( depth < 0 )			/* deph < 0: top depth frames */
     { pl_context_t from = ctx;
-      int skip;
+      ssize_t skip;
 
       skip = depth = -depth;
       while( PL_step_context(&ctx) )
@@ -1434,7 +1434,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 
 
 void
-PL_backtrace(int depth, int flags)
+PL_backtrace(ssize_t depth, int flags)
 { GET_LD
 
   _PL_backtrace(Suser_error, depth, flags);
@@ -1463,12 +1463,12 @@ PL_backtrace_string(int depth, int flags)
 #define process_trace_action(frame, port, action, nodebugp)		\
   LDFUNC(process_trace_action, frame, port, action, nodebugp)
 
-static int
+static char
 process_trace_action(DECL_LD LocalFrame frame, int port,
 		     term_t action, bool *nodebugp)
 { atom_t a, name;
   size_t arity;
-  int rval;
+  char rval;
 
   if ( PL_get_atom(action, &a) )
   { if ( a == ATOM_continue || a == ATOM_creep )
@@ -2464,7 +2464,7 @@ clear_frame_vars(LocalFrame target)
 }
 
 
-static int
+static bool
 prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
@@ -2509,7 +2509,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 #endif
 
     if ( !hasGlobalSpace(0) )
-    { int rc;
+    { bool rc;
 
       if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
 	return raiseStackOverflow(rc);
@@ -2584,7 +2584,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 	}
 
 	if ( fr )
-	{ int i, garity = fr->predicate->functor->arity;
+	{ size_t i, garity = fr->predicate->functor->arity;
 
 	  fref = consTermRef((Word)fr);
 
@@ -2782,9 +2782,9 @@ bool
 PL_set_trace_action(term_t action)
 { GET_LD
   bool nodebug = false;
-  int rc = process_trace_action(LD->environment,
-				LD->trace.yield.port, action,
-				&nodebug);
+  char rc = process_trace_action(LD->environment,
+				 LD->trace.yield.port, action,
+				 &nodebug);
 
   if ( rc >= 0 )
   { clear_skip(LD->trace.yield.port, LD->environment, rc);

@@ -1585,7 +1585,7 @@ Not sure whether it is worth the trouble to use a hash-table here.
 
 #define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
 #define consVarInfo(i)	((word)(nv)<<LMASK_BITS)|TAG_VAR|STG_RESERVED
-#define valVarInfo(w)   ((size_t)((word)(w)>>LMASK_BITS))
+#define valVarInfo(w)   ((unsigned int)((word)(w)>>LMASK_BITS)) /* check cast */
 #define VAR_INDEX_HASH_OFFSET 1
 
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
@@ -2882,7 +2882,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
 
     if ( base <= 36 &&
 	 base > 1 &&
-	 digitValue(base, in[1]) >= 0 )
+	 digitValue((int) base, in[1]) >= 0 )
     { in++;
 
       if ( !(rc=scan_number(&in, negative, (int)base, value)) )
@@ -4021,7 +4021,7 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 */
 
 static int
-can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
+can_reduce(op_entry *op, int cpri, int out_n, ReadData _PL_rd)
 { int rc;
   int arity = op->kind == OP_INFIX ? 2 : 1;
   out_entry *e = out_op(-arity, _PL_rd);
@@ -5502,11 +5502,11 @@ static const PL_option_t read_term_options[] =
 #define read_term_from_stream(s, term, options) \
 	LDFUNC(read_term_from_stream, s, term, options)
 
-static foreign_t
+static bool
 read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 { term_t tpos = 0;
   term_t tcomments = 0;
-  int rval;
+  bool rval;
   atom_t w;
   read_data rd;
   int charescapes = -1;

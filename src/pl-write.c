@@ -2614,7 +2614,7 @@ PRED_IMPL("write_length", 3, write_length, 0)
 
   if ( (s = Snew(&lss, sflags, (IOFUNCTIONS *)&lss_functions)) )
   { int64_t len;
-    int rc;
+    size_t rc;
     pl_features_t oldmask = LD->prolog_flag.mask; /* (*) */
 
     lss.stream = s;

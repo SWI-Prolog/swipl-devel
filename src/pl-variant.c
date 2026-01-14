@@ -74,8 +74,8 @@ typedef struct argPairs
 typedef struct node
 { Word  bp;			/* pointer to the original term */
   word  orig;			/* saved word */
-  int	a;			/* variant at left */
-  int	b;			/* link to isomophic node */
+  size_t a;			/* variant at left */
+  size_t b;			/* link to isomophic node */
 } node;
 
 
@@ -177,9 +177,9 @@ term_id(Word p, Buffer buf)
   }
 }
 
-static inline int
-Root(int i, node **r, Buffer buf)
-{ int k;
+static inline size_t
+Root(size_t i, node **r, Buffer buf)
+{ size_t k;
   node * n;
 
   do
@@ -215,8 +215,8 @@ reset_terms(node *r)
 /* isomorphic (==) */
 
 #define isomorphic(a, i, j, buf) LDFUNC(isomorphic, a, i, j, buf)
-static int
-isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
+static bool
+isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
 { Word l = NULL, r = NULL, lm, ln;
   word dm, dn;
   Word dummy = NULL;
@@ -284,12 +284,12 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
 	size_t i, j;
 	node  *m,  *n;
 
-	if ( (i = term_id(l, buf)) < 0 )
-	  return MEMORY_OVERFLOW;
+	/*if ( (*/i = term_id(l, buf)/*) < 0 ) term_id returns size_t
+	  return MEMORY_OVERFLOW*/;
 	i = Root(i, &m, buf);
 
-	if ( (j = term_id(r, buf)) < 0 )
-	  return MEMORY_OVERFLOW;
+	/*if ( (*/j = term_id(r, buf)/*) < 0 )
+	  return MEMORY_OVERFLOW*/;
 	j = Root(j, &n, buf);
 
 	if ( i==j )
@@ -323,7 +323,7 @@ isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
 /* returns true, false or MEMORY_OVERFLOW */
 
 #define variant(agenda, buf) LDFUNC(variant, agenda, buf)
-static int
+static bool
 variant(DECL_LD argPairs *agenda, Buffer buf)
 { Word l = NULL, r =NULL;
 
@@ -344,7 +344,7 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 
    if ( needsRef(wl) )		/* var or attvar */
    { size_t i, j;
-     int m, n;
+     size_t m, n;
      node *vl, *vr;
      Word al, ar;
 
@@ -403,8 +403,8 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 	  continue;
         return false;
       case TAG_COMPOUND:
-      {   size_t i, j;
-	  int k, h;
+      {   ssize_t i, j, k;
+	  bool h;
 	  node *m;
 
 	  word dm, dn;			/* definition (= functor/arity) */

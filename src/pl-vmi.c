@@ -2966,7 +2966,7 @@ VMH(c_cut, 1, (Choice), (och))
   if ( (void *)och > (void *)FR )
   { lTop = (LocalFrame)(och+1);
   } else
-  { int nvar = (ison(FR->predicate, P_FOREIGN)
+  { size_t nvar = (ison(FR->predicate, P_FOREIGN)
 			? (int)FR->predicate->functor->arity
 			: FR->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(FR, nvar);
@@ -5461,7 +5461,7 @@ VMH(i_metacall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	}
       } else
       { Clause cl;
-	int rc;
+	ssize_t rc;
 
 	if ( fd->functor == FUNCTOR_at_sign2 &&
 	     !checkCallAtContextInstantiation(a) )

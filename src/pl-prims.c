@@ -615,7 +615,7 @@ var_occurs_in(DECL_LD Word v, Word t)
   unified:
     if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
-      int arity = arityFunctor(f->definition);
+      size_t arity = arityFunctor(f->definition);
 
       if ( !compound )
       { compound = true;
@@ -1057,7 +1057,7 @@ typedef struct term_chain_agenda
 
 
 #define ph_acyclic_mark(p) LDFUNC(ph_acyclic_mark, p)
-static int
+static bool
 ph_acyclic_mark(DECL_LD Word p)
 { term_chain_agenda agenda;
   termChain chains[32];
@@ -1066,7 +1066,7 @@ ph_acyclic_mark(DECL_LD Word p)
   Functor tail = top;
   Functor iter;
   Word pdef;
-  int arity;
+  size_t arity;
 
   initSegStack(&agenda.stack, sizeof(termChain), sizeof(chains), chains);
 
@@ -1085,12 +1085,12 @@ ph_acyclic_mark(DECL_LD Word p)
     arity = arityFunctor(tail->definition);
 
     if ( arity > 1 )
-    { int i;
-      int new_workspace = false;
+    { size_t i;
+      bool new_workspace = false;
 
       iter = tail;
-      for( i = arity-2; i >= 0; i-- )
-      { p = iter->arguments + i;
+      for( i = arity; i >= 2; i-- )
+      { p = iter->arguments + i - 2;
 	deRef(p);
 
 	if ( isTerm(*p) )
@@ -1321,7 +1321,7 @@ scan_shared(DECL_LD Word t, Word vart, size_t *count)
 */
 
 #define unscan_shared(t) LDFUNC(unscan_shared, t)
-static int
+static void
 unscan_shared(DECL_LD Word t)
 { term_agenda agenda;
   Word p;
@@ -1333,7 +1333,7 @@ unscan_shared(DECL_LD Word t)
       Word d = &f->definition;
 
       if ( is_marked(d) )
-      { int arity;
+      { size_t arity;
 
 	clear_marked(d);
 	clear_first(d);
@@ -1343,8 +1343,6 @@ unscan_shared(DECL_LD Word t)
     }
   }
   clearTermAgenda(&agenda);
-
-  return true;
 }
 
 
@@ -1381,7 +1379,7 @@ restore_shared_functors(DECL_LD Word vars)
 
 
 #define link_shared(t) LDFUNC(link_shared, t)
-static int
+static void
 link_shared(DECL_LD Word t)
 { term_agenda agenda;
   Word p;
@@ -1399,7 +1397,7 @@ link_shared(DECL_LD Word t)
 	deRef(v);
 
 	if ( is_marked(d) )
-	{ int arity = arityFunctor(*v);
+	{ size_t arity = arityFunctor(*v);
 	  pushWorkAgenda(&agenda, arity, f->arguments);
 	}
 
@@ -1412,7 +1410,7 @@ link_shared(DECL_LD Word t)
 	  *v = makeRefG(p);
 	}
       } else if ( is_marked(d) )
-      { int arity;
+      { size_t arity;
 	word fun = f->definition & ~(FIRST_MASK|MARK_MASK);
 
 	clear_marked(d);
@@ -1422,8 +1420,6 @@ link_shared(DECL_LD Word t)
     }
   }
   clearTermAgenda(&agenda);
-
-  return true;
 }
 
 
@@ -1565,9 +1561,9 @@ termHashValue(DECL_LD word term, long depth, unsigned int *hval)
       case TAG_COMPOUND:
       { Functor t = valueTerm(term);
 	FunctorDef fd;
-	int arity;
+	size_t arity;
 	Word p;
-	unsigned int atom_hashvalue;
+	size_t atom_hashvalue;
 
 	if ( visited(t) )
 	{ *hval = MurmurHashAligned2(hval, sizeof(*hval), *hval);
@@ -1916,7 +1912,7 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, int eq)
       if ( f1->definition != f2->definition )
       { return compare_functors(f1->definition, f2->definition, eq);
       } else
-      { int arity;
+      { size_t arity;
 
       compound:
 	arity = arityFunctor(f1->definition);

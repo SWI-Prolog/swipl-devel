@@ -126,8 +126,8 @@ for tabling, this does not work.
 static functor_t fast_functors[FAST_FUNCTORS] = {0};
 
 static functor_t
-env_functor(int slots)
-{ int arity = slots+3;				/* Context, Clause and PC */
+env_functor(size_t slots)
+{ size_t arity = slots+3;			/* Context, Clause and PC */
 
   if ( arity < FAST_FUNCTORS )
   { if ( likely(fast_functors[arity]) )
@@ -146,7 +146,7 @@ static bool
 put_environment(DECL_LD term_t env, LocalFrame fr, Code pc, bool for_copy)
 { term_t fr_ref   = consTermRef(fr);
   const Clause cl = fr->clause->value.clause;
-  int i, slots    = cl->variables;
+  size_t i, slots = cl->variables;
   size_t bv_bytes = sizeof_bitvector(slots);
   char tmp[128];
   char *buf;

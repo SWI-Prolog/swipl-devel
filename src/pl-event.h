@@ -65,7 +65,7 @@ typedef struct event_callback
   { struct fastheap_term *term;		/* closure */
     void		 *pointer;	/* for C functions */
   } closure;
-  int			 argc;		/* #context args */
+  size_t		 argc;		/* #context args */
   unsigned int		 flags;		/* EV_CALLBACK_* */
   struct event_callback *next;		/* next in chain */
 } event_callback;
@@ -103,9 +103,9 @@ int	sendDelayedEvents(int noerror);
 int	PL_call_event_hook(pl_event_type ev, ...);
 bool	PL_call_event_hook_va(pl_event_type ev, va_list args);
 bool	register_event_hook(event_list **list, atom_t name, bool last,
-			    term_t closure, int argc);
+			    term_t closure, size_t argc);
 bool	register_event_function(event_list **list, atom_t name, bool last,
-				void *func, void *closure, int argc,
+				void *func, void *closure, size_t argc,
 				unsigned int flags);
 void	destroy_event_list(event_list **listp);
 int	predicate_update_event(Definition def, atom_t action, Clause cl,
