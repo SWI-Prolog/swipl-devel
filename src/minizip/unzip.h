@@ -385,7 +385,7 @@ extern int ZEXPORT unzCloseCurrentFile(unzFile file);
 
 extern int ZEXPORT unzReadCurrentFile(unzFile file,
                                       voidp buf,
-                                      unsigned len);
+                                      size_t len);
 /*
   Read bytes from the current file (opened by unzOpenCurrentFile)
   buf contain buffer where data must be copied

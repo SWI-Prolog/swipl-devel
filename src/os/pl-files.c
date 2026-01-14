@@ -217,7 +217,7 @@ static char *
 ReadLink(const char *f, char *buf)
 {
 #ifdef HAVE_READLINK
-  int n;
+  ssize_t n;
 
   if ( (n=readlink(f, buf, PATH_MAX-1)) > 0 )
   { buf[n] = EOS;

@@ -164,9 +164,9 @@ extern int ZEXPORT zipOpenNewFileInZip64(zipFile file,
                                          const char* filename,
                                          const zip_fileinfo* zipfi,
                                          const void* extrafield_local,
-                                         uInt size_extrafield_local,
+                                         size_t size_extrafield_local,
                                          const void* extrafield_global,
-                                         uInt size_extrafield_global,
+                                         size_t size_extrafield_global,
                                          const char* comment,
                                          int method,
                                          int level,
@@ -284,9 +284,9 @@ extern int ZEXPORT zipOpenNewFileInZip4_64(zipFile file,
                                            const char* filename,
                                            const zip_fileinfo* zipfi,
                                            const void* extrafield_local,
-                                           uInt size_extrafield_local,
+                                           size_t size_extrafield_local,
                                            const void* extrafield_global,
-                                           uInt size_extrafield_global,
+                                           size_t size_extrafield_global,
                                            const char* comment,
                                            int method,
                                            int level,
@@ -308,7 +308,7 @@ extern int ZEXPORT zipOpenNewFileInZip4_64(zipFile file,
 
 extern int ZEXPORT zipWriteInFileInZip(zipFile file,
                                        const void* buf,
-                                       unsigned len);
+                                       size_t len);
 /*
   Write data in the zipfile
 */

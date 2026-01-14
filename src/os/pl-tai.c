@@ -83,7 +83,7 @@ struct ftm is a `floating' version of the system struct tm.
 typedef struct ftm
 { struct	tm tm;			/* System time structure */
   double	sec;			/* float version of tm.tm_sec */
-  int		utcoff;			/* offset to UTC (seconds) */
+  long		utcoff;			/* offset to UTC (seconds) */
   atom_t	tzname;			/* Name of timezone */
   int		isdst;			/* Daylight saving time */
   double	stamp;			/* Time stamp (sec since 1970-1-1) */
@@ -110,7 +110,7 @@ provide that. Instead thet provide  tm_gmtoff   in  struct  tm, but this
 value is EAST and includes the DST offset.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static long
 tz_offset(void)
 {
 #ifdef HAVE_VAR_TIMEZONE
@@ -118,7 +118,7 @@ tz_offset(void)
   return timezone;
 #else
 #ifdef HAVE_STRUCT_TIME_TM_GMTOFF
-  static int offset = -1;
+  static long offset = -1;
   if ( offset == -1 )
   { time_t t = time(NULL);
     struct tm tm;
@@ -247,7 +247,7 @@ get_int_arg(int i, term_t t, term_t a, int *val)
 
 
 static int
-get_voff_arg(int i, term_t t, term_t a, int *val)
+get_voff_arg(int i, term_t t, term_t a, long *val)
 { GET_LD
 
   _PL_get_arg(i, t, a);
@@ -256,7 +256,7 @@ get_voff_arg(int i, term_t t, term_t a, int *val)
   { *val = NO_UTC_OFFSET;
     return true;
   } else
-  { return PL_get_integer_ex(a, val);
+  { return PL_get_int64_ex(a, val);
   }
 }
 
@@ -349,7 +349,7 @@ get_ftm(term_t t, ftm *ftm)
 
       if ( ftm->utcoff == NO_UTC_OFFSET )
       { if ( ftm->tm.tm_isdst < 0 )	/* unknown DST */
-	{ int offset;
+	{ long offset;
 
 	  if ( mktime(&ftm->tm) == (time_t)-1 )
 	    return PL_representation_error("dst");
@@ -457,7 +457,7 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
   { struct caltime ct;
     int weekday, yearday;
     double sec;
-    int utcoffset;
+    long utcoffset;
     int done = false;
     atom_t alocal;
     atom_t tzatom = ATOM_minus;
@@ -501,7 +501,7 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
       } else
       { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_timezone, A3);
       }
-    } else if ( !PL_get_integer_ex(A3, &utcoffset) )
+    } else if ( !PL_get_int64_ex(A3, &utcoffset) )
     { fail;
     }
 
@@ -919,7 +919,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUTNUMBER(fd, "%d", ftm->tm.tm_year+1900);
 	    break;
 	  case 'z':			/* Time-zone as offset */
-	  { int min = -ftm->utcoff/60;
+	  { long min = -ftm->utcoff/60;
 
 	    if ( min >= 0 )
 	    { OUTCHR(fd, '+');
@@ -927,10 +927,10 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    { min = -min;
 	      OUTCHR(fd, '-');
 	    }
-	    OUT2DIGITS(fd, min/60);
+	    OUT2DIGITS(fd, (int) (min/60)); /* safe cast */
 	    if ( altO )
 	      OUTCHR(fd, ':');
-	    OUT2DIGITS(fd, min%60);
+	    OUT2DIGITS(fd, (int) (min%60));
 	    break;
 	  }
 	  case 'Z':			/* Time-zone as name */
@@ -1032,7 +1032,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
       tb.tm.tm_hour = ct.hour;
       tb.tm.tm_mday = ct.date.day;
       tb.tm.tm_mon  = ct.date.month - 1;
-      tb.tm.tm_year = ct.date.year - 1900;
+      tb.tm.tm_year = (int) (ct.date.year - 1900); /* safe cast */
       tb.tm.tm_wday = weekday;
       tb.tm.tm_yday = yearday;
       tb.tzname     = ATOM_utc;
