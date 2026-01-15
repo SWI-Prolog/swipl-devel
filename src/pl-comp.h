@@ -56,7 +56,7 @@ void		initWamTable(void);
 void		cleanupWamTable(void);
 void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
-int		get_head_and_body_clause(term_t clause,
+bool		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m, int *flags);
 Procedure	lookupBodyProcedure(functor_t functor, Module tm);
@@ -65,13 +65,13 @@ ssize_t		compileClause(Clause *cp, Word head, Word body,
 			      term_t warnings, int flags);
 Clause		assert_term(term_t term, Module m, ClauseRef where,
 			    atom_t owner, SourceLoc loc, int flags);
-int		forAtomsInCodes(size_t size, Code PC,
+bool		forAtomsInCodes(size_t size, Code PC,
 				int (func)(atom_t a, void*), void *ctx);
-int		forAtomsInClause(Clause clause,
+bool		forAtomsInClause(Clause clause,
 				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
-int		det_goal_error(LocalFrame fr, Code PC,
+bool		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
 Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
 bool		argKey(Code PC, size_t skip, word *key);

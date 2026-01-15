@@ -4089,7 +4089,7 @@ As term_hash/2, but only considers \arg{Term} to the specified
 depth 2, etc.  That is, $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
 hashes atomic values or the functor and arity of a compound term,
 not its arguments; $\arg{Depth} = 2$ also indexes the immediate
-arguments, etc.
+arguments, etc.  If $\arg{Depth} = -1$, no depth limit is applied.
 
 \arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
 must be in the range $[1 \ldots 2147483647]$.

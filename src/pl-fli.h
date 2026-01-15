@@ -142,7 +142,7 @@ word		linkValNoG(Word p);
 void		bArgVar(Word ap, Word vp);
 bool		_PL_put_number(term_t t, Number n);
 FLI_INLINE
-predicate_t	_PL_predicate(const char *name, size_t arity,
+predicate_t	_PL_predicate(const char *name, int arity,
 			      const char *module, predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
 void		cleanupInitialiseHooks(void);
@@ -345,7 +345,7 @@ PL_put_intptr(DECL_LD term_t t, intptr_t i)
 }
 
 FLI_INLINE predicate_t
-_PL_predicate(const char *name, size_t arity, const char *module,
+_PL_predicate(const char *name, int arity, const char *module,
 	      predicate_t *bin)
 { if ( !*bin )
     *bin = PL_predicate(name, arity, module);

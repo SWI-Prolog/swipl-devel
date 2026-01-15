@@ -835,7 +835,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugmode(DBG_OFF, NULL);
 		return PL_TRACE_ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		PL_backtrace(def_arg ? 5 : num_arg, PL_BT_USER);
+		PL_backtrace(def_arg ? 5 : (int)num_arg, PL_BT_USER);
 		return PL_TRACE_ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(bfr);
@@ -1363,7 +1363,7 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 #define SHOW_FRAME(fr) ( isDebugFrame(fr, 0) || !(flags&PL_BT_USER) )
 
 static void
-_PL_backtrace(IOSTREAM *out, ssize_t depth, int flags)
+_PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1381,7 +1381,7 @@ _PL_backtrace(IOSTREAM *out, ssize_t depth, int flags)
 
     if ( depth < 0 )			/* deph < 0: top depth frames */
     { pl_context_t from = ctx;
-      ssize_t skip;
+      int skip;
 
       skip = depth = -depth;
       while( PL_step_context(&ctx) )
@@ -1434,7 +1434,7 @@ _PL_backtrace(IOSTREAM *out, ssize_t depth, int flags)
 
 
 void
-PL_backtrace(ssize_t depth, int flags)
+PL_backtrace(int depth, int flags)
 { GET_LD
 
   _PL_backtrace(Suser_error, depth, flags);
@@ -1665,7 +1665,7 @@ is prepared to generalise this.
 See also PL_backtrace() and os/pl-cstack.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_get_context(pl_context_t *c, int thread_id)
 { GET_LD
   (void)thread_id;
@@ -1688,7 +1688,7 @@ PL_get_context(pl_context_t *c, int thread_id)
 }
 
 
-int
+bool
 PL_step_context(pl_context_t *c)
 { if ( c->fr )
   { GET_LD
@@ -1706,11 +1706,11 @@ PL_step_context(pl_context_t *c)
     }
   }
 
-  return c->fr ? true : false;
+  return c->fr != NULL;
 }
 
 
-int
+int	/* number of bytes printed */
 PL_describe_context(pl_context_t *c, char *buf, size_t len)
 { LocalFrame fr;
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -121,9 +121,9 @@ mark_vars() is a helper for copy_term/4.
 
 #define mark_vars(t, set) LDFUNC(mark_vars, t, set)
 
-static int
+static boolex_t
 mark_vars(DECL_LD term_t t, int set)
-{ int rc = true;
+{ boolex_t rc = true;
   term_agenda agenda;
   Word p = valTermRef(t);
 
@@ -197,7 +197,7 @@ share_for_duplicate(DECL_LD const Functor t, const cp_options *options)
 #define mark_for_duplicate(p, options) \
 	LDFUNC(mark_for_duplicate, p, options)
 
-static int
+static boolex_t
 mark_for_duplicate(DECL_LD Word p, const cp_options *options)
 { term_agenda agenda;
 
@@ -389,7 +389,7 @@ must_copy_attvar(word w, int flags, int mode)
 #define mark_for_copy(p, options) \
 	LDFUNC(mark_for_copy, p, options)
 
-static int
+static boolex_t
 mark_for_copy(DECL_LD Word p, const cp_options *options)
 { Word start = p;
   int mode = 0;
@@ -597,7 +597,7 @@ exitCyclicCopy(DECL_LD int flags)
 #define copy_term(from, to, options) \
 	LDFUNC(copy_term, from, to, options)
 
-static int
+static boolex_t
 copy_term(DECL_LD Word from, Word to, const cp_options *options)
 { term_agendaLRD agenda;
   int rc = true;
@@ -758,9 +758,9 @@ deferenced and to is a variable.
 #define do_copy_term(from, to, options) \
 	LDFUNC(do_copy_term, from, to, options)
 
-static int
+static boolex_t
 do_copy_term(DECL_LD Word from, Word to, const cp_options *options)
-{ int rc;
+{ boolex_t rc;
 
 again:
   switch(tag(*from))
@@ -817,7 +817,7 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
 	       const cp_options *options)
 { for(;;)
   { fid_t fid;
-    int rc;
+    boolex_t rc;
     Word dest, src;
 
     if ( !(fid = PL_open_foreign_frame()) )

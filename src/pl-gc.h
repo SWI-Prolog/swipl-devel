@@ -54,20 +54,20 @@
 
 #define LDFUNC_DECLARATIONS
 
-int		considerGarbageCollect(Stack s);
+bool		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
-int		garbageCollect(gc_reason_t reason);
+boolex_t	garbageCollect(gc_reason_t reason);
 foreign_t	pl_garbage_collect(term_t d);
 gc_stat *	last_gc_stats(gc_stats *stats);
 Word		findGRef(int n);
 size_t		nextStackSizeAbove(size_t n);
-int		shiftTightStacks(void);
-int		growStacks(size_t l, size_t g, size_t t);
+boolex_t	shiftTightStacks(void);
+boolex_t	growStacks(size_t l, size_t g, size_t t);
 size_t		nextStackSize(Stack s, size_t minfree);
-bool		makeMoreStackSpace(ssize_t overflow, int flags);
-int		f_ensureStackSpace(size_t gcells, size_t tcells,
+bool		makeMoreStackSpace(boolex_t overflow, int flags);
+boolex_t	f_ensureStackSpace(size_t gcells, size_t tcells,
 				   int flags);
-int		growLocalSpace(size_t bytes, int flags);
+boolex_t	growLocalSpace(size_t bytes, int flags);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);

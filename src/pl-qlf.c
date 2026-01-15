@@ -1476,8 +1476,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 
 	{ SourceFile of = word2ptr(SourceFile, loadXR(state));
 	  SourceFile sf = word2ptr(SourceFile, loadXR(state));
-	  size_t ono = (of ? of->index : 0);
-	  size_t sno = (sf ? sf->index : 0);
+	  srcindex_t ono = (of ? of->index : 0);
+	  srcindex_t sno = (sf ? sf->index : 0);
 	  if ( sf )
 	  { acquireSourceFile(sf);
 	    if ( of != sf )

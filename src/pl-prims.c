@@ -264,7 +264,7 @@ Returns one of:
 #define SWAPW(p,q) do { Word _tmp = p; p=q; q=_tmp; } while(0)
 #define unify_simple_ptrs(t1, t2) LDFUNC(unify_simple_ptrs, t1, t2)
 
-int
+boolex_t
 unify_simple_ptrs(DECL_LD Word t1, Word t2)
 { word w1, w2;
 
@@ -355,12 +355,12 @@ unify_simple_ptrs(DECL_LD Word t1, Word t2)
 
 
 #define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
-int
+boolex_t
 do_unify(DECL_LD Word t1, Word t2)
 { deRef(t1);
   deRef(t2);
 
-  int rc = unify_simple_ptrs(t1, t2);
+  boolex_t rc = unify_simple_ptrs(t1, t2);
   if ( rc >= 0 )
     return rc;
   if ( rc != DO_COMPOUND )
@@ -508,7 +508,7 @@ Return:
       - false: unification failure or raised exception
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 unify_ptrs(DECL_LD Word t1, Word t2, int flags)
 { for(;;)
   { int rc;
@@ -590,13 +590,13 @@ entry.  Returns one of
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define var_occurs_in(v, t) LDFUNC(var_occurs_in, v, t)
-static int
+static boolex_t
 var_occurs_in(DECL_LD Word v, Word t)
 { segstack visited;
   Functor tmp[256];
   term_agenda agenda;
-  int compound = false;
-  int rc = false;
+  bool compound = false;
+  boolex_t rc = false;
 
   deRef(t);
   if ( v == t )
@@ -628,11 +628,14 @@ var_occurs_in(DECL_LD Word v, Word t)
       { f->definition |= FIRST_MASK;
 	if ( !pushSegStack(&visited, f, Functor) ||
 	     !pushWorkAgenda(&agenda, arity, f->arguments) )
-	  return MEMORY_OVERFLOW;
+	{ rc = MEMORY_OVERFLOW;
+	  goto out;
+	}
       }
     }
   } while( compound && (t=nextTermAgenda(&agenda)) );
 
+out:
   if ( compound )
   { Functor f;
 
@@ -645,14 +648,18 @@ var_occurs_in(DECL_LD Word v, Word t)
 }
 
 
-int
+bool
 PL_var_occurs_in(term_t var, term_t value)
 { GET_LD
   Word v = valTermRef(var);
 
   deRef(v);
+  boolex_t rc = var_occurs_in(v, valTermRef(value));
 
-  return var_occurs_in(v, valTermRef(value));
+  if ( rc >= 0 )
+    return rc;
+
+  return raiseStackOverflow(rc);
 }
 
 
@@ -1057,7 +1064,7 @@ typedef struct term_chain_agenda
 
 
 #define ph_acyclic_mark(p) LDFUNC(ph_acyclic_mark, p)
-static bool
+static boolex_t
 ph_acyclic_mark(DECL_LD Word p)
 { term_chain_agenda agenda;
   termChain chains[32];
@@ -1096,7 +1103,9 @@ ph_acyclic_mark(DECL_LD Word p)
 	if ( isTerm(*p) )
 	{ if ( !new_workspace )
 	  { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
-	      outOfCore();
+	    { discardSegStack(&agenda.stack);
+	      return MEMORY_OVERFLOW;
+	    }
 	    agenda.work.head = head;
 	    agenda.work.tail = tail;
 	    agenda.work.p = iter->arguments + arity-1;
@@ -1105,7 +1114,9 @@ ph_acyclic_mark(DECL_LD Word p)
 	    new_workspace = true;
 	  } else
 	  { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
-	      outOfCore();
+	    { discardSegStack(&agenda.stack);
+	      return MEMORY_OVERFLOW;
+	    }
 	    agenda.work.head = agenda.work.tail = valueTerm(*p);
 	    agenda.work.p = NULL;
 	  }
@@ -1161,7 +1172,7 @@ ph_acyclic_mark(DECL_LD Word p)
 
 
 #define ph_acyclic_unmark(p) LDFUNC(ph_acyclic_unmark, p)
-static int
+static void
 ph_acyclic_unmark(DECL_LD Word p)
 { term_agenda agenda;
 
@@ -1180,14 +1191,12 @@ ph_acyclic_unmark(DECL_LD Word p)
       pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
     }
   }
-
-  return true;
 }
 
 
-int
+boolex_t
 is_acyclic(DECL_LD Word p)
-{ int rc1;
+{ boolex_t rc1;
 
   deRef(p);
   if ( isTerm(*p) )
@@ -1202,9 +1211,9 @@ is_acyclic(DECL_LD Word p)
 
 
 #define PL_is_acyclic(t) LDFUNC(PL_is_acyclic, t)
-static int
+static bool
 PL_is_acyclic(DECL_LD term_t t)
-{ int rc;
+{ boolex_t rc;
 
   if ( (rc=is_acyclic(valTermRef(t))) == true )
     return true;
@@ -1423,14 +1432,14 @@ link_shared(DECL_LD Word t)
 }
 
 
-int
+bool
 PL_factorize_term(term_t term, term_t template, term_t factors)
 { GET_LD
   fid_t fid;
   term_t vars, wrapped;
   Word t;
   size_t count;
-  int rc;
+  boolex_t rc;
 
   for(;;)
   { if ( !(fid = PL_open_foreign_frame()) ||
@@ -1519,9 +1528,11 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    TERM-HASH		*
 		 *******************************/
 
-#define termHashValue(term, depth, hval) LDFUNC(termHashValue, term, depth, hval)
+#define termHashValue(term, depth, hval) \
+	LDFUNC(termHashValue, term, depth, hval)
+
 static bool
-termHashValue(DECL_LD word term, long depth, unsigned int *hval)
+termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
@@ -1578,7 +1589,7 @@ termHashValue(DECL_LD word term, long depth, unsigned int *hval)
 				   sizeof(atom_hashvalue),
 				   *hval);
 
-	if ( --depth != 0 )
+	if ( --depth != 0 )			/* -1 keeps on going */
 	{ for(p = t->arguments; arity-- > 0; p++)
 	  { if ( !termHashValue(*p, depth, hval) )
 	    { popVisited();
@@ -1608,12 +1619,12 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
 { PRED_LD
   Word p = valTermRef(A1);
   unsigned int hraw = MURMUR_SEED;
-  long depth;
+  int64_t depth;
   int range;
-  int rc = true;
+  bool rc = true;
 
-  if ( !PL_get_long_ex(A2, &depth) )
-    fail;
+  if ( !PL_get_int64_ex(A2, &depth) )
+    return false;
   if ( depth < -1 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, A2);
 
@@ -1649,7 +1660,7 @@ There are atoms of different  type.   We  only define comparison between
 atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+cmp_t
 compareAtoms(atom_t w1, atom_t w2)
 { if ( w1 == w2 )
     return CMP_EQUAL;
@@ -1786,8 +1797,10 @@ If eq == true, only test for equality. In this case expensive inequality
 tests (alphabetical order) are skipped and the call returns NOTEQ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define compare_primitives(p1, p2, eq) LDFUNC(compare_primitives, p1, p2, eq)
-static int
+#define compare_primitives(p1, p2, eq) \
+	LDFUNC(compare_primitives, p1, p2, eq)
+
+static cmpex_t
 compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 { word t1, t2;
   word w1, w2;
@@ -1798,7 +1811,7 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
   if ( w1 == w2 )
   { if ( isVar(w1) )
       return SCALAR_TO_CMP(p1, p2);
-    return CMP_EQUAL;
+    return CMPEX_EQUAL;
   }
 
   t1 = tag(w1);
@@ -1819,7 +1832,7 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
     static_assert(TAG_VAR == 0 && TAG_ATTVAR==1,
 		  "Think twice before reordering the tags");
     if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
-      return t1 < t2 ? CMP_LESS : CMP_GREATER;
+      return t1 < t2 ? CMPEX_LESS : CMPEX_GREATER;
   }
 
   switch(t1)
@@ -1846,7 +1859,7 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
     }
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
-	return CMP_EQUAL;
+	return CMPEX_EQUAL;
       else if ( eq )
 	return CMP_NOTEQ;
       else
@@ -1864,8 +1877,8 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
   }
 }
 
-static int
-compare_functors(word f1, word f2, int eq)
+static cmpex_t
+compare_functors(word f1, word f2, bool eq)
 { if ( eq )
   { return CMP_NOTEQ;
   } else
@@ -1873,27 +1886,29 @@ compare_functors(word f1, word f2, int eq)
     FunctorDef fd2 = valueFunctor(f2);
 
     if ( fd1->arity != fd2->arity )
-      return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
+      return fd1->arity > fd2->arity ? CMPEX_GREATER : CMPEX_LESS;
 
     return compareAtoms(fd1->name, fd2->name);
   }
 }
 
-#define do_compare(agenda, f1, f2, eq) LDFUNC(do_compare, agenda, f1, f2, eq)
-static int
-do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, int eq)
+#define do_compare(agenda, f1, f2, eq) \
+	LDFUNC(do_compare, agenda, f1, f2, eq)
+
+static cmpex_t
+do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, bool eq)
 { Word p1, p2;
 
   goto compound;
 
   while( nextTermAgendaLR(agenda, &p1, &p2) )
-  { int rc;
+  { cmpex_t rc;
 
     deRef(p1);
     deRef(p2);
 
     if ( (rc=compare_primitives(p1, p2, eq)) != CMP_COMPOUND )
-    { if ( rc == CMP_EQUAL )
+    { if ( rc == CMPEX_EQUAL )
 	continue;
       return rc;
     } else
@@ -1927,13 +1942,13 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, int eq)
     }
   }
 
-  return CMP_EQUAL;
+  return CMPEX_EQUAL;
 }
 
 
-int
-compareStandard(DECL_LD Word p1, Word p2, int eq)
-{ int rc;
+cmpex_t
+compareStandard(DECL_LD Word p1, Word p2, bool eq)
+{ cmpex_t rc;
 
   deRef(p1);
   deRef(p2);
@@ -1969,7 +1984,7 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
   Word d  = valTermRef(A1);
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
-  int val;
+  cmpex_t val;
   atom_t a;
 
   deRef(d);
@@ -1980,7 +1995,7 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
     { a = word2atom(*d);
 
       if ( a == ATOM_equals )
-	return compareStandard(p1, p2, true) == CMP_EQUAL ? true : false;
+	return compareStandard(p1, p2, true) == CMPEX_EQUAL;
 
       if ( a != ATOM_smaller && a != ATOM_larger )
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
@@ -1991,12 +2006,12 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
   if ( (val = compareStandard(p1, p2, false)) == CMP_ERROR )
     return false;
 
-  if ( a )
+  if ( a )				/* diff is given */
   { if ( a == ATOM_smaller )
       return val < 0;
     else
       return val > 0;
-  } else
+  } else				/* unify diff */
   { a = val < 0 ? ATOM_smaller :
 	val > 0 ? ATOM_larger :
 		  ATOM_equals;
@@ -2011,12 +2026,12 @@ PRED_IMPL("@<", 2, std_lt, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
-  int rc;
+  cmpex_t rc;
 
   if ( (rc=compareStandard(p1, p2, false)) == CMP_ERROR )
     return false;
 
-  return rc < 0 ? true : false;
+  return rc < 0;
 }
 
 
@@ -2025,12 +2040,12 @@ PRED_IMPL("@=<", 2, std_leq, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
-  int rc;
+  cmpex_t rc;
 
   if ( (rc=compareStandard(p1, p2, false)) == CMP_ERROR )
     return false;
 
-  return rc <= 0 ? true : false;
+  return rc <= 0;
 }
 
 
@@ -2039,12 +2054,12 @@ PRED_IMPL("@>", 2, std_gt, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
-  int rc;
+  cmpex_t rc;
 
   if ( (rc=compareStandard(p1, p2, false)) == CMP_ERROR )
     return false;
 
-  return rc > 0 ? true : false;
+  return rc > 0;
 }
 
 
@@ -2053,12 +2068,12 @@ PRED_IMPL("@>=", 2, std_geq, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
-  int rc;
+  cmpex_t rc;
 
   if ( (rc=compareStandard(p1, p2, false)) == CMP_ERROR )
     return false;
 
-  return rc >= 0 ? true : false;
+  return rc >= 0;
 }
 
 		/********************************
@@ -2131,7 +2146,7 @@ True if T1 and T2 is really  the   same  term,  so setarg/3 affects both
 terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_same_term(DECL_LD term_t T1, term_t T2)
 { Word t1 = valTermRef(T1);
   Word t2 = valTermRef(T2);
@@ -5951,7 +5966,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
 }
 
 
-int
+bool
 pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
 { number result;			/* make compiler happy */
   atom_t key;
@@ -5961,7 +5976,7 @@ pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
 #endif
 
   if ( !PL_get_atom_ex(k, &key) )
-    fail;
+    return false;
 
   if ( !PL_is_list(value) )
   { switch(swi_statistics(PASS_AS_LD(ld) key, &result))
@@ -5982,12 +5997,9 @@ pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
 
     for(p = v; rc-- > 0; p++)
     { if ( !PL_unify_list(tail, head, tail) )
-      { if ( PL_unify_nil(tail) )
-	  succeed;
-	fail;
-      }
+	return PL_unify_nil(tail);
       if ( !PL_unify_int64(head, *p) )
-	fail;
+	return false;
     }
 
     return PL_unify_nil(tail);
@@ -6140,7 +6152,7 @@ PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
 }
 
 
-int
+bool
 set_pl_option(const char *name, const char *value)
 { OptDef d = (OptDef)optdefs;
 
@@ -6169,21 +6181,21 @@ set_pl_option(const char *name, const char *value)
 	       *q == EOS &&
 	       intNumber(&n) )
 	  { *val = (size_t)n.value.i;
-	    succeed;
+	    return true;
 	  }
-	  fail;
+	  return false;
 	}
 	case CMDOPT_STRING:
 	{ char **val = d->address;
 
 	  *val = store_string(value);
-	  succeed;
+	  return true;
 	}
 	case CMDOPT_LIST:
 	{ opt_list **l = d->address;
 
 	  opt_append(l, value);
-	  succeed;
+	  return true;
 	}
 	default:
 	  assert(0);
@@ -6191,7 +6203,7 @@ set_pl_option(const char *name, const char *value)
     }
   }
 
-  fail;
+  return false;
 }
 
 

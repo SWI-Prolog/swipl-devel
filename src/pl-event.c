@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2022, University of Amsterdam
+    Copyright (c)  2019-2026, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -113,8 +113,10 @@ link_event(event_list *list, event_callback *cb, bool last)
 }
 
 
-#define get_callback(closure, m, cb) LDFUNC(get_callback, closure, m, cb)
-static int
+#define get_callback(closure, m, cb) \
+	LDFUNC(get_callback, closure, m, cb)
+
+static bool
 get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 { if ( !PL_strip_module(closure, m, cb) )
     return false;
@@ -127,7 +129,7 @@ get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 
 static bool
 add_event_hook(event_list *list, atom_t name,
-	       bool last, term_t closure, size_t argc)
+	       bool last, term_t closure, int argc)
 { GET_LD
   Module m = NULL;
   event_callback *cb;
@@ -196,14 +198,16 @@ get_event_list(event_list **list)
 
 bool
 register_event_hook(event_list **list, atom_t name,
-		    bool last, term_t closure, size_t argc)
+		    bool last, term_t closure, int argc)
 { return add_event_hook(get_event_list(list), name, last, closure, argc);
 }
 
 
-#define get_event_listp(type, listpp, argc) LDFUNC(get_event_listp, type, listpp, argc)
-static int
-get_event_listp(DECL_LD term_t type, event_list ***listpp, size_t *argc)
+#define get_event_listp(type, listpp, argc) \
+	LDFUNC(get_event_listp, type, listpp, argc)
+
+static bool
+get_event_listp(DECL_LD term_t type, event_list ***listpp, int *argc)
 { atom_t name;
   size_t arity;
 
@@ -240,17 +244,20 @@ static const PL_option_t prolog_listen_options[] =
   { NULL_ATOM,		 0 }
 };
 
-#define prolog_listen(type, closure, options) LDFUNC(prolog_listen, type, closure, options)
-static int
+#define prolog_listen(type, closure, options) \
+	LDFUNC(prolog_listen, type, closure, options)
+
+static bool
 prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
 { event_list **listp;
-  size_t argc;
+  int argc;
   atom_t as = ATOM_first;
   atom_t name = 0;
 
-  if ( options && !PL_scan_options(options, 0, /*OPT_ALL,*/
-				   "prolog_listen_option", prolog_listen_options,
-				   &as, &name) )
+  if ( options &&
+       !PL_scan_options(options, 0, /*OPT_ALL,*/
+			"prolog_listen_option", prolog_listen_options,
+			&as, &name) )
     return false;
 
   if ( !(as == ATOM_first || as == ATOM_last) )
@@ -283,7 +290,7 @@ static
 PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 { PRED_LD
   event_list **listp;
-  size_t argc;
+  int argc;
 
   if ( get_event_listp(A1, &listp, &argc) )
   { event_list *list;
@@ -347,7 +354,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 bool
 register_event_function(event_list **list, atom_t name,
 			bool last, void *func,
-			void *closure, size_t argc, unsigned int flags)
+			void *closure, int argc, unsigned int flags)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
   cb->argc = argc;
@@ -490,7 +497,7 @@ typedef struct delayed_event
 } delayed_event;
 
 
-static int
+static bool
 delayEvent(pl_event_type ev, va_list args)
 { GET_LD
 
@@ -526,7 +533,7 @@ delayEvent(pl_event_type ev, va_list args)
 }
 
 
-int
+bool
 delayEvents(void)
 { GET_LD
 
@@ -549,7 +556,7 @@ delayEvents(void)
 */
 
 int
-sendDelayedEvents(int noerror)
+sendDelayedEvents(bool noerror)
 { GET_LD
   int sent = 0;
 
@@ -595,13 +602,13 @@ sendDelayedEvents(int noerror)
 }
 
 
-int
+bool
 PL_call_event_hook(pl_event_type ev, ...)
 { event_list **listp = event_list_location(ev);
 
   if ( *listp && GD->halt.cleaning != CLN_DATA )
   { va_list args;
-    int rc;
+    bool rc;
 
     va_start(args, ev);
     rc = PL_call_event_hook_va(ev, args);
@@ -710,11 +717,11 @@ out:
 }
 
 
-int
+bool
 predicate_update_event(DECL_LD Definition def, atom_t action, Clause cl,
 		       unsigned flags)
 { wakeup_state wstate;
-  int rc;
+  bool rc;
 
   if ( (rc=saveWakeup(&wstate, true)) )
   { term_t av;
@@ -735,10 +742,10 @@ predicate_update_event(DECL_LD Definition def, atom_t action, Clause cl,
   return rc;
 }
 
-int
+bool
 table_answer_event(DECL_LD Definition def, atom_t action, term_t answer)
 { wakeup_state wstate;
-  int rc;
+  bool rc;
 
   if ( (rc=saveWakeup(&wstate, true)) )
   { term_t av;
@@ -762,11 +769,11 @@ table_answer_event(DECL_LD Definition def, atom_t action, term_t answer)
 }
 
 
-int
+bool
 retractall_event(DECL_LD Definition def, term_t head, functor_t start)
 { wakeup_state wstate;
   term_t av;
-  int rc = true;
+  bool rc = true;
 
   if ( !saveWakeup(&wstate, true) )
     return false;

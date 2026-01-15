@@ -101,7 +101,7 @@ emptySegStack(segstack *s)
 		    (stack)->top += sizeof(type),		\
 		    true					\
 		  )						\
-		: !!pushSegStack_((stack), &data)		\
+		: pushSegStack_((stack), &data)	!= NULL		\
 	)
 
 COMMON(void*)	pushSegStack_(segstack *stack, void* data) WUNUSED;

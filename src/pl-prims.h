@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -61,15 +61,15 @@
 
 #define LDFUNC_DECLARATIONS
 
-int		do_unify(Word t1, Word t2);
-int		unify_ptrs(Word t1, Word t2, int flags);
+boolex_t	do_unify(Word t1, Word t2);
+boolex_t	unify_ptrs(Word t1, Word t2, int flags);
 void		unify_vp(Word vp, Word val);
 bool		can_unify(Word t1, Word t2, term_t ex);
-int		compareStandard(Word t1, Word t2, int eq);
-int		compareAtoms(atom_t a1, atom_t a2);
+cmpex_t		compareStandard(Word t1, Word t2, bool eq);
+cmp_t		compareAtoms(atom_t a1, atom_t a2);
 intptr_t	skip_list(Word l, Word *tailp);
 intptr_t	lengthList(term_t list, bool errors);
-int		is_acyclic(Word p);
+boolex_t	is_acyclic(Word p);
 intptr_t	numberVars(term_t t, nv_options *opts, intptr_t n);
 word		stringToList(char *s);
 foreign_t	pl_sub_atom(term_t atom,
@@ -78,16 +78,16 @@ foreign_t	pl_sub_atom(term_t atom,
 foreign_t	pl_repeat(control_t h);
 foreign_t	pl_fail(void);
 foreign_t	pl_true(void);
-int		pl_statistics_ld(term_t k, term_t value,
+bool		pl_statistics_ld(term_t k, term_t value,
 				 PL_local_data_t *ld);
-int		set_pl_option(const char *name, const char *value);
+bool		set_pl_option(const char *name, const char *value);
 foreign_t	pl_novice(term_t old, term_t new);
 Word		ground(Word p);
-int		PL_factorize_term(term_t term,
+bool		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);
-int		PL_var_occurs_in(term_t var, term_t value);
+bool		PL_var_occurs_in(term_t var, term_t value);
 void		raiseInferenceLimitException(void);
-int		PL_same_term(term_t t1, term_t t2);
+bool		PL_same_term(term_t t1, term_t t2);
 bool		setarg(size_t argn, term_t term, term_t value,
 		       unsigned int flags);
 

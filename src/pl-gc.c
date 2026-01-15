@@ -3820,7 +3820,7 @@ that calls PL_handle_signals() from time to   time  to enable interrupts
 and call GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 considerGarbageCollect(Stack s)
 { GET_LD
 
@@ -4399,7 +4399,7 @@ Thanks to Keri Harris for figuring out why   we must include ARGP in our
 lTop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 garbageCollect(gc_reason_t reason)
 { GET_LD
   vm_state state;
@@ -4407,7 +4407,7 @@ garbageCollect(gc_reason_t reason)
   term_t preShiftLTop;			/* safe over trimStacks() (shift) */
   int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   int no_mark_bar;
-  int rc;
+  boolex_t rc;
   fid_t gvars, astack, attvars;
   gc_wordptr *saved_bar_at;		/* LD->frozen_bar placed on top of local stack */
 #ifdef O_PROFILE
@@ -4610,13 +4610,14 @@ is seen as satisfiable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-makeMoreStackSpace(ssize_t overflow, int flags)
+makeMoreStackSpace(boolex_t overflow, int flags)
 { GET_LD
   Stack s = NULL;
   unsigned int gc_reason = 0;
 
   switch(overflow)
-  { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
+  { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;
+			  break;
     case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global;
 			  gc_reason = GC_GLOBAL_OVERFLOW;
 			  break;
@@ -4624,6 +4625,8 @@ makeMoreStackSpace(ssize_t overflow, int flags)
 			  gc_reason = GC_TRAIL_OVERFLOW;
 			  break;
     case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
+    default:		  assert(0);
+			  return false;
   }
 
   if ( LD->exception.processing && s && enableSpareStack(s, true) )
@@ -4679,7 +4682,7 @@ Normally called through the inline function ensureStackSpace_ex() and
 the macros ensureTrailSpace() and ensureGlobalSpace()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
 { if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
     return true;
@@ -4738,7 +4741,7 @@ NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
 > lMax. The stack-shifter must be able to deal with this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 growLocalSpace(DECL_LD size_t bytes, int flags)
 { if ( addPointer(lTop, bytes) <= (void*)lMax )
     return true;
@@ -5311,13 +5314,14 @@ needStack(DECL_LD Stack s)
 
 
 #define grow_stacks(l, g, t) LDFUNC(grow_stacks, l, g, t)
-static int
+
+static boolex_t
 grow_stacks(DECL_LD size_t l, size_t g, size_t t)
 { sigset_t mask;
   size_t lsize=0, gsize=0, tsize=0;
   vm_state state;
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
-  int rc;
+  boolex_t rc;
 #if O_DEBUG
   word key=0;
   int emergency = false;
@@ -5623,10 +5627,10 @@ time-critical. trim_stacks normally isn't. This precaution is explicitly
 required for the trimStacks() that result from a stack-overflow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
-  int rc;
+  boolex_t rc;
   LocalFrame olb = lBase;
   LocalFrame olm = lMax;
   Word ogb = gBase;
@@ -5703,7 +5707,7 @@ tight(DECL_LD Stack s)
 Return true on success or *_OVERFLOW when out of space.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+boolex_t
 shiftTightStacks(void)
 { GET_LD
   size_t l = tight((Stack)&LD->stacks.local);

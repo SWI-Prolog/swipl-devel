@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, University of Amsterdam
+    Copyright (c)  2019-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -98,21 +99,21 @@ typedef struct event_type
 #define LDFUNC_DECLARATIONS
 
 void	cleanupEvents(void);
-int	delayEvents(void);
-int	sendDelayedEvents(int noerror);
-int	PL_call_event_hook(pl_event_type ev, ...);
+bool	delayEvents(void);
+int	sendDelayedEvents(bool noerror);
+bool	PL_call_event_hook(pl_event_type ev, ...);
 bool	PL_call_event_hook_va(pl_event_type ev, va_list args);
 bool	register_event_hook(event_list **list, atom_t name, bool last,
-			    term_t closure, size_t argc);
+			    term_t closure, int argc);
 bool	register_event_function(event_list **list, atom_t name, bool last,
-				void *func, void *closure, size_t argc,
+				void *func, void *closure, int argc,
 				unsigned int flags);
 void	destroy_event_list(event_list **listp);
-int	predicate_update_event(Definition def, atom_t action, Clause cl,
+bool	predicate_update_event(Definition def, atom_t action, Clause cl,
 			       unsigned flags);
-int	table_answer_event(Definition def, atom_t action,
+bool	table_answer_event(Definition def, atom_t action,
 			   term_t answer);
-int	retractall_event(Definition def, term_t head, atom_t start);
+bool	retractall_event(Definition def, term_t head, atom_t start);
 
 #undef LDFUNC_DECLARATIONS
 

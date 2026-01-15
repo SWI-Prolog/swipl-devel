@@ -1796,7 +1796,7 @@ generation contains the generation when pl_garbage_collect_clauses() was
 started.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	mustCleanDefinition(const Definition def);
+static bool	mustCleanDefinition(const Definition def);
 
 static ClauseRef
 find_prev(Definition def, ClauseRef prev, ClauseRef cref)
@@ -1896,7 +1896,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start,
 }
 
 
-static int
+static bool
 mustCleanDefinition(const Definition def)
 { return ( def->impl.clauses.erased_clauses > 0 );
 }

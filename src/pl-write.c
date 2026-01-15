@@ -1993,6 +1993,7 @@ reunify_acyclic_substitutions(term_t substitutions, term_t cycles,
   while(PL_get_list(s_tail, s_head, s_tail))
   { _PL_get_arg(1, s_head, var);
     _PL_get_arg(2, s_head, value);
+
     if ( PL_var_occurs_in(var, value) )
     { if ( (options->flags&PL_WRT_NUMBERVARS) )
       { if ( !PL_unify_term(var,
@@ -2004,9 +2005,11 @@ reunify_acyclic_substitutions(term_t substitutions, term_t cycles,
       if ( !PL_unify_list(c_tail, c_head, c_tail) ||
 	   !PL_unify(c_head, s_head) )
 	return false;
-    } else
+    } else if ( !PL_exception(0) )
     { if ( !PL_unify(var, value) )
 	return false;
+    } else
+    { return false;
     }
   }
 

@@ -52,7 +52,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <inttypes.h>
-#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -437,7 +436,7 @@ PL_EXPORT(void)		PL_discard_foreign_frame(fid_t cid);
 
 			/* Finding predicates */
 PL_EXPORT(predicate_t)	PL_pred(functor_t f, module_t m);
-PL_EXPORT(predicate_t)	PL_predicate(const char *name, size_t arity,
+PL_EXPORT(predicate_t)	PL_predicate(const char *name, int arity,
 				     const char* module);
 PL_EXPORT(bool)		PL_predicate_info(predicate_t pred,
 					  atom_t *name, size_t *arity,
@@ -1271,7 +1270,7 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 PL_EXPORT(bool)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void)	PL_on_halt(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_exit_hook(int (*)(int, void *), void *);
-PL_EXPORT(void)	PL_backtrace(ssize_t depth, int flags);
+PL_EXPORT(void)	PL_backtrace(int depth, int flags);
 PL_EXPORT(char *) PL_backtrace_string(int depth, int flags);
 PL_EXPORT(bool)	PL_check_data(term_t data);
 PL_EXPORT(bool)	PL_check_stacks(void);
@@ -1487,8 +1486,8 @@ typedef struct pl_context_t
   void *	reserved[10];		/* Reserved for extensions */
 } pl_context_t;
 
-PL_EXPORT(int)	PL_get_context(struct pl_context_t *c, int thead_id);
-PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
+PL_EXPORT(bool)	PL_get_context(struct pl_context_t *c, int thead_id);
+PL_EXPORT(bool)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
 

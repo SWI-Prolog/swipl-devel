@@ -3355,7 +3355,7 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   memset(cl, 0, sizeof(*cl));
   cl->predicate = def;
   cl->code_size = code_size;
-  cl->prolog_vars = TRIE_VAR_OFFSET + state->maxvar;
+  cl->prolog_vars = (clsize_t)(TRIE_VAR_OFFSET + state->maxvar);
   cl->variables = cl->prolog_vars;	/* 2: pseudo arity */
   set(cl, UNIT_CLAUSE);			/* no body */
   memcpy(cl->codes, baseBuffer(&state->codes, code),

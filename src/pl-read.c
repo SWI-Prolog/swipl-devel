@@ -1770,7 +1770,9 @@ warn_multiton(const char *name)
 #define LIST_SINGLETONS 1
 #define IS_MULTITON     2
 
-#define is_singleton(var, type, _PL_rd) LDFUNC(is_singleton, var, type, _PL_rd)
+#define is_singleton(var, type, _PL_rd) \
+	LDFUNC(is_singleton, var, type, _PL_rd)
+
 static bool
 is_singleton(DECL_LD Variable var, int type, ReadData _PL_rd)
 { if ( var->times == 1 )
@@ -1784,6 +1786,7 @@ is_singleton(DECL_LD Variable var, int type, ReadData _PL_rd)
 	term_t head = PL_new_term_ref();
 	term_t result = PL_new_term_ref();
 
+	//FIXME: PL_var_occurs_in() may raise exception
 	while(PL_get_list(tail, head, tail))
 	{ if ( PL_get_arg(4, head, result) &&
 	       PL_var_occurs_in(var->variable, result) )
@@ -3551,7 +3554,7 @@ build_attvar(DECL_LD int pairs, ReadData _PL_rd)
     { Word vp;
 
       if ( find_attr(valTermRef(attvar_term), name, &vp) )
-      { if ( compareStandard(value, vp, true) != CMP_EQUAL )
+      { if ( compareStandard(value, vp, true) != CMPEX_EQUAL )
 	{ if ( exception_term )
 	    return false;
 	  term_t ex;

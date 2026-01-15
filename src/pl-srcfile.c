@@ -119,7 +119,7 @@ registerSourceFile(SourceFile sf)	/* locked by lookupSourceFile() */
 
     for(; index<upto; index++)
     { if ( b[index] == NULL )
-      { sf->index = index;
+      { sf->index = (srcindex_t)index;
 	b[index] = sf;
 	GD->files.no_hole_before = index+1;
 
@@ -129,9 +129,9 @@ registerSourceFile(SourceFile sf)	/* locked by lookupSourceFile() */
   }
 
   GD->files.no_hole_before = index+1;
-  sf->index = index;
-  if ( (size_t)sf->index != index )
-    fatalError("Too many (%d) source files", index);
+  sf->index = (srcindex_t)index;
+  if ( sf->index != index )
+    fatalError("Too many (%zd) source files", (size_t)index);
   putSourceFileArray(index, sf);
   GD->files.highest = index+1;
 }

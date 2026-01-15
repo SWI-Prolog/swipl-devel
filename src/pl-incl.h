@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam,
+    Copyright (c)  1985-2026, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -561,6 +561,23 @@ typedef void *			caddress;
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
 #define addPointer(p, n)	((void *) ((intptr_t)(p) + (intptr_t)(n)))
 #define diffPointers(p1, p2)	((intptr_t)(p1) - (intptr_t)(p2))
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Aliased integer types.
+
+  - `gen_t` is used to count logical update generations.
+  - `clsize_t` is an integer that can be used as index in the `codes`
+    array of a clause.   This also limits the number of variables inside
+    a clause, etc.
+  - `srcindex_t` Index in `GD->files` to find a source file from its
+    number.
+  - `srcline_t` is used to indicate line numbers in source files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef uint64_t gen_t;			/* Logical update generation */
+typedef uint32_t clsize_t;		/* Index in clauses */
+typedef uint32_t srcindex_t;		/* Index of `sourceFile` */
+typedef uint32_t srcline_t;		/* Line no in source files */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			     LIMITS
@@ -1190,8 +1207,6 @@ We enable this  if the alignment  of an int64_t type  is not the same as
 the alignment of pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef uint64_t gen_t;
-
 #define GEN_INVALID   ((gen_t)0)
 #define GEN_INFINITE  (~(gen_t)0)
 #define GEN_NEW_DIRTY ((gen_t)0)
@@ -1427,12 +1442,12 @@ struct clause
     volatile gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  size_t		variables;	/* # of variables for frame */
-  size_t		prolog_vars;	/* # real Prolog variables */
+  clsize_t		variables;	/* # of variables for frame */
+  clsize_t		prolog_vars;	/* # real Prolog variables */
   unsigned int		flags;		/* Flag field holding: */
-  unsigned int		line_no;	/* Source line-number */
-  size_t		source_no;	/* Index of source-file */
-  size_t		owner_no;	/* Index of owning source-file */
+  srcline_t		line_no;	/* Source line-number */
+  srcindex_t		source_no;	/* Index of source-file */
+  srcindex_t		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
   unsigned int		tr_erased_no;	/* # transactions that erased me */
   code			code_size;	/* size of ->codes */
@@ -2027,7 +2042,7 @@ struct sourceFile
   int		magic;			/* Magic number */
   int		count;			/* number of times loaded */
   unsigned int	number_of_clauses;	/* number of clauses */
-  size_t	index;			/* index number (1,2,...) */
+  srcindex_t	index;			/* index number (1,2,...) */
   unsigned int	references;		/* Reference count */
   unsigned	isfile     : 1;		/* Is a real file */
   unsigned	system     : 1;		/* system sourcefile: do not reload */
@@ -2367,12 +2382,20 @@ stack guarding when compiling with the address sanitizer.
 
 /* Results from comparison operations.  Mostly used by compareStandard() */
 
-#define CMP_COMPOUND -3			/* compare_primitive */
-#define CMP_ERROR    -2			/* Error (out of memory) */
-#define CMP_LESS     -1			/* < */
-#define CMP_EQUAL     0			/* == */
-#define CMP_GREATER   1			/* > */
-#define CMP_NOTEQ     2			/* \== */
+typedef enum
+{ CMP_LESS    = -1,
+  CMP_EQUAL   =  0,
+  CMP_GREATER =  1
+} cmp_t;
+
+typedef enum
+{ CMP_COMPOUND   = -3,			/* compare_primitive */
+  CMP_ERROR      = -2,			/* Error (out of memory) */
+  CMPEX_LESS     = -1,
+  CMPEX_EQUAL    = 0,
+  CMPEX_GREATER  = 1,
+  CMP_NOTEQ      = 2			/* undefined non-equal */
+} cmpex_t;
 
 /* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */
 #ifdef HAVE___AUTO_TYPE
@@ -2388,6 +2411,27 @@ stack guarding when compiling with the address sanitizer.
 		/********************************
 		*             STACKS            *
 		*********************************/
+
+/* Type `boolex_t` is used for boolean operations that cannot
+ * trigger exceptions or for which we do not want to trigger
+ * an exception because they are opportunistic operations where
+ * a wrapper recovers from the error.
+ */
+
+typedef enum
+{ BOOLEX_TRUE        = 1,	/* Logical success (= `true`) */
+  BOOLEX_FALSE       = 0,	/* Logical failure (= `false`) */
+  LOCAL_OVERFLOW     = -1,	/* Local stack overflow */
+  GLOBAL_OVERFLOW    = -2,	/* Global stack overflow */
+  TRAIL_OVERFLOW     = -3,	/* Trail stack overflow */
+  ARGUMENT_OVERFLOW  = -4,	/* Argument stack overflow */
+  STACK_OVERFLOW     = -5,	/* total stack limit overflow */
+  MEMORY_OVERFLOW    = -6,	/* out of malloc()-heap */
+  CHECK_INTERRUPT    = -7,	/* Procedure was signalled */
+  DO_COMPOUND        = -8,	/* Need more general algorithm */
+  NOT_CALLABLE	     = -9,	/* pl-comp.c */
+  MAX_ARITY_OVERFLOW = -10	/* pl-comp.c */
+} boolex_t;
 
 #ifdef small				/* defined by MSVC++ 2.0 windows.h */
 #undef small
@@ -2412,7 +2456,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
-	  int		overflow_id;	/* OVERFLOW_* */		    \
+	  boolex_t	overflow_id;	/* OVERFLOW_* */		    \
 	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
@@ -2472,15 +2516,6 @@ typedef struct
 
 #define GROW_TRIM  ((size_t)-1)
 #define GROW_TIGHT ((size_t)1)
-
-#define	LOCAL_OVERFLOW	  (-1)
-#define	GLOBAL_OVERFLOW	  (-2)
-#define	TRAIL_OVERFLOW	  (-3)
-#define	ARGUMENT_OVERFLOW (-4)
-#define STACK_OVERFLOW    (-5)		/* total stack limit overflow */
-#define	MEMORY_OVERFLOW   (-6)		/* out of malloc()-heap */
-#define CHECK_INTERRUPT   (-7)		/* Procedure was signalled */
-#define DO_COMPOUND	  (-8)		/* Need more general algorithm */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
