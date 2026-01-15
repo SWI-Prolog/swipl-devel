@@ -140,7 +140,7 @@ static ClauseRef first_clause_guarded(const Word argv, size_t argc,
 				      ClauseList clist,
 				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,
-			   int *in_hvoid);
+			   ssize_t *in_hvoid);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(ClauseIndex ci, ClauseList clist,
 			       IndexContext ctx);
@@ -1556,7 +1556,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
-{ int h_void = 0;
+{ ssize_t h_void = 0;
   Code PC = skipToTerm(cl, ci->position, &h_void);
 
   if ( likely(ci->args[1] == 0) )
@@ -2688,7 +2688,7 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
+skipToTerm(Clause clause, const iarg_t *position, ssize_t *in_hvoid)
 { int an;
   Code pc = clause->codes;
 
@@ -2834,7 +2834,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   { Clause cl = cref->value.clause;
     Code pc;
     int carg = 0;
-    int h_void = 0;
+    ssize_t h_void = 0;
 
     if ( ison(cl, CL_ERASED) )
       continue;

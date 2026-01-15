@@ -1169,7 +1169,7 @@ resortDictsInCodes(Code PC, Code end)
 	  kv_code *kv_pos;
 	  Code c_tmp;
 	  Code fields_start, fs;
-	  int h_void = 0;
+	  ssize_t h_void = 0;
 
 	  if ( fields <= KV_PREALOCATED )
 	    kv_pos = kv_buf;

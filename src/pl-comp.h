@@ -73,7 +73,7 @@ Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
 int		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
-Code		skipArgs(Code PC, ssize_t skip, int *in_hvoid);
+Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
 bool		argKey(Code PC, size_t skip, word *key);
 bool		arg1Key(Code PC, word *key);
 const Code	prevPC(const Clause clause, const Code pc);

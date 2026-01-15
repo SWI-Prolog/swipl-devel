@@ -4748,7 +4748,7 @@ to skip H_VOID_N in small steps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
-skipArgs(Code PC, ssize_t skip, int *in_hvoid)
+skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid)
 { int nested = 0;
   Code nextPC;
 
@@ -4758,7 +4758,7 @@ skipArgs(Code PC, ssize_t skip, int *in_hvoid)
     { skip -= *in_hvoid;
       *in_hvoid = 0;
     } else
-    { (*in_hvoid) -= (int) skip; /* very dubious cast */
+    { (*in_hvoid) -= skip;
       if ( *in_hvoid == 0 )
 	return stepPC(PC);
       return PC;
@@ -4827,9 +4827,9 @@ skipArgs(Code PC, ssize_t skip, int *in_hvoid)
       case H_VOID_N:
 	if ( nested )
 	  continue;
-	skip -= (int)PC[1];
+	skip -= PC[1];
 	if ( skip <= 0 )
-	{ *in_hvoid = (int) (-skip); /* very dubious cast */
+	{ *in_hvoid = -skip;
 	  return PC;
 	}
 	continue;
@@ -4870,7 +4870,7 @@ pl-index.c.
 bool
 argKey(Code PC, size_t skip, word *key)
 { if ( skip > 0 )
-  { int h_void = 0;
+  { ssize_t h_void = 0;
     PC = skipArgs(PC, skip, &h_void);
   }
 
