@@ -140,7 +140,7 @@ static ClauseRef first_clause_guarded(const Word argv, size_t argc,
 				      ClauseList clist,
 				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,
-			   size_t *in_hvoid);
+			   int *in_hvoid);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(ClauseIndex ci, ClauseList clist,
 			       IndexContext ctx);
@@ -180,7 +180,7 @@ hashIndex(word key, unsigned int buckets)
   const int  shift = key_bits-MSB(buckets);
 
   key ^= key >> shift;
-  return (unsigned int) (fib64*key) >> shift; /* dubious cast */
+  return (unsigned int) ((fib64*key) >> shift);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1556,7 +1556,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 static inline word
 indexKeyFromClause(ClauseIndex ci, Clause cl, Code *end)
-{ size_t h_void = 0;
+{ int h_void = 0;
   Code PC = skipToTerm(cl, ci->position, &h_void);
 
   if ( likely(ci->args[1] == 0) )
@@ -2688,7 +2688,7 @@ trying.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-skipToTerm(Clause clause, const iarg_t *position, size_t *in_hvoid)
+skipToTerm(Clause clause, const iarg_t *position, int *in_hvoid)
 { int an;
   Code pc = clause->codes;
 
@@ -2834,7 +2834,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
   { Clause cl = cref->value.clause;
     Code pc;
     int carg = 0;
-    size_t h_void = 0;
+    int h_void = 0;
 
     if ( ison(cl, CL_ERASED) )
       continue;
@@ -3134,7 +3134,7 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
 			      nbest->speedup));
       memset(hints, 0, sizeof(*hints));
       memcpy(hints->args, nbest->args, sizeof(nbest->args));
-      hints->ln_buckets = MSB(nbest->size) & 0x1f; /* dubious cast */
+      hints->ln_buckets = MSB(nbest->size) & 0x1F; /* dubious cast */
       hints->speedup    = nbest->speedup;
 
       free_keys_in_assessment_set(&aset);
@@ -3707,7 +3707,7 @@ update_primary_index(DECL_LD Definition def)
 	{ DEBUG(MSG_JIT_PRIMARY,
 		Sdprintf("Set primary index for %s (%d clauses) to %d\n",
 			 predicateName(def), noc, argn+1));
-	  modify_primary_index_arg(def, (iarg_t) argn); /* dubious cast */
+	  modify_primary_index_arg(def, (iarg_t) argn); /* dubious cast, but argn >= 0 */
 	}
       } else
       { if ( argn == PINDEX_MAYBEDEEP )

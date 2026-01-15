@@ -281,8 +281,8 @@ listSupervisor(Definition def)
     if ( found == 2 )
     { Code pc1 = cref[0]->value.clause->codes;
       Code pc2 = cref[1]->value.clause->codes;
-      size_t h_void1 = 0;
-      size_t h_void2 = 0;
+      int h_void1 = 0;
+      int h_void2 = 0;
 
       for(size_t arg=0; arg<arity; arg++)
       { if ( !mode_arg_is_unbound(def, arg) )
