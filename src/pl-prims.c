@@ -1866,7 +1866,7 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 	return compare_neq_floats(valFloat(w1), valFloat(w2));
     }
     case TAG_ATOM:
-      return eq ? CMP_NOTEQ : compareAtoms(word2atom(w1), word2atom(w2));
+      return eq ? CMP_NOTEQ : (cmpex_t)compareAtoms(word2atom(w1), word2atom(w2));
     case TAG_STRING:
       return compareStrings(w1, w2, eq);
     case TAG_COMPOUND:
@@ -1888,7 +1888,7 @@ compare_functors(word f1, word f2, bool eq)
     if ( fd1->arity != fd2->arity )
       return fd1->arity > fd2->arity ? CMPEX_GREATER : CMPEX_LESS;
 
-    return compareAtoms(fd1->name, fd2->name);
+    return (cmpex_t)compareAtoms(fd1->name, fd2->name);
   }
 }
 
