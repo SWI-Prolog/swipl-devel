@@ -256,7 +256,7 @@ get_voff_arg(int i, term_t t, term_t a, long *val)
   { *val = NO_UTC_OFFSET;
     return true;
   } else
-  { return PL_get_int64_ex(a, val);
+  { return PL_get_long_ex(a, val);
   }
 }
 
@@ -501,7 +501,7 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
       } else
       { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_timezone, A3);
       }
-    } else if ( !PL_get_int64_ex(A3, &utcoffset) )
+    } else if ( !PL_get_long_ex(A3, &utcoffset) )
     { fail;
     }
 
