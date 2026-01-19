@@ -845,7 +845,8 @@ setup_readline :-
         readline_library(ReadLine, Library),
         (   load_setup_file(library(Library))
         ->  true
-        ;   print_message(warning,
+        ;   current_prolog_flag(epilog, true),
+            print_message(warning,
                           error(existence_error(library, library(Library)),
                                 _)),
             fail

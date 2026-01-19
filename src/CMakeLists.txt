@@ -43,6 +43,12 @@ string(REPLACE "." "" SO_EXT ${CMAKE_SHARED_MODULE_SUFFIX})
 # Installation
 include(Install)
 
+# See whether we have some extension packs
+
+has_package(clib HAVE_CLIB)
+has_package(http HAVE_HTTP)
+has_package(table HAVE_TABLE)
+
 ################
 # C files
 ################
@@ -118,9 +124,15 @@ set(SWIPL_DATA_DIRS
     boot
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
-    library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
+    library/dialect/hprolog library/dialect/iso
+    library/dialect/yap library/theme library/iri_scheme
     demo cmake app)
+
+if(HAVE_CLIB)
+  list(APPEND SWIPL_DATA_DIRS
+       library/dialect/sicstus library/dialect/sicstus4
+       library/dialect/xsb)
+endif()
 
 if(EMSCRIPTEN)
   list(APPEND SWIPL_DATA_DIRS library/dialect/tau)
@@ -173,7 +185,6 @@ endif()
 if(EMSCRIPTEN)
   list(APPEND SWIPL_DATA_library wasm.pl dom.pl)
 else()
-  has_package(http HAVE_HTTP)
   list(APPEND SWIPL_DATA_library git.pl www_browser.pl)
   if(HAVE_HTTP)
     list(APPEND SWIPL_DATA_library prolog_pack.pl)
@@ -207,8 +218,13 @@ set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 
 set(SWIPL_DATA_library_unicode blocks.pl)
 
-set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
-    sicstus.pl sicstus4.pl yap.pl xsb.pl tau.pl)
+set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl yap.pl)
+if(HAVE_CLIB)
+  list(APPEND SWIPL_DATA_library_dialect ifprolog.pl sicstus.pl sicstus4.pl xsb.pl)
+endif()
+if(EMSCRIPTEN)
+  list(APPEND SWIPL_DATA_library_dialect tau.pl)
+endif()
 
 set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
@@ -226,14 +242,16 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
-set(SWIPL_DATA_app app.pl qlf.pl sys.pl README.md)
+set(SWIPL_DATA_app app.pl qlf.pl README.md)
+if(HAVE_CLIB)
+list(APPEND SWIPL_DATA_app sys.pl)
+endif()
 
 if(MULTI_THREADED)
 list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)
 endif()
 
 if(NOT EMSCRIPTEN)
-has_package(table HAVE_TABLE)
 if(HAVE_TABLE)
 list(APPEND SWIPL_DATA_library_unicode  unicode_data.pl)
 endif()

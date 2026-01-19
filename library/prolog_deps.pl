@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020-2025, VU University Amsterdam
+    Copyright (c)  2020-2026, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -38,30 +38,33 @@
           [ file_autoload_directives/3,      % +File, -Directives, +Options
             file_auto_import/2               % +File, +Options
           ]).
-:- use_module(library(apply), [convlist/3, maplist/3, exclude/3]).
-:- use_module(library(filesex), [copy_file/2]).
-:- use_module(library(lists), [select/3, append/3, member/2]).
-:- use_module(library(option), [option/2, option/3]).
-:- use_module(library(pairs), [group_pairs_by_key/2]).
-:- use_module(library(pprint), [print_term/2]).
-:- use_module(library(prolog_code), [pi_head/2]).
-:- use_module(library(prolog_source),
-              [ file_name_on_path/2,
-                path_segments_atom/2,
-                prolog_open_source/2,
-                prolog_read_source_term/4,
-                prolog_close_source/1
-              ]).
-:- use_module(library(prolog_xref),
-              [ xref_source/1,
-                xref_module/2,
-                xref_called/4,
-                xref_defined/3,
-                xref_built_in/1,
-                xref_public_list/3
-              ]).
-:- use_module(library(readutil), [read_file_to_string/3]).
-:- use_module(library(solution_sequences), [distinct/2]).
+:- autoload(library(apply), [convlist/3, maplist/3, exclude/3]).
+:- if(exists_source(library(filesex))).
+:- autoload(library(filesex), [copy_file/2]).
+:- endif.
+:- autoload(library(lists), [select/3, append/3, member/2]).
+:- autoload(library(option), [option/2, option/3]).
+:- autoload(library(pairs), [group_pairs_by_key/2]).
+:- autoload(library(pprint), [print_term/2]).
+:- autoload(library(prolog_code), [pi_head/2]).
+:- autoload(library(prolog_source),
+            [ file_name_on_path/2,
+              path_segments_atom/2,
+              prolog_open_source/2,
+              prolog_read_source_term/4,
+              prolog_close_source/1
+            ]).
+:- autoload(library(prolog_xref),
+            [ xref_source/1,
+              xref_module/2,
+              xref_called/4,
+              xref_defined/3,
+              xref_built_in/1,
+              xref_public_list/3
+            ]).
+:- autoload(library(readutil), [read_file_to_string/3]).
+:- autoload(library(solution_sequences), [distinct/2]).
+:- autoload(library(error), [existence_error/2]).
 
 /** <module> Compute file dependencies
 
@@ -520,7 +523,7 @@ file_auto_import(File, Options) :-
     file_autoload_directives(Path, Directives, Options),
     (   option(backup(Ext), Options)
     ->  file_name_extension(Path, Ext, Old),
-        copy_file(Path, Old)
+        copy_file_ext(Path, Old)
     ;   true
     ),
     Edit = _{import:Directives, done:_},
@@ -528,6 +531,14 @@ file_auto_import(File, Options) :-
     ->  edit_file(Old, Path, Edit.put(replace,true))
     ;   edit_file(Old, Path, Edit.put(new,true))
     ).
+
+:- if(current_predicate(copy_file/2)).
+copy_file_ext(From, To) :-
+    copy_file(From, To).
+:- else.
+copy_file_ext(_From, _To) :-
+    existence_error(predicate, copy_file/2).
+:- endif.
 
 has_import(InFile) :-
     setup_call_cleanup(
