@@ -62,7 +62,7 @@
 char *		OsError(void);
 bool		initOs(void);
 void		cleanupOs(void);
-size_t		CpuCount(void);
+int		CpuCount(void);
 void		setRandom(unsigned int *seed);
 uint64_t	_PL_Random(void);
 void		setOSPrologFlags(void);

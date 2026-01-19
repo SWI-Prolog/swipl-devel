@@ -377,19 +377,19 @@ WallTime(void)
 
 #ifdef HAVE_SC_NPROCESSORS_CONF
 
-size_t
+int
 CpuCount(void)
 {
 #ifdef _SC_NPROCESSORS_ONLN
-  return sysconf(_SC_NPROCESSORS_ONLN);
+  return (int)sysconf(_SC_NPROCESSORS_ONLN);
 #else
-  return sysconf(_SC_NPROCESSORS_CONF);
+  return (int)sysconf(_SC_NPROCESSORS_CONF);
 #endif
 }
 
 #elif defined(PROCFS_CPUINFO)
 
-size_t
+int
 CpuCount(void)
 { FILE *fd = fopen("/proc/cpuinfo", "r");
 
@@ -450,7 +450,7 @@ CpuCount(void)
 
 void
 setOSPrologFlags(void)
-{ size_t cpu_count = CpuCount();
+{ int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
     PL_set_prolog_flag("cpu_count", PL_INTEGER, (intptr_t)cpu_count); /* dubious cast */

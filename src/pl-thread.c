@@ -2257,12 +2257,12 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
 
 #if defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP) || defined(HAVE_SCHED_SETAFFINITY)
 
-static int
+static bool
 get_cpuset(term_t affinity, cpu_set_t *set)
 { GET_LD
   term_t head, tail;
   int n=0;
-  size_t cpu_count = CpuCount();
+  int cpu_count = CpuCount();
 
   if ( !(tail = PL_copy_term_ref(affinity)) ||
        !(head = PL_new_term_ref()) )
@@ -2270,9 +2270,9 @@ get_cpuset(term_t affinity, cpu_set_t *set)
 
   CPU_ZERO(set);
   while(PL_get_list_ex(tail, head, tail))
-  { int64_t i;
+  { int i;
 
-    if ( !PL_get_int64_ex(head, &i) )
+    if ( !PL_get_integer_ex(head, &i) )
       return false;
     if ( i < 0 )
       return PL_domain_error("not_less_than_zero", head);
