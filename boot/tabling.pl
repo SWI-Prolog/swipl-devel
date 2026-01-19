@@ -290,7 +290,7 @@ untable(Head, M) :-
     functor(Head, Name, Arity),
     untable(Name/Arity, M).
 untable(TableSpec, _) :-
-    '$type_error'(table_desclaration, TableSpec).
+    '$type_error'(table_declaration, TableSpec).
 
 untable_reconsult(PI) :-
     print_message(informational, untable(PI)),
@@ -1247,7 +1247,7 @@ wrappers(ModeDirectedSpec, Module, Opts) -->
     ],
     qualify(Module, UpdateClauses).
 wrappers(TableSpec, _M, _Opts) -->
-    { '$type_error'(table_desclaration, TableSpec)
+    { '$type_error'(table_declaration, TableSpec)
     }.
 
 qualify(Module, List) -->
