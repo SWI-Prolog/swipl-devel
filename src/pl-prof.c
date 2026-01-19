@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -112,7 +112,7 @@ static void	collectSiblingsTime(void);
 #define WITH_LD_IF_PROFILING(_)		WITH_LD(GD->profile.thread) if(LD _)
 #define WITH_LD_IF_PROFILING_AND(cond)	WITH_LD_IF_PROFILING( && (cond))
 
-int
+bool
 activateProfiler(DECL_LD prof_status active)
 { int i;
   PL_local_data_t *profiling;
@@ -321,7 +321,7 @@ stopItimer(void)
 
 #endif /*__WINDOWS__*/
 
-static int
+static bool
 stopProfiler(void)
 { WITH_LD_IF_PROFILING_AND(LD->profile.active)
   { double tend = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
@@ -346,7 +346,7 @@ stopProfiler(void)
 Unify Old with the state of the profiler and set it according to New.
 */
 
-static int
+static bool
 get_prof_status(term_t t, prof_status *s)
 { GET_LD
   atom_t a;
@@ -408,7 +408,7 @@ $prof_node(+Node, -Pred, -Calls, -Redos, -Exits,
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define get_node(t, node) LDFUNC(get_node, t, node)
-static int
+static bool
 get_node(DECL_LD term_t t, call_node **node)
 { if ( PL_is_functor(t, FUNCTOR_dprof_node1) )
   { term_t a = PL_new_term_ref();
@@ -420,7 +420,7 @@ get_node(DECL_LD term_t t, call_node **node)
 
       if ( n->magic == PROFNODE_MAGIC )
       { *node = n;
-        succeed;
+        return true;
       }
     }
   }
@@ -430,7 +430,7 @@ get_node(DECL_LD term_t t, call_node **node)
 
 
 #define unify_node(t, node) LDFUNC(unify_node, t, node)
-static int
+static bool
 unify_node(DECL_LD term_t t, call_node *node)
 { return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_dprof_node1,
@@ -460,7 +460,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 	else if ( get_node(A2, &parent) )
 	  sibling = parent->siblings;
 	else
-	  fail;
+	  return false;
       }
 
       if ( !sibling )
@@ -473,14 +473,14 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 
     return_sibling:
       if ( !unify_node(A1, sibling) )
-	fail;
+	return false;
       if ( sibling->next )
 	ForeignRedoPtr(sibling->next);
-      succeed;
+      return true;
     }
     case FRG_CUTTED:
     default:
-      succeed;
+      return true;
   }
 }
 
@@ -491,7 +491,7 @@ identify_def(term_t t, void *handle)
 }
 
 
-static int
+static bool
 unify_node_id(term_t t, call_node *n)
 { if ( n->type->magic == PROFTYPE_MAGIC )
   { return (*n->type->unify)(t, n->handle);
@@ -704,17 +704,17 @@ sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
 
 
 #define unify_relatives(list, r) LDFUNC(unify_relatives, list, r)
-static int
+static bool
 unify_relatives(DECL_LD term_t list, prof_ref *r)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
 
   for( ; r; r=r->next)
-  { int rc;
+  { bool rc;
 
     if ( !PL_unify_list(tail, head, tail) )
-      fail;
+      return false;
 
     PL_put_variable(tmp);
     if ( r->handle == DEF_SPONTANEOUS )
@@ -733,7 +733,7 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
 			PL_INT64, r->calls,
 			PL_INT64, r->redos,
 			PL_INT64, r->exits) )
-      fail;
+      return false;
   }
 
   return PL_unify_nil(tail);
@@ -786,11 +786,11 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   void *handle;
   node_sum sum;
   call_node *n;
-  int rc;
+  bool rc;
   int count = 0;
 
   if ( !get_handle(A1, &handle) )
-    fail;
+    return false;
 
   collectSiblingsTime();
   memset(&sum, 0, sizeof(sum));
@@ -812,7 +812,7 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   free_relatives(sum.callers);
   free_relatives(sum.callees);
 
-  return rc ? true : false;
+  return rc;
 }
 
 
@@ -944,7 +944,7 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 
 static
 PRED_IMPL("$profile", 4, profile, PL_FA_TRANSPARENT)
-{ int rc;
+{ bool rc;
   prof_status val;
 
   if ( !get_prof_status(A2, &val) )
@@ -1013,7 +1013,7 @@ profile(DECL_LD intptr_t count)
 profCall(Definition handle)
 
 A call was made from the  current  node   to  handle.  This  builds up a
-dynamic call tree. THe tree is constructed as follows:
+dynamic call tree. The tree is constructed as follows:
 
   - If there is no current node
     - If the root-set contains a node for `handle`, use it
@@ -1208,7 +1208,7 @@ that if the current node is the  choicepoint node, nothing fails as this
 is internal to the predicate (doesn't pass through Fail port).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 lookback(call_node *from_node, call_node *to_node)
 { struct call_node *node = from_node;
 

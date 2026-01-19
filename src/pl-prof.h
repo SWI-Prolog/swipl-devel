@@ -60,7 +60,7 @@ typedef enum
 #define LDFUNC_DECLARATIONS
 
 void		stopItimer(void);
-int		activateProfiler(prof_status status);
+bool		activateProfiler(prof_status status);
 bool		resetProfiler(void);
 struct call_node* profCall(Definition def);
 void		profResumeParent(struct call_node *node);
