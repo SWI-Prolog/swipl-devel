@@ -100,7 +100,7 @@ component(library(cgi), _{}).
 component(library(crypt), _{}).
 component(library(bdb), _{}).
 component(library(double_metaphone), _{}).
-component(library(editline), _{os:unix}).
+component(library(editline), _{}).
 component(library(filesex), _{}).
 component(library(http/http_stream), _{}).
 component(library(json), _{}).
