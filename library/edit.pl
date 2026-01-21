@@ -532,6 +532,7 @@ merge_specs(Spec1, Spec2, Spec) :-
 merge_specs_(FileSpec, Spec, Spec) :-
     is_filespec(FileSpec).
 
+is_filespec(file(_)) => true.
 is_filespec(source_file(_)) => true.
 is_filespec(Term),
     compound(Term),
