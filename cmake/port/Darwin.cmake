@@ -19,11 +19,9 @@ endfunction()
 
 if(NOT MACOSX_DEPENDENCIES_FROM)
   if(EXISTS /opt/local/bin/port)
-    set(MACOSX_DEPENDENCIES_FROM Macports)
-  elseif(EXISTS /usr/local/bin/brew)
-	  set(MACOSX_DEPENDENCIES_FROM HomebrewLocal)
+     set(MACOSX_DEPENDENCIES_FROM Macports)
   elseif(EXISTS /opt/homebrew)
-	  set(MACOSX_DEPENDENCIES_FROM HomebrewOpt)
+  	 set(MACOSX_DEPENDENCIES_FROM Homebrew)
   else()
     set(MACOSX_DEPENDENCIES_FROM None)
     message(WARNING "Could not find Macport or Homebrew to provide dependencies \
@@ -45,6 +43,7 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
   endif()
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   message("-- Using Homebrew packages from /opt/homebrew")
+  set(CMAKE_FIND_ROOT_PATH /opt/homebrew)
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
       /opt/homebrew/lib)
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}

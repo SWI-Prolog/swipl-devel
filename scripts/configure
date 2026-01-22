@@ -19,6 +19,8 @@ export CXX=
 opts=
 cmake=cmake
 os=any
+gcc_suffix=""
+brew=false
 
 # Get config from build.feat1-feat2 and arguments
 
@@ -81,13 +83,8 @@ set_config()
 	  ;;
       gcc=*)			# gcc=version: Compile using gcc-version
 	  version=$(optval $1)
-	  if [ $(uname) = Darwin ]; then
-	     export CC=gcc-mp-$version
-	     export CXX=g++-mp-$version
-	  else
-	      export CC=gcc-$version
-	      export CXX=g++-$version
-	  fi
+	  export CC=gcc-$version
+	  export CXX=g++-$version
 	  ;;
       clang)			# clang: Compile using clang
 	  export CC=clang
@@ -125,8 +122,14 @@ set_config()
 	  opts+=" -DSWIPL_TMP_DIR=${PREFIX}/tmp"
 	  opts+=" -DSYSTEM_CACERT_FILENAME=${PREFIX}/etc/tls/cert.pem"
 	  ;;
-      homebrew)			# homebrew: MacOS: use Homebrew dependencies
+      brew|homebrew)		# brew: MacOS: use Homebrew dependencies
 	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Homebrew"
+	  brew=true
+	  gcc_suffix=""
+	  ;;
+      port|macports)		# port: MacOS: use Macports dependencies
+	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Macports"
+	  gcc_suffix="-mp"
 	  ;;
       # group: Optimization
       native)			# native: Optimize for native CPU
@@ -210,6 +213,18 @@ while [ $# != 0 ]; do
     set_config $1
     shift
 done
+
+if [ $(uname) = Darwin -a $brew = false ]; then
+    gcc_suffix="-mp"
+fi
+
+# By default we use Macports on MacOS, which provides gcc as gcc-mp
+case "$CC" in
+    gcc*)
+	CC=$( echo "$CC"  | sed "s/gcc/gcc$gcc_suffix/")
+	CXX=$(echo "$CXX" | sed "s/g++/g++$gcc_suffix/")
+	;;
+esac
 
 function confirm ()
 { while true; do
