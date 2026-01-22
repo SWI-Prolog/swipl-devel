@@ -106,7 +106,6 @@ void		prompt1(atom_t prompt);
 atom_t		PrologPrompt(void);
 int		streamNo(term_t spec, int mode);
 void		release_stream_handle(term_t spec);
-int		unifyTime(term_t t, time_t time);
 #ifdef __WINDOWS__
 word		pl_make_fat_filemap(term_t dir);
 #endif

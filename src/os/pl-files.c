@@ -419,14 +419,7 @@ MarkExecutable(const char *name)
 		*	FIND FILES FROM C       *
 		*********************************/
 
-int
-unifyTime(term_t t, time_t time)
-{ GET_LD
-  return PL_unify_time(t, time);
-}
-
-
-static int
+static bool
 add_option(term_t options, functor_t f, atom_t val)
 { GET_LD
   term_t head;
@@ -443,7 +436,7 @@ add_option(term_t options, functor_t f, atom_t val)
 
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
 
-static int
+static bool
 get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
 { GET_LD
   char *name;
@@ -545,11 +538,12 @@ bool
 PL_get_file_name(term_t n, char **namep, int flags)
 { char buf[PATH_MAX];
   char ospath[PATH_MAX];
-  char *name;
-  int rc;
+  char *name = NULL;
+  bool rc;
 
   if ( (rc=get_file_name(n, &name, buf, sizeof(buf), flags)) )
-  { if ( (flags & PL_FILE_OSPATH) )
+  { assert(name);
+    if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
 	return false;
       name = buffer_string(name, BUF_STACK);
