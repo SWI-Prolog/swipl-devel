@@ -81,8 +81,13 @@ set_config()
 	  ;;
       gcc=*)			# gcc=version: Compile using gcc-version
 	  version=$(optval $1)
-	  export CC=gcc-$version
-	  export CXX=g++-$version
+	  if [ $(uname) = Darwin ]; then
+	     export CC=gcc-mp-$version
+	     export CXX=g++-mp-$version
+	  else
+	      export CC=gcc-$version
+	      export CXX=g++-$version
+	  fi
 	  ;;
       clang)			# clang: Compile using clang
 	  export CC=clang
