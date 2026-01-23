@@ -2284,16 +2284,15 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !cycles )             options.flags |= PL_WRT_NO_CYCLES;
   if ( no_lists )            options.flags |= PL_WRT_NO_LISTS;
   if ( partial )	     options.flags |= PL_WRT_PARTIAL;
-  if ( bq )
-  { unsigned int flags = 0;
 
-    if ( !setBackQuotes(bq, &flags) )
-      return false;
-    if ( (flags&BQ_STRING) )
-      options.flags |= PL_WRT_BACKQUOTED_STRING;
-    else if ( flags == 0 )
-      options.flags |= PL_WRT_BACKQUOTE_IS_SYMBOL;
-  }
+  /* Set backquote handling flags */
+  unsigned int flags = options.module->flags;
+  if ( bq && !setBackQuotes(bq, &flags) )
+    return false;
+  if ( (flags&BQ_STRING) )
+    options.flags |= PL_WRT_BACKQUOTED_STRING;
+  else if ( flags == 0 )
+    options.flags |= PL_WRT_BACKQUOTE_IS_SYMBOL;
 
   BEGIN_NUMBERVARS(varnames);
   if ( varnames )
