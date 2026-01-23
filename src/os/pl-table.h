@@ -132,8 +132,8 @@ void		clearHTable(Table ht);
 Table		copyHTable(Table org);
 TableEnum	newTableEnum(Table ht);
 void		freeTableEnum(TableEnum e);
-int		advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value);
-int		htable_iter(Table ht, KVS kvs, size_t *idx,
+bool		advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value);
+bool		htable_iter(Table ht, KVS kvs, size_t *idx,
 			    table_key_t *name, table_value_t *value);
 size_t		sizeofTable(Table ht);
 

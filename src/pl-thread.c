@@ -1413,7 +1413,7 @@ fully reclaimed, we have several situations:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static thread_handle *gced_threads = NULL;
-static int       thread_gc_running = false;
+static bool      thread_gc_running = false;
 
 static void
 discard_thread(thread_handle *h)
@@ -1422,7 +1422,7 @@ discard_thread(thread_handle *h)
     return;
   }
 
-  int alive = false;
+  bool alive = false;
   PL_thread_info_t *info;
 
   PL_LOCK(L_THREAD);
@@ -1634,7 +1634,8 @@ alloc_thread(void)
 
   do
   { info = GD->thread.free;
-  } while ( info && !COMPARE_AND_SWAP_PTR(&GD->thread.free, info, info->next_free) );
+  } while ( info &&
+	    !COMPARE_AND_SWAP_PTR(&GD->thread.free, info, info->next_free) );
 
   if ( info )
   { int i = info->pl_tid;
@@ -1769,7 +1770,7 @@ alertThread(PL_thread_info_t *info)
   PL_local_data_t *ld = info->thread_data;
 
   if ( ld->thread.alert.type )
-  { int done = false;
+  { bool done = false;
 
     PL_LOCK(L_ALERT);
     switch(ld->thread.alert.type)
@@ -1837,7 +1838,7 @@ system now crashes on any  alrm   from  library(time). We need something
 better though.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_thread_raise(int tid, int sig)
 { if ( tid >= 1 && tid <= GD->thread.highest_id )
   { PL_thread_info_t *info = GD->thread.threads[tid];
@@ -1847,7 +1848,7 @@ PL_thread_raise(int tid, int sig)
 	 info->status != PL_THREAD_RESERVED )
     { GET_LD
       PL_local_data_t *ld;
-      int rc;
+      bool rc;
 
       if ( LD )					/* See (*) */
 	ld = acquire_ldata(info);

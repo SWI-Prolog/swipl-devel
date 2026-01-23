@@ -343,7 +343,7 @@ out:
 
 
 
-int
+bool
 PL_mutex_lock(struct pl_mutex *m)
 { int self = PL_thread_self();
 
@@ -419,7 +419,7 @@ PRED_IMPL("mutex_trylock", 1, mutex_trylock, 0)
 }
 
 
-int
+bool
 PL_mutex_unlock(struct pl_mutex *m)
 { int self = PL_thread_self();
 

@@ -1341,7 +1341,7 @@ typedef struct
 
 
 PL_EXPORT(int)	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
-PL_EXPORT(int)	PL_unify_thread_id(term_t t, int i);
+PL_EXPORT(int)	PL_unify_thread_id(term_t t, int i); /* -1 if i is invalid */
 PL_EXPORT(bool)	PL_get_thread_id_ex(term_t t, int *idp);
 PL_EXPORT(bool)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
@@ -1349,7 +1349,7 @@ PL_EXPORT(bool)	PL_thread_destroy_engine(void);
 PL_EXPORT(bool)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  bool global);
-PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
+PL_EXPORT(bool)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 PL_EXPORT(bool)	PL_w32thread_raise(DWORD dwTid, int sig);
 #endif
@@ -1401,15 +1401,15 @@ typedef uint64_t table_value_t;
 
 PL_EXPORT(hash_table_t)	PL_new_hash_table(size_t size,
 					  void (*free_symbol)(table_key_t n, table_value_t v));
-PL_EXPORT(int)		PL_free_hash_table(hash_table_t table);
+PL_EXPORT(bool)		PL_free_hash_table(hash_table_t table);
 PL_EXPORT(table_value_t) PL_lookup_hash_table(hash_table_t table, table_key_t key);
 PL_EXPORT(table_value_t) PL_add_hash_table(hash_table_t table,
 					   table_key_t key, table_value_t value, int flags);
 PL_EXPORT(table_value_t) PL_del_hash_table(hash_table_t table, table_key_t key);
-PL_EXPORT(int)		PL_clear_hash_table(hash_table_t table);
+PL_EXPORT(bool)		PL_clear_hash_table(hash_table_t table);
 PL_EXPORT(hash_table_enum_t) PL_new_hash_table_enum(hash_table_t table);
 PL_EXPORT(void)		PL_free_hash_table_enum(hash_table_enum_t e);
-PL_EXPORT(int)		PL_advance_hash_table_enum(hash_table_enum_t e,
+PL_EXPORT(bool)		PL_advance_hash_table_enum(hash_table_enum_t e,
 						   table_key_t *key, table_value_t *value);
 
 

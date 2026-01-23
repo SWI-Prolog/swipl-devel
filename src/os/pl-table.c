@@ -416,7 +416,7 @@ redo:
 }
 
 
-int
+bool
 htable_iter(Table ht, KVS kvs, size_t *index, table_key_t *name, table_value_t *value)
 { size_t idx = *index;
   table_key_t n = NULL_KEY;
@@ -714,7 +714,7 @@ freeTableEnum(TableEnum e)
 }
 
 
-int
+bool
 advanceTableEnum(TableEnum e, table_key_t *name, table_value_t *value)
 { DEBUG(MSG_HASH_TABLE_ENUM,
         Sdprintf("advanceTableEnum(). e: %p, ht: %p, kvs: %p, idx: %d\n",
@@ -753,7 +753,7 @@ PL_new_hash_table(size_t size, void (*free_symbol)(table_key_t n, table_value_t 
   return ht;
 }
 
-int
+bool
 PL_free_hash_table(hash_table_t table)
 { NEED_LD
 
@@ -787,7 +787,7 @@ PL_del_hash_table(hash_table_t table, table_key_t key)
   return deleteHTable(table, key);
 }
 
-int
+bool
 PL_clear_hash_table(hash_table_t table)
 { NEED_LD
 
@@ -807,7 +807,7 @@ PL_free_hash_table_enum(hash_table_enum_t e)
 { freeTableEnum(e);
 }
 
-int
+bool
 PL_advance_hash_table_enum(hash_table_enum_t e, table_key_t *key, table_value_t *value)
 { return advanceTableEnum(e, key, value);
 }
