@@ -1403,15 +1403,26 @@ If conversion fails due to a type error, raise a Prolog type error
 exception in addition to failure.
 
     \termitem{BUF_DISCARDABLE}{}
-Data must copied immediately.
+Data must be copied immediately. Use with caution - you must be
+certain that no PL_*() function is called before you use the
+memory because if garbage collection occurs, the value of \arg{s}
+won't be properly updated - \const{BUF_STACK} is safe, but slower.
+Also, some flags can cause \const{BUF_DISCARDABLE} to be treated as
+\const{BUF_STACK}. See \secref{foreign-strings}.
 
     \termitem{BUF_STACK}{}
-Data is stored on a stack.  The older \const{BUF_RING} is an alias
-for \const{BUF_STACK}.  See \secref{foreign-strings}.
+Data is stored on a stack.  The older \const{BUF_RING} is an alias for
+\const{BUF_STACK}. \const{BUF_STACK} is the default if
+\const{BUF_MALLOC} is not specified.  \const{BUF_STACK} should not be
+used inside a loop, unless it is within a
+(\const{PL_STRINGS_MARK}-\const{PL_STRINGS_RELEASE}).  See
+\secref{foreign-strings}.
 
     \termitem{BUF_MALLOC}{}
 Data is copied to a new buffer returned by \manref{PL_malloc}{3}. When
 no longer needed the user must call PL_free() on the data.
+If \const{BUF_MALLOC} is specified, \const{BUF_STACK} is ignored.
+See \secref{foreign-strings}.
 
     \termitem{REP_ISO_LATIN_1}{}
 Text is in ISO Latin-1 encoding and the call fails if text
@@ -3639,14 +3650,16 @@ against atom garbage collection, which generally implies the atom must
 be locked using PL_register_atom() or be part of an accessible term.
 Other strings are more volatile. Several functions provide a BUF_* flag
 that can be set to either \const{BUF_STACK} (default) or
-\const{BUF_MALLOC}. Strings returned by a function accepting
-\const{BUF_MALLOC} \textbf{must} be freed using PL_free(). Strings
-returned using \const{BUF_STACK} are pushed on a stack that is cleared
-when a foreign predicate returns control back to Prolog. More fine
-grained control may be needed if functions that return strings are
-called outside the context of a foreign predicate or a foreign predicate
-creates many strings during its execution.  Temporary strings are scoped
-using these macros:
+\const{BUF_MALLOC}.\footnote{\const{BUF_DISCARDABLE} is also defined -
+it can often avoid allocating a new string but in some situations it
+behaves the same as \const{BUF_STACK}.}  Strings returned by a
+function accepting \const{BUF_MALLOC} \textbf{must} be freed using
+PL_free(). Strings returned using \const{BUF_STACK} are pushed on a
+stack that is cleared when a foreign predicate returns control back to
+Prolog More fine grained control may be needed if functions that
+return strings are called outside the context of a foreign predicate
+or a foreign predicate creates many strings during its execution.
+Temporary strings are scoped using these macros:
 
 \begin{description}
     \cmacro{void}{PL_STRINGS_MARK}{}
@@ -5170,8 +5183,10 @@ The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
     \cfunction{bool}{PL_halt}{int status}
-    Terminate the Prolog process as halt/1.  The behaviour depends on
-    several flags:
+    Terminate the Prolog process as halt/1. The \arg{status} is used to
+    set the return code from calling \exam{exit()} - this is a value between
+    0 and 65535. Additional behaviour can be specified by OR-ing the
+    status with these flags:
 
     \begin{description}
       \termitem{PL_HALT_WITH_EXCEPTION}{}
