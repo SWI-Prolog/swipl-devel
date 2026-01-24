@@ -1081,15 +1081,14 @@ writeString(term_t t, write_options *options)
     else
       quote = '"';
 
-    if ( !(rc=Putc(quote, options->out)) )
-      goto out;
-    rc = ( writeText(&txt, quote, options) &&
+    rc = ( PutOpenToken(quote, options->out) &&
+	   Putc(quote, options->out) &&
+	   writeText(&txt, quote, options) &&
 	   Putc(quote, options->out) );
   } else
   { rc = writeText(&txt, 0, options);
   }
 
-out:
   PL_free_text(&txt);
   PL_STRINGS_RELEASE();
 
