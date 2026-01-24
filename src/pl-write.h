@@ -70,7 +70,7 @@ bool		writeUCSAtom(atom_t atom, void *context);
 bool		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 bool		writeAtomToStream(IOSTREAM *s, atom_t atom);
 size_t		format_float(char *buf, size_t size, double f, int N, char E);
-int		unquoted_atom(atom_t a);
+bool		unquoted_atom(atom_t a);
 strnumstat	make_nan(double *f);
 double		NaN_value(double f);
 

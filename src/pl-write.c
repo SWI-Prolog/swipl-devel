@@ -117,7 +117,7 @@ static bool	writeTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
-static int	enterPortray(void);
+static bool	enterPortray(void);
 static void	leavePortray(void);
 
 #undef LDFUNC_DECLARATIONS
@@ -251,7 +251,7 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
    by writeUCSAtom()
 */
 
-static int
+static bool
 truePrologFlagNoLD(unsigned int flag)
 { GET_LD
 
@@ -267,7 +267,7 @@ wr_is_symbol(int c, write_options *options)
 	    (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
 }
 
-static int
+static bool
 code_requires_quoted(int c, IOSTREAM *fd, int flags)
 { if ( c > 0x7f && (flags&PL_WRT_QUOTE_NON_ASCII) )
     return true;
@@ -336,7 +336,7 @@ atomType(atom_t a, write_options *options)
 }
 
 
-static int
+static bool
 unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 { Atom ap = atomValue(atom);
   const pl_wchar_t *s = (const pl_wchar_t*)ap->name;
@@ -387,7 +387,7 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 }
 
 
-int
+bool
 unquoted_atom(atom_t a)
 { Atom ap = atomValue(a);
 
@@ -561,9 +561,9 @@ PutTokenN(const char *s, size_t len, IOSTREAM *stream)
   return true;
 }
 
-static int
+static bool
 PutElipsis(IOSTREAM *s, bool first)
-{ int rc = true;
+{ bool rc = true;
 
   if ( Scanrepresent(0x2026, s) == 0 )
   { if ( first && !(rc=PutOpenToken(0x2026, s)) )
@@ -1064,11 +1064,11 @@ writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 
 #if O_STRING
 
-static int
+static bool
 writeString(term_t t, write_options *options)
 { GET_LD
   PL_chars_t txt;
-  int rc = true;
+  bool rc = true;
 
   PL_STRINGS_MARK();
   PL_get_text(t, &txt, CVT_STRING);
@@ -1456,7 +1456,7 @@ writePrimitive(term_t t, write_options *options)
     return PutToken(varName(t, buf), out);
 
   if ( PL_get_atom(t, &a) )
-    return writeAtom(a, options);
+    return !!writeAtom(a, options);
 
   if ( PL_is_number(t) )		/* beware of automatic conversion */
     return writeNumber(t, options);
@@ -1472,7 +1472,7 @@ writePrimitive(term_t t, write_options *options)
 
 
 #define pl_nl(stream) LDFUNC(pl_nl, stream)
-static int
+static bool
 pl_nl(DECL_LD term_t stream)
 { IOSTREAM *s;
 
@@ -1503,7 +1503,7 @@ PRED_IMPL("nl", 0, nl, PL_FA_ISO)
 Call user:portray/1 if defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 put_write_options(term_t opts_in, write_options *options)
 { GET_LD
   term_t newlist = PL_new_term_ref();
@@ -1513,7 +1513,7 @@ put_write_options(term_t opts_in, write_options *options)
   term_t tail = PL_copy_term_ref(opts_in);
   term_t newhead = PL_new_term_ref();
   term_t newtail = PL_copy_term_ref(newlist);
-  int rc = true;
+  bool rc = true;
 
   while(rc && PL_get_list(tail, head, tail))
   { if ( !PL_is_functor(head, FUNCTOR_priority1) )
@@ -1537,7 +1537,7 @@ put_write_options(term_t opts_in, write_options *options)
 }
 
 
-static int
+static bool
 enterPortray(DECL_LD)
 { if ( LD->IO.portray_nesting >= MAX_PORTRAY_NESTING )
     return PL_resource_error("portray_nesting");
@@ -1721,7 +1721,7 @@ writeList(term_t list, write_options *options)
 
 
 #define isBlockOp(t, arg, functor) LDFUNC(isBlockOp, t, arg, functor)
-static int
+static bool
 isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
 { if ( functor == ATOM_nil || functor == ATOM_curl )
   { _PL_get_arg(1, t, arg);
@@ -1735,7 +1735,7 @@ isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
 
 #define writeDictPair(name, value, last, closure) LDFUNC(writeDictPair, name, value, last, closure)
 
-static int
+static int /* 0: success, -1: error */
 writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
 { write_options *options = closure;
 
@@ -1778,7 +1778,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	   PutCloseBrace(out) )
 	succeed;
     } else
-      return writeAtom(a, options);
+      return !!writeAtom(a, options);
   }
 
   if ( !PL_get_name_arity(t, &functor, &arity) )
@@ -1974,7 +1974,7 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 		 *	  CYCLE HANDLING	*
 		 *******************************/
 
-static int
+static bool
 reunify_acyclic_substitutions(term_t substitutions, term_t cycles,
 			      write_options *options)
 { GET_LD

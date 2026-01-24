@@ -2842,7 +2842,7 @@ typedef struct
 #define prologFlagMaskInt(ld, flag) \
 	(ld->prolog_flag.mask.flags[(flag-1)/(sizeof(int)*8)])
 #define truePrologFlag(flag) \
-	(prologFlagMaskInt(LD, flag) & prologFlagMask(flag))
+	((prologFlagMaskInt(LD, flag) & prologFlagMask(flag)) != 0)
 #define setPrologFlagMask_LD(ld, flag) \
 	ATOMIC_OR(&prologFlagMaskInt(ld, flag), prologFlagMask(flag))
 #define clearPrologFlagMask(flag) \
