@@ -6556,7 +6556,9 @@ Fulfills the same role as the \prologflag{back_quotes} prolog flag.
 Notably, the value \const{string} causes string objects to be printed
 between back quotes and \const{symbol_char} causes the backquote to
 be printed unquoted.  In all other cases the backquote is printed as
-a quoted atom.
+a quoted atom.  The default is derived from the Prolog flag using the
+value associated with the \term{module}{Module} option or the
+\const{user} module.
 
     \termitem{brace_terms}{Bool}
 If \const{true} (default), write \verb${}(X)$ as \verb${X}$.  See also
@@ -6673,6 +6675,10 @@ the default value for the \prologflag{character_escapes} option as well
 as the operator definitions to use. If \arg{Module} does not exist it is
 \emph{not} created and the \const{user} module is used.  See also op/3
 and read_term/2, providing the same option.
+
+Note that, currently, write_term/2 is not a \jargon{meta predicate} and
+the default module is thus not derived from the calling context.  This
+is likely to change in the future.
 
     \termitem{nl}{Bool}
 Add a newline to the output.  See also the \const{fullstop} option.
