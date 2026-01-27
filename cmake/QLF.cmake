@@ -59,11 +59,17 @@ function(add_swipl_target name)
     message(FATAL_ERROR "add_swipl_target() requires COMMAND or APP")
   endif()
 
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+    set(ENV_SEP --)
+  else()
+    set(ENV_SEP)
+  endif()
+
   add_custom_command(
       OUTPUT ${my_OUTPUT}
       BYPRODUCTS ${my_BYPRODUCTS}
       COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	      -- ${PROG_SWIPL} ${options} ${my_OPTIONS}
+	      ${ENV_SEP} ${PROG_SWIPL} ${options} ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
       DEPENDS core prolog_home
