@@ -114,7 +114,7 @@ if(BUILD_MACOS_BUNDLE)
     install(CODE [===[
       execute_process(COMMAND ln -sf SWI-Prolog swipl-win
 		      WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
-      execute_process(COMMAND ${fixup_script} --epilog ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
+      execute_process(COMMAND ${fixup_script} ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
     ]===])
   endfunction()
 

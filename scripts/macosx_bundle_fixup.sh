@@ -1,24 +1,15 @@
 #!/bin/sh
 
 deployqt=
-epilog=no
 
 usage()
-{ echo "Usage: $0 [--deployqt=prog] app"
+{ echo "Usage: $0 app"
   exit 1
 }
 
 done=no
 while [ $done = no ]; do
     case "$1" in
-	--deployqt=*)
-	    deployqt="$(echo $1 | sed 's/--deployqt=//')"
-	    shift
-	    ;;
-	--epilog)
-	    epilog=yes
-	    shift
-	    ;;
 	--*)
 	    usage
 	    ;;
@@ -38,17 +29,6 @@ printf "Fixing app bundle in $app\n"
 
 moduledir=$app/Contents/PlugIns/swipl
 frameworkdir=$app/Contents/Frameworks
-
-if [ ! -z "$deployqt" ]; then
-    dest=$(dirname $app)
-    printf "Moving modules to avoid deployqt from interfering ..."
-    mv $moduledir $dest
-    printf "ok\n"
-    printf "Running $(basename $deployqt) ...\n"
-    $deployqt $app
-    printf "Restoring modules\n"
-    mv $dest/$(basename $moduledir) $(dirname $moduledir)
-fi
 
 printf "Adding Macport dylibs to modules\n"
 
