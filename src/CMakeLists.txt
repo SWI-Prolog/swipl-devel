@@ -504,6 +504,7 @@ if(EPILOG)
     add_executable(${EPILOG_APP}${PGO_SUFFIX} ${SWIPL_SRC})
   endif()
 
+  target_c_stack(${EPILOG_APP}${PGO_SUFFIX} ${SWIPL_C_STACK_SIZE})
   target_compile_options(${EPILOG_APP}${PGO_SUFFIX} PRIVATE -DSWIPL_EPILOG)
   target_link_libraries(${EPILOG_APP}${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl)
   if(MINGW)
