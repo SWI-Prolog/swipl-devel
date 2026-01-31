@@ -110,10 +110,10 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
       }
     /*FALLTHROUGH*/
     case TAG_FLOAT:
-      { Word p = valIndirectP(term);
-	size_t n = wsizeofIndirect(term);
+      { Word p = addressIndirect(term);
+	size_t n = wsizeofInd(*p);
 
-	*hval = MurmurHashAligned2(p, n*sizeof(word), *hval);
+	*hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
 
 	return true;
       }

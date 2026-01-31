@@ -132,10 +132,10 @@ test(simple_3) :-                  % Big int
     term_hash(Num, X),
     assertion(memberchk(X, [ 347_171_279,     % little endian (GMP)
 			     1214499792,      % big endian (GMP)
-			     3_784_382_378,   % LibBF, little endian (buggy)
-			     3289800483,      % LibBF, big endian
+			     3_784_382_378,   % LibBF, little endian (HAVE_INT128)
+			     3289800483,      % LibBF, big endian (HAVE_INT128)
 			     -510584918,      % WASM
-			     1902251786       % MSVC LibBF, little endian (fixed)
+			     1902251786       % LibBF, little endian (no HAVE_INT128)
 			   ])).
 test(simple_4) :-
     A is pi,
