@@ -2242,11 +2242,12 @@ add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node
 
 	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
 	  { desc_tstate dts;
-	    popSegStack(&dstate->stack, &dts, desc_tstate);
-	    dstate->term = dts.term;
-	    dstate->size = dts.size;
-	    DEBUG(MSG_TRIE_GEN,
-		  Sdprintf("Popped %p, left %zd\n", dstate->term, dstate->size));
+	    if ( popSegStack(&dstate->stack, &dts, desc_tstate) )
+	    { dstate->term = dts.term;
+	      dstate->size = dts.size;
+	      DEBUG(MSG_TRIE_GEN,
+		    Sdprintf("Popped %p, left %zd\n", dstate->term, dstate->size));
+	    }
 	  }
 	  break;
 	} else
