@@ -218,7 +218,8 @@ update_cycle(th_data *here, th_data *start, Buffer b)
 
 
 #define termHashValue(p, hval) LDFUNC(termHashValue, p, hval)
-static int
+
+static int  /* bool or -1 for out-of-memory */
 termHashValue(DECL_LD Word p, unsigned int *hval)
 { deRef(p);
   if ( !isTerm(*p) )
@@ -293,9 +294,6 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
 
     discardBuffer(b);
 
-    if ( rc < 0 )
-      rc = PL_error(NULL, 0, NULL, ERR_NOMEM);
-
     return rc;
   }
 }
@@ -305,20 +303,17 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
 
 static
 PRED_IMPL("term_hash", 2, term_hash, 0)
-{ GET_LD
+{ PRED_LD
   Word p = valTermRef(A1);
-  unsigned int hraw;
-  int rc;
+  unsigned int hash;
+  int rc = termHashValue(p, &hash);
 
-  rc = termHashValue(p, &hraw);
+  if ( rc < 0 )
+    return PL_resource_error("memory");
+  else if ( rc )
+    return PL_unify_integer(A2, hash);
 
-  if ( rc )
-  { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged (portable) */
-
-    return PL_unify_integer(A2, hraw);
-  }
-
-  return true;
+  return true;			/* term is non-ground */
 }
 
 
