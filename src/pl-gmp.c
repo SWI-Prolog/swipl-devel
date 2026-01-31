@@ -475,7 +475,8 @@ saved version is the _mp_size field, followed by the limps.
 #define globalMPZ(at, mpz, flags) LDFUNC(globalMPZ, at, mpz, flags)
 static int
 globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
-{ DEBUG(CHK_SECURE, assert(!onStackArea(global, at) && !onStackArea(local, at)));
+{ DEBUG(CHK_SECURE, assert(!onStackArea(global, at) &&
+			   !onStackArea(local, at)));
 
   if ( !MPZ_ON_STACK(mpz) )
   { size_t size, wsz;
@@ -1512,7 +1513,7 @@ put_number(DECL_LD Word at, Number n, int flags)
 }
 
 
-int
+bool
 PL_unify_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
   word w;
@@ -1584,7 +1585,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
 }
 
 
-int
+bool
 PL_put_number(DECL_LD term_t t, Number n)
 { word w;
   int rc;
@@ -1609,7 +1610,7 @@ get_number(DECL_LD word w, Number n)
 }
 
 
-int
+bool
 PL_get_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 

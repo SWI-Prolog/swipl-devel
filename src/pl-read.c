@@ -5805,7 +5805,7 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     if ( ns != s && ns != buf )
       free(ns);
     if ( isnum )
-    { int rc = PL_put_number(t, &n);
+    { bool rc = PL_put_number(t, &n);
       clearNumber(&n);
       return rc;
     }

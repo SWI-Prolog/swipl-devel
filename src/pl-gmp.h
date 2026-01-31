@@ -56,11 +56,10 @@
 
 #define LDFUNC_DECLARATIONS
 
-int	PL_unify_number(term_t t, Number n);
-int	PL_put_number(term_t t, Number n);
+bool	PL_unify_number(term_t t, Number n);
+bool	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
-int	PL_get_number(term_t t, Number n);
-int	PL_get_number(term_t t, Number n);
+bool	PL_get_number(term_t t, Number n);
 int	put_uint64(Word at, uint64_t l, int flags);
 int	put_int64(Word p, int64_t i, int flags);
 int	put_number(Word at, Number n, int flags);
