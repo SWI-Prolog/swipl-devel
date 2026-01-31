@@ -130,11 +130,12 @@ test(simple_2) :-                  % small int
 test(simple_3) :-                  % Big int
     Num is 366454713<<64,
     term_hash(Num, X),
-    assertion(memberchk(X, [ 347_171_279,     % little endian
-			     1214499792,      % big endian
-			     3_784_382_378,   % LibBF, little endian
+    assertion(memberchk(X, [ 347_171_279,     % little endian (GMP)
+			     1214499792,      % big endian (GMP)
+			     3_784_382_378,   % LibBF, little endian (buggy)
 			     3289800483,      % LibBF, big endian
-			     -510584918	      % WASM
+			     -510584918,      % WASM
+			     1902251786       % MSVC LibBF, little endian (fixed)
 			   ])).
 test(simple_4) :-
     A is pi,
