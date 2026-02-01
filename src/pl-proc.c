@@ -1412,9 +1412,6 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
     return PL_no_memory(),NULL;
   }
 
-  clause->generation.created = max_generation(def);
-  clause->generation.erased  = 1;
-
   LOCKDEF(def);
   acquire_def(def);
   if ( !def->impl.clauses.last_clause )
@@ -1449,25 +1446,39 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   if ( isoff(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) ) /* see (*) above */
     freeCodesDefinition(def, true);
 
-  addClauseToIndexes(def, clause, where);
-  release_def(def);
-  DEBUG(CHK_SECURE, checkDefinition(def));
-  UNLOCKDEF(def);
-
+  /* Set generation BEFORE adding to indexes.  This fixes a race condition
+   * where the clause becomes visible in the index but still has the initial
+   * invalid generation values (created=max_gen, erased=1), making it
+   * invisible to other threads that find it via index lookup.
+   *
+   * Write order matters for memory ordering: erased must be written before
+   * created, with a release barrier between them.  The reader in visibleClause()
+   * reads created first, then acquires, then reads erased.  This ensures that
+   * if the reader sees the new created value, it will also see the new erased.
+   */
   if ( unlikely(!!LD->transaction.generation) && def && ison(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
-    { clause->generation.created = ++LD->transaction.generation;
-      clause->generation.erased  = max_generation(def);
+    { clause->generation.erased  = max_generation(def);
+      MEMORY_RELEASE();
+      clause->generation.created = ++LD->transaction.generation;
     } else
     { PL_representation_error("transaction_generations");
       goto error;
     }
   } else
   { PL_LOCK(L_GENERATION);
-    clause->generation.created = ++GD->_generation;
     clause->generation.erased  = max_generation(def);
+    MEMORY_RELEASE();
+    clause->generation.created = ++GD->_generation;
     PL_UNLOCK(L_GENERATION);
   }
+
+  /* Ensure generation values are visible before clause appears in index */
+  MEMORY_RELEASE();
+  addClauseToIndexes(def, clause, where);
+  release_def(def);
+  DEBUG(CHK_SECURE, checkDefinition(def));
+  UNLOCKDEF(def);
 
   if ( ( def->events &&
 	 !(LD->transaction.flags&TR_BULK) &&
