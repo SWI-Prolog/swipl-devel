@@ -756,7 +756,7 @@ typedef struct attvar_mark
   Word   attvar;
 } attvar_mark;
 
-int /* bool|TRIE_ABSTRACTED|TRIE_LOOKUP_CONTAINS_ATTVAR|TRIE_LOOKUP_CYCLIC */
+int	/* bool|TRIE_ABSTRACTED|TRIE_LOOKUP_CONTAINS_ATTVAR|TRIE_LOOKUP_CYCLIC */
 trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 		     Word k, bool add, size_abstract *abstract,
 		     TmpBuffer vars)
@@ -767,6 +767,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
   tmp_buffer varb;
   size_abstract sa = {.from_depth = 1, .size = (size_t)-1};
   size_t aleft = (size_t)-1;
+  FILE* fff;
 #if O_TRIE_ATTVAR
   tmp_buffer attvarb;
   TmpBuffer attvars = NULL;
@@ -793,14 +794,25 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
 	  break;
 #if O_TRIE_ATTVAR
-	if ( avm && avm->compound_depth == compounds )
-	{ word w = (*avm->attvar)|STG_RESERVED;
-	  DEBUG(MSG_TRIE_PUT_TERM,
-		Sdprintf("Finished attvar at %p\n", avm->attvar));
-	  (void)popBufferP(attvars, attvar_mark);
-	  avm--;
-	  if ( !(node = follow_node(trie, node, w, add)) )
-	    break;
+	if ( avm )
+	{ fff = fopen("debug.txt", "at");
+	  fprintf(fff, "avm nun = %p\n", avm);
+	  fprintf(fff, "compounds = %ld\n", compounds);
+	  fclose(fff);
+	  if ( avm->compound_depth == compounds )
+	  { word w = (*avm->attvar)|STG_RESERVED;
+	    DEBUG(MSG_TRIE_PUT_TERM,
+	      Sdprintf("Finished attvar at %p\n", avm->attvar));
+	    (void)popBufferP(attvars, attvar_mark);
+	    avm--;
+	    fff = fopen("debug.txt", "at");
+	    fprintf(fff, "avm nun = %p\n", avm);
+	    fprintf(fff, "avm->compound_depth = %ld\n", avm->compound_depth);
+	    fprintf(fff, "avm->attvar = %p\n", avm->attvar);
+	    fclose(fff);
+	    if ( !(node = follow_node(trie, node, w, add)) )
+	      break;
+	  }
 	}
 #endif
 	continue;
@@ -864,6 +876,11 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  avm = allocFromBuffer(attvars, sizeof(*avm));
 	  avm->compound_depth = compounds;
 	  avm->attvar = p;
+	  fff = fopen("debug.txt", "wt");
+	  fprintf(fff, "avm = %p\n", avm);
+	  fprintf(fff, "avm->compound_depth = %ld\n", avm->compound_depth);
+	  fprintf(fff, "avm->attvar = %p\n", avm->attvar);
+	  fclose(fff);
 	  DEBUG(MSG_TRIE_PUT_TERM,
 		Sdprintf("Opened attvar at %p\n", p));
 	  compounds++;
@@ -2074,14 +2091,14 @@ typedef struct desc_tstate
 typedef struct
 { Word	       term;		/* Term we are descending */
   size_t       size;		/* Size of the current node */
-  bool	       compound;	/* Initialized for compound */
-  bool	       prune;		/* Use for pruning */
+  int	       compound;	/* Initialized for compound */
+  int	       prune;		/* Use for pruning */
   segstack     stack;		/* Stack for argument handling */
   desc_tstate  buffer[64];	/* Quick buffer for stack */
 } descent_state;
 
 #define advance_node(ch) LDFUNC(advance_node, ch)
-static bool	advance_node(DECL_LD trie_choice *ch);
+static int	advance_node(DECL_LD trie_choice *ch);
 
 static void
 init_trie_state(trie_gen_state *state, trie *trie, const trie_node *root)
@@ -2129,8 +2146,7 @@ clear_descent_state(descent_state *dstate)
 }
 
 #define get_key(state, dstate, key) LDFUNC(get_key, state, dstate, key)
-
-static bool
+static int
 get_key(DECL_LD trie_gen_state *state, descent_state *dstate, word *key)
 { Word p;
 
@@ -2149,8 +2165,7 @@ get_key(DECL_LD trie_gen_state *state, descent_state *dstate, word *key)
     desc_tstate dts;
 
     DEBUG(MSG_TRIE_GEN,
-	  Sdprintf("get_key() for %s\n",
-		   functorName(word2functor(f->definition))));
+	  Sdprintf("get_key() for %s\n", functorName(word2functor(f->definition))));
 
     *key = f->definition;
     if ( dstate->size > 1 )
@@ -2197,15 +2212,12 @@ mask such that  we  perform  a  couple   of  hash  lookups  rather  than
 enumerating the entire table.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define add_choice(state, dstate, node) \
-	LDFUNC(add_choice, state, dstate, node)
-
+#define add_choice(state, dstate, node) LDFUNC(add_choice, state, dstate, node)
 static trie_choice *
-add_choice(DECL_LD trie_gen_state *state,
-	   descent_state *dstate, trie_node *node)
+add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node)
 { trie_children children = node->children;
   trie_choice *ch;
-  bool has_key;
+  int has_key;
   word k=0;
 
   if ( dstate->prune )
@@ -2247,19 +2259,11 @@ add_choice(DECL_LD trie_gen_state *state,
 
 	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
 	  { desc_tstate dts;
-
-	    if ( popSegStack(&dstate->stack, &dts, desc_tstate) )
-	    { dstate->term = dts.term;
-	      dstate->size = dts.size;
-	    } else	      /* Force a crash if we access these */
-	    { DEBUG(0,
-		    { dstate->term = NULL;
-		      dstate->size = (size_t)-1;
-		    });
-	    }
+	    popSegStack(&dstate->stack, &dts, desc_tstate);
+	    dstate->term = dts.term;
+	    dstate->size = dts.size;
 	    DEBUG(MSG_TRIE_GEN,
-		  Sdprintf("Popped %p, left %zd\n",
-			   dstate->term, dstate->size));
+		  Sdprintf("Popped %p, left %zd\n", dstate->term, dstate->size));
 	  }
 	  break;
 	} else
@@ -2328,12 +2332,9 @@ add_choice(DECL_LD trie_gen_state *state,
 }
 
 
-#define descent_node(state, dstate, ch) \
-	LDFUNC(descent_node, state, dstate, ch)
-
+#define descent_node(state, dstate, ch) LDFUNC(descent_node, state, dstate, ch)
 static trie_choice *
-descent_node(DECL_LD trie_gen_state *state,
-	     descent_state *dstate, trie_choice *ch)
+descent_node(DECL_LD trie_gen_state *state, descent_state *dstate, trie_choice *ch)
 { while( ch && ch->child->children.any &&
 	 isoff(ch->child, state->vflags) )
   { ch = add_choice(state, dstate, ch->child);
@@ -2343,7 +2344,7 @@ descent_node(DECL_LD trie_gen_state *state,
 }
 
 
-static bool
+static int
 advance_node(DECL_LD trie_choice *ch)
 { if ( ch->table_enum )
   { table_key_t k;
@@ -2434,16 +2435,16 @@ Returns one of true, false or *_OVERFLOW.
 #define unify_trie_path(term, tn, gstate) \
 	LDFUNC(unify_trie_path, term, tn, gstate)
 
-static bool		      /* bool or _*OVERFLOW */
+static int		      /* bool or _*OVERFLOW */
 unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
-{ bool rc;
+{ int rc;
   ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
   init_ukey_state(&ustate, gstate->trie, valTermRef(term), false);
   for( ; ch < top; ch++ )
-  { if ( !(rc=unify_key(&ustate, ch->key)) )
+  { if ( (rc=unify_key(&ustate, ch->key)) != true )
     { destroy_ukey_state(&ustate);
       return rc;
     }
@@ -2459,8 +2460,7 @@ unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
 
 foreign_t
 trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
-	     term_t Data,
-	     bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
+	     term_t Data, bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	     void *ctx, control_t PL__ctx)
 { PRED_LD
   trie_gen_state state_buf;
@@ -2578,8 +2578,7 @@ next:;
 
 foreign_t
 trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
-	 term_t Data,
-	 bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
+	 term_t Data, bool LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	 void *ctx, control_t PL__ctx)
 { if ( CTX_CNTRL == FRG_FIRST_CALL )
   { trie *trie;
