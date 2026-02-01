@@ -153,6 +153,9 @@ src/reqs64.cab
 src/reqs32.cab
 .pl-history
 ReleaseNotes
+
+# Claude Code temporary files
+tmpclaude-*-cwd
 build-ppa-tmp
 scripts/upload
 CMakeUserPresets.json
