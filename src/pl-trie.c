@@ -798,7 +798,10 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  DEBUG(MSG_TRIE_PUT_TERM,
 		Sdprintf("Finished attvar at %p\n", avm->attvar));
 	  (void)popBufferP(attvars, attvar_mark);
-	  avm--;
+	  if ( avm > baseBuffer(attvars, attvar_mark) )
+	    avm--;
+	  else
+	    avm = NULL;
 	  if ( !(node = follow_node(trie, node, w, add)) )
 	    break;
 	}
