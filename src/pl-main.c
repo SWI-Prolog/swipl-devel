@@ -174,11 +174,13 @@ wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR lpCmdLine, int nShowCmd)
 #endif
 #endif
 
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && !defined(__WINDOWS__)
+/* LeakSanitizer header only available on Linux/macOS, not Windows MSVC */
 #include <sanitizer/lsan_interface.h>
 #endif
 
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && !defined(_MSC_VER)
+/* __asan_default_options not supported by MSVC ASan runtime */
 const char*
 __asan_default_options()
 { return "detect_leaks=0";

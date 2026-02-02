@@ -85,7 +85,8 @@
 #endif
 #endif
 
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && !defined(__WINDOWS__)
+/* LeakSanitizer header only available on Linux/macOS, not Windows MSVC */
 #include <sanitizer/lsan_interface.h>
 #endif
 

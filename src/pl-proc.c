@@ -123,7 +123,7 @@ lookupProcedure(functor_t f, Module m)
   memset(def, 0, sizeof(*def));
   def->functor = valueFunctor(f);
   def->module  = m;
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && !defined(__WINDOWS__)
   def->name = strdup(predicateName(def));
   __lsan_ignore_object(def->name);
 #endif

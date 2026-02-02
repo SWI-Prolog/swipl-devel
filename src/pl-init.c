@@ -1918,7 +1918,8 @@ emergency:
     memset(&PL_local_data,  0, sizeof(PL_local_data));
   }
 
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && !defined(__WINDOWS__)
+/* LeakSanitizer is only available on Linux and macOS, not Windows MSVC */
   char *s;
 
   if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
