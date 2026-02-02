@@ -54,6 +54,7 @@ check_include_file(sys/stropts.h HAVE_SYS_STROPTS_H)
 check_include_file(zlib.h HAVE_ZLIB_H)
 check_include_file(crt_externs.h HAVE_CRT_EXTERNS_H)
 check_include_file(gperftools/malloc_extension_c.h HAVE_TCMALLOC_EXTENSION_C_H)
+check_include_file(sanitizer/lsan_interface.h HAVE_SANITIZER_LSAN_INTERFACE_H)
 
 check_c_source_compiles(
     "int val = 1;

@@ -170,11 +170,11 @@ wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR lpCmdLine, int nShowCmd)
 #endif
 #ifndef __SANITIZE_ADDRESS__
 #if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__
+#define __SANITIZE_ADDRESS__ 1
 #endif
 #endif
 
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
 #include <sanitizer/lsan_interface.h>
 #endif
 
