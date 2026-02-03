@@ -1294,7 +1294,7 @@ properly on Linux. Don't bother with it.
 
 typedef struct
 { size_t size;				/* Size (including header) */
-  int	 mmapped;			/* Is mmapped? */
+  bool	 mmapped;			/* Is mmapped? */
   double data[1];			/* ensure alignment */
 } map_region;
 
@@ -1353,7 +1353,7 @@ tmp_malloc_size(void *mem)
 void *
 tmp_malloc(size_t req)
 { map_region *reg;
-  int mmapped;
+  bool mmapped;
 
   req += SA_OFFSET;
   if ( req < MMAP_THRESHOLD )

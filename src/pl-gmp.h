@@ -67,8 +67,8 @@ bool	get_int64(word w, int64_t *ip);
 bool	promoteToFloatNumber(Number n);
 bool	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 bool    promoteNumber(Number n1, numtype type) WUNUSED;
-int	cmpNumbers(Number n1, Number n2);
-int	cmpReals(Number n1, Number n2);
+cmpex_t	cmpNumbers(Number n1, Number n2);
+cmpex_t	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
 #ifdef O_BIGNUM
 void	get_rational_no_int(word w, number *n);
@@ -249,9 +249,9 @@ typedef struct ar_context
 #define AR_PERSISTENT(g)				\
   do							\
   { ar_context *__PL_ar_ctx_saved = LD->gmp.context;	\
-  LD->gmp.context = NULL;				\
-  g;							\
-  LD->gmp.context = __PL_ar_ctx_saved;			\
+    LD->gmp.context = NULL;				\
+    g;							\
+    LD->gmp.context = __PL_ar_ctx_saved;		\
   } while(0)
 
 
