@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Richard O'Keefe
-    E-mail:        J.Wielemaker@cs.vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2023, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2002-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -112,9 +112,9 @@ their specification by Quintus and SICStus.
 %   each list element twice and  provides   determinism  on the last
 %   element.  E.g. this is deterministic:
 %
-%       ==
+%       ```
 %           member(X, [One]).
-%       ==
+%       ```
 %
 %   @author Gertjan van Noord
 
@@ -194,12 +194,12 @@ selectchk(Elem, List, Rest) :-
 %   example  below.  All  possible  substitutions    are   performed  on
 %   backtracking.
 %
-%     ==
+%     ```
 %     ?- select(b, [a,b,c,b], 2, X).
 %     X = [a, 2, c, b] ;
 %     X = [a, b, c, 2] ;
 %     false.
-%     ==
+%     ```
 %
 %   @see selectchk/4 provides a semidet version.
 
@@ -230,8 +230,8 @@ nextto(X, Y, [_|Zs]) :-
 %
 %   Delete matching elements from a list. True  when List2 is a list
 %   with all elements from List1 except   for  those that unify with
-%   Elem. Matching Elem with elements of List1  is uses =|\+ Elem \=
-%   H|=, which implies that Elem is not changed.
+%   Elem. Matching Elem with elements of List1  is uses ``\+ Elem \=
+%   H``, which implies that Elem is not changed.
 %
 %   @deprecated There are too many ways in which one might want to
 %               delete elements from a list to justify the name.
@@ -307,18 +307,18 @@ nth1(Index, List, Elem) :-
 %   (0-based) element of List and Rest is   the  remainder (as in by
 %   select/3) of List.  For example:
 %
-%     ==
+%     ```
 %     ?- nth0(I, [a,b,c], E, R).
 %     I = 0, E = a, R = [b, c] ;
 %     I = 1, E = b, R = [a, c] ;
 %     I = 2, E = c, R = [a, b] ;
 %     false.
-%     ==
+%     ```
 %
-%     ==
+%     ```
 %     ?- nth0(1, L, a1, [a,b]).
 %     L = [a, a1, b].
-%     ==
+%     ```
 
 nth0(V, In, Element, Rest) :-
     var(V),
@@ -354,9 +354,8 @@ find_nth0(N, [Head|Rest0], Elem, [Head|Rest]) :-
 
 %!  last(?List, ?Last)
 %
-%   Succeeds when Last  is  the  last   element  of  List.  This
-%   predicate is =semidet= if List is a  list and =multi= if List is
-%   a partial list.
+%   Succeeds when Last is the last element   of  List. This predicate is
+%   `semidet` if List is a list and `multi` if List is a partial list.
 %
 %   @compat There is no de-facto standard for the argument order of
 %           last/2.  Be careful when porting code or use
@@ -375,11 +374,11 @@ last_([X|Xs], _, Last) :-
 %   True when Length is the number of   elements  in the proper list
 %   List.  This is equivalent to
 %
-%     ==
+%     ```
 %     proper_length(List, Length) :-
 %           is_list(List),
 %           length(List, Length).
-%     ==
+%     ```
 
 proper_length(List, Length) :-
     '$skip_list'(Length0, List, Tail),
@@ -428,23 +427,23 @@ reverse([X|Xs], [_|Bound], Rs, Ys) :-
 %   If both Xs and Ys are provided  and both lists have equal length
 %   the order is |Xs|^2. Simply testing  whether Xs is a permutation
 %   of Ys can be  achieved  in   order  log(|Xs|)  using  msort/2 as
-%   illustrated below with the =semidet= predicate is_permutation/2:
+%   illustrated below with the `semidet` predicate is_permutation/2:
 %
-%     ==
+%     ```
 %     is_permutation(Xs, Ys) :-
 %       msort(Xs, Sorted),
 %       msort(Ys, Sorted).
-%     ==
+%     ```
 %
 %   The example below illustrates that Xs   and Ys being proper lists
 %   is not a sufficient condition to use the above replacement.
 %
-%     ==
+%     ```
 %     ?- permutation([1,2], [X,Y]).
 %     X = 1, Y = 2 ;
 %     X = 2, Y = 1 ;
 %     false.
-%     ==
+%     ```
 %
 %   @error  type_error(list, Arg) if either argument is not a proper
 %           or partial list.

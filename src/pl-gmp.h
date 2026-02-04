@@ -67,8 +67,8 @@ bool	get_int64(word w, int64_t *ip);
 bool	promoteToFloatNumber(Number n);
 bool	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 bool    promoteNumber(Number n1, numtype type) WUNUSED;
-int	cmpNumbers(Number n1, Number n2);
-int	cmpReals(Number n1, Number n2);
+cmpex_t	cmpNumbers(Number n1, Number n2);
+cmpex_t	cmpReals(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
 #ifdef O_BIGNUM
 void	get_rational_no_int(word w, number *n);
@@ -211,6 +211,14 @@ get_rational(DECL_LD word w, Number n)
 #define GMP_STACK_ALLOC 1024	/* in size_t units */
 
 #if O_MY_GMP_ALLOC
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Keep track of GMP/LibBF memory.   In  case   an  error  happens, not all
+memory may be reclaimed, so  we  do   this  in  AR_CLEANUP().  On normal
+termination AR_END() is used  and  there   should  not  be any allocated
+object left.  That is verified by the assert().
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct mp_mem_header
 { struct mp_mem_header *prev;
   struct mp_mem_header *next;
@@ -224,34 +232,35 @@ typedef struct ar_context
   size_t	    *alloc_buf;
 } ar_context;
 
-#define AR_CTX \
-	size_t     __PL_ar_buf[GMP_STACK_ALLOC]; \
+#define AR_CTX						\
+	size_t     __PL_ar_buf[GMP_STACK_ALLOC];	\
 	ar_context __PL_ar_ctx = {.alloc_buf = __PL_ar_buf};
 
-#define AR_BEGIN() \
-	do \
-	{ assert(LD->gmp.context == NULL); \
-	  __PL_ar_ctx.femode    = FE_NOTSET; \
-	  LD->gmp.context	= &__PL_ar_ctx; \
+#define AR_BEGIN()					\
+	do						\
+	{ assert(LD->gmp.context == NULL);		\
+	  __PL_ar_ctx.femode    = FE_NOTSET;		\
+	  LD->gmp.context	= &__PL_ar_ctx;		\
 	} while(0)
-#define AR_END() \
-	do \
-	{ LD->gmp.context = NULL; \
+#define AR_END()					\
+	do						\
+	{ DEBUG(0, assert(__PL_ar_ctx.head==NULL));	\
+	  LD->gmp.context = NULL;			\
 	} while(0)
-#define AR_CLEANUP() \
-	do \
-	{ LD->gmp.context = NULL; \
-          if ( __PL_ar_ctx.femode != FE_NOTSET )	    \
-	    fesetround(__PL_ar_ctx.femode); \
-	  mp_cleanup(&__PL_ar_ctx); \
+#define AR_CLEANUP()					\
+	do						\
+	{ mp_cleanup(&__PL_ar_ctx);			\
+	  LD->gmp.context = NULL;			\
+          if ( __PL_ar_ctx.femode != FE_NOTSET )	\
+	    fesetround(__PL_ar_ctx.femode);		\
 	} while(0)
 
 #define AR_PERSISTENT(g)				\
   do							\
   { ar_context *__PL_ar_ctx_saved = LD->gmp.context;	\
-  LD->gmp.context = NULL;				\
-  g;							\
-  LD->gmp.context = __PL_ar_ctx_saved;			\
+    LD->gmp.context = NULL;				\
+    g;							\
+    LD->gmp.context = __PL_ar_ctx_saved;		\
   } while(0)
 
 

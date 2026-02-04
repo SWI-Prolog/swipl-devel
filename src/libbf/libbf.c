@@ -8278,11 +8278,15 @@ static int ntt_static_init(bf_context_t *s1)
 
     if (s1->ntt_state)
 	return 0;
+
+    CACHE_MALLOC_BEGIN(s1);
 #if defined(__AVX2__)
     s = bf_aligned_malloc(s1, sizeof(*s), 64);
 #else
     s = bf_malloc(s1, sizeof(*s));
 #endif
+    CACHE_MALLOC_END(s1);
+
     if (!s)
 	return -1;
     memset(s, 0, sizeof(*s));

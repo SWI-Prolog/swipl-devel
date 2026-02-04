@@ -4240,13 +4240,13 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   } else
-  { int rc;
+  { bool rc;
 
     if ( isRational(*k) && ratNumber(n) )
     { number left;
 
       get_rational(*k, &left);
-      rc = (cmpNumbers(&left, n) == CMP_EQUAL);
+      rc = (cmpNumbers(&left, n) == CMPEX_EQUAL);
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { Word ak = valIndirectP(*k);

@@ -254,7 +254,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 		      state->low.type == V_INTEGER) )
 	  { if ( state->low.value.i == state->high.value.i )
 	      goto cleanup;
-	  } else if ( cmpNumbers(&state->low, &state->high) == CMP_EQUAL )
+	  } else if ( cmpNumbers(&state->low, &state->high) == CMPEX_EQUAL )
 	      goto cleanup;
 	}
 	ForeignRedoPtr(state);
@@ -3650,6 +3650,9 @@ ar_maxr(Number n1, Number n2, Number r)
       else
         cpNumber(r, n1);
       break;
+    default:
+      assert(0);
+      return false;
   }
   return true;
 }
@@ -3678,6 +3681,9 @@ ar_minr(Number n1, Number n2, Number r)
       else
         cpNumber(r, n1);
       break;
+    default:
+      assert(0);
+      return false;
   }
   return true;
 }
