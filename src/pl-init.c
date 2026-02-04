@@ -1927,7 +1927,7 @@ emergency:
     if ( __lsan_do_recoverable_leak_check() )
     { fprintf(stderr, "Leaks detected; sleeping 60 sec.  Attach using\n"
 	     "   gdb -p %d\n", getpid());
-      sleep(60);
+      Pause(60.0);
     } else
     { fprintf(stderr, "No leaks detected\n");
     }

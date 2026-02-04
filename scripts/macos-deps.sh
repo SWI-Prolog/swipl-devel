@@ -20,7 +20,18 @@
 # and  combine  them  using  the  `macos-import-arch.sh`  script  into
 # universal binaries.
 
-PREFIX="$HOME/deps"
+case "$(uname -a)" in
+    *arm*) PREFIX="$HOME/deps"
+	   echo "Building for Apple Silicon in $PREFIX"
+	   ;;
+    *x86_64*) PREFIX="$HOME/x86_64/deps"
+	      echo "Building for x86_64 in $PREFIX"
+	      ;;
+    *) echo "Unknown Darwin target"
+       exit 1
+       ;;
+esac
+
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 GMP_VERSION=6.3.0
@@ -34,8 +45,8 @@ ODBC_VERSION=2.3.12
 PCRE2_VERSION=10.45
 FFI_VERSION=3.5.1
 YAML_VERSION=0.2.5
-SDL3_VERSION=3.2.16
-SDL3_IMAGE_VERSION=3.2.4
+SDL3_VERSION=3.4.0
+SDL3_IMAGE_VERSION=3.4.0
 CAIRO_VERSION=1.18.4
 PANGO_VERSION=1.56.4
 
@@ -49,7 +60,7 @@ src="$(pwd)"
 export PYTHON_BIN="/Library/Frameworks/Python.framework/Versions/3.11/bin/"
 export PATH="$PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PYTHON_BIN:/opt/local/bin"
 export LDFLAGS=-L$PREFIX/lib
-export CUFLAGS="-arch x86_64"
+export CUFLAGS="-arch x86_64 -arch arm64"
 export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
 export CWFLAGS="-Wno-nullability-completeness"
 export CIFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
@@ -132,7 +143,7 @@ build_ssl()
 	       ;;
 	*x86_64*) target=darwin64-x86_64-cc
 		  ;;
-	*) echo "Unknown Darmin target"
+	*) echo "Unknown Darwin target"
 	   return 1
 	   ;;
     esac
@@ -343,6 +354,10 @@ download_sdl3()
   tar xzf $SDL3_FILE
 }
 
+# Note: Building SDL3.4.0 requires two changes to CMakeLists.txt: Remove -Wundef
+# and disable precompiled headers.  After that, `build_sdl3` creates a working
+# universal binary.
+
 build_sdl3()
 { ( cd SDL3-$SDL3_VERSION
     mkdir -p build && cd build
@@ -353,15 +368,13 @@ build_sdl3()
       -DSDL_VIDEO=ON \
       -DSDL_AUDIO=ON \
       -DSDL_RENDER=ON \
-      -DSDL_EVENTS=ON \
       -DSDL_COCOA=ON \
       -DSDL_X11=OFF \
       -DSDL_WAYLAND=OFF \
-      -DSDL_DIRECTFB=OFF \
       -DSDL_VULKAN=OFF \
       -DSDL_METAL=ON \
-      -DSDL_TEST=OFF \
       -DSDL_SHARED=ON \
+      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
       -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
 
     ninja
@@ -374,15 +387,17 @@ build_sdl3()
 }
 
 download_sdl3_image()
-{ SDL3_IMAGE_FILE=SDL_image-release-$SDL3_IMAGE_VERSION.tar.gz
+{ SDL3_IMAGE_FILE=SDL3_image-$SDL3_IMAGE_VERSION.tar.gz
 
   [ -f $SDL3_IMAGE_FILE ] || \
-    curl -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-$SDL3_IMAGE_VERSION.tar.gz
+    curl -L -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/releases/download/release-$SDL3_IMAGE_VERSION/$SDL3_IMAGE_FILE
   tar xzf $SDL3_IMAGE_FILE
 }
 
+# Note: This builds a universal binary.
+
 build_sdl3_image()
-{ ( cd SDL_image-release-$SDL3_IMAGE_VERSION
+{ ( cd SDL3_image-$SDL3_IMAGE_VERSION
     mkdir -p build && cd build
     cmake .. \
       -G Ninja \
@@ -393,6 +408,7 @@ build_sdl3_image()
       -DSDLIMAGE_JPG=ON \
       -DSDLIMAGE_PNG=ON \
       -DSDLIMAGE_WEBP=OFF \
+      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
       -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
 
     ninja
