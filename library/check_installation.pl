@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2025, VU University Amsterdam
+    Copyright (c)  2014-2026, VU University Amsterdam
                               CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -85,60 +85,60 @@ shared objects/DLLs can be loaded.
 
 % Feature tests
 component(tcmalloc,
-          _{ optional:true,
+          #{ optional:true,
              test:test_tcmalloc,
              url:'tcmalloc.html',
              os:linux
            }).
 component(gmp,
-          _{ test:current_prolog_flag(bounded, false),
+          #{ test:current_prolog_flag(bounded, false),
              url:'gmp.html'
            }).
 % Packages that depend on foreign libraries
-component(library(archive), _{features:archive_features}).
-component(library(cgi), _{}).
-component(library(crypt), _{}).
-component(library(bdb), _{}).
-component(library(double_metaphone), _{}).
-component(library(editline), _{}).
-component(library(filesex), _{}).
-component(library(http/http_stream), _{}).
-component(library(json), _{}).
-component(library(http/jquery), _{features:jquery_file}).
-component(library(isub), _{}).
-component(library(janus), _{features:python_version}).
-component(library(jpl), _{}).
-component(library(memfile), _{}).
-component(library(odbc), _{}).
+component(library(archive), #{features:archive_features}).
+component(library(cgi), #{}).
+component(library(crypt), #{}).
+component(library(bdb), #{}).
+component(library(double_metaphone), #{}).
+component(library(editline), #{}).
+component(library(filesex), #{}).
+component(library(http/http_stream), #{}).
+component(library(json), #{}).
+component(library(http/jquery), #{features:jquery_file}).
+component(library(isub), #{}).
+component(library(janus), #{features:python_version}).
+component(library(jpl), #{}).
+component(library(memfile), #{}).
+component(library(odbc), #{}).
 component(library(pce),
-          _{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
+          #{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
             url:'xpce.html'}).
-component(library(pcre), _{features:pcre_features}).
-component(library(pdt_console), _{}).
-component(library(porter_stem), _{}).
-component(library(process), _{}).
-component(library(protobufs), _{}).
-component(library(readutil), _{}).
-component(library(rlimit), _{os:unix}).
-component(library(semweb/rdf_db), _{}).
-component(library(semweb/rdf_ntriples), _{}).
-component(library(semweb/turtle), _{}).
-component(library(sgml), _{}).
-component(library(sha), _{}).
-component(library(snowball), _{}).
-component(library(socket), _{}).
-component(library(ssl), _{}).
-component(library(sweep_link), _{features:sweep_emacs_module}).
-component(library(crypto), _{}).
-component(library(syslog), _{os:unix}).
-component(library(table), _{}).
-component(library(time), _{}).
-component(library(tipc/tipc), _{os:linux}).
-component(library(unicode), _{}).
-component(library(uri), _{}).
-component(library(uuid), _{}).
-component(library(yaml), _{}).
-component(library(zlib), _{}).
+component(library(pcre), #{features:pcre_features}).
+component(library(pdt_console), #{}).
+component(library(porter_stem), #{}).
+component(library(process), #{}).
+component(library(protobufs), #{}).
+component(library(readutil), #{}).
+component(library(rlimit), #{os:unix}).
+component(library(semweb/rdf_db), #{}).
+component(library(semweb/rdf_ntriples), #{}).
+component(library(semweb/turtle), #{}).
+component(library(sgml), #{}).
+component(library(sha), #{}).
+component(library(snowball), #{}).
+component(library(socket), #{}).
+component(library(ssl), #{features:ssl_version}).
+component(library(sweep_link), #{features:sweep_emacs_module}).
+component(library(crypto), #{}).
+component(library(syslog), #{os:unix}).
+component(library(table), #{}).
+component(library(time), #{}).
+component(library(tipc/tipc), #{os:linux}).
+component(library(unicode), #{}).
+component(library(uri), #{}).
+component(library(uuid), #{}).
+component(library(yaml), #{}).
+component(library(zlib), #{}).
 
 issue_base('http://www.swi-prolog.org/build/issues/').
 
@@ -417,6 +417,13 @@ pcre_missing(X) :-
 
 pcre_must_have(unicode).
 
+%!  ssl_version
+
+ssl_version :-
+    current_prolog_flag(ssl_library_version, SSLVersion),
+    print_message(informational, installation(version(SSLVersion))).
+
+
 %!  jquery_file
 %
 %   Test whether jquery.js can be found
@@ -656,6 +663,10 @@ message(janus(Version)) -->
 message(ambiguous_autoload(PI, Paths)) -->
     [ 'The predicate ~p can be autoloaded from multiple libraries:'-[PI]],
     sequence(list_file, Paths).
+message(version(Version)) -->
+    [ '  Using ~w'-[Version] ].
+message(lib_version(What, Version)) -->
+    [ '  Using library ~w version ~w'-[What, Version] ].
 
 public_executable(EXE, PublicProg) :-
     file_base_name(EXE, Prog),
