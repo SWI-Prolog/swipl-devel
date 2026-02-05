@@ -179,7 +179,7 @@ True if we are running under valgrind.
 #define RUNNING_ON_VALGRIND (getenv("VALGRIND_OPTS") != NULL)
 #endif
 
-static int
+static bool
 under_valgrind(void)
 { static int vg = -1;
 
