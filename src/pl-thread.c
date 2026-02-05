@@ -2017,7 +2017,7 @@ set_system_thread_id(PL_thread_info_t *info)
 
 #ifdef O_PLMT
 
-static int
+static bool
 set_os_thread_name_from_charp(const char *s)
 {
 #ifdef HAVE_PTHREAD_SETNAME_NP
@@ -2041,7 +2041,7 @@ set_os_thread_name_from_charp(const char *s)
 }
 
 
-static int
+static bool
 set_os_thread_name(atom_t alias)
 {
 #ifdef HAVE_PTHREAD_SETNAME_NP
