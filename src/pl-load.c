@@ -167,9 +167,15 @@ PL_dlclose(void *handle)
 #endif /*EMULATE_DLOPEN*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-under_valgrind()
+blocked_unload_shared_objects()
 
-True if we are running under valgrind.
+Return true if we should not unload foreign libraries (DLL/.so/..).  We
+should not so so
+
+  - When doing leak detection because this stops the leak detector to
+    access symbol names (valgrind or LSan)
+  - We are using Windows with Asan.  Somehow a cleanup handler is called
+    that calls into a removed DLL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
@@ -179,8 +185,8 @@ True if we are running under valgrind.
 #define RUNNING_ON_VALGRIND (getenv("VALGRIND_OPTS") != NULL)
 #endif
 
-static int
-under_valgrind(void)
+static bool
+blocked_unload_shared_objects(void)
 { static int vg = -1;
 
   if ( vg == -1 )
@@ -188,7 +194,9 @@ under_valgrind(void)
 #ifdef __SANITIZE_ADDRESS__
     char *s;
 
+#ifndef __WINDOWS__
     if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
+#endif
     { vg = true;
       return vg;
     }
@@ -352,7 +360,7 @@ PRED_IMPL("close_shared_object", 1, close_shared_object, 0)
 { DlEntry e = find_dl_entry(A1);
 
   if ( e && e->dlhandle)
-  { if ( !under_valgrind() )
+  { if ( !blocked_unload_shared_objects() )
       PL_dlclose(e->dlhandle);
     e->dlhandle = NULL;
 
@@ -419,7 +427,7 @@ cleanupForeign(void)
   { next = e->next;
 
     if ( e->dlhandle )
-    { if ( !under_valgrind() )
+    { if ( !blocked_unload_shared_objects() )
 	PL_dlclose(e->dlhandle);
     }
 
