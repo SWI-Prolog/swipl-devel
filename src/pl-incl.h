@@ -996,7 +996,8 @@ typedef enum
   CLN_FOREIGN,				/* Foreign hooks */
   CLN_IO,				/* Cleaning I/O */
   CLN_SHARED,				/* Unload shared objects */
-  CLN_DATA				/* Remaining data */
+  CLN_DATA,				/* Remaining data */
+  CLN_ATEXIT				/* Final cleanup handlers */
 } cleanup_status;
 
 
