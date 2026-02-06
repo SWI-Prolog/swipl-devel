@@ -1370,15 +1370,15 @@ Please note that construction and destruction of engines are
 relatively expensive operations. Only destroy an engine if performance
 is not critical and memory is a critical resource.
 
-    \cfunction{int}{PL_thread_at_exit}{void (*function)(void *),
-				       void *closure,
-				       int global}
+    \cfunction{bool}{PL_thread_at_exit}{void (*function)(void *),
+					void *closure,
+					bool global}
 Register a handle to be called as the Prolog engine is destroyed.
 The handler function is called with one \ctype{void *} argument holding
-\arg{closure}. If \arg{global} is \const{TRUE}, the handler is installed
+\arg{closure}. If \arg{global} is \const{true}, the handler is installed
 \emph{for all threads}. Globally installed handlers are executed after
 the thread-local handlers. If the handler is installed local for the
-current thread only (\arg{global} == \const{FALSE}) it is stored in the
+current thread only (\arg{global} == \const{false}) it is stored in the
 same FIFO queue as used by thread_at_exit/1.
 \end{description}
 

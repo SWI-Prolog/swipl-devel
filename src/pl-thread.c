@@ -8013,8 +8013,8 @@ PL_unify_thread_id(term_t t, int i)
 }
 
 
-int
-PL_thread_at_exit(void (*function)(void *), void *closure, int global)
+bool
+PL_thread_at_exit(void (*function)(void *), void *closure, bool global)
 { return false;
 }
 
@@ -8029,7 +8029,7 @@ PL_thread_destroy_engine()
 }
 
 #ifdef __WINDOWS__
-int
+bool
 PL_w32thread_raise(DWORD id, int sig)
 { return PL_raise(sig);
 }
