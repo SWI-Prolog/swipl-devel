@@ -5011,7 +5011,7 @@ supported by GCC and Clang. Do do so, use
 
 See cmake/BuildType.cmake for details.
 
-Currently SWI-Prolog does not reclaim all memory   on  edit, even not if
+Currently SWI-Prolog does not reclaim all memory   on  exit, even not if
 cleanupProlog() is called with reclaim_memory set to true. The docs says
 we can use __lsan_disable() just before exit   to  avoid the leak check,
 but this doesn't seem to work (Ubuntu 18.04). What does work is defining
@@ -5033,6 +5033,7 @@ haltProlog(int status)
     case PL_CLEANUP_RECURSIVE:
       return false;
     default:
+      GD->halt.cleaning = CLN_ATEXIT;
       run_on_halt(&GD->os.exit_hooks, status);
       return true;
   }
@@ -5776,7 +5777,7 @@ PL_query(int query)
       return (intptr_t)(cpu*1000.0);
     }
     case PL_QUERY_HALTING:
-    { return (GD->halt.cleaning == CLN_NORMAL ? false : true);
+    { return (GD->halt.cleaning != CLN_NORMAL);
     }
     default:
       sysError("PL_query: Illegal query: %d", query);
