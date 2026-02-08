@@ -124,6 +124,10 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(MSVC)
+# MSVC C++ code needs /EHsc for consistent C++ exception handling,
+# demanding proper stack unwind and claiming extern "C" code does
+# not throw exceptions.
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc $ENV{CXXFLAGS}")
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()
