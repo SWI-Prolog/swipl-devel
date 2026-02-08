@@ -251,7 +251,7 @@ dict_ordered(DECL_LD Word data, size_t count, Word dupl)
 }
 
 
-static cmp_t
+static int
 compare_dict_entry(const void *a, const void *b, void *arg)
 { Word p = (Word)a+1;
   Word q = (Word)b+1;
@@ -292,7 +292,7 @@ typedef struct order_term_refs
 static inline cmp_t compare_term_refs(DECL_LD const int *ip1, const int *ip2,
 				      order_term_refs *ctx);
 
-static cmp_t
+static int
 (compare_term_refs)(const void *a, const void *b, void *arg)
 { return compare_term_refs(PASS_AS_LD(((order_term_refs*)arg)->ld) a, b, arg);
 }
