@@ -3628,7 +3628,7 @@ ar_min(Number n1, Number n2, Number r)
 
 static bool
 ar_maxr(Number n1, Number n2, Number r)
-{ switch (cmpReals(n1, n2))
+{ switch ((int)cmpReals(n1, n2))
   { case CMP_LESS:
       cpNumber(r,n2);
       break;
@@ -3659,7 +3659,7 @@ ar_maxr(Number n1, Number n2, Number r)
 
 static bool
 ar_minr(Number n1, Number n2, Number r)
-{ switch (cmpReals(n1, n2))
+{ switch ((int)cmpReals(n1, n2))
   { case CMP_LESS:
       cpNumber(r,n1);
       break;
