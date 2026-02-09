@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2025, University of Amsterdam,
+    Copyright (c)  1999-2026, University of Amsterdam,
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -56,6 +56,7 @@
 #include "pl-thread.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-nt.h"
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
 #include "pl-event.h"

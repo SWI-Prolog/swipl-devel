@@ -46,7 +46,7 @@ void		PlMessage(const char *buf, ...);
 foreign_t	pl_window_title(term_t old, term_t new);
 foreign_t	pl_win_exec(term_t command, term_t show);
 foreign_t	pl_win_module_file(term_t module, term_t file);
-int		ms_snprintf(char *buffer, size_t count,
+int		c99_snprintf(char *buffer, size_t count,
 			    const char *fmt, ...);
 void		getDefaultsFromRegistry(void);
 const char*	WinError(void);

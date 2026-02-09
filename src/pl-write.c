@@ -46,6 +46,7 @@
 #include "pl-prims.h"
 #include "pl-modul.h"
 #include "pl-setup.h"
+#include "pl-nt.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"

@@ -940,7 +940,7 @@ VS2005 docs):
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
+c99_snprintf(char *buffer, size_t count, const char *fmt, ...)
 { va_list ap;
   int ret;
 
