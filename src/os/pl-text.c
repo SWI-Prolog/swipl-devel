@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -38,6 +38,7 @@
 #include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-nt.h"
 #include "../pl-codelist.h"
 #include "../pl-write.h"
 #include "../pl-prims.h"

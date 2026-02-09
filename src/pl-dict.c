@@ -251,7 +251,7 @@ dict_ordered(DECL_LD Word data, size_t count, Word dupl)
 }
 
 
-static cmp_t
+static int // cmp_t, but that does not satisty sort_r()
 compare_dict_entry(const void *a, const void *b, void *arg)
 { Word p = (Word)a+1;
   Word q = (Word)b+1;
@@ -288,16 +288,19 @@ typedef struct order_term_refs
 } order_term_refs;
 
 
-#define compare_term_refs(ip1, ip2, ctx) LDFUNC(compare_term_refs, ip1, ip2, ctx)
-static inline cmp_t compare_term_refs(DECL_LD const int *ip1, const int *ip2,
+// The compare functions are `int` typed for `sort_r()`.
+#define compare_term_refs(ip1, ip2, ctx) \
+	LDFUNC(compare_term_refs, ip1, ip2, ctx)
+
+static inline int compare_term_refs(DECL_LD const int *ip1, const int *ip2,
 				      order_term_refs *ctx);
 
-static cmp_t
+static int
 (compare_term_refs)(const void *a, const void *b, void *arg)
 { return compare_term_refs(PASS_AS_LD(((order_term_refs*)arg)->ld) a, b, arg);
 }
 
-static inline cmp_t
+static inline int
 compare_term_refs(DECL_LD const int *ip1, const int *ip2, order_term_refs *ctx)
 { Word p = valTermRef(ctx->av[*ip1*2]);
   Word q = valTermRef(ctx->av[*ip2*2]);
@@ -305,7 +308,7 @@ compare_term_refs(DECL_LD const int *ip1, const int *ip2, order_term_refs *ctx)
   assert(!isRef(*p));
   assert(!isRef(*q));
 
-  return (*p<*q ? -1 : *p>*q ? 1 : 0);
+  return SCALAR_TO_CMP(*p, *q);
 }
 
 

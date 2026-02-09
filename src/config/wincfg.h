@@ -128,7 +128,7 @@ typedef int mode_t;
 
 #include <stdio.h>			/* stdio.h prevents redefining */
 #undef snprintf
-#define snprintf ms_snprintf		/* defined in pl-nt.c */
+#define snprintf c99_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP
 #define HAVE_GMP_H 1
