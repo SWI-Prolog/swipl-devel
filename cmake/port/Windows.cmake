@@ -1,5 +1,9 @@
 if(WIN32)
 
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
 if(NOT SWIPL_C_STACK_SIZE)
   set(SWIPL_C_STACK_SIZE 4194304)
 endif()
