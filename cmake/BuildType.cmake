@@ -7,14 +7,35 @@ if(NOT default_build_type)
   endif()
 endif()
 
+find_program(APT apt)
+
+# As is, PGO builds do not  build   with  multi-config  generators as it
+# depends on more than just  changing   some  C/C++ compile flags. Also,
+# there is no point using this for the DEB build type
+
+set(SWIPL_CORE_BUILD_TYPES
+    "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "Sanitize")
+set(SWIPL_EXTRA_BUILD_TYPES)
+if(CMAKE_COMPILER_IS_GNUCC OR
+   CMAKE_C_COMPILER_ID STREQUAL Clang OR
+   CMAKE_C_COMPILER_ID STREQUAL AppleClang)
+  list(APPEND SWIPL_EXTRA_BUILD_TYPES "PGO")
+endif()
+if(APT)
+  list(APPEND SWIPL_EXTRA_BUILD_TYPES "DEB")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-	       "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "PGO" "DEB")
+	       ${SWIPL_CORE_BUILD_TYPES} ${SWIPL_EXTRA_BUILD_TYPES})
 endif()
+
+set(CMAKE_CONFIGURATION_TYPES ${SWIPL_CORE_BUILD_TYPES} CACHE
+    STRING "Configurations for multi-config generators." FORCE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEB")
   message("-- Setting up flags for Debian based distro packaging")
@@ -124,10 +145,58 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(MSVC)
-# MSVC C++ code needs /EHsc for consistent C++ exception handling,
-# demanding proper stack unwind and claiming extern "C" code does
-# not throw exceptions.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc $ENV{CXXFLAGS}")
+  # Common MSVC flags
+  set(_SWI_MSVC_C_COMMON   "/nologo")
+  set(_SWI_MSVC_CXX_COMMON "/nologo /EHsc")   # /EHsc for consistent C++ exception semantics
+
+  # Debug flags: no optimization + full symbols + SWI debug macros
+  set(CMAKE_C_FLAGS_DEBUG
+      "${_SWI_MSVC_C_COMMON} /D_DEBUG /DO_DEBUG /DO_DEBUG_ATOMGC /Od /Zi"
+      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${_SWI_MSVC_CXX_COMMON} /D_DEBUG /DO_DEBUG /DO_DEBUG_ATOMGC /Od /Zi $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
+
+  # RelWithDebInfo: optimization + symbols
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO
+      "${_SWI_MSVC_C_COMMON} /O2 /Zi"
+      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO
+      "${_SWI_MSVC_CXX_COMMON} /O2 /Zi $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a RelWithDebInfo build" FORCE)
+
+  # Release: optimization, no debug macros
+  set(CMAKE_C_FLAGS_RELEASE
+      "${_SWI_MSVC_C_COMMON} /O2"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE
+      "${_SWI_MSVC_CXX_COMMON} /O2 $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
+
+  # MinSizeRel: size-oriented optimization
+  set(CMAKE_C_FLAGS_MINSIZEREL
+      "${_SWI_MSVC_C_COMMON} /O1"
+      CACHE STRING "CFLAGS for a MinSizeRel build" FORCE)
+  set(CMAKE_CXX_FLAGS_MINSIZEREL
+      "${_SWI_MSVC_CXX_COMMON} /O1 $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a MinSizeRel build" FORCE)
+
+  # Optional: Sanitize build type (if you intend to support it on MSVC)
+  # MSVC uses /fsanitize=address (requires installed VS components).
+  set(CMAKE_C_FLAGS_SANITIZE
+      "${_SWI_MSVC_C_COMMON} /D_DEBUG /DO_DEBUG /Od /Zi /fsanitize=address"
+      CACHE STRING "CFLAGS for a Sanitize build" FORCE)
+  set(CMAKE_CXX_FLAGS_SANITIZE
+      "${_SWI_MSVC_CXX_COMMON} /D_DEBUG /DO_DEBUG /Od /Zi /fsanitize=address $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
+
+  # Optional: linker flags for sanitize (sometimes needed to avoid incremental link issues)
+  set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
+      "/INCREMENTAL:NO"
+      CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
+  set(CMAKE_SHARED_LINKER_FLAGS_SANITIZE
+      "/INCREMENTAL:NO"
+      CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()
