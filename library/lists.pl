@@ -138,7 +138,7 @@ append([H|T], L, [H|R]) :-
 %   Concatenate a list of lists.  Is  true   if  ListOfLists  is a list of
 %   lists, and List is the concatenation of these lists.
 %
-%   @param  ListOfLists must be a list of _possibly_ partial lists
+%   @arg  ListOfLists must be a list of _possibly_ partial lists
 
 append(ListOfLists, List) :-
     must_be(list, ListOfLists),

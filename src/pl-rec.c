@@ -55,7 +55,7 @@ static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
-static int  is_external(const char *rec, size_t len);
+static bool is_external(const char *rec, size_t len);
 
 #undef LD
 #define LD LOCAL_LD
@@ -1345,7 +1345,7 @@ fetchChars(CopyInfo b, size_t len, Word to)
 
 
 #define copy_record(p, b) LDFUNC(copy_record, p, b)
-static int
+static boolex_t
 copy_record(DECL_LD Word p, CopyInfo b)
 { term_agenda agenda;
   int is_compound = false;
@@ -1565,10 +1565,10 @@ copy_record(DECL_LD Word p, CopyInfo b)
 }
 
 
-int				/* true or *_OVERFLOW */
+boolex_t				/* true or *_OVERFLOW */
 copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 { copy_info b;
-  int rc;
+  boolex_t rc;
 
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
@@ -1598,7 +1598,7 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 }
 
 
-static int
+static bool
 is_external(const char *rec, size_t len)
 { if ( len >= 2 )
   { copy_info info;
