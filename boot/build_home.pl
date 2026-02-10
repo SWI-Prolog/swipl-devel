@@ -50,25 +50,31 @@ purposes:
 This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 */
 
-%!  cmake_binary_directory(-BinDir) is det.
+%!  cmake_binary_directory(-BinDir, -Config) is det.
 %!  cmake_source_directory(-SrcDir) is det.
 %
-%   Find    the    equivalent    of      =CMAKE_BINARY_DIRECTORY=    and
+%   Find    the    equivalent    of    ``CMAKE_BINARY_DIRECTORY``    and
 %   CMAKE_SOURCE_DIRECTORY.
 
 :- dynamic
-    cmake_bindir/1.
+    cmake_bindir/2.             % Bindir, Config
 
-cmake_binary_directory(BinDir) :-
-    cmake_bindir(BinDir),
+cmake_binary_directory(BinDir, Config) :-
+    cmake_bindir(BinDir, Config),
     !.
-cmake_binary_directory(BinDir) :-
+cmake_binary_directory(BinDir, Config) :-
     exe_or_shared_object(Exe),
     parent_dir(Exe, BinDir),
     atom_concat(BinDir, '/home/boot.prc', BootFile),
     exists_file(BootFile),
     !,
-    asserta(cmake_bindir(BinDir)).
+    split_string(Exe, "/", "/", Segments),
+    '$append'(_, [Parent,_Exe], Segments),
+    (   Parent == "src"
+    ->  Config = ''
+    ;   atom_string(Config, Parent)
+    ),
+    asserta(cmake_bindir(BinDir, Config)).
 
 exe_or_shared_object(File) :-	% only reliable when read-only
     '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
@@ -96,20 +102,24 @@ exe_access(Access) :-
     ;   Access = read
     ).
 
-%!  swipl_package(-Pkg, -PkgBinDir) is nondet.
+%!  swipl_package(-Pkg, -PkgBuildDir, -PkgBinDir) is nondet.
 %
 %   True when Pkg is available in the build tree at the given location.
 
-swipl_package(Pkg, PkgBinDir) :-
-    cmake_binary_directory(CMakeBinDir),
+swipl_package(Pkg, PkgBuildDir, PkgBinDir) :-
+    cmake_binary_directory(CMakeBinDir, Config),
     atomic_list_concat([CMakeBinDir, packages], /, PkgRoot),
     exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
     '$member'(Pkg, Candidates),
     \+ special(Pkg),
-    atomic_list_concat([PkgRoot, Pkg], /, PkgBinDir),
-    atomic_list_concat([PkgBinDir, 'CMakeFiles'], /, CMakeDir),
-    exists_directory(CMakeDir).
+    atomic_list_concat([PkgRoot, Pkg], /, PkgBuildDir),
+    atomic_list_concat([PkgBuildDir, 'CMakeFiles'], /, CMakeDir),
+    exists_directory(CMakeDir),
+    (   Config == ''
+    ->  PkgBinDir = PkgBuildDir
+    ;   atomic_list_concat([PkgBuildDir, /, Config], PkgBinDir)
+    ).
 
 special(.).
 special(..).
@@ -124,12 +134,12 @@ user:file_search_path(foreign, AppDir) :-
     prolog_to_os_filename(PlExe, Exe),
     file_directory_name(PlExe, AppDir).
 
-%!  add_package(+Package, +PkgSrcDir, +PkgBinDir) is det.
+%!  add_package(+Package, +PkgBuildDir, +PkgBinDir) is det.
 %
 %   Setup the source paths and initialization for Package with the given
 %   source and binary location.
 
-add_package(xpce, PkgBinDir) :-
+add_package(xpce, _PkgBuildDir, PkgBinDir) :-
     !,
     add_package_path(PkgBinDir),
     (   absolute_file_name(swi('xpce/prolog/swipl-rc'),
@@ -140,19 +150,19 @@ add_package(xpce, PkgBinDir) :-
     ->  use_module(RCFile)
     ;   true
     ).
-add_package(chr, PkgBinDir) :-
-    assertz(user:file_search_path(chr, PkgBinDir)),
+add_package(chr, PkgBuildDir, _PkgBinDir) :-
+    assertz(user:file_search_path(chr, PkgBuildDir)),
     assertz(user:file_search_path(chr, library(chr))),
-    assertz(user:file_search_path(library, PkgBinDir)).
-add_package(jpl, PkgBinDir) :-
+    assertz(user:file_search_path(library, PkgBuildDir)).
+add_package(jpl, PkgBuildDir, PkgBinDir) :-
     add_package_path(PkgBinDir),
-    atomic_list_concat([PkgBinDir, 'src/main/java'], /, JarDir),
+    atomic_list_concat([PkgBuildDir, 'src/main/java'], /, JarDir),
     assertz(user:file_search_path(jar, JarDir)).
-add_package(http, PkgBinDir) :-
+add_package(http, PkgBuildDir, PkgBinDir) :-
     add_package_path(PkgBinDir),
-    file_directory_name(PkgBinDir, PkgDir),
+    file_directory_name(PkgBuildDir, PkgDir),
     assertz(user:file_search_path(library, PkgDir)).
-add_package(_Pkg, PkgBinDir) :-
+add_package(_Pkg, _PkgBuildDir, PkgBinDir) :-
     add_package_path(PkgBinDir).
 
 %!  add_package_path(+PkgBinDir) is det.
@@ -169,8 +179,8 @@ add_package_path(_) :-
 add_package_path(PkgBinDir) :-
     assertz(user:file_search_path(foreign, PkgBinDir)).
 
-:- forall(swipl_package(Pkg, PkgBinDir),
-	  add_package(Pkg, PkgBinDir)).
+:- forall(swipl_package(Pkg, PkgBuildDir, PkgBinDir),
+	  add_package(Pkg, PkgBuildDir, PkgBinDir)).
 
 %!  set_version_info
 %
@@ -178,8 +188,11 @@ add_package_path(PkgBinDir) :-
 %   an installed version.
 
 set_version_info :-
-    (   cmake_binary_directory(BinDir)
-    ->  version(format('    CMake built from "~w"', [BinDir]))
+    (   cmake_binary_directory(BinDir, Config)
+    ->  (   Config == ''
+        ->  version(format('    CMake built from "~w"', [BinDir]))
+        ;   version(format('    CMake built from "~w" (~w)', [BinDir, Config]))
+        )
     ;   current_prolog_flag(home, Home)
     ->  version(format('    CMake built with home "~w"', [Home]))
     ).
@@ -195,8 +208,11 @@ set_libswipl :-
     current_prolog_flag(shared_object_extension, SO),
     \+current_prolog_flag(windows, true),
     !,
-    cmake_binary_directory(BinDir),
-    format(atom(Value), '~w/src/libswipl.~w', [BinDir, SO]),
+    cmake_binary_directory(BinDir, Config),
+    (   Config == ''
+    ->  format(atom(Value), '~w/src/libswipl.~w', [BinDir, SO])
+    ;   format(atom(Value), '~w/src/~w/libswipl.~w', [BinDir, Config, SO])
+    ),
     set_prolog_flag(libswipl, Value).
 set_libswipl.
 
@@ -222,10 +238,10 @@ delete_host_java_home :-
 		 *******************************/
 
 user:file_search_path(swi_man_manual, ManDir) :-
-    cmake_binary_directory(BinDir),
+    cmake_binary_directory(BinDir, _Config),
     atomic_list_concat([BinDir, 'man/Manual'], /, ManDir).
-user:file_search_path(swi_man_packages, BinDir) :-
-    swipl_package(_, BinDir).
+user:file_search_path(swi_man_packages, BuildDir) :-
+    swipl_package(_, BuildDir, _BinDir).
 
 
 		 /*******************************
@@ -236,5 +252,5 @@ user:file_search_path(swi_man_packages, BinDir) :-
     prolog:runtime_config/2.
 
 prolog:runtime_config(c_libdir, LibDir) :-
-    cmake_binary_directory(BinDir),
-    atomic_list_concat([BinDir, src], /, LibDir).
+    current_prolog_flag(libswipl, LibFile),
+    file_directory_name(LibFile, LibDir).
