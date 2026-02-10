@@ -123,6 +123,11 @@
 #ifndef _MSC_VER
 #define static_assert(condition, message) _Static_assert(condition, message)
 #endif
+
+/* MSVC does not provide __PRETTY_FUNCTION__; use __FUNCSIG__ instead */
+#if defined(_MSC_VER) && !defined(__PRETTY_FUNCTION__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 #define static_assertion(condition) _Static_assert(condition, "Assertion failed: ("#condition") [expansion: " A_STRINGIFY(condition) "]")
 
 #include "pl-builtin.h"

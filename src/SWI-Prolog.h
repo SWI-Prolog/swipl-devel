@@ -516,6 +516,9 @@ PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 PL_EXPORT(size_t)	PL_atom_index(atom_t index);
 PL_EXPORT(atom_t)	PL_atom_from_index(size_t a);
 #ifdef O_DEBUG_ATOMGC
+#if defined(_MSC_VER) && !defined(__PRETTY_FUNCTION__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 #define PL_unregister_atom(a) \
