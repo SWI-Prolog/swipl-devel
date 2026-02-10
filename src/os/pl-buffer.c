@@ -158,7 +158,7 @@ popStringBuffer(string_stack *stack)
   if ( __builtin_popcount(stack->top) == 1 && stack->top > 4 )
   { unsigned int i;
     unsigned int k = MSB(stack->allocated);
-    string_buffer *ptr = &stack->buffers[k][1<<k];
+    string_buffer *ptr = &stack->buffers[k][(size_t)1<<k];
 
     DEBUG(MSG_STRING_BUFFER,
 	  Sdprintf("Discarding string buffers %d..%d\n",
