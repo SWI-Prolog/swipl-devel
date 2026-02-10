@@ -197,7 +197,9 @@ endif()
 			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
     if(MULTI_THREADED AND MSVC)
-      target_compile_options(${foreign_target} BEFORE PRIVATE /MD)
+      target_compile_options(${foreign_target} BEFORE PRIVATE
+        $<$<CONFIG:Debug>:/MDd>
+        $<$<NOT:$<CONFIG:Debug>>:/MD>)
     endif()
     if(STATIC_EXTENSIONS)
       target_link_libraries(libswipl PRIVATE ${foreign_target})
