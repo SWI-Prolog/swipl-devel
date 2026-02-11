@@ -1598,7 +1598,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		break;
 	      }
 	      case CA1_MODULE:
-	      { Module m = (Module)loadXR(state);
+	      { Module m = word2ptr(Module, loadXR(state));
 		addCode(m);
 		if ( op == I_CONTEXT )
 		  ctx = m;
