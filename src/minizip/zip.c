@@ -992,7 +992,7 @@ local int Write_LocalFileHeader(zip64_internal* zi, const char* filename, size_t
 
   if ((err==ZIP_OK) && (size_extrafield_local > 0))
   {
-    if (ZWRITE64(zi->z_filefunc, zi->filestream, extrafield_local, size_extrafield_local) != size_extrafield_local)
+    if (ZWRITE64(zi->z_filefunc, zi->filestream, extrafield_local, (uLong)size_extrafield_local) != size_extrafield_local)
       err = ZIP_ERRNO;
   }
 
@@ -1114,12 +1114,12 @@ extern int ZEXPORT zipOpenNewFileInZip4_64(zipFile file, const char* filename, c
     zi->ci.raw = raw;
     zi->ci.pos_local_header = ZTELL64(zi->z_filefunc,zi->filestream);
 
-    zi->ci.size_centralheader = SIZECENTRALHEADER + size_filename + size_extrafield_global + size_comment;
+    zi->ci.size_centralheader = SIZECENTRALHEADER + size_filename + (uLong)size_extrafield_global + size_comment;
     zi->ci.size_centralExtraFree = 32; // Extra space we have reserved in case we need to add ZIP64 extra info data
 
     zi->ci.central_header = (char*)ALLOC((uInt)zi->ci.size_centralheader + zi->ci.size_centralExtraFree);
 
-    zi->ci.size_centralExtra = size_extrafield_global;
+    zi->ci.size_centralExtra = (uLong)size_extrafield_global;
     zip64local_putValue_inmemory(zi->ci.central_header,(uLong)CENTRALHEADERMAGIC,4);
     /* version info */
     zip64local_putValue_inmemory(zi->ci.central_header+4,(uLong)versionMadeBy,2);
