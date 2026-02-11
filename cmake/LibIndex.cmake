@@ -2,8 +2,10 @@ include(QLF)
 
 # Rebuild all library indexes. First build is   always  ok, but as we do
 # not know all dependencies for each library index and these may change,
-# we wish to re-run these on every build  run. We do this by setting the
-# OUTPUT to a dummy file that is not really created.
+# we wish to re-run these on every build run. The OUTPUT is set to a dummy
+# __INDEX.pl file (touched after build) while the real INDEX.pl is declared
+# as a BYPRODUCT. This forces CMake to rebuild indexes while avoiding
+# MSB8065 warnings on Visual Studio.
 
 function(library_index)
 
@@ -18,6 +20,7 @@ foreach(dir ${ARGN})
 	NOINSTALL
 	QUIET
 	OUTPUT ${SWIPL_BUILD_HOME}/${dir}/__INDEX.pl
+	BYPRODUCTS ${SWIPL_BUILD_HOME}/${dir}/INDEX.pl
 	COMMAND "make_library_index('${SWIPL_BUILD_HOME}/${dir}')"
 	COMMENT "Build home/${dir}/INDEX.pl")
     install(FILES ${SWIPL_BUILD_HOME}/${dir}/INDEX.pl
