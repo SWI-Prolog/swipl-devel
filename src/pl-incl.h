@@ -123,7 +123,21 @@
 #ifndef _MSC_VER
 #define static_assert(condition, message) _Static_assert(condition, message)
 #endif
+
+/* MSVC does not provide __PRETTY_FUNCTION__; use __FUNCSIG__ instead */
+#if defined(_MSC_VER) && !defined(__PRETTY_FUNCTION__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 #define static_assertion(condition) _Static_assert(condition, "Assertion failed: ("#condition") [expansion: " A_STRINGIFY(condition) "]")
+
+#if (defined(__GNUC__) && __GNUC__ >= 13) || \
+    (defined(__clang__) && __clang_major__ >= 17)
+#define ASSUME(expr) __attribute__((assume(expr)))
+#elif defined(_MSC_VER)
+#define ASSUME(expr) __assume(expr)
+#else
+#define ASSUME(expr) assert(expr)
+#endif
 
 #include "pl-builtin.h"
 

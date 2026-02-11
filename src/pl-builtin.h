@@ -517,7 +517,7 @@ is also printed if stdio is not available.
 
 /* We want to use the version of Sdprintf with the debug channel, if possible */
 #undef Sdprintf
-#define Sdprintf(fmt...) Sdprintf_ex(GLOBAL_LD->internal_debug.channel, __FILE__, __LINE__, fmt)
+#define Sdprintf(...) Sdprintf_ex(GLOBAL_LD->internal_debug.channel, __FILE__, __LINE__, __VA_ARGS__)
 int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...);
 
 #else

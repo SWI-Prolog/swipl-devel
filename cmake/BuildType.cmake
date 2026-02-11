@@ -183,11 +183,17 @@ elseif(MSVC)
 
   # Optional: Sanitize build type (if you intend to support it on MSVC)
   # MSVC uses /fsanitize=address (requires installed VS components).
+  # Note: /D_DEBUG is omitted because MSVC ASAN requires the release CRT
+  # (/MD), but _DEBUG pulls in debug-CRT symbols (_CrtDbgReport) and causes
+  # Python to demand python3XX_d.lib.  /DO_DEBUG is omitted because during
+  # boot.prc generation the library directory is not yet available, so
+  # autoload(library(debug), ...) in tabling.pl fails.  Use the Debug
+  # configuration for SWI-Prolog internal debug assertions.
   set(CMAKE_C_FLAGS_SANITIZE
-      "${_SWI_MSVC_C_COMMON} /D_DEBUG /DO_DEBUG /Od /Zi /fsanitize=address"
+      "${_SWI_MSVC_C_COMMON} /Od /Zi /fsanitize=address"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "${_SWI_MSVC_CXX_COMMON} /D_DEBUG /DO_DEBUG /Od /Zi /fsanitize=address $ENV{CXXFLAGS}"
+      "${_SWI_MSVC_CXX_COMMON} /Od /Zi /fsanitize=address $ENV{CXXFLAGS}"
       CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 
   # Optional: linker flags for sanitize (sometimes needed to avoid incremental link issues)

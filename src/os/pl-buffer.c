@@ -150,6 +150,17 @@ currentBuffer(string_stack *stack)
   return NULL;
 }
 
+/* When using `1<<k` on MSVC we can a possible shift overflow.  When
+ * using `(size_t)1<<k` GCC warns _free-nonheap-object_ on the free()
+ * call.  The only way to silence GCC reliably seems to be to store both
+ * the offset pointer and the index pointer :(
+ */
+
+#ifdef _MSC_VER
+#define K_ONE (size_t)1
+#else
+#define K_ONE 1
+#endif
 
 static unsigned int
 popStringBuffer(string_stack *stack)
@@ -158,7 +169,7 @@ popStringBuffer(string_stack *stack)
   if ( __builtin_popcount(stack->top) == 1 && stack->top > 4 )
   { unsigned int i;
     unsigned int k = MSB(stack->allocated);
-    string_buffer *ptr = &stack->buffers[k][(size_t)1<<k];
+    string_buffer *ptr = &stack->buffers[k][K_ONE<<k];
 
     DEBUG(MSG_STRING_BUFFER,
 	  Sdprintf("Discarding string buffers %d..%d\n",
