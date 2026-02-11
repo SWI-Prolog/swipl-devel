@@ -65,16 +65,38 @@ function(add_swipl_target name)
     set(ENV_SEP)
   endif()
 
-  add_custom_command(
-      OUTPUT ${my_OUTPUT}
-      BYPRODUCTS ${my_BYPRODUCTS}
-      COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
-	      ${ENV_SEP} ${PROG_SWIPL} ${options} ${my_OPTIONS}
-      COMMENT "${my_COMMENT}"
-      WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
-      DEPENDS core prolog_home
-              ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
-      VERBATIM)
+  # On MSVC, add a second command to touch the OUTPUT file to avoid MSB8065 warnings
+  # (some OUTPUT files are dummy files that are not actually created by the command)
+  if(MSVC)
+    # Convert relative OUTPUT paths to absolute (resolved relative to CMAKE_CURRENT_BINARY_DIR)
+    list(GET my_OUTPUT 0 output_file)
+    if(NOT IS_ABSOLUTE "${output_file}")
+      set(output_file "${CMAKE_CURRENT_BINARY_DIR}/${output_file}")
+    endif()
+
+    add_custom_command(
+        OUTPUT ${my_OUTPUT}
+        BYPRODUCTS ${my_BYPRODUCTS}
+        COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	        ${ENV_SEP} ${PROG_SWIPL} ${options} ${my_OPTIONS}
+        COMMAND ${CMAKE_COMMAND} -E touch "${output_file}"
+        COMMENT "${my_COMMENT}"
+        WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
+        DEPENDS core prolog_home
+                ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
+        VERBATIM)
+  else()
+    add_custom_command(
+        OUTPUT ${my_OUTPUT}
+        BYPRODUCTS ${my_BYPRODUCTS}
+        COMMAND ${CMAKE_COMMAND} -E env --unset=DISPLAY SDL_VIDEODRIVER=dummy
+	        ${ENV_SEP} ${PROG_SWIPL} ${options} ${my_OPTIONS}
+        COMMENT "${my_COMMENT}"
+        WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
+        DEPENDS core prolog_home
+                ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
+        VERBATIM)
+  endif()
   add_custom_target(
       ${name} ALL
       DEPENDS ${my_OUTPUT})
