@@ -197,11 +197,12 @@ elseif(MSVC)
       CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 
   # Optional: linker flags for sanitize (sometimes needed to avoid incremental link issues)
+  # /DEBUG is required for better ASAN error reporting (suppresses LNK4302 warning)
   set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
-      "/INCREMENTAL:NO"
+      "/INCREMENTAL:NO /DEBUG"
       CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
   set(CMAKE_SHARED_LINKER_FLAGS_SANITIZE
-      "/INCREMENTAL:NO"
+      "/INCREMENTAL:NO /DEBUG"
       CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
