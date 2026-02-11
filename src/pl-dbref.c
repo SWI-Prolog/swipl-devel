@@ -150,8 +150,11 @@ static PL_blob_t record_blob =
 
 atom_t
 lookup_clref(Clause clause)
-{ clause_ref ref = { .next=NULL, .d.key=0, .value.clause = clause };
+{ clause_ref ref;
   int new;
+
+  memset(&ref, 0, SIZEOF_CREF_CLAUSE);
+  ref.value.clause = clause;
 
   DEBUG(CHK_SECURE,
 	{ GET_LD
