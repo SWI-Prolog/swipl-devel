@@ -2831,7 +2831,7 @@ Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...
   return rval;
 }
 
-#define Sdprintf(fmt...) Sdprintf_ex(NULL, __FILE__, __LINE__, fmt)
+#define Sdprintf(...) Sdprintf_ex(NULL, __FILE__, __LINE__, __VA_ARGS__)
 #endif /*O_DEBUG*/
 
 #if 0
