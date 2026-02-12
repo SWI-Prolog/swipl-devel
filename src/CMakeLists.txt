@@ -367,9 +367,16 @@ add_custom_command(
 )
 add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE})
 
+# Update library `INDEX.pl` files
+
 add_custom_target(library_index)
 
-library_index(${SWIPL_DATA_INDEXED_DIRS})
+foreach(d ${SWIPL_DATA_INDEXED_DIRS})
+    string(REGEX REPLACE "/" "_" filevar ${d})
+    library_dirindex(${d} ${SWIPL_DATA_${filevar}})
+endforeach()
+
+# Install .qlf files
 
 if(INSTALL_QLF)
   add_swipl_target(library_qlf
