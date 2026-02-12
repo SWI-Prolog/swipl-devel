@@ -196,14 +196,23 @@ elseif(MSVC)
       "${_SWI_MSVC_CXX_COMMON} /Od /Zi /fsanitize=address $ENV{CXXFLAGS}"
       CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 
-  # Optional: linker flags for sanitize (sometimes needed to avoid incremental link issues)
-  # /DEBUG is required for better ASAN error reporting (suppresses LNK4302 warning)
+  # Linker flags for Sanitize: all target types (EXE, SHARED, MODULE) need
+  # /INCREMENTAL:NO because ASAN is incompatible with incremental linking
+  # /DEBUG for better ASAN source-level error reporting
   set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
       "/INCREMENTAL:NO /DEBUG"
-      CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
+      CACHE STRING "LDFLAGS for Sanitize EXEs" FORCE)
   set(CMAKE_SHARED_LINKER_FLAGS_SANITIZE
       "/INCREMENTAL:NO /DEBUG"
-      CACHE STRING "LDFLAGS for a Sanitize build" FORCE)
+      CACHE STRING "LDFLAGS for Sanitize shared libs" FORCE)
+  set(CMAKE_MODULE_LINKER_FLAGS_SANITIZE
+      "/INCREMENTAL:NO /DEBUG"
+      CACHE STRING "LDFLAGS for Sanitize module libs (plugins)" FORCE)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()
+
+# Map the custom Sanitize configuration to Release for imported targets
+# (e.g. vcpkg packages) so that multi-config generators can locate the
+# right library variants when building with --config Sanitize.
+set(CMAKE_MAP_IMPORTED_CONFIG_SANITIZE Release RelWithDebInfo "")
