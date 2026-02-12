@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2023, SWI-Prolog Solutions b.v.
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -69,12 +69,13 @@ test(cat1) :-
     format(atom(File), 'pltest-~w.txt', [Pid]),
     (   current_prolog_flag(windows, true)
     ->  format(atom(Bat), 'pltest-~w.bat', [Pid]),
+        absolute_file_name(Bat, BatPath),
         setup_call_cleanup(
             open(Bat, write, Fd1),
             writeln(Fd1, '@findstr .* > %1'),
             close(Fd1)),
-        format(atom(Cmd), 'cmd /c ~w ~w', [Bat, File]),
-        debug(pipe, 'Created BAT script ~q', [Bat])
+        format(atom(Cmd), 'cmd /c "~w" ~w', [BatPath, File]),
+        debug(pipe, 'Created BAT script ~q', [BatPath])
     ;   format(atom(Cmd), 'cat > ~w', [File])
     ),
     Text = 'Hello World',
@@ -89,8 +90,8 @@ test(cat1) :-
         close(Fd3)),
     debug(pipe, 'Read ~q to "~s"', [File, String]),
     delete_file(File),
-    (   nonvar(Bat)
-    ->  delete_file(Bat)
+    (   nonvar(BatPath)
+    ->  delete_file(BatPath)
     ;   true
     ),
     !,
