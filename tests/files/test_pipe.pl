@@ -69,12 +69,14 @@ test(cat1) :-
     format(atom(File), 'pltest-~w.txt', [Pid]),
     (   current_prolog_flag(windows, true)
     ->  format(atom(Bat), 'pltest-~w.bat', [Pid]),
+        working_directory(CWD, CWD),
+        atomic_list_concat([CWD, '/', Bat], BatPath),
         setup_call_cleanup(
             open(Bat, write, Fd1),
             writeln(Fd1, '@findstr .* > %1'),
             close(Fd1)),
-        format(atom(Cmd), 'cmd /c ~w ~w', [Bat, File]),
-        debug(pipe, 'Created BAT script ~q', [Bat])
+        format(atom(Cmd), 'cmd /c "~w" ~w', [BatPath, File]),
+        debug(pipe, 'Created BAT script ~q', [BatPath])
     ;   format(atom(Cmd), 'cat > ~w', [File])
     ),
     Text = 'Hello World',
@@ -89,8 +91,8 @@ test(cat1) :-
         close(Fd3)),
     debug(pipe, 'Read ~q to "~s"', [File, String]),
     delete_file(File),
-    (   nonvar(Bat)
-    ->  delete_file(Bat)
+    (   nonvar(BatPath)
+    ->  delete_file(BatPath)
     ;   true
     ),
     !,
