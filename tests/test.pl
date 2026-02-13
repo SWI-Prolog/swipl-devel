@@ -2117,10 +2117,9 @@ run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
     format(user_error, 'Package ~w:~w~`.t~40| passed ~2f sec.~n', [Pkg,TestName,Time]).
 
 run_pkg_test1(Script, Goal, PkgDir) :-
-    current_prolog_flag(executable, SWIPL),
     working_directory(CWD, CWD),
     format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
-    process_create(SWIPL,
+    process_create(prolog(swipl),
                    [ '-f', 'none',
                      '-t', 'halt',
                      '--no-packs',
