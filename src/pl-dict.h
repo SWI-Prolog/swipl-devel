@@ -57,10 +57,10 @@ int	pl_for_dict(term_t dict,
 		   int flags);
 
 functor_t dict_functor(size_t pairs);
-bool	  dict_order(Word dict, Word dupl);
+_PL_dict_status_t dict_order(Word dict, Word dupl);
 int	  dict_order_term_refs(term_t *av, int *indexes, int cnt);
 Word	  dict_lookup_ptr(word dict, word name, size_t *arg);
-int	  resortDictsInClause(Clause clause);
+bool	  resortDictsInClause(Clause clause);
 void	  resortDictsInTerm(term_t t);
 
 #undef LDFUNC_DECLARATIONS

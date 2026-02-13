@@ -4196,7 +4196,7 @@ PL_free_blob(atom_t a)
 		 *	       DICT		*
 		 *******************************/
 
-int				/* false, true, -1 */
+_PL_dict_status_t
 PL_put_dict(term_t t, atom_t tag,
 	    size_t len, const atom_t *keys, term_t values)
 { GET_LD
@@ -4210,7 +4210,7 @@ PL_put_dict(term_t t, atom_t tag,
   for(i=0; i<len; i++)
   { valid_term_t(values+i);
     if ( !globalizeTermRef(values+i) )
-      return false;
+      return PL_DICT_FALSE; /* resource error */
   }
 
   if ( (p0=p=allocGlobal(size)) )
@@ -4221,7 +4221,7 @@ PL_put_dict(term_t t, atom_t tag,
       } else
       { invalid:
 	gTop -= size;
-	return -1;
+	return PL_DICT_KEY_INVALID;
       }
     } else
     { setVar(*p++);
@@ -4235,17 +4235,18 @@ PL_put_dict(term_t t, atom_t tag,
 	goto invalid;
     }
 
-    if ( dict_order(p0, NULL) == true )
+    _PL_dict_status_t rc = dict_order(p0, NULL);
+    if ( rc == PL_DICT_TRUE )
     { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return true;
     }
 
     gTop -= size;
-    return -2;
+    return PL_DICT_KEY_DUPLICATE;
   }
 
-  return false;
+  return PL_DICT_FALSE;
 }
 
 void

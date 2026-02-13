@@ -2035,17 +2035,19 @@ put_list(term_t l, int n, char **words)
 }
 \end{code}
 
-\cfunction{int}{PL_put_dict}{term_t -h, atom_t tag, size_t len,
-			     const atom_t *keys, term_t values}
+\cfunction{_PL_dict_status_t}{PL_put_dict}{term_t -h, atom_t tag, size_t len,
+					   const atom_t *keys, term_t values}
+
 Create a dict from a \arg{tag} and vector of atom-value pairs and put
-the result in \arg{h}.  The dict's key is set by \arg{tag}, which may
-be \const{0} to leave the tag unbound. The \arg{keys} vector is a vector
-of atoms of at least \arg{len} long. The \arg{values} is a term vector
+the result in \arg{h}. The dict's key is set by \arg{tag}, which may be
+\const{0} to leave the tag unbound. The \arg{keys} vector is a vector of
+atoms of at least \arg{len} long. The \arg{values} is a term vector
 allocated using PL_new_term_refs() of at least \arg{len} long. This
-function returns \const{TRUE} on success, \const{FALSE} on a resource
-error (leaving a resource error exception in the environment),
-\const{-1} if some key or the \arg{tag} is invalid and \const{-2} if
-there are duplicate keys.
+function returns \const{PL_DICT_TRUE} on success, \const{PL_DICT_FALSE}
+on a resource error (leaving a resource error exception in the
+environment), \const{PL_DICT_KEY_INVALID} if some key or the \arg{tag}
+is invalid and \const{PL_DICT_KEY_DUPLICATE} if there are duplicate
+keys.
 \end{description}
 
 
