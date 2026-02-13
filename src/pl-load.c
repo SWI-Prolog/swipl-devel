@@ -192,9 +192,8 @@ blocked_unload_shared_objects(void)
   if ( vg == -1 )
   {
 #ifdef __SANITIZE_ADDRESS__
-    char *s;
-
 #ifndef __WINDOWS__
+    char *s;
     if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
 #endif
     { vg = true;
