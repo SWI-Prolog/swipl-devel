@@ -7813,9 +7813,8 @@ void
 destroyLocalDefinitions(Definition def)
 { GET_LD
   LocalDefinitions ldefs = def->impl.local.local;
-  int b;
 
-  for(b=0; b<MAX_BLOCKS; b++)
+  for(int b=0; b<MAX_BLOCKS; b++)
   { Definition *d0 = ldefs->blocks[b];
 
     if ( d0 )

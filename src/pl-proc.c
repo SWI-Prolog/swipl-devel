@@ -4167,6 +4167,66 @@ PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
   return false;
 }
 
+static
+PRED_IMPL("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module module = (Module) NULL;
+  Procedure proc;
+  Definition def;
+  functor_t fd;
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_strip_module(A1, &module, head) ||
+       !PL_get_functor(head, &fd) ||
+       ( !(proc = visibleProcedure(fd, module)) &&
+	 !(proc = isCurrentProcedure(fd, module)) ) )
+    return false;
+
+  def = proc->definition;
+  if ( !ison(def, P_THREAD_LOCAL) )
+    return false;
+
+  term_t tit  = PL_new_term_ref();
+  term_t pair = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(A2);
+
+  LocalDefinitions ldefs = def->impl.local.local;
+  for(int b=0; b<MAX_BLOCKS; b++)
+  { Definition *d0 = ldefs->blocks[b];
+
+    if ( d0 )
+    { size_t bs = (size_t)1<<b;
+      size_t tid = bs;
+      size_t end = tid+bs;
+
+      for(tid=bs; tid<end; tid++)
+      { if (  d0[tid] )
+	{ Definition ldef;
+	  bool rc = true;
+
+	  PL_LOCK(L_THREAD);
+	  if ( (ldef = d0[tid]) )
+	  { if ( (rc=PL_unify_list(list, pair, list)) )
+	    { PL_thread_info_t *info = GD->thread.threads[tid];
+	      int cc = ldef->impl.clauses.number_of_clauses;
+
+	      rc = ( PL_put_variable(tit) &&
+		     unify_thread_id(tit, info) &&
+		     PL_unify_term(pair, PL_FUNCTOR, FUNCTOR_minus2,
+                                             PL_TERM, tit,
+					     PL_INT, cc) );
+	    }
+	  }
+	  PL_UNLOCK(L_THREAD);
+	  if ( !rc )
+	    return false;
+	}
+      }
+    }
+  }
+
+  return PL_unify_nil(list);
+}
 
 #if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
@@ -4300,4 +4360,5 @@ BeginPredDefs(proc)
   PRED_DEF("$cgc_params", 6, cgc_params, 0)
   PRED_DEF("$foreign_predicate_source", 2, foreign_predicate_source,
 	   PL_FA_TRANSPARENT)
+  PRED_DEF("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
 EndPredDefs
