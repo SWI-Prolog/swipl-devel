@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2024, VU University Amsterdam
+    Copyright (c)  2013-2026, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -44,6 +44,14 @@
 #define	dict_order_term_refs(av, indexes, cnt)	LDFUNC(dict_order_term_refs, av, indexes, cnt)
 #define	dict_lookup_ptr(dict, name, arg)	LDFUNC(dict_lookup_ptr, dict, name, arg)
 #endif /*USE_LD_MACROS*/
+
+// PL_put_dict() return values
+typedef enum
+{ PL_DICT_FALSE         = false,
+  PL_DICT_TRUE          = true,
+  PL_DICT_KEY_INVALID   = -1,
+  PL_DICT_KEY_DUPLICATE = -2
+} _PL_dict_status_t;
 
 #define LDFUNC_DECLARATIONS
 

@@ -235,14 +235,6 @@ typedef union
 #define FALSE	(false)
 #endif
 
-// PL_put_dict() return values
-typedef enum
-{ PL_DICT_FALSE         = false,
-  PL_DICT_TRUE          = true,
-  PL_DICT_KEY_INVALID   = -1,
-  PL_DICT_KEY_DUPLICATE = -2
-} _PL_dict_status_t;
-
 		 /*******************************
 		 *      TERM-TYPE CONSTANTS	*
 		 *******************************/
@@ -630,8 +622,7 @@ PL_EXPORT(bool)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
 PL_EXPORT(bool)		PL_put_list(term_t l) WUNUSED;
 PL_EXPORT(bool)		PL_put_nil(term_t l);
 PL_EXPORT(bool)		PL_put_term(term_t t1, term_t t2) WUNUSED;
-PL_EXPORT(_PL_dict_status_t)
-			PL_put_dict(term_t t, atom_t tag, size_t len,
+PL_EXPORT(bool)		PL_put_dict(term_t t, atom_t tag, size_t len,
 				    const atom_t *keys, term_t values) WUNUSED;
 PL_EXPORT(atom_t)	_PL_cons_small_int(int64_t v);
 PL_EXPORT(void)		_PL_unregister_keys(size_t len, atom_t *keys);
