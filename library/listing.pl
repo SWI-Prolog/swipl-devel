@@ -1,11 +1,12 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2019, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2001-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,9 @@
 :- autoload(library(option),[option/2,option/3,meta_options/3]).
 :- autoload(library(prolog_clause),[clause_info/5]).
 :- autoload(library(prolog_code), [most_general_goal/2]).
+:- if(exists_source(library(thread))).
+:- autoload(library(thread), [call_in_thread/3]).
+:- endif.
 
 %:- set_prolog_flag(generate_debug_info, false).
 
@@ -62,6 +66,10 @@
     listing(:, +),
     portray_clause(+,+,:).
 
+:- predicate_options(listing/2, 2,
+                     [ thread(atom),
+                       pass_to(portray_clause/3, 3)
+                     ]).
 :- predicate_options(portray_clause/3, 3,
                      [ indent(nonneg),
                        pass_to(system:write_term/3, 3)
@@ -188,6 +196,11 @@ list_module(Module, Options) :-
 %         ```
 %         ?- listing(file_search_path, [source(true)]).
 %         ```
+%
+%      - thread(+ThreadId)
+%      If a predicate is _thread local_, list the clauses as seen by
+%      the given ThreadId.  Ignored if the predicate is not thread
+%      local.
 
 listing(Spec) :-
     listing(Spec, []).
@@ -385,13 +398,45 @@ write_declarations([H|T], Module) :-
     format(':- ~q.~n', [H]),
     write_declarations(T, Module).
 
+%!  list_clauses(:Head, +Source:module, +Options) is det.
+%
+%   List the clauses for Head, interpreted in   the context of the given
+%   Source module.  Options processed:
+%
+%     - thread(+Thread)
+%       If specified and Head is a thread_local predicate, list the
+%       clauses of the given thread rather than the calling thread.
+
+list_clauses(Pred, Source, Options) :-
+    predicate_property(Pred, thread_local),
+    option(thread(Thread), Options),
+    !,
+    strip_module(Pred, Module, Head),
+    most_general_goal(Head, GenHead),
+    option(timeout(TimeOut), Options, 0.2),
+    call_in_thread(
+        Thread,
+        find_clauses(Module:GenHead, Head, Refs),
+        [ timeout(TimeOut),
+          on_timeout(print_message(
+                         warning,
+                         listing(thread_local(Pred, Thread, timeout(TimeOut)))))
+        ]),
+    forall(member(Ref, Refs),
+           ( rule(Module:GenHead, Rule, Ref),
+             list_clause(Module:Rule, Ref, Source, Options))).
 list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
     most_general_goal(Head, GenHead),
-    forall(( rule(Module:GenHead, Rule, Ref),
-             \+ \+ rule_head(Rule, Head)
-           ),
+    forall(find_clause(Module:GenHead, Head, Rule, Ref),
            list_clause(Module:Rule, Ref, Source, Options)).
+
+find_clauses(GenHead, Head, Refs) :-
+    findall(Ref, find_clause(GenHead, Head, _Rule, Ref), Refs).
+
+find_clause(GenHead, Head, Rule, Ref) :-
+    rule(GenHead, Rule, Ref),
+    \+ \+ rule_head(Rule, Head).
 
 rule_head((Head0 :- _Body), Head) :- !, Head = Head0.
 rule_head((Head0,_Cond => _Body), Head) :- !, Head = Head0.
@@ -1259,3 +1304,15 @@ comment(Format, Args) :-
     ansi_format(Attributes, Format, Args).
 comment(Format, Args) :-
     format(Format, Args).
+
+                /*******************************
+                *           MESSAGES           *
+                *******************************/
+
+:- multifile(prolog:message//1).
+
+prolog:message(listing(thread_local(Pred, Thread, timeout(TimeOut)))) -->
+    { pi_head(PI, Pred) },
+    [ 'Could not list ~p for thread ~p: timeout after ~p sec.'-
+      [PI, Thread, TimeOut]
+    ].
