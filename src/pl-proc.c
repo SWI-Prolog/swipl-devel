@@ -4206,9 +4206,9 @@ PRED_IMPL("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
 
 	  PL_LOCK(L_THREAD);
 	  if ( (ldef = d0[tid]) )
-	  { if ( (rc=PL_unify_list(list, pair, list)) )
+	  { int cc = ldef->impl.clauses.number_of_clauses;
+	    if ( cc && (rc=PL_unify_list(list, pair, list)) )
 	    { PL_thread_info_t *info = GD->thread.threads[tid];
-	      int cc = ldef->impl.clauses.number_of_clauses;
 
 	      rc = ( PL_put_variable(tit) &&
 		     unify_thread_id(tit, info) &&
