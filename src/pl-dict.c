@@ -865,7 +865,6 @@ API_STUB(bool)
 static bool
 PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 { GET_LD
-  word dupl;
 
   if ( PL_is_dict(data) )
   { PL_put_term(dict, data);
@@ -876,7 +875,6 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
   { intptr_t len = lengthList(data, true);
     Word ap, dp, tail;
     mark m;
-    int rc;
 
     if ( len < 0 )
       return false;			/* not a proper list */
@@ -885,8 +883,8 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     { if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
 	return false;
     }
-    if ( (rc=ensureGlobalSpace(len*2+2, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
+    if ( !ensureGlobalSpace(len*2+2, ALLOW_GC) )
+      return false;
     ap = gTop;
     Mark(m);
     dp = ap;
@@ -923,7 +921,10 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
       deRef(tail);
     }
 
-    if ( (rc=dict_order(dp, &dupl)) == true )
+
+    word dupl;
+    _PL_dict_status_t rc = dict_order(dp, &dupl);
+    if ( rc == PL_DICT_TRUE )
     { gTop = ap;
       *valTermRef(dict) = consPtr(dp, TAG_COMPOUND|STG_GLOBAL);
       DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -931,7 +932,7 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     } else
     { term_t ex;
 
-      assert(rc == -2);
+      assert(rc == PL_DICT_KEY_DUPLICATE);
       Undo(m);
       return ( (ex = PL_new_term_ref()) &&
 	       PL_unify_atomic(ex, dupl) &&
