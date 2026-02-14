@@ -367,6 +367,13 @@ add_custom_command(
 )
 add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE})
 
+# Debug builds define O_DEBUG, which sets the prolog_debug flag,
+# causing boot/tabling.pl to autoload library(debug).  Without this
+# dependency, library files may not yet be copied to the build home
+# when the bootfile step runs.  PGO builds already add this via
+# add_pgo_dependency().
+add_dependencies(bootfile prolog_home)
+
 # Update library `INDEX.pl` files
 
 add_custom_target(library_index)
