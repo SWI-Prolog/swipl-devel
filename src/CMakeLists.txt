@@ -366,6 +366,7 @@ add_custom_command(
     DEPENDS ${DEP_SWIPL_FOR_BOOT}
 )
 add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE})
+add_dependencies(bootfile prolog_home) # boot/tabling.pl needs library(debug)
 
 # Update library `INDEX.pl` files
 

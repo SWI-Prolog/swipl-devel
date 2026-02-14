@@ -495,3 +495,5 @@ sandbox:safe_meta(prolog_debug:assertion(X), [X]).
 
 '$nowarn_autoload'(debug/1, _).
 '$nowarn_autoload'(nodebug/1, _).
+'$nowarn_autoload'(debug/3, '$tabling').
+'$nowarn_autoload'(debugging/1, '$tabling').
