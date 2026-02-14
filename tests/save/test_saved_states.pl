@@ -140,7 +140,10 @@ set_windows_path.
 
 create_state(File, Output, Args) :-
     test_dir(TestDir),
-    append(Args, [ '-o', Output, '-c', File, '-f', none ], AllArgs),
+    append(Args, [ '-o', Output, '-c', File,
+                   '-f', none, '--no-packs'
+                 ],
+           AllArgs),
     debug(save, 'Creating state in ~q using prolog(swipl) ~q', [TestDir, AllArgs]),
     process_create(prolog(swipl), AllArgs,
                    [ cwd(TestDir),
