@@ -1918,6 +1918,16 @@ emergency:
     memset(&PL_local_data,  0, sizeof(PL_local_data));
   }
 
+#if defined(__WINDOWS__) && defined(O_PLMT)
+  /* Explicitly clean up PThreads4W before process exit.  Without
+     this, PThreads4W's DllMain(DLL_PROCESS_DETACH) accesses freed
+     thread data, causing ACCESS_VIOLATION in Debug builds where the
+     CRT fills freed heap with 0xDD.  Calling this after all Prolog
+     threads have terminated and memory has been reclaimed makes
+     DllMain a no-op. */
+  pthread_win32_process_detach_np();
+#endif
+
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
   char *s;
 
