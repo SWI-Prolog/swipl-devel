@@ -2437,16 +2437,16 @@ Returns one of true, false or *_OVERFLOW.
 #define unify_trie_path(term, tn, gstate) \
 	LDFUNC(unify_trie_path, term, tn, gstate)
 
-static bool		      /* bool or _*OVERFLOW */
+static int		      /* bool or _*OVERFLOW */
 unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
-{ bool rc;
+{ int rc;
   ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
   init_ukey_state(&ustate, gstate->trie, valTermRef(term), false);
   for( ; ch < top; ch++ )
-  { if ( !(rc=unify_key(&ustate, ch->key)) )
+  { if ( (rc=unify_key(&ustate, ch->key)) != true )
     { destroy_ukey_state(&ustate);
       return rc;
     }
