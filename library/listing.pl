@@ -49,7 +49,7 @@
 :- autoload(library(apply),[foldl/4]).
 :- use_module(library(debug),[debug/3]).
 :- autoload(library(error),[instantiation_error/1,must_be/2]).
-:- autoload(library(lists),[member/2]).
+:- autoload(library(lists),[member/2, append/3]).
 :- autoload(library(option),[option/2,option/3,meta_options/3]).
 :- autoload(library(prolog_clause),[clause_info/5]).
 :- autoload(library(prolog_code), [most_general_goal/2]).
@@ -425,11 +425,55 @@ list_clauses(Pred, Source, Options) :-
     forall(member(Ref, Refs),
            ( rule(Module:GenHead, Rule, Ref),
              list_clause(Module:Rule, Ref, Source, Options))).
+:- if(current_predicate('$local_definitions'/2)).
+list_clauses(Pred, Source, _Options) :-
+    predicate_property(Pred, thread_local),
+    \+ ( predicate_property(Pred, number_of_clauses(Nc)),
+         Nc > 0
+       ),
+    !,
+    decl_term(Pred, Source, Decl),
+    '$local_definitions'(Pred, Pairs),
+    (   Pairs == []
+    ->  comment('%   No thread has clauses for ~p~n', [Decl])
+    ;   Top = 10,
+        length(Pairs, Count),
+        thread_self(Me),
+        thread_name(Me, MyName),
+        comment('%   Calling thread (~p) has no clauses for ~p. \c
+                 Other threads have:~n', [MyName, Decl]),
+        sort(2, >=, Pairs, ByNumberOfClauses),
+        (   Count > Top
+        ->  length(Show, Top),
+            append(Show, _, ByNumberOfClauses)
+        ;   Show = ByNumberOfClauses
+        ),
+        (   member(Thread-ClauseCount, Show),
+            thread_name(Thread, Name),
+            comment('%~t~D~8| clauses in thread ~p~n', [ClauseCount, Name]),
+            fail
+        ;   true
+        ),
+        (   Count > Top
+        ->  NotShown is Count-Top,
+            comment('%   ~D more threads have clauses for ~p~n',
+                    [NotShown, Decl])
+        ;   true
+        )
+    ).
+:- endif.
 list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
     most_general_goal(Head, GenHead),
     forall(find_clause(Module:GenHead, Head, Rule, Ref),
            list_clause(Module:Rule, Ref, Source, Options)).
+
+thread_name(Thread, Name) :-
+    (   atom(Thread)
+    ->  Name = Thread
+    ;   catch(thread_property(Thread, id(Name)), error(_,_),
+              Name = Thread)
+    ).
 
 find_clauses(GenHead, Head, Refs) :-
     findall(Ref, find_clause(GenHead, Head, _Rule, Ref), Refs).
