@@ -4167,6 +4167,7 @@ PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
   return false;
 }
 
+#ifdef O_ENGINES
 static
 PRED_IMPL("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
 { PRED_LD
@@ -4227,6 +4228,7 @@ PRED_IMPL("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
 
   return PL_unify_nil(list);
 }
+#endif
 
 #if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
@@ -4360,5 +4362,7 @@ BeginPredDefs(proc)
   PRED_DEF("$cgc_params", 6, cgc_params, 0)
   PRED_DEF("$foreign_predicate_source", 2, foreign_predicate_source,
 	   PL_FA_TRANSPARENT)
+#ifdef O_ENGINES
   PRED_DEF("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
+#endif
 EndPredDefs
