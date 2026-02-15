@@ -116,7 +116,7 @@ typedef struct
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
-static int	unify_key(ukey_state *state, word key);
+static boolex_t	unify_key(ukey_state *state, word key);
 static void	init_ukey_state(ukey_state *state, trie *trie, Word p,
 				bool reinit);
 static void	destroy_ukey_state(ukey_state *state);
@@ -1065,7 +1065,7 @@ unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
     init_ukey_state(&ustate, trie_ptr, valTermRef(term), false);
   retry:
     Mark(m);
-    int rcu = true;
+    boolex_t rcu = true;
     for(i=kc; i-- > 0; )
     { rcu = unify_key(&ustate, keys[i]);
 
@@ -1793,7 +1793,7 @@ find_var(ukey_state *state, size_t index) /* index is 1.. */
  * corresponding term values.
  */
 
-static int			/* bool or *_OVERFLOW */
+static boolex_t
 unify_key(DECL_LD ukey_state *state, word key)
 { Word p = state->ptr;
 
@@ -2437,16 +2437,16 @@ Returns one of true, false or *_OVERFLOW.
 #define unify_trie_path(term, tn, gstate) \
 	LDFUNC(unify_trie_path, term, tn, gstate)
 
-static bool		      /* bool or _*OVERFLOW */
+static boolex_t
 unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
-{ bool rc;
+{ boolex_t rc;
   ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
   init_ukey_state(&ustate, gstate->trie, valTermRef(term), false);
   for( ; ch < top; ch++ )
-  { if ( !(rc=unify_key(&ustate, ch->key)) )
+  { if ( (rc=unify_key(&ustate, ch->key)) != true )
     { destroy_ukey_state(&ustate);
       return rc;
     }
@@ -2518,7 +2518,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
   Mark(fli_context->mark);
   for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
   { for(;;)
-    { int rc;
+    { boolex_t rc;
       size_t asize = aTop - aBase; /* using the argument stack may be dubious */
 
       if ( (rc=unify_trie_path(Key, &n, state)) == true )
