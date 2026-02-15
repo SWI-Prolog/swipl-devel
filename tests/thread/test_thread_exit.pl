@@ -54,28 +54,46 @@ builds where the CRT fills freed heap with 0xDD.
 */
 
 test_thread_exit :-
-	run_tests([thread_exit]).
+    run_tests([thread_exit]).
 
 :- begin_tests(thread_exit).
 
-test(clean_exit, Status == exit(0)) :-
-	Goal = 'use_module(library(http/thread_httpd)),\c
-	        use_module(library(http/http_dispatch)),\c
-	        http_server(http_dispatch,[port(Port)]),\c
-	        http_stop_server(Port,[]),\c
-	        halt(0)',
-	process_create(
-	    prolog(swipl),
-	    [ '-f', 'none', '--no-packs',
-	      '-g', Goal,
-	      '-t', 'halt(1)'
-	    ],
-	    [ process(Pid),
-	      stderr(pipe(Err))
-	    ]),
-	read_stream_to_codes(Err, _),
-	close(Err),
-	process_wait(Pid, Status).
+%!  can_alert_thread is semidet.
+%
+%   True if we thread_signal/2 can immediately   alert  a thread that is
+%   blocked in a system call. In this   case  the HTTP server is stopped
+%   while (normally) being blocked in tcp_accept/3.
+
+can_alert_thread :-
+    current_prolog_flag(windows, true),
+    !.
+:- if(current_predicate(prolog_alert_signal/2)).
+can_alert_thread :-
+    prolog_alert_signal(Sig, Sig),
+    Sig \== 0.
+:- endif.
+
+test(clean_exit,
+     [ condition(can_alert_thread),
+       Status == exit(0)
+     ]) :-
+    Goal = 'use_module(library(http/thread_httpd)),\c
+            use_module(library(http/http_dispatch)),\c
+            http_server(http_dispatch,[port(Port)]),\c
+            http_stop_server(Port,[]),\c
+            halt(0)',
+    process_create(
+        prolog(swipl),
+        [ '-f', 'none', '--no-packs',
+          '-g', Goal,
+          '-t', 'halt(1)'
+        ],
+        [ process(Pid),
+          stderr(pipe(Err))
+        ]),
+    read_stream_to_codes(Err, _),
+    close(Err),
+    process_wait(Pid, Status).
 
 :- end_tests(thread_exit).
 
