@@ -236,6 +236,8 @@ get_windows_thread(PL_thread_info_t *info)
   __try
   { wt = pthread_getw32threadhandle_np(info->tid);
   } __except(EXCEPTION_EXECUTE_HANDLER)
+  {
+  }
   return wt;
 #else
   return OpenThread(THREAD_ALL_ACCESS, false, info->w32id);
