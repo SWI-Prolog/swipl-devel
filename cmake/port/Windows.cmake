@@ -8,6 +8,10 @@ if(NOT SWIPL_C_STACK_SIZE)
   set(SWIPL_C_STACK_SIZE 4194304)
 endif()
 
+# Define separate stack sizes for different configurations
+set(SWIPL_C_STACK_SIZE_DEBUG 16777216)  # 16 MB for Debug builds
+set(SWIPL_C_STACK_SIZE_RELEASE 4194304)  # 4 MB for Release builds
+
 add_compile_options(-D__WINDOWS__)
 add_compile_options(-D_WIN32_WINNT=0x0600)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
