@@ -58,7 +58,20 @@ test_thread_exit :-
 
 :- begin_tests(thread_exit).
 
-test(clean_exit, Status == exit(0)) :-
+% Under Unix, a signal (default is SIGUSR2) is used to stop 
+% the http server. Skip the test if signal alerts are disabled
+% (e.g., if swipl is invoked with --sigalert=0).
+
+alert_signal :-
+    current_prolog_flag(windows, true),
+    !.
+
+alert_signal :-
+    current_predicate(prolog_alert_signal/2),
+    prolog_alert_signal(Sig, Sig),
+    Sig \== 0.
+
+test(clean_exit, [ condition(alert_signal) ]) :-
 	Goal = 'use_module(library(http/thread_httpd)),\c
 	        use_module(library(http/http_dispatch)),\c
 	        http_server(http_dispatch,[port(Port)]),\c
@@ -75,7 +88,8 @@ test(clean_exit, Status == exit(0)) :-
 	    ]),
 	read_stream_to_codes(Err, _),
 	close(Err),
-	process_wait(Pid, Status).
+	process_wait(Pid, Status),
+	Status == exit(0).
 
 :- end_tests(thread_exit).
 
