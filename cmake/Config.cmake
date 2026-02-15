@@ -305,7 +305,6 @@ check_function_exists(pthread_timedjoin_np HAVE_PTHREAD_TIMEDJOIN_NP)
 check_function_exists(pthread_getcpuclockid HAVE_PTHREAD_GETCPUCLOCKID)
 check_function_exists(pthread_attr_setstacksize HAVE_PTHREAD_ATTR_SETSTACKSIZE)
 check_function_exists(pthread_getattr_np HAVE_PTHREAD_GETATTR_NP)
-check_function_exists(pthread_win32_process_detach_np HAVE_PTHREAD_WIN32_PROCESS_DETACH_NP)
 check_function_exists(sched_setaffinity HAVE_SCHED_SETAFFINITY)
 check_function_exists(sched_yield HAVE_SCHED_YIELD)
 check_function_exists(sema_init HAVE_SEMA_INIT)
@@ -373,6 +372,26 @@ endif(CMAKE_USE_PTHREADS_INIT)
 # Windows
 check_function_exists(WSAPoll HAVE_WSAPOLL)
 check_function_exists(WinExec HAVE_WINEXEC)
+
+# PThreads4W: check_function_exists() fails with vcpkg's imported targets
+# because the include directory and library are not in CMAKE_REQUIRED_*.
+# Use check_c_source_compiles() to verify the function can be compiled and
+# linked, which is a stronger guarantee than a symbol-exists check.
+if(TARGET PThreads4W::PThreads4W)
+  set(_ptw32_saved_libs ${CMAKE_REQUIRED_LIBRARIES})
+  set(_ptw32_saved_incs ${CMAKE_REQUIRED_INCLUDES})
+  list(APPEND CMAKE_REQUIRED_INCLUDES ${PThreads4W_INCLUDE_DIR})
+  list(APPEND CMAKE_REQUIRED_LIBRARIES ${PThreads4W_LIBRARY_RELEASE})
+  check_c_source_compiles(
+      "#include <pthread.h>
+       int main(void) { pthread_win32_process_detach_np(); return 0; }"
+      HAVE_PTHREAD_WIN32_PROCESS_DETACH_NP)
+  set(CMAKE_REQUIRED_LIBRARIES ${_ptw32_saved_libs})
+  set(CMAKE_REQUIRED_INCLUDES ${_ptw32_saved_incs})
+else()
+  check_function_exists(pthread_win32_process_detach_np
+                        HAVE_PTHREAD_WIN32_PROCESS_DETACH_NP)
+endif()
 
 check_symbol_exists(F_SETLKW fcntl.h HAVE_F_SETLKW)
 
