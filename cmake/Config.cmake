@@ -263,6 +263,14 @@ check_function_exists(delay HAVE_DELAY)
 check_function_exists(dossleep HAVE_DOSSLEEP)
 # threads and scheduling
 if(CMAKE_USE_PTHREADS_INIT)
+# We may need additional libraries during these tests
+set(pthread_saved_libs ${CMAKE_REQUIRED_LIBRARIES})
+set(pthread_saved_incs ${CMAKE_REQUIRED_INCLUDES})
+if(TARGET PThreads4W::PThreads4W)
+  list(APPEND CMAKE_REQUIRED_INCLUDES ${PThreads4W_INCLUDE_DIR})
+  list(APPEND CMAKE_REQUIRED_LIBRARIES ${PThreads4W_LIBRARY_RELEASE})
+endif()
+
 check_c_source_compiles(
     "#include <sys/param.h>
      #include <sys/cpuset.h>
@@ -369,7 +377,10 @@ if(NOT HAVE_GETTID_FUNCTION)
   endif()
 endif()
 
+set(CMAKE_REQUIRED_LIBRARIES ${pthread_saved_libs})
+set(CMAKE_REQUIRED_INCLUDES ${pthread_saved_incs})
 endif(CMAKE_USE_PTHREADS_INIT)
+
 # Windows
 check_function_exists(WSAPoll HAVE_WSAPOLL)
 check_function_exists(WinExec HAVE_WINEXEC)
