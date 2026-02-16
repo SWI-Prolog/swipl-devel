@@ -50,6 +50,24 @@ printf '%s\n' "$lines" | while IFS= read -r line; do
     print_kv "$line"
 done
 
+cat <<EOF
+
+In addition, following environment variables can be
+defined before the configure script is run, e.g.:
+  SWIPL_DOC_SERVER=ON
+  SWIPL_INSTALL_PREFIX=$HOME/cmake/@builddir@
+  SWIPL_PUBLIC_NETWORK_TESTS=true
+  SWIPL_REDIS_SERVER=localhost:6379
+  SWIPL_TEST_FAIL_ON_UNLIKELY=y
+  SWIPL_TEST_ODBC_DRIVER=DRIVER=SQLite3;Database=test.sqlite
+
+Additional cmake options can be specified after the
+configure script is run, e.g.:
+  ../scripts/configure &&
+  cmake -DTEST_PROTOBUFS_PROTOC=ON . &&
+  ninja
+EOF
+
 exit 0
 fi
 
