@@ -282,10 +282,16 @@ handy for it someone wants to add a data type to the system.
 
 #ifdef __EMSCRIPTEN__
 #define NOTTYCONTROL           true
-#define O_TIGHT_CSTACK 1
 #endif
 
-#ifdef __SANITIZE_ADDRESS__
+/* Some environments have rather tight C stacks or use a lot of
+ * C stack space.   Setting `O_TIGHT_CSTACK` limits the C-stack
+ * usage on such systems.
+ */
+#if !defined(O_TIGHT_CSTACK) && \
+    ( defined(_DEBUG) || \
+      defined(__SANITIZE_ADDRESS__) || \
+      defined(__EMSCRIPTEN__) )
 #define O_TIGHT_CSTACK 1
 #endif
 
