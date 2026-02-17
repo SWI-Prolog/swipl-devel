@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2131,10 +2131,9 @@ initPrologFlags(void)
   setPrologFlag("heartbeat", FT_INTEGER, (intptr_t)0);
   setPrologFlag("halt_grace_time", FT_FLOAT, (double)1.0);
 
-#if defined(__WINDOWS__) && defined(_DEBUG)
-  setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
+#ifdef BUILD_TYPE				/* set from CMake */
+  setPrologFlag("build_type", FT_ATOM|FF_READONLY, BUILD_TYPE);
 #endif
-
 #if defined(BUILD_TIME) && defined(BUILD_DATE)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, BUILD_DATE ", " BUILD_TIME);
 #elif defined(__DATE__) && defined(__TIME__)

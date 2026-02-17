@@ -6,10 +6,11 @@
 
 \subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
 
-By default, SWI-Prolog is installed as `swipl'. The command line
-arguments of SWI-Prolog itself and its utility programs are documented
-using standard Unix \program{man} pages. SWI-Prolog is normally operated
-as an interactive application simply by starting the program:
+By default, SWI-Prolog is installed as \program{swipl}. The command
+line arguments of SWI-Prolog itself and its utility programs are
+documented using standard Unix \program{man} pages. SWI-Prolog is
+normally operated as an interactive application simply by starting the
+program:
 
 \begin{code}
 $ swipl
@@ -1440,6 +1441,13 @@ arbitrary limit rather than exhausting memory. See \secref{artypes}.
 Current break-level. The initial top level (started with
 \cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
 threads that are not running a top-level loop.
+
+    \prologflagitem{build_type}{atom}{r}
+This flag represents the \program{cmake} \const{CMAKE_BUILD_TYPE} to
+build this instance of SWI-Prolog. Possible values depend on the
+platform. Some common values are \const{Debug}, \const{Release}
+\const{MinSizeRel}, \const{RelWithDebInfo}, \const{Sanitize},
+\const{DEB} or \const{PGO}.
 
     \prologflagitem{bundle}{bool}{r}
 True when SWI-Prolog is installed as a stand-alone bundle.  This is
