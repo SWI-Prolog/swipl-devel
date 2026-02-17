@@ -1122,7 +1122,7 @@ debug_from_string(TopicS) :-
 
 spy_from_string(Pred, Spec) :-
     atom_pi(Spec, PI),
-    call(Pred, PI).
+    call(Pred, user:PI).
 
 cli_gspy(PI) :-
     (   exists_source(library(threadutil))
