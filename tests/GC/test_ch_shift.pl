@@ -43,6 +43,7 @@ test_ch_shift :-
 
 or_dept(Depth), current_prolog_flag(asan,true) => Depth = 1000.
 or_dept(Depth), current_prolog_flag(emscripten,true) => Depth = 1000.
+or_dept(Depth), current_prolog_flag(msvc_debug,true) => Depth = 1000.
 or_dept(Depth), current_prolog_flag(windows,true) => Depth = 5000.
 or_dept(Depth) => Depth = 10_000.
 

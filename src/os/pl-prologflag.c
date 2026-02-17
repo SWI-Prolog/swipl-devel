@@ -2133,6 +2133,9 @@ initPrologFlags(void)
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
+#if defined(_MSC_VER)
+  setPrologFlag("msvc_debug", FT_BOOL|FF_READONLY, true, 0);
+#endif
 #endif
 
 #if defined(BUILD_TIME) && defined(BUILD_DATE)
