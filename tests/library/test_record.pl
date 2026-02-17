@@ -55,14 +55,66 @@ test_record :-
 :- record foo(x:integer).
 :- record bar(x:foo).
 :- record r(x:list(integer)).
+:- record zot(x).
 
 test(record_type, true) :-
 	make_foo([x(10)], Foo),
 	make_bar([x(Foo)], Bar),
 	is_bar(Bar).
+test(record_type, foo(1) == Foo) :-
+	default_foo(Foo),
+	foo_x(Foo, 1),
+	is_foo(Foo).
+test(record_type, fail) :-
+	default_foo(Foo),
+	is_foo(Foo).
 test(list_type, true) :-
 	make_r([x([1,2,3])], _).
 test(list_type, error(type_error(_,_))) :-
 	make_r([x([1,2,a])], _).
+test(record_no_type, zot(_) =@= Zot) :-
+	make_zot([], Zot),
+	is_zot(Zot).
+
+% Example from the documentation
+
+:- record point(x:integer=0, y:integer=0).
+
+test(point, R == point(1,2)) :-
+    make_point([y(2), x(1)], R),
+    is_point(R),
+    point_x(R, X), X==1,
+    point_y(R, Y), Y==2.
+test(point, R == point(0,2)) :-
+    make_point([y(2)], R),
+    is_point(R),
+    point_x(R, X), X==0,
+    point_y(R, Y), Y==2.
+test(point, fail) :-
+    is_point(_R).
+test(point, true) :-
+    is_point(point(1,2)).
+test(point, fail) :-
+    is_point(point(_,2)).
+test(point, error(instantiation_error)) :-
+    make_point([x(1),y(_)], _R).
+test(point, error(type_error(integer,foo))) :-
+    make_point([x(1),y(foo)], _R).
+test(point, fail) :-
+    make_point([x(1),z(3)], _R).
+
+test(point, P-R == point(1,10)-[z(123)]) :-
+    make_point([y(0), x(1), y(10), z(123)], P, R).
+test(point, P-R == point(1,10)-[z(123)]) :-
+    make_point([z(123), y(0), y(10), x(1)], P, R).
+
+test(point, M:T == plunit_record:point(x:integer=0,y:integer=0)) :-
+    current_record(point, M:T).
+test(point, set(M:T == [plunit_record:point(x:integer=0,y:integer=0)])) :-
+    current_record(N, M:T),
+    N = point.
+
+% No need for testing most of the remainder of the predicates bbecause
+% they're used in implementing the predicates tested above.
 
 :- end_tests(record).
