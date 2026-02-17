@@ -2,8 +2,9 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2014, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2007-2026, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -104,7 +105,17 @@ is_record(Name, M, X) :-
 %     * =|set_<constructor>_fields|=(+Fields, +Record0, -Record).
 %     * =|set_<constructor>_fields|=(+Fields, +Record0, -Record, -RestFields).
 %     * =|set_<constructor>_field|=(+Field, +Record0, -Record).
-%     * =|user:current_record|=(:<constructor>)
+%     * =|user:current_record|=(?<name>, :<constructor>).
+%
+%   In  the  above,  the  Fields  arguments  are  a  list  of  the  form
+%   Name(Value). If a name appears more  than   once,  the last value is
+%   used.  For  make_<constructor>/3,  RestFields   gets    a   list  of
+%   Name(Value) that were not used;   make_<constructor>/2 requires that
+%   all the names are in the record.
+%
+%   These  predicates  fail  if   there   is    an   error   (e.g.,   if
+%   make_<constructor>/2 has a field name that isn't in the record); the
+%   exceptions are if type checking throws an exception.
 
 record(Record) :-
     Record == '<compiled>',
@@ -122,7 +133,6 @@ compile_records(Spec,
                 | Clauses                   % the dependency
                 ]) :-
     phrase(compile_records(Spec), Clauses).
-%       maplist(portray_clause, Clauses).
 
 compile_records(Var) -->
     { var(Var),
@@ -294,13 +304,11 @@ is_predicate(Constructor, Types) -->
       clean_body(Body0, Body),
       Term =.. [Constructor|Vars],
       atom_concat(is_, Constructor, Name),
-      Head1 =.. [Name,Var],
-      Head2 =.. [Name,Term]
+      Head =.. [Name,VarOrTerm]
     },
-    [   (Head1 :- var(Var), !, fail) ],
     (   { Body == true }
-    ->  [ Head2 ]
-    ;   [ (Head2 :- Body) ]
+    ->  [ (Head :- nonvar(VarOrTerm), VarOrTerm = Term) ]
+    ;   [ (Head :- nonvar(VarOrTerm), VarOrTerm = Term, Body) ]
     ).
 
 type_checks([], [], true).
