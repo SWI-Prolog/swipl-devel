@@ -574,6 +574,7 @@ ansi_get_color(Which0, RGB) :-
           no_xterm).
 
 supports_get_color :-
+    \+ current_prolog_flag(windows, true),
     getenv('TERM', Term),
     sub_atom(Term, 0, _, _, xterm),
     \+ getenv('TERM_PROGRAM', 'Apple_Terminal').
