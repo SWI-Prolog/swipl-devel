@@ -15,9 +15,13 @@ information from the SWI-Prolog executable
 after which it scans the arguments and breaks them into several
 categories.  It then calls the C-compiler to create an executable
 containing the user's C-code and the SWI-Prolog kernel.  After this,
+if there are any Prolog files on the command line,
 it will call the development environment to create a Prolog saved
-state from the prolog files and finally it will create the target
-executable by concatenating the state to the emulator.  See also
+state from the prolog files, and finally it will create the target
+executable by concatenating the state to the emulator; otherwise,
+it creates a normal executable (see also the option
+.BI \-nostate "" ).
+See also
 .BI qsave_program/2
 from the
 .BI SWI-Prolog " " manual.
@@ -55,7 +59,7 @@ Compile C or C++ source-files into object files.  This turns
 .B swipl-ld
 into a replacement for the C or C++ compiler where proper options such
 as the location of the include directory are passed automatically to the
-compiler.
+compiler. 
 .TP
 .B \-E
 Invoke the C preprocessor.  Used to make
@@ -66,7 +70,9 @@ a replacement for the C or C++ compiler.
 Link C, C++ or object files into a shared object (DLL) that can be loaded
 by the
 .I load_foreign_library/1
-predicate.  If used with
+predicate. This option implies
+.B \-nostate.
+If used with
 .B \-c
 it sets the proper options to compile a C or C++ file ready for linking
 into a shared object.
@@ -93,9 +99,16 @@ making XPCE available to the saved state.
 .BI \-goal " goal"
 The goal that is initially executed when the toplevel is started using
 .BR "PL_toplevel()" .
-E.i. the default.
+The default is the same as the
 .BI \-g
-flag for the new executable.
+flag for the
+.BR "swipl"
+command, that is:
+.I "version/0"
+(you can avoid printing the header by
+.BI \-goal " goal" ).
+This option has no effect if there are no Prolog files in the
+executable.
 .TP
 .BI \-toplevel " goal"
 The goal that is executed as the main toplevel goal.  E.i. the default.
