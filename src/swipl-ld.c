@@ -60,6 +60,9 @@
   #endif
  */
 
+#include <stdbool.h>
+#include <stdarg.h>
+
 #ifndef __WINDOWS__
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
@@ -284,6 +287,11 @@ static char *plinitfile;		/* -f file */
 static char *plclass;			/* -class <class> */
 static char *plsysinit;			/* -F file */
 
+static bool plgoal_specified     = false;
+static bool pltoplevel_specified = false;
+static bool plinitfile_specified = false;
+static bool plsysinit_specified  = false;
+
 static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
@@ -329,20 +337,33 @@ oserror()
 }
 
 
-static int
-error(int status)
-{ removeTempFiles();
+static const char errmsg_error[] = "error";
+static const char errmsg_warning[] = "warning";
+static const char errmsg_info[] = "";
 
-  fprintf(stderr, "*** %s exit status %d\n", plld, status);
+static void
+error(bool do_exit, const char *severity, const char *text, ...)
+{ va_list ap;
+  if ( severity && severity[0] )
+    fprintf(stderr, "%s: %s: ", plld, severity);
+  else
+    fprintf(stderr, "%s: ", plld);
+  va_start(ap, text);
+  vfprintf(stderr, text, ap);
+  va_end(ap);
+  fprintf(stderr, "\n");
 
-  exit(status);
-  return 1;				/* not reached */
+  if ( do_exit )
+  { removeTempFiles();
+    exit(1);
+  }
+  return;
 }
 
 
 static void
 caught_signal(int sig)
-{ error(sig);
+{ error(true, errmsg_error, "caught signnal");
 }
 
 
@@ -366,8 +387,7 @@ xmalloc(size_t bytes)
   if ( (mem = malloc(bytes)))
     return mem;
 
-  fprintf(stderr, "%s: not enough memory\n", plld);
-  error(1);
+  error(true, errmsg_error, "Could not allocate %zu bytes");
   return NULL;
 }
 
@@ -388,8 +408,7 @@ xrealloc(void *old, size_t bytes)
       return mem;
   }
 
-  fprintf(stderr, "%s: not enough memory\n", plld);
-  error(1);
+  error(true, errmsg_error, "Could nnot allocate %zu bytes");
   return NULL;
 }
 
@@ -655,14 +674,20 @@ dispatchFile(const char *name)
     for( ; d->extension; d++ )
     { if ( strfeq(d->extension, ext) )
       { if ( d->list == &plfiles || d->list == &qlfiles )
+	{ if ( nostate )
+	    error(false, errmsg_warning, "-nostate ignored");
 	  nostate = false;
+	}
 	appendArgList(d->list, name);
 	return true;
       }
     }
     if ( soext && strfeq(soext, ext) )
     { if ( d->list == &plfiles || d->list == &qlfiles )
+      { if ( nostate )
+	  error(false, errmsg_warning, "-nostate ignored");
 	nostate = false;
+      }
       appendArgList(&libs, name);
       return true;
     }
@@ -700,17 +725,18 @@ usage()
 	  "\n"
 	  "       -pl prolog       Prolog to use\n"
 	  "       -ld linker       link editor to use\n"
-          "       -cc compiler     compiler for C source files\n"
+	  "       -cc compiler     compiler for C source files\n"
 	  "       -c++ compiler    compiler for C++ source files\n"
 	  "\n"
 	  "       -c               only compile C/C++ files, do not link\n"
 	  "       -S               emit assembler, do not link\n"
 	  "       -E               only run preprocessor, do not link\n"
-          "       -build-defaults  use default parameters, don't ask Prolog\n"
+	  "       -build-defaults  use default parameters, don't ask Prolog\n"
 	  "       -nostate         just relink the kernel\n"
 	  "       -state           add a Prolog saved state\n"
 	  "       -nolibswipl      do not link with -lswipl\n"
-	  "       -shared          create target for load_foreign_library/2\n"
+	  "       -shared          create target for small load_foreign_library/2\n"
+	  "       -SHARED          create target for large load_foreign_library/2\n"
 	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
 #if defined(HOST_OS_WINDOWS)
 	  "       -dll             synonym for -embed-shared\n"
@@ -738,11 +764,11 @@ usage()
 	  "       -Llibdir         Library directory (C/C++ link)\n"
 	  "       -llib            library (C/C++)\n",
 	plld,
-        plld,
+	plld,
 #if defined(HOST_OS_WINDOWS)
-        plld,
+	plld,
 #endif
-        plld);
+	plld);
 
   exit(1);
 }
@@ -756,7 +782,7 @@ parseOptions(int argc, char **argv)
     if ( dispatchFile(opt) )
       continue;
 
-    if ( streq(opt, "-help") )			/* -help */
+    if ( streq(opt, "-help") || streq(opt, "--help") ) /* -help */
     { usage();
     } else if ( streq(opt, "-v") )		/* -v */
     { verbose++;
@@ -828,6 +854,8 @@ parseOptions(int argc, char **argv)
 #endif
     } else if ( streq(opt, "-shared") )		/* -shared */
     { shared = true;
+      if ( ! nostate )
+	error(false, errmsg_warning, "-state ignored");
       nostate = true;
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
@@ -835,6 +863,8 @@ parseOptions(int argc, char **argv)
 #endif
     } else if ( streq(opt, "-SHARED") )		/* -SHARED */
     { shared = true;
+      if ( ! nostate )
+	error(false, errmsg_warning, "-state ignored");
       nostate = true;
 #ifdef SO_PIC
       appendArgList(&coptions, SO_PIC);
@@ -868,24 +898,28 @@ parseOptions(int argc, char **argv)
     { if ( argc > 1 )
       { plgoal = argv[1];
 	argc--, argv++;
+	plgoal_specified = true;
       } else
 	usage();
     } else if ( streq(opt, "-toplevel") )	/* -toplevel goal */
     { if ( argc > 1 )
       { pltoplevel = argv[1];
 	argc--, argv++;
+	pltoplevel_specified = true;
       } else
 	usage();
     } else if ( streq(opt, "-initfile") )	/* -initfile goal */
     { if ( argc > 1 )
       { plinitfile = argv[1];
 	argc--, argv++;
+	plinitfile_specified = true;
       } else
 	usage();
     } else if ( streq(opt, "-F") )		/* -F base */
     { if ( argc > 1 )
       { plsysinit = argv[1];
 	argc--, argv++;
+	plsysinit_specified = true;
       } else
 	usage();
     } else if ( streq(opt, "-class") )		/* -class runtime,kernel,
@@ -945,6 +979,8 @@ parseOptions(int argc, char **argv)
     { appendArgList(&lastlibs, opt);
     } else if ( strprefix(opt, "-l") )		/* -l<lib> */
     { appendArgList(&libs, opt);
+    } else
+    { error(false, errmsg_warning, "Unknown option: %s", opt);
     }
   }
 }
@@ -1047,8 +1083,7 @@ fillDefaultOptions(void)
   pltmp = strdup(tmp);
 #endif
   if ( shared && !out && !nolink )
-  { fprintf(stderr, "%s: \"-o out\" required for linking shared object\n", plld);
-    exit(1);
+  { error(true, errmsg_error, "\"-o out\" required for linking shared object");
   }
 #if defined(HOST_OS_WINDOWS)
   if ( out && !nolink )
@@ -1089,12 +1124,12 @@ getPrologOptions(void)
 
   snprintf(cmd, sizeof cmd, "%s --dump-runtime-variables", pl);
   if ( verbose )
-    printf("\teval `%s`\n", cmd);
+    fprintf(stderr, "\teval `%s`\n", cmd);
 
   if ( (fd = popen(cmd, "r")) )
   { char buf[1024];
 
-    while( fgets(buf, sizeof(buf), fd) )
+    while( fgets(buf, sizeof buf, fd) )
     { char name[100];
       char value[1024];
       char *v;
@@ -1134,7 +1169,7 @@ getPrologOptions(void)
 	{ ensureOption(&coptions, "-D_REENTRANT");
 	  ensureOption(&cppoptions, "-D_REENTRANT");
 #ifdef _THREAD_SAFE			/* FreeBSD */
-          ensureOption(&coptions, "-D_THREAD_SAFE");
+	  ensureOption(&coptions, "-D_THREAD_SAFE");
 	  ensureOption(&cppoptions, "-D_THREAD_SAFE");
 #endif
 	} else
@@ -1143,7 +1178,7 @@ getPrologOptions(void)
 	if ( verbose )
 	  fprintf(stderr, "\t\t%s=\"%s\"\n", name, v);
       }	else
-      { fprintf(stderr, "Unparsed Prolog option: %s\n", buf);
+      { error(false, errmsg_warning, "Unparsed Prolog option: %s", buf);
       }
     }
 
@@ -1156,8 +1191,7 @@ getPrologOptions(void)
 #endif
     defaultPath(&plexe, buf);
   } else
-  { fprintf(stderr, "%s: failed to run %s: %s", plld, cmd, oserror());
-    error(1);
+  { error(true, errmsg_error, "failed to run %s: %s", cmd, oserror());
   }
 }
 
@@ -1169,7 +1203,7 @@ char *
 shell_quote(char *to, const char *arg)
 { static const char needq[] = "#!|<>*?$'\"";
   const char *s;
-  int needquote = false;
+  bool needquote = false;
 
   if ( arg[0] == UNQUOTED )
   { arg++;				/* skip the not-quote marker */
@@ -1220,14 +1254,10 @@ callprog(const char *ld, arglist *args)
   }
 
   if ( verbose )
-    printf("\t%s\n", cmd);
+    fprintf(stderr, "\t%s\n", cmd);
 
-  if ( !fake )
-  { if ( (status=system(cmd)) != 0 )
-    { fprintf(stderr, "%s returned code %d\n", ld, status);
-      error(1);
-    }
-  }
+  if ( !fake && (status=system(cmd)) != 0 )
+    error(true, errmsg_error, "return code %d from: %s", status, cmd);
 }
 
 
@@ -1315,7 +1345,7 @@ exportlibdirs()
     strcpy(e, s);
 
   if ( verbose )
-    printf("\t%s\n", tmp);
+    fprintf(stderr, "\t%s\n", tmp);
 
   putenv(strdup(tmp));
 }
@@ -1447,7 +1477,7 @@ linkSharedObject()
 
 static void
 quoted_name(const char *name, char *plname)
-{ int needquote = true;
+{ bool needquote = true;
 
   if ( islower(CTOI(name[0])) )
   { const char *s = name+1;
@@ -1552,15 +1582,13 @@ copy_fd(int i, int o)
       if ( (n2 = write(o, buf, (int)n)) > 0 )
       { n -= n2;
       } else
-      { fprintf(stderr, "%s: write failed: %s\n", plld, oserror());
-	error(1);
+      { error(true, errmsg_error, "write failed: %s", oserror());
       }
     }
   }
 
   if ( n < 0 )
-  { fprintf(stderr, "%s: read failed: %s\n", plld, oserror());
-    error(1);
+  { error(true, errmsg_error, "read failed: %s", oserror());
   }
 }
 
@@ -1576,14 +1604,13 @@ saveExportLib()
   olib = replaceExtension(out, "lib", obuf);
 
   if ( verbose )
-  { printf("\tren \"%s\" \"%s\"\n", ilib, olib);
+  { fprintf(stderr, "\tren \"%s\" \"%s\"\n", ilib, olib);
   }
 
   if ( !fake )
   { if ( rename(ilib, olib) != 0 )
-    { fprintf(stderr, "Could not rename export lib %s to %s: %s\n",
-	      ilib, olib, oserror());
-      error(1);
+    { error(true, errmsg_error, "Could not rename export lib %s to %s: %s",
+	    ilib, olib, oserror());
     }
   }
 }
@@ -1597,26 +1624,23 @@ createOutput()
   if ( verbose )
   {
 #if defined(HOST_TOOLCHAIN_MSC)
-    printf("\tcopy /b %s+%s %s\n", out, pltmp, out);
+    fprintf(stderr, "\tcopy /b %s+%s %s\n", out, pltmp, out);
 #else
-    printf("\tcat %s >> %s\n", pltmp, out);
+    fprintf(stderr, "\tcat %s >> %s\n", pltmp, out);
 #endif
   }
 
   if ( !fake )
   { if ( (ofd = open(out, O_WRONLY|O_BINARY, 0666)) < 0 )
-    { fprintf(stderr, "Could not open %s: %s\n", out, oserror());
-      error(1);
+    { error(true, errmsg_error, "Could not open %s: %s", out, oserror());
     }
     if ( lseek(ofd, 0, SEEK_END) == (off_t)-1 )
-    { fprintf(stderr, "Could not seek to end of %s: %s\n", out, oserror());
-      error(1);
+    { error(true, errmsg_error, "Could not seek to end of %s: %s", out, oserror());
     }
     if ( (ifd = open(pltmp, O_RDONLY|O_BINARY)) < 0 )
     { close(ofd);
       remove(out);
-      fprintf(stderr, "Could not open %s: %s\n", pltmp, oserror());
-      error(1);
+      error(true, errmsg_error, "Could not open %s: %s", pltmp, oserror());
     }
     copy_fd(ifd, ofd);
     close(ifd);
@@ -1628,7 +1652,7 @@ createOutput()
     umask(mask);
 
     if ( verbose )
-      printf("\tchmod %03o %s\n", 0777 & ~mask, out);
+      fprintf(stderr, "\tchmod %03o %s\n", 0777 & ~mask, out);
 
     if ( !fake )
     {
@@ -1637,8 +1661,7 @@ createOutput()
 #else
       if ( chmod(out, 0777 & ~mask) != 0 )
 #endif
-      { fprintf(stderr, "Could not make %s executable: %s\n", out, oserror());
-	error(1);
+      { error(true, errmsg_error, "Could not make %s executable: %s", out, oserror());
       }
     }
   }
@@ -1656,7 +1679,7 @@ removeTempFiles()
   for(n = 0; n < tmpfiles.size; n++)
   { if ( remove(tmpfiles.list[n]) == 0 )
     { if ( verbose )
-	printf("\trm %s\n", tmpfiles.list[n]);
+	fprintf(stderr, "\trm %s\n", tmpfiles.list[n]);
     }
   }
 }
@@ -1688,8 +1711,7 @@ main(int argc, char **argv)
   catchSignals();
 
   if ( argc == 0 )
-  { fprintf(stderr, "No input files.  Use %s -help.\n", plld);
-    exit(0);
+  { error(true, errmsg_error, "No input files");
   }
 
   putenv("PLLD=true");			/* for subprograms */
@@ -1718,7 +1740,9 @@ main(int argc, char **argv)
   defaultProgram(&pl, PROG_PL);
 
   if ( build_defaults )
-  { nostate = true;			/* not needed and Prolog won't run */
+  { if ( ! nostate )
+      error(false, errmsg_warning, "-state ignored");
+    nostate = true;			/* not needed and Prolog won't run */
     defaultProgram(&cc, C_CC);
 #if defined(PLBASE)
     defaultPath(&plbase, PLBASE);
@@ -1755,6 +1779,7 @@ main(int argc, char **argv)
 
   compileObjectFiles();
 
+  bool made_saved_state = false;
   if ( !nolink )
   { if ( shared )
       linkSharedObject();
@@ -1763,12 +1788,35 @@ main(int argc, char **argv)
 
       if ( !nostate )
       { createSavedState();
+	made_saved_state = true;
 	createOutput();
       }
     }
   }
 
   removeTempFiles();
+
+  if ( !made_saved_state )
+  { bool warned = false;
+    if ( plgoal_specified )
+    { warned = true;
+      error(false, errmsg_warning, "option '-goal %s' ignored", plgoal);
+    }
+    if ( pltoplevel_specified )
+    { warned = true;
+      error(false, errmsg_warning, "option '-toplevel %s' ignored", pltoplevel);
+    }
+    if ( plinitfile_specified )
+    { warned = true;
+      error(false, errmsg_warning, "option '-initfile %s' ignored", plinitfile);
+    }
+    if ( plsysinit_specified )
+    { warned = true;
+      error(false, errmsg_warning, "option '-F %s' ignored", plsysinit);
+    }
+    if ( warned )
+      error(false, errmsg_info, "Options that are only meaningful for a saved state: -goal -toplevel -initfile -F");
+  }
 
   return 0;
 }
