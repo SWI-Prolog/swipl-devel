@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2024, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1995-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -532,7 +532,7 @@ reload_foreign_libraries :-
 
 reload_libraries([]).
 reload_libraries([lib(File, Entry, Module)|T]) :-
-    (   load_foreign_library(File, Module, Entry)
+    (   load_foreign_library(File, Module, [install(Entry)])
     ->  true
     ;   print_message(error, shlib(File, load_failed))
     ),
