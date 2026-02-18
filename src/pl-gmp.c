@@ -1875,11 +1875,11 @@ cmp_z_i(mpz_t z1, int64_t i2)
 #else
   if ( i2 >= LONG_MIN && i2 <= LONG_MAX )
   { int t = mpz_cmp_si(z1,(long)i2);
-    return (t < 0) ? CMP_LESS : (t > 0);
+    return SCALAR_TO_CMP(t, 0);
   } else
   { mpz_t a;
     mpz_init_set_si64(a, i2);
-    int t = cmp_z_z(z1, a);
+    cmpex_t t = cmp_z_z(z1, a);
     mpz_clear(a);
     return t;
   }
@@ -1895,14 +1895,14 @@ cmp_q_i(mpq_t q1, int64_t i2)
 #else
   if ( i2 >= LONG_MIN && i2 <= LONG_MAX )
   { int t = mpq_cmp_si(q1,(long)i2,1);
-    return (t < 0) ? CMP_LESS : (t > 0);
+    return SCALAR_TO_CMP(t, 0);
   } else
   { mpq_t qa;
     mpz_t za;
     mpq_init(qa);
     mpz_init_set_si64(za, i2);
     mpq_set_z(qa, za);
-    int t = cmp_q_q(q1, qa);
+    cmpex_t t = cmp_q_q(q1, qa);
     mpz_clear(za);
     mpq_clear(qa);
     return t;
