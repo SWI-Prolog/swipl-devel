@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="jammy noble plucky questing"
+distros="jammy noble plucky questing resolute"
 build=true
 clean=true
 buildbin=false
