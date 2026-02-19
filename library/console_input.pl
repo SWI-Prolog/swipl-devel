@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013, VU University Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2013-2026, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,14 +36,15 @@
 :- module(prolog_console_input,
           [
           ]).
-:- autoload(library(lists),[reverse/2]).
-
+:- autoload(library(lists), [reverse/2, append/2]).
+:- autoload(library(dcg/basics), [remainder/3]).
+:- autoload(library(apply), [maplist/3, convlist/3]).
 
 :- multifile
     prolog:complete_input/4.
 
-%!  prolog:complete_input(+BeforeCursor, +AfterCursor,
-%!                        -Delete, -Completions) is det.
+%!  prolog:complete_input(+BeforeCursor:string, +AfterCursor:string,
+%!                        -Delete:atom, -Completions:list) is semidet.
 %
 %   Compute    auto    completions    for      the     input    line
 %   BeforeCursor+AfterCursor.
@@ -63,10 +65,14 @@ prolog:complete_input(Before, _After, Delete, Completions) :-
     complete(BeforeRev, Delete, Completions).
 
 complete(BeforeRev, Prefix, Files) :-   % complete files
-    phrase(file_prefix(Prefix), BeforeRev, _),
+    phrase(file_prefix(Prefix, Type), BeforeRev),
     !,
-    atom_concat(Prefix, '*', Pattern),
-    expand_file_name(Pattern, Files).
+    (   Type = library(Close)
+    ->  complete_library(Prefix, Close, Files)
+    ;   atom_concat(Prefix, '*', Pattern),
+        expand_file_name(Pattern, Files0),
+        finish_file_name(Files0, Type, Files)
+    ).
 complete(BeforeRev, Prefix, Atoms) :-   % complete atoms
     phrase(atom_prefix(Prefix), BeforeRev, _),
     !,
@@ -87,23 +93,41 @@ atom_char(C) --> [C], { atom_char(C) }.
 
 atom_char(C) :- code_type(C, csym).
 
-%!  file_prefix(-Prefix)// is semidet.
+%!  file_prefix(-Prefix, -Type)// is semidet.
 %
 %   True when the part before the cursor looks like a file name.
 
-file_prefix(Prefix) -->
-    file_chars(RevString), "'",
+file_prefix(Prefix, file) -->
+    file_chars(RevString, quoted('\'')), "'",
+    !,
+    remainder(_),
+    { reverse(RevString, String),
+      atom_codes(Prefix, String)
+    }.
+file_prefix(Prefix, consult(']')) -->
+    file_chars(RevString, unquoted), "[",
+    !,
+    { reverse(RevString, String),
+      atom_codes(Prefix, String)
+    }.
+file_prefix(Prefix, library(')')) -->
+    file_chars(RevString, unquoted), "(yrarbil",
+    !,
+    remainder(_),
     { reverse(RevString, String),
       atom_codes(Prefix, String)
     }.
 
-file_chars([H|T]) --> file_char(H), !, file_chars(T).
-file_chars([]) --> [].
+file_chars([H|T], Style) --> file_char(H, Style), !, file_chars(T, Style).
+file_chars([], _) --> [].
 
-file_char(C) --> [C], { file_char(C) }.
+file_char(C, Style) --> [C], { file_char(C, Style) }.
 
-file_char(C) :- code_type(C, csym).
-file_char(0'/).
+file_char(C, _) :- code_type(C, csym).
+file_char(0'/, _).
+file_char(C, quoted(_)) :-
+    file_char(C).
+
 file_char(0'.).
 file_char(0'-).
 file_char(0'~).
@@ -111,3 +135,79 @@ file_char(0'~).
 file_char(0':).
 file_char(0'\s).
 :- endif.
+
+%!  finish_file_name(+Matches, -Completions) is det.
+%
+%   Add closing quote for a unique file name.
+
+finish_file_name([Dir0], _, [Dir]) :-
+    exists_directory(Dir0),
+    !,
+    atom_concat(Dir0, '/', Dir).
+finish_file_name([File0], Close, [File]) :-
+    exists_file(File0),
+    close_file_name(File0, Close, File),
+    !.
+finish_file_name(Files0, _, Files) :-
+    maplist(tag_dir, Files0, Files).
+
+tag_dir(Dir, DirS) :-
+    exists_directory(Dir),
+    !,
+    atom_concat(Dir, /, DirS).
+tag_dir(File, File).
+
+close_file_name(File0, consult(Close), File) :-
+    file_name_extension(Base, Ext, File0),
+    user:prolog_file_type(Ext, prolog),
+    atom_concat(Base, Close, File).
+close_file_name(File0, quoted(Close), File) :-
+    atom_concat(File0, Close, File).
+
+%!  complete_library(+Prefix:atom, +Close:atom, -Completions:list) is
+%!                   semidet.
+%
+%   Complete to a library entry on "library(Prefix".
+
+complete_library(Prefix, Close, Libraries) :-
+    findall(Pairs, complete_one_libdir(Prefix, Pairs), DirPairs),
+    (   DirPairs = [LibDir-[f(File)]]
+    ->  atom_concat(LibDir, Local, File),
+        atom_concat(Local, Close, Completion),
+        Libraries = [Completion]
+    ;   DirPairs = [LibDir-[d(Dir)]]
+    ->  atom_concat(LibDir, Local, Dir),
+        atom_concat(Local, '/', Completion),
+        Libraries = [Completion]
+    ;   maplist(local_libs, DirPairs, FilesLists),
+        append(FilesLists, Libraries0),
+        sort(Libraries0, Libraries)
+    ).
+
+complete_one_libdir(Prefix, LibdirS-Files) :-
+    absolute_file_name(library(.), LibDir,
+                       [ file_type(directory),
+                         solutions(all)
+                       ]),
+    atom_concat(LibDir, /, LibdirS),
+    atomic_list_concat([LibdirS, Prefix, '*'], Pattern),
+    expand_file_name(Pattern, Entries),
+    convlist(dir_or_source, Entries, Files0),
+    sort(Files0, Files),
+    Files \== [].
+
+local_libs(LibDir-Members, Locals) :-
+    maplist(local_file_name(LibDir), Members, Locals).
+
+local_file_name(LibDir, f(File), Local) :-
+    atom_concat(LibDir, Local, File).
+local_file_name(LibDir, d(Dir), Local) :-
+    atom_concat(LibDir, Local0, Dir),
+    atom_concat(Local0, /, Local).
+
+dir_or_source(Entry, f(Plain)) :-
+    file_name_extension(Plain, Ext, Entry),
+    user:prolog_file_type(Ext, prolog),
+    !.
+dir_or_source(Entry, d(Entry)) :-
+    exists_directory(Entry).
