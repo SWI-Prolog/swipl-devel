@@ -42,6 +42,7 @@ function(install_target_runtime_dependencies)
 	    PRE_EXCLUDE_REGEXES
 	      "api-ms-" "ext-ms-"
 	      "python[0-9]*\.dll"
+	      "jvm\.dll"
 	    POST_EXCLUDE_REGEXES
 	      ".*system32/.*"
 	    DIRECTORIES
