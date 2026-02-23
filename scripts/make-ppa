@@ -23,8 +23,8 @@ Usage: $(basename $program) [option ...]
 Options:
     --distro=Distro
       Set the target distribution
-    --distros
-      If this optionn is present, the known distros are listed and
+    --list-distros
+      If this option is present, the known distros are listed and
       this script terminates
     --no-build
       Only create the ppa directory, do not build a source deb
