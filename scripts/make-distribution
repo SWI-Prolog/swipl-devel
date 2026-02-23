@@ -147,6 +147,12 @@ ubuntu()
 { $HOME/src/docker/ubuntu/run.sh -C $(pwd) $*
 }
 
+reset_nox()
+{ git -C debian checkout nox
+  git -C debian reset --hard origin/nox-devel
+  git submodule update debian
+}
+
 # Build a single PPA in case something went wrong and we need
 # to retry.
 build_PPA()
@@ -161,7 +167,8 @@ build_PPA()
 
 # Build all PPAs
 build_PPAs()
-{ git branch -D ppa || true
+{ reset_nox
+  git branch -D ppa || true
   git checkout -b ppa
   for distro in $(./scripts/make-ppa --list-distros); do
     ubuntu ./scripts/make-ppa --distro=$distro --push
