@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2022, VU University Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2009-2026, VU University Amsterdam
                               CWI, Amsterdam,
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -122,8 +122,8 @@ have the same name and arity.
 %   Read a CSV file into a list of   rows. Each row is a Prolog term
 %   with the same arity. Options  is   handed  to  csv//2. Remaining
 %   options  are  processed  by    phrase_from_file/3.  The  default
-%   separator depends on the file name   extension and is =|\t|= for
-%   =|.tsv|= files and =|,|= otherwise.
+%   separator depends on the file name   extension and is ``\t`` for
+%   ``.tsv`` files and ``,`` otherwise.
 %
 %   Suppose we want to create a predicate   table/6  from a CSV file
 %   that we know contains 6 fields  per   record.  This  can be done
@@ -177,15 +177,15 @@ csv_read_stream(Stream, Rows, Options) :-
 %       * separator(+Code)
 %       The comma-separator.  Must be a character code.  Default is
 %       (of course) the comma. Character codes can be specified
-%       using the 0' notation. E.g., using =|separator(0';)|= parses
+%       using the 0' notation. E.g., using ``separator(0';)`` parses
 %       a semicolon separated file.
 %
 %       * ignore_quotes(+Boolean)
-%       If =true= (default false), threat double quotes as a normal
+%       If `true` (default false), threat double quotes as a normal
 %       character.
 %
 %       * strip(+Boolean)
-%       If =true= (default =false=), strip leading and trailing
+%       If `true` (default `false`), strip leading and trailing
 %       blank space.  RFC4180 says that blank space is part of the
 %       data.
 %
@@ -198,15 +198,15 @@ csv_read_stream(Stream, Rows, Options) :-
 %       characters (space or tab) as these may provide valid data.
 %
 %       * convert(+Boolean)
-%       If =true= (default), use name/2 on the field data.  This
+%       If `true` (default), use name/2 on the field data.  This
 %       translates the field into a number if possible.
 %
 %       * case(+Action)
-%       If =down=, downcase atomic values.  If =up=, upcase them
-%       and if =preserve= (default), do not change the case.
+%       If `down`, downcase atomic values.  If `up`, upcase them
+%       and if `preserve` (default), do not change the case.
 %
 %       * functor(+Atom)
-%       Functor to use for creating row terms.  Default is =row=.
+%       Functor to use for creating row terms.  Default is `row`.
 %
 %       * arity(?Arity)
 %       Number of fields in each row.  This predicate raises
@@ -214,7 +214,7 @@ csv_read_stream(Stream, Rows, Options) :-
 %       found with different arity.
 %
 %       * match_arity(+Boolean)
-%       If =false= (default =true=), do not reject CSV files where
+%       If `false` (default `true`), do not reject CSV files where
 %       lines provide a varying number of fields (columns).  This
 %       can be a work-around to use some incorrect CSV files.
 
@@ -468,17 +468,22 @@ read_lines_to_codes(Stream, Codes, Options, QuoteQuantity) :-
         read_lines_to_codes(Stream, Tail, Options, odd)
     ).
 
-check_quotes([], QuoteQuantity, QuoteQuantity) :-
-    !.
-check_quotes([0'"|T], odd, Result) :-
+check_quotes(Codes, QuoteQuantity0, QuoteQuantity) :-
+    memberchk(0'", Codes),
     !,
-    check_quotes(T, even, Result).
-check_quotes([0'"|T], even, Result) :-
-    !,
-    check_quotes(T, odd, Result).
-check_quotes([_|T], QuoteQuantity, Result) :-
-    check_quotes(T, QuoteQuantity, Result).
+    check_quotes_(Codes, QuoteQuantity0, QuoteQuantity).
+check_quotes(_, QuoteQuantity, QuoteQuantity).
 
+check_quotes_([], QuoteQuantity, QuoteQuantity).
+check_quotes_([C|T], QuoteQuantity0, QuoteQuantity) :-
+    (   C == 0'"
+    ->  odd_even(QuoteQuantity0, QuoteQuantity1),
+        check_quotes_(T, QuoteQuantity1, QuoteQuantity)
+    ;   check_quotes_(T, QuoteQuantity0, QuoteQuantity)
+    ).
+
+odd_even(odd, even).
+odd_even(even, odd).
 
 %!  csv_options(-Compiled, +Options) is det.
 %
@@ -500,8 +505,8 @@ csv_options(Compiled, Options) :-
 %
 %   Write a list of Prolog terms to a CSV file.  Options are given
 %   to csv//2.  Remaining options are given to open/4.  The  default
-%   separator depends on the file name   extension and is =|\t|= for
-%   =|.tsv|= files and =|,|= otherwise.
+%   separator depends on the file name   extension and is ``\t`` for
+%   ``.tsv`` files and ``,`` otherwise.
 
 csv_write_file(File, Data) :-
     csv_write_file(File, Data, []).
