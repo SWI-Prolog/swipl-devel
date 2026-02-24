@@ -296,10 +296,12 @@ predicate_name_(Name, Name).
 hidden_module(system, _).
 hidden_module(user, _).
 hidden_module(M, Name/Arity) :-
+    current_predicate(system:Name/Arity),
     functor(H, Name, Arity),
     predicate_property(system:H, imported_from(M)).
 hidden_module(M, Name//DCGArity) :-
     Arity is DCGArity+1,
+    current_predicate(system:Name/Arity),
     functor(H, Name, Arity),
     predicate_property(system:H, imported_from(M)).
 
