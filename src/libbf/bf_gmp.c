@@ -784,14 +784,16 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     limb_t mask = ((limb_t)1<<shift)-1;
 
     lt = &ROP->tab[bf.len-1];
-    while(bytes-->0)
+    while(bytes-- > 0)
     { l |= (limb_t)*data++ << byte*8;
       if ( byte == 0 )
       { byte =  sizeof(limb_t)-1;
 	if ( shift )
 	{ l <<= shift;
 	  if ( bytes > 0 )
+	  { assert(shift <= 8);
 	    l |= (data[0] >> (8-shift))&mask;
+	  }
 	}
 	*lt = l;
 	if ( lt == ROP->tab )
