@@ -11,14 +11,19 @@ find_program(APT apt)
 
 # As is, PGO builds do not  build   with  multi-config  generators as it
 # depends on more than just  changing   some  C/C++ compile flags. Also,
-# there is no point using this for the DEB build type
+# there is no point using this for the DEB build type.
+#
+# For MSVC, use -DPROFILE_GUIDED_OPTIMIZATION=GENERATE and =USE as
+# separate cmake invocations (two-phase workflow), or use Ninja with
+# -DCMAKE_BUILD_TYPE=PGO for the single-pass automatic workflow.
 
 set(SWIPL_CORE_BUILD_TYPES
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "Sanitize")
 set(SWIPL_EXTRA_BUILD_TYPES)
 if(CMAKE_COMPILER_IS_GNUCC OR
    CMAKE_C_COMPILER_ID STREQUAL Clang OR
-   CMAKE_C_COMPILER_ID STREQUAL AppleClang)
+   CMAKE_C_COMPILER_ID STREQUAL AppleClang OR
+   MSVC)
   list(APPEND SWIPL_EXTRA_BUILD_TYPES "PGO")
 endif()
 if(APT)
@@ -34,8 +39,13 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	       ${SWIPL_CORE_BUILD_TYPES} ${SWIPL_EXTRA_BUILD_TYPES})
 endif()
 
-set(CMAKE_CONFIGURATION_TYPES ${SWIPL_CORE_BUILD_TYPES} CACHE
-    STRING "Configurations for multi-config generators." FORCE)
+if(MSVC)
+  set(CMAKE_CONFIGURATION_TYPES ${SWIPL_CORE_BUILD_TYPES} "PGO" CACHE
+      STRING "Configurations for multi-config generators." FORCE)
+else()
+  set(CMAKE_CONFIGURATION_TYPES ${SWIPL_CORE_BUILD_TYPES} CACHE
+      STRING "Configurations for multi-config generators." FORCE)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEB")
   message("-- Setting up flags for Debian based distro packaging")
@@ -181,6 +191,16 @@ elseif(MSVC)
       "${_SWI_MSVC_CXX_COMMON} /O1 $ENV{CXXFLAGS}"
       CACHE STRING "CXXFLAGS for a MinSizeRel build" FORCE)
 
+  # PGO base flags: same optimization as Release.  /GL (whole program
+  # optimization) is added per-target in PGO.cmake so that utility tools
+  # (defatom, mkvmi, etc.) are unaffected.
+  set(CMAKE_C_FLAGS_PGO
+      "${_SWI_MSVC_C_COMMON} /O2"
+      CACHE STRING "CFLAGS for a PGO build" FORCE)
+  set(CMAKE_CXX_FLAGS_PGO
+      "${_SWI_MSVC_CXX_COMMON} /O2 $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a PGO build" FORCE)
+
   # Optional: Sanitize build type (if you intend to support it on MSVC)
   # MSVC uses /fsanitize=address (requires installed VS components).
   # Note: /D_DEBUG is omitted because MSVC ASAN requires the release CRT
@@ -212,7 +232,8 @@ else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()
 
-# Map the custom Sanitize configuration to Release for imported targets
-# (e.g. vcpkg packages) so that multi-config generators can locate the
-# right library variants when building with --config Sanitize.
+# Map custom configurations to Release for imported targets (e.g. vcpkg
+# packages) so that multi-config generators can locate the right library
+# variants.
 set(CMAKE_MAP_IMPORTED_CONFIG_SANITIZE Release RelWithDebInfo "")
+set(CMAKE_MAP_IMPORTED_CONFIG_PGO Release RelWithDebInfo "")

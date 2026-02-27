@@ -58,6 +58,12 @@ macro(configure_pgo pgo_tag)
           VERBATIM)
   endif()
 
+  # When PGO_GENERATE_LINK_FLAGS or PGO_USE_LINK_FLAGS is set, link
+  # options are taken from these variables instead of the compile flags.
+  # This is needed for MSVC where compile and link PGO flags differ.
+  set(PGO_GENERATE_LINK_FLAGS)
+  set(PGO_USE_LINK_FLAGS)
+
   # Set compiler-specific PGO parameters
   if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(PGO_OUTPUT_FILE     ${PGO_DIR}/swipl.profdata)
@@ -75,6 +81,21 @@ macro(configure_pgo pgo_tag)
     add_custom_command(OUTPUT ${PGO_OUTPUT_FILE}
           DEPENDS ${PGO_RUN_STAMP}
           COMMAND ${LLVM_PROFDATA} merge -output=${PGO_OUTPUT_FILE} ${PGO_DIR}/*.profraw)
+  elseif(MSVC)
+    # MSVC PGO uses /GL (compile) + /GENPROFILE (link) for instrumentation,
+    # then /GL (compile) + /USEPROFILE (link) for the optimized build.
+    # /GL is added per-target (not globally) so utility tools like defatom
+    # and mkvmi are unaffected.
+    # MSVC creates .pgd next to the output binary and .pgc files in the
+    # same directory at runtime.  We let the linker use its default paths
+    # so .pgd and .pgc files are always co-located.
+    set(PGO_GENERATE_FLAGS /GL)
+    set(PGO_GENERATE_LINK_FLAGS /LTCG /GENPROFILE)
+    set(PGO_USE_FLAGS /GL)
+    set(PGO_USE_LINK_FLAGS /LTCG /USEPROFILE)
+    if(PGO_TAG)
+      set(PGO_OUTPUT_FILE ${PGO_RUN_STAMP})
+    endif()
   else()
     set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
     set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
@@ -103,18 +124,27 @@ macro(configure_pgo pgo_tag)
           DEPENDS ${PGO_OUTPUT_FILE}
           COMMAND ${CMAKE_COMMAND} -P ${PGO_SCRIPT} write-timestamp-header ${PGO_HEADER_FILE} ${PGO_OUTPUT_FILE}
           VERBATIM)
-  set(PGO_USE_FLAGS ${PGO_USE_FLAGS} -include "${PGO_HEADER_FILE}")
+  if(MSVC)
+    set(PGO_USE_FLAGS ${PGO_USE_FLAGS} "/FI${PGO_HEADER_FILE}")
+  else()
+    set(PGO_USE_FLAGS ${PGO_USE_FLAGS} -include "${PGO_HEADER_FILE}")
+  endif()
   add_custom_target(pgo_data DEPENDS ${PGO_HEADER_FILE})
 
 endmacro()
 
 function(generate_pgo_data) # generate_pgo_data(targets...)
-  string(REPLACE ";" " " gen_flags "${PGO_GENERATE_FLAGS}")
+  if(PGO_GENERATE_LINK_FLAGS)
+    set(_pgo_link_flags ${PGO_GENERATE_LINK_FLAGS})
+  else()
+    set(_pgo_link_flags ${PGO_GENERATE_FLAGS})
+  endif()
+  string(REPLACE ";" " " gen_flags "${_pgo_link_flags}")
   foreach(t IN LISTS ARGV)
     set(tinstr "${t}${PGO_SUFFIX}")
     target_compile_options(${tinstr} PRIVATE ${PGO_GENERATE_FLAGS})
     if(${CMAKE_VERSION} VERSION_GREATER 3.12)
-      target_link_options(${tinstr} PRIVATE ${PGO_GENERATE_FLAGS})
+      target_link_options(${tinstr} PRIVATE ${_pgo_link_flags})
     else()
       set_target_properties(${tinstr} PROPERTIES LINK_FLAGS "${gen_flags}")
     endif()
@@ -148,11 +178,16 @@ function(use_pgo_data) # use_pgo_data(targets...)
     add_custom_command(OUTPUT ${PGO_RUN_STAMP} APPEND
           COMMAND ${CMAKE_COMMAND} -E touch ${PGO_RUN_STAMP})
   endif()
-  string(REPLACE ";" " " use_flags "${PGO_USE_FLAGS}")
+  if(PGO_USE_LINK_FLAGS)
+    set(_pgo_link_flags ${PGO_USE_LINK_FLAGS})
+  else()
+    set(_pgo_link_flags ${PGO_USE_FLAGS})
+  endif()
+  string(REPLACE ";" " " use_flags "${_pgo_link_flags}")
   foreach(t IN LISTS ARGV)
     target_compile_options(${t} PRIVATE ${PGO_USE_FLAGS})
     if(${CMAKE_VERSION} VERSION_GREATER 3.12)
-      target_link_options(${t} PRIVATE ${PGO_USE_FLAGS})
+      target_link_options(${t} PRIVATE ${_pgo_link_flags})
     else()
       set_target_properties(${t} PROPERTIES LINK_FLAGS "${use_flags}")
     endif()
