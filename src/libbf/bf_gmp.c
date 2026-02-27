@@ -791,7 +791,10 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 	if ( shift )
 	{ l <<= shift;
 	  if ( bytes > 0 )
-	  { assert(shift <= 8);
+	  { // added assertion to reproduce UB reported here (search for "undefined")
+		// https://www.stats.ox.ac.uk/pub/bdr/M1-SAN/rswipl/tests/testthat.Rout
+		// I cannot reproduce it locally, though.
+		assert(shift <= 8);
 	    l |= (data[0] >> (8-shift))&mask;
 	  }
 	}
