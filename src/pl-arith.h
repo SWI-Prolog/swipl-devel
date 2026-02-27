@@ -136,7 +136,7 @@ resetArithStack(DECL_LD)
 #define argvArithStack(n) LDFUNC(argvArithStack, n)
 static inline Number
 argvArithStack(DECL_LD int n)
-{ // assert(LD->arith.stack.top);
+{ // This assertion raises an error in ctest (linux), so I suspect undefined behavior
   assert(LD->arith.stack.base);
   DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
