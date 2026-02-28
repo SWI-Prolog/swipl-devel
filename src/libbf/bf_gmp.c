@@ -769,7 +769,13 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     limb_t l = 0;
     const unsigned char *data = OP;
 
-    bf_import_dimension(&bf, OP, COUNT);
+    /* Drop leading zeros */
+    while(COUNT > 0 && data[0] == 0 )
+    { COUNT--;
+      data++;
+    }
+
+    bf_import_dimension(&bf, data, COUNT);
 
     assert(NAILS==0 && ORDER==1);
 
@@ -781,6 +787,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 
     const int shift = (int)(COUNT*8-bf.expn);
     const limb_t mask = ((limb_t)1<<shift)-1;
+    assert(shift <= 8);
 
     size_t byte = sizeof(limb_t)-1;
     lt = &ROP->tab[bf.len-1];
