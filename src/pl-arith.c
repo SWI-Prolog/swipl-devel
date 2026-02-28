@@ -5299,32 +5299,33 @@ clearNumber()
 bool
 ar_func_n(DECL_LD int findex, int argc)
 { number result;
-  int rval;
+  bool rval;
   ArithF f = FunctionFromIndex(findex);
-  Number argv = argvArithStack(argc);
 
   DEBUG(0, if ( !f )
 	     fatalError("No function at index %d", findex));
 
-  switch(argc)
-  { case 0:
-      rval = (*(ArithF0)f)(&result);
-      break;
-    case 1:
-      rval = (*(ArithF1)f)(argv, &result);
-      break;
-    case 2:
-      rval = (*(ArithF2)f)(argv+1, argv, &result);
-      break;
-    case 3:
-      rval = (*(ArithF3)f)(argv+2, argv+1, argv, &result);
-      break;
-    default:
-      rval = false;
-      sysError("Too many arguments to arithmetic function");
-  }
+  if ( argc > 0 )
+  { Number argv = argvArithStack(argc);
 
-  popArgvArithStack(argc);
+    switch(argc)
+    { case 1:
+	rval = (*(ArithF1)f)(argv, &result);
+	break;
+      case 2:
+	rval = (*(ArithF2)f)(argv+1, argv, &result);
+	break;
+      case 3:
+	rval = (*(ArithF3)f)(argv+2, argv+1, argv, &result);
+	break;
+      default:
+	rval = false;
+	sysError("Too many arguments to arithmetic function");
+    }
+    popArgvArithStack(argc);
+  } else
+  { rval = (*(ArithF0)f)(&result);
+  }
 
   if ( rval )
     pushArithStack(&result);

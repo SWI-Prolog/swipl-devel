@@ -136,7 +136,10 @@ resetArithStack(DECL_LD)
 #define argvArithStack(n) LDFUNC(argvArithStack, n)
 static inline Number
 argvArithStack(DECL_LD int n)
-{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
+{ DEBUG(0,
+	{ assert(LD->arith.stack.base);
+	  assert(LD->arith.stack.top - n >= LD->arith.stack.base);
+	});
 
   return LD->arith.stack.top - n;
 }
