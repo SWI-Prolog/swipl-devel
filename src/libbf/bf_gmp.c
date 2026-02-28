@@ -764,7 +764,6 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 	   size_t SIZE, int ENDIAN, size_t NAILS, const void *OP)
 { if ( SIZE == 1 )
   { bf_t bf;
-    size_t byte = sizeof(limb_t)-1;
     ssize_t bytes = COUNT;
     limb_t *lt;
     limb_t l = 0;
@@ -780,14 +779,15 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     if ( bf.expn == BF_EXP_ZERO )
       return;
 
-    int shift = (int)(COUNT*8-bf.expn);
-    limb_t mask = ((limb_t)1<<shift)-1;
+    const int shift = (int)(COUNT*8-bf.expn);
+    const limb_t mask = ((limb_t)1<<shift)-1;
 
+    size_t byte = sizeof(limb_t)-1;
     lt = &ROP->tab[bf.len-1];
-    while(bytes-->0)
+    while(bytes-- > 0)
     { l |= (limb_t)*data++ << byte*8;
       if ( byte == 0 )
-      { byte =  sizeof(limb_t)-1;
+      { byte = sizeof(limb_t)-1;
 	if ( shift )
 	{ l <<= shift;
 	  if ( bytes > 0 )
@@ -826,7 +826,7 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
       int shift = (int)(bytes*8-OP->expn);
       limb_t mask = (1<<shift)-1;
       limb_t low = l&mask;
-	  /* Test for shift avoids an UBSAN error that 64-bit low is shifted by expo 64 */  
+	  /* Test for shift avoids an UBSAN error that 64-bit low is shifted by expo 64 */
       limb_t high = shift ? low<<(sizeof(limb_t)*8-shift) : 0;
       l >>= shift;
 

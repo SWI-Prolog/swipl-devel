@@ -473,7 +473,7 @@ saved version is the _mp_size field, followed by the limps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define globalMPZ(at, mpz, flags) LDFUNC(globalMPZ, at, mpz, flags)
-static int
+static bool
 globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 { DEBUG(CHK_SECURE, assert(!onStackArea(global, at) &&
 			   !onStackArea(local, at)));
@@ -492,12 +492,9 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
       return 0;
     }
 
-    if ( !hasGlobalSpace(wsz+MPZ_STACK_EXTRA+2) )
-    { int rc = ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, flags);
-
-      if ( rc != true )
-	return rc;
-    }
+    if ( !hasGlobalSpace(wsz+MPZ_STACK_EXTRA+2) &&
+	 !ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, flags) )
+      return false;
     p = gTop;
     gTop += wsz+MPZ_STACK_EXTRA+2;
 
