@@ -140,6 +140,10 @@ argvArithStack(DECL_LD int n)
   assert(LD->arith.stack.base);
   DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
+  // Note that when the assertion fails, the function is invoked with
+  // n=0, so something like
+  // if(!n) return LD->arith.stack.top;
+  // _may_ be an option
   return LD->arith.stack.top - n;
 }
 
