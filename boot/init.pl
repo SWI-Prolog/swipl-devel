@@ -843,6 +843,9 @@ initialization(Goal, When) :-
 '$top_file'(_, F, F).
 
 
+'$initialization_error'(unwind(halt(Status)), Goal, Ctx) :-
+    !,
+    print_message(warning, initialization(halt(Status), Goal, Ctx)).
 '$initialization_error'(E, Goal, Ctx) :-
     print_message(error, initialization_error(Goal, E, Ctx)).
 

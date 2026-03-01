@@ -520,12 +520,6 @@ swi_message(conditional_compilation_error(no_if, What)) -->
     [ ':- ~w without :- if'-[What] ].
 swi_message(duplicate_key(Key)) -->
     [ 'Duplicate key: ~p'-[Key] ].
-swi_message(initialization_error(failed, Goal, File:Line)) -->
-    !,
-    [ url(File:Line), ': ~p: false'-[Goal] ].
-swi_message(initialization_error(Error, Goal, File:Line)) -->
-    [ url(File:Line), ': ~p '-[Goal] ],
-    translate_message(Error).
 swi_message(determinism_error(PI, det, Found, property)) -->
     (   { '$pi_head'(user:PI, Head),
           predicate_property(Head, det)
@@ -743,6 +737,14 @@ prolog_message(initialization_failure(Goal, _)) -->
 prolog_message(initialization_exception(E)) -->
     [ 'Prolog initialisation failed:', nl ],
     translate_message(E).
+prolog_message(initialization(halt(Status), Goal, File:Line)) -->
+    [ url(File:Line), ': '], goal(Goal), [nl,
+      '  Initialization goal called ', ansi(code, '~p', [halt(Status)]),
+      '.', nl,
+      '  The program entry point should be called using ',
+      ansi(code, 'initialization/2', []), '.', nl,
+      '  Consider using ', ansi(code, 'library(main)', []), '.'
+    ].
 prolog_message(init_goal_syntax(Error, Text)) -->
     !,
     [ '-g ~w: '-[Text] ],
