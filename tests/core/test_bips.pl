@@ -71,15 +71,14 @@ test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
 test(zero_codes, Order == (>)) :-
 	compare(Order, '\u1000hello\u0000world', '\u1000hello').
 
-null_file('/dev/null') :-
-	exists_file('/dev/null'), !.
-null_file(NullFile) :-
-	source_location(_:null_file(_), ThisFile),
+empty_file(NullFile) :-
+	source_location(empty_file(_), ThisFile),
 	file_directory_name(ThisFile, ThisDir),
 	atom_concat(ThisDir, '/data/empty', NullFile).
 
-test(iso_8_11_8, [ condition(null_file(Null)),
-		   setup(open(Null, read, S)),
+test(iso_8_11_8, [ condition(empty_file(_)),
+		   setup((empty_file(Null),
+			  open(Null, read, S))),
 		   cleanup(close(S)),
 		   ( Term, E ) == ( end_of_file, past )
 		 ]) :- % Item#377
@@ -87,8 +86,9 @@ test(iso_8_11_8, [ condition(null_file(Null)),
 	set_stream_position(S, P),
 	read(S, Term),
 	stream_property(S, end_of_stream(E)).
-test(iso_8_11_8, [ condition(null_file(Null)),
-		   setup(open(Null, read, S)),
+test(iso_8_11_8, [ condition(empty_file(_)),
+		   setup((empty_file(Null),
+			  open(Null, read, S))),
 		   cleanup(close(S)),
 		   E == at
 		 ]) :-
