@@ -410,6 +410,14 @@ test(put2, Y =:= 4) :-
 	Y = X.y.
 test(metaarg, Out == [2]) :-
 	x_dict4(_{x:1}, [1], Out).
+test(del_nonexist, fail) :-
+	_{bar: 1}.del(foo).
+test(del_nonexist_nest, fail) :-
+	_{bar: _{baz: _{foo: 1}}}.del(bar/baz/foox).
+test(keypath_del_put, Out == a{foo: b{bar: c{buz: 3, bax: 2}}}) :-
+	Out = a{foo: b{bar: c{baz: 1, bax: 2}}}
+		.del(foo/bar/baz)
+		.put(foo/bar/buz, 3).
 
 :- end_tests(expand_functions).
 
