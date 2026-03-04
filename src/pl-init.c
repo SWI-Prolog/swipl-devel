@@ -214,7 +214,7 @@ is_bool_opt(const char *opt, const char *name, int *val)
 }
 
 
-int
+bool
 opt_append(opt_list **l, const char *s)
 { opt_list *n = allocHeapOrHalt(sizeof(*n));
 
@@ -941,7 +941,7 @@ initDefaultOptions(void)
 }
 
 
-int
+bool
 setTraditional(void)
 { GD->options.traditional = true;
   if ( GD->atoms.table )
@@ -1563,7 +1563,7 @@ usage(void)
     "    -l file                  Script source file\n",
     "    -s file                  Script source file\n",
     "    -p alias=path            Define file search path 'alias'\n",
-    "    -D name=value            Set a Prolog flag\n",
+    "    -Dname[=value]           Set a Prolog flag (may be repeated)\n",
     "    -O                       Optimised compilation\n",
     "    --on-error=style         One of print, halt or status\n",
     "    --on-warning=style       One of print, halt or status\n",
@@ -1622,7 +1622,7 @@ PRED_IMPL("$usage", 0, usage, 0)
 #define PLVERSION_TAG ""
 #endif
 
-static int
+static bool
 version(void)
 { const char *tag = PLVERSION_TAG;
 
@@ -1666,7 +1666,7 @@ print_abi_version(void)
 }
 
 
-static int
+static bool
 arch(void)
 { Sprintf("%s\n", PLARCH);
 
@@ -1730,7 +1730,7 @@ PL_exit_hook(halt_function f, void *arg)
 }
 
 
-int
+bool
 run_on_halt(OnHalt *handlers, int rval)
 { OnHalt h, next;
 

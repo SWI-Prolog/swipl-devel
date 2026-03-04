@@ -98,16 +98,15 @@ typedef struct
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-int		startProlog(int argc, char **argv);
 void		printCrashContext(const char *btname);
 bool		sysError(const char *fm, ...);
 void		fatalError(const char *fm, ...) NORETURN;
 bool		warning(const char *fm, ...);
 void		vfatalError(const char *fm, va_list args) NORETURN;
 bool		vwarning(const char *fm, va_list args);
-int		run_on_halt(OnHalt *handlers, int rval);
-int		setTraditional(void);
-int		opt_append(opt_list **l, const char *s);
+bool		run_on_halt(OnHalt *handlers, int rval);
+bool		setTraditional(void);
+bool		opt_append(opt_list **l, const char *s);
 
 
 		/********************************
