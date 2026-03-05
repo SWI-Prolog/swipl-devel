@@ -2049,14 +2049,18 @@ set_os_thread_name(atom_t alias)
 {
 #ifdef HAVE_PTHREAD_SETNAME_NP
   GET_LD
-  term_t t = PL_new_term_ref();
-  PL_put_atom(t, alias);
+  size_t len;
   char *s;
+  bool rc;
 
-  if ( PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_DISCARDABLE) )
-    return set_os_thread_name_from_charp(s);
-#endif
+  PL_STRINGS_MARK();
+  rc = ( PL_atom_mbchars(alias, &len, &s, REP_MB) &&
+	 set_os_thread_name_from_charp(s) );
+  PL_STRINGS_RELEASE();
+  return rc;
+#else
   return false;
+#endif
 }
 
 static const PL_option_t make_thread_options[] =
