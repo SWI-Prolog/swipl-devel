@@ -446,7 +446,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 #ifdef PTW32_STATIC_LIB
 static void
 win_thread_initialize(void)
-{ static int done = false;
+{ static bool done = false;
 
   if ( done )
     return;
@@ -460,7 +460,7 @@ ThError(int e)
 { return strerror(e);
 }
 
-static int
+static bool
 ldata_in_use(PL_local_data_t *ld)
 { int i;
 

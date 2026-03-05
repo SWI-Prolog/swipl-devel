@@ -2135,7 +2135,7 @@ tracemode(bool doit, bool *old)
     return ( validUserStreams() &&
 	     printMessage(ATOM_silent,
 			    PL_FUNCTOR_CHARS, "trace_mode", 1,
-			    PL_ATOM, doit ? ATOM_on : ATOM_off) );
+			    PL_BOOL, doit) );
   }
   if ( doit )				/* make sure trace works inside skip */
   { debugstatus.skiplevel = SKIP_VERY_DEEP;
@@ -2240,7 +2240,7 @@ debugmode(debug_type doit, debug_type *old)
     return ( validUserStreams() &&
 	     printMessage(ATOM_silent,
 			    PL_FUNCTOR_CHARS, "debug_mode", 1,
-			      PL_ATOM, doit ? ATOM_on : ATOM_off) );
+			      PL_BOOL, doit != DBG_OFF) );
   } else if ( !doit )
   { setPrologRunMode(RUN_MODE_NORMAL);
   }
