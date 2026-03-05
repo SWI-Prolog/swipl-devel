@@ -442,6 +442,7 @@ struct PL_global_data
       pthread_cond_t	cond;
     } index;
     linger_list	       *lingering;
+    Table		debug_classes;	/* Class -> debug (bool) */
 #endif
   } thread;
 #endif /*O_ENGINES*/

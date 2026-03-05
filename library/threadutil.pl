@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1999-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
 
@@ -55,26 +55,23 @@
 :- export(( interactor/0,
             interactor/1                % ?Title
           )).
-:- autoload(library(epilog),
-            [ epilog/1,
-              epilog_attach/1,
-              ep_has_console/1
-            ]).
+:- autoload(library(epilog), [epilog/1, epilog_attach/1, ep_has_console/1]).
 :- endif.
-
-:- meta_predicate
-    with_stopped_threads(0, +).
-
-:- autoload(library(apply),[maplist/3]).
-:- autoload(library(backcomp),[thread_at_exit/1]).
-:- autoload(library(edinburgh),[nodebug/0]).
-:- autoload(library(lists),[max_list/2,append/2]).
-:- autoload(library(option),[merge_options/3,option/3]).
+:- meta_predicate with_stopped_threads(0, +).
+:- autoload(library(apply), [maplist/3, convlist/3]).
+:- autoload(library(backcomp), [thread_at_exit/1]).
+:- autoload(library(edinburgh), [nodebug/0]).
+:- autoload(library(lists), [max_list/2, append/2]).
+:- autoload(library(option), [merge_options/3, option/3, option/2]).
 :- autoload(library(prolog_stack),
-	    [print_prolog_backtrace/2,get_prolog_backtrace/3]).
-:- autoload(library(statistics),[thread_statistics/2]).
+            [print_prolog_backtrace/2, get_prolog_backtrace/3]).
+:- autoload(library(statistics), [thread_statistics/2]).
 :- autoload(library(prolog_profile), [show_profile/1]).
-:- autoload(library(thread),[call_in_thread/2]).
+:- autoload(library(thread), [call_in_thread/2]).
+:- autoload(library(broadcast), [broadcast/1]).
+:- autoload(library(prolog_debug), [spy/1]).
+:- autoload(library(dcg/high_order), [sequence/5]).
+:- autoload(library(gui_tracer), [guitracer/0, ensure_guitracer/0]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -99,7 +96,20 @@ threads :-
     print_message(information, threads(Threads)).
 
 threads(Threads) :-
-    findall(Thread, thread_statistics(_,Thread), Threads).
+    findall(Thread, thread_data(Thread), Threads).
+
+thread_data(Data) :-
+    thread_statistics(TID, Stats),
+    thread_property(TID, debug(Debug)),
+    (   Debug == true
+    ->  thread_property(TID, debug_mode(DebugMode)),
+        put_dict(debug, Stats, DebugMode, Stats1)
+    ;   Stats1 = Stats
+    ),
+    (   thread_property(TID, class(Class))
+    ->  put_dict(class, Stats1, Class, Data)
+    ;   Data = Stats
+    ).
 
 %!  join_threads
 %
@@ -276,34 +286,37 @@ tspy(Spec, ThreadID) :-
 %!  tdebug is det.
 %!  tdebug(+Thread) is det.
 %
-%   Enable debug-mode, trapping the graphical debugger on reaching
-%   spy-points or errors.
+%   Disable debug-mode in all  threads,  the   specified  thread  or all
+%   threads belonging to the given class. Debug mode causes trapping the
+%   graphical debugger on reaching spy-points or errors.
 
 tdebug :-
-    forall(debug_target(Id), thread_signal(Id, debug_thread)).
+    guitracer,
+    forall(debug_target(Id), set_thread(Id, debug_mode(true))).
 
-tdebug(ThreadID) :-
-    thread_signal(ThreadID, debug_thread).
+tdebug(ThreadOrClass) :-
+    ensure_guitracer,
+    tdebug_(ThreadOrClass, true).
 
-debug_thread :-
-    current_prolog_flag(gui, true),
-    !,
-    autoload_call(gdebug).
-debug_thread :-
-    debug.
-
+tdebug_(ThreadID, Mode),
+    is_thread(ThreadID) =>
+    set_thread(ThreadID, debug_mode(Mode)).
+tdebug_(Class, Mode),
+    atom(Class) =>
+    '$debug_thread_class'(Class, Mode, Matching, Set),
+    print_message(informational, tdebug(Class, Mode, Matching, Set)).
 
 %!  tnodebug is det.
-%!  tnodebug(+Thread) is det.
+%!  tnodebug(+ThreadOrClass) is det.
 %
-%   Disable debug-mode in all threads or the specified Thread.
+%   Disable debug-mode in all  threads,  the   specified  thread  or all
+%   threads belonging to the given class.
 
 tnodebug :-
-    forall(debug_target(Id), thread_signal(Id, nodebug)).
+    forall(debug_target(Id), set_thread(Id, set_thread(false))).
 
-tnodebug(ThreadID) :-
-    thread_signal(ThreadID, nodebug).
-
+tnodebug(ThreadOrClass) :-
+    tdebug_(ThreadOrClass, false).
 
 debug_target(Thread) :-
     thread_property(Thread, status(running)),
@@ -429,55 +442,85 @@ prolog:message(threads(Threads)) -->
     thread_list(Threads).
 prolog:message(cannot_attach_console(_Title)) -->
     [ 'Cannot attach a console (requires xpce package)' ].
+prolog:message(tdebug(Class, Enable, Matched, Set)) -->
+    (   { var(Matched) }
+    ->  [ 'Debug for threads in class '], thread_class(Class), [' was already ' ],
+        enabled(Enable)
+    ;   'Enabled'(Enable),
+        [ ' debug mode in ' ], change_counts(Matched, Set), [' threads in class ' ],
+        thread_class(Class)
+    ).
+
+enabled(true)  ==> ['enabled'].
+enabled(false) ==> ['disabled'].
+
+'Enabled'(true)  ==> ['Enabled'].
+'Enabled'(false) ==> ['Disabled'].
+
+thread_class(Class) -->
+    [ ansi(code, '~q', [Class]) ].
+
+change_counts(Set, Set) ==>
+    [ 'all ~D'-[Set] ].
+change_counts(Matched, Set) ==>
+    [ '~D out of ~D'-[Set, Matched] ].
 
 thread_list(Threads) -->
     { maplist(th_id_len, Threads, Lens),
-      max_list(Lens, MaxWidth),
-      LeftColWidth is max(6, MaxWidth),
+      convlist(th_class_len, Threads, CLens),
+      max_list(Lens, MaxWidth0),
+      max_list(CLens, MaxWidth1),
+      LeftColWidth is max(6, MaxWidth0),
+      ClassColWidth is max(6, MaxWidth1+2),
       Threads = [H|_]
     },
-    thread_list_header(H, LeftColWidth),
-    thread_list(Threads, LeftColWidth).
+    thread_list_header(H, LeftColWidth, ClassColWidth),
+    sequence(thread_info(LeftColWidth, ClassColWidth), [nl], Threads).
 
 th_id_len(Thread, IdLen) :-
     write_length(Thread.id, IdLen, [quoted(true)]).
+th_class_len(Thread, ClassLen) :-
+    write_length(Thread.get(class,''), ClassLen, [quoted(true)]).
 
-thread_list([], _) --> [].
-thread_list([H|T], CW) -->
-    thread_info(H, CW),
-    (   {T == []}
-    ->  []
-    ;   [nl],
-        thread_list(T, CW)
-    ).
-
-thread_list_header(Thread, CW) -->
+thread_list_header(Thread, NW, CW) -->
     { _{id:_, status:_, time:_, stacks:_} :< Thread,
       !,
-      HrWidth is CW+18+13+13
+      HrWidth is NW+CW+6+10+10+13
     },
-    [ '~|~tThread~*+ Status~tTime~18+~tStack use~13+~tallocated~13+'-[CW], nl ],
-    [ '~|~`-t~*+'-[HrWidth], nl ].
-thread_list_header(Thread, CW) -->
+    [ '~|~tThread~*+~tClass~*+~tStatus~10+~tDebug~6+~tTime~10+~tStack use~13+'-
+      [NW,CW], nl ],
+    [ '~|~`\u2015t~*+'-[HrWidth], nl ].
+thread_list_header(Thread, NW, _CW) -->
     { _{id:_, status:_} :< Thread,
       !,
-      HrWidth is CW+7
+      HrWidth is NW+7
     },
-    [ '~|~tThread~*+ Status'-[CW], nl ],
+    [ '~|~tThread~*+ Status'-[NW], nl ],
     [ '~|~`-t~*+'-[HrWidth], nl ].
 
-thread_info(Thread, CW) -->
-    { _{id:Id, status:Status, time:Time, stacks:Stacks} :< Thread },
+thread_info(NW, CW, Thread) -->
+    { _{id:Id, status:Status, time:Time, stacks:Stacks} :< Thread,
+      Class = Thread.get(class, -),
+      debug_flag(Thread, Flag)
+    },
     !,
-    [ '~|~t~q~*+ ~w~t~3f~18+~t~D~13+~t~D~13+'-
-      [ Id, CW, Status, Time.cpu, Stacks.total.usage, Stacks.total.allocated
+    [ '~|~t~q~*+~t~q~*+~t~w~10+ ~t~w~t~6+~t~3f~10+~t~D~13+'-
+      [ Id, NW, Class, CW, Status, Flag, Time.cpu, Stacks.total.usage
       ]
     ].
-thread_info(Thread, CW) -->
+thread_info(NW, _CW, Thread) -->
     { _{id:Id, status:Status} :< Thread },
     !,
     [ '~|~t~q~*+ ~w'-
-      [ Id, CW, Status
+      [ Id, NW, Status
       ]
     ].
 
+debug_flag(Thread, Flag) :-
+    get_dict(debug, Thread, Debug),
+    !,
+    (   Debug == true
+    ->  Flag = '\u2714'
+    ;   Flag = ''
+    ).
+debug_flag(_, '\u2718').

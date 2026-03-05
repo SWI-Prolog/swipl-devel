@@ -100,7 +100,7 @@ restore_after_exception(term_t except)
   int rc = true;
 
   tracemode(false, NULL);
-  debugmode(DBG_OFF, NULL);
+  debugmode(NULL, false, NULL, 0);
   if ( classify_exception(except) == EXCEPT_ABORT )
   { rc = ( callEventHook(PLEV_ABORT) &&
 	   printMessage(ATOM_informational, PL_FUNCTOR, FUNCTOR_unwind1,
@@ -236,11 +236,11 @@ pl_break1(atom_t goal)
   intptr_t skipSave      = debugstatus.skiplevel;
   int  suspSave          = debugstatus.suspendTrace;
   bool traceSave;
-  debug_type debugSave;
+  bool debugSave;
   tbl_status tblstat;
 
   tracemode(false, &traceSave);
-  debugmode(DBG_OFF, &debugSave);
+  debugmode(NULL, false, &debugSave, 0);
   save_tabling_status(&tblstat);
 
   Scurin  = Sinput;
@@ -268,7 +268,7 @@ pl_break1(atom_t goal)
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
   tracemode(traceSave, NULL);
-  debugmode(debugSave, NULL);
+  debugmode(NULL, debugSave, NULL, 0);
 
   Scurout = outSave;
   Scurin  = inSave;
@@ -572,7 +572,7 @@ abortProlog(void)
   bool rc = false;
 
   tracemode(false, NULL);
-  debugmode(DBG_OFF, NULL);
+  debugmode(NULL, false, NULL, 0);
   Sreset();				/* Discard pending IO */
 
   LD->exception.processing = true;	/* allow using spare stack */

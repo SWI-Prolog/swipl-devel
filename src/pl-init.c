@@ -1793,7 +1793,7 @@ PL_cleanup(int status)
 #endif
 
   GD->halt.cleaning = CLN_PROLOG;
-  debugmode(false, NULL);		/* avoid recursive tracing */
+  debugmode(NULL, false, NULL, 0);	/* avoid recursive tracing */
 
   if ( GD->initialised )
   { DEBUG(MSG_CLEANUP, Sdprintf("Running at_halt hooks\n"));

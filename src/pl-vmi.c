@@ -327,7 +327,7 @@ VMI(D_BREAK, 0, 0, ())
       tracemode(true, NULL);
       break;
     case BRK_DEBUG:
-      debugmode(true, NULL);
+      debugmode(NULL, true, NULL, 0);
       break;
     default:
       break;
@@ -5005,7 +5005,7 @@ VMH(b_throw_debug, 2, (term_t, Stack), (catchfr_ref, outofstack))
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { DEBUG(MSG_THROW,
 	      Sdprintf("Uncaught error(Formal,Context): enable debug mode\n"));
-	debugmode(true, NULL);
+	debugmode(NULL, true, NULL, 0);
 	if ( !trace_if_space() )		/* see (*) */
 	{ start_tracer = true;
 	} else
@@ -7000,7 +7000,7 @@ VMH(debug_resume, 0, (), ())
   if ( LD->trace.yield.nodebug )
   { SAVE_REGISTERS(QID);
     tracemode(false, NULL);
-    debugmode(DBG_OFF, NULL);
+    debugmode(NULL, false, NULL, 0);
     LOAD_REGISTERS(QID);
   }
   switch( port )

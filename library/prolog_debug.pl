@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
-    Copyright (c)  2021-2025, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2026, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 :- use_module(library(broadcast), [broadcast/1]).
 :- autoload(library(edinburgh), [debug/0]).
 :- autoload(library(gensym), [gensym/2]).
+:- autoload(library(pairs), [group_pairs_by_key/2]).
 
 :- multifile
     trap_alias/2.
@@ -162,20 +163,48 @@ pi_to_head(Name/Arity, Head) :-
 :- '$hide'(debugging/0).
 debugging :-
     current_prolog_flag(debug, DebugMode),
-    notrace(debugging_(DebugMode)).
+    debug_threads(Threads),
+    notrace(debugging_(DebugMode, Threads)).
 
-debugging_(DebugMode) :-
+debugging_(DebugMode, Threads) :-
+    prolog:debug_control_hook(debugging(DebugMode, Threads)),
+    !.
+debugging_(DebugMode, _) :-
     prolog:debug_control_hook(debugging(DebugMode)),
     !.
-debugging_(DebugMode) :-
-    print_message(informational, debugging(DebugMode)),
-    (   DebugMode == true
+debugging_(DebugMode, Threads) :-
+    print_message(informational, debugging(DebugMode, Threads)),
+    (   (   DebugMode == true
+        ;   Threads \== []
+        )
     ->  findall(H, spy_point(H), SpyPoints),
         print_message(informational, spying(SpyPoints))
     ;   true
     ),
     trapping,
     forall(debugging_hook(DebugMode), true).
+
+%!  debug_threads(-ThreadsByClass:list(pair)) is det.
+%
+%   Produce a list `Class-ThreadIds` of threads   other than the calling
+%   thread that is in debug mode.
+
+:- if(current_prolog_flag(threads, true)).
+debug_threads(ThreadsByClass) :-
+    findall(TInfo, debug_thread(TInfo), Threads),
+    keysort(Threads, Sorted),
+    group_pairs_by_key(Sorted, ThreadsByClass).
+
+debug_thread(Class-Thread) :-
+    thread_self(Me),
+    thread_property(Thread, debug_mode(true)),
+    Thread \== Me,
+    catch(( thread_property(Thread, debug(true)),
+            thread_property(Thread, class(Class))
+          ), error(_,_), fail).
+:- else.
+debug_threads([]).
+:- endif.
 
 spy_point(Module:Head) :-
     current_predicate(_, Module:Head),

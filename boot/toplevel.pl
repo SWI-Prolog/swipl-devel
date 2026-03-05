@@ -564,10 +564,12 @@ main_thread_init :-
     setup_theme,
     catch(setup_backtrace, E, print_message(warning, E)),
     use_module(library(epilog)),
+    set_thread(main, class(system)),
     call(epilog([ init(user_thread_init),
                   main(true)
                 ])).
 main_thread_init :-
+    set_thread(main, class(console)),
     setup_theme,
     user_thread_init.
 

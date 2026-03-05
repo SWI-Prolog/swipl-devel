@@ -218,6 +218,7 @@ suggest predicates from a keyword.
 \predicatesummary{debug}{1}{Select topic for debugging}
 \predicatesummary{debug}{3}{Print debugging message on topic}
 \predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
+\predicatesummary{debug_reset_from_class}{0}{Restore debug mode}
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{default_module}{2}{Query module inheritance}

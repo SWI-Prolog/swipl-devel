@@ -183,6 +183,7 @@
 :- predicate_options(system:thread_create/3, 3,
 		     [ affinity(list(integer)),
                        alias(atom),
+                       class(atom),
 		       at_exit(callable),
 		       debug(boolean),
 		       inherit_from(any),

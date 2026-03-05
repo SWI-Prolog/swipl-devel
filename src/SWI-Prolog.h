@@ -1339,7 +1339,8 @@ typedef struct
   rc_cancel (*cancel)(int id);		/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */
   size_t    max_queue_size;		/* Max size of associated queue */
-  void *    reserved[3];		/* reserved for extensions */
+  char *    thread_class;		/* Thread class */
+  void *    reserved[2];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 

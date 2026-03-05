@@ -832,7 +832,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		return PL_TRACE_ACTION_CONTINUE;
     case 'n':	FeedBack("no debug\n");
 		tracemode(false, NULL);
-		debugmode(DBG_OFF, NULL);
+		debugmode(NULL, false, NULL, 0);
 		return PL_TRACE_ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
 		PL_backtrace(def_arg ? 5 : (int)num_arg, PL_BT_USER);
@@ -1152,7 +1152,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Choice bfr,
       Suser_error = old;
     }
   } else
-  { debug_type debugSave = debugstatus.debugging;
+  { bool debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
     term_t options = PL_new_term_ref();
     term_t tmp     = PL_new_term_ref();
@@ -1161,7 +1161,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Choice bfr,
 
     RESTORE_PTRS3();
     put_frame_goal(goal, frame);
-    debugstatus.debugging = DBG_OFF;
+    debugstatus.debugging = false;
     if ( !PL_get_prolog_flag(ATOM_debugger_write_options, options) )
       PL_put_nil(options);
     PL_unify_stream_or_alias(tmp, out);
@@ -1618,7 +1618,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     if ( cid ) PL_close_foreign_frame(cid);
     if ( nodebug )		/* Is restored by PL_cut_query() */
     { tracemode(false, NULL);
-      debugmode(DBG_OFF, NULL);
+      debugmode(NULL, false, NULL, 0);
     }
   }
 
@@ -1881,7 +1881,7 @@ resetTracer(void)
 { GET_LD
 
   debugstatus.tracing      = false;
-  debugstatus.debugging    = DBG_OFF;
+  debugstatus.debugging    = false;
   debugstatus.suspendTrace = 0;
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = 0;
@@ -2123,7 +2123,7 @@ tracemode(bool doit, bool *old)
 { GET_LD
 
   if ( doit )
-  { debugmode(DBG_ON, NULL);
+  { debugmode(NULL, true, NULL, 0);
     doit = true;
   }
 
@@ -2200,7 +2200,7 @@ enlargeMinFreeStacks(DECL_LD size_t l, size_t g, size_t t)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-debugmode(debug_type new, debug_type *old)
+debugmode(LD, bool new, bool *old)
 
 Set the current debug mode. If DBG_ALL,  debugging in switched on in all
 queries. This behaviour is intended to allow   using  spy and debug from
@@ -2208,45 +2208,55 @@ PceEmacs that runs its Prolog work in non-debug mode.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-debugmode(debug_type doit, debug_type *old)
-{ GET_LD
+debugmode(PL_local_data_t *ld, bool doit, bool *old, unsigned flags)
+{ if ( !ld )
+    ld = LD;
 
-  if ( old )
-    *old = debugstatus.debugging;
+  if ( ld )
+  { bool set = false;
 
-  if ( debugstatus.debugging != doit )
-  { if ( doit )
-    { if ( have_space_for_debugging() &&
-	   !enlargeMinFreeStacks(8*1024*SIZEOF_WORD,
-				 8*1024*SIZEOF_WORD,
-				 8*1024*SIZEOF_WORD) )
-	return false;
+    WITH_LD(ld)
+    { if ( old )
+	*old = debugstatus.debugging;
 
-      debugstatus.skiplevel = SKIP_VERY_DEEP;
-      clearPrologRunMode(RUN_MODE_NORMAL);
-      if ( doit == DBG_ALL )
-      { QueryFrame qf;
+      if ( debugstatus.debugging != doit )
+      { if ( doit )
+	{ if ( have_space_for_debugging() &&
+	       !enlargeMinFreeStacks(8*1024*SIZEOF_WORD,
+				     8*1024*SIZEOF_WORD,
+				     8*1024*SIZEOF_WORD) )
+	    return false;
 
-	for(qf = LD->query; qf; qf = qf->parent)
-	  qf->debugSave = DBG_ON;
+	  debugstatus.skiplevel = SKIP_VERY_DEEP;
+	  clearPrologRunMode(RUN_MODE_NORMAL);
+	  if ( (flags & DBG_ALL) )
+	  { QueryFrame qf;
 
-	doit = DBG_ON;
+	    for(qf = LD->query; qf; qf = qf->parent)
+	      qf->debugSave = true;
+	  }
+	} else
+	{ setPrologRunMode(RUN_MODE_NORMAL);
+	}
+	debugstatus.debugging = doit;
+	updateAlerted(LD);
+	set = true;
+      } else if ( !doit )
+      { setPrologRunMode(RUN_MODE_NORMAL);
       }
-    } else
-    { setPrologRunMode(RUN_MODE_NORMAL);
     }
-    debugstatus.debugging = doit;
-    updateAlerted(LD);
-    return ( validUserStreams() &&
-	     printMessage(ATOM_silent,
+    if ( set && ld == LD )
+      return ( validUserStreams() &&
+	       printMessage(ATOM_silent,
 			    PL_FUNCTOR_CHARS, "debug_mode", 1,
-			      PL_BOOL, doit != DBG_OFF) );
-  } else if ( !doit )
-  { setPrologRunMode(RUN_MODE_NORMAL);
+			      PL_BOOL, doit != false) );
+    else
+      return true;
   }
 
-  return true;
+  return false;
 }
+
 
 #else /*O_DEBUGGER*/
 
@@ -2256,7 +2266,7 @@ tracemode(bool doit, bool *old)
 }
 
 bool
-debugmode(debug_type doit, debug_type *old)
+debugmode(bool doit, bool *old)
 { return true;
 }
 
@@ -2332,7 +2342,7 @@ pl_spy(term_t p)
 			   PL_TERM, p) )
 	return false;
     }
-    return debugmode(DBG_ALL, NULL);
+    return debugmode(NULL, DBG_ALL, NULL, 0);
   }
 
   return false;

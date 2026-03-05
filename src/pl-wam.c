@@ -2278,7 +2278,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
     { wakeup_state wstate;
       qid_t qid;
       term_t av, ex = 0;
-      debug_type debug;
+      bool debug;
       bool trace;
       bool rc;
 
@@ -3004,7 +3004,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   { set(fr, FR_HIDE_CHILDS);
     suspendTrace(true);
     qf->debugSave = debugstatus.debugging;
-    debugstatus.debugging = DBG_OFF;
+    debugstatus.debugging = false;
     qf->flags_saved = (LD->prolog_flag.mask.flags[0] & NDEBUG_SAVE_FLAGS);
     setPrologRunMode(RUN_MODE_NORMAL);
 #ifdef O_LIMIT_DEPTH

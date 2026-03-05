@@ -1793,12 +1793,7 @@ typedef enum
   CHP_DEBUG				/* Enable redo */
 } choice_type;
 
-typedef enum
-{ DBG_OFF = 0,				/* no debugging */
-  DBG_ON,				/* switch on in current environment */
-  DBG_ALL				/* switch on globally */
-} debug_type;
-
+/* Special `skip` depth values */
 #define SKIP_VERY_DEEP	  ((size_t)-1)	/* deep skiplevel */
 #define SKIP_REDO_IN_SKIP (SKIP_VERY_DEEP-1)
 
@@ -1906,7 +1901,7 @@ struct queryFrame
   } yield;
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned int	flags;
-  debug_type	debugSave;		/* saved debugstatus.debugging */
+  bool	debugSave;		/* saved debugstatus.debugging */
   unsigned int	flags_saved;		/* Saved boolean Prolog flags */
   int64_t	solutions;		/* # of solutions produced */
   Word	       *aSave;			/* saved argument-stack */
@@ -2786,7 +2781,7 @@ typedef struct
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
-  debug_type	debugging;		/* are we debugging? */
+  bool	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
   int		visible;		/* ports that are visible */
   bool		showContext;		/* tracer shows context module */

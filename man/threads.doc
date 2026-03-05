@@ -127,6 +127,10 @@ goal, the thread prints a message using print_message/2.  If such
 termination is considered normal, the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
 
+    \termitem{class}{+Atom}
+Register the thread as belonging to the given class.  This is
+used by the debugger to control \jargon{debug mode}.
+
     \termitem{inherit_from}{+ThreadId}
 Inherit defaults from the given \arg{ThreadId} instead of the calling
 thread. This option was added to ensure that the
@@ -220,8 +224,14 @@ as thread_alias/1.
 
     \begin{description}
     \termitem{debug}{+Bool}
-    Set the debug mode for \arg{Thread}.  See also thread_create/3 and
-    thread_property/2.
+    Set whether \arg{Thread} can be debugged. See also thread_create/3
+    and thread_property/2.
+    \termitem{debug_mode}{+Bool}
+    Set or clear the Prolog flag \prologflag{debug} in \arg{Thread}
+    \termitem{class}{+Atom}
+    Set the \jargon{class} of \arg{Thread}.  This may enable or disable
+    the debug mode of the thread depending on whether or not debug mode
+    is enabled for the specified thread class.
     \end{description}
 
     \predicate{thread_alias}{1}{+Alias}
@@ -341,6 +351,12 @@ Defined properties are:
 	\termitem{debug}{Boolean}
 Whether the thread is a \jargon{debug} thread.   No-debug threads may be
 created using the \term{debug}{false} option of thread_create/3.
+
+	\termitem{debug_mode}{Boolean}
+Obtain the value of the Prolog flag \prologflag{debug} for the thread.
+
+	\termitem{class}{Atom}
+True when the thread's class is set to \arg{Atom}.  See thread_create/3.
 
 	\termitem{detached}{Boolean}
 Current detached status of the thread.
@@ -1225,19 +1241,35 @@ following sequence starts the tracer on this thread:
 ?- thread_signal(10, (attach_console, trace)).
 \end{code}
 
-    \predicate{tdebug}{1}{+ThreadId}
-Prepare \arg{ThreadId} for debugging using the graphical tracer.  This
-implies installing the tracer hooks in the thread and switching the
-thread to debug mode using debug/0.  The call is injected into the
-thread using thread_signal/2.  We refer to the documentation of this
-predicate for asynchronous interaction with threads.  New threads
-created inherit their debug mode from the thread that created them.
+    \predicate{tdebug}{1}{+ThreadOrClass}
+Prepare a thread or group of threads for debugging using the graphical
+tracer. A group of threads is addressed based on the \const{class}
+property of a thread set by thread_create/3 or set_thread/2. This
+implies loading the graphical tracer and switching the thread to debug
+mode using debug/0. New threads created inherit their debug mode from
+the thread that created them.
+
+Addressing thread classes has been introduced in SWI-Prolog
+10.0.2/10.1.5. This allows for more selective debugging as well as
+ensuring debugging works in newly created threads. For example, the HTTP
+server creates all its \jargon{worker threads} in the class
+\const{http}. Using query below, we reliable make sure spy points are
+trapped in HTTP handler threads, regardless of whether the worker
+existed or is lazily created and regardless of whether the user switched
+to \jargon{nodebug} mode while tracing a previous event (see
+debug_reset_from_class/0).
+
+\begin{code}
+?- tdebug(http).
+\end{code}
 
     \predicate{tdebug}{0}{}
-Call tdebug/1 in all running threads.
+Enable debug mode in all running threads except those with the
+\const{debug} property set to \const{false}.
 
-    \predicate{tnodebug}{1}{+ThreadId}
-Disable debugging thread \arg{ThreadId}.
+    \predicate{tnodebug}{1}{+ThreadOrClass}
+Disable debugging the give thread or all threads that have the given
+thread \jargon{class}.
 
     \predicate{tnodebug}{0}{}
 Disable debugging in all threads.
@@ -1253,6 +1285,11 @@ mode.
 Set a spy point as spy/1 and enable debugging in all threads using
 tdebug/0.  Note that removing spy points can be done using nospy/1.
 Disabling spy points in	a specific thread is achieved by tnodebug/1.
+
+    \predicate{debug_reset_from_class}{0}{}
+Set the debug mode based on the class of the calling thread.  See
+tdebug/1.  This predicate is available both in the single threaded
+version (as a no-op) and multi-threaded version.
 \end{description}
 
 \subsection{Profiling threads}
@@ -1320,13 +1357,20 @@ Thread identifiers are normally returned from PL_thread_self().  Returns
 Creates a new Prolog engine in the calling thread. If the calling thread
 already has an engine the reference count of the engine is incremented.
 The \arg{attr} argument can be \const{NULL} to create a thread with
-default attributes.  Otherwise it is a pointer to a structure with
-the definition below. For any field with value `0', the default is used. The
+default attributes. Otherwise it is a pointer to a structure as defined
+below. The structure must be fully initialized, \emph{including} hidden
+fields. For any field with value `0', the default is used. The
 \const{cancel} field may be filled with a pointer to a function that is
-called when PL_cleanup() terminates the running Prolog engines. If this
-function is not present or returns \const{FALSE} pthread_cancel() is
-used.  The new thread inherits is properties from Prolog's \const{main}
-thread.  The \const{flags} field defines the following flags:
+called when PL_cleanup() terminates the running Prolog engines. The
+function is called with the thread id (see PL_thread_self()) as argument
+and must return \const{PL_THREAD_CANCEL_JOINED} if the thread was
+reclaimed successfully, \const{PL_THREAD_CANCEL_MUST_JOIN} if the thread
+as cancelled, but must still be joined or
+\const{PL_THREAD_CANCEL_FAILED} if the request cannot be honoured. If
+this function is not present or returns \const{PL_THREAD_CANCEL_FAILED}
+pthread_cancel() is used. The new thread inherits is properties from
+Prolog's \const{main} thread. The \const{flags} field defines the
+following flags:
 
 \begin{description}
     \termitem{PL_THREAD_NO_DEBUG}{}
@@ -1351,6 +1395,7 @@ typedef struct
   int	    (*cancel)(int thread);	/* cancel function */
   intptr_t  flags;			/* PL_THREAD_* flags */
   size_t    max_queue_size;		/* Max size of associated queue */
+  char *    thread_class;		/* Class property of the thread */
 } PL_thread_attr_t;
 \end{code}
 

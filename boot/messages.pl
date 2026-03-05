@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1997-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1632,8 +1632,9 @@ prolog_message(trace_mode(OnOff)) -->
     [ 'Trace mode switched to ~w'-[OnOff] ].
 prolog_message(debug_mode(OnOff)) -->
     [ 'Debug mode switched to ~w'-[OnOff] ].
-prolog_message(debugging(OnOff)) -->
-    [ 'Debug mode is ~w'-[OnOff] ].
+prolog_message(debugging(OnOff, Threads)) -->
+    [ 'Debug mode is ~w'-[OnOff] ],
+    debugging_threads(Threads).
 prolog_message(spying([])) -->
     !,
     [ 'No spy points' ].
@@ -1682,6 +1683,22 @@ tracing_list([]) -->
 tracing_list([trace(Head, Ports)|T]) -->
     translate_message(trace(Head, Ports)),
     tracing_list(T).
+
+debugging_threads([]) -->
+    [].
+debugging_threads(ThreadsByClass) -->
+    [ nl, 'Threads in the following classes run in debug mode:', nl],
+    list_threads_by_class(ThreadsByClass).
+
+list_threads_by_class([]) -->
+    [].
+list_threads_by_class([H|T]) -->
+    list_thread_class(H),
+    list_threads_by_class(T).
+
+list_thread_class(Class-Threads) -->
+    { length(Threads, Count) },
+    [ '    Class ', ansi(code, '~p', [Class]), ': ~D threads'-[Count] ].
 
 % frame(+Frame, +Choice, +Port, +PC) - Print for the debugger.
 prolog_message(frame(Frame, _Choice, backtrace, _PC)) -->

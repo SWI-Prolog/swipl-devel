@@ -40,6 +40,9 @@
 #ifndef _PL_TRACE_H
 #define _PL_TRACE_H
 
+/* Flags for debugmode() */
+#define DBG_ALL	0x1			/* Set debug in outer queries */
+
 		 /*******************************
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
@@ -60,7 +63,8 @@ void		initTracer(void);
 bool		enable_debug_on_interrupt(bool enable);
 void		resetTracer(void);
 bool		tracemode(bool new, bool *old);
-bool		debugmode(debug_type new, debug_type *old);
+bool		debugmode(PL_local_data_t *ld, bool new, bool *old,
+			  unsigned flags);
 bool		trace_if_space(void);
 bool		put_frame_goal(term_t goal, LocalFrame frame);
 foreign_t	pl_trace(void);
