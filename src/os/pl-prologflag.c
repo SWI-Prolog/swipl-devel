@@ -1419,6 +1419,13 @@ PL_current_prolog_flag(atom_t name, int type, void *value)
 	  return true;
 	}
 	return false;
+      case PL_BOOL:
+	if ( (f->flags&FT_MASK) == FT_BOOL )
+	{ bool *vp = value;
+	  *vp = f->value.a == ATOM_true;
+	  return true;
+	}
+	return false;
       case PL_INTEGER:
 	if ( (f->flags&FT_MASK) == FT_INTEGER )
 	{ int64_t *vp = value;

@@ -4293,6 +4293,8 @@ and \const{FALSE} on failure.
 \begin{description}
     \definition{\const{PL_ATOM}}
 Retrieve a flag whose value is an \const{atom}. The returned value is an atom handle of type \ctype{atom_t}.
+    \definition{\const{PL_BOOL}}
+Retrieve a flag whose value is a \const{bool}. The returned value is a C boolean of type \ctype{bool}.   Note that boolean flags are internally represented as one of the atoms \const{true} or \const{false}.
     \definition{\const{PL_INTEGER}}
 Retrieve a flag whose value is an \const{integer}. The returned value is an  integer of type \ctype{int64_t}.
     \definition{\const{PL_FLOAT}}
