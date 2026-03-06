@@ -205,43 +205,46 @@ in several virtual machine instructions.  Currently covers:
 
 void
 updateAlerted(PL_local_data_t *ld)
-{ int mask = 0;
+{ int mask, old;
 
-  WITH_LD(ld)
-  { if ( is_signalled() )			mask |= ALERT_SIGNAL;
-    if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
-	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
-      ld->slow_unify = true;  /* see VMI B_UNIFY_VAR */
-    else
-      ld->slow_unify = false;
-  }
+  do
+  { mask = 0;
+    old = ld->alerted;
+
+    WITH_LD(ld)
+    { if ( is_signalled() )			mask |= ALERT_SIGNAL;
+      if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
+	   ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+	ld->slow_unify = true;  /* see VMI B_UNIFY_VAR */
+      else
+	ld->slow_unify = false;
+    }
 #ifdef O_PROFILE
-  if ( ld->profile.active )			mask |= ALERT_PROFILE;
+    if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
 #ifdef O_ENGINES
-  if ( ld->thread.exit_requested )		mask |= ALERT_EXITREQ;
+    if ( ld->thread.exit_requested )		mask |= ALERT_EXITREQ;
 #endif
 #ifdef O_LIMIT_DEPTH
-  if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
+    if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
 #endif
 #ifdef O_INFERENCE_LIMIT
-  if ( ld->inference_limit.limit != INFERENCE_NO_LIMIT )
+    if ( ld->inference_limit.limit != INFERENCE_NO_LIMIT )
 						mask |= ALERT_INFERENCELIMIT;
 #endif
 #ifdef O_ATTVAR
 					/* is valTermRef(ld->attvar.head) */
-  if ( ld->stacks.local.base &&
-       !isVar(((Word)ld->stacks.local.base)[ld->attvar.head]) )
+    if ( ld->stacks.local.base &&
+	 !isVar(((Word)ld->stacks.local.base)[ld->attvar.head]) )
 						mask |= ALERT_WAKEUP;
 #endif
 #ifdef O_DEBUGGER
-  if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
+    if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
 #endif
-  if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
-  if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
-  if ( ld->coverage.active )			mask |= ALERT_COVERAGE;
-
-  ld->alerted = mask;
+    if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
+    if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
+    if ( ld->coverage.active )			mask |= ALERT_COVERAGE;
+  } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, old, mask) );
 }
 
 
