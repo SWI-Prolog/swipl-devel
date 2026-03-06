@@ -328,6 +328,13 @@ countingMutexUnlock(counting_mutex *cm)
 #define LOCKMODULE(module)	countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
 
+/* Intended for assertions */
+static inline bool
+holdsLock(int id)
+{ counting_mutex *lock = &_PL_mutexes[id];
+  return lock->lock_count > 0;
+}
+
 		 /*******************************
 		 *     CONDITION VARIABLES	*
 		 *******************************/

@@ -1391,18 +1391,29 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 
 
 static prolog_flag *
-lookupFlag(atom_t key)
+lookupFlag(PL_local_data_t *ld, atom_t key)
 { GET_LD
-#ifdef O_PLMT
   prolog_flag *f = NULL;
+  bool local = false;
 
-  if ( LD->prolog_flag.table &&
-       (f = lookupHTableWP(LD->prolog_flag.table, key)) )
-  { return f;
-  } else
+#ifdef O_PLMT
+  if ( !ld )
+    ld = LD;
+
+  assert(ld == LD || holdsLock(L_THREAD));
+
+  if ( ld->prolog_flag.table )
+    f = lookupHTableWP(ld->prolog_flag.table, key);
 #endif
-  { return lookupHTableWP(GD->prolog_flag.table, key);
-  }
+  if ( f )
+    local = true;
+  else
+    f = lookupHTableWP(GD->prolog_flag.table, key);
+
+  if ( f )
+    accessed_prolog_flag(f, key, local);
+
+  return f;
 }
 
 
@@ -1410,7 +1421,7 @@ bool
 PL_current_prolog_flag(atom_t name, int type, void *value)
 { prolog_flag *f;
 
-  if ( (f=lookupFlag(name)) )
+  if ( (f=lookupFlag(NULL, name)) )
   { switch(type)
     { case PL_ATOM:
 	if ( (f->flags&FT_MASK) == FT_ATOM )
@@ -1626,14 +1637,10 @@ current_prolog_flag(const char *name)
   { atom_t k;
 
     k = PL_new_atom(name);
-#ifdef O_PLMT
-    GET_LD
+    prolog_flag *f = lookupFlag(NULL, k);
+    PL_unregister_atom(k);
 
-    if ( LD && LD->prolog_flag.table )
-      return lookupHTableWP(LD->prolog_flag.table, k);
-#endif
-    if ( GD->prolog_flag.table )
-      return lookupHTableWP(GD->prolog_flag.table, k);
+    return f;
   }
 
   return NULL;
@@ -1666,20 +1673,10 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
 	return false;
 
       if ( PL_get_atom(key, &k) )
-      { prolog_flag *f;
+      { prolog_flag *f = lookupFlag(NULL, k);
 
-#ifdef O_PLMT
-	if ( LD->prolog_flag.table &&
-	     (f = lookupHTableWP(LD->prolog_flag.table, k)) )
-	{ accessed_prolog_flag(f, k, true);
-	  return ( unify_prolog_flag_value(module, k, f, value) &&
-		   (!access || unify_prolog_flag_access(f, access)) &&
-		   (!type   || unify_prolog_flag_type(f, type)) );
-	}
-#endif
-	if ( (f = lookupHTableWP(GD->prolog_flag.table, k)) )
-	{ accessed_prolog_flag(f, k, false);
-	  return ( unify_prolog_flag_value(module, k, f, value) &&
+	if ( f )
+	{ return ( unify_prolog_flag_value(module, k, f, value) &&
 		   (!access || unify_prolog_flag_access(f, access)) &&
 		   (!type   || unify_prolog_flag_type(f, type)) );
 	}
