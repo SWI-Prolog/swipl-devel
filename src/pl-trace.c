@@ -2068,7 +2068,7 @@ void
 initTracer(DECL_LD)
 { debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
-			     EXCEPTION_PORT;
+			     CUT_CALL_PORT|EXCEPTION_PORT;
   debugstatus.showContext  = false;
   resetTracer();
 
