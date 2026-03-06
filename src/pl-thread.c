@@ -3192,6 +3192,28 @@ thread_debug_property(DECL_LD void *ctx, term_t prop)
   return PL_unify_bool_ex(prop, info->debug);
 }
 
+#define thread_debug_mode_property(info, prop) \
+	LDFUNC(thread_debug_mode_property, info, prop)
+
+static bool
+thread_debug_mode_property(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+  int dbgmode = -1;
+
+  PL_LOCK(L_THREAD);
+  if ( info->thread_data )
+  { WITH_LD(info->thread_data)
+      dbgmode = debugstatus.debugging;
+  }
+  PL_UNLOCK(L_THREAD);
+
+  if ( dbgmode != -1 )
+    return PL_unify_bool_ex(prop, dbgmode == true);
+
+  return false;
+}
+
+
 #define thread_engine_property(info, prop) \
 	LDFUNC(thread_engine_property, info, prop)
 
@@ -3280,6 +3302,7 @@ static const tprop tprop_list [] =
   { FUNCTOR_status1,	       LDFUNC_REF(thread_status_property) },
   { FUNCTOR_detached1,	       LDFUNC_REF(thread_detached_property) },
   { FUNCTOR_debug1,	       LDFUNC_REF(thread_debug_property) },
+  { FUNCTOR_debug_mode1,       LDFUNC_REF(thread_debug_mode_property) },
   { FUNCTOR_engine1,	       LDFUNC_REF(thread_engine_property) },
   { FUNCTOR_thread1,	       LDFUNC_REF(thread_thread_property) },
   { FUNCTOR_system_thread_id1, LDFUNC_REF(thread_tid_property) },

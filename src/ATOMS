@@ -1088,6 +1088,7 @@ F dcont			3
 F dcut			1
 F dde_error		2
 F debug			1
+F debug_mode		1
 F debugging		1
 F decimal_point		1
 F deep			1
