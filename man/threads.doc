@@ -219,10 +219,13 @@ signalling threads blocked in thread_join/2 using thread_signal/2.
 
     \predicate{set_thread}{2}{+Thread, +Property}
 Set a property for \arg{Thread}.  The currently defined properties are
-below.  Future versions of this predicate will absorb predicates such
-as thread_alias/1.
+below.
 
     \begin{description}
+    \termitem{alias}{+Atom}
+    Set the alias name of the thread. An error is raised if \arg{Thread}
+    already has an alias or \arg{Alias} is in use for a thread or message
+    queue.
     \termitem{debug}{+Bool}
     Set whether \arg{Thread} can be debugged. See also thread_create/3
     and thread_property/2.
@@ -233,11 +236,6 @@ as thread_alias/1.
     the debug mode of the thread depending on whether or not debug mode
     is enabled for the specified thread class.
     \end{description}
-
-    \predicate{thread_alias}{1}{+Alias}
-Set the alias name of the calling thread to \arg{Alias}.  An error is
-raised if the calling thread already has an alias or \arg{Alias} is
-in use for a thread or message queue.
 
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached state (see \term{detached}{Bool} option at

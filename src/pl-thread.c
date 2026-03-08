@@ -563,6 +563,7 @@ static bool	update_debug_mode_from_class(PL_local_data_t *ld,
 static void	initMessageQueues(void);
 static bool	get_thread(term_t t, PL_thread_info_t **info, bool warn);
 #if O_PLMT
+static atom_t	symbol_alias(atom_t symbol);
 static bool	unify_queue(term_t t, message_queue *q);
 static bool	get_message_queue_unlocked(term_t t, message_queue **queue);
 static bool	get_message_queue(term_t t, message_queue **queue);
@@ -2976,28 +2977,6 @@ PRED_IMPL("thread_exit", 1, thread_exit, 0)
 }
 
 static
-PRED_IMPL("thread_alias", 1, thread_alias, 0)
-{
-#ifdef O_PLMT
-  PRED_LD
-#endif
-  PL_thread_info_t *info = LD->thread.info;
-  thread_handle *th;
-  atom_t alias;
-
-  if ( (th = create_thread_handle(info)) &&
-       th->alias )
-  { term_t ex = PL_new_term_ref();
-
-    return ( unify_thread_id(ex, info) &&
-	     PL_permission_error("re-alias", "thread", ex) );
-  }
-
-  return ( PL_get_atom_ex(A1, &alias) &&
-	   aliasThread(PL_thread_self(), ATOM_thread, alias) );
-}
-
-static
 PRED_IMPL("set_thread", 2, set_thread, 0)
 { PRED_LD
   PL_thread_info_t *info;
@@ -3014,7 +2993,15 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
   { term_t arg = PL_new_term_ref();
     _PL_get_arg(1, A2, arg);
 
-    if ( name == ATOM_debug )
+    if ( name == ATOM_alias )
+    { atom_t alias;
+      if ( PL_get_atom_ex(arg, &alias) )
+      { if ( info->symbol && symbol_alias(info->symbol) )
+	  return PL_permission_error("re-alias", "thread", A1);
+	return aliasThread(PL_thread_self(), ATOM_thread, alias);
+      }
+      return false;
+    } else if ( name == ATOM_debug )
     { int val;
       if ( PL_get_bool_ex(arg, &val) )
       { info->debug = (val == true);
@@ -8741,7 +8728,6 @@ BeginPredDefs(thread)
 #endif
 
 #ifdef O_PLMT
-  PRED_DEF("thread_alias",           1, thread_alias,	       0)
   PRED_DEF("set_thread",             2, set_thread,            0)
   PRED_DEF("thread_detach",	     1,	thread_detach,	       PL_FA_ISO)
   PRED_DEF("thread_join",	     2,	thread_join,	       0)

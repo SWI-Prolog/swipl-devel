@@ -49,7 +49,8 @@
             tnodebug/1,                 % +ThreadId
             tprofile/1,                 % +ThreadId
             tbacktrace/1,               % +ThreadId,
-            tbacktrace/2                % +ThreadId, +Options
+            tbacktrace/2,               % +ThreadId, +Options
+            thread_alias/1              % +Alias
           ]).
 :- if(current_prolog_flag(xpce, true)).
 :- export(( interactor/0,
@@ -411,6 +412,21 @@ init_pce :-
     autoload_call(send(@(display), open)).
 :- endif.
 init_pce.
+
+
+                /*******************************
+                *        COMPATIBILITY         *
+                *******************************/
+
+%!  thread_alias(+Alias) is det.
+%
+%   Set the alias for a thread.
+%
+%   @deprecated Use set_thread/2 using alias(Alias).
+
+thread_alias(Alias) :-
+    thread_self(Me),
+    set_thread(Me, alias(Alias)).
 
 
                  /*******************************
