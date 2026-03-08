@@ -1203,9 +1203,8 @@ sessions to reclaim resources from threads that died unexpectedly
 during development.
 
     \predicate{interactor}{0}{}
-Create a new console and run the Prolog top level in this new console.
-See also attach_console/0.  In the Windows version a new interactor
-can also be created from the {\sf Run/New thread} menu.
+Create a new console and run the Prolog top level in this new
+Epilog console. See also epilog/0, epilog/1 and attach_console/0.
 \end{description}
 
 
