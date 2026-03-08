@@ -200,10 +200,14 @@ stopped_except :-
 thread_has_console(main) :-
     !,
     \+ current_prolog_flag(epilog, true).
+thread_has_console(Id) :-
+    thread_property(Id, class(console)),
+    !.
 :- if(current_predicate(ep_has_console/1)).
 thread_has_console(Id) :-
     ep_has_console(Id).
 :- endif.
+
 
 thread_has_console :-
     current_prolog_flag(break_level, _),
@@ -557,10 +561,14 @@ thread_info(NW, _CW, Thread) -->
     ].
 
 debug_flag(Thread, Flag) :-
+    get_dict(class, Thread, console),
+    !,
+    Flag = ''.
+debug_flag(Thread, Flag) :-
     get_dict(debug, Thread, Debug),
     !,
     (   Debug == true
-    ->  Flag = '\u2714'
+    ->  Flag = '\u2714'                         % V
     ;   Flag = ''
     ).
-debug_flag(_, '\u2718').
+debug_flag(_, '\u2718').                        % X
