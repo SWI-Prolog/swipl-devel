@@ -327,7 +327,7 @@ exceptions using catch/3 is the only safe way to deal with
 thread-existence errors.
 
 These predicates are provided for diagnosis and monitoring tasks. See
-also \secref{thutil}, describing more high-level primitives.
+also \secref{threadutil}, describing more high-level primitives.
 
 
 \begin{description}
@@ -1183,128 +1183,7 @@ purposes.%
     \end{description}
 \end{description}
 
-
-\section{Thread support library(threadutil)}	\label{sec:thutil}
-
-This library defines a couple of useful predicates for demonstrating and
-debugging multithreaded applications. This library is certainly not
-complete.
-
-\begin{description}
-    \predicate{threads}{0}{}
-Lists all current threads and their status.
-
-    \predicate{join_threads}{0}{}
-Join all terminated threads. For normal applications,
-dealing with terminated threads must be part of the application logic,
-either detaching the thread before termination or making sure it will be
-joined. The predicate join_threads/0 is intended for interactive
-sessions to reclaim resources from threads that died unexpectedly
-during development.
-
-    \predicate{interactor}{0}{}
-Create a new console and run the Prolog top level in this new
-Epilog console. See also epilog/0, epilog/1 and attach_console/0.
-\end{description}
-
-
-\subsection{Debugging threads}
-\label{sec:threaddebug}
-
-Support for debugging threads is still very limited. Debug and trace
-mode are flags that are local to each thread. Individual threads can be
-debugged either using the graphical debugger described in
-\secref{guitracer} (see tspy/1 and friends) or by attaching a console to
-the thread and running the traditional command line debugger (see
-attach_console/0).  When using the graphical debugger, the debugger
-must be \emph{loaded} from the main thread (for example using guitracer)
-before gtrace/0 can be called from a thread.
-
-
-\begin{description}
-    \predicate{attach_console}{0}{}
-If the current thread has no console attached yet, attach one and
-redirect the user streams (input, output, and error) to the new console
-window. On Unix systems the console is an \program{xterm} application.
-On Windows systems this requires the GUI version \program{swipl-win.exe}
-rather than the console-based \program{swipl.exe}.
-
-This predicate has a couple of useful applications.  One is to separate
-(debugging) I/O of different threads.  Another is to start debugging a
-thread that is running in the background.  If thread 10 is running, the
-following sequence starts the tracer on this thread:
-
-\begin{code}
-?- thread_signal(10, (attach_console, trace)).
-\end{code}
-
-    \predicate{tdebug}{1}{+ThreadOrClass}
-Prepare a thread or group of threads for debugging using the graphical
-tracer. A group of threads is addressed based on the \const{class}
-property of a thread set by thread_create/3 or set_thread/2. This
-implies loading the graphical tracer and switching the thread to debug
-mode using debug/0. New threads created inherit their debug mode from
-the thread that created them.
-
-Addressing thread classes has been introduced in SWI-Prolog
-10.0.2/10.1.5. This allows for more selective debugging as well as
-ensuring debugging works in newly created threads. For example, the HTTP
-server creates all its \jargon{worker threads} in the class
-\const{http}. Using query below, we reliable make sure spy points are
-trapped in HTTP handler threads, regardless of whether the worker
-existed or is lazily created and regardless of whether the user switched
-to \jargon{nodebug} mode while tracing a previous event (see
-debug_reset_from_class/0).
-
-\begin{code}
-?- tdebug(http).
-\end{code}
-
-    \predicate{tdebug}{0}{}
-Enable debug mode in all running threads except those with the
-\const{debug} property set to \const{false}.
-
-    \predicate{tnodebug}{1}{+ThreadOrClass}
-Disable debugging the give thread or all threads that have the given
-thread \jargon{class}.
-
-    \predicate{tnodebug}{0}{}
-Disable debugging in all threads.
-
-    \predicate{tspy}{2}{:Spec, +ThreadId}
-Set a spy point as spy/1 and enable the thread for debugging using
-tdebug/1.  Note that a spy point is a global flag on a predicate that
-is visible from all threads.  Spy points are honoured in all threads
-that are in debug mode and ignored in threads that are in nodebug
-mode.
-
-    \predicate{tspy}{1}{:Spec}
-Set a spy point as spy/1 and enable debugging in all threads using
-tdebug/0.  Note that removing spy points can be done using nospy/1.
-Disabling spy points in	a specific thread is achieved by tnodebug/1.
-
-    \predicate{debug_reset_from_class}{0}{}
-Set the debug mode based on the class of the calling thread.  See
-tdebug/1.  This predicate is available both in the single threaded
-version (as a no-op) and multi-threaded version.
-\end{description}
-
-\subsection{Profiling threads}
-\label{sec:tprofile}
-
-In the current implementation, at most one thread can be profiled at
-any moment.  Any thread can call profile/1 to profile the execution
-of some part of its code.  The predicate tprofile/1 allows for profiling
-the execution of another thread until the user stops collecting profile
-data.
-
-\begin{description}
-    \predicate{tprofile}{1}{+ThreadId}
-Start collecting profile data in \arg{ThreadId} and ask the user to hit
-<return> to stop the profiler.  See \secref{profile} for details on the
-execution profiler.
-\end{description}
-
+\InputIfFileExists{lib/threadutil}{}{}
 
 \section{Multithreaded mixed C and Prolog applications}
 \label{sec:foreignthread}

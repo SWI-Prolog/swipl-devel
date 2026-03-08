@@ -90,7 +90,12 @@ environment) and manipulating the debug status of threads.
 
 %!  threads
 %
-%   List currently known threads with their status.
+%   List currently known threads with their   status. For each thread it
+%   lists the _id_, _class_, _status_, _debug   status_,  _CPU time_ and
+%   current _stack usage_. If a thread  is   listed  with _Debug_ set to
+%   `X', it cannot be debugged. If the  _Debug_   is  show as `V', it is
+%   running in debug mode (see debug/0) and responds to _spy points_ and
+%   _break points_.
 
 threads :-
     threads(Threads),
@@ -114,7 +119,12 @@ thread_data(Data) :-
 
 %!  join_threads
 %
-%   Join all terminated threads.
+%   Join all terminated threads. For   normal applications, dealing with
+%   terminated threads must be part  of   the  application logic, either
+%   detaching the thread before termination or   making  sure it will be
+%   joined. The predicate join_threads/0  is   intended  for interactive
+%   sessions to reclaim resources from   threads  that died unexpectedly
+%   during development.
 
 join_threads :-
     findall(Ripped, rip_thread(Ripped), AllRipped),
@@ -204,7 +214,7 @@ thread_has_console :-
     !.
 
 %!  attach_console is det.
-%!  attach_console(?Title) is det.
+%!  attach_console(+Title) is det.
 %
 %   Create a new console and make the   standard Prolog streams point to
 %   it. If not provided, the title is   built  using the thread id. Does
@@ -241,10 +251,12 @@ human_thread_id(Thread, Id) :-
     thread_property(Thread, id(Id)).
 
 %!  interactor is det.
-%!  interactor(?Title) is det.
+%!  interactor(+Title) is det.
 %
 %   Run a Prolog toplevel in another thread   with a new console window.
-%   If Title is given, this will be used as the window title.
+%   If Title is given, this will be  used   as  the  window title. As of
+%   SWI-Prolog version 10, the console is  provided by the XPCE graphics
+%   library using library(epilog).
 
 interactor :-
     interactor(_).
@@ -270,10 +282,11 @@ interactor(Title) :-
                  *******************************/
 
 %!  tspy(:Spec) is det.
-%!  tspy(:Spec, +ThreadId) is det.
+%!  tspy(:Spec, +ThreadOrClass) is det.
 %
-%   Trap the graphical debugger on reaching Spec in the specified or
-%   any thread.
+%   Trap the graphical debugger on reaching   Spec. The predicate tspy/0
+%   enabled debug mode in  all  threads   using  tdebug/0  while  tspy/1
+%   enables debug mode using tdebug/1.
 
 tspy(Spec) :-
     spy(Spec),
@@ -285,11 +298,28 @@ tspy(Spec, ThreadID) :-
 
 
 %!  tdebug is det.
-%!  tdebug(+Thread) is det.
+%!  tdebug(+ThreadOrClass) is det.
+%!  tnodebug is det.
+%!  tnodebug(+ThreadOrClass) is det.
 %
-%   Disable debug-mode in all  threads,  the   specified  thread  or all
-%   threads belonging to the given class. Debug mode causes trapping the
-%   graphical debugger on reaching spy-points or errors.
+%   Enable or disable a thread or group   of threads for debugging using
+%   the graphical tracer. A group of threads   is addressed based on the
+%   `class` property of a thread set by thread_create/3 or set_thread/2.
+%   This implies loading the graphical tracer   and switching the thread
+%   to debug mode using debug/0. New threads created inherit their debug
+%   mode from the thread that created them.
+%
+%   Thread classes have been  introduced   in  SWI-Prolog 10.0.2/10.1.5.
+%   This allows for  more  selective  debugging   as  well  as  ensuring
+%   debugging works in newly created  threads.   For  example,  the HTTP
+%   server creates all its _worker threads_   in the class `http`. Using
+%   query below, we reliable make sure spy   points  are trapped in HTTP
+%   handler threads, regardless of whether  the   worker  existed  or is
+%   lazily created and regardless  of  whether   the  user  switched  to
+%   _nodebug_   mode   while   tracing    a     previous    event   (see
+%   debug_reset_from_class/0).
+%
+%       ?- tdebug(http).
 
 tdebug :-
     guitracer,
@@ -306,12 +336,6 @@ tdebug_(Class, Mode),
     atom(Class) =>
     '$debug_thread_class'(Class, Mode, Matching, Set),
     print_message(informational, tdebug(Class, Mode, Matching, Set)).
-
-%!  tnodebug is det.
-%!  tnodebug(+ThreadOrClass) is det.
-%
-%   Disable debug-mode in all  threads,  the   specified  thread  or all
-%   threads belonging to the given class.
 
 tnodebug :-
     forall(debug_target(Id), set_thread(Id, set_thread(false))).

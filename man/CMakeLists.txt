@@ -187,7 +187,7 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         increval prolog_debug prolog_trace rbtrees statistics heaps fastrw gensym
         www_browser macros prolog_versions prolog_coverage exceptions)
 if(MULTI_THREADED)
-  libsdoc(thread_pool thread rwlocks)
+  libsdoc(thread_pool thread rwlocks threadutil)
 endif()
 if(NOT STATIC_EXTENSIONS)
 libdoc(shlib --subsection)
