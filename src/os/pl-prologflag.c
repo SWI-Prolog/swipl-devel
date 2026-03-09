@@ -139,7 +139,7 @@ free_oneof(oneof *of)
 { for(size_t i=0; i<of->count; i++)
     PL_unregister_atom(of->values[i]);
   freeHeap(of->values, of->count * sizeof(*of->values));
-  freeHeap(of, sizeof(of));
+  freeHeap(of, sizeof(*of));
 }
 
 static oneof *
