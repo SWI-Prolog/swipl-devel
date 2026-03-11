@@ -216,11 +216,12 @@ first. The last byte has its 0x80 mask set.
 #define V_B_INTEGER   258		/* Abstract various B_INT variations */
 #define V_A_INTEGER   259		/* Abstract various A_INT variations */
 
-#define PRED_SYSTEM	 0x01		/* system predicate */
-#define PRED_HIDE_CHILDS 0x02		/* hide my childs */
-#define PRED_DET         0x04		/* Determinism flag */
-#define PRED_MULTIFILE	 0x08		/* Multifile */
-#define PRED_DYNAMIC	 0x10		/* Dynamic */
+#define PRED_SYSTEM	   0x01		/* system predicate */
+#define PRED_HIDE_CHILDS   0x02		/* hide my childs */
+#define PRED_DET           0x04		/* Determinism flag */
+#define PRED_MULTIFILE	   0x08		/* Multifile */
+#define PRED_DYNAMIC	   0x10		/* Dynamic */
+#define PRED_NON_TERMINAL  0x20		/* DCG rule */
 
 #define CLAUSE_UNIT_CLAUSE 0x01
 #define CLAUSE_SSU_COMMIT  0x02
@@ -1161,12 +1162,13 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
   { GET_LD
     unsigned long lflags = 0L;
 
-    if ( flags & PRED_SYSTEM )	    lflags |= P_LOCKED;
-    if ( flags & PRED_HIDE_CHILDS ) lflags |= HIDE_CHILDS;
-    if ( flags & PRED_DET )         lflags |= P_DET;
+    if ( flags & PRED_SYSTEM )	     lflags |= P_LOCKED;
+    if ( flags & PRED_HIDE_CHILDS )  lflags |= HIDE_CHILDS;
+    if ( flags & PRED_DET )          lflags |= P_DET;
+    if ( flags & PRED_NON_TERMINAL ) lflags |= P_NON_TERMINAL;
     if ( !hasClausesDefinition(def) )
-    { if ( flags & PRED_DYNAMIC )   lflags |= P_DYNAMIC|P_TRANSACT;
-      if ( flags & PRED_MULTIFILE ) lflags |= P_MULTIFILE;
+    { if ( flags & PRED_DYNAMIC )    lflags |= P_DYNAMIC|P_TRANSACT;
+      if ( flags & PRED_MULTIFILE )  lflags |= P_MULTIFILE;
     }
 
     set(def, lflags);
@@ -3049,11 +3051,12 @@ predicateFlags(Definition def, atom_t sclass)
     return (PRED_SYSTEM|PRED_HIDE_CHILDS);
   }
 
-  if ( ison(def, P_LOCKED) )     flags |= PRED_SYSTEM;
-  if ( ison(def, HIDE_CHILDS) )  flags |= PRED_HIDE_CHILDS;
-  if ( ison(def, P_DET) )        flags |= PRED_DET;
-  if ( ison(def, P_MULTIFILE) )  flags |= PRED_MULTIFILE;
-  if ( ison(def, P_DYNAMIC) )    flags |= PRED_DYNAMIC;
+  if ( ison(def, P_LOCKED) )       flags |= PRED_SYSTEM;
+  if ( ison(def, HIDE_CHILDS) )    flags |= PRED_HIDE_CHILDS;
+  if ( ison(def, P_DET) )          flags |= PRED_DET;
+  if ( ison(def, P_MULTIFILE) )    flags |= PRED_MULTIFILE;
+  if ( ison(def, P_DYNAMIC) )      flags |= PRED_DYNAMIC;
+  if ( ison(def, P_NON_TERMINAL) ) flags |= PRED_NON_TERMINAL;
 
   return flags;
 }
