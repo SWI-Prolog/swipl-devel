@@ -558,11 +558,11 @@ static void	set_system_thread_id(PL_thread_info_t *info);
 static thread_handle *symbol_thread_handle(atom_t a);
 static void	destroy_interactor(thread_handle *th, int gc);
 static void	detach_engine(PL_engine_t e);
-static bool	update_debug_mode_from_class(PL_local_data_t *ld,
-					     bool *old);
 static void	initMessageQueues(void);
 static bool	get_thread(term_t t, PL_thread_info_t **info, bool warn);
 #if O_PLMT
+static bool	update_debug_mode_from_class(PL_local_data_t *ld,
+					     bool *old);
 static atom_t	symbol_alias(atom_t symbol);
 static bool	unify_queue(term_t t, message_queue *q);
 static bool	get_message_queue_unlocked(term_t t, message_queue **queue);
@@ -2778,6 +2778,7 @@ free_thread_info(PL_thread_info_t *info)
   if ( rec_g )  PL_erase(rec_g);
 }
 
+#ifdef O_PLMT
 #define debug_thread_class(class) LDFUNC(debug_thread_class, class)
 
 static bool
@@ -2814,7 +2815,6 @@ set_thread_class(PL_thread_info_t *info, atom_t class)
   return true;
 }
 
-#ifdef O_PLMT
 static int
 pthread_join_interruptible(pthread_t thread, void **retval)
 {
@@ -4178,7 +4178,9 @@ copy_debug_mode(PL_local_data_t *to, PL_local_data_t *from)
   }
   if ( to->_debugstatus.tracing != from->_debugstatus.tracing )
   { WITH_LD(to)
-      tracemode(from->_debugstatus.tracing, NULL);
+    { tracemode(from->_debugstatus.tracing, NULL);
+      (void)__PL_ld;
+    }
   }
 }
 

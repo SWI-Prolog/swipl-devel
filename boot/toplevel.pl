@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -555,6 +555,7 @@ initialise_prolog :-
 %   xpce is around, create an epilog window   and complete the user part
 %   of the initialization in the epilog thread.
 
+:- if(current_prolog_flag(threads, true)).
 main_thread_init :-
     current_prolog_flag(epilog, true),
     thread_self(main),
@@ -572,6 +573,12 @@ main_thread_init :-
     set_thread(main, class(console)),
     setup_theme,
     user_thread_init.
+:- else.
+main_thread_init :-
+    setup_theme,
+    user_thread_init.
+:- endif.
+
 
 %!  user_thread_init
 %
