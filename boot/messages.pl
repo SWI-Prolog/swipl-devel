@@ -950,15 +950,16 @@ load_module(Module) -->
 
 goal_to_predicate_indicator(Goal, PI) :-
     strip_module(Goal, Module, Head),
-    callable_name_arity(Head, Name, Arity),
-    user_predicate_indicator(Module:Name/Arity, PI).
+    '$pi_head'(PI0, Module:Head),
+    (   current_predicate(PI0),
+        predicate_property(Module:Head, non_terminal)
+    ->  dcg_pi(PI0, PI)
+    ;   PI = PI0
+    ),
+    user_predicate_indicator(PI, PI).
 
-callable_name_arity(Goal, Name, Arity) :-
-    compound(Goal),
-    !,
-    compound_name_arity(Goal, Name, Arity).
-callable_name_arity(Goal, Goal, 0) :-
-    atom(Goal).
+dcg_pi(Module:Name/Arity, Module:Name//DCGArity) :-
+    DCGArity is Arity-2.
 
 user_predicate_indicator(Module:PI, PI) :-
     hidden_module(Module),
@@ -1669,7 +1670,7 @@ goal_predicate(Head) -->
 goal_predicate(Head) -->
     { goal_to_predicate_indicator(Head, PI)
     },
-    [ '~p'-[PI] ].
+    [ ansi(code, '~p', [PI]) ].
 
 
 predicate_list([]) -->                  % TBD: Share with dwim, etc.
