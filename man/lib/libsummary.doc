@@ -248,6 +248,9 @@ This library is only available on Windows systems.
 \libsummary{statistics}
 \input{summaries.d/statistics.tex}
 
+\libsummary{tableutils}
+\input{summaries.d/tableutil.tex}
+
 \libsummary{terms}
 \input{summaries.d/terms.tex}
 

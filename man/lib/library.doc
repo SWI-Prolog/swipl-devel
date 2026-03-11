@@ -84,6 +84,7 @@ documented at all.
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
 \input{tables}
+\input{tableutil}
 \input{terms}
 \InputIfFileExists{thread}{}{}
 \InputIfFileExists{threadpool}{}{}
