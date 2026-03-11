@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2022, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2015-2026, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -140,9 +140,6 @@ typedef int mode_t;
 
 /* Define to extension used for shared objects if not "so" */
 #define SO_EXT "dll"
-
-/* Define as the return type of signal handlers (int or void).  */
-#define RETSIGTYPE void
 
 /* "Define if Prolog kernel is in shared object" */
 #define O_SHARED_KERNEL 1

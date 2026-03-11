@@ -2265,10 +2265,7 @@ not bound to operating system signal handling though.
 
 #define NUM_SIGNALS (MAXSIGNAL - MINSIGNAL + 1)
 
-#ifndef RETSIGTYPE
-#define RETSIGTYPE void
-#endif
-typedef RETSIGTYPE (*handler_t)(int);
+typedef void (*handler_t)(int);		/* signal handler function type */
 
 typedef struct
 { handler_t   saved_handler;		/* Original handler */
