@@ -5495,7 +5495,7 @@ PL_set_prolog_flag(const char *name, int type, ...)
 { GET_LD
   va_list args;
   int rval = true;
-  unsigned short flags = ((unsigned short)type & FF_MASK);
+  unsigned int flags = ((unsigned int)type & FF_MASK);
   fid_t fid;
   term_t av;
 

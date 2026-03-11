@@ -292,13 +292,13 @@ typedef union
 #define PL_SWORD	 (45)		/* Signed word (internal) */
 
 /* Or'ed flags for PL_set_prolog_flag() */
-/* MUST fit in a short int! */
-#define FF_READONLY	 0x1000		/* Read-only prolog flag */
-#define FF_KEEP		 0x2000		/* keep prolog flag if already set */
-#define FF_NOCREATE	 0x4000		/* Fail if flag is non-existent */
-#define FF_FORCE	 0x8000		/* Force setting, overwrite READONLY */
-#define FF_MASK		 0xf000
-
+/* Keep consistent with more flags in `os/pl-prologflag.h` */
+#define FF_READONLY	 0x001000	/* Read-only prolog flag */
+#define FF_KEEP		 0x002000	/* keep prolog flag if already set */
+#define FF_NOCREATE	 0x004000	/* Fail if flag is non-existent */
+#define FF_FORCE	 0x008000	/* Force setting, overwrite READONLY */
+#define FF_LOCAL	 0x010000	/* Force creating only locally */
+#define FF_GLOBAL	 0x020000	/* Force setting globally */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *

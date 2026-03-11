@@ -69,10 +69,6 @@
 #include <dlfcn.h>
 #endif
 
-#define ison(s, a)         ((s)->flags & (a))
-#define isoff(s, a)        (!ison((s), (a)))
-
-
 		 /*******************************
 		 *	PROLOG FLAG HANDLING	*
 		 *******************************/
@@ -118,6 +114,8 @@ static bool unify_prolog_flag_value(DECL_LD Module m, atom_t key,
 				    prolog_flag *f, term_t val);
 static bool unify_prolog_flag_type(prolog_flag *f, term_t type);
 static bool set_flag_type(prolog_flag *f, int flags);
+
+#define PSEUDO_FLAG ((prolog_flag*)true)
 
 #define FF_WARN_NOT_ACCESSED 0x0100
 #define FF_ACCESSED          0x0200
@@ -176,7 +174,7 @@ create_oneof(term_t atoms)
 }
 
 
-static int
+static bool
 put_oneof(term_t t, const oneof *of)
 { term_t h = PL_new_term_ref();
 
@@ -190,9 +188,18 @@ put_oneof(term_t t, const oneof *of)
   return PL_cons_functor(t, FUNCTOR_oneof1, t);
 }
 
+static void
+set_oneof(prolog_flag *f, oneof *of, unsigned int flags)
+{ if ( f && of && (flags&FF_ISCREATE) &&
+       f != PSEUDO_FLAG && f->oneof != of )
+  { if ( f->oneof && --f->oneof->references == 0 )
+      free_oneof(f->oneof);
+    f->oneof = of;
+    of->references++;
+  }
+}
 
-
-static int
+static bool
 check_oneof_flag(const oneof *of, atom_t a, int error)
 { if ( of )
   { for(size_t i=0; i<of->count; i++)
@@ -219,10 +226,6 @@ check_oneof_flag(const oneof *of, atom_t a, int error)
   return true;
 }
 
-/* `flags` should be `unsigned short`, but may not be subject to
- * argument promotion for use with va_start() according to clang
- */
-
 void
 setPrologFlag(const char *name, unsigned int flags, ...)
 { GET_LD
@@ -244,7 +247,7 @@ setPrologFlag(const char *name, unsigned int flags, ...)
   } else
   { f = allocHeapOrHalt(sizeof(*f));
     f->index = 0;
-    f->flags = (unsigned short)flags;
+    f->flags = flags;
     f->oneof = NULL;
     addNewHTableWP(GD->prolog_flag.table, an, f);
     first_def = true;
@@ -257,10 +260,10 @@ setPrologFlag(const char *name, unsigned int flags, ...)
       unsigned int flag = va_arg(args, unsigned int);
 
       if ( !first_def && flag && !f->index )	/* type definition */
-      { f->index = (short)flag;
+      { f->index = flag;
 	val = (f->value.a == ATOM_true);
       } else if ( first_def )			/* 1st definition */
-      { f->index = (short)flag;
+      { f->index = flag;
 	DEBUG(MSG_PROLOG_FLAG,
 	      Sdprintf("Prolog flag %s at %d\n", name, flag));
       }
@@ -659,13 +662,13 @@ getOccursCheckMask(atom_t a, occurs_check_t *val)
 }
 
 
-static int
+static bool
 setOccursCheck(atom_t a)
 { GET_LD
 
   if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
   { updateAlerted(LD);
-    succeed;
+    return true;
   } else
   { term_t value = PL_new_term_ref();
 
@@ -675,7 +678,7 @@ setOccursCheck(atom_t a)
 }
 
 
-static int
+static bool
 setEncoding(atom_t a)
 { GET_LD
   IOENC enc = PL_atom_to_encoding(a);
@@ -689,11 +692,11 @@ setEncoding(atom_t a)
 
   LD->encoding = enc;
 
-  succeed;
+  return true;
 }
 
 
-static int
+static bool
 setStreamTypeCheck(atom_t a)
 { GET_LD
   st_check check;
@@ -716,7 +719,7 @@ setStreamTypeCheck(atom_t a)
 }
 
 
-static int
+static bool
 setAutoload(atom_t a)
 { GET_LD
 
@@ -739,7 +742,7 @@ setAutoload(atom_t a)
 
 
 #define propagateAutoload(val) LDFUNC(propagateAutoload, val)
-static int
+static bool
 propagateAutoload(DECL_LD term_t val)
 { if ( !GD->bootsession )
   { predicate_t pred;
@@ -754,14 +757,16 @@ propagateAutoload(DECL_LD term_t val)
   }
 }
 
+#define accessed_prolog_flag(f, name) \
+	LDFUNC(accessed_prolog_flag, f, name)
 
 static void
-accessed_prolog_flag(prolog_flag *f, atom_t name, int local)
+accessed_prolog_flag(DECL_LD prolog_flag *f, atom_t name)
 { if ( ison(f, FF_WARN_NOT_ACCESSED) &&
        isoff(f, FF_ACCESSED) )
   { set(f, FF_ACCESSED);
 
-    if ( local )
+    if ( ison(f, FF_ISLOCAL) )
     { prolog_flag *fg;
 
       if ( (fg = lookupHTableWP(GD->prolog_flag.table, name)) )
@@ -816,7 +821,6 @@ get_win_file_access_check(void)
 #endif
 
 #define FF_COPY_FLAGS (FF_READONLY|FF_WARN_NOT_ACCESSED)
-#define PSEUDO_FLAG ((prolog_flag*)true)
 
 static bool
 set_flag_type(prolog_flag *f, int flags)
@@ -824,7 +828,7 @@ set_flag_type(prolog_flag *f, int flags)
   return true;
 }
 
-static int
+static bool
 set_flag_atom(prolog_flag *f, atom_t a)
 { if ( f->value.a != a )
   { PL_unregister_atom(f->value.a);
@@ -836,8 +840,47 @@ set_flag_atom(prolog_flag *f, atom_t a)
 }
 
 
-static int
-keep_flag(atom_t k, prolog_flag *f, unsigned short flags, oneof *of, term_t value)
+#define lookupFlag(ld, key, flags) \
+	LDFUNC(lookupFlag, ld, key, flags)
+
+static prolog_flag *
+lookupFlag(DECL_LD PL_local_data_t *ld, atom_t key, unsigned int flags)
+{ prolog_flag *f = NULL;
+
+#ifdef O_PLMT
+  if ( (flags&FF_LOCAL) )
+  { if ( !ld )
+      ld = LD;
+
+    assert(ld == LD || holdsLock(L_THREAD));
+
+    if ( ld->prolog_flag.table )
+      f = lookupHTableWP(ld->prolog_flag.table, key);
+  }
+#endif
+  if ( !f && (flags&FF_GLOBAL) )
+    f = lookupHTableWP(GD->prolog_flag.table, key);
+
+  if ( f )
+    accessed_prolog_flag(f, key);
+
+  return f;
+}
+
+/* Define a flag, but keep the flag at its current value if it is already
+ * defined if `(flags&FF_KEEP)`.  This may cause problems if the
+ * existing value is not compatible with the defined type.
+ * Returns:
+ *
+ *   - `true` if the value can be kept.  May implicitly convert the
+ *     value, e.g., `on` becomes `true` if the type is `bool`.
+ *   - `false` if `(flags&FF_KEEP)` is false or the value cannot be
+ *     kept.
+ *   - `-1` if an error occurs (resource error, signal, ...)
+ */
+
+static int /* false, true or -1 for exception */
+keep_flag(atom_t k, prolog_flag *f, unsigned int flags, oneof *of, term_t value)
 { if ( (flags&FF_KEEP) )
   { if ( of )
     { if ( check_oneof_flag(of, f->value.a, false) )
@@ -903,7 +946,7 @@ keep_flag(atom_t k, prolog_flag *f, unsigned short flags, oneof *of, term_t valu
 
     clean_prolog_flag(f);
     set_flag_type(f, flags);
-    f->oneof = of;
+    set_oneof(f, of, flags);
 
     return false;
   }
@@ -911,176 +954,100 @@ keep_flag(atom_t k, prolog_flag *f, unsigned short flags, oneof *of, term_t valu
   return false;
 }
 
+#define new_prolog_flag(value, flags) \
+	LDFUNC(new_prolog_flag, value, flags)
 
-#define set_prolog_flag_unlocked(m, k, value, flags, of) \
-	LDFUNC(set_prolog_flag_unlocked, m, k, value, flags, of)
 
 static prolog_flag *
-set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
-			 unsigned short flags, oneof *of)
-{ prolog_flag *f;
-  bool rval = true;
+new_prolog_flag(DECL_LD term_t value, unsigned int flags)
+{ atom_t a;
+  int64_t i;
+  double d;
 
-					/* set existing Prolog flag */
-#ifdef O_PLMT
-  if ( LD->prolog_flag.table &&
-       (f = lookupHTableWP(LD->prolog_flag.table, k)) )
-  { int rc;
-    accessed_prolog_flag(f, k, true);
-    if ( (rc=keep_flag(k, f, flags, of, value)) == true )
-      return f;
-    if ( rc == -1 )
-      return NULL;
-  } else
-#endif
-    if ( (f = lookupHTableWP(GD->prolog_flag.table, k)) )
-  { int rc;
-    accessed_prolog_flag(f, k, false);
-    if ( (rc=keep_flag(k, f, flags, of, value)) == true )
-      return f;
-    if ( rc == -1 )
-      return NULL;
-    if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
-    { term_t key;
+  prolog_flag *f = allocHeapOrHalt(sizeof(*f));
+  f->index = 0;
+  f->oneof = NULL;
 
-      if ( (key = PL_new_term_ref()) &&
-	   PL_put_atom(key, k) &&
-	   PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_modify, ATOM_flag, key) )
-	return NULL;
-      return NULL;
-    }
+  switch( (flags & FT_MASK) )
+  { case FT_FROM_VALUE:
+    { if ( PL_get_atom(value, &a) )
+      { int bv = atom_to_bool(a);
 
-    if ( tbl_is_restraint_flag(k) )
-      return tbl_set_restraint_flag(value, k) ? PSEUDO_FLAG : NULL;
-    if ( is_arith_flag(k) )
-      return set_arith_flag(value, k) ? PSEUDO_FLAG : NULL;
-    if ( ci_is_flag(k) )
-      return ci_set_flag(value, k) ? PSEUDO_FLAG : NULL;
-
-#ifdef O_PLMT
-    if ( GD->statistics.threads_created > 1 )
-    { f = copy_prolog_flag(f);
-
-      if ( !LD->prolog_flag.table )
-      { LD->prolog_flag.table = newHTableWP(4);
-
-	LD->prolog_flag.table->copy_symbol = copySymbolPrologFlagTable;
-	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
-      }
-
-      addNewHTableWP(LD->prolog_flag.table, k, f);
-      PL_register_atom(k);
-      DEBUG(MSG_PROLOG_FLAG,
-	    Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
-    }
-#endif
-  } else if ( !(flags & FF_NOCREATE) )	/* define new Prolog flag */
-  { prolog_flag *f;
-    atom_t a;
-    int64_t i;
-    double d;
-
-  anyway:
-    PL_register_atom(k);
-    f = allocHeapOrHalt(sizeof(*f));
-    f->index = 0;
-    f->oneof = NULL;
-
-    switch( (flags & FT_MASK) )
-    { case FT_FROM_VALUE:
-      { if ( PL_get_atom(value, &a) )
-	{ int bv = atom_to_bool(a);
-
-	  if ( bv >= 0 )
-	  { f->value.a = bv ? ATOM_true : ATOM_false;
-	    f->flags = FT_BOOL;
-	  } else
-	  { f->value.a = a;
-	    f->flags = FT_ATOM;
-	  }
-	  PL_register_atom(f->value.a);
-	} else if ( PL_get_int64(value, &i) )
-	{ f->flags = FT_INTEGER;
-	  f->value.i = i;
-	} else if ( PL_get_float(value, &d) )
-	{ f->flags = FT_FLOAT;
-	  f->value.f = d;
+	if ( bv >= 0 )
+	{ f->value.a = bv ? ATOM_true : ATOM_false;
+	  f->flags = FT_BOOL;
 	} else
-	{ f->flags = FT_TERM;
-	  if ( !PL_is_ground(value) )
-	  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-	    goto wrong_type;
-	  }
-	  if ( !(f->value.t = PL_record(value)) )
-	  { freeHeap(f, sizeof(*f));
-	    return false;
-	  }
+	{ f->value.a = a;
+	  f->flags = FT_ATOM;
 	}
-	break;
-      }
-      case FT_ATOM:
-	if ( !PL_get_atom_ex(value, &f->value.a) )
-	{ wrong_type:
-	  freeHeap(f, sizeof(*f));
-	  return false;
-	}
-	f->flags = FT_ATOM;
 	PL_register_atom(f->value.a);
-	break;
-      case FT_BOOL:
-      { int b;
-	if ( !PL_get_bool_ex(value, &b) )
-	  goto wrong_type;
-	f->flags = FT_BOOL;
-	f->value.a = (b ? ATOM_true : ATOM_false);
-	break;
-      }
-      case FT_INTEGER:
-	if ( !PL_get_int64_ex(value, &f->value.i) )
-	  goto wrong_type;
-	f->flags = FT_INTEGER;
-	break;
-      case FT_FLOAT:
-	if ( !PL_get_float_ex(value, &f->value.f) )
-	  goto wrong_type;
-	f->flags = FT_FLOAT;
-	break;
-      case FT_TERM:
+      } else if ( PL_get_int64(value, &i) )
+      { f->flags = FT_INTEGER;
+	f->value.i = i;
+      } else if ( PL_get_float(value, &d) )
+      { f->flags = FT_FLOAT;
+	f->value.f = d;
+      } else
+      { f->flags = FT_TERM;
 	if ( !PL_is_ground(value) )
 	{ PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 	  goto wrong_type;
 	}
 	if ( !(f->value.t = PL_record(value)) )
-	  goto wrong_type;
-	f->flags = FT_TERM;
-	break;
+	{ freeHeap(f, sizeof(*f));
+	  return false;
+	}
+      }
+      break;
     }
-
-    f->flags |= (flags&FF_COPY_FLAGS);
-    addNewHTableWP(GD->prolog_flag.table, k, f);
-
-    return f;
-  } else
-  { atom_t how;
-
-    if ( PL_current_prolog_flag(ATOM_user_flags, PL_ATOM, &how) )
-    { if ( how == ATOM_error )
-      { term_t key;
-
-	if ( (key = PL_new_term_ref()) &&
-	     PL_put_atom(key, k) &&
-	     PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-		      ATOM_prolog_flag, key) )
-	  return NULL;
+    case FT_ATOM:
+      if ( !PL_get_atom_ex(value, &f->value.a) )
+      { wrong_type:
+	freeHeap(f, sizeof(*f));
 	return NULL;
-      } else if ( how == ATOM_warning )
-	Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
-		 "create_prolog_flag/3\n", stringAtom(k));
+      }
+      f->flags = FT_ATOM;
+      PL_register_atom(f->value.a);
+      break;
+    case FT_BOOL:
+    { int b;
+      if ( !PL_get_bool_ex(value, &b) )
+	goto wrong_type;
+      f->flags = FT_BOOL;
+      f->value.a = (b ? ATOM_true : ATOM_false);
+      break;
     }
-
-    goto anyway;
+    case FT_INTEGER:
+      if ( !PL_get_int64_ex(value, &f->value.i) )
+	goto wrong_type;
+      f->flags = FT_INTEGER;
+      break;
+    case FT_FLOAT:
+      if ( !PL_get_float_ex(value, &f->value.f) )
+	goto wrong_type;
+      f->flags = FT_FLOAT;
+      break;
+    case FT_TERM:
+      if ( !PL_is_ground(value) )
+      { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	goto wrong_type;
+      }
+      if ( !(f->value.t = PL_record(value)) )
+	goto wrong_type;
+      f->flags = FT_TERM;
+      break;
   }
+  f->flags |= (flags&FF_COPY_FLAGS);
+
+  return f;
+}
+
+#define set_flag_value(f, m, k, value) \
+	LDFUNC(set_flag_value, f, m, k, value)
+
+static bool
+set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
+{ bool rval = true;
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
@@ -1194,7 +1161,7 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
 #endif
       }
       if ( !rval )
-	fail;
+	return false;
 
       if ( f->value.a != a )
       { PL_unregister_atom(f->value.a);
@@ -1207,7 +1174,7 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
     { int64_t i;
 
       if ( !PL_get_int64_ex(value, &i) )
-	return NULL;
+	return false;
 
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
@@ -1273,14 +1240,158 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
       assert(0);
   }
 
-  return rval ? f : NULL;
+  return rval;
+}
+
+#ifdef O_PLMT
+#define register_local_flag(k, f) \
+	LDFUNC(register_local_flag, k, f)
+
+static void
+register_local_flag(DECL_LD atom_t k, prolog_flag *f)
+{ set(f, FF_ISLOCAL);
+
+  if ( !LD->prolog_flag.table )
+  { LD->prolog_flag.table = newHTableWP(4);
+
+    LD->prolog_flag.table->copy_symbol = copySymbolPrologFlagTable;
+    LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
+  }
+
+  addNewHTableWP(LD->prolog_flag.table, k, f);
+}
+#endif
+
+#define check_flag_write_access(f, k, flags) \
+	LDFUNC(check_flag_write_access, f, k, flags)
+
+static bool
+check_flag_write_access(DECL_LD prolog_flag *f, atom_t k, unsigned int flags)
+{ if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
+  { term_t key;
+
+    return ( (key = PL_new_term_ref()) &&
+	     PL_put_atom(key, k) &&
+	     PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		      ATOM_modify, ATOM_flag, key) );
+  }
+
+  return true;
+}
+
+#define check_create_flag(k, flags) \
+	LDFUNC(check_create_flag, k, flags)
+
+static bool
+check_create_flag(DECL_LD atom_t k, unsigned int flags)
+{ atom_t how;
+
+  if ( !(flags & FF_NOCREATE) )
+    return true;
+
+  if ( PL_current_prolog_flag(ATOM_user_flags, PL_ATOM, &how) )
+  { if ( how == ATOM_error )
+    { term_t key;
+
+      return ( (key = PL_new_term_ref()) &&
+	       PL_put_atom(key, k) &&
+	       PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+			ATOM_prolog_flag, key) );
+    } else if ( how == ATOM_warning )
+    { if ( !printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "implicit_create_flag", PL_ATOM, k) )
+	return false;			/* may not ignore printMessage() */
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
+#define set_prolog_flag_unlocked(m, k, value, flags, of) \
+	LDFUNC(set_prolog_flag_unlocked, m, k, value, flags, of)
+
 static prolog_flag *
-set_prolog_flag_ptr(term_t key, term_t value, unsigned short flags, oneof *of)
-{ GET_LD
-  atom_t k;
+set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
+			 unsigned int flags, oneof *of)
+{ prolog_flag *f;
+					/* set existing Prolog flag */
+#ifdef O_PLMT
+  if ( LD->prolog_flag.table &&
+       !(flags & FF_GLOBAL) &&
+       (f = lookupHTableWP(LD->prolog_flag.table, k)) )
+  { int rc;
+    accessed_prolog_flag(f, k);
+    if ( !check_flag_write_access(f, k, flags) )
+      return NULL;
+    DEBUG(MSG_PROLOG_FLAG,
+	  Sdprintf("[%d] found flag locally: %s\n",
+		   PL_thread_self(), PL_atom_chars(k)));
+    if ( (rc=keep_flag(k, f, flags, of, value)) == true )
+      return f;
+    if ( rc == -1 )
+      return NULL;
+  } else
+#endif
+    if ( (f = lookupHTableWP(GD->prolog_flag.table, k)) )
+  { int rc;
+    accessed_prolog_flag(f, k);
+    if ( !check_flag_write_access(f, k, flags) )
+      return NULL;
+
+    DEBUG(MSG_PROLOG_FLAG,
+	  Sdprintf("[%d] found flag globally: %s\n",
+		   PL_thread_self(), PL_atom_chars(k)));
+    if ( (rc=keep_flag(k, f, flags, of, value)) == true )
+      return f;
+    if ( rc == -1 )
+      return NULL;
+
+    if ( tbl_is_restraint_flag(k) )
+      return tbl_set_restraint_flag(value, k) ? PSEUDO_FLAG : NULL;
+    if ( is_arith_flag(k) )
+      return set_arith_flag(value, k) ? PSEUDO_FLAG : NULL;
+    if ( ci_is_flag(k) )
+      return ci_set_flag(value, k) ? PSEUDO_FLAG : NULL;
+
+#ifdef O_PLMT
+    if ( GD->statistics.threads_created > 1 &&
+	 !(flags&FF_GLOBAL) )
+    { f = copy_prolog_flag(f);
+      register_local_flag(k, f);
+      PL_register_atom(k);
+      DEBUG(MSG_PROLOG_FLAG,
+	    Sdprintf("[%d] localised Prolog flag %s\n",
+		     PL_thread_self(), PL_atom_chars(k)));
+    }
+#endif
+  } else if ( check_create_flag(k, flags) )	/* define new Prolog flag */
+  { PL_register_atom(k);
+    prolog_flag *f = new_prolog_flag(value, flags);
+    if ( f == NULL )
+      return NULL;
+
+#if O_PLMT
+    if ( (flags&FF_LOCAL) )
+      register_local_flag(k, f);
+    else
+#endif
+      addNewHTableWP(GD->prolog_flag.table, k, f);
+
+    return f;
+  }
+
+  return set_flag_value(f, m, k, value) ? f : NULL;
+}
+
+#define set_prolog_flag_ptr(key, value, flags, of) \
+	LDFUNC(set_prolog_flag_ptr, key, value, flags, of)
+
+static prolog_flag *
+set_prolog_flag_ptr(DECL_LD term_t key, term_t value,
+		    unsigned int flags, oneof *of)
+{ atom_t k;
   Module m = MODULE_parse;
   prolog_flag *f;
 
@@ -1295,14 +1406,22 @@ set_prolog_flag_ptr(term_t key, term_t value, unsigned short flags, oneof *of)
 
   PL_LOCK(L_PLFLAG);
   f = set_prolog_flag_unlocked(m, k, value, flags, of);
+  set_oneof(f, of, flags);
+  if ( (flags & FF_GLOBAL) )
+  { prolog_flag *lf = lookupFlag(LD, k, FF_LOCAL);
+    if ( lf )
+    { unsigned lflags = flags & ~FF_GLOBAL;
+      set_prolog_flag_unlocked(m, k, value, lflags, of);
+    }
+  }
   PL_UNLOCK(L_PLFLAG);
 
   return f;
 }
 
-int
-set_prolog_flag(term_t key, term_t value, unsigned short flags)
-{ return !!set_prolog_flag_ptr(key, value, flags, NULL);
+bool
+set_prolog_flag(DECL_LD term_t key, term_t value, unsigned int flags)
+{ return set_prolog_flag_ptr(key, value, flags, NULL) != NULL;
 }
 
 /** set_prolog_flag(+Key, +Value) is det.
@@ -1310,7 +1429,9 @@ set_prolog_flag(term_t key, term_t value, unsigned short flags)
 
 static
 PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
-{ return set_prolog_flag(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
+{ PRED_LD
+
+  return set_prolog_flag(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
 }
 
 
@@ -1322,22 +1443,25 @@ static const PL_option_t prolog_flag_options[] =
   { ATOM_access,            OPT_ATOM },
   { ATOM_keep,              OPT_BOOL },
   { ATOM_warn_not_accessed, OPT_BOOL },
+  { ATOM_local,		    OPT_BOOL },
   { NULL_ATOM,              0 }
 };
 
 static
 PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 { PRED_LD
-  unsigned short flags = 0;
+  unsigned int flags = FF_ISCREATE|FF_GLOBAL;
   term_t type = 0;
   atom_t access = ATOM_read_write;
   int keep = false;
   int warn_not_accessed = false;
+  int local = false;
   oneof *of = NULL;
   atom_t a;
 
   if ( !PL_scan_options(A3, 0, "prolog_flag_option", prolog_flag_options,
-			&type, &access, &keep, &warn_not_accessed) )
+			&type, &access, &keep, &warn_not_accessed,
+			&local) )
     return false;
 
   if ( type == 0 )
@@ -1364,8 +1488,8 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_prolog_flag_type, type);
 
   if ( access == ATOM_read_only )
-    flags |= FF_READONLY;
-  else if ( access != ATOM_read_write )
+  { flags |= FF_READONLY;
+  } else if ( access != ATOM_read_write )
   { term_t a = PL_new_term_ref();
     PL_put_atom(a, access);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_prolog_flag_access, a);
@@ -1373,55 +1497,25 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 
   if ( keep )
     flags |= FF_KEEP;
-
   if ( warn_not_accessed )
     flags |= FF_WARN_NOT_ACCESSED;
-
-  prolog_flag *f = set_prolog_flag_ptr(A1, A2, flags, of);
-
-  if ( of )
-  { if ( f && f != PSEUDO_FLAG )
-      f->oneof = of;
-    else
-      free_oneof(of);
+  if ( local )
+  { flags &= ~FF_GLOBAL;
+    flags |= FF_LOCAL;
   }
 
-  return !!f;
+  prolog_flag *f = set_prolog_flag_ptr(A1, A2, flags, of);
+  if ( of && --of->references == 0 )
+    free_oneof(of);
+
+  return f != NULL;
 }
-
-
-static prolog_flag *
-lookupFlag(PL_local_data_t *ld, atom_t key)
-{ GET_LD
-  prolog_flag *f = NULL;
-  bool local = false;
-
-#ifdef O_PLMT
-  if ( !ld )
-    ld = LD;
-
-  assert(ld == LD || holdsLock(L_THREAD));
-
-  if ( ld->prolog_flag.table )
-    f = lookupHTableWP(ld->prolog_flag.table, key);
-#endif
-  if ( f )
-    local = true;
-  else
-    f = lookupHTableWP(GD->prolog_flag.table, key);
-
-  if ( f )
-    accessed_prolog_flag(f, key, local);
-
-  return f;
-}
-
 
 bool
 PL_current_prolog_flag(atom_t name, int type, void *value)
 { prolog_flag *f;
 
-  if ( (f=lookupFlag(NULL, name)) )
+  if ( (f=lookupFlag(NULL, name, FF_LOCAL|FF_GLOBAL)) )
   { switch(type)
     { case PL_ATOM:
 	if ( (f->flags&FT_MASK) == FT_ATOM )
@@ -1637,7 +1731,7 @@ current_prolog_flag(const char *name)
   { atom_t k;
 
     k = PL_new_atom(name);
-    prolog_flag *f = lookupFlag(NULL, k);
+    prolog_flag *f = lookupFlag(NULL, k, FF_LOCAL|FF_GLOBAL);
     PL_unregister_atom(k);
 
     return f;
@@ -1673,7 +1767,7 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
 	return false;
 
       if ( PL_get_atom(key, &k) )
-      { prolog_flag *f = lookupFlag(NULL, k);
+      { prolog_flag *f = lookupFlag(NULL, k, FF_LOCAL|FF_GLOBAL);
 
 	if ( f )
 	{ return ( unify_prolog_flag_value(module, k, f, value) &&

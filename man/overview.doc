@@ -2670,33 +2670,61 @@ also the libraries \pllib{prolog_source} and \pllib{prolog_xref}.
 \end{description}
 
     \predicate[ISO]{set_prolog_flag}{2}{:Key, +Value}
-Define a new Prolog flag or change its value.  \arg{Key} is an atom.
-If the flag is a system-defined flag that is not marked
-\jargon{changeable} above, an attempt to modify the flag yields a
-\except{permission_error}.  If the provided \arg{Value} does not
-match the type of the flag, a \except{type_error} is raised.
+Set the value of a Prolog flag. \arg{Key} is an atom. If the flag is a
+system-defined flag that is not marked \jargon{changeable} above, an
+attempt to modify the flag yields a \except{permission_error}. If the
+provided \arg{Value} does not match the type of the flag, a
+\except{type_error} is raised.
 
 Some flags (e.g., \prologflag{unknown}) are maintained on a per-module
-basis. The addressed module is determined by the \arg{Key} argument.
+basis. The addressed module is determined by the \arg{Key}
+\jargon{meta} argument.
 
-In addition to ISO, SWI-Prolog allows for user-defined Prolog flags. The
-type of the flag is determined from the initial value and cannot be
-changed afterwards. Defined types are \const{boolean} (if the initial
+In addition to ISO, SWI-Prolog allows for user-defined Prolog flags.
+New Prolog flags should be created using create_prolog_flag/3.  For
+historical reasons set_prolog_flag/2 silently creates a Prolog flag
+if the Prolog flag \prologflag{user_flags} is \const{true} (default),
+i.e., set_prolog_flag/2 behaves as if defined below.
+
+\begin{code}
+set_prolog_flag(Key, Value) :-
+    current_prolog_flag(Key, _),
+    !,
+    <set the flag>.
+set_prolog_flag(Key, Value) :-
+    current_prolog_flag(user_flags, true),
+    !,
+    create_prolog_flag(Key, Value, []).
+set_prolog_flag(Key, _) :-
+    existence_error(prolog_flag, Key).
+\end{code}
+
+    \predicate[YAP]{create_prolog_flag}{3}{+Key, +Value, +Options}
+Create a new Prolog flag.  The ISO standard does not foresee creation
+of new flags, but many libraries introduce new flags.  Prolog flags are
+particularly useful for managing mutating global settings in a threaded
+environment.   Were predicates are either local to a thread or shared
+between all threads, a thread \jargon{inherits} its flags from the
+thread that creates it (see thread_create/3) while modifications are
+local to the calling thread.
+
+SWI-Prolog flags are typed. If the type is not explicitly defined using
+the \term{type}{Type} option (see below), the type is determined from
+the initial value. Defined types are \const{boolean} (if the initial
 value is one of \const{false}, \const{true}, \const{on} or \const{off}),
 \const{atom} if the initial value is any other atom, \const{integer} if
 the value is an integer that can be expressed as a 64-bit signed value.
 Any other initial value results in an untyped flag that can represent
 any valid Prolog term.
 
-The behaviour when \arg{Key} denotes a non-existent key depends on the
-Prolog flag \prologflag{user_flags}. The default is to define them
-silently. New code is encouraged to use create_prolog_flag/3 for
-portability.
+By default, the new flag is added to the global flag table, making the
+value available to all threads that have not set the flag.  If the flag
+was already defined locally in the calling thread, the value is updated
+both for the calling thread and in the global flag table.  See the
+\term{local}{+Boolean} option.
 
-    \predicate[YAP]{create_prolog_flag}{3}{+Key, +Value, +Options}
-Create a new Prolog flag.  The ISO standard does not foresee creation
-of new flags, but many libraries introduce new flags.  \arg{Options}
-is a list of the options below.  See also \prologflag{user_flags}.
+\arg{Options} is a list of the options below. See also the Prolog flag
+\prologflag{user_flags}.
 
     \begin{description}
 	\termitem{access}{+Access}
@@ -2718,6 +2746,12 @@ is a list of the options below.  See also \prologflag{user_flags}.
         If the flag has a value, but this value is incompatible with the
         specified type, a warning is printed and the flag gets the
         value and type specified by this call to create_prolog_flag/3.
+
+	\termitem{local}{+Boolean}
+	If \const{true} (default \const{false}), if the flag does not
+	exist, create it \emph{only} in the calling thread.  The flag
+	is only visible in the calling thread and threads that inherit
+	from the calling thread.
 
         \termitem{warn_not_accessed}{+Boolean}
         If \const{true} and the flag is never read using

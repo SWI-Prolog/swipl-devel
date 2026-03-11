@@ -39,6 +39,12 @@
 #define _PL_PROLOGFLAG_H
 #include "../pl-incl.h"
 
+#define FF_ISLOCAL	 0x040000	/* Flag is local (internal) */
+#define FF_ISCREATE	 0x080000	/* Called from create_prolog_flag/3 */
+#define FF_MASK		 0x0ff000	/* All FF flags */
+static_assert(FF_ISLOCAL == FF_GLOBAL<<1,
+	      "Private flags must follow public flags");
+
 typedef struct oneof
 { size_t	count;
   int		references;
@@ -46,8 +52,8 @@ typedef struct oneof
 } oneof;
 
 typedef struct _prolog_flag
-{ unsigned short flags;			/* Type | Flags */
-  short		index;			/* index in LD->prolog_flag.mask */
+{ unsigned int  flags;			/* Type | Flags */
+  unsigned int	index;			/* index in LD->prolog_flag.mask */
   union
   { atom_t	a;			/* value as atom */
     int64_t	i;			/* value as integer */
@@ -61,9 +67,14 @@ typedef struct _prolog_flag
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	set_prolog_flag(key, value, flags) \
+	LDFUNC(set_prolog_flag, key, value, flags)
+#endif /*USE_LD_MACROS*/
+
 #define LDFUNC_DECLARATIONS
 void		setPrologFlag(const char *name, unsigned int flags, ...);
-int		set_prolog_flag(term_t key, term_t value, unsigned short flags);
+bool		set_prolog_flag(term_t key, term_t value, unsigned int flags);
 bool		PL_get_prolog_flag(atom_t name, term_t value);
 bool		setDoubleQuotes(atom_t a, unsigned int *flagp);
 bool		setBackQuotes(atom_t a, unsigned int *flagp);
