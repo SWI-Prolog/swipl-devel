@@ -43,6 +43,7 @@
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
           ]).
+:- encoding(utf8).
 :- use_module(library(debug),[debugging/1,debug/3]).
 :- autoload(library(listing),[portray_clause/1]).
 :- autoload(library(lists),[append/3]).
@@ -179,6 +180,9 @@ unify_term(X, Y) :-
 unify_term(_, Y) :-
     Y == '...',
     !.                          % elipses left by max_depth
+unify_term(_, Y) :-
+    Y == '…',
+    !.                          % Unicode elipses left by max_depth
 unify_term(_:X, Y) :-
     unify_term(X, Y),
     !.
