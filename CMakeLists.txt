@@ -111,10 +111,19 @@ option(BUILD_TESTING
 option(SKIP_SSL_TESTS
        "Skip the SSL tests"
        OFF)
-# The following test requires installing protobuf-compiler python3-protobuf
-# libprotobuf-devel (or protobuf-devel)
+# TEST_PROTOBUFS_PROTOC runs optional tests on packages/protobufs that
+# test the plugin for protoc.  The test requires installing packages
+# protobuf-compiler python3-protobuf libprotobuf-devel (or
+# protobuf-devel):
 option(TEST_PROTOBUFS_PROTOC
        "Run protobuf tests that require protoc, etc."
+       OFF)
+# BUILD_PROTOBUFS_PROTOC is only needed if some new feature has been
+# added to the protobuf language. The details are given in
+# packages/protobufs/README.md and
+# packages/protobufs/bootstrap/README.md.
+option(BUILD_PROTOBUFS_PROTOC
+       "Build protobuf with latest protoc"
        OFF)
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
