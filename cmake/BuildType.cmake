@@ -225,8 +225,14 @@ else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()
 
-# Map custom configurations to Release for imported targets (e.g. vcpkg
-# packages) so that multi-config generators can locate the right library
-# variants.
-set(CMAKE_MAP_IMPORTED_CONFIG_SANITIZE Release RelWithDebInfo "")
-set(CMAKE_MAP_IMPORTED_CONFIG_PGO Release RelWithDebInfo "")
+# The variable CMAKE_MAP_IMPORTED_CONFIG_PGO tells cmake to use one of
+# these build  types for the  dependencies.  This however  breaks SDL3
+# and Python  dependencies using  cmake 4.2 on  Arch Linux.   It seems
+# that not  defining this makes  it fall  back to something  that does
+# work.  I  do not  fully understand  the issue,  so please  provide a
+# correct portable way to fix this if you know how.
+
+if(MSVC)
+  set(CMAKE_MAP_IMPORTED_CONFIG_SANITIZE Release RelWithDebInfo "")
+  set(CMAKE_MAP_IMPORTED_CONFIG_PGO Release RelWithDebInfo "")
+endif()
