@@ -2342,7 +2342,7 @@ pl_spy(term_t p)
 			   PL_TERM, p) )
 	return false;
     }
-    return debugmode(NULL, DBG_ALL, NULL, 0);
+    return debugmode(NULL, true, NULL, DBG_ALL);
   }
 
   return false;
