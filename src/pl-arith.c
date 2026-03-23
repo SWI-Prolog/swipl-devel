@@ -3593,12 +3593,12 @@ ar_max(Number n1, Number n2, Number r)
 
 static bool
 ar_min(Number n1, Number n2, Number r)
-{ int diff = cmpNumbers(n1, n2);
+{ cmpex_t diff = cmpNumbers(n1, n2);
 
   if ( diff == CMP_NOTEQ )			/* if one or both nan's */
   { r->value.f = const_nan;
     r->type = V_FLOAT;
-  } else if ( diff == CMP_EQUAL )
+  } else if ( diff == CMPEX_EQUAL )
   { if ( is_min_zero(n1) )
     { cpNumber(r, n1);
     } else if ( is_min_zero(n2) )
@@ -3709,9 +3709,9 @@ ar_negation(Number n1, Number r)
 #endif
     default:
       assert(0);
-      fail;
+      return false;
   }
-  succeed;
+  return true;
 }
 
 
@@ -3750,11 +3750,11 @@ ar_msb(Number n1, Number r)
       { r->value.i = mpz_sizeinbase(n1->value.mpz, 2)-1;
       }
       r->type = V_INTEGER;
-      succeed;
+      return true;
 #endif
     default:
       assert(0);
-      fail;
+      return false;
   }
 }
 
