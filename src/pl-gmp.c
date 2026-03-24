@@ -1770,7 +1770,7 @@ cmpNumbers(Number n1, Number n2)
     if ( n1->type == V_FLOAT || n2->type == V_FLOAT )
       return cmpFloatNumbers(n1, n2);
     rc = make_same_type_numbers(n1, n2);
-    assert(rc != CMP_ERROR);
+    assert(rc);
     (void)rc;
   }
 
