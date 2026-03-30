@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2026, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,11 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(when)).
+:- use_module(library(clpfd)).
 
 test_when :-
-    run_tests([ when
+    run_tests([ when,
+                clp_gc
               ]).
 
 :- begin_tests(when).
@@ -68,3 +70,15 @@ test(nested_ground, Frozen =@= Constraint) :-
 whened(true).
 
 :- end_tests(when).
+
+:- begin_tests(clp_gc).
+
+:- use_module(library(when)).
+
+test(ndet_foreign_wakeup, error(domain_error(clpfd_expression,_))) :-
+    A = [_],
+    A ins 0..1,
+    when(ground(A), A mod 1 #= _),
+    labeling([enum], A).
+
+:- end_tests(clp_gc).

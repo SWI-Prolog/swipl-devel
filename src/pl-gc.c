@@ -1425,7 +1425,7 @@ slotsInFrame(LocalFrame fr, Code PC)
 
 void
 clearLocalVariablesFrame(LocalFrame fr)
-{ if ( fr->clause )
+{ if ( fr->clause && isoff(fr->predicate, P_FOREIGN) )
   { Definition def = fr->predicate;
     size_t i     = def->functor->arity;
     size_t slots = fr->clause->value.clause->prolog_vars;
