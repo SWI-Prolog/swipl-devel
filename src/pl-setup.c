@@ -634,26 +634,9 @@ pl_signal_handler(int sig)
 { dispatch_signal(sig, false);
 }
 
-#ifndef SA_RESTART
-#define SA_RESTART 0
-#endif
-
 handler_t
 set_sighandler(int sig, handler_t func)
 {
-#ifdef HAVE_SIGACTION
-  struct sigaction old;
-  struct sigaction new;
-
-  memset(&new, 0, sizeof(new));	/* deal with other fields */
-  new.sa_handler = func;
-/*new.sa_flags   = SA_RESTART;  all blocking functions are restarted */
-
-  if ( sigaction(sig, &new, &old) == 0 )
-    return old.sa_handler;
-  else
-    return SIG_DFL;
-#elif defined(HAVE_SIGNAL)
 #ifdef __WINDOWS__
   switch( sig )				/* Current Windows versions crash */
   { case SIGABRT:			/* when given a non-supported value */
@@ -666,18 +649,27 @@ set_sighandler(int sig, handler_t func)
     default:
       return SIG_IGN;
   }
-#endif /*__WINDOWS__*/
   return signal(sig, func);
 #else
-  return NULL;
-#endif
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#endif /*__WINDOWS__*/
 }
 
 static SigHandler
 prepareSignal(int sig, int plsig_flags)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   int current_state = sh->flags & PLSIG_STATEFLAGS;
-  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED : PLSIG_PREPARED;
+  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED
+						   : PLSIG_PREPARED;
 
   plsig_flags &= ~(PLSIG_STATEFLAGS | PLSIG_IGNORE);
 
@@ -685,7 +677,10 @@ prepareSignal(int sig, int plsig_flags)
   { clearFlags(sh);
     set(sh, desired_state | plsig_flags);
     if ( !IS_VSIG(sig) )
-    { handler_t old_handler = set_sighandler(sig, desired_state == PLSIG_IGNORED ? SIG_IGN : pl_signal_handler);
+    { handler_t old_handler =
+	set_sighandler(sig,
+		       desired_state == PLSIG_IGNORED ? SIG_IGN
+						      : pl_signal_handler);
       if ( current_state == 0 )
 	sh->saved_handler = old_handler;
     }

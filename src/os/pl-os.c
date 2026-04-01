@@ -2725,17 +2725,6 @@ argument to wait()
 
 #else /*HAVE_SYS_WAIT_H*/
 
-#ifdef UNION_WAIT			/* Old BSD style wait */
-#include <sys/wait.h>
-#define wait_t union wait
-
-#ifndef WEXITSTATUS
-#define WEXITSTATUS(s) ((s).w_status)
-#endif
-#ifndef WTERMSIG
-#define WTERMSIG(s) ((s).w_status)
-#endif
-#endif /*UNION_WAIT*/
 
 #endif /*HAVE_SYS_WAIT_H*/
 

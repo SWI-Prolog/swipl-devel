@@ -257,10 +257,6 @@ static void
 sig_profile(int sig)
 { (void)sig;
 
-#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
-  signal(SIGPROF, sig_profile);
-#endif
-
   WITH_LD_IF_PROFILING()
   { int newticks;
 
