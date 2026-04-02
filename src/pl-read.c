@@ -1387,8 +1387,12 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  if ( bs == rb.base || !PlIdContW(prev_code(rb.base, bs)) )
 		  { int base;
 
-		    addToBuffer(0, _PL_rd); /* temp add trailing 0 */
+		    /* temp add trailing 0. */
+		    unsigned char *b0 = rb.base;
+		    addToBuffer(0, _PL_rd);		/* may move rb.base */
+		    bs += rb.base-b0;
 		    rb.here--;
+
 		    base = atoi((char*)bs);
 		    if ( base <= 36 )
 		    { if ( base == 0 )			/* 0'<c> */
