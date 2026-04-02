@@ -734,6 +734,8 @@ class Prolog
 	'PL_initialise', 'number', ['number', 'number']),
       PL_new_atom: this.module.cwrap(
 	'PL_new_atom', 'number', ['string']),
+      PL_new_atom_mbchars: this.module.cwrap(
+	'PL_new_atom_mbchars', 'number', ['number', 'number', 'string']),
       PL_register_atom: this.module.cwrap(
 	'PL_register_atom', null, ['number']),
       PL_unregister_atom: this.module.cwrap(
@@ -1953,7 +1955,7 @@ class Prolog
 
 // Return an atom handle for the given C-string.
   new_atom(string)
-  { return this.bindings.PL_new_atom(string);
+  { return this.bindings.PL_new_atom_mbchars(this.REP_UTF8, -1, string);
   }
 
 /**
