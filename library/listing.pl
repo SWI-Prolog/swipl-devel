@@ -68,6 +68,7 @@
 
 :- predicate_options(listing/2, 2,
                      [ thread(atom),
+                       source(boolean),
                        pass_to(portray_clause/3, 3)
                      ]).
 :- predicate_options(portray_clause/3, 3,
