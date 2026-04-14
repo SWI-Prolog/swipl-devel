@@ -1489,7 +1489,6 @@ hook(prolog:message_location(_,_,_)).
 hook(prolog:predicate_summary(_,_)).
 hook(prolog:prolog_exception_hook(_,_,_,_,_)).
 hook(prolog:residual_goals(_,_)).
-hook(prolog:show_profile_hook(_,_)).
 hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(sandbox:safe_directive(_)).
