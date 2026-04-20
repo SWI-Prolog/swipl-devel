@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -42,6 +42,9 @@
 #include "../pl-fli.h"
 #include <ctype.h>
 #include <errno.h>
+#ifndef HAVE_WCWIDTH
+#include "../mk_wcwidth.h"
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines:
@@ -217,6 +220,11 @@ rparen(int chr)
 
 
 static int
+fwidth(int chr)
+{ return wcwidth(chr);
+}
+
+static int
 fdigit(int chr)
 { if ( chr <= 0xff && isdigit(chr) )
     return chr - '0';
@@ -318,6 +326,7 @@ static const char_type char_types[] =
   { ATOM_paren,			     fparen,	rparen,   1, CTX_CHAR },
   { ATOM_digit,			     fdigit,	rdigit,   1, CTX_CODE },
   { ATOM_xdigit,		     fxdigit,	rxdigit,  1, CTX_CODE },
+  { ATOM_width,		             fwidth,	NULL,     1, CTX_CODE },
   { NULL_ATOM,			     NULL }
 };
 

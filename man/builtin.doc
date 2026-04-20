@@ -7970,16 +7970,18 @@ with some other Prolog systems. The predicates of this library are defined
 in terms of code_type/2.
 
 \begin{description}
+    \predicate{code_type}{2}{?Code, ?Type}
+\nodescription
     \predicate{char_type}{2}{?Char, ?Type}
-Tests or generates alternative \arg{Type}s or \arg{Char}s. The character
-types are inspired by the standard C \file{<ctype.h>} primitives. The
-types are sensitive to the active \jargon{locale}, see setlocale/3.
-Most of the \arg{Type}s are mapped to the Unicode classification
-functions from \file{<wctype.h>}, e.g., \const{alnum} uses iswalnum().
-The types \const{prolog_var_start}, \const{prolog_atom_start},
-\const{prolog_identifier_continue} and \const{prolog_symbol} are based
-on the locale-independent built-in classification routines that are
-also used by read/1 and friends.
+Tests or generates alternative \arg{Type}s or \arg{Char/Code}s. The
+character types are inspired by the standard C \file{<ctype.h>}
+primitives. The types are sensitive to the active \jargon{locale}, see
+setlocale/3. Most of the \arg{Type}s are mapped to the Unicode
+classification functions from \file{<wctype.h>}, e.g., \const{alnum}
+uses iswalnum(). The types \const{prolog_var_start},
+\const{prolog_atom_start}, \const{prolog_identifier_continue} and
+\const{prolog_symbol} are based on the locale-independent built-in
+classification routines that are also used by read/1 and friends.
 
 Note that the mode (-,+) is only efficient if the \arg{Type} has a
 parameter, e.g., \term{char_type}{C, digit(8)}. If \arg{Type} is a
@@ -8062,6 +8064,13 @@ etc.).
     \termitem{paren}{Close}
 \arg{Char} is an open parenthesis and \arg{Close} is the corresponding
 close parenthesis.
+    \termitem{width}{Width}
+\arg{Width} is the number of columns for fixed-width usage
+used by \arg{Char}.  True for all printable characters.  Most
+characters require 1 column.  \jargon{Unicode combining characters}
+require no space (they follow the \jargon{base character}).  Many
+Asian characters and the Emojis require 2 columns.  These values
+are used by stream_property/2 for the \term{position}{-Pos} property.
     \termitem{prolog_var_start}{}
 \arg{Char} can start a Prolog variable name.
     \termitem{prolog_atom_start}{}
@@ -8073,14 +8082,6 @@ close parenthesis.
 symbol characters glue together to form an unquoted atom.  Examples
 are \const{=..}, \const{\=}, etc.
 \end{description}
-
-    \predicate{code_type}{2}{?Code, ?Type}
-As char_type/2, but uses character codes rather than one-character
-atoms.  Please note that both predicates are as flexible as possible.
-They handle either representation if the argument is instantiated
-and will instantiate only with an integer code or a one-character atom,
-depending of the version used. See also the Prolog flag
-\prologflag{double_quotes}, atom_chars/2 and atom_codes/2.
 \end{description}
 
 

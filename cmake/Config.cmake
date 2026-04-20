@@ -195,6 +195,7 @@ check_function_exists(mbcasescoll HAVE_MBCASESCOLL)
 check_function_exists(localeconv HAVE_LOCALECONV)
 check_function_exists(wcsdup HAVE_WCSDUP)
 check_function_exists(wcsxfrm HAVE_WCSXFRM)
+check_function_exists(wcwidth HAVE_WCWIDTH)
 # processes
 check_function_exists(getuid HAVE_GETUID)
 check_function_exists(getpid HAVE_GETPID)

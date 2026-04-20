@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 
 #ifndef _PL_CTYPE_H
 #define _PL_CTYPE_H
+#define _GNU_SOURCE			/* get wcwidth() */
 #include "../pl-incl.h"
 
 		 /*******************************
