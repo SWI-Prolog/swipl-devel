@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2011, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2006-2026, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -96,7 +97,12 @@ line(Codes, Class) -->
 	;   { Codes = [First] }
 	),
 	ws, ";", ws,
-	class(Class),
+	class(Class0),
+	(   ws, ";", ws
+	->  class(Prop),
+	    {Class =.. [Class0,Prop]}
+	;   {Class = Class0}
+	),
 	ws,
 	"#",
 	skip_rest.
