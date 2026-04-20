@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2022, University of Amsterdam
-			      VU University Amsterdam
-			      SWI-Prolog Solutions b.v.
+    Copyright (c)  2006-2026, University of Amsterdam
+                              VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,9 @@
 */
 
 :- module(prolog_syntax_map,
-	  [ main/0,
-	    write_syntax_map/2		% +File, +Options
-	  ]).
+          [ main/0,
+            write_syntax_map/2          % +File, +Options
+          ]).
 :- use_module(library(main)).
 :- use_module(library(option)).
 :- use_module(library(debug), [assertion/1]).
@@ -53,27 +53,27 @@ characters we need  for  realising  the   Prolog  syntax.  We  keep  the
 definition of the first 128  ASCII   characters.  Characters  above that
 needs to be classified as
 
-	* id_start (csymf)
-	May start an identifier.
+        * id_start (csymf)
+        May start an identifier.
 
-	* id_continue (csym)
-	May be used anywhere in identifier
+        * id_continue (csym)
+        May be used anywhere in identifier
 
-	* uppercase
-	We need this to be able to distinquish variables from non-variables.
+        * uppercase
+        We need this to be able to distinquish variables from non-variables.
 
-	* Separators
-	We need this for classifying blank space
+        * Separators
+        We need this for classifying blank space
 
-	* Symbols
-	Characters that glue together to form symbols.  These extend the
-	default Prolog symbol set: #$&*+-./:<=>?@\^`~
+        * Symbols
+        Characters that glue together to form symbols.  These extend the
+        default Prolog symbol set: #$&*+-./:<=>?@\^`~
 
-	* lowercase
-	<not needed by Prolog>
+        * lowercase
+        <not needed by Prolog>
 
-	* decimal
-	Characters that represent decimal digits.
+        * decimal
+        Characters that represent decimal digits.
 
 Usage:
 
@@ -89,7 +89,7 @@ The command for this is
 */
 
 :- multifile
-	user:file_search_path/2.
+    user:file_search_path/2.
 
 user:file_search_path(unicode, '.').
 
@@ -97,174 +97,180 @@ user:file_search_path(unicode, '.').
 :- initialization(main, main).
 
 main(Argv) :-
-	argv_options(Argv, R, Options),
-	assertion(R == []),
-	option(out(File), Options, '../pl-umap.c'),
-	write_syntax_map(File, Options).
+    argv_options(Argv, R, Options),
+    assertion(R == []),
+    option(out(File), Options, '../pl-umap.c'),
+    write_syntax_map(File, Options).
 
 last_unicode_page(LastPage) :-
-	LastPage is (0x10ffff + 1) // 0x100.
+    LastPage is (0x10ffff + 1) // 0x100.
 
-		 /*******************************
-		 *	     C TABLES		*
-		 *******************************/
+                 /*******************************
+                 *           C TABLES           *
+                 *******************************/
 
-%%	write_syntax_map(+File, +Options)
+%!  write_syntax_map(+File, +Options)
 %
-%	Options supported are:
+%   Options supported are:
 %
-%		# first_codepage [0]
-%		Code page to start
+%           # first_codepage [0]
+%           Code page to start
 %
-%		# last_codepage [last_unicode_page/1]
-%		Code page to end.
+%           # last_codepage [last_unicode_page/1]
+%           Code page to end.
 
 write_syntax_map(File, Options) :-
-	setup_call_cleanup(
-	    open(File, write, Out),
-	    write_sort_map(Out, Options),
-	    close(Out)).
+    setup_call_cleanup(
+        open(File, write, Out),
+        write_sort_map(Out, Options),
+        close(Out)).
 
 write_sort_map(Out, Options) :-
-	gen_tables(Tables, Options),
-	write_header(Out, Options),
-	forall((member(table(CP, Map), Tables),
-		is_list(Map)),
-	       write_codepage(Out, CP, Map, Options)),
-	write_map(Out, Tables, Options),
-	write_footer(Out, Options),
-	write_decimal_bases(Out, Options).
+    gen_tables(Tables, Options),
+    write_header(Out, Options),
+    forall((member(table(CP, Map), Tables),
+            is_list(Map)),
+           write_codepage(Out, CP, Map, Options)),
+    write_map(Out, Tables, Options),
+    write_footer(Out, Options),
+    write_decimal_bases(Out, Options).
 
 write_codepage(Out, CP, Map, Options) :-
-	option(lang(javascript), Options), !,
-	assertion(length(Map, 256)),
-	cp_name(CP, CPN),
-	format(Out, 'var ~w = "', [CPN]),
-	map_chars(Map, Out),
-	format(Out, '";~n', []).
+    option(lang(javascript), Options),
+    !,
+    assertion(length(Map, 256)),
+    cp_name(CP, CPN),
+    format(Out, 'var ~w = "', [CPN]),
+    map_chars(Map, Out),
+    format(Out, '";~n', []).
 write_codepage(Out, CP, Map, _Options) :-
-	assertion(length(Map, 256)),
-	cp_name(CP, CPN),
-	format(Out, 'static const unsigned char ~w[256] =~n', [CPN]),
-	format(Out, '{ ', []),
-	map_entries(Map, CP, 0, Out),
-	From is CP*256+(256-8),
-	To   is From + 7,
-	format(Out, '  /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n};~n~n', [From,To]).
+    assertion(length(Map, 256)),
+    cp_name(CP, CPN),
+    format(Out, 'static const unsigned char ~w[256] =~n', [CPN]),
+    format(Out, '{ ', []),
+    map_entries(Map, CP, 0, Out),
+    From is CP*256+(256-8),
+    To   is From + 7,
+    format(Out, '  /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n};~n~n', [From,To]).
 
 cp_name(CP, CPN) :-
-	format(atom(CPN), 'ucp0x~|~`0t~16r~2+', [CP]).
+    format(atom(CPN), 'ucp0x~|~`0t~16r~2+', [CP]).
 
 map_entries([], _, _, _).
 map_entries([H|T], CP, I, Out) :-
-	(   I == 0
-	->  true
-	;   0 =:= I mod 8
-	->  From is CP*256+(I-8),
-	    To   is From + 7,
-	    format(Out, ', /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n  ', [From,To])
-	;   format(Out, ', ', [])
-	),
-	format(Out, '0x~|~`0t~16r~2+', [H]),
-	I2 is I + 1,
-	map_entries(T, CP, I2, Out).
+    (   I == 0
+    ->  true
+    ;   0 =:= I mod 8
+    ->  From is CP*256+(I-8),
+        To   is From + 7,
+        format(Out, ', /* U~|~`0t~16R~4+..U~|~`0t~16R~4+ */~n  ', [From,To])
+    ;   format(Out, ', ', [])
+    ),
+    format(Out, '0x~|~`0t~16r~2+', [H]),
+    I2 is I + 1,
+    map_entries(T, CP, I2, Out).
 
 map_chars([], _).
 map_chars([H|T], Out) :-
-	format(Out, '\\x~|~`0t~16r~2+', [H]),
-	map_chars(T, Out).
+    format(Out, '\\x~|~`0t~16r~2+', [H]),
+    map_chars(T, Out).
 
 
 write_map(Out, Tables, Options) :-
-	option(lang(javascript), Options), !,
-	last_unicode_page(DefLast),
-	option(last_codepage(Last), Options, DefLast),
-	format(Out, 'var uflags_map = [', []),
-	js_map_tables(0, Last, Tables, Out),
-	format(Out, '];~n~n', []).
+    option(lang(javascript), Options),
+    !,
+    last_unicode_page(DefLast),
+    option(last_codepage(Last), Options, DefLast),
+    format(Out, 'var uflags_map = [', []),
+    js_map_tables(0, Last, Tables, Out),
+    format(Out, '];~n~n', []).
 write_map(Out, Tables, Options) :-
-	last_unicode_page(DefLast),
-	option(last_codepage(Last), Options, DefLast),
-	format(Out,
-	       'static const unsigned char* const uflags_map[UNICODE_MAP_SIZE] =~n',
-	       []),
-	format(Out, '{ ', []),
-	map_tables(0, Last, Tables, Out),
-	format(Out, '~N};~n~n', []).
+    last_unicode_page(DefLast),
+    option(last_codepage(Last), Options, DefLast),
+    format(Out,
+           'static const unsigned char* const uflags_map[UNICODE_MAP_SIZE] =~n',
+           []),
+    format(Out, '{ ', []),
+    map_tables(0, Last, Tables, Out),
+    format(Out, '~N};~n~n', []).
 
 map_tables(CP, Last, _, _) :-
-	CP > Last, !.
+    CP > Last,
+    !.
 map_tables(CP, Last, Tables, Out) :-
-	(   CP == 0
-	->  true
-	;   0 =:= CP mod 8
-	->  format(Out, ',~n  ', [])
-	;   format(Out, ', ', [])
-	),
-	memberchk(table(CP, Map), Tables),
-	(   is_list(Map)
-	->  cp_name(CP, CPN),
-	    format(Out, '~w', [CPN])
-	;   format(Out, '~|~tF(0x~16r)~7+', [Map])
-	),
-	CP2 is CP + 1,
-	map_tables(CP2, Last, Tables, Out).
+    (   CP == 0
+    ->  true
+    ;   0 =:= CP mod 8
+    ->  format(Out, ',~n  ', [])
+    ;   format(Out, ', ', [])
+    ),
+    memberchk(table(CP, Map), Tables),
+    (   is_list(Map)
+    ->  cp_name(CP, CPN),
+        format(Out, '~w', [CPN])
+    ;   format(Out, '~|~tF(0x~16r)~7+', [Map])
+    ),
+    CP2 is CP + 1,
+    map_tables(CP2, Last, Tables, Out).
 
 
 js_map_tables(CP, Last, _, _) :-
-	CP > Last, !.
+    CP > Last,
+    !.
 js_map_tables(CP, Last, Tables, Out) :-
-	(   CP == 0
-	->  true
-	;   0 =:= CP mod 8
-	->  format(Out, ',~n  ', [])
-	;   format(Out, ', ', [])
-	),
-	memberchk(table(CP, Map), Tables),
-	(   is_list(Map)
-	->  cp_name(CP, CPN),
-	    format(Out, '~w', [CPN])
-	;   format(Out, '0x~|~`0t~16r~2+', [Map])
-	),
-	CP2 is CP + 1,
-	js_map_tables(CP2, Last, Tables, Out).
+    (   CP == 0
+    ->  true
+    ;   0 =:= CP mod 8
+    ->  format(Out, ',~n  ', [])
+    ;   format(Out, ', ', [])
+    ),
+    memberchk(table(CP, Map), Tables),
+    (   is_list(Map)
+    ->  cp_name(CP, CPN),
+        format(Out, '~w', [CPN])
+    ;   format(Out, '0x~|~`0t~16r~2+', [Map])
+    ),
+    CP2 is CP + 1,
+    js_map_tables(CP2, Last, Tables, Out).
 
 
 write_header(Out, Options) :-
-	option(lang(javascript), Options), !,
-	map_size(Size, Options),
-	generated_file(Out),
-	format(Out, 'define([], function() {~n', []),
-	format(Out, 'var UNICODE_MAP_SIZE~t= ~d;~32|~n', [Size]),
-	forall(flag_name(Name, Hex),
-	       ( upcase_atom(Name, Up),
-		 format(Out, 'var U_~w~t= 0x~16r;~32|~n', [Up, Hex])
-	       )),
-	format(Out, '~n~n', []).
+    option(lang(javascript), Options),
+    !,
+    map_size(Size, Options),
+    generated_file(Out),
+    format(Out, 'define([], function() {~n', []),
+    format(Out, 'var UNICODE_MAP_SIZE~t= ~d;~32|~n', [Size]),
+    forall(flag_name(Name, Hex),
+           ( upcase_atom(Name, Up),
+             format(Out, 'var U_~w~t= 0x~16r;~32|~n', [Up, Hex])
+           )),
+    format(Out, '~n~n', []).
 write_header(Out, Options) :-
-	generated_file(Out),
-	map_size(Size, Options),
-	format(Out, '#define UNICODE_MAP_SIZE ~d~n', [Size]),
-	format(Out, '#define F(c) (const unsigned char*)(c)~n~n', []),
-	forall(flag_name(Name, Hex),
-	       ( upcase_atom(Name, Up),
-		 format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
-	       )),
-	format(Out, '~n~n', []).
+    generated_file(Out),
+    map_size(Size, Options),
+    format(Out, '#define UNICODE_MAP_SIZE ~d~n', [Size]),
+    format(Out, '#define F(c) (const unsigned char*)(c)~n~n', []),
+    forall(flag_name(Name, Hex),
+           ( upcase_atom(Name, Up),
+             format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
+           )),
+    format(Out, '~n~n', []).
 
 map_size(Size, Options) :-
-	last_unicode_page(DefLast),
-	option(last_codepage(Last), Options, DefLast),
-	Size is Last+1.
+    last_unicode_page(DefLast),
+    option(last_codepage(Last), Options, DefLast),
+    Size is Last+1.
 
 generated_file(Out) :-
-	format(Out, '/*  Generated file.  Do not edit!\n    \c
-			 Generated by Unicode/prolog_syntax_map.pl\n\c
-		     */~n~n', []).
+    format(Out, '/*  Generated file.  Do not edit!\n    \c
+                         Generated by Unicode/prolog_syntax_map.pl\n\c
+                     */~n~n', []).
 
 write_footer(Out, Options) :-
-	option(lang(javascript), Options), !,
-	format(Out,
+    option(lang(javascript), Options),
+    !,
+    format(Out,
 '\c
 function uflagsW(chr) {
   var code = chr.charCodeAt(0);
@@ -294,71 +300,71 @@ return {
 }
 });~n', []).
 write_footer(Out, _Options) :-
-	format(Out,
-	       'static int\n\c
-		uflagsW(int code)\n\c
-		{ int cp = (unsigned)code / 256;\n\c
-		\n  \c
-		  if ( cp < UNICODE_MAP_SIZE )\n  \c
-		  { const unsigened char *s = uflags_map[cp];\n    \c
-		    if ( s < (const unsigened char *)256 )\n      \c
-		      return (int)(intptr_t)s;\n    \c
-		    return s[code];\n  \c
-		  }\n  \c
-		  return 0;\n\c
-		}\n\n', []).
+    format(Out,
+           'static int\n\c
+                uflagsW(int code)\n\c
+                { int cp = (unsigned)code / 256;\n\c
+                \n  \c
+                  if ( cp < UNICODE_MAP_SIZE )\n  \c
+                  { const unsigened char *s = uflags_map[cp];\n    \c
+                    if ( s < (const unsigened char *)256 )\n      \c
+                      return (int)(intptr_t)s;\n    \c
+                    return s[code];\n  \c
+                  }\n  \c
+                  return 0;\n\c
+                }\n\n', []).
 
 
-		 /*******************************
-		 *	       TABLES		*
-		 *******************************/
+                 /*******************************
+                 *             TABLES           *
+                 *******************************/
 
-%%	gen_tables(-Tables, +Options)
+%!  gen_tables(-Tables, +Options)
 %
-%	Table is of  the  format  below,   where  CodePage  is  the page
-%	(0..255) for 16-bit Unicode and  ValueList   are  the values for
-%	each character.
+%   Table is of  the  format  below,   where  CodePage  is  the page
+%   (0..255) for 16-bit Unicode and  ValueList   are  the values for
+%   each character.
 %
-%		table(CodePage, ValueList)
+%           table(CodePage, ValueList)
 
 gen_tables(Tables, Options) :-
-	findall(table(CP,Map), table(CP, Map, Options), Tables).
+    findall(table(CP,Map), table(CP, Map, Options), Tables).
 
 table(CP, Map, Options) :-
-	code_page(CP, Options),
-	option(lang(Lang), Options, 'C'),
-	findall(M, char(CP, M, Lang), Map0),
-	flat_map(Map0, Map).
+    code_page(CP, Options),
+    option(lang(Lang), Options, 'C'),
+    findall(M, char(CP, M, Lang), Map0),
+    flat_map(Map0, Map).
 
 code_page(CP, Options) :-
-	last_unicode_page(DefPage),
-	option(first_codepage(First), Options, 0),
-	option(last_codepage(Last), Options, DefPage),
-	between(First, Last, CP).
+    last_unicode_page(DefPage),
+    option(first_codepage(First), Options, 0),
+    option(last_codepage(Last), Options, DefPage),
+    between(First, Last, CP).
 
 char(CP, Value, Lang) :-
-	between(0, 255, I),
-	Code is 256*CP+I,
-	code_flags(Lang, Code, Value).
+    between(0, 255, I),
+    Code is 256*CP+I,
+    code_flags(Lang, Code, Value).
 
 code_flags(Lang, Code, Value) :-
-	findall(F, cflag(Lang, Code, F), Fs),
-	or(Fs, Value).
+    findall(F, cflag(Lang, Code, F), Fs),
+    or(Fs, Value).
 
 or([], 0).
 or([H|T], F) :-
-	or(T, F0),
-	F is F0 \/ H.
+    or(T, F0),
+    F is F0 \/ H.
 
 cflag(javascript, Code, Flag) :-
-	flag_name(Name, Flag),
-	(   Code < 256
-	->  predef_code_flag(Code, Name)
-	;   code_flag(Code, Name)
-	).
+    flag_name(Name, Flag),
+    (   Code < 256
+    ->  predef_code_flag(Code, Name)
+    ;   code_flag(Code, Name)
+    ).
 cflag('C', Code, Flag) :-
-	flag_name(Name, Flag),
-	code_flag(Code, Name).
+    flag_name(Name, Flag),
+    code_flag(Code, Name).
 
 flag_name(id_start,    0x01).
 flag_name(id_continue, 0x02).
@@ -369,156 +375,157 @@ flag_name(other,       0x20).
 flag_name(control,     0x40).
 flag_name(decimal,     0x80).
 
-%!	predef_code_flag(+C, ?Class) is nondet.
+%!  predef_code_flag(+C, ?Class) is nondet.
 %
-%	Fill code page 0 (0..255) using   predefined categories. This is
-%	used for consistency of the JavaScript classifier.
+%   Fill code page 0 (0..255) using   predefined categories. This is
+%   used for consistency of the JavaScript classifier.
 
 predef_code_flag(C, id_start) :-
-	(   code_type(C, prolog_atom_start)
-	;   code_type(C, prolog_var_start)
-	).
+    (   code_type(C, prolog_atom_start)
+    ;   code_type(C, prolog_var_start)
+    ).
 predef_code_flag(C, id_continue) :-
-	code_type(C, prolog_identifier_continue).
+    code_type(C, prolog_identifier_continue).
 predef_code_flag(C, symbol) :-
-	code_type(C, prolog_symbol).
+    code_type(C, prolog_symbol).
 predef_code_flag(C, uppercase) :- unicode_derived_core_property(C, uppercase).
 predef_code_flag(C, other) :-
-	unicode_property(C, general_category(Cat)),
-	other_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    other_cat(Cat).
 predef_code_flag(C, control) :-
-	unicode_property(C, general_category(Cat)),
-	control_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    control_cat(Cat).
 predef_code_flag(C, unassigned) :-
-	\+ unicode_property(C, general_category(_)).
+    \+ unicode_property(C, general_category(_)).
 
 
 code_flag(C, id_start) :-    unicode_derived_core_property(C, id_start).
 code_flag(C, id_continue) :- unicode_derived_core_property(C, id_continue).
 code_flag(C, uppercase) :-   unicode_derived_core_property(C, uppercase).
 code_flag(C, separator) :-
-	unicode_property(C, general_category(Cat)),
-	sep_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    sep_cat(Cat).
 code_flag(C, symbol) :-
-	unicode_property(C, general_category(Cat)),
-	symbol_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    symbol_cat(Cat).
 code_flag(C, other) :-
-	unicode_property(C, general_category(Cat)),
-	other_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    other_cat(Cat).
 code_flag(C, control) :-
-	unicode_property(C, general_category(Cat)),
-	control_cat(Cat).
+    unicode_property(C, general_category(Cat)),
+    control_cat(Cat).
 code_flag(C, unassigned) :-
-	\+ unicode_property(C, general_category(_)).
+    \+ unicode_property(C, general_category(_)).
 code_flag(C, decimal) :-
-	unicode_property(C, general_category('Nd')).
+    unicode_property(C, general_category('Nd')).
 
 % See http://www.unicode.org/reports/tr44/#Property_Values
 
-sep_cat('Zs').		% a space character (of various non-zero widths)
-sep_cat('Zl').		% U+2028 LINE SEPARATOR only
-sep_cat('Zp').		% U+2029 PARAGRAPH SEPARATOR only
+sep_cat('Zs').          % a space character (of various non-zero widths)
+sep_cat('Zl').          % U+2028 LINE SEPARATOR only
+sep_cat('Zp').          % U+2029 PARAGRAPH SEPARATOR only
 
-symbol_cat('Sm').	% a symbol of primarily mathematical use
-symbol_cat('Sc').	% a currency sign
-symbol_cat('Sk').	% a non-letterlike modifier symbol
-symbol_cat('So').	% a symbol of other type
-symbol_cat('Pc').	% a connecting punctuation mark, like a tie
-symbol_cat('Pd').	% a dash or hyphen punctuation mark
-symbol_cat('Ps').	% an opening punctuation mark (of a pair)
-symbol_cat('Pe').	% a closing punctuation mark (of a pair)
-symbol_cat('Pi').	% an initial quotation mark
-symbol_cat('Pf').	% a final quotation mark
-symbol_cat('Po').	% a punctuation mark of other type
+symbol_cat('Sm').       % a symbol of primarily mathematical use
+symbol_cat('Sc').       % a currency sign
+symbol_cat('Sk').       % a non-letterlike modifier symbol
+symbol_cat('So').       % a symbol of other type
+symbol_cat('Pc').       % a connecting punctuation mark, like a tie
+symbol_cat('Pd').       % a dash or hyphen punctuation mark
+symbol_cat('Ps').       % an opening punctuation mark (of a pair)
+symbol_cat('Pe').       % a closing punctuation mark (of a pair)
+symbol_cat('Pi').       % an initial quotation mark
+symbol_cat('Pf').       % a final quotation mark
+symbol_cat('Po').       % a punctuation mark of other type
 
-other_cat('No').	% a numeric character of other type
-other_cat('Me').	% an enclosing combining mark
+other_cat('No').        % a numeric character of other type
+other_cat('Me').        % an enclosing combining mark
 
-control_cat('Cc').	% a C0 or C1 control code
-control_cat('Cf').	% a format control character
-control_cat('Cs').	% a surrogate code point
-control_cat('Co').	% a private-use character
-control_cat('Cn').	% a reserved unassigned code point or a noncharacter
+control_cat('Cc').      % a C0 or C1 control code
+control_cat('Cf').      % a format control character
+control_cat('Cs').      % a surrogate code point
+control_cat('Co').      % a private-use character
+control_cat('Cn').      % a reserved unassigned code point or a noncharacter
 
 
 flat_map(Map0, Value) :-
-	sort(Map0, [Value]), !.
+    sort(Map0, [Value]),
+    !.
 flat_map(Map, Map).
 
 
-		 /*******************************
-		 *	      DECIMALS		*
-		 *******************************/
+                 /*******************************
+                 *            DECIMALS          *
+                 *******************************/
 
 write_decimal_bases(Out, Options) :-
-	decimal_bases(Bases, Options),
-	format(Out, 'static const int decimal_bases[] =~n{ ', []),
-	write_bases(Out, Bases, 0).
+    decimal_bases(Bases, Options),
+    format(Out, 'static const int decimal_bases[] =~n{ ', []),
+    write_bases(Out, Bases, 0).
 
 write_bases(Out, [], _) :-
-	!,
-	format(Out, '~N};~n~n', []).
+    !,
+    format(Out, '~N};~n~n', []).
 write_bases(Out, [H|T], I) :-
-	(   I == 0
-	->  true
-	;   0 =:= I mod 8
-	->  format(Out, ',~n  ', [])
-	;   format(Out, ', ', [])
-	),
-	format(Out, '0x~|~`0t~16r~2+', [H]),
-	I2 is I + 1,
-	write_bases(Out, T, I2).
+    (   I == 0
+    ->  true
+    ;   0 =:= I mod 8
+    ->  format(Out, ',~n  ', [])
+    ;   format(Out, ', ', [])
+    ),
+    format(Out, '0x~|~`0t~16r~2+', [H]),
+    I2 is I + 1,
+    write_bases(Out, T, I2).
 
 
-%!	decimal_bases(-Bases, +Options) is det.
+%!  decimal_bases(-Bases, +Options) is det.
 %
-%	Basis is a list of base codepoints for a decimal block of length
-%	10.
+%   Basis is a list of base codepoints for a decimal block of length
+%   10.
 
 decimal_bases(Bases, Options) :-
-	findall(Digit, digit(Digit, Options), Digits),
-	digit_blocks(Digits, Blocks),
-	maplist(digit_base, Blocks, Bases0),
-	flatten(Bases0, Bases).
+    findall(Digit, digit(Digit, Options), Digits),
+    digit_blocks(Digits, Blocks),
+    maplist(digit_base, Blocks, Bases0),
+    flatten(Bases0, Bases).
 
 digit(Digit, Options) :-
-	code_page(CP, Options),
-	Start is CP*256,
-	End is Start+255,
-	between(Start, End, Digit),
-	code_flag(Digit, decimal).
+    code_page(CP, Options),
+    Start is CP*256,
+    End is Start+255,
+    between(Start, End, Digit),
+    code_flag(Digit, decimal).
 
 digit_blocks(Digits, [Block|BT]) :-
-	block(Digits, T, Block),
-	!,
-	digit_blocks(T, BT).
+    block(Digits, T, Block),
+    !,
+    digit_blocks(T, BT).
 digit_blocks(_, []).
 
 block([H|T0], T, [H|Block]) :-
-	sequence(H, T0, T, Block),
-	Block \== [],
-	!.
+    sequence(H, T0, T, Block),
+    Block \== [],
+    !.
 block([_|T0], T, Block) :-
-	block(T0, T, Block).
+    block(T0, T, Block).
 
 sequence(I0, [H|T0], T, [H|BT]) :-
-	H =:= I0+1,
-	!,
-	sequence(H, T0, T, BT).
+    H =:= I0+1,
+    !,
+    sequence(H, T0, T, BT).
 sequence(_, T, T, []).
 
 digit_base(Block, Base) :-
-	length(Block, 10),
-	!,
-	Block = [Base|_].
+    length(Block, 10),
+    !,
+    Block = [Base|_].
 digit_base(Block, [Base0|Bases]) :-
-	length(Block, Len),
-	Len mod 10 =:= 0,
-	Block = [Base0|_],
-	End is Len/10-1,
-	numlist(1, End, N0),
-	maplist(mul(10), N0, N1),
-	maplist(plus(Base0), N1, Bases).
+    length(Block, Len),
+    Len mod 10 =:= 0,
+    Block = [Base0|_],
+    End is Len/10-1,
+    numlist(1, End, N0),
+    maplist(mul(10), N0, N1),
+    maplist(plus(Base0), N1, Bases).
 
 mul(Times, N0, N) :-
-	N is N0*Times.
+    N is N0*Times.

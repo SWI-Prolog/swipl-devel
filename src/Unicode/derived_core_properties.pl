@@ -4,7 +4,7 @@
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
     Copyright (c)  2006-2026, University of Amsterdam
-			      SWI-Prolog Solutions b.v.
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,121 +34,126 @@
 */
 
 :- module(unicode_derived_core_properties,
-	  [ unicode_derived_core_property/2,	% ?Code, ?Prop
-	    unicode_property/3			% +File, ?Code, ?Prop
-	  ]).
+          [ unicode_derived_core_property/2,    % ?Code, ?Prop
+            unicode_property/3                  % +File, ?Code, ?Prop
+          ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2, numlist/3]).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
 :- dynamic
-	derived_property/3,
-	loaded/1.
-
-%	unicode_derived_core_property(+File, ?Code, ?Prop)
-%
-%
+    derived_property/3,
+    loaded/1.
 
 unicode_derived_core_property(Code, Prop) :-
-	unicode_property('DerivedCoreProperties.txt', Code, Prop).
+    unicode_property('DerivedCoreProperties.txt', Code, Prop).
+
+%!  unicode_derived_core_property(+File, ?Code, ?Prop)
+%
+%   True when Code has Prop according to file.
 
 unicode_property(File, Code, Prop) :-
-	loaded(File), !,
-	derived_property(Code, Prop, File).
+    loaded(File),
+    !,
+    derived_property(Code, Prop, File).
 unicode_property(File, Code, Prop) :-
-	retractall(derived_property(_, _,File)),
-	process_file(File),
-	assert(loaded(File)),
-	unicode_property(File, Code, Prop).
+    retractall(derived_property(_, _,File)),
+    process_file(File),
+    assert(loaded(File)),
+    unicode_property(File, Code, Prop).
 
 
 process_file(File) :-
-	open(File, read, In),
-	call_cleanup(process_stream(In, File), close(In)).
+    open(File, read, In),
+    call_cleanup(process_stream(In, File), close(In)).
 
 process_stream(In, File) :-
-	read_line_to_codes(In, Line),
-	(   Line == end_of_file
-	->  true
-	;   process_line(Line, File),
-	    process_stream(In, File)
-	).
+    read_line_to_codes(In, Line),
+    (   Line == end_of_file
+    ->  true
+    ;   process_line(Line, File),
+        process_stream(In, File)
+    ).
 
 process_line(Line, File) :-
-	debug(unicode_data, 'Line "~s"', [Line]),
-	(   phrase(line(Codes, Class), Line)
-	->  forall(member(C, Codes),
-		   assert(derived_property(C, Class, File)))
-	;   format('ERROR: Could not parse "~s"~n', [Line]),
-	    abort
-	).
+    debug(unicode_data, 'Line "~s"', [Line]),
+    (   phrase(line(Codes, Class), Line)
+    ->  forall(member(C, Codes),
+               assert(derived_property(C, Class, File)))
+    ;   format('ERROR: Could not parse "~s"~n', [Line]),
+        abort
+    ).
 
 
 
 line([], -) -->
-	ws, "#", skip_rest, !.
+    ws, "#", skip_rest,
+    !.
 line([], -) -->
-	ws.
+    ws.
 line(Codes, Class) -->
-	ucc(First),
-	(   ".."
-	->  ucc(Last),
-	    { numlist(First, Last, Codes) }
-	;   { Codes = [First] }
-	),
-	ws, ";", ws,
-	class(Class0),
-	(   ws, ";", ws
-	->  class(Prop),
-	    {Class =.. [Class0,Prop]}
-	;   {Class = Class0}
-	),
-	ws,
-	"#",
-	skip_rest.
+    ucc(First),
+    (   ".."
+    ->  ucc(Last),
+        { numlist(First, Last, Codes) }
+    ;   { Codes = [First] }
+    ),
+    ws, ";", ws,
+    class(Class0),
+    (   ws, ";", ws
+    ->  class(Prop),
+        {Class =.. [Class0,Prop]}
+    ;   {Class = Class0}
+    ),
+    ws,
+    "#",
+    skip_rest.
 
 class(Class) -->
-	identifier(Id),
-	{ downcase_atom(Id, Class) }.
+    identifier(Id),
+    { downcase_atom(Id, Class) }.
 
 identifier(Word) -->
-	[C0], { code_type(C0, csymf) },
-	csyms(Cs),
-	{ atom_codes(Word, [C0|Cs]) }.
+    [C0], { code_type(C0, csymf) },
+    csyms(Cs),
+    { atom_codes(Word, [C0|Cs]) }.
 
 csyms([H|T]) -->
-	[H], { code_type(H, csym) }, !,
-	csyms(T).
+    [H], { code_type(H, csym) },
+    !,
+    csyms(T).
 csyms([]) -->
-	[].
+    [].
 
 ucc(Val) -->
-	hex_digit(D0),
-	hex_digit(D1),
-	hex_digit(D2),
-	hex_digit(D3),
-	{ Val0 is D0<<12 + D1<<8 + D2<<4 + D3 },
-	xucc(Val0, Val).
+    hex_digit(D0),
+    hex_digit(D1),
+    hex_digit(D2),
+    hex_digit(D3),
+    { Val0 is D0<<12 + D1<<8 + D2<<4 + D3 },
+    xucc(Val0, Val).
 
 xucc(Val0, Val) -->
-	hex_digit(D), !,
-	{ Val1 is Val0<<4 + D },
-	xucc(Val1, Val).
+    hex_digit(D),
+    !,
+    { Val1 is Val0<<4 + D },
+    xucc(Val1, Val).
 xucc(Val, Val) -->
-	[].
+    [].
 
 hex_digit(D) -->
-	[C],
-	{ code_type(C, xdigit(D)) }.
+    [C],
+    { code_type(C, xdigit(D)) }.
 
 w -->
-	[C],
-	{ code_type(C, white) }.
+    [C],
+    { code_type(C, white) }.
 
 ws -->
-	w, !,
-	ws.
+    w,
+    !,
+    ws.
 ws -->
-	[].
+    [].
 
 skip_rest(_, []).
