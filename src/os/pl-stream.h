@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2024, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2017-2026, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -40,10 +40,12 @@
 
 #define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include "SWI-Stream.h"
+#include <stdbool.h>
 
 void		unallocStream(IOSTREAM *s);
 IOSTREAM       *Sacquire(IOSTREAM *s);
 int             Srelease(IOSTREAM *s);
+bool		Supdatepos(IOPOS *p, int c);
 
 #ifndef _PL_INCLUDE_H
 #ifdef O_PLMT

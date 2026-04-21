@@ -6836,16 +6836,21 @@ appropriate for the use-case.
 As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
 
-    \predicate[semidet]{write_length}{3}{+Term, -Length, +Options}
-True when \arg{Length} is the number of characters emitted for
-\term{write_term}{Term, Options}.  In addition to valid options for
-write_term/2, it processes the option:
+    \predicate[semidet]{write_size}{4}{+Term, -Width, -Height, +Options}
+True when \arg{Width} and \arg{Height} describe the maximum line width
+and \arg{Height} the number of lines for printing \arg{Term} using
+\arg{Options} using \term{write_term}{Term, Options}. The computed width
+respects Unicode \jargon{coombining} and \jargon{double width}
+characters. In addition to qvalid options for write_term/2, it processes
+the options:
 
     \begin{description}
-	\termitem{max_length}{+MaxLength}
-If provided, fail if \arg{Length} would be larger than \arg{MaxLength}.
-The implementation ensures that the runtime is limited when computing
-the length of a huge term with a bounded maximum.
+	\termitem{max_width}{+MaxWidth}
+\nodescription
+	\termitem{max_height}{+MaxHeight}
+If provided, fail if \arg{Width} or \arg{Height} would be larger than
+the specified maximum. The implementation ensures that the runtime is
+limited when computing the size of a huge term with a bounded maximum.
     \end{description}
 
     \predicate[ISO]{write_canonical}{1}{+Term}
@@ -7789,9 +7794,7 @@ L = [gnu, gnat]
     \predicate[ISO]{atom_length}{2}{+Atom, -Length}
 True if \arg{Atom} is an atom of \arg{Length} characters. The
 SWI-Prolog version accepts all atomic types, as well as code-lists and
-character-lists. New code should avoid this feature and use
-write_length/3 to get the number of characters that would be written if
-the argument was handed to write_term/3.
+character-lists.  See also write_size/4.
 
     \predicate[deprecated]{atom_prefix}{2}{+Atom, +Prefix}
 True if \arg{Atom} starts with the characters from \arg{Prefix}.

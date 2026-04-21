@@ -832,7 +832,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeln}{2}{Write term, followed by a newline to a stream}
 \predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
 \predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
-\predicatesummary{write_length}{3}{Determine \#characters to output a term}
+\predicatesummary{write_size}{4}{Determine printed size for a term}
 \predicatesummary{write_term}{2}{Write term with options}
 \predicatesummary{write_term}{3}{Write term with options to stream}
 \predicatesummary{writeq}{1}{Write term, insert quotes}

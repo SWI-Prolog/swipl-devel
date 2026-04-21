@@ -733,24 +733,21 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
-static inline void
-update_linepos(IOSTREAM *s, int c)
-{ IOPOS *p = s->position;
-
-  if ( likely(c > '\r' && c < 0x300) )	/* speedup the 99% case a bit */
+bool
+Supdatepos(IOPOS *p, int c)
+{ if ( likely(c > '\r' && c < 0x300) )	/* speedup the 99% case a bit */
   { p->linepos++;
-    return;
+    return false;
   }
 
   switch(c)
   { case '\n':
       p->lineno++;
       p->linepos = 0;
-      s->flags &= ~SIO_NOLINEPOS;
-      break;
+      return true;
     case '\r':
       p->linepos = 0;
-      s->flags &= ~SIO_NOLINEPOS;
+      return true;			/* linepos is reliable again */
       break;
     case '\b':
       if ( p->linepos > 0 )
@@ -758,11 +755,19 @@ update_linepos(IOSTREAM *s, int c)
       break;
     case '\t':
       p->linepos |= 7;
+      /*FALLTHROUGH*/
     default:
       p->linepos += wcwidth(c);
   }
+
+  return false;
 }
 
+static inline void
+update_linepos(IOSTREAM *s, int c)
+{ if ( Supdatepos(s->position, c) )
+    s->flags &= ~SIO_NOLINEPOS;
+}
 
 
 int

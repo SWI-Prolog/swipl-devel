@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2023, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -64,6 +64,7 @@
             string_to_atom/2,           % ?String, ?Atom
             flush/0,
             write_ln/1,                 % +Term
+            write_length/3,             % +Term, -Length, +Options
             proper_list/1,              % @Term
             free_variables/2,           % +Term, -Variables
             hash_term/2,                % +Term, -Hash
@@ -324,12 +325,23 @@ string_to_atom(Atom, String) :-
 flush :-
     flush_output.
 
-%!  write_ln(X) is det
+%!  write_ln(@Term) is det
 %
-%   @deprecated Use writeln(X).
+%   @deprecated Use writeln/1.
 
 write_ln(X) :-
     writeln(X).
+
+%!  write_length(@Term, -Length, +Options)
+%
+%   @deprecated use write_size/4
+
+write_length(Term, Length, Options) :-
+    '$option'(max_length(ML), Options),
+    !,
+    write_size(Term, Length, _, [max_width(ML)]).
+write_length(Term, Length, _Options) :-
+    write_size(Term, Length, _, []).
 
 %!  proper_list(+List)
 %
