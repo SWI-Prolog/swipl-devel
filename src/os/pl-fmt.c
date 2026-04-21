@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -55,6 +55,9 @@ source should also use format() to produce error messages, etc.
 #ifdef __WINDOWS__
 #include "../pl-nt.h"
 #endif
+#ifndef HAVE_WCWIDTH
+#include "../mk_wcwidth.h"
+#endif
 
 typedef foreign_t (*Func1)(term_t a1);
 
@@ -103,7 +106,7 @@ static PL_locale prolog_locale =
 static inline void
 update_column(format_state *state, int c)
 { if ( likely(c >= ' ') )
-  { state->column++;
+  { state->column += wcwidth(c);
   } else
   { switch(c)
     { case '\n':
@@ -160,7 +163,7 @@ Emit ASCII 0-terminated strings resulting from sprintf() on numeric
 arguments.  No fuzz with wide characters here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static WUNUSED int
+static WUNUSED bool
 outstring(format_state *state, const char *s, size_t len)
 { const char *q;
   const char *e = &s[len];
