@@ -87,7 +87,7 @@ backSkipUTF8(const char *start, const char *s, int *chr)
 		 *******************************/
 
 #define unify_text(t, txt, type) LDFUNC(unify_text, t, txt, type)
-static int
+static bool
 unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
 { if ( PL_unify_text(t, 0, txt, type) )
   { return true;
@@ -95,7 +95,7 @@ unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
   { PL_chars_t tt;
 
     if ( PL_get_text(t, &tt, CVT_ALL) )
-    { int rc = ( txt->encoding == tt.encoding &&
+    { bool rc = ( txt->encoding == tt.encoding &&
 		 txt->length == tt.length &&
 		 PL_cmp_text(txt, 0, &tt, 0, tt.length) == CMP_EQUAL );
       PL_free_text(&tt);
@@ -133,23 +133,24 @@ PRED_IMPL("atom_string", 2, atom_string, 0)
 
 
 #define string_x(str, list, out_type) LDFUNC(string_x, str, list, out_type)
-static int
+static bool
 string_x(DECL_LD term_t str, term_t list, int out_type)
 { PL_chars_t t;
-  int rc;
 
   switch ( PL_get_text(str, &t, CVT_ALL|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case true:
-      rc = unify_text(list, &t, out_type);
+  { case GT_TRUE:
+    { bool rc = unify_text(list, &t, out_type);
       PL_free_text(&t);
       return rc;
-    case false:
+    }
+    case GT_FALSE:
       return false;
-    /*case 2: str can bind */
+    case GT_ISVAR:
+      break;				/* Can bind */
   }
 
   if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-  { rc = unify_text(str, &t, PL_STRING);
+  { bool rc = unify_text(str, &t, PL_STRING);
     PL_free_text(&t);
     return rc;
   }
@@ -181,7 +182,7 @@ PRED_IMPL("text_to_string", 2, text_to_string, 0)
     return PL_unify(A1, A2);
 
   if ( PL_get_text(A1, &t, CVT_ATOM|CVT_LIST|CVT_EXCEPTION) )
-  { int rc = unify_text(A2, &t, PL_STRING);
+  { bool rc = unify_text(A2, &t, PL_STRING);
     PL_free_text(&t);
     return rc;
   }
@@ -217,8 +218,9 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
     return PL_domain_error("encoding", A3);
 
   switch ( PL_get_text(A1, &t,
-		       CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case true:
+		       CVT_ATOM|CVT_STRING|CVT_LIST|
+		       CVT_EXCEPTION|CVT_VARNOFAIL) )
+  { case GT_TRUE:
       if ( !PL_text_recode(&t, enc) )
       { PL_free_text(&t);
 	return false;
@@ -228,10 +230,9 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
 			  t.text.t);
       PL_free_text(&t);
       return rc;
-    case false:
+    case GT_FALSE:
       return false;
-    default:
-      /* 2: can unify */
+    case GT_ISVAR:			/* can unify */
       break;
   }
 

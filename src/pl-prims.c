@@ -4063,7 +4063,7 @@ text_length(DECL_LD term_t s, term_t len, int flags)
   flags |= CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(s, &txt, flags) )
-  { int rc = PL_unify_int64_ex(len, PL_text_length(&txt));
+  { bool rc = PL_unify_int64_ex(len, PL_text_length(&txt));
 
     PL_free_text(&txt);
 
