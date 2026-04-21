@@ -51,7 +51,8 @@ test_write :-
 		    write_variable_names,
 		    write_float,
 		    write_misc,
-		    max_text
+		    max_text,
+		    write_size
 		  ]).
 
 :- meta_predicate
@@ -313,6 +314,118 @@ max_text(Max, Term, String, Options) :-
 		       write_term(Term, [max_text(Max)|Options])).
 
 :- end_tests(max_text).
+
+:- begin_tests(write_size).
+
+% Basic width / height — a single-line term is 1 line tall.
+test(atom, W-H == 5-1) :-
+	write_size(hello, W, H, []).
+test(compound, W-H == 8-1) :-
+	write_size(foo(bar), W, H, []).
+test(empty_atom, W-H == 2-1) :-				% quoted ''
+	write_size('', W, H, [quoted(true)]).
+test(empty_atom_unquoted, W-H == 0-0) :-		% writes nothing
+	write_size('', W, H, [quoted(false)]).
+test(trailing_newline, W-H == 1-2) :-			% caret landed on line 2
+	write_size('a\n', W, H, [quoted(false)]).
+
+% Width / Height reflect embedded newlines in unquoted atoms.
+test(newline, W-H == 1-2) :-				% two lines: "a", "b"
+	write_size('a\nb', W, H, [quoted(false)]).
+test(newlines, W-H == 2-3) :-				% "a", "bb", "c"
+	write_size('a\nbb\nc', W, H, [quoted(false)]).
+
+% max_width: inclusive — exact fit succeeds, strict overflow fails.
+test(max_width_exact) :-
+	write_size(hello, 5, 1, [max_width(5)]).
+test(max_width_overflow, fail) :-
+	write_size(hello, _, _, [max_width(4)]).
+test(max_width_loose, W-H == 5-1) :-
+	write_size(hello, W, H, [max_width(100)]).
+
+% max_height: inclusive count of lines.
+test(max_height_single) :-
+	write_size(hello, 5, 1, [max_height(1)]).
+test(max_height_exact) :-
+	write_size('a\nb', 1, 2, [quoted(false), max_height(2)]).
+test(max_height_overflow, fail) :-
+	write_size('a\nb', _, _, [quoted(false), max_height(1)]).
+
+% Unicode combining marks count as 0 columns.
+test(combining, W-H == 1-1) :-				% à NFD: a + U+0300
+	atom_codes(A, [0'a, 0x0300]),
+	write_size(A, W, H, [quoted(false)]).
+test(combining_stack, W-H == 1-1) :-			% u + 2 combiners
+	atom_codes(A, [0'u, 0x0308, 0x0306]),
+	write_size(A, W, H, [quoted(false)]).
+
+% Wide / double-width characters count as 2 columns.
+test(cjk, W-H == 2-1) :-
+	write_size('中', W, H, [quoted(false)]).
+test(cjk_pair, W-H == 4-1) :-
+	write_size('中国', W, H, [quoted(false)]).
+test(emoji_vs16, W-H == 2-1) :-				% 🤩 + VS-16
+	atom_codes(A, [0x1F929, 0xFE0F]),
+	write_size(A, W, H, [quoted(false)]).
+
+% Mixed: ASCII + wide.
+test(mixed, W-H == 7-1) :-				% 'hello中'
+	write_size('hello中', W, H, [quoted(false)]).
+
+% Long input — the stream buffer holds 100 wchar_t entries, so
+% writing a 300-char atom exercises three Swrite_lss chunks.  Also
+% pin down that max_width aborts mid-write instead of walking the
+% whole atom.
+test(long, W-H == 300-1) :-
+	length(Cs, 300), maplist(=(0'x), Cs),
+	atom_codes(A, Cs),
+	write_size(A, W, H, [quoted(false)]).
+test(long_max_exact, W-H == 300-1) :-
+	length(Cs, 300), maplist(=(0'x), Cs),
+	atom_codes(A, Cs),
+	write_size(A, W, H, [quoted(false), max_width(300)]).
+test(long_max_overflow, fail) :-
+	length(Cs, 300), maplist(=(0'x), Cs),
+	atom_codes(A, Cs),
+	write_size(A, _, _, [quoted(false), max_width(299)]).
+test(long_multiline, W-H == 40-12) :-			% 12 × 40 'y' lines
+	length(Codes, 40), maplist(=(0'y), Codes),
+	atom_codes(LineA, Codes),
+	length(Lines, 12), maplist(=(LineA), Lines),
+	atomic_list_concat(Lines, '\n', Big),
+	write_size(Big, W, H, [quoted(false)]).
+test(long_multiline_max_height_overflow, fail) :-
+	length(Codes, 40), maplist(=(0'y), Codes),
+	atom_codes(LineA, Codes),
+	length(Lines, 12), maplist(=(LineA), Lines),
+	atomic_list_concat(Lines, '\n', Big),
+	write_size(Big, _, _, [quoted(false), max_height(11)]).
+
+% UTF-16 surrogate pair across the buffer boundary (Windows only,
+% SIZEOF_WCHAR_T == 2).  99 ASCII chars + one non-BMP emoji (🤩
+% U+1F929) produce 101 wchar_t entries on Windows, so the buffer
+% flush at 100 wchar_ts lands between the lead and trail surrogates.
+% Swrite_lss must stash the lead and prepend it to the next chunk;
+% the computed width/height must still match.  On Linux
+% (SIZEOF_WCHAR_T == 4) the emoji is a single wchar_t, so the same
+% test doubles as a plain long-input check.
+test(surrogate_split, W-H == 101-1) :-
+	length(Xs, 99), maplist(=(0'x), Xs),
+	append(Xs, [0x1F929], Codes),
+	atom_codes(A, Codes),
+	write_size(A, W, H, [quoted(false)]).
+test(surrogate_split_max_exact, W-H == 101-1) :-
+	length(Xs, 99), maplist(=(0'x), Xs),
+	append(Xs, [0x1F929], Codes),
+	atom_codes(A, Codes),
+	write_size(A, W, H, [quoted(false), max_width(101)]).
+test(surrogate_split_max_overflow, fail) :-
+	length(Xs, 99), maplist(=(0'x), Xs),
+	append(Xs, [0x1F929], Codes),
+	atom_codes(A, Codes),
+	write_size(A, _, _, [quoted(false), max_width(100)]).
+
+:- end_tests(write_size).
 
 write_encoding(Goal, Encoding, String) :-
 	setup_call_cleanup(
