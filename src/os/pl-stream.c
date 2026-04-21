@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -45,6 +45,11 @@
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
+#endif
+
+#define _GNU_SOURCE                    /* get wcwidth() */
+#ifndef HAVE_WCWIDTH
+#include "../mk_wcwidth.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -732,7 +737,7 @@ static inline void
 update_linepos(IOSTREAM *s, int c)
 { IOPOS *p = s->position;
 
-  if ( likely(c > '\r') )	/* speedup the 99% case a bit */
+  if ( likely(c > '\r' && c < 0x300) )	/* speedup the 99% case a bit */
   { p->linepos++;
     return;
   }
@@ -754,7 +759,7 @@ update_linepos(IOSTREAM *s, int c)
     case '\t':
       p->linepos |= 7;
     default:
-      p->linepos++;
+      p->linepos += wcwidth(c);
   }
 }
 
