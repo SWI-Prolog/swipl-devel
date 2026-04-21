@@ -2180,7 +2180,7 @@ static const PL_option_t write_term_options[] =
   { NULL_ATOM,			    0 }
 };
 
-foreign_t
+bool
 pl_write_term3(term_t stream, term_t term, term_t opts)
 { GET_LD
   int quoted      = false;
@@ -2341,11 +2341,19 @@ out:
 }
 
 
-foreign_t
-pl_write_term(term_t term, term_t options)
-{ return pl_write_term3(0, term, options);
+static
+PRED_IMPL("write_term", 2, write_term2, PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+
+  return pl_write_term3(0, A1, A2);
 }
 
+static
+PRED_IMPL("write_term", 3, write_term3, PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+
+  return pl_write_term3(A1, A2, A3);
+}
 
 bool
 PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
@@ -2427,7 +2435,7 @@ pl_print2(term_t stream, term_t term)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t opts = PL_new_term_ref();
-  foreign_t rc;
+  bool rc;
 
   if ( PL_current_prolog_flag(ATOM_print_write_options, PL_TERM, &opts) )
     rc = pl_write_term3(stream, term, opts);
@@ -2562,15 +2570,18 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
 
 typedef struct limit_size_stream
 { IOSTREAM	*stream;		/* Limited stream */
-  int64_t	 length;		/* Max size */
+  int64_t	 max_value;		/* Max size */
+  bool		 width_mode;		/* Compute width rather than length */
 } limit_size_stream;
 
 static ssize_t
 Swrite_lss(void *handle, char *buf, size_t size)
 { limit_size_stream *lss = handle;
+  int64_t val = lss->width_mode ? lss->stream->position->linepos
+				: lss->stream->position->charno;
   (void)buf;
 
-  if ( lss->stream->position->charno > lss->length )
+  if ( val > lss->max_value )
   { errno = EINVAL;
     return -1;
   }
@@ -2593,11 +2604,15 @@ static const IOFUNCTIONS lss_functions =
 };
 
 /** write_length(+Term, -Len, +Options) is det.
-
-(*) Avoid error on max_length in iso mode.  It might be nicer to get the
-option processing out of pl_write_term3(), so we can take control of the
-whole lot here more easily.
 */
+
+static const PL_option_t write_length_options[] =
+{ { ATOM_max_length, OPT_INT64 },
+  { ATOM_max,        OPT_INT64 },
+  { ATOM_width,      OPT_BOOL  },
+  { NULL_ATOM,       0 }
+};
+
 
 static
 PRED_IMPL("write_length", 3, write_length, 0)
@@ -2605,28 +2620,17 @@ PRED_IMPL("write_length", 3, write_length, 0)
   limit_size_stream lss;
   int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT|SIO_TEXT;
   IOSTREAM *s;
-  term_t options = PL_copy_term_ref(A3);
-  term_t head = PL_new_term_ref();
   char buf[100];
+  int width_mode = false;
 
-  lss.length = PLMAXINT;
-  while(PL_get_list(options, head, options))
-  { atom_t name;
-    size_t arity;
-
-    if ( PL_get_name_arity(head, &name, &arity) &&
-	 name == ATOM_max_length && arity == 1 )
-    { term_t a = PL_new_term_ref();
-
-      _PL_get_arg(1, head, a);
-      if ( !PL_get_int64_ex(a, &lss.length) )
-	return false;
-    }
-  }
+  lss.max_value = PLMAXINT;
+  if ( !PL_scan_options(A3, 0, "write_length_option", write_length_options,
+			&lss.max_value, &lss.max_value, &width_mode) )
+    return false;
+  lss.width_mode = width_mode;
 
   if ( (s = Snew(&lss, sflags, (IOFUNCTIONS *)&lss_functions)) )
   { int64_t len;
-    size_t rc;
     pl_features_t oldmask = LD->prolog_flag.mask; /* (*) */
 
     lss.stream = s;
@@ -2636,15 +2640,18 @@ PRED_IMPL("write_length", 3, write_length, 0)
 
     clearPrologFlagMask(PLFLAG_ISO);
     pushOutputContext(s);
-    rc = pl_write_term3(0, A1, A3);
+    bool rc = pl_write_term3(0, A1, A3);
     popOutputContext();
     LD->prolog_flag.mask = oldmask;
 
-    if ( rc && s->position->charno <= lss.length )
-    { len = s->position->charno;
+    int64_t val = lss.width_mode ? s->position->linepos
+				 : s->position->charno;
+
+    if ( rc && val <= lss.max_value )
+    { len = val;
     } else
     { len = -1;
-      if ( s->position->charno > lss.length )
+      if ( val > lss.max_value )
 	PL_clear_exception();
     }
 
@@ -2661,10 +2668,15 @@ PRED_IMPL("write_length", 3, write_length, 0)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define META    PL_FA_TRANSPARENT
+#define ISO	PL_FA_ISO
+
 BeginPredDefs(write)
-  PRED_DEF("nl", 0, nl, PL_FA_ISO)
-  PRED_DEF("nl", 1, nl, PL_FA_ISO)
-  PRED_DEF("$put_token", 2, put_token, 0)
-  PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
-  PRED_DEF("write_length", 3, write_length, 0)
+  PRED_DEF("write_term",   2, write_term2,	META|ISO)
+  PRED_DEF("write_term",   3, write_term3,	META|ISO)
+  PRED_DEF("nl",	   0, nl,		ISO)
+  PRED_DEF("nl",	   1, nl,		ISO)
+  PRED_DEF("$put_token",   2, put_token,	0)
+  PRED_DEF("$put_quoted",  4, put_quoted_codes,	0)
+  PRED_DEF("write_length", 3, write_length,	0)
 EndPredDefs

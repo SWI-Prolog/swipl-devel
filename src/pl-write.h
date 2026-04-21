@@ -54,8 +54,7 @@ char *		var_name_ptr(Word p, char *name);
 char *		varName(term_t var, char *buf);
 foreign_t	pl_write_canonical(term_t term);
 foreign_t	pl_write_canonical2(term_t stream, term_t term);
-foreign_t	pl_write_term(term_t term, term_t options);
-foreign_t	pl_write_term3(term_t stream,
+bool		pl_write_term3(term_t stream,
 			       term_t term, term_t options);
 foreign_t	pl_write(term_t term);
 foreign_t	pl_writeln(term_t term);
