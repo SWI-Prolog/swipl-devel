@@ -157,6 +157,11 @@ build-ppa-tmp
 scripts/upload
 CMakeUserPresets.json
 
+# AI Agents
+.claude
+CLAUDE.md
+AGENTS.md
+
 # snapcraft
 parts/
 prime/
