@@ -1,7 +1,26 @@
 #!/bin/bash
 
 # Generate old-style ChangeLog files from the GIT log. Ultimately we may
-# wish to insert this into ChangeLog
+# wish to insert this into ChangeLog.
+#
+# The generator picks up commit messages whose subject line starts with
+# a capitalised marker such as ADDED:, FIXED:, ENHANCED:, CLEANUP:,
+# TEST:, etc.  For those, it prints the subject followed by the first
+# paragraph of the body (up to the first blank line) as one changelog
+# entry.  Everything after a blank line in the body is considered
+# detail for reviewers and is NOT shown in the changelog.  So the
+# commit-message convention for authors is:
+#
+#     MARKER: short one-line summary
+#
+#     Optional second paragraph with a one or two sentence expansion
+#     still suitable for end-users reading the changelog.
+#
+#     [blank line]
+#
+#     Arbitrary deep detail (bullets, implementation notes, references
+#     to specific identifiers) visible via `git log` and `git show` but
+#     hidden from the changelog.
 
 footer=false
 printdate=true
@@ -165,6 +184,11 @@ BEGIN		{ doprint="false";
 		  }
 		  printf(" * %s\n", $0);
 		  doprint="true";
+		  next;
+		}
+/^$/		{ if ( doprint == "true" )
+		    printf("\n");
+		  doprint="false";
 		  next;
 		}
 /.*/		{ if ( doprint == "true" )
