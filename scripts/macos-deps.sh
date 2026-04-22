@@ -49,6 +49,7 @@ SDL3_VERSION=3.4.0
 SDL3_IMAGE_VERSION=3.4.0
 CAIRO_VERSION=1.18.4
 PANGO_VERSION=1.56.4
+UTF8PROC_VERSION=2.11.3
 
 # installation prefix.  This path should not have spaces in one of the
 # directory names.
@@ -345,6 +346,35 @@ build_libyaml()
     make install
   )
 }
+
+# Download and build utf8proc
+
+download_utf8proc()
+{ if [ -d utf8proc ]; then
+    git -C utf8proc fetch
+    git -C utf8proc clean -xfd
+  else
+    git clone https://github.com/JuliaStrings/utf8proc.git
+  fi
+  git -C utf8proc checkout v$UTF8PROC_VERSION
+}
+
+build_utf8proc()
+{ ( cd utf8proc
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release \
+	  -DBUILD_SHARED_LIBS=ON \
+	  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+	  -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+	  -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
+	  -G Ninja ..
+    ninja
+    ninja install
+  )
+}
+
+# Download and build SDL3
 
 download_sdl3()
 { SDL3_FILE=SDL3-$SDL3_VERSION.tar.gz
