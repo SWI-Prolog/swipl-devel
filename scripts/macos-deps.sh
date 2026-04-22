@@ -371,6 +371,10 @@ build_utf8proc()
 	  -G Ninja ..
     ninja
     ninja install
+
+    # Do not use @rpath.   We'll fixup while building the bundle.
+    dylib=$(echo $PREFIX/lib/libutfproc.?.dylib)
+    install_name_tool -id $dylib $dylib
   )
 }
 
