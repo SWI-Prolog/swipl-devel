@@ -678,7 +678,7 @@ indent(Out, Indent, Options) :-
 print_width(Term, W, Options) :-
     option(right_margin(RM), Options),
     option(write_options(WOpts), Options),
-    (   catch(write_length(Term, W, [max_length(RM)|WOpts]),
+    (   catch(write_size(Term, W, _H, [max_width(RM)|WOpts]),
               error(_,_), fail)      % silence uncaught exceptions from
     ->  true                         % nested portray callbacks
     ;   W = RM

@@ -355,7 +355,7 @@ predicate is functionally equivalent to atom_length/2 and also accepts
 \jargon{anytext} as its first argument. Numeric types are formatted
 into strings before the length of their string representation is
 determined.\footnote{This behavior should be considered deprecated}
-See also write_length/3.
+See also write_size/4.
 
     \predicate{string_code}{3}{?Index, +String, ?Code}
 True when \arg{Code} represents the character at the 1-based \arg{Index}

@@ -85,8 +85,9 @@
 :- predicate_options(system:write_term/2, 2,
 		     [ pass_to(system:write_term/3, 3)
 		     ]).
-:- predicate_options(system:write_length/3, 3,
-		     [ max_length(nonneg),
+:- predicate_options(system:write_size/4, 4,
+		     [ max_width(nonneg),
+		       max_height(nonneg),
 		       pass_to(system:write_term/3, 3)
 		     ]).
 :- predicate_options(system:read_clause/3, 3,

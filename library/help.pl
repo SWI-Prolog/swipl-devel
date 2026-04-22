@@ -597,7 +597,7 @@ match(Obj-Summary, Width) -->
     { Left is min(40, max(20, round(Width/3))),
       Right is Width-Left-2,
       man_object_summary(Obj, ObjS, Tag),
-      write_length(ObjS, LenObj, [portray(true), quoted(true)]),
+      write_size(ObjS, LenObj, _Height, [portray(true), quoted(true)]),
       Spaces0 is Left - LenObj - 4,
       (   Spaces0 > 0
       ->  Spaces = Spaces0,

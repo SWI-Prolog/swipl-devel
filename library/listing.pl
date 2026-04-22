@@ -1178,7 +1178,7 @@ pprint(Out, Term, Pri, Options) :-
     \+ nowrap_term(Term),
     line_width(Width),
     Width > 0,
-    (   write_length(Term, Len, [max_length(Width)|Options])
+    (   write_size(Term, Len, _Height, [max_width(Width)|Options])
     ->  true
     ;   Len = Width
     ),
