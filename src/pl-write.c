@@ -2344,16 +2344,12 @@ out:
 
 static
 PRED_IMPL("write_term", 2, write_term2, PL_FA_TRANSPARENT|PL_FA_ISO)
-{ PRED_LD
-
-  return pl_write_term3(0, A1, A2);
+{ return pl_write_term3(0, A1, A2);
 }
 
 static
 PRED_IMPL("write_term", 3, write_term3, PL_FA_TRANSPARENT|PL_FA_ISO)
-{ PRED_LD
-
-  return pl_write_term3(A1, A2, A3);
+{ return pl_write_term3(A1, A2, A3);
 }
 
 bool
