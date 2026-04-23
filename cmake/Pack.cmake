@@ -98,6 +98,9 @@ if(WIN32)
   set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+   WriteRegStr HKCR '.pl' '' 'swipl_file'
+   WriteRegStr HKCR 'swipl_file' '' 'SWI-Prolog source file'
+   WriteRegStr HKCR 'swipl_file\\\\shell\\\\open\\\\command' '' '\"$INSTDIR\\\\bin\\\\swipl-win.exe\" --win_app \"%1\"'
    ")
   set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
