@@ -157,3 +157,24 @@ ws -->
     [].
 
 skip_rest(_, []).
+
+
+                /*******************************
+                *         WHITE SPACE          *
+                *******************************/
+
+%!  white_space(?Code)
+%
+%   Official Unicode table for white space for programming languages.
+
+white_space(0x0009).
+white_space(0x000A).
+white_space(0x000B).
+white_space(0x000C).
+white_space(0x000D).
+white_space(0x0020).
+white_space(0x0085).
+white_space(0x200E).
+white_space(0x200F).
+white_space(0x2028).
+white_space(0x2029).
