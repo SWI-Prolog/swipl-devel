@@ -1,8 +1,8 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
     Copyright (c)  2006-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -41,10 +41,12 @@
 :- use_module(library(main)).
 :- use_module(library(option)).
 :- use_module(library(debug), [assertion/1]).
-:- use_module(library(lists), [member/2]).
+:- use_module(library(lists), [member/2, flatten/2, numlist/3]).
 :- use_module(library(option), [option/3]).
 :- use_module(library('unicode/unicode_data'), [unicode_property/2]).
-:- use_module(derived_core_properties, [unicode_derived_core_property/2]).
+:- use_module(derived_core_properties,
+              [unicode_derived_core_property/2, id_superscript/1, white_space/1]).
+:- use_module(library(apply), [maplist/3]).
 
 /** <module> Generate Prolog Unicode map
 
@@ -62,18 +64,19 @@ needs to be classified as
         * uppercase
         We need this to be able to distinquish variables from non-variables.
 
-        * Separators
+        * layout
         We need this for classifying blank space
 
-        * Symbols
-        Characters that glue together to form symbols.  These extend the
-        default Prolog symbol set: #$&*+-./:<=>?@\^`~
-
-        * lowercase
-        <not needed by Prolog>
+        * solo
+        Characters that represent symbols.  As Unicode symbols typically
+        have a semantics on their own we treat them as Prolog solo
+        characters.
 
         * decimal
         Characters that represent decimal digits.
+
+	* other
+	Other assigned characters.
 
 Usage:
 
@@ -292,11 +295,14 @@ return {
   id_start:    function(chr) { return (uflagsW(chr) & U_ID_START)    != 0 },
   id_continue: function(chr) { return (uflagsW(chr) & U_ID_CONTINUE) != 0 },
   uppercase:   function(chr) { return (uflagsW(chr) & U_UPPERCASE)   != 0 },
-  separator:   function(chr) { return (uflagsW(chr) & U_SEPARATOR)   != 0 },
   symbol:      function(chr) { return (uflagsW(chr) & U_SYMBOL)      != 0 },
+  solo:        function(chr) { return (uflagsW(chr) & U_SOLO)        != 0 },
+  layout:      function(chr) { return (uflagsW(chr) & U_LAYOUT)      != 0 },
   other:       function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
-  control:     function(chr) { return (uflagsW(chr) & U_CONTROL)     != 0 },
   decimal:     function(chr) { return (uflagsW(chr) & U_DECIMAL)     != 0 }
+  // Backward compatibility types
+  separator:   function(chr) { return (uflagsW(chr) & U_LAYOUT)      != 0 },
+  control:     function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
 }
 });~n', []).
 write_footer(Out, _Options) :-
@@ -306,10 +312,10 @@ write_footer(Out, _Options) :-
                 { int cp = (unsigned)code / 256;\n\c
                 \n  \c
                   if ( cp < UNICODE_MAP_SIZE )\n  \c
-                  { const unsigened char *s = uflags_map[cp];\n    \c
-                    if ( s < (const unsigened char *)256 )\n      \c
+                  { const unsigned char *s = uflags_map[cp];\n    \c
+                    if ( s < (const unsigned char *)256 )\n      \c
                       return (int)(intptr_t)s;\n    \c
-                    return s[code];\n  \c
+                    return s[code&0xff];\n  \c
                   }\n  \c
                   return 0;\n\c
                 }\n\n', []).
@@ -366,86 +372,80 @@ cflag('C', Code, Flag) :-
     flag_name(Name, Flag),
     code_flag(Code, Name).
 
-flag_name(id_start,    0x01).
-flag_name(id_continue, 0x02).
-flag_name(uppercase,   0x04).
-flag_name(separator,   0x08).
-flag_name(symbol,      0x10).
-flag_name(other,       0x20).
-flag_name(control,     0x40).
-flag_name(decimal,     0x80).
+flag_name(id_start,    0x01). % Starts atom or variable
+flag_name(id_continue, 0x02). % Continues (extends) atom or variable
+flag_name(uppercase,   0x04). % Starts variable
+flag_name(symbol,      0x08). % Glueing symbols
+flag_name(solo,        0x20). % Forms an atom on itself
+flag_name(layout,      0x10). % White space
+flag_name(other,       0x40). % Other valid Unicode codepoint
+flag_name(decimal,     0x80). % Decimal other than Latin 0..9.
 
 %!  predef_code_flag(+C, ?Class) is nondet.
 %
 %   Fill code page 0 (0..255) using   predefined categories. This is
 %   used for consistency of the JavaScript classifier.
 
-predef_code_flag(C, id_start) :-
+predef_code_flag(C, Class) :-
+    predef_code_flag_(C, Class).
+predef_code_flag(C, other) :-
+    \+ predef_code_flag_(C, _),
+    unicode_property(C, general_category(_)).
+
+predef_code_flag_(C, id_start) :-
     (   code_type(C, prolog_atom_start)
     ;   code_type(C, prolog_var_start)
     ).
-predef_code_flag(C, id_continue) :-
+predef_code_flag_(C, id_continue) :-
     code_type(C, prolog_identifier_continue).
-predef_code_flag(C, symbol) :-
+predef_code_flag_(C, symbol) :-
     code_type(C, prolog_symbol).
-predef_code_flag(C, uppercase) :- unicode_derived_core_property(C, uppercase).
-predef_code_flag(C, other) :-
+predef_code_flag_(C, uppercase) :-
     unicode_property(C, general_category(Cat)),
-    other_cat(Cat).
-predef_code_flag(C, control) :-
-    unicode_property(C, general_category(Cat)),
-    control_cat(Cat).
-predef_code_flag(C, unassigned) :-
-    \+ unicode_property(C, general_category(_)).
+    upper_cat(Cat).
 
+%!  code_flag(+C, ?Class) is nondet.
+%
+%   Fill other pages from the Unicode data
 
-code_flag(C, id_start) :-    unicode_derived_core_property(C, id_start).
-code_flag(C, id_continue) :- unicode_derived_core_property(C, id_continue).
-code_flag(C, uppercase) :-   unicode_derived_core_property(C, uppercase).
-code_flag(C, separator) :-
-    unicode_property(C, general_category(Cat)),
-    sep_cat(Cat).
-code_flag(C, symbol) :-
-    unicode_property(C, general_category(Cat)),
-    symbol_cat(Cat).
+code_flag(C, Class) :-
+    code_flag_(C, Class).
 code_flag(C, other) :-
+    \+ code_flag_(C, _),
+    unicode_property(C, general_category(_)).
+
+code_flag_(C, id_start) :-
+    unicode_derived_core_property(C, xid_start).
+code_flag_(C, id_continue) :-
+    unicode_derived_core_property(C, xid_continue).
+code_flag_(C, id_continue) :-
+    id_superscript(C).
+code_flag_(C, uppercase) :-
     unicode_property(C, general_category(Cat)),
-    other_cat(Cat).
-code_flag(C, control) :-
+    upper_cat(Cat).
+code_flag_(C, layout) :-
+    white_space(C).
+code_flag_(C, solo) :-
     unicode_property(C, general_category(Cat)),
-    control_cat(Cat).
-code_flag(C, unassigned) :-
-    \+ unicode_property(C, general_category(_)).
-code_flag(C, decimal) :-
+    solo_cat(Cat).
+code_flag_(C, decimal) :-
     unicode_property(C, general_category('Nd')).
 
 % See http://www.unicode.org/reports/tr44/#Property_Values
 
-sep_cat('Zs').          % a space character (of various non-zero widths)
-sep_cat('Zl').          % U+2028 LINE SEPARATOR only
-sep_cat('Zp').          % U+2029 PARAGRAPH SEPARATOR only
+upper_cat('Lu').
 
-symbol_cat('Sm').       % a symbol of primarily mathematical use
-symbol_cat('Sc').       % a currency sign
-symbol_cat('Sk').       % a non-letterlike modifier symbol
-symbol_cat('So').       % a symbol of other type
-symbol_cat('Pc').       % a connecting punctuation mark, like a tie
-symbol_cat('Pd').       % a dash or hyphen punctuation mark
-symbol_cat('Ps').       % an opening punctuation mark (of a pair)
-symbol_cat('Pe').       % a closing punctuation mark (of a pair)
-symbol_cat('Pi').       % an initial quotation mark
-symbol_cat('Pf').       % a final quotation mark
-symbol_cat('Po').       % a punctuation mark of other type
-
-other_cat('No').        % a numeric character of other type
-other_cat('Me').        % an enclosing combining mark
-
-control_cat('Cc').      % a C0 or C1 control code
-control_cat('Cf').      % a format control character
-control_cat('Cs').      % a surrogate code point
-control_cat('Co').      % a private-use character
-control_cat('Cn').      % a reserved unassigned code point or a noncharacter
-
+solo_cat('Sm').       % a symbol of primarily mathematical use
+solo_cat('Sc').       % a currency sign
+solo_cat('Sk').       % a non-letterlike modifier symbol
+solo_cat('So').       % a symbol of other type
+solo_cat('Pc').       % a connecting punctuation mark, like a tie
+solo_cat('Pd').       % a dash or hyphen punctuation mark
+solo_cat('Ps').       % an opening punctuation mark (of a pair)
+solo_cat('Pe').       % a closing punctuation mark (of a pair)
+solo_cat('Pi').       % an initial quotation mark
+solo_cat('Pf').       % a final quotation mark
+solo_cat('Po').       % a punctuation mark of other type
 
 flat_map(Map0, Value) :-
     sort(Map0, [Value]),

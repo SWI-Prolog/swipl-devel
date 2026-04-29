@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    Copyright (c)  1985-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -74,20 +74,20 @@ static void	  addUTF8Buffer(Buffer b, int c);
 		 *     UNICODE CLASSIFIERS	*
 		 *******************************/
 
+#define CharTypeA(c, t) (_PL_char_types[(unsigned)(c)] t)
 #define CharTypeW(c, t, w) \
-	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) \
-			       : (uflagsW(c) & (w)))
+	((unsigned)(c) <= 0xff ? CharTypeA(c, t) : (uflagsW(c) & (w)))
 
-#define PlBlankW(c)	CharTypeW(c, == SP, U_SEPARATOR)
+#define PlBlankW(c)	CharTypeW(c, == SP, U_LAYOUT)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
 #define PlIdStartW(c)	((unsigned)c <= 0xff ? \
 				(isLower(c)||isUpper(c)||c=='_') \
 				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
-#define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
+#define PlSymbolW(c)	CharTypeW(c, == SY, 0)
 #define PlDecimalW(c)	CharTypeW(c, == DI, U_DECIMAL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
-#define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
+#define PlSoloW(c)	CharTypeW(c, == SO, U_SOLO)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
 /* these functions  must be of type  int (*)(int) as they  are used by
@@ -130,7 +130,7 @@ unicode_quoted_escape(int c)
 { if ( c != ' ' )
   { int uflags = uflagsW(c);
 
-    return !uflags || (uflags&(U_SEPARATOR|U_CONTROL));
+    return !uflags || (uflags&(U_LAYOUT|U_OTHER));
   } else
   { return false;
   }

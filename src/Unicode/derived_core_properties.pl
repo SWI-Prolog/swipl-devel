@@ -35,7 +35,10 @@
 
 :- module(unicode_derived_core_properties,
           [ unicode_derived_core_property/2,    % ?Code, ?Prop
-            unicode_property/3                  % +File, ?Code, ?Prop
+            unicode_property/3,                 % +File, ?Code, ?Prop
+            id_superscript/1,
+            id_subscript/1,
+            white_space/1                       % ?Code
           ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2, numlist/3]).
@@ -45,8 +48,16 @@
     derived_property/3,
     loaded/1.
 
+user:file_search_path(unicode, Dir) :-
+    source_file(unicode_derived_core_property(_,_), File),
+    file_directory_name(File, Dir).
+
 unicode_derived_core_property(Code, Prop) :-
-    unicode_property('DerivedCoreProperties.txt', Code, Prop).
+    absolute_file_name(unicode('DerivedCoreProperties.txt'),
+                       File,
+                       [ access(read)
+                       ]),
+    unicode_property(File, Code, Prop).
 
 %!  unicode_derived_core_property(+File, ?Code, ?Prop)
 %
@@ -178,3 +189,31 @@ white_space(0x200E).
 white_space(0x200F).
 white_space(0x2028).
 white_space(0x2029).
+
+
+                /*******************************
+                *      DIGIT SUPERSCRIPT       *
+                *******************************/
+
+id_superscript(0x2070).
+id_superscript(0x00B9).
+id_superscript(0x00B2).
+id_superscript(0x00B3).
+id_superscript(0x2074).
+id_superscript(0x2075).
+id_superscript(0x2076).
+id_superscript(0x2077).
+id_superscript(0x2078).
+id_superscript(0x2079).
+
+id_subscript(0x2080).
+id_subscript(0x2081).
+id_subscript(0x2082).
+id_subscript(0x2083).
+id_subscript(0x2084).
+id_subscript(0x2085).
+id_subscript(0x2086).
+id_subscript(0x2087).
+id_subscript(0x2088).
+id_subscript(0x2089).
+
