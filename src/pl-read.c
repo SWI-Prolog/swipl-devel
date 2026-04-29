@@ -2142,7 +2142,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 */
 
 static int
-skip_digit_separator(cucharp *sp, int base, int *grouped)
+skip_digit_separator(cucharp *sp, int base, bool *grouped)
 { cucharp s = *sp;
 
   if ( *s == '_' )
@@ -2161,8 +2161,8 @@ skip_digit_separator(cucharp *sp, int base, int *grouped)
 }
 
 
-static int
-skip_decimal_separator(cucharp *sp, int zero, int *grouped)
+static bool
+skip_decimal_separator(cucharp *sp, int zero, bool *grouped)
 { cucharp s = *sp;
   int c;
 
@@ -2184,7 +2184,7 @@ skip_decimal_separator(cucharp *sp, int zero, int *grouped)
 
 
 static strnumstat
-scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
+scan_decimal(cucharp *sp, int zero, bool negative, Number n, bool *grouped)
 { int64_t maxi = PLMAXINT/10;
   int maxlastdigit = PLMAXINT % 10;
   int64_t mini = PLMININT/10;
@@ -2266,7 +2266,7 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 
 
 static strnumstat
-scan_number(cucharp *s, int negative, int b, Number n)
+scan_number(cucharp *s, bool negative, int b, Number n)
 { int d;
   int64_t maxi = PLMAXINT/b;		/* cache? */
   int maxlastdigit = (int)(PLMAXINT % b);
@@ -2780,10 +2780,10 @@ to_double(cucharp s, cucharp e, int zero, double *dp)
 
 strnumstat
 str_number(cucharp in, ucharp *end, Number value, int flags)
-{ int negative = false;
+{ bool negative = false;
   cucharp start = in;
   strnumstat rc;
-  int grouped;
+  bool grouped;
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = true;
