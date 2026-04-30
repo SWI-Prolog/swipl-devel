@@ -303,7 +303,6 @@ static const char_type char_types[] =
   { ATOM_decimal,		     f_is_decimal },
   { ATOM_decimal,		     ff_decimal, NULL, 1, CTX_CODE },
   { ATOM_prolog_symbol,		     f_is_prolog_symbol },
-  { ATOM_csymf,			     fiscsymf },
   { ATOM_ascii,			     fisascii },
   { ATOM_white,			     iswhite },
   { ATOM_cntrl,			     fiswcntrl },
