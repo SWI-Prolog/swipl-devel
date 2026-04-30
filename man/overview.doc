@@ -1903,8 +1903,17 @@ ISO Prolog flag describing there is no maximum arity to compound terms.
     \prologflagitem{max_char_code}{integer}{r}
 Highest (Unicode) code point that is supported.  SWI-Prolog supports
 all Unicode code points from 0 (zero) up to and including the value of
-this flag. The value follows the Unicode standard and
-is curently \const{0x10ffff}.
+this flag. The value follows the Unicode standard and is currently
+\const{0x10ffff}.
+
+    \prologflagitem{unicode_syntax_version}{atom}{r}
+The Unicode version of the data used to build the SWI-Prolog source
+syntax classifier (e.g.\ \const{'17.0.0'}).  This drives the
+identifier, layout, and solo classes described in
+\secref{unicodesyntax}.  See also unicode_version/1 in
+\pllib{unicode}, which reports the (possibly different) version of
+the bundled \jargon{utf8proc} data used for normalization, grapheme
+segmentation, and unicode_property/2.
 
     \prologflagitem{max_integer}{integer}{r}
 Maximum integer value if integers are \emph{bounded}.  See also
@@ -3261,10 +3270,14 @@ SWI-Prolog supports Unicode in source files we must extend the syntax.
 This section describes the implication for the source files, while
 writing international source files is described in \secref{intsrcfile}.
 
-The SWI-Prolog Unicode character classification is currently based on
-version 14.0.0 of the Unicode standard. Please note that char_type/2
-and friends, intended to be used with all text except Prolog source
-code, is based on the C library locale-based classification routines.
+The SWI-Prolog Unicode character classification follows the Unicode
+release reported by the read-only Prolog flag \prologflag{unicode_syntax_version}.
+Note that char_type/2 and friends, intended for processing arbitrary
+text rather than Prolog source code, are based on the C library
+locale-based classification routines, and that the predicates in
+\pllib{unicode} report the version of the bundled \jargon{utf8proc}
+data, which may differ from the syntax classifier's version (see
+unicode_version/1).
 
 
 \begin{itemlist}
@@ -3278,13 +3291,21 @@ ASCII files.
 We handle them in one item as they are closely related.  The Unicode
 standard defines a syntax for identifiers in computer languages.%
 	\footnote{\url{http://www.unicode.org/reports/tr31/}}
-In this syntax identifiers start with \const{ID_Start} followed by a
-sequence of \const{ID_Continue} codes. Such sequences are handled as a
-single token in SWI-Prolog. The token is a \emph{variable} iff it starts
-with an uppercase character or an underscore (\chr{_}). Otherwise it is
-an atom.  Note that many languages do not have the notion of
-character case.  In such languages variables \emph{must} be written as
-\verb$_name$.
+SWI-Prolog uses the \const{XID_Start} and \const{XID_Continue} sets:
+identifiers start with an \const{XID_Start} code point followed by a
+sequence of \const{XID_Continue} code points.  As a profile addition,
+the superscript digits (\chr{²}, \chr{³}, \chr{¹}, and \chr{⁰}--\chr{⁹},
+i.e.\ U+00B2, U+00B3, U+00B9, U+2070, U+2074..U+2079) and the subscript
+digits (\chr{₀}--\chr{₉}, U+2080..U+2089) are also accepted as
+\const{XID_Continue}, allowing variables such as \verb$X²$ and
+\verb$X₁$.  Such sequences are handled as a single token.  The token
+is a \emph{variable} iff it starts with an underscore (\chr{_}) or
+with a code point in general category \const{Lu} (uppercase letter).
+Otherwise it is an atom.  Note that titlecase letters (general category
+\const{Lt}, e.g.\ \chr{ǅ}) start an atom, not a variable; this differs
+from earlier releases that used the broader derived \const{Uppercase}
+property.  Many languages do not have the notion of character case;
+in such languages variables \emph{must} be written as \verb$_name$.
 
     \item [Numbers]
 
@@ -3292,14 +3313,18 @@ Decimal number characters (Nd) are accepted to form numbers, regardless
 of the Unicode block in which they appear. Currently this is supported
 for integers, rational numbers (see \secref{syntax-rational-numbers})
 and floating point numbers. In any number, \emph{all} digits must come
-from the same block, i.e., if the nominator of a rational is uses
-Indian script, so must the denominator.  All special characters such
-as the sign, rational separator, floating point \chr{.}, and floating
-point exponent must use their usual ASCII character.
+from the same block, i.e., if the nominator of a rational uses Indian
+script, so must the denominator.  All special characters such as the
+sign, rational separator, floating point \chr{.}, and floating point
+exponent must use their usual ASCII character.
 
     \item [White space]
-All characters marked as separators (Z*) in the Unicode tables are
-handled as layout characters.
+For code points beyond ISO Latin-1, the layout characters are exactly
+the Unicode \const{Pattern_White_Space} set defined by UAX~\#31:
+U+0009..U+000D, U+0020, U+0085, U+200E, U+200F, U+2028, and U+2029.
+Pattern_White_Space deliberately excludes U+00A0 (NO-BREAK SPACE);
+SWI-Prolog currently keeps treating U+00A0 as whitespace for
+backward compatibility with ISO Latin-1 sources.
 
     \item [Control and unassigned characters]
 Control and unassigned (C*) characters produce a syntax error if
@@ -3310,13 +3335,22 @@ unassigned characters to be written using an escape sequence.  See
 \secref{charescapes}.
 
     \item [Other characters]
-The first 128 characters follow the ISO Prolog standard.  Unicode symbol
-and punctuation characters (general category S* and P*) act as glueing
-symbol characters (i.e., just like \const{==}: an unquoted sequence of
-symbol characters are combined into an atom).
-
-Other characters (this is mainly \const{No}: \textit{a numeric character
-of other type}) are currently handled as `solo'.
+The first 128 characters follow the ISO Prolog standard.  In particular,
+the ASCII symbol characters glue into compound atoms, giving the
+familiar operator tokens \const{==}, \const{=..}, \const{:-} and so on.
+Beyond ASCII, all Unicode symbol characters (general categories
+\const{Sm}, \const{Sc}, \const{Sk}, \const{So}) and all Unicode
+punctuation characters (\const{Pc}, \const{Pd}, \const{Ps}, \const{Pe},
+\const{Pi}, \const{Pf}, \const{Po}) are treated as \jargon{solo}: each
+forms an atom on its own and does not glue with adjacent symbols.  This
+is a deliberate change from earlier releases, in which Unicode symbols
+glued into compound atoms in the same way as ASCII symbols; the change
+ensures that characters such as \chr{≤}, \chr{«}, \chr{€}, and \chr{·}
+keep their per-character meaning.  Operators built from Unicode symbols
+must be declared explicitly with op/3.  Numeric characters of other
+type (general category \const{No}, e.g.\ fractions and circled digits)
+are not part of the identifier set; only the explicitly listed
+super- and subscript digits extend identifiers.
 \end{itemlist}
 
 
