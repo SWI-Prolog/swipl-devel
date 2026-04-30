@@ -5737,14 +5737,14 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 #define atom_to_term(atom, term, bindings, text_type) \
 	LDFUNC(atom_to_term, atom, term, bindings, text_type)
 
-static int
+static bool
 atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
 { PL_chars_t txt;
 
   if ( !bindings && PL_is_variable(atom) ) /* term_to_atom(+, -) */
   { char buf[1024];
     size_t bufsize = sizeof(buf);
-    int rval;
+    bool rval;
     char *s = buf;
     IOSTREAM *stream;
     PL_chars_t txt;
@@ -5773,7 +5773,7 @@ atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
   if ( PL_get_text(atom, &txt, CVT_ALL|CVT_EXCEPTION) )
   { GET_LD
     read_data rd;
-    int rval;
+    bool rval;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
 
@@ -5795,7 +5795,7 @@ atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
     return rval;
   }
 
-  fail;
+  return false;
 }
 
 
