@@ -529,6 +529,7 @@ init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
     _PL_rd->char_conversion_table = char_conversion_table;
   else
     _PL_rd->char_conversion_table = NULL;
+  _PL_rd->normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
 }
 
 
