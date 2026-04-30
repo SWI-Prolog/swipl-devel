@@ -1100,6 +1100,15 @@ considerAGC(void)
 #endif /*O_ATOMGC*/
 
 
+PL_atom_normalize_t
+PL_atom_normalize_hook(PL_atom_normalize_t new)
+{ PL_atom_normalize_t old = GD->atoms.normalize_hook;
+  GD->atoms.normalize_hook = new;
+
+  return old;
+}
+
+
 void
 resetAtoms()
 {

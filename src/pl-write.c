@@ -35,6 +35,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _GNU_SOURCE			/* get wcwidth() */
 #include "pl-write.h"
 #include "pl-arith.h"
 #include "pl-dict.h"
@@ -47,6 +48,10 @@
 #include "pl-modul.h"
 #include "pl-setup.h"
 #include "pl-nt.h"
+#ifndef HAVE_WCWIDTH
+#include "mk_wcwidth.h"
+#endif
+#include <wchar.h>
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
@@ -275,6 +280,38 @@ code_requires_quoted(int c, IOSTREAM *fd, int flags)
     return true;
   if ( fd && Scanrepresent(c, fd) != 0 )
     return true;
+
+  return false;
+}
+
+/* atom_has_combining(a) returns true when `a` carries any code
+ * point whose wcwidth is 0 (combining mark, zero-width joiner,
+ * variation selector, ...).  Such atoms are not in NFC if any
+ * combining mark could compose with the preceding base character,
+ * and even when they are technically NFC (e.g. ZWJ-joined emoji)
+ * they are visually surprising as bare identifiers.  The writer
+ * uses this to force-quote denormalised atoms under `quoted(true)`.
+ *
+ * The check is independent of library(unicode); it relies only on
+ * the bundled mk_wcwidth tables.  A Latin-1 atom has no combining
+ * code points, so the test only needs to walk wide atoms.
+ */
+static bool
+atom_has_combining(atom_t a)
+{ Atom ap = atomValue(a);
+
+  if ( isoff(ap->type, PL_BLOB_TEXT) )
+    return false;
+
+  if ( isUCSAtom(ap) )
+  { const pl_wchar_t *w = (const pl_wchar_t *)ap->name;
+    size_t i, len = ap->length / sizeof(pl_wchar_t);
+
+    for(i=0; i<len; i++)
+    { if ( w[i] >= 0x300 && wcwidth((wchar_t)w[i]) == 0 )
+	return true;
+    }
+  }
 
   return false;
 }
@@ -965,7 +1002,10 @@ writeAtom(atom_t a, write_options *options)
   }
 
   if ( ison(options, PL_WRT_QUOTED) )
-  { switch( atomType(a, options) )
+  { int t = atomType(a, options);
+    if ( t != AT_QUOTE && t != AT_FULLSTOP && atom_has_combining(a) )
+      t = AT_QUOTE;
+    switch( t )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
@@ -1013,7 +1053,8 @@ writeUCSAtom(atom_t atom, void *context)
   }
 
   if ( (options->flags&PL_WRT_QUOTED) &&
-       !unquoted_atomW(atom, options->out, options->flags) )
+       (!unquoted_atomW(atom, options->out, options->flags) ||
+	atom_has_combining(atom)) )
   { pl_wchar_t quote = L'\'';
 
     return ( PutOpenToken(quote, options) &&

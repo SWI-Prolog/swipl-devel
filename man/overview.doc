@@ -2467,6 +2467,18 @@ get_single_char/1, which also reads the user actions for the trace. May
 be set. If this flag is \const{false} at startup, command line editing
 is disabled. See also the \cmdlineoption{--no-tty} command line option.
 
+    \prologflagitem{unicode_normalize}{bool}{rw}
+If \const{true} (default \const{false}), read_term/2,3 and
+read_clause/2,3 normalise the text of unquoted atoms to Unicode NFC
+before interning, so that two source forms that are canonically
+equivalent yield the same atom.  Per-call \term{normalize}{Bool}
+options override this default.  Setting this flag to \const{true}
+auto-loads \pllib{unicode} if no kernel normalisation hook has been
+registered yet; if the library is unavailable the
+\jargon{set_prolog_flag/2} call propagates the
+\term{existence_error}{source_sink, library(unicode)} raised by
+use_module/1.
+
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
 If present and \const{true}, the operating system is some version of

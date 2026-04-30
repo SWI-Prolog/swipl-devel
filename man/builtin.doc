@@ -6886,6 +6886,15 @@ predicate can be read back with read/1 provided the currently active
 operator declarations are identical and Term.  Equivalent to
 \exam{write_term(Term, [quoted(true), numbervars(true)])}.
 
+Quoted writing additionally force-quotes atoms that contain at least
+one Unicode combining mark or other zero-width code point.  Such
+atoms are visually surprising as bare identifiers, since the
+combining mark normally attaches to the preceding base character.
+Force-quoting makes denormalised text visible: an atom whose codes
+are \verb$[0'c, 0'a, 0'f, 0'e, 0x0301]$ (decomposed) writes quoted,
+while the precomposed form \verb$[0'c, 0'a, 0'f, 0xe9]$ writes
+unquoted.
+
     \predicate[ISO]{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
 
@@ -7160,6 +7169,19 @@ is of the same format as used by stream_property/2.
     \termitem{var_prefix}{Bool}
 If \const{true}, demand variables to start with an underscore.  See
 \secref{varprefix}.
+
+    \termitem{normalize}{Bool}
+If \const{true}, apply Unicode NFC normalisation to the text of
+unquoted atoms (and unquoted functor names) before they are interned.
+Two source forms that are canonically equivalent (for example
+\jargon{e} followed by U+0301 vs.\ the precomposed U+00E9) thus yield
+the same atom.  Quoted atoms and string literals are not normalised.
+The default value is the value of the Prolog flag
+\prologflag{unicode_normalize} (default \const{false}).  Setting this
+option to \const{true} requires that the kernel's normalisation hook
+has been registered, which happens when \pllib{unicode} is loaded;
+otherwise an \term{existence_error}{hook, unicode_normalize} is
+raised.
 
     \termitem{variables}{Vars}
 Unify \arg{Vars} with a list of variables in the term. The variables

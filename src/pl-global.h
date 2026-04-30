@@ -226,6 +226,7 @@ struct PL_global_data
     PL_blob_t  *types;			/* registered atom types */
     int		text_rank;		/* next rank for text types */
     int		nontext_rank;		/* next rank for non-text types */
+    PL_atom_normalize_t normalize_hook;	/* UTF-8 normaliser, NULL if none */
   } atoms;
 
   struct

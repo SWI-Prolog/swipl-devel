@@ -1168,12 +1168,23 @@ typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
+/* Normalise a UTF-8 byte sequence to a canonical form in place.
+ * The result for the supported form (NFC, as registered by
+ * library(unicode)) is always shorter than or equal to the input,
+ * so the hook is allowed to write back into the input buffer.
+ * `in` points to a writable buffer of length `*len`.  On return
+ * `*len` carries the length of the normalised text in `in`.
+ * Returns 0 on success, -1 on error.
+ */
+typedef int (*PL_atom_normalize_t)(unsigned char *in, size_t *len);
+
 PL_EXPORT(bool)			PL_dispatch(IOSTREAM *fd, int wait);
 PL_EXPORT(PL_dispatch_hook_t)	PL_dispatch_hook(PL_dispatch_hook_t);
 PL_EXPORT(void)			PL_abort_hook(PL_abort_hook_t);
 PL_EXPORT(void)			PL_initialise_hook(PL_initialise_hook_t);
 PL_EXPORT(bool)			PL_abort_unhook(PL_abort_hook_t);
 PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
+PL_EXPORT(PL_atom_normalize_t)	PL_atom_normalize_hook(PL_atom_normalize_t);
 
 
 		 /*******************************

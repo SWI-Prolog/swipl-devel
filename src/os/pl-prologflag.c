@@ -1068,6 +1068,12 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	  set(m, M_VARPREFIX);
 	else
 	  clear(m, M_VARPREFIX);
+      } else if ( k == ATOM_unicode_normalize )
+      { if ( val && !GD->atoms.normalize_hook )
+	{ predicate_t pred =
+	    PL_predicate("$install_unicode_normalize_hook", 0, "system");
+	  rval = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+	}
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ rval = debugmode(NULL, true, NULL, DBG_ALL);
@@ -1402,7 +1408,7 @@ set_prolog_flag_ptr(DECL_LD term_t key, term_t value,
 
   if ( k == ATOM_autoload && !propagateAutoload(value) )
     return false;
-  if ( k == ATOM_threads )
+  if ( k == ATOM_threads || k == ATOM_unicode_normalize )
     return set_prolog_flag_unlocked(m, k, value, flags, of);
 
   PL_LOCK(L_PLFLAG);
@@ -2138,6 +2144,7 @@ initPrologFlags(void)
   setPrologFlag("character_escapes_unicode", FT_BOOL, true,
 		PLFLAG_CHARESCAPE_UNICODE);
   setPrologFlag("var_prefix", FT_BOOL, false, PLFLAG_VARPREFIX);
+  setPrologFlag("unicode_normalize", FT_BOOL, false, PLFLAG_UNICODE_NORMALIZE);
   setPrologFlag("char_conversion", FT_BOOL, false, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, true, PLFLAG_QUASI_QUOTES);

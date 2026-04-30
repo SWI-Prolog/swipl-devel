@@ -475,6 +475,7 @@ typedef struct
 #endif
   bool		cycles;			/* Re-establish cycles */
   bool		dotlists;		/* read .(a,b) as a list */
+  bool		normalize;		/* normalise unquoted atoms (NFC) */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -528,6 +529,23 @@ init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
     _PL_rd->char_conversion_table = char_conversion_table;
   else
     _PL_rd->char_conversion_table = NULL;
+}
+
+
+/* Raise existence_error(hook, unicode_normalize) for use by
+ * read_term/2,3 and read_clause/2,3 when normalisation is requested
+ * but no kernel normalisation hook has been registered.  The hook
+ * is registered by loading library(unicode); the error is phrased
+ * generically so as not to bind the kernel to that library.
+ */
+static int
+no_unicode_normalize_hook(void)
+{ GET_LD
+  term_t obj;
+
+  if ( (obj = PL_new_term_ref()) )
+    PL_put_atom(obj, ATOM_unicode_normalize);
+  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj);
 }
 
 
@@ -3032,6 +3050,10 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = false;
+
+		  if ( _PL_rd->normalize && GD->atoms.normalize_hook )
+		    GD->atoms.normalize_hook(start, &txt.length);
+
 		  cur_token.value.atom = textToAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
@@ -5360,6 +5382,7 @@ static const PL_option_t read_clause_options[] =
   { ATOM_process_comment,   OPT_BOOL },
   { ATOM_comments,	    OPT_TERM },
   { ATOM_syntax_errors,     OPT_ATOM },
+  { ATOM_normalize,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -5407,6 +5430,7 @@ read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
   term_t comments = 0;
   term_t opt_comments = 0;
   int process_comment;
+  int normalize = -1;
   atom_t syntax_errors = ATOM_dec10;
   predicate_t comment_hook;
 
@@ -5427,9 +5451,20 @@ retry:
 			&rd.subtpos,
 			&process_comment,
 			&opt_comments,
-			&syntax_errors) )
+			&syntax_errors,
+			&normalize) )
   { PL_close_foreign_frame(fid);
     return false;
+  }
+
+  if ( normalize == -1 )
+    normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
+  if ( normalize )
+  { if ( !GD->atoms.normalize_hook )
+    { PL_close_foreign_frame(fid);
+      return no_unicode_normalize_hook();
+    }
+    rd.normalize = true;
   }
 
   if ( opt_comments )
@@ -5504,6 +5539,7 @@ static const PL_option_t read_term_options[] =
 #endif
   { ATOM_cycles,	    OPT_BOOL },
   { ATOM_dotlists,	    OPT_BOOL },
+  { ATOM_normalize,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -5520,6 +5556,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
   read_data rd;
   int charescapes = -1;
   int varprefix = -1;
+  int normalize = -1;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
@@ -5549,7 +5586,8 @@ retry:
 			&tcomments,
 			QQ_ARG
 			&rd.cycles,
-			&rd.dotlists) )
+			&rd.dotlists,
+			&normalize) )
     return false;
 
   if ( mname )
@@ -5570,6 +5608,13 @@ retry:
       set(&rd, M_VARPREFIX);
     else
       clear(&rd, M_VARPREFIX);
+  }
+  if ( normalize == -1 )
+    normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
+  if ( normalize )
+  { if ( !GD->atoms.normalize_hook )
+      return no_unicode_normalize_hook();
+    rd.normalize = true;
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
