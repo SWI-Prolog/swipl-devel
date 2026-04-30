@@ -3294,18 +3294,18 @@ standard defines a syntax for identifiers in computer languages.%
 SWI-Prolog uses the \const{XID_Start} and \const{XID_Continue} sets:
 identifiers start with an \const{XID_Start} code point followed by a
 sequence of \const{XID_Continue} code points.  As a profile addition,
-the superscript digits (\chr{²}, \chr{³}, \chr{¹}, and \chr{⁰}--\chr{⁹},
-i.e.\ U+00B2, U+00B3, U+00B9, U+2070, U+2074..U+2079) and the subscript
-digits (\chr{₀}--\chr{₉}, U+2080..U+2089) are also accepted as
-\const{XID_Continue}, allowing variables such as \verb$X²$ and
-\verb$X₁$.  Such sequences are handled as a single token.  The token
-is a \emph{variable} iff it starts with an underscore (\chr{_}) or
-with a code point in general category \const{Lu} (uppercase letter).
-Otherwise it is an atom.  Note that titlecase letters (general category
-\const{Lt}, e.g.\ \chr{ǅ}) start an atom, not a variable; this differs
-from earlier releases that used the broader derived \const{Uppercase}
-property.  Many languages do not have the notion of character case;
-in such languages variables \emph{must} be written as \verb$_name$.
+the superscript digits ({²}, {³}, {¹}, and {⁰}--{⁹}, i.e.\ U+00B2,
+U+00B3, U+00B9, U+2070, U+2074..U+2079) and the subscript digits
+({₀}--{₉}, U+2080..U+2089) are also accepted as \const{XID_Continue},
+allowing variables such as X{²} and X{₁}.  Such sequences are handled
+as a single token.  The token is a \emph{variable} iff it starts with
+an underscore (\chr{_}) or with a code point in general category
+\const{Lu} (uppercase letter).  Otherwise it is an atom.  Note that
+titlecase letters (general category \const{Lt}, e.g.\ {ǅ}) start an
+atom, not a variable; this differs from earlier releases that used
+the broader derived \const{Uppercase} property.  Many languages do
+not have the notion of character case; in such languages variables
+\emph{must} be written as \verb$_name$.
 
     \item [Numbers]
 
@@ -3345,8 +3345,8 @@ punctuation characters (\const{Pc}, \const{Pd}, \const{Ps}, \const{Pe},
 forms an atom on its own and does not glue with adjacent symbols.  This
 is a deliberate change from earlier releases, in which Unicode symbols
 glued into compound atoms in the same way as ASCII symbols; the change
-ensures that characters such as \chr{≤}, \chr{«}, \chr{€}, and \chr{·}
-keep their per-character meaning.  Operators built from Unicode symbols
+ensures that characters such as {≤}, {«}, {€}, and {·} keep their
+per-character meaning.  Operators built from Unicode symbols
 must be declared explicitly with op/3.  Numeric characters of other
 type (general category \const{No}, e.g.\ fractions and circled digits)
 are not part of the identifier set; only the explicitly listed

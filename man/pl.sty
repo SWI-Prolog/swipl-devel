@@ -442,6 +442,38 @@
 \urldef{\Sssu}\satom{=>}		% =>
 \urldef{\Smssu}\satom{?=>}		% ?=>
 
+% Selected non-ASCII Unicode characters used in the manual prose.
+% Routed through \urldef/\satom so the .tex stays ASCII; doc2tex.pl
+% turns the literal {<char>} in .doc into {\Sname} in .tex, and
+% ltx2htm renders \Sname back to the UTF-8 character via urldef/2.
+\urldef{\Ssupzero}\satom{⁰}		% U+2070 superscript zero
+\urldef{\Ssupone}\satom{¹}		% U+00B9 superscript one
+\urldef{\Ssuptwo}\satom{²}		% U+00B2 superscript two
+\urldef{\Ssupthree}\satom{³}		% U+00B3 superscript three
+\urldef{\Ssupfour}\satom{⁴}		% U+2074
+\urldef{\Ssupfive}\satom{⁵}		% U+2075
+\urldef{\Ssupsix}\satom{⁶}		% U+2076
+\urldef{\Ssupseven}\satom{⁷}		% U+2077
+\urldef{\Ssupeight}\satom{⁸}		% U+2078
+\urldef{\Ssupnine}\satom{⁹}		% U+2079 superscript nine
+\urldef{\Ssubzero}\satom{₀}		% U+2080 subscript zero
+\urldef{\Ssubone}\satom{₁}		% U+2081
+\urldef{\Ssubtwo}\satom{₂}		% U+2082
+\urldef{\Ssubthree}\satom{₃}		% U+2083
+\urldef{\Ssubfour}\satom{₄}		% U+2084
+\urldef{\Ssubfive}\satom{₅}		% U+2085
+\urldef{\Ssubsix}\satom{₆}		% U+2086
+\urldef{\Ssubseven}\satom{₇}		% U+2087
+\urldef{\Ssubeight}\satom{₈}		% U+2088
+\urldef{\Ssubnine}\satom{₉}		% U+2089 subscript nine
+\urldef{\SDz}\satom{ǅ}			% U+01C5 Dz titlecase
+\urldef{\Sleq}\satom{≤}			% U+2264 less-than or equal to
+\urldef{\Sgeq}\satom{≥}			% U+2265 greater-than or equal to
+\urldef{\Slaquo}\satom{«}		% U+00AB left double angle quote
+\urldef{\Sraquo}\satom{»}		% U+00BB right double angle quote
+\urldef{\Seuro}\satom{€}		% U+20AC euro sign
+\urldef{\Smiddot}\satom{·}		% U+00B7 middle dot
+
 \newcommand{\bug}[1]{\footnote{BUG: #1}}
 
 \newcommand{\mod}[2]{#1 \mbox{\rm mod} #2}
