@@ -45,8 +45,12 @@
 :- use_module(library(option), [option/3]).
 :- use_module(library('unicode/unicode_data'), [unicode_property/2]).
 :- use_module(derived_core_properties,
-              [unicode_derived_core_property/2, id_superscript/1, white_space/1]).
+              [unicode_derived_core_property/2,
+               id_superscript/1,
+               id_subscript/1,
+               white_space/1]).
 :- use_module(library(apply), [maplist/3]).
+:- use_module(library(readutil), [read_line_to_codes/2]).
 
 /** <module> Generate Prolog Unicode map
 
@@ -103,7 +107,46 @@ main(Argv) :-
     argv_options(Argv, R, Options),
     assertion(R == []),
     option(out(File), Options, '../pl-umap.c'),
-    write_syntax_map(File, Options).
+    write_syntax_map(File, Options),
+    (   option(lang(javascript), Options)
+    ->  true
+    ;   option(version_out(VFile), Options, '../pl-umap-version.h'),
+        write_version_header(VFile)
+    ).
+
+%!  write_version_header(+File)
+%
+%   Emit a tiny C header that defines UNICODE_SYNTAX_VERSION as a
+%   string literal carrying the Unicode version of the UCD files used
+%   to generate ../pl-umap.c.  Read from the first comment line of
+%   DerivedCoreProperties.txt, e.g.
+%
+%       # DerivedCoreProperties-17.0.0.txt
+%
+%   yields "17.0.0".
+
+write_version_header(File) :-
+    unicode_data_version(Version),
+    setup_call_cleanup(
+        open(File, write, Out),
+        ( generated_file(Out),
+          format(Out, '#ifndef UNICODE_SYNTAX_VERSION~n', []),
+          format(Out, '#define UNICODE_SYNTAX_VERSION "~w"~n', [Version]),
+          format(Out, '#endif~n', [])
+        ),
+        close(Out)).
+
+unicode_data_version(Version) :-
+    absolute_file_name(unicode('DerivedCoreProperties.txt'),
+                       Path, [access(read)]),
+    setup_call_cleanup(
+        open(Path, read, In),
+        read_line_to_codes(In, Line),
+        close(In)),
+    string_codes(LineS, Line),
+    string_concat("# DerivedCoreProperties-", Rest, LineS),
+    string_concat(VersionS, ".txt", Rest),
+    atom_string(Version, VersionS).
 
 last_unicode_page(LastPage) :-
     LastPage is (0x10ffff + 1) // 0x100.
@@ -420,6 +463,8 @@ code_flag_(C, id_continue) :-
     unicode_derived_core_property(C, xid_continue).
 code_flag_(C, id_continue) :-
     id_superscript(C).
+code_flag_(C, id_continue) :-
+    id_subscript(C).
 code_flag_(C, uppercase) :-
     unicode_property(C, general_category(Cat)),
     upper_cat(Cat).

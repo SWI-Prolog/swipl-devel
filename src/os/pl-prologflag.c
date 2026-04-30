@@ -57,6 +57,7 @@
 #include "../pl-setup.h"
 #include "../pl-modul.h"
 #include "../pl-version.h"
+#include "../pl-umap-version.h"
 #include <ctype.h>
 #include <time.h>
 #ifdef HAVE_SYS_TIME_H
@@ -2129,6 +2130,7 @@ initPrologFlags(void)
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
   setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, (intptr_t)UNICODE_MAX);
+  setPrologFlag("unicode_syntax_version", FT_ATOM|FF_READONLY, UNICODE_SYNTAX_VERSION);
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, (intptr_t)MAXARITY);
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, true, 0);

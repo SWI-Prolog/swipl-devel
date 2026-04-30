@@ -83,7 +83,9 @@ static void	  addUTF8Buffer(Buffer b, int c);
 #define PlIdStartW(c)	((unsigned)c <= 0xff ? \
 				(isLower(c)||isUpper(c)||c=='_') \
 				: uflagsW(c) & U_ID_START)
-#define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
+#define PlIdContW(c) \
+	((unsigned)(c) <= 0x7F ? CharTypeA(c, >= UC) \
+			       : (uflagsW(c) & U_ID_CONTINUE))
 #define PlSymbolW(c)	CharTypeW(c, == SY, 0)
 #define PlDecimalW(c)	CharTypeW(c, == DI, U_DECIMAL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
