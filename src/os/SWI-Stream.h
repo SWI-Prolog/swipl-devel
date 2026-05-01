@@ -210,6 +210,18 @@ typedef enum
   ENC_WCHAR				/* wchar_t */
 } IOENC;
 
+/* Per-stream Unicode-atom policy.  See the `unicode_atoms` field of
+ * IOSTREAM and the matching Prolog flag, set_stream/2 property and
+ * read_term/2,3 option.  S_UATOMS_ACCEPT == 0 keeps zero-initialised
+ * streams in the byte-faithful default.
+ */
+typedef enum
+{ S_UATOMS_ACCEPT = 0,			/* byte-faithful */
+  S_UATOMS_NFC,				/* NFC-normalise unquoted atoms */
+  S_UATOMS_ERROR,			/* error on non-NFC unquoted atoms */
+  S_UATOMS_REJECT			/* error on non-ASCII unquoted atoms */
+} Sunicode_atoms_t;
+
 #define ENC_UNICODE_BE ENC_UTF16BE
 #define ENC_UNICODE_LE ENC_UTF16LE
 
@@ -251,7 +263,12 @@ typedef struct io_stream
   struct PL_locale *	locale;		/* Locale associated to stream */
   intptr_t		fileno;		/* File number if this is associated to a file */
   uintptr_t		tty_size;	/* Size of terminal (2 shorts) */
-  intptr_t		reserved[2];	/* reserved for extension */
+  unsigned char		unicode_atoms;	/* Sunicode_atoms_t: per-stream atom-
+					   content policy.  Claims 1 byte of
+					   what was reserved[0]; the compiler
+					   inserts (sizeof(intptr_t)-1) bytes
+					   of padding to align the next field. */
+  intptr_t		reserved[1];	/* reserved for extension */
 } IOSTREAM;
 
 

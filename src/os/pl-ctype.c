@@ -1066,6 +1066,17 @@ initEncoding(void)
 }
 
 
+Sunicode_atoms_t
+initUnicodeAtoms(void)
+{ GET_LD
+
+  if ( HAS_LD )
+    return LD->unicode_atoms;
+
+  return S_UATOMS_ACCEPT;
+}
+
+
 void
 initCharTypes(void)
 { initEncoding();

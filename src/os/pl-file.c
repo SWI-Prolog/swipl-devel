@@ -57,6 +57,7 @@ handling times must be cleaned, but that not only holds for this module.
 #define NEEDS_SWINSOCK
 #include "pl-incl.h"
 #include "pl-arith.h"
+#include "pl-prologflag.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-stream.h"
@@ -2338,6 +2339,28 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		    ATOM_encoding, ATOM_stream, stream);
+  } else if ( aname == ATOM_unicode_atoms )
+  { atom_t val;
+    Sunicode_atoms_t mode;
+
+    if ( !PL_get_atom_ex(a, &val) )
+      return false;
+    if ( !atom_to_unicode_atoms(val, &mode) )
+    { term_t v;
+
+      return ( (v = PL_new_term_ref()) &&
+	       PL_put_atom(v, val) &&
+	       PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unicode_atoms, v) );
+    }
+    if ( (mode == S_UATOMS_NFC || mode == S_UATOMS_ERROR) &&
+	 !GD->atoms.normalize_hook )
+    { predicate_t pred =
+	PL_predicate("$install_unicode_normalize_hook", 0, "system");
+      if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
+	return false;
+    }
+    s->unicode_atoms = (unsigned char)mode;
+    return true;
 #ifdef O_LOCALE
   } else if ( aname == ATOM_locale )	/* locale(Locale) */
   { PL_locale *val;
@@ -2439,6 +2462,7 @@ static const set_stream_info ss_info[] =
   SS_INFO(ATOM_timeout,		      SS_BOTH),
   SS_INFO(ATOM_tty,		      SS_BOTH),
   SS_INFO(ATOM_encoding,	      SS_BOTH),
+  SS_INFO(ATOM_unicode_atoms,	      SS_READ),
   SS_INFO(ATOM_locale,		      SS_BOTH),
   SS_INFO(ATOM_representation_errors, SS_WRITE),
   SS_INFO(ATOM_write_errors,          SS_WRITE),
@@ -4042,6 +4066,7 @@ static const PL_option_t open4_options[] =
 #ifdef O_LOCALE
   { ATOM_locale,	 OPT_LOCALE },
 #endif
+  { ATOM_unicode_atoms,	 OPT_ATOM },
   { NULL_ATOM,		 0 }
 };
 
@@ -4108,6 +4133,7 @@ openStream(term_t file, term_t mode, term_t options)
   int    close_on_abort = true;
   int	 bom		= -1;
   term_t create		= 0;
+  atom_t unicode_atoms_opt = NULL_ATOM;
   char   how[16];
   char  *h		= how;
   char *path;
@@ -4125,7 +4151,8 @@ openStream(term_t file, term_t mode, term_t options)
 			  &type, &reposition, &alias, &eof_action,
 			  &close_on_abort, &buffer, &lock, &wait,
 			  &encoding, &newline, &bom, &create
-			  LOCALE_ARG) )
+			  LOCALE_ARG,
+			  &unicode_atoms_opt) )
       return false;
   }
 
@@ -4320,6 +4347,30 @@ openStream(term_t file, term_t mode, term_t options)
 	  goto bom_error;
       }
     }
+  }
+
+  if ( unicode_atoms_opt != NULL_ATOM )
+  { Sunicode_atoms_t mode;
+
+    if ( !atom_to_unicode_atoms(unicode_atoms_opt, &mode) )
+    { term_t v;
+
+      ( (v = PL_new_term_ref()) &&
+	PL_put_atom(v, unicode_atoms_opt) &&
+	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unicode_atoms, v) );
+      Sclose(s);
+      return NULL;
+    }
+    if ( (mode == S_UATOMS_NFC || mode == S_UATOMS_ERROR) &&
+	 !GD->atoms.normalize_hook )
+    { predicate_t pred =
+	PL_predicate("$install_unicode_normalize_hook", 0, "system");
+      if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
+      { Sclose(s);
+	return NULL;
+      }
+    }
+    s->unicode_atoms = (unsigned char)mode;
   }
 
   return s;
@@ -4985,6 +5036,17 @@ stream_encoding_prop(DECL_LD IOSTREAM *s, term_t prop)
 }
 
 
+#define stream_unicode_atoms_prop(s, prop) LDFUNC(stream_unicode_atoms_prop, s, prop)
+static int
+stream_unicode_atoms_prop(DECL_LD IOSTREAM *s, term_t prop)
+{ atom_t a = unicode_atoms_to_atom((Sunicode_atoms_t)s->unicode_atoms);
+
+  if ( a )
+    return PL_unify_atom(prop, a);
+  return false;
+}
+
+
 #ifdef O_LOCALE
 #define stream_locale_prop(s, prop) LDFUNC(stream_locale_prop, s, prop)
 static int
@@ -5144,6 +5206,7 @@ static const sprop sprop_list [] =
   _SP1( FUNCTOR_close_on_abort1,stream_close_on_abort_prop ),
   _SP1( FUNCTOR_tty1,		stream_tty_prop ),
   _SP1( FUNCTOR_encoding1,	stream_encoding_prop ),
+  _SP1( FUNCTOR_unicode_atoms1,	stream_unicode_atoms_prop ),
 #ifdef O_LOCALE
   _SP1( FUNCTOR_locale1,	stream_locale_prop ),
 #endif

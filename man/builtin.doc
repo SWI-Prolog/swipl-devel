@@ -7170,18 +7170,31 @@ is of the same format as used by stream_property/2.
 If \const{true}, demand variables to start with an underscore.  See
 \secref{varprefix}.
 
-    \termitem{normalize}{Bool}
-If \const{true}, apply Unicode NFC normalisation to the text of
-unquoted atoms (and unquoted functor names) before they are interned.
-Two source forms that are canonically equivalent (for example
-\jargon{e} followed by U+0301 vs.\ the precomposed U+00E9) thus yield
-the same atom.  Quoted atoms and string literals are not normalised.
-The default value is the value of the Prolog flag
-\prologflag{unicode_normalize} (default \const{false}).  Setting this
-option to \const{true} requires that the kernel's normalisation hook
-has been registered, which happens when \pllib{unicode} is loaded;
-otherwise an \term{existence_error}{hook, unicode_normalize} is
-raised.
+    \termitem{unicode_atoms}{Mode}
+Per-call atom-content policy that overrides the policy of the input
+stream and the Prolog flag \prologflag{unicode_atoms}.  \arg{Mode} is
+one of:
+
+    \begin{description}
+    \termitem{accept}{}
+Pass unquoted-atom bytes through verbatim (the default; byte-faithful).
+    \termitem{nfc}{}
+Normalise the text of unquoted atoms (and unquoted functor names)
+to Unicode NFC before interning, so that two source forms that are
+canonically equivalent yield the same atom.
+    \termitem{error}{}
+Raise \term{syntax_error}{non_nfc_atom} when an unquoted atom
+contains text that is not in NFC.
+    \termitem{reject}{}
+Raise \term{syntax_error}{non_ascii_atom} when an unquoted atom
+contains any non-ASCII code point.
+    \end{description}
+
+Quoted atoms and string literals are always byte-faithful regardless
+of the mode.  Modes \const{nfc} and \const{error} require the
+kernel's normalisation hook, which is installed when \pllib{unicode}
+is loaded; otherwise an \term{existence_error}{hook, unicode_normalize}
+is raised.
 
     \termitem{variables}{Vars}
 Unify \arg{Vars} with a list of variables in the term. The variables

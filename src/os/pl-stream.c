@@ -169,6 +169,7 @@ STRYLOCK(IOSTREAM *s)
 
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
+extern Sunicode_atoms_t		initUnicodeAtoms(void);
 extern bool			reportStreamError(IOSTREAM *s);
 extern record_t			PL_record(term_t t);
 extern int			PL_thread_self(void);
@@ -3380,9 +3381,10 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
   if ( (flags&SIO_TEXT) )
-  { s->encoding    = initEncoding();
+  { s->encoding      = initEncoding();
+    s->unicode_atoms = (unsigned char)initUnicodeAtoms();
   } else
-  { s->encoding	   = ENC_OCTET;
+  { s->encoding	     = ENC_OCTET;
   }
 #if CRLF_MAPPING
   s->newline       = SIO_NL_DOS;
@@ -4248,13 +4250,14 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
     flags |= SIO_STATIC;
 
   memset((char *)s, 0, sizeof(IOSTREAM));
-  s->timeout   = -1;
-  s->buffer    = buf;
-  s->bufp      = buf;
-  s->unbuffer  = buf;
-  s->handle    = s;			/* for Sclose_string() */
-  s->functions = &Sstringfunctions;
-  s->encoding  = ENC_ISO_LATIN_1;
+  s->timeout       = -1;
+  s->buffer        = buf;
+  s->bufp          = buf;
+  s->unbuffer      = buf;
+  s->handle        = s;			/* for Sclose_string() */
+  s->functions     = &Sstringfunctions;
+  s->encoding      = ENC_ISO_LATIN_1;
+  s->unicode_atoms = (unsigned char)initUnicodeAtoms();
 
   switch(*mode)
   { case 'r':

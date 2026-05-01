@@ -36,10 +36,15 @@
 */
 
 /*#define O_DEBUG 1*/
+#define _GNU_SOURCE			/* get wcwidth() */
 #include "pl-read.h"
 #include "pl-arith.h"
 #include <math.h>
 #include <float.h>
+#ifndef HAVE_WCWIDTH
+#include "mk_wcwidth.h"
+#endif
+#include <wchar.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
@@ -463,7 +468,7 @@ typedef struct
 #endif
   bool		cycles;			/* Re-establish cycles */
   bool		dotlists;		/* read .(a,b) as a list */
-  bool		normalize;		/* normalise unquoted atoms (NFC) */
+  Sunicode_atoms_t unicode_atoms;	/* per-stream/per-call atom-content policy */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -517,7 +522,7 @@ init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
     _PL_rd->char_conversion_table = char_conversion_table;
   else
     _PL_rd->char_conversion_table = NULL;
-  _PL_rd->normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
+  _PL_rd->unicode_atoms = (Sunicode_atoms_t)in->unicode_atoms;
 }
 
 
@@ -535,6 +540,117 @@ no_unicode_normalize_hook(void)
   if ( (obj = PL_new_term_ref()) )
     PL_put_atom(obj, ATOM_unicode_normalize);
   return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj);
+}
+
+
+/* Forward declarations for errorWarning helpers (defined below)
+ * needed by the bidi-override / NFC checks above the main reader.
+ */
+static bool errorWarning(const char *id_str, term_t id_term,
+			 ReadData _PL_rd);
+
+/* Bidi-override and isolate code points (Unicode UAX #9 explicit
+ * formatting) that the source-level Trojan Source attack uses.
+ * Always rejected in tokens, comments, and raw bytes inside
+ * quoted atoms / strings; users who need the byte literally can
+ * write the U+202E escape, etc.
+ */
+static inline bool
+is_bidi_override(int c)
+{ return (c >= 0x202A && c <= 0x202E) ||
+	 (c >= 0x2066 && c <= 0x2069);
+}
+
+static bool
+bidi_override_error(int c, ReadData _PL_rd)
+{ GET_LD
+  term_t ex;
+
+  return ( (ex = PL_new_term_ref()) &&
+	   PL_unify_term(ex, PL_FUNCTOR_CHARS, "bidi_override", 1,
+			 PL_INT, c) &&
+	   errorWarning(NULL, ex, _PL_rd) );
+}
+
+/* check_no_bidi_override(): scan a UTF-8 byte range for any
+ * bidi-override / isolate code point and raise a syntax error if
+ * found.  Returns true when the range is clean.
+ */
+static bool
+check_no_bidi_override(const unsigned char *start, const unsigned char *end,
+		       ReadData _PL_rd)
+{ const unsigned char *p = start;
+
+  while ( p < end )
+  { int c;
+    p = (const unsigned char *)utf8_get_char((const char *)p, &c);
+    if ( is_bidi_override(c) )
+      return bidi_override_error(c, _PL_rd);
+  }
+  return true;
+}
+
+
+/* atom_text_has_non_ascii(): does the UTF-8 byte sequence carry any
+ * byte at or above 0x80 (i.e. any non-ASCII character)?
+ */
+static bool
+atom_text_has_non_ascii(const unsigned char *bytes, size_t len)
+{ size_t i;
+
+  for(i=0; i<len; i++)
+  { if ( bytes[i] >= 0x80 )
+      return true;
+  }
+  return false;
+}
+
+
+/* atom_text_not_in_nfc(): conservative test for "definitely not in
+ * NFC".  Fast path scans for any code point at or above U+0300 with
+ * wcwidth == 0 (combining marks etc.); when a normalisation hook is
+ * registered, run it on a stack copy and compare for an exact
+ * NFC test.  Same accuracy ladder as the writer's
+ * atom_has_combining/1.
+ */
+static bool
+atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
+{ const unsigned char *p = bytes;
+  const unsigned char *e = bytes + len;
+  bool any_combining = false;
+
+  while ( p < e )
+  { int c;
+    p = (const unsigned char *)utf8_get_char((const char *)p, &c);
+    if ( c >= 0x300 && wcwidth((wchar_t)c) == 0 )
+    { any_combining = true;
+      break;
+    }
+  }
+  if ( !any_combining )
+    return false;
+
+  if ( GD->atoms.normalize_hook )
+  { unsigned char *buf = PL_malloc(len);
+    size_t l = len;
+    bool changed;
+
+    if ( !buf )
+      return true;			/* assume not-NFC on OOM */
+    memcpy(buf, bytes, len);
+    if ( GD->atoms.normalize_hook(buf, &l) != 0 )
+    { PL_free(buf);
+      return true;
+    }
+    changed = (l != len) || (memcmp(buf, bytes, len) != 0);
+    PL_free(buf);
+    return changed;
+  }
+  /* No precise hook available; treat the combining-mark presence as
+   * "not in NFC" — conservative, may over-quote NFC texts that
+   * legitimately contain combining marks (e.g. Devanagari).
+   */
+  return true;
 }
 
 
@@ -1291,6 +1407,12 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    if ( cbuf )
 		      addUTF8Buffer(cbuf, c);
 
+		    if ( is_bidi_override(c) )
+		    { if ( cbuf )
+			discardBuffer(cbuf);
+		      return bidi_override_error(c, _PL_rd);
+		    }
+
 		    switch( c )
 		    { case EOF:
 			if ( cbuf )
@@ -1354,7 +1476,11 @@ raw_read2(DECL_LD ReadData _PL_rd)
 
 		  for(;;)
 		  { while((c=getchr()) != EOF && c != '\n')
-		    { addUTF8Buffer(cbuf, c);
+		    { if ( is_bidi_override(c) )
+		      { discardBuffer(cbuf);
+			return bidi_override_error(c, _PL_rd);
+		      }
+		      addUTF8Buffer(cbuf, c);
 		      if ( something_read )		/* record positions */
 			addToBuffer(' ', _PL_rd);
 		    }
@@ -1382,7 +1508,9 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  discardBuffer(cbuf);
 		} else
 		{ while((c=getchr()) != EOF && c != '\n')
-		  { if ( something_read )		/* record positions */
+		  { if ( is_bidi_override(c) )
+		      return bidi_override_error(c, _PL_rd);
+		    if ( something_read )		/* record positions */
 		      addToBuffer(' ', _PL_rd);
 		  }
 		}
@@ -2587,7 +2715,11 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
       { break;
       }
     } else if ( c >= 0x80 )		/* copy UTF-8 sequence */
-    { do
+    { int code;
+      utf8_get_char((const char *)(in - 1), &code);
+      if ( is_bidi_override(code) )
+	return bidi_override_error(code, _PL_rd);
+      do
       { addBuffer(buf, (char)c, char);
 	c = *in++;
       } while( c > 0x80 );
@@ -3006,6 +3138,10 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 					/* TBD: quadratic due to ptr_to_pos()? */
 
   rdhere = (unsigned char*)utf8_get_char((char *)rdhere, &c);
+  if ( is_bidi_override(c) )
+  { bidi_override_error(c, _PL_rd);
+    return NULL;
+  }
   if ( c > 0xff )
   { if ( PlIdStartW(c) )
     { if ( PlUpperW(c) )
@@ -3025,6 +3161,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		{ PL_chars_t txt;
 
 		  rdhere = SkipAtomIdCont(rdhere);
+		  if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
+		    return NULL;
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		  { if ( !checkASCII(start, rdhere-start, "atom") )
@@ -3038,8 +3176,26 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = false;
 
-		  if ( _PL_rd->normalize && GD->atoms.normalize_hook )
-		    GD->atoms.normalize_hook(start, &txt.length);
+		  switch ( _PL_rd->unicode_atoms )
+		  { case S_UATOMS_ACCEPT:
+		      break;
+		    case S_UATOMS_NFC:
+		      if ( GD->atoms.normalize_hook )
+			GD->atoms.normalize_hook(start, &txt.length);
+		      break;
+		    case S_UATOMS_ERROR:
+		      if ( atom_text_not_in_nfc(start, txt.length) )
+		      { errorWarning("non_nfc_atom", 0, _PL_rd);
+			return NULL;
+		      }
+		      break;
+		    case S_UATOMS_REJECT:
+		      if ( atom_text_has_non_ascii(start, txt.length) )
+		      { errorWarning("non_ascii_atom", 0, _PL_rd);
+			return NULL;
+		      }
+		      break;
+		  }
 
 		  cur_token.value.atom = textToAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
@@ -3066,6 +3222,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  goto lower;
 
 		{ rdhere = SkipVarIdCont(rdhere);
+		  if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
+		    return NULL;
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		  { if ( !checkASCII(start, rdhere-start, "variable") )
 		      return false;
@@ -3124,6 +3282,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  goto case_bq;
 
 		rdhere = SkipSymbol(rdhere, _PL_rd);
+		if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
+		  return NULL;
 		if ( rdhere == start+1 )
 		{ if ( c == '-' &&			/* -number */
 		       !must_be_op &&
@@ -5369,7 +5529,7 @@ static const PL_option_t read_clause_options[] =
   { ATOM_process_comment,   OPT_BOOL },
   { ATOM_comments,	    OPT_TERM },
   { ATOM_syntax_errors,     OPT_ATOM },
-  { ATOM_normalize,	    OPT_BOOL },
+  { ATOM_unicode_atoms,     OPT_ATOM },
   { NULL_ATOM,		    0 }
 };
 
@@ -5417,7 +5577,7 @@ read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
   term_t comments = 0;
   term_t opt_comments = 0;
   int process_comment;
-  int normalize = -1;
+  atom_t opt_unicode_atoms = NULL_ATOM;
   atom_t syntax_errors = ATOM_dec10;
   predicate_t comment_hook;
 
@@ -5439,19 +5599,28 @@ retry:
 			&process_comment,
 			&opt_comments,
 			&syntax_errors,
-			&normalize) )
+			&opt_unicode_atoms) )
   { PL_close_foreign_frame(fid);
     return false;
   }
 
-  if ( normalize == -1 )
-    normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
-  if ( normalize )
-  { if ( !GD->atoms.normalize_hook )
-    { PL_close_foreign_frame(fid);
-      return no_unicode_normalize_hook();
+  if ( opt_unicode_atoms != NULL_ATOM )
+  { Sunicode_atoms_t mode;
+    if ( !atom_to_unicode_atoms(opt_unicode_atoms, &mode) )
+    { term_t v;
+      bool rc = ( (v = PL_new_term_ref()) &&
+		  PL_put_atom(v, opt_unicode_atoms) &&
+		  PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			   ATOM_unicode_atoms, v) );
+      PL_close_foreign_frame(fid);
+      return rc;
     }
-    rd.normalize = true;
+    rd.unicode_atoms = mode;
+  }
+  if ( (rd.unicode_atoms == S_UATOMS_NFC || rd.unicode_atoms == S_UATOMS_ERROR) &&
+       !GD->atoms.normalize_hook )
+  { PL_close_foreign_frame(fid);
+    return no_unicode_normalize_hook();
   }
 
   if ( opt_comments )
@@ -5526,7 +5695,7 @@ static const PL_option_t read_term_options[] =
 #endif
   { ATOM_cycles,	    OPT_BOOL },
   { ATOM_dotlists,	    OPT_BOOL },
-  { ATOM_normalize,	    OPT_BOOL },
+  { ATOM_unicode_atoms,     OPT_ATOM },
   { NULL_ATOM,		    0 }
 };
 
@@ -5543,7 +5712,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
   read_data rd;
   int charescapes = -1;
   int varprefix = -1;
-  int normalize = -1;
+  atom_t opt_unicode_atoms = NULL_ATOM;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
@@ -5574,7 +5743,7 @@ retry:
 			QQ_ARG
 			&rd.cycles,
 			&rd.dotlists,
-			&normalize) )
+			&opt_unicode_atoms) )
     return false;
 
   if ( mname )
@@ -5596,13 +5765,20 @@ retry:
     else
       clear(&rd, M_VARPREFIX);
   }
-  if ( normalize == -1 )
-    normalize = truePrologFlag(PLFLAG_UNICODE_NORMALIZE);
-  if ( normalize )
-  { if ( !GD->atoms.normalize_hook )
-      return no_unicode_normalize_hook();
-    rd.normalize = true;
+  if ( opt_unicode_atoms != NULL_ATOM )
+  { Sunicode_atoms_t mode;
+    if ( !atom_to_unicode_atoms(opt_unicode_atoms, &mode) )
+    { term_t v;
+      return ( (v = PL_new_term_ref()) &&
+	       PL_put_atom(v, opt_unicode_atoms) &&
+	       PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			ATOM_unicode_atoms, v) );
+    }
+    rd.unicode_atoms = mode;
   }
+  if ( (rd.unicode_atoms == S_UATOMS_NFC || rd.unicode_atoms == S_UATOMS_ERROR) &&
+       !GD->atoms.normalize_hook )
+    return no_unicode_normalize_hook();
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
       return false;

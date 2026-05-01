@@ -501,6 +501,7 @@ struct PL_local_data
   int		in_print_message;	/* Inside printMessage() */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
+  Sunicode_atoms_t unicode_atoms;	/* default atom-content policy */
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct

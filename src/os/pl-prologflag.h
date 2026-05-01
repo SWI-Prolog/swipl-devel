@@ -78,6 +78,8 @@ bool		set_prolog_flag(term_t key, term_t value, unsigned int flags);
 bool		PL_get_prolog_flag(atom_t name, term_t value);
 bool		setDoubleQuotes(atom_t a, unsigned int *flagp);
 bool		setBackQuotes(atom_t a, unsigned int *flagp);
+bool		atom_to_unicode_atoms(atom_t a, Sunicode_atoms_t *m);
+atom_t		unicode_atoms_to_atom(Sunicode_atoms_t m);
 bool		setRationalSyntax(atom_t a, unsigned int *flagp);
 void		initPrologFlags(void);
 void		setABIVersionPrologFlag(void);

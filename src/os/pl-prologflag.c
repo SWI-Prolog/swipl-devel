@@ -697,6 +697,57 @@ setEncoding(atom_t a)
 }
 
 
+bool
+atom_to_unicode_atoms(atom_t a, Sunicode_atoms_t *m)
+{ if      ( a == ATOM_accept ) *m = S_UATOMS_ACCEPT;
+  else if ( a == ATOM_nfc    ) *m = S_UATOMS_NFC;
+  else if ( a == ATOM_error  ) *m = S_UATOMS_ERROR;
+  else if ( a == ATOM_reject ) *m = S_UATOMS_REJECT;
+  else return false;
+  return true;
+}
+
+
+atom_t
+unicode_atoms_to_atom(Sunicode_atoms_t m)
+{ switch ( m )
+  { case S_UATOMS_ACCEPT: return ATOM_accept;
+    case S_UATOMS_NFC:    return ATOM_nfc;
+    case S_UATOMS_ERROR:  return ATOM_error;
+    case S_UATOMS_REJECT: return ATOM_reject;
+  }
+  return NULL_ATOM;
+}
+
+
+static bool
+setUnicodeAtoms(atom_t a)
+{ GET_LD
+  Sunicode_atoms_t mode;
+
+  if ( !atom_to_unicode_atoms(a, &mode) )
+  { term_t value;
+
+    return ( (value = PL_new_term_ref()) &&
+	     PL_put_atom(value, a) &&
+	     PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_unicode_atoms, value) );
+  }
+
+  if ( (mode == S_UATOMS_NFC || mode == S_UATOMS_ERROR) &&
+       !GD->atoms.normalize_hook )
+  { predicate_t pred =
+      PL_predicate("$install_unicode_normalize_hook", 0, "system");
+    if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
+      return false;
+  }
+
+  LD->unicode_atoms = mode;
+
+  return true;
+}
+
+
 static bool
 setStreamTypeCheck(atom_t a)
 { GET_LD
@@ -1068,12 +1119,6 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	  set(m, M_VARPREFIX);
 	else
 	  clear(m, M_VARPREFIX);
-      } else if ( k == ATOM_unicode_normalize )
-      { if ( val && !GD->atoms.normalize_hook )
-	{ predicate_t pred =
-	    PL_predicate("$install_unicode_normalize_hook", 0, "system");
-	  rval = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
-	}
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ rval = debugmode(NULL, true, NULL, DBG_ALL);
@@ -1154,6 +1199,8 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       { rval = setAccessLevelFromAtom(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
+      } else if ( k == ATOM_unicode_atoms )
+      { rval = setUnicodeAtoms(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
       } else if ( k == ATOM_file_name_case_handling )
@@ -1408,7 +1455,7 @@ set_prolog_flag_ptr(DECL_LD term_t key, term_t value,
 
   if ( k == ATOM_autoload && !propagateAutoload(value) )
     return false;
-  if ( k == ATOM_threads || k == ATOM_unicode_normalize )
+  if ( k == ATOM_threads || k == ATOM_unicode_atoms )
     return set_prolog_flag_unlocked(m, k, value, flags, of);
 
   PL_LOCK(L_PLFLAG);
@@ -2144,7 +2191,7 @@ initPrologFlags(void)
   setPrologFlag("character_escapes_unicode", FT_BOOL, true,
 		PLFLAG_CHARESCAPE_UNICODE);
   setPrologFlag("var_prefix", FT_BOOL, false, PLFLAG_VARPREFIX);
-  setPrologFlag("unicode_normalize", FT_BOOL, false, PLFLAG_UNICODE_NORMALIZE);
+  setPrologFlag("unicode_atoms", FT_ATOM, "accept");
   setPrologFlag("char_conversion", FT_BOOL, false, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, true, PLFLAG_QUASI_QUOTES);

@@ -2467,17 +2467,45 @@ get_single_char/1, which also reads the user actions for the trace. May
 be set. If this flag is \const{false} at startup, command line editing
 is disabled. See also the \cmdlineoption{--no-tty} command line option.
 
-    \prologflagitem{unicode_normalize}{bool}{rw}
-If \const{true} (default \const{false}), read_term/2,3 and
-read_clause/2,3 normalise the text of unquoted atoms to Unicode NFC
-before interning, so that two source forms that are canonically
-equivalent yield the same atom.  Per-call \term{normalize}{Bool}
-options override this default.  Setting this flag to \const{true}
-auto-loads \pllib{unicode} if no kernel normalisation hook has been
-registered yet; if the library is unavailable the
-\jargon{set_prolog_flag/2} call propagates the
+    \prologflagitem{unicode_atoms}{atom}{rw}
+Default atom-content policy seeded into newly opened text streams.
+The four values are:
+
+    \begin{description}
+    \termitem{accept}{}
+Pass unquoted-atom bytes through verbatim (the default; byte-faithful).
+    \termitem{nfc}{}
+Normalise the text of unquoted atoms to Unicode NFC before interning.
+    \termitem{error}{}
+Raise \term{syntax_error}{non_nfc_atom} when an unquoted atom is
+not in NFC.
+    \termitem{reject}{}
+Raise \term{syntax_error}{non_ascii_atom} when an unquoted atom
+contains any non-ASCII code point.
+    \end{description}
+
+The policy can be overridden per stream via
+\exam{set_stream(Stream, unicode_atoms(Mode))}, queried via
+\exam{stream_property(Stream, unicode_atoms(Mode))}, set at
+\jargon{open/4} time via the \exam{unicode_atoms(Mode)} option, and
+overridden per call via the \exam{unicode_atoms(Mode)} option of
+read_term/2,3 and read_clause/2,3.
+
+Setting this flag to \const{nfc} or \const{error} auto-loads
+\pllib{unicode} if no kernel normalisation hook has been registered
+yet; if the library is unavailable the \jargon{set_prolog_flag/2}
+call propagates the
 \term{existence_error}{source_sink, library(unicode)} raised by
 use_module/1.
+
+Independently of this flag, the SWI-Prolog reader unconditionally
+rejects Unicode bidi-override and isolate code points (U+202A
+through U+202E and U+2066 through U+2069) when they appear as raw
+bytes in unquoted atoms, operators, variables, quoted atoms,
+strings, or comments.  This mitigates the ``Trojan source'' attack
+(CVE-2021-42574).  Programs that need such a code point in a literal
+atom or string must use the corresponding escape sequence
+(e.g.\ \verb$\u202E$).
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
