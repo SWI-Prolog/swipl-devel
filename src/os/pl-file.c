@@ -2170,7 +2170,7 @@ atom_to_newline_mode(atom_t val, unsigned int flags, unsigned int *mode)
 */
 
 #define set_stream(s, stream, aname, a) LDFUNC(set_stream, s, stream, aname, a)
-static int
+static bool
 set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 { if ( aname == ATOM_alias )	/* alias(name) */
   { atom_t alias;
