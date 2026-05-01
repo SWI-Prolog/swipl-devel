@@ -181,11 +181,10 @@ test(mixed_digit_blocks_rejected,
 
 % --- Same-script non-ASCII Nd accepted ---------------------------------
 
-test(devanagari_digits_parse) :-
+test(devanagari_digits_parse, N == 123) :-
     % U+0967..U+0969 = १२३ (123 in Devanagari)
     atom_codes(S, [0x0967, 0x0968, 0x0969]),
-    term_to_atom(N, S),
-    N == 123.
+    atom_number(S, N).
 
 :- end_tests(syntax_unicode_numbers).
 

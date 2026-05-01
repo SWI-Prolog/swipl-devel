@@ -49,12 +49,8 @@ test_unicode :-
 
 :- begin_tests(numbers).
 
-test(read, N == 0123456789) :-
-    term_string(N, ٠١٢٣٤٥٦٧٨٩).
-:- if(current_prolog_flag(bounded, false)).
-test(read, N == 0123456789r23) :-
-    term_string(N, ٠١٢٣٤٥٦٧٨٩r٢٣).
-:- endif.
+test(read, error(syntax_error(illegal_character))) :-
+    term_string(_, "٠١٢٣٤٥٦٧٨٩").
 test(number_codes, N == 0123456789) :-
     number_codes(N, `٠١٢٣٤٥٦٧٨٩`).
 test(atom_number, N == 0123456789) :-
