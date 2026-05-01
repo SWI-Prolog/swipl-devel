@@ -526,22 +526,6 @@ init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
 }
 
 
-/* Raise existence_error(hook, unicode_normalize) for use by
- * read_term/2,3 and read_clause/2,3 when normalisation is requested
- * but no kernel normalisation hook has been registered.  The hook
- * is registered by loading library(unicode); the error is phrased
- * generically so as not to bind the kernel to that library.
- */
-static int
-no_unicode_normalize_hook(void)
-{ GET_LD
-  term_t obj;
-
-  if ( (obj = PL_new_term_ref()) )
-    PL_put_atom(obj, ATOM_unicode_normalize);
-  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj);
-}
-
 
 /* Forward declarations for errorWarning helpers (defined below)
  * needed by the bidi-override / NFC checks above the main reader.
@@ -5617,9 +5601,10 @@ retry:
     }
     rd.unicode_atoms = mode;
   }
-  if ( rd.unicode_atoms == S_UATOMS_NFC && !GD->atoms.normalize_hook )
+  if ( rd.unicode_atoms == S_UATOMS_NFC &&
+       !ensure_unicode_normalize_hook(true) )
   { PL_close_foreign_frame(fid);
-    return no_unicode_normalize_hook();
+    return false;
   }
 
   if ( opt_comments )
@@ -5775,8 +5760,9 @@ retry:
     }
     rd.unicode_atoms = mode;
   }
-  if ( rd.unicode_atoms == S_UATOMS_NFC && !GD->atoms.normalize_hook )
-    return no_unicode_normalize_hook();
+  if ( rd.unicode_atoms == S_UATOMS_NFC &&
+       !ensure_unicode_normalize_hook(true) )
+    return false;
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
       return false;

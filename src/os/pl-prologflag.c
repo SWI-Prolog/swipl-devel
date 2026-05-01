@@ -720,6 +720,55 @@ unicode_atoms_to_atom(Sunicode_atoms_t m)
 }
 
 
+/* ensure_unicode_normalize_hook(mandatory)
+ *
+ * Make sure the kernel Unicode normalisation hook (registered by
+ * library(unicode)) is available.  If it is already there, succeed.
+ * Otherwise call system:'$install_unicode_normalize_hook'/0, which
+ * does use_module(library(unicode), []).
+ *
+ * Returns true iff the hook is registered after the call.
+ *
+ * When `mandatory` is true and the hook is not available after the
+ * load attempt, an exception is left set: the source_sink
+ * existence_error from use_module/1 if the library is missing, or
+ * existence_error(hook, unicode_normalize) if the load succeeded
+ * but failed to register a hook (defensive — should not happen).
+ *
+ * When `mandatory` is false, no exception is propagated; any
+ * exception raised by use_module/1 is cleared and the function
+ * returns false.
+ */
+bool
+ensure_unicode_normalize_hook(bool mandatory)
+{ GET_LD
+
+  if ( GD->atoms.normalize_hook )
+    return true;
+
+  predicate_t pred =
+    PL_predicate("$install_unicode_normalize_hook", 0, "system");
+  bool loaded = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+
+  if ( GD->atoms.normalize_hook )
+    return true;
+
+  if ( !mandatory )
+  { if ( !loaded && PL_exception(0) )
+      PL_clear_exception();
+    return false;
+  }
+
+  if ( loaded )				/* loaded but no hook → defensive */
+  { term_t obj = PL_new_term_ref();
+    if ( obj )
+      PL_put_atom(obj, ATOM_unicode_normalize);
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj);
+  }
+  return false;				/* exception already set */
+}
+
+
 static bool
 setUnicodeAtoms(atom_t a)
 { GET_LD
@@ -734,12 +783,9 @@ setUnicodeAtoms(atom_t a)
 		      ATOM_unicode_atoms, value) );
   }
 
-  if ( mode == S_UATOMS_NFC && !GD->atoms.normalize_hook )
-  { predicate_t pred =
-      PL_predicate("$install_unicode_normalize_hook", 0, "system");
-    if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
-      return false;
-  }
+  if ( mode == S_UATOMS_NFC &&
+       !ensure_unicode_normalize_hook(true) )
+    return false;
 
   LD->unicode_atoms = mode;
 

@@ -7200,8 +7200,13 @@ the default.
 Normalise the text of unquoted atoms (and unquoted functor names)
 to Unicode NFC before interning, so that two source forms that are
 canonically equivalent yield the same atom.  Requires the kernel
-normalisation hook installed by \pllib{unicode}; otherwise an
-\term{existence_error}{hook, unicode_normalize} is raised.
+normalisation hook; if the hook is not yet registered when this
+mode is requested (via the option, set_stream/2, the open/4
+\const{unicode_atoms} option, or the
+\prologflag{unicode_atoms} flag), \pllib{unicode} is loaded
+automatically.  If the library is unavailable the underlying
+\jargon{use_module/1} call propagates its
+\term{existence_error}{source_sink, library(unicode)}.
     \termitem{error}{}
 Raise \term{syntax_error}{non_nfc_atom} when an unquoted atom
 contains text that is not in NFC.  Uses the kernel hook for an

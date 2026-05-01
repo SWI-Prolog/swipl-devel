@@ -2352,12 +2352,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 	       PL_put_atom(v, val) &&
 	       PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unicode_atoms, v) );
     }
-    if ( mode == S_UATOMS_NFC && !GD->atoms.normalize_hook )
-    { predicate_t pred =
-	PL_predicate("$install_unicode_normalize_hook", 0, "system");
-      if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
-	return false;
-    }
+    if ( mode == S_UATOMS_NFC &&
+	 !ensure_unicode_normalize_hook(true) )
+      return false;
     s->unicode_atoms = (unsigned char)mode;
     return true;
 #ifdef O_LOCALE
@@ -4360,13 +4357,10 @@ openStream(term_t file, term_t mode, term_t options)
       Sclose(s);
       return NULL;
     }
-    if ( mode == S_UATOMS_NFC && !GD->atoms.normalize_hook )
-    { predicate_t pred =
-	PL_predicate("$install_unicode_normalize_hook", 0, "system");
-      if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )
-      { Sclose(s);
-	return NULL;
-      }
+    if ( mode == S_UATOMS_NFC &&
+	 !ensure_unicode_normalize_hook(true) )
+    { Sclose(s);
+      return NULL;
     }
     s->unicode_atoms = (unsigned char)mode;
   }

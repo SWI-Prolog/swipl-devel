@@ -233,11 +233,14 @@ test(reject_passes_quoted_non_ascii) :-
     read_term_from_atom(A, T, [unicode_atoms(reject)]),
     atom_codes(T, [0'c, 0'a, 0'f, 0xe9]).
 
-test(nfc_without_lib_unicode_errors,
-     [error(existence_error(hook, unicode_normalize))]) :-
+test(nfc_auto_loads_unicode_library) :-
     \+ current_module(unicode),
     atom_codes(NFD, [0'c, 0'a, 0'f, 0'e, 0x0301]),
-    read_term_from_atom(NFD, _, [unicode_atoms(nfc)]).
+    atom_codes(NFC, [0'c, 0'a, 0'f, 0xe9]),
+    read_term_from_atom(NFD, T1, [unicode_atoms(nfc)]),
+    read_term_from_atom(NFC, T2, [unicode_atoms(nfc)]),
+    T1 == T2,
+    current_module(unicode).
 
 test(bidi_in_unquoted_atom_is_error,
      [error(syntax_error(bidi_override(0x202E)))]) :-
