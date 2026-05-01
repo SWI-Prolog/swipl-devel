@@ -128,18 +128,6 @@ unicode_separator(int c)
 }
 
 int
-unicode_quoted_escape(int c)
-{ if ( c != ' ' )
-  { int uflags = uflagsW(c);
-
-    return !uflags || (uflags&(U_LAYOUT|U_OTHER));
-  } else
-  { return false;
-  }
-}
-
-
-int
 decimal_weight(int code)
 { if ( code >= '0' && code <= '9' )
   { return code-'0';

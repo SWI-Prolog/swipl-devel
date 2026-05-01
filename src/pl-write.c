@@ -650,6 +650,14 @@ PutCloseBrace(IOSTREAM *s)
 { return Putc(')', s);
 }
 
+/**
+ * @return true if `c` must be escaped as part of a quoted string
+ */
+
+static bool
+unicode_quoted_escape(int c)
+{ return wcwidth(c) < 0;
+}
 
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)

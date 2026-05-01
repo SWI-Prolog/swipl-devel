@@ -59,7 +59,6 @@ int		f_is_prolog_symbol(int c);
 int		f_is_decimal(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
-int		unicode_quoted_escape(int c);
 bool		atom_varnameW(const pl_wchar_t *s, size_t len);
 int		atom_is_named_var(atom_t name);
 strnumstat	str_number(const unsigned char *string,
