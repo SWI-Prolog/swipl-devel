@@ -3026,11 +3026,9 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     }
     if ( PlSymbolW(c) )
       goto case_symbol;
-    if ( PlDecimalW(c) )
-      goto case_digit;
-    if ( PlInvalidW(c) )
-      syntaxError("illegal_character", _PL_rd);
-    goto case_solo;
+    if ( PlSoloW(c) )
+      goto case_solo;
+    syntaxError("illegal_character", _PL_rd);
   }
 
   switch(_PL_char_types[c])
@@ -5934,7 +5932,7 @@ for inspection of the chararacter categories   used for parsing. Defined
 categories are:
 
     * layout
-    * graphic
+    * symbol
     These are the glueing symbol characters
     * solo
     These are the non-glueing symbol characters
@@ -5967,7 +5965,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
   c = PL_atom_chars(class);
   if ( streq(c, "layout") )
     rc = PlBlankW(code);
-  else if ( streq(c, "graphic") )
+  else if ( streq(c, "symbol") )
     rc = PlSymbolW(code);
   else if ( streq(c, "solo") )
     rc = PlSoloW(code);
@@ -5984,7 +5982,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
   else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A2);
 
-  return rc ? true : false;
+  return rc != 0;
 }
 
 
