@@ -42,7 +42,8 @@ test_syntax_unicode :-
                 syntax_unicode_layout,
                 syntax_unicode_solo,
                 syntax_unicode_numbers,
-                syntax_unicode_version
+                syntax_unicode_version,
+                syntax_unicode_atoms
               ]).
 
 :- begin_tests(syntax_unicode_identifiers).
@@ -198,3 +199,54 @@ test(flag_present) :-
     L > 0.
 
 :- end_tests(syntax_unicode_version).
+
+
+:- begin_tests(syntax_unicode_atoms).
+
+% These tests exercise the unicode_atoms policy WITHOUT
+% library(unicode) loaded.  Modes accept, error and reject must work
+% standalone; only nfc requires the kernel normalisation hook.
+
+test(default_flag_is_accept) :-
+    current_prolog_flag(unicode_atoms, accept).
+
+test(error_rejects_nfd_without_lib_unicode,
+     [error(syntax_error(non_nfc_atom))]) :-
+    \+ current_module(unicode),
+    atom_codes(NFD, [0'c, 0'a, 0'f, 0'e, 0x0301]),
+    read_term_from_atom(NFD, _, [unicode_atoms(error)]).
+
+test(error_accepts_pure_ascii_without_lib_unicode) :-
+    \+ current_module(unicode),
+    read_term_from_atom("foo", T, [unicode_atoms(error)]),
+    T == foo.
+
+test(reject_rejects_non_ascii_without_lib_unicode,
+     [error(syntax_error(non_ascii_atom))]) :-
+    \+ current_module(unicode),
+    atom_codes(A, [0'c, 0'a, 0'f, 0xe9]),
+    read_term_from_atom(A, _, [unicode_atoms(reject)]).
+
+test(reject_passes_quoted_non_ascii) :-
+    \+ current_module(unicode),
+    atom_codes(A, [0'', 0'c, 0'a, 0'f, 0xe9, 0'']),
+    read_term_from_atom(A, T, [unicode_atoms(reject)]),
+    atom_codes(T, [0'c, 0'a, 0'f, 0xe9]).
+
+test(nfc_without_lib_unicode_errors,
+     [error(existence_error(hook, unicode_normalize))]) :-
+    \+ current_module(unicode),
+    atom_codes(NFD, [0'c, 0'a, 0'f, 0'e, 0x0301]),
+    read_term_from_atom(NFD, _, [unicode_atoms(nfc)]).
+
+test(bidi_in_unquoted_atom_is_error,
+     [error(syntax_error(bidi_override(0x202E)))]) :-
+    atom_codes(A, [0'a, 0x202E, 0'b]),
+    read_term_from_atom(A, _, []).
+
+test(bidi_via_escape_is_allowed) :-
+    atom_codes(A, [0'', 0'a, 0'\\, 0'u, 0'2, 0'0, 0'2, 0'E, 0'b, 0'']),
+    read_term_from_atom(A, T, []),
+    atom_codes(T, [0'a, 0x202E, 0'b]).
+
+:- end_tests(syntax_unicode_atoms).

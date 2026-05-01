@@ -5510,6 +5510,11 @@ This option can be combined with the \const{lock} option. If
 \const{false} (default \const{true}), the open call returns immediately
 with an exception if the file is locked.  The exception has the format
 \term{permission_error}{lock, source_sink, SrcDest}.
+
+    \termitem{unicode_atoms}{Mode}
+Set the per-stream atom-content policy used by the term reader on
+this stream.  See read_term/2,3 for the meaning of each value
+(\const{accept}, \const{nfc}, \const{error}, \const{reject}).
 \end{description}
 
     \predicate[ISO]{open}{3}{+SrcDest, +Mode, --Stream}
@@ -5679,6 +5684,11 @@ Unify \arg{Type} with \const{text} or \const{binary}.
     \termitem{tty}{Bool}
 This property is reported with \arg{Bool} equal to \const{true} if
 the stream is associated with a terminal.  See also set_stream/2.
+
+    \termitem{unicode_atoms}{Mode}
+\arg{Mode} is the per-stream atom-content policy in effect for the
+term reader: one of \const{accept}, \const{nfc}, \const{error} or
+\const{reject}.  See read_term/2,3 for the meaning of each value.
 
     \termitem{write_errors}{Atom}
 \arg{Atom} is one of \const{error} (default) or \const{ignore}. The
@@ -5868,6 +5878,13 @@ Modify whether Prolog thinks there is a terminal (i.e.\ human
 interaction) connected to this stream.  On Unix systems the initial
 value comes from isatty().  On Windows, the initial user streams are
 supposed to be associated to a terminal.  See also stream_property/2.
+
+    \termitem{unicode_atoms}{Mode}
+Set the per-stream atom-content policy used by the term reader.
+\arg{Mode} is one of \const{accept}, \const{nfc}, \const{error} or
+\const{reject}; see read_term/2,3 for the meaning of each value.
+The Prolog flag \prologflag{unicode_atoms} provides the default
+seeded into newly opened streams.
 \end{description}
 
     \predicate{set_prolog_IO}{3}{+In, +Out, +Error}
@@ -7172,29 +7189,37 @@ If \const{true}, demand variables to start with an underscore.  See
 
     \termitem{unicode_atoms}{Mode}
 Per-call atom-content policy that overrides the policy of the input
-stream and the Prolog flag \prologflag{unicode_atoms}.  \arg{Mode} is
-one of:
+stream and the Prolog flag \prologflag{unicode_atoms}.  \arg{Mode}
+is one of:
 
     \begin{description}
     \termitem{accept}{}
-Pass unquoted-atom bytes through verbatim (the default; byte-faithful).
+Pass unquoted-atom bytes through verbatim (byte-faithful).  This is
+the default.
     \termitem{nfc}{}
 Normalise the text of unquoted atoms (and unquoted functor names)
 to Unicode NFC before interning, so that two source forms that are
-canonically equivalent yield the same atom.
+canonically equivalent yield the same atom.  Requires the kernel
+normalisation hook installed by \pllib{unicode}; otherwise an
+\term{existence_error}{hook, unicode_normalize} is raised.
     \termitem{error}{}
 Raise \term{syntax_error}{non_nfc_atom} when an unquoted atom
-contains text that is not in NFC.
+contains text that is not in NFC.  Uses the kernel hook for an
+exact NFC test when \pllib{unicode} is loaded; otherwise falls back
+to rejecting any code point with \jargon{wcwidth} less than 1
+(combining marks, zero-width and non-printable characters), which
+is conservative but accurate enough for source-code review.
     \termitem{reject}{}
 Raise \term{syntax_error}{non_ascii_atom} when an unquoted atom
-contains any non-ASCII code point.
+contains any non-ASCII code point.  Independent of \pllib{unicode}.
     \end{description}
 
-Quoted atoms and string literals are always byte-faithful regardless
-of the mode.  Modes \const{nfc} and \const{error} require the
-kernel's normalisation hook, which is installed when \pllib{unicode}
-is loaded; otherwise an \term{existence_error}{hook, unicode_normalize}
-is raised.
+Quoted atoms and string literals are always byte-faithful, regardless
+of the mode.  This is the canonical description of the four values;
+the same vocabulary applies to the Prolog flag
+\prologflag{unicode_atoms}, set_stream/2, the \exam{unicode_atoms}
+option of open/4, and the \exam{unicode_atoms} property of
+stream_property/2.
 
     \termitem{variables}{Vars}
 Unify \arg{Vars} with a list of variables in the term. The variables

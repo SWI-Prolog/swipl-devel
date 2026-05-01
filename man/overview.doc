@@ -2468,35 +2468,21 @@ be set. If this flag is \const{false} at startup, command line editing
 is disabled. See also the \cmdlineoption{--no-tty} command line option.
 
     \prologflagitem{unicode_atoms}{atom}{rw}
-Default atom-content policy seeded into newly opened text streams.
-The four values are:
+Default atom-content policy seeded into newly opened text streams,
+overridable per stream via set_stream/2 and the \exam{unicode_atoms}
+option of open/4, and per call via the \exam{unicode_atoms} option
+of read_term/2,3 and read_clause/2,3.  See read_term/2,3 for the
+four values (\const{accept}, \const{nfc}, \const{error},
+\const{reject}) and their effect.  The default is \const{accept}.
 
-    \begin{description}
-    \termitem{accept}{}
-Pass unquoted-atom bytes through verbatim (the default; byte-faithful).
-    \termitem{nfc}{}
-Normalise the text of unquoted atoms to Unicode NFC before interning.
-    \termitem{error}{}
-Raise \term{syntax_error}{non_nfc_atom} when an unquoted atom is
-not in NFC.
-    \termitem{reject}{}
-Raise \term{syntax_error}{non_ascii_atom} when an unquoted atom
-contains any non-ASCII code point.
-    \end{description}
-
-The policy can be overridden per stream via
-\exam{set_stream(Stream, unicode_atoms(Mode))}, queried via
-\exam{stream_property(Stream, unicode_atoms(Mode))}, set at
-\jargon{open/4} time via the \exam{unicode_atoms(Mode)} option, and
-overridden per call via the \exam{unicode_atoms(Mode)} option of
-read_term/2,3 and read_clause/2,3.
-
-Setting this flag to \const{nfc} or \const{error} auto-loads
-\pllib{unicode} if no kernel normalisation hook has been registered
-yet; if the library is unavailable the \jargon{set_prolog_flag/2}
-call propagates the
+Setting this flag to \const{nfc} auto-loads \pllib{unicode} if no
+kernel normalisation hook has been registered yet; if the library
+is unavailable the \jargon{set_prolog_flag/2} call propagates the
 \term{existence_error}{source_sink, library(unicode)} raised by
-use_module/1.
+use_module/1.  Mode \const{error} does not require the hook: it
+falls back to a wcwidth-based check that treats any code point with
+\jargon{wcwidth} less than 1 (combining marks, zero-width and
+non-printable characters) as non-NFC.
 
 Independently of this flag, the SWI-Prolog reader unconditionally
 rejects Unicode bidi-override and isolate code points (U+202A

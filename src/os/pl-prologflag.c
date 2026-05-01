@@ -734,8 +734,7 @@ setUnicodeAtoms(atom_t a)
 		      ATOM_unicode_atoms, value) );
   }
 
-  if ( (mode == S_UATOMS_NFC || mode == S_UATOMS_ERROR) &&
-       !GD->atoms.normalize_hook )
+  if ( mode == S_UATOMS_NFC && !GD->atoms.normalize_hook )
   { predicate_t pred =
       PL_predicate("$install_unicode_normalize_hook", 0, "system");
     if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0) )

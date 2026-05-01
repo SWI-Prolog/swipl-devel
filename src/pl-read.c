@@ -622,7 +622,7 @@ atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
   while ( p < e )
   { int c;
     p = (const unsigned char *)utf8_get_char((const char *)p, &c);
-    if ( c >= 0x300 && wcwidth((wchar_t)c) == 0 )
+    if ( c >= 0x300 && wcwidth((wchar_t)c) < 1 )
     { any_combining = true;
       break;
     }
@@ -5617,8 +5617,7 @@ retry:
     }
     rd.unicode_atoms = mode;
   }
-  if ( (rd.unicode_atoms == S_UATOMS_NFC || rd.unicode_atoms == S_UATOMS_ERROR) &&
-       !GD->atoms.normalize_hook )
+  if ( rd.unicode_atoms == S_UATOMS_NFC && !GD->atoms.normalize_hook )
   { PL_close_foreign_frame(fid);
     return no_unicode_normalize_hook();
   }
@@ -5776,8 +5775,7 @@ retry:
     }
     rd.unicode_atoms = mode;
   }
-  if ( (rd.unicode_atoms == S_UATOMS_NFC || rd.unicode_atoms == S_UATOMS_ERROR) &&
-       !GD->atoms.normalize_hook )
+  if ( rd.unicode_atoms == S_UATOMS_NFC && !GD->atoms.normalize_hook )
     return no_unicode_normalize_hook();
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
