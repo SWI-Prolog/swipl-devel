@@ -720,6 +720,18 @@ unicode_atoms_to_atom(Sunicode_atoms_t m)
 }
 
 
+/* hook_missing_error(): raise existence_error(hook, unicode_normalize). */
+static bool
+hook_missing_error(void)
+{ GET_LD
+  term_t obj;
+
+  return ( (obj=PL_new_term_ref()) &&
+	   PL_put_atom(obj, ATOM_unicode_normalize) &&
+	   PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj) );
+}
+
+
 /* ensure_unicode_normalize_hook(mandatory)
  *
  * Make sure the kernel Unicode normalisation hook (registered by
@@ -727,13 +739,17 @@ unicode_atoms_to_atom(Sunicode_atoms_t m)
  * Otherwise call system:'$install_unicode_normalize_hook'/0, which
  * does use_module(library(unicode), []).
  *
+ * Once an attempt has been made, GD->atoms.normalize_hook_load_attempted
+ * is set so subsequent calls don't retry the load.  PL_cleanup zeroes
+ * GD on next initialisation, so the cache resets across an embedded
+ * Prolog teardown/restart cycle.
+ *
  * Returns true iff the hook is registered after the call.
  *
- * When `mandatory` is true and the hook is not available after the
- * load attempt, an exception is left set: the source_sink
- * existence_error from use_module/1 if the library is missing, or
- * existence_error(hook, unicode_normalize) if the load succeeded
- * but failed to register a hook (defensive — should not happen).
+ * When `mandatory` is true and the hook is not available, an exception
+ * is left set: on the first attempt the source_sink existence_error
+ * from use_module/1 if the library is missing, otherwise the generic
+ * existence_error(hook, unicode_normalize).
  *
  * When `mandatory` is false, no exception is propagated; any
  * exception raised by use_module/1 is cleared and the function
@@ -745,6 +761,11 @@ ensure_unicode_normalize_hook(bool mandatory)
 
   if ( GD->atoms.normalize_hook )
     return true;
+
+  if ( GD->atoms.normalize_hook_load_attempted )
+    return mandatory ? hook_missing_error() : false;
+
+  GD->atoms.normalize_hook_load_attempted = true;
 
   predicate_t pred =
     PL_predicate("$install_unicode_normalize_hook", 0, "system");
@@ -760,11 +781,7 @@ ensure_unicode_normalize_hook(bool mandatory)
   }
 
   if ( loaded )				/* loaded but no hook → defensive */
-  { term_t obj = PL_new_term_ref();
-    if ( obj )
-      PL_put_atom(obj, ATOM_unicode_normalize);
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_hook, obj);
-  }
+    return hook_missing_error();
   return false;				/* exception already set */
 }
 

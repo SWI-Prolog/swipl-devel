@@ -227,6 +227,7 @@ struct PL_global_data
     int		text_rank;		/* next rank for text types */
     int		nontext_rank;		/* next rank for non-text types */
     PL_atom_normalize_t normalize_hook;	/* UTF-8 normaliser, NULL if none */
+    bool	normalize_hook_load_attempted;	/* tried to install via boot pred */
   } atoms;
 
   struct
