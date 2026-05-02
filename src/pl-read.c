@@ -5590,19 +5590,14 @@ retry:
 
   if ( opt_unicode_atoms != NULL_ATOM )
   { Sunicode_atoms_t mode;
-    if ( !atom_to_unicode_atoms(opt_unicode_atoms, &mode) )
-    { term_t v;
-      bool rc = ( (v = PL_new_term_ref()) &&
-		  PL_put_atom(v, opt_unicode_atoms) &&
-		  PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			   ATOM_unicode_atoms, v) );
-      PL_close_foreign_frame(fid);
-      return rc;
+
+    if ( !atom_to_unicode_atoms_ex(opt_unicode_atoms, &mode, true) )
+    { PL_close_foreign_frame(fid);
+      return false;
     }
     rd.unicode_atoms = mode;
-  }
-  if ( rd.unicode_atoms == S_UATOMS_NFC &&
-       !ensure_unicode_normalize_hook(true) )
+  } else if ( rd.unicode_atoms == S_UATOMS_NFC &&
+	      !ensure_unicode_normalize_hook(true) )
   { PL_close_foreign_frame(fid);
     return false;
   }
@@ -5751,17 +5746,11 @@ retry:
   }
   if ( opt_unicode_atoms != NULL_ATOM )
   { Sunicode_atoms_t mode;
-    if ( !atom_to_unicode_atoms(opt_unicode_atoms, &mode) )
-    { term_t v;
-      return ( (v = PL_new_term_ref()) &&
-	       PL_put_atom(v, opt_unicode_atoms) &&
-	       PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			ATOM_unicode_atoms, v) );
-    }
+    if ( !atom_to_unicode_atoms_ex(opt_unicode_atoms, &mode, true) )
+      return false;
     rd.unicode_atoms = mode;
-  }
-  if ( rd.unicode_atoms == S_UATOMS_NFC &&
-       !ensure_unicode_normalize_hook(true) )
+  } else if ( rd.unicode_atoms == S_UATOMS_NFC &&
+	      !ensure_unicode_normalize_hook(true) )
     return false;
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )

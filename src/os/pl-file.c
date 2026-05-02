@@ -2343,17 +2343,8 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
   { atom_t val;
     Sunicode_atoms_t mode;
 
-    if ( !PL_get_atom_ex(a, &val) )
-      return false;
-    if ( !atom_to_unicode_atoms(val, &mode) )
-    { term_t v;
-
-      return ( (v = PL_new_term_ref()) &&
-	       PL_put_atom(v, val) &&
-	       PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unicode_atoms, v) );
-    }
-    if ( mode == S_UATOMS_NFC &&
-	 !ensure_unicode_normalize_hook(true) )
+    if ( !PL_get_atom_ex(a, &val) ||
+	 !atom_to_unicode_atoms_ex(val, &mode, true) )
       return false;
     s->unicode_atoms = (unsigned char)mode;
     return true;
@@ -4348,17 +4339,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( unicode_atoms_opt != NULL_ATOM )
   { Sunicode_atoms_t mode;
 
-    if ( !atom_to_unicode_atoms(unicode_atoms_opt, &mode) )
-    { term_t v;
-
-      ( (v = PL_new_term_ref()) &&
-	PL_put_atom(v, unicode_atoms_opt) &&
-	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unicode_atoms, v) );
-      Sclose(s);
-      return NULL;
-    }
-    if ( mode == S_UATOMS_NFC &&
-	 !ensure_unicode_normalize_hook(true) )
+    if ( !atom_to_unicode_atoms_ex(unicode_atoms_opt, &mode, true) )
     { Sclose(s);
       return NULL;
     }

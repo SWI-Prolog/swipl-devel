@@ -697,13 +697,31 @@ setEncoding(atom_t a)
 }
 
 
+/* atom_to_unicode_atoms_ex(a, m, ensure_hook)
+ *
+ * Validate atom `a` as a unicode_atoms mode; on success store the
+ * enum in *m.  On invalid input raise domain_error(unicode_atoms, a)
+ * and return false.  When `ensure_hook` is true and the resolved
+ * mode is `nfc`, also ensure the kernel normalisation hook is
+ * available (auto-loading library(unicode) on demand and propagating
+ * its existence_error if the library is unavailable).
+ */
 bool
-atom_to_unicode_atoms(atom_t a, Sunicode_atoms_t *m)
+atom_to_unicode_atoms_ex(atom_t a, Sunicode_atoms_t *m, bool ensure_hook)
 { if      ( a == ATOM_accept ) *m = S_UATOMS_ACCEPT;
   else if ( a == ATOM_nfc    ) *m = S_UATOMS_NFC;
   else if ( a == ATOM_error  ) *m = S_UATOMS_ERROR;
   else if ( a == ATOM_reject ) *m = S_UATOMS_REJECT;
-  else return false;
+  else
+  { GET_LD
+    term_t v;
+    return ( (v = PL_new_term_ref()) &&
+	     PL_put_atom(v, a) &&
+	     PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_unicode_atoms, v) );
+  }
+  if ( ensure_hook && *m == S_UATOMS_NFC )
+    return ensure_unicode_normalize_hook(true);
   return true;
 }
 
@@ -791,17 +809,7 @@ setUnicodeAtoms(atom_t a)
 { GET_LD
   Sunicode_atoms_t mode;
 
-  if ( !atom_to_unicode_atoms(a, &mode) )
-  { term_t value;
-
-    return ( (value = PL_new_term_ref()) &&
-	     PL_put_atom(value, a) &&
-	     PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		      ATOM_unicode_atoms, value) );
-  }
-
-  if ( mode == S_UATOMS_NFC &&
-       !ensure_unicode_normalize_hook(true) )
+  if ( !atom_to_unicode_atoms_ex(a, &mode, true) )
     return false;
 
   LD->unicode_atoms = mode;
