@@ -1643,6 +1643,24 @@ a stream without the need for a resizing buffer in C.  Also, the use of
 difference lists is often practical for further processing in Prolog.
 Examples can be found in \file{packages/clib/readutil.c} from the
 source distribution.
+
+    \cfunction{int}{PL_wcwidth}{int chr}
+Display column width of a Unicode code point \arg{chr}.  Returns 0 for
+combining and other zero-width characters, 2 for East Asian Wide and
+Fullwidth characters, 1 for ordinary printable characters, and -1 for
+control characters and code points unknown to the implementation.
+
+This function is provided so foreign extensions and embedded GUI
+toolkits (notably xpce) get the same answer as SWI-Prolog itself for
+the column width of a code point, independent of the process
+\const{LC_CTYPE} and on every supported platform.  On Unix and macOS it
+forwards to the system \funcref{wcwidth}{3}; on Windows, where there is
+no system \funcref{wcwidth}{3}, it uses Markus Kuhn's reference
+implementation.
+
+The argument is a full 32-bit code point.  Avoid casting to
+\ctype{wchar_t} before the call: \ctype{wchar_t} is 16-bit on Windows,
+and the cast silently drops non-BMP characters.
 \end{description}
 
 
