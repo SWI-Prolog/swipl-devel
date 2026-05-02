@@ -680,6 +680,7 @@ PL_EXPORT(bool)		PL_get_wchars(term_t l,
 				      size_t *length, pl_wchar_t **s,
 				      unsigned flags) WUNUSED;
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
+PL_EXPORT(int)		PL_wcwidth(int chr);
 
 
 		 /*******************************

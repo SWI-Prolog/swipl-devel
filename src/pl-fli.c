@@ -37,6 +37,7 @@
 
 /*#define O_DEBUG 1*/
 #define EMIT_FLI_INLINES 1
+#define _XOPEN_SOURCE 600		/* get wcwidth(3) for PL_wcwidth */
 #include "pl-fli.h"
 
 #include "os/pl-ctype.h"
@@ -66,6 +67,7 @@
 #include "pl-rec.h"
 #include "pl-trace.h"
 #include "pl-copyterm.h"
+#include "mk_wcwidth.h"
 #include <errno.h>
 #ifdef __WINDOWS__
 #include "pl-nt.h"
@@ -1010,6 +1012,19 @@ PL_put_wchars(term_t t, int flags, size_t len, const pl_wchar_t *s)
 size_t
 PL_utf8_strlen(const char *s, size_t len)
 { return utf8_strlen(s, len);
+}
+
+
+/* Display width of a Unicode code point.  Uses the system wcwidth(3)
+ * where available; on Windows (where wcwidth is absent and wchar_t is
+ * 16-bit) mk_wcwidth.h aliases wcwidth → mk_wcwidth, which means
+ * non-BMP code points get truncated and may be misclassified — same
+ * caveat that already applies to pl-read.c / pl-write.c.
+ */
+
+int
+PL_wcwidth(int chr)
+{ return wcwidth((uchar_t)chr);
 }
 
 

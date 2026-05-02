@@ -308,7 +308,7 @@ atom_has_combining(atom_t a)
     size_t i, len = ap->length / sizeof(pl_wchar_t);
 
     for(i=0; i<len; i++)
-    { if ( w[i] >= 0x300 && wcwidth((wchar_t)w[i]) == 0 )
+    { if ( w[i] >= 0x300 && wcwidth((uchar_t)w[i]) == 0 )
 	return true;
     }
   }
@@ -656,7 +656,7 @@ PutCloseBrace(IOSTREAM *s)
 
 static bool
 unicode_quoted_escape(int c)
-{ return wcwidth(c) < 0;
+{ return wcwidth((uchar_t)c) < 0;
 }
 
 static bool
