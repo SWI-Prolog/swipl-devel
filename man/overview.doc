@@ -1338,6 +1338,13 @@ This flag is used by the interactive toplevel to print the value if
 when printing an answer queries. Default is \texttt{[quoted(true),
 portray(true), max_depth(10), attributes(portray)]}.
 
+    \prologflagitem{atom_normalize_hook}{bool}{r}
+\const{true} when a kernel atom-normalisation hook (registered by
+\cfuncref{PL_atom_normalize_hook}{}, used by \pllib{unicode}) is
+active.  Used by the reader to decide between the precise and the
+\jargon{wcwidth} fallback NFC check.  See
+\prologflag{unicode_atoms}.
+
     \prologflagitem{apple}{bool}{r}
 \index{MacOS}%
 If present and \const{true}, the operating system is MacOSX. Defined if
@@ -2479,10 +2486,12 @@ Setting this flag to \const{nfc} auto-loads \pllib{unicode} if no
 kernel normalisation hook has been registered yet; if the library
 is unavailable the \jargon{set_prolog_flag/2} call propagates the
 \term{existence_error}{source_sink, library(unicode)} raised by
-use_module/1.  Mode \const{error} does not require the hook: it
-falls back to a wcwidth-based check that treats any code point with
+use_module/1.  Mode \const{error} does not require the hook: when
+\prologflag{atom_normalize_hook} is \const{false} it falls back to
+a wcwidth-based check that treats any code point with
 \jargon{wcwidth} less than 1 (combining marks, zero-width and
-non-printable characters) as non-NFC.
+non-printable characters) as non-NFC, which can over-reject scripts
+such as Thai that use combining marks in NFC.
 
 Independently of this flag, the SWI-Prolog reader unconditionally
 rejects Unicode bidi-override and isolate code points (U+202A
