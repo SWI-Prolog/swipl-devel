@@ -1664,8 +1664,8 @@ popOutputContext(DECL_LD)
 }
 
 
-int
-setupOutputRedirect(term_t to, redir_context *ctx, int redir)
+bool
+setupOutputRedirect(term_t to, redir_context *ctx, bool redir)
 { GET_LD
   atom_t a;
 
@@ -1730,9 +1730,9 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
 }
 
 
-int
+bool
 closeOutputRedirect(redir_context *ctx)
-{ int rval = true;
+{ bool rval = true;
 
   if ( ctx->magic != REDIR_MAGIC )
     return rval;			/* already done */

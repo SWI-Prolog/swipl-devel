@@ -112,10 +112,10 @@ word		pl_make_fat_filemap(term_t dir);
 bool		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(IOSTREAM *s);
 void		popOutputContext(void);
-int		setupOutputRedirect(term_t to,
+bool		setupOutputRedirect(term_t to,
 				    redir_context *ctx,
-				    int redir);
-int		closeOutputRedirect(redir_context *ctx);
+				    bool redir);
+bool		closeOutputRedirect(redir_context *ctx);
 void		discardOutputRedirect(redir_context *ctx);
 int		push_input_context(atom_t type);
 int		pop_input_context(void);

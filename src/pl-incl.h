@@ -2632,8 +2632,8 @@ typedef struct
 typedef struct redir_context
 { int		magic;			/* REDIR_MAGIC */
   IOSTREAM     *stream;			/* temporary output */
-  int		is_stream;		/* redirect to stream */
-  int		redirected;		/* output is redirected */
+  bool		is_stream;		/* redirect to stream */
+  bool		redirected;		/* output is redirected */
   term_t	term;			/* redirect target */
   int		out_format;		/* output type */
   int		out_arity;		/* 2 for difference-list versions */
