@@ -60,7 +60,6 @@ int		resetListAtoms(void);
 void		cleanupAtoms(void);
 void		markAtom(atom_t a);
 foreign_t	pl_garbage_collect_atoms(void);
-void		resetAtoms(void);
 int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
 size_t		atom_space(void);

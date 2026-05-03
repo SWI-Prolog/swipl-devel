@@ -1108,12 +1108,6 @@ PL_atom_normalize_hook(PL_atom_normalize_t new)
   return old;
 }
 
-
-void
-resetAtoms()
-{
-}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (un)register atoms. If  possible,  this   is  implemented  using  atomic
 operations. This should be safe because:
