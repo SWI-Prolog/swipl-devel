@@ -775,9 +775,7 @@ hook_missing_error(void)
  */
 bool
 ensure_unicode_normalize_hook(bool mandatory)
-{ GET_LD
-
-  if ( GD->atoms.normalize_hook )
+{ if ( GD->atoms.normalize_hook )
     return true;
 
   if ( GD->atoms.normalize_hook_load_attempted )
