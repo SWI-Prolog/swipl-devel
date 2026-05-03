@@ -142,11 +142,11 @@ test(le_is_atom) :-
     term_to_atom(T, '≤'),
     atom(T),
     atom_length(T, 1).
-test(double_le_does_not_glue) :-
+test(double_le_does_not_glue, error(systax_error(_))) :-
     % Two ≤ in a row: would have glued under the old regime.  Now
     % each is a solo atom; without an operator declaration the
     % sequence is a syntax error.
-    catch(term_to_atom(_, '≤≤'), _, true).
+    term_to_atom(_, '≤≤').
 test(left_quote_is_atom) :-
     % U+00AB « (Pi).  Solo.
     term_to_atom(T, '«'),
