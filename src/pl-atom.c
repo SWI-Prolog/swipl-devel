@@ -1104,6 +1104,9 @@ PL_atom_normalize_t
 PL_atom_normalize_hook(PL_atom_normalize_t new)
 { PL_atom_normalize_t old = GD->atoms.normalize_hook;
   GD->atoms.normalize_hook = new;
+  PL_set_prolog_flag("atom_normalize_hook", PL_BOOL, new != NULL);
+  if ( !new )
+    GD->atoms.normalize_hook_load_attempted = false;
 
   return old;
 }

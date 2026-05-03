@@ -2262,6 +2262,7 @@ initPrologFlags(void)
 		PLFLAG_CHARESCAPE_UNICODE);
   setPrologFlag("var_prefix", FT_BOOL, false, PLFLAG_VARPREFIX);
   setPrologFlag("unicode_atoms", FT_ATOM, "accept");
+  setPrologFlag("atom_normalize_hook", FT_BOOL, false, 0);
   setPrologFlag("char_conversion", FT_BOOL, false, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, true, PLFLAG_QUASI_QUOTES);
