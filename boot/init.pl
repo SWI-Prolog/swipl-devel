@@ -4629,6 +4629,24 @@ cancel_halt(Reason) :-
 :- multifile prolog:heartbeat/0.
 
 
+                /*******************************
+                *        UNICODE ATOMS         *
+                *******************************/
+
+%!  '$install_unicode_normalize_hook' is det.
+%
+%   Called from setPrologFlag() in pl-prologflag.c when the user
+%   sets the `unicode_normalize` flag and no kernel normalisation
+%   hook is registered.  Loading library(unicode) calls
+%   PL_atom_normalize_hook from its install_t entry point.  The
+%   call propagates an error if the library is unavailable.
+
+:- public '$install_unicode_normalize_hook'/0.
+
+'$install_unicode_normalize_hook' :-
+    use_module(library(unicode), []).
+
+
 		/********************************
 		*      LOAD OTHER MODULES       *
 		*********************************/
@@ -4669,19 +4687,6 @@ cancel_halt(Reason) :-
 '$get_files_argv'(['-c'|Files], Files) :- !.
 '$get_files_argv'([_|Rest], Files) :-
     '$get_files_argv'(Rest, Files).
-
-%!  '$install_unicode_normalize_hook' is det.
-%
-%   Called from setPrologFlag() in pl-prologflag.c when the user
-%   sets the `unicode_normalize` flag and no kernel normalisation
-%   hook is registered.  Loading library(unicode) calls
-%   PL_atom_normalize_hook from its install_t entry point.  The
-%   call propagates an error if the library is unavailable.
-
-:- public '$install_unicode_normalize_hook'/0.
-
-'$install_unicode_normalize_hook' :-
-    use_module(library(unicode), []).
 
 '$:-'(('$boot_message'('Loading Prolog startup files~n', []),
        source_location(File, _Line),
