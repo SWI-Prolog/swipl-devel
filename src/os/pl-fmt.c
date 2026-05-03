@@ -106,7 +106,7 @@ static PL_locale prolog_locale =
 static inline void
 update_column(format_state *state, int c)
 { if ( likely(c >= ' ') )
-  { state->column += wcwidth(c);
+  { state->column += mk_wcwidth((uchar_t)c);
   } else
   { switch(c)
     { case '\n':

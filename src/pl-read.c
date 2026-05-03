@@ -36,7 +36,6 @@
 */
 
 /*#define O_DEBUG 1*/
-#define _GNU_SOURCE			/* get wcwidth() */
 #include "pl-read.h"
 #include "pl-arith.h"
 #include <math.h>
@@ -606,7 +605,7 @@ atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
   while ( p < e )
   { int c;
     p = (const unsigned char *)utf8_get_char((const char *)p, &c);
-    if ( c >= 0x300 && wcwidth((uchar_t)c) < 1 )
+    if ( c >= 0x300 && mk_wcwidth((uchar_t)c) < 1 )
     { any_combining = true;
       break;
     }

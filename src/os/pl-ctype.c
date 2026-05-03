@@ -221,7 +221,7 @@ rparen(int chr)
 
 static int
 fwidth(int chr)
-{ return wcwidth(chr);
+{ return mk_wcwidth((uchar_t)chr);
 }
 
 static int

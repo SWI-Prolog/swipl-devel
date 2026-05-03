@@ -47,10 +47,7 @@
 #include <config.h>
 #endif
 
-#define _GNU_SOURCE                    /* get wcwidth() */
-#ifndef HAVE_WCWIDTH
 #include "../mk_wcwidth.h"
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
@@ -758,7 +755,7 @@ Supdatepos(IOPOS *p, int c)
       p->linepos |= 7;
       /*FALLTHROUGH*/
     default:
-      p->linepos += wcwidth(c);
+      p->linepos += mk_wcwidth((uchar_t)c);
   }
 
   return false;

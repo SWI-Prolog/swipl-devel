@@ -36,7 +36,6 @@
 
 #ifndef _PL_CTYPE_H
 #define _PL_CTYPE_H
-#define _GNU_SOURCE			/* get wcwidth() */
 #include "../pl-incl.h"
 
 		 /*******************************

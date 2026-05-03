@@ -93,9 +93,7 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
     pl-undo.c pl-alloc.c pl-index.c pl-fli.c pl-coverage.c)
 
-if(NOT HAVE_WCWIDTH)
-  list(APPEND SRC_CORE mk_wcwidth.c)
-endif()
+list(APPEND SRC_CORE mk_wcwidth.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}

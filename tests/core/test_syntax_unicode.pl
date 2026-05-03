@@ -35,6 +35,7 @@
 :- module(test_syntax_unicode,
           [ test_syntax_unicode/0
           ]).
+:- encoding(utf8).
 :- use_module(library(plunit)).
 
 test_syntax_unicode :-
