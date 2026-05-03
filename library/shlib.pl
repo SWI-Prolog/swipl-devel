@@ -41,6 +41,7 @@
             unload_foreign_library/1,   % +LibFile
             unload_foreign_library/2,   % +LibFile, +UninstallFunc
             current_foreign_library/2,  % ?LibFile, ?Public
+            foreign_library_property/2, % ?File:atom, ?Property
             reload_foreign_libraries/0,
                                         % Directives
             use_foreign_library/1,      % :LibFile
@@ -53,7 +54,7 @@
 :- autoload(library(error),[existence_error/2]).
 :- autoload(library(lists),[member/2,reverse/2]).
 
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Utility library for loading foreign objects (DLLs, shared objects)
 
@@ -457,10 +458,10 @@ delete_foreign_lib(_, _).
 %!  unload_foreign_library(+FileSpec) is det.
 %!  unload_foreign_library(+FileSpec, +Exit:atom) is det.
 %
-%   Unload a _|shared object|_ or  _DLL_.   After  calling  the Exit
-%   function, the shared object is  removed   from  the process. The
-%   default exit function is composed from =uninstall_=, followed by
-%   the file base-name.
+%   Unload a _shared object_ or _DLL_.  After calling the Exit function,
+%   the shared object is removed  from   the  process.  The default exit
+%   function  is  composed  from  `uninstall_`,  followed  by  the  file
+%   base-name.
 
 unload_foreign_library(LibFile) :-
     unload_foreign_library(LibFile, default(uninstall)).
@@ -510,6 +511,30 @@ assert_shlib(File, Entry, Path, Module, Handle) :-
 current_foreign_library(File, Public) :-
     current_library(File, _Entry, _Path, _Module, _Handle),
     findall(Pred, foreign_predicate(File, Pred), Public).
+
+%!  foreign_library_property(?File, ?Property) is nondet.
+%
+%   True when Property is  a  property   of  the  foreign  library File.
+%   Currently defined properties are:
+%
+%     - module(Module)
+%       Module context into which the library was loaded
+%     - entry(Entry)
+%       Name of the _install_ function used.
+%     - absolute_file_name(Path)
+%       Absolute file name for File when known.
+%     - predicate(Pred)
+%       Predicate registered by calling the entry function.
+
+foreign_library_property(File, module(Module)) :-
+    current_library(File, _Entry, _Path, Module, _Handle).
+foreign_library_property(File, entry(Entry)) :-
+    current_library(File, Entry, _Path, _Module, _Handle).
+foreign_library_property(File, absolute_file_name(Path)) :-
+    current_library(File, _Entry, Path, _Module, _Handle).
+foreign_library_property(File, predicate(Pred)) :-
+    current_library(File, _Entry, _Path, _Module, _Handle),
+    foreign_predicate(File, Pred).
 
 
                  /*******************************

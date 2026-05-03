@@ -460,16 +460,31 @@ input_file(File) :-
 
 %!  unload_file(+File) is det.
 %
-%   Remove all traces of loading file.
+%   Remove all traces of loading file. If the  file is a module file and
+%   used use_foreign_library/1,2 to load foreign   extensions, these are
+%   removed first.
+%
+%   @tbd Should we introduce a counterpart  for initialization/1 that is
+%   called when a file is unloaded?
 
 :- dynamic system:'$resolved_source_path'/2.
 
 unload_file(File) :-
     (   canonical_source_file(File, Path)
-    ->  '$unload_file'(Path),
+    ->  unload_file_(Path),
         retractall(system:'$resolved_source_path'(_, Path))
     ;   true
     ).
+
+unload_file_(Path) :-
+    source_file_property(Path, module(M)),
+    ensure_shlib,
+    !,
+    forall(shlib:foreign_library_property(Foreign, module(M)),
+           shlib:unload_foreign_library(Foreign)),
+     '$unload_file'(Path).
+unload_file_(Path) :-
+    '$unload_file'(Path).
 
 :- if(current_prolog_flag(open_shared_object, true)).
 
