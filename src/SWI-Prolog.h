@@ -681,6 +681,11 @@ PL_EXPORT(bool)		PL_get_wchars(term_t l,
 				      unsigned flags) WUNUSED;
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
 PL_EXPORT(int)		PL_wcwidth(int chr);
+PL_EXPORT(int)		PL_is_id_start(int chr);
+PL_EXPORT(int)		PL_is_id_continue(int chr);
+PL_EXPORT(int)		PL_is_uppercase(int chr);
+PL_EXPORT(int)		PL_is_decimal(int chr);
+PL_EXPORT(int)		PL_is_layout(int chr);
 
 
 		 /*******************************

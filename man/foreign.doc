@@ -1659,6 +1659,26 @@ non-ASCII code points on glibc.
 The argument is a full 32-bit code point.  Avoid casting to
 \ctype{wchar_t} before the call: \ctype{wchar_t} is 16-bit on Windows,
 and the cast silently drops non-BMP characters.
+
+    \cfunction{int}{PL_is_id_start}{int chr}
+    \nodescription
+    \cfunction{int}{PL_is_id_continue}{int chr}
+    \nodescription
+    \cfunction{int}{PL_is_uppercase}{int chr}
+    \nodescription
+    \cfunction{int}{PL_is_decimal}{int chr}
+    \nodescription
+    \cfunction{int}{PL_is_layout}{int chr}
+Unicode classification predicates.  Each returns non-zero iff the
+32-bit code point \arg{chr} carries the corresponding property as
+defined by the data files in \file{src/Unicode/} and consulted by the
+Prolog reader.  Provided so foreign extensions and embedded toolkits
+(notably xpce) classify code points exactly as SWI-Prolog does, locale-
+independently.  \const{id_start} and \const{id_continue} follow
+Prolog's identifier syntax (close to UAX~\#31 XID_Start / XID_Continue,
+adjusted for Prolog).  \const{layout} matches the reader's whitespace
+set (\predref{white_space}{1} in
+\file{src/Unicode/derived_core_properties.pl}).
 \end{description}
 
 

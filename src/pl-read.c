@@ -131,6 +131,43 @@ unicode_separator(int c)
 { return PlBlankW(c);
 }
 
+
+		 /*******************************
+		 *	  PUBLIC C API		*
+		 *******************************/
+
+/* The PL_is_* functions below expose SWI-Prolog's Unicode classifier
+ * (`uflagsW`, fed by `src/pl-umap.c`) to foreign code.  They wrap one
+ * U_* flag each and answer for the full Unicode range, locale-
+ * independently.  Thin enough that the natural home is here, where the
+ * `pl-umap.c` table is in scope.
+ */
+
+int
+PL_is_id_start(int chr)
+{ return (uflagsW(chr) & U_ID_START) != 0;
+}
+
+int
+PL_is_id_continue(int chr)
+{ return (uflagsW(chr) & U_ID_CONTINUE) != 0;
+}
+
+int
+PL_is_uppercase(int chr)
+{ return (uflagsW(chr) & U_UPPERCASE) != 0;
+}
+
+int
+PL_is_decimal(int chr)
+{ return (uflagsW(chr) & U_DECIMAL) != 0;
+}
+
+int
+PL_is_layout(int chr)
+{ return (uflagsW(chr) & U_LAYOUT) != 0;
+}
+
 int
 decimal_weight(int code)
 { if ( code >= '0' && code <= '9' )
