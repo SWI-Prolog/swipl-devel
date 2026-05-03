@@ -142,7 +142,7 @@ test(le_is_atom) :-
     term_to_atom(T, '≤'),
     atom(T),
     atom_length(T, 1).
-test(double_le_does_not_glue, error(systax_error(_))) :-
+test(double_le_does_not_glue, error(syntax_error(_))) :-
     % Two ≤ in a row: would have glued under the old regime.  Now
     % each is a solo atom; without an operator declaration the
     % sequence is a syntax error.
@@ -171,21 +171,22 @@ test(ascii_negation) :-
 
 :- begin_tests(syntax_unicode_numbers).
 
-% --- Mixed-script Nd rejected ------------------------------------------
 
-test(mixed_digit_blocks_rejected,
-     [error(syntax_error(_))]) :-
+% Prolog syntax only accepts ASCII digits
+test(devanagari_digits_parse, error(syntax_error(_))) :-
+    % U+0967..U+0969 = १२३ (123 in Devanagari)
+    term_string(_, "\u0967\u0968\u0969").
+
+% Same-script non-ASCII Nd accepted
+test(devanagari_digits_convert, N == 123) :-
+    % U+0967..U+0969 = १२३ (123 in Devanagari)
+    number_string(N, "\u0967\u0968\u0969").
+
+% Mixed-script Nd rejected
+test(mixed_digit_blocks_rejected, fail) :-
     % Latin '1' followed by Devanagari '२' (DEVANAGARI DIGIT TWO).
     % All digits in a number must come from the same Unicode block.
-    atom_codes(S, [0'1, 0x0968]),
-    term_to_atom(_, S).
-
-% --- Same-script non-ASCII Nd accepted ---------------------------------
-
-test(devanagari_digits_parse, N == 123) :-
-    % U+0967..U+0969 = १२३ (123 in Devanagari)
-    atom_codes(S, [0x0967, 0x0968, 0x0969]),
-    atom_number(S, N).
+    number_string(_, "1\u0968").
 
 :- end_tests(syntax_unicode_numbers).
 
@@ -201,55 +202,88 @@ test(flag_present) :-
 :- end_tests(syntax_unicode_version).
 
 
-:- begin_tests(syntax_unicode_atoms).
+:- begin_tests(syntax_unicode_atoms,
+               [ setup(unload_file(library(unicode))),
+                 cleanup(unload_file(library(unicode)))
+               ]).
 
-% These tests exercise the unicode_atoms policy WITHOUT
-% library(unicode) loaded.  Modes accept, error and reject must work
-% standalone; only nfc requires the kernel normalisation hook.
+% U+0E2A U+0E27 U+0E31 U+0E2A U+0E14 U+0E35
+% U+0E0A U+0E32 U+0E27 U+0E42 U+0E25 U+0E01
+% — "Hello, World" in Thai.  Already in NFC: the Thai vowel signs
+% (ั ี) have wcwidth==0 so the wcwidth fallback flags them as
+% combining, but utf8proc confirms the string is unchanged by NFC.
+thai_hello_world("สวัสดี\c
+		  ชาวโลก").
+
+% Exercises the unicode_atoms policy.  The first block runs WITHOUT
+% library(unicode): modes accept/error/reject must work standalone, and
+% error/reject use the wcwidth-based conservative fallback.  The second
+% block runs AFTER nfc auto-loads library(unicode) and so the precise
+% utf8proc-backed check is in effect.
 
 test(default_flag_is_accept) :-
     current_prolog_flag(unicode_atoms, accept).
 
-test(error_rejects_nfd_without_lib_unicode,
-     [error(syntax_error(non_nfc_atom))]) :-
-    \+ current_module(unicode),
-    atom_codes(NFD, [0'c, 0'a, 0'f, 0'e, 0x0301]),
-    read_term_from_atom(NFD, _, [unicode_atoms(error)]).
+% --- without library(unicode): wcwidth fallback ------------------------
 
-test(error_accepts_pure_ascii_without_lib_unicode) :-
-    \+ current_module(unicode),
-    read_term_from_atom("foo", T, [unicode_atoms(error)]),
-    T == foo.
+test(error_rejects_simple_nfd_without_hook,
+     error(syntax_error(non_nfc_atom))) :-
+    term_string(_, "cafe\u0301", [unicode_atoms(error)]).
 
-test(reject_rejects_non_ascii_without_lib_unicode,
-     [error(syntax_error(non_ascii_atom))]) :-
-    \+ current_module(unicode),
-    atom_codes(A, [0'c, 0'a, 0'f, 0xe9]),
-    read_term_from_atom(A, _, [unicode_atoms(reject)]).
+test(error_thai_false_positive_without_hook,
+     [ error(syntax_error(non_nfc_atom)),
+       condition(\+ current_prolog_flag(atom_normalize_hook, true))
+     ]) :-
+    % The Thai greeting is already in NFC, but the wcwidth fast path
+    % conservatively flags any combining mark as non-NFC and so
+    % rejects it.  The precise check (next block) accepts it.
+    thai_hello_world(S),
+    term_string(_, S, [unicode_atoms(error)]).
+
+test(error_accepts_pure_ascii) :-
+    term_string(foo, "foo", [unicode_atoms(error)]).
+
+test(reject_rejects_non_ascii,
+     error(syntax_error(non_ascii_atom))) :-
+    term_string(_, "caf\u00e9", [unicode_atoms(reject)]).
 
 test(reject_passes_quoted_non_ascii) :-
-    \+ current_module(unicode),
-    atom_codes(A, [0'', 0'c, 0'a, 0'f, 0xe9, 0'']),
-    read_term_from_atom(A, T, [unicode_atoms(reject)]),
-    atom_codes(T, [0'c, 0'a, 0'f, 0xe9]).
+    term_string(T, "'caf\u00e9'", [unicode_atoms(reject)]),
+    atom_codes(T, `caf\u00e9`).
+
+% --- nfc auto-loads library(unicode) -----------------------------------
 
 test(nfc_auto_loads_unicode_library) :-
-    \+ current_module(unicode),
-    atom_codes(NFD, [0'c, 0'a, 0'f, 0'e, 0x0301]),
-    atom_codes(NFC, [0'c, 0'a, 0'f, 0xe9]),
-    read_term_from_atom(NFD, T1, [unicode_atoms(nfc)]),
-    read_term_from_atom(NFC, T2, [unicode_atoms(nfc)]),
+    assertion(\+ current_prolog_flag(atom_normalize_hook, true)),
+    term_string(T1, "cafe\u0301", [unicode_atoms(nfc)]),
+    term_string(T2, "caf\u00e9",  [unicode_atoms(nfc)]),
     T1 == T2,
-    current_module(unicode).
+    assertion(current_prolog_flag(atom_normalize_hook, true)).
+
+% --- with library(unicode): precise utf8proc-backed NFC check ----------
+%
+% These tests run after nfc_auto_loads_unicode_library above and so
+% see the kernel normalisation hook registered.  Same Thai greeting as
+% the without_hook test now passes; cafe+combining is still rejected
+% as it is genuinely not NFC.
+
+test(error_rejects_simple_nfd_with_hook,
+     error(syntax_error(non_nfc_atom))) :-
+    term_string(_, "cafe\u0301", [unicode_atoms(error)]).
+
+test(error_accepts_thai_with_hook) :-
+    thai_hello_world(S),
+    term_string(T, S, [unicode_atoms(error)]),
+    atom_string(T, S).
+
+% --- bidi-override always rejected -------------------------------------
 
 test(bidi_in_unquoted_atom_is_error,
-     [error(syntax_error(bidi_override(0x202E)))]) :-
-    atom_codes(A, [0'a, 0x202E, 0'b]),
-    read_term_from_atom(A, _, []).
+     error(syntax_error(bidi_override(0x202E)))) :-
+    term_string(_, "a\u202eb", []).
 
 test(bidi_via_escape_is_allowed) :-
-    atom_codes(A, [0'', 0'a, 0'\\, 0'u, 0'2, 0'0, 0'2, 0'E, 0'b, 0'']),
-    read_term_from_atom(A, T, []),
-    atom_codes(T, [0'a, 0x202E, 0'b]).
+    term_string(T, "'a\\u202Eb'", []),
+    atom_codes(T, `a\u202Eb`).
 
 :- end_tests(syntax_unicode_atoms).
