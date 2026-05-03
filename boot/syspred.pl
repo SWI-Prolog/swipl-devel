@@ -472,7 +472,8 @@ input_file(File) :-
 unload_file(File) :-
     (   canonical_source_file(File, Path)
     ->  unload_file_(Path),
-        retractall(system:'$resolved_source_path'(_, Path))
+        '$clear_source_admin'(Path),
+        garbage_collect_clauses
     ;   true
     ).
 
@@ -482,7 +483,7 @@ unload_file_(Path) :-
     !,
     forall(shlib:foreign_library_property(Foreign, module(M)),
            shlib:unload_foreign_library(Foreign)),
-     '$unload_file'(Path).
+    '$unload_file'(Path).
 unload_file_(Path) :-
     '$unload_file'(Path).
 

@@ -705,7 +705,7 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
   if ( PL_get_atom_ex(A1, &filename) &&
        PL_get_atom_ex(A2, &property) )
   { SourceFile sf = lookupSourceFile(filename, false);
-    int rc;
+    bool rc;
 
     if ( property == ATOM_load_count )
       rc = PL_unify_integer(A3, sf ? sf->count : 0);
@@ -793,11 +793,10 @@ PRED_IMPL("$set_source_files", 1, set_source_files, 0)
 unloadFile(SourceFile sf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 unloadFile(SourceFile sf)
 { ListCell cell;
   size_t deleted = 0;
-  int rc;
 
   delayEvents();
   LOCKSRCFILE(sf);
@@ -821,17 +820,16 @@ unloadFile(SourceFile sf)
       clear_meta_declaration(def);
     }
   }
-  DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
-  (void)deleted;
+  sf->number_of_clauses -= deleted;
+
+  DEBUG(MSG_UNLOAD, Sdprintf("Removed %zd clauses\n", deleted));
 
   freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);
+  sf->isfile = false;
   UNLOCKSRCFILE(sf);
 
-  rc = sendDelayedEvents(true) >= 0;
-  pl_garbage_collect_clauses();
-
-  return rc;
+  return sendDelayedEvents(true) >= 0;
 }
 
 
@@ -1023,7 +1021,7 @@ equal_clause(Clause cl1, Clause cl2)
 }
 
 
-int
+bool
 reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 

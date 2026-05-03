@@ -64,7 +64,7 @@ void		cleanupSourceFiles(void);
 void		unlinkSourceFileModule(SourceFile sf, Module m);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 bool		hasProcedureSourceFile(SourceFile sf, Procedure proc);
-int		reloadHasClauses(SourceFile sf, Procedure proc);
+bool		reloadHasClauses(SourceFile sf, Procedure proc);
 ClauseRef	assertProcedureSource(SourceFile sf, Procedure proc,
 				      Clause clause);
 bool		setAttrProcedureSource(SourceFile sf, Procedure proc,
