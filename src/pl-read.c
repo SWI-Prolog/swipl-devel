@@ -143,27 +143,27 @@ unicode_separator(int c)
  * `pl-umap.c` table is in scope.
  */
 
-int
+bool
 PL_is_id_start(int chr)
 { return (uflagsW(chr) & U_ID_START) != 0;
 }
 
-int
+bool
 PL_is_id_continue(int chr)
 { return (uflagsW(chr) & U_ID_CONTINUE) != 0;
 }
 
-int
+bool
 PL_is_uppercase(int chr)
 { return (uflagsW(chr) & U_UPPERCASE) != 0;
 }
 
-int
+bool
 PL_is_decimal(int chr)
 { return (uflagsW(chr) & U_DECIMAL) != 0;
 }
 
-int
+bool
 PL_is_layout(int chr)
 { return (uflagsW(chr) & U_LAYOUT) != 0;
 }
