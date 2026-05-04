@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -54,6 +54,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -550,14 +551,13 @@ _xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
   TCHAR *o = longname;
   TCHAR *ok = longname;
   TCHAR *e = &longname[len-1];
-  int changed = 0;
 
   while(*i)
-  { int dirty = false;
+  { bool dirty = false;
 
     while(*i && *i != '\\' && *i != '/' )
     { if ( *i == '~' )
-	dirty++;
+	dirty = true;
       if ( o >= e )
       { errno = ENAMETOOLONG;
 	return NULL;
@@ -581,7 +581,6 @@ _xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
 	_tcscpy(ok, data.cFileName);
 	FindClose(h);
 	o = ok + l;
-	changed++;
       }
     }
     if ( *i )
