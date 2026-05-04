@@ -895,10 +895,7 @@ init_locale(void)
 { int rc = ENC_UNKNOWN;
 
 #ifdef __WINDOWS__
-  UINT cp = GetACP();
-
-  if ( cp == 65001 )
-    rc = ENC_UTF8;
+  rc = ENC_UTF8;
 #endif
 
   if ( rc == ENC_UNKNOWN && setlocale(LC_CTYPE, "") )

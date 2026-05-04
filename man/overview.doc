@@ -3843,7 +3843,11 @@ The default encoding for files is derived from the Prolog flag
 is recognized, while \const{text} is used as default. Using
 \const{text}, the translation is left to the wide-character functions of
 the C library.\footnote{The Prolog native UTF-8 mode is considerably
-faster than the generic mbrtowc() one.} The encoding can be specified
+faster than the generic mbrtowc() one.} On MS-Windows the default is
+unconditionally \const{utf8}, irrespective of the system code page, as
+UTF-8 is the de-facto encoding for source files and the Windows C
+runtime's locale-based wide-character functions provide weaker Unicode
+coverage than Prolog's own tables. The encoding can be specified
 explicitly in load_files/2 for loading Prolog source with an alternative
 encoding, open/4 when opening files or using set_stream/2 on any open
 stream. For Prolog source files we also provide the encoding/1 directive
