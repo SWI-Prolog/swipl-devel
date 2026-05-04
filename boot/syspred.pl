@@ -477,6 +477,7 @@ unload_file(File) :-
     ;   true
     ).
 
+:- if(current_prolog_flag(open_shared_object, true)).
 unload_file_(Path) :-
     source_file_property(Path, module(M)),
     ensure_shlib,
@@ -484,6 +485,7 @@ unload_file_(Path) :-
     forall(shlib:foreign_library_property(Foreign, module(M)),
            shlib:unload_foreign_library(Foreign)),
     '$unload_file'(Path).
+:- endif.
 unload_file_(Path) :-
     '$unload_file'(Path).
 

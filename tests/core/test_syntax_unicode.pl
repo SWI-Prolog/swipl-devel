@@ -37,6 +37,7 @@
           ]).
 :- encoding(utf8).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_syntax_unicode :-
     run_tests([ syntax_unicode_identifiers,
@@ -254,13 +255,7 @@ test(reject_passes_quoted_non_ascii) :-
 
 % --- nfc auto-loads library(unicode) -----------------------------------
 
-test(nfc_auto_loads_unicode_library) :-
-    assertion(\+ current_prolog_flag(atom_normalize_hook, true)),
-    term_string(T1, "cafe\u0301", [unicode_atoms(nfc)]),
-    term_string(T2, "caf\u00e9",  [unicode_atoms(nfc)]),
-    T1 == T2,
-    assertion(current_prolog_flag(atom_normalize_hook, true)).
-
+:- if(exists_source(library(unicode))).
 % --- with library(unicode): precise utf8proc-backed NFC check ----------
 %
 % These tests run after nfc_auto_loads_unicode_library above and so
@@ -268,14 +263,22 @@ test(nfc_auto_loads_unicode_library) :-
 % the without_hook test now passes; cafe+combining is still rejected
 % as it is genuinely not NFC.
 
-test(error_rejects_simple_nfd_with_hook,
-     error(syntax_error(non_nfc_atom))) :-
-    term_string(_, "cafe\u0301", [unicode_atoms(error)]).
+test(nfc_auto_loads_unicode_library) :-
+    assertion(\+ current_prolog_flag(atom_normalize_hook, true)),
+    term_string(T1, "cafe\u0301", [unicode_atoms(nfc)]),
+    term_string(T2, "caf\u00e9",  [unicode_atoms(nfc)]),
+    T1 == T2,
+    assertion(current_prolog_flag(atom_normalize_hook, true)).
 
 test(error_accepts_thai_with_hook) :-
     thai_hello_world(S),
     term_string(T, S, [unicode_atoms(error)]),
     atom_string(T, S).
+:- endif.
+
+test(error_rejects_simple_nfd_with_hook,
+     error(syntax_error(non_nfc_atom))) :-
+    term_string(_, "cafe\u0301", [unicode_atoms(error)]).
 
 % --- bidi-override always rejected -------------------------------------
 
