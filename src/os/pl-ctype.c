@@ -895,6 +895,15 @@ init_locale(void)
 { int rc = ENC_UNKNOWN;
 
 #ifdef __WINDOWS__
+  /* Force the C runtime's CTYPE locale to UTF-8 so mbrtowc / wcrtomb
+   * etc. round-trip non-ASCII bytes from streams that were marked
+   * ENC_UTF8 below.  The ".UTF-8" suffix is supported by the Universal
+   * CRT on Windows 10 1803 and later (April 2018); MinGW links against
+   * UCRT.  Falling back to setlocale(LC_CTYPE, "") on older systems
+   * picks the legacy ANSI codepage, which means atoms that round-trip
+   * through mbrtowc lose anything outside that codepage. */
+  if ( !setlocale(LC_CTYPE, ".UTF-8") )
+    setlocale(LC_CTYPE, "");
   rc = ENC_UTF8;
 #endif
 
