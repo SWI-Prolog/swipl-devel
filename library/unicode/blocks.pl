@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c) 2005-2012, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c) 2005-2026, University of Amsterdam
                              VU University Amsterdam
+                             SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,16 +37,14 @@
 /*
 Derived from:
 
-# Blocks-16.0.0.txt
-# Date: Date: 2024-02-02
+# Blocks-17.0.0.txt
+# Date: 2025-08-01
+# © 2025 Unicode®, Inc.
+# Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+# For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
 # Unicode Character Database
-# Copyright (c) 1991-2024 Unicode, Inc.
-# For terms of use, see http://www.unicode.org/terms_of_use.html
-# For documentation, see UCD.html
-#
-# Note:   The casing of block names is not normative.
-#         For example, "Basic Latin" and "BASIC LATIN" are equivalent.
+# For documentation, see https://www.unicode.org/reports/tr44/
 #
 # Format:
 # Start Code..End Code; Block Name
@@ -56,12 +55,22 @@ Derived from:
 #         and underbars are ignored.
 #         For example, "Latin Extended-A" and "latin extended a" are equivalent.
 #         For more information on the comparison of property values,
-#            see UCD.html.
+#            see UAX #44: https://www.unicode.org/reports/tr44/
+#
+#  All block ranges start with a value where (cp MOD 16) = 0,
+#  and end with a value where (cp MOD 16) = 15. In other words,
+#  the last hexadecimal digit of the start of range is ...0
+#  and the last hexadecimal digit of the end of range is ...F.
+#  This constraint on block ranges guarantees that allocations
+#  are done in terms of whole columns, and that code chart display
+#  never involves splitting columns in the charts.
 #
 #  All code points not explicitly listed for Block
 #  have the value No_Block.
 
-# Property:     Block
+# Property:	Block
+#
+# @missing: 0000..10FFFF; No_Block
 */
 
 :- module(unicode_blocks,
@@ -71,7 +80,13 @@ Derived from:
 %!  unicode_block(?BlockName, ?Start, ?End)
 %
 %   Provides the names of the  basic   unicode  blocks. Derived from
-%   UNICODE 4.1.0 from www.unicode.org
+%   UNICODE 17.0 from www.unicode.org
+
+% Created from Blocks-17.0.0.txt using the below replacements.
+% Replace "^([^.]+)\.\.([^;]+); *([^\n]+)"
+%    with "unicode_block('\3', \1, \2)."
+% Replace ", ([0-9A-F]+)"
+%    with ", "0x\1"
 
 unicode_block('Basic Latin',                                      0x0000,   0x007F).
 unicode_block('Latin-1 Supplement',                               0x0080,   0x00FF).
@@ -268,6 +283,7 @@ unicode_block('Nabataean',                                        0x10880,  0x10
 unicode_block('Hatran',                                           0x108E0,  0x108FF).
 unicode_block('Phoenician',                                       0x10900,  0x1091F).
 unicode_block('Lydian',                                           0x10920,  0x1093F).
+unicode_block('Sidetic',                                          0x10940,  0x1095F).
 unicode_block('Meroitic Hieroglyphs',                             0x10980,  0x1099F).
 unicode_block('Meroitic Cursive',                                 0x109A0,  0x109FF).
 unicode_block('Kharoshthi',                                       0x10A00,  0x10A5F).
@@ -319,11 +335,13 @@ unicode_block('Soyombo',                                          0x11A50,  0x11
 unicode_block('Unified Canadian Aboriginal Syllabics Extended-A', 0x11AB0,  0x11ABF).
 unicode_block('Pau Cin Hau',                                      0x11AC0,  0x11AFF).
 unicode_block('Devanagari Extended-A',                            0x11B00,  0x11B5F).
+unicode_block('Sharada Supplement',                               0x11B60,  0x11B7F).
 unicode_block('Sunuwar',                                          0x11BC0,  0x11BFF).
 unicode_block('Bhaiksuki',                                        0x11C00,  0x11C6F).
 unicode_block('Marchen',                                          0x11C70,  0x11CBF).
 unicode_block('Masaram Gondi',                                    0x11D00,  0x11D5F).
 unicode_block('Gunjala Gondi',                                    0x11D60,  0x11DAF).
+unicode_block('Tolong Siki',                                      0x11DB0,  0x11DEF).
 unicode_block('Makasar',                                          0x11EE0,  0x11EFF).
 unicode_block('Kawi',                                             0x11F00,  0x11F5F).
 unicode_block('Lisu Supplement',                                  0x11FB0,  0x11FBF).
@@ -344,12 +362,14 @@ unicode_block('Bassa Vah',                                        0x16AD0,  0x16
 unicode_block('Pahawh Hmong',                                     0x16B00,  0x16B8F).
 unicode_block('Kirat Rai',                                        0x16D40,  0x16D7F).
 unicode_block('Medefaidrin',                                      0x16E40,  0x16E9F).
+unicode_block('Beria Erfe',                                       0x16EA0,  0x16EDF).
 unicode_block('Miao',                                             0x16F00,  0x16F9F).
 unicode_block('Ideographic Symbols and Punctuation',              0x16FE0,  0x16FFF).
 unicode_block('Tangut',                                           0x17000,  0x187FF).
 unicode_block('Tangut Components',                                0x18800,  0x18AFF).
 unicode_block('Khitan Small Script',                              0x18B00,  0x18CFF).
 unicode_block('Tangut Supplement',                                0x18D00,  0x18D7F).
+unicode_block('Tangut Components Supplement',                     0x18D80,  0x18DFF).
 unicode_block('Kana Extended-B',                                  0x1AFF0,  0x1AFFF).
 unicode_block('Kana Supplement',                                  0x1B000,  0x1B0FF).
 unicode_block('Kana Extended-A',                                  0x1B100,  0x1B12F).
@@ -358,6 +378,7 @@ unicode_block('Nushu',                                            0x1B170,  0x1B
 unicode_block('Duployan',                                         0x1BC00,  0x1BC9F).
 unicode_block('Shorthand Format Controls',                        0x1BCA0,  0x1BCAF).
 unicode_block('Symbols for Legacy Computing Supplement',          0x1CC00,  0x1CEBF).
+unicode_block('Miscellaneous Symbols Supplement',                 0x1CEC0,  0x1CEFF).
 unicode_block('Znamenny Musical Notation',                        0x1CF00,  0x1CFCF).
 unicode_block('Byzantine Musical Symbols',                        0x1D000,  0x1D0FF).
 unicode_block('Musical Symbols',                                  0x1D100,  0x1D1FF).
@@ -376,6 +397,7 @@ unicode_block('Toto',                                             0x1E290,  0x1E
 unicode_block('Wancho',                                           0x1E2C0,  0x1E2FF).
 unicode_block('Nag Mundari',                                      0x1E4D0,  0x1E4FF).
 unicode_block('Ol Onal',                                          0x1E5D0,  0x1E5FF).
+unicode_block('Tai Yo',                                           0x1E6C0,  0x1E6FF).
 unicode_block('Ethiopic Extended-B',                              0x1E7E0,  0x1E7FF).
 unicode_block('Mende Kikakui',                                    0x1E800,  0x1E8DF).
 unicode_block('Adlam',                                            0x1E900,  0x1E95F).
@@ -407,8 +429,8 @@ unicode_block('CJK Unified Ideographs Extension I',               0x2EBF0,  0x2E
 unicode_block('CJK Compatibility Ideographs Supplement',          0x2F800,  0x2FA1F).
 unicode_block('CJK Unified Ideographs Extension G',               0x30000,  0x3134F).
 unicode_block('CJK Unified Ideographs Extension H',               0x31350,  0x323AF).
+unicode_block('CJK Unified Ideographs Extension J',               0x323B0,  0x3347F).
 unicode_block('Tags',                                             0xE0000,  0xE007F).
 unicode_block('Variation Selectors Supplement',                   0xE0100,  0xE01EF).
 unicode_block('Supplementary Private Use Area-A',                 0xF0000,  0xFFFFF).
 unicode_block('Supplementary Private Use Area-B',                 0x100000, 0x10FFFF).
-
