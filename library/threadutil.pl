@@ -342,7 +342,7 @@ tdebug_(Class, Mode),
     print_message(informational, tdebug(Class, Mode, Matching, Set)).
 
 tnodebug :-
-    forall(debug_target(Id), set_thread(Id, set_thread(false))).
+    forall(debug_target(Id), set_thread(Id, debug_mode(false))).
 
 tnodebug(ThreadOrClass) :-
     tdebug_(ThreadOrClass, false).
