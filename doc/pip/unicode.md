@@ -292,9 +292,58 @@ and is exposed to the C API as `PL_wcwidth(int code)`.
 The width of each code point is **derived from Unicode property
 data** — `EastAsianWidth.txt` (UAX #11) plus the general category —
 at table-build time and stored alongside the syntax classifier in
-the same per-code-point byte (see §4.10). This is locale-independent
-and identical on every supported platform; the version is reported
-by the read-only flag `unicode_syntax_version` (§4.9).
+the same per-code-point byte. This is locale-independent and
+identical on every supported platform; the Unicode version that
+drove the table is reported by the read-only flag
+`unicode_syntax_version` (§4.9).
+
+#### 4.8.1 Relation to POSIX `wcwidth(3)`
+
+The return-value contract is the **same as POSIX**
+`wcwidth(3)`/`<wchar.h>`: −1 for non-printable, 0 for combining /
+zero-width, 1 for normal, 2 for wide. Code that already uses
+`wcwidth` against the POSIX convention drops in unchanged.
+
+The differences are deliberate:
+
+- **Locale-independent.** POSIX `wcwidth` is permitted to depend on
+  `LC_CTYPE`; in the `C`/`POSIX` locale on glibc, for instance,
+  `wcwidth` returns −1 for every non-ASCII code point.
+  `PL_wcwidth(c)` is a pure function of `c`.
+- **Cross-platform identical.** Every supported platform — Linux,
+  macOS, Windows, WASM — gives the same answer. Notably,
+  `wcwidth` does not exist at all on standard Windows; SWI-Prolog
+  used to fall back to Markus Kuhn's `mk_wcwidth.c`, and that
+  reference table is now superseded by the per-code-point table
+  emitted from current Unicode data.
+- **Versioned.** The width data is pinned to the Unicode release
+  reported by `unicode_syntax_version`; querying the flag answers
+  "which Unicode are these widths from?". POSIX `wcwidth` exposes
+  no equivalent.
+- **Full 32-bit code points.** The argument is `int` so non-BMP
+  characters (emoji, supplementary planes) work on Windows, where
+  `wchar_t` is 16-bit and a naive cast silently truncates.
+- **East Asian Ambiguous → 1.** UAX #11 `A` (Ambiguous) is
+  rendered as one column. POSIX leaves this implementation-defined;
+  some glibc CJK locales return 2. SWI-Prolog follows the
+  Western convention to keep alignment portable across locales —
+  Kuhn's reference does the same.
+- **Cc/Cn/Cs.** Control characters (`Cc`, including DEL and the
+  C1 range) → −1. Unassigned (`Cn`) and surrogate (`Cs`) code
+  points get the Unicode default per UAX #11 (1, or 2 in the
+  CJK Ideograph default-W blocks). POSIX `wcwidth` is
+  implementation-defined for these.
+- **No `mk_wcwidth_cjk` variant.** Kuhn's `_cjk` variant bumps
+  Ambiguous to 2; the SWI tree no longer carries it. Code that
+  needs CJK-style ambiguous-as-wide rendering should layer that
+  on top, e.g. by post-processing a `unicode_property/2` query
+  for `east_asian_width(a)`.
+
+In short, `PL_wcwidth(c)` is approximately "POSIX `wcwidth` with a
+locale that always tracks current Unicode and resolves Ambiguous as
+narrow". The POSIX-compatible return-value convention preserves
+backward compatibility for foreign code that previously linked
+against `mk_wcwidth.c`.
 
 ### 4.9 Reporting the Unicode version
 
