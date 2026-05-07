@@ -85,18 +85,31 @@ Source mapping for the categories:
                           superscript/subscript-digit profile addition
     id_continue_solo  ⇐ XID_Continue ∩ solo_cat
                           (e.g. '_' U+005F, '·' U+00B7)
-    bracket           ⇐ Ps ∪ Pe (Stage 6 will populate; reserved here)
-    quote             ⇐ Pi ∪ Pf (Stage 6 will populate; reserved here)
-    solo              ⇐ Sm/Sc/Sk/So/Pc/Pd/Ps/Pe/Pi/Pf/Po
+    bracket           ⇐ general categories Ps ∪ Pe
+                          (paired delimiters; partner via pl_pair_table)
+    quote             ⇐ general categories Pi ∪ Pf
+                          (paired delimiters; partner via pl_pair_table)
+    solo              ⇐ Sm/Sc/Sk/So/Pc/Pd/Po
                           (broader than UAX #31 Pattern_Syntax; PIP §4.2)
     symbol            ⇐ ASCII operator characters (JS path only)
     other / unassigned ⇒ category 0 (treated as stray by the parser)
 
+Width data in bits 4..5 is sourced from EastAsianWidth.txt (UAX #11)
+and the general_category property; PL_wcwidth() reads these bits at
+runtime.
+
+Pair tables (Ps↔Pe and Pi↔Pf) come from BidiMirroring.txt with the
+standard curly quote pairs U+2018/U+2019 and U+201C/U+201D added
+explicitly (those have Bidi_Mirrored=No and are absent from
+BidiMirroring.txt).  The reader uses pl_pair_table to recognise
+'<open><close>'/1 paired-delimiter terms — see read_paired_term in
+pl-read.c.
+
 Usage:
 
-  1. Get DerivedCoreProperties.txt, UnicodeData.txt, and
-     EastAsianWidth.txt from the Unicode consortium and copy or link
-     them into this directory.
+  1. Get DerivedCoreProperties.txt, UnicodeData.txt,
+     EastAsianWidth.txt, and BidiMirroring.txt from the Unicode
+     consortium and copy or link them into this directory.
   2. Run `swipl prolog_syntax_map.pl` in this directory, which updates
      `../pl-umap.c`.
 

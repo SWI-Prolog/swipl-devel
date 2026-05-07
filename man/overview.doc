@@ -3376,18 +3376,37 @@ The first 128 characters follow the ISO Prolog standard.  In particular,
 the ASCII symbol characters glue into compound atoms, giving the
 familiar operator tokens \const{==}, \const{=..}, \const{:-} and so on.
 Beyond ASCII, all Unicode symbol characters (general categories
-\const{Sm}, \const{Sc}, \const{Sk}, \const{So}) and all Unicode
-punctuation characters (\const{Pc}, \const{Pd}, \const{Ps}, \const{Pe},
-\const{Pi}, \const{Pf}, \const{Po}) are treated as \jargon{solo}: each
-forms an atom on its own and does not glue with adjacent symbols.  This
-is a deliberate change from earlier releases, in which Unicode symbols
-glued into compound atoms in the same way as ASCII symbols; the change
-ensures that characters such as {≤}, {«}, {€}, and {·} keep their
-per-character meaning.  Operators built from Unicode symbols
-must be declared explicitly with op/3.  Numeric characters of other
-type (general category \const{No}, e.g.\ fractions and circled digits)
-are not part of the identifier set; only the explicitly listed
-super- and subscript digits extend identifiers.
+\const{Sm}, \const{Sc}, \const{Sk}, \const{So}) and the connector,
+dash, and other-punctuation classes (\const{Pc}, \const{Pd},
+\const{Po}) are treated as \jargon{solo}: each forms an atom on its
+own and does not glue with adjacent symbols.  This is a deliberate
+change from earlier releases, in which Unicode symbols glued into
+compound atoms in the same way as ASCII symbols; the change ensures
+that characters such as {≤}, {€}, and {·} keep their per-character
+meaning.  Operators built from Unicode symbols must be declared
+explicitly with op/3.  Numeric characters of other type (general
+category \const{No}, e.g.\ fractions and circled digits) are not
+part of the identifier set; only the explicitly listed super- and
+subscript digits extend identifiers.
+
+    \item [Brackets and quotes (paired delimiters)]
+The opening / closing punctuation classes \const{Ps}/\const{Pe} and
+the initial / final quotation classes \const{Pi}/\const{Pf} are
+\jargon{paired delimiters}: an opening character followed by a term
+and the matching closing character reads as a unary compound whose
+functor is the two delimiter characters joined.  This is the same
+shape as \verb${Term}$ becoming \verb$'{}'(Term)$, generalised to the
+full Unicode pair set; for example, the source text {«}hello{»} reads
+as the compound whose functor is the two-character atom {«}{»} and
+whose single argument is the atom \const{hello}.  The bracket pairs
+come from Unicode \verb$BidiMirroring.txt$ filtered to general
+category \const{Ps}/\const{Pe} (64 pairs); the quote pairs come from
+\const{Pi}/\const{Pf} entries of the same file (8 pairs) plus the
+standard left/right curly quote pairs U+2018/U+2019 and
+U+201C/U+201D, which are absent from \verb$BidiMirroring.txt$.
+Mismatched closes raise a \except{syntax_error}.  An unmatched open
+likewise raises \except{syntax_error} --- there is no fall-back to a
+standalone solo atom.
 \end{itemlist}
 
 
