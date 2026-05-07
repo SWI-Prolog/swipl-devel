@@ -8122,7 +8122,11 @@ etc.).
     \termitem{end_of_file}{}
 \arg{Char} is -1.
     \termitem{end_of_line}{}
-\arg{Char} ends a line (ASCII: 10..13).
+\arg{Char} ends a line. Covers the seven line-terminator-like
+Pattern_White_Space code points: U+000A (LF), U+000B (VT), U+000C
+(FF), U+000D (CR), U+0085 (NEL), U+2028 (LINE SEPARATOR), and
+U+2029 (PARAGRAPH SEPARATOR). The same set drives \chr{%} comment
+termination at the source-text level (see \secref{unicodesyntax}).
     \termitem{newline}{}
 \arg{Char} is a newline character (10).
     \termitem{period}{}

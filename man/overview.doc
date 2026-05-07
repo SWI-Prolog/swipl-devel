@@ -3363,6 +3363,16 @@ Programs that paste from word processors will occasionally encounter
 NBSP in the wrong place, and reporting it explicitly is preferable to
 silently treating it as a separator.
 
+    \item [Line termination]
+Seven of the Pattern_White_Space code points end a line: U+000A
+(LF), U+000B (VT), U+000C (FF), U+000D (CR), U+0085 (NEL), U+2028
+(LINE SEPARATOR), and U+2029 (PARAGRAPH SEPARATOR). They terminate
+\chr{%} line comments, drive the source-position line counter,
+and act as the \jargon{newline} for backslash-newline continuation
+inside quoted strings (\verb$\<EOL>$ followed by zero or more
+blanks is consumed). The same set is exposed to user code through
+\const{end_of_line} in code_type/2 and char_type/2.
+
     \item [Control and unassigned characters]
 Control and unassigned (C*) characters produce a syntax error if
 encountered outside quoted atoms/strings and outside comments. Quoted
