@@ -154,9 +154,13 @@ test(unmatched_quote_open_is_error, error(syntax_error(_))) :-
     % error (no matching close).
     term_to_atom(_, '«').
 test(quote_pair_is_compound) :-
-    % U+00AB..U+00BB pair: «X» reads as '«»'(X), modelled on '{}'/1.
-    term_to_atom(T, '«hello»'),
-    T = '«»'(hello).
+    % U+00AB..U+00BB pair: «X» reads as '«»'(String), where String
+    % is what "..." produces under the current double_quotes flag.
+    % The contained text is literal, not parsed as a Prolog term.
+    term_to_atom(T, '«hello world»'),
+    T =.. [Functor, Arg],
+    Functor == '«»',
+    text_to_string(Arg, "hello world").
 test(currency_is_atom) :-
     term_to_atom(T, '€'),
     atom(T),
