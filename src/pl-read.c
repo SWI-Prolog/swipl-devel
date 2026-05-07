@@ -80,11 +80,11 @@ static void	  addUTF8Buffer(Buffer b, int c);
 
 #define CharTypeA(c, t) (_PL_char_types[(unsigned)(c)] t)
 #define CharTypeW(c, t, w) \
-	((unsigned)(c) <= 0xff ? CharTypeA(c, t) : (uflagsW(c) & (w)))
+	((unsigned)(c) < 0x80 ? CharTypeA(c, t) : (uflagsW(c) & (w)))
 
 #define PlBlankW(c)	CharTypeW(c, == SP, U_LAYOUT)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
-#define PlIdStartW(c)	((unsigned)c <= 0xff ? \
+#define PlIdStartW(c)	((unsigned)(c) < 0x80 ? \
 				(isLower(c)||isUpper(c)||c=='_') \
 				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c) \
@@ -119,6 +119,11 @@ f_is_prolog_identifier_continue(int c)
 int
 f_is_prolog_symbol(int c)
 { return PlSymbolW(c) != 0;
+}
+
+int
+f_is_prolog_solo(int c)
+{ return PlSoloW(c) != 0;
 }
 
 int
@@ -1633,7 +1638,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  break;
 		}
 		/*FALLTHROUGH*/
-      default:	if ( (unsigned)c <= 0xff )
+      default:	if ( (unsigned)c < 0x80 )
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
@@ -1674,7 +1679,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      addToBuffer(c, _PL_rd);
 		      set_start_line;
 		  }
-		} else			/* > 255 */
+		} else			/* >= 0x80 */
 		{ if ( PlIdStartW(c) )
 		  { set_start_line;
 		    c = raw_read_identifier(c, _PL_rd);
@@ -3162,7 +3167,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
   { bidi_override_error(c, _PL_rd);
     return NULL;
   }
-  if ( c > 0xff )
+  if ( c >= 0x80 )
   { if ( PlIdStartW(c) )
     { if ( PlUpperW(c) )
 	goto upper;

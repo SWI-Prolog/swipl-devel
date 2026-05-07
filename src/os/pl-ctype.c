@@ -1018,7 +1018,17 @@ EndPredDefs
 		 *	PROLOG CHARACTERS	*
 		 *******************************/
 
-const char _PL_char_types[] = {
+/* ASCII (0..127) classification table.
+ *
+ * Code points >= 0x80 are classified through the Unicode flag table
+ * (uflagsW / src/pl-umap.c) instead. The parser macros in src/pl-read.c
+ * and the is*-style macros in pl-ctype.h dispatch on the 0x80 boundary;
+ * the legacy ISO Latin-1 entries that used to live at indices 128..255
+ * have been removed because they duplicated (and occasionally disagreed
+ * with) the Unicode flags in uflags_map[0]. See
+ * doc/pip/Unicode-boundary-inventory.md.
+ */
+const char _PL_char_types[128] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
    CT, CT, CT, CT, CT, CT, CT, CT, CT, SP, SP, SP, SP, SP, CT, CT,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
@@ -1034,19 +1044,7 @@ const char _PL_char_types[] = {
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
    BQ, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, PU, PU, PU, SY, CT,
-			  /* 128-159 (C1 controls) */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
-			  /* 160-255 (G1 graphics) */
-			  /* ISO Latin 1 (=Unicode) is assumed */
-/*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F */
-   SP, SY, SY, SY, SY, SY, SY, SY, SY, SY, LC, SY, SY, SO, SY, SY, /*00AX*/
-   SY, SY, SO, SO, SY, LC, SY, SY, SY, SO, LC, SY, SO, SO, SO, SY, /*00BX*/
-   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, /*00CX*/
-   UC, UC, UC, UC, UC, UC, UC, SY, UC, UC, UC, UC, UC, UC, UC, LC, /*00DX*/
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, /*00EX*/
-   LC, LC, LC, LC, LC, LC, LC, SY, LC, LC, LC, LC, LC, LC, LC, LC  /*00FX*/
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, PU, PU, PU, SY, CT
 };
 
 

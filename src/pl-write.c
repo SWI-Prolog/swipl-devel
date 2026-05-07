@@ -265,7 +265,7 @@ truePrologFlagNoLD(unsigned int flag)
 
 static inline int
 wr_is_symbol(int c, write_options *options)
-{ return ( isSymbol(c) ||
+{ return ( f_is_prolog_symbol(c) ||
 	   (c == '`' &&
 	    options &&
 	    (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
@@ -325,14 +325,20 @@ atomType(atom_t a, write_options *options)
   if ( len == 0 )
     return AT_QUOTE;
 
-  if ( isLower(*s) || (ison(m, M_VARPREFIX) && isAlpha(*s)) )
+  if ( f_is_prolog_atom_start((unsigned char)*s) ||
+       (ison(m, M_VARPREFIX) &&
+	f_is_prolog_var_start((unsigned char)*s) &&
+	*s != '_') )
   { do
     { for( ++s;
-	   --len > 0 && isAlpha(*s) && !code_requires_quoted(*s, fd, flags);
+	   --len > 0 &&
+	     f_is_prolog_identifier_continue((unsigned char)*s) &&
+	     !code_requires_quoted(*s, fd, flags);
 	   s++)
 	;
     } while ( len >= 2 &&
-	      *s == '.' && isAlpha(s[1]) &&
+	      *s == '.' &&
+	      f_is_prolog_identifier_continue((unsigned char)s[1]) &&
 	      truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
 	      (!options || isoff(options, PL_WRT_NODOTINATOM))
 	    );
@@ -361,7 +367,7 @@ atomType(atom_t a, write_options *options)
 
 					/* % should be quoted! */
   if ( len == 1 && *s != '%' )
-  { if ( isSolo(*s) )
+  { if ( f_is_prolog_solo((unsigned char)*s) )
       return AT_SOLO;
   }
 
