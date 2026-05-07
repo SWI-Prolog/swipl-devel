@@ -3354,12 +3354,14 @@ script the denominator must too. The sign, rational separator,
 floating point \chr{.}, and floating point exponent are always ASCII.
 
     \item [White space]
-For code points beyond ISO Latin-1, the layout characters are exactly
-the Unicode \const{Pattern_White_Space} set defined by UAX~\#31:
-U+0009..U+000D, U+0020, U+0085, U+200E, U+200F, U+2028, and U+2029.
-Pattern_White_Space deliberately excludes U+00A0 (NO-BREAK SPACE);
-SWI-Prolog currently keeps treating U+00A0 as whitespace for
-backward compatibility with ISO Latin-1 sources.
+The layout characters are exactly the Unicode
+\const{Pattern_White_Space} set defined by UAX~\#31: U+0009..U+000D,
+U+0020, U+0085, U+200E, U+200F, U+2028, and U+2029. NBSP (U+00A0) is
+deliberately excluded from \const{Pattern_White_Space}; appearing
+outside quoted material it raises a stray-character syntax error.
+Programs that paste from word processors will occasionally encounter
+NBSP in the wrong place, and reporting it explicitly is preferable to
+silently treating it as a separator.
 
     \item [Control and unassigned characters]
 Control and unassigned (C*) characters produce a syntax error if
