@@ -3373,13 +3373,45 @@ inside quoted strings (\verb$\<EOL>$ followed by zero or more
 blanks is consumed). The same set is exposed to user code through
 \const{end_of_line} in code_type/2 and char_type/2.
 
-    \item [Control and unassigned characters]
-Control and unassigned (C*) characters produce a syntax error if
-encountered outside quoted atoms/strings and outside comments. Quoted
-writing (e.g., writeq/1) of an atom or string that contains one of these
-characters causes the atom or string to be quoted and the control or
-unassigned characters to be written using an escape sequence.  See
-\secref{charescapes}.
+    \item [Stray characters in source text]
+At token-start position (where layout is allowed), a code point
+that is not in any of the recognised syntax classes --- layout
+(see above), decimal digit, identifier-start, identifier-continue,
+solo, bracket open or quote open --- raises
+\except{syntax_error(illegal_character)}. This includes the C0
+and C1 control range, unassigned and noncharacter code points,
+surrogates, the \const{Zs} / \const{Zl} / \const{Zp} separator
+classes that are not in \const{Pattern_White_Space} (NBSP, OGHAM
+SPACE MARK, NARROW NO-BREAK SPACE, IDEOGRAPHIC SPACE, ...),
+\const{Cf} format characters that are not in
+\const{Pattern_White_Space} and not in \const{Other_ID_Continue}
+(SOFT HYPHEN, ZERO WIDTH SPACE, ...), enclosing combining marks
+(\const{Me}), and other-number characters (\const{No}, e.g. the
+vulgar fractions and Roman-numeral form U+00BC..U+00BE) that are
+not in the explicit super- or subscript-digit profile.
+
+Non-spacing combining marks (\const{Mn}, \const{Mc}) are likewise
+rejected at token-start position --- they do not start an
+identifier --- but \emph{are} in \const{XID_Continue} so they
+absorb into a preceding identifier (the sequence U+0061 followed
+by U+0300 COMBINING GRAVE reads as a single-token identifier
+two code points long).
+
+    \item [Inside quoted material]
+Inside single-quoted atoms (\verb$'...'$), double-quoted strings
+(\verb$"..."$), back-quoted text (\verb$`...`$), Unicode quote
+pairs (see above), \chr{%} comments, and \verb$/* ... */$ comments,
+\emph{any} Unicode scalar value (U+0000 to U+10FFFF, excluding
+surrogates which UTF-8 cannot encode) is accepted verbatim. The
+escape sequences \verb$\uXXXX$ and \verb$\UXXXXXXXX$
+(\secref{charescapes}) are available for portability and explicit
+clarity, not as a gate. The single exception is the bidirectional
+override / isolate range (U+202A..U+202E and U+2066..U+2069),
+which is rejected as a Trojan-source defense (see
+\prologflag{unicode_atoms}). Quoted writing (e.g.\ writeq/1) of
+an atom or string that contains a control or zero-width code point
+causes the atom or string to be quoted and the offending code points
+to be written using an escape sequence; see \secref{charescapes}.
 
     \item [Other characters]
 The first 128 characters follow the ISO Prolog standard.  In particular,

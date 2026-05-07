@@ -275,6 +275,59 @@ and the bidi marks `U+200E` LRM and `U+200F` RLM — are layout but
 The same set is exposed to user code through
 `code_type(C, end_of_line)` and `char_type(C, end_of_line)`.
 
+#### 4.4.2 Stray characters in source text
+
+In token-start position — i.e. wherever layout is allowed — any
+code point that is **not** in one of the recognised syntax classes
+(layout, decimal, identifier-start, identifier-continue, solo,
+bracket open, quote open) raises `syntax_error(illegal_character)`.
+Concretely, the following are stray:
+
+- C0 / C1 controls, surrogates, and unassigned code points (general
+  category `Cc` / `Cs` / `Cn`).
+- Noncharacter code points (`U+FDD0..U+FDEF`, `U+FFFE`, `U+FFFF`,
+  and the analogous endpoints in higher planes).
+- The `Zs` / `Zl` / `Zp` separator classes that are not in
+  `Pattern_White_Space`: NBSP `U+00A0`, OGHAM SPACE MARK `U+1680`,
+  the various typographic spaces `U+2000..U+200A`, NARROW NO-BREAK
+  SPACE `U+202F`, MEDIUM MATHEMATICAL SPACE `U+205F`, IDEOGRAPHIC
+  SPACE `U+3000`, the line/paragraph separators inside `Zl` / `Zp`
+  not already in Pattern_White_Space, etc.
+- `Cf` format characters not in `Pattern_White_Space` and not in
+  `Other_ID_Continue`: SOFT HYPHEN `U+00AD`, ZERO WIDTH SPACE
+  `U+200B`, the variation selectors, ...
+- Enclosing combining marks (`Me`).
+- `No` "other-number" code points outside the explicit super- /
+  subscript-digit profile (vulgar fractions, Roman numerals,
+  circled / parenthesised digits, ...).
+
+Non-spacing combining marks (`Mn`, `Mc`) are likewise stray at
+token-start position — they cannot start a token — but are in
+`XID_Continue`, so they absorb into a preceding identifier.
+
+#### 4.4.3 Inside quoted material
+
+Inside single-quoted atoms, double-quoted strings, back-quoted
+text, the new Unicode quote pairs (§4.3.2), `%` line comments,
+and `/* ... */` block comments, **any Unicode scalar value** is
+accepted verbatim (the surrogate range `U+D800..U+DFFF` is
+unreachable in well-formed UTF-8 anyway). This matches every
+comparable language — Python, Rust, Swift, Go, JavaScript, Java,
+C++23, Haskell, OCaml, ... — and keeps `atom_codes/2` symmetric
+with the source-text reader: any list of scalars that
+`atom_codes(A, Codes)` will accept must round-trip through
+`writeq(A) ⇒ read_term/2`.
+
+The escape sequences `\uXXXX` and `\UXXXXXXXX` (§4.5) exist for
+portability and explicit clarity, never as the only way to embed
+a code point. The single exception to byte-faithful acceptance is
+the bidirectional override / isolate range (`U+202A..U+202E` and
+`U+2066..U+2069`), which is rejected as a Trojan-source defense
+(CVE-2021-42574). The writer is responsible for force-quoting
+atoms whose content includes zero-width or otherwise visually-
+unstable code points (see §4.11) so that `writeq` round-trips
+faithfully.
+
 ### 4.5 Escape sequences
 
 - **`\uXXXX`** — exactly four hexadecimal digits, denoting a

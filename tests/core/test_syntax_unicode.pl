@@ -44,6 +44,7 @@ test_syntax_unicode :-
                 syntax_unicode_layout,
                 syntax_unicode_eol,
                 syntax_unicode_solo,
+                syntax_unicode_stray,
                 syntax_unicode_numbers,
                 syntax_unicode_version,
                 syntax_unicode_atoms
@@ -170,6 +171,116 @@ test(comment_terminated_by_cr) :-
     T == q.
 
 :- end_tests(syntax_unicode_eol).
+
+
+:- begin_tests(syntax_unicode_stray).
+
+% Code points that fall outside the recognised syntax classes
+% (layout, decimal, identifier, solo, bracket, quote) raise
+% syntax_error(illegal_character) when they appear in source-text
+% token-start position. Inside quoted atoms / strings / comments
+% the same code points are accepted verbatim — only bidi-override
+% code points are rejected there (CVE-2021-42574 mitigation).
+
+% --- Helpers -----------------------------------------------------------
+
+src_alone(Code, Src) :-                  % "<X>."
+    atom_codes(Src, [Code, 0'.]).
+src_after_layout(Code, Src) :-           % "a <X>."
+    atom_codes(Src, [0'a, 0' , Code, 0'.]).
+src_after_id(Code, Src) :-               % "a<X>."
+    atom_codes(Src, [0'a, Code, 0'.]).
+
+stray_alone(Code) :-
+    src_alone(Code, S),
+    catch(read_term_from_atom(S, _, []),
+          error(syntax_error(illegal_character), _),
+          true).
+stray_after_layout(Code) :-
+    src_after_layout(Code, S),
+    catch(read_term_from_atom(S, _, []),
+          error(syntax_error(illegal_character), _),
+          true).
+stray_after_id(Code) :-
+    src_after_id(Code, S),
+    catch(read_term_from_atom(S, _, []),
+          error(syntax_error(illegal_character), _),
+          true).
+
+% Round-trip via writeq+term_string: non-syntax characters survive
+% inside a single-quoted atom.
+quoted_round_trip(Code) :-
+    atom_codes(A0, [0'x, Code, 0'y]),
+    with_output_to(string(S), writeq(A0)),
+    term_string(A1, S),
+    A0 == A1.
+
+% --- Cf format outside Pattern_White_Space -----------------------------
+
+test(stray_shy_alone)         :- stray_alone(0x00AD).         % SOFT HYPHEN
+test(stray_shy_after_layout)  :- stray_after_layout(0x00AD).
+test(stray_shy_after_id)      :- stray_after_id(0x00AD).
+test(stray_zwsp_alone)        :- stray_alone(0x200B).         % ZERO WIDTH SPACE
+test(stray_zwsp_after_layout) :- stray_after_layout(0x200B).
+
+% ZWNJ and ZWJ are in XID_Continue per UAX #31 (Other_ID_Continue).
+% They are stray at token-start but are absorbed when following an
+% id_start.
+test(zwnj_token_start_rejected)        :- stray_alone(0x200C).
+test(zwnj_after_layout_rejected)       :- stray_after_layout(0x200C).
+test(zwnj_absorbed_into_identifier) :-
+    src_after_id(0x200C, S),
+    read_term_from_atom(S, T, []),
+    atom(T),
+    atom_codes(T, [0'a, 0x200C]).
+
+% --- Zs / Zl / Zp outside Pattern_White_Space --------------------------
+
+test(stray_nbsp_alone)         :- stray_alone(0x00A0).         % NBSP
+test(stray_nbsp_after_layout)  :- stray_after_layout(0x00A0).
+test(stray_nbsp_after_id)      :- stray_after_id(0x00A0).
+test(stray_ogham_space)        :- stray_alone(0x1680).
+test(stray_nnbsp)              :- stray_alone(0x202F).
+test(stray_mmsp)               :- stray_alone(0x205F).
+test(stray_ideographic_space)  :- stray_alone(0x3000).
+
+% --- Cn unassigned and noncharacters -----------------------------------
+
+test(stray_unassigned)         :- stray_alone(0x0378).         % unassigned
+test(stray_noncharacter)       :- stray_alone(0xFFFE).
+test(stray_noncharacter_high)  :- stray_alone(0x10FFFE).
+
+% --- No (numbers, not Nd) ----------------------------------------------
+
+test(stray_vulgar_quarter)     :- stray_alone(0x00BC).         % ¼
+test(stray_vulgar_half)        :- stray_alone(0x00BD).
+test(stray_vulgar_three_quarters) :- stray_alone(0x00BE).
+
+% --- Me enclosing combining marks --------------------------------------
+
+test(stray_enclosing_mark)     :- stray_alone(0x0488).         % Me
+
+% --- Mn non-spacing combining: stray at token start -------------------
+
+test(stray_mn_alone)           :- stray_alone(0x0300).
+test(stray_mn_after_layout)    :- stray_after_layout(0x0300).
+test(mn_absorbed_into_identifier) :-
+    src_after_id(0x0300, S),
+    read_term_from_atom(S, T, []),
+    atom(T).
+
+% --- Inside quoted material: anything goes (modulo bidi overrides) -----
+
+test(quoted_round_trip_nbsp)        :- quoted_round_trip(0x00A0).
+test(quoted_round_trip_shy)         :- quoted_round_trip(0x00AD).
+test(quoted_round_trip_zwsp)        :- quoted_round_trip(0x200B).
+test(quoted_round_trip_unassigned)  :- quoted_round_trip(0x0378).
+test(quoted_round_trip_noncharacter):- quoted_round_trip(0xFFFE).
+test(quoted_round_trip_vulgar_half) :- quoted_round_trip(0x00BD).
+test(quoted_round_trip_combining)   :- quoted_round_trip(0x0300).
+test(quoted_round_trip_ideographic_space) :- quoted_round_trip(0x3000).
+
+:- end_tests(syntax_unicode_stray).
 
 
 :- begin_tests(syntax_unicode_solo).
