@@ -56,6 +56,7 @@ int		f_is_prolog_var_start(int c);
 int		f_is_prolog_atom_start(int c);
 int		f_is_prolog_identifier_continue(int c);
 int		f_is_prolog_symbol(int c);
+int		f_is_prolog_solo(int c);
 int		f_is_decimal(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
