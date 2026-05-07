@@ -130,6 +130,31 @@ pl_cat_is_solo(u_category cat)
  * in this class return -1 for false and a code point otherwise.
  */
 
+/* True for the seven line-terminator-like Pattern_White_Space code
+ * points: LF, VT, FF, CR, NEL (U+0085), LINE SEPARATOR (U+2028),
+ * PARAGRAPH SEPARATOR (U+2029).  Used by raw_read's `%`-comment
+ * scanner, the line-counter, the escape-sequence handler, and the
+ * end_of_line entry of code_type/2 (via pl-ctype.c).  Returns int
+ * (not bool) so it can fill a function-pointer slot of type
+ * `int (*)(int)` in os/pl-ctype.c.
+ */
+
+int
+is_eol_char(int c)
+{ switch ( c )
+  { case '\n':
+    case '\v':
+    case '\f':
+    case '\r':
+    case 0x0085:
+    case 0x2028:
+    case 0x2029:
+      return true;
+    default:
+      return false;
+  }
+}
+
 int
 f_is_prolog_var_start(int c)
 { return (PlUpperW(c) || c == '_');
@@ -894,7 +919,7 @@ ptr_to_location(const unsigned char *here, source_location *pos, ReadData _PL_rd
   while( (s = utf8_get_uchar(s, &c)) < here )
   { pos->position.charno++;
 
-    if ( c == '\n' )
+    if ( is_eol_char(c) )
     { pos->position.lineno++;
       ll = s+1;
     }
@@ -1252,7 +1277,7 @@ getchr__(ReadData _PL_rd)
 #define getchrq() Sgetcode(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
-			       (c == '\n' || !isBlank(rb.here[-1])) ) \
+			       (is_eol_char(c) || !isBlank(rb.here[-1])) ) \
 			   addToBuffer(c, _PL_rd); \
 			}
 #define set_start_line { if ( !something_read ) \
@@ -1354,7 +1379,7 @@ raw_read_quoted(int open, int close, ReadData _PL_rd)
 	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
 	  { base = 8;
 	    goto xdigits;
-	  } else if ( c == '\n' )	/* \<newline> */
+	  } else if ( is_eol_char(c) )	/* \<newline> */
 	  { c = getchrq();
 	    if ( c == EOF )
 	      goto eofinstr;
@@ -1537,7 +1562,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  if ( something_read )
 		  { addToBuffer(' ', _PL_rd);	/* positions */
 		    addToBuffer(' ', _PL_rd);
-		    addToBuffer(last == '\n' ? last : ' ', _PL_rd);
+		    addToBuffer(is_eol_char(last) ? last : ' ', _PL_rd);
 		  }
 
 		  for(;;)
@@ -1580,7 +1605,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 			break;
 		    }
 		    if ( something_read )
-		      addToBuffer(c == '\n' ? c : ' ', _PL_rd);
+		      addToBuffer(is_eol_char(c) ? c : ' ', _PL_rd);
 		    last = c;
 		  }
 		} else
@@ -1614,7 +1639,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  addUTF8Buffer(cbuf, '%');
 
 		  for(;;)
-		  { while((c=getchr()) != EOF && c != '\n')
+		  { while((c=getchr()) != EOF && !is_eol_char(c))
 		    { if ( is_bidi_override(c) )
 		      { discardBuffer(cbuf);
 			return bidi_override_error(c, _PL_rd);
@@ -1623,7 +1648,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      if ( something_read )		/* record positions */
 			addToBuffer(' ', _PL_rd);
 		    }
-		    if ( c == '\n' )
+		    if ( is_eol_char(c) )
 		    { int c2 = Speekcode(rb.stream);
 
 		      if ( c2 == '%' )
@@ -1646,7 +1671,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  }
 		  discardBuffer(cbuf);
 		} else
-		{ while((c=getchr()) != EOF && c != '\n')
+		{ while((c=getchr()) != EOF && !is_eol_char(c))
 		  { if ( is_bidi_override(c) )
 		      return bidi_override_error(c, _PL_rd);
 		    if ( something_read )		/* record positions */
@@ -2682,6 +2707,9 @@ again:
       }
     }
     /*FALLTHROUGH*/
+    case 0x0085:			/* NEL */
+    case 0x2028:			/* LINE SEPARATOR */
+    case 0x2029:			/* PARAGRAPH SEPARATOR */
     case '\n':				/* \LF<blank>* */
       if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
       { if ( !_PL_rd->strictness )
@@ -2690,7 +2718,7 @@ again:
 	  e = in;
 	  for( ; *in; in=e )
 	  { e = utf8_get_uchar(in, &c);
-	    if ( c == '\n' || !PlBlankW(c) )
+	    if ( is_eol_char(c) || !PlBlankW(c) )
 	    { if ( skipped )
 	      { term_t ex;
 		unsigned char *old_start = last_token_start;

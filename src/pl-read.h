@@ -62,6 +62,7 @@ int		f_paren_close(int c);
 int		f_paren_open(int c);
 int		f_quote_close(int c);
 int		f_quote_open(int c);
+int		is_eol_char(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
 bool		atom_varnameW(const pl_wchar_t *s, size_t len);

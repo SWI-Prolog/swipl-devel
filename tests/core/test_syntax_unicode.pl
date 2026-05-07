@@ -42,6 +42,7 @@
 test_syntax_unicode :-
     run_tests([ syntax_unicode_identifiers,
                 syntax_unicode_layout,
+                syntax_unicode_eol,
                 syntax_unicode_solo,
                 syntax_unicode_numbers,
                 syntax_unicode_version,
@@ -121,18 +122,54 @@ test(lrm_is_whitespace) :-
     T == a+b.
 
 % --- NBSP is NOT in Pattern_White_Space --------------------------------
-%
-% U+00A0 NO-BREAK SPACE is deliberately not in Pattern_White_Space.  The
-% high-bit Unicode classification respects this, but the legacy
-% ISO Latin-1 table in src/os/pl-ctype.c still treats U+00A0 as
-% whitespace for c =< 0xff.  This test is parked until the Latin-1
-% table is brought into alignment.
-%
-%   test(nbsp_is_not_layout, [error(syntax_error(_))]) :-
-%       atom_codes(S, [0'a, 0x00A0, 0'+, 0x00A0, 0'b]),
-%       term_to_atom(_, S).
+
+test(nbsp_is_not_layout, [error(syntax_error(_))]) :-
+    % U+00A0 NO-BREAK SPACE is deliberately not in Pattern_White_Space;
+    % outside quoted material it raises a stray-character error.
+    atom_codes(S, [0'a, 0x00A0, 0'+, 0x00A0, 0'b]),
+    term_to_atom(_, S).
 
 :- end_tests(syntax_unicode_layout).
+
+
+:- begin_tests(syntax_unicode_eol).
+
+% --- code_type/2 end_of_line covers the seven line-terminator-like
+%     Pattern_White_Space code points: LF, VT, FF, CR, NEL (U+0085),
+%     LS (U+2028), PS (U+2029).
+
+test(end_of_line_lf)  :- code_type(0x000A, end_of_line).
+test(end_of_line_vt)  :- code_type(0x000B, end_of_line).
+test(end_of_line_ff)  :- code_type(0x000C, end_of_line).
+test(end_of_line_cr)  :- code_type(0x000D, end_of_line).
+test(end_of_line_nel) :- code_type(0x0085, end_of_line).
+test(end_of_line_ls)  :- code_type(0x2028, end_of_line).
+test(end_of_line_ps)  :- code_type(0x2029, end_of_line).
+
+test(end_of_line_space_no, fail)  :- code_type(0x0020, end_of_line).
+test(end_of_line_nbsp_no, fail)   :- code_type(0x00A0, end_of_line).
+
+% --- %-comments terminate on the same set ------------------------------
+
+test(comment_terminated_by_nel) :-
+    atom_codes(S, [0'%, 0' , 0'c, 0'o, 0'm, 0'm, 0'e, 0'n, 0't,
+                   0x0085, 0'r, 0'e, 0'a, 0'l, 0'.]),
+    term_to_atom(T, S),
+    T == real.
+test(comment_terminated_by_ls) :-
+    atom_codes(S, [0'%, 0' , 0'x, 0x2028, 0'y, 0'.]),
+    term_to_atom(T, S),
+    T == y.
+test(comment_terminated_by_ps) :-
+    atom_codes(S, [0'%, 0' , 0'x, 0x2029, 0'z, 0'.]),
+    term_to_atom(T, S),
+    T == z.
+test(comment_terminated_by_cr) :-
+    atom_codes(S, [0'%, 0' , 0'x, 0'\r, 0'q, 0'.]),
+    term_to_atom(T, S),
+    T == q.
+
+:- end_tests(syntax_unicode_eol).
 
 
 :- begin_tests(syntax_unicode_solo).

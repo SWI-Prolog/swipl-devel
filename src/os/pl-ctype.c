@@ -100,11 +100,6 @@ iseof(int chr)
 }
 
 static int
-iseol(int chr)
-{ return chr >= 10 && chr <= 13;
-}
-
-static int
 isnl(int chr)
 { return chr == '\n';
 }
@@ -302,7 +297,7 @@ static const char_type char_types[] =
   { ATOM_punct,			     fiswpunct },
   { ATOM_space,			     fiswspace },
   { ATOM_end_of_file,		     iseof },
-  { ATOM_end_of_line,		     iseol },
+  { ATOM_end_of_line,		     is_eol_char },
   { ATOM_newline,		     isnl },
   { ATOM_period,		     isperiod },
   { ATOM_quote,			     isquote },
