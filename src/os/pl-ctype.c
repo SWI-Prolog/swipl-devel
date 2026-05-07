@@ -188,33 +188,22 @@ flower(int chr)
   return iswupper(chr) ? (int)towlower(chr) : -1;
 }
 
+/* paren/1 and quote/1 dispatch through the f_paren_close / f_paren_open
+ * and f_quote_close / f_quote_open helpers exported by pl-read.c, which
+ * back paren(Close) with the full Unicode Ps/Pe bracket set
+ * (pl_pair_table in src/pl-umap.c) and quote(Close) with both the
+ * ASCII quotes ('"`) and the Unicode Pi/Pf quote pairs.
+ */
+
 static int
 fparen(int chr)
-{ switch(chr)
-  { case '(':
-      return ')';
-    case '{':
-      return '}';
-    case '[':
-      return ']';
-    default:
-      return -1;
-  }
+{ return f_paren_close(chr);
 }
 
 
 static int
 rparen(int chr)
-{ switch(chr)
-  { case ')':
-      return '(';
-    case '}':
-      return '{';
-    case ']':
-      return '[';
-    default:
-      return -1;
-  }
+{ return f_paren_open(chr);
 }
 
 
@@ -322,6 +311,7 @@ static const char_type char_types[] =
   { ATOM_to_lower,		     ftoupper,	ftolower, 1, CTX_CHAR },
   { ATOM_to_upper,		     ftolower,	ftoupper, 1, CTX_CHAR },
   { ATOM_paren,			     fparen,	rparen,   1, CTX_CHAR },
+  { ATOM_quote,			     f_quote_close, f_quote_open, 1, CTX_CHAR },
   { ATOM_digit,			     fdigit,	rdigit,   1, CTX_CODE },
   { ATOM_xdigit,		     fxdigit,	rxdigit,  1, CTX_CODE },
   { ATOM_width,		             fwidth,	NULL,     1, CTX_CODE },

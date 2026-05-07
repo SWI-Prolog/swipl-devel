@@ -123,6 +123,62 @@ f_is_prolog_solo(int c)
 { return PlSoloW(c) != 0;
 }
 
+/* Pair-table accessors used by char_type/2 and code_type/2 for the
+ * paren(Close) and quote(Close) categories.  ASCII quotes (' " `)
+ * are open == close by convention.  Unicode bracket and quote pairs
+ * come from pl_pair_table (see src/pl-umap.c).  Each helper returns
+ * the matching delimiter or -1 when `chr` is not a member of the
+ * category.
+ */
+
+int
+f_paren_close(int chr)
+{ if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
+  { int is_open;
+    int close = pl_pair_lookup(chr, &is_open);
+    if ( close && is_open )
+      return close;
+  }
+  return -1;
+}
+
+int
+f_paren_open(int chr)
+{ if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
+  { int is_open;
+    int open = pl_pair_lookup(chr, &is_open);
+    if ( open && !is_open )
+      return open;
+  }
+  return -1;
+}
+
+int
+f_quote_close(int chr)
+{ if ( chr == '\'' || chr == '"' || chr == '`' )
+    return chr;
+  if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
+  { int is_open;
+    int close = pl_pair_lookup(chr, &is_open);
+    if ( close && is_open )
+      return close;
+  }
+  return -1;
+}
+
+int
+f_quote_open(int chr)
+{ if ( chr == '\'' || chr == '"' || chr == '`' )
+    return chr;
+  if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
+  { int is_open;
+    int open = pl_pair_lookup(chr, &is_open);
+    if ( open && !is_open )
+      return open;
+  }
+  return -1;
+}
+
 int
 f_is_decimal(int c)
 { return PlDecimalW(c) != 0;
