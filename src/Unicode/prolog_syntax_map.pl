@@ -48,7 +48,8 @@
               [unicode_derived_core_property/2,
                id_superscript/1,
                id_subscript/1,
-               white_space/1]).
+               white_space/1,
+               east_asian_width/2]).
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
@@ -462,18 +463,72 @@ char(CP, Value, Lang) :-
 %   Byte stored in the per-page uflags table. Bit layout:
 %
 %     bits 0..3  category enum (see category_index/2)
-%     bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)
+%     bits 4..5  wcwidth+1 (0=invalid -1, 1=zero, 2=normal, 3=wide)
 %     bits 6..7  reserved
 %
-%   The wcwidth bits are populated as 0 (invalid) for now. Stage 5
-%   replaces this with values derived from EastAsianWidth.txt and
-%   the general_category property; PL_wcwidth() continues to use
-%   the bundled mk_wcwidth tables until that lands.
+%   Width data is sourced from the East_Asian_Width property
+%   (UAX #11) and the general_category property at table-build
+%   time. The runtime PL_wcwidth() reads bits 4..5 directly.
 
 code_byte(Lang, Code, Byte) :-
     code_class(Lang, Code, Class),
     category_index(Class, Cat),
-    Byte is Cat.
+    code_width(Code, Width),
+    encode_width(Width, WBits),
+    Byte is Cat \/ (WBits << 4).
+
+%!  code_width(+Code, -Width) is det.
+%
+%   wcwidth-style display width of Code:
+%
+%     -1  non-printable (control / DEL / C1 control)
+%      0  combining mark, format / zero-width invisible char
+%      1  normal printable
+%      2  wide (East Asian W or F, or default-W in CJK ranges)
+%
+%   The classification matches Markus Kuhn's mk_wcwidth() behavior
+%   updated to current Unicode data: combining is general category
+%   Mn/Me + Cf (with U+00AD SOFT HYPHEN as the documented exception
+%   that stays width 1); Hangul Jamo medial/final consonants
+%   (U+1160..U+11FF) and U+200B ZERO WIDTH SPACE are zero; East Asian
+%   Wide / Fullwidth → 2.
+
+code_width(0,      0) :- !.                           % NUL
+code_width(Code,  -1) :-                              % C0 / C1 controls
+    ( Code < 32
+    ; Code >= 0x7F, Code < 0xA0
+    ),
+    !.
+code_width(0x00AD, 1) :- !.                           % SOFT HYPHEN exception
+code_width(Code,   0) :-                              % Hangul Jamo medial/final
+    Code >= 0x1160, Code =< 0x11FF, !.
+code_width(0x200B, 0) :- !.                           % ZERO WIDTH SPACE
+code_width(Code,   0) :-                              % combining + format
+    unicode_property(Code, general_category(Cat)),
+    zero_width_cat(Cat),
+    !.
+code_width(Code,   2) :-                              % East Asian Wide / Fullwidth
+    east_asian_width(Code, EAW),
+    wide_eaw(EAW),
+    !.
+code_width(_,      1).                                % default
+
+zero_width_cat('Mn').
+zero_width_cat('Me').
+zero_width_cat('Cf').
+
+wide_eaw(w).
+wide_eaw(f).
+
+%!  encode_width(+Width, -Bits) is det.
+%
+%   Pack a wcwidth value into 2 bits: 0=invalid, 1=zero, 2=normal,
+%   3=wide. PL_wcwidth() reverses this with `(bits - 1)`.
+
+encode_width(-1, 0).
+encode_width( 0, 1).
+encode_width( 1, 2).
+encode_width( 2, 3).
 
 %!  code_class(+Lang, +Code, -Class) is det.
 %

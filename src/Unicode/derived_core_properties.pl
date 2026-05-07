@@ -38,7 +38,8 @@
             unicode_property/3,                 % +File, ?Code, ?Prop
             id_superscript/1,
             id_subscript/1,
-            white_space/1                       % ?Code
+            white_space/1,                      % ?Code
+            east_asian_width/2                  % +Code, -EAW
           ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2, numlist/3]).
@@ -227,4 +228,37 @@ id_subscript(0x2086).
 id_subscript(0x2087).
 id_subscript(0x2088).
 id_subscript(0x2089).
+
+
+                /*******************************
+                *       EAST ASIAN WIDTH       *
+                *******************************/
+
+%!  east_asian_width(+Code, -EAW) is det.
+%
+%   EAW is the East_Asian_Width property of Code (UAX #11), as one
+%   of the lowercase atoms `w`, `f`, `h`, `n`, `na`, `a`. Code points
+%   not listed in EastAsianWidth.txt default to `n` except for the
+%   CJK Ideograph blocks and the unallocated parts of Planes 2 and 3,
+%   which default to `w` per the file header.
+
+east_asian_width(Code, EAW) :-
+    absolute_file_name(unicode('EastAsianWidth.txt'),
+                       File, [access(read)]),
+    (   unicode_property(File, Code, EAW0)
+    ->  EAW = EAW0
+    ;   default_east_asian_width(Code, EAW)
+    ).
+
+default_east_asian_width(Code, w) :-
+    cjk_default_wide(Lo, Hi),
+    Code >= Lo, Code =< Hi,
+    !.
+default_east_asian_width(_, n).
+
+cjk_default_wide(0x3400,  0x4DBF).         % CJK Unified Ideographs Ext A
+cjk_default_wide(0x4E00,  0x9FFF).         % CJK Unified Ideographs
+cjk_default_wide(0xF900,  0xFAFF).         % CJK Compatibility Ideographs
+cjk_default_wide(0x20000, 0x2FFFD).        % Plane 2
+cjk_default_wide(0x30000, 0x3FFFD).        % Plane 3
 

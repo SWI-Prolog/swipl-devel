@@ -173,6 +173,25 @@ PL_is_layout(int chr)
 { return (uflagsW(chr) & U_LAYOUT) != 0;
 }
 
+/* Display width of a Unicode code point, in terminal columns.
+ * Returns the same values as POSIX wcwidth():
+ *
+ *   -1  non-printable (control / DEL / C1 control / unassigned cell)
+ *    0  combining mark, format / zero-width
+ *    1  normal printable
+ *    2  wide (East Asian W or F)
+ *
+ * The value is read from bits 4..5 of the per-code-point byte in
+ * uflags_map (see src/pl-umap.c). Sourced from EastAsianWidth.txt
+ * and the general_category property at table-build time, so it is
+ * locale-independent and Unicode-version pinned.
+ */
+
+int
+PL_wcwidth(int chr)
+{ return ((int)((uflagsRaw(chr) >> 4) & 0x3)) - 1;
+}
+
 int
 decimal_weight(int code)
 { if ( code >= '0' && code <= '9' )

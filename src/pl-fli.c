@@ -1014,15 +1014,11 @@ PL_utf8_strlen(const char *s, size_t len)
 }
 
 
-/* Display width of a Unicode code point.  Always uses Markus Kuhn's
- * mk_wcwidth() so the answer is locale-independent and identical
- * across platforms.
+/* PL_wcwidth() lives in pl-read.c so it can read the per-code-point
+ * width slot directly out of uflags_map (see src/pl-umap.c). The
+ * result is locale-independent and pinned to the Unicode version
+ * reported by current_prolog_flag(unicode_syntax_version, _).
  */
-
-int
-PL_wcwidth(int chr)
-{ return mk_wcwidth((uchar_t)chr);
-}
 
 
 		 /*******************************
