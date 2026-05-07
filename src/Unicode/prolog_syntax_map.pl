@@ -49,7 +49,8 @@
                id_superscript/1,
                id_subscript/1,
                white_space/1,
-               east_asian_width/2]).
+               east_asian_width/2,
+               bidi_mirror/2]).
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
@@ -189,7 +190,8 @@ write_sort_map(Out, Options) :-
            write_codepage(Out, CP, Map, Options)),
     write_map(Out, Tables, Options),
     write_footer(Out, Options),
-    write_decimal_bases(Out, Options).
+    write_decimal_bases(Out, Options),
+    write_pair_table(Out, Options).
 
 write_codepage(Out, CP, Map, Options) :-
     option(lang(javascript), Options),
@@ -557,6 +559,10 @@ priority_class(_, Code, id_continue) :-
 priority_class(javascript, Code, symbol) :-
     Code < 256,
     code_type(Code, prolog_symbol).
+priority_class(_, Code, bracket) :-
+    is_bracket_cat(Code).
+priority_class(_, Code, quote) :-
+    is_quote_cat(Code).
 priority_class(_, Code, solo) :-
     is_solo_cat(Code).
 priority_class(_, Code, other) :-
@@ -572,6 +578,122 @@ is_id_continue(Code) :-
 is_solo_cat(Code) :-
     unicode_property(Code, general_category(Cat)),
     solo_cat(Cat).
+
+is_bracket_cat(Code) :-
+    unicode_property(Code, general_category(Cat)),
+    ( Cat == 'Ps' ; Cat == 'Pe' ).
+
+is_quote_cat(Code) :-
+    unicode_property(Code, general_category(Cat)),
+    ( Cat == 'Pi' ; Cat == 'Pf' ).
+
+%!  bracket_pair(?Open, ?Close) is nondet.
+%
+%   Open and Close form a Ps↔Pe bracket pair, derived from
+%   Unicode BidiMirroring.txt and filtered to general_category
+%   Ps (open) / Pe (close).
+
+bracket_pair(Open, Close) :-
+    bidi_mirror(Open, Close),
+    unicode_property(Open, general_category('Ps')),
+    unicode_property(Close, general_category('Pe')).
+
+%!  quote_pair(?Open, ?Close) is nondet.
+%
+%   Open and Close form a Pi↔Pf quote pair. Pi/Pf pairing is
+%   script-conventional rather than algorithmic; the Bidi
+%   mirroring data covers the angled quotation marks but not the
+%   asymmetric curly forms, so the standard curly pairs are
+%   curated below.
+
+quote_pair(Open, Close) :-
+    bidi_mirror(Open, Close),
+    unicode_property(Open, general_category('Pi')),
+    unicode_property(Close, general_category('Pf')).
+quote_pair(Open, Close) :-
+    quote_pair_curated(Open, Close).
+
+quote_pair_curated(0x2018, 0x2019).        % LEFT/RIGHT SINGLE QUOTATION MARK ' '
+quote_pair_curated(0x201C, 0x201D).        % LEFT/RIGHT DOUBLE QUOTATION MARK " "
+
+
+                 /*******************************
+                 *         PAIR TABLE           *
+                 *******************************/
+
+%!  pair_entries(-Entries) is det.
+%
+%   Entries is a sorted list of pair_entry/3 terms — one per code
+%   point that participates in a bracket or quote pair, both as
+%   open and close. Used to emit the C pair_table[] in pl-umap.c
+%   for binary-search lookup of the matching delimiter.
+
+pair_entries(Entries) :-
+    findall(pair_entry(Code, Mate, IsOpen),
+            ( pair(Open, Close),
+              ( Code = Open,  Mate = Close, IsOpen = 1
+              ; Code = Close, Mate = Open,  IsOpen = 0
+              )
+            ),
+            Es0),
+    sort(Es0, Entries).
+
+pair(Open, Close) :- bracket_pair(Open, Close).
+pair(Open, Close) :- quote_pair(Open, Close).
+
+write_pair_table(Out, Options) :-
+    option(lang(javascript), Options),
+    !,
+    %% JS path: nothing for now (Stage 6 reader is C-only).
+    true.
+write_pair_table(Out, _Options) :-
+    pair_entries(Entries),
+    length(Entries, N),
+    format(Out, '#define PL_PAIR_TABLE_SIZE ~d~n', [N]),
+    format(Out,
+           'typedef struct {~n  \c
+              int code;~n  \c
+              int mate;~n  \c
+              int is_open;~n\c
+            } pl_pair_entry;~n~n', []),
+    format(Out,
+           'static const pl_pair_entry pl_pair_table[PL_PAIR_TABLE_SIZE] =~n\c
+            { ', []),
+    write_pair_entries(Entries, Out, 0),
+    format(Out, '~N};~n~n', []),
+    format(Out,
+           '/* Binary-search the pair table for `code`.  Returns the matching\n\c
+                delimiter (open ↔ close) or 0 if `code` is not a paired\n\c
+                bracket / quote.  `*is_open` (if non-NULL) gets 1 when `code`\n\c
+                is the open side, 0 when it is the close.\n\c
+             */~n\c
+            static int~n\c
+            pl_pair_lookup(int code, int *is_open)~n\c
+            { int lo = 0, hi = PL_PAIR_TABLE_SIZE - 1;~n\c
+              while ( lo <= hi )~n\c
+              { int mid = (lo + hi) / 2;~n\c
+                int c = pl_pair_table[mid].code;~n\c
+                if ( code == c )~n\c
+                { if ( is_open ) *is_open = pl_pair_table[mid].is_open;~n  \c
+                    return pl_pair_table[mid].mate;~n\c
+                }~n\c
+                if ( code < c ) hi = mid - 1; else lo = mid + 1;~n\c
+              }~n\c
+              return 0;~n\c
+            }~n~n', []).
+
+write_pair_entries([], _, _).
+write_pair_entries([pair_entry(Code, Mate, IsOpen)|T], Out, I) :-
+    (   I == 0
+    ->  true
+    ;   0 =:= I mod 4
+    ->  format(Out, ',~n  ', [])
+    ;   format(Out, ', ', [])
+    ),
+    format(Out, '{ 0x~|~`0t~16r~6+, 0x~|~`0t~16r~6+, ~w }',
+           [Code, Mate, IsOpen]),
+    I2 is I + 1,
+    write_pair_entries(T, Out, I2).
 
 %!  category_index(?Class, ?Index) is det.
 %

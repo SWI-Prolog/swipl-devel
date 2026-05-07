@@ -39,7 +39,8 @@
             id_superscript/1,
             id_subscript/1,
             white_space/1,                      % ?Code
-            east_asian_width/2                  % +Code, -EAW
+            east_asian_width/2,                 % +Code, -EAW
+            bidi_mirror/2                       % ?Code, ?Mirror
           ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2, numlist/3]).
@@ -261,4 +262,49 @@ cjk_default_wide(0x4E00,  0x9FFF).         % CJK Unified Ideographs
 cjk_default_wide(0xF900,  0xFAFF).         % CJK Compatibility Ideographs
 cjk_default_wide(0x20000, 0x2FFFD).        % Plane 2
 cjk_default_wide(0x30000, 0x3FFFD).        % Plane 3
+
+
+                /*******************************
+                *        BIDI MIRRORING        *
+                *******************************/
+
+%!  bidi_mirror(?Code, ?Mirror) is nondet.
+%
+%   Mirror is the canonical Bidi mirror of Code per BidiMirroring.txt.
+%   Used to derive bracket-pair tables (Ps↔Pe, Pi↔Pf) for the syntax
+%   classifier.
+
+:- dynamic
+    bidi_mirror_cache/2,
+    bidi_mirror_loaded/0.
+
+bidi_mirror(Code, Mirror) :-
+    ensure_bidi_mirror_loaded,
+    bidi_mirror_cache(Code, Mirror).
+
+ensure_bidi_mirror_loaded :-
+    bidi_mirror_loaded, !.
+ensure_bidi_mirror_loaded :-
+    absolute_file_name(unicode('BidiMirroring.txt'),
+                       File, [access(read)]),
+    setup_call_cleanup(
+        open(File, read, In),
+        load_bidi_mirror(In),
+        close(In)),
+    assertz(bidi_mirror_loaded).
+
+load_bidi_mirror(In) :-
+    read_line_to_codes(In, Line),
+    (   Line == end_of_file
+    ->  true
+    ;   ignore(parse_bidi_line(Line)),
+        load_bidi_mirror(In)
+    ).
+
+parse_bidi_line(Line) :-
+    phrase(bidi_line(Code, Mirror), Line),
+    assertz(bidi_mirror_cache(Code, Mirror)).
+
+bidi_line(Code, Mirror) -->
+    ucc(Code), ws, ";", ws, ucc(Mirror), ws, "#", skip_rest.
 

@@ -1,0 +1,1 @@
+/home/jan/3rdparty/Unicode-17.0/BidiMirroring.txt

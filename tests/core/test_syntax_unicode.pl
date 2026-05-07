@@ -149,11 +149,14 @@ test(double_le_does_not_glue, error(syntax_error(_))) :-
     % each is a solo atom; without an operator declaration the
     % sequence is a syntax error.
     term_to_atom(_, '≤≤').
-test(left_quote_is_atom) :-
-    % U+00AB « (Pi).  Solo.
-    term_to_atom(T, '«'),
-    atom(T),
-    atom_length(T, 1).
+test(unmatched_quote_open_is_error, error(syntax_error(_))) :-
+    % U+00AB « (Pi) is a paired delimiter; standalone is a syntax
+    % error (no matching close).
+    term_to_atom(_, '«').
+test(quote_pair_is_compound) :-
+    % U+00AB..U+00BB pair: «X» reads as '«»'(X), modelled on '{}'/1.
+    term_to_atom(T, '«hello»'),
+    T = '«»'(hello).
 test(currency_is_atom) :-
     term_to_atom(T, '€'),
     atom(T),
