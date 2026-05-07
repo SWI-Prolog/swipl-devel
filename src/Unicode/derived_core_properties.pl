@@ -176,7 +176,18 @@ skip_rest(_, []).
 
 %!  white_space(?Code)
 %
-%   Official Unicode table for white space for programming languages.
+%   Pattern_White_Space (UAX #31 R3a): the immutable, deliberately
+%   small set of white space code points recommended for programming
+%   language source. The 11 code points listed below are byte-identical
+%   to the Unicode `Pattern_White_Space` property.
+%
+%   Note that this set deliberately *excludes* U+00A0 (NO-BREAK SPACE)
+%   and the broader `White_Space` property (en/em spaces, U+1680,
+%   U+202F, U+205F, U+3000, ...). Programs that paste from word
+%   processors will occasionally encounter NBSP in the wrong place;
+%   reporting it as a stray character is the right behaviour.
+%
+%   See also: \secref{unicodesyntax} in the manual.
 
 white_space(0x0009).
 white_space(0x000A).
