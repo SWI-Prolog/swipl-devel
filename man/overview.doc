@@ -3344,14 +3344,14 @@ not have the notion of character case; in such languages variables
 
     \item [Numbers]
 
-Decimal number characters (Nd) are accepted to form numbers, regardless
-of the Unicode block in which they appear. Currently this is supported
+In source code (read_term/2), numeric literals use ASCII digits
+\chr{0}--\chr{9} only. Conversion via atom_number/2, number_codes/2,
+and number_chars/2 additionally accepts any Unicode \const{Nd} block
 for integers, rational numbers (see \secref{syntax-rational-numbers})
-and floating point numbers. In any number, \emph{all} digits must come
-from the same block, i.e., if the nominator of a rational uses Indian
-script, so must the denominator.  All special characters such as the
-sign, rational separator, floating point \chr{.}, and floating point
-exponent must use their usual ASCII character.
+and floating point numbers; in a single number all digits must come
+from the same block, i.e., if the numerator of a rational uses Indian
+script the denominator must too. The sign, rational separator,
+floating point \chr{.}, and floating point exponent are always ASCII.
 
     \item [White space]
 For code points beyond ISO Latin-1, the layout characters are exactly
