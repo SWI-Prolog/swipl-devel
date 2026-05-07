@@ -324,29 +324,54 @@ write_header(Out, Options) :-
     map_size(Size, Options),
     format(Out, '#define UNICODE_MAP_SIZE ~d~n', [Size]),
     format(Out, '#define F(c) (const unsigned char*)(c)~n~n', []),
-    forall(flag_name(Name, Hex),
-           ( upcase_atom(Name, Up),
-             format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
-           )),
-    format(Out, '~n', []),
-    forall(category_index(Class, Idx),
-           ( upcase_atom(Class, Up),
-             format(Out, '#define U_CAT_~w ~d~n', [Up, Idx])
-           )),
-    format(Out, '~n', []),
-    format(Out, '#define U_CAT_OF(raw) ((raw) & 0xF)~n~n', []),
-    format(Out,
-'/* Each entry in the per-page tables below holds:~n\c
-       bits 0..3  category enum (see prolog_syntax_map.pl)~n\c
-       bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)~n\c
-       bits 6..7  reserved~n\c
-   cat_to_flags[] maps the category enum back to the legacy U_*~n\c
-   bit pattern, so existing macros like uflagsW(c) & U_LAYOUT still~n\c
-   work.~n\c
- */~n', []),
-    format(Out, 'static const unsigned char cat_to_flags[16] =~n{ ', []),
-    write_cat_to_flags_c(Out),
-    format(Out, '~N};~n~n', []).
+    format(Out, '/* Each entry in the per-page tables below holds:~n', []),
+    format(Out, ' *   bits 0..3  category enum u_category (see below)~n', []),
+    format(Out, ' *   bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)~n', []),
+    format(Out, ' *   bits 6..7  reserved~n', []),
+    format(Out, ' */~n~n', []),
+    format(Out, 'typedef enum~n', []),
+    format(Out, '{ ', []),
+    write_cat_enum_entries(Out),
+    format(Out, '~N} u_category;~n~n', []),
+    format(Out, '#define U_CAT_OF(raw) ((u_category)((raw) & 0xF))~n~n', []).
+
+%!  write_cat_enum_entries(+Out) is det.
+%
+%   Emit the typedef enum body for u_category, one entry per
+%   distinct category index. We pass through category_index/2 in
+%   index order, dropping duplicates so `U_CAT_OTHER == U_CAT_UNASSIGNED`
+%   stays a single enum constant.
+
+write_cat_enum_entries(Out) :-
+    findall(Idx-Class,
+            category_index(Class, Idx),
+            Pairs0),
+    sort(0, @=<, Pairs0, Pairs),
+    enum_pairs_unique(Pairs, [], Uniq),
+    write_enum_entries(Uniq, Out, 0).
+
+%!  enum_pairs_unique(+Pairs, +Acc, -Unique) is det.
+%
+%   Drops pairs whose Idx already appeared in Acc (keeps first).
+
+enum_pairs_unique([], _, []).
+enum_pairs_unique([Idx-Class|T], Seen, Out) :-
+    (   memberchk(Idx, Seen)
+    ->  enum_pairs_unique(T, Seen, Out)
+    ;   Out = [Idx-Class|Out1],
+        enum_pairs_unique(T, [Idx|Seen], Out1)
+    ).
+
+write_enum_entries([], _, _).
+write_enum_entries([Idx-Class|T], Out, I) :-
+    upcase_atom(Class, Up),
+    (   I == 0
+    ->  true
+    ;   format(Out, ',~n  ', [])
+    ),
+    format(Out, 'U_CAT_~w = ~d', [Up, Idx]),
+    I2 is I + 1,
+    write_enum_entries(T, Out, I2).
 
 write_cat_to_flags_c(Out) :-
     numlist(0, 15, Indices),
@@ -428,23 +453,17 @@ return {
 }
 });~n', []).
 write_footer(Out, _Options) :-
-    format(Out,
-           'static unsigned char\n\c
-                uflagsRaw(int code)\n\c
-                { int cp = (unsigned)code / 256;\n\c
-                \n  \c
-                  if ( cp < UNICODE_MAP_SIZE )\n  \c
-                  { const unsigned char *s = uflags_map[cp];\n    \c
-                    if ( s < (const unsigned char *)256 )\n      \c
-                      return (unsigned char)(uintptr_t)s;\n    \c
-                    return s[code&0xff];\n  \c
-                  }\n  \c
-                  return 0;\n\c
-                }\n\n\c
-                static int\n\c
-                uflagsW(int code)\n\c
-                { return cat_to_flags[uflagsRaw(code) & 0xF];\n\c
-                }\n\n', []).
+    format(Out, 'static unsigned char~n', []),
+    format(Out, 'uflagsRaw(int code)~n', []),
+    format(Out, '{ int cp = (unsigned)code / 256;~n~n', []),
+    format(Out, '  if ( cp < UNICODE_MAP_SIZE )~n', []),
+    format(Out, '  { const unsigned char *s = uflags_map[cp];~n', []),
+    format(Out, '    if ( s < (const unsigned char *)256 )~n', []),
+    format(Out, '      return (unsigned char)(uintptr_t)s;~n', []),
+    format(Out, '    return s[code&0xff];~n', []),
+    format(Out, '  }~n', []),
+    format(Out, '  return 0;~n', []),
+    format(Out, '}~n~n', []).
 
 
                  /*******************************
@@ -661,7 +680,7 @@ pair_entries(Entries) :-
 pair(Open, Close) :- bracket_pair(Open, Close).
 pair(Open, Close) :- quote_pair(Open, Close).
 
-write_pair_table(Out, Options) :-
+write_pair_table(_Out, Options) :-
     option(lang(javascript), Options),
     !,
     %% JS path: nothing for now (Stage 6 reader is C-only).

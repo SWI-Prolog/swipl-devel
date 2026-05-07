@@ -5,42 +5,27 @@
 #define UNICODE_MAP_SIZE 4353
 #define F(c) (const unsigned char*)(c)
 
-#define U_ID_START           0x1
-#define U_ID_CONTINUE        0x2
-#define U_UPPERCASE          0x4
-#define U_SYMBOL             0x8
-#define U_LAYOUT            0x10
-#define U_SOLO              0x20
-#define U_OTHER             0x40
-#define U_DECIMAL           0x80
-
-#define U_CAT_UNASSIGNED 0
-#define U_CAT_OTHER 0
-#define U_CAT_LAYOUT 1
-#define U_CAT_SOLO 2
-#define U_CAT_BRACKET 3
-#define U_CAT_QUOTE 4
-#define U_CAT_ID_CONTINUE 5
-#define U_CAT_ID_START_ATOM 6
-#define U_CAT_ID_START_VARIABLE 7
-#define U_CAT_DECIMAL 8
-#define U_CAT_SYMBOL 9
-#define U_CAT_ID_CONTINUE_SOLO 10
-
-#define U_CAT_OF(raw) ((raw) & 0xF)
-
 /* Each entry in the per-page tables below holds:
-bits 0..3  category enum (see prolog_syntax_map.pl)
-bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)
-bits 6..7  reserved
-cat_to_flags[] maps the category enum back to the legacy U_*
-bit pattern, so existing macros like uflagsW(c) & U_LAYOUT still
-work.
-*/
-static const unsigned char cat_to_flags[16] =
-{ 0x00, 0x10, 0x20, 0x20, 0x20, 0x02, 0x03, 0x07,
-  0x82, 0x08, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+ *   bits 0..3  category enum u_category (see below)
+ *   bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)
+ *   bits 6..7  reserved
+ */
+
+typedef enum
+{ U_CAT_OTHER = 0,
+  U_CAT_LAYOUT = 1,
+  U_CAT_SOLO = 2,
+  U_CAT_BRACKET = 3,
+  U_CAT_QUOTE = 4,
+  U_CAT_ID_CONTINUE = 5,
+  U_CAT_ID_START_ATOM = 6,
+  U_CAT_ID_START_VARIABLE = 7,
+  U_CAT_DECIMAL = 8,
+  U_CAT_SYMBOL = 9,
+  U_CAT_ID_CONTINUE_SOLO = 10
+} u_category;
+
+#define U_CAT_OF(raw) ((u_category)((raw) & 0xF))
 
 static const unsigned char ucp0x00[256] =
 { 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* U0000..U0007 */
@@ -6236,11 +6221,6 @@ uflagsRaw(int code)
     return s[code&0xff];
   }
   return 0;
-}
-
-static int
-uflagsW(int code)
-{ return cat_to_flags[uflagsRaw(code) & 0xF];
 }
 
 static const int decimal_bases[] =
