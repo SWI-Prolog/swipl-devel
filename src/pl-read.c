@@ -1190,8 +1190,17 @@ setErrorLocation(IOPOS *pos, ReadData _PL_rd)
   rb.here = rb.base+1;			/* see rawSyntaxError() */
 }
 
+/* Read a quoted text that opens with code point `open` and closes
+ * with code point `close`. ASCII single, double and back quotes
+ * pass open == close; Unicode quote pairs (Pi/Pf) pass distinct
+ * code points (e.g. open=U+201C, close=U+201D for "..."). The
+ * buffered text mirrors the source verbatim — open codepoint,
+ * raw content (with escape sequences passed through unchanged),
+ * close codepoint — so get_token can re-tokenise it later.
+ */
+
 static int
-raw_read_quoted(int q, ReadData _PL_rd)
+raw_read_quoted(int open, int close, ReadData _PL_rd)
 { IOPOS pbuf;
   IOPOS *pos;
   int c;
@@ -1204,8 +1213,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
   } else
     pos = NULL;
 
-  addToBuffer(q, _PL_rd);
-  while((c=getchrq()) != EOF && c != q)
+  addToBuffer(open, _PL_rd);
+  while((c=getchrq()) != EOF && c != close)
   {
   next:
     if ( c == '\\' && ison(_PL_rd, M_CHARESCAPE) )
@@ -1239,7 +1248,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  if ( c == EOF )
 	    goto eofinstr;
 	  addToBuffer(c, _PL_rd);
-	  if ( c == q )
+	  if ( c == close )
 	    return true;
 	  continue;
 	case 'c':			/* \c<whitespace>* */
@@ -1249,7 +1258,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  { addToBuffer(c, _PL_rd);
 	    c = getchrq();
 	  }
-	  if ( c == EOF || c == q )
+	  if ( c == EOF || c == close )
 	    goto out;
 	  goto next;
 	default:
@@ -1262,7 +1271,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	    if ( c == EOF )
 	      goto eofinstr;
 	    addToBuffer(c, _PL_rd);
-	    if ( c == q )
+	    if ( c == close )
 	      return true;
 	  }
 	  continue;			/* \symbolic-control-char */
@@ -1273,13 +1282,14 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
 out:
   if (c == EOF)
-  { char what[2];
+  { char what[8];
+    char *p;
   eofinstr:
     if ( Sferror(rb.stream) )
       return false;
     setErrorLocation(pos, _PL_rd);
-    what[0] = (char)q;
-    what[1] = EOS;
+    p = utf8_put_char(what, open);
+    *p = EOS;
     rawSyntaxError1("end_of_file_in_quoted", what);
   }
   addToBuffer(c, _PL_rd);
@@ -1621,11 +1631,11 @@ raw_read2(DECL_LD ReadData _PL_rd)
 
 	      sqatom:
 		set_start_line;
-		if ( !raw_read_quoted(c, _PL_rd) )
+		if ( !raw_read_quoted(c, c, _PL_rd) )
 		  fail;
 		break;
       case '"':	set_start_line;
-		if ( !raw_read_quoted(c, _PL_rd) )
+		if ( !raw_read_quoted(c, c, _PL_rd) )
 		  fail;
 		break;
       case '.': addToBuffer(c, _PL_rd);
@@ -1649,7 +1659,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		goto handle_c;
       case '`': if ( ison(_PL_rd, BQ_MASK) )
 		{ set_start_line;
-		  if ( !raw_read_quoted(c, _PL_rd) )
+		  if ( !raw_read_quoted(c, c, _PL_rd) )
 		    fail;
 		  break;
 		}
@@ -1696,7 +1706,22 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      set_start_line;
 		  }
 		} else			/* >= 0x80 */
-		{ if ( PlIdStartW(c) )
+		{ int is_open;
+		  int close_cp = pl_pair_lookup(c, &is_open);
+		  if ( close_cp && is_open &&
+		       U_CAT_OF(uflagsRaw(c)) == U_CAT_QUOTE )
+		  { /* Unicode quote pair open: read literal text up to
+		     * the matching close.  Like the ASCII quote cases
+		     * above, this hands the buffered text to get_token
+		     * for type conversion (per the double_quotes flag)
+		     * and `'<open><close>'/1` wrapping.
+		     */
+		    set_start_line;
+		    if ( !raw_read_quoted(c, close_cp, _PL_rd) )
+		      fail;
+		    break;
+		  }
+		  if ( PlIdStartW(c) )
 		  { set_start_line;
 		    c = raw_read_identifier(c, _PL_rd);
 		    goto handle_c;
@@ -2727,6 +2752,132 @@ addUTF8Buffer(Buffer b, int c)
 }
 
 
+/* Codepoint-aware variant of get_string() used for Unicode quote
+ * pairs (see case_solo in get_token). `in` points just past the
+ * opening delimiter UTF-8; the function reads codepoints up to the
+ * `close` codepoint and writes the content to `buf` as UTF-8.
+ * Escape sequences (`\n`, `»`, ...) follow the same rules as
+ * ASCII quoted strings, but no doubling of the close delimiter.
+ */
+
+/* Forward declaration: defined below, called by
+ * read_unicode_quote_token() above.
+ */
+static int
+get_unicode_quoted_string(unsigned char *in, int close,
+			  unsigned char *ein, unsigned char **end, Buffer buf,
+			  ReadData _PL_rd);
+
+/* Tokeniser entry point for a Unicode quote pair open. Reads the
+ * literal content with get_unicode_quoted_string(), converts it to
+ * the value type selected by the double_quotes flag (the same
+ * choice as the case DQ block below), then wraps it in a unary
+ * compound `'<open><close>'(Value)`. The result populates the
+ * global cur_token as a T_STRING token whose .value.term is the
+ * compound. Returns false on read or unify error.
+ */
+
+#define read_unicode_quote_token(open, close, _PL_rd) \
+	LDFUNC(read_unicode_quote_token, open, close, _PL_rd)
+
+static bool
+read_unicode_quote_token(DECL_LD int open, int close, ReadData _PL_rd)
+{ tmp_buffer b;
+  term_t str_term, t;
+  PL_chars_t txt;
+  int type;
+  atom_t functor;
+  char functor_utf8[16];
+  char *p;
+  size_t functor_len;
+  bool rc = false;
+
+  initBuffer(&b);
+  if ( !get_unicode_quoted_string(rdhere, close, rdend, &rdhere,
+				  (Buffer)&b, _PL_rd) )
+    goto cleanup;
+
+  txt.text.t    = baseBuffer(&b, char);
+  txt.length    = entriesBuffer(&b, char);
+  txt.storage   = PL_CHARS_HEAP;
+  txt.encoding  = ENC_UTF8;
+  txt.canonical = false;
+
+#if O_STRING
+  if ( ison(_PL_rd, DBLQ_STRING) )
+    type = PL_STRING;
+  else
+#endif
+  if ( ison(_PL_rd, DBLQ_ATOM) )
+    type = PL_ATOM;
+  else if ( ison(_PL_rd, DBLQ_CHARS) )
+    type = PL_CHAR_LIST;
+  else
+    type = PL_CODE_LIST;
+
+  str_term = PL_new_term_ref();
+  if ( !PL_unify_text(str_term, 0, &txt, type) )
+  { PL_free_text(&txt);
+    goto cleanup;
+  }
+  PL_free_text(&txt);
+
+  p = utf8_put_char(functor_utf8, open);
+  p = utf8_put_char(p, close);
+  functor_len = p - functor_utf8;
+  functor = PL_new_atom_mbchars(REP_UTF8, functor_len, functor_utf8);
+
+  t = PL_new_term_ref();
+  if ( !PL_cons_functor(t, PL_new_functor(functor, 1), str_term) )
+  { PL_unregister_atom(functor);
+    goto cleanup;
+  }
+  PL_unregister_atom(functor);
+
+  cur_token.value.term = t;
+  cur_token.type = T_STRING;
+  rc = true;
+
+cleanup:
+  discardBuffer(&b);
+  return rc;
+}
+
+static int
+get_unicode_quoted_string(unsigned char *in, int close,
+			  unsigned char *ein, unsigned char **end, Buffer buf,
+			  ReadData _PL_rd)
+{ int c;
+
+  for(;;)
+  { if ( in >= ein )
+    { errorWarning("end_of_file_in_string", 0, _PL_rd);
+      return false;
+    }
+    in = (unsigned char *)utf8_get_char((const char *)in, &c);
+    if ( c == close )
+      break;
+    if ( c == '\\' && ison(_PL_rd, M_CHARESCAPE) )
+    { c = escape_char(in, &in, 0, _PL_rd);
+      if ( c >= 0 )
+      { addUTF8Buffer(buf, c);
+	continue;
+      } else if ( c == ESC_ERROR )
+      { return false;
+      } else
+      { break;
+      }
+    }
+    if ( is_bidi_override(c) )
+      return bidi_override_error(c, _PL_rd);
+    addUTF8Buffer(buf, c);
+  }
+
+  if ( end )
+    *end = in;
+  return true;
+}
+
 static int
 get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
@@ -3309,11 +3460,23 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		}
     case_solo:
-    case SO:	{ if ( pl_pair_lookup(c, NULL) )
-		  { /* Non-ASCII bracket / quote (open or close): emit as
-		     * T_PUNCTUATION so complex_term() can stop on the close
-		     * codepoint and the parser dispatch can route the open
-		     * to read_paired_term().
+    case SO:	{ int is_open;
+		  int mate = pl_pair_lookup(c, &is_open);
+		  if ( mate && is_open &&
+		       U_CAT_OF(uflagsRaw(c)) == U_CAT_QUOTE )
+		  { /* Unicode quote pair open: read literal content,
+		     * build '<open><close>'/1 compound, emit T_STRING.
+		     */
+		    if ( !read_unicode_quote_token(c, mate, _PL_rd) )
+		      fail;
+		    DEBUG(MSG_READ_TOKEN,
+			  Sdprintf("STRING(quote-pair): U+%04X..U+%04X\n",
+				   c, mate));
+		  } else if ( mate )
+		  { /* Bracket open/close, or quote close (defensive):
+		     * emit T_PUNCTUATION so complex_term() can stop on
+		     * the close and the parser dispatch can route the
+		     * open to read_paired_term().
 		     */
 		    cur_token.value.character = c;
 		    cur_token.type = T_PUNCTUATION;

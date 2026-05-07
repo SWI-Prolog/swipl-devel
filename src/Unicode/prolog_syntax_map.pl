@@ -329,6 +329,12 @@ write_header(Out, Options) :-
              format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
            )),
     format(Out, '~n', []),
+    forall(category_index(Class, Idx),
+           ( upcase_atom(Class, Up),
+             format(Out, '#define U_CAT_~w ~d~n', [Up, Idx])
+           )),
+    format(Out, '~n', []),
+    format(Out, '#define U_CAT_OF(raw) ((raw) & 0xF)~n~n', []),
     format(Out,
 '/* Each entry in the per-page tables below holds:~n\c
        bits 0..3  category enum (see prolog_syntax_map.pl)~n\c

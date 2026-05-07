@@ -3389,24 +3389,36 @@ category \const{No}, e.g.\ fractions and circled digits) are not
 part of the identifier set; only the explicitly listed super- and
 subscript digits extend identifiers.
 
-    \item [Brackets and quotes (paired delimiters)]
-The opening / closing punctuation classes \const{Ps}/\const{Pe} and
-the initial / final quotation classes \const{Pi}/\const{Pf} are
-\jargon{paired delimiters}: an opening character followed by a term
+    \item [Brackets (paired delimiters)]
+The opening / closing punctuation classes \const{Ps} and \const{Pe}
+form \jargon{bracket pairs}: an opening character followed by a
+\emph{Prolog term} and the matching closing character reads as a
+unary compound whose functor is the two delimiter characters joined.
+This is the same shape as \verb${Term}$ becoming \verb$'{}'(Term)$,
+generalised to the full Unicode \const{Ps}/\const{Pe} set (64 pairs,
+sourced from Unicode \verb$BidiMirroring.txt$ filtered by
+general category).  Operators inside brackets are honoured; nesting
+works as expected.  Mismatched or stray closes raise
+\except{syntax_error}.
+
+    \item [Quotes (paired literal-text delimiters)]
+The initial / final quotation classes \const{Pi} and \const{Pf} form
+\jargon{quote pairs}: an opening character followed by literal text
 and the matching closing character reads as a unary compound whose
-functor is the two delimiter characters joined.  This is the same
-shape as \verb${Term}$ becoming \verb$'{}'(Term)$, generalised to the
-full Unicode pair set; for example, the source text {«}hello{»} reads
-as the compound whose functor is the two-character atom {«}{»} and
-whose single argument is the atom \const{hello}.  The bracket pairs
-come from Unicode \verb$BidiMirroring.txt$ filtered to general
-category \const{Ps}/\const{Pe} (64 pairs); the quote pairs come from
-\const{Pi}/\const{Pf} entries of the same file (8 pairs) plus the
-standard left/right curly quote pairs U+2018/U+2019 and
+functor is the two delimiter characters joined and whose argument
+is the contained text in the form selected by
+\prologflag{double_quotes} (string by default; also atom, codes, or
+chars).  The contained text is \emph{not} parsed as a Prolog term;
+escape sequences (\verb$\n$, \verb$\uXXXX$, ...) are processed as in
+ASCII quoted strings.  For example, with
+\prologflag{double_quotes} set to \const{string}, the source text
+{«}hello, world{»} reads as a compound whose functor is the
+two-character atom {«}{»} and whose single argument is the string
+\verb$"hello, world"$.  The quote pairs come from
+\const{Pi}/\const{Pf} entries of \verb$BidiMirroring.txt$ (8 pairs)
+plus the standard left/right curly quote pairs U+2018/U+2019 and
 U+201C/U+201D, which are absent from \verb$BidiMirroring.txt$.
-Mismatched closes raise a \except{syntax_error}.  An unmatched open
-likewise raises \except{syntax_error} --- there is no fall-back to a
-standalone solo atom.
+Mismatched closes and unmatched opens raise \except{syntax_error}.
 \end{itemlist}
 
 

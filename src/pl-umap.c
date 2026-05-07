@@ -14,6 +14,21 @@
 #define U_OTHER             0x40
 #define U_DECIMAL           0x80
 
+#define U_CAT_UNASSIGNED 0
+#define U_CAT_OTHER 0
+#define U_CAT_LAYOUT 1
+#define U_CAT_SOLO 2
+#define U_CAT_BRACKET 3
+#define U_CAT_QUOTE 4
+#define U_CAT_ID_CONTINUE 5
+#define U_CAT_ID_START_ATOM 6
+#define U_CAT_ID_START_VARIABLE 7
+#define U_CAT_DECIMAL 8
+#define U_CAT_SYMBOL 9
+#define U_CAT_ID_CONTINUE_SOLO 10
+
+#define U_CAT_OF(raw) ((raw) & 0xF)
+
 /* Each entry in the per-page tables below holds:
 bits 0..3  category enum (see prolog_syntax_map.pl)
 bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)
