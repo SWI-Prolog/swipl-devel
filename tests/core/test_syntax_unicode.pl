@@ -234,6 +234,71 @@ test(mixed_digit_blocks_rejected, fail) :-
     % All digits in a number must come from the same Unicode block.
     number_string(_, "1\u0968").
 
+% --- Sign is ASCII only ------------------------------------------------
+
+test(ascii_sign_with_devanagari, N == 123) :-
+    number_string(N, "+\u0967\u0968\u0969").
+
+test(unicode_minus_with_devanagari, fail) :-
+    % U+2212 MINUS SIGN is not the ASCII '-'; rejected.
+    number_string(_, "\u2212\u0967\u0968\u0969").
+
+% --- Float: same-block mantissa and fraction ---------------------------
+
+test(devanagari_float, F =:= 123.45) :-
+    number_string(F, "\u0967\u0968\u0969.\u096a\u096b").
+
+test(mixed_int_and_frac_blocks, fail) :-
+    % Devanagari int, ASCII frac.
+    number_string(_, "\u0967\u0968\u0969.45").
+
+% --- Float exponent: same-block mantissa and exponent ------------------
+
+test(devanagari_exponent, F =:= 123e5) :-
+    % U+096B = DEVANAGARI DIGIT FIVE.
+    number_string(F, "\u0967\u0968\u0969e\u096b").
+
+test(mixed_mantissa_and_exponent, fail) :-
+    number_string(_, "\u0967\u0968\u0969e5").
+
+% --- Rational: same-block numerator and denominator --------------------
+
+test(devanagari_rational) :-
+    number_string(R, "\u0967\u0968\u0969r\u096a\u096b"),
+    R =:= 123 rdiv 45.
+
+test(mixed_rational_blocks, fail) :-
+    number_string(_, "12r\u096a\u096b").
+
+% --- Superscript / subscript digits are id_continue, not Nd ------------
+
+test(superscript_one_not_a_digit, fail) :-
+    % U+00B9 SUPERSCRIPT ONE is general category No, not Nd.
+    number_string(_, "1\u00b9").
+
+% --- Hex prefix: digits stay ASCII -------------------------------------
+
+test(hex_prefix_ascii, N == 255) :-
+    number_string(N, "0xff").
+
+test(hex_prefix_with_unicode_digit, fail) :-
+    number_string(_, "0x\u0967").
+
+% --- 0'<char> char-code form: any single Unicode scalar ----------------
+
+test(char_code_ascii_letter, N == 0'a) :-
+    number_string(N, "0'a").
+
+test(char_code_unicode_literal, N == 0x0600) :-
+    % Literal non-ASCII codepoint after 0' yields its integer value.
+    number_string(N, "0'؀").
+
+test(char_code_unicode_escape_via_reader, N == 0x0600) :-
+    % \u escape inside 0' is interpreted by the term reader (it has
+    % the character_escapes flag set); number_string and friends
+    % operate on the literal text and do not interpret \-escapes.
+    term_string(N, "0'\\u0600").
+
 :- end_tests(syntax_unicode_numbers).
 
 

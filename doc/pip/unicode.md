@@ -16,7 +16,7 @@ implementation experience from SWI-Prolog and Ciao and on the wider
 ecosystem of languages that have addressed the same questions
 (Python, Rust, Julia, C#, Swift, Ada).
 
-The proposal covers nine areas:
+The proposal covers ten areas:
 
 1. Source-text identifier syntax (UAX #31).
 2. Tokenisation of symbol and punctuation characters (solo vs.
@@ -26,10 +26,13 @@ The proposal covers nine areas:
 4. Whitespace.
 5. Escape sequences for code points (`\u`, `\U`).
 6. Code-point semantics of `atom_codes/2`.
-7. Grapheme clusters and string-level Unicode operations.
-8. Column-based stream positioning and column-aware `format/2`.
-9. **Pluggable Unicode normalisation** for the term reader and
-   writer (opt-in, off by default).
+7. **Numbers**: ASCII at the source level, any Unicode `Nd` block
+   at runtime conversion, with same-block-per-number and ASCII
+   syntax characters.
+8. Grapheme clusters and string-level Unicode operations.
+9. Column-based stream positioning and column-aware `format/2`.
+10. **Pluggable Unicode normalisation** for the term reader and
+    writer (opt-in, off by default).
 
 The proposal does **not** require unconditional NFC normalisation
 of every atom — Prolog atoms double as byte-faithful identifiers
@@ -294,7 +297,54 @@ element regardless of UTF-8/UTF-16 encoding details. This rules out
 implementations that expose UTF-8 byte sequences via this predicate,
 which leaks an encoding choice into the language.
 
-### 4.7 Graphemes
+### 4.7 Numbers
+
+Two layers, with different rules:
+
+- **Source text (`read_term/[2,3]`).** Numeric literals use ASCII
+  digits `0..9` only. Non-ASCII `Nd` code points may appear inside
+  identifiers (where they are `id_continue`) but cannot start a
+  number or extend an ASCII number. This keeps the source-level
+  grammar single-script and matches the UAX #31 R6 recommendation
+  for programming-language number syntax.
+- **Runtime conversion (`atom_number/2`, `number_codes/2`,
+  `number_chars/2`, `number_string/2`).** These accept decimal
+  digits from any Unicode `Nd` block (Devanagari, Eastern Arabic,
+  Fullwidth, ...). Two constraints apply:
+  1. **All digits in a single number must come from the same
+     block.** That includes the integer part and the fractional
+     part of a float, the mantissa and exponent of a float, and
+     the numerator and denominator of a rational. `१२३.४५` parses;
+     `१२३.45` does not.
+  2. **The non-digit syntax characters are always ASCII.** The
+     sign (`+`, `-`), the rational separator (`r` or `/`), the
+     floating-point decimal point (`.`), and the exponent letter
+     (`e` or `E`) must use their ASCII forms; the look-alikes
+     `−` (U+2212), `．` (U+FF0E), `Ｅ` (U+FF25) are rejected.
+
+Examples:
+
+```
+?- number_string(N, "+१२३").       N = 123.
+?- number_string(N, "−१२३").        false.       % U+2212 minus
+?- number_string(F, "१२३.४५").     F = 123.45.
+?- number_string(F, "१२३e५").      F = 1.23e7.
+?- number_string(R, "१२३r४५").     R = 41 rdiv 15.
+?- number_string(N, "1२").         false.       % mixed blocks
+```
+
+The character-code form `0'<C>` is unaffected by the same-block
+rule: it produces the integer code point of any single Unicode
+scalar `<C>`. In source text the term reader interprets the usual
+escape sequences (`0'\n`, `0'·`, `0'\U0001F600`); the runtime
+conversion family treats `0'<C>` as the literal next code point
+without escape interpretation. Combining marks and other multi-
+code-point sequences are not representable as a single integer.
+
+`0x`, `0o` and `0b` radix literals stay ASCII-only; the radix
+sigil is ASCII and the digits inside follow.
+
+### 4.8 Graphemes
 
 A *grapheme cluster* (UAX #29) is a user-perceived character — a
 base letter plus its combining marks, an emoji ZWJ sequence, a
@@ -306,7 +356,7 @@ single-grapheme atoms. This is what user code wants when iterating
 over "characters" for display or editing purposes; iterating over
 code points is rarely what is intended.
 
-### 4.8 Stream positions and `format/2` columns
+### 4.9 Stream positions and `format/2` columns
 
 For text streams, `line_position/2` and the `position` field of
 `stream_property/2` should be measured in **display columns**, not
@@ -323,7 +373,7 @@ identical on every supported platform; the Unicode version that
 drove the table is reported by the read-only flag
 `unicode_syntax_version` (§4.9).
 
-#### 4.8.1 Relation to POSIX `wcwidth(3)`
+#### 4.9.1 Relation to POSIX `wcwidth(3)`
 
 The return-value contract is the **same as POSIX**
 `wcwidth(3)`/`<wchar.h>`: −1 for non-printable, 0 for combining /
@@ -371,7 +421,7 @@ narrow". The POSIX-compatible return-value convention preserves
 backward compatibility for foreign code that previously linked
 against `mk_wcwidth.c`.
 
-### 4.9 Reporting the Unicode version
+### 4.10 Reporting the Unicode version
 
 Implementations should expose the Unicode version that drives the
 source-syntax classifier as a read-only Prolog flag — proposed name
@@ -382,7 +432,7 @@ set for normalisation, grapheme segmentation, and property queries
 (e.g. via `utf8proc`) should document that version separately
 through their library API; cross-reference between the two.
 
-### 4.10 Pluggable Unicode normalisation in reader and writer
+### 4.11 Pluggable Unicode normalisation in reader and writer
 
 NFC normalisation is genuinely useful for the term reader and
 writer, so the proposal recommends two opt-in mechanisms backed by

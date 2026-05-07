@@ -7750,6 +7750,17 @@ implementations--believe this is incorrect. We also believe it would
 have been better not to allow for white space, or to allow for both
 leading and trailing white space.}
 
+Beyond ASCII, decimal digits in the input may come from any Unicode
+\jargon{decimal digit} block (general category \const{Nd}); see
+\secref{unicodesyntax}. All digits in a single number must come from
+the \emph{same} block --- for an integer, for the numerator and
+denominator of a rational, and for the mantissa and exponent of a
+floating-point number. The optional sign (\chr{+}, \chr{-}), the
+rational separator (\chr{r} or \chr{/}), the floating-point decimal
+point (\chr{.}) and the floating-point exponent letter (\chr{e},
+\chr{E}) are always ASCII; their non-ASCII look-alikes raise
+\except{syntax_error}.
+
 Prolog syntax-based conversion can also be achieved using format/3 and
 read_from_chars/2.
 
