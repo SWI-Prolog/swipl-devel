@@ -3312,13 +3312,24 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		}
     case_solo:
-    case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */
-		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(MSG_READ_TOKEN,
-			Sdprintf("%s: %s\n",
-				 *rdhere == '(' ? "FUNC" : "NAME",
-				 stringAtom(cur_token.value.atom)));
-
+    case SO:	{ if ( pl_pair_lookup(c, NULL) )
+		  { /* Non-ASCII bracket / quote (open or close): emit as
+		     * T_PUNCTUATION so complex_term() can stop on the close
+		     * codepoint and the parser dispatch can route the open
+		     * to read_paired_term().
+		     */
+		    cur_token.value.character = c;
+		    cur_token.type = T_PUNCTUATION;
+		    DEBUG(MSG_READ_TOKEN,
+			  Sdprintf("PUNCT(pair): U+%04X\n", c));
+		  } else
+		  { cur_token.value.atom = codeToAtom(c);	/* not registered */
+		    cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
+		    DEBUG(MSG_READ_TOKEN,
+			  Sdprintf("%s: %s\n",
+				   *rdhere == '(' ? "FUNC" : "NAME",
+				   stringAtom(cur_token.value.atom)));
+		  }
 		  break;
 		}
     case_symbol:
@@ -4510,6 +4521,22 @@ consider  the  last  operator  on  the  side   queue  as  an  atom.  See
 modify_op().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* True if `code` is one of the code points encoded in the UTF-8
+ * string `stop`.  Used by complex_term() to recognise the closing
+ * delimiter of paired terms; UTF-8-aware so non-ASCII close
+ * characters (e.g. `»`, `」`, `’`) are matched correctly.
+ */
+static int
+stop_matches_codepoint(const char *stop, int code)
+{ while ( *stop )
+  { int c;
+    stop = utf8_get_char(stop, &c);
+    if ( c == code )
+      return 1;
+  }
+  return 0;
+}
+
 #define complex_term(stop, maxpri, positions, _PL_rd) \
 	LDFUNC(complex_term, stop, maxpri, positions, _PL_rd)
 
@@ -4552,7 +4579,7 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	    goto exit;			/* exit for-loop */
 	  break;
 	case T_PUNCTUATION:
-	  if ( stop != NULL && strchr(stop, token->value.character) )
+	  if ( stop != NULL && stop_matches_codepoint(stop, token->value.character) )
 	    goto exit;
 	  break;
 #ifdef O_QUASIQUOTATIONS
@@ -4866,6 +4893,76 @@ read_brace_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
     set_range_position(positions, -1, token->end);
 
   return build_term(ATOM_curl, 1, _PL_rd);
+}
+
+/* Generic Unicode bracket / quote-pair reader.
+ *
+ * Modeled on read_brace_term().  When the tokenizer encounters a
+ * non-ASCII bracket / quote open (category 3 or 4 with a non-zero
+ * pl_pair_lookup entry) it emits a T_PUNCTUATION token carrying the
+ * open code point; this function looks up the matching close in the
+ * pair table, parses the contained term, expects the close, and
+ * builds an `'<open><close>'/1` compound — the same shape as
+ * `'{}'/1` for `{Term}`.
+ *
+ * Examples:
+ *   `«hello»`        ⇒ '«»'(hello)
+ *   `「foo bar」`    ⇒ '「」'((foo bar))
+ *   `‘x’`            ⇒ '‘’'(x)
+ *
+ * Mismatched closes raise the same syntax_error/1 that complex_term
+ * raises for any unexpected punctuation in term position.
+ */
+
+#define read_paired_term(token, positions, _PL_rd) \
+	LDFUNC(read_paired_term, token, positions, _PL_rd)
+static inline int
+read_paired_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
+{ int rc;
+  term_t pa;
+  int open  = token->value.character;
+  int close = pl_pair_lookup(open, NULL);
+  char close_utf8[8];
+  char functor_utf8[16];
+  char *p;
+  size_t functor_len;
+
+  if ( close == 0 )
+  { syntaxError("illegal_character", _PL_rd);
+    return false;
+  }
+
+  /* UTF-8 of the closing delimiter; drives complex_term's stop check. */
+  p = utf8_put_char(close_utf8, close);
+  *p = '\0';
+
+  /* '<open><close>' atom for the functor name. */
+  p = utf8_put_char(functor_utf8, open);
+  p = utf8_put_char(p, close);
+  functor_len = p - functor_utf8;
+
+  if ( positions )
+  { if ( !(pa = PL_new_term_ref()) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_brace_term_position3,
+			PL_INT64, token->start,
+			PL_VARIABLE,
+			PL_TERM, pa) )
+      return false;
+  } else
+    pa = 0;
+
+  if ( (rc=complex_term(close_utf8, OP_MAXPRIORITY+1, pa, _PL_rd)) != true )
+    return rc;
+  token = get_token(false, _PL_rd);
+  if ( positions )
+    set_range_position(positions, -1, token->end);
+
+  { atom_t functor = PL_new_atom_mbchars(REP_UTF8, functor_len, functor_utf8);
+    int br = build_term(functor, 1, _PL_rd);
+    PL_unregister_atom(functor);
+    return br;
+  }
 }
 
 
@@ -5195,7 +5292,11 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 	case ',':
 	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
-	{ term_t term = alloc_term(_PL_rd);
+	{ int is_open;
+	  if ( pl_pair_lookup(token->value.character, &is_open) && is_open )
+	    return read_paired_term(token, positions, _PL_rd);
+
+	  term_t term = alloc_term(_PL_rd);
 	  PL_put_atom(term, codeToAtom(token->value.character));
 	  return unify_atomic_position(positions, token);
 	}
