@@ -54,42 +54,51 @@
 
 /** <module> Generate Prolog Unicode map
 
-Create a C structure and  access   functions  for  classification of the
-characters we need  for  realising  the   Prolog  syntax.  We  keep  the
-definition of the first 128  ASCII   characters.  Characters  above that
-needs to be classified as
+Create a C structure and access functions for classifying the
+characters needed by the Prolog source-text syntax. The mapping is
+grounded in [UAX #31](https://www.unicode.org/reports/tr31/) and
+backed by the Unicode Character Database files
+DerivedCoreProperties.txt, UnicodeData.txt, and EastAsianWidth.txt.
 
-        * id_start (csymf)
-        May start an identifier.
+Each code point gets exactly one byte in the generated table. The
+byte is structured as:
 
-        * id_continue (csym)
-        May be used anywhere in identifier
+    bits 0..3  category enum (see category_index/2)
+    bits 4..5  wcwidth+1 (0=invalid -1, 1=zero, 2=normal 1, 3=wide 2)
+    bits 6..7  reserved
 
-        * uppercase
-        We need this to be able to distinquish variables from non-variables.
+Categories are mutually exclusive primary classes; legacy U_*
+flag-bit semantics are preserved through a 16-entry cat_to_flags[]
+lookup, so existing macros like `uflagsW(c) & U_LAYOUT` continue to
+work.
 
-        * layout
-        We need this for classifying blank space
+Source mapping for the categories:
 
-        * solo
-        Characters that represent symbols.  As Unicode symbols typically
-        have a semantics on their own we treat them as Prolog solo
-        characters.
-
-        * decimal
-        Characters that represent decimal digits.
-
-	* other
-	Other assigned characters.
+    layout            ⇐ Pattern_White_Space (UAX #31 R3a)
+    decimal           ⇐ general category Nd
+    id_start_variable ⇐ general category Lu
+    id_start_atom     ⇐ XID_Start \ Lu (UAX #31 R1) +
+                          predef ASCII id_start for the JS path
+    id_continue       ⇐ XID_Continue \ XID_Start (UAX #31 R1) +
+                          superscript/subscript-digit profile addition
+    id_continue_solo  ⇐ XID_Continue ∩ solo_cat
+                          (e.g. '_' U+005F, '·' U+00B7)
+    bracket           ⇐ Ps ∪ Pe (Stage 6 will populate; reserved here)
+    quote             ⇐ Pi ∪ Pf (Stage 6 will populate; reserved here)
+    solo              ⇐ Sm/Sc/Sk/So/Pc/Pd/Ps/Pe/Pi/Pf/Po
+                          (broader than UAX #31 Pattern_Syntax; PIP §4.2)
+    symbol            ⇐ ASCII operator characters (JS path only)
+    other / unassigned ⇒ category 0 (treated as stray by the parser)
 
 Usage:
 
-  1. Get DerivedCoreProperties.txt and UnicodeData.txt from the Unicode
-     consortium and copy or link them into this directory.
+  1. Get DerivedCoreProperties.txt, UnicodeData.txt, and
+     EastAsianWidth.txt from the Unicode consortium and copy or link
+     them into this directory.
   2. Run `swipl prolog_syntax_map.pl` in this directory, which updates
-     `../pl-umap.c`
+     `../pl-umap.c`.
 
-This module can also create a JavaScript  file, which is used for SWISH.
+This module can also create a JavaScript file, which is used for SWISH.
 The command for this is
 
     swipl prolog_syntax_map.pl --out=prolog-ctype.js --lang=javascript
@@ -291,7 +300,9 @@ write_header(Out, Options) :-
            ( upcase_atom(Name, Up),
              format(Out, 'var U_~w~t= 0x~16r;~32|~n', [Up, Hex])
            )),
-    format(Out, '~n~n', []).
+    format(Out, '~nvar cat_to_flags = [', []),
+    write_cat_to_flags_js(Out),
+    format(Out, '];~n~n', []).
 write_header(Out, Options) :-
     generated_file(Out),
     map_size(Size, Options),
@@ -301,7 +312,49 @@ write_header(Out, Options) :-
            ( upcase_atom(Name, Up),
              format(Out, '#define U_~w~t0x~16r~32|~n', [Up, Hex])
            )),
-    format(Out, '~n~n', []).
+    format(Out, '~n', []),
+    format(Out,
+'/* Each entry in the per-page tables below holds:~n\c
+       bits 0..3  category enum (see prolog_syntax_map.pl)~n\c
+       bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)~n\c
+       bits 6..7  reserved~n\c
+   cat_to_flags[] maps the category enum back to the legacy U_*~n\c
+   bit pattern, so existing macros like uflagsW(c) & U_LAYOUT still~n\c
+   work.~n\c
+ */~n', []),
+    format(Out, 'static const unsigned char cat_to_flags[16] =~n{ ', []),
+    write_cat_to_flags_c(Out),
+    format(Out, '~N};~n~n', []).
+
+write_cat_to_flags_c(Out) :-
+    numlist(0, 15, Indices),
+    write_cat_entries_c(Indices, Out).
+
+write_cat_entries_c([], _).
+write_cat_entries_c([I|T], Out) :-
+    cat_to_flags(I, F),
+    (   I == 0
+    ->  true
+    ;   0 =:= I mod 8
+    ->  format(Out, ',~n  ', [])
+    ;   format(Out, ', ', [])
+    ),
+    format(Out, '0x~|~`0t~16r~2+', [F]),
+    write_cat_entries_c(T, Out).
+
+write_cat_to_flags_js(Out) :-
+    numlist(0, 15, Indices),
+    write_cat_entries_js(Indices, Out).
+
+write_cat_entries_js([], _).
+write_cat_entries_js([I|T], Out) :-
+    cat_to_flags(I, F),
+    (   I == 0
+    ->  true
+    ;   format(Out, ', ', [])
+    ),
+    format(Out, '0x~|~`0t~16r~2+', [F]),
+    write_cat_entries_js(T, Out).
 
 map_size(Size, Options) :-
     last_unicode_page(DefLast),
@@ -318,7 +371,7 @@ write_footer(Out, Options) :-
     !,
     format(Out,
 '\c
-function uflagsW(chr) {
+function uflagsRaw(chr) {
   var code = chr.charCodeAt(0);
   var cp = Math.floor(code/0x100);
   if ( cp < UNICODE_MAP_SIZE ) {
@@ -333,6 +386,10 @@ function uflagsW(chr) {
   return 0;
 }
 
+function uflagsW(chr) {
+  return cat_to_flags[uflagsRaw(chr) & 0xF];
+}
+
 return {
   flags:       uflagsW,
   id_start:    function(chr) { return (uflagsW(chr) & U_ID_START)    != 0 },
@@ -342,25 +399,29 @@ return {
   solo:        function(chr) { return (uflagsW(chr) & U_SOLO)        != 0 },
   layout:      function(chr) { return (uflagsW(chr) & U_LAYOUT)      != 0 },
   other:       function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
-  decimal:     function(chr) { return (uflagsW(chr) & U_DECIMAL)     != 0 }
+  decimal:     function(chr) { return (uflagsW(chr) & U_DECIMAL)     != 0 },
   // Backward compatibility types
   separator:   function(chr) { return (uflagsW(chr) & U_LAYOUT)      != 0 },
-  control:     function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 },
+  control:     function(chr) { return (uflagsW(chr) & U_OTHER)       != 0 }
 }
 });~n', []).
 write_footer(Out, _Options) :-
     format(Out,
-           'static int\n\c
-                uflagsW(int code)\n\c
+           'static unsigned char\n\c
+                uflagsRaw(int code)\n\c
                 { int cp = (unsigned)code / 256;\n\c
                 \n  \c
                   if ( cp < UNICODE_MAP_SIZE )\n  \c
                   { const unsigned char *s = uflags_map[cp];\n    \c
                     if ( s < (const unsigned char *)256 )\n      \c
-                      return (int)(intptr_t)s;\n    \c
+                      return (unsigned char)(uintptr_t)s;\n    \c
                     return s[code&0xff];\n  \c
                   }\n  \c
                   return 0;\n\c
+                }\n\n\c
+                static int\n\c
+                uflagsW(int code)\n\c
+                { return cat_to_flags[uflagsRaw(code) & 0xF];\n\c
                 }\n\n', []).
 
 
@@ -394,87 +455,125 @@ code_page(CP, Options) :-
 char(CP, Value, Lang) :-
     between(0, 255, I),
     Code is 256*CP+I,
-    code_flags(Lang, Code, Value).
+    code_byte(Lang, Code, Value).
 
-code_flags(Lang, Code, Value) :-
-    findall(F, cflag(Lang, Code, F), Fs),
-    or(Fs, Value).
-
-or([], 0).
-or([H|T], F) :-
-    or(T, F0),
-    F is F0 \/ H.
-
-cflag(javascript, Code, Flag) :-
-    flag_name(Name, Flag),
-    (   Code < 256
-    ->  predef_code_flag(Code, Name)
-    ;   code_flag(Code, Name)
-    ).
-cflag('C', Code, Flag) :-
-    flag_name(Name, Flag),
-    code_flag(Code, Name).
-
-flag_name(id_start,    0x01). % Starts atom or variable
-flag_name(id_continue, 0x02). % Continues (extends) atom or variable
-flag_name(uppercase,   0x04). % Starts variable
-flag_name(symbol,      0x08). % Glueing symbols
-flag_name(solo,        0x20). % Forms an atom on itself
-flag_name(layout,      0x10). % White space
-flag_name(other,       0x40). % Other valid Unicode codepoint
-flag_name(decimal,     0x80). % Decimal other than Latin 0..9.
-
-%!  predef_code_flag(+C, ?Class) is nondet.
+%!  code_byte(+Lang, +Code, -Byte) is det.
 %
-%   Fill code page 0 (0..255) using   predefined categories. This is
-%   used for consistency of the JavaScript classifier.
-
-predef_code_flag(C, Class) :-
-    predef_code_flag_(C, Class).
-predef_code_flag(C, other) :-
-    \+ predef_code_flag_(C, _),
-    unicode_property(C, general_category(_)).
-
-predef_code_flag_(C, id_start) :-
-    (   code_type(C, prolog_atom_start)
-    ;   code_type(C, prolog_var_start)
-    ).
-predef_code_flag_(C, id_continue) :-
-    code_type(C, prolog_identifier_continue).
-predef_code_flag_(C, symbol) :-
-    code_type(C, prolog_symbol).
-predef_code_flag_(C, uppercase) :-
-    unicode_property(C, general_category(Cat)),
-    upper_cat(Cat).
-
-%!  code_flag(+C, ?Class) is nondet.
+%   Byte stored in the per-page uflags table. Bit layout:
 %
-%   Fill other pages from the Unicode data
+%     bits 0..3  category enum (see category_index/2)
+%     bits 4..5  wcwidth+1 (0=invalid, 1=zero, 2=normal, 3=wide)
+%     bits 6..7  reserved
+%
+%   The wcwidth bits are populated as 0 (invalid) for now. Stage 5
+%   replaces this with values derived from EastAsianWidth.txt and
+%   the general_category property; PL_wcwidth() continues to use
+%   the bundled mk_wcwidth tables until that lands.
 
-code_flag(C, Class) :-
-    code_flag_(C, Class).
-code_flag(C, other) :-
-    \+ code_flag_(C, _),
-    unicode_property(C, general_category(_)).
+code_byte(Lang, Code, Byte) :-
+    code_class(Lang, Code, Class),
+    category_index(Class, Cat),
+    Byte is Cat.
 
-code_flag_(C, id_start) :-
-    unicode_derived_core_property(C, xid_start).
-code_flag_(C, id_continue) :-
-    unicode_derived_core_property(C, xid_continue).
-code_flag_(C, id_continue) :-
-    id_superscript(C).
-code_flag_(C, id_continue) :-
-    id_subscript(C).
-code_flag_(C, uppercase) :-
-    unicode_property(C, general_category(Cat)),
+%!  code_class(+Lang, +Code, -Class) is det.
+%
+%   Class is the unique syntax category of Code. First-match priority
+%   over the priority_class/3 clauses; falls through to `unassigned`
+%   for code points that aren't in the Unicode database.
+
+code_class(Lang, Code, Class) :-
+    priority_class(Lang, Code, Class), !.
+code_class(_, _, unassigned).
+
+priority_class(_, Code, layout) :-
+    white_space(Code).
+priority_class(_, Code, decimal) :-
+    unicode_property(Code, general_category('Nd')).
+priority_class(_, Code, id_start_variable) :-
+    unicode_property(Code, general_category(Cat)),
     upper_cat(Cat).
-code_flag_(C, layout) :-
-    white_space(C).
-code_flag_(C, solo) :-
-    unicode_property(C, general_category(Cat)),
+priority_class(_, Code, id_start_atom) :-
+    unicode_derived_core_property(Code, xid_start).
+priority_class(_, Code, id_continue_solo) :-
+    is_id_continue(Code),
+    is_solo_cat(Code).
+priority_class(_, Code, id_continue) :-
+    is_id_continue(Code).
+priority_class(javascript, Code, symbol) :-
+    Code < 256,
+    code_type(Code, prolog_symbol).
+priority_class(_, Code, solo) :-
+    is_solo_cat(Code).
+priority_class(_, Code, other) :-
+    unicode_property(Code, general_category(_)).
+
+is_id_continue(Code) :-
+    unicode_derived_core_property(Code, xid_continue).
+is_id_continue(Code) :-
+    id_superscript(Code).
+is_id_continue(Code) :-
+    id_subscript(Code).
+
+is_solo_cat(Code) :-
+    unicode_property(Code, general_category(Cat)),
     solo_cat(Cat).
-code_flag_(C, decimal) :-
-    unicode_property(C, general_category('Nd')).
+
+%!  category_index(?Class, ?Index) is det.
+%
+%   The 4-bit category enum values stored in bits 0..3 of each
+%   uflags_map byte. Indices 3 and 4 are reserved for Stage 6
+%   (bracket and quote pair semantics); Stage 4 leaves them empty.
+
+category_index(unassigned,        0).
+category_index(other,             0).
+category_index(layout,            1).
+category_index(solo,              2).
+category_index(bracket,           3).
+category_index(quote,             4).
+category_index(id_continue,       5).
+category_index(id_start_atom,     6).
+category_index(id_start_variable, 7).
+category_index(decimal,           8).
+category_index(symbol,            9).
+category_index(id_continue_solo, 10).
+
+%!  cat_to_flags(?Index, ?Flags) is det.
+%
+%   Maps each category index back to the legacy U_* flag-bit pattern.
+%   This preserves the semantics of the existing macros (PlBlankW,
+%   PlSoloW, PlIdContW, ...) while the underlying storage uses the
+%   compact category enum. Generated as a 16-entry C lookup table.
+
+cat_to_flags(0,  0).
+cat_to_flags(1,  0x10).        % U_LAYOUT
+cat_to_flags(2,  0x20).        % U_SOLO
+cat_to_flags(3,  0x20).        % bracket  → solo (Stage 4 placeholder)
+cat_to_flags(4,  0x20).        % quote    → solo (Stage 4 placeholder)
+cat_to_flags(5,  0x02).        % U_ID_CONTINUE
+cat_to_flags(6,  0x03).        % U_ID_START | U_ID_CONTINUE
+cat_to_flags(7,  0x07).        % U_ID_START | U_ID_CONTINUE | U_UPPERCASE
+cat_to_flags(8,  0x82).        % U_ID_CONTINUE | U_DECIMAL
+cat_to_flags(9,  0x08).        % U_SYMBOL
+cat_to_flags(10, 0x22).        % U_SOLO | U_ID_CONTINUE
+cat_to_flags(11, 0).
+cat_to_flags(12, 0).
+cat_to_flags(13, 0).
+cat_to_flags(14, 0).
+cat_to_flags(15, 0).
+
+%!  flag_name(?Name, ?Bit) is multi.
+%
+%   Legacy U_* flag bits, kept as #define output for backward compat
+%   with C code that uses `uflagsW(c) & U_LAYOUT` etc.
+
+flag_name(id_start,    0x01).
+flag_name(id_continue, 0x02).
+flag_name(uppercase,   0x04).
+flag_name(symbol,      0x08).
+flag_name(layout,      0x10).
+flag_name(solo,        0x20).
+flag_name(other,       0x40).
+flag_name(decimal,     0x80).
 
 % See http://www.unicode.org/reports/tr44/#Property_Values
 
@@ -538,7 +637,7 @@ digit(Digit, Options) :-
     Start is CP*256,
     End is Start+255,
     between(Start, End, Digit),
-    code_flag(Digit, decimal).
+    unicode_property(Digit, general_category('Nd')).
 
 digit_blocks(Digits, [Block|BT]) :-
     block(Digits, T, Block),
