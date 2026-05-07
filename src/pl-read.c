@@ -134,7 +134,7 @@ f_is_prolog_solo(int c)
 int
 f_paren_close(int chr)
 { if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
-  { int is_open;
+  { bool is_open;
     int close = pl_pair_lookup(chr, &is_open);
     if ( close && is_open )
       return close;
@@ -145,7 +145,7 @@ f_paren_close(int chr)
 int
 f_paren_open(int chr)
 { if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
-  { int is_open;
+  { bool is_open;
     int open = pl_pair_lookup(chr, &is_open);
     if ( open && !is_open )
       return open;
@@ -158,7 +158,7 @@ f_quote_close(int chr)
 { if ( chr == '\'' || chr == '"' || chr == '`' )
     return chr;
   if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
-  { int is_open;
+  { bool is_open;
     int close = pl_pair_lookup(chr, &is_open);
     if ( close && is_open )
       return close;
@@ -171,7 +171,7 @@ f_quote_open(int chr)
 { if ( chr == '\'' || chr == '"' || chr == '`' )
     return chr;
   if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
-  { int is_open;
+  { bool is_open;
     int open = pl_pair_lookup(chr, &is_open);
     if ( open && !is_open )
       return open;
@@ -1762,7 +1762,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      set_start_line;
 		  }
 		} else			/* >= 0x80 */
-		{ int is_open;
+		{ bool is_open;
 		  int close_cp = pl_pair_lookup(c, &is_open);
 		  if ( close_cp && is_open &&
 		       U_CAT_OF(uflagsRaw(c)) == U_CAT_QUOTE )
@@ -3516,7 +3516,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		}
     case_solo:
-    case SO:	{ int is_open;
+    case SO:	{ bool is_open;
 		  int mate = pl_pair_lookup(c, &is_open);
 		  if ( mate && is_open &&
 		       U_CAT_OF(uflagsRaw(c)) == U_CAT_QUOTE )
@@ -5508,7 +5508,7 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 	case ',':
 	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
-	{ int is_open;
+	{ bool is_open;
 	  if ( pl_pair_lookup(token->value.character, &is_open) && is_open )
 	    return read_paired_term(token, positions, _PL_rd);
 
