@@ -49,7 +49,8 @@
                id_superscript/1,
                id_subscript/1,
                white_space/1,
-               east_asian_width/2]).
+               east_asian_width/2,
+               bidi_mirror/2]).
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
@@ -557,6 +558,10 @@ priority_class(_, Code, id_continue) :-
 priority_class(javascript, Code, symbol) :-
     Code < 256,
     code_type(Code, prolog_symbol).
+priority_class(_, Code, bracket) :-
+    is_bracket_cat(Code).
+priority_class(_, Code, quote) :-
+    is_quote_cat(Code).
 priority_class(_, Code, solo) :-
     is_solo_cat(Code).
 priority_class(_, Code, other) :-
@@ -572,6 +577,43 @@ is_id_continue(Code) :-
 is_solo_cat(Code) :-
     unicode_property(Code, general_category(Cat)),
     solo_cat(Cat).
+
+is_bracket_cat(Code) :-
+    unicode_property(Code, general_category(Cat)),
+    ( Cat == 'Ps' ; Cat == 'Pe' ).
+
+is_quote_cat(Code) :-
+    unicode_property(Code, general_category(Cat)),
+    ( Cat == 'Pi' ; Cat == 'Pf' ).
+
+%!  bracket_pair(?Open, ?Close) is nondet.
+%
+%   Open and Close form a Ps↔Pe bracket pair, derived from
+%   Unicode BidiMirroring.txt and filtered to general_category
+%   Ps (open) / Pe (close).
+
+bracket_pair(Open, Close) :-
+    bidi_mirror(Open, Close),
+    unicode_property(Open, general_category('Ps')),
+    unicode_property(Close, general_category('Pe')).
+
+%!  quote_pair(?Open, ?Close) is nondet.
+%
+%   Open and Close form a Pi↔Pf quote pair. Pi/Pf pairing is
+%   script-conventional rather than algorithmic; the Bidi
+%   mirroring data covers the angled quotation marks but not the
+%   asymmetric curly forms, so the standard curly pairs are
+%   curated below.
+
+quote_pair(Open, Close) :-
+    bidi_mirror(Open, Close),
+    unicode_property(Open, general_category('Pi')),
+    unicode_property(Close, general_category('Pf')).
+quote_pair(Open, Close) :-
+    quote_pair_curated(Open, Close).
+
+quote_pair_curated(0x2018, 0x2019).        % LEFT/RIGHT SINGLE QUOTATION MARK ' '
+quote_pair_curated(0x201C, 0x201D).        % LEFT/RIGHT DOUBLE QUOTATION MARK " "
 
 %!  category_index(?Class, ?Index) is det.
 %
