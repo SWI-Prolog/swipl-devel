@@ -43,7 +43,6 @@
 #include <ctype.h>
 #include <errno.h>
 #ifndef HAVE_WCWIDTH
-#include "../mk_wcwidth.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -221,7 +220,7 @@ rparen(int chr)
 
 static int
 fwidth(int chr)
-{ return mk_wcwidth((uchar_t)chr);
+{ return PL_wcwidth(chr);
 }
 
 static int

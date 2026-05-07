@@ -40,9 +40,6 @@
 #include "pl-arith.h"
 #include <math.h>
 #include <float.h>
-#ifndef HAVE_WCWIDTH
-#include "mk_wcwidth.h"
-#endif
 #include <wchar.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
@@ -666,7 +663,7 @@ atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
   while ( p < e )
   { int c;
     p = (const unsigned char *)utf8_get_char((const char *)p, &c);
-    if ( c >= 0x300 && mk_wcwidth((uchar_t)c) < 1 )
+    if ( c >= 0x300 && PL_wcwidth(c) < 1 )
     { any_combining = true;
       break;
     }
