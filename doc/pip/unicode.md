@@ -246,6 +246,32 @@ appears in a bare term position.
   word processors will occasionally encounter NBSP in the wrong
   place; reporting it as a stray character is the right behaviour.
 
+#### 4.4.1 Line termination
+
+Of the eleven `Pattern_White_Space` code points, seven are
+line-terminator-like and end a line of source text:
+
+    U+000A LF     U+000B VT     U+000C FF     U+000D CR
+    U+0085 NEL    U+2028 LINE SEPARATOR       U+2029 PARAGRAPH SEPARATOR
+
+Conformant implementations should recognise this same set wherever
+a line-ending matters in source text:
+
+- **`%` line comments terminate** on any of the seven (so a comment
+  that contains `U+0085` ends at the NEL, not at the next ASCII
+  LF).
+- **The source-position line counter increments** on each.
+- **Backslash-newline continuation in quoted strings** — the form
+  `\<EOL><blank>*` — accepts any of the seven as the `<EOL>`. The
+  `\<U+0085>` and `\<U+2028>` forms behave the same as `\<LF>`.
+
+The remaining four `Pattern_White_Space` members — `U+0020` SPACE
+and the bidi marks `U+200E` LRM and `U+200F` RLM — are layout but
+**not** line-enders.
+
+The same set is exposed to user code through
+`code_type(C, end_of_line)` and `char_type(C, end_of_line)`.
+
 ### 4.5 Escape sequences
 
 - **`\uXXXX`** — exactly four hexadecimal digits, denoting a
