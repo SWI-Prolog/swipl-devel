@@ -651,8 +651,8 @@ quote_pair_curated(0x201C, 0x201D).        % LEFT/RIGHT DOUBLE QUOTATION MARK " 
 pair_entries(Entries) :-
     findall(pair_entry(Code, Mate, IsOpen),
             ( pair(Open, Close),
-              ( Code = Open,  Mate = Close, IsOpen = 1
-              ; Code = Close, Mate = Open,  IsOpen = 0
+              ( Code = Open,  Mate = Close, IsOpen = true
+              ; Code = Close, Mate = Open,  IsOpen = false
               )
             ),
             Es0),
@@ -669,38 +669,36 @@ write_pair_table(Out, Options) :-
 write_pair_table(Out, _Options) :-
     pair_entries(Entries),
     length(Entries, N),
-    format(Out, '#define PL_PAIR_TABLE_SIZE ~d~n', [N]),
-    format(Out,
-           'typedef struct {~n  \c
-              int code;~n  \c
-              int mate;~n  \c
-              int is_open;~n\c
-            } pl_pair_entry;~n~n', []),
-    format(Out,
-           'static const pl_pair_entry pl_pair_table[PL_PAIR_TABLE_SIZE] =~n\c
-            { ', []),
+    format(Out, '#define PL_PAIR_TABLE_SIZE ~d~n~n', [N]),
+    format(Out, 'typedef struct~n', []),
+    format(Out, '{ int  code;~n', []),
+    format(Out, '  int  mate;~n', []),
+    format(Out, '  bool is_open;~n', []),
+    format(Out, '} pl_pair_entry;~n~n', []),
+    format(Out, 'static const pl_pair_entry pl_pair_table[PL_PAIR_TABLE_SIZE] =~n', []),
+    format(Out, '{ ', []),
     write_pair_entries(Entries, Out, 0),
     format(Out, '~N};~n~n', []),
-    format(Out,
-           '/* Binary-search the pair table for `code`.  Returns the matching\n\c
-                delimiter (open ↔ close) or 0 if `code` is not a paired\n\c
-                bracket / quote.  `*is_open` (if non-NULL) gets 1 when `code`\n\c
-                is the open side, 0 when it is the close.\n\c
-             */~n\c
-            static int~n\c
-            pl_pair_lookup(int code, int *is_open)~n\c
-            { int lo = 0, hi = PL_PAIR_TABLE_SIZE - 1;~n\c
-              while ( lo <= hi )~n\c
-              { int mid = (lo + hi) / 2;~n\c
-                int c = pl_pair_table[mid].code;~n\c
-                if ( code == c )~n\c
-                { if ( is_open ) *is_open = pl_pair_table[mid].is_open;~n  \c
-                    return pl_pair_table[mid].mate;~n\c
-                }~n\c
-                if ( code < c ) hi = mid - 1; else lo = mid + 1;~n\c
-              }~n\c
-              return 0;~n\c
-            }~n~n', []).
+    format(Out, '/* Binary-search the pair table for `code`.  Returns the matching~n', []),
+    format(Out, ' * delimiter (open <-> close) or 0 if `code` is not a paired~n', []),
+    format(Out, ' * bracket / quote.  `*is_open` (if non-NULL) gets true when~n', []),
+    format(Out, ' * `code` is the open side, false when it is the close.~n', []),
+    format(Out, ' */~n~n', []),
+    format(Out, 'static int~n', []),
+    format(Out, 'pl_pair_lookup(int code, bool *is_open)~n', []),
+    format(Out, '{ int lo = 0, hi = PL_PAIR_TABLE_SIZE - 1;~n~n', []),
+    format(Out, '  while ( lo <= hi )~n', []),
+    format(Out, '  { int mid = (lo + hi) / 2;~n', []),
+    format(Out, '    int c = pl_pair_table[mid].code;~n~n', []),
+    format(Out, '    if ( code == c )~n', []),
+    format(Out, '    { if ( is_open )~n', []),
+    format(Out, '	*is_open = pl_pair_table[mid].is_open;~n', []),
+    format(Out, '      return pl_pair_table[mid].mate;~n', []),
+    format(Out, '    }~n', []),
+    format(Out, '    if ( code < c ) hi = mid - 1; else lo = mid + 1;~n', []),
+    format(Out, '  }~n~n', []),
+    format(Out, '  return 0;~n', []),
+    format(Out, '}~n~n', []).
 
 write_pair_entries([], _, _).
 write_pair_entries([pair_entry(Code, Mate, IsOpen)|T], Out, I) :-
