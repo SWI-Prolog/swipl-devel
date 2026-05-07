@@ -76,22 +76,54 @@ static void	  addUTF8Buffer(Buffer b, int c);
 		 *******************************/
 
 #define CharTypeA(c, t) (_PL_char_types[(unsigned)(c)] t)
-#define CharTypeW(c, t, w) \
-	((unsigned)(c) < 0x80 ? CharTypeA(c, t) : (uflagsW(c) & (w)))
 
-#define PlBlankW(c)	CharTypeW(c, == SP, U_LAYOUT)
-#define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
-#define PlIdStartW(c)	((unsigned)(c) < 0x80 ? \
-				(isLower(c)||isUpper(c)||c=='_') \
-				: uflagsW(c) & U_ID_START)
-#define PlIdContW(c) \
-	((unsigned)(c) <= 0x7F ? CharTypeA(c, >= UC) \
-			       : (uflagsW(c) & U_ID_CONTINUE))
-#define PlSymbolW(c)	CharTypeW(c, == SY, 0)
-#define PlDecimalW(c)	CharTypeW(c, == DI, U_DECIMAL)
-#define PlPunctW(c)	CharTypeW(c, == PU, 0)
-#define PlSoloW(c)	CharTypeW(c, == SO, U_SOLO)
-#define PlInvalidW(c)   (uflagsW(c) == 0)
+/* Tokeniser predicates for code points >= 0x80 dispatch directly on
+ * the u_category enum stored in bits 0..3 of uflags_map.  ASCII
+ * (c < 0x80) goes through the legacy _PL_char_types table.
+ */
+
+static inline bool
+pl_cat_is_id_start(u_category cat)
+{ return cat == U_CAT_ID_START_ATOM || cat == U_CAT_ID_START_VARIABLE;
+}
+
+static inline bool
+pl_cat_is_id_continue(u_category cat)
+{ switch ( cat )
+  { case U_CAT_ID_CONTINUE:
+    case U_CAT_ID_START_ATOM:
+    case U_CAT_ID_START_VARIABLE:
+    case U_CAT_DECIMAL:
+    case U_CAT_ID_CONTINUE_SOLO:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static inline bool
+pl_cat_is_solo(u_category cat)
+{ return cat == U_CAT_SOLO || cat == U_CAT_ID_CONTINUE_SOLO;
+}
+
+#define PlCatW(c)	U_CAT_OF(uflagsRaw(c))
+
+#define PlBlankW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == SP) \
+					      : PlCatW(c) == U_CAT_LAYOUT)
+#define PlUpperW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == UC) \
+					      : PlCatW(c) == U_CAT_ID_START_VARIABLE)
+#define PlIdStartW(c)	((unsigned)(c) < 0x80 \
+			   ? (isLower(c)||isUpper(c)||(c)=='_') \
+			   : pl_cat_is_id_start(PlCatW(c)))
+#define PlIdContW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, >= UC) \
+					      : pl_cat_is_id_continue(PlCatW(c)))
+#define PlSymbolW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == SY) : false)
+#define PlDecimalW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == DI) \
+					      : PlCatW(c) == U_CAT_DECIMAL)
+#define PlPunctW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == PU) : false)
+#define PlSoloW(c)	((unsigned)(c) < 0x80 ? CharTypeA(c, == SO) \
+					      : pl_cat_is_solo(PlCatW(c)))
+#define PlInvalidW(c)	(PlCatW(c) == U_CAT_OTHER)
 
 /* these functions  must be of type  int (*)(int) as they  are used by
  * os/pl-ctype.c for function pointers  of this type.  Other functions
@@ -133,7 +165,7 @@ f_is_prolog_solo(int c)
 
 int
 f_paren_close(int chr)
-{ if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
+{ if ( PlCatW(chr) == U_CAT_BRACKET )
   { bool is_open;
     int close = pl_pair_lookup(chr, &is_open);
     if ( close && is_open )
@@ -144,7 +176,7 @@ f_paren_close(int chr)
 
 int
 f_paren_open(int chr)
-{ if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_BRACKET )
+{ if ( PlCatW(chr) == U_CAT_BRACKET )
   { bool is_open;
     int open = pl_pair_lookup(chr, &is_open);
     if ( open && !is_open )
@@ -157,7 +189,7 @@ int
 f_quote_close(int chr)
 { if ( chr == '\'' || chr == '"' || chr == '`' )
     return chr;
-  if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
+  if ( PlCatW(chr) == U_CAT_QUOTE )
   { bool is_open;
     int close = pl_pair_lookup(chr, &is_open);
     if ( close && is_open )
@@ -170,7 +202,7 @@ int
 f_quote_open(int chr)
 { if ( chr == '\'' || chr == '"' || chr == '`' )
     return chr;
-  if ( U_CAT_OF(uflagsRaw(chr)) == U_CAT_QUOTE )
+  if ( PlCatW(chr) == U_CAT_QUOTE )
   { bool is_open;
     int open = pl_pair_lookup(chr, &is_open);
     if ( open && !is_open )
@@ -195,35 +227,35 @@ unicode_separator(int c)
 		 *******************************/
 
 /* The PL_is_* functions below expose SWI-Prolog's Unicode classifier
- * (`uflagsW`, fed by `src/pl-umap.c`) to foreign code.  They wrap one
- * U_* flag each and answer for the full Unicode range, locale-
- * independently.  Thin enough that the natural home is here, where the
+ * to foreign code, dispatching directly on the u_category enum
+ * stored in src/pl-umap.c. They answer for the full Unicode range,
+ * locale-independently, and are thin enough to live here where the
  * `pl-umap.c` table is in scope.
  */
 
 bool
 PL_is_id_start(int chr)
-{ return (uflagsW(chr) & U_ID_START) != 0;
+{ return pl_cat_is_id_start(PlCatW(chr));
 }
 
 bool
 PL_is_id_continue(int chr)
-{ return (uflagsW(chr) & U_ID_CONTINUE) != 0;
+{ return pl_cat_is_id_continue(PlCatW(chr));
 }
 
 bool
 PL_is_uppercase(int chr)
-{ return (uflagsW(chr) & U_UPPERCASE) != 0;
+{ return PlCatW(chr) == U_CAT_ID_START_VARIABLE;
 }
 
 bool
 PL_is_decimal(int chr)
-{ return (uflagsW(chr) & U_DECIMAL) != 0;
+{ return PlCatW(chr) == U_CAT_DECIMAL;
 }
 
 bool
 PL_is_layout(int chr)
-{ return (uflagsW(chr) & U_LAYOUT) != 0;
+{ return PlCatW(chr) == U_CAT_LAYOUT;
 }
 
 /* Display width of a Unicode code point, in terminal columns.
@@ -3391,16 +3423,40 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     return NULL;
   }
   if ( c >= 0x80 )
-  { if ( PlIdStartW(c) )
-    { if ( PlUpperW(c) )
+  { switch ( PlCatW(c) )
+    { case U_CAT_ID_START_VARIABLE:
 	goto upper;
-      goto lower;
+      case U_CAT_ID_START_ATOM:
+	goto lower;
+      case U_CAT_BRACKET:
+	cur_token.value.character = c;
+	cur_token.type = T_PUNCTUATION;
+	DEBUG(MSG_READ_TOKEN,
+	      Sdprintf("PUNCT(bracket): U+%04X\n", c));
+	goto out;
+      case U_CAT_QUOTE:
+      { bool is_open = false;
+	int mate = pl_pair_lookup(c, &is_open);
+	if ( mate && is_open )
+	{ if ( !read_unicode_quote_token(c, mate, _PL_rd) )
+	    fail;
+	  DEBUG(MSG_READ_TOKEN,
+		Sdprintf("STRING(quote): U+%04X..U+%04X\n", c, mate));
+	  goto out;
+	}
+	/* Stray quote close at top level (defensive — raw_read should
+	 * have consumed the close inside raw_read_quoted).
+	 */
+	cur_token.value.character = c;
+	cur_token.type = T_PUNCTUATION;
+	goto out;
+      }
+      case U_CAT_SOLO:
+      case U_CAT_ID_CONTINUE_SOLO:
+	goto case_solo;
+      default:
+	syntaxError("illegal_character", _PL_rd);
     }
-    if ( PlSymbolW(c) )
-      goto case_symbol;
-    if ( PlSoloW(c) )
-      goto case_solo;
-    syntaxError("illegal_character", _PL_rd);
   }
 
   switch(_PL_char_types[c])
@@ -3516,36 +3572,18 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		}
     case_solo:
-    case SO:	{ bool is_open;
-		  int mate = pl_pair_lookup(c, &is_open);
-		  if ( mate && is_open &&
-		       U_CAT_OF(uflagsRaw(c)) == U_CAT_QUOTE )
-		  { /* Unicode quote pair open: read literal content,
-		     * build '<open><close>'/1 compound, emit T_STRING.
-		     */
-		    if ( !read_unicode_quote_token(c, mate, _PL_rd) )
-		      fail;
-		    DEBUG(MSG_READ_TOKEN,
-			  Sdprintf("STRING(quote-pair): U+%04X..U+%04X\n",
-				   c, mate));
-		  } else if ( mate )
-		  { /* Bracket open/close, or quote close (defensive):
-		     * emit T_PUNCTUATION so complex_term() can stop on
-		     * the close and the parser dispatch can route the
-		     * open to read_paired_term().
-		     */
-		    cur_token.value.character = c;
-		    cur_token.type = T_PUNCTUATION;
-		    DEBUG(MSG_READ_TOKEN,
-			  Sdprintf("PUNCT(pair): U+%04X\n", c));
-		  } else
-		  { cur_token.value.atom = codeToAtom(c);	/* not registered */
-		    cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		    DEBUG(MSG_READ_TOKEN,
-			  Sdprintf("%s: %s\n",
-				   *rdhere == '(' ? "FUNC" : "NAME",
-				   stringAtom(cur_token.value.atom)));
-		  }
+    case SO:	{ /* Single-code-point atom.  Bracket / quote-pair handling
+		   * is dispatched directly from the c >= 0x80 switch above
+		   * (and from the ASCII PU case when followed by '('); we
+		   * only get here for plain U_CAT_SOLO and
+		   * U_CAT_ID_CONTINUE_SOLO code points.
+		   */
+		  cur_token.value.atom = codeToAtom(c);	/* not registered */
+		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
+		  DEBUG(MSG_READ_TOKEN,
+			Sdprintf("%s: %s\n",
+				 *rdhere == '(' ? "FUNC" : "NAME",
+				 stringAtom(cur_token.value.atom)));
 		  break;
 		}
     case_symbol:

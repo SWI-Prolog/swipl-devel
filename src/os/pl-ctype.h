@@ -62,7 +62,8 @@ extern const char _PL_char_types[];	/* array of character types (0..127) */
 
 /* The is* macros classify ASCII (0..127) only; they return false for any
  * code point >= 0x80. Use the corresponding *W (wide) macros below or the
- * Unicode flag table (uflagsW/PlBlankW/etc.) for non-ASCII handling.
+ * PlBlankW / PlIdStartW / ... macros in pl-read.c (which dispatch on the
+ * u_category enum stored in src/pl-umap.c) for non-ASCII handling.
  */
 #define isControl(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == CT)
 #define isBlank(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == SP)
