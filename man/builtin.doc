@@ -8130,19 +8130,21 @@ etc.).
     \termitem{quote}{}
 \arg{Char} is a quote character (\verb$"$, \verb$'$, \verb$`$).
     \termitem{paren}{Close}
-\arg{Char} is an opening bracket and \arg{Close} is its matching close.
-Covers the ASCII brackets \chr{(}\chr{)}, \chr{[}\chr{]}, \chr{\{}\chr{\}}
-and every Unicode \const{Ps}/\const{Pe} pair (e.g.\ U+27E8/U+27E9
-\verb$⟨⟩$, U+300C/U+300D \verb$「」$, ...). The mapping
+\arg{Char} is an opening bracket and \arg{Close} is its matching
+close. Covers the three ASCII bracket pairs \verb$()$, \verb$[]$
+and \verb${}$, plus every Unicode \const{Ps}/\const{Pe} pair (about
+60 pairs in Unicode 17, including angle, corner, ceiling, floor,
+mathematical, ornamental, fullwidth and CJK brackets). The mapping
 is reversible: with \arg{Close} bound, \arg{Char} unifies with the
 matching open.
     \termitem{quote}{Close}
-\arg{Char} is an opening quotation mark and \arg{Close} is its matching
-close. The ASCII quotes \chr{'}, \chr{"} and \verb$`$ have
+\arg{Char} is an opening quotation mark and \arg{Close} is its
+matching close. The ASCII quotes \chr{'}, \chr{"}, and \chr{`} have
 \arg{Close} = \arg{Char}; Unicode \const{Pi}/\const{Pf} quote pairs
-(e.g.\ U+00AB/U+00BB \verb$«»$, U+2018/U+2019 \verb$‘’$,
-U+201C/U+201D \verb$“”$, ...) have \arg{Close} different from
-\arg{Char}. The mapping is reversible.
+(the guillemets, the standard left/right curly single and double
+quotes, and the single/double angle and reversed quotation marks)
+have \arg{Close} different from \arg{Char}. The mapping is
+reversible.
     \termitem{width}{Width}
 \arg{Width} is the number of columns for fixed-width usage
 used by \arg{Char}.  True for all printable characters.  Most
