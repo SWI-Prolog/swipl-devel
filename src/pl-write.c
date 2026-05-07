@@ -47,7 +47,6 @@
 #include "pl-modul.h"
 #include "pl-setup.h"
 #include "pl-nt.h"
-#include "mk_wcwidth.h"
 #include <wchar.h>
 #include <math.h>
 #include "os/pl-dtoa.h"
@@ -305,7 +304,7 @@ atom_has_combining(atom_t a)
     size_t i, len = ap->length / sizeof(pl_wchar_t);
 
     for(i=0; i<len; i++)
-    { if ( w[i] >= 0x300 && mk_wcwidth((uchar_t)w[i]) == 0 )
+    { if ( w[i] >= 0x300 && PL_wcwidth((int)w[i]) == 0 )
 	return true;
     }
   }
@@ -659,7 +658,7 @@ PutCloseBrace(IOSTREAM *s)
 
 static bool
 unicode_quoted_escape(int c)
-{ return mk_wcwidth((uchar_t)c) < 0;
+{ return PL_wcwidth(c) < 0;
 }
 
 static bool

@@ -66,7 +66,6 @@
 #include "pl-rec.h"
 #include "pl-trace.h"
 #include "pl-copyterm.h"
-#include "mk_wcwidth.h"
 #include <errno.h>
 #ifdef __WINDOWS__
 #include "pl-nt.h"

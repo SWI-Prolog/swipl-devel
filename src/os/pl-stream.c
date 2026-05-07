@@ -47,7 +47,6 @@
 #include <config.h>
 #endif
 
-#include "../mk_wcwidth.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
@@ -755,7 +754,7 @@ Supdatepos(IOPOS *p, int c)
       p->linepos |= 7;
       /*FALLTHROUGH*/
     default:
-      p->linepos += mk_wcwidth((uchar_t)c);
+      p->linepos += PL_wcwidth(c);
   }
 
   return false;

@@ -501,8 +501,9 @@ code_byte(Lang, Code, Byte) :-
 %      1  normal printable
 %      2  wide (East Asian W or F, or default-W in CJK ranges)
 %
-%   The classification matches Markus Kuhn's mk_wcwidth() behavior
-%   updated to current Unicode data: combining is general category
+%   The classification follows the conventions used by POSIX
+%   wcwidth() and Markus Kuhn's reference implementation, evaluated
+%   against current Unicode data: combining is general category
 %   Mn/Me + Cf (with U+00AD SOFT HYPHEN as the documented exception
 %   that stays width 1); Hangul Jamo medial/final consonants
 %   (U+1160..U+11FF) and U+200B ZERO WIDTH SPACE are zero; East Asian

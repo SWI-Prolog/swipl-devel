@@ -55,9 +55,6 @@ source should also use format() to produce error messages, etc.
 #ifdef __WINDOWS__
 #include "../pl-nt.h"
 #endif
-#ifndef HAVE_WCWIDTH
-#include "../mk_wcwidth.h"
-#endif
 
 typedef foreign_t (*Func1)(term_t a1);
 
@@ -106,7 +103,7 @@ static PL_locale prolog_locale =
 static inline void
 update_column(format_state *state, int c)
 { if ( likely(c >= ' ') )
-  { state->column += mk_wcwidth((uchar_t)c);
+  { state->column += PL_wcwidth(c);
   } else
   { switch(c)
     { case '\n':

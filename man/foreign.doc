@@ -1657,10 +1657,7 @@ and stored as two bits in each \jargon{uflags_map} entry alongside the
 syntax classification used by the parser; runtime lookups are a single
 byte fetch.  The Unicode version that drives the table is reported by
 the \prologflag{unicode_syntax_version} flag (see
-\secref{unicodesyntax}).  Markus Kuhn's \funcref{mk_wcwidth}{} entry
-point still exists as a thin wrapper around \funcref{PL_wcwidth}{} so
-that external code linked against \pllib{libswipl} continues to see
-the same Unicode data the kernel uses.
+\secref{unicodesyntax}).
 
 The argument is a full 32-bit code point.  Avoid casting to
 \ctype{wchar_t} before the call: \ctype{wchar_t} is 16-bit on Windows,
