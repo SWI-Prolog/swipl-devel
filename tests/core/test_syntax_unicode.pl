@@ -135,22 +135,54 @@ test(nbsp_is_not_layout, [error(syntax_error(_))]) :-
 
 :- begin_tests(syntax_unicode_eol).
 
-% --- code_type/2 end_of_line covers the seven line-terminator-like
-%     Pattern_White_Space code points: LF, VT, FF, CR, NEL (U+0085),
-%     LS (U+2028), PS (U+2029).
+% --- end_of_line is the ISO/POSIX ASCII set: LF, VT, FF, CR ------------
 
 test(end_of_line_lf)  :- code_type(0x000A, end_of_line).
 test(end_of_line_vt)  :- code_type(0x000B, end_of_line).
 test(end_of_line_ff)  :- code_type(0x000C, end_of_line).
 test(end_of_line_cr)  :- code_type(0x000D, end_of_line).
-test(end_of_line_nel) :- code_type(0x0085, end_of_line).
-test(end_of_line_ls)  :- code_type(0x2028, end_of_line).
-test(end_of_line_ps)  :- code_type(0x2029, end_of_line).
+test(end_of_line_nel_no, fail)  :- code_type(0x0085, end_of_line).
+test(end_of_line_ls_no, fail)   :- code_type(0x2028, end_of_line).
+test(end_of_line_ps_no, fail)   :- code_type(0x2029, end_of_line).
+test(end_of_line_space_no, fail):- code_type(0x0020, end_of_line).
+test(end_of_line_nbsp_no, fail) :- code_type(0x00A0, end_of_line).
 
-test(end_of_line_space_no, fail)  :- code_type(0x0020, end_of_line).
-test(end_of_line_nbsp_no, fail)   :- code_type(0x00A0, end_of_line).
+% --- prolog_end_of_line covers the seven line-terminator-like
+%     Pattern_White_Space code points used by the Prolog reader:
+%     LF, VT, FF, CR, NEL (U+0085), LS (U+2028), PS (U+2029).
 
-% --- %-comments terminate on the same set ------------------------------
+test(prolog_eol_lf)  :- code_type(0x000A, prolog_end_of_line).
+test(prolog_eol_vt)  :- code_type(0x000B, prolog_end_of_line).
+test(prolog_eol_ff)  :- code_type(0x000C, prolog_end_of_line).
+test(prolog_eol_cr)  :- code_type(0x000D, prolog_end_of_line).
+test(prolog_eol_nel) :- code_type(0x0085, prolog_end_of_line).
+test(prolog_eol_ls)  :- code_type(0x2028, prolog_end_of_line).
+test(prolog_eol_ps)  :- code_type(0x2029, prolog_end_of_line).
+
+test(prolog_eol_space_no, fail)  :- code_type(0x0020, prolog_end_of_line).
+test(prolog_eol_nbsp_no, fail)   :- code_type(0x00A0, prolog_end_of_line).
+
+% --- prolog_layout covers the eleven Pattern_White_Space code points
+%     used by the Prolog reader as layout (UAX #31).
+
+test(prolog_layout_tab)        :- code_type(0x0009, prolog_layout).
+test(prolog_layout_lf)         :- code_type(0x000A, prolog_layout).
+test(prolog_layout_vt)         :- code_type(0x000B, prolog_layout).
+test(prolog_layout_ff)         :- code_type(0x000C, prolog_layout).
+test(prolog_layout_cr)         :- code_type(0x000D, prolog_layout).
+test(prolog_layout_space)      :- code_type(0x0020, prolog_layout).
+test(prolog_layout_nel)        :- code_type(0x0085, prolog_layout).
+test(prolog_layout_lrm)        :- code_type(0x200E, prolog_layout).
+test(prolog_layout_rlm)        :- code_type(0x200F, prolog_layout).
+test(prolog_layout_ls)         :- code_type(0x2028, prolog_layout).
+test(prolog_layout_ps)         :- code_type(0x2029, prolog_layout).
+
+test(prolog_layout_nbsp_no, fail)        :- code_type(0x00A0, prolog_layout).
+test(prolog_layout_ogham_no, fail)       :- code_type(0x1680, prolog_layout).
+test(prolog_layout_ideographic_no, fail) :- code_type(0x3000, prolog_layout).
+test(prolog_layout_letter_no, fail)      :- code_type(0'a,    prolog_layout).
+
+% --- %-comments terminate on the prolog_end_of_line set ----------------
 
 test(comment_terminated_by_nel) :-
     atom_codes(S, [0'%, 0' , 0'c, 0'o, 0'm, 0'm, 0'e, 0'n, 0't,

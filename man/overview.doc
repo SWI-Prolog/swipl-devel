@@ -3371,7 +3371,10 @@ Seven of the Pattern_White_Space code points end a line: U+000A
 and act as the \jargon{newline} for backslash-newline continuation
 inside quoted strings (\verb$\<EOL>$ followed by zero or more
 blanks is consumed). The same set is exposed to user code through
-\const{end_of_line} in code_type/2 and char_type/2.
+\const{prolog_end_of_line} in code_type/2 and char_type/2; the
+unprefixed \const{end_of_line} stays restricted to the four
+ISO/POSIX control codes (LF, VT, FF, CR), and the eleven-member
+Pattern_White_Space set itself is \const{prolog_layout}.
 
     \item [Stray characters in source text]
 At token-start position (where layout is allowed), a code point

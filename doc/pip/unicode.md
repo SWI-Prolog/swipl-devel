@@ -272,8 +272,21 @@ The remaining four `Pattern_White_Space` members — `U+0020` SPACE
 and the bidi marks `U+200E` LRM and `U+200F` RLM — are layout but
 **not** line-enders.
 
-The same set is exposed to user code through
-`code_type(C, end_of_line)` and `char_type(C, end_of_line)`.
+User code can ask for either set via `char_type/2` /
+`code_type/2`:
+
+- **`prolog_layout`** — the eleven `Pattern_White_Space` code
+  points (the parser's notion of layout).
+- **`prolog_end_of_line`** — the seven line-terminator-like
+  members of that set.
+- **`end_of_line`** — kept at the original ISO/POSIX definition,
+  the four ASCII control codes LF, VT, FF, CR. Code that needs
+  the wider set should use `prolog_end_of_line`.
+
+The `prolog_*` prefix follows the existing convention for
+parser-specific predicates (`prolog_var_start`,
+`prolog_atom_start`, `prolog_identifier_continue`,
+`prolog_symbol`).
 
 #### 4.4.2 Stray characters in source text
 

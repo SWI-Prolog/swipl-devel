@@ -104,6 +104,18 @@ isnl(int chr)
 { return chr == '\n';
 }
 
+/* Original ISO/POSIX `end_of_line': the four ASCII control codes
+ * recognised as line-ending in C string literals (\n \v \f \r).
+ * The locale-independent superset that adds U+0085, U+2028 and
+ * U+2029 is exposed under \term{prolog_end_of_line}{} (driven by
+ * is_eol_char from pl-read.c).
+ */
+
+static int
+iseol(int chr)
+{ return chr >= 10 && chr <= 13;
+}
+
 static int
 isperiod(int chr)
 { return chr && strchr(".?!", chr) != NULL;
@@ -297,7 +309,9 @@ static const char_type char_types[] =
   { ATOM_punct,			     fiswpunct },
   { ATOM_space,			     fiswspace },
   { ATOM_end_of_file,		     iseof },
-  { ATOM_end_of_line,		     is_eol_char },
+  { ATOM_end_of_line,		     iseol },
+  { ATOM_prolog_end_of_line,	     is_eol_char },
+  { ATOM_prolog_layout,		     unicode_separator },
   { ATOM_newline,		     isnl },
   { ATOM_period,		     isperiod },
   { ATOM_quote,			     isquote },

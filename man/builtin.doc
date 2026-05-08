@@ -8133,11 +8133,10 @@ etc.).
     \termitem{end_of_file}{}
 \arg{Char} is -1.
     \termitem{end_of_line}{}
-\arg{Char} ends a line. Covers the seven line-terminator-like
-Pattern_White_Space code points: U+000A (LF), U+000B (VT), U+000C
-(FF), U+000D (CR), U+0085 (NEL), U+2028 (LINE SEPARATOR), and
-U+2029 (PARAGRAPH SEPARATOR). The same set drives \chr{%} comment
-termination at the source-text level (see \secref{unicodesyntax}).
+\arg{Char} is one of the four ISO/POSIX line-ending control codes
+U+000A LF, U+000B VT, U+000C FF, U+000D CR. This is the original
+ISO Prolog and C-string-literal definition; \term{prolog_end_of_line}{}
+is the wider set used by the SWI-Prolog reader.
     \termitem{newline}{}
 \arg{Char} is a newline character (10).
     \termitem{period}{}
@@ -8167,6 +8166,21 @@ characters require 1 column.  \jargon{Unicode combining characters}
 require no space (they follow the \jargon{base character}).  Many
 Asian characters and the Emojis require 2 columns.  These values
 are used by stream_property/2 for the \term{position}{-Pos} property.
+    \termitem{prolog_layout}{}
+\arg{Char} is a Prolog \jargon{layout} character: a member of the
+Unicode \const{Pattern_White_Space} set used by read_term/2 to
+separate tokens. The eleven code points are U+0009..U+000D,
+U+0020, U+0085, U+200E, U+200F, U+2028 and U+2029. Locale-
+independent; pinned to \prologflag{unicode_syntax_version}.
+\term{prolog_end_of_line}{} is the seven-element line-terminator
+subset.
+    \termitem{prolog_end_of_line}{}
+\arg{Char} ends a line of Prolog source text. Covers the seven
+line-terminator-like \const{Pattern_White_Space} code points:
+U+000A (LF), U+000B (VT), U+000C (FF), U+000D (CR), U+0085 (NEL),
+U+2028 (LINE SEPARATOR), and U+2029 (PARAGRAPH SEPARATOR). The
+same set terminates \chr{%} comments and increments the source
+line counter. See \secref{unicodesyntax}.
     \termitem{prolog_var_start}{}
 \arg{Char} can start a Prolog variable name.
     \termitem{prolog_atom_start}{}
