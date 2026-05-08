@@ -527,26 +527,43 @@ UTF8PROC_STABLE | UTF8PROC_COMPOSE)` from a wrapper around utf8proc
 loaded as `library(unicode)`.  When that library is not loaded the
 kernel hook is `NULL`.
 
-**Reader option.**  `read_term/2,3` and `read_clause/2,3` accept a
-new option `normalize(Bool)`.  When `true`, the text of *unquoted*
-atoms (and unquoted functor names) is run through the hook before
-the atom is interned, so two source forms that are canonically
-equivalent yield the same atom.  Quoted atoms and string literals
-are left alone — they are byte-faithful by design.  Requesting
-`normalize(true)` without a registered hook raises
-`existence_error(hook, unicode_normalize)` so the user is told
-exactly what is missing.
+**Four-mode policy.**  Reader-time atom-content handling is one
+of four modes: `accept`, `nfc`, `error`, or `reject`. The mode
+applies to *unquoted* atoms only; quoted atoms and string literals
+are byte-faithful regardless of mode.
 
-**Prolog flag.**  A read/write Boolean flag `unicode_normalize`
-provides the default value of the option, so `read_term/2`,
-`read_clause/2`, and consult-style loaders pick it up without
-per-call wiring.  The flag has an *active setter*: setting it to
-`true` while no hook is registered triggers a kernel-side load of
-the normalisation library, propagating any
+- `accept` (default) — pass unquoted-atom bytes through verbatim.
+- `nfc` — normalise to Unicode NFC before interning, so two source
+  forms that are canonically equivalent yield the same atom.
+  Requires the kernel normalisation hook; the implementation
+  auto-loads `library(unicode)` if no hook is yet registered.
+  An unavailable library propagates the underlying
+  `existence_error(source_sink, library(unicode))`.
+- `error` — raise `syntax_error(non_nfc_atom)` when an unquoted
+  atom is not in NFC. Uses the kernel hook for an exact NFC test
+  when `library(unicode)` is loaded; otherwise falls back to
+  rejecting any code point with `wcwidth(c) < 1` (combining marks,
+  zero-width and non-printable characters), which is conservative
+  but accurate enough for source-code review and works without any
+  Unicode-data dependency. This is the deliberate "ship a
+  classifier, not a normaliser" path.
+- `reject` — raise `syntax_error(non_ascii_atom)` when an unquoted
+  atom contains any non-ASCII code point. Independent of
+  `library(unicode)` entirely.
+
+**Configuration surface.** The mode is settable per-call via a
+`unicode_atoms(Mode)` option to `read_term/[2,3]`, `read_clause/[2,3]`,
+and `open/4`; per-stream via the `unicode_atoms` property of
+`set_stream/2` and `stream_property/2`; and globally via the
+read/write Prolog flag `unicode_atoms`. Per-call wins over per-
+stream wins over flag default. The flag has an *active setter*:
+setting it to `nfc` while no hook is registered triggers a kernel-
+side load of the normalisation library, propagating any
 `existence_error(source_sink, ...)` raised by `use_module/1` if
-the library is unavailable.  This keeps the binding to a specific
-library out of the language definition while still giving users a
-one-line way to turn the feature on.
+the library is unavailable. The four values, their semantics,
+and the auto-load / fallback behaviour are described in one place
+(the `unicode_atoms` option of `read_term/[2,3]`); the other sites
+cross-reference it.
 
 **Writer NFC quoting.**  Under `quoted(true)` (i.e.\ `writeq/1`,
 `portray_clause/1`, etc.), the writer additionally force-quotes
