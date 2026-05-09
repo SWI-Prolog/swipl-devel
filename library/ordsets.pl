@@ -53,6 +53,7 @@
                                         % Non-Quintus extensions
             ord_empty/1,                % ?Set
             ord_memberchk/2,            % +Element, +Set,
+            ord_range/4,                % +Set, +Min, +Max, -Range
             ord_symdiff/3,              % +Set1, +Set2, ?Diff
                                         % SICSTus extensions
             ord_seteq/2,                % +Set1, +Set2
@@ -352,6 +353,72 @@ ord_memberchk(Item, [X1,X2|Xs]) :-
 ord_memberchk(Item, [X1]) :-
     Item == X1.
 
+%!  ord_range(+Set, +Min, +Max, -Range) is det.
+%
+%   Retrieves a range of elements between `Min` and `Max` (inclusive)
+%   from a set using standard term comparison.
+
+ord_range([X1, X2, X3, X4|Xs], Min, Max, Range) =>
+    (   X4 @< Min
+    ->  ord_range(Xs, Min, Max, Range)
+    ;   (   X2 @< Min
+        ->  (   X3 @< Min
+            ->  ord_take([X4 | Xs], Max, Range)
+            ;   ord_take([X3, X4 | Xs], Max, Range)
+            )
+        ;   (   X1 @< Min
+            ->  ord_take([X2, X3, X4 | Xs], Max, Range)
+            ;   ord_take([X1, X2, X3, X4 | Xs], Max, Range)
+            )
+        )
+    ).
+ord_range([X1, X2 | Xs], Min, Max, Range) =>
+    (   X2 @< Min
+    ->  ord_range(Xs, Min, Max, Range)
+    ;   (   X1 @< Min
+        ->  ord_take([X2 | Xs], Max, Range)
+        ;   ord_take([X1, X2 | Xs], Max, Range)
+        )
+    ).
+ord_range([X], Min, Max, Range) =>
+    (   X @>= Min, X @=< Max
+    -> Range = [X]
+    ;   Range = []
+    ).
+ord_range([], _Min, _Max, Range) =>
+    Range = [].
+
+ord_take([X1, X2, X3, X4|Xs], Max, Range) =>
+    (   X4 @=< Max
+    ->  Range = [X1, X2, X3, X4|Rest],
+        ord_take(Xs, Max, Rest)
+    ;   (   X2 @=< Max
+        ->  (   X3 @=< Max
+            ->  Range = [X1, X2, X3]
+            ;   Range = [X1, X2]
+            )
+        ;   (   X1 @=< Max
+            ->  Range = [X1]
+            ;   Range = []
+            )
+        )
+    ).
+ord_take([X1, X2 | Xs], Max, Range) =>
+    (   X2 @=< Max
+    ->  Range = [X1, X2 | Rest],
+        ord_take(Xs, Max, Rest)
+    ;   (   X1 @=< Max
+        ->  Range = [X1]
+        ;   Range = []
+        )
+    ).
+ord_take([X], Max, Range) =>
+    (   X @=< Max
+    ->  Range = [X]
+    ;   Range = []
+    ).
+ord_take([], _Max, Range) =>
+    Range = [].
 
 %!  ord_subset(+Sub, +Super) is semidet.
 %
