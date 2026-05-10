@@ -112,7 +112,7 @@ set(SWIPL_PACKAGE_LIST_GUI
     xpce)
 
 set(SWIPL_PACKAGE_LIST_WASM
-    clpqr plunit chr clib http semweb pcre)
+    clpqr plunit chr clib http semweb pcre utf8proc)
 
 # swipl_package_component(pkg var)
 #
