@@ -6,12 +6,24 @@
 \usepackage{makeidx}
 \usepackage{url}
 
-% Times-like text font, portable across pdflatex and lualatex
+% Times-like text font, portable across pdflatex and lualatex.  Under
+% lualatex install a glyph fallback so missing characters (math
+% operators, scripts beyond Latin, etc.) render via system fonts when
+% available; luaotfload silently skips fonts that are not installed.
 \ifdefined\directlua
   \usepackage{fontspec}
-  \setmainfont{TeX Gyre Termes}
-  \setsansfont{TeX Gyre Heros}
-  \setmonofont{TeX Gyre Cursor}
+  \directlua{
+    luaotfload.add_fallback("pl_uni_fallback", {
+      "DejaVu Sans:mode=node",
+      "Noto Sans:mode=node",
+      "Noto Sans Devanagari:mode=node",
+      "Noto Sans CJK SC:mode=node",
+      "Symbola:mode=node"
+    })
+  }
+  \setmainfont{TeX Gyre Termes}[RawFeature={fallback=pl_uni_fallback}]
+  \setsansfont{TeX Gyre Heros}[RawFeature={fallback=pl_uni_fallback}]
+  \setmonofont{TeX Gyre Cursor}[RawFeature={fallback=pl_uni_fallback}]
 \else
   \usepackage{mathptmx}
 \fi
