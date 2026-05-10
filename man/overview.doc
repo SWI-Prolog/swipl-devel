@@ -3427,7 +3427,7 @@ dash, and other-punctuation classes (\const{Pc}, \const{Pd},
 own and does not glue with adjacent symbols.  This is a deliberate
 change from earlier releases, in which Unicode symbols glued into
 compound atoms in the same way as ASCII symbols; the change ensures
-that characters such as {≤}, {€}, and {·} keep their per-character
+that characters such as ≤, €, and · keep their per-character
 meaning.  Operators built from Unicode symbols must be declared
 explicitly with op/3.  Numeric characters of other type (general
 category \const{No}, e.g.\ fractions and circled digits) are not
