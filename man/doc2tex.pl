@@ -44,10 +44,10 @@
 :- use_module(library(uri)).
 :- autoload(library(gui_tracer), [gtrace/0]).
 
-/** <module> .doc to .tex translator
+/** <module> .plx to .tex translator
 
 This program is part of the toolchain to generate the documentation. The
-LaTeX sources for the documentation is written as .doc files on which we
+LaTeX sources for the documentation is written as .plx files on which we
 do some preprocessing to generate the .tex. These steps include:
 
   - Change predicate references as Name/Arity into \predref{Name}{Arity}
@@ -67,7 +67,7 @@ main([InFile, OutFile]) :-
 
 %!  doc2tex(+InFile, +OutFile)
 %
-%   Translate the .doc InFile into a .tex OutFile
+%   Translate the .plx InFile into a .tex OutFile
 
 doc2tex(InFile, OutFile) :-
     phrase_from_file(doc2tex(Result), InFile),

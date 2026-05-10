@@ -12,7 +12,7 @@ option(SWIPL_DOC_SERVER
 set(SWIPL_COMMAND_OPTIONS
   -f none --no-packs "--home=${SWIPL_BUILD_HOME}" -DSDL_VIDEODRIVER=dummy)
 
-# Libraries documented in .doc files
+# Libraries documented in .plx files
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
     record.tex registry.tex)
@@ -73,7 +73,7 @@ endfunction()
 
 function(doc2tex)
   foreach(f ${ARGN})
-    string(REGEX REPLACE "\\.tex" ".doc" docin ${f})
+    string(REGEX REPLACE "\\.tex" ".plx" docin ${f})
     get_filename_component(dir ${f} DIRECTORY)
     if(dir)
       add_custom_command(
@@ -176,7 +176,7 @@ if(HAVE_ARCHIVE_PACKAGE)
 endif()
 
 # Specify how to generate tex files from PlDoc
-# NOTE: all files must be included from lib/library.doc and
+# NOTE: all files must be included from lib/library.plx and
 # NOTE: lib/libsummary.doc
 
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
@@ -246,10 +246,10 @@ if(SWIPL_DOC_SERVER)
         DEPENDS ${CMAKE_SOURCE_DIR}/library/dialect/tau/dom.pl)
 endif()
 
-# Check that we do not have both a .doc file and extract from the
+# Check that we do not have both a .plx file and extract from the
 # Prolog source
 foreach(f ${PLDOC_LIB})
-  string(REGEX REPLACE "\\.tex" ".doc" docin ${f})
+  string(REGEX REPLACE "\\.tex" ".plx" docin ${f})
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${docin})
     message("WARNING: DOC file for ${f}")
   endif()
@@ -260,16 +260,16 @@ doc2tex(${DOC_LIB})
 # Create SWI-Prolog-<version>.tex
 
 add_custom_command(
-    OUTPUT  ${DOC}.doc
+    OUTPUT  ${DOC}.plx
     COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS}
                ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
-               ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
-    DEPENDS main.doc select.pl)
+               ${CMAKE_CURRENT_SOURCE_DIR}/main.plx > ${DOC}.plx
+    DEPENDS main.plx select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
     COMMAND ${PROG_SWIPL}  ${SWIPL_COMMAND_OPTIONS}
-               ${DOC2TEX} ${DOC}.doc ${DOC}.tex
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS}
+               ${DOC2TEX} ${DOC}.plx ${DOC}.tex
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.plx ${DOC2TEX_DEPENDS}
     VERBATIM)
 
 set(BIBTEX_DATA ${CMAKE_CURRENT_BINARY_DIR}/pl.bib)
@@ -358,9 +358,9 @@ if(APPLE)
   add_custom_command(
       OUTPUT  macosx/macosx.tex
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-      COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+      COMMAND ${PROG_SWIPL} ${SWIPL_COMMAND_OPTIONS} ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.plx
 	                       macosx/macosx.tex
-      DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS}
+      DEPENDS macosx/macosx.plx ${DOC2TEX_DEPENDS}
       VERBATIM)
 
   add_custom_command(
