@@ -6,6 +6,16 @@
 \usepackage{makeidx}
 \usepackage{url}
 
+% Times-like text font, portable across pdflatex and lualatex
+\ifdefined\directlua
+  \usepackage{fontspec}
+  \setmainfont{TeX Gyre Termes}
+  \setsansfont{TeX Gyre Heros}
+  \setmonofont{TeX Gyre Cursor}
+\else
+  \usepackage{mathptmx}
+\fi
+
 \ifpdf
   \ifdefined\setuphyperref
     \setuphyperref
@@ -344,7 +354,9 @@
 \newcommand{\manpage}[2]{{\bf #1}(#2)}
 \newcommand{\chr}[1]{{\tt #1}}
 \newcommand{\jargon}[1]{{\em #1}}
-\newcommand{\strong}[1]{{\bf #1}}
+% \strong may already be defined by fontspec; force pl.sty's definition.
+\providecommand{\strong}[1]{}
+\renewcommand{\strong}[1]{{\bf #1}}
 \newcommand{\texcmd}[1]{{\Sesc}{\tt #1}}
 \newcommand{\texenv}[1]{{\tt #1}}
 \newcommand{\texmode}[1]{{\tt #1}}

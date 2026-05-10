@@ -41,14 +41,6 @@
 \setcounter{secnumdepth}{3}
 \sloppy
 #else
-\ifdefined\directlua
-  \usepackage{fontspec}
-  \setmainfont{TeX Gyre Termes}
-  \setsansfont{TeX Gyre Heros}
-  \setmonofont{TeX Gyre Cursor}
-\else
-  \usepackage{times}
-\fi
 \usepackage{fancyheadings}
 \renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
 \headheight 14pt
