@@ -1,6 +1,6 @@
 %			SWI-Prolog document-style
 
-% Test for PDF generation using pdflatex
+% Test for PDF generation (engine-agnostic: pdflatex or lualatex)
 
 \usepackage{ifpdf}
 \usepackage{makeidx}
@@ -10,10 +10,14 @@
   \ifdefined\setuphyperref
     \setuphyperref
   \else
-    \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+    \usepackage[colorlinks=true,urlcolor=blue]{hyperref}
   \fi
-  \pdfcompresslevel=9
-  \usepackage[pdftex]{graphicx}
+  \ifdefined\pdfvariable
+    \pdfvariable compresslevel 9
+  \else
+    \pdfcompresslevel=9
+  \fi
+  \usepackage{graphicx}
   \DeclareGraphicsExtensions{.pdf,.jpg,.png}
 \else
   \usepackage[dvips]{graphicx}

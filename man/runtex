@@ -77,7 +77,7 @@ function usage
   echo ""
   echo "Options:"
   echo ""
-  echo "    --pdf        Use pdflatex and make .pdf images"
+  echo "    --pdf        Use lualatex and make .pdf images"
   echo "    --dvi        Use latex"
   echo "    --help       Print this message"
   echo "    --maxruns=#  Specify maximum # runs"
@@ -96,7 +96,7 @@ argp=true
 while [ $argp = true ] ; do
     case "$1" in
         --pdf)
-	    tex=pdflatex
+	    tex=lualatex
 	    format=pdf
 	    shift ;;
         --dvi)
@@ -187,7 +187,7 @@ while [ $cont != "no" ]; do
 	fi
 	rm -f $doc.bbl$$
     fi
-    if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
+    if [ $format = pdf -a -r $appbase/Makefile.pdf ]; then
         make --quiet -f $appbase/Makefile.pdf
     fi
     rm -f $doc.log

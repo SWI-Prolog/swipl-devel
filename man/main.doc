@@ -10,7 +10,7 @@
 \def\setuphyperref{\relax}
 #else
 \documentclass[11pt,twoside]{report}
-\def\setuphyperref{\usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}}
+\def\setuphyperref{\usepackage[colorlinks=true,urlcolor=blue]{hyperref}}
 #endif
 \usepackage{pl}
 \usepackage{html}
@@ -41,7 +41,14 @@
 \setcounter{secnumdepth}{3}
 \sloppy
 #else
-\usepackage{times}
+\ifdefined\directlua
+  \usepackage{fontspec}
+  \setmainfont{TeX Gyre Termes}
+  \setsansfont{TeX Gyre Heros}
+  \setmonofont{TeX Gyre Cursor}
+\else
+  \usepackage{times}
+\fi
 \usepackage{fancyheadings}
 \renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
 \headheight 14pt
