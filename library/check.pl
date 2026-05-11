@@ -58,7 +58,7 @@
 :- autoload(library(occurs),[sub_term/2]).
 :- autoload(library(option),[merge_options/3,option/3]).
 :- autoload(library(pairs),
-	    [group_pairs_by_key/2,map_list_to_pairs/3,pairs_values/2]).
+	    [group_pairs_by_key/2,map_list_to_pairs/3,pairs_keys/2,pairs_values/2]).
 :- autoload(library(prolog_clause),
 	    [clause_info/4,predicate_name/2,clause_name/2]).
 :- autoload(library(prolog_code),[pi_head/2]).
@@ -880,6 +880,141 @@ checker(list_redefined,          'redefined system and global predicates').
 checker(list_void_declarations,  'predicates with declarations but without clauses').
 checker(list_autoload,           'predicates that need autoloading').
 checker(check_predicate_options, 'predicate options lists').
+
+
+		 /*******************************
+		 *  UTS #39 confusable atoms	*
+		 *******************************/
+
+%   library(unicode_security) lives in packages/utf8proc and is only
+%   present when that package is built.  We expose the linter on systems
+%   where it is available; on other builds the predicate simply does
+%   not exist and the checker is not registered.
+
+:- if(exists_source(library(unicode_security))).
+
+:- export(list_confusable_identifiers/0).
+:- export(list_confusable_identifiers/1).
+:- autoload(library(unicode_security),
+            [unicode_skeleton/2, unicode_restriction_level/2]).
+
+checker(list_confusable_identifiers,
+        'confusable identifier names (UTS #39)').
+
+%!  list_confusable_identifiers is det.
+%!  list_confusable_identifiers(+Options) is det.
+%
+%   Walk every clause in the modules selected by `module_class`
+%   (default `[user]`) and warn on atoms whose written form is a
+%   possible UTS #39 spoof.  Two issues are reported:
+%
+%   * an atom whose unicode_restriction_level/2 is not safe (worse
+%     than `single_script`), reported at the first source location
+%     where it occurs;
+%   * groups of distinct atoms with equal unicode_skeleton/2 — two
+%     identifiers in the same program that look the same.
+%
+%   Only atoms whose written form does not require quotes are
+%   considered (see '$needs_quotes'/1).  Loaded via the multifile
+%   check:checker/2 hook, so a plain check/0 runs this check too.
+
+:- thread_local
+    seen_confusable_atom/3.    % Atom, Skeleton, Context
+
+list_confusable_identifiers :-
+    list_confusable_identifiers([module_class([user])]).
+
+list_confusable_identifiers(Options) :-
+    setup_call_cleanup(
+        true,
+        ( walk_confusable_atoms(Options),
+          report_mixed_script_atoms,
+          report_confusable_collisions ),
+        retractall(seen_confusable_atom(_,_,_))).
+
+walk_confusable_atoms(Options) :-
+    (   prolog_program_clause(ClauseRef, Options),
+        clause(Head, Body, ClauseRef),
+        make_clause(Head, Body, Clause),
+        forall(clause_identifier_atom(Clause, Atom),
+               note_confusable_atom(Atom, ClauseRef, Clause)),
+        fail
+    ;   true
+    ).
+
+%   Enumerate every atom appearing in Clause whose written form is an
+%   unquoted **identifier** atom (starts with a Prolog atom-start
+%   char, doesn't need quotes).  Symbolic atoms (`=`, `+`, etc.) are
+%   not candidates for spoofing.  sub_term/2 walks the term
+%   structure; we also yield the functor name of every compound
+%   subterm, since sub_term/2 itself does not visit functors.
+clause_identifier_atom(Clause, Atom) :-
+    sub_term(Sub, Clause),
+    (   atom(Sub)
+    ->  Atom = Sub
+    ;   compound(Sub),
+        functor(Sub, Atom, _)
+    ),
+    atom_identifier_form(Atom).
+
+atom_identifier_form(Atom) :-
+    \+ '$needs_quotes'(Atom),
+    sub_atom(Atom, 0, 1, _, Start),
+    char_type(Start, prolog_atom_start).
+
+note_confusable_atom(Atom, ClauseRef, Clause) :-
+    (   seen_confusable_atom(Atom, _, _)
+    ->  true
+    ;   message_context(ClauseRef, Atom, Clause, Context),
+        unicode_skeleton(Atom, Skel),
+        assertz(seen_confusable_atom(Atom, Skel, Context))
+    ).
+
+report_mixed_script_atoms :-
+    forall(( seen_confusable_atom(Atom, _, Context),
+             unicode_restriction_level(Atom, Level),
+             \+ safe_restriction_level(Level) ),
+           print_message(warning,
+                         check(mixed_script_identifier(Atom, Level, Context)))).
+
+safe_restriction_level(ascii_only).
+safe_restriction_level(single_script).
+
+report_confusable_collisions :-
+    findall(Skel-(Atom-Context),
+            seen_confusable_atom(Atom, Skel, Context),
+            Pairs0),
+    keysort(Pairs0, Pairs),
+    group_pairs_by_key(Pairs, Grouped),
+    forall(member(Skel-Members, Grouped),
+           report_collision_group(Skel, Members)).
+
+report_collision_group(Skel, Members) :-
+    pairs_keys(Members, As),
+    sort(As, [_,_|_]),
+    !,
+    print_message(warning,
+                  check(confusable_identifier_collision(Skel, Members))).
+report_collision_group(_, _).
+
+prolog:message(check(mixed_script_identifier(Atom, Level, Context))) -->
+    '$messages':swi_location(Context),
+    [ 'Mixed-script identifier ~q (~w)'-[Atom, Level] ].
+
+prolog:message(check(confusable_identifier_collision(Skel, Members))) -->
+    [ 'Distinct identifiers with the same UTS #39 skeleton ~q:'-[Skel],
+      nl
+    ],
+    confusable_collision_members(Members).
+
+confusable_collision_members([]) --> [].
+confusable_collision_members([Atom-Context | T]) -->
+    [ '    '-[] ],
+    '$messages':swi_location(Context),
+    [ '~q'-[Atom], nl ],
+    confusable_collision_members(T).
+
+:- endif.
 
 
                  /*******************************
