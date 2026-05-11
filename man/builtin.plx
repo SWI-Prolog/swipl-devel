@@ -8191,6 +8191,15 @@ line counter. See \secref{unicodesyntax}.
 \arg{Char} is a Prolog symbol character.  Sequences of Prolog
 symbol characters glue together to form an unquoted atom.  Examples
 are \const{=..}, \const{\=}, etc.
+    \termitem{prolog_solo}{}
+\arg{Char} is a Prolog \jargon{solo} character: a punctuation
+code point that forms an atom on its own and never combines with
+neighbouring symbol characters.  In ASCII the solo set is
+\const{!}, \const{;} and \const{\%}; the same flag carries over
+to non-ASCII code points via the Unicode syntax map (see
+\secref{unicodesyntax}).  Solo characters are written unquoted
+by writeq/1 and are accepted as single-character atoms by the
+reader.
 \end{description}
 \end{description}
 
