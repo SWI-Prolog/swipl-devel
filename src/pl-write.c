@@ -433,10 +433,11 @@ unquoted_atom(atom_t a)
 { Atom ap = atomValue(a);
 
   if ( ison(ap->type, PL_BLOB_TEXT) )
-  { if ( !ap->type->write )		/* ordinary atoms */
-    { return atomType(a, NULL) != AT_QUOTE;
-    } else if ( isUCSAtom(ap) )		/* wide atoms */
+  { if ( isUCSAtom(ap) )		/* wide atoms (uses write_ex) */
     { return unquoted_atomW(a, NULL, 0);
+    } else if ( !ap->type->write && !ap->type->write_ex )
+    {					/* ordinary single-byte atoms */
+      return atomType(a, NULL) != AT_QUOTE;
     }
   }
 
@@ -2566,6 +2567,24 @@ PRED_IMPL("$put_token", 2, put_token, 0)
   fail;
 }
 
+/** '$needs_quotes'(+Atom) is semidet.
+
+True when writing Atom with the `quoted(true)` write option would
+emit it surrounded by single quotes — i.e. the atom is not an
+identifier-form atom in the current Prolog syntax.  Wraps the
+internal unquoted_atom() helper that writeq/1 itself consults.
+*/
+
+static
+PRED_IMPL("$needs_quotes", 1, needs_quotes, 0)
+{ atom_t a;
+
+  if ( !PL_get_atom_ex(A1, &a) )
+    return false;
+
+  return !unquoted_atom(a);
+}
+
 /** '$put_quoted'(+Stream, +Quote, +Codes, +Options)
 
 Emit Codes using the escaped character  syntax,   but  does not emit the
@@ -2771,5 +2790,6 @@ BeginPredDefs(write)
   PRED_DEF("nl",	   1, nl,		ISO)
   PRED_DEF("$put_token",   2, put_token,	0)
   PRED_DEF("$put_quoted",  4, put_quoted_codes,	0)
+  PRED_DEF("$needs_quotes",1, needs_quotes,	0)
   PRED_DEF("write_size",   4, write_size,	META)
 EndPredDefs
