@@ -953,7 +953,7 @@ clause_identifier_atom(Clause, Atom) :-
     (   atom(Sub)
     ->  Atom = Sub
     ;   compound(Sub),
-        functor(Sub, Atom, _)
+        compound_name_arity(Sub, Atom, _)
     ),
     atom_identifier_form(Atom).
 
