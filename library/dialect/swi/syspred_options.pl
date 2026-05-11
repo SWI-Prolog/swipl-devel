@@ -127,7 +127,8 @@
 		       file_type(oneof([txt,prolog,source,qlf,executable,directory])),
 		       file_errors(oneof([fail,error])),
 		       solutions(oneof([first,all])),
-		       expand(boolean)
+		       expand(boolean),
+                       wasm(boolean)
 		     ]).
 :- predicate_options(system:load_files/2, 2,
 		     [ autoload(boolean),

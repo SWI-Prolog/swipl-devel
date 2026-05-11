@@ -57,7 +57,7 @@
 
 :- predicate_options(print_prolog_backtrace/3, 3,
                      [ subgoal_positions(boolean),
-                       show_file(oneof([absolute, basename]))
+                       show_files(oneof([absolute, basename]))
                      ]).
 
 /** <module> Examine the Prolog stack
@@ -359,7 +359,7 @@ default_backtrace_options(Options) :-
 %       * subgoal_positions(+Boolean)
 %       If `true`. print subgoal line numbers.  The default depends
 %       on the Prolog flag `backtrace_show_lines`.
-%       * show_file(+How)
+%       * show_files(+How)
 %       How to display the file name.  How is one of `absolute` or
 %       `basename`.
 %
