@@ -390,6 +390,9 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return false;
 
   s1 = get_wchar(s, &c);
+  if ( len == 1 && f_is_prolog_solo(c) )
+    return true;
+
   if ( !f_is_prolog_atom_start(c) )	/* Sequence of symbol chars */
   { while ( s < e )
     { s = get_wchar(s, &c);
