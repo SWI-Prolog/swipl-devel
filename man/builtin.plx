@@ -6353,7 +6353,9 @@ encoding of \arg{Stream} cannot represent \arg{Char}.
 
     \predicate[ISO]{put_code}{1}{+Code}
 Similar to put_char/1, but using a \jargon{character code}.  \arg{Code}
-is a non-negative integer.  Note that this may raise an exception if the
+must be a valid Unicode code point; lone UTF-16 surrogates
+(\const{0xD800}\ldots{}\const{0xDFFF}) are rejected, see
+\secref{widechars}.  Note that this may also raise an exception if the
 encoding of the output stream cannot represent \arg{Code}.
 
     \predicate[ISO]{put_code}{2}{+Stream, +Code}
@@ -7726,6 +7728,11 @@ Convert between a single \jargon{character} (an atom of length 1), and its
 \jargon{character code} (an integer denoting the corresponding character).
 The predicate alternatively accepts an SWI-Prolog string of
 length 1 at \arg{Atom} place.
+
+Character codes accepted by atom_codes/2, atom_chars/2 and char_code/2
+must be valid Unicode code points.  Lone UTF-16 surrogate code points
+(\const{0xD800}\ldots{}\const{0xDFFF}) are rejected with a
+\except{type_error(character_code,~\arg{Code})}.  See \secref{widechars}.
 
     \predicate[ISO]{number_chars}{2}{?Number, ?CharList}
 Similar to atom_chars/2, but converts between a number and its
@@ -9928,11 +9935,13 @@ an atom.  For flexibility, SWI-Prolog also accepts a packed string
 
     \fmtchar{c}
 Interpret the next argument as a character code and add it to the
-output. This argument must be a valid Unicode character code. Note that
-the actually emitted bytes are defined by the character encoding of the
-output stream and an exception may be raised if the output stream is not
-capable of representing the requested Unicode character. See
-\secref{encoding} for details.
+output. This argument must be a valid Unicode code point; integers
+outside \const{0}\ldots{}\const{0x10FFFF} and lone UTF-16 surrogate
+code points (\const{0xD800}\ldots{}\const{0xDFFF}) are rejected, see
+\secref{widechars}.  Note that the actually emitted bytes are defined
+by the character encoding of the output stream and an exception may be
+raised if the output stream is not capable of representing the requested
+Unicode character. See \secref{encoding} for details.
 
     \fmtchar{d}
 Output next argument as a decimal number.  It should be an integer.  If

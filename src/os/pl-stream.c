@@ -943,7 +943,10 @@ put_utf16(int c, IOSTREAM *s, int be)
 
 static int
 put_code(int c, IOSTREAM *s)
-{ switch(s->encoding)
+{ if ( IS_UTF16_SURROGATE(c) )
+    return reperror(c, s);
+
+  switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )

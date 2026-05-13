@@ -647,7 +647,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		{ int chr;
 
 		  NEED_ARG;
-		  if ( PL_get_integer(argv, &chr) && chr >= 0 )
+		  if ( PL_get_integer(argv, &chr) && VALID_CODE_POINT(chr) )
 		  { int times = (arg == DEFAULT ? 1 : arg);
 
 		    SHIFT;

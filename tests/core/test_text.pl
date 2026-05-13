@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2023, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2007-2026, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -56,7 +56,8 @@ test_text :-
 		    name,
 		    sub_atom,
 		    atomic_list_concat,
-                    substring
+                    substring,
+		    surrogate
 		  ]).
 
 :- begin_tests(char_code).
@@ -99,6 +100,41 @@ test(error, error(type_error(character_code, _))) :-
         atom_codes(_, [0xffffffff]).
 
 :- end_tests(atom_codes).
+
+:- begin_tests(surrogate).
+
+% Lone UTF-16 surrogate code points (0xD800..0xDFFF) are not valid
+% Unicode code points and must be rejected on every Prolog API surface
+% that takes a character code as input.
+
+test(char_code, error(type_error(character_code, 0xD800))) :-
+	char_code(_, 0xD800).
+test(char_code, error(type_error(character_code, 0xDC00))) :-
+	char_code(_, 0xDC00).
+test(char_code, error(type_error(character_code, 0xDFFF))) :-
+	char_code(_, 0xDFFF).
+
+test(atom_codes, error(type_error(character_code, _))) :-
+	atom_codes(_, [0xD800]).
+test(atom_codes, error(type_error(character_code, _))) :-
+	atom_codes(_, [0xDC00]).
+test(atom_codes, error(type_error(character_code, _))) :-
+	atom_codes(_, [0xDFFF]).
+
+test(string_codes, error(type_error(character_code, _))) :-
+	string_codes(_, [0xD800]).
+test(string_codes, error(type_error(character_code, _))) :-
+	string_codes(_, [0xDFFF]).
+
+test(put_code, error(type_error(character_code, 0xD800))) :-
+	with_output_to(string(_), put_code(0xD800)).
+test(put_code, error(type_error(character_code, 0xDFFF))) :-
+	with_output_to(string(_), put_code(0xDFFF)).
+
+test(format_c, error(format_argument_type(c, 0xD800))) :-
+	with_output_to(string(_), format("~c", [0xD800])).
+
+:- end_tests(surrogate).
 
 :- begin_tests(atom_concat).
 

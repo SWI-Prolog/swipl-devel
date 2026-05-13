@@ -70,17 +70,15 @@ PL_get_char(term_t c, int *p, int eof)
   PL_chars_t text;
 
   if ( PL_get_integer(c, &chr) )
-  { if ( chr >= 0 )
-    { if ( chr > 0x10ffff )
-	return PL_domain_error("character", c);
-
-      *p = chr;
+  { if ( VALID_CODE_POINT(chr) )
+    { *p = chr;
       return true;
     }
     if ( eof && chr == -1 )
     { *p = chr;
       return true;
     }
+    return PL_type_error("character_code", c);
   } else if ( PL_get_atom(c, &name) )
   { if ( (chr = charCode(name)) != -1 )
     { *p = chr;
