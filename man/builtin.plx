@@ -8215,6 +8215,14 @@ to non-ASCII code points via the Unicode syntax map (see
 \secref{unicodesyntax}).  Solo characters are written unquoted
 by writeq/1 and are accepted as single-character atoms by the
 reader.
+    \termitem{pattern_syntax}{}
+\arg{Char} has the Unicode \const{Pattern_Syntax} property
+(UAX~\#31~R3).  This is the immutable set of punctuation and
+symbol code points whose classification is guaranteed not to
+change across Unicode versions.  Used by write_canonical/1 and the
+\const{pattern_syntax_solo} option of write_term/2 to decide which
+single-character atoms can be printed bare with round-trip safety
+across Unicode upgrades.
 \end{description}
 \end{description}
 
