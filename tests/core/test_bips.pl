@@ -68,6 +68,17 @@ test(iso_8_4_2_3_a,[error(type_error(atom, 1+1))]) :-
     compare(1+1, b, c).
 test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
     compare(a, b, c).
+% Compare must order by Unicode code point, not by UTF-16 code unit.
+% A non-BMP code point above U+FFFF is stored as a surrogate pair whose
+% lead unit (U+D800..U+DBFF) sorts below BMP code points U+DC00..U+FFFF,
+% so the naive code-unit comparison wrongly ordered '\U0001D11E' below
+% '豈' on platforms with 16-bit wchar_t (Windows).
+test(non_bmp_vs_bmp_unified, Order == (>)) :-     % U+1D11E > U+8C48
+    compare(Order, '\U0001D11E', '豈').
+test(non_bmp_vs_bmp_compat, Order == (>)) :-      % U+1D11E > U+F900
+    compare(Order, '\U0001D11E', '豈').
+test(non_bmp_vs_bmp_halfwidth, Order == (>)) :-   % U+1D11E > U+FF80
+    compare(Order, '\U0001D11E', 'ﾀ').
 test(zero_codes, Order == (>)) :-
     compare(Order, '\u1000hello\u0000world', '\u1000hello').
 
