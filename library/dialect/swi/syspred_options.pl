@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, VU University Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -68,6 +68,7 @@
                        no_lists(boolean),
 		       ignore_ops(boolean),
 		       portable(boolean),
+                       pattern_syntax_solo(boolean),
 		       max_depth(nonneg),
 		       max_text(nonneg),
                        truncated(-boolean),
