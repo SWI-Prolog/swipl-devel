@@ -4099,7 +4099,7 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define x_chars(pred, atom, string, how) \
 	LDFUNC(x_chars, pred, atom, string, how)
 
-static int
+static bool
 x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 { PL_chars_t atext, stext;
   int arg1;
@@ -4109,7 +4109,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
   if ( arg1 )					/* +,? */
-  { int ok;
+  { bool ok;
     int out_type;
     fid_t fid = PL_open_foreign_frame();
 
@@ -4141,7 +4141,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
   switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
-    { int rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
+    { bool rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
       PL_free_text(&stext);
       return rc;
     }

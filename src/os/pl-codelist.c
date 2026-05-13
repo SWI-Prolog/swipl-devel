@@ -37,7 +37,7 @@
 #include "pl-utf8.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
+codes_or_chars_to_buffer(term_t l, unsigned int flags, bool wide,
 			 CVT_code *status)
 
 If l represents a list of codes   or characters, return a buffer holding
@@ -47,7 +47,7 @@ pl_wchar_t. Otherwise it contains traditional characters.  If wchar_t is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Buffer
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
+codes_or_chars_to_buffer(term_t l, unsigned int flags, bool wide,
 			 CVT_result *result)
 { GET_LD
   Buffer b;
@@ -77,10 +77,8 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
 	result->status = CVT_partial;
       else if ( c < 0 || c > 0x10ffff )
 	result->status = CVT_nocode;
-#if SIZEOF_WCHAR_T == 2
       else if ( IS_UTF16_SURROGATE(c) )
-	result->status = CVT_representation;
-#endif
+	result->status = CVT_nocode;
       else if ( c > 0xff )
 	result->status = CVT_wide;
       return NULL;
@@ -121,12 +119,9 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
       unfindBuffer(b, flags);
       if ( canBind(*arg) )
 	result->status = CVT_partial;
-      else if ( c < 0 || c > 0x10ffff )
+      else if ( c < 0 || c > 0x10ffff ||
+		IS_UTF16_SURROGATE(c) )
 	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
-#if SIZEOF_WCHAR_T == 2
-      else if ( IS_UTF16_SURROGATE(c) )
-	result->status = CVT_representation;
-#endif
       else if ( c > 0xff )
 	result->status = CVT_wide;
       return NULL;

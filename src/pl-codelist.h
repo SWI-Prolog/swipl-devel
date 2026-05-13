@@ -100,6 +100,6 @@ CLOSE_SEQ_STRING(DECL_LD Word p, Word p0, term_t tail, term_t term, term_t l)
 }
 
 Buffer		codes_or_chars_to_buffer(term_t l, unsigned int flags,
-					 int wide, CVT_result *status);
+					 bool wide, CVT_result *status);
 
 #endif /*PL_CODELIST_H_INCLUDED*/
