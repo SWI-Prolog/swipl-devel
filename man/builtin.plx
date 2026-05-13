@@ -6814,6 +6814,14 @@ Unicode (see \secref{unicodesyntax}), transferring atoms holding
 non-ASCII text to other Prolog implementations may cause problems.
 This flag is used by write_canonical/1.
 
+    \termitem{pattern_syntax_solo}{Bool}
+When \const{true}, quote a single-character atom whose code point is
+\emph{not} in the immutable UAX~\#31 \const{Pattern_Syntax} set.
+Atoms whose only character is a punctuation or symbol outside that
+set (e.g., \verb$'€'$, \verb$'·'$, \verb$'🎉'$) may be reclassified
+between Unicode versions; quoting them keeps written terms stable
+across upgrades. Default \const{false}; enabled by write_canonical/1.
+
     \termitem{spacing}{+Spacing}
 Determines whether and where extra white space is added to enhance
 readability. The default is \const{standard}, adding only space where
@@ -6878,9 +6886,9 @@ parenthesised prefix notation (i.e., ignoring operator declarations).
 Atoms that need quotes are quoted. Terms written with this predicate can
 always be read back, regardless of current operator declarations.
 Equivalent to write_term/2 using the options \const{ignore_ops},
-\const{quoted}, \const{quote_non_ascii}, \term{brace_terms}{false} and
-\const{numbervars} after numbervars/4 using the \const{singletons}
-option.
+\const{quoted}, \const{quote_non_ascii}, \const{pattern_syntax_solo},
+\term{brace_terms}{false} and \const{numbervars} after numbervars/4
+using the \const{singletons} option.
 
 Note that due to the use of numbervars/4, non-ground terms must be
 written using a \emph{single} write_canonical/1 call.  This used to

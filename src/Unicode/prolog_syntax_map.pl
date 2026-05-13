@@ -46,6 +46,7 @@
 :- use_module(library('unicode/unicode_data'), [unicode_property/2]).
 :- use_module(derived_core_properties,
               [unicode_derived_core_property/2,
+               unicode_property/3,
                id_superscript/1,
                id_subscript/1,
                white_space/1,
@@ -89,8 +90,12 @@ Source mapping for the categories:
                           (paired delimiters; partner via pl_pair_table)
     quote             ⇐ general categories Pi ∪ Pf
                           (paired delimiters; partner via pl_pair_table)
-    solo              ⇐ Sm/Sc/Sk/So/Pc/Pd/Po
-                          (broader than UAX #31 Pattern_Syntax; PIP §4.2)
+    pattern_syntax    ⇐ Sm/Sc/Sk/So/Pc/Pd/Po ∩ Pattern_Syntax
+                          (UAX #31 R3, immutable subset; PropList.txt)
+    solo              ⇐ Sm/Sc/Sk/So/Pc/Pd/Po \ Pattern_Syntax
+                          (the post-3.1 additions; not stable across
+                           Unicode versions, hence quoted under
+                           write_canonical/1)
     symbol            ⇐ ASCII operator characters (JS path only)
     other / unassigned ⇒ category 0 (treated as stray by the parser)
 
@@ -108,8 +113,9 @@ pl-read.c.
 Usage:
 
   1. Get DerivedCoreProperties.txt, UnicodeData.txt,
-     EastAsianWidth.txt, and BidiMirroring.txt from the Unicode
-     consortium and copy or link them into this directory.
+     EastAsianWidth.txt, BidiMirroring.txt, and PropList.txt from
+     the Unicode consortium and copy or link them into this
+     directory.
   2. Run `swipl prolog_syntax_map.pl` in this directory, which updates
      `../pl-umap.c`.
 
@@ -602,6 +608,9 @@ priority_class(_, Code, bracket) :-
     is_bracket_cat(Code).
 priority_class(_, Code, quote) :-
     is_quote_cat(Code).
+priority_class(_, Code, pattern_syntax) :-
+    is_solo_cat(Code),
+    is_pattern_syntax(Code).
 priority_class(_, Code, solo) :-
     is_solo_cat(Code).
 priority_class(_, Code, other) :-
@@ -625,6 +634,18 @@ is_bracket_cat(Code) :-
 is_quote_cat(Code) :-
     unicode_property(Code, general_category(Cat)),
     ( Cat == 'Pi' ; Cat == 'Pf' ).
+
+%!  is_pattern_syntax(+Code) is semidet.
+%
+%   True when Code has the Pattern_Syntax property (UAX #31 R3).
+%   This is the immutable subset of syntax-like code points whose
+%   classification is guaranteed not to change across Unicode
+%   versions. Sourced from PropList.txt.
+
+is_pattern_syntax(Code) :-
+    absolute_file_name(unicode('PropList.txt'),
+                       File, [access(read)]),
+    unicode_property(File, Code, pattern_syntax).
 
 %!  bracket_pair(?Open, ?Close) is nondet.
 %
@@ -750,6 +771,7 @@ category_index(id_start_variable, 7).
 category_index(decimal,           8).
 category_index(symbol,            9).
 category_index(id_continue_solo, 10).
+category_index(pattern_syntax,   11).
 
 %!  cat_to_flags(?Index, ?Flags) is det.
 %
@@ -769,7 +791,7 @@ cat_to_flags(7,  0x07).        % U_ID_START | U_ID_CONTINUE | U_UPPERCASE
 cat_to_flags(8,  0x82).        % U_ID_CONTINUE | U_DECIMAL
 cat_to_flags(9,  0x08).        % U_SYMBOL
 cat_to_flags(10, 0x22).        % U_SOLO | U_ID_CONTINUE
-cat_to_flags(11, 0).
+cat_to_flags(11, 0x20).        % pattern_syntax → U_SOLO
 cat_to_flags(12, 0).
 cat_to_flags(13, 0).
 cat_to_flags(14, 0).

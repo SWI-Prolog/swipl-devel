@@ -103,7 +103,9 @@ pl_cat_is_id_continue(u_category cat)
 
 static inline bool
 pl_cat_is_solo(u_category cat)
-{ return cat == U_CAT_SOLO || cat == U_CAT_ID_CONTINUE_SOLO;
+{ return cat == U_CAT_SOLO ||
+	 cat == U_CAT_ID_CONTINUE_SOLO ||
+	 cat == U_CAT_PATTERN_SYNTAX;
 }
 
 #define PlCatW(c)	U_CAT_OF(uflagsRaw(c))
@@ -178,6 +180,17 @@ f_is_prolog_symbol(int c)
 int
 f_is_prolog_solo(int c)
 { return PlSoloW(c) != 0;
+}
+
+/* True iff `c` is in the immutable UAX #31 Pattern_Syntax set.
+ * Used by the writer under PL_WRT_PATTERN_SYNTAX_SOLO to decide
+ * which single-character atoms are stable enough to print without
+ * quotes across Unicode versions.
+ */
+
+int
+f_is_pattern_syntax(int c)
+{ return PlCatW(c) == U_CAT_PATTERN_SYNTAX;
 }
 
 /* Pair-table accessors used by char_type/2 and code_type/2 for the
@@ -3481,6 +3494,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
       }
       case U_CAT_SOLO:
       case U_CAT_ID_CONTINUE_SOLO:
+      case U_CAT_PATTERN_SYNTAX:
 	goto case_solo;
       default:
 	syntaxError("illegal_character", _PL_rd);
@@ -3603,8 +3617,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case SO:	{ /* Single-code-point atom.  Bracket / quote-pair handling
 		   * is dispatched directly from the c >= 0x80 switch above
 		   * (and from the ASCII PU case when followed by '('); we
-		   * only get here for plain U_CAT_SOLO and
-		   * U_CAT_ID_CONTINUE_SOLO code points.
+		   * only get here for U_CAT_SOLO, U_CAT_ID_CONTINUE_SOLO
+		   * and U_CAT_PATTERN_SYNTAX code points.
 		   */
 		  cur_token.value.atom = codeToAtom(c);	/* not registered */
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);

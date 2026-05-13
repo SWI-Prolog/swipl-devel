@@ -270,6 +270,23 @@ wr_is_symbol(int c, write_options *options)
 	    (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
 }
 
+/* True when `c` may appear as a bare single-character atom.  Always
+ * a subset of f_is_prolog_solo() — the writer never bare-prints
+ * delimiter-class punctuation like `,` `(` `[`, which f_is_prolog_solo
+ * already rejects.  Under PL_WRT_PATTERN_SYNTAX_SOLO we further
+ * restrict to the immutable UAX #31 Pattern_Syntax set, so atoms
+ * whose class might shift across Unicode versions get quoted.
+ */
+
+static inline bool
+wr_is_solo(int c, int flags)
+{ if ( !f_is_prolog_solo(c) )
+    return false;
+  if ( flags & PL_WRT_PATTERN_SYNTAX_SOLO )
+    return f_is_pattern_syntax(c);
+  return true;
+}
+
 static bool
 code_requires_quoted(int c, IOSTREAM *fd, int flags)
 { if ( c > 0x7f && (flags&PL_WRT_QUOTE_NON_ASCII) )
@@ -366,7 +383,7 @@ atomType(atom_t a, write_options *options)
 
 					/* % should be quoted! */
   if ( len == 1 && *s != '%' )
-  { if ( f_is_prolog_solo((unsigned char)*s) )
+  { if ( wr_is_solo((unsigned char)*s, flags) )
       return AT_SOLO;
   }
 
@@ -390,7 +407,7 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return false;
 
   s1 = get_wchar(s, &c);
-  if ( len == 1 && f_is_prolog_solo(c) )
+  if ( len == 1 && wr_is_solo(c, flags) )
     return true;
 
   if ( !f_is_prolog_atom_start(c) )	/* Sequence of symbol chars */
@@ -2206,6 +2223,7 @@ writeBlobMask(atom_t a)
 static const PL_option_t write_term_options[] =
 { { ATOM_quoted,		    OPT_BOOL },
   { ATOM_quote_non_ascii,	    OPT_BOOL },
+  { ATOM_pattern_syntax_solo,	    OPT_BOOL },
   { ATOM_ignore_ops,		    OPT_BOOL },
   { ATOM_portable,		    OPT_BOOL },
   { ATOM_dotlists,		    OPT_BOOL },
@@ -2251,6 +2269,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int  charescape = -1;			/* not set */
   int charescape_unicode = -1;
   int quote_non_ascii = false;
+  int pattern_syntax_solo = false;
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
   atom_t blobs    = ATOM_nil;
@@ -2267,7 +2286,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int rc;
 
   if ( !PL_scan_options(opts, 0, "write_option", write_term_options,
-			&quoted, &quote_non_ascii, &ignore_ops, &portable,
+			&quoted, &quote_non_ascii, &pattern_syntax_solo,
+			&ignore_ops, &portable,
 			&dotlists, &braceterms,
 			&numbervars, &portray, &portray, &gportray,
 			&charescape, &charescape_unicode,
@@ -2339,6 +2359,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( quoted )              options.flags |= PL_WRT_QUOTED;
   if ( quote_non_ascii )     options.flags |= PL_WRT_QUOTE_NON_ASCII;
+  if ( pattern_syntax_solo ) options.flags |= PL_WRT_PATTERN_SYNTAX_SOLO;
   if ( ignore_ops )          options.flags |= PL_WRT_IGNOREOPS|PL_WRT_BRACETERMS;
   if ( portable )	     options.flags |= PL_WRT_PORTABLE;
   if ( dotlists )            options.flags |= PL_WRT_DOTLISTS;
@@ -2516,6 +2537,7 @@ pl_write_canonical2(term_t stream, term_t term)
   rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_QUOTE_NON_ASCII|
+		   PL_WRT_PATTERN_SYNTAX_SOLO|
 		   PL_WRT_IGNOREOPS|PL_WRT_VARNAMES|
 		   PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS, true)
        );

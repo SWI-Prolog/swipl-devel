@@ -57,6 +57,7 @@ int		f_is_prolog_atom_start(int c);
 int		f_is_prolog_identifier_continue(int c);
 int		f_is_prolog_symbol(int c);
 int		f_is_prolog_solo(int c);
+int		f_is_pattern_syntax(int c);
 int		f_is_decimal(int c);
 int		f_paren_close(int c);
 int		f_paren_open(int c);

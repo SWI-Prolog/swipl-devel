@@ -5,6 +5,7 @@ following Unicode data files from the Unicode distribution:
 	* DerivedCoreProperties.txt
 	* BidiMirroring.txt
 	* EastAsianWidth.txt
+	* PropList.txt
 
 Then run
 

@@ -1064,6 +1064,8 @@ PL_EXPORT(IOSTREAM *) _PL_stream(int which);
 #define PL_WRT_PARTIAL		  0x1000000 /* Partial output */
 #define PL_WRT_NO_CHARESCAPES	  0x2000000 /* Do not Output ISO escapes */
 #define PL_WRT_INFIX_COMMA	  0x4000000 /* Write (a,b), with PL_WRT_IGNOREOPS */
+#define PL_WRT_PATTERN_SYNTAX_SOLO 0x8000000 /* Quote single-char solo atoms outside
+					      * the Pattern_Syntax set (UAX #31). */
 
 #define PL_WRT_PORTABLE (PL_WRT_IGNOREOPS|PL_WRT_INFIX_COMMA)
 
