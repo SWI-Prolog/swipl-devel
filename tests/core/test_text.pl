@@ -134,6 +134,37 @@ test(put_code, error(type_error(character_code, 0xDFFF))) :-
 test(format_c, error(format_argument_type(c, 0xD800))) :-
 	with_output_to(string(_), format("~c", [0xD800])).
 
+% Decoders must not produce surrogate code points either.  A UTF-8 byte
+% sequence encoding a surrogate (e.g. ED A0 80 → U+D800) is malformed
+% per RFC 3629 and should be replaced by U+FFFD.  Same for a lone
+% UTF-16 trail surrogate without a preceding lead.
+
+test(utf8_stream, C == 0xFFFD) :-
+	read_one_code_from_bytes([0xED, 0xA0, 0x80], utf8, C).
+test(utf8_stream, C == 0xFFFD) :-
+	read_one_code_from_bytes([0xED, 0xBF, 0xBF], utf8, C).
+test(utf8_stream_valid_low, C == 0xCFFF) :-		% boundary
+	read_one_code_from_bytes([0xEC, 0xBF, 0xBF], utf8, C).
+test(utf8_stream_valid_high, C == 0xE000) :-		% boundary
+	read_one_code_from_bytes([0xEE, 0x80, 0x80], utf8, C).
+
+test(utf8_string_bytes, S == "�") :-
+	string_bytes(S, [0xED, 0xA0, 0x80], utf8).
+
+test(utf16le_lone_trail, C == 0xFFFD) :-
+	read_one_code_from_bytes([0x00, 0xDC], utf16le, C).
+test(utf16be_lone_trail, C == 0xFFFD) :-
+	read_one_code_from_bytes([0xDC, 0x00], utf16be, C).
+
+read_one_code_from_bytes(Bytes, Enc, Code) :-
+	setup_call_cleanup(
+	    tmp_file_stream(binary, F, Out),
+	    ( maplist(put_byte(Out), Bytes), close(Out) ),
+	    setup_call_cleanup(
+		open(F, read, In, [encoding(Enc), type(text)]),
+		get_code(In, Code),
+		( close(In), delete_file(F) ))).
+
 :- end_tests(surrogate).
 
 :- begin_tests(atom_concat).

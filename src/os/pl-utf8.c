@@ -91,6 +91,11 @@ _PL__utf8_code_point(const char **i, const char *e, int *cp)
   *i += n;
   *cp = code;
 
+  if ( IS_UTF16_SURROGATE(code) )
+  { *cp = UTF8_MALFORMED_REPLACEMENT;
+    return -1;
+  }
+
   return n + 1;
 }
 

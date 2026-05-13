@@ -1155,6 +1155,9 @@ get_utf16(IOSTREAM *s, int be)
     } else
     { return utf16_decode(c, c2);
     }
+  } else if ( IS_UTF16_TRAIL(c) )
+  { Sseterr(s, SIO_WARN, "Lone UTF-16 trail surrogate");
+    return UTF8_MALFORMED_REPLACEMENT;
   } else
   { return c;
   }
@@ -1238,6 +1241,11 @@ retry:
 	    goto out;
 	  }
 	  code = (code<<6)+(c2&0x3f);
+	}
+	if ( IS_UTF16_SURROGATE(code) )
+	{ Sseterr(s, SIO_WARN, "UTF-8 surrogate code point");
+	  c = UTF8_MALFORMED_REPLACEMENT;
+	  goto out;
 	}
 	c = code;
       }
