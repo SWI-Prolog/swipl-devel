@@ -556,7 +556,7 @@ static thread_handle *create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static thread_handle *symbol_thread_handle(atom_t a);
-static void	destroy_interactor(thread_handle *th, int gc);
+static void	destroy_interactor(thread_handle *th, bool gc, bool unlock);
 static void	detach_engine(PL_engine_t e);
 static void	initMessageQueues(void);
 static bool	get_thread(term_t t, PL_thread_info_t **info, bool warn);
@@ -1424,7 +1424,7 @@ static bool      thread_gc_running = false;
 static void
 discard_thread(thread_handle *h)
 { if ( ison(h, TH_IS_INTERACTOR) )
-  { destroy_interactor(h, true);		/* cannot be running */
+  { destroy_interactor(h, true, false);		/* cannot be running */
     return;
   }
 
@@ -1528,7 +1528,7 @@ gc_thread(thread_handle *ref)
 
     start_thread_gc_thread();
 #else
-    destroy_interactor(ref, true);
+    destroy_interactor(ref, true, false);
 #endif
   } else
     PL_free(ref);
@@ -3972,8 +3972,10 @@ static void freeThreadSignals(PL_local_data_t *ld) {}
 		 *	    INTERACTORS		*
 		 *******************************/
 
-#define get_interactor(t, thp, warn) LDFUNC(get_interactor, t, thp, warn)
-static int
+#define get_interactor(t, thp, warn) \
+	LDFUNC(get_interactor, t, thp, warn)
+
+static bool
 get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
 { atom_t a;
 
@@ -4058,13 +4060,13 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
     if ( alias )
     { if ( !aliasThread(new->thread.info->pl_tid, ATOM_engine, alias) )
-      { destroy_interactor(th, false);
+      { destroy_interactor(th, false, false);
 	return false;
       }
     }
 
     if ( !(rc = unify_thread_id(A1, new->thread.info)) )
-    { destroy_interactor(th, false);
+    { destroy_interactor(th, false, false);
       if ( !PL_exception(0) )
 	return PL_uninstantiation_error(A1);
 
@@ -4105,7 +4107,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
 
 static void
-destroy_interactor(thread_handle *th, int gc)
+destroy_interactor(thread_handle *th, bool gc, bool unlock)
 { if ( th->interactor.query )
   { PL_engine_t me;
 
@@ -4125,6 +4127,8 @@ destroy_interactor(thread_handle *th, int gc)
   }
   clear(th, (TH_INTERACTOR_NOMORE|TH_INTERACTOR_DONE));
 #ifdef O_PLMT
+  if ( unlock )
+    simpleMutexUnlock(th->interactor.mutex);
   simpleMutexDelete(th->interactor.mutex);
   th->interactor.mutex = NULL;
 #endif
@@ -4162,7 +4166,8 @@ PRED_IMPL("engine_destroy", 1, engine_destroy, 0)
   thread_handle *th;
 
   if ( get_interactor(A1, &th, true) )
-  { destroy_interactor(th, false);
+  { simpleMutexLock(th->interactor.mutex);
+    destroy_interactor(th, false, true);
 
     return true;
   }
@@ -4215,7 +4220,7 @@ suspend_interactor(PL_engine_t me, thread_handle *th)
 #define interactor_post_answer_nolock(th, ref, package, term) \
 	LDFUNC(interactor_post_answer_nolock, th, ref, package, term)
 
-static int
+static bool
 interactor_post_answer_nolock(DECL_LD thread_handle *th,
 			      term_t ref, term_t package, term_t term)
 { PL_engine_t me = LD;
@@ -4237,14 +4242,13 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
 
   WITH_LD ( activate_interactor(th) )
   { term_t t;
-    int rc;
     record_t r;
 
     if (!LOCAL_LD)
       break; /* WITH_LD is a for() statement and can be broken out of */
 
     copy_debug_mode(LD, me);
-    rc = PL_next_solution(th->interactor.query);
+    int rc = PL_next_solution(th->interactor.query);
 
     switch( rc )
     { case PL_S_TRUE:
@@ -4270,7 +4274,7 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
       case PL_S_EXCEPTION:
       { record_t r = PL_record(PL_exception(th->interactor.query));
 	term_t ex;
-	int rc;
+	bool rc;
 
 	PL_close_query(th->interactor.query);
 	th->interactor.query = 0;
@@ -4322,13 +4326,15 @@ thread_symbol(const PL_local_data_t *ld)
 }
 
 
-#define interactor_post_answer(ref, package, term) LDFUNC(interactor_post_answer, ref, package, term)
-static int
+#define interactor_post_answer(ref, package, term) \
+	LDFUNC(interactor_post_answer, ref, package, term)
+
+static bool
 interactor_post_answer(DECL_LD term_t ref, term_t package, term_t term)
 { thread_handle *th;
 
   if ( get_interactor(ref, &th, true) )
-  { int rc;
+  { bool rc;
 
     simpleMutexLock(th->interactor.mutex);
     th->interactor.thread = thread_symbol(LD);
