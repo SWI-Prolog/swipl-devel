@@ -4166,7 +4166,10 @@ PRED_IMPL("engine_destroy", 1, engine_destroy, 0)
   thread_handle *th;
 
   if ( get_interactor(A1, &th, true) )
-  { simpleMutexLock(th->interactor.mutex);
+  { if ( th->info == LD->thread.info )
+      return PL_permission_error("destroy", "engine", A1);
+
+    simpleMutexLock(th->interactor.mutex);
     destroy_interactor(th, false, true);
 
     return true;

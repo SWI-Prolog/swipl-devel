@@ -316,8 +316,9 @@ The \arg{Engine} argument of engine_create/3 may be instantiated to an
 atom, creating an engine with the given alias.
 
     \predicate[det]{engine_destroy}{1}{+Engine}
-Destroy \arg{Engine}.  If the engine is still in use, this call blocks
-until the engine is free.
+Destroy \arg{Engine}.  If the engine is still in use by another thread,
+this call blocks until the engine is free.  Destroying the engine that
+is running this call raises a permission error.
 
     \predicate[semidet]{engine_next}{2}{+Engine, -Term}
 Ask the engine \arg{Engine} to produce a next answer.  On this first
