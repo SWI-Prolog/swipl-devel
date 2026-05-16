@@ -52,7 +52,7 @@ test(self_destroy, [ error(permission_error(destroy, engine, _)),
 			   engine_destroy(E)
 			 ), E),
 	engine_next(E, _).
-text(mixed, all(R) == [1,aap,2,3]) :-
+test(mixed, all(R == [1,aap,2,3])) :-
 	mixed_yield_answers(R).
 test(no_data, error(existence_error(term, delivery, E))) :-
 	setup_call_cleanup(
