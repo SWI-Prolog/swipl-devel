@@ -3474,23 +3474,26 @@ Mismatched closes and unmatched opens raise \except{syntax_error}.
 The features above let source text contain Unicode without escapes:
 
 \begin{code}
-?- X² = 4.                            % superscript variable profile
-X² = 4.
+p(X⁰, X) :-		      % Superscript variable profile for
+    q(X⁰, X¹),		      % threaded variables.
+    r(X¹, X).
 
-?- atom_number('१२३', N).             % Devanagari Nd via atom_number/2
+?- atom_number('१२३', N).     % Devanagari Nd via atom_number/2
 N = 123.
 
-?- atom_codes(≤, Cs).                 % Unicode symbol stays solo
+?- atom_codes(≤, Cs).	      % Unicode symbol stays solo
 Cs = [8804].
 
-?- term_to_atom(T, '⟨a, b⟩').         % bracket pair (Ps/Pe)
-T = '⟨⟩'((a,b)).
+?- term_string(T, "⟨a, b⟩"),  % bracket pair (Ps/Pe)
+   display(T).
+⟨⟩(','(a,b))
+T = ⟨a, b⟩.
 
-?- term_to_atom(T, '⟨ ⟩').            % empty pair is the atom
-T = '⟨⟩'.
+?- term_string(T, "⟨ ⟩").     % empty pair is the atom
+T = ⟨⟩.
 
-?- term_to_atom(T, '«hello, world»'). % quote pair (Pi/Pf)
-T = '«»'("hello, world").
+?- term_string(T, "«hello").  % quote pair (Pi/Pf)
+T = '«»'("hello").
 \end{code}
 
 

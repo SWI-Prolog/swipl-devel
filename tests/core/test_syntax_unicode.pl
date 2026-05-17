@@ -38,6 +38,7 @@
 :- encoding(utf8).
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
 
 test_syntax_unicode :-
     run_tests([ syntax_unicode_identifiers,
