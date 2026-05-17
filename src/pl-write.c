@@ -329,6 +329,37 @@ atom_has_combining(atom_t a)
   return false;
 }
 
+/* True if `a` is a Unicode bracket-pair atom '<open><close>' (exactly
+ * the two code points of a matching Ps/Pe pair, e.g. '⟨⟩').  Such atoms
+ * are written unquoted and '<open><close>'(X) as <open>X<close>,
+ * mirroring how '{}' and '{}'(X) => {X} are handled.
+ */
+
+static bool
+bracketPairAtom(atom_t a, int *open, int *close)
+{ PL_chars_t txt;
+  int c0, c1, cl;
+
+  if ( !get_atom_text(a, &txt) || txt.length != 2 )
+    return false;
+
+  if ( txt.encoding == ENC_WCHAR )
+  { c0 = (int)txt.text.w[0];
+    c1 = (int)txt.text.w[1];
+  } else
+  { c0 = (unsigned char)txt.text.t[0];
+    c1 = (unsigned char)txt.text.t[1];
+  }
+
+  if ( (cl=f_paren_close(c0)) != -1 && cl == c1 )
+  { *open  = c0;
+    *close = cl;
+    return true;
+  }
+
+  return false;
+}
+
 static int
 atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
@@ -405,6 +436,11 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 
   if ( len == 0 )
     return false;
+
+  { int bopen, bclose;			/* '<open><close>' prints like {} */
+    if ( bracketPairAtom(atom, &bopen, &bclose) )
+      return true;
+  }
 
   s1 = get_wchar(s, &c);
   if ( len == 1 && wr_is_solo(c, flags) )
@@ -1889,6 +1925,25 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	return true;
 
       return false;
+    }
+
+					/* handle Unicode <open>X<close> */
+    if ( isoff(options, PL_WRT_BRACETERMS) && arity == 1 )
+    { int bopen, bclose;
+
+      if ( bracketPairAtom(functor, &bopen, &bclose) )
+      { term_t arg;
+
+	if ( (arg=PL_new_term_ref()) &&
+	     PL_get_arg(1, t, arg) &&
+	     PutOpenToken(bopen, options) &&
+	     Putc(bopen, out) &&
+	     writeTerm(arg, 1200, options, W_TOP) &&
+	     Putc(bclose, out) )
+	  return true;
+
+	return false;
+      }
     }
 
 					/* handle lists */

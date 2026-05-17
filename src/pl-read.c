@@ -3470,11 +3470,42 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
       case U_CAT_ID_START_ATOM:
 	goto lower;
       case U_CAT_BRACKET:
+      { bool is_open = false;
+	int close = pl_pair_lookup(c, &is_open);
+
+	if ( close && is_open )			/* '<open><close>' atom, like {} */
+	{ ucharp e = skipSpaces(rdhere);
+	  int c2;
+
+	  utf8_get_uchar(e, &c2);
+	  if ( c2 == close )
+	  { char buf[16], *p;
+	    PL_chars_t txt;
+
+	    rdhere = utf8_get_uchar(e, &c2);	/* consume the close */
+	    p = utf8_put_char(buf, c);
+	    p = utf8_put_char(p, close);
+	    txt.text.t    = buf;
+	    txt.length    = p - buf;
+	    txt.storage   = PL_CHARS_HEAP;
+	    txt.encoding  = ENC_UTF8;
+	    txt.canonical = false;
+	    cur_token.value.atom = textToAtom(&txt);
+	    NeedUnlock(cur_token.value.atom);
+	    PL_free_text(&txt);
+	    cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
+	    DEBUG(MSG_READ_TOKEN,
+		  Sdprintf("NAME: %s\n", stringAtom(cur_token.value.atom)));
+	    goto out;
+	  }
+	}
+
 	cur_token.value.character = c;
 	cur_token.type = T_PUNCTUATION;
 	DEBUG(MSG_READ_TOKEN,
 	      Sdprintf("PUNCT(bracket): U+%04X\n", c));
 	goto out;
+      }
       case U_CAT_QUOTE:
       { bool is_open = false;
 	int mate = pl_pair_lookup(c, &is_open);
