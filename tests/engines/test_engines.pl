@@ -46,7 +46,7 @@ test(error, Ex == foo) :-
 	engine_create(_, throw(foo), E),
 	catch(engine_next(E, _), Ex, true),
 	engine_destroy(E).
-text(mixed, all(R) == [1,aap,2,3]) :-
+test(mixed, all(R == [1,aap,2,3])) :-
 	mixed_yield_answers(R).
 test(no_data, error(existence_error(term, delivery, E))) :-
 	setup_call_cleanup(
