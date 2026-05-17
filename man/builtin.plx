@@ -6580,8 +6580,10 @@ value associated with the \term{module}{Module} option or the
 \const{user} module.
 
     \termitem{brace_terms}{Bool}
-If \const{true} (default), write \verb${}(X)$ as \verb${X}$.  See also
-\const{dotlists} and \const{ignore_ops}.
+If \const{true} (default), write \verb${}(X)$ as \verb${X}$ and,
+likewise, a Unicode bracket-pair compound \verb$'<open><close>'(X)$ as
+\verb$<open>X<close>$ (see \secref{unicodesyntax}).  See also \const{dotlists}
+and \const{ignore_ops}.
 
     \termitem{blobs}{Atom}
 Define how non-text blobs are handled.  By default, this is left to

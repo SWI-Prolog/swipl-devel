@@ -3444,7 +3444,12 @@ generalised to the full Unicode \const{Ps}/\const{Pe} set (64 pairs,
 sourced from Unicode \verb$BidiMirroring.txt$ filtered by
 general category).  Operators inside brackets are honoured; nesting
 works as expected.  Mismatched or stray closes raise
-\except{syntax_error}.
+\except{syntax_error}.  The analogy with \verb${}$ is complete: an
+empty pair, optionally containing only layout, reads as the
+two-character atom rather than a compound; that atom followed by
+\verb$($ is a functor; and on output \verb$'<open><close>'(X)$ is
+written as \verb$<open>X<close>$ and the bare atom unquoted, both
+subject to the \term{brace_terms}{true} write option.
 
     \item [Quotes (paired literal-text delimiters)]
 The initial / final quotation classes \const{Pi} and \const{Pf} form
@@ -3480,6 +3485,9 @@ Cs = [8804].
 
 ?- term_to_atom(T, '⟨a, b⟩').         % bracket pair (Ps/Pe)
 T = '⟨⟩'((a,b)).
+
+?- term_to_atom(T, '⟨ ⟩').            % empty pair is the atom
+T = '⟨⟩'.
 
 ?- term_to_atom(T, '«hello, world»'). % quote pair (Pi/Pf)
 T = '«»'("hello, world").
