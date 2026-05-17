@@ -44,6 +44,7 @@ test_syntax_unicode :-
                 syntax_unicode_layout,
                 syntax_unicode_eol,
                 syntax_unicode_solo,
+                syntax_unicode_brackets,
                 syntax_unicode_stray,
                 syntax_unicode_numbers,
                 syntax_unicode_version,
@@ -543,3 +544,66 @@ test(bidi_via_escape_is_allowed) :-
     atom_codes(T, `a\u202Eb`).
 
 :- end_tests(syntax_unicode_atoms).
+
+/* A matching Unicode bracket pair (Ps/Pe) behaves like {}: an empty
+   pair (optionally with layout in between) is the atom '<open><close>',
+   '<open><close>'(X) is a compound that writes as <open>X<close>, and
+   the bare atom is written unquoted.  ⟨⟩ is U+27E8/U+27E9, ⟦⟧ is
+   U+27E6/U+27E7, 「」 is U+300C/U+300D, ｟｠ is U+FF5F/U+FF60.
+*/
+
+:- begin_tests(syntax_unicode_brackets).
+
+% --- Reading -----------------------------------------------------------
+
+test(empty_pair_is_atom, T == '⟨⟩') :-
+    term_to_atom(T, '⟨⟩'),
+    atom(T).
+test(layout_pair_is_atom, T == '⟨⟩') :-
+    term_to_atom(T, '⟨   ⟩').
+test(empty_pair_as_functor, T =@= '⟨⟩'(x)) :-
+    term_to_atom(T, '⟨⟩(x)').
+test(nonempty_is_compound, T =@= '⟨⟩'(hello)) :-
+    term_to_atom(T, '⟨hello⟩').
+test(contained_term_is_parsed, T =@= '⟨⟩'((a,b))) :-
+    term_to_atom(T, '⟨a,b⟩').
+test(other_pairs_empty, Ts == ['⟦⟧', '「」', '｟｠']) :-
+    maplist(term_to_atom, Ts, ['⟦ ⟧', '「」', '｟｠']).
+test(mismatched_close_is_error, error(syntax_error(_), _)) :-
+    term_to_atom(_, '⟨a⟧').
+
+% --- Writing -----------------------------------------------------------
+
+test(bare_atom_unquoted, S == "⟨⟩") :-
+    with_output_to(string(S), writeq('⟨⟩')).
+test(bare_atom_unquoted_canonical, S == "⟨⟩") :-
+    with_output_to(string(S), write_canonical('⟨⟩')).
+test(compound_writes_as_brackets, S == "⟨hello⟩") :-
+    with_output_to(string(S), writeq('⟨⟩'(hello))).
+test(canonical_uses_functor_form, S == "⟨⟩(hello)") :-
+    with_output_to(string(S), write_canonical('⟨⟩'(hello))).
+test(nested_compound, S == "foo(⟨x⟩)") :-
+    with_output_to(string(S), writeq(foo('⟨⟩'(x)))).
+
+% --- Round-trip via write_canonical ------------------------------------
+
+test(roundtrip_atom) :-
+    roundtrip('⟨⟩').
+test(roundtrip_compound) :-
+    roundtrip('⟦⟧'(foo(bar))).
+test(roundtrip_list) :-
+    roundtrip(['⟨⟩', '⟨⟩'(x), {}, '{}'(y)]).
+
+% --- {} is unchanged ---------------------------------------------------
+
+test(brace_empty_still_atom, T == '{}') :-
+    term_to_atom(T, '{   }').
+test(brace_compound_still_sugar, S == "{a+b}") :-
+    with_output_to(string(S), writeq('{}'(a+b))).
+
+roundtrip(Term) :-
+    with_output_to(string(S), write_canonical(Term)),
+    term_to_atom(Back, S),
+    Back =@= Term.
+
+:- end_tests(syntax_unicode_brackets).
