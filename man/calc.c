@@ -17,12 +17,13 @@ main(int argc, char **argv)
   for(n=1; n<argc; n++)
   { ptrdiff_t len_rem;
     if ( n != 1 )
-      *e++ = ' ';
+    { len_rem = sizeof expression - (e - expression);
+      if ( len_rem > 1 )
+        *e++ = ' ';
+    }
     len_rem = sizeof expression - (e - expression);
     if ( len_rem > 0 )
-      strncpy(e, argv[n], len_rem);
-    expression[sizeof expression - 1] = '\0';
-    e += strlen(e);
+      e = strncpy(e, argv[n], len_rem);
   }
   expression[sizeof expression - 1] = '\0';
 
