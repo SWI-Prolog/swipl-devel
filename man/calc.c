@@ -1,11 +1,12 @@
 #include <string.h>
+#include <stddef.h>
 #include <SWI-Prolog.h>
 
 #define MAXLINE 1024
 
 int
 main(int argc, char **argv)
-{ char expression[MAXLINE];
+{ char expression[MAXLINE] = "";
   char *e = expression;
   char *program = argv[0];
   char *plav[2];
@@ -14,11 +15,16 @@ main(int argc, char **argv)
   /* combine all the arguments in a single string */
 
   for(n=1; n<argc; n++)
-  { if ( n != 1 )
+  { ptrdiff_t len_rem;
+    if ( n != 1 )
       *e++ = ' ';
-    snprintf(e, MAXLINE - (e - expression), "%s", argv[n]);
+    len_rem = sizeof expression - (e - expression);
+    if ( len_rem > 0 )
+      strncpy(e, argv[n], len_rem);
+    expression[sizeof expression - 1] = '\0';
     e += strlen(e);
   }
+  expression[sizeof expression - 1] = '\0';
 
   /* make the argument vector for Prolog */
 
