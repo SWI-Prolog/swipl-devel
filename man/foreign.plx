@@ -3329,15 +3329,18 @@ with a \jargon{fatal error} when out of memory. Future versions may
 raise a resource exception and return \exam{(predicate_t)0}.
 
     \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
-					  const char* module}
+					  const char *module}
 Same as PL_pred(), but provides a more convenient interface to the C
 programmer. If the module argument \arg{module} is \const{NULL}, the
-current context module is used. The \ctype{predicate_t} handle may be
-stored as global data and reused for future
-queries\footnote{PL_predicate() involves 5 hash lookups (two to get the
-atoms, one to get the module, one to get the functor and the final one
-to get the predicate associated with the functor in the module)} as
-illustrated below.
+current context module is used. Both \arg{name} and \arg{module} are
+encoded in UTF-8.  If either \arg{name} or \arg{module} is not valid
+UTF-8, the process is terminated using PL_api_error().
+
+The \ctype{predicate_t} handle may be stored as global data and reused
+for future queries\footnote{PL_predicate() involves 5 hash lookups (two
+to get the atoms, one to get the module, one to get the functor and the
+final one to get the predicate associated with the functor in the
+module)} as illustrated below.
 
 \begin{code}
 static predicate_t p = 0;

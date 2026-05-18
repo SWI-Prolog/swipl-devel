@@ -4492,14 +4492,22 @@ PL_predicate(const char *name, int arity, const char *module)
   if ( arity < 0 || arity > MAXARITY )
     PL_api_error("invalid arity %d (out of range)", arity);
 
-  atom_t a    = lookupAtom(name, strlen(name));
+  atom_t a = PL_new_atom_mbchars(ENC_UTF8, (size_t)-1, name);
+  if ( !a )
+  { PL_clear_exception();
+    PL_api_error("invalid predicate name %s (invalid UTF-8)", name);
+  }
   functor_t f = lookupFunctorDef(a, (size_t)arity);
 
   PL_unregister_atom(a);
 
   if ( module )
   { GET_LD
-    a = lookupAtom(module, strlen(module));
+    a = PL_new_atom_mbchars(ENC_UTF8, (size_t)-1, module);
+    if ( !a )
+    { PL_clear_exception();
+      PL_api_error("invalid module name %s (invalid UTF-8)", module);
+    }
     m = lookupModule(a);
     PL_unregister_atom(a);
   } else
