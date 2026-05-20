@@ -451,6 +451,10 @@ endforeach()
 # Final swipl.home for installed system
 file(WRITE "${SWIPL_BIN_ROOT}/dot.txt" ".\n")
 file(WRITE "${SWIPL_BIN_ROOT}/dotdot.txt" "..\n")
+if(BUILD_MACOS_FRAMEWORK)
+  # bin/swipl walks two parents up to Versions/A and looks for swipl.home there.
+  file(WRITE "${SWIPL_BIN_ROOT}/framework_home.txt" "Resources/swipl\n")
+endif()
 
 endif(NOT PGO_SUFFIX)
 
@@ -563,7 +567,23 @@ function(libswipl_properties lib outname)
   else()
     set(LIB_PREFIX)
   endif()
-  if(SWIPL_SO_VERSIONS)
+  if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+    # A macOS .framework wraps libswipl.  The framework binary is
+    # `swipl' (no lib prefix, no .dylib suffix) at
+    # swipl.framework/Versions/A/swipl.  CMake derives the framework
+    # install_name (@rpath/swipl.framework/Versions/A/swipl) from
+    # FRAMEWORK + OUTPUT_NAME, so we do NOT set INSTALL_NAME_DIR.
+    set_target_properties(${lib} PROPERTIES
+                          OUTPUT_NAME ${SWIPL_FRAMEWORK_NAME}
+                          FRAMEWORK TRUE
+                          FRAMEWORK_VERSION ${SWIPL_FRAMEWORK_VERSION}
+                          MACOSX_FRAMEWORK_IDENTIFIER org.swi-prolog.swipl
+                          MACOSX_FRAMEWORK_BUNDLE_NAME ${SWIPL_FRAMEWORK_NAME}
+                          MACOSX_FRAMEWORK_BUNDLE_VERSION ${SWIPL_VERSION_STRING}
+                          MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${SWIPL_VERSION_STRING}
+                          MACOSX_FRAMEWORK_INFO_PLIST
+                              ${CMAKE_SOURCE_DIR}/desktop/Framework-Info.plist.in)
+  elseif(SWIPL_SO_VERSIONS)
     set_target_properties(${lib} PROPERTIES
                           OUTPUT_NAME ${LIB_PREFIX}${outname}
                           VERSION ${SWIPL_VERSION_STRING}
@@ -734,9 +754,10 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
 endif()
 
 install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
-	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
-        LIBRARY DESTINATION ${LIBSWIPL_DIR}
-        ARCHIVE DESTINATION ${LIBSWIPL_DIR}
+	RUNTIME       DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+        LIBRARY       DESTINATION ${LIBSWIPL_DIR}
+        ARCHIVE       DESTINATION ${LIBSWIPL_DIR}
+        FRAMEWORK     DESTINATION .
 )
 target_runtime_dependencies(swipl)
 install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
@@ -766,25 +787,58 @@ foreach(d ${SWIPL_DATA_DIRS})
 		FILES ${files}
 		DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
 endforeach()
-install_src(core_headers
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE})
-install_src(core_compat_sicstus
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
-install_src(core_compat_yap
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  # For the framework, headers land in Versions/A/Headers/ (so that
+  # `-F <path> -framework swipl' works) AND in Resources/swipl/include/
+  # via install_src() so the build-tree shadow at home/include/ keeps
+  # working and consumers using the legacy `swi(include/...)' file
+  # alias still resolve correctly.
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE})
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+  install_src(core_headers
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+	      ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include)
+  install_src(core_compat_sicstus
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include/sicstus)
+  install_src(core_compat_yap
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include/Yap)
+else()
+  install_src(core_headers
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+	      ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE})
+  install_src(core_compat_sicstus
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
+  install_src(core_compat_yap
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+endif()
 install(FILES ${SWIPL_BIN_ROOT}/dot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME "swipl.home")
 install(FILES ${SWIPL_BIN_ROOT}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  install(FILES ${SWIPL_BIN_ROOT}/framework_home.txt
+	  DESTINATION ${SWIPL_FRAMEWORK_ROOT}
+	  RENAME "swipl.home")
+endif()
 
 if(NOT STATIC_EXTENSIONS)
 # Install cmake config files
@@ -814,6 +868,25 @@ install(TARGETS swipl-ld
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
 )
 target_runtime_dependencies(swipl-ld)
+endif()
+
+if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  # CMake creates the top-level symlinks for the framework binary and
+  # Resources, but leaves Headers/, PlugIns/ and Frameworks/ at
+  # Versions/Current/ only.  Apple convention is to expose them at the
+  # framework root so consumers can `-F <path> -framework swipl` and
+  # find swipl/swipl.h.  We unconditionally create the symlinks; the
+  # subdirectories may be populated by package install steps that run
+  # after this script, so the symlink can briefly be dangling.
+  install(CODE
+    "set(fw \"\${CMAKE_INSTALL_PREFIX}/${SWIPL_FRAMEWORK_NAME}.framework\")
+     foreach(sub Headers PlugIns Frameworks)
+       if(NOT EXISTS \"\${fw}/\${sub}\")
+         execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+                         Versions/Current/\${sub} \${sub}
+                         WORKING_DIRECTORY \"\${fw}\")
+       endif()
+     endforeach()")
 endif()
 
 if(WIN32)

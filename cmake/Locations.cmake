@@ -76,6 +76,29 @@ elseif(BUILD_MACOS_BUNDLE)
   set(SWIPL_TMP_DIR "/tmp" CACHE STRING
       "Directory to be used if the environment variable TMP is not set")
 
+elseif(BUILD_MACOS_FRAMEWORK)
+# Install as a standalone macOS .framework.  The framework can be
+# placed in /Library/Frameworks (or anywhere on the consumer's
+# -F search path) and linked with -framework swipl.
+
+  set(SWIPL_FRAMEWORK_NAME      swipl)
+  set(SWIPL_FRAMEWORK_VERSION   A)
+  set(SWIPL_FRAMEWORK_ROOT
+      ${SWIPL_FRAMEWORK_NAME}.framework/Versions/${SWIPL_FRAMEWORK_VERSION})
+
+  set(SWIPL_INSTALL_ARCH_EXE         ${SWIPL_FRAMEWORK_ROOT}/bin)
+  set(SWIPL_INSTALL_ARCH_LIB         ${SWIPL_FRAMEWORK_ROOT}/Frameworks)
+  set(SWIPL_INSTALL_MODULES          ${SWIPL_FRAMEWORK_ROOT}/PlugIns/swipl)
+  set(SWIPL_INSTALL_RESOURCES        ${SWIPL_FRAMEWORK_ROOT}/Resources)
+  set(SWIPL_INSTALL_PREFIX           ${SWIPL_FRAMEWORK_ROOT}/Resources/swipl)
+  set(SWIPL_INSTALL_CMAKE_CONFIG_DIR ${SWIPL_FRAMEWORK_ROOT}/Resources/swipl/cmake)
+  set(SWIPL_INSTALL_MANPAGES         ${SWIPL_FRAMEWORK_ROOT}/Resources/man)
+  set(SWIPL_INSTALL_PKGCONFIG        ${SWIPL_FRAMEWORK_ROOT}/Resources/pkgconfig)
+  set(SWIPL_INSTALL_INCLUDE          ${SWIPL_FRAMEWORK_ROOT}/Headers)
+  set(SWIPL_INSTALL_AS_LINK OFF)
+  set(SWIPL_TMP_DIR "/tmp" CACHE STRING
+      "Directory to be used if the environment variable TMP is not set")
+
 else()
 # Typical installation on POSIX systems. Also  used by Windows and MacOS
 # if we do not build a  bundle,   e.g.,  using Macports, Homebrew, MSYS,

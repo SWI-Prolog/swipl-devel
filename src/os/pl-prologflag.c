@@ -2316,7 +2316,10 @@ initPrologFlags(void)
 #endif
 #ifdef __APPLE__
   setPrologFlag("apple", FT_BOOL|FF_READONLY, true, 0);
-#ifdef BUILD_MACOS_BUNDLE
+#if defined(BUILD_MACOS_BUNDLE) || defined(BUILD_MACOS_FRAMEWORK)
+  /* The bundle flag is read by library(shlib) to resolve the foreign
+     search path to the PlugIns directory.  Both the .app bundle and a
+     standalone .framework use the same Contents/PlugIns layout. */
   setPrologFlag("bundle", FT_BOOL|FF_READONLY, true, 0);
 #endif
 #endif

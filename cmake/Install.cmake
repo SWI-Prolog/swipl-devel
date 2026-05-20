@@ -15,4 +15,14 @@ endif()
 
 if(BUILD_MACOS_BUNDLE)
   set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
+elseif(BUILD_MACOS_FRAMEWORK)
+  # bin/swipl{,-ld} live at swipl.framework/Versions/A/bin/ and link
+  # against @rpath/swipl.framework/Versions/A/swipl.  RPATH must point
+  # at the directory holding the .framework/ — i.e. four levels up
+  # (../../../.. = the install prefix root).  We also add a sibling
+  # RPATH for third-party dylibs that we bundle inside the framework
+  # at Versions/A/Frameworks/.
+  set(CMAKE_INSTALL_RPATH
+      "@executable_path/../../../.."
+      "@executable_path/../Frameworks")
 endif()

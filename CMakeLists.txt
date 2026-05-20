@@ -105,6 +105,9 @@ option(MACOS_UNIVERSAL_BINARY
 option(BUILD_MACOS_BUNDLE
        "Install for a MacOS bundle (SWI-Prolog.app)"
        OFF)
+option(BUILD_MACOS_FRAMEWORK
+       "Install libswipl as a macOS .framework bundle"
+       ${BUILD_MACOS_BUNDLE})
 option(BUILD_TESTING
        "Build test files and setup for ctest"
        ON)
