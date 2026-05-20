@@ -61,17 +61,22 @@ if(SWIPL_INSTALL_WIN_BUNDLE)
       "Directory to be used if the environment variable TEMP is not set")
 
 elseif(BUILD_MACOS_BUNDLE)
-# Install as a MacOS application bundle.  The bundle is swipl-win.app
-# (the EPILOG GUI lives in Contents/MacOS/swipl-win).  All shared
-# state — libswipl, foreign extensions, third-party dylibs, the
-# Prolog home, headers — moves into an embedded swipl.framework so
-# the same artifact can also be linked by third-party apps.
+# Split layout: the framework lives at /Library/Frameworks/swipl.framework
+# so third-party apps can `-F /Library/Frameworks -framework swipl', and
+# swipl-win.app at /Applications/swipl-win.app holds only the GUI
+# executable, the CLI tools and the Resources.  A single .pkg
+# (CPACK_PACKAGING_INSTALL_PREFIX="/") delivers both.
+#
+# To keep `ninja install' to a local prefix working, the install paths
+# below are relative to CMAKE_INSTALL_PREFIX; with CPack
+# productbuild the prefix is stripped and replaced with "/".
 
   set(SWIPL_FRAMEWORK_NAME      swipl)
   set(SWIPL_FRAMEWORK_VERSION   A)
-  set(SWIPL_BUNDLE_APP          swipl-win.app)
+  set(SWIPL_BUNDLE_APP          Applications/swipl-win.app)
+  set(SWIPL_BUNDLE_INSTALL_DIR  Applications)
   set(SWIPL_FRAMEWORK_INSTALL_DIR
-      ${SWIPL_BUNDLE_APP}/Contents/Frameworks)
+      Library/Frameworks)
   set(SWIPL_FRAMEWORK_ROOT
       ${SWIPL_FRAMEWORK_INSTALL_DIR}/${SWIPL_FRAMEWORK_NAME}.framework/Versions/${SWIPL_FRAMEWORK_VERSION})
 

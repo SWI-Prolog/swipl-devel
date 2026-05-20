@@ -14,7 +14,15 @@ if(SWIPL_SHARED_LIB)
 endif()
 
 if(BUILD_MACOS_BUNDLE)
-  set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
+  # Split layout: framework at /Library/Frameworks, app at /Applications.
+  # From <prefix>/Applications/swipl-win.app/Contents/MacOS/<exe> it is
+  # four directories up to <prefix>, then Library/Frameworks.  This lets
+  # the binaries find the framework when installed to a non-root prefix
+  # (typically a local test dir).  /Library/Frameworks is the deployed
+  # absolute path.
+  set(CMAKE_INSTALL_RPATH
+      "@executable_path/../../../../Library/Frameworks"
+      "/Library/Frameworks")
 elseif(BUILD_MACOS_FRAMEWORK)
   # bin/swipl{,-ld} live at swipl.framework/Versions/A/bin/ and link
   # against @rpath/swipl.framework/Versions/A/swipl.  RPATH must point

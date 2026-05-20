@@ -1,52 +1,60 @@
 #!/bin/sh
-
-deployqt=
+# Post-install fixup for the macOS build.
+#
+# Usage: macosx_bundle_fixup.sh <install-prefix>
+#
+# <install-prefix> is the directory containing the split layout:
+#
+#   <prefix>/Applications/swipl-win.app/
+#     Contents/MacOS/{swipl-win,swipl,swipl-ld}
+#     Contents/Resources/
+#
+#   <prefix>/Library/Frameworks/swipl.framework/Versions/A/
+#     swipl                       (libswipl)
+#     PlugIns/swipl/*.so          (foreign extensions)
+#     Frameworks/*.dylib          (bundled Homebrew/Macports deps)
+#     Resources/swipl/            (Prolog home)
+#
+# The script copies third-party dylibs referenced via /opt/local,
+# /opt/homebrew or $HOME/deps into the framework's Frameworks/
+# directory, rewrites all install names to @rpath/swipl.framework/...,
+# and ad-hoc resigns every Mach-O it touches so dyld accepts them on
+# Apple Silicon.  A proper Developer-ID signing pass runs afterwards
+# if $CODESIGN_ID is set.
 
 usage()
-{ echo "Usage: $0 app"
+{ echo "Usage: $0 <install-prefix>"
   exit 1
 }
 
-done=no
-while [ $done = no ]; do
-    case "$1" in
-	--*)
-	    usage
-	    ;;
-	*)
-	    done=yes
-	    ;;
-    esac
-done
-
-app=$1
-
-if [ -z "$app" ]; then
+prefix=$1
+if [ -z "$prefix" ] || [ ! -d "$prefix" ]; then
     usage
 fi
 
-printf "Fixing app bundle in $app\n"
-
-# Bundle layout (since the framework refactor):
-#
-#   swipl-win.app/Contents/
-#     MacOS/swipl-win              (EPILOG GUI)
-#     MacOS/swipl, swipl-ld        (CLI tools)
-#     Frameworks/swipl.framework/Versions/A/
-#       swipl                       (libswipl)
-#       PlugIns/swipl/*.so          (foreign extensions)
-#       Frameworks/*.dylib          (bundled third-party libs)
-#       Resources/swipl/            (Prolog home)
-
-fwroot=$app/Contents/Frameworks/swipl.framework/Versions/A
+app=$prefix/Applications/swipl-win.app
+fwroot=$prefix/Library/Frameworks/swipl.framework/Versions/A
 moduledir=$fwroot/PlugIns/swipl
 frameworkdir=$fwroot/Frameworks
+
+# Operate in best-effort mode: a `ninja install' run delivers the whole
+# tree (both the app and the framework), while CPack productbuild stages
+# each CMake component into a separate prefix and runs install() once
+# per component, so only part of the tree is visible at a time.  Skip
+# whatever is absent in this invocation instead of failing.
+
+if [ ! -d "$app" ] && [ ! -d "$fwroot" ]; then
+    # Nothing of ours in this prefix — silently nothing to do.
+    exit 0
+fi
+
+printf "Fixing macOS bundle in %s\n" "$prefix"
 
 if [ ! -d "$frameworkdir" ]; then
     mkdir -p "$frameworkdir"
 fi
 
-printf "Bundling Macports/Homebrew dylibs into $frameworkdir\n"
+printf "Bundling Macports/Homebrew dylibs into %s\n" "$frameworkdir"
 
 fixup_files()
 {
@@ -105,8 +113,32 @@ fixup_files()
     done
 }
 
-fixup_files $(echo $moduledir/*) $app/Contents/MacOS/swipl $fwroot/swipl
-fixup_files $(echo $frameworkdir/*)
+targets=
+# Foreign extensions (each component pkg owns its own set)
+if [ -d "$moduledir" ]; then
+    for f in "$moduledir"/*; do
+	[ -f "$f" ] && targets="$targets $f"
+    done
+fi
+# Framework binary (only present in the Core_system component pkg)
+[ -f "$fwroot/swipl" ] && targets="$targets $fwroot/swipl"
+# App executables (only present in Core_system)
+for exe in swipl swipl-ld swipl-win; do
+    [ -f "$app/Contents/MacOS/$exe" ] && \
+	targets="$targets $app/Contents/MacOS/$exe"
+done
+if [ ! -z "$targets" ]; then
+    fixup_files $targets
+fi
+# Second pass: any dylibs newly placed in the bundled-deps dir may
+# themselves reference further system libraries.
+if [ -d "$frameworkdir" ]; then
+    deps=
+    for f in "$frameworkdir"/*; do
+	[ -f "$f" ] && deps="$deps $f"
+    done
+    [ ! -z "$deps" ] && fixup_files $deps
+fi
 
 # Code signing (Developer ID Application).  Sign inner-most first.
 # The codesign in this script is the legacy ad-hoc path; proper
@@ -122,13 +154,13 @@ if [ ! -z "$CODESIGN_ID" ]; then
     printf "Code signing using $CODESIGN_ID ...\n"
     security unlock-keychain $loginkeychain || exit 1
 
-    sign $(find $app \( -name '*.dylib' -o -name '*.so' \) ) || exit 1
-    sign $fwroot/swipl                          || exit 1
-    sign $app/Contents/Frameworks/swipl.framework || exit 1
-    sign $app/Contents/MacOS/swipl-ld           || exit 1
-    sign $app/Contents/MacOS/swipl              || exit 1
-    sign $app/Contents/MacOS/swipl-win          || exit 1
-    sign $app                                   || exit 1
+    sign $(find $fwroot $app \( -name '*.dylib' -o -name '*.so' \) ) || exit 1
+    sign $fwroot/swipl                                          || exit 1
+    sign $prefix/Library/Frameworks/swipl.framework             || exit 1
+    sign $app/Contents/MacOS/swipl-ld                           || exit 1
+    sign $app/Contents/MacOS/swipl                              || exit 1
+    sign $app/Contents/MacOS/swipl-win                          || exit 1
+    sign $app                                                   || exit 1
 
     security lock-keychain $loginkeychain
 fi

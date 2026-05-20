@@ -90,10 +90,15 @@ if(BUILD_MACOS_BUNDLE)
 # up.  See URL below for the defined variables.
 # https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
 
-  # Default packaging is a notarized .pkg via the productbuild generator.
-  # SWIPL_MACOS_PACKAGE selects "productbuild" (.pkg) or "DragNDrop" (.dmg).
-  set(SWIPL_MACOS_PACKAGE "productbuild"
-      CACHE STRING "macOS CPack generator (productbuild or DragNDrop)")
+  # Default CPack generator is DragNDrop (a .dmg).  The .pkg installer
+  # is built by a separate `pkg' custom target (see below) using
+  # pkgbuild directly against ${CMAKE_INSTALL_PREFIX}, which is the
+  # only way to get the fixup-script-modified bits with the absolute
+  # /Applications + /Library/Frameworks split layout intact.  CPack's
+  # productbuild generator stages each CMake component separately,
+  # which prevents the fixup script from seeing the combined tree.
+  set(SWIPL_MACOS_PACKAGE "DragNDrop"
+      CACHE STRING "macOS CPack generator (DragNDrop)")
   set(CPACK_GENERATOR "${SWIPL_MACOS_PACKAGE}")
 
   set(SWIPL_APP_NAME swipl-win)
@@ -106,21 +111,15 @@ if(BUILD_MACOS_BUNDLE)
   set(CPACK_BUNDLE_COPYRIGHT    "BSD-2")
   set(CPACK_BUNDLE_PLIST        "${CMAKE_SOURCE_DIR}/desktop/Info.plist.in")
 
-  if(CPACK_GENERATOR STREQUAL "productbuild")
-    # The .pkg installs swipl-win.app into /Applications.  The Readme
-    # and License files live inside the app at Contents/Resources/.
-    set(CPACK_PACKAGING_INSTALL_PREFIX "/Applications")
-    set(CPACK_PRODUCTBUILD_IDENTIFIER  "org.swi-prolog.swipl-win.pkg")
-    # The following identity / keychain variables are intentionally
-    # left empty so the .pkg is produced unsigned.  Supply them via
-    # `cmake -D` (or the cache) once an Apple Developer ID is available.
-    set(CPACK_PRODUCTBUILD_IDENTITY_NAME ""
-        CACHE STRING "Developer ID Installer identity for .pkg signing")
-    set(CPACK_PKGBUILD_IDENTITY_NAME ""
-        CACHE STRING "Developer ID Application identity for component signing")
-    set(CPACK_PRODUCTBUILD_KEYCHAIN_PATH ""
-        CACHE STRING "Keychain path containing the signing identities")
-  endif()
+  # Identity / keychain variables for the `pkg' target.  Left empty so
+  # the .pkg is produced unsigned; supply them via `cmake -D' (or the
+  # cache) once an Apple Developer ID is available.
+  set(SWIPL_PKGBUILD_IDENTITY ""
+      CACHE STRING "Developer ID Installer identity for .pkg signing")
+  set(SWIPL_CODESIGN_IDENTITY ""
+      CACHE STRING "Developer ID Application identity for code signing")
+  set(SWIPL_NOTARYTOOL_PROFILE ""
+      CACHE STRING "notarytool keychain profile name (for stapler/notarize step)")
 
   function(deploy)
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ZZRuntime)
