@@ -377,5 +377,12 @@ include(Desktop)
 # Install all (DLL) dependencies
 install_target_runtime_dependencies()
 
+# MUST be the last add_subdirectory: this subdir's cmake_install.cmake
+# is included after every other subdir's, so its install(CODE) runs
+# the macOS bundle-fixup script after all foreign extensions are in
+# place.  CMake groups top-level install commands ahead of subdir
+# includes, so a bare install(CODE) here would run too early.
+add_subdirectory(cmake/macos_app_fixup)
+
 # Packaging
 include(Pack)

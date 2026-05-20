@@ -61,17 +61,29 @@ if(SWIPL_INSTALL_WIN_BUNDLE)
       "Directory to be used if the environment variable TEMP is not set")
 
 elseif(BUILD_MACOS_BUNDLE)
-# Install as a MacOS application bundle
+# Install as a MacOS application bundle.  The bundle is swipl-win.app
+# (the EPILOG GUI lives in Contents/MacOS/swipl-win).  All shared
+# state — libswipl, foreign extensions, third-party dylibs, the
+# Prolog home, headers — moves into an embedded swipl.framework so
+# the same artifact can also be linked by third-party apps.
 
-  set(PLRELHOME ../Resources/swipl)
-  set(SWIPL_INSTALL_ARCH_EXE         SWI-Prolog.app/Contents/MacOS)
-  set(SWIPL_INSTALL_ARCH_LIB         SWI-Prolog.app/Contents/Frameworks)
-  set(SWIPL_INSTALL_MODULES          SWI-Prolog.app/Contents/PlugIns/swipl)
-  set(SWIPL_INSTALL_RESOURCES        SWI-Prolog.app/Contents/Resources)
-  set(SWIPL_INSTALL_PREFIX           SWI-Prolog.app/Contents/Resources/swipl)
-  set(SWIPL_INSTALL_CMAKE_CONFIG_DIR SWI-Prolog.app/Contents/Resources/swipl/cmake)
-  set(SWIPL_INSTALL_MANPAGES         SWI-Prolog.app/Contents/Resources/man)
-  set(SWIPL_INSTALL_PKGCONFIG        SWI-Prolog.app/Contents/Resources/pkgconfig)
+  set(SWIPL_FRAMEWORK_NAME      swipl)
+  set(SWIPL_FRAMEWORK_VERSION   A)
+  set(SWIPL_BUNDLE_APP          swipl-win.app)
+  set(SWIPL_FRAMEWORK_INSTALL_DIR
+      ${SWIPL_BUNDLE_APP}/Contents/Frameworks)
+  set(SWIPL_FRAMEWORK_ROOT
+      ${SWIPL_FRAMEWORK_INSTALL_DIR}/${SWIPL_FRAMEWORK_NAME}.framework/Versions/${SWIPL_FRAMEWORK_VERSION})
+
+  set(SWIPL_INSTALL_ARCH_EXE         ${SWIPL_BUNDLE_APP}/Contents/MacOS)
+  set(SWIPL_INSTALL_ARCH_LIB         ${SWIPL_FRAMEWORK_ROOT}/Frameworks)
+  set(SWIPL_INSTALL_MODULES          ${SWIPL_FRAMEWORK_ROOT}/PlugIns/swipl)
+  set(SWIPL_INSTALL_RESOURCES        ${SWIPL_BUNDLE_APP}/Contents/Resources)
+  set(SWIPL_INSTALL_PREFIX           ${SWIPL_FRAMEWORK_ROOT}/Resources/swipl)
+  set(SWIPL_INSTALL_CMAKE_CONFIG_DIR ${SWIPL_FRAMEWORK_ROOT}/Resources/swipl/cmake)
+  set(SWIPL_INSTALL_MANPAGES         ${SWIPL_FRAMEWORK_ROOT}/Resources/man)
+  set(SWIPL_INSTALL_PKGCONFIG        ${SWIPL_FRAMEWORK_ROOT}/Resources/pkgconfig)
+  set(SWIPL_INSTALL_INCLUDE          ${SWIPL_FRAMEWORK_ROOT}/Headers)
   set(SWIPL_INSTALL_AS_LINK OFF)
   set(SWIPL_TMP_DIR "/tmp" CACHE STRING
       "Directory to be used if the environment variable TMP is not set")
@@ -83,6 +95,7 @@ elseif(BUILD_MACOS_FRAMEWORK)
 
   set(SWIPL_FRAMEWORK_NAME      swipl)
   set(SWIPL_FRAMEWORK_VERSION   A)
+  set(SWIPL_FRAMEWORK_INSTALL_DIR .)
   set(SWIPL_FRAMEWORK_ROOT
       ${SWIPL_FRAMEWORK_NAME}.framework/Versions/${SWIPL_FRAMEWORK_VERSION})
 

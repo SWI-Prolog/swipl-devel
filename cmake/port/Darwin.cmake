@@ -78,7 +78,7 @@ else()
 endif()
 
 if(BUILD_MACOS_BUNDLE)
-  set(MACOS_APP "SWI-Prolog")
+  set(MACOS_APP "swipl-win")
   set(EPILOG_APP "${MACOS_APP}")
 
   if(MACOS_UNIVERSAL_BINARY)
@@ -90,35 +90,63 @@ if(BUILD_MACOS_BUNDLE)
 # up.  See URL below for the defined variables.
 # https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
 
-  set(CPACK_GENERATOR "DragNDrop")
-  set(SWIPL_APP_NAME SWI-Prolog)
+  # Default packaging is a notarized .pkg via the productbuild generator.
+  # SWIPL_MACOS_PACKAGE selects "productbuild" (.pkg) or "DragNDrop" (.dmg).
+  set(SWIPL_MACOS_PACKAGE "productbuild"
+      CACHE STRING "macOS CPack generator (productbuild or DragNDrop)")
+  set(CPACK_GENERATOR "${SWIPL_MACOS_PACKAGE}")
+
+  set(SWIPL_APP_NAME swipl-win)
   set(CPACK_BUNDLE_NAME         "${SWIPL_APP_NAME}")
   set(CPACK_BUNDLE_EXECUTABLE   "${EPILOG_APP}")
   set(CPACK_BUNDLE_VERSION      "${SWIPL_VERSION_STRING}")
 
   set(CPACK_BUNDLE_ICON         "swipl.icns")
-  set(CPACK_BUNDLE_IDENTIFIER   "org.swi-prolog.app")
+  set(CPACK_BUNDLE_IDENTIFIER   "org.swi-prolog.swipl-win")
   set(CPACK_BUNDLE_COPYRIGHT    "BSD-2")
   set(CPACK_BUNDLE_PLIST        "${CMAKE_SOURCE_DIR}/desktop/Info.plist.in")
 
+  if(CPACK_GENERATOR STREQUAL "productbuild")
+    # The .pkg installs swipl-win.app into /Applications.  The Readme
+    # and License files live inside the app at Contents/Resources/.
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/Applications")
+    set(CPACK_PRODUCTBUILD_IDENTIFIER  "org.swi-prolog.swipl-win.pkg")
+    # The following identity / keychain variables are intentionally
+    # left empty so the .pkg is produced unsigned.  Supply them via
+    # `cmake -D` (or the cache) once an Apple Developer ID is available.
+    set(CPACK_PRODUCTBUILD_IDENTITY_NAME ""
+        CACHE STRING "Developer ID Installer identity for .pkg signing")
+    set(CPACK_PKGBUILD_IDENTITY_NAME ""
+        CACHE STRING "Developer ID Application identity for component signing")
+    set(CPACK_PRODUCTBUILD_KEYCHAIN_PATH ""
+        CACHE STRING "Keychain path containing the signing identities")
+  endif()
+
   function(deploy)
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ZZRuntime)
-    install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
-      DESTINATION .
-      RENAME Readme.html)
-    install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
-      DESTINATION .)
-
-    install(CODE "set(fixup_script ${CMAKE_SOURCE_DIR}/scripts/macosx_bundle_fixup.sh)
-		 ")
-    install(CODE [===[
-      execute_process(COMMAND ln -sf SWI-Prolog swipl-win
-		      WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app/Contents/MacOS)
-      execute_process(COMMAND ${fixup_script} ${CMAKE_INSTALL_PREFIX}/SWI-Prolog.app)
-    ]===])
+    if(CPACK_GENERATOR STREQUAL "DragNDrop")
+      # Top-level files visible on the disk image
+      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
+        DESTINATION .
+        RENAME Readme.html)
+      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
+        DESTINATION .)
+    else()
+      # For .pkg installs, place the docs inside the app so the
+      # installer doesn't litter /Applications with extra files.
+      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/SWIapp.html
+        DESTINATION ${SWIPL_INSTALL_RESOURCES}
+        RENAME Readme.html)
+      install(FILES ${CMAKE_SOURCE_DIR}/man/macosx/License.html
+        DESTINATION ${SWIPL_INSTALL_RESOURCES})
+    endif()
   endfunction()
 
   deploy()
+  # The fixup script must run AFTER all package subdirs install their
+  # foreign extensions; it is therefore registered from the top-level
+  # CMakeLists.txt at the bottom of the install order — search for
+  # MACOSX_BUNDLE_FIXUP_HOOK there.
 endif()
 
 set(CMAKE_MACOSX_RPATH ON)

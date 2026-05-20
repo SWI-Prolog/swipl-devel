@@ -757,7 +757,7 @@ install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
 	RUNTIME       DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY       DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE       DESTINATION ${LIBSWIPL_DIR}
-        FRAMEWORK     DESTINATION .
+        FRAMEWORK     DESTINATION ${SWIPL_FRAMEWORK_INSTALL_DIR}
 )
 target_runtime_dependencies(swipl)
 install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
@@ -879,7 +879,7 @@ if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
   # subdirectories may be populated by package install steps that run
   # after this script, so the symlink can briefly be dangling.
   install(CODE
-    "set(fw \"\${CMAKE_INSTALL_PREFIX}/${SWIPL_FRAMEWORK_NAME}.framework\")
+    "set(fw \"\${CMAKE_INSTALL_PREFIX}/${SWIPL_FRAMEWORK_INSTALL_DIR}/${SWIPL_FRAMEWORK_NAME}.framework\")
      foreach(sub Headers PlugIns Frameworks)
        if(NOT EXISTS \"\${fw}/\${sub}\")
          execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
