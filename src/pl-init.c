@@ -406,6 +406,52 @@ findHomeFromExecutable(const char *symbols, char *buf, size_t size)
 }
 #endif /*PLHOMEFILE*/
 
+/* Find the Prolog home by locating ourselves inside a macOS
+ * .framework bundle.  Uses dladdr() on a symbol of libswipl to
+ * get the framework binary path, then assumes
+ *
+ *    <prefix>/swipl.framework/Versions/<V>/swipl
+ *    <prefix>/swipl.framework/Versions/<V>/Resources/swipl/  (home)
+ *
+ * This works without any executable: a host application that just
+ * dlopen()s libswipl from the framework will still find the home.
+ */
+
+#if defined(__APPLE__) && defined(BUILD_MACOS_FRAMEWORK)
+#include <dlfcn.h>
+
+static char *
+findHomeFromFramework(char *buf, size_t size)
+{ Dl_info info;
+  char dylib[PATH_MAX];
+  char parent[PATH_MAX];
+  const char *vdir;
+
+  if ( !dladdr((void*)findHomeFromFramework, &info) || !info.dli_fname )
+    return NULL;
+  if ( strlen(info.dli_fname) >= sizeof(dylib) )
+    return NULL;
+  strcpy(dylib, info.dli_fname);
+
+  /* dylib = <prefix>/swipl.framework/Versions/<V>/swipl
+   * vdir  = <prefix>/swipl.framework/Versions/<V>
+   */
+  vdir = DirName(dylib, parent);
+  if ( !vdir || !strstr(vdir, ".framework/Versions/") )
+    return NULL;
+
+  char trial[PATH_MAX];
+  if ( Ssnprintf(trial, sizeof(trial), "%s/Resources/swipl", vdir) < 0 )
+    return NULL;
+  if ( !AbsoluteFile(trial, buf, size) )
+    return NULL;
+
+  DEBUG(MSG_INITIALISE,
+	Sdprintf("Trying home %s from framework %s\n", buf, dylib));
+  return buf;
+}
+#endif /*__APPLE__ && BUILD_MACOS_FRAMEWORK*/
+
 /* Find home is absoluteFile(dirName(symbols)+"/"+PLRELHOME)
  */
 
@@ -467,20 +513,26 @@ searchHome(const char *symbols, bool verbose)
 #endif
 	break;
       case 1:
+#if defined(__APPLE__) && defined(BUILD_MACOS_FRAMEWORK)
+	source = "macOS .framework bundle containing libswipl";
+	home = findHomeFromFramework(plp, sizeof(plp));
+#endif
+	break;
+      case 2:
 #ifdef PLHOMEFILE
 	source = "using \"" PLHOMEFILE "\" from";
 	ctx = symbols;
 	home = findHomeFromExecutable(symbols, plp, sizeof(plp));
 #endif
 	break;
-      case 2:
+      case 3:
 #ifdef PLRELHOME
 	source = PLRELHOME " relative relative to";
 	ctx = symbols;
 	home = findRelHome(symbols, plp, sizeof(plp));
 #endif
 	break;
-      case 3:
+      case 4:
 #ifdef PLHOME
 	source = "compiled in";
 	home = PrologPath(PLHOME, plp, sizeof(plp));
