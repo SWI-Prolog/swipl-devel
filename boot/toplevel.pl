@@ -928,8 +928,8 @@ setup_app :-
     !.
 setup_app :-
     current_prolog_flag(bundle, true),
-    current_prolog_flag(executable, Exe),
-    file_base_name(Exe, 'SWI-Prolog'),
+    current_prolog_flag(epilog, true),
+    getenv('__CFBundleIdentifier', _),
     !,
     setup_macos_app.
 setup_app.
