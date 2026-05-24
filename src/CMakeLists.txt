@@ -567,12 +567,17 @@ function(libswipl_properties lib outname)
   else()
     set(LIB_PREFIX)
   endif()
-  if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED" AND
+     outname STREQUAL SWIPL_FRAMEWORK_NAME)
     # A macOS .framework wraps libswipl.  The framework binary is
     # `swipl' (no lib prefix, no .dylib suffix) at
     # swipl.framework/Versions/A/swipl.  CMake derives the framework
     # install_name (@rpath/swipl.framework/Versions/A/swipl) from
     # FRAMEWORK + OUTPUT_NAME, so we do NOT set INSTALL_NAME_DIR.
+    # The outname check excludes the PGO-instrumented intermediate
+    # (libswipl-pgo-instrumented), which is a throw-away dylib used
+    # only to collect profile data and must NOT land at the same
+    # framework path as the real libswipl.
     set_target_properties(${lib} PROPERTIES
                           OUTPUT_NAME ${SWIPL_FRAMEWORK_NAME}
                           FRAMEWORK TRUE
