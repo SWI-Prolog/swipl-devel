@@ -50,6 +50,17 @@ if(BUILD_MACOS_BUNDLE)
             ${CMAKE_SOURCE_DIR}/man/macosx
             ${CMAKE_SOURCE_DIR}/desktop/swipl-256.png
             ${installer_resources}
+    # cmake/port/Darwin.cmake's DragNDrop branch puts Readme.html and
+    # License.html at the root of the install tree so they appear at
+    # the top of the .dmg.  With pkgbuild --install-location=/ those
+    # would target /Readme.html etc. on the sealed System volume;
+    # SIP rejects this with "The package is attempting to install
+    # content to the system volume."  Drop them from the staging tree
+    # before packaging so only the Applications/ and Library/ trees
+    # ship in the .pkg.
+    COMMAND ${CMAKE_COMMAND} -E rm -f
+            ${CMAKE_INSTALL_PREFIX}/Readme.html
+            ${CMAKE_INSTALL_PREFIX}/License.html
     COMMAND /usr/bin/pkgbuild
             --root ${CMAKE_INSTALL_PREFIX}
             --install-location /
