@@ -126,8 +126,10 @@ function(install_in_home name)
     # Destination is not below the Prolog home (e.g. headers in
     # swipl.framework/Versions/A/Headers).  No build-home shadow is
     # needed; the install() call from install_prolog_src() handles
-    # the installation.
+    # the installation.  Still declare an empty ${name} target so
+    # downstream `DEPENDS ${name}` (e.g. pkg_doc) resolves.
     if(buildhome STREQUAL my_DESTINATION)
+      add_custom_target(${name})
       return()
     endif()
 
