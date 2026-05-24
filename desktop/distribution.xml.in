@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>SWI-Prolog @SWIPL_VERSION_STRING@</title>
+    <organization>org.swi-prolog</organization>
+    <welcome    file="welcome.rtf"/>
+    <license    file="license.rtf"/>
+    <conclusion file="conclusion.rtf"/>
+    <background file="background.png"
+                alignment="left" scaling="proportional"/>
+    <background-darkAqua file="background.png"
+                alignment="left" scaling="proportional"/>
+    <options customize="never" require-scripts="false"
+             hostArchitectures="@CMAKE_SYSTEM_PROCESSOR@"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="10.14"/>
+        </allowed-os-versions>
+    </volume-check>
+    <choices-outline>
+        <line choice="default">
+            <line choice="org.swi-prolog.swipl-win.component"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="org.swi-prolog.swipl-win.component" visible="false">
+        <pkg-ref id="org.swi-prolog.swipl-win.pkg"/>
+    </choice>
+    <pkg-ref id="org.swi-prolog.swipl-win.pkg"
+             version="@SWIPL_VERSION_STRING@">swipl-component.pkg</pkg-ref>
+</installer-gui-script>
