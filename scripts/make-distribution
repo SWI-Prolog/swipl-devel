@@ -107,7 +107,7 @@ build_macos_gcc_universal()
   build_macos_gcc_arch arm64 $buildir || return 1
   ( cd $buildir
     ../scripts/macos-import-x86_64.sh ../$buildir_x86_64 || return 1
-    cpack
+    ninja pkg
   )
 }
 
