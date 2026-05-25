@@ -1459,6 +1459,39 @@ clearTriedIndexes(Definition def)
 }
 
 
+/* Reset the JIT  indexing decisions  cached on `def`.  Called from the
+ * supervisor  machinery when  the  supervisor actually  changes: that
+ * signals  that the  predicate's  clause shape  (number of  clauses,
+ * dynamic/multifile flags, undef vs.  defined) has changed enough that
+ * memoized  indexing  verdicts (per-arg  assessments,  primary-index
+ * decision, `unindexed`/`fixed_indexes`) may  no longer be optimal.
+ * The clause-index  tables themselves are kept;  they remain valid as
+ * long as the clauses they reference are valid.
+ */
+
+void
+reconsiderIndexes(Definition def)
+{ ClauseList clist;
+
+  if ( ison(def, P_FOREIGN) )
+    return;
+
+  clist = &def->impl.clauses;
+
+  if ( clist->args )
+  { size_t arity = def->functor->arity;
+
+    for(size_t i=0; i<arity; i++)
+      clist->args[i].assessed = false;
+  }
+
+  clist->jiti_tried       = 0;
+  clist->pindex_verified  = false;
+  clist->fixed_indexes    = false;
+  clist->unindexed        = false;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clear the ->tried_index  vector  occasionally   for  dynamic  predicates
 because evaluation may change. We  do  this   if  the  number of clauses

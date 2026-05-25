@@ -66,6 +66,7 @@ void		cleanClauseIndexes(Definition def, ClauseList cl,
 				   DirtyDefInfo ddi,
 				   gen_t start, Buffer tr_starts);
 void		clearTriedIndexes(Definition def);
+void		reconsiderIndexes(Definition def);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 bool		unify_index_pattern(Procedure proc, term_t value);

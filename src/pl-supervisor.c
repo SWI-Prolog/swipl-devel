@@ -459,7 +459,8 @@ setSupervisor(Definition def, Code codes)
   if ( equalSupervisors(old, codes) )
   { freeSupervisor(def, codes, false);
   } else
-  { MEMORY_BARRIER();
+  { reconsiderIndexes(def);
+    MEMORY_BARRIER();
     def->codes = codes;
     freeSupervisor(def, old, true);
   }
@@ -480,13 +481,15 @@ setDefaultSupervisor(Definition def)
   { Code codes, old;
 
     PL_LOCK(L_PREDICATE);
-    update_primary_index(def);
     old = def->codes;
     codes = createSupervisor(def);
     if ( equalSupervisors(old, codes) )
     { freeSupervisor(def, codes, false);
+      update_primary_index(def);
     } else
-    { MEMORY_BARRIER();
+    { reconsiderIndexes(def);		/* clause shape changed; re-decide */
+      update_primary_index(def);
+      MEMORY_BARRIER();
       def->codes = codes;
       freeSupervisor(def, old, true);
     }
