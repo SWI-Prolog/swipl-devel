@@ -69,10 +69,15 @@ cmake_binary_directory(BinDir, Config) :-
     exists_file(BootFile),
     !,
     split_string(Exe, "/", "/", Segments),
-    '$append'(_, [Parent,_Exe], Segments),
-    (   Parent == "src"
+    (   % macOS framework layout: <BinDir>/src/<Name>.framework/Versions/<V>/<exe>
+        '$append'(_, ["src", FW, "Versions", _Ver, _Exe], Segments),
+        sub_string(FW, _, _, 0, ".framework")
     ->  Config = ''
-    ;   atom_string(Config, Parent)
+    ;   '$append'(_, [Parent,_Exe], Segments),
+        (   Parent == "src"
+        ->  Config = ''
+        ;   atom_string(Config, Parent)
+        )
     ),
     asserta(cmake_bindir(BinDir, Config)).
 
