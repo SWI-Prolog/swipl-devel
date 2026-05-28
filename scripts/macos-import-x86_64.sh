@@ -62,6 +62,12 @@ for f in $files; do
 		    dorm=$in
 		fi
 	    fi
+	    # .amd64 is a misnomer (it is actually the native arm64 binary
+	    # before delgccrpath / lipo); kept as a safety net in case the
+	    # merge fails.  On success the merged universal file replaces
+	    # $f and the backup is removed so it cannot leak into the
+	    # staging tree --- notarization rejects extra signed-only-with-
+	    # ad-hoc binaries that pkgbuild would otherwise package up.
 	    cp $f $f.amd64
 	    delgccrpath $f
 	    if lipo -create $f $in -output $f.U; then
@@ -69,6 +75,7 @@ for f in $files; do
 		    rm $dorm
 		fi
 		mv $f.U $f
+		rm $f.amd64
 		echo ok
 	    else
 		echo "FAILED"

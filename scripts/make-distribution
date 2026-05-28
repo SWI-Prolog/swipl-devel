@@ -101,13 +101,108 @@ build_macos_gcc_arch()
 }
 
 build_macos_gcc_universal()
-{ buildir=${1-build.fat-gcc}
+{ # Build a signed and notarized universal (arm64 + x86_64) .pkg.
+  #
+  # Requires:
+  #   $APPLEID  -- the Apple ID associated with your Developer ID
+  #                (e.g., jan@swi-prolog.org).  Used as a sanity check
+  #                that signing/notarization is intended; the actual
+  #                credentials are read from the notarytool keychain
+  #                profile (see below).
+  #
+  # The function looks up the active Developer ID Application and
+  # Developer ID Installer identities from the login keychain via
+  # `security find-identity', and uses a notarytool keychain profile
+  # (default name: swipl-notary; override via $NOTARYTOOL_PROFILE)
+  # set up once with `xcrun notarytool store-credentials'.  See
+  # doc/MacOSXInstaller.md for the full setup walk-through.
+
+  if [ -z "$APPLEID" ]; then
+      cat <<_EOF_ >&2
+ERROR: \$APPLEID is not set.  Set it to the Apple ID tied to your
+       Developer ID, e.g.:  export APPLEID=jan@swi-prolog.org.
+       See doc/MacOSXInstaller.md for the full signing/notarization
+       setup.
+_EOF_
+      return 1
+  fi
+
+  app_id=$(security find-identity -v -p codesigning |
+           awk -F'"' '/Developer ID Application:/ {print $2; exit}')
+  pkg_id=$(security find-identity -v -p basic |
+           awk -F'"' '/Developer ID Installer:/ {print $2; exit}')
+  if [ -z "$app_id" ] || [ -z "$pkg_id" ]; then
+      cat <<_EOF_ >&2
+ERROR: Developer ID Application and/or Installer identities are not
+       in your login keychain.  Inspect with:
+           security find-identity -v -p basic
+       See doc/MacOSXInstaller.md to (re-)issue the certificates.
+_EOF_
+      return 1
+  fi
+
+  PROFILE=${NOTARYTOOL_PROFILE:-swipl-notary}
+
+  echo "APPLEID:  $APPLEID"
+  echo "app id:   $app_id"
+  echo "pkg id:   $pkg_id"
+  echo "notary:   $PROFILE"
+
+  # The build takes 10--30 minutes and uses private keys from the
+  # login keychain in three separate phases (codesign during the
+  # fixup pass, productbuild after pkgbuild, and codesign again on
+  # the resulting framework).  To avoid a Security Server interaction
+  # prompt --- which fails outright outside an Aqua session, and is
+  # awkward even inside one --- pre-unlock the keychain once at the
+  # start of the run and propagate the password via $KEYCHAIN_PASSWORD
+  # to the install hook.  If the password is not already in the
+  # environment, prompt for it silently.  `stty -echo' is portable
+  # across bash and zsh; `read -s' is not.
+  if [ -z "$KEYCHAIN_PASSWORD" ]; then
+      printf "Login keychain password: " >&2
+      stty -echo
+      IFS= read -r KEYCHAIN_PASSWORD
+      stty echo
+      printf "\n" >&2
+      export KEYCHAIN_PASSWORD
+  fi
+  security unlock-keychain \
+      -p "$KEYCHAIN_PASSWORD" \
+      ~/Library/Keychains/login.keychain-db || return 1
+  # Refresh the partition list so apple-tool / apple / unsigned
+  # callers can use the private keys without a confirmation dialog.
+  security set-key-partition-list \
+      -S apple-tool:,apple:,unsigned: \
+      -s \
+      -k "$KEYCHAIN_PASSWORD" \
+      ~/Library/Keychains/login.keychain-db >/dev/null || return 1
+
+  buildir=${1-build.fat-gcc}
   buildir_x86_64=$buildir-x86_64
+
+  # Compute and clean the install staging prefix.  cmake/Install.cmake
+  # honours $SWIPL_INSTALL_PREFIX with @builddir@ substitution; we use
+  # the same template here (default: $HOME/cmake/@builddir@) so the
+  # cleanup matches whatever the build is about to install into.
+  # Guarded by the presence of our framework/app under the prefix so
+  # we never rm anything that doesn't look like a previous install.
+  prefix_template=${SWIPL_INSTALL_PREFIX:-$HOME/cmake/@builddir@}
+  install_prefix=$(echo "$prefix_template" | sed "s|@builddir@|$buildir|g")
+  if [ -d "$install_prefix/Library/Frameworks/swipl.framework" ] || \
+     [ -d "$install_prefix/Applications/swipl-win.app" ]; then
+      echo "Cleaning previous install at $install_prefix"
+      rm -rf "$install_prefix"
+  fi
+
   build_macos_gcc_arch x86_64 $buildir_x86_64 || return 1
   build_macos_gcc_arch arm64 $buildir || return 1
   ( cd $buildir
     ../scripts/macos-import-x86_64.sh ../$buildir_x86_64 || return 1
-    cpack
+    cmake -DSWIPL_CODESIGN_IDENTITY="$app_id" \
+          -DSWIPL_PKGBUILD_IDENTITY="$pkg_id" \
+          -DSWIPL_NOTARYTOOL_PROFILE="$PROFILE" \
+          . || return 1
+    ninja pkg
   )
 }
 
