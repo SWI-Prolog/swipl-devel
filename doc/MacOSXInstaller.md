@@ -169,7 +169,7 @@ slow step and blocks until Apple replies.
 
 The result lands at
 
-    build.fat-gcc/swipl-<version>-fat.pkg
+    build.fat-gcc/swipl-<version>-1.fat.pkg
 
 (`fat` because the .pkg ships both arm64 and x86_64 slices; for
 non-universal builds the suffix is the build host's architecture.)
@@ -214,7 +214,7 @@ own idle timer.
 After a successful run, four commands confirm the pkg is fully
 signed, hardened-runtime, and notarized:
 
-    PKG=build.installer/swipl-10.1.7-arm64.pkg
+    PKG=build.installer/swipl-10.1.7-1.arm64.pkg
 
     # Gatekeeper verdict (what Installer.app sees)
     spctl --assess --type install -vvv "$PKG"

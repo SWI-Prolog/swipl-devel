@@ -291,7 +291,7 @@ list_file()
 
 list_built()
 { if [ $(uname) = Darwin ]; then
-    list_file $macos_builddir/swipl-${version}-1.fat.dmg
+    list_file $macos_builddir/swipl-${version}-1.fat.pkg
   else
     ls -l build.win64/swipl-${version}-1.x64.exe
     ls -l build.pdf/man/SWI-Prolog-$version.pdf
@@ -334,9 +334,9 @@ upload_win64()
 }
 
 upload_macosx()
-{ if [ -f $macos_builddir/swipl-${version}-1.fat.dmg ]; then
+{ if [ -f $macos_builddir/swipl-${version}-1.fat.pkg ]; then
     echo "Uploading MacOS binary version"
-    upload_file bin $macos_builddir/swipl-${version}-1.fat.dmg
+    upload_file bin $macos_builddir/swipl-${version}-1.fat.pkg
   fi
 }
 

@@ -44,7 +44,7 @@ if(BUILD_MACOS_BUNDLE)
     set(pkg_arch ${CMAKE_SYSTEM_PROCESSOR})
   endif()
   set(pkg_file
-      ${CMAKE_BINARY_DIR}/swipl-${SWIPL_VERSION_STRING}-${pkg_arch}.pkg)
+      ${CMAKE_BINARY_DIR}/swipl-${SWIPL_VERSION_STRING}-1.${pkg_arch}.pkg)
   set(installer_resources ${CMAKE_BINARY_DIR}/installer-resources)
 
   configure_file(
