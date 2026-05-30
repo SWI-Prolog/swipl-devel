@@ -36,6 +36,11 @@ endif()
 if(APPLE)
 # tcmalloc breaks setlocale() on MacOS 12 (Monterey)
   set(DEFAULT_USE_TCMALLOC OFF)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
+# tcmalloc interposes malloc/free and clashes with the sanitizer runtime,
+# causing crashes when third-party libraries (e.g. GLib) free memory that
+# was allocated through the sanitizer.
+  set(DEFAULT_USE_TCMALLOC OFF)
 else()
   set(DEFAULT_USE_TCMALLOC ON)
 endif()
