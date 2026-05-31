@@ -22,6 +22,11 @@
 #     to specific identifiers) visible via `git log` and `git show` but
 #     hidden from the changelog.
 
+if [ -t 1 ]; then
+   "$0" "$@" | ${PAGER:-less -FR}
+   exit ${PIPESTATUS[0]}
+fi
+
 footer=false
 printdate=true
 directory=.
