@@ -603,17 +603,16 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	  { size_t arity;
 	    term_t av;
 	    sub_state sstate;
-	    int i;
 
 	    PL_predicate_info(proc, NULL, &arity, NULL);
-	    av = PL_new_term_refs((int)arity);
+	    av = PL_new_term_refs(arity);
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
 	    else
 	      PL_put_integer(av+0, arg);
 
-	    for(i=1; i < arity; i++)
+	    for(size_t i=1; i < arity; i++)
 	    { NEED_ARG;
 	      PL_put_term(av+i, argv);
 	      SHIFT;
