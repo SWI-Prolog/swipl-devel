@@ -162,10 +162,14 @@ unify_term(X, X) :- !.
 unify_term(X1, X2) :-
     compound(X1),
     compound(X2),
-    functor(X1, F, Arity),
-    functor(X2, F, Arity),
+    compound_name_arity(X1, F, Arity),
+    compound_name_arity(X2, F, Arity),
     !,
     unify_args(0, Arity, X1, X2).
+unify_term(X, Y) :-
+    number(X), number(Y),
+    X =:= Y,
+    !.
 unify_term(X, Y) :-
     float(X), float(Y),
     !.
