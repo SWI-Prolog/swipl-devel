@@ -2363,7 +2363,14 @@ class Query {
 		 *******************************/
 
 Module.onRuntimeInitialized = function()
-{ Module.prolog = new Prolog(Module, arguments_);
+{ // Emscripten 6.0.0 renamed its internal program-arguments variable from
+  // `arguments_` to `programArgs`.  Accept either so we keep working across
+  // Emscripten versions instead of throwing `ReferenceError: arguments_ is
+  // not defined` at startup.
+  const argv = typeof arguments_ !== "undefined" ? arguments_
+             : typeof programArgs !== "undefined" ? programArgs
+             : [];
+  Module.prolog = new Prolog(Module, argv);
 };
 
 		 /*******************************
