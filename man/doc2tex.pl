@@ -60,10 +60,22 @@ This translation was originally written in  Perl. It was translated into
 Prolog to give more control over the process and make it more readable.
 */
 
+:- dynamic doc2tex_xpce/0.
+
 :- initialization(main, main).
 
-main([InFile, OutFile]) :-
+main(Argv) :-
+    split_doc2tex_args(Argv, Files),
+    Files = [InFile, OutFile],
     doc2tex(InFile, OutFile).
+
+split_doc2tex_args([], []).
+split_doc2tex_args(['--xpce'|T], R) :-
+    !,
+    assertz(doc2tex_xpce),
+    split_doc2tex_args(T, R).
+split_doc2tex_args([H|T], [H|R]) :-
+    split_doc2tex_args(T, R).
 
 %!  doc2tex(+InFile, +OutFile)
 %
@@ -231,8 +243,47 @@ tr_name(Module, [\index(Index),\qpredref(Module,Name,write(Arity))]) -->
 tr_name(Name, [\index(Index), \predref(Name,write(Arity))]) -->
     "/", arity(Arity), !,
     { format(string(Index), '~w/~w', [Name,Arity]) }.
+%   Under --xpce, recognise the three xpce method-arrow forms
+%   and emit the matching cross-reference macros. The selector is
+%   allowed to start with an underscore (private methods like
+%   =|object->_check|=). We deliberately skip the bare =|-|=
+%   (instance variable) and =|.|= (class variable) forms: they
+%   collide with normal English hyphenation ("self-reference",
+%   "high-level", ...) and end-of-sentence dots ("e.g."). Callers
+%   wanting an instvar / classvar link should write
+%   =|\classinstvar{X}{Y}|= / =|\classvar{X}{Y}|= explicitly.
+tr_name(Class, [\classboth(Class,Sel)]) -->
+    { doc2tex_xpce },
+    "<->", xpce_selector(Sel), !.
+tr_name(Class, [\classsend(Class,Sel)]) -->
+    { doc2tex_xpce },
+    "->", xpce_selector(Sel), !.
+tr_name(Class, [\classget(Class,Sel)]) -->
+    { doc2tex_xpce },
+    "<-", xpce_selector(Sel), !.
 tr_name(Name, Name) -->
     [].
+
+%   Selectors look like Prolog identifiers but may start with =|_|=
+%   (private slots). Reject the lone =|_|= so a stray ' - ' in prose
+%   doesn't accidentally match.
+
+xpce_selector(Sel) -->
+    [C0],
+    { xpce_selector_start(C0) },
+    !,
+    prolog_id_cont(CL),
+    { CL \== [],
+      atom_codes(Sel, [C0|CL])
+    }.
+xpce_selector(Sel) -->
+    [C0],
+    { code_type(C0, prolog_atom_start) },
+    !,
+    prolog_id_cont(CL),
+    { atom_codes(Sel, [C0|CL]) }.
+
+xpce_selector_start(0'_).
 
 %!  expand_code(+Chars, -String) is det.
 %
