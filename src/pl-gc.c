@@ -5312,6 +5312,24 @@ needStack(DECL_LD Stack s)
 { return usedStackP(s) + s->min_free + s->def_spare;
 }
 
+static void
+PrintStackParms(Stack s, void *newbase, size_t newsize)
+{ void *newmax = addPointer(newbase, newsize);
+  size_t osize = (size_t)diffPointers(s->max, s->base);
+  size_t oused = (size_t)diffPointers(s->top, s->base);
+  double ofill = (oused*100.0)/(double)osize;
+
+  Sdprintf("%-6s: %p...%p [%zd] (%f%%) --> ",
+	   s->name, s->base, s->max, osize, ofill);
+  if ( s->base == newbase &&
+       (void*)s->max == newmax )
+  { Sdprintf("(no change)\n");
+  } else
+  { double perc = (newsize*100.0)/(double)osize;
+    Sdprintf("%p...%p [%zd] (%f%%)\n", newbase, newmax, newsize, perc);
+  }
+}
+
 
 #define grow_stacks(l, g, t) LDFUNC(grow_stacks, l, g, t)
 
@@ -5494,26 +5512,11 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
       }
     }
 
-#define PrintStackParms(stack, name, newbase, newsize) \
-	{ void *newmax = addPointer(newbase, newsize); \
-	  Sdprintf("%-6s: %p ... %p [0x%zx] --> ", \
-		   name, \
-		   LD->stacks.stack.base, \
-		   LD->stacks.stack.max, \
-		   (size_t)diffPointers(LD->stacks.stack.max, LD->stacks.stack.base)); \
-	  if ( LD->stacks.stack.base == newbase && \
-	       (void*)LD->stacks.stack.max == newmax ) \
-	  { Sdprintf("(no change)\n"); \
-	  } else \
-	  { Sdprintf("%p ... %p [0x%zx]\n", newbase, newmax, (size_t)diffPointers(newmax,newbase)); \
-	  } \
-	}
-
     if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { Sputchar('\n');
-      PrintStackParms(global, "global", gb, gsize);
-      PrintStackParms(local, "local", lb, lsize);
-      PrintStackParms(trail, "trail", tb, tsize);
+      PrintStackParms((Stack)&LD->stacks.global, gb, gsize);
+      PrintStackParms((Stack)&LD->stacks.local, lb, lsize);
+      PrintStackParms((Stack)&LD->stacks.trail, tb, tsize);
     }
 
     gBase++; gb++;
