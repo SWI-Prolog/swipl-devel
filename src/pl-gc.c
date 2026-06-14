@@ -5387,7 +5387,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
 
 	gsize = (size_t)((double)uglobal * f);
 	tsize = (size_t)((double)utrail  * f);
-	lsize = (size_t)((double)ulocal  + f);
+	lsize = (size_t)((double)ulocal  * f);
 
 	gsize = ROUND(gsize, 4096);
 	tsize = ROUND(tsize, 4096);
