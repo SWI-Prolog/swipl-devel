@@ -77,12 +77,12 @@ test(double_close,
 	open_null_stream(S),
 	close(S),
 	close(S).
-test(current_io_non_existing,
-     [ error(existence_error(stream, unlikely))
+test(current_io_no_alias,
+     [ error(domain_error(stream, alias))
      ]) :-
-	current_input(unlikely).
+	current_input(alias).
 test(current_io_closed,
-     [ error(existence_error(stream, S))
+     [ fail
      ]) :-
 	open_null_stream(S),
 	close(S),

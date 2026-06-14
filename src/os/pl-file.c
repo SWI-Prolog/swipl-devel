@@ -96,6 +96,14 @@ handling times must be cleaned, but that not only holds for this module.
 
 #define STD_HANDLE_MASK 0x10
 
+#define SH_ERRORS   0x01		/* generate errors */
+#define SH_ALIAS    0x02		/* allow alias */
+#define SH_UNLOCKED 0x04		/* don't lock the stream */
+#define SH_OUTPUT   0x08		/* We want an output stream */
+#define SH_INPUT    0x10		/* We want an input stream */
+#define SH_NOPAIR   0x20		/* Do not allow for a pair */
+#define SH_TRYLOCK  0x40		/* Fail if we cannot lock */
+
 /* there are two types of stream property functions. In the usual case,
    they have an argument, but in a few cases they don't */
 typedef int LDFUNCP (*property0_t)(DECL_LD IOSTREAM *s);
@@ -616,8 +624,10 @@ no_stream(term_t t, atom_t name)
 }
 
 static bool
-not_a_stream(term_t t)
-{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t),false;
+not_a_stream(term_t t, int flags)
+{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		  (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t)
+         ,false;
 }
 
 static bool
@@ -637,7 +647,7 @@ symbol_not_a_stream(atom_t symbol)
 { GET_LD
   term_t t = PL_new_term_ref();
   PL_put_atom(t, symbol);
-  return not_a_stream(t);
+  return not_a_stream(t, SH_ALIAS);
 }
 
 
@@ -776,14 +786,6 @@ static PL_blob_t stream_blob =
 };
 
 
-#define SH_ERRORS   0x01		/* generate errors */
-#define SH_ALIAS    0x02		/* allow alias */
-#define SH_UNLOCKED 0x04		/* don't lock the stream */
-#define SH_OUTPUT   0x08		/* We want an output stream */
-#define SH_INPUT    0x10		/* We want an input stream */
-#define SH_NOPAIR   0x20		/* Do not allow for a pair */
-#define SH_TRYLOCK  0x40		/* Fail if we cannot lock */
-
 #define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
 static bool
 get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
@@ -905,7 +907,7 @@ term_stream_handle(DECL_LD term_t t, IOSTREAM **s, int flags)
 { atom_t a;
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+    return not_a_stream(t, flags);
 
   return get_stream_handle(a, s, flags);
 }
@@ -924,7 +926,7 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
   atom_t a;
 
   if ( !PL_get_atom(t, &a) )
-    return not_a_stream(t);
+    return not_a_stream(t, flags);
 
   return PL_get_stream_from_blob(a, s, flags);
 }
@@ -1079,7 +1081,7 @@ getOutputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
   }
 
   if ( !PL_get_atom(t, &a) )
-  { not_a_stream(t);
+  { not_a_stream(t, SH_ALIAS);
     return false;
   }
 
@@ -1142,7 +1144,7 @@ getInputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
   }
 
   if ( !PL_get_atom(t, &a) )
-  { not_a_stream(t);
+  { not_a_stream(t, SH_ALIAS);
     return false;
   }
 
@@ -2503,7 +2505,7 @@ found:
   _PL_get_arg(1, attr, aval);
 
   if ( !PL_get_atom(stream, &sblob) )
-    return not_a_stream(stream);
+    return not_a_stream(stream, SH_ALIAS);
 
   ref = PL_blob_data(sblob, NULL, &type);
   if ( type == &stream_blob )		/* got a stream handle */
@@ -4659,7 +4661,7 @@ pl_close(DECL_LD term_t stream, int force)
   PL_blob_t *type;
 
   if ( !PL_get_atom(stream, &a) )
-    return not_a_stream(stream);
+    return not_a_stream(stream, SH_ALIAS);
 
   ref = PL_blob_data(a, NULL, &type);
   if ( type == &stream_blob )		/* close(Stream[pair], ...) */
@@ -5503,7 +5505,7 @@ getRepositionableStream(term_t stream, IOSTREAM **sp)
   atom_t a;
 
   if ( !PL_get_atom(stream, &a) )
-    return not_a_stream(stream);
+    return not_a_stream(stream, SH_ALIAS);
 
   if ( get_stream_handle(a, &s, SH_ERRORS) )
   { if ( !s->position || !s->functions || !s->functions->seek )
@@ -5648,16 +5650,31 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
   return false;
 }
 
+#define is_stream_blob(t) LDFUNC(is_stream_blob, t)
+
+static bool
+is_stream_blob(DECL_LD term_t t)
+{ atom_t a;
+  PL_blob_t *type;
+
+  if ( !PL_get_atom(t, &a) )
+    return false;
+  PL_blob_data(a, NULL, &type);
+  return type == &stream_blob;
+}
+
 
 #define current_io(t, cur) LDFUNC(current_io, t, cur)
-static int
+static bool
 current_io(DECL_LD term_t t, IOSTREAM *cur)
 { if ( PL_is_variable(t) )
   { return PL_unify_stream(t, cur);
   } else
   { IOSTREAM *s;
 
-    if ( term_stream_handle(t, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
+    if ( !is_stream_blob(t) )
+      return not_a_stream(t, 0);
+    if ( term_stream_handle(t, &s, SH_ALIAS|SH_UNLOCKED) )
       return s == cur;
     return false;
   }
