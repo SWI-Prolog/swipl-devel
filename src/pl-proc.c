@@ -4167,6 +4167,22 @@ PRED_IMPL("$foreign_predicate_source", 2, foreign_predicate_source,
   return false;
 }
 
+static
+PRED_IMPL("$addr2line", 2, addr2line, 0)
+{ size_t addr;
+
+  if ( PL_get_size_ex(A1, &addr) )
+  { char buf[1024];
+    Func f = (Func)(void*)addr;
+
+    if ( addr2line(f, buf, sizeof(buf)) )
+      return PL_unify_chars(A2, PL_STRING|REP_MB, (size_t)-1, buf);
+  }
+
+  return false;
+}
+
+
 #ifdef O_ENGINES
 static
 PRED_IMPL("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
@@ -4362,6 +4378,7 @@ BeginPredDefs(proc)
   PRED_DEF("$cgc_params", 6, cgc_params, 0)
   PRED_DEF("$foreign_predicate_source", 2, foreign_predicate_source,
 	   PL_FA_TRANSPARENT)
+  PRED_DEF("$addr2line", 2, addr2line, 0)
 #ifdef O_ENGINES
   PRED_DEF("$local_definitions", 2, local_definitions, PL_FA_TRANSPARENT)
 #endif

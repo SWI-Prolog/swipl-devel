@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1998-2025, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1998-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -69,7 +69,8 @@ an editor.
     load/0.                         % provides load-hooks
 
 :- public
-    predicate_location/2.             % :Pred, -Location
+    predicate_location/2,           % :Pred, -Location
+    addr2location/3.                % +Address, -File, -Line
 
 %!  edit(+Spec)
 %
@@ -317,6 +318,15 @@ primary_predicate(Pred, Primary) :-
     ;   Primary = Pred
     ).
 
+
+%!  addr2location(+Address, -File, -Line) is semidet.
+%
+%   Get the File and Line for a C address.
+
+addr2location(Address, File, Line) :-
+    '$addr2line'(Address, Source),
+    string_codes(Source, Codes),
+    phrase(addr2line_output(File, Line), Codes).
 
 %!  addr2line_output(-File, -Line)// is semidet.
 %
