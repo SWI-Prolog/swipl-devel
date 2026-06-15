@@ -58,9 +58,9 @@
 
 \newcommand{\vmajor}{10}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{8}
+\newcommand{\vpatch}{9}
 \newcommand{\vtag}{}
-\newcommand{\vmonth}{May}
+\newcommand{\vmonth}{June}
 \newcommand{\vyear}{2026}
 
 #ifdef BOOK
