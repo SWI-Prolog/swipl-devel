@@ -95,11 +95,48 @@ if(WIN32)
    set(CPACK_NSIS_ONINIT_REGVIEW "SetRegView 64")
   endif()
 
+  # Add a "Open .pl files with SWI-Prolog" checkbox to the installer's
+  # Install Options page (the page that also asks about PATH and the
+  # desktop icon).  The checkbox is Field 6 of our custom
+  # cmake/NSIS.InstallOptions.ini.in, which overrides CPack's bundled
+  # 5-field template (CPack's FindTemplate searches CMAKE_MODULE_PATH
+  # before its bundled Internal/CPack/ copy).  After install,
+  # SwiplMaybeAssoc reads that field's state and, when checked, calls
+  # SwiplDoFileAssoc to register the SWIProlog.SourceFile ProgID.  The
+  # companion uninstall logic (below) rolls the registration back only
+  # if .pl still points at our ProgID.
+  #
+  # The helpers live in a separate .nsh because the registry values
+  # contain literal '"' characters, which CPack does not escape when
+  # serialising variables into CPackConfig.cmake; pulling them in via
+  # !include sidesteps that.
+  #
+  # We piggy-back on CPACK_NSIS_PAGE_COMPONENTS (top-level scope, set
+  # with SetOptionIfNotSet so a user value sticks) rather than
+  # CPACK_NSIS_DEFINES, which the generator unconditionally overwrites.
+  # We preserve the auto-default (!insertmacro MUI_PAGE_COMPONENTS, the
+  # Components page) and append our !include after it; the project uses
+  # CPack components for packages, so dropping the Components page would
+  # break Archive_interface et al.
+  set(CPACK_NSIS_PAGE_COMPONENTS "
+!insertmacro MUI_PAGE_COMPONENTS
+!include '${CMAKE_CURRENT_SOURCE_DIR}/cmake/swipl_assoc.nsh'
+")
+
   set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+   Call SwiplMaybeAssoc
    ")
   set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+   ReadRegStr $0 HKLM 'Software\\\\SWI\\\\Prolog' 'fileAssoc'
+   StrCmp $0 '1' 0 swipl_skip_unassoc
+     ReadRegStr $1 HKCR '.pl' ''
+     StrCmp $1 'SWIProlog.SourceFile' 0 +2
+       DeleteRegKey HKCR '.pl'
+     DeleteRegKey HKCR 'SWIProlog.SourceFile'
+     System::Call 'Shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
+   swipl_skip_unassoc:
    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
    ")
 endif(WIN32)
