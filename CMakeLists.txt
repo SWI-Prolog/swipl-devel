@@ -288,6 +288,7 @@ if(INSTALL_DOCUMENTATION)
 			    -g "use_module(library(pldoc/man_index))"
 	                    -g save_man_index -t halt
       DEPENDS swipl core doc.html
+      ${SWIPL_RUN_JOB_POOL}
       VERBATIM)
   add_custom_target(
       man_index

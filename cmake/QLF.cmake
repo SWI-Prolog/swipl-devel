@@ -1,5 +1,21 @@
 # compile_qlf spec ...
 
+# When cross-building for Windows on Linux, every swipl.exe invocation
+# runs under Wine and routes through a single wineserver.  Heavy parallel
+# load (many qcompile/index steps fanning out alongside MinGW gcc) can
+# stall wineserver until requests deadlock, which manifests as the swipl
+# steps hanging.  Use a Ninja job pool to serialise these invocations on
+# the cross-build path; native builds are unaffected as the variable is
+# empty there and JOB_POOL is silently ignored by non-Ninja generators.
+
+if(WIN32 AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  get_property(_swipl_job_pools GLOBAL PROPERTY JOB_POOLS)
+  if(NOT "swipl_run=1" IN_LIST _swipl_job_pools)
+    set_property(GLOBAL APPEND PROPERTY JOB_POOLS swipl_run=1)
+  endif()
+  set(SWIPL_RUN_JOB_POOL JOB_POOL swipl_run)
+endif()
+
 # add_swipl_target(name
 #		   OUTPUT output
 #                  COMMAND command
@@ -67,6 +83,7 @@ function(add_swipl_target name)
       WORKING_DIRECTORY "${my_WORKING_DIRECTORY}"
       DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
+      ${SWIPL_RUN_JOB_POOL}
       VERBATIM)
   add_custom_target(
       ${name} ALL
