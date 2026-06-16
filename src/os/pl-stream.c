@@ -101,7 +101,7 @@ locking is required.
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#if defined(HAVE_POLL_H)
+#if defined(HAVE_POLL)
 #include <poll.h>
 #elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
