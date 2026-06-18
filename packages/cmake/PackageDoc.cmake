@@ -172,6 +172,16 @@ function(pkg_doc pkg)
     set(depends ${pkg})
   endif()
 
+  # Forward the pkg_doc(DEPENDS ...) list to each generated .tex
+  # custom command.  The pldoc/doc2tex/txt2tex calls in the loop above
+  # do not see `depends' (it is only fully known after the foreach
+  # completes), so .tex generation could otherwise race with the
+  # swipl_plugin targets it needs in the build home (e.g. cqldoc.tex
+  # loads library(cql/cql), which in turn loads library(chr/...)).
+  foreach(tex ${texfiles})
+    add_custom_command(OUTPUT ${tex} APPEND DEPENDS ${depends})
+  endforeach()
+
   if(INSTALL_DOCUMENTATION)
     if(BUILD_PDF_DOCUMENTATION)
       add_custom_command(
