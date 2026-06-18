@@ -66,9 +66,15 @@ jobs:
         id: extract
         run: |
           mkdir -p out
-          docker cp swipl-build:/home/swipl/src/swipl-devel/build.win64/. out/
+          # docker cp <container>:<dir> - streams the directory as a tar
+          # to stdout.  Extract only the installer to sidestep the
+          # safety check that rejects escaping symlinks elsewhere in
+          # build.win64/.
+          docker cp swipl-build:/home/swipl/src/swipl-devel/build.win64 - | \
+            tar -x -C out/ --strip-components=1 --wildcards \
+                'build.win64/swipl-*-*.x64.exe'
           docker rm swipl-build
-          installer=$(ls out/swipl-*.x64.exe | head -n1)
+          installer=$(ls out/swipl-*.x64.exe 2>/dev/null | head -n1)
           if [ -z "$installer" ]; then
             echo "No installer produced" >&2
             ls -la out/ >&2
