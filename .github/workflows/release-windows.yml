@@ -1,0 +1,91 @@
+name: Release Windows installer
+
+on:
+  push:
+    tags:
+      - 'V*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch or tag) to build'
+        required: true
+        default: 'master'
+
+env:
+  IMAGE: ghcr.io/swi-prolog/swipl-mingw-build:latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
+      - name: Resolve build ref
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull build image
+        run: docker pull "$IMAGE"
+
+      - name: Cross-build Windows installer
+        run: |
+          docker run --name swipl-build \
+            --cap-add=SYS_PTRACE \
+            --security-opt seccomp=unconfined \
+            "$IMAGE" \
+            --win64-from-git \
+              https://github.com/${{ github.repository }}.git \
+              "${{ steps.ref.outputs.ref }}"
+
+      - name: Extract installer
+        id: extract
+        run: |
+          mkdir -p out
+          docker cp swipl-build:/home/swipl/src/swipl-devel/build.win64/. out/
+          docker rm swipl-build
+          installer=$(ls out/swipl-*.x64.exe | head -n1)
+          if [ -z "$installer" ]; then
+            echo "No installer produced" >&2
+            ls -la out/ >&2
+            exit 1
+          fi
+          echo "path=$installer" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$installer")" >> "$GITHUB_OUTPUT"
+          sha256sum "$installer" | tee "$installer.sha256"
+
+      - name: Upload as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.extract.outputs.name }}
+          path: |
+            ${{ steps.extract.outputs.path }}
+            ${{ steps.extract.outputs.path }}.sha256
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/V')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.extract.outputs.path }}
+            ${{ steps.extract.outputs.path }}.sha256
