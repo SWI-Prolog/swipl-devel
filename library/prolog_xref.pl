@@ -2079,6 +2079,8 @@ xref_public_list(File, Src, Options) :-
 %
 %   These predicates fail if File is not a module-file.
 %
+%   @arg  File is a file speficiation for prolog_open_source/2 or a
+%         .qlf file name.  Note this makes a stream a valid input.
 %   @arg  Path is the canonical path to File
 %   @arg  Module is the module defined in Path
 %   @arg  Export is a list of predicate indicators.
@@ -2111,6 +2113,7 @@ xref_public_list(File, Source, Module, Export, Public, Meta, Src) :-
 :- volatile public_list_cache/7.
 
 public_list(Path, Source, Module, Meta, Export, Public, _Options) :-
+    \+ is_stream(Path),
     public_list_cache(Path, Source, Modified,
                       Module0, Meta0, Export0, Public0),
     time_file(Path, ModifiedNow),
@@ -2131,20 +2134,25 @@ public_list(Path, Source, Module, Meta, Export, Public, Options) :-
     t(Module,Meta,Export,Public) = t(Module0,Meta0,Export0,Public0).
 
 public_list_nc(Path, Source, Module, Meta, Export, Public, _Options) :-
+    \+ is_stream(Path),
     public_list_from_index(Path, Module, Meta, Export, Public),
     !,
     qlf_pl_file(Path, Source).
 public_list_nc(Path, Source, Module, [], Export, [], _Options) :-
+    \+ is_stream(Path),
     is_qlf_file(Path),
     !,
     '$qlf_module'(Path, Info),
     _{module:Module, exports:Export, file:Source} :< Info.
 public_list_nc(Path, Path, Module, Meta, Export, Public, Options) :-
-    exists_file(Path),
+    (   is_stream(Path)
+    ;   exists_file(Path)
+    ),
     !,
     prolog_file_directives(Path, Directives, Options),
     public_list(Directives, Path, Module, Meta, [], Export, [], Public, []).
 public_list_nc(Path, Path, Module, [], Export, [], _Options) :-
+    \+ is_stream(Path),
     qlf_pl_file(QlfFile, Path),
     '$qlf_module'(QlfFile, Info),
     _{module:Module, exports:Export} :< Info.
@@ -2945,6 +2953,9 @@ xref_source_file(QSpec, File, Source, Options) :-
     !,
     must_be(acyclic, Spec),
     xref_source_file(Spec, File, Source, Options).
+xref_source_file(Spec, File, _Source, _Options) :-
+    is_stream(Spec), !,
+    File = Spec.
 xref_source_file(Spec, File, Source, Options) :-
     nonvar(Spec),
     prolog:xref_source_file(Spec, File,
