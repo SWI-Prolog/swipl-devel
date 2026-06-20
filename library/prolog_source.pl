@@ -621,7 +621,7 @@ prolog:quasi_quotation_syntax(html,       library(http/html_write)).
 prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
 
-%!  prolog_file_directives(+File, -Directives, +Options) is det.
+%!  prolog_file_directives(+Input, -Directives, +Options) is det.
 %
 %   True when Directives is a list  of   directives  that  appear in the
 %   source  file  File.  Reading   directives    stops   at   the  first
@@ -634,6 +634,8 @@ prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 %     - silent(+Boolean)
 %       If `true` (default `false`), do not report syntax errors and
 %       other errors.
+%
+%   @arg Input is a ground term acceptable by prolog_open_source/2.
 
 prolog_file_directives(File, Directives, Options) :-
     option(canonical_source(Path), Options, _),
@@ -733,19 +735,21 @@ negate(else_false, else_false).
 %   this   skeleton,   operator   and    style-check   options   are
 %   automatically restored to the values before opening the source.
 %
-%   ==
+%   ```
 %   process_source(Src) :-
 %           prolog_open_source(Src, In),
 %           call_cleanup(process(Src), prolog_close_source(In)).
-%   ==
+%   ```
+%
+%   @arg   CanonicalId   is   one   of   (1)    a   term   accepted   by
+%   prolog:xref_open_source/2, (2) a file name or   (3)  an already open
+%   stream.  In  the  last  case,   the    stream   is   not  closed  by
+%   prolog_close_source/1.
 
 prolog_open_source(Src, Fd) :-
     '$push_input_context'(source),
-    catch((   prolog:xref_open_source(Src, Fd)
-          ->  Hooked = true
-          ;   open(Src, read, Fd),
-              Hooked = false
-          ), E,
+    catch(do_open_source(Src, Fd, Hooked),
+          E,
           (   '$pop_input_context',
               throw(E)
           )),
@@ -754,6 +758,17 @@ prolog_open_source(Src, Fd) :-
     '$current_source_module'(SM),
     '$save_lex_state'(LexState, []),
     asserta(open_source(Fd, state(Hooked, Src, LexState, SM))).
+
+do_open_source(Src, Stream, stream) :-
+    is_stream(Src),
+    !,
+    Stream = Src.
+do_open_source(Src, Stream, hooked) :-
+    prolog:xref_open_source(Src, Stream),
+    !.
+do_open_source(Src, Stream, opened) :-
+    open(Src, read, Stream).
+
 
 skip_hashbang(Fd) :-
     catch((   peek_char(Fd, #)              % Deal with #! script
@@ -786,11 +801,14 @@ prolog_close_source(In) :-
         restore_source_context(In, Hooked, Src),
         close_source(Hooked, Src, In)).
 
-close_source(true, Src, In) :-
+close_source(stream, _Src, _Stream) :-
+    !,
+    '$pop_input_context'.
+close_source(hooked, Src, In) :-
     catch(prolog:xref_close_source(Src, In), _, false),
     !,
     '$pop_input_context'.
-close_source(_, _Src, In) :-
+close_source(opened, _Src, In) :-
     close(In, [force(true)]),
     '$pop_input_context'.
 
@@ -827,6 +845,10 @@ prolog_canonical_source(Source, Src) :-
 prolog_canonical_source(User, user) :-
     User == user,
     !.
+prolog_canonical_source(Stream, Src) :-
+    is_stream(Stream),
+    !,
+    Src = Stream.
 prolog_canonical_source(Src, Id) :-             % Call hook
     prolog:xref_source_identifier(Src, Id),
     !.
