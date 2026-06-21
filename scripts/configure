@@ -21,12 +21,18 @@ cmake=cmake
 os=any
 gcc_suffix=""
 brew=false
+autoconfirm=false
 
 # Get config from build.feat1-feat2 and arguments
 
+if [ "$1" == "-y" ]; then
+  autoconfirm=true
+  shift
+fi
+
 if [ "$1" == --help ]; then
 cat <<EOF
-Usage: $0 [feature ...]
+Usage: $0 [-y] [feature ...]
 
 Features come from the build directory named build.feat1-feat2-...
 Optional commandline arguments are added at the end.
@@ -245,7 +251,11 @@ case "$CC" in
 esac
 
 function confirm ()
-{ while true; do
+{ if [ "$autoconfirm" == "true" ]; then
+    return 0
+  fi
+
+  while true; do
     echo -n "$1 "
     read answer
     case "$answer" in
