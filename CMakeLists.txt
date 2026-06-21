@@ -104,6 +104,9 @@ option(INSTALL_DOCUMENTATION
 option(BUILD_PDF_DOCUMENTATION
        "Build the PDF manuals from source"
        OFF)
+option(CHANGELOG
+       "Install machine readable predicate changelog support"
+       OFF)
 option(MACOS_UNIVERSAL_BINARY
        "Build a universal binary for x86_64 and arm64"
        OFF)
