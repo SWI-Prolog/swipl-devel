@@ -415,6 +415,9 @@ exclude(library(trace/pprint)).
 exclude(library(xref/quintus)).
 exclude(library(xref/sicstus)).
 exclude(library(pldoc/hooks)).
+exclude(library(pldoc/doc_changes)).
+exclude(library(pldoc/git_extract_changes)).
+exclude(library(pldoc/changelog_events)).
 
 excluded_directory(Dir) :-
     exclude_dir(Spec),
