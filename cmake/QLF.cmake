@@ -20,6 +20,7 @@ endif()
 #		   OUTPUT output
 #                  COMMAND command
 #	           [OPTIONS ...]
+#		   [LIBS ...]
 #	           [SCRIPT ...]
 #	           [QUIET]
 #	           [COMMENT comment]
@@ -37,7 +38,8 @@ endif()
 #   - ${SWIPL_COMMAND_DEPENDS} is added to the dependencies
 
 function(add_swipl_target name)
-  set(options --no-packs "--home=${SWIPL_BUILD_HOME}" -DSDL_VIDEODRIVER=dummy)
+  set(options --no-packs "--home=${SWIPL_BUILD_HOME}" -DSDL_VIDEODRIVER=dummy
+      --on-error=status)
   cmake_parse_arguments(
       my "QUIET;QLF;NOINSTALL"
          "COMMENT;COMMAND;APP;WORKING_DIRECTORY"
