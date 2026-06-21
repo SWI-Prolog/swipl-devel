@@ -51,10 +51,10 @@ This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 */
 
 %!  cmake_binary_directory(-BinDir, -Config) is det.
-%!  cmake_source_directory(-SrcDir) is det.
 %
 %   Find    the    equivalent    of    ``CMAKE_BINARY_DIRECTORY``    and
-%   CMAKE_SOURCE_DIRECTORY.
+%   CMAKE_SOURCE_DIRECTORY.  The  first  call  sets    the  Prolog  flag
+%   `cmake_binary_directory` to BinDir.
 
 :- dynamic
     cmake_bindir/2.             % Bindir, Config
@@ -79,7 +79,8 @@ cmake_binary_directory(BinDir, Config) :-
         ;   atom_string(Config, Parent)
         )
     ),
-    asserta(cmake_bindir(BinDir, Config)).
+    asserta(cmake_bindir(BinDir, Config)),
+    set_prolog_flag(cmake_binary_directory, BinDir).
 
 exe_or_shared_object(File) :-	% only reliable when read-only
     '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
