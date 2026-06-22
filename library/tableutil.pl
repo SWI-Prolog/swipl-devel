@@ -63,7 +63,7 @@
 :- meta_predicate
     tdump(:),
     tdump(:, +),
-    idg(:),
+    tidg(:),
     summarize_idg(:),
     table_statistics(:),
     table_statistics(:, ?, -),
