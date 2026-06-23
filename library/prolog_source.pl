@@ -808,7 +808,7 @@ close_source(hooked, Src, In) :-
     catch(prolog:xref_close_source(Src, In), _, false),
     !,
     '$pop_input_context'.
-close_source(opened, _Src, In) :-
+close_source(_, _Src, In) :-  % If hook fails we must do normal close
     close(In, [force(true)]),
     '$pop_input_context'.
 
