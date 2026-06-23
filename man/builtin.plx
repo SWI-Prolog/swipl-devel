@@ -6557,9 +6557,63 @@ which controls the interpretation of the \chr{\} character in quoted
 atoms and strings.
 
 \begin{description}
+    \predicate{print}{1}{+Term}
+\nodescription
+    \predicate{print}{2}{+Stream, +Term}
+\nodescription
+    \predicate[ISO]{write}{1}{+Term}
+\nodescription
+    \predicate[ISO]{write}{2}{+Stream, +Term}
+\nodescription
+    \predicate[ISO]{write_canonical}{1}{+Term}
+\nodescription
+    \predicate[ISO]{write_canonical}{2}{+Stream, +Term}
+\nodescription
+    \predicate{writeln}{1}{+Term}
+\nodescription
+    \predicate{writeln}{2}{+Stream, +Term}
+\nodescription
+    \predicate[ISO]{writeq}{1}{+Term}
+\nodescription
+    \predicate[ISO]{writeq}{2}{+Stream, +Term}
+\nodescription
     \predicate[ISO]{write_term}{2}{+Term, +Options}
-The predicate write_term/2 is the generic form of all Prolog term-write
-predicates.  Valid options are:
+\nodescription
+    \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}
+The predicate write_term/3 is the most general form of all Prolog
+term-write predicates.   Variations that lack the \arg{Stream} argument
+write to the \const{current_output} stream.  The options for variants
+that lack the \arg{Options} argument depend on the predicate:
+
+    \begin{description}
+    \item[print/1]
+    From the flag \prologflag{print_write_options} or
+    \[\term{portray}{true},\term{numbervars}{true},\term{quoted}{true}\]
+    Intended to print terms for debugging purposes.
+    \item[write/1]
+    \[\term{numbervars}{true}\]
+    \item[write_canonical/1]
+    \[\term{quoted}{true},\term{quote_non_ascii}{true},
+      \term{pattern_syntax_solo}{true},\term{ignore_ops}{true},
+      \term{brace_terms}{true}\]
+    Intended to exchange terms with other processes, store them in
+    files, etc.  The format is unambiguous and can be parsed by any
+    Prolog system. Singleton variables are printed as \const{_}.
+    Other variables are printed as \arg{A}\ldots\arg{Z},\arg{A1}\ldots.
+    Note that, volating the ISO standard, lists and \arg{brace-terms}
+    are written in their natural syntax.
+    \item[writeln/1]
+    \[\term{numbervars}{true},\term{nl}{true}\]
+    \item[writeq/1]
+    \[\term{numbervars}{true},\term{quoted}{true}\]
+    \end{description}
+
+This family of predicates is intended for writing \jargon{Prolog terms}.
+Use format/1-3 for writing text.  The predicate print_term/2 prints
+general terms using a pretty layout.  The prediates portray_clause/1-3
+pretty print terms that represent a clause.
+
+Valid options for write_term/2 and write_term/3 are:
 
 \begin{description}
     \termitem{attributes}{Atom}
@@ -6861,10 +6915,6 @@ of attributed variables and handle the associated constraints as
 appropriate for the use-case.
 \end{description}
 
-    \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}
-As write_term/2, but output is sent to \arg{Stream} rather than the
-current output.
-
     \predicate[semidet]{write_size}{4}{+Term, -Width, -Height, +Options}
 True when \arg{Width} and \arg{Height} describe the maximum line width
 and \arg{Height} the number of lines for printing \arg{Term} using
@@ -6881,93 +6931,6 @@ If provided, fail if \arg{Width} or \arg{Height} would be larger than
 the specified maximum. The implementation ensures that the runtime is
 limited when computing the size of a huge term with a bounded maximum.
     \end{description}
-
-    \predicate[ISO]{write_canonical}{1}{+Term}
-Write \arg{Term} on the current output stream using standard
-parenthesised prefix notation (i.e., ignoring operator declarations).
-Atoms that need quotes are quoted. Terms written with this predicate can
-always be read back, regardless of current operator declarations.
-Equivalent to write_term/2 using the options \const{ignore_ops},
-\const{quoted}, \const{quote_non_ascii}, \const{pattern_syntax_solo},
-\term{brace_terms}{false} and \const{numbervars} after numbervars/4
-using the \const{singletons} option.
-
-Note that due to the use of numbervars/4, non-ground terms must be
-written using a \emph{single} write_canonical/1 call.  This used to
-be the case anyhow, as garbage collection between multiple calls
-to one of the write predicates can change the \verb|_|<NNN> identity
-of the variables.
-
-    \predicate[ISO]{write_canonical}{2}{+Stream, +Term}
-Write \arg{Term} in canonical form on \arg{Stream}.
-
-    \predicate[ISO]{write}{1}{+Term}
-Write \arg{Term} to the current output, using brackets and operators
-where appropriate.
-
-    \predicate[ISO]{write}{2}{+Stream, +Term}
-Write \arg{Term} to \arg{Stream}.
-
-    \predicate[ISO]{writeq}{1}{+Term}
-Write \arg{Term} to the current output, using brackets and operators where
-appropriate. Atoms that need quotes are quoted. Terms written with this
-predicate can be read back with read/1 provided the currently active
-operator declarations are identical and Term.  Equivalent to
-\exam{write_term(Term, [quoted(true), numbervars(true)])}.
-
-Quoted writing additionally force-quotes atoms that contain at least
-one Unicode combining mark or other zero-width code point.  Such
-atoms are visually surprising as bare identifiers, since the
-combining mark normally attaches to the preceding base character.
-Force-quoting makes denormalised text visible: an atom whose codes
-are \verb$[0'c, 0'a, 0'f, 0'e, 0x0301]$ (decomposed) writes quoted,
-while the precomposed form \verb$[0'c, 0'a, 0'f, 0xe9]$ writes
-unquoted.
-
-    \predicate[ISO]{writeq}{2}{+Stream, +Term}
-Write \arg{Term} to \arg{Stream}, inserting quotes.
-
-    \predicate{writeln}{1}{+Term}
-Equivalent to \exam{write(Term), nl.}. The output stream is locked,
-which implies no output from other threads can appear between the term
-and newline.
-
-    \predicate{writeln}{2}{+Stream, +Term}
-Equivalent to \exam{write(Stream, Term), nl(Stream).}. The output stream
-is locked, which implies no output from other threads can appear between
-the term and newline.
-
-    \predicate{print}{1}{+Term}
-Print a term for debugging purposes.  The predicate print/1 acts as
-if defined as below.
-
-\begin{code}
-print(Term) :-
-    current_prolog_flag(print_write_options, Options), !,
-    write_term(Term, Options).
-print(Term) :-
-    write_term(Term, [ portray(true),
-		       numbervars(true),
-		       quoted(true)
-		     ]).
-\end{code}
-
-The print/1 predicate is used primarily through the \verb$~p$ escape
-sequence of format/2, which is commonly used in the recipes used by
-print_message/2 to emit messages.
-
-The classical definition of this predicate is equivalent to the ISO
-predicate write_term/2 using the options \term{portray}{true} and
-\term{numbervars}{true}. The \term{portray}{true} option allows the
-user to implement application-specific printing of terms printed during
-debugging to facilitate easy understanding of the output. See also
-portray/1 and \pllib{portray_text}. SWI-Prolog adds \term{quoted}{true}
-to (1) facilitate the copying/pasting of terms that are not affected by
-portray/1 and to (2) allow numbers, atoms and strings to be more easily
-distinguished, e.g., \verb$42$, \verb$'42'$ and \verb$"42"$.
-
-    \predicate{print}{2}{+Stream, +Term}
-Print \arg{Term} to \arg{Stream}.
 
     \predicate{portray}{1}{+Term}
 A dynamic predicate, which can be defined by the user to change the
