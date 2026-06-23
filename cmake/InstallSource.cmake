@@ -201,6 +201,9 @@ set(noqlf_file
     home/library/threadutil.pl
     home/library/theme/dark.pl
     home/library/ext/pldoc/pldoc/hooks.pl
+    home/library/ext/pldoc/pldoc/git_extract_changes.pl
+    home/library/ext/pldoc/pldoc/doc_changes.pl
+    home/library/ext/pldoc/pldoc/changelog_events.pl
     home/xpce/prolog/lib/swi_compatibility.pl
     home/xpce/prolog/lib/english/pce_messages.pl
     home/xpce/prolog/lib/trace/gui.pl
@@ -235,6 +238,9 @@ set(include_src_pattern
     "theme/[^/]*[.]pl$"
     "ltx2htm/sty_[^/]*[.]pl$"
     "hooks[.]pl$"			# Should only match pldoc/hooks.pl
+    "git_extract_changes[.]pl$"
+    "doc_changes[.]pl$"
+    "changelog_events[.]pl$"
     "xref/quintus[.]pl$"
     "xref/sicstus[.]pl$"
     "http/dcg_basics[.]pl$"
