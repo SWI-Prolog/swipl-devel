@@ -2511,13 +2511,13 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 
 
 static foreign_t
-do_write2(term_t stream, term_t term, int flags, int canonical)
+do_write2(term_t stream, term_t term, unsigned int flags, bool canonical)
 { GET_LD
   IOSTREAM *s;
 
   if ( getTextOutputStream(stream, &s) )
   { write_options options = WRITE_OPTIONS_DEFAULTS;
-    int rc;
+    bool rc;
 
     options.flags     = flags;
     if ( !canonical )
