@@ -1412,12 +1412,11 @@ put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 /* returns one of
 
   true: ok
-  false: some error
-  GLOBAL_OVERFLOW: no space
+  false: some error (e.g., stack overflow)
   LOCAL_OVERFLOW: cannot represent (no GMP)
 */
 
-int
+boolex_t
 put_int64(DECL_LD Word at, int64_t l, int flags)
 { word r;
 
@@ -1439,7 +1438,7 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
 }
 
 
-int
+boolex_t
 put_uint64(DECL_LD Word at, uint64_t l, int flags)
 { if ( (int64_t)l >= 0 )
   { return put_int64(at, l, flags);
@@ -1471,7 +1470,7 @@ affected by GC/shift.  The intented scenario is:
   }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int				/* true, false, _*OVERFLOW */
+boolex_t			/* true, false, _*OVERFLOW */
 put_number(DECL_LD Word at, Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
@@ -1479,10 +1478,10 @@ put_number(DECL_LD Word at, Number n, int flags)
 
       if ( valInt(w) == n->value.i )
       { if ( !hasGlobalSpace(0) )
-	{ int rc = ensureGlobalSpace(0, flags);
+	{ bool rc = ensureGlobalSpace(0, flags);
 
-	  if ( rc != true )
-	    return rc;
+	  if ( !rc )
+	    return false;
 	}
 
 	*at = w;

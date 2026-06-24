@@ -2956,14 +2956,16 @@ PL_put_uint64(term_t t, uint64_t i)
   int rc;
   valid_user_term_t(t);
 
-  switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
+  switch ( (rc=put_uint64(&w, i, ALLOW_GC|ALLOW_SHIFT)) )
   { case true:
       setHandle(t, w);
       return true;
+#ifndef O_BIGNUM
     case LOCAL_OVERFLOW:
       return PL_representation_error("uint64_t");
+#endif
     default:
-      return raiseStackOverflow(rc);
+      return false;
   }
 }
 
@@ -3440,8 +3442,8 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   { if ( valInt(w) == i )
       return bindConst(p, w);
 
-    int rc;
-    if ( (rc=put_int64(&w, i, 0)) == true )
+    boolex_t rc;
+    if ( (rc=put_int64(&w, i, ALLOW_GC|ALLOW_SHIFT)) == true )
     { p = valHandleP(t);
       deRef(p);
       return bindConst(p, w);
@@ -3450,7 +3452,7 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
     { return PL_representation_error("int64");
 #endif
     } else
-    { return raiseStackOverflow(rc);
+    { return false;
     }
   }
 
@@ -3487,15 +3489,17 @@ PL_unify_uint64(term_t t, uint64_t i)
   { return unify_int64_ex(t, i, true);
   } else if ( PL_is_variable(t) )
   { word w;
-    int rc;
+    boolex_t rc;
 
-    switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
+    switch ( (rc=put_uint64(&w, i, ALLOW_GC|ALLOW_SHIFT)) )
     { case true:
 	return PL_unify_atomic(t, w);
+#ifndef O_BIGNUM
       case LOCAL_OVERFLOW:
 	return PL_representation_error("uint64_t");
+#endif
       default:
-	return raiseStackOverflow(rc);
+	return false;
     }
   } else
   { number n;

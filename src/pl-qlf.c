@@ -791,11 +791,16 @@ loadXRc(DECL_LD wic_state *state, int c)
     case XR_INT:
     { int64_t i = qlfGetInt64(fd);
       word w;
-      int rc;
 
-      if ( (rc=put_int64(&w, i, ALLOW_GC)) != true )
-      { raiseStackOverflow(rc);
-	return 0;
+      switch ( put_int64(&w, i, ALLOW_GC|ALLOW_SHIFT) )
+      { case true:
+	  break;
+#ifndef O_BIGNUM
+        case LOCAL_OVERFLOW:
+	  return PL_representation_error("uint64_t");
+#endif
+        default:
+	  return false;
       }
 
       return w;

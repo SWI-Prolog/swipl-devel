@@ -117,7 +117,7 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
 
 static inline bool
 ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
-{ int rc;
+{ boolex_t rc;
 
   if ( hasStackSpace(gcells, tcells) )
     return true;
