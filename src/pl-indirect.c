@@ -378,14 +378,8 @@ extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
   size_t wsize = wsizeofInd(h->header);
   Word p, r;
 
-  if ( !hasGlobalSpace(wsize+2) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(wsize+2, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureGlobalSpace(wsize+2, ALLOW_GC) )
+    return 0;
 
   if ( gp )
     r = p = *gp;

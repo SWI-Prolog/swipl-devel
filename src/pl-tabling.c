@@ -1162,10 +1162,8 @@ retry:
       return PL_type_error("delay_list", LD->tabling.delay_list);
 
     if ( !hasGlobalSpace(count+2) )
-    { int rc;
-
-      if ( (rc = ensureGlobalSpace(count+2, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(count+2, ALLOW_GC) )
+	return false;
       goto retry;
     }
 
@@ -1374,12 +1372,8 @@ PRED_IMPL("$tbl_set_delay_list", 1, tbl_set_delay_list, 0)
   term_t dl = LD->tabling.delay_list;
   Word p;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   p = valTermRef(dl);
   if ( isTerm(*p) )
@@ -1427,8 +1421,16 @@ delay_to_data(DECL_LD trie_node *answer, Word wrapper)
     if ( i == valInt(rc) )
     { return rc;
     } else
-    { int rcp = put_int64(&rc, i, 0);
-      return rcp == true ? rc : 0;
+    { /* Callers (tbl_push_delay, unify_dependency) pre-allocate global
+       * space via ensureStackSpace() upstream and then use
+       * allocGlobalNoShift() around this call.  put_int64() therefore
+       * must not actually trigger GC/SHIFT; assert no exception slipped
+       * through.
+       */
+      bool ok = put_int64(&rc, i);
+      assert(ok && !exception_term);
+      (void)ok;
+      return rc;
     }
 #endif
   } else
@@ -4174,53 +4176,52 @@ unify_arg_term(DECL_LD term_t a, Word v)
 static int
 unify_dependency(DECL_LD term_t a0, term_t dependency,
 		 worklist *wl, trie_node *answer)
-{ if ( ensureStackSpace(10, 5) )
-  { term_t srcskel = PL_new_term_ref();
-    Word dp = valTermRef(dependency);
-    Functor f;
+{ if ( !ensureStackSpace(10, 5) )
+    return false;
 
-    deRef(dp);
-    if ( unlikely(!isTerm(*dp)) )
-      return false;
-    f = valueTerm(*dp);
+  term_t srcskel = PL_new_term_ref();
+  Word dp = valTermRef(dependency);
+  Functor f;
 
-    unify_arg_term(srcskel, &f->arguments[0]); /* SrcSkeleton */
-    unify_arg_term(a0+1,    &f->arguments[1]); /* Continuation */
-    unify_arg_term(a0+2,    &f->arguments[2]); /* TargetSkeleton */
-    unify_arg_term(a0+3,    &f->arguments[3]); /* TargetWL */
-    unify_arg_term(a0+4,    &f->arguments[4]); /* Delays */
+  deRef(dp);
+  if ( unlikely(!isTerm(*dp)) )
+    return false;
+  f = valueTerm(*dp);
 
-    if ( !PL_unify(srcskel, a0+0) )
-      return false;
-    if ( !idg_set_current_wl(a0+3) )
-      return false;
+  unify_arg_term(srcskel, &f->arguments[0]); /* SrcSkeleton */
+  unify_arg_term(a0+1,    &f->arguments[1]); /* Continuation */
+  unify_arg_term(a0+2,    &f->arguments[2]); /* TargetSkeleton */
+  unify_arg_term(a0+3,    &f->arguments[3]); /* TargetWL */
+  unify_arg_term(a0+4,    &f->arguments[4]); /* Delays */
 
-    if ( unlikely(!answer) )			    /* negative delay */
-    { Word p = allocGlobalNoShift(3);
+  if ( !PL_unify(srcskel, a0+0) )
+    return false;
+  if ( !idg_set_current_wl(a0+3) )
+    return false;
 
-      assert(p);
-      p[0] = FUNCTOR_dot2;
-      p[1] = wl->table->symbol;
+  if ( unlikely(!answer) )			    /* negative delay */
+  { Word p = allocGlobalNoShift(3);
 
-      push_delay_list(p);
-    } else if ( unlikely(answer_is_conditional(answer)) )
-    { word p5 = delay_to_data(answer, valTermRef(a0+0));
-      Word p = allocGlobalNoShift(6);
-      assert(p);
+    assert(p);
+    p[0] = FUNCTOR_dot2;
+    p[1] = wl->table->symbol;
 
-      p[0] = FUNCTOR_dot2;
-      p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
-      p[3] = FUNCTOR_plus2;
-      p[4] = wl->table->symbol;
-      p[5] = p5;
+    push_delay_list(p);
+  } else if ( unlikely(answer_is_conditional(answer)) )
+  { word p5 = delay_to_data(answer, valTermRef(a0+0));
+    Word p = allocGlobalNoShift(6);
+    assert(p);
 
-      push_delay_list(p);
-    }
+    p[0] = FUNCTOR_dot2;
+    p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+    p[3] = FUNCTOR_plus2;
+    p[4] = wl->table->symbol;
+    p[5] = p5;
 
-    return true;
+    push_delay_list(p);
   }
 
-  return false;
+  return true;
 }
 
 
@@ -6371,13 +6372,12 @@ idg_init_variant(DECL_LD trie *atrie, Definition def, term_t variant)
 
 
 #define set_idg_current(atrie) LDFUNC(set_idg_current, atrie)
-static int
+static bool
 set_idg_current(DECL_LD trie *atrie)
-{ int rc;
-  Word p;
+{ Word p;
 
-  if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-    return raiseStackOverflow(rc);
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
   p = valTermRef(LD->tabling.idg_current);
   TrailAssignment(p);
   if ( atrie )

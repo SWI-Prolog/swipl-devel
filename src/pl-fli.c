@@ -585,10 +585,8 @@ retry:
   { Word v;
 
     if ( !hasGlobalSpace(1) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(1, ALLOW_GC) )
+	return false;
       goto retry;
     }
     v = gTop++;
@@ -1481,12 +1479,8 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
   } else
   { Word a, t;
 
-    if ( !hasGlobalSpace(1+arity) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(1+arity, ALLOW_GC) )
+      return false;
 
     a = t = gTop;
     gTop += 1+arity;
@@ -1540,12 +1534,8 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   } else
   { Word t, a, ai;
 
-    if ( !hasGlobalSpace(1+arity) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(1+arity, ALLOW_GC) )
+      return false;
 
     a = t = gTop;
     gTop += 1+arity;
@@ -1566,12 +1556,8 @@ bool
 PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
 { Word a;
 
-  if ( !hasGlobalSpace(3) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(3, ALLOW_GC) )
+    return false;
 
   a = gTop;
   gTop += 3;
@@ -1604,12 +1590,8 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
   if ( count > 0 )
   { Word p;
 
-    if ( !hasGlobalSpace(3*count) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(3*count, ALLOW_GC) )
+      return false;
 
     p = gTop;
     for( ; count-- > 0; p += 3, elems++ )
@@ -2953,20 +2935,12 @@ bool
 PL_put_uint64(term_t t, uint64_t i)
 { GET_LD
   word w;
-  int rc;
   valid_user_term_t(t);
 
-  switch ( (rc=put_uint64(&w, i, ALLOW_GC|ALLOW_SHIFT)) )
-  { case true:
-      setHandle(t, w);
-      return true;
-#ifndef O_BIGNUM
-    case LOCAL_OVERFLOW:
-      return PL_representation_error("uint64_t");
-#endif
-    default:
-      return false;
-  }
+  if ( !put_uint64(&w, i) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -2980,14 +2954,11 @@ API_STUB(bool)
 bool
 _PL_put_number(DECL_LD term_t t, Number n)
 { word w;
-  int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC)) == true )
-  { setHandle(t, w);
-    return true;
-  } else
-  { return raiseStackOverflow(rc);
-  }
+  if ( !put_number(&w, n) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -3005,15 +2976,12 @@ bool
 PL_put_float(term_t t, double f)
 { GET_LD
   word w;
-  int rc;
 
   valid_user_term_t(t);
-  if ( (rc=put_double(&w, f, ALLOW_GC)) == true )
-  { setHandle(t, w);
-    return true;
-  }
-
-  return raiseStackOverflow(rc);
+  if ( !put_double(&w, f) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -3155,10 +3123,8 @@ PL_unify_compound(term_t t, functor_t f)
     word to;
 
     if ( !hasGlobalSpace(needed) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(needed, ALLOW_GC) )
+	return false;
       p = valHandleP(t);		/* reload: may have shifted */
       deRef(p);
     }
@@ -3191,10 +3157,8 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
     { size_t needed = (1+arity);
 
       if ( !hasGlobalSpace(needed) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
+      { if ( !ensureGlobalSpace(needed, ALLOW_GC) )
+	  return false;
 	p = valHandleP(t);		/* reload: may have shifted */
 	deRef(p);
       }
@@ -3442,18 +3406,11 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   { if ( valInt(w) == i )
       return bindConst(p, w);
 
-    boolex_t rc;
-    if ( (rc=put_int64(&w, i, ALLOW_GC|ALLOW_SHIFT)) == true )
-    { p = valHandleP(t);
-      deRef(p);
-      return bindConst(p, w);
-#ifndef O_BIGNUM
-    } else if ( rc == LOCAL_OVERFLOW ) /* no bignums and doesn't fit */
-    { return PL_representation_error("int64");
-#endif
-    } else
-    { return false;
-    }
+    if ( !put_int64(&w, i) )
+      return false;
+    p = valHandleP(t);
+    deRef(p);
+    return bindConst(p, w);
   }
 
   if ( w == *p && valInt(w) == i )
@@ -3489,18 +3446,10 @@ PL_unify_uint64(term_t t, uint64_t i)
   { return unify_int64_ex(t, i, true);
   } else if ( PL_is_variable(t) )
   { word w;
-    boolex_t rc;
 
-    switch ( (rc=put_uint64(&w, i, ALLOW_GC|ALLOW_SHIFT)) )
-    { case true:
-	return PL_unify_atomic(t, w);
-#ifndef O_BIGNUM
-      case LOCAL_OVERFLOW:
-	return PL_representation_error("uint64_t");
-#endif
-      default:
-	return false;
-    }
+    if ( !put_uint64(&w, i) )
+      return false;
+    return PL_unify_atomic(t, w);
   } else
   { number n;
 
@@ -3570,14 +3519,12 @@ PL_unify_float(DECL_LD term_t t, double f)
   deRef(p);
   if ( canBind(*p) )
   { word w;
-    int rc = put_double(&w, f, ALLOW_GC);
 
-    if ( rc == true )
-    { p = valHandleP(t);
-      deRef(p);
-      return bindConst(p, w);
-    } else
-      return raiseStackOverflow(rc);
+    if ( !put_double(&w, f) )
+      return false;
+    p = valHandleP(t);
+    deRef(p);
+    return bindConst(p, w);
   }
 
   return isFloat(*p) && valFloat(*p) == f;
@@ -3652,10 +3599,8 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
     word c;
 
     if ( !hasGlobalSpace(3) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(3, ALLOW_GC) )
+	return false;
       p = valHandleP(l);		/* reload: may have shifted */
       deRef(p);
     }
@@ -4041,12 +3986,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
   Word p;
 
   valid_term_t(t);
-  if ( !hasGlobalSpace(2) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(2, ALLOW_GC) )
+    return false;
 
   p = valHandleP(t);
 
@@ -5493,7 +5434,7 @@ PL_recorded(record_t r, term_t t)
 { GET_LD
 
   valid_term_t(t);
-  return copyRecordToGlobal(t, r, ALLOW_GC) == true;
+  return copyRecordToGlobal(t, r, ALLOW_GC);
 }
 
 

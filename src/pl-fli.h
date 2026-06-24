@@ -327,7 +327,7 @@ PL_put_int64(DECL_LD term_t t, int64_t i)
 { word w = consInt(i);
 
   if ( valInt(w) != i &&
-       put_int64(&w, i, ALLOW_GC) != true )
+       !put_int64(&w, i) )
     return false;
 
   setHandle(t, w);

@@ -4771,12 +4771,10 @@ PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
-  int rc;
+  bool rc;
 
-  if ( !hasGlobalSpace(0) )		/* see (*) */
-  { if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )	/* see (*) */
+    return false;
 
   AR_BEGIN();
   if ( (rc=valueExpression(A2, &arg)) )

@@ -95,7 +95,7 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define globalWString(len, s)			LDFUNC(globalWString, len, s)
 #define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
 #define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
-#define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
+#define	put_double(p, f)			LDFUNC(put_double, p, f)
 #define	VM_globalIndirectFromCode(pc)		LDFUNC(VM_globalIndirectFromCode, pc)
 #define	VM_equalIndirectFromCode(a, pc)		LDFUNC(VM_equalIndirectFromCode, a, pc)
 #endif /*USE_LD_MACROS*/
@@ -125,7 +125,7 @@ word		globalWString(size_t len, const pl_wchar_t *s);
 char *		getCharsString(word w, size_t *len);
 pl_wchar_t *	getCharsWString(word w, size_t *len);
 Word		newTerm(void);
-bool		put_double(Word p, double f, int flags);
+bool		put_double(Word p, double f);
 bool		equalIndirect(word r1, word r2);
 ALLOC_INLINE
 size_t		gsizeIndirectFromCode(Code PC);

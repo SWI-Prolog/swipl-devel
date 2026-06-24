@@ -371,8 +371,8 @@ canUnifyTermWithGoal(DECL_LD LocalFrame fr)
 	  size_t i, arity = fr->predicate->functor->arity;
 	  bool rval = true;
 
-	  if ( copyRecordToGlobal(t, find->goal.term.term,
-				  ALLOW_GC|ALLOW_SHIFT) < 0 )
+	  if ( !copyRecordToGlobal(t, find->goal.term.term,
+				   ALLOW_GC|ALLOW_SHIFT) )
 	    return false;
 	  for(i=0; i<arity; i++)
 	  { Word a, b;
@@ -970,12 +970,8 @@ put_frame_goal(term_t goal, LocalFrame frame)
 
   if ( !PL_unify_functor(goal, def->functor->functor) )
     return false;
-  if ( tTop+argc > tMax )
-  { int rc;
-
-    if ( (rc=ensureTrailSpace(argc)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureTrailSpace(argc) )
+    return false;
 
   frame = (LocalFrame)valTermRef(fref);
   if ( argc > 0 )
@@ -2519,10 +2515,8 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 #endif
 
     if ( !hasGlobalSpace(0) )
-    { bool rc;
-
-      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(0, ALLOW_GC) )
+	return false;
       fr = (LocalFrame)valTermRef(fref);
     }
 

@@ -209,7 +209,7 @@ bool
 bind_attvar_const(DECL_LD Word p, word c)
 { if ( !hasGlobalSpace(0) )
   { PushPtr(p); PushVal(c);
-    int rc = ensureGlobalSpace(0, ALLOW_GC);
+    bool rc = ensureGlobalSpace(0, ALLOW_GC);
     PopVal(c); PopPtr(p);
     if ( !rc )
       return false;
@@ -699,12 +699,8 @@ PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
   Word av, vp;
   atom_t name;
 
-  if ( !hasGlobalSpace(1) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(1, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
@@ -744,12 +740,8 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
 { PRED_LD
   Word av, vp;
 
-  if ( !hasGlobalSpace(0) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   av = valTermRef(A1);
   deRef(av);
@@ -775,12 +767,8 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   Word av;
   atom_t name;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     return false;
@@ -809,12 +797,8 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
 { PRED_LD
   Word av;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   av = valTermRef(A1);
   deRef(av);
@@ -848,12 +832,8 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 { PRED_LD
   Word v;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   v = valTermRef(A1);
   deRef(v);
@@ -1143,12 +1123,8 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   atom_t name;
   Word v, g;
 
-  if ( !hasGlobalSpace(6) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(6, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(6, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     return false;
@@ -1227,19 +1203,18 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 
 static
 PRED_IMPL("$attv_unify", 2, attv_unify, 0)
-{ if ( ensureStackSpace(0,0) )
-  { Word av = valTermRef(A1);
-    deRef(av);
+{ if ( !ensureStackSpace(0,0) )
+    return false;
 
-    if ( isAttVar(*av) )
-    { TrailAssignment(av);
-      *av = linkValG(valTermRef(A2));
-      return true;
-    }
-    return PL_unify(A1, A2);
+  Word av = valTermRef(A1);
+  deRef(av);
+
+  if ( isAttVar(*av) )
+  { TrailAssignment(av);
+    *av = linkValG(valTermRef(A2));
+    return true;
   }
-
-  return false;
+  return PL_unify(A1, A2);
 }
 
 #ifdef O_CALL_RESIDUE

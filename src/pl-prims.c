@@ -2574,10 +2574,8 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
     { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT);
     } else
     { if ( !hasGlobalSpace(0) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
+      { if ( !ensureGlobalSpace(0, ALLOW_GC) )
+	  return false;
 	a = valTermRef(term);
 	deRef(a);
 	a = argTermP(*a, argn-1);

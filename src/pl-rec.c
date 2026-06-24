@@ -1565,7 +1565,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 }
 
 
-boolex_t				/* true or *_OVERFLOW */
+bool
 copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 { copy_info b;
   boolex_t rc;
@@ -1575,10 +1575,8 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 #ifdef REC_MAGIC
   assert(r->magic == REC_MAGIC);
 #endif
-  if ( !hasGlobalSpace(r->gsize) )
-  { if ( (rc=ensureGlobalSpace(r->gsize, flags)) != true )
-      return rc;
-  }
+  if ( !ensureGlobalSpace(r->gsize, flags) )
+    return false;
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = gTop;
   b.version_map = NULL;
@@ -1589,7 +1587,7 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
     free_copy_vars(&b);
   }
   if ( rc != true )
-    return rc;
+    return raiseStackOverflow(rc);
 
   assert(b.gstore == gTop);
   DEBUG(CHK_SECURE, checkData(valTermRef(copy)));
@@ -2204,11 +2202,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  if ( unifyKey(key, record->list->key) )
 	  { term_t copy = PL_new_term_ref();
 
-	    if ( (rc=copyRecordToGlobal(copy, record->record,
-					ALLOW_GC)) < 0 )
-	      rc = raiseStackOverflow(rc);
-	    else
-	      rc = PL_unify(term, copy);
+	    rc = ( copyRecordToGlobal(copy, record->record, ALLOW_GC) &&
+		   PL_unify(term, copy) );
 	  } else
 	    rc = false;
 	  PL_UNLOCK(L_RECORD);
@@ -2267,10 +2262,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	if ( !copy && !(copy = PL_new_term_ref()) )
 	  goto error;
-	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC)) < 0 )
-	{ raiseStackOverflow(rc);
+	if ( !copyRecordToGlobal(copy, record->record, ALLOW_GC) )
 	  goto error;
-	}
 
 	if ( PL_unify(term, copy) &&
 	     (!ref || PL_unify_recref(ref, record)) )
@@ -2427,7 +2420,7 @@ PRED_IMPL("instance", 2, instance, 0)
   { RecordRef rref = ptr;
     term_t t = PL_new_term_ref();
 
-    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC) == true )
+    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC) )
       return PL_unify(term, t);
   }
 

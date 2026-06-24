@@ -69,12 +69,8 @@ PRED_IMPL("$length", 2, dlength, 0)
     { Word p;
       term_t list = PL_new_term_ref();
 
-      if ( !hasGlobalSpace(len*3) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
-      }
+      if ( !ensureGlobalSpace(len*3, ALLOW_GC) )
+	return false;
 
       p = gTop;
       *valTermRef(list) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
@@ -451,7 +447,6 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
 { Word l, tail;
   list p;
   intptr_t len;
-  int rc;
 
   l = valTermRef(t);
   len = skip_list(l, &tail);
@@ -471,10 +466,8 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
     return SORT_NOSORT;
 
   if ( !hasGlobalSpace(len*3) )
-  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
+  { if ( !ensureGlobalSpace(len*3, ALLOW_GC) )
       return SORT_ERR;
-    }
     l = valTermRef(t);			/* may be shifted */
   }
 

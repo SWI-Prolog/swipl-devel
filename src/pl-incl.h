@@ -2533,7 +2533,6 @@ typedef struct
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
 #define ALLOW_SHIFT	0x2		/* allow shift on stack overflow */
-#define ALLOW_CHECKED	0x4		/* we already verified space */
 #define ALLOW_RETCODE	0x8		/* do not allow anything; return status */
 
 typedef enum

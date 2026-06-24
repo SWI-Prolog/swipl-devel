@@ -190,12 +190,8 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
   if ( !PL_get_atom_ex(var, &name) )
     return false;
 
-  if ( !hasGlobalSpace(3) )		/* also ensures trail for */
-  { int rc;				/* TrailAssignment() */
-
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(3, ALLOW_GC) ) /* also ensures trail for */
+    return false;			 /* TrailAssignment() */
 
   p = valTermRef(value);
   deRef(p);

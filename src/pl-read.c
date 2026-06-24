@@ -5123,22 +5123,17 @@ term is to be written.
     return false;
 
   for(;;)
-  { int rc;
-    Word argp;
+  { Word argp;
 
     if ( positions )
     { if ( !PL_unify_list(P_LIST, P_ELEM, P_LIST) )
 	return false;
     }
 
-    rc = complex_term(",|]", 999, P_ELEM, _PL_rd);
-    if ( rc != true )
-      return rc;
-    if ( (rc=ensureSpaceForTermRefs(2)) != true )
-      return rc;
-    if ( !hasGlobalSpace(3) &&
-	 (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-      return rc;
+    if ( !complex_term(",|]", 999, P_ELEM, _PL_rd) ||
+	 !ensureSpaceForTermRefs(2) ||
+	 !ensureGlobalSpace(3, ALLOW_GC) )
+      return false;
     argp = gTop;
     gTop += 3;
     *unRef(*valTermRef(tail)) = consPtr(argp,

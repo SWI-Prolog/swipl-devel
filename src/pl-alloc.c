@@ -1006,12 +1006,11 @@ might not be properly aligned.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-put_double(DECL_LD Word at, double d, int flags)
+put_double(DECL_LD Word at, double d)
 { Word p;
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 
-  if ( flags != ALLOW_CHECKED &&
-       !ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags) )
+  if ( !ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC) )
     return false;
 
   p = gTop;

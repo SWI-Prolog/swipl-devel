@@ -140,12 +140,12 @@ Virtual machine instruction names.  Prefixes:
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
 	if ( unlikely(lTop > lMax || !hasLocalSpace(bytes)) ) \
-	{ int rc; \
+	{ boolex_t rc; \
 	  SAVE_REGISTERS(QID); \
 	  rc = growLocalSpace(bytes, ALLOW_SHIFT); \
 	  LOAD_REGISTERS(QID); \
 	  if ( rc != true ) \
-	  { rc = raiseStackOverflow(rc); \
+	  { raiseStackOverflow(rc); \
 	    ifnot; \
 	  } \
 	}
@@ -290,7 +290,7 @@ VMI(D_BREAK, 0, 0, ())
     Choice ch;
 
     if ( !hasLocalSpace(sizeof(struct choice)) )
-    { int rc;
+    { boolex_t rc;
 
       SAVE_REGISTERS(QID);
       rc = growLocalSpace(sizeof(*ch), ALLOW_SHIFT);
@@ -682,15 +682,13 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
       if ( isVar(*k) )
       { if ( k > ARGP )			/* k on local stack */
 	{ if ( tTop+1 > tMax )
-	  { int rc;
+	  { bool rc;
 
 	    SAVE_REGISTERS(QID);
 	    rc = ensureTrailSpace(1);
 	    LOAD_REGISTERS(QID);
-	    if ( rc != true )
-	    { raiseStackOverflow(rc);
+	    if ( !rc )
 	      THROW_EXCEPTION;
-	    }
 	    k = varFrameP(FR, (int)PC[-1]);
 	    deRef(k);
 	  }
@@ -1051,14 +1049,13 @@ VMI(B_ARGVAR, 0, 1, (CA1_VAR))
   if ( isVar(*k) )
   { if ( ARGP < k )
     { if ( tTop+1 > tMax )
-      { int rc;
+      { bool rc;
 
 	SAVE_REGISTERS(QID);
 	rc = ensureTrailSpace(1);
 	LOAD_REGISTERS(QID);
-	if ( rc != true )
-	{ raiseStackOverflow(rc);
-	  assert(exception_term);
+	if ( !rc )
+	{ assert(exception_term);
 	  THROW_EXCEPTION;
 	}
 	k = varFrameP(FR, (int)PC[-1]);
@@ -1882,14 +1879,14 @@ procedure and deallocate our temporary version if threading is not used.
   environment_frame = FR = NFR;		/* open the frame */
 
   if ( unlikely(!hasLocalSpace(LOCAL_MARGIN)) )
-  { int rc;
+  { boolex_t rc;
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
     SAVE_REGISTERS(QID);
     rc = growLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
     LOAD_REGISTERS(QID);
     if ( rc != true )
-    { rc = raiseStackOverflow(rc);
+    { raiseStackOverflow(rc);
       THROW_EXCEPTION;
     }
   }
@@ -2626,7 +2623,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   Choice ch;
 
   if ( unlikely(!hasLocalSpace(sizeof(struct choice))) )
-  { int rc;
+  { boolex_t rc;
 
     SAVE_REGISTERS(QID);
     rc = growLocalSpace(sizeof(*ch), ALLOW_SHIFT);
@@ -3628,16 +3625,13 @@ choicepoint.
 
 VMI(S_MQUAL, 0, 1, (CA1_VAR))
 { int arg = (int)*PC++;
-  int rc;
+  bool rc;
 
   SAVE_REGISTERS(QID);
   rc = m_qualify_argument(FR, arg);
   LOAD_REGISTERS(QID);
-  if ( rc != true )
-  { if ( rc != false )
-      raiseStackOverflow(rc);
+  if ( !rc )
     THROW_EXCEPTION;
-  }
 
   NEXT_INSTRUCTION;
 }
@@ -3646,16 +3640,13 @@ END_VMI
 
 VMI(S_LMQUAL, 0, 1, (CA1_VAR))
 { int arg = (int)*PC++;
-  int rc;
+  bool rc;
 
   SAVE_REGISTERS(QID);
   rc = m_qualify_argument(FR, arg);
   LOAD_REGISTERS(QID);
-  if ( rc != true )
-  { if ( rc != false )
-      raiseStackOverflow(rc);
+  if ( !rc )
     THROW_EXCEPTION;
-  }
   setContextModule(FR, FR->predicate->module);
 
   NEXT_INSTRUCTION;
@@ -4050,12 +4041,12 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     if ( valInt(w) == r )
     { *rp = w;
     } else				/* but their sum might not fit */
-    { int rc;
+    { bool rc;
 
       SAVE_REGISTERS(QID);
-      rc = put_int64(&w, r, ALLOW_GC|ALLOW_SHIFT);
+      rc = put_int64(&w, r);
       LOAD_REGISTERS(QID);
-      if ( rc != true )
+      if ( !rc )
 	THROW_EXCEPTION;
       *rp = w;
     }
@@ -4064,7 +4055,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   { number n;
     word w;
     fid_t fid;
-    int rc;
+    bool rc;
 
     SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
@@ -4073,9 +4064,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
       if ( rc )
       { ensureWritableNumber(&n);
 	if ( (rc=ar_add_si(&n, add)) )
-	{ if ( (rc=put_number(&w, &n, ALLOW_GC)) != true )
-	    rc = raiseStackOverflow(rc);
-	}
+	  rc = put_number(&w, &n);
 	clearNumber(&n);
       }
       PL_close_foreign_frame(fid);
@@ -4192,33 +4181,31 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 
   if ( canBind(*k) )
   { word c;
-    int rc;
 
     if ( n->type == V_INTEGER )		/* Speedup the 99% case a bit */
     { c = consInt(n->value.i);
       if ( valInt(c) == n->value.i &&
 	   hasGlobalSpace(0) )
-      { rc = true;
-	bindConst(k, c);
+      { bindConst(k, c);
 	goto a_is_ok;
       }
     }
 
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(QID);		/* get_vmi_state() */
-    rc = put_number(&c, n, ALLOW_GC);
+    bool rc = put_number(&c, n);
     LOAD_REGISTERS(QID);
     ARGP--;
 
-    if ( rc == true )
+    if ( rc )
     { deRef2(ARGP, k);			/* may be shifted */
       if ( !isTerm(c) )
       { bindConst(k, c);
       } else
       { SAVE_REGISTERS(QID);
-	rc = unify_ptrs(k, &c, ALLOW_GC|ALLOW_SHIFT);
+	boolex_t urc = unify_ptrs(k, &c, ALLOW_GC|ALLOW_SHIFT);
 	LOAD_REGISTERS(QID);
-	if ( rc == false )
+	if ( urc == false )
 	{ popArgvArithStack(1);
 	  AR_END();
 	  if ( exception_term )
@@ -4227,8 +4214,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 	}
       }
     } else
-    { raiseStackOverflow(rc);
-      popArgvArithStack(1);
+    { popArgvArithStack(1);
       AR_END();
       THROW_EXCEPTION;
     }
@@ -4280,11 +4266,10 @@ body mode and in many cases the result is used only once.
 VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
 { Number n = argvArithStack(1);
   word w;
-  int rc;
+  bool rc;
 
   SAVE_REGISTERS(QID);
-  if ( (rc = put_number(&w, n, ALLOW_GC)) != true )
-    rc = raiseStackOverflow(rc);
+  rc = put_number(&w, n);
   LOAD_REGISTERS(QID);
 
   popArgvArithStack(1);

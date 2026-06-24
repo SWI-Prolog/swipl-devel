@@ -792,28 +792,17 @@ loadXRc(DECL_LD wic_state *state, int c)
     { int64_t i = qlfGetInt64(fd);
       word w;
 
-      switch ( put_int64(&w, i, ALLOW_GC|ALLOW_SHIFT) )
-      { case true:
-	  break;
-#ifndef O_BIGNUM
-        case LOCAL_OVERFLOW:
-	  return PL_representation_error("uint64_t");
-#endif
-        default:
-	  return false;
-      }
+      if ( !put_int64(&w, i) )
+	return 0;
 
       return w;
     }
     case XR_FLOAT:
     { word w;
       double f = qlfGetDouble(fd);
-      int rc;
 
-      if ( (rc=put_double(&w, f, ALLOW_GC)) != true )
-      { raiseStackOverflow(rc);
+      if ( !put_double(&w, f) )
 	return 0;
-      }
 
       return w;
     }

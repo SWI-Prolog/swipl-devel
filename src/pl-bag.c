@@ -287,12 +287,9 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
     term_t list = PL_copy_term_ref(A2);
     term_t answer = PL_new_term_ref();
     Record *rp;
-    int rc;
 
-    if ( !hasGlobalSpace(space) )
-    { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(space, ALLOW_GC) )
+      return false;
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;

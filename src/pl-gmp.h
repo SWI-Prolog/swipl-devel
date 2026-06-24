@@ -45,9 +45,9 @@
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
-#define	put_int64(p, i, flags)		LDFUNC(put_int64, p, i, flags)
-#define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
-#define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#define	put_int64(p, i)			LDFUNC(put_int64, p, i)
+#define	put_uint64(at, l)		LDFUNC(put_uint64, at, l)
+#define	put_number(at, n)		LDFUNC(put_number, at, n)
 #define get_int64(w, ip)		LDFUNC(get_int64, w, ip)
 #ifdef O_BIGNUM
 #define	get_rational_no_int(w, n)	LDFUNC(get_rational_no_int, w, n)
@@ -60,9 +60,9 @@ bool	PL_unify_number(term_t t, Number n);
 bool	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
 bool	PL_get_number(term_t t, Number n);
-boolex_t put_uint64(Word at, uint64_t l, int flags);
-boolex_t put_int64(Word p, int64_t i, int flags);
-boolex_t put_number(Word at, Number n, int flags);
+bool	put_uint64(Word at, uint64_t l);
+bool	put_int64(Word p, int64_t i);
+bool	put_number(Word at, Number n);
 bool	get_int64(word w, int64_t *ip);
 bool	promoteToFloatNumber(Number n);
 bool	make_same_type_numbers(Number n1, Number n2) WUNUSED;

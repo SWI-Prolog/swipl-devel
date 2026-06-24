@@ -62,7 +62,7 @@ Record		compileTermToHeap_ex(term_t term,
 				     void* (*allocate)(void *ctx, size_t size),
 				     void* ctx,
 				     int flags);
-boolex_t	copyRecordToGlobal(term_t copy, Record term,
+bool		copyRecordToGlobal(term_t copy, Record term,
 				   int flags);
 int		variantRecords(const Record r1, const Record r2);
 bool		freeRecord(Record record);
