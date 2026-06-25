@@ -3980,10 +3980,10 @@ compileBodyArg3(DECL_LD Word arg, compileInfo *ci)
 #endif /*O_COMPILE_IS*/
 
 #define always(val, pred, arg, ci) LDFUNC(always, val, pred, arg, ci)
-static int
+static boolex_t
 always(DECL_LD atom_t val, const char *pred, Word arg, compileInfo *ci)
 { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
-  { int rc;
+  { boolex_t rc;
 
     if ( (rc=compiler_warning(ci, "always", val, pred, arg)) != true )
       return rc;
@@ -4051,7 +4051,7 @@ compileBodyNonVar1(DECL_LD Word arg, compileInfo *ci)
 
 static boolex_t
 compileTypeTest(DECL_LD Word arg,
-		code instruction, const char *name, int (*test)(word),
+		code instruction, const char *name, bool (*test)(word),
 		compileInfo *ci)
 { Word a1;
   int i1;
@@ -4066,7 +4066,7 @@ compileTypeTest(DECL_LD Word arg,
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { int rc;
+    { boolex_t rc;
 
       if ( (rc=always(ATOM_false, name, a1, ci)) == true )
       { isFirstVarSet(ci->used_var, i1);
@@ -4090,22 +4090,22 @@ typedef struct type_test
 { functor_t	functor;
   code		instruction;
   const char *  name;
-  int		(*test)(word);
+  bool		(*test)(word);
 } type_test;
 
 #if O_BIGNUM
-static int fisInteger(word w)  { GET_LD return isInteger(w);  }
+static bool fisInteger(word w)  { GET_LD return isInteger(w);  }
 #else
-static int fisInteger(word w)  { return isInteger(w);  }
+static bool fisInteger(word w)  { return isInteger(w);  }
 #endif
-static int fisRational(word w) { return isRational(w);  }
-static int fisFloat(word w)    { return isFloat(w);    }
-static int fisNumber(word w)   { return isNumber(w);   }
-static int fisAtomic(word w)   { return isAtomic(w);   }
-static int fisAtom(word w)     { return isTextAtom(w); }
-static int fisString(word w)   { return isString(w);   }
-static int fisCompound(word w) { return isTerm(w);     }
-static int fisCallable(word w) { GET_LD return isCallable(w); }
+static bool fisRational(word w) { return isRational(w);  }
+static bool fisFloat(word w)    { return isFloat(w);    }
+static bool fisNumber(word w)   { return isNumber(w);   }
+static bool fisAtomic(word w)   { return isAtomic(w);   }
+static bool fisAtom(word w)     { return isTextAtom(w); }
+static bool fisString(word w)   { return isString(w);   }
+static bool fisCompound(word w) { return isTerm(w);     }
+static bool fisCallable(word w) { GET_LD return isCallable(w); }
 
 const type_test type_tests[] =
 { { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },

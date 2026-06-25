@@ -127,7 +127,7 @@ initvisited(DECL_LD)
 
 #ifdef O_DEBUG
 #define empty_visited(_) LDFUNC(empty_visited, _)
-static int
+static bool
 empty_visited(DECL_LD)
 { return emptySegStack(&LD->cycle.vstack);
 }
@@ -135,7 +135,7 @@ empty_visited(DECL_LD)
 
 
 #define visitedWord(p) LDFUNC(visitedWord, p)
-static inline int
+static inline bool
 visitedWord(DECL_LD Word p)
 { if ( is_marked(p) )
     succeed;
@@ -147,7 +147,7 @@ visitedWord(DECL_LD Word p)
 
 
 #define visited(f) LDFUNC(visited, f)
-static inline int
+static inline bool
 visited(DECL_LD Functor f)
 { Word p = &f->definition;
 
@@ -217,8 +217,8 @@ exitCyclic(DECL_LD)
 
 #else /*O_CYCLIC*/
 
-static inline visited(DECL_LD Functor f) { fail; }
-static inline unvisit(DECL_LD Word *base) { }
+static inline bool visited(DECL_LD Functor f) { fail; }
+static inline void unvisit(DECL_LD Word *base) { }
 static inline void initCyclic(DECL_LD) {}
 static inline void exitCyclic(DECL_LD) {}
 static inline void linkTermsCyclic(DECL_LD Functor f1, Functor f2) {}
@@ -4300,7 +4300,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 }
 
 
-static int
+static bool
 is_code(word w)
 { if ( isTaggedInt(w) )
   { sword code = valInt(w);
@@ -4311,7 +4311,7 @@ is_code(word w)
   return false;
 }
 
-static int
+static bool
 is_char(word w)
 { PL_chars_t text;
 
@@ -4343,8 +4343,8 @@ PRED_IMPL("$is_char", 1, is_char, 0)
 
 
 #define is_text_list(text, lent, test) LDFUNC(is_text_list, text, lent, test)
-static int
-is_text_list(DECL_LD term_t text, term_t lent, int (*test)(word))
+static bool
+is_text_list(DECL_LD term_t text, term_t lent, bool (*test)(word))
 { Word p = valTermRef(text);
   intptr_t len = 0;
 
