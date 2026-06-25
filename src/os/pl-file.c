@@ -3313,7 +3313,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	  return false;
 	}
 	if ( text.length >= len )
-	{ int rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
+	{ bool rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
 	  PL_free_text(&text);
 	  releaseStream(s);
 	  return rc;

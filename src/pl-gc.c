@@ -1762,12 +1762,12 @@ static life_count counts;
 
 static
 PRED_IMPL("gc_counts", 1, gc_counts, 0)
-{ int rc = PL_unify_term(A1,
-			 PL_FUNCTOR_CHARS, "gc", 4,
-			   PL_INT64, counts.marked_envs,
-			   PL_INT64, counts.marked_cont,
-			   PL_INT64, counts.c_scanned,
-			   PL_INT64, counts.vm_scanned);
+{ bool rc = PL_unify_term(A1,
+			  PL_FUNCTOR_CHARS, "gc", 4,
+			    PL_INT64, counts.marked_envs,
+			    PL_INT64, counts.marked_cont,
+			    PL_INT64, counts.c_scanned,
+			    PL_INT64, counts.vm_scanned);
 
   memset(&counts, 0, sizeof(counts));
 

@@ -4157,7 +4157,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 
 	if ( (nrc=str_number((const unsigned char*)s, &q, &n, 0)) == NUM_OK )
 	{ if ( (char*)q == stext.text.t + stext.length )
-	  { int rc = PL_unify_number(atom, &n);
+	  { bool rc = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    PL_free_text(&stext);
 	    return rc;
@@ -4397,7 +4397,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
     if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) )
     { if ( *q == EOS )
-      { int rc = PL_unify_number(A2, &n);
+      { bool rc = PL_unify_number(A2, &n);
 	clearNumber(&n);
 
 	return rc;
@@ -4449,7 +4449,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
     fail;
   for(;;)
   { if ( (n=wcsxfrm(o, s, buflen)) < buflen )
-    { int rc = PL_unify_wchars(A2, PL_STRING, n, o);
+    { bool rc = PL_unify_wchars(A2, PL_STRING, n, o);
 
       if ( o != buf )
 	free(o);

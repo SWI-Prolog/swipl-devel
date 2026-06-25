@@ -3198,7 +3198,7 @@ PL_unify_atom_chars(term_t t, const char *chars)
 { GET_LD
   valid_term_t(t);
   atom_t a = lookupAtom(chars, strlen(chars));
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -3211,7 +3211,7 @@ PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
   valid_term_t(t);
   atom_t a = lookupAtom(chars, len);
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -4068,7 +4068,7 @@ PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
   int new;
   valid_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 

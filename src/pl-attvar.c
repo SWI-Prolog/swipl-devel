@@ -977,7 +977,7 @@ when_condition(DECL_LD Word cond, Word result, when_state *state)
 { deRef(cond);
 
   if ( state->depth++ == 100 )
-  { int rc = PL_is_acyclic(pushWordAsTermRef(cond));
+  { bool rc = PL_is_acyclic(pushWordAsTermRef(cond));
 
     popTermRef();
     if ( !rc )
