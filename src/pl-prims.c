@@ -423,7 +423,7 @@ do_unify(DECL_LD Word t1, Word t2)
 
 
 #define raw_unify_ptrs(t1, t2) LDFUNC(raw_unify_ptrs, t1, t2)
-static int
+static boolex_t
 raw_unify_ptrs(DECL_LD Word t1, Word t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
@@ -511,7 +511,7 @@ Return:
 boolex_t
 unify_ptrs(DECL_LD Word t1, Word t2, int flags)
 { for(;;)
-  { int rc;
+  { boolex_t rc;
 
     rc = raw_unify_ptrs(t1, t2);
     if ( rc >= 0 )
@@ -521,10 +521,8 @@ unify_ptrs(DECL_LD Word t1, Word t2, int flags)
     { if ( rc == MEMORY_OVERFLOW )
       { return PL_no_memory();
       } else				/* Stack overflow */
-      { int rc2;
-
-	PushPtr(t1); PushPtr(t2);
-	rc2 = makeMoreStackSpace(rc, flags);
+      { PushPtr(t1); PushPtr(t2);
+	bool rc2 = makeMoreStackSpace(rc, flags);
 	PopPtr(t2); PopPtr(t1);
 	if ( !rc2 )
 	  return false;
@@ -1241,7 +1239,7 @@ PRED_IMPL("acyclic_term", 1, acyclic_term, PL_FA_ISO)
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
-  int rc;
+  boolex_t rc;
 
   if ( (rc=is_acyclic(valTermRef(A1))) == true )
     return false;
@@ -3890,7 +3888,7 @@ also needs support in garbageCollect() and growStacks().
 static bool
 unify_all_trail_ptrs(DECL_LD term_t t1, term_t t2, mark *m)
 { for(;;)
-  { int rc;
+  { boolex_t rc;
 
     Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
@@ -3903,12 +3901,9 @@ unify_all_trail_ptrs(DECL_LD term_t t1, term_t t2, mark *m)
       DiscardMark(*m);
       return rc;
     } else				/* Stack overflow */
-    { int rc2;
-
-      Undo(*m);
+    { Undo(*m);
       DiscardMark(*m);
-      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
-      if ( !rc2 )
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return false;
     }
   }

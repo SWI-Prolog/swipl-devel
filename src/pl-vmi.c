@@ -674,7 +674,7 @@ stack that must be treated as a variable.
 
 VMI(H_VAR, 0, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (size_t)*PC++);
-  int rc;
+  boolex_t rc;
 
   if ( UMODE == uwrite )
   { if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
@@ -715,7 +715,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
    * the latter case we just try again, protected for GC
    */
   if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
-  { int rc = do_unify(k, ARGP);
+  { boolex_t rc = do_unify(k, ARGP);
     if ( rc == true )
     { ARGP++;
       NEXT_INSTRUCTION;

@@ -1953,7 +1953,7 @@ unify_key(DECL_LD ukey_state *state, word key)
       { if ( state->umode == uwrite )
 	{ *state->ptr = makeRefG(vi->attributes);
 	} else
-	{ int rc = unify_ptrs(vi->address, p, ALLOW_RETCODE);
+	{ boolex_t rc = unify_ptrs(vi->address, p, ALLOW_RETCODE);
 	  if ( rc != true )
 	    return rc;
 	}
@@ -1976,7 +1976,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	    { assignAttVar(vi->attributes, p2);
 	    }
 	  } else
-	  { int rc = unify_ptrs(vi->attributes, vi->address, ALLOW_RETCODE);
+	  { boolex_t rc = unify_ptrs(vi->attributes, vi->address, ALLOW_RETCODE);
 	    if ( rc != true )
 	      return rc;
 	  }

@@ -589,7 +589,7 @@ partial_unify_dict(DECL_LD word dict1, word dict2)
   Word in2  = d2->arguments;
   Word end1 = in1+arityFunctor(d1->definition);
   Word end2 = in2+arityFunctor(d2->definition);
-  int rc;
+  boolex_t rc;
 
   /* unify the tags */
   if ( (rc=unify_tags(in1, in2, ALLOW_RETCODE)) != true )
@@ -638,7 +638,7 @@ unify_left_dict(DECL_LD word del, word from)
   Word fin  = fd->arguments;
   Word dend = din+arityFunctor(dd->definition);
   Word fend = fin+arityFunctor(fd->definition);
-  int rc;
+  boolex_t rc;
 
   /* unify the tags */
   if ( (rc=unify_tags(din, fin, ALLOW_RETCODE)) != true )
@@ -1481,7 +1481,7 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
 
   for(;;)
   { word new;
-    int rc;
+    boolex_t rc;
 
     if ( (rc = put_dict(*valTermRef(dt),
 			1, valTermRef(av), &new)) == true )
@@ -1590,7 +1590,7 @@ static bool
 unify_dict_copy(DECL_LD term_t t, term_t dt, word dict)
 { term_t tmp = PL_new_term_ref(); /* safe, we can allocate 10 */
   word copy;
-  int rc;
+  boolex_t rc;
 
   for(;;)
   { if ( (rc=copy_keys_dict(dict, &copy)) == true )
@@ -1693,7 +1693,7 @@ put_dict4(DECL_LD term_t key, term_t dict, term_t value, term_t newdict)
   { retry:
     Mark(fli_context->mark);
     word new;
-    int rc;
+    boolex_t rc;
 
     if ( (rc = put_dict(*valTermRef(dt),
 			1, valTermRef(av), &new)) == true )
@@ -1795,7 +1795,7 @@ retry:
 
     if ( (vp=dict_lookup_ptr(*valTermRef(mt), key, NULL)) &&
 	 unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT) )
-    { int rc;
+    { boolex_t rc;
       word new;
 
       if ( (rc=del_dict(*valTermRef(mt), key, &new)) == true )
@@ -1831,7 +1831,7 @@ retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
   { Mark(fli_context->mark);
-    int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
+    boolex_t rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r);
 
     switch(rc)
     { case true:
@@ -1865,7 +1865,7 @@ retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
   { Mark(fli_context->mark);
-    int rc = unify_left_dict(*valTermRef(dt+0), *valTermRef(dt+1));
+    boolex_t rc = unify_left_dict(*valTermRef(dt+0), *valTermRef(dt+1));
 
     switch(rc)
     { case true:
@@ -1893,7 +1893,7 @@ PRED_IMPL(">:<", 2, punify_dict, 0)
 retry:
   if ( get_create_dict_ex(A1, dt+0) &&
        get_create_dict_ex(A2, dt+1) )
-  { int rc = partial_unify_dict(*valTermRef(dt+0), *valTermRef(dt+1));
+  { boolex_t rc = partial_unify_dict(*valTermRef(dt+0), *valTermRef(dt+1));
 
     switch(rc)
     { case true:
