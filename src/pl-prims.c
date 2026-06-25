@@ -5501,13 +5501,37 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 
 #define INFERENCE_LIMIT_OVERHEAD 2
 
+#define get_inference_limit(t, l) LDFUNC(get_inference_limit, t, l)
+static bool
+get_inference_limit(DECL_LD term_t t, int64_t *limit)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { if ( a == ATOM_infinite )
+    { *limit = INFERENCE_NO_LIMIT;
+      return true;
+    }
+    return PL_domain_error("inference_limit", t);
+  }
+  return PL_get_int64_ex(t, limit);
+}
+
+#define unify_inference_limit(t, l) LDFUNC(unify_inference_limit, t, l)
+static bool
+unify_inference_limit(DECL_LD term_t t, int64_t limit)
+{ if ( limit == INFERENCE_NO_LIMIT )
+    return PL_unify_atom(t, ATOM_infinite);
+  return PL_unify_int64(t, limit);
+}
+
+
 static
 PRED_IMPL("$inference_limit", 2, pl_inference_limit, 0)
 { PRED_LD
   int64_t limit;
 
-  if ( PL_get_int64_ex(A1, &limit) &&
-       PL_unify_int64(A2, LD->inference_limit.limit) )
+  if ( get_inference_limit(A1, &limit) &&
+       unify_inference_limit(A2, LD->inference_limit.limit) )
   { int64_t nlimit = LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
 
     if ( limit < 0 )
@@ -5554,7 +5578,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
       if ( !PL_is_variable(A3) )
 	return true;
 
-      if ( PL_get_int64_ex(A2, &olimit) )
+      if ( get_inference_limit(A2, &olimit) )
       { DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("true (det) --> %lld\n", olimit));
 	LD->inference_limit.limit = olimit;
 	updateAlerted(LD);
@@ -5567,7 +5591,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
     case FRG_REDO:
     { int64_t limit;
 
-      if ( PL_get_int64_ex(A1, &limit) )
+      if ( get_inference_limit(A1, &limit) )
       { LD->inference_limit.limit =
 		LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
 	DEBUG(MSG_INFERENCE_LIMIT,
@@ -5593,7 +5617,7 @@ PRED_IMPL("$inference_limit_false", 1, inference_limit_false, 0)
 { PRED_LD
   int64_t olimit;
 
-  if ( PL_get_int64_ex(A1, &olimit) )
+  if ( get_inference_limit(A1, &olimit) )
   { LD->inference_limit.limit = olimit;
     DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("false --> %lld\n", olimit));
     updateAlerted(LD);
@@ -5614,7 +5638,7 @@ PRED_IMPL("$inference_limit_except", 3, inference_limit_except, 0)
 { PRED_LD
   int64_t olimit;
 
-  if ( PL_get_int64_ex(A1, &olimit) )
+  if ( get_inference_limit(A1, &olimit) )
   { atom_t a;
 
     DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("except --> %lld\n", olimit));
