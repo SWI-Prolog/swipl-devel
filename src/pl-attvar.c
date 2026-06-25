@@ -459,7 +459,7 @@ get_attr(DECL_LD Word l, atom_t name, term_t value)
 
 
 #define del_attr(av, name) LDFUNC(del_attr, av, name)
-static int
+static bool
 del_attr(DECL_LD Word av, atom_t name)
 { Word l, prev;
 
@@ -900,7 +900,7 @@ typedef struct
 
 
 #define is_or(c) LDFUNC(is_or, c)
-static int
+static bool
 is_or(DECL_LD word c)
 { return isTerm(c) && functorTerm(c) == FUNCTOR_or1;
 }
@@ -1254,7 +1254,7 @@ deRefM(DECL_LD Word p, Word pv)
 
 
 #define has_attributes_after(av, ch) LDFUNC(has_attributes_after, av, ch)
-static int
+static bool
 has_attributes_after(DECL_LD Word av, Choice ch)
 { Word l;
   word w;
