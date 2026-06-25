@@ -856,7 +856,7 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 
       if ( n <= SNO_MAX )		/* standard stream! */
       { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
-	if ( stream->magic == SIO_CMAGIC )
+	if ( stream && stream->magic == SIO_CMAGIC )
 	  stream = restoreStandardStream((int)n);
       } else
 	stream = s0;
