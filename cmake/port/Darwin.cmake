@@ -22,6 +22,8 @@ if(NOT MACOSX_DEPENDENCIES_FROM)
      set(MACOSX_DEPENDENCIES_FROM Macports)
   elseif(EXISTS /opt/homebrew)
   	 set(MACOSX_DEPENDENCIES_FROM Homebrew)
+  elseif(EXISTS /usr/local/Cellar)
+     set(MACOSX_DEPENDENCIES_FROM Homebrew)
   else()
     set(MACOSX_DEPENDENCIES_FROM None)
     message(WARNING "Could not find Macport or Homebrew to provide dependencies \
@@ -29,6 +31,13 @@ if(NOT MACOSX_DEPENDENCIES_FROM)
   endif()
   set(MACOSX_DEPENDENCIES_FROM ${MACOSX_DEPENDENCIES_FROM}
       CACHE STRING "Get dependencies from Macports or HomeBrew")
+endif()
+
+# Intel Macs use /usr/local; Apple Silicon uses /opt/homebrew
+if(EXISTS /opt/homebrew)
+  set(HOMEBREW_PREFIX /opt/homebrew)
+elseif(EXISTS /usr/local/Cellar)
+  set(HOMEBREW_PREFIX /usr/local)
 endif()
 
 if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
@@ -42,15 +51,15 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
     set(JPEG_ROOT /opt/local/libexec/jpeg)
   endif()
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
-  message("-- Using Homebrew packages from /opt/homebrew")
-  set(CMAKE_FIND_ROOT_PATH /opt/homebrew)
+  message("-- Using Homebrew packages from ${HOMEBREW_PREFIX}")
+  set(CMAKE_FIND_ROOT_PATH ${HOMEBREW_PREFIX})
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-      /opt/homebrew/lib)
+      ${HOMEBREW_PREFIX}/lib)
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
-      /opt/homebrew/include)
-  latest_subdir(OPENSSL_ROOT_DIR /opt/homebrew/Cellar/openssl@3/)
-  latest_subdir(LibArchive_ROOT /opt/homebrew/Cellar/libarchive)
-  latest_subdir(BDB_ROOT /opt/homebrew/Cellar/berkeley-db)
+      ${HOMEBREW_PREFIX}/include)
+  latest_subdir(OPENSSL_ROOT_DIR ${HOMEBREW_PREFIX}/Cellar/openssl@3/)
+  latest_subdir(LibArchive_ROOT ${HOMEBREW_PREFIX}/Cellar/libarchive)
+  latest_subdir(BDB_ROOT ${HOMEBREW_PREFIX}/Cellar/berkeley-db)
   set(CMAKE_IGNORE_PATH
       /opt/local/lib
       /opt/local/include
