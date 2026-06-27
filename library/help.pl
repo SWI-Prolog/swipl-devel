@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2024, CWI Amsterdam
+    Copyright (c)  2018-2026, CWI Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -37,7 +37,8 @@
 	  [ help/0,
 	    help/1,                     % +Object
 	    apropos/1,                  % +Search
-	    help_text/2
+            help_apropos/4,
+	    help_text/2                 % :PI, -Text:string
 	  ]).
 :- use_module(library(pldoc), []).
 :- use_module(library(isub), [isub/4]).
@@ -447,7 +448,7 @@ apropos(Query) :-
     notrace(apropos_no_trace(Query)).
 
 apropos_no_trace(Query) :-
-    findall(Q-(Obj-Summary), apropos(Query, Obj, Summary, Q), Pairs),
+    findall(Q-(Obj-Summary), help_apropos(Query, Obj, Summary, Q), Pairs),
     (   Pairs == []
     ->  print_message(warning, help(no_apropos_match(Query)))
     ;   sort(1, >=, Pairs, Sorted),
@@ -461,7 +462,13 @@ apropos_no_trace(Query) :-
 	print_message(information, help(apropos_matches(Matches, Len)))
     ).
 
-apropos(Query, Obj, Summary, Q) :-
+%!  help_apropos(+Query, -Obj, -Summary, -Score) is nondet.
+%
+%   Find matching documented objects in the   help  database. Obj is the
+%   formal object identifier, Summary its  summary description and Score
+%   is a number indicating the quality of the match.
+
+help_apropos(Query, Obj, Summary, Q) :-
     parse_query(Query, Type, Words),
     man_object_property(Obj, summary(Summary)),
     apropos_match(Type, Words, Obj, Summary, Q).
@@ -544,9 +551,10 @@ object_class(_M:_Name//_Arity, dcg).
 
 %! help_text(+Predicate:term, -HelpText:string) is semidet.
 %
-%  When =Predicate= is a term of the form =Name/Arity= for which
-%  documentation exists, =HelpText= is the documentation in textual
-%  format (parsed from the HTML help).
+%  When  Predicate  is  a  term  of  the  form  `Name/Arity`  for  which
+%  documentation exists, HelpText is the documentation in textual format
+%  (parsed from the HTML help).
+
 help_text(Pred, HelpText) :-
     help_objects(Pred, exact, Matches), !,
     catch(help_html(Matches, exact-exact, HtmlDoc), _, fail),
