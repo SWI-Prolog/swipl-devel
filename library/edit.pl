@@ -69,6 +69,7 @@ an editor.
     load/0.                         % provides load-hooks
 
 :- public
+    locations/2,                    % +Spec, -Locations
     predicate_location/2,           % :Pred, -Location
     addr2location/3.                % +Address, -File, -Line
 
@@ -84,12 +85,7 @@ edit_no_trace(Spec) :-
     !,
     throw(error(instantiation_error, _)).
 edit_no_trace(Spec) :-
-    load_extensions,
-    findall(Location-FullSpec,
-            locate(Spec, FullSpec, Location),
-            Pairs0),
-    sort(Pairs0, Pairs1),
-    merge_locations(Pairs1, Pairs),
+    locations(Spec, Pairs),
     do_select_location(Pairs, Spec, Location),
     do_edit_source(Location).
 
@@ -114,6 +110,22 @@ edit :-
     edit(file(File)).
 edit :-
     throw(error(context_error(edit, no_default_file), _)).
+
+%!  locations(+Spec, -Locations) is det.
+%
+%   Locate  entities  matching  Spec.  Locations  is  a  list  of  pairs
+%   `Location-FullSpec`, where `Location` is a   dict  holding a `file`,
+%   optional `line` and  optional  `linepos`   keys.  `FullSpec`  is the
+%   disambiguated specification, e.g., `member`   expands  to `member/2`
+%   for the predicate.
+
+locations(Spec, Locations) :-
+    load_extensions,
+    findall(Location-FullSpec,
+            locate(Spec, FullSpec, Location),
+            Pairs0),
+    sort(Pairs0, Pairs1),
+    merge_locations(Pairs1, Locations).
 
 
                  /*******************************
