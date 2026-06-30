@@ -203,7 +203,9 @@ cmp_git_version(<, -, -) => fail.
 cmp_git_version(>, -, -) => fail.
 cmp_git_version(=, -, -) => true.
 cmp_git_version(<, _, -) => true.
-cmp_git_version(>, -, _) => true.
+cmp_git_version(<, -, _) => fail.
+cmp_git_version(>, -, _) => fail.
+cmp_git_version(>, _, -) => true.
 cmp_git_version(=, -, _) => true.
 cmp_git_version(=, _, -) => true.
 cmp_git_version(=, git(V,-), git(V,_)) => true.
