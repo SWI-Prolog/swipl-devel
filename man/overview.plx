@@ -426,12 +426,12 @@ initialization/[1,2].  See also the Prolog flag
 \prologflag{debug_on_interrupt}.
 
     \cmdlineoptionitem{--home[=DIR]}{}
-Use \arg{DIR} as home directory.  See \secref{findhome} for details.
-If \arg{DIR} is omitted, the found location is printed and the process
-exits.  If the location cannot be found an error is printed and the
-process exits with status~1.  If the home directory is set using this
-option, the environment variable \const{SWI_HOME_DIR} holding the
-specified directory is added to the process.
+With \arg{DIR}, set SWI-Prolog's home directory to \arg{DIR} and add
+the environment variable \const{SWI_HOME_DIR} holding \arg{DIR} to the
+process.  Without an argument, report the located home directory and
+exit; if the location cannot be found, print an error and exit with
+status~1.  See \secref{findhome} for how the home directory is located
+and \prologflag{home} for what SWI-Prolog uses it for.
 
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
@@ -1820,6 +1820,8 @@ its library as \file{<home>/library}. Some installations may put
 architecture independent files in a \jargon{shared home} and also
 define \prologflag{shared_home}.  System files can be found using
 absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
+See \secref{findhome} for how this location is determined and
+\cmdlineoption{--home} for setting or reporting it from the command line.
 
     \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
 ISO Prolog flag describing rounding by \verb$//$ and \verb$rem$ arithmetic

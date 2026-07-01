@@ -147,10 +147,25 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
-.BI \-\-home= DIR
-Use
+.BI \-\-home\fR[= DIR ]
+SWI-Prolog uses its
+.I home directory
+to find its startup file as
+.IB <home> /boot.prc
+and its library as
+.IB <home> /library\fR.
+With
+.IR DIR ,
+set the home directory and add the environment variable
+.B SWI_HOME_DIR
+holding
 .I DIR
-as home directory.
+to the process.
+Without an argument, print the located home directory and exit; if the
+location cannot be found, print an error and exit with status 1.
+See also the
+.B home
+Prolog flag.
 .TP
 .BI \-\-stack\-limit= size [bkmg]
 Set the combined stack limit to
