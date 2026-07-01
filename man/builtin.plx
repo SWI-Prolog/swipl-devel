@@ -11243,10 +11243,18 @@ Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
 predicate is to resolve files specified as Alias(Relative), which use
-file_search_path/2 to look up the possibilities for Alias. This
-predicate \emph{only returns non-directories}, unless the option
-\term{file_type}{directory} is specified or the requested access is
-\const{none}. The result always uses the directory separator \chr{/};
+file_search_path/2 to look up the possibilities for Alias.  With the
+default options no file system check is performed and the alias-resolved
+path is returned as is; in particular, it may name a directory.  To
+require a non-directory pass \term{file_type}{regular},
+\term{file_type}{prolog}, or an \term{access}{Mode} other than
+\const{none}.  Pass \term{file_type}{directory} to look up directories.
+For example, when the library holds both a \file{chr.pl} file and a
+\file{chr} directory, \exam{absolute_file_name(library(chr), F)}
+resolves to the directory, while
+\exam{absolute_file_name(library(chr), F, [file_type(prolog)])}
+resolves to \file{chr.pl}.
+The result always uses the directory separator \chr{/};
 if the operating system uses something different, SWI-Prolog converts
 the file name before it makes an OS call. If you need the filename in
 the OS's preferred form, use prolog_to_os_filename/2.
@@ -11290,7 +11298,9 @@ Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \arg{Type} \const{directory} implies \const{['']} and causes this
 predicate to generate (only) directories. The \arg{Type} \const{regular}
 is the opposite of \const{directory} and is the default if no file
-type is specified and the effective access mode is \const{none}.
+type is specified and the requested access is not \const{none}.  Since
+the default access is \const{none}, \term{file_type}{regular} is
+\emph{not} implied by default; see the introduction above.
 
 The file type \const{source} is an alias for \const{prolog} for
 compatibility with SICStus Prolog. See also prolog_file_type/2.
