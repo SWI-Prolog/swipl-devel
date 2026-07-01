@@ -718,6 +718,24 @@ load_library_search_flags(void)
 }
 
 
+/* LoadLibraryExW() and AddDllDirectoryW() do not accept extended-length
+ * "\\?\" prefixes.  Strip a "\\?\" prefix in place; convert "\\?\UNC\"
+ * into its plain UNC form "\\".  Returns a pointer into buf.
+ */
+
+static wchar_t *
+strip_win_prefix(wchar_t *buf)
+{ if ( wcsncmp(buf, L"\\\\?\\UNC\\", 8) == 0 )
+  { buf[6] = L'\\';			/* overwrite 'C' of "UNC" */
+    return buf + 6;			/* now begins with "\\host\..." */
+  }
+  if ( wcsncmp(buf, L"\\\\?\\", 4) == 0 )
+    return buf + 4;
+
+  return buf;
+}
+
+
 static
 PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
 { PRED_LD
@@ -733,7 +751,7 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
     { int eno;
 
       /* AddDllDirectoryW() cannot handle "\\?\" */
-      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_length(dirw))) )
+      if ( (cookie = (*f_AddDllDirectoryW)(strip_win_prefix(dirw))) )
       { DEBUG(MSG_WIN_API,
 	      SdprintfX("AddDllDirectory(%Ws) ok\n", dirw));
 
@@ -786,12 +804,17 @@ PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
   DWORD llflags = 0;
   wchar_t wfile[PATH_MAX];
+  wchar_t *load_path = wfile;
 
   if ( strchr(file, '/') || strchr(file, '\\' ) )
   { if ( _xos_os_filenameW(file, wfile, PATH_MAX) == NULL )
     { dlmsg = "Name too long";
       return NULL;
     }
+    /* LoadLibraryExW() rejects "\\?\"-prefixed paths, especially in
+     * combination with LOAD_LIBRARY_SEARCH_* flags.
+     */
+    load_path = strip_win_prefix(wfile);
   } else
   { wchar_t *w = wfile;
     wchar_t *e = &w[PATH_MAX-1];
@@ -809,12 +832,12 @@ PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
     *w = 0;
   }
 
-  DEBUG(MSG_WIN_API, SdprintfX("dlopen(%Ws)\n", wfile));
+  DEBUG(MSG_WIN_API, SdprintfX("dlopen(%Ws)\n", load_path));
 
-  if ( is_windows_abs_path(wfile) )
+  if ( is_windows_abs_path(load_path) )
     llflags |= load_library_search_flags();
 
-  if ( (h = LoadLibraryExW(wfile, NULL, llflags)) )
+  if ( (h = LoadLibraryExW(load_path, NULL, llflags)) )
   { dlmsg = "No Error";
     return (void *)h;
   }

@@ -387,13 +387,34 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
       return osname;
     }
   } else
-  { wcscpy(s, WIN_PATH_PREFIX);
-    s += wcslen(s);
-    len -= (s-osname);
-    rc = GetFullPathNameW(buf, len, s, NULL);
-    if ( rc <= len )
-    { remove_win_prefix(s);
-      return osname;
+  { TCHAR full[PATH_MAX];
+
+    rc = GetFullPathNameW(buf, PATH_MAX, full, NULL);
+    if ( rc > 0 && rc < PATH_MAX )
+    { remove_win_prefix(full);
+      /* GetFullPathNameW may resolve a relative name to a UNC path when
+	 the process CWD is a UNC path.  In that case we must use the
+	 \\?\UNC\ prefix rather than \\?\, or NT rejects the path.
+      */
+      if ( full[0] == '\\' && full[1] == '\\' )
+      { size_t plen = wcslen(WIN_UNC_PREFIX);
+	size_t tlen = wcslen(full+1);		/* skip one leading '\' */
+
+	if ( plen + tlen + 1 <= len )
+	{ wcscpy(s, WIN_UNC_PREFIX);
+	  wcscpy(s+plen, full+1);
+	  return osname;
+	}
+      } else
+      { size_t plen = wcslen(WIN_PATH_PREFIX);
+	size_t tlen = wcslen(full);
+
+	if ( plen + tlen + 1 <= len )
+	{ wcscpy(s, WIN_PATH_PREFIX);
+	  wcscpy(s+plen, full);
+	  return osname;
+	}
+      }
     }
   }
 
