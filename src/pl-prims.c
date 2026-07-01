@@ -4128,7 +4128,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
     return PL_error(pred, 2, NULL, ERR_TYPE, type, atom);
   }
 
-  if ( PL_get_text(string, &stext, flags2) != true )
+  if ( PL_get_text(string, &stext, flags2) != GT_TRUE )
     return false;
 
   switch(how&X_MASK)

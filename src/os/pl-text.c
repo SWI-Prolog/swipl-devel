@@ -442,13 +442,15 @@ maybe_write:
 
 error:
   if ( canBind(w) && (flags & CVT_VARNOFAIL) )
-    return 2;
+    return GT_ISVAR;
 
   if ( (flags & CVT_EXCEPTION) )
   { atom_t expected;
 
     if ( (flags & CVT_LIST) && !(flags&(CVT_ATOM|CVT_NUMBER)) )
       expected = ATOM_list;		/* List and/or string object */
+    else if ( flags & CVT_STRING )
+      expected = ATOM_string;
     else if ( flags & CVT_LIST )
       expected = ATOM_text;
     else if ( (flags & CVT_ATOM) && w == ATOM_nil )
