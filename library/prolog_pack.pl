@@ -965,7 +965,7 @@ pack_install_set(Pairs, Dir, Options) :-
     pack_resolve(Pairs, Existing, AllVersions, Plan0, Options),
     !,                                      % for now, only first plan
     maplist(hsts_info(Options), Plan0, Plan),
-    Options1 = [pack_directory(Dir)|Options],
+    Options1 = [pack_directory(Dir), installed_packs(Existing)|Options],
     download_plan(Pairs, Plan, PlanB, Options1),
     register_downloads(PlanB, Options),
     maplist(update_automatic, PlanB),
@@ -1346,7 +1346,7 @@ pack_options_compatible_with_info(Info, PackOptions) :-
 %   Download or update all packages from Plan. We   need to do this as a
 %   first  step  because  we  may    not  have  (up-to-date)  dependency
 %   information about all packs. For example, a pack may be installed at
-%   the git HEAD revision that is not yet   know to the server or it may
+%   the git HEAD revision that is not yet  known to the server or it may
 %   be installed from a url that is not known at all at the server.
 
 download_plan(_Targets, Plan, Plan, _Options) :-
@@ -1362,13 +1362,32 @@ download_plan(Targets, Plan0, Plan, Options) :-
         prolog_description(Properties),
         query_pack_server(versions(Deps, Properties), Result, []),
         (   Result = true(Versions)
-        ->  pack_resolve(Targets, Plan1, Versions, Plan2, Options),
+        ->  merge_installed(Plan1, Options, Existing),
+            pack_resolve(Targets, Existing, Versions, Plan2, Options),
             !,
             download_plan(Targets, Plan2, Plan, Options)
         ;   print_message(error, pack(query_failed(Result))),
             fail
         )
     ).
+
+%!  merge_installed(+Plan, +Options, -Existing) is det.
+%
+%   Combine the just-processed Plan with the   locally installed packs
+%   passed through Options as `installed_packs(Installed)`, so that the
+%   recursive dependency resolution considers   already installed packs
+%   able  to  satisfy   requirements.    Packs   in  Plan  shadow  same
+%   pack in Installed.
+
+merge_installed(Plan, Options, Existing) :-
+    option(installed_packs(Installed), Options, []),
+    exclude(in_plan(Plan), Installed, InstalledRest),
+    append(Plan, InstalledRest, Existing).
+
+in_plan(Plan, Info) :-
+    member(P, Plan),
+    P.pack == Info.pack,
+    !.
 
 %!  plan_unsatisfied_dependencies(+Plan, -Deps) is det.
 %
