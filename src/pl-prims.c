@@ -4128,8 +4128,22 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
     return PL_error(pred, 2, NULL, ERR_TYPE, type, atom);
   }
 
-  if ( PL_get_text(string, &stext, flags2) != GT_TRUE )
-    return false;
+  /* A complicated way to get the proper error message :( */
+  if ( how & X_STRING )
+  { int noerr_flags = flags2 & (~CVT_EXCEPTION);
+    get_text_t rc = PL_get_text(string, &stext, noerr_flags);
+    switch(rc)
+    { case GT_TRUE:
+        break;
+      case GT_FALSE:
+	return PL_get_text(string, &stext, CVT_STRING|CVT_EXCEPTION);
+      case GT_ISVAR:
+	return false;
+    }
+  } else
+  { if ( PL_get_text(string, &stext, flags2) != GT_TRUE )
+      return false;
+  }
 
   switch(how&X_MASK)
   { case X_ATOM:

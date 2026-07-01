@@ -4,7 +4,7 @@
     E-mail:        jan@swi-prolog.org
     WWW:           https://www.swi-prolog.org
     Copyright (c)  2007-2026, University of Amsterdam
-			      SWI-Prolog Solutions b.v.
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,62 +42,63 @@
 This module is a Unit test for  Prolog built-ins that process characters
 or character codes.  Please define a test-set for each predicate.
 
-@author	Jan Wielemaker
+@author Jan Wielemaker
 */
 
 test_text :-
-	run_tests([ char_code,
-                    atom_codes,
-		    atom_concat,
-		    term_to_atom,
-		    atom_to_term,
-		    number_codes,
-		    number_chars,
-		    name,
-		    sub_atom,
-		    atomic_list_concat,
-                    substring,
-		    surrogate
-		  ]).
+    run_tests([ char_code,
+                atom_codes,
+                atom_concat,
+                term_to_atom,
+                atom_to_term,
+                number_codes,
+                number_chars,
+                number_string,
+                name,
+                sub_atom,
+                atomic_list_concat,
+                substring,
+                surrogate
+              ]).
 
 :- begin_tests(char_code).
 
 test(ascii, C == 97) :-
-	char_code(a, C).
+    char_code(a, C).
 test(ascii, A == a) :-
-	char_code(A, 97).
+    char_code(A, 97).
 test(wide, true) :-
-	char_code(A, 1050),
-	atom_codes(A, [1050]).
+    char_code(A, 1050),
+    atom_codes(A, [1050]).
 test(wide, true) :-
-	atom_codes(A, [1050]),
-	char_code(A, 1050).
+    atom_codes(A, [1050]),
+    char_code(A, 1050).
 test(error, error(instantiation_error)) :-
-	char_code(_,_).
+    char_code(_,_).
 test(error, error(type_error(character, 42))) :-
-	char_code(42,_).
+    char_code(42,_).
 test(error, error(type_error(integer, x))) :-
-	char_code(_,x).
+    char_code(_,x).
 test(error, error(type_error(character_code, -1))) :-
-	char_code(_,-1).
+    char_code(_,-1).
 test(error, error(type_error(character_code, 0xfffffff))) :-
-	char_code(_,0xfffffff).
+    char_code(_,0xfffffff).
 
 :- end_tests(char_code).
 
 :- begin_tests(atom_codes).
 
 test(error, error(type_error(character_code, _))) :-
-        atom_codes(_, [-1]).
+    atom_codes(_, [-1]).
 
 test(error, error(type_error(character_code, _))) :-
-        atom_codes(_, [0x110000]).
+    atom_codes(_, [0x110000]).
 
 test(error, error(type_error(character_code, _))) :-
-        atom_codes(_, [0x80000000]).
+    atom_codes(_, [0x80000000]).
 
 test(error, error(type_error(character_code, _))) :-
-        atom_codes(_, [0xffffffff]).
+    atom_codes(_, [0xffffffff]).
 
 :- end_tests(atom_codes).
 
@@ -108,31 +109,31 @@ test(error, error(type_error(character_code, _))) :-
 % that takes a character code as input.
 
 test(char_code, error(type_error(character_code, 0xD800))) :-
-	char_code(_, 0xD800).
+    char_code(_, 0xD800).
 test(char_code, error(type_error(character_code, 0xDC00))) :-
-	char_code(_, 0xDC00).
+    char_code(_, 0xDC00).
 test(char_code, error(type_error(character_code, 0xDFFF))) :-
-	char_code(_, 0xDFFF).
+    char_code(_, 0xDFFF).
 
 test(atom_codes, error(type_error(character_code, _))) :-
-	atom_codes(_, [0xD800]).
+    atom_codes(_, [0xD800]).
 test(atom_codes, error(type_error(character_code, _))) :-
-	atom_codes(_, [0xDC00]).
+    atom_codes(_, [0xDC00]).
 test(atom_codes, error(type_error(character_code, _))) :-
-	atom_codes(_, [0xDFFF]).
+    atom_codes(_, [0xDFFF]).
 
 test(string_codes, error(type_error(character_code, _))) :-
-	string_codes(_, [0xD800]).
+    string_codes(_, [0xD800]).
 test(string_codes, error(type_error(character_code, _))) :-
-	string_codes(_, [0xDFFF]).
+    string_codes(_, [0xDFFF]).
 
 test(put_code, error(type_error(character_code, 0xD800))) :-
-	with_output_to(string(_), put_code(0xD800)).
+    with_output_to(string(_), put_code(0xD800)).
 test(put_code, error(type_error(character_code, 0xDFFF))) :-
-	with_output_to(string(_), put_code(0xDFFF)).
+    with_output_to(string(_), put_code(0xDFFF)).
 
 test(format_c, error(format_argument_type(c, 0xD800))) :-
-	with_output_to(string(_), format("~c", [0xD800])).
+    with_output_to(string(_), format("~c", [0xD800])).
 
 % Decoders must not produce surrogate code points either.  A UTF-8 byte
 % sequence encoding a surrogate (e.g. ED A0 80 → U+D800) is malformed
@@ -140,44 +141,44 @@ test(format_c, error(format_argument_type(c, 0xD800))) :-
 % UTF-16 trail surrogate without a preceding lead.
 
 test(utf8_stream, C == 0xFFFD) :-
-	read_one_code_from_bytes([0xED, 0xA0, 0x80], utf8, C).
+    read_one_code_from_bytes([0xED, 0xA0, 0x80], utf8, C).
 test(utf8_stream, C == 0xFFFD) :-
-	read_one_code_from_bytes([0xED, 0xBF, 0xBF], utf8, C).
-test(utf8_stream_valid_low, C == 0xCFFF) :-		% boundary
-	read_one_code_from_bytes([0xEC, 0xBF, 0xBF], utf8, C).
-test(utf8_stream_valid_high, C == 0xE000) :-		% boundary
-	read_one_code_from_bytes([0xEE, 0x80, 0x80], utf8, C).
+    read_one_code_from_bytes([0xED, 0xBF, 0xBF], utf8, C).
+test(utf8_stream_valid_low, C == 0xCFFF) :-             % boundary
+    read_one_code_from_bytes([0xEC, 0xBF, 0xBF], utf8, C).
+test(utf8_stream_valid_high, C == 0xE000) :-            % boundary
+    read_one_code_from_bytes([0xEE, 0x80, 0x80], utf8, C).
 
 test(utf8_string_bytes, S == "�") :-
-	string_bytes(S, [0xED, 0xA0, 0x80], utf8).
+    string_bytes(S, [0xED, 0xA0, 0x80], utf8).
 
 test(utf16le_lone_trail, C == 0xFFFD) :-
-	read_one_code_from_bytes([0x00, 0xDC], utf16le, C).
+    read_one_code_from_bytes([0x00, 0xDC], utf16le, C).
 test(utf16be_lone_trail, C == 0xFFFD) :-
-	read_one_code_from_bytes([0xDC, 0x00], utf16be, C).
+    read_one_code_from_bytes([0xDC, 0x00], utf16be, C).
 
 read_one_code_from_bytes(Bytes, Enc, Code) :-
-	setup_call_cleanup(
-	    tmp_file_stream(binary, F, Out),
-	    ( maplist(put_byte(Out), Bytes), close(Out) ),
-	    setup_call_cleanup(
-		open(F, read, In, [encoding(Enc), type(text)]),
-		get_code(In, Code),
-		( close(In), delete_file(F) ))).
+    setup_call_cleanup(
+        tmp_file_stream(binary, F, Out),
+        ( maplist(put_byte(Out), Bytes), close(Out) ),
+        setup_call_cleanup(
+            open(F, read, In, [encoding(Enc), type(text)]),
+            get_code(In, Code),
+            ( close(In), delete_file(F) ))).
 
 :- end_tests(surrogate).
 
 :- begin_tests(atom_concat).
 
-test(shared, X == ab) :-		% deal with atom_concat(X,X,...)
-	atom_concat(X, X, abab).
+test(shared, X == ab) :-                % deal with atom_concat(X,X,...)
+    atom_concat(X, X, abab).
 test(shared, X == '') :-
-	atom_concat(X, X, '').
+    atom_concat(X, X, '').
 test(shared, fail) :-
-	atom_concat(X, X, abac).
+    atom_concat(X, X, abac).
 test(attvar, X-Y == ab-ok) :-
-	freeze(X, Y = ok),
-	atom_concat(a, b, X).
+    freeze(X, Y = ok),
+    atom_concat(a, b, X).
 
 :- end_tests(atom_concat).
 
@@ -185,24 +186,24 @@ test(attvar, X-Y == ab-ok) :-
 :- begin_tests(term_to_atom).
 
 test(write, A == 'foo(a)') :-
-	term_to_atom(foo(a), A).
+    term_to_atom(foo(a), A).
 test(read, T == foo(a)) :-
-	term_to_atom(T, 'foo(a)').
+    term_to_atom(T, 'foo(a)').
 test(read, T == '\'a\\nb\\\\c\'') :-
-	term_to_atom('a\nb\\c', T).
+    term_to_atom('a\nb\\c', T).
 
 :- end_tests(term_to_atom).
 
 :- begin_tests(atom_to_term).
 
 test(read, T-V =@= foo(A)-['A' = A] ) :-
-	atom_to_term('foo(A)', T, V).
+    atom_to_term('foo(A)', T, V).
 test(error, error(instantiation_error)) :-
-	atom_to_term(_, _, _).
+    atom_to_term(_, _, _).
 test(eof, error(syntax_error(_))) :-
-	atom_to_term('x /* comment', _, _).
+    atom_to_term('x /* comment', _, _).
 test(read, T-V =@= A-['A' = A] ) :-
-	atom_to_term('A', T, V).
+    atom_to_term('A', T, V).
 
 :- end_tests(atom_to_term).
 
@@ -210,15 +211,15 @@ test(read, T-V =@= A-['A' = A] ) :-
 :- begin_tests(number_codes).
 
 test(whitespace, X == 42) :-
-	number_codes(X, "  42").	% ISO
+    number_codes(X, "  42").        % ISO
 test(whitespace, X == 42) :-
-	number_codes(X, "\n 42").
+    number_codes(X, "\n 42").
 test(whitespace, error(syntax_error(_))) :-
-	number_codes(_, "42 ").		% ISO (dubious)
+    number_codes(_, "42 ").         % ISO (dubious)
 test(whitespace, error(syntax_error(_))) :-
-	number_codes(_, "/**/42").	% ISO demands acceptance!?
+    number_codes(_, "/**/42").      % ISO demands acceptance!?
 test(unify, fail) :-
-	number_codes(0, [C,C]).
+    number_codes(0, [C,C]).
 
 :- end_tests(number_codes).
 
@@ -230,97 +231,106 @@ test(unify, fail) :-
 :- begin_tests(number_chars).
 
 test(iso, true) :-
-	number_chars(1, ['0','1']).
+    number_chars(1, ['0','1']).
 test(iso, N = 0'a) :-
-	number_chars(N, [' ','0','''',a]) .
+    number_chars(N, [' ','0','''',a]) .
 test(swi, error(syntax_error(_))) :-
-	number_chars(_, [/,*,*,/,'1']).
+    number_chars(_, [/,*,*,/,'1']).
 test(iso, error(instantiation_error)) :-
-	number_chars(_,[_]).
+    number_chars(_,[_]).
 test(iso, error(instantiation_error)) :-
-	number_chars(_,['0'|_]).
+    number_chars(_,['0'|_]).
 test(swi, error(type_error(_, []))) :-
-	number_chars(1,[[]]).
+    number_chars(1,[[]]).
 test(iso, error(type_error(list, '1'))) :-
-	number_chars(_,'1').
+    number_chars(_,'1').
 test(swi, N==1) :-
-	number_chars(N,[0'1]).
+    number_chars(N,[0'1]).
 test(iso, error(syntax_error(_))) :-
-	number_chars(1,[a]).
+    number_chars(1,[a]).
 test(iso, error(type_error(list, [a|a]))) :-
-	number_chars(_,[a|a]).
+    number_chars(_,[a|a]).
 test(swi, error(syntax_error(_))) :-
-	number_chars(1,[0]).
+    number_chars(1,[0]).
 test(iso, error(syntax_error(_))) :-
-	number_chars(1,[]).
+    number_chars(1,[]).
 test(iso, error(syntax_error(_))) :-
-	number_chars(_,[]).
+    number_chars(_,[]).
 test(iso, error(syntax_error(_))) :-
-	number_chars(_,['3',' ']).
+    number_chars(_,['3',' ']).
 test(iso, error(syntax_error(_))) :-
-	number_chars(_,[-,/,*,*,/,'1']).
+    number_chars(_,[-,/,*,*,/,'1']).
 test(float, true) :-
-	forall(between(-500, 500, E),
-	       test_float(E)).
+    forall(between(-500, 500, E),
+           test_float(E)).
 
 test_float(E) :-
-	(   catch(X is 10.0**E, _, fail)
-	->  number_codes(X, Codes),
-	    number_codes(X2, Codes),
-	    (   X == X2
-	    ->  true
-	    ;   format(user_error, '~w \\== ~w~n', [X, X2]),
-		fail
-	    )
-	;   true
-	).
+    (   catch(X is 10.0**E, _, fail)
+    ->  number_codes(X, Codes),
+        number_codes(X2, Codes),
+        (   X == X2
+        ->  true
+        ;   format(user_error, '~w \\== ~w~n', [X, X2]),
+            fail
+        )
+    ;   true
+    ).
 
 % 8.16.7.3 proposal
 
 test(iso2, C == '1') :-
-	number_chars(1,[C]).
+    number_chars(1,[C]).
 test(iso2, fail) :-
-	number_chars(1,[_,_]).
+    number_chars(1,[_,_]).
 test(iso2, fail) :-
-	number_chars(1,[C,C]).
+    number_chars(1,[C,C]).
 test(iso2, fail) :-
-	number_chars(0,[C,C]).
+    number_chars(0,[C,C]).
 test(iso2, [C-D == '1'-'0']) :-
-	number_chars(10,[C,D]).
+    number_chars(10,[C,D]).
 test(iso2, fail) :-
-	number_chars(100,[_,_]).
+    number_chars(100,[_,_]).
 test(iso2, error(instantiation_error)) :-
-	number_chars(_,[_|1]).
+    number_chars(_,[_|1]).
 test(iso2, error(instantiation_error)) :-
-	number_chars(_, [1|_]).
+    number_chars(_, [1|_]).
 test(iso2, error(type_error(list, [1|2]))) :-
-	number_chars(_, [1|2]).
+    number_chars(_, [1|2]).
 test(iso2, error(type_error(list, 1))) :-
-	number_chars(1,1).
+    number_chars(1,1).
 test(iso2, error(type_error(list, [a|1]))) :-
-	number_chars(1, [a|1]).
+    number_chars(1, [a|1]).
 
 :- end_tests(number_chars).
+
+:- begin_tests(number_string).
+
+test(atom, error(type_error(string, '123'))) :-
+    number_string(_N, '123').
+test(fail, fail) :-
+    number_string(_N, "123aap").
+
+:- end_tests(number_string).
 
 :- begin_tests(name).
 
 test(int, X == 42) :-
-	name(X, `42`).
+    name(X, `42`).
 test(atom, X == ' 42') :-
-	name(X, ` 42`).
+    name(X, ` 42`).
 test(atom, X == '42 ') :-
-	name(X, `42 `).
-test(atom, X == '42 \u8607') :-		% test wchar conversion
-	name(X, `42 \u8607`).
+    name(X, `42 `).
+test(atom, X == '42 \u8607') :-         % test wchar conversion
+    name(X, `42 \u8607`).
 
 :- end_tests(name).
 
 :- begin_tests(sub_atom).
 
-test(neg, C = '\235\') :-		% test signed char handling
-	sub_atom('Azi\235\', _, 1, 0, C).
-test(nondet, X == 3) :-			% det when matching at last position
-	sub_atom('cadabra', X, 4, _, 'abra').
+test(neg, C = '\235\') :-               % test signed char handling
+    sub_atom('Azi\235\', _, 1, 0, C).
+test(nondet, X == 3) :-                 % det when matching at last position
+    sub_atom('cadabra', X, 4, _, 'abra').
 
 :- end_tests(sub_atom).
 
@@ -328,12 +338,12 @@ test(nondet, X == 3) :-			% det when matching at last position
 :- begin_tests(atomic_list_concat).
 
 test(int64, X == 'x-9223372036854775808') :-
-	N is -1<<63,
-	atomic_list_concat([x, N], X).
+    N is -1<<63,
+    atomic_list_concat([x, N], X).
 test(error, error(instantiation_error)) :-
-	atomic_list_concat([1,_], _).
+    atomic_list_concat([1,_], _).
 test(error, error(domain_error(non_empty_atom, ''))) :-
-	atomic_list_concat(_L, '', text).
+    atomic_list_concat(_L, '', text).
 
 :- end_tests(atomic_list_concat).
 
