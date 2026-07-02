@@ -635,30 +635,42 @@ symbol_no_stream(atom_t symbol)
 { GET_LD
   term_t t;
 
-  if ( (t = PL_new_term_ref()) )
-  { PL_put_atom(t, symbol);
-    return no_stream(t, 0);
-  } else
-    return false;
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, symbol) &&
+	   no_stream(t, 0) );
 }
 
 static bool
 symbol_not_a_stream(atom_t symbol)
 { GET_LD
-  term_t t = PL_new_term_ref();
-  PL_put_atom(t, symbol);
-  return not_a_stream(t, SH_ALIAS);
+  term_t t;
+
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, symbol) &&
+	   not_a_stream(t, SH_ALIAS) );
 }
 
 
 static bool
 symbol_stream_pair_not_allowed(atom_t symbol)
 { GET_LD
-  term_t t = PL_new_term_ref();
-  PL_put_atom(t, symbol);
+  term_t t;
 
-  return PL_error(NULL, 0, "operation is ambiguous on a stream pair",
-		  ERR_TYPE, ATOM_stream, t);
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, symbol) &&
+	   PL_error(NULL, 0, "operation is ambiguous on a stream pair",
+		    ERR_TYPE, ATOM_stream, t) );
+}
+
+static bool
+symbol_stream_wrong_mode(atom_t symbol, atom_t action)
+{ GET_LD
+  term_t t;
+
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, symbol) &&
+	   PL_error(NULL, 0, "requested stream has wrong mode",
+		    ERR_PERMISSION, action, ATOM_stream, t) );
 }
 
 
@@ -786,6 +798,25 @@ static PL_blob_t stream_blob =
 };
 
 
+static bool
+check_stream_mode(atom_t a, IOSTREAM *s, int flags)
+{ atom_t action = 0;
+
+  if ( (flags&SH_INPUT) && !(s->flags&SIO_INPUT) )
+    action = ATOM_read;
+  else if ( (flags&SH_OUTPUT) && !(s->flags&SIO_OUTPUT) )
+    action = ATOM_write;
+
+  if ( action )
+  { if ( flags&SH_ERRORS )
+      return symbol_stream_wrong_mode(a, action);
+    else
+      return false;
+  }
+
+  return true;
+}
+
 #define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
 static bool
 get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
@@ -829,6 +860,9 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
     if ( s->erased )
        goto noent;
 
+    if ( !check_stream_mode(a, s, flags) )
+      return false;
+
     if ( flags & SH_UNLOCKED )
     { assert( s->magic == SIO_MAGIC || s->magic == SIO_CMAGIC );
       *sp = s;
@@ -868,16 +902,16 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
       { if ( (flags & SH_UNLOCKED) )
 	{ if ( stream->magic == SIO_MAGIC )
 	  { *sp = stream;
-	    return true;
+	    return check_stream_mode(a, stream, flags);
 	  }
 	} else if ( flags & SH_TRYLOCK )
 	{ if ( (s=tryGetStream(stream)) )
 	  { *sp = s;
-	    return true;
+	    return check_stream_mode(a, stream, flags);
 	  } else
 	    return false;		/* exception? */
 	} else if ( (*sp = getStream(stream)) )
-	  return true;
+	  return check_stream_mode(a, stream, flags);
 	goto noent;
       }
     }
