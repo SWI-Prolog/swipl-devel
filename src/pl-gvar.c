@@ -151,17 +151,26 @@ SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
 
 #define setval_duplicate(new, old) \
 	LDFUNC(setval_duplicate, new, old)
+#define word_is_attvar(t) \
+	LDFUNC(word_is_attvar, t)
+
+static inline bool
+word_is_attvar(DECL_LD word w)
+{ while(isRef(w))
+    w = *unRef(w);
+  return isAttVar(w);
+}
 
 static word
 setval_duplicate(DECL_LD word new, word old)
-{ if ( isTerm(new) )
+{ if ( isTerm(new) || word_is_attvar(new) )
   { term_t from = PL_new_term_ref();
     term_t copy = PL_new_term_ref();
     term_t shared = 0;
     size_t nshared = 0;
     *valTermRef(from) = new;
 
-    if ( isTerm(old) )
+    if ( isTerm(old) || word_is_attvar(old) )
     { shared = PL_new_term_ref();
       *valTermRef(shared) = old;
       nshared = 1;
