@@ -212,6 +212,9 @@ b(_,_,_,[_|_],_).
 pa(_, _).
 pa(_, x).
 
+ix1386(real,    (-1.0e+16, 1.0e+16)).
+ix1386(boolean, (0, 1)).
+
 test(x) :-				% must use S_LIST
     x(_,_,_,_,[]).
 test(a) :-				% must use S_LIST (test H_VOID_N)
@@ -226,5 +229,9 @@ test(m) :-				% may not use S_LIST (test mode/1)
     !.
 test(pa) :-                             % primary index should be on arg 2
     pa(_,y).
+test(ix1386) :-                         % Issue #1386: primary must win over
+    call_cleanup(ix1386(real, (_,_)),   % a shallow-useless deep list index
+                 Det=true),
+    assertion(Det == true).
 
 :- end_tests(jit_static).

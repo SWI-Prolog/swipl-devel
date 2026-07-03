@@ -647,6 +647,8 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
 { ClauseRef cref;
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
+  iarg_t pindex;
+  word pkey;
 
   /* If `clist->unindexed`, no primary index is possible. */
 
@@ -655,8 +657,40 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
     return next_clause_unindexed(ctx);
   }
 
-  /* Deal with possible hashes */
 retry:
+  cref = NULL;
+
+  if ( unlikely(clist->number_of_clauses == 0) )
+    return NULL;
+
+  pindex = clist->primary_index;
+  pkey = indexOfWord(argv[pindex]);
+
+  /* Fast path (#1386): at the outermost call, if the primary-index
+   * argument is bound and the predicate is small, try the primary
+   * index before probing candidate hash indexes.  This prevents a
+   * candidate list index whose shallow key does not discriminate
+   * (e.g. all clauses share the same functor at the hashed arg)
+   * from preempting a deterministic primary dispatch.  When the
+   * primary key does not discriminate (duplicate keys) or is not
+   * available, we fall through to the hash lookup.
+   */
+
+  if ( pkey &&
+       ctx->depth == 0 &&
+       ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
+	 STATIC_RELOADING(ctx->predicate) ) )
+  { chp->key  = pkey;
+    chp->cref = clist->first_clause;
+    cref = next_clause_primary_index(ctx);
+    if ( !cref ||
+	 !(chp->cref && chp->cref->d.key == pkey &&
+	   cref->d.key == pkey) )
+      return cref;
+    /* else duplicate primary key: fall through to try hash */
+  }
+
+  /* Deal with possible hashes */
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
 
@@ -700,8 +734,7 @@ retry:
     }
   }
 
-  iarg_t pindex = clist->primary_index;
-  chp->key = indexOfWord(argv[pindex]);
+  chp->key = pkey;		/* existing_hash may have overwritten it */
 
   if ( clist->fixed_indexes )	/* set_candidate_indexes() has been run */
   { chp->cref = clist->first_clause;
@@ -711,36 +744,12 @@ retry:
       return next_clause_unindexed(ctx);
   }
 
-  if ( unlikely(clist->number_of_clauses == 0) )
-    return NULL;
-
   if ( isoff(ctx->predicate,
 	     P_DYNAMIC|P_MULTIFILE|P_THREAD_LOCAL|P_FOREIGN) &&
        ctx->depth == 0 )
   { set_candidate_indexes(ctx->predicate, clist, 10, true);
     goto retry;
   }
-
-  /* Try the primary index if  the corresponding argument is bound and
-   * we have  less than  MIN_CLAUSES_FOR_INDEX clauses.  Accept  if we
-   * have no clause or the next candidate has a different key.  If the
-   * next candidate has the same key, deep indexing may help us, so we
-   * will search for other indexes.
-   */
-
-  if ( chp->key &&
-       ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
-	 STATIC_RELOADING(ctx->predicate)) )
-  { chp->cref = clist->first_clause;
-    cref = next_clause_primary_index(ctx);
-    if ( !cref ||
-	 !(chp->cref && chp->cref->d.key == chp->key &&
-	   cref->d.key == chp->key) )
-      return cref;
-    /* else duplicate; see whether we can create a deep index */
-    /* TBD: Avoid trying this every goal */
-  } else
-    cref = NULL;
 
   if ( !STATIC_RELOADING(ctx->predicate) )
   { ClauseIndex ci;
@@ -757,7 +766,7 @@ retry:
     }
   }
 
-  if ( cref )			/* from next_clause_primary_index() call */
+  if ( cref )			/* from primary-first fast-path fallthrough */
     return cref;
 
   chp->cref = clist->first_clause;
