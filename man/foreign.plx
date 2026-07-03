@@ -5321,6 +5321,25 @@ signal may be changed using the \cmdlineoption{--sigalert=NUM} option or
 disabled using \verb$--sigalert=0$.
 
 
+\subsection{Locale and PL_initialise()}		\label{sec:embed-locale}
+
+PL_initialise() reads the numeric conventions (decimal point, thousands
+separator, digit grouping) of the environment's \const{LC_NUMERIC}
+locale for use by locale-sensitive predicates such as format/3 with
+\const{~:d} and \const{~:f} directives. See \secref{locale}. It does
+so without calling \cfuncref{setlocale}{}, so the embedder's process
+locale is left untouched and functions such as \cfuncref{atof}{} and
+\cfuncref{printf}{}(\const{"\%f"}) continue to use the decimal point
+that was in effect before PL_initialise() was called.
+
+PL_initialise() does call \cfuncref{setlocale}{} for \const{LC_CTYPE}
+(to pick up the multibyte encoding used for atoms and streams),
+\const{LC_TIME} and \const{LC_COLLATE}. Embedders that require a
+strict \const{"C"} locale for these categories should either arrange
+the environment before starting the process or reset the desired
+categories after PL_initialise() returns.
+
+
 
 \section{Linking embedded applications using swipl-ld}	\label{sec:plld}
 

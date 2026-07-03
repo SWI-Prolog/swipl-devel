@@ -7952,7 +7952,12 @@ integers from digit groups was discussed on the SWI-Prolog mailinglist.
 Most input in this discussion is from Ulrich Neumerkel and Richard
 O'Keefe. The predicates in this section were designed by Jan
 Wielemaker.} The system creates a default locale object named
-\const{default} from the system locale. This locale is used as the
+\const{default} from the environment's \const{LC_NUMERIC} locale
+without modifying the process locale.  This is important for
+applications that embed SWI-Prolog: PL_initialise() will not change
+the process-wide decimal separator used by \cfuncref{atof}{} or
+\cfuncref{printf}{} in the host application. See also
+\secref{embed-locale}. The \const{default} locale is used as the
 initial locale for the three standard streams as well as the
 \const{main} thread. Locale sensitive output predicates such as format/3
 get their locale from the stream to which they deliver their output. New
