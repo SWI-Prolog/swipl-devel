@@ -63,50 +63,21 @@ cmake_binary_directory(BinDir, Config) :-
     cmake_bindir(BinDir, Config),
     !.
 cmake_binary_directory(BinDir, Config) :-
-    exe_or_shared_object(Exe),
-    parent_dir(Exe, BinDir),
-    atom_concat(BinDir, '/home/boot.prc', BootFile),
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/boot.prc', BootFile),
     exists_file(BootFile),
-    !,
-    split_string(Exe, "/", "/", Segments),
-    (   % macOS framework layout: <BinDir>/src/<Name>.framework/Versions/<V>/<exe>
-        '$append'(_, ["src", FW, "Versions", _Ver, _Exe], Segments),
-        sub_string(FW, _, _, 0, ".framework")
+    file_directory_name(Home, BinDir),
+    (   format(string(Pattern), '~w/src/swipl{,.exe}', [BinDir]),
+        expand_file_name(Pattern, [_])
     ->  Config = ''
-    ;   '$append'(_, [Parent,_Exe], Segments),
-        (   Parent == "src"
-        ->  Config = ''
-        ;   atom_string(Config, Parent)
-        )
+    ;   format(string(Pattern), '~w/src/*/swipl{,.exe}', [BinDir]),
+        expand_file_name(Pattern, [Exe])
+    ->  file_directory_name(Exe, ExeDir),
+        file_base_name(ExeDir, Config)
     ),
+    !,
     asserta(cmake_bindir(BinDir, Config)),
     set_prolog_flag(cmake_binary_directory, BinDir).
-
-exe_or_shared_object(File) :-	% only reliable when read-only
-    '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
-    !.
-exe_or_shared_object(File) :-
-    current_prolog_flag(executable, OsExe),
-    OsExe \== 'libswipl.dll',           % avoid dummy for embedded JPL test
-    prolog_to_os_filename(Exe, OsExe),
-    working_directory(PWD, PWD),
-    exe_access(ExeAccess),
-    absolute_file_name(Exe, File,
-		       [ access(ExeAccess),
-			 relative_to(PWD)
-		       ]).
-
-parent_dir(Dir, Dir).
-parent_dir(Dir, Parent) :-
-    file_directory_name(Dir, Parent0),
-    Parent0 \== Dir,
-    parent_dir(Parent0, Parent).
-
-exe_access(Access) :-
-    (   current_prolog_flag(unix, true)
-    ->  Access = execute
-    ;   Access = read
-    ).
 
 %!  swipl_package(-Pkg, -PkgBuildDir, -PkgBinDir) is nondet.
 %
