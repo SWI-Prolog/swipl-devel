@@ -45,6 +45,7 @@ void		freeSupervisor(Definition def, Code code, bool linger);
 bool		createForeignSupervisor(Definition def, Func f);
 bool		createUndefSupervisor(Definition def);
 Code		createSupervisor(Definition def);
+Code		chainPredicateSupervisor(Definition def, Code post);
 bool		setDefaultSupervisor(Definition def);
 void		setSupervisor(Definition def, Code codes);
 size_t		sizeof_supervisor(Code base);

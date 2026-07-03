@@ -163,9 +163,33 @@ get_closure_predicate(DECL_LD term_t t, Definition *def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The supervisor installed for a wrapped predicate may carry a prefix of
+meta/determinism  qualification  instructions  (S_MQUAL,   S_LMQUAL,   S_DET,
+S_SSU_DET) prepended by chainPredicateSupervisor().  skipWrapperPrefix()
+returns the PC of the first non-prefix instruction, which is where the
+S_CALLWRAPPER lives if this is a wrapper supervisor.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+skipWrapperPrefix(Code PC)
+{ for(;;)
+  { code op = fetchop(PC);
+
+    if ( op == S_MQUAL || op == S_LMQUAL ||
+	 op == S_DET   || op == S_SSU_DET )
+      PC = stepPC(PC);
+    else
+      return PC;
+  }
+}
+
+
 void
 unregisterWrappedSupervisor(Code codes)
-{ if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+{ codes = skipWrapperPrefix(codes);
+
+  if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
   { atom_t aref  = (atom_t)codes[2];
     atom_t wname = (atom_t)codes[3];
 
@@ -185,12 +209,14 @@ void
 resetWrappedSupervisor(Definition def0, bool do_linger)
 { Definition def = def0;
   Code codes = def->codes;
+  Code cw    = skipWrapperPrefix(codes);
 
-  while ( codes[0] == encode(S_CALLWRAPPER) )
-  { closure *c = PL_blob_data(codes[2], NULL, NULL);
+  while ( cw[0] == encode(S_CALLWRAPPER) )
+  { closure *c = PL_blob_data(cw[2], NULL, NULL);
 
     def   = &c->def;
     codes = c->def.impl.wrapped.supervisor;
+    cw    = skipWrapperPrefix(codes);
   }
 
   assert(def != def0);	/* def is the definition inside the closure */
@@ -201,7 +227,7 @@ resetWrappedSupervisor(Definition def0, bool do_linger)
 
 static Code
 find_wrapper(Definition def, atom_t name)
-{ Code codes = def->codes;
+{ Code codes = skipWrapperPrefix(def->codes);
 
   while ( codes[0] == encode(S_CALLWRAPPER) )
   { closure *c;
@@ -210,7 +236,7 @@ find_wrapper(Definition def, atom_t name)
       return codes;
 
     c = PL_blob_data(codes[2], NULL, NULL);
-    codes = c->def.impl.wrapped.supervisor;
+    codes = skipWrapperPrefix(c->def.impl.wrapped.supervisor);
   }
 
   return NULL;
@@ -341,6 +367,8 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
+	codes = chainPredicateSupervisor(def, codes);
+
 	def->codes = SUPERVISOR(virgin);
 	setSupervisor(def, codes);
 
@@ -364,9 +392,9 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 
   if ( get_procedure(A1, &proc, 0, GP_RESOLVE) )
   { Definition def = proc->definition;
-    Code codes = def->codes;
+    Code codes = skipWrapperPrefix(def->codes);
 
-    if ( def->codes[0] == encode(S_CALLWRAPPER) )
+    if ( codes[0] == encode(S_CALLWRAPPER) )
     { term_t tail = PL_copy_term_ref(A2);
       term_t head = PL_new_term_ref();
       term_t ct   = PL_new_term_ref();
@@ -383,7 +411,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 			      PL_TERM, ct) )
 	  return false;
 
-	codes = c->def.impl.wrapped.supervisor;
+	codes = skipWrapperPrefix(c->def.impl.wrapped.supervisor);
 	if ( codes[0] != encode(S_CALLWRAPPER) )
 	  return PL_unify_nil(tail);
       }
@@ -458,17 +486,19 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
   { Definition def = proc->definition;
     Code *cp = &def->codes;
     Code codes = *cp;
+    Code cw    = skipWrapperPrefix(codes);
 
-    while ( codes[0] == encode(S_CALLWRAPPER) )
-    { ClauseRef cref = code2ptr(ClauseRef, codes[1]);
+    while ( cw[0] == encode(S_CALLWRAPPER) )
+    { ClauseRef cref = code2ptr(ClauseRef, cw[1]);
       Clause cl = cref->value.clause;
-      atom_t aref = (atom_t)codes[2];
-      atom_t wname = (atom_t)codes[3];
+      atom_t aref = (atom_t)cw[2];
+      atom_t wname = (atom_t)cw[3];
       closure *cls = PL_blob_data(aref, NULL, NULL);
 
       if ( !PL_unify_atom(A2, wname) )
-      { cp = &cls->def.impl.wrapped.supervisor;
+      { cp    = &cls->def.impl.wrapped.supervisor;
 	codes = *cp;
+	cw    = skipWrapperPrefix(codes);
 	continue;
       }
 
