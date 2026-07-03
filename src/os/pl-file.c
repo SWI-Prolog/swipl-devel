@@ -802,9 +802,9 @@ static bool
 check_stream_mode(atom_t a, IOSTREAM *s, int flags)
 { atom_t action = 0;
 
-  if ( (flags&SH_INPUT) && !(s->flags&SIO_INPUT) )
+  if ( (flags&(SH_INPUT|SH_OUTPUT)) == SH_INPUT && !(s->flags&SIO_INPUT) )
     action = ATOM_read;
-  else if ( (flags&SH_OUTPUT) && !(s->flags&SIO_OUTPUT) )
+  else if ( (flags&(SH_INPUT|SH_OUTPUT)) == SH_OUTPUT && !(s->flags&SIO_OUTPUT) )
     action = ATOM_write;
 
   if ( action )
