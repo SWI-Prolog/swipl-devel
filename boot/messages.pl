@@ -186,6 +186,9 @@ iso_message(resource_error(c_stack)) -->
     out_of_c_stack.
 iso_message(resource_error(Missing)) -->
     [ 'Not enough resources: ~w'-[Missing] ].
+iso_message(type_error(Var, Actual)) -->
+    { var(Var) },
+    [ 'Type error: unbound (var) type expected, found `~p'''-[Actual] ].
 iso_message(type_error(evaluable, Actual)) -->
     { callable(Actual) },
     [ 'Arithmetic: `~p'' is not a function'-[Actual] ].
