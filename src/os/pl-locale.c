@@ -45,6 +45,11 @@
 #ifdef O_LOCALE
 
 #include <locale.h>
+#ifdef HAVE_XLOCALE_H
+#include <xlocale.h>			/* newlocale()/uselocale() on macOS: on */
+					/* some SDKs <locale.h> hides these unless */
+					/* _USE_EXTENDED_LOCALES_ is set */
+#endif
 
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
