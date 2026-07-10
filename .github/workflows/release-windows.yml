@@ -84,13 +84,44 @@ jobs:
           echo "name=$(basename "$installer")" >> "$GITHUB_OUTPUT"
           sha256sum "$installer" | tee "$installer.sha256"
 
-      - name: Upload as workflow artifact
+      - name: Upload unsigned installer for signing
+        id: upload-unsigned
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.extract.outputs.name }}
+          name: unsigned-installer
+          path: ${{ steps.extract.outputs.path }}
+
+      - name: Submit signing request to SignPath
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: '850aee92-c331-4e54-a97d-64cf5f08080a'
+          project-slug: 'swipl-devel'
+          signing-policy-slug: 'test-signing'
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed/
+
+      - name: Recompute checksum on signed installer
+        id: signed
+        run: |
+          installer=$(ls signed/swipl-*.x64.exe 2>/dev/null | head -n1)
+          if [ -z "$installer" ]; then
+            echo "No signed installer produced" >&2
+            ls -la signed/ >&2
+            exit 1
+          fi
+          sha256sum "$installer" | tee "$installer.sha256"
+          echo "path=$installer" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$installer")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload signed installer as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.signed.outputs.name }}
           path: |
-            ${{ steps.extract.outputs.path }}
-            ${{ steps.extract.outputs.path }}.sha256
+            ${{ steps.signed.outputs.path }}
+            ${{ steps.signed.outputs.path }}.sha256
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/V')
@@ -100,5 +131,5 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            ${{ steps.extract.outputs.path }}
-            ${{ steps.extract.outputs.path }}.sha256
+            ${{ steps.signed.outputs.path }}
+            ${{ steps.signed.outputs.path }}.sha256
