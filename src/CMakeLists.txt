@@ -164,7 +164,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl
     coinduction.pl ansi_term.pl base32.pl prolog_history.pl
     optparse.pl arithmetic.pl writef.pl predicate_options.pl
-    random.pl prolog_breakpoints.pl prolog_autoload.pl
+    random.pl random_terms.pl prolog_breakpoints.pl prolog_autoload.pl
     prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
     prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl check_installation.pl
