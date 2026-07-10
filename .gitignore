@@ -156,9 +156,15 @@ ReleaseNotes
 build-ppa-tmp
 scripts/upload
 CMakeUserPresets.json
+tmp
+
+# Packaging
+cde.options
+cde-package
 
 # AI Agents
 .claude
+.mcp.json
 CLAUDE.md
 AGENTS.md
 
