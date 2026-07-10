@@ -22,8 +22,20 @@ The Windows installer (`swipl-*.exe`) produced by the
 ## Verification
 
 Signed files carry an Authenticode signature issued to the SWI-Prolog
-project. Right-click the file in Windows Explorer and choose
-*Properties → Digital Signatures* to inspect it.
+project and a trusted timestamp, so they remain verifiable after the
+signing certificate expires.
+
+On **Windows**, right-click the installer in Explorer and choose
+*Properties → Digital Signatures*, or from a command prompt:
+
+    signtool verify /pa /v swipl-*.x64.exe
+
+On **Linux** or **macOS**, install `osslsigncode` and run:
+
+    osslsigncode verify swipl-*.x64.exe
+
+A valid signature reports SWI-Prolog as the signer, a chain that
+terminates in a public root CA, and a matching message digest.
 
 ## Reporting issues
 
