@@ -1628,6 +1628,25 @@ static const int type_map[8] = { PL_VARIABLE,
 				 -1		/* TAG_REFERENCE */
 			       };
 
+/* PL_get_term_value() reports the coarse Prolog type of a term and
+   fills the appropriate slot of the term_value_t union.  Numeric terms
+   are classified as follows:
+
+     PL_INT64   -- fits in int64_t; val->i is set
+     PL_INTEGER -- integer (bignum) that does not fit int64_t; val->f
+		   holds the float promotion
+     PL_RATIONAL -- non-integer rational; val->f holds the float promotion
+     PL_FLOAT   -- floating point; val->f is set
+
+   Returns 0 with a pending exception when the numeric value cannot be
+   promoted to a float (e.g. huge bignums such as 1<<10000 that overflow
+   double).  Non-numeric terms return PL_ATOM, PL_STRING, PL_TERM,
+   PL_VARIABLE, PL_NIL, PL_BLOB or PL_LIST_PAIR as appropriate.
+
+   This API is deprecated; new code should call the specific PL_get_*
+   accessor and PL_is_* type test needed.
+*/
+
 int /* PL_* type */
 PL_get_term_value(term_t t, term_value_t *val)
 { GET_LD
@@ -1638,9 +1657,27 @@ PL_get_term_value(term_t t, term_value_t *val)
   switch(rval)
   { case PL_VARIABLE:
       break;
-    case PL_INTEGER:
-      get_int64(w, &val->i);		/* TBD: Handle MPZ integers? */
+    case PL_INTEGER:				/* == isRational() */
+    { number n;
+
+      get_number(w, &n);
+      switch( n.type )
+      { case V_INTEGER:
+	{ val->i = n.value.i;
+	  return PL_INT64;
+	}
+	default:
+	{ numtype t0 = n.type;
+
+	  if ( promoteToFloatNumber(&n) )
+	  { val->f = n.value.f;
+	    return t0 == V_MPZ ? PL_INTEGER : PL_RATIONAL;
+	  }
+	  return 0;
+	}
+      }
       break;
+    }
     case PL_FLOAT:
       val->f = valFloat(w);
       break;
