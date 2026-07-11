@@ -105,7 +105,6 @@ in this array.
 
 static double const_nan;
 static double const_inf;
-static double const_neg_inf;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On some machines, notably  FreeBSD  upto   version  3.x,  floating point
@@ -4976,7 +4975,6 @@ initArith(void)
 
   const_nan     = nan15();
   const_inf     = HUGE_VAL;
-  const_neg_inf = -HUGE_VAL;
 
 #ifdef O_BIGNUM
   LD->arith.rat.max_rational_size = (size_t)-1;
