@@ -355,7 +355,6 @@ clean_prolog_flag(prolog_flag *f)
   }
 }
 
-#ifdef O_PLMT
 static prolog_flag *
 copy_prolog_flag(const prolog_flag *f)
 { prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
@@ -379,6 +378,7 @@ copy_prolog_flag(const prolog_flag *f)
 }
 
 
+#ifdef O_PLMT
 static void
 copySymbolPrologFlagTable(table_key_t name, table_value_t *value)
 { atom_t key = (atom_t)name;
@@ -1781,8 +1781,8 @@ PRED_IMPL("pop_prolog_flag", 1, pop_prolog_flag, 0)
 
   PL_LOCK(L_PLFLAG);
   prolog_flag *f = NULL;
-  bool in_local = false;
 #ifdef O_PLMT
+  bool in_local = false;
   if ( LD->prolog_flag.table )
   { f = lookupHTableWP(LD->prolog_flag.table, k);
     in_local = (f != NULL);
