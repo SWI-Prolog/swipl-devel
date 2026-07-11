@@ -41,6 +41,7 @@
 
 test_prolog_flag :-
     run_tests([ prolog_flags,
+                push_prolog_flag,
                 thread_prolog_flags
               ]).
 
@@ -114,6 +115,64 @@ test(preset_bool_to_term, Value+Type == false+term) :-
     flag_value_type(Name, Value, Type).
 
 :- end_tests(prolog_flags).
+
+:- begin_tests(push_prolog_flag).
+
+test(nested, X1+X2+X3+X4 == fail+warning+fail+error) :-
+    set_prolog_flag(unknown, error),
+    push_prolog_flag(unknown, fail),
+    current_prolog_flag(unknown, X1),
+    push_prolog_flag(unknown, warning),
+    current_prolog_flag(unknown, X2),
+    pop_prolog_flag(unknown),
+    current_prolog_flag(unknown, X3),
+    pop_prolog_flag(unknown),
+    current_prolog_flag(unknown, X4).
+test(cleanup_on_exception, Orig+After == false+false) :-
+    set_prolog_flag(occurs_check, false),
+    current_prolog_flag(occurs_check, Orig),
+    catch(setup_call_cleanup(
+              push_prolog_flag(occurs_check, error),
+              throw(boom),
+              pop_prolog_flag(occurs_check)),
+          boom, true),
+    current_prolog_flag(occurs_check, After).
+test(absent_flag_pushed_then_removed) :-
+    gensym(push_test_, Name),
+    \+ current_prolog_flag(Name, _),
+    push_prolog_flag(Name, hello),
+    current_prolog_flag(Name, hello),
+    pop_prolog_flag(Name),
+    \+ current_prolog_flag(Name, _).
+test(absent_flag_nested) :-
+    gensym(push_test_, Name),
+    push_prolog_flag(Name, first),
+    push_prolog_flag(Name, second),
+    current_prolog_flag(Name, second),
+    pop_prolog_flag(Name),
+    current_prolog_flag(Name, first),
+    pop_prolog_flag(Name),
+    \+ current_prolog_flag(Name, _).
+test(pop_without_push, error(existence_error(pushed_flag, never_pushed_flag))) :-
+    pop_prolog_flag(never_pushed_flag).
+test(invalid_value_leaves_stack_unchanged,
+     error(domain_error(unknown, notavalue))) :-
+    set_prolog_flag(unknown, error),
+    push_prolog_flag(unknown, notavalue).
+test(invalid_value_no_stack_effect) :-
+    set_prolog_flag(unknown, error),
+    catch(push_prolog_flag(unknown, notavalue), _, true),
+    catch(pop_prolog_flag(unknown), E, true),
+    assertion(E = error(existence_error(pushed_flag, unknown), _)).
+test(boolean_mask_toggle, V0+V1+V2 == false+true+false) :-
+    set_prolog_flag(occurs_check, false),
+    current_prolog_flag(occurs_check, V0),
+    push_prolog_flag(occurs_check, true),
+    current_prolog_flag(occurs_check, V1),
+    pop_prolog_flag(occurs_check),
+    current_prolog_flag(occurs_check, V2).
+
+:- end_tests(push_prolog_flag).
 
 :- begin_tests(thread_prolog_flags,
                [ condition(current_prolog_flag(threads, true))

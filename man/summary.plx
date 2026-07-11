@@ -519,6 +519,7 @@ suggest predicates from a keyword.
 \predicatesummary{phrase_from_quasi_quotation}{2}{Parse quasi quotation with DCG}
 \predicatesummary{please}{3}{Query/change environment parameters}
 \predicatesummary{plus}{3}{Logical integer addition}
+\predicatesummary{pop_prolog_flag}{1}{Restore a flag saved by push_prolog_flag/2}
 \predicatesummary{portray}{1}{\hook{user} Modify behaviour of print/1}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
 \predicatesummary{predsort}{3}{Sort, using a predicate to determine the order}
@@ -563,6 +564,7 @@ suggest predicates from a keyword.
 \predicatesummary{protocola}{1}{Append log of the user interaction to file}
 \predicatesummary{protocolling}{1}{On what file is user interaction logged}
 \predicatesummary{public}{1}{Declaration that a predicate may be called}
+\predicatesummary{push_prolog_flag}{2}{Save a flag and set a new value}
 \predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
 \predicatesummary{put_assoc}{4}{Add Key-Value to association tree}

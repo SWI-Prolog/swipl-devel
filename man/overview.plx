@@ -2804,6 +2804,43 @@ both for the calling thread and in the global flag table.  See the
         current_prolog_flag/2, print a warning.  This option is used
         for options set using the commandline option \verb$-D<flag>[=<value>]$.
     \end{description}
+
+    \predicate{push_prolog_flag}{2}{:Key, +Value}
+Save the current thread-local value of \arg{Key} and set it to
+\arg{Value}. If \arg{Key} does not exist, it is created (only in the
+calling thread) and the pushed state records its absence. Nestable and
+paired with pop_prolog_flag/1. These predicates have been designed
+with two main use cases in mind.  First of all scoped compilation
+with different flags.  For example, the code below keeps the clause
+as written.  Without locally modifying this flag the \exam{X = 42}
+is normally moved into the head.
+
+\begin{code}
+:- push_prolog_flag(optimise_unify, false).
+p(X) :-
+    X = 42,
+    format('The answer to the ultimate question~n').
+:- pop_prolog_flag(optimise_unify).
+\end{code}
+
+Second, runtime scoping. For example, execute a goal with \jargon{occurs
+checking}:\footnote{Be aware that the ``pop'' happens when \arg{Goal}
+has completed.  Notably it is not immediately executed if \arg{Goal}
+succeeds with a choice point.}
+
+\begin{code}
+call_with_occurs_check(Goal) :-
+    setup_call_cleanup(
+	push_prolog_flag(occurs_check, true),
+	Goal,
+	pop_prolog_flag(occurs_check)).
+\end{code}
+
+    \predicate{pop_prolog_flag}{1}{:Key}
+Restore the state saved by the matching push_prolog_flag/2. If \arg{Key}
+did not exist at the matching push, it is removed again. Raises
+\except{existence_error(pushed_flag, Key)} if no matching push exists
+on the current thread.
 \end{description}
 
 
