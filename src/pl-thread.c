@@ -522,7 +522,9 @@ TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 static TableWW threadTable;		/* name --> reference symbol */
 static int threads_ready = false;	/* Prolog threads available */
 static TableWP queueTable;		/* name --> queue */
-static int will_exec;			/* process will exec soon */
+#ifdef O_ATFORK
+static bool will_exec;			/* process will exec soon */
+#endif
 
 
 		 /*******************************
@@ -964,7 +966,10 @@ Now we use the FD_CLOEXEC flag in Snew();
 
 void
 PL_cleanup_fork(void)
-{ will_exec = true;
+{
+#ifdef O_ATFORK
+  will_exec = true;
+#endif
 #if O_PROFILE
   stopItimer();
 #endif

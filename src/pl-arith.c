@@ -2782,45 +2782,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #endif
 }
 
-#if 0
-/* These tests originate from the days that float errors used
- * to be signalling on many systems.  Nowadays this is no longer
- * the case.  We leave the code in for just-in-case.
- */
-#define AR_UNDEFINED_IF(func, arity, test, r)			\
-	if ( test )						\
-	{ GET_LD						\
-	  if ( LD->arith.f.flags & FLT_UNDEFINED )		\
-	  { r->type = V_FLOAT;					\
-	    r->value.f = const_nan;				\
-	    return true;					\
-	  } else						\
-	  { return PL_error(func, arity, NULL, ERR_AR_UNDEF);	\
-	  }							\
-	}
-#define AR_DIV_ZERO_IF(func, arity, n, d, r)			\
-	if ( d == 0.0 )						\
-	{ GET_LD						\
-	  if ( LD->arith.f.flags & FLT_ZERO_DIV )		\
-	  { r->type = V_FLOAT;					\
-	    r->value.f = signbit(n) == signbit(d)		\
-			? const_inf				\
-			: const_neg_inf;			\
-	    return true;					\
-	  } else						\
-	  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);\
-	  }							\
-	}
-#else
-#define AR_UNDEFINED_IF(func, arity, test, r) (void)0
-#define AR_DIV_ZERO_IF(func, arity, n, d, r)  (void)0
-#endif
-
 static bool
 ar_sqrt(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("sqrt", 1,  n1->value.f < 0, r);
   r->value.f = sqrt(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2832,7 +2797,6 @@ static bool
 ar_asin(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("asin", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = asin(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2844,7 +2808,6 @@ static bool
 ar_acos(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("ascos", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = acos(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2856,7 +2819,6 @@ static bool
 ar_log(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("log", 1, n1->value.f <= 0.0 , r);
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2868,7 +2830,6 @@ static bool
 ar_log10(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("log10", 1, n1->value.f <= 0.0, r);
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
