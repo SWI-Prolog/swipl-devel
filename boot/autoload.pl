@@ -527,14 +527,10 @@ exports(File, Module, Exports) :-
     exports(File, Module, Exports, _Meta, _Public).
 
 exports(File, Module, Exports, Meta, Public) :-
-    (   current_prolog_flag(xref, Old)
-    ->  true
-    ;   Old = false
-    ),
     setup_call_cleanup(
-        set_prolog_flag(xref, true),
+        push_prolog_flag(xref, true),
         snapshot(exports_(File, Module, Exports, Meta, Public)),
-        set_prolog_flag(xref, Old)).
+        pop_prolog_flag(xref)).
 
 exports_(File, Module, Exports, Meta, Public) :-
     State = state(true, _, [], [], []),

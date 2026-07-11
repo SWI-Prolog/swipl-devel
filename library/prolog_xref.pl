@@ -437,14 +437,10 @@ set_xref(Xref) :-
     with_xref(0).
 
 with_xref(Goal) :-
-    current_prolog_flag(xref, Xref),
-    (   Xref == true
-    ->  call(Goal)
-    ;   setup_call_cleanup(
-            set_prolog_flag(xref, true),
-            Goal,
-            set_prolog_flag(xref, Xref))
-    ).
+    setup_call_cleanup(
+        push_prolog_flag(xref, true),
+        Goal,
+        pop_prolog_flag(xref)).
 
 
 %!  set_initial_mode(+Stream, +Options) is det.

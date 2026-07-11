@@ -651,15 +651,14 @@ read_directives(TempModule, Path, Directives, Options) :-
         phrase(read_directives(In, Options, [true]), Directives),
         read_directives_cleanup(In, State)).
 
-read_directives_setup(TempModule, Path, In, state(OldM, OldXref)) :-
+read_directives_setup(TempModule, Path, In, OldM) :-
     prolog_open_source(Path, In),
     '$set_source_module'(OldM, TempModule),
-    current_prolog_flag(xref, OldXref),
-    set_prolog_flag(xref, true).
+    push_prolog_flag(xref, true).
 
-read_directives_cleanup(In, state(OldM, OldXref)) :-
+read_directives_cleanup(In, OldM) :-
     '$set_source_module'(OldM),
-    set_prolog_flag(xref, OldXref),
+    pop_prolog_flag(xref),
     prolog_close_source(In).
 
 read_directives(In, Options, State) -->
