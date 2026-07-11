@@ -16,7 +16,7 @@ main(int argc, char **argv)
   for(n=1; n<argc; n++)
   { if ( n != 1 )
       *e++ = ' ';
-    strcpy(e, argv[n]);
+    snprintf(e, (size_t)(expression + MAXLINE - e), "%s", argv[n]);
     e += strlen(e);
   }
 
