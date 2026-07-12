@@ -80,10 +80,10 @@ target_cmake_binary_directory(BinDir, Config) :-
     atom_concat(Home, '/boot.prc', BootFile),
     exists_file(BootFile),
     file_directory_name(Home, BinDir),
-    (   format(string(Pattern), '~w/src/swipl{,.exe}', [BinDir]),
+    (   format(string(Pattern), '~w/src/swipl{,.exe,.js}', [BinDir]),
         expand_file_name(Pattern, [_Exe])
     ->  Config = ''
-    ;   format(string(Pattern), '~w/src/*/swipl{,.exe}', [BinDir]),
+    ;   format(string(Pattern), '~w/src/*/swipl{,.exe,.js}', [BinDir]),
         expand_file_name(Pattern, [Exe])
     ->  file_directory_name(Exe, ExeDir),
         file_base_name(ExeDir, Config)
