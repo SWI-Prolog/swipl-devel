@@ -383,8 +383,11 @@ restoreStandardStream(DECL_LD int i)
       s = Serror;
       break;
     case SNO_USER_OUTPUT:
+    case SNO_CURRENT_OUTPUT:
       s = Soutput;
       break;
+    case SNO_PROTOCOL:
+      return NULL;
     default:
       assert(0);
       return NULL;
