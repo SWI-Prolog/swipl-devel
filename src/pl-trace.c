@@ -1897,6 +1897,15 @@ increment the top pointer to point above the furthest argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+restoreStandardStreams(void)
+{ if ( PL_thread_self() == 1 && truePrologFlag(PLFLAG_EPILOG) )
+  { restoreStandardStream(SNO_USER_ERROR);
+    restoreStandardStream(SNO_USER_OUTPUT);
+  }
+}
+
+
+static void
 helpInterrupt(void)
 { GET_LD
 
@@ -1955,6 +1964,7 @@ interruptHandler(int sig)
   safe = !LD->critical;
 #endif					/* no async signals; always safe */
 
+  restoreStandardStreams();
   Sreset();
 again:
   if ( safe )
