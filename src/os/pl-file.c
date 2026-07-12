@@ -370,9 +370,7 @@ Note that we  keep reference counts on the stream,  so replacing it is
 safe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define restoreStandardStream(i) LDFUNC(restoreStandardStream, i)
-
-static IOSTREAM *
+IOSTREAM *
 restoreStandardStream(DECL_LD int i)
 { IOSTREAM *s;
 
@@ -384,9 +382,12 @@ restoreStandardStream(DECL_LD int i)
     case SNO_USER_ERROR:
       s = Serror;
       break;
-    default:
+    case SNO_USER_OUTPUT:
       s = Soutput;
       break;
+    default:
+      assert(0);
+      return NULL;
   }
 
   setStandardStream(i, s);
