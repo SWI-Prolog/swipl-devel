@@ -2008,9 +2008,9 @@ that have an I_CONTEXT because we need to reset the context.
 
     bi = PC(ci);
     if ( (rc=compileBody(body, I_DEPART, ci)) != true )
-    { if ( rc <= NOT_CALLABLE )
-      {	resetVars();
-	switch(rc)
+    { if ( rc == MEMORY_OVERFLOW || rc <= NOT_CALLABLE )
+      {	resetVars();		/* reset stack cells before any allocating */
+	switch(rc)		/* call that might GC/stack-shift */
 	{ case NOT_CALLABLE:
 	    rc = PL_error(NULL, 0, NULL, ERR_TYPE,
 			  ATOM_callable, pushWordAsTermRef(body));
@@ -2019,6 +2019,9 @@ that have an I_CONTEXT because we need to reset the context.
 	  case MAX_ARITY_OVERFLOW:
 	    rc = PL_error(NULL, 0, NULL,
 			  ERR_REPRESENTATION, ATOM_max_procedure_arity);
+	    break;
+	  case MEMORY_OVERFLOW:
+	    rc = PL_error(NULL, 0, NULL, ERR_NOMEM);
 	    break;
 	  default:
 	    assert(0);
@@ -2273,10 +2276,55 @@ A ; B, A -> B, A -> B ; C, \+ A
     uninitialised variables ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* The recursive shape of compileBody() is folded into an explicit
+   segmented-stack state machine.  Each recursive call becomes a frame
+   describing (a) the state to restore and (b) the post-processing
+   step to run when the sub-compilation finishes.  This avoids a C
+   stack overflow on deeply nested terms such as left-heavy commas or
+   deep disjunctions.  On stack allocation failure a resource_error
+   exception is raised. */
+
+typedef enum
+{ CB_COMMA_RHS,		/* (A, B): compile B after A */
+  CB_SEMI_A,		/* (A ; B): resume after A */
+  CB_SEMI_B,		/* (A ; B): resume after B */
+  CB_ITE_COND,		/* (A -> B ; C) / (A *-> B ; C): resume after A */
+  CB_ITE_THEN,		/* (A -> B ; C) / (A *-> B ; C): resume after B */
+  CB_ITE_ELSE,		/* (A -> B ; C) / (A *-> B ; C): resume after C */
+  CB_IT_COND,		/* (A -> B) / (A *-> B): resume after A */
+  CB_IT_THEN,		/* (A -> B) / (A *-> B): resume after B */
+  CB_NOT_INNER,		/* (\+ A) / ($ A): resume after A */
+  CB_COLON,		/* (M:G): restore colon_context */
+  CB_ATSIGN		/* (G@M): restore at_context */
+} cb_kind;
+
+typedef struct cb_frame
+{ cb_kind        kind;
+  code           call;		/* 'call' passed to the pending sub-compilation */
+  Word           body;		/* pointer to enclosing control term */
+  Word           a0;		/* dereffed pointer to (A -> B) inside (;) */
+  size_t         var;		/* choice-point variable */
+  size_t         tc_or;		/* patch offset of C_OR / C_IFTHENELSE / ... */
+  size_t         tc_jmp;	/* patch offset of forward C_JMP */
+  VarTable       vsave;
+  VarTable       valt1;
+  VarTable       valt2;
+  cutInfo        cutsave;
+  target_module  tmsave;
+  bool           hard;		/* -> vs *-> */
+  bool           isnot;		/* \+ vs $ */
+} cb_frame;
+
 static boolex_t
 compileBody(DECL_LD Word body, code call, compileInfo *ci)
-{
-right_argument:
+{ segstack   stack;
+  double     sbuf[512];		/* ~4 KB initial in-line chunk */
+  cb_frame   frame;
+  boolex_t   rc;
+
+  initSegStack(&stack, sizeof(cb_frame), sizeof(sbuf), sbuf);
+
+next_body:
   deRef(body);
 
   if ( isTerm(*body) )
@@ -2285,18 +2333,21 @@ right_argument:
 
     if ( ison(fdef, CONTROL_F) )
     { if ( fd == FUNCTOR_comma2 )			/* A , B */
-      { int rv;
-
-	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != true )
-	  return rv;
-	body = argTermP(*body, 1);
-	goto right_argument;
+      { frame.kind = CB_COMMA_RHS;
+	frame.call = call;
+	frame.body = argTermP(*body, 1);
+	if ( !pushSegStack(&stack, frame, cb_frame) )
+	{ rc = MEMORY_OVERFLOW;
+	  goto resume;
+	}
+	body = argTermP(*body, 0);
+	call = I_CALL;
+	goto next_body;
 #if O_COMPILE_OR
       } else if ( fd == FUNCTOR_semicolon2 ||
 		  fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
       { Word a0 = argTermP(*body, 0);
 	VarTable vsave, valt1, valt2;
-	int hard;
 
 	if ( !ci->islocal )
 	{ vsave = mkCopiedVarTable(ci->used_var);
@@ -2309,105 +2360,98 @@ right_argument:
 	  vsave = valt1 = valt2 = NULL;
 
 	deRef(a0);
-	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
-	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
-	{ size_t var;
-	  size_t tc_or, tc_jmp;
-	  int rv;
-	  cutInfo cutsave = ci->cut;
-	  bool fast = false;
+	if ( hasFunctor(*a0, FUNCTOR_ifthen2) ||	/* A  -> B ; C */
+	     hasFunctor(*a0, FUNCTOR_softcut2) )	/* A *-> B ; C */
+	{ bool hard = hasFunctor(*a0, FUNCTOR_ifthen2);
+	  size_t var;
 
 	  if ( !(var=allocChoiceVar(ci)) )
-	    return false;
+	  { rc = false;
+	    goto resume;
+	  }
 
 	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
-	  tc_or = PC(ci);
-	  ci->cut.var = var;		/* Cut locally in the condition */
+
+	  frame.kind    = CB_ITE_COND;
+	  frame.call    = call;
+	  frame.body    = body;
+	  frame.a0      = a0;
+	  frame.var     = var;
+	  frame.tc_or   = PC(ci);
+	  frame.cutsave = ci->cut;
+	  frame.vsave   = vsave;
+	  frame.valt1   = valt1;
+	  frame.valt2   = valt2;
+	  frame.hard    = hard;
+	  if ( !pushSegStack(&stack, frame, cb_frame) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto resume;
+	  }
+
+	  ci->cut.var         = var;	/* Cut locally in the condition */
 	  ci->cut.instruction = hard ? C_LCUT : C_LSCUT;
-	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci)) != true )
-	    return rv;
-	  if ( hard )
-	    fast = try_fast_condition(ci, tc_or);
-	  ci->cut = cutsave;
-	  Output_1(ci, fast ? C_FASTCUT : hard ? C_CUT : C_SOFTCUT, var);
-	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci)) != true )
-	    return rv;
-	  if ( !ci->islocal )
-	    balanceVars(valt1, valt2, ci);
-	  Output_1(ci, C_JMP, (code)0);
-	  tc_jmp = PC(ci);
-	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  if ( !ci->islocal )
-	    copyVarTable(ci->used_var, vsave);
-	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != true )
-	    return rv;
-	  if ( !ci->islocal )
-	    balanceVars(valt2, valt1, ci);
-	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+
+	  body = argTermP(*a0, 0);
+	  call = I_CALL;
+	  goto next_body;
 	} else					/* A ; B */
-	{ size_t tc_or, tc_jmp;
-	  boolex_t rv;
+	{ Output_1(ci, C_OR, (code)0);
 
-	  Output_1(ci, C_OR, (code)0);
-	  tc_or = PC(ci);
-	  if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != true )
-	    return rv;
-	  if ( !ci->islocal )
-	    balanceVars(valt1, valt2, ci);
-	  Output_1(ci, C_JMP, (code)0);
-	  tc_jmp = PC(ci);
-	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  if ( !ci->islocal )
-	    copyVarTable(ci->used_var, vsave);
-	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != true )
-	    return rv;
-	  if ( !ci->islocal )
-	    balanceVars(valt2, valt1, ci);
-	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+	  frame.kind  = CB_SEMI_A;
+	  frame.call  = call;
+	  frame.body  = body;
+	  frame.tc_or = PC(ci);
+	  frame.vsave = vsave;
+	  frame.valt1 = valt1;
+	  frame.valt2 = valt2;
+	  if ( !pushSegStack(&stack, frame, cb_frame) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto resume;
+	  }
+
+	  body = argTermP(*body, 0);
+	  call = I_CALL;
+	  goto next_body;
 	}
-
-	if ( !ci->islocal )
-	{ orVars(valt1, valt2);
-	  copyVarTable(ci->used_var, valt1);
-	}
-
-	succeed;
       } else if ( fd == FUNCTOR_ifthen2 ||		/* A -> B */
 		  fd == FUNCTOR_softcut2 )		/* A *-> B */
-      { size_t var;
-	boolex_t rv;
-	int hard = (fd == FUNCTOR_ifthen2);
-	cutInfo cutsave = ci->cut;
+      { bool hard = (fd == FUNCTOR_ifthen2);
+	size_t var;
 
 	if ( !(var=allocChoiceVar(ci)) )
-	  return false;
+	{ rc = false;
+	  goto resume;
+	}
 
 	Output_1(ci, hard ? C_IFTHEN : C_SOFTIFTHEN, var);
-	ci->cut.var = var;		/* Cut locally in the condition */
-	ci->cut.instruction = C_LCUTIFTHEN;
-	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != true )
-	  return rv;
-	ci->cut = cutsave;
-	if ( hard )
-	  Output_1(ci, C_CUT, var);
-	else
-	  Output_0(ci, C_SCUT);
-	if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != true )
-	  return rv;
-	Output_0(ci, C_END);
 
-	succeed;
+	frame.kind    = CB_IT_COND;
+	frame.call    = call;
+	frame.body    = body;
+	frame.var     = var;
+	frame.cutsave = ci->cut;
+	frame.hard    = hard;
+	if ( !pushSegStack(&stack, frame, cb_frame) )
+	{ rc = MEMORY_OVERFLOW;
+	  goto resume;
+	}
+
+	ci->cut.var         = var;		/* Cut locally in the condition */
+	ci->cut.instruction = C_LCUTIFTHEN;
+
+	body = argTermP(*body, 0);
+	call = I_CALL;
+	goto next_body;
       } else if ( fd == FUNCTOR_not_provable1 ||	/* \+/1 */
 		  fd == FUNCTOR_dollar1 )		/* $/1 */
-      { size_t var;
-	size_t tc_or, tc_det;
+      { bool isnot = (fd == FUNCTOR_not_provable1);
+	size_t var;
 	VarTable vsave;
-	boolex_t rv;
-	cutInfo cutsave = ci->cut;
-	int isnot = (fd == FUNCTOR_not_provable1);
 
 	if ( !(var=allocChoiceVar(ci)) )
-	  return false;
+	{ rc = false;
+	  goto resume;
+	}
 
 	if ( !ci->islocal )
 	  vsave = mkCopiedVarTable(ci->used_var);
@@ -2415,78 +2459,260 @@ right_argument:
 	  vsave = NULL;
 
 	Output_2(ci, isnot ? C_NOT : C_DET, var, (code)0);
-	tc_or = PC(ci);
-	ci->cut.var = var;
+
+	frame.kind    = CB_NOT_INNER;
+	frame.call    = call;
+	frame.var     = var;
+	frame.tc_or   = PC(ci);
+	frame.vsave   = vsave;
+	frame.cutsave = ci->cut;
+	frame.isnot   = isnot;
+	if ( !pushSegStack(&stack, frame, cb_frame) )
+	{ rc = MEMORY_OVERFLOW;
+	  goto resume;
+	}
+
+	ci->cut.var         = var;
 	ci->cut.instruction = C_LCUT;
-	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != true )
-	  return rv;
-	ci->cut = cutsave;
-	if ( isnot )
-	{ Output_1(ci, C_CUT, var);
-	  Output_0(ci, C_FAIL);
-	  tc_det = 0;			/* silence compiler */
-	} else
-	{ Output_1(ci, C_DETTRUE, var);
-	  Output_1(ci, C_JMP, (code)0);
-	  tc_det = PC(ci);
-	}
-	if ( ci->islocal )
-	{ OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	} else if ( isnot )
-	{ size_t tc_jmp;
 
-	  Output_1(ci, C_JMP, (code)0);
-	  tc_jmp = PC(ci);
-	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  if ( balanceVars(vsave, ci->used_var, ci) > 0 )
-	  { /*copyVarTable(ci->used_var, vsave);   see comment above */
-	    OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
-	  } else			/* delete the jmp */
-	  { seekBuffer(&ci->codes, tc_jmp-2, code);
-	    OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  }
-	} else				/* $(Goal) */
-	{ balanceVars(vsave, ci->used_var, ci);
-	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	}
-
-	if ( !isnot )
-	{ Output_0(ci, C_DETFALSE);
-	  OpCode(ci, tc_det-1) = (code)(PC(ci) - tc_det);
-	}
-
-	succeed;
+	body = argTermP(*body, 0);
+	call = I_CALL;
+	goto next_body;
 #endif /* O_COMPILE_OR */
       } else if ( fd == FUNCTOR_colon2 )	/* Module:Goal */
       { target_module tmsave = ci->colon_context;
-	boolex_t rc;
 
 	if ( (rc=getTargetModule(&ci->colon_context,
 				 argTermP(*body, 0), ci)) != true )
-	  return rc;
-	rc = compileBody(argTermP(*body, 1), call, ci);
-	ci->colon_context = tmsave;
+	  goto resume;
 
-	return rc;
+	frame.kind   = CB_COLON;
+	frame.tmsave = tmsave;
+	if ( !pushSegStack(&stack, frame, cb_frame) )
+	{ ci->colon_context = tmsave;
+	  rc = MEMORY_OVERFLOW;
+	  goto resume;
+	}
+
+	body = argTermP(*body, 1);
+	goto next_body;
 #ifdef O_CALL_AT_MODULE
       } else if ( fd == FUNCTOR_at_sign2 )	/* Call@Module */
       { target_module atsave = ci->at_context;
-	boolex_t rc;
 
 	if ( (rc=getTargetModule(&ci->at_context,
 				 argTermP(*body, 1), ci)) != true )
-	  return rc;
-	rc = compileBody(argTermP(*body, 0), call, ci);
-	ci->at_context = atsave;
+	  goto resume;
 
-	return rc;
+	frame.kind   = CB_ATSIGN;
+	frame.tmsave = atsave;
+	if ( !pushSegStack(&stack, frame, cb_frame) )
+	{ ci->at_context = atsave;
+	  rc = MEMORY_OVERFLOW;
+	  goto resume;
+	}
+
+	body = argTermP(*body, 0);
+	goto next_body;
 #endif /*O_CALL_AT_MODULE*/
       }
       assert(0);
     }
   }
 
-  return compileSubClause(body, call, ci);
+  rc = compileSubClause(body, call, ci);
+
+resume:
+  if ( rc != true )
+  { /* Restore contexts saved on outer frames so the caller observes
+       consistent state, mirroring the original recursive unwind. */
+    while( popSegStack(&stack, &frame, cb_frame) )
+    { if ( frame.kind == CB_COLON )
+	ci->colon_context = frame.tmsave;
+#ifdef O_CALL_AT_MODULE
+      else if ( frame.kind == CB_ATSIGN )
+	ci->at_context = frame.tmsave;
+#endif
+    }
+    goto exit;
+  }
+
+  if ( !popSegStack(&stack, &frame, cb_frame) )
+    goto exit;					/* rc is true */
+
+  switch( frame.kind )
+  { case CB_COMMA_RHS:
+      body = frame.body;
+      call = frame.call;
+      goto next_body;
+
+#if O_COMPILE_OR
+    case CB_SEMI_A:				/* (A ; B) after A */
+    { size_t tc_jmp;
+
+      if ( !ci->islocal )
+	balanceVars(frame.valt1, frame.valt2, ci);
+      Output_1(ci, C_JMP, (code)0);
+      tc_jmp = PC(ci);
+      OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+      if ( !ci->islocal )
+	copyVarTable(ci->used_var, frame.vsave);
+
+      frame.kind   = CB_SEMI_B;
+      frame.tc_jmp = tc_jmp;
+      if ( !pushSegStack(&stack, frame, cb_frame) )
+      { rc = MEMORY_OVERFLOW;
+	goto resume;
+      }
+
+      body = argTermP(*frame.body, 1);
+      call = frame.call;
+      goto next_body;
+    }
+
+    case CB_SEMI_B:				/* (A ; B) after B */
+      if ( !ci->islocal )
+	balanceVars(frame.valt2, frame.valt1, ci);
+      OpCode(ci, frame.tc_jmp-1) = (code)(PC(ci) - frame.tc_jmp);
+      if ( !ci->islocal )
+      { orVars(frame.valt1, frame.valt2);
+	copyVarTable(ci->used_var, frame.valt1);
+      }
+      goto resume;
+
+    case CB_ITE_COND:				/* (A -> B ; C) after A */
+    { bool fast = false;
+
+      if ( frame.hard )
+	fast = try_fast_condition(ci, frame.tc_or);
+      ci->cut = frame.cutsave;
+      Output_1(ci, fast ? C_FASTCUT : frame.hard ? C_CUT : C_SOFTCUT,
+	       frame.var);
+
+      frame.kind = CB_ITE_THEN;
+      if ( !pushSegStack(&stack, frame, cb_frame) )
+      { rc = MEMORY_OVERFLOW;
+	goto resume;
+      }
+
+      body = argTermP(*frame.a0, 1);
+      call = frame.call;
+      goto next_body;
+    }
+
+    case CB_ITE_THEN:				/* (A -> B ; C) after B */
+    { size_t tc_jmp;
+
+      if ( !ci->islocal )
+	balanceVars(frame.valt1, frame.valt2, ci);
+      Output_1(ci, C_JMP, (code)0);
+      tc_jmp = PC(ci);
+      OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+      if ( !ci->islocal )
+	copyVarTable(ci->used_var, frame.vsave);
+
+      frame.kind   = CB_ITE_ELSE;
+      frame.tc_jmp = tc_jmp;
+      if ( !pushSegStack(&stack, frame, cb_frame) )
+      { rc = MEMORY_OVERFLOW;
+	goto resume;
+      }
+
+      body = argTermP(*frame.body, 1);
+      call = frame.call;
+      goto next_body;
+    }
+
+    case CB_ITE_ELSE:				/* (A -> B ; C) after C */
+      if ( !ci->islocal )
+	balanceVars(frame.valt2, frame.valt1, ci);
+      OpCode(ci, frame.tc_jmp-1) = (code)(PC(ci) - frame.tc_jmp);
+      if ( !ci->islocal )
+      { orVars(frame.valt1, frame.valt2);
+	copyVarTable(ci->used_var, frame.valt1);
+      }
+      goto resume;
+
+    case CB_IT_COND:				/* (A -> B) after A */
+      ci->cut = frame.cutsave;
+      if ( frame.hard )
+	Output_1(ci, C_CUT, frame.var);
+      else
+	Output_0(ci, C_SCUT);
+
+      frame.kind = CB_IT_THEN;
+      if ( !pushSegStack(&stack, frame, cb_frame) )
+      { rc = MEMORY_OVERFLOW;
+	goto resume;
+      }
+
+      body = argTermP(*frame.body, 1);
+      call = frame.call;
+      goto next_body;
+
+    case CB_IT_THEN:				/* (A -> B) after B */
+      Output_0(ci, C_END);
+      goto resume;
+
+    case CB_NOT_INNER:				/* (\+ A) / ($ A) after A */
+    { size_t tc_det = 0;
+
+      ci->cut = frame.cutsave;
+      if ( frame.isnot )
+      { Output_1(ci, C_CUT, frame.var);
+	Output_0(ci, C_FAIL);
+      } else
+      { Output_1(ci, C_DETTRUE, frame.var);
+	Output_1(ci, C_JMP, (code)0);
+	tc_det = PC(ci);
+      }
+      if ( ci->islocal )
+      { OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+      } else if ( frame.isnot )
+      { size_t tc_jmp;
+
+	Output_1(ci, C_JMP, (code)0);
+	tc_jmp = PC(ci);
+	OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+	if ( balanceVars(frame.vsave, ci->used_var, ci) > 0 )
+	{ /*copyVarTable(ci->used_var, vsave);   see comment above */
+	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+	} else				/* delete the jmp */
+	{ seekBuffer(&ci->codes, tc_jmp-2, code);
+	  OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+	}
+      } else				/* $(Goal) */
+      { balanceVars(frame.vsave, ci->used_var, ci);
+	OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
+      }
+
+      if ( !frame.isnot )
+      { Output_0(ci, C_DETFALSE);
+	OpCode(ci, tc_det-1) = (code)(PC(ci) - tc_det);
+      }
+      goto resume;
+    }
+#endif /*O_COMPILE_OR*/
+
+    case CB_COLON:
+      ci->colon_context = frame.tmsave;
+      goto resume;
+
+#ifdef O_CALL_AT_MODULE
+    case CB_ATSIGN:
+      ci->at_context = frame.tmsave;
+      goto resume;
+#endif
+
+    default:
+      assert(0);
+      rc = false;
+      goto exit;
+  }
+
+exit:
+  clearSegStack(&stack);
+  return rc;
 }
 
 
