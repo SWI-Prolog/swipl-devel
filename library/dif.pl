@@ -145,9 +145,23 @@ extend_ornode(OrNode, List, Vars) :-
 
 dif_c_c_l_aux([],_,List,List).
 dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
-    List = [X=Y|Rest],
-    add_ornode(X,Y,OrNode),
+    normalize_pair(X, Y, X1, Y1),
+    List = [X1=Y1|Rest],
+    add_ornode(X1,Y1,OrNode),
     dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
+
+%!  normalize_pair(+X, +Y, -X1, -Y1)
+%
+%   Put a var-var equation in a canonical  order so that a later X=Y and
+%   Y=X collapse to the same entry. Without this, simplify_ornode/3 (which
+%   sorts by first arg only) would keep both, and cyclic terms can drive
+%   simplify_ornode_/3 into an infinite oscillation.  See issue #919.
+
+normalize_pair(X, Y, X1, Y1) :-
+    (   var(X), var(Y), X @> Y
+    ->  X1 = Y, Y1 = X
+    ;   X1 = X, Y1 = Y
+    ).
 
 %!  add_ornode(+X, +Y, +OrNode)
 %
