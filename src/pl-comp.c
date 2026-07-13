@@ -1615,25 +1615,38 @@ setVars() marks all variables that appear in the argument term.
 #define setVars(t, vt) LDFUNC(setVars, t, vt)
 static void
 setVars(DECL_LD Word t, VarTable vt)
-{ int index;
+{ segstack stack;
+  Word     sbuf[512];
+  int      index;
 
-last_arg:
+  initSegStack(&stack, sizeof(Word), sizeof(sbuf), sbuf);
 
-  deRef(t);
-  if ( (index = isIndexedVarTerm(*t)) >= 0 )
-  { isFirstVarSet(vt, index);
-    return;
+  for(;;)
+  { deRef(t);
+    if ( (index = isIndexedVarTerm(*t)) >= 0 )
+    { isFirstVarSet(vt, index);
+    } else if ( isTerm(*t) )
+    { ssize_t arity = arityTerm(*t);
+
+      if ( arity > 0 )
+      { Word a = argTermP(*t, 0);
+	ssize_t i;
+
+	for(i = arity-1; i >= 1; i--)
+	{ Word ap = a + i;
+	  if ( !pushSegStack(&stack, ap, Word) )
+	    outOfCore();
+	}
+	t = a;
+	continue;
+      }
+    }
+
+    if ( !popSegStack(&stack, &t, Word) )
+      break;
   }
 
-  if ( isTerm(*t) )
-  { ssize_t arity;
-
-    arity = arityTerm(*t);
-
-    for(t = argTermP(*t, 0); --arity > 0; t++)
-      setVars(t, vt);
-    goto last_arg;
-  }
+  clearSegStack(&stack);
 }
 
 
