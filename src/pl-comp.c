@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2024, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1985-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -850,12 +850,52 @@ in_branch(const branch_var *from, const branch_var *to, const Word v)
 #define analyseVariables2(head, nvars, argn, ci, depth, control) \
 	LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
 
+#if O_TIGHT_CSTACK
+#define CYCLE_CHECK_AT 1000
+#else
+#define CYCLE_CHECK_AT 10000
+#endif
+
+/* Iterative variant: the shape of analyseVariables2() is folded into an
+   explicit segstack state machine to avoid C-stack overflow on deeply
+   nested terms (typically left-heavy commas or disjunctions).  Each
+   descent pushes an av_frame carrying the state to resume with when the
+   sub-term is finished.  On segstack allocation failure the outer
+   analyse_variables() layer converts MEMORY_OVERFLOW into an ERR_NOMEM
+   resource_error. */
+
+typedef enum
+{ AV_ARG_LOOP,		/* general N-arg descent (default term) */
+  AV_SUBCLAUSE_LOOP,	/* islocal && !subclausearg && !CONTROL_F */
+  AV_SEMI_AFTER_LEFT,	/* (A;B) after A: middle-work then B */
+  AV_SEMI_AFTER_RIGHT,	/* (A;B) after B: branch-var analysis */
+  AV_NOT_AFTER		/* (\+ A) after A: singleton marking */
+} av_kind;
+
+typedef struct av_frame
+{ av_kind    kind;
+  Word       head_next;		/* &arg[i] for the next iteration */
+  ssize_t    argn_next;		/* argn to pass for the next iteration */
+  size_t     remaining;		/* args still to process (incl. current) */
+  int	     control;		/* control flag to pass down */
+  int	     depth_before_entry;/* depth to restore on final pop */
+  Functor    f;			/* enclosing term (for SEMI/NOT) */
+  Buffer     obv;		/* previous ci->branch_vars (SEMI/NOT) */
+  ssize_t    start_vars;	/* entries when frame was pushed (SEMI/NOT) */
+  ssize_t    at_branch_vars;	/* entries after left branch (SEMI only) */
+} av_frame;
+
 static ssize_t
 analyseVariables2(DECL_LD Word head, ssize_t nvars, ssize_t argn,
 		  CompileInfo ci, int depth, int control)
-{
-right_recursion:
+{ segstack  stack;
+  double    sbuf[512];
+  av_frame  frame;
+  av_frame *top;
 
+  initSegStack(&stack, sizeof(av_frame), sizeof(sbuf), sbuf);
+
+next_head:
   deRef(head);
 
   if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
@@ -867,8 +907,8 @@ right_recursion:
     } else
     { if ( nvars >= MAX_VARIABLES )
       { LD->comp.filledVars = ci->arity+nvars;
-	resetVars();
-	return AVARS_MAX;
+	nvars = AVARS_MAX;
+	goto error_unwind;
       }
 
       index = ci->arity + nvars++;
@@ -884,7 +924,7 @@ right_recursion:
     if ( ci->branch_vars )
       pushBranchVar(ci, vd);
 
-    return nvars;
+    goto resume;
   }
 
   if ( isVarInfo(*head) )
@@ -910,7 +950,7 @@ right_recursion:
       }
     }
 
-    return nvars;
+    goto resume;
   }
 
   if ( isTerm(*head) )
@@ -918,21 +958,14 @@ right_recursion:
     FunctorDef fd = valueFunctor(f->definition);
     ssize_t rc;
 
-#if O_TIGHT_CSTACK
-#define CYCLE_CHECK_AT 1000
-#else
-#define CYCLE_CHECK_AT 10000
-#endif
-
     if ( ++depth == CYCLE_CHECK_AT && (rc=is_acyclic(head)) != true )
     { LD->comp.filledVars = ci->arity+nvars;
-      resetVars();
-
-      return rc == false ? AVARS_CYCLIC : rc;
+      nvars = rc == false ? AVARS_CYCLIC : rc;
+      goto error_unwind;
     }
     if ( (++ci->progress%32768) == 0 && is_signalled() && !LD->critical )
-    { resetVars();
-      return CHECK_INTERRUPT;
+    { nvars = CHECK_INTERRUPT;
+      goto error_unwind;
     }
 
     if ( ci->islocal )
@@ -942,19 +975,27 @@ right_recursion:
 		       functorName(word2functor(f->definition))));
 	ci->argvars++;
 
-	return nvars;
+	depth--;			/* term done, no args processed */
+	goto resume;
       } else if ( isoff(fd, CONTROL_F) )
-      { size_t ar = fd->arity;
+      { if ( fd->arity == 0 )
+	{ depth--;
+	  goto resume;
+	}
 
 	ci->subclausearg = true;
-	for(head = f->arguments, argn = ci->arity; ar-- > 0; head++, argn++)
-	{ nvars = analyseVariables2(head, nvars, argn, ci, depth, false);
-	  if ( nvars < 0 )
-	    break;			/* error */
+	frame.kind		 = AV_SUBCLAUSE_LOOP;
+	frame.head_next		 = &f->arguments[0];
+	frame.argn_next		 = ci->arity;
+	frame.remaining		 = fd->arity;
+	frame.control		 = false;
+	frame.depth_before_entry = depth - 1;
+	if ( !pushSegStack(&stack, frame, av_frame) )
+	{ LD->comp.filledVars = ci->arity+nvars;
+	  nvars = MEMORY_OVERFLOW;
+	  goto error_unwind;
 	}
-	ci->subclausearg = false;
-
-	return nvars;
+	goto resume;
       } /* ci->local && control functor --> fall through to normal case */
     }
 
@@ -965,7 +1006,7 @@ right_recursion:
 
     if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
     { Buffer obv;
-      ssize_t start_vars, at_branch_vars, at_end_vars;
+      ssize_t start_vars;
 
       ci->head_unify = false;
 
@@ -978,22 +1019,143 @@ right_recursion:
 
       DEBUG(MSG_COMP_VARS, Sdprintf("Branch; start_vars = %d\n", start_vars));
 
-      nvars = analyseVariables2(&f->arguments[0], nvars, argn,
-				ci, depth, control);
-      if ( nvars < 0 )
-	goto error;
+      frame.kind		 = AV_SEMI_AFTER_LEFT;
+      frame.f			 = f;
+      frame.obv			 = obv;
+      frame.start_vars		 = start_vars;
+      frame.argn_next		 = argn;
+      frame.control		 = control;
+      frame.depth_before_entry = depth - 1;
+      if ( !pushSegStack(&stack, frame, av_frame) )
+      { LD->comp.filledVars = ci->arity+nvars;
+	nvars = MEMORY_OVERFLOW;
+	goto error_unwind;
+      }
 
-      at_branch_vars = entriesBuffer(ci->branch_vars, branch_var);
+      head = &f->arguments[0];
+      goto next_head;
+    }
 
-      if ( at_branch_vars > start_vars )
+    /* check \+ Goal for singletons on Goal.  These are variables introduced
+       inside the goal and only used once.
+    */
+
+    if ( f->definition == FUNCTOR_not_provable1 && control && !ci->islocal)
+    { Buffer obv;
+      ssize_t start_vars;
+
+      ci->head_unify = false;
+
+      if ( (obv=ci->branch_vars) == NULL )
+      { initBuffer(&ci->branch_varbuf);
+	ci->branch_vars = (Buffer)&ci->branch_varbuf;
+	start_vars = 0;
+      } else
+	start_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      frame.kind		 = AV_NOT_AFTER;
+      frame.f			 = f;
+      frame.obv			 = obv;
+      frame.start_vars		 = start_vars;
+      frame.argn_next		 = argn;
+      frame.control		 = control;
+      frame.depth_before_entry = depth - 1;
+      if ( !pushSegStack(&stack, frame, av_frame) )
+      { LD->comp.filledVars = ci->arity+nvars;
+	nvars = MEMORY_OVERFLOW;
+	goto error_unwind;
+      }
+
+      head = &f->arguments[0];
+      goto next_head;
+    }
+
+    /* Find leading unifications against head arguments */
+
+    if ( control && ci->head_unify )
+    { if ( f->definition == FUNCTOR_equals2 )
+	annotate_unification(f, ci);
+      else if ( f->definition != FUNCTOR_comma2 )
+	ci->head_unify = false;
+    }
+
+    /* The default term processing case */
+
+    if ( fd->arity > 0 )
+    { int	new_control  = control;
+      ssize_t	next_argn    = ( argn < 0 ? 0 : ci->arity );
+
+      if ( new_control && isoff(fd, CONTROL_F) )
+	new_control = false;
+
+      frame.kind		 = AV_ARG_LOOP;
+      frame.head_next		 = &f->arguments[0];
+      frame.argn_next		 = next_argn;
+      frame.remaining		 = fd->arity;
+      frame.control		 = new_control;
+      frame.depth_before_entry = depth - 1;
+      if ( !pushSegStack(&stack, frame, av_frame) )
+      { LD->comp.filledVars = ci->arity+nvars;
+	nvars = MEMORY_OVERFLOW;
+	goto error_unwind;
+      }
+      goto resume;
+    }
+
+    depth--;				/* arity 0: term done */
+  }
+
+  if ( control && *head != ATOM_true )	  /* e.g. atomic goals */
+    ci->head_unify = false;
+
+  if ( ci->subclausearg && (isString(*head) || isAttVar(*head)) )
+  { DEBUG(MSG_COMP_ARGVAR,
+	  Sdprintf("argvar for %s\n", isString(*head) ? "string" : "attvar"));
+    ci->argvars++;
+  }
+  /*FALLTHROUGH*/
+
+resume:
+  if ( nvars < 0 )
+    goto error_unwind;
+
+  top = topOfSegStack(&stack);
+  if ( top == NULL )
+    goto exit;
+
+  switch( top->kind )
+  { case AV_ARG_LOOP:
+    case AV_SUBCLAUSE_LOOP:
+      if ( top->remaining > 0 )
+      { head    = top->head_next;
+	argn    = top->argn_next;
+	control = top->control;
+	depth   = top->depth_before_entry + 1;
+	top->head_next++;
+	top->argn_next++;
+	top->remaining--;
+	goto next_head;
+      } else
+      { depth = top->depth_before_entry;
+	if ( top->kind == AV_SUBCLAUSE_LOOP )
+	  ci->subclausearg = false;
+	popTopOfSegStack(&stack);
+	goto resume;
+      }
+
+    case AV_SEMI_AFTER_LEFT:
+    { Functor f		     = top->f;
+      ssize_t at_branch_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      if ( at_branch_vars > top->start_vars )
       { branch_var *bv = baseBuffer(ci->branch_vars, branch_var);
 	branch_var *bve;
 
 	DEBUG(MSG_COMP_VARS, Sdprintf("Reset %d vars after left branch\n",
-				      at_branch_vars - start_vars));
+				      at_branch_vars - top->start_vars));
 
 	bve = bv + at_branch_vars;
-	for(bv += start_vars; bv < bve; bv++)
+	for(bv += top->start_vars; bv < bve; bv++)
 	{ bv->saved_times = bv->vdef->times;
 	  bv->saved_flags = bv->vdef->flags;
 	  DEBUG(MSG_COMP_VARS, Sdprintf("times=%d, flags = 0x%x\n",
@@ -1005,22 +1167,29 @@ right_recursion:
       { DEBUG(MSG_COMP_VARS, Sdprintf("No vars in left branch\n"));
       }
 
-      nvars = analyseVariables2(&f->arguments[1], nvars, argn,
-				ci, depth, control);
-      if ( nvars < 0 )
-	goto error;
+      top->kind	         = AV_SEMI_AFTER_RIGHT;
+      top->at_branch_vars = at_branch_vars;
 
-      at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
+      head    = &f->arguments[1];
+      argn    = top->argn_next;
+      control = top->control;
+      depth   = top->depth_before_entry + 1;
+      goto next_head;
+    }
 
-      if ( at_end_vars > start_vars )
+    case AV_SEMI_AFTER_RIGHT:
+    { ssize_t at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
+      Buffer  obv         = top->obv;
+
+      if ( at_end_vars > top->start_vars )
       { branch_var *bv0 = baseBuffer(ci->branch_vars, branch_var);
 	branch_var *bv, *bve;
 
 	DEBUG(MSG_COMP_VARS, Sdprintf("Analyse %d vars\n",
-				      at_end_vars - start_vars));
+				      at_end_vars - top->start_vars));
 
 	bve = bv0 + at_end_vars;
-	for(bv = bv0+start_vars; bv < bve; bv++)
+	for(bv = bv0+top->start_vars; bv < bve; bv++)
 	{ VarDef vd = bv->vdef;
 
 	  DEBUG(MSG_COMP_VARS,
@@ -1033,7 +1202,8 @@ right_recursion:
 	  { if ( bv->saved_times > 0 && vd->times == 0 )
 	      set(vd, VD_MAYBE_UNBALANCED); /* in left, not in right */
 	    if ( vd->times > 0 &&
-		 !in_branch(bv0+start_vars, bv0+at_branch_vars, vd->address) )
+		 !in_branch(bv0+top->start_vars,
+			    bv0+top->at_branch_vars, vd->address) )
 	      set(vd, VD_MAYBE_UNBALANCED); /* in right, not in left */
 	  }
 	  if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
@@ -1054,44 +1224,26 @@ right_recursion:
 	}
       }
 
-    error:
       if ( obv == NULL )
       { discardBuffer(ci->branch_vars);
 	ci->branch_vars = NULL;
       }
 
-      return nvars;
+      depth = top->depth_before_entry;
+      popTopOfSegStack(&stack);
+      goto resume;
     }
 
-    /* check \+ Goal for singletons on Goal.  These are variables introduced
-       inside the goal and only used once.
-    */
+    case AV_NOT_AFTER:
+    { ssize_t at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
+      Buffer  obv         = top->obv;
 
-    if ( f->definition == FUNCTOR_not_provable1 && control && !ci->islocal)
-    { Buffer obv;
-      ssize_t start_vars, at_end_vars;
-
-      ci->head_unify = false;
-
-      if ( (obv=ci->branch_vars) == NULL )
-      { initBuffer(&ci->branch_varbuf);
-	ci->branch_vars = (Buffer)&ci->branch_varbuf;
-	start_vars = 0;
-      } else
-	start_vars = entriesBuffer(ci->branch_vars, branch_var);
-
-      nvars = analyseVariables2(&f->arguments[0], nvars, argn,
-				ci, depth, control);
-      if ( nvars < 0 )
-	goto error_in_not;
-
-      at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
-      if ( at_end_vars > start_vars )
+      if ( at_end_vars > top->start_vars )
       { branch_var *bv = baseBuffer(ci->branch_vars, branch_var);
 	branch_var *bve;
 
 	bve = bv + at_end_vars;
-	for(bv += start_vars; bv < bve; bv++)
+	for(bv += top->start_vars; bv < bve; bv++)
 	{ VarDef vd = bv->vdef;
 
 	  if ( vd->times == 1 )
@@ -1101,56 +1253,51 @@ right_recursion:
 	}
       }
 
-    error_in_not:
       if ( obv == NULL )
       { discardBuffer(ci->branch_vars);
 	ci->branch_vars = NULL;
       } else
-      { seekBuffer(ci->branch_vars, start_vars, branch_var);
+      { seekBuffer(ci->branch_vars, top->start_vars, branch_var);
       }
 
-      return nvars;
-    }
-
-    /* Find leading unifications against head arguments */
-
-    if ( control && ci->head_unify )
-    { if ( f->definition == FUNCTOR_equals2 )
-	annotate_unification(f, ci);
-      else if ( f->definition != FUNCTOR_comma2 )
-	ci->head_unify = false;
-    }
-
-    /* The default term processing case */
-
-    if ( fd->arity > 0 )
-    { size_t ar = fd->arity;
-
-      head = f->arguments;
-      argn = ( argn < 0 ? 0 : ci->arity );
-
-      if ( control && isoff(fd, CONTROL_F) )
-	control = false;
-
-      for(; --ar > 0; head++, argn++)
-      { nvars = analyseVariables2(head, nvars, argn, ci, depth, control);
-	if ( nvars < 0 )
-	  return nvars;
-      }
-
-      goto right_recursion;
+      depth = top->depth_before_entry;
+      popTopOfSegStack(&stack);
+      goto resume;
     }
   }
 
-  if ( control && *head != ATOM_true )	  /* e.g. atomic goals */
-    ci->head_unify = false;
+  assert(0);				/* unreachable */
 
-  if ( ci->subclausearg && (isString(*head) || isAttVar(*head)) )
-  { DEBUG(MSG_COMP_ARGVAR,
-	  Sdprintf("argvar for %s\n", isString(*head) ? "string" : "attvar"));
-    ci->argvars++;
+error_unwind:
+  resetVars();				/* undoes setVarInfo() on stack cells */
+  while( (top = topOfSegStack(&stack)) != NULL )
+  { switch( top->kind )
+    { case AV_SUBCLAUSE_LOOP:
+	ci->subclausearg = false;
+	break;
+      case AV_SEMI_AFTER_LEFT:
+      case AV_SEMI_AFTER_RIGHT:
+	if ( top->obv == NULL )
+	{ discardBuffer(ci->branch_vars);
+	  ci->branch_vars = NULL;
+	}
+	break;
+      case AV_NOT_AFTER:
+	if ( top->obv == NULL )
+	{ discardBuffer(ci->branch_vars);
+	  ci->branch_vars = NULL;
+	} else
+	{ seekBuffer(ci->branch_vars, top->start_vars, branch_var);
+	}
+	break;
+      case AV_ARG_LOOP:
+	break;
+    }
+    popTopOfSegStack(&stack);
   }
 
+exit:
+  clearSegStack(&stack);
   return nvars;
 }
 
