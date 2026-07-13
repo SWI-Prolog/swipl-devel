@@ -36,7 +36,7 @@
 :- module(dif,
           [ dif/2                               % +Term1, +Term2
           ]).
-:- autoload(library(lists),[append/3, reverse/2, member/2]).
+:- autoload(library(lists),[append/3, reverse/2]).
 
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -105,63 +105,85 @@ dif_c_c(X,Y,OrNode) :-
     (   dif_unifiable(X, Y, Unifier)
     ->  (   Unifier == []
         ->  or_one_fail(OrNode)
-        ;   dif_c_c_l(Unifier,OrNode, U),
-            subunifier(U, OrNode)
+        ;   dif_c_c_l(Unifier, OrNode)
         )
     ;   or_succeed(OrNode)
     ).
 
-subunifier([], _).
-subunifier([X=Y|T], OrNode) :-
-    dif_c_c(X, Y, OrNode),
-    subunifier(T, OrNode).
-
 
 %!  dif_c_c_l(+Unifier, +OrNode)
 %
-%   Extend OrNode with new elements from the   unifier.  Note that it is
-%   possible that a unification against the   same variable appears as a
-%   result of how unifiable acts on  sharing subterms. This is prevented
-%   by simplify_ornode/3.
+%   Combine the incoming unifier with the OrNode's current pending set,
+%   then recompute the most-general unifier for the whole using
+%   unifiable/3 over the accumulated left- and right-hand-side lists.
+%   That gives canonical propagation and avoids the infinite oscillation
+%   pair-wise simplification hits on cyclic terms.
 %
-%   @see test 14 in tests/attvar/test_dif.pl.
+%   Fails if the recomputed set is empty — that means all pending
+%   equations are trivially satisfied and thus the original dif/2 terms
+%   are equal, so dif/2 must fail. Calls or_succeed/1 when unifiable/3
+%   itself fails: the pending equations can never all hold, so the two
+%   terms are definitely unequal and dif/2 is satisfied.
 
-dif_c_c_l(Unifier, OrNode, U) :-
-    extend_ornode(OrNode, List, Tail),
-    dif_c_c_l_aux(Unifier, OrNode, List0, Tail),
-    (   simplify_ornode(List0, List, U)
+dif_c_c_l(_Unifier, OrNode) :-
+    nonvar(OrNode),                          % dead (or_succeed'd) node
+    !.
+dif_c_c_l(Unifier, OrNode) :-
+    (   get_attr(OrNode, dif, node(OldPairs))
     ->  true
-    ;   List = List0,
-        or_succeed(OrNode),
-        U = []
-    ).
-
-extend_ornode(OrNode, List, Vars) :-
-    (   get_attr(OrNode, dif, node(Vars))
-    ->  true
-    ;   Vars = []
+    ;   OldPairs = []
     ),
-    put_attr(OrNode,dif,node(List)).
-
-dif_c_c_l_aux([],_,List,List).
-dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
-    normalize_pair(X, Y, X1, Y1),
-    List = [X1=Y1|Rest],
-    add_ornode(X1,Y1,OrNode),
-    dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
-
-%!  normalize_pair(+X, +Y, -X1, -Y1)
-%
-%   Put a var-var equation in a canonical  order so that a later X=Y and
-%   Y=X collapse to the same entry. Without this, simplify_ornode/3 (which
-%   sorts by first arg only) would keep both, and cyclic terms can drive
-%   simplify_ornode_/3 into an infinite oscillation.  See issue #919.
-
-normalize_pair(X, Y, X1, Y1) :-
-    (   var(X), var(Y), X @> Y
-    ->  X1 = Y, Y1 = X
-    ;   X1 = X, Y1 = Y
+    append(Unifier, OldPairs, All),
+    (   All == []
+    ->  true                                 % nothing pending
+    ;   eqs_lefts_rights(All, Xs, Ys),
+        (   dif_unifiable(Xs, Ys, NewPairs)
+        ->  NewPairs \== [],                 % [] ⇒ all satisfied ⇒ fail
+            remove_ornode_from_pairs(OldPairs, OrNode),
+            add_ornode_pairs(NewPairs, OrNode),
+            put_attr(OrNode, dif, node(NewPairs))
+        ;   or_succeed(OrNode)
+        )
     ).
+
+remove_ornode_from_pairs([], _).
+remove_ornode_from_pairs([X=Y|T], OrNode) :-
+    (   var(X) -> remove_ornode_v1(X, OrNode) ; true ),
+    (   var(Y) -> remove_ornode_v2(Y, OrNode) ; true ),
+    remove_ornode_from_pairs(T, OrNode).
+
+remove_ornode_v1(X, OrNode) :-
+    (   get_attr(X, dif, vardif(V1, V2))
+    ->  filter_out_ornode(V1, OrNode, NV1),
+        (   NV1 == [], V2 == []
+        ->  del_attr(X, dif)
+        ;   put_attr(X, dif, vardif(NV1, V2))
+        )
+    ;   true
+    ).
+
+remove_ornode_v2(Y, OrNode) :-
+    (   get_attr(Y, dif, vardif(V1, V2))
+    ->  filter_out_ornode(V2, OrNode, NV2),
+        (   V1 == [], NV2 == []
+        ->  del_attr(Y, dif)
+        ;   put_attr(Y, dif, vardif(V1, NV2))
+        )
+    ;   true
+    ).
+
+filter_out_ornode([], _, []).
+filter_out_ornode([N-Y|T], OrNode, L) :-
+    (   N == OrNode
+    ->  filter_out_ornode(T, OrNode, L)
+    ;   L = [N-Y|LT],
+        filter_out_ornode(T, OrNode, LT)
+    ).
+
+add_ornode_pairs([], _).
+add_ornode_pairs([X=Y|T], OrNode) :-
+    add_ornode(X, Y, OrNode),
+    add_ornode_pairs(T, OrNode).
 
 %!  add_ornode(+X, +Y, +OrNode)
 %
@@ -188,148 +210,44 @@ add_ornode_var2(X,Y,OrNode) :-
     ;   put_attr(Y,dif,vardif([],[OrNode-X]))
     ).
 
-%!  simplify_ornode(+OrNode) is semidet.
-%
-%   Simplify the possible unifications left on the original dif/2 terms.
-%   There are two reasons for simplification. First   of all, due to the
-%   way unifiable works we may end up with variables in the unifier that
-%   do not refer to the original terms,   but  to variables in subterms,
-%   e.g. `[V1 = f(a, V2), V2 = b]`.   As a result of subsequent unifying
-%   variables, the unifier may end up   having  multiple entries for the
-%   same variable, possibly having different values, e.g.,  `[X = a, X =
-%   b]`.  As  these  can  never  be  satified  both  we  have  prove  of
-%   inequality.
-%
-%   Finally, we remove elements from the list that have become equal. If
-%   the OrNode is empty, the original terms   are equal and thus we must
-%   fail.
-%
-%   @tbd The simplification is complicated. Another approach would be to
-%   turn `[X1=Y1, X2=Y2, ...]` into  `[X1,X2,...]` and `[Y1,Y2,...]` and
-%   call  unifiable/3  on  these  lists  to    either   end  up  with  a
-%   contradiction (satisfied) or a  new  unifier.   This  is  a stronger
-%   propagation. Seems not so easy though.  Both pending constraints and
-%   reconnecting to the proper variables need attention.
-
-simplify_ornode(OrNode) :-
-    (   get_attr(OrNode, dif, node(Pairs0))
-    ->  simplify_ornode(Pairs0, Pairs, U),
-	(   Pairs == [],
-	    U == []
-	->  fail
-        ;   put_attr(OrNode, dif, node(Pairs)),
-            subunifier(U, OrNode)
-	)
-    ;   true
-    ).
-
-simplify_ornode(List0, List, U) :-
-    sort(1, @=<, List0, Sorted),
-    simplify_ornode_(Sorted, List, U).
-
-simplify_ornode_([], List, U) =>
-    List = [],
-    U = [].
-simplify_ornode_([V1=V2|T], List, U), V1 == V2 =>
-    simplify_ornode_(T, List, U).
-simplify_ornode_([V1=Val1,V2=Val2|T], List, U), var(V1), V1 == V2 =>
-    (   ?=(Val1, Val2)
-    ->  Val1 == Val2,
-        simplify_ornode_([V1=Val2|T], List, U)
-    ;   U = [Val1=Val2|UT],
-        simplify_ornode_([V2=Val2|T], List, UT)
-    ).
-simplify_ornode_([H|T], List, U) =>
-    List = [H|Rest],
-    simplify_ornode_(T, Rest, U).
-
-
 %!  attr_unify_hook(+VarDif, +Other)
 %
-%   If two dif/2 variables are unified  we   must  join the two vardif/2
-%   terms. To do so, we filter the vardif terms for the ones involved in
-%   this unification. Those that  are  represent   OrNodes  that  have a
-%   unification satisfied. For the rest we  remove the unifications with
-%   _self_, append them and use this as new vardif term.
-%
-%   On unification with a value, we recursively call dif_c_c/3 using the
-%   existing OrNodes.
+%   Called after the attributed variable has been unified with Other.
+%   Collects every OrNode this variable (and, for a var-var unification,
+%   Other) is involved in and recomputes each one's MGU. The rebuild
+%   inside dif_c_c_l/2 keeps the OrNode's pending list, this variable's
+%   vardif and Other's vardif consistent — the current bindings show
+%   through variable dereferencing when eqs_lefts_rights/3 walks the
+%   pending list.
 
-attr_unify_hook(vardif(V1,V2),Other) :-
-    (   get_attr(Other, dif, vardif(OV1,OV2))
-    ->  (   (   or_nodes_completed(V1)
-	    ;   or_nodes_completed(V2)
-	    )
-	->  true
-	;   reverse_lookups(V1, Other, OrNodes1, NV1),
-	    or_one_fails(OrNodes1),
-	    reverse_lookups(OV1, Other, OrNodes2, NOV1),
-	    or_one_fails(OrNodes2),
-	    remove_obsolete(V2, Other, NV2),
-	    remove_obsolete(OV2, Other, NOV2),
-	    append(NV1, NOV1, CV1),
-	    append(NV2, NOV2, CV2),
-	    (   CV1 == [], CV2 == []
-	    ->  del_attr(Other, dif)
-	    ;   put_attr(Other, dif, vardif(CV1,CV2))
-	    )
-        )
-    ;   var(Other)			% unrelated variable
-    ->  put_attr(Other, dif, vardif(V1,V2))
-    ;   verify_compounds(V1, Other),    % concrete value
-        verify_compounds(V2, Other)
-    ).
-
-%!  or_nodes_completed(+List) is semidet.
-%
-%   Unification  may  have  made  some  of  the  or  nodes  internally
-%   inconsistent.  This  code checks  for that and  makes the  or node
-%   succeed if this is the case.
-
-or_nodes_completed(List) :-
-    member(Or-_Value, List),
-    get_attr(Or, dif, node(Unifiers0)),
-    copy_term_nat(Unifiers0, Unifiers),
-    \+ unify_list(Unifiers),
-    !,
-    or_succeed(Or).
-
-unify_list([]).
-unify_list([A=A|T]) :-
-    unify_list(T).
-
-
-remove_obsolete([], _, []).
-remove_obsolete([N-Y|T], X, L) :-
-    (   Y==X
-    ->  remove_obsolete(T, X, L)
-    ;   L=[N-Y|RT],
-        remove_obsolete(T, X, RT)
-    ).
-
-reverse_lookups([],_,[],[]).
-reverse_lookups([N-X|NXs],Value,Nodes,Rest) :-
-    (   X == Value
-    ->  Nodes = [N|RNodes],
-        Rest = RRest
-    ;   Nodes = RNodes,
-        Rest = [N-X|RRest]
+attr_unify_hook(vardif(V1, V2), Other) :-
+    live_ornodes(V1, V2, MyOrNodes),
+    (   var(Other),
+        get_attr(Other, dif, vardif(OV1, OV2))
+    ->  live_ornodes(OV1, OV2, TheirOrNodes),
+        append(MyOrNodes, TheirOrNodes, OrNodes0),
+        sort(OrNodes0, OrNodes)              % dedup by identity
+    ;   OrNodes = MyOrNodes
     ),
-    reverse_lookups(NXs,Value,RNodes,RRest).
+    recompute_ornodes(OrNodes).
 
-%!  verify_compounds(+Nodes, +Value)
-%
-%   Unification to a concrete Value (no variable)
+live_ornodes(V1, V2, OrNodes) :-
+    live_ornodes_(V1, L1, T1),
+    live_ornodes_(V2, T1, []),
+    OrNodes = L1.
 
-verify_compounds([],_).
-verify_compounds([OrNode-Y|Rest],X) :-
-    (   var(Y)
-    ->  true
-    ;   OrNode == (-)
-    ->  true
-    ;   dif_c_c(X,Y,OrNode)
+live_ornodes_([], T, T).
+live_ornodes_([O-_|R], L, T) :-
+    (   var(O)
+    ->  L = [O|L1]
+    ;   L = L1
     ),
-    verify_compounds(Rest,X).
+    live_ornodes_(R, L1, T).
+
+recompute_ornodes([]).
+recompute_ornodes([O|T]) :-
+    or_one_fail(O),
+    recompute_ornodes(T).
 
 %!  or_succeed(+OrNode) is det.
 %
@@ -376,15 +294,11 @@ filter_dead_ors([Or-Y|Rest],List) :-
 
 %!  or_one_fail(+OrNode) is semidet.
 %
-%   Some unification related to OrNode succeeded.
+%   Recompute the MGU for OrNode's pending set without adding any new
+%   equations. Fails when the set becomes empty (dif/2 fails).
 
 or_one_fail(OrNode) :-
-    simplify_ornode(OrNode).
-
-or_one_fails([]).
-or_one_fails([N|Ns]) :-
-    or_one_fail(N),
-    or_one_fails(Ns).
+    dif_c_c_l([], OrNode).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

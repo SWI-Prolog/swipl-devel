@@ -150,12 +150,13 @@ test(issue919, [sto(rational_trees)]) :-
 	dif(A, B), A=[A|C], B=[D|E], D=[B],
 	attvar(C), attvar(E).
 % See https://github.com/SWI-Prolog/issues/issues/113#issue-1234908231
-test(cyclic, blocked("Cyclic term")) :-
+test(cyclic, [sto(rational_trees)]) :-
 	dif(A, B),
 	C=[D|D],
 	A=[D|E],
 	B=[C|D],
-	D=[E|E].
+	D=[E|E],
+	attvar(E).
 test(issue122, Vars == []) :-
     A=x(a,C), B=x(D,A), C = x(_,_),
     call_residue_vars(( dif(A,B),
