@@ -2981,14 +2981,51 @@ is no need as they are  held  by   the  term  anyway). For `big' objects
 (strings and compounds) the system should create `argvar' references.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* Iterative variant.  The recursion walked compound arguments left-to-
+   right; on left-heavy compounds the C stack grew with the tree depth.
+   The state machine below keeps a segstack of resume frames:
+
+   - CA_MIDDLE tracks progress through args[0..N-2] of a compound: on
+     resume it advances to the next arg, or (once the middle is
+     exhausted) transitions to the last-arg handling.
+   - CA_LAST_POP emits the closing H_POP / B_POP after the last-arg
+     sub-compilation in the non-right, non-var branch.
+
+   The list right-chain tail-jump (was `goto right_recursion`) becomes
+   a `goto next_arg` with the same `arg`.  Deep arg-tree walks now cost
+   heap frames on the segstack rather than C-stack frames.
+*/
+
+typedef enum
+{ CA_MIDDLE,				/* iterating args[0..N-2] */
+  CA_LAST_POP				/* emit H_POP/B_POP after last arg */
+} ca_kind;
+
+typedef struct ca_frame
+{ ca_kind    kind;
+  int        where;			/* args' where flag (A_ARG set) */
+  bool       isright;			/* isright from OLD where */
+  Word       args_base;			/* for CA_MIDDLE: &args[0] */
+  ssize_t    next_idx;			/* for CA_MIDDLE: next arg index */
+  ssize_t    last_idx;			/* for CA_MIDDLE: arity-1 */
+} ca_frame;
+
 static boolex_t
 compileArgument(DECL_LD Word arg, int where, compileInfo *ci)
-{ int index;
-  bool first;
+{ segstack  stack;
+  double    sbuf[256];
+  ca_frame  frame;
+  boolex_t  rc;
+  int       index;
+  bool      first;
+  int       isright;
+  int       voffset;
+  Word      k;
 
+  initSegStack(&stack, sizeof(ca_frame), sizeof(sbuf), sbuf);
+
+next_arg:
   deRef(arg);
-
-right_recursion:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A void.  Generate either B_VOID or H_VOID.
@@ -2999,18 +3036,13 @@ A void.  Generate either B_VOID or H_VOID.
       if ( isVarInfo(*arg) )
 	goto isvar;
     var:
-      if (where & A_BODY)
-      { Output_0(ci, B_VOID);
-	return true;
-      }
-      Output_0(ci, H_VOID);
-      return true;
+      Output_0(ci, (where & A_BODY) ? B_VOID : H_VOID);
+      rc = true;
+      goto resume;
     case TAG_ATTVAR:
       if ( ci->islocal )
-      { goto argvar;
-      } else
-      { goto var;
-      }
+	goto argvar;
+      goto var;
     case TAG_INTEGER:
       if ( storage(*arg) == STG_INLINE )
       { sword i = valInt(*arg);
@@ -3034,7 +3066,8 @@ A void.  Generate either B_VOID or H_VOID.
 
 	output_indirect(ci, op, addressIndirect(*arg));
       }
-      return true;
+      rc = true;
+      goto resume;
     case TAG_ATOM:
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
@@ -3043,22 +3076,25 @@ A void.  Generate either B_VOID or H_VOID.
 	  PL_register_atom(word2atom(*arg));
 	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, word2code(*arg));
       }
-      return true;
+      rc = true;
+      goto resume;
     case TAG_FLOAT:
     { Word p = valIndirectP(*arg);
       int c =  (where & A_BODY) ? B_FLOAT : H_FLOAT;
 
       Output_n(ci, c, p, CODES_PER_DOUBLE);
-      return true;
+      rc = true;
+      goto resume;
     }
     case TAG_STRING:
-    if ( ci->islocal )
-    { goto argvar;
-    } else
-    { return output_indirect(ci,
+      if ( ci->islocal )
+      { goto argvar;
+      } else
+      { rc = output_indirect(ci,
 			     (where & A_HEAD) ? H_STRING : B_STRING,
 			     addressIndirect(*arg));
-    }
+	goto resume;
+      }
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3068,10 +3104,12 @@ Non-void variables. There are many cases for this.
 isvar:
   if ( (index = isIndexedVarTerm(*arg)) >= 0 )
   { if ( ci->islocal )
-    { int rc;
+    { boolex_t lrc;
 
-      if ( (rc=link_local_var(arg, index, ci)) != true )
-	return rc;
+      if ( (lrc=link_local_var(arg, index, ci)) != true )
+      { rc = lrc;
+	goto exit_unwind;
+      }
 
       if ( index < 3 )
       { Output_0(ci, B_VAR0 + index);
@@ -3079,7 +3117,8 @@ isvar:
       { Output_1(ci, B_VAR, VAROFFSET(index));
       }
 
-      return true;
+      rc = true;
+      goto resume;
     }
 
     first = isFirstVarSet(ci->used_var, index);
@@ -3094,7 +3133,8 @@ isvar:
 	} else
 	{ if ( index < 3 )
 	  { Output_0(ci, B_VAR0 + index);
-	    return true;
+	    rc = true;
+	    goto resume;
 	  }
 	  Output_0(ci, B_VAR);
 	}
@@ -3103,10 +3143,13 @@ isvar:
 	{ Word p;
 
 	  if ( (p=argMoveUnify(*arg)) )
-	    return compileArgument(p, where, ci);
+	  { arg = p;
+	    goto next_arg;		/* tail-call */
+	  }
 	  if ( first )
 	  { Output_0(ci, H_VOID);
-	    return true;
+	    rc = true;
+	    goto resume;
 	  }
 	}
 	if ( argUnifiedTo(*arg) )
@@ -3116,7 +3159,8 @@ isvar:
       }
       Output_a(ci, VAROFFSET(index));
 
-      return true;
+      rc = true;
+      goto resume;
     }
 
     /* normal variable (i.e. not shared in the head and non-void) */
@@ -3126,7 +3170,8 @@ isvar:
       } else
       { if ( index < 3 && !first )
 	{ Output_0(ci, B_VAR0 + index);
-	  return true;
+	  rc = true;
+	  goto resume;
 	}
 	Output_0(ci, first ? B_FIRSTVAR : B_VAR);
       }
@@ -3136,21 +3181,22 @@ isvar:
 
     Output_a(ci, VAROFFSET(index));
 
-    return true;
+    rc = true;
+    goto resume;
   }
 
   assert(isTerm(*arg));
 
   if ( ci->islocal && !(where&A_NOARGVAR) )
-  { int voffset;
-    Word k;
-
+  {
   argvar:
     voffset = VAROFFSET(ci->argvar);
     k = varFrameP(lTop, voffset);
 
     if ( k >= (Word)lMax )
-      return LOCAL_OVERFLOW;
+    { rc = LOCAL_OVERFLOW;
+      goto exit_unwind;
+    }
 
     if ( isAttVar(*arg) )		/* attributed variable: must make */
       *k = makeRefG(arg);		/* a reference to avoid binding a */
@@ -3165,19 +3211,22 @@ isvar:
 	  Sdprintf("Using argvar %d\n", ci->argvar));
     ci->argvar++;
 
-    return true;
+    rc = true;
+    goto resume;
   } else
   { ssize_t ar;
     functor_t fdef;
-    int isright = (where & A_RIGHT);
+    code c;
+    Word args;
 
+    isright = (where & A_RIGHT);
     fdef = functorTerm(*arg);
     if ( fdef == FUNCTOR_dot2 )
-    { code c;
-
-      if ( (where & A_HEAD) )		/* index in array! */
+    { if ( (where & A_HEAD) )		/* index in array! */
       { if ( compileListFF(*arg, ci) )
-	  return true;
+	{ rc = true;
+	  goto resume;
+	}
 	c = (isright ? H_RLIST : H_LIST);
       } else
       { c = (isright ? B_RLIST : B_LIST);
@@ -3185,9 +3234,7 @@ isvar:
 
       Output_0(ci, c);
     } else
-    { code c;
-
-      if ( (where & A_HEAD) )		/* index in array! */
+    { if ( (where & A_HEAD) )		/* index in array! */
 	c = (isright ? H_RFUNCTOR : H_FUNCTOR);
       else
 	c = (isright ? B_RFUNCTOR : B_FUNCTOR);
@@ -3197,38 +3244,99 @@ isvar:
     ar = arityFunctor(fdef);
     where &= ~(A_RIGHT|A_NOARGVAR);
     where |= A_ARG;
+    args = argTermP(*arg, 0);
 
-    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
-    { int rc;
-
-      if ( (rc=compileArgument(arg, where, ci)) < 0 )
-	return rc;
-    }
-
-    where |= A_RIGHT;
-    deRef(arg);
-
-    if ( isVar(*arg) && !(where & (A_BODY|A_ARG)) )
-    { if ( !isright )
-	Output_0(ci, H_POP);
-      return true;
-    }
-
-    if ( isright )
-    { if ( ar == 0 )
-	goto right_recursion;
-    } else
-    { int rc;
-
-      if ( ar == 0 )			/* ar == -1 on a() */
-      { if ( (rc=compileArgument(arg, where, ci)) < 0 )
-	  return rc;
+    if ( ar >= 2 )
+    { frame.kind      = CA_MIDDLE;
+      frame.where     = where;
+      frame.isright   = isright;
+      frame.args_base = args;
+      frame.next_idx  = 1;		/* args[0] handled inline */
+      frame.last_idx  = ar - 1;
+      if ( !pushSegStack(&stack, frame, ca_frame) )
+      { rc = MEMORY_OVERFLOW;
+	goto exit_unwind;
       }
-      Output_0(ci, (where & A_HEAD) ? H_POP : B_POP);
+      arg = args;			/* recurse on args[0] */
+      goto next_arg;
     }
 
+    if ( ar == 1 )			/* only one arg = last arg */
+    { arg = args;
+      goto last_arg;
+    }
+
+    /* ar <= 0: skip loop and last-arg handling; mirror the original
+       code that only emitted the closing pop in the non-right branch. */
+    if ( !isright )
+      Output_0(ci, (where & A_HEAD) ? H_POP : B_POP);
+    rc = true;
+    goto resume;
+  }
+
+last_arg:
+  /* arg is args[N-1].  where has A_ARG (no A_RIGHT).  isright is
+     from the ORIGINAL where before it was masked. */
+  where |= A_RIGHT;
+  deRef(arg);
+
+  if ( isVar(*arg) && !(where & (A_BODY|A_ARG)) )
+  { if ( !isright )
+      Output_0(ci, H_POP);
+    rc = true;
+    goto resume;
+  }
+
+  if ( isright )
+    goto next_arg;			/* tail-jump on last arg */
+
+  /* Non-right: recurse on the last arg, then emit the pop. */
+  frame.kind  = CA_LAST_POP;
+  frame.where = where;
+  if ( !pushSegStack(&stack, frame, ca_frame) )
+  { rc = MEMORY_OVERFLOW;
+    goto exit_unwind;
+  }
+  goto next_arg;
+
+resume:
+  if ( rc < 0 )
+    goto exit_unwind;
+  if ( !popSegStack(&stack, &frame, ca_frame) )
+  { clearSegStack(&stack);
     return true;
   }
+
+  switch( frame.kind )
+  { case CA_MIDDLE:
+    { ssize_t idx = frame.next_idx;
+
+      arg     = frame.args_base + idx;
+      where   = frame.where;
+      isright = frame.isright;
+      if ( idx < frame.last_idx )	/* still a middle arg */
+      { frame.next_idx = idx + 1;
+	if ( !pushSegStack(&stack, frame, ca_frame) )
+	{ rc = MEMORY_OVERFLOW;
+	  goto exit_unwind;
+	}
+	goto next_arg;
+      }
+      /* idx == last_idx: this is the last arg */
+      goto last_arg;
+    }
+
+    case CA_LAST_POP:
+      Output_0(ci, (frame.where & A_HEAD) ? H_POP : B_POP);
+      rc = true;
+      goto resume;
+  }
+
+  assert(0);				/* unreachable */
+
+exit_unwind:
+  clearSegStack(&stack);
+  return rc;
 }
 
 
