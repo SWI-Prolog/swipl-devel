@@ -3848,11 +3848,36 @@ arithVarOffset(DECL_LD Word arg, compileInfo *ci, int *offp)
 }
 
 
+/* Iterative variant.  Each function-application pushes an aa_frame
+   that captures the operator to emit and how many operand
+   sub-compilations are still pending.  Operands are pushed
+   right-to-left just like the original loop; when the last operand
+   has been compiled the frame emits A_ADD / A_MUL / A_FUNCn.
+   For FUNCTOR_roundtoward2, only the first arg is recursed on (the
+   second, the rounding mode, is emitted inline) and — matching the
+   original — a failure of that sub-compilation is swallowed. */
+
+typedef struct aa_frame
+{ Word       next_arg;		/* next operand to compile (decremented) */
+  ssize_t    remaining;		/* operands still to compile, incl. current */
+  functor_t  fdef;
+  int	     func_index;	/* indexArithFunction(fdef) */
+  size_t     ar;		/* total arity (for A_FUNCn switch) */
+  bool	     ignore_error;	/* true for roundtoward2's lone operand */
+} aa_frame;
+
 static bool
 compileArithArgument(DECL_LD Word arg, compileInfo *ci)
-{ int index;
-  int rc;
+{ segstack  stack;
+  double    sbuf[128];
+  aa_frame  frame;
+  bool      rc;
+  int       index;
+  int       vrc;
 
+  initSegStack(&stack, sizeof(aa_frame), sizeof(sbuf), sbuf);
+
+next_arg:
   deRef(arg);
 
   if ( isRational(*arg) )
@@ -3872,29 +3897,33 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 
       output_indirect(ci, op, addressIndirect(*arg));
     }
-    succeed;
+    rc = true;
+    goto resume;
   }
   if ( isFloat(*arg) )
   { Word p = valIndirectP(*arg);
 
     Output_n(ci, A_DOUBLE, p, CODES_PER_DOUBLE);
-    succeed;
+    rc = true;
+    goto resume;
   }
 
-  if ( (rc=arithVarOffset(arg, ci, &index)) == true )
+  if ( (vrc=arithVarOffset(arg, ci, &index)) == true )
   { if ( index < 3 )
       Output_0(ci, A_VAR0 + index);
     else
       Output_1(ci, A_VAR, VAROFFSET(index));
 
-    return true;
-  } else if ( rc < 0 )
-  { return false;
+    rc = true;
+    goto resume;
+  } else if ( vrc < 0 )
+  { rc = false;
+    goto exit;
   }
 
 						/* callable (function) */
   { functor_t fdef;
-    size_t n, ar;
+    size_t ar;
     Word a;
 
     if ( isTextAtom(*arg) )
@@ -3910,13 +3939,17 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 
     case_char_constant:
       if ( !getCharExpression(arg, &n) )
-	return false;
+      { rc = false;
+	goto exit;
+      }
       Output_1(ci, A_INTEGER, (code)n.value.i);
-      return true;
+      rc = true;
+      goto resume;
     } else
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
       popTermRef();
-      return false;
+      rc = false;
+      goto exit;
     }
 
     if ( fdef == FUNCTOR_dot2 )		/* "char" */
@@ -3926,7 +3959,8 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
     { PL_error(NULL, 0, "No such arithmetic function",
 	       ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
       popTermRef();
-      return false;
+      rc = false;
+      goto exit;
     }
 
     if ( fdef == FUNCTOR_roundtoward2 )
@@ -3937,46 +3971,86 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
       deRef2(a+1, m);
       if ( isAtom(*m) && atom_to_rounding(word2atom(*m), &mode) )
       { Output_1(ci, A_ROUNDTOWARDS_A, mode);
-      } else if ( (rc=arithVarOffset(m, ci, &vindex)) == true )
+      } else if ( (vrc=arithVarOffset(m, ci, &vindex)) == true )
       { Output_1(ci, A_ROUNDTOWARDS_V, VAROFFSET(vindex));
-      } else if ( rc < 0 )
-      { return false;
+      } else if ( vrc < 0 )
+      { rc = false; goto exit;
       } else if ( isAtom(*m) )
       { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_round, pushWordAsTermRef(m));
 	popTermRef();
-	return false;
+	rc = false; goto exit;
       } else
       { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, pushWordAsTermRef(m));
 	popTermRef();
-	return false;
+	rc = false; goto exit;
       }
 
-      compileArithArgument(a, ci);
-    } else if ( ar )
-    { for(a+=ar-1, n=ar; n-- > 0; a--)	/* pushed right to left */
-      { if ( !compileArithArgument(a, ci) )
-	  return false;
-      }
+      frame.next_arg     = a;		/* recurse on args[0] only */
+      frame.remaining    = 1;
+      frame.fdef	 = fdef;
+      frame.func_index   = index;
+      frame.ar		 = ar;
+      frame.ignore_error = true;
+      if ( !pushSegStack(&stack, frame, aa_frame) )
+	outOfCore();
+      arg = a;
+      goto next_arg;
     }
 
-    if ( fdef == FUNCTOR_plus2 )
-    { Output_0(ci, A_ADD);
-      succeed;
-    }
-    if ( fdef == FUNCTOR_star2 )
-    { Output_0(ci, A_MUL);
-      succeed;
-    }
-
-    switch(ar)
-    { case 0:	Output_1(ci, A_FUNC0, index); break;
-      case 1:	Output_1(ci, A_FUNC1, index); break;
-      case 2:	Output_1(ci, A_FUNC2, index); break;
-      default:  Output_2(ci, A_FUNC,  index, (code) ar); break;
+    if ( ar )
+    { frame.next_arg     = a + ar - 1;	/* right-to-left over all args */
+      frame.remaining    = ar;
+      frame.fdef	 = fdef;
+      frame.func_index   = index;
+      frame.ar		 = ar;
+      frame.ignore_error = false;
+      if ( !pushSegStack(&stack, frame, aa_frame) )
+	outOfCore();
+      arg = frame.next_arg;
+      goto next_arg;
     }
 
-    succeed;
+    /* ar == 0: no operands; emit the nullary function directly. */
+    Output_1(ci, A_FUNC0, index);
+    rc = true;
+    goto resume;
   }
+
+resume:
+  if ( !popSegStack(&stack, &frame, aa_frame) )
+    goto exit;				/* stack empty: return rc */
+
+  if ( rc != true && !frame.ignore_error )
+    goto exit;
+
+  frame.remaining--;
+  if ( frame.remaining > 0 )
+  { frame.next_arg--;
+    if ( !pushSegStack(&stack, frame, aa_frame) )
+      outOfCore();
+    arg = frame.next_arg;
+    goto next_arg;
+  }
+
+  /* All operands compiled; emit the operator. */
+  if ( frame.fdef == FUNCTOR_plus2 )
+  { Output_0(ci, A_ADD);
+  } else if ( frame.fdef == FUNCTOR_star2 )
+  { Output_0(ci, A_MUL);
+  } else
+  { switch( frame.ar )
+    { case 0: Output_1(ci, A_FUNC0, frame.func_index); break;
+      case 1: Output_1(ci, A_FUNC1, frame.func_index); break;
+      case 2: Output_1(ci, A_FUNC2, frame.func_index); break;
+      default: Output_2(ci, A_FUNC,  frame.func_index, (code) frame.ar); break;
+    }
+  }
+  rc = true;
+  goto resume;
+
+exit:
+  clearSegStack(&stack);
+  return rc;
 }
 #endif /* O_COMPILE_ARITH */
 
