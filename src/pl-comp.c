@@ -1994,48 +1994,19 @@ goal-term and therefore initialised. This implies   there  is no need to
 play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define compileClauseGuarded(ci, cp, head, body, proc, module, warnings, flags) \
-	LDFUNC(compileClauseGuarded, ci, cp, head, body, proc, module, warnings, flags)
-static ssize_t compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
-				Procedure proc, Module module, term_t warnings,
-				int flags);
-
-#ifdef O_C_STACK_GUARDED
-#define cleanupCompile(ci) LDFUNC(cleanupCompile, ci)
-
-static void
-cleanupCompile(DECL_LD CompileInfo ci)
-{ resetVars();
-  discardBuffer(&ci->codes);
-}
-#endif
-
 ssize_t
 compileClause(DECL_LD Clause *cp, Word head, Word body,
 	      Procedure proc, Module module, term_t warnings,
 	      int flags)
-{ compileInfo ci;			/* data base for the compiler */
-  ssize_t rc;
-
-  ci.progress = 0;
-  initBuffer(&ci.codes);
-
-  C_STACK_OVERFLOW_GUARDED(
-      rc,
-      compileClauseGuarded(&ci, cp, head, body, proc, module, warnings, flags),
-      cleanupCompile(&ci));
-
-  return rc;
-}
-
-static ssize_t
-compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
-		     Procedure proc, Module module, term_t warnings,
-		     int flags)
-{ struct clause clause = {0};
+{ compileInfo   _ci;			/* data base for the compiler */
+  CompileInfo   ci = &_ci;
+  struct clause clause = {0};
   Clause cl;
   Definition def = getProcDefinition(proc);
   ssize_t rc;
+
+  ci->progress = 0;
+  initBuffer(&ci->codes);
 
   if ( head )
   { ci->islocal       = false;
