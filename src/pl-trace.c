@@ -819,7 +819,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugstatus.skiplevel = levelFrame(frame) - 1;
 		return PL_TRACE_ACTION_CONTINUE;
     case 'd':   FeedBack("depth\n");
-		setPrintOptions(def_arg ? 10 : consInt(num_arg));
+		setPrintOptions(consInt(def_arg ? 10 : num_arg));
 		return PL_TRACE_ACTION_AGAIN;
     case 'w':   FeedBack("write\n");
 		setPrintOptions(ATOM_write);
