@@ -1429,7 +1429,7 @@ user:prolog_file_type(dylib,    executable) :-
     !,
     (   file_directory_name(ContextFile, Dir),
         '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName)
-    ->  true
+    *-> true
     ;   current_prolog_flag(source_search_working_directory, true),
 	'$extend_file'(File, Exts, Extended),
 	'$file_conditions'(Cond, Extended),
