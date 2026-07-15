@@ -2078,7 +2078,6 @@ cr_pow(double base, double exp)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define pow(b,e) cr_pow(b,e)
 
 // special case for unary erf with bounded by +/- 1.0
 static double
