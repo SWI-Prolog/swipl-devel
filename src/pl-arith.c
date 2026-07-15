@@ -1923,6 +1923,10 @@ FE_TONEAREST mode is in effect which is not a proven fact.
 This set of correctly rounded functions (cr_exp, cr_log, cr_sin, cr_cos,
 etc.) are used to redefine the standard functions as used in the various
 'ar_...' arithmetic functions.
+
+There are two possible implementations of the cr_xxx elementary functions.
+If HAVE_CRMATH is true, they are part of the core library as defined in
+pl-crmath.h. Otherwise they are implemented here as described above. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -1942,6 +1946,9 @@ static double cr_##func(double in) \
   return result; \
 }
 
+#if HAVE_CRMATH
+#include <pl-crmath.h>
+#else
 // #define unary function with abs(result) =< 1.0
 #define CR_FUNC_1(func) \
 static double cr_##func(double in) \
@@ -1987,31 +1994,22 @@ cr_exp(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define exp(x) cr_exp(x)
 
 CR_FUNC(log)
-#define log(x) cr_log(x)
 
 CR_FUNC(log10)
-#define log10(x) cr_log10(x)
 
 CR_FUNC_1(sin)
-#define sin(x) cr_sin(x)
 
 CR_FUNC_1(cos)
-#define cos(x) cr_cos(x)
 
 CR_FUNC(tan)
-#define tan(x) cr_tan(x)
 
 CR_FUNC(asin)
-#define asin(x) cr_asin(x)
 
 CR_FUNC(acos)
-#define acos(x) cr_acos(x)
 
 CR_FUNC(atan)
-#define atan(x) cr_atan(x)
 
 // special case for binary atan2 function with standard rounding, finite result
 static double
@@ -2028,10 +2026,8 @@ cr_atan2(double y, double x)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define atan2(y,x) cr_atan2(y,x)
 
 CR_FUNC(sinh)
-#define sinh(x) cr_sinh(x)
 
 // special case for unary cosh with lower limit of 1.0
 static double
@@ -2055,10 +2051,8 @@ cr_cosh(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define cosh(x) cr_cosh(x)
 
 CR_FUNC_1(tanh)
-#define tanh(x) cr_tanh(x)
 
 // special case for binary function pow with lower limit of 0.0
 static double
@@ -2111,18 +2105,33 @@ cr_erf(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define erf(x) cr_erf(x)
 
 static double cr_erfc(double in)
 { return 1.0 - cr_erf(in);
 }
-#define erfc(x) cr_erfc(x)
+#endif /*HAVE_CRMATH*/
 
-CR_FUNC(lgamma)
+CR_FUNC(lgamma)  // for both cases (not in libcrmath, Windows issue?)
+
+#define exp(x) cr_exp(x)
+#define log(x) cr_log(x)
+#define log10(x) cr_log10(x)
+#define sin(x) cr_sin(x)
+#define cos(x) cr_cos(x)
+#define tan(x) cr_tan(x)
+#define asin(x) cr_asin(x)
+#define acos(x) cr_acos(x)
+#define atan(x) cr_atan(x)
+#define atan2(y,x) cr_atan2(y,x)
+#define sinh(x) cr_sinh(x)
+#define cosh(x) cr_cosh(x)
+#define tanh(x) cr_tanh(x)
+#define pow(b,e) cr_pow(b,e)
+#define erf(x) cr_erf(x)
+#define erfc(x) cr_erfc(x)
 #define lgamma(x) cr_lgamma(x)
 
 #endif /*O_ROUND_UP_DOWN*/
-
 
 /* Unary functions requiring double argument */
 
