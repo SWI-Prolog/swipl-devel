@@ -74,6 +74,9 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (LGPL)"
        ON)
+option(USE_CRMATH
+       "Use correctly rounded CORE_MATH elementary functions"
+       OFF)
 option(USE_TCMALLOC
        "Use Google tcmalloc instead of default malloc"
        ${DEFAULT_USE_TCMALLOC})
