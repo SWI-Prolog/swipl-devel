@@ -492,6 +492,68 @@ if(APPLE)
   set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} "-framework CoreFoundation")
 endif()
 
+if(HAVE_CRMATH)
+  if(NOT TARGET crmath)  # already built?
+    # CRMATH_REPO_SOURCE_DIR defined in cmake/Config.cmake
+	# Adds required subset from repo, unused functions in comments
+    add_library(crmath STATIC 
+  ${CRMATH_REPO_SOURCE_DIR}/src/acos/acos.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/acosh/acosh.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/asin/asin.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/asinh/asinh.c
+#  src/asinpi/asinpi.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/atan/atan.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/atan2/atan2.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/atan2/tint.h
+#  src/atan2pi/atan2pi.c
+#  src/atan2pi/tint.h
+  ${CRMATH_REPO_SOURCE_DIR}/src/atanh/atanh.c
+#  src/atanpi/atanpi.c
+#  src/cbrt/cbrt.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/cos/cos.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/cosh/cosh.c
+#  src/cospi/cospi.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/erf/erf.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/erfc/erfc.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/exp/exp.c
+#  src/exp10/exp10.c
+#  src/exp10m1/exp10m1.c
+#  src/exp2/exp2.c
+#  src/exp2m1/exp2m1.c
+#  src/expm1/expm1.c
+#  src/hypot/hypot.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/log/dint.h
+  ${CRMATH_REPO_SOURCE_DIR}/src/log/log.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/log10/dint.h
+  ${CRMATH_REPO_SOURCE_DIR}/src/log10/log10.c
+#  src/log10p1/dint.h
+#  src/log10p1/log10p1.c
+#  src/log1p/dint.h
+#  src/log1p/log1p.c
+#  src/log2/log2.c
+#  src/log2p1/dint_log2p1.h
+#  src/log2p1/log2p1.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/pow/dint.h
+  ${CRMATH_REPO_SOURCE_DIR}/src/pow/pow.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/pow/pow.h
+  ${CRMATH_REPO_SOURCE_DIR}/src/pow/qint.h
+#  src/rsqrt/rsqrt.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/sin/sin.c
+#  src/sincos/sincos.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/sinh/sinh.c
+#  src/sinpi/sinpi.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/tan/tan.c
+  ${CRMATH_REPO_SOURCE_DIR}/src/tanh/tanh.c
+#  src/tanpi/tanpi.c
+#  src/tgamma/tgamma.c
+    )
+    # not sure what compiler flags to use for various platforms/compilers so
+    # just using base set from Bob Burgers repo 
+    target_compile_options(crmath PRIVATE -O3 -ffp-contract=on -fno-math-errno)
+    set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} crmath)
+  endif()  # NOT TARGET crmath
+endif()  # HAVE_CRMATH
+
 # build swipl
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
