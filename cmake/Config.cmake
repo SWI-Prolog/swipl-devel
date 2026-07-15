@@ -123,6 +123,36 @@ set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h wchar.h)
 #  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Wno-builtin-declaration-mismatch)
 #endif()
 
+if(USE_CRMATH) 
+  if(NOT TARGET crmath)  # already built?
+    # Repo existance check
+    set(CRMATH_REPO "https://github.com/indigobio/core-math-binary64.git")
+    set(CRMATH_TAG  "main")
+    execute_process(
+      COMMAND git ls-remote --exit-code --heads --tags "${CRMATH_REPO}" "${CRMATH_TAG}"
+      RESULT_VARIABLE git_check
+      OUTPUT_QUIET
+      ERROR_QUIET
+    )
+    if(git_check EQUAL 0)
+      include(FetchContent)
+      FetchContent_Declare(
+        crmath_repo
+        GIT_REPOSITORY "${CRMATH_REPO}"
+        GIT_TAG        "${CRMATH_TAG}"
+      )
+      FetchContent_Populate(crmath_repo)
+      message(STATUS "Looking for " ${CRMATH_REPO} " - found")
+      # define source directory for building libcrmath
+      set(CRMATH_REPO_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/crmath_repo-src")
+      set(HAVE_CRMATH 1)
+    else()
+      message(STATUS "Looking for " ${CRMATH_REPO} " - not found")
+      set(HAVE_CRMATH 0)
+    endif()  # git_check EQUAL 0
+  endif()  # NOT TARGET crmath
+endif() # USE_CRMATH
+
 ################
 # Types
 SET(CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE ${CMAKE_TRY_COMPILE_TARGET_TYPE})
