@@ -1665,7 +1665,7 @@ var_names([H|T]) --> [H], var_names(T).
 answer_flags_imply_numbervars :-
     current_prolog_flag(answer_write_options, Options),
     numbervars_option(Opt),
-    memberchk(Opt, Options),
+    '$option'(Opt, Options),
     !.
 
 numbervars_option(portray(true)).
@@ -2145,7 +2145,7 @@ more_action(Command, _, Action),
 
 print_depth(Depth) :-
     current_prolog_flag(answer_write_options, Options),
-    memberchk(max_depth(Depth), Options),
+    '$option'(max_depth(Depth), Options),
     !.
 
 %!  print_predicate(+Action, +Options0, -Options) is semidet.

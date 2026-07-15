@@ -2122,7 +2122,7 @@ compiling :-
     ).
 
 '$restore_load_stream'(In, _State, Options) :-
-    memberchk(close(true), Options),
+    '$option'(close(true), Options),
     !,
     close(In).
 '$restore_load_stream'(In, state(HasName, HasPos), _Options) :-
@@ -2431,7 +2431,7 @@ load_files(Module:Files, Options) :-
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
-    (   memberchk(qcompile(QlfMode), Options)
+    (   '$option'(qcompile(QlfMode), Options)
     ->  true
     ;   current_prolog_flag(qcompile, QlfMode),
 	\+ '$in_system_dir'(PlFile)
@@ -2496,11 +2496,11 @@ load_files(Module:Files, Options) :-
     statistics(warnings, Warnings).
 
 '$load_file_e'(File, Module, Options) :-
-    \+ memberchk(stream(_), Options),
+    \+ '$option'(stream(_), Options),
     user:prolog_load_file(Module:File, Options),
     !.
 '$load_file_e'(File, Module, Options) :-
-    memberchk(stream(_), Options),
+    '$option'(stream(_), Options),
     !,
     '$assert_load_context_module'(File, Module, Options),
     '$qdo_load_file'(File, File, Module, Options).
@@ -2713,7 +2713,7 @@ load_files(Module:Files, Options) :-
     '$run_initialization'(FullFile, Action, Options).
 
 '$qdo_load_file2'(File, FullFile, Module, Action, Options) :-
-    memberchk('$qlf'(QlfOut), Options),
+    '$option'('$qlf'(QlfOut), Options),
     '$stage_file'(QlfOut, StageQlf),
     !,
     setup_call_catcher_cleanup(
@@ -2797,7 +2797,7 @@ load_files(Module:Files, Options) :-
 		     load_file(start(Level,
 				     file(File, Absolute)))),
 
-    (   memberchk(stream(FromStream), Options)
+    (   '$option'(stream(FromStream), Options)
     ->  Input = stream
     ;   Input = source
     ),
@@ -2908,7 +2908,7 @@ load_files(Module:Files, Options) :-
 
 '$set_verbose_load'(Options, Old) :-
     current_prolog_flag(verbose_load, Old),
-    (   memberchk(silent(Silent), Options)
+    (   '$option'(silent(Silent), Options)
     ->  (   '$negate'(Silent, Level0)
 	->  '$load_msg_compat'(Level0, Level)
 	;   Level = Silent
@@ -2929,7 +2929,7 @@ load_files(Module:Files, Options) :-
 
 '$set_sandboxed_load'(Options, Old) :-
     current_prolog_flag(sandboxed_load, Old),
-    (   memberchk(sandboxed(SandBoxed), Options),
+    (   '$option'(sandboxed(SandBoxed), Options),
 	'$enter_sandboxed'(Old, SandBoxed, New),
 	New \== Old
     ->  set_prolog_flag(sandboxed_load, New)
@@ -3054,7 +3054,7 @@ load_files(Module:Files, Options) :-
 %!  '$save_lex_state'(-LexState, +Options) is det.
 
 '$save_lex_state'(State, Options) :-
-    memberchk(scope_settings(false), Options),
+    '$option'(scope_settings(false), Options),
     !,
     State = (-).
 '$save_lex_state'(lexstate(Style, Dialect), _) :-
@@ -3067,7 +3067,7 @@ load_files(Module:Files, Options) :-
     set_prolog_flag(emulated_dialect, Dialect).
 
 '$set_dialect'(Options) :-
-    memberchk(dialect(Dialect), Options),
+    '$option'(dialect(Dialect), Options),
     !,
     '$expects_dialect'(Dialect).
 '$set_dialect'(_).
@@ -3115,7 +3115,7 @@ load_files(Module:Files, Options) :-
 :- '$notransact'('$load_context_module'/3).
 
 '$assert_load_context_module'(_, _, Options) :-
-    memberchk(register(false), Options),
+    '$option'(register(false), Options),
     !.
 '$assert_load_context_module'(File, Module, Options) :-
     source_location(FromFile, Line),
@@ -3920,7 +3920,7 @@ load_files(Module:Files, Options) :-
 '$load_goal'(consult(_), _).
 '$load_goal'(load_files(_), _).
 '$load_goal'(load_files(_,Options), _) :-
-    memberchk(qcompile(QlfMode), Options),
+    '$option'(qcompile(QlfMode), Options),
     '$qlf_part_mode'(QlfMode).
 '$load_goal'(ensure_loaded(_), _) :- '$compilation_mode'(wic).
 '$load_goal'(use_module(_), _)    :- '$compilation_mode'(wic).

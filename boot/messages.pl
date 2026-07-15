@@ -1291,7 +1291,7 @@ prolog_message(version) -->
 prolog_message(version) -->
     { current_prolog_flag(version_data, swi(Major,Minor,Patch,Options))
     },
-    (   { memberchk(tag(Tag), Options) }
+    (   { '$option'(tag(Tag), Options) }
     ->  [ '~w.~w.~w-~w'-[Major, Minor, Patch, Tag] ]
     ;   [ '~w.~w.~w'-[Major, Minor, Patch] ]
     ).
