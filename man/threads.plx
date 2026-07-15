@@ -795,6 +795,10 @@ optionally when the call terminates due to a timeout.
 	such signals immediately, while others only check for such
 	events synchronously.}
 
+	\termitem{signals}{+BoolOrTime}
+	Whether or not signals (see thread_signal/2) are processed while
+	waiting.  See thread_get_message/3 for details on this option.
+
 	\termitem{db}{+Boolean}
 	Wake up on arbitrary changes to any dynamic predicate that
 	is defined in the associated module.  This is the default
