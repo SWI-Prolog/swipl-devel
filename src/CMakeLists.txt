@@ -537,6 +537,10 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
+if(HAVE_CRMATH)
+include(crmath)
+endif()
+
 # Create an OBJECT library so we can build both a static and dynamic
 # library
 

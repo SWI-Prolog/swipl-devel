@@ -184,6 +184,9 @@ set_config()
       malloc)			# malloc: Use native malloc instead of tcmalloc
 	  opts+=" -DUSE_TCMALLOC=OFF"
 	  ;;
+      crmath)
+	  opts+=" -DUSE_CRMATH=ON"
+	  ;;
       # group: Select thread support
       single)			# single: Build single-threaded version
 	  opts+=" -DMULTI_THREADED=OFF"

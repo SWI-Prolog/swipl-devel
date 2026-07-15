@@ -123,6 +123,8 @@ set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h wchar.h)
 #  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Wno-builtin-declaration-mismatch)
 #endif()
 
+include(Deps)
+
 ################
 # Types
 SET(CMAKE_TRY_COMPILE_TARGET_TYPE_SAVE ${CMAKE_TRY_COMPILE_TARGET_TYPE})

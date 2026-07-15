@@ -289,3 +289,5 @@
 #cmakedefine SWIPL_TMP_DIR "@SWIPL_TMP_DIR@"
 
 #cmakedefine MSYS2 @MSYS2@
+
+#cmakedefine HAVE_CRMATH @HAVE_CRMATH@
