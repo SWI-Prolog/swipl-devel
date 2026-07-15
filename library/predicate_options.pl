@@ -47,7 +47,9 @@
                                                 % Checking
             check_predicate_options/0,
             derive_predicate_options/0,
-            check_predicate_options/1           % :PredicateIndicator
+            check_predicate_options/1,          % :PredicateIndicator
+            check_raw_option_access/0,
+            check_raw_option_access/1           % :Spec
           ]).
 :- autoload(library(apply),[maplist/3]).
 :- use_module(library(debug),[debug/3]).
@@ -75,7 +77,9 @@
     current_option_arg(:, ?),
     pred_option(:,-),
     derived_predicate_options(:,?,?),
-    check_predicate_options(:).
+    check_predicate_options(:),
+    check_raw_option_access(:),
+    raw_option_findings(:, -).
 
 /** <module> Access and analyse predicate options
 
@@ -94,6 +98,9 @@ functionality:
     derive_predicate_options/0.
   * Perform a compile-time analysis of the entire loaded program using
     check_predicate_options/0.
+  * Report _order-sensitive_ option handling (raw list access and
+    overrides that are defeated by rightmost-wins predicates) using the
+    opt-in linter check_raw_option_access/0.
 
 Below, we describe some use-cases.
 
@@ -294,7 +301,7 @@ current_predicate_option(Module:PI, Arg, Option) :-
 
 check_predicate_option(Module:PI, Arg, Option) :-
     define_predicate(Module:PI),
-    current_option_arg(Module:PI, Arg, DefM),
+    once(current_option_arg(Module:PI, Arg, DefM)),
     PI = Name/Arity,
     functor(Head, Name, Arity),
     (   pred_option(DefM:Head, Option)
@@ -639,6 +646,144 @@ check_predicate_options(Module:Name/Arity) :-
     forall(catch(Module:clause(Head, Body, Ref), _, fail),
            check_clause((Head:-Body), Module, Ref, check)).
 
+
+                 /*******************************
+                 *   RAW / ORDER-SENSITIVE      *
+                 *******************************/
+
+:- thread_local
+    lint_finding/2.                 % Finding, ClauseRef
+
+%!  check_raw_option_access is det.
+%!  check_raw_option_access(:Spec) is det.
+%
+%   Report _order-sensitive_ option handling in the loaded program.
+%   Unlike check_predicate_options/0, this is not part of check/0; it is
+%   an opt-in linter intended for audits.  It reports two patterns:
+%
+%     $ Category A - raw option access :
+%     A list known to be an option list (because it is a declared option
+%     argument or is passed to a predicate that processes options) is
+%     inspected using memberchk/2, member/2 or select/3 rather than
+%     option/2.  Raw list search is order-agnostic and does not honour
+%     the Name=Value form, so it may disagree with option/2 (leftmost
+%     wins) semantics.
+%
+%     $ Category B - override defeated by rightmost-wins :
+%     A partial list =|[Opt,...|Tail]|= is passed to a predicate that
+%     resolves options with PL_scan_options() (rightmost wins, e.g.
+%     open/4).  The prepended options look like an override but are
+%     defeated by a duplicate in Tail.  Append the option or use
+%     merge_options/3 instead.
+%
+%   Spec is a module or a Module:Name/Arity.
+
+check_raw_option_access :-
+    raw_option_findings_(all, Findings),
+    report_lint_findings(Findings).
+
+check_raw_option_access(Spec) :-
+    raw_option_findings(Spec, Findings),
+    report_lint_findings(Findings).
+
+%!  raw_option_findings(:Spec, -Findings) is det.
+%
+%   Findings is a list of Finding-ClauseRef pairs for Spec (a module or
+%   Module:Name/Arity), without printing.  See check_raw_option_access/1
+%   for the finding types.
+
+raw_option_findings(Spec, Findings) :-
+    (   Spec = M:Name/Arity,
+        atom(Name), integer(Arity)
+    ->  raw_option_findings_(M:Name/Arity, Findings)
+    ;   strip_module(Spec, _, Module),
+        raw_option_findings_(module(Module), Findings)
+    ).
+
+raw_option_findings_(What, Findings) :-
+    retractall(lint_finding(_,_)),
+    (   What == all
+    ->  forall(current_module(Module), lint_module(Module))
+    ;   What = module(Module)
+    ->  lint_module(Module)
+    ;   lint_predicate(What)
+    ),
+    findall(F-Ref, retract(lint_finding(F, Ref)), Findings).
+
+lint_module(Module) :-
+    forall(predicate_in_module(Module, PI),
+           lint_predicate(Module:PI)).
+
+lint_predicate(Module:Name/Arity) :-
+    functor(Head, Name, Arity),
+    forall(catch(Module:clause(Head, Body, Ref), _, fail),
+           lint_clause(Module:Head, Body, Ref)).
+
+lint_clause(Module:Head, Body, Ref) :-
+    b_setval('$predopts_lint_clause', Ref),
+    \+ \+ ( seed_head_options(Module:Head),
+            catch(check_body(Body, Module, _, decl), _, true),   % annotate
+            catch(check_body(Body, Module, _, lint), _, true) ). % report
+
+%!  seed_head_options(:Head) is det.
+%
+%   Annotate the declared option arguments of Head so the linter knows
+%   they are option lists even when the clause only inspects them with
+%   raw list search.
+
+seed_head_options(Module:Head) :-
+    functor(Head, Name, Arity),
+    PI = Module:Name/Arity,
+    seed_head_options(1, Arity, PI, Head).
+
+seed_head_options(I, Arity, PI, Head) :-
+    (   I > Arity
+    ->  true
+    ;   (   once(current_option_arg(PI, I)),
+            arg(I, Head, QArg),
+            remove_qualifier(QArg, A),
+            var(A)
+        ->  annotate(A, option_list_var(PI, I))
+        ;   true
+        ),
+        I2 is I+1,
+        seed_head_options(I2, Arity, PI, Head)
+    ).
+
+report_lint_findings(Findings) :-
+    forall(member(Finding-Ref, Findings),
+           print_message(informational, predopts_lint(Finding, Ref))).
+
+record_lint(Finding) :-
+    (   nb_current('$predopts_lint_clause', Ref)
+    ->  true
+    ;   Ref = (-)
+    ),
+    (   lint_finding(Finding, Ref)      % avoid duplicates within a clause
+    ->  true
+    ;   assertz(lint_finding(Finding, Ref))
+    ).
+
+%!  raw_option_goal(+Goal, -List, -Option) is semidet.
+%
+%   Goal inspects List for an option-shaped Option using raw list search.
+
+raw_option_goal(memberchk(Opt, List), List, Opt) :- option_shaped(Opt).
+raw_option_goal(member(Opt, List),    List, Opt) :- option_shaped(Opt).
+raw_option_goal(select(Opt, List, _), List, Opt) :- option_shaped(Opt).
+raw_option_goal(selectchk(Opt, List, _), List, Opt) :- option_shaped(Opt).
+
+option_shaped(Opt) :-
+    compound(Opt),
+    (   functor(Opt, _, 1)
+    ;   Opt = (_=_)
+    ),
+    !.
+
+known_option_list(List) :-
+    var(List),
+    annotations(List, _).
+
 %!  check_clause(+Clause, +Module, +Ref, +Action) is det.
 %
 %   Action is one of
@@ -688,9 +833,24 @@ check_body((A;B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
     !,
     \+ \+ check_body(A, M, PA, Action),
     \+ \+ check_body(B, M, PB, Action).
+check_body((A->B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
+    !,
+    check_body(A, M, PA, Action),
+    check_body(B, M, PB, Action).
+check_body((A*->B), M, term_position(_,_,_,_,[PA,PB]), Action) :-
+    !,
+    check_body(A, M, PA, Action),
+    check_body(B, M, PB, Action).
 check_body(A=B, _, _, _) :-             % partial evaluation
     unify_with_occurs_check(A,B),
     !.
+check_body(Goal, M, _, lint) :-         % Category A: raw option access
+    raw_option_goal(Goal, ListArg, Opt),
+    !,
+    (   known_option_list(ListArg)
+    ->  record_lint(raw_option_access(M:Goal, Opt))
+    ;   true
+    ).
 check_body(Goal, M, term_position(_,_,_,_,ArgPosList), Action) :-
     callable(Goal),
     functor(Goal, Name, Arity),
@@ -764,11 +924,59 @@ extend(Goal, N, GoalEx) :-
 %   the location of the Options list. If  Options is a partial list,
 %   the tail is annotated with pass_to(PI, OptArg).
 
+check_options(PI, OptArg, QOptions, ArgPos, lint) :-
+    !,
+    remove_qualifier(QOptions, Options),
+    (   is_list_or_partial_list(Options)
+    ->  lint_prepend(PI, Options),
+        check_option_list(Options, PI, OptArg, Options, ArgPos, lint)
+    ;   true                        % not analysable as a list; ignore
+    ).
 check_options(PI, OptArg, QOptions, ArgPos, Action) :-
     debug(predicate_options, '\tChecking call to ~q', [PI]),
     remove_qualifier(QOptions, Options),
     must_be(list_or_partial_list, Options),
     check_option_list(Options, PI, OptArg, Options, ArgPos, Action).
+
+is_list_or_partial_list(Term) :-
+    '$skip_list'(_, Term, Tail),
+    (   Tail == []
+    ->  true
+    ;   var(Tail)
+    ).
+
+%!  lint_prepend(+PI, +Options) is det.
+%
+%   Category B: Options is a _partial_ list [Opt,...|Var] whose concrete
+%   prefix is prepended to override the caller, but PI resolves options
+%   using PL_scan_options() (rightmost wins).  A duplicate of a prefix
+%   option in Var thus defeats the intended override.
+
+lint_prepend(PI, Options) :-
+    (   last_wins_option_pred(PI),
+        partial_prefix(Options, Prefix, Tail),
+        Prefix \== [],
+        var(Tail)
+    ->  record_lint(prepend_override(PI, Prefix))
+    ;   true
+    ).
+
+partial_prefix(Var, [], Var) :-
+    var(Var),
+    !.
+partial_prefix([], [], []) :- !.
+partial_prefix([H|T], [H|PT], Tail) :-
+    partial_prefix(T, PT, Tail).
+
+%!  last_wins_option_pred(:PI) is semidet.
+%
+%   True when PI processes its option list with rightmost-wins semantics.
+%   Foreign predicates use PL_scan_options() and are rightmost-wins;
+%   Prolog predicates use library(option) (leftmost-wins).
+
+last_wins_option_pred(M:Name/Arity) :-
+    functor(Head, Name, Arity),
+    predicate_property(M:Head, foreign).
 
 remove_qualifier(X, X) :-
     var(X),
@@ -786,6 +994,7 @@ check_option_list([H|T], PI, OptArg, Options, ArgPos, Action) :-
     check_option_list(T, PI, OptArg, Options, ArgPos, Action).
 
 check_option(_, _, _, _, decl) :- !.
+check_option(_, _, _, _, lint) :- !.
 check_option(PI, OptArg, Opt, ArgPos, _) :-
     catch(check_predicate_option(PI, OptArg, Opt), E, true),
     !,
@@ -846,11 +1055,47 @@ eval_option_pred(swi_option:meta_options(_Cond, QOptionsIn, QOptionsOut)) :-
     remove_qualifier(QOptionsIn, OptionsIn),
     remove_qualifier(QOptionsOut, OptionsOut),
     ignore(unify_with_occurs_check(OptionsIn, OptionsOut)).
+eval_option_pred(lists:append(A, B, C)) :-      % C = A ++ B; both are options
+    propagate_option_list(C, A),
+    propagate_option_list(C, B).
+eval_option_pred(swi_option:merge_options(New, Old, Merged)) :-
+    propagate_option_list(Merged, New),
+    propagate_option_list(Merged, Old).
 
 processes(Opt, Spec) :-
     compound(Opt),
     functor(Opt, OptName, 1),
     Spec =.. [OptName,any].
+
+%!  propagate_option_list(?A, ?B) is det.
+%
+%   If one of A or B is a variable already known to be an option list,
+%   copy that knowledge to the other.  This lets option-list-ness flow
+%   through append/3 and merge_options/3 without _originating_ it: a
+%   plain list operation on non-options is left untouched.
+
+propagate_option_list(A, B) :-
+    (   annotated_var(A, Ann)
+    ->  copy_annotations(B, Ann)
+    ;   annotated_var(B, Ann)
+    ->  copy_annotations(A, Ann)
+    ;   true
+    ).
+
+annotated_var(V, Ann) :-
+    var(V),
+    annotations(V, Ann).
+
+copy_annotations(V, Ann) :-
+    (   var(V)
+    ->  copy_annotations_(Ann, V)
+    ;   true
+    ).
+
+copy_annotations_([], _).
+copy_annotations_([A|T], V) :-
+    annotate(V, A),
+    copy_annotations_(T, V).
 
 
                  /*******************************
@@ -935,6 +1180,27 @@ prolog:message(predicate_option_error(Formal, Location)) -->
 prolog:message(check_options(new(Decls))) -->
     [ 'Inferred declarations:'-[], nl ],
     new_decls(Decls).
+prolog:message(predopts_lint(Finding, Ref)) -->
+    lint_location(Ref),
+    lint_message(Finding).
+
+lint_location(Ref) -->
+    { Ref \== (-),
+      clause_property(Ref, file(File)),
+      clause_property(Ref, line_count(Line))
+    },
+    !,
+    [ url(File:Line), ': ' ].
+lint_location(_) --> [].
+
+lint_message(raw_option_access(PI, Opt)) -->
+    [ 'raw option access ~q on an option list; prefer option/2'-[Opt],
+      nl, '    in ~q'-[PI] ].
+lint_message(prepend_override(PI, Prefix)) -->
+    [ 'option(s) ~q prepended to rightmost-wins predicate ~q;'-[Prefix, PI],
+      nl,
+      '    a duplicate in the list tail overrides them - '-[],
+      'append or use merge_options/3'-[] ].
 
 error_location(file_char_count(File, CharPos)) -->
     { filepos_line(File, CharPos, Line, LinePos) },
