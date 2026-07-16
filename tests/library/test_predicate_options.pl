@@ -64,11 +64,23 @@ source_dir(Dir) :-
     directory_file_path(Dir, 'src/pl-prims.c', Prims),
     exists_file(Prims).
 
+%!  drift_testable is semidet.
+%
+%   True when the drift check can run: the source tree is present and
+%   predicate_location/2 resolves a foreign (C) predicate to its source
+%   file.  The latter fails on some platforms (e.g. WASM), where every C
+%   option array would otherwise be reported as stale.
+
+drift_testable :-
+    source_dir(_),
+    prolog_edit:predicate_location(open(_,_,_,_), Loc),
+    get_dict(file, Loc, _).
+
 test_predicate_options :-
     run_tests([ predicate_options_check,
                 predicate_options_lint
               ]),
-    (   source_dir(_)
+    (   drift_testable
     ->  run_tests([ predicate_options_drift
                   ])
     ;   true
@@ -148,7 +160,7 @@ test(not_an_option_list, Findings == []) :-
 
 :- end_tests(predicate_options_lint).
 
-:- if(source_dir(_)).
+:- if(drift_testable).
 
                  /*******************************
                  *          DRIFT CHECK         *
