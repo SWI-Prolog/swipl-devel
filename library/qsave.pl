@@ -574,12 +574,9 @@ copy_resource(FromRC, ToRC, Name) :-
     ->  true
     ;   existence_error(resource, Name)
     ),
-    zipper_file_info(FromRC, _Name, Attrs),
-    get_dict(time, Attrs, Time),
     setup_call_cleanup(
         zipper_open_current(FromRC, FdIn,
-                            [ type(binary),
-                              time(Time)
+                            [ type(binary)
                             ]),
         setup_call_cleanup(
             zipper_open_new_file_in_zip(ToRC, Name, FdOut, []),
