@@ -196,6 +196,7 @@
 		       stand_alone(boolean),
 		       emulator(atom)
 		     ]).
+:- if(current_prolog_flag(threads, true)).
 :- predicate_options(system:thread_create/3, 3,
 		     [ affinity(list(integer)),
                        alias(atom),
@@ -225,6 +226,7 @@
 		       deadline(number),
 		       signals(any)
 		     ]).
+:- endif.
 :- predicate_options(system:locale_create/3, 3,
 		     [ alias(atom),
 		       decimal_point(atom),
@@ -264,6 +266,7 @@
                        search(oneof([first,last])),
                        replace(boolean)
                      ]).
+:- if(current_prolog_flag(threads, true)).
 :- predicate_options(system:thread_wait/2, 2,
                      [ timeout(number),
                        deadline(number),
@@ -278,6 +281,7 @@
                      [ notify(oneof([broadcast,signal])),
                        module(atom)
                      ]).
+:- endif.
 :- predicate_options('$syspreds':transaction/2, 2,
                      [ bulk(boolean)
                      ]).

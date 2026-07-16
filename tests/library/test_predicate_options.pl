@@ -92,7 +92,7 @@ test(bad_option_name, error(existence_error(option, _), _)) :-
 
 % The new mirrors added in this change are queryable.
 
-test(thread_wait_decl) :-
+test(thread_wait_decl, [condition(current_prolog_flag(threads, true))]) :-
     once(current_predicate_option(system:thread_wait/2, 2, retry_every(_))),
     once(current_predicate_option(system:thread_wait/2, 2, timeout(_))).
 test(transaction_decl) :-
@@ -225,25 +225,32 @@ c_option_array(wildcard_options,          system:wildcard_match/3).
 c_option_array(prolog_flag_options,       system:create_prolog_flag/3).
 c_option_array(prolog_listen_options,     system:prolog_listen/3).
 c_option_array(open_shared_object_options, system:open_shared_object/3).
-c_option_array(mutex_options,             system:mutex_create/2).
 c_option_array(numbervar_options,         system:numbervars/4).
 c_option_array(read_clause_options,       system:read_clause/3).
 c_option_array(read_term_options,         system:read_term/3).
-c_option_array(make_thread_options,       system:thread_create/3).
-c_option_array(make_engine_options,       '$engines':engine_create/4).
-c_option_array(message_queue_options,     system:message_queue_create/2).
-c_option_array(thread_wait_options,       system:thread_wait/2).
-c_option_array(thread_update_options,     system:thread_update/2).
 c_option_array(transaction_options,       '$syspreds':transaction/2).
 c_option_array(write_term_options,        system:write_term/3).
 c_option_array(write_length_options,      system:write_size/4).
 c_option_array(zip_open_stream_options,   system:zip_open_stream/3).
 c_option_array(zip_new_file_options,      system:zipper_open_new_file_in_zip/4).
 c_option_array(zipopen3_options,          system:zipper_open_current/3).
+% Thread option arrays live in pl-thread.c/pl-mutex.c, which are only
+% scanned when a thread predicate can be located.  In a single-threaded
+% build these predicates are absent (see the matching :- if/1 guard in
+% library(dialect/swi/syspred_options)), so drop the mappings to avoid
+% flagging their unreachable arrays as stale.
+:- if(current_prolog_flag(threads, true)).
+c_option_array(mutex_options,             system:mutex_create/2).
+c_option_array(make_thread_options,       system:thread_create/3).
+c_option_array(make_engine_options,       '$engines':engine_create/4).
+c_option_array(message_queue_options,     system:message_queue_create/2).
+c_option_array(thread_wait_options,       system:thread_wait/2).
+c_option_array(thread_update_options,     system:thread_update/2).
 % Shared timeout_options[] is scanned for these three:
 c_option_array(timeout_options,           system:thread_send_message/3).
 c_option_array(timeout_options,           system:thread_get_message/3).
 c_option_array(timeout_options,           system:thread_wait/2).
+:- endif.
 % Internal ($-prefixed) predicates: intentionally not mirrored.
 c_option_array(put_quoted_options,        internal(system:'$put_quoted'/4)).
 c_option_array(open_wic_options,          internal(system:'$open_wic'/2)).
