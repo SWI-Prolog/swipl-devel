@@ -2275,9 +2275,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 
     return true;
   } else if ( aname == ATOM_close_on_abort ) /* close_on_abort(Bool) */
-  { int close;
+  { bool close;
 
-    if ( !PL_get_bool_ex(a, &close) )
+    if ( !PL_get_stdbool_ex(a, &close) )
       return false;
 
     if ( close )
@@ -2287,9 +2287,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 
     return true;
   } else if ( aname == ATOM_record_position )
-  { int rec;
+  { bool rec;
 
-    if ( !PL_get_bool_ex(a, &rec) )
+    if ( !PL_get_stdbool_ex(a, &rec) )
       return false;
 
     if ( rec ) {
@@ -2341,9 +2341,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
       return true;
     return PL_permission_error("timeout", "stream", stream);
   } else if ( aname == ATOM_tty )	/* tty(bool) */
-  { int val;
+  { bool val;
 
-    if ( !PL_get_bool_ex(a, &val) )
+    if ( !PL_get_stdbool_ex(a, &val) )
       return false;
 
     if ( val )

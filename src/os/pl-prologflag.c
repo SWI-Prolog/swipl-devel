@@ -1143,8 +1143,8 @@ new_prolog_flag(DECL_LD term_t value, unsigned int flags)
       PL_register_atom(f->value.a);
       break;
     case FT_BOOL:
-    { int b;
-      if ( !PL_get_bool_ex(value, &b) )
+    { bool b;
+      if ( !PL_get_stdbool_ex(value, &b) )
 	goto wrong_type;
       f->flags = FT_BOOL;
       f->value.a = (b ? ATOM_true : ATOM_false);
@@ -1184,9 +1184,9 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-    { int val;
+    { bool val;
 
-      if ( !PL_get_bool_ex(value, &val) )
+      if ( !PL_get_stdbool_ex(value, &val) )
 	return false;
 
 					/* deal with side-effects */

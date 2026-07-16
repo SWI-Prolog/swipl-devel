@@ -9084,11 +9084,11 @@ PRED_IMPL("$break_at", 3, break_at, 0)
 { PRED_LD
   Clause clause = NULL;
   size_t offset;
-  int doit;
+  bool doit;
   bool rc;
 
   if ( (PL_get_clref(A1, &clause) != true) ||
-       !PL_get_bool_ex(A3, &doit) ||
+       !PL_get_stdbool_ex(A3, &doit) ||
        !PL_get_size_ex(A2, &offset) )
     fail;
   if ( offset >= (size_t)clause->code_size )

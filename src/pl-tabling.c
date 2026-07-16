@@ -2016,11 +2016,11 @@ static
 PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
 { PRED_LD
   void *ptr;
-  int truth;
+  bool truth;
   int rc = false;
 
   if ( PL_get_pointer_ex(A1, &ptr) &&
-       PL_get_bool_ex(A2, &truth) )
+       PL_get_stdbool_ex(A2, &truth) )
   { trie_node *answer = ptr;
     delay_info *di = answer->data.delayinfo;
     spf_agenda agenda;

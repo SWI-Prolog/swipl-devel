@@ -3014,8 +3014,8 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
       }
       return false;
     } else if ( name == ATOM_debug_mode )
-    { int val;
-      if ( PL_get_bool_ex(arg, &val) )
+    { bool val;
+      if ( PL_get_stdbool_ex(arg, &val) )
 	return debugmode(info->thread_data, val, NULL, 0);
       return false;
     } else if ( name == ATOM_class )
@@ -3038,10 +3038,10 @@ static
 PRED_IMPL("$debug_thread_class", 4, debug_thread_class, 0)
 { PRED_LD
   atom_t class;
-  int dbg;
+  bool dbg;
 
   if ( PL_get_atom_ex(A1, &class) &&
-       PL_get_bool_ex(A2, &dbg) )
+       PL_get_stdbool_ex(A2, &dbg) )
   { if ( debug_thread_class(class) != dbg )
     { int matching = 0;
       int set = 0;
