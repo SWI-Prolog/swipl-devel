@@ -311,16 +311,6 @@ notImplemented(char *name, int arity)
 
 
 foreign_t
-setBoolean(int *flag, term_t old, term_t new)
-{ if ( !PL_unify_bool_ex(old, *flag) ||
-       !PL_get_bool_ex(new, flag) )
-    fail;
-
-  succeed;
-}
-
-
-foreign_t
 setInteger(int *flag, term_t old, term_t new)
 { GET_LD
 
