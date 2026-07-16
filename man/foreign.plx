@@ -1477,7 +1477,7 @@ modified.
 If \arg{t} has the value \const{true}, \const{false}, set \arg{val} to
 the C constant \const{TRUE} or \const{FALSE} and return success,
 otherwise return failure. The values \const{on}, \const{1}, \const{off},
-const{0} and are also accepted. PL_get_stdbool_ex() deals with the C11
+\const{0} and are also accepted. PL_get_stdbool_ex() deals with the C11
 \ctype{bool} type while PL_get_bool_ex() targetted C standard versions
 before the introduction of \ctype{bool}.
 
