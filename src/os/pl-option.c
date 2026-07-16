@@ -47,6 +47,7 @@ Option list (or dict) processing.  See PL_scan_options() for details.
 
 typedef union
 { int      *b;				/* boolean value */
+  bool     *stdb;			/* C11 boolean value */
   int      *i;				/* integer value */
   int64_t  *i64;			/* 64 bit integer */
   uint64_t *ui64;			/* 64 bit unsigned integer */
@@ -64,11 +65,20 @@ static int
 get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
 { switch((spec->type & OPT_TYPE_MASK))
   { case OPT_BOOL:
-    { int bval;
+    { bool bval;
 
-      if ( !PL_get_bool_ex(val, &bval) )
+      if ( !PL_get_stdbool_ex(val, &bval) )
 	return false;
       *valp.b = bval;
+
+      return true;
+    }
+    case OPT_STDBOOL:
+    { bool bval;
+
+      if ( !PL_get_stdbool_ex(val, &bval) )
+	return false;
+      *valp.stdb = bval;
 
       return true;
     }
@@ -296,7 +306,8 @@ vscan_options(DECL_LD term_t options, int flags, const char *opttype,
     for( n=0, s = specs; s->name; n++, s++ )
     { if ( s->name == name )
       { if ( implicit_true )
-	{ if ( (s->type&OPT_TYPE_MASK) == OPT_BOOL )
+	{ if ( (s->type&OPT_TYPE_MASK) == OPT_BOOL ||
+	       (s->type&OPT_TYPE_MASK) == OPT_STDBOOL )
 	  { *(values[n].b) = true;
 	    break;
 	  }

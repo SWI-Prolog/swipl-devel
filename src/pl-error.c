@@ -1283,11 +1283,25 @@ API_STUB(bool)
   return PL_get_size_ex(t, i);
 )
 
+API_STUB(bool)
+(PL_get_stdbool_ex)(term_t t, bool *i)
+( valid_term_t(t);
+  return PL_get_stdbool_ex(t, i);
+)
+
+bool
+PL_get_stdbool_ex(DECL_LD term_t t, bool *i)
+{ if ( PL_get_stdbool(t, i) )
+    return true;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
+}
+
 bool
 PL_get_bool_ex(term_t t, int *i)
 { valid_term_t(t);
   if ( PL_get_bool(t, i) )
-    succeed;
+    return true;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
 }

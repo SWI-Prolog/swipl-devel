@@ -1722,11 +1722,21 @@ atom_to_bool(atom_t a)
 }
 
 
+API_STUB(bool)
+(PL_get_bool)(term_t t, int *b)
+( valid_term_t(t);
+  return PL_get_bool(t, b);
+)
+
+API_STUB(bool)
+(PL_get_stdbool)(term_t t, bool *b)
+( valid_term_t(t);
+  return PL_get_stdbool(t, b);
+)
+
 bool
-PL_get_bool(term_t t, int *b)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_get_stdbool(DECL_LD term_t t, bool *b)
+{ word w = valHandle(t);
 
   if ( isAtom(w) )
   { int bv = atom_to_bool(word2atom(w));
@@ -1749,6 +1759,14 @@ PL_get_bool(term_t t, int *b)
   return false;
 }
 
+bool
+PL_get_bool(DECL_LD term_t t, int *b)
+{ bool stdb;
+  bool rc = PL_get_stdbool(t, &stdb);
+  if ( rc )
+    *b = stdb;
+  return rc;
+}
 
 /* PL_get_atom(DECL_LD term_t t, atom_t *a) moved to pl-fli.h */
 

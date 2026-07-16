@@ -1472,10 +1472,14 @@ bytes and longs only 4. Unlike PL_get_pointer(), the value is not
 modified.
 
 \cfunction{bool}{PL_get_bool}{term_t +t, int *val}
+\nodescription
+\cfunction{bool}{PL_get_stdbool}{term_t +t, bool *val}
 If \arg{t} has the value \const{true}, \const{false}, set \arg{val} to
 the C constant \const{TRUE} or \const{FALSE} and return success,
 otherwise return failure. The values \const{on}, \const{1}, \const{off},
-const{0} and are also accepted.
+const{0} and are also accepted. PL_get_stdbool_ex() deals with the C11
+\ctype{bool} type while PL_get_bool_ex() targetted C standard versions
+before the introduction of \ctype{bool}.
 
 \cfunction{bool}{PL_get_pointer}{term_t +t, void **ptr}
 Together with PL_put_pointer() and PL_unify_pointer(), these functions
@@ -1846,6 +1850,8 @@ below.
 
 \begin{description}
     \definition{\const{OPT_BOOL}   \ctype{int}}
+    \nodescription
+    \definition{\const{OPT_STDBOOL} \ctype{bool}}
 Convert the option value to a bool.  This converts the values described
 by PL_get_bool(). In addition, an option without a value (i.e., a
 plain atom that denotes the option name) can act as a boolean
@@ -2600,10 +2606,13 @@ As PL_get_intptr(), but raises a type or instantiation error if
 integer does not fit in a C \ctype{size_t}.
 
     \cfunction{bool}{PL_get_bool_ex}{term_t t, int *i}
+    \nodescription
+    \cfunction{bool}{PL_get_stdbool_ex}{term_t t, bool *i}
 As PL_get_bool(), but raises a type or instantiation error if \arg{t} is
 not a valid boolean value (\const{true}, \const{false}, \const{on},
-const{off}, \const{1} or \const{0}). Note that the pointer is to an
-\ctype{int} because C has no \ctype{bool} type.
+const{off}, \const{1} or \const{0}).  PL_get_stdbool_ex() deals with
+the C11 \ctype{bool} type while PL_get_bool_ex() targetted C standard
+versions before the introduction of \ctype{bool}.
 
     \cfunction{bool}{PL_get_float_ex}{term_t t, double *f}
 As PL_get_float(), but raises a type or instantiation error if

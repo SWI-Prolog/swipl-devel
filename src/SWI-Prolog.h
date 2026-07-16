@@ -539,6 +539,7 @@ PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
 			/* Get C-values from Prolog terms */
 PL_EXPORT(bool)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
 PL_EXPORT(bool)		PL_get_bool(term_t t, int *value) WUNUSED;
+PL_EXPORT(bool)		PL_get_stdbool(term_t t, bool *value) WUNUSED;
 PL_EXPORT(bool)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
 PL_EXPORT(bool)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
@@ -728,6 +729,7 @@ PL_EXPORT(bool)		PL_get_uint64_ex(term_t t, uint64_t *i);
 PL_EXPORT(bool)		PL_get_intptr_ex(term_t t, intptr_t *i);
 PL_EXPORT(bool)		PL_get_size_ex(term_t t, size_t *i);
 PL_EXPORT(bool)		PL_get_bool_ex(term_t t, int *i);
+PL_EXPORT(bool)		PL_get_stdbool_ex(term_t t, bool *i);
 PL_EXPORT(bool)		PL_get_float_ex(term_t t, double *f);
 PL_EXPORT(bool)		PL_get_char_ex(term_t t, int *p, int eof);
 PL_EXPORT(bool)		PL_unify_bool_ex(term_t t, int val);
@@ -1210,7 +1212,8 @@ typedef enum
   OPT_STRING,				/* char* (UTF-8) */
   OPT_ATOM,				/* atom_t */
   OPT_TERM,				/* term_t */
-  OPT_LOCALE				/* void* */
+  OPT_LOCALE,				/* void* */
+  OPT_STDBOOL				/* bool */
 } _PL_opt_enum_t;
 
 #define OPT_TYPE_MASK	0xff

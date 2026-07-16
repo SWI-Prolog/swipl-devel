@@ -67,6 +67,8 @@
 #define	popTermRef(_)				LDFUNC(popTermRef, _)
 #define	_PL_get_arg(index, t, a)		LDFUNC(_PL_get_arg, index, t, a)
 #define PL_get_intptr(t, i)			LDFUNC(PL_get_intptr, t, i)
+#define PL_get_bool(t, i)			LDFUNC(PL_get_bool, t, i)
+#define PL_get_stdbool(t, i)			LDFUNC(PL_get_stdbool, t, i)
 #define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
 #define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
 #define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
@@ -156,6 +158,8 @@ term_t		pushWordAsTermRef(Word p);
 void		popTermRef(void);
 bool		_PL_get_arg(size_t index, term_t t, term_t a);
 bool		PL_get_intptr(term_t t, intptr_t *i);
+bool		PL_get_bool(term_t t, int *i);
+bool		PL_get_stdbool(term_t t, bool *i);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
 term_t		PL_new_term_refs(size_t n);
