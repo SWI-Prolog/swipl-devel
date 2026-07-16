@@ -2105,29 +2105,29 @@ PRED_IMPL("noprotocol", 0, noprotocol, 0)
 		 *******************************/
 
 static bool
-setCloseOnExec(IOSTREAM *s, bool val)
+setCloseOnExec(IOSTREAM *s, term_t stream, bool val)
 { int fd;
 
   if ( (fd = Sfileno(s)) < 0)
-    return false;
+    return PL_permission_error("close_on_exec", "stream", stream);
 
 #if defined(F_SETFD) && defined(FD_CLOEXEC)
   { int fd_flags = fcntl(fd, F_GETFD);
 
     if ( fd_flags == -1 )
-      return false;
+      return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "fcntl");
     if ( val )
       fd_flags |= FD_CLOEXEC;
     else
       fd_flags &= ~FD_CLOEXEC;
 
     if ( fcntl(fd, F_SETFD, fd_flags) == -1 )
-      return false;
+      return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "fcntl");
   }
 #elif defined __WINDOWS__
   { if ( !SetHandleInformation((HANDLE)_get_osfhandle(fd),
 			       HANDLE_FLAG_INHERIT, !val) )
-      return false;
+      return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "SetHandleInformation");
   }
 #else
   return PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "close_on_exec");
@@ -2454,7 +2454,7 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     if ( !PL_get_stdbool_ex(a, &val) )
       return false;
 
-    return setCloseOnExec(s, val);
+    return setCloseOnExec(s, stream, val);
   } else
   { assert(0);
     return false;
