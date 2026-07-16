@@ -295,7 +295,7 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
 
 
 int
-get_mutex(term_t t, pl_mutex **mutex, int create)
+get_mutex(term_t t, pl_mutex **mutex, bool create)
 { GET_LD
   atom_t name;
   word id = 0;

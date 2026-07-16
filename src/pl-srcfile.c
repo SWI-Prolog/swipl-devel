@@ -288,7 +288,7 @@ destroySourceFile(SourceFile sf)
 
 
 static SourceFile
-lookupSourceFile_unlocked(atom_t name, int create)
+lookupSourceFile_unlocked(atom_t name, bool create)
 { GET_LD
   SourceFile file;
 
@@ -323,7 +323,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
 
 
 SourceFile
-lookupSourceFile(atom_t name, int create)
+lookupSourceFile(atom_t name, bool create)
 { SourceFile sf;
 
   PL_LOCK(L_SRCFILE);

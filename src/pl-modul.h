@@ -75,7 +75,7 @@ bool		isPublicModule(Module module, Procedure proc);
 bool		exportProcedure(const Module module, const Procedure proc);
 int		declareModule(atom_t name, atom_t class, atom_t super,
 			      SourceFile sf, int line,
-			      int rdef);
+			      bool rdef);
 foreign_t	pl_context_module(term_t module);
 int		atomToImportStrength(atom_t a);
 foreign_t	pl_import(term_t pred);

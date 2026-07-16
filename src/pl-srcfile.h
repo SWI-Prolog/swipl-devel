@@ -57,7 +57,7 @@
 bool		startConsult(SourceFile f);
 bool		endConsult(SourceFile f);
 size_t		highSourceFileIndex(void);
-SourceFile	lookupSourceFile(atom_t name, int create);
+SourceFile	lookupSourceFile(atom_t name, bool create);
 bool		releaseSourceFileNo(size_t index);
 SourceFile	indexToSourceFile(size_t index);
 void		cleanupSourceFiles(void);

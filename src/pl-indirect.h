@@ -89,7 +89,7 @@ typedef struct
 indirect_table*	new_indirect_table(void);
 void		destroy_indirect_table(indirect_table *tab);
 word		intern_indirect(indirect_table *tab, word val,
-				int create);
+				bool create);
 word		extern_indirect(indirect_table *tab,
 				word val, Word *gp);
 word		extern_indirect_no_shift(indirect_table *tab,

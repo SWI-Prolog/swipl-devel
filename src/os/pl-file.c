@@ -2105,7 +2105,7 @@ PRED_IMPL("noprotocol", 0, noprotocol, 0)
 		 *******************************/
 
 static int
-setCloseOnExec(IOSTREAM *s, int val)
+setCloseOnExec(IOSTREAM *s, bool val)
 { int fd;
 
   if ( (fd = Sfileno(s)) < 0)
@@ -2449,9 +2449,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
       return false;
 
   } else if ( aname == ATOM_close_on_exec ) /* close_on_exec(bool) */
-  { int val;
+  { bool val;
 
-    if ( !PL_get_bool_ex(a, &val) )
+    if ( !PL_get_stdbool_ex(a, &val) )
       return false;
 
     return setCloseOnExec(s, val);

@@ -676,7 +676,7 @@ follow_node(DECL_LD trie *trie, trie_node *n, word value, bool add)
 	LDFUNC(trie_intern_indirect, trie, w, add)
 
 static word
-trie_intern_indirect(DECL_LD trie *trie, word w, int add)
+trie_intern_indirect(DECL_LD trie *trie, word w, bool add)
 { for(;;)
   { if ( trie->indirects )
     { return intern_indirect(trie->indirects, w, add);

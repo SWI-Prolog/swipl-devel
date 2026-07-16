@@ -159,7 +159,7 @@ extern int	ttyfileno;		/* Main TTY file number */
 #define IsaTty(fd)	isatty(fd)
 
 bool		PushTty(IOSTREAM *s, ttybuf *buf, int mode);
-bool		PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
+bool		PopTty(IOSTREAM *s, ttybuf *buf, bool do_free);
 void		ResetTty(void);
 int		Sttymode(IOSTREAM *s);
 int		hasConsole(void);

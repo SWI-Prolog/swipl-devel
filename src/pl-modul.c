@@ -1263,7 +1263,7 @@ in it are abolished.
 int
 declareModule(atom_t name, atom_t class, atom_t super,
 	      SourceFile sf, int line,
-	      int allow_newfile)
+	      bool allow_newfile)
 { GET_LD
   Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
@@ -1354,7 +1354,8 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
 { PRED_LD
   SourceFile sf;
   atom_t mname, cname, sname, fname;
-  int line_no, rdef;
+  int line_no;
+  bool rdef;
 
   term_t module   = A1;
   term_t class    = A2;
@@ -1368,7 +1369,7 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
        !PL_get_atom_ex(super, &sname) ||
        !PL_get_atom_ex(file, &fname) ||
        !PL_get_integer_ex(line, &line_no) ||
-       !PL_get_bool_ex(redefine, &rdef) )
+       !PL_get_stdbool_ex(redefine, &rdef) )
     fail;
 
   sf = lookupSourceFile(fname, true);

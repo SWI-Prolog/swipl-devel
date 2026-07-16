@@ -2331,7 +2331,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
  */
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
+PopTty(IOSTREAM *s, ttybuf *buf, bool do_free)
 { int rc = true;
 
   Sset_ttymode(s, buf->mode);
@@ -2402,7 +2402,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
+PopTty(IOSTREAM *s, ttybuf *buf, bool do_free)
 { Sset_ttymode(s, buf->mode);
   if ( buf->state )
   { int fd = Sfileno(s);
@@ -2433,7 +2433,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
+PopTty(IOSTREAM *s, ttybuf *buf, bool do_free)
 { GET_LD
 
   Sset_ttymode(s, buf->mode);
