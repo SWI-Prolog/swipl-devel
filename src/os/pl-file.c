@@ -2104,7 +2104,7 @@ PRED_IMPL("noprotocol", 0, noprotocol, 0)
 		 *	 STREAM ATTRIBUTES	*
 		 *******************************/
 
-static int
+static bool
 setCloseOnExec(IOSTREAM *s, bool val)
 { int fd;
 
@@ -2130,7 +2130,7 @@ setCloseOnExec(IOSTREAM *s, bool val)
       return false;
   }
 #else
-  return -1;
+  return PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "close_on_exec");
 #endif
 
   return true;
