@@ -618,13 +618,11 @@ currentFileNameCaseHandling(void)
 { GET_LD
 
   if ( truePrologFlag(PLFLAG_FILE_CASE) )
-  { if ( truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
-      return ATOM_case_preserving;
-    else
-      return ATOM_case_insensitive;
-  } else
-  { return ATOM_case_sensitive;
-  }
+    return ATOM_case_sensitive;
+  else if ( truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
+    return ATOM_case_preserving;
+  else
+    return ATOM_case_insensitive;
 }
 
 
