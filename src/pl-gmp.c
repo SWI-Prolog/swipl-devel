@@ -1382,14 +1382,18 @@ put_mpz(DECL_LD Word at, mpz_t mpz)
 		   mpz_get_str(buf, 10, mpz));
 	});
 
-#if SIZEOF_LONG < SIZEOF_WORD
-  if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
-       mpz_cmp(mpz, MPZ_MAX_LONG) <= 0 )
-#else
   if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_TAGGED) <= 0 )
+  { int64_t v;
+
+#if SIZEOF_LONG < SIZEOF_WORD
+    bool rc = mpz_to_int64(mpz, &v);
+    assert(rc);
+    (void)rc;
+#else
+    static_assertion(sizeof(word) == sizeof(long));
+    v = mpz_get_si(mpz);
 #endif
-  { long v = mpz_get_si(mpz);
 
     if ( !ensureGlobalSpace(0, ALLOW_GC) )
       return false;

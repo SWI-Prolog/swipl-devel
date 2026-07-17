@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2024, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (C): 1985-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -58,7 +58,8 @@ test_arith :-
 		    float_compare,
 		    arith_misc,
 		    max_integer_size,
-		    moded_int
+		    moded_int,
+		    canonical_bignum
 		  ]).
 
 :- begin_tests(arith_basics).
@@ -945,6 +946,15 @@ test(plus_1) :-
     plus(1, 2, 3).
 
 :- end_tests(moded_int).
+
+:- begin_tests(canonical_bignum).
+
+test(to_tagged, MantissaBits == 2251799813685249 ) :-
+    Bits = 0x7ff8000000000001,
+    MantissaWidth = 52,
+    MantissaBits is Bits /\ ((1 << MantissaWidth) - 1).
+
+:- end_tests(canonical_bignum).
 
 :- begin_tests(arith_misc).
 
