@@ -926,19 +926,9 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ if ( _xos_canonical_filename(p, buf, len, 0) == buf )
-  { GET_LD
-
-    if ( truePrologFlag(PLFLAG_FILE_CASE) )
-    { if ( !utf8_path_lwr(buf, len) )
-	return NULL;
-      Sdprintf("Now %s\n", buf);
-    }
-
-    return buf;
-  }
-
-  return NULL;
+{ /* Case normalisation (down-casing or restoring the on-disk case) is
+     done by canonicalisePath(); here we only translate the syntax. */
+  return _xos_canonical_filename(p, buf, len, 0);
 }
 
 char *
@@ -1481,17 +1471,31 @@ char *
 canonicalisePath(char *path, size_t buflen)
 { GET_LD
 
-  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
-  { if ( !utf8_path_lwr(path, PATH_MAX) )
+  if ( !canonicaliseFileName(path, buflen) )
+    return NULL;
+
+  if ( !truePrologFlag(PLFLAG_FILE_CASE) )	/* not case-sensitive */
+  {
+#ifdef O_XOS
+    if ( truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
+    { /* Normalise to the case in which the file is stored on disk,
+	 rather than down-casing.  Keeps names readable while still
+	 mapping every spelling of a file to a single normal form. */
+      if ( !_xos_case_canonical_filename(path, path, buflen) )
+      { if ( errno == ENAMETOOLONG )
+	  return PL_representation_error("max_path_length"),NULL;
+	else
+	  return PL_resource_error("memory"),NULL;
+      }
+    } else
+#endif
+    if ( !utf8_path_lwr(path, PATH_MAX) )
     { if ( errno == ENAMETOOLONG )
 	return PL_representation_error("max_path_length"),NULL;
       else
 	return PL_resource_error("memory"),NULL;
     }
   }
-
-  if ( !canonicaliseFileName(path, buflen) )
-    return NULL;
 
 #ifdef O_CANONICALISE_DIRS
 { char *e;

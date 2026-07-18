@@ -806,11 +806,19 @@ initPaths(int argc, const char **argv)
 
 #ifdef O_XOS
   if ( systemDefaults.home )
-  { char buf[PATH_MAX];
+  { GET_LD
+    char buf[PATH_MAX];
 
-    if ( !_xos_limited_os_filename(systemDefaults.home, buf, sizeof(buf)) )
-      fatalError("Home path too long");
-    systemDefaults.home = store_string(buf);
+    /* Normalise the case of the home directory.  Only case_insensitive
+       maps it to lower case; with case_preserving canonicalisePath() has
+       already put it in its on-disk case.
+    */
+    if ( !truePrologFlag(PLFLAG_FILE_CASE) &&
+	 !truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
+    { if ( !_xos_limited_os_filename(systemDefaults.home, buf, sizeof(buf)) )
+	fatalError("Home path too long");
+      systemDefaults.home = store_string(buf);
+    }
   }
 #endif
 }

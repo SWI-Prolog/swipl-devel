@@ -547,76 +547,364 @@ _xos_is_absolute_filename(const char *spec)
 }
 
 
+		 /*******************************
+		 *	  ON-DISK CASE		*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get rid of possible  8+3  characters   in  the  path.  The documentation
-suggests  you  can  do   that   using    a   single   FindFirstFile   or
-GetFullPathName, but it appears you cannot.  If   you  like, here is the
-code that doesn't work:
+_xos_long_file_nameW() resolves the canonical on-disk spelling of a file:
+it expands 8+3 short names to their long  form and restores the case of
+every component to the way it is stored  on disk.  On case-preserving but
+case-insensitive file systems this is what turns a name the user typed
+(possibly with the wrong case) into SWI-Prolog's normal form.
 
-char *
-_xos_long_file_nameW(const char *file, char *longname)
-{ DWORD len;
-  LPTSTR fp;
+Do not be tempted to use GetLongPathNameW()  for this.  It only expands 8+3
+short names: a component that does not fit  in an 8+3 name cannot be a short
+name and is copied from the input unchanged,  case and all.  Asking for
+"Short\longername\Ab" returns "Short\longername\Ab", which  is neither the
+name on disk nor the name that was  passed in.  This is the behaviour on
+Windows 11 as well as on Wine.  It  also fails if any component does not
+exist, as it does for a file about to be created.
 
-  if ( !(len=GetFullPathName(file, PATH_MAX, longname, &fp)) ||
-       len >= PATH_MAX )
-    strcpy(longname, file);
-
-  return longname;
-}
+We therefore resolve the path ourselves, component  by component, using
+FindFirstFile() and copying components that do  not exist verbatim.  That
+expands 8+3 short names as well, as  FindFirstFile() reports the long name
+for a short one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-TCHAR *
-_xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
+/* "." and ".." must be copied verbatim: FindFirstFile() resolves them to
+   the directory they refer to and would replace them by its name.
+*/
+
+static bool
+is_dot_component(const TCHAR *start, const TCHAR *end)
+{ return ( ( end-start == 1 && start[0] == '.' ) ||
+	   ( end-start == 2 && start[0] == '.' && start[1] == '.' ) );
+}
+
+
+/* Return a pointer to the last component of `path' or NULL if `path' has
+   no directory part or ends in a separator.
+*/
+
+static const TCHAR *
+last_component(const TCHAR *path)
+{ const TCHAR *s, *last = NULL;
+
+  for(s=path; *s; s++)
+  { if ( *s == '\\' || *s == '/' )
+      last = s;
+  }
+
+  if ( !last || !last[1] )
+    return NULL;
+
+  return last+1;
+}
+
+
+/* Replace the component of `path' that starts at `comp' by its on-disk
+   spelling.  Returns the new end of `path' or NULL if it does not fit.
+   `*resolved' is false if the component does not exist, in which case it
+   is kept as it was written.
+*/
+
+static TCHAR *
+resolve_component(TCHAR *path, TCHAR *comp, TCHAR *e, bool *resolved)
+{ WIN32_FIND_DATA data;
+  HANDLE h;
+  TCHAR *o = comp + _tcslen(comp);
+
+  *resolved = true;
+  if ( o == comp || is_dot_component(comp, o) )
+    return o;				/* nothing to resolve */
+
+  if ( (h=FindFirstFile(path, &data)) != INVALID_HANDLE_VALUE )
+  { size_t l = _tcslen(data.cFileName);
+
+    if ( comp+l >= e )
+    { FindClose(h);
+      errno = ENAMETOOLONG;
+      return NULL;
+    }
+    _tcscpy(comp, data.cFileName);
+    o = comp+l;
+    FindClose(h);
+  } else
+  { *resolved = false;
+  }
+
+  return o;
+}
+
+
+/* Resolve every component of `file'.  `*complete' is true if all
+   components exist, i.e. if the result is the definitive on-disk name.
+*/
+
+static TCHAR *
+walk_components(const TCHAR *file, TCHAR *longname, size_t len,
+		bool *complete)
 { const TCHAR *i = file;
   TCHAR *o = longname;
-  TCHAR *ok = longname;
   TCHAR *e = &longname[len-1];
+  int pfx = _xos_win_prefix_length(file);
+
+  *complete = true;
+
+  while ( pfx-- > 0 )			/* copy \\?\ or \\?\UNC\ verbatim */
+  { if ( o >= e )
+      goto too_long;
+    *o++ = *i++;
+  }
+  if ( i[0] && i[1] == ':' )		/* copy the drive ("c:") verbatim */
+  { if ( o+2 > e )
+      goto too_long;
+    *o++ = *i++;
+    *o++ = *i++;
+  }
 
   while(*i)
-  { bool dirty = false;
+  { TCHAR *comp;
+    bool resolved;
 
-    while(*i && *i != '\\' && *i != '/' )
-    { if ( *i == '~' )
-	dirty = true;
-      if ( o >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
-      *o++ = *i++;
-    }
-    if ( dirty )
-    { WIN32_FIND_DATA data;
-      HANDLE h;
-
-      *o = '\0';
-      if ( (h=FindFirstFile(longname, &data)) != INVALID_HANDLE_VALUE )
-      { size_t l = _tcslen(data.cFileName);
-
-	if ( ok+l >= e )
-	{ errno = ENAMETOOLONG;
-	  FindClose(h);
-	  return NULL;
-	}
-
-	_tcscpy(ok, data.cFileName);
-	FindClose(h);
-	o = ok + l;
-      }
-    }
-    if ( *i )
+    while ( *i == '\\' || *i == '/' )	/* copy separator(s) verbatim */
     { if ( o >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
+	goto too_long;
       *o++ = *i++;
     }
-    ok = o;
+
+    comp = o;				/* the component starts here */
+    while ( *i && *i != '\\' && *i != '/' )
+    { if ( o >= e )
+	goto too_long;
+      *o++ = *i++;
+    }
+    *o = '\0';
+
+    if ( !(o=resolve_component(longname, comp, e, &resolved)) )
+      return NULL;
+    if ( !resolved )
+      *complete = false;
   }
 
   *o = '\0';
-
   return longname;
+
+too_long:
+  errno = ENAMETOOLONG;
+  return NULL;
+}
+
+
+/* Resolving a path costs one FindFirstFile() per component.  As the
+   directory part is stable and shared by many files, we cache it in a
+   small direct mapped table keyed on the down-cased directory; a
+   collision simply replaces the entry.  A hit is verified with a single
+   FindFirstFile(), which also catches a directory that was removed.
+   Note that a case-only rename of a _parent_ of a cached directory goes
+   unnoticed until the process restarts.
+*/
+
+#define DIRCACHE_SIZE 128		/* must be a power of 2 */
+
+static struct
+{ wchar_t *key;				/* down-cased directory */
+  wchar_t *value;			/* directory in on-disk case */
+} dircache[DIRCACHE_SIZE];
+
+static SRWLOCK dircache_lock = SRWLOCK_INIT;
+
+static wchar_t *
+wcs_downcase(wchar_t *dest, const wchar_t *src, size_t len)
+{ wchar_t *o = dest;
+  wchar_t *e = &dest[len-1];
+
+  for( ; *src; src++ )
+  { if ( o >= e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    *o++ = towlower(*src);
+  }
+  *o = '\0';
+
+  return dest;
+}
+
+
+static unsigned int
+dircache_hash(const wchar_t *s)
+{ unsigned int h = 0;
+
+  for( ; *s; s++ )
+    h = h*31 + (unsigned int)*s;
+
+  return h & (DIRCACHE_SIZE-1);
+}
+
+
+static bool
+dircache_get(const wchar_t *key, wchar_t *out, size_t len)
+{ unsigned int k = dircache_hash(key);
+  bool hit = false;
+
+  AcquireSRWLockShared(&dircache_lock);
+  if ( dircache[k].key &&
+       wcscmp(dircache[k].key, key) == 0 &&
+       wcslen(dircache[k].value) < len )
+  { wcscpy(out, dircache[k].value);
+    hit = true;
+  }
+  ReleaseSRWLockShared(&dircache_lock);
+
+  return hit;
+}
+
+
+static void
+dircache_put(const wchar_t *key, const wchar_t *value)
+{ unsigned int k = dircache_hash(key);
+  wchar_t *nkey = _wcsdup(key);
+  wchar_t *nvalue = _wcsdup(value);
+
+  if ( !nkey || !nvalue )		/* not fatal; just do not cache */
+  { free(nkey);
+    free(nvalue);
+    return;
+  }
+
+  AcquireSRWLockExclusive(&dircache_lock);
+  free(dircache[k].key);
+  free(dircache[k].value);
+  dircache[k].key   = nkey;
+  dircache[k].value = nvalue;
+  ReleaseSRWLockExclusive(&dircache_lock);
+}
+
+
+static void
+dircache_del(const wchar_t *key)
+{ unsigned int k = dircache_hash(key);
+
+  AcquireSRWLockExclusive(&dircache_lock);
+  if ( dircache[k].key && wcscmp(dircache[k].key, key) == 0 )
+  { free(dircache[k].key);
+    free(dircache[k].value);
+    dircache[k].key   = NULL;
+    dircache[k].value = NULL;
+  }
+  ReleaseSRWLockExclusive(&dircache_lock);
+}
+
+
+/* Is `path' still spelled the way we cached it? */
+
+static bool
+dir_case_current(const TCHAR *path)
+{ const TCHAR *base = last_component(path);
+  WIN32_FIND_DATA data;
+  HANDLE h;
+  bool ok = false;
+
+  if ( !base )				/* a root cannot change case */
+    return true;
+
+  if ( (h=FindFirstFile(path, &data)) != INVALID_HANDLE_VALUE )
+  { ok = ( _tcscmp(data.cFileName, base) == 0 );
+    FindClose(h);
+  }
+
+  return ok;
+}
+
+
+static TCHAR *
+resolve_dir(const TCHAR *dir, TCHAR *out, size_t len)
+{ TCHAR key[PATH_MAX];
+  bool cacheable = ( wcs_downcase(key, dir, PATH_MAX) != NULL );
+  bool complete;
+
+  if ( cacheable && dircache_get(key, out, len) )
+  { if ( dir_case_current(out) )
+      return out;
+    dircache_del(key);
+  }
+
+  if ( !walk_components(dir, out, len, &complete) )
+    return NULL;
+  if ( cacheable && complete )
+    dircache_put(key, out);
+
+  return out;
+}
+
+
+TCHAR *
+_xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
+{ const TCHAR *base;
+  bool complete;
+
+  if ( (base=last_component(file)) && base-file > 1 &&
+       (size_t)(base-file) < PATH_MAX )
+  { size_t dlen = base-file;		/* directory, including separator */
+    TCHAR dir[PATH_MAX];
+    TCHAR cased[PATH_MAX];
+    size_t clen, blen;
+    bool resolved;
+
+    memcpy(dir, file, dlen*sizeof(TCHAR));
+    dir[dlen-1] = '\0';			/* without the separator */
+
+    if ( !resolve_dir(dir, cased, PATH_MAX) )
+      return NULL;
+
+    clen = _tcslen(cased);
+    blen = _tcslen(base);
+    if ( clen+1+blen >= len )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+
+    _tcscpy(longname, cased);
+    longname[clen] = base[-1];		/* the original separator */
+    _tcscpy(&longname[clen+1], base);
+
+    if ( !resolve_component(longname, &longname[clen+1],
+			    &longname[len-1], &resolved) )
+      return NULL;
+
+    return longname;
+  }
+
+  return walk_components(file, longname, len, &complete);
+}
+
+
+/* _xos_case_canonical_filename() takes a Prolog file name and returns the
+   same name with the case of each component adjusted to the way it is
+   stored on disk.  The name is expected to be absolute and already free
+   of ./ and ../ steps (i.e. the output of canonicaliseFileName()).  The
+   `in' and `out' buffers may be the same.
+*/
+
+char *
+_xos_case_canonical_filename(const char *in, char *out, size_t len)
+{ TCHAR wname[PATH_MAX];
+  TCHAR longname[PATH_MAX];
+  TCHAR *w;
+
+  if ( !_xos_utf8towcs(wname, in, PATH_MAX) )
+    return NULL;
+  for(w=wname; *w; w++)			/* Prolog uses '/', Windows '\\' */
+  { if ( *w == '/' )
+      *w = '\\';
+  }
+
+  if ( _xos_long_file_nameW(wname, longname, PATH_MAX) )
+    return _xos_canonical_filenameW(longname, out, len, 0);
+
+  return NULL;
 }
 
 
