@@ -588,20 +588,34 @@ checkOnError(term_t value, atom_t a, atom_t key)
 
 
 
-static int
-setFileNameCaseHandling(atom_t a)
+/* Also used before Prolog is started, from -Dfile_name_case_handling=...
+   (see setEarlyDefines() in pl-init.c), hence the plain string interface.
+*/
+
+bool
+setFileNameCaseHandlingName(const char *name)
 { GET_LD
 
-  if ( a == ATOM_case_sensitive )
+  if ( streq(name, "case_sensitive") )
   { setPrologFlagMask(PLFLAG_FILE_CASE);
     setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
-  } else if ( a == ATOM_case_preserving )
+  } else if ( streq(name, "case_preserving") )
   { setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
     clearPrologFlagMask(PLFLAG_FILE_CASE);
-  } else if ( a == ATOM_case_insensitive )
+  } else if ( streq(name, "case_insensitive") )
   { clearPrologFlagMask(PLFLAG_FILE_CASE);
     clearPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
   } else
+  { return false;
+  }
+
+  return true;
+}
+
+
+static int
+setFileNameCaseHandling(atom_t a)
+{ if ( !setFileNameCaseHandlingName(PL_atom_chars(a)) )
   { term_t value = PL_new_term_ref();
 
     PL_put_atom(value, a);
@@ -2324,7 +2338,7 @@ initPrologFlags(void)
   setPrologFlag("win_file_access_check", FT_ATOM,
 		get_win_file_access_check(), 0);
 #endif
-  setPrologFlag("file_name_case_handling", FT_ATOM,
+  setPrologFlag("file_name_case_handling", FT_ATOM|FF_READONLY,
 		stringAtom(currentFileNameCaseHandling()));
   setPrologFlag("path_max", FT_INTEGER|FF_READONLY, (intptr_t)PATH_MAX);
   setPrologFlag("version", FT_INTEGER|FF_READONLY, (intptr_t)PLVERSION);

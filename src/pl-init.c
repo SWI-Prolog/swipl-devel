@@ -161,6 +161,97 @@ find_longopt(const char *opt, int argc, const char **argv)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+-D options are normally applied by  apply_defines/0 (see boot/toplevel.pl),
+which runs after the boot files have  been loaded.  That is too late for a
+flag the boot sequence itself depends on:  file_name_case_handling decides
+the normal form of every file name,  so  it must be set before initPaths()
+locates the home directory.
+
+Such flags are listed in  early_defines[].   setEarlyDefines() picks them
+straight from the raw argv (GD->options.defines  does not exist yet at that
+point) and parseCommandLineOptions() then  leaves  them out, so that Prolog
+does not try to set them a second time.  As they are set before Prolog
+starts, they can be read-only flags.
+
+To add one, give it an entry  in early_defines[] with a function that
+accepts the value as written on the command line.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static const struct early_define
+{ const char *name;
+  bool (*set)(const char *value);
+} early_defines[] =
+{ { "file_name_case_handling", setFileNameCaseHandlingName },
+  { NULL, NULL }
+};
+
+
+/* `def' is a -D argument, i.e. "name" or "name=value" */
+
+static const struct early_define *
+is_early_define(const char *def)
+{ const struct early_define *ed;
+
+  for(ed=early_defines; ed->name; ed++)
+  { if ( optcmp(def, ed->name) )
+      return ed;
+  }
+
+  return NULL;
+}
+
+
+/* Find -Dname[=value] in the raw argv.  Returns the value, "" if the
+   option carries no value and NULL if it is not present.  A repeated
+   option is resolved as it is by apply_defines/0: the last one wins.
+*/
+
+static const char *
+find_define(const char *name, int argc, const char **argv)
+{ const char *value = NULL;
+
+  for(; argc > 0; argc--, argv++)
+  { const char *a = argv[0];
+    const char *def = NULL;
+
+    if ( streq(a, "--") )		/* --: end of args */
+      break;
+
+    if ( a[0] == '-' && a[1] == 'D' )
+    { if ( a[2] )
+	def = a+2;
+      else if ( argc > 1 )		/* -D name=value */
+      { def = argv[1];
+	argc--, argv++;
+      }
+    }
+
+    if ( def )
+    { const char *v;
+
+      if ( (v=optcmp(def, name)) )
+	value = v;
+    }
+  }
+
+  return value;
+}
+
+
+static void
+setEarlyDefines(int argc, const char **argv)
+{ const struct early_define *ed;
+
+  for(ed=early_defines; ed->name; ed++)
+  { const char *value = find_define(ed->name, argc, argv);
+
+    if ( value && !(*ed->set)(value) )
+      fatalError("Invalid value for -D%s: %s", ed->name, value);
+  }
+}
+
+
 static const char *
 is_longopt(const char *optstring, const char *name)
 { const char *v;
@@ -1163,10 +1254,15 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
     if ( *s == 'D' )
     { const char *def = s+1;
 
-      if ( *def )
+      if ( !*def )			/* -D name=value */
+      { if ( argc <= 1 )
+	  return -1;
+	def = argv[1];
+	argc--, argv++;
+      }
+					/* setEarlyDefines() did these */
+      if ( !is_early_define(def) )
 	opt_append(&GD->options.defines, def);
-      else
-	optionList(&GD->options.defines);
 
       continue;
     }
@@ -1408,6 +1504,7 @@ PL_initialise(int argc, char **argv)
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
+  setEarlyDefines(argc, (const char**)argv); /* -D flags needed below */
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   GET_LD

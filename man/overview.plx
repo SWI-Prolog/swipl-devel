@@ -1694,10 +1694,14 @@ threaded versions of SWI-Prolog.
 Set by halt/1 to its argument, making the exit status available to
 hooks registered with at_halt/1.
 
-    \prologflagitem{file_name_case_handling}{atom}{rw}
+    \prologflagitem{file_name_case_handling}{atom}{r}
 This flag defines how Prolog handles the case of file names. The flag is
 used for case normalization and to determine whether two names refer to
-the same file.\bug{Note that file name case handling is typically a
+the same file.  It is read-only because the normal form it selects is
+used to identify loaded source files: changing it at runtime would leave
+files loaded before and after the change under different names.  Use
+\cmdlineoption{-Dfile_name_case_handling=\arg{value}} to set it at
+startup.\bug{Note that file name case handling is typically a
 properly of the filesystem, while Prolog only has a global flag to
 determine its file handling.}  It has one of the following values:
 
@@ -1708,7 +1712,8 @@ any case modification or case insensitive matching.  This is the
 default on Unix systems.
     \termitem{case_preserving}{}
 The filesystem is case insensitive, but it preserves the case with
-which the user has created a file.  This is the default on Windows
+which the user has created a file.  Prolog maps a file name to the case
+with which it is stored on disk.  This is the default on Windows
 systems.
     \termitem{case_insensitive}{}
 The filesystem doesn't store or match case.  In this scenario Prolog
