@@ -659,7 +659,12 @@ Utility defined as \exam{guitracer,spy(Predicate)}.
 Another tool is the \jargon{Prolog Navigator}.  This tool can be started
 from PceEmacs using the command \menu{Browse/Prolog navigator}{}, from
 the GUI debugger or using the programmatic IDE interface described in
-\secref{idepreds}.
+\secref{idepreds}.  It is rooted at the common directory of all loaded
+source files and initially shows only these files.  Collapsing and
+re-expanding a directory, or \menu{Show all files}{} from its popup
+menu, adds the Prolog files that are not loaded.  If the loaded files
+are spread over multiple Windows drives, the root is a virtual node
+holding these drives.
 
 
 \input{xref.tex}
@@ -682,9 +687,12 @@ to its one and only instance \verb$@prolog_ide$.  \arg{Action} is one
 of the following:
 
 \begin{description}
+    \termitem{open_navigator}{}
+\nodescription
     \termitem{open_navigator}{+Directory}
-Open the Prolog Navigator (see \secref{navigator}) in the given
-\arg{Directory}.
+Open the Prolog Navigator (see \secref{navigator}), rooted at
+\arg{Directory} or, without argument, at the common directory of the
+loaded source files.
 
     \termitem{open_debug_status}{}
 Open a window to edit spy and trace points.
