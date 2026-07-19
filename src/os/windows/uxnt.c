@@ -495,8 +495,8 @@ _xos_canonical_filenameW(const wchar_t *spec,
   char *p = xname;
   char *e = &xname[len];
 
-  if ( s[0] < 0x80 && isupper(s[0]) && s[1] == ':' )
-  { *p++ = tolower(s[0]);
+  if ( s[0] < 0x80 && islower(s[0]) && s[1] == ':' )
+  { *p++ = toupper(s[0]);
     *p++ = (char)s[1];
     s += 2;
   }
