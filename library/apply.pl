@@ -107,16 +107,13 @@ means that these calls are identical:
 %   @compat Older versions of SWI-Prolog had sublist/3 with the same
 %   arguments and semantics.
 
-include(Goal, List, Included) :-
-    include_(List, Goal, Included).
-
-include_([], _, []).
-include_([X1|Xs1], P, Included) :-
-    (   call(P, X1)
+include(_, [], []).
+include(Goal, [X1|Xs1], Included) :-
+    (   call(Goal, X1)
     ->  Included = [X1|Included1]
     ;   Included = Included1
     ),
-    include_(Xs1, P, Included1).
+    include(Goal, Xs1, Included1).
 
 
 %!  exclude(:Goal, +List1, ?List2) is det.
@@ -126,16 +123,13 @@ include_([X1|Xs1], P, Included) :-
 %
 %   @see include/3, partition/4
 
-exclude(Goal, List, Included) :-
-    exclude_(List, Goal, Included).
-
-exclude_([], _, []).
-exclude_([X1|Xs1], P, Included) :-
-    (   call(P, X1)
+exclude(_, [], []).
+exclude(Goal, [X1|Xs1], Included) :-
+    (   call(Goal, X1)
     ->  Included = Included1
     ;   Included = [X1|Included1]
     ),
-    exclude_(Xs1, P, Included1).
+    exclude(Goal, Xs1, Included1).
 
 
 %!  partition(:Pred, +List, ?Included, ?Excluded) is det.
@@ -146,16 +140,13 @@ exclude_([X1|Xs1], P, Included) :-
 %
 %   @see include/3, exclude/3, partition/5.
 
-partition(Pred, List, Included, Excluded) :-
-    partition_(List, Pred, Included, Excluded).
-
-partition_([], _, [], []).
-partition_([H|T], Pred, Incl, Excl) :-
+partition(_, [], [], []).
+partition(Pred, [H|T], Incl, Excl) :-
     (   call(Pred, H)
     ->  Incl = [H|I],
-        partition_(T, Pred, I, Excl)
+        partition(Pred, T, I, Excl)
     ;   Excl = [H|E],
-        partition_(T, Pred, Incl, E)
+        partition(Pred, T, Incl, E)
     ).
 
 
@@ -168,26 +159,23 @@ partition_([H|T], Pred, Incl, Excl) :-
 %
 %   @see partition/4
 
-partition(Pred, List, Less, Equal, Greater) :-
-    partition_(List, Pred, Less, Equal, Greater).
-
-partition_([], _, [], [], []).
-partition_([H|T], Pred, L, E, G) :-
+partition(_, [], [], [], []).
+partition(Pred, [H|T], L, E, G) :-
     call(Pred, H, Diff),
     partition_(Diff, H, Pred, T, L, E, G).
 
 partition_(<, H, Pred, T, L, E, G) :-
     !,
     L = [H|Rest],
-    partition_(T, Pred, Rest, E, G).
+    partition(Pred, T, Rest, E, G).
 partition_(=, H, Pred, T, L, E, G) :-
     !,
     E = [H|Rest],
-    partition_(T, Pred, L, Rest, G).
+    partition(Pred, T, L, Rest, G).
 partition_(>, H, Pred, T, L, E, G) :-
     !,
     G = [H|Rest],
-    partition_(T, Pred, L, E, Rest).
+    partition(Pred, T, L, E, Rest).
 partition_(Diff, _, _, _, _, _, _) :-
     must_be(oneof([<,=,>]), Diff).
 
@@ -218,37 +206,25 @@ partition_(Diff, _, _, _, _, _, _) :-
 %   This family of predicates is deterministic iff Goal is deterministic
 %   and List1 is a proper list, i.e., a list that ends in `[]`.
 
-maplist(Goal, List) :-
-    maplist_(List, Goal).
-
-maplist_([], _).
-maplist_([Elem|Tail], Goal) :-
+maplist(_, []).
+maplist(Goal, [Elem|Tail]) :-
     call(Goal, Elem),
-    maplist_(Tail, Goal).
+    maplist(Goal, Tail).
 
-maplist(Goal, List1, List2) :-
-    maplist_(List1, List2, Goal).
-
-maplist_([], [], _).
-maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
+maplist(_, [], []).
+maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
     call(Goal, Elem1, Elem2),
-    maplist_(Tail1, Tail2, Goal).
+    maplist(Goal, Tail1, Tail2).
 
-maplist(Goal, List1, List2, List3) :-
-    maplist_(List1, List2, List3, Goal).
-
-maplist_([], [], [], _).
-maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
+maplist(_, [], [], []).
+maplist(Goal, [Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3]) :-
     call(Goal, Elem1, Elem2, Elem3),
-    maplist_(Tail1, Tail2, Tail3, Goal).
+    maplist(Goal, Tail1, Tail2, Tail3).
 
-maplist(Goal, List1, List2, List3, List4) :-
-    maplist_(List1, List2, List3, List4, Goal).
-
-maplist_([], [], [], [], _).
-maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
+maplist(_, [], [], [], []).
+maplist(Goal, [Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4]) :-
     call(Goal, Elem1, Elem2, Elem3, Elem4),
-    maplist_(Tail1, Tail2, Tail3, Tail4, Goal).
+    maplist(Goal, Tail1, Tail2, Tail3, Tail4).
 
 
 %!  convlist(:Goal, +ListIn, -ListOut) is det.
@@ -265,15 +241,12 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 %   @compat  Also  appears  in  YAP   =|library(maplist)|=  and  SICStus
 %   =|library(lists)|=.
 
-convlist(Goal, ListIn, ListOut) :-
-    convlist_(ListIn, ListOut, Goal).
-
-convlist_([], [], _).
-convlist_([H0|T0], ListOut, Goal) :-
+convlist(_, [], []).
+convlist(Goal, [H0|T0], ListOut) :-
     (   call(Goal, H0, H)
     ->  ListOut = [H|T],
-        convlist_(T0, T, Goal)
-    ;   convlist_(T0, ListOut, Goal)
+        convlist(Goal, T0, T)
+    ;   convlist(Goal, T0, ListOut)
     ).
 
 
@@ -309,40 +282,28 @@ convlist_([H0|T0], ListOut, Goal) :-
 %   actually  more  efficient  than  using   a  properly  programmed-out
 %   recursive algorithm that cannot be   tail-call optimized.
 
-foldl(Goal, List, V0, V) :-
-    foldl_(List, Goal, V0, V).
-
-foldl_([], _, V, V).
-foldl_([H|T], Goal, V0, V) :-
+foldl(_, [], V, V).
+foldl(Goal, [H|T], V0, V) :-
     call(Goal, H, V0, V1),
-    foldl_(T, Goal, V1, V).
+    foldl(Goal, T, V1, V).
 
 
-foldl(Goal, List1, List2, V0, V) :-
-    foldl_(List1, List2, Goal, V0, V).
-
-foldl_([], [], _, V, V).
-foldl_([H1|T1], [H2|T2], Goal, V0, V) :-
+foldl(_, [], [], V, V).
+foldl(Goal, [H1|T1], [H2|T2], V0, V) :-
     call(Goal, H1, H2, V0, V1),
-    foldl_(T1, T2, Goal, V1, V).
+    foldl(Goal, T1, T2, V1, V).
 
 
-foldl(Goal, List1, List2, List3, V0, V) :-
-    foldl_(List1, List2, List3, Goal, V0, V).
-
-foldl_([], [], [], _, V, V).
-foldl_([H1|T1], [H2|T2], [H3|T3], Goal, V0, V) :-
+foldl(_, [], [], [], V, V).
+foldl(Goal, [H1|T1], [H2|T2], [H3|T3], V0, V) :-
     call(Goal, H1, H2, H3, V0, V1),
-    foldl_(T1, T2, T3, Goal, V1, V).
+    foldl(Goal, T1, T2, T3, V1, V).
 
 
-foldl(Goal, List1, List2, List3, List4, V0, V) :-
-    foldl_(List1, List2, List3, List4, Goal, V0, V).
-
-foldl_([], [], [], [], _, V, V).
-foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
+foldl(_, [], [], [], [], V, V).
+foldl(Goal, [H1|T1], [H2|T2], [H3|T3], [H4|T4], V0, V) :-
     call(Goal, H1, H2, H3, H4, V0, V1),
-    foldl_(T1, T2, T3, T4, Goal, V1, V).
+    foldl(Goal, T1, T2, T3, T4, V1, V).
 
 
                  /*******************************
@@ -374,40 +335,28 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %  `scanl` behaves like a `foldl` that collects the sequence of
 %  values taken on by the `Vx` accumulator into a list.
 
-scanl(Goal, List, V0, [V0|Values]) :-
-    scanl_(List, Goal, V0, Values).
-
-scanl_([], _, _, []).
-scanl_([H|T], Goal, V, [VH|VT]) :-
+scanl(_, [], V, [V]).
+scanl(Goal, [H|T], V, [V|VT]) :-
     call(Goal, H, V, VH),
-    scanl_(T, Goal, VH, VT).
+    scanl(Goal, T, VH, VT).
 
 
-scanl(Goal, List1, List2, V0, [V0|Values]) :-
-    scanl_(List1, List2, Goal, V0, Values).
-
-scanl_([], [], _, _, []).
-scanl_([H1|T1], [H2|T2], Goal, V, [VH|VT]) :-
+scanl(_, [], [], V, [V]).
+scanl(Goal, [H1|T1], [H2|T2], V, [V|VT]) :-
     call(Goal, H1, H2, V, VH),
-    scanl_(T1, T2, Goal, VH, VT).
+    scanl(Goal, T1, T2, VH, VT).
 
 
-scanl(Goal, List1, List2, List3, V0, [V0|Values]) :-
-    scanl_(List1, List2, List3, Goal, V0, Values).
-
-scanl_([], [], [], _, _, []).
-scanl_([H1|T1], [H2|T2], [H3|T3], Goal, V, [VH|VT]) :-
+scanl(_, [], [], [], V, [V]).
+scanl(Goal, [H1|T1], [H2|T2], [H3|T3], V, [V|VT]) :-
     call(Goal, H1, H2, H3, V, VH),
-    scanl_(T1, T2, T3, Goal, VH, VT).
+    scanl(Goal, T1, T2, T3, VH, VT).
 
 
-scanl(Goal, List1, List2, List3, List4, V0, [V0|Values]) :-
-    scanl_(List1, List2, List3, List4, Goal, V0, Values).
-
-scanl_([], [], [], [], _, _, []).
-scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
+scanl(_, [], [], [], [], V, [V]).
+scanl(Goal, [H1|T1], [H2|T2], [H3|T3], [H4|T4], V, [V|VT]) :-
     call(Goal, H1, H2, H3, H4, V, VH),
-    scanl_(T1, T2, T3, T4, Goal, VH, VT).
+    scanl(Goal, T1, T2, T3, T4, VH, VT).
 
 
                  /*******************************
