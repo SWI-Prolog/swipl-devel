@@ -468,7 +468,7 @@ findHomeFromExecutable(const char *symbols, char *buf, size_t size)
 
 #if O_XOS
 	char buf2[PATH_MAX];
-	_xos_canonical_filename(link, buf2, sizeof(buf2), 0);
+	_xos_canonical_filename(link, buf2, sizeof(buf2));
 	strcpy(link, buf2);
 #endif
 	if ( !IsAbsolutePath(link) )

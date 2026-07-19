@@ -907,7 +907,7 @@ PRED_IMPL("win_process_modules", 1, win_process_modules, 0)
 	    char name_utf8[PATH_MAX*2];
 	    char pname[PATH_MAX*2];
 
-	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8), XOS_DOWNCASE) &&
+	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8)) &&
 		 PrologPath(name_utf8, pname, sizeof(pname)) )
 	    { if ( !PL_unify_list(tail, head, tail) ||
 		   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, pname)  )

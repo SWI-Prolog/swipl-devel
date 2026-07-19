@@ -1137,7 +1137,7 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
     char buf[PATH_MAX];
 
     _xos_long_file_nameW(wn, lbuf, PATH_MAX);
-    _xos_canonical_filenameW(lbuf, buf, PATH_MAX, 0);
+    _xos_canonical_filenameW(lbuf, buf, PATH_MAX);
 
     return PL_unify_chars(pl, PL_ATOM|REP_UTF8, -1, buf);
   }

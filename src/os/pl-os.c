@@ -754,7 +754,7 @@ retry:
   rc = ( (wtmpdir = xos_plain_name(tmpdir, buf1, SAFE_PATH_MAX)) &&
 	 (wid     = _xos_utf8towcs(buf2,     id, SAFE_PATH_MAX)) &&
 	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
-	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
+	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp))) );
   if ( wtmp )
     free(wtmp);
 
@@ -928,7 +928,7 @@ char *
 PrologPath(const char *p, char *buf, size_t len)
 { /* Case normalisation (down-casing or restoring the on-disk case) is
      done by canonicalisePath(); here we only translate the syntax. */
-  return _xos_canonical_filename(p, buf, len, 0);
+  return _xos_canonical_filename(p, buf, len);
 }
 
 char *
