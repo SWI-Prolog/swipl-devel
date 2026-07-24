@@ -110,28 +110,62 @@ module declaration, spy/1, and dynamic/1.
 \subsection{Predicate behaviour and determinism} \label{sec:determinism}
 
 \index{predicate behaviour and determinism}%
-To describe the general behaviour of a predicate, the following vocabulary
-is employed. In source code, structured comments contain the corresponding
-keywords:
+\index{choicepoint}%
+The keywords in \tabref{determinism} may appear in the manual's predicate
+descriptions and in \jargon{pldoc} structured comments in source code.  They
+describe the general behaviour of a predicate.
 
+\begin{table}
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
 \const{det}       & A \jargon{deterministic} predicate always succeeds exactly
                     once and does not leave a choicepoint. \\
 \const{semidet}   & A \jargon{semi-deterministic} predicate succeeds at most
-                    once.  If it succeeds it does not leave a choicepoint. \\
+                    once.  If it succeeds, it does not leave a choicepoint. \\
 \const{nondet}    & A \jargon{non-deterministic} predicate is the most general
 		    case and no claims are made on the number of solutions (which
                     may be zero, i.e., the predicate may \jargon{fail}) and
-		    whether or not the predicate leaves an choicepoint on
-		    the last solution. \\
+		    whether or not the predicate leaves a choicepoint on
+		    its last solution. \\
 \const{multi}     & As \const{nondet}, but succeeds at least once. \\
-\const{undefined} & Well founded semantics third value.
+\const{failure}   & Always fails. \\
+\const{undefined} & \jargon{Well-founded semantics} ``third value''.
 		    See undefined/0. \\
 \hline
 \end{tabular}
 \end{center}
+    \caption{Determinism indicators}
+    \label{tab:determinism}
+\end{table}
+
+``Leaving no choicepoint'' means that the system \emph{knows} that
+redoing the predicate will not yield any additional solutions. For
+example, member/2 is non-deterministic, but deterministic if the
+solution is the last element of the list. The predicate member/2 may not
+know immediately whether there are more solutions after the first one,
+so a choicepoint remains, even if it eventually turns out to yield
+nothing:
+
+\begin{code}
+?- member(1, [2,1,3]).
+true ;     % there may be more solutions
+false.     % actually not
+\end{code}
+
+If a solution is the last element of the list, there is enough information to
+leave no choicepoint:
+
+\begin{code}
+?- member(1, [2,3,1]).
+true.
+\end{code}
+
+Note that if the toplevel waits for input after a query this indicates
+that the query succeeded with a choicepoint. If the user enters \chr{*}
+the toplevel explains the location of the choicepoint. Alternatively,
+the GUI debugger may be used to examine the open choicepoints.
+
 
 \section{Character representation}		\label{sec:chars}
 
@@ -1798,15 +1832,20 @@ prolog_edit:load :-
 
 Type tests are semi-deterministic predicates that succeed if the
 argument satisfies the requested type. Type-test predicates have no
-error condition and do not instantiate their argument. See also library
-\pllib{error}.
+error condition and do not instantiate their argument. They have no
+first-order ``logical'' interpretation; instead they inspect the state
+of the computation at call time and are mainly used in \jargon{clause
+guards} and \jargon{assertions}. See also library \pllib{error},
+must_be/2 and assertion/1.
 
 \begin{description}
     \predicate[ISO]{var}{1}{@Term}
-True if \arg{Term} currently is a free variable.
+True if \arg{Term} currently is a free variable.  The compiler warns if
+\arg{Term} is syntactically not a variable.
 
     \predicate[ISO]{nonvar}{1}{@Term}
-True if \arg{Term} currently is not a free variable.
+True if \arg{Term} currently is not a free variable.  This is the logical
+complement of var/1: \exam{var(X)} is true iff \exam{nonvar(X)} fails.
 
     \predicate[ISO]{integer}{1}{@Term}
 True if \arg{Term} is bound to an integer.
@@ -1861,13 +1900,14 @@ rational (rational/1) and blob (blob/2). In addition, the symbol
 \secref{ext-lists}.
 
     \predicate[ISO]{compound}{1}{@Term}
-True if \arg{Term} is bound to a compound term.  See also functor/3
-=../2, compound_name_arity/3 and compound_name_arguments/3.
+True if \arg{Term} is bound to a compound term.  See also
+compound_name_arity/3, compound_name_arguments/3, functor/3 and
+\predref{=..}{2}.
 
     \predicate[ISO]{callable}{1}{@Term}
 True if \arg{Term} is bound to an atom or a compound term. This was
 intended as a type-test for arguments to call/1, call/2 etc. Note that
-callable only tests the \jargon{surface term}. Terms such as (22,true)
+callable only tests the \jargon{surface term}. Terms such as \exam{(22,true)}
 are considered callable, but cause call/1 to raise a type error.
 Module-qualification of meta-argument (see meta_predicate/1) using
 \functor{:}{2} causes callable to succeed on any
@@ -1893,7 +1933,8 @@ True if \arg{Term} holds no free variables. See also nonground/2
 and term_variables/2.
 
     \predicate{cyclic_term}{1}{@Term}
-True if \arg{Term} contains cycles, i.e.\ is an infinite term.
+True if \arg{Term} contains cycles, i.e.\ is an infinite term (also known
+as a \jargon{rational tree}).
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible with SICStus Prolog.  Some Prolog systems
@@ -1901,7 +1942,8 @@ See also acyclic_term/1 and \secref{cyclic}.%
 
     \predicate[ISO]{acyclic_term}{1}{@Term}
 True if \arg{Term} does not contain cycles,  i.e.\ can be processed
-recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
+recursively in finite time.  This includes \arg{Term} being an unbound
+variable.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
 
 \section{Comparison and Unification of Terms}	\label{sec:compare}
@@ -2379,7 +2421,8 @@ $X=a$ and $X=b$, while \verb$optional(member(X,[]))$ succeeds without
 binding $X$.
 
 \prefixop[ISO]{\+}{:Goal}
-True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
+True if \arg{Goal} cannot be proven, i.e.\ if the attempt to prove
+\arg{Goal} fails in finite time (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
   indicate negation in Prolog).  In contrast to the ISO standard, but
   compatible with several other Prolog systems, SWI-Prolog implements
@@ -2389,10 +2432,13 @@ provable} and the backslash (\chr{\}) is normally used to
   if such a variable is at runtime bound to a (\predref{!}{0}), the
   cut is scoped to the call/1 call rather than the enclosing \predref{\+}{1}.
 
-Many Prolog implementations (including SWI-Prolog) provide not/1. The
-not/1 alternative is deprecated due to its strong link to logical
-negation.
-
+Many Prolog implementations (including SWI-Prolog, see \secref{metacall})
+provide the equivalent predicate not/1.  The not/1 alternative is deprecated
+because it is easily read as \jargon{strong negation} (``it is
+known/provable that not \ldots'') rather than the intended \jargon{weak
+negation}, also known as \jargon{default negation} (``it is not
+known/provable that \ldots''). See also tnot/1, implementing negation
+using \jargon{Well Founded Semantics}.
 \end{description}
 
 \section{Meta-Call Predicates}		\label{sec:metacall}
