@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2023, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2007-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -254,10 +254,10 @@ convlist(Goal, [H0|T0], ListOut) :-
                  *            FOLDL             *
                  *******************************/
 
-%!  foldl(:Goal, +List, +V0, -V).
-%!  foldl(:Goal, +List1, +List2, +V0, -V).
-%!  foldl(:Goal, +List1, +List2, +List3, +V0, -V).
-%!  foldl(:Goal, +List1, +List2, +List3, +List4, +V0, -V).
+%!  foldl(:Goal, ?List, +V0, -V).
+%!  foldl(:Goal, ?List1, ?List2, +V0, -V).
+%!  foldl(:Goal, ?List1, ?List2, ?List3, +V0, -V).
+%!  foldl(:Goal, ?List1, ?List2, ?List3, ?List4, +V0, -V).
 %
 %   Fold an ensemble of _m_  (0  <=  _m_   <=  4)  lists  of  length _n_
 %   head-to-tail ("fold-left"), using columns of   _m_  list elements as
@@ -310,10 +310,10 @@ foldl(Goal, [H1|T1], [H2|T2], [H3|T3], [H4|T4], V0, V) :-
                  *             SCANL            *
                  *******************************/
 
-%!  scanl(:Goal, +List, +V0, -Values).
-%!  scanl(:Goal, +List1, +List2, +V0, -Values).
-%!  scanl(:Goal, +List1, +List2, +List3, +V0, -Values).
-%!  scanl(:Goal, +List1, +List2, +List3, +List4, +V0, -Values).
+%!  scanl(:Goal, ?List, +V0, -Values).
+%!  scanl(:Goal, ?List1, ?List2, +V0, -Values).
+%!  scanl(:Goal, ?List1, ?List2, ?List3, +V0, -Values).
+%!  scanl(:Goal, ?List1, ?List2, ?List3, ?List4, +V0, -Values).
 %
 %   Scan an ensemble of _m_  (0  <=  _m_   <=  4)  lists  of  length _n_
 %   head-to-tail ("scan-left"), using columns of   _m_  list elements as
