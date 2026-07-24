@@ -12,11 +12,15 @@ on:
         default: 'master'
 
 env:
-  IMAGE: ghcr.io/swi-prolog/swipl-mingw-build:latest
+  # Pinned to an immutable digest for provenance of the toolchain.
+  # Human-readable tag alias: ghcr.io/swi-prolog/swipl-mingw-build:latest
+  IMAGE: ghcr.io/swi-prolog/swipl-mingw-build@sha256:9b82af1841e1b56171e8cb3cd9f0f789370552b9663f6559a9e0d3ba78c7b754
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Allow ample time for manual approval of the SignPath signing request.
+    timeout-minutes: 360
     permissions:
       contents: write
       packages: read
@@ -100,6 +104,11 @@ jobs:
           signing-policy-slug: 'test-signing'
           github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
           wait-for-completion: true
+          # Production signing requires manual approval in the SignPath
+          # UI; wait up to 5 hours before failing the job.
+          wait-for-completion-timeout-in-seconds: 18000
+          service-unavailable-timeout-in-seconds: 600
+          download-artifact-timeout-in-seconds: 300
           output-artifact-directory: signed/
 
       - name: Recompute checksum on signed installer
