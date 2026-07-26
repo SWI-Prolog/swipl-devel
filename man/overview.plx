@@ -4189,10 +4189,8 @@ Most built-in predicates that process Prolog terms create an explicitly
 managed stack and perform optimization for processing the last argument
 of a term. This implies they can process deeply nested terms at constant
 and low usage of the C stack, and the system raises a resource error if
-no more stack can be allocated.  Currently only read/1 and write/1 (and
-all variations thereof) still use the C stack and may cause the system
-to crash in an uncontrolled way (i.e., not mapped to a Prolog exception
-that can be caught).
+no more stack can be allocated.  This includes read/1 and write/1 and
+all variations thereof.
 
     \item[Integers]
 SWI-Prolog has two integer representations. \jargon{Tagged integers} are
