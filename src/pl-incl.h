@@ -2354,38 +2354,21 @@ typedef sigmask_t		wsigmask_t[SIGMASK_WORDS];
 #define WSIGMASK_CLEAR(wm, sig)	ATOMIC_AND(&(wm)[SIGMASK_WORD(sig)], ~SIGMASK_MASK(sig))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Guard against C-stack overflows. This is   done  for POSIX systems using
-the  alternative  signal  stack.  The  signal    handling   is  done  by
-alt_segv_handler().
+Report C-stack overflows. An overflow  raises SIGSEGV, but there is no C
+stack left to run the handler  on. On   POSIX  systems we therefore run
+SIGSEGV on an alternative signal stack,  so   that  sigCrashHandler() can
+still print the crash report. See initGuardCStack().
 
-Note that we  use  setjmp()  rather   than  sigsetjmp().  The  latter is
-simpler, but a lot slower as it  implies   a  system  call. We assume no
-other signals are involved and unblock SIGSEGV by hand.
+Code that may need more C stack than  is available asks for room using
+require_c_stack(), which raises resource_error(c_stack).
 
 Note that AddressSanitizer doesn't like these tricks, so we must disable
-stack guarding when compiling with the address sanitizer.
+this when compiling with the address sanitizer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SIGNALS && defined(HAVE_SIGALTSTACK) && \
     !defined(__SANITIZE_ADDRESS__)
 #define O_C_STACK_GUARDED 1
-#define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
-	do						\
-	{ LD->signal.sig_critical = true;		\
-	  if ( setjmp(LD->signal.context) )		\
-	  { cleanup;					\
-	    unblockSignal(SIGSEGV);			\
-	    rc = PL_resource_error("c_stack");		\
-	  } else					\
-	  { rc = code;					\
-	  }						\
-	  LD->signal.sig_critical = false;		\
-	} while(0)
-#else
-#define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
-	do						\
-	{ rc = code;						\
-	} while(0)
 #endif
 
 

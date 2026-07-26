@@ -773,24 +773,9 @@ initTerminationSignals(void)
 }
 #endif /*O_SIGNALS*/
 
-#ifdef O_C_STACK_GUARDED
-static void
-alt_segv_handler(int sig)
-{ GET_LD
-  (void)sig;
-
-  DEBUG(MSG_SIGNAL,
-	Sdprintf("Got C-stack overflow; critical = %d\n",
-		 LD->signal.sig_critical));
-
-  if ( LD->signal.sig_critical )
-  { longjmp(LD->signal.context, true);
-    /*NORETURN*/
-  }
-
-  sigCrashHandler(sig);
-}
-#endif
+/* Handle SIGSEGV on an alternative signal stack, so a C-stack overflow
+   still gets us a crash report.  See O_C_STACK_GUARDED.
+*/
 
 bool
 initGuardCStack(void)
@@ -811,7 +796,7 @@ initGuardCStack(void)
       { struct sigaction sa = {0};
 
 	sa.sa_flags = SA_ONSTACK;
-	sa.sa_handler = alt_segv_handler;
+	sa.sa_handler = sigCrashHandler;
 	sigemptyset(&sa.sa_mask);
 
 	if ( sigaction(SIGSEGV, &sa, NULL) == 0 )
