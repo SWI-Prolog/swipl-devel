@@ -4537,13 +4537,18 @@ build_op_term(DECL_LD op_entry *op, ReadData _PL_rd)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This part of the parser actually constructs  the  term.   It  calls  the
 tokeniser  to  find  the next token and assumes the tokeniser implements
-one-token pushback efficiently.  It consists  of  two  mutual  recursive
-functions:  complex_term()  which is involved with operator handling and
-simple_term() which reads everything, except for operators.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+one-token pushback efficiently.  It consists  of  complex_term()  which
+is involved with operator handling and simple_term() which reads
+everything, except for operators.
 
-#define simple_term(token, positions, _PL_rd) LDFUNC(simple_term, token, positions, _PL_rd)
-static int simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd);
+These used to be mutually recursive, together with the read_<construct>()
+functions below, costing about 1Kb of C stack per level of nesting of the
+term read.  Now, complex_term() is a state machine that keeps the state of
+the suspended levels on a segstack of `pframe` records: reading nests on
+the heap rather than on the C stack.  Note that most of the parser state
+already lives in the ReadData: the _out_ and _side_ queues as well as the
+term stack are shared by all levels.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct cterm_state
 { ReadData	rd;			/* Read global data */
@@ -4552,6 +4557,133 @@ typedef struct cterm_state
   int		side_p;			/* top (index) of side queue */
   int		rmo;			/* Operands more than operators */
 } cterm_state;
+
+/* Compound constructs.  Each is read by a read_<construct>_start()
+   function that prepares the frame and a read_<construct>_resume()
+   that is called after a subterm has been read.  PF_NONE is used by
+   simple_term() to indicate the token completed a term by itself.
+*/
+
+typedef enum
+{ PF_NONE = 0,				/* not a compound construct */
+  PF_COMPOUND,				/* f(a1, ...) */
+  PF_BLOB,				/* <type>(...) */
+  PF_LIST_ELEM,				/* [a1, ... : element */
+  PF_LIST_TAIL,				/* [a1|Tail] : after the `|' */
+  PF_DICT,				/* Tag{k:v, ...} */
+  PF_BRACKET,				/* {...}, (...) and e.g. «...» */
+#ifdef O_QUASIQUOTATIONS
+  PF_QQ					/* {|Type||...|} : the type */
+#endif
+} pf_kind;
+
+/* What to do with the term produced by a completed construct. */
+
+typedef enum
+{ AF_OPERAND = 0,			/* operand of the suspended level */
+  AF_PREFIX_OP,				/* [..]/{..} as prefix operator */
+  AF_INFIX_OP,				/* ... as infix operator */
+  AF_POSTFIX_OP				/* ... as postfix operator */
+} pf_after;
+
+/* Request from a _start()/_resume() function to read another subterm. */
+
+typedef struct ct_request
+{ const char   *stop;			/* stop at one of these characters */
+  short		maxpri;			/* max priority of the subterm */
+  term_t	positions;		/* subterm_positions of the subterm */
+} ct_request;
+
+/* State of a suspended complex_term() level.  `pin` is both the
+   position term of the token that started the construct and thus the
+   subterm_positions of the construct itself.
+*/
+
+typedef struct pframe
+{ const char   *stop;			/* complex_term() arguments */
+  term_t	positions;
+  term_t	pin;
+  cterm_state	cstate;			/* out/side queue state */
+  op_entry	in_op;			/* if after != AF_OPERAND */
+  short		maxpri;
+  short		red_op;			/* AF_POSTFIX_OP: side queue index */
+  unsigned	kind : 4;		/* pf_kind */
+  unsigned	after : 3;		/* pf_after */
+  unsigned	red_side : 1;		/* AF_POSTFIX_OP: reduce_side */
+  union
+  { struct				/* PF_COMPOUND */
+    { term_t	pv;			/* positions: P_HEAD and P_ARG */
+      atom_t	functor;
+      int	arity;
+      bool	unlock;			/* must unregister functor */
+    } compound;
+    struct				/* PF_BLOB */
+    { unsigned char *start;		/* start of the blob text */
+      size_t	argv0;			/* term stack index of the args */
+      atom_t	name;
+      int64_t	pos_start;
+      bool	unlock;			/* must unregister name */
+    } blob;
+    struct				/* PF_LIST_* */
+    { term_t	pv;			/* P_ELEM, P_LIST and P_TAIL */
+      term_t	tail;			/* ref to where the tail goes */
+    } list;
+    struct				/* PF_DICT */
+    { term_t	pv;			/* P_HEAD, P_ARG and P_VALUE */
+      int	pairs;
+    } dict;
+    struct				/* PF_BRACKET */
+    { atom_t	functor;		/* ATOM_curl or 0 */
+      int	open;			/* paired: open and close */
+      int	close;
+      char	stop[8];		/* UTF-8 of close; see ct_request */
+    } bracket;
+#ifdef O_QUASIQUOTATIONS
+    struct				/* PF_QQ */
+    { term_t	av;			/* 4 args for quasi_quotation/4 */
+      term_t	pv;			/* 3 position arguments */
+      term_t	result;
+    } qq;
+#endif
+  } u;
+} pframe;
+
+/* Return value of the _start()/_resume() functions in addition to
+   true (construct completed), false and the *_OVERFLOW codes.
+*/
+
+#define CTR_SUB 2			/* read the subterm in `req` */
+
+#define simple_term(token, positions, kind, _PL_rd) \
+	LDFUNC(simple_term, token, positions, kind, _PL_rd)
+static int simple_term(DECL_LD Token token, term_t positions,
+		       pf_kind *kind, ReadData _PL_rd);
+
+#define start_pframe(f, token, req, _PL_rd) \
+	LDFUNC(start_pframe, f, token, req, _PL_rd)
+static int start_pframe(DECL_LD pframe *f, Token token, ct_request *req,
+			ReadData _PL_rd);
+
+#define resume_pframe(f, req, _PL_rd) LDFUNC(resume_pframe, f, req, _PL_rd)
+static int resume_pframe(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd);
+
+/* Called for the frames that are still on the stack if the read fails. */
+
+static void
+discard_pframe(pframe *f)
+{ switch((pf_kind)f->kind)
+  { case PF_COMPOUND:
+      if ( f->u.compound.unlock )
+	PL_unregister_atom(f->u.compound.functor);
+      break;
+    case PF_BLOB:
+      if ( f->u.blob.unlock )
+	PL_unregister_atom(f->u.blob.name);
+      break;
+    default:
+      break;
+  }
+}
 
 #define isOp(e, kind, _PL_rd) LDFUNC(isOp, e, kind, _PL_rd)
 static bool
@@ -4881,31 +5013,38 @@ unify_string_position(DECL_LD term_t positions, Token token)
 }
 
 
-#define prepare_op(in_op, token, pin, _PL_rd) \
-	LDFUNC(push_op, in_op, token, pin, _PL_rd)
+/* prepare_op() handles the operator name.  If the operator is a block
+   ([...] or {...}), it starts reading the block.  In that case *kind is
+   the construct to read and complex_term() calls finish_block_op() once
+   the block has been read.
+*/
+
+#define prepare_op(in_op, token, pin, kind, _PL_rd) \
+	LDFUNC(push_op, in_op, token, pin, kind, _PL_rd)
 
 static int
-prepare_op(DECL_LD op_entry *in_op, Token token, term_t pin, ReadData _PL_rd)
-{ int rc = true;
-
-  Unlock(in_op->op.atom);		/* ok; part of an operator */
+prepare_op(DECL_LD op_entry *in_op, Token token, term_t pin,
+	   pf_kind *kind, ReadData _PL_rd)
+{ Unlock(in_op->op.atom);		/* ok; part of an operator */
 
   if ( in_op->isblock )
-  { term_t *top;
+    return simple_term(token, pin, kind, _PL_rd);
 
-    if ( (rc = simple_term(token, pin, _PL_rd)) != true )
-      return rc;			/* TBD: need cleanup? */
-    top = term_av(-1, _PL_rd);
-    in_op->op.block = PL_new_term_ref();
-    in_op->isterm = true;
-    PL_put_term(in_op->op.block, *top);
-    truncate_term_stack(top, _PL_rd);
-  } else
-  { if ( !unify_atomic_position(pin, token) )
-      return false;
-  }
+  *kind = PF_NONE;
+  return unify_atomic_position(pin, token);
+}
 
-  return rc;
+
+#define finish_block_op(in_op, _PL_rd) LDFUNC(finish_block_op, in_op, _PL_rd)
+
+static void
+finish_block_op(DECL_LD op_entry *in_op, ReadData _PL_rd)
+{ term_t *top = term_av(-1, _PL_rd);
+
+  in_op->op.block = PL_new_term_ref();
+  in_op->isterm = true;
+  PL_put_term(in_op->op.block, *top);
+  truncate_term_stack(top, _PL_rd);
 }
 
 
@@ -4957,161 +5096,244 @@ stop_matches_codepoint(const char *stop, int code)
 #define complex_term(stop, maxpri, positions, _PL_rd) \
 	LDFUNC(complex_term, stop, maxpri, positions, _PL_rd)
 
+/* Raise a syntax error and unwind the frame stack. */
+
+#define ctSyntaxError(what) \
+	do { errorWarning(what, 0, _PL_rd); goto failed; } while(0)
+
 static int
 complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd)
-{ op_entry in_op;
-  op_entry end_op;
-  term_t pin;
-  Token token;
-  cterm_state cstate =
-  { .rd = _PL_rd,
-    .out_n = 0,
-    .side_n = 0, .side_p = side_p0(_PL_rd),
-    .rmo = 0
-  };
+{ segstack	stack;
+  double	sbuf[256];
+  pframe	frame;
+  pframe       *fp;
+  ct_request	req;
+  op_entry	in_op;
+  op_entry	end_op;
+  term_t	pin;
+  Token		token;
+  cterm_state	cstate;
+  pf_kind	kind;
+  pf_after	after = AF_OPERAND;
+  short		red_op = -1;		/* postfix: side queue index */
+  reduce_side	red_side = REDUCE_LEFT;
+  int		rc;
 
+  initSegStack(&stack, sizeof(pframe), sizeof(sbuf), sbuf);
+
+new_level:				/* start reading a (sub) term */
   if ( _PL_rd->strictness == 0 )
     maxpri = OP_MAXPRIORITY+1;
   end_op.left_pri = maxpri;
-
-  in_op.left_pri = 0;
+  cstate.rd     = _PL_rd;
+  cstate.out_n  = 0;
+  cstate.side_n = 0;
+  cstate.side_p = side_p0(_PL_rd);
+  cstate.rmo    = 0;
+  in_op.left_pri  = 0;
   in_op.right_pri = 0;
 
-  for(;;)
-  { int rc;
+next_token:
+  if ( positions )
+    pin = PL_new_term_ref();
+  else
+    pin = 0;
 
-    if ( positions )
-      pin = PL_new_term_ref();
-    else
-      pin = 0;
+  if ( !(token = get_token(cstate.rmo == 1, _PL_rd)) )
+    goto failed;
 
-    if ( !(token = get_token(cstate.rmo == 1, _PL_rd)) )
-      return false;
-
-    if ( cstate.out_n != 0 || cstate.side_n != 0 ) /* Check for end of term */
-    { switch(token->type)
-      { case TK_FULLSTOP:
-	  if ( stop == NULL )
-	    goto exit;			/* exit for-loop */
-	  break;
-	case TK_PUNCTUATION:
-	  if ( stop != NULL && stop_matches_codepoint(stop, token->value.character) )
-	    goto exit;
-	  break;
+  if ( cstate.out_n != 0 || cstate.side_n != 0 ) /* Check for end of term */
+  { switch(token->type)
+    { case TK_FULLSTOP:
+	if ( stop == NULL )
+	  goto level_done;
+	break;
+      case TK_PUNCTUATION:
+	if ( stop != NULL && stop_matches_codepoint(stop, token->value.character) )
+	  goto level_done;
+	break;
 #ifdef O_QUASIQUOTATIONS
-	case TK_QQ_BAR:
-	  if ( stop != NULL && stop[0] == '|' )
-	    goto exit;
-	  break;
+      case TK_QQ_BAR:
+	if ( stop != NULL && stop[0] == '|' )
+	  goto level_done;
+	break;
 #endif
-	default:
-	  break;
-      }
+      default:
+	break;
     }
-
-    if ( (rc=is_name_token(token, cstate.rmo == 1, _PL_rd)) == true )
-    { in_op.isblock     = false;
-      in_op.isterm      = false;
-      in_op.op.atom     = name_token(token, &in_op, _PL_rd);
-      in_op.tpos        = pin;
-      in_op.token_start = last_token_start;
-
-      DEBUG(MSG_READ_OP, Sdprintf("name %s, rmo = %d\n",
-				  stringOp(&in_op), cstate.rmo));
-
-      if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
-      { DEBUG(MSG_READ_OP, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
-
-	if ( !prepare_op(&in_op, token, pin, _PL_rd) )
-	  return false;
-	PushOp();
-
-	continue;
-      }
-      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
-      { DEBUG(MSG_READ_OP, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
-
-	if ( !modify_op(&cstate, in_op.left_pri) )
-	  return false;
-	if ( cstate.rmo == 1 )
-	{ if ( !reduce_op(&cstate, &in_op) )
-	    return false;
-	  cstate.rmo--;
-	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
-	    return false;
-	  PushOp();
-	  continue;
-	}
-      }
-      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
-      { DEBUG(MSG_READ_OP, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
-
-	if ( !modify_op(&cstate, in_op.left_pri) )
-	  return false;
-	if ( cstate.rmo == 1 )
-	{ op_entry *red_op = &end_op;
-	  reduce_side side = REDUCE_LEFT;
-
-	  if ( !reduce_op(&cstate, &in_op) )
-	    return false;
-
-	  if ( cstate.side_n > 0 )
-	  { op_entry *prev = SideOp(cstate.side_p);
-	    if ( prev->kind == OP_PREFIX || prev->kind == OP_INFIX )
-	    { red_op = prev;
-	      side = REDUCE_RIGHT;
-	    }
-	  }
-
-	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
-	    return false;
-	  PushOp();
-	  if ( reduce_one_op(&cstate, red_op, side) == -1 )
-	    return false;
-	  continue;
-	}
-      }
-    } else if ( rc < 0 )
-      return false;
-
-    if ( cstate.rmo == 1 )
-      syntaxError("operator_expected", _PL_rd);
-
-					/* Read `simple' term */
-    rc = simple_term(token, pin, _PL_rd);
-    if ( rc != true )
-      return rc;
-
-    if ( cstate.rmo != 0 )
-      syntaxError("operator_expected", _PL_rd);
-    cstate.rmo++;
-    queue_out_op(0, pin, _PL_rd);
-    cstate.out_n++;
   }
 
-exit:
+  if ( (rc=is_name_token(token, cstate.rmo == 1, _PL_rd)) == true )
+  { in_op.isblock     = false;
+    in_op.isterm      = false;
+    in_op.op.atom     = name_token(token, &in_op, _PL_rd);
+    in_op.tpos        = pin;
+    in_op.token_start = last_token_start;
+
+    DEBUG(MSG_READ_OP, Sdprintf("name %s, rmo = %d\n",
+				stringOp(&in_op), cstate.rmo));
+
+    if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
+    { DEBUG(MSG_READ_OP, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
+
+      if ( (rc=prepare_op(&in_op, token, pin, &kind, _PL_rd)) != true )
+	goto failed_rc;
+      if ( kind != PF_NONE )
+      { after = AF_PREFIX_OP;
+	goto start_frame;
+      }
+    prefix_op:
+      PushOp();
+
+      goto next_token;
+    }
+    if ( isOp(&in_op, OP_INFIX, _PL_rd) )
+    { DEBUG(MSG_READ_OP, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
+
+      if ( !modify_op(&cstate, in_op.left_pri) )
+	goto failed;
+      if ( cstate.rmo == 1 )
+      { if ( !reduce_op(&cstate, &in_op) )
+	  goto failed;
+	cstate.rmo--;
+	if ( (rc=prepare_op(&in_op, token, pin, &kind, _PL_rd)) != true )
+	  goto failed_rc;
+	if ( kind != PF_NONE )
+	{ after = AF_INFIX_OP;
+	  goto start_frame;
+	}
+      infix_op:
+	PushOp();
+	goto next_token;
+      }
+    }
+    if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
+    { DEBUG(MSG_READ_OP, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
+
+      if ( !modify_op(&cstate, in_op.left_pri) )
+	goto failed;
+      if ( cstate.rmo == 1 )
+      { red_op = -1;			/* index; the queue may be moved */
+	red_side = REDUCE_LEFT;
+
+	if ( !reduce_op(&cstate, &in_op) )
+	  goto failed;
+
+	if ( cstate.side_n > 0 )
+	{ op_entry *prev = SideOp(cstate.side_p);
+	  if ( prev->kind == OP_PREFIX || prev->kind == OP_INFIX )
+	  { red_op = cstate.side_p;
+	    red_side = REDUCE_RIGHT;
+	  }
+	}
+
+	if ( (rc=prepare_op(&in_op, token, pin, &kind, _PL_rd)) != true )
+	  goto failed_rc;
+	if ( kind != PF_NONE )
+	{ after = AF_POSTFIX_OP;
+	  goto start_frame;
+	}
+      postfix_op:
+	PushOp();
+	if ( reduce_one_op(&cstate,
+			   red_op < 0 ? &end_op : SideOp(red_op),
+			   red_side) == -1 )
+	  goto failed;
+	goto next_token;
+      }
+    }
+  } else if ( rc < 0 )
+    goto failed;
+
+  if ( cstate.rmo == 1 )
+    ctSyntaxError("operator_expected");
+
+					/* Read `simple' term */
+  if ( (rc=simple_term(token, pin, &kind, _PL_rd)) != true )
+    goto failed_rc;
+  if ( kind != PF_NONE )		/* a compound construct */
+  { after = AF_OPERAND;
+    goto start_frame;
+  }
+
+operand:				/* term is on the term stack */
+  if ( cstate.rmo != 0 )
+    ctSyntaxError("operator_expected");
+  cstate.rmo++;
+  queue_out_op(0, pin, _PL_rd);
+  cstate.out_n++;
+  goto next_token;
+
+start_frame:				/* suspend and read `kind' */
+  frame.stop      = stop;
+  frame.maxpri    = maxpri;
+  frame.positions = positions;
+  frame.pin       = pin;
+  frame.cstate    = cstate;
+  frame.kind      = kind;
+  frame.after     = after;
+  frame.in_op     = in_op;
+  frame.red_op    = red_op;
+  frame.red_side  = red_side;
+
+  if ( !(fp=pushSegStack_(&stack, &frame)) )
+  { rc = MEMORY_OVERFLOW;
+    goto failed_rc;
+  }
+  if ( (rc=start_pframe(fp, token, &req, _PL_rd)) == CTR_SUB )
+    goto sub_term;
+  if ( rc != true )
+    goto failed_rc;
+  goto frame_done;
+
+sub_term:				/* read the subterm in `req' */
+  stop      = req.stop;
+  maxpri    = req.maxpri;
+  positions = req.positions;
+  goto new_level;
+
+frame_done:				/* construct is on the term stack */
+  if ( !popSegStack(&stack, &frame, pframe) )
+  { assert(0);
+    goto failed;
+  }
+  stop      = frame.stop;
+  maxpri    = frame.maxpri;
+  positions = frame.positions;
+  pin       = frame.pin;
+  cstate    = frame.cstate;
+  end_op.left_pri = maxpri;
+
+  if ( frame.after == AF_OPERAND )
+    goto operand;
+
+  in_op = frame.in_op;			/* [..]/{..} used as operator */
+  finish_block_op(&in_op, _PL_rd);
+  if ( frame.after == AF_PREFIX_OP )
+    goto prefix_op;
+  if ( frame.after == AF_INFIX_OP )
+    goto infix_op;
+  red_op   = frame.red_op;
+  red_side = frame.red_side;
+  goto postfix_op;
+
+level_done:				/* complete the current level */
   unget_token();			/* the full-stop or punctuation */
   if ( !modify_op(&cstate, maxpri) )
-    return false;
+    goto failed;
   if ( !reduce_op(&cstate, &end_op) )
-    return false;
+    goto failed;
 
   if ( cstate.out_n == 1 && cstate.side_n == 0 ) /* simple term */
   { out_entry *e = out_op(-1, _PL_rd);
-    int rc;
 
     if ( positions && (rc=PL_unify(positions, e->tpos)) != true )
-      return rc;
+      goto failed_rc;
     PopOut();
-
-    return true;
-  }
-
-  if ( cstate.out_n == 0 && cstate.side_n == 1 ) /* single operator */
+  } else if ( cstate.out_n == 0 && cstate.side_n == 1 ) /* single operator */
   { op_entry *op = SideOp(cstate.side_p);
     term_t term = alloc_term(_PL_rd);
-    int rc;
 
     if ( !op->isblock )
       PL_put_atom(term, op->op.atom);
@@ -5119,17 +5341,13 @@ exit:
       PL_put_term(term, op->op.block);
 
     if ( positions && (rc=PL_unify(positions, op->tpos)) != true )
-      return rc;
+      goto failed_rc;
 
     PopOp(&cstate);
-
-    return true;
-  }
-
-  if ( cstate.side_n == 1 && !SideOp(0)->isblock &&
-       ( SideOp(0)->op.atom == ATOM_comma ||
-	 SideOp(0)->op.atom == ATOM_semicolon
-       ))
+  } else if ( cstate.side_n == 1 && !SideOp(0)->isblock &&
+	      ( SideOp(0)->op.atom == ATOM_comma ||
+		SideOp(0)->op.atom == ATOM_semicolon
+	      ))
   { term_t ex;
 
     LD->exception.processing = true;
@@ -5139,12 +5357,32 @@ exit:
 		       PL_FUNCTOR, FUNCTOR_punct2,
 			 PL_ATOM, SideOp(cstate.side_p)->op.atom,
 			 PL_ATOM, name_token(token, NULL, _PL_rd)) )
-      return errorWarning(NULL, ex, _PL_rd);
+      errorWarning(NULL, ex, _PL_rd);
 
-    return false;
+    goto failed;
+  } else
+    ctSyntaxError("operator_balance");
+
+					/* term is on the term stack */
+  if ( !(fp=topOfSegStack(&stack)) )	/* we completed the whole term */
+  { clearSegStack(&stack);
+    return true;
   }
 
-  syntaxError("operator_balance", _PL_rd);
+  if ( (rc=resume_pframe(fp, &req, _PL_rd)) == CTR_SUB )
+    goto sub_term;
+  if ( rc != true )
+    goto failed_rc;
+  goto frame_done;
+
+failed:
+  rc = false;
+failed_rc:
+  while( popSegStack(&stack, &frame, pframe) )
+    discard_pframe(&frame);
+  clearSegStack(&stack);
+
+  return rc;
 }
 
 
@@ -5171,30 +5409,49 @@ end_range(DECL_LD term_t positions)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-read_list(-positions)  reads  a  list  and  places    the  list  on  the
-term-stack. Token is the [-token. The idea was that moving this function
-out of simple_term() would reduce the  stack-usage of simple_term() when
-not reading a list, but  this   assumption  appears wrong: when inlined,
-simple_term() uses less stack. Why is that?  Nevertheless, this is a lot
-more readable and makes selecting between inlining and not trivial.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+read_list() reads a list  and places  the list on  the term-stack.  The
+token that starts it is the [-token.  Tail is a very special term-ref. It
+is always a reference to the place where the next term is to be written.
 
-#define read_list(token, positions, _PL_rd) LDFUNC(read_list, token, positions, _PL_rd)
-static inline int
-read_list(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ term_t term, tail, *tmp;
-  term_t pv;
+Note that the read_<construct>_start()/_resume()  functions below are not
+inlined on purpose: complex_term() only  needs   the  stack for the state
+machine itself; the state of the constructs lives on its segstack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define P_ELEM (pv+0)			/* pos of element */
 #define P_LIST (pv+1)			/* position list */
 #define P_TAIL (pv+2)			/* position of tail */
 
+#define read_list_elem(f, req, _PL_rd) LDFUNC(read_list_elem, f, req, _PL_rd)
+static int
+read_list_elem(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ term_t pv = f->u.list.pv;
+
+  if ( pv && !PL_unify_list(P_LIST, P_ELEM, P_LIST) )
+    return false;
+
+  f->kind        = PF_LIST_ELEM;
+  req->stop      = ",|]";
+  req->maxpri    = 999;
+  req->positions = P_ELEM;
+
+  return CTR_SUB;
+}
+
+
+#define read_list_start(f, token, req, _PL_rd) \
+	LDFUNC(read_list_start, f, token, req, _PL_rd)
+static int
+read_list_start(DECL_LD pframe *f, Token token, ct_request *req,
+		ReadData _PL_rd)
+{ term_t term, tail, pv;
+
   if ( !(tail = PL_new_term_ref()) )
     return false;
 
-  if ( positions )
+  if ( f->pin )
   { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(positions,
+	 !PL_unify_term(f->pin,
 			PL_FUNCTOR, FUNCTOR_list_position4,
 			PL_INT64, token->start,
 			PL_VARIABLE,
@@ -5204,120 +5461,109 @@ read_list(DECL_LD Token token, term_t positions, ReadData _PL_rd)
   } else
     pv = 0;
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Reading a list. Tmp is used to  read   the  next element. Tail is a very
-special term-ref. It is always a reference   to the place where the next
-term is to be written.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
   term = alloc_term(_PL_rd);
   if ( !PL_put_term(tail, term) )
     return false;
 
-  for(;;)
-  { Word argp;
+  f->u.list.pv   = pv;
+  f->u.list.tail = tail;
 
-    if ( positions )
-    { if ( !PL_unify_list(P_LIST, P_ELEM, P_LIST) )
-	return false;
-    }
+  return read_list_elem(f, req, _PL_rd);
+}
 
-    if ( !complex_term(",|]", 999, P_ELEM, _PL_rd) ||
-	 !ensureSpaceForTermRefs(2) ||
-	 !ensureGlobalSpace(3, ALLOW_GC) )
-      return false;
-    argp = gTop;
-    gTop += 3;
-    *unRef(*valTermRef(tail)) = consPtr(argp,
-					TAG_COMPOUND|STG_GLOBAL);
-    *argp++ = FUNCTOR_dot2;
-    setVar(argp[0]);
-    setVar(argp[1]);
-    tmp = term_av(-1, _PL_rd);
-    readValHandle(tmp[0], argp++, _PL_rd);
-    truncate_term_stack(tmp, _PL_rd);
-    setHandle(tail, makeRefG(argp));
 
-    token = get_token(false, _PL_rd);
+#define read_list_resume_elem(f, req, _PL_rd) \
+	LDFUNC(read_list_resume_elem, f, req, _PL_rd)
+static int
+read_list_resume_elem(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ term_t pv   = f->u.list.pv;
+  term_t tail = f->u.list.tail;
+  term_t *tmp;
+  Token token;
+  Word argp;
 
-    switch(token->value.character)
-    { case ']':
-	{ if ( positions )
-	  { set_range_position(positions, -1, token->end);
-	    if ( !PL_unify_nil(P_LIST) ||
-		 !PL_unify_atom(P_TAIL, ATOM_none) )
-	      return false;
-	  }
-	  return PL_unify_nil(tail);
-	}
-      case '|':
-	{ int rc;
-	  term_t pt = (pv ? P_TAIL : 0);
+  if ( !ensureSpaceForTermRefs(2) ||
+       !ensureGlobalSpace(3, ALLOW_GC) )
+    return false;
+  argp = gTop;
+  gTop += 3;
+  *unRef(*valTermRef(tail)) = consPtr(argp,
+				      TAG_COMPOUND|STG_GLOBAL);
+  *argp++ = FUNCTOR_dot2;
+  setVar(argp[0]);
+  setVar(argp[1]);
+  tmp = term_av(-1, _PL_rd);
+  readValHandle(tmp[0], argp++, _PL_rd);
+  truncate_term_stack(tmp, _PL_rd);
+  setHandle(tail, makeRefG(argp));
 
-	  if ( (rc=complex_term(",|]", 999, pt, _PL_rd)) != true )
-	    return rc;
-	  argp = unRef(*valTermRef(tail));
-	  tmp = term_av(-1, _PL_rd);
-	  readValHandle(tmp[0], argp, _PL_rd);
-	  truncate_term_stack(tmp, _PL_rd);
-	  token = get_token(false, _PL_rd); /* discard ']' */
-	  switch(token->value.character)
-	  { case ',':
-	    case '|':
-	      syntaxError("list_rest", _PL_rd);
-	  }
-	  if ( positions )
-	  { set_range_position(positions, -1, token->end);
-	    if ( !PL_unify_nil(P_LIST) )
-	      return false;
-	  }
-	  succeed;
-	}
-      case ',':
-	continue;
-    }
+  if ( !(token = get_token(false, _PL_rd)) )
+    return false;
+
+  switch(token->value.character)
+  { case ']':
+      if ( pv )
+      { set_range_position(f->pin, -1, token->end);
+	if ( !PL_unify_nil(P_LIST) ||
+	     !PL_unify_atom(P_TAIL, ATOM_none) )
+	  return false;
+      }
+      return PL_unify_nil(tail);
+    case '|':
+      f->kind        = PF_LIST_TAIL;
+      req->stop      = ",|]";
+      req->maxpri    = 999;
+      req->positions = pv ? P_TAIL : 0;
+      return CTR_SUB;
+    default:				/* `,' */
+      return read_list_elem(f, req, _PL_rd);
   }
+}
+
+
+#define read_list_resume_tail(f, _PL_rd) LDFUNC(read_list_resume_tail, f, _PL_rd)
+static int
+read_list_resume_tail(DECL_LD pframe *f, ReadData _PL_rd)
+{ term_t pv   = f->u.list.pv;
+  term_t tail = f->u.list.tail;
+  term_t *tmp;
+  Token token;
+  Word argp;
+
+  argp = unRef(*valTermRef(tail));
+  tmp = term_av(-1, _PL_rd);
+  readValHandle(tmp[0], argp, _PL_rd);
+  truncate_term_stack(tmp, _PL_rd);
+  if ( !(token = get_token(false, _PL_rd)) ) /* discard ']' */
+    return false;
+  switch(token->value.character)
+  { case ',':
+    case '|':
+      syntaxError("list_rest", _PL_rd);
+  }
+  if ( pv )
+  { set_range_position(f->pin, -1, token->end);
+    if ( !PL_unify_nil(P_LIST) )
+      return false;
+  }
+
+  succeed;
+}
+
 #undef P_ELEM
 #undef P_LIST
 #undef P_TAIL
-}
 
 
-#define read_brace_term(token, positions, _PL_rd) LDFUNC(read_brace_term, token, positions, _PL_rd)
-static inline int				/* read {...} */
-read_brace_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ int rc;
-  term_t pa;
-
-  if ( positions )
-  { if ( !(pa = PL_new_term_ref()) ||
-	 !PL_unify_term(positions,
-			PL_FUNCTOR, FUNCTOR_brace_term_position3,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, pa) )
-      return false;
-  } else
-    pa = 0;
-
-  if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd)) != true )
-    return rc;
-  token = get_token(false, _PL_rd);
-  if ( positions )
-    set_range_position(positions, -1, token->end);
-
-  return build_term(ATOM_curl, 1, _PL_rd);
-}
-
-/* Generic Unicode bracket / quote-pair reader.
+/* read_bracket_term() reads `(Term)`, `{Term}` and the generic Unicode
+ * bracket / quote pairs.
  *
- * Modeled on read_brace_term().  When the tokenizer encounters a
- * non-ASCII bracket / quote open (category 3 or 4 with a non-zero
- * pl_pair_lookup entry) it emits a TK_PUNCTUATION token carrying the
- * open code point; this function looks up the matching close in the
- * pair table, parses the contained term, expects the close, and
- * builds an `'<open><close>'/1` compound — the same shape as
- * `'{}'/1` for `{Term}`.
+ * When the tokenizer encounters a non-ASCII bracket / quote open
+ * (category 3 or 4 with a non-zero pl_pair_lookup entry) it emits a
+ * TK_PUNCTUATION token carrying the open code point; we look up the
+ * matching close in the pair table, parse the contained term, expect
+ * the close, and build an `'<open><close>'/1` compound — the same shape
+ * as `'{}'/1` for `{Term}`.
  *
  * Examples:
  *   `«hello»`        ⇒ '«»'(hello)
@@ -5328,100 +5574,159 @@ read_brace_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
  * raises for any unexpected punctuation in term position.
  */
 
-#define read_paired_term(token, positions, _PL_rd) \
-	LDFUNC(read_paired_term, token, positions, _PL_rd)
-static inline int
-read_paired_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ int rc;
+#define read_bracket_start(f, token, req, _PL_rd) \
+	LDFUNC(read_bracket_start, f, token, req, _PL_rd)
+static int
+read_bracket_start(DECL_LD pframe *f, Token token, ct_request *req,
+		   ReadData _PL_rd)
+{ int c = token->value.character;
+  functor_t fpos = FUNCTOR_brace_term_position3;
   term_t pa;
-  int open  = token->value.character;
-  int close = pl_pair_lookup(open, NULL);
-  char close_utf8[8];
-  char functor_utf8[16];
-  char *p;
-  size_t functor_len;
 
-  if ( close == 0 )
-  { syntaxError("illegal_character", _PL_rd);
+  f->u.bracket.functor = 0;
+  f->u.bracket.open    = 0;
+  f->u.bracket.close   = 0;
+
+  switch(c)
+  { case '(':
+      fpos = FUNCTOR_parentheses_term_position3;
+      req->stop = ")";
+      break;
+    case '{':
+      f->u.bracket.functor = ATOM_curl;
+      req->stop = "}";
+      break;
+    default:				/* Unicode bracket/quote pair */
+    { int close = pl_pair_lookup(c, NULL);
+      char *p;
+
+      if ( close == 0 )
+	syntaxError("illegal_character", _PL_rd);
+
+      f->u.bracket.open  = c;
+      f->u.bracket.close = close;
+      /* UTF-8 of the closing delimiter; drives complex_term's stop check. */
+      p = utf8_put_char(f->u.bracket.stop, close);
+      *p = '\0';
+      req->stop = f->u.bracket.stop;
+      break;
+    }
+  }
+
+  if ( f->pin )
+  { if ( !(pa = PL_new_term_ref()) ||
+	 !PL_unify_term(f->pin,
+			PL_FUNCTOR, fpos,
+			PL_INT64, token->start,
+			PL_VARIABLE,
+			PL_TERM, pa) )
+      return false;
+  } else
+    pa = 0;
+
+  req->maxpri    = OP_MAXPRIORITY+1;
+  req->positions = pa;
+
+  return CTR_SUB;
+}
+
+
+#define read_bracket_resume(f, _PL_rd) LDFUNC(read_bracket_resume, f, _PL_rd)
+static int
+read_bracket_resume(DECL_LD pframe *f, ReadData _PL_rd)
+{ Token token;
+
+  if ( !(token = get_token(false, _PL_rd)) ) /* skip ')', '}' or the close */
     return false;
-  }
+  if ( f->pin )
+    set_range_position(f->pin, -1, token->end);
 
-  /* UTF-8 of the closing delimiter; drives complex_term's stop check. */
-  p = utf8_put_char(close_utf8, close);
-  *p = '\0';
+  if ( f->u.bracket.functor )			/* {Term} */
+    return build_term(f->u.bracket.functor, 1, _PL_rd);
 
-  /* '<open><close>' atom for the functor name. */
-  p = utf8_put_char(functor_utf8, open);
-  p = utf8_put_char(p, close);
-  functor_len = p - functor_utf8;
+  if ( f->u.bracket.open )			/* «Term» */
+  { char functor_utf8[16];
+    char *p;
+    atom_t functor;
+    int rc;
 
-  if ( positions )
-  { if ( !(pa = PL_new_term_ref()) ||
-	 !PL_unify_term(positions,
-			PL_FUNCTOR, FUNCTOR_brace_term_position3,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, pa) )
-      return false;
-  } else
-    pa = 0;
-
-  if ( (rc=complex_term(close_utf8, OP_MAXPRIORITY+1, pa, _PL_rd)) != true )
-    return rc;
-  token = get_token(false, _PL_rd);
-  if ( positions )
-    set_range_position(positions, -1, token->end);
-
-  { atom_t functor = PL_new_atom_mbchars(REP_UTF8, functor_len, functor_utf8);
-    int br = build_term(functor, 1, _PL_rd);
+    p = utf8_put_char(functor_utf8, f->u.bracket.open);
+    p = utf8_put_char(p, f->u.bracket.close);
+    functor = PL_new_atom_mbchars(REP_UTF8, p-functor_utf8, functor_utf8);
+    rc = build_term(functor, 1, _PL_rd);
     PL_unregister_atom(functor);
-    return br;
-  }
-}
 
-
-#define read_parentheses_term(token, positions, _PL_rd) LDFUNC(read_parentheses_term, token, positions, _PL_rd)
-static inline int				/* read (...) */
-read_parentheses_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ int rc;
-  term_t pa;
-
-  if ( positions )
-  { if ( !(pa = PL_new_term_ref()) ||
-	 !PL_unify_term(positions,
-			PL_FUNCTOR, FUNCTOR_parentheses_term_position3,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, pa) )
-      return false;
-  } else
-    pa = 0;
-
-  if ( (rc=complex_term(")", OP_MAXPRIORITY+1, pa, _PL_rd)) != true )
     return rc;
-  token = get_token(false, _PL_rd);	/* skip ')' */
-  if ( positions )
-    set_range_position(positions, -1, token->end);
+  }
 
-  succeed;
+  succeed;					/* (Term) */
 }
 
 
-#define read_compound(token, positions, _PL_rd) LDFUNC(read_compound, token, positions, _PL_rd)
-static inline int				/* read f(a1, ...) */
-read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ int arity = 0;
-  atom_t functor;
-  term_t pv;
-  int unlock;
-  int rc;
+/* read f(a1, ...) */
 
 #define P_HEAD (pv+0)
 #define P_ARG  (pv+1)
 
-  if ( positions )
+#define read_compound_end(f, token, _PL_rd) \
+	LDFUNC(read_compound_end, f, token, _PL_rd)
+static int
+read_compound_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
+{ term_t pv = f->u.compound.pv;
+  atom_t functor = f->u.compound.functor;
+  int rc;
+
+  if ( pv )
+  { set_range_position(f->pin, -1, token->end);
+    if ( !PL_unify_nil(P_ARG) )
+      return false;
+  }
+
+  if ( _PL_rd->dotlists )
+  { static atom_t dot = 0;
+    if ( !dot )
+      dot = PL_new_atom(".");
+    if ( functor == dot )
+      functor = ATOM_dot;		/* the abstract cons name */
+  }
+
+  rc = build_term(functor, f->u.compound.arity, _PL_rd);
+  if ( f->u.compound.unlock )
+  { f->u.compound.unlock = false;
+    PL_unregister_atom(functor);
+  }
+
+  return rc;
+}
+
+
+#define read_compound_arg(f, req, _PL_rd) \
+	LDFUNC(read_compound_arg, f, req, _PL_rd)
+static int
+read_compound_arg(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ term_t pv = f->u.compound.pv;
+
+  if ( pv && !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+    return false;
+
+  req->stop      = ",)";
+  req->maxpri    = 999;
+  req->positions = P_HEAD;
+
+  return CTR_SUB;
+}
+
+
+#define read_compound_start(f, token, req, _PL_rd) \
+	LDFUNC(read_compound_start, f, token, req, _PL_rd)
+static int
+read_compound_start(DECL_LD pframe *f, Token token, ct_request *req,
+		    ReadData _PL_rd)
+{ term_t pv;
+
+  if ( f->pin )
   { if ( !(pv = PL_new_term_refs(2)) ||
-	 !PL_unify_term(positions,
+	 !PL_unify_term(f->pin,
 			PL_FUNCTOR, FUNCTOR_term_position5,
 			PL_INT64, token->start,
 			PL_VARIABLE,
@@ -5432,8 +5737,10 @@ read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
   } else
     pv = 0;
 
-  functor = token->value.atom;
-  unlock = (_PL_rd->locked == functor);
+  f->u.compound.pv      = pv;
+  f->u.compound.functor = token->value.atom;
+  f->u.compound.arity   = 0;
+  f->u.compound.unlock  = (_PL_rd->locked == token->value.atom);
   _PL_rd->locked = 0;
 
   if ( !(token=get_token(false, _PL_rd)) ) /* gets '(' */
@@ -5441,47 +5748,32 @@ read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
   if ( !(token=get_token(false, _PL_rd)) ) /* first token */
     return false;
 
-  if ( !(token->type == TK_PUNCTUATION && token->value.character == ')') )
-  { unget_token();
+  if ( token->type == TK_PUNCTUATION && token->value.character == ')' )
+    return read_compound_end(f, token, _PL_rd);
 
-    do
-    { if ( positions )
-      { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
-	  return false;
-      }
-      if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd)) != true )
-      { if ( unlock )
-	  PL_unregister_atom(functor);
-	return rc;
-      }
-      arity++;
-      token = get_token(false, _PL_rd);	/* `,' or `)' */
-    } while( token->value.character != ')' );
-  }
+  unget_token();
 
-  if ( positions )
-  { set_range_position(positions, -1, token->end);
-    if ( !PL_unify_nil(P_ARG) )
-      return false;
-  }
+  return read_compound_arg(f, req, _PL_rd);
+}
+
+
+#define read_compound_resume(f, req, _PL_rd) \
+	LDFUNC(read_compound_resume, f, req, _PL_rd)
+static int
+read_compound_resume(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ Token token;
+
+  f->u.compound.arity++;
+  if ( !(token = get_token(false, _PL_rd)) ) /* `,' or `)' */
+    return false;
+  if ( token->value.character == ')' )
+    return read_compound_end(f, token, _PL_rd);
+
+  return read_compound_arg(f, req, _PL_rd);
+}
 
 #undef P_HEAD
 #undef P_ARG
-
-  if ( _PL_rd->dotlists )
-  { static atom_t dot = 0;
-    if ( !dot )
-      dot = PL_new_atom(".");
-    if ( functor == dot )
-      functor = ATOM_dot;		/* the abstract cons name */
-  }
-
-  rc = build_term(functor, arity, _PL_rd);
-  if ( unlock )
-    PL_unregister_atom(functor);
-
-  return rc;
-}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5496,66 +5788,89 @@ With blob(resolve) we first look for a live blob that writes as this
 text.  See newDeadBlob() and lookupLiveBlob().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define read_blob(token, positions, _PL_rd) LDFUNC(read_blob, token, positions, _PL_rd)
+#define read_blob_end(f, token, _PL_rd) LDFUNC(read_blob_end, f, token, _PL_rd)
 static int
-read_blob(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ unsigned char *start = _PL_rd->blob_start;
-  atom_t name = token->value.atom;
-  int unlock = (_PL_rd->locked == name);
-  int64_t pos_start = token->start;
-  term_t *argv0 = term_av(0, _PL_rd);
-  int rc;
+read_blob_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
+{ atom_t name = f->u.blob.name;
+  term_t t;
+  atom_t blob;
+
+  _PL_rd->term_stack.top = f->u.blob.argv0;	/* discard the arguments */
+
+  t = alloc_term(_PL_rd);
+  if ( !(blob=newDeadBlob(name,
+			  (const char*)f->u.blob.start,
+			  rdhere - f->u.blob.start,
+			  _PL_rd->blobs == RD_BLOB_RESOLVE)) )
+    return false;
+  PL_put_atom(t, blob);
+  PL_unregister_atom(blob);
+
+  if ( f->u.blob.unlock )
+  { f->u.blob.unlock = false;
+    PL_unregister_atom(name);
+  }
+
+  if ( f->pin )
+    return PL_unify_term(f->pin,
+			 PL_FUNCTOR, FUNCTOR_minus2,
+			   PL_INT64, f->u.blob.pos_start,
+			   PL_INT64, token->end);
+
+  return true;
+}
+
+
+#define read_blob_arg(f, req) LDFUNC(read_blob_arg, f, req)
+static int
+read_blob_arg(DECL_LD pframe *f, ct_request *req)
+{ req->stop      = ",)";
+  req->maxpri    = 999;
+  req->positions = 0;
+
+  return CTR_SUB;
+}
+
+
+#define read_blob_start(f, token, req, _PL_rd) \
+	LDFUNC(read_blob_start, f, token, req, _PL_rd)
+static int
+read_blob_start(DECL_LD pframe *f, Token token, ct_request *req,
+		ReadData _PL_rd)
+{ f->u.blob.start     = _PL_rd->blob_start;
+  f->u.blob.name      = token->value.atom;
+  f->u.blob.unlock    = (_PL_rd->locked == token->value.atom);
+  f->u.blob.pos_start = token->start;
+  f->u.blob.argv0     = _PL_rd->term_stack.top;
 
   _PL_rd->locked = 0;
 
   if ( !(token=get_token(false, _PL_rd)) )	/* gets '(' */
-    goto error;
+    return false;
   if ( !(token=get_token(false, _PL_rd)) )	/* first token */
-    goto error;
+    return false;
 
-  if ( !(token->type == TK_PUNCTUATION && token->value.character == ')') )
-  { unget_token();
+  if ( token->type == TK_PUNCTUATION && token->value.character == ')' )
+    return read_blob_end(f, token, _PL_rd);
 
-    do
-    { if ( (rc=complex_term(",)", 999, 0, _PL_rd)) != true )
-      { if ( unlock )
-	  PL_unregister_atom(name);
-	return rc;
-      }
-      token = get_token(false, _PL_rd);		/* `,' or `)' */
-    } while( token->value.character != ')' );
-  }
+  unget_token();
 
-  truncate_term_stack(argv0, _PL_rd);		/* discard the arguments */
+  return read_blob_arg(f, req);
+}
 
-  { term_t t = alloc_term(_PL_rd);
-    atom_t blob;
 
-    if ( !(blob=newDeadBlob(name,
-				 (const char*)start, rdhere-start,
-				 _PL_rd->blobs == RD_BLOB_RESOLVE)) )
-      goto error;
-    PL_put_atom(t, blob);
-    PL_unregister_atom(blob);
-  }
+#define read_blob_resume(f, req, _PL_rd) \
+	LDFUNC(read_blob_resume, f, req, _PL_rd)
+static int
+read_blob_resume(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ Token token;
 
-  if ( unlock )
-    PL_unregister_atom(name);
+  if ( !(token = get_token(false, _PL_rd)) )	/* `,' or `)' */
+    return false;
+  if ( token->value.character == ')' )
+    return read_blob_end(f, token, _PL_rd);
 
-  if ( positions )
-  { if ( !PL_unify_term(positions,
-			PL_FUNCTOR, FUNCTOR_minus2,
-			  PL_INT64, pos_start,
-			  PL_INT64, token->end) )
-      return false;
-  }
-
-  return true;
-
-error:
-  if ( unlock )
-    PL_unregister_atom(name);
-  return false;
+  return read_blob_arg(f, req);
 }
 
 
@@ -5592,21 +5907,105 @@ is_key_token(Token token, ReadData _PL_rd)
    in pl-dict.c
 */
 
-#define read_dict(token, positions, _PL_rd) LDFUNC(read_dict, token, positions, _PL_rd)
-static inline int
-read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ int pairs = 0;
-  term_t pv;
-  int rc;
-  Token tstart;
-
 #define P_HEAD  (pv+0)
 #define P_ARG   (pv+1)
 #define P_VALUE (pv+2)
 
-  if ( positions )
+#define read_dict_end(f, token, _PL_rd) LDFUNC(read_dict_end, f, token, _PL_rd)
+static int
+read_dict_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
+{ term_t pv = f->u.dict.pv;
+
+  if ( pv )
+  { set_range_position(f->pin, -1, token->end);
+    if ( !PL_unify_nil(P_ARG) )
+      return false;
+  }
+
+  return build_dict(f->u.dict.pairs, _PL_rd);
+}
+
+
+/* Read `Key:' and request the value.  Note that the tokenizer keeps a
+   single token, so `key` and `sep` point at the same token structure.
+*/
+
+#define read_dict_key(f, req, _PL_rd) LDFUNC(read_dict_key, f, req, _PL_rd)
+static int
+read_dict_key(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ term_t pv = f->u.dict.pv;
+  Token key, sep;
+  int64_t kstart, kend;
+  term_t key_term;
+
+  if ( pv && !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+    return false;
+
+  if ( !(key = get_token(false, _PL_rd)) )
+    return false;
+
+  if ( is_key_token(key, _PL_rd) )
+  { key_term = alloc_term(_PL_rd);
+    PL_put_atom(key_term, key->value.atom);
+    Unlock(key->value.atom);
+  } else if ( key->type == TK_NUMBER )
+  { Number n = &key->value.number;
+
+    if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
+    { key_term = alloc_term(_PL_rd);
+      PL_put_int64(key_term, n->value.i);
+    } else
+      syntaxError("key_domain", _PL_rd); /* representation error? */
+  } else
+    syntaxError("key_expected", _PL_rd);
+
+  kstart = key->start;
+  kend   = key->end;
+  if ( !(sep = get_token(false, _PL_rd)) )
+    return false;
+
+  if ( !is_key_token(sep, _PL_rd) ||
+       sep->value.atom != ATOM_colon )
+    syntaxError("colon_expected", _PL_rd);
+
+  if ( pv )
+  { PL_put_variable(P_VALUE);
+
+    /* key_value_position(start, end, sep-start, sep-end, key, key-pos, value-pos) */
+
+    if ( !PL_unify_term(P_HEAD,
+			PL_FUNCTOR, FUNCTOR_key_value_position7,
+			PL_INT64, kstart,		/* whole term */
+			PL_VARIABLE,
+			PL_INT64, sep->start, /* : start */
+			PL_INT64, sep->end,   /* : end */
+			PL_TERM,   key_term,
+			PL_FUNCTOR, FUNCTOR_minus2,
+			  PL_INT64, kstart,
+			  PL_INT64, kend,
+			PL_TERM, P_VALUE) )
+      return false;
+  }
+
+  req->stop      = ",}";
+  req->maxpri    = 999;
+  req->positions = pv ? P_VALUE : 0;
+
+  return CTR_SUB;
+}
+
+
+#define read_dict_start(f, token, req, _PL_rd) \
+	LDFUNC(read_dict_start, f, token, req, _PL_rd)
+static int
+read_dict_start(DECL_LD pframe *f, Token token, ct_request *req,
+		ReadData _PL_rd)
+{ term_t pv;
+  Token tstart;
+
+  if ( f->pin )
   { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(positions,
+	 !PL_unify_term(f->pin,
 			PL_FUNCTOR, FUNCTOR_dict_position5,
 			PL_INT64, token->start, /* whole term */
 			PL_VARIABLE,
@@ -5638,104 +6037,170 @@ read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
       break;
   }
 
-  tstart = get_token(false, _PL_rd);	/* Skip '{' */
+  f->u.dict.pv    = pv;
+  f->u.dict.pairs = 0;
+
+  if ( !(tstart = get_token(false, _PL_rd)) )	/* Skip '{' */
+    return false;
 
 					/* process the key-values */
-  if ( !(tstart->type == TK_NAME && tstart->value.atom == ATOM_curl) )
-  { do
-    { Token key, sep;
-      int64_t kstart, kend;
-      term_t key_term;
+  if ( tstart->type == TK_NAME && tstart->value.atom == ATOM_curl )
+    return read_dict_end(f, tstart, _PL_rd);
 
-      if ( positions )
-      { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
-	  return false;
-      }
+  return read_dict_key(f, req, _PL_rd);
+}
 
-      if ( !(key = get_token(false, _PL_rd)) )
-	return false;
 
-      if ( is_key_token(key, _PL_rd) )
-      { key_term = alloc_term(_PL_rd);
-	PL_put_atom(key_term, key->value.atom);
-	Unlock(key->value.atom);
-      } else if ( key->type == TK_NUMBER )
-      { Number n = &key->value.number;
+#define read_dict_resume(f, req, _PL_rd) LDFUNC(read_dict_resume, f, req, _PL_rd)
+static int
+read_dict_resume(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ term_t pv = f->u.dict.pv;
+  Token token;
 
-	if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
-	{ key_term = alloc_term(_PL_rd);
-	  PL_put_int64(key_term, n->value.i);
-	} else
-	  syntaxError("key_domain", _PL_rd); /* representation error? */
-      } else
-	syntaxError("key_expected", _PL_rd);
+  if ( pv )
+  { sword vend = end_range(P_VALUE);
 
-      kstart = token->start;
-      kend   = token->end;
-      if ( !(sep = get_token(false, _PL_rd)) )
-	return false;
-
-      if ( !is_key_token(sep, _PL_rd) ||
-	   key->value.atom != ATOM_colon )
-	syntaxError("colon_expected", _PL_rd);
-
-      if ( positions )
-      { PL_put_variable(P_VALUE);
-
-	/* key_value_position(start, end, sep-start, sep-end, key, key-pos, value-pos) */
-
-	if ( !PL_unify_term(P_HEAD,
-			    PL_FUNCTOR, FUNCTOR_key_value_position7,
-			    PL_INT64, kstart,		/* whole term */
-			    PL_VARIABLE,
-			    PL_INT64, sep->start, /* : start */
-			    PL_INT64, sep->end,   /* : end */
-			    PL_TERM,   key_term,
-			    PL_FUNCTOR, FUNCTOR_minus2,
-			      PL_INT64, kstart,
-			      PL_INT64, kend,
-			    PL_TERM, P_VALUE) )
-	  return false;
-      }
-
-      if ( (rc=complex_term(",}", 999,
-			    positions ? P_VALUE : 0,
-			    _PL_rd)) != true )
-	return rc;
-
-      if ( positions )
-      { sword vend = end_range(P_VALUE);
-
-	set_range_position(P_HEAD, -1, vend);
-      }
-
-      pairs++;
-      token = get_token(false, _PL_rd);	/* `,' or `}' */
-    } while(token->value.character == ',');
+    set_range_position(P_HEAD, -1, vend);
   }
 
-  if ( positions )
-  { set_range_position(positions, -1, token->end);
-    if ( !PL_unify_nil(P_ARG) )
-      return false;
-  }
+  f->u.dict.pairs++;
+  if ( !(token = get_token(false, _PL_rd)) )	/* `,' or `}' */
+    return false;
+  if ( token->value.character == ',' )
+    return read_dict_key(f, req, _PL_rd);
+
+  return read_dict_end(f, token, _PL_rd);
+}
 
 #undef P_HEAD
 #undef P_ARG
 #undef P_VALUE
 
-  return build_dict(pairs, _PL_rd);
+
+#ifdef O_QUASIQUOTATIONS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define read_qq_start(f, token, req, _PL_rd) \
+	LDFUNC(read_qq_start, f, token, req, _PL_rd)
+static int
+read_qq_start(DECL_LD pframe *f, Token token, ct_request *req,
+	      ReadData _PL_rd)
+{ term_t result, pv, av;
+
+  result = alloc_term(_PL_rd);
+
+				/* prepare (if we are the first in term) */
+  if ( !_PL_rd->varnames )
+    _PL_rd->varnames = PL_new_term_ref();
+  if ( !_PL_rd->qq )
+  { if ( _PL_rd->quasi_quotations )
+    { _PL_rd->qq = _PL_rd->quasi_quotations;
+    } else
+    { if ( !(_PL_rd->qq = PL_new_term_ref()) )
+	return false;
+    }
+
+    if ( !(_PL_rd->qq_tail = PL_copy_term_ref(_PL_rd->qq)) )
+      return false;
+  }
+
+					/* allocate for quasi_quotation/4 */
+  if ( !(av=PL_new_term_refs(4)) )
+    return false;
+
+  if ( f->pin )
+  { if ( !(pv = PL_new_term_refs(3)) ||
+	 !PL_unify_term(f->pin,
+			PL_FUNCTOR, FUNCTOR_quasi_quotation_position5,
+			  PL_INT64, token->start,
+			  PL_VARIABLE,
+			  PL_TERM, pv+0,
+			  PL_TERM, pv+1,
+			  PL_TERM, pv+2) )
+      return false;
+  } else
+    pv = 0;
+
+  f->u.qq.result = result;
+  f->u.qq.av     = av;
+  f->u.qq.pv     = pv;
+						/* push type */
+  req->stop      = "|";
+  req->maxpri    = OP_MAXPRIORITY+1;
+  req->positions = pv ? pv+1 : 0;
+
+  return CTR_SUB;
 }
 
 
-/* simple_term() reads a term and leaves it on the top of the term-stack
+#define read_qq_resume(f, _PL_rd) LDFUNC(read_qq_resume, f, _PL_rd)
+static int
+read_qq_resume(DECL_LD pframe *f, ReadData _PL_rd)
+{ term_t av = f->u.qq.av;
+  term_t pv = f->u.qq.pv;
+  term_t t, *argv;
+  Token token;
+
+  if ( !(token = get_token(false, _PL_rd)) )	/* get the '|' */
+    return false;
+  if ( token->type != TK_QQ_BAR )
+    syntaxError("double_bar_expected", _PL_rd);
+
+  argv = term_av(-1, _PL_rd);
+  PL_put_term(av+0, argv[0]);			/* Arg 0: the type */
+  truncate_term_stack(argv, _PL_rd);
+  if ( !is_quasi_quotation_syntax(av, _PL_rd) )
+    return false;
+						/* Arg 1: the content */
+  if ( !get_quasi_quotation(av+1, &rdhere, rdend, _PL_rd) )
+    return false;
+
+  if ( pv )
+  { int64_t qqend = source_char_no + ptr_to_pos(rdhere, _PL_rd);
+
+    if ( !PL_unify(pv+0, av+0) )
+      return false;
+    set_range_position(f->pin, -1, qqend);
+    if ( !PL_unify_term(pv+2,
+			PL_FUNCTOR, FUNCTOR_minus2,
+			  PL_INT64, token->end,	/* end of | token */
+			  PL_INT64, qqend-2) )	/* end minus "|}" */
+      return false;
+  }
+
+  PL_put_term(av+2, _PL_rd->varnames);		/* Arg 2: the var dictionary */
+  if ( !PL_unify(av+3, f->u.qq.result) )	/* Arg 3: the result */
+    return false;
+
+  if ( !PL_cons_functor_v(av+0, FUNCTOR_quasi_quotation4, av) )
+    return false;
+
+  if ( !(t = PL_new_term_ref()) ||
+       !PL_unify_list(_PL_rd->qq_tail, t, _PL_rd->qq_tail) ||
+       !PL_unify(t, av+0) )
+    return false;
+
+  return true;
+}
+#endif /*O_QUASIQUOTATIONS*/
+
+
+/* simple_term() reads a term and leaves it on the top of the term-stack.
+   If the term is a compound construct, it returns true with *kind set to
+   the construct to read.  Reading it is started by start_pframe() and
+   continued by resume_pframe(), both called from complex_term().
 
 Token is the first token of the term.
 */
 
 static int
-simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
-{ switch(token->type)
+simple_term(DECL_LD Token token, term_t positions, pf_kind *kind,
+	    ReadData _PL_rd)
+{ *kind = PF_NONE;
+
+  switch(token->type)
   { case TK_FULLSTOP:
       syntaxError("end_of_clause", _PL_rd);
     case TK_VOID:
@@ -5768,27 +6233,33 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
       return unify_string_position(positions, token);
     }
     case TK_FUNCTOR:
-      return read_compound(token, positions, _PL_rd);
+      *kind = PF_COMPOUND;
+      return true;
     case TK_BLOB:
-      return read_blob(token, positions, _PL_rd);
+      *kind = PF_BLOB;
+      return true;
     case TK_DICT:
     case TK_VCLASS_DICT:
     case TK_VOID_DICT:
-      return read_dict(token, positions, _PL_rd);
+      *kind = PF_DICT;
+      return true;
     case TK_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
-	  return read_parentheses_term(token, positions, _PL_rd);
 	case '{':
-	  return read_brace_term(token, positions, _PL_rd);
+	  *kind = PF_BRACKET;
+	  return true;
 	case '[':
-	  return read_list(token, positions, _PL_rd);
+	  *kind = PF_LIST_ELEM;
+	  return true;
 	case ',':
 	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
 	{ bool is_open;
 	  if ( pl_pair_lookup(token->value.character, &is_open) && is_open )
-	    return read_paired_term(token, positions, _PL_rd);
+	  { *kind = PF_BRACKET;
+	    return true;
+	  }
 
 	  term_t term = alloc_term(_PL_rd);
 	  PL_put_atom(term, codeToAtom(token->value.character));
@@ -5797,98 +6268,71 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
       }
     }
 #ifdef O_QUASIQUOTATIONS
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     case TK_QQ_OPEN:
-    { int rc;
-      term_t result, t, *argv, pv, av;
-
-      result = alloc_term(_PL_rd);
-
-				/* prepare (if we are the first in term) */
-      if ( !_PL_rd->varnames )
-	_PL_rd->varnames = PL_new_term_ref();
-      if ( !_PL_rd->qq )
-      { if ( _PL_rd->quasi_quotations )
-	{ _PL_rd->qq = _PL_rd->quasi_quotations;
-	} else
-	{ if ( !(_PL_rd->qq = PL_new_term_ref()) )
-	    return false;
-	}
-
-	if ( !(_PL_rd->qq_tail = PL_copy_term_ref(_PL_rd->qq)) )
-	  return false;
-      }
-
-					/* allocate for quasi_quotation/4 */
-      if ( !(av=PL_new_term_refs(4)) )
-	return false;
-
-      if ( positions )
-      { if ( !(pv = PL_new_term_refs(3)) ||
-	     !PL_unify_term(positions,
-			    PL_FUNCTOR, FUNCTOR_quasi_quotation_position5,
-			      PL_INT64, token->start,
-			      PL_VARIABLE,
-			      PL_TERM, pv+0,
-			      PL_TERM, pv+1,
-			      PL_TERM, pv+2) )
-	  return false;
-      } else
-	pv = 0;
-						/* push type */
-      rc = complex_term("|", OP_MAXPRIORITY+1,
-			positions ? pv+1 : 0,
-			_PL_rd);
-      if ( rc != true )
-	return rc;
-      token = get_token(false, _PL_rd);		/* get the '|' */
-      if ( token->type != TK_QQ_BAR )
-	syntaxError("double_bar_expected", _PL_rd);
-
-      argv = term_av(-1, _PL_rd);
-      PL_put_term(av+0, argv[0]);		/* Arg 0: the type */
-      truncate_term_stack(argv, _PL_rd);
-      if ( !is_quasi_quotation_syntax(av, _PL_rd) )
-	return false;
-						/* Arg 1: the content */
-      if ( !get_quasi_quotation(av+1, &rdhere, rdend, _PL_rd) )
-	return false;
-
-      if ( positions )
-      { int64_t qqend = source_char_no + ptr_to_pos(rdhere, _PL_rd);
-
-	if ( !PL_unify(pv+0, av+0) )
-	  return false;
-	set_range_position(positions, -1, qqend);
-	if ( !PL_unify_term(pv+2,
-			    PL_FUNCTOR, FUNCTOR_minus2,
-			      PL_INT64, token->end,	/* end of | token */
-			      PL_INT64, qqend-2) )     /* end minus "|}" */
-	  return false;
-      }
-
-      PL_put_term(av+2, _PL_rd->varnames);	/* Arg 2: the var dictionary */
-      if ( !PL_unify(av+3, result) )		/* Arg 3: the result */
-	return false;
-
-      if ( !PL_cons_functor_v(av+0, FUNCTOR_quasi_quotation4, av) )
-	return false;
-
-      if ( !(t = PL_new_term_ref()) ||
-	   !PL_unify_list(_PL_rd->qq_tail, t, _PL_rd->qq_tail) ||
-	   !PL_unify(t, av+0) )
-	return false;
-
+      *kind = PF_QQ;
       return true;
-    }
     case TK_QQ_BAR:
       syntaxError("double_bar_outside_quasiquotation", _PL_rd);
 #endif
     default:;
       sysError("read/1: Illegal token type (%d)", token->type);
       /*NOTREACHED*/
+      fail;
+  }
+}
+
+
+/* Start reading the construct in f->kind.  Both dispatchers return
+   CTR_SUB if another subterm must be read, true if the construct is
+   complete and its term is on the term stack or false resp. one of the
+   overflow codes on failure.
+*/
+
+static int
+start_pframe(DECL_LD pframe *f, Token token, ct_request *req, ReadData _PL_rd)
+{ switch((pf_kind)f->kind)
+  { case PF_COMPOUND:
+      return read_compound_start(f, token, req, _PL_rd);
+    case PF_BLOB:
+      return read_blob_start(f, token, req, _PL_rd);
+    case PF_LIST_ELEM:
+      return read_list_start(f, token, req, _PL_rd);
+    case PF_DICT:
+      return read_dict_start(f, token, req, _PL_rd);
+    case PF_BRACKET:
+      return read_bracket_start(f, token, req, _PL_rd);
+#ifdef O_QUASIQUOTATIONS
+    case PF_QQ:
+      return read_qq_start(f, token, req, _PL_rd);
+#endif
+    default:
+      assert(0);
+      fail;
+  }
+}
+
+
+static int
+resume_pframe(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
+{ switch((pf_kind)f->kind)
+  { case PF_COMPOUND:
+      return read_compound_resume(f, req, _PL_rd);
+    case PF_BLOB:
+      return read_blob_resume(f, req, _PL_rd);
+    case PF_LIST_ELEM:
+      return read_list_resume_elem(f, req, _PL_rd);
+    case PF_LIST_TAIL:
+      return read_list_resume_tail(f, _PL_rd);
+    case PF_DICT:
+      return read_dict_resume(f, req, _PL_rd);
+    case PF_BRACKET:
+      return read_bracket_resume(f, _PL_rd);
+#ifdef O_QUASIQUOTATIONS
+    case PF_QQ:
+      return read_qq_resume(f, _PL_rd);
+#endif
+    default:
+      assert(0);
       fail;
   }
 }
