@@ -49,7 +49,8 @@ Test term reading, notably option processing
 test_read :-
     run_tests([ read_term,
                 read_op,
-		read_numbers
+		read_numbers,
+		read_deep
 	      ]).
 
 :- begin_tests(read_term).
@@ -191,6 +192,125 @@ test(float_overflow, F =:= inf) :-
         set_prolog_flag(float_overflow, Old)).
 
 :- end_tests(read_numbers).
+
+:- begin_tests(read_deep).
+
+% Reading may not use C stack proportional to the nesting of the term.
+% The depth below is well above the number of levels that used to fit in
+% the C stack: about 8,000 natively and 1,000 on WASM.
+
+deep(20 000).
+
+%!	nested(+Open, +Close, +Depth, -String) is det.
+%
+%	String is Open^Depth, "x" and Close^Depth, e.g. "f(f(f(x)))".
+
+nested(Open, Close, Depth, String) :-
+    length(Opens, Depth),
+    maplist(=(Open), Opens),
+    length(Closes, Depth),
+    maplist(=(Close), Closes),
+    append([Opens, [x], Closes], Parts),
+    atomics_to_string(Parts, String).
+
+%!	depth(+Term, -Depth) is det.
+%
+%	Depth is the number of times we can  take the first argument (or
+%	the value of the key `a` for a dict) of Term.
+
+depth(Term, Depth) :-
+    depth(Term, 0, Depth).
+
+depth(Dict, D0, D) :-
+    is_dict(Dict),
+    get_dict(a, Dict, Value),
+    !,
+    D1 is D0+1,
+    depth(Value, D1, D).
+depth(Term, D0, D) :-
+    compound(Term),
+    !,
+    arg(1, Term, A),
+    D1 is D0+1,
+    depth(A, D1, D).
+depth(_, D, D).
+
+test(compound, D == Depth) :-
+    deep(Depth),
+    nested("f(", ")", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(list, D == Depth) :-
+    deep(Depth),
+    nested("[", "]", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(list_tail, D == Depth) :-
+    deep(Depth),
+    nested("[a|", "]", Depth, S),
+    term_string(T, S),
+    last_arg_depth(T, 0, D).
+test(braces, D == Depth) :-
+    deep(Depth),
+    nested("{", "}", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(parentheses, T == x) :-
+    deep(Depth),
+    nested("(", ")", Depth, S),
+    term_string(T, S).
+test(operators, D == Depth) :-			% left recursion: (((x+b)+b)+b)
+    deep(Depth),
+    length(Ops, Depth),
+    maplist(=("+b"), Ops),
+    atomics_to_string(["x"|Ops], S),
+    term_string(T, S),
+    depth(T, D).
+test(prefix_operators, D == Depth) :-		% right recursion: - - - x
+    deep(Depth),
+    length(Ops, Depth),
+    maplist(=("- "), Ops),
+    append(Ops, ["x"], Parts),
+    atomics_to_string(Parts, S),
+    term_string(T, S),
+    depth(T, D).
+test(dict, D == Depth) :-
+    deep(Depth),
+    nested("_{a:", "}", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(mixed, D == Depth) :-
+    deep(Depth0),
+    Depth is Depth0*4,
+    nested("f([{-", "}])", Depth0, S),
+    term_string(T, S),
+    depth(T, D).
+test(last_argument, D == Depth) :-		% not the first argument
+    deep(Depth),
+    nested("f(a,", ")", Depth, S),
+    term_string(T, S),
+    last_arg_depth(T, 0, D).
+test(syntax_error, error(syntax_error(_))) :-	% unwind a deep frame stack
+    deep(Depth),
+    length(Opens, Depth),
+    maplist(=("f("), Opens),
+    atomics_to_string(Opens, S),
+    term_string(_, S).
+test(positions) :-
+    nested("f(", ")", 100, S),
+    term_string(T, S, [subterm_positions(P)]),
+    assertion(valid_term_position(T, P)).
+
+last_arg_depth(Term, D0, D) :-
+    compound(Term),
+    !,
+    compound_name_arity(Term, _, Arity),
+    arg(Arity, Term, A),
+    D1 is D0+1,
+    last_arg_depth(A, D1, D).
+last_arg_depth(_, D, D).
+
+:- end_tests(read_deep).
 
 term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
     term_position_check(TermString, ExpectedTerm, ExpectedTermPos, []).

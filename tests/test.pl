@@ -1401,10 +1401,7 @@ termtest(N) :-
 term_atom(term_to_atom-1) :-
     termtest(10).
 term_atom(term_to_atom-2) :-
-    (   current_prolog_flag(emscripten, true)
-    ->  termtest(500)                   % Runs out 1M stack hard at ~997
-    ;   termtest(1000)
-    ).
+    termtest(1000).
 
 
                  /*******************************
