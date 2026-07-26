@@ -120,6 +120,7 @@ suggest predicates from a keyword.
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{blob}{2}{Type check for a blob}
+\predicatesummary{blob_released}{1}{True if a blob's data was released}
 \predicatesummary{bounded_number}{3}{Number between bounds}
 \predicatesummary{break}{0}{Start interactive top level}
 \predicatesummary{break_hook}{6}{\hook{prolog} Debugger hook}

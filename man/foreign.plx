@@ -3055,6 +3055,17 @@ write() function writes
 not provided, write/1 emits the content of the blob for blobs of type
 \const{PL_BLOB_TEXT} or a string of the format \verb$<#$\textit{hex
 data}\verb$>$ for binary blobs.
+
+This notation is claimed by the reader, so the write() function should
+emit the type name between \verb$<$ and \verb$>$, followed by the
+arguments as \emph{valid Prolog syntax} between brackets.  Quote
+anything that needs it: a pattern, file name or message that contains a
+bracket or a quote makes the whole term unparsable.  Given that,
+read_term/2,3 can read the blob back using the \term{blob}{dead} option
+(see read_term/3), which is what makes a stack trace or a \verb$~q$ log
+file containing blobs parsable.  Note that the pointer is written with
+\verb$%p$, which Sfprintf() renders as \exam{0x}\textit{hex} on every
+platform.
 \end{description}
 
 \begin{description}
@@ -3201,6 +3212,12 @@ the data and 0 for the size.\footnote{This means that any predicates
 or callbacks that use the blob must check the result of
 PL_blob_data().}  If the release() function is not called, or if it
 returns \const{FALSE}, \const{FALSE} is returned.
+
+A released blob keeps its type, so blob/2 still reports it, but it is
+recognised by blob_released/1.  The system does not call the type's
+write() or compare() callback for such a blob, as these would
+dereference the object that is gone; it writes as
+\mbox{\const{<}\arg{Type}\const{>(freed)}} and is ordered by handle.
 
 PL_free_blob() may be called multiple times on the same
 \ctype{atom_t}, provided the handle is still valid.  Subsequent calls

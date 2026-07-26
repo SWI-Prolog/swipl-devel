@@ -1872,7 +1872,18 @@ True if \arg{Term} is bound to an atom.
 
     \predicate{blob}{2}{@Term, ?Type}
 True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
-\secref{blob}.
+\secref{blob}.  For a blob read using the \term{blob}{dead} option of
+read_term/3, \arg{Type} is the type the blob stands for, while
+current_blob/2 reports its real type \const{unavailable}.
+
+    \predicate{blob_released}{1}{@Term}
+True if \arg{Term} is a blob whose data was released using
+\cfuncref{PL_free_blob}{}.  Such a blob still exists as a term and keeps
+its type, but the object it referred to is gone: it writes as
+\mbox{\const{<}\arg{Type}\const{>(freed)}} and every predicate that
+expects the real thing rejects it.  Note that only blobs can be
+released; an ordinary atom is reclaimed as a whole by the atom garbage
+collector and remains valid for as long as it exists.
 
     \predicate{string}{1}{@Term}
 True if \arg{Term} is bound to a string. Note that string here refers to
@@ -1996,6 +2007,11 @@ so-called ``standard order''. This order is defined as follows:
 	  rationals.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Atoms} are compared alphabetically.
+    \item Non-text blobs (see \secref{blob}) occupy a band of their own
+	  between \arg{Strings} and \arg{Atoms}.  Two blobs of the same
+	  type are compared by that type; between types the order is
+	  the order in which the types were registered and is therefore
+	  not guaranteed to be the same in another run.
     \item \arg{Compound} terms are first checked on their arity, then
           on their functor name (alphabetically) and finally recursively
 	  on their arguments, leftmost argument first.
@@ -7055,6 +7071,45 @@ always reported using exception-handling (see catch/3). Options:
 If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
 \secref{string}).  The default depends on the Prolog flag
 \prologflag{back_quotes}.
+
+    \termitem{blob}{Atom}
+Defines how to read a non-text blob, which write/1 emits as
+\mbox{\const{<}\arg{Type}\const{>}\arg{(Arg, \ldots)}}, e.g.
+\exam{<stream>(0x55c1e0)}.  See \secref{blob}.  Values are
+
+    \begin{description}
+	\termitem{error}{}
+Raise a syntax error.  This is the default: reading such a term cannot
+reconstruct a variant of the term that was written, so the reader does
+not silently produce one.
+	\termitem{dead}{}
+Create a blob that has no foreign object behind it.  It is atomic, it
+writes as it was read and blob/2 reports the type it stands for, but
+every predicate that expects the real thing rejects it.  Use this to
+parse log files, stack traces or listing output that contains blobs.
+	\termitem{resolve}{}
+As \const{dead}, but first look for a blob that is alive in this process
+and writes as this text. This is what the toplevel uses, so a blob can
+be copied from earlier output and pasted back into a goal. Note that
+this turns text into a live handle and must therefore only be used on
+trusted input. It is also best effort because the original blob may have
+been reclaimed and a new blob of the same type may have allocated a
+new resource at the same address (known as the \jargon{ABA problem}).
+Considering the toplevel, (small) answers are recorded for reuse as
+\verb|$Var| and blobs that are part of small answers are thus referenced
+as long as the answer binding is not changed.
+
+Resolving is not cheap: there is no index from the written form back to
+the blob, so it examines every live blob of the requested type and
+writes it to compare the result.  This is fine for the toplevel, but it
+makes \const{resolve} a poor choice for reading many terms.  Use
+\const{dead} unless a live handle is really required.
+    \end{description}
+
+The notation is only unambiguous as long as \const{<} is not a prefix
+operator: if it is, \exam{<a>(f)} is the legal term \exam{>(<(a),f)}.  In
+a module that declares such an operator the reader therefore leaves the
+text alone and blobs cannot be read, regardless of \arg{Mode}.
 
     \termitem{character_escapes}{Bool}
 Defines how to read \verb$\$ escape sequences in quoted atoms.
