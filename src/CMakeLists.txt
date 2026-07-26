@@ -713,7 +713,14 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Create TAGS file for main sources")
 
-# Build the MacOS icon file
+# Provide the MacOS icon file.
+#
+# swipl.icns is a committed, prebuilt asset (desktop/swipl.icns) derived from
+# desktop/swipl-256.png.  We copy it into the build tree rather than generating
+# it here, because iconutil (used by make_icns.sh) cannot run in restricted
+# environments (e.g. sandbox-exec / CI) and is macOS-only.  The icon changes
+# only when the source PNG does; regenerate it with the `regenerate_icns`
+# target below (macOS, outside any sandbox) and commit the result.
 if(EPILOG AND APPLE)
   set(desktop ${CMAKE_SOURCE_DIR}/desktop)
 
@@ -721,14 +728,24 @@ if(EPILOG AND APPLE)
 
   add_custom_command(
     OUTPUT ${ICNS_FILE}
-    COMMAND sh ${desktop}/make_icns.sh ${desktop}/swipl-256.png ${ICNS_FILE}
-    DEPENDS ${desktop}/make_icns.sh ${desktop}/swipl-256.png
-    COMMENT "Create MacOS icons"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${desktop}/swipl.icns ${ICNS_FILE}
+    DEPENDS ${desktop}/swipl.icns
+    COMMENT "Copy MacOS icon (prebuilt desktop/swipl.icns)"
     VERBATIM
   )
 
   add_custom_target(generate_icns ALL DEPENDS ${ICNS_FILE})
   add_dependencies(${EPILOG_APP} generate_icns)
+
+  # Manual, opt-in regeneration of the committed icon from the source PNG.
+  # Not part of ALL: it requires iconutil and must run outside a sandbox.
+  add_custom_target(regenerate_icns
+    COMMAND sh ${desktop}/make_icns.sh ${desktop}/swipl-256.png ${desktop}/swipl.icns
+    DEPENDS ${desktop}/make_icns.sh ${desktop}/swipl-256.png
+    COMMENT "Regenerate committed desktop/swipl.icns from swipl-256.png (macOS, no sandbox)"
+    VERBATIM
+  )
 
   if(BUILD_MACOS_BUNDLE)
     install(FILES ${ICNS_FILE} DESTINATION ${SWIPL_INSTALL_RESOURCES})
