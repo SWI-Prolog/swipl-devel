@@ -518,16 +518,33 @@ typedef struct variable
   bool		labeled;        /* Used in X{= : Value} */
 } *Variable;
 
+typedef enum token_type
+{ TK_FUNCTOR = 0,		/* name of a functor (atom, followed by '(') */
+  TK_DICT,			/* name of a dict class (atom, followed by '{') */
+  TK_QNAME,			/* quoted name */
+  TK_NAME,			/* ordinary name */
+  TK_VCLASS_DICT,		/* variable name followed by '{' */
+  TK_VARIABLE,			/* variable name */
+  TK_VOID_DICT,			/* void variable followed by '{' */
+  TK_VOID,			/* void variable */
+  TK_NUMBER,			/* integer or float */
+  TK_STRING,			/* "string" */
+  TK_PUNCTUATION,		/* punctuation character */
+  TK_FULLSTOP,			/* Prolog end of clause */
+  TK_QQ_OPEN,			/* "{|" of {|Syntax||Quotation|} stuff */
+  TK_QQ_BAR			/* "||" of {|Syntax||Quotation|} stuff */
+} token_type;
+
 typedef struct token
-{ int type;			/* type of token */
+{ token_type type;		/* type of token */
   int64_t start;		/* start-position */
   int64_t end;			/* end-position */
   union
   { number	number;		/* int or float */
     atom_t	atom;		/* atom value */
     term_t	term;		/* term (list or string) */
-    int		character;	/* a punctuation character (T_PUNCTUATION) */
-    Variable	variable;	/* a variable record (T_VARIABLE) */
+    int		character;	/* a punctuation character (TK_PUNCTUATION) */
+    Variable	variable;	/* a variable record (TK_VARIABLE) */
   } value;			/* value of token */
 } *Token;
 
@@ -588,21 +605,6 @@ typedef struct
   tmp_buffer	side_queue;	/* Operators pushed `aside' */
 } op_queues;
 
-
-#define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
-#define T_DICT		1	/* name of a dict class (atom, followed by '{') */
-#define T_QNAME		2	/* quoted name */
-#define T_NAME		3	/* ordinary name */
-#define T_VCLASS_DICT	4	/* variable name followed by '{' */
-#define T_VARIABLE	5	/* variable name */
-#define T_VOID_DICT	6	/* void variable followed by '{' */
-#define T_VOID		7	/* void variable */
-#define T_NUMBER	8	/* integer or float */
-#define T_STRING	9	/* "string" */
-#define T_PUNCTUATION  10	/* punctuation character */
-#define T_FULLSTOP     11	/* Prolog end of clause */
-#define T_QQ_OPEN      12	/* "{|" of {|Syntax||Quotation|} stuff */
-#define T_QQ_BAR       13	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -2902,7 +2904,7 @@ get_unicode_quoted_string(unsigned char *in, int close,
  * the value type selected by the double_quotes flag (the same
  * choice as the case DQ block below), then wraps it in a unary
  * compound `'<open><close>'(Value)`. The result populates the
- * global cur_token as a T_STRING token whose .value.term is the
+ * global cur_token as a TK_STRING token whose .value.term is the
  * compound. Returns false on read or unify error.
  */
 
@@ -2964,7 +2966,7 @@ read_unicode_quote_token(DECL_LD int open, int close, ReadData _PL_rd)
   PL_unregister_atom(functor);
 
   cur_token.value.term = t;
-  cur_token.type = T_STRING;
+  cur_token.type = TK_STRING;
   rc = true;
 
 cleanup:
@@ -3493,7 +3495,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 	    cur_token.value.atom = textToAtom(&txt);
 	    NeedUnlock(cur_token.value.atom);
 	    PL_free_text(&txt);
-	    cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
+	    cur_token.type = rdhere[0] == '(' ? TK_FUNCTOR : TK_NAME;
 	    DEBUG(MSG_READ_TOKEN,
 		  Sdprintf("NAME: %s\n", stringAtom(cur_token.value.atom)));
 	    goto out;
@@ -3501,7 +3503,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 	}
 
 	cur_token.value.character = c;
-	cur_token.type = T_PUNCTUATION;
+	cur_token.type = TK_PUNCTUATION;
 	DEBUG(MSG_READ_TOKEN,
 	      Sdprintf("PUNCT(bracket): U+%04X\n", c));
 	goto out;
@@ -3520,7 +3522,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 	 * have consumed the close inside raw_read_quoted).
 	 */
 	cur_token.value.character = c;
-	cur_token.type = T_PUNCTUATION;
+	cur_token.type = TK_PUNCTUATION;
 	goto out;
       }
       case U_CAT_SOLO:
@@ -3579,16 +3581,16 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  PL_free_text(&txt);
 
 		  if ( *rdhere == '(' )
-		  { cur_token.type = T_FUNCTOR;
+		  { cur_token.type = TK_FUNCTOR;
 		  } else if ( *rdhere == '{' )
-		  { cur_token.type = T_DICT;
+		  { cur_token.type = TK_DICT;
 		  } else
-		  { cur_token.type = T_NAME;
+		  { cur_token.type = TK_NAME;
 		  }
 
 		  DEBUG(MSG_READ_TOKEN,
 			Sdprintf("%s: %s\n",
-				 cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
+				 cur_token.type == TK_FUNCTOR ? "FUNC" : "NAME",
 				 stringAtom(cur_token.value.atom)));
 
 		  break;
@@ -3612,9 +3614,9 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(MSG_READ_TOKEN, Sdprintf("VOID\n"));
 		    if ( *rdhere == '{' )
-		      cur_token.type = T_VOID_DICT;
+		      cur_token.type = TK_VOID_DICT;
 		    else
-		      cur_token.type = T_VOID;
+		      cur_token.type = TK_VOID;
 		  } else
 		  { cur_token.value.variable = lookupVariable((char *)start,
 							      rdhere-start,
@@ -3623,9 +3625,9 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 			  Sdprintf("VAR: %s\n",
 				   cur_token.value.variable->name));
 		    if ( *rdhere == '{' )
-		      cur_token.type = T_VCLASS_DICT;
+		      cur_token.type = TK_VCLASS_DICT;
 		    else
-		      cur_token.type = T_VARIABLE;
+		      cur_token.type = TK_VARIABLE;
 		  }
 
 		  break;
@@ -3637,7 +3639,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  if ( (rc=str_number(backskip_utf8(rdhere), &rdhere, &value,
 				      _PL_rd->flags)) == NUM_OK )
 		  { cur_token.value.number = value;
-		    cur_token.type = T_NUMBER;
+		    cur_token.type = TK_NUMBER;
 		    break;
 		  } else
 		  { numberError(rc, _PL_rd);
@@ -3652,7 +3654,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		   * and U_CAT_PATTERN_SYNTAX code points.
 		   */
 		  cur_token.value.atom = codeToAtom(c);	/* not registered */
-		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
+		  cur_token.type = (*rdhere == '(' ? TK_FUNCTOR : TK_NAME);
 		  DEBUG(MSG_READ_TOKEN,
 			Sdprintf("%s: %s\n",
 				 *rdhere == '(' ? "FUNC" : "NAME",
@@ -3677,7 +3679,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 
 		    utf8_get_uchar(rdhere, &c2);
 		    if ( PlBlankW(c2) )			/* .<blank> */
-		    { cur_token.type = T_FULLSTOP;
+		    { cur_token.type = TK_FULLSTOP;
 		      break;
 		    }
 		  }
@@ -3690,7 +3692,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		      if ( rdhere[0] == '|' &&
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { rdhere++;
-			cur_token.type = T_QQ_OPEN;
+			cur_token.type = TK_QQ_OPEN;
 			goto out;
 		      }
 		    /*FALLTHROUGH*/
@@ -3703,7 +3705,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 			{ case '{': cur_token.value.atom = ATOM_curl; break;
 			  case '[': cur_token.value.atom = ATOM_nil;  break;
 			}
-			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
+			cur_token.type = rdhere[0] == '(' ? TK_FUNCTOR : TK_NAME;
 			DEBUG(MSG_READ_TOKEN,
 			      Sdprintf("NAME: %s\n",
 				       stringAtom(cur_token.value.atom)));
@@ -3714,13 +3716,13 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		      if ( rdhere[0] == '|' &&
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { rdhere++;
-			cur_token.type = T_QQ_BAR;
+			cur_token.type = TK_QQ_BAR;
 			goto out;
 		      }
 #endif
 		  }
 		  cur_token.value.character = c;
-		  cur_token.type = T_PUNCTUATION;
+		  cur_token.type = TK_PUNCTUATION;
 		  DEBUG(MSG_READ_TOKEN,
 			Sdprintf("PUNCT: %c\n", cur_token.value.character));
 
@@ -3741,11 +3743,11 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 		  if ( rdhere[0] == '(' )
-		    cur_token.type = T_FUNCTOR;
+		    cur_token.type = TK_FUNCTOR;
 		  else if ( rdhere[0] == '{' )
-		    cur_token.type = T_DICT;
+		    cur_token.type = TK_DICT;
 		  else
-		    cur_token.type = T_QNAME;
+		    cur_token.type = TK_QNAME;
 		  discardBuffer(&b);
 		  break;
 		}
@@ -3780,7 +3782,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		  PL_free_text(&txt);
 		  cur_token.value.term = t;
-		  cur_token.type = T_STRING;
+		  cur_token.type = TK_STRING;
 		  discardBuffer(&b);
 		  break;
 		}
@@ -3810,7 +3812,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		  PL_free_text(&txt);
 		  cur_token.value.term = t;
-		  cur_token.type = T_STRING;
+		  cur_token.type = TK_STRING;
 		  discardBuffer(&b);
 		  break;
 		} else
@@ -4700,14 +4702,14 @@ reduce_op(DECL_LD cterm_state *cstate, const op_entry *op)
 static int
 is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 { switch(token->type)
-  { case T_NAME:
+  { case TK_NAME:
       return true;
-    case T_QNAME:
+    case TK_QNAME:
       return GD->options.traditional || !unquoted_atom(token->value.atom);
-    case T_FUNCTOR:
-    case T_DICT:
+    case TK_FUNCTOR:
+    case TK_DICT:
       return must_be_op;
-    case T_PUNCTUATION:
+    case TK_PUNCTUATION:
     { switch(token->value.character)
       { case '[':
 	case '{':
@@ -4738,7 +4740,7 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 static inline atom_t
 name_token(Token token, op_entry *e, ReadData _PL_rd)
 { switch(token->type)
-  { case T_PUNCTUATION:
+  { case TK_PUNCTUATION:
       need_unlock(0, _PL_rd);
       switch(token->value.character)
       { case '[':
@@ -4752,7 +4754,7 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 	default:
 	  return codeToAtom(token->value.character);
       }
-    case T_FULLSTOP:
+    case TK_FULLSTOP:
       need_unlock(0, _PL_rd);
       return codeToAtom('.');			/* ATOM_dot can be [|] */
     default:
@@ -4840,7 +4842,7 @@ Prolog  cannot  have  two  consequetive  operands.  This  constraint  it
 maintained in `rmo`, (Ope)rands-more-then-operators.  This cannot become
 more than 1 and thus, if we get into a situation where this threatens to
 become two, we try to interpret the next   token as an operator, even if
-it is a T_FUNCTOR token  (e.g.,  `name(`).   See  the  first argument of
+it is a TK_FUNCTOR token  (e.g.,  `name(`).   See  the  first argument of
 get_token().
 
 `rmo` can also not become below zero,  so   if  this threatens we try to
@@ -4901,20 +4903,22 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 
     if ( cstate.out_n != 0 || cstate.side_n != 0 ) /* Check for end of term */
     { switch(token->type)
-      { case T_FULLSTOP:
+      { case TK_FULLSTOP:
 	  if ( stop == NULL )
 	    goto exit;			/* exit for-loop */
 	  break;
-	case T_PUNCTUATION:
+	case TK_PUNCTUATION:
 	  if ( stop != NULL && stop_matches_codepoint(stop, token->value.character) )
 	    goto exit;
 	  break;
 #ifdef O_QUASIQUOTATIONS
-	case T_QQ_BAR:
+	case TK_QQ_BAR:
 	  if ( stop != NULL && stop[0] == '|' )
 	    goto exit;
 	  break;
 #endif
+	default:
+	  break;
       }
     }
 
@@ -5221,7 +5225,7 @@ read_brace_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
  *
  * Modeled on read_brace_term().  When the tokenizer encounters a
  * non-ASCII bracket / quote open (category 3 or 4 with a non-zero
- * pl_pair_lookup entry) it emits a T_PUNCTUATION token carrying the
+ * pl_pair_lookup entry) it emits a TK_PUNCTUATION token carrying the
  * open code point; this function looks up the matching close in the
  * pair table, parses the contained term, expects the close, and
  * builds an `'<open><close>'/1` compound — the same shape as
@@ -5349,7 +5353,7 @@ read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
   if ( !(token=get_token(false, _PL_rd)) ) /* first token */
     return false;
 
-  if ( !(token->type == T_PUNCTUATION && token->value.character == ')') )
+  if ( !(token->type == TK_PUNCTUATION && token->value.character == ')') )
   { unget_token();
 
     do
@@ -5395,12 +5399,12 @@ read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 static int
 is_key_token(Token token, ReadData _PL_rd)
 { switch(token->type)
-  { case T_NAME:
-    case T_QNAME:
-    case T_FUNCTOR:
-    case T_DICT:
+  { case TK_NAME:
+    case TK_QNAME:
+    case TK_FUNCTOR:
+    case TK_DICT:
       return true;
-    case T_PUNCTUATION:
+    case TK_PUNCTUATION:
     { switch(token->value.character)
       { case '[':
 	case '{':
@@ -5452,26 +5456,29 @@ read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 
 					/* Push the class */
   switch ( token->type )
-  { case T_DICT:
+  { case TK_DICT:
     { term_t term = alloc_term(_PL_rd);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       break;
     }
-    case T_VCLASS_DICT:
+    case TK_VCLASS_DICT:
     { term_t term = alloc_term(_PL_rd);
       setHandle(term, token->value.variable->signature);
       break;
     }
-    case T_VOID_DICT:
+    case TK_VOID_DICT:
     { alloc_term(_PL_rd);
+      break;
     }
+    default:
+      break;
   }
 
   tstart = get_token(false, _PL_rd);	/* Skip '{' */
 
 					/* process the key-values */
-  if ( !(tstart->type == T_NAME && tstart->value.atom == ATOM_curl) )
+  if ( !(tstart->type == TK_NAME && tstart->value.atom == ATOM_curl) )
   { do
     { Token key, sep;
       int64_t kstart, kend;
@@ -5489,7 +5496,7 @@ read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
       { key_term = alloc_term(_PL_rd);
 	PL_put_atom(key_term, key->value.atom);
 	Unlock(key->value.atom);
-      } else if ( key->type == T_NUMBER )
+      } else if ( key->type == TK_NUMBER )
       { Number n = &key->value.number;
 
 	if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
@@ -5566,44 +5573,44 @@ Token is the first token of the term.
 static int
 simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { switch(token->type)
-  { case T_FULLSTOP:
+  { case TK_FULLSTOP:
       syntaxError("end_of_clause", _PL_rd);
-    case T_VOID:
+    case TK_VOID:
       alloc_term(_PL_rd);
       /* nothing to do; term is already a variable */
       return unify_atomic_position(positions, token);
-    case T_VARIABLE:
+    case TK_VARIABLE:
     { term_t term = alloc_term(_PL_rd);
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       return unify_atomic_position(positions, token);
     }
-    case T_NAME:
-    case T_QNAME:
+    case TK_NAME:
+    case TK_QNAME:
     { term_t term = alloc_term(_PL_rd);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       return unify_atomic_position(positions, token);
     }
-    case T_NUMBER:
+    case TK_NUMBER:
     { term_t term = alloc_term(_PL_rd);
       if ( !_PL_put_number(term, &token->value.number) )
 	return false;
       clearNumber(&token->value.number);
       return unify_atomic_position(positions, token);
     }
-    case T_STRING:
+    case TK_STRING:
     { term_t term = alloc_term(_PL_rd);
       PL_put_term(term, token->value.term);
       return unify_string_position(positions, token);
     }
-    case T_FUNCTOR:
+    case TK_FUNCTOR:
       return read_compound(token, positions, _PL_rd);
-    case T_DICT:
-    case T_VCLASS_DICT:
-    case T_VOID_DICT:
+    case TK_DICT:
+    case TK_VCLASS_DICT:
+    case TK_VOID_DICT:
       return read_dict(token, positions, _PL_rd);
-    case T_PUNCTUATION:
+    case TK_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
 	  return read_parentheses_term(token, positions, _PL_rd);
@@ -5628,7 +5635,7 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    case T_QQ_OPEN:
+    case TK_QQ_OPEN:
     { int rc;
       term_t result, t, *argv, pv, av;
 
@@ -5672,7 +5679,7 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
       if ( rc != true )
 	return rc;
       token = get_token(false, _PL_rd);		/* get the '|' */
-      if ( token->type != T_QQ_BAR )
+      if ( token->type != TK_QQ_BAR )
 	syntaxError("double_bar_expected", _PL_rd);
 
       argv = term_av(-1, _PL_rd);
@@ -5711,7 +5718,7 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 
       return true;
     }
-    case T_QQ_BAR:
+    case TK_QQ_BAR:
       syntaxError("double_bar_outside_quasiquotation", _PL_rd);
 #endif
     default:;
@@ -5813,7 +5820,7 @@ read_term(DECL_LD term_t term, ReadData rd)
 
   if ( !(token = get_token(false, rd)) )
     goto out;
-  if ( token->type != T_FULLSTOP )
+  if ( token->type != TK_FULLSTOP )
   { errorWarning("end_of_clause_expected", 0, rd);
     goto out;
   }
