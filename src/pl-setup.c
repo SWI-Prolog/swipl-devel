@@ -774,13 +774,13 @@ initTerminationSignals(void)
 #endif /*O_SIGNALS*/
 
 /* Handle SIGSEGV on an alternative signal stack, so a C-stack overflow
-   still gets us a crash report.  See O_C_STACK_GUARDED.
+   still gets us a crash report.  See O_ALTSIGSTACK.
 */
 
 bool
-initGuardCStack(void)
+initAltSignalStack(void)
 {
-#ifdef O_C_STACK_GUARDED
+#ifdef O_ALTSIGSTACK
   GET_LD
   stack_t ss = {0};
 
@@ -893,7 +893,7 @@ initSignals(DECL_LD)
   { struct signame *sn = signames;
 #ifdef HAVE_OS_SIGNALS
     initTerminationSignals();
-    initGuardCStack();
+    initAltSignalStack();
 #endif /*HAVE_OS_SIGNALS*/
     initBackTrace();
     for( ; sn->name; sn++)
@@ -1782,7 +1782,7 @@ freePrologLocalData(PL_local_data_t *ld)
   if ( ld->tabling.node_pool )
     free_alloc_pool(ld->tabling.node_pool);
 
-#ifdef O_C_STACK_GUARDED
+#ifdef O_ALTSIGSTACK
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif

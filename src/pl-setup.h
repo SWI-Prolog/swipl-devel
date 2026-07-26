@@ -69,7 +69,7 @@ void		resetSignals(void);
 void		cleanupSignals(void);
 int		handleSignals(void);
 void		terminate_on_signal(int signo);
-bool		initGuardCStack(void);
+bool		initAltSignalStack(void);
 
 bool		initPrologStacks(size_t limit);
 void		initPrologLocalData(void);

@@ -516,7 +516,7 @@ struct PL_local_data
 #ifndef __unix__
     int		forced;			/* Forced signal */
 #endif
-#ifdef O_C_STACK_GUARDED
+#ifdef O_ALTSIGSTACK
     void       *alt_stack;		/* Stack to handle SIGSEGV on */
 #endif
   } signal;

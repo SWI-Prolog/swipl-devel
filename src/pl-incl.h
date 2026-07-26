@@ -2357,7 +2357,7 @@ typedef sigmask_t		wsigmask_t[SIGMASK_WORDS];
 Report C-stack overflows. An overflow  raises SIGSEGV, but there is no C
 stack left to run the handler  on. On   POSIX  systems we therefore run
 SIGSEGV on an alternative signal stack,  so   that  sigCrashHandler() can
-still print the crash report. See initGuardCStack().
+still print the crash report. See initAltSignalStack().
 
 Code that may need more C stack than  is available asks for room using
 require_c_stack(), which raises resource_error(c_stack).
@@ -2368,7 +2368,7 @@ this when compiling with the address sanitizer.
 
 #if O_SIGNALS && defined(HAVE_SIGALTSTACK) && \
     !defined(__SANITIZE_ADDRESS__)
-#define O_C_STACK_GUARDED 1
+#define O_ALTSIGSTACK 1
 #endif
 
 

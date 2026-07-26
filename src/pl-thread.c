@@ -656,7 +656,7 @@ initialise_thread(PL_thread_info_t *info)
   WITH_LD(info->thread_data) initPrologLocalData();
   info->thread_data->magic = LD_MAGIC;
 
-  initGuardCStack();
+  initAltSignalStack();
 
   return true;
 }
