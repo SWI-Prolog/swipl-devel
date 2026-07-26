@@ -1290,7 +1290,8 @@ read_query(Prompt, Goal, Bindings) :-
     '$current_typein_module'(TypeIn),
     catch(read_term_from_atom(Line, Goal,
                               [ variable_names(Bindings),
-                                module(TypeIn)
+                                module(TypeIn),
+                                blob(resolve)
                               ]), E,
           (   print_message(error, E),
               fail

@@ -76,9 +76,11 @@ read_history_(Raw, Term, Options) :-
     ;   true
     ),
     '$option'(variable_names(Bindings), Options, Bindings0),
+    history_blob_mode(Changed, BlobMode),
     catch(read_term_from_atom(Expanded, Term0,
                               [ module(Module),
-                                variable_names(Bindings0)
+                                variable_names(Bindings0),
+                                blob(BlobMode)
                               ]),
           E,
           (   print_message(error, E),
@@ -94,6 +96,17 @@ read_history_(Raw, Term, Options) :-
         Term = Term0,
         Bindings = Bindings0
     ).
+
+%!  history_blob_mode(+Changed, -Mode) is det.
+%
+%   Decide how read_term/3 should deal  with   a  blob written as
+%   <Type>(...).  Text the user just typed  may hold a blob of this
+%   process, so we resolve it. Text substituted from the history may
+%   come from a previous process, where an  address that happens to
+%   match a live blob would resolve to an unrelated object.
+
+history_blob_mode(true, dead) :- !.             % expanded from history
+history_blob_mode(_, resolve).
 
 %!  list_history
 %
