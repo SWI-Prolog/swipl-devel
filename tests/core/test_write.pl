@@ -52,7 +52,8 @@ test_write :-
 		    write_float,
 		    write_misc,
 		    max_text,
-		    write_size
+		    write_size,
+		    write_deep
 		  ]).
 
 :- meta_predicate
@@ -426,6 +427,90 @@ test(surrogate_split_max_overflow, fail) :-
 	write_size(A, _, _, [quoted(false), max_width(100)]).
 
 :- end_tests(write_size).
+
+:- begin_tests(write_deep).
+
+% Writing may not use C stack proportional to the nesting of the term.
+% The depth below is well above the number of levels that used to fit in
+% the C stack: about 18,000 natively and 2,000 on WASM.
+
+deep(20 000).
+
+:- op(200, xf, deep_fact).			% postfix, for a block operator
+:- op(9, fx, deep_low).				% prefix, for a block operator
+
+nested(compound,  T, f(T)).
+nested(list,      T, [T]).
+nested(list_tail, T, [a|T]).
+nested(braces,    T, {T}).
+nested(infix,     T, T+b).
+nested(prefix,    T, -T).
+nested(dict,      T, _{a:T}).
+nested(canonical, T, f(a,T)).
+nested(mixed,     T, f([{-T}])).
+nested(block_pre, T, deep_low [T]).
+nested(block_post,T, [T] deep_fact).
+
+%!	deep_term(+Kind, +Depth, -Term) is det.
+
+deep_term(Kind, Depth, Term) :-
+	deep_term(Depth, Kind, x, Term).
+
+deep_term(0, _, T, T) :- !.
+deep_term(N, Kind, T0, T) :-
+	nested(Kind, T0, T1),
+	N1 is N-1,
+	deep_term(N1, Kind, T1, T).
+
+%!	write_deep(+Kind, +Options, -String) is det.
+
+write_deep(Kind, Options, String) :-
+	deep(Depth),
+	deep_term(Kind, Depth, T),
+	with_output_to(string(String), write_term(T, Options)).
+
+test(compound, S == Len) :-			% f(f(...f(x)...))
+	write_deep(compound, [], String),
+	deep(Depth), Len is Depth*3+1,
+	string_length(String, S).
+test(list) :-
+	write_deep(list, [], _).
+test(list_tail) :-
+	write_deep(list_tail, [], _).
+test(braces) :-
+	write_deep(braces, [], _).
+test(infix) :-
+	write_deep(infix, [], _).
+test(prefix) :-
+	write_deep(prefix, [], _).
+test(dict) :-
+	write_deep(dict, [], _).
+test(canonical) :-
+	write_deep(canonical, [], _).
+test(mixed) :-
+	write_deep(mixed, [], _).
+test(block_operators) :-
+	write_deep(block_pre, [], _),
+	write_deep(block_post, [], _).
+test(ignore_ops) :-				% canonical notation
+	write_deep(mixed, [ignore_ops(true), quoted(true)], _).
+test(dotlists) :-				% '[|]'(H,T) notation
+	write_deep(list, [dotlists(true)], _).
+test(no_lists) :-
+	write_deep(list, [no_lists(true)], _).
+test(max_depth) :-				% truncated, so short
+	deep(Depth),
+	deep_term(compound, Depth, T),
+	with_output_to(string(S), write_term(T, [max_depth(5)])),
+	string_length(S, Len),
+	assertion(Len < 100).
+test(round_trip, T2 =@= T) :-			% read what we wrote
+	deep(Depth),
+	deep_term(mixed, Depth, T),
+	with_output_to(string(S), write_term(T, [quoted(true)])),
+	term_string(T2, S).
+
+:- end_tests(write_deep).
 
 write_encoding(Goal, Encoding, String) :-
 	setup_call_cleanup(
