@@ -42,6 +42,7 @@
 #include "pl-pro.h"
 #include "pl-read.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -247,6 +248,180 @@ static PL_blob_t unregistered_blob_atom =
   PL_BLOB_NOCOPY|PL_BLOB_TEXT,
   "unregistered"
 };
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The `unavailable' blob type holds a blob that has no foreign object: the
+result of reading <type>(...) with read_term/2,3 and blob(dead).  Its
+content is the source text, so that writing it reproduces the input.
+
+It is deliberately not PL_BLOB_TEXT (so atom/1 fails on it, as it does
+for the blob it stands for) and not PL_BLOB_UNIQUE (the pointer printed
+by a blob is not a stable identity: the atom garbage collector reuses
+addresses, so two blobs that write the same text are not necessarily the
+same object).  Because it is a type of its own, every typed accessor
+rejects it by comparing the type: no additional guards are needed.
+
+blob/2 reports the type name recorded in the text rather than
+`unavailable'.  See deadBlobType().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+write_unavailable(IOSTREAM *s, atom_t a, int flags)
+{ size_t len;
+  const char *text = PL_blob_data(a, &len, NULL);
+  const char *e = text+len;
+
+  (void)flags;
+  while ( text < e )			/* the text is UTF-8; emit code */
+  { int c;				/* points to respect the encoding */
+
+    text = utf8_get_char(text, &c);
+    if ( Sputcode(c, s) < 0 )
+      return false;
+  }
+
+  return true;
+}
+
+
+static int
+compare_unavailable(atom_t a, atom_t b)
+{ size_t la, lb;
+  const char *ta = PL_blob_data(a, &la, NULL);
+  const char *tb = PL_blob_data(b, &lb, NULL);
+  size_t l = la < lb ? la : lb;
+  int v;
+
+  if ( (v=memcmp(ta, tb, l)) != 0 )
+    return SCALAR_TO_CMP(v, 0);
+  if ( la != lb )
+    return SCALAR_TO_CMP(la, lb);
+
+  return SCALAR_TO_CMP(ta, tb);		/* distinct blobs, equal text */
+}
+
+
+static PL_blob_t unavailable_blob =
+{ PL_BLOB_MAGIC,
+  0,
+  "unavailable",
+  NULL,					/* release */
+  compare_unavailable,
+  write_unavailable
+};
+
+
+/* deadBlobType() returns the type name recorded in the text of a
+   dead blob, i.e. `stream' for "<stream>(0x55c1e0)".  Returns 0 if `a'
+   is not a dead blob.
+*/
+
+atom_t
+deadBlobType(atom_t a)
+{ size_t len;
+  PL_blob_t *type;
+  const char *text = PL_blob_data(a, &len, &type);
+  const char *e;
+
+  if ( type != &unavailable_blob || !text || len < 2 || text[0] != '<' )
+    return 0;
+  if ( !(e=memchr(text+1, '>', len-1)) )
+    return 0;
+
+  return PL_new_atom_mbchars(REP_UTF8, e-(text+1), text+1);
+}
+
+
+/* lookupLiveBlob() finds the blob of type `type_name' that writes as
+   `text'.  Returns a registered atom, or 0 if there is no match or more
+   than one.  Used for read_term/2,3 with blob(resolve).
+
+   Note that the printed form is not an identity: after atom garbage
+   collection an address can be reused by another blob of the same type.
+   Resolving is therefore best-effort and only enabled where the input is
+   trusted, i.e. the toplevel.
+*/
+
+static atom_t
+lookupLiveBlob(atom_t type_name, const char *text, size_t len)
+{ size_t index;
+  int i, last=false;
+  atom_t found = 0;
+
+  for(index=1, i=MSB(index); !last; i++)
+  { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
+    Atom b = GD->atoms.array.blocks[i];
+
+    if ( upto >= high )
+    { upto = high;
+      last = true;
+    }
+
+    for(; index<upto; index++)
+    { Atom atom = b + index;
+      unsigned int refs = atom->references;
+      PL_blob_t *btype = atom->type;
+      IOSTREAM *s;
+      char *out = NULL;			/* Sopenmem() writes through both */
+      size_t outlen = 0;
+      bool eq;
+
+      if ( !(ATOM_IS_VALID(refs) && btype && btype->write &&
+	     type_name == btype->atom_name &&
+	     atom->atom != ATOM_garbage_collected &&
+	     bump_atom_references(atom, refs)) )
+	continue;
+
+      if ( !(s=Sopenmem(&out, &outlen, "w")) )
+      { PL_unregister_atom(atom->atom);
+	return found;
+      }
+      s->encoding = ENC_UTF8;
+      eq = (*btype->write)(s, atom->atom, PL_WRT_QUOTED);
+      eq = ( Sclose(s) == 0 && eq &&
+	     outlen == len &&
+	     memcmp(out, text, len) == 0 );
+      Sfree(out);
+
+      if ( !eq )
+      { PL_unregister_atom(atom->atom);
+	continue;
+      }
+
+      if ( found )			/* ambiguous: refuse to guess */
+      { PL_unregister_atom(atom->atom);
+	PL_unregister_atom(found);
+	return 0;
+      }
+      found = atom->atom;		/* keep the reference */
+    }
+  }
+
+  return found;
+}
+
+
+/* newDeadBlob() creates the blob for read_term/2,3 reading
+   <type>(...).  If `resolve', first look for a live blob that writes as
+   this text.  Returns a registered atom or 0.
+*/
+
+atom_t
+newDeadBlob(atom_t type_name, const char *text, size_t len, bool resolve)
+{ GET_LD
+  int new;
+
+  if ( resolve )
+  { atom_t live;
+
+    if ( (live=lookupLiveBlob(type_name, text, len)) )
+      return live;
+  }
+
+  return lookupBlob(text, len, &unavailable_blob, &new);
+}
 
 
 void
@@ -1810,9 +1985,15 @@ static
 PRED_IMPL("blob", 2, blob, 0)
 { PRED_LD
   PL_blob_t *bt;
+  atom_t a;
 
   if ( PL_is_blob(A1, &bt) )
+  { if ( PL_get_atom(A1, &a) &&		/* dead blob: report the type it */
+	 (a=deadBlobType(a)) )	/* stands for, not `unavailable' */
+      return PL_unify_atom(A2, a);
+
     return PL_unify_atom(A2, bt->atom_name);
+  }
 
   return false;
 }

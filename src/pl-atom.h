@@ -63,6 +63,9 @@ foreign_t	pl_garbage_collect_atoms(void);
 int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
 size_t		atom_space(void);
+atom_t		newDeadBlob(atom_t type_name, const char *text,
+			    size_t len, bool resolve);
+atom_t		deadBlobType(atom_t a);
 #undef LDFUNC_DECLARATIONS
 
 static inline int

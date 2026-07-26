@@ -532,8 +532,16 @@ typedef enum token_type
   TK_PUNCTUATION,		/* punctuation character */
   TK_FULLSTOP,			/* Prolog end of clause */
   TK_QQ_OPEN,			/* "{|" of {|Syntax||Quotation|} stuff */
-  TK_QQ_BAR			/* "||" of {|Syntax||Quotation|} stuff */
+  TK_QQ_BAR,			/* "||" of {|Syntax||Quotation|} stuff */
+  TK_BLOB			/* <type>( of a blob, see blob/2 */
 } token_type;
+
+					/* read_term/2,3 option blob(Mode) */
+typedef enum blob_mode
+{ RD_BLOB_ERROR = 0,		/* <type>(...) is a syntax error (default) */
+  RD_BLOB_DEAD,			/* create a blob without a foreign object */
+  RD_BLOB_RESOLVE		/* find the live blob; else as RD_BLOB_DEAD */
+} blob_mode;
 
 typedef struct token
 { token_type type;		/* type of token */
@@ -654,6 +662,8 @@ typedef struct
   bool		cycles;			/* Re-establish cycles */
   bool		dotlists;		/* read .(a,b) as a list */
   Sunicode_atoms_t unicode_atoms;	/* per-stream/per-call atom-content policy */
+  blob_mode	blobs;			/* How to read <type>(...) */
+  unsigned char *blob_start;		/* Start of the current TK_BLOB */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -3444,6 +3454,67 @@ ptr_to_pos(const unsigned char *p, ReadData _PL_rd)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Non-text blobs are written as <type>(Arg, ...), e.g. <stream>(0x55c1e0).
+The reader claims this notation, but only if read_term/2,3 was given
+blob(dead) or blob(resolve); the default blob(error) leaves it a syntax
+error.  See read_blob() and section "BLOBS" in the manual.
+
+blob_name_char() defines the type name between the brackets.  It is
+deliberately narrow: it must not swallow a `>' that belongs to something
+else, so anything that can separate terms is excluded.  Real type names
+are identifiers, possibly with `-' (rdf-snapshot) or digits from a
+mangled C++ name (6MyBlob).
+
+scan_blob_name() gets `in' just after the `<'.  If the text is a blob
+opening, it returns a pointer to the `(' and fills `name'; else NULL.
+
+The notation is only unambiguous as long as `<' is not a prefix operator:
+if it is, `<a>(f)' is the perfectly legal term >(<(a),f).  We therefore
+leave the text alone in a module that declares one, so that claiming this
+notation cannot change the meaning of any term that could be read before.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+blob_syntax_available(ReadData _PL_rd)
+{ unsigned char type;
+  short priority;
+
+  return !currentOperator(_PL_rd->module, ATOM_smaller, OP_PREFIX,
+			  &type, &priority);
+}
+
+static bool
+blob_name_char(int c)
+{ return PlIdContW(c) || c == '-' || c == '.' || c == ':' || c == '$';
+}
+
+
+static unsigned char *
+scan_blob_name(unsigned char *in, atom_t *name)
+{ unsigned char *end = in;
+
+  for(;;)
+  { int c;
+    unsigned char *next = (unsigned char*)utf8_get_char((char*)end, &c);
+
+    if ( c == '>' )
+      break;
+    if ( !blob_name_char(c) )		/* also catches the closing 0 */
+      return NULL;
+    end = next;
+  }
+
+  if ( end == in || end[1] != '(' )	/* `<>' or `>' not followed by `(' */
+    return NULL;
+
+  if ( !(*name=PL_new_atom_mbchars(REP_UTF8, end-in, (char*)in)) )
+    return NULL;
+
+  return end+1;
+}
+
+
 #define get_token(must_be_op, _PL_rd) LDFUNC(get_token, must_be_op, _PL_rd)
 static Token
 get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
@@ -3664,6 +3735,23 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case_symbol:
     case SY:	if ( c == '`' && ison(_PL_rd, BQ_MASK) )
 		  goto case_bq;
+
+		if ( c == '<' &&		/* <type>(...): a blob */
+		     !must_be_op &&
+		     _PL_rd->blobs != RD_BLOB_ERROR &&
+		     blob_syntax_available(_PL_rd) )
+		{ atom_t name;
+		  unsigned char *e;
+
+		  if ( (e=scan_blob_name(rdhere, &name)) )
+		  { rdhere = e;			/* points at the `(' */
+		    cur_token.value.atom = name;
+		    _PL_rd->locked = name;
+		    _PL_rd->blob_start = start;
+		    cur_token.type = TK_BLOB;
+		    goto out;
+		  }
+		}
 
 		rdhere = SkipSymbol(rdhere, _PL_rd);
 		if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
@@ -5396,6 +5484,81 @@ read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Read <type>(Arg, ...) into a blob that has no foreign object behind it.
+The arguments are read as ordinary Prolog terms and then discarded: what
+we keep is the source text, so that writing the result reproduces the
+input byte for byte.  Parsing them anyway is what locates the closing
+bracket, dealing with quotes, comments and nesting for free, and it
+rejects text that a blob write() callback should never have produced.
+
+With blob(resolve) we first look for a live blob that writes as this
+text.  See newDeadBlob() and lookupLiveBlob().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define read_blob(token, positions, _PL_rd) LDFUNC(read_blob, token, positions, _PL_rd)
+static int
+read_blob(DECL_LD Token token, term_t positions, ReadData _PL_rd)
+{ unsigned char *start = _PL_rd->blob_start;
+  atom_t name = token->value.atom;
+  int unlock = (_PL_rd->locked == name);
+  int64_t pos_start = token->start;
+  term_t *argv0 = term_av(0, _PL_rd);
+  int rc;
+
+  _PL_rd->locked = 0;
+
+  if ( !(token=get_token(false, _PL_rd)) )	/* gets '(' */
+    goto error;
+  if ( !(token=get_token(false, _PL_rd)) )	/* first token */
+    goto error;
+
+  if ( !(token->type == TK_PUNCTUATION && token->value.character == ')') )
+  { unget_token();
+
+    do
+    { if ( (rc=complex_term(",)", 999, 0, _PL_rd)) != true )
+      { if ( unlock )
+	  PL_unregister_atom(name);
+	return rc;
+      }
+      token = get_token(false, _PL_rd);		/* `,' or `)' */
+    } while( token->value.character != ')' );
+  }
+
+  truncate_term_stack(argv0, _PL_rd);		/* discard the arguments */
+
+  { term_t t = alloc_term(_PL_rd);
+    atom_t blob;
+
+    if ( !(blob=newDeadBlob(name,
+				 (const char*)start, rdhere-start,
+				 _PL_rd->blobs == RD_BLOB_RESOLVE)) )
+      goto error;
+    PL_put_atom(t, blob);
+    PL_unregister_atom(blob);
+  }
+
+  if ( unlock )
+    PL_unregister_atom(name);
+
+  if ( positions )
+  { if ( !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_minus2,
+			  PL_INT64, pos_start,
+			  PL_INT64, token->end) )
+      return false;
+  }
+
+  return true;
+
+error:
+  if ( unlock )
+    PL_unregister_atom(name);
+  return false;
+}
+
+
 static int
 is_key_token(Token token, ReadData _PL_rd)
 { switch(token->type)
@@ -5606,6 +5769,8 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
     }
     case TK_FUNCTOR:
       return read_compound(token, positions, _PL_rd);
+    case TK_BLOB:
+      return read_blob(token, positions, _PL_rd);
     case TK_DICT:
     case TK_VCLASS_DICT:
     case TK_VOID_DICT:
@@ -5996,6 +6161,28 @@ Options:
 	* subterm_positions(-Layout)
 */
 
+/* atom_to_blob_mode_ex(a, m)
+ *
+ * Validate atom `a` as a blob(Mode); on success store the enum in *m.
+ * On invalid input raise domain_error(blob, a) and return false.
+ */
+
+static bool
+atom_to_blob_mode_ex(atom_t a, blob_mode *m)
+{ if      ( a == ATOM_error   ) *m = RD_BLOB_ERROR;
+  else if ( a == ATOM_dead    ) *m = RD_BLOB_DEAD;
+  else if ( a == ATOM_resolve ) *m = RD_BLOB_RESOLVE;
+  else
+  { GET_LD
+    term_t v;
+    return ( (v = PL_new_term_ref()) &&
+	     PL_put_atom(v, a) &&
+	     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_blob, v) );
+  }
+  return true;
+}
+
+
 static const PL_option_t read_clause_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_term_position,	    OPT_TERM },
@@ -6004,6 +6191,7 @@ static const PL_option_t read_clause_options[] =
   { ATOM_comments,	    OPT_TERM },
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_unicode_atoms,     OPT_ATOM },
+  { ATOM_blob,		    OPT_ATOM },
   { NULL_ATOM,		    0 }
 };
 
@@ -6052,6 +6240,7 @@ read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
   term_t opt_comments = 0;
   int process_comment;
   atom_t opt_unicode_atoms = NULL_ATOM;
+  atom_t opt_blobs = NULL_ATOM;
   atom_t syntax_errors = ATOM_dec10;
   predicate_t comment_hook;
 
@@ -6073,7 +6262,14 @@ retry:
 			&process_comment,
 			&opt_comments,
 			&syntax_errors,
-			&opt_unicode_atoms) )
+			&opt_unicode_atoms,
+			&opt_blobs) )
+  { PL_close_foreign_frame(fid);
+    return false;
+  }
+
+  if ( opt_blobs != NULL_ATOM &&
+       !atom_to_blob_mode_ex(opt_blobs, &rd.blobs) )
   { PL_close_foreign_frame(fid);
     return false;
   }
@@ -6165,6 +6361,7 @@ static const PL_option_t read_term_options[] =
   { ATOM_cycles,	    OPT_BOOL },
   { ATOM_dotlists,	    OPT_BOOL },
   { ATOM_unicode_atoms,     OPT_ATOM },
+  { ATOM_blob,		    OPT_ATOM },
   { NULL_ATOM,		    0 }
 };
 
@@ -6182,6 +6379,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
   int charescapes = -1;
   int varprefix = -1;
   atom_t opt_unicode_atoms = NULL_ATOM;
+  atom_t opt_blobs = NULL_ATOM;
   atom_t dq = NULL_ATOM;
   atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
@@ -6212,7 +6410,12 @@ retry:
 			QQ_ARG
 			&rd.cycles,
 			&rd.dotlists,
-			&opt_unicode_atoms) )
+			&opt_unicode_atoms,
+			&opt_blobs) )
+    return false;
+
+  if ( opt_blobs != NULL_ATOM &&
+       !atom_to_blob_mode_ex(opt_blobs, &rd.blobs) )
     return false;
 
   if ( mname )

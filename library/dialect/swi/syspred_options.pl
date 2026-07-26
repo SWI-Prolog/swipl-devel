@@ -104,7 +104,8 @@
 		       variable_names(-list),
 		       subterm_positions(-any),
 		       comments(-list),
-		       unicode_atoms(oneof([accept,nfc,error,reject]))
+		       unicode_atoms(oneof([accept,nfc,error,reject])),
+		       blob(oneof([error,dead,resolve]))
 		     ]).
 :- predicate_options(system:read_term/3, 3,
 		     [ backquoted_string(boolean),
@@ -123,7 +124,8 @@
 		       back_quotes(oneof([codes,chars,string,symbol_char])),
 		       quasi_quotations(any),
 		       dotlists(boolean),
-		       unicode_atoms(oneof([accept,nfc,error,reject]))
+		       unicode_atoms(oneof([accept,nfc,error,reject])),
+		       blob(oneof([error,dead,resolve]))
 		     ]).
 :- predicate_options(system:read_term/2, 2,
 		     [ pass_to(system:read_term/3, 3)
