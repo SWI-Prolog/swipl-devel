@@ -134,6 +134,31 @@ test(latin_1) :-
     term_string(T, A),
     atom_codes(T, [247]).
 
+% The `<type>(...)` notation used to write blobs is reserved by the
+% reader, but only when read_term/2,3 is given blob(dead) or
+% blob(resolve).  Pin the default behaviour: `<name>(` must remain a
+% syntax error, and the neighbouring forms that do parse today must
+% keep their meaning.  See blob/2 and section "BLOBS" in the manual.
+
+test(blob_default, error(syntax_error(operator_expected))) :-
+    term_string(_, "<stream>(0x40e8900)").
+test(blob_default_arg, error(syntax_error(operator_expected))) :-
+    term_string(_, "f(<a>(b))").
+test(blob_default_list, error(syntax_error(operator_expected))) :-
+    term_string(_, "[<a>(b)]").
+test(blob_default_dashed, error(syntax_error(operator_expected))) :-
+    term_string(_, "<rdf-snapshot>(b)").
+test(blob_default_hex, error(syntax_error(operator_expected))) :-
+    term_string(_, "<#0102ff>").
+test(blob_infix_clash, error(syntax_error(operator_clash))) :-
+    term_string(_, "a<b>(c)").
+test(blob_not_canonical_lt, T == <(a,b)) :-
+    term_string(T, "<(a,b)").
+test(blob_not_diamond, T == <>(a)) :-
+    term_string(T, "<>(a)").
+test(blob_not_comparison, T == f(<(a,b), >(c,d))) :-
+    term_string(T, "f(a<b, c>d)").
+
 :- end_tests(syntax).
 
 :- begin_tests(iso_op_table_6).
