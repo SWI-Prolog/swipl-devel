@@ -1999,6 +1999,33 @@ PRED_IMPL("blob", 2, blob, 0)
 }
 
 
+/** blob_released(@Term) is semidet
+
+True if Term is a blob whose data was released using PL_free_blob().
+Such a blob still exists as a term and keeps its type, but the object it
+referred to is gone, so every predicate that expects the real thing
+rejects it.
+
+Only blobs can be released; a text atom is reclaimed by the atom garbage
+collector as a whole and its name is valid for as long as it exists.  A
+NULL name therefore identifies a released blob on its own.
+*/
+
+static
+PRED_IMPL("blob_released", 1, blob_released, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom(A1, &a) )
+  { Atom x = atomValue(a);
+
+    return !x->name;
+  }
+
+  return false;
+}
+
+
 static
 PRED_IMPL("$atom_references", 2, atom_references, 0)
 { PRED_LD
@@ -2436,6 +2463,7 @@ BeginPredDefs(atom)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   PRED_DEF("blob", 2, blob, 0)
+  PRED_DEF("blob_released", 1, blob_released, 0)
   PRED_DEF("$atom_references", 2, atom_references, 0)
   PRED_DEF("$atom_completions", 2, atom_completions, 0)
   PRED_DEF("$complete_atom", 3, complete_atom, 0)

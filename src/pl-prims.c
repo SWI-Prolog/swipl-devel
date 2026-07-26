@@ -1667,7 +1667,9 @@ compareAtoms(atom_t w1, atom_t w2)
   Atom a2 = atomValue(w2);
 
   if ( a1->type == a2->type )
-  { if ( a1->type->compare )
+  { if ( !a1->name || !a2->name )	/* released by PL_free_blob(): */
+    { return SCALAR_TO_CMP(a1, a2);	/* compare() would dereference */
+    } else if ( a1->type->compare )	/* the object that is gone */
     { return (*a1->type->compare)(w1, w2);
     } else
     { size_t l = (a1->length <= a2->length ? a1->length : a2->length);

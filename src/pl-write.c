@@ -885,6 +885,23 @@ writeBlob(atom_t a, write_options *options)
   return PutString(">", options->out);
 }
 
+
+/* A blob whose data was released using PL_free_blob().  Its type's
+   write() must not be called: it would dereference the object that is
+   gone.  We print <Type>(freed), which keeps the type visible and is
+   acceptable to read_term/2,3 using blob(dead).
+*/
+
+static bool
+writeReleasedBlob(atom_t a, write_options *options)
+{ Atom atom = atomValue(a);
+
+  return ( PutString("<", options->out) &&
+	   PutString(atom->type->name, options->out) &&
+	   PutString(">(freed)", options->out) );
+}
+
+
 static const wchar_t *
 wcs_backskip(const wchar_t *s, size_t len)
 {
@@ -1051,6 +1068,9 @@ writeAtom(atom_t a, write_options *options)
 	return false;				/* error */
     }
   }
+
+  if ( !atom->name )				/* released by PL_free_blob() */
+    return writeReleasedBlob(a, options);
 
   if ( atom->type->write_ex )
     return ((*atom->type->write_ex)(a, options) &&
