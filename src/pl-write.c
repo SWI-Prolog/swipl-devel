@@ -150,8 +150,6 @@ typedef struct wsub			/* subterm to write next */
   int		flags;
 } wsub;
 
-#define DICT_INLINE_PAIRS 8		/* sorted in the frame; else malloc */
-
 typedef struct wframe
 { fid_t		fid;			/* foreign frame of the level */
   int		depth;			/* options->depth to restore */
@@ -172,15 +170,14 @@ typedef struct wframe
       size_t	parens;			/* WF_DOT_*: parens to close */
     } list;
     struct				/* WF_DICT_* */
-    { size_t   *heap;			/* sorted order if > inline */
+    { size_t   *order;			/* order of the pairs */
       size_t	pairs;
       term_t	av;			/* key and value */
-      size_t	buf[DICT_INLINE_PAIRS];
     } dict;
   } u;
 } wframe;
 
-#define dict_indexes(f) ((f)->u.dict.heap ? (f)->u.dict.heap : (f)->u.dict.buf)
+
 
 #if USE_LD_MACROS
 #define	enterPortray(_)		LDFUNC(enterPortray, _)
@@ -2004,7 +2001,7 @@ writeDictKey(DECL_LD write_options *options, wframe *f, wsub *sub)
 { if ( f->n >= f->u.dict.pairs )
     return Putc('}', options->out);
 
-  pl_dict_pair(f->t, dict_indexes(f), f->n, f->u.dict.av);
+  pl_dict_pair(f->t, f->u.dict.order, f->n, f->u.dict.av);
 
   return sub_term(f, WF_DICT_KEY, sub, f->u.dict.av+0, 1200, W_KEY);
 }
@@ -2019,12 +2016,10 @@ writeDictStart(DECL_LD term_t t, write_options *options, wframe *f, wsub *sub)
   term_t class;
 
   f->kind = WF_DICT_TAG;		/* discard_wframe() frees the order */
-  if ( pairs <= DICT_INLINE_PAIRS )
-    f->u.dict.heap = NULL;
-  else if ( !(f->u.dict.heap = malloc(pairs*sizeof(size_t))) )
+  if ( !(f->u.dict.order = malloc((pairs?pairs:1)*sizeof(size_t))) )
     return PL_no_memory();
   f->u.dict.pairs = pairs;
-  pl_dict_sort_indexes(t, dict_indexes(f), pairs);
+  pl_dict_sort_indexes(t, f->u.dict.order, pairs);
   f->n = 0;
 
   if ( !(f->u.dict.av = PL_new_term_refs(2)) ||
@@ -2405,9 +2400,9 @@ discard_wframe(wframe *f)
   { case WF_DICT_TAG:
     case WF_DICT_KEY:
     case WF_DICT_VALUE:
-      if ( f->u.dict.heap )
-      { free(f->u.dict.heap);
-	f->u.dict.heap = NULL;
+      if ( f->u.dict.order )
+      { free(f->u.dict.order);
+	f->u.dict.order = NULL;
       }
       break;
     default:
