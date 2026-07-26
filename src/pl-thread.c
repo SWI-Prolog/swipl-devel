@@ -170,8 +170,9 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
-#ifdef USE_SEM_OPEN			/* see below */
-static sem_t *sem_canceled_ptr;
+#ifdef USE_DISPATCH_SEM			/* GCD dispatch semaphore; see below */
+#include <dispatch/dispatch.h>
+static dispatch_semaphore_t sem_canceled_ptr;
 #else
 static sem_t sem_canceled;		/* used on halt */
 #define sem_canceled_ptr (&sem_canceled)
@@ -180,44 +181,47 @@ static sem_t sem_canceled;		/* used on halt */
 #ifndef __WINDOWS__
 #include <signal.h>
 
-#ifdef USE_SEM_OPEN
+#ifdef USE_DISPATCH_SEM
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Apple Darwin (6.6) only contains the sem_init()   function as a stub. It
-only provides named semaphores  through   sem_open().  These defines and
-my_sem_open() try to hide the details of   this as much as possible from
-the rest of the code. Note  that   we  unlink  the semaphore right after
-creating it, using the common Unix trick to keep access to it as long as
-we do not close it. We assume  the   OS  will close the semaphore as the
-application terminates. All this is highly   undesirable, but it will do
-for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
-substring "darwin" in the architecture identifier.
+macOS does not implement unnamed POSIX semaphores: sem_init() returns ENOSYS
+and is deprecated.  It only provides *named* semaphores through sem_open(),
+which share a single machine-global namespace.  Using a fixed name ("pl")
+races between concurrent processes and -- worse -- a process killed between
+sem_open() and sem_unlink() leaves the name registered, after which every
+later sem_open(O_CREAT|O_EXCL) fails with EEXIST until the machine reboots.
+
+We therefore use GCD dispatch semaphores: in-process, unnamed, with a native
+timed wait.  dispatch_semaphore_signal() is a lock-free atomic increment with
+a Mach semaphore_signal() trap on its slow path -- no libc locks or malloc --
+so it is safe to call from the SIG_SYNCTIME signal handler (SyncUserCPU()).
+
+These macros keep the rest of this file using the POSIX sem_*() spelling.
+The bounded wait in exitPrologThreads() uses dispatch_semaphore_wait() with a
+deadline directly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define sem_init(ptr, flags, val) my_sem_open(&ptr, val)
-#define sem_destroy(ptr)	  ((void)0)
-
 static int
-my_sem_open(sem_t **ptr, unsigned int val)
-{ if ( !*ptr )
-  { sem_t *sem = sem_open("pl", O_CREAT|O_EXCL, 0600, val);
+pl_dispatch_sem_init(dispatch_semaphore_t *ptr, unsigned int val)
+{ dispatch_semaphore_t sem = dispatch_semaphore_create(val);
 
-    DEBUG(MSG_THREAD, Sdprintf("sem = %p\n", sem));
-
-    if ( sem == NULL )
-    { perror("sem_open");
-      exit(1);
-    }
-
-    *ptr = sem;
-
-    sem_unlink("pl");
+  if ( !sem )				/* only fails under severe memory pressure */
+  { Sdprintf("WARNING: dispatch_semaphore_create() failed; "
+	     "thread synchronization degraded.\n");
+    return -1;				/* leave *ptr NULL; callers degrade */
   }
 
+  *ptr = sem;
   return 0;
 }
 
-#endif /*USE_SEM_OPEN*/
+#define sem_init(ptr, flags, val) pl_dispatch_sem_init(&(ptr), (val))
+#define sem_post(s)		  ((void)dispatch_semaphore_signal(s))
+#define sem_wait(s)		  ((int)dispatch_semaphore_wait((s), \
+							DISPATCH_TIME_FOREVER))
+#define sem_destroy(s)		  dispatch_release(s)
+
+#endif /*USE_DISPATCH_SEM*/
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
@@ -1114,7 +1118,7 @@ options:
     Unfortunately that typically causes a 0.1 sec delay in terminating.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(HAVE_SEM_TIMEDWAIT) && defined(HAVE_SETITIMER)
+#if !defined(HAVE_SEM_TIMEDWAIT) && defined(HAVE_SETITIMER) && !defined(USE_DISPATCH_SEM)
 #define USE_TIMER_WAIT 1
 
 #include <sys/time.h>
@@ -1214,6 +1218,48 @@ exitPrologThreads(void)
 
   if ( canceled > 0 )		    /* see (*) above */
   {
+#ifdef USE_DISPATCH_SEM
+    if ( !sem_canceled_ptr )	    /* semaphore create failed (OOM): poll status */
+    { double grace_time = halt_grace_time();
+      double waited = 0.0;
+
+      DEBUG(MSG_CLEANUP_THREAD,
+	    Sdprintf("No cancel semaphore; polling %d threads\n", canceled));
+
+      for(;;)
+      { int i, running = 0;
+
+	for(i=1; i<=GD->thread.highest_id; i++)
+	{ PL_thread_info_t *info = GD->thread.threads[i];
+
+	  if ( info && info->thread_data && i != me &&
+	       !info->is_engine && info->status == PL_THREAD_RUNNING )
+	    running++;
+	}
+
+	if ( running == 0 || waited >= grace_time )
+	{ canceled = running;
+	  break;
+	}
+	Pause(0.05);
+	waited += 0.05;
+      }
+    } else			    /* dispatch semaphore: native timed wait */
+    { double grace_time = halt_grace_time();
+      dispatch_time_t deadline =
+	  dispatch_time(DISPATCH_TIME_NOW, (int64_t)(grace_time*1000000000.0));
+
+      DEBUG(MSG_CLEANUP_THREAD,
+	    Sdprintf("Waiting for %d threads (dispatch semaphore)\n", canceled));
+
+      while ( canceled > 0 )
+      { if ( dispatch_semaphore_wait(sem_canceled_ptr, deadline) != 0 )
+	  break;			/* grace period elapsed */
+	canceled--;
+      }
+    }
+#else /*USE_DISPATCH_SEM*/
+    {
 #ifdef USE_TIMER_WAIT
     double grace_time = halt_grace_time();
     DEBUG(MSG_CLEANUP_THREAD,
@@ -1277,6 +1323,8 @@ exitPrologThreads(void)
     }
 
 #endif
+    }
+#endif /*USE_DISPATCH_SEM*/
     DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left: %d threads\n", canceled));
   }
 
@@ -7663,8 +7711,8 @@ up-to-date, but the C library is very much out of data (glibc 2.3)
 #define SIG_SYNCTIME SIGUSR1
 #endif
 
-#ifdef USE_SEM_OPEN
-static sem_t *sem_synctime_ptr;
+#ifdef USE_DISPATCH_SEM
+static dispatch_semaphore_t sem_synctime_ptr;	/* GCD dispatch semaphore */
 #else
 static sem_t sem_synctime;			/* used for atom-gc */
 #define sem_synctime_ptr (&sem_synctime)
@@ -7747,7 +7795,10 @@ ThreadCPUTime(DECL_LD int which)
     int ok;
 
     blockSignals(&set);
-    sem_init(sem_synctime_ptr, USYNC_THREAD, 0);
+    if ( sem_init(sem_synctime_ptr, USYNC_THREAD, 0) != 0 )
+    { unblockSignals(&set);
+      return 0.0;			/* no semaphore: CPU time unavailable */
+    }
     allSignalMask(&sigmask);
     memset(&new, 0, sizeof(new));
     new.sa_handler = (which == CPU_USER ? SyncUserCPU : SyncSystemCPU);

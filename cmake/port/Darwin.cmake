@@ -159,8 +159,9 @@ endif()
 
 set(CMAKE_MACOSX_RPATH ON)
 
-# Prefer sem_open() over deprecated sem_init()
-set(USE_SEM_OPEN 1)
+# macOS has no unnamed POSIX semaphores (sem_init() is a deprecated ENOSYS
+# stub); use GCD dispatch semaphores instead of named sem_open() semaphores.
+set(USE_DISPATCH_SEM 1)
 set(SO_PATH DYLD_LIBRARY_PATH)
 
 endif(APPLE)
