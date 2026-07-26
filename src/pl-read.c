@@ -3458,7 +3458,7 @@ ptr_to_pos(const unsigned char *p, ReadData _PL_rd)
 Non-text blobs are written as <type>(Arg, ...), e.g. <stream>(0x55c1e0).
 The reader claims this notation, but only if read_term/2,3 was given
 blob(dead) or blob(resolve); the default blob(error) leaves it a syntax
-error.  See read_blob() and section "BLOBS" in the manual.
+error.  See read_blob_*() and section "BLOBS" in the manual.
 
 blob_name_char() defines the type name between the brackets.  It is
 deliberately narrow: it must not swallow a `>' that belongs to something
@@ -5409,7 +5409,7 @@ end_range(DECL_LD term_t positions)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-read_list() reads a list  and places  the list on  the term-stack.  The
+read_list_*() reads a list and places the list  on the term-stack.  The
 token that starts it is the [-token.  Tail is a very special term-ref. It
 is always a reference to the place where the next term is to be written.
 
@@ -5903,7 +5903,7 @@ is_key_token(Token token, ReadData _PL_rd)
 }
 
 
-/* read_dict() reads <class>{key:value, ...} into a dict as defined
+/* read_dict_*() reads <class>{key:value, ...} into a dict as defined
    in pl-dict.c
 */
 
