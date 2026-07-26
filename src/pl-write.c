@@ -106,6 +106,82 @@ typedef struct
 #define W_INFIX_ARG1	W_OP_ARG	/* arg1 f arg2 */
 #define W_INFIX_ARG2	W_OP_ARG	/* arg1 f arg2 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+writeTerm() is a state machine over  a   segstack  of `wframe` records in
+stead of a recursive function.  Writing used to cost about 450 bytes of C
+stack per level of nesting of the  term, limiting the depth to about
+18,000 natively and 2,000 on WASM.
+
+A level that has subterms fills a  frame that tells what remains to be
+written when a subterm  is  done  (its   `kind`)  and  pushes  it. Leaf
+terms are written without touching the stack.
+
+Note that attributed variables (writeAttributes()) and portray/1 do call
+writeTerm() recursively: their nesting is bounded by the nesting of the
+attributes rather than by the depth of the term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef enum
+{ WF_LEAF = 0,				/* no continuation */
+  WF_BRACE,				/* {Term}: the closing `}' */
+  WF_BRACKET,				/* «Term»: the closing bracket */
+  WF_LIST_ELEM,				/* [...]: after an element */
+  WF_LIST_TAIL,				/* [...|Tail]: after the tail */
+  WF_DOT_HEAD,				/* '[|]'(H,T): after H */
+  WF_DOT_TAIL,				/* '[|]'(H,T): after T */
+  WF_DICT_TAG,				/* Tag{...}: after Tag */
+  WF_DICT_KEY,				/* after a key */
+  WF_DICT_VALUE,			/* after a value */
+  WF_PREFIX_BLOCK,			/* after the block of a prefix op */
+  WF_PREFIX_ARG,			/* after the arg of a prefix op */
+  WF_POSTFIX_ARG,			/* after the arg of a postfix op */
+  WF_POSTFIX_BLOCK,			/* after the block of a postfix op */
+  WF_INFIX_ARG1,			/* after the left arg of an infix op */
+  WF_INFIX_BLOCK,			/* after the block of an infix op */
+  WF_INFIX_ARG2,			/* after the right arg of an infix op */
+  WF_CANON_ARG				/* f(...): after an argument */
+} wf_kind;
+
+#define WF_SUB 2			/* write the subterm in `sub' */
+
+typedef struct wsub			/* subterm to write next */
+{ term_t	t;
+  int		prec;
+  int		flags;
+} wsub;
+
+#define DICT_INLINE_PAIRS 8		/* sorted in the frame; else malloc */
+
+typedef struct wframe
+{ fid_t		fid;			/* foreign frame of the level */
+  int		depth;			/* options->depth to restore */
+  term_t	t;			/* the term being written */
+  term_t	arg;			/* work reference of the level */
+  atom_t	functor;
+  size_t	arity;
+  size_t	n;			/* argument or pair index */
+  short		op_pri;
+  unsigned char	op_type;
+  unsigned	kind : 5;		/* wf_kind */
+  unsigned	embrace : 1;		/* emit the closing brace */
+  union
+  { int		bclose;			/* WF_BRACKET: closing bracket */
+    struct				/* WF_LIST_*, WF_DOT_* */
+    { term_t	list;			/* remainder of the list */
+      term_t	head;
+      size_t	parens;			/* WF_DOT_*: parens to close */
+    } list;
+    struct				/* WF_DICT_* */
+    { size_t   *heap;			/* sorted order if > inline */
+      size_t	pairs;
+      term_t	av;			/* key and value */
+      size_t	buf[DICT_INLINE_PAIRS];
+    } dict;
+  } u;
+} wframe;
+
+#define dict_indexes(f) ((f)->u.dict.heap ? (f)->u.dict.heap : (f)->u.dict.buf)
+
 #if USE_LD_MACROS
 #define	enterPortray(_)		LDFUNC(enterPortray, _)
 #define	leavePortray(_)		LDFUNC(leavePortray, _)
@@ -113,8 +189,9 @@ typedef struct
 
 #define LDFUNC_DECLARATIONS
 
-static bool	writeTerm2(term_t term, int prec,
-			   write_options *options, int flags) WUNUSED;
+static int	writeTerm2(term_t term, int prec,
+			   write_options *options, int flags,
+			   wframe *f, wsub *sub) WUNUSED;
 static bool	writeTerm(term_t t, int prec,
 			  write_options *options, int flags) WUNUSED;
 static int	PutToken(const char *s, const write_options *options);
@@ -1745,120 +1822,6 @@ callPortray(term_t arg, int prec, write_options *options)
 }
 
 
-static bool
-writeTerm(term_t t, int prec, write_options *options, int flags)
-{ GET_LD
-  bool rval;
-  int levelSave = options->depth;
-  fid_t fid;
-
-  if ( !(fid = PL_open_foreign_frame()) )
-    return false;
-
-  if ( PL_handle_signals() < 0 )
-  { rval = false;
-    goto out;
-  }
-
-  if ( ++options->depth > options->max_depth && options->max_depth )
-  { options->truncated = true;
-    PutOpenToken('.', options);
-    rval = PutElipsis(true, options);
-  } else
-  { rval = writeTerm2(t, prec, options, flags);
-  }
-
-out:
-  options->depth = levelSave;
-  PL_close_foreign_frame(fid);
-
-  return rval;
-}
-
-
-static bool
-writeList(term_t list, write_options *options)
-{ GET_LD
-  term_t head = PL_new_term_ref();
-  term_t l    = PL_copy_term_ref(list);
-
-  if ( isoff(options, PL_WRT_DOTLISTS|PL_WRT_NO_LISTS) )
-  { TRY(Putc('[', options->out));
-    for(;;)
-    { PL_get_list(l, head, l);
-      TRY(writeTerm(head, 999, options, W_LIST_ARG));
-
-      if ( PL_get_nil(l) )
-	break;
-      if ( ++options->depth >= options->max_depth && options->max_depth )
-      { options->truncated = true;
-	return ( Putc('|', options->out) &&
-		 PutElipsis(false, options) &&
-		 Putc(']', options->out) );
-      }
-      if ( !PL_is_functor(l, FUNCTOR_dot2) )
-      { TRY(Putc('|', options->out));
-	TRY(writeTerm(l, 999, options, W_LIST_TAIL));
-	break;
-      }
-
-      TRY(PutComma(options));
-    }
-
-    return Putc(']', options->out);
-  } else
-  { int depth = 0;
-
-    for(;;)
-    { PL_get_list(l, head, l);
-      if ( ison(options, PL_WRT_DOTLISTS) )
-      { if ( !PutToken(".", options) )
-	  return false;
-      } else
-      { if ( !writeAtom(ATOM_dot, options) )
-	  return false;
-      }
-
-      if ( !Putc('(', options->out) ||
-	   !writeTerm(head, 999, options, W_COMPOUND_ARG) ||
-	   !PutComma(options) )
-	return false;
-
-      depth++;
-
-      if ( PL_get_nil(l) )
-      { if ( !PutToken("[]", options) )
-	  return false;
-	break;
-      }
-
-      if ( ++options->depth >= options->max_depth && options->max_depth )
-      { options->truncated = true;
-	if ( !PutElipsis(true, options) )
-	  return false;
-	while(depth-->0)
-	{ if ( !Putc(')', options->out) )
-	    return false;
-	}
-	return true;
-      }
-
-      if ( !PL_is_functor(l, FUNCTOR_dot2) )
-      { if ( !writeTerm(l, 999, options, W_COMPOUND_ARG) )
-	  return false;
-	break;
-      }
-    }
-
-    while(depth-->0)
-    { if ( !Putc(')', options->out) )
-	return false;
-    }
-    return true;
-  }
-}
-
-
 #define isBlockOp(t, arg, functor) LDFUNC(isBlockOp, t, arg, functor)
 static bool
 isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
@@ -1872,27 +1835,340 @@ isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
   return false;
 }
 
-#define writeDictPair(name, value, last, closure) LDFUNC(writeDictPair, name, value, last, closure)
 
-static int /* 0: success, -1: error */
-writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
-{ write_options *options = closure;
+		 /*******************************
+		 *	   WRITE A SUBTERM	*
+		 *******************************/
 
-  if ( writeTerm(name, 1200, options, W_KEY) &&
-       PutToken(":", options) &&
-       writeTerm(value, 999, options, W_VALUE) &&
-       (last || PutComma(options)) )
-    return 0;				/* continue */
+/* sub_term() asks writeTerm() to write `t` next and to resume the
+   current level as `kind` when it is done.
+*/
 
-  return -1;
+static int
+sub_term(wframe *f, wf_kind kind, wsub *sub, term_t t, int prec, int flags)
+{ f->kind    = kind;
+  sub->t     = t;
+  sub->prec  = prec;
+  sub->flags = flags;
+
+  return WF_SUB;
+}
+
+
+		 /*******************************
+		 *	       LISTS		*
+		 *******************************/
+
+/* Tail is a term reference to the remainder of the list.  Note that the
+   `[a,b|c]` notation writes the elements as subterms, while the dotted
+   notation writes `'[|]'(a,'[|]'(b,c))`, closing all brackets at the
+   end.
+*/
+
+#define writeDotListHead(options, f, sub) \
+	LDFUNC(writeDotListHead, options, f, sub)
+
+static int
+writeDotListHead(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ term_t head = f->u.list.head;
+  term_t l    = f->u.list.list;
+
+  PL_get_list(l, head, l);
+  if ( ison(options, PL_WRT_DOTLISTS) )
+  { if ( !PutToken(".", options) )
+      return false;
+  } else
+  { if ( !writeAtom(ATOM_dot, options) )
+      return false;
+  }
+
+  if ( !Putc('(', options->out) )
+    return false;
+
+  return sub_term(f, WF_DOT_HEAD, sub, head, 999, W_COMPOUND_ARG);
+}
+
+
+#define writeListStart(list, options, f, sub) \
+	LDFUNC(writeListStart, list, options, f, sub)
+
+static int
+writeListStart(DECL_LD term_t list, write_options *options,
+	       wframe *f, wsub *sub)
+{ term_t head = PL_new_term_ref();
+  term_t l    = PL_copy_term_ref(list);
+
+  f->u.list.head   = head;
+  f->u.list.list   = l;
+  f->u.list.parens = 0;
+
+  if ( isoff(options, PL_WRT_DOTLISTS|PL_WRT_NO_LISTS) )
+  { if ( !Putc('[', options->out) )
+      return false;
+    PL_get_list(l, head, l);
+
+    return sub_term(f, WF_LIST_ELEM, sub, head, 999, W_LIST_ARG);
+  }
+
+  return writeDotListHead(options, f, sub);
+}
+
+
+#define writeListElemDone(options, f, sub) \
+	LDFUNC(writeListElemDone, options, f, sub)
+
+static int
+writeListElemDone(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ term_t head = f->u.list.head;
+  term_t l    = f->u.list.list;
+
+  if ( PL_get_nil(l) )
+    return Putc(']', options->out);
+
+  if ( ++options->depth >= options->max_depth && options->max_depth )
+  { options->truncated = true;
+    return ( Putc('|', options->out) &&
+	     PutElipsis(false, options) &&
+	     Putc(']', options->out) );
+  }
+
+  if ( !PL_is_functor(l, FUNCTOR_dot2) )
+  { if ( !Putc('|', options->out) )
+      return false;
+
+    return sub_term(f, WF_LIST_TAIL, sub, l, 999, W_LIST_TAIL);
+  }
+
+  if ( !PutComma(options) )
+    return false;
+  PL_get_list(l, head, l);
+
+  return sub_term(f, WF_LIST_ELEM, sub, head, 999, W_LIST_ARG);
 }
 
 
 static bool
-writeTerm2(term_t t, int prec, write_options *options, int flags)
+writeCloseParens(write_options *options, wframe *f)
+{ size_t parens = f->u.list.parens;
+
+  while(parens-- > 0)
+  { if ( !Putc(')', options->out) )
+      return false;
+  }
+
+  return true;
+}
+
+
+#define writeDotHeadDone(options, f, sub) \
+	LDFUNC(writeDotHeadDone, options, f, sub)
+
+static int
+writeDotHeadDone(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ term_t l = f->u.list.list;
+
+  if ( !PutComma(options) )
+    return false;
+  f->u.list.parens++;
+
+  if ( PL_get_nil(l) )
+  { if ( !PutToken("[]", options) )
+      return false;
+
+    return writeCloseParens(options, f);
+  }
+
+  if ( ++options->depth >= options->max_depth && options->max_depth )
+  { options->truncated = true;
+    if ( !PutElipsis(true, options) )
+      return false;
+
+    return writeCloseParens(options, f);
+  }
+
+  if ( !PL_is_functor(l, FUNCTOR_dot2) )
+    return sub_term(f, WF_DOT_TAIL, sub, l, 999, W_COMPOUND_ARG);
+
+  return writeDotListHead(options, f, sub);
+}
+
+
+		 /*******************************
+		 *	       DICTS		*
+		 *******************************/
+
+#define writeDictKey(options, f, sub) LDFUNC(writeDictKey, options, f, sub)
+
+static int
+writeDictKey(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ if ( f->n >= f->u.dict.pairs )
+    return Putc('}', options->out);
+
+  pl_dict_pair(f->t, dict_indexes(f), f->n, f->u.dict.av);
+
+  return sub_term(f, WF_DICT_KEY, sub, f->u.dict.av+0, 1200, W_KEY);
+}
+
+
+#define writeDictStart(t, options, f, sub) \
+	LDFUNC(writeDictStart, t, options, f, sub)
+
+static int
+writeDictStart(DECL_LD term_t t, write_options *options, wframe *f, wsub *sub)
+{ size_t pairs = pl_dict_pairs(t);
+  term_t class;
+
+  f->kind = WF_DICT_TAG;		/* discard_wframe() frees the order */
+  if ( pairs <= DICT_INLINE_PAIRS )
+    f->u.dict.heap = NULL;
+  else if ( !(f->u.dict.heap = malloc(pairs*sizeof(size_t))) )
+    return PL_no_memory();
+  f->u.dict.pairs = pairs;
+  pl_dict_sort_indexes(t, dict_indexes(f), pairs);
+  f->n = 0;
+
+  if ( !(f->u.dict.av = PL_new_term_refs(2)) ||
+       !(class = PL_new_term_ref()) ||
+       !PL_get_arg(1, t, class) )
+    return false;
+
+  return sub_term(f, WF_DICT_TAG, sub, class, 1200, W_TAG);
+}
+
+
+		 /*******************************
+		 *	     OPERATORS		*
+		 *******************************/
+
+#define writePrefixArg(options, f, sub) LDFUNC(writePrefixArg, options, f, sub)
+
+static int
+writePrefixArg(DECL_LD write_options *options, wframe *f, wsub *sub)
+{				/* +/-(Number) : avoid parsing as number */
+  options->out->lastc |= C_PREFIX_OP;
+  if ( f->functor == ATOM_minus )
+    options->out->lastc |= C_PREFIX_SIGN;
+
+  _PL_get_arg(f->arity, f->t, f->arg);
+
+  return sub_term(f, WF_PREFIX_ARG, sub, f->arg,
+		  f->op_type == OP_FX ? f->op_pri-1 : f->op_pri,
+		  W_PREFIX_ARG);
+}
+
+
+#define writePostfixOp(options, f, sub) LDFUNC(writePostfixOp, options, f, sub)
+
+static int
+writePostfixOp(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ if ( f->arity == 1 )
+  { if ( !writeAtom(f->functor, options) )
+      return false;
+  } else
+  { if ( f->functor == ATOM_curl &&
+	 (PL_is_atom(f->arg) || PL_is_variable(f->arg)) )
+    { if ( !Putc(' ', options->out) )
+	return false;
+    }
+    _PL_get_arg(1, f->t, f->arg);
+
+    return sub_term(f, WF_POSTFIX_BLOCK, sub, f->arg, 1200, W_BLOCK_OP);
+  }
+
+  return f->embrace ? PutCloseBrace(options->out) : true;
+}
+
+
+#define writeInfixArg2(options, f, sub) LDFUNC(writeInfixArg2, options, f, sub)
+
+static int
+writeInfixArg2(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ _PL_get_arg(f->arity, f->t, f->arg);
+
+  return sub_term(f, WF_INFIX_ARG2, sub, f->arg,
+		  f->op_type == OP_XFX || f->op_type == OP_YFX
+			  ? f->op_pri-1 : f->op_pri,
+		  W_INFIX_ARG2);
+}
+
+
+#define writeInfixOp(options, f, sub) LDFUNC(writeInfixOp, options, f, sub)
+
+static int
+writeInfixOp(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ IOSTREAM *out = options->out;
+
+  if ( f->arity == 2 )
+  { static atom_t ATOM_fdot = 0;
+
+    if ( !ATOM_fdot )			/* ATOM_dot can be '[|]' */
+      ATOM_fdot = PL_new_atom(".");
+
+    if ( f->functor == ATOM_comma )
+    { TRY(PutComma(options));
+    } else if ( f->functor == ATOM_bar )
+    { TRY(PutBar(options));
+    } else if ( f->functor == ATOM_fdot )
+    { TRY(PutToken(".", options));
+    } else if ( f->functor == ATOM_divide &&
+		ison(options, PL_WRT_RAT_NATURAL) &&
+		PL_is_integer(f->arg) &&
+		_PL_get_arg(1, f->t, f->arg) &&
+		PL_is_number(f->arg) )
+    { TRY(PutString(" / ", out));
+    } else
+    { switch(writeAtom(f->functor, options))
+      { case false:
+	  fail;
+	case TRUE_WITH_SPACE:
+	  TRY(Putc(' ', out));
+      }
+    }
+    out->lastc |= C_INFIX_OP;
+  } else				/* block operator */
+  { _PL_get_arg(1, f->t, f->arg);
+
+    return sub_term(f, WF_INFIX_BLOCK, sub, f->arg, 1200, W_BLOCK_OP);
+  }
+
+  return writeInfixArg2(options, f, sub);
+}
+
+
+		 /*******************************
+		 *	    CANONICAL		*
+		 *******************************/
+
+#define writeCanonArg(options, f, sub) LDFUNC(writeCanonArg, options, f, sub)
+
+static int
+writeCanonArg(DECL_LD write_options *options, wframe *f, wsub *sub)
+{ if ( f->n >= f->arity )
+    return Putc(')', options->out);
+
+  if ( f->n > 0 && !PutComma(options) )
+    return false;
+  _PL_get_arg(f->n+1, f->t, f->arg);
+  f->n++;
+
+  return sub_term(f, WF_CANON_ARG, sub, f->arg, 999, W_COMPOUND_ARG);
+}
+
+
+		 /*******************************
+		 *	     WRITE TERM		*
+		 *******************************/
+
+/* writeTerm2() writes `t`, either completely (returns true) or up to the
+   first subterm, filling `f` and `sub` and returning WF_SUB.
+*/
+
+static int
+writeTerm2(term_t t, int prec, write_options *options, int flags,
+	   wframe *f, wsub *sub)
 { GET_LD
   atom_t functor;
-  size_t arity, n;
+  size_t arity;
   unsigned char op_type;
   short op_pri;
   atom_t a;
@@ -1932,6 +2208,12 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
       }
     }
 
+    f->t       = t;
+    f->functor = functor;
+    f->arity   = arity;
+    f->n       = 0;
+    f->embrace = false;
+
 					/* handle {a,b,c} */
     if ( isoff(options, PL_WRT_BRACETERMS) &&
 	 functor == ATOM_curl && arity == 1 )
@@ -1939,10 +2221,8 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 
       if ( (arg=PL_new_term_ref()) &&
 	   PL_get_arg(1, t, arg) &&
-	   PutToken("{", options) &&
-	   writeTerm(arg, 1200, options, W_TOP) &&
-	   Putc('}', out) )
-	return true;
+	   PutToken("{", options) )
+	return sub_term(f, WF_BRACE, sub, arg, 1200, W_TOP);
 
       return false;
     }
@@ -1957,10 +2237,11 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 	if ( (arg=PL_new_term_ref()) &&
 	     PL_get_arg(1, t, arg) &&
 	     PutOpenToken(bopen, options) &&
-	     Putc(bopen, out) &&
-	     writeTerm(arg, 1200, options, W_TOP) &&
-	     Putc(bclose, out) )
-	  return true;
+	     Putc(bopen, out) )
+	{ f->u.bclose = bclose;
+
+	  return sub_term(f, WF_BRACKET, sub, arg, 1200, W_TOP);
+	}
 
 	return false;
       }
@@ -1968,24 +2249,13 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 
 					/* handle lists */
     if ( functor == ATOM_dot && arity == 2 )
-      return writeList(t, options);
+      return writeListStart(t, options, f, sub);
 
 					/* handle dicts */
     if ( isoff(options, PL_WRT_NODICT) &&
 	 functor == ATOM_dict && PL_is_dict(t) )
-    { term_t class;
+      return writeDictStart(t, options, f, sub);
 
-      if ( (class=PL_new_term_ref()) &&
-	   PL_get_arg(1, t, class) )
-      { if ( writeTerm(class, 1200, options, W_TAG) &&
-	     Putc('{', out) &&
-	     _PL_for_dict(t, writeDictPair, options, PL_FOR_DICT_SORTED) == 0 &&
-	     Putc('}', out) )
-	  return true;
-      }
-
-      return false;
-    }
 					/* operators */
     if ( isoff(options, PL_WRT_IGNOREOPS) ||
 	 ( functor == ATOM_comma && arity == 2 &&
@@ -2001,130 +2271,231 @@ writeTerm2(term_t t, int prec, write_options *options, int flags)
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
 			     &op_type, &op_pri) )
-	{ term_t arg = PL_new_term_ref();
-	  int embrace;
+	{ f->arg     = PL_new_term_ref();
+	  f->op_type = op_type;
+	  f->op_pri  = op_pri;
+	  f->embrace = ( op_pri > prec );
 
-	  embrace = ( op_pri > prec );
-
-	  if ( embrace )
+	  if ( f->embrace )
 	    TRY(PutOpenBrace(options));
 	  if ( arity == 1 )
 	  { TRY(writeAtom(functor, options));
 	  } else
-	  { _PL_get_arg(1, t, arg);
-	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
+	  { _PL_get_arg(1, t, f->arg);
+
+	    return sub_term(f, WF_PREFIX_BLOCK, sub, f->arg, 1200, W_BLOCK_OP);
 	  }
-				/* +/-(Number) : avoid parsing as number */
-	  options->out->lastc |= C_PREFIX_OP;
-	  if ( functor == ATOM_minus )
-	    options->out->lastc |= C_PREFIX_SIGN;
 
-	  _PL_get_arg(arity, t, arg);
-	  TRY(writeTerm(arg,
-			op_type == OP_FX ? op_pri-1 : op_pri,
-			options, W_PREFIX_ARG));
-
-	  if ( embrace )
-	   TRY(PutCloseBrace(out));
-
-	  succeed;
+	  return writePrefixArg(options, f, sub);
 	}
 
 					  /* <term> op */
 	if ( currentOperator(options->module, functor, OP_POSTFIX,
 			     &op_type, &op_pri) )
-	{ term_t arg = PL_new_term_ref();
+	{ f->arg     = PL_new_term_ref();
+	  f->op_type = op_type;
+	  f->op_pri  = op_pri;
+	  f->embrace = ( op_pri > prec );
 
-	  if ( op_pri > prec )
+	  if ( f->embrace )
 	    TRY(PutOpenBrace(options));
-	  _PL_get_arg(arity, t, arg);
-	  TRY(writeTerm(arg,
-			op_type == OP_XF ? op_pri-1 : op_pri,
-			options, W_POSTFIX_ARG));
-	  if ( arity == 1 )
-	  { TRY(writeAtom(functor, options));
-	  } else
-	  { if ( functor == ATOM_curl &&
-		 (PL_is_atom(arg) || PL_is_variable(arg)) )
-	      TRY(Putc(' ', out));
-	    _PL_get_arg(1, t, arg);
+	  _PL_get_arg(arity, t, f->arg);
 
-	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
-	  }
-	  if (op_pri > prec)
-	    TRY(PutCloseBrace(out));
-
-	  succeed;
+	  return sub_term(f, WF_POSTFIX_ARG, sub, f->arg,
+			  op_type == OP_XF ? op_pri-1 : op_pri,
+			  W_POSTFIX_ARG);
 	}
       } else if ( arity == 2 ||
 		 (arity == 3 && isBlockOp(t, arg, functor)) )
       {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
-	{ static atom_t ATOM_fdot = 0;
+	{ f->arg     = arg;
+	  f->op_type = op_type;
+	  f->op_pri  = op_pri;
+	  f->embrace = ( op_pri > prec );
 
-	  if ( !ATOM_fdot )			/* ATOM_dot can be '[|]' */
-	    ATOM_fdot = PL_new_atom(".");
-
-	  if ( op_pri > prec )
+	  if ( f->embrace )
 	    TRY(PutOpenBrace(options));
 	  _PL_get_arg(arity-1, t, arg);
-	  TRY(writeTerm(arg,
-			op_type == OP_XFX || op_type == OP_XFY
-				? op_pri-1 : op_pri,
-			options, W_INFIX_ARG1));
-	  if ( arity == 2 )
-	  { if ( functor == ATOM_comma )
-	    { TRY(PutComma(options));
-	    } else if ( functor == ATOM_bar )
-	    { TRY(PutBar(options));
-	    } else if ( functor == ATOM_fdot )
-	    { TRY(PutToken(".", options));
-	    } else if ( functor == ATOM_divide &&
-			ison(options, PL_WRT_RAT_NATURAL) &&
-			PL_is_integer(arg) &&
-			_PL_get_arg(1, t, arg) &&
-			PL_is_number(arg) )
-	    { TRY(PutString(" / ", out));
-	    } else
-	    { switch(writeAtom(functor, options))
-	      { case false:
-		  fail;
-		case TRUE_WITH_SPACE:
-		  TRY(Putc(' ', out));
-	      }
-	    }
-	    options->out->lastc |= C_INFIX_OP;
-	  } else			/* block operator */
-	  { _PL_get_arg(1, t, arg);
-	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
-	  }
-	  _PL_get_arg(arity, t, arg);
-	  TRY(writeTerm(arg,
-			op_type == OP_XFX || op_type == OP_YFX
-				? op_pri-1 : op_pri,
-			options, W_INFIX_ARG2));
-	  if ( op_pri > prec )
-	    TRY(PutCloseBrace(out));
-	  succeed;
+
+	  return sub_term(f, WF_INFIX_ARG1, sub, arg,
+			  op_type == OP_XFX || op_type == OP_XFY
+				  ? op_pri-1 : op_pri,
+			  W_INFIX_ARG1);
 	}
       }
     }
 
 					/* functor(<args> ...) */
-    { term_t a = PL_new_term_ref();
+    { f->arg = PL_new_term_ref();
 
       TRY(writeAtom(functor, options) &&
 	  Putc('(', out));
-      for(n=0; n<arity; n++)
-      { if (n > 0)
-	  TRY(PutComma(options));
-	_PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 999, options, W_COMPOUND_ARG));
-      }
-      return Putc(')', out);
+
+      return writeCanonArg(options, f, sub);
     }
   }
+}
+
+
+/* writeTermResume() continues the level in `f` after its subterm has
+   been written.  Same return convention as writeTerm2().
+*/
+
+static int
+writeTermResume(write_options *options, wframe *f, wsub *sub)
+{ GET_LD
+  IOSTREAM *out = options->out;
+
+  switch((wf_kind)f->kind)
+  { case WF_BRACE:
+      return Putc('}', out);
+    case WF_BRACKET:
+      return Putc(f->u.bclose, out);
+    case WF_LIST_ELEM:
+      return writeListElemDone(options, f, sub);
+    case WF_LIST_TAIL:
+      return Putc(']', out);
+    case WF_DOT_HEAD:
+      return writeDotHeadDone(options, f, sub);
+    case WF_DOT_TAIL:
+      return writeCloseParens(options, f);
+    case WF_DICT_TAG:
+      if ( !Putc('{', out) )
+	return false;
+      return writeDictKey(options, f, sub);
+    case WF_DICT_KEY:
+      if ( !PutToken(":", options) )
+	return false;
+      return sub_term(f, WF_DICT_VALUE, sub, f->u.dict.av+1, 999, W_VALUE);
+    case WF_DICT_VALUE:
+      f->n++;
+      if ( f->n < f->u.dict.pairs && !PutComma(options) )
+	return false;
+      return writeDictKey(options, f, sub);
+    case WF_PREFIX_BLOCK:
+      return writePrefixArg(options, f, sub);
+    case WF_POSTFIX_ARG:
+      return writePostfixOp(options, f, sub);
+    case WF_INFIX_ARG1:
+      return writeInfixOp(options, f, sub);
+    case WF_INFIX_BLOCK:
+      return writeInfixArg2(options, f, sub);
+    case WF_PREFIX_ARG:			/* the operator is complete */
+    case WF_POSTFIX_BLOCK:
+    case WF_INFIX_ARG2:
+      return f->embrace ? PutCloseBrace(out) : true;
+    case WF_CANON_ARG:
+      return writeCanonArg(options, f, sub);
+    case WF_LEAF:
+      break;
+  }
+
+  assert(0);
+  fail;
+}
+
+
+/* Release the resources of a frame that is removed from the stack. */
+
+static void
+discard_wframe(wframe *f)
+{ switch((wf_kind)f->kind)
+  { case WF_DICT_TAG:
+    case WF_DICT_KEY:
+    case WF_DICT_VALUE:
+      if ( f->u.dict.heap )
+      { free(f->u.dict.heap);
+	f->u.dict.heap = NULL;
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+
+static bool
+writeTerm(term_t t, int prec, write_options *options, int flags)
+{ GET_LD
+  segstack stack;
+  double   sbuf[256];
+  wframe   frame;
+  wframe  *fp;
+  wsub	   sub;
+  int	   rc;
+
+  initSegStack(&stack, sizeof(wframe), sizeof(sbuf), sbuf);
+
+new_level:
+  frame.kind  = WF_LEAF;
+  frame.depth = options->depth;
+  if ( !(frame.fid = PL_open_foreign_frame()) )
+  { rc = false;
+    goto unwind;
+  }
+
+  if ( PL_handle_signals() < 0 )
+  { rc = false;
+  } else if ( ++options->depth > options->max_depth && options->max_depth )
+  { options->truncated = true;
+    PutOpenToken('.', options);
+    rc = PutElipsis(true, options);
+  } else
+  { rc = writeTerm2(t, prec, options, flags, &frame, &sub);
+  }
+
+  if ( rc == WF_SUB )
+  { if ( pushSegStack(&stack, frame, wframe) )
+    { t     = sub.t;
+      prec  = sub.prec;
+      flags = sub.flags;
+
+      goto new_level;
+    }
+    rc = PL_no_memory();
+  }
+
+  discard_wframe(&frame);		/* the level is complete */
+  options->depth = frame.depth;
+  PL_close_foreign_frame(frame.fid);
+  if ( !rc )
+    goto unwind;
+
+  for(;;)				/* resume the enclosing levels */
+  { if ( !(fp=topOfSegStack(&stack)) )
+    { clearSegStack(&stack);
+
+      return true;
+    }
+
+    rc = writeTermResume(options, fp, &sub);
+    if ( rc == WF_SUB )
+    { t     = sub.t;
+      prec  = sub.prec;
+      flags = sub.flags;
+
+      goto new_level;
+    }
+
+    options->depth = fp->depth;
+    PL_close_foreign_frame(fp->fid);
+    discard_wframe(fp);
+    popSegStack(&stack, &frame, wframe);
+    if ( !rc )
+      goto unwind;
+  }
+
+unwind:
+  while( popSegStack(&stack, &frame, wframe) )
+  { options->depth = frame.depth;
+    PL_close_foreign_frame(frame.fid);
+    discard_wframe(&frame);
+  }
+  clearSegStack(&stack);
+
+  return false;
 }
 
 

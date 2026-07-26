@@ -40,6 +40,10 @@
 #if USE_LD_MACROS
 #define PL_is_dict(t)				LDFUNC(PL_is_dict, t)
 #define	pl_for_dict(dict, func, closure, flags)	LDFUNC(pl_for_dict, dict, func, closure, flags)
+#define	pl_dict_pairs(dict)			LDFUNC(pl_dict_pairs, dict)
+#define	pl_dict_sort_indexes(dict, indexes, pairs) \
+	LDFUNC(pl_dict_sort_indexes, dict, indexes, pairs)
+#define	pl_dict_pair(dict, indexes, i, av)	LDFUNC(pl_dict_pair, dict, indexes, i, av)
 #define	dict_order(dict, dupl)			LDFUNC(dict_order, dict, dupl)
 #define	dict_order_term_refs(av, indexes, cnt)	LDFUNC(dict_order_term_refs, av, indexes, cnt)
 #define	dict_lookup_ptr(dict, name, arg)	LDFUNC(dict_lookup_ptr, dict, name, arg)
@@ -63,6 +67,9 @@ int	pl_for_dict(term_t dict,
 			       void *closure),
 		   void *closure,
 		   int flags);
+size_t	pl_dict_pairs(term_t dict);
+void	pl_dict_sort_indexes(term_t dict, size_t *indexes, size_t pairs);
+void	pl_dict_pair(term_t dict, const size_t *indexes, size_t i, term_t av);
 
 functor_t dict_functor(size_t pairs);
 _PL_dict_status_t dict_order(Word dict, Word dupl);

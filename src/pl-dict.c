@@ -1021,54 +1021,82 @@ PL_for_dict(term_t dict,
 }
 
 
+/* pl_dict_pairs() is the number of key-value pairs of `dict`. */
+
+size_t
+pl_dict_pairs(DECL_LD term_t dict)
+{ Word p = valTermRef(dict);
+
+  deRef(p);
+
+  return arityTerm(*p)/2;
+}
+
+
+/* pl_dict_sort_indexes() fills `indexes` (which must have room for
+   `pairs` entries) with the order in which the pairs must be visited to
+   get them in the standard order of terms.  See PL_FOR_DICT_SORTED.
+*/
+
+void
+pl_dict_sort_indexes(DECL_LD term_t dict, size_t *indexes, size_t pairs)
+{ cmp_dict_index_data ctx;
+  Word p = valTermRef(dict);
+
+  deRef(p);
+
+  for(size_t i=0; i<pairs; i++)
+    indexes[i] = i;
+
+  ctx.ld = LD;
+  ctx.data = argTermP(*p,1);
+  ctx.indexes = indexes;
+
+  sort_r(indexes, pairs, sizeof(size_t), cmp_dict_index, &ctx);
+}
+
+
+/* pl_dict_pair() puts the key and value of the i-th pair of `dict` in
+   av+0 and av+1.  If `indexes` is not NULL it defines the order.  Note
+   that the term must be reloaded from the term reference as the stacks
+   may have been shifted since the previous pair.
+*/
+
+void
+pl_dict_pair(DECL_LD term_t dict, const size_t *indexes, size_t i, term_t av)
+{ Word p = valTermRef(dict);
+  size_t in = indexes ? indexes[i]*2+1 : i*2+1;
+  Functor f;
+
+  deRef(p);
+  f = valueTerm(*p);
+  *valTermRef(av+0) = linkValI(&f->arguments[in+1]);
+  *valTermRef(av+1) = linkValI(&f->arguments[in]);
+}
+
+
 int
 pl_for_dict(DECL_LD term_t dict,
 	   int LDFUNCP (*func)(DECL_LD term_t key, term_t value, int last, void *closure),
 	   void *closure,
 	   int flags)
 { term_t av = PL_new_term_refs(2);
-  size_t i, arity, pairs;
-  Word p = valTermRef(dict);
+  size_t i, pairs = pl_dict_pairs(dict);
   size_t index_buf[256];
   size_t *indexes = NULL;
   int rc = 0;
 
-  deRef(p);
-  arity = arityTerm(*p);
-  pairs = arity/2;
-
   if ( (flags&PL_FOR_DICT_SORTED) )
-  { cmp_dict_index_data ctx;
-
-    if ( pairs < 256 )
+  { if ( pairs < 256 )
       indexes = index_buf;
     else if ( !(indexes = malloc(pairs*sizeof(size_t))) )
       return PL_no_memory();
 
-    for(i=0; i<pairs; i++)
-      indexes[i] = i;
-
-    ctx.ld = LD;
-    ctx.data = argTermP(*p,1);
-    ctx.indexes = indexes;
-
-    sort_r(indexes, pairs, sizeof(size_t), cmp_dict_index, &ctx);
+    pl_dict_sort_indexes(dict, indexes, pairs);
   }
 
   for(i=0; i < pairs; )
-  { Word p = valTermRef(dict);
-    size_t in;
-
-    if ( indexes )
-    { in = indexes[i]*2+1;
-    } else
-    { in = i*2+1;
-    }
-
-    deRef(p);
-    Functor f = valueTerm(*p);
-    *valTermRef(av+0) = linkValI(&f->arguments[in+1]);
-    *valTermRef(av+1) = linkValI(&f->arguments[in]);
+  { pl_dict_pair(dict, indexes, i, av);
 
     if ( (rc=LDFUNCP(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
       break;
