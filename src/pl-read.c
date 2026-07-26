@@ -6400,10 +6400,7 @@ read_term(DECL_LD term_t term, ReadData rd)
   rd->here = rd->base;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
 
-  C_STACK_OVERFLOW_GUARDED(
-      rc2,
-      complex_term(NULL, OP_MAXPRIORITY+1, rd->subtpos, rd),
-      (void)0);
+  rc2 = complex_term(NULL, OP_MAXPRIORITY+1, rd->subtpos, rd);
   if ( rc2 != true )
   { rc = raiseStackOverflow(rc2);
     goto out;
