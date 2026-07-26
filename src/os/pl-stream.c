@@ -2498,13 +2498,15 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	  case 'p':
 	  { void *ptr = va_arg(args, void*);
-	    char fmbuf[8], *fp=fmbuf;
-	    *fp++ = '%';
-	    if ( modified )
-	      *fp++ = '#';
-	    *fp++ = 'p';
-	    *fp   = '\0';
-	    SNPRINTF3(fmbuf, ptr);
+
+	    /* Do not use the platform %p: it is not portable and not
+	       readable as a Prolog number.  The MSVC runtime prints
+	       uppercase hex without the 0x prefix and glibc prints NULL
+	       as "(nil)".  Blob write() callbacks print their handle
+	       with %p and that output must be acceptable to read_term/2,3
+	       using blob(dead).  See section "BLOBS" in the manual.
+	    */
+	    SNPRINTF3("0x%llx", (unsigned long long)(uintptr_t)ptr);
 
 	    break;
 	  }
