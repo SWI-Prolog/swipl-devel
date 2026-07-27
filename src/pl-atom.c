@@ -333,18 +333,15 @@ deadBlobType(atom_t a)
 }
 
 
-/* lookupLiveBlob() finds the blob of type `type_name' that writes as
-   `text'.  Returns a registered atom, or 0 if there is no match or more
-   than one.  Used for read_term/2,3 with blob(resolve).
-
-   Note that the printed form is not an identity: after atom garbage
-   collection an address can be reused by another blob of the same type.
-   Resolving is therefore best-effort and only enabled where the input is
-   trusted, i.e. the toplevel.
+/* scanLiveBlobs() finds the blob that writes as `text'.  Candidates are
+   selected on their data pointer if `by_addr', else on their type name.
+   Returns a registered atom, or 0 if there is no match or more than one.
+   In the latter case *ambiguous is set to true.
 */
 
 static atom_t
-lookupLiveBlob(atom_t type_name, const char *text, size_t len)
+scanLiveBlobs(atom_t type_name, void *addr, bool by_addr,
+	      const char *text, size_t len, bool *ambiguous)
 { size_t index;
   int i, last=false;
   atom_t found = 0;
@@ -369,7 +366,9 @@ lookupLiveBlob(atom_t type_name, const char *text, size_t len)
       bool eq;
 
       if ( !(ATOM_IS_VALID(refs) && btype && btype->write &&
-	     type_name == btype->atom_name &&
+	     atom->name &&			/* PL_free_blob() was called */
+	     ( by_addr ? (void*)atom->name == addr
+		       : type_name == btype->atom_name ) &&
 	     atom->atom != ATOM_garbage_collected &&
 	     bump_atom_references(atom, refs)) )
 	continue;
@@ -393,6 +392,8 @@ lookupLiveBlob(atom_t type_name, const char *text, size_t len)
       if ( found )			/* ambiguous: refuse to guess */
       { PL_unregister_atom(atom->atom);
 	PL_unregister_atom(found);
+	if ( ambiguous )
+	  *ambiguous = true;
 	return 0;
       }
       found = atom->atom;		/* keep the reference */
@@ -400,6 +401,71 @@ lookupLiveBlob(atom_t type_name, const char *text, size_t len)
   }
 
   return found;
+}
+
+
+/* blob_address() is true if the first argument of `<type>(Arg, ...)' is
+   a pointer, e.g., <clause>(0x63c0850).  See the `%p' of Svfprintf().
+*/
+
+static bool
+blob_address(const char *text, size_t len, void **addrp)
+{ const char *e = &text[len];
+  const char *s = memchr(text, '(', len);
+  const char *d;
+  uintptr_t addr = 0;
+
+  if ( !s || e-s < 4 || s[1] != '0' || s[2] != 'x' )
+    return false;
+
+  for(d=s+3; d<e; d++)
+  { int c = *d;
+
+    if ( c >= '0' && c <= '9' )
+      addr = addr<<4 | (c-'0');
+    else if ( c >= 'a' && c <= 'f' )
+      addr = addr<<4 | (c-'a'+10);
+    else
+      break;
+  }
+
+  if ( d == s+3 || d == e || (*d != ',' && *d != ')') || addr == 0 )
+    return false;
+
+  *addrp = (void*)addr;
+  return true;
+}
+
+
+/* lookupLiveBlob() finds the blob of type `type_name' that writes as
+   `text'.  Returns a registered atom, or 0 if there is no match or more
+   than one.  Used for read_term/2,3 with blob(resolve).
+
+   Most write() functions print the blob data using `%p', which allows us
+   to find the candidate without writing every blob in the atom table.
+   That is not just faster: a write() may need a lock, e.g., the Python
+   GIL for library(janus).  If the first argument is not the blob data we
+   fall back to comparing the text of all blobs of this type.
+
+   Note that the printed form is not an identity: after atom garbage
+   collection an address can be reused by another blob of the same type.
+   Resolving is therefore best-effort and only enabled where the input is
+   trusted, i.e. the toplevel.
+*/
+
+static atom_t
+lookupLiveBlob(atom_t type_name, const char *text, size_t len)
+{ void *addr;
+
+  if ( blob_address(text, len, &addr) )
+  { bool ambiguous = false;
+    atom_t found = scanLiveBlobs(0, addr, true, text, len, &ambiguous);
+
+    if ( found || ambiguous )
+      return found;
+  }
+
+  return scanLiveBlobs(type_name, NULL, false, text, len, NULL);
 }
 
 
