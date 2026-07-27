@@ -200,6 +200,63 @@ test(dead_does_not_resolve) :-
         ),
         close(S)).
 
+                                        % A zipper writes the address of the
+                                        % blob data, so it is found on that
+                                        % address rather than by writing all
+                                        % zippers.  A stream (above) writes
+                                        % the address of its handle and thus
+                                        % takes the fallback.
+zipper(File, Zipper) :-
+    tmp_file(zip, File),
+    zip_open(File, write, Zipper, []).
+
+close_zipper(File, Zipper) :-
+    zip_close(Zipper),
+    delete_file(File).
+
+retype(Text, Type, NewText) :-          % <zipper>(0x1) --> <Type>(0x1)
+    once(sub_atom(Text, Before, _, _, '(')),
+    sub_atom(Text, Before, _, 0, Args),
+    format(atom(NewText), '<~w>~w', [Type, Args]).
+
+add_arg(Text, NewText) :-               % <zipper>(0x1) --> <zipper>(0x1,x)
+    sub_atom(Text, 0, _, 1, Head),
+    format(atom(NewText), '~w,x)', [Head]).
+
+test(address, Z == Z2) :-
+    setup_call_cleanup(
+        zipper(File, Z),
+        ( written(Z, Text),
+          read_resolve(Text, Z2)
+        ),
+        close_zipper(File, Z)).
+
+                                        % The address only selects the
+                                        % candidate: the blob must write
+                                        % exactly as it was read.
+test(address_other_type, Type == no_such_blob_type) :-
+    setup_call_cleanup(
+        zipper(File, Z),
+        ( written(Z, Text),
+          retype(Text, no_such_blob_type, Text2),
+          read_resolve(Text2, B),
+          blob(B, Type)
+        ),
+        close_zipper(File, Z)).
+test(address_other_args) :-
+    setup_call_cleanup(
+        zipper(File, Z),
+        ( written(Z, Text),
+          add_arg(Text, Text2),
+          read_resolve(Text2, B),
+          blob(B, zipper),
+          B \== Z
+        ),
+        close_zipper(File, Z)).
+test(null_address, Type == zipper) :-
+    read_resolve('<zipper>(0x0)', B),
+    blob(B, Type).
+
 :- end_tests(blob_resolve).
 
 :- begin_tests(blob_syntax).
