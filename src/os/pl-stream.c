@@ -169,6 +169,8 @@ extern Sunicode_atoms_t		initUnicodeAtoms(void);
 extern bool			reportStreamError(IOSTREAM *s);
 extern record_t			PL_record(term_t t);
 extern int			PL_thread_self(void);
+extern ssize_t			writeAtomText(IOSTREAM *s, const char *text,
+					      size_t len, IOENC enc);
 
 
 		 /*******************************
@@ -2308,34 +2310,6 @@ Svprintf(const char *fm, va_list args)
 { return Svfprintf(Soutput, fm, args);
 }
 
-static int
-next_chr(const char **s, IOENC enc)
-{ switch(enc)
-  { case ENC_ANSI:
-    case ENC_ISO_LATIN_1:
-    { unsigned char c = (unsigned char)**s;
-      ++(*s);
-      return c;
-    }
-    case ENC_UTF8:
-    { int c;
-      PL_utf8_code_point(s, NULL, &(c));
-      return c;
-    }
-    case ENC_WCHAR:
-    { const wchar_t *w = (const wchar_t*)*s;
-      int c;
-
-      w = get_wchar(w, &c);
-      *s = (const char*)w;
-      return c;
-    }
-    default:
-      assert(0);
-      return -1;
-  }
-}
-
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
@@ -2343,12 +2317,12 @@ next_chr(const char **s, IOENC enc)
 	do \
 	{ if ( fs == fbuf ) \
 	  { while(fs < fe) \
-	    { int c = next_chr((const char**)&fs, enc); \
+	    { int c = text_next_char((const char**)&fs, enc); \
 	      OUTCHR(s, c); \
 	    } \
 	  } else \
 	  { for(;;) \
-	    { int c = next_chr((const char**)&fs, enc); \
+	    { int c = text_next_char((const char**)&fs, enc); \
 	      if ( c ) \
 		OUTCHR(s, c); \
 	      else \
@@ -2487,6 +2461,27 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    enc = ENC_WCHAR;
 	    fm++;
 	    break;
+	}
+
+	/* %As, %UAs, ...: write the string as a Prolog atom, i.e., quote
+	   and escape it if that is needed to read it back.  Writes to `s`
+	   directly, so the field width does not apply.  See writeAtomText()
+	   and section "BLOBS" in the manual.
+	*/
+
+	if ( *fm == 'A' && fm[1] == 's' )
+	{ const char *str = va_arg(args, char *);
+	  ssize_t n;
+
+	  if ( !str )
+	  { str = "(null)";
+	    enc = ENC_ISO_LATIN_1;
+	  }
+	  if ( (n=writeAtomText(s, str, (size_t)-1, enc)) < 0 )
+	    goto error;
+	  printed += (int)n;
+	  fm += 2;
+	  continue;
 	}
 
 	switch(*fm)

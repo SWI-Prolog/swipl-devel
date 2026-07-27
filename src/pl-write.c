@@ -384,6 +384,21 @@ code_requires_quoted(int c, IOSTREAM *fd, int flags)
  * code points, so the test only needs to walk wide atoms.
  */
 static bool
+text_has_combining(const char *text, size_t len, IOENC enc)
+{ const char *s = text;
+  const char *e = &text[len];
+
+  while(s<e)
+  { int c = text_next_char(&s, enc);
+
+    if ( c >= 0x300 && PL_wcwidth(c) == 0 )
+      return true;
+  }
+
+  return false;
+}
+
+static bool
 atom_has_combining(atom_t a)
 { Atom ap = atomValue(a);
 
@@ -391,14 +406,7 @@ atom_has_combining(atom_t a)
     return false;
 
   if ( isUCSAtom(ap) )
-  { const pl_wchar_t *w = (const pl_wchar_t *)ap->name;
-    size_t i, len = ap->length / sizeof(pl_wchar_t);
-
-    for(i=0; i<len; i++)
-    { if ( w[i] >= 0x300 && PL_wcwidth((int)w[i]) == 0 )
-	return true;
-    }
-  }
+    return text_has_combining(ap->name, ap->length, ENC_WCHAR);
 
   return false;
 }
@@ -499,30 +507,39 @@ atomType(atom_t a, write_options *options)
 }
 
 
+/* unquoted_text() is true if `text` can be written to `fd` as an atom
+ * without quotes.  `len` is the length in bytes, also for ENC_WCHAR.
+ * `fd` may be NULL if the text is not destined for a stream.
+ */
+
 static bool
-unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
-{ Atom ap = atomValue(atom);
-  const pl_wchar_t *s = (const pl_wchar_t*)ap->name;
-  const pl_wchar_t *s1;
-  size_t len = ap->length/sizeof(pl_wchar_t);
-  const pl_wchar_t *e = &s[len];
+unquoted_text(const char *text, size_t len, IOENC enc,
+	      IOSTREAM *fd, int flags)
+{ const char *s = text;
+  const char *e = &text[len];
+  const char *s1;
   int c;
 
   if ( len == 0 )
     return false;
 
-  { int bopen, bclose;			/* '<open><close>' prints like {} */
-    if ( bracketPairAtom(atom, &bopen, &bclose) )
+  c = text_next_char(&s, enc);
+  s1 = s;
+
+  if ( s == e )				/* single character atom */
+  { if ( wr_is_solo(c, flags) )
+      return true;
+  } else if ( c >= 0x80 )		/* '<open><close>' prints like {} */
+  { const char *s2 = s;
+    int c2 = text_next_char(&s2, enc);
+
+    if ( s2 == e && f_paren_close(c) == c2 )
       return true;
   }
 
-  s1 = get_wchar(s, &c);
-  if ( len == 1 && wr_is_solo(c, flags) )
-    return true;
-
   if ( !f_is_prolog_atom_start(c) )	/* Sequence of symbol chars */
-  { while ( s < e )
-    { s = get_wchar(s, &c);
+  { for(s=text; s<e; )
+    { c = text_next_char(&s, enc);
 
       if ( !f_is_prolog_symbol(c) ||
 	   code_requires_quoted(c, fd, flags) )
@@ -539,10 +556,10 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 		      !(flags&PL_WRT_NODOTINATOM) );
 
   while ( s < e )
-  { s = get_wchar(s, &c);
+  { c = text_next_char(&s, enc);
 
     if ( c == '.' && dot_in_atom && s < e )
-    { s = get_wchar(s, &c);
+    { c = text_next_char(&s, enc);
       if ( f_is_prolog_identifier_continue(c) &&
 	   !code_requires_quoted(c, fd, flags) )
 	continue;
@@ -555,6 +572,14 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
   }
 
   return true;
+}
+
+
+static bool
+unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
+{ Atom ap = atomValue(atom);
+
+  return unquoted_text(ap->name, ap->length, ENC_WCHAR, fd, flags);
 }
 
 
@@ -792,12 +817,17 @@ unicode_quoted_escape(int c)
 { return PL_wcwidth(c) < 0;
 }
 
-static bool
+/* Write `c` as part of a quoted atom or string.  Returns the number of
+   characters written or -1 if the stream raised an error.
+*/
+
+static int
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
   { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' &&
 	 (!stream || Scanrepresent(c, stream) == 0) )
-    { TRY(Putc(c, stream));
+    { if ( !Putc(c, stream) )
+	return -1;
     } else
     { char esc[10];			/* Longest is UXXXXXXXX */
 
@@ -844,18 +874,22 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
       }
       if ( !Putc('\\', stream) ||
 	   !PutString(esc, stream) )
-	fail;
+	return -1;
+
+      return 1+(int)strlen(esc);		/* `esc` is ASCII */
     }
   } else
   { if ( !Putc(c, stream) )
-      fail;
+      return -1;
     if ( c == quote )	/* write '' */
     { if ( !Putc(c, stream) )
-	fail;
+	return -1;
+
+      return 2;
     }
   }
 
-  return true;
+  return 1;
 }
 
 #if O_ATTVAR
@@ -1000,7 +1034,8 @@ write_chars(const char *str, size_t len, int quote, write_options *options)
     while(s<e)
     { int chr = *s++;
 
-      TRY(putQuoted(chr, quote, options->flags, options->out));
+      if ( putQuoted(chr, quote, options->flags, options->out) < 0 )
+	return false;
     }
 
     return true;
@@ -1017,7 +1052,8 @@ write_wchars(const wchar_t *s, size_t len, int quote, write_options *options)
 
       s = get_wchar(s, &chr);
 
-      TRY(putQuoted(chr, quote, options->flags, options->out));
+      if ( putQuoted(chr, quote, options->flags, options->out) < 0 )
+	return false;
     }
     return true;
   } else
@@ -1203,6 +1239,67 @@ writeAtomToStream(IOSTREAM *s, atom_t atom)
   return !!writeAtom(atom, &options);
 }
 
+
+/* writeAtomText() writes `text` to `s` as an atom, quoting and escaping
+   it if that is needed to read it back.  `len` is the length in bytes or
+   (size_t)-1 if `text` is 0-terminated.  Returns the number of
+   characters written or -1.
+
+   This implements the %As of Svfprintf(), which allows a blob write()
+   callback to emit a name, file name, pattern, etc. without creating a
+   Prolog term.  It does not create atoms and does not call Prolog, so it
+   is safe to use while the atom table is being scanned.  Note that it
+   always quotes if that is needed: the output must be readable
+   regardless of the write options that got us here.  See section "BLOBS"
+   in the manual.
+*/
+
+ssize_t
+writeAtomText(IOSTREAM *s, const char *text, size_t len, IOENC enc)
+{ const int flags = PL_WRT_CHARESCAPES;
+  const char *p = text;
+  const char *e;
+  ssize_t printed = 0;
+
+  if ( len == (size_t)-1 )
+    len = ( enc == ENC_WCHAR
+	    ? wcslen((const wchar_t*)text)*sizeof(wchar_t)
+	    : strlen(text) );
+  e = &text[len];
+
+  if ( unquoted_text(text, len, enc, s, flags) &&
+       !text_has_combining(text, len, enc) )
+  { while(p<e)
+    { int c = text_next_char(&p, enc);
+
+      if ( !Putc(c, s) )
+	return -1;
+      printed++;
+    }
+  } else
+  { int quote = '\'';
+
+    if ( !Putc(quote, s) )
+      return -1;
+    printed++;
+
+    while(p<e)
+    { int c = text_next_char(&p, enc);
+      int n;
+
+      if ( (n=putQuoted(c, quote, flags, s)) < 0 )
+	return -1;
+      printed += n;
+    }
+
+    if ( !Putc(quote, s) )
+      return -1;
+    printed++;
+  }
+
+  return printed;
+}
+
 bool
 writeUCSAtom(atom_t atom, void *context)
 { write_options *options = context;
@@ -1255,7 +1352,7 @@ writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 	 Putc('C', fd) &&
 	 Putc(quote, fd) )
     { while(s < e)
-      { if ( !putQuoted(*s++, quote, flags, fd) )
+      { if ( putQuoted(*s++, quote, flags, fd) < 0 )
 	  return false;
       }
 
@@ -3082,7 +3179,7 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
     return false;
 
   for(i=0; rc && i<len; i++)
-    rc = putQuoted(w[i], quote, flags, out);
+    rc = putQuoted(w[i], quote, flags, out) >= 0;
 
   if ( rc )
     rc = PL_release_stream(out);

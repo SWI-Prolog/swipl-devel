@@ -217,5 +217,41 @@ get_wchar(const wchar_t *in, int *chr)
 #endif
 }
 
+#ifdef _SWI_STREAM_H			/* we need IOENC */
+
+/* text_next_char() reads the character at `*s`, advancing `*s` to the
+   next one.  It only deals with the encodings that can represent all
+   code points, returning -1 for the others.  Reading a 0-terminated
+   string stops when it returns 0.
+*/
+
+static inline int
+text_next_char(const char **s, IOENC enc)
+{ switch(enc)
+  { case ENC_ANSI:
+    case ENC_ISO_LATIN_1:
+    { unsigned char c = (unsigned char)**s;
+      ++(*s);
+      return c;
+    }
+    case ENC_UTF8:
+    { int c;
+      PL_utf8_code_point(s, NULL, &(c));
+      return c;
+    }
+    case ENC_WCHAR:
+    { const wchar_t *w = (const wchar_t*)*s;
+      int c;
+
+      w = get_wchar(w, &c);
+      *s = (const char*)w;
+      return c;
+    }
+    default:
+      return -1;
+  }
+}
+
+#endif /*_SWI_STREAM_H*/
 
 #endif /*UTF8_H_INCLUDED*/

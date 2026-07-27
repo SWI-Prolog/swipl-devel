@@ -3058,9 +3058,15 @@ data}\verb$>$ for binary blobs.
 
 This notation is claimed by the reader, so the write() function should
 emit the type name between \verb$<$ and \verb$>$, followed by the
-arguments as \emph{valid Prolog syntax} between brackets.  Quote
+arguments as \emph{valid Prolog syntax} between brackets.  The type name
+must be the \const{name} of the blob type: read_term/2,3 uses it to find
+the blob back if the \term{blob}{resolve} option is given.  Quote
 anything that needs it: a pattern, file name or message that contains a
-bracket or a quote makes the whole term unparsable.  Given that,
+bracket or a quote makes the whole term unparsable.  Use the \chr{As}
+format of SfprintfX() for that, e.g.,
+\exam{SfprintfX(s, "<my_blob>(\%p,\%UAs)", data, name)}.  It quotes and
+escapes \arg{name} if that is needed, without creating a Prolog term.
+Given that,
 read_term/2,3 can read the blob back using the \term{blob}{dead} option
 (see read_term/3), which is what makes a stack trace or a \verb$~q$ log
 file containing blobs parsable.  Note that the pointer is written with
