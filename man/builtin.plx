@@ -7070,11 +7070,12 @@ Considering the toplevel, (small) answers are recorded for reuse as
 \verb|$Var| and blobs that are part of small answers are thus referenced
 as long as the answer binding is not changed.
 
-Resolving is not cheap: there is no index from the written form back to
-the blob, so it examines every live blob of the requested type and
-writes it to compare the result.  This is fine for the toplevel, but it
-makes \const{resolve} a poor choice for reading many terms.  Use
-\const{dead} unless a live handle is really required.
+There is no index from the written form back to the blob.  If the first
+argument is the address of the blob data, which is what the write()
+function of a blob normally emits, only the blob at this address is
+written to compare the result.  If it is not, every live blob of
+\arg{Type} is written.  Either way the comparison is on the text, i.e.,
+the blob must write exactly as it was read.
     \end{description}
 
 The notation is only unambiguous as long as \const{<} is not a prefix

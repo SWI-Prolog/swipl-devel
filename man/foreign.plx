@@ -3059,8 +3059,9 @@ data}\verb$>$ for binary blobs.
 This notation is claimed by the reader, so the write() function should
 emit the type name between \verb$<$ and \verb$>$, followed by the
 arguments as \emph{valid Prolog syntax} between brackets.  The type name
-must be the \const{name} of the blob type: read_term/2,3 uses it to find
-the blob back if the \term{blob}{resolve} option is given.  Quote
+must be the \const{name} of the blob type and the first argument should
+be the address of the blob data: read_term/2,3 uses both to find the
+blob back if the \term{blob}{resolve} option is given.  Quote
 anything that needs it: a pattern, file name or message that contains a
 bracket or a quote makes the whole term unparsable.  Use the \chr{As}
 format of SfprintfX() for that, e.g.,
