@@ -2425,6 +2425,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  fm++;
 	  if ( *fm == '*' )
 	  { arg2 = va_arg(args, int);
+	    fm++;
 	  } else
 	  { arg2 = 0;
 	    for( ; isdigit(char_to_int(*fm)); fm++)
@@ -2464,20 +2465,27 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 
 	/* %As, %UAs, ...: write the string as a Prolog atom, i.e., quote
-	   and escape it if that is needed to read it back.  Writes to `s`
-	   directly, so the field width does not apply.  See writeAtomText()
-	   and section "BLOBS" in the manual.
+	   and escape it if that is needed to read it back.  The precision
+	   gives the length in elements of the string; without it the string
+	   must be 0-terminated.  Writes to `s` directly, so the field width
+	   does not apply.  See writeAtomText() and section "BLOBS" in the
+	   manual.
 	*/
 
 	if ( *fm == 'A' && fm[1] == 's' )
 	{ const char *str = va_arg(args, char *);
+	  size_t len = (size_t)-1;
 	  ssize_t n;
 
 	  if ( !str )
 	  { str = "(null)";
 	    enc = ENC_ISO_LATIN_1;
+	  } else if ( has_arg2 && arg2 >= 0 )
+	  { len = (size_t)arg2;
+	    if ( enc == ENC_WCHAR )
+	      len *= sizeof(wchar_t);
 	  }
-	  if ( (n=writeAtomText(s, str, (size_t)-1, enc)) < 0 )
+	  if ( (n=writeAtomText(s, str, len, enc)) < 0 )
 	    goto error;
 	  printed += (int)n;
 	  fm += 2;

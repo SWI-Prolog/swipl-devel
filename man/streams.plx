@@ -569,12 +569,14 @@ Emit a \ctype{double}.
     \fmtchar{s}
 Emit a 0-terminated string.
     \fmtchar{As}
-Emit a 0-terminated string as a Prolog atom, i.e., surrounded by single
-quotes and using the character escape syntax if that is needed to read
-the text back, e.g., \exam{SfprintfX(s, "\%UAs", "a b")} emits
-\exam{'a b'}. Unlike the other specifiers this one writes to \arg{s}
-directly, which implies the field width does not apply to it. It is
-intended for the write() function of a blob; see
+Emit a string as a Prolog atom, i.e., surrounded by single quotes and
+using the character escape syntax if that is needed to read the text
+back, e.g., \exam{SfprintfX(s, "\%UAs", "a b")} emits \exam{'a b'}. The
+string is 0-terminated unless the precision is given, in which case it
+is the length of the string in \ctype{char} or, for \chr{W},
+\ctype{wchar_t} elements. Unlike the other specifiers this one writes to
+\arg{s} directly, which implies the field width does not apply to it. It
+is intended for the write() function of a blob; see
 section~\secref{blob}.
 \end{description}
 
