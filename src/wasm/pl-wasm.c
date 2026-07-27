@@ -159,33 +159,34 @@ typedef struct objref
 } objref;
 
 
-static atom_t
+/* js_obj_class() returns the class name as a malloc'ed UTF-8 string. */
+
+static char *
 js_obj_class(int32_t id)
-{ char *str = (char*)EM_ASM_PTR({
+{ return (char*)EM_ASM_PTR({
       const s = prolog_js_obj_class_name($0);
       const len = lengthBytesUTF8(s)+1;
       const mem = _malloc(len);
       stringToUTF8(s, mem, len);
       return mem;
     }, id);
-  atom_t a = PL_new_atom_mbchars(REP_UTF8, (size_t)-1, str);
-  free(str);
-
-  return a;
 }
 
+
+/* Write a JavaScript object reference as <js>(Id,Class).  The
+ * name between the brackets must be the name of our blob type: that is
+ * what allows read_term/2,3 to find the object back using the option
+ * blob(resolve).  The class is written as a quoted atom.
+ */
 
 static int
 write_jsobj_ref(IOSTREAM *out, atom_t aref, int flags)
 { objref *ref = PL_blob_data(aref, NULL, NULL);
+  char *cname = js_obj_class(ref->id);
   (void)flags;
-  atom_t cname = js_obj_class(ref->id);
-  const wchar_t *s;
 
-  PL_STRINGS_MARK();
-  s = PL_atom_wchars(cname, NULL);
-  SfprintfX(out, "<js_%Ws>(%d)", s, ref->id);
-  PL_STRINGS_RELEASE();
+  SfprintfX(out, "<js>(%d,%UAs)", ref->id, cname);
+  free(cname);
 
   return true;
 }
@@ -206,7 +207,7 @@ save_jsobj_ref(atom_t aref, IOSTREAM *fd)
 { objref *ref = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
-  return PL_warning("Cannot save reference to <js_object>(%d)",
+  return PL_warning("Cannot save reference to <js>(%d)",
 		    ref->id);
 }
 
@@ -222,7 +223,7 @@ load_jsobj_ref(IOSTREAM *fd)
 static PL_blob_t js_obj_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
-  "js_object",
+  "js",
   release_jsobj_blob,
   NULL,
   write_jsobj_ref,

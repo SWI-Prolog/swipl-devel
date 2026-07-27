@@ -511,9 +511,10 @@ Instances of \ctype{ArrayBuffer} are translated into a Prolog
 string that consists of characters in the range $0\ldots{}255$.
     \definition{Objects of a one class not being \const{Object}}
 Instances of non-plain JavaScript objects are translated into a
-Prolog \jargon{blob}. Such objects are written as \verb$<js_Class(id)>$.
-The Prolog interface allows for passing the objects back and calling
-methods on them.  See \secref{wasm-js-call}.
+Prolog \jargon{blob}. Such objects are written as
+\verb$<js>(Id,Class)$.  The Prolog interface allows for passing
+the objects back and calling methods on them.  See
+\secref{wasm-js-call}.
 \end{description}
 
 
@@ -614,7 +615,7 @@ following ``functions'' are handled directly by the implementation.
     quotes.  For example:
 \begin{code}
 ?- W := window, T := W.instanceof('Window').
-W = <js_Window>(1),
+W = <js>(1,'Window'),
 T = true.
 \end{code}
     \termitem{-}{Any}
@@ -696,9 +697,9 @@ that await/2 allows, for example, downloading a URL from Prolog:
 \begin{code}
 ?- FP := fetch("test.pl"), await(FP, Response),
    TP := Response.text(), await(TP, T).
-FP = <js_Promise>(4),
-Response = <js_Response>(5),
-TP = <js_Promise>(6),
+FP = <js>(4,'Promise'),
+Response = <js>(5,'Response'),
+TP = <js>(6,'Promise'),
 T = "% :- debug(js) ...".
 \end{code}
 
