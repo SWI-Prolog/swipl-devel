@@ -7002,15 +7002,25 @@ argument.  For lists, only the list as a whole is given to portray/1.  If
 portray/1 succeeds print/1 assumes the term has been written.
 
     \predicate[ISO]{read}{1}{-Term}
-Read the next \textbf{Prolog term} from the current input stream and
-unify it with \arg{Term}. On reaching end-of-file \arg{Term} is unified
-with the atom \const{end_of_file}. This is the same as read_term/2 using
-an empty option list.
+\nodescription
+    \predicate[ISO]{read}{2}{+Stream, -Term}
+\nodescription
+    \predicate[ISO]{read_term}{2}{-Term, +Options}
+\nodescription
+    \predicate[ISO]{read_term}{3}{+Stream, -Term, +Options}
+The predicate read_term/3 is the most general form of all Prolog
+term-read predicates.  Variations that lack the \arg{Stream} argument
+read from the \const{current_input} stream and variations that lack the
+\arg{Options} argument read using an empty option list.  On reaching
+end-of-file \arg{Term} is unified with the atom \const{end_of_file}.
+Syntax errors are reported using exception handling (see catch/3)
+unless the \const{syntax_errors} option demands otherwise. The argument
+order is according to the ISO standard.
 
 \textbf{[NOTE]} You might have found this while looking for a predicate
 to read input from a file or the user. Quite likely this is not what you
-need in this case. This predicate is for reading a \textbf{Prolog term}
-which may span multiple lines and must end in a \emph{full stop} (dot
+need in this case. These predicates read a \textbf{Prolog term}, which
+may span multiple lines and must end in a \emph{full stop} (dot
 character followed by a layout character). The predicates for reading
 and writing Prolog terms are particularly useful for storing Prolog
 data in a file or transferring them over a network communication channel
@@ -7019,52 +7029,13 @@ predicates to read data in other formats. See e.g., \pllib{readutil},
 \pllib{pure_input} or libraries from the extension packages to read XML,
 JSON, YAML, etc.
 
-    \predicate[ISO]{read}{2}{+Stream, -Term}
-Read the next \textbf{Prolog term} from \arg{Stream}.  See read/1 and
-read_term/2 for details.
+This family of predicates is intended for reading \jargon{Prolog terms}
+from a stream.  The predicate read_clause/3 reads a term the way the
+compiler does.  Use read_term_from_atom/3, term_to_atom/2 or
+term_string/2 to read a term from text and read_term_with_history/2 to
+read a term with the history substitutions of the toplevel.
 
-    \predicate{read_clause}{3}{+Stream, -Term, +Options}
-Equivalent to read_term/3, but sets options according to the current
-compilation context and optionally processes comments.  Defined
-options:
-
-    \begin{description}
-        \termitem{syntax_errors}{+Atom}
-	See read_term/3, but the default is \const{dec10} (report
-	and restart).
-
-	\termitem{term_position}{-TermPos}
-	Same as for read_term/3.
-
-	\termitem{subterm_positions}{-TermPos}
-	Same as for read_term/3.
-
-	\termitem{variable_names}{-Bindings}
-	Same as for read_term/3.
-
-	\termitem{process_comment}{+Boolean}
-	If \const{true} (default), call
-	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
-	multifile hook is defined (see prolog:comment_hook/3).  This
-	is used to drive PlDoc.
-
-	\termitem{comments}{-Comments}
-	If provided, unify \arg{Comments} with the comments encountered
-	while reading \arg{Term}. This option implies
-	\term{process_comment}{false}.
-    \end{description}
-
-The \const{singletons} option of read_term/3 is initialised from the
-active style-checking mode.  The \const{module} option is initialised
-to the current compilation module (see prolog_load_context/2).
-
-    \predicate[ISO]{read_term}{2}{-Term, +Options}
-Read a term from the current input stream and unify the term with
-\arg{Term}. The reading is controlled by options from the list of
-\arg{Options}. If this list is empty, the behaviour is the same as for
-read/1. The options are upward compatible with Quintus Prolog. The
-argument order is according to the ISO standard.  Syntax errors are
-always reported using exception-handling (see catch/3). Options:
+Valid options for read_term/2 and read_term/3 are:
 
 \begin{description}
     \termitem{backquoted_string}{Bool}
@@ -7314,8 +7285,40 @@ variable that shares with the corresponding variable in \arg{Term}.
 (ISO). The variables appear in the order they have been read.
 \end{description}
 
-    \predicate[ISO]{read_term}{3}{+Stream, -Term, +Options}
-Read term with options from \arg{Stream}.  See read_term/2.
+    \predicate{read_clause}{3}{+Stream, -Term, +Options}
+Equivalent to read_term/3, but sets options according to the current
+compilation context and optionally processes comments.  Defined
+options:
+
+    \begin{description}
+        \termitem{syntax_errors}{+Atom}
+	See read_term/3, but the default is \const{dec10} (report
+	and restart).
+
+	\termitem{term_position}{-TermPos}
+	Same as for read_term/3.
+
+	\termitem{subterm_positions}{-TermPos}
+	Same as for read_term/3.
+
+	\termitem{variable_names}{-Bindings}
+	Same as for read_term/3.
+
+	\termitem{process_comment}{+Boolean}
+	If \const{true} (default), call
+	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
+	multifile hook is defined (see prolog:comment_hook/3).  This
+	is used to drive PlDoc.
+
+	\termitem{comments}{-Comments}
+	If provided, unify \arg{Comments} with the comments encountered
+	while reading \arg{Term}. This option implies
+	\term{process_comment}{false}.
+    \end{description}
+
+The \const{singletons} option of read_term/3 is initialised from the
+active style-checking mode.  The \const{module} option is initialised
+to the current compilation module (see prolog_load_context/2).
 
     \predicate{read_term_from_atom}{3}{+Atom, -Term, +Options}
 Use read_term/3 to read the next term from \arg{Atom}.  \arg{Atom} is
