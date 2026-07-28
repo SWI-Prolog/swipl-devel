@@ -12191,6 +12191,17 @@ normal garbage collection. In this case garbage_collect_atoms/0 returns
 immediately. Note that there is no guarantee it will \emph{ever}
 happen, as there may always be threads performing garbage collection.
 
+    \predicate{set_blob_gc_margin}{2}{+Type, +Margin}
+Request atom garbage collection once \arg{Margin} units of blob type
+\arg{Type} have become candidates for it.  A blob counts with the length
+it was created with, so the unit is bytes for text and for types that
+report what they retain, and instances for types that report \exam{1}.
+\arg{Margin} \exam{0}, the default for every type, leaves \arg{Type} to
+\prologflag{agc_margin}, which counts atoms regardless of what they keep
+alive.  Setting \prologflag{agc_margin} to zero disables atom garbage
+collection and no type budget overrides that.  See \secref{blobgc} and
+current_blob/2.
+
     \predicate{garbage_collect_clauses}{0}{}
 Reclaim retracted clauses. During normal operation, retracting a clause
 implies setting the \jargon{erased generation} to the current

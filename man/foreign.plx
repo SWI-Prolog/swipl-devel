@@ -2910,6 +2910,14 @@ than the data pointed at. Using
 reference an arbitrary pointer where the pointer data may be reclaimed
 in the release() handler.
 
+As the \arg{len} passed to PL_unify_blob() and friends takes no part in
+the lookup for such a blob, it is free to describe \emph{what the blob
+keeps alive} rather than the size of the handle. That is what the
+\const{gc_margin} of the type is measured in; see \secref{blobgc}. A
+type that reports a size should provide a write() function, as the
+default writer would otherwise dump that many bytes of the referenced
+object.
+
     \constitem{PL_BLOB_WCHAR}
 If \const{PL_BLOB_TEXT} is also set, then the text is made up of
 \const{pl_wchar_t} items and the blob's lenght is the number of bytes
@@ -3231,6 +3239,55 @@ PL_free_blob() may be called multiple times on the same
 after a successful call have no effect and return \const{FALSE}.
 \end{description}
 
+
+\subsubsection{Blobs and atom garbage collection}
+\label{sec:blobgc}
+
+A blob is reclaimed by the atom garbage collector, which is normally
+requested once \prologflag{agc_margin} atoms have become candidates.  An
+atom costs about fifty bytes, but a blob atom costs the same fifty bytes
+whether it references a small structure or a ten megabyte buffer, a
+compiled regular expression or a database handle.  Counting atoms
+therefore says nothing about what is being kept alive: ten thousand
+blobs, well below the default margin, may hold gigabytes.
+
+A blob type may declare a budget of its own in the \const{gc_margin}
+field of its \ctype{PL_blob_t}.  A blob counts towards this budget with
+the \arg{len} it was created with, so the unit is whatever \arg{len}
+means for the type: bytes for text and for copied blobs, and for
+\const{PL_BLOB_NOCOPY} whatever the type chose to report (see
+\secref{blobtype}).  A type for which the scarce resource is the number
+of live handles rather than their size, such as one wrapping a file
+descriptor, passes \exam{1} as \arg{len} and sets \const{gc_margin} to
+a number of instances.
+
+\begin{code}
+static PL_blob_t my_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE|PL_BLOB_NOCOPY,
+  "my_blob",
+  release_my_blob, compare_my_blob, write_my_blob, acquire_my_blob,
+  save_my_blob, load_my_blob,
+  0,				/* padding */
+  16*1024*1024			/* gc_margin: collect per 16Mb */
+};
+\end{code}
+
+The default, \exam{0}, leaves the type to \prologflag{agc_margin} alone,
+which is the behaviour of all types that do not set the field.  Setting
+\prologflag{agc_margin} to zero disables atom garbage collection
+entirely and a type budget does not override that.
+
+Note that the budget is a request, not a bound: collection is
+conservative and asynchronous, and a type whose blobs turn out to be
+\jargon{live} stops requesting collections rather than repeating them,
+as the survivors are discounted until another \const{gc_margin} of
+candidates accumulates.  As always, a type holding a critical resource
+should offer an explicit predicate to dispose of it rather than relying
+on the collector; see the release() callback in \secref{blobtype} and
+PL_free_blob().
+
+set_blob_gc_margin/2 changes the budget of a registered type at runtime.
 
 \subsubsection{Considerations for non-C code}
 \label{sec:blob-non-c}

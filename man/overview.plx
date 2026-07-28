@@ -1294,10 +1294,14 @@ Note that the setting for this flag in the \const{main} thread applies.
 If this amount of atoms possible garbage atoms exist perform atom
 garbage collection at the first opportunity.  Initial value is 10,000.
 May be changed. A value of 0 (zero) disables atom garbage collection.
-See also PL_register_atom().\footnote{Given that SWI-Prolog has no
-limit on the length of atoms, 10,000 atoms may still occupy a lot of
-memory.  Applications using extremely large atoms may wish to call
-garbage_collect_atoms/0 explicitly or lower the margin.}
+See also PL_register_atom().
+
+Note that this counts atoms, which says nothing about how much they keep
+alive: SWI-Prolog places no limit on the length of an atom, and a blob
+costs one atom whatever it references.  Applications using extremely
+large atoms may wish to call garbage_collect_atoms/0 explicitly or lower
+the margin.  A blob type can instead declare a budget measured in what
+its blobs retain; see set_blob_gc_margin/2 and \secref{blobgc}.
 
     \prologflagitem{allow_dot_in_atom}{bool}{rw}
 If \const{true} (default \const{false}), dots may be embedded into atoms
