@@ -981,6 +981,13 @@ writeBlob(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   unsigned char const *s, *e;
 
+/* For PL_BLOB_NOCOPY, `name' is the foreign object and `length' describes
+   what it retains rather than how much of it we may read.  Dumping it is
+   not ours to do: print the handle.  Such a type should define write().
+*/
+  if ( ison(atom->type, PL_BLOB_NOCOPY) )
+    return Sfprintf(options->out, "<#%p>", atom->name) >= 0;
+
   TRY(PutString("<#", options->out));
   s = (unsigned char const *)atom->name;
   for (e = s + atom->length; s != e; s++)
