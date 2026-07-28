@@ -1449,6 +1449,7 @@ markAtomsOnStacks().
 static void
 unregister_atom(volatile Atom p)
 { unsigned int newref;
+  int dropped = false;			/* reached zero registrations */
 
   if ( unlikely(!ATOM_IS_VALID(p->references)) )
   { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
@@ -1489,6 +1490,7 @@ unregister_atom(volatile Atom p)
         if ( HAS_LD )
 	  LD->atoms.unregistering = p->atom;
 	ATOMIC_INC(&GD->atoms.unregistered);
+	dropped = true;
       }
     } while( !COMPARE_AND_SWAP_UINT(&p->references, oldref, newref) );
   }
@@ -1506,6 +1508,14 @@ unregister_atom(volatile Atom p)
       PL_free(buf);
     trap_gdb();
   }
+
+/* This is where GD->atoms.unregistered grows, so this is where the margin
+   can be exceeded.  Without this, the condition is only ever tested when a
+   new atom is created (see lookupBlob()), and dropping the last reference
+   to a lot of atoms reclaims nothing until something else allocates.
+*/
+  if ( dropped )
+    considerAGC();
 }
 
 
