@@ -774,8 +774,14 @@ typedef struct PL_blob_t
   int			(*save)(atom_t a, IOSTREAM *s);
   atom_t		(*load)(IOSTREAM *s);
   size_t		padding;	/* Required 0-padding */
+  size_t		gc_margin;	/* Consider AGC after this many units
+					   of this type became candidates.
+					   A blob contributes its `len'.
+					   0: only the global agc_margin. */
 					/* private */
-  void *		reserved[8];	/* for future extension */
+  size_t		unregistered;	/* Units with no registrations */
+  size_t		non_garbage;	/* Units that survived the last AGC */
+  void *		reserved[5];	/* for future extension */
   int			(*write_ex)(atom_t a, void *context);
   bool			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */

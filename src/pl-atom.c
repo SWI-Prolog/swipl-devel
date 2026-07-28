@@ -212,6 +212,67 @@ static int	tracking(const Atom a);
 IOSTREAM *atomLogFd = 0;
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Per blob type accounting.  A type may declare a `gc_margin', in which case
+we track how much of it has no registrations, in the same places where we
+track GD->atoms.unregistered.  The unit is the blob's length: for text and
+for copied blobs that is its size in bytes, and for PL_BLOB_NOCOPY it is
+whatever the type passed to PL_unify_blob(), which is free to describe the
+resource the blob keeps alive.  A type that cares about the number of live
+instances rather than their size passes 1.
+
+Types that declare no margin are not accounted at all, so nothing changes
+for them.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* gc_margin and the two counters were carved out of PL_blob_t's unused
+   reserved[8].  The struct must not have changed size: extensions define
+   their type statically and are not recompiled.
+*/
+static_assert(sizeof(((PL_blob_t*)0)->reserved) + 3*sizeof(size_t) ==
+	      8*sizeof(void*),
+	      "PL_blob_t layout changed; this breaks the foreign ABI");
+
+static inline void
+add_type_units(Atom a)
+{ PL_blob_t *type = a->type;
+
+  if ( type->gc_margin )
+    ATOMIC_ADD(&type->unregistered, a->length);
+}
+
+/* The length may change under us: PL_free_blob() sets it to zero.  Any
+   drift is corrected by collectAtoms(), which recomputes from scratch, but
+   we must not let the counter wrap.
+*/
+
+static inline void
+del_type_units(Atom a)
+{ PL_blob_t *type = a->type;
+
+  if ( type->gc_margin )
+  { size_t units = a->length;
+    size_t old, new;
+
+    do
+    { old = type->unregistered;
+      new = old > units ? old-units : 0;
+    } while( !COMPARE_AND_SWAP_SIZE(&type->unregistered, old, new) );
+  }
+}
+
+
+/* PL_free_blob() dropped the resource while the blob may still be counted
+   as a candidate.  Called before the length is cleared.
+*/
+
+void
+PL_blob_gc_released(Atom a)
+{ if ( ATOM_REF_COUNT(a->references) == 0 )
+    del_type_units(a);
+}
+
+
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
 { for(;;)
@@ -222,7 +283,9 @@ bump_atom_references(Atom a, unsigned int ref)
 
     if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
     { if ( ATOM_REF_COUNT(ref) == 0 )
-	ATOMIC_DEC(&GD->atoms.unregistered);
+      { ATOMIC_DEC(&GD->atoms.unregistered);
+	del_type_units(a);
+      }
       return true;
     } else
     { ref = a->references;
@@ -1187,6 +1250,10 @@ collectAtoms(void)
   size_t index;
   int i, last=false;
   Atom temp, next, prev = NULL;	 /* = NULL to keep compiler happy */
+  PL_blob_t *type;
+
+  for(type = GD->atoms.types; type; type = type->next)
+    type->unregistered = 0;	/* recomputed by the scan below */
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1211,7 +1278,9 @@ collectAtoms(void)
       } else
       {	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
         if ( ATOM_REF_COUNT(ref) == 0 )
-	  unregistered++;
+	{ unregistered++;
+	  add_type_units(a);
+	}
       }
     }
   }
@@ -1244,6 +1313,8 @@ collectAtoms(void)
   maybe_free_atom_tables();
 
   GD->atoms.unregistered = GD->atoms.non_garbage = unregistered;
+  for(type = GD->atoms.types; type; type = type->next)
+    type->non_garbage = type->unregistered;
 
   return reclaimed;
 }
@@ -1325,6 +1396,50 @@ PL_agc_hook(PL_agc_hook_t new)
 }
 
 
+/* A type that declared a gc_margin gets its own budget.  Same shape as the
+   global rule, so that a type whose blobs turn out to be *live* stops
+   asking: non_garbage grows at the next sweep and absorbs them.
+*/
+
+static void
+considerAGCType(const PL_blob_t *type)
+{ if ( GD->atoms.margin != 0 &&		/* agc_margin 0 disables all AGC */
+       type->gc_margin != 0 &&
+       type->unregistered >= type->non_garbage + type->gc_margin )
+  { DEBUG(MSG_AGC_CONSIDER,
+	  Sdprintf("Signal AGC for <%s>.  Unregistered %zd, non-garbage %zd, "
+		   "margin %zd\n", type->name, type->unregistered,
+		   type->non_garbage, type->gc_margin));
+    signalGCThread(SIG_ATOM_GC);
+  }
+}
+
+
+/* Is a collection wanted?  Used to re-test when the request is picked up,
+   as time has passed since it was raised.  Must agree with considerAGC()
+   and considerAGCType() or a raised request is dropped on the floor.
+*/
+
+bool
+AGC_wanted(void)
+{ PL_blob_t *type;
+
+  if ( GD->atoms.margin == 0 )		/* AGC disabled */
+    return false;
+
+  if ( GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
+    return true;
+
+  for(type = GD->atoms.types; type; type = type->next)
+  { if ( type->gc_margin != 0 &&
+	 type->unregistered >= type->non_garbage + type->gc_margin )
+      return true;
+  }
+
+  return false;
+}
+
+
 static void
 considerAGC(void)
 { if ( GD->atoms.margin != 0 &&
@@ -1370,7 +1485,9 @@ register_atom(volatile Atom p)
     if ( ATOM_REF_COUNT(nref) != 0 )
     { if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
       { if ( ATOM_REF_COUNT(nref) == 1 )
-	  ATOMIC_DEC(&GD->atoms.unregistered);
+	{ ATOMIC_DEC(&GD->atoms.unregistered);
+	  del_type_units(p);
+	}
 	return nref;
       }
     } else
@@ -1490,6 +1607,7 @@ unregister_atom(volatile Atom p)
         if ( HAS_LD )
 	  LD->atoms.unregistering = p->atom;
 	ATOMIC_INC(&GD->atoms.unregistered);
+	add_type_units(p);
 	dropped = true;
       }
     } while( !COMPARE_AND_SWAP_UINT(&p->references, oldref, newref) );
@@ -1515,7 +1633,9 @@ unregister_atom(volatile Atom p)
    to a lot of atoms reclaims nothing until something else allocates.
 */
   if ( dropped )
-    considerAGC();
+  { considerAGC();
+    considerAGCType(p->type);
+  }
 }
 
 
@@ -2535,7 +2655,109 @@ atom_space(void)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+		 /*******************************
+		 *      PER TYPE AGC BUDGET	*
+		 *******************************/
+
+static PL_blob_t *
+blob_type_from_name(term_t t)
+{ GET_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(t, &name) )
+  { PL_blob_t *type;
+
+    for(type = GD->atoms.types; type; type = type->next)
+    { if ( type->atom_name == name )
+	return type;
+    }
+
+    PL_existence_error("blob_type", t);
+  }
+
+  return NULL;
+}
+
+
+/** blob_gc_margin(?Type, -Margin, -Unregistered) is nondet.
+ *
+ * Margin is the number of units of Type that may become candidates for
+ * atom garbage collection before one is requested.  Unregistered is how
+ * much is currently waiting.  See set_blob_gc_margin/2.
+ */
+
+static
+PRED_IMPL("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  PL_blob_t *type;
+
+  fid_t fid;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+      if ( !PL_is_variable(A1) )
+      { if ( (type=blob_type_from_name(A1)) )
+	  return ( PL_unify_int64(A2, type->gc_margin) &&
+		   PL_unify_int64(A3, type->unregistered) );
+	return false;
+      }
+      type = GD->atoms.types;
+      break;
+    case FRG_REDO:
+      type = CTX_PTR;
+      break;
+    default:
+      return true;
+  }
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return false;
+
+  for(; type; type = type->next)
+  { if ( PL_unify_atom(A1, type->atom_name) &&
+	 PL_unify_int64(A2, type->gc_margin) &&
+	 PL_unify_int64(A3, type->unregistered) )
+    { PL_close_foreign_frame(fid);
+      if ( type->next )
+	ForeignRedoPtr(type->next);
+      return true;
+    }
+    PL_rewind_foreign_frame(fid);
+  }
+  PL_close_foreign_frame(fid);
+
+  return false;
+}
+
+
+/** set_blob_gc_margin(+Type, +Margin) is det.
+ *
+ * Ask for atom garbage collection once Margin units of Type have become
+ * candidates.  A blob contributes the length it was created with, so the
+ * unit is bytes for text and for types that report what they retain, and
+ * instances for types that pass 1.  0 (the default) leaves Type to the
+ * global agc_margin only.
+ */
+
+static
+PRED_IMPL("set_blob_gc_margin", 2, set_blob_gc_margin, 0)
+{ PRED_LD
+  PL_blob_t *type;
+  size_t margin;
+
+  if ( (type=blob_type_from_name(A1)) &&
+       PL_get_size_ex(A2, &margin) )
+  { type->gc_margin = margin;
+    return true;
+  }
+
+  return false;
+}
+
+
 BeginPredDefs(atom)
+  PRED_DEF("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("set_blob_gc_margin", 2, set_blob_gc_margin, 0)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   PRED_DEF("blob", 2, blob, 0)

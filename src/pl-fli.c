@@ -4196,7 +4196,8 @@ PL_free_blob(atom_t a)
 
   if ( ison(type, PL_BLOB_NOCOPY) && type->release && x->name )
   { if ( (*type->release)(a) )
-    { x->length = 0;
+    { PL_blob_gc_released(x);		/* the resource is gone: stop */
+      x->length = 0;			/* counting it towards the margin */
       x->name = NULL;
       return true;
     }

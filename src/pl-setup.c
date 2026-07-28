@@ -816,10 +816,7 @@ agc_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( GD->atoms.margin != 0 &&		/* as considerAGC(): the candidates, */
-       GD->atoms.unregistered >=	/* not the total atom population */
-       GD->atoms.non_garbage + GD->atoms.margin &&
-       !gc_status.blocked )
+  if ( AGC_wanted() && !gc_status.blocked )
     pl_garbage_collect_atoms();
 }
 
