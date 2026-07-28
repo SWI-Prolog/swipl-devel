@@ -781,7 +781,9 @@ typedef struct PL_blob_t
 					/* private */
   size_t		unregistered;	/* Units with no registrations */
   size_t		non_garbage;	/* Units that survived the last AGC */
-  void *		reserved[5];	/* for future extension */
+  size_t		live;		/* # blobs of this type */
+  size_t		space;		/* Units held by them */
+  void *		reserved[3];	/* for future extension */
   int			(*write_ex)(atom_t a, void *context);
   bool			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */

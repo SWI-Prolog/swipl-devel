@@ -1301,7 +1301,7 @@ alive: SWI-Prolog places no limit on the length of an atom, and a blob
 costs one atom whatever it references.  Applications using extremely
 large atoms may wish to call garbage_collect_atoms/0 explicitly or lower
 the margin.  A blob type can instead declare a budget measured in what
-its blobs retain; see set_blob_gc_margin/2 and \secref{blobgc}.
+its blobs retain; see blob_type_property/2 and \secref{blobgc}.
 
     \prologflagitem{allow_dot_in_atom}{bool}{rw}
 If \const{true} (default \const{false}), dots may be embedded into atoms

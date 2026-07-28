@@ -229,9 +229,43 @@ for them.
    reserved[8].  The struct must not have changed size: extensions define
    their type statically and are not recompiled.
 */
-static_assert(sizeof(((PL_blob_t*)0)->reserved) + 3*sizeof(size_t) ==
+static_assert(sizeof(((PL_blob_t*)0)->reserved) + 5*sizeof(size_t) ==
 	      8*sizeof(void*),
 	      "PL_blob_t layout changed; this breaks the foreign ABI");
+
+/* Subtract, without letting the counter wrap.  The length of a blob can
+   change under us: PL_free_blob() sets it to zero.
+*/
+
+static inline void
+sub_size(size_t *cnt, size_t units)
+{ size_t old, new;
+
+  do
+  { old = *cnt;
+    new = old > units ? old-units : 0;
+  } while( !COMPARE_AND_SWAP_SIZE(cnt, old, new) );
+}
+
+
+/* How many blobs of this type exist and how much they hold.  Tracked for
+   every type: answering this from current_blob/2 costs a scan of the whole
+   atom array.
+*/
+
+static inline void
+add_type_live(Atom a)
+{ ATOMIC_INC(&a->type->live);
+  ATOMIC_ADD(&a->type->space, a->length);
+}
+
+
+static inline void
+del_type_live(Atom a)
+{ ATOMIC_DEC(&a->type->live);
+  sub_size(&a->type->space, a->length);
+}
+
 
 static inline void
 add_type_units(Atom a)
@@ -251,14 +285,7 @@ del_type_units(Atom a)
 { PL_blob_t *type = a->type;
 
   if ( type->gc_margin )
-  { size_t units = a->length;
-    size_t old, new;
-
-    do
-    { old = type->unregistered;
-      new = old > units ? old-units : 0;
-    } while( !COMPARE_AND_SWAP_SIZE(&type->unregistered, old, new) );
-  }
+    sub_size(&type->unregistered, a->length);
 }
 
 
@@ -270,6 +297,7 @@ void
 PL_blob_gc_released(Atom a)
 { if ( ATOM_REF_COUNT(a->references) == 0 )
     del_type_units(a);
+  sub_size(&a->type->space, a->length);
 }
 
 
@@ -951,6 +979,7 @@ redo:
   release_atom_table();
   release_atom_bucket();
 
+  add_type_live(a);
   if ( ATOMIC_INC(&GD->statistics.atoms) % 128 == 0 )
     considerAGC();
 
@@ -1187,6 +1216,8 @@ invalidateAtom(Atom a, unsigned int ref)
       }
     }
   }
+
+  del_type_live(a);
 
   if ( isoff(a->type, PL_BLOB_NOCOPY) )
   { size_t slen = a->length + a->type->padding;
@@ -2656,7 +2687,7 @@ atom_space(void)
 		 *******************************/
 
 		 /*******************************
-		 *      PER TYPE AGC BUDGET	*
+		 *      BLOB TYPE PROPERTIES	*
 		 *******************************/
 
 static PL_blob_t *
@@ -2679,32 +2710,74 @@ blob_type_from_name(term_t t)
 }
 
 
-/** blob_gc_margin(?Type, -Margin, -Unregistered) is nondet.
+/* The properties of a blob type, in enumeration order.  Absent flags are
+   skipped: unify_blob_property() fails for them without binding anything.
+*/
+
+#define BT_NPROPS 11
+
+static bool
+unify_blob_property(term_t prop, const PL_blob_t *type, int i)
+{ GET_LD
+  atom_t name;
+  int64_t value;
+
+  switch(i)
+  { case 0: return ison(type, PL_BLOB_UNIQUE) && PL_unify_atom(prop, ATOM_unique);
+    case 1: return ison(type, PL_BLOB_TEXT)   && PL_unify_atom(prop, ATOM_text);
+    case 2: return ison(type, PL_BLOB_NOCOPY) && PL_unify_atom(prop, ATOM_nocopy);
+    case 3: return ison(type, PL_BLOB_WCHAR)  && PL_unify_atom(prop, ATOM_wchar);
+    case 4: name = ATOM_rank;	      value = type->rank;	  break;
+    case 5: name = ATOM_padding;      value = type->padding;	  break;
+    case 6: name = ATOM_gc_margin;    value = type->gc_margin;	  break;
+    case 7: name = ATOM_unregistered; value = type->unregistered; break;
+    case 8: name = ATOM_non_garbage;  value = type->non_garbage;  break;
+    case 9: name = ATOM_live;	      value = type->live;	  break;
+    case 10:name = ATOM_space;	      value = type->space;	  break;
+    default:
+      assert(0);
+      return false;
+  }
+
+  return PL_unify_term(prop,
+		       PL_FUNCTOR, PL_new_functor(name, 1),
+		         PL_INT64, value);
+}
+
+
+/** blob_type_property(?Type, ?Property) is nondet.
  *
- * Margin is the number of units of Type that may become candidates for
- * atom garbage collection before one is requested.  Unregistered is how
- * much is currently waiting.  See set_blob_gc_margin/2.
+ * True when the registered blob type Type has Property.  See the manual
+ * for the properties; gc_margin(Units) is the only one that can be set,
+ * using set_blob_type/2.
  */
 
 static
-PRED_IMPL("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("blob_type_property", 2, blob_type_property, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   PL_blob_t *type;
-
+  size_t state;
   fid_t fid;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      if ( !PL_is_variable(A1) )
-      { if ( (type=blob_type_from_name(A1)) )
-	  return ( PL_unify_int64(A2, type->gc_margin) &&
-		   PL_unify_int64(A3, type->unregistered) );
+      if ( !PL_is_variable(A1) && !PL_is_variable(A2) )
+      {	/* Both given: answer once rather than leaving a choice point on
+	   the remaining properties, which is what callers ask for. */
+	int i;
+
+	if ( !(type=blob_type_from_name(A1)) )
+	  return false;
+	for(i=0; i<BT_NPROPS; i++)
+	{ if ( unify_blob_property(A2, type, i) )
+	    return true;
+	}
 	return false;
       }
-      type = GD->atoms.types;
+      state = 0;
       break;
     case FRG_REDO:
-      type = CTX_PTR;
+      state = (size_t)CTX_INT;
       break;
     default:
       return true;
@@ -2713,14 +2786,19 @@ PRED_IMPL("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
   if ( !(fid=PL_open_foreign_frame()) )
     return false;
 
-  for(; type; type = type->next)
-  { if ( PL_unify_atom(A1, type->atom_name) &&
-	 PL_unify_int64(A2, type->gc_margin) &&
-	 PL_unify_int64(A3, type->unregistered) )
+  for( ; ; state++ )
+  { size_t ti = state/BT_NPROPS;
+    size_t n;
+
+    for(type = GD->atoms.types, n = 0; type && n < ti; type = type->next)
+      n++;
+    if ( !type )
+      break;
+
+    if ( PL_unify_atom(A1, type->atom_name) &&
+	 unify_blob_property(A2, type, (int)(state%BT_NPROPS)) )
     { PL_close_foreign_frame(fid);
-      if ( type->next )
-	ForeignRedoPtr(type->next);
-      return true;
+      ForeignRedoInt(state+1);
     }
     PL_rewind_foreign_frame(fid);
   }
@@ -2730,34 +2808,47 @@ PRED_IMPL("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
 }
 
 
-/** set_blob_gc_margin(+Type, +Margin) is det.
+/** set_blob_type(+Type, +Property) is det.
  *
- * Ask for atom garbage collection once Margin units of Type have become
- * candidates.  A blob contributes the length it was created with, so the
- * unit is bytes for text and for types that report what they retain, and
- * instances for types that pass 1.  0 (the default) leaves Type to the
- * global agc_margin only.
+ * Set a property of the registered blob type Type.  Only gc_margin(Units)
+ * can be set; see the manual.
  */
 
 static
-PRED_IMPL("set_blob_gc_margin", 2, set_blob_gc_margin, 0)
+PRED_IMPL("set_blob_type", 2, set_blob_type, 0)
 { PRED_LD
   PL_blob_t *type;
-  size_t margin;
+  atom_t pname;
+  size_t arity;
+  term_t arg;
 
-  if ( (type=blob_type_from_name(A1)) &&
-       PL_get_size_ex(A2, &margin) )
-  { type->gc_margin = margin;
+  if ( !(type=blob_type_from_name(A1)) )
+    return false;
+
+  if ( !PL_get_name_arity(A2, &pname, &arity) || arity != 1 )
+    return PL_type_error("blob_type_property", A2);
+
+  if ( !(arg=PL_new_term_ref()) )
+    return false;
+  _PL_get_arg(1, A2, arg);
+
+  if ( pname == ATOM_gc_margin )
+  { size_t margin;
+
+    if ( !PL_get_size_ex(arg, &margin) )
+      return false;
+    type->gc_margin = margin;
+
     return true;
   }
 
-  return false;
+  return PL_domain_error("blob_type_property", A2);
 }
 
 
 BeginPredDefs(atom)
-  PRED_DEF("$blob_gc_margin", 3, blob_gc_margin, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("set_blob_gc_margin", 2, set_blob_gc_margin, 0)
+  PRED_DEF("blob_type_property", 2, blob_type_property, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("set_blob_type", 2, set_blob_type, 0)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   PRED_DEF("blob", 2, blob, 0)

@@ -12191,16 +12191,54 @@ normal garbage collection. In this case garbage_collect_atoms/0 returns
 immediately. Note that there is no guarantee it will \emph{ever}
 happen, as there may always be threads performing garbage collection.
 
-    \predicate{set_blob_gc_margin}{2}{+Type, +Margin}
-Request atom garbage collection once \arg{Margin} units of blob type
-\arg{Type} have become candidates for it.  A blob counts with the length
-it was created with, so the unit is bytes for text and for types that
-report what they retain, and instances for types that report \exam{1}.
-\arg{Margin} \exam{0}, the default for every type, leaves \arg{Type} to
-\prologflag{agc_margin}, which counts atoms regardless of what they keep
-alive.  Setting \prologflag{agc_margin} to zero disables atom garbage
-collection and no type budget overrides that.  See \secref{blobgc} and
-current_blob/2.
+    \predicate{blob_type_property}{2}{?Type, ?Property}
+True when the registered blob type \arg{Type} has \arg{Property}.  With
+\arg{Type} unbound this enumerates the registered types; note that a type
+is registered on first use, so a type whose library has not yet created a
+blob is not enumerated.  Defined properties are below; only
+\term{gc_margin}{Units} can be set, using set_blob_type/2.
+
+    \begin{description}
+        \termitem{unique}{}
+        \termitem{text}{}
+        \termitem{nocopy}{}
+        \termitem{wchar}{}
+The \const{PL_BLOB_*} flags of the type, present only if set.  See
+\secref{blobtype}.
+        \termitem{rank}{Integer}
+Position of the type in the standard order of terms.  The order between
+types is assigned as they are registered and is thus not stable over runs.
+        \termitem{padding}{Bytes}
+Zero bytes added after the data of a copied blob.
+        \termitem{gc_margin}{Units}
+Request atom garbage collection once this many units of \arg{Type} have
+become candidates for it.  A blob counts with the length it was created
+with, so the unit is bytes for text and for types that report what they
+retain, and instances for types that report \exam{1}.  \exam{0}, the
+default for every type, leaves \arg{Type} to \prologflag{agc_margin},
+which counts atoms regardless of what they keep alive.  Setting
+\prologflag{agc_margin} to zero disables atom garbage collection and no
+type budget overrides that.  See \secref{blobgc}.
+        \termitem{unregistered}{Units}
+How much of \arg{Type} is currently a candidate for collection, in the
+same units.  Compare against \term{gc_margin}{Units} to see how far
+behind collection is.
+        \termitem{non_garbage}{Units}
+How much the last collection found to be live and therefore discounted.
+The next request needs \term{gc_margin}{Units} on top of this, which is
+what stops a type whose blobs are live from asking repeatedly.
+        \termitem{live}{Count}
+        \termitem{space}{Units}
+The number of blobs of this type that exist and what they hold.  Unlike
+counting current_blob/2 these are maintained as blobs come and go and do
+not scan the atom table.
+    \end{description}
+
+    \predicate{set_blob_type}{2}{+Type, +Property}
+Set \arg{Property} of the registered blob type \arg{Type}.  Only
+\term{gc_margin}{Units} can be set; see blob_type_property/2.  A type
+normally declares its budget in C when it defines its \ctype{PL_blob_t}
+(see \secref{blobgc}); this predicate tunes a running system.
 
     \predicate{garbage_collect_clauses}{0}{}
 Reclaim retracted clauses. During normal operation, retracting a clause

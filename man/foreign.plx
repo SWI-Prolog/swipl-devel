@@ -3287,7 +3287,9 @@ should offer an explicit predicate to dispose of it rather than relying
 on the collector; see the release() callback in \secref{blobtype} and
 PL_free_blob().
 
-set_blob_gc_margin/2 changes the budget of a registered type at runtime.
+blob_type_property/2 reports the budget of a registered type, together
+with how far behind collection is for it, and set_blob_type/2 changes the
+budget at runtime.
 
 \subsubsection{Considerations for non-C code}
 \label{sec:blob-non-c}

@@ -42,7 +42,7 @@
 agc_margin counts atoms, which says nothing about what they keep alive: an
 atom of a hundred kilobytes costs the same as one of five.  A type may
 declare a gc_margin, against which a blob counts the length it was created
-with.  See set_blob_gc_margin/2.
+with.  See blob_type_property/2 and set_blob_type/2.
 
 The `text` type is used throughout because its length is the size of the
 text, so the budget can be exercised from Prolog without a foreign type.
@@ -75,35 +75,59 @@ make_atoms(Count, Bytes) :-
 
 setup_agc(state(Thread, Margin)) :-
     current_prolog_flag(gc_thread, Thread),
-    '$blob_gc_margin'(text, Margin, _),
+    blob_type_property(text, gc_margin(Margin)),
     set_prolog_flag(gc_thread, false),
     garbage_collect_atoms.
 
 cleanup_agc(state(Thread, Margin)) :-
-    set_blob_gc_margin(text, Margin),
+    set_blob_type(text, gc_margin(Margin)),
     set_prolog_flag(gc_thread, Thread).
 
 
 :- begin_tests(agc_margin_api).
 
 test(default_is_zero) :-
-    forall('$blob_gc_margin'(_, Margin, _),
+    forall(blob_type_property(_, gc_margin(Margin)),
            assertion(Margin == 0)).
 
-test(round_trip, [cleanup(set_blob_gc_margin(text, 0))]) :-
-    set_blob_gc_margin(text, 4 000 000),
-    '$blob_gc_margin'(text, Margin, _),
+test(round_trip, [cleanup(set_blob_type(text, gc_margin(0)))]) :-
+    set_blob_type(text, gc_margin(4 000 000)),
+    blob_type_property(text, gc_margin(Margin)),
     assertion(Margin =:= 4 000 000).
 
 test(enumerates_every_type) :-
-    findall(T, '$blob_gc_margin'(T, _, _), Types),
+    findall(T, blob_type_property(T, gc_margin(_)), Types),
     assertion(memberchk(text, Types)),
     assertion(memberchk(clause, Types)),
     sort(Types, Sorted),
-    assertion(same_length(Types, Sorted)).      % no duplicates
+    assertion(same_length(Types, Sorted)).      % once each
+
+test(flags_are_bare_atoms) :-
+    findall(P, blob_type_property(text, P), Props),
+    assertion(memberchk(unique, Props)),
+    assertion(memberchk(text, Props)),
+    assertion(\+ memberchk(nocopy, Props)).     % absent flags are skipped
+
+%  live/1 and space/1 are maintained as blobs come and go, so they answer
+%  without the full scan of the atom array current_blob/2 needs.
+
+test(live_agrees_with_a_scan) :-
+    aggregate_all(count, current_blob(_, clause), Scanned),
+    blob_type_property(clause, live(Counted)),
+    assertion(Counted =:= Scanned).
+
+test(space_is_the_text_size) :-
+    blob_type_property(text, space(Before)),
+    atom_of(100 000, space_probe, A),
+    atom_length(A, _),
+    blob_type_property(text, space(After)),
+    assertion(After - Before >= 100 000).
 
 test(unknown_type, [throws(error(existence_error(blob_type, _), _))]) :-
-    set_blob_gc_margin(no_such_blob_type, 10).
+    set_blob_type(no_such_blob_type, gc_margin(10)).
+
+test(unknown_property, [throws(error(domain_error(blob_type_property, _), _))]) :-
+    set_blob_type(text, no_such_property(10)).
 
 :- end_tests(agc_margin_api).
 
@@ -115,7 +139,7 @@ test(unknown_type, [throws(error(existence_error(blob_type, _), _))]) :-
 
 test(count_margin_ignores_size,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
-    set_blob_gc_margin(text, 0),
+    set_blob_type(text, gc_margin(0)),
     statistics(agc, C0),
     make_atoms(200, 100 000),
     statistics(agc, C1),
@@ -123,12 +147,12 @@ test(count_margin_ignores_size,
 
 test(byte_margin_collects,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
-    set_blob_gc_margin(text, 4 000 000),
+    set_blob_type(text, gc_margin(4 000 000)),
     statistics(agc, C0),
     make_atoms(200, 100 000),
     statistics(agc, C1),
     assertion(C1 > C0),
-    '$blob_gc_margin'(text, _, Unregistered),
+    blob_type_property(text, unregistered(Unregistered)),
     assertion(Unregistered < 4 000 000).        % kept near the budget
 
 %  A type whose blobs are live must stop asking rather than spin: the
@@ -138,7 +162,7 @@ test(byte_margin_collects,
 
 test(live_atoms_do_not_thrash,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
-    set_blob_gc_margin(text, 4 000 000),
+    set_blob_type(text, gc_margin(4 000 000)),
     statistics(agc, C0),
     keep_atoms(200, 100 000, Atoms),
     statistics(agc, C1),
@@ -161,7 +185,7 @@ test(global_disable_wins,
     setup_call_cleanup(
         ( current_prolog_flag(agc_margin, Old),
           set_prolog_flag(agc_margin, 0) ),
-        ( set_blob_gc_margin(text, 1000),
+        ( set_blob_type(text, gc_margin(1000)),
           statistics(agc, C0),
           make_atoms(100, 100 000),
           statistics(agc, C1),
