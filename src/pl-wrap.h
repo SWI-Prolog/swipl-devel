@@ -49,6 +49,7 @@ typedef struct closure
 #define LDFUNC_DECLARATIONS
 
 GLOBAL PL_blob_t _PL_closure_blob;
+void	  initWrap(void);
 void	  resetWrappedSupervisor(Definition def, bool do_linger);
 void	  unregisterWrappedSupervisor(Code codes);
 Code	  skipWrapperPrefix(Code PC);

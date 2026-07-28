@@ -48,6 +48,8 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-zip.h"
+#include "pl-wrap.h"
 #include "pl-event.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
@@ -145,6 +147,9 @@ setupProlog(void)
   initRecords();
   DEBUG(1, Sdprintf("Tries ...\n"));
   initTries();
+  initZip();				/* register the remaining blob types */
+  initUndo();				/* so that they exist before the */
+  initWrap();				/* first one is created */
   DEBUG(1, Sdprintf("Tabling ...\n"));
   initTabling();
   DEBUG(1, Sdprintf("Flags ...\n"));

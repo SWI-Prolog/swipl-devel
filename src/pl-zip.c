@@ -1475,6 +1475,12 @@ zipper_file(const zipper *z)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+void
+initZip(void)
+{ PL_register_blob_type(&zipper_blob);
+}
+
+
 BeginPredDefs(zip)
   PRED_DEF("zip_open_stream",		  3, zip_open_stream,		  0)
   PRED_DEF("zip_clone",			  2, zip_clone,			  0)

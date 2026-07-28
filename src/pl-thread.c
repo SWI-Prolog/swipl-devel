@@ -5527,6 +5527,8 @@ static void
 initMessageQueues(void)
 { message_queue_blob.atom_name = ATOM_message_queue;
   PL_register_blob_type(&message_queue_blob);
+  thread_blob.atom_name = ATOM_thread;	/* PL_new_atom() is not safe here */
+  PL_register_blob_type(&thread_blob);
 }
 
 static bool

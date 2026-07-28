@@ -937,6 +937,8 @@ initLocale(void)
 { GET_LD
   PL_locale *def;
 
+  PL_register_blob_type(&locale_blob);
+
   /* new_locale(NULL) queries the environment's LC_NUMERIC conventions
    * via read_lconv() without touching the process locale, so an
    * embedder's atof()/printf("%f") remain deterministic (issue #1093).

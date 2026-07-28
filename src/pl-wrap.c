@@ -537,6 +537,12 @@ PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
 
 #define META PL_FA_TRANSPARENT
 
+void
+initWrap(void)
+{ PL_register_blob_type(&_PL_closure_blob);
+}
+
+
 BeginPredDefs(wrap)
   PRED_DEF("$c_wrap_predicate",	      5, c_wrap_predicate,       META)
   PRED_DEF("unwrap_predicate",        2, uwrap_predicate,        META)

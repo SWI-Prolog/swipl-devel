@@ -245,6 +245,12 @@ run_undo_hooks(DECL_LD)
 }
 
 
+void
+initUndo(void)
+{ PL_register_blob_type(&undo_blob);
+}
+
+
 BeginPredDefs(undo)
   PRED_DEF("$undo",           1, undo,           0)
 EndPredDefs
