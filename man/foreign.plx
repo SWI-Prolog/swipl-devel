@@ -3131,9 +3131,18 @@ intended for the uninstall() hook of foreign modules, avoiding further
 references to the module.
 
     \cfunction{int}{PL_register_blob_type}{PL_blob_t *type}
-This function does not need to be called explicitly. It is called if
-needed when a blob is created by PL_unify_blob(), PL_put_blob(), or
-PL_new_blob().
+Register \arg{type}, making it known to Prolog.  Registering twice is
+harmless, and a type is registered if needed when a blob of it is created
+by PL_unify_blob(), PL_put_blob() or PL_new_blob().
+
+Call it from the \cfuncref{install} function of your foreign library
+nonetheless, so that the type exists as soon as the library is loaded.
+Until it is registered blob_type_property/2 cannot report the type and
+set_blob_type/2 cannot give it a collection budget (see \secref{blobgc}),
+which is of little use once the blobs it should bound already exist.  It
+also settles the type's place in the standard order of terms, which is
+assigned on registration and otherwise depends on which type happens to
+create a blob first.
 \end{description}
 
 
