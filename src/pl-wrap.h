@@ -46,9 +46,10 @@ typedef struct closure
 #define	get_closure_predicate(t, def)	LDFUNC(get_closure_predicate, t, def)
 #endif /*USE_LD_MACROS*/
 
+extern PL_blob_t _PL_closure_blob;	/* defined in pl-wrap.c */
+
 #define LDFUNC_DECLARATIONS
 
-GLOBAL PL_blob_t _PL_closure_blob;
 void	  initWrap(void);
 void	  resetWrappedSupervisor(Definition def, bool do_linger);
 void	  unregisterWrappedSupervisor(Code codes);
