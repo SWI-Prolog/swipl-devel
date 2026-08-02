@@ -47,7 +47,8 @@ of these these are in pre-unit test format in the main test.pl
 
 test_io :-
 	run_tests([ io,
-		    stream_pair
+		    stream_pair,
+		    line_position
 		  ]).
 
 :- begin_tests(io, [sto(rational_trees)]).
@@ -119,3 +120,36 @@ test(close, true) :-
 	assertion(var(Out)).
 
 :- end_tests(stream_pair).
+
+:- begin_tests(line_position).
+
+%!	lpos(:Goal, -Pos) is det.
+%
+%	Column reached after running Goal on a fresh output stream.
+
+:- meta_predicate lpos(0, -).
+
+lpos(Goal, Pos) :-
+	with_output_to(string(_),
+		       (   Goal,
+			   line_position(current_output, Pos)
+		       )).
+
+test(plain, Pos == 3) :-
+	lpos(write(abc), Pos).
+test(tab, Pos == 8) :-
+	lpos(write('a\t'), Pos).
+test(tab_on_stop, Pos == 16) :-
+	lpos(write('12345678\t'), Pos).
+test(backspace, Pos == 1) :-
+	lpos(write('ab\b'), Pos).
+test(newline, Pos == 0) :-
+	lpos(write('abc\n'), Pos).
+test(control, Pos == 0) :-			% BEL takes no columns
+	lpos(write('\a'), Pos).
+test(wide, Pos == 2) :-				% CJK ideograph
+	lpos(write('\u4E2D'), Pos).
+test(combining, Pos == 1) :-			% e + combining acute
+	lpos(write('e\u0301'), Pos).
+
+:- end_tests(line_position).

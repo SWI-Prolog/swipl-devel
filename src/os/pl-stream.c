@@ -732,9 +732,15 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
+/* Supdatepos() maintains the *display* column of the position: `linepos`
+ * counts terminal columns, not characters.  `charno` and `byteno` are the
+ * faithful counters.  Non-printable characters therefore take 0 columns
+ * and a wide character takes 2.
+ */
+
 bool
 Supdatepos(IOPOS *p, int c)
-{ if ( likely(c > '\r' && c < 0x300) )	/* speedup the 99% case a bit */
+{ if ( likely(c >= ' ' && c < 0x7f) )	/* speedup the 99% case a bit */
   { p->linepos++;
     return false;
   }
@@ -747,16 +753,19 @@ Supdatepos(IOPOS *p, int c)
     case '\r':
       p->linepos = 0;
       return true;			/* linepos is reliable again */
-      break;
     case '\b':
       if ( p->linepos > 0 )
 	p->linepos--;
       break;
     case '\t':
-      p->linepos |= 7;
-      /*FALLTHROUGH*/
+      p->linepos = (p->linepos|7) + 1;	/* next multiple of 8 */
+      break;
     default:
-      p->linepos += PL_wcwidth(c);
+    { int w = PL_wcwidth(c);		/* -1 if not printable */
+
+      if ( w > 0 )
+	p->linepos += w;
+    }
   }
 
   return false;
