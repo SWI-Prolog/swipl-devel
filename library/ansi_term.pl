@@ -96,9 +96,6 @@ init_color_term_flag :-
 :- initialization
     init_color_term_flag.
 
-:- meta_predicate
-    keep_line_pos(+, 0).
-
 :- multifile
     user:message_property/2.
 
@@ -156,9 +153,9 @@ ansi_format(Stream, Class, Format, Args) :-
     atomic_list_concat(Codes, ;, Code),
     with_output_to(
         Stream,
-        (   keep_line_pos(current_output, format('\e[~wm', [Code])),
+        (   format('\e[~wm', [Code]),
             format(Format, Args),
-            keep_line_pos(current_output, format('\e[0m'))
+            format('\e[0m')
         )
     ),
     flush_output.
@@ -367,7 +364,7 @@ prolog:message_line_element(S, ansi(Class, Fmt, Args, Ctx)) :-
     ansi_format(S, Attr, Fmt, Args),
     (   nonvar(Ctx),
         Ctx = ansi(_, RI-RA)
-    ->  keep_line_pos(S, format(S, RI, RA))
+    ->  format(S, RI, RA)
     ;   true
     ).
 prolog:message_line_element(S, url(Location)) :-
@@ -384,12 +381,12 @@ prolog:message_line_element(S, begin(Level, Ctx)) :-
         atomic_list_concat(Codes, ;, Code)
     ;   sgr_code(Attr, Code)
     ),
-    keep_line_pos(S, format(S, '\e[~wm', [Code])),
+    format(S, '\e[~wm', [Code]),
     Ctx = ansi('\e[0m', '\e[0m\e[~wm'-[Code]).
 prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
     Ctx = ansi(Reset, _),
-    keep_line_pos(S, write(S, Reset)).
+    write(S, Reset).
 
 sgr_codes([], []).
 sgr_codes([H0|T0], [H|T]) :-
@@ -444,11 +441,9 @@ ansi_hyperlink(Stream, Location, Label),
     true.
 ansi_hyperlink(Stream, Location, Label) =>
     (   location_url(Location, URL)
-    ->  keep_line_pos(Stream,
-                      format(Stream, '\e]8;;~w\e\\', [URL])),
+    ->  format(Stream, '\e]8;;~w\e\\', [URL]),
         format(Stream, '~w', [Label]),
-        keep_line_pos(Stream,
-                      format(Stream, '\e]8;;\e\\', []))
+        format(Stream, '\e]8;;\e\\', [])
     ;   format(Stream, '~w', [Label])
     ).
 
@@ -530,22 +525,6 @@ reserved(C) :- C =< 0'\s.
 reserved(C) :- C >= 127.
 reserved(0'#).
 
-%!  keep_line_pos(+Stream, :Goal)
-%
-%   Run goal without changing the position   information on Stream. This
-%   is used to avoid that the exchange   of  ANSI sequences modifies the
-%   notion of, notably, the `line_pos` notion.
-
-keep_line_pos(S, G) :-
-    stream_property(S, position(Pos)),
-    !,
-    setup_call_cleanup(
-        stream_position_data(line_position, Pos, LPos),
-        G,
-        set_stream(S, line_position(LPos))).
-keep_line_pos(_, G) :-
-    call(G).
-
 %!  ansi_get_color(+Which, -RGB) is semidet.
 %
 %   Obtain the RGB color for an ANSI  color parameter. Which is either a
@@ -568,8 +547,7 @@ ansi_get_color(Which0, RGB) :-
     ;   must_be(between(0,15),Which0)
     ->  Which = Which0
     ),
-    catch(keep_line_pos(user_output,
-                        ansi_get_color_(Which, RGB)),
+    catch(ansi_get_color_(Which, RGB),
           error(timeout_error(_,_), _),
           no_xterm).
 

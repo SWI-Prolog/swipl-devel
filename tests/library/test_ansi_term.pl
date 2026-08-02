@@ -94,4 +94,25 @@ test(single_nonlist_argument, O = "\e[1m(foo)\e[0m") :-
 test(multi_arguments, O = "\e[1mfoo bar\e[0m") :-
     captured_tty_output(ansi_format([bold], '~w~4|~w', [foo, bar]), O).
 
+% Hyperlinks are OSC rather than SGR sequences and must not move the
+% column either.
+
+test(hyperlink_position, O == "\e]8;;http://x\e\\ab\e]8;;\e\\  y") :-
+    setup_call_cleanup(
+        push_prolog_flag(hyperlink_term, true),
+        captured_tty_output(
+            (   ansi_hyperlink(current_output, 'http://x', ab),
+                format('~t~4|y')
+            ),
+            O),
+        pop_prolog_flag(hyperlink_term)).
+
+% The column reported by line_position/2 ignores the escape sequences.
+
+test(line_position, Pos == 2) :-
+    captured_tty_output(
+        (   ansi_format([bold], 'ab', []),
+            line_position(current_output, Pos)
+        ), _).
+
 :- end_tests(ansi_term).
