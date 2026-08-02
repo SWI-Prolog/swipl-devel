@@ -6985,9 +6985,10 @@ appropriate for the use-case.
 True when \arg{Width} and \arg{Height} describe the maximum line width
 and \arg{Height} the number of lines for printing \arg{Term} using
 \arg{Options} using \term{write_term}{Term, Options}. The computed width
-respects Unicode \jargon{coombining} and \jargon{double width}
-characters. In addition to qvalid options for write_term/2, it processes
-the options:
+is a count of display columns, as in line_position/2: it respects Unicode
+\jargon{combining} and \jargon{double width} characters and does not
+count ANSI escape sequences. In addition to qvalid options for
+write_term/2, it processes the options:
 
     \begin{description}
 	\termitem{max_width}{+MaxWidth}
