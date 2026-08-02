@@ -2249,6 +2249,15 @@ SetTtyState(int fd, struct termios *tio)
   if ( tcsetattr(fd, TCSANOW, tio) != 0 )
   { static bool MTOK_warned;			/* MT-OK */
 
+    /* The terminal can disappear while we hold it: closing the master
+       end of a pty makes every operation on the slave fail with EIO.
+       Restoring the state of a terminal that is gone is not worth a
+       warning -- there is nothing left to restore.
+    */
+    if ( errno == EIO || errno == EBADF || errno == ENXIO ||
+	 errno == ENOTTY )
+      return false;
+
     if ( !MTOK_warned )
     { MTOK_warned = true;
       return warning("Failed to set terminal: %s", OsError());
