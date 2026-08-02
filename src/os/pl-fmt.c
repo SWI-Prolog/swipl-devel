@@ -41,6 +41,7 @@ source should also use format() to produce error messages, etc.
 
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-stream.h"
 #include "../pl-arith.h"
 #include "../pl-proc.h"
 #include "../pl-fli.h"
@@ -68,7 +69,7 @@ struct rubber
 
 typedef struct
 { IOSTREAM *out;			/* our output stream */
-  int column;				/* current column */
+  IOPOS pos;				/* position; pos.linepos is the column */
   int tab_stop;				/* Last tab stop */
   tmp_buffer buffer;			/* bin for characters with tabs */
   size_t buffered;			/* characters in buffer */
@@ -100,26 +101,18 @@ static PL_locale prolog_locale =
 };
 
 
+/* The column is maintained by the stream layer's Supdatepos(), so that
+ * format/2 column stops agree with line_position/2 on tabs, wide
+ * characters and ANSI escape sequences.
+ */
+
+#define COLUMN(state) ((state)->pos.linepos)
+
 static inline void
 update_column(format_state *state, int c)
-{ if ( likely(c >= ' ') )
-  { state->column += PL_wcwidth(c);
-  } else
-  { switch(c)
-    { case '\n':
-	state->column = 0;
-	state->tab_stop = 0;
-	break;
-      case '\t':
-	state->column = (state->column+1)|0x7;
-      case '\b':
-	if ( likely(state->column>0) )
-	  state->column--;
-	break;
-      default:
-	state->column++;
-    }
-  }
+{ Supdatepos(&state->pos, c);
+  if ( c == '\n' )
+    state->tab_stop = 0;
 }
 
 
@@ -445,7 +438,7 @@ prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
 
   if ( !fstate->pending_rubber &&
        fd->position &&
-       fd->position->linepos == fstate->column )
+       fd->position->linepos == COLUMN(fstate) )
   { state->old_stream = Scurout;
 
     Scurout = fd;
@@ -464,19 +457,19 @@ prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
 
 static bool
 end_sub_format(sub_state *state, bool rc)
-{ int lp = Scurout->position->linepos;
+{ IOPOS *sub = Scurout->position;
+  int lp = sub->linepos;
 
   if ( state->old_stream )
-  { Scurout = state->old_stream;
-
-    if ( rc )
-      state->fstate->column = lp;
+  { if ( rc )
+      state->fstate->pos = *sub;	/* also takes the escape state */
+    Scurout = state->old_stream;
   } else
   { toldString();
     if ( rc )
-    { int c0 = state->fstate->column;
+    { int c0 = COLUMN(state->fstate);
       rc = oututf8(state->fstate, state->str, state->bufsize);
-      state->fstate->column = c0 + lp;
+      COLUMN(state->fstate) = c0 + lp;
     }
     if ( state->str != state->buf )
       free(state->str);
@@ -525,9 +518,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
   state.buffered = 0;
 
   if ( fd->position )
-    state.column = fd->position->linepos;
+    state.pos = *fd->position;		/* also takes the escape state */
   else
-    state.column = 0;
+    memset(&state.pos, 0, sizeof(state.pos));
 
   while(here < fmt->length)
   { int c = get_chr_from_text(fmt, here);
@@ -912,7 +905,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  break;
 		}
 	      case 'N':			/* \n if not on newline */
-		if ( state.column != 0 )
+		if ( COLUMN(&state) != 0 )
 		{ rc = outchr(&state, '\n');
 		  if ( !rc )
 		    goto out;
@@ -937,14 +930,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  int nl_and_reindent;
 
 		  if ( arg == DEFAULT )
-		    arg = state.column;
+		    arg = COLUMN(&state);
 		  /*FALLTHROUGH*/
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
 		  stop = (c == '+' ? state.tab_stop + arg : arg);
 
-		  if ( stop < state.column && mod_colon )
+		  if ( stop < COLUMN(&state) && mod_colon )
 		    nl_and_reindent = state.pending_rubber ?
 						state.rub[state.pending_rubber-1].pad : ' ';
 		  else
@@ -957,7 +950,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  }
 		  distribute_rubber(state.rub,
 				    state.pending_rubber,
-				    stop - state.column);
+				    stop - COLUMN(&state));
 		  if ( !(rc=emit_rubber(&state)) )
 		    goto out;
 
@@ -974,12 +967,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		    distribute_rubber(state.rub,
 				      state.pending_rubber,
-				      stop - state.column);
+				      stop - COLUMN(&state));
 		    if ( !(rc=emit_rubber(&state)) )
 		      goto out;
 		  }
 
-		  state.column = state.tab_stop = stop;
+		  COLUMN(&state) = state.tab_stop = stop;
 		  here++;
 		  break;
 		}

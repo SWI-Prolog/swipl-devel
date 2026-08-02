@@ -96,4 +96,17 @@ test(onstring_1) :-
     string(S),
     atom_string('hello world', S).
 
+
+					% column stops count display columns
+test(column_plain, S == "ab        x") :-
+    format(string(S), 'ab~t~10|x', []).
+test(column_ansi, S == "\e[1mab\e[0m        x") :-
+    format(string(S), '\e[1mab\e[0m~t~10|x', []).
+test(column_ansi_arg, S == "\e[1mab\e[0m        x") :-
+    format(string(S), '~w~t~10|x', ['\e[1mab\e[0m']).
+test(column_tab, S == "ab\tc           x") :-
+    format(string(S), 'ab\tc~t~20|x', []).
+test(column_wide, S == "中中      x") :-
+    format(string(S), '~w~t~10|x', ['中中']).
+
 :- end_tests(format).
