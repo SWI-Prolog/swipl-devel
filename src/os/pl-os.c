@@ -2732,6 +2732,38 @@ argument to wait()
 
 #endif /*HAVE_SYS_WAIT_H*/
 
+/* Make the terminal on fd 0 our controlling terminal if it is one and
+ * it does not belong to our session yet.  Called in the child of
+ * System(), between the dup2()s and the exec.
+ *
+ * The streams a thread runs on need not be the terminal the process
+ * was started from.  An epilog window, for instance, gives its Prolog
+ * thread a pty of its own, and System() hands that pty to the child.
+ * Inheriting the fd is not enough there: with no session owning the
+ * pty it has no foreground process group, so resizing the window
+ * raises no SIGWINCH in the child and ^C sends it no SIGINT.
+ *
+ * An ordinary shell/1 keeps the terminal it already has: there fd 0 is
+ * this session's controlling terminal, so tcgetsid() reports our own
+ * session and we leave the child in our process group.
+ */
+
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>			/* TIOCSCTTY */
+#endif
+
+#if defined(HAVE_SETSID) && defined(HAVE_TCGETSID) && defined(TIOCSCTTY)
+#define O_ADOPT_CTTY 1
+
+static void
+adopt_ctty(void)
+{ if ( isatty(0) && tcgetsid(0) != getsid(0) )
+  { if ( setsid() != -1 )
+      ioctl(0, TIOCSCTTY, 0);
+  }
+}
+#endif
+
 static const char *
 prog_shell(void)
 { GET_LD
@@ -2783,6 +2815,9 @@ System(char *cmd)
 	   dup2(err, 2) < 0 )
 	Sdprintf("shell/1: dup of file descriptors failed\n");
     }
+#ifdef O_ADOPT_CTTY
+    adopt_ctty();
+#endif
 
     argv[0] = BaseName(shell, tmp);
     argv[1] = "-c";
