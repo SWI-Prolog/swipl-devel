@@ -2307,8 +2307,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
       return false;
 
     if ( s->position )
-      s->position->linepos = lpos;
-    else
+    { s->position->linepos = lpos;
+      Sresetesc(s->position);
+    } else
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_line_position, ATOM_stream, stream);
 
@@ -5597,6 +5598,7 @@ PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
   s->position->charno  = charno;
   s->position->lineno  = (int)lineno;
   s->position->linepos = (int)linepos;
+  Sresetesc(s->position);
 
   releaseStream(s);
 

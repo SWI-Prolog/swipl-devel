@@ -46,6 +46,7 @@ void		unallocStream(IOSTREAM *s);
 IOSTREAM       *Sacquire(IOSTREAM *s);
 int             Srelease(IOSTREAM *s);
 bool		Supdatepos(IOPOS *p, int c);
+void		Sresetesc(IOPOS *p);
 
 #ifndef _PL_INCLUDE_H
 #ifdef O_PLMT

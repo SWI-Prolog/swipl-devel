@@ -734,16 +734,104 @@ S__fillbuf(IOSTREAM *s)
 
 /* Supdatepos() maintains the *display* column of the position: `linepos`
  * counts terminal columns, not characters.  `charno` and `byteno` are the
- * faithful counters.  Non-printable characters therefore take 0 columns
- * and a wide character takes 2.
+ * faithful counters.  Non-printable characters therefore take 0 columns,
+ * a wide character takes 2 and an ANSI escape sequence takes none at all.
+ *
+ * The escape sequences recognised are
+ *
+ *   CSI	ESC [ <0x20..0x3f>* <0x40..0x7e>	e.g. ESC [ 1 m
+ *   OSC	ESC ] <any>* (BEL | ESC \)		e.g. hyperlinks
+ *   Other	ESC <0x20..0x2f>* <any>			e.g. ESC ( B
+ *
+ * The state lives in the low IOPOS_ESC_SHIFT bits of IOPOS.esc_state; the
+ * remaining bits count the characters consumed so far.  A control
+ * character that cannot appear in a sequence, or a run longer than
+ * IOPOS_ESC_MAX, aborts the sequence and the character is counted
+ * normally.  Without that a stray ESC would stop all column tracking.
  */
+
+#define ANSI_ESC	  0x1b		/* \e */
+#define ANSI_BEL	  0x07
+
+#define IOPOS_ESC_NONE	  0		/* not in a sequence */
+#define IOPOS_ESC_ESC	  1		/* seen ESC */
+#define IOPOS_ESC_CSI	  2		/* seen ESC [ */
+#define IOPOS_ESC_OSC	  3		/* seen ESC ] */
+#define IOPOS_ESC_OSC_ESC 4		/* seen ESC inside OSC; expect \ */
+#define IOPOS_ESC_SHIFT	  3
+#define IOPOS_ESC_MASK	  ((1<<IOPOS_ESC_SHIFT)-1)
+#define IOPOS_ESC_MAX	  256
+
+static bool
+Supdateesc(IOPOS *p, int c)
+{ int state = (int)(p->esc_state & IOPOS_ESC_MASK);
+  intptr_t len;
+
+  if ( likely(state == IOPOS_ESC_NONE) )
+  { if ( likely(c != ANSI_ESC) )
+      return false;
+    p->esc_state = IOPOS_ESC_ESC | ((intptr_t)1<<IOPOS_ESC_SHIFT);
+    return true;
+  }
+
+  if ( (len=(p->esc_state>>IOPOS_ESC_SHIFT)) >= IOPOS_ESC_MAX )
+    goto abort;
+
+  switch(state)
+  { case IOPOS_ESC_ESC:
+      if ( c == '[' )
+	state = IOPOS_ESC_CSI;
+      else if ( c == ']' )
+	state = IOPOS_ESC_OSC;
+      else if ( c >= 0x20 && c <= 0x2f )
+	;				/* intermediate byte */
+      else if ( c >= 0x20 )
+	state = IOPOS_ESC_NONE;		/* final byte */
+      else
+	goto abort;
+      break;
+    case IOPOS_ESC_CSI:
+      if ( c >= 0x20 && c <= 0x3f )
+	;				/* parameter/intermediate byte */
+      else if ( c >= 0x40 && c <= 0x7e )
+	state = IOPOS_ESC_NONE;		/* final byte */
+      else
+	goto abort;
+      break;
+    case IOPOS_ESC_OSC:
+      if ( c == ANSI_BEL )
+	state = IOPOS_ESC_NONE;
+      else if ( c == ANSI_ESC )
+	state = IOPOS_ESC_OSC_ESC;
+      else if ( c < 0x20 )
+	goto abort;
+      break;
+    case IOPOS_ESC_OSC_ESC:
+      if ( c == '\\' )			/* ST */
+	state = IOPOS_ESC_NONE;
+      else
+	goto abort;
+      break;
+  }
+
+  p->esc_state = state ? (state | ((len+1)<<IOPOS_ESC_SHIFT)) : 0;
+  return true;
+
+abort:
+  p->esc_state = 0;
+  return Supdateesc(p, c);		/* c may start a new sequence */
+}
+
 
 bool
 Supdatepos(IOPOS *p, int c)
-{ if ( likely(c >= ' ' && c < 0x7f) )	/* speedup the 99% case a bit */
-  { p->linepos++;
+{ if ( likely(c >= ' ' && c < 0x7f) && likely(p->esc_state == 0) )
+  { p->linepos++;			/* speedup the 99% case a bit */
     return false;
   }
+
+  if ( Supdateesc(p, c) )
+    return false;
 
   switch(c)
   { case '\n':
@@ -770,6 +858,17 @@ Supdatepos(IOPOS *p, int c)
 
   return false;
 }
+
+/* Sresetesc() discards a partially seen escape sequence.  Call this
+ * whenever the position is assigned from outside rather than derived from
+ * the characters that passed by.
+ */
+
+void
+Sresetesc(IOPOS *p)
+{ p->esc_state = 0;
+}
+
 
 static inline void
 update_linepos(IOSTREAM *s, int c)
@@ -870,6 +969,7 @@ unget_byte(int c, IOSTREAM *s)
     p->byteno--;
     if ( c == '\n' )
       p->lineno--;
+    Sresetesc(p);
     s->flags |= SIO_NOLINEPOS;
   }
 }
@@ -1982,6 +2082,7 @@ update:
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
+    Sresetesc(s->position);
     s->position->byteno = pos;
     s->position->charno = pos/Sunit_size(s); /* compatibility */
   }

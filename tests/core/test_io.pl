@@ -152,4 +152,22 @@ test(wide, Pos == 2) :-				% CJK ideograph
 test(combining, Pos == 1) :-			% e + combining acute
 	lpos(write('e\u0301'), Pos).
 
+					% ANSI escape sequences take no columns
+test(sgr, Pos == 2) :-
+	lpos(write('\e[1mab\e[0m'), Pos).
+test(sgr_split, Pos == 2) :-			% sequence split over writes
+	lpos(( write('\e['), write('1m'), write(ab), write('\e[0m') ), Pos).
+test(osc, Pos == 2) :-				% hyperlink; ESC \ terminated
+	lpos(write('\e]8;;http://x\e\\ab\e]8;;\e\\'), Pos).
+test(osc_bell, Pos == 2) :-			% BEL terminated
+	lpos(write('\e]0;title\aab'), Pos).
+test(two_char, Pos == 2) :-
+	lpos(write('\e(Bab'), Pos).
+test(abort_on_newline, Pos == 3) :-		% unterminated CSI
+	lpos(write('\e[12\nabc'), Pos).
+test(abort_on_length, [true(Pos > 0)]) :-	% never swallow the stream
+	length(Codes, 1000),
+	maplist(=(0'x), Codes),
+	lpos(( write('\e['), format('~s', [Codes]) ), Pos).
+
 :- end_tests(line_position).

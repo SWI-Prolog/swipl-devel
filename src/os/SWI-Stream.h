@@ -192,7 +192,10 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  intptr_t		reserved[2];	/* future extensions */
+  intptr_t		esc_state;	/* ANSI escape sequence state.  Claims
+					   what was reserved[0]; see
+					   Supdatepos() and Sresetesc() */
+  intptr_t		reserved[1];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
