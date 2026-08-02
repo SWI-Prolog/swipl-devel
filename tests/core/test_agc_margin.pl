@@ -73,6 +73,7 @@ make_atoms(Count, Bytes) :-
 %  run without the GC thread.  Everything is restored afterwards: the text
 %  margin is global state shared with the rest of the suite.
 
+:- if(current_prolog_flag(threads, true)).
 setup_agc(state(Thread, Margin)) :-
     current_prolog_flag(gc_thread, Thread),
     blob_type_property(text, gc_margin(Margin)),
@@ -82,6 +83,17 @@ setup_agc(state(Thread, Margin)) :-
 cleanup_agc(state(Thread, Margin)) :-
     set_blob_type(text, gc_margin(Margin)),
     set_prolog_flag(gc_thread, Thread).
+
+:- else.
+
+setup_agc(state(Margin)) :-
+    blob_type_property(text, gc_margin(Margin)),
+    garbage_collect_atoms.
+
+cleanup_agc(state(Margin)) :-
+    set_blob_type(text, gc_margin(Margin)).
+
+:- endif.
 
 
 :- begin_tests(agc_margin_api).
