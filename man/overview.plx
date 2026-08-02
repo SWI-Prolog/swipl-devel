@@ -2444,6 +2444,13 @@ following \verb$~$ (tilde) sequences are replaced:
 \end{tabular}
 \end{center}
 
+The prompt may contain ANSI escape sequences.  These are not counted
+towards the prompt width.  For example, this makes the prompt bold:
+
+\begin{code}
+?- set_prolog_flag(toplevel_prompt, '\e[1m~m~d~l~! ?- \e[0m').
+\end{code}
+
     \prologflagitem{toplevel_residue_vars}{bool}{rw}
 When \const{true} (default \const{false}), print residual variables as
 detected by call_residue_vars/2 that do not appear in the bindings

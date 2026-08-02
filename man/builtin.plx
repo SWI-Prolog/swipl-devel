@@ -5891,8 +5891,9 @@ for example, through a network service.
 
     \termitem{line_position}{LinePos}
 Set the line position attribute of the stream.  This feature is
-intended to correct position management of the stream after sending
-a terminal escape sequence (e.g., setting ANSI character attributes).
+intended to correct position management of the stream after writing
+text whose width the stream cannot know.  Terminal escape sequences
+need no such correction: they are recognised and take no columns.
 Setting this attribute raises a permission error if the stream does
 not record positions. See line_position/2 and stream_property/2
 (property \const{position}).
@@ -6368,9 +6369,12 @@ starts at 1.
 
     \predicate{line_position}{2}{+Stream, -Count}
 Unify \arg{Count} with the position on the current line. Note that this
-assumes the position is 0 after the open.  Tabs are assumed to be
-defined on each 8-th character, and backspaces are assumed to reduce the
-count by one, provided it is positive.
+assumes the position is 0 after the open.  \arg{Count} is a
+\jargon{display column}: tabs advance to the next 8-th character,
+backspaces reduce the count by one provided it is positive, a
+double-width character counts for two and non-printable characters as
+well as ANSI escape sequences (see ansi_format/3) count for none.  Use
+character_count/2 to count characters rather than columns.
 \end{description}
 
 
@@ -10169,6 +10173,8 @@ middle.  Current behaviour is defined by PIP-0110.}.
 Set a tab stop on the current position. If an argument is supplied set
 a tab stop on the position of that argument. This will cause all
 \fmtseq{~t}'s to be distributed between the previous and this tab stop.
+Positions are display columns, counted as by line_position/2, so
+alignment is unaffected by ANSI escape sequences in the output.
 
 If the current column is at or past the requested tabstop and the
 modifier (:) is used, a newline is inserted and the padding character
