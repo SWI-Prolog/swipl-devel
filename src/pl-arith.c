@@ -2319,11 +2319,6 @@ get_int_exponent(Number n, uint64_t *expp)
       return false;
   }
 
-#if SIZEOF_LONG < 8
-  if ( i > LONG_MAX || i < LONG_MIN )
-    return int_too_big();
-#endif
-
   if ( i < 0 )
   { i = -i;
     if ( i < 0 )
