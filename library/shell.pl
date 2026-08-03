@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -47,7 +47,8 @@
             pwd/0,
             popd/0,
             mv/2,                               % +File1, +File2
-            rm/1                                % +File1
+            rm/1,                               % +File1
+            cls/0
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(error),
@@ -460,3 +461,11 @@ label_length(dir(_, Label), Len) =>
     atom_length(Label, Len).
 label_length(file(_, Label), Len) =>
     atom_length(Label, Len).
+
+%!  cls
+%
+%   CLear Screen.  Emits ANSI control characters to clear the terminal.
+
+cls :-
+    format(user_error, '\e[3J\e[H\e[2J', []),
+    format(user_error, '\e[3J\r', []).
