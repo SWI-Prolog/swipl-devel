@@ -2293,16 +2293,15 @@ bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
 #endif /*O_BIGNUM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get the _absolute_ value from `n` as an   unsigned  long. As we will use
-this value for exponentation, and 0 is   already handled, any value that
-does not fit in an unsigned long   will  anyway generate an integer that
-will not fit on the  stacks  and   thus  this  routine generates a stack
-overflow rather that doing all the work  that will result in an overflow
-anyway.
+Get the _absolute_ value from `n` as an   uint64_t.  As we will use this
+value for exponentation, and 0 is already   handled, any value that does
+not fit in an unsigned long will   anyway  generate an integer that will
+not fit on the stacks and thus   this routine generates a stack overflow
+rather that doing all the work that will result in an overflow anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_int_exponent(Number n, unsigned long *expp)
+get_int_exponent(Number n, uint64_t *expp)
 { int64_t i;
 
   switch(n->type)
@@ -2394,7 +2393,7 @@ static bool
 ar_pow(Number n1, Number n2, Number r)
 { int zero_div_sign;
   int exp_sign;
-  unsigned long exp;
+  uint64_t exp;
   int exp_nan;
   int n1_val;
 
