@@ -1067,12 +1067,29 @@ blockSignal(int sig)
   DEBUG(1, Sdprintf("signal %d\n", sig));
 }
 
+/* Give the child of a fork() a clean signal mask.  Only the main
+ * thread processes SIGINT (see start_thread()), so a thread that forks
+ * hands the child a mask with SIGINT blocked, and exec() keeps the
+ * mask where it resets the handlers: ^C would not reach the new
+ * process.  Called from PL_cleanup_fork(), so it may not lock: no
+ * DEBUG() here.
+ */
+
+void
+resetSignalMask(void)
+{ sigset_t set;
+
+  sigemptyset(&set);
+  sigprocmask(SIG_SETMASK, &set, NULL);
+}
+
 #else /*O_SIGNALS && defined(HAVE_SIGPROCMASK)*/
 
 void blockSignals(sigset_t *old) {}
 void unblockSignals(sigset_t *old) {}
 void unblockSignal(int sig) {}
 void blockSignal(int sig) {}
+void resetSignalMask(void) {}
 
 #endif
 

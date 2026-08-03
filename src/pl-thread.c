@@ -977,6 +977,7 @@ PL_cleanup_fork(void)
 #if O_PROFILE
   stopItimer();
 #endif
+  resetSignalMask();
 }
 
 
@@ -8282,7 +8283,7 @@ PL_destroy_engine(PL_engine_t e)
 
 void
 PL_cleanup_fork(void)
-{
+{ resetSignalMask();
 }
 
 double

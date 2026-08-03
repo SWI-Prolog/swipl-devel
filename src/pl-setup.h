@@ -65,6 +65,7 @@ void		allSignalMask(sigset_t *set);
 void		unblockSignals(sigset_t *mask);
 void		unblockSignal(int sig);
 void		blockSignal(int sig);
+void		resetSignalMask(void);
 void		resetSignals(void);
 void		cleanupSignals(void);
 int		handleSignals(void);
