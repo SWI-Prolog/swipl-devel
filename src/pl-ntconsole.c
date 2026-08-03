@@ -42,6 +42,10 @@
 #include "pl-incl.h"
 #include "pl-nt.h"
 
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
 #define ANSI_MAGIC		(0x734ab9de)
 #define ANSI_BUFFER_SIZE	(256)
 #define ANSI_MAX_ARGC		(10)
@@ -71,6 +75,7 @@ typedef struct
   astate cmdstat;			/* State for sequence processing */
   WORD def_attr;			/* Default attributes */
   htype handletype;                     /* Type of stream handle */
+  bool vt_passthrough;			/* Console does the escapes itself */
 } ansi_stream;
 
 
@@ -348,7 +353,10 @@ write_ansi(void *handle, char *buffer, size_t size)
   const wchar_t *e = &s[n];
 
   for( ; s<e; s++)
-  { if ( put_ansi(as, *s) != 0 )
+  { int rc = as->vt_passthrough ? send_ansi(as, *s)   /* console's job */
+			        : put_ansi(as, *s);
+
+    if ( rc != 0 )
       return -1;			/* error */
   }
   if ( as->pStream->flags & SIO_NBUF )
@@ -494,11 +502,30 @@ wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
 }
 
 
+/* Ask the console to act on escape sequences itself.
+ *
+ * Windows 10 1809 and later interpret the whole repertoire -- cursor
+ * motion, erase, scroll regions, 24 bit colour -- where put_ansi()
+ * below understands nothing but SGR and silently eats the rest, so a
+ * program that cleared the screen with ESC [ 2 J found that nothing
+ * happened and nothing was written either.  Where the console will do
+ * it, hand it the text and stay out of the way.
+ *
+ * Older Windows refuses the flag, and there we are still the only thing
+ * that acts on a sequence at all.
+ */
+
 static void
 init_output(void *handle, CONSOLE_SCREEN_BUFFER_INFO *info)
 { ansi_stream *as = handle;
+  DWORD mode;
 
   as->def_attr = info->wAttributes;
+
+  if ( as->handletype == HDL_CONSOLE &&
+       GetConsoleMode(as->hConsole, &mode) &&
+       SetConsoleMode(as->hConsole, mode|ENABLE_VIRTUAL_TERMINAL_PROCESSING) )
+    as->vt_passthrough = true;
 }
 
 
