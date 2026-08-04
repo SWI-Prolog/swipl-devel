@@ -3881,6 +3881,27 @@ Swinhandle(IOSTREAM *s)
   return NULL;
 }
 
+HANDLE
+Swinpseudoconsole(IOSTREAM *s)
+{ HANDLE h = NULL;
+
+  if ( s && s->functions->control &&
+       (*s->functions->control)(s->handle,
+				SIO_GETWINPSEUDOCONSOLE,
+				(void *)&h) == 0 )
+    return h;
+
+  return NULL;
+}
+
+void
+Swinrelease_pseudoconsole(IOSTREAM *s)
+{ if ( s && s->functions->control )
+    (void)(*s->functions->control)(s->handle,
+				   SIO_RELWINPSEUDOCONSOLE,
+				   NULL);
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On  Windows,  type  SOCKET  is   an    unsigned   int   and  all  values
 [0..INVALID_SOCKET) are valid. It is  also   not  allowed  to run normal

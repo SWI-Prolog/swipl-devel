@@ -35,6 +35,8 @@
 */
 
 #ifdef __WINDOWS__
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00		/* PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE */
 #define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
@@ -497,23 +499,53 @@ utf8towcs_buffer(Buffer b, const char *src)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Where the child gets its terminal from.
+Where the child gets its terminal from, in order of preference.
 
-A console application gets a console of its own unless it is created to
-share ours, and CREATE_NO_WINDOW hides that console: shell/0 then ran a
-shell reading from a keyboard buffer nobody fills, and shell/1 wrote where
-nobody looks.  So share the console when we have one, and keep the flag
-for when we have not -- a GUI process needs it, as there a console child
-pops up a window of its own.
+ 1. The pseudo console of an Epilog window, which gives the child a
+    terminal of its own making: it echoes, edits its command line, writes
+    VT, has a size and takes ^C.
+ 2. A console we can share.  A console application gets a console of its
+    own unless it is created to share ours, and CREATE_NO_WINDOW hides
+    that console: shell/0 then ran a shell reading from a keyboard buffer
+    nobody fills, and shell/1 wrote where nobody looks.
+ 3. Neither: hand over the streams and hide the console the child makes.
+    CREATE_NO_WINDOW is what a GUI process needs, as there a console child
+    pops up a window of its own.
 
 The streams come from the calling thread rather than from the process: a
 thread need not run on the terminal  the process was started from.  This
-is what System() in pl-os.c dups onto the child's 0/1/2.
+is what System() in pl-os.c dups onto the child's 0/1/2.  That is also why
+case 1 comes first: having a console is a fact about the process, being on
+an Epilog window is a fact about this thread, and the thread wins.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
 have_console(void)
 { return GetConsoleWindow() != NULL;
+}
+
+
+/* Attribute list that puts the child on `hpc'.  Free with
+ * DeleteProcThreadAttributeList() and PL_free().
+ */
+
+static LPPROC_THREAD_ATTRIBUTE_LIST
+pseudoconsole_attributes(HANDLE hpc)
+{ LPPROC_THREAD_ATTRIBUTE_LIST list;
+  SIZE_T size = 0;
+
+  InitializeProcThreadAttributeList(NULL, 1, 0, &size);
+  if ( !(list=PL_malloc(size)) )
+    return NULL;
+
+  if ( InitializeProcThreadAttributeList(list, 1, 0, &size) &&
+       UpdateProcThreadAttribute(list, 0,
+				 PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+				 hpc, sizeof(hpc), NULL, NULL) )
+    return list;
+
+  PL_free(list);
+  return NULL;
 }
 
 
@@ -533,22 +565,51 @@ inheritable_stream_handle(IOSTREAM *s)
 int
 System(char *command)			/* command is a UTF-8 string */
 { GET_LD
-  STARTUPINFOW sinfobuf;
-  STARTUPINFOW *sinfo = &sinfobuf;
+  STARTUPINFOEXW sinfoEx;
+  STARTUPINFOW *sinfo = &sinfoEx.StartupInfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
   tmp_buffer buf;
   wchar_t *wcmd;
   HANDLE hin, hout, herr;
-  bool console = have_console();
+  LPPROC_THREAD_ATTRIBUTE_LIST attrs = NULL;
+  HANDLE hpc = Swinpseudoconsole(Suser_input);
+  bool console = !hpc && have_console();
   DWORD flags = console ? 0		     /* share our console */
 			: CREATE_NO_WINDOW;  /* we have none to share */
   BOOL inherit = false;
 
-  memset(&sinfobuf, 0, sizeof(sinfobuf));
+  memset(&sinfoEx, 0, sizeof(sinfoEx));
   sinfo->cb = sizeof(*sinfo);
 
-  if ( (hin =inheritable_stream_handle(Suser_input))  &&
+  if ( hpc )
+  { /* Put the child on the terminal's own console, as
+     * terminal_image->launch does.  Only EXTENDED_STARTUPINFO_PRESENT:
+     * CREATE_NO_WINDOW asks for a console of the child's own, which is
+     * the opposite of what the attribute says and wins.
+     *
+     * Nothing of ours may touch the terminal's streams until the child
+     * is done -- the console is reading and writing the very same pipe
+     * ends -- and nothing does: this thread sits in the wait below, and
+     * the line editor has no read outstanding between lines.
+     */
+    if ( (attrs=pseudoconsole_attributes(hpc)) )
+    { sinfoEx.lpAttributeList = attrs;
+      sinfo->cb		      = sizeof(sinfoEx);
+      flags		      = EXTENDED_STARTUPINFO_PRESENT;
+      inherit		      = true;
+      Sflush(Suser_output);		/* or it lands after the child's */
+      Sflush(Suser_error);
+    } else
+    { Swinrelease_pseudoconsole(Suser_input);
+      hpc = NULL;
+      console = have_console();
+      flags = console ? 0 : CREATE_NO_WINDOW;
+    }
+  }
+
+  if ( !hpc &&
+       (hin =inheritable_stream_handle(Suser_input))  &&
        (hout=inheritable_stream_handle(Suser_output)) &&
        (herr=inheritable_stream_handle(Suser_error)) )
   { sinfo->dwFlags    = STARTF_USESTDHANDLES;
@@ -621,6 +682,12 @@ System(char *command)			/* command is a UTF-8 string */
     if ( (tmp=PL_new_term_ref()) &&
 	 PL_put_chars(tmp, PL_ATOM|REP_UTF8, (size_t)-1, command) )
       PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
+  }
+
+  if ( hpc )				/* the terminal takes it back */
+  { DeleteProcThreadAttributeList(attrs);
+    PL_free(attrs);
+    Swinrelease_pseudoconsole(Suser_input);
   }
 
   return shell_rval;
