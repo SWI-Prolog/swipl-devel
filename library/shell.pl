@@ -74,9 +74,12 @@ available or the shell output cannot be captured.
 %   find a suitable shell command:
 %
 %     1. The Prolog flag `shell`
-%     2. The environment variable ``$SHELL``
-%     3. The Prolog flag `posix_shell`
-%     4. The environment variable ``%comspec%`` (Windows only)
+%     2. The environment variable ``%comspec%`` (Windows only)
+%     3. The environment variable ``$SHELL``
+%     4. The Prolog flag `posix_shell`
+%
+%   The shell's exit status is not our business, so shell/0 succeeds
+%   whatever it is.
 %
 %   @error existence_error(config, shell) if no suitable shell can be
 %   found.
@@ -85,19 +88,24 @@ shell :-
     interective_shell(Shell),
     access_file(Shell, execute),
     !,
-    shell(Shell).
+    shell(Shell, _).
 shell :-
     existence_error(config, shell).
 
 interective_shell(Shell) :-
     current_prolog_flag(shell, Shell).
 interective_shell(Shell) :-
+    current_prolog_flag(windows, true),
+    getenv(comspec, Shell).             % first: $SHELL and posix_shell
+                                        % name POSIX paths that a Windows
+                                        % box may well resolve without
+                                        % being able to execute them.
+                                        % Set the `shell` flag to pick
+                                        % another one.
+interective_shell(Shell) :-
     getenv('SHELL', Shell).
 interective_shell(Shell) :-
     current_prolog_flag(posix_shell, Shell).
-interective_shell(Shell) :-
-    current_prolog_flag(windows, true),
-    getenv(comspec, Shell).             % Windows
 
 
 %!  cd.
