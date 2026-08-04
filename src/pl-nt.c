@@ -496,16 +496,67 @@ utf8towcs_buffer(Buffer b, const char *src)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Where the child gets its terminal from.
+
+A console application gets a console of its own unless it is created to
+share ours, and CREATE_NO_WINDOW hides that console: shell/0 then ran a
+shell reading from a keyboard buffer nobody fills, and shell/1 wrote where
+nobody looks.  So share the console when we have one, and keep the flag
+for when we have not -- a GUI process needs it, as there a console child
+pops up a window of its own.
+
+The streams come from the calling thread rather than from the process: a
+thread need not run on the terminal  the process was started from.  This
+is what System() in pl-os.c dups onto the child's 0/1/2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+have_console(void)
+{ return GetConsoleWindow() != NULL;
+}
+
+
+static HANDLE
+inheritable_stream_handle(IOSTREAM *s)
+{ HANDLE h;
+
+  if ( s &&
+       (h=Swinhandle(s)) &&
+       h != INVALID_HANDLE_VALUE &&
+       SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) )
+    return h;
+
+  return NULL;
+}
+
 int
 System(char *command)			/* command is a UTF-8 string */
-{ STARTUPINFOW sinfo;
+{ GET_LD
+  STARTUPINFOW sinfobuf;
+  STARTUPINFOW *sinfo = &sinfobuf;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
   tmp_buffer buf;
   wchar_t *wcmd;
+  HANDLE hin, hout, herr;
+  bool console = have_console();
+  DWORD flags = console ? 0		     /* share our console */
+			: CREATE_NO_WINDOW;  /* we have none to share */
+  BOOL inherit = false;
 
-  memset(&sinfo, 0, sizeof(sinfo));
-  sinfo.cb = sizeof(sinfo);
+  memset(&sinfobuf, 0, sizeof(sinfobuf));
+  sinfo->cb = sizeof(*sinfo);
+
+  if ( (hin =inheritable_stream_handle(Suser_input))  &&
+       (hout=inheritable_stream_handle(Suser_output)) &&
+       (herr=inheritable_stream_handle(Suser_error)) )
+  { sinfo->dwFlags    = STARTF_USESTDHANDLES;
+    sinfo->hStdInput  = hin;
+    sinfo->hStdOutput = hout;
+    sinfo->hStdError  = herr;
+    inherit = true;
+  }
 
   initBuffer(&buf);
   utf8towcs_buffer((Buffer)&buf, command);
@@ -515,35 +566,61 @@ System(char *command)			/* command is a UTF-8 string */
 		      wcmd,			/* command line */
 		      NULL,			/* Security stuff */
 		      NULL,			/* Thread security stuff */
-		      false,			/* Inherit handles */
-		      CREATE_NO_WINDOW,		/* flags */
+		      inherit,			/* Inherit handles */
+		      flags,			/* flags */
 		      NULL,			/* environment */
 		      NULL,			/* CWD */
-		      &sinfo,			/* startup info */
+		      sinfo,			/* startup info */
 		      &pinfo) )			/* process into */
-  { BOOL rval;
-    DWORD code;
+  { DWORD code;
 
     CloseHandle(pinfo.hThread);			/* don't need this */
     discardBuffer(&buf);
 
-    do
-    { MSG msg;
+    /* ^C belongs to the child while it runs, as it does for shell/1 on
+     * POSIX.  Set this after CreateProcessW(): the attribute is
+     * inherited, and the child must not ignore ^C.
+     */
+    if ( console )
+      SetConsoleCtrlHandler(NULL, true);
 
-      if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
-      { TranslateMessage(&msg);
-	DispatchMessage(&msg);
-      } else
-	Sleep(50);
+    /* Wait on the process rather than poll its exit code.  A shell that
+     * sits there waiting for a command has no exit code to report, and
+     * asking for one told us nothing about whether it is still there.
+     * Messages are dispatched while we wait: a GUI process that stops
+     * answering them looks hung to Windows.
+     */
+    for(;;)
+    { DWORD rc = MsgWaitForMultipleObjects(1, &pinfo.hProcess, false,
+					   INFINITE, QS_ALLINPUT);
 
-      rval = GetExitCodeProcess(pinfo.hProcess, &code);
-    } while(rval == true && code == STILL_ACTIVE);
+      if ( rc == WAIT_OBJECT_0 )		/* the child is gone */
+	break;
+      if ( rc == WAIT_OBJECT_0+1 )		/* messages are waiting */
+      { MSG msg;
 
-    shell_rval = (rval == true ? code : -1);
+	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+	{ TranslateMessage(&msg);
+	  DispatchMessage(&msg);
+	}
+      } else					/* WAIT_FAILED */
+	break;
+    }
+
+    shell_rval = GetExitCodeProcess(pinfo.hProcess, &code) ? (int)code : -1;
+
+    if ( console )
+      SetConsoleCtrlHandler(NULL, false);
+
     CloseHandle(pinfo.hProcess);
   } else
-  { discardBuffer(&buf);
-    return shell_rval = -1;
+  { term_t tmp;
+
+    discardBuffer(&buf);
+    shell_rval = -1;
+    if ( (tmp=PL_new_term_ref()) &&
+	 PL_put_chars(tmp, PL_ATOM|REP_UTF8, (size_t)-1, command) )
+      PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
   }
 
   return shell_rval;
