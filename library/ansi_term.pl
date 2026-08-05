@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2025, VU University Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2010-2026, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -107,9 +107,9 @@ init_color_term_flag :-
 %   terminal, it adds ANSI escape sequences according to Attributes.
 %   For example, to print a text in bold cyan, do
 %
-%     ==
+%     ```
 %     ?- ansi_format([bold,fg(cyan)], 'Hello ~w', [world]).
-%     ==
+%     ```
 %
 %   Attributes is either a single attribute, a   list  thereof or a term
 %   that is mapped to concrete  attributes   based  on the current theme
@@ -128,9 +128,11 @@ init_color_term_flag :-
 %     - fg(R,G,B), bg(R,G,B)
 %       24-bit (direct color) specification.  The components are
 %       integers in the range 0..255.
+%     - href(URL)
+%       Wrap the output as a link using ansi_hyperlink/3.
 %
-%   Defined color constants are below.  `default`   can  be  used to
-%   access the default color of the terminal.
+%   Defined color constants are below. `default`   can be used to access
+%   the default color of the terminal.
 %
 %     - black, red, green, yellow, blue, magenta, cyan, white
 %
@@ -149,18 +151,30 @@ ansi_format(Stream, Class, Format, Args) :-
     class_attrs(Class, Attr),
     Attr \== [],
     !,
-    phrase(sgr_codes_ex(Attr), Codes),
-    atomic_list_concat(Codes, ;, Code),
+    (   selectchk(href(HREF), Attr, Attr1)
+    ->  true
+    ;   Attr1 = Attr
+    ),
+    phrase(sgr_codes_ex(Attr1), Codes),
+    atomics_to_string(Codes, ;, Code),
     with_output_to(
         Stream,
         (   format('\e[~wm', [Code]),
-            format(Format, Args),
+            format_content(Format, Args, HREF),
             format('\e[0m')
         )
     ),
     flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
     format(Stream, Format, Args).
+
+format_content(Format, Args, HREF) :-
+    var(HREF),
+    !,
+    format(Format, Args).
+format_content(Format, Args, HREF) :-
+    format(string(Label), Format, Args),
+    ansi_hyperlink(current_output, HREF, Label).
 
 sgr_codes_ex(X) -->
     { var(X),
@@ -411,12 +425,19 @@ class_attrs(Class, Attrs) :-
 class_attrs(Attrs, Attrs).
 
 %!  ansi_hyperlink(+Stream, +Location) is det.
-%!  ansi_hyperlink(+Stream, +URL, +Label) is det.
+%!  ansi_hyperlink(+Stream, +Location, +Label) is det.
 %
-%   Create a hyperlink for a terminal emulator. The file is fairly easy,
-%   but getting the line and column across is   not as there seems to be
-%   no established standard. The  current   implementation  emits, i.e.,
-%   inserting a capital ``L`` before the line.
+%   Create a hyperlink for  a  terminal   emulator  using  the ``OSC 8``
+%   escape sequence.  Location is one of
+%
+%     - An absolute URL
+%     - An atom (interpreted as a file name)
+%     - A term `File:Line`
+%     - A term `File:Line:Column`
+%
+%   There is no official standard for  encoding the `Line` and `Column`.
+%   The current implementation emits, i.e.,   inserting  a capital ``L``
+%   before the line.
 %
 %       ``file://AbsFileName[#LLine[:Column]]``
 %
