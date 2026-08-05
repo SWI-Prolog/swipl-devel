@@ -525,12 +525,14 @@ have_console(void)
 }
 
 
-/* Attribute list that puts the child on `hpc'.  Free with
- * DeleteProcThreadAttributeList() and PL_free().
+/* Attribute list that puts a child on the pseudo console `hpcon', for
+ * CreateProcess() with EXTENDED_STARTUPINFO_PRESENT.  Public because
+ * process_create/3 lives in a foreign library (packages/clib/process.c)
+ * and must put its children on an Epilog window the same way.
  */
 
-static LPPROC_THREAD_ATTRIBUTE_LIST
-pseudoconsole_attributes(HANDLE hpc)
+void *
+Swinpseudoconsole_attributes(HANDLE hpcon)
 { LPPROC_THREAD_ATTRIBUTE_LIST list;
   SIZE_T size = 0;
 
@@ -541,11 +543,20 @@ pseudoconsole_attributes(HANDLE hpc)
   if ( InitializeProcThreadAttributeList(list, 1, 0, &size) &&
        UpdateProcThreadAttribute(list, 0,
 				 PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-				 hpc, sizeof(hpc), NULL, NULL) )
+				 hpcon, sizeof(hpcon), NULL, NULL) )
     return list;
 
   PL_free(list);
   return NULL;
+}
+
+
+void
+Swinfree_pseudoconsole_attributes(void *attributes)
+{ if ( attributes )
+  { DeleteProcThreadAttributeList(attributes);
+    PL_free(attributes);
+  }
 }
 
 
@@ -593,7 +604,7 @@ System(char *command)			/* command is a UTF-8 string */
      * ends -- and nothing does: this thread sits in the wait below, and
      * the line editor has no read outstanding between lines.
      */
-    if ( (attrs=pseudoconsole_attributes(hpc)) )
+    if ( (attrs=Swinpseudoconsole_attributes(hpc)) )
     { sinfoEx.lpAttributeList = attrs;
       sinfo->cb		      = sizeof(sinfoEx);
       flags		      = EXTENDED_STARTUPINFO_PRESENT;
@@ -685,8 +696,7 @@ System(char *command)			/* command is a UTF-8 string */
   }
 
   if ( hpc )				/* the terminal takes it back */
-  { DeleteProcThreadAttributeList(attrs);
-    PL_free(attrs);
+  { Swinfree_pseudoconsole_attributes(attrs);
     Swinrelease_pseudoconsole(Suser_input);
   }
 

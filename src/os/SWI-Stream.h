@@ -529,6 +529,15 @@ PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
  */
 PL_EXPORT(HANDLE)	Swinpseudoconsole(IOSTREAM *s);
 PL_EXPORT(void)		Swinrelease_pseudoconsole(IOSTREAM *s);
+/* Process attribute list that puts a child on the console `hpcon', for
+ * CreateProcess() with EXTENDED_STARTUPINFO_PRESENT.  Free it once the
+ * child is created; the console itself is held until
+ * Swinrelease_pseudoconsole().  Returns void * because
+ * LPPROC_THREAD_ATTRIBUTE_LIST needs a _WIN32_WINNT this header does not
+ * ask its includers for.
+ */
+PL_EXPORT(void *)	Swinpseudoconsole_attributes(HANDLE hpcon);
+PL_EXPORT(void)		Swinfree_pseudoconsole_attributes(void *attributes);
 #if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
 PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
 #endif
