@@ -42,8 +42,9 @@
             ansi_hyperlink/3            % +Stream,+URL,+Label
           ]).
 :- autoload(library(error), [domain_error/2, must_be/2, instantiation_error/1]).
-:- autoload(library(lists), [append/3]).
+:- autoload(library(lists), [append/3, selectchk/3]).
 :- autoload(library(utf8), [utf8_codes/3]).
+:- autoload(library(apply), [maplist/2]).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -468,17 +469,23 @@ ansi_hyperlink(Stream, Location, Label) =>
     ;   format(Stream, '~w', [Label])
     ).
 
+%!  is_url(@URL) is semidet.
+%
+%   True if URL is an absolute URL. This means it has a scheme and is
+%   not a (Windows) absolute file name as in `C:...`
+
 is_url(URL) :-
     (   atom(URL)
     ->  true
     ;   string(URL)
     ),
-    url_prefix(Prefix),
-    sub_string(URL, 0, _, _, Prefix).
-
-url_prefix('http://').
-url_prefix('https://').
-url_prefix('file://').
+    sub_string(URL, Before, _, _, :),
+    !,
+    Before > 0,
+    sub_string(URL, 0, Before, _, Scheme),
+    atom_codes(Scheme, Codes),
+    maplist(between(0'a, 0'z), Codes),
+    \+ is_absolute_file_name(URL).
 
 %!  location_url(+Location, -URL) is det.
 %
