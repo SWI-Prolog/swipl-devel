@@ -284,9 +284,10 @@ missing_autoload(_Src, _, Head, _) :-
     fail.
 
 :- if(exists_source(library(pce))).
-:- autoload(library(pce), [get/3]).
-src_file(@(Ref), File) =>
-    get(?(@(Ref), file), absolute_path, File).
+:- autoload(library(pce), [get/3,object/1]).
+src_file(Ref, File) =>
+    object(Ref),
+    get(?(Ref, file), absolute_path, File).
 :- endif.
 src_file(File0, File) =>
     File = File0.
