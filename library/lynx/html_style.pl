@@ -54,6 +54,8 @@ element_css(El, Attrs, CSS) :-
     append(CssList, CSS0),
     list_to_set(CSS0, CSS).
 
+applicable_style(a, Attrs, [href(HREF)]) :- % href(HREF) is a pseudo style.
+    memberchk(href=HREF, Attrs).
 applicable_style(_, Attrs, CSS) :-
     memberchk(style=Style, Attrs),
     style_css_attrs(Style, CSS0),
@@ -126,4 +128,5 @@ css_inline_options(CSS, Left-Right, Style) :-
 inline_style(CSS, Style) :-
     font_style(CSS, Style),
     !.
-inline_style(float(right),          float(right)).
+inline_style(float(right), float(right)).
+inline_style(href(HREF),   href(HREF)).
