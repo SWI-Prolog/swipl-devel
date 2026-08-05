@@ -352,6 +352,15 @@ main_source(File, Main) :-
 with_pager(Goal) :-
     pager_ok(Pager, Options),
     !,
+    current_output(Screen),
+    setup_call_cleanup(
+	pager_screen(Screen, enter),
+	paged(Pager, Options, Goal),
+	pager_screen(Screen, leave)).
+with_pager(Goal) :-
+    call(Goal).
+
+paged(Pager, Options, Goal) :-
     Catch = error(io_error(_,_), _),
     current_output(OldIn),
     setup_call_cleanup(
@@ -364,8 +373,33 @@ with_pager(Goal) :-
 	( set_output(OldIn),
 	  close(In, [force(true)])
 	)).
-with_pager(Goal) :-
-    call(Goal).
+
+%!  pager_screen(+Screen, +Which) is det.
+%
+%   Give the pager a screen of its own, so that quitting it leaves the
+%   terminal as it was.  Windows only: a pager there takes a screen
+%   buffer from the console API and the console swaps back to the
+%   previous one when the pager exits, but a pseudo console -- which is
+%   what an Epilog window gives its children -- does not carry those
+%   calls.  Its alternate screen is the DEC private mode and nothing
+%   else, so the terminal is told here rather than by the pager.
+%
+%   Elsewhere the pager does this itself, from its terminal description,
+%   and a pager that does not (`cat`) is one whose output should stay.
+
+pager_screen(_Screen, _Which) :-
+    \+ current_prolog_flag(windows, true),
+    !.
+pager_screen(Screen, _Which) :-
+    \+ stream_property(Screen, tty(true)),
+    !.
+pager_screen(Screen, enter) :-
+    !,
+    format(Screen, '\e[?1049h', []),
+    flush_output(Screen).
+pager_screen(Screen, leave) :-
+    format(Screen, '\e[?1049l', []),
+    flush_output(Screen).
 
 pager_ok(_Path, _Options) :-
     current_prolog_flag(help_pager, false),
