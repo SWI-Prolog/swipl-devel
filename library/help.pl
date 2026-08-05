@@ -44,7 +44,7 @@
 :- use_module(library(isub), [isub/4]).
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
-:- autoload(library(lists), [append/3, sum_list/2]).
+:- autoload(library(lists), [append/3, sum_list/2, select/3]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).
 :- autoload(library(process), [process_create/3, process_which/2]).
@@ -59,6 +59,7 @@
 :- autoload(library(prolog_code), [pi_head/2]).
 :- autoload(library(prolog_xref), [xref_source/2]).
 :- use_module(library(lynx/pldoc_style), []).
+:- autoload(library(terms), [mapsubterms/3]).
 
 /** <module> Text based manual
 
@@ -171,10 +172,8 @@ show_html(HTML) :-
     show_html_hook(HTML),
     !.
 show_html(HTML) :-
-    setup_call_cleanup(
-	open_string(HTML, In),
-	load_html(stream(In), DOM, []),
-	close(In)),
+    load_html(string(HTML), DOM0, []),
+    mapsubterms(man_link, DOM0, DOM),
     page_width(PageWidth),
     LineWidth is PageWidth - 4,
     with_pager(html_text(DOM, [width(LineWidth)])).
@@ -456,7 +455,6 @@ running_under_emacs :-
     sub_atom(P, _, _, _, 'ediprolog'),
     !.
 
-
 %!  apropos(+Query) is det.
 %
 %   Print objects from the  manual  whose   name  or  summary match with
@@ -597,6 +595,25 @@ help_text(Pred, HelpText) :-
                        load_html(stream(In), Dom, []),
                        close(In)),
     with_output_to(string(HelpText), html_text(Dom, [])).
+
+
+                /*******************************
+                *            LINKS             *
+                *******************************/
+
+%!  man_link(+Term, -Mapped) is semidet.
+
+man_link(element(a, Attrs0, Content),
+         element(a, Attrs, Content)) :-
+    select(href=HREF0, Attrs0, Attrs1),
+    format(atom(HREF), 'man:~w', [HREF0]),
+    Attrs = [href=HREF|Attrs1].
+
+:- multifile epilog:tty_link_hook/1.
+
+epilog:tty_link_hook(URL) :-
+    atom_concat('man:', ManLink, URL),
+    format(user_error, 'Open manual link to ~p~n', [ManLink]).
 
 		 /*******************************
 		 *            MESSAGES		*
