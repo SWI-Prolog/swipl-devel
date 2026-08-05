@@ -42,13 +42,12 @@
 	  ]).
 :- use_module(library(pldoc), []).
 :- use_module(library(isub), [isub/4]).
-
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
 :- autoload(library(lists), [append/3, sum_list/2]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).
-:- autoload(library(process), [process_create/3]).
+:- autoload(library(process), [process_create/3, process_which/2]).
 :- autoload(library(sgml), [load_html/3]).
 :- autoload(library(solution_sequences), [distinct/1]).
 :- autoload(library(http/html_write), [html/3, print_html/1]).
@@ -59,7 +58,6 @@
 :- autoload(pldoc(man_index), [man_object_property/2, doc_object_identifier/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
 :- autoload(library(prolog_xref), [xref_source/2]).
-
 :- use_module(library(lynx/pldoc_style), []).
 
 /** <module> Text based manual
@@ -391,16 +389,19 @@ pager_ok(Path, Options) :-
     current_prolog_flag(help_pager, Term),
     callable(Term),
     compound_name_arguments(Term, Pager, Options),
-    absolute_file_name(path(Pager), Path,
-			   [ access(execute),
-			     file_errors(fail)
-			   ]).
+    (   is_absolute_file_name(Pager)
+    ->  Prog = Pager
+    ;   Prog = path(Pager)
+    ),
+    process_which(Prog, Path).
 
 pager_options(Path, Options) :-
     file_base_name(Path, File),
     file_name_extension(Base, _, File),
     downcase_atom(Base, Id),
-    pager_default_options(Id, Options).
+    pager_default_options(Id, Options),
+    !.
+pager_options(_, []).
 
 pager_default_options(less, ['-r']).
 
