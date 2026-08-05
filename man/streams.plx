@@ -676,6 +676,46 @@ buffer size is defined by the C macro \const{SIO_BUFSIZE}
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Running a child process on a Windows terminal}
+\label{sec:iostream-winpseudoconsole}
+
+A child process gets a terminal on Windows by attaching to a
+\jargon{pseudo console}.  The Epilog window (see \program{swipl-win.exe})
+has no console of its own: it talks to its Prolog thread over two pipes,
+and a child handed those has nothing that echoes what it reads, no window
+size and no way to be interrupted.  The functions below put such a child
+on the console of the terminal behind a stream.  This is what shell/1
+does, and what process_create/3 does for the streams the caller left
+alone.  They exist on Windows only.
+
+\begin{description}
+    \cfunction{HANDLE}{Swinpseudoconsole}{IOSTREAM *s}
+Claim the pseudo console of the terminal behind \arg{s}, or
+\const{NULL} if it has none to give.  This is a claim rather than a
+query: the console reads and writes the same pipe ends as the stream, so
+the terminal runs one only while a client holds it, and the holder must
+touch neither the stream nor its companions meanwhile.  Declared
+\ctype{HANDLE} because \ctype{HPCON} postdates \file{SWI-Stream.h}; they
+are the same.
+
+    \cfunction{void}{Swinrelease_pseudoconsole}{IOSTREAM *s}
+Hand the console back once the child is gone.  The terminal closes it
+when the last client has released it.
+
+    \cfunction{void *}{Swinpseudoconsole_attributes}{HANDLE hpcon}
+Process attribute list that puts a child on \arg{hpcon}, or
+\const{NULL} if it cannot be built.  Pass it as the
+\const{lpAttributeList} of a \ctype{STARTUPINFOEXW} and create the
+process with \const{EXTENDED_STARTUPINFO_PRESENT}.  Not with
+\const{CREATE_NO_WINDOW}: that asks for a console of the child's own,
+which is the opposite of what the attribute says and wins.
+
+    \cfunction{void}{Swinfree_pseudoconsole_attributes}{void *attributes}
+Free the list once the child is created.  The console itself is held
+until Swinrelease_pseudoconsole().
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Writing Prolog terms to foreign streams}
 \label{sec:iostream-write-term}
 

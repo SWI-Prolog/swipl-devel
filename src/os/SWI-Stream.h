@@ -516,26 +516,8 @@ PL_EXPORT(int)		Sfileno(IOSTREAM *s);
 PL_EXPORT(int)		Swin_open_osfhandle(HANDLE h, int flags);
 PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
 PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
-/* Claim the pseudo console of the terminal behind `s', or NULL if it has
- * none to give.  A child put on it has a terminal of its own making: it
- * echoes, edits its input line, writes VT, has a size and takes ^C.
- *
- * A claim rather than a query: the console reads the same end of the pipe
- * as the stream does, so the terminal only runs one while a client has it
- * and the thread that claimed it must touch neither stream meanwhile.
- * Hand it back with Swinrelease_pseudoconsole().
- *
- * Declared HANDLE because HPCON postdates this header; they are the same.
- */
 PL_EXPORT(HANDLE)	Swinpseudoconsole(IOSTREAM *s);
 PL_EXPORT(void)		Swinrelease_pseudoconsole(IOSTREAM *s);
-/* Process attribute list that puts a child on the console `hpcon', for
- * CreateProcess() with EXTENDED_STARTUPINFO_PRESENT.  Free it once the
- * child is created; the console itself is held until
- * Swinrelease_pseudoconsole().  Returns void * because
- * LPPROC_THREAD_ATTRIBUTE_LIST needs a _WIN32_WINNT this header does not
- * ask its includers for.
- */
 PL_EXPORT(void *)	Swinpseudoconsole_attributes(HANDLE hpcon);
 PL_EXPORT(void)		Swinfree_pseudoconsole_attributes(void *attributes);
 #if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
