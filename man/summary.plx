@@ -506,8 +506,6 @@ suggest predicates from a keyword.
 \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
 \predicatesummary{parse_time}{2}{Parse text to a time-stamp}
 \predicatesummary{parse_time}{3}{Parse text to a time-stamp}
-\predicatesummary{pce_dispatch}{1}{Run XPCE GUI in separate thread}
-\predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
 \predicatesummary{peek_byte}{1}{Read byte without removing}
 \predicatesummary{peek_byte}{2}{Read byte without removing}
 \predicatesummary{peek_char}{1}{Read character without removing}

@@ -1405,32 +1405,73 @@ does not reset the old engine.
 \section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
 \label{sec:xpcethread}
 
-GUI applications written in XPCE can benefit from Prolog threads if they
-need to do expensive computations that would otherwise block the UI. The
-XPCE message passing system is guarded with a single \jargon{mutex},
-which synchronises both access from Prolog and activation through the
-GUI. In MS-Windows, GUI events are processed by the thread that created
-the window in which the event occurred, whereas in Unix/X11 they are
-processed by the thread that dispatches messages. In practice, the most
-feasible approach to graphical Prolog implementations is to control XPCE
-from a single thread and deploy other threads for (long) computations.
+GUI applications written in XPCE can benefit from Prolog threads. Where
+XPCE~6 and earlier allowed only one Prolog thread to interact with XPCE,
+XPCE~7 and later allow multiple threads, but only one may be processing
+inside XPCE at any point in time. In other words, sending a message to
+XPCE requires obtaining the XPCE \jargon{global lock}, but if the method
+calls out back to Prolog, this lock is released and other Prolog threads
+may send messages to XPCE. This model is comparable to the Python
+\jargon{GIL}.
 
-Traditionally, XPCE runs in the foreground (\const{main}) thread. We are
-working towards a situation where XPCE can run comfortably in a separate
-thread. A separate XPCE thread can be created using pce_dispatch/1. It
-is also possible to create this thread as the \pllib(pce) is loaded by
-setting the \prologflag{xpce_threaded} to \const{true}.
+Due to the underlying \href{https://www.libsdl.org/}{SDL} library,
+window and display related operations must be executed on the process
+\jargon{main thread} and GUI events originate from the (SDL) main
+thread. Other Prolog threads may execute goals in the SDL event loop and
+(thus) in the main thread using in_pce_thread/1 and
+in_pce_thread_sync/1.
 
-Threads other than the thread in which XPCE runs are provided with two
-predicates to communicate with XPCE.
+SWI-Prolog/XPCE can operate in two setups. One is the console
+application \program{swipl} that connects its I/O to a terminal (or
+Windows console). In this setup, XPCE event processing is interleaved
+with reading from the terminal. This implies that the GUI is not
+responsive while a Prolog goal is running. Alternatively,
+\program{swipl-win} is a GUI application that runs the Prolog REPL
+(toplevel) loop in a Prolog thread connected to a terminal
+implemented in XPCE (called \jargon{Epilog}).  Now, the GUI runs in
+the process main thread and interactive Prolog queries run in the
+thread connected to the Epilog terminal, called \const{con}\arg{N}.
+In this setup the GUI remains responsive while user queries execute.
+The Epilog terminal:
+
+\begin{itemize}
+    \item Fully implements \const{xterm-256color} escape sequences.
+    \item Is fully Unicode aware, including high ($>$ \const{0xffff})
+    Unicode code points, Unicode (color) Emoji, double-width characters
+    and Unicode \jargon{combining marks}.  It also provides a Unicode
+    symbol picker through the background menu.
+    \item Provides a menu for common Prolog actions.  This is responsive
+    while a user query is running.
+    \item Allows multiple Epilog sessions to be opened, each running their
+    own \const{con}\arg{N} named thread.  Epilog windows can be started
+    using epilog/1, by splitting an existing one horizontally or
+    vertically or by creating a new one through the menu.  This allows for
+    checking status and progress of other threads (see tbacktrace/1 and
+    listing/2) as well as running and debugging several goals
+    simultaneously.
+    \item Allows using shell/0 or shell/1 to run other programs
+    that interact with the terminal, providing all features one would
+    expect from a terminal.
+    \item Renders (error) messages that are associated with a file
+    location using OSC~8 terminal embedded URLs. Control-click opens
+    the built-in editor (edit/1) or an editor of the user's choice.
+    Clickable links are also supported for help/1 output.
+    \item Uses, as does \program{swipl}, a modified version of libedit
+    for commandline editing.  The same commandline editor is used on all
+    platforms that support XPCE (Windows, macOS, Linux and other POSIX
+    systems).
+\end{itemize}
+
+If SWI-Prolog was started as \program{swipl}, it may open an Epilog
+window by running epilog/0.  See also \secref{epilog-api}.
 
 \begin{description}
     \predicate[det]{in_pce_thread}{1}{:Goal}
-Assuming XPCE is running in the foreground thread, this call gives
-background threads the opportunity to make calls to the XPCE thread.
-A call to in_pce_thread/1 succeeds immediately, copying \arg{Goal}
-to the XPCE thread.  \arg{Goal} is added to the XPCE event queue
-and executed synchronous to normal user events like typing and clicking.
+This call gives any Prolog thread the opportunity to run calls in the
+XPCE thread. A call to in_pce_thread/1 succeeds immediately, copying
+\arg{Goal} to the XPCE thread. \arg{Goal} is added to the XPCE event
+queue and executed synchronous to normal user events like typing,
+clicking and XPCE timers.
 
     \predicate[semidet]{in_pce_thread_sync}{1}{:Goal}
 Same as in_pce_thread/1, but wait for \arg{Goal} to be completed.
@@ -1438,21 +1479,14 @@ Success depends on the success of executing \arg{Goal}. Variable
 bindings inside \arg{Goal} are visible to the caller, but it should be
 noted that the values are being \emph{copied}. If \arg{Goal} throws an
 exception, this exception is re-thrown by in_pce_thread/1. If the
-calling thread is the `pce thread', in_pce_thread_sync/1 executes a
+calling thread is the XPCE thread, in_pce_thread_sync/1 executes a
 direct meta-call. See also in_pce_thread/1.
 
-Note that in_pce_thread_sync/1 is expensive because it requires copying
-and thread communication.  For example, \exam{in_pce_thread_sync{true}}
-runs at approximately 50,000 calls per second (AMD Phenom 9600B, Ubuntu
-11.04).
-
-    \predicate{pce_dispatch}{1}{+Options}
-Create a Prolog thread with the alias name \const{pce} for XPCE
-event handling. In the X11 version this call creates a thread that
-executes the X11 event-dispatch loop. In MS-Windows it creates a thread
-that executes a windows event-dispatch loop.  The XPCE event-handling
-thread has the alias \const{pce}. \arg{Options} specifies the
-thread attributes as thread_create/3.
+Note that in_pce_thread_sync/1 is slow and is typically only required
+for operations that act on windows or the display.  A warning is printed
+if an SDL operation that may only be called from the main thread is
+called from another thread.  Many common operations that require to be
+called in the main thread are automatically proxied to the main thread.
 \end{description}
 
 
