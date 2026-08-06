@@ -472,7 +472,7 @@ ansi_hyperlink(Stream, Location, Label) =>
 %!  is_url(@URL) is semidet.
 %
 %   True if URL is an absolute URL. This means it has a scheme and is
-%   not a (Windows) absolute file name as in `C:...`
+%   not a (Windows) absolute file name as in `c:...`
 
 is_url(URL) :-
     (   atom(URL)
@@ -485,7 +485,14 @@ is_url(URL) :-
     sub_string(URL, 0, Before, _, Scheme),
     atom_codes(Scheme, Codes),
     maplist(between(0'a, 0'z), Codes),
-    \+ is_absolute_file_name(URL).
+    not_drive_scheme(Scheme).
+
+:- if(current_prolog_flag(windows, true)).
+not_drive_scheme(Scheme) :-
+    \+ string_length(Scheme, 1).
+:- else.
+not_drive_scheme(_).
+:- endif.
 
 %!  location_url(+Location, -URL) is det.
 %
