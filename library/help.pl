@@ -870,10 +870,28 @@ truncate(Summary, Width, SummaryE) :-
     string_length(Summary, SL),
     SL > Width,
     !,
-    Pre is max(0, Width-4),
+    ellipsis(Ellipsis, Len),
+    Pre is max(0, Width-Len),
     sub_string(Summary, 0, Pre, _, S1),
-    string_concat(S1, " ...", SummaryE).
+    string_concat(S1, Ellipsis, SummaryE).
 truncate(Summary, _, Summary).
+
+%!  ellipsis(-Ellipsis:string, -Length:integer) is det.
+%
+%   Ellipsis is appended to truncated  text  and   Length  is  the number
+%   of columns it occupies.  Use  the   Unicode  horizontal  ellipsis if
+%   the message stream can represent it.
+
+ellipsis(" \u2026", 2) :-
+    stream_property(user_error, encoding(Enc)),
+    unicode_encoding(Enc),
+    !.
+ellipsis(" ...", 4).
+
+unicode_encoding(utf8).
+unicode_encoding(unicode_be).
+unicode_encoding(unicode_le).
+unicode_encoding(wchar_t).
 
 %!  man_object_summary(+Object, -Label:string, -Tag) is det.
 %
