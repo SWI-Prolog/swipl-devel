@@ -37,6 +37,7 @@
 	  [ help/0,
 	    help/1,                     % +Object
 	    apropos/1,                  % +Search
+	    apropos/2,                  % +Search, +Options
             help_apropos/4,
 	    help_text/2                 % :PI, -Text:string
 	  ]).
@@ -45,6 +46,7 @@
 :- autoload(library(apply), [maplist/3]).
 :- autoload(library(error), [must_be/2]).
 :- autoload(library(lists), [append/3, sum_list/2, select/3]).
+:- autoload(library(option), [option/3]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).
 :- autoload(library(process),
@@ -55,7 +57,8 @@
 :- autoload(library(lynx/html_text), [html_text/2]).
 :- autoload(pldoc(doc_man),
 	    [ man_page/4, pldoc_href_object/2,
-	      man_object_uri/2, man_uri_object/2
+	      man_object_uri/2, man_uri_object/2,
+	      xpce_object_label/2
 	    ]).
 :- autoload(library(pce), [send/3, get/3]).
 :- autoload(pldoc(doc_modes), [(mode)/2]).
@@ -333,6 +336,11 @@ man_object_id(Module:Name/Arity, ID) :-
     atom(Name),
     integer(Arity),
     man_object_property(Module:Name/Arity, id(ID)).
+man_object_id(Module:Name//Arity, ID) :-
+    atom(Module),
+    atom(Name),
+    integer(Arity),
+    man_object_property(Module:Name//Arity, id(ID)).
 man_object_id(section(Label), ID) :-
     atom(Label),
     man_object_property(section(_Level,_Num,Label,_File), id(ID)).
@@ -519,6 +527,7 @@ running_under_emacs :-
     !.
 
 %!  apropos(+Query) is det.
+%!  apropos(+Query, +Options) is det.
 %
 %   Print objects from the  manual  whose   name  or  summary match with
 %   Query. Query takes one of the following forms:
@@ -539,24 +548,55 @@ running_under_emacs :-
 %       appear in the name or summary of the topic. Matching is
 %	case insensitive.  Results are ordered depending on the
 %	quality of the match.
+%
+%   Only the best `limit` matches are shown.  Options:
+%
+%     - limit(+Count)
+%       Maximum number of matches to show.  Default 20.
+%     - offset(+Skip)
+%       Ignore the Skip best matches.  Default 0.
+%
+%   If the terminal supports hyperlinks (see  the Prolog flag
+%   `hyperlink_term`), the matches are clickable  and so is the line that
+%   reports there are more matches.  In an  Epilog window, clicking these
+%   runs help/1 on the match or apropos/2 on the next page.
 
 apropos(Query) :-
-    notrace(apropos_no_trace(Query)).
+    apropos(Query, []).
 
-apropos_no_trace(Query) :-
+apropos(Query, Options) :-
+    notrace(apropos_no_trace(Query, Options)).
+
+apropos_no_trace(Query, Options) :-
+    option(limit(Limit), Options, 20),
+    option(offset(From), Options, 0),
+    must_be(positive_integer, Limit),
+    must_be(nonneg, From),
     findall(Q-(Obj-Summary), help_apropos(Query, Obj, Summary, Q), Pairs),
     (   Pairs == []
     ->  print_message(warning, help(no_apropos_match(Query)))
     ;   sort(1, >=, Pairs, Sorted),
-	length(Sorted, Len),
-	(   Len > 20
-	->  length(Truncated, 20),
-	    append(Truncated, _, Sorted)
-	;   Truncated = Sorted
-	),
-	pairs_values(Truncated, Matches),
-	print_message(information, help(apropos_matches(Matches, Len)))
+	length(Sorted, Total),
+	page(Sorted, From, Limit, Page),
+	pairs_values(Page, Matches),
+	print_message(information,
+		      help(apropos_matches(Query, Matches, From, Total)))
     ).
+
+%!  page(+List, +From, +Limit, -Page) is det.
+%
+%   Page is the sub list of List that   starts at From and holds at most
+%   Limit elements.
+
+page(List, From, Limit, Page) :-
+    length(List, Len),
+    Skip is min(From, Len),
+    length(Prefix, Skip),
+    append(Prefix, Rest, List),
+    length(Rest, RestLen),
+    Take is min(Limit, RestLen),
+    length(Page, Take),
+    append(Page, _, Rest).
 
 %!  help_apropos(+Query, -Obj, -Summary, -Score) is nondet.
 %
@@ -622,15 +662,18 @@ class_alias(dcg,                   nonterminal).
 class_alias(dcg,                   non_terminal).
 
 class_tag(section,               'SEC').
-class_tag(function,              '  F').
+class_tag(function,              'F').
+class_tag(cfunction,             'C').
 class_tag(iso_predicate,         'ISO').
 class_tag(swi_builtin_predicate, 'SWI').
 class_tag(library_predicate,     'LIB').
 class_tag(dcg,                   'DCG').
+class_tag(xpce,                  'XPCE').
 
 object_class(section(_Level, _Num, _Label, _File), section).
 object_class(c(_Name), cfunction).
 object_class(f(_Name/_Arity), function).
+object_class(xpce(_Class, _Kind, _Name), xpce).
 object_class(Name/Arity, Type) :-
     functor(Term, Name, Arity),
     (   current_predicate(system:Name/Arity),
@@ -667,7 +710,7 @@ help_text(Pred, HelpText) :-
 %!  man_link(+Term, -Mapped) is semidet.
 %
 %   The `link_scheme(man)` option of man_page//2 already wrote the manual
-%   references as `man:` IRIs, which a  terminal   emits as OSC8 hyperlinks
+%   references as ``man:`` IRIs, which a  terminal   emits as OSC8 hyperlinks
 %   (see ansi_hyperlink/3) and tty_link_hook/2 below resolves when clicked.
 %   This maps the remaining links, which  address   the  PlDoc server, onto
 %   the same IRIs.  Links we cannot resolve are removed.
@@ -682,19 +725,40 @@ man_link(element(a, Attrs0, Content), Element) :-
     ;   Element = element(b, Attrs1, Content)
     ).
 
+%!  apropos_uri(+Query, +Offset, -URI) is det.
+%!  apropos_uri_goal(+URI, -Goal) is semidet.
+%
+%   Convert between an ``apropos:`` IRI  and   the  apropos/2  goal  that
+%   continues the search  at  Offset.  Used   to  make  the  line telling
+%   there are more matches clickable.
+
+apropos_uri(Query, Offset, URI) :-
+    format(atom(URI), 'apropos:~q', [Query+Offset]).
+
+apropos_uri_goal(URI, apropos(Query, [offset(Offset)])) :-
+    atom_concat('apropos:', Text, URI),
+    catch(term_to_atom(Query+Offset, Text), error(_,_), fail),
+    integer(Offset).
+
 %!  epilog:tty_link_hook(+Terminal, +Link) is semidet.
 %
-%   Open a `man:` link that was clicked in an Epilog Terminal. We quit the
-%   pager if it is still showing the page  the link was clicked in and let
-%   the terminal run help/1 on the linked object.
+%   Open a ``man:`` or ``apropos:`` link  that was clicked in an Epilog
+%   Terminal.  We quit the pager if it is  still showing the page the link
+%   was clicked in and let the terminal run help/1 on the linked object or
+%   continue the apropos/2 search.
 
 :- multifile epilog:tty_link_hook/2.
 
 epilog:tty_link_hook(Terminal, URL) :-
-    man_uri_object(URL, Object),
+    link_goal(URL, Goal),
     !,                                  % the link is ours, do not let
     quit_pager(Terminal),               % Epilog pass it to a browser
-    ignore(send(Terminal, inject, help(Object))).
+    ignore(send(Terminal, inject, Goal)).
+
+link_goal(URL, help(Object)) :-
+    man_uri_object(URL, Object).
+link_goal(URL, Goal) :-
+    apropos_uri_goal(URL, Goal).
 
 %!  quit_pager(+Terminal) is det.
 %
@@ -720,22 +784,45 @@ prolog:message(help(not_found(What))) -->
     ].
 prolog:message(help(no_apropos_match(Query))) -->
     [ 'No matches for ~p'-[Query] ].
-prolog:message(help(apropos_matches(Pairs, Total))) -->
+prolog:message(help(apropos_matches(Query, Pairs, From, Total))) -->
     { tty_width(W),
       Width is max(30,W),
-      length(Pairs, Count)
+      length(Pairs, Count),
+      End is From+Count
     },
     matches(Pairs, Width),
-    (   {Count =:= Total}
+    (   {End =:= Total, From =:= 0}
     ->  []
-    ;   [ nl,
-	  ansi(fg(red), 'Showing ~D of ~D matches', [Count,Total]), nl, nl,
-	  'Use ?- apropos(Type:Query) or multiple words in Query '-[], nl,
-	  'to restrict your search.  For example:'-[], nl, nl,
-	  '  ?- apropos(iso:open).'-[], nl,
-	  '  ?- apropos(\'open file\').'-[]
-	]
+    ;   [nl],
+	showing(Query, From, End, Total),
+	(   {End =:= Total}
+	->  []
+	;   [ nl, nl,
+	      'Use ?- apropos(Type:Query) or multiple words in Query '-[], nl,
+	      'to restrict your search.  For example:'-[], nl, nl,
+	      '  ?- apropos(iso:open).'-[], nl,
+	      '  ?- apropos(\'open file\').'-[]
+	    ]
+	)
     ).
+
+%!  showing(+Query, +From, +End, +Total)// is det.
+%
+%   Emit the line telling which of  the   matches  are  shown. If not all
+%   matches are shown this is a link to the next page.
+
+showing(Query, From, End, Total) -->
+    { End < Total,
+      apropos_uri(Query, End, URI),
+      Start is From+1
+    },
+    !,
+    [ ansi([fg(red), href(URI)], 'Showing ~D..~D of ~D matches',
+	   [Start,End,Total])
+    ].
+showing(_Query, From, End, Total) -->
+    { Start is From+1 },
+    [ ansi(fg(red), 'Showing ~D..~D of ~D matches', [Start,End,Total]) ].
 
 matches([], _) --> [].
 matches([H|T], Width) -->
@@ -750,47 +837,74 @@ match(Obj-Summary, Width) -->
     { Left is min(40, max(20, round(Width/3))),
       Right is Width-Left-2,
       man_object_summary(Obj, ObjS, Tag),
-      write_size(ObjS, LenObj, _Height, [portray(true), quoted(true)]),
-      Spaces0 is Left - LenObj - 4,
+      format(string(TagS), '~t~w~4|', [Tag]),
+      string_length(ObjS, LenObj),
+      Spaces0 is Left - LenObj - 5,
       (   Spaces0 > 0
       ->  Spaces = Spaces0,
 	  SummaryLen = Right
       ;   Spaces = 1,
 	  SummaryLen is Right + Spaces0 - 1
       ),
-      truncate(Summary, SummaryLen, SummaryE)
+      truncate(Summary, SummaryLen, SummaryE),
+      match_attributes(Obj, Attrs)
     },
-    [ ansi([fg(default)], '~w ~p', [Tag, ObjS]),
+    [ ansi([fg(default)], '~w ', [TagS]),
+      ansi(Attrs, '~w', [ObjS]),
       '~|~*+~w'-[Spaces, SummaryE]
 %     '~*|~w'-[Spaces, SummaryE]		% Should eventually work
     ].
+
+%!  match_attributes(+Object, -Attributes) is det.
+%
+%   ANSI attributes for printing Object.  If  the terminal supports them,
+%   make the match a link that runs help/1 on Object.
+
+match_attributes(Obj, [fg(default), href(URI)]) :-
+    current_prolog_flag(hyperlink_term, true),
+    man_object_uri(Obj, URI),
+    !.
+match_attributes(_Obj, [fg(default)]).
 
 truncate(Summary, Width, SummaryE) :-
     string_length(Summary, SL),
     SL > Width,
     !,
-    Pre is Width-4,
+    Pre is max(0, Width-4),
     sub_string(Summary, 0, Pre, _, S1),
     string_concat(S1, " ...", SummaryE).
 truncate(Summary, _, Summary).
 
-man_object_summary(section(_Level, _Num, Label, _File), Obj, 'SEC') :-
-    atom_concat('sec:', Obj, Label),
-    !.
-man_object_summary(section(0, _Num, File, _Path), File, 'SEC') :- !.
-man_object_summary(c(Name), Obj, '  C') :- !,
-    compound_name_arguments(Obj, Name, []).
-man_object_summary(f(Name/Arity), Name/Arity, '  F') :- !.
-man_object_summary(Obj, Obj, Tag) :-
+%!  man_object_summary(+Object, -Label:string, -Tag) is det.
+%
+%   Label is the text used to display  Object in the apropos output. Tag
+%   is a short indication of the type of Object.
+
+man_object_summary(section(_Level, _Num, Label, _File), Text, 'SEC') :-
+    atom_concat('sec:', Name, Label),
+    !,
+    format(string(Text), '~w', [Name]).
+man_object_summary(section(0, _Num, File, _Path), Text, 'SEC') :- !,
+    format(string(Text), '~w', [File]).
+man_object_summary(c(Name), Text, 'C') :- !,
+    format(string(Text), '~w()', [Name]).
+man_object_summary(xpce(Class, Kind, Name), Text, 'XPCE') :- !,
+    xpce_object_label(xpce(Class, Kind, Name), Label),
+    format(string(Text), '~w', [Label]).
+man_object_summary(f(Name/Arity), Text, 'F') :- !,
+    format(string(Text), '~p', [Name/Arity]).
+man_object_summary(Obj, Text, Tag) :-
     (   object_class(Obj, Class),
 	class_tag(Class, Tag)
     ->  true
-    ;   Tag = '  ?'
-    ).
+    ;   Tag = '?'
+    ),
+    format(string(Text), '~p', [Obj]).
 
 		 /*******************************
 		 *            SANDBOX		*
 		 *******************************/
 
 sandbox:safe_primitive(prolog_help:apropos(_)).
+sandbox:safe_primitive(prolog_help:apropos(_,_)).
 sandbox:safe_primitive(prolog_help:help(_)).
