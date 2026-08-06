@@ -47,12 +47,17 @@
 :- autoload(library(lists), [append/3, sum_list/2, select/3]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(porter_stem), [tokenize_atom/2]).
-:- autoload(library(process), [process_create/3, process_which/2]).
+:- autoload(library(process),
+	    [process_create/3, process_which/2, process_wait/2]).
 :- autoload(library(sgml), [load_html/3]).
 :- autoload(library(solution_sequences), [distinct/1]).
 :- autoload(library(http/html_write), [html/3, print_html/1]).
 :- autoload(library(lynx/html_text), [html_text/2]).
-:- autoload(pldoc(doc_man), [man_page/4]).
+:- autoload(pldoc(doc_man),
+	    [ man_page/4, pldoc_href_object/2,
+	      man_object_uri/2, man_uri_object/2
+	    ]).
+:- autoload(library(pce), [send/3, get/3]).
 :- autoload(pldoc(doc_modes), [(mode)/2]).
 :- autoload(pldoc(doc_words), [doc_related_word/3]).
 :- autoload(pldoc(man_index), [man_object_property/2, doc_object_identifier/2]).
@@ -128,6 +133,8 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 %       Give help on the matching C interface function
 %     - section(Label)
 %       Show the section from the manual with matching Label.
+%     - xpce(Class, Kind, Name)
+%       Show the documentation of an XPCE class member.
 %
 %   help/1 shows documentation from the manual   as  well as from loaded
 %   user code if the code is documented   using  PlDoc. To show only the
@@ -141,6 +148,11 @@ By default the result of  help/1  is   sent  through  a  _pager_ such as
 %   If possible, the results are sent  through   a  _pager_  such as the
 %   `less` program. This behaviour is  controlled   by  the  Prolog flag
 %   `help_pager`. See section level documentation.
+%
+%   If the terminal supports hyperlinks (see  the Prolog flag
+%   `hyperlink_term`), the manual references in  the page are clickable.
+%   In an Epilog window, clicking one quits the pager and runs help/1 on
+%   the linked object.
 %
 %   @see apropos/1 for searching the manual names and summaries.
 
@@ -179,6 +191,10 @@ show_html(HTML) :-
     with_pager(html_text(DOM, [width(LineWidth)])).
 
 help_html(Matches, How, HTML) :-
+    (   current_prolog_flag(epilog, true)
+    ->  Extra = [link_scheme(man)]
+    ;   Extra = []
+    ),
     phrase(html(html([ head([]),
 		       body([ \match_type(How),
 			      dl(\man_pages(Matches,
@@ -188,6 +204,7 @@ help_html(Matches, How, HTML) :-
 					      navtree(false),
 					      server(false),
                                               qualified(always)
+                                            | Extra
 					    ]))
 			    ])
 		     ])),
@@ -281,6 +298,9 @@ help_object(Func, How, c(Name), ID) :-
     compound_name_arity(Func, Fuzzy, 0),
     match_name(How, Fuzzy, Name),
     man_object_property(c(Name), id(ID)).
+% resolved manual objects, e.g. from a clicked hyperlink.  See man_link/2.
+help_object(Obj, _How, Obj, ID) :-
+    man_object_id(Obj, ID).
 % for currently loaded predicates
 help_object(Module, _How, Module:Name/Arity, _ID) :-
     atom(Module),
@@ -301,6 +321,33 @@ help_object(Fuzzy, How, Module:Name/Arity, _ID) :-
     atom(Fuzzy),
     match_name(How, Fuzzy, Name),
     current_predicate_help(Module:Name/Arity).
+
+%!  man_object_id(@Object, -ID) is semidet.
+%
+%   True when Object is a fully specified   manual object with identifier
+%   ID.  Predicate indicators  are  not   included:  these  are  ambiguous
+%   enough to be handled by the fuzzy matching clauses above.
+
+man_object_id(Module:Name/Arity, ID) :-
+    atom(Module),
+    atom(Name),
+    integer(Arity),
+    man_object_property(Module:Name/Arity, id(ID)).
+man_object_id(section(Label), ID) :-
+    atom(Label),
+    man_object_property(section(_Level,_Num,Label,_File), id(ID)).
+man_object_id(f(Name/Arity), ID) :-
+    atom(Name),
+    integer(Arity),
+    man_object_property(f(Name/Arity), id(ID)).
+man_object_id(c(Name), ID) :-
+    atom(Name),
+    man_object_property(c(Name), id(ID)).
+man_object_id(xpce(Class,Kind,Name), ID) :-
+    atom(Class),
+    atom(Kind),
+    atom(Name),
+    man_object_property(xpce(Class,Kind,Name), id(ID)).
 
 %!  current_predicate_help(?PI) is nondet.
 %
@@ -346,7 +393,9 @@ main_source(File, Main) :-
 %!  with_pager(+Goal)
 %
 %   Send the current output of Goal through a  pager. If no pager can be
-%   found we simply dump the output to the current output.
+%   found we simply dump the output to the current output.  We wait for
+%   the pager to terminate, so the toplevel does not print its prompt on
+%   the screen the pager is using.
 
 with_pager(Goal) :-
     pager_ok(Pager, Options),
@@ -354,24 +403,38 @@ with_pager(Goal) :-
     current_output(Screen),
     setup_call_cleanup(
 	pager_screen(Screen, enter),
-	paged(Pager, Options, Goal),
+	paged(Pager, Goal, Options),
 	pager_screen(Screen, leave)).
 with_pager(Goal) :-
     call(Goal).
 
-paged(Pager, Options, Goal) :-
+%!  pager(?Thread, ?PID) is nondet.
+%
+%   True while Thread is showing help using the pager process PID.  Used
+%   by quit_pager/1 to get the pager out of the way if the user clicks a
+%   hyperlink in the page it is showing.
+
+:- dynamic
+    pager/2.                            % Thread, PID
+
+paged(Pager, Goal, Options) :-
     Catch = error(io_error(_,_), _),
     current_output(OldIn),
+    thread_self(Me),
     setup_call_cleanup(
-	process_create(Pager, Options,
-		       [stdin(pipe(In))]),
+	( process_create(Pager, Options,
+			 [stdin(pipe(In)), process(PID)]),
+	  assertz(pager(Me, PID), Ref)
+	),
 	( set_stream(In, tty(true)),
 	  set_output(In),
 	  catch(Goal, Catch, true)
 	),
-	( set_output(OldIn),
-	  close(In, [force(true)])
-	)).
+	call_cleanup(( set_output(OldIn),
+                       close(In, [force(true)]),
+                       process_wait(PID, _Status)
+                     ),
+                     erase(Ref))).
 
 %!  pager_screen(+Screen, +Which) is det.
 %
@@ -602,18 +665,48 @@ help_text(Pred, HelpText) :-
                 *******************************/
 
 %!  man_link(+Term, -Mapped) is semidet.
+%
+%   The `link_scheme(man)` option of man_page//2 already wrote the manual
+%   references as `man:` IRIs, which a  terminal   emits as OSC8 hyperlinks
+%   (see ansi_hyperlink/3) and tty_link_hook/2 below resolves when clicked.
+%   This maps the remaining links, which  address   the  PlDoc server, onto
+%   the same IRIs.  Links we cannot resolve are removed.
 
-man_link(element(a, Attrs0, Content),
-         element(a, Attrs, Content)) :-
+man_link(element(a, Attrs0, Content), Element) :-
     select(href=HREF0, Attrs0, Attrs1),
-    format(atom(HREF), 'man:~w', [HREF0]),
-    Attrs = [href=HREF|Attrs1].
+    \+ sub_atom(HREF0, 0, _, _, 'man:'),
+    (   current_prolog_flag(epilog, true),
+        pldoc_href_object(HREF0, Object),
+	man_object_uri(Object, HREF)
+    ->  Element = element(a, [href=HREF|Attrs1], Content)
+    ;   Element = element(b, Attrs1, Content)
+    ).
+
+%!  epilog:tty_link_hook(+Terminal, +Link) is semidet.
+%
+%   Open a `man:` link that was clicked in an Epilog Terminal. We quit the
+%   pager if it is still showing the page  the link was clicked in and let
+%   the terminal run help/1 on the linked object.
 
 :- multifile epilog:tty_link_hook/2.
 
-epilog:tty_link_hook(_TerminalObject, URL) :-
-    atom_concat('man:', ManLink, URL),
-    format(user_error, 'Open manual link to ~p~n', [ManLink]).
+epilog:tty_link_hook(Terminal, URL) :-
+    man_uri_object(URL, Object),
+    !,                                  % the link is ours, do not let
+    quit_pager(Terminal),               % Epilog pass it to a browser
+    ignore(send(Terminal, inject, help(Object))).
+
+%!  quit_pager(+Terminal) is det.
+%
+%   If the Prolog thread of Terminal is  waiting for its pager, tell the
+%   pager to quit. All common pagers quit on `q`.
+
+quit_pager(Terminal) :-
+    get(Terminal, thread, Thread),
+    pager(Thread, _PID),
+    !,
+    send(Terminal, send, "q").
+quit_pager(_).
 
 		 /*******************************
 		 *            MESSAGES		*
