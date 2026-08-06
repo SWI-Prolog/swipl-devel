@@ -609,9 +609,9 @@ man_link(element(a, Attrs0, Content),
     format(atom(HREF), 'man:~w', [HREF0]),
     Attrs = [href=HREF|Attrs1].
 
-:- multifile epilog:tty_link_hook/1.
+:- multifile epilog:tty_link_hook/2.
 
-epilog:tty_link_hook(URL) :-
+epilog:tty_link_hook(_TerminalObject, URL) :-
     atom_concat('man:', ManLink, URL),
     format(user_error, 'Open manual link to ~p~n', [ManLink]).
 
