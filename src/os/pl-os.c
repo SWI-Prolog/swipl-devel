@@ -2771,6 +2771,110 @@ adopt_ctty(void)
       ioctl(0, TIOCSCTTY, 0);
   }
 }
+
+/* The child made our terminal its controlling terminal, and on BSD
+ * systems -- MacOS among them -- the kernel revokes a controlling
+ * terminal once its session leader exits.  Revoking detaches every
+ * descriptor on that terminal from the device, in this process as
+ * well: the fds stay open but read() and write() on them return EIO.
+ * Prolog is then left without usable standard streams and dies on the
+ * first message it tries to print.
+ *
+ * The device itself survives; opening it again yields a working
+ * terminal.  So remember the terminals we hand to the child and, if
+ * the child took them down, open them again and dup2() them back onto
+ * the descriptors the streams use.  A revoke also resets the terminal
+ * to the kernel's defaults, taking the raw mode of the line editor
+ * with it, so the settings have to be put back as well.  Linux does
+ * not revoke and nothing below is then reached.
+ *
+ * Only a terminal that is not ours already can be revoked this way:
+ * adopt_ctty() leaves the child in our session otherwise.  In practice
+ * this is the pty of an epilog window.
+ *
+ * We keep a duplicate of our own over the fork to tell what happened.
+ * Asking the stream's descriptor cannot: an epilog window watches the
+ * master side, sees the revoke as end of file and reconnects the
+ * client side itself (rlc_reclaim_pty() in xpce's src/txt/terminal.c),
+ * so by the time we look the descriptor may be alive again and the
+ * lost settings would go unnoticed.  Nobody knows about the duplicate,
+ * so it stays dead and says what became of the terminal.
+ */
+
+typedef struct ctty_state
+{ int		 fd;			/* Descriptor of the stream */
+  int		 dup;			/* Our private copy, -1 if none */
+  bool		 valid;			/* We can restore it */
+  struct termios tio;			/* Settings to restore */
+  char		 name[PATH_MAX];	/* Device to open again */
+} ctty_state;
+
+static int
+dup_cloexec(int fd)
+{
+#ifdef F_DUPFD_CLOEXEC			/* atomic: we are about to fork */
+  return fcntl(fd, F_DUPFD_CLOEXEC, 0);
+#else
+  int new = dup(fd);
+
+  if ( new >= 0 )
+    fcntl(new, F_SETFD, FD_CLOEXEC);
+  return new;
+#endif
+}
+
+static void
+save_ctty(ctty_state *state)
+{ IOSTREAM * const s[3] = { Suser_input, Suser_output, Suser_error };
+
+  for(int i=0; i<3; i++)
+  { ctty_state *cs = &state[i];
+
+    cs->dup = -1;
+    cs->fd = Sfileno(s[i]);
+    cs->valid = ( cs->fd >= 0 &&
+		  isatty(cs->fd) &&
+		  tcgetsid(cs->fd) != getsid(0) &&
+		  ttyname_r(cs->fd, cs->name, sizeof(cs->name)) == 0 &&
+		  tcgetattr(cs->fd, &cs->tio) == 0 &&
+		  (cs->dup=dup_cloexec(cs->fd)) >= 0 );
+  }
+}
+
+static void
+close_ctty(const ctty_state *state)
+{ for(int i=0; i<3; i++)
+  { if ( state[i].dup >= 0 )
+      close(state[i].dup);
+  }
+}
+
+static void
+restore_ctty(const ctty_state *state)
+{ for(int i=0; i<3; i++)
+  { const ctty_state *cs = &state[i];
+    struct termios tio;
+
+    if ( cs->dup < 0 )			/* nothing we could restore */
+      continue;
+
+    if ( tcgetattr(cs->dup, &tio) < 0 )	/* our copy died: it was revoked */
+    { if ( tcgetattr(cs->fd, &tio) < 0 ) /* and nobody reconnected it yet */
+      { int fd = open(cs->name, O_RDWR|O_NOCTTY);
+
+	if ( fd >= 0 )
+	{ dup2(fd, cs->fd);
+	  close(fd);
+	}
+      }
+      tcsetattr(cs->fd, TCSANOW, &cs->tio); /* the revoke reset these */
+      DEBUG(MSG_TTY,
+	    Sdprintf("shell: reconnected fd %d to %s\n", cs->fd, cs->name));
+    }
+
+    close(cs->dup);
+  }
+}
 #endif
 
 static const char *
@@ -2807,9 +2911,18 @@ System(char *cmd)
   void (*old_int)();
   void (*old_stop)();
 #endif
+#ifdef O_ADOPT_CTTY
+  ctty_state ctty[3];
+
+  save_ctty(ctty);
+#endif
 
   if ( (pid = fork()) == -1 )
-  { return PL_error("shell", 2, MSG_ERRNO, ERR_SYSCALL, "fork");
+  {
+#ifdef O_ADOPT_CTTY
+    close_ctty(ctty);
+#endif
+    return PL_error("shell", 2, MSG_ERRNO, ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
   { char tmp[PATH_MAX];
     char *argv[4];
@@ -2863,6 +2976,10 @@ System(char *cmd)
 	continue;
       break;
     }
+
+#ifdef O_ADOPT_CTTY
+    restore_ctty(ctty);			/* the child may have revoked it */
+#endif
 
     if ( n == -1 )
     { term_t tmp = PL_new_term_ref();
