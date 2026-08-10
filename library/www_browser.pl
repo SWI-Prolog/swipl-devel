@@ -42,6 +42,9 @@
 :- if(exists_source(library(process))).
 :- autoload(library(process), [process_create/3]).
 :- endif.
+:- if(exists_source(library(desktop))).
+:- autoload(library(desktop), [desktop_open/2]).
+:- endif.
 
 :- multifile
     known_browser/2.
@@ -69,18 +72,14 @@ example, the SWI-Prolog home page can be opened using:
 %     or `bg`, requesting Command to run in foreground or background
 %     mode.  Default is `bg`.
 %
-%     2. On Windows, use win_shell(open, URL)
+%     2. Hand the URL to the desktop using desktop_open/2 from
+%     library(desktop) if this library is available.  On Windows we
+%     use win_shell/2 if it is not.
 %
-%     3. Find a generic `open' comment.  Candidates are =xdg-open=,
-%     =open= or =|gnome-open|=.
-%
-%     4. If a environment variable =BROWSER= is set
+%     3. If a environment variable =BROWSER= is set
 %     and this is the name of a known executable, use this.
 %
-%     5. Try to find a known browser.
-%
-%     @tbd  Figure out the right tool in step 3 as it is not
-%           uncommon that multiple are installed.
+%     4. Try to find a known browser.
 
 www_open_url(Spec) :-                   % user configured
     expand_url_path(Spec, URL),
@@ -92,16 +91,16 @@ open_url(URL) :-
     has_command(Command),
     !,
     run_command(Command, [URL], Mode).
-:- if(current_predicate(win_shell/2)).
-open_url(URL) :-                        % Windows shell
-    win_shell(open, URL),
+:- if(current_predicate(desktop_open/2)).
+open_url(URL) :-                        % let the desktop open the URL
+    catch(desktop_open(URL, []), error(_,_), fail),
     !.
 :- endif.
-open_url(URL) :-                        % Unix `open document'
-    open_command(Open),
-    has_command(Open),
-    !,
-    run_command(Open, [URL], fg).
+:- if(current_predicate(win_shell/2)).
+open_url(URL) :-                        % Windows shell.  Only used if
+    win_shell(open, URL),               % library(desktop) is not available
+    !.
+:- endif.
 open_url(URL) :-                        % user configured
     getenv('BROWSER', Browser),
     has_command(Browser),
@@ -115,12 +114,6 @@ open_url(URL) :-                        % something we know
 
 expand_browser_flag(Command-Mode, Command, Mode) :- !.
 expand_browser_flag(Command, Command, bg) :- atomic(Command).
-
-open_command(open) :-                   % Apples open command
-    current_prolog_flag(apple, true).
-open_command('xdg-open').               % Free desktop
-open_command('gnome-open').             % Gnome (deprecated in favour of xdg-open
-open_command(open).                     % Who knows
 
 %!  run_browser(+Browser, +URL) is det.
 %
