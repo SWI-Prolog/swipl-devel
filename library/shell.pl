@@ -48,7 +48,9 @@
             popd/0,
             mv/2,                               % +File1, +File2
             rm/1,                               % +File1
-            cls/0
+            cls/0,
+
+            shell_command/1                     % -Shell
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(error),
@@ -65,46 +67,54 @@
 
 This library provides some  basic  (POSIX)   shell  commands  defined in
 Prolog, such as `pwd` and `ls` for   situations  where there is no shell
-available or the shell output cannot be captured.
+available or the shell output cannot be   captured.  Note that in recent
+versions (since 10.1.13)  the  GUI   frontend  `swipl-win`  can  capture
+process output on all supported platforms.
 */
 
 %!  shell
 %
-%   Execute an interactive shell. The  following   options  are tried to
-%   find a suitable shell command:
+%   Execute an interactive shell. Uses shell_command/1 to find a
+%   suitable shell.
+%
+%   The shell's exit status is  not   our  business, so shell/0 succeeds
+%   whatever it is. Note that if the   shell  cannot be executed shell/2
+%   raises an exception.
+
+shell :-
+    shell_command(Shell),
+    shell(Shell, _).
+
+%!  shell_command(-Shell:atom)
+%
+%   True  when  Shell  is  the  preferred   executable  for  running  an
+%   interactive shell. Used by shell/0. The  following options are tried
+%   to find a suitable shell command:
 %
 %     1. The Prolog flag `shell`
 %     2. The environment variable ``%comspec%`` (Windows only)
 %     3. The environment variable ``$SHELL``
 %     4. The Prolog flag `posix_shell`
 %
-%   The shell's exit status is not our business, so shell/0 succeeds
-%   whatever it is.
-%
 %   @error existence_error(config, shell) if no suitable shell can be
 %   found.
 
-shell :-
-    interective_shell(Shell),
+shell_command(Shell) :-
+    shell_command_(Shell),
     access_file(Shell, execute),
-    !,
-    shell(Shell, _).
-shell :-
+    !.
+shell_command(_) :-
     existence_error(config, shell).
 
-interective_shell(Shell) :-
+shell_command_(Shell) :-
     current_prolog_flag(shell, Shell).
-interective_shell(Shell) :-
-    current_prolog_flag(windows, true),
-    getenv(comspec, Shell).             % first: $SHELL and posix_shell
-                                        % name POSIX paths that a Windows
-                                        % box may well resolve without
-                                        % being able to execute them.
-                                        % Set the `shell` flag to pick
-                                        % another one.
-interective_shell(Shell) :-
+:- if(current_prolog_flag(windows, true)).
+shell_command_(Shell) :-
+    getenv(comspec, Shell).
+:- endif.
+shell_command_(Shell) :-
     getenv('SHELL', Shell).
-interective_shell(Shell) :-
+shell_command_(Shell) :-
     current_prolog_flag(posix_shell, Shell).
 
 
