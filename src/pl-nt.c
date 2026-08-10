@@ -36,11 +36,17 @@
 
 #ifdef __WINDOWS__
 #undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0A00		/* PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE */
+#define _WIN32_WINNT 0x0A00		/* Windows 10 */
+#undef NTDDI_VERSION			/* Windows 10 1809: pseudo console. */
+#define NTDDI_VERSION 0x0A000006	/* PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE */
 #define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #include <psapi.h>
+
+#ifndef PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE	/* older SDK */
+#define PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE 0x00020016
+#endif
 
 #ifdef __MINGW32__
 #ifndef _WIN32_IE
