@@ -229,6 +229,9 @@ tagged_file_in_dir(File, Result) :-
     (   exists_directory(File)
     ->  atom_concat(Base, /, Label),
         Result = dir(File, Label)
+    ;   read_link(File, _, _)
+    ->  atom_concat(Base, '@', Label),
+        Result = file(File, Label)
     ;   Result = file(File, Base)
     ).
 
