@@ -79,6 +79,7 @@ documented at all.
 \input{registry}
 \InputIfFileExists{rwlocks}{}{}
 \input{settings}
+\input{shell}
 \input{statistics}
 \input{strings}
 \InputIfFileExists{simplex}{}{}

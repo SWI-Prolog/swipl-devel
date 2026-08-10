@@ -186,7 +186,7 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         prolog_jiti tables listing strings terms ugraphs portray_text
         increval prolog_debug prolog_trace rbtrees statistics heaps fastrw gensym
         www_browser macros prolog_versions prolog_coverage exceptions
-	tableutil)
+	tableutil shell)
 if(MULTI_THREADED)
   libsdoc(thread_pool thread rwlocks threadutil)
 endif()

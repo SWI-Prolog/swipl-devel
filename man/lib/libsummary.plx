@@ -228,6 +228,9 @@ This library is only available on Windows systems.
 \libsummary{settings}
 \input{summaries.d/settings.tex}
 
+\libsummary{shell}
+\input{summaries.d/shell.tex}
+
 \IfFileExists{summaries.d/simplexlib.tex}{
 \libsummary{simplex}
 

@@ -198,7 +198,10 @@ dir_name(Path, Path).
 %!  ls.
 %!  ls(+Pattern).
 %
-%   Listing similar to Unix =ls -F=, flagging directories with =/=.
+%   Listing similar to Unix ``ls -F``, flagging directories with `/`. If
+%   the terminal supports it, Prolog source  files are rendered as links
+%   using the OSC 8  escape  sequence.   When  using  Epilog, clicking a
+%   Prolog file opens it in the editor.
 
 ls :-
     ls('.').
@@ -370,11 +373,11 @@ prolog:message(shell(directory(Path))) -->
 %   Produce a tabular layout to list all   elements of List on lines
 %   with a maximum width of Width. Elements are placed as =ls= does:
 %
-%      ==
+%      ```
 %      1  4  7
 %      2  5  8
 %      3  6
-%      ==
+%      ```
 
 table(List, Width) -->
     { table_layout(List, Width, Layout),
