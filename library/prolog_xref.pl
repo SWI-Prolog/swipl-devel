@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2006-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -1728,7 +1728,9 @@ extend(M:G, N, M:GX) :-
     callable(G),
     extend(G, N, GX).
 extend(G, N, GX) :-
-    (   compound(G)
+    (   N =:= 0
+    ->  GX = G
+    ;   compound(G)
     ->  compound_name_arguments(G, Name, Args),
         length(Rest, N),
         append(Args, Rest, NArgs),
