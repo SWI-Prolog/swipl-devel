@@ -79,19 +79,39 @@ interface to get the system going.
 #if O_CTRLC
 static DWORD main_thread_id;
 
+/* Windows runs a console control handler on a thread of its own, which
+ * has no Prolog engine.  PL_raise() therefore has nothing to raise the
+ * signal on -- it must be addressed to the thread that runs Prolog.
+ * PL_w32thread_raise() does that, and is defined for the single
+ * threaded version as well.  Note that this file does not see
+ * config.h, so an `#ifdef O_PLMT` here always took the wrong branch.
+ */
 static BOOL
 consoleHandlerRoutine(DWORD id)
 { switch(id)
   { case CTRL_C_EVENT:
-#ifdef O_PLMT
       PL_w32thread_raise(main_thread_id, SIGINT);
-#else
-      PL_raise(SIGINT);
-#endif
       return true;
   }
 
   return false;
+}
+
+/* Claim ^C for the handler above.
+ *
+ * Handlers are called last-registered-first, and the C runtime installs
+ * one of its own when PL_initialise() calls signal(SIGINT, ...).  That
+ * one would thus be called first, and as it resets the handler to
+ * SIG_DFL before calling it (ANSI semantics), it only answers the first
+ * ^C: the next one finds SIG_DFL, declines, and leaves the interrupt to
+ * us.  Re-registering after PL_initialise() puts us back in front, so
+ * every ^C takes the same route.
+ */
+static void
+claim_control_c(void)
+{ main_thread_id = GetCurrentThreadId();
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, false);
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, true);
 }
 #endif
 
@@ -127,8 +147,7 @@ main(int argc, char **argv)
 #endif
 {
 #if O_CTRLC
-  main_thread_id = GetCurrentThreadId();
-  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, true);
+  claim_control_c();			/* also handle ^C during startup */
 #endif
 
   force_malloc_dependency();
@@ -138,6 +157,10 @@ main(int argc, char **argv)
 #endif
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
+
+#if O_CTRLC
+  claim_control_c();			/* ... and take it back from the CRT */
+#endif
 
   int status = PL_toplevel() ? 0 : 1;
   PL_halt(status);
