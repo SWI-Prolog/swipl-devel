@@ -574,13 +574,15 @@ swi_location(file(Path, Line, -1, _CharNo)) -->
     !,
     [ url(Path:Line), ': ' ].
 swi_location(file(Path, Line, LinePos, _CharNo)) -->
-    [ url(Path:Line:LinePos), ': ' ].
+    { Column is LinePos+1 },                    % line_position is 0-based
+    [ url(Path:Line:Column), ': ' ].
 swi_location(stream(Stream, Line, LinePos, CharNo)) -->
     (   { is_stream(Stream),
           stream_property(Stream, file_name(File))
         }
     ->  swi_location(file(File, Line, LinePos, CharNo))
-    ;   [ 'Stream ~w:~d:~d '-[Stream, Line, LinePos] ]
+    ;   { Column is LinePos+1 },
+        [ 'Stream ~w:~d:~d '-[Stream, Line, Column] ]
     ).
 swi_location(autoload(File:Line)) -->
     [ url(File:Line), ': ' ].
@@ -787,12 +789,13 @@ prolog_message(io_warning(Stream, Message)) -->
       !,
       stream_position_data(line_count, Position, LineNo),
       stream_position_data(line_position, Position, LinePos),
+      Column is LinePos+1,                      % line_position is 0-based
       (   stream_property(Stream, file_name(File))
       ->  Obj = File
       ;   Obj = Stream
       )
     },
-    [ '~p:~d:~d: ~w'-[Obj, LineNo, LinePos, Message] ].
+    [ '~p:~d:~d: ~w'-[Obj, LineNo, Column, Message] ].
 prolog_message(io_warning(Stream, Message)) -->
     [ 'stream ~p: ~w'-[Stream, Message] ].
 prolog_message(option_usage(pldoc)) -->

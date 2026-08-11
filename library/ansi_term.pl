@@ -437,10 +437,14 @@ class_attrs(Attrs, Attrs).
 %     - A term `File:Line:Column`
 %
 %   There is no official standard for  encoding the `Line` and `Column`.
-%   The current implementation emits, i.e.,   inserting  a capital ``L``
-%   before the line.
+%   We emit
 %
-%       ``file://AbsFileName[#LLine[:Column]]``
+%       ``file://AbsFileName[#Line[:Column]]``
+%
+%   Both `Line` and `Column` count from  1,   as  in the messages we
+%   print and as used by e.g., ``rg --hyperlink-format=...``.  Note that
+%   a capital ``L`` before the line, as   used by GitHub, is accepted by
+%   Epilog as well.
 %
 %   @see https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 

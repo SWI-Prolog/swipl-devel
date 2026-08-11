@@ -75,7 +75,12 @@ an editor.
 
 %!  edit(+Spec)
 %
-%   Edit indicated object.
+%   Edit indicated object.  Spec  is  a   predicate  indicator,  a  file
+%   specification or a source location   `File:Line` or `File:Line:Col`.
+%   Both Line and Col count from 1,  as   in  the messages we print, the
+%   hyperlinks we emit (see ansi_hyperlink/2) and the messages of e.g.,
+%   the C compiler.  Note that  the   `line_position`  of a stream (see
+%   stream_position_data/3) counts from 0.
 
 edit(Spec) :-
     notrace(edit_no_trace(Spec)).
