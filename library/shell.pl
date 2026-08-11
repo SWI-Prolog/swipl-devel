@@ -110,7 +110,8 @@ shell_command_(Shell) :-
     current_prolog_flag(shell, Shell).
 :- if(current_prolog_flag(windows, true)).
 shell_command_(Shell) :-
-    getenv(comspec, Shell).
+    getenv(comspec, WinPath),
+    prolog_to_os_filename(Shell, WinPath).
 :- endif.
 shell_command_(Shell) :-
     getenv('SHELL', Shell).
