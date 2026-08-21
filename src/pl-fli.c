@@ -5449,6 +5449,15 @@ input_on_stream(IOSTREAM *in)
 #endif
 
 
+/* The event dispatcher runs Prolog callbacks (menu items, key bindings,
+   ...) and such a callback may leave an exception behind.  Notably the
+   "Halt Prolog" item of an Epilog window raises unwind(halt(Status)) in
+   this very thread: with the SDL backend the events of the main thread
+   are dispatched from here, while it is waiting for input on the
+   terminal.  We must stop waiting and let the exception through rather
+   than dispatch on until the user happens to type something.
+*/
+
 bool
 PL_dispatch(IOSTREAM *in, int wait)
 { if ( wait == PL_DISPATCH_INSTALLED )
@@ -5460,10 +5469,12 @@ PL_dispatch(IOSTREAM *in, int wait)
       { if ( PL_handle_signals() < 0 )
 	  return false;
 	(*GD->foreign.dispatch_events)(in);
+	if ( PL_exception(0) )
+	  return false;
       }
     } else
     { (*GD->foreign.dispatch_events)(in);
-      if ( PL_handle_signals() < 0 )
+      if ( PL_handle_signals() < 0 || PL_exception(0) )
 	  return false;
     }
   }

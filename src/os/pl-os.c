@@ -2181,7 +2181,15 @@ Sread_terminal(void *handle, char *buf, size_t size)
     else if ( ison(Soutput, SIO_ISATTY) )
       Sflush(Suser_output);
 
-    PL_dispatch(Sinput, PL_DISPATCH_WAIT);
+    if ( !PL_dispatch(Sinput, PL_DISPATCH_WAIT) )
+    { /* A signal or an event callback (e.g., "Halt Prolog" of an Epilog
+	 window) raised an exception.  Hand it to the stream rather than
+	 blocking on the terminal until the user types something.
+      */
+      Sset_exception(Sinput, PL_exception(0));
+      LD->read_source = oldsrc;
+      return -1;
+    }
     rc = (*GD->os.org_terminal.read)(handle, buf, size);
 
     if ( rc == 0 )			/* end-of-file */
