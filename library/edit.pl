@@ -44,7 +44,6 @@
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
 :- autoload(library(readutil), [read_line_to_string/2]).
-:- autoload(library(dcg/basics), [string/3, integer/3, remainder/3]).
 :- autoload(library(solution_sequences), [distinct/2]).
 
 
@@ -320,13 +319,7 @@ predicate_location(Pred, #{file:File, line:Line}) :-
     copy_term(Pred, Pred2),
     distinct(Primary, primary_predicate(Pred2, Primary)),
     ignore(Pred = Primary),
-    (   predicate_property(Primary, file(File)),
-        predicate_property(Primary, line_count(Line))
-    ->  true
-    ;   '$foreign_predicate_source'(Primary, Source),
-        string_codes(Source, Codes),
-        phrase(addr2line_output(File, Line), Codes)
-    ).
+    '$predicate_source_location'(Primary, File:Line).
 
 primary_predicate(Pred, Primary) :-
     (   predicate_property(Pred, imported_from(Source))
@@ -342,20 +335,7 @@ primary_predicate(Pred, Primary) :-
 
 addr2location(Address, File, Line) :-
     '$addr2line'(Address, Source),
-    string_codes(Source, Codes),
-    phrase(addr2line_output(File, Line), Codes).
-
-%!  addr2line_output(-File, -Line)// is semidet.
-%
-%   Process the output of the   `addr2line` utility. This implementation
-%   works  for  Linux.  Additional  lines  may    be  needed  for  other
-%   environments.
-
-addr2line_output(File, Line) -->
-    string(_), " at ", string(FileCodes), ":", integer(Line),
-    !,
-    remainder(_),
-    { atom_codes(File, FileCodes) }.
+    '$addr2line_location'(Source, File, Line).
 
 
                  /*******************************

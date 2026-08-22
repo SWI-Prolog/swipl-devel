@@ -88,7 +88,9 @@
             undo/1,                             % :Goal
             set_prolog_gc_thread/1,		% +Status
 
-            '$wrap_predicate'/5                 % :Head, +Name, -Closure, -Wrapped, +Body
+            '$wrap_predicate'/5,                % :Head, +Name, -Closure, -Wrapped, +Body
+            '$predicate_source_location'/2,     % :Head, -File:Line
+            '$addr2line_location'/3             % +Description, -File, -Line
           ]).
 
 :- meta_predicate
@@ -963,6 +965,100 @@ hidden_system_predicate(Head) :-
     atom(Name),                     % Avoid [].
     sub_atom(Name, 0, _, _, $),
     \+ current_prolog_flag(access_level, system).
+
+
+                /********************************
+                *      SOURCE LOCATION          *
+                *********************************/
+
+%!  '$predicate_source_location'(:Head, -Location) is semidet.
+%
+%   Location is File:Line, the place  where   the  predicate Head is
+%   defined.  Head is resolved to  its   _primary_  definition, i.e.,
+%   imported predicates are traced back to  the module that defines
+%   them.  For predicates defined in C, the location of the C function
+%   that implements it is used.  See '$foreign_predicate_source'/2.
+%
+%   This predicate provides the source location   for  both the message
+%   system (see predicate_reference//2 in `boot/messages.pl`) and
+%   library(edit).
+
+:- meta_predicate
+    '$predicate_source_location'(:, -).
+
+'$predicate_source_location'(Head, File:Line) :-
+    '$primary_predicate'(Head, Primary),
+    (   predicate_property(Primary, file(File)),
+        predicate_property(Primary, line_count(Line))
+    ->  true
+    ;   predicate_property(Primary, foreign),
+        '$foreign_source_location'(Primary, File, Line)
+    ).
+
+%!  '$primary_predicate'(:Head, -Primary) is det.
+%
+%   Primary is the module qualified Head in the module that _defines_
+%   the predicate rather than one that imports it.
+
+'$primary_predicate'(Pred, Primary) :-
+    (   predicate_property(Pred, imported_from(Module))
+    ->  strip_module(Pred, _, Head),
+        Primary = Module:Head
+    ;   Primary = Pred
+    ).
+
+%!  '$foreign_source_location'(:Head, -File, -Line) is semidet.
+%
+%   Source location of a foreign  (C  defined)   predicate.  As  this is
+%   resolved by running `addr2line` or `atos`  in a child process we can
+%   only afford to do this once per predicate.
+
+:- dynamic
+    '$foreign_source_cache'/2.              % PI, File:Line or `none`
+
+'$foreign_source_location'(Head, File, Line) :-
+    '$pi_head'(PI, Head),
+    (   '$foreign_source_cache'(PI, Cached)
+    ->  true
+    ;   (   '$foreign_predicate_source'(Head, Source),
+            '$addr2line_location'(Source, File0, Line0)
+        ->  Cached = File0:Line0
+        ;   Cached = none
+        ),
+        assertz('$foreign_source_cache'(PI, Cached))
+    ),
+    Cached = File:Line.
+
+%!  '$addr2line_location'(+Description, -File, -Line) is semidet.
+%
+%   Parse the ``Function() at File:Line``  description as produced by
+%   '$foreign_predicate_source'/2 and '$addr2line'/2.  Fails if the
+%   description does not carry a source location, which happens if the
+%   symbol lives in the main executable  or   the  file  has no debug
+%   information.
+
+'$addr2line_location'(Description, File, Line) :-
+    sub_string(Description, Before, _, After, " at "),
+    !,
+    Start is Before+4,
+    sub_string(Description, Start, After, 0, Rest),
+    '$split_file_line'(Rest, File, Line).
+
+'$split_file_line'(Rest, File, Line) :-
+    sub_string(Rest, BC, _, AC, ":"),
+    Start is BC+1,
+    sub_string(Rest, Start, AC, 0, Tail),
+    (   sub_string(Tail, BS, _, _, " ")      % e.g. " (discriminator 1)"
+    ->  sub_string(Tail, 0, BS, _, LineText)
+    ;   LineText = Tail
+    ),
+    number_string(Line, LineText),
+    integer(Line),
+    Line >= 1,                               % `addr2line` says 0 if unknown
+    !,
+    sub_string(Rest, 0, BC, _, FileText),
+    FileText \== "??",                       % and `??` for the file
+    atom_string(File, FileText).
 
 
 %!  clause_property(+ClauseRef, ?Property) is nondet.
