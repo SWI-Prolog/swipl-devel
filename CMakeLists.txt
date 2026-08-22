@@ -176,6 +176,7 @@ set(CMAKE_C_STANDARD 11)
 
 include(Utils)
 include(BuildType)
+include(DSym)
 include(Version)
 include(PGO)
 include(Locations)

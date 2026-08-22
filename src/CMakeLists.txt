@@ -495,6 +495,7 @@ endif()
 # build swipl
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
+add_dsym(swipl${PGO_SUFFIX})
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
@@ -614,6 +615,8 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
+add_dsym(libswipl${PGO_SUFFIX})		# after libswipl_properties: it
+					# sets FRAMEWORK, which we skip
 target_runtime_dependencies(libswipl)
 
 ###################################################################################
