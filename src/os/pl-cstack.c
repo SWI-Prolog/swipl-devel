@@ -1120,35 +1120,59 @@ CStackSize(DECL_LD)
 #define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
 #endif
 
+/* Append s to the description under construction.  Returns false if it
+ * does not fit, which ends the scan and leaves what we have so far.
+ */
+
+static bool
+add_str(char **op, const char *ebuf, const char *s)
+{ size_t len = strlen(s);
+  char *o = *op;
+
+  if ( o+len >= ebuf )
+    return false;
+
+  memcpy(o, s, len);
+  *op = o+len;
+
+  return true;
+}
+
+/* The description is "func() at File:Line".  The "()" is added as soon as
+ * the function name ends, but the " at " only once we know a location
+ * follows: without source line information atos(1) emits
+ * "func (in lib.dylib) + 0" and addr2line(1) emits "??:0", and a dangling
+ * "func() at " is worse than a plain "func()".
+ */
+
 static int
 addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
 { char cmd[MAXCMD];
+  int len = snprintf(cmd, sizeof(cmd), ADDR2LINE_CMD, fname, (void*)offset);
 
-  if ( snprintf(cmd, size, ADDR2LINE_CMD, fname, (void*)offset) < size )
+  if ( len > 0 && (size_t)len < sizeof(cmd) )
   { FILE *fd;
 
     if ( (fd=popen(cmd, "r")) )
     { int c;
       char *ebuf = &buf[size-1];
       char *o = buf;
-      const char *sep = "() at ";
 
 #ifdef __APPLE__
       int field = 0;
       while((c=fgetc(fd)) != EOF && o<ebuf)
       { if ( field == 0 )
-	{ if ( c == ' ' )
-	  { if ( o+strlen(sep) < ebuf )
-	    { strcpy(o, sep);
-	      o += strlen(sep);
-	    }
+	{ if ( c == ' ' )	/* end of the function name */
+	  { if ( !add_str(&o, ebuf, "()") )
+	      break;
 	    field++;
 	  } else
-	  { *o++ = c;		/* copy the function */
-	  }
+	    *o++ = c;		/* copy the function */
 	} else if ( field < 3 )
-	{ if ( c == '(' )	/* skip two '(' */
-	    field++;
+	{ if ( c == '(' &&	/* skip two '(': the location follows */
+	       ++field == 3 &&
+	       !add_str(&o, ebuf, " at ") )
+	    break;
 	} else
 	{ if ( c == ')' )	/* copy to ')' */
 	    break;
@@ -1157,16 +1181,23 @@ addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
       }
 #else
       int nl = 0;
+      bool need_at = false;
       while((c=fgetc(fd)) != EOF && o<ebuf)
       { if ( c == '\n' )
-	{ nl++;
-
-	  if ( nl == 1 && o+strlen(sep) < ebuf)
-	  { strcpy(o, sep);
-	    o += strlen(sep);
+	{ if ( ++nl == 1 )	/* end of the function name */
+	  { if ( !add_str(&o, ebuf, "()") )
+	      break;
+	    need_at = true;
 	  }
 	} else
-	{ *o++ = (char)c;
+	{ if ( need_at )
+	  { if ( c == '?' )	/* "??:0": no source location */
+	      break;
+	    if ( !add_str(&o, ebuf, " at ") )
+	      break;
+	    need_at = false;
+	  }
+	  *o++ = (char)c;
 	}
       }
 #endif
