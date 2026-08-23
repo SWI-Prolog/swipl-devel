@@ -218,7 +218,8 @@ initialization(Goal) :-
 
 :- multifile
     prolog:initialize_now/2,
-    prolog:message//1.
+    prolog:message//1,
+    prolog:line_editor_attributes/2.    % +Off, +On
 
 prolog:initialize_now(load_foreign_library(_),
                       'use :- use_foreign_library/1 instead').
@@ -1511,6 +1512,7 @@ decorate_prompt('', Prompt) :-
 decorate_prompt(Plain, Decorated) :-
     prompt_sgr(input, Input),
     prompt_sgr(prompt, Prompt),
+    line_editor_attributes(Input),
     (   Input == '',
         Prompt == ''
     ->  Decorated = Plain
@@ -1519,6 +1521,28 @@ decorate_prompt(Plain, Decorated) :-
     ;   atomic_list_concat([Input, '\e[K', Prompt, Plain, '\e[0m', Input],
                            Decorated)
     ).
+
+%!  line_editor_attributes(+Input) is det.
+%
+%   Tell the line editor how to switch  the decoration of the input line
+%   off and on again.  The line editor  erases the rows the line no longer
+%   uses when it gets shorter, for example when a wrapped line is
+%   shortened or when we move to a shorter history entry.  Erasing paints
+%   with the current background colour, so   it must switch our attributes
+%   off first and put them back afterwards.
+%
+%   This is called each time we build a prompt rather than once, so that a
+%   theme loaded at run time is picked up.
+%
+%   @see the hook prolog:line_editor_attributes/2, implemented by
+%   library(editline).
+
+line_editor_attributes(Input) :-
+    (   Input == ''
+    ->  Off = '', On = ''
+    ;   Off = '\e[0m', On = Input
+    ),
+    ignore(prolog:line_editor_attributes(Off, On)).
 
 prompt_sgr(Class, Sequence) :-
     colour_console,
