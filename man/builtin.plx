@@ -3384,6 +3384,16 @@ a list of message elements.  The elements of this list are:
         If this appears as first element, no prefix is printed for
 	the first line and the line position is not forced to 0
 	(see format/1, \verb$~N$).
+    \termitem{eol}{}
+	End the decorated part of the line: paint the remainder using
+	the background colour of the message, if it has one, and reset
+	the attributes.  This is used for the last line of a message if
+	that line is not ended using \const{nl}, for example because it
+	is ended using \verb$~N$ in a \arg{Format} element.  Resetting
+	matters because a terminal that scrolls while a background
+	colour is in effect paints the newly exposed line with it, which
+	would colour the empty line that follows the message.  Without a
+	background colour this element produces no output.
     \termitem{ansi}{+Attributes, +Format, +Args}
 	This message may be intercepted by means of the hook
 	prolog:message_line_element/2.  The library \pllib{ansi_term}
@@ -3400,17 +3410,39 @@ a list of message elements.  The elements of this list are:
     \termitem{nl}{}
         A new line is started.  If the message is not complete,
 	\arg{Prefix} is printed before the remainder of the message.
-    \termitem{begin}{Kind, Var}
+    \termitem{begin}{Class, Context}
     \nodescription
-    \termitem{end}{Var}
-	The entire message is headed by \term{begin}{Kind, Var} and
-	ended by \term{end}{Var}.  This feature is used by, e.g.,
+    \termitem{end}{Context}
+	The entire message is headed by \term{begin}{Class, Context} and
+	ended by \term{end}{Context}.  This feature is used by, e.g.,
 	library \pllib{ansi_term} to colour entire messages.
+	\arg{Class} is normally the message \jargon{kind}.  The
+	interactive top level uses \term{answer}{Parity} for the
+	messages of kind \const{query} that show bindings, which
+	\jargon{stripes} the answers of a non-deterministic query.  See
+	\secref{theme}.
     \termitem{<Format>}{}
         Handed to format/3 as \term{format}{Stream, Format, []}.
 	Deprecated because it is ambiguous if \arg{Format} collides
 	with one of the atomic commands.
 \end{description}
+
+\arg{Context} above is a variable that is bound by the handler for
+\term{begin}{Class, Context} and is passed to the elements that follow
+it.  It allows this handler to restore the decoration of the message as
+a whole after an element that installs a decoration of its own, and to
+paint the remainder of a line.  Its value is opaque: only the code that
+implements prolog:message_line_element/2 for \term{begin}{Class,
+Context} may interpret it.  If this hook is not defined, or the output
+is not a terminal, \arg{Context} is left unbound.
+
+To make \arg{Context} available to the elements that need it,
+print_message_lines/3 rewrites the elements \const{nl}, \const{flush},
+\const{eol} and \term{ansi}{Attributes, Format, Args} of \arg{Lines}
+into \term{nl}{Context}, \term{flush}{Context}, \term{eol}{Context} and
+\term{ansi}{Attributes, Format, Args, Context} before passing them to
+prolog:message_line_element/2.  A message that is created using
+prolog:message//1 always uses the short forms.
 
 See also print_message/2 and message_hook/3.
 
@@ -3498,7 +3530,12 @@ wait.
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
-\pllib{ansi_term} to colour messages on ANSI-capable terminals.
+\pllib{ansi_term} to colour messages on ANSI-capable terminals.  If it
+fails, print_message_lines/3 prints \arg{Term} itself, ignoring any
+decoration.  Note that the elements that carry the context established
+by \term{begin}{Class, Context} are passed to this hook in their long
+form, e.g., \term{nl}{Context} rather than \const{nl}.  See
+print_message_lines/3 for the details.
 
     \predicate{prolog:message_prefix_hook}{2}{+ContextTerm, -Prefix}
 This hook is called to add context to the message prefix.

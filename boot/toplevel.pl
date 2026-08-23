@@ -45,6 +45,7 @@
             prolog/0,                   % user toplevel predicate
             '$query_loop'/0,            % toplevel predicate
             '$execute_query'/3,         % +Query, +Bindings, -Truth
+            '$answer_class'/1,          % -Class
             residual_goals/1,           % +Callable
             (initialization)/1,         % initialization goal (directive)
             '$thread_init'/0,           % initialise thread
@@ -1235,14 +1236,17 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
     '$current_typein_module'(TypeIn),
     (   stream_property(user_input, tty(true))
     ->  '$system_prompt'(TypeIn, BreakLev, Prompt),
-        prompt(Old, '|    ')
+        decorate_prompt('|    ', Continue),
+        prompt(Old, Continue)
     ;   Prompt = '',
         prompt(Old, '')
     ),
+    reset_answer_count,
     trim_stacks,
     trim_heap,
     repeat,
-      (   catch(read_query(Prompt, Query, Bindings),
+      (   catch(call_cleanup(read_query(Prompt, Query, Bindings),
+                             end_input_style),
                 error(io_error(_,_),_), fail)
       ->  prompt(_, Old),
           catch(call_expand_query(Query, ExpandedQuery,
@@ -1274,16 +1278,18 @@ read_query(_Prompt, Goal, Bindings) :-
 read_query(Prompt, Goal, Bindings) :-
     prolog:history(current_input, enabled),
     !,
+    decorate_prompt(Prompt, DPrompt),
     read_term_with_history(
         Goal,
         [ show(h),
           help('!h'),
           no_save([trace]),
-          prompt(Prompt),
+          prompt(DPrompt),
           variable_names(Bindings)
         ]).
 read_query(Prompt, Goal, Bindings) :-
-    remove_history_prompt(Prompt, Prompt1),
+    remove_history_prompt(Prompt, Prompt0),
+    decorate_prompt(Prompt0, Prompt1),
     repeat,                                 % over syntax errors
     prompt1(Prompt1),
     read_query_line(user_input, Line),
@@ -1310,6 +1316,7 @@ read_query_line(Input, Line) :-
     Line = end_of_file.
 read_query_line(Input, Line) :-
     catch(read_term_as_atom(Input, Line0), Error, true),
+    end_input_style,                    % before a possible syntax error
     save_debug_after_read,
     (   var(Error)
     ->  (   catch(term_string(Goal, Line0), error(_,_), fail),
@@ -1424,6 +1431,121 @@ restore_debug :-
                 *            PROMPTING          *
                 ********************************/
 
+%!  '$answer_class'(-Class) is semidet.
+%
+%   Colour class for the answer that is  being written, or fail if it
+%   must not be decorated.  Class  is  `answer(odd)`  or `answer(even)`,
+%   alternating over the answers of a single  query.  Using a different
+%   background colour for both _stripes_  the   answers, which separates
+%   the answers of a non-deterministic query.
+%
+%   Only an answer that shows bindings, residual goals or delays is
+%   decorated: ``true.`` and ``false.`` are not answers to stripe.
+%
+%   Exported (and thus `$`-prefixed) because it is used by
+%   boot/messages.pl.  It is not intended for use by applications.
+
+'$answer_class'(Class) :-
+    nb_current('$answer_class', Class),
+    Class \== none.
+
+answer_count(Count) :-
+    (   nb_current('$answer_count', C)
+    ->  Count = C
+    ;   Count = 0
+    ).
+
+reset_answer_count :-
+    nb_setval('$answer_count', 0),
+    no_answer.
+
+%!  no_answer is det.
+%
+%   The message about to be written is not an answer that shows
+%   bindings.  Used for ``true.``, ``false.`` and the empty line that
+%   ends the interaction.
+
+no_answer :-
+    nb_setval('$answer_class', none).
+
+%!  next_answer(+Bindings, +Delays, +Residuals) is det.
+%
+%   Start a new answer.  See '$answer_class'/1.
+
+next_answer([], true, []-[]) :-
+    !,
+    no_answer.
+next_answer(_Bindings, _Delays, _Residuals) :-
+    answer_count(C0),
+    C is C0+1,
+    nb_setval('$answer_count', C),
+    (   C mod 2 =:= 0
+    ->  Class = answer(even)
+    ;   Class = answer(odd)
+    ),
+    nb_setval('$answer_class', Class).
+
+%!  decorate_prompt(+Plain, -Decorated) is det.
+%
+%   Add ANSI escape sequences to the  prompt   Plain.  The  result has a
+%   three-part structure:
+%
+%     1. The attributes of the colour class `input` followed by `\e[K`.
+%        As the prompt is written at the  start of a line this paints
+%        the entire line, which makes a background colour extend to the
+%        right margin.
+%     2. The attributes of the colour class `prompt`, the prompt itself
+%        and a reset.
+%     3. The attributes of `input` again.  These remain in effect while
+%        the user is typing, which is  how   the  typed text is coloured
+%        differently from the output.  end_input_style/0 cancels this
+%        once the query has been read.
+%
+%   Note that the line editor (see  library(editline)) does not count
+%   escape sequences  towards  the  prompt   width  and  neither  does
+%   line_position/2.
+
+decorate_prompt('', Prompt) :-
+    !,
+    Prompt = ''.                        % not connected to a terminal
+decorate_prompt(Plain, Decorated) :-
+    prompt_sgr(input, Input),
+    prompt_sgr(prompt, Prompt),
+    (   Input == '',
+        Prompt == ''
+    ->  Decorated = Plain
+    ;   Input == ''                     % nothing to paint the line with
+    ->  atomic_list_concat([Prompt, Plain, '\e[0m'], Decorated)
+    ;   atomic_list_concat([Input, '\e[K', Prompt, Plain, '\e[0m', Input],
+                           Decorated)
+    ).
+
+prompt_sgr(Class, Sequence) :-
+    colour_console,
+    current_predicate(ansi_term:ansi_sgr/2),
+    catch(ansi_term:ansi_sgr(Class, String), _, fail),
+    String \== "",
+    !,
+    atom_string(Sequence, String).
+prompt_sgr(_, '').
+
+colour_console :-
+    current_prolog_flag(color_term, true),
+    stream_property(user_output, tty(true)).
+
+%!  end_input_style is det.
+%
+%   Cancel the attributes  installed  by   decorate_prompt/2  once the
+%   query has been read.  Without this,   output  of  the query would be
+%   written using the attributes of the colour class `input`.
+
+end_input_style :-
+    (   colour_console
+    ->  write(user_output, '\e[0m'),
+        flush_output(user_output)
+    ;   true
+    ).
+
 '$system_prompt'(Module, BrekLev, Prompt) :-
     current_prolog_flag(toplevel_prompt, PAtom),
     atom_codes(PAtom, P0),
@@ -1492,6 +1614,7 @@ subst_chars([H|T]) -->
     '$execute_goal2'(Expanded, Bindings, Truth).
 '$execute_query'(_, _, false) :-
     notrace,
+    no_answer,
     print_message(query, query(no)).
 
 '$execute_goal2'(Goal, Bindings, true) :-
@@ -1513,6 +1636,7 @@ subst_chars([H|T]) -->
     ).
 '$execute_goal2'(_, _, false) :-
     save_debug,
+    no_answer,
     print_message(query, query(no)).
 
 residue_vars(Goal, Vars, Delays, Chp) :-
@@ -1550,6 +1674,7 @@ write_bindings(Bindings, ResidueVars, Delays, DetOrChp) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
+    next_answer(Bindings1, Delays1, Residuals),
     write_bindings2(Bindings, Bindings1, Residuals, Delays1, DetOrChp).
 
 write_bindings2(OrgBindings, [], Residuals, Delays, _) :-
@@ -1572,6 +1697,7 @@ write_bindings2(OrgBindings, Bindings, Residuals, Delays, Chp) :-
     ;   Action == show_again
     ->  fail
     ;   !,
+        no_answer,
         print_message(query, query(done))
     ).
 

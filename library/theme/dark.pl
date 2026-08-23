@@ -86,6 +86,15 @@ prolog:console_color(port(fail),             [bold, fg(red)]).
 prolog:console_color(port(redo),             [bold, fg(yellow)]).
 prolog:console_color(port(unify),            [bold, fg(blue)]).
 prolog:console_color(port(exception),        [bold, fg(magenta)]).
+% interactive toplevel.  The command line (prompt and the text typed by
+% the user) has its own background.  The answers to a single query
+% alternate between two backgrounds, which separates the answers of a
+% non-deterministic query.
+prolog:console_color(prompt,                 [bold, fg8(h(cyan)), bg8(21)]).
+prolog:console_color(input,                  [bg8(21)]).
+prolog:console_color(answer(odd),            [bg8(238)]).
+prolog:console_color(answer(even),           [bg8(240)]).
+prolog:console_color(binding(name),          [bold, fg8(h(yellow))]).
 % print message. the argument for debug(_) is the debug channel.
 prolog:console_color(message(informational), [hfg(green)]).
 prolog:console_color(message(information),   [hfg(green)]).

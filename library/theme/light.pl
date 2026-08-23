@@ -36,10 +36,31 @@
 
 /** <module> SWI-Prolog theme file -- light
 
-The `light` theme is default, so this is an empty file.
+The `light` theme is the default. It  only   defines  the parts that the
+default theme (see default_theme/2 in `boot/messages.pl`) leaves neutral
+because they require knowledge about  the   background  colour  of the
+terminal.
 */
 
 :- multifile
-    prolog:theme/1.
+    prolog:theme/1,
+    prolog:console_color/2.
 
 prolog:theme(light).                             % make ourselves known
+
+		 /*******************************
+		 *       PROLOG MESSAGES	*
+		 *******************************/
+
+% interactive toplevel.  The command line (prompt and the text typed by
+% the user) has its own background.  The answers to a single query
+% alternate between two backgrounds, which separates the answers of a
+% non-deterministic query.
+prolog:console_color(prompt,        [bold, fg8(blue), bg8(123)]).
+prolog:console_color(input,         [bg8(123)]).
+prolog:console_color(answer(odd),   [bg8(255)]).
+prolog:console_color(answer(even),  [bg8(253)]).
+prolog:console_color(binding(name), [bold, fg8(magenta)]).
+prolog:console_color(message(Level), Attrs) :-
+    nonvar(Level),
+    prolog:console_color(Level, Attrs).

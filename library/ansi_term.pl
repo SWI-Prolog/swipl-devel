@@ -37,6 +37,7 @@
 :- module(ansi_term,
           [ ansi_format/3,              % +Attr, +Format, +Args
             ansi_format/4,              % +Stream, +Attr, +Format, +Args
+            ansi_sgr/2,                 % +Attr, -Sequence
             ansi_get_color/2,           % +Which, -rgb(R,G,B)
             ansi_hyperlink/2,           % +Stream,+Location
             ansi_hyperlink/3            % +Stream,+URL,+Label
@@ -156,11 +157,10 @@ ansi_format(Stream, Class, Format, Args) :-
     ->  true
     ;   Attr1 = Attr
     ),
-    phrase(sgr_codes_ex(Attr1), Codes),
-    atomics_to_string(Codes, ;, Code),
+    sgr_sequence(Attr1, Sequence),
     with_output_to(
         Stream,
-        (   format('\e[~wm', [Code]),
+        (   write(Sequence),
             format_content(Format, Args, HREF),
             format('\e[0m')
         )
@@ -176,6 +176,72 @@ format_content(Format, Args, HREF) :-
 format_content(Format, Args, HREF) :-
     format(string(Label), Format, Args),
     ansi_hyperlink(current_output, HREF, Label).
+
+%!  ansi_sgr(+ClassOrAttributes, -Sequence:string) is det.
+%
+%   True when Sequence is the ANSI _Select Graphic Rendition_ sequence
+%   that activates the attributes of ClassOrAttributes.  Sequence is the
+%   empty string if the Prolog flag `color_term` is `false` or the class
+%   resolves to no attributes.
+%
+%   Unlike ansi_format/4 this does not write to a stream and thus does
+%   not require a terminal.  It is used to decorate strings that are
+%   handed to code that is not aware of colors, notably the toplevel
+%   prompt (see the Prolog flag `toplevel_prompt`).  As the caller
+%   controls where the sequence ends up, the caller is also responsible
+%   for verifying that the destination is a terminal and for emitting
+%   the reset sequence `\e[0m`.
+%
+%   @see ansi_format/3 for the possible values of ClassOrAttributes.
+
+ansi_sgr(Class, Sequence) :-
+    current_prolog_flag(color_term, true),
+    class_attrs(Class, Attr),
+    Attr \== [],
+    (   selectchk(href(_), Attr, Attr1)
+    ->  true
+    ;   Attr1 = Attr
+    ),
+    !,
+    sgr_sequence(Attr1, Sequence).
+ansi_sgr(_, "").
+
+%!  sgr_sequence(+ClassOrAttributes, -Sequence:string) is det.
+%
+%   Sequence is the SGR escape sequence for Attributes.  Note that a
+%   single attribute may map to multiple codes, e.g., bg8(Color).
+
+sgr_sequence(Attrs, Sequence) :-
+    phrase(sgr_codes_ex(Attrs), Codes),
+    codes_sequence(Codes, Sequence).
+
+codes_sequence(Codes, Sequence) :-
+    atomics_to_string(Codes, ;, Code),
+    format(string(Sequence), '\e[~wm', [Code]).
+
+%!  sgr_codes(+ClassOrAttributes)// is semidet.
+%
+%   As sgr_codes_ex//1, but fails rather than raising an exception if
+%   Attributes is not a valid attribute (list).   This is used where the
+%   decoration is optional and the plain text is a fine alternative.
+
+sgr_codes(X) -->
+    { var(X),
+      !,
+      fail
+    }.
+sgr_codes([]) -->
+    !.
+sgr_codes([H|T]) -->
+    !,
+    sgr_codes(H),
+    sgr_codes(T).
+sgr_codes(Attr) -->
+    { sgr_code(Attr, Code) },
+    (   { is_list(Code) }
+    ->  list(Code)
+    ;   [Code]
+    ).
 
 sgr_codes_ex(X) -->
     { var(X),
@@ -358,6 +424,28 @@ hex_color(D1,V) :-
 %   rendering based on  user  preferences   and  context.  Defaults  are
 %   defined in the file `boot/messages.pl`, default_theme/2.
 %
+%   Besides the classes used for  messages   (`code`,  `comment`, `var`,
+%   `warning`, `error`, `truth(Truth)`, `port(Port)`, `message(Kind)`,
+%   ...), the interactive toplevel uses these:
+%
+%     - prompt
+%       The `?- ` prompt and its `|    ` continuation.
+%     - input
+%       The text typed by the user at the prompt.
+%     - answer(Parity)
+%       An answer written by the toplevel.  Parity is `odd` or `even`
+%       and alternates over the answers of a single query, which allows
+%       for _striping_ the answers using a background color.  Only an
+%       answer that shows bindings, residual goals or delays uses this
+%       class: ``true.`` and ``false.`` are not answers to stripe, and
+%       neither is the empty line that separates the answer from the
+%       next query.
+%     - binding(name)
+%       The variable name in a binding such as ``X = 1``.
+%
+%   Note that a background color on `prompt`, `input` or `answer(_)` is
+%   painted up to the right margin using `\e[K`.
+%
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.
 
@@ -368,8 +456,44 @@ hex_color(D1,V) :-
 
 %!  prolog:message_line_element(+Stream, +Term) is semidet.
 %
-%   Hook implementation that deals with  ansi(+Attr, +Fmt, +Args) in
-%   message specifications.
+%   Hook implementation that colours the message elements produced by
+%   print_message_lines/3.  Handled elements are:
+%
+%     - ansi(Class, Fmt, Args)
+%     - ansi(Class, Fmt, Args, Ctx)
+%       Write Fmt/Args using the attributes of Class.  As the element
+%       ends with a full reset, the 4th argument version re-installs
+%       the decoration of the message as a whole afterwards.
+%     - url(Location)
+%     - url(URL, Label)
+%       Write a hyperlink.  See ansi_hyperlink/2,3.
+%     - begin(Class, Ctx)
+%     - end(Ctx)
+%       Decorate the message as a whole.  See below.
+%     - nl(Ctx), flush(Ctx)
+%       End a line.  If the message has a background colour, the
+%       remainder of the line is painted using `\e[K` (_Erase in Line_)
+%       such that the coloured block extends to the right margin.
+%     - eol(Ctx)
+%       As above, but also reset the attributes: this ends the decorated
+%       part of the line.  A message uses this for its last line if that
+%       line is not ended using `nl`.  Resetting matters because a
+%       terminal that scrolls while a background colour is in effect
+%       paints the newly exposed line with it.
+%
+%   Ctx is the message _context_.  It is created by the handler for
+%   begin/2 as a term
+%
+%       ansi(Reset, ReInstall, EraseEol)
+%
+%   where Reset is the sequence written by end/1, ReInstall is a
+%   Format-Args pair that re-installs the attributes of the message and
+%   EraseEol is the sequence that paints the remainder of the line or
+%   the empty atom.  Callers must treat Ctx as opaque.  It is left
+%   unbound if Stream is not a terminal, if the `color_term` flag is
+%   `false` or if the message has no attributes.  All handlers that use
+%   Ctx therefore fail if it is unbound, which makes
+%   print_message_lines/3 fall back to writing plain text.
 
 prolog:message_line_element(S, ansi(Class, Fmt, Args)) :-
     class_attrs(Class, Attr),
@@ -378,35 +502,69 @@ prolog:message_line_element(S, ansi(Class, Fmt, Args, Ctx)) :-
     class_attrs(Class, Attr),
     ansi_format(S, Attr, Fmt, Args),
     (   nonvar(Ctx),
-        Ctx = ansi(_, RI-RA)
+        Ctx = ansi(_, RI-RA, _)
     ->  format(S, RI, RA)
     ;   true
     ).
+prolog:message_line_element(S, nl(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(_, _, EOL),
+    write(S, EOL),
+    nl(S).
+prolog:message_line_element(S, flush(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(_, _, EOL),
+    write(S, EOL),
+    flush_output(S).
+prolog:message_line_element(S, eol(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(Reset, _, EOL),
+    write(S, EOL),
+    write(S, Reset).
 prolog:message_line_element(S, url(Location)) :-
     ansi_hyperlink(S, Location).
 prolog:message_line_element(S, url(URL, Label)) :-
     ansi_hyperlink(S, URL, Label).
 prolog:message_line_element(S, begin(Level, Ctx)) :-
     level_attrs(Level, Attr),
+    Attr \== [],
     stream_property(S, tty(true)),
     current_prolog_flag(color_term, true),
+    phrase(sgr_codes(Attr), Codes),     % fails on a kind without a theme
     !,
-    (   is_list(Attr)
-    ->  sgr_codes(Attr, Codes),
-        atomic_list_concat(Codes, ;, Code)
-    ;   sgr_code(Attr, Code)
-    ),
-    format(S, '\e[~wm', [Code]),
-    Ctx = ansi('\e[0m', '\e[0m\e[~wm'-[Code]).
+    codes_sequence(Codes, Sequence),
+    write(S, Sequence),
+    erase_eol(Attr, EOL),
+    Ctx = ansi('\e[0m', '\e[0m~w'-[Sequence], EOL).
 prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
-    Ctx = ansi(Reset, _),
+    Ctx = ansi(Reset, _, _),
     write(S, Reset).
 
-sgr_codes([], []).
-sgr_codes([H0|T0], [H|T]) :-
-    sgr_code(H0, H),
-    sgr_codes(T0, T).
+%!  erase_eol(+Attrs, -EOL) is det.
+%
+%   If Attrs sets a background color we must  paint the remainder of the
+%   line to make the colored block  extend   to  the right margin. `\e[K`
+%   (_Erase in Line_) does so on terminals   that implement _background
+%   color erase_ and does not move the cursor.
+
+erase_eol(Attrs, EOL) :-
+    (   is_list(Attrs),
+        has_background(Attrs)
+    ->  EOL = '\e[K'
+    ;   EOL = ''
+    ).
+
+has_background([H|T]) :-
+    (   background(H)
+    ->  true
+    ;   has_background(T)
+    ).
+
+background(bg(_)).
+background(bg(_,_,_)).
+background(bg8(_)).
+background(hbg(_)).
 
 level_attrs(Level,         Attrs) :-
     user:message_property(Level, color(Attrs)),

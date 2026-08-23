@@ -1457,10 +1457,12 @@ bindings([binding(Names,Skel,Subst)|T], Options) -->
 
 var_names([Name]) -->
     !,
-    [ '~w = '-[Name] ].
+    [ ansi(binding(name), '~w', [Name]), ' = '-[] ].
 var_names([Name1,Name2|T]) -->
     !,
-    [ '~w = ~w, '-[Name1, Name2] ],
+    [ ansi(binding(name), '~w', [Name1]), ' = '-[],
+      ansi(binding(name), '~w', [Name2]), ', '-[]
+    ],
     var_names([Name2|T]).
 
 
@@ -1552,12 +1554,24 @@ bind_delays_sep([], _) --> !.
 bind_delays_sep(_, true) --> !.
 bind_delays_sep(_, _) --> [','-[], nl].
 
+%!  extra_line// is det.
+%
+%   End the answer and, if  `toplevel_extra_white_line`   is true, add an
+%   empty line.  The ``~N`` cannot be replaced by `nl` because the answer
+%   is not always left at a  non-empty   line.  The `eol` element paints
+%   the remainder of the line if the message has a background colour,
+%   which ``~N`` cannot do as it is written using format/3.
+%
+%   Note that `eol` ends the  _last  line   of  the  answer_.  The empty
+%   line that separates the answer from the  next query is not part of
+%   the answer and keeps the default background.
+
 extra_line -->
     { current_prolog_flag(toplevel_extra_white_line, true) },
     !,
-    ['~N'-[]].
+    [eol, '~N'-[]].
 extra_line -->
-    [].
+    [eol].
 
 prolog_message(if_tty(Message)) -->
     (   {current_prolog_flag(tty_control, true)}
@@ -2067,6 +2081,10 @@ default_theme(port(fail),             [bold, fg(red)]).
 default_theme(port(redo),             [bold, fg(yellow)]).
 default_theme(port(unify),            [bold, fg(blue)]).
 default_theme(port(exception),        [bold, fg(magenta)]).
+default_theme(prompt,                 [bold]).
+default_theme(input,                  []).
+default_theme(answer(_),              []).
+default_theme(binding(name),          [bold]).
 default_theme(message(informational), [fg(green)]).
 default_theme(message(information),   [fg(green)]).
 default_theme(message(debug(_)),      [fg(blue)]).
@@ -2219,6 +2237,9 @@ msg_property(Kind, prefix(Prefix)) :-
     msg_prefix(Kind, Prefix),
     !.
 msg_property(_, prefix('~N')) :- !.
+msg_property(query, color_class(Class)) :-
+    !,
+    '$answer_class'(Class).
 msg_property(query, stream(user_output)) :- !.
 msg_property(_, stream(user_error)) :- !.
 msg_property(error, tag('ERROR')).
@@ -2295,12 +2316,24 @@ add_message_context1(thread, Prefix0, Prefix) :-
 %
 %   Quintus compatibility predicate to print message lines using
 %   a prefix.
+%
+%   If PrefixOrKind is kind(Kind), the  message   as  a  whole may be
+%   decorated.  To this end the lines are wrapped in begin(Class, Ctx)
+%   and end(Ctx), where Class is  derived   from  Kind using
+%   msg_color_class/2.  `Ctx` is a variable   that  is bound by whoever
+%   implements prolog:message_line_element/2 for begin/2 (normally
+%   library(ansi_term)) and remains unbound  if   the decoration is not
+%   available, e.g., because Stream is not a terminal.
+%
+%   The elements that need `Ctx` are rewritten by prefix_nl/4 to carry
+%   it.  See there for the details.
 
 print_message_lines(Stream, kind(Kind), Lines) :-
     !,
     msg_property(Kind, prefix(Prefix)),
+    msg_color_class(Kind, Class),
     insert_prefix(Lines, Prefix, Ctx, PrefixLines),
-    '$append'([ begin(Kind, Ctx)
+    '$append'([ begin(Class, Ctx)
               | PrefixLines
               ],
               [ end(Ctx)
@@ -2311,7 +2344,24 @@ print_message_lines(Stream, Prefix, Lines) :-
     insert_prefix(Lines, Prefix, _, PrefixLines),
     print_message_lines(Stream, PrefixLines).
 
-%!  insert_prefix(+Lines, +Prefix, +Ctx, -PrefixedLines)
+%!  msg_color_class(+Kind, -Class) is det.
+%
+%   Colour class used to decorate an entire message of the given Kind.
+%   Defaults to Kind itself, which is  mapped   to  `message(Kind)` (see
+%   ansi_term:level_attrs/2).
+
+msg_color_class(Kind, Class) :-
+    msg_property(Kind, color_class(Class0)),
+    !,
+    Class = Class0.
+msg_color_class(Kind, Kind).
+
+%!  insert_prefix(+Lines, +Prefix, ?Ctx, -PrefixedLines) is det.
+%
+%   Add Prefix to the start of each line of Lines.  If the first element
+%   is `at_same_line` the message continues  the   line  and  no initial
+%   prefix is added.  Ctx is the  message   context;  see  prefix_nl/4 and
+%   print_message_lines/3.
 
 insert_prefix([at_same_line|Lines0], Prefix, Ctx, Lines) :-
     !,
@@ -2319,10 +2369,35 @@ insert_prefix([at_same_line|Lines0], Prefix, Ctx, Lines) :-
 insert_prefix(Lines0, Prefix, Ctx, [prefix(Prefix)|Lines]) :-
     prefix_nl(Lines0, Prefix, Ctx, Lines).
 
+%!  prefix_nl(+Lines, +Prefix, ?Ctx, -Lines) is det.
+%
+%   Insert Prefix after each `nl` and  make   the  message context Ctx
+%   available to the elements that need it:
+%
+%     - nl, flush and eol become nl(Ctx), flush(Ctx) and eol(Ctx).
+%       Their handler writes the sequence that paints the remainder of
+%       the line before ending it if the message has a background
+%       colour.
+%     - ansi(Attrs, Fmt, Args) becomes ansi(Attrs, Fmt, Args, Ctx).
+%       Its handler re-installs the decoration of the message as a
+%       whole after writing the element, as the element ends with a
+%       full reset.
+%
+%   The last line of a message is  ended   implicitly:  if Lines does not
+%   end in `nl` or `flush` an `nl` is added.  This one does not paint:
+%   what follows the message is not part of it.  A message that wants
+%   its last line painted ends it using `eol`.
+
 prefix_nl([], _, _, [nl]).
-prefix_nl([nl], _, _, [nl]) :- !.
-prefix_nl([flush], _, _, [flush]) :- !.
-prefix_nl([nl|T0], Prefix, Ctx, [nl, prefix(Prefix)|T]) :-
+prefix_nl([nl], _, Ctx, [nl(Ctx)]) :- !.
+prefix_nl([flush], _, Ctx, [flush(Ctx)]) :- !.
+prefix_nl([nl|T0], Prefix, Ctx, [nl(Ctx), prefix(Prefix)|T]) :-
+    !,
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([flush|T0], Prefix, Ctx, [flush(Ctx)|T]) :-
+    !,
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([eol|T0], Prefix, Ctx, [eol(Ctx)|T]) :-
     !,
     prefix_nl(T0, Prefix, Ctx, T).
 prefix_nl([ansi(Attrs,Fmt,Args)|T0], Prefix, Ctx,
@@ -2353,6 +2428,13 @@ line_element(S, full_stop) :-
 line_element(S, nl) :-
     !,
     nl(S).
+line_element(S, nl(_Ctx)) :-
+    !,
+    nl(S).
+line_element(S, flush(_Ctx)) :-
+    !,
+    flush_output(S).
+line_element(_, eol(_Ctx)) :- !.
 line_element(S, prefix(Fmt-Args)) :-
     !,
     safe_format(S, Fmt, Args).
@@ -2425,6 +2507,9 @@ message_to_string(Term, Str) :-
     format(string(Str), Fmt, Args).
 
 actions_to_format([], '', []) :- !.
+actions_to_format([nl(_)|T], Fmt, Args) :-      % see prefix_nl/4
+    !,
+    actions_to_format([nl|T], Fmt, Args).
 actions_to_format([nl], '', []) :- !.
 actions_to_format([Term, nl], Fmt, Args) :-
     !,
@@ -2467,6 +2552,9 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 
 action_skip(at_same_line).
 action_skip(flush).
+action_skip(flush(_Ctx)).
+action_skip(eol).
+action_skip(eol(_Ctx)).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).
 

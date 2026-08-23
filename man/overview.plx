@@ -693,6 +693,39 @@ detects the background color on \textit{xterm} compatible terminal
 emulators (found on most Unix systems) and loads the \const{dark} theme
 if the background is `darkish'.
 
+The console classes that are used by the interactive top level are
+listed below.  They are only defined by the \const{dark} and
+\const{light} themes because a background colour can only be chosen if
+the background colour of the terminal is known.  The default only makes
+the prompt and the variable names bold.
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\const{prompt} & The \exam{?- } prompt and its \verb$|    $
+                 continuation \\
+\const{input}  & The text typed by the user.  These attributes remain
+                 in effect while the user is typing \\
+\const{answer(}\arg{Parity}\const{)} &
+                 An answer that shows bindings, residual goals or
+                 delays.  \arg{Parity} is \const{odd} or \const{even}
+                 and alternates over the answers of a single query.
+                 Using a different background colour for both this
+                 \jargon{stripes} the answers of a non-deterministic
+                 query.  \exam{true.}, \exam{false.} and the empty
+                 line before the next query are not decorated \\
+\const{binding(name)} & The variable name in a binding such as
+                 \exam{X = 1} \\
+\hline
+\end{tabular}
+\end{center}
+
+If one of these classes defines a background colour the remainder of
+the line is painted using \verb$\e[K$ (\jargon{Erase in Line}), which
+makes the coloured block extend to the right margin.  This requires a
+terminal that implements \jargon{background colour erase}, which most
+modern terminal emulators do.
+
 The following notes apply to the different platforms on which SWI-Prolog
 is supported:
 
