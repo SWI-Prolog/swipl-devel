@@ -786,7 +786,14 @@ reserved(0'#).
 %   compatible terminal.
 %
 %   @arg RGB is a term rgb(Red,Green,Blue).  The color components are
-%   integers in the range 0..65535.
+%   floats in the range 0.0..1.0.  They are sRGB encoded, as that is
+%   what the terminal reports; linearise them before doing colour
+%   arithmetic that assumes light intensities.
+%   @compat Up to version 10.1.13 the components were integers in the
+%   range 0..65535.  The terminal reports one to four hexadecimal digits
+%   per component, so that range suggested a precision the reply does
+%   not have, and it clashed with the rgb/3 term of win_window_color/2,
+%   whose components are in the range 0..255.
 
 ansi_get_color(Which0, RGB) :-
     \+ current_prolog_flag(console_menu, true),
@@ -889,8 +896,9 @@ read_osc_string(In, Codes) :-
 %   Parse the body of the reply.  This is an X11 colour specification as
 %   understood by XParseColor().  Terminals  differ   in  the  number of
 %   digits they use per component: xterm  replies with four, others with
-%   one, two or three.  A component of  N digits is scaled such that its
-%   maximum maps to 0xffff, as XParseColor() does.
+%   one, two or three.  A component of N   digits  is expressed as the
+%   fraction of its maximum, which is what XParseColor() scaling amounts
+%   to and avoids claiming a precision the reply does not have.
 
 color_reply(rgb(R,G,B)) -->
     "rgb:", !,
@@ -925,11 +933,17 @@ hex_digits([H|T]) -->
 hex_digits([]) -->
     [].
 
+%!  hex_value(+Digits, -Fraction) is det.
+%
+%   Fraction is a float in 0.0..1.0.  Note   that  we must not rely on
+%   (/)/2 to produce a float:  that  depends   on  the  Prolog  flag
+%   `prefer_rationals`.
+
 hex_value(Ds, V) :-
     hex_value(Ds, 0, V0),
     length(Ds, N),
     Max is 16^N - 1,
-    V is V0*0xffff//Max.
+    V is float(V0)/Max.
 
 hex_value([], V, V).
 hex_value([D|T], V0, V) :-

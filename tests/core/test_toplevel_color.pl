@@ -58,6 +58,19 @@ set_color_term(Old, New) :-
     current_prolog_flag(color_term, Old),
     set_prolog_flag(color_term, New).
 
+%!  rgb_close(+RGB1, +RGB2) is semidet.
+%
+%   True when two colours are the same but for rounding.  The components
+%   are floats in 0.0..1.0, so we can use an absolute tolerance.
+
+rgb_close(rgb(R1,G1,B1), rgb(R2,G2,B2)) :-
+    close_to(R1, R2),
+    close_to(G1, G2),
+    close_to(B1, B2).
+
+close_to(V1, V2) :-
+    abs(V1-V2) < 0.001.
+
 		 /*******************************
 		 *            TESTS		*
 		 *******************************/
@@ -170,17 +183,28 @@ test(multi_code_attribute, Codes == [1,48,5,235]) :-
 % four hex digits per component, the Epilog terminal two, and the
 % terminator is BEL or ST.  All of these must be understood.
 
-test(reply_two_digits, RGB == rgb(65535,65535,65535)) :-
+test(reply_two_digits, RGB == rgb(1.0,1.0,1.0)) :-
     phrase(ansi_term:color_reply(RGB), `rgb:ff/ff/ff`).
 
-test(reply_four_digits, RGB == rgb(0,32896,65535)) :-
+                                        % 0x8080/0xffff is 128/255
+test(reply_four_digits, true(rgb_close(RGB, rgb(0.0,0.50196,1.0)))) :-
     phrase(ansi_term:color_reply(RGB), `rgb:0000/8080/ffff`).
 
-test(reply_one_digit, RGB == rgb(65535,0,0)) :-
+test(reply_one_digit, RGB == rgb(1.0,0.0,0.0)) :-
     phrase(ansi_term:color_reply(RGB), `rgb:f/0/0`).
 
-test(reply_hash, RGB == rgb(65535,0,0)) :-
+test(reply_hash, RGB == rgb(1.0,0.0,0.0)) :-
     phrase(ansi_term:color_reply(RGB), `#ff0000`).
+
+% The number of digits the terminal uses must not change the colour we
+% report: 0xf, 0xff and 0xffff are all "fully on".
+
+test(reply_digits_agree, true) :-
+    phrase(ansi_term:color_reply(RGB1), `rgb:8/8/8`),
+    phrase(ansi_term:color_reply(RGB2), `rgb:88/88/88`),
+    phrase(ansi_term:color_reply(RGB3), `rgb:8888/8888/8888`),
+    rgb_close(RGB1, RGB2),
+    rgb_close(RGB2, RGB3).
 
 test(osc_bel, Body == `rgb:ff/ff/ff`) :-
     setup_call_cleanup(
