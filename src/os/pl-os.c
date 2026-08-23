@@ -2868,10 +2868,14 @@ restore_ctty(const ctty_state *state)
 
     if ( tcgetattr(cs->dup, &tio) < 0 )	/* our copy died: it was revoked */
     { if ( tcgetattr(cs->fd, &tio) < 0 ) /* and nobody reconnected it yet */
-      { int fd = open(cs->name, O_RDWR|O_NOCTTY);
+      { int fd = open(cs->name, O_RDWR|O_NOCTTY|O_CLOEXEC);
 
 	if ( fd >= 0 )
-	{ dup2(fd, cs->fd);
+	{ int flags;
+
+	  dup2(fd, cs->fd);		/* dup2() does not carry O_CLOEXEC */
+	  if ( (flags=fcntl(cs->fd, F_GETFD)) != -1 )
+	    fcntl(cs->fd, F_SETFD, flags|FD_CLOEXEC);
 	  close(fd);
 	}
       }
