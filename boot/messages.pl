@@ -80,6 +80,10 @@
     prolog:translate_message//1.    % +Message
 
 :- create_prolog_flag(message_context, [thread], []).
+:- create_prolog_flag(debugger_goal_links, auto,
+                      [ type(oneof([false,true,auto])),
+                        keep(true)
+                      ]).
 
 %!  translate_message(+Term)// is det.
 %
@@ -1700,10 +1704,10 @@ prolog_message(frame(Frame, _Choice, backtrace, _PC)) -->
     },
     [ ansi(frame(level), '~t[~D] ~10|', [Level]) ],
     frame_context(Frame),
-    frame_goal(Frame).
-prolog_message(frame(Frame, _Choice, choice, PC)) -->
+    frame_goal(Frame, backtrace).
+prolog_message(frame(Frame, Choice, choice, PC)) -->
     !,
-    prolog_message(frame(Frame, backtrace, PC)).
+    prolog_message(frame(Frame, Choice, backtrace, PC)).
 prolog_message(frame(_, _Choice, cut_call(_PC), _)) --> !.
 prolog_message(frame(Frame, _Choice, Port, _PC)) -->
     frame_flags(Frame),
@@ -1711,7 +1715,7 @@ prolog_message(frame(Frame, _Choice, Port, _PC)) -->
     frame_level(Frame),
     frame_context(Frame),
     frame_depth_limit(Port, Frame),
-    frame_goal(Frame),
+    frame_goal(Frame, Port),
     [ flush ].
 
 % frame(:Goal, +Trace)		- Print for trace/2
@@ -1720,24 +1724,128 @@ prolog_message(frame(Goal, trace(Port))) -->
     thread_context,
     [ ' T ' ],
     port(Port),
-    goal(Goal).
+    predicate_goal(Goal, Port).
 prolog_message(frame(Goal, trace(Port, Id))) -->
     !,
     thread_context,
     [ ' T ' ],
     port(Port, Id),
-    goal(Goal).
+    predicate_goal(Goal, Port).
 
-frame_goal(Frame) -->
-    { prolog_frame_attribute(Frame, goal, Goal)
-    },
-    goal(Goal).
+%!  goal_style(+Port, -Style) is det.
+%
+%   Style is the colour class used for the  goal of a frame that is being
+%   reported for Port.  It is a  term   goal(Port,  Parity), which allows
+%   themes to decorate the goal depending on   the port, on the parity of
+%   the step count (_striping_, which  separates   the  steps  of a trace
+%   visually) or both.  See also '$answer_class'/1, which does the same
+%   for the answers of the interactive toplevel.
 
-goal(Goal0) -->
-    { clean_goal(Goal0, Goal),
-      current_prolog_flag(debugger_write_options, Options)
+goal_style(Port0, goal(Port, Parity)) :-
+    functor(Port0, Port, _),
+    trace_parity(Parity).
+
+trace_parity(Parity) :-
+    (   nb_current('$trace_step', C0)
+    ->  true
+    ;   C0 = 0
+    ),
+    C is C0+1,
+    nb_setval('$trace_step', C),
+    (   C mod 2 =:= 0
+    ->  Parity = even
+    ;   Parity = odd
+    ).
+
+frame_goal(Frame, Port) -->
+    { prolog_frame_attribute(Frame, goal, Goal),
+      goal_style(Port, Style)
     },
-    [ '~W'-[Goal, Options] ].
+    (   { frame_location(Frame, Location) }
+    ->  goal(Goal, Style, Location)
+    ;   goal(Goal, Style)
+    ).
+
+%!  predicate_goal(+Goal, +Port)// is det.
+%
+%   Emit Goal, linking it to the definition   of  its predicate.  Used if
+%   we have no frame, i.e., for the messages of library(prolog_trace).
+
+predicate_goal(Goal, Port) -->
+    { goal_style(Port, Style)
+    },
+    (   { goal_links,
+          predicate_location(Goal, Location)
+        }
+    ->  goal(Goal, Style, Location)
+    ;   goal(Goal, Style)
+    ).
+
+goal(Goal0, Style) -->
+    { goal_format(Goal0, Goal, Options)
+    },
+    [ ansi(Style, '~W', [Goal, Options]) ].
+
+goal(Goal0, Style, Location) -->
+    { goal_format(Goal0, Goal, Options)
+    },
+    [ url(Location, ansi(Style, '~W', [Goal, Options])) ].
+
+goal_format(Goal0, Goal, Options) :-
+    clean_goal(Goal0, Goal),
+    current_prolog_flag(debugger_write_options, Options).
+
+%!  frame_location(+Frame, -Location) is semidet.
+%
+%   Location is `File:Line` for the _call site_ of Frame, i.e., the place
+%   in the clause of the parent frame from  which Frame was called.  This
+%   is the position the user is at while  tracing.  If we cannot find it,
+%   fall back to the clause that runs in   Frame  and finally to the file
+%   that defines the predicate.
+%
+%   Resolving the call site uses library(prolog_stack),  which has to run
+%   the decompiler and read the source file.   This  is affordable for an
+%   interactive tracer, but we only do it if the location can actually be
+%   used, i.e., if hyperlinks are rendered.  See goal_links/0.
+
+frame_location(Frame, Location) :-
+    goal_links,
+    catch(frame_location_(Frame, Location), _, fail).
+
+frame_location_(Frame, File:Line) :-
+    prolog_frame_attribute(Frame, pc, PC),
+    prolog_frame_attribute(Frame, parent, Parent),
+    prolog_frame_attribute(Parent, clause, Clause),
+    prolog_stack_frame_property(frame(_,clause(Clause,PC),_),
+                                location(File:Line)),
+    !.
+frame_location_(Frame, File:Line) :-
+    prolog_frame_attribute(Frame, clause, Clause),
+    clause_property(Clause, file(File)),
+    clause_property(Clause, line_count(Line)),
+    !.
+frame_location_(Frame, Location) :-
+    prolog_frame_attribute(Frame, goal, Goal),
+    predicate_location(Goal, Location).
+
+%!  goal_links is semidet.
+%
+%   True when goals printed by the  debugger   should  be  linked to their
+%   source location.  Controlled by the  flag `debugger_goal_links`, which
+%   is one of `true`, `false` or `auto`.   Using `auto` (default) we create
+%   the links if the console can render them.
+
+goal_links :-
+    current_prolog_flag(debugger_goal_links, Links),
+    goal_links(Links).
+
+goal_links(true).                       % note: no clause for `false`
+goal_links(auto) :-
+    (   current_prolog_flag(hyperlink_term, true)
+    ->  true
+    ;   predicate_property(ansi_term:hyperlink(_,_), number_of_clauses(N)),
+        N > 0
+    ).
 
 frame_level(Frame) -->
     { prolog_frame_attribute(Frame, level, Level)
@@ -2325,6 +2433,7 @@ default_theme(truth(true),            [bold]).
 default_theme(truth(undefined),       [bold, fg(cyan)]).
 default_theme(wfs(residual_program),  [fg(cyan)]).
 default_theme(frame(level),           [bold]).
+default_theme(goal(_,_),              []).
 default_theme(port(call),             [bold, fg(green)]).
 default_theme(port(exit),             [bold, fg(green)]).
 default_theme(port(fail),             [bold, fg(red)]).

@@ -86,6 +86,12 @@ prolog:console_color(port(fail),             [bold, fg(red)]).
 prolog:console_color(port(redo),             [bold, fg(yellow)]).
 prolog:console_color(port(unify),            [bold, fg(blue)]).
 prolog:console_color(port(exception),        [bold, fg(magenta)]).
+% the goal of successive steps alternates between two backgrounds, which
+% separates the steps of a trace.  The first argument is the port, which
+% allows for colouring the goal by port instead of (or in addition to)
+% striping.
+prolog:console_color(goal(_, odd),           [hfg(yellow), bg8(238)]).
+prolog:console_color(goal(_, even),          [hfg(yellow), bg8(240)]).
 % interactive toplevel.  The command line (prompt and the text typed by
 % the user) has its own background.  The answers to a single query
 % alternate between two backgrounds, which separates the answers of a

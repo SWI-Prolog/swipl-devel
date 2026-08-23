@@ -1669,6 +1669,19 @@ precisely when receiving \const{SIGINT}}.  The initial value is
 the interactive top level.  See \cmdlineoption{--debug-on-interrupt}
 to start handling interrupts immediately.
 
+    \prologflagitem{debugger_goal_links}{atom}{rw}
+Controls whether the goals printed by the debugger are turned into a
+hyperlink to their source location, i.e., the place in the clause of the
+parent frame from which the goal is called.  One of \const{true},
+\const{false} or \const{auto} (default).  Using \const{auto}, the links
+are created if the console can render them, which is the case if the
+Prolog flag \prologflag{hyperlink_term} is \const{true} or an
+environment such as Epilog implements the
+\predref{hyperlink}{2}\footnote{Defined in library
+\pllib{ansi_term}.} hook.  Resolving the location requires the
+decompiler and reading the source file, which is why this is not done if
+the location cannot be used.
+
     \prologflagitem{debugger_show_context}{bool}{rw}
 If \const{true}, show the context module while printing a stack-frame in
 the tracer.  Normally controlled using the `C' option of the tracer.

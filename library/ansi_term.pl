@@ -443,8 +443,18 @@ hex_color(D1,V) :-
 %     - binding(name)
 %       The variable name in a binding such as ``X = 1``.
 %
+%   The debugger uses, besides `frame(level)` and `port(Port)`:
+%
+%     - goal(Port, Parity)
+%       The goal of a frame reported for Port.  Parity is `odd` or `even`
+%       and alternates over the steps of a trace, which allows for
+%       _striping_ the goals using a background color.  Match on Port to
+%       color the goal by port instead of (or in addition to) striping.
+%
 %   Note that a background color on `prompt`, `input` or `answer(_)` is
-%   painted up to the right margin using `\e[K`.
+%   painted up to the right margin using `\e[K`.  A background on
+%   `goal(_,_)` is not: the debugger writes its ``? `` prompt on the same
+%   line.
 %
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.

@@ -61,6 +61,12 @@ prolog:console_color(input,         [bg8(123)]).
 prolog:console_color(answer(odd),   [bg8(255)]).
 prolog:console_color(answer(even),  [bg8(253)]).
 prolog:console_color(binding(name), [bold, fg8(magenta)]).
+% trace output.  The goal of successive steps alternates between two
+% backgrounds, which separates the steps of a trace.  The first argument
+% is the port, which allows for colouring the goal by port instead of
+% (or in addition to) striping.
+prolog:console_color(goal(_, odd),  [bg8(254)]).
+prolog:console_color(goal(_, even), [bg8(252)]).
 % tag that indicates the kind of a predicate in a list of candidates.
 % Not blue: that is the colour of the `code` class used for the
 % predicate indicator the tag belongs to.
