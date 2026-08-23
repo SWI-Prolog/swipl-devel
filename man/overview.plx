@@ -720,6 +720,14 @@ the prompt and the variable names bold.
 \end{tabular}
 \end{center}
 
+Messages that list predicates to choose from, for example the
+alternatives for an unknown procedure, tag each predicate with its
+\jargon{kind}.  These tags use the class
+\const{predicate(}\arg{Kind}\const{)}, where \arg{Kind} is one of
+\const{iso}, \const{built_in}, \const{foreign},
+\const{library(}\arg{Name}\const{)}, \const{module(}\arg{Module}\const{)},
+\const{user} or \const{undefined}.
+
 If one of these classes defines a background colour the remainder of
 the line is painted using \verb$\e[K$ (\jargon{Erase in Line}), which
 makes the coloured block extend to the right margin.  This requires a

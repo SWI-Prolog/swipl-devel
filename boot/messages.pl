@@ -92,13 +92,29 @@
 %         Emit the result of format(Fmt, Args)
 %       - Fmt
 %         Emit the result of format(Fmt)
-%       - ansi(Code, Fmt, Args)
+%       - ansi(Class, Fmt, Args)
 %         Use ansi_format/3 for color output.
+%       - url(Location)
+%         Emit a source location as a hyperlink.  Location is
+%         File:Line:Column, File:Line, File or a URL.
+%       - url(Location, Label)
+%         As above, but print Label rather than Location.  Label is
+%         plain text, Fmt-Args or ansi(Class, Fmt, Args), the latter
+%         combining a hyperlink with a style class.
 %       - flush
 %         Used only as last element of the list.   Simply flush the
 %         output instead of producing a final newline.
 %       - at_same_line
 %         Start the messages at the same line (instead of using ~N)
+%       - eol
+%         End the decorated part of the last line.  See
+%         print_message_lines/3.
+%
+%   The elements begin(Class, Ctx) and end(Ctx) that decorate the
+%   message as a whole are added by print_message_lines/3.
+%
+%   Use predicate_reference//1,2 to refer to a predicate rather than
+%   formatting the predicate indicator by hand.
 %
 %   @deprecated  Use  code  for   message    translation   should   call
 %   prolog:translate_message//1.
@@ -212,7 +228,8 @@ iso_message(permission_error(Action, Type, Object)) -->
 iso_message(evaluation_error(Which)) -->
     [ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
-    [ 'Unknown procedure: ~q'-[Proc] ],
+    [ 'Unknown procedure: ' ],
+    predicate_reference(Proc),
     unknown_proc_msg(Proc).
 iso_message(existence_error(answer_variable, Var)) -->
     [ '$~w was not bound by a previous query'-[Var] ].
@@ -221,8 +238,8 @@ iso_message(existence_error(matching_rule, Goal)) -->
 iso_message(existence_error(Type, Object)) -->
     [ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(existence_error(export, PI, module(M))) --> % not ISO
-    [ 'Module ', ansi(code, '~q', [M]), ' does not export ',
-      ansi(code, '~q', [PI]) ].
+    [ 'Module ', ansi(code, '~q', [M]), ' does not export ' ],
+    predicate_reference(M:PI, [module(hide)]).
 iso_message(existence_error(Type, Object, In)) --> % not ISO
     [ '~w `~p'' does not exist in ~p'-[Type, Object, In] ].
 iso_message(busy(Type, Object)) -->
@@ -245,9 +262,8 @@ iso_message(occurs_check(Var, In)) -->
 %   permission to Action Type Object", but some are a bit different.
 
 permission_error(Action, built_in_procedure, Pred) -->
-    { user_predicate_indicator(Pred, PI)
-    },
-    [ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
+    [ 'No permission to ~w built-in predicate '-[Action] ],
+    predicate_reference(Pred),
     (   {Action \== export}
     ->  [ nl,
           'Use :- redefine_system_predicate(+Head) if redefinition is intended'
@@ -255,10 +271,13 @@ permission_error(Action, built_in_procedure, Pred) -->
     ;   []
     ).
 permission_error(import_into(Dest), procedure, Pred) -->
-    [ 'No permission to import ~p into ~w'-[Pred, Dest] ].
+    [ 'No permission to import ' ],
+    predicate_reference(Pred),
+    [ ' into ~w'-[Dest] ].
 permission_error(Action, static_procedure, Proc) -->
-    [ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
-    defined_definition('Defined', Proc).
+    [ 'No permission to ~w static procedure '-[Action] ],
+    predicate_reference(Proc),
+    predicate_definition(Proc, 'Defined').
 permission_error(input, stream, Stream) -->
     [ 'No permission to read from output stream `~p'''-[Stream] ].
 permission_error(output, stream, Stream) -->
@@ -274,13 +293,14 @@ permission_error(output, binary_stream, Stream) -->
 permission_error(open, source_sink, alias(Alias)) -->
     [ 'No permission to reuse alias "~p": already taken'-[Alias] ].
 permission_error(tnot, non_tabled_procedure, Pred) -->
-    [ 'The argument of tnot/1 is not tabled: ~p'-[Pred] ].
+    [ 'The argument of ' ], predicate_reference(tnot/1),
+    [ ' is not tabled: ' ], predicate_reference(Pred).
 permission_error(assert, procedure, Pred) -->
-    { '$pi_head'(Pred, Head),
+    { predicate_head(Pred, Head),
       predicate_property(Head, ssu)
     },
-    [ '~p: an SSU (Head => Body) predicate cannot have normal Prolog clauses'-
-      [Pred] ].
+    predicate_reference(Pred),
+    [ ': an SSU (Head => Body) predicate cannot have normal Prolog clauses' ].
 permission_error(Action, Type, Object) -->
     [ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 
@@ -311,19 +331,17 @@ unknown_proc_msg(Proc) -->
     { dwim_predicates(Proc, Dwims) },
     (   {Dwims \== []}
     ->  [nl, '  However, there are definitions for:', nl],
-        dwim_message(Dwims)
+        dwim_alternatives(Dwims)
     ;   []
     ).
 
 dependency_error(shared(Shared), private(Private)) -->
-    [ 'Shared table for ~p may not depend on private ~p'-[Shared, Private] ].
+    [ 'Shared table for ' ], predicate_reference(Shared),
+    [ ' may not depend on private ' ], predicate_reference(Private).
 dependency_error(Dep, monotonic(On)) -->
-    { '$pi_head'(PI, Dep),
-      '$pi_head'(MPI, On)
-    },
-    [ 'Dependent ~p on monotonic predicate ~p is not monotonic or incremental'-
-      [PI, MPI]
-    ].
+    [ 'Dependent ' ], predicate_reference(Dep),
+    [ ' on monotonic predicate ' ], predicate_reference(On),
+    [ ' is not monotonic or incremental' ].
 
 faq(Page) -->
     [nl, '  See FAQ at https://www.swi-prolog.org/FAQ/', Page, '.html' ].
@@ -445,25 +463,12 @@ dwim_predicates(Module:Name/_Arity, Dwims) :-
 dwim_predicates(Name/_Arity, Dwims) :-
     findall(Dwim, dwim_predicate(user:Name, Dwim), Dwims).
 
-dwim_message([]) --> [].
-dwim_message([M:Head|T]) -->
-    { hidden_module(M),
-      !,
-      functor(Head, Name, Arity)
-    },
-    [ '        ~q'-[Name/Arity], nl ],
-    dwim_message(T).
-dwim_message([Module:Head|T]) -->
-    !,
-    { functor(Head, Name, Arity)
-    },
-    [ '        ~q'-[Module:Name/Arity], nl],
-    dwim_message(T).
-dwim_message([Head|T]) -->
-    {functor(Head, Name, Arity)},
-    [ '        ~q'-[Name/Arity], nl],
-    dwim_message(T).
-
+dwim_alternatives([]) --> [].
+dwim_alternatives([H|T]) -->
+    [ '        ' ],
+    predicate_reference(H, [tag(true)]),
+    [ nl ],
+    dwim_alternatives(T).
 
 swi_message(io_error(Op, Stream)) -->
     [ 'I/O error in ~w on stream ~p'-[Op, Stream] ].
@@ -501,8 +506,8 @@ swi_message(timeout_error(Op, Stream)) -->
 swi_message(not_implemented(Type, What)) -->
     [ '~w `~p\' is not implemented in this version'-[Type, What] ].
 swi_message(context_error(nodirective, Goal)) -->
-    { goal_to_predicate_indicator(Goal, PI) },
-    [ 'Wrong context: ~p can only be used in a directive'-[PI] ].
+    [ 'Wrong context: ' ], predicate_reference(Goal),
+    [ ' can only be used in a directive' ].
 swi_message(context_error(edit, no_default_file)) -->
     (   { current_prolog_flag(windows, true) }
     ->  [ 'Edit/0 can only be used after opening a \c
@@ -524,17 +529,20 @@ swi_message(conditional_compilation_error(no_if, What)) -->
 swi_message(duplicate_key(Key)) -->
     [ 'Duplicate key: ~p'-[Key] ].
 swi_message(determinism_error(PI, det, Found, property)) -->
-    (   { '$pi_head'(user:PI, Head),
+    (   { predicate_head(PI, Head),
           predicate_property(Head, det)
         }
-    ->  [ 'Deterministic procedure ~p'-[PI] ]
-    ;   [ 'Procedure ~p called from a deterministic procedure'-[PI] ]
+    ->  [ 'Deterministic procedure ' ], predicate_reference(PI)
+    ;   [ 'Procedure ' ], predicate_reference(PI),
+        [ ' called from a deterministic procedure' ]
     ),
     det_error(Found).
 swi_message(determinism_error(PI, det, fail, guard)) -->
-    [ 'Procedure ~p failed after $-guard'-[PI] ].
+    [ 'Procedure ' ], predicate_reference(PI),
+    [ ' failed after $-guard' ].
 swi_message(determinism_error(PI, det, fail, guard_in_caller)) -->
-    [ 'Procedure ~p failed after $-guard in caller'-[PI] ].
+    [ 'Procedure ' ], predicate_reference(PI),
+    [ ' failed after $-guard in caller' ].
 swi_message(determinism_error(Goal, det, fail, goal)) -->
     [ 'Goal ~p failed'-[Goal] ].
 swi_message(determinism_error(Goal, det, nondet, goal)) -->
@@ -592,14 +600,11 @@ swi_location(_) -->
 caller(system:'$record_clause'/3) -->
     !,
     [].
-caller(Module:Name/Arity) -->
+caller(Caller) -->
+    { predicate_indicator(Caller, _) },
     !,
-    (   { \+ hidden_module(Module) }
-    ->  [ '~q:~q/~w: '-[Module, Name, Arity] ]
-    ;   [ '~q/~w: '-[Name, Arity] ]
-    ).
-caller(Name/Arity) -->
-    [ '~q/~w: '-[Name, Arity] ].
+    predicate_reference(Caller, [link(false)]),
+    [ ': ' ].
 caller(Caller) -->
     [ '~p: '-[Caller] ].
 
@@ -789,13 +794,13 @@ prolog_message(io_warning(Stream, Message)) -->
       !,
       stream_position_data(line_count, Position, LineNo),
       stream_position_data(line_position, Position, LinePos),
-      Column is LinePos+1,                      % line_position is 0-based
-      (   stream_property(Stream, file_name(File))
-      ->  Obj = File
-      ;   Obj = Stream
-      )
+      Column is LinePos+1                       % line_position is 0-based
     },
-    [ '~p:~d:~d: ~w'-[Obj, LineNo, Column, Message] ].
+    (   { stream_property(Stream, file_name(File)) }
+    ->  [ url(File:LineNo:Column) ]
+    ;   [ '~p:~d:~d'-[Stream, LineNo, Column] ]
+    ),
+    [ ': ~w'-[Message] ].
 prolog_message(io_warning(Stream, Message)) -->
     [ 'stream ~p: ~w'-[Stream, Message] ].
 prolog_message(option_usage(pldoc)) -->
@@ -813,7 +818,7 @@ prolog_message(unknown_in_module_user) -->
       'See https://www.swi-prolog.org/howto/database.html'
     ].
 prolog_message(untable(PI)) -->
-    [ 'Reconsult: removed tabling for ~p'-[PI] ].
+    [ 'Reconsult: removed tabling for ' ], predicate_reference(PI).
 prolog_message(unknown_option(Set, Opt)) -->
     [ 'Unknown ~w option: ~p'-[Set, Opt] ].
 
@@ -823,7 +828,9 @@ prolog_message(unknown_option(Set, Opt)) -->
                  *******************************/
 
 prolog_message(modify_active_procedure(Who, What)) -->
-    [ '~p: modified active procedure ~p'-[Who, What] ].
+    predicate_reference(Who),
+    [ ': modified active procedure ' ],
+    predicate_reference(What).
 prolog_message(load_file(failed(user:File))) -->
     [ 'Failed to load ~p'-[File] ].
 prolog_message(load_file(failed(Module:File))) -->
@@ -837,30 +844,33 @@ prolog_message(cannot_redefine_comma) -->
 prolog_message(illegal_autoload_index(Dir, Term)) -->
     [ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
 prolog_message(redefined_procedure(Type, Proc)) -->
-    [ 'Redefined ~w procedure ~p'-[Type, Proc] ],
-    defined_definition('Previously defined', Proc).
+    [ 'Redefined ~w procedure '-[Type] ],
+    predicate_reference(Proc),
+    predicate_definition(Proc, 'Previously defined').
 prolog_message(declare_module(Module, abolish(Predicates))) -->
-    [ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
+    [ 'Loading module ~w abolished:'-[Module], nl ],
+    predicate_list(Predicates).
 prolog_message(import_private(Module, Private)) -->
-    [ 'import/1: ~p is not exported (still imported into ~q)'-
-      [Private, Module]
-    ].
+    [ 'import/1: ' ], predicate_reference(Private),
+    [ ' is not exported (still imported into ~q)'-[Module] ].
 prolog_message(ignored_weak_import(Into, From:PI)) -->
-    [ 'Local definition of ~p overrides weak import from ~q'-
-      [Into:PI, From]
-    ].
+    [ 'Local definition of ' ],
+    predicate_reference(Into:PI, [module(show)]),
+    [ ' overrides weak import from ~q'-[From] ].
 prolog_message(undefined_export(Module, PI)) -->
-    [ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
+    [ 'Exported procedure ' ],
+    predicate_reference(Module:PI, [module(show)]),
+    [ ' is not defined' ].
 prolog_message(no_exported_op(Module, Op)) -->
     [ 'Operator ~q:~q is not exported (still defined)'-[Module, Op] ].
 prolog_message(discontiguous((-)/2,_)) -->
     prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc,Current)) -->
-    [ 'Clauses of ', ansi(code, '~p', [Proc]),
-      ' are not together in the source-file', nl ],
-    current_definition(Proc, 'Earlier definition at '),
-    [ 'Current predicate: ', ansi(code, '~p', [Current]), nl,
-      'Use ', ansi(code, ':- discontiguous ~p.', [Proc]),
+    [ 'Clauses of ' ], predicate_reference(Proc),
+    [ ' are not together in the source-file' ],
+    predicate_definition(Proc, 'Earlier definition'),
+    [ nl, 'Current predicate: ' ], predicate_reference(Current),
+    [ nl, 'Use ', ansi(code, ':- discontiguous ~p.', [Proc]),
       ' to suppress this message'
     ].
 prolog_message(decl_no_effect(Goal)) -->
@@ -883,14 +893,14 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
     load_module(Module),
     [ ' ~2f sec, ~D clauses'-[Time, Clauses] ].
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
-    { goal_to_predicate_indicator(Goal, Pred)
-    },
-    [ 'Unknown procedure: ~q'-[Pred], nl,
-      '    However, there are definitions for:', nl
-    ],
-    dwim_message(Alternatives).
+    [ 'Unknown procedure: ' ],
+    predicate_reference(Goal),
+    [ nl, '    However, there are definitions for:', nl ],
+    dwim_alternatives(Alternatives).
 prolog_message(dwim_correct(Into)) -->
-    [ 'Correct to: ~q? '-[Into], flush ].
+    [ ansi(warning, 'Correct to: ', []), ansi(code, '~q', [Into]),
+      ansi(warning, '? ', []), flush
+    ].
 prolog_message(error(loop_error(Spec), file_search(Used))) -->
     [ 'File search: too many levels of indirections on: ~p'-[Spec], nl,
       '    Used alias expansions:', nl
@@ -925,16 +935,6 @@ prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
 prolog_message(expected_layout(Expected, Pos)) -->
     [ 'Layout data: expected ~w, found: ~p'-[Expected, Pos] ].
 
-defined_definition(Message, Spec) -->
-    { strip_module(user:Spec, M, Name/Arity),
-      functor(Head, Name, Arity),
-      predicate_property(M:Head, file(File)),
-      predicate_property(M:Head, line_count(Line))
-    },
-    !,
-    [ nl, '~w at '-[Message], url(File:Line) ].
-defined_definition(_, _) --> [].
-
 used_search([]) -->
     [].
 used_search([Alias=Expanded|T]) -->
@@ -954,18 +954,11 @@ load_module(system) --> !.
 load_module(Module) -->
     [ ' into ~w'-[Module] ].
 
-goal_to_predicate_indicator(Goal, PI) :-
-    strip_module(Goal, Module, Head),
-    '$pi_head'(PI0, Module:Head),
-    (   current_predicate(PI0),
-        predicate_property(Module:Head, non_terminal)
-    ->  dcg_pi(PI0, PI)
-    ;   PI = PI0
-    ),
-    user_predicate_indicator(PI, PI).
-
-dcg_pi(Module:Name/Arity, Module:Name//DCGArity) :-
-    DCGArity is Arity-2.
+%!  user_predicate_indicator(+QPI, -PI) is det.
+%
+%   Remove the module qualification from  QPI   if  it does not add
+%   information for the user.  This is the single module hiding policy of
+%   this file.  See also predicate_reference//2.
 
 user_predicate_indicator(Module:PI, PI) :-
     hidden_module(Module),
@@ -976,22 +969,6 @@ hidden_module(user) :- !.
 hidden_module(system) :- !.
 hidden_module(M) :-
     sub_atom(M, 0, _, _, $).
-
-current_definition(Proc, Prefix) -->
-    { pi_uhead(Proc, Head),
-      predicate_property(Head, file(File)),
-      predicate_property(Head, line_count(Line))
-    },
-    [ '~w'-[Prefix], url(File:Line), nl ].
-current_definition(_, _) --> [].
-
-pi_uhead(Module:Name/Arity, Module:Head) :-
-    !,
-    atom(Module), atom(Name), integer(Arity),
-    functor(Head, Name, Arity).
-pi_uhead(Name/Arity, user:Head) :-
-    atom(Name), integer(Arity),
-    functor(Head, Name, Arity).
 
 qlf_recompile_reason(old) -->
     !,
@@ -1179,14 +1156,15 @@ prolog_message(make(library_index(Dir))) -->
     [ 'Updating index for library ~w'-[Dir] ].
 prolog_message(autoload(Pred, File)) -->
     thread_context,
-    [ 'autoloading ~p from ~w'-[Pred, File] ].
+    [ 'autoloading ' ], predicate_reference(Pred, [link(false)]),
+    [ ' from ~w'-[File] ].
 prolog_message(autoload(read_index(Dir))) -->
     [ 'Loading autoload index for ~w'-[Dir] ].
 prolog_message(autoload(disabled(Loaded))) -->
     [ 'Disabled autoloading (loaded ~D files)'-[Loaded] ].
 prolog_message(autoload(already_defined(PI, From))) -->
-    code(PI),
-    (   { '$pi_head'(PI, Head),
+    predicate_reference(PI),
+    (   { predicate_head(PI, Head),
           predicate_property(Head, built_in)
         }
     ->  [' is a built-in predicate']
@@ -1200,9 +1178,9 @@ swi_message(autoload(Msg)) -->
 
 autoload_message(not_exported(PI, Spec, _FullFile, _Exports)) -->
     [ ansi(code, '~w', [Spec]),
-      ' does not export ',
-      ansi(code, '~p', [PI])
-    ].
+      ' does not export '
+    ],
+    predicate_reference(PI, [link(false)]).
 autoload_message(no_file(Spec)) -->
     [ ansi(code, '~p', [Spec]), ': No such file' ].
 
@@ -1642,13 +1620,13 @@ user_version_message(Atom) -->
 
 prolog_message(spy(Head)) -->
     [ 'New spy point on ' ],
-    goal_predicate(Head).
+    predicate_reference(Head).
 prolog_message(already_spying(Head)) -->
     [ 'Already spying ' ],
-    goal_predicate(Head).
+    predicate_reference(Head).
 prolog_message(nospy(Head)) -->
     [ 'Removed spy point from ' ],
-    goal_predicate(Head).
+    predicate_reference(Head).
 prolog_message(trace_mode(OnOff)) -->
     [ 'Trace mode switched to ~w'-[OnOff] ].
 prolog_message(debug_mode(OnOff)) -->
@@ -1664,7 +1642,8 @@ prolog_message(spying(Heads)) -->
     predicate_list(Heads).
 prolog_message(trace(Head, [])) -->
     !,
-    [ '    ' ], goal_predicate(Head), [ ' Not tracing'-[], nl].
+    [ '    ' ], predicate_reference(Head, [tag(true)]),
+    [ ' Not tracing'-[], nl].
 prolog_message(trace(Head, Ports)) -->
     { '$member'(Port, Ports), compound(Port),
       !,
@@ -1672,7 +1651,8 @@ prolog_message(trace(Head, Ports)) -->
     },
     [ '    ~p: ~p'-[Head,Ports] ].
 prolog_message(trace(Head, Ports)) -->
-    [ '    ' ], goal_predicate(Head), [ ': ~w'-[Ports], nl].
+    [ '    ' ], predicate_reference(Head, [tag(true)]),
+    [ ': ~w'-[Ports], nl].
 prolog_message(tracing([])) -->
     !,
     [ 'No traced predicates (see trace/1,2)' ].
@@ -1680,23 +1660,15 @@ prolog_message(tracing(Heads)) -->
     [ 'Trace points (see trace/1,2) on:', nl ],
     tracing_list(Heads).
 
-goal_predicate(Head) -->
-    { predicate_property(Head, file(File)),
-      predicate_property(Head, line_count(Line)),
-      goal_to_predicate_indicator(Head, PI),
-      term_string(PI, PIS, [quoted(true)])
-    },
-    [ url(File:Line, PIS) ].
-goal_predicate(Head) -->
-    { goal_to_predicate_indicator(Head, PI)
-    },
-    [ ansi(code, '~p', [PI]) ].
+%!  predicate_list(+Specs)// is det.
+%
+%   Emit a list of predicates, one per  line, each tagged with its kind.
+%   See predicate_reference//2.
 
-
-predicate_list([]) -->                  % TBD: Share with dwim, etc.
+predicate_list([]) -->
     [].
 predicate_list([H|T]) -->
-    [ '    ' ], goal_predicate(H), [nl],
+    [ '    ' ], predicate_reference(H, [tag(true)]), [nl],
     predicate_list(T).
 
 tracing_list([]) -->
@@ -1845,7 +1817,9 @@ clean_goal(Goal, Goal).
                  *******************************/
 
 prolog_message(compatibility(renamed(Old, New))) -->
-    [ 'The predicate ~p has been renamed to ~p.'-[Old, New], nl,
+    [ 'The predicate ' ], predicate_reference(Old, [link(false)]),
+    [ ' has been renamed to ' ], predicate_reference(New),
+    [ '.', nl,
       'Please update your sources for compatibility with future versions.'
     ].
 
@@ -1927,7 +1901,8 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
     ].
 deprecated(autoload(TargetModule, File, _M:PI, expansion)) -->
     !,
-    [ 'Auto-loading ', ansi(code, '~p', [PI]), ' from ' ],
+    [ 'Auto-loading ' ], predicate_reference(PI, [link(false)]),
+    [ ' from ' ],
     load_file(File), [ ' into ' ],
     target_module(TargetModule),
     [ ' is deprecated due to term- or goal-expansion' ].
@@ -1976,7 +1951,7 @@ tripwire_context(_, ATrie) -->
     { '$is_answer_trie'(ATrie, _),
       !,
       '$tabling':atrie_goal(ATrie, QGoal),
-      user_predicate_indicator(QGoal, Goal)
+      clean_goal(QGoal, Goal)          % a goal, not a predicate indicator
     },
     [ '~p'-[Goal] ].
 tripwire_context(_, Ctx) -->
@@ -2060,6 +2035,281 @@ list([H|T]) --> [H], list(T).
 
 
 		 /*******************************
+		 *     PREDICATE REFERENCES	*
+		 *******************************/
+
+%!  predicate_indicator(+Spec, -QPI) is semidet.
+%
+%   QPI is the fully qualified predicate  indicator ``Module:Name/Arity``
+%   or, for a non-terminal, ``Module:Name//Arity``  for Spec. Spec is one
+%   of
+%
+%     - A callable term (a _head_), optionally module qualified
+%     - A predicate indicator, optionally module qualified
+%
+%   The module is _kept_ here.  Whether  or   not  it  is printed is left
+%   to predicate_reference//2, which uses user_predicate_indicator/2.
+%
+%   @see pi_head/2 of library(prolog_code) for the general version.  This
+%   one is in the boot files and thus cannot use it.
+
+:- public
+    predicate_indicator/2.
+
+predicate_indicator(Spec, QPI) :-
+    strip_module(user:Spec, Module, Spec1),
+    (   is_predicate_indicator(Spec1)
+    ->  dcg_indicator(Module, Spec1, QPI)
+    ;   callable(Spec1),
+        '$pi_head'(Module:PI, Module:Spec1),
+        dcg_indicator(Module, PI, QPI)
+    ).
+
+%!  dcg_indicator(+Module, +PI, -QPI) is det.
+%
+%   Qualify PI with Module and use  the ``//`` notation if the predicate
+%   is a non-terminal.
+
+dcg_indicator(Module, Name//DCGArity, Module:Name//DCGArity) :-
+    !.
+dcg_indicator(Module, Name/Arity, QPI) :-
+    (   Arity >= 2,
+        current_predicate(Module:Name/Arity),
+        functor(Head, Name, Arity),
+        predicate_property(Module:Head, non_terminal)
+    ->  DCGArity is Arity-2,
+        QPI = Module:Name//DCGArity
+    ;   QPI = Module:Name/Arity
+    ).
+
+%!  predicate_head(+Spec, -QHead) is semidet.
+%
+%   QHead is the module qualified _head_   for Spec, accepting the same
+%   input as predicate_indicator/2.  Unqualified specs are qualified
+%   using `user`.
+
+predicate_head(Spec, QHead) :-
+    strip_module(user:Spec, Module, Spec1),
+    (   is_predicate_indicator(Spec1)
+    ->  '$pi_head'(Module:Spec1, QHead)
+    ;   callable(Spec1),
+        QHead = Module:Spec1
+    ).
+
+is_predicate_indicator(Name/Arity) :-
+    atomic(Name), integer(Arity).
+is_predicate_indicator(Name//Arity) :-
+    atomic(Name), integer(Arity).
+
+%!  predicate_reference(+Spec)// is det.
+%!  predicate_reference(+Spec, +Options)// is det.
+%
+%   Emit a reference to a predicate.  Spec  is a (possibly qualified)
+%   head or predicate indicator.  The   reference  is  printed using the
+%   style class `code` and, if the location of the predicate is known and
+%   the output is a terminal that supports  it, it is a hyperlink to the
+%   definition.  Options:
+%
+%     - module(+Which)
+%       One of `auto` (default), `hide` or `show`.  Using `auto`, the
+%       module qualification is removed if hidden_module/1 holds for it.
+%     - link(+Bool)
+%       If `false`, do not try to create a hyperlink.  Default `true`.
+%     - style(+Class)
+%       Style class for the reference.  Default `code`.
+%     - tag(+Bool)
+%       If `true`, add a tag that indicates the _kind_ of predicate.
+%       See predicate_kind/2.  Default `false`.  Only sensible if the
+%       reference is the only thing on the line.
+%
+%   If Spec cannot be interpreted as a predicate  it is printed using the
+%   `code` class and ``~p``, i.e., we never fail on a malformed message.
+
+:- public
+    predicate_reference//1,
+    predicate_reference//2.
+
+predicate_reference(Spec) -->
+    predicate_reference(Spec, []).
+
+predicate_reference(Spec, Options) -->
+    { predicate_indicator(Spec, QPI) },
+    !,
+    { pref_option(style(Style), Options, code),
+      pref_option(module(Mode), Options, auto),
+      reference_pi(Mode, QPI, PI)
+    },
+    predicate_link(QPI, ansi(Style, '~q', [PI]), Options),
+    predicate_reference_tag(QPI, Options).
+predicate_reference(Spec, _Options) -->
+    [ ansi(code, '~p', [Spec]) ].
+
+reference_pi(auto, QPI, PI) :-
+    !,
+    user_predicate_indicator(QPI, PI).
+reference_pi(hide, _:PI, PI) :- !.
+reference_pi(_, QPI, QPI).
+
+predicate_link(QPI, Label, Options) -->
+    { pref_option(link(true), Options, true),
+      predicate_location(QPI, Location)
+    },
+    !,
+    [ url(Location, Label) ].
+predicate_link(_, Label, _) -->
+    [ Label ].
+
+%!  pref_option(?Option, +Options, +Default) is semidet.
+%
+%   Get an option from the option list  of predicate_reference//2.  Fails
+%   if Options holds a value for Option that does not unify.  Note that
+%   this deliberately does not use library(option): boot/messages.pl must
+%   be able to print a message before the libraries are available.
+
+pref_option(Option, Options, Default) :-
+    functor(Option, Name, 1),
+    functor(General, Name, 1),
+    (   memberchk(General, Options)
+    ->  General = Option
+    ;   arg(1, Option, Default)
+    ).
+
+%!  predicate_location(+Spec, -Location) is semidet.
+%
+%   Location is `File:Line` for the definition of the predicate Spec.
+%   Also deals with predicates defined in C.  Note that predicates that
+%   are not loaded but can be autoloaded  are located from the autoload
+%   index, i.e., printing a message never loads a library.
+
+:- public
+    predicate_location/2.
+
+predicate_location(Spec, Location) :-
+    predicate_head(Spec, Head),
+    current_predicate(_, Head),                 % do not (auto)load
+    '$predicate_source_location'(Head, Location).
+
+%!  predicate_definition(+Spec, +Message)// is det.
+%
+%   Emit "Message at File:Line" on a new  line if the location of Spec is
+%   known and nothing at all if it is not.
+
+:- public
+    predicate_definition//2.
+
+predicate_definition(Spec, Message) -->
+    { predicate_location(Spec, Location) },
+    !,
+    [ nl, '~w at '-[Message], url(Location) ].
+predicate_definition(_, _) -->
+    [].
+
+%!  predicate_kind(+Spec, -Kind) is semidet.
+%
+%   Classify a predicate for the benefit of  the user who has to pick one
+%   from a list of candidates.  Fails if  Spec is not a predicate.  Kind
+%   is one of
+%
+%     - iso
+%     - built_in
+%     - foreign
+%     - library(Name)
+%     - module(Module)
+%     - user
+%     - undefined
+
+:- public
+    predicate_kind/2.
+
+predicate_kind(Spec, Kind) :-
+    predicate_head(Spec, Head),
+    (   current_predicate(_, Head)              % do not autoload
+    ->  defined_predicate_kind(Head, Kind)
+    ;   predicate_property(Head, autoload(File))
+    ->  library_name(File, Name),
+        Kind = library(Name)
+    ;   Kind = undefined
+    ).
+
+defined_predicate_kind(Head, Kind) :-
+    (   predicate_property(Head, iso)
+    ->  Kind = iso
+    ;   predicate_property(Head, built_in)
+    ->  (   predicate_property(Head, foreign)
+        ->  Kind = foreign
+        ;   Kind = built_in
+        )
+    ;   predicate_property(Head, imported_from(Module))
+    ->  module_kind(Module, Kind)
+    ;   predicate_property(Head, file(File)),
+        library_file(File)
+    ->  library_name(File, Name),
+        Kind = library(Name)
+    ;   Kind = user
+    ).
+
+module_kind(Module, Kind) :-
+    (   hidden_module(Module)
+    ->  Kind = user
+    ;   module_property(Module, file(File)),
+        library_file(File)
+    ->  library_name(File, Name),
+        Kind = library(Name)
+    ;   Kind = module(Module)
+    ).
+
+%!  library_file(+File) is semidet.
+%!  library_name(+File, -Name) is det.
+%
+%   True if File is in one of the  library directories and, if so, Name
+%   is how the file is referred to as ``library(Name)``.
+
+library_file(File) :-
+    absolute_file_name(library(.), LibDir,
+                       [ file_type(directory),
+                         solutions(all),
+                         file_errors(fail)
+                       ]),
+    sub_atom(File, 0, _, _, LibDir),
+    !.
+
+library_name(File, Name) :-
+    (   file_name_extension(Base, Ext, File),
+        Ext \== ''
+    ->  true
+    ;   Base = File
+    ),
+    file_base_name(Base, Name).
+
+%!  predicate_reference_tag(+QPI, +Options)// is det.
+%!  predicate_kind_tag(+Kind)// is det.
+%
+%   Emit the kind of the predicate as a short tag.
+
+predicate_reference_tag(QPI, Options) -->
+    { pref_option(tag(true), Options, false),
+      predicate_kind(QPI, Kind)
+    },
+    !,
+    predicate_kind_tag(Kind).
+predicate_reference_tag(_, _) -->
+    [].
+
+predicate_kind_tag(Kind) -->
+    { predicate_kind_label(Kind, Label) },
+    [ ansi(predicate(Kind), ' [~w]', [Label]) ].
+
+predicate_kind_label(iso,          'ISO').
+predicate_kind_label(built_in,     'built-in').
+predicate_kind_label(foreign,      'built-in').
+predicate_kind_label(user,         'user').
+predicate_kind_label(undefined,    'undefined').
+predicate_kind_label(library(Name), Label) :-
+    format(atom(Label), 'library(~w)', [Name]).
+predicate_kind_label(module(Name), Name).
+
+
+		 /*******************************
 		 *        DEFAULT THEME		*
 		 *******************************/
 
@@ -2085,6 +2335,13 @@ default_theme(prompt,                 [bold]).
 default_theme(input,                  []).
 default_theme(answer(_),              []).
 default_theme(binding(name),          [bold]).
+default_theme(predicate(iso),         [fg(cyan)]).
+default_theme(predicate(built_in),    [fg(cyan)]).
+default_theme(predicate(foreign),     [fg(cyan)]).
+default_theme(predicate(library(_)),  [fg(green)]).
+default_theme(predicate(module(_)),   [fg(green)]).
+default_theme(predicate(user),        [fg(default)]).
+default_theme(predicate(undefined),   [fg(red)]).
 default_theme(message(informational), [fg(green)]).
 default_theme(message(information),   [fg(green)]).
 default_theme(message(debug(_)),      [fg(blue)]).
@@ -2381,7 +2638,8 @@ insert_prefix(Lines0, Prefix, Ctx, [prefix(Prefix)|Lines]) :-
 %     - ansi(Attrs, Fmt, Args) becomes ansi(Attrs, Fmt, Args, Ctx).
 %       Its handler re-installs the decoration of the message as a
 %       whole after writing the element, as the element ends with a
-%       full reset.
+%       full reset.  The same applies to an ansi/3 element used as the
+%       _label_ of an url/2 element.
 %
 %   The last line of a message is  ended   implicitly:  if Lines does not
 %   end in `nl` or `flush` an `nl` is added.  This one does not paint:
@@ -2402,6 +2660,10 @@ prefix_nl([eol|T0], Prefix, Ctx, [eol(Ctx)|T]) :-
     prefix_nl(T0, Prefix, Ctx, T).
 prefix_nl([ansi(Attrs,Fmt,Args)|T0], Prefix, Ctx,
           [ansi(Attrs,Fmt,Args,Ctx)|T]) :-
+    !,
+    prefix_nl(T0, Prefix, Ctx, T).
+prefix_nl([url(URL,ansi(Attrs,Fmt,Args))|T0], Prefix, Ctx,
+          [url(URL,ansi(Attrs,Fmt,Args,Ctx))|T]) :-
     !,
     prefix_nl(T0, Prefix, Ctx, T).
 prefix_nl([H|T0], Prefix, Ctx, [H|T]) :-
@@ -2456,12 +2718,10 @@ line_element(S, ansi(_, Fmt, Args, _Ctx)) :-
 line_element(S, url(URL)) :-
     !,
     print_link(S, URL).
-line_element(S, url(_URL, Fmt-Args)) :-
+line_element(S, url(_URL, Label)) :-
     !,
+    link_label(Label, Fmt, Args),
     safe_format(S, Fmt, Args).
-line_element(S, url(_URL, Fmt)) :-
-    !,
-    safe_format(S, Fmt, []).
 line_element(_, begin(_Level, _Ctx)) :- !.
 line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
@@ -2475,6 +2735,23 @@ print_link(S, File:Line) :-
     safe_format(S, '~w:~d', [File, Line]).
 print_link(S, File) :-
     safe_format(S, '~w', [File]).
+
+%!  link_label(+Label, -Format, -Args) is det.
+%
+%   Decompose the _label_ of an url/2  message   element.  See  url/2 in
+%   print_message_lines/3.  Note that a plain  label is _text_ rather than
+%   a format: it typically holds a file name, which may contain ``~``.
+
+:- public
+    link_label/3.
+
+link_label(Fmt-Args, Fmt, Args) :-
+    atom(Fmt),
+    is_list(Args),
+    !.
+link_label(ansi(_Class, Fmt, Args), Fmt, Args) :- !.
+link_label(ansi(_Class, Fmt, Args, _Ctx), Fmt, Args) :- !.
+link_label(Text, '~w', [Text]).
 
 %!  safe_format(+Stream, +Format, +Args) is det.
 
@@ -2572,8 +2849,9 @@ url_actions_to_format(url(File), Fmt1, Args1, Fmt, Args) :-
     append_args([File], Args1, Args).
 url_actions_to_format(url(_URL, Label), Fmt1, Args1, Fmt, Args) :-
     !,
-    atom_concat('~w', Fmt1, Fmt),
-    append_args([Label], Args1, Args).
+    link_label(Label, Fmt0, Args0),
+    atom_concat(Fmt0, Fmt1, Fmt),
+    append_args(Args0, Args1, Args).
 
 
 append_args(M:Args0, Args1, M:Args) :-

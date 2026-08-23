@@ -95,6 +95,14 @@ prolog:console_color(input,                  [bg8(21)]).
 prolog:console_color(answer(odd),            [bg8(238)]).
 prolog:console_color(answer(even),           [bg8(240)]).
 prolog:console_color(binding(name),          [bold, fg8(h(yellow))]).
+% tag that indicates the kind of a predicate in a list of candidates.
+prolog:console_color(predicate(iso),         [hfg(cyan)]).
+prolog:console_color(predicate(built_in),    [hfg(cyan)]).
+prolog:console_color(predicate(foreign),     [hfg(cyan)]).
+prolog:console_color(predicate(library(_)),  [hfg(green)]).
+prolog:console_color(predicate(module(_)),   [hfg(green)]).
+prolog:console_color(predicate(user),        [fg(default)]).
+prolog:console_color(predicate(undefined),   [fg(red)]).
 % print message. the argument for debug(_) is the debug channel.
 prolog:console_color(message(informational), [hfg(green)]).
 prolog:console_color(message(information),   [hfg(green)]).

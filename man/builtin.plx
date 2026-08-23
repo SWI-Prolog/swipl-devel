@@ -3405,8 +3405,21 @@ a list of message elements.  The elements of this list are:
 	using library \pllib{ansi_term}, this is translated into a
 	hyperlink for modern terminals.
     \termitem{url}{URL, Label}
-        Print \arg{Label}.  When using library \pllib{ansi_term},
-	this is translated into a hyperlink for modern terminals.
+        Print \arg{Label}.  \arg{URL} is either a real URL or a source
+	location as accepted by \term{url}{Location} above.  When using
+	library \pllib{ansi_term}, this is translated into a hyperlink
+	for modern terminals.  \arg{Label} is one of
+
+	\begin{shortlist}
+	    \item An atom or string, which is printed as plain text.
+	    \item A term \mbox{\arg{Format}\texttt{-}\arg{Args}}, which
+	          is handed to format/3.
+	    \item A term \term{ansi}{Class, Format, Args}, which prints
+	          the label using the attributes of \arg{Class} as well
+		  as making it a hyperlink.  This is how a predicate
+		  reference in a message is both coloured using the
+		  \const{code} class and linked to its definition.
+	\end{shortlist}
     \termitem{nl}{}
         A new line is started.  If the message is not complete,
 	\arg{Prefix} is printed before the remainder of the message.
@@ -3624,6 +3637,63 @@ message_hook(download_url(URL, I, Total), _Kind, _Lines) :-
 
 In addition, using the command line option \cmdlineoption{-q}, the user
 can disable all \jargon{informational} messages.
+
+\subsubsection{Referring to predicates from a message}
+\label{sec:msgpredref}
+
+Many messages refer to a predicate.  Rather than formatting the
+predicate indicator yourself, use the grammar rules below.  They are
+defined in the system module \const{\$messages} and are declared
+\const{public}, i.e., they must be called with an explicit module
+qualification.  Using them makes the reference consistent with the
+messages of the system: the predicate indicator is written using the
+\const{code} style class and, if the source location of the predicate is
+known, it becomes a hyperlink to its definition on terminals that
+support this (see \secref{theme} and the Prolog flag
+\prologflag{hyperlink_term}).  This works for predicates defined in C as
+well, provided the system can resolve the address of the implementing
+function.
+
+\begin{code}
+prolog:message(no_such_predicate(PI)) -->
+	[ 'There is no ' ],
+	'$messages':predicate_reference(PI).
+\end{code}
+
+\begin{description}
+    \dcg{predicate_reference}{1}{+Spec}
+    \nodescription
+    \dcg{predicate_reference}{2}{+Spec, +Options}
+Emit a reference to a predicate.  \arg{Spec} is a (possibly module
+qualified) head or predicate indicator.  Non-terminals are printed using
+the \verb$//$ notation.  \arg{Options}:
+
+\begin{description}
+    \termitem{module}{Which}
+One of \const{auto} (default), \const{hide} or \const{show}.  Using
+\const{auto}, the module qualification is removed if it is \const{user},
+\const{system} or a system internal module.
+    \termitem{link}{Bool}
+If \const{false}, do not create a hyperlink.  Default is \const{true}.
+    \termitem{style}{Class}
+Style class for the reference.  Default is \const{code}.
+    \termitem{tag}{Bool}
+If \const{true}, add a tag that indicates the \jargon{kind} of the
+predicate.  Default is \const{false}.  This is intended for messages
+that list candidate predicates, one per line.
+\end{description}
+
+    \dcg{predicate_definition}{2}{+Spec, +Message}
+Emit \mbox{``\arg{Message} at \arg{File}:\arg{Line}''} on a new line if
+the location of \arg{Spec} is known and nothing at all if it is not.
+
+    \predicate[semidet]{predicate_kind}{2}{+Spec, -Kind}
+Classify a predicate as \const{iso}, \const{built_in}, \const{foreign},
+\term{library}{Name}, \term{module}{Module}, \const{user} or
+\const{undefined}.  This is the classification used by the
+\const{tag(true)} option above.  Fails if \arg{Spec} does not denote a
+predicate.
+\end{description}
 
 
 \section{Handling signals}			\label{sec:signal}

@@ -61,6 +61,16 @@ prolog:console_color(input,         [bg8(123)]).
 prolog:console_color(answer(odd),   [bg8(255)]).
 prolog:console_color(answer(even),  [bg8(253)]).
 prolog:console_color(binding(name), [bold, fg8(magenta)]).
+% tag that indicates the kind of a predicate in a list of candidates.
+% Not blue: that is the colour of the `code` class used for the
+% predicate indicator the tag belongs to.
+prolog:console_color(predicate(iso),        [fg8(magenta)]).
+prolog:console_color(predicate(built_in),   [fg8(magenta)]).
+prolog:console_color(predicate(foreign),    [fg8(magenta)]).
+prolog:console_color(predicate(library(_)), [fg8(green)]).
+prolog:console_color(predicate(module(_)),  [fg8(green)]).
+prolog:console_color(predicate(user),       [fg(default)]).
+prolog:console_color(predicate(undefined),  [fg(red)]).
 prolog:console_color(message(Level), Attrs) :-
     nonvar(Level),
     prolog:console_color(Level, Attrs).

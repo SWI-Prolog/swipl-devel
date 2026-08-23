@@ -466,7 +466,9 @@ hex_color(D1,V) :-
 %       the decoration of the message as a whole afterwards.
 %     - url(Location)
 %     - url(URL, Label)
-%       Write a hyperlink.  See ansi_hyperlink/2,3.
+%       Write a hyperlink.  See ansi_hyperlink/2,3.  Label is an atom or
+%       string, a Format-Args pair or an ansi/3 or ansi/4 term.  The
+%       latter combines a hyperlink with a style class.
 %     - begin(Class, Ctx)
 %     - end(Ctx)
 %       Decorate the message as a whole.  See below.
@@ -501,11 +503,7 @@ prolog:message_line_element(S, ansi(Class, Fmt, Args)) :-
 prolog:message_line_element(S, ansi(Class, Fmt, Args, Ctx)) :-
     class_attrs(Class, Attr),
     ansi_format(S, Attr, Fmt, Args),
-    (   nonvar(Ctx),
-        Ctx = ansi(_, RI-RA, _)
-    ->  format(S, RI, RA)
-    ;   true
-    ).
+    reinstall_message_attrs(S, Ctx).
 prolog:message_line_element(S, nl(Ctx)) :-
     nonvar(Ctx),
     Ctx = ansi(_, _, EOL),
@@ -524,6 +522,17 @@ prolog:message_line_element(S, eol(Ctx)) :-
 prolog:message_line_element(S, url(Location)) :-
     ansi_hyperlink(S, Location).
 prolog:message_line_element(S, url(URL, Label)) :-
+    link_label(Label, Class, Fmt, Args, Ctx),
+    !,
+    format(string(Text), Fmt, Args),
+    (   ansi_sgr_for(S, Class, Sequence)
+    ->  write(S, Sequence),
+        ansi_hyperlink(S, URL, Text),
+        write(S, '\e[0m'),
+        reinstall_message_attrs(S, Ctx)
+    ;   ansi_hyperlink(S, URL, Text)
+    ).
+prolog:message_line_element(S, url(URL, Label)) :-
     ansi_hyperlink(S, URL, Label).
 prolog:message_line_element(S, begin(Level, Ctx)) :-
     level_attrs(Level, Attr),
@@ -540,6 +549,42 @@ prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
     Ctx = ansi(Reset, _, _),
     write(S, Reset).
+
+%!  reinstall_message_attrs(+Stream, +Ctx) is det.
+%
+%   Re-install the attributes of the message as a whole after an element
+%   that ended with a full reset.  See prolog:message_line_element/2.
+
+reinstall_message_attrs(S, Ctx) :-
+    (   nonvar(Ctx),
+        Ctx = ansi(_, RI-RA, _)
+    ->  format(S, RI, RA)
+    ;   true
+    ).
+
+%!  link_label(+Label, -Class, -Format, -Args, -Ctx) is semidet.
+%
+%   Decompose a _decorated_ label of an  url/2 message element.  Fails if
+%   Label is plain text, which is written using ansi_hyperlink/3.
+
+link_label(Fmt-Args, -, Fmt, Args, _) :-
+    atom(Fmt),
+    is_list(Args),
+    !.
+link_label(ansi(Class, Fmt, Args), Class, Fmt, Args, _).
+link_label(ansi(Class, Fmt, Args, Ctx), Class, Fmt, Args, Ctx).
+
+%!  ansi_sgr_for(+Stream, +Class, -Sequence) is semidet.
+%
+%   Sequence activates the attributes of Class  on Stream.  Fails if the
+%   Stream is not a terminal, if colour output is disabled or if Class
+%   has no attributes.
+
+ansi_sgr_for(S, Class, Sequence) :-
+    Class \== (-),
+    stream_property(S, tty(true)),
+    ansi_sgr(Class, Sequence),
+    Sequence \== "".
 
 %!  erase_eol(+Attrs, -EOL) is det.
 %
