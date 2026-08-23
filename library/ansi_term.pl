@@ -757,68 +757,130 @@ supports_get_color :-
 color_alias(foreground, 10).
 color_alias(background, 11).
 
-ansi_get_color_(Which, rgb(R,G,B)) :-
-    format(codes(Id), '~w', [Which]),
-    hex4(RH),
-    hex4(GH),
-    hex4(BH),
-    phrase(("\e]", Id, ";rgb:", RH, "/", GH, "/", BH, "\a"), Pattern),
+ansi_get_color_(Which, RGB) :-
     stream_property(user_input, timeout(Old)),
     setup_call_cleanup(
         set_stream(user_input, timeout(0.05)),
-        with_tty_raw(exchange_pattern(Which, Pattern)),
+        with_tty_raw(exchange_color(Which, RGB)),
         set_stream(user_input, timeout(Old))),
-    !,
-    hex_val(RH, R),
-    hex_val(GH, G),
-    hex_val(BH, B).
+    !.
 
 no_xterm :-
     print_message(warning, ansi(no_xterm_get_colour)),
     fail.
 
-hex4([_,_,_,_]).
+%!  exchange_color(+Which, -RGB) is semidet.
+%
+%   Ask the terminal for colour Which and read its reply.
 
-hex_val([D1,D2,D3,D4], V) :-
-    code_type(D1, xdigit(V1)),
-    code_type(D2, xdigit(V2)),
-    code_type(D3, xdigit(V3)),
-    code_type(D4, xdigit(V4)),
-    V is (V1<<12)+(V2<<8)+(V3<<4)+V4.
-
-exchange_pattern(Which, Pattern) :-
+exchange_color(Which, RGB) :-
     format(user_output, '\e]~w;?\a', [Which]),
     flush_output(user_output),
-    read_pattern(user_input, Pattern, []).
+    format(codes(Id), '~w', [Which]),
+    read_osc_reply(user_input, Id, Codes),
+    phrase(color_reply(RGB), Codes).
 
-read_pattern(From, Pattern, NotMatched0) :-
-    copy_term(Pattern, TryPattern),
-    append(Skip, Rest, NotMatched0),
-    append(Rest, RestPattern, TryPattern),
+%!  read_osc_reply(+In, +Param:codes, -Body:codes) is semidet.
+%
+%   Read the body of the OSC reply to  our query, i.e., the text between
+%   ``ESC ] Param ;`` and the _string terminator_.  Terminals reply with
+%   either BEL or ST (``ESC \``), so we accept both.
+%
+%   Anything that is not our reply is  echoed:  it was typed by the user
+%   while we were waiting rather than sent by the terminal.
+
+read_osc_reply(In, Param, Body) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0'\e,
+        osc_reply(In, Param, Body0)
+    ->  Body = Body0
+    ;   put_code(user_output, C),
+        read_osc_reply(In, Param, Body)
+    ).
+
+osc_reply(In, Param, Body) :-
+    get_code(In, 0']),
+    read_osc_param(In, Param),
+    read_osc_string(In, Body).
+
+read_osc_param(In, Param) :-
+    read_osc_param_(In, Codes),
+    Codes == Param.
+
+read_osc_param_(In, Codes) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0';
+    ->  Codes = []
+    ;   Codes = [C|T],
+        read_osc_param_(In, T)
+    ).
+
+read_osc_string(In, Codes) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0'\a                       % BEL
+    ->  Codes = []
+    ;   C == 0'\e                       % ST: ESC \
+    ->  get_code(In, 0'\\),
+        Codes = []
+    ;   Codes = [C|T],
+        read_osc_string(In, T)
+    ).
+
+%!  color_reply(-RGB)// is semidet.
+%
+%   Parse the body of the reply.  This is an X11 colour specification as
+%   understood by XParseColor().  Terminals  differ   in  the  number of
+%   digits they use per component: xterm  replies with four, others with
+%   one, two or three.  A component of  N digits is scaled such that its
+%   maximum maps to 0xffff, as XParseColor() does.
+
+color_reply(rgb(R,G,B)) -->
+    "rgb:", !,
+    hex_component(R), "/", hex_component(G), "/", hex_component(B).
+color_reply(rgb(R,G,B)) -->                     % #RGB, #RRGGBB, ...
+    "#",
+    hex_digits(Ds),
+    { length(Ds, Len),
+      N is Len//3,
+      N > 0, N =< 4,
+      length(RDs, N), length(GDs, N), length(BDs, N),
+      append(RDs, Rest, Ds),
+      append(GDs, BDs, Rest),
+      hex_value(RDs, R),
+      hex_value(GDs, G),
+      hex_value(BDs, B)
+    }.
+
+hex_component(V) -->
+    hex_digits(Ds),
+    { Ds \== [],
+      length(Ds, N),
+      N =< 4,
+      hex_value(Ds, V)
+    }.
+
+hex_digits([H|T]) -->
+    [H],
+    { code_type(H, xdigit(_)) },
     !,
-    echo(Skip),
-    try_read_pattern(From, RestPattern, NotMatched, Done),
-    (   Done == true
-    ->  Pattern = TryPattern
-    ;   read_pattern(From, Pattern, NotMatched)
-    ).
+    hex_digits(T).
+hex_digits([]) -->
+    [].
 
-%!  try_read_pattern(+From, +Pattern, -NotMatched)
+hex_value(Ds, V) :-
+    hex_value(Ds, 0, V0),
+    length(Ds, N),
+    Max is 16^N - 1,
+    V is V0*0xffff//Max.
 
-try_read_pattern(_, [], [], true) :-
-    !.
-try_read_pattern(From, [H|T], [C|RT], Done) :-
-    get_code(C),
-    (   C = H
-    ->  try_read_pattern(From, T, RT, Done)
-    ;   RT = [],
-        Done = false
-    ).
-
-echo([]).
-echo([H|T]) :-
-    put_code(user_output, H),
-    echo(T).
+hex_value([], V, V).
+hex_value([D|T], V0, V) :-
+    code_type(D, xdigit(DV)),
+    V1 is V0*16+DV,
+    hex_value(T, V1, V).
 
 :- multifile prolog:message//1.
 

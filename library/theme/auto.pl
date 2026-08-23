@@ -45,9 +45,18 @@ at more, partly OS specific, clues.
 :- multifile
     prolog:theme/1.
 
-theme(dark) :-
+%!  theme(-Theme) is semidet.
+%
+%   Theme that suits the environment.  Fails   if  we cannot tell, which
+%   leaves the default.  Note that the  default   is  a  light theme, so
+%   failing here is the right thing on a light background.
+
+theme(Theme) :-
     ansi_get_color(background, rgb(R,G,B)),
-    R+B+G < 20000.
+    (   R+G+B < 20000
+    ->  Theme = dark
+    ;   Theme = light
+    ).
 
 load_theme :-
     prolog:theme(_),                            % a theme has been loaded

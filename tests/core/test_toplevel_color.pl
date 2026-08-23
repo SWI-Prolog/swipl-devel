@@ -166,6 +166,34 @@ test(unknown_class, fail) :-
 test(multi_code_attribute, Codes == [1,48,5,235]) :-
     phrase(ansi_term:sgr_codes([bold, bg8(235)]), Codes).
 
+% The reply to the colour query differs between terminals: xterm uses
+% four hex digits per component, the Epilog terminal two, and the
+% terminator is BEL or ST.  All of these must be understood.
+
+test(reply_two_digits, RGB == rgb(65535,65535,65535)) :-
+    phrase(ansi_term:color_reply(RGB), `rgb:ff/ff/ff`).
+
+test(reply_four_digits, RGB == rgb(0,32896,65535)) :-
+    phrase(ansi_term:color_reply(RGB), `rgb:0000/8080/ffff`).
+
+test(reply_one_digit, RGB == rgb(65535,0,0)) :-
+    phrase(ansi_term:color_reply(RGB), `rgb:f/0/0`).
+
+test(reply_hash, RGB == rgb(65535,0,0)) :-
+    phrase(ansi_term:color_reply(RGB), `#ff0000`).
+
+test(osc_bel, Body == `rgb:ff/ff/ff`) :-
+    setup_call_cleanup(
+        open_string("\e]11;rgb:ff/ff/ff\a", In),
+        ansi_term:read_osc_reply(In, `11`, Body),
+        close(In)).
+
+test(osc_st, Body == `rgb:0000/0000/0000`) :-
+    setup_call_cleanup(
+        open_string("\e]11;rgb:0000/0000/0000\e\\", In),
+        ansi_term:read_osc_reply(In, `11`, Body),
+        close(In)).
+
 % Without colour support the prompt is passed through unmodified.  This
 % also covers output to a file or pipe.
 
