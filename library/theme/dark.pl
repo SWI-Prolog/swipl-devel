@@ -348,6 +348,9 @@ pce_style(terminal_image,
           [ background(black),
             colour(white),
             selection_style(style(background := yellow, colour := black)),
+            isearch_style(style(background := green, colour := black)),
+            isearch_other_style(style(background := pale_turquoise,
+                                      colour := black)),
             ansi_colours(vector(colour(black),	   % black
                                 colour(firebrick1),    % red
                                 colour(forestgreen),   % green
