@@ -2444,13 +2444,13 @@ default_theme(prompt,                 [bold]).
 default_theme(input,                  []).
 default_theme(answer(_),              []).
 default_theme(binding(name),          [bold]).
-default_theme(predicate(iso),         [fg(cyan)]).
-default_theme(predicate(built_in),    [fg(cyan)]).
-default_theme(predicate(foreign),     [fg(cyan)]).
-default_theme(predicate(library(_)),  [fg(green)]).
-default_theme(predicate(module(_)),   [fg(green)]).
-default_theme(predicate(user),        [fg(default)]).
-default_theme(predicate(undefined),   [fg(red)]).
+default_theme(predicate(iso),         [italic, fg(cyan)]).
+default_theme(predicate(built_in),    [italic, fg(cyan)]).
+default_theme(predicate(foreign),     [italic, fg(cyan)]).
+default_theme(predicate(library(_)),  [italic, fg(green)]).
+default_theme(predicate(module(_)),   [italic, fg(green)]).
+default_theme(predicate(user),        [italic, fg(default)]).
+default_theme(predicate(undefined),   [italic, fg(red)]).
 default_theme(message(informational), [fg(green)]).
 default_theme(message(information),   [fg(green)]).
 default_theme(message(debug(_)),      [fg(blue)]).
