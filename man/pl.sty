@@ -252,8 +252,28 @@
 	    \definition{#1({\it #2})}}\ignorespaces}
 \newcommand{\curltermitem}[1]{%
 	    \definition{\{{\it #1}\}}\ignorespaces}
+
+%	\infixopsep{op}
+%
+%	Emit an infix operator using the appropriate spacing.  A comma is
+%	attached to the left operand and followed by a space, a module
+%	qualifier is not surrounded by spaces and any other operator is
+%	surrounded by spaces.
+
+\newcommand{\infixopsep}[1]{%
+	\def\infixopa{#1}%
+	\def\infixopb{\Scomma}%
+	\def\infixopc{\Smodule}%
+	\ifx\infixopa\infixopb
+	    #1\ %
+	\else\ifx\infixopa\infixopc
+	    #1%
+	\else
+	    \ #1\ %
+	\fi\fi}
+
 \newcommand{\infixtermitem}[3]{%
-	    \definition{{\it #2} #1 {\it #3}}\ignorespaces}
+	    \definition{{\it #2}\infixopsep{#1}{\it #3}}\ignorespaces}
 \newcommand{\prefixtermitem}[2]{%
 	    \definition{#1 {\it #2}}\ignorespaces}
 \newcommand{\postfixtermitem}[2]{%
@@ -279,7 +299,7 @@
 	\ifthenelse{\equal{\protect}{\protect#2}}{%
 	    {\reffont #1}}{%
 	    {\reffont #1}({\it #2})}}
-\newcommand{\infixterm}[3]{{\it #2} #1 {\it #3}}
+\newcommand{\infixterm}[3]{{\it #2}\infixopsep{#1}{\it #3}}
 \newcommand{\prefixterm}[2]{#1 {\it #2}}
 \newcommand{\postfixterm}[2]{{\it #2} #1}
 \newcommand{\errorterm}[2]{\mbox{\tt%
