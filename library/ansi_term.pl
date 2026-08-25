@@ -122,8 +122,8 @@ init_color_term_flag :-
 %     - bold
 %     - underline
 %     - fg(Color), bg(Color), hfg(Color), hbg(Color)
-%       For fg(Color) and bg(Color), the colour name can be '#RGB' or
-%       '#RRGGBB'
+%       For fg(Color) and bg(Color), the colour name can be `'#RGB'` or
+%       `'#RRGGBB'`
 %     - fg8(Spec), bg8(Spec)
 %       8-bit color specification.  Spec is a colour name, h(Color)
 %       or an integer 0..255.
