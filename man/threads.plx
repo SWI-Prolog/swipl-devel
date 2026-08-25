@@ -1456,6 +1456,11 @@ The Epilog terminal:
     location using OSC~8 terminal embedded URLs. Control-click opens
     the built-in editor (edit/1) or an editor of the user's choice.
     Clickable links are also supported for help/1 output.
+    \item Moves the caret to a click in the line being edited.  The
+    terminal knows which line that is because the commandline editor
+    marks its prompts using OSC~133 \jargon{semantic prompt} sequences;
+    a shell or other program started in the window that does the same
+    gets the same service.
     \item Uses, as does \program{swipl}, a modified version of libedit
     for commandline editing.  The same commandline editor is used on all
     platforms that support XPCE (Windows, macOS, Linux and other POSIX
