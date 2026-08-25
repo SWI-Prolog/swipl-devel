@@ -243,9 +243,20 @@ list_element(dl).
 
 list_level_margins(State, 2-2) :-
     nonvar(State),
-    State.get(list) == [],
+    block_list_context(State.get(list)),
     !.
 list_level_margins(_, 0-0).
+
+%!  block_list_context(+OpenLists) is semidet.
+%
+%   True when a list opened while OpenLists   are open acts as a normal
+%   block element and thus  needs   surrounding  blank  lines. This is the
+%   case if the list is not nested in an item of an itemized list. As the
+%   body of a `dd` element is a  normal   block  context, a list inside a
+%   definition list is a block element as well.
+
+block_list_context([]).
+block_list_context([dl|_]).
 
 format_list([], _, _, _).
 format_list([H|T], Type, Nth, State) :-
