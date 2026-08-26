@@ -63,6 +63,7 @@ is_dict_func(get(_)).
 is_dict_func(get(_,_)).
 is_dict_func(put(_)).
 is_dict_func(put(_,_)).
+is_dict_func(del(_)).
 
 
 %!  eval_dict_function(+Func, +Tag, +Dict, -Value)
@@ -98,6 +99,12 @@ eval_dict_function(put(Key, Value), _, Dict, NewDict) :-
 eval_dict_function(put(New), _, Dict, NewDict) :-
     !,
     put_dict(New, Dict, NewDict).
+eval_dict_function(del(Key), _, Dict, NewDict) :-
+  !,
+  ( atomic(Key)
+  -> del_dict(Key, Dict, _, NewDict)
+  ; del_dict_path(Key, Dict, NewDict)
+  ).
 eval_dict_function(Func, Tag, Dict, Value) :-
     call(Tag:Func, Dict, Value).
 
@@ -144,6 +151,19 @@ get_dict_path(Path, Dict, Value) :-
     get_dict(Key, Dict1, Value).
 get_dict_path(Key, Dict, Value) :-
     get_dict(Key, Dict, Value).
+
+del_dict_path(Path, Dict, NewDict) :-
+    compound(Path),
+    Path = (Path0/Key),
+    !,
+    '$dicts':get_dict_path(Path0, Dict, Subdict),
+    is_dict(Subdict),
+    del_dict(Key, Subdict, _, Subdict1),
+    '$dicts':put_dict_path(Path0, Dict, Subdict1, NewDict).
+
+del_dict_path(Key, Dict, NewDict) :-
+    del_dict(Key, Dict, _, NewDict).
+
 
 
                  /*******************************
