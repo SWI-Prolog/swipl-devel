@@ -2064,16 +2064,17 @@ test_packages(Options) :-
     option(packages(true), Options),
     !,
     concurrent_forall(
-        find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-        run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+        find_package_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir),
+        run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir),
         [ threads(8)
         ]).
 test_packages(Options) :-
     option(package(Pkg), Options),
     !,
     (   is_pkg(Pkg)
-    ->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-               run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+    ->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, Options,
+                                 PkgDir),
+               run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir))
     ;   existence_error(package, Pkg)
     ).
 test_packages(_).
@@ -2087,46 +2088,50 @@ concurrent_forall(Generate, Test, _Options) :-
 load_cmake_test_db :-
     ensure_loaded(swi('test/cmake_pkg_tests.db')).
 
-find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+find_package_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir) :-
     load_cmake_test_db,
-    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)),
+    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal, Options)),
     is_pkg(Pkg).
 
 is_pkg(Pkg) :-
     load_cmake_test_db,
-    once(cmake_test(Pkg, _, test_goal(_, _, _))),
+    once(cmake_test(Pkg, _, test_goal(_, _, _, _))),
     absolute_file_name(library(ext/Pkg), _,
                        [ file_type(directory),
                          access(exist),
                          file_errors(fail)
                        ]).
 
-%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
+%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +Options, +PkgDir)
 %
 %   Run test for the specified  package,   making  sure  the working
-%   directory is set to the location of the package.
+%   directory is set to the location of the package.  Options are the
+%   commandline options CMake's test_libs() was given for it, so that a
+%   test run from an installed tree is run the way ctest runs it.
 
-run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir) :-
     script_dir(ScriptDir),
     atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
     format(user_error, '~N    Start testing package ~w:~w~n',[Pkg,TestName]),
     get_time(Start),
-    run_pkg_test1(PkgScript, Goal, TestDir),
+    run_pkg_test1(PkgScript, Goal, Options, TestDir),
     get_time(End),
     Time is End - Start,
     format(user_error, 'Package ~w:~w~`.t~40| passed ~2f sec.~n', [Pkg,TestName,Time]).
 
-run_pkg_test1(Script, Goal, PkgDir) :-
+run_pkg_test1(Script, Goal, Options, PkgDir) :-
     working_directory(CWD, CWD),
     format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
-    process_create(prolog(swipl),
-                   [ '-f', 'none',
-                     '-t', 'halt',
-                     '--no-packs',
-                     '-p', POpt,
-                     '-g', Goal,
-                     Script
-                   ],
+    append([ '-f', 'none',
+             '-t', 'halt',
+             '--no-packs',
+             '-p', POpt
+           | Options
+           ],
+           [ '-g', Goal,
+             Script
+           ], Argv),
+    process_create(prolog(swipl), Argv,
                    [ stdout(pipe(Out)),
                      stderr(pipe(Out)),
                      cwd(PkgDir),
