@@ -1147,6 +1147,7 @@ PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);
 PL_EXPORT(char *)	PL_prompt_string(IOSTREAM *in);
 PL_EXPORT(void)		PL_write_prompt(bool dowrite);
 PL_EXPORT(void)		PL_prompt_next(IOSTREAM *in);
+PL_EXPORT(bool)		PL_prompt_is_continuation(IOSTREAM *in);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
 PL_EXPORT(pl_wchar_t*)	PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,

@@ -5348,6 +5348,27 @@ PL_prompt_next(IOSTREAM *in)
 }
 
 
+/* Does the prompt that comes next continue an input that was started
+ * earlier?  prompt1/1 names the prompt of a first line and is called
+ * once per query by the toplevel; PrologPrompt() hands it out once and
+ * everything after it gets the prompt of prompt/2, which is what a
+ * continuation is.
+ *
+ * A commandline editor that marks its prompts says which kind each one
+ * is, so that a terminal reading the marks can tell a term typed over
+ * several lines from several commands.  See OSC 133 `k=s'.
+ */
+
+bool
+PL_prompt_is_continuation(IOSTREAM *in)
+{ GET_LD
+
+  return ( in == Suser_input &&
+	   LD->prompt.first &&
+	   LD->prompt.first_used );
+}
+
+
 char *
 PL_prompt_string(IOSTREAM *in)
 { GET_LD
