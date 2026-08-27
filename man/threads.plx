@@ -1461,6 +1461,17 @@ The Epilog terminal:
     marks its prompts using OSC~133 \jargon{semantic prompt} sequences;
     a shell or other program started in the window that does the same
     gets the same service.
+    \item Knows, from the same marks, where each command it ran begins
+    and ends.  A triangle in the left margin beside a command folds and
+    unfolds its output with a single click, and carries a menu of its
+    own: fold, copy the command, copy what it printed, copy or select
+    both, type the command again, or take it out of the buffer
+    altogether.  Right-clicking the text instead gives the menu of the
+    terminal.  Control-Shift-Up and
+    Control-Shift-Down walk the prompts.  Setting the
+    \const{fold_previous} class variable of \class{prolog_terminal}
+    closes each command as the next one is entered, leaving a history of
+    commands with only the current output open.
     \item Uses, as does \program{swipl}, a modified version of libedit
     for commandline editing.  The same commandline editor is used on all
     platforms that support XPCE (Windows, macOS, Linux and other POSIX
