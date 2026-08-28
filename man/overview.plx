@@ -1995,8 +1995,8 @@ the flag \prologflag{bounded} and \secref{artypes}.
 When this tripwire is set, memory allocation on behalf of big integers
 and rational numbers is limited to given number of bytes.  The minimum
 value is 1,000.  When unset, the allocation limit is determined by the
-stack limit as we cannot represent larger numbers or malloc()
-failures.  Notably services that may process arbitrary arithmetic
+maximum size of an integer (see \secref{morelimits}) as we cannot
+represent larger numbers or malloc() failures.  Notably services that may process arbitrary arithmetic
 expressions on behalf of a client may set this limit to avoid resource
 exhaustion.
 
@@ -4265,6 +4265,22 @@ representation for 64~bit integers.} Unbounded integers are by default
 provided by the GNU GMP library. Alternatively, they may be provided by
 the bundled LibBf library. The system can be built without support for
 unbounded integers.
+
+The size of an unbounded integer is limited by the amount of memory
+that is available for the global stack, i.e., by the Prolog flag
+\prologflag{stack_limit} (see \secref{memlimit}) and, if set, by the
+Prolog flag \prologflag{max_integer_size}. If the system is built using
+GMP and the C type \ctype{long} is smaller than 64 bits, as is the case
+on Windows, GMP integers are in addition limited to $2^{32}$~bits, i.e.,
+512Mb or about 1.3~billion decimal digits.
+
+Arithmetic evaluation estimates the size of the result of the functions
+that can create big integers (\funcref{**}{2}, \funcref{^}{2},
+\funcref{<<}{2}, \funcref{*}{2} and \funcref{lcm}{2}) and raises a
+\except{resource_error(stack)} exception \emph{before} performing the
+computation if the result cannot be represented.\footnote{This check
+cannot be omitted because GMP terminates the process if we ask it for a
+number that does not fit in its data types.}
 
     \item[Floating point numbers]
 Floating point numbers are represented as C-native double precision

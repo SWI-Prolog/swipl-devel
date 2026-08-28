@@ -9486,8 +9486,13 @@ $\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$. The result is a float,
 unless SWI-Prolog is compiled with unbounded integer support and the
 inputs are integers and produce an integer result. The integer
 expressions $\pow{0}{I}$, $\pow{1}{I}$ and $\pow{-1}{I}$ are guaranteed
-to work for any integer $I$. Other integer base values generate a
-\const{resource} error if the result does not fit in memory.
+to work for any integer $I$. For other integer base values the size of
+the result is estimated \emph{before} the computation and a
+\const{resource} error is raised if the result cannot be represented.
+See \secref{morelimits} for the maximum size of an integer. Note that
+this limit is significantly smaller if the system is built using GMP and
+the C type \ctype{long} is smaller than 64 bits, as is the case on
+Windows.
 
 The ISO standard demands a float result for all inputs and introduces
 \funcref{^}{2} for integer exponentiation. The function
