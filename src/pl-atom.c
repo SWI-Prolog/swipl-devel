@@ -1594,9 +1594,27 @@ unregistering  in  LD->atoms.unregistered  and  mark    this  atom  from
 markAtomsOnStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+As soon as we drop the last reference to `p`, AGC may reclaim the atom.
+destroyAtom() then sets p->type to ATOM_TYPE_INVALID, a non-NULL invalid
+pointer.  Normally a running AGC is stopped from doing so because we
+publish the atom in LD->atoms.unregistering, which markAtomsOnStacks()
+marks for us.
+
+This protection does not work while a thread or engine is being cleaned
+up: freePrologThread() sets the thread status to PL_THREAD_EXITED and
+clears ld->magic before calling freePrologLocalData(), after which
+neither forThreadLocalDataUnsuspended() nor markAtomsOnStacks()
+considers this `ld` anymore.  As freePrologLocalData() drops the
+references to all atoms in e.g. the thread's tabling data, this is easy
+to hit.  Therefore we must not access `p` after dropping the last
+reference.  All we need is p->type, so we grab that up front.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 unregister_atom(volatile Atom p)
 { unsigned int newref;
+  const PL_blob_t *type = p->type;	/* p may die once we drop the ref */
   int dropped = false;			/* reached zero registrations */
 
   if ( unlikely(!ATOM_IS_VALID(p->references)) )
@@ -1665,7 +1683,7 @@ unregister_atom(volatile Atom p)
 */
   if ( dropped )
   { considerAGC();
-    considerAGCType(p->type);
+    considerAGCType(type);
   }
 }
 
