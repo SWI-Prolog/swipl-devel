@@ -39,7 +39,7 @@ build_macos_universal_binary()
     export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
     CUFLAGS="-arch x86_64"
     export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
-    export CXXFLAGS="$CFLAGS"
+    export CXXFLAGS="$CFLAGS" # specific to release generation on JW's machine
     export PATH=$HOME/deps/bin:$PATH
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
 	cmake -DCMAKE_BUILD_TYPE=Release \
