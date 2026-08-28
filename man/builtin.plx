@@ -8440,9 +8440,18 @@ Converts, similar to downcase_atom/2, an atom to uppercase.
 \begin{description}
     \predicate{normalize_space}{2}{-Out, +In}
 Normalize white space in \arg{In}. All leading and trailing white space
-is removed. All non-empty sequences for Unicode white space characters
-are replaced by a single space (\verb$\u0020$) character.  \arg{Out}
+is removed. All non-empty sequences of white space characters are
+replaced by a single space (\verb$\u0020$) character.  \arg{Out}
 uses the same conventions as with_output_to/2 and format/3.
+
+A character counts as white space if it satisfies \exam{code_type(Code,
+space)}, i.e., the C library function \cfuncref{iswspace}{}.  This
+depends on the locale.  Using a Unicode locale this includes the Unicode
+separator characters such as \verb$\u00a0$ (no-break space) and
+\verb$\u3000$ (ideographic space), while in the \const{C} locale only
+the ASCII white space characters are recognised.  Note that the
+\jargon{bidi} format characters \verb$\u200e$ and \verb$\u200f$ are
+not white space and are thus preserved.
 \end{description}
 
 

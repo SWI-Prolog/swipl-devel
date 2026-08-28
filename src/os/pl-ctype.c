@@ -767,7 +767,7 @@ skip_separators(PL_chars_t *t, size_t *i)
     if ( c == -1 )
       return;
 
-    if ( unicode_separator(c) )
+    if ( fiswspace(c) )
       *i=at;
     else
       return;
@@ -784,7 +784,7 @@ copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
     if ( c == -1 )
       return true;
 
-    if ( !unicode_separator(c) )
+    if ( !fiswspace(c) )
     { *i=at;
       if ( Sputcode(c, out) < 0 )
 	return false;
