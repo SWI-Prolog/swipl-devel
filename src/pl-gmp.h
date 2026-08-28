@@ -99,6 +99,37 @@ void	get_rational_no_int(word w, number *n);
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+GMP's mpz_realloc() calls abort() if the  size in limbs of the number to
+create does not fit in its bit count type, i.e., if
+
+    limbs > ULONG_MAX/GMP_NUMB_BITS
+
+This check is only performed if `mp_size_t`   is  an `int`, which is the
+case on Windows.  There, `long` is 32 bits   while  `size_t` is 64 bits,
+limiting integers to 512Mb.  As we cannot   recover from abort(), we must
+verify the size of the integers we  create ourselves.  MPZ_MAX_BYTES
+leaves some slack as e.g., mpz_pow_ui()  allocates a few limbs more than
+strictly needed.
+
+maxBigIntSize() is the max size in bytes  of a bignum we are prepared to
+create.  It must both fit in GMP and on the global stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_GMP
+#define MPZ_MAX_BYTES	((size_t)(ULONG_MAX/8) - 1024)
+#else					/* LibBF has no such limit */
+#define MPZ_MAX_BYTES	((size_t)-1)
+#endif
+
+#define maxBigIntSize()	((size_t)globalStackLimit() < MPZ_MAX_BYTES ?	\
+			 (size_t)globalStackLimit() : MPZ_MAX_BYTES)
+
+/* True if the (positive) 64 bit integer `v` fits in an `unsigned long`,
+   the type GMP uses for exponents, roots, etc.
+*/
+#define FITS_ULONG(v)	((uint64_t)(unsigned long)(v) == (uint64_t)(v))
+
 void	initGMP(void);
 void	cleanupGMP(void);
 void	get_bigint(word w, number *n);

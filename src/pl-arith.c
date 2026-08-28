@@ -1641,6 +1641,34 @@ int_too_big(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int_bits_ok() is true if we can create an integer of `bits` bits, where
+`bits` must be an _upper bound_ on the   size of the result.  GMP calls
+abort() if we ask it for a number that does not fit in its data types,
+so this must be checked _before_ calling GMP.  See maxBigIntSize().
+
+check_int_bits() is the same, but raises a resource error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+int_bits_ok(uint64_t bits)
+{ if ( bits > 10000 )
+  { GET_LD
+
+    if ( bits/8 > (uint64_t)maxBigIntSize() )
+      return false;
+  }
+
+  return true;
+}
+
+
+static bool
+check_int_bits(uint64_t bits)
+{ return int_bits_ok(bits) ? true : int_too_big();
+}
+
+
 static int
 shift_to_far(Number shift, Number r, int dir)
 { if ( ar_sign_i(shift) * dir < 0 )	/* << */
@@ -1736,12 +1764,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 #ifdef O_BIGNUM_PRECHECK_ALLOCATIONS
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
-	if ( msb > 10000 )
-	{ GET_LD
-	  if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
-	  { mpz_clear(r->value.mpz);
-	    return int_too_big();
-	  }
+	if ( !check_int_bits(msb) )
+	{ mpz_clear(r->value.mpz);
+	  return false;
 	}
 #endif /*O_BIGNUM_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
@@ -1842,6 +1867,10 @@ i64_gcd(int64_t a, int64_t b)
 }
 
 
+/* Note that gcd/2 needs no size check: the  result is never larger than
+   the smallest of its arguments.  lcm/2 is bounded by n1*n2.
+*/
+
 static bool
 ar_gcd(Number n1, Number n2, Number r)
 { if ( !same_positive_ints("gcd", n1, n2) )
@@ -1891,10 +1920,17 @@ ar_lcm(Number n1, Number n2, Number r)
       promoteToMPZNumber(n1);
       promoteToMPZNumber(n2);
     case V_MPZ:
+    { uint64_t bits = (uint64_t)mpz_sizeinbase(n1->value.mpz, 2) +
+		      (uint64_t)mpz_sizeinbase(n2->value.mpz, 2);
+
+      if ( !check_int_bits(bits) )
+	return false;
+
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
       mpz_lcm(r->value.mpz, n1->value.mpz, n2->value.mpz);
       break;
+    }
 #endif
     default:
       assert(0);
@@ -2273,14 +2309,11 @@ bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
   { int64_t r_bits;
     size_t base_bits = mpz_sizeinbase(base, 2);
 
-    if ( mul64(base_bits, exp, &r_bits) )
-    { if ( r_bits > 10000 )
-      { GET_LD
+    if ( !FITS_ULONG(exp) )		/* mpz_pow_ui() takes unsigned long */
+      return -1;
 
-	if ( r_bits/8 > (int64_t)globalStackLimit() )
-	  return -1;
-      }
-    } else
+    if ( !mul64(base_bits, exp, &r_bits) ||
+	 !int_bits_ok(r_bits) )
       return -1;
 
     mpz_pow_ui(r, base, (unsigned long)exp);
@@ -2325,7 +2358,10 @@ get_int_exponent(Number n, uint64_t *expp)
       return int_too_big();
   }
 
-  *expp = (unsigned long)i;
+  if ( !FITS_ULONG(i) )			/* GMP exponents are unsigned long */
+    return int_too_big();
+
+  *expp = (uint64_t)i;
 
   return true;
 }
@@ -2450,7 +2486,7 @@ ar_pow(Number n1, Number n2, Number r)
       { int64_t v = n1->value.i;
 
 	if ( v < 0 ) v = -v;
-	op1_bits = MSB64(v);
+	op1_bits = MSB64(v)+1;		/* # bits, as mpz_sizeinbase() */
 	break;
       }
 #ifdef O_BIGNUM
@@ -2463,15 +2499,10 @@ ar_pow(Number n1, Number n2, Number r)
 	fail;
     }
 
-    if ( mul64(op1_bits, exp, &r_bits) )
-    { if ( r_bits > 10000 )
-      { GET_LD
-
-	if ( r_bits/8 > (int64_t)globalStackLimit() )
-	  return int_too_big();
-      }
-    } else
+    if ( !mul64(op1_bits, exp, &r_bits) )
       return int_too_big();
+    if ( !check_int_bits(r_bits) )
+      return false;
 
     /* Try using small integers.  See (*) above */
     if ( n1->type == V_INTEGER && r_bits < sizeof(int64_t)*8-1 )
@@ -2558,7 +2589,8 @@ ar_pow(Number n1, Number n2, Number r)
     if ( exp_sign == -1 )
       mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
 
-    if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) )
+    if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) ||
+	 !FITS_ULONG(r_den) )
     {
     maybe_real_mpq:
       { GET_LD
@@ -2574,7 +2606,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch (n1->type)
     { case V_INTEGER:
-      { mpz_init_set_si(r->value.mpz, (long)n1->value.i);
+      { mpz_init_set_si64(r->value.mpz, n1->value.i);
 	goto int_to_rat;
       }
       case V_MPZ:
@@ -2590,11 +2622,11 @@ ar_pow(Number n1, Number n2, Number r)
 	  return check_float(r);
 	}
 
-	if ( mpz_root(r->value.mpz, r->value.mpz, (long)r_den))
+	if ( mpz_root(r->value.mpz, r->value.mpz, (unsigned long)r_den))
 	{ uint64_t r_num;
 
 	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) ||
-	       bn_pow_ui(r->value.mpz, r->value.mpz, (unsigned long)r_num) )
+	       bn_pow_ui(r->value.mpz, r->value.mpz, r_num) )
 	    goto maybe_real_mpq;
 
 	  if (exp_sign == -1)		/* create mpq=1/r->value */
@@ -3493,10 +3525,17 @@ ar_mul(Number n1, Number n2, Number r)
       promoteToMPZNumber(n2);
 
     case V_MPZ:
+    { uint64_t bits = (uint64_t)mpz_sizeinbase(n1->value.mpz, 2) +
+		      (uint64_t)mpz_sizeinbase(n2->value.mpz, 2);
+
+      if ( !check_int_bits(bits) )
+	return false;
+
       mpz_init(r->value.mpz);
       r->type = V_MPZ;
       mpz_mul(r->value.mpz, n1->value.mpz, n2->value.mpz);
       succeed;
+    }
     case V_MPQ:
       r->type = V_MPQ;
       mpq_init(r->value.mpq);
@@ -3823,7 +3862,9 @@ typedef unsigned long mp_bitcnt_t;
 #endif
 
 #define MP_BITCNT_T_MIN 0
+#ifndef MP_BITCNT_T_MAX
 #define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
+#endif
 
 static bool
 ar_getbit(Number I, Number K, Number r)

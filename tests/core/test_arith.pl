@@ -58,6 +58,8 @@ test_arith :-
 		    float_compare,
 		    arith_misc,
 		    max_integer_size,
+		    bigint_limits,
+		    bigint_limits_huge,
 		    moded_int,
 		    canonical_bignum
 		  ]).
@@ -258,6 +260,17 @@ test(rat) :-
 % tests LibBF mpz_ui_pow_ui() overflow from ulong to mpz handling
 test('2^65', A == 36893488147419103232) :-
 	A is 2^65.
+
+% GMP exponents are `unsigned long`, which is 32 bits on Windows.  An
+% exponent that does not fit must raise a resource error rather than
+% being silently truncated (which made 2^(2^32) evaluate to 1).
+test(huge_exponent,
+     [ setup(( current_prolog_flag(stack_limit, Old),
+	       set_prolog_flag(stack_limit, 100 000 000) )),
+       cleanup(set_prolog_flag(stack_limit, Old)),
+       Error = resource_error(_)
+     ]) :-
+	catch(_ is 2^4294967296, error(Error, _), true).
 
 :- endif.
 
@@ -925,6 +938,92 @@ test(overflow,
 	integer(A).
 
 :- end_tests(max_integer_size).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Creating an integer that is too large must  raise a resource error.  In
+particular, we may not ask GMP for  a   number  that does not fit in its
+data types, as it responds by calling abort().  If `long` is 32 bits, as
+on Windows, GMP integers are limited to 512Mb.
+
+We run these tests with a  small  stack   limit  such  that  we can test
+without allocating Gb of memory.  See bigint_limits_huge for tests using
+the real limits.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- begin_tests(bigint_limits,
+	       [ condition(current_prolog_flag(bounded, false))
+	       ]).
+
+small_stack(Goal) :-
+	current_prolog_flag(stack_limit, Old),
+	setup_call_cleanup(
+	    set_prolog_flag(stack_limit, 8 000 000),
+	    Goal,
+	    set_prolog_flag(stack_limit, Old)).
+
+too_big(Goal) :-
+	small_stack(catch(Goal, error(E, _), true)),
+	assertion(nonvar(E)),
+	assertion(E = resource_error(_)).
+
+test(mul) :-
+	too_big(( X is 1<<40 000 000, _ is X*X )).
+test(mul_int) :-
+	too_big(( X is 1<<40 000 000, _ is X*(1<<40 000 000) )).
+test(lcm) :-
+	too_big(( X is 1<<40 000 000, _ is lcm(X, X+1) )).
+test(pow) :-
+	too_big(_ is 2^40 000 000 000).
+test(shift) :-
+	too_big(_ is 1<<40 000 000 000).
+% gcd/2 is bounded by its smallest argument and must _not_ overflow
+test(gcd) :-
+	small_stack(( X is 1<<8 000 000,
+		      Y is gcd(X, X*2),
+		      assertion(Y =:= X)
+		    )).
+
+:- end_tests(bigint_limits).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These tests use the real limits and thus   need over 1Gb of memory.  Run
+them using
+
+    SWIPL_TEST_BIG_STACKS=y ctest -R core:arith
+
+They verify that we either get the correct   answer  or a clean resource
+error.  What may not happen is that   GMP  calls abort(), which takes the
+entire process down.  Note that on  Windows   `long`  is 32 bits, so both
+the exponent and the size of the result are limited.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- begin_tests(bigint_limits_huge,
+	       [ condition(( current_prolog_flag(bounded, false),
+			     getenv('SWIPL_TEST_BIG_STACKS', y)
+			   ))
+	       ]).
+
+value_or_resource(Goal, Check) :-
+	catch(Goal, error(E, _), true),
+	(   var(E)
+	->  assertion(Check)
+	;   assertion(E = resource_error(_))
+	).
+
+% 2^(2^32-2) is a 512Mb integer, the largest GMP can represent if
+% `long` is 32 bits.  This aborted the process on Windows.
+test('2^(2^32-2)') :-
+	value_or_resource(X is 2^4294967294, msb(X) =:= 4294967294).
+% The exponent does not fit in an `unsigned long` on Windows, where
+% this silently evaluated to 1.
+test('2^(2^32)') :-
+	value_or_resource(X is 2^4294967296, msb(X) =:= 4294967296).
+% A product over 512Mb.
+test(mul) :-
+	value_or_resource(( X is 1<<2 200 000 000, Y is X*X ),
+			  msb(Y) =:= 4 400 000 000).
+
+:- end_tests(bigint_limits_huge).
 
 :- begin_tests(moded_int).
 
