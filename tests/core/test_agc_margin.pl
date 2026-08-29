@@ -59,10 +59,25 @@ test_agc_margin :-
 %   A distinct atom of about Bytes bytes.
 
 atom_of(Bytes, Seq, Atom) :-
+    filler(Bytes, Base),
+    atom_concat(Base, Seq, Atom).
+
+:- dynamic
+    filler_cache/2.
+
+%!  filler(+Bytes, -Atom) is det.
+%
+%   An atom of Bytes times `x`.  Building the code list dominates the cost
+%   of the tests below, so we build one per size and share it.
+
+filler(Bytes, Atom) :-
+    filler_cache(Bytes, Atom),
+    !.
+filler(Bytes, Atom) :-
     length(Codes, Bytes),
     maplist(=(0'x), Codes),
-    atom_codes(Base, Codes),
-    atom_concat(Base, Seq, Atom).
+    atom_codes(Atom, Codes),
+    assertz(filler_cache(Bytes, Atom)).
 
 make_atoms(Count, Bytes) :-
     forall(between(1, Count, I),
