@@ -365,7 +365,7 @@ file and calling the entry point  as   illustrated.  The  entry point is
 always the base  name  of  the   file  (without  directory  and  without
 extension).
 
-    % src/swipl ../tests/core/test_arith.pl
+    % src/swipl ../tests/core_lang/test_arith.pl
     ?- test_arith.
     % PL-Unit: div ... done
     ...

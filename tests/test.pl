@@ -1934,7 +1934,8 @@ wide_character_types :-
 
 testdir('unprotected') :-
     current_prolog_flag(protect_static_code, false).
-testdir('core').
+testdir('core_lang').
+testdir('core_text').
 testdir('attvar').
 testdir('debug').
 testdir('library').
