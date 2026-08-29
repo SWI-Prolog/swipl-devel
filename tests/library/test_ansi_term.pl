@@ -107,6 +107,18 @@ test(hyperlink_position, O == "\e]8;;http://x\e\\ab\e]8;;\e\\  y") :-
             O),
         pop_prolog_flag(hyperlink_term)).
 
+% Hyperlinks are for terminal emulators.  A message captured with
+% with_output_to/2 must be plain text, as it is for colours.
+
+test(hyperlink_needs_a_terminal, O == "at /x/y.pl:42") :-
+    setup_call_cleanup(
+        push_prolog_flag(hyperlink_term, true),
+        with_output_to(string(Raw),
+                       print_message_lines(current_output, '',
+                                           ['at ', url('/x/y.pl':42)])),
+        pop_prolog_flag(hyperlink_term)),
+    split_string(Raw, "", "\n", [O]).
+
 % The column reported by line_position/2 ignores the escape sequences.
 
 test(line_position, Pos == 2) :-

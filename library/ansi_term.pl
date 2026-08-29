@@ -659,6 +659,11 @@ class_attrs(Attrs, Attrs).
 %   a capital ``L`` before the line, as   used by GitHub, is accepted by
 %   Epilog as well.
 %
+%   The sequence is emitted if and only  if the Prolog flag
+%   `hyperlink_term` is `true` and Stream has the property tty(true).
+%   ansi_format/4 is guarded the same way for `color_term`, so that a
+%   message captured using with_output_to/2 is plain text.
+%
 %   @see https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
 ansi_hyperlink(Stream, Location) :-
@@ -679,12 +684,22 @@ ansi_hyperlink(Stream, Location, Label),
     hyperlink(Stream, url(Location, Label)) =>
     true.
 ansi_hyperlink(Stream, Location, Label) =>
-    (   location_url(Location, URL)
+    (   hyperlink_stream(Stream),
+        location_url(Location, URL)
     ->  format(Stream, '\e]8;;~w\e\\', [URL]),
         format(Stream, '~w', [Label]),
         format(Stream, '\e]8;;\e\\', [])
     ;   format(Stream, '~w', [Label])
     ).
+
+%!  hyperlink_stream(+Stream) is semidet.
+%
+%   True when Stream may carry OSC 8 hyperlinks.  Compare ansi_sgr_for/3,
+%   which decides the same question for SGR sequences.
+
+hyperlink_stream(Stream) :-
+    current_prolog_flag(hyperlink_term, true),
+    stream_property(Stream, tty(true)).
 
 %!  is_url(@URL) is semidet.
 %
@@ -741,10 +756,8 @@ location_url(File, URL) =>
 
 url_file_name(URL, File) :-
     is_url(File), !,
-    current_prolog_flag(hyperlink_term, true),
     URL = File.
 url_file_name(URL, File) :-
-    current_prolog_flag(hyperlink_term, true),
     absolute_file_name(File, AbsFile),
     ensure_leading_slash(AbsFile, AbsFile1),
     url_encode_path(AbsFile1, Encoded),
