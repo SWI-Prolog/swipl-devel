@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# Update the submodules, but keep a submodule that is on a branch tracking a
+# remote branch on this branch: pull the branch rather than detaching HEAD.
+# Only if pulling does not bring the branch to the commit that is recorded in
+# the superproject we fall back to the detached checkout that plain
+# `git submodule update` performs.  A branch that is ahead of the recorded
+# commit is kept as-is: the superproject merely did not record our commits
+# yet.  Nested submodules (packages/libedit/libedit) are handled by calling
+# ourselves in each submodule that has submodules of its own.
+
+prog=$(basename "$0")
+
+usage()
+{ cat <<USAGE
+Usage: $prog [option ...]
+
+Update the submodules, pulling submodules that are on a tracking branch
+instead of detaching their HEAD.
+
+Options:
+  -n, --dry-run   Report what would be done, changing nothing
+  -d, --detach    Also detach submodules whose branch is ahead of the
+		  commit recorded in the superproject
+  -N, --no-recursive
+		  Do not descend into nested submodules
+  -h, --help      Print this message
+USAGE
+}
+
+export dryrun=false
+export detach_ahead=false
+recursive=true
+export self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+export flags=""
+export prefix=${prefix:-}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+	-n|--dry-run)
+	    dryrun=true
+	    flags="$flags -n"
+	    shift
+	    ;;
+	-d|--detach)
+	    detach_ahead=true
+	    flags="$flags -d"
+	    shift
+	    ;;
+	-N|--no-recursive)
+	    recursive=false
+	    shift
+	    ;;
+	-h|--help)
+	    usage
+	    exit 0
+	    ;;
+	*)
+	    echo "$prog: unknown option: $1" >&2
+	    usage >&2
+	    exit 1
+	    ;;
+    esac
+done
+
+top=$(git rev-parse --show-toplevel) || exit 1
+cd "$top" || exit 1
+if [ ! -f .gitmodules ]; then
+    echo "$prog: no .gitmodules in $top" >&2
+    exit 1
+fi
+
+export keepfile=$(mktemp)
+trap 'rm -f "$keepfile"' EXIT
+
+# Phase 1.  Try to bring each initialised submodule that is out of sync to the
+# commit recorded in the superproject by pulling its branch.  Submodules that
+# are in sync are left alone, submodules whose branch is ahead of the recorded
+# commit are recorded in $keepfile and the ones we cannot fix are left to
+# phase 2, which detaches them.  $sha1 and $sm_path are provided by
+# `git submodule foreach`.
+
+git submodule foreach --quiet '
+    [ "$(git rev-parse HEAD)" = "$sha1" ] && exit 0
+
+    if ! branch=$(git symbolic-ref -q --short HEAD); then
+	$dryrun && echo "$prefix$sm_path: HEAD is detached; will check out $(git rev-parse --short "$sha1" 2>/dev/null || echo "$sha1")"
+	exit 0
+    fi
+    if ! upstream=$(git rev-parse --abbrev-ref --symbolic-full-name "@{upstream}" 2>/dev/null); then
+	$dryrun && echo "$prefix$sm_path: $branch has no upstream; will detach HEAD"
+	exit 0
+    fi
+
+    if $dryrun; then
+	echo "$prefix$sm_path: will pull $branch from $upstream"
+	exit 0
+    fi
+
+    git pull --ff-only --no-recurse-submodules -q ||
+	echo "$prefix$sm_path: cannot fast-forward $branch from $upstream"
+
+    if [ "$(git rev-parse HEAD)" = "$sha1" ]; then
+	echo "$prefix$sm_path: pulled $branch to $(git rev-parse --short HEAD)"
+    elif ! $detach_ahead && git merge-base --is-ancestor "$sha1" HEAD 2>/dev/null; then
+	echo "$prefix$sm_path: keeping $branch; it is ahead of the recorded commit"
+	echo "$sm_path" >> "$keepfile"
+    fi
+    exit 0'
+
+# Phase 2.  Whatever is still out of sync is updated the normal way.  This
+# clones the submodules that are not yet initialised and detaches the HEAD of
+# the submodules that phase 1 could not bring in sync.
+
+paths=()
+while read -r path; do
+    grep -qxF -- "$path" "$keepfile" || paths+=("$path")
+done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2-)
+
+if [ ${#paths[@]} = 0 ]; then
+    :
+elif $dryrun; then
+    git submodule status -- "${paths[@]}" | while read -r status path rest; do
+	case "$status" in
+	    -*)	echo "$prefix$path: will be cloned and initialised"
+		;;
+	esac
+    done
+else
+    git submodule update --init -- "${paths[@]}"
+fi
+
+# Phase 3.  Call ourselves in each submodule that has submodules of its own.
+
+if $recursive; then
+    git submodule foreach --quiet '
+	[ -f .gitmodules ] && prefix="$prefix$sm_path/" "$self" $flags
+	true'
+fi

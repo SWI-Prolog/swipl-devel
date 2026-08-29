@@ -29,6 +29,12 @@ See also `doc/Release.md`.  Some actively used scripts:
 
 ## Build management
 
+ - `submodule-update` [-n] [-d] [-N] <br>
+   Update the submodules, but pull a submodule that is on a branch
+   tracking a remote branch rather than detaching its HEAD.  A branch
+   that is ahead of the commit recorded in the superproject is left
+   alone.  Recurses into nested submodules.
+
  - `configure` <br>
    Sets CMake flags depending on the name of the build directory as
    `build.feature1-feature2-...`.  See script for details. For example:
