@@ -8148,8 +8148,10 @@ applications.
 
 \begin{itemize}
     \item
-The predicates char_type/2 and code_type/2 query character classes
-depending on the locale.
+Note that character classification and case conversion are
+\emph{not} locale dependent in SWI-Prolog: char_type/2, code_type/2,
+upcase_atom/2, downcase_atom/2 and friends are driven by the Unicode
+Character Database.  See char_type/2.
     \item
 The predicates collation_key/2 and locale_sort/2 can be used for
 locale dependent sorting of atoms.
@@ -8256,13 +8258,76 @@ in terms of code_type/2.
     \predicate{char_type}{2}{?Char, ?Type}
 Tests or generates alternative \arg{Type}s or \arg{Char/Code}s. The
 character types are inspired by the standard C \file{<ctype.h>}
-primitives. The types are sensitive to the active \jargon{locale}, see
-setlocale/3. Most of the \arg{Type}s are mapped to the Unicode
-classification functions from \file{<wctype.h>}, e.g., \const{alnum}
-uses iswalnum(). The types \const{prolog_var_start},
+primitives. Neither the classes nor the case conversions are sensitive
+to the active \jargon{locale}: they are derived from the Unicode Character Database
+at build time (\prologflag{unicode_syntax_version}) rather than from the C
+library's \file{<wctype.h>}, so a program classifies text the same way
+regardless of \const{LC_CTYPE} and of the platform's C library. This
+also means the classes agree with the classification used by read/1 and
+friends, which is where the types \const{prolog_var_start},
 \const{prolog_atom_start}, \const{prolog_identifier_continue} and
-\const{prolog_symbol} are based on the locale-independent built-in
-classification routines that are also used by read/1 and friends.
+\const{prolog_symbol} come from. The case
+(\term{to_lower}{}, \term{to_upper}{}, \term{lower}{Upper} and
+\term{upper}{Lower}) still use the C library and are thus still locale
+conversions (\term{to_lower}{}, \term{to_upper}{},
+\term{lower}{Upper} and \term{upper}{Lower}) use the Unicode
+\jargon{simple} case mapping, which is one code point to one code
+point and thus length preserving; \verb$upcase_atom('straße', X)$
+yields \verb$'STRAßE'$ rather than \verb$'STRASSE'$.  Because the
+mapping is Unicode's rather than the C library's, it does not follow
+the Turkish and Azeri dotted/dotless \chr{i} rules even under a
+\const{tr_TR} locale.  Foreign code can reach the same classifier and
+the same case mapping through PL_ctype_flags(), PL_toupper(),
+PL_tolower() and PL_totitle().
+
+Every type is derived from the Unicode Character Database, from the
+files \file{UnicodeData.txt} (general categories and the simple case
+mappings), \file{DerivedCoreProperties.txt} (Alphabetic, Uppercase,
+Lowercase, XID_Start, XID_Continue), \file{PropList.txt} (White_Space,
+Sentence_Terminal, Pattern_Syntax) and \file{EastAsianWidth.txt}
+(display width), for the Unicode version named by the
+\prologflag{unicode_syntax_version} flag.  The derivations are:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\bf Type & \bf Derived from \\
+\hline
+\const{alnum}       & \const{alpha}, or category Nd, Nl or No \\
+\const{alpha}       & property Alphabetic \\
+\const{ascii}       & code point $< 128$; not a Unicode notion \\
+\const{cntrl}       & category Cc or Cf \\
+\const{csym}        & ASCII letter, digit or \chr{_}; see below \\
+\const{csymf}       & ASCII letter or \chr{_}; see below \\
+\const{decimal}     & category Nd \\
+\const{digit}       & U+0030..U+0039; POSIX fixes this to ASCII \\
+\const{end_of_file} & the code $-1$ \\
+\const{end_of_line} & the Unicode line terminators \\
+\const{graph}       & \const{alnum} or \const{punct} \\
+\const{lower}       & property Lowercase \\
+\const{newline}     & U+000A \\
+\const{paren}       & categories Ps and Pe, paired \\
+\const{pattern_syntax} & property Pattern_Syntax (UAX~\#31) \\
+\const{period}      & property Sentence_Terminal \\
+\const{print}       & \const{graph}, or white space that is not Cc \\
+\const{prolog_end_of_line} & the Unicode line terminators \\
+\const{prolog_layout} & property Pattern_White_Space (UAX~\#31) \\
+\const{punct}       & category P* or S*, not Alphabetic \\
+\const{quote}       & \verb$'$, \verb$"$, \verb$`$ and categories Pi, Pf \\
+\const{space}       & property White_Space \\
+\const{to_lower}, \const{to_upper} & the simple case mappings \\
+\const{upper}       & property Uppercase \\
+\const{white}       & White_Space minus \const{end_of_line} \\
+\const{width}       & property East_Asian_Width (UAX~\#11) \\
+\const{xdigit}      & \chr{0}..\chr{9}, \chr{a}..\chr{f}, \chr{A}..\chr{F} \\
+\hline
+\end{tabular}
+\end{center}
+
+The types \const{prolog_var_start}, \const{prolog_atom_start},
+\const{prolog_identifier_continue}, \const{prolog_symbol} and
+\const{prolog_solo} are the reader's own classification; see
+\secref{unicodesyntax}.
 
 Note that the mode (-,+) is only efficient if the \arg{Type} has a
 parameter, e.g., \term{char_type}{C, digit(8)}. If \arg{Type} is a
@@ -8271,32 +8336,60 @@ against the character classification function.
 
 \begin{description}
     \termitem{alnum}{}
-\arg{Char} is a letter (upper- or lowercase) or digit.
+\arg{Char} is \const{alpha} or a numeric character (Unicode
+\jargon{general category} \textbf{Nd}, \textbf{Nl} or \textbf{No}).
+Note that this is wider than \const{digit}: e.g.\ \exam{0'\\u0660}
+(ARABIC-INDIC DIGIT ZERO) and \exam{0'\\u00BD} (VULGAR FRACTION ONE
+HALF) are \const{alnum} but not \const{digit}.
     \termitem{alpha}{}
-\arg{Char} is a letter (upper- or lowercase).
+\arg{Char} has the Unicode \jargon{Alphabetic} property. This covers
+the letters of all scripts, not just those that have case, as well as
+letter-like numbers such as the Roman numerals.
     \termitem{csym}{}
-\arg{Char} is a letter (upper- or lowercase), digit or the underscore
-(\verb$_$).  These are valid C and Prolog symbol characters.
+\arg{Char} is a character of a C identifier: an ASCII letter, an ASCII
+digit or the underscore (\verb$_$).
     \termitem{csymf}{}
-\arg{Char} is a letter (upper- or lowercase) or the underscore
-(\verb$_$). These are valid first characters for C and Prolog symbols.
+\arg{Char} is a valid \emph{first} character of a C identifier: an
+ASCII letter or the underscore (\verb$_$).
+
+These two are ASCII because C identifiers are: C89 admits nothing else,
+and the extended identifiers of C99 and later are written as universal
+character names (\exam{\bsl{}u00E9}) rather than as source characters.
+Prolog identifiers do range over all of Unicode; use
+\const{prolog_atom_start}, \const{prolog_var_start} and
+\const{prolog_identifier_continue} for those, or \const{alnum} and
+\const{alpha} for a script-independent notion of a word character.
     \termitem{ascii}{}
-\arg{Char} is a 7-bit ASCII character (0..127).
+\arg{Char} is a 7-bit ASCII character (0..127).  This is the one type
+that is defined by the code point range rather than by a Unicode
+property.
     \termitem{white}{}
-\arg{Char} is a space or tab, i.e.\ white space inside a line.
+\arg{Char} is white space that stays \emph{within} a line: the
+\const{space} characters minus the seven line terminators (U+000A..
+U+000D, U+0085, U+2028 and U+2029).  That leaves U+0009 TAB, U+0020
+SPACE, U+00A0 NO-BREAK SPACE, U+1680, U+2000..U+200A, U+202F, U+205F
+and U+3000 IDEOGRAPHIC SPACE.  This is what POSIX calls \const{blank}.
     \termitem{cntrl}{}
-\arg{Char} is an ASCII control character (0..31), ASCII DEL character
-(127), or non-ASCII character in the range 128..159 or 8232..8233.
+\arg{Char} is a control character (Unicode \jargon{general category}
+\textbf{Cc}, i.e.\ 0..31, 127 and 128..159) or a format character
+(category \textbf{Cf}, e.g.\ U+00AD SOFT HYPHEN, U+200B ZERO WIDTH
+SPACE and U+FEFF). U+0009..U+000D and U+0085 are both \const{cntrl}
+and \const{space}. Note that U+2028 LINE SEPARATOR and U+2029
+PARAGRAPH SEPARATOR are \const{space}, not \const{cntrl}.
     \termitem{digit}{}
-\arg{Char} is a digit, i.e., \arg{Char} is in $0 \ldots 9$.  See
-also \const{decimal}.
+\arg{Char} is in $0 \ldots 9$.  POSIX requires the \const{digit}
+class to hold exactly the ten ASCII digits, so the decimal digits of
+other scripts are \const{alnum} and \const{decimal}, but not
+\const{digit}.  See also \const{decimal}.
     \termitem{digit}{Weight}
 \arg{Char} is a digit with value \arg{Weight}. I.e.\ \exam{char_type(X,
 digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
     \termitem{xdigit}{Weight}
 \arg{Char} is a hexadecimal digit with value \arg{Weight}. I.e.\
 \exam{char_type(a, xdigit(X))} yields \arg{X} = \exam{'10'}. Useful for
-parsing numbers.
+parsing numbers.  As with \term{digit}{Weight} this is ASCII only;
+there is no Unicode-wide counterpart because hexadecimal notation is a
+source syntax rather than a script property.
     \termitem{decimal}{}
 \arg{Char} is a decimal digit in any script.   This implies it has the
 Unicode \jargon{general category} \textbf{Nd}).
@@ -8304,10 +8397,14 @@ Unicode \jargon{general category} \textbf{Nd}).
 \arg{Char} is a decimal digit in any script with \arg{Weight} $0 \ldots
 9$.
     \termitem{print}{}
-\arg{Char} is printable character.
+\arg{Char} is a printable character: \const{graph}, or white space
+that is not a control character (U+0020, U+00A0, U+2028, U+3000,
+\ldots{} but not tab or newline).
     \termitem{graph}{}
-\arg{Char} produces a visible mark on a page when printed. Note that
-the space is not included!
+\arg{Char} produces a visible mark on a page when printed, i.e.\
+\const{alnum} or \const{punct}.  Note that the space is not included!
+POSIX requires \const{graph} and \const{space} to be disjoint, which
+is why U+00A0 NO-BREAK SPACE is \const{print} but not \const{graph}.
     \termitem{lower}{}
 \arg{Char} is a lowercase letter.
     \termitem{lower}{Upper}
@@ -8330,21 +8427,37 @@ See also upcase_atom/2 and downcase_atom/2.
 \arg{Char} is a punctuation character. This is a \const{graph} character
 that is not a letter or digit.
     \termitem{space}{}
-\arg{Char} is some form of layout character (tab, vertical tab, newline,
-etc.).
+\arg{Char} has the Unicode \jargon{White_Space} property: the ASCII
+layout characters (tab, newline, vertical tab, form feed, carriage
+return and space), U+0085 NEL, U+00A0 NO-BREAK SPACE, U+1680, the
+U+2000..U+200A spaces, U+2028, U+2029, U+202F, U+205F and U+3000.
+Note that \file{<wctype.h>} implementations disagree here: glibc
+denies that U+00A0 is white space and Darwin denies that U+0085 is.
+Note also that U+00A0 is deliberately \emph{not} layout for the
+reader; see \term{prolog_layout}{}.
     \termitem{end_of_file}{}
 \arg{Char} is -1.
     \termitem{end_of_line}{}
-\arg{Char} is one of the four ISO/POSIX line-ending control codes
-U+000A LF, U+000B VT, U+000C FF, U+000D CR. This is the original
-ISO Prolog and C-string-literal definition; \term{prolog_end_of_line}{}
-is the wider set used by the SWI-Prolog reader.
+\arg{Char} terminates a line: the seven code points Unicode defines
+as \jargon{line terminator}, being U+000A LF, U+000B VT, U+000C FF,
+U+000D CR, U+0085 NEL, U+2028 LINE SEPARATOR and U+2029 PARAGRAPH
+SEPARATOR. Equivalently, \const{space} that is not \const{white}:
+white space either stays within a line or ends it.
+\term{prolog_end_of_line}{} is the set the reader acts on, which
+happens to be the same today but is defined by the Prolog syntax
+rather than by Unicode.
     \termitem{newline}{}
 \arg{Char} is a newline character (10).
     \termitem{period}{}
-\arg{Char} counts as the end of a sentence (.,!,?).
+\arg{Char} counts as the end of a sentence.  This is the Unicode
+\jargon{Sentence_Terminal} property: besides \chr{.}, \chr{!} and
+\chr{?} it holds the Armenian, Arabic, N'Ko, Devanagari, ideographic
+and fullwidth sentence enders, 170 code points in Unicode 17.
     \termitem{quote}{}
-\arg{Char} is a quote character (\verb$"$, \verb$'$, \verb$`$).
+\arg{Char} is a quote character: \verb$"$, \verb$'$, \verb$`$ or one
+of the Unicode initial/final quotation marks (categories \textbf{Pi}
+and \textbf{Pf}).  Note that this holds for \emph{both} sides of a
+pair, where \term{quote}{Close} below holds only for the opening one.
     \termitem{paren}{Close}
 \arg{Char} is an opening bracket and \arg{Close} is its matching
 close. Covers the three ASCII bracket pairs \verb$()$, \verb$[]$
@@ -8382,7 +8495,9 @@ line-terminator-like \const{Pattern_White_Space} code points:
 U+000A (LF), U+000B (VT), U+000C (FF), U+000D (CR), U+0085 (NEL),
 U+2028 (LINE SEPARATOR), and U+2029 (PARAGRAPH SEPARATOR). The
 same set terminates \chr{%} comments and increments the source
-line counter. See \secref{unicodesyntax}.
+line counter. It is the reader's own definition and is kept
+separate from \term{end_of_line}{}, which is Unicode's, although
+the two currently agree. See \secref{unicodesyntax}.
     \termitem{prolog_var_start}{}
 \arg{Char} can start a Prolog variable name.
     \termitem{prolog_atom_start}{}

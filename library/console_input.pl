@@ -199,7 +199,8 @@ file_chars([], _) --> [].
 
 file_char(C, Style) --> [C], { file_char(C, Style) }.
 
-file_char(C, _) :- code_type(C, csym).
+file_char(C, _) :- code_type(C, alnum).		% not csym: file names
+file_char(0'_, _).				% are not C identifiers
 file_char(0'/, _).
 file_char(C, quoted(_)) :-
     file_char(C).

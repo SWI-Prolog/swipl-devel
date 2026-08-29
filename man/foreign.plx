@@ -1686,6 +1686,58 @@ Prolog's identifier syntax (close to UAX~\#31 XID_Start / XID_Continue,
 adjusted for Prolog).  \const{layout} matches the reader's whitespace
 set (\predref{white_space}{1} in
 \file{src/Unicode/derived_core_properties.pl}).
+
+    \cfunction{unsigned int}{PL_ctype_flags}{int chr}
+Returns the POSIX character classes of the 32-bit code point \arg{chr}
+as the bitwise or of the constants below, e.g.
+
+\begin{code}
+if ( PL_ctype_flags(c) & PL_CTYPE_ALPHA )
+  ...
+\end{code}
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\const{PL_CTYPE_ALNUM} & \const{PL_CTYPE_ALPHA} or a numeric character \\
+\const{PL_CTYPE_ALPHA} & Unicode \jargon{Alphabetic} \\
+\const{PL_CTYPE_CNTRL} & general category \textbf{Cc} or \textbf{Cf} \\
+\const{PL_CTYPE_DIGIT} & \chr{0} \ldots \chr{9}, as POSIX demands \\
+\const{PL_CTYPE_GRAPH} & printable and not white space \\
+\const{PL_CTYPE_LOWER} & Unicode \jargon{Lowercase} \\
+\const{PL_CTYPE_PRINT} & \const{PL_CTYPE_GRAPH} or white space \\
+\const{PL_CTYPE_PUNCT} & printable, neither alnum nor space \\
+\const{PL_CTYPE_SPACE} & Unicode \jargon{White_Space} \\
+\const{PL_CTYPE_UPPER} & Unicode \jargon{Uppercase} \\
+\hline
+\end{tabular}
+\end{center}
+
+This is the classifier behind code_type/2 and char_type/2 and a
+locale-independent replacement for the \file{<wctype.h>} functions
+iswalpha(), iswspace(), \ldots{}  Besides not varying with
+\const{LC_CTYPE}, it does not vary between C libraries (glibc and
+Darwin disagree on whether U+00A0 and U+0085 are white space, for
+example) and it answers for the full Unicode range also on Windows,
+where \ctype{wint_t} is 16 bits and the \file{<wctype.h>} functions
+silently fail for non-BMP code points.      \cfunction{int}{PL_toupper}{int chr}
+    \nodescription
+    \cfunction{int}{PL_tolower}{int chr}
+    \nodescription
+    \cfunction{int}{PL_totitle}{int chr}
+Unicode \jargon{simple} case conversion of the 32-bit code point
+\arg{chr}, replacing towupper(), towlower() and towctrans().  Code
+points that have no mapping are returned unchanged.
+
+Simple means one code point in, one code point out, so conversion is
+length preserving: U+00DF LATIN SMALL LETTER SHARP S and the ligatures
+are returned unchanged rather than expanded to \const{SS},
+\const{FI}, \ldots{} as SpecialCasing.txt would have it.
+
+As with the classes, the mapping comes from the Unicode Character
+Database and is therefore the same in every locale --- notably it does
+not apply the Turkish and Azeri dotted/dotless \chr{i} rules --- and on
+every platform, and it works for non-BMP code points also on Windows.
 \end{description}
 
 

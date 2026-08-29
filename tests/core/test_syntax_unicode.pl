@@ -137,17 +137,26 @@ test(nbsp_is_not_layout, [error(syntax_error(_))]) :-
 
 :- begin_tests(syntax_unicode_eol).
 
-% --- end_of_line is the ISO/POSIX ASCII set: LF, VT, FF, CR ------------
+% --- end_of_line is the Unicode line terminator set: LF, VT, FF, CR,
+%     NEL, LS and PS.  It is `space' minus `white'.
 
 test(end_of_line_lf)  :- code_type(0x000A, end_of_line).
 test(end_of_line_vt)  :- code_type(0x000B, end_of_line).
 test(end_of_line_ff)  :- code_type(0x000C, end_of_line).
 test(end_of_line_cr)  :- code_type(0x000D, end_of_line).
-test(end_of_line_nel_no, fail)  :- code_type(0x0085, end_of_line).
-test(end_of_line_ls_no, fail)   :- code_type(0x2028, end_of_line).
-test(end_of_line_ps_no, fail)   :- code_type(0x2029, end_of_line).
+test(end_of_line_nel) :- code_type(0x0085, end_of_line).
+test(end_of_line_ls)  :- code_type(0x2028, end_of_line).
+test(end_of_line_ps)  :- code_type(0x2029, end_of_line).
+
+% White space that stays within a line is `white', never `end_of_line'.
+
 test(end_of_line_space_no, fail):- code_type(0x0020, end_of_line).
 test(end_of_line_nbsp_no, fail) :- code_type(0x00A0, end_of_line).
+test(end_of_line_tab_no, fail)  :- code_type(0x0009, end_of_line).
+test(white_space)  :- code_type(0x0020, white).
+test(white_tab)    :- code_type(0x0009, white).
+test(white_nbsp)   :- code_type(0x00A0, white).
+test(white_lf_no, fail) :- code_type(0x000A, white).
 
 % --- prolog_end_of_line covers the seven line-terminator-like
 %     Pattern_White_Space code points used by the Prolog reader:

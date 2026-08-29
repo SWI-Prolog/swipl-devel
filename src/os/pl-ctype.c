@@ -77,21 +77,56 @@ typedef struct
 } generator;
 
 
+/* The POSIX character classes come from the Unicode tables in
+ * src/pl-umap.c through PL_ctype_flags() rather than from <wctype.h>.
+ * That makes code_type/2 and char_type/2 independent of LC_CTYPE and of
+ * the C library, agree with the classification the reader uses, and
+ * answer for the full Unicode range on Windows too, where `wint_t` is
+ * only 16 bits.  See the comment at PL_ctype_flags() in pl-read.c.
+ */
+
+#define mkctype(name, mask) \
+	static int f_is_ ## name(int chr) \
+	{ return (PL_ctype_flags(chr) & (mask)) != 0; \
+	}
+
+mkctype(alnum, PL_CTYPE_ALNUM)
+mkctype(alpha, PL_CTYPE_ALPHA)
+mkctype(blank, PL_CTYPE_BLANK)
+mkctype(cntrl, PL_CTYPE_CNTRL)
+mkctype(digit, PL_CTYPE_DIGIT)
+mkctype(eol,   PL_CTYPE_EOL)
+mkctype(graph, PL_CTYPE_GRAPH)
+mkctype(lower, PL_CTYPE_LOWER)
+mkctype(print, PL_CTYPE_PRINT)
+mkctype(punct, PL_CTYPE_PUNCT)
+mkctype(space, PL_CTYPE_SPACE)
+mkctype(sterm, PL_CTYPE_STERM)
+mkctype(upper, PL_CTYPE_UPPER)
+
 static int
-iswhite(int chr)
-{ return chr == ' ' || chr == '\t';
+f_is_ascii(int chr)
+{ return chr >= 0 && chr < 128;
 }
 
+/* csym and csymf are the *C* identifier characters and are therefore
+ * ASCII: C89 has no others, and the extended identifiers of C99/C23 are
+ * spelled with universal character names rather than as source
+ * characters.  Prolog identifiers, which do range over all of Unicode,
+ * have their own types: prolog_var_start, prolog_atom_start and
+ * prolog_identifier_continue.  Note that isAlpha() below is the ASCII
+ * table's *alnum*, letters and digits both.
+ */
 
 static int
 fiscsym(int chr)
-{ return iswalnum(chr) || chr == '_';
+{ return isAlpha(chr) || chr == '_';
 }
 
 
 static int
 fiscsymf(int chr)
-{ return iswalpha(chr) || chr == '_';
+{ return isLetter(chr) || chr == '_';
 }
 
 static int
@@ -104,95 +139,43 @@ isnl(int chr)
 { return chr == '\n';
 }
 
-/* Original ISO/POSIX `end_of_line': the four ASCII control codes
- * recognised as line-ending in C string literals (\n \v \f \r).
- * The locale-independent superset that adds U+0085, U+2028 and
- * U+2029 is exposed under \term{prolog_end_of_line}{} (driven by
- * is_eol_char from pl-read.c).
+
+
+/* Character based case conversion.  Uses the Unicode simple case
+ * mapping (PL_toupper() / PL_tolower(), src/pl-umap.c) rather than the
+ * <wctype.h> functions: the answer is the same in every locale and on
+ * every platform, and it covers the full Unicode range also on Windows,
+ * where `wint_t` is 16 bits and the C library silently returns non-BMP
+ * input unchanged.
+ *
+ * Being the *simple* mapping it is length preserving: the conversions
+ * that change the number of characters (U+00DF to "SS", the ligatures)
+ * are not applied, so upcase_atom/2 and friends never change the length
+ * of their argument.
  */
 
 static int
-iseol(int chr)
-{ return chr >= 10 && chr <= 13;
-}
-
-static int
-isperiod(int chr)
-{ return chr && strchr(".?!", chr) != NULL;
-}
-
-static int
-isquote(int chr)
-{ return chr && strchr("'`\"", chr) != NULL;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Character  based  case conversion.   This  is  not well  supported  on
-Windows as  `wint_t` is only  16 bits.   We use the  string conversion
-functions instead.   Now, in theory,  the case converted version  of a
-Unicode character can  have multiple characters.  For now,  we print a
-warning.  This does not seem to happen on Windows.  To test, use
-
-    ?- forall(between(0, 0x10ffff, X), code_type(X, to_lower(U))).
-    ?- forall(between(0, 0x10ffff, X), code_type(X, to_upper(L))).
-
-The fupper() and flower() function only return a value if the input is
-lower/upper.   We have  the same  `wint_t` problem  here and  assume a
-character is  not lower if `ftoupper(c)  != c`.  This too  is somewhat
-dubious.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
 ftoupper(int chr)
-{
-#if SIZEOF_WINT_T == 2
-  wchar_t tmp[4];
-  int upr;
-
-  *put_wchar(tmp, chr) = 0;
-  _wcsupr_s(tmp, sizeof(tmp)/sizeof(wchar_t));
-  if ( *get_wchar(tmp, &upr) )
-    Sdprintf("Oops, upper for u%x has multiple characters\n");
-  return upr;
-#endif
-  return towupper(chr);
+{ return PL_toupper(chr);
 }
 
 static int
 ftolower(int chr)
-{
-#if SIZEOF_WINT_T == 2
-  wchar_t tmp[4];
-  int lwr;
-
-  *put_wchar(tmp, chr) = 0;
-  _wcslwr_s(tmp, sizeof(tmp)/sizeof(wchar_t));
-  if ( *get_wchar(tmp, &lwr) )
-    Sdprintf("Oops, lower for u%x has multiple characters\n");
-  return lwr;
-#endif
-  return towlower(chr);
+{ return PL_tolower(chr);
 }
+
+/* Both the test and the mapping now come from the Unicode tables, so
+ * char_type(X, lower(U)) agrees with char_type(X, lower).
+ */
 
 static int
 fupper(int chr)
-{
-#if SIZEOF_WINT_T == 2
-  int upr = ftoupper(chr);
-  return upr == chr ? -1 : upr;
-#endif
-  return iswlower(chr) ? (int)towupper(chr) : -1;
+{ return f_is_lower(chr) ? ftoupper(chr) : -1;
 }
 
 static int
 flower(int chr)
-{
-#if SIZEOF_WINT_T == 2
-  int lwr = ftoupper(chr);
-  return lwr == chr ? -1 : lwr;
-#endif
-  return iswupper(chr) ? (int)towlower(chr) : -1;
+{ return f_is_upper(chr) ? ftolower(chr) : -1;
 }
 
 /* paren/1 and quote/1 dispatch through the f_paren_close / f_paren_open
@@ -266,30 +249,9 @@ rxdigit(int d)
   return -1;
 }
 
-#if SIZEOF_WINT_T == 2
-#define mkfunction(name) \
-	static int f ## name(int chr) { if ( chr > 0xffff ) return 0; \
-					return name(chr); }
-#else
-#define mkfunction(name) \
-	static int f ## name(int chr) { return name(chr); }
-#endif
-
-mkfunction(iswalnum)
-mkfunction(iswalpha)
-mkfunction(isascii)
-mkfunction(iswcntrl)
-mkfunction(iswdigit)
-mkfunction(iswprint)
-mkfunction(iswgraph)
-mkfunction(iswlower)
-mkfunction(iswupper)
-mkfunction(iswpunct)
-mkfunction(iswspace)
-
 static const char_type char_types[] =
-{ { ATOM_alnum,			     fiswalnum },
-  { ATOM_alpha,			     fiswalpha },
+{ { ATOM_alnum,			     f_is_alnum },
+  { ATOM_alpha,			     f_is_alpha },
   { ATOM_csym,			     fiscsym },
   { ATOM_csymf,			     fiscsymf },
   { ATOM_prolog_var_start,	     f_is_prolog_var_start },
@@ -300,23 +262,23 @@ static const char_type char_types[] =
   { ATOM_prolog_symbol,		     f_is_prolog_symbol },
   { ATOM_prolog_solo,		     f_is_prolog_solo },
   { ATOM_pattern_syntax,	     f_is_pattern_syntax },
-  { ATOM_ascii,			     fisascii },
-  { ATOM_white,			     iswhite },
-  { ATOM_cntrl,			     fiswcntrl },
-  { ATOM_digit,			     fiswdigit },
-  { ATOM_print,			     fiswprint },
-  { ATOM_graph,			     fiswgraph },
-  { ATOM_lower,			     fiswlower },
-  { ATOM_upper,			     fiswupper },
-  { ATOM_punct,			     fiswpunct },
-  { ATOM_space,			     fiswspace },
+  { ATOM_ascii,			     f_is_ascii },
+  { ATOM_white,			     f_is_blank },
+  { ATOM_cntrl,			     f_is_cntrl },
+  { ATOM_digit,			     f_is_digit },
+  { ATOM_print,			     f_is_print },
+  { ATOM_graph,			     f_is_graph },
+  { ATOM_lower,			     f_is_lower },
+  { ATOM_upper,			     f_is_upper },
+  { ATOM_punct,			     f_is_punct },
+  { ATOM_space,			     f_is_space },
   { ATOM_end_of_file,		     iseof },
-  { ATOM_end_of_line,		     iseol },
+  { ATOM_end_of_line,		     f_is_eol },
   { ATOM_prolog_end_of_line,	     is_eol_char },
   { ATOM_prolog_layout,		     unicode_separator },
   { ATOM_newline,		     isnl },
-  { ATOM_period,		     isperiod },
-  { ATOM_quote,			     isquote },
+  { ATOM_period,		     f_is_sterm },
+  { ATOM_quote,			     f_is_quote },
   { ATOM_lower,			     fupper,	flower,   1, CTX_CHAR },
   { ATOM_upper,			     flower,	fupper,   1, CTX_CHAR },
   { ATOM_to_lower,		     ftoupper,	ftolower, 1, CTX_CHAR },
@@ -767,7 +729,7 @@ skip_separators(PL_chars_t *t, size_t *i)
     if ( c == -1 )
       return;
 
-    if ( fiswspace(c) )
+    if ( f_is_space(c) )
       *i=at;
     else
       return;
@@ -784,7 +746,7 @@ copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
     if ( c == -1 )
       return true;
 
-    if ( !fiswspace(c) )
+    if ( !f_is_space(c) )
     { *i=at;
       if ( Sputcode(c, out) < 0 )
 	return false;

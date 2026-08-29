@@ -688,6 +688,29 @@ PL_EXPORT(bool)		PL_is_uppercase(int chr);
 PL_EXPORT(bool)		PL_is_decimal(int chr);
 PL_EXPORT(bool)		PL_is_layout(int chr);
 
+					/* POSIX character classes.  These
+					   values must match the generated
+					   UC_* bits in src/pl-umap.c */
+#define PL_CTYPE_ALNUM	0x0001		/* alpha or numeric */
+#define PL_CTYPE_ALPHA	0x0002		/* Unicode Alphabetic */
+#define PL_CTYPE_BLANK	0x0004		/* space, but within a line */
+#define PL_CTYPE_CNTRL	0x0008		/* control or format character */
+#define PL_CTYPE_DIGIT	0x0010		/* ASCII 0-9, as POSIX demands */
+#define PL_CTYPE_EOL	0x0020		/* Unicode line terminator */
+#define PL_CTYPE_GRAPH	0x0040		/* printable, not white space */
+#define PL_CTYPE_LOWER	0x0080		/* Unicode Lowercase */
+#define PL_CTYPE_PRINT	0x0100		/* graph or white space */
+#define PL_CTYPE_PUNCT	0x0200		/* printable, not alnum or space */
+#define PL_CTYPE_SPACE	0x0400		/* Unicode White_Space; the
+					   disjoint union of BLANK and EOL */
+#define PL_CTYPE_STERM	0x0800		/* Unicode Sentence_Terminal */
+#define PL_CTYPE_UPPER	0x1000		/* Unicode Uppercase */
+
+PL_EXPORT(unsigned int)	PL_ctype_flags(int chr);
+PL_EXPORT(int)		PL_toupper(int chr);
+PL_EXPORT(int)		PL_tolower(int chr);
+PL_EXPORT(int)		PL_totitle(int chr);
+
 
 		 /*******************************
 		 *	   WIDE INTEGERS	*

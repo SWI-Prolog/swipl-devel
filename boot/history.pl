@@ -273,9 +273,18 @@ match_event(_, _, _) :-
     print_message(query, history(no_event)),
     fail.
 
-not_event_char(C) :- code_type(C, csym), !, fail.
+not_event_char(C) :- event_char(C), !, fail.
 not_event_char(!) :- !, fail.
 not_event_char(_).
+
+%!  event_char(+Code) is semidet.
+%
+%   Character that may appear in a \quote{!name} history reference.
+%   Deliberately not code_type/2 \const{csym}, which is ASCII: an event
+%   name may hold any word character.
+
+event_char(C) :- code_type(C, alnum), !.
+event_char(0'_).
 
 find_event([!|Left], Event, Left) :-
     !,
@@ -293,7 +302,7 @@ find_event(Spec, Event, Left) :-
     matching_event(String, Event).
 
 take_string([C|Rest], [C|String], Left) :-
-    code_type(C, csym),
+    event_char(C),
     !,
     take_string(Rest, String, Left).
 take_string([C|Rest], [], [C|Rest]) :- !.

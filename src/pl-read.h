@@ -62,6 +62,7 @@ int		f_is_decimal(int c);
 int		f_paren_close(int c);
 int		f_paren_open(int c);
 int		f_quote_close(int c);
+int		f_is_quote(int c);
 int		f_quote_open(int c);
 int		is_eol_char(int c);
 int		decimal_weight(int code);

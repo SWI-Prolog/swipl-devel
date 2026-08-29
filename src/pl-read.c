@@ -260,6 +260,19 @@ unicode_separator(int c)
 }
 
 
+/* True for the characters that open or close a quoted item: the three
+ * ASCII quotes and the Unicode Pi/Pf quotation marks.  Backs
+ * \term{quote}{} in char_type/2, which must agree with
+ * \term{quote}{Close}; f_quote_open() / f_quote_close() give the mate.
+ */
+
+int
+f_is_quote(int c)
+{ return ( c == '\'' || c == '"' || c == '`' ||
+	   PlCatW(c) == U_CAT_QUOTE );
+}
+
+
 		 /*******************************
 		 *	  PUBLIC C API		*
 		 *******************************/
@@ -294,6 +307,73 @@ PL_is_decimal(int chr)
 bool
 PL_is_layout(int chr)
 { return PlCatW(chr) == U_CAT_LAYOUT;
+}
+
+/* Locale independent replacement for the <wctype.h> character classes:
+ *
+ *     if ( PL_ctype_flags(c) & PL_CTYPE_ALPHA ) ...
+ *
+ * The classes are read from the uctype_map table in src/pl-umap.c,
+ * which is generated from UnicodeData.txt, DerivedCoreProperties.txt
+ * and the White_Space property in PropList.txt.  Unlike iswalpha() and
+ * friends the answer does not vary with LC_CTYPE, does not vary between
+ * C libraries, covers the full Unicode range also where `wint_t` is 16
+ * bits (Windows), and is pinned to the Unicode version the tables were
+ * generated from (UNICODE_SYNTAX_VERSION).
+ *
+ * This backs code_type/2 and char_type/2 and is exported so that
+ * embedders and packages (xpce, ...) can classify characters the same
+ * way the Prolog system does.
+ */
+
+static_assert(PL_CTYPE_ALNUM == UC_ALNUM &&
+	      PL_CTYPE_ALPHA == UC_ALPHA &&
+	      PL_CTYPE_BLANK == UC_BLANK &&
+	      PL_CTYPE_CNTRL == UC_CNTRL &&
+	      PL_CTYPE_DIGIT == UC_DIGIT &&
+	      PL_CTYPE_EOL   == UC_EOL   &&
+	      PL_CTYPE_GRAPH == UC_GRAPH &&
+	      PL_CTYPE_LOWER == UC_LOWER &&
+	      PL_CTYPE_PRINT == UC_PRINT &&
+	      PL_CTYPE_PUNCT == UC_PUNCT &&
+	      PL_CTYPE_SPACE == UC_SPACE &&
+	      PL_CTYPE_STERM == UC_STERM &&
+	      PL_CTYPE_UPPER == UC_UPPER,
+	      "PL_CTYPE_* in SWI-Prolog.h out of sync with UC_* in pl-umap.c");
+
+unsigned int
+PL_ctype_flags(int chr)
+{ return uctypeFlagsW(chr);
+}
+
+/* Unicode *simple* case conversion, from the case tables in
+ * src/pl-umap.c.  One code point in, one code point out, so conversion
+ * is length preserving: U+00DF LATIN SMALL LETTER SHARP S and the
+ * ligatures are returned unchanged rather than expanded to "SS", "FI",
+ * ... as SpecialCasing.txt would have it.  Code points without a
+ * mapping are returned unchanged.
+ *
+ * As with the classes, this replaces towupper()/towlower()/towctrans()
+ * to remove the dependency on LC_CTYPE -- the Turkish and Azeri dotted
+ * and dotless i are the one place where the C library actually differs
+ * per locale, and having upcase_atom/2 quietly follow the environment
+ * there is a bug source rather than a feature -- and to cover the full
+ * Unicode range on Windows, where `wint_t` is 16 bits.
+ */
+
+int
+PL_toupper(int chr)
+{ return pl_toupper(chr);
+}
+
+int
+PL_tolower(int chr)
+{ return pl_tolower(chr);
+}
+
+int
+PL_totitle(int chr)
+{ return pl_totitle(chr);
 }
 
 /* Display width of a Unicode code point, in terminal columns.

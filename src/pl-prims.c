@@ -4867,7 +4867,7 @@ PRED_IMPL("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
 
     for (; s2<=es-l1; s2++)
     { for(q=needleW, s=s2; q<eq && s<es; q++, s++)
-      { if ( *q != *s && *q != (pl_wchar_t)towlower(*s) )
+      { if ( *q != *s && *q != (pl_wchar_t)PL_tolower(*s) )
 	  break;
       }
       if ( q == eq )

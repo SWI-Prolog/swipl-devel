@@ -181,7 +181,7 @@ wstolower(wchar_t *w, size_t len)
 { wchar_t *e = &w[len];
 
   for( ; w<e; w++ )
-    *w = towlower(*w);
+    *w = PL_tolower(*w);
 }
 
 static int
