@@ -352,7 +352,7 @@ upload()
 { if [ $(uname) = Darwin ]; then
     upload_macosx
   else
-    upload_win64
+#   upload_win64
     upload_pdf
     upload_src
   fi
