@@ -309,6 +309,10 @@ prolog:generated_predicate(PI) :-
 %
 %   If File is already attached  this   operation  may change the `sync`
 %   behaviour.
+%
+%   If the file ends in an incomplete term, e.g., because the disk was
+%   full or the process was killed while writing, a warning is printed
+%   and the file is truncated to just after the last complete term.
 
 db_attach(Module:File, Options) :-
     db_set_options(Module, Options),
@@ -344,7 +348,7 @@ db_load(Module, File) :-
     debug(db, 'Loading database ~w', [File]),
     catch(setup_call_cleanup(
               open(File, read, In, [encoding(utf8)]),
-              load_db_end(In, Module, Created, EndPos),
+              load_db_end(In, Module, File, Created, EndPos),
               close(In)),
           error(existence_error(source_sink, File), _), fail),
     debug(db, 'Loaded ~w', [File]),
@@ -360,7 +364,7 @@ db_load_incremental(Module, File) :-
         ),
         ( Created0 == Created,
           debug(db, 'Incremental load from ~p', [EndPos0]),
-          load_db_end(In, Module, _Created, EndPos)
+          load_db_end(In, Module, File, _Created, EndPos)
         ),
         close(In)),
     debug(db, 'Updated ~w', [File]),
@@ -368,49 +372,103 @@ db_load_incremental(Module, File) :-
     retractall(db_file(Module, File, Created, _, _)),
     assert(db_file(Module, File, Created, Modified, EndPos)).
 
-load_db_end(In, Module, Created, End) :-
-    read_action(In, T0),
+load_db_end(In, Module, File, Created, End) :-
+    read_db_action(In, File, T0, End0),
     (   T0 = created(Created)
-    ->  read_action(In, T1)
+    ->  read_db_action(In, File, T1, End1)
     ;   T1 = T0,
+        End1 = End0,
         Created = 0
     ),
-    load_db(T1, In, Module),
-    stream_property(In, position(End)).
+    load_db(T1, In, Module, File, End1, End).
 
-load_db(end_of_file, _, _) :- !.
-load_db(assert(Term), In, Module) :-
+load_db(end_of_file, _, _, _, End, End) :- !.
+load_db(assert(Term), In, Module, File, _End0, End) :-
     persistent(Module, Term, _Types),
     !,
     assert(Module:Term),
-    read_action(In, T1),
-    load_db(T1, In, Module).
-load_db(asserta(Term), In, Module) :-
+    read_db_action(In, File, T1, End1),
+    load_db(T1, In, Module, File, End1, End).
+load_db(asserta(Term), In, Module, File, _End0, End) :-
     persistent(Module, Term, _Types),
     !,
     asserta(Module:Term),
-    read_action(In, T1),
-    load_db(T1, In, Module).
-load_db(retractall(Term, Count), In, Module) :-
+    read_db_action(In, File, T1, End1),
+    load_db(T1, In, Module, File, End1, End).
+load_db(retractall(Term, Count), In, Module, File, _End0, End) :-
     persistent(Module, Term, _Types),
     !,
     retractall(Module:Term),
     set_dirty(Module, Count),
-    read_action(In, T1),
-    load_db(T1, In, Module).
-load_db(retract(Term), In, Module) :-
+    read_db_action(In, File, T1, End1),
+    load_db(T1, In, Module, File, End1, End).
+load_db(retract(Term), In, Module, File, _End0, End) :-
     persistent(Module, Term, _Types),
     !,
     (   retract(Module:Term)
     ->  set_dirty(Module, 1)
     ;   true
     ),
-    read_action(In, T1),
-    load_db(T1, In, Module).
-load_db(Term, In, Module) :-
-    print_message(error, illegal_term(Term)),
-    read_action(In, T1),
-    load_db(T1, In, Module).
+    read_db_action(In, File, T1, End1),
+    load_db(T1, In, Module, File, End1, End).
+load_db(Term, In, Module, File, _End0, End) :-
+    print_message(error, persistency(illegal_term(File, Term))),
+    read_db_action(In, File, T1, End1),
+    load_db(T1, In, Module, File, End1, End).
+
+%!  read_db_action(+In, +File, -Action, -End) is det.
+%
+%   Read the next action from the database file In.  End is unified
+%   with the stream position after Action.  Errors are handled by
+%   recover_db/6.
+
+read_db_action(In, File, Action, End) :-
+    stream_property(In, position(Start)),
+    catch(( read_action(In, Action),
+            stream_property(In, position(End))
+          ),
+          Error,
+          recover_db(Error, In, File, Start, Action, End)).
+
+%!  recover_db(+Error, +In, +File, +Pos, -Action, -End) is det.
+%
+%   Called if reading the term that starts at Pos raised Error.  If the
+%   syntax error is at the end of the file we assume the last write only
+%   partially made it to disk, e.g., because  the disk was full or the
+%   process was killed.  In that case  we print a warning and truncate
+%   the file to Pos, i.e., just after the last valid term.  Anything
+%   else is re-raised.
+%
+%   Note that we do not repair a file from which not a single term could
+%   be read (Pos is 0).  Such a file is most likely not a persistent
+%   database at all and we do not want to destroy it.
+
+recover_db(error(syntax_error(Culprit), _), In, File, Pos, Action, End) :-
+    at_end_of_stream(In),
+    stream_position_data(byte_count, Pos, Byte),
+    Byte > 0,
+    !,
+    print_message(warning, persistency(truncated_db(File, Pos, Culprit))),
+    truncate_db_file(File, Byte),
+    Action = end_of_file,
+    End = Pos.
+recover_db(Error, _In, _File, _Pos, _Action, _End) :-
+    throw(Error).
+
+%!  truncate_db_file(+File, +Byte) is det.
+%
+%   Truncate File to Byte bytes.  As Byte is the position just after the
+%   `.` that ends the last valid term we add a newline to ensure a term
+%   appended to the file is properly separated.
+
+truncate_db_file(File, Byte) :-
+    setup_call_cleanup(
+        open(File, update, Out, [type(binary), lock(write)]),
+        (   seek(Out, Byte, bof, _),
+            put_byte(Out, 0'\n),
+            set_end_of_stream(Out)
+        ),
+        close(Out)).
 
 db_clean(Module) :-
     retractall(db_dirty(Module, _)),
@@ -475,7 +533,21 @@ persistent(Module, Action) :-
     write_action(Stream, Action),
     sync(Module, Stream).
 
+%!  db_open_file(+File, +Mode, -Stream) is det.
+%
+%   Open the database File.  If the file is empty we add the leading
+%   created(Stamp) term.  If we append to a file that does not end in a
+%   layout character, e.g., because it was truncated in the layout that
+%   follows the last term, we complete the line first.  Without this the
+%   new term is glued to the `.` of the last one.
+
 db_open_file(File, Mode, Stream) :-
+    (   Mode == append,
+        exists_file(File),
+        \+ db_ends_with_layout(File)
+    ->  Complete = true
+    ;   Complete = false
+    ),
     open(File, Mode, Stream,
          [ close_on_abort(false),
            encoding(utf8),
@@ -484,8 +556,27 @@ db_open_file(File, Mode, Stream) :-
     (   size_file(File, 0)
     ->  get_time(Now),
         write_action(Stream, created(Now))
+    ;   Complete == true
+    ->  nl(Stream)
     ;   true
     ).
+
+db_ends_with_layout(File) :-
+    size_file(File, Size),
+    Size > 0,
+    Last is Size-1,
+    setup_call_cleanup(
+        open(File, read, In, [type(binary)]),
+        (   seek(In, Last, bof, _),
+            get_byte(In, Byte)
+        ),
+        close(In)),
+    layout_byte(Byte).
+
+layout_byte(0'\n).
+layout_byte(0'\r).
+layout_byte(0' ).
+layout_byte(0'\t).
 
 
 %!  db_detach is det.
@@ -711,3 +802,22 @@ close_dbs :-
            close(Stream)).
 
 :- at_halt(close_dbs).
+
+
+                 /*******************************
+                 *           MESSAGES           *
+                 *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(persistency(Message)) -->
+    message(Message).
+
+message(truncated_db(File, Pos, Culprit)) -->
+    { stream_position_data(line_count, Pos, Line) },
+    [ 'Persistent database ~w is incomplete (~w).'-[File, Culprit], nl,
+      'Truncated the file to line ~d, the last complete term.'-[Line]
+    ].
+message(illegal_term(File, Term)) -->
+    [ 'Persistent database ~w: ignored illegal term ~p'-[File, Term] ].
