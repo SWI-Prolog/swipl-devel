@@ -347,7 +347,7 @@ db_load(Module, File) :-
     retractall(db_file(Module, _, _, _, _)),
     debug(db, 'Loading database ~w', [File]),
     catch(setup_call_cleanup(
-              open(File, read, In, [encoding(utf8)]),
+              open(File, read, In, [encoding(utf8), newline(posix)]),
               load_db_end(In, Module, File, Created, EndPos),
               close(In)),
           error(existence_error(source_sink, File), _), fail),
@@ -358,7 +358,7 @@ db_load(Module, File) :-
 db_load_incremental(Module, File) :-
     db_file(Module, File, Created, _, EndPos0),
     setup_call_cleanup(
-        ( open(File, read, In, [encoding(utf8)]),
+        ( open(File, read, In, [encoding(utf8), newline(posix)]),
           read_action(In, created(Created0)),
           set_stream_position(In, EndPos0)
         ),
@@ -540,6 +540,13 @@ persistent(Module, Action) :-
 %   layout character, e.g., because it was truncated in the layout that
 %   follows the last term, we complete the line first.  Without this the
 %   new term is glued to the `.` of the last one.
+%
+%   All database streams use newline(posix).  This keeps the file format
+%   platform independent and, more importantly, makes the byte counts we
+%   use to truncate a damaged file (see truncate_db_file/2) agree with
+%   what the reader sees.  On Windows a text stream deletes all carriage
+%   returns, so a `\r` written as part of a newline is neither a byte we
+%   can account for nor layout that separates two terms.
 
 db_open_file(File, Mode, Stream) :-
     (   Mode == append,
@@ -551,6 +558,7 @@ db_open_file(File, Mode, Stream) :-
     open(File, Mode, Stream,
          [ close_on_abort(false),
            encoding(utf8),
+           newline(posix),
            lock(write)
          ]),
     (   size_file(File, 0)
