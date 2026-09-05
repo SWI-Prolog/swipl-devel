@@ -180,19 +180,18 @@ query_loop(atom_t goal, bool loop)
     { except_class exclass = classify_exception(except);
 
       if ( exclass == EXCEPT_ABORT )
-	Sclearerr(Suser_input);
-      if ( exclass == EXCEPT_HALT )
-      { rc = true;
-	loop = false;
+      { Sclearerr(Suser_input);
+      } else if ( exclass == EXCEPT_HALT )
+      { loop = false;
 	int me = PL_thread_self();
 	if ( me < 0 || me == 1 )	/* no threads or main thread */
 	  halt_from_exception(except);
+      } else if ( exclass == EXCEPT_THREAD_EXIT )
+      { loop = false;
       }
 
       if ( !validUserStreams() )
-      { rc = true;
 	loop = false;
-      }
 
       restore_after_exception(except);
       rc = -1;
