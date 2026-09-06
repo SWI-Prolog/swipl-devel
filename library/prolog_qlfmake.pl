@@ -168,10 +168,35 @@ qlf_needs_rebuild(PlFile) :-
     ;   time_file(QlfFile, QlfTime),
         '$qlf_sources'(QlfFile, Sources),
         member(S, Sources),
-        arg(1, S, File),
-        time_file(File, STime),
-        STime > QlfTime+1
+        source_changed(S, QlfTime)
     ).
+
+%!  source_changed(+Source, +QlfTime) is semidet.
+%
+%   True when the file of Source differs from the copy that was compiled
+%   into the .qlf file.  This asks the content and not the modification
+%   time, which cannot answer it: a tree that arrives by checkout, copy,
+%   unpack or install carries times of its own, and a file edited in the
+%   second its .qlf file was written has the same time as that file, at
+%   the one second many file systems record.  Hashing every source of
+%   the system library takes about 100ms; recompiling one takes longer
+%   than that.
+%
+%   Files whose hash was not recorded -- 0, from a .qlf file written by
+%   a version that did not record them -- are compared by time alone,
+%   with a second of slack, which is what this test was before there
+%   were hashes.
+
+source_changed(Source, _QlfTime) :-
+    arg(1, Source, File),
+    arg(2, Source, Hash),
+    Hash =\= 0,
+    !,
+    \+ '$file_hash'(File, Hash).
+source_changed(Source, QlfTime) :-
+    arg(1, Source, File),
+    time_file(File, STime),
+    STime > QlfTime+1.
 
 pl_qlf_file(PlFile, QlfFile) :-
     file_name_extension(Base, pl, PlFile),
@@ -460,7 +485,7 @@ qmake_aggregate(Spec) :-
                        ]),
     pl_qlf_file(PlFile, QlfFile),
     '$qlf_sources'(QlfFile, Sources),
-    forall(member(source(S), Sources),
+    forall(member(source(S, _Hash), Sources),
            assertz(qlf_part_of(S, PlFile))).
 qmake_aggregate(_).
 

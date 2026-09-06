@@ -1637,7 +1637,19 @@ consult/1 or one of the other file-loading predicates described in
 \secref{consulting}. If consult/1 is given an explicit \fileext{pl} file,
 it will load the Prolog source. When given a \fileext{qlf} file, it
 will load the file. When no extension is specified, it will load the
-\fileext{qlf} file when present and the \fileext{pl} file otherwise.
+\fileext{qlf} file when present and up-to-date, and the \fileext{pl}
+file otherwise.
+
+A \fileext{qlf} file is up-to-date if the source it was compiled from
+has not changed since. Whether it changed is decided by the
+\emph{content} of the source, a hash of which is stored in the
+\fileext{qlf} file, and not by its modification time: a tree that
+arrives by checkout, copy, unpack or install carries times of its own,
+in either direction. A source that is newer but unchanged is thus still
+loaded from its \fileext{qlf} file. If the source did change, the
+\fileext{qlf} file is recompiled when it can be written and the source
+is loaded without it otherwise. Set the \prologflag{source} flag to
+ignore \fileext{qlf} files altogether.
 
 \begin{description}
     \predicate{qcompile}{1}{:File}

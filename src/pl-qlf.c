@@ -120,7 +120,7 @@ Below is an informal description of the format of a `.qlf' file:
 		      | <source>			% not a module
 			<time>
 <qlf-export>	::=	'E' <XR/functor>
-<source>	::=	'F' <string> <time> <system>
+<source>	::=	'F' <string> <hash> <time> <system>
 		      | '-'
 ----------------------------------------------------------------
 <magic code>	::=	<string>			% normally #!<path>
@@ -179,9 +179,10 @@ Below is an informal description of the format of a `.qlf' file:
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
-<include>	::=	<file> <owner> <parent> <line> <time>
+<include>	::=	<file> <hash> <owner> <parent> <line> <time>
 			(files as UTF-8 strings)
-<trailer>	::=	{'D' <file>}			% file dependencies
+<hash>		::=	<num>				% content of <file>
+<trailer>	::=	{'D' <file> <hash>}		% file dependencies
 			{<mark-offset>}			% file offset of files
 			<offset-count>			% #mark offsets
 
@@ -1849,10 +1850,94 @@ loadFileName(wic_state *state)
   return fname;
 }
 
+		 /*******************************
+		 *	  SOURCE HASHES		*
+		 *******************************/
+
+/* A .QLF file records a hash of the content of every source that went
+   into it, so that a source can be compared with the copy that was
+   compiled.  Modification times cannot do that: a tree that arrives by
+   checkout, copy, unpack or install carries times of its own, in either
+   direction, at the resolution of whatever file system it landed on.
+   The time still says cheaply that a file *may* have changed; the hash
+   settles it.
+
+   This is FNV-1a, 64 bits: cheap, needs no state but the hash, and is
+   only ever asked whether two byte strings are the same.  0 means "not
+   known" -- a file that could not be read, or one compiled by a version
+   that did not record hashes yet.  A file whose content hashes to 0 (one
+   in 2^64) is simply compared by time, as it was before.
+*/
+
+#define FNV1A_64_OFFSET	((uint64_t)0xcbf29ce484222325)
+#define FNV1A_64_PRIME	((uint64_t)0x100000001b3)
+
+static uint64_t
+hashStreamContent(IOSTREAM *s)
+{ uint64_t hash = FNV1A_64_OFFSET;
+  char buf[4096];
+  size_t n;
+
+  while( (n=Sfread(buf, 1, sizeof(buf), s)) > 0 )
+  { for(size_t i=0; i<n; i++)
+    { hash ^= (uint64_t)(unsigned char)buf[i];
+      hash *= FNV1A_64_PRIME;
+    }
+  }
+
+  return Sferror(s) ? 0 : hash;
+}
+
+
+static uint64_t
+fileContentHash(const char *name)	/* name in file name encoding */
+{ IOSTREAM *s;
+  uint64_t hash = 0;
+
+  if ( (s=Sopen_file(name, "rbr")) )
+  { hash = hashStreamContent(s);
+    Sclose(s);
+  }
+
+  return hash;
+}
+
+
+static uint64_t
+atomFileContentHash(atom_t name)
+{ PL_chars_t text;
+  uint64_t hash = 0;
+
+  if ( get_atom_text(name, &text) )
+  { if ( PL_mb_text(&text, REP_FN) )
+      hash = fileContentHash(text.text.t);
+    PL_free_text(&text);
+  }
+
+  return hash;
+}
+
+
+static void
+qlfSaveFileHash(wic_state *state, atom_t name)
+{ qlfPutInt64((int64_t)atomFileContentHash(name), state->wicFd);
+}
+
+
+static uint64_t
+qlfLoadFileHash(wic_state *state)	/* since version 72 */
+{ if ( state->saved_version >= 72 )
+    return (uint64_t)qlfGetInt64(state->wicFd);
+
+  return 0;
+}
+
+
 static bool
 qlfLoadSource(wic_state *state, SourceFile sf)
 { IOSTREAM *fd = state->wicFd;
   atom_t fname = loadFileName(state);
+  (void)qlfLoadFileHash(state);
   double time = qlfGetDouble(fd);
   int ftype = Qgetc(fd);
 
@@ -2082,6 +2167,7 @@ loadInclude(DECL_LD wic_state *state, int skip)
 
   if ( state->saved_version >= 70 )
   { fn    = loadFileName(state);
+    (void)qlfLoadFileHash(state);
     owner = loadFileName(state);
     pn    = loadFileName(state);
     line  = qlfGetInt32(fd);
@@ -3282,16 +3368,19 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
   if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return qlfError(state, "seek to %zd failed: %s", offset, OsError());
   switch(Sgetc(s))
-  { case 'F': type = FUNCTOR_source1;     break;
-    case 'L': type = FUNCTOR_include1;    break;
-    case 'D': type = FUNCTOR_dependency1; break;
+  { case 'F': type = FUNCTOR_source2;     break;
+    case 'L': type = FUNCTOR_include2;    break;
+    case 'D': type = FUNCTOR_dependency2; break;
     default:
       return qlfError(state, "No file at offset %zd", offset);
   }
-  fname = loadFileName(state);
+  fname = loadFileName(state);		/* the hash follows the name in */
+  uint64_t hash = qlfLoadFileHash(state); /* every one of the three */
 
-  bool rc = ( PL_put_atom(tmp, fname) &&
-	      PL_cons_functor_v(tmp, type, tmp) &&
+  term_t av = PL_new_term_refs(2);
+  bool rc = ( PL_put_atom(av+0, fname) &&
+	      PL_put_uint64(av+1, hash) &&
+	      PL_cons_functor_v(tmp, type, av) &&
 	      PL_unify_list(list, head, list) &&
 	      PL_unify(head, tmp) );
   PL_reset_term_refs(head);
@@ -3586,8 +3675,11 @@ PRED_IMPL("$qlf_is_compatible", 1, qlf_is_compatible, 0)
 /** '$qlf_sources'(+File, -SourceFiles) is det.
  *
  * Unify SourceFiles with the files that are  embedded into the QLF file
- * File. This predicate succeeds as long as the QLF file is sufficiently
- * compatible to find the source files.
+ * File, as source(File, Hash), include(File, Hash) or dependency(File,
+ * Hash). Hash is the content of the file as it was compiled, or 0 if it
+ * was not recorded -- see '$file_hash'/2. This predicate succeeds as
+ * long as the QLF file is sufficiently compatible to find the source
+ * files.
  */
 
 static
@@ -3599,6 +3691,26 @@ PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
     fail;
 
   return qlfInfo(name, 0, 0, 0, 0, 0, 0, A2, 0);
+}
+
+
+/** '$file_hash'(+File, -Hash) is det.
+ *
+ * Unify Hash with the hash of the content  of File, the way the QLF
+ * writer computes it for the sources it embeds. Hash is 0 if File
+ * cannot be read. Comparing this with the hash '$qlf_sources'/2
+ * reports tells whether a source really changed since it was compiled;
+ * see '$qlf_out_of_date'/3.
+ */
+
+static
+PRED_IMPL("$file_hash", 2, file_hash, 0)
+{ char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    return false;
+
+  return PL_unify_uint64(A2, fileContentHash(name));
 }
 
 
@@ -3887,6 +3999,7 @@ qlfSaveSource(wic_state *state, SourceFile f)
   sourceMark(state);
   Sputc('F', fd);
   qlfSaveFileName(state, f->name);
+  qlfSaveFileHash(state, f->name);
   qlfPutDouble(f->mtime, fd);
   Sputc(src_file_status(f), fd);
   state->currentSource = f;
@@ -4071,6 +4184,7 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
     sourceMark(state);
     Sputc('L', fd);
     qlfSaveFileName(state, fn);
+    qlfSaveFileHash(state, fn);
     qlfSaveFileName(state, owner);
     qlfSaveFileName(state, pn);
     qlfPutInt64(line, fd);
@@ -4094,6 +4208,7 @@ PRED_IMPL("$qlf_dependency", 1, $qlf_dependency, 0)
   { sourceMark(state);
     Sputc('D', state->wicFd);
     qlfSaveFileName(state, file);
+    qlfSaveFileHash(state, file);
 
     return true;
   }
@@ -4838,6 +4953,7 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_versions",	    6, qlf_versions,	     0)
   PRED_DEF("$qlf_is_compatible",    1, qlf_is_compatible,    0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
+  PRED_DEF("$file_hash",	    2, file_hash,	     0)
   PRED_DEF("$qlf_module",	    2, qlf_module,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
   PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)

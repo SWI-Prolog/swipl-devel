@@ -2411,8 +2411,9 @@ load_files(Module:Files, Options) :-
     (   access_file(PlFile, read)
     ->  time_file(PlFile, PlTime),
 	time_file(QlfFile, QlfTime),
-	(   PlTime > QlfTime
-	->  Why = old                   % PlFile is newer
+	(   PlTime > QlfTime,
+	    '$qlf_source_changed'(QlfFile, PlFile)
+	->  Why = old                   % PlFile changed
 	;   Error = error(Formal,_),
 	    catch('$qlf_is_compatible'(QlfFile), Error, true),
 	    nonvar(Formal)              % QlfFile is incompatible
@@ -2420,6 +2421,35 @@ load_files(Module:Files, Options) :-
 	;   fail                        % QlfFile is up-to-date and ok
 	)
     ;   fail                            % can not read .pl; try .qlf
+    ).
+
+%!  '$qlf_source_changed'(+QlfFile, +PlFile) is semidet.
+%
+%   True when the content of PlFile differs from the copy that was
+%   compiled into QlfFile.  Only asked when the modification times say
+%   PlFile may be newer, which is cheap but proves nothing: a tree that
+%   arrives by checkout, copy, unpack or install carries times of its
+%   own, in either direction and at the resolution of the file system it
+%   landed on.  The hash the .qlf file records for each of its sources
+%   settles it.
+%
+%   If QlfFile records no hash for PlFile -- it was written by an older
+%   version, or PlFile could not be read when it was compiled -- the
+%   times have the last word, as they had before.
+%
+%   Note that a file edited in the second its .qlf file was written has
+%   the time of that file, so the times do not say "may be newer" and the
+%   content is never asked. Loading every .pl file to find out would cost
+%   more than it is worth here; qlf_needs_rebuild/1 of
+%   library(prolog_qlfmake), which is what a build asks, does compare the
+%   content of every source.
+
+'$qlf_source_changed'(QlfFile, PlFile) :-
+    (   catch('$qlf_sources'(QlfFile, Sources), _, fail),
+	'$member'(source(PlFile, Hash), Sources),
+	Hash =\= 0
+    ->  \+ '$file_hash'(PlFile, Hash)
+    ;   true
     ).
 
 %!  '$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.
@@ -2745,15 +2775,35 @@ load_files(Module:Files, Options) :-
 %
 %   Add compilation dependencies. These are files   that are loaded into
 %   Module that define term or goal expansion rules.
+%
+%   This must be called with the .qlf file  open and the part written, as
+%   it is here: '$qlf_dependency'/1 writes into the stream and the record
+%   belongs after the part, in the trailer.
 
 '$qlf_add_dependencies'(File) :-
-    forall('$dependency'(File, DepFile),
+    findall(DepFile, '$dependency'(File, DepFile), DepFiles0),
+    sort(DepFiles0, DepFiles),          % a file need only be named once
+    forall('$member'(DepFile, DepFiles),
            '$qlf_dependency'(DepFile)).
+
+%!  prolog:qlf_dependency(+File, -DependsOn) is nondet.
+%
+%   Hook. True when compiling File to  a  .qlf   file  takes  a copy of
+%   something in DependsOn, so that the  .qlf   file  must be rebuilt if
+%   DependsOn changes. Expansion rules are found  without this hook; the
+%   hook is for a library that copies code of its own, as XPCE does with
+%   a class template: the  methods  of   the  template  are  put in each
+%   class that uses one, when that class is compiled.
+
+:- multifile
+    prolog:qlf_dependency/2.        % +File, -DependsOn
 
 '$dependency'(File, DepFile) :-
     '$current_module'(Module, File),
     '$load_context_module'(DepFile, Module, _Options),
     '$source_defines_expansion'(DepFile).
+'$dependency'(File, DepFile) :-
+    prolog:qlf_dependency(File, DepFile).
 
 % Also used by autoload.pl
 '$source_defines_expansion'(File) :-

@@ -43,9 +43,12 @@
 :- use_module(library(debug), [assertion/1, debug/3]).
 :- use_module(library(apply), [maplist/3, maplist/2]).
 :- use_module(library(prolog_code), [pi_head/2]).
+:- use_module(library(lists), [memberchk/2, member/2]).
+:- use_module(library(prolog_qlfmake), []).
 
 test_qlf :-
-    run_tests([ qlf
+    run_tests([ qlf,
+                qlf_staleness
               ]).
 
 find_me.
@@ -133,6 +136,164 @@ test(rat,
     debug(qlf(result), '~q~n~q', [Expected, Found]).
 
 :- end_tests(qlf).
+
+
+                /*******************************
+                *      IS IT OUT OF DATE?      *
+                *******************************/
+
+/* A .qlf file records a hash of the content of every source that went
+   into it.  Modification times alone cannot say whether a source
+   changed: a tree that arrives by checkout, copy, unpack or install
+   carries times of its own, in either direction and at the resolution
+   of the file system it landed on.  The time says cheaply that a file
+   *may* have changed; the hash settles it.
+*/
+
+:- begin_tests(qlf_staleness).
+
+test(the_hash_recorded_for_a_source_is_the_hash_of_the_file,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    '$qlf_sources'(Qlf, Sources),
+    memberchk(source(Pl, Hash), Sources),
+    Hash =\= 0,
+    '$file_hash'(Pl, Hash).
+
+%       Reinstalling a tree, or checking it out again, gives every source
+%       a time of its own.  Nothing changed, so nothing is recompiled.
+
+test(a_source_that_is_newer_but_unchanged_is_not_out_of_date,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    touch(Pl, Qlf, 10),
+    \+ '$qlf_out_of_date'(Pl, Qlf, _).
+
+test(and_one_whose_content_changed_is,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       true(Why == old)
+     ]) :-
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 10),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+%       prolog_qlfmake allowed a second of slack, to keep a tree that was
+%       copied file by file from recompiling itself.  An edit made in the
+%       second the .qlf file was written went unnoticed with it.
+
+test(a_change_within_a_second_of_the_qlf_needs_a_rebuild,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 1),
+    prolog_qlfmake:qlf_needs_rebuild(Pl).
+
+%       The time of a file edited in the second its .qlf file was written
+%       is the time of that .qlf file, at the one second many file systems
+%       record.  Which is why the build asks the content and not the time.
+
+test(and_so_does_a_change_made_in_the_same_second,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 0),
+    prolog_qlfmake:qlf_needs_rebuild(Pl).
+
+test(and_a_touch_within_it_does_not,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    touch(Pl, Qlf, 1),
+    \+ prolog_qlfmake:qlf_needs_rebuild(Pl).
+
+%       A library that copies code into the file it is compiling -- XPCE
+%       puts the methods of a class template in every class that uses one
+%       -- says so through prolog:qlf_dependency/2, and the .qlf file is
+%       then rebuilt when that other file changes.
+
+test(a_dependency_the_hook_declares_is_recorded,
+     [ setup(compiled_with_dependency(Pl, Qlf, Dep)),
+       cleanup(remove_files([Pl, Qlf, Dep]))
+     ]) :-
+    '$qlf_sources'(Qlf, Sources),
+    memberchk(dependency(Dep, Hash), Sources),
+    Hash =\= 0,
+    '$file_hash'(Dep, Hash).
+
+test(and_a_change_to_it_needs_a_rebuild,
+     [ setup(compiled_with_dependency(Pl, Qlf, Dep)),
+       cleanup(remove_files([Pl, Qlf, Dep]))
+     ]) :-
+    \+ prolog_qlfmake:qlf_needs_rebuild(Pl),
+    write_source(Dep, "% a change to what was copied\n"),
+    touch(Dep, Qlf, 1),
+    prolog_qlfmake:qlf_needs_rebuild(Pl).
+
+:- end_tests(qlf_staleness).
+
+%!  compiled_file(-PlFile, -QlfFile) is det.
+%
+%   A source of our own in the temporary directory and the .qlf file
+%   compiled from it, so that the times of both are ours to set.
+
+compiled_file(Pl, Qlf) :-
+    current_prolog_flag(tmp_dir, Tmp),
+    directory_file_path(Tmp, 'test_qlf_staleness.pl', Pl),
+    file_name_extension(Base, pl, Pl),
+    file_name_extension(Base, qlf, Qlf),
+    write_source(Pl, "answer(42).\n"),
+    remove_files([Qlf]),
+    qcompile(Pl),
+    unload_file(Pl).
+
+%!  compiled_with_dependency(-PlFile, -QlfFile, -Dependency) is det.
+%
+%   As compiled_file/2, with a file the hook below says PlFile takes a
+%   copy of something from.
+
+:- dynamic
+    hook_dependency/2.
+
+:- multifile
+    prolog:qlf_dependency/2.
+
+prolog:qlf_dependency(File, Dependency) :-
+    hook_dependency(File, Dependency).
+
+compiled_with_dependency(Pl, Qlf, Dep) :-
+    current_prolog_flag(tmp_dir, Tmp),
+    directory_file_path(Tmp, 'test_qlf_dependency.pl', Dep),
+    write_source(Dep, "% what the compiled file copied\n"),
+    retractall(hook_dependency(_, _)),
+    setup_call_cleanup(
+        assertz(hook_dependency(Pl, Dep)),
+        compiled_file(Pl, Qlf),
+        retractall(hook_dependency(_, _))).
+
+write_source(File, Text) :-
+    setup_call_cleanup(
+        open(File, write, Out),
+        format(Out, '~s', [Text]),
+        close(Out)).
+
+%!  touch(+File, +Reference, +Delay) is det.
+%
+%   Give File a modification time Delay seconds after that of Reference,
+%   so that a test does not have to wait for the clock.
+
+touch(File, Reference, Delay) :-
+    time_file(Reference, Time),
+    New is Time+Delay,
+    set_time_file(File, _, [modified(New)]).
+
+remove_files(Files) :-
+    forall(member(File, Files),
+           catch(delete_file(File), _, true)).
 
 test_files(Spec, Prolog, Qlf) :-
     atomic_list_concat([input,Spec], /, RelFile),
