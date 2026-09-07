@@ -62,7 +62,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-int		ar_compare(Number n1, Number n2, int what);
+bool		ar_compare(Number n1, Number n2, int what);
 int		ar_compare_eq(Number n1, Number n2);
 bool		pl_ar_add(Number n1, Number n2, Number r);
 bool		ar_mul(Number n1, Number n2, Number r);

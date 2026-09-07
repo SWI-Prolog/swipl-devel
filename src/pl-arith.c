@@ -167,7 +167,7 @@ clearInteger(Number n)
 typedef struct between_state
 { number low;
   number high;
-  int hinf;
+  bool hinf;
 } between_state;
 
 
@@ -178,12 +178,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
-  int rc = true;
+  bool rc = true;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       { number l, h, i;
-	int hinf = false;
+	bool hinf = false;
 
 	if ( !PL_get_number(low, &l) || !intNumber(&l) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, low);
@@ -198,9 +198,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 
 					/* between(+,+,+) */
 	if ( PL_get_number(n, &i) && intNumber(&i) )
-	{ int rc;
-
-	  if ( hinf )
+	{ if ( hinf )
 	  { rc = cmpNumbers(&i, &l) >= 0;
 	  } else
 	  { rc = cmpNumbers(&i, &l) >= 0 && cmpNumbers(&i, &h) <= 0;
@@ -277,7 +275,7 @@ PRED_IMPL("succ", 2, succ, 0)
 { PRED_LD
   Word p1, p2;
   number i1, i2, one;
-  int rc;
+  bool rc;
 
   p1 = valTermRef(A1); deRef(p1);
 
@@ -340,7 +338,7 @@ PRED_IMPL("succ", 2, succ, 0)
 
 
 #define var_or_integer(t, n, which, mask) LDFUNC(var_or_integer, t, n, which, mask)
-static int
+static bool
 var_or_integer(DECL_LD term_t t, number *n, int which, int *mask)
 { Word p = valTermRef(t);
 
@@ -348,10 +346,10 @@ var_or_integer(DECL_LD term_t t, number *n, int which, int *mask)
   if ( isInteger(*p) )
   { get_integer(*p, n);
     *mask |= which;
-    succeed;
+    return true;
   }
   if ( canBind(*p) )
-    succeed;
+    return true;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -362,12 +360,12 @@ PRED_IMPL("plus", 3, plus, 0)
 { GET_LD
   number m, n, o;
   int mask = 0;
-  int rc;
+  bool rc;
 
   if ( !var_or_integer(A1, &m, 0x1, &mask) ||
        !var_or_integer(A2, &n, 0x2, &mask) ||
        !var_or_integer(A3, &o, 0x4, &mask) )
-    fail;
+    return false;
 
   switch(mask)
   { case 0x7:				/* +, +, + */
@@ -402,7 +400,7 @@ static
 PRED_IMPL("bounded_number", 3, bounded_number, 0)
 { PRED_LD
   number n, lo, hi;
-  int rc;
+  bool rc;
 
   if ( PL_get_number(A3, &n) )
   { switch(n.type)
@@ -459,7 +457,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
 #ifdef O_BIGNUM
 
 #define get_mpz(t, n) LDFUNC(get_mpz, t, n)
-static int
+static bool
 get_mpz(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 
@@ -488,7 +486,7 @@ static
 PRED_IMPL("divmod", 4, divmod, 0)
 { PRED_LD
   number N = {V_INTEGER}, D = {V_INTEGER};
-  int rc = false;
+  bool rc = false;
 
   if ( get_mpz(A1, &N) &&
        get_mpz(A2, &D) )
@@ -524,7 +522,7 @@ PRED_IMPL("nth_integer_root_and_remainder", 4,
 { PRED_LD
   number N = {V_INTEGER};
   long I;
-  int rc = false;
+  bool rc = false;
 
   if ( PL_get_long_ex(A1, &I) &&
        get_mpz(A2, &N) )
@@ -568,7 +566,7 @@ PRED_IMPL("rational", 3, rational, 0)
   if ( isRational(*p) )
   { if ( isMPQNum(*p) )
     { number n, num, den;
-      int rc;
+      bool rc;
 
       get_rational(*p, &n);
       assert(n.type == V_MPQ);
@@ -625,17 +623,17 @@ PRED_IMPL("float_parts", 4, float_parts, 0)
 /* implements <, =<, >, >=, =:= and =\=
  */
 
-int
+bool
 ar_compare(Number n1, Number n2, int what)
-{ int diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
+{ cmpex_t diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
 
   switch(what)
-  { case LT: return diff == CMP_LESS;
-    case GT: return diff == CMP_GREATER;
-    case LE: return (diff == CMP_LESS) || (diff == CMP_EQUAL);
-    case GE: return (diff == CMP_GREATER) || (diff == CMP_EQUAL);
-    case NE: return diff != CMP_EQUAL;
-    case EQ: return diff == CMP_EQUAL;
+  { case LT: return diff == CMPEX_LESS;
+    case GT: return diff == CMPEX_GREATER;
+    case LE: return (diff == CMPEX_LESS) || (diff == CMPEX_EQUAL);
+    case GE: return (diff == CMPEX_GREATER) || (diff == CMPEX_EQUAL);
+    case NE: return diff != CMPEX_EQUAL;
+    case EQ: return diff == CMPEX_EQUAL;
     default:
       assert(0);
       return false;
