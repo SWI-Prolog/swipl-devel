@@ -306,8 +306,8 @@ insert_arg_vars(_, _, _, _).
 
 mk_subst([], [], _).
 mk_subst([Val0-Var|T0], [Var=Val|T], Subst) :-
-    functor(Val0, Name, Arity),
-    functor(Val,  Name, Arity),
+    compound_name_arity(Val0, Name, Arity),
+    compound_name_arity(Val,  Name, Arity),
     insert_arg_vars(1, Val0, Val, Subst),
     mk_subst(T0, T, Subst).
 
