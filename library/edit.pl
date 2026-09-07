@@ -648,6 +648,11 @@ message(select(NPairs)) -->
 message(select(NPairs)) -->
     [ 'Please select item to edit:', nl ],
     sequence(target, [nl], NPairs).
+message(target(Location-Spec, N)) -->
+    ['~t~d~3| '-[N]],
+    edit_specifier(Spec),
+    [ '\t' ],
+    edit_location(Location, true).
 message(choose(_Max)) -->
     [ nl, 'Your choice? ', flush ].
 message(waiting_for_editor) -->
