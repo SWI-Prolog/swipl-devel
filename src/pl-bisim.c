@@ -114,7 +114,7 @@ typedef struct
   size_t       *touch;			/* [nodes] buckets used */
   size_t       *scratch;		/* [nodes] */
   size_t       *grp;			/* [nodes+1] group boundaries */
-  size_t       *grp2;			/* [nodes+1] */
+  size_t       *grp_next;		/* [nodes+1] */
   size_t       *marked;			/* [nodes] marked members per class */
   size_t       *pos_head;		/* [arity] in-edges by argument */
   size_t       *pos_next;		/* [edges] */
@@ -398,14 +398,14 @@ group_signature(bs_graph *g, size_t start, size_t len, size_t arity)
   { size_t out = 0;
     size_t b;
 
-    g->grp2[0] = start;
+    g->grp_next[0] = start;
     for(b=0; b<ngrp; b++)
     { size_t s = g->grp[b];
       size_t e = g->grp[b+1];
       size_t i, ntouch = 0, p = s;
 
       if ( e-s <= 1 )
-      { g->grp2[++out] = e;
+      { g->grp_next[++out] = e;
 	continue;
       }
 
@@ -427,13 +427,13 @@ group_signature(bs_graph *g, size_t start, size_t len, size_t arity)
 	for(n=g->head[k]; n != NO_NODE; n=g->next[n])
 	  g->scratch[p++] = n;
 	g->head[k] = NO_NODE;
-	g->grp2[++out] = p;
+	g->grp_next[++out] = p;
       }
       memcpy(&g->order[s], &g->scratch[s], (e-s)*sizeof(size_t));
     }
 
     ngrp = out;
-    memcpy(g->grp, g->grp2, (ngrp+1)*sizeof(size_t));
+    memcpy(g->grp, g->grp_next, (ngrp+1)*sizeof(size_t));
   }
 
   return ngrp;
@@ -838,7 +838,7 @@ setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
     pool_array(&pool, g->touch,       buckets);
     pool_array(&pool, g->scratch,     g->nodes+1);
     pool_array(&pool, g->grp,         g->nodes+1);
-    pool_array(&pool, g->grp2,        g->nodes+1);
+    pool_array(&pool, g->grp_next,    g->nodes+1);
     pool_array(&pool, g->marked,      g->nodes);
     pool_array(&pool, g->pos_head,    g->arity+1);
     pool_array(&pool, g->pos_next,    g->edges+1);
