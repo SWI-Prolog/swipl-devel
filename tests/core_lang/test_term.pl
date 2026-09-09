@@ -184,8 +184,32 @@ test(attvar, fail) :-
 	put_attr(C,m,x),
 	put_attr(F,m,x),
 	v(C,C) =@= v(C,F).
+test(shared_expanded) :-			% node buffer grows while walking
+	dag(12, l, D), tree(12, l, T),
+	D =@= T.
+test(shared_expanded, fail) :-
+	dag(12, l, D), tree(12, m, T),
+	D =@= T.
 
 v(_).
+
+%!	dag(+Depth, +Leaf, -Term) is det.
+%!	tree(+Depth, +Leaf, -Term) is det.
+%
+%	The same term as Depth cells and as 2**Depth cells.  Comparing the
+%	two makes =@= number thousands of cells, growing the node buffer it
+%	holds pointers into.
+
+dag(0, L, L) :- !.
+dag(N, L, f(D,D)) :-
+	N1 is N-1,
+	dag(N1, L, D).
+
+tree(0, L, L) :- !.
+tree(N, L, f(T1,T2)) :-
+	N1 is N-1,
+	tree(N1, L, T1),
+	tree(N1, L, T2).
 
 :- end_tests(variant).
 
