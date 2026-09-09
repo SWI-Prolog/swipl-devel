@@ -42,7 +42,6 @@
             nb_set_to_list/2,		 % +Set, -List
             gen_nb_set/2                 % +Set, -Key
           ]).
-:- autoload(library(terms), [term_factorized/3]).
 :- use_module(library(debug), [assertion/1]).
 
 /** <module> Non-backtrackable sets
@@ -81,10 +80,6 @@ empty_nb_set(NbSet) :-
 %   already in the set, the set is unchanged and New is unified with
 %   `false`. Otherwise, New is unified with   `true` and a _copy of_
 %   Key is added to the set.
-%
-%   @tbd    Computing the hash for cyclic terms is performed with
-%           the help of term_factorized/3, which performs rather
-%           poorly.
 
 add_nb_set(Key, Set) :-
     add_nb_set(Key, Set, _).
@@ -142,25 +137,13 @@ reinsert(KIndex, Empty, Buckets, Set) :-
     ;   add_nb_set(Key, Set, true)
     ).
 
-%!  hash_key(+Key, -Hash:integer) is det.
+%!  key_hash(+Key, -Hash:integer) is det.
 %
-%   Compute a hash for Term. Note that variant_hash/2 currently does
-%   not handle cyclic terms, so use  term_factorized/3 to get rid of
-%   the cycles. This means that  this   library  is rather slow when
-%   cyclic terms are involved.
+%   Compute a hash for Key. variant_hash/2 handles cyclic terms, hashing
+%   them over a canonical form, so nothing special is needed here.
 
-:- if(catch((A = f(A), variant_hash(A,_)), _, fail)).
 key_hash(Key, Hash) :-
     variant_hash(Key, Hash).
-:- else.
-key_hash(Key, Hash) :-
-    acyclic_term(Key),
-    !,
-    variant_hash(Key, Hash).
-key_hash(Key, Hash) :-
-    term_factorized(Key, Skeleton, Substiution),
-    variant_hash(Skeleton+Substiution, Hash).
-:- endif.
 
 %!  nb_set_to_list(+NBSet, -OrdSet) is det.
 %!  nb_set_to_list(-NBSet, +List) is det.

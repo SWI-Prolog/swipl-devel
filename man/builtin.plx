@@ -4283,13 +4283,16 @@ variable-renaming (see \predref{=@=}{2}) and constants over different
 invocations of Prolog.\bug{The hash depends on word order
 (big/little-endian) and the wordsize (32/64 bits).}
 
-This predicate raises an exception when trying to compute the hash on
-a cyclic term or attributed term.  Attributed terms are not handled
-because subsumes_chk/2 is not considered well defined for attributed
-terms.  Cyclic terms are not supported because this would require
-establishing a canonical cycle.  That is, given A=[a|A] and B=[a,a|B],
-\arg{A} and \arg{B} should produce the same hash.  This is not
-(yet) implemented.
+This predicate raises an exception when trying to compute the hash on an
+attributed term.  Attributed terms are not handled because subsumes_chk/2
+is not considered well defined for attributed terms.
+
+Cyclic terms are supported.  The hash is taken over a canonical form of
+the term graph, so that terms denoting the same infinite tree hash alike
+however many cells they were written with.  That is, given A=[a|A] and
+B=[a,a|B], \arg{A} and \arg{B} produce the same hash.  Note that the
+hash of a cyclic term is not the hash of any acyclic term, as a cyclic
+term is never \predref{=@=}{2} to one.
 
 This hash was developed for lookup of solutions to a goal stored in a
 table.  By using a cryptographic hash, heuristic algorithms can often
@@ -4301,7 +4304,7 @@ Similar to variant_sha1/2, but using a non-cryptographic hash and
 produces an integer result like term_hash/2. This version does deal with
 attributed variables, processing them as normal variables.  This hash is
 primarily intended to speedup finding variant terms in a set of terms.
-\bug{As variant_sha1/2, cyclic terms result in an exception.}
+As variant_sha1/2, cyclic terms are supported.
 \end{description}
 
 

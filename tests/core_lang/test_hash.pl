@@ -63,13 +63,57 @@ test(shared, Hash1 == Hash2) :-
 	A = x(C),
 	variant_sha1(x(A,A), Hash1),
 	variant_sha1(x(x(C),x(C)), Hash2).
-					% error handling
-test(cycle, [sto(rational_trees),error(type_error(acyclic_term, A))]) :-
+					% cyclic terms
+test(cycle, [sto(rational_trees)]) :-
 	A = a(A),
+	variant_sha1(A, Hash),
+	atom_length(Hash, 40).
+test(cycle, [sto(rational_trees)]) :-
+	A = a(A),
+	variant_sha1(x(A), Hash),
+	atom_length(Hash, 40).
+
+%	Terms denoting the same infinite tree hash alike however many cells
+%	they were written with.  This is the example the documentation gives
+%	for what a canonical cycle has to do.
+
+test(cycle_variant, [sto(rational_trees), Hash1 == Hash2]) :-
+	A = [a|A],
+	B = [a,a|B],
+	variant_sha1(A, Hash1),
+	variant_sha1(B, Hash2).
+test(cycle_distinct, [sto(rational_trees)]) :-
+	A = a(A),
+	B = b(B),
+	variant_sha1(A, Hash1),
+	variant_sha1(B, Hash2),
+	assertion(Hash1 \== Hash2).
+
+%	A cyclic term is hashed over its canonical form, so the digest must
+%	not be the one that form would get as a term in its own right.
+
+test(cycle_no_collision, [sto(rational_trees)]) :-
+	A = [a|A],
+	variant_sha1(A, Hash1),
+	'$term_canonical_form'(A, Form),
+	variant_sha1(Form, Hash2),
+	assertion(Hash1 \== Hash2).
+
+%	Attributed terms stay refused, cyclic or not.
+
+test(cycle_attvar, [sto(rational_trees), error(type_error(free_of_attvar, _))]) :-
+	dif(X, 3),
+	A = a(A,X),
 	variant_sha1(A, _).
-test(cycle, [sto(rational_trees),error(type_error(acyclic_term, _))]) :-
-	A = a(A),
-	variant_sha1(x(A), _).
+
+%	variant_hash/2 does take attributed variables, as plain ones.
+
+test(cycle_attvar_hash, [sto(rational_trees)]) :-
+	dif(X, 3),
+	A = a(A,X),
+	variant_hash(A, Hash),
+	integer(Hash).
+
 test(attvar, error(_)) :-
 	dif(X, 3),
 	variant_sha1(X, _).

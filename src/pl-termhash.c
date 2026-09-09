@@ -41,6 +41,7 @@
 #include "os/pl-text.h"
 #include "pl-arith.h"
 #include "pl-pro.h"
+#include "pl-bisim.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
 #undef LD
@@ -536,9 +537,26 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 }
 
 
-int
-variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
-{ int rc;
+/* hash_prefix() mixes a tag into the digest before the term.  It exists so
+   that the digest of a cyclic term, which is taken over its canonical form,
+   cannot come out equal to the digest of an acyclic term that happens to
+   look like that form.  Nothing is mixed in on the acyclic path, so those
+   digests are unchanged; boot/init.pl names cache files with them.
+*/
+
+static void
+hash_prefix(sha1_state *state, const char *prefix)
+{ HASH(prefix, strlen(prefix));
+}
+
+
+#define variant_hash_walk(term, hash, algorithm, prefix) \
+	LDFUNC(variant_hash_walk, term, hash, algorithm, prefix)
+
+static status
+variant_hash_walk(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm,
+		  const char *prefix)
+{ status rc;
   ac_term_agenda agenda;
   sha1_state state;
   Word p;
@@ -549,6 +567,8 @@ variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
     sha1_begin(state.ctx.sha1);
   else
     hash_init(state.ctx.murmur);
+  if ( prefix )
+    hash_prefix(&state, prefix);
   ac_initTermAgenda(&agenda, valTermRef(term));
   initSegStack(&state.vars, sizeof(Word),
 	       sizeof(state.vars_first_chunk), state.vars_first_chunk);
@@ -566,22 +586,63 @@ variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
 
   DEBUG(CHK_SECURE, checkData(valTermRef(term)));
 
+  if ( rc == E_OK )
+  { if ( state.algorithm == HASH_SHA1 )
+      sha1_end(hash->sha1, state.ctx.sha1);
+    else
+      hash->murmur = hash_end(state.ctx.murmur);
+  }
+
+  return rc;
+}
+
+
+int
+variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
+{ status rc = variant_hash_walk(term, hash, algorithm, NULL);
+
+  if ( rc == E_CYCLE )
+  { fid_t fid;
+    term_t form;
+    bool attvars = false;
+    bool ok;
+
+    /* A cyclic term cannot be walked to the end, so hash its canonical form
+       instead: a ground acyclic term that is == for two terms exactly when
+       they are =@=.  That is the "canonical cycle" this predicate has always
+       said it would need; given A = [a|A] and B = [a,a|B], both reach the
+       same form and so the same digest.
+    */
+    if ( !(fid=PL_open_foreign_frame()) )
+      return false;
+    ok = ( (form=PL_new_term_ref()) &&
+	   term_canonical_form(term, form, &attvars) );
+    /* The form holds an attributed variable as a plain one, which is what
+       variant_hash/2 wants and what variant_sha1/2 refuses.
+    */
+    attvars = attvars && algorithm == HASH_SHA1;
+    if ( ok && !attvars )
+      rc = variant_hash_walk(form, hash, algorithm, "C");
+    PL_discard_foreign_frame(fid);	/* the form was only needed here */
+    if ( !ok )
+      return false;			/* exception already raised */
+    if ( attvars )
+      rc = E_ATTVAR;
+  }
+
   switch( rc )
   { case E_ATTVAR:
       return PL_error(NULL, 0, NULL,
 		      ERR_TYPE, ATOM_free_of_attvar, term);
-    case E_CYCLE:
+    case E_CYCLE:			/* a canonical form is acyclic */
       return PL_error(NULL, 0, NULL,
 		      ERR_TYPE, ATOM_acyclic_term, term);
     case E_RESOURCE:
       return PL_error(NULL, 0, NULL,
 		      ERR_RESOURCE, ATOM_memory);
+    case E_OK:
+      break;
   }
-
-  if ( state.algorithm == HASH_SHA1 )
-    sha1_end(hash->sha1, state.ctx.sha1);
-  else
-    hash->murmur = hash_end(state.ctx.murmur);
 
   return true;
 }
