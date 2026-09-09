@@ -709,6 +709,9 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_expansion}{4}{\hook{user} Convert term before compilation}
+\predicatesummary{term_factorized}{3}{Replace repeated subterms by variables}
+\predicatesummary{term_factorized}{4}{Replace repeated subterms by variables}
+\predicatesummary{term_minimal}{2}{Share all subterms denoting the same tree}
 \predicatesummary{term_singletons}{2}{Find singleton variables in a term}
 \predicatesummary{term_string}{2}{Read/write a term from/to a string}
 \predicatesummary{term_string}{3}{Read/write a term from/to a string}

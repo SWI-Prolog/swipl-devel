@@ -7770,6 +7770,80 @@ appear in \arg{VarsIn} appear as renamed plain variables in
 \arg{VarsOut} and \arg{Out}.  Attributed variables in \arg{In}
 that do \emph{not} appear in \arg{VarsIn} are shared between
 \arg{In} and \arg{Out}.
+
+    \predicate[det]{term_factorized}{3}{+Term, -Skeleton, -Substitution}
+True when \arg{Skeleton} is \arg{Term} with every subterm that is used
+more than once replaced by a variable, and \arg{Substitution} is a list
+of \exam{Var = Value} giving those subterms.  After unifying all
+substitutions in \arg{Substitution}, \exam{Term == Skeleton}.
+
+\arg{Term} may be cyclic.  The cycles come back through the
+substitutions, so \arg{Skeleton} itself is acyclic:
+
+\begin{code}
+?- X = a(X), term_factorized(b(X,X), Y, S).
+Y = b(_A, _A),
+S = [_A=a(_A)].
+\end{code}
+
+Subterms are the same when they are \predref{==}{2}.  For a
+\jargon{rational tree} that means when they denote the same infinite
+tree, so \arg{Term} is factorized as far as it can be:
+
+\begin{code}
+?- X = f(X), Y = f(f(Y)), term_factorized(p(X,Y), S, B).
+S = p(_A, _A),
+B = [_A=f(_A)].
+\end{code}
+
+The substitutions come in a canonical order, which makes
+\exam{Skeleton-Substitution} a key for \predref{=@=}{2}.
+
+    \predicate[det]{term_factorized}{4}{+Term, -Skeleton, -Substitution, +Options}
+As term_factorized/3, with the following options:
+
+\begin{description}
+    \termitem{minimal}{+Bool}
+If \const{true} (default), subterms are the same when they are
+\predref{==}{2}, as above.  If \const{false}, only cells that are
+literally the same cell are shared.  That is the sharing a term has in
+memory rather than the sharing implied by what it means, and it is what
+write_term/2 uses for the \const{cycles} option:
+
+\begin{code}
+?- term_factorized(f(g(a),g(a)), S, B, [minimal(false)]).
+S = f(g(a), g(a)),
+B = [].
+?- term_factorized(f(g(a),g(a)), S, B, [minimal(true)]).
+S = f(_A, _A),
+B = [_A=g(a)].
+\end{code}
+
+    \termitem{dollar_var}{+Bool}
+If \const{true} (default), \verb|'$VAR'|(\arg{N}) is left alone rather
+than taken apart, as it stands for a variable.  See numbervars/3.
+\end{description}
+
+    \predicate[det]{term_minimal}{2}{+Term, -Minimal}
+True when \exam{Minimal == Term} and \arg{Minimal} uses the least
+possible number of compound cells.  Subterms denoting the same tree are
+shared, so a cyclic term or one with repeated subterms comes back
+smaller, while one with neither comes back unchanged:
+
+\begin{code}
+?- X = f(g(a),g(a)), term_minimal(X, M), M == X.
+true.
+\end{code}
+
+Because \predref{==}{2} on rational trees is bisimulation, there is no
+smaller term that is still \predref{==}{2} to \arg{Term}.  A term of
+\arg{N} cells can denote a tree with $2^{N}$ nodes, or an infinite one,
+so this can be a large saving: a cyclic term of a million cells all
+denoting \exam{h(h(h(...)))} minimises to one cell.
+
+After term_minimal/2, operations that walk the term graph, such as
+\predref{==}{2}, copy_term/2, assertz/1 and term_hash/2, have less to
+walk.
 \end{description}
 
 

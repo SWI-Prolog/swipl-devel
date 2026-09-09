@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c) 2008-2025, University of Amsterdam,
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c) 2008-2026, University of Amsterdam,
                              VU University
                              SWI-Prolog Solutions b.v.
     Amsterdam All rights reserved.
@@ -46,7 +46,8 @@
             cyclic_term/1,              % @Term
             acyclic_term/1,             % @Term
             term_subsumer/3,            % +Special1, +Special2, -General
-            term_factorized/3,          % +Term, -Skeleton, -Subsitution
+            term_factorized/3,          % +Term, -Skeleton, -Substitution
+            term_factorized/4,          % +Term, -Skeleton, -Substitution, +Options
             mapargs/3,                  % :Goal, ?Term1, ?Term2
             mapsubterms/3,              % :Goal, ?Term1, ?Term2
             mapsubterms_var/3,          % :Goal, ?Term1, ?Term2
@@ -67,13 +68,8 @@
 :- autoload(library(rbtrees),
 	    [ rb_empty/1,
 	      rb_lookup/3,
-	      rb_insert/4,
-	      rb_new/1,
-	      rb_visit/2,
-	      ord_list_to_rbtree/2,
-	      rb_update/5
+	      rb_insert/4
 	    ]).
-:- autoload(library(error), [instantiation_error/1]).
 
 
 /** <module> Term manipulation
@@ -221,95 +217,9 @@ lgg_safe(I0, Arity, S1, S2, G, Map0, Map) :-
     lgg_safe(I, Arity, S1, S2, G, Map1, Map).
 
 
-%!  term_factorized(+Term, -Skeleton, -Substiution)
-%
-%   Is true when Skeleton is  Term   where  all subterms that appear
-%   multiple times are replaced by a  variable and Substitution is a
-%   list of Var=Value that provides the subterm at the location Var.
-%   I.e., After unifying all substitutions  in Substiutions, Term ==
-%   Skeleton. Term may be cyclic. For example:
-%
-%     ==
-%     ?- X = a(X), term_factorized(b(X,X), Y, S).
-%     Y = b(_G255, _G255),
-%     S = [_G255=a(_G255)].
-%     ==
-
-term_factorized(Term, Skeleton, Substitutions) :-
-    rb_new(Map0),
-    add_map(Term, Map0, Map),
-    rb_visit(Map, Counts),
-    common_terms(Counts, Common),
-    (   Common == []
-    ->  Skeleton = Term,
-        Substitutions = []
-    ;   ord_list_to_rbtree(Common, SubstAssoc),
-        insert_vars(Term, Skeleton, SubstAssoc),
-        mk_subst(Common, Substitutions, SubstAssoc)
-    ).
-
-add_map(Term, Map0, Map) :-
-    (   primitive(Term)
-    ->  Map = Map0
-    ;   rb_update(Map0, Term, Old, New, Map)
-    ->  New is Old+1
-    ;   rb_insert(Map0, Term, 1, Map1),
-        assoc_arg_map(1, Term, Map1, Map)
-    ).
-
-assoc_arg_map(I, Term, Map0, Map) :-
-    arg(I, Term, Arg),
-    !,
-    add_map(Arg, Map0, Map1),
-    I2 is I + 1,
-    assoc_arg_map(I2, Term, Map1, Map).
-assoc_arg_map(_, _, Map, Map).
-
-primitive(Term) :-
-    var(Term),
-    !.
-primitive(Term) :-
-    atomic(Term),
-    !.
-primitive('$VAR'(_)).
-
-common_terms([], []).
-common_terms([H-Count|T], List) :-
-    !,
-    (   Count == 1
-    ->  common_terms(T, List)
-    ;   List = [H-_NewVar|Tail],
-        common_terms(T, Tail)
-    ).
-
-insert_vars(T0, T, _) :-
-    primitive(T0),
-    !,
-    T = T0.
-insert_vars(T0, T, Subst) :-
-    rb_lookup(T0, S, Subst),
-    !,
-    T = S.
-insert_vars(T0, T, Subst) :-
-    compound_name_arity(T0, Name, Arity),
-    compound_name_arity(T,  Name, Arity),
-    insert_arg_vars(1, T0, T, Subst).
-
-insert_arg_vars(I, T0, T, Subst) :-
-    arg(I, T0, A0),
-    !,
-    arg(I, T,  A),
-    insert_vars(A0, A, Subst),
-    I2 is I + 1,
-    insert_arg_vars(I2, T0, T, Subst).
-insert_arg_vars(_, _, _, _).
-
-mk_subst([], [], _).
-mk_subst([Val0-Var|T0], [Var=Val|T], Subst) :-
-    compound_name_arity(Val0, Name, Arity),
-    compound_name_arity(Val,  Name, Arity),
-    insert_arg_vars(1, Val0, Val, Subst),
-    mk_subst(T0, T, Subst).
+%       term_factorized/3 and term_factorized/4 are built in.  They are
+%       named in the export list above because that is where they used to
+%       live and where they are imported from.
 
 
 %!  mapargs(:Goal, ?Term1, ?Term2)
