@@ -469,6 +469,7 @@ DECL_PLIST(system);
 DECL_PLIST(op);
 DECL_PLIST(rec);
 DECL_PLIST(termhash);
+DECL_PLIST(bisim);
 DECL_PLIST(dde);
 DECL_PLIST(term);
 DECL_PLIST(debug);
@@ -534,6 +535,7 @@ initBuildIns(bool signonly)
   REG_PLIST(rec);
   REG_PLIST(term);
   REG_PLIST(termhash);
+  REG_PLIST(bisim);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

@@ -2426,7 +2426,8 @@ typedef enum
   CHECK_INTERRUPT    = -7,	/* Procedure was signalled */
   DO_COMPOUND        = -8,	/* Need more general algorithm */
   NOT_CALLABLE	     = -9,	/* pl-comp.c */
-  MAX_ARITY_OVERFLOW = -10	/* pl-comp.c */
+  MAX_ARITY_OVERFLOW = -10,	/* pl-comp.c */
+  GRAPH_OVERFLOW     = -11	/* pl-bisim.c */
 } boolex_t;
 
 #ifdef small				/* defined by MSVC++ 2.0 windows.h */
