@@ -75,6 +75,7 @@ A atom_garbage_collection	"atom_garbage_collection"
 A atom_space		"atom_space"
 A atomic		"atomic"
 A atoms			"atoms"
+A automaton		"automaton"
 A att			"att"
 A attributes		"attributes"
 A attvar		"attvar"
@@ -517,6 +518,7 @@ A lower			"lower"
 A lsb			"lsb"
 A lshift		"<<"
 A main			"main"
+A map			"map"
 A mark			"mark"
 A matches		"matches"
 A matching_rule		"matching_rule"
@@ -1052,6 +1054,7 @@ F acos			1
 F acosh			1
 F alias			1
 F and			2
+F automaton		1
 F ar_equals		2
 F ar_not_equal		2
 F targp			3

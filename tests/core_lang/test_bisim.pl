@@ -42,7 +42,8 @@
 :- use_module(library(yall)).
 
 test_bisim :-
-	run_tests([ bisim
+	run_tests([ bisim,
+		    automaton
 		  ]).
 
 /** <module> Test term_minimal/2
@@ -282,6 +283,44 @@ hydra(N, T) :-
 
 hydra_link(h(X,X), X).
 
+%!	automaton_shape(+Automaton, -Nodes, -Sinks) is det.
+%
+%	How many states of Automaton have successors and how many are
+%	sinks.  A state is a sink exactly when its colour is not a
+%	compound.
+
+automaton_shape(A, Nodes, Sinks) :-
+	compound_name_arguments(A, _, States),
+	partition([S]>>compound(S), States, Ns, Ss),
+	length(Ns, Nodes),
+	length(Ss, Sinks).
+
+%!	term_graph_size(+Term, -Cells) is det.
+%
+%	Cells is the number of physically distinct compound cells of Term,
+%	i.e. the size of its term graph rather than of its unfolding.  A
+%	term of N cells may denote a tree of 2**N nodes, or an infinite
+%	one.  term_automaton/2 is faithful, giving one state per cell and
+%	one per distinct leaf, so the cells are the states that are not
+%	sinks.
+
+term_graph_size(Term, Cells) :-
+	term_automaton(Term, A),
+	automaton_shape(A, Cells, _).
+
+%!	term_graph_classes(+Term, -Classes) is det.
+%
+%	Classes is the number of cells the graph of Term has after
+%	collapsing the ones that denote the same tree.  It is the number
+%	of cells term_minimal/2 produces.  Every cell of a term is
+%	reachable from its root, so automaton_minimal/2 drops none of
+%	them here and only the collapsing is left.
+
+term_graph_classes(Term, Classes) :-
+	term_automaton(Term, A),
+	automaton_minimal(A, M),
+	automaton_shape(M, Classes, _).
+
 :- begin_tests(bisim, [sto(rational_trees)]).
 
 %	First check the oracle itself against cases whose answer can be
@@ -302,15 +341,15 @@ test(oracle_distinct,	 true(N == 3)) :- X = f(X), Y = g(Y),
 
 test(quotient, [forall(bisim_case_name(Name))]) :-
 	bisim_case(Name, Term),
-	'$term_graph_classes'(Term, Classes),
+	term_graph_classes(Term, Classes),
 	oracle_classes(Term, Classes).
 
 %	The cells of a term are its graph, not its unfolding: a hydra of N
 %	cells denotes a tree with 2**K nodes at depth K, and collapses to
 %	one cell because every one of them denotes the same tree.
 
-test(hydra_size,    true(N == 20)) :- hydra(20, T), '$term_graph_size'(T, N).
-test(hydra_quotient, true(N == 1)) :- hydra(20, T), '$term_graph_classes'(T, N).
+test(hydra_size,    true(N == 20)) :- hydra(20, T), term_graph_size(T, N).
+test(hydra_quotient, true(N == 1)) :- hydra(20, T), term_graph_classes(T, N).
 
 %	The example the variant_sha1/2 documentation gives for what a
 %	canonical cycle has to do: [a|A] and [a,a|B] are the same tree.
@@ -318,13 +357,13 @@ test(hydra_quotient, true(N == 1)) :- hydra(20, T), '$term_graph_classes'(T, N).
 test(canonical_cycle, true(N1-N2 == 1-1)) :-
 	A = [a|A],
 	B = [a,a|B],
-	'$term_graph_classes'(A, N1),
-	'$term_graph_classes'(B, N2).
+	term_graph_classes(A, N1),
+	term_graph_classes(B, N2).
 
 test(walk_leaves_term_intact, true(T == Copy)) :-
 	hydra(8, T),
 	copy_term(T, Copy),
-	'$term_graph_classes'(T, _),
+	term_graph_classes(T, _),
 	garbage_collect.
 
 		 /*******************************
@@ -340,9 +379,9 @@ test(minimal_equal, [forall(bisim_case_name(Name))]) :-
 
 test(minimal_size, [forall(bisim_case_name(Name))]) :-
 	bisim_case(Name, Term),
-	'$term_graph_classes'(Term, Classes),
+	term_graph_classes(Term, Classes),
 	term_minimal(Term, Minimal),
-	'$term_graph_size'(Minimal, Classes).
+	term_graph_size(Minimal, Classes).
 
 %	And it is a fixpoint: nothing is left to share.
 
@@ -350,13 +389,13 @@ test(minimal_idempotent, [forall(bisim_case_name(Name))]) :-
 	bisim_case(Name, Term),
 	term_minimal(Term, M1),
 	term_minimal(M1, M2),
-	'$term_graph_size'(M1, Size),
-	'$term_graph_size'(M2, Size).
+	term_graph_size(M1, Size),
+	term_graph_size(M2, Size).
 
 test(minimal_hydra, true(Size-Eq == 1-true)) :-
 	hydra(20, T),
 	term_minimal(T, M),
-	'$term_graph_size'(M, Size),
+	term_graph_size(M, Size),
 	( M == T -> Eq = true ; Eq = false ).
 
 test(minimal_survives_gc, true(M == T)) :-
@@ -506,3 +545,211 @@ test(bad_option, [error(type_error(bool, maybe))]) :-
 	term_factorized(a, _, _, [minimal(maybe)]).
 
 :- end_tests(bisim).
+
+
+		 /*******************************
+		 *	     THE AUTOMATON	*
+		 *******************************/
+
+%!	oracle_leaves(+Term, -Leaves) is det.
+%
+%	How many distinct leaves the term graph of Term has.  A leaf is an
+%	argument of a cell that is not a compound, and two of them are the
+%	same when they are ==, which for the standard order is what @< calls
+%	equal.  That is how many sink states term_automaton/2 must produce.
+
+oracle_leaves(Term, Leaves) :-
+	cells(Term, Cells),
+	maplist(cell_leaves, Cells, Lss),
+	append(Lss, Ls),
+	distinct_count(Ls, Leaves).
+
+cell_leaves(Cell, Leaves) :-
+	compound_name_arguments(Cell, _, Args),
+	include([A]>>(\+ compound(A)), Args, Leaves).
+
+%!	state_term(+Automaton, +State, -Term) is det.
+%
+%	The term State denotes, read back through the API itself: prepend a
+%	state that does nothing but point at State, and ask for the term of
+%	the automaton that starts there.  It gives a way to check the class
+%	map that does not depend on how the states are numbered.
+
+state_term(A, I, Term) :-
+	compound_name_arguments(A, _, States),
+	maplist(shift_state, States, Shifted),
+	I1 is I+1,
+	compound_name_arguments(A1, automaton, [s(I1)|Shifted]),
+	term_automaton(T, A1),
+	T = s(Term).
+
+shift_state(S, S1) :-
+	(   compound(S)
+	->  compound_name_arguments(S, F, Args),
+	    maplist(succ, Args, Args1),
+	    compound_name_arguments(S1, F, Args1)
+	;   S1 = S
+	).
+
+:- begin_tests(automaton, [sto(rational_trees)]).
+
+%	term_automaton/2 is faithful in both directions: one state per
+%	physically distinct cell, one per distinct leaf, nothing collapsed.
+
+test(roundtrip, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	term_automaton(Term2, A),
+	assertion(Term2 == Term).
+
+test(shape, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	automaton_shape(A, Nodes, Sinks),
+	cells(Term, Cells),
+	length(Cells, NCells),
+	oracle_leaves(Term, NLeaves),
+	assertion(Nodes == NCells),
+	assertion(Sinks == NLeaves).
+
+test(leaf_term, true(A == automaton(a))) :-
+	term_automaton(a, A).
+test(leaf_back, true(T == a)) :-
+	term_automaton(T, automaton(a)).
+test(var_term, [true(A == automaton(V))]) :-
+	term_automaton(V, A).
+test(var_in_term, [true(T == f(V,V))]) :-
+	term_automaton(f(V,V), A),
+	term_automaton(T, A).
+
+%	Minimising the automaton gives the same partition the oracle does,
+%	and the same term term_minimal/2 does.  Every cell of a term is
+%	reachable from its root, so nothing is dropped here.
+
+test(classes, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	automaton_minimal(A, M),
+	automaton_shape(M, Nodes, _),
+	oracle_classes(Term, Classes),
+	assertion(Nodes == Classes).
+
+test(minimal_term, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	automaton_minimal(A, M),
+	term_automaton(Term2, M),
+	assertion(Term2 == Term),
+	term_graph_classes(Term, Classes),
+	term_graph_size(Term2, Cells),
+	assertion(Cells == Classes).
+
+test(idempotent, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	automaton_minimal(A, M),
+	automaton_minimal(M, M2),
+	assertion(M2 == M).
+
+%	Two states collapse into one exactly when the terms they denote are
+%	the same, which state_term/3 reads back without knowing anything
+%	about the numbering.
+
+test(map, [forall(bisim_case_name(Name))]) :-
+	bisim_case(Name, Term),
+	term_automaton(Term, A),
+	automaton_minimal(A, _, Map),
+	functor(A, _, N),
+	forall(( between(1, N, I), between(1, N, J) ),
+	       ( arg(I, Map, MI),
+		 arg(J, Map, MJ),
+		 state_term(A, I, TI),
+		 state_term(A, J, TJ),
+		 assertion(( MI == MJ
+			   ->  TI == TJ
+			   ;   TI \== TJ
+			   ))
+	       )).
+
+%	The numbering falls out of a walk from the start state, so two
+%	automata that denote the same tree minimise to the same automaton.
+
+test(canonical) :-
+	X = f(X),
+	Y = f(f(Y)),
+	term_automaton(X, AX),
+	term_automaton(Y, AY),
+	automaton_minimal(AX, MX),
+	automaton_minimal(AY, MY),
+	assertion(MX == MY).
+
+test(canonical_variant) :-
+	term_automaton(f(g(A),g(B),A,B), A1),
+	term_automaton(f(g(C),g(D),C,D), A2),
+	automaton_minimal(A1, M1),
+	automaton_minimal(A2, M2),
+	assertion(M1 =@= M2).
+
+%	Automata that no term can produce.
+
+test(unreachable, true(M == automaton(f(2,2),g(1)))) :-
+	automaton_minimal(automaton(f(2,3),g(1),g(1),a,h(4)), M).
+test(unreachable_map, true(Map == map(1,2,2,0,0))) :-
+	automaton_minimal(automaton(f(2,3),g(1),g(1),a,h(4)), _, Map).
+test(cycles_of_different_length, true(M == automaton(f(1)))) :-
+	automaton_minimal(automaton(f(2),f(3),f(1)), M).
+test(not_bisimilar, true(M == automaton(f(2,3),g(1),h(1)))) :-
+	automaton_minimal(automaton(f(2,3),g(1),h(1)), M).
+test(sink_only, true(M-Map == automaton(a)-map(1,0,1))) :-
+	automaton_minimal(automaton(a,b,a), M, Map).
+test(sink_start_term, true(T == a)) :-
+	term_automaton(T, automaton(a,f(1))).
+test(disconnected, true(M == automaton(f(1)))) :-
+	automaton_minimal(automaton(f(1),g(2)), M).
+test(out_of_order, true(M == automaton(f(2,2),g(3),a))) :-
+	automaton_minimal(automaton(f(3,3),a,g(2)), M).
+test(zero_arity, true(M == automaton(g(2,2),f()))) :-
+	automaton_minimal(automaton(g(2,3),f(),f()), M).
+
+%	Sinks are states rather than arguments, so there can be far more
+%	leaves than edges.  That is what the graph has to be sized for.
+
+test(many_sinks, true(M == automaton(f(2),1))) :-
+	numlist(1, 1000, L),
+	A =.. [automaton, f(2)|L],
+	automaton_minimal(A, M).
+
+test(deep, true(Term2 == Term)) :-
+	chain(5000, Term),
+	term_automaton(Term, A),
+	automaton_minimal(A, M),
+	term_automaton(Term2, M).
+
+test(survives_gc, true(Term2 == Term)) :-
+	bisim_case(hydra, Term),
+	term_automaton(Term, A),
+	garbage_collect,
+	automaton_minimal(A, M),
+	garbage_collect,
+	term_automaton(Term2, M).
+
+%	Errors.  A successor names a state, so a number outside the
+%	automaton is a state that does not exist rather than a bad type.
+
+test(no_state, [error(existence_error(state, 2))]) :-
+	automaton_minimal(automaton(f(2)), _).
+test(state_zero, [error(existence_error(state, 0))]) :-
+	automaton_minimal(automaton(f(0)), _).
+test(state_not_integer, [error(type_error(integer, a))]) :-
+	automaton_minimal(automaton(f(a)), _).
+test(state_unbound, [error(instantiation_error)]) :-
+	automaton_minimal(automaton(f(_)), _).
+test(not_compound, [error(type_error(compound, foo))]) :-
+	automaton_minimal(foo, _).
+test(no_automaton, [error(instantiation_error)]) :-
+	automaton_minimal(_, _).
+test(bad_state_in_term_automaton, [error(existence_error(state, 9))]) :-
+	term_automaton(_, automaton(f(9))).
+
+:- end_tests(automaton).
+

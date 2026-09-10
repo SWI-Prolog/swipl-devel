@@ -7847,7 +7847,91 @@ denoting \exam{h(h(h(...)))} minimises to one cell.
 After term_minimal/2, operations that walk the term graph, such as
 \predref{==}{2}, copy_term/2, assertz/1 and term_hash/2, have less to
 walk.
+
+See also term_automaton/2, which writes the term graph out as an
+explicit automaton, and automaton_minimal/2, which minimises one.
+
+    \predicate[det]{term_automaton}{2}{?Term, ?Automaton}
+True when \arg{Automaton} is the term graph of \arg{Term} written out
+as an explicit automaton, and \arg{Term} is the term its start state
+denotes.  Which way the predicate runs is decided by \arg{Automaton}:
+it answers \arg{Automaton} if that is unbound, and \arg{Term} if it is
+not.
+
+\arg{Automaton} is a compound whose argument \arg{I} is the
+\jargon{colour} of state \arg{I}, and state 1 is the start state.  An
+argument that is a compound gives the state one successor per argument
+of that compound, and the argument is the number of the state the
+successor goes to.  An argument that is not a compound makes the state
+a \jargon{sink} holding that value.  So a leaf is a state rather than
+an argument, which is why nothing in an argument position is ever
+anything but a state number:
+
+\begin{code}
+?- term_automaton(f(g(a),g(a)), A).
+A = automaton(f(2, 3), g(4), g(4), a).
+\end{code}
+
+The translation is faithful in both directions: one state per
+physically distinct compound cell of \arg{Term} and one per distinct
+leaf, sharing what \arg{Term} already shares and collapsing nothing.
+\arg{Term} may be cyclic, and so may \arg{Automaton}:
+
+\begin{code}
+?- X = f(X), term_automaton(X, A).
+A = automaton(f(1)).
+\end{code}
+
+The functor name of \arg{Automaton} is not looked at when it is read;
+like arg/3, only the arity matters.  The name used when it is written
+is always \const{automaton}.  Note that the value of a sink can never
+be a compound, so a state label that is a compound has to be taken
+apart into states of its own.
+
+    \predicate[det]{automaton_minimal}{2}{+Automaton, -Minimal}
+True when \arg{Minimal} denotes the same tree as \arg{Automaton} using
+the least possible number of states.  States that are
+\jargon{bisimilar} are collapsed, and states the start state cannot
+reach are dropped:
+
+\begin{code}
+?- automaton_minimal(automaton(f(2,3), g(1), g(1), a, h(4)), M).
+M = automaton(f(2, 2), g(1)).
+\end{code}
+
+State 1 of \arg{Minimal} is still the start state, and the states are
+numbered depth first from it, so the answer does not depend on the
+order \arg{Automaton} happened to be written in.  Two automata
+therefore denote the same tree exactly when their minimal forms are
+\predref{=@=}{2}, and automaton_minimal/2 is idempotent.
+
+Together with term_automaton/2 this is term_minimal/2:
+
+\begin{code}
+term_minimal(T, M) :-
+    term_automaton(T, A),
+    automaton_minimal(A, A1),
+    term_automaton(M, A1).
+\end{code}
+
+The transition relation is a function: a state has exactly one
+successor per argument position.  Nondeterministic transition systems
+are not supported.
+
+    \predicate[det]{automaton_minimal}{3}{+Automaton, -Minimal, -Map}
+As automaton_minimal/2, where \arg{Map} says what became of each
+state.  It is a compound of the same arity as \arg{Automaton} whose
+argument \arg{I} is the state of \arg{Minimal} that state \arg{I} of
+\arg{Automaton} collapsed into, or 0 if the start state could not
+reach it:
+
+\begin{code}
+?- automaton_minimal(automaton(f(2,3), g(1), g(1), a), M, Map).
+M = automaton(f(2, 2), g(1)),
+Map = map(1, 2, 2, 0).
+\end{code}
 \end{description}
+
 
 
 \subsection{Non-logical operations on terms}	\label{sec:setarg}

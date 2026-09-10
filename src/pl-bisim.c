@@ -37,6 +37,8 @@
 #include "pl-fli.h"
 #include "pl-prims.h"
 #include "pl-gc.h"
+#include "pl-arith.h"			/* isInteger() needs isMPQNum() */
+#include "pl-funct.h"
 #include "pl-bisim.h"
 #include "pl-rsort.h"
 #include <limits.h>
@@ -89,6 +91,7 @@ typedef struct
 { size_t	nodes;			/* number of cells */
   size_t	edges;			/* sum of the arities */
   size_t	leaves;			/* distinct non-compound arguments */
+  Word	       *leafp;			/* [leaves] the value of each leaf */
   bs_node      *node;			/* [nodes], owned by the caller */
   size_t       *arg;			/* [nodes+1] index into child */
   int	       *child;			/* [edges], see setup_graph() */
@@ -106,6 +109,9 @@ typedef struct
   bool		attvars;		/* one of them is attributed */
   size_t       *canon;			/* [classes] canonical class number */
   size_t       *vnum;			/* [vars] canonical variable number */
+  size_t       *lnum;			/* [leaves] canonical leaf number */
+  size_t	reached;		/* classes canonicalise() reached */
+  size_t	reached_leaves;		/* leaves it reached */
   size_t       *uses;			/* [classes] how often a class is used */
   size_t	named;			/* classes that need a name */
 					/* scratch for the refinement */
@@ -250,8 +256,34 @@ cmp_leaf_r(const void *p1, const void *p2, void *arg)
 }
 
 
+/* leaf_number() is the number number_leaves() gave the leaf whose value is
+   at w.  Only valid once g->leafp is in place.
+*/
+
+#define leaf_number(g, ctx, w) LDFUNC(leaf_number, g, ctx, w)
+
+static size_t
+leaf_number(DECL_LD bs_graph *g, leaf_order *ctx, Word w)
+{ size_t lo = 0, hi = g->leaves;
+
+  while(lo < hi)			/* binary search */
+  { size_t mid = (lo+hi)/2;
+
+    if ( cmp_leaf(ctx, g->leafp[mid], w) == CMP_LESS )
+      lo = mid+1;
+    else
+      hi = mid;
+  }
+
+  return lo;
+}
+
+
 /* number_leaves() turns the placeholders left in g->child into leaf numbers.
-   leaf[i] is the argument that placeholder -(i+1) stands for.
+   leaf[i] is the argument that placeholder -(i+1) stands for.  The deduped
+   array is kept as g->leafp: it is how the builders below recover a leaf's
+   value, which they cannot read back from the graph because an automaton
+   holds its leaves in states rather than in arguments.
 */
 
 #define number_leaves(g, leaf, nleaf) LDFUNC(number_leaves, g, leaf, nleaf)
@@ -276,6 +308,7 @@ number_leaves(DECL_LD bs_graph *g, Word *leaf, size_t nleaf)
       sorted[n++] = sorted[i];
   }
   g->leaves = n;
+  g->leafp  = sorted;			/* free_graph() owns it from here */
   for(i=0; i<n; i++)			/* cmp_leaf() sorts variables first */
   { if ( !(isVar(*sorted[i]) || isAttVar(*sorted[i])) )
       break;
@@ -284,22 +317,8 @@ number_leaves(DECL_LD bs_graph *g, Word *leaf, size_t nleaf)
 
   for(i=0; i<g->edges; i++)		/* rewrite the placeholders */
   { if ( g->child[i] < 0 )
-    { Word w = leaf[-g->child[i]-1];
-      size_t lo = 0, hi = n;
-
-      while(lo < hi)			/* binary search */
-      { size_t mid = (lo+hi)/2;
-
-	if ( cmp_leaf(&ctx, sorted[mid], w) == CMP_LESS )
-	  lo = mid+1;
-	else
-	  hi = mid;
-      }
-      g->child[i] = -(int)(lo+1);
-    }
+      g->child[i] = -(int)(leaf_number(g, &ctx, leaf[-g->child[i]-1])+1);
   }
-
-  tmp_free(sorted);
 
   return ctx.failed ? false : true;	/* false: exception already raised */
 }
@@ -706,6 +725,7 @@ free_graph(bs_graph *g)
 { tmp_free(g->pool);
   tmp_free(g->pool2);
   tmp_free(g->uses);
+  tmp_free(g->leafp);
 }
 
 
@@ -779,24 +799,26 @@ fill_pred(bs_graph *g)
 }
 
 
-/* setup_graph() sizes and allocates everything and fills the edges.  It runs
-   with the functor words still replaced, so it may not touch the Prolog
-   stacks and cannot raise: allocation is all it does.  It answers true,
-   MEMORY_OVERFLOW or GRAPH_OVERFLOW, and term_quotient() turns the last two
-   into an exception once the term is whole again.
+/* alloc_graph() sizes and allocates the arrays.  It answers true,
+   MEMORY_OVERFLOW or GRAPH_OVERFLOW; the caller turns the last two into an
+   exception once it is allowed to touch the stacks again.
+
+   nsinks is the number of leaves that are not arguments of a node.  For a
+   term that is none: every leaf is an argument, so the edges bound them.  An
+   automaton holds its leaves in sink states, which the edges do not bound at
+   all, so it must say how many there are.
 */
 
-#define setup_graph(g, b, leafp, nleafp) LDFUNC(setup_graph, g, b, leafp, nleafp)
-
 static boolex_t
-setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
+alloc_graph(bs_graph *g, Buffer b, Word **leafp, size_t nsinks)
 { bs_pool pool = {0};
-  size_t i, buckets;
+  size_t i, buckets, nleaf_max;
 
-  memset(g, 0, sizeof(*g));
   g->node  = baseBuffer(b, bs_node);
   g->nodes = entriesBuffer(b, bs_node);
-  if ( g->nodes == 0 )
+  g->edges = 0;
+  g->arity = 0;
+  if ( g->nodes == 0 && nsinks == 0 )
     return true;
 
   for(i=0; i<g->nodes; i++)
@@ -806,6 +828,7 @@ setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
     if ( arity > g->arity )
       g->arity = arity;
   }
+  nleaf_max = g->edges + nsinks;
 
   /* An edge is held as an int: the id of the cell it points at, or minus the
      number of the leaf, which is why it is signed.  Refuse a graph that does
@@ -814,10 +837,13 @@ setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
      becomes representation_error(int).  Reaching it needs a term of some
      2**31 cells, so tens of gigabytes of global stack.
   */
-  if ( g->nodes > INT_MAX || g->edges > INT_MAX )
+  if ( g->nodes > INT_MAX || g->edges > INT_MAX || nleaf_max > INT_MAX )
     return GRAPH_OVERFLOW;
 
-  buckets = g->nodes + g->edges + 2;
+  /* group_signature() indexes head[] with a leaf number plus one, so the
+     buckets have to cover the leaves as well as the nodes and the edges.
+  */
+  buckets = g->nodes + g->edges + nleaf_max + 2;
 
   /* Lay the arrays out in one block: the first pass has no block to hand
      out from and only counts the bytes, pool_create() allocates them, and
@@ -855,15 +881,30 @@ setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
 
   /* leaf[] dies before the refinement starts, so it is not in the pool.
   */
-  if ( !(*leafp=tmp_malloc((g->edges+1)*sizeof(Word))) )
+  if ( !(*leafp=tmp_malloc((nleaf_max+1)*sizeof(Word))) )
     return MEMORY_OVERFLOW;
 
   for(i=0; i<buckets; i++)
     g->head[i] = NO_NODE;
 
-  fill_edges(g, *leafp, nleafp);
-
   return true;
+}
+
+
+/* setup_graph() is alloc_graph() for a term.  It runs with the functor words
+   still replaced, so it may not touch the Prolog stacks and cannot raise.
+*/
+
+#define setup_graph(g, b, leafp, nleafp) LDFUNC(setup_graph, g, b, leafp, nleafp)
+
+static boolex_t
+setup_graph(DECL_LD bs_graph *g, Buffer b, Word **leafp, size_t *nleafp)
+{ boolex_t rc = alloc_graph(g, b, leafp, 0);
+
+  if ( rc == true && g->nodes > 0 )
+    fill_edges(g, *leafp, nleafp);
+
+  return rc;
 }
 
 
@@ -921,6 +962,300 @@ term_quotient(DECL_LD Word p, bs_graph *g, Buffer b, word opaque, bool minimal)
 
 
 		 /*******************************
+		 *	    THE AUTOMATON	*
+		 *******************************/
+
+/* An automaton is a compound whose argument I is the colour of state I, and
+   state 1 is the start state.  A colour that is a compound gives the state
+   one successor per argument, and the argument is the number of the state
+   that successor goes to.  A colour that is not a compound makes the state a
+   sink holding that value.  So a leaf is a state and never an argument,
+   which is what lets the notation do without markers: nothing in an argument
+   position is ever anything but a state number.
+
+   State ids are argument positions, so there is no name to look up and no
+   functor word to overwrite: the nodes point straight into the live input
+   term.  Nothing here makes the term malformed and there is no
+   restore_graph() to match.  The discipline that does survive is the usual
+   one: a stack shift moves every Word the graph holds, so the parse has to
+   run inside the caller's retry loop.
+
+   This is a deterministic transition system: a state has exactly one
+   successor per argument position.  refine() relies on that.  Letting the
+   relation be nondeterministic would need mark_member() to mark a node once
+   per split rather than once per edge, and Paige-Tarjan counters to keep the
+   enqueue-the-smaller-half argument sound.  Do not widen the notation
+   without doing that first.
+*/
+
+typedef enum
+{ AUT_OK = 0,
+  AUT_INSTANTIATION,			/* successor is unbound */
+  AUT_NOT_INTEGER,			/* successor is not an integer */
+  AUT_NO_STATE				/* successor is out of range */
+} aut_error;
+
+typedef struct
+{ size_t	states;			/* the arity of the automaton */
+  int	       *state;			/* [states] node id, or -(leaf+1) */
+  size_t	sinks;			/* how many states are sinks */
+  aut_error	error;
+  size_t	at;			/* the state it is in, 1..states */
+  size_t	arg;			/* which of its arguments, 1.. */
+} bs_automaton;
+
+static void
+free_automaton(bs_automaton *aut)
+{ tmp_free(aut->state);
+}
+
+
+/* fill_edges_automaton() is fill_edges() for an automaton.  It walks the
+   states in order, which is the order the node ids were handed out in, so
+   the edges come out grouped by node id the way arg[] needs them.  An
+   argument that is not the number of a state leaves the error in *aut and
+   the caller raises it once the graph is gone.
+*/
+
+#define fill_edges_automaton(w, g, aut) LDFUNC(fill_edges_automaton, w, g, aut)
+
+static bool
+fill_edges_automaton(DECL_LD Word w, bs_graph *g, bs_automaton *aut)
+{ Functor f = valueTerm(*w);
+  size_t i, e = 0;
+
+  for(i=0; i<aut->states; i++)
+  { Word c = &f->arguments[i];
+    Functor cf;
+    size_t arity, j, node;
+
+    deRef(c);
+    if ( aut->state[i] < 0 )
+      continue;				/* a sink: no successors */
+
+    node  = (size_t)aut->state[i];
+    cf    = valueTerm(*c);
+    arity = arityFunctor(g->node[node].functor);
+    g->arg[node] = e;
+
+    for(j=0; j<arity; j++)
+    { Word a = &cf->arguments[j];
+      sword k;
+
+      deRef(a);
+      aut->at  = i+1;
+      aut->arg = j+1;
+
+      if ( !isInteger(*a) )
+      { aut->error = canBind(*a) ? AUT_INSTANTIATION : AUT_NOT_INTEGER;
+	return false;
+      }
+      if ( !isTaggedInt(*a) ||
+	   (k=valInt(*a)) < 1 || (size_t)k > aut->states )
+      { aut->error = AUT_NO_STATE;	/* a bignum is out of range too */
+	return false;
+      }
+
+      g->child[e++] = aut->state[k-1];
+    }
+  }
+  g->arg[g->nodes] = e;
+  aut->error = AUT_OK;
+
+  return true;
+}
+
+
+/* build_automaton() turns the automaton at w into a graph.  Answers true,
+   MEMORY_OVERFLOW or GRAPH_OVERFLOW; a malformed automaton is true with
+   aut->error set, because saying so needs the stacks and the graph still
+   holds pointers into them.
+*/
+
+#define build_automaton(w, g, b, aut, leafp, nleafp) \
+	LDFUNC(build_automaton, w, g, b, aut, leafp, nleafp)
+
+static boolex_t
+build_automaton(DECL_LD Word w, bs_graph *g, Buffer b, bs_automaton *aut,
+		Word **leafp, size_t *nleafp)
+{ Functor f = valueTerm(*w);
+  size_t i, nsink = 0;
+  boolex_t rc;
+
+  aut->states = arityFunctor(f->definition);
+  if ( !(aut->state=tmp_malloc(aut->states*sizeof(*aut->state))) )
+    return MEMORY_OVERFLOW;
+
+  /* Hand the node ids out in state order, so that state 1 is node 0 if it is
+     not a sink.  build_minimal() and canonicalise() root at node 0, which is
+     how the start state stays the start state.
+  */
+  for(i=0; i<aut->states; i++)
+  { Word c = &f->arguments[i];
+    bs_node *n;
+
+    deRef(c);
+    if ( !isTerm(*c) )
+    { if ( isAttVar(*c) )
+	g->attvars = true;
+      aut->state[i] = -(int)(++nsink);
+      continue;
+    }
+
+    if ( !(n=allocFromBuffer(b, sizeof(*n))) )
+      return MEMORY_OVERFLOW;
+    n->term       = valueTerm(*c);
+    n->functor    = n->term->definition;
+    aut->state[i] = (int)(entriesBuffer(b, bs_node)-1);
+  }
+  aut->sinks = nsink;
+
+  if ( (rc=alloc_graph(g, b, leafp, nsink)) != true )
+    return rc;
+
+  for(i=0, nsink=0; i<aut->states; i++)	/* the sinks, in the same order */
+  { if ( aut->state[i] < 0 )
+    { Word c = &f->arguments[i];
+
+      deRef(c);
+      (*leafp)[nsink++] = c;
+    }
+  }
+  *nleafp = nsink;
+
+  if ( !fill_edges_automaton(w, g, aut) )
+    return true;			/* aut->error says what is wrong */
+
+  fill_pred(g);
+
+  return true;
+}
+
+
+/* resolve_states() rewrites the leaf placeholders left in aut->state[] the
+   way number_leaves() did for g->child[].  It is what lets the class map
+   answer for a sink state.
+*/
+
+#define resolve_states(g, aut, leaf) LDFUNC(resolve_states, g, aut, leaf)
+
+static bool
+resolve_states(DECL_LD bs_graph *g, bs_automaton *aut, Word *leaf)
+{ leaf_order ctx = { .ld = LD, .failed = false };
+  size_t i;
+
+  for(i=0; i<aut->states; i++)
+  { if ( aut->state[i] < 0 )
+      aut->state[i] = -(int)(leaf_number(g, &ctx, leaf[-aut->state[i]-1])+1);
+  }
+
+  return ctx.failed ? false : true;
+}
+
+
+/* automaton_quotient() is term_quotient() for an automaton.  Same answers,
+   plus aut->error for an automaton that does not parse.
+*/
+
+#define automaton_quotient(w, g, b, aut, minimal) \
+	LDFUNC(automaton_quotient, w, g, b, aut, minimal)
+
+static boolex_t
+automaton_quotient(DECL_LD Word w, bs_graph *g, Buffer b, bs_automaton *aut,
+		   bool minimal)
+{ Word *leaf = NULL;
+  size_t nleaf = 0;
+  boolex_t rc;
+
+  memset(g, 0, sizeof(*g));
+  memset(aut, 0, sizeof(*aut));
+
+  rc = build_automaton(w, g, b, aut, &leaf, &nleaf);
+
+  if ( rc == GRAPH_OVERFLOW )
+    rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int);
+
+  if ( rc == true && aut->error == AUT_OK )
+  { rc = number_leaves(g, leaf, nleaf);
+    if ( rc == true )
+      rc = resolve_states(g, aut, leaf);
+    tmp_free(leaf);			/* as in term_quotient(): the */
+    leaf = NULL;			/* refinement is where memory peaks */
+
+    if ( rc == true && g->nodes > 0 )
+    { if ( !minimal )
+      { identity_partition(g);
+      } else if ( colour_nodes(g) )
+      { split_colours(g);
+	refine(g);
+      } else
+	rc = MEMORY_OVERFLOW;
+    }
+  }
+
+  tmp_free(leaf);
+
+  return rc;
+}
+
+
+/* automaton_error() runs once the graph is gone and the stacks are free
+   again.  Digging the culprit out costs a second walk, but only here.
+*/
+
+#define automaton_error(A, aut) LDFUNC(automaton_error, A, aut)
+
+static bool
+automaton_error(DECL_LD term_t A, bs_automaton *aut)
+{ term_t s = PL_new_term_ref();
+  term_t x = PL_new_term_ref();
+
+  if ( !s || !x ||
+       !PL_get_arg(aut->at, A, s) ||
+       !PL_get_arg(aut->arg, s, x) )
+    return false;
+
+  switch(aut->error)
+  { case AUT_INSTANTIATION:
+      return PL_instantiation_error(x);
+    case AUT_NOT_INTEGER:
+      return PL_type_error("integer", x);
+    case AUT_NO_STATE:
+      return PL_existence_error("state", x);
+    case AUT_OK:
+      break;
+  }
+
+  assert(0);
+  return false;
+}
+
+
+/* get_automaton() checks that A is an automaton and answers where it is.
+   The functor name is not looked at: like arg/3, only the arity matters.
+*/
+
+#define get_automaton(A, wp) LDFUNC(get_automaton, A, wp)
+
+static bool
+get_automaton(DECL_LD term_t A, Word *wp)
+{ Word w = valTermRef(A);
+
+  deRef(w);
+  if ( isTerm(*w) )
+  { if ( arityFunctor(valueTerm(*w)->definition) == 0 )
+      return PL_domain_error("automaton", A);
+    *wp = w;
+    return true;
+  }
+  if ( canBind(*w) )
+    return PL_instantiation_error(A);
+
+  return PL_type_error("compound", A);
+}
+
+
+		 /*******************************
 		 *	  CANONICAL NUMBERING	*
 		 *******************************/
 
@@ -945,12 +1280,13 @@ static bool
 canonicalise(bs_graph *g)
 { bs_pool pool = {0};
   size_t *stack;
-  size_t top = 0, next = 1, vnext = 1;
+  size_t top = 0, next = 1, vnext = 1, lnext = 1;
   size_t i;
 
   for(;;)				/* count, then hand out */
   { pool_array(&pool, g->canon, g->classes);
     pool_array(&pool, g->vnum,  g->vars+1);
+    pool_array(&pool, g->lnum,  g->leaves+1);
 
     if ( pool.base )
       break;
@@ -966,6 +1302,8 @@ canonicalise(bs_graph *g)
     g->canon[i] = 0;
   for(i=0; i<=g->vars; i++)
     g->vnum[i] = 0;
+  for(i=0; i<=g->leaves; i++)
+    g->lnum[i] = 0;
 
   stack[top++] = g->class[0];		/* the root cell is node 0 */
   while(top > 0)
@@ -987,6 +1325,8 @@ canonicalise(bs_graph *g)
 
 	if ( leaf < g->vars && g->vnum[leaf] == 0 )
 	  g->vnum[leaf] = vnext++;
+	if ( g->lnum[leaf] == 0 )
+	  g->lnum[leaf] = lnext++;
       }
     }
     for(j=arity; j-- > 0; )		/* push right to left, so they come */
@@ -998,6 +1338,13 @@ canonicalise(bs_graph *g)
   }
 
   tmp_free(stack);
+
+  /* Every class of a term is reachable from its root, so for a term these
+     are g->classes and g->leaves.  An automaton may name states that its
+     start state cannot reach, and those keep canon[c] == 0.
+  */
+  g->reached        = next-1;
+  g->reached_leaves = lnext-1;
 
   return true;
 }
@@ -1086,10 +1433,7 @@ build_canonical(DECL_LD bs_graph *g, Word base, word *form)
 	{ ccell[i][1+j] = consPtr(vcell[g->vnum[leaf]-1],
 				  TAG_COMPOUND|STG_GLOBAL);
 	} else
-	{ Word a = &g->node[rep].term->arguments[j];
-
-	  deRef(a);
-	  ccell[i][1+j] = *a;
+	{ ccell[i][1+j] = *g->leafp[leaf];
 	}
       }
     }
@@ -1169,9 +1513,8 @@ build_minimal(DECL_LD bs_graph *g, Word base, word *minimal)
       if ( ch >= 0 )			/* a cell: point at its class */
       { cell[c][1+j] = consPtr(cell[g->class[ch]], TAG_COMPOUND|STG_GLOBAL);
       } else				/* a leaf: take it as it stands */
-      { Word a = &g->node[rep].term->arguments[j];
+      { Word a = g->leafp[-ch-1];
 
-	deRef(a);
 	cell[c][1+j] = isVar(*a) ? makeRefG(a) : *a;
       }
     }
@@ -1184,70 +1527,106 @@ build_minimal(DECL_LD bs_graph *g, Word base, word *minimal)
 }
 
 
+
+/* automaton_size() and build_automaton_result() write the quotient out as an
+   automaton: a compound whose argument I is the colour of state I.  A class
+   becomes its functor applied to the numbers of the states its arguments go
+   to, and a leaf becomes a state holding the leaf itself.  canonicalise()
+   has numbered both, depth first from the root, so state 1 is the root and
+   any state it could not reach is simply left out.
+*/
+
+static size_t
+automaton_size(bs_graph *g)
+{ size_t need = 1 + g->reached + g->reached_leaves;
+  size_t c;
+
+  for(c=0; c<g->classes; c++)
+  { if ( g->canon[c] )
+    { size_t rep = g->order[g->class_start[c]];
+
+      need += 1 + arityFunctor(g->node[rep].functor);
+    }
+  }
+
+  return need;
+}
+
+#define build_automaton_result(g, base, automaton) \
+	LDFUNC(build_automaton_result, g, base, automaton)
+
+static void
+build_automaton_result(DECL_LD bs_graph *g, Word base, word *automaton)
+{ size_t states = g->reached + g->reached_leaves;
+  Word a = base;
+  Word p = base + 1+states;
+  size_t c, i;
+
+  a[0] = lookupFunctorDef(ATOM_automaton, states);
+
+  for(c=0; c<g->classes; c++)
+  { size_t rep, arity, j;
+
+    if ( !g->canon[c] )
+      continue;				/* the root cannot reach it */
+
+    rep   = g->order[g->class_start[c]];
+    arity = arityFunctor(g->node[rep].functor);
+
+    a[g->canon[c]] = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    p[0] = g->node[rep].functor;
+    for(j=0; j<arity; j++)
+    { int ch = g->child[g->arg[rep]+j];
+
+      p[1+j] = consInt(ch >= 0 ? g->canon[g->class[ch]]
+			       : g->reached + g->lnum[-ch-1]);
+    }
+    p += 1+arity;
+  }
+
+  for(i=0; i<g->leaves; i++)		/* the sinks */
+  { if ( g->lnum[i] )
+    { Word w = g->leafp[i];
+
+      a[g->reached + g->lnum[i]] = isVar(*w) ? makeRefG(w) : *w;
+    }
+  }
+
+  *automaton = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+}
+
+
+/* build_map() says what became of each state of the input: the number of the
+   state it collapsed into, or 0 if the root could not reach it.
+*/
+
+#define build_map(g, aut, base, map) LDFUNC(build_map, g, aut, base, map)
+
+static void
+build_map(DECL_LD bs_graph *g, bs_automaton *aut, Word base, word *map)
+{ Word m = base;
+  size_t i;
+
+  m[0] = lookupFunctorDef(ATOM_map, aut->states);
+  for(i=0; i<aut->states; i++)
+  { int st = aut->state[i];
+    size_t to;
+
+    if ( st >= 0 )
+      to = g->canon[g->class[st]];
+    else
+      to = g->lnum[-st-1] ? g->reached + g->lnum[-st-1] : 0;
+
+    m[1+i] = consInt(to);
+  }
+
+  *map = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+}
+
+
 		 /*******************************
 		 *	      PREDICATES	*
 		 *******************************/
-
-/** '$term_graph_size'(+Term, -Cells) is det.
-
-Cells is the number of physically distinct compound cells in Term, i.e. the
-size of its term graph rather than of its unfolding.  A term of N cells may
-denote a tree of 2**N nodes, or an infinite one.
-*/
-
-static
-PRED_IMPL("$term_graph_size", 2, term_graph_size, 0)
-{ PRED_LD
-  tmp_buffer tmp;
-  Buffer b = (Buffer)&tmp;
-  size_t cells;
-  boolex_t rc;
-
-  initBuffer(&tmp);
-  rc = build_graph(valTermRef(A1), b, 0);
-  cells = entriesBuffer(b, bs_node);
-  restore_graph(b);
-  discardBuffer(b);
-
-  if ( rc == MEMORY_OVERFLOW )
-    return PL_error(NULL, 0, NULL, ERR_NOMEM);
-  if ( rc != true )
-    return false;			/* exception already raised */
-
-  return PL_unify_int64(A2, cells);
-}
-
-
-/** '$term_graph_classes'(+Term, -Classes) is det.
-
-Classes is the number of compound cells the graph of Term has after
-collapsing cells that denote the same tree.  It is the number of cells
-term_minimal/2 will produce.
-*/
-
-static
-PRED_IMPL("$term_graph_classes", 2, term_graph_classes, 0)
-{ PRED_LD
-  tmp_buffer tmp;
-  Buffer b = (Buffer)&tmp;
-  bs_graph g;
-  size_t classes;
-  boolex_t rc;
-
-  initBuffer(&tmp);
-  rc = term_quotient(valTermRef(A1), &g, b, 0, true);
-  classes = g.classes;
-  free_graph(&g);
-  discardBuffer(b);
-
-  if ( rc == MEMORY_OVERFLOW )
-    return PL_error(NULL, 0, NULL, ERR_NOMEM);
-  if ( rc != true )
-    return false;
-
-  return PL_unify_int64(A2, classes);
-}
-
 
 /** term_minimal(+Term, -Minimal) is det.
 
@@ -1541,9 +1920,8 @@ build_factorized(DECL_LD bs_graph *g, Word base, word *skel, word *subst)
 	cell[c][1+j] = var[d] ? makeRefG(var[d])
 			      : consPtr(cell[d], TAG_COMPOUND|STG_GLOBAL);
       } else
-      { Word a = &g->node[rep].term->arguments[j];
+      { Word a = g->leafp[-ch-1];
 
-	deRef(a);
 	cell[c][1+j] = isVar(*a) ? makeRefG(a) : *a;
       }
     }
@@ -1701,14 +2079,355 @@ PRED_IMPL("term_factorized", 4, term_factorized4, 0)
 
 
 		 /*******************************
+		 *     AUTOMATON PREDICATES	*
+		 *******************************/
+
+/* term_to_automaton() writes the term's graph out as it stands: one state
+   per physically distinct cell, one per distinct leaf.  Sharing that is
+   already there is kept, but nothing is collapsed -- that is what
+   automaton_minimal/2 is for.
+*/
+
+#define term_to_automaton(T, A) LDFUNC(term_to_automaton, T, A)
+
+static bool
+term_to_automaton(DECL_LD term_t T, term_t A)
+{ term_t result = PL_new_term_ref();
+
+  if ( !result )
+    return false;
+
+  for(;;)
+  { tmp_buffer tmp;
+    Buffer b = (Buffer)&tmp;
+    bs_graph g;
+    size_t need;
+    boolex_t rc;
+
+    initBuffer(&tmp);
+    rc = term_quotient(valTermRef(T), &g, b, 0, false);
+
+    if ( rc == true && g.nodes == 0 )	/* a leaf: one state, holding it */
+    { free_graph(&g);
+      discardBuffer(b);
+
+      return PL_unify_term(A, PL_FUNCTOR, FUNCTOR_automaton1, PL_TERM, T);
+    }
+
+    if ( rc == true && !canonicalise(&g) )
+      rc = MEMORY_OVERFLOW;
+
+    if ( rc == true )
+    { need = automaton_size(&g);
+      if ( gTop + need > gMax )
+      { rc = GLOBAL_OVERFLOW;
+      } else
+      { word w;
+
+	build_automaton_result(&g, gTop, &w);
+	gTop += need;
+	*valTermRef(result) = w;
+      }
+    }
+
+    free_graph(&g);
+    discardBuffer(b);
+
+    if ( rc == true )
+      break;
+    if ( rc == MEMORY_OVERFLOW )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    if ( rc != GLOBAL_OVERFLOW )
+      return false;
+    if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+      return false;
+  }
+
+  return PL_unify(A, result);
+}
+
+
+/* automaton_to_term() builds the term the start state denotes.  The
+   automaton may be cyclic, in which case so is the term: build_minimal()
+   writes the cells and lets them point at each other.
+*/
+
+#define automaton_to_term(A, T) LDFUNC(automaton_to_term, A, T)
+
+static bool
+automaton_to_term(DECL_LD term_t A, term_t T)
+{ term_t result = PL_new_term_ref();
+
+  if ( !result )
+    return false;
+
+  for(;;)
+  { tmp_buffer tmp;
+    Buffer b = (Buffer)&tmp;
+    bs_graph g;
+    bs_automaton aut;
+    Word w;
+    size_t need;
+    boolex_t rc;
+
+    if ( !get_automaton(A, &w) )
+      return false;
+
+    initBuffer(&tmp);
+    rc = automaton_quotient(w, &g, b, &aut, false);
+
+    if ( rc == true && aut.error == AUT_OK )
+    { if ( aut.state[0] < 0 )		/* the start state is a sink */
+      { Word lw = g.leafp[-aut.state[0]-1];
+
+	*valTermRef(result) = isVar(*lw) ? makeRefG(lw) : *lw;
+      } else
+      { need = minimal_size(&g);
+	if ( gTop + need > gMax )
+	{ rc = GLOBAL_OVERFLOW;
+	} else
+	{ word m;
+
+	  if ( build_minimal(&g, gTop, &m) )
+	  { gTop += need;
+	    *valTermRef(result) = m;
+	  } else
+	    rc = MEMORY_OVERFLOW;
+	}
+      }
+    }
+
+    free_graph(&g);
+    discardBuffer(b);
+
+    if ( rc == true && aut.error != AUT_OK )
+    { bool ok = automaton_error(A, &aut);
+
+      free_automaton(&aut);
+      return ok;
+    }
+    free_automaton(&aut);
+
+    if ( rc == true )
+      break;
+    if ( rc == MEMORY_OVERFLOW )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    if ( rc != GLOBAL_OVERFLOW )
+      return false;
+    if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+      return false;
+  }
+
+  return PL_unify(T, result);
+}
+
+
+/** term_automaton(?Term, ?Automaton) is det.
+
+Automaton is the term graph of Term as an explicit automaton, and Term is the
+term its start state denotes.  Which way it runs is decided by Automaton: it
+answers Automaton if that is unbound, and Term if it is not.  A variable is a
+term like any other, so term_automaton(X, A) answers A = automaton(X).
+
+The automaton is a compound whose argument I is the colour of state I, and
+state 1 is the start state.  A colour that is a compound gives the state one
+successor per argument, and the argument is the number of the state it goes
+to; a colour that is not a compound makes the state a sink holding that
+value.  Term may be cyclic, and so may Automaton.
+
+The translation is faithful in both directions: one state per physically
+distinct cell of Term and one per distinct leaf, nothing collapsed.  Together
+with automaton_minimal/2 that gives term_minimal/2:
+
+    term_minimal(T, M) :-
+	term_automaton(T, A),
+	automaton_minimal(A, A1),
+	term_automaton(M, A1).
+*/
+
+static
+PRED_IMPL("term_automaton", 2, term_automaton, 0)
+{ PRED_LD
+  Word p = valTermRef(A2);
+
+  deRef(p);
+  if ( canBind(*p) )
+    return term_to_automaton(A1, A2);
+
+  return automaton_to_term(A2, A1);
+}
+
+
+/* The minimal automaton is the quotient, written out from the start state,
+   so the states it cannot reach are gone.  That makes the answer canonical:
+   two automata denote the same rational tree exactly when their minimal
+   forms come out =@=.
+*/
+
+static size_t
+minimal_automaton_size(bs_graph *g, bs_automaton *aut, bool sink, bool map)
+{ size_t need = sink ? 2 : automaton_size(g);
+
+  if ( map )
+    need += 1 + aut->states;
+
+  return need;
+}
+
+#define build_minimal_automaton(g, aut, sink, base, min, map) \
+	LDFUNC(build_minimal_automaton, g, aut, sink, base, min, map)
+
+static void
+build_minimal_automaton(DECL_LD bs_graph *g, bs_automaton *aut, bool sink,
+			Word base, word *min, word *map)
+{ Word p = base;
+
+  if ( sink )				/* the start state is a sink: the */
+  { Word lw = g->leafp[-aut->state[0]-1];	/* automaton denotes a leaf */
+
+    p[0] = FUNCTOR_automaton1;
+    p[1] = isVar(*lw) ? makeRefG(lw) : *lw;
+    *min = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    p += 2;
+  } else
+  { build_automaton_result(g, p, min);
+    p += automaton_size(g);
+  }
+
+  if ( map )
+  { if ( sink )
+    { size_t i;
+
+      p[0] = lookupFunctorDef(ATOM_map, aut->states);
+      for(i=0; i<aut->states; i++)
+	p[1+i] = consInt(aut->state[i] == aut->state[0] ? 1 : 0);
+      *map = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    } else
+    { build_map(g, aut, p, map);
+    }
+  }
+}
+
+
+#define do_automaton_minimal(A, Min, Map) \
+	LDFUNC(do_automaton_minimal, A, Min, Map)
+
+static bool
+do_automaton_minimal(DECL_LD term_t A, term_t Min, term_t Map)
+{ term_t rmin = PL_new_term_ref();
+  term_t rmap = Map ? PL_new_term_ref() : 0;
+
+  if ( !rmin || (Map && !rmap) )
+    return false;
+
+  for(;;)
+  { tmp_buffer tmp;
+    Buffer b = (Buffer)&tmp;
+    bs_graph g;
+    bs_automaton aut;
+    Word w;
+    size_t need;
+    boolex_t rc;
+
+    if ( !get_automaton(A, &w) )
+      return false;
+
+    initBuffer(&tmp);
+    rc = automaton_quotient(w, &g, b, &aut, true);
+
+    if ( rc == true && aut.error == AUT_OK )
+    { bool sink = aut.state[0] < 0;
+
+      if ( !sink && !canonicalise(&g) )
+	rc = MEMORY_OVERFLOW;
+
+      if ( rc == true )
+      { need = minimal_automaton_size(&g, &aut, sink, !!Map);
+	if ( gTop + need > gMax )
+	{ rc = GLOBAL_OVERFLOW;
+	} else
+	{ word m, mp;
+
+	  build_minimal_automaton(&g, &aut, sink, gTop, &m, &mp);
+	  gTop += need;
+	  *valTermRef(rmin) = m;
+	  if ( Map )
+	    *valTermRef(rmap) = mp;
+	}
+      }
+    }
+
+    free_graph(&g);
+    discardBuffer(b);
+
+    if ( rc == true && aut.error != AUT_OK )
+    { bool ok = automaton_error(A, &aut);
+
+      free_automaton(&aut);
+      return ok;
+    }
+    free_automaton(&aut);
+
+    if ( rc == true )
+      break;
+    if ( rc == MEMORY_OVERFLOW )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    if ( rc != GLOBAL_OVERFLOW )
+      return false;
+    if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+      return false;
+  }
+
+  return ( PL_unify(Min, rmin) &&
+	   (!Map || PL_unify(Map, rmap)) );
+}
+
+
+/** automaton_minimal(+Automaton, -Minimal) is det.
+
+Minimal denotes the same rational tree as Automaton using the least possible
+number of states: states that are bisimilar are collapsed, and states the
+start state cannot reach are dropped.  State 1 of Minimal is still the start
+state, and the states are numbered depth first from it, so the answer does
+not depend on how Automaton was written down.  Two automata therefore denote
+the same tree exactly when their minimal forms are =@=, and
+automaton_minimal/2 is idempotent.
+*/
+
+static
+PRED_IMPL("automaton_minimal", 2, automaton_minimal, 0)
+{ PRED_LD
+
+  return do_automaton_minimal(A1, A2, 0);
+}
+
+
+/** automaton_minimal(+Automaton, -Minimal, -Map) is det.
+
+As automaton_minimal/2, and Map says what became of each state: it is a
+compound of the same arity as Automaton whose argument I is the state of
+Minimal that state I of Automaton collapsed into, or 0 if the start state
+could not reach it.
+*/
+
+static
+PRED_IMPL("automaton_minimal", 3, automaton_minimal3, 0)
+{ PRED_LD
+
+  return do_automaton_minimal(A1, A2, A3);
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(bisim)
-  PRED_DEF("$term_graph_size",    2, term_graph_size,    0)
-  PRED_DEF("$term_graph_classes", 2, term_graph_classes, 0)
   PRED_DEF("term_minimal",        2, term_minimal,        0)
   PRED_DEF("$term_canonical_form", 2, term_canonical_form_pred, 0)
   PRED_DEF("term_factorized",     3, term_factorized,     0)
   PRED_DEF("term_factorized",     4, term_factorized4,    0)
+  PRED_DEF("term_automaton",      2, term_automaton,      0)
+  PRED_DEF("automaton_minimal",   2, automaton_minimal,   0)
+  PRED_DEF("automaton_minimal",   3, automaton_minimal3,  0)
 EndPredDefs

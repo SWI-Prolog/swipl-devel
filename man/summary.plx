@@ -108,6 +108,8 @@ suggest predicates from a keyword.
 \predicatesummary{atomic_list_concat}{3}{Append a list of atomics with separator}
 \predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
 \predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
+\predicatesummary{automaton_minimal}{2}{Minimise an automaton under bisimulation}
+\predicatesummary{automaton_minimal}{3}{Minimise an automaton, reporting the classes}
 \predicatesummary{autoload}{1}{Declare a file for autoloading}
 \predicatesummary{autoload}{2}{Declare a file for autoloading specific predicates}
 \predicatesummary{autoload_all}{0}{Autoload all predicates now}
@@ -712,6 +714,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_factorized}{3}{Replace repeated subterms by variables}
 \predicatesummary{term_factorized}{4}{Replace repeated subterms by variables}
 \predicatesummary{term_minimal}{2}{Share all subterms denoting the same tree}
+\predicatesummary{term_automaton}{2}{Convert between a term and its automaton}
 \predicatesummary{term_singletons}{2}{Find singleton variables in a term}
 \predicatesummary{term_string}{2}{Read/write a term from/to a string}
 \predicatesummary{term_string}{3}{Read/write a term from/to a string}
