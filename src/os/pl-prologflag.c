@@ -2611,6 +2611,7 @@ initPrologFlags(void)
 static void
 setTmpDirPrologFlag(void)
  { char envbuf[PATH_MAX];
+   char plbuf[PATH_MAX];
    char *td = NULL;
 
 #ifdef __unix__
@@ -2621,6 +2622,14 @@ setTmpDirPrologFlag(void)
 
    if (td == (char *) NULL)
      td = SWIPL_TMP_DIR;
+
+   /* The environment holds a path in the syntax of the OS.  Every path
+      Prolog hands out or accepts uses "/", so a file built from this
+      one with directory_file_path/3 would not compare equal to the same
+      file named any other way.
+   */
+   if ( PrologPath(td, plbuf, sizeof(plbuf)) )
+     td = plbuf;
 
    setPrologFlag("tmp_dir", FT_ATOM, td);
 }
