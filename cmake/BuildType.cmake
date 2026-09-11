@@ -82,10 +82,10 @@ endif()
 # environment variable $CFLAGS if it contains "-O"
 
 if(DEFINED ENV{CFLAGS})
-  string(REGEX MATCH "-O" match $ENV{CFLAGS})
+  string(REGEX MATCH "-O" matchc $ENV{CFLAGS})
 endif()
 
-if(match)
+if(matchc)
   set(CC_OPTFLAGS $ENV{CFLAGS})
 else()
   if(EMSCRIPTEN)
@@ -97,56 +97,78 @@ else()
   endif()
 endif()
 
+# Same for CXX_OPTFLAGS
+
+if(DEFINED ENV{CXXFLAGS})
+  string(REGEX MATCH "-O" matchcxx $ENV{CXXFLAGS})
+endif()
+
+if(matchcxx)
+  set(CXX_OPTFLAGS $ENV{CXXFLAGS})
+else()
+  if(EMSCRIPTEN)
+    set(CXX_OPTFLAGS "-O3 -DNDEBUG")
+  elseif(CMAKE_COMPILER_IS_GNUCC)
+    set(CXX_OPTFLAGS -O3)
+  else()
+    set(CXX_OPTFLAGS -O2)
+  endif()
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${CC_DBGFLAGS}"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${CC_DBGFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS}"
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE "${CC_OPTFLAGS}"
+  set(CMAKE_C_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_C_FLAGS_PGO "${CC_OPTFLAGS} ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
-      "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer"
+	  "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CXX_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
       "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CXXFLAGS}"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
 elseif(EMSCRIPTEN)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_RELEASE "${CC_OPTFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-sASSERTIONS"
       CACHE STRING "LDFLAGS for a Debug build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
        CMAKE_C_COMPILER_ID STREQUAL AppleClang)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
+  set(CMAKE_CFLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CFLAGS}"
+      CACHE STRING "CFLAGS for a Release build")
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CFLAGS}"
+      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
   set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CXX_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS} $ENV{CXXFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_C_FLAGS_PGO "${CC_OPTFLAGS} -O3 ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Sanitize build" FORCE)
+      CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 elseif(MSVC)
   # Common MSVC flags
   set(_SWI_MSVC_C_COMMON   "/nologo")
