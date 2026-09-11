@@ -5786,12 +5786,21 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   }
 }
 
+/* A call builds its frame just above lTop, the header and then the
+   arguments, before lTop is moved past it.  So we also scan that much
+   above lTop.  This is in words: LOCAL_MARGIN is in bytes.
+*/
+
+#define AGC_LOCAL_MARGIN \
+	((sizeof(struct localFrame) + MAXARITY*sizeof(word))/sizeof(word))
+
 static void
 markAtomsOnLocalStack(PL_local_data_t *ld)
 { Word lbase = (Word)ld->stacks.local.base;
   Word ltop  = (Word)ld->stacks.local.top;
   Word lmax  = (Word)ld->stacks.local.max;
-  Word lend  = ltop+LOCAL_MARGIN < lmax ? ltop+LOCAL_MARGIN : lmax;
+  Word lend  = (size_t)(lmax-ltop) > AGC_LOCAL_MARGIN ? ltop+AGC_LOCAL_MARGIN
+						      : lmax;
   Word current;
 
   for(current = lbase; current < lend; current++ )
