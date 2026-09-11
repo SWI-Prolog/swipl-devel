@@ -125,7 +125,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/iso
     library/dialect/yap library/theme library/iri_scheme
-    demo cmake app)
+    demo cmake app customize)
 
 if(HAVE_CLIB)
   list(APPEND SWIPL_DATA_DIRS
@@ -240,6 +240,7 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
 set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_customize edit init.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
 set(SWIPL_DATA_app app.pl qlf.pl README.md)
 if(HAVE_CLIB)

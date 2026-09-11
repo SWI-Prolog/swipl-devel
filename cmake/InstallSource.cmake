@@ -190,6 +190,7 @@ set(noqlf_pattern
     "home/boot/.*[.]pl"
     "home/doc/.*"
     "home/demo/.*"
+    "home/customize/.*"
     "home/xpce/prolog/boot/.*[.]pl"
     "home/xpce/prolog/lib/compatibility/.*[.]pl"
     "home/library/ext/ltx2htm/sty_.*[.]pl")
