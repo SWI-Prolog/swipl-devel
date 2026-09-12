@@ -11,6 +11,15 @@ macos_builddir=build.bundle-gcc
 PUBLIC="plweb@oehoe:srv/plweb/data/download/devel"
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
+# SDK holding the system libraries we link against (curses, form, ...).
+# Must be the *same* SDK cmake uses as CMAKE_OSX_SYSROOT.  Do not use
+# /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk: that symlink
+# follows the Command Line Tools, which may be a major version ahead of
+# Xcode.  Its .tbd stubs then name architectures (e.g. arm64e.x1) that
+# the older Xcode linker rejects with "tapi error: malformed file",
+# making every cmake check_function_exists() link fail.
+MACOS_SDK_USR="$(xcrun --show-sdk-path)/usr"
+
 build_pdf()
 { rm -rf build.pdf
   mkdir build.pdf
@@ -36,7 +45,7 @@ build_macos_universal_binary()
   ( cd $buildir
     PREFIX=$HOME/deps
     export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
-    export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+    export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
     CUFLAGS="-arch x86_64"
     export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
     export CXXFLAGS="$CFLAGS" # specific to release generation on JW's machine
@@ -82,7 +91,7 @@ build_macos_gcc_arch()
   ( cd $builddir
     PREFIX=$HOME/deps
     export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
-    export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+    export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
     export PATH=$HOME/deps/bin:$GCCDIR:$PATH
     export CC=gcc-mp-15
     export CXX=g++-mp-15
@@ -214,7 +223,7 @@ build_macos_gcc()
   ( cd $builddir
     PREFIX=$HOME/deps
     export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
-    export CMAKE_PREFIX_PATH="$PREFIX:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+    export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
     export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
     export CXXFLAGS="$CFLAGS"
     export PATH=$HOME/deps/bin:$PATH
