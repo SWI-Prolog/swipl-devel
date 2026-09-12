@@ -57,9 +57,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEB")
 endif()
 
 # Using gdwarf-2 -g3 allows using macros in gdb, which helps a lot
-# when debugging the Prolog internals.
-# For GCC, using -O3 makes the program bigger and slower.  -O2 is
-# better.  Possibly tuning individual flags can reach better results.
+# when debugging the Prolog internals.  Possibly tuning individual
+# optimization flags can reach better results than the -O below.
 
 set(SANITIZE "address" CACHE STRING
   "Value for -fsanitize when using -DCMAKE_BUILD_TYPE=Sanitize (address)")
@@ -71,6 +70,15 @@ if(EMSCRIPTEN)
   if(NOT VMI_FUNCTIONS)	 # Otherwise too many locals in PL_next_solution()
     set(CC_DBGFLAGS "${CC_DBGFLAGS} -O1")
   endif()
+elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
+       CMAKE_C_COMPILER_ID STREQUAL AppleClang)
+  # The macros are for gdb and gcc: clang accepts -g3 and emits the same
+  # object as -g2, macro information included in neither (-fdebug-macro
+  # is its option for that, and it crashes Apple clang 21).  All
+  # -gdwarf-2 does here is take the debug info back from DWARF 5 to
+  # DWARF 2 and the accelerator tables from __debug_names to the legacy
+  # __apple_* ones, which is the format lldb is least tested against.
+  set(CC_DBGFLAGS "-g")
 elseif(CMAKE_COMPILER_IS_GNUCC AND APPLE)
   # gcc-mp-15 only support -g2
   set(CC_DBGFLAGS "-gdwarf-2 -g2")
@@ -78,24 +86,50 @@ else()
   set(CC_DBGFLAGS "-gdwarf-2 -g3")
 endif()
 
-# Establish CC_OPTFLAGS: the optimization flags.  We use the
-# environment variable $CFLAGS if it contains "-O"
+# Establish CC_OPTFLAGS and CXX_OPTFLAGS: the optimization flags of the
+# build types below.  If the environment asks for a level we use that
+# one rather than our default: cmake puts $CFLAGS and $CXXFLAGS in
+# CMAKE_C_FLAGS and CMAKE_CXX_FLAGS, which come before the flags of the
+# build type on the command line, so our -O would be the one that
+# counts.
+#
+# Only the -O option is taken.  The rest of the environment is on the
+# command line already and repeating it there only makes it longer; the
+# C and the C++ flags must be kept apart as well, and taking $CFLAGS
+# whole is how they came to be mixed: the C++ build types used the C
+# optimization flags, so every option of $CFLAGS reached the C++
+# compiler.  See https://github.com/SWI-Prolog/swipl-devel/issues/1518
 
-if(DEFINED ENV{CFLAGS})
-  string(REGEX MATCH "-O" match $ENV{CFLAGS})
-endif()
-
-if(match)
-  set(CC_OPTFLAGS $ENV{CFLAGS})
-else()
-  if(EMSCRIPTEN)
-    set(CC_OPTFLAGS "-O3 -DNDEBUG")
-  elseif(CMAKE_COMPILER_IS_GNUCC)
-    set(CC_OPTFLAGS -O3)
+function(opt_flags var env_flags)
+  string(REGEX MATCHALL "(^| )-O[a-zA-Z0-9]*" opts "${env_flags}")
+  if(opts)
+    list(GET opts -1 opt)		# the last one is the one gcc obeys
+    string(STRIP "${opt}" opt)
+    set(${var} ${opt} PARENT_SCOPE)
+  elseif(EMSCRIPTEN)
+    set(${var} "-O3 -DNDEBUG" PARENT_SCOPE)
+  elseif(CMAKE_COMPILER_IS_GNUCC OR
+         CMAKE_C_COMPILER_ID STREQUAL Clang OR
+         CMAKE_C_COMPILER_ID STREQUAL AppleClang)
+    # Measured with bench/run.pl on Apple clang 21 (arm64): -O3 runs the
+    # benchmarks in 7.52s against 7.64s for -O2, for 5% more library.
+    set(${var} -O3 PARENT_SCOPE)
   else()
-    set(CC_OPTFLAGS -O2)
+    set(${var} -O2 PARENT_SCOPE)
   endif()
-endif()
+endfunction()
+
+opt_flags(CC_OPTFLAGS  "$ENV{CFLAGS}")
+opt_flags(CXX_OPTFLAGS "$ENV{CXXFLAGS}")
+
+# No build type below defines NDEBUG, so assert() is live in a released
+# binary.  That is not an oversight and it is not free the other way
+# about: measured with bench/run.pl on Apple clang 21 (arm64), a Release
+# build with -DNDEBUG is 5% smaller and 8% slower, 32 of the 35
+# benchmarks losing and none gaining.  assert(x) branches to a noreturn
+# function, which leaves the compiler knowing x holds for the rest of
+# the block; through the WAM interpreter that is worth more than the
+# tests cost.  Measure again before adding it, x86_64 included.
 
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -DO_DEBUG_ATOMGC -O0 ${CC_DBGFLAGS}"
@@ -109,44 +143,48 @@ if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS_SANITIZE
       "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG -O0 ${CC_DBGFLAGS}"
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CXX_OPTFLAGS} ${CC_DBGFLAGS}"
+      CACHE STRING "CXXFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Sanitize build" FORCE)
+      "-O0 ${CC_DBGFLAGS} -fsanitize=${SANITIZE} -fno-omit-frame-pointer"
+      CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 elseif(EMSCRIPTEN)
-  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
+  set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
   set(CMAKE_C_FLAGS_RELEASE "${CC_OPTFLAGS}"
       CACHE STRING "CFLAGS for a Release build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-sASSERTIONS"
       CACHE STRING "LDFLAGS for a Debug build" FORCE)
 elseif(CMAKE_C_COMPILER_ID STREQUAL Clang OR
        CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS}"
+      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_C_FLAGS_RELEASE "${CC_OPTFLAGS}"
+      CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
       "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Debug build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CC_OPTFLAGS} ${CC_DBGFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CC_OPTFLAGS} $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Release build" FORCE)
   set(CMAKE_C_FLAGS_PGO "${CC_OPTFLAGS} -O3 ${CC_DBGFLAGS}"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG "-DO_DEBUG ${CC_DBGFLAGS}"
+      CACHE STRING "CXXFLAGS for a Debug build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CXX_OPTFLAGS} ${CC_DBGFLAGS}"
+      CACHE STRING "CXXFLAGS for a RelWithDebInfo build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CXX_OPTFLAGS}"
+      CACHE STRING "CXXFLAGS for a Release build" FORCE)
   set(CMAKE_CXX_FLAGS_SANITIZE
-      "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer $ENV{CXXFLAGS}"
-      CACHE STRING "CFLAGS for a Sanitize build" FORCE)
+      "${CC_DBGFLAGS} -fsanitize=${SANITIZE} -O1 -fno-omit-frame-pointer"
+      CACHE STRING "CXXFLAGS for a Sanitize build" FORCE)
 elseif(MSVC)
   # Common MSVC flags
   set(_SWI_MSVC_C_COMMON   "/nologo")
