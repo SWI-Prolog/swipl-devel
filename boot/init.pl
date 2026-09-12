@@ -2693,11 +2693,22 @@ load_files(Module:Files, Options) :-
     '$already_loaded'(File, FullFile, Module, Options).
 :- if(current_prolog_flag(threads, true)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    sig_atomic('$qdo_load_file'(File, FullFile, Module, Options)).
+    sig_atomic('$ctx_load_file'(File, FullFile, Module, Options)).
 :- else.
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    '$qdo_load_file'(File, FullFile, Module, Options).
+    '$ctx_load_file'(File, FullFile, Module, Options).
 :- endif.
+
+%!  '$ctx_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%
+%   Record the module FullFile is loaded from and load it.  The record
+%   is what source_file_property(FullFile, load_context(Module, ...))
+%   reports, which make/0 and the .qlf dependencies of
+%   prolog:qlf_dependency/2 rely on.
+
+'$ctx_load_file'(File, FullFile, Module, Options) :-
+    '$assert_load_context_module'(FullFile, Module, Options),
+    '$qdo_load_file'(File, FullFile, Module, Options).
 
 :- if(current_prolog_flag(threads, true)).
 '$mt_start_load'(FullFile, queue(Queue), _) :-
@@ -2721,8 +2732,7 @@ load_files(Module:Files, Options) :-
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
-    '$assert_load_context_module'(FullFile, Module, Options),
-    '$qdo_load_file'(File, FullFile, Module, Options).
+    '$ctx_load_file'(File, FullFile, Module, Options).
 
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.
