@@ -1,575 +1,856 @@
 #!/bin/bash
 #
-# This script downloads and builds the   dependencies  of SWI-Prolog. It
-# was designed to build the dependencies  in   a  controlled way for the
-# MacOS binary bundle, but  should  be   easily  adapted  to install the
-# dependencies on other Unix-like platforms.
+# Build the third-party libraries that the SWI-Prolog macOS bundle links
+# against.  The result is a tree of _universal_ (x86_64 + arm64) libraries
+# in $HOME/deps, which is handed to CMake as
 #
-# To use this, run `. macos-deps.sh`  to   get  the various functions in
-# your shell. Note that the BDB download   is no longer easily available
-# and requires registering an account with Oracle.
-
-# Set PREFIX to point at the prefix for installing the dependencies.
-# Configure using cmake -DMACOSX_DEPENDENCIES_FROM=$PREFIX
+#     cmake -DMACOSX_DEPENDENCIES_FROM=$HOME/deps ...
 #
-# Ideally, we build _universal_  libraries, but this seems complicated
-# because the  configuration of some  of the libraries depends  on the
-# CPU.  E.g., OpenSSL  does not build on the M1  using `-arch x86_64`.
-# pcre   does  not   include  the   JIT  compiler,   etc.   Therefore,
-# unfortunately, we must build the  libraries on a real x86_64 machine
-# and  combine  them  using  the  `macos-import-arch.sh`  script  into
-# universal binaries.
+# ---------------------------------------------------------------------------
+# Usage
+# ---------------------------------------------------------------------------
+#
+# Run this from the directory holding the source tarballs (typically
+# ~/src/deps, where this script is symlinked).  Source it to get the
+# functions into your shell:
+#
+#     . macos-deps.sh
+#     download_prerequisites       # fetch + unpack every source tarball
+#     build_prerequisites          # everything: both arches, merge, install
+#
+# `build_prerequisites` runs these five steps, which can also be run
+# individually:
+#
+#     build_arch arm64             # -> ./stage-arm64
+#     build_arch x86_64            # -> ./stage-x86_64
+#     build_universal              # CMake deps, fat -> ./stage-universal
+#     merge_universal              # compose the three -> $HOME/deps
+#     check_prerequisites          # verify the result
+#
+# Everything is staged; $HOME/deps is emptied and rebuilt only by
+# merge_universal, as the very last step.
+#
+# ---------------------------------------------------------------------------
+# How the universal build works
+# ---------------------------------------------------------------------------
+#
+# Two strategies, by build system:
+#
+#  - CMake projects (utf8proc, SDL3, SDL3_image) accept
+#    CMAKE_OSX_ARCHITECTURES and produce a fat binary in a single pass, so
+#    they are built once (`build_universal`).
+#
+#  - autotools and meson projects cannot be configured for two CPUs at
+#    once (OpenSSL picks a single target, gmp picks an ABI and assembly
+#    path, pcre2 picks a JIT backend, config.h is per-CPU, ...).  They are
+#    built twice -- once per arch -- and merged with `lipo`
+#    (`build_arch` + `merge_universal`).
+#
+# Every pass configures with --prefix=$HOME/deps but installs with a
+# DESTDIR of ./stage-<arch>, so install names and pkg-config files already
+# name the final location and need no rewriting when the trees are merged.
+# Each pass only ever looks inside its own staging tree for headers and
+# libraries, so the passes cannot contaminate each other -- nor can the
+# previous release still sitting in $HOME/deps.
+#
+# The x86_64 pass runs under `arch -x86_64`.  Rosetta makes uname(1) and
+# any binary the build generates behave like a real Intel Mac, so configure
+# scripts are not cross-compiling and their run-time feature tests give the
+# right answers.  $CC carries the -arch flag because clang keeps defaulting
+# to arm64 even inside a Rosetta shell.
+#
+# ---------------------------------------------------------------------------
+# Notes
+# ---------------------------------------------------------------------------
+#
+#  - Macports and Homebrew must not leak into the result.  Rather than
+#    hiding them (this script used to `sudo chmod 0 /opt/local`), nothing
+#    ever adds them to the include/library/pkg-config search paths, and
+#    `check_prerequisites` verifies that no installed binary refers to
+#    them.  Tools *are* taken from Macports: meson, ninja, cmake, pkg-config.
+#
+#  - cairo and pango declare their dependencies as meson `wrap`s that track
+#    git *main* (glib, harfbuzz, fribidi, cairo).  Building those would pin
+#    the bundle to a random upstream snapshot, so glib, harfbuzz, fribidi
+#    and pixman are built here from release tarballs and both are
+#    configured with --wrap-mode=nofallback: a missing dependency is an
+#    error, never a silent download.
+#
+#  - Berkeley DB and OSSP uuid are no longer downloadable (Oracle requires
+#    an account; the OSSP FTP host is gone).  The tarballs in the source
+#    directory are the only copies -- do not delete them.
 
-case "$(uname -a)" in
-    *arm*) PREFIX="$HOME/deps"
-	   echo "Building for Apple Silicon in $PREFIX"
-	   ;;
-    *x86_64*) PREFIX="$HOME/x86_64/deps"
-	      echo "Building for x86_64 in $PREFIX"
-	      ;;
-    *) echo "Unknown Darwin target"
-       exit 1
-       ;;
-esac
+################################################################
+# Configuration
+################################################################
+
+GMP_VERSION=6.3.0
+SSL_VERSION=3.6.4
+ZLIB_VERSION=1.3.2
+ARCHIVE_VERSION=3.8.9
+UUID_VERSION=1.6.2
+BDB_VERSION=6.1.26
+ODBC_VERSION=2.3.14
+PCRE2_VERSION=10.48
+FFI_VERSION=3.8.0
+YAML_VERSION=0.2.5
+UTF8PROC_VERSION=2.11.3
+SDL3_VERSION=3.4.16
+SDL3_IMAGE_VERSION=3.4.6
+PIXMAN_VERSION=0.46.4
+GLIB_VERSION=2.88.3
+FRIBIDI_VERSION=1.0.16
+HARFBUZZ_VERSION=14.4.0
+CAIRO_VERSION=1.18.4
+PANGO_VERSION=1.58.2
+
+# Where the finished universal libraries go, and where the per-arch builds
+# are staged.  DEPS must not contain spaces.  The staging trees are plain
+# DESTDIR images of $DEPS -- so $DEPS_ROOT is $DEPS_STAGE with $DEPS
+# appended -- and live next to the sources, being build scratch.
+
+DEPS="${DEPS:-$HOME/deps}"
+DEPS_SRC="$(pwd)"
+DEPS_ARCH="$(uname -m)"			# arm64, or x86_64 under `arch`
+DEPS_STAGE="$DEPS_SRC/stage-$DEPS_ARCH"	# DESTDIR for this pass
+DEPS_ROOT="$DEPS_STAGE$DEPS"		# where this pass's files really are
+
+# The CMake libraries are fat already and so have no per-architecture pass,
+# but they are staged the same way.  Nothing writes into $DEPS until
+# merge_universal composes it out of these three trees.
+
+DEPS_STAGE_FAT="$DEPS_SRC/stage-universal"
+DEPS_ROOT_FAT="$DEPS_STAGE_FAT$DEPS"
 
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
-GMP_VERSION=6.3.0
-SSL_VERSION=3.6.1
-JPEG_VERSION=9f
-ZLIB_VERSION=1.3.1
-ARCHIVE_VERSION=3.8.1
-UUID_VERSION=1.6.2
-BDB_VERSION=6.1.26
-ODBC_VERSION=2.3.12
-PCRE2_VERSION=10.45
-FFI_VERSION=3.5.1
-YAML_VERSION=0.2.5
-SDL3_VERSION=3.4.0
-SDL3_IMAGE_VERSION=3.4.0
-CAIRO_VERSION=1.18.4
-PANGO_VERSION=1.56.4
-UTF8PROC_VERSION=2.11.3
+# Build against the Command Line Tools rather than Xcode.app.  /usr/bin's
+# libtool, otool, lipo etc. are shims that ask xcrun where the real tool
+# is, and xcrun refuses to answer while the Xcode license has not been
+# accepted.  The CLT toolchain has no such gate, and pins the SDK the
+# bundle is built against independently of which Xcode is installed.
 
-# installation prefix.  This path should not have spaces in one of the
-# directory names.
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Library/Developer/CommandLineTools}"
 
-src="$(pwd)"
-################
-# LDFLAGS allows for running autoconf from a directory
+# The CLT clang is the real compiler rather than the /usr/bin shim, and
+# does not locate the SDK by itself; without this it compiles against a
+# non-existent /usr/include.
 
-export PYTHON_BIN="/Library/Frameworks/Python.framework/Versions/3.11/bin/"
-export PATH="$PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PYTHON_BIN:/opt/local/bin"
-export LDFLAGS=-L$PREFIX/lib
-export CUFLAGS="-arch x86_64 -arch arm64"
-export CMFLAGS="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET -O2"
-export CWFLAGS="-Wno-nullability-completeness"
-export CIFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
-export CFLAGS="$CIFLAGS $CWFLAGS $CMFLAGS"
-# export CFLAGS="$CFLAGS $CUFLAGS"
-export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
+export SDKROOT="${SDKROOT:-$DEVELOPER_DIR/SDKs/MacOSX.sdk}"
+
+# Tools come from Macports (meson, ninja, cmake, pkg-config); libraries
+# never do.  Note that $DEPS/bin is deliberately *not* on $PATH: nothing we
+# build is needed to build the rest.
+
+export PATH="$DEVELOPER_DIR/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/local/bin"
+
+# The -arch flag lives in $CC rather than $CFLAGS so that every configure
+# test, every libtool link and every meson probe agrees on the target,
+# whatever the project does with $CFLAGS.
+
+# OBJC/OBJCXX matter as much as CC here: glib (gosxutils.m) and other
+# macOS backends compile Objective-C, and a build system that picks up
+# $CC but defaults the Objective-C compiler to plain `clang' produces
+# arm64 objects in the middle of an x86_64 build.  That surfaces much
+# later as "ld: symbol(s) not found for architecture arm64".
+
+export CC="clang -arch $DEPS_ARCH"
+export CXX="clang++ -arch $DEPS_ARCH"
+export OBJC="$CC"
+export OBJCXX="$CXX"
+export CFLAGS="-O2 -Wno-nullability-completeness"
+export CXXFLAGS="$CFLAGS"
+export CPPFLAGS="-I$DEPS_ROOT/include"
+export LDFLAGS="-L$DEPS_ROOT/lib"
+
+# CPATH and LIBRARY_PATH are honoured by the compiler itself, so they reach
+# build systems that drop $CPPFLAGS/$LDFLAGS.  They must be overridden
+# rather than left alone: a development shell typically points them at the
+# finished $DEPS, which would feed the *other* architecture's libraries
+# into this pass.
+
+export CPATH="$DEPS_ROOT/include"
+export LIBRARY_PATH="$DEPS_ROOT/lib"
+
+# Keep Macports and Homebrew out of every dependency search.
+#
+# PKG_CONFIG_SYSROOT_DIR is essential, not cosmetic.  The staged .pc files
+# describe the *final* location, so without it `pkg-config --cflags glib-2.0'
+# answers -I$DEPS/include/glib-2.0 and every library that depends on another
+# one silently compiles against whatever $DEPS happens to hold from the
+# previous release -- the wrong version, and the wrong architecture.  The
+# sysroot makes pkg-config prepend the staging tree to those paths, while the
+# install names recorded in the libraries stay absolute and final.
+
+export PKG_CONFIG_LIBDIR="$DEPS_ROOT/lib/pkgconfig:/usr/lib/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="$DEPS_STAGE"
+export CMAKE_PREFIX_PATH="$DEPS_ROOT"
+export CMAKE_IGNORE_PREFIX_PATH="/opt/local;/usr/local;/opt/homebrew"
 unset PKG_CONFIG_PATH
-export CMAKE_PREFIX_PATH="$PREFIX;/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
-#Not accepted by CMake :(
-export CMAKE_IGNORE_PREFIX_PATH="/usr/local:/opt/local"
 
-config()
-{ if [ -r ./configure ]; then
-    ./configure --prefix=$PREFIX
-  elif  [ -r ../src/configure ]; then
-    ./configure --prefix=$PREFIX
+NPROC=$(sysctl -n hw.ncpu)
+
+################################################################
+# Build helpers
+#
+# Each takes the source directory, then extra configure arguments.  All
+# build out of tree in <srcdir>/build-<arch> so the two arch passes cannot
+# see each other's object files or config.h.
+################################################################
+
+# autotools: ../configure && make && make install DESTDIR=...
+
+autotools_build()
+{ local dir="$1"; shift
+  ( set -e
+    cd "$DEPS_SRC/$dir"
+    rm -rf "build-$DEPS_ARCH"
+    mkdir -p "build-$DEPS_ARCH"
+    cd "build-$DEPS_ARCH"
+    ../configure --prefix="$DEPS" "$@"
+    make -j$NPROC
+    make install DESTDIR="$DEPS_STAGE"
+  )
+}
+
+# meson: always out of tree, --wrap-mode=nofallback so that a missing
+# dependency is an error rather than a download of some git branch.
+
+meson_build()
+{ local dir="$1"; shift
+  ( set -e
+    cd "$DEPS_SRC/$dir"
+    rm -rf "build-$DEPS_ARCH"
+    meson setup "build-$DEPS_ARCH" \
+	  --prefix="$DEPS" \
+	  --buildtype=release \
+	  --default-library=shared \
+	  --wrap-mode=nofallback \
+	  -Dcmake_prefix_path="$DEPS_ROOT" \
+	  "$@"
+    meson compile -C "build-$DEPS_ARCH" -j $NPROC
+    DESTDIR="$DEPS_STAGE" meson install -C "build-$DEPS_ARCH"
+  )
+}
+
+# CMake: builds a fat binary in one pass and installs straight into $DEPS.
+# CC/CXX must not carry -arch here; CMAKE_OSX_ARCHITECTURES drives it.
+
+cmake_build()
+{ local dir="$1"; shift
+  ( set -e
+    cd "$DEPS_SRC/$dir"
+    rm -rf build-universal
+
+    # Exported for the build as well as the configure step.  CMake does
+    # not always give Objective-C sources the target's include
+    # directories (SDL3_image's IMG_ImageIO.m gets no -I at all), so the
+    # compiler's own search path has to carry them.
+    export CC=clang CXX=clang++ OBJC=clang OBJCXX=clang++
+    export CFLAGS="-O2 -Wno-nullability-completeness"
+    export CXXFLAGS="$CFLAGS"
+    export CPPFLAGS= LDFLAGS=
+    export CPATH="$DEPS_ROOT_FAT/include"
+    export LIBRARY_PATH="$DEPS_ROOT_FAT/lib"
+    export PKG_CONFIG_LIBDIR="$DEPS_ROOT_FAT/lib/pkgconfig:/usr/lib/pkgconfig"
+    export PKG_CONFIG_SYSROOT_DIR="$DEPS_STAGE_FAT"
+    export CMAKE_PREFIX_PATH="$DEPS_ROOT_FAT"
+
+    cmake -S . -B build-universal -G Ninja \
+	  -DCMAKE_BUILD_TYPE=Release \
+	  -DCMAKE_INSTALL_PREFIX="$DEPS" \
+	  -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+	  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+	  -DBUILD_SHARED_LIBS=ON \
+	  "$@"
+    cmake --build build-universal -j $NPROC
+    DESTDIR="$DEPS_STAGE_FAT" cmake --install build-universal
+  )
+}
+
+################################################################
+# Downloading
+################################################################
+
+fetch()					# fetch url file
+{ if [ -f "$2" ]; then
+    echo "Already have $2"
+  else
+    curl -sSL --fail -o "$2.part" "$1" && mv "$2.part" "$2" || \
+      { rm -f "$2.part"; echo "FAILED to download $2 from $1"; return 1; }
   fi
 }
 
-
-# Hide Homebrew and Macports to avoid importing dependencies for cairo
-# or pango.  We do need meson  and ninja.  We copy ninja from Macports
-# as it is a simple executable.   We install meson using MacOS Python.
-# Unfortunately MacOS certificates are too  old, so we need to install
-# these as well.
-
-hide_ports()
-{ mkdir -p $PREFIX/bin
-  if [ ! -x $PREFIX/bin/ninja ]; then
-      cp /opt/local/bin/ninja $PREFIX/bin/ninja
-  fi
-
-  sudo chmod 0 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
-  hash -r
-  if [ ! -x $PYTHON_BIN/meson ]; then
-      python3 -m pip install meson
-      python3 -m pip install --user certifi
-  fi
-  export SSL_CERT_FILE=$(python3 -m certifi)
+unpack()				# unpack file [dir]
+{ local dir="${2-}"
+  [ -n "$dir" ] && [ -d "$dir" ] && return 0
+  tar xf "$1"
 }
-
-restore_ports()
-{ sudo chmod 755 /opt/local /usr/local/lib /usr/local/bin /usr/local/share
-  hash -r
-}
-
-###########################
-# Download and install the GMP library.
 
 download_gmp()
-{ GMP_FILE=gmp-$GMP_VERSION.tar.bz2
-
-  [ -f $GMP_FILE ] || \
-    wget https://ftp.gnu.org/gnu/gmp/$GMP_FILE
-  tar jxf $GMP_FILE
+{ fetch https://ftp.gnu.org/gnu/gmp/gmp-$GMP_VERSION.tar.bz2 \
+	gmp-$GMP_VERSION.tar.bz2 &&
+  unpack gmp-$GMP_VERSION.tar.bz2 gmp-$GMP_VERSION
 }
-
-build_gmp()
-{ ( cd gmp-$GMP_VERSION
-    ./configure --prefix=$PREFIX \
-       --enable-shared --disable-static --enable-fat
-    make
-    make install
-  )
-}
-
-###########################
-# Download and install ssl
 
 download_ssl()
-{ SSL_FILE=openssl-$SSL_VERSION.tar.gz
-  [ -f $SSL_FILE ] || wget http://www.openssl.org/source/$SSL_FILE
-  tar xzf $SSL_FILE
+{ fetch https://github.com/openssl/openssl/releases/download/openssl-$SSL_VERSION/openssl-$SSL_VERSION.tar.gz \
+	openssl-$SSL_VERSION.tar.gz &&
+  unpack openssl-$SSL_VERSION.tar.gz openssl-$SSL_VERSION
 }
-
-build_ssl()
-{ ( cd openssl-$SSL_VERSION
-    case "$(uname -a)" in
-	*arm*) target=darwin64-arm64-cc
-	       ;;
-	*x86_64*) target=darwin64-x86_64-cc
-		  ;;
-	*) echo "Unknown Darwin target"
-	   return 1
-	   ;;
-    esac
-    export CFLAGS="$CMFLAGS"	# cannot build universal binary
-    ./Configure --prefix=$PREFIX shared threads $target
-    make depend
-    make
-    make install_sw
-    make install_ssldirs	# installs deps/ssl/openssl.cnf
-  )
-}
-
-###########################
-# Download and install BerkeleyDB
-# http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
-
-download_libdb()
-{ BDB_FILE=db-$BDB_VERSION.tar.gz
-
-  [ -f $BDB_FILE ] || \
-  curl http://download.oracle.com/otn/berkeley-db/$BDB_FILE > $BDB_FILE
-  tar zxvf $BDB_FILE
-}
-
-build_libdb()
-{ ( cd db-$BDB_VERSION/build_unix
-    ../dist/configure --prefix=$PREFIX \
-       --enable-shared --disable-static
-    make library_build
-    make install_lib install_include
-  )
-}
-
-
-###########################
-# Download and install BerkeleyDB
-# http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
-
-download_odbc()
-{ ODBC_FILE=unixODBC-$ODBC_VERSION.tar.gz
-
-  [ -f $ODBC_FILE ] || \
-  curl https://www.unixodbc.org/$ODBC_FILE > $ODBC_FILE
-  tar zxvf $ODBC_FILE
-}
-
-build_odbc()
-{ ( cd unixODBC-$ODBC_VERSION
-    ./configure --prefix=$PREFIX --enable-gui=no --enable-iconv=no --with-included-ltdl
-    make
-    make install
-  )
-}
-
-
-###########################
-# Download and install jpeg
-
-download_jpeg()
-{ JPEG_FILE=jpegsrc.v$JPEG_VERSION.tar.gz
-
-  [ -f $JPEG_FILE ] || wget http://www.ijg.org/files/$JPEG_FILE
-  tar xzf $JPEG_FILE
-}
-
-build_jpeg()
-{ ( cd jpeg-$JPEG_VERSION
-    ./configure --prefix=$PREFIX --enable-shared
-    make
-    make install
-  )
-}
-
-###########################
-# Download and install zlib
 
 download_zlib()
-{ ZLIB_FILE=zlib-$ZLIB_VERSION.tar.gz
-
-  [ -f $ZLIB_FILE ] || wget http://zlib.net/$ZLIB_FILE
-  tar xzf $ZLIB_FILE
+{ fetch https://zlib.net/zlib-$ZLIB_VERSION.tar.gz zlib-$ZLIB_VERSION.tar.gz &&
+  unpack zlib-$ZLIB_VERSION.tar.gz zlib-$ZLIB_VERSION
 }
-
-build_zlib()
-{ ( cd zlib-$ZLIB_VERSION
-    ./configure --prefix=$PREFIX
-    make
-    make install
-  )
-}
-
-#################################
-# Download and install libarchive
 
 download_libarchive()
-{ ARCHIVE_FILE=libarchive-$ARCHIVE_VERSION.tar.gz
-
-  [ -f $ARCHIVE_FILE ] || \
-    wget http://www.libarchive.org/downloads/$ARCHIVE_FILE
-  tar xzf $ARCHIVE_FILE
+{ fetch https://github.com/libarchive/libarchive/releases/download/v$ARCHIVE_VERSION/libarchive-$ARCHIVE_VERSION.tar.gz \
+	libarchive-$ARCHIVE_VERSION.tar.gz &&
+  unpack libarchive-$ARCHIVE_VERSION.tar.gz libarchive-$ARCHIVE_VERSION
 }
 
-# lt_cv_deplibs_check_method=pass_all works around a bug in libtool
-# causing: "linker path does not have real file for library" error on MinGW
-# See http://lists.cairographics.org/archives/cairo/2009-July/017686.html
+# Oracle stopped offering Berkeley DB without an account and the OSSP FTP
+# site is gone.  Both tarballs live in the source directory; we only unpack.
 
-build_libarchive()
-{ ( cd libarchive-$ARCHIVE_VERSION
-    ./configure --prefix=$PREFIX --with-pic \
-    --without-iconv --without-openssl --without-nettle --without-xml2 \
-    --without-expat --without-libregex --without-bz2lib \
-    --without-lzmadec --without-lzma --without-lzo2 \
-    --without-libb2 --without-zstd --without-lz4
-    make
-    make install
-  )
+download_libdb()
+{ unpack db-$BDB_VERSION.tar.gz db-$BDB_VERSION
 }
-
-
-#################################
-# Download and install libpcre
-
-download_libpcre2()
-{ PCRE2_FILE=pcre2-$PCRE2_VERSION.tar.gz
-
-  [ -f $PCRE2_FILE ] || \
-    wget https://github.com/PhilipHazel/pcre2/releases/download/pcre2-$PCRE2_VERSION/pcre2-$PCRE2_VERSION.tar.gz
-  tar xzf $PCRE2_FILE
-}
-
-
-build_libpcre2()
-{ ( cd pcre2-$PCRE2_VERSION
-    ./configure --prefix=$PREFIX \
-	--disable-static --disable-cpp --enable-utf8 --enable-unicode-properties
-    make pcre2.dll
-    make install
-  )
-}
-
-
-#################################
-# Download and install libuuid
 
 download_libuuid()
-{ UUID_FILE=uuid-$UUID_VERSION.tar.gz
-
-  [ -f $UUID_FILE ] || \
-  curl ftp://ftp.ossp.org/pkg/lib/uuid/$UUID_FILE > $UUID_FILE
-  tar zxvf $UUID_FILE
+{ unpack uuid-$UUID_VERSION.tar.gz uuid-$UUID_VERSION
 }
 
-build_libuuid()
-{ ( cd uuid-$UUID_VERSION
-    ./configure --prefix=$PREFIX
-    make
-    make install
-  )
+download_odbc()
+{ fetch https://www.unixodbc.org/unixODBC-$ODBC_VERSION.tar.gz \
+	unixODBC-$ODBC_VERSION.tar.gz &&
+  unpack unixODBC-$ODBC_VERSION.tar.gz unixODBC-$ODBC_VERSION
 }
 
-################################
-# Download and install libffi
+download_libpcre2()
+{ fetch https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$PCRE2_VERSION/pcre2-$PCRE2_VERSION.tar.gz \
+	pcre2-$PCRE2_VERSION.tar.gz &&
+  unpack pcre2-$PCRE2_VERSION.tar.gz pcre2-$PCRE2_VERSION
+}
 
 download_libffi()
-{ FFI_FILE=libffi-$FFI_VERSION.tar.gz
-  [ -f $FFI_FILE ] || \
-  wget https://github.com/libffi/libffi/releases/download/v$FFI_VERSION/$FFI_FILE
-  tar zxvf $FFI_FILE
+{ fetch https://github.com/libffi/libffi/releases/download/v$FFI_VERSION/libffi-$FFI_VERSION.tar.gz \
+	libffi-$FFI_VERSION.tar.gz &&
+  unpack libffi-$FFI_VERSION.tar.gz libffi-$FFI_VERSION
 }
-
-build_libffi()
-{ ( cd libffi-$FFI_VERSION
-    ./configure --prefix=$PREFIX
-    make
-    make install
-    # Bit strange location for the headers
-    cp $PREFIX/lib/libffi-$FFI_VERSION/include/*.h $PREFIX/include
-  )
-}
-
-
-################################
-# Download and install libyaml
 
 download_libyaml()
-{ #tested 01f3a8786127748b5bbd4614880c4484570bbd44
-  if [ -d libyaml ]; then
-    git -C libyaml pull
-  else
-    git clone https://github.com/yaml/libyaml
-  fi
+{ fetch https://github.com/yaml/libyaml/releases/download/$YAML_VERSION/yaml-$YAML_VERSION.tar.gz \
+	yaml-$YAML_VERSION.tar.gz &&
+  unpack yaml-$YAML_VERSION.tar.gz yaml-$YAML_VERSION
 }
-
-build_libyaml()
-{ ( cd libyaml
-    ./bootstrap
-    ./configure --prefix=$PREFIX
-    make
-    make install
-  )
-}
-
-# Download and build utf8proc
 
 download_utf8proc()
-{ if [ -d utf8proc ]; then
-    git -C utf8proc fetch
-    git -C utf8proc clean -xfd
-  else
-    git clone https://github.com/JuliaStrings/utf8proc.git
-  fi
-  git -C utf8proc checkout v$UTF8PROC_VERSION
+{ fetch https://github.com/JuliaStrings/utf8proc/archive/refs/tags/v$UTF8PROC_VERSION.tar.gz \
+	utf8proc-$UTF8PROC_VERSION.tar.gz &&
+  unpack utf8proc-$UTF8PROC_VERSION.tar.gz utf8proc-$UTF8PROC_VERSION
 }
-
-build_utf8proc()
-{ ( cd utf8proc
-    mkdir -p build
-    cd build
-    cmake -DCMAKE_BUILD_TYPE=Release \
-	  -DBUILD_SHARED_LIBS=ON \
-	  -DCMAKE_INSTALL_PREFIX=$PREFIX \
-	  -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-	  -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-	  -G Ninja ..
-    ninja
-    ninja install
-
-    # Do not use @rpath.   We'll fixup while building the bundle.
-    dylib=$(echo $PREFIX/lib/libutfproc.?.dylib)
-    install_name_tool -id $dylib $dylib
-  )
-}
-
-# Download and build SDL3
 
 download_sdl3()
-{ SDL3_FILE=SDL3-$SDL3_VERSION.tar.gz
-
-  [ -f $SDL3_FILE ] || \
-    curl -L -o $SDL3_FILE https://github.com/libsdl-org/SDL/releases/download/release-$SDL3_VERSION/$SDL3_FILE
-  tar xzf $SDL3_FILE
-}
-
-# Note: Building SDL3.4.0 requires two changes to CMakeLists.txt: Remove -Wundef
-# and disable precompiled headers.  After that, `build_sdl3` creates a working
-# universal binary.
-
-build_sdl3()
-{ ( cd SDL3-$SDL3_VERSION
-    mkdir -p build && cd build
-    cmake .. \
-      -G Ninja \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DSDL_VIDEO=ON \
-      -DSDL_AUDIO=ON \
-      -DSDL_RENDER=ON \
-      -DSDL_COCOA=ON \
-      -DSDL_X11=OFF \
-      -DSDL_WAYLAND=OFF \
-      -DSDL_VULKAN=OFF \
-      -DSDL_METAL=ON \
-      -DSDL_SHARED=ON \
-      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
-
-    ninja
-    ninja install
-
-    # Do not use @rpath.   We'll fixup while building the bundle.
-    dylib=$(echo $PREFIX/lib/libSDL3.*.dylib)
-    install_name_tool -id $dylib $dylib
-  )
+{ fetch https://github.com/libsdl-org/SDL/releases/download/release-$SDL3_VERSION/SDL3-$SDL3_VERSION.tar.gz \
+	SDL3-$SDL3_VERSION.tar.gz &&
+  unpack SDL3-$SDL3_VERSION.tar.gz SDL3-$SDL3_VERSION
 }
 
 download_sdl3_image()
-{ SDL3_IMAGE_FILE=SDL3_image-$SDL3_IMAGE_VERSION.tar.gz
-
-  [ -f $SDL3_IMAGE_FILE ] || \
-    curl -L -o $SDL3_IMAGE_FILE https://github.com/libsdl-org/SDL_image/releases/download/release-$SDL3_IMAGE_VERSION/$SDL3_IMAGE_FILE
-  tar xzf $SDL3_IMAGE_FILE
+{ fetch https://github.com/libsdl-org/SDL_image/releases/download/release-$SDL3_IMAGE_VERSION/SDL3_image-$SDL3_IMAGE_VERSION.tar.gz \
+	SDL3_image-$SDL3_IMAGE_VERSION.tar.gz &&
+  unpack SDL3_image-$SDL3_IMAGE_VERSION.tar.gz SDL3_image-$SDL3_IMAGE_VERSION
 }
 
-# Note: This builds a universal binary.
-
-build_sdl3_image()
-{ ( cd SDL3_image-$SDL3_IMAGE_VERSION
-    mkdir -p build && cd build
-    cmake .. \
-      -G Ninja \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DSDLIMAGE_BACKEND_IMAGEIO=ON \
-      -DSDLIMAGE_BACKEND_STB=ON \
-      -DSDLIMAGE_JPG=ON \
-      -DSDLIMAGE_PNG=ON \
-      -DSDLIMAGE_WEBP=OFF \
-      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
-
-    ninja
-    ninja install
-
-    # Do not use @rpath.   We'll fixup while building the bundle.
-    dylib=$(echo $PREFIX/lib/libSDL3_image.*.*.*.dylib)
-    sdl3_dylib=$(echo $PREFIX/lib/libSDL3.*.dylib)
-    sdl3_base=$(basename "$sdl3_dylib")
-    install_name_tool -id $dylib $dylib
-    install_name_tool -change "@rpath/$sdl3_base" "$sdl3_dylib" "$dylib"
-  )
+download_pixman()
+{ fetch https://cairographics.org/releases/pixman-$PIXMAN_VERSION.tar.gz \
+	pixman-$PIXMAN_VERSION.tar.gz &&
+  unpack pixman-$PIXMAN_VERSION.tar.gz pixman-$PIXMAN_VERSION
 }
 
+# glib always links libintl ("We require gettext to always be present"),
+# which macOS does not provide, and -Dnls=disabled does not change that.
+# proxy-libintl supplies the stubs.  Unlike the wraps cairo and pango use
+# for their major dependencies, this one is a hash-checked release
+# tarball, so it is safe to use -- fetch it here so that the build itself
+# needs no network.
+
+download_glib()
+{ fetch https://download.gnome.org/sources/glib/${GLIB_VERSION%.*}/glib-$GLIB_VERSION.tar.xz \
+	glib-$GLIB_VERSION.tar.xz &&
+  unpack glib-$GLIB_VERSION.tar.xz glib-$GLIB_VERSION &&
+  ( cd glib-$GLIB_VERSION && meson subprojects download proxy-libintl )
+}
+
+download_fribidi()
+{ fetch https://github.com/fribidi/fribidi/releases/download/v$FRIBIDI_VERSION/fribidi-$FRIBIDI_VERSION.tar.xz \
+	fribidi-$FRIBIDI_VERSION.tar.xz &&
+  unpack fribidi-$FRIBIDI_VERSION.tar.xz fribidi-$FRIBIDI_VERSION
+}
+
+download_harfbuzz()
+{ fetch https://github.com/harfbuzz/harfbuzz/releases/download/$HARFBUZZ_VERSION/harfbuzz-$HARFBUZZ_VERSION.tar.xz \
+	harfbuzz-$HARFBUZZ_VERSION.tar.xz &&
+  unpack harfbuzz-$HARFBUZZ_VERSION.tar.xz harfbuzz-$HARFBUZZ_VERSION
+}
 
 download_cairo()
-{ CAIRO_FILE=cairo-$CAIRO_VERSION.tar.xz
-
-  [ -f $CAIRO_FILE ] || \
-    curl -L -o $CAIRO_FILE https://cairographics.org/releases/$CAIRO_FILE
-  tar xf $CAIRO_FILE
-}
-
-# cairo-1.18.4/subprojects/glib-2.74.0/meson.build:505 needs to be patched
-# Comment #'-Werror=declaration-after-statement'
-build_cairo()
-{ hide_ports
-  ( cd cairo-$CAIRO_VERSION
-    export CFLAGS="$CFLAGS -std=gnu99 -DHAVE_CTIME_R=1 -Wno-error=declaration-after-statement"
-
-    meson setup build \
-      --prefix=$PREFIX \
-      --default-library=shared \
-      -Dtests=disabled \
-      -Dgtk_doc=false \
-      -Dxlib=disabled \
-      -Dxcb=disabled \
-      -Dquartz=enabled \
-      -Dtee=disabled \
-      -Ddwrite=disabled \
-      -Dzlib=enabled \
-      -Dfreetype=enabled
-
-    meson compile -C build
-    meson install -C build
-  )
-  restore_ports
+{ fetch https://cairographics.org/releases/cairo-$CAIRO_VERSION.tar.xz \
+	cairo-$CAIRO_VERSION.tar.xz &&
+  unpack cairo-$CAIRO_VERSION.tar.xz cairo-$CAIRO_VERSION
 }
 
 download_pango()
-{ PANGO_FILE=pango-$PANGO_VERSION.tar.xz
-
-  [ -f $PANGO_FILE ] || \
-    curl -L -o $PANGO_FILE https://download.gnome.org/sources/pango/1.56/$PANGO_FILE
-  tar xf $PANGO_FILE
-}
-
-build_pango()
-{ hide_ports		# Make Macports and Homebrew invisible
-  ( cd pango-$PANGO_VERSION
-
-    meson setup build \
-      --prefix=$PREFIX \
-      --default-library=shared \
-      -Dintrospection=disabled \
-      -Dcairo=enabled \
-      -Dharfbuzz:icu=disabled \
-      -Ddocumentation=false
-
-    meson compile -C build
-    meson install -C build
-  )
-  restore_ports
-}
-
-
-build_emacs()
-{ cp /opt/local/include/emacs-module.h $PREFIX/include
-}
-
-
-###########################
-# Do the whole lot for all prerequisites
-
-clean_prerequisites()
-{ rm -rf jpeg-9f
-  for f in *.tar.*; do
-      dir=$(echo $f | sed 's/\.tar\..*//')
-      echo "Cleaning $dir"
-      rm -rf $dir
-      tar zxf $f
-  done
-
-  ( cd libyaml && git clean -xfd )
+{ fetch https://download.gnome.org/sources/pango/${PANGO_VERSION%.*}/pango-$PANGO_VERSION.tar.xz \
+	pango-$PANGO_VERSION.tar.xz &&
+  unpack pango-$PANGO_VERSION.tar.xz pango-$PANGO_VERSION
 }
 
 download_prerequisites()
-{ download_gmp
-  download_ssl
-  download_jpeg
-  download_zlib
-  download_libarchive
-  download_libuuid
-  download_libdb
-  download_odbc
-  download_libpcre2
-  download_libffi
-  download_libyaml
-  download_sdl3
-  download_cairo
-  download_pango
+{ for d in "${DEPS_LIBS[@]}" "${DEPS_LIBS_UNIVERSAL[@]}"; do
+      echo "*** downloading $d"
+      download_$d || return 1
+  done
+}
+
+################################################################
+# Building, per library
+################################################################
+
+build_zlib()
+{ autotools_build zlib-$ZLIB_VERSION
+}
+
+build_libffi()
+{ autotools_build libffi-$FFI_VERSION --disable-static --disable-docs
+}
+
+build_libpcre2()
+{ autotools_build pcre2-$PCRE2_VERSION \
+      --disable-static --enable-jit --enable-unicode
+}
+
+build_gmp()
+{ autotools_build gmp-$GMP_VERSION --enable-shared --disable-static
+}
+
+# OpenSSL has its own configuration system.  `install_sw` skips the docs;
+# `install_ssldirs` installs $DEPS/ssl/openssl.cnf, which the bundle needs.
+
+build_ssl()
+{ local target
+  case $DEPS_ARCH in
+      arm64)  target=darwin64-arm64-cc ;;
+      x86_64) target=darwin64-x86_64-cc ;;
+      *)      echo "Unknown architecture $DEPS_ARCH"; return 1 ;;
+  esac
+  ( set -e
+    cd "$DEPS_SRC/openssl-$SSL_VERSION"
+    rm -rf "build-$DEPS_ARCH"
+    mkdir -p "build-$DEPS_ARCH"
+    cd "build-$DEPS_ARCH"
+    ../Configure --prefix="$DEPS" --openssldir="$DEPS/ssl" \
+		 shared threads no-docs $target
+    make -j$NPROC
+    make install_sw install_ssldirs DESTDIR="$DEPS_STAGE"
+  )
+}
+
+build_libarchive()
+{ autotools_build libarchive-$ARCHIVE_VERSION \
+      --disable-static --with-pic --with-zlib \
+      --without-iconv --without-openssl --without-nettle --without-xml2 \
+      --without-expat --without-libregex --without-bz2lib \
+      --without-lzmadec --without-lzma --without-lzo2 \
+      --without-libb2 --without-zstd --without-lz4
+}
+
+# Berkeley DB configures from dist/ and is built in its own build_unix
+# directory; only the library and headers are installed.
+
+# Berkeley DB configures from dist/ and installs only the library and the
+# headers.  Use a per-architecture build directory like everything else:
+# its conventional build_unix/ is shared, and because the second pass's
+# configure does not invalidate the first pass's object files, make would
+# quietly relink the *previous* architecture's objects and install those.
+
+build_libdb()
+{ ( set -e
+    cd "$DEPS_SRC/db-$BDB_VERSION"
+    rm -rf "build-$DEPS_ARCH"
+    mkdir -p "build-$DEPS_ARCH"
+    cd "build-$DEPS_ARCH"
+    ../dist/configure --prefix="$DEPS" --enable-shared --disable-static
+    make -j$NPROC library_build
+    make install_lib install_include DESTDIR="$DEPS_STAGE"
+  )
+}
+
+build_odbc()
+{ autotools_build unixODBC-$ODBC_VERSION \
+      --disable-static --enable-gui=no --enable-iconv=no --with-included-ltdl
+}
+
+# OSSP uuid 1.6.2 (2008) is the one package here that cannot be built out
+# of tree: its install rule copies uuid.pc from the source directory while
+# configure writes it into the build directory, and @UUID_VERSION_RAW@
+# comes out as 0.1.0 instead of 1.6.2.  Build it in tree instead, cleaning
+# up first so the second architecture does not reuse the first one's
+# objects.  clib's FindLibUUID.cmake locates the library through uuid.pc,
+# so it has to be correct.
+
+build_libuuid()
+{ ( set -e
+    cd "$DEPS_SRC/uuid-$UUID_VERSION"
+    make distclean >/dev/null 2>&1 || true
+    # uuid-config records $LDFLAGS verbatim and is installed; uuid depends
+    # on nothing, so keep the staging -L out of it.
+    LDFLAGS= ./configure --prefix="$DEPS" --disable-static
+    make -j$NPROC
+    make install DESTDIR="$DEPS_STAGE"
+  )
+}
+
+build_libyaml()
+{ autotools_build yaml-$YAML_VERSION --disable-static
+}
+
+build_pixman()
+{ meson_build pixman-$PIXMAN_VERSION \
+      -Dtests=disabled -Ddemos=disabled -Dgtk=disabled -Dlibpng=disabled
+}
+
+# glib needs pcre2, libffi and zlib from $DEPS.  gvdb is a pinned subproject
+# shipped in the tarball, so the wrap mode has to allow fallbacks here.
+
+build_glib()
+{ ( set -e
+    cd "$DEPS_SRC/glib-$GLIB_VERSION"
+    rm -rf "build-$DEPS_ARCH"
+    meson setup "build-$DEPS_ARCH" \
+	  --prefix="$DEPS" \
+	  --buildtype=release \
+	  --default-library=shared \
+	  --wrap-mode=nodownload \
+	  -Dcmake_prefix_path="$DEPS_ROOT" \
+	  -Dnls=disabled \
+	  -Dtests=false \
+	  -Dintrospection=disabled \
+	  -Ddocumentation=false \
+	  -Dman-pages=disabled
+    meson compile -C "build-$DEPS_ARCH" -j $NPROC
+    DESTDIR="$DEPS_STAGE" meson install -C "build-$DEPS_ARCH"
+  )
+}
+
+build_fribidi()
+{ meson_build fribidi-$FRIBIDI_VERSION \
+      -Ddocs=false -Dbin=false -Dtests=false
+}
+
+# CoreText is the font backend on macOS; FreeType and ICU are not needed.
+
+build_harfbuzz()
+{ meson_build harfbuzz-$HARFBUZZ_VERSION \
+      -Dglib=enabled -Dgobject=enabled -Dcoretext=enabled \
+      -Dfreetype=disabled -Dicu=disabled -Dcairo=disabled -Dchafa=disabled \
+      -Dtests=disabled -Ddocs=disabled -Dintrospection=disabled \
+      -Dutilities=disabled
+}
+
+# Quartz only: XPCE draws through pangocairo with the CoreText font map, so
+# the FreeType/fontconfig font backends and libpng are dead weight.  zlib is
+# needed for the PDF surface (cairo_pdf_surface_create).
+
+build_cairo()
+{ meson_build cairo-$CAIRO_VERSION \
+      -Dquartz=enabled -Dzlib=enabled -Dglib=enabled \
+      -Dfreetype=disabled -Dfontconfig=disabled -Dpng=disabled \
+      -Dxlib=disabled -Dxcb=disabled -Dxlib-xcb=disabled -Ddwrite=disabled \
+      -Dtee=disabled -Dtests=disabled -Dspectre=disabled -Dgtk_doc=false
+}
+
+build_pango()
+{ meson_build pango-$PANGO_VERSION \
+      -Dcairo=enabled -Dfontconfig=disabled -Dfreetype=disabled \
+      -Dintrospection=disabled -Ddocumentation=false \
+      -Dbuild-testsuite=false -Dbuild-examples=false
+}
+
+################################################################
+# Building, universal in one pass (CMake projects)
+################################################################
+
+build_utf8proc()
+{ cmake_build utf8proc-$UTF8PROC_VERSION \
+      -DUTF8PROC_ENABLE_TESTING=OFF
+}
+
+build_sdl3()
+{ cmake_build SDL3-$SDL3_VERSION \
+      -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
+      -DSDL_COCOA=ON -DSDL_METAL=ON -DSDL_RENDER=ON \
+      -DSDL_VIDEO=ON -DSDL_AUDIO=ON \
+      -DSDL_X11=OFF -DSDL_WAYLAND=OFF -DSDL_VULKAN=OFF
+}
+
+# PNG and JPEG are decoded by ImageIO (CoreGraphics) and stb, so no
+# libpng or libjpeg is needed.  SDLIMAGE_PNG_LIBPNG must be turned off
+# explicitly: it defaults on whenever SDLIMAGE_PNG is set and would drag in
+# libpng for the sake of animated PNGs, which is the one thing the
+# libpng-free IMG_png.c path gives up.  The release tarball's external/
+# holds only download scripts, so vendoring is not an option either.
+
+build_sdl3_image()
+{ cmake_build SDL3_image-$SDL3_IMAGE_VERSION \
+      -DSDLIMAGE_SAMPLES=OFF -DSDLIMAGE_TESTS=OFF -DSDLIMAGE_DEPS_SHARED=OFF \
+      -DSDLIMAGE_VENDORED=OFF \
+      -DSDLIMAGE_BACKEND_IMAGEIO=ON -DSDLIMAGE_BACKEND_STB=ON \
+      -DSDLIMAGE_JPG=ON -DSDLIMAGE_PNG=ON -DSDLIMAGE_PNG_LIBPNG=OFF \
+      -DSDLIMAGE_WEBP=OFF -DSDLIMAGE_AVIF=OFF -DSDLIMAGE_JXL=OFF \
+      -DSDLIMAGE_TIF=OFF
+}
+
+# The `sweep' package (Emacs interface) needs emacs-module.h, which is not
+# part of any of the above.  Macports' Emacs is the only place we have it.
+
+build_emacs_header()
+{ if [ -f /opt/local/include/emacs-module.h ]; then
+    mkdir -p "$DEPS_ROOT_FAT/include"
+    cp /opt/local/include/emacs-module.h "$DEPS_ROOT_FAT/include"
+  else
+    echo "No /opt/local/include/emacs-module.h; skipping (the sweep package needs it)"
+  fi
+}
+
+################################################################
+# Order.  zlib, libffi and pcre2 come first because glib uses all three;
+# glib, pixman, fribidi and harfbuzz come before cairo and pango.
+################################################################
+
+DEPS_LIBS=(zlib libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
+	   libyaml pixman glib fribidi harfbuzz cairo pango)
+DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image)
+
+################################################################
+# Driving the whole thing
+################################################################
+
+# Build every autotools/meson library for one architecture into its own
+# staging tree.  For an architecture other than the one we are running on,
+# re-enter this script under `arch`.
+
+build_arch()
+{ local arch="$1"
+
+  if [ "$arch" != "$(uname -m)" ]; then
+    arch -$arch /bin/bash -c \
+	 "cd '$DEPS_SRC' && . ./macos-deps.sh && build_arch $arch"
+    return $?
+  fi
+
+  echo "=== Building for $arch in $DEPS_STAGE ==="
+  rm -rf "$DEPS_STAGE"
+  for d in "${DEPS_LIBS[@]}"; do
+      echo "*** $arch: $d"
+      if ! build_$d; then
+	  echo "*** FAILED: $d ($arch)"
+	  return 1
+      fi
+  done
+}
+
+# Merge the two staging trees into $DEPS.  The arm64 tree provides the
+# headers, pkg-config files and scripts; every Mach-O file is replaced by a
+# fat version of both.  lipo and install_name_tool invalidate code
+# signatures, so everything we touch is re-signed ad hoc -- arm64 refuses to
+# load a dylib whose signature does not match.
+
+merge_universal()
+{ local arm="$DEPS_SRC/stage-arm64$DEPS"
+  local x86="$DEPS_SRC/stage-x86_64$DEPS"
+  local fat="$DEPS_ROOT_FAT"
+  local d f rel
+
+  for d in "$arm" "$x86" "$fat"; do
+      if [ ! -d "$d" ]; then
+	  echo "No such staging tree: $d"
+	  echo "(run build_arch arm64, build_arch x86_64 and build_universal)"
+	  return 1
+      fi
+  done
+
+  echo "=== Composing $DEPS ==="
+  rm -rf "$DEPS"
+  mkdir -p "$DEPS" || return 1
+
+  # The arm64 tree provides the headers, pkg-config files and scripts;
+  # every Mach-O file in it is then replaced by a fat version of both
+  # architectures.  The CMake libraries are fat already and are copied in
+  # afterwards.
+
+  ( cd "$arm" && tar cf - . ) | ( cd "$DEPS" && tar xf - )
+
+  ( cd "$DEPS"
+    find . -type f -print | while read -r f; do
+	case "$(file -b "$f")" in
+	    *Mach-O*|*"current ar archive"*)
+		rel="${f#./}"
+		if [ ! -f "$x86/$rel" ]; then
+		    echo "WARNING: no x86_64 counterpart for $rel"
+		elif lipo -create "$f" "$x86/$rel" -output "$f.fat"; then
+		    mv "$f.fat" "$f"
+		    codesign --force --sign - "$f" 2>/dev/null
+		else
+		    rm -f "$f.fat"
+		    echo "WARNING: cannot lipo $rel"
+		fi
+		;;
+	esac
+    done
+  )
+
+  ( cd "$fat" && tar cf - . ) | ( cd "$DEPS" && tar xf - )
+
+  # libtool .la files record this pass's staging -L in dependency_libs.
+  # Nothing downstream uses libtool -- swipl is built with CMake against
+  # pkg-config -- so they can only mislead.  Drop them.
+
+  find "$DEPS" -name '*.la' -delete
+}
+
+# CMake installs libraries with an @rpath install name.  The bundle rewrites
+# install names later (scripts/macosx_bundle_fixup.sh) and expects to find
+# absolute paths here, so turn every @rpath reference into $DEPS/lib/...
+
+absolute_install_names()
+{ local root="${1:-$DEPS}"
+  local f id dep base
+
+  for f in $(find "$root/lib" "$root/bin" -type f 2>/dev/null); do
+      case "$(file -b "$f")" in
+	  *Mach-O*) ;;
+	  *) continue ;;
+      esac
+
+      id=$(otool -D "$f" | sed -n '2p')
+      case "$id" in
+	  @rpath/*) install_name_tool -id "$DEPS/lib/${id#@rpath/}" "$f" ;;
+      esac
+
+      for dep in $(otool -L "$f" | awk 'NR>1 {print $1}' | grep '^@rpath/'); do
+	  base="${dep#@rpath/}"
+	  if [ -f "$DEPS/lib/$base" ]; then
+	      install_name_tool -change "$dep" "$DEPS/lib/$base" "$f"
+	  fi
+      done
+
+      codesign --force --sign - "$f" 2>/dev/null
+  done
+}
+
+build_universal()
+{ echo "=== Building universal (CMake) libraries in $DEPS_STAGE_FAT ==="
+  rm -rf "$DEPS_STAGE_FAT"
+  for d in "${DEPS_LIBS_UNIVERSAL[@]}"; do
+      echo "*** universal: $d"
+      if ! build_$d; then
+	  echo "*** FAILED: $d"
+	  return 1
+      fi
+  done
+  build_emacs_header
+  absolute_install_names "$DEPS_ROOT_FAT"
 }
 
 build_prerequisites()
-{ build_zlib
-  build_libffi
-  build_libuuid
-  build_gmp
-  build_ssl
-  build_jpeg
-  build_libarchive
-  build_libdb
-  build_odbc
-  build_libpcre2
-  build_libyaml
-  build_emacs
-  build_sdl3
-  build_cairo
-  build_pango
+{ build_arch arm64	&&
+  build_arch x86_64	&&
+  build_universal	&&
+  merge_universal	&&
+  check_prerequisites
+}
+
+################################################################
+# Verification
+################################################################
+
+# Three things can quietly go wrong: a library ends up single-architecture,
+# a library refers to Macports/Homebrew, or a library refers to one of the
+# staging trees instead of $DEPS.
+
+check_prerequisites()
+{ local f leaks bad=0 thin=0 ports=0 stage=0
+
+  echo "=== Checking $DEPS ==="
+  for f in $(find "$DEPS/lib" "$DEPS/bin" -type f 2>/dev/null); do
+      case "$(file -b "$f")" in
+	  *Mach-O*) ;;
+	  *) continue ;;
+      esac
+
+      case "$(lipo -info "$f" 2>/dev/null)" in
+	  *"x86_64 arm64"*|*"arm64 x86_64"*) ;;
+	  *) echo "NOT UNIVERSAL: ${f#$DEPS/}"; thin=$((thin+1)) ;;
+      esac
+
+      if otool -L "$f" | grep -q '/opt/local\|/usr/local\|/opt/homebrew'; then
+	  echo "LINKS TO PORTS: ${f#$DEPS/}"
+	  otool -L "$f" | grep '/opt/local\|/usr/local\|/opt/homebrew'
+	  ports=$((ports+1))
+      fi
+
+      if otool -L "$f" | grep -q "$DEPS_SRC/stage-"; then
+	  echo "LINKS TO STAGING: ${f#$DEPS/}"
+	  stage=$((stage+1))
+      fi
+  done
+
+  leaks=$(grep -rls "$DEPS_SRC/stage-" "$DEPS" 2>/dev/null)
+  if [ -n "$leaks" ]; then
+      echo "$leaks" | head
+      echo "(above files mention a staging directory)"
+      bad=1
+  fi
+
+  echo "--- installed versions"
+  for f in "$DEPS"/lib/pkgconfig/*.pc; do
+      [ -f "$f" ] || continue
+      printf "%-26s %s\n" "$(basename "$f" .pc)" \
+	     "$(sed -n 's/^Version: *//p' "$f")"
+  done
+
+  echo "--- $thin thin, $ports port-linked, $stage staging-linked"
+  [ $thin -eq 0 -a $ports -eq 0 -a $stage -eq 0 -a $bad -eq 0 ]
+}
+
+################################################################
+# Cleaning
+################################################################
+
+# Remove the per-architecture build directories, but keep the unpacked
+# sources (and any local patches in them).
+
+clean_builds()
+{ ( cd "$DEPS_SRC" && rm -rf */build-arm64 */build-x86_64 */build-universal \
+			   stage-arm64 stage-x86_64 stage-universal
+    cd "$DEPS_SRC/uuid-$UUID_VERSION" 2>/dev/null && make distclean >/dev/null 2>&1
+    true )
+}
+
+# Throw away the unpacked sources and start over from the tarballs.
+
+clean_prerequisites()
+{ ( cd "$DEPS_SRC"
+    rm -rf gmp-$GMP_VERSION openssl-$SSL_VERSION zlib-$ZLIB_VERSION \
+	   libarchive-$ARCHIVE_VERSION uuid-$UUID_VERSION db-$BDB_VERSION \
+	   unixODBC-$ODBC_VERSION pcre2-$PCRE2_VERSION libffi-$FFI_VERSION \
+	   yaml-$YAML_VERSION utf8proc-$UTF8PROC_VERSION \
+	   SDL3-$SDL3_VERSION SDL3_image-$SDL3_IMAGE_VERSION \
+	   pixman-$PIXMAN_VERSION glib-$GLIB_VERSION \
+	   fribidi-$FRIBIDI_VERSION harfbuzz-$HARFBUZZ_VERSION \
+	   cairo-$CAIRO_VERSION pango-$PANGO_VERSION
+    clean_builds
+  )
 }
