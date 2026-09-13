@@ -347,6 +347,36 @@ test(group, Atom == '1.\u2009234.\u2009567,89') :-
 			     thousands_sep('.\u2009')
 			   ]).
 
+% The decimal point printed by the C library depends on the process
+% LC_NUMERIC locale, which we do not set (issue #1093).  Formatting must
+% not assume it equals the decimal point of the `default' locale: in a
+% German environment that made ~2:f leave the C library's "." in place
+% (issue #1525).  Use the default locale's own decimal point to get the
+% two to collide regardless of the environment we run in.
+
+test(default_decimal_point, Atom == Expected) :-
+	locale_property(default, decimal_point(DP)),
+	format_with_locale(atom(Atom), '~2:f', [1234567.89],
+			   [ decimal_point(DP),
+			     thousands_sep(':')
+			   ]),
+	atomic_list_concat(['1:234:567', DP, '89'], Expected).
+test(default_decimal_point, Atom == Expected) :-
+	locale_property(default, decimal_point(DP)),
+	format_with_locale(atom(Atom), '~2:d', [123456789],
+			   [ decimal_point(DP),
+			     thousands_sep(':')
+			   ]),
+	atomic_list_concat(['1:234:567', DP, '89'], Expected).
+
+% ~f without the colon modifier is not locale sensitive.
+
+test(no_locale, Atom == '1234567.89') :-
+	format_with_locale(atom(Atom), '~2f', [1234567.89],
+			   [ decimal_point(','),
+			     thousands_sep('.')
+			   ]).
+
 :- end_tests(locale).
 
 

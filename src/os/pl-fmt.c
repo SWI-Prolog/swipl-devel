@@ -1299,18 +1299,6 @@ ths_to_utf8(char *u8, const wchar_t *s, size_t len)
 
 
 static int
-same_decimal_point(PL_locale *l1, PL_locale *l2)
-{ if ( l1->decimal_point && l2->decimal_point &&
-       wcscmp(l1->decimal_point, l2->decimal_point) == 0 )
-    return true;
-  if ( !l1->decimal_point && !l2->decimal_point )
-    return true;
-
-  return false;
-}
-
-
-static int
 utf8_dp(PL_locale *l, char *s, int *len)
 { if ( l->decimal_point )
   { if ( !ths_to_utf8(s, l->decimal_point, 20) )
@@ -1326,46 +1314,66 @@ utf8_dp(PL_locale *l, char *s, int *len)
 }
 
 
+/* find_decimal_point() returns a pointer to the decimal separator in
+   the number held in `s', filling *len with its length in bytes, or
+   NULL if the number has no fractional part.
+
+   We must not assume _which_ separator the number was printed with:
+   the C library uses the process LC_NUMERIC locale, which SWI-Prolog
+   deliberately leaves alone (issue #1093), while the bignum paths
+   above insert a separator of their own.  So we simply locate it: the
+   buffer holds [-]<digits>[SEP<digits>][(e|E)[+|-]<digits>] and SEP is
+   whatever non-digit run sits between the two digit sequences.  This
+   also deals with "inf" and "nan", which have no leading digits.
+*/
+
+static char *
+find_decimal_point(char *s, size_t *len)
+{ char *e, *p;
+
+  if ( *s == '-' || *s == '+' )
+    s++;
+  for(e=s; isDigit(*e); e++)
+    ;
+  if ( e == s )				/* inf, nan, ... */
+    return NULL;
+  for(p=e; *p && !isDigit(*p) && *p != 'e' && *p != 'E'; p++)
+    ;
+  if ( p == e || !isDigit(*p) )		/* no separator or no fraction */
+    return NULL;
+
+  *len = (size_t)(p-e);
+  return e;
+}
+
+
 /* localizeDecimalPoint() replaces the decimal point as entered by the
-   local sensitive print functions by the one in the specified locale.
-   This is overly complicated. Needs more testing, in particular for
-   locales with (in UTF-8) multibyte decimal points.
+   number printing code by the one in the specified locale.
 */
 
 static int
 localizeDecimalPoint(PL_locale *locale, Buffer b)
-{ if ( locale == GD->locale.default_locale ||
-       same_decimal_point(GD->locale.default_locale, locale) )
+{ char dp[20]; int dplen;
+  size_t seplen;
+  char *sep;
+
+  if ( !(sep=find_decimal_point(baseBuffer(b, char), &seplen)) )
     return true;
 
-  if ( locale->decimal_point && locale->decimal_point[0] )
-  { char *s = baseBuffer(b, char);
-    char *e;
-    char dp[20];  int dplen;
-    char ddp[20]; int ddplen;
+  if ( !utf8_dp(locale, dp, &dplen) )
+    return false;
 
-    if ( !utf8_dp(locale, dp, &dplen) ||
-	 !utf8_dp(GD->locale.default_locale, ddp, &ddplen) )
-      return false;
+  if ( (size_t)dplen == seplen )
+  { memcpy(sep, dp, seplen);
+  } else
+  { char *ob = baseBuffer(b, char);
 
-    if ( *s == '-' )
-      s++;
-    for(e=s; *e && isDigit(*e); e++)
-      ;
+    if ( (size_t)dplen > seplen && !growBuffer(b, (size_t)dplen-seplen) )
+      return PL_no_memory();
+    sep += baseBuffer(b, char) - ob;
 
-    if ( strncmp(e, ddp, ddplen) == 0 )
-    { if ( dplen == ddplen )
-      { memcpy(e, dp, dplen);
-      } else
-      { char *ob = baseBuffer(b, char);
-	if ( dplen > ddplen && !growBuffer(b, dplen-ddplen) )
-	  return PL_no_memory();
-	e += baseBuffer(b, char) - ob;
-
-	memmove(&e[dplen-ddplen], e, strlen(e)+1);
-	memcpy(e, dp, dplen);
-      }
-    }
+    memmove(&sep[dplen], &sep[seplen], strlen(&sep[seplen])+1);
+    memcpy(sep, dp, dplen);
   }
 
   return true;
@@ -1580,10 +1588,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 	  if (arg)
 	  { memmove(out->base+written-(arg-1), out->base+written-arg, arg+1);
-	    if ( locale->decimal_point && locale->decimal_point[0] )
-	      *(out->base+written-arg) = (char)locale->decimal_point[0];
-	    else
-	      *(out->base+written-arg) = '.';
+	    *(out->base+written-arg) = '.';	/* localizeDecimalPoint() */
 	    written++;
 	  }
 
