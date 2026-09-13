@@ -283,12 +283,15 @@ to be used with the Windows UNICODE access functions.
 
 #define ISSEP(c) ((c)=='/'||(c)=='\\')
 
-static int
+static bool
+is_unc_char(int c)
+{ return c < 0x80 && (isalnum(c) || c == '.' || c == ':');
+}
+
+static bool
 is_unc_path(const char *q)
 { if ( ISSEP(q[0]) && ISSEP(q[1]) )
-  { const char *hp = q+2;
-
-    for(q=hp; *q && *q < 0x80 && (isalnum(*q) || *q == '.' || *q == ':'); q++)
+  { for(q += 2; is_unc_char(*q&0xff); q++)
       ;
     if ( ISSEP(*q) )
       return true;
@@ -371,10 +374,9 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
     return osname;
   }
 
-  int unc;
   DWORD rc;
 
-  if ( (unc=is_unc_path(cname)) )
+  if ( is_unc_path(cname) )
   { size_t plen = wcslen(WIN_UNC_PREFIX);
     wchar_t *to = s+plen-1;
 
