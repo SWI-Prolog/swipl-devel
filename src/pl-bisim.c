@@ -722,10 +722,14 @@ pool_create(bs_pool *p)
 
 static void
 free_graph(bs_graph *g)
-{ tmp_free(g->pool);
-  tmp_free(g->pool2);
-  tmp_free(g->uses);
-  tmp_free(g->leafp);
+{ if ( g->pool )
+	tmp_free(g->pool);
+  if ( g->pool2 )
+    tmp_free(g->pool2);
+  if ( g->uses )
+    tmp_free(g->uses);
+  if ( g->leafp )
+    tmp_free(g->leafp);
 }
 
 
@@ -955,7 +959,8 @@ term_quotient(DECL_LD Word p, bs_graph *g, Buffer b, word opaque, bool minimal)
     }
   }
 
-  tmp_free(leaf);			/* if we never got that far */
+  if ( leaf )
+    tmp_free(leaf);			/* if we never got that far */
 
   return rc;
 }
@@ -1193,7 +1198,8 @@ automaton_quotient(DECL_LD Word w, bs_graph *g, Buffer b, bs_automaton *aut,
     }
   }
 
-  tmp_free(leaf);
+  if ( leaf )
+	tmp_free(leaf);
 
   return rc;
 }
