@@ -76,9 +76,12 @@
 #    configured with --wrap-mode=nofallback: a missing dependency is an
 #    error, never a silent download.
 #
-#  - Berkeley DB and OSSP uuid are no longer downloadable (Oracle requires
-#    an account; the OSSP FTP host is gone).  The tarballs in the source
-#    directory are the only copies -- do not delete them.
+#  - Berkeley DB is deliberately held at 5.3: 6.x is AGPL, which would
+#    conflict with distributing the bundle (e.g. as a Homebrew cask); 5.3
+#    is under the Sleepycat licence.  Do not "update" it.
+#
+#  - OSSP uuid is no longer downloadable (the OSSP FTP host is gone).  The
+#    tarball in the source directory is the only copy -- do not delete it.
 
 ################################################################
 # Configuration
@@ -89,7 +92,7 @@ SSL_VERSION=3.6.4
 ZLIB_VERSION=1.3.2
 ARCHIVE_VERSION=3.8.9
 UUID_VERSION=1.6.2
-BDB_VERSION=6.1.26
+BDB_VERSION=5.3.28
 ODBC_VERSION=2.3.14
 PCRE2_VERSION=10.48
 FFI_VERSION=3.8.0
@@ -310,12 +313,17 @@ download_libarchive()
   unpack libarchive-$ARCHIVE_VERSION.tar.gz libarchive-$ARCHIVE_VERSION
 }
 
-# Oracle stopped offering Berkeley DB without an account and the OSSP FTP
-# site is gone.  Both tarballs live in the source directory; we only unpack.
+# Berkeley DB 5.3.28 is still freely downloadable (unlike 6.x, which needs
+# an Oracle account).  sha256 e0a992d740709892e81f9d93f06daf305cf73fb81b545afe72478043172c3628
 
 download_libdb()
-{ unpack db-$BDB_VERSION.tar.gz db-$BDB_VERSION
+{ fetch https://download.oracle.com/berkeley-db/db-$BDB_VERSION.tar.gz \
+	db-$BDB_VERSION.tar.gz &&
+  unpack db-$BDB_VERSION.tar.gz db-$BDB_VERSION
 }
+
+# The OSSP FTP site is gone; the tarball in the source directory is the
+# only copy, so we only unpack.
 
 download_libuuid()
 { unpack uuid-$UUID_VERSION.tar.gz uuid-$UUID_VERSION
@@ -466,22 +474,39 @@ build_libarchive()
       --without-libb2 --without-zstd --without-lz4
 }
 
-# Berkeley DB configures from dist/ and is built in its own build_unix
-# directory; only the library and headers are installed.
+# Old libtool (Berkeley DB, OSSP uuid) decides how to link a dylib by
+# matching $MACOSX_DEPLOYMENT_TARGET against `10.[012]*' -- which also
+# matches 10.15, giving -flat_namespace -undefined suppress.  Anchor the
+# pattern so only 10.0-10.2 take that branch.  Idempotent.
+
+fix_libtool_darwin()			# fix_libtool_darwin configure
+{ sed -i '' 's/^\([[:space:]]*\)10\.\[012\]\*)/\110.[012],*)/' "$1"
+}
 
 # Berkeley DB configures from dist/ and installs only the library and the
 # headers.  Use a per-architecture build directory like everything else:
 # its conventional build_unix/ is shared, and because the second pass's
 # configure does not invalidate the first pass's object files, make would
 # quietly relink the *previous* architecture's objects and install those.
+#
+# 5.3.28 predates modern clang: atomic_init() and
+# __atomic_compare_exchange() collide with compiler builtins (renamed as
+# in Homebrew's berkeley-db@5), and some configure probes rely on implicit
+# function declarations.
 
 build_libdb()
 { ( set -e
     cd "$DEPS_SRC/db-$BDB_VERSION"
+    sed -i '' -e 's/atomic_init(/atomic_init_db(/g' \
+	      -e 's/__atomic_compare_exchange(/__atomic_compare_exchange_db(/g' \
+	src/dbinc/atomic.h src/mp/mp_fget.c src/mp/mp_mvcc.c \
+	src/mp/mp_region.c src/mutex/mut_method.c src/mutex/mut_tas.c
+    fix_libtool_darwin dist/configure
     rm -rf "build-$DEPS_ARCH"
     mkdir -p "build-$DEPS_ARCH"
     cd "build-$DEPS_ARCH"
-    ../dist/configure --prefix="$DEPS" --enable-shared --disable-static
+    CFLAGS="$CFLAGS -Wno-implicit-function-declaration" \
+      ../dist/configure --prefix="$DEPS" --enable-shared --disable-static
     make -j$NPROC library_build
     make install_lib install_include DESTDIR="$DEPS_STAGE"
   )
@@ -504,6 +529,7 @@ build_libuuid()
 { ( set -e
     cd "$DEPS_SRC/uuid-$UUID_VERSION"
     make distclean >/dev/null 2>&1 || true
+    fix_libtool_darwin configure
     # uuid-config records $LDFLAGS verbatim and is installed; uuid depends
     # on nothing, so keep the staging -L out of it.
     LDFLAGS= ./configure --prefix="$DEPS" --disable-static
@@ -781,7 +807,7 @@ build_prerequisites()
 # staging trees instead of $DEPS.
 
 check_prerequisites()
-{ local f leaks bad=0 thin=0 ports=0 stage=0
+{ local f leaks bad=0 thin=0 ports=0 stage=0 flat=0
 
   echo "=== Checking $DEPS ==="
   for f in $(find "$DEPS/lib" "$DEPS/bin" -type f 2>/dev/null); do
@@ -800,6 +826,14 @@ check_prerequisites()
 	  otool -L "$f" | grep '/opt/local\|/usr/local\|/opt/homebrew'
 	  ports=$((ports+1))
       fi
+
+      # Only linked images have a namespace; the members of a static
+      # archive are MH_OBJECT files, which never carry TWOLEVEL.
+      case "$(otool -arch arm64 -hv "$f" 2>/dev/null | tail -1)" in
+	  *DYLIB*TWOLEVEL*|*EXECUTE*TWOLEVEL*) ;;
+	  *DYLIB*|*EXECUTE*)
+	      echo "FLAT NAMESPACE: ${f#$DEPS/}"; flat=$((flat+1)) ;;
+      esac
 
       if otool -L "$f" | grep -q "$DEPS_SRC/stage-"; then
 	  echo "LINKS TO STAGING: ${f#$DEPS/}"
@@ -821,8 +855,8 @@ check_prerequisites()
 	     "$(sed -n 's/^Version: *//p' "$f")"
   done
 
-  echo "--- $thin thin, $ports port-linked, $stage staging-linked"
-  [ $thin -eq 0 -a $ports -eq 0 -a $stage -eq 0 -a $bad -eq 0 ]
+  echo "--- $thin thin, $ports port-linked, $stage staging-linked, $flat flat-namespace"
+  [ $thin -eq 0 -a $ports -eq 0 -a $stage -eq 0 -a $flat -eq 0 -a $bad -eq 0 ]
 }
 
 ################################################################
