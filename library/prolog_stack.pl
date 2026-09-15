@@ -442,12 +442,12 @@ where_goal(clause(Clause, PC), Options) -->
       clause_where(false, Clause, PC, Where, Options)
     },
     where_goal(Where, Options).
-where_goal(clause(Clause, _PC), _) -->
+where_goal(clause(Clause, _PC), Options) -->
     { clause_property(Clause, file(File)),
       clause_property(Clause, line_count(Line))
     },
     !,
-    [ ' at ', url(File:Line) ].
+    [ ' at ', file_line(File:Line, Options) ].
 where_goal(clause(Clause, _PC), _) -->
     { clause_name(Clause, ClauseName)
     },
