@@ -2,6 +2,15 @@ if(APPLE)
 
 set(CMAKE_FIND_APPBUNDLE NEVER) # Make sure cmake does not find the Apple gui version of GIT
 
+# LSMinimumSystemVersion for desktop/Info.plist.in and
+# desktop/Framework-Info.plist.in.  Must match the LC_BUILD_VERSION minos
+# of the binaries, so derive it from the deployment target.
+if(CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(SWIPL_MACOS_MIN_VERSION "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+else()
+  set(SWIPL_MACOS_MIN_VERSION "10.15")
+endif()
+
 if(MACOS_UNIVERSAL_BINARY)
   set(SWIPL_ARCH fat-darwin)
 endif()

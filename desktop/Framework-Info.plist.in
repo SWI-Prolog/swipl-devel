@@ -15,7 +15,7 @@
                                      <string>6.0</string>
   <key>CFBundleSupportedPlatforms</key>
   <array><string>MacOSX</string></array>
-  <key>LSMinimumSystemVersion</key>  <string>10.14.0</string>
+  <key>LSMinimumSystemVersion</key>  <string>${SWIPL_MACOS_MIN_VERSION}</string>
   <key>NSHumanReadableCopyright</key>
                                      <string>BSD-2-Clause, SWI-Prolog contributors</string>
 </dict>

@@ -12,7 +12,7 @@
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleSupportedPlatforms</key>
   <array><string>MacOSX</string></array>
-  <key>LSMinimumSystemVersion</key><string>10.14.0</string>
+  <key>LSMinimumSystemVersion</key><string>@SWIPL_MACOS_MIN_VERSION@</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
