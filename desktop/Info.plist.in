@@ -14,5 +14,7 @@
   <array><string>MacOSX</string></array>
   <key>LSMinimumSystemVersion</key><string>@SWIPL_MACOS_MIN_VERSION@</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>SWI-Prolog programs may connect to hosts on your local network.</string>
 </dict>
 </plist>
