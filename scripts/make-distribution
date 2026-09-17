@@ -18,7 +18,9 @@ export MACOSX_DEPLOYMENT_TARGET=10.15
 # Xcode.  Its .tbd stubs then name architectures (e.g. arm64e.x1) that
 # the older Xcode linker rejects with "tapi error: malformed file",
 # making every cmake check_function_exists() link fail.
-MACOS_SDK_USR="$(xcrun --show-sdk-path)/usr"
+if [ $(uname) = Darwin ]; then
+  MACOS_SDK_USR="$(xcrun --show-sdk-path)/usr"
+fi
 
 build_pdf()
 { rm -rf build.pdf
