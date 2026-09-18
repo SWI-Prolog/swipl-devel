@@ -101,8 +101,8 @@ prolog:complete_input(Before, After, Delete, Completions) :-
 complete(BeforeRev, _After, Prefix, Files) :-   % complete files
     phrase(file_prefix(Prefix, Type), BeforeRev),
     !,
-    (   Type = library(Close)
-    ->  complete_library(Prefix, Close, Files)
+    (   Type = alias(Alias)
+    ->  complete_alias(Alias, Prefix, ')', Files)
     ;   atom_concat(Prefix, '*', Pattern),
         expand_file_name(Pattern, Files0),
         finish_file_name(Files0, Type, Files)
@@ -186,8 +186,13 @@ file_prefix(Prefix, consult(']')) -->
     { reverse(RevString, String),
       atom_codes(Prefix, String)
     }.
-file_prefix(Prefix, library(')')) -->
-    file_chars(RevString, unquoted), "(yrarbil",
+file_prefix(Prefix, alias(Alias)) -->
+    file_chars(RevString, unquoted),
+    file_search_alias(Alias),
+    (   "["
+    ->  []
+    ;   {Alias == library}
+    ),
     !,
     remainder(_),
     { reverse(RevString, String),
@@ -212,6 +217,18 @@ file_char(0'~).
 file_char(0':).
 file_char(0'\s).
 :- endif.
+
+file_search_alias(Alias) -->
+    "(", alias_chars(RevCodes),
+    { reverse(RevCodes, Codes),
+      atom_codes(Alias, Codes),
+      user:file_search_path(Alias, _)
+    },
+    !.
+
+alias_chars([H|T]) --> [H], { code_type(H, csym) }, !, alias_chars(T).
+alias_chars([]) --> [].
+
 
 %!  finish_file_name(+Matches, -Completions) is det.
 %
@@ -241,13 +258,13 @@ close_file_name(File0, consult(Close), File) :-
 close_file_name(File0, quoted(Close), File) :-
     atom_concat(File0, Close, File).
 
-%!  complete_library(+Prefix:atom, +Close:atom, -Completions:list) is
-%!                   semidet.
+%!  complete_alias(+Alias:atom, +Prefix:atom, +Close:atom,
+%!                 -Completions:list) is semidet.
 %
-%   Complete to a library entry on "library(Prefix".
+%   Complete to an path alias "Alias(Prefix".
 
-complete_library(Prefix, Close, Libraries) :-
-    findall(Pairs, complete_one_libdir(Prefix, Pairs), DirPairs),
+complete_alias(Alias, Prefix, Close, Libraries) :-
+    findall(Pairs, complete_one_alias(Alias, Prefix, Pairs), DirPairs),
     (   DirPairs = [LibDir-[f(File)]]
     ->  atom_concat(LibDir, Local, File),
         atom_concat(Local, Close, Completion),
@@ -261,8 +278,9 @@ complete_library(Prefix, Close, Libraries) :-
         sort(Libraries0, Libraries)
     ).
 
-complete_one_libdir(Prefix, LibdirS-Files) :-
-    absolute_file_name(library(.), LibDir,
+complete_one_alias(Alias, Prefix, LibdirS-Files) :-
+    DirTerm =.. [Alias, '.'],
+    absolute_file_name(DirTerm, LibDir,
                        [ file_type(directory),
                          solutions(all)
                        ]),
