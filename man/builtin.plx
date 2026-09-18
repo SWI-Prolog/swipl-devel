@@ -826,7 +826,10 @@ option argument to specify the exact behaviour.
 \arg{Count} is the number of times the file have been loaded, i.e.,
 1 (one) if the file has been loaded once.
 
-	\termitem{modified}{Stamp}
+	\termitem{loaded}{-Stamp}
+Available if the file was loaded at \arg{Stamp}.
+
+	\termitem{modified}{-Stamp}
 File modification time when \arg{File} was loaded.  This is used by
 make/0 to find files whose modification time is different from when
 it was loaded.

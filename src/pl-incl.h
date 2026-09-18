@@ -2048,6 +2048,7 @@ typedef struct sf_reload
 struct sourceFile
 { atom_t	name;			/* name of source file */
   double	mtime;			/* modification time when loaded */
+  double	ltime;			/* load time */
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */

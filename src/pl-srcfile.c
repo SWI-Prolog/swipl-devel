@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2025, VU University Amsterdam
+    Copyright (c)  2014-2026, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -304,6 +304,7 @@ lookupSourceFile_unlocked(atom_t name, bool create)
     memset(file, 0, sizeof(*file));
 
     file->mtime	     = 0.0;
+    file->ltime	     = 0.0;
     file->name       = name;
     file->system     = GD->bootsession&1;
     file->from_state = GD->bootsession&1;
@@ -460,10 +461,10 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
    module is the primary module of the file.
 */
 
-int
+bool
 addModuleSourceFile(SourceFile sf, Module m)
 { ListCell *cp, c2;
-  int rc = true;
+  bool rc = true;
 
   LOCKSRCFILE(sf);
   for(cp=&sf->modules; *cp; cp = &(*cp)->next)
@@ -487,10 +488,10 @@ out:
 }
 
 
-static int
+static bool
 delModuleSourceFile(SourceFile sf, Module m)
 { ListCell *cp, c;
-  int rc = false;
+  bool rc = false;
 
   LOCKSRCFILE(sf);
   for(cp=&sf->modules; (c=*cp); cp=&c->next)
@@ -508,7 +509,7 @@ delModuleSourceFile(SourceFile sf, Module m)
 }
 
 
-static void					/* requires LOCKSRCFILE(sf) */
+static void				/* requires LOCKSRCFILE(sf) */
 delAllModulesSourceFile__unlocked(SourceFile sf)
 { ListCell c = sf->modules, n;
 
@@ -717,6 +718,8 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
       rc = PL_unify_bool(A3, sf ? sf->resource : false);
     else if ( property == ATOM_from_state )
       rc = PL_unify_bool(A3, sf ? sf->from_state : false);
+    else if ( property == ATOM_loaded )
+      rc = sf->ltime == 0.0 ? false : PL_unify_float(A3, sf->ltime);
     else
       rc = PL_domain_error("source_file_property", A2);
 
@@ -894,7 +897,7 @@ static void	fix_det(p_reload *r);
 #define GEN_RELOAD (GEN_MAX-1)
 #endif
 
-static int
+static bool
 startReconsultFile(SourceFile sf)
 { GET_LD
   sf_reload *r;
@@ -1703,6 +1706,7 @@ There are two options.
 bool
 startConsult(SourceFile sf)
 { acquireSourceFile(sf);
+  sf->ltime = WallTime();
   if ( sf->count++ > 0 )		/* This is a re-consult */
   { if ( !startReconsultFile(sf) )
     { releaseSourceFile(sf);

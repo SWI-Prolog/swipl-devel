@@ -63,7 +63,7 @@ void		acquireModulePtr(Module m);
 void		releaseModule(Module m);
 void		initModules(void);
 void		cleanupModules(void);
-int		addModuleSourceFile(SourceFile sf, Module m);
+bool		addModuleSourceFile(SourceFile sf, Module m);
 int		setSuperModule(Module m, Module s);
 int		isSuperModule(Module s, Module m);
 void		clearSupersModule(Module m);

@@ -352,6 +352,9 @@ property_source_file(load_count(Count), File) :-
 property_source_file(number_of_clauses(Count), File) :-
     source_file(File),
     '$source_file_property'(File, number_of_clauses, Count).
+property_source_file(loaded(Stamp), File) :-
+    source_file(File),
+    '$source_file_property'(File, loaded, Stamp).
 
 
 %!  canonical_source_file(+Spec, -File) is semidet.
