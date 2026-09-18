@@ -373,17 +373,19 @@ canUnifyTermWithGoal(DECL_LD LocalFrame fr)
 
 	  if ( !copyRecordToGlobal(t, find->goal.term.term,
 				   ALLOW_GC|ALLOW_SHIFT) )
+	  { PL_discard_foreign_frame(cid);
 	    return false;
+	  }
 	  for(i=0; i<arity; i++)
 	  { Word a, b;
 
-	    a = valTermRef(t);
-	    deRef(a);
-	    a = argFrameP(word2ptr(LocalFrame, *a), i);
+	    a = valTermRef(t);		/* can_unify() may GC or shift, so */
+	    deRef(a);			/* recompute both on each argument */
+	    a = argTermP(*a, i);
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 
-	    if ( !can_unify(a++, b++, 0) )
+	    if ( !can_unify(a, b, 0) )
 	    { rval = false;
 	      break;
 	    }
