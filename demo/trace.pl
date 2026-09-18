@@ -1,4 +1,4 @@
-/** <module> Demo program for the command line tracer
+/* Demo program for the command line tracer
 
 This program is a small route planner  for   a  cyclic map. It is meant
 to be *traced* rather than merely run: it  is small enough to follow by
@@ -55,7 +55,10 @@ cycles, dead ends and plenty of choice points.
     Note that `l` (leap) does *not* stop at an `Exception` port; use
     creep or a search as in exercise 2 to get there.
 
-@see library(prolog_trace) and the graphical tracer, ?- gtrace.
+    You can also try these examples using the the __graphical tracer__,
+    ?- gtrace.
+
+Copyright: Public domain
 */
 
 %!  route(+From, +To, -Route, -Distance) is nondet.
@@ -108,7 +111,9 @@ connected(From, To, Km) :-
 %   documentation above.
 
 road(amsterdam,  zaandam,     15).   % a dead end
-road(amsterdam,  utrecht,     40).
+road(amsterdam,  utrecht,     40)./* Copyright: public domain
+*/
+
 road(amsterdam,  haarlem,     20).
 road(haarlem,    leiden,      30).
 road(leiden,     denhaag,     20).

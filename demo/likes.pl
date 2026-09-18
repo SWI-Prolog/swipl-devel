@@ -1,14 +1,16 @@
-%% Demo coming from http://clwww.essex.ac.uk/course/LG519/2-facts/index_18.html
-%%
-%% Please load this file into SWI-Prolog
-%%
-%% Sam's likes and dislikes in food
-%%
-%% Considering the following will give some practice
-%% in thinking about backtracking.
-%%
-%% You can also run this demo online at
-%% http://swish.swi-prolog.org/?code=https://github.com/SWI-Prolog/swipl-devel/raw/master/demo/likes.pl&q=likes(sam,Food).
+% Demo coming from http://clwww.essex.ac.uk/course/LG519/2-facts/index_18.html
+%
+% Please load this file into SWI-Prolog
+%
+% Sam's likes and dislikes in food
+%
+% Considering the following will give some practice
+% in thinking about backtracking.
+%
+% You can also run this demo online at
+% https://swish.swi-prolog.org/?code=https://github.com/SWI-Prolog/swipl-devel/raw/master/demo/likes.pl&q=likes(sam,Food).
+%
+% Copyright: Public domain
 
 /** <examples>
 ?- likes(sam,dahl).

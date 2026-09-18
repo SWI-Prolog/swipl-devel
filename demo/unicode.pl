@@ -1,11 +1,13 @@
-%% Unicode in SWI-Prolog source code
-%%
-%% This file demonstrates the Unicode features of the SWI-Prolog
-%% reader: identifiers from any script, super- and subscript indices on
-%% variables, mathematical operators declared with op/3, and
-%% the new "all Sm/Sc/Sk/So/P* are solo" tokenisation rule.
-%%
-%% Load it with `swipl demo/unicode.pl` and run `?- demo.`.
+% Unicode in SWI-Prolog source code
+%
+% This file demonstrates the Unicode features of the SWI-Prolog
+% reader: identifiers from any script, super- and subscript indices on
+% variables, mathematical operators declared with op/3, and
+% the new "all Sm/Sc/Sk/So/P* are solo" tokenisation rule.
+%
+% Load it with ``swipl unicode.pl`` and run ``?- demo.``.
+%
+% Copyright: Public domain.
 
 % --- Operators ---------------------------------------------------------
 % Each Unicode symbol is now a *solo* atom on its own (the old

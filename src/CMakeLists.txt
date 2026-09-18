@@ -239,7 +239,7 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
     curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
-set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_demo colours.pl likes.pl trace.pl unicode.pl README.md)
 set(SWIPL_DATA_customize edit init.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
 set(SWIPL_DATA_app app.pl qlf.pl README.md)
