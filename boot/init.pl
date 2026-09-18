@@ -1093,6 +1093,7 @@ user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
 user:file_search_path(app, swi(app)).
 user:file_search_path(app, app_data(app)).
+user:file_search_path(demo, swi(demo)).
 user:file_search_path(working_directory, CWD) :-
     working_directory(CWD, CWD).
 
