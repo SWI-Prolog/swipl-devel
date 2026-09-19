@@ -134,6 +134,7 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 
 static bool	destroy_answer_trie(trie *atrie);
+static bool	delayed_destroy_table(trie *atrie);
 static void	free_worklist(worklist *wl);
 static void	clean_worklist(worklist *wl);
 static void	destroy_depending_worklists(worklist *wl0);
@@ -921,6 +922,13 @@ delete_depending_answers(worklist *wl, TmpBuffer wlset)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 destroy_depending_worklists(worklist *wl) destroys worklists that have
 answers pointing to this worklist and its answers.
+
+(*) Such a table may be under evaluation, in which case we may not destroy
+it now: free_worklist() releases the worklist the running evaluation is
+using.  abolish_table() obeys the same restriction for the table it is
+asked to abolish; it applies to the tables the abolish cascades into as
+well.  delayed_destroy_table() schedules these for destruction as their
+evaluation completes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -934,7 +942,8 @@ destroy_depending_worklists(worklist *wl0)
   { worklist *wl = popBuffer(&wlset, worklist *);
 
     delete_depending_answers(wl, &wlset);
-    destroy_answer_trie(wl->table);
+    if ( !delayed_destroy_table(wl->table) )   /* (*) */
+      destroy_answer_trie(wl->table);
   }
   discardBuffer(&wlset);
 }
