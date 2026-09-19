@@ -101,8 +101,8 @@ prolog:complete_input(Before, After, Delete, Completions) :-
 complete(BeforeRev, _After, Prefix, Files) :-   % complete files
     phrase(file_prefix(Prefix, Type), BeforeRev),
     !,
-    (   Type = alias(Alias)
-    ->  complete_alias(Alias, Prefix, ')', Files)
+    (   Type = alias(Alias, Close)
+    ->  complete_alias(Alias, Prefix, Close, Files)
     ;   atom_concat(Prefix, '*', Pattern),
         expand_file_name(Pattern, Files0),
         finish_file_name(Files0, Type, Files)
@@ -186,12 +186,14 @@ file_prefix(Prefix, consult(']')) -->
     { reverse(RevString, String),
       atom_codes(Prefix, String)
     }.
-file_prefix(Prefix, alias(Alias)) -->
+file_prefix(Prefix, alias(Alias, Close)) -->
     file_chars(RevString, unquoted),
     file_search_alias(Alias),
     (   "["
-    ->  []
-    ;   {Alias == library}
+    ->  {Close = ')]'}
+    ;   {Alias == library,
+         Close = ')'
+        }
     ),
     !,
     remainder(_),
