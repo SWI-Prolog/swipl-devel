@@ -3288,12 +3288,12 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   definition_ref *dref;
   ClauseRef cref;
   Word argv;
-  int allvars = true;
+  bool allvars = true;
   fid_t fid;
-  int rc = true;
+  bool rc = true;
 
   if ( !get_procedure(head, &proc, thehead, GP_CREATE) )
-    fail;
+    return false;
 
   def = getProcDefinition(proc);
   if ( ison(def, P_FOREIGN) )
@@ -3302,8 +3302,8 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   { if ( isDefinedProcedure(proc) )
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     if ( !setDynamicDefinition(def, true) )
-      fail;
-    succeed;				/* nothing to retract */
+      return false;
+    return true;			/* nothing to retract */
   }
 
   if ( !retractall_event(def, thehead, FUNCTOR_start1) )
@@ -3344,7 +3344,10 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
       }
     }
     release_def(def);
-    rc = true;
+    if ( !PL_exception(0) )
+      rc = true;			/* ignore plain failures, but keep a
+					   pending exception (e.g., the
+					   incremental tabling guard) */
   } else
   { struct clause_choice chp;
 
