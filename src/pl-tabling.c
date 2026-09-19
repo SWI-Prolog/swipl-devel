@@ -1643,6 +1643,13 @@ is definitely invalid and can be removed from the answer trie.
 
 Answer to propagate is <wl,panswer> with truth result.
 This answer is propagate to `answer`
+
+(*) The propagation runs over the delay  lists and can reach answers of a
+table that  completed in an  earlier SCC,  e.g., when
+'$tbl_wkl_add_answer'/4 makes an answer of a re-evaluated table
+unconditional.  Such  a  worklist has  no  component any  more (see
+complete_worklist()); the count only  drives answer completion of the
+component being simplified.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1672,7 +1679,7 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	    DEBUG(MSG_TABLING_SIMPLIFY,
 		  Sdprintf("   found (SCC=%zd, simplifications = %zd)\n",
 			   pointerToInt(wl->component),
-			   wl->component->simplifications));
+			   wl->component ? wl->component->simplifications : 0));
 
 	    if ( d->answer == NULL )
 	    { if ( result == false &&
@@ -1684,7 +1691,8 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	    }
 
 	    found = true;
-	    wl->component->simplifications++;
+	    if ( wl->component )	/* (*) */
+	      wl->component->simplifications++;
 
 	    if ( res )			/* remove member from conjunction */
 	    { d->variant = DV_DELETED;
@@ -3036,6 +3044,18 @@ clean_worklist(worklist *wl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Complete the worklist `wl`.  If `destroy`, the worklist is not needed any
+more.  Otherwise  it is  kept because  the table  has conditional
+answers or other answers delay on it.
+
+(*) The SCC is completed and will be  freed by '$tbl_free_component'/1
+while this worklist  survives it.  Clear the  reference: simplification
+can  reach a  completed  worklist  through the  delay  lists (see
+propagate_to_answer()), and the tables  that are re-activated get a new
+component from tbl_add_worklist().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define complete_worklist(wl, destroy) LDFUNC(complete_worklist, wl, destroy)
 static void
 complete_worklist(DECL_LD worklist *wl, int destroy)
@@ -3052,6 +3072,7 @@ complete_worklist(DECL_LD worklist *wl, int destroy)
 		      });
   } else
   { clean_worklist(wl);
+    wl->component = NULL;		/* (*) */
 
     COMPLETE_WORKLIST(atrie,
 		      { set(atrie, TRIE_COMPLETE);
