@@ -5993,6 +5993,20 @@ VMI(T_VALUE, 0, 0, ())
 }
 END_VMI
 
+/* T_DELAY pushes the condition of a conditional answer of a compiled trie
+   onto the delay list.  compile_trie_node() adds it for the answers that
+   are conditional when the trie is compiled.
+
+   (*) Simplification can make such an answer unconditional without
+   changing the trie, and thus without discarding the compiled clause:
+   destroy_delay_info() merely clears the delay info of the answer.  The
+   instruction stays behind, so we check the answer before using it.  A
+   delay info that is present but has no delay sets is a transient state of
+   the simplification; as before, we push for it.  Discarding the compiled
+   clause from make_answer_unconditional() would be the alternative, at the
+   price of recompiling the trie.
+*/
+
 VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
 { trie_node *answer = code2ptr(trie_node*, *PC++);
   atom_t atrie;
@@ -6001,10 +6015,15 @@ VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
   UnwindTrieArgP();
 
   if ( answer )
-  { trie *trie = get_trie_from_node(answer);
+  { trie *trie;
+
+    if ( !answer->data.delayinfo )	/* (*) */
+      NEXT_INSTRUCTION;
+
+    trie  = get_trie_from_node(answer);
     atrie = trie_symbol(trie);
-  } else
-  { atrie = ATOM_nil;
+  } else				/* generally undefined; see */
+  { atrie = ATOM_nil;			/* set_trie_clause_general_undefined() */
   }
 
   tbl_push_delay(atrie, argTermP(*TrieTermP, 0), answer);
