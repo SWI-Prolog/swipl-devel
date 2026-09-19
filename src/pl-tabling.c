@@ -1717,20 +1717,68 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+answer_delays_on(answer, atrie) is true if `answer` still has a delay
+element that refers to the answer trie `atrie`, i.e., if `answer` belongs
+in the `delays` buffer of atrie's worklist.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+answer_delays_on(trie_node *answer, trie *atrie)
+{ delay_info *di;
+
+  if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
+  { delay *d = baseBuffer(&di->delays, delay);
+    delay *z = topBuffer(&di->delays, delay);
+
+    for(; d < z; d++)
+    { if ( d->variant == atrie )
+	return true;
+    }
+  }
+
+  return false;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Propagate <wl,panswer> with truth `result` to the answers that delay on
+this table.
+
+(*) Only the answers that delay on `panswer` are resolved by the loop.  An
+answer that delays on another answer of this table still does and must
+keep its entry in wl->delays: that buffer is how an abolish of this table
+finds the tables depending on it (destroy_depending_worklists()) and how
+the next propagation finds the answers to simplify.  We therefore walk the
+buffer rather than draining it, deleting only the entries that no longer
+delay on this table.  propagate_to_answer() may delete entries itself (and
+destroy the answer), so we re-examine the buffer after each step.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 propagate_result(spf_agenda *agenda,
 		 worklist *wl, trie_node *panswer, int result)
-{ DEBUG(MSG_TABLING_SIMPLIFY,
+{ size_t i = 0;
+
+  DEBUG(MSG_TABLING_SIMPLIFY,
 	{ print_delay(result ? "Propagating true" : "Propagating false",
 		      wl->table->data.variant, panswer);
 	  Sdprintf("  %zd dependent answers\n",
 		   entriesBuffer(&wl->delays, trie_node*));
 	});
 
-  while( !isEmptyBuffer(&wl->delays) )
-  { trie_node *answer = popBuffer(&wl->delays, trie_node*);
+  while( i < (size_t)entriesBuffer(&wl->delays, trie_node*) )
+  { trie_node *answer = fetchBuffer(&wl->delays, i, trie_node*);
 
     propagate_to_answer(agenda, wl, panswer, result, answer);
+
+    if ( i < (size_t)entriesBuffer(&wl->delays, trie_node*) &&
+	 fetchBuffer(&wl->delays, i, trie_node*) == answer )
+    { if ( answer_delays_on(answer, wl->table) )	/* (*) */
+	i++;
+      else
+	delete_answer(&wl->delays, answer);
+    }
   }
 
   return true;
