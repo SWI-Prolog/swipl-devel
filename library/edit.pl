@@ -45,7 +45,9 @@
 :- use_module(library(dcg/high_order), [sequence/5]).
 :- autoload(library(readutil), [read_line_to_string/2]).
 :- autoload(library(solution_sequences), [distinct/2]).
-
+:- if(exists_source(library(editline))).
+:- autoload(library(editline), [el_history_events/2]).
+:- endif.
 
 % :- set_prolog_flag(generate_debug_info, false).
 
@@ -95,12 +97,15 @@ edit_no_trace(Spec) :-
 
 %!  edit
 %
-%   Edit associated or script file.  This is the Prolog file opened
-%   by double-clicking or the file loaded using
+%   Edit associated or script file. This is   the  Prolog file opened by
+%   double-clicking, the initial file loaded  from the commandline using
+%   e.g., the command below or the  last   file  loaded into the current
+%   session  using  ``?-  [file].``,  ``?-    consult(file).``  or  ``?-
+%   use_module(file).``
 %
-%     ==
+%     ```
 %     % swipl [-s] file.pl
-%     ==
+%     ```
 
 edit :-
     current_prolog_flag(associated_file, File),
@@ -112,8 +117,38 @@ edit :-
     !,
     prolog_to_os_filename(File, OsFile),
     edit(file(File)).
+:- if(exists_source(library(editline))).
+edit :-
+    session_loaded_file(File),
+    !,
+    edit(file(File)).
+:- endif.
 edit :-
     throw(error(context_error(edit, no_default_file), _)).
+
+:- if(exists_source(library(editline))).
+session_loaded_file(File) :-
+    catch(el_history_events(user_input, Events),
+          error(_,_), fail),
+    member(_-Event, Events),
+    catch(term_string(Command, Event), error(_,_), fail),
+    load_command(Command, File0),
+    (   is_list(File0)
+    ->  member(File1, File0)
+    ;   File1 = File0
+    ),
+    catch(absolute_file_name(File1, File,
+                             [ file_type(source),
+                               file_errors(fail)
+                             ]),
+          error(_,_), fail),
+    source_file(File),
+    !.
+
+load_command([File|T], [File|T]).
+load_command(consult(File), File).
+load_command(use_module(File), File).
+:- endif.
 
 %!  locations(+Spec, -Locations) is det.
 %
