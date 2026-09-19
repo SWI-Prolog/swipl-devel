@@ -8360,6 +8360,19 @@ PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
  * @error `deadlock` if claiming the table would cause a deadlock.
  */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Prepare the answers of a table for re-evaluation: mark them as deleted and
+remove the delay list of the conditional ones.  Re-derived answers clear
+TN_IDG_DELETED (see '$tbl_wkl_add_answer'/4) and get a fresh delay list.
+
+(*) wl->undefined counts the conditional answers of this table and we just
+removed the delay list of this one.  Leaving it counted makes the table
+claim undefined answers it no longer has, which stops
+propagate_to_answer() from ever deciding a negative delay on this table:
+answers of other tables delaying on tnot(this) then remain conditional
+although this table was re-evaluated to definitely false.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void *
 reeval_prep_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
@@ -8369,9 +8382,13 @@ reeval_prep_node(trie_node *n, void *ctx)
     clear(n, TN_IDG_ADDED);
 
     if ( answer_is_conditional(n) )
-    { destroy_delay_info(atrie, n, true);
+    { worklist *wl;
+
+      destroy_delay_info(atrie, n, true);
       n->data.delayinfo = NULL;
       clear(n, TN_IDG_UNCONDITIONAL);
+      if ( WL_IS_WORKLIST(wl=atrie->data.worklist) && wl->undefined > 0 )
+	wl->undefined--;		/* (*) */
     } else
     { set(n, TN_IDG_UNCONDITIONAL);
     }
