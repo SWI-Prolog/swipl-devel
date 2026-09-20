@@ -987,6 +987,8 @@ Sungetc(int c, IOSTREAM *s)
 }
 
 
+static int put_code(int c, IOSTREAM *s);
+
 static int
 reperror(int c, IOSTREAM *s)
 { if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL|SIO_REPPLU)) )
@@ -1004,9 +1006,9 @@ reperror(int c, IOSTREAM *s)
     { snprintf(buf, sizeof buf, "&#%d;", c);
     }
 
-    for(q = buf; *q; q++)
-    { if ( put_byte(*q, s) < 0 )
-	return -1;
+    for(q = buf; *q; q++)		/* The escape is ASCII, but we must */
+    { if ( put_code(*q, s) < 0 )	/* encode it: UTF-16 and wchar streams */
+	return -1;			/* do not write bytes. */
     }
 
     return c;
