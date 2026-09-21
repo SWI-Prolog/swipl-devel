@@ -2599,6 +2599,8 @@ def_goal_colours(load_files(_),          built_in-[file]).
 def_goal_colours(load_files(_,_),        built_in-[file,options]).
 def_goal_colours(setof(_,_,_),           built_in-[classify,setof,classify]).
 def_goal_colours(bagof(_,_,_),           built_in-[classify,setof,classify]).
+def_goal_colours(aggregate(_,_,_),       built_in-[classify,setof,classify]).
+def_goal_colours(aggregate(_,_,_,_),     built_in-[classify,classify,setof,classify]).
 def_goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
 % Database access
 def_goal_colours(assert(_),              built_in-[db]).
