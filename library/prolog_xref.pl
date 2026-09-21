@@ -1313,6 +1313,10 @@ xref_meta(setof(_V, EG, _L),    [G]) :-
     setof_goal(EG, G).
 xref_meta(bagof(_V, EG, _L),    [G]) :-
     setof_goal(EG, G).
+xref_meta(aggregate(_V, EG, _L), [G]) :-
+    setof_goal(EG, G).
+xref_meta(aggregate(_V, _D, EG, _L), [G]) :-
+    setof_goal(EG, G).
 xref_meta(forall(A, B),         [A, B]).
 xref_meta(maplist(G,_),         [G+1]).
 xref_meta(maplist(G,_,_),       [G+2]).
