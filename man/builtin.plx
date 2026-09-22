@@ -2039,7 +2039,9 @@ that reply on ordering such as library \pllib{assoc} and library
 \pllib{ordsets}. Obviously, an established relation \mbox{\arg{A}
 \const{@<} \arg{B}} no longer holds if \arg{A} is unified with e.g., a
 number. Also unifying \arg{A} with \arg{B} invalidates the relation
-because they become equivalent (==/2) after unification.
+because they become equivalent (==/2) after unification. The predicate
+partial_compare/3 can be used to detect that a comparison depends on a
+variable and is therefore not stable.
 
 As stated above, variables are sorted by address, which implies that
 they are sorted by `age', where `older' variables are ordered before
@@ -2128,6 +2130,37 @@ after \arg{Term2} in the standard order of terms.
 Determine or test the \arg{Order} between two terms in the standard
 order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
 with the obvious meaning.
+
+    \predicate{partial_compare}{3}{?Order, @Term1, @Term2}
+As compare/3, but only decides the \arg{Order} if this decision is
+\emph{stable}, i.e., if it cannot be invalidated by binding a variable.
+This predicate is the building block for comparisons that must be sound
+on non-ground terms. If the order depends on a variable, \arg{Order} is
+unified with \term{undecided}{Sub1, Sub2}, where \arg{Sub1} and
+\arg{Sub2} are the first pair of subterms of \arg{Term1} and \arg{Term2}
+that could not be compared. Because the standard order compares terms
+lexicographically, this pair decides the entire comparison: after any
+further instantiation, \exam{compare(Order, Term1, Term2)} gives the
+same result as \exam{compare(Order, Sub1, Sub2)}, unless \arg{Sub1} and
+\arg{Sub2} become equal (==/2), in which case the comparison must
+continue with the remaining subterms.
+
+\begin{code}
+?- partial_compare(Order, f(a,1), f(a,2)).
+Order = (<).
+?- partial_compare(Order, f(a,X), f(a,b)).
+Order = undecided(X, b).
+?- partial_compare(Order, f(X,1), f(X,2)).
+Order = (<).
+?- partial_compare(Order, f(_,1), g(_,2)).
+Order = (<).
+\end{code}
+
+The last two queries illustrate that a variable only makes the
+comparison undecided if it is actually reached: the first of these
+compares the same variable to itself and continues with the second
+argument, while the second is decided by the functor name before the
+arguments are examined at all.
 \end{description}
 
 

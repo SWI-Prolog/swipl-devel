@@ -653,6 +653,7 @@ A parent		"parent"
 A parentheses_term_position "parentheses_term_position"
 A parent_goal		"parent_goal"
 A partial		"partial"
+A partial_order		"partial_order"
 A past			"past"
 A past_end_of_stream	"past_end_of_stream"
 A pattern		"pattern"
@@ -966,6 +967,7 @@ A tty			"tty"
 A tty_control		"tty_control"
 A type			"type"
 A type_error		"type_error"
+A undecided		"undecided"
 A undefined		"undefined"
 A undefined_global_variable	"undefined_global_variable"
 A undefinterc		"$undefined_procedure"
@@ -1366,6 +1368,7 @@ F truncate		1
 F tty			1
 F type			1
 F type_error		2
+F undecided		2
 F undefinterc		4
 F unify_determined	2
 F unicode_atoms		1

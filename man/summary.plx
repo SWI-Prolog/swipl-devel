@@ -162,6 +162,7 @@ suggest predicates from a keyword.
 \predicatesummary{collation_key}{2}{Sort key for locale dependent ordering}
 \predicatesummary{comment_hook}{3}{\hook{prolog} handle comments in sources}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
+\predicatesummary{partial_compare}{3}{Compare, refusing to decide on a variable}
 \predicatesummary{compile_aux_clauses}{1}{Compile predicates for goal_expansion/2}
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
