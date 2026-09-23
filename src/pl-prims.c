@@ -1921,12 +1921,12 @@ compare_functors(word f1, word f2, cmp_mode mode)
   }
 }
 
-#define do_compare(agenda, f1, f2, mode, c1, c2) \
-	LDFUNC(do_compare, agenda, f1, f2, mode, c1, c2)
+#define do_compare(agenda, f1, f2, mode, c1, c2, linked) \
+	LDFUNC(do_compare, agenda, f1, f2, mode, c1, c2, linked)
 
 static cmpex_t
 do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2,
-	   cmp_mode mode, Word *c1, Word *c2)
+	   cmp_mode mode, Word *c1, Word *c2, bool *linked)
 { Word p1, p2;
 
   goto compound;
@@ -1950,12 +1950,15 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2,
       f2 = (Functor)valPtr(*p2);
 
 #if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	continue;
+      if ( isRef(f1->definition) || isRef(f2->definition) )
+      { *linked = true;
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
+      }
 #endif
 
       if ( f1->definition != f2->definition )
@@ -1980,11 +1983,19 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2,
 }
 
 
-#define compare_std(p1, p2, mode, c1, c2) \
-	LDFUNC(compare_std, p1, p2, mode, c1, c2)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compare_fast() compares two terms using  a single walk over both terms.
+The result is always correct for CMP_MODE_EQUAL and if both terms are
+acyclic.  Otherwise, if `*linked` is set, the order may be wrong.  See
+compare_descend().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define compare_fast(p1, p2, mode, c1, c2, linked) \
+	LDFUNC(compare_fast, p1, p2, mode, c1, c2, linked)
 
 static cmpex_t
-compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
+compare_fast(DECL_LD Word p1, Word p2, cmp_mode mode,
+	     Word *c1, Word *c2, bool *linked)
 { cmpex_t rc;
 
   deRef(p1);
@@ -2007,13 +2018,110 @@ compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
 
       initCyclic();
       initTermAgendaLR0(&agenda);
-      rc = do_compare(&agenda, f1, f2, mode, c1, c2);
+      rc = do_compare(&agenda, f1, f2, mode, c1, c2, linked);
       clearTermAgendaLR(&agenda);
       exitCyclic();
 
       return rc;
     }
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compare_descend() is the slow but sound ordering of two terms.  It is
+used if do_compare() found the terms different, but did so after
+following a link made by linkTermsCyclic().  Such a link assumes that
+two compounds whose comparison is still in progress are equal.  That
+is fine for ==/2, but if the two compounds turn out to differ, an order
+derived from the assumption may be wrong.  See #1529.  If both terms
+are acyclic, a link can only lead to a pair whose comparison completed,
+i.e., a pair that is equal.  In that case the fast result is correct
+and we do not get here.
+
+At each compound this skips the leading arguments that are equal
+(==/2, which is decidable for rational trees) and descends into the
+first argument pair that is not.  This either ends at a pair that is
+not a pair of compounds with the same functor, which decides the order,
+or it cycles forever.  In the latter case there is no order that is
+consistent with the definition of the standard order (see the manual)
+and we return `grey`, the result of the fast comparison.  Cycles are
+detected using Brent's algorithm on the sequence of compound pairs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define compare_descend(p1, p2, mode, c1, c2, grey) \
+	LDFUNC(compare_descend, p1, p2, mode, c1, c2, grey)
+
+static cmpex_t
+compare_descend(DECL_LD Word p1, Word p2, cmp_mode mode,
+		Word *c1, Word *c2, cmpex_t grey)
+{ Functor s1 = NULL, s2 = NULL;
+  size_t power = 1, steps = 0;
+
+  for(;;)
+  { cmpex_t rc;
+    Functor f1, f2;
+    size_t i, arity;
+
+    deRef(p1);
+    deRef(p2);
+
+    if ( (rc=compare_primitives(p1, p2, mode)) != CMP_COMPOUND )
+    { if ( rc == CMP_UNDECIDED )
+      { *c1 = p1;
+	*c2 = p2;
+      }
+      return rc;
+    }
+
+    f1 = (Functor)valPtr(*p1);
+    f2 = (Functor)valPtr(*p2);
+    if ( f1->definition != f2->definition )
+      return compare_functors(f1->definition, f2->definition, mode);
+
+    if ( f1 == s1 && f2 == s2 )
+      return grey;
+    if ( ++steps == power )
+    { s1 = f1;
+      s2 = f2;
+      power *= 2;
+      steps = 0;
+    }
+
+    arity = arityFunctor(f1->definition);
+					/* the pair differs, so the last */
+    for(i=0; i+1 < arity; i++)		/* argument need not be tested */
+    { bool linked = false;
+
+      if ( (rc=compare_fast(&f1->arguments[i], &f2->arguments[i],
+			    CMP_MODE_EQUAL, NULL, NULL,
+			    &linked)) != CMPEX_EQUAL )
+      { if ( rc == CMP_ERROR )
+	  return rc;
+	break;
+      }
+    }
+
+    p1 = &f1->arguments[i];
+    p2 = &f2->arguments[i];
+  }
+}
+
+
+#define compare_std(p1, p2, mode, c1, c2) \
+	LDFUNC(compare_std, p1, p2, mode, c1, c2)
+
+static cmpex_t
+compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
+{ bool linked = false;
+  cmpex_t rc = compare_fast(p1, p2, mode, c1, c2, &linked);
+
+  if ( linked && mode != CMP_MODE_EQUAL &&
+       rc != CMPEX_EQUAL && rc != CMP_ERROR &&
+       !(is_acyclic(p1) == true && is_acyclic(p2) == true) )
+    rc = compare_descend(p1, p2, mode, c1, c2, rc);
+
+  return rc;
 }
 
 
