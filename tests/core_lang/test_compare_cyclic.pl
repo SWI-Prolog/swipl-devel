@@ -99,6 +99,23 @@ test(no_order) :-
 order(<).
 order(>).
 
+test(partial_incomparable, O == incomparable(A, B)) :-
+    A = s(B,0),
+    B = s(A,1),
+    partial_compare(O, A, B).
+test(partial_incomparable_nested, O == incomparable(B, A)) :-
+    A = s(B,0),
+    B = s(A,1),
+    partial_compare(O, f(A,1), f(B,0)).
+test(partial_incomparable_skip, O == (<)) :-
+    A = s(B,0),
+    B = s(A,1),
+    partial_compare(O, f(A,1), f(A,2)).
+test(partial_incomparable_check) :-
+    A = s(B,0),
+    B = s(A,1),
+    partial_compare(incomparable(_,_), A, B).
+
 % Acyclic terms whose comparison follows links must not use the slow
 % path.  Before this was fixed, this took minutes.
 test(shared_acyclic, [O == (<), true(T < 5)]) :-

@@ -2145,6 +2145,13 @@ same result as \exam{compare(Order, Sub1, Sub2)}, unless \arg{Sub1} and
 \arg{Sub2} become equal (==/2), in which case the comparison must
 continue with the remaining subterms.
 
+If the two terms are cyclic and have no order (see
+\secref{standardorder}), \arg{Order} is unified with
+\term{incomparable}{Sub1, Sub2}, where \arg{Sub1} and \arg{Sub2} are a
+pair of subterms at which the lexicographic comparison runs into a
+cycle.  Unlike \term{undecided}{Sub1, Sub2}, further instantiation cannot
+make the terms comparable.
+
 \begin{code}
 ?- partial_compare(Order, f(a,1), f(a,2)).
 Order = (<).
@@ -2154,6 +2161,10 @@ Order = undecided(X, b).
 Order = (<).
 ?- partial_compare(Order, f(_,1), g(_,2)).
 Order = (<).
+?- A = s(B,0), B = s(A,1), partial_compare(Order, A, B).
+A = s(s(A, 1), 0),
+B = s(A, 1),
+Order = incomparable(s(s(A, 1), 0), s(A, 1)).
 \end{code}
 
 The last two queries illustrate that a variable only makes the

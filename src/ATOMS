@@ -442,6 +442,7 @@ A imported		"imported"
 A imported_procedure	"imported_procedure"
 A cont_inactive		"<inactive>"
 A include		"include"
+A incomparable		"incomparable"
 A incomplete		"incomplete"
 A incremental		"incremental"
 A index			"index"
@@ -1218,6 +1219,7 @@ F import_into		1
 F inf			0
 F include		1
 F include		2
+F incomparable		2
 F input			0
 F input			4
 F integer		1

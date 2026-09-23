@@ -2045,16 +2045,17 @@ first argument pair that is not.  This either ends at a pair that is
 not a pair of compounds with the same functor, which decides the order,
 or it cycles forever.  In the latter case there is no order that is
 consistent with the definition of the standard order (see the manual)
-and we return `grey`, the result of the fast comparison.  Cycles are
-detected using Brent's algorithm on the sequence of compound pairs.
+and we return CMP_INCOMPARABLE, filling *c1 and *c2 with the pair at
+which the descent cycles.  Cycles are detected using Brent's algorithm
+on the sequence of compound pairs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define compare_descend(p1, p2, mode, c1, c2, grey) \
-	LDFUNC(compare_descend, p1, p2, mode, c1, c2, grey)
+#define compare_descend(p1, p2, mode, c1, c2) \
+	LDFUNC(compare_descend, p1, p2, mode, c1, c2)
 
 static cmpex_t
 compare_descend(DECL_LD Word p1, Word p2, cmp_mode mode,
-		Word *c1, Word *c2, cmpex_t grey)
+		Word *c1, Word *c2)
 { Functor s1 = NULL, s2 = NULL;
   size_t power = 1, steps = 0;
 
@@ -2080,7 +2081,10 @@ compare_descend(DECL_LD Word p1, Word p2, cmp_mode mode,
       return compare_functors(f1->definition, f2->definition, mode);
 
     if ( f1 == s1 && f2 == s2 )
-      return grey;
+    { *c1 = p1;
+      *c2 = p2;
+      return CMP_INCOMPARABLE;
+    }
     if ( ++steps == power )
     { s1 = f1;
       s2 = f2;
@@ -2119,7 +2123,19 @@ compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
   if ( linked && mode != CMP_MODE_EQUAL &&
        rc != CMPEX_EQUAL && rc != CMP_ERROR &&
        !(is_acyclic(p1) == true && is_acyclic(p2) == true) )
-    rc = compare_descend(p1, p2, mode, c1, c2, rc);
+  { Word i1 = NULL, i2 = NULL;
+    cmpex_t rc2 = compare_descend(p1, p2, mode, &i1, &i2);
+
+    if ( rc2 == CMP_UNDECIDED || rc2 == CMP_INCOMPARABLE )
+    { if ( mode == CMP_MODE_PARTIAL )
+      { *c1 = i1;
+	*c2 = i2;
+	rc = rc2;
+      }					/* else keep the fast result */
+    } else
+    { rc = rc2;
+    }
+  }
 
   return rc;
 }
@@ -2209,7 +2225,9 @@ PRED_IMPL("partial_compare", 3, partial_compare, 0)
 
       if ( a != ATOM_smaller && a != ATOM_equals && a != ATOM_larger )
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_partial_order, A1);
-    } else if ( !(isTerm(*d) && functorTerm(*d) == FUNCTOR_undecided2) )
+    } else if ( !(isTerm(*d) &&
+		  (functorTerm(*d) == FUNCTOR_undecided2 ||
+		   functorTerm(*d) == FUNCTOR_incomparable2)) )
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_partial_order, A1);
     }
   }
@@ -2217,7 +2235,7 @@ PRED_IMPL("partial_compare", 3, partial_compare, 0)
   if ( (val=compare_std(p1, p2, CMP_MODE_PARTIAL, &c1, &c2)) == CMP_ERROR )
     return false;
 
-  if ( val == CMP_UNDECIDED )
+  if ( val == CMP_UNDECIDED || val == CMP_INCOMPARABLE )
   { /* compare_std() returns dereferenced pointers.  Either may be a
        variable on the local stack, which linkValG() globalises.  The
        space reserved above covers both, so neither call can GC or shift
@@ -2227,7 +2245,8 @@ PRED_IMPL("partial_compare", 3, partial_compare, 0)
     *valTermRef(cv+1) = linkValG(c2);
 
     return PL_unify_term(A1,
-			 PL_FUNCTOR, FUNCTOR_undecided2,
+			 PL_FUNCTOR, val == CMP_UNDECIDED ? FUNCTOR_undecided2
+							  : FUNCTOR_incomparable2,
 			   PL_TERM, cv+0,
 			   PL_TERM, cv+1);
   }
