@@ -2393,7 +2393,7 @@ typedef enum
   CMPEX_GREATER  = 1,
   CMP_NOTEQ      = 2,			/* undefined non-equal */
   CMP_UNDECIDED  = 3,			/* CMP_MODE_PARTIAL: hit a variable */
-  CMP_INCOMPARABLE = 4			/* CMP_MODE_PARTIAL: no order exists */
+  CMP_INCOMPARABLE = 4			/* no order exists (cyclic terms) */
 } cmpex_t;
 
 /* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */

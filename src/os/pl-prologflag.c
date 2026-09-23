@@ -704,6 +704,22 @@ setOccursCheck(atom_t a)
 
 
 static bool
+setIncomparable(atom_t a)
+{ GET_LD
+
+  if ( a == ATOM_arbitrary || a == ATOM_error )
+  { LD->prolog_flag.incomparable_error = (a == ATOM_error);
+    return true;
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_incomparable, value);
+  }
+}
+
+
+static bool
 setEncoding(atom_t a)
 { GET_LD
   IOENC enc = PL_atom_to_encoding(a);
@@ -1288,6 +1304,8 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
       { rval = setOccursCheck(a);
+      } else if ( k == ATOM_incomparable )
+      { rval = setIncomparable(a);
       } else if ( k == ATOM_access_level )
       { rval = setAccessLevelFromAtom(a);
       } else if ( k == ATOM_encoding )
@@ -2479,6 +2497,7 @@ initPrologFlags(void)
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
+  setPrologFlag("incomparable", FT_ATOM, "arbitrary");
   setPrologFlag("shift_check", FT_BOOL, false,  PLFLAG_SHIFT_CHECK);
   setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM,

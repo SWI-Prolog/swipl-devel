@@ -2099,6 +2099,13 @@ Assume \exam{A @> B}.  But then, \exam{s(A,1) @< s(B,0)} i.e.,
 \end{itemize}
 \end{quote}
 
+By default, comparing such terms returns an arbitrary order, which
+breaks predicates that rely on a consistent order such as sort/2,
+library \pllib{assoc} and library \pllib{ordsets}.  Setting the Prolog
+flag \prologflag{incomparable} to \const{error} raises an exception
+instead.  The predicate partial_compare/3 reports such pairs as
+\term{incomparable}{Sub1, Sub2}.
+
 
 
 

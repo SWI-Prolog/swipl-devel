@@ -1886,6 +1886,19 @@ absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
 See \secref{findhome} for how this location is determined and
 \cmdlineoption{--home} for setting or reporting it from the command line.
 
+    \prologflagitem{incomparable}{atom}{rw}
+Determines what happens if the standard order of terms is used to
+compare two cyclic terms that have no order (see
+\secref{standardorder}).  Using \const{arbitrary} (default), the
+comparison returns \const{<} or \const{>}, but the result need not be
+consistent, e.g., sort/2 may return a list that is not ordered.  Using
+\const{error}, compare/3, sort/2, etc.\ raise the exception
+\term{representation_error}{\term{standard_order}{Sub1, Sub2}}, where
+\arg{Sub1} and \arg{Sub2} are the pair of subterms at which the
+comparison runs into a cycle.  See also partial_compare/3.  This flag
+is thread-specific; new threads inherit the value of the creating
+thread.
+
     \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
 ISO Prolog flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
 functions. Value depends on the C compiler used.

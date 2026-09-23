@@ -76,12 +76,12 @@ test(mixed, [O1,O2] == [<,<]) :-
     copies(A, _, C),
     compare(O1, X, C),
     compare(O2, A, Z).
-test(sort, L == [A,C,B]) :-
-    copies(A, B, C),
-    sort([A,B,C], L).
-test(sort_reverse, L == [A,C,B]) :-
-    copies(A, B, C),
-    sort([C,B,A], L).
+test(sort, L == [A,C]) :-		% A and B have no order
+    copies(A, _, C),
+    sort([C,A], L).
+test(sort_reverse, L == [C,B]) :-
+    copies(_, B, C),
+    sort([B,C], L).
 test(partial, O == undecided(0, V)) :-
     X = f(X,0),
     copy_term(X, A),
@@ -115,6 +115,63 @@ test(partial_incomparable_check) :-
     A = s(B,0),
     B = s(A,1),
     partial_compare(incomparable(_,_), A, B).
+
+test(flag_default, O == (<)) :-
+    A = s(B,0),
+    B = s(A,1),
+    compare(O, A, B).
+test(flag_compare,
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       error(representation_error(standard_order(_,_)))
+     ]) :-
+    A = s(B,0),
+    B = s(A,1),
+    compare(_, A, B).
+test(flag_sort,
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       error(representation_error(standard_order(_,_)))
+     ]) :-
+    A = s(B,0),
+    B = s(A,1),
+    sort([x,A,y,B], _).
+test(flag_sort4,
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       error(representation_error(standard_order(_,_)))
+     ]) :-
+    A = s(B,0),
+    B = s(A,1),
+    sort(1, @>=, [k(A),k(B)], _).
+test(flag_comparable,
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       L == [A,C]
+     ]) :-
+    copies(A, _, C),
+    sort([C,A], L).
+test(flag_issue_1529,			% f(X,0) and f(Y,1) have no order
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       error(representation_error(standard_order(_,_)))
+     ]) :-
+    copies(A, B, C),
+    sort([A,B,C], _).
+test(flag_thread,
+     [ setup(set_prolog_flag(incomparable, error)),
+       cleanup(set_prolog_flag(incomparable, arbitrary)),
+       Status == true
+     ]) :-
+    A = s(B,0),
+    B = s(A,1),
+    thread_create(\+ catch(compare(_, A, B),
+			   error(representation_error(_), _),
+			   fail),
+		  Id),
+    thread_join(Id, Status).
+test(flag_domain, error(domain_error(incomparable, foo))) :-
+    set_prolog_flag(incomparable, foo).
 
 % Acyclic terms whose comparison follows links must not use the slow
 % path.  Before this was fixed, this took minutes.

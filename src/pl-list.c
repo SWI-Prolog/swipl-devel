@@ -222,9 +222,14 @@ typedef struct
   m64_kv key;
 } ITEM;
 
-					/* TBD: handle CMP_ERROR */
+/* COMPARE_KEY() may return CMP_ERROR (exception pending) or
+   CMP_INCOMPARABLE (terms in culprit[]).  As the sort list lives above
+   gTop, we must not raise an exception while sorting.
+*/
 #ifndef COMPARE_KEY
-#define COMPARE_KEY(x,y) compareStandard((x)->key.as_ptr, (y)->key.as_ptr, false)
+#define COMPARE_KEY(x,y) compareStandardOrder((x)->key.as_ptr, \
+					      (y)->key.as_ptr, \
+					      &culprit[0], &culprit[1])
 #endif
 #ifndef FREE
 /* FREE() leaves the struct as three variables on the global stack */
@@ -250,11 +255,20 @@ struct List_Record
 
 #define compare(c, x, y) \
 	int c = COMPARE_KEY(&(x)->item, &(y)->item); \
+	if ( c < CMPEX_LESS || c > CMPEX_GREATER ) \
+	{ *err = c; \
+	  return NIL; \
+	} \
 	if ( order == SORT_DESC ) c = -c
 
 
+/* nat_sort() returns the sorted list.  If a comparison fails, it sets
+   *err to CMP_ERROR or CMP_INCOMPARABLE and returns NIL.
+*/
+
 static list
-nat_sort(list data, int remove_dups, sort_order order)
+nat_sort(list data, int remove_dups, sort_order order,
+	 Word culprit[2], cmpex_t *err)
 { GET_LD
   list stack[64];			/* enough for biggest machine */
   list *sp = stack;
@@ -554,7 +568,15 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
     case SORT_SORT:
     default:
     { term_t tmp = PL_new_term_ref();
-      l = nat_sort(l, remove_dups, order);
+      Word culprit[2];
+      cmpex_t err = CMPEX_EQUAL;
+
+      l = nat_sort(l, remove_dups, order, culprit, &err);
+      if ( err != CMPEX_EQUAL )
+      { if ( err == CMP_INCOMPARABLE )
+	  raiseIncomparable(culprit[0], culprit[1]);
+	return false;
+      }
       put_sort_list(tmp, l);
       gTop = top;
       DEBUG(CHK_SECURE, checkStacks(NULL));

@@ -225,6 +225,8 @@ iso_message(instantiation_error) -->
     [ 'Arguments are not sufficiently instantiated' ].
 iso_message(uninstantiation_error(Var)) -->
     [ 'Uninstantiated argument expected, found ~p'-[Var] ].
+iso_message(representation_error(standard_order(T1, T2))) -->
+    [ 'Cyclic terms have no standard order: ~p and ~p'-[T1, T2] ].
 iso_message(representation_error(What)) -->
     [ 'Cannot represent due to `~w'''-[What] ].
 iso_message(permission_error(Action, Type, Object)) -->

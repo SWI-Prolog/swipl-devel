@@ -2127,7 +2127,8 @@ compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
     cmpex_t rc2 = compare_descend(p1, p2, mode, &i1, &i2);
 
     if ( rc2 == CMP_UNDECIDED || rc2 == CMP_INCOMPARABLE )
-    { if ( mode == CMP_MODE_PARTIAL )
+    { if ( mode == CMP_MODE_PARTIAL ||
+	   (rc2 == CMP_INCOMPARABLE && LD->prolog_flag.incomparable_error) )
       { *c1 = i1;
 	*c2 = i2;
 	rc = rc2;
@@ -2141,9 +2142,45 @@ compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compareStandard() compares two terms in the standard order.  If `eq` is
+true, it only tests for equality.  If the terms are incomparable and the
+flag `incomparable` is `error`, it raises an exception and returns
+CMP_ERROR.
+
+compareStandardOrder() is the ordering part for callers that cannot
+raise an exception during the comparison, such as sorting.  In the case
+above it returns CMP_INCOMPARABLE, filling *c1 and *c2 with the pair of
+subterms to pass to raiseIncomparable().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+cmpex_t
+compareStandardOrder(DECL_LD Word p1, Word p2, Word *c1, Word *c2)
+{ return compare_std(p1, p2, CMP_MODE_ORDER, c1, c2);
+}
+
+
+cmpex_t
+raiseIncomparable(DECL_LD Word c1, Word c2)
+{ PL_error(NULL, 0, NULL, ERR_INCOMPARABLE, c1, c2);
+
+  return CMP_ERROR;
+}
+
+
 cmpex_t
 compareStandard(DECL_LD Word p1, Word p2, bool eq)
-{ return compare_std(p1, p2, eq ? CMP_MODE_EQUAL : CMP_MODE_ORDER, NULL, NULL);
+{ if ( eq )
+  { return compare_std(p1, p2, CMP_MODE_EQUAL, NULL, NULL);
+  } else
+  { Word c1, c2;
+    cmpex_t rc = compare_std(p1, p2, CMP_MODE_ORDER, &c1, &c2);
+
+    if ( rc == CMP_INCOMPARABLE )
+      return raiseIncomparable(c1, c2);
+
+    return rc;
+  }
 }
 
 

@@ -45,6 +45,7 @@ A android_api		"android_api"
 A answer_abstract	"answer_abstract"
 A anonvar		"_"
 A append		"append"
+A arbitrary		"arbitrary"
 A ar_equals		"=:="
 A ar_not_equal		"=\\="
 A arg			"arg"
@@ -844,6 +845,7 @@ A stack_parameter	"stack_parameter"
 A stack_shifts		"stack_shifts"
 A stacks		"stacks"
 A stand_alone		"stand_alone"
+A standard_order	"standard_order"
 A standard		"standard"
 A star			"*"
 A start			"start"
@@ -1334,6 +1336,7 @@ F spy			1
 F sqrt			1
 F ssu_commit		2
 F ssu_choice		2
+F standard_order	2
 F star			2
 F start			1
 F status		1

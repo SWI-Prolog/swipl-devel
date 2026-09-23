@@ -89,6 +89,7 @@ typedef enum
   ERR_NOT_IMPLEMENTED_PROC,	/* name, arity */
   ERR_IMPORT_PROC,		/* proc, dest, [already-from] */
   ERR_OCCURS_CHECK,		/* Word, Word */
+  ERR_INCOMPARABLE,		/* Word, Word */
   ERR_PERMISSION_PROC,		/* op, type, Definition */
   ERR_PERMISSION_VMI,		/* vmi */
   ERR_SHARED_OBJECT_OP,		/* op, error */

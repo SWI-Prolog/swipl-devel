@@ -4190,7 +4190,12 @@ domain or instantiation error if the conversion fails.
 \begin{description}
 \cfunction{int}{PL_compare}{term_t t1, term_t t2}
     Compares two terms using the standard order of terms and returns -1,
-    0 or 1. See also compare/3.
+    0 or 1. See also compare/3.  If the terms are cyclic terms that have
+    no order (see \secref{standardorder}) and the Prolog flag
+    \prologflag{incomparable} is \const{error}, it raises an exception
+    and returns -2.  -2 is also returned if the comparison raises a
+    resource error.  Code that tests the result using \verb$< 0$ must
+    first test for -2.
 \cfunction{bool}{PL_same_compound}{term_t t1, term_t t2}
     Yields \const{TRUE} if \arg{t1} and \arg{t2} refer to physically
     the same compound term and \const{FALSE} otherwise.

@@ -1420,7 +1420,7 @@ PL_cvt_o_address(void *address, term_t p)
 		 *	      COMPARE		*
 		 *******************************/
 
-int					/* TBD: how to report error? */
+int					/* -2: exception pending */
 PL_compare(term_t t1, term_t t2)
 { GET_LD
   valid_term_t(t1);
@@ -1428,7 +1428,7 @@ PL_compare(term_t t1, term_t t2)
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
-  return compareStandard(p1, p2, false);	/* -1, 0, 1 */
+  return compareStandard(p1, p2, false);	/* -1, 0, 1 or CMP_ERROR */
 }
 
 

@@ -527,6 +527,20 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 
       break;
     }
+    case ERR_INCOMPARABLE:
+    { Word p1  = va_arg(args, Word);
+      Word p2  = va_arg(args, Word);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_representation_error1,
+			   PL_FUNCTOR, FUNCTOR_standard_order2,
+			     PL_TERM, pushWordAsTermRef(p1),
+			     PL_TERM, pushWordAsTermRef(p2));
+      popTermRef();
+      popTermRef();
+
+      break;
+    }
     case ERR_TIMEOUT:
     { atom_t op   = va_arg(args, atom_t);
       term_t obj  = va_arg(args, term_t);
