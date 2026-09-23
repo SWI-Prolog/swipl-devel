@@ -2393,6 +2393,35 @@ is_variant_trie(trie *trie)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+clear_variant_table() destroys all tables of a variant table.
+
+(*) Emptying the variant trie releases the tables one by one.  After
+releasing a table, clear_node() drops the reference to its answer trie,
+which atom-GC (running in the gc thread) may reclaim immediately.  If a
+table that is released later holds a conditional answer that delays on
+it, destroy_delay_info() uses the answer trie from the delay element to
+remove this answer from its worklist and thus accesses freed memory.  We
+therefore first destroy the delay info of all tables, while the variant
+trie keeps all answer tries alive.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void *
+destroy_delay_info_table(trie_node *node, void *ctx)
+{ (void)ctx;
+
+  if ( node->value )
+  { trie *atrie = symbol_trie(word2atom(node->value));
+    worklist *wl = atrie->data.worklist;
+
+    if ( WL_IS_WORKLIST(wl) && wl->undefined )
+      destroy_delay_info_worklist(wl);
+  }
+
+  return NULL;
+}
+
+
 static void
 clear_variant_table(trie **vtriep)
 { trie *vtrie;
@@ -2401,6 +2430,7 @@ clear_variant_table(trie **vtriep)
   { vtrie->magic = TRIE_CMAGIC;
     if ( ison(vtrie, TRIE_ISSHARED) )
       release_trie(vtrie);			/* acquired in variant_table() */
+    map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
     *vtriep = NULL;
