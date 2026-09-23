@@ -1112,12 +1112,21 @@ CStackSize(DECL_LD)
 #define HAVE_ADDR2LINE2 1
 #define MAXCMD 1024
 
+/* ADDR2LINE_CMD is used by addr2line_popen() and looks up a single
+ * address.  ADDR2LINE_EXEC() runs the same program for the server (see
+ * below), which reads addresses from stdin.  Keep the two in sync.
+ */
+
 #ifdef __APPLE__
 /* Emits e.g. "prologToplevel (in libswipl.8.5.20.dylib) (pl-pro.c:560)" */
 #define ADDR2LINE_CMD "atos -o \"%s\" --fullPath %p"
+#define ADDR2LINE_EXEC(fname) \
+	execlp("atos", "atos", "-o", fname, "--fullPath", (char*)NULL)
 #else
 /* Emits two lines: "function\nfile:line"  */
 #define ADDR2LINE_CMD "addr2line -fe \"%s\" %p"
+#define ADDR2LINE_EXEC(fname) \
+	execlp("addr2line", "addr2line", "-fe", fname, (char*)NULL)
 #endif
 
 /* Append s to the description under construction.  Returns false if it
@@ -1145,8 +1154,101 @@ add_str(char **op, const char *ebuf, const char *s)
  * "func() at " is worse than a plain "func()".
  */
 
-static int
-addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
+/* Read one line into buf, discarding what does not fit.  Always
+ * consumes the whole line such that a persistent addr2line or atos
+ * process stays in sync.
+ */
+
+static bool
+read_line(FILE *fd, char *buf, size_t size)
+{ size_t len = 0;
+  int c;
+
+  while( (c=fgetc(fd)) != EOF && c != '\n' )
+  { if ( len+1 < size )
+      buf[len++] = (char)c;
+  }
+  buf[len] = '\0';
+
+  return c == '\n' || len > 0;
+}
+
+#ifdef __APPLE__
+
+/* Copy from s to buf until end or one of stop, returning the first
+ * character not copied.
+ */
+
+static const char *
+copy_field(const char *s, const char *stop, char **op, const char *ebuf)
+{ char *o = *op;
+
+  for(; *s && !strchr(stop, *s); s++)
+  { if ( o >= ebuf )
+      break;
+    *o++ = *s;
+  }
+  *op = o;
+
+  return s;
+}
+
+/* atos(1) emits one line per address, e.g. "func (in lib.dylib)
+ * (/path/file.c:42)".  The source location, if any, follows the second
+ * '('.  Without it we get "func (in lib.dylib) + 32" and if even the
+ * function is unknown just the address.
+ */
+
+static bool
+read_addr2line(FILE *fd, char *buf, size_t size)
+{ char line[1024];
+  char *ebuf = &buf[size-1];
+  char *o = buf;
+  const char *s;
+
+  if ( !read_line(fd, line, sizeof(line)) )
+    return false;
+
+  s = copy_field(line, " ", &o, ebuf);	/* copy the function */
+  if ( *s == ' ' && add_str(&o, ebuf, "()") )
+  { const char *loc;
+
+    if ( (loc=strchr(s, '(')) && (loc=strchr(loc+1, '(')) &&
+	 add_str(&o, ebuf, " at ") )
+      copy_field(loc+1, ")", &o, ebuf);
+  }
+
+  *o = '\0';
+  return o > buf;
+}
+
+#else /*__APPLE__*/
+
+static bool
+read_addr2line(FILE *fd, char *buf, size_t size)
+{ char func[256];
+  char loc[1024];
+  char *ebuf = &buf[size-1];
+  char *o = buf;
+
+  if ( !read_line(fd, func, sizeof(func)) ||
+       !read_line(fd, loc, sizeof(loc)) )
+    return false;
+
+  if ( add_str(&o, ebuf, func) &&
+       add_str(&o, ebuf, "()") &&
+       loc[0] != '?' &&		/* "??:0": no source location */
+       add_str(&o, ebuf, " at ") )
+    add_str(&o, ebuf, loc);
+
+  *o = '\0';
+  return o > buf;
+}
+
+#endif /*__APPLE__*/
+
+static bool
+addr2line_popen(const char *fname, uintptr_t offset, char *buf, size_t size)
 { char cmd[MAXCMD];
   int len = snprintf(cmd, sizeof(cmd), ADDR2LINE_CMD, fname, (void*)offset);
 
@@ -1154,62 +1256,220 @@ addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
   { FILE *fd;
 
     if ( (fd=popen(cmd, "r")) )
-    { int c;
-      char *ebuf = &buf[size-1];
-      char *o = buf;
-
-#ifdef __APPLE__
-      int field = 0;
-      while((c=fgetc(fd)) != EOF && o<ebuf)
-      { if ( field == 0 )
-	{ if ( c == ' ' )	/* end of the function name */
-	  { if ( !add_str(&o, ebuf, "()") )
-	      break;
-	    field++;
-	  } else
-	    *o++ = c;		/* copy the function */
-	} else if ( field < 3 )
-	{ if ( c == '(' &&	/* skip two '(': the location follows */
-	       ++field == 3 &&
-	       !add_str(&o, ebuf, " at ") )
-	    break;
-	} else
-	{ if ( c == ')' )	/* copy to ')' */
-	    break;
-	  *o++ = c;
-	}
-      }
-#else
-      int nl = 0;
-      bool need_at = false;
-      while((c=fgetc(fd)) != EOF && o<ebuf)
-      { if ( c == '\n' )
-	{ if ( ++nl == 1 )	/* end of the function name */
-	  { if ( !add_str(&o, ebuf, "()") )
-	      break;
-	    need_at = true;
-	  }
-	} else
-	{ if ( need_at )
-	  { if ( c == '?' )	/* "??:0": no source location */
-	      break;
-	    if ( !add_str(&o, ebuf, " at ") )
-	      break;
-	    need_at = false;
-	  }
-	  *o++ = (char)c;
-	}
-      }
-#endif
-
-      *o = '\0';
+    { bool rc = read_addr2line(fd, buf, size);
 
       pclose(fd);
-      return o > buf;
+      return rc;
     }
   }
 
   return false;
+}
+
+/* Starting addr2line(1) (atos(1) on MacOS) for each frame is slow.  If
+ * possible, we keep such a process per object file and feed it addresses
+ * through stdin.  Communication uses a socketpair() such that we can
+ * avoid SIGPIPE if the process died using either send(MSG_NOSIGNAL) or
+ * the SO_NOSIGPIPE socket option (BSD/MacOS).  Processes inherited
+ * through fork() are not ours and are discarded.
+ */
+
+#ifdef HAVE_FORK
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+#if defined(MSG_NOSIGNAL) || defined(SO_NOSIGPIPE)
+#define HAVE_ADDR2LINE_SERVER 1
+#define A2L_SERVERS 4
+#ifdef MSG_NOSIGNAL
+#define A2L_SEND_FLAGS MSG_NOSIGNAL
+#else
+#define A2L_SEND_FLAGS 0
+#endif
+
+typedef struct a2l_server
+{ char   *fname;			/* Object file we serve */
+  pid_t	  pid;				/* Process id of addr2line */
+  pid_t	  owner;			/* Process that started it */
+  int	  fd;				/* Our end of the socketpair */
+  FILE   *in;				/* Read end of fd */
+} a2l_server;
+
+static a2l_server a2l_servers[A2L_SERVERS];
+static int	  a2l_next;		/* Next to replace */
+#ifdef O_PLMT
+static pthread_mutex_t a2l_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
+static void
+a2l_stop(a2l_server *s)
+{ if ( s->fname )
+  { free(s->fname);
+    s->fname = NULL;
+    fclose(s->in);			/* also closes s->fd */
+    s->in = NULL;
+    if ( s->owner == getpid() )		/* after fork() it is not our child */
+      waitpid(s->pid, NULL, 0);		/* the server exits on EOF */
+  }
+}
+
+/* Create a socketpair that does not leak into processes we start and
+ * that does not raise SIGPIPE if the peer died.  dup2() in the child
+ * clears FD_CLOEXEC, so the server does get its end.
+ */
+
+static bool
+a2l_socketpair(int sv[2])
+{ int type = SOCK_STREAM;
+
+#ifdef SOCK_CLOEXEC
+  type |= SOCK_CLOEXEC;
+#endif
+
+  if ( socketpair(AF_UNIX, type, 0, sv) != 0 )
+    return false;
+
+#ifndef SOCK_CLOEXEC
+  for(int i=0; i<2; i++)
+    (void)fcntl(sv[i], F_SETFD, FD_CLOEXEC);
+#endif
+#ifdef SO_NOSIGPIPE			/* MSG_NOSIGNAL may not be honoured */
+  { int on = 1;
+    (void)setsockopt(sv[0], SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+  }
+#endif
+
+  return true;
+}
+
+static a2l_server *
+a2l_start(a2l_server *s, const char *fname)
+{ int sv[2];
+  pid_t pid;
+
+  if ( !a2l_socketpair(sv) )
+    return NULL;
+
+  if ( (pid=fork()) == 0 )
+  { if ( dup2(sv[1], 0) < 0 || dup2(sv[1], 1) < 0 )
+      _exit(1);
+    ADDR2LINE_EXEC(fname);
+    _exit(1);
+  }
+  close(sv[1]);
+  if ( pid < 0 )
+  { close(sv[0]);
+    return NULL;
+  }
+
+  if ( !(s->in = fdopen(sv[0], "r")) ||
+       !(s->fname = strdup(fname)) )
+  { if ( s->in )
+      fclose(s->in);
+    else
+      close(sv[0]);
+    s->in = NULL;
+    waitpid(pid, NULL, 0);
+    return NULL;
+  }
+  s->fd	   = sv[0];
+  s->pid   = pid;
+  s->owner = getpid();
+
+  return s;
+}
+
+static a2l_server *
+a2l_find(const char *fname)
+{ pid_t me = getpid();
+  a2l_server *s;
+
+  for(int i=0; i<A2L_SERVERS; i++)
+  { s = &a2l_servers[i];
+    if ( s->fname )
+    { if ( s->owner != me )
+	a2l_stop(s);
+      else if ( strcmp(s->fname, fname) == 0 )
+	return s;
+    }
+  }
+
+  s = &a2l_servers[a2l_next];
+  a2l_next = (a2l_next+1)%A2L_SERVERS;
+  a2l_stop(s);
+
+  return a2l_start(s, fname);
+}
+
+/* Returns 1 on success, 0 if there is no information and -1 if the
+ * connection is broken.
+ */
+
+static int
+a2l_query(a2l_server *s, uintptr_t offset, char *buf, size_t size)
+{ char req[64];
+  int len = snprintf(req, sizeof(req), "%p\n", (void*)offset);
+  const char *r = req;
+
+  while ( len > 0 )
+  { ssize_t n = send(s->fd, r, len, A2L_SEND_FLAGS);
+
+    if ( n < 0 )
+    { if ( errno == EINTR )
+	continue;
+      return -1;
+    }
+    r += n;
+    len -= (int)n;
+  }
+
+  if ( read_addr2line(s->in, buf, size) )
+    return 1;
+
+  return ferror(s->in) || feof(s->in) ? -1 : 0;
+}
+
+/* Returns 1 on success, 0 on failure and -1 if the server is not
+ * available, in which case we should fall back to popen().
+ */
+
+static int
+addr2line_server(const char *fname, uintptr_t offset, char *buf, size_t size)
+{ int rc = -1;
+  a2l_server *s;
+
+#ifdef O_PLMT
+  if ( pthread_mutex_trylock(&a2l_mutex) != 0 )
+    return -1;			/* busy or called recursively from a crash */
+#endif
+
+  if ( (s=a2l_find(fname)) )
+  { if ( (rc=a2l_query(s, offset, buf, size)) < 0 )
+      a2l_stop(s);		/* process died; restart next time */
+  }
+
+#ifdef O_PLMT
+  pthread_mutex_unlock(&a2l_mutex);
+#endif
+
+  return rc;
+}
+
+#endif /*MSG_NOSIGNAL || SO_NOSIGPIPE*/
+#endif /*HAVE_FORK*/
+
+static bool
+addr2line2(const char *fname, uintptr_t offset, char *buf, size_t size)
+{
+#ifdef HAVE_ADDR2LINE_SERVER
+  int rc = addr2line_server(fname, offset, buf, size);
+
+  if ( rc >= 0 )
+    return rc;
+#endif
+
+  return addr2line_popen(fname, offset, buf, size);
 }
 #endif/*!__WINDOWS__ && !__EMSCRIPTEN__ */
 
