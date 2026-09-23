@@ -3735,14 +3735,17 @@ static
 PRED_IMPL("prompt", 2, prompt, 0)
 { PRED_LD
   atom_t a;
+  int rc;
 
   term_t old = A1;
   term_t new = A2;
 
   if ( !PL_unify_atom(old, LD->prompt.current) )
     return false;
-  if ( PL_compare(A1,A2) == 0 )
+  if ( (rc=PL_compare(A1,A2)) == CMP_EQUAL )
     return true;
+  if ( rc == CMP_ERROR )
+    return false;
 
   if ( PL_get_atom_ex(new, &a) )
   { if ( LD->prompt.current )
@@ -6090,14 +6093,17 @@ static IOFUNCTIONS Sstderrfunctions =
 static int
 getIOStreams(term_t tin, term_t tout, term_t terror,
 	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
-{
+{ int rc;
+
   if ( !PL_get_stream(tin, in, SIO_INPUT) )
     return false;
 
   if ( !PL_get_stream(tout, out, SIO_OUTPUT) )
     return false;
 
-  if ( PL_compare(tout, terror) == 0 )	/* == */
+  if ( (rc=PL_compare(tout, terror)) == CMP_ERROR )
+    return false;
+  if ( rc == CMP_EQUAL )		/* == */
   { *error = getStream(Snew((*out),
 			    (*out)->flags & ~WRAP_CLEAR_FLAGS,
 			    &Sstderrfunctions));

@@ -1282,8 +1282,10 @@ PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
     rc = PL_unify_atom_chars(A1, sname);
 
   if ( rc )
-  { if ( PL_compare(A1,A2) == CMP_EQUAL )
+  { if ( (rc=PL_compare(A1,A2)) == CMP_EQUAL )
     { return true;
+    } else if ( rc == CMP_ERROR )
+    { return false;
     } else
     { int new;
 
@@ -1364,6 +1366,7 @@ static
 PRED_IMPL("$on_signal", 4, on_signal, 0)
 { PRED_LD
   int sign = -1;
+  int rc;
   SigHandler sh;
   char *sn;
   atom_t a;
@@ -1419,8 +1422,11 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     }
   }
 
-  if ( PL_compare(old, new) == 0 &&
-       PL_compare(mold, mnew) == 0 )
+  if ( (rc=PL_compare(old, new)) == CMP_EQUAL )
+    rc = PL_compare(mold, mnew);
+  if ( rc == CMP_ERROR )
+    return false;
+  if ( rc == CMP_EQUAL )
     succeed;					/* no change */
 
   if ( PL_get_atom(new, &a) )

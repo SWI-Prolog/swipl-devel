@@ -929,7 +929,11 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
       if ( !PL_unify_chars(A2, PL_ATOM, -1, old) )
 	fail;
 
-      if ( PL_compare(A2, A3) != 0 )
+      int rc;
+
+      if ( (rc=PL_compare(A2, A3)) == CMP_ERROR )
+	return false;
+      if ( rc != CMP_EQUAL )
       { if ( !setlocale(lcp->category, locale) )
 	{ if ( errno == ENOENT )
 	    return PL_existence_error("locale", A3);

@@ -78,6 +78,7 @@ locking is required.
 #include "pl-stream.h"
 #include "pl-utf8.h"
 #include "../pl-mutex.h"
+#include "../pl-prims.h"
 #include "SWI-Prolog.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
@@ -1862,11 +1863,18 @@ Sset_exception(IOSTREAM *s, term_t ex)
       /* If the current exception is associated with the
        * stream we should clear it.  It will be re-raised
        * by reportStreamError(), which clears the exception
-       * from the stream again.
+       * from the stream again.  We test for ==/2 rather than using
+       * PL_compare() as the latter may raise an exception, replacing
+       * the pending one.
        */
       term_t pending = PL_exception(0);
-      if ( pending && PL_compare(ex,pending) == CMP_EQUAL )
-	PL_clear_exception();
+      if ( pending )
+      { GET_LD
+
+	if ( compareStandard(valTermRef(ex), valTermRef(pending),
+			     true) == CMPEX_EQUAL )
+	  PL_clear_exception();
+      }
     }
 
     s->flags = nflags;

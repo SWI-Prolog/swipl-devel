@@ -4192,8 +4192,10 @@ unifiable(DECL_LD term_t t1, term_t t2, term_t subst)
   int rc;
 
   if ( PL_is_variable(t1) )
-  { if ( PL_compare(t1, t2) == 0 )
+  { if ( (rc=PL_compare(t1, t2)) == CMP_EQUAL )
     { return PL_unify_atom(subst, ATOM_nil);
+    } else if ( rc == CMP_ERROR )
+    { return false;
     } else
     { if ( !unifiable_occurs_check(t1, t2) )
 	fail;

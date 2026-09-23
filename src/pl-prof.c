@@ -373,14 +373,17 @@ static
 PRED_IMPL("profiler", 2, profiler, 0)
 { PRED_LD
   prof_status val;
+  int rc;
 
   if ( !PL_unify_atom(A1,
 		      LD->profile.active == PROF_INACTIVE ? ATOM_false :
 		      LD->profile.active == PROF_CPU ? ATOM_cputime :
 		      ATOM_walltime) )
     return false;
-  if ( PL_compare(A1, A2) == 0 )
+  if ( (rc=PL_compare(A1, A2)) == CMP_EQUAL )
     return true;
+  if ( rc == CMP_ERROR )
+    return false;
   if ( !get_prof_status(A2, &val) )
     return false;
   if ( val == LD->profile.active )
