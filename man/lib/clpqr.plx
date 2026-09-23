@@ -223,29 +223,40 @@ The clpq and clpr libraries are `orphaned', i.e., they currently have
 no maintainer.
 
 \begin{itemlist}
-    \item [Top-level output]
-The top-level output may contain variables not present in the original
-query:
+    \item [Answers are projected onto a component, not onto a term]
+An answer is projected onto the variables the user wrote down, so it does
+not mention the slack variables the solver uses internally.  It can still
+mention a variable that does not occur in the query, namely one that a
+called predicate connected to the query variables by a constraint.
+
+copy_term/3 is projected the same way, onto the user-level
+variables of the constraint store that is reachable from the copied term
+rather than onto the term itself.  It therefore reports constraints in
+which the copy takes part, together with a fresh variable for each partner
+that was not copied:
 
 \begin{code}
-?- {X+Y>=1}.
-{Y=1-X+_G2160, _G2160>=0}.
-
-?-
+?- {X+Y>=1}, copy_term(X, C, Gs).
+Gs = [{C+_>=1}],
+{X+Y>=1}.
 \end{code}
 
-Nonetheless, for linear constraints this kind of answer means
-unconditional satisfiability.
+Use dump/3 to project onto a chosen list of variables.  Here it says that
+\arg{X} by itself is unconstrained:
+
+\begin{code}
+?- {X+Y>=1}, dump([X], [x], L).
+L = [],
+{X+Y>=1}.
+\end{code}
 
     \item [Dumping constraints]
 The first argument of dump/3 has to be a list of free variables at
 call-time:
 
 \begin{code}
-?- {X=1},dump([X],[Y],L).
-ERROR: Unhandled exception: Unknown message:
-       instantiation_error(dump([1],[_G11],_G6),1)
-?-
+?- {X=1}, dump([X],[Y],L).
+ERROR: Uninstantiated argument expected, found 1
 \end{code}
 
 \end{itemlist}
