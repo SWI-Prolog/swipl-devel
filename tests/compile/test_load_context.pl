@@ -64,11 +64,11 @@ test(a_consulted_file_is_loaded_from_the_module_that_consults_it,
        cleanup(remove_files([Parent, Part]))
      ]) :-
     ensure_loaded(user:Parent),
-    once(source_file_property(Part, load_context(Module, Location, _Options))),
+    once(source_file_property(Part, load_context(Module, Location:_, _Options))),
     unload_file(Parent),
     unload_file(Part),
     assertion(Module == test_load_context_parent),
-    assertion(Location = Parent:_).
+    assertion(same_file(Location, Parent)).
 
 :- end_tests(load_context).
 
