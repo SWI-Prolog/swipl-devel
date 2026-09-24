@@ -2647,6 +2647,9 @@ static void
 setTmpDirPrologFlag(void)
  { char envbuf[PATH_MAX];
    char plbuf[PATH_MAX];
+#ifdef O_XOS
+   char longbuf[PATH_MAX];
+#endif
    char *td = NULL;
 
 #ifdef __unix__
@@ -2664,7 +2667,15 @@ setTmpDirPrologFlag(void)
       file named any other way.
    */
    if ( PrologPath(td, plbuf, sizeof(plbuf)) )
-     td = plbuf;
+   { td = plbuf;
+#ifdef O_XOS
+     /* %TEMP% is often an 8+3 name (C:\Users\RUNNER~1\...), while a
+	file loaded from it is known by its long, on-disk name.
+     */
+     if ( _xos_case_canonical_filename(plbuf, longbuf, sizeof(longbuf)) )
+       td = longbuf;
+#endif
+   }
 
    setPrologFlag("tmp_dir", FT_ATOM, td);
 }
