@@ -2447,9 +2447,11 @@ load_files(Module:Files, Options) :-
 
 '$qlf_source_changed'(QlfFile, PlFile) :-
     (   catch('$qlf_sources'(QlfFile, Sources), _, fail),
-	'$member'(source(PlFile, Hash), Sources),
+	'$file_hash'(PlFile, Hash),
 	Hash =\= 0
-    ->  \+ '$file_hash'(PlFile, Hash)
+    -> \+ ( '$member'(source(PlFile1, Hash), Sources), % robust w.r.t
+			same_file(PlFile, PlFile1)                 % Win8.3 filenames
+	)
     ;   true
     ).
 
