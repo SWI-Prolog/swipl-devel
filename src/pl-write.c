@@ -742,8 +742,11 @@ needSpace(int c, const write_options *options)
 
   if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || f_is_prolog_symbol(c)) )
     return true;
-  if ( (s->lastc&C_PREFIX_OP) && ( c == '(' || c == '{' ) )
-    return true;				/* avoid op(...) */
+  if ( (s->lastc&C_PREFIX_OP) &&
+       ( c == '(' || c == '{' ||		/* avoid op(...) */
+	 f_is_prolog_symbol(c) ) )		/* avoid not-a: reads as the
+						   prefix op, looks infix */
+    return true;
   if ( (s->lastc&C_INFIX_OP) && c == '(' )
     return false;
 
