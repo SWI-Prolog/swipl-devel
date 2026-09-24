@@ -2184,10 +2184,8 @@ hide_vars(binding(Names0, Skel, Subst), binding(Names, Skel, Subst)) :-
 
 hide_names([], _, _, []).
 hide_names([Name|T0], Skel, Subst, T) :-
-    (   sub_atom(Name, 0, _, _, '_'),
-        current_prolog_flag(toplevel_print_anon, false),
-        sub_atom(Name, 1, 1, _, Next),
-        char_type(Next, prolog_var_start)
+    (   anon_var_name(Name),
+        current_prolog_flag(toplevel_print_anon, false)
     ->  true
     ;   Subst == [],
         Skel == '$VAR'(Name)
@@ -2196,6 +2194,21 @@ hide_names([Name|T0], Skel, Subst, T) :-
     hide_names(T0, Skel, Subst, T).
 hide_names([Name|T0], Skel, Subst, [Name|T]) :-
     hide_names(T0, Skel, Subst, T).
+
+%   anon_var_name(+Name) is semidet.
+%
+%   True if Name is `_X`, or `?_X` if the flag `var_prefix` is `?`.
+
+anon_var_name(Name) :-
+    (   sub_atom(Name, 0, 1, _, '_')
+    ->  S = 1
+    ;   sub_atom(Name, 0, 1, _, P),
+        char_type(P, prolog_symbol),
+        sub_atom(Name, 1, 1, _, '_')
+    ->  S = 2
+    ),
+    sub_atom(Name, S, 1, _, Next),
+    char_type(Next, prolog_var_start).
 
 self_bounded(binding([Name], Value, [])) :-
     Value == '$VAR'(Name).

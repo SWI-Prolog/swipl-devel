@@ -105,7 +105,8 @@
 		       subterm_positions(-any),
 		       comments(-list),
 		       unicode_atoms(oneof([accept,nfc,error,reject])),
-		       blob(oneof([error,dead,resolve]))
+		       blob(oneof([error,dead,resolve])),
+		       var_prefix(char)
 		     ]).
 :- predicate_options(system:read_term/3, 3,
 		     [ backquoted_string(boolean),
@@ -120,7 +121,7 @@
 		       term_position(-any),
 		       variables(-list),
 		       variable_names(-list),
-		       var_prefix(boolean),
+		       var_prefix((char;boolean)),
 		       back_quotes(oneof([codes,chars,string,symbol_char])),
 		       quasi_quotations(any),
 		       dotlists(boolean),

@@ -51,6 +51,7 @@
 #include "../pl-tabling.h"
 #include "../pl-fli.h"
 #include "../pl-write.h"
+#include "../pl-read.h"
 #include "../pl-pro.h"
 #include "../pl-wam.h"
 #include "../pl-trace.h"
@@ -481,6 +482,23 @@ setRationalSyntax(atom_t a, unsigned int *flagp)
 
   *flagp &= ~RAT_MASK;
   *flagp |= flags;
+
+  return true;
+}
+
+/* setVarPrefix() sets the var_prefix flag of module `m`.  `a` is
+ * normalized: `true` is an alias for '_'.
+ */
+
+static bool
+setVarPrefix(term_t value, atom_t *a, Module m)
+{ int c;
+
+  if ( !get_var_prefix_ex(value, &c) )
+    return false;
+
+  m->var_prefix = c;
+  *a = c ? codeToAtom(c) : ATOM_false;
 
   return true;
 }
@@ -1223,11 +1241,6 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	  set(m, M_CHARESCAPE);
 	else
 	  clear(m, M_CHARESCAPE);
-      } else if ( k == ATOM_var_prefix )
-      { if ( val )
-	  set(m, M_VARPREFIX);
-	else
-	  clear(m, M_VARPREFIX);
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ rval = debugmode(NULL, true, NULL, DBG_ALL);
@@ -1294,6 +1307,8 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       { rval = setRationalSyntax(a, &m->flags);
       } else if ( k == ATOM_var_tag )
       { rval = setVarTagFlag(a, &m->flags);
+      } else if ( k == ATOM_var_prefix )
+      { rval = setVarPrefix(value, &a, m);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
       } else if ( k == ATOM_unknown_option )
@@ -1919,7 +1934,8 @@ unify_prolog_flag_value(DECL_LD Module m, atom_t key,
 { if ( key == ATOM_character_escapes )
   { return PL_unify_bool(val, ison(m, M_CHARESCAPE));
   } else if ( key == ATOM_var_prefix )
-  { return PL_unify_bool(val, ison(m, M_VARPREFIX));
+  { return PL_unify_atom(val, m->var_prefix ? codeToAtom(m->var_prefix)
+					     : ATOM_false);
   } else if ( key == ATOM_double_quotes )
   { atom_t v;
 
@@ -2487,7 +2503,7 @@ initPrologFlags(void)
   setPrologFlag("character_escapes", FT_BOOL, true, PLFLAG_CHARESCAPE);
   setPrologFlag("character_escapes_unicode", FT_BOOL, true,
 		PLFLAG_CHARESCAPE_UNICODE);
-  setPrologFlag("var_prefix", FT_BOOL, false, PLFLAG_VARPREFIX);
+  setPrologFlag("var_prefix", FT_ATOM, "false");
   setPrologFlag("unicode_atoms", FT_ATOM, "accept");
   setPrologFlag("atom_normalize_hook", FT_BOOL, false, 0);
   setPrologFlag("char_conversion", FT_BOOL, false, PLFLAG_CHARCONVERSION);

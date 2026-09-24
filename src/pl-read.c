@@ -433,22 +433,65 @@ truePrologFlagNoLD(unsigned int flag)
 }
 
 
-bool
-atom_varnameW(const pl_wchar_t *s, size_t len)
-{ if ( f_is_prolog_var_start(*s) )
-  { for(s++; --len > 0; s++)
-    { int c = *s;
+/* var_prefix_code() maps a value for the `var_prefix` flag or
+ * read_term/2 option to the prefix character.  `false` maps to 0 (no
+ * prefix) and `true` to `_` (compatibility).  Otherwise the value must
+ * be a one-character atom that is `_` or an ASCII symbol character
+ * other than `.` and `` ` ``.  Returns -1 if the value is not valid.
+ */
 
-      if ( !PlIdContW(c) )
-	return false;
-    }
+int
+var_prefix_code(atom_t a)
+{ PL_chars_t txt;
 
-    return true;
+  if ( a == ATOM_false )
+    return 0;
+  if ( a == ATOM_true )
+    return '_';
+  if ( get_atom_text(a, &txt) && txt.length == 1 )
+  { int c = text_get_char(&txt, 0);
+
+    if ( c == '_' ||
+	 (c < 0x80 && PlSymbolW(c) && c != '.' && c != '`') )
+      return c;
   }
 
-  return false;
+  return -1;
 }
 
+bool
+get_var_prefix_ex(term_t t, int *code)
+{ GET_LD
+  atom_t a;
+  int c;
+
+  if ( !PL_get_atom_ex(t, &a) )
+    return false;
+  if ( (c=var_prefix_code(a)) < 0 )
+    return PL_domain_error("var_prefix", t);
+
+  *code = c;
+  return true;
+}
+
+
+/* If the `var_prefix` flag is a symbol char, variable names start with
+ * this char.  As no other variable name can start with a symbol char,
+ * we can skip it without knowing the flag and apply the normal naming
+ * conventions to the remainder.  I.e., `?_` is the anonymous variable.
+ * As case is not relevant after the prefix, both `?_x` and `?_X` are
+ * handled as `_X` in standard Prolog: no singleton warning, but a
+ * warning if they appear more than once.
+ */
+
+#define isVarPrefixSymbol(c) ((unsigned)(c) < 0x80 && PlSymbolW(c))
+
+static inline const char *
+var_name_body(const char *name)
+{ if ( isVarPrefixSymbol(name[0]) && name[1] )
+    return name+1;
+  return name;
+}
 
 /* returns 1: properly named variable
 	   0: neutral (_<digit>)
@@ -461,18 +504,28 @@ atom_is_named_var(atom_t name)		/* see warn_singleton() */
   const pl_wchar_t *w;
 
   if ( (s=PL_atom_nchars(name, NULL)) )
-  { if ( s[0] != '_' ) return 1;
+  { const char *b = var_name_body(s);
+    bool prefixed = (b != s);
+
+    s = b;
+    if ( s[0] != '_' ) return 1;
     if ( s[1] )
     { if ( s[1] == '_' ) return -1;
       if ( isDigitW(s[1]) ) return 0;
-      if ( !PlUpperW(s[1]) ) return 1;
+      if ( !prefixed && !PlUpperW(s[1]) ) return 1;
     }
   } else if ( (w=PL_atom_wchars(name, NULL)) )
-  { if ( w[0] != '_' ) return 1;
+  { bool prefixed = false;
+
+    if ( isVarPrefixSymbol(w[0]) && w[1] )
+    { w++;
+      prefixed = true;
+    }
+    if ( w[0] != '_' ) return 1;
     if ( w[1] )
     { if ( w[1] == '_' ) return -1;
       if ( isDigitW(w[1]) ) return 0;
-      if ( !PlUpperW(w[1]) ) return 1;
+      if ( !prefixed && !PlUpperW(w[1]) ) return 1;
     }
   }
 
@@ -722,6 +775,7 @@ typedef struct
 
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags (M_*) */
+  int		var_prefix;		/* Variable prefix char (0: none) */
   int		styleCheck;		/* style-checking mask */
   int	       *char_conversion_table;	/* active conversion table */
 
@@ -791,6 +845,7 @@ init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
   _PL_rd->magic = RD_MAGIC;
   _PL_rd->module = MODULE_parse;
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
+  _PL_rd->var_prefix = _PL_rd->module->var_prefix;
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
   if ( truePrologFlag(PLFLAG_CHARCONVERSION) )
@@ -935,6 +990,7 @@ static void
 set_module_read_data(ReadData _PL_rd, Module m)
 { _PL_rd->module = m;
   _PL_rd->flags  = _PL_rd->module->flags;
+  _PL_rd->var_prefix = _PL_rd->module->var_prefix;
 }
 
 #define NeedUnlock(a) need_unlock(a, _PL_rd)
@@ -2021,8 +2077,13 @@ Not sure whether it is worth the trouble to use a hash-table here.
 	     v < _ev; \
 	     v++ )
 
-#define isAnonVarName(n)       ((n)[0] == '_' && (n)[1] == EOS)
-#define isAnonVarNameN(n, l)   ((n)[0] == '_' && (l) == 1)
+#define isAnonVarName(n)       isAnonVarNameN(n, strlen(n))
+
+static inline bool
+isAnonVarNameN(const char *n, size_t len)
+{ return ( (len == 1 && n[0] == '_') ||
+	   (len == 2 && n[1] == '_' && isVarPrefixSymbol(n[0])) );
+}
 
 static char *
 save_var_name(const char *name, size_t len, ReadData _PL_rd)
@@ -2147,7 +2208,11 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 
 static bool
 warn_singleton(const char *name)	/* Name in UTF-8 */
-{ if ( name[0] != '_' )			/* not _*: always warn */
+{ const char *body = var_name_body(name);
+  bool prefixed = (body != name);
+
+  name = body;
+  if ( name[0] != '_' )			/* not _*: always warn */
     return true;
   if ( name[1] == '_' )			/* __*: never warn */
     return false;
@@ -2157,7 +2222,7 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
     utf8_get_char(&name[1], &c);
     if ( isDigitW(c) )
       return false;
-    if ( !PlUpperW(c) )
+    if ( !prefixed && !PlUpperW(c) )
       return true;
   }
   return false;
@@ -2167,13 +2232,17 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 static bool
 warn_multiton(const char *name)
 { if ( !warn_singleton(name) )
-  { if ( name[0] == '_' && name[1] )
+  { const char *body = var_name_body(name);
+    bool prefixed = (body != name);
+
+    name = body;
+    if ( name[0] == '_' && name[1] )
     { int c;
 
       utf8_get_char(&name[1], &c);
       if ( isDigitW(c) )			/* _<digit>: never warn */
 	return false;
-      if ( !PlUpperW(c) )			/* _<lower>: never warn */
+      if ( !prefixed && !PlUpperW(c) )	/* _<lower>: never warn */
 	return false;
     }
 
@@ -2547,6 +2616,13 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
       continue;				/* ` is a symbol char */
     if ( !PlSymbolW(chr) )
       return in;
+    if ( chr == _PL_rd->var_prefix )	/* <symbol>?var */
+    { int c2;
+
+      utf8_get_char((char*)s, &c2);
+      if ( PlIdContW(c2) )
+	return in;
+    }
   }
 
   return in;
@@ -3748,9 +3824,10 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		}
     case UC:
     upper:
-		if ( c != '_' && ison(_PL_rd, M_VARPREFIX) )
+		if ( _PL_rd->var_prefix && c != _PL_rd->var_prefix )
 		  goto lower;
 
+    variable:
 		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
 		    return NULL;
@@ -3760,8 +3837,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  }
 		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
 		    goto functor;
-		  if ( start[0] == '_' &&
-		       rdhere == start + 1 &&
+		  if ( isAnonVarNameN((char*)start, rdhere-start) &&
 		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(MSG_READ_TOKEN, Sdprintf("VOID\n"));
 		    if ( *rdhere == '{' )
@@ -3815,6 +3891,14 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case_symbol:
     case SY:	if ( c == '`' && ison(_PL_rd, BQ_MASK) )
 		  goto case_bq;
+
+		if ( c == _PL_rd->var_prefix )	/* e.g., ?var */
+		{ int c2;
+
+		  utf8_get_char((char*)rdhere, &c2);
+		  if ( PlIdContW(c2) )
+		    goto variable;
+		}
 
 		if ( c == '<' &&		/* <type>(...): a blob */
 		     !must_be_op &&
@@ -6713,6 +6797,7 @@ static const PL_option_t read_clause_options[] =
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_unicode_atoms,     OPT_ATOM },
   { ATOM_blob,		    OPT_ATOM },
+  { ATOM_var_prefix,        OPT_TERM },
   { NULL_ATOM,		    0 }
 };
 
@@ -6763,6 +6848,7 @@ read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
   atom_t opt_unicode_atoms = NULL_ATOM;
   atom_t opt_blobs = NULL_ATOM;
   atom_t syntax_errors = ATOM_dec10;
+  term_t varprefix = 0;
   predicate_t comment_hook;
 
   comment_hook = _PL_predicate("comment_hook", 3, "prolog",
@@ -6784,7 +6870,8 @@ retry:
 			&opt_comments,
 			&syntax_errors,
 			&opt_unicode_atoms,
-			&opt_blobs) )
+			&opt_blobs,
+			&varprefix) )
   { PL_close_foreign_frame(fid);
     return false;
   }
@@ -6818,6 +6905,10 @@ retry:
   }
 
   set_module_read_data(&rd, LD->modules.source);
+  if ( varprefix && !get_var_prefix_ex(varprefix, &rd.var_prefix) )
+  { PL_close_foreign_frame(fid);
+    return false;
+  }
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
@@ -6870,7 +6961,7 @@ static const PL_option_t read_term_options[] =
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
-  { ATOM_var_prefix,        OPT_BOOL },
+  { ATOM_var_prefix,        OPT_TERM },
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
@@ -6898,7 +6989,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
   atom_t w;
   read_data rd;
   int charescapes = -1;
-  int varprefix = -1;
+  term_t varprefix = 0;
   atom_t opt_unicode_atoms = NULL_ATOM;
   atom_t opt_blobs = NULL_ATOM;
   atom_t dq = NULL_ATOM;
@@ -6943,7 +7034,7 @@ retry:
   { rd.module = isCurrentModule(mname);
     if ( !rd.module )
       rd.module = MODULE_user;
-    rd.flags  = rd.module->flags;
+    set_module_read_data(&rd, rd.module);
   }
 
   if ( charescapes != -1 )
@@ -6952,12 +7043,8 @@ retry:
     else
       clear(&rd, M_CHARESCAPE);
   }
-  if ( varprefix != -1 )
-  { if ( varprefix )
-      set(&rd, M_VARPREFIX);
-    else
-      clear(&rd, M_VARPREFIX);
-  }
+  if ( varprefix && !get_var_prefix_ex(varprefix, &rd.var_prefix) )
+    return false;
   if ( opt_unicode_atoms != NULL_ATOM )
   { Sunicode_atoms_t mode;
     if ( !atom_to_unicode_atoms_ex(opt_unicode_atoms, &mode, true) )

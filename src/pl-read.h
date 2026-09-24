@@ -67,8 +67,9 @@ int		f_quote_open(int c);
 int		is_eol_char(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
-bool		atom_varnameW(const pl_wchar_t *s, size_t len);
 int		atom_is_named_var(atom_t name);
+int		var_prefix_code(atom_t a);
+bool		get_var_prefix_ex(term_t t, int *code);
 strnumstat	str_number(const unsigned char *string,
 			   unsigned char **end,
 			   Number value, int flags);

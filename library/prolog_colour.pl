@@ -534,8 +534,8 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
         Error = Pos:_Message
     ).
 
-xref_flag_option(TB, var_prefix(Bool)) :-
-    xref_prolog_flag(TB, var_prefix, Bool, _Line).
+xref_flag_option(TB, var_prefix(Prefix)) :-
+    xref_prolog_flag(TB, var_prefix, Prefix, _Line).
 
 show_syntax_error(TB, Pos:Message, Range) :-
     integer(Pos),

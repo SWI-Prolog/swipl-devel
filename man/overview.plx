@@ -2638,10 +2638,13 @@ default is \const{silent}, but future versions may change that.
 Developers are encouraged to use another value and ensure proper use
 of create_prolog_flag/3 to create flags for their library.
 
-    \prologflagitem{var_prefix}{bool}{rw}
-If \const{true} (default \const{false}), variables must start with an
-underscore (\chr{_}).  May be changed. This flag is local to the
-module in which it is changed.  See \secref{varprefix}.
+    \prologflagitem{var_prefix}{atom}{rw}
+If \const{false} (default), use standard variable syntax.  Otherwise the
+value is a character and variables must start with this character.  The
+character is either the underscore (\chr{_}) or a symbol character
+other than \chr{.} and \chr{`}.  For compatibility, the value
+\const{true} is accepted as an alias for \chr{_}.  This flag is local
+to the module in which it is changed.  See \secref{varprefix}.
 
     \prologflagitem{var_tag}{Atom}{rw}
 This flag controls the interpretation of \arg{Tag}\{\ldots\} if
@@ -3397,7 +3400,7 @@ support the IEEE special float values. The ability to create, read and
 write such values facilitates the exchange of data with languages that
 can represent the full range of IEEE doubles.
 
-\subsubsection{Force only underscore to introduce a variable}
+\subsubsection{Use a prefix character to introduce a variable}
 \label{sec:varprefix}
 
 According to the ISO standard and most Prolog systems, identifiers that
@@ -3418,6 +3421,41 @@ interface for specifying functions or variables that start with an
 uppercase character. Lexical databases where part of the terms start with
 an uppercase letter is another category were the readability of the code
 improves using this option.
+
+The value of the flag is the character that introduces a variable. Using
+\exam{set_prolog_flag(var_prefix, '_')} selects the syntax described
+above. Alternatively, the flag can be set to a symbol character, for
+example \chr{?}, which allows for variables such as \exam{?x}, as used
+in e.g., SPARQL. With a symbol character prefix, the following rules
+apply:
+
+  \begin{itemize}
+    \item Only the prefix character, immediately followed by an
+identifier character (letter, digit or underscore), introduces a
+variable. The prefix character is part of the variable name, i.e.,
+\exam{?x} is named \verb$'?x'$. Both identifiers starting with an
+uppercase letter and identifiers starting with an underscore are atoms.
+    \item The prefix character that is not followed by an identifier
+character is a normal symbol character.  For example, \verb$?$ and
+\verb$?-$ are atoms.
+    \item A sequence of symbol characters ends before the prefix
+character if the prefix is followed by an identifier character. For
+example, \exam{X=?y} reads as \exam{X = ?y}.
+    \item The prefix followed by an underscore (e.g., \exam{?_}) is the
+anonymous variable.  Variables that start with the prefix followed by
+an underscore, e.g., \exam{?_x} or \exam{?_X}, are handled as
+\exam{_X} in standard Prolog: they do not cause a singleton warning,
+but cause a warning if they appear more than once (see
+\secref{singleton}).
+    \item When writing, variables are written with the prefix, e.g.,
+\exam{?_123}, and numbered variables are written as \exam{?A}, etc.
+  \end{itemize}
+
+Note that the symbol character loses its role as a symbol character if
+it is followed by an identifier character.  For example, if \chr{?} is
+defined as an infix operator, \exam{a?x} must be written as
+\exam{a? x}.  Choosing a character that starts common operators such
+as \chr{-}, \chr{+} or \chr{\$} is not advised.
 
 
 \subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}

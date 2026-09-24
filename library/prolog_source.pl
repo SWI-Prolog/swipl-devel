@@ -55,7 +55,8 @@
 :- autoload(library(error), [domain_error/2, is_of_type/2]).
 :- autoload(library(lists), [member/2, last/2, select/3, append/3, selectchk/3]).
 :- autoload(library(operators), [push_op/3, push_operators/1, pop_operators/0]).
-:- autoload(library(option), [select_option/4, option/3, option/2]).
+:- autoload(library(option),
+            [select_option/4, option/3, option/2, merge_options/3]).
 :- autoload(library(modules),[in_temporary_module/3]).
 
 
@@ -84,7 +85,8 @@ users of the library are:
 
 :- thread_local
     open_source/2,          % Stream, State
-    mode/2.                 % Stream, Data
+    mode/2,                 % Stream, Data
+    syntax_option/2.        % Stream, ReadOption
 
 :- multifile
     requires_library/2,
@@ -133,7 +135,11 @@ users of the library are:
 %   @see   read_source_term_at_location/3 for reading at an
 %          arbitrary location.
 
-prolog_read_source_term(In, Term, Expanded, Options) :-
+prolog_read_source_term(In, Term, Expanded, Options0) :-
+    add_syntax_options(In, Options0, Options),
+    read_source_term(In, Term, Expanded, Options).
+
+read_source_term(In, Term, Expanded, Options) :-
     maplist(read_clause_option, Options),
     !,
     select_option(subterm_positions(TermPos), Options,
@@ -145,7 +151,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
     expand(Term, TermPos, In, Expanded),
     '$current_source_module'(M),
     update_state(Term, Expanded, M, In).
-prolog_read_source_term(In, Term, Expanded, Options) :-
+read_source_term(In, Term, Expanded, Options) :-
     '$current_source_module'(M),
     select_option(syntax_errors(SE), Options, RestOptions0, dec10),
     select_option(subterm_positions(TermPos), RestOptions0,
@@ -167,6 +173,17 @@ read_clause_option(syntax_errors(_)).
 read_clause_option(term_position(_)).
 read_clause_option(process_comment(_)).
 read_clause_option(comments(_)).
+read_clause_option(var_prefix(_)).
+
+%!  add_syntax_options(+In, +Options0, -Options) is det.
+%
+%   Add read options for syntax flags set by  a directive in the source
+%   read from In.  We do not set the flag on the source module because
+%   this module may be `user`.
+
+add_syntax_options(In, Options0, Options) :-
+    findall(Opt, syntax_option(In, Opt), Opts),
+    merge_options(Options0, Opts, Options).
 
 :- public
     expand/3.                       % Used by Prolog colour
@@ -298,6 +315,11 @@ update_directive(op(P,T,N), SM, _) :-
     !,
     strip_module(SM:N, M, PN),
     push_op(P,T,M:PN).
+update_directive(set_prolog_flag(var_prefix, Prefix), _, In) :-
+    atom(Prefix),
+    !,
+    retractall(syntax_option(In, var_prefix(_))),
+    assertz(syntax_option(In, var_prefix(Prefix))).
 update_directive(style_check(Style), _, _) :-
     ground(Style),
     style_check(Style),
@@ -818,6 +840,7 @@ restore_source_context(In, Hooked, Src) :-
     ),
     pop_operators,
     retractall(mode(In, _)),
+    retractall(syntax_option(In, _)),
     (   retract(open_source(In, state(Hooked, Src, LexState, SM)))
     ->  '$restore_lex_state'(LexState),
         '$set_source_module'(SM)

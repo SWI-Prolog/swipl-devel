@@ -192,6 +192,7 @@ static int	writeTerm2(term_t term, int prec,
 static bool	writeTerm(term_t t, int prec,
 			  write_options *options, int flags) WUNUSED;
 static int	PutToken(const char *s, const write_options *options);
+static bool	PutVarPrefix(write_options *options);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
 static bool	enterPortray(void);
@@ -225,32 +226,55 @@ varName(term_t t, char *name)
 }
 
 
+/* atomIsVarName() is true if `a` is a valid variable name for the
+ * var_prefix `prefix` (see var_prefix_code()).  If `prefix` is 0, the
+ * name must start with an uppercase letter or `_`.  Otherwise it must
+ * start with `prefix`.  A symbol char prefix must be followed by at
+ * least one identifier char.
+ */
+
 static bool
-atomIsVarName(atom_t a)
-{ Atom atom = atomValue(a);
+atomIsVarName(atom_t a, int prefix)
+{ PL_chars_t txt;
 
-  if ( isoff(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
+  if ( !get_atom_text(a, &txt) || txt.length == 0 )
     return false;
-  if ( isUCSAtom(atom) )
-  { pl_wchar_t *w = (pl_wchar_t*)atom->name;
-    size_t len = atom->length / sizeof(pl_wchar_t);
 
-    return atom_varnameW(w, len);
-  } else
-  { const char *s = atom->name;
-    size_t len = atom->length;
-
-    if ( isUpper(*s) || *s == '_' )
-    { for(s++; --len > 0; s++)
-      { if ( !isAlpha(*s) )
-	  return false;
-      }
-
-      return true;
-    }
-
+  int c0 = text_get_char(&txt, 0);
+  if ( prefix )
+  { if ( c0 != prefix || (prefix != '_' && txt.length == 1) )
+      return false;
+  } else if ( !f_is_prolog_var_start(c0) )
     return false;
+
+  for(size_t i=1; i<txt.length; i++)
+  { if ( !f_is_prolog_identifier_continue(text_get_char(&txt, i)) )
+      return false;
   }
+
+  return true;
+}
+
+/* True if `a` is a valid variable name for some var_prefix */
+
+static bool
+atomIsAnyVarName(atom_t a)
+{ PL_chars_t txt;
+
+  if ( atomIsVarName(a, 0) )
+    return true;
+  if ( get_atom_text(a, &txt) && txt.length > 1 )
+  { int c0 = text_get_char(&txt, 0);
+
+    return c0 < 0x80 && f_is_prolog_symbol(c0) && atomIsVarName(a, c0);
+  }
+
+  return false;
+}
+
+static inline int
+out_var_prefix(const write_options *options)
+{ return options->module ? options->module->var_prefix : 0;
 }
 
 
@@ -303,14 +327,26 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
       }
     }
 
+    if ( out_var_prefix(options) && !PutVarPrefix(options) )
+      return -1;
     return PutToken(buf, options) ? true : -1;
   }
 
-  if ( isAtom(*p) && atomIsVarName(word2atom(*p)) )
-  { write_options o2 = *options;
-    clear(&o2, PL_WRT_QUOTED);
+  if ( isAtom(*p) )
+  { atom_t name = word2atom(*p);
+    int prefix = out_var_prefix(options);
+    bool std = atomIsVarName(name, 0);
+    bool plain = ( atomIsVarName(name, prefix) ||
+		   (!std && atomIsAnyVarName(name)) ); /* e.g. ?x */
 
-    return writeAtom(word2atom(*p), &o2) ? true : -1;
+    if ( plain || (prefix && std) )
+    { write_options o2 = *options;
+      clear(&o2, PL_WRT_QUOTED);
+
+      if ( !plain && !PutVarPrefix(options) )
+	return -1;
+      return writeAtom(name, &o2) ? true : -1;
+    }
   }
 
   return false;
@@ -455,9 +491,9 @@ atomType(atom_t a, write_options *options)
     return AT_QUOTE;
 
   if ( f_is_prolog_atom_start((unsigned char)*s) ||
-       (ison(m, M_VARPREFIX) &&
+       (m->var_prefix &&
 	f_is_prolog_var_start((unsigned char)*s) &&
-	*s != '_') )
+	*s != m->var_prefix) )
   { do
     { for( ++s;
 	   --len > 0 &&
@@ -713,6 +749,11 @@ needSpace(int c, const write_options *options)
 
   s->lastc &= ~C_MASK;
 
+  int prefix = out_var_prefix(options);
+  if ( prefix && s->lastc == prefix &&	/* avoid ?(a,x) -> a?x */
+       f_is_prolog_identifier_continue(c) )
+    return true;
+
   if ( ((f_is_prolog_identifier_continue(s->lastc) &&
 	 f_is_prolog_identifier_continue(c)) ||
 	(f_is_prolog_symbol(s->lastc) && f_is_prolog_symbol(c)) ||
@@ -749,6 +790,35 @@ PutToken(const char *s, const write_options *options)
   }
 
   return true;
+}
+
+
+/* PutVarPrefix() writes the var_prefix char of the output module before
+ * a variable name that does not start with it, e.g., `?_123` or `?A`
+ * if the prefix is `?`.
+ */
+
+static bool
+PutVarPrefix(write_options *options)
+{ int prefix = out_var_prefix(options);
+
+  TRY(PutOpenToken(prefix, options));
+  TRY(Putc(prefix, options->out));
+  options->out->lastc = EOF;		/* no space after the prefix */
+
+  return true;
+}
+
+/* PutVarName() writes the name of an unbound variable (_123) */
+
+static bool
+PutVarName(const char *name, write_options *options)
+{ int prefix = out_var_prefix(options);
+
+  if ( prefix && name[0] != prefix )
+    TRY(PutVarPrefix(options));
+
+  return !!PutToken(name, options);
 }
 
 
@@ -923,7 +993,7 @@ writeAttVar(term_t av, write_options *options)
 { GET_LD
   char buf[32];
 
-  TRY(PutToken(varName(av, buf), options));
+  TRY(PutVarName(varName(av, buf), options));
 
   if ( (options->flags & PL_WRT_ATTVAR_DOTS) )
   { return (Putc('{', options->out) &&
@@ -1770,7 +1840,7 @@ writePrimitive(term_t t, write_options *options)
 #endif
 
   if ( PL_is_variable(t) )
-    return PutToken(varName(t, buf), options);
+    return PutVarName(varName(t, buf), options);
 
   if ( PL_get_atom(t, &a) )
     return !!writeAtom(a, options);
@@ -2708,7 +2778,7 @@ bind_varnames(DECL_LD term_t names)
 
       if ( !PL_get_atom_ex(namet, &name) )
 	return false;
-      if ( !atomIsVarName(name) )
+      if ( !atomIsAnyVarName(name) )
 	return PL_domain_error("variable_name", namet);
 
       if ( PL_is_variable(var) )

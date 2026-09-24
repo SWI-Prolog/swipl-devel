@@ -1138,7 +1138,6 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_WARNING		(0x00002000) /* module */
 #define UNKNOWN_ERROR		(0x00004000) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
-#define M_VARPREFIX		(0x00008000) /* _var, Atom */
 #define M_DESTROYED		(0x00010000)
 #define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
 #define M_RDSTRING_TERM		(0x00040000) /* read/1 and friends: demand a term */
@@ -2102,6 +2101,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  int		var_prefix;	/* var_prefix flag char (0: none) */
   int		references;	/* see acquireModule() */
   gen_t		last_modified;	/* Generation I was last modified */
 };
@@ -2820,7 +2820,6 @@ typedef enum plflag
   PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT, /* Warn overriding weak symbols */
   PLFLAG_QUASI_QUOTES,			/* Support quasi quotes */
   PLFLAG_DOT_IN_ATOM,			/* Allow atoms a.b.c */
-  PLFLAG_VARPREFIX,			/* Variable must start with _ */
   PLFLAG_PROTECT_STATIC_CODE,		/* Deny clause/2 on static code */
   PLFLAG_MITIGATE_SPECTRE,		/* Mitigate spectre attacks */
   PLFLAG_TABLE_INCREMENTAL,		/* By default incremental tabling */

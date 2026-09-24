@@ -7412,9 +7412,10 @@ with the term position of the tail, otherwise with the atom \const{none}.
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
 is of the same format as used by stream_property/2.
 
-    \termitem{var_prefix}{Bool}
-If \const{true}, demand variables to start with an underscore.  See
-\secref{varprefix}.
+    \termitem{var_prefix}{Prefix}
+If not \const{false}, demand variables to start with the character
+\arg{Prefix}.  \const{true} is an alias for \chr{_}.  See
+\secref{varprefix} and the Prolog flag \prologflag{var_prefix}.
 
     \termitem{unicode_atoms}{Mode}
 Per-call atom-content policy that overrides the policy of the input
@@ -7496,6 +7497,10 @@ options:
 	If provided, unify \arg{Comments} with the comments encountered
 	while reading \arg{Term}. This option implies
 	\term{process_comment}{false}.
+
+	\termitem{var_prefix}{+Prefix}
+	Overrule the Prolog flag \prologflag{var_prefix} of the current
+	compilation module.  See read_term/3.
     \end{description}
 
 The \const{singletons} option of read_term/3 is initialised from the
