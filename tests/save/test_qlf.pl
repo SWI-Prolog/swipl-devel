@@ -156,10 +156,11 @@ test(the_hash_recorded_for_a_source_is_the_hash_of_the_file,
      [ setup(compiled_file(Pl, Qlf)),
        cleanup(remove_files([Pl, Qlf]))
      ]) :-
-    '$qlf_sources'(Qlf, Sources),
-    memberchk(source(Pl, Hash), Sources),
-    Hash =\= 0,
-    '$file_hash'(Pl, Hash).
+    '$file_hash'(Pl, Hash),
+    Hash =\= 0,                            % is this needed?
+	'$qlf_sources'(Qlf, Sources),
+    memberchk(source(Pl1, Hash), Sources), % robust wrt. Win8.3 filenames
+    same_file(Pl, Pl1).
 
 %       Reinstalling a tree, or checking it out again, gives every source
 %       a time of its own.  Nothing changed, so nothing is recompiled.
@@ -220,10 +221,11 @@ test(a_dependency_the_hook_declares_is_recorded,
      [ setup(compiled_with_dependency(Pl, Qlf, Dep)),
        cleanup(remove_files([Pl, Qlf, Dep]))
      ]) :-
-    '$qlf_sources'(Qlf, Sources),
-    memberchk(dependency(Dep, Hash), Sources),
-    Hash =\= 0,
-    '$file_hash'(Dep, Hash).
+    '$file_hash'(Dep, Hash),
+    Hash =\= 0, % is this needed?
+	'$qlf_sources'(Qlf, Sources),
+    memberchk(dependency(Dep1, Hash), Sources),
+    same_file(Dep, Dep1). % robust with respect to Windows 8.3 filenames
 
 test(and_a_change_to_it_needs_a_rebuild,
      [ setup(compiled_with_dependency(Pl, Qlf, Dep)),
