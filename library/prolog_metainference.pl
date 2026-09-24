@@ -78,8 +78,9 @@ inferred_meta_predicate(M:Head, MetaSpec) :-
 %!  infer_meta_predicate(:Head, -MetaSpec) is semidet
 %
 %   True  when  MetaSpec  is  a  meta-predicate  specifier  for  the
-%   predicate Head. Derived meta-predicates are   collected and made
-%   available through inferred_meta_predicate/2.
+%   predicate Head following the same format as meta_predicate/1.
+%   Derived meta-predicates are collected and made available
+%   through inferred_meta_predicate/2.
 
 infer_meta_predicate(Head, MetaSpec) :-
     inferred_meta_predicate(Head, MetaSpec),
@@ -228,7 +229,7 @@ join_annotation(A, B, C) :-
     ->  C = B
     ;   is_meta(A), is_meta(B)
     ->  C = (:)
-    ;   C = *
+    ;   C = ?
     ).
 
 attr_unify_hook(A0, Other) :-
@@ -286,7 +287,7 @@ meta_arg(HeadArg, :) :-
     HeadArg = M:_,
     get_attr(M, prolog_metainference, m),
     !.
-meta_arg(_, *).
+meta_arg(_, ?).
 
 %!  combine_meta_args(+Heads, -Head) is det.
 %
