@@ -45,7 +45,7 @@
         ]).
 :- use_module(library(settings), [setting/4, setting/2]).
 :- autoload(library(ansi_term), [ansi_format/3, ansi_hyperlink/2]).
-:- autoload(library(apply), [foldl/4]).
+:- autoload(library(apply), [foldl/4, exclude/3]).
 :- use_module(library(debug), [debug/3]).
 :- autoload(library(error), [instantiation_error/1, must_be/2]).
 :- autoload(library(lists), [member/2, append/3]).
@@ -202,6 +202,16 @@ list_module(Module, Options) :-
 %      If a predicate is _thread local_, list the clauses as seen by
 %      the given ThreadId.  Ignored if the predicate is not thread
 %      local.
+%
+%      - module(+Module)
+%      Module whose operator table is used to write the clauses.
+%      Default is the module from which listing/2 is called.  This
+%      matters for a program listed in a module other than the one whose
+%      operators it is written with, e.g., a compiled representation
+%      kept in a temporary module.
+%
+%   Other options are passed to portray_clause/3 and from there to
+%   write_term/3.
 
 listing(Spec) :-
     listing(Spec, []).
@@ -523,7 +533,29 @@ list_clause(Module:Head, Body, Neck, Ref, Source, Options) :-
     restore_variable_names(Module, Head, Body, Ref, Options),
     write_module(Module, Source, Head),
     Rule =.. [Neck,Head,Body],
-    portray_clause(Rule).
+    write_options(Options, WriteOptions),
+    current_output(Out),
+    portray_clause(Out, Rule, WriteOptions).
+
+%!  write_options(+Options, -WriteOptions) is det.
+%
+%   Options of listing/2 meant for portray_clause/3 and, from there, for
+%   write_term/3.  This is the `pass_to(portray_clause/3, 3)` of the
+%   predicate_options/3 declaration above.  The options listing/2 handles
+%   itself are removed; variable_names/1 notably means something else
+%   here (`source` or `generated`) than it does to write_term/3.
+
+write_options(Options, WriteOptions) :-
+    exclude(listing_option, Options, WriteOptions).
+
+listing_option(Option) :-
+    functor(Option, Name, 1),
+    listing_option_name(Name).
+
+listing_option_name(variable_names).
+listing_option_name(source).
+listing_option_name(thread).
+listing_option_name(timeout).
 
 %!  restore_variable_names(+Module, +Head, +Body, +Ref, +Options) is det.
 %
