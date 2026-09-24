@@ -68,7 +68,8 @@ test(a_consulted_file_is_loaded_from_the_module_that_consults_it,
     unload_file(Parent),
     unload_file(Part),
     assertion(Module == test_load_context_parent),
-    assertion(same_file(Location, Parent)).
+    % same_file is more robust than Location = Parent (Win 8.3 filenames)
+    assertion(same_file(Location, Parent)). 
 
 :- end_tests(load_context).
 
