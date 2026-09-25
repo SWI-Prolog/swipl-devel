@@ -58,7 +58,7 @@
 
 \newcommand{\vmajor}{10}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{15}
+\newcommand{\vpatch}{16}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{September}
 \newcommand{\vyear}{2026}
