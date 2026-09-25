@@ -127,4 +127,38 @@ test(line_position, Pos == 2) :-
             line_position(current_output, Pos)
         ), _).
 
+% The default for `hyperlink_term` is derived from the environment
+% variables a terminal sets.  We only test recognising the terminal,
+% as the rest of the default requires the standard streams to be a
+% terminal.
+
+test(osc8_terminal, Found == [true,true,true,false,true,true,false]) :-
+    maplist(recognised,
+            [ ['TERM_PROGRAM'='Epilog'],
+              ['TERM'='xterm-kitty'],
+              ['VTE_VERSION'='7600'],
+              ['VTE_VERSION'='4800'],
+              ['WT_SESSION'=x],
+              ['KITTY_WINDOW_ID'='1'],
+              ['TERM_PROGRAM'='Apple_Terminal']
+            ], Found).
+
+osc8_vars(['TERM_PROGRAM', 'TERM', 'VTE_VERSION',
+           'KITTY_WINDOW_ID', 'WT_SESSION']).
+
+recognised(Env, Found) :-
+    osc8_vars(Vars),
+    findall(Var-Value, (member(Var, Vars), getenv(Var, Value)), Saved),
+    setup_call_cleanup(
+        ( maplist(unsetenv, Vars),
+          forall(member(Var=Value, Env), setenv(Var, Value))
+        ),
+        (   ansi_term:osc8_terminal
+        ->  Found = true
+        ;   Found = false
+        ),
+        ( maplist(unsetenv, Vars),
+          forall(member(Var-Value, Saved), setenv(Var, Value))
+        )).
+
 :- end_tests(ansi_term).

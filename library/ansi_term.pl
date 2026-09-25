@@ -65,7 +65,9 @@ The behavior of this library is controlled by two Prolog flags:
     simply call format/3.
   - `hyperlink_term`
     Emit terminal hyperlinks for url(Location) and url(URL, Label)
-    elements of Prolog messages.
+    elements of Prolog messages.  The default is `true` if the
+    environment identifies a terminal known to support OSC 8
+    hyperlinks.
 
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
@@ -84,13 +86,63 @@ color_term_flag_default(true) :-
     !.
 color_term_flag_default(false).
 
+%!  hyperlink_term_flag_default(-Bool) is det.
+%
+%   True when Bool tells whether  the  terminal   is  known  to support
+%   OSC 8 hyperlinks.  There is  no   escape  sequence  to ask whether a
+%   terminal supports them, so we  recognise   the  terminal  from the
+%   environment variables it sets.  A multiplexer (tmux, screen) hides
+%   the terminal it runs in and only  passes hyperlinks on if configured
+%   to do so, so we do not enable them inside one.
+
+hyperlink_term_flag_default(true) :-
+    color_term_flag_default(true),
+    \+ getenv('TMUX', _),
+    \+ getenv('STY', _),
+    osc8_terminal,
+    !.
+hyperlink_term_flag_default(false).
+
+osc8_terminal :-
+    getenv('TERM_PROGRAM', Program),
+    osc8_term_program(Program),
+    !.
+osc8_terminal :-
+    getenv('TERM', Term),
+    osc8_term(Term),
+    !.
+osc8_terminal :-
+    getenv('VTE_VERSION', Atom),                % GNOME Terminal, Tilix, ...
+    atom_number(Atom, Version),
+    Version >= 5000,
+    !.
+osc8_terminal :-
+    getenv('KITTY_WINDOW_ID', _),
+    !.
+osc8_terminal :-
+    getenv('WT_SESSION', _).                    % Windows Terminal
+
+osc8_term_program('Epilog').
+osc8_term_program('iTerm.app').
+osc8_term_program('WezTerm').
+osc8_term_program(ghostty).
+osc8_term_program(vscode).
+
+osc8_term('xterm-kitty').
+osc8_term('xterm-ghostty').
+osc8_term(foot).
+osc8_term('foot-extra').
+osc8_term(wezterm).
+osc8_term(alacritty).
+
 init_color_term_flag :-
-    color_term_flag_default(Default),
-    create_prolog_flag(color_term, Default,
+    color_term_flag_default(Color),
+    create_prolog_flag(color_term, Color,
                        [ type(boolean),
                          keep(true)
                        ]),
-    create_prolog_flag(hyperlink_term, false,
+    hyperlink_term_flag_default(Hyperlink),
+    create_prolog_flag(hyperlink_term, Hyperlink,
                        [ type(boolean),
                          keep(true)
                        ]).

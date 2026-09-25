@@ -1886,6 +1886,24 @@ absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
 See \secref{findhome} for how this location is determined and
 \cmdlineoption{--home} for setting or reporting it from the command line.
 
+    \prologflagitem{hyperlink_term}{bool}{rw}
+If \const{true}, messages printed to a terminal contain \jargon{OSC 8}
+hyperlinks, for example from a source location to the file.  This flag
+is managed by library \pllib{ansi_term}.  As there is no way to ask a
+terminal whether it supports hyperlinks, the default is \const{true} if
+\prologflag{color_term} would be \const{true} and the environment
+identifies a terminal known to support them: \env{TERM_PROGRAM} is one
+of \const{Epilog}, \const{iTerm.app}, \const{WezTerm}, \const{ghostty}
+or \const{vscode}; \env{TERM} is one of \const{xterm-kitty},
+\const{xterm-ghostty}, \const{foot}, \const{foot-extra},
+\const{wezterm} or \const{alacritty}; \env{VTE_VERSION} is at least
+5000; or one of \env{KITTY_WINDOW_ID} and \env{WT_SESSION} is set.  The
+default is \const{false} inside \program{tmux} or \program{screen}, which
+only pass hyperlinks on if configured to do so.  Set the flag in the
+personal initialization file (see \secref{initfile}) to override the
+default.  Like \prologflag{color_term}, this flag is not saved in a
+saved state (see qsave_program/2).
+
     \prologflagitem{incomparable}{atom}{rw}
 Determines what happens if the standard order of terms is used to
 compare two cyclic terms that have no order (see
