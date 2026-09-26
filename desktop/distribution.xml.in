@@ -10,7 +10,7 @@
     <background-darkAqua file="background.png"
                 alignment="left" scaling="proportional"/>
     <options customize="never" require-scripts="false"
-             hostArchitectures="@CMAKE_SYSTEM_PROCESSOR@"/>
+             hostArchitectures="@pkg_host_archs@"/>
     <!-- No <volume-check>/<allowed-os-versions> here.  On modern
          macOS (11+, sealed system volume) the volume-check OS-version
          comparison misfires and Installer.app rejects the package with

@@ -40,8 +40,10 @@ if(BUILD_MACOS_BUNDLE)
     # CMAKE_SYSTEM_PROCESSOR only reflects the build host; for a fat
     # build the pkg ships binaries for both arm64 and x86_64.
     set(pkg_arch fat)
+    set(pkg_host_archs x86_64,arm64)
   else()
     set(pkg_arch ${CMAKE_SYSTEM_PROCESSOR})
+    set(pkg_host_archs ${CMAKE_SYSTEM_PROCESSOR})
   endif()
   set(pkg_file
       ${CMAKE_BINARY_DIR}/swipl-${SWIPL_VERSION_STRING}-1.${pkg_arch}.pkg)
