@@ -667,7 +667,9 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 
 
 
-#define sumProfile(n, handle, type, sum, seen) LDFUNC(sumProfile, n, handle, type, sum, seen)
+#define sumProfile(n, handle, type, sum, seen) \
+	LDFUNC(sumProfile, n, handle, type, sum, seen)
+
 static int
 sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
 	   node_sum *sum, int seen)
@@ -675,7 +677,10 @@ sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
   int count = 0;
 
   if ( n->handle == handle )
-  { count++;
+  { if ( PL_handle_signals() < 0 )
+      return -1;
+
+    count++;
     if ( !seen )
     { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
@@ -696,7 +701,11 @@ sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
   }
 
   for(s=n->siblings; s; s = s->next)
-    count += sumProfile(s, handle, type, sum, seen);
+  { int c = sumProfile(s, handle, type, sum, seen);
+    if ( c < 0 )
+      return c;
+    count += c;
+  }
 
   return count;
 }
@@ -794,10 +803,14 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   collectSiblingsTime();
   memset(&sum, 0, sizeof(sum));
   for(n=LD->profile.roots; n; n=n->next)
-    count += sumProfile(n, handle, &prof_default_type, &sum, 0);
+  { int c = sumProfile(n, handle, &prof_default_type, &sum, 0);
+    if ( c < 0 )
+      return false;
+    count += c;
+  }
 
   if ( count == 0 )
-    fail;				/* nothing known about this one */
+    return false;			/* nothing known about this one */
 
   rc = ( PL_unify_uint64(A2, sum.ticks) &&
 	 PL_unify_uint64(A3, sum.sibling_ticks) &&
