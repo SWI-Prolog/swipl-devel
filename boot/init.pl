@@ -4156,28 +4156,33 @@ load_files(Module:Files, Options) :-
 %     expand_term_aux(Goal, NewGoal, Clauses)
 %     ==
 %
+%   The clauses are owned by the file being   loaded and their source
+%   location is the current source  location.   These  differ  if the
+%   clauses are compiled from an included file.
+%
 %   @tbd    Deal with source code layout?
 
 compile_aux_clauses(_Clauses) :-
     current_prolog_flag(xref, true),
     !.
 compile_aux_clauses(Clauses) :-
-    source_location(File, _Line),
-    '$compile_aux_clauses'(Clauses, File).
+    source_location(File, Line),
+    prolog_load_context(source, Owner),
+    '$compile_aux_clauses'(Clauses, Owner, File:Line).
 
-'$compile_aux_clauses'(Clauses, File) :-
+'$compile_aux_clauses'(Clauses, Owner, SrcLoc) :-
     setup_call_cleanup(
-	'$start_aux'(File, Context),
-	'$store_aux_clauses'(Clauses, File),
-	'$end_aux'(File, Context)).
+	'$start_aux'(Owner, Context),
+	'$store_aux_clauses'(Clauses, Owner, SrcLoc),
+	'$end_aux'(Owner, Context)).
 
-'$store_aux_clauses'(Clauses, File) :-
+'$store_aux_clauses'(Clauses, Owner, SrcLoc) :-
     is_list(Clauses),
     !,
     forall('$member'(C,Clauses),
-	   '$compile_term'(C, _Layout, File, [])).
-'$store_aux_clauses'(Clause, File) :-
-    '$compile_term'(Clause, _Layout, File, []).
+	   '$compile_term'(C, _Layout, Owner, SrcLoc, [])).
+'$store_aux_clauses'(Clause, Owner, SrcLoc) :-
+    '$compile_term'(Clause, _Layout, Owner, SrcLoc, []).
 
 
 		 /*******************************
