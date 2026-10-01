@@ -428,22 +428,17 @@ restart_abstract_tabling(Closure, Wrapper, Worker) :-
 
 start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
-    ->  (   Status == complete
-        ->  trie_gen_compiled(Trie, Skeleton)
-        ;   Status == invalid
-        ->  reeval(Trie, Wrapper, Skeleton),
-            trie_gen_compiled(Trie, Skeleton)
-        ;   shift_for_copy(call_info(Skeleton, Status))
-        )
+    ->  '$idg_add_edge'(Trie),
+        start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
-    ->  '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
+    ->  '$idg_add_edge'(ATrie),
+        '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, Status, GenWrapper, GenSkeleton)
     ->  (   Status == invalid
-        ->  reeval(ATrie, GenWrapper, GenSkeleton),
-            Wrapper = GenWrapper,
-            '$tbl_answer_update_dl'(ATrie, GenSkeleton)
+        ->  forall(reeval(ATrie, GenWrapper, GenSkeleton), true),
+            start_subsumptive_tabling(Closure, Wrapper, Worker)
         ;   wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton),
             shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
             unify_subsumptive(Skeleton, GenSkeleton)
