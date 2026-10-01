@@ -286,14 +286,58 @@ setup_if_loaded.
 %   or as part of the xpce initialization.
 
 pce_set_defaults(Loaded) :-
+    (   dark_system_colours
+    ->  SystemDark = true
+    ;   SystemDark = false
+    ),
     pce_style(Class, Properties),
     member(Prop, Properties),
+    \+ ( SystemDark == true,
+         system_style(Class, Prop)
+       ),
     Prop =.. [Name,Value],
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
     update_class_variable(Loaded, Class, Name, Value),
     update_instances(Class, Prop),
     fail ; true.
+
+%!  dark_system_colours is semidet.
+%
+%   True when the system colours are already dark.  This is the case on
+%   Windows using a contrast theme such as "Night sky".  The Windows
+%   defaults derive from these colours.
+
+dark_system_colours :-
+    current_prolog_flag(windows, true),
+    get(@pce, convert, win_window, colour, Colour),
+    get(Colour, intensity, I),
+    I < 128.
+
+%!  system_style(+Class, +Property) is semidet.
+%
+%   True when Property defines the basic  colours of windows and dialogs.
+%   These are left to the system if the system colours are dark.
+
+system_style(Class, Prop) :-
+    functor(Prop, Name, 1),
+    system_property(Class, Name).
+
+system_property(display,        foreground).
+system_property(display,        background).
+system_property(window,         colour).
+system_property(window,         background).
+system_property(dialog,         colour).
+system_property(dialog,         background).
+system_property(graphical,      selected_foreground).
+system_property(graphical,      selected_background).
+system_property(text_item,      text_colour).
+system_property(text_item,      elevation).
+system_property(menu,           text_colour).
+system_property(text_image,     colour).
+system_property(text_image,     background).
+system_property(terminal_image, colour).
+system_property(terminal_image, background).
 
 update_class_variable(true, ClassName, Name, Value) :-
     get(@(classes), member, ClassName, Class),
