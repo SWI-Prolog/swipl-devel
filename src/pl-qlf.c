@@ -3394,6 +3394,7 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
  *   - class:ModuleClass
  *   - file:File
  *   - exports:list(PI)
+ * The caller must push and pop the XR table around this call.
  */
 
 static const atom_t mkeys[] =
@@ -3409,7 +3410,6 @@ static bool
 qlfModuleInfo(DECL_LD wic_state *state, term_t minfo)
 { IOSTREAM *fd = state->wicFd;
 
-  pushXrIdTable(state);
   qlfLoadIncludes(state, true);	/* Skip {'L' <include>} */
 
   switch(Qgetc(fd))
@@ -3428,8 +3428,7 @@ qlfModuleInfo(DECL_LD wic_state *state, term_t minfo)
 	   !(extail  = PL_copy_term_ref(exports)) )
 	return false;
 
-      PL_unify_atom(av+0, mname);
-      PL_unregister_atom(mname);
+      PL_unify_atom(av+0, mname);	/* XR atoms are owned by the XR table */
 
       /* deal with the source */
       switch(c)
@@ -3458,12 +3457,10 @@ qlfModuleInfo(DECL_LD wic_state *state, term_t minfo)
 	  { atom_t class = word2atom(loadXR(state));
 	    if ( !PL_unify_atom(av+1, class) )
 	      return false;
-	    PL_unregister_atom(class);
 	    continue;
 	  }
 	  case 'S':		/* super */
-	  { atom_t super = word2atom(loadXR(state));
-	    PL_unregister_atom(super);
+	  { (void)loadXR(state);
 	    continue;
 	  }
 	  case 'E':
@@ -3579,7 +3576,10 @@ qlfInfo(DECL_LD const char *file,
   }
 
   if ( minfo )
-  { if ( !qlfModuleInfo(&state, minfo) )
+  { pushXrIdTable(&state);
+    bool rc = qlfModuleInfo(&state, minfo);
+    popXrIdTable(&state);
+    if ( !rc )
       goto out;
   }
 
@@ -3620,7 +3620,7 @@ qlfInfo(DECL_LD const char *file,
     rval = true;
 
 out:
-  if ( files0 )
+  if ( minfo || files0 )
     popPathTranslation(&state);
   if ( qlfstart )
     free(qlfstart);
