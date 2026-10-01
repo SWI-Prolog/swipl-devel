@@ -234,6 +234,79 @@ test(and_a_change_to_it_needs_a_rebuild,
     touch(Dep, Qlf, 1),
     prolog_qlfmake:qlf_needs_rebuild(Pl).
 
+%       Loading asks the same as the build.  A .qlf file holds more than
+%       its own source: the files it consults (as library(pce) and
+%       library(emacs/emacs) do), the files it includes and the files a
+%       dependency was copied from.  A change to any of them makes the
+%       .qlf file out of date.
+
+test(loading_finds_a_changed_dependency,
+     [ setup(compiled_with_dependency(Pl, Qlf, Dep)),
+       cleanup(remove_files([Pl, Qlf, Dep])),
+       true(Why == old)
+     ]) :-
+    \+ '$qlf_out_of_date'(Pl, Qlf, _),
+    write_source(Dep, "% a change to what was copied\n"),
+    touch(Dep, Qlf, 1),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+test(loading_finds_a_changed_consulted_file,
+     [ setup(compiled_with_part(consult, Pl, Qlf, Part)),
+       cleanup(remove_files([Pl, Qlf, Part])),
+       true(Why == old)
+     ]) :-
+    \+ '$qlf_out_of_date'(Pl, Qlf, _),
+    write_source(Part, "part(2).\n"),
+    touch(Part, Qlf, 1),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+test(loading_finds_a_changed_included_file,
+     [ setup(compiled_with_part(include, Pl, Qlf, Part)),
+       cleanup(remove_files([Pl, Qlf, Part])),
+       true(Why == old)
+     ]) :-
+    \+ '$qlf_out_of_date'(Pl, Qlf, _),
+    write_source(Part, "part(2).\n"),
+    touch(Part, Qlf, 1),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+test(but_not_one_that_was_only_touched,
+     [ setup(compiled_with_part(consult, Pl, Qlf, Part)),
+       cleanup(remove_files([Pl, Qlf, Part]))
+     ]) :-
+    touch(Part, Qlf, 10),
+    \+ '$qlf_out_of_date'(Pl, Qlf, _).
+
+%       A .qlf file written by another VM cannot be loaded.  If its
+%       source changed as well, it is still reported as incompatible,
+%       as that is the more serious problem.
+
+test(a_qlf_file_of_another_vm_is_incompatible,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       Why = error(qlf_format_error(_, _), _)
+     ]) :-
+    change_vm_signature(Qlf),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+test(also_if_its_source_changed,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       Why = error(qlf_format_error(_, _), _)
+     ]) :-
+    change_vm_signature(Qlf),
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 10),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
+test(a_file_that_is_no_qlf_file_is_out_of_date,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       Why = error(qlf_format_error(_, _), _)
+     ]) :-
+    write_source(Qlf, "not a qlf file\n"),
+    '$qlf_out_of_date'(Pl, Qlf, Why).
+
 :- end_tests(qlf_staleness).
 
 %!  compiled_file(-PlFile, -QlfFile) is det.
@@ -274,6 +347,55 @@ compiled_with_dependency(Pl, Qlf, Dep) :-
         assertz(hook_dependency(Pl, Dep)),
         compiled_file(Pl, Qlf),
         retractall(hook_dependency(_, _))).
+
+%!  compiled_with_part(+How, -PlFile, -QlfFile, -Part) is det.
+%
+%   As compiled_file/2, where PlFile loads Part using How, which is one
+%   of `consult` or `include`.  Either way Part is compiled into QlfFile.
+
+compiled_with_part(How, Pl, Qlf, Part) :-
+    current_prolog_flag(tmp_dir, Tmp),
+    directory_file_path(Tmp, 'test_qlf_part.pl', Part),
+    directory_file_path(Tmp, 'test_qlf_whole.pl', Pl),
+    file_name_extension(Base, pl, Pl),
+    file_name_extension(Base, qlf, Qlf),
+    write_source(Part, "part(1).\n"),
+    format(string(Text), ":- ~w(test_qlf_part).\n", [How]),
+    write_source(Pl, Text),
+    remove_files([Qlf]),
+    qcompile(Pl),
+    unload_file(Part),
+    unload_file(Pl).
+
+%!  change_vm_signature(+QlfFile) is det.
+%
+%   Make QlfFile look as if it was written by another VM.  The header is
+%   a 0-terminated magic string, followed by the version and the VM
+%   signature as variable length integers whose last byte has bit 7
+%   set.  Flipping bit 0 of that byte of the signature changes it,
+%   leaving its length and thus the rest of the file intact.
+
+change_vm_signature(Qlf) :-
+    read_file_to_codes(Qlf, Bytes0, [type(binary)]),
+    append(Magic, [0|Rest0], Bytes0),
+    \+ memberchk(0, Magic),
+    !,
+    varint(Rest0, Version, Rest1),
+    varint(Rest1, Sig0, Rest),
+    once(append(SigPrefix, [Last0], Sig0)),
+    Last is Last0 xor 0x01,
+    append(SigPrefix, [Last], Sig),
+    append([Magic, [0|Version], Sig, Rest], Bytes),
+    setup_call_cleanup(
+        open(Qlf, write, Out, [type(binary)]),
+        maplist(put_byte(Out), Bytes),
+        close(Out)).
+
+varint([H|T], [H], T) :-
+    H /\ 0x80 =\= 0,
+    !.
+varint([H|T0], [H|V], T) :-
+    varint(T0, V, T).
 
 write_source(File, Text) :-
     setup_call_cleanup(

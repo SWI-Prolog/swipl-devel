@@ -2407,36 +2407,60 @@ load_files(Module:Files, Options) :-
 %
 %   True if the  QlfFile  file  is   out-of-date  because  of  Why. This
 %   predicate is the negation such that we can return the reason.
+%
+%   QlfFile is out of date if it is incompatible with this version or
+%   if one of the files it was compiled from changed. That is PlFile,
+%   but also the files PlFile consults or includes, which are compiled
+%   into QlfFile, and the files that prolog:qlf_dependency/2 declares.
+%   '$qlf_sources'/2 raises an exception if QlfFile is incompatible
+%   and otherwise lists these files, opening QlfFile only once.  If
+%   QlfFile is incompatible, that is reported, also if a source changed,
+%   as it is the more serious problem.
 
 '$qlf_out_of_date'(PlFile, QlfFile, Why) :-
     (   access_file(PlFile, read)
-    ->  time_file(PlFile, PlTime),
-	time_file(QlfFile, QlfTime),
-	(   PlTime > QlfTime,
-	    '$qlf_source_changed'(QlfFile, PlFile)
-	->  Why = old                   % PlFile changed
-	;   Error = error(Formal,_),
-	    catch('$qlf_is_compatible'(QlfFile), Error, true),
-	    nonvar(Formal)              % QlfFile is incompatible
+    ->  Error = error(Formal,_),
+	catch('$qlf_sources'(QlfFile, Sources), Error, true),
+	(   nonvar(Formal)              % QlfFile is incompatible
 	->  Why = Error
+	;   time_file(QlfFile, QlfTime),
+	    '$qlf_sources_changed'(PlFile, Sources, QlfTime)
+	->  Why = old                   % a source changed
 	;   fail                        % QlfFile is up-to-date and ok
 	)
     ;   fail                            % can not read .pl; try .qlf
     ).
 
-%!  '$qlf_source_changed'(+QlfFile, +PlFile) is semidet.
+%!  '$qlf_sources_changed'(+PlFile, +Sources, +QlfTime) is semidet.
 %
-%   True when the content of PlFile differs from the copy that was
-%   compiled into QlfFile.  Only asked when the modification times say
-%   PlFile may be newer, which is cheap but proves nothing: a tree that
-%   arrives by checkout, copy, unpack or install carries times of its
-%   own, in either direction and at the resolution of the file system it
-%   landed on.  The hash the .qlf file records for each of its sources
-%   settles it.
+%   True when PlFile or one of the other Sources of a .qlf file
+%   written at QlfTime changed.  PlFile is asked explicitly as it
+%   may appear under another name in Sources.  Sources that no longer
+%   exist are ignored.
+
+'$qlf_sources_changed'(PlFile, Sources, QlfTime) :-
+    '$qlf_source_changed'(PlFile, Sources, QlfTime),
+    !.
+'$qlf_sources_changed'(PlFile, Sources, QlfTime) :-
+    '$member'(Source, Sources),
+    arg(1, Source, File),
+    File \== PlFile,
+    '$qlf_source_changed'(File, Sources, QlfTime),
+    !.
+
+%!  '$qlf_source_changed'(+File, +Sources, +QlfTime) is semidet.
 %
-%   If QlfFile records no hash for PlFile -- it was written by an older
-%   version, or PlFile could not be read when it was compiled -- the
-%   times have the last word, as they had before.
+%   True when the content of File differs from the copy that was
+%   compiled into the .qlf file.  The modification time is cheap to
+%   ask, but proves nothing: a tree that arrives by checkout, copy,
+%   unpack or install carries times of its own, in either direction and
+%   at the resolution of the file system it landed on.  So, if the time
+%   says File may be newer, the hash the .qlf file records for File in
+%   Sources settles it.
+%
+%   If Sources records no hash for File -- the .qlf file was written by
+%   an older version, or File could not be read when it was compiled --
+%   the times have the last word, as they had before.
 %
 %   Note that a file edited in the second its .qlf file was written has
 %   the time of that file, so the times do not say "may be newer" and the
@@ -2445,11 +2469,14 @@ load_files(Module:Files, Options) :-
 %   library(prolog_qlfmake), which is what a build asks, does compare the
 %   content of every source.
 
-'$qlf_source_changed'(QlfFile, PlFile) :-
-    (   catch('$qlf_sources'(QlfFile, Sources), _, fail),
-	'$member'(source(PlFile, Hash), Sources),
+'$qlf_source_changed'(File, Sources, QlfTime) :-
+    catch(time_file(File, Time), error(_,_), fail),
+    Time > QlfTime,
+    (   '$member'(Source, Sources),
+	arg(1, Source, File),
+	arg(2, Source, Hash),
 	Hash =\= 0
-    ->  \+ '$file_hash'(PlFile, Hash)
+    ->  \+ '$file_hash'(File, Hash)
     ;   true
     ).
 

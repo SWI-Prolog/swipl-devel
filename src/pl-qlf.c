@@ -3677,9 +3677,10 @@ PRED_IMPL("$qlf_is_compatible", 1, qlf_is_compatible, 0)
  * Unify SourceFiles with the files that are  embedded into the QLF file
  * File, as source(File, Hash), include(File, Hash) or dependency(File,
  * Hash). Hash is the content of the file as it was compiled, or 0 if it
- * was not recorded -- see '$file_hash'/2. This predicate succeeds as
- * long as the QLF file is sufficiently compatible to find the source
- * files.
+ * was not recorded -- see '$file_hash'/2.  Like '$qlf_is_compatible'/1,
+ * this raises an exception if File is not compatible with the current
+ * Prolog version, so '$qlf_out_of_date'/3 needs to open File only once
+ * to find both.
  */
 
 static
