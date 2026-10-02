@@ -305,12 +305,13 @@ pce_set_defaults(Loaded) :-
 %!  dark_system_colours is semidet.
 %
 %   True when the system colours are already dark.  This is the case on
-%   Windows using a contrast theme such as "Night sky".  The Windows
-%   defaults derive from these colours.
+%   Windows in dark mode or using a contrast theme such as "Night sky",
+%   on MacOS in dark mode, on KDE using a dark colour scheme and on
+%   GNOME using the dark style.  The xpce defaults derive from these
+%   colours, which follow the desktop settings while xpce is running.
 
 dark_system_colours :-
-    current_prolog_flag(windows, true),
-    get(@pce, convert, win_window, colour, Colour),
+    get(@pce, convert, sys_window_background, colour, Colour),
     get(Colour, intensity, I),
     I < 128.
 
