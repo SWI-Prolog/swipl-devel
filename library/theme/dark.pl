@@ -193,7 +193,7 @@ colour(ui_shadow,                       '#101010').
 % Derived colours
 
 colour(ui_margin_background,            grey20).
-colour(ui_scrollbar_background,         grey30).
+colour(ui_scrollbar_background,         '#646464').
 
 % Text.  Selection and search backgrounds are dark, such that the
 % (syntax) colours of the text remain readable.
