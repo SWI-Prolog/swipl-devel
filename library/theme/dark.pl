@@ -34,8 +34,7 @@
 */
 
 :- module(prolog_theme_dark, []).
-:- autoload(library(lists), [member/2]).
-:- autoload(library(pce), [send/2]).
+:- autoload(library(pce), [get/3, get/5]).
 
 /** <module> SWI-Prolog theme file -- dark
 
@@ -208,6 +207,39 @@ colour(ansi_bright_magenta,             violet).
 colour(ansi_bright_cyan,                cyan).
 colour(ansi_bright_white,               snow).
 
+% Debugger.  The port colours are backgrounds for the current line in
+% the source view.
+
+colour(debug_port_call,                 '#1e4620').
+colour(debug_port_break,                '#1e4a4a').
+colour(debug_port_exit,                 '#1e4620').
+colour(debug_port_redo,                 '#5c5000').
+colour(debug_port_fail,                 '#6a2020').
+colour(debug_port_exception,            '#4a1e4a').
+colour(debug_port_unify,                '#1e3a5c').
+colour(debug_port_choice,               '#5c5000').
+colour(debug_port_frame,                '#4a4a1e').
+colour(debug_inactive_background,       grey50).
+colour(debug_enabled_background,        '#1e5a1e').
+
+% Profiler
+
+colour(prof_header_background,          khaki3).
+colour(prof_node,                       dodger_blue).
+
+% Cross referencer
+
+colour(xref_node_background,            grey35).
+colour(xref_node_foreground,            white).
+colour(xref_predicate,                  green).
+colour(xref_autoload,                   steel_blue).
+colour(xref_global,                     steel_blue).
+
+% PceEmacs bookmarks and the help viewer
+
+colour(emacs_bookmark_hit,              '#806000').
+colour(help_link,                       deep_sky_blue).
+
 % PceEmacs syntax highlighting
 
 colour(syntax_goal_built_in,            cyan).
@@ -303,40 +335,10 @@ colour(syntax_syntax_error_bg,          orange).
 colour(syntax_instantiation_error_bg,   orange).
 
 		 /*******************************
-		 *         GUI DEFAULTS         *
+		 *       SYSTEM COLOURS         *
 		 *******************************/
 
 :- op(200, fy,  @).
-:- op(800, xfx, :=).
-
-:- multifile
-    pce:on_load/0.
-
-pce:on_load :-
-    pce_set_defaults(true).
-
-:- initialization
-    setup_if_loaded.
-
-setup_if_loaded :-
-    current_predicate(pce:send/2),
-    !,
-    pce_set_defaults(true).
-setup_if_loaded.
-
-%!  pce_set_defaults(+Loaded)
-%
-%   Adjust xpce defaults. This can either be   run before xpce is loaded
-%   or as part of the xpce initialization.
-
-pce_set_defaults(Loaded) :-
-    pce_style(Class, Properties),
-    member(Prop, Properties),
-    Prop =.. [Name,Value],
-    term_string(Value, String),
-    send(@default_table, append, Name, vector(Class, String)),
-    update_class_variable(Loaded, Class, Name, Value),
-    fail ; true.
 
 %!  system_or(+SystemColour, +Colour, -Value) is det.
 %
@@ -360,94 +362,3 @@ dark_system_colours :-
     get(@pce, convert, sys_window_background, colour, Colour),
     get(Colour, intensity, I),
     I < 128.
-
-update_class_variable(true, ClassName, Name, Value) :-
-    get(@(classes), member, ClassName, Class),
-    !,
-    get(Class, class_variable, Name, ClassVar),
-    (   get(ClassVar, context, ContextClass),
-        get(ContextClass, name, ClassName)
-    ->  send(ClassVar, value, Value)
-    ;   new(_, class_variable(ClassName, Name, Value))
-    ).
-update_class_variable(_, _, _, _).
-
-%!  pce_style(+Class, -Attributes)
-%
-%   Set XPCE class variables for Class. This is normally done by loading
-%   a _resource file_, but doing it from   Prolog keeps the entire theme
-%   in a single file.
-
-pce_style(emacs_toc_bookmark,
-          [ style_hit(style(background := yellow, colour := black))
-          ]).
-
-% Graphical debugger
-
-pce_style(prolog_stack_view,
-          [ background(black)
-          ]).
-pce_style(prolog_stack_frame,
-          [ background(black),
-            colour(white)
-          ]).
-pce_style(prolog_stack_link,
-          [ colour(white)
-          ]).
-pce_style(prolog_bindings_view,
-          [ background_active(black),
-            background_inactive(grey50)
-          ]).
-pce_style(prolog_source_structure,
-          [ background(black),
-            colour(white)
-          ]).
-
-% Profiler
-
-pce_style(prof_details,
-          [ header_background(khaki3)
-          ]).
-pce_style(prof_node_text,
-          [ colour('dodger_blue')
-          ]).
-
-% Debug messages
-
-pce_style(prolog_debug_browser,
-          [ enabled_style(style(colour := green))
-          ]).
-
-% Cross referencer
-
-pce_style(xref_predicate_text,
-          [ colour(green),
-            colour_autoload(steel_blue),
-            colour_global(steel_blue)
-          ]).
-pce_style(xref_file_graph_node,
-          [ colour(white),
-            background(grey35)
-          ]).
-
-% XPCE manual
-
-pce_style(man_editor,
-          [ jump_style(style(colour := green,
-                             underline := true))
-          ]).
-
-%!  prolog_source_view:port_style(+Port, -StyleAttributes)
-%
-%   Override style attributes for indicating  a   specific  port  in the
-%   source view. Ports are:  `call`,   `break`,  `exit`, `redo`, `fail`,
-%   `exception`, `unify`, `choice`, `frame and `breakpoint`.
-
-:- multifile
-    prolog_source_view:port_style/2.
-
-prolog_source_view:port_style(call, [background(forest_green), colour(black)]).
-prolog_source_view:port_style(fail, [background(indian_red),   colour(black)]).
-prolog_source_view:port_style(redo, [background(yellow3),      colour(black)]).
-prolog_source_view:port_style(Type, [colour(black)]) :-
-    Type \== breakpoint.
