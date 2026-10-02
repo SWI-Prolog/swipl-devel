@@ -117,7 +117,6 @@ prolog:console_color(message(Level),         Attrs) :-
     nonvar(Level),
     prolog:console_color(Level, Attrs).
 
-
 		 /*******************************
 		 *          ONLINE HELP		*
 		 *******************************/
@@ -134,7 +133,6 @@ pldoc_style:theme(pre,  true,                  [color(bright_yellow)]).
 pldoc_style:theme(p,    class(warning),        [color(yellow)]).
 pldoc_style:theme(span, class('synopsis-hdr'), [color(bright_green)]).
 pldoc_style:theme(span, class(autoload),       [color(bright_green)]).
-
 
 		 /*******************************
 		 *           IDE TOOLS		*
@@ -155,6 +153,62 @@ pce_theme:colour(dark, Name, Value) :-
 %   After making modifications, run ``?- make.`` and
 %   ``?- apply_theme(dark).`` to see the effect.  Use
 %   ``?- check_theme(dark).`` to verify the coverage.
+
+% Basic colours.  If the system colours are dark, use them.  Otherwise
+% this is a dark theme on a light desktop.
+
+colour(ui_window_background,            Colour) :-
+    system_or(sys_window_background, black, Colour).
+colour(ui_window_foreground,            Colour) :-
+    system_or(sys_window_foreground, white, Colour).
+colour(ui_dialog_background,            Colour) :-
+    system_or(sys_dialog_background, grey80, Colour).
+colour(ui_dialog_foreground,            Colour) :-
+    system_or(sys_dialog_foreground, black, Colour).
+colour(ui_selection_background,         Colour) :-
+    system_or(sys_selection_background, white, Colour).
+colour(ui_selection_foreground,         Colour) :-
+    system_or(sys_selection_foreground, black, Colour).
+colour(ui_margin_background,            grey20).
+colour(ui_scrollbar_background,         grey30).
+
+% Text.  Selection and search backgrounds are dark, such that the
+% (syntax) colours of the text remain readable.
+
+colour(ui_text_selection_background,    '#264f78').
+colour(ui_isearch_background,           '#806000').
+colour(ui_isearch_other_background,     '#2f4f4f').
+colour(ui_link,                         dodger_blue).
+colour(ui_fold,                         grey60).
+colour(ui_cursor,                       firebrick1).
+colour(ui_cursor_inactive,              grey50).
+
+% Dialog items
+
+colour(ui_inactive,                     grey50).
+colour(ui_placeholder,                  grey50).
+colour(ui_accelerator,                  grey70).
+
+% Epilog terminal ANSI colours
+
+colour(ansi_black,                      black).
+colour(ansi_red,                        firebrick1).
+colour(ansi_green,                      forestgreen).
+colour(ansi_yellow,                     goldenrod).
+colour(ansi_blue,                       steelblue).
+colour(ansi_magenta,                    mediumorchid).
+colour(ansi_cyan,                       darkturquoise).
+colour(ansi_white,                      lightgray).
+colour(ansi_bright_black,               gray40).
+colour(ansi_bright_red,                 orangered).
+colour(ansi_bright_green,               limegreen).
+colour(ansi_bright_yellow,              khaki).
+colour(ansi_bright_blue,                dodgerblue).
+colour(ansi_bright_magenta,             violet).
+colour(ansi_bright_cyan,                cyan).
+colour(ansi_bright_white,               snow).
+
+% PceEmacs syntax highlighting
 
 colour(syntax_goal_built_in,            cyan).
 colour(syntax_goal_imported,            cyan).
@@ -248,7 +302,6 @@ colour(syntax_domain_error_bg,          orange).
 colour(syntax_syntax_error_bg,          orange).
 colour(syntax_instantiation_error_bg,   orange).
 
-
 		 /*******************************
 		 *         GUI DEFAULTS         *
 		 *******************************/
@@ -271,66 +324,42 @@ setup_if_loaded :-
     pce_set_defaults(true).
 setup_if_loaded.
 
-
 %!  pce_set_defaults(+Loaded)
 %
 %   Adjust xpce defaults. This can either be   run before xpce is loaded
 %   or as part of the xpce initialization.
 
 pce_set_defaults(Loaded) :-
-    (   dark_system_colours
-    ->  SystemDark = true
-    ;   SystemDark = false
-    ),
     pce_style(Class, Properties),
     member(Prop, Properties),
-    \+ ( SystemDark == true,
-         system_style(Class, Prop)
-       ),
     Prop =.. [Name,Value],
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
     update_class_variable(Loaded, Class, Name, Value),
-    update_instances(Class, Prop),
     fail ; true.
+
+%!  system_or(+SystemColour, +Colour, -Value) is det.
+%
+%   Value is SystemColour if the system colours are dark and Colour
+%   otherwise.
+
+system_or(System, _, System) :-
+    dark_system_colours,
+    !.
+system_or(_, Colour, Colour).
 
 %!  dark_system_colours is semidet.
 %
 %   True when the system colours are already dark.  This is the case on
 %   Windows in dark mode or using a contrast theme such as "Night sky",
 %   on MacOS in dark mode, on KDE using a dark colour scheme and on
-%   GNOME using the dark style.  The xpce defaults derive from these
-%   colours, which follow the desktop settings while xpce is running.
+%   GNOME using the dark style.  These colours follow the desktop
+%   settings while xpce is running.
 
 dark_system_colours :-
     get(@pce, convert, sys_window_background, colour, Colour),
     get(Colour, intensity, I),
     I < 128.
-
-%!  system_style(+Class, +Property) is semidet.
-%
-%   True when Property defines the basic  colours of windows and dialogs.
-%   These are left to the system if the system colours are dark.
-
-system_style(Class, Prop) :-
-    functor(Prop, Name, 1),
-    system_property(Class, Name).
-
-system_property(display,        foreground).
-system_property(display,        background).
-system_property(window,         colour).
-system_property(window,         background).
-system_property(dialog,         colour).
-system_property(dialog,         background).
-system_property(graphical,      selected_foreground).
-system_property(graphical,      selected_background).
-system_property(text_item,      text_colour).
-system_property(text_item,      elevation).
-system_property(menu,           text_colour).
-system_property(text_image,     colour).
-system_property(text_image,     background).
-system_property(terminal_image, colour).
-system_property(terminal_image, background).
 
 update_class_variable(true, ClassName, Name, Value) :-
     get(@(classes), member, ClassName, Class),
@@ -343,106 +372,12 @@ update_class_variable(true, ClassName, Name, Value) :-
     ).
 update_class_variable(_, _, _, _).
 
-update_instances(display, Prop) :-
-    send(@display, Prop).
-
 %!  pce_style(+Class, -Attributes)
 %
 %   Set XPCE class variables for Class. This is normally done by loading
 %   a _resource file_, but doing it from   Prolog keeps the entire theme
 %   in a single file.
 
-% General
-
-pce_style(display,
-          [ foreground(white),
-            background(black)
-          ]).
-
-pce_style(window,
-          [ colour(white),
-            background(black)
-          ]).
-
-pce_style(dialog,
-          [ colour(black),
-            background(grey80)
-          ]).
-
-pce_style(graphical,
-          [ selected_foreground(black),
-            selected_background(white)
-          ]).
-
-pce_style(text,
-          [ selection_style(style(background := yellow3,
-                                  colour := black))
-          ]).
-
-% Epilog (next generation swipl-win)
-
-pce_style(terminal_image,
-          [ background(black),
-            colour(white),
-            selection_style(style(background := yellow, colour := black)),
-            isearch_style(style(background := green, colour := black)),
-            isearch_other_style(style(background := pale_turquoise,
-                                      colour := black)),
-            ansi_colours(vector(colour(black),	   % black
-                                colour(firebrick1),    % red
-                                colour(forestgreen),   % green
-                                colour(goldenrod),     % yellow
-                                colour(steelblue),     % blue
-                                colour(mediumorchid),  % magenta
-                                colour(darkturquoise), % cyan
-                                colour(lightgray),     % white
-                                /* Bright versions */
-                                colour(gray40),	   % black
-                                colour(orangered),     % red
-                                colour(limegreen),     % green
-                                colour(khaki),         % yellow
-                                colour(dodgerblue),    % blue
-                                colour(violet),        % magenta
-                                colour(cyan),          % cyan
-                                colour(snow)           % white
-                               ))
-          ]).
-
-pce_style(text_cursor,
-          [ colour(firebrick1)
-          ]).
-
-% Dialog
-
-pce_style(text_item,
-          [ text_colour(white),
-            elevation(elevation('0,25mm', background := black))
-          ]).
-
-pce_style(menu,
-          [ text_colour(white)
-          ]).
-
-pce_style(list_browser,
-          [ selection_style(style(background := yellow, colour := black)),
-            isearch_style(style(background := green, colour := black))
-          ]).
-
-% PceEmacs
-
-pce_style(text_image,
-          [ background(black),
-            colour(white)
-          ]).
-pce_style(text_margin,
-          [ background(grey20)
-          ]).
-pce_style(editor,
-          [ selection_style(style(background := yellow, colour := black)),
-            isearch_style(style(background := green, colour := black)),
-            isearch_other_style(style(background := pale_turquoise,
-                                      colour := black))
-          ]).
 pce_style(emacs_toc_bookmark,
           [ style_hit(style(background := yellow, colour := black))
           ]).
