@@ -141,123 +141,112 @@ pldoc_style:theme(span, class(autoload),       [color(bright_green)]).
 		 *******************************/
 
 :- multifile
-    pce:on_load/0,
-    prolog_colour:style/2.
+    pce_theme:colour/3.
 
-prolog_colour:style(Class, Style) :-
-    style(Class, Style).
+pce_theme:colour(dark, Name, Value) :-
+    colour(Name, Value).
 
-%!  style(+Class, -Style)
+%!  colour(?Name, ?Value)
 %
-%   Map style classes defined in   library(prolog_colour)  to xpce style
-%   objects. After making modifications the effect can be tested without
-%   restarting using this sequence:
-%
-%     1. Run ``?- make`` in Prolog
-%     2. In the editor, use ``M-x reload_styles``
+%   Values for the semantic colours of xpce in the dark theme.  See
+%   library(pce_theme).  The `syntax_*` colours are used by PceEmacs
+%   to highlight the syntax classes of library(prolog_colour).  For
+%   example, `syntax_goal_built_in` is the colour for goal(built_in,_).
+%   After making modifications, run ``?- make.`` and
+%   ``?- apply_theme(dark).`` to see the effect.  Use
+%   ``?- check_theme(dark).`` to verify the coverage.
 
-style(goal(built_in,_),          [colour(cyan)]).
-style(goal(imported(_),_),       [colour(cyan)]).
-style(goal(autoload(_),_),       [colour(dark_cyan)]).
-style(goal(global,_),            [colour(dark_cyan)]).
-style(goal(global(dynamic,_),_), [colour(magenta)]).
-style(goal(global(_,_),_),       [colour(dark_cyan)]).
-style(goal(undefined,_),         [colour(orange)]).
-style(goal(thread_local(_),_),   [colour(magenta), underline(true)]).
-style(goal(dynamic(_),_),        [colour(magenta)]).
-style(goal(multifile(_),_),      [colour(pale_green)]).
-style(goal(expanded,_),          [colour(cyan), underline(true)]).
-style(goal(extern(_),_),         [colour(cyan), underline(true)]).
-style(goal(extern(_,private),_), [colour(red)]).
-style(goal(extern(_,public),_),  [colour(cyan)]).
-style(goal(recursion,_),         [underline(true)]).
-style(goal(meta,_),              [colour(red4)]).
-style(goal(foreign(_),_),        [colour(darkturquoise)]).
-style(goal(local(_),_),          []).
-style(goal(constraint(_),_),     [colour(darkcyan)]).
-style(goal(not_callable,_),      [background(orange)]).
+colour(syntax_goal_built_in,            cyan).
+colour(syntax_goal_imported,            cyan).
+colour(syntax_goal_autoload,            dark_cyan).
+colour(syntax_goal_global,              dark_cyan).
+colour(syntax_goal_global_dynamic,      magenta).
+colour(syntax_goal_undefined,           orange).
+colour(syntax_goal_thread_local,        magenta).
+colour(syntax_goal_dynamic,             magenta).
+colour(syntax_goal_multifile,           pale_green).
+colour(syntax_goal_expanded,            cyan).
+colour(syntax_goal_extern,              cyan).
+colour(syntax_goal_extern_private,      red).
+colour(syntax_goal_extern_public,       cyan).
+colour(syntax_goal_meta,                red4).
+colour(syntax_goal_foreign,             darkturquoise).
+colour(syntax_goal_constraint,          darkcyan).
+colour(syntax_goal_not_callable_bg,     orange).
 
-style(function,                  [colour(cyan)]).
-style(no_function,               [colour(orange)]).
+colour(syntax_function,                 cyan).
+colour(syntax_no_function,              orange).
 
-style(option_name,               [colour(dodgerblue)]).
-style(no_option_name,            [colour(orange)]).
+colour(syntax_option_name,              dodgerblue).
+colour(syntax_no_option_name,           orange).
 
-style(head(exported,_),          [colour(cyan), bold(true)]).
-style(head(public(_),_),         [colour('#016300'), bold(true)]).
-style(head(extern(_),_),         [colour(cyan), bold(true)]).
-style(head(dynamic,_),           [colour(magenta), bold(true)]).
-style(head(multifile,_),         [colour(pale_green), bold(true)]).
-style(head(unreferenced,_),      [colour(red), bold(true)]).
-style(head(hook,_),              [colour(cyan), underline(true)]).
-style(head(meta,_),              []).
-style(head(constraint(_),_),     [colour(darkcyan), bold(true)]).
-style(head(imported(_),_),       [colour(darkgoldenrod4), bold(true)]).
-style(head(built_in,_),          [background(orange), bold(true)]).
-style(head(iso,_),               [background(orange), bold(true)]).
-style(head(def_iso,_),           [colour(cyan), bold(true)]).
-style(head(def_swi,_),           [colour(cyan), bold(true)]).
-style(head(_,_),                 [bold(true)]).
-style(rule_condition,            [background(darkgreen)]).
+colour(syntax_head_exported,            cyan).
+colour(syntax_head_public,              '#016300').
+colour(syntax_head_extern,              cyan).
+colour(syntax_head_dynamic,             magenta).
+colour(syntax_head_multifile,           pale_green).
+colour(syntax_head_unreferenced,        red).
+colour(syntax_head_hook,                cyan).
+colour(syntax_head_constraint,          darkcyan).
+colour(syntax_head_imported,            darkgoldenrod4).
+colour(syntax_head_built_in_bg,         orange).
+colour(syntax_head_iso_bg,              orange).
+colour(syntax_head_def_iso,             cyan).
+colour(syntax_head_def_swi,             cyan).
+colour(syntax_head_test,                '#01bdbd').
+colour(syntax_rule_condition_bg,        darkgreen).
 
-style(module(_),                 [colour(light_slate_blue)]).
-style(comment(_),                [colour(green)]).
+colour(syntax_module,                   light_slate_blue).
+colour(syntax_comment,                  green).
 
-style(directive,                 [background(grey20)]).
-style(method(_),                 [bold(true)]).
+colour(syntax_directive_bg,             grey20).
 
-style(var,                       [colour(orangered1)]).
-style(singleton,                 [bold(true), colour(orangered1)]).
-style(unbound,                   [colour(red), bold(true)]).
-style(quoted_atom,               [colour(pale_green)]).
-style(string,                    [colour(pale_green)]).
-style(codes,                     [colour(pale_green)]).
-style(chars,                     [colour(pale_green)]).
-style(nofile,                    [colour(red)]).
-style(file(_),                   [colour(cyan), underline(true)]).
-style(file_no_depend(_),         [colour(cyan), underline(true),
-                                  background(dark_violet)]).
-style(directory(_),              [colour(cyan)]).
-style(class(built_in,_),         [colour(cyan), underline(true)]).
-style(class(library(_),_),       [colour(pale_green), underline(true)]).
-style(class(local(_,_,_),_),     [underline(true)]).
-style(class(user(_),_),          [underline(true)]).
-style(class(user,_),             [underline(true)]).
-style(class(undefined,_),        [colour(red), underline(true)]).
-style(prolog_data,               [colour(cyan), underline(true)]).
-style(flag_name(_),              [colour(cyan)]).
-style(no_flag_name(_),           [colour(red)]).
-style(unused_import,             [colour(cyan), background(maroon)]).
-style(undefined_import,          [colour(red)]).
+colour(syntax_var,                      orangered1).
+colour(syntax_singleton,                orangered1).
+colour(syntax_unbound,                  red).
+colour(syntax_quoted_atom,              pale_green).
+colour(syntax_string,                   pale_green).
+colour(syntax_rational,                 light_steel_blue).
+colour(syntax_codes,                    pale_green).
+colour(syntax_chars,                    pale_green).
+colour(syntax_nofile,                   red).
+colour(syntax_file,                     cyan).
+colour(syntax_file_no_depend,           cyan).
+colour(syntax_file_no_depend_bg,        dark_violet).
+colour(syntax_directory,                cyan).
+colour(syntax_class_built_in,           cyan).
+colour(syntax_class_library,            pale_green).
+colour(syntax_class_undefined,          red).
+colour(syntax_prolog_data,              cyan).
+colour(syntax_flag_name,                cyan).
+colour(syntax_known_flag_name,          cyan).
+colour(syntax_known_flag_name_bg,       maroon).
+colour(syntax_no_flag_name,             red).
+colour(syntax_unused_import,            cyan).
+colour(syntax_unused_import_bg,         maroon).
+colour(syntax_undefined_import,         red).
 
-style(constraint(_),             [colour(darkcyan)]).
+colour(syntax_constraint,               darkcyan).
 
-style(keyword(_),                [colour(cyan)]).
-style(identifier,                [bold(true)]).
-style(delimiter,                 [bold(true)]).
-style(expanded,                  [colour(cyan), underline(true)]).
-style(hook(_),                   [colour(cyan), underline(true)]).
-style(op_type(_),                [colour(cyan)]).
+colour(syntax_keyword,                  cyan).
+colour(syntax_expanded,                 cyan).
+colour(syntax_hook,                     cyan).
+colour(syntax_macro,                    cyan).
+colour(syntax_op_type,                  cyan).
 
-style(qq_type,                   [bold(true)]).
-style(qq(_),                     [colour(cyan), bold(true)]).
-style(qq_content(_),             [colour(coral2)]).
+colour(syntax_qq,                       cyan).
+colour(syntax_qq_content,               coral2).
 
-style(dict_tag,                  [bold(true)]).
-style(dict_key,                  [bold(true)]).
-style(dict_function(_),          [colour(pale_green)]).
-style(dict_return_op,            [colour(cyan)]).
+colour(syntax_dict_function,            pale_green).
+colour(syntax_dict_return_op,           cyan).
 
-style(hook,                      [colour(cyan), underline(true)]).
-style(dcg_right_hand_ctx,        [background('#609080')]).
+colour(syntax_dcg_right_hand_ctx_bg,    '#609080').
 
-style(error,                     [background(orange)]).
-style(type_error(_),             [background(orange)]).
-style(syntax_error(_,_),         [background(orange)]).
-style(instantiation_error,       [background(orange)]).
-
-style(table_option(_),           [bold(true)]).
-style(table_mode(_),             [bold(true)]).
+colour(syntax_error_bg,                 orange).
+colour(syntax_type_error_bg,            orange).
+colour(syntax_domain_error_bg,          orange).
+colour(syntax_syntax_error_bg,          orange).
+colour(syntax_instantiation_error_bg,   orange).
 
 
 		 /*******************************
@@ -266,6 +255,9 @@ style(table_mode(_),             [bold(true)]).
 
 :- op(200, fy,  @).
 :- op(800, xfx, :=).
+
+:- multifile
+    pce:on_load/0.
 
 pce:on_load :-
     pce_set_defaults(true).
