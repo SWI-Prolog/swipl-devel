@@ -676,8 +676,12 @@ PceEmacs or the graphical debugger. Coloured console output is based on
 ansi_format/3. The central message infra structure based on
 print_message/2 labels message (components) with a Prolog term that
 specifies the role. This is mapped to concrete colours by means of the
-hook prolog:console_color/2. Theming the IDE uses xpce \jargon{class
-variables} that are initialised from Prolog when xpce is loaded.
+hook prolog:console_color/2. The IDE uses xpce \jargon{theme colours}:
+colours whose name describes their role, such as
+\const{syntax_comment} for comments in PceEmacs.  A theme defines the
+values of these colours.  The IDE can switch between themes while it is
+running.  See the section \emph{Themes} of the XPCE User Guide and the
+library \pllib{pce_theme} for details.
 
 Themes are implemented as a Prolog file in the file search path
 library/theme.  A theme can be loaded using (for example) the directive
@@ -743,20 +747,28 @@ If an xterm compatible terminal emulator is used to run Prolog you may
 wish to load either an explicit theme or \exam{library(theme/auto)}.
 
     \item[Epilog Prolog consoles]
-The \program{swipl-win} graphical application can be themed by
-loading a theme file.  The theme file also sets the foreground and
-background colours for the Epilog console.
+The \program{swipl-win} graphical application follows the light or
+dark setting of the desktop and switches theme if this setting changes.
+The \textsf{Settings/Theme} menu selects a theme for the running
+session.  To select a theme permanently, use the Prolog flag
+\prologflag{theme}, e.g., \exam{swipl-win -Dtheme=dark}, or set
+\exam{display.theme} in the xpce \file{Defaults} file.  The console
+colours (prolog:console_color/2) of a theme file only apply while its
+theme is active, so the console follows switching themes.  Text that is
+already written keeps its colours.
 \end{description}
 
 
 \subsection{Status of theme support}		\label{sec:theme-status}
 
-Theme support was added in SWI-Prolog 8.1.11. Only part of the IDE tools
-are covered and the only additional theme (\const{dark}) is not net well
-balanced. The interfaces between the theme file and notably the IDE
-components is not very well established.  Please contribute by improving
-the \const{dark} theme. Once that is complete and properly functioning
-we can start adding new themes.
+Theme support was added in SWI-Prolog 8.1.11.  The xpce user interface
+and the development tools use theme colours, which allows switching
+themes at runtime.  The themes \const{light} (the default) and
+\const{dark} are provided.  A new theme is a file in
+\file{library(theme)} that defines the theme colours.  The predicate
+check_theme/1 from library \pllib{pce_theme} verifies that a theme
+defines all theme colours of xpce and the development tools.  Please
+contribute themes or improvements to the existing themes.
 
 
 \section{GNU Emacs Interface}			\label{sec:gemacs}
