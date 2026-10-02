@@ -34,7 +34,6 @@
 */
 
 :- module(prolog_theme_dark, []).
-:- autoload(library(pce), [get/3, get/5]).
 
 /** <module> SWI-Prolog theme file -- dark
 
@@ -49,6 +48,24 @@ To enable the dark theme, use
     pldoc_style:theme/3.
 
 prolog:theme(dark).                             % make ourselves known
+
+%   The console colours apply while this theme is active.  If xpce is
+%   loaded, this is the theme selected by library(pce_theme).
+%   Otherwise it is the theme that is loaded.
+
+prolog:console_color(Class, Attributes) :-
+    active,
+    console_color(Class, Attributes).
+pldoc_style:theme(Element, Condition, Attributes) :-
+    active,
+    pldoc_theme(Element, Condition, Attributes).
+
+active :-
+    current_predicate(pce_theme:current_theme/1),
+    !,
+    pce_theme:current_theme(dark).
+active.
+
 
 :- if(current_predicate(win_window_color/2)).
 set_window_colors :-
@@ -66,72 +83,72 @@ set_window_colors :-
 		 *******************************/
 
 % code embedded in messages (not used much yet)
-prolog:console_color(var,                    [hfg(cyan)]).
-prolog:console_color(code,                   [hfg(yellow)]).
+console_color(var,                    [hfg(cyan)]).
+console_color(code,                   [hfg(yellow)]).
 % Alert level
-prolog:console_color(comment,                [hfg(green)]).
-prolog:console_color(warning,                [fg(yellow)]).
-prolog:console_color(error,                  [bold, fg(red)]).
+console_color(comment,                [hfg(green)]).
+console_color(warning,                [fg(yellow)]).
+console_color(error,                  [bold, fg(red)]).
 % toplevel truth value (undefined for well founded semantics)
-prolog:console_color(truth(false),           [bold, fg(red)]).
-prolog:console_color(truth(true),            [bold]).
-prolog:console_color(truth(undefined),       [bold, fg(cyan)]).
-prolog:console_color(wfs(residual_program),  [fg(cyan)]).
+console_color(truth(false),           [bold, fg(red)]).
+console_color(truth(true),            [bold]).
+console_color(truth(undefined),       [bold, fg(cyan)]).
+console_color(wfs(residual_program),  [fg(cyan)]).
 % trace output
-prolog:console_color(frame(level),           [bold]).
-prolog:console_color(port(call),             [bold, fg(green)]).
-prolog:console_color(port(exit),             [bold, fg(green)]).
-prolog:console_color(port(fail),             [bold, fg(red)]).
-prolog:console_color(port(redo),             [bold, fg(yellow)]).
-prolog:console_color(port(unify),            [bold, fg(blue)]).
-prolog:console_color(port(exception),        [bold, fg(magenta)]).
+console_color(frame(level),           [bold]).
+console_color(port(call),             [bold, fg(green)]).
+console_color(port(exit),             [bold, fg(green)]).
+console_color(port(fail),             [bold, fg(red)]).
+console_color(port(redo),             [bold, fg(yellow)]).
+console_color(port(unify),            [bold, fg(blue)]).
+console_color(port(exception),        [bold, fg(magenta)]).
 % the goal of successive steps alternates between two backgrounds, which
 % separates the steps of a trace.  The first argument is the port, which
 % allows for colouring the goal by port instead of (or in addition to)
 % striping.
-prolog:console_color(goal(_, odd),           [hfg(yellow), bg8(238)]).
-prolog:console_color(goal(_, even),          [hfg(yellow), bg8(240)]).
+console_color(goal(_, odd),           [hfg(yellow), bg8(238)]).
+console_color(goal(_, even),          [hfg(yellow), bg8(240)]).
 % interactive toplevel.  The command line (prompt and the text typed by
 % the user) has its own background.  The answers to a single query
 % alternate between two backgrounds, which separates the answers of a
 % non-deterministic query.
-prolog:console_color(prompt,                 [bold, fg8(h(cyan)), bg8(21)]).
-prolog:console_color(input,                  [bg8(21)]).
-prolog:console_color(answer(odd),            [bg8(238)]).
-prolog:console_color(answer(even),           [bg8(240)]).
-prolog:console_color(binding(name),          [bold, fg8(h(yellow))]).
+console_color(prompt,                 [bold, fg8(h(cyan)), bg8(21)]).
+console_color(input,                  [bg8(21)]).
+console_color(answer(odd),            [bg8(238)]).
+console_color(answer(even),           [bg8(240)]).
+console_color(binding(name),          [bold, fg8(h(yellow))]).
 % tag that indicates the kind of a predicate in a list of candidates.
-prolog:console_color(predicate(iso),         [italic, hfg(cyan)]).
-prolog:console_color(predicate(built_in),    [italic, hfg(cyan)]).
-prolog:console_color(predicate(foreign),     [italic, hfg(cyan)]).
-prolog:console_color(predicate(library(_)),  [italic, hfg(green)]).
-prolog:console_color(predicate(module(_)),   [italic, hfg(green)]).
-prolog:console_color(predicate(user),        [italic, fg(default)]).
-prolog:console_color(predicate(undefined),   [italic, fg(red)]).
+console_color(predicate(iso),         [italic, hfg(cyan)]).
+console_color(predicate(built_in),    [italic, hfg(cyan)]).
+console_color(predicate(foreign),     [italic, hfg(cyan)]).
+console_color(predicate(library(_)),  [italic, hfg(green)]).
+console_color(predicate(module(_)),   [italic, hfg(green)]).
+console_color(predicate(user),        [italic, fg(default)]).
+console_color(predicate(undefined),   [italic, fg(red)]).
 % print message. the argument for debug(_) is the debug channel.
-prolog:console_color(message(informational), [hfg(green)]).
-prolog:console_color(message(information),   [hfg(green)]).
-prolog:console_color(message(debug(_)),      [hfg(yellow)]).
-prolog:console_color(message(Level),         Attrs) :-
+console_color(message(informational), [hfg(green)]).
+console_color(message(information),   [hfg(green)]).
+console_color(message(debug(_)),      [hfg(yellow)]).
+console_color(message(Level),         Attrs) :-
     nonvar(Level),
-    prolog:console_color(Level, Attrs).
+    console_color(Level, Attrs).
 
 		 /*******************************
 		 *          ONLINE HELP		*
 		 *******************************/
 
-%!  pldoc_style:theme(+Element, +Condition, -CSSAttributes) is semidet.
+%!  pldoc_theme(+Element, +Condition, -CSSAttributes) is semidet.
 %
 %   Return a set of CSS properties to modify on the specified Element if
 %   Condition   holds.   color(Name)   is   mapped   to   fg(Name)   and
 %   color(bright_Name) to hfg(Name).
 
-pldoc_style:theme(var,  true,                  [color(bright_cyan)]).
-pldoc_style:theme(code, true,                  [color(bright_yellow)]).
-pldoc_style:theme(pre,  true,                  [color(bright_yellow)]).
-pldoc_style:theme(p,    class(warning),        [color(yellow)]).
-pldoc_style:theme(span, class('synopsis-hdr'), [color(bright_green)]).
-pldoc_style:theme(span, class(autoload),       [color(bright_green)]).
+pldoc_theme(var,  true,                  [color(bright_cyan)]).
+pldoc_theme(code, true,                  [color(bright_yellow)]).
+pldoc_theme(pre,  true,                  [color(bright_yellow)]).
+pldoc_theme(p,    class(warning),        [color(yellow)]).
+pldoc_theme(span, class('synopsis-hdr'), [color(bright_green)]).
+pldoc_theme(span, class(autoload),       [color(bright_green)]).
 
 		 /*******************************
 		 *           IDE TOOLS		*
@@ -153,21 +170,28 @@ pce_theme:colour(dark, Name, Value) :-
 %   ``?- apply_theme(dark).`` to see the effect.  Use
 %   ``?- check_theme(dark).`` to verify the coverage.
 
-% Basic colours.  If the system colours are dark, use them.  Otherwise
-% this is a dark theme on a light desktop.
+% Basic colours.  These replace the system colours if the system
+% colours are light, i.e., for using the dark theme on a light desktop.
 
-colour(ui_window_background,            Colour) :-
-    system_or(sys_window_background, black, Colour).
-colour(ui_window_foreground,            Colour) :-
-    system_or(sys_window_foreground, white, Colour).
-colour(ui_dialog_background,            Colour) :-
-    system_or(sys_dialog_background, grey80, Colour).
-colour(ui_dialog_foreground,            Colour) :-
-    system_or(sys_dialog_foreground, black, Colour).
-colour(ui_selection_background,         Colour) :-
-    system_or(sys_selection_background, white, Colour).
-colour(ui_selection_foreground,         Colour) :-
-    system_or(sys_selection_foreground, black, Colour).
+colour(ui_window_background,            '#1e1e1e').
+colour(ui_window_foreground,            white).
+colour(ui_dialog_background,            '#2b2b2b').
+colour(ui_dialog_foreground,            white).
+colour(ui_button_background,            '#3c3c3c').
+colour(ui_button_foreground,            white).
+colour(ui_button_pressed,               '#505050').
+colour(ui_selection_background,         '#0078d4').
+colour(ui_selection_foreground,         white).
+colour(ui_tooltip_background,           '#2b2b2b').
+colour(ui_tooltip_foreground,           white).
+colour(ui_inactive,                     '#8a8a8a').
+colour(ui_link,                         '#60cdff').
+colour(ui_accent,                       '#0078d4').
+colour(ui_separator,                    '#454545').
+colour(ui_shadow,                       '#101010').
+
+% Derived colours
+
 colour(ui_margin_background,            grey20).
 colour(ui_scrollbar_background,         grey30).
 
@@ -177,14 +201,12 @@ colour(ui_scrollbar_background,         grey30).
 colour(ui_text_selection_background,    '#264f78').
 colour(ui_isearch_background,           '#806000').
 colour(ui_isearch_other_background,     '#2f4f4f').
-colour(ui_link,                         dodger_blue).
 colour(ui_fold,                         grey60).
 colour(ui_cursor,                       firebrick1).
 colour(ui_cursor_inactive,              grey50).
 
 % Dialog items
 
-colour(ui_inactive,                     grey50).
 colour(ui_placeholder,                  grey50).
 colour(ui_accelerator,                  grey70).
 
@@ -333,32 +355,3 @@ colour(syntax_type_error_bg,            orange).
 colour(syntax_domain_error_bg,          orange).
 colour(syntax_syntax_error_bg,          orange).
 colour(syntax_instantiation_error_bg,   orange).
-
-		 /*******************************
-		 *       SYSTEM COLOURS         *
-		 *******************************/
-
-:- op(200, fy,  @).
-
-%!  system_or(+SystemColour, +Colour, -Value) is det.
-%
-%   Value is SystemColour if the system colours are dark and Colour
-%   otherwise.
-
-system_or(System, _, System) :-
-    dark_system_colours,
-    !.
-system_or(_, Colour, Colour).
-
-%!  dark_system_colours is semidet.
-%
-%   True when the system colours are already dark.  This is the case on
-%   Windows in dark mode or using a contrast theme such as "Night sky",
-%   on MacOS in dark mode, on KDE using a dark colour scheme and on
-%   GNOME using the dark style.  These colours follow the desktop
-%   settings while xpce is running.
-
-dark_system_colours :-
-    get(@pce, convert, sys_window_background, colour, Colour),
-    get(Colour, intensity, I),
-    I < 128.

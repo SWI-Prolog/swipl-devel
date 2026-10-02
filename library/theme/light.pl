@@ -48,6 +48,21 @@ terminal.
 
 prolog:theme(light).                             % make ourselves known
 
+%   The console colours apply while this theme is active.  If xpce is
+%   loaded, this is the theme selected by library(pce_theme).
+%   Otherwise it is the theme that is loaded.
+
+prolog:console_color(Class, Attributes) :-
+    active,
+    console_color(Class, Attributes).
+
+active :-
+    current_predicate(pce_theme:current_theme/1),
+    !,
+    pce_theme:current_theme(light).
+active.
+
+
 		 /*******************************
 		 *       PROLOG MESSAGES	*
 		 *******************************/
@@ -56,17 +71,17 @@ prolog:theme(light).                             % make ourselves known
 % the user) has its own background.  The answers to a single query
 % alternate between two backgrounds, which separates the answers of a
 % non-deterministic query.
-prolog:console_color(prompt,        [bold, fg8(blue), bg8(123)]).
-prolog:console_color(input,         [bg8(123)]).
-prolog:console_color(answer(odd),   [bg8(255)]).
-prolog:console_color(answer(even),  [bg8(253)]).
-prolog:console_color(binding(name), [bold, fg8(magenta)]).
+console_color(prompt,        [bold, fg8(blue), bg8(123)]).
+console_color(input,         [bg8(123)]).
+console_color(answer(odd),   [bg8(255)]).
+console_color(answer(even),  [bg8(253)]).
+console_color(binding(name), [bold, fg8(magenta)]).
 % trace output.  The goal of successive steps alternates between two
 % backgrounds, which separates the steps of a trace.  The first argument
 % is the port, which allows for colouring the goal by port instead of
 % (or in addition to) striping.
-prolog:console_color(goal(_, odd),  [fg(blue), bg8(254)]).
-prolog:console_color(goal(_, even), [fg(blue), bg8(252)]).
-prolog:console_color(message(Level), Attrs) :-
+console_color(goal(_, odd),  [fg(blue), bg8(254)]).
+console_color(goal(_, even), [fg(blue), bg8(252)]).
+console_color(message(Level), Attrs) :-
     nonvar(Level),
-    prolog:console_color(Level, Attrs).
+    console_color(Level, Attrs).
