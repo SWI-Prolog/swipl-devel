@@ -14,7 +14,11 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_options(-DWIN64)
   set(WIN64 1)
   set(WIN_PROGRAM_FILES "Program Files")
-  set(SWIPL_ARCH x64-win64)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|ARM64|aarch64)$")
+    set(SWIPL_ARCH arm64-win64)
+  else()
+    set(SWIPL_ARCH x64-win64)
+  endif()
 else()
   set(WIN_PROGRAM_FILES "Program Files (x86)")
   set(SWIPL_ARCH i386-win32)
@@ -43,6 +47,13 @@ set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib ws2_32.lib psapi.lib)
 
 if(MINGW_ROOT)
 set(MINGW_BIN "${MINGW_ROOT}/bin")
+if(NOT MINGW_OBJDUMP)
+  if(CMAKE_OBJDUMP)
+    set(MINGW_OBJDUMP ${CMAKE_OBJDUMP})
+  else()
+    set(MINGW_OBJDUMP x86_64-w64-mingw32-objdump)
+  endif()
+endif()
 # For MinGW we need to copy the   dlls  to the target destinations. When
 # using MSVC we use vcpkg. The  included toolchain installs the required
 # DLLs for us.
@@ -78,7 +89,7 @@ function(add_mingw_indirect_deps result_list)
     list(APPEND visited "${current}")
 
     execute_process(
-      COMMAND x86_64-w64-mingw32-objdump -p "${current}"
+      COMMAND ${MINGW_OBJDUMP} -p "${current}"
       OUTPUT_VARIABLE objdump_out
       ERROR_QUIET
       RESULT_VARIABLE objdump_res
@@ -211,7 +222,11 @@ endfunction()
 
 message("-- Finding required external DLLs")
 find_windows_dlls(WIN32_DLLS ${WIN32_DLL_PATTERNS})
-find_windows_dlls(WIN32_CPP_DLLS "libstdc*.dll")
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+  find_windows_dlls(WIN32_CPP_DLLS "libc++.dll" "libunwind.dll")
+else()
+  find_windows_dlls(WIN32_CPP_DLLS "libstdc*.dll")
+endif()
 
 foreach(dll ${WIN32_DLLS} ${WIN32_CPP_DLLS})
   file(COPY ${MINGW_ROOT}/bin/${dll}

@@ -586,7 +586,12 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
   if (rc == 0)
     return 0;
 
-#ifdef _WIN64
+#if defined(_M_ARM64) || defined(__aarch64__)
+   imageType = IMAGE_FILE_MACHINE_ARM64;
+   frame.AddrPC.Offset = context.Pc;
+   frame.AddrFrame.Offset = context.Fp;
+   frame.AddrStack.Offset = context.Sp;
+#elif defined(_WIN64)
    imageType = IMAGE_FILE_MACHINE_AMD64;
    frame.AddrPC.Offset = context.Rip;
    frame.AddrFrame.Offset = context.Rsp;
