@@ -316,6 +316,12 @@ if(WIN32 AND NOT MSYS2 AND NOT MSVC)
     endif()
   endforeach()
 
+  # The DLLs may depend on further DLLs from MINGW_ROOT, e.g., MSYS2's
+  # libarchive needs liblzma, libzstd, ...
+  if(MINGW_ROOT AND dlls)
+    add_mingw_indirect_deps(dlls ${dlls})
+  endif()
+
   file(COPY ${dlls}
        DESTINATION ${CMAKE_BINARY_DIR}/src)
   install(FILES ${dlls}
