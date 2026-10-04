@@ -159,7 +159,8 @@ test(flag_issue_1529,			% f(X,0) and f(Y,1) have no order
     copies(A, B, C),
     sort([A,B,C], _).
 test(flag_thread,
-     [ setup(set_prolog_flag(incomparable, error)),
+     [ condition(current_prolog_flag(threads, true)),
+       setup(set_prolog_flag(incomparable, error)),
        cleanup(set_prolog_flag(incomparable, arbitrary)),
        Status == true
      ]) :-
