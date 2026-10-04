@@ -1275,6 +1275,7 @@ addr2line_popen(const char *fname, uintptr_t offset, char *buf, size_t size)
  */
 
 #ifdef HAVE_FORK
+#include <errno.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
