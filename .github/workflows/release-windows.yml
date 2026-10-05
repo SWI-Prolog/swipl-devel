@@ -11,20 +11,40 @@ on:
         required: true
         default: 'master'
 
-env:
-  # Pinned to an immutable digest for provenance of the toolchain.
-  # Human-readable tag alias: ghcr.io/swi-prolog/swipl-mingw-build:latest
-  IMAGE: ghcr.io/swi-prolog/swipl-mingw-build@sha256:9b82af1841e1b56171e8cb3cd9f0f789370552b9663f6559a9e0d3ba78c7b754
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     # Allow ample time for manual approval of the SignPath signing request.
     timeout-minutes: 360
     permissions:
       contents: write
       actions: read
       packages: read
+
+    strategy:
+      # Keep building the other architecture if one fails or stalls waiting
+      # for signing approval.
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-latest
+            # Pinned to an immutable digest for provenance of the toolchain.
+            # Human-readable tag alias:
+            #   ghcr.io/swi-prolog/swipl-mingw-build:latest
+            image: ghcr.io/swi-prolog/swipl-mingw-build@sha256:9b82af1841e1b56171e8cb3cd9f0f789370552b9663f6559a9e0d3ba78c7b754
+            mode: --win64-from-git
+            builddir: build.win64
+          - arch: arm64
+            # ARM64 host tools run under Wine and need a native aarch64
+            # kernel with 4K pages; GitHub's hosted arm runners provide this.
+            runner: ubuntu-24.04-arm
+            # Pinned to an immutable digest for provenance of the toolchain.
+            # Human-readable tag alias:
+            #   ghcr.io/swi-prolog/swipl-mingw-build-arm64:latest
+            image: ghcr.io/swi-prolog/swipl-mingw-build-arm64@sha256:75042e47f34be4296019fbb8bf42a060c5c2c863d8d5f92e6de9be431caf8007
+            mode: --winarm64-from-git
+            builddir: build.winarm64
 
     steps:
       - name: Free disk space
@@ -55,15 +75,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull build image
-        run: docker pull "$IMAGE"
+        run: docker pull "${{ matrix.image }}"
 
       - name: Cross-build Windows installer
         run: |
           docker run --name swipl-build \
             --cap-add=SYS_PTRACE \
             --security-opt seccomp=unconfined \
-            "$IMAGE" \
-            --win64-from-git \
+            "${{ matrix.image }}" \
+            "${{ matrix.mode }}" \
               https://github.com/${{ github.repository }}.git \
               "${{ steps.ref.outputs.ref }}"
 
@@ -74,12 +94,12 @@ jobs:
           # docker cp <container>:<dir> - streams the directory as a tar
           # to stdout.  Extract only the installer to sidestep the
           # safety check that rejects escaping symlinks elsewhere in
-          # build.win64/.
-          docker cp swipl-build:/home/swipl/src/swipl-devel/build.win64 - | \
+          # the build tree.
+          docker cp "swipl-build:/home/swipl/src/swipl-devel/${{ matrix.builddir }}" - | \
             tar -x -C out/ --strip-components=1 --wildcards \
-                'build.win64/swipl-*-*.x64.exe'
+                "${{ matrix.builddir }}/swipl-*-*.${{ matrix.arch }}.exe"
           docker rm swipl-build
-          installer=$(ls out/swipl-*.x64.exe 2>/dev/null | head -n1)
+          installer=$(ls out/swipl-*.${{ matrix.arch }}.exe 2>/dev/null | head -n1)
           if [ -z "$installer" ]; then
             echo "No installer produced" >&2
             ls -la out/ >&2
@@ -93,7 +113,7 @@ jobs:
         id: upload-unsigned
         uses: actions/upload-artifact@v4
         with:
-          name: unsigned-installer
+          name: unsigned-installer-${{ matrix.arch }}
           path: ${{ steps.extract.outputs.path }}
 
       - name: Submit signing request to SignPath
@@ -115,7 +135,7 @@ jobs:
       - name: Recompute checksum on signed installer
         id: signed
         run: |
-          installer=$(ls signed/swipl-*.x64.exe 2>/dev/null | head -n1)
+          installer=$(ls signed/swipl-*.${{ matrix.arch }}.exe 2>/dev/null | head -n1)
           if [ -z "$installer" ]; then
             echo "No signed installer produced" >&2
             ls -la signed/ >&2
