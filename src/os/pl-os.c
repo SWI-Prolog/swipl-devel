@@ -2568,7 +2568,8 @@ Unsetenv(char *name)
 
   succeed;
 #else
-  if ( !getenv(name) )
+  char buf1; /* value not needed, just check if variable exists */
+  if ( getenv3(name, &buf1, 1) == (size_t)-1 )
     succeed;
 
   return Setenv(name, "");

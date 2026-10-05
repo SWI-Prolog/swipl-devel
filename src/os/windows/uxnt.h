@@ -94,10 +94,14 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define rmdir(...)	_xos_rmdir(__VA_ARGS__)
 #define getcwd(...)	_xos_getcwd(__VA_ARGS__)
 #define setenv(...)	_xos_setenv(__VA_ARGS__)
+#define unsetenv(...)	_xos_unsetenv(__VA_ARGS__)
 #define fopen(p, m) _xos_fopen(p, m)
 
 #ifndef HAVE_SETENV
 #define HAVE_SETENV 1
+#endif
+#ifndef HAVE_UNSETENV
+#define HAVE_UNSETENV 1
 #endif
 
 #endif /*_UXNT_KERNEL*/
@@ -180,6 +184,7 @@ _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
 _export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
+_export int	_xos_unsetenv(const char *name);
 _export int	_xos_set_win_file_access_check(int new);
 _export int	_xos_get_win_file_access_check(void);
 

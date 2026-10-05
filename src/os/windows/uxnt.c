@@ -1651,3 +1651,17 @@ _xos_setenv(const char *name, char *value, int overwrite)
 
   return -1;				/* TBD: convert error */
 }
+
+
+int
+_xos_unsetenv(const char *name)
+{ TCHAR nm[PATH_MAX];
+
+  if ( !_xos_utf8towcs(nm, name, PATH_MAX) )
+    return -1;
+  if ( SetEnvironmentVariable(nm, NULL) ||
+       GetLastError() == ERROR_ENVVAR_NOT_FOUND )
+    return 0;
+
+  return -1;				/* TBD: convert error */
+}
