@@ -1417,6 +1417,10 @@ os(setenv-1) :-
     setenv(pltestsetenv, yes),
     getenv(pltestsetenv, X),
     X == yes.
+os(unsetenv-1) :-
+    setenv(pltestsetenv, yes),
+    unsetenv(pltestsetenv),
+    \+ getenv(pltestsetenv, _).
 
 
                  /*******************************
