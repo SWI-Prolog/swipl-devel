@@ -190,6 +190,15 @@ test(syntax_fail) :-
     assertion(bad_syntax("1.0r2")).
 %   assertion(bad_syntax("1r2.0")).            % dict syntax
 
+% A static predicate with two clauses is checked for the list
+% supervisor, which examines the first argument of each clause.
+
+rat_arg1(1r3, a).
+rat_arg1(2r3, b).
+
+test(first_arg, L == [1r3-a, 2r3-b]) :-
+    findall(X-Y, rat_arg1(X, Y), L).
+
 :- end_tests(rational).
 
 :- begin_tests(rationalize,

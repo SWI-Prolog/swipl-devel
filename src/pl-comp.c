@@ -5552,6 +5552,7 @@ arg1Key(Code PC, word *key)
       case H_FLOAT:
       case H_STRING:
       case H_MPZ:
+      case H_MPQ:
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
