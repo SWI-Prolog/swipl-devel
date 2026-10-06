@@ -4698,10 +4698,8 @@ classify_exception_p(DECL_LD Word p)
   { p = argTermP(*p, 0);
     deRef(p);
 
-    if ( isAtom(*p) )
-    { if ( *p == ATOM_resource_error )
-	return EXCEPT_RESOURCE;
-    }
+    if ( hasFunctor(*p, FUNCTOR_resource_error1) )
+      return EXCEPT_RESOURCE;
 
     return EXCEPT_ERROR;
   } else if ( hasFunctor(*p, FUNCTOR_time_limit_exceeded1) )
