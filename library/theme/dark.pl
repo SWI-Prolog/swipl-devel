@@ -256,6 +256,17 @@ colour(xref_node_foreground,            white).
 colour(xref_predicate,                  green).
 colour(xref_autoload,                   steel_blue).
 colour(xref_global,                     steel_blue).
+colour(xref_undefined,                  tomato).
+colour(xref_not_called,                 tomato).
+colour(xref_header_foreground,          black).
+colour(xref_header_background,          khaki3).
+
+% Thread monitor
+
+colour(thread_graph_local,              dodger_blue).
+colour(thread_graph_global,             orange).
+colour(thread_graph_trail,              lime_green).
+colour(thread_graph_cpu,                orchid).
 
 % PceEmacs bookmarks and the help viewer
 
