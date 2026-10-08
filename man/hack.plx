@@ -734,7 +734,7 @@ loading from the returned (input) stream. This hook is particularly
 suited to support running the code to a preprocessor. See also
 prolog_load_file/2.
 
-    \predicate{prolog:comment_hook}{3}{+Comments, +Pos, +Term}
+    \predicate{prolog:comment_hook}{4}{+Comments, +Pos, +Term, +VarNames}
 This hook allows for processing comments encountered by the compiler. If
 this hook is defined, the compiler calls read_term/2 with the option
 \term{comments}{Comments}.  If the list of comments returned by
@@ -751,6 +751,11 @@ following arguments.
     \item \arg{Pos} is a stream-position term that describes the
 	  starting position of \arg{Term}
     \item \arg{Term} is the term read.
+    \item \arg{VarNames} is a list \arg{Name}=\arg{Var} for the
+	  named variables of \arg{Term} if the variable names are
+	  requested using the option \term{variable_names}{Bindings}
+	  of read_clause/3 and \const{[]} otherwise.  This allows the
+	  hook to relate comments to the argument names of \arg{Term}.
 \end{itemize}
 
 This hook is exploited by the documentation system. See

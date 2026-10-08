@@ -6802,21 +6802,30 @@ static const PL_option_t read_clause_options[] =
 };
 
 
+/* callCommentHook() calls prolog:comment_hook/4.  The last argument
+   is the list of Name=Var for the variables of the term or [] if the
+   variable names are not requested.
+*/
+
 static int
 callCommentHook(predicate_t comment_hook,
-		term_t comments, term_t tpos, term_t term)
+		term_t comments, term_t tpos, term_t term, term_t varnames)
 { GET_LD
   fid_t fid;
   term_t av;
   int rc = true;
 
   if ( (fid = PL_open_foreign_frame()) &&
-       (av = PL_new_term_refs(3)) )
+       (av = PL_new_term_refs(4)) )
   { qid_t qid;
 
     PL_put_term(av+0, comments);
     PL_put_term(av+1, tpos);
     PL_put_term(av+2, term);
+    if ( varnames )
+      PL_put_term(av+3, varnames);
+    else
+      PL_put_nil(av+3);
 
     if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			      comment_hook, av)) )
@@ -6851,8 +6860,8 @@ read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
   term_t varprefix = 0;
   predicate_t comment_hook;
 
-  comment_hook = _PL_predicate("comment_hook", 3, "prolog",
-			       &GD->procedures.comment_hook3);
+  comment_hook = _PL_predicate("comment_hook", 4, "prolog",
+			       &GD->procedures.comment_hook4);
   process_comment = (comment_hook->definition->impl.any.defined != NULL);
 
   if ( !(fid=PL_open_foreign_frame()) )
@@ -6920,7 +6929,8 @@ retry:
     { if ( opt_comments )
 	rval = PL_unify(opt_comments, comments);
       else if ( !PL_get_nil(comments) )
-	rval = callCommentHook(comment_hook, comments, tpos, term);
+	rval = callCommentHook(comment_hook, comments, tpos, term,
+				       rd.varnames);
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )

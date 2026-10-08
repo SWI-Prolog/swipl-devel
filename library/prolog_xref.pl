@@ -50,6 +50,8 @@
             xref_prolog_flag/4,         % ?Source, ?Flag, ?Value, ?Line
             xref_comment/3,             % ?Source, ?Title, ?Comment
             xref_comment/4,             % ?Source, ?Head, ?Summary, ?Comment
+            xref_object_comment/4,      % ?Source, ?Object, ?Summary, ?Comment
+            xref_object_signature/3,    % ?Source, ?Object, ?Signature
             xref_mode/3,                % ?Source, ?Mode, ?Det
             xref_option/2,              % ?Source, ?Option
             xref_clean/1,               % +Source
@@ -133,7 +135,9 @@
     module_comment/3,               % Src, Title, Comment
     pred_comment/4,                 % Head, Src, Summary, Comment
     pred_comment_link/3,            % Head, Src, HeadTo
-    pred_mode/3.                    % Head, Src, Det
+    pred_mode/3,                    % Head, Src, Det
+    object_comment/4,               % Object, Src, Summary, Comment
+    object_signature/3.             % Object, Src, Signature
 
 :- create_prolog_flag(xref, false, [type(boolean)]).
 
@@ -559,7 +563,9 @@ xref_clean(Source) :-
     retractall(module_comment(Src, _, _)),
     retractall(pred_comment(_, Src, _, _)),
     retractall(pred_comment_link(_, Src, _)),
-    retractall(pred_mode(_, Src, _)).
+    retractall(pred_mode(_, Src, _)),
+    retractall(object_comment(_, Src, _, _)),
+    retractall(object_signature(_, Src, _)).
 
 
                  /*******************************
@@ -789,7 +795,8 @@ collect(Src, File, In, Options) :-
         E = error(_,_),
         catch(prolog_read_source_term(
                   In, Term, Expanded,
-                  [ term_position(TermPos)
+                  [ term_position(TermPos),
+                    variable_names(VarNames)
                   | CommentOptions
                   ]),
               E, report_syntax_error(E, Src, [])),
@@ -797,7 +804,8 @@ collect(Src, File, In, Options) :-
         stream_position_data(line_count, TermPos, Line),
         setup_call_cleanup(
             asserta(source_line(SrcSpec), Ref),
-            catch(process(Expanded, Comments, Term, TermPos, Src, EOF),
+            catch(process(Expanded, Comments, Term, VarNames, TermPos,
+                          Src, EOF),
                   E, print_message(error, E)),
             erase(Ref)),
         EOF == true,
@@ -863,17 +871,20 @@ list_to_conj([H|T], (H,C)) :-
                  *           PROCESS            *
                  *******************************/
 
-%!  process(+Expanded, +Comments, +Term, +TermPos, +Src, -EOF) is det.
+%!  process(+Expanded, +Comments, +Term, +VarNames, +TermPos, +Src,
+%!          -EOF) is det.
 %
 %   Process a source term that has  been   subject  to term expansion as
 %   well as its optional leading structured comments.
 %
+%   @arg VarNames is a list Name=Var for the variables of Term.  It is
+%   passed to the comment processing.
 %   @arg TermPos is the term position that describes the start of the
 %   term.  We need this to find _leading_ comments.
 %   @arg EOF is unified with a boolean to indicate whether or not
 %   processing was stopped because `end_of_file` was processed.
 
-process(Expanded, Comments, Term0, TermPos, Src, EOF) :-
+process(Expanded, Comments, Term0, VarNames, TermPos, Src, EOF) :-
     is_list(Expanded),                          % term_expansion into list.
     !,
     (   member(Term, Expanded),
@@ -882,12 +893,12 @@ process(Expanded, Comments, Term0, TermPos, Src, EOF) :-
     ->  EOF = true
     ;   EOF = false
     ),
-    xref_comments(Comments, TermPos, Src).
-process(end_of_file, _, _, _, _, true) :-
+    xref_comments(Comments, TermPos, Term0, VarNames, Src).
+process(end_of_file, _, _, _, _, _, true) :-
     !.
-process(Term, Comments, Term0, TermPos, Src, false) :-
+process(Term, Comments, Term0, VarNames, TermPos, Src, false) :-
     process(Term, Term0, Src),
-    xref_comments(Comments, TermPos, Src).
+    xref_comments(Comments, TermPos, Term0, VarNames, Src).
 
 %!  process(+Term, +Term0, +Src) is det.
 
@@ -955,29 +966,44 @@ process(Head, Src) :-
                  *            COMMENTS          *
                  *******************************/
 
-%!  xref_comments(+Comments, +FilePos, +Src) is det.
+%!  xref_comments(+Comments, +FilePos, +Term, +VarNames, +Src) is det.
+%
+%   Process the structured comments before Term.  The last comment
+%   before Term is parsed with Term and VarNames, a list Name=Var for
+%   the variables of Term.
 
-xref_comments([], _Pos, _Src).
-:- if(current_predicate(parse_comment/3)).
-xref_comments([Pos-Comment|T], TermPos, Src) :-
+xref_comments([], _Pos, _Term, _VarNames, _Src).
+:- if(current_predicate(parse_comment/5)).
+xref_comments([Pos-Comment|T], TermPos, Term, VarNames, Src) :-
     (   Pos @> TermPos              % comments inside term
     ->  true
     ;   stream_position_data(line_count, Pos, Line),
         FilePos = Src:Line,
-        (   parse_comment(Comment, FilePos, Parsed)
+        (   last_comment(T, TermPos)
+        ->  CTerm = Term
+        ;   true
+        ),
+        (   parse_comment(Comment, FilePos, CTerm, VarNames, Parsed)
         ->  assert_comments(Parsed, Src)
         ;   true
         ),
-        xref_comments(T, TermPos, Src)
+        xref_comments(T, TermPos, Term, VarNames, Src)
     ).
+
+last_comment([], _).
+last_comment([Pos-_|_], TermPos) :-
+    Pos @> TermPos.
 
 assert_comments([], _).
 assert_comments([H|T], Src) :-
     assert_comment(H, Src),
     assert_comments(T, Src).
 
-assert_comment(section(_Id, Title, Comment), Src) :-
-    assertz(module_comment(Src, Title, Comment)).
+assert_comment(section(Id, Title, Comment), Src) :-
+    (   Id = module(_)
+    ->  assertz(module_comment(Src, Title, Comment))
+    ;   true
+    ).
 assert_comment(predicate(PI, Summary, Comment), Src) :-
     pi_to_head(PI, Src, Head),
     assertz(pred_comment(Head, Src, Summary, Comment)).
@@ -987,6 +1013,10 @@ assert_comment(link(PI, PITo), Src) :-
     assertz(pred_comment_link(Head, Src, HeadTo)).
 assert_comment(mode(Head, Det), Src) :-
     assertz(pred_mode(Head, Src, Det)).
+assert_comment(object(Object, Summary, Comment), Src) :-
+    assertz(object_comment(Object, Src, Summary, Comment)).
+assert_comment(signature(Object, Signature), Src) :-
+    assertz(object_signature(Object, Src, Signature)).
 
 pi_to_head(PI, Src, Head) :-
     pi_to_head(PI, Head0),
@@ -1018,6 +1048,25 @@ xref_comment(Source, Head, Summary, Comment) :-
     ;   pred_comment_link(Head, Src, HeadTo),
         pred_comment(HeadTo, Src, Summary, Comment)
     ).
+
+%!  xref_object_comment(?Source, ?Object, ?Summary, ?Comment) is nondet.
+%
+%   Is true when Object in Source has   the given PlDoc comment.  Such
+%   objects are created by the  hook prolog:doc_compile_comment/5,
+%   e.g., xpce(Class, Kind, Name) for the members of xpce classes.
+
+xref_object_comment(Source, Object, Summary, Comment) :-
+    canonical_source(Source, Src),
+    object_comment(Object, Src, Summary, Comment).
+
+%!  xref_object_signature(?Source, ?Object, ?Signature) is nondet.
+%
+%   Is true when Object in Source has Signature as provided by the
+%   hook prolog:doc_compile_comment/5.
+
+xref_object_signature(Source, Object, Signature) :-
+    canonical_source(Source, Src),
+    object_signature(Object, Src, Signature).
 
 %!  xref_mode(?Source, ?Mode, ?Det) is nondet.
 %

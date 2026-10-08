@@ -4273,7 +4273,7 @@ win_rename_file(From, To) :-
 		 *******************************/
 
 :- multifile
-    prolog:comment_hook/3.                  % hook for read_clause/3
+    prolog:comment_hook/4.                  % hook for read_clause/3
 
 
 		 /*******************************

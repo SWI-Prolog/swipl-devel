@@ -7489,8 +7489,8 @@ options:
 
 	\termitem{process_comment}{+Boolean}
 	If \const{true} (default), call
-	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
-	multifile hook is defined (see prolog:comment_hook/3).  This
+	\term{prolog:comment_hook}{Comments, TermPos, Term, VarNames} if
+	this multifile hook is defined (see prolog:comment_hook/4).  This
 	is used to drive PlDoc.
 
 	\termitem{comments}{-Comments}

@@ -336,7 +336,7 @@ struct PL_global_data
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
-    Procedure   comment_hook3;		/* prolog:comment_hook/3 */
+    Procedure   comment_hook4;		/* prolog:comment_hook/4 */
     Procedure	tune_gc3;		/* prolog:tune_gc */
     Procedure	trie_gen_compiled2;
     Procedure	trie_gen_compiled3;

@@ -160,7 +160,7 @@ suggest predicates from a keyword.
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX: Close shared library (.so file)}
 \predicatesummary{collation_key}{2}{Sort key for locale dependent ordering}
-\predicatesummary{comment_hook}{3}{\hook{prolog} handle comments in sources}
+\predicatesummary{comment_hook}{4}{\hook{prolog} handle comments in sources}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
 \predicatesummary{partial_compare}{3}{Compare, refusing to decide on a variable}
 \predicatesummary{compile_aux_clauses}{1}{Compile predicates for goal_expansion/2}

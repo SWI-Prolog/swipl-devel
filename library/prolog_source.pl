@@ -174,6 +174,7 @@ read_clause_option(term_position(_)).
 read_clause_option(process_comment(_)).
 read_clause_option(comments(_)).
 read_clause_option(var_prefix(_)).
+read_clause_option(variable_names(_)).
 
 %!  add_syntax_options(+In, +Options0, -Options) is det.
 %
