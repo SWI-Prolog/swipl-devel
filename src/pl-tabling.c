@@ -6846,6 +6846,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 { PRED_LD
   idg_edge_state sbuf;
   idg_edge_state *state;
+  term_t t = 0;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -6924,6 +6925,9 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
       return false;
   }
 
+  if ( dep && !(t = PL_new_term_ref()) )
+    goto out_error;
+
   Mark(fli_context->mark);
   do
   { if ( dep )				/* monotonic dependency */
@@ -6932,9 +6936,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
       if ( (mdep=state->dependencies) &&
 	   (state->lazy == mdep->lazy || (flags & IDG_MONO_AFFECTS)) &&
 	   !state->force_reeval )
-      { term_t t;
-
-	if ( answers )
+      { if ( answers )
 	{ int rc;
 
 	  if ( !(flags & IDG_MONO_AFFECTS) &&
@@ -6951,10 +6953,13 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 
 	}
 
-	if ( !(t = PL_new_term_ref()) ||
-	     !put_fastheap(mdep->dependency, t) ||
-	     !PL_unify(t, dep) )
-	  return false;
+	if ( !put_fastheap(mdep->dependency, t) )
+	  goto out_error;
+	if ( !PL_unify(t, dep) )
+	{ if ( PL_exception(0) )
+	    goto out_error;
+	  goto next;			/* dependency does not match dep */
+	}
       } else
       { goto next;
       }

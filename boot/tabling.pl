@@ -429,19 +429,24 @@ restart_abstract_tabling(Closure, Wrapper, Worker) :-
 start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
     ->  '$idg_add_edge'(Trie),
-        start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
+        mon_consumer(Wrapper, Trie, Skeleton,
+                     start_tabling_2(Closure, Wrapper, Worker,
+                                     Trie, Status, Skeleton))
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
     ->  '$idg_add_edge'(ATrie),
-        '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
+        mon_consumer(Wrapper, ATrie, Skeleton,
+                     '$tbl_answer_update_dl'(ATrie, Skeleton)) % see (*)
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, Status, GenWrapper, GenSkeleton)
     ->  (   Status == invalid
         ->  forall(reeval(ATrie, GenWrapper, GenSkeleton), true),
             start_subsumptive_tabling(Closure, Wrapper, Worker)
         ;   wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton),
-            shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
-            unify_subsumptive(Skeleton, GenSkeleton)
+            mon_consumer(Wrapper, ATrie, Skeleton,
+                         ( shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
+                           unify_subsumptive(Skeleton, GenSkeleton)
+                         ))
         )
     ;   start_tabling(Closure, Wrapper, Worker)
     ).
@@ -458,6 +463,30 @@ wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton) :-
 
 unify_subsumptive(X,X).
 
+%!  mon_consumer(+Wrapper, +Trie, +Skeleton, :Goal)
+%
+%   Call Goal, which produces the answers of Trie that unify with
+%   Skeleton, for a call to Wrapper that is answered from an existing
+%   table: an existing variant of a subsumptive call, a more general
+%   table or an abstract table.  If Wrapper is monotonic and we collect
+%   monotonic dependencies, first record that the caller depends on
+%   Trie, as start_tabling/3 does for a variant table, so that answers
+%   propagated to Trie later also reach the caller.  Skeleton may be
+%   more specific than the answers of Trie.  Propagation unifies it with
+%   each new answer, passing only the answers this call can use.
+
+mon_consumer(Wrapper, Trie, Skeleton, Goal) :-
+    '$get_predicate_attribute'(Wrapper, monotonic, 1),
+    '$tbl_collect_mono_dep',
+    !,
+    shift(dependency(Skeleton, Trie, Mono)),
+    (   Mono == true
+    ->  tdebug(monotonic, 'Monotonic new answer: ~p', [Skeleton])
+    ;   call(Goal)
+    ).
+mon_consumer(_, _, _, Goal) :-
+    call(Goal).
+
 %!  start_abstract_tabling(:Closure, :Wrapper, :Worker)
 %
 %   Deal with ``table p/1 as  subgoal_abstract(N)``.   This  is  a merge
@@ -473,6 +502,11 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
     '$tbl_abstract_table'(Closure, Wrapper, Trie, _Abstract, Status, Skeleton),
     tdebug(abstract, 'Wrapper=~p, Worker=~p, Skel=~p',
            [Wrapper, Worker, Skeleton]),
+    mon_consumer(Wrapper, Trie, Skeleton,
+                 start_abstract_tabling_2(Closure, Wrapper, Worker,
+                                          Trie, Status, Skeleton)).
+
+start_abstract_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     (   is_most_general_term(Skeleton)           % TBD: Fill and test Abstract
     ->  start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
     ;   Status == complete
@@ -486,9 +520,8 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
               restart_abstract_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
-        reeval(ATrie, GenWrapper, GenSkeleton),
-        Wrapper = GenWrapper,
-        '$tbl_answer_update_dl'(ATrie, Skeleton)
+        forall(reeval(Trie, GenWrapper, GenSkeleton), true),
+        '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
         unify_subsumptive(Skeleton, GenSkeleton)
     ).
