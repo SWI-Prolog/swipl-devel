@@ -115,6 +115,7 @@ test(retract_reassert, [cleanup(init)]) :-
 
 :- dynamic e/1 as monotonic.
 :- dynamic edge/2 as monotonic.
+:- dynamic e2/2 as monotonic.
 
 :- table a/1 as (subgoal_abstract(0), monotonic).
 :- table b/1 as monotonic.
@@ -124,6 +125,9 @@ test(retract_reassert, [cleanup(init)]) :-
 :- table from/2 as monotonic.
 :- table la/1 as (subgoal_abstract(0), monotonic, lazy).
 :- table lb/1 as (monotonic, lazy).
+:- table pairs/1 as (subgoal_abstract(0), monotonic).
+:- table same/1 as monotonic.
+:- table firsts/1 as monotonic.
 
 a(args(X)) :- e(X).                     % a(args(c)) is abstracted to a(_)
 b(X) :- a(args(X)).
@@ -134,6 +138,9 @@ reach(t(X,Z)) :- reach(t(X,Y)), edge(Y,Z).
 from(X, Y) :- reach(t(X,Y)).
 la(args(X)) :- e(X).
 lb(X) :- la(args(X)).
+pairs(args(X, Y)) :- e2(X, Y).
+same(X) :- pairs(args(X, X)).          % a non-linear skeleton
+firsts(X) :- pairs(args(X, _)).
 
 abstract_subgoals :-
     current_prolog_flag(max_table_subgoal_size_action, Action),
@@ -147,7 +154,8 @@ restore_subgoal_action :-
 init :-
     abolish_all_tables,
     retractall(e(_)),
-    retractall(edge(_,_)).
+    retractall(edge(_,_)),
+    retractall(e2(_,_)).
 
 answers(Goal, Template, List) :-
     findall(Template, Goal, List0),
@@ -170,6 +178,16 @@ test(many_consumers, [Gained == Keys, cleanup(init)]) :-
     forall(member(K, Keys), \+ b(K)),   % 20 dependencies on one a(_)
     forall(member(K, Keys), assertz(e(K))),
     findall(K, (member(K, Keys), b(K)), Gained).
+test(index_shapes, [S1-F1-S2-F2 == []-[a]-[c]-[a,c], cleanup(init)]) :-
+    init,
+    \+ same(_),
+    \+ firsts(_),
+    assertz(e2(a, b)),                  % matches firsts' skeleton only
+    answers(same(X), X, S1),
+    answers(firsts(X), X, F1),
+    assertz(e2(c, c)),                  % matches both
+    answers(same(X), X, S2),
+    answers(firsts(X), X, F2).
 test(one_shared_table, [Count == 1, cleanup(init)]) :-
     init,
     \+ b(c),
