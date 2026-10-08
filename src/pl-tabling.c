@@ -76,10 +76,21 @@ We provide two answer completion strategies:
 #define PL_erase(r)	  free_fastheap(r)
 
 #define SINDEX_MAX	32
+#define SINDEX_DEPTH	((int)sizeof(unsigned)) /* path levels, a byte each */
+#define SINDEX_ARGS	0xff		/* last argument number in a path */
+
+/* A key of a call-subsumption instance and the path it is at: argument
+ * numbers from the skeleton down, a byte each, the skeleton's argument
+ * in the lowest byte, so a path up to SINDEX_ARGS is an argument of the
+ * skeleton.  A subgoal_abstract(N) table abstracts compound arguments,
+ * so the keys that tell its callers apart are often a few levels down:
+ * in ret(args(R,edge(A,B,C))) the keys of A, B and C are at the paths
+ * 1.2.1, 1.2.2 and 1.2.3, read from the skeleton down.
+ */
 
 typedef struct sindex_key
-{ size_t	argn;
-  size_t	key;
+{ unsigned	path;
+  unsigned	key;
 } sindex_key;
 
 typedef struct suspension
@@ -87,6 +98,43 @@ typedef struct suspension
   record_t	instance;	/* Filter for call subsumption */
   sindex_key   *keys;		/* Index to find filter candidates */
 } suspension;
+
+/* Index of a suspension cluster on a few key paths.  Each member is
+ * placed under the first path it has a key at, if any.  The members
+ * under a path with the same key form a chain from the last to the
+ * first through `prev`, as do the members no path keys, and all the
+ * members under a path form one through `prev_all`, so walking chains
+ * from their heads visits members in the order of the scan, from the
+ * top of the cluster to its base.
+ */
+
+typedef struct sindex_path
+{ unsigned	path;
+  Table		heads;		/* key -> last member with that key, plus 1 */
+  ssize_t	all;		/* last member under the path, or -1 */
+} sindex_path;
+
+/* A chain of an answer's candidates and the next member on it */
+
+typedef struct sindex_cursor
+{ ssize_t	at;		/* next member on the chain, or -1 */
+  const ssize_t *link;		/* member -> previous member on the chain */
+} sindex_cursor;
+
+/* One cursor per path and one for the unkeyed members are enough for
+ * the one completion step that iterates a cluster at a time.
+ */
+
+typedef struct sindex_table
+{ ssize_t      *prev;		/* member -> previous with its key, or unkeyed */
+  ssize_t      *prev_all;	/* member -> previous member under its path */
+  size_t	allocated;	/* entries in prev and prev_all */
+  ssize_t	unkeyed;	/* last member no path keys, or -1 */
+  size_t	built;		/* members when the paths were chosen */
+  sindex_cursor *cursors;	/* npaths+1, after paths */
+  size_t	npaths;
+  sindex_path	paths[];	/* in the order chosen */
+} sindex_table;
 
 typedef struct answer
 { trie_node    *node;		/* Point into answer trie */
@@ -105,7 +153,13 @@ typedef struct
   } suspensions;
   int		keys_inited;	/* #Initialized keys */
   sindex_key	keys[SINDEX_MAX]; /* suspension matching */
+  sindex_table *sindex;		/* Index of scp or NULL */
+  int		candidates;	/* CAND_* below */
 } wkl_step_state;
+
+#define CAND_UNDECIDED	0	/* new answer, its candidates not looked up */
+#define CAND_ALL	1	/* visit every suspension */
+#define CAND_KEYED	2	/* visit the members sindex's cursors are on */
 
 #if USE_LD_MACROS
 #define	tbl_create_subcomponent(leader)			LDFUNC(tbl_create_subcomponent, leader)
@@ -2753,6 +2807,16 @@ clearThreadTablingData(PL_local_data_t *ld)
 		 *   CALL SUBSUPTION INDEXING	*
 		 *******************************/
 
+/* The keys of a call-subsumption instance, breadth first: those of the
+ * skeleton's arguments, then those of the arguments of the compound
+ * ones, down to SINDEX_DEPTH levels, at most SINDEX_MAX-1 keys ended by
+ * a 0 path, or NULL if it has none.  A key whose truncation to unsigned
+ * is 0 is left out, as a table cannot hold it.  The queue holds the
+ * skeleton and each compound keyed, so at most SINDEX_MAX entries.
+ * Time: one index_of_word() per argument read, of at most SINDEX_MAX
+ * compounds.
+ */
+
 #define suspension_keys(instance) LDFUNC(suspension_keys, instance)
 static sindex_key *
 suspension_keys(DECL_LD term_t instance)
@@ -2760,31 +2824,49 @@ suspension_keys(DECL_LD term_t instance)
 
   deRef(p);
   if ( isTerm(*p) )
-  { Functor f = valueTerm(*p);
-    size_t i, arity = arityFunctor(f->definition);
-    sindex_key keys[SINDEX_MAX];
-    sindex_key *k = keys;
+  { sindex_key keys[SINDEX_MAX];
+    Word queue[SINDEX_MAX];		/* compounds whose arguments are next */
+    unsigned qpath[SINDEX_MAX];
+    int qlevel[SINDEX_MAX];
+    size_t n = 0, qhead = 0, qtail = 1;
 
-    if ( arity > SINDEX_MAX )
-      arity = SINDEX_MAX;
+    queue[0]  = p;
+    qpath[0]  = 0;
+    qlevel[0] = 0;
+    while ( qhead < qtail && n < SINDEX_MAX-1 )
+    { Functor f = valueTerm(*queue[qhead]);
+      unsigned path = qpath[qhead];
+      int level = qlevel[qhead++];
+      size_t i, arity = arityFunctor(f->definition);
+      size_t max = (level == 0 ? SINDEX_MAX : SINDEX_ARGS);
 
-    for(i=0; i<arity; i++)
-    { word ki = index_of_word(f->arguments[i]);
+      if ( arity > max )
+	arity = max;
+      for(i=0; i<arity && n < SINDEX_MAX-1; i++)
+      { Word a = &f->arguments[i];
+	unsigned key;
 
-      if ( ki )
-      { k->argn = i+1;
-	k->key  = (unsigned int)ki;
-	if ( ++k >= &keys[SINDEX_MAX-1] )
-	  break;
+	deRef(a);
+	if ( (key=(unsigned int)index_of_word(*a)) )
+	{ keys[n].path = path | (unsigned)(i+1) << (8*level);
+	  keys[n].key  = key;
+	  if ( isTerm(*a) && level+1 < SINDEX_DEPTH )
+	  { queue[qtail]  = a;
+	    qpath[qtail]  = keys[n].path;
+	    qlevel[qtail] = level+1;
+	    qtail++;
+	  }
+	  n++;
+	}
       }
     }
 
-    if ( k > keys )
-    { k->argn = 0;
-      k->key  = 0;
-      k++;
+    if ( n > 0 )
+    { keys[n].path = 0;
+      keys[n].key  = 0;
+      n++;
 
-      size_t bytes = (char*)k - (char*)keys;
+      size_t bytes = n*sizeof(*keys);
       sindex_key *gk = malloc(bytes);
 
       if ( gk )
@@ -2797,16 +2879,76 @@ suspension_keys(DECL_LD term_t instance)
 }
 
 
+/* How an answer meets a key path */
+#define AK_KEY		0	/* a nonvar there, whose key is returned */
+#define AK_WILD		1	/* a variable there or above: any key */
+#define AK_ABSENT	2	/* a nonvar above it lacks the argument */
+
+/* The key of an answer at a path.  An answer that lacks the path below
+ * a nonvar cannot unify with an instance keyed there, as the instance
+ * has a compound with that argument at each level above the key.
+ * Time: one dereference per level of the path.
+ */
+
+#define answer_key(answer, path, key) LDFUNC(answer_key, answer, path, key)
 static int
-suspension_matches_index(const suspension *susp, const sindex_key *skeys)
+answer_key(DECL_LD term_t answer, unsigned path, unsigned *key)
+{ Word p = valTermRef(answer);
+
+  for( ; path; path >>= 8)
+  { unsigned argn = path & 0xff;
+    Functor f;
+
+    deRef(p);
+    if ( canBind(*p) )
+      return AK_WILD;
+    if ( !isTerm(*p) )
+      return AK_ABSENT;
+    f = valueTerm(*p);
+    if ( argn > arityFunctor(f->definition) )
+      return AK_ABSENT;
+    p = &f->arguments[argn-1];
+  }
+
+  return (*key = (unsigned int)index_of_word(*p)) ? AK_KEY : AK_WILD;
+}
+
+
+/* False if the suspension's instance cannot unify with the answer for a
+ * difference at one of its key paths: the answer has another key there
+ * or lacks the path below a nonvar.  `skeys` holds the answer's keys by
+ * argument of the skeleton, one based; keys further down are read from
+ * the answer itself.  Deeper keys tell apart the calls to an abstract
+ * table, whose instances share the functors above them.
+ */
+
+#define suspension_matches_index(susp, skeys, answer) \
+	LDFUNC(suspension_matches_index, susp, skeys, answer)
+static int
+suspension_matches_index(DECL_LD const suspension *susp,
+			 const sindex_key *skeys, term_t answer)
 { if ( likely(susp->keys!=NULL) )
-  { sindex_key *k;
+  { const sindex_key *k;
 
-    for(k=susp->keys; k->argn; k++)
-    { const sindex_key *sk = &skeys[k->argn];
+    for(k=susp->keys; k->path; k++)
+    { unsigned ak;
 
-      if ( unlikely(k->key != sk->key) && likely(!!sk->key) )
-	return false;
+      if ( k->path <= SINDEX_ARGS )
+      { ak = skeys[k->path].key;
+	if ( unlikely(k->key != ak) && likely(!!ak) )
+	  return false;
+      } else
+      { switch( answer_key(answer, k->path, &ak) )
+	{ case AK_KEY:
+	    if ( k->key != ak )
+	      return false;
+	    break;
+	  case AK_ABSENT:
+	    return false;
+	  default:
+	    break;
+	}
+      }
     }
   }
 
@@ -2843,6 +2985,107 @@ suspension_matches(DECL_LD term_t answer, const suspension *susp)
 		 *  ANSWER/SUSPENSION CLUSTERS	*
 		 *******************************/
 
+static unsigned
+suspension_key_at(const suspension *sp, unsigned path)
+{ const sindex_key *k;
+
+  if ( sp->keys )
+  { for(k=sp->keys; k->path; k++)
+    { if ( k->path == path )
+	return k->key;
+    }
+  }
+
+  return 0;
+}
+
+static void
+sindex_free(cluster *c)
+{ sindex_table *ix;
+
+  if ( (ix=c->sindex) )
+  { size_t j;
+
+    c->sindex = NULL;
+    for(j=0; j<ix->npaths; j++)
+      destroyHTable(ix->paths[j].heads);
+    free(ix->prev);
+    free(ix->prev_all);
+    free(ix);
+  }
+}
+
+/* Add member `i` of a cluster, which must be the member after the last
+ * one indexed, under the first path it has a key at.  False if out of
+ * memory.
+ * Time: a key search per path and a hash update.
+ */
+
+#define sindex_add(ix, sp, i) LDFUNC(sindex_add, ix, sp, i)
+static bool
+sindex_add(DECL_LD sindex_table *ix, const suspension *sp, size_t i)
+{ size_t j;
+
+  if ( i >= ix->allocated )
+  { size_t n = (ix->allocated ? ix->allocated*2 : 16);
+    ssize_t *prev;
+
+    while ( n <= i )
+      n *= 2;
+    if ( !(prev = realloc(ix->prev, n*sizeof(*prev))) )
+      return false;
+    ix->prev = prev;
+    if ( !(prev = realloc(ix->prev_all, n*sizeof(*prev))) )
+      return false;
+    ix->prev_all  = prev;
+    ix->allocated = n;
+  }
+
+  for(j=0; j<ix->npaths; j++)
+  { sindex_path *ip = &ix->paths[j];
+    unsigned key = suspension_key_at(sp, ip->path);
+
+    if ( key )
+    { ix->prev[i]     = (ssize_t)lookupHTable(ip->heads, key) - 1;
+      ix->prev_all[i] = ip->all;
+      updateHTable(ip->heads, key, (table_value_t)i+1);
+      ip->all = (ssize_t)i;
+      return true;
+    }
+  }
+  ix->prev[i] = ix->unkeyed;
+  ix->unkeyed = (ssize_t)i;
+
+  return true;
+}
+
+/* Index the members of a suspension cluster from `from` on, if it has
+ * an index.  Without memory for it, the cluster is scanned instead.
+ */
+
+#define sindex_extend(c, from) LDFUNC(sindex_extend, c, from)
+static void
+sindex_extend(DECL_LD cluster *c, size_t from)
+{ if ( c->sindex )
+  { suspension *base = baseBuffer(&c->members, suspension);
+    size_t i, n = entriesBuffer(&c->members, suspension);
+
+    for(i=from; i<n; i++)
+    { if ( !sindex_add(c->sindex, &base[i], i) )
+      { sindex_free(c);
+	break;
+      }
+    }
+  }
+}
+
+static void
+init_cluster_index(cluster *c)
+{ c->sindex       = NULL;
+  c->sindex_tried = 0;
+  c->paired       = false;
+}
+
 static cluster *
 new_answer_cluster(worklist *wl, answer *ans)
 { cluster *c;
@@ -2855,6 +3098,7 @@ new_answer_cluster(worklist *wl, answer *ans)
     c->type = CLUSTER_ANSWERS;
     initBuffer(&c->members);
   }
+  init_cluster_index(c);
   addBuffer(&c->members, *ans, answer);
 
   return c;
@@ -2962,6 +3206,7 @@ new_suspension_cluster(DECL_LD worklist *wl, term_t first, int is_tnot,
     c->type = CLUSTER_SUSPENSIONS;
     initBuffer(&c->members);
   }
+  init_cluster_index(c);
   addBuffer(&c->members, s, suspension);
 
   return c;
@@ -2973,6 +3218,7 @@ free_suspension_cluster(cluster *c)
   size_t entries = entriesBuffer(&c->members, suspension);
   size_t i;
 
+  sindex_free(c);
   for(i=0; i<entries; i++)
   { suspension *s = &base[i];
 
@@ -2996,18 +3242,29 @@ add_to_suspension_cluster(DECL_LD cluster *c, term_t sterm, int is_tnot,
   if ( !new_suspension(&s, sterm, is_tnot, instance) )
     return false;
   addBuffer(&c->members, s, suspension);
+  sindex_extend(c, entriesBuffer(&c->members, suspension)-1);
 
   return true;
 }
 
+/* Append the suspensions of `from` to `to`, extending the index of `to`
+ * and dropping that of `from`.
+ */
+
+#define merge_suspension_cluster(to, from, do_free) \
+	LDFUNC(merge_suspension_cluster, to, from, do_free)
 static void
-merge_suspension_cluster(cluster *to, cluster *from, int do_free)
+merge_suspension_cluster(DECL_LD cluster *to, cluster *from, int do_free)
 { typedef suspension* Suspension;
+  size_t indexed = entriesBuffer(&to->members, suspension);
 
   addMultipleBuffer(&to->members,
 		    baseBuffer(&from->members, suspension*),
 		    entriesBuffer(&from->members, suspension*),
 		    Suspension);
+  sindex_extend(to, indexed);
+  sindex_free(from);
+  init_cluster_index(from);
   if ( do_free )
   { discardBuffer(&from->members);
     PL_free(from);
@@ -3037,6 +3294,151 @@ acp_size(cluster *c)
 static size_t
 scp_size(cluster *c)
 { return entriesBuffer(&c->members, suspension);
+}
+
+/* How a path would split the members no chosen path keys yet */
+
+typedef struct sindex_assessment
+{ unsigned	path;
+  size_t	keyed;		/* members left with a key at the path */
+  uint64_t	squares;	/* sum of their buckets' squared sizes */
+  Table		counts;		/* key -> members left with that key */
+} sindex_assessment;
+
+/* The paths to index a suspension cluster on, chosen greedily: among
+ * the members no chosen path keys yet, the path that leaves an answer
+ * the fewest members to visit, those it does not key plus the bucket
+ * expected for a key drawn as the members' keys are, the sum of the
+ * squared bucket sizes over the number keyed.  A path is taken while it
+ * saves more than one visit, about what looking up its key costs.
+ * False if none does or memory runs out.
+ * Time: a hash update per key of each member left, once per path taken
+ * and once more.
+ */
+
+static bool
+sindex_choose(cluster *c, tmp_buffer *chosen)
+{ size_t i, n = scp_size(c);
+  const suspension *base = get_suspension_from_cluster(c, 0);
+  char *placed = calloc(n, 1);
+  Table where = newHTable(16);		/* path -> assessment, plus 1 */
+  tmp_buffer as;
+
+  initBuffer(&as);
+  while ( placed )
+  { sindex_assessment *a, *ae, *best = NULL;
+    double most = 1.0;
+
+    for(i=0; i<n; i++)
+    { const sindex_key *k;
+
+      if ( placed[i] || !base[i].keys )
+	continue;
+      for(k=base[i].keys; k->path; k++)
+      { size_t ai = (size_t)lookupHTable(where, k->path);
+	uint64_t count;
+
+	if ( !ai )
+	{ sindex_assessment new = { .path = k->path, .counts = newHTable(16) };
+
+	  addBuffer(&as, new, sindex_assessment);
+	  ai = entriesBuffer(&as, sindex_assessment);
+	  addNewHTable(where, k->path, (table_value_t)ai);
+	}
+	a = &fetchBuffer(&as, ai-1, sindex_assessment);
+	count = lookupHTable(a->counts, k->key);
+	updateHTable(a->counts, k->key, count+1);
+	a->squares += 2*count+1;
+	a->keyed++;
+      }
+    }
+
+    ae = topBuffer(&as, sindex_assessment);
+    for(a=baseBuffer(&as, sindex_assessment); a < ae; a++)
+    { double saved = (double)a->keyed - (double)a->squares/(double)a->keyed;
+
+      if ( saved > most )
+      { most = saved;
+	best = a;
+      }
+    }
+    if ( best )
+    { unsigned path = best->path;
+
+      addBuffer(chosen, path, unsigned);
+      for(i=0; i<n; i++)
+      { if ( !placed[i] && suspension_key_at(&base[i], path) )
+	  placed[i] = true;
+      }
+    }
+    for(a=baseBuffer(&as, sindex_assessment); a < ae; a++)
+      destroyHTable(a->counts);
+    seekBuffer(&as, 0, sindex_assessment);
+    clearHTable(where);
+    if ( !best )
+      break;
+  }
+
+  discardBuffer(&as);
+  destroyHTable(where);
+  free(placed);
+
+  return entriesBuffer(chosen, unsigned) > 0;
+}
+
+/* The index of a suspension cluster about to meet `answers` answers.
+ * A cluster met once by one answer is scanned, as indexing it would
+ * cost a scan.  One met again or by more answers is indexed if a path
+ * saves visits, and its paths are chosen again once it has doubled; a
+ * cluster no path helps is assessed again once it has doubled.
+ */
+
+#define scp_index(scp, answers) LDFUNC(scp_index, scp, answers)
+static sindex_table *
+scp_index(DECL_LD cluster *scp, size_t answers)
+{ bool again = scp->paired;
+  size_t j, npaths, n = scp_size(scp);
+  sindex_table *ix;
+  tmp_buffer chosen;
+
+  scp->paired = true;
+  if ( (ix=scp->sindex) )
+  { if ( n < 2*ix->built )
+      return ix;
+    sindex_free(scp);
+  }
+  if ( n < 2 || (!again && answers < 2) ||
+       (scp->sindex_tried && n < 2*scp->sindex_tried) )
+    return NULL;
+  initBuffer(&chosen);
+  if ( !sindex_choose(scp, &chosen) )
+  { discardBuffer(&chosen);
+    scp->sindex_tried = n;
+    return NULL;
+  }
+  npaths = entriesBuffer(&chosen, unsigned);
+  if ( !(ix=malloc(sizeof(*ix) + npaths*sizeof(sindex_path) +
+		   (npaths+1)*sizeof(sindex_cursor))) )
+  { discardBuffer(&chosen);
+    return NULL;
+  }
+  ix->prev      = NULL;
+  ix->prev_all  = NULL;
+  ix->allocated = 0;
+  ix->unkeyed   = -1;
+  ix->built     = n;
+  ix->cursors   = (sindex_cursor*)&ix->paths[npaths];
+  ix->npaths    = npaths;
+  for(j=0; j<npaths; j++)
+  { ix->paths[j].path  = fetchBuffer(&chosen, j, unsigned);
+    ix->paths[j].heads = newHTable(16);
+    ix->paths[j].all   = -1;
+  }
+  discardBuffer(&chosen);
+  scp->sindex = ix;
+  sindex_extend(scp, 0);
+
+  return scp->sindex;
 }
 
 		 /*******************************
@@ -4412,11 +4814,98 @@ tbl_put_moded_args(DECL_LD term_t t, trie_node *node)
 }
 
 
+/* Point an index's cursors at an answer's candidates: per path, the
+ * members with the answer's key there, all members under it if the
+ * answer leaves the path unbound, none if the answer lacks it; then the
+ * members no path keys.  Returns the first candidate, the highest
+ * member a cursor is at, or -1.
+ * Time: a key lookup per path.
+ */
+
+#define sindex_candidates(ix, answer) LDFUNC(sindex_candidates, ix, answer)
+static ssize_t
+sindex_candidates(DECL_LD sindex_table *ix, term_t answer)
+{ sindex_cursor *c = ix->cursors;
+  ssize_t first = ix->unkeyed;
+  size_t j;
+
+  for(j=0; j<ix->npaths; j++, c++)
+  { const sindex_path *ip = &ix->paths[j];
+    unsigned key;
+
+    switch( answer_key(answer, ip->path, &key) )
+    { case AK_KEY:
+	c->at   = (ssize_t)lookupHTable(ip->heads, key) - 1;
+	c->link = ix->prev;
+	break;
+      case AK_WILD:
+	c->at   = ip->all;
+	c->link = ix->prev_all;
+	break;
+      default:
+	c->at   = -1;
+	c->link = NULL;
+    }
+    if ( c->at > first )
+      first = c->at;
+  }
+  c->at   = ix->unkeyed;
+  c->link = ix->prev;
+
+  return first;
+}
+
+/* Move the cursor at member `i` down its chain and return the next
+ * candidate, the highest member a cursor is at, or -1.  The chains hold
+ * disjoint members, so one cursor is at `i`.
+ * Time: O(paths).
+ */
+
+static ssize_t
+sindex_next(sindex_table *ix, ssize_t i)
+{ sindex_cursor *c = ix->cursors;
+  sindex_cursor *e = c + ix->npaths + 1;
+  ssize_t next = -1;
+
+  for( ; c < e; c++)
+  { if ( c->at == i )
+      c->at = c->link[i];
+    if ( c->at > next )
+      next = c->at;
+  }
+
+  return next;
+}
+
+/* Move to the next suspension to offer the current answer: the next
+ * candidate of an indexed cluster, else the next suspension down.  Once
+ * exhausted, it keeps failing.
+ */
+
 static int
-advance_wkl_state(wkl_step_state *state)
+wkl_next_suspension(wkl_step_state *state)
+{ if ( state->candidates == CAND_KEYED )
+  { ssize_t i = sindex_next(state->sindex,
+			    state->suspensions.here - state->suspensions.base);
+
+    if ( i >= 0 )
+    { state->suspensions.here = state->suspensions.base + i;
+      return true;
+    }
+    state->candidates = CAND_ALL;
+    state->suspensions.here = state->suspensions.base;
+  }
+
+  return --state->suspensions.here >= state->suspensions.base;
+}
+
+
+#define advance_wkl_state(state) LDFUNC(advance_wkl_state, state)
+static int
+advance_wkl_state(DECL_LD wkl_step_state *state)
 { next:
 
-  if ( --state->suspensions.here < state->suspensions.base )
+  if ( !wkl_next_suspension(state) )
   { state->suspensions.here = state->suspensions.top;
     if ( --state->acp_index == 0 )
     { cluster *acp, *scp;
@@ -4430,6 +4919,7 @@ advance_wkl_state(wkl_step_state *state)
 	scp->next = state->list->free_clusters;
 	state->list->free_clusters = scp;
       }
+      state->sindex = NULL;
 
       /* Merge adjacent answer clusters */
       if ( (acp=state->acp)->next && acp->next->type == CLUSTER_ANSWERS )
@@ -4456,6 +4946,7 @@ advance_wkl_state(wkl_step_state *state)
 	{ state->suspensions.base = get_suspension_from_cluster(scp, 0);
 	  state->suspensions.top  = get_suspension_from_cluster(scp, scp_size(scp)-1);
 	  state->suspensions.here = state->suspensions.top;
+	  state->sindex           = scp_index(scp, state->acp_index);
 	  goto next_answer;
 	} else
 	{ goto next;
@@ -4467,6 +4958,7 @@ advance_wkl_state(wkl_step_state *state)
     { next_answer:
       state->answer = get_answer_from_cluster(state->acp, state->acp_index-1);
       state->keys_inited = 0;
+      state->candidates  = CAND_UNDECIDED;
     }
   }
 
@@ -4490,6 +4982,12 @@ free_wkl_state(wkl_step_state *state)
  *		   -Answer,
  *		   -Continuation, -TargetSkeleton, -TargetWorklist,
  *		   -Delays)
+ *
+ * Time: each answer of the answer cluster meets every suspension of the
+ * suspension cluster, or, if that cluster is indexed, per index path the
+ * suspensions under it with the answer's key there, or all those under
+ * it if the answer leaves the path unbound, and the suspensions no path
+ * keys, at O(paths) each.
  */
 
 static
@@ -4524,6 +5022,8 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	    state->suspensions.top  = get_suspension_from_cluster(scp, sz_scp-1);
 	    state->suspensions.here = state->suspensions.top;
 	    state->keys_inited      = 0;
+	    state->sindex	    = scp_index(scp, sz_acp);
+	    state->candidates       = CAND_UNDECIDED;
 	    wl->executing	    = true;
 
 	    break;
@@ -4559,7 +5059,32 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 
     if ( (an != NULL && an->value == 0) )	/* removed answer */
     { state->suspensions.here = state->suspensions.base;/* skip all suspensions */
+      state->candidates = CAND_ALL;
       continue;
+    }
+
+    /* An indexed suspension cluster offers a new answer only to its
+     * candidates, from the top down as the scan does.
+     */
+    if ( state->candidates == CAND_UNDECIDED )
+    { state->candidates = CAND_ALL;
+      if ( state->sindex && an )
+      { ssize_t i;
+
+	if ( can != an )
+	{ if ( can )
+	    Undo(fli_context->mark);
+	  if ( !tbl_unify_answer(an, A2) )
+	    break;				/* resource error */
+	  can = an;
+	}
+	if ( (i=sindex_candidates(state->sindex, A2)) < 0 )
+	{ state->suspensions.here = state->suspensions.base; /* none */
+	  continue;
+	}
+	state->suspensions.here = state->suspensions.base + i;
+	state->candidates = CAND_KEYED;
+      }
     }
 
     sp = state->suspensions.here;
@@ -4624,15 +5149,16 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       skeys--;					/* key args are one based */
 
       for(;;)
-      { if ( unlikely((suspension_matches_index(sp, skeys))) )
+      { if ( unlikely((suspension_matches_index(sp, skeys, A2))) )
 	{ rc = suspension_matches(A2, sp);
 
 	  if ( rc == true )  goto match;
 	  if ( rc != false ) goto out_fail;
 	}
 
-	if ( likely((sp = --state->suspensions.here) >= state->suspensions.base) )
-	{ if ( unlikely(!sp->instance) )
+	if ( likely(wkl_next_suspension(state)) )
+	{ sp = state->suspensions.here;
+	  if ( unlikely(!sp->instance) )
 	    goto match;
 	} else
 	{ goto next;
