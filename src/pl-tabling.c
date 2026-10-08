@@ -129,6 +129,9 @@ typedef struct
 #define	mono_queue_answer(atrie, ans, an)		LDFUNC(mono_queue_answer, atrie, ans, an)
 #define	force_reeval(n)					LDFUNC(force_reeval, n)
 #define find_dep(mdep, dep, found)			LDFUNC(find_dep, mdep, dep, found)
+#define mono_index_find(src, consumer, dep, found)	LDFUNC(mono_index_find, src, consumer, dep, found)
+#define mono_index_insert(src, consumer, mdep, dep)	LDFUNC(mono_index_insert, src, consumer, mdep, dep)
+#define mono_index_build(src)				LDFUNC(mono_index_build, src)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -199,6 +202,12 @@ static void	force_reeval(idg_node *n);
 static int	idg_changed(trie *atrie, int flags);
 static trie    *idg_propagate_change(idg_node *n, int flags);
 static int	find_dep(idg_mdep *mdep, term_t dep, idg_mdep **found);
+static int	mono_index_find(idg_node *src, idg_node *consumer, term_t dep,
+				idg_mdep **found);
+static bool	mono_index_insert(idg_node *src, idg_node *consumer,
+				  idg_mdep *mdep, term_t dep);
+static bool	mono_index_build(idg_node *src);
+static void	mono_index_release(idg_node *src);
 #undef LDFUNC_DECLARATIONS
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
@@ -6294,16 +6303,32 @@ idg_destroy(idg_node *node)
   { node->dependent = NULL;
     destroyHTablePP(table);
   }
+  mono_index_release(node);
 
   PL_free(node);
 }
 
+/* Free the monotonic dependencies of one (child, parent) edge, the chain
+   ending in the child node.  Each key of the child's mono_index belongs
+   to one parent, so it goes with its edge.
+*/
+
 static idg_node *
 free_mdep_chain(idg_node *child)
-{ while ( child->magic != IDG_NODE_MAGIC )
+{ idg_node *src = child;
+
+  while ( src->magic != IDG_NODE_MAGIC )
+    src = ((idg_mdep*)src)->next.child;
+
+  while ( child->magic != IDG_NODE_MAGIC )
   { idg_mdep *mdep = (idg_mdep*)child;
 
     child = mdep->next.child;
+    if ( mdep->index_node && src->mono_index_deps &&
+	 lookupHTablePP(src->mono_index_deps, mdep->index_node) == mdep )
+    { deleteHTablePP(src->mono_index_deps, mdep->index_node);
+      trie_delete(src->mono_index, mdep->index_node, true);
+    }
     free_mdep(mdep);
   }
 
@@ -6404,6 +6429,18 @@ pointer to an `mdep` structure. See new_mdep().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define idg_add_child(parent, child, dep, flags) LDFUNC(idg_add_child, parent, child, dep, flags)
+
+/* An answer table indexes its monotonic dependencies; a dynamic call
+   variant's are found through its predicate's variant trie, and shared
+   tables keep their chains.
+*/
+
+static inline bool
+mono_indexable(const idg_node *n)
+{ return ( n->atrie->data.worklist != WL_DYNAMIC &&
+	   isoff(n->atrie, TRIE_ISSHARED) );
+}
+
 static int
 idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 { volatile TablePP t;
@@ -6436,7 +6473,8 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
   { idg_mdep *mdep0 = addHTablePP(t, parent, child); /* chain old dependency */
     idg_mdep *mdep;
 
-    switch( find_dep(mdep0, dep, &mdep) )
+    switch( child->mono_index ? mono_index_find(child, parent, dep, &mdep)
+			      : find_dep(mdep0, dep, &mdep) )
     { case true:
 	break;
       case false:
@@ -6448,6 +6486,15 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	  parent->lazy = true;
 	if ( parent->lazy )
 	  mdep->lazy = true;
+					/* index the second and later */
+	if ( mono_indexable(child) &&
+	     (child->mono_index || child->mono_dep_seen) &&
+	     !( (child->mono_index || mono_index_build(child)) &&
+		mono_index_insert(child, parent, mdep, dep) ) )
+	{ free_mdep(mdep);
+	  return false;
+	}
+	child->mono_dep_seen = true;
 	mdep->next.any = mdep0;
 	updateHTablePP(t, parent, mdep);
 	break;
@@ -7063,6 +7110,83 @@ PRED_IMPL("$idg_mono_affects_lazy", 5, idg_mono_affects_lazy,
 { return idg_edge_gen(A1, 0, A2, A3, A4, A5, 0, 0, PL__ctx);
 }
 
+/** '$idg_mono_index'(+SrcTrie, -Index) is semidet.
+ *
+ * Index is the trie that indexes the monotonic dependencies of SrcTrie
+ * as SrcSkeleton-DstTrie, if SrcTrie has one; see mono_index_build().
+ */
+
+static
+PRED_IMPL("$idg_mono_index", 2, idg_mono_index, 0)
+{ PRED_LD
+  trie *atrie;
+  idg_node *n;
+
+  return ( get_trie(A1, &atrie) &&
+	   (n=atrie->data.IDG) && n->mono_index &&
+	   PL_unify_atom(A2, n->mono_index->symbol) );
+}
+
+/** '$idg_mono_index_deps'(+SrcTrie, +Leaf, +DstTrie, ?Dependency) is nondet.
+ *
+ * Dependency is a monotonic dependency of DstTrie on SrcTrie stored at
+ * Leaf, a leaf of SrcTrie's '$idg_mono_index'/2 as '$trie_gen_node'/3
+ * returns it.  As '$idg_mono_affects_eager'/3, this skips a DstTrie that
+ * is to be re-evaluated and a dependency that does not unify.
+ */
+
+static
+PRED_IMPL("$idg_mono_index_deps", 4, idg_mono_index_deps,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  idg_mdep *mdep;
+  term_t t;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { trie *atrie, *dtrie;
+      idg_node *n;
+      void *leaf;
+
+      if ( !get_trie(A1, &atrie) || !(n=atrie->data.IDG) ||
+	   !n->mono_index_deps ||
+	   !PL_get_pointer_ex(A2, &leaf) ||
+	   !get_trie(A3, &dtrie) )
+	return false;
+      if ( dtrie->data.IDG && dtrie->data.IDG->force_reeval )
+	return false;
+      mdep = lookupHTablePP(n->mono_index_deps, leaf);
+      break;
+    }
+    case FRG_REDO:
+      mdep = CTX_PTR;
+      break;
+    case FRG_CUTTED:
+      return true;
+    default:
+      assert(0);
+      return false;
+  }
+
+  if ( !(t=PL_new_term_ref()) )
+    return false;
+  Mark(fli_context->mark);
+  for(; mdep; mdep = mdep->same_key)
+  { if ( !put_fastheap(mdep->dependency, t) )
+      return false;
+    if ( PL_unify(t, A4) )
+    { if ( mdep->same_key )
+	ForeignRedoPtr(mdep->same_key);
+      return true;
+    }
+    if ( PL_exception(0) )
+      return false;
+    Undo(fli_context->mark);
+  }
+
+  return false;
+}
+
 
 /** '$tbl_node_answer'(+NodeRef, -Answer) is det.
  *
@@ -7457,6 +7581,190 @@ free_mdep(idg_mdep *mdep)
 }
 
 
+		 /*******************************
+		 *  MONOTONIC DEPENDENCY INDEX	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A table that many calls read, such as one abstracted by subgoal_abstract(N)
+or a more general table answering subsumed calls, holds a monotonic
+dependency for each call with that call's own skeleton.  Kept only as one
+chain per (child, parent) edge, recording N such calls from one parent
+walks the chain N times in find_dep() and propagating one answer copies
+and unifies all N dependencies in idg_edge_gen().
+
+Once a table holds a second monotonic dependency, `mono_index` holds all
+of them under the key SrcSkeleton-ParentTrie and `mono_index_deps` maps
+each leaf to its dependencies, linked through `same_key`.  A dependency
+is then found by a variant lookup, and monotonic_affects/6 in
+boot/tabling.pl walks only the keys a new answer unifies with, using
+'$trie_gen_node'/3.  All dependencies under a key belong to one edge, so
+free_mdep_chain() deletes the key with the edge.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define mono_index_key(parent, dep, key) LDFUNC(mono_index_key, parent, dep, key)
+
+static bool
+mono_index_key(DECL_LD idg_node *parent, term_t dep, term_t key)
+{ term_t skel, ptrie;
+
+  return ( (skel=PL_new_term_ref()) &&
+	   (ptrie=PL_new_term_ref()) &&
+	   PL_get_arg(1, dep, skel) &&
+	   PL_put_atom(ptrie, trie_symbol(parent->atrie)) &&
+	   PL_cons_functor(key, FUNCTOR_minus2, skel, ptrie) );
+}
+
+
+/* Same protocol as find_dep(): true and *found, false, or -1 on error.
+*/
+
+static int
+mono_index_find(DECL_LD idg_node *src, idg_node *parent, term_t dep,
+		idg_mdep **found)
+{ fid_t fid;
+  term_t key;
+  trie_node *node;
+  int rc = false;
+
+  if ( !(fid=PL_open_foreign_frame()) ||
+       !(key=PL_new_term_ref()) ||
+       !mono_index_key(parent, dep, key) )
+    return -1;
+
+  if ( trie_lookup(src->mono_index, NULL, &node, valTermRef(key), false,
+		   NULL) == true &&
+       node->value )
+  { unsigned int hash = mdep_hash(dep);
+    idg_mdep *mdep = lookupHTablePP(src->mono_index_deps, node);
+
+    for(; mdep; mdep = mdep->same_key)
+    { if ( mdep->hash == hash )
+      { term_t dep2;
+
+	if ( !(dep2=PL_new_term_ref()) ||
+	     !put_fastheap(mdep->dependency, dep2) )
+	  return -1;
+	if ( is_variant_ptr(valTermRef(dep), valTermRef(dep2)) )
+	{ *found = mdep;
+	  rc = true;
+	  break;
+	}
+      }
+    }
+  }
+
+  PL_discard_foreign_frame(fid);
+  return rc;
+}
+
+
+static bool
+mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
+		  term_t dep)
+{ fid_t fid;
+  term_t key;
+  trie_node *node;
+  int rc;
+
+  if ( !(fid=PL_open_foreign_frame()) ||
+       !(key=PL_new_term_ref()) ||
+       !mono_index_key(parent, dep, key) )
+    return false;
+
+  rc = trie_lookup(src->mono_index, NULL, &node, valTermRef(key), true, NULL);
+  if ( rc != true )
+  { if ( !trie_error(rc, key) && !PL_exception(0) )
+      PL_resource_error("table_space");
+    return false;
+  }
+
+  if ( node->value )
+  { mdep->same_key = lookupHTablePP(src->mono_index_deps, node);
+    updateHTablePP(src->mono_index_deps, node, mdep);
+  } else
+  { set_trie_value_word(src->mono_index, node, ATOM_true);
+    addHTablePP(src->mono_index_deps, node, mdep);
+  }
+  mdep->index_node = node;
+
+  PL_discard_foreign_frame(fid);
+  return true;
+}
+
+
+/* Index every monotonic dependency src holds.  On failure src keeps no
+   index, so its dependencies are again found through their chains.
+*/
+
+static bool
+mono_index_build(DECL_LD idg_node *src)
+{ trie *t;
+
+  if ( !(t=trie_create(src->atrie->alloc_pool)) )
+    return PL_resource_error("table_space");
+  (void)trie_symbol(t);			/* reference until mono_index_release() */
+  src->mono_index = t;
+  src->mono_index_deps = newHTablePP(4);
+
+  if ( src->affected )
+  { TableEnum en = newTableEnumPP(src->affected);
+    table_key_t k;
+    table_value_t v;
+
+    while(advanceTableEnum(en, &k, &v))
+    { idg_node *parent = key2ptr(k);
+      idg_mdep *mdep = val2ptr(v);
+
+      for(; mdep->magic == IDG_MDEP_MAGIC; mdep = mdep->next.dep)
+      { fid_t fid;
+	term_t d;
+
+	if ( !(fid=PL_open_foreign_frame()) ||
+	     !(d=PL_new_term_ref()) ||
+	     !put_fastheap(mdep->dependency, d) ||
+	     !mono_index_insert(src, parent, mdep, d) )
+	{ freeTableEnum(en);
+	  mono_index_release(src);
+	  return false;
+	}
+	PL_discard_foreign_frame(fid);
+      }
+    }
+    freeTableEnum(en);
+  }
+
+  return true;
+}
+
+
+static void
+mono_index_release(idg_node *src)
+{ trie *t;
+
+  if ( src->mono_index_deps )
+  { TablePP map = src->mono_index_deps;
+    TableEnum en = newTableEnumPP(map);
+    table_key_t k;
+    table_value_t v;
+
+    while(advanceTableEnum(en, &k, &v))
+    { idg_mdep *mdep;
+
+      for(mdep = val2ptr(v); mdep; mdep = mdep->same_key)
+	mdep->index_node = NULL;
+    }
+    freeTableEnum(en);
+    src->mono_index_deps = NULL;
+    destroyHTablePP(map);
+  }
+  if ( (t=src->mono_index) )
+  { src->mono_index = NULL;
+    PL_unregister_atom(t->symbol);
+  }
+}
+
+
 /* Returns true if the queue went from empty to non-empty,
  * so we must propagate the IDG change event,
  */
@@ -7667,15 +7975,18 @@ mono_idg_changed(trie *atrie, word answer)
 	continue;
       }
 
-      while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
-      { if ( mdep->lazy )
-	{ nonempty += mdep_queue_answer(mdep, answer);
-	  dn->lazy_queued = true;
-	  DEBUG(MSG_TABLING_MONOTONIC,
-		print_answer_table(dn->atrie,
-				   "queued answer (nonempty=%d)", nonempty));
+					/* only a lazy dn has lazy mdeps */
+      if ( dn->lazy )
+      { while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
+	{ if ( mdep->lazy )
+	  { nonempty += mdep_queue_answer(mdep, answer);
+	    dn->lazy_queued = true;
+	    DEBUG(MSG_TABLING_MONOTONIC,
+		  print_answer_table(dn->atrie,
+				     "queued answer (nonempty=%d)", nonempty));
+	  }
+	  mdep = mdep->next.dep;
 	}
-	mdep = mdep->next.dep;
       }
       if ( !nonempty && (!dn->monotonic || dn->lazy) )
       { int flags = IDG_CHANGED_NODE;
@@ -9621,6 +9932,8 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_mono_affects",         3, idg_mono_affects,      NDET)
   PRED_DEF("$idg_mono_affects_eager",   3, idg_mono_affects_eager,NDET)
   PRED_DEF("$idg_mono_affects_lazy",    5, idg_mono_affects_lazy, NDET)
+  PRED_DEF("$idg_mono_index",           2, idg_mono_index,        0)
+  PRED_DEF("$idg_mono_index_deps",      4, idg_mono_index_deps,   NDET)
   PRED_DEF("$tbl_propagate_start",      1, tbl_propagate_start,      0)
   PRED_DEF("$tbl_propagate_end",        1, tbl_propagate_end,        0)
   PRED_DEF("$tbl_collect_mono_dep",     0, tbl_collect_mono_dep,     0)

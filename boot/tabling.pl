@@ -1605,10 +1605,19 @@ mon_assert_dep(dependency(SrcSkel, SrcTrie, IsMono), Cont, Skel, ATrie) :-
 %   SrcTrie we must add all answers for Return of Continuation to Atrie.
 %   IsMono shares with Continuation and is   used  in start_tabling/3 to
 %   distinguish normal tabled call from propagation.
+%
+%   A table with more than one monotonic dependency indexes them by
+%   their skeleton, so only the dependencies whose skeleton unifies with
+%   SrcReturn are visited rather than every dependency of SrcTrie.
 
 monotonic_affects(SrcTrie, SrcSkel, IsMono, Cont, Skel, ATrie) :-
-    '$idg_mono_affects_eager'(SrcTrie, ATrie,
-                              dependency(SrcSkel, IsMono, Cont, Skel)).
+    (   '$idg_mono_index'(SrcTrie, Index)
+    ->  '$trie_gen_node'(Index, SrcSkel-ATrie, Leaf),
+        '$idg_mono_index_deps'(SrcTrie, Leaf, ATrie,
+                               dependency(SrcSkel, IsMono, Cont, Skel))
+    ;   '$idg_mono_affects_eager'(SrcTrie, ATrie,
+                                  dependency(SrcSkel, IsMono, Cont, Skel))
+    ).
 
 %!  monotonic_dyn_affects(:Head, -Continuation, -Return, -ATrie)
 %

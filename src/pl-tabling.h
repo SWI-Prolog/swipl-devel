@@ -207,7 +207,10 @@ typedef struct idg_node
   unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
   unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
   unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
+  unsigned	mono_dep_seen : 1;	/* Has had a monotonic dependency */
   size_t	falsecount;		/* Invalidate count */
+  trie	       *mono_index;		/* Monotonic dependencies by skeleton */
+  TablePP	mono_index_deps;	/* mono_index leaf -> its dependencies */
 #ifdef O_TRIE_STATS
   struct
   { uint64_t	invalidated;		/* # times it was invalidated */
@@ -232,6 +235,8 @@ typedef struct idg_mdep
     void *any;
   } next;
   Buffer	 queue;			/* Unprocessed answers */
+  trie_node     *index_node;		/* Leaf in the child's mono_index */
+  struct idg_mdep *same_key;		/* Next dependency on index_node */
 } idg_mdep;
 
 #define TRIE_ARRAY_PREALLOCATED 7
