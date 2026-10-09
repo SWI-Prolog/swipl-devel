@@ -331,7 +331,7 @@ static LocalFrame	frameAtLevel(LocalFrame frame, ssize_t at_depth,
 static int		saveGoal(LocalFrame frame, ssize_t at_depth,
 				 bool interactive);
 static int		traceInterception(LocalFrame, Choice, int, Code);
-static int		traceAction(char *cmd,
+static int		traceAction(const char *cmd,
 				    int port,
 				    LocalFrame frame,
 				    Choice bfr,
@@ -621,9 +621,10 @@ out:
 
 
 static bool
-setupFind(char *buf)
+setupFind(const char *buf)
 { GET_LD
-  char *s;
+  const char *s;
+  const char *anon = "_";
   int port = 0;
 
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
@@ -653,10 +654,7 @@ setupFind(char *buf)
     ;
 
   if ( *s == EOS )			/* Nothing is a variable */
-  { s = buf;
-    buf[0] = '_',
-    buf[1] = EOS;
-  }
+    s = anon;
 
   { fid_t cid = PL_open_foreign_frame();
     term_t t = PL_new_term_ref();
@@ -723,12 +721,12 @@ setPrintOptions(word t)
 
 
 static int
-traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
+traceAction(const char *cmd, int port, LocalFrame frame, Choice bfr,
 	    bool interactive)
 { GET_LD
   ssize_t num_arg;			/* numeric argument */
   int def_arg = true;			/* arg is default */
-  char *s;
+  const char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
 					       Sfprintf(Sdout, "\n"); \
@@ -740,16 +738,22 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 			    warning(msg); \
 			}
 
-  for(s=cmd; *s && isBlank(*s); s++)
-    ;
-  if ( isDigit(*s) || (*s == '-' && s[1] && isDigit(s[1])) )
-  { num_arg = strtol(s, &s, 10);
+  if ( cmd[0] && cmd[1] )			/* not a single key */
+  { for(s=cmd; *s && isBlank(*s); s++)
+      ;
+    if ( isDigit(*s) || (*s == '-' && s[1] && isDigit(s[1])) )
+    { char *e;
 
-    while(isBlank(*s))
-      s++;
-    def_arg = false;
+      num_arg = strtol(s, &e, 10);
+      s = e;
+      while(isBlank(*s))
+	s++;
+      def_arg = false;
+    } else
+      num_arg = 0;
   } else
-    num_arg = 0;
+  { s = cmd;
+  }
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
