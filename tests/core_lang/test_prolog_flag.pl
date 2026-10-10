@@ -42,7 +42,9 @@
 test_prolog_flag :-
     run_tests([ prolog_flags,
                 push_prolog_flag,
-                thread_prolog_flags
+                thread_prolog_flags,
+                shared_prolog_flags,
+                theme_hook
               ]).
 
 :- meta_predicate
@@ -210,6 +212,173 @@ test(set_global_in_thread_2, Val == 42) :-
     current_prolog_flag(Name, Val).
 
 :- end_tests(thread_prolog_flags).
+
+:- begin_tests(shared_prolog_flags,
+               [ condition(current_prolog_flag(threads, true))
+               ]).
+
+test(set_in_thread, Val == b) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom), shared(true)]),
+    in_thread(set_prolog_flag(Name, b)),
+    current_prolog_flag(Name, Val).
+test(seen_by_running_thread, Val == b) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom), shared(true)]),
+    thread_self(Me),
+    thread_create(( thread_get_message(go),
+                    current_prolog_flag(Name, V),
+                    thread_send_message(Me, seen(V))
+                  ), Id),
+    set_prolog_flag(Name, b),
+    thread_send_message(Id, go),
+    thread_get_message(seen(Val)),
+    thread_join(Id).
+test(not_shared, Val == a) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom)]),
+    in_thread(set_prolog_flag(Name, b)),
+    current_prolog_flag(Name, Val).
+test(type, Type == atom) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom), shared(true)]),
+    in_thread(set_prolog_flag(Name, b)),
+    '$current_prolog_flag'(Name, _, _, _, Type).
+test(term_value, Val =@= f(Y,Y)) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(term), shared(true)]),
+    in_thread(set_prolog_flag(Name, f(X,X))),
+    current_prolog_flag(Name, Val).
+test(make_shared, Val == c) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom)]),
+    create_prolog_flag(Name, b, [type(atom), shared(true)]),
+    in_thread(set_prolog_flag(Name, c)),
+    current_prolog_flag(Name, Val).
+test(push, error(permission_error(push, prolog_flag, Name))) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [type(atom), shared(true)]),
+    push_prolog_flag(Name, b).
+test(local_and_shared, error(domain_error(prolog_flag_option, _))) :-
+    test_flag(Name),
+    create_prolog_flag(Name, a, [local(true), shared(true)]).
+test(read_in_message, Seen == v) :-
+    %  set_prolog_flag/2 prints the warning for creating a flag while it
+    %  holds the lock on the flags.  Printing a message reads the shared
+    %  flag `theme`, so reading a shared flag must not need this lock.
+    test_flag(Name),
+    create_prolog_flag(Name, v, [type(atom), shared(true)]),
+    test_flag(New),
+    current_prolog_flag(user_flags, UserFlags),
+    setup_call_cleanup(
+        ( set_prolog_flag(user_flags, warning),
+          asserta((user:thread_message_hook(_, warning, _) :-
+                       current_prolog_flag(Name, V),
+                       nb_setval(test_prolog_flag_seen, V)), Ref)
+        ),
+        ignore(set_prolog_flag(New, 1)),
+        ( erase(Ref),
+          set_prolog_flag(user_flags, UserFlags)
+        )),
+    nb_getval(test_prolog_flag_seen, Seen).
+test(concurrent) :-
+    %  Smoke test for reading a flag that other threads write.  Readers
+    %  copy the value while holding the lock, so they never use an atom
+    %  that a writer released and AGC reclaimed.  That window is too
+    %  narrow to hit reliably, so passing does not prove the copy.
+    test_flag(Name),
+    create_prolog_flag(Name, v0, [type(atom), shared(true)]),
+    numlist(1, 4, Writers),
+    maplist(writer(Name), Writers, Ids),
+    forall(between(1, 20000, _),
+           ( current_prolog_flag(Name, V),
+             atom(V)
+           )),
+    maplist(thread_join, Ids).
+
+writer(Name, I, Id) :-
+    thread_create(forall(between(1, 2000, J),
+                         ( format(atom(V), 'v~w_~w', [I, J]),
+                           set_prolog_flag(Name, V),
+                           (   J mod 500 =:= 0
+                           ->  garbage_collect_atoms
+                           ;   true
+                           )
+                         )), Id).
+
+:- end_tests(shared_prolog_flags).
+
+:- begin_tests(theme_hook,
+               [ setup(theme_setup(Old)),
+                 cleanup(theme_cleanup(Old))
+               ]).
+
+:- dynamic
+    hook_active/0,
+    hook_called/2.
+:- multifile
+    prolog:theme_hook/1.
+
+prolog:theme_hook(Theme) :-
+    hook_active,
+    thread_self(Me),
+    assertz(hook_called(Theme, Me)).
+prolog:theme_hook(Theme) :-
+    hook_active,
+    Theme == broken,
+    throw(error(broken_theme_hook, _)).
+prolog:theme_hook(Theme) :-
+    hook_active,
+    member(Sol, [sol1, sol2]),
+    assertz(hook_called(Theme, Sol)).
+prolog:theme_hook(Theme) :-
+    hook_active,
+    current_prolog_flag(theme, Current),
+    assertz(hook_called(Theme, flag(Current))).
+
+theme_setup(Old) :-
+    (   current_prolog_flag(theme, Old0)
+    ->  Old = Old0
+    ;   create_prolog_flag(theme, default, [type(atom), shared(true)]),
+        Old = default
+    ),
+    assertz(hook_active).
+
+theme_cleanup(Old) :-
+    retractall(hook_active),
+    set_prolog_flag(theme, Old),
+    retractall(hook_called(_,_)).
+
+hook_calls(Calls) :-
+    findall(T-W, retract(hook_called(T, W)), Calls).
+
+test(called, Calls == [t1-Me, t1-sol1, t1-sol2, t1-flag(t0)]) :-
+    set_prolog_flag(theme, t0),
+    retractall(hook_called(_,_)),
+    thread_self(Me),
+    set_prolog_flag(theme, t1),
+    hook_calls(Calls).
+test(unchanged, Calls == []) :-
+    set_prolog_flag(theme, t2),
+    retractall(hook_called(_,_)),
+    set_prolog_flag(theme, t2),
+    hook_calls(Calls).
+test(exception, Theme+Calls == t3+[broken-Me]) :-
+    set_prolog_flag(theme, t3),
+    retractall(hook_called(_,_)),
+    thread_self(Me),
+    catch(set_prolog_flag(theme, broken), E, true),
+    assertion(subsumes_term(error(broken_theme_hook, _), E)),
+    current_prolog_flag(theme, Theme),
+    hook_calls(Calls).
+test(thread, Calls == [t4-Id, t4-sol1, t4-sol2, t4-flag(t3)]) :-
+    set_prolog_flag(theme, t3),
+    retractall(hook_called(_,_)),
+    thread_create(set_prolog_flag(theme, t4), Id),
+    thread_join(Id),
+    hook_calls(Calls).
+
+:- end_tests(theme_hook).
 
 
 flag_value_type(Name, Value, Type) :-

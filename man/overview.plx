@@ -758,6 +758,19 @@ theme is active, so the console follows switching themes.  Text that is
 already written keeps its colours.
 \end{description}
 
+Code that renders using the theme can respond to switching the theme
+using the hook below.
+
+\begin{description}
+    \predicate[hook]{prolog:theme_hook}{1}{+Theme}
+Multifile hook that is called if the Prolog flag \prologflag{theme} is
+about to get the new value \arg{Theme}.  The hook is called as
+\exam{forall(prolog:theme_hook(Theme), true)} in the thread that sets
+the flag, \emph{before} the flag is changed.  If the hook raises an
+exception, the flag keeps its old value and set_prolog_flag/2 raises
+the exception.
+\end{description}
+
 
 \subsection{Status of theme support}		\label{sec:theme-status}
 
@@ -1294,6 +1307,9 @@ A new thread (see \secref{threads}) \emph{copies} all flags from the
 thread that created the new thread (its \jargon{parent}).\footnote{This
 is implemented using the copy-on-write technique.} As a consequence,
 modifying a flag inside a thread does not affect other threads.
+Flags created with the option \term{shared}{true} of
+create_prolog_flag/3 are the exception: such a flag has a single value
+that is shared by all threads.
 
 
 \begin{description}
@@ -2431,6 +2447,13 @@ Set the default choice between \jargon{variant} tabling and
 \jargon{subsumptive} tabling.  Initially set to \const{false}.  See
 table/1.
 
+    \prologflagitem{theme}{atom}{rw}
+Name of the active theme (see \secref{theme}).  This flag only exists
+if it is defined, notably using \exam{-Dtheme=}\arg{Name}, which
+creates it as a \jargon{shared} flag (see create_prolog_flag/3): it has
+one value for all threads.  Changing the value calls the hook
+prolog:theme_hook/1.
+
     \prologflagitem{threads}{bool}{rw}
 True when threads are supported.  If the system is compiled without
 thread support the value is \const{false} and read-only.  Otherwise
@@ -2915,6 +2938,17 @@ both for the calling thread and in the global flag table.  See the
 	is only visible in the calling thread and threads that inherit
 	from the calling thread.
 
+	\termitem{shared}{+Boolean}
+	If \const{true} (default \const{false}), the flag has a single
+	value for all threads.  Setting it using set_prolog_flag/2
+	changes the value for all threads rather than for the calling
+	thread only.  This is intended for settings of the process
+	rather than of a thread, such as the \prologflag{theme}.  A
+	shared flag cannot be used with push_prolog_flag/2 and this
+	option cannot be combined with \term{local}{true}.  Applied to
+	an existing flag, the flag becomes shared.  Threads that already
+	modified the flag keep their own value.
+
         \termitem{warn_not_accessed}{+Boolean}
         If \const{true} and the flag is never read using
         current_prolog_flag/2, print a warning.  This option is used
@@ -2923,7 +2957,8 @@ both for the calling thread and in the global flag table.  See the
 
     \predicate{push_prolog_flag}{2}{:Key, +Value}
 Save the current thread-local value of \arg{Key} and set it to
-\arg{Value}. If \arg{Key} does not exist, it is created (only in the
+\arg{Value}.  Raises a permission error if \arg{Key} is a shared flag
+(see create_prolog_flag/3). If \arg{Key} does not exist, it is created (only in the
 calling thread) and the pushed state records its absence. Nestable and
 paired with pop_prolog_flag/1. These predicates have been designed
 with two main use cases in mind.  First of all scoped compilation

@@ -42,7 +42,8 @@
 #define FF_ISLOCAL	 0x040000	/* Flag is local (internal) */
 #define FF_ISCREATE	 0x080000	/* Called from create_prolog_flag/3 */
 #define FF_PUSH_ABSENT	 0x100000	/* Pushed frame: flag was absent */
-#define FF_MASK		 0x1ff000	/* All FF flags */
+#define FF_SHARED	 0x200000	/* Never localised: one value for all */
+#define FF_MASK		 0x3ff000	/* All FF flags */
 static_assert(FF_ISLOCAL == FF_GLOBAL<<1,
 	      "Private flags must follow public flags");
 

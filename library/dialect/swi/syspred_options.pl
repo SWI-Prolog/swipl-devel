@@ -182,7 +182,8 @@
                             )),
 		       keep(boolean),
                        warn_not_accessed(boolean),
-                       local(boolean)
+                       local(boolean),
+                       shared(boolean)
 		     ]).
 :- predicate_options(system:qsave_program/2, 2,
 		     [ local(nonneg),

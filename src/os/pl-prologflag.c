@@ -116,11 +116,38 @@ static bool unify_prolog_flag_value(DECL_LD Module m, atom_t key,
 				    prolog_flag *f, term_t val);
 static bool unify_prolog_flag_type(prolog_flag *f, term_t type);
 static bool set_flag_type(prolog_flag *f, int flags);
+static bool set_flag_atom(prolog_flag *f, atom_t a);
 
 #define PSEUDO_FLAG ((prolog_flag*)true)
 
 #define FF_WARN_NOT_ACCESSED 0x0100
 #define FF_ACCESSED          0x0200
+
+/* The value of a shared flag is read by threads that do not hold
+ * L_PLFLAG (see unify_shared_prolog_flag()).  They synchronise with the
+ * threads that change it using this mutex, which is only held while
+ * copying or storing the value.  We cannot use L_PLFLAG for this: it is
+ * held while calling Prolog, e.g., to print a warning, and printing a
+ * message reads the shared flag `theme`.
+ */
+
+static inline void
+lock_shared_value(const prolog_flag *f)
+{
+#ifdef O_PLMT
+  if ( ison(f, FF_SHARED) )
+    simpleMutexLock(&GD->prolog_flag.shared_mutex);
+#endif
+}
+
+static inline void
+unlock_shared_value(const prolog_flag *f)
+{
+#ifdef O_PLMT
+  if ( ison(f, FF_SHARED) )
+    simpleMutexUnlock(&GD->prolog_flag.shared_mutex);
+#endif
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C-interface for defining Prolog  flags.  Depending   on  the  type,  the
@@ -919,6 +946,44 @@ setAutoload(atom_t a)
 }
 
 
+/* Setter for the flag `theme`.  If the value changes, call the hook
+ * prolog:theme_hook/1 through '$toplevel':theme_changed/1 and store
+ * the new value if the hook did not raise an exception.  The hook may
+ * call arbitrary Prolog, so set_prolog_flag_ptr() calls us without
+ * L_PLFLAG.
+ */
+
+static bool
+setTheme(prolog_flag *f, atom_t a)
+{ GET_LD
+
+  if ( a == f->value.a )
+    return true;
+
+  if ( !GD->bootsession )
+  { predicate_t pred = PL_predicate("theme_changed", 1, "$toplevel");
+    fid_t fid;
+    term_t av;
+    bool rc;
+
+    if ( !(fid=PL_open_foreign_frame()) )
+      return false;
+    rc = ( (av=PL_new_term_ref()) &&
+	   PL_put_atom(av, a) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+    PL_close_foreign_frame(fid);
+    if ( !rc )
+      return false;
+  }
+
+  lock_shared_value(f);
+  set_flag_atom(f, a);
+  unlock_shared_value(f);
+
+  return true;
+}
+
+
 #define propagateAutoload(val) LDFUNC(propagateAutoload, val)
 static bool
 propagateAutoload(DECL_LD term_t val)
@@ -998,7 +1063,7 @@ get_win_file_access_check(void)
 }
 #endif
 
-#define FF_COPY_FLAGS (FF_READONLY|FF_WARN_NOT_ACCESSED)
+#define FF_COPY_FLAGS (FF_READONLY|FF_WARN_NOT_ACCESSED|FF_SHARED)
 
 static bool
 set_flag_type(prolog_flag *f, int flags)
@@ -1067,27 +1132,30 @@ keep_flag(atom_t k, prolog_flag *f, unsigned int flags, oneof *of, term_t value)
     { return true;
     } else
     { int ftype = (f->flags&FT_MASK);
+      int rc = -2;			/* not converted */
 
+      lock_shared_value(f);
       switch(flags&FT_MASK)	/* target type */
       { case FT_FROM_VALUE:
-	  return true;
+	  rc = true;
+	  break;
 	case FT_ATOM:
 	  if ( ftype == FT_BOOL )
-	    return set_flag_type(f, flags);
+	    rc = set_flag_type(f, flags);
 	  break;
 	case FT_BOOL:
 	  if ( ftype == FT_ATOM )
 	  { int bv = atom_to_bool(f->value.a);
 	    if ( bv >= 0 )
 	    { set_flag_type(f, flags);
-	      return set_flag_atom(f, bv ? ATOM_true : ATOM_false);
+	      rc = set_flag_atom(f, bv ? ATOM_true : ATOM_false);
 	    }
 	  }
 	  break;
 	case FT_FLOAT:
 	  if ( ftype == FT_INTEGER )
 	  { f->value.f = (double)f->value.i;
-	    return set_flag_type(f, flags);
+	    rc = set_flag_type(f, flags);
 	  }
 	  break;
 	case FT_TERM:
@@ -1096,12 +1164,17 @@ keep_flag(atom_t k, prolog_flag *f, unsigned int flags, oneof *of, term_t value)
 	  if ( (value=PL_new_term_ref()) &&
 	       unify_prolog_flag_value(MODULE_user, k, f, value) &&
 	       (f->value.t=PL_record(value)) )
-	    return set_flag_type(f, flags);
-	  return -1;
+	    rc = set_flag_type(f, flags);
+	  else
+	    rc = -1;
+	  break;
 	}
 	default:
 	  break;
       }
+      unlock_shared_value(f);
+      if ( rc != -2 )
+	return rc;
     }
 
     prolog_flag f2 = *f;
@@ -1286,7 +1359,9 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	else
 	  clearPrologFlagMask(f->index);
       }
+      lock_shared_value(f);
       f->value.a = (val ? ATOM_true : ATOM_false);
+      unlock_shared_value(f);
 
       break;
     }
@@ -1335,6 +1410,8 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       { rval = setAutoload(a);
       } else if ( k == ATOM_table_monotonic )
       { rval = setMonotonicMode(a);
+      } else if ( k == ATOM_theme )
+      { return setTheme(f, a);		/* stores the value itself */
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);
@@ -1343,11 +1420,13 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       if ( !rval )
 	return false;
 
+      lock_shared_value(f);
       if ( f->value.a != a )
       { PL_unregister_atom(f->value.a);
 	f->value.a = a;
 	PL_register_atom(a);
       }
+      unlock_shared_value(f);
       break;
     }
     case FT_INTEGER:
@@ -1399,7 +1478,9 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	LD->yield.frequency = (i+15)/16;
       }
 
+      lock_shared_value(f);
       f->value.i = i;
+      unlock_shared_value(f);
       break;
     }
     case FT_FLOAT:
@@ -1407,13 +1488,19 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 
       if ( !PL_get_float_ex(value, &d) )
 	return false;
+      lock_shared_value(f);
       f->value.f = d;
+      unlock_shared_value(f);
       break;
     }
     case FT_TERM:
-    { if ( f->value.t )
+    { record_t r = PL_record(value);
+
+      lock_shared_value(f);
+      if ( f->value.t )
 	PL_erase(f->value.t);
-      f->value.t = PL_record(value);
+      f->value.t = r;
+      unlock_shared_value(f);
       break;
     }
     default:
@@ -1535,9 +1622,11 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value,
     if ( ci_is_flag(k) )
       return ci_set_flag(value, k) ? PSEUDO_FLAG : NULL;
 
+    if ( (flags&FF_ISCREATE) && (flags&FF_SHARED) && !f->index )
+      set(f, FF_SHARED);
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 &&
-	 !(flags&FF_GLOBAL) )
+	 !(flags&FF_GLOBAL) && isoff(f, FF_SHARED) )
     { f = copy_prolog_flag(f);
       register_local_flag(k, f);
       PL_register_atom(k);
@@ -1581,7 +1670,7 @@ set_prolog_flag_ptr(DECL_LD term_t key, term_t value,
 
   if ( k == ATOM_autoload && !propagateAutoload(value) )
     return false;
-  if ( k == ATOM_threads || k == ATOM_unicode_atoms )
+  if ( k == ATOM_threads || k == ATOM_unicode_atoms || k == ATOM_theme )
     return set_prolog_flag_unlocked(m, k, value, flags, of);
 
   PL_LOCK(L_PLFLAG);
@@ -1624,6 +1713,7 @@ static const PL_option_t prolog_flag_options[] =
   { ATOM_keep,              OPT_BOOL },
   { ATOM_warn_not_accessed, OPT_BOOL },
   { ATOM_local,		    OPT_BOOL },
+  { ATOM_shared,	    OPT_BOOL },
   { NULL_ATOM,              0 }
 };
 
@@ -1636,12 +1726,13 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   int keep = false;
   int warn_not_accessed = false;
   int local = false;
+  int shared = false;
   oneof *of = NULL;
   atom_t a;
 
   if ( !PL_scan_options(A3, 0, "prolog_flag_option", prolog_flag_options,
 			&type, &access, &keep, &warn_not_accessed,
-			&local) )
+			&local, &shared) )
     return false;
 
   if ( type == 0 )
@@ -1679,10 +1770,15 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
     flags |= FF_KEEP;
   if ( warn_not_accessed )
     flags |= FF_WARN_NOT_ACCESSED;
+  if ( local && shared )
+    return PL_error(NULL, 0, "local(true) conflicts with shared(true)",
+		    ERR_DOMAIN, ATOM_prolog_flag_option, A3);
   if ( local )
   { flags &= ~FF_GLOBAL;
     flags |= FF_LOCAL;
   }
+  if ( shared )
+    flags |= FF_SHARED;
 
   prolog_flag *f = set_prolog_flag_ptr(A1, A2, flags, of);
   if ( of && --of->references == 0 )
@@ -1778,6 +1874,13 @@ PRED_IMPL("push_prolog_flag", 2, push_prolog_flag, 0)
   { if ( !check_flag_write_access(f, k, 0) )
     { PL_UNLOCK(L_PLFLAG);
       return false;
+    }
+    if ( ison(f, FF_SHARED) )		/* pushing is per thread */
+    { PL_UNLOCK(L_PLFLAG);
+      term_t key = PL_new_term_ref();
+      return ( PL_put_atom(key, k) &&
+	       PL_error(NULL, 0, "the flag is shared",
+			ERR_PERMISSION, ATOM_push, ATOM_prolog_flag, key) );
     }
     f = ensure_local_flag(k, f);
     prolog_flag *saved = copy_prolog_flag(f);
@@ -2114,6 +2217,55 @@ typedef struct
   Module module;
 } prolog_flag_enum;
 
+/* Unify with the value of a shared flag.  Another thread may set it
+ * while we read it, which unregisters the atom or erases the record
+ * that holds the old value.  Hence we unify with a copy of the value
+ * that we take while holding the mutex for shared values.  We unify
+ * outside the mutex because that may need to grow the stacks.
+ */
+
+#define unify_shared_prolog_flag(m, k, f, value, access, type) \
+	LDFUNC(unify_shared_prolog_flag, m, k, f, value, access, type)
+
+static bool
+unify_shared_prolog_flag(DECL_LD Module m, atom_t k, prolog_flag *f,
+			 term_t value, term_t access, term_t type)
+{ prolog_flag copy = {0};
+
+  lock_shared_value(f);
+  copy.flags = (f->flags&FT_MASK);
+  copy.value = f->value;
+  switch(copy.flags)
+  { case FT_ATOM:
+    case FT_BOOL:
+      PL_register_atom(copy.value.a);
+      break;
+    case FT_TERM:
+      copy.value.t = PL_duplicate_record(copy.value.t);
+      break;
+  }
+  unlock_shared_value(f);
+
+  bool rc = ( unify_prolog_flag_value(m, k, &copy, value) &&
+	      (!access || unify_prolog_flag_access(f, access)) &&
+	      (!type   || unify_prolog_flag_type(f, type)) );
+
+  switch(copy.flags)
+  { case FT_ATOM:
+    case FT_BOOL:
+      PL_unregister_atom(copy.value.a);
+      break;
+    case FT_TERM:
+      lock_shared_value(f);		/* PL_erase() is not thread-safe */
+      PL_erase(copy.value.t);
+      unlock_shared_value(f);
+      break;
+  }
+
+  return rc;
+}
+
+
 #define pl_prolog_flag5(key, value, scope, access, type, h) \
 	LDFUNC(pl_prolog_flag5, key, value, scope, access, type, h)
 
@@ -2136,6 +2288,8 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
       if ( PL_get_atom(key, &k) )
       { prolog_flag *f = lookupFlag(NULL, k, FF_LOCAL|FF_GLOBAL);
 
+	if ( f && ison(f, FF_SHARED) )
+	  return unify_shared_prolog_flag(module, k, f, value, access, type);
 	if ( f )
 	{ return ( unify_prolog_flag_value(module, k, f, value) &&
 		   (!access || unify_prolog_flag_access(f, access)) &&
@@ -2353,6 +2507,9 @@ initPrologFlagTable(void)
   { initPrologThreads();	/* may be called before PL_initialise() */
 
     GD->prolog_flag.table = newHTableWP(256);
+#ifdef O_PLMT
+    simpleMutexInit(&GD->prolog_flag.shared_mutex);
+#endif
   }
 }
 
@@ -2848,6 +3005,9 @@ cleanupPrologFlags(void)
     t->free_symbol = NULL;
 #endif
     destroyHTableWP(t);
+#ifdef O_PLMT
+    simpleMutexDelete(&GD->prolog_flag.shared_mutex);
+#endif
   }
 }
 

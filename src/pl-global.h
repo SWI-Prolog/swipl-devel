@@ -263,6 +263,9 @@ struct PL_global_data
 
   struct
   { TableWP	table;			/* global (read-only) features */
+#ifdef O_PLMT
+    simpleMutex	shared_mutex;		/* value of shared flags */
+#endif
   } prolog_flag;
 
   struct

@@ -621,6 +621,19 @@ setup_theme :-
     use_module(library(theme/Theme)).
 setup_theme.
 
+%!  theme_changed(+Theme) is det.
+%
+%   Called from C if the Prolog flag  `theme` is about to get the new
+%   value Theme.  Calls all solutions of prolog:theme_hook/1.
+
+:- multifile
+    prolog:theme_hook/1.
+
+:- public theme_changed/1.
+
+theme_changed(Theme) :-
+    forall(prolog:theme_hook(Theme), true).
+
 %!  apply_defines
 %
 %   Handle -Dflag[=value] options
@@ -689,6 +702,7 @@ set_defined(Flag, Value) :-
 %   known flags to control -for example- their type.
 
 define_options('SDL_VIDEODRIVER', []).
+define_options(theme, [type(atom), shared(true)]).
 define_options(_, [warn_not_accessed(true)]).
 
 %!  init_optimise
