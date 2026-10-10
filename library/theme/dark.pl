@@ -66,18 +66,6 @@ active :-
     pce_theme:current_theme(dark).
 active.
 
-
-:- if(current_predicate(win_window_color/2)).
-set_window_colors :-
-    win_window_color(background, rgb(0,0,0)),
-    win_window_color(foreground, rgb(255,255,255)),
-    win_window_color(selection_background, rgb(0,255,255)),
-    win_window_color(selection_foreground, rgb(0,0,0)).
-
-:- initialization
-    set_window_colors.
-:- endif.
-
 		 /*******************************
 		 *       PROLOG MESSAGES	*
 		 *******************************/
