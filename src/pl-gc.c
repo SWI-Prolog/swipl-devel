@@ -4687,7 +4687,7 @@ f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
 { if ( hasGlobalSpace_(gcells) && hasTrailSpace(tcells) )
     return true;
 
-  if ( LD->gc.active )
+  if ( LD->gc.active || LD->exception.processing )
   { enableSpareStack((Stack)&LD->stacks.global, true);
     enableSpareStack((Stack)&LD->stacks.trail,  true);
 

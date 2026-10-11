@@ -44,7 +44,8 @@ This module is a test-frame for the occurs_check flag.
 test_occurs_check :-
         run_tests([ unify_with_occurs_check,
                     occurs_check_fail,
-		    occurs_check_error
+		    occurs_check_error,
+		    occurs_check_error_space
 		  ]).
 
 has_occurs_check_flag :-
@@ -119,3 +120,28 @@ my_unify(_,_) :-
 :- end_tests(occurs_check_error).
 
 
+
+
+:- begin_tests(occurs_check_error_space,
+	       [ condition(has_occurs_check_flag),
+		 setup((current_prolog_flag(occurs_check, Old),
+			set_prolog_flag(occurs_check, error))),
+		 cleanup(set_prolog_flag(occurs_check, Old))
+	       ]).
+
+% The occurs_check error is created while GC and stack shifts are
+% blocked.  This used to be fatal if there was not enough global
+% stack space left.  The loop grows the global stack in small steps
+% such that we eventually raise the error with an almost full stack.
+
+test(full_stack) :-
+	oc_loop(200 000, []).
+
+oc_loop(0, _) :- !.
+oc_loop(N, Acc) :-
+	G = (g(X,f(X)) = g(Y,Y)),
+	catch(G, error(occurs_check(_,_),_), true),
+	N1 is N-1,
+	oc_loop(N1, [N|Acc]).
+
+:- end_tests(occurs_check_error_space).
