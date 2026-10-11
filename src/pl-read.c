@@ -1461,7 +1461,8 @@ setErrorLocation(IOPOS *pos, ReadData _PL_rd)
 
     LD->read_source.position = *pos;
   }
-  rb.here = rb.base+1;			/* see rawSyntaxError() */
+  if ( rb.here > rb.base )		/* nothing read: leave empty */
+    rb.here = rb.base+1;		/* see rawSyntaxError() */
 }
 
 /* Read a quoted text that opens with code point `open` and closes

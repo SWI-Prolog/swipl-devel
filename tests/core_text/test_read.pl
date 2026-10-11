@@ -167,6 +167,10 @@ test(undefined_char_escape, E == undefined_char_escape(C)) :-
     char_code(C, 0x1F600),
     atom_codes(A, [0'\', 0'\\, 0x1F600, 0'\']),
     catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+% context of an error before anything was read showed a stale byte
+test(eof_in_comment, Ctx == string("", 0)) :-
+    catch(term_to_atom(_, abcdef), _, true),
+    catch(term_to_atom(_, '/* x'), error(_, Ctx), true).
 % cycles(Bool) was written as int, overwriting dotlists
 test(dotlists, T == [a|b]) :-
     term_string(T, "'.'(a,b)", [dotlists(true)]).
