@@ -916,8 +916,8 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 	    return false;		/* exception? */
 	} else if ( (*sp = getStream(stream)) )
 	  return check_stream_mode(a, stream, flags);
-	goto noent;
       }
+      goto noent;
     }
     if ( !(flags & SH_UNLOCKED) )
       PL_UNLOCK(L_FILE);

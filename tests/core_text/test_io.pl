@@ -98,6 +98,14 @@ test(reuse_alias, error(permission_error(open, source_sink, alias(a)))) :-
 	    ),
 	    open(nonexisting, read, _In, [alias(a)]),
 	    close(S)).
+test(no_protocol_out, [ condition(\+ protocolling(_)),
+			error(existence_error(stream, protocol))
+		      ]) :-
+	write(protocol, x).
+test(no_protocol_in, [ condition(\+ protocolling(_)),
+		       error(existence_error(stream, protocol))
+		     ]) :-
+	read_term(protocol, _, []).
 
 :- end_tests(io).
 
