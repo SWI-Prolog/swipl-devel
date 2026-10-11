@@ -469,7 +469,8 @@ bracketPairAtom(atom_t a, int *open, int *close)
     c1 = (unsigned char)txt.text.t[1];
   }
 
-  if ( (cl=f_paren_close(c0)) != -1 && cl == c1 )
+  if ( c0 >= 0x80 &&			/* ASCII () and [] are not bracket terms */
+       (cl=f_paren_close(c0)) != -1 && cl == c1 )
   { *open  = c0;
     *close = cl;
     return true;

@@ -289,6 +289,15 @@ test(c_1, T2 =@= T) :-
     maplist(call, S2).
 test(s_1, X = '[(a,b)]') :-
     term_to_atom([(a,b)], X).
+test(bracket_1, S == "'[]'(a)") :-		% Issue #1543
+    compound_name_arguments(T, '[]', [a]),
+    with_output_to(string(S), writeq(T)).
+test(bracket_2, S == "'()'(a)") :-
+    compound_name_arguments(T, '()', [a]),
+    with_output_to(string(S), writeq(T)).
+test(bracket_3, S == "⟨a⟩") :-
+    compound_name_arguments(T, '⟨⟩', [a]),
+    with_output_to(string(S), writeq(T)).
 
 :- end_tests(write_misc).
 
