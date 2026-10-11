@@ -74,6 +74,7 @@ The behavior of this library is controlled by two Prolog flags:
 
 :- multifile
     prolog:console_color/2,                     % +Term, -AnsiAttrs
+    prolog:console_color/3,                     % +Theme, +Term, -AnsiAttrs
     supports_get_color/0,
     hyperlink/2,                                % +Stream, +Spec
     tty_url_hook/2.                             % +For, -URL
@@ -167,7 +168,7 @@ init_color_term_flag :-
 %
 %   Attributes is either a single attribute, a   list  thereof or a term
 %   that is mapped to concrete  attributes   based  on the current theme
-%   (see prolog:console_color/2). The attribute names   are derived from
+%   (see prolog:console_color/3). The attribute names   are derived from
 %   the ANSI specification. See the source   for sgr_code/2 for details.
 %   Some commonly used attributes are:
 %
@@ -469,12 +470,14 @@ hex_color(D1,V) :-
     code_type(D1, xdigit(V1)),
     V is 16*V1+V1.
 
-%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%!  prolog:console_color(+Theme, +Term, -AnsiAttributes) is semidet.
 %
 %   Hook that allows  for  mapping  abstract   terms  to  concrete  ANSI
 %   attributes. This hook  is  used  by   _theme_  files  to  adjust the
-%   rendering based on  user  preferences   and  context.  Defaults  are
-%   defined in the file `boot/messages.pl`, default_theme/2.
+%   rendering based on  user  preferences   and  context.   Theme is the
+%   current theme: the value  of  the  Prolog   flag  `theme`  or, if no
+%   theme is selected, the  theme  of  a   loaded  theme  file.  Defaults
+%   are defined in the file `boot/messages.pl`, default_theme/2.
 %
 %   Besides the classes used for  messages   (`code`,  `comment`, `var`,
 %   `warning`, `error`, `truth(Truth)`, `port(Port)`, `message(Kind)`,
@@ -510,6 +513,11 @@ hex_color(D1,V) :-
 %
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.
+
+%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%
+%   As prolog:console_color/3, but for any theme.  This allows the user
+%   to define colours in the init file that apply to all themes.
 
 
                  /*******************************
@@ -684,6 +692,10 @@ class_attrs(Class, Attrs) :-
     !.
 class_attrs(Class, Attrs) :-
     prolog:console_color(Class, Attrs),
+    !.
+class_attrs(Class, Attrs) :-
+    '$messages':current_theme(Theme),
+    prolog:console_color(Theme, Class, Attrs),
     !.
 class_attrs(Class, Attrs) :-
     '$messages':default_theme(Class, Attrs),

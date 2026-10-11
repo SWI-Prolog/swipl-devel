@@ -44,11 +44,12 @@ Tests the theme classes and  the  answer   counter  that  are used to
 decorate the prompt, the text typed by the user and the answers.  The
 actual output cannot be tested here as   that  requires a terminal. See
 library(ansi_term) and the class  `answer(Parity)`   of  the  hook
-prolog:console_color/2.
+prolog:console_color/3.
 */
 
 test_toplevel_color :-
-    run_tests([ toplevel_color
+    run_tests([ toplevel_color,
+                console_theme
               ]).
 
 :- dynamic
@@ -228,3 +229,38 @@ test(plain_prompt, Decorated == '?- ') :-
         set_prolog_flag(color_term, Old)).
 
 :- end_tests(toplevel_color).
+
+%   The console colours of prolog:console_color/3 follow the Prolog
+%   flag `theme`.  The themes `test_ct_*` are defined here, so the
+%   tests do not depend on the installed theme files.
+
+:- multifile
+    prolog:console_color/3.
+
+prolog:console_color(test_ct_one, test_ct_class, [bold]).
+prolog:console_color(test_ct_two, test_ct_class, [underline]).
+
+:- begin_tests(console_theme,
+               [ setup(current_prolog_flag(theme, Old)),
+                 cleanup(set_prolog_flag(theme, Old))
+               ]).
+
+test(follows_flag, [One-Two == [bold]-[underline]]) :-
+    set_prolog_flag(theme, test_ct_one),
+    ansi_term:class_attrs(test_ct_class, One),
+    set_prolog_flag(theme, test_ct_two),
+    ansi_term:class_attrs(test_ct_class, Two).
+test(other_theme, Attrs == test_ct_class) :-
+    %  A class no hook defines for the theme is not mapped
+    set_prolog_flag(theme, test_ct_none),
+    ansi_term:class_attrs(test_ct_class, Attrs).
+test(current_theme, Theme == test_ct_one) :-
+    set_prolog_flag(theme, test_ct_one),
+    '$messages':current_theme(Theme).
+test(no_selection, true(Theme \== default)) :-
+    %  Without a selection, the theme of a loaded theme file applies
+    set_prolog_flag(theme, default),
+    use_module(library(theme/light), []),
+    '$messages':current_theme(Theme).
+
+:- end_tests(console_theme).

@@ -37,34 +37,24 @@
 
 /** <module> SWI-Prolog theme file -- dark
 
-To enable the dark theme, use
+To enable the dark theme, start Prolog using `swipl -Dtheme=dark` or
+add the directive below to your init file.  Setting the flag loads
+this file.
 
-    :- use_module(library(theme/dark)).
+    :- set_prolog_flag(theme, dark).
 */
 
 :- multifile
     prolog:theme/1,
-    prolog:console_color/2,
-    pldoc_style:theme/3.
+    prolog:console_color/3,
+    pldoc_style:theme/4.
 
 prolog:theme(dark).                             % make ourselves known
 
-%   The console colours apply while this theme is active.  If xpce is
-%   loaded, this is the theme selected by library(pce_theme).
-%   Otherwise it is the theme that is loaded.
-
-prolog:console_color(Class, Attributes) :-
-    active,
+prolog:console_color(dark, Class, Attributes) :-
     console_color(Class, Attributes).
-pldoc_style:theme(Element, Condition, Attributes) :-
-    active,
+pldoc_style:theme(dark, Element, Condition, Attributes) :-
     pldoc_theme(Element, Condition, Attributes).
-
-active :-
-    current_predicate(pce_theme:current_theme/1),
-    !,
-    pce_theme:current_theme(dark).
-active.
 
 		 /*******************************
 		 *       PROLOG MESSAGES	*

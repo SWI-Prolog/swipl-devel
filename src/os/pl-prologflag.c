@@ -2702,6 +2702,7 @@ initPrologFlags(void)
   setPrologFlag("toplevel_print_anon", FT_BOOL, false, 0);
   setPrologFlag("toplevel_name_variables", FT_BOOL, true, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
+  setPrologFlag("theme", FT_ATOM|FF_SHARED, "default");
   setPrologFlag("file_name_variables", FT_BOOL, false, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, true, PLFLAG_FILEERRORS);
   setPrologFlag("determinism_error", FT_ATOM, "error");

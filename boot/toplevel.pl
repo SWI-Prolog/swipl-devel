@@ -610,16 +610,23 @@ user_thread_init :-
     ).
 
 %!  setup_theme
+%
+%   Load the theme file for the Prolog flag `theme`.  Setting the flag
+%   using ``-Dtheme=Name`` already tried to load it, but that is before
+%   the file search path is complete.
 
 :- multifile
     prolog:theme/1.
 
 setup_theme :-
     current_prolog_flag(theme, Theme),
+    load_theme_file(Theme).
+
+load_theme_file(Theme) :-
     exists_source(library(theme/Theme)),
     !,
     use_module(library(theme/Theme)).
-setup_theme.
+load_theme_file(_).
 
 %!  theme_changed(+Theme) is det.
 %
@@ -633,6 +640,9 @@ setup_theme.
 
 theme_changed(Theme) :-
     forall(prolog:theme_hook(Theme), true).
+
+prolog:theme_hook(Theme) :-
+    load_theme_file(Theme).
 
 %!  apply_defines
 %
@@ -702,7 +712,6 @@ set_defined(Flag, Value) :-
 %   known flags to control -for example- their type.
 
 define_options('SDL_VIDEODRIVER', []).
-define_options(theme, [type(atom), shared(true)]).
 define_options(_, [warn_not_accessed(true)]).
 
 %!  init_optimise

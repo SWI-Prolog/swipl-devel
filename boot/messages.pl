@@ -2427,7 +2427,33 @@ predicate_kind_label(module(Name), Name).
 		 *        DEFAULT THEME		*
 		 *******************************/
 
-:- public default_theme/2.
+:- multifile
+    prolog:theme/1.
+:- public
+    current_theme/1,
+    default_theme/2.
+
+%!  current_theme(-Theme) is det.
+%
+%   Theme is the theme that  defines   the  console  colours (see
+%   prolog:console_color/3).  This is the value  of the Prolog flag
+%   `theme`, unless this is `default` or `auto`.  In that case it is
+%   the theme of a loaded theme  file,   e.g.,  a  file loaded from the
+%   init file or by library(theme/auto).  If  no theme file is loaded,
+%   Theme is `default`.
+
+current_theme(Theme) :-
+    current_prolog_flag(theme, Selected),
+    Selected \== default,
+    Selected \== auto,
+    !,
+    Theme = Selected.
+current_theme(Theme) :-
+    prolog:theme(Loaded),
+    !,
+    Theme = Loaded.
+current_theme(default).
+
 
 default_theme(var,                    [fg(red)]).
 default_theme(code,                   [fg(blue)]).

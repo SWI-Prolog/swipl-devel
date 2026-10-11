@@ -44,23 +44,12 @@ terminal.
 
 :- multifile
     prolog:theme/1,
-    prolog:console_color/2.
+    prolog:console_color/3.
 
 prolog:theme(light).                             % make ourselves known
 
-%   The console colours apply while this theme is active.  If xpce is
-%   loaded, this is the theme selected by library(pce_theme).
-%   Otherwise it is the theme that is loaded.
-
-prolog:console_color(Class, Attributes) :-
-    active,
+prolog:console_color(light, Class, Attributes) :-
     console_color(Class, Attributes).
-
-active :-
-    current_predicate(pce_theme:current_theme/1),
-    !,
-    pce_theme:current_theme(light).
-active.
 
 
 		 /*******************************

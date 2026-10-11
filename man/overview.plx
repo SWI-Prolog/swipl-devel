@@ -675,21 +675,29 @@ UI (colour) themes play a role in two parts: when writing to the
 PceEmacs or the graphical debugger. Coloured console output is based on
 ansi_format/3. The central message infra structure based on
 print_message/2 labels message (components) with a Prolog term that
-specifies the role. This is mapped to concrete colours by means of the
-hook prolog:console_color/2. The IDE uses xpce \jargon{theme colours}:
+specifies the role. This is mapped to concrete colours for the current
+theme by means of the hook prolog:console_color/3. The IDE uses xpce
+\jargon{theme colours}:
 colours whose name describes their role, such as
 \const{syntax_comment} for comments in PceEmacs.  A theme defines the
 values of these colours.  The IDE can switch between themes while it is
 running.  See the section \emph{Themes} of the XPCE User Guide and the
 library \pllib{pce_theme} for details.
 
-Themes are implemented as a Prolog file in the file search path
-library/theme.  A theme can be loaded using (for example) the directive
-below in the user's initialization file (see \secref{initfile}).
+The current theme is the value of the Prolog flag \prologflag{theme}.
+This flag is shared by all threads.  Setting it loads the theme file,
+a Prolog file in the file search path library/theme, and calls the hook
+prolog:theme_hook/1, which allows, for example, xpce to switch the
+theme of the IDE.  A theme can be selected using the command line
+option \exam{-Dtheme=dark} or the directive below in the user's
+initialization file (see \secref{initfile}).
 
 \begin{code}
-:- use_module(library(theme/dark)).
+:- set_prolog_flag(theme, dark).
 \end{code}
+
+If the flag has its initial value \const{default}, loading a theme file
+using use_module/1 selects the theme of this file for the console.
 
 The theme file \exam{library(theme/auto)} is provided to automatically
 choose a reasonable theme based on the environment.  The current version
@@ -752,9 +760,9 @@ dark setting of the desktop and switches theme if this setting changes.
 The \textsf{Settings/Theme} menu selects a theme for the running
 session.  To select a theme permanently, use the Prolog flag
 \prologflag{theme}, e.g., \exam{swipl-win -Dtheme=dark}, or set
-\exam{display.theme} in the xpce \file{Defaults} file.  The console
-colours (prolog:console_color/2) of a theme file only apply while its
-theme is active, so the console follows switching themes.  Text that is
+\exam{display.theme} in the xpce \file{Defaults} file.  The IDE sets
+the flag \prologflag{theme} when it switches theme, so the console
+colours (prolog:console_color/3) follow the theme.  Text that is
 already written keeps its colours.
 \end{description}
 
@@ -768,7 +776,8 @@ about to get the new value \arg{Theme}.  The hook is called as
 \exam{forall(prolog:theme_hook(Theme), true)} in the thread that sets
 the flag, \emph{before} the flag is changed.  If the hook raises an
 exception, the flag keeps its old value and set_prolog_flag/2 raises
-the exception.
+the exception.  The system defines a clause that loads
+library(theme/\arg{Theme}) if this file exists.
 \end{description}
 
 
@@ -2448,10 +2457,12 @@ Set the default choice between \jargon{variant} tabling and
 table/1.
 
     \prologflagitem{theme}{atom}{rw}
-Name of the active theme (see \secref{theme}).  This flag only exists
-if it is defined, notably using \exam{-Dtheme=}\arg{Name}, which
-creates it as a \jargon{shared} flag (see create_prolog_flag/3): it has
-one value for all threads.  Changing the value calls the hook
+Name of the active theme (see \secref{theme}).  The initial value is
+\const{default}, which uses the theme of a loaded theme file, if any.
+The value \const{auto} uses library(theme/auto) to select a theme that
+matches the terminal.  This is a \jargon{shared} flag (see
+create_prolog_flag/3): it has one value for all threads.  Changing the
+value loads library(theme/\arg{Name}) if it exists and calls the hook
 prolog:theme_hook/1.
 
     \prologflagitem{threads}{bool}{rw}
