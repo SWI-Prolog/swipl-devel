@@ -3119,7 +3119,8 @@ isvar:
 	{ Word p;
 
 	  if ( (p=argMoveUnify(*arg)) )
-	  { arg = p;
+	  { set(ci->clause, CL_HEAD_TERMS);
+	    arg = p;
 	    goto next_arg;		/* tail-call */
 	  }
 	  if ( first )
@@ -5697,38 +5698,55 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
 
   for( ; pc < ep; pc = stepPC(pc) )
   { code c = fetchop(pc);
-    int index;
+    const code_info *info = &codeTable[c];
 
     switch(c)
     { case B_VAR0:
-	index = 0;
-	break;
+      case A_VAR0:
+	add_bvar_access(di, 0, &max);
+	continue;
       case B_VAR1:
-	index = 1;
-	break;
+      case A_VAR1:
+	add_bvar_access(di, 1, &max);
+	continue;
       case B_VAR2:
-	index = 2;
-	break;
-      case B_VAR:
-      case H_VAR:
-      case B_ARGVAR:
-	index = VARNUM(pc[1]);
-	break;
+      case A_VAR2:
+	add_bvar_access(di, 2, &max);
+	continue;
       case B_UNIFY_FF:
       case B_UNIFY_FV:
       case B_UNIFY_VF:
-      case B_UNIFY_VV:
 	add_bvar_access(di, VARNUM(pc[1]), &max);
-	index = VARNUM(pc[2]);
-	break;
-      default:
+	add_bvar_access(di, VARNUM(pc[2]), &max);
 	continue;
     }
 
-    add_bvar_access(di, index, &max);
+    if ( info->arguments != VM_DYNARGC )
+    { Code ap = pc+1;
+
+      for(const char *ats = VM_ARGTYPES(info); *ats; ats++)
+      { switch(*ats)
+	{ case CA1_VAR:			/* CA1_FVAR is a write */
+	    add_bvar_access(di, VARNUM(*ap), &max);
+	    ap++;
+	    break;
+	  case CA1_FLOAT:
+	    ap += CODES_PER_DOUBLE;
+	    break;
+	  case CA1_WORD:
+	    ap += CODES_PER_WORD;
+	    break;
+	  default:
+	    ap++;
+	}
+      }
+    }
   }
 
-  assert(max >= 0);
+  if ( max < 0 )			/* moved, but not used in the body */
+  { di->bvar_access = NULL;
+    return true;
+  }
   if ( !(di->bvar_args = PL_new_term_refs(max+1)) )
     return false;
 
@@ -6040,8 +6058,11 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 
 	  while(n-- > 0)
 	  { if ( !pushed )		/* FIRSTVAR in the head */
-	      TRY(unifyVarGC(valTermRef(argp), di->variables,
+	    { TRY(unifyVarGC(valTermRef(argp), di->variables,
 			     VAROFFSET(argn)) );
+	      if ( di->bvar_access )	/* not moved */
+		clear_bit(di->bvar_access, argn);
+	    }
 	    NEXTARG;
 	  }
 

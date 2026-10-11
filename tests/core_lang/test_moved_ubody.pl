@@ -162,4 +162,24 @@ test(decomp9, (Head :- Body) =@= (s9(f(Y),Y) :- Y = a)) :-
     Head = s9(_,_),
     clause(Head, Body).
 
+% Issue #1540: later use of a moved argument through instructions other
+% than B_VAR*
+s10(X) :- X = a, X == a.
+s11(X) :- X = a, var(X).
+s12(X) :- X = a, X = b.
+s13(X) :- X = 1, Y is X+1, Y > 0.
+
+test(decomp10, (Head :- Body) =@= (s10(X) :- X = a, X == a)) :-
+    Head = s10(_),
+    clause(Head, Body).
+test(decomp11, (Head :- Body) =@= (s11(X) :- X = a, var(X))) :-
+    Head = s11(_),
+    clause(Head, Body).
+test(decomp12, (Head :- Body) =@= (s12(X) :- X = a, X = b)) :-
+    Head = s12(_),
+    clause(Head, Body).
+test(decomp13, (Head :- Body) =@= (s13(X) :- X = 1, Y is X+1, Y > 0)) :-
+    Head = s13(_),
+    clause(Head, Body).
+
 :- end_tests(moved_decompile).
