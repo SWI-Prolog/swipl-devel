@@ -3427,6 +3427,8 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     { case '\'':			/* 0'<char> */
       { int chr;
 
+	if ( !in[2] )					/* 0'<EOS> */
+	  return NUM_ERROR;
 	if ( (flags&M_CHARESCAPE) && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, '\'', NULL);
 	  if ( chr < 0 )

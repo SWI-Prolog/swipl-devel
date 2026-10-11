@@ -204,6 +204,12 @@ test(pos_block) :-
 
 :- begin_tests(read_numbers).
 
+% 0' at the end of the text used to read beyond the end
+test(quote_eos, fail) :-
+    atom_number('0\'', _).
+test(quote_eos, error(syntax_error(illegal_number))) :-
+    number_codes(_, `0'`).
+
 test(float_overflow, error(syntax_error(float_overflow))) :-
     term_string(_, '1.797693134862316e+308', []).
 test(float_overflow, F =:= inf) :-
