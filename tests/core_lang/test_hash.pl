@@ -145,6 +145,20 @@ test(variant, Hash1 == Hash2) :-
 	freeze(B, true),
 	variant_hash(x(A,_), Hash1),
 	variant_hash(x(B,_), Hash2).
+test(long_atom, true(Hash1 \== Hash2)) :-	% Issue #1538
+	long_text(atom, 0'x, A),
+	long_text(atom, 0'y, B),
+	variant_hash(A, Hash1),
+	variant_hash(B, Hash2).
+test(long_string, true(Hash1 \== Hash2)) :-
+	long_text(string, 0'x, A),
+	long_text(string, 0'y, B),
+	variant_hash(A, Hash1),
+	variant_hash(B, Hash2).
+
+long_text(Type, Tail, Text) :-
+	Spec =.. [Type, Text],
+	format(Spec, '~*c~*c', [300, 0'a, 10, Tail]).
 
 v(_).
 
