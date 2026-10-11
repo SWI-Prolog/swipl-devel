@@ -154,6 +154,19 @@ test(valid_position_dict3) :-
 		      [ key_value_position(4,8,6,7,bb,4-6,7-8),
 			key_value_position(9,13,11,12,aa,9-11,12-13)
 		      ])).
+% Issue #1541: non-ASCII characters in syntax error arguments
+test(eof_in_quoted, E == end_of_file_in_quoted(Q)) :-
+    char_code(Q, 0xAB),
+    atom_codes(A, [0xAB, 0'x]),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+test(undefined_char_escape, E == undefined_char_escape(C)) :-
+    char_code(C, 0x3A9),
+    atom_codes(A, [0'\', 0'\\, 0x3A9, 0'\']),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+test(undefined_char_escape, E == undefined_char_escape(C)) :-
+    char_code(C, 0x1F600),
+    atom_codes(A, [0'\', 0'\\, 0x1F600, 0'\']),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
 
 :- end_tests(read_term).
 

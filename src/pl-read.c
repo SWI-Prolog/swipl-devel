@@ -1176,7 +1176,7 @@ makeErrorTerm(const char *id_str, const char *id_arg,
     { if ( id_arg )
       { rc = PL_unify_term(id_term,
 			   PL_FUNCTOR_CHARS, id_str, 1,
-			     PL_CHARS, id_arg);
+			     PL_UTF8_CHARS, id_arg);
       } else
       { rc = PL_put_atom_chars(id_term, id_str);
       }
@@ -3008,10 +3008,9 @@ again:
       } else
       { undef:
 	if ( _PL_rd )
-	{ char tmp[2];
+	{ char tmp[8];
 
-	  tmp[0] = (char)c;
-	  tmp[1] = EOS;
+	  *utf8_put_char(tmp, c) = EOS;
 	  last_token_start = (unsigned char*)(in-1);
 	  errorWarningA1("undefined_char_escape", tmp, 0, _PL_rd);
 	}
