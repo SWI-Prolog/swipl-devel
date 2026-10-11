@@ -114,6 +114,17 @@ test(preset_bool_to_term, Value+Type == false+term) :-
     create_prolog_flag(Name, default, [type(term),keep(true)]),
     flag_value_type(Name, Value, Type).
 
+test(user_flags_warning, [Val-Msgs == 1-[implicit_create_flag(Name)]]) :-
+    %  With user_flags = warning, set_prolog_flag/2 prints a warning and
+    %  creates the flag.
+    gensym(f, Name),
+    current_prolog_flag(user_flags, Old),
+    setup_call_cleanup(
+        set_prolog_flag(user_flags, warning),
+        catch_messages(warning, set_prolog_flag(Name, 1), Msgs),
+        set_prolog_flag(user_flags, Old)),
+    current_prolog_flag(Name, Val).
+
 :- end_tests(prolog_flags).
 
 :- begin_tests(push_prolog_flag).

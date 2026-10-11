@@ -1984,6 +1984,10 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
 prolog_message(not_accessed_flags(List)) -->
     [ 'The following Prolog flags have been set but not used:', nl ],
     flags(List).
+prolog_message(implicit_create_flag(Flag)) -->
+    [ 'Created unknown Prolog flag ', ansi(code, '~q', Flag),
+      ' (see create_prolog_flag/3)'
+    ].
 prolog_message(prolog_flag_invalid_preset(Flag, Preset, _Type, New)) -->
     [ 'Prolog flag ', ansi(code, '~q', Flag), ' has been (re-)created with a type that is \c
        incompatible with its value.', nl,

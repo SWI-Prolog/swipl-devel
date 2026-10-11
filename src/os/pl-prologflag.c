@@ -1479,9 +1479,9 @@ check_create_flag(DECL_LD atom_t k, unsigned int flags)
 			ATOM_prolog_flag, key) );
     } else if ( how == ATOM_warning )
     { if ( !printMessage(ATOM_warning,
-			 PL_FUNCTOR_CHARS, "implicit_create_flag", PL_ATOM, k) )
+			 PL_FUNCTOR_CHARS, "implicit_create_flag", 1,
+			   PL_ATOM, k) )
 	return false;			/* may not ignore printMessage() */
-      return false;
     }
   }
 
