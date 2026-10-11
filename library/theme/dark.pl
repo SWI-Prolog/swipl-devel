@@ -172,6 +172,9 @@ colour(ui_shadow,                       '#101010').
 
 colour(ui_margin_background,            ui_window_background).
 colour(ui_scrollbar_background,         ui_dialog_background).
+colour(ui_tile_gap,                     ui_dialog_background).
+colour(ui_tile_border,                  ui_dialog_background).
+colour(ui_tile_separator,               ui_window_foreground).
 
 % Text.  Selection and search backgrounds are dark, such that the
 % (syntax) colours of the text remain readable.
