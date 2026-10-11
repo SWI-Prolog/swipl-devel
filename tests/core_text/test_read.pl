@@ -167,6 +167,15 @@ test(undefined_char_escape, E == undefined_char_escape(C)) :-
     char_code(C, 0x1F600),
     atom_codes(A, [0'\', 0'\\, 0x1F600, 0'\']),
     catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+% cycles(Bool) was written as int, overwriting dotlists
+test(dotlists, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true), cycles(true)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true), cycles(false)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [cycles(true), dotlists(true)]).
 
 :- end_tests(read_term).
 

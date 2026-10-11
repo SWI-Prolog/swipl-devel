@@ -6979,8 +6979,8 @@ static const PL_option_t read_term_options[] =
 #ifdef O_QUASIQUOTATIONS
   { ATOM_quasi_quotations,  OPT_TERM },
 #endif
-  { ATOM_cycles,	    OPT_BOOL },
-  { ATOM_dotlists,	    OPT_BOOL },
+  { ATOM_cycles,	    OPT_STDBOOL },
+  { ATOM_dotlists,	    OPT_STDBOOL },
   { ATOM_unicode_atoms,     OPT_ATOM },
   { ATOM_blob,		    OPT_ATOM },
   { NULL_ATOM,		    0 }
