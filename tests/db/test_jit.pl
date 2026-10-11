@@ -185,6 +185,32 @@ p1(a(b(c(d(e(f(g(2)))))))).
 p2(a(b(c(d(e(f(g(h(1))))))))).
 p2(a(b(c(d(e(f(g(h(2))))))))).
 
+% Issue #1537: an argument right after a run of void head arguments
+% (H_VOID_N) must be indexable.
+
+:- dynamic
+    hv3/3,
+    hv4/4.
+
+test(h_void_n_1) :-
+    retractall(hv3(_,_,_)),
+    forall(between(1, 100, I),
+           (   atom_concat(a, I, A),
+               assertz(hv3(_,_,A))
+           )),
+    hv3(_,_,a50),
+    assertion(has_hashes(hv3(_,_,_), [3])).
+test(h_void_n_2) :-
+    retractall(hv4(_,_,_,_)),
+    forall(between(1, 100, I),
+           (   atom_concat(a, I, A),
+               atom_concat(b, I, B),
+               assertz(hv4(_,_,A,B))
+           )),
+    hv4(_,_,a50,b50),
+    hv4(_,_,_,b50),
+    assertion(has_hashes(hv4(_,_,_,_), [3,4])).
+
 test(depth) :-
     p1(a(b(c(d(e(f(g(1)))))))),
     p1(a(b(c(d(e(f(g(2)))))))).
@@ -223,6 +249,10 @@ test(b) :-				% may not use S_LIST (test H_VOID_N)
     call_cleanup(b(_,_,_,_,[]), Det=true),
     assertion(var(Det)),
     !.
+test(b_primary) :-			% Issue #1537: must find an index
+    call_cleanup(b(_,_,_,_,[]), true),
+    !,
+    '$get_predicate_attribute'(b(_,_,_,_,_), primary_index, _).
 test(m) :-				% may not use S_LIST (test mode/1)
     call_cleanup(m(_,_,_,_,[]), Det=true),
     assertion(var(Det)),

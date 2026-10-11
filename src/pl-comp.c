@@ -5373,9 +5373,11 @@ skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid)
 	if ( nested )
 	  continue;
 	skip -= PC[1];
-	if ( skip <= 0 )
+	if ( skip < 0 )
 	{ *in_hvoid = -skip;
 	  return PC;
+	} else if ( skip == 0 )
+	{ return nextPC;
 	}
 	continue;
       case I_EXITFACT:
