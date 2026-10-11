@@ -144,7 +144,12 @@ fill_locale_from_name(PL_locale *l, const char *lname)
 { bool rc;
 
 #if defined(HAVE_NEWLOCALE) && defined(HAVE_USELOCALE)
-  locale_t loc = newlocale(LC_NUMERIC_MASK, lname, (locale_t)0);
+  /* LC_CTYPE is needed as well: localeconv() returns multibyte strings
+   * that ls_to_wcs() decodes using mbsrtowcs(), which uses the thread's
+   * LC_CTYPE.  Leaving that at "C" fails for non-ASCII separators such as
+   * U+202F (NARROW NO-BREAK SPACE) used by fi_FI.UTF-8 (issue #1544).
+   */
+  locale_t loc = newlocale(LC_NUMERIC_MASK|LC_CTYPE_MASK, lname, (locale_t)0);
   if ( !loc )
     return false;
   locale_t old = uselocale(loc);
