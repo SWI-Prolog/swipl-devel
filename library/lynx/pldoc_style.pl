@@ -44,12 +44,15 @@
 %
 %   Multifile hook that is used by  theme   files  to modify the style
 %   of Element if Condition holds in   Theme.  See prolog:console_color/3
-%   for Theme.  CSS is merged with the default style.
+%   for Theme.  CSS is merged with the default style.  If Theme does not
+%   define Element and Condition, the theme it is based on is used (see
+%   prolog:theme_base/2).
 
 html_text:style(Element, Condition, CSS) :-
     style(Element, Condition, CSS0),
     '$messages':current_theme(Theme),
-    (   theme(Theme, Element, Condition, CSS1)
+    (   '$messages':theme_ancestor(Theme, Ancestor),
+        theme(Ancestor, Element, Condition, CSS1)
     ->  merge_options(CSS1, CSS0, CSS)
     ;   CSS = CSS0
     ).

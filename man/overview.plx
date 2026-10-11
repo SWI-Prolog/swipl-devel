@@ -777,7 +777,15 @@ about to get the new value \arg{Theme}.  The hook is called as
 the flag, \emph{before} the flag is changed.  If the hook raises an
 exception, the flag keeps its old value and set_prolog_flag/2 raises
 the exception.  The system defines a clause that loads
-library(theme/\arg{Theme}) if this file exists.
+library(theme/\arg{Theme}) if this file exists and \arg{Theme} is not
+yet defined, i.e., prolog:theme(\arg{Theme}) is false.
+
+    \predicate[hook]{prolog:theme_base}{2}{?Theme, ?Base}
+Multifile hook that makes \arg{Theme} a variation of the theme
+\arg{Base}.  Settings that \arg{Theme} does not define, such as the
+console colours of prolog:console_color/3, are taken from \arg{Base}
+and, recursively, from the theme \arg{Base} is based on.  The theme file
+of \arg{Theme} must load the theme file of \arg{Base}.
 \end{description}
 
 

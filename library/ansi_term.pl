@@ -511,6 +511,9 @@ hex_color(D1,V) :-
 %   `goal(_,_)` is not: the debugger writes its ``? `` prompt on the same
 %   line.
 %
+%   If Theme does not define Term, the theme it is based on is used (see
+%   prolog:theme_base/2).
+%
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.
 
@@ -518,6 +521,23 @@ hex_color(D1,V) :-
 %
 %   As prolog:console_color/3, but for any theme.  This allows the user
 %   to define colours in the init file that apply to all themes.
+
+%!  prolog:theme_base(?Theme, ?Base) is nondet.
+%
+%   Hook that makes Theme a variation of the theme Base.  If Theme does
+%   not define the colours of a class (prolog:console_color/3), those
+%   of Base are used, and so on.  The same applies to the styles of the
+%   online help and the theme colours of the development tools.  The
+%   theme file of Theme must load the theme file of Base, e.g.
+%
+%   ```
+%   :- module(prolog_theme_my_dark, []).
+%   :- use_module(library(theme/dark)).
+%   :- multifile prolog:theme/1, prolog:theme_base/2.
+%
+%   prolog:theme(my_dark).
+%   prolog:theme_base(my_dark, dark).
+%   ```
 
 
                  /*******************************
@@ -695,7 +715,8 @@ class_attrs(Class, Attrs) :-
     !.
 class_attrs(Class, Attrs) :-
     '$messages':current_theme(Theme),
-    prolog:console_color(Theme, Class, Attrs),
+    '$messages':theme_ancestor(Theme, Ancestor),
+    prolog:console_color(Ancestor, Class, Attrs),
     !.
 class_attrs(Class, Attrs) :-
     '$messages':default_theme(Class, Attrs),

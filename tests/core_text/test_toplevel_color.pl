@@ -235,10 +235,50 @@ test(plain_prompt, Decorated == '?- ') :-
 %   tests do not depend on the installed theme files.
 
 :- multifile
-    prolog:console_color/3.
+    prolog:console_color/3,
+    prolog:theme_base/2,
+    pldoc_style:theme/4.
 
 prolog:console_color(test_ct_one, test_ct_class, [bold]).
 prolog:console_color(test_ct_two, test_ct_class, [underline]).
+prolog:console_color(test_ct_derived, test_ct_own, [italic]).
+prolog:theme_base(test_ct_derived, test_ct_one).
+prolog:theme_base(test_ct_loop1, test_ct_loop2).
+prolog:theme_base(test_ct_loop2, test_ct_loop1).
+pldoc_style:theme(test_ct_one, code, true, [color(cyan)]).
+
+%   test_ct_mem is defined in memory: the theme hook must not load its
+%   file, theme/test_ct_mem.pl in a temporary library directory.
+
+:- dynamic test_ct_in_memory/1.
+:- multifile prolog:theme/1.
+
+prolog:theme(Theme) :-
+    test_ct_in_memory(Theme).
+
+in_memory(Theme) :-
+    assertz(test_ct_in_memory(Theme)).
+
+not_in_memory :-
+    retractall(test_ct_in_memory(_)).
+
+theme_file_dir(Dir) :-
+    tmp_file(themes, Dir),
+    directory_file_path(Dir, theme, ThemeDir),
+    make_directory_path(ThemeDir),
+    directory_file_path(ThemeDir, 'test_ct_mem.pl', File),
+    setup_call_cleanup(
+        open(File, write, Out),
+        format(Out, ':- module(test_ct_mem_theme, []).~n\c
+                     :- multifile prolog:console_color/3.~n\c
+                     prolog:console_color(test_ct_mem, test_ct_class, \c
+                                          [faint]).~n', []),
+        close(Out)),
+    asserta(user:file_search_path(library, Dir)).
+
+remove_theme_file_dir(Dir) :-
+    retractall(user:file_search_path(library, Dir)),
+    delete_directory_and_contents(Dir).
 
 :- begin_tests(console_theme,
                [ setup(current_prolog_flag(theme, Old)),
@@ -257,6 +297,35 @@ test(other_theme, Attrs == test_ct_class) :-
 test(current_theme, Theme == test_ct_one) :-
     set_prolog_flag(theme, test_ct_one),
     '$messages':current_theme(Theme).
+test(base_theme, [Own-Inherited == [italic]-[bold]]) :-
+    %  A theme uses the colours of its base theme it does not define
+    set_prolog_flag(theme, test_ct_derived),
+    ansi_term:class_attrs(test_ct_own, Own),
+    ansi_term:class_attrs(test_ct_class, Inherited).
+test(base_cycle, Attrs == test_ct_class) :-
+    set_prolog_flag(theme, test_ct_loop1),
+    ansi_term:class_attrs(test_ct_class, Attrs).
+test(base_pldoc_style, [nondet, true(memberchk(color(cyan), CSS))]) :-
+    use_module(library(lynx/pldoc_style), []),
+    set_prolog_flag(theme, test_ct_derived),
+    html_text:style(code, true, CSS).
+test(in_memory_not_loaded, [ setup(( theme_file_dir(Dir),
+                                      in_memory(test_ct_mem)
+                                    )),
+                              cleanup(( not_in_memory,
+                                        remove_theme_file_dir(Dir)
+                                      )),
+                              Attrs == test_ct_class
+                            ]) :-
+    set_prolog_flag(theme, test_ct_mem),
+    ansi_term:class_attrs(test_ct_class, Attrs).
+test(file_loaded, [ setup(theme_file_dir(Dir)),
+                    cleanup(remove_theme_file_dir(Dir)),
+                    Attrs == [faint]
+                  ]) :-
+    set_prolog_flag(theme, test_ct_one),
+    set_prolog_flag(theme, test_ct_mem),
+    ansi_term:class_attrs(test_ct_class, Attrs).
 test(no_selection, true(Theme \== default)) :-
     %  Without a selection, the theme of a loaded theme file applies
     set_prolog_flag(theme, default),

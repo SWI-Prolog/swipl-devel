@@ -2428,9 +2428,11 @@ predicate_kind_label(module(Name), Name).
 		 *******************************/
 
 :- multifile
-    prolog:theme/1.
+    prolog:theme/1,
+    prolog:theme_base/2.
 :- public
     current_theme/1,
+    theme_ancestor/2,
     default_theme/2.
 
 %!  current_theme(-Theme) is det.
@@ -2453,6 +2455,23 @@ current_theme(Theme) :-
     !,
     Theme = Loaded.
 current_theme(default).
+
+%!  theme_ancestor(+Theme, -Ancestor) is nondet.
+%
+%   Ancestor is Theme or a theme Theme is based on, nearest first.  A
+%   theme is based on another theme using the multifile hook
+%   prolog:theme_base/2.  A theme uses the settings of its base theme
+%   that it does not define itself.
+
+theme_ancestor(Theme, Ancestor) :-
+    theme_ancestor(Theme, [Theme], Ancestor).
+
+theme_ancestor(Theme, _, Theme).
+theme_ancestor(Theme, Seen, Ancestor) :-
+    prolog:theme_base(Theme, Base),
+    !,
+    \+ memberchk(Base, Seen),
+    theme_ancestor(Base, [Base|Seen], Ancestor).
 
 
 default_theme(var,                    [fg(red)]).

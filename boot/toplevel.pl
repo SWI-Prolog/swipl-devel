@@ -623,6 +623,9 @@ setup_theme :-
     load_theme_file(Theme).
 
 load_theme_file(Theme) :-
+    prolog:theme(Theme),
+    !.
+load_theme_file(Theme) :-
     exists_source(library(theme/Theme)),
     !,
     use_module(library(theme/Theme)).
@@ -631,7 +634,10 @@ load_theme_file(_).
 %!  theme_changed(+Theme) is det.
 %
 %   Called from C if the Prolog flag  `theme` is about to get the new
-%   value Theme.  Calls all solutions of prolog:theme_hook/1.
+%   value Theme.  Calls all solutions of prolog:theme_hook/1.  Our own
+%   hook loads library(theme/Theme), unless Theme is already defined,
+%   i.e., prolog:theme/1 is true for it.  This allows for a theme that
+%   is defined in memory, e.g., by a theme editor.
 
 :- multifile
     prolog:theme_hook/1.
