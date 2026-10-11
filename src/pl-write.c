@@ -494,11 +494,13 @@ atomType(atom_t a, write_options *options)
        (m->var_prefix &&
 	f_is_prolog_var_start((unsigned char)*s) &&
 	*s != m->var_prefix) )
-  { do
+  { if ( code_requires_quoted((unsigned char)*s, fd, flags) )
+      return AT_QUOTE;
+    do
     { for( ++s;
 	   --len > 0 &&
 	     f_is_prolog_identifier_continue((unsigned char)*s) &&
-	     !code_requires_quoted(*s, fd, flags);
+	     !code_requires_quoted((unsigned char)*s, fd, flags);
 	   s++)
 	;
     } while ( len >= 2 &&
@@ -511,7 +513,7 @@ atomType(atom_t a, write_options *options)
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
 
-  if ( wr_is_symbol(*s, options) )
+  if ( wr_is_symbol((unsigned char)*s, options) )
   { size_t left = len;
 
     if ( len == 1 && s[0] == '.' )
@@ -520,8 +522,8 @@ atomType(atom_t a, write_options *options)
       return AT_QUOTE;
 
     for( ;
-	 left > 0 && wr_is_symbol(*s, options) &&
-	 !code_requires_quoted(*s, fd, flags);
+	 left > 0 && wr_is_symbol((unsigned char)*s, options) &&
+	 !code_requires_quoted((unsigned char)*s, fd, flags);
 	 s++, left--)
       ;
     if ( left > 0 )
@@ -1171,7 +1173,7 @@ writeText(PL_chars_t *txt, int quote, write_options *options)
 	{ const char *s = (const char*)txt->text.t;
 	  if ( pl > 0 )
 	  { if ( !quote )
-	      TRY(rc=PutOpenToken(s[0], options));
+	      TRY(rc=PutOpenToken((unsigned char)s[0], options));
 	    TRY(write_chars(s, pl, quote, options));
 	    TRY(PutElipsis(false, options));
 	  } else
@@ -1212,7 +1214,7 @@ writeText(PL_chars_t *txt, int quote, write_options *options)
   { case ENC_ISO_LATIN_1:
     { const char *s = (const char*)txt->text.t;
       if ( !quote )
-	TRY(rc=PutOpenToken(s[0], options));
+	TRY(rc=PutOpenToken((unsigned char)s[0], options));
       TRY(write_chars(s, len, quote, options));
       return rc;
     }

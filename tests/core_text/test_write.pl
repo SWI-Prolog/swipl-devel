@@ -178,6 +178,12 @@ test(backslash, S == "'te\\st'") :-
 			      [ character_escapes(false),
 				quoted(true)
 			      ])).
+test(quote_non_ascii, S == "f('aé','éa','é',ab)") :-	% Issue #1542
+    with_output_to(string(S),
+		   write_term(f(aé,éa,é,ab),
+			      [ quoted(true),
+				quote_non_ascii(true)
+			      ])).
 
 :- end_tests(write_quoted).
 
@@ -274,6 +280,8 @@ test(op_2, X == "fx200 (a,b)") :-
     term_string(fx200((a,b)), X, [module(M)]).
 test(op_3, X == 'dynamic a,b') :-
     term_to_atom(dynamic((a,b)), X).
+test(op_4, X == 'dynamic é') :-		% Issue #1542
+    term_to_atom(dynamic(é), X).
 test(c_1, T2 =@= T) :-
     T = [a,b,c|T],
     term_to_atom(T, X),
