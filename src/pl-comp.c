@@ -923,12 +923,17 @@ next_head:
     setVarInfo(*head, index);
     if ( ci->branch_vars )
       pushBranchVar(ci, vd);
+    if ( control )			/* variable goal: call/1 */
+      ci->head_unify = false;
 
     goto resume;
   }
 
   if ( isVarInfo(*head) )
   { VarDef vd = varInfo(*head);
+
+    if ( control )			/* variable goal: call/1 */
+      ci->head_unify = false;
 
     if ( vd->times++ == 0 && ci->branch_vars )
     { pushBranchVar(ci, vd);

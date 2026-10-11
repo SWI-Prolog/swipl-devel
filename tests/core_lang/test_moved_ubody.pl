@@ -56,6 +56,15 @@ ol_append1(OL1, OL2, Elem) :-
 test(h_list_ff, L =@= ol([a,[b|X]],X)) :-
     ol_append1(ol([a,T], T), L, b).
 
+% Issue #1539: a variable goal is a call and stops moving unifications
+var_goal(X) :-
+    G = var(X),
+    G,
+    X = a.
+
+test(var_goal, X == a) :-
+    var_goal(X).
+
 :- end_tests(moved_unify_ubody).
 
 :- begin_tests(moved_decompile).
