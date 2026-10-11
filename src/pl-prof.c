@@ -110,6 +110,7 @@ static void	collectSiblingsTime(void);
 #undef LDFUNC_DECLARATIONS
 
 #define WITH_LD_IF_PROFILING(_)		WITH_LD(GD->profile.thread) if(LD _)
+#define DEFAULT_SAMPLE_PERIOD		5000	/* usecs: 200 samples/sec */
 #define WITH_LD_IF_PROFILING_AND(cond)	WITH_LD_IF_PROFILING( && (cond))
 
 bool
@@ -209,6 +210,9 @@ startProfiler(prof_status how)
   MMRESULT rval;
   (void)how;
 
+  if ( !LD->profile.sample_period )	/* profiler/2 without $profile/4 */
+    LD->profile.sample_period = DEFAULT_SAMPLE_PERIOD;
+
   rval = timeSetEvent(10,
 		      round(LD->profile.sample_period/1000),		/* resolution (milliseconds) */
 		      callTimer,
@@ -273,6 +277,9 @@ static bool
 startProfiler(prof_status how)
 { GET_LD
   int sig, timer;
+
+  if ( !LD->profile.sample_period )	/* profiler/2 without $profile/4 */
+    LD->profile.sample_period = DEFAULT_SAMPLE_PERIOD;
 
   if ( how == PROF_CPU )
   { sig   = SIGPROF;
@@ -971,7 +978,7 @@ PRED_IMPL("$profile", 4, profile, PL_FA_TRANSPARENT)
     default:         LD->profile.ports_control = PROFC_CLASSIC;
   }
 
-  LD->profile.sample_period = 5000;  // default period in usecs.
+  LD->profile.sample_period = DEFAULT_SAMPLE_PERIOD;
   double rate;
   if ( PL_get_float_ex(A4, &rate) )
     LD->profile.sample_period = (unsigned int)(1000000/rate);
