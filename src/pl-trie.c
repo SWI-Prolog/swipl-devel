@@ -2312,7 +2312,13 @@ add_choice(DECL_LD trie_gen_state *state,
 	ch->table_enum = newTableEnumWP(children.hash->table);
 	table_key_t tk;
 	table_value_t tv;
-	advanceTableEnum(ch->table_enum, &tk, &tv);
+	if ( !advanceTableEnum(ch->table_enum, &tk, &tv) )
+	{ /* the root keeps its hashed children table after trie_delete/3
+	     removed its last key */
+	  freeTableEnum(ch->table_enum);
+	  state->choicepoints.top = (char*)ch;
+	  return NULL;
+	}
 	ch->key   = tk;
 	ch->child = val2ptr(tv);
 	break;
