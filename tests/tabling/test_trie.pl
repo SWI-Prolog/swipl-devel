@@ -131,6 +131,15 @@ test(delete, Keys == [aap,mies]) :-
 	assertion(N==n),
 	findall(K, trie_gen(T, K, _), Keys0),
 	sort(Keys0, Keys).
+test(delete_all, Keys-Again == []-[aap]) :-
+	trie_new(T),
+	trie_insert(T, aap, a),
+	trie_insert(T, noot, n),
+	trie_delete(T, aap, _),
+	trie_delete(T, noot, _),
+	findall(K, trie_gen(T, K, _), Keys),
+	trie_insert(T, aap, a),
+	findall(K, trie_gen(T, K, _), Again).
 test(gen_indirect, true) :-
 	trie_new(T),
 	trie_insert(T, 0.25, true),
