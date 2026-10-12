@@ -190,6 +190,8 @@ colour(ui_cursor_inactive,              grey50).
 
 colour(ui_placeholder,                  grey50).
 colour(ui_accelerator,                  grey70).
+colour(ui_danger,                       '#f14c4c').
+colour(ui_danger_foreground,            white).
 
 % Epilog terminal ANSI colours
 
