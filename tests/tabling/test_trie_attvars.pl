@@ -82,6 +82,17 @@ test(unify_multi, true) :-
                        Y{call:freeze(Y, odd(Y))})
                    ]),
     trie_gen(T, f(2, 1)).
+% A stored attributed variable beside constants in a hashed node is
+% found for a bound key.
+test(unify_beside_constants, nondet) :-
+    create_trie(T, [ f(X{call:freeze(X, even(X))}), f(b), f(c) ]),
+    trie_gen(T, f(2)).
+test(unify_beside_constants_fail, fail) :-
+    create_trie(T, [ f(X{call:freeze(X, even(X))}), f(b), f(c) ]),
+    trie_gen(T, f(1)).
+test(unify_beside_variable, N == 2) :-
+    create_trie(T, [ f(_), f(X{call:freeze(X, even(X))}), f(b) ]),
+    aggregate_all(count, trie_gen(T, f(2)), N).
 
 :- end_tests(trie_attvars).
 
