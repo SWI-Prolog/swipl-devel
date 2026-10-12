@@ -73,12 +73,12 @@ TODO
     - Reclaim single-child node after moving to a hash
     - Make pruning the trie thread-safe
   - Provide deletion from a trie
-  - Make trie_gen/3 take the known prefix into account
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define RESERVED_TRIE_VAL(n) (((word)((uintptr_t)n)<<LMASK_BITS) | \
 			      TAG_VAR|STG_LOCAL)
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
+#define TRIE_KEY_ABSENT      RESERVED_TRIE_VAL(2)	/* key of no stored value */
 #define TRIE_KEY_POP(n)      RESERVED_TRIE_VAL(10+(n))
 
 #define IS_TRIE_KEY_POP(w)   ((size_t)((tagex(w) == (TAG_VAR|STG_LOCAL) && \
@@ -2053,48 +2053,129 @@ unify_key(DECL_LD ukey_state *state, word key)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trie_gen/2,3 walks the trie depth first.  The path it is on is a stack of
+trie_choice records, one for each node on it: the child taken and, when
+more children may match, how to find the next one.  A leaf is an answer
+if unify_trie_path() unifies the keys of its path with the query, and
+that unification decides every answer.
+
+So as not to walk paths that unification rejects, the walk moves a
+_query cursor_ (qcursor) through the query.  The keys of a path spell a
+term in pre-order: a functor, constant or variable key per node, and
+POP(n) where a compound that is not a last argument ends, closing n
+compound levels (see trie_lookup_abstract() and nextTermAgenda_P()).
+align_key() steps over the stored key S according to the query subterm
+T at the cursor:
+
+  T \ S        functor or constant     variable   attvar   POP(n)
+  nonvar       cut unless S is T's     skip T     stop     stop
+	       key; a functor enters T
+  variable     skip T; a functor also  skip T     stop     stop
+	       skips the stored args
+  frame done   stop                    stop       stop     pop frame
+  skipping     count S                 count S    stop     count S
+
+"Cut" means no path through S unifies with the query, so the walk does
+not enter S.  "Stop" ends pruning below S: either S starts an attributed
+variable, whose attributes the cursor does not follow, or S cannot occur
+there in a trie that matches the query's shape, which nb_setarg/3 can
+cause by changing the query between answers; a path cut before such a
+change is not visited again.  While skipping stored arguments, `need`
+counts the stored subterms still unread and `open` the compounds opened
+among them and not yet closed.  When `need` reaches 0 the next key is
+POP(n): it closes the `open` compounds, and if n > open also the query
+frame the skip ended, as last arguments share one POP.
+
+Each choice that can advance keeps the cursor it was made with, so
+trying its next child needs no walk.  A kept cursor points into the
+query's compounds, and the frames it pops to are only appended to, so it
+stays valid until garbage collection or a stack shift moves the global
+stack, which changes the GC count or the stack's base: a new epoch.
+restore_cursor() rebuilds the cursor of a choice made in an earlier
+epoch by stepping the keys of the choices beneath it again.  No kept
+cursor points at the term reference of the query itself, which is on
+the local stack: the cursor before the root key reads it when used.
+After an answer has bound the query, the search for the next candidate
+goes on only while it reads no kept pruning cursor: reaching a choice
+that keeps one, it stops and leaves a choice point, and backtracking,
+which undoes the answer, continues it.  So a cursor always reads the
+query as the caller made it, and an answer leaves a choice point only
+if a candidate or a pruning choice with children left remains.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* A query frame with arguments left: where the walk resumes when the
+   compound it entered ends.  Frames are only appended while the walk
+   descends, so cursors share them by index. */
+
+typedef struct qframe
+{ Word	 term;				/* next argument */
+  size_t size;				/* arguments left */
+  Word	 last;				/* last nonvar argument, or NULL */
+  bool	 rest;				/* a nonvar left here or below */
+  size_t parent;			/* frame below, as index+1; 0: none */
+} qframe;
+
+/* `term` is NULL when `size` is 0, and before the root key, when `size`
+   is 1 and the argument is the query itself. */
+
+typedef struct qcursor
+{ Word	 term;				/* next argument of the query */
+  size_t size;				/* arguments left in this frame */
+  Word	 last;				/* last nonvar argument, or NULL */
+  size_t frame;				/* frame to pop to, as index+1 */
+  size_t need;				/* stored subterms left to skip */
+  size_t open;				/* compounds opened while skipping */
+  bool	 prune;				/* false: no longer pruning */
+} qcursor;
+
 typedef struct trie_choice
 { TableEnum  table_enum;
   TableWP    table;
   unsigned   var_mask;			/* variables left to try */
   unsigned   attvar_mask;		/* attributed ones, tried next */
   unsigned   var_index;
+  unsigned   epoch;			/* epoch `cursor` belongs to */
   word	     var_tag;			/* TAG_VAR or TAG_ATTVAR|STG_STATIC */
   word       novar;
   word       key;
   trie_node *child;
+  size_t     frames;			/* frames in use when it was made */
+  qcursor    cursor;			/* the cursor before this node */
 } trie_choice;
 
 typedef struct
 { trie	      *trie;		/* trie we operate on */
   int	       allocated;	/* If true, the state is persistent */
   unsigned     vflags;		/* TN_PRIMARY or TN_SECONDARY */
+  unsigned     epoch;		/* Kept cursors of this epoch are valid */
+  int64_t      gc_seen;		/* GC count the epoch started at */
+  Word	       gbase_seen;	/* Global stack base the epoch started at */
+  term_t       key;		/* The query */
+  bool	       resume;		/* The top choice advanced, not yet descended */
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
+  tmp_buffer   frames;		/* qframe records the cursors share */
 } trie_gen_state;
 
-typedef struct desc_tstate
-{ Word  term;
-  size_t size;
-} desc_tstate;
-
-typedef struct
-{ Word	       term;		/* Term we are descending */
-  size_t       size;		/* Size of the current node */
-  bool	       compound;	/* Initialized for compound */
-  bool	       prune;		/* Use for pruning */
-  segstack     stack;		/* Stack for argument handling */
-  desc_tstate  buffer[64];	/* Quick buffer for stack */
-} descent_state;
-
 #define advance_node(ch) LDFUNC(advance_node, ch)
-static bool	advance_node(DECL_LD trie_choice *ch);
+static inline bool advance_node(DECL_LD trie_choice *ch);
+
+#define init_trie_state(state, trie, root, key) \
+	LDFUNC(init_trie_state, state, trie, root, key)
 
 static void
-init_trie_state(trie_gen_state *state, trie *trie, const trie_node *root)
+init_trie_state(DECL_LD trie_gen_state *state, trie *trie,
+		const trie_node *root, term_t key)
 { state->trie = trie;
   state->allocated = false;
   state->vflags = root == &trie->root ? TN_PRIMARY : TN_SECONDARY;
+  state->epoch = 1;
+  state->gc_seen = LD->gc.stats.totals.collections;
+  state->gbase_seen = gBase;
+  state->key = key;
+  state->resume = false;
   initBuffer(&state->choicepoints);
+  initBuffer(&state->frames);
 }
 
 
@@ -2113,6 +2194,7 @@ clear_trie_state(trie_gen_state *state)
   }
 
   discardBuffer(&state->choicepoints);
+  discardBuffer(&state->frames);
 
   release_trie(state->trie);
 
@@ -2128,232 +2210,366 @@ clear_trie_gen_state(void *ctx)
   return true;
 }
 
+/* Start a new epoch if the global stack moved since this one started,
+   so the cursors kept before are rebuilt when used. */
+
+#define check_epoch(state) LDFUNC(check_epoch, state)
+
 static void
-clear_descent_state(descent_state *dstate)
-{ if ( dstate->compound )
-    clearSegStack(&dstate->stack);
+check_epoch(DECL_LD trie_gen_state *state)
+{ int64_t gcs = LD->gc.stats.totals.collections;
+
+  if ( gcs != state->gc_seen || gBase != state->gbase_seen )
+  { state->gc_seen    = gcs;
+    state->gbase_seen = gBase;
+    state->epoch++;
+    DEBUG(MSG_TRIE_GEN, Sdprintf("trie_gen: epoch %u\n", state->epoch));
+  }
 }
 
-#define get_key(state, dstate, key) LDFUNC(get_key, state, dstate, key)
+
+static void
+root_cursor(qcursor *c, bool prune)
+{ c->term  = NULL;
+  c->size  = 1;
+  c->last  = NULL;
+  c->frame = 0;
+  c->need  = 0;
+  c->open  = 0;
+  c->prune = prune;
+}
+
+
+static void
+skip_query(qcursor *c)
+{ if ( --c->size )
+    c->term++;
+  else
+    c->term = NULL;
+}
+
+
+/* Drop the frames pushed after the first `count`. */
+
+static void
+drop_frames(trie_gen_state *state, size_t count)
+{ if ( count < entriesBuffer(&state->frames, qframe) )
+    seekBuffer(&state->frames, count, qframe);
+}
+
+
+#define enter_query_compound(state, c, p) \
+	LDFUNC(enter_query_compound, state, c, p)
+
+static void
+enter_query_compound(DECL_LD trie_gen_state *state, qcursor *c, Word p)
+{ Functor f = valueTerm(*p);
+  size_t arity = arityFunctor(f->definition);
+  Word a;
+
+  if ( c->size > 1 )			/* not the last argument */
+  { qframe *fr = allocFromBuffer(&state->frames, sizeof(*fr));
+
+    if ( !fr )
+      outOfCore();
+    fr->term   = c->term+1;
+    fr->size   = c->size-1;
+    fr->last   = c->last;
+    fr->rest   = ( (c->last && c->last > c->term) ||
+		   (c->frame &&
+		    baseBuffer(&state->frames, qframe)[c->frame-1].rest) );
+    fr->parent = c->frame;
+    c->frame   = entriesBuffer(&state->frames, qframe);
+    DEBUG(MSG_TRIE_GEN,
+	  Sdprintf("Pushed %p, size %zd\n", fr->term, fr->size));
+  }
+  c->term = arity ? &f->arguments[0] : NULL;
+  c->size = arity;
+  c->last = NULL;
+  for(a = &f->arguments[arity]; a-- > &f->arguments[0]; )
+  { Word d = a;
+
+    deRef(d);
+    if ( !canBind(*d) )
+    { c->last = a;
+      break;
+    }
+  }
+}
+
 
 static bool
-get_key(DECL_LD trie_gen_state *state, descent_state *dstate, word *key)
-{ Word p;
+pop_query_frame(trie_gen_state *state, qcursor *c)
+{ if ( c->frame )
+  { qframe *fr = &baseBuffer(&state->frames, qframe)[c->frame-1];
 
-  if ( dstate->size == 0 )
-  { *key = TRIE_KEY_POP(0);
+    c->term  = fr->term;
+    c->size  = fr->size;
+    c->last  = fr->last;
+    c->frame = fr->parent;
+    DEBUG(MSG_TRIE_GEN,
+	  Sdprintf("Popped %p, left %zd\n", c->term, c->size));
     return true;
   }
 
-  deRef2(dstate->term, p);
+  return false;
+}
+
+
+/* True if a nonvar is left in the query after the cursor.  Called only
+   after the root key, as the root's own frame records no `last`. */
+
+static bool
+concrete_ahead(trie_gen_state *state, const qcursor *c)
+{ return ( (c->size && c->last && c->term <= c->last) ||
+	   (c->frame && baseBuffer(&state->frames, qframe)[c->frame-1].rest) );
+}
+
+
+typedef enum
+{ Q_DONE,				/* frame has no argument left */
+  Q_VAR,				/* variable, attributed or not */
+  Q_KEY					/* nonvar, with its trie key */
+} query_token;
+
+#define peek_query(state, c, kp, pp) \
+	LDFUNC(peek_query, state, c, kp, pp)
+
+static query_token
+peek_query(DECL_LD trie_gen_state *state, const qcursor *c,
+	   word *kp, Word *pp)
+{ Word p;
+
+  if ( c->size == 0 )
+    return Q_DONE;
+
+  p = c->term ? c->term : valTermRef(state->key);
+  deRef(p);
   DEBUG(CHK_SECURE, checkData(p));
-
   if ( canBind(*p) )
-  { return false;
-  } else if ( isTerm(*p) )
-  { Functor f = valueTerm(*p);
-    desc_tstate dts;
+    return Q_VAR;
 
-    DEBUG(MSG_TRIE_GEN,
-	  Sdprintf("get_key() for %s\n",
-		   functorName(word2functor(f->definition))));
+  if ( isTerm(*p) )
+    *kp = valueTerm(*p)->definition;
+  else if ( !isIndirect(*p) )
+    *kp = *p;
+  else if ( !(*kp = trie_intern_indirect(state->trie, *p, false)) )
+    *kp = TRIE_KEY_ABSENT;		/* no stored constant equals it */
+  *pp = p;
 
-    *key = f->definition;
-    if ( dstate->size > 1 )
-    { if ( !dstate->compound )
-      { dstate->compound = true;
-	initSegStack(&dstate->stack, sizeof(desc_tstate),
-		     sizeof(dstate->buffer), dstate->buffer);
-      }
-      dts.term = dstate->term+1;
-      dts.size = dstate->size-1;
-      if ( !pushSegStack(&dstate->stack, dts, desc_tstate) )
-	outOfCore();
-      DEBUG(MSG_TRIE_GEN,
-	    Sdprintf("Pushed %p, size %zd\n", dts.term, dts.size));
-    }
-    dstate->term = &f->arguments[0];
-    dstate->size = arityFunctor(f->definition);
+  return Q_KEY;
+}
+
+
+/* Step the cursor over the stored key `skey` as the table above says.
+   Returns false, leaving the cursor as it was, if no path through `skey`
+   can unify with the query, and true otherwise.  Once no nonvar is left
+   in the query nothing can be cut, so pruning stops. */
+
+/* A cursor that no longer prunes accepts every key without a call. */
+#define align_key(state, c, skey) \
+	( !(c)->prune || align_pruning_key(state, c, skey) )
+#define align_pruning_key(state, c, skey) \
+	LDFUNC(align_pruning_key, state, c, skey)
+
+static bool
+align_pruning_key(DECL_LD trie_gen_state *state, qcursor *c, word skey)
+{ size_t popn;
+  bool functor;
+  word qkey = 0;
+  Word p = NULL;
+
+  if ( !skey )				/* the root is the leaf */
     return true;
-  } else
-  { dstate->term++;
-    dstate->size--;
+  popn    = IS_TRIE_KEY_POP(skey);
+  functor = (tagex(skey) == (TAG_ATOM|STG_GLOBAL));
+  if ( tag(skey) == TAG_ATTVAR )
+    goto stop;
 
-    if ( isIndirect(*p) )
-    { *key = trie_intern_indirect(state->trie, *p, false);
-      return *key != 0;
-    } else
-    { *key = *p;
+  if ( c->open )			/* skipping stored arguments */
+  { if ( c->need )
+    { if ( popn )
+      { if ( popn > c->open )
+	  goto stop;
+	c->open -= popn;
+      } else
+      { c->need--;
+	if ( functor )
+	{ c->need += arityFunctor(skey);
+	  c->open++;
+	}
+      }
       return true;
     }
+    if ( popn < c->open )		/* only a POP can end the skip */
+      goto stop;
+    popn -= c->open;
+    c->open = 0;
+    DEBUG(MSG_TRIE_GEN, Sdprintf("Skip ended, POP %zd left\n", popn));
+    if ( popn && (c->size || !pop_query_frame(state, c)) )
+      goto stop;
+    goto stepped;
+  }
+
+  switch( peek_query(state, c, &qkey, &p) )
+  { case Q_DONE:
+      if ( popn && pop_query_frame(state, c) )
+	goto stepped;
+      goto stop;
+    case Q_VAR:
+      if ( popn )
+	goto stop;
+      skip_query(c);
+      if ( functor )
+      { c->need = arityFunctor(skey);
+	c->open = 1;
+      }
+      goto stepped;
+    case Q_KEY:
+      if ( popn )
+	goto stop;
+      if ( tagex(skey) == TAG_VAR || skey == qkey )
+      { if ( functor )
+	  enter_query_compound(state, c, p);
+	else
+	  skip_query(c);
+	goto stepped;
+      }
+      DEBUG(MSG_TRIE_GEN, Sdprintf("Cut %s\n", print_val(skey, NULL)));
+      return false;
+  }
+
+stepped:
+  if ( concrete_ahead(state, c) )
+    return true;
+  DEBUG(MSG_TRIE_GEN, Sdprintf("No nonvar left after %s\n",
+			       print_val(skey, NULL)));
+stop:
+  DEBUG(MSG_TRIE_GEN,
+	Sdprintf("Stop pruning at %s\n", print_val(skey, NULL)));
+  c->prune = false;
+  return true;
+}
+
+
+/* Keep in `ch`, a choice that can advance, the cursor before its node:
+   restore_cursor() reads it when `ch` has advanced.  A choice with one
+   child keeps none. */
+
+static inline void
+keep_cursor(trie_gen_state *state, trie_choice *ch, const qcursor *c)
+{ if ( c->prune )
+  { ch->epoch  = state->epoch;
+    ch->frames = entriesBuffer(&state->frames, qframe);
+    ch->cursor = *c;
   }
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Walk a step down the trie, adding  a   node  to the choice stack. If the
-term we are walking is instantiated and   the trie node does not contain
-variables we walk deterministically. Once we have a variable in the term
-we unify against or find a variable in  the trie dstate->prune is set to
-false, indicating we must create a real choice.
+/* Push the choice for `node` and step the cursor over the key of the
+   child it takes first.  Returns NULL if no child can match.  With the
+   query bound here, a hash lookup finds the equal key and var_mask and
+   attvar_mask the variable ones; else the children are enumerated.
+   Time: one align_key() per child tried, all of them when enumerating. */
 
-If a known input value is matched against   a  trie choice node and this
-node contains variables we create a choice   from the value and variable
-mask such that  we  perform  a  couple   of  hash  lookups  rather  than
-enumerating the entire table.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define add_choice(state, dstate, node) \
-	LDFUNC(add_choice, state, dstate, node)
+#define add_choice(state, c, node) \
+	LDFUNC(add_choice, state, c, node)
 
 static trie_choice *
 add_choice(DECL_LD trie_gen_state *state,
-	   descent_state *dstate, trie_node *node)
+	   qcursor *c, trie_node *node)
 { trie_children children = node->children;
   trie_choice *ch;
-  bool has_key;
-  word k=0;
 
-  if ( dstate->prune )
-  { DEBUG(MSG_TRIE_GEN,
-	  if ( dstate->size > 0 )
-	  { Word p;
-	    deRef2(dstate->term, p);
-	    Sdprintf("add_choice() for %s\n", print_val(*p, NULL));
-	  });
-    if ( !(has_key = get_key(state, dstate, &k)) )
-      dstate->prune = false;
-  } else
-    has_key = false;
-
-  if ( children.any && isoff(node, state->vflags) )
-  { switch( children.any->type )
-    { case TN_KEY:
-	if ( !has_key ||
-	     k == children.key->key ||
-	     tagex(children.key->key) == TAG_VAR ||
-#if O_TRIE_ATTVAR
-	     tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC) ||
-#endif
-	     IS_TRIE_KEY_POP(children.key->key) )
-	{ word key = children.key->key;
-
-	  if ( tagex(children.key->key) == TAG_VAR
-#if O_TRIE_ATTVAR
-	       || tagex(children.key->key) == (TAG_ATTVAR|STG_STATIC)
-#endif
-	     )
-	    dstate->prune = false;
-
-	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	  ch->key        = key;
-	  ch->child      = children.key->child;
-	  ch->table_enum = NULL;
-	  ch->table      = NULL;
-
-	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
-	  { desc_tstate dts;
-
-	    if ( popSegStack(&dstate->stack, &dts, desc_tstate) )
-	    { dstate->term = dts.term;
-	      dstate->size = dts.size;
-	    } else	      /* Force a crash if we access these */
-	    { DEBUG(0,
-		    { dstate->term = NULL;
-		      dstate->size = (size_t)-1;
-		    });
-	    }
-	    DEBUG(MSG_TRIE_GEN,
-		  Sdprintf("Popped %p, left %zd\n",
-			   dstate->term, dstate->size));
-	  }
-	  break;
-	} else
-	{ DEBUG(MSG_TRIE_GEN, Sdprintf("Failed\n"));
-	  return NULL;
-	}
-      case TN_HASHED:
-      { if ( has_key )
-	{ unsigned vmask = children.hash->var_mask;
-	  unsigned amask = children.hash->attvar_mask;
-
-	  if ( !(vmask|amask) )
-	  { trie_node *child;
-
-	    if ( (child = lookupHTableWP(children.hash->table, k)) )
-	    { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	      ch->key        = k;
-	      ch->child	     = child;
-	      ch->table_enum = NULL;
-	      ch->table      = NULL;
-
-	      return ch;
-	    } else
-	      return NULL;
-	  } else if ( !((vmask|amask) & VMASK_SCAN) )
-	  { dstate->prune = false;
-
-	    DEBUG(MSG_TRIE_GEN,
-		  Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
-
-	    ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	    ch->table_enum = NULL;
-	    ch->table      = children.hash->table;
-	    ch->var_mask   = vmask;
-	    ch->attvar_mask = amask;
-	    ch->var_tag    = TAG_VAR;
-	    ch->var_index  = 1;
-	    ch->novar      = k;
-	    if ( advance_node(ch) )
-	    { return ch;
-	    } else
-	    { state->choicepoints.top = (char*)ch;
-	      ch--;
-	      return NULL;
-	    }
-	  }
-	}
-					/* general enumeration */
-	dstate->prune = false;
-	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	ch->table = NULL;
-	ch->table_enum = newTableEnumWP(children.hash->table);
-	table_key_t tk;
-	table_value_t tv;
-	if ( !advanceTableEnum(ch->table_enum, &tk, &tv) )
-	{ /* the root keeps its hashed children table after trie_delete/3
-	     removed its last key */
-	  freeTableEnum(ch->table_enum);
-	  state->choicepoints.top = (char*)ch;
-	  return NULL;
-	}
-	ch->key   = tk;
-	ch->child = val2ptr(tv);
-	break;
-      }
-      default:
-	assert(0);
-        return NULL;
-    }
-  } else
+  if ( !children.any || ison(node, state->vflags) )
   { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
     memset(ch, 0, sizeof(*ch));
     ch->child = node;
+    return ch;
   }
 
-  return ch;
+  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+  ch->table_enum = NULL;
+  ch->table      = NULL;
+  ch->cursor.prune = false;
+
+  switch( children.any->type )
+  { case TN_KEY:
+      if ( !align_key(state, c, children.key->key) )
+	break;
+      ch->key   = children.key->key;
+      ch->child = children.key->child;
+      return ch;
+    case TN_HASHED:
+    { trie_children_hashed *hnode = children.hash;
+      unsigned vmask = hnode->var_mask;
+      unsigned amask = hnode->attvar_mask;
+      word k = 0;
+      Word p;
+
+      if ( c->prune && !c->open &&
+	   peek_query(state, c, &k, &p) == Q_KEY &&
+	   !((vmask|amask) & VMASK_SCAN) )
+      { if ( !(vmask|amask) )
+	{ if ( !(ch->child = lookupHTableWP(hnode->table, k)) )
+	    break;
+	  ch->key = k;
+	} else
+	{ DEBUG(MSG_TRIE_GEN,
+		Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
+	  keep_cursor(state, ch, c);
+	  ch->table       = hnode->table;
+	  ch->var_mask    = vmask;
+	  ch->attvar_mask = amask;
+	  ch->var_tag     = TAG_VAR;
+	  ch->var_index   = 1;
+	  ch->novar       = k;
+	  if ( !advance_node(ch) )
+	    break;
+	}
+	(void)align_key(state, c, ch->key); /* k or a variable: no cut */
+	return ch;
+      }
+
+      /* A root keeps its hashed children table when trie_delete/3 prunes
+	 its last key (prune_node() destroys every other node that empties),
+	 so the enumeration may produce no child at all. */
+      keep_cursor(state, ch, c);
+      ch->table_enum = newTableEnumWP(hnode->table);
+      for(;;)
+      { table_key_t tk;
+	table_value_t tv;
+
+	if ( !advanceTableEnum(ch->table_enum, &tk, &tv) )
+	{ freeTableEnum(ch->table_enum);
+	  break;
+	}
+	if ( align_key(state, c, tk) )
+	{ ch->key   = tk;
+	  ch->child = val2ptr(tv);
+	  return ch;
+	}
+      }
+      break;
+    }
+    default:
+      assert(0);
+  }
+
+  state->choicepoints.top = (char*)ch;	/* no child can match */
+  return NULL;
 }
 
 
-#define descent_node(state, dstate, ch) \
-	LDFUNC(descent_node, state, dstate, ch)
+#define descent_node(state, c, ch) \
+	LDFUNC(descent_node, state, c, ch)
 
 static trie_choice *
 descent_node(DECL_LD trie_gen_state *state,
-	     descent_state *dstate, trie_choice *ch)
+	     qcursor *c, trie_choice *ch)
 { while( ch && ch->child->children.any &&
 	 isoff(ch->child, state->vflags) )
-  { ch = add_choice(state, dstate, ch->child);
+  { ch = add_choice(state, c, ch->child);
   }
 
   return ch;
@@ -2364,7 +2580,7 @@ descent_node(DECL_LD trie_gen_state *state,
    var choice the equal key, then each variable key var_mask names, then
    each attributed one attvar_mask names. */
 
-static bool
+static inline bool
 advance_node(DECL_LD trie_choice *ch)
 { if ( ch->table_enum )
   { table_key_t k;
@@ -2411,39 +2627,126 @@ advance_node(DECL_LD trie_choice *ch)
 }
 
 
-#define next_choice0(state, dstate) LDFUNC(next_choice0, state, dstate)
-static trie_choice *
-next_choice0(DECL_LD trie_gen_state *state, descent_state *dstate)
-{ trie_choice *btm = base_choice(state);
-  trie_choice  *ch = top_choice(state)-1;
+/* Set `c` to the cursor before the node of `upto`.  A choice made after
+   pruning stopped kept no cursor and gets one that does not prune, of
+   which nothing but `prune` is read.  A cursor kept in this epoch is
+   copied, and the frames pushed after it are dropped.  Otherwise the
+   cursor is rebuilt from the root by stepping the keys of the choices
+   beneath `upto`, which renews the kept
+   cursors of those choices too; as no choice above `upto` is left and
+   none beneath it was kept in this epoch, the frames start empty.  Key
+   has kept its shape since the choices were made unless nb_setarg/3
+   changed it; then pruning stops where the shapes disagree, and paths
+   cut before the change stay cut.
+   Time: O(1) in the epoch `upto` was kept in, else d align_key() steps,
+   d = upto - base_choice(state). */
 
-  while(ch >= btm)
-  { if ( advance_node(ch) )
-      return descent_node(state, dstate, ch);
+#define restore_cursor(state, upto, c) \
+	LDFUNC(restore_cursor, state, upto, c)
+
+static void
+restore_cursor(DECL_LD trie_gen_state *state, trie_choice *upto,
+	       qcursor *c)
+{ trie_choice *ch;
+
+  if ( !upto->cursor.prune )
+  { c->prune = false;
+    return;
+  }
+  if ( upto->epoch == state->epoch )
+  { drop_frames(state, upto->frames);
+    *c = upto->cursor;
+    return;
+  }
+
+  DEBUG(MSG_TRIE_GEN,
+	Sdprintf("trie_gen: replaying %zd keys\n",
+		 (size_t)(upto-base_choice(state))));
+  drop_frames(state, 0);
+  root_cursor(c, true);
+  for(ch = base_choice(state); ; ch++)
+  { ch->epoch  = state->epoch;
+    ch->frames = entriesBuffer(&state->frames, qframe);
+    ch->cursor = *c;
+    if ( ch == upto )
+      break;
+    if ( !align_key(state, c, ch->key) )
+      c->prune = false;
+  }
+}
+
+
+/* Backtrack to the next candidate leaf.  A descent that a cut ends below
+   the choice it advanced leaves its choices on the stack, so the walk
+   resumes from the top rather than below the advanced choice, and reads
+   the stack's bounds again because the descent may have reallocated it.
+   With `bound`, Key is bound to an answer, so the search stops at the
+   first choice it advances whose kept cursor prunes, sets state->resume
+   and returns that choice; the next call, with Key unbound again, goes
+   on from it.
+   Time: per choice advanced, restore_cursor() and the descent from its
+   child. */
+
+#define next_choice0(state, bound) LDFUNC(next_choice0, state, bound)
+
+static trie_choice *
+next_choice0(DECL_LD trie_gen_state *state, bool bound)
+{ trie_choice *btm = base_choice(state);
+  trie_choice *ch  = top_choice(state)-1;
+  bool advanced = state->resume;	/* ch was advanced by the last call */
+
+  assert(!(advanced && bound));
+  state->resume = false;
+  while( ch >= btm )
+  { if ( advanced || advance_node(ch) )
+    { qcursor before;
+
+      advanced = false;
+      if ( bound && ch->cursor.prune )	/* restoring it would read Key */
+      { state->resume = true;
+	return ch;
+      }
+      restore_cursor(state, ch, &before);
+      do
+      { qcursor c, *cp = &before;	/* only a pruning cursor changes */
+
+	if ( before.prune )
+	{ c  = before;
+	  cp = &c;
+	}
+	if ( align_key(state, cp, ch->key) )
+	{ trie_choice *leaf;
+
+	  if ( (leaf=descent_node(state, cp, ch)) )
+	    return leaf;
+	  btm = base_choice(state);
+	  ch  = top_choice(state)-1;
+	  goto next;
+	}
+      } while( advance_node(ch) );
+    }
 
     if ( ch->table_enum )
       freeTableEnum(ch->table_enum);
-
-    state->choicepoints.top = (char*)ch;
-    ch--;
+    state->choicepoints.top = (char*)ch--;
+  next:
+    ;
   }
 
   return NULL;
 }
 
 
-#define next_choice(state) LDFUNC(next_choice, state)
+#define next_choice(state, bound) LDFUNC(next_choice, state, bound)
 static trie_choice *
-next_choice(DECL_LD trie_gen_state *state)
+next_choice(DECL_LD trie_gen_state *state, bool bound)
 { trie_choice *ch;
-  descent_state dstate;
 
-  dstate.prune    = false;
-  dstate.compound = false;
-
+  if ( !bound )				/* else no kept cursor is read */
+    check_epoch(state);
   do
-  { ch = next_choice0(state, &dstate);
-  } while (ch && isoff(ch->child, state->vflags));
+  { ch = next_choice0(state, bound);
+  } while ( ch && !state->resume && isoff(ch->child, state->vflags) );
 
   return ch;
 }
@@ -2458,35 +2761,59 @@ gen_state_leaf(trie_gen_state *state)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unify term with the term represented a trie path (list of trie_choice).
+Unify term with the term represented by the keys of the choices on the
+stack, the candidate's path.
 Returns one of true, false or *_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define unify_trie_path(term, tn, gstate) \
-	LDFUNC(unify_trie_path, term, tn, gstate)
+#define unify_trie_path(term, state) \
+	LDFUNC(unify_trie_path, term, state)
 
 static boolex_t
-unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
-{ boolex_t rc;
+unify_trie_path(DECL_LD term_t term, trie_gen_state *state)
+{ boolex_t rc = true;
   ukey_state ustate;
-  trie_choice *ch = base_choice(gstate);
-  trie_choice *top = top_choice(gstate);
+  trie_choice *ch = base_choice(state);
+  trie_choice *top = top_choice(state);
 
-  init_ukey_state(&ustate, gstate->trie, valTermRef(term), false);
+  init_ukey_state(&ustate, state->trie, valTermRef(term), false);
   for( ; ch < top; ch++ )
   { if ( (rc=unify_key(&ustate, ch->key)) != true )
-    { destroy_ukey_state(&ustate);
-      return rc;
-    }
+      break;
   }
-
   destroy_ukey_state(&ustate);
-  *tn = ch[-1].child;
-  DEBUG(0, PL_check_data(term));
+  DEBUG(0, if ( rc == true ) PL_check_data(term));
 
-  return true;
+  return rc;
 }
 
+
+/* Move the contents of a buffer into a buffer at another address.  One
+   that still uses its static part is copied, as its base points into
+   the struct holding it; a larger one changes owner. */
+
+static void
+move_buffer(TmpBuffer to, TmpBuffer from)
+{ if ( from->base == from->static_buffer )
+  { size_t bytes = from->top - from->base;
+
+    initBuffer(to);
+    to->top = to->base + bytes;
+    memcpy(to->base, from->base, bytes);
+  } else
+  { to->base = from->base;
+    to->top  = from->top;
+    to->max  = from->max;
+  }
+}
+
+
+/* Enumerate the leaves below `root` whose path unifies with Key.  After
+   an answer, next_choice() positions the choice stack on the next
+   candidate, or stops at a pruning choice the redo goes on from; an
+   answer after which it finds neither leaves no choice point.
+   Time: per candidate, its path's unification and the next_choice()
+   that finds the candidate after it. */
 
 foreign_t
 trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
@@ -2496,30 +2823,22 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
 { PRED_LD
   trie_gen_state state_buf;
   trie_gen_state *state;
-  trie_node *n;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { trie_choice *ch;
-      descent_state dstate;
-      int rc;
+      qcursor c;
 
       TRIE_STAT_INC(trie, gen_call);
 
-      dstate.term     = valTermRef(Key);
-      dstate.size     = 1;
-      dstate.compound = false;
-      dstate.prune	  = true;
-      deRef(dstate.term);
-
       acquire_trie(trie);
       state = &state_buf;
-      init_trie_state(state, trie, root);
-      rc = ( (ch = add_choice(state, &dstate, root)) &&
-	     (ch = descent_node(state, &dstate, ch)) &&
-	     (ison(ch->child, state->vflags) || next_choice(state)) );
-      clear_descent_state(&dstate);
-      if ( !rc )
+      init_trie_state(state, trie, root, Key);
+      root_cursor(&c, true);
+      if ( (ch = add_choice(state, &c, root)) )
+	ch = descent_node(state, &c, ch);
+      if ( !(ch && ison(ch->child, state->vflags)) &&
+	   !next_choice(state, false) )
       { clear_trie_state(state);
 	return false;
       }
@@ -2527,13 +2846,12 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
     }
     case FRG_REDO:
       state = CTX_PTR;
-      if ( ison(gen_state_leaf(state), state->vflags) ||
-	   next_choice(state) )		/* pending choice was deleted */
-      { break;
-      } else
+      state->key = Key;			/* this activation's reference */
+      if ( state->resume && !next_choice(state, false) )
       { clear_trie_state(state);
 	return false;
       }
+      break;
     case FRG_CUTTED:
       state = CTX_PTR;
       clear_trie_state(state);
@@ -2544,12 +2862,19 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
   }
 
   Mark(fli_context->mark);
-  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
-  { for(;;)
+  while( !isEmptyBuffer(&state->choicepoints) )
+  { trie_node *n = gen_state_leaf(state);
+
+    if ( isoff(n, state->vflags) )	/* deleted after it was found */
+    { next_choice(state, false);
+      continue;
+    }
+
+    for(;;)
     { boolex_t rc;
       size_t asize = aTop - aBase; /* using the argument stack may be dubious */
 
-      if ( (rc=unify_trie_path(Key, &n, state)) == true )
+      if ( (rc=unify_trie_path(Key, state)) == true )
 	break;
 
       aTop = aBase+asize;
@@ -2568,25 +2893,20 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
 
     if ( (!Value || unify_value(Value, n->value)) &&
 	 (!Data  || LDFUNCP(*unify_data)(Data, n, ctx)) )
-    { if ( next_choice(state) )
+    { if ( next_choice(state, true) )	/* Key is bound to the answer */
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
-	  TmpBuffer nchp = &nstate->choicepoints;
-	  TmpBuffer ochp = &state->choicepoints;
 
 	  nstate->trie = state->trie;
 	  nstate->vflags = state->vflags;
 	  nstate->allocated = true;
-	  if ( ochp->base == ochp->static_buffer )
-	  { size_t bytes = ochp->top - ochp->base;
-	    initBuffer(nchp);
-	    nchp->top  = nchp->base + bytes;
-	    memcpy(nchp->base, ochp->base, bytes);
-	  } else
-	  { nchp->base = ochp->base;
-	    nchp->top  = ochp->top;
-	    nchp->max  = ochp->max;
-	  }
+	  nstate->epoch = state->epoch;
+	  nstate->gc_seen = state->gc_seen;
+	  nstate->gbase_seen = state->gbase_seen;
+	  nstate->key = state->key;
+	  nstate->resume = state->resume;
+	  move_buffer(&nstate->choicepoints, &state->choicepoints);
+	  move_buffer(&nstate->frames, &state->frames);
 
 	  state = nstate;
 	}
@@ -2599,7 +2919,8 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
     { Undo(fli_context->mark);
     }
 
-next:;
+  next:
+    next_choice(state, false);		/* Undo() unbound Key */
   }
 
   clear_trie_state(state);
