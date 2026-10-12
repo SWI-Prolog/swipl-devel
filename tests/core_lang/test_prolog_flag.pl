@@ -371,7 +371,9 @@ test(exception, Theme+Calls == t3+[broken-Me]) :-
     assertion(subsumes_term(error(broken_theme_hook, _), E)),
     current_prolog_flag(theme, Theme),
     hook_calls(Calls).
-test(thread, Calls == [t4-Id, t4-sol1, t4-sol2, t4-flag(t3)]) :-
+test(thread, [ condition(current_prolog_flag(threads, true)),
+               Calls == [t4-Id, t4-sol1, t4-sol2, t4-flag(t3)]
+             ]) :-
     set_prolog_flag(theme, t3),
     retractall(hook_called(_,_)),
     thread_create(set_prolog_flag(theme, t4), Id),
