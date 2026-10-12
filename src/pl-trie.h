@@ -64,6 +64,7 @@ typedef struct trie_children_hashed
 { tn_node_type	type;			/* TN_HASHED */
   TableWP	table;			/* Key --> child map */
   unsigned	var_mask;		/* Variables in this place */
+  unsigned	attvar_mask;		/* Attributed variables in this place */
   trie_children_key *old_single;	/* Old single node */
 } trie_children_hashed;
 

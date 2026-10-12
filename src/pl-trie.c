@@ -547,17 +547,17 @@ prune_trie(trie *trie, trie_node *root,
 
 static inline void
 update_var_mask(trie_children_hashed *hnode, word key)
-{ if ( tagex(key) == TAG_VAR )
-  { size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
-    unsigned mask;
+{ unsigned *maskp;
 
-    if ( vn < VMASKBITS )
-      mask = 0x1U<<(vn-1);
-    else
-      mask = VMASK_SCAN;
+  if ( tagex(key) == TAG_VAR )
+    maskp = &hnode->var_mask;
+  else if ( tagex(key) == (TAG_ATTVAR|STG_STATIC) )
+    maskp = &hnode->attvar_mask;
+  else
+    return;
 
-    ATOMIC_OR(&hnode->var_mask, mask);
-  }
+  size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
+  ATOMIC_OR(maskp, vn < VMASKBITS ? 0x1U<<(vn-1) : VMASK_SCAN);
 }
 
 
@@ -600,6 +600,7 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
 	    hnode->type     = TN_HASHED;
 	    hnode->table    = newHTableWP(4);
 	    hnode->var_mask = 0;
+	    hnode->attvar_mask = 0;
 	    addHTableWP(hnode->table, children.key->key, children.key->child);
 	    addHTableWP(hnode->table, key, new);
 	    update_var_mask(hnode, children.key->key);
@@ -2055,8 +2056,10 @@ unify_key(DECL_LD ukey_state *state, word key)
 typedef struct trie_choice
 { TableEnum  table_enum;
   TableWP    table;
-  unsigned   var_mask;
+  unsigned   var_mask;			/* variables left to try */
+  unsigned   attvar_mask;		/* attributed ones, tried next */
   unsigned   var_index;
+  word	     var_tag;			/* TAG_VAR or TAG_ATTVAR|STG_STATIC */
   word       novar;
   word       key;
   trie_node *child;
@@ -2271,7 +2274,10 @@ add_choice(DECL_LD trie_gen_state *state,
 	}
       case TN_HASHED:
       { if ( has_key )
-	{ if ( children.hash->var_mask == 0 )
+	{ unsigned vmask = children.hash->var_mask;
+	  unsigned amask = children.hash->attvar_mask;
+
+	  if ( !(vmask|amask) )
 	  { trie_node *child;
 
 	    if ( (child = lookupHTableWP(children.hash->table, k)) )
@@ -2284,16 +2290,18 @@ add_choice(DECL_LD trie_gen_state *state,
 	      return ch;
 	    } else
 	      return NULL;
-	  } else if ( children.hash->var_mask != VMASK_SCAN )
+	  } else if ( !((vmask|amask) & VMASK_SCAN) )
 	  { dstate->prune = false;
 
 	    DEBUG(MSG_TRIE_GEN,
-		  Sdprintf("Created var choice 0x%x\n", children.hash->var_mask));
+		  Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
 
 	    ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
 	    ch->table_enum = NULL;
 	    ch->table      = children.hash->table;
-	    ch->var_mask   = children.hash->var_mask;
+	    ch->var_mask   = vmask;
+	    ch->attvar_mask = amask;
+	    ch->var_tag    = TAG_VAR;
 	    ch->var_index  = 1;
 	    ch->novar      = k;
 	    if ( advance_node(ch) )
@@ -2346,6 +2354,10 @@ descent_node(DECL_LD trie_gen_state *state,
 }
 
 
+/* Move a choice to its next child: of an enumerated hashed node, or of a
+   var choice the equal key, then each variable key var_mask names, then
+   each attributed one attvar_mask names. */
+
 static bool
 advance_node(DECL_LD trie_choice *ch)
 { if ( ch->table_enum )
@@ -2360,22 +2372,32 @@ advance_node(DECL_LD trie_choice *ch)
     }
   } else if ( ch->table )
   { if ( ch->novar )
-    { if ( (ch->child=lookupHTableWP(ch->table, ch->novar)) )
-      { ch->key = ch->novar;
-	ch->novar = 0;
+    { word novar = ch->novar;
+
+      ch->novar = 0;
+      if ( (ch->child=lookupHTableWP(ch->table, novar)) )
+      { ch->key = novar;
 	return true;
       }
     }
-    for( ; ch->var_index && ch->var_index < VMASKBITS; ch->var_index++ )
-    { if ( (ch->var_mask & (0x1<<(ch->var_index-1))) )
-      { word key = ((((word)ch->var_index))<<LMASK_BITS)|TAG_VAR;
+    for(;;)
+    { for( ; ch->var_index && ch->var_index < VMASKBITS; ch->var_index++ )
+      { if ( (ch->var_mask & (0x1U<<(ch->var_index-1))) )
+	{ word key = ((((word)ch->var_index))<<LMASK_BITS)|ch->var_tag;
 
-	if ( (ch->child=lookupHTableWP(ch->table, key)) )
-	{ ch->key = key;
-	  ch->var_index++;
-	  return true;
+	  if ( (ch->child=lookupHTableWP(ch->table, key)) )
+	  { ch->key = key;
+	    ch->var_index++;
+	    return true;
+	  }
 	}
       }
+      if ( !ch->attvar_mask )
+	break;
+      ch->var_mask    = ch->attvar_mask;
+      ch->attvar_mask = 0;
+      ch->var_tag     = TAG_ATTVAR|STG_STATIC;
+      ch->var_index   = 1;
     }
   }
 
