@@ -4549,6 +4549,28 @@ always(DECL_LD atom_t val, const char *pred, Word arg, compileInfo *ci)
   return false;
 }
 
+/* As always(), for a test on the first occurrence of variable `i`.  If
+   the test is replaced by I_TRUE or I_FAIL we must still initialise the
+   variable, as code after a disjunction may assume the branch with the
+   test has set it.  This notably applies to a test inside \+.
+*/
+
+#define alwaysFirstVar(val, pred, arg, i, ci) \
+	LDFUNC(alwaysFirstVar, val, pred, arg, i, ci)
+
+static boolex_t
+alwaysFirstVar(DECL_LD atom_t val, const char *pred, Word arg, int i,
+	       compileInfo *ci)
+{ boolex_t rc;
+
+  if ( (rc=always(val, pred, arg, ci)) == true )
+  { isFirstVarSet(ci->used_var, i);
+    Output_1(ci, C_VAR, VAROFFSET(i));
+  }
+
+  return rc;
+}
+
 
 static boolex_t
 compileBodyVar1(DECL_LD Word arg, compileInfo *ci)
@@ -4565,7 +4587,7 @@ compileBodyVar1(DECL_LD Word arg, compileInfo *ci)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )				/* first var */
-      return always(ATOM_true, "var", a1, ci);
+      return alwaysFirstVar(ATOM_true, "var", a1, i1, ci);
 
     Output_1(ci, I_VAR, VAROFFSET(i1));
     return true;
@@ -4590,7 +4612,7 @@ compileBodyNonVar1(DECL_LD Word arg, compileInfo *ci)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-      return always(ATOM_false, "nonvar", a1, ci);
+      return alwaysFirstVar(ATOM_false, "nonvar", a1, i1, ci);
 
     Output_1(ci, I_NONVAR, VAROFFSET(i1));
     return true;
@@ -4619,15 +4641,7 @@ compileTypeTest(DECL_LD Word arg,
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { boolex_t rc;
-
-      if ( (rc=always(ATOM_false, name, a1, ci)) == true )
-      { isFirstVarSet(ci->used_var, i1);
-	Output_1(ci, C_VAR, VAROFFSET(i1));
-      }
-
-      return rc;
-    }
+      return alwaysFirstVar(ATOM_false, name, a1, i1, ci);
 
     Output_1(ci, instruction, VAROFFSET(i1));
     return true;

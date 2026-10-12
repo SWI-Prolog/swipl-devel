@@ -953,6 +953,25 @@ not5(A, B, C) :-
     ;   \+ ( nonvar(A), D == 2 )
     ),
     C = f(D).
+
+/* Same for var/1 and nonvar/1 on a fresh variable, which the optimiser
+   replaces by true or fail.
+*/
+
+:- push_prolog_flag(optimise, true).
+:- style_check(-no_effect).
+not6(A, B, C) :-
+    (   nonvar(A), A == xyz
+    ;   \+ ( nonvar(A), var(D) )
+    ),
+    C = f(D).
+not7(A, B, C) :-
+    (   nonvar(A), A == xyz
+    ;   \+ ( nonvar(A), nonvar(D) )
+    ),
+    C = f(D).
+:- style_check(+no_effect).
+:- pop_prolog_flag(optimise).
 :- style_check(+singleton).
 
 control(softcut-1) :-
@@ -992,6 +1011,16 @@ control(not-4) :-                       % idem for \==/2
 control(not-5) :-
     fill4(a, b, c, garbage),
     not5(_, _, C),
+    C = f(V),
+    var(V).
+control(not-6) :-                       % optimised var/1 inside \+
+    fill4(a, b, c, garbage),
+    not6(_, _, C),
+    C = f(V),
+    var(V).
+control(not-7) :-                       % optimised nonvar/1 inside \+
+    fill4(a, b, c, garbage),
+    not7(_, _, C),
     C = f(V),
     var(V).
 control(ifthen-1) :-                    % Must be the same
