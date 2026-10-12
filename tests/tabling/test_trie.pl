@@ -167,6 +167,42 @@ test(gen_compiled3_cycle, error(type_error(acyclic_term,_))) :-
 	X = f(X),
 	trie_insert(T, x, X),
 	forall(trie_gen_compiled(T, K, V), writeln(K-V)).
+test(update_compound_value, A1-B1 == 0-1) :-
+	fresh_atoms(A, B),
+	trie_new(T),
+	trie_update(T, k, [v(A)]),
+	trie_update(T, k, [v(B)]),
+	'$atom_references'(A, A1),
+	'$atom_references'(B, B1).
+test(update_compound_value_destroy, V-B1 == [v(B)]-0) :-
+	fresh_atoms(A, B),
+	trie_new(T),
+	trie_update(T, k, [v(A)]),
+	trie_update(T, k, [v(B)]),
+	trie_lookup(T, k, V),
+	trie_destroy(T),
+	'$atom_references'(B, B1).
+test(update_variant_value, V-A1 == [v(A)]-1) :-
+	fresh_atoms(A, _),
+	trie_new(T),
+	trie_update(T, k, [v(A)]),
+	trie_update(T, k, [v(A)]),
+	trie_lookup(T, k, V),
+	'$atom_references'(A, A1).
+test(insert_variant_value, fail) :-
+	trie_new(T),
+	trie_insert(T, k, f(a)),
+	trie_insert(T, k, f(a)).
+test(insert_other_value, V-A1-B1 == f(A)-1-0) :-
+	fresh_atoms(A, B),
+	trie_new(T),
+	trie_insert(T, k, f(A)),
+	catch(trie_insert(T, k, f(B)),
+	      error(permission_error(modify, trie_key, k), _),
+	      true),
+	trie_lookup(T, k, V),
+	'$atom_references'(A, A1),
+	'$atom_references'(B, B1).
 
 :- if(current_prolog_flag(bounded, false)).
 data(Big) :- Big is random(1<<200).
@@ -197,6 +233,15 @@ test_var(X, Y) :-
 	trie_insert(T, f(a, 2)),
 	trie_insert(T, f(b, 3)),
 	trie_gen(T, f(X, Y)).
+
+%!  fresh_atoms(-A, -B)
+%
+%   Two atoms made here, so that only what the test stores registers
+%   them.
+
+fresh_atoms(A, B) :-
+	gensym(trie_value_a_, A),
+	gensym(trie_value_b_, B).
 
 :- end_tests(trie).
 

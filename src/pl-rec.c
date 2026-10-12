@@ -758,10 +758,21 @@ compileTermToHeap_ex(DECL_LD term_t t,
 }
 
 
+/* True if r1 and r2 hold variant terms.  A record compiles its term to
+   a canonical code sequence, numbering variables by first occurrence,
+   so the terms are variants if the codes are equal.  The flags and
+   the reference count of a PL_record()ed term describe the record,
+   not the term, and are not compared.
+*/
+
 int
 variantRecords(const Record r1, const Record r2)
 { return ( r1->size == r2->size &&
-	   memcpy(r1, r2, r1->size) == 0
+	   SIZERECORD(r1->flags) == SIZERECORD(r2->flags) &&
+	   r1->gsize == r2->gsize &&
+	   r1->nvars == r2->nvars &&
+	   memcmp(dataRecord(r1), dataRecord(r2),
+		  r1->size - SIZERECORD(r1->flags)) == 0
 	 );
 }
 
