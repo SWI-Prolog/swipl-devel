@@ -4360,8 +4360,10 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
       }
     }
 
-    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    if ( f1 && isFirstVarSet(ci->used_var, i1) )
+      Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 && isFirstVarSet(ci->used_var, i2) )
+      Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -4371,7 +4373,8 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
   if ( i1 >= 0 && is_portable_constant(*a2) )	/* Var == const */
   { int f1 = isFirstVar(ci->used_var, i1);
 
-    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f1 && isFirstVarSet(ci->used_var, i1) )
+      Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
       PL_register_atom(word2atom(*a2));
@@ -4380,7 +4383,8 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
   { int f2 = isFirstVar(ci->used_var, i2);
 
-    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    if ( f2 && isFirstVarSet(ci->used_var, i2) )
+      Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
       PL_register_atom(word2atom(*a1));
@@ -4442,8 +4446,10 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
       }
     }
 
-    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
-    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    if ( f1 && isFirstVarSet(ci->used_var, i1) )
+      Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f2 && isFirstVarSet(ci->used_var, i2) )
+      Output_1(ci, C_VAR, VAROFFSET(i2));
 
     Output_2(ci, B_NEQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
@@ -4453,7 +4459,8 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
   if ( i1 >= 0 && is_portable_constant(*a2) )	/* Var == const */
   { int f1 = isFirstVar(ci->used_var, i1);
 
-    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    if ( f1 && isFirstVarSet(ci->used_var, i1) )
+      Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
       PL_register_atom(word2atom(*a2));
@@ -4462,10 +4469,11 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
   { int f2 = isFirstVar(ci->used_var, i2);
 
-    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    if ( f2 && isFirstVarSet(ci->used_var, i2) )
+      Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
-      PL_register_atom(word2atom(word2atom(*a1)));
+      PL_register_atom(word2atom(*a1));
     return true;
   }
 

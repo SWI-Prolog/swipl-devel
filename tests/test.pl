@@ -932,6 +932,29 @@ c4(3).
 p(f(a,d)).
 p(f(b,c)).
 
+/* ==/2 and \==/2 on a fresh variable inside \+ in a branch of ;/2.
+   fill4/4 leaves garbage in the local stack slots reused by notN/3.
+*/
+
+:- style_check(-singleton).
+fill4(_, _, _, _).
+not3(A, B, C) :-
+    (   fail -> true
+    ;   \+ ( nonvar(A), D == 1 )
+    ),
+    C = f(D).
+not4(A, B, C) :-
+    (   fail
+    ;   \+ ( nonvar(A), D \== 1 )
+    ),
+    C = f(D).
+not5(A, B, C) :-
+    (   nonvar(A), D \== 1
+    ;   \+ ( nonvar(A), D == 2 )
+    ),
+    C = f(D).
+:- style_check(+singleton).
+
 control(softcut-1) :-
     findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
@@ -956,6 +979,21 @@ control(not-2) :-                       % see comments with compileBody()
     (   fail
     ;   \+ A\=A
     ).
+control(not-3) :-                       % ==/2 inside \+ in branch of ;
+    fill4(a, b, c, garbage),
+    not3(_, _, C),
+    C = f(V),
+    var(V).
+control(not-4) :-                       % idem for \==/2
+    fill4(a, b, c, garbage),
+    not4(_, _, C),
+    C = f(V),
+    var(V).
+control(not-5) :-
+    fill4(a, b, c, garbage),
+    not5(_, _, C),
+    C = f(V),
+    var(V).
 control(ifthen-1) :-                    % Must be the same
     ( fail
     ; ((p(f(X,Y))->fail;true)->fail;true)
