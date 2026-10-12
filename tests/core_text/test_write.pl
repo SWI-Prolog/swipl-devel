@@ -226,6 +226,12 @@ test(variable_names, X = 'a(A,B)') :-
 test(variable_names) :-
 	write_term('', [numbervars(true), variable_names(['XN'=V])]),
 	V = 2.
+test(variable_names, X == 'a(X\U0001D431)') :-	% surrogate pair on Windows
+	with_output_to(
+	    atom(X),
+	    write_term(a(A), [variable_names(['X\U0001D431'=A]), quoted(true)])).
+test(variable_names, X == 'X\U0001D431') :-
+	with_output_to(atom(X), print('$VAR'('X\U0001D431'))).
 
 
 :- end_tests(write_variable_names).
@@ -244,6 +250,10 @@ test(nan) :-
 	atom_number(F, Float),
 	abs(Float) >= 1,
 	abs(Float) < 2.
+test(float_format_non_bmp, X == 'x mod \U0001D4311.5') :-
+	with_output_to(
+	    atom(X),
+	    write_term(x mod 1.5, [float_format('\U0001D431~w')])).
 
 :- end_tests(write_float).
 

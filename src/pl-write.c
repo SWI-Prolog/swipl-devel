@@ -240,15 +240,16 @@ atomIsVarName(atom_t a, int prefix)
   if ( !get_atom_text(a, &txt) || txt.length == 0 )
     return false;
 
-  int c0 = text_get_char(&txt, 0);
+  size_t i = 0;				/* see text_next_code() */
+  int c0 = text_next_code(&txt, &i);
   if ( prefix )
   { if ( c0 != prefix || (prefix != '_' && txt.length == 1) )
       return false;
   } else if ( !f_is_prolog_var_start(c0) )
     return false;
 
-  for(size_t i=1; i<txt.length; i++)
-  { if ( !f_is_prolog_identifier_continue(text_get_char(&txt, i)) )
+  while(i<txt.length)
+  { if ( !f_is_prolog_identifier_continue(text_next_code(&txt, &i)) )
       return false;
   }
 
@@ -264,7 +265,8 @@ atomIsAnyVarName(atom_t a)
   if ( atomIsVarName(a, 0) )
     return true;
   if ( get_atom_text(a, &txt) && txt.length > 1 )
-  { int c0 = text_get_char(&txt, 0);
+  { size_t i = 0;
+    int c0 = text_next_code(&txt, &i);
 
     return c0 < 0x80 && f_is_prolog_symbol(c0) && atomIsVarName(a, c0);
   }
@@ -1775,8 +1777,9 @@ separate_number(IOSTREAM *s, Number n, PL_chars_t *fmt)
 { int c;
 
   if ( fmt->length > 0 )
-    c = text_get_char(fmt, 0);
-  else
+  { size_t i = 0;
+    c = text_next_code(fmt, &i);
+  } else
     c = -1;
 
   if ( !(c >= 0 && c != '~') )
