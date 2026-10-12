@@ -36,6 +36,7 @@
 
 #ifndef PL_TEXT_H_INCLUDED
 #define PL_TEXT_H_INCLUDED
+#include "pl-utf8.h"
 
 typedef enum
 { PL_CHARS_VIRGIN = 0,			/* not initialised */
@@ -84,6 +85,9 @@ typedef struct
 bool	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
 bool	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
+bool	PL_unify_text_units(term_t term, const PL_chars_t *text,
+			    size_t from, size_t len, int type);
+size_t	PL_text_unit_offset(const PL_chars_t *text, size_t index);
 
 bool	PL_promote_text(PL_chars_t *text);
 bool	PL_mb_text(PL_chars_t *text, int flags);
@@ -136,6 +140,53 @@ text_get_char(const PL_chars_t *t, size_t i)
 }
 
 
+/* Offsets in a text are in units: bytes for ENC_ISO_LATIN_1 and wchar_t
+ * for ENC_WCHAR.  If wchar_t is 16 bits (Windows), a code point above
+ * 0xffff takes two units, a UTF-16 surrogate pair.  text_get_char()
+ * returns the unit at an offset.  text_next_code() and text_prev_code()
+ * return the code point at or before the unit offset *ip and move *ip
+ * past it.
+ */
+
+static inline int
+text_next_code(const PL_chars_t *t, size_t *ip)
+{ size_t i = (*ip)++;
+
+  assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+    return t->text.t[i]&0xff;
+
+  int c = t->text.w[i];
+#if SIZEOF_WCHAR_T == 2
+  if ( IS_UTF16_LEAD(c) && i+1 < t->length &&
+       IS_UTF16_TRAIL(t->text.w[i+1]) )
+  { c = utf16_decode(c, t->text.w[i+1]);
+    (*ip)++;
+  }
+#endif
+  return c;
+}
+
+static inline int
+text_prev_code(const PL_chars_t *t, size_t *ip)
+{ size_t i = --(*ip);
+
+  assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+    return t->text.t[i]&0xff;
+
+  int c = t->text.w[i];
+#if SIZEOF_WCHAR_T == 2
+  if ( IS_UTF16_TRAIL(c) && i > 0 && IS_UTF16_LEAD(t->text.w[i-1]) )
+  { c = utf16_decode(t->text.w[i-1], c);
+    (*ip)--;
+  }
+#endif
+  return c;
+}
+
+/* Unit offset of the code point chr in t or (size_t)-1 */
+
 static inline size_t
 text_chr(const PL_chars_t *t, int chr)
 { assert(t->canonical);
@@ -146,7 +197,23 @@ text_chr(const PL_chars_t *t, int chr)
 	return e-t->text.t;
     }
   } else
-  { wchar_t *e = wcschr(t->text.w, chr);
+  {
+#if SIZEOF_WCHAR_T == 2
+    if ( chr > 0xffff )			/* find the surrogate pair */
+    { wchar_t pair[3];
+      int l, tr;
+
+      utf16_encode(chr, &l, &tr);
+      pair[0] = (wchar_t)l;
+      pair[1] = (wchar_t)tr;
+      pair[2] = 0;
+      wchar_t *e = wcsstr(t->text.w, pair);
+      if ( e )
+	return(e-t->text.w);
+      return (size_t)-1;
+    }
+#endif
+    wchar_t *e = wcschr(t->text.w, chr);
     if ( e )
       return(e-t->text.w);
   }

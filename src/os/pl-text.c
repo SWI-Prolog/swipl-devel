@@ -793,6 +793,14 @@ PL_seek_text_rev(const PL_chars_t *t, size_t offset)
 }
 
 
+static bool unify_text_between(term_t term, const PL_chars_t *text,
+			       const void *as, const void *ae, int type);
+
+/* PL_unify_text_range() unifies term with len code points of text,
+ * starting at code point offset.  PL_unify_text_units() does the same
+ * using units (see text_next_code()).
+ */
+
 bool
 PL_unify_text_range(term_t term, const PL_chars_t *text,
 		    size_t offset, size_t len, int type)
@@ -803,6 +811,48 @@ PL_unify_text_range(term_t term, const PL_chars_t *text,
 
   if ( !as || !ae )
     return false;			/* offset > length */
+
+  return unify_text_between(term, text, as, ae, type);
+}
+
+bool
+PL_unify_text_units(term_t term, const PL_chars_t *text,
+		    size_t offset, size_t len, int type)
+{ assert(text->canonical);
+
+  if ( offset+len > text->length )
+    return false;
+
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+    return unify_text_between(term, text, &text->text.t[offset],
+			      &text->text.t[offset+len], type);
+  else
+    return unify_text_between(term, text, &text->text.w[offset],
+			      &text->text.w[offset+len], type);
+}
+
+/* The unit offset of the code point at index in text, or (size_t)-1 if
+ * index is beyond the end.  index may be the length of the text.
+ */
+
+size_t
+PL_text_unit_offset(const PL_chars_t *text, size_t index)
+{ const void *p = PL_seek_text(text, index);
+
+  if ( !p )
+    return (size_t)-1;
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+    return (const char*)p - text->text.t;
+  else
+    return (const wchar_t*)p - text->text.w;
+}
+
+static bool
+unify_text_between(term_t term, const PL_chars_t *text,
+		   const void *as, const void *ae, int type)
+{ size_t len = ( text->encoding == ENC_ISO_LATIN_1
+		   ? (size_t)((const char*)ae - (const char*)as)
+		   : (size_t)((const wchar_t*)ae - (const wchar_t*)as) );
 
   if ( len == 1 && type == PL_ATOM && ae > as )
   { GET_LD

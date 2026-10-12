@@ -83,6 +83,25 @@ test(split_string, L == ["SWI-Prolog"]) :-
 	split_string("  SWI-Prolog  ", "", "\s\t\n", L).
 test(split_string, L == [""]) :-
 	split_string(" ", "", " ", L).
+% Code points above 0xffff are a surrogate pair on Windows
+test(split_string, L == ["a", "\U0001F4D6", "sum"]) :-
+	split_string("a\t\U0001F4D6\tsum", "\t", "", L).
+test(split_string, L == ["a", "b"]) :-
+	split_string("a\U0001F4D6b", "\U0001F4D6", "", L).
+test(split_string, L == ["a", "b"]) :-
+	split_string("\U0001F4D6a\U0001F4D6,b\U0001F4D6", ",", "\U0001F4D6", L).
+test(string_code, C == 0'x) :-
+	string_code(2, "\U0001F4D6x", C).
+test(string_code, I-C == 1-0x1F4D6) :-
+	string_code(I, "\U0001F4D6x", C), !.
+test(string_code, all(I == [2, 4])) :-
+	string_code(I, "\U0001F4D6x\U0001F4D6x", 0'x).
+test(string_code, all(I-C == [1-0x1F4D6, 2-0'x])) :-
+	string_code(I, "\U0001F4D6x", C).
+test(get_string_code, C == 0'x) :-
+	get_string_code(2, "\U0001F4D6x", C).
+test(get_string_code, error(domain_error(range(1,2), 3))) :-
+	get_string_code(3, "\U0001F4D6x", _).
 test(string_lower, L == "abc") :-
 	string_lower("aBc", L).
 test(string_upper, L == "ABC") :-
