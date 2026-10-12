@@ -108,5 +108,10 @@ test(column_tab, S == "ab\tc           x") :-
     format(string(S), 'ab\tc~t~20|x', []).
 test(column_wide, S == "中中      x") :-
     format(string(S), '~w~t~10|x', ['中中']).
+					% above 0xffff: a surrogate pair on Windows
+test(non_bmp, S == "\U0001D4311") :-
+    format(string(S), '\U0001D431~w', [1]).
+test(non_bmp_fill, S == "\U0001D431\U0001D431x") :-
+    format(string(S), '~`\U0001D431t~2|x', []).
 
 :- end_tests(format).

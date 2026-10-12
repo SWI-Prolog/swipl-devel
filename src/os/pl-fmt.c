@@ -64,7 +64,7 @@ typedef foreign_t (*Func1)(term_t a1);
 struct rubber
 { size_t where;				/* where is rubber in output */
   size_t size;				/* how big should it be */
-  pl_wchar_t pad;			/* padding character */
+  int pad;				/* padding character (code point) */
 };
 
 typedef struct
@@ -581,8 +581,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	    AR_END();
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
-	  { arg = get_chr_from_text(fmt, ++here);
-	    c = get_chr_from_text(fmt, ++here);
+	  { size_t u = ++here;		/* may be a surrogate pair */
+
+	    arg = text_next_code(fmt, &u);
+	    here = (unsigned int)u;
+	    c = get_chr_from_text(fmt, here);
 	  }
 
 	  if ( c == ':' )
@@ -918,8 +921,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  state.rub[state.pending_rubber].where = state.buffered;
 		  state.rub[state.pending_rubber].pad   =
-					(arg == DEFAULT ? (pl_wchar_t)' '
-							: (pl_wchar_t)arg);
+					(arg == DEFAULT ? ' ' : arg);
 		  state.rub[state.pending_rubber].size = 0;
 		  state.pending_rubber++;
 		  here++;
@@ -989,10 +991,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	  break;			/* the '~' switch */
 	}
       default:
-	{ rc = outchr(&state, c);
+	{ size_t u = here;		/* may be a surrogate pair */
+
+	  rc = outchr(&state, text_next_code(fmt, &u));
 	  if ( !rc )
 	    goto out;
-	  here++;
+	  here = (unsigned int)u;
 	  break;
 	}
     }
