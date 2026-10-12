@@ -4813,8 +4813,12 @@ trie_gen_compiled/2.
 
     \predicate[nondet]{trie_gen}{3}{+Trie, ?Key, -Value}
 True when \arg{Key} is associated with \arg{Value} in \arg{Trie}.
-Backtracking retrieves all pairs. Currently scans the entire
-trie, even if \arg{Key} is partly known.  Currently unsafe if \arg{Trie}
+Backtracking retrieves all pairs.  The walk skips the paths of the trie
+whose functors and constants differ from those of \arg{Key} at the same
+place, also after a variable in \arg{Key} or in the trie, so the cost of
+a partly known \arg{Key} depends on the number of matching paths rather
+than on the size of the trie.  Below a stored attributed variable all
+paths are visited.  Currently unsafe if \arg{Trie}
 is modified while the values are being enumerated.  See also
 trie_gen_compiled/3.
 
