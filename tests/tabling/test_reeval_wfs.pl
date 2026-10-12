@@ -51,7 +51,8 @@ conditional although Table was re-evaluated to definitely false.
 */
 
 test_reeval_wfs :-
-    run_tests([ reeval_wfs
+    run_tests([ reeval_wfs,
+                reeval_wfs_stale
               ]).
 
 :- begin_tests(reeval_wfs).
@@ -116,3 +117,44 @@ test(truth_values, Truths == [ q(1)-true,      q(2)-undefined, q(3)-true,
     incremental_vs_fresh([blk(1), blk(3)], Truths, _).
 
 :- end_tests(reeval_wfs).
+
+%  Issue #1545: during re-evaluation, answers of the previous evaluation
+%  that are not re-derived stay in the trie until the component is
+%  complete.  They must not prevent deciding tnot/1 on a table that
+%  re-evaluated to having no answers.
+
+:- begin_tests(reeval_wfs_stale).
+
+:- dynamic base/1 as incremental.
+:- table (a/0, b/0) as incremental.
+
+a :- tnot(b).
+b :- a, b.
+b :- base(b).
+
+truth(Goal, Truth) :-
+    findall(Delays, call_delays(Goal, Delays), List),
+    (   memberchk(true, List)
+    ->  Truth = true
+    ;   List == []
+    ->  Truth = false
+    ;   Truth = undefined
+    ).
+
+test(retract, [A0-B0 == false-true, A1-B1 == true-false]) :-
+    abolish_all_tables,
+    retractall(base(_)),
+    assertz(base(b)),
+    truth(a, A0), truth(b, B0),
+    retract(base(b)),
+    truth(a, A1), truth(b, B1).
+test(residual, Program == []) :-
+    abolish_all_tables,
+    retractall(base(_)),
+    assertz(base(b)),
+    forall(a, true),
+    retract(base(b)),
+    call_delays(a, Delays),
+    delays_residual_program(Delays, Program).
+
+:- end_tests(reeval_wfs_stale).

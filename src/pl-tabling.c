@@ -1808,6 +1808,37 @@ simplify_answer(worklist *wl, trie_node *answer, int truth)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+True if the answer table has no answers.  While re-evaluating, answers of
+the previous evaluation that have not (yet) been re-derived are still in
+the trie, marked TN_IDG_DELETED.  reeval_complete() removes them after the
+component is simplified, so they must not count here.  Otherwise answers
+delaying on tnot(this) remain conditional.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void *
+live_answer_node(trie_node *n, void *ctx)
+{ (void)ctx;
+
+  if ( n->value && isoff(n, TN_IDG_DELETED) )
+    return n;
+
+  return NULL;
+}
+
+static bool
+table_has_no_answers(trie *atrie)
+{ idg_node *n;
+
+  if ( atrie->value_count == 0 )
+    return true;
+  if ( (n=atrie->data.IDG) && n->reevaluating )
+    return !map_trie_node(&atrie->root, live_answer_node, NULL);
+
+  return false;
+}
+
+
 static int
 simplify_component(tbl_component *scc)
 { spf_agenda agenda;
@@ -1843,8 +1874,8 @@ simplify_component(tbl_component *scc)
 
       if ( wl->negative &&
 	   wl->neg_delayed &&
-	   wl->table->value_count == 0 &&
-	   !isEmptyBuffer(&wl->delays) )
+	   !isEmptyBuffer(&wl->delays) &&
+	   table_has_no_answers(wl->table) )
       { DEBUG(MSG_TABLING_SIMPLIFY,
 	      { GET_LD
 		term_t t = PL_new_term_ref();
