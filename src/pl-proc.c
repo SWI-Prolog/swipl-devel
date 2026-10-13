@@ -1931,8 +1931,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
 	def->impl.clauses.erased_clauses++;
 	if ( isoff(cl, UNIT_CLAUSE) )
 	  def->impl.clauses.number_of_rules--;
-	if ( ison(def, P_DYNAMIC) )
-	  deleteActiveClauseFromIndexes(def, cl);
+	deleteActiveClauseFromIndexes(def, cl);
 	registerRetracted(cl);
 	int rc = clearBreakPointsClause(cl);
 	(void)rc;			/* in delayEvents(), so cannot fail */

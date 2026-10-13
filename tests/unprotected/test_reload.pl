@@ -107,6 +107,13 @@ test(del_clause_z, all(X == [a,b])) :-
     reload(del_clause_z, 1),
     reload(del_clause_z, 2),
     del_clause_z:p1(X).
+test(del_clause_indexed, [P == [], Q == []]) :-
+    reload(del_clause_indexed, 1),
+    forall(del_clause_indexed:p(b), true),      % create JIT indexes
+    forall(del_clause_indexed:q([b]), true),
+    reload(del_clause_indexed, 2),
+    findall(x, del_clause_indexed:p(a), P),
+    findall(x, del_clause_indexed:q([a]), Q).
 test(replace_clause, all(X == [b])) :-
     reload(replace_clause, 1),
     reload(replace_clause, 2),
