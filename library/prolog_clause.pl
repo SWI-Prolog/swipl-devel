@@ -752,6 +752,12 @@ ubody(A is B - C, A is B + C2, _, Pos, Pos) :-
     integer(C),
     C2 =:= -C,
     !.
+ubody(A is I + B, A is B + I2, _,       % Var is Int + Var --> Var is Var + Int
+      term_position(F,T,FF,TT,[PA,term_position(F1,T1,FF1,TT1,[PI,PB])]),
+      term_position(F,T,FF,TT,[PA,term_position(F1,T1,FF1,TT1,[PB,PI])])) :-
+    integer(I),
+    I2 == I,
+    !.
 
 ubody_list([], [], [], _, [], []).
 ubody_list([G0|T0], [G|T], [AS|ASL], M, [PA0|PAT0], [PA|PAT]) :-
