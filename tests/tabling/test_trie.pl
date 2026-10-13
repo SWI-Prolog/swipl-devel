@@ -140,6 +140,15 @@ test(delete_all, Keys-Again == []-[aap]) :-
 	findall(K, trie_gen(T, K, _), Keys),
 	trie_insert(T, aap, a),
 	findall(K, trie_gen(T, K, _), Again).
+test(delete_all_var, Keys == []) :-
+	trie_new(T),
+	trie_insert(T, _, v),
+	trie_insert(T, aap, a),
+	trie_insert(T, noot, n),
+	trie_delete(T, _, _),
+	trie_delete(T, aap, _),
+	trie_delete(T, noot, _),
+	findall(K, trie_gen(T, K, _), Keys).
 test(gen_indirect, true) :-
 	trie_new(T),
 	trie_insert(T, 0.25, true),
@@ -202,6 +211,12 @@ test(insert_variant_value, fail) :-
 	trie_new(T),
 	trie_insert(T, k, f(a)),
 	trie_insert(T, k, f(a)).
+test(update_value_cycle, Refs == [0,0,0,1]) :-
+	fresh_atoms(A, B),
+	fresh_atoms(C, D),
+	trie_new(T),
+	forall(member(X, [A,B,C,A,B,C,D]), trie_update(T, k, f(X))),
+	maplist('$atom_references', [A,B,C,D], Refs).
 test(insert_other_value, V-A1-B1 == f(A)-1-0) :-
 	fresh_atoms(A, B),
 	trie_new(T),
