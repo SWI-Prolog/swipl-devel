@@ -241,6 +241,12 @@ pa(_, x).
 ix1386(real,    (-1.0e+16, 1.0e+16)).
 ix1386(boolean, (0, 1)).
 
+term_expansion(bintree(Depth), Clauses) :-
+    Max is 2^Depth-1,
+    findall(bintree(P, I), (between(2, Max, I), P is I//2), Clauses).
+
+bintree(10).                            % bintree(Parent, Child)
+
 test(x) :-				% must use S_LIST
     x(_,_,_,_,[]).
 test(a) :-				% must use S_LIST (test H_VOID_N)
@@ -259,6 +265,14 @@ test(m) :-				% may not use S_LIST (test mode/1)
     !.
 test(pa) :-                             % primary index should be on arg 2
     pa(_,y).
+test(bintree, Realised == [1]) :-     % arg 1 is a candidate if arg 2 is
+    bintree(100, X), !,                 % a better one
+    assertion(X == 200),
+    predicate_property(bintree(_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.arguments = [A]
+               ), Realised).
 test(ix1386) :-                         % Issue #1386: primary must win over
     call_cleanup(ix1386(real, (_,_)),   % a shallow-useless deep list index
                  Det=true),

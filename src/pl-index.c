@@ -3342,29 +3342,34 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
     return true;
   }
 
-  if ( nassessments >= 2 )	/* Add least two candidates */
-  { int f=0, t=nassessments;
-    iarg_t ia[MAX_MULTI_INDEX] = {0};
+  /* Assess combinations of two of the remaining arguments.  If there
+   * are too many, only combine the middle ones as these are the most
+   * promising.  We need at least two for a combination.
+   */
+  assessment_set aset;
+  init_assessment_set(&aset);
+  hash_assessment **alist = NULL;
+  hash_assessment **ap = NULL;
 
-    for(;;)			/* If far too many, take the middle ones */
-    { int l1 = t-f;		/* as these are the most promising */
+  int f=0, t=nassessments;
+  for(;;)
+  { int l1 = t-f;
 
-      if ( l1 < 2 )
-      { *nphints = nhints;
-	return true;
-      }
-      l1--;
-      if ( l1*l1 > max_hints-nhints )
-      { if ( f%2 == 0 )
-	  f++;
-	else
-	  t--;
-      } else
-	break;
-    }
+    if ( l1 < 2 )
+      break;
+    l1--;
+    if ( l1*l1 > max_hints-nhints )
+    { if ( f%2 == 0 )
+	f++;
+      else
+	t--;
+    } else
+      break;
+  }
 
-    assessment_set aset;
-    init_assessment_set(&aset);
+  if ( t-f >= 2 )
+  { iarg_t ia[MAX_MULTI_INDEX] = {0};
+
     for(int m=f+1; m<t; m++)
     { ia[1] = assessments[m]+1;
       for(int n=f; n<m; n++)
@@ -3373,8 +3378,8 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
       }
     }
     assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
-    hash_assessment **alist = alloca(sizeof(*alist)*aset.count);
-    hash_assessment **ap = alist;
+    alist = alloca(sizeof(*alist)*aset.count);
+    ap = alist;
     for(int i=0; i<aset.count; i++)
     { bool poor = false;
       hash_assessment *a = aset.assessments+i;
@@ -3391,37 +3396,43 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
 	*ap++ = a;
     }
     qsort(alist, ap-alist, sizeof(*alist), cmp_assessment);
+  }
 
-    /* merge single and multiple argument indexes by speedup */
-    hash_assessment **a = alist;
-    int single = 0;
-    while( nhints < max_hints )
-    { if ( single < nassessments )
-      { iarg_t si = assessments[single];
+  /* Merge the remaining single argument indexes and the combinations by
+   * speedup.  This must also be done if there is only one remaining
+   * single argument index.
+   */
+  hash_assessment **a = alist;
+  int single = 0;
+  while( nhints < max_hints )
+  { if ( single < nassessments )
+    { iarg_t si = assessments[single];
 				/* skip the primary index */
-	if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
-	     clist->primary_index == si )
-	{ single++;
-	  continue;
-	}
-	const arg_info *ai = &clist->args[si];
-	if ( a < ap )
-	{ if ( (*a)->speedup > ai->speedup )
-	  { cp_hints_from_assessment(&hints[nhints++], *a++);
-	  } else
-	  { cp_hints_from_arg_info(&hints[nhints++], si, ai);
-	    single++;
-	  }
+      if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
+	   clist->primary_index == si )
+      { single++;
+	continue;
+      }
+      const arg_info *ai = &clist->args[si];
+      if ( a < ap )
+      { if ( (*a)->speedup > ai->speedup )
+	{ cp_hints_from_assessment(&hints[nhints++], *a++);
 	} else
 	{ cp_hints_from_arg_info(&hints[nhints++], si, ai);
 	  single++;
 	}
-      } else if ( a < ap )
-      { cp_hints_from_assessment(&hints[nhints++], *a++);
       } else
-	break;
-    }
+      { cp_hints_from_arg_info(&hints[nhints++], si, ai);
+	single++;
+      }
+    } else if ( a < ap )
+    { cp_hints_from_assessment(&hints[nhints++], *a++);
+    } else
+      break;
   }
+
+  free_keys_in_assessment_set(&aset);
+  free_assessment_set(&aset);
 
   *nphints = nhints;
   return true;
