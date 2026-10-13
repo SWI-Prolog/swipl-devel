@@ -808,12 +808,52 @@ mkconj(Conj, M, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
     !,
     mkconj(A, M, PA, GL, TGA, PL, TPA),
     mkconj(B, M, PB, TGA, TG, TPA, TP).
+mkconj(A0, M, P0, GL, TG, PL, TP) :-
+    is_dict_eval(A0),
+    GL = [G1|_],
+    is_dict_eval(G1),
+    !,
+    (   term_variables(GL, RVars),
+        length(RVars, NRVars),
+        select_dict_eval(GL, PL, A, P, TG, TP),
+        ubody(A, A0, M, P, P0),
+        term_variables(GL, RVars1),
+        length(RVars1, NRVars)          % did not alias read variables
+    ;   skip_optimized(GL, PL, GL1, PL1),
+        mkconj(A0, M, P0, GL1, TG, PL1, TP)
+    ).
 mkconj(A0, M, P0, [A|TG], TG, [P|TP], TP) :-
     ubody(A, A0, M, P, P0),
     !.
-mkconj(A0, M, P0, [RG|TG0], TG, [_|TP0], TP) :-
-    maybe_optimized(RG),
-    mkconj(A0, M, P0, TG0, TG, TP0, TP).
+mkconj(A0, M, P0, GL, TG, PL, TP) :-
+    skip_optimized(GL, PL, GL1, PL1),
+    mkconj(A0, M, P0, GL1, TG, PL1, TP).
+
+%   The order of the '.'/3 calls  produced  by functional notation on
+%   dicts depends on goal expansion. For example, library(apply_macros)
+%   reorders the arguments of maplist/N.  Allow the decompiled
+%   '.'/3 goal to match any goal in the leading run of '.'/3 calls.
+
+is_dict_eval(G) :-
+    nonvar(G),
+    G = '.'(_,_,_).
+
+select_dict_eval([G|GT], [P|PT], G, P, GT, PT).
+select_dict_eval([G0|GT0], [P0|PT0], G, P, [G0|GT], [P0|PT]) :-
+    GT0 = [G1|_],
+    is_dict_eval(G1),
+    select_dict_eval(GT0, PT0, G, P, GT, PT).
+
+%!  skip_optimized(+GoalList, +PosList, -GoalList1, -PosList1)
+%
+%   Skip a goal that may be removed by the compiler,  including the
+%   '.'/3 calls that evaluate dicts in its arguments.
+
+skip_optimized([G|GT], [_|PT], GT, PT) :-
+    maybe_optimized(G).
+skip_optimized([G|GT], [_|PT], GL, PL) :-
+    is_dict_eval(G),
+    skip_optimized(GT, PT, GL, PL).
 
 maybe_optimized(debug(_,_,_)).
 maybe_optimized(assertion(_)).
