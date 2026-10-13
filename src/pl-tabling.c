@@ -5229,7 +5229,9 @@ tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
 
   get_closure_predicate(closure, &def);
 
-  if ( (atrie=get_answer_table(def, variant, ret, &clref, flags)) )
+					/* moded tabling needs the trie */
+  if ( (atrie=get_answer_table(def, variant, ret,
+			       (flags&AT_MODED) ? NULL : &clref, flags)) )
   { if ( !idg_init_variant(atrie, def, variant)  ||
 	 !idg_add_edge(atrie, NULL) )
       return false;

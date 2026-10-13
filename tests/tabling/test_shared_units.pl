@@ -47,7 +47,8 @@
 :- use_module(library(time)).
 
 test_shared_units :-
-    run_tests([ shared_reeval
+    run_tests([ shared_reeval,
+                shared_moded
               ]).
 
 :- begin_tests(shared_reeval,
@@ -76,6 +77,28 @@ test(propagate_falsecount) :-
     thread_join(Id).
 
 :- end_tests(shared_reeval).
+
+:- begin_tests(shared_moded,
+               [ condition(current_prolog_flag(threads, true)),
+                 cleanup(abolish_all_tables)
+               ]).
+
+:- table mx(_,max) as shared.
+
+mx(a, 1).
+mx(a, 3).
+mx(a, 2).
+
+test(complete, Xs == [3]) :-              % 2nd call uses complete table
+    findall(X, mx(a, X), _),
+    findall(X, mx(a, X), Xs).
+test(complete_thread, Xs == [3]) :-
+    findall(X, mx(a, X), _),
+    thread_create(findall(X, mx(a, X), Xs), Id),
+    thread_join(Id, true),
+    findall(X, mx(a, X), Xs).
+
+:- end_tests(shared_moded).
 
 :- else.                                % no library(time) or no threads.
 
