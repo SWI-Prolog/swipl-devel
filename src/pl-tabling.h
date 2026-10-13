@@ -108,7 +108,7 @@ typedef struct cluster
   struct cluster *next;
   struct cluster *prev;
   buffer members;
-  struct sindex_table *sindex;		/* Suspensions by one argument key */
+  struct sindex_table *sindex;		/* Suspensions by key paths, or NULL */
   size_t sindex_tried;			/* Size at which no key split them */
   bool paired;				/* Suspensions met an answer cluster */
 } cluster;

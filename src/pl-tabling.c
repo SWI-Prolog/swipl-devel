@@ -8153,10 +8153,13 @@ mono_index_find(DECL_LD idg_node *src, idg_node *parent, term_t dep,
   trie_node *node;
   int rc = false;
 
-  if ( !(fid=PL_open_foreign_frame()) ||
-       !(key=PL_new_term_ref()) ||
-       !mono_index_key(parent, dep, key) )
+  if ( !(fid=PL_open_foreign_frame()) )
     return -1;
+  if ( !(key=PL_new_term_ref()) ||
+       !mono_index_key(parent, dep, key) )
+  { rc = -1;
+    goto out;
+  }
 
   if ( trie_lookup(src->mono_index, NULL, &node, valTermRef(key), false,
 		   NULL) == true &&
@@ -8170,7 +8173,9 @@ mono_index_find(DECL_LD idg_node *src, idg_node *parent, term_t dep,
 
 	if ( !(dep2=PL_new_term_ref()) ||
 	     !put_fastheap(mdep->dependency, dep2) )
-	  return -1;
+	{ rc = -1;
+	  break;
+	}
 	if ( is_variant_ptr(valTermRef(dep), valTermRef(dep2)) )
 	{ *found = mdep;
 	  rc = true;
@@ -8180,7 +8185,11 @@ mono_index_find(DECL_LD idg_node *src, idg_node *parent, term_t dep,
     }
   }
 
-  PL_discard_foreign_frame(fid);
+out:
+  if ( rc < 0 )
+    PL_close_foreign_frame(fid);	/* keep the exception */
+  else
+    PL_discard_foreign_frame(fid);
   return rc;
 }
 
@@ -8193,15 +8202,19 @@ mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
   trie_node *node;
   int rc;
 
-  if ( !(fid=PL_open_foreign_frame()) ||
-       !(key=PL_new_term_ref()) ||
-       !mono_index_key(parent, dep, key) )
+  if ( !(fid=PL_open_foreign_frame()) )
     return false;
+  if ( !(key=PL_new_term_ref()) ||
+       !mono_index_key(parent, dep, key) )
+  { PL_close_foreign_frame(fid);	/* keep the exception */
+    return false;
+  }
 
   rc = trie_lookup(src->mono_index, NULL, &node, valTermRef(key), true, NULL);
   if ( rc != true )
   { if ( !trie_error(rc, key) && !PL_exception(0) )
       PL_resource_error("table_space");
+    PL_close_foreign_frame(fid);
     return false;
   }
 
@@ -8226,6 +8239,7 @@ mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
 static bool
 mono_index_build(DECL_LD idg_node *src)
 { trie *t;
+  TableEnum en;
 
   if ( !(t=trie_create(src->atrie->alloc_pool)) )
     return PL_resource_error("table_space");
@@ -8234,10 +8248,10 @@ mono_index_build(DECL_LD idg_node *src)
   src->mono_index_deps = newHTablePP(4);
 
   if ( src->affected )
-  { TableEnum en = newTableEnumPP(src->affected);
-    table_key_t k;
+  { table_key_t k;
     table_value_t v;
 
+    en = newTableEnumPP(src->affected);
     while(advanceTableEnum(en, &k, &v))
     { idg_node *parent = key2ptr(k);
       idg_mdep *mdep = val2ptr(v);
@@ -8246,13 +8260,13 @@ mono_index_build(DECL_LD idg_node *src)
       { fid_t fid;
 	term_t d;
 
-	if ( !(fid=PL_open_foreign_frame()) ||
-	     !(d=PL_new_term_ref()) ||
+	if ( !(fid=PL_open_foreign_frame()) )
+	  goto error;
+	if ( !(d=PL_new_term_ref()) ||
 	     !put_fastheap(mdep->dependency, d) ||
 	     !mono_index_insert(src, parent, mdep, d) )
-	{ freeTableEnum(en);
-	  mono_index_release(src);
-	  return false;
+	{ PL_close_foreign_frame(fid);	/* keep the exception */
+	  goto error;
 	}
 	PL_discard_foreign_frame(fid);
       }
@@ -8261,6 +8275,11 @@ mono_index_build(DECL_LD idg_node *src)
   }
 
   return true;
+
+error:
+  freeTableEnum(en);
+  mono_index_release(src);
+  return false;
 }
 
 
