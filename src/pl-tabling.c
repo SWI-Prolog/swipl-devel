@@ -5227,7 +5227,13 @@ tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
   Definition def = NULL;
   atom_t clref = 0;
 
-  get_closure_predicate(closure, &def);
+  if ( !get_closure_predicate(closure, &def) )
+  { Procedure proc;			/* e.g., start_tabling(0, ...) */
+
+    if ( !get_procedure(variant, &proc, 0, GP_RESOLVE|GP_EXISTENCE_ERROR) )
+      return false;
+    def = proc->definition;
+  }
 
 					/* moded tabling needs the trie */
   if ( (atrie=get_answer_table(def, variant, ret,
