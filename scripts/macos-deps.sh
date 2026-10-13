@@ -90,6 +90,7 @@
 GMP_VERSION=6.3.0
 SSL_VERSION=3.6.4
 ZLIB_VERSION=1.3.2
+PNG_VERSION=1.6.59
 ARCHIVE_VERSION=3.8.9
 UUID_VERSION=1.6.2
 BDB_VERSION=5.3.28
@@ -307,6 +308,12 @@ download_zlib()
   unpack zlib-$ZLIB_VERSION.tar.gz zlib-$ZLIB_VERSION
 }
 
+download_libpng()
+{ fetch https://download.sourceforge.net/libpng/libpng-$PNG_VERSION.tar.xz \
+	libpng-$PNG_VERSION.tar.xz &&
+  unpack libpng-$PNG_VERSION.tar.xz libpng-$PNG_VERSION
+}
+
 download_libarchive()
 { fetch https://github.com/libarchive/libarchive/releases/download/v$ARCHIVE_VERSION/libarchive-$ARCHIVE_VERSION.tar.gz \
 	libarchive-$ARCHIVE_VERSION.tar.gz &&
@@ -428,6 +435,10 @@ download_prerequisites()
 
 build_zlib()
 { autotools_build zlib-$ZLIB_VERSION
+}
+
+build_libpng()
+{ autotools_build libpng-$PNG_VERSION --disable-static
 }
 
 build_libffi()
@@ -586,13 +597,15 @@ build_harfbuzz()
 }
 
 # Quartz only: XPCE draws through pangocairo with the CoreText font map, so
-# the FreeType/fontconfig font backends and libpng are dead weight.  zlib is
-# needed for the PDF surface (cairo_pdf_surface_create).
+# the FreeType/fontconfig font backends are dead weight.  zlib is needed
+# for the PDF surface (cairo_pdf_surface_create).  libpng is needed for
+# the SVG surface (cairo_svg_surface_create): cairo builds it only along
+# with the PNG functions.
 
 build_cairo()
 { meson_build cairo-$CAIRO_VERSION \
       -Dquartz=enabled -Dzlib=enabled -Dglib=enabled \
-      -Dfreetype=disabled -Dfontconfig=disabled -Dpng=disabled \
+      -Dfreetype=disabled -Dfontconfig=disabled -Dpng=enabled \
       -Dxlib=disabled -Dxcb=disabled -Dxlib-xcb=disabled -Ddwrite=disabled \
       -Dtee=disabled -Dtests=disabled -Dspectre=disabled -Dgtk_doc=false
 }
@@ -652,10 +665,11 @@ build_emacs_header()
 
 ################################################################
 # Order.  zlib, libffi and pcre2 come first because glib uses all three;
-# glib, pixman, fribidi and harfbuzz come before cairo and pango.
+# libpng needs zlib; libpng, glib, pixman, fribidi and harfbuzz come
+# before cairo and pango.
 ################################################################
 
-DEPS_LIBS=(zlib libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
+DEPS_LIBS=(zlib libpng libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
 	   libyaml pixman glib fribidi harfbuzz cairo pango)
 DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image)
 
@@ -878,6 +892,7 @@ clean_builds()
 clean_prerequisites()
 { ( cd "$DEPS_SRC"
     rm -rf gmp-$GMP_VERSION openssl-$SSL_VERSION zlib-$ZLIB_VERSION \
+	   libpng-$PNG_VERSION \
 	   libarchive-$ARCHIVE_VERSION uuid-$UUID_VERSION db-$BDB_VERSION \
 	   unixODBC-$ODBC_VERSION pcre2-$PCRE2_VERSION libffi-$FFI_VERSION \
 	   yaml-$YAML_VERSION utf8proc-$UTF8PROC_VERSION \
