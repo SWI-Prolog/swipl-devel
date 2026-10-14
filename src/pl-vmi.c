@@ -5101,8 +5101,15 @@ VMH(b_throw_unwind_debug, 4, (term_t, Stack, bool, int), (catchfr_ref, outofstac
     dbg_except_discard_frame();
     LOAD_REGISTERS(QID);
 
-    if ( start_tracer && dbg_except_start_tracer() )
-      start_tracer = false;
+    if ( start_tracer )
+    { bool started;
+
+      SAVE_REGISTERS(QID);
+      started = dbg_except_start_tracer();
+      LOAD_REGISTERS(QID);
+      if ( started )
+	start_tracer = false;
+    }
   }
 
   if ( start_tracer )
