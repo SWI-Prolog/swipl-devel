@@ -254,6 +254,7 @@ colour(thread_graph_cpu,                orchid).
 % PceEmacs bookmarks and the help viewer
 
 colour(emacs_bookmark_hit,              '#806000').
+colour(emacs_bookmark_filter,           '#1f4e79').
 colour(help_link,                       deep_sky_blue).
 
 % PceEmacs syntax highlighting
