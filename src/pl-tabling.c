@@ -2417,6 +2417,8 @@ variant_table(DECL_LD bool shared)
     { atom_t symb;
 
       t->release_node = release_variant_table_node;
+      if ( shared )
+	set(t, TRIE_CONCURRENT);		/* before publishing in *tp */
       symb = trie_symbol(t);
 
       if ( COMPARE_AND_SWAP_PTR(tp, NULL, t) )
@@ -4426,7 +4428,7 @@ update_subsuming_answer(trie_node *node, void *ptr)
       return TRIE_MAP_TRUE;
     }
   } else
-  { if ( !node->children.any )
+  { if ( !trie_has_children(node) )
       ctx->garbage++;
 
     return TRIE_MAP_TRUE;

@@ -47,6 +47,7 @@
 #define GLOBAL extern
 #endif
 
+#define TRIE_STRIPES 256		/* Write locks for concurrent tries */
 #define MODULE_CACHE_SIZE 8		/* Per thread cache of lookupModule() */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -195,6 +196,10 @@ struct PL_global_data
 #endif
     struct trie_array *waiting;		/* thread --> trie we are waiting for */
   } tabling;
+
+  struct
+  { simpleMutex	stripes[TRIE_STRIPES];	/* Write locks of concurrent tries */
+  } tries;
 #endif
 
   struct

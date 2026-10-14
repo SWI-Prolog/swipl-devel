@@ -45,34 +45,47 @@
 #define TRIE_MAGIC  0x4bcbcf87
 #define TRIE_CMAGIC 0x4bcbcf88
 
-typedef enum
-{ TN_KEY,				/* Single key */
-  TN_HASHED				/* Hashed */
-} tn_node_type;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The children of a trie node are represented by a tagged word:
 
-typedef struct try_children_any
-{ tn_node_type type;
-} try_children_any;
+  - 0
+    No children
+  - (trie_node*)|TRIE_SINGLE_CHILD
+    A single child.  Its key is child->key.
+  - trie_children_block*
+    Two or more children.  The entries are appended and never move while
+    adding children, so enumerating the entries by position is (weakly)
+    consistent with concurrent insertion.  Deleted entries have `child`
+    set to NULL and keep their key.  If `index_bits` is non-zero the block
+    is followed by an open addressing index of 1<<index_bits uint32_t
+    slots holding the entry position+1 (0: empty slot).
 
-typedef struct trie_children_key
-{ tn_node_type type;
-  word key;
-  struct trie_node *child;
-} trie_children_key;
+Readers are lock-free.  Writers are serialized by the trie code: either
+the trie has a single writer or the trie is TRIE_CONCURRENT and writers
+lock a stripe that is selected on the parent node.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct trie_children_hashed
-{ tn_node_type	type;			/* TN_HASHED */
-  TableWP	table;			/* Key --> child map */
-  unsigned	var_mask;		/* Variables in this place */
-  unsigned	attvar_mask;		/* Attributed variables in this place */
-  trie_children_key *old_single;	/* Old single node */
-} trie_children_hashed;
+typedef uintptr_t trie_children;
 
-typedef union trie_children
-{ try_children_any     *any;
-  trie_children_key    *key;
-  trie_children_hashed *hash;
-} trie_children;
+#define TRIE_SINGLE_CHILD	0x1
+
+typedef struct trie_child
+{ word			key;		/* key of the child */
+  struct trie_node     *child;		/* the child or NULL if deleted */
+} trie_child;
+
+typedef struct trie_children_block
+{ unsigned		count;		/* entries in use (live and dead) */
+  unsigned		capacity;	/* allocated entries */
+  unsigned		dead;		/* entries with child == NULL */
+  unsigned		var_mask;	/* Variables in this place */
+  unsigned		attvar_mask;	/* Attributed variables in this place */
+  unsigned		index_bits;	/* 0: no index (linear search) */
+  struct trie_children_block *older;	/* Next lingering block */
+  trie_child		entries[];	/* [capacity], followed by the index */
+} trie_children_block;
+
+#define trie_has_children(n) ((n)->children != 0)
 
 
 #define TN_PRIMARY			0x0001	/* Primary value node */
@@ -105,6 +118,7 @@ typedef struct trie_node
 #define TRIE_ABOLISH_ON_COMPLETE 0x0010	/* Abolish the table when completed */
 #define TRIE_ISTRACKED  0x0020		/* Trie changes are tracked */
 #define TRIE_ISTABLE	0x0040		/* Trie is an answer table */
+#define TRIE_CONCURRENT	0x0080		/* Lock for concurrent writers */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
@@ -121,6 +135,7 @@ typedef struct trie
   void		      (*release_node)(struct trie *, trie_node *);
   alloc_pool	       *alloc_pool;	/* Node allocation pool */
   atom_t		clause;		/* Compiled representation */
+  trie_children_block *lingering;	/* Replaced blocks (TRIE_CONCURRENT) */
 #ifdef O_TRIE_STATS
   struct
   { uint64_t		lookups;	/* trie_lookup */

@@ -4732,11 +4732,15 @@ limitations currently apply:
 
 \begin{shortlist}
     \item Tries only offer partial thread-safety.  Multiple threads
-          may concurrently insert values in a trie.  Concurrent
-          deletion and concurrent non-deterministic access is
-          not supported.
-    \item Tries should not be modified while non-deterministic
-          predicates such as trie_gen/3 are running on the trie.
+          may concurrently insert values in a trie and lookup
+          values while other threads insert.  Concurrent deletion
+          is not supported.
+    \item Values may be inserted while non-deterministic predicates
+          such as trie_gen/3 are running on the trie.  Such an
+          enumeration produces all keys that were in the trie when
+          it started and may or may not produce keys that are
+          inserted later.  Tries should not be modified otherwise
+          while such predicates are running on the trie.
     \item Terms cannot be \jargon{cyclic}.  Possibly this will
 	  not change because cyclic terms can only be supported
           after creating a canonical form of the term.

@@ -68,11 +68,7 @@ the sequence of another term.
 
 TODO
   - Limit size of the tries
-  - Avoid using a hash-table for small number of branches
-  - Thread safe reclaiming
-    - Reclaim single-child node after moving to a hash
-    - Make pruning the trie thread-safe
-  - Provide deletion from a trie
+  - Thread safe reclaiming of deleted nodes
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define RESERVED_TRIE_VAL(n) (((word)((uintptr_t)n)<<LMASK_BITS) | \
@@ -199,6 +195,7 @@ static PL_blob_t trie_blob =
 static trie_node       *new_trie_node(trie *trie, word key);
 static void		destroy_node(trie *trie, trie_node *n);
 static void		clear_node(trie *trie, trie_node *n, int dealloc);
+static void		free_lingering_blocks(trie *trie);
 static inline void	release_value(word value);
 
 
@@ -235,6 +232,7 @@ trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie->magic = TRIE_CMAGIC;
   trie_empty(trie);
+  free_lingering_blocks(trie);
   free_to_pool(trie->alloc_pool, trie, sizeof(*trie));
 }
 
@@ -267,6 +265,7 @@ trie_empty(trie *trie)
   { indirect_table *it = trie->indirects;
 
     clear_node(trie, &trie->root, false);	/* TBD: verify not accessed */
+    free_lingering_blocks(trie);
     if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
       destroy_indirect_table(it);
     trie->node_count = 1;
@@ -282,21 +281,173 @@ trie_clean(trie *trie)
 }
 
 
-#define get_child(n, key) LDFUNC(get_child, n, key)
-static trie_node *
-get_child(DECL_LD trie_node *n, word key)
-{ trie_children children = n->children;
+		 /*******************************
+		 *	      CHILDREN		*
+		 *******************************/
 
-  if ( children.any )
-  { switch( children.any->type )
-    { case TN_KEY:
-	if ( children.key->key == key )
-	  return children.key->child;
-        return NULL;
-      case TN_HASHED:
-	return lookupHTableWP(children.hash->table, key);
-      default:
-	assert(0);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The children of a node are represented as  described with `trie_children`
+in pl-trie.h: none, a single child  or   a  trie_children_block.  Blocks
+upto TRIE_LINEAR_MAX entries are searched  linearly. Larger blocks have
+an open addressing index with at least two slots per entry.
+
+Readers are lock-free. A writer stores  an   entry  before publishing it
+through the index and `count` and stores a  new block before publishing
+it through the node.  Writers  are   serialized:  a  TRIE_CONCURRENT trie
+locks the stripe of the parent node  for each modification of the parent
+and other tries have a single writer.
+
+Adding children never moves entries,  so   enumerating  by position sees
+all entries that existed when the enumeration started. Deleting children
+may compact the block (see delete_child()).
+
+A block that is replaced by a larger or compacted one is freed at once,
+unless the trie is TRIE_CONCURRENT.   In  that  case  another thread may
+still be reading it and we keep  it   on  trie->lingering until the trie
+is emptied or destroyed.  As blocks grow   by doubling, these use at most
+as much memory as the current blocks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TRIE_LINEAR_MAX 8
+
+#define VMASKBITS  (sizeof(unsigned)*8)
+#define VMASK_SCAN (0x1U<<(VMASKBITS-1))
+
+#define is_single_child(c) ((c)&TRIE_SINGLE_CHILD)
+#define single_child(c)    ((trie_node*)((c)&~(trie_children)TRIE_SINGLE_CHILD))
+#define children_block(c)  ((trie_children_block*)(c))
+
+static inline trie_children
+load_children(const trie_node *n)
+{ trie_children c = n->children;
+
+  MEMORY_ACQUIRE();
+  return c;
+}
+
+static inline void
+publish_children(trie_node *n, trie_children c)
+{ MEMORY_RELEASE();
+  n->children = c;
+}
+
+static inline uint32_t *
+block_index(trie_children_block *b)
+{ return (uint32_t*)&b->entries[b->capacity];
+}
+
+static inline size_t
+block_size(unsigned capacity, unsigned index_bits)
+{ size_t size = sizeof(trie_children_block) + capacity*sizeof(trie_child);
+
+  if ( index_bits )
+    size += ((size_t)1<<index_bits)*sizeof(uint32_t);
+
+  return size;
+}
+
+static inline size_t
+sizeof_block(const trie_children_block *b)
+{ return block_size(b->capacity, b->index_bits);
+}
+
+static inline unsigned
+child_hash(word key, unsigned bits)
+{ return (unsigned)(((uint64_t)key * 0x9e3779b97f4a7c15ULL) >> (64-bits));
+}
+
+/* Position of the entry for `key` in `b` or -1 */
+
+static inline int
+block_find(trie_children_block *b, word key)
+{ if ( !b->index_bits )
+  { unsigned count = b->count;
+
+    MEMORY_ACQUIRE();
+    for(unsigned i=0; i<count; i++)
+    { if ( b->entries[i].key == key )
+	return (int)i;
+    }
+  } else
+  { uint32_t *index = block_index(b);
+    unsigned mask = (1U<<b->index_bits)-1;
+
+    for(unsigned h = child_hash(key, b->index_bits); ; h = (h+1)&mask)
+    { uint32_t pos = index[h];
+
+      MEMORY_ACQUIRE();
+      if ( !pos )
+	break;
+      if ( b->entries[pos-1].key == key )
+	return (int)pos-1;
+    }
+  }
+
+  return -1;
+}
+
+#define get_child(n, key) LDFUNC(get_child, n, key)
+static inline trie_node *
+get_child(DECL_LD trie_node *n, word key)
+{ trie_children c = load_children(n);
+
+  if ( !c )
+    return NULL;
+  if ( is_single_child(c) )
+  { trie_node *child = single_child(c);
+    return child->key == key ? child : NULL;
+  } else
+  { trie_children_block *b = children_block(c);
+    int pos = block_find(b, key);
+
+    return pos >= 0 ? b->entries[pos].child : NULL;
+  }
+}
+
+
+/* Iterate over the children of a node.  The iterator holds a position
+ * rather than a block, so it remains valid if the block is replaced.
+ */
+
+typedef struct child_iter
+{ trie_node *parent;
+  unsigned   pos;
+} child_iter;
+
+static inline void
+init_child_iter(child_iter *it, trie_node *parent)
+{ it->parent = parent;
+  it->pos    = 0;
+}
+
+static inline trie_node *
+next_child(child_iter *it, word *keyp)
+{ trie_children c = load_children(it->parent);
+
+  if ( !c )
+    return NULL;
+  if ( is_single_child(c) )
+  { if ( it->pos++ == 0 )
+    { trie_node *child = single_child(c);
+
+      if ( keyp )
+	*keyp = child->key;
+      return child;
+    }
+  } else
+  { trie_children_block *b = children_block(c);
+    unsigned count = b->count;
+
+    MEMORY_ACQUIRE();
+    while( it->pos < count )
+    { trie_child *e = &b->entries[it->pos++];
+      trie_node *child = e->child;
+
+      if ( child )
+      { if ( keyp )
+	  *keyp = e->key;
+	return child;
+      }
     }
   }
 
@@ -306,20 +457,302 @@ get_child(DECL_LD trie_node *n, word key)
 
 bool
 is_leaf_trie_node(trie_node *n)
-{ trie_children children = n->children;
+{ trie_children c = load_children(n);
 
-  if ( children.any )
-  { switch( children.any->type )
-    { case TN_KEY:
-	return false;
-      case TN_HASHED:
-	return children.hash->table->size == 0;
-      default:
-	assert(0);
+  if ( c && !is_single_child(c) )
+  { trie_children_block *b = children_block(c);
+    return b->count == b->dead;
+  }
+
+  return !c;
+}
+
+
+		 /*******************************
+		 *	  WRITE LOCKING		*
+		 *******************************/
+
+#ifdef O_PLMT
+static inline simpleMutex *
+lock_children(trie *trie, trie_node *n)
+{ if ( ison(trie, TRIE_CONCURRENT) )
+  { uintptr_t h = (uintptr_t)n * 0x9e3779b97f4a7c15ULL;
+    simpleMutex *m = &GD->tries.stripes[h >> (sizeof(h)*8-8)];
+
+    static_assertion(TRIE_STRIPES == 256);
+    simpleMutexLock(m);
+    return m;
+  }
+
+  return NULL;
+}
+
+static inline void
+unlock_children(simpleMutex *m)
+{ if ( m )
+    simpleMutexUnlock(m);
+}
+#else
+#define lock_children(trie, n) NULL
+#define unlock_children(m) (void)(m)
+typedef void simpleMutex;
+#endif
+
+
+		 /*******************************
+		 *	      BLOCKS		*
+		 *******************************/
+
+static void
+free_block(trie *trie, trie_children_block *b)
+{ free_to_pool(trie->alloc_pool, b, sizeof_block(b));
+}
+
+/* A block was replaced in its node */
+
+static void
+retire_block(trie *trie, trie_children_block *b)
+{ if ( ison(trie, TRIE_CONCURRENT) )
+  { trie_children_block *o;
+
+    do
+    { o = trie->lingering;
+      b->older = o;
+    } while( !COMPARE_AND_SWAP_PTR(&trie->lingering, o, b) );
+  } else
+  { free_block(trie, b);
+  }
+}
+
+static void
+free_lingering_blocks(trie *trie)
+{ trie_children_block *b = trie->lingering;
+
+  if ( b && COMPARE_AND_SWAP_PTR(&trie->lingering, b, NULL) )
+  { trie_children_block *next;
+
+    for(; b; b = next)
+    { next = b->older;
+      free_block(trie, b);
+    }
+  }
+}
+
+static trie_children_block *
+new_block(trie *trie, unsigned capacity)
+{ unsigned bits = capacity <= TRIE_LINEAR_MAX ? 0 : MSB(capacity)+1;
+  size_t size = block_size(capacity, bits);
+  trie_children_block *b;
+
+  if ( (b = alloc_from_pool(trie->alloc_pool, size)) )
+  { memset(b, 0, sizeof(*b));
+    b->capacity   = capacity;
+    b->index_bits = bits;
+    if ( bits )
+      memset(block_index(b), 0, ((size_t)1<<bits)*sizeof(uint32_t));
+  }
+
+  return b;
+}
+
+static inline void
+update_var_mask(trie_children_block *b, word key)
+{ unsigned *maskp;
+
+  if ( tagex(key) == TAG_VAR )
+    maskp = &b->var_mask;
+  else if ( tagex(key) == (TAG_ATTVAR|STG_STATIC) )
+    maskp = &b->attvar_mask;
+  else
+    return;
+
+  size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
+  *maskp |= (vn < VMASKBITS ? 0x1U<<(vn-1) : VMASK_SCAN);
+}
+
+static inline void
+index_entry(trie_children_block *b, unsigned pos)
+{ uint32_t *index = block_index(b);
+  unsigned mask = (1U<<b->index_bits)-1;
+  unsigned h = child_hash(b->entries[pos].key, b->index_bits);
+
+  while( index[h] )
+    h = (h+1)&mask;
+  MEMORY_RELEASE();
+  index[h] = pos+1;
+}
+
+/* Append an entry.  The caller ensures there is space */
+
+static void
+block_append(trie_children_block *b, word key, trie_node *child)
+{ unsigned pos = b->count;
+
+  b->entries[pos].key   = key;
+  b->entries[pos].child = child;
+  update_var_mask(b, key);
+  if ( b->index_bits )
+    index_entry(b, pos);
+  MEMORY_RELEASE();
+  b->count = pos+1;
+}
+
+/* Copy the entries of `from` to the new block `to`.  If `compact` is
+   false, entries keep their position.  Else dead entries are removed. */
+
+static void
+block_copy(trie_children_block *to, const trie_children_block *from,
+	   bool compact)
+{ if ( !compact )
+  { memcpy(to->entries, from->entries, from->count*sizeof(trie_child));
+    to->count       = from->count;
+    to->dead        = from->dead;
+    to->var_mask    = from->var_mask;
+    to->attvar_mask = from->attvar_mask;
+    if ( to->index_bits )
+    { for(unsigned i=0; i<to->count; i++)
+	index_entry(to, i);
+    }
+  } else
+  { for(unsigned i=0; i<from->count; i++)
+    { if ( from->entries[i].child )
+	block_append(to, from->entries[i].key, from->entries[i].child);
+    }
+  }
+}
+
+
+		 /*******************************
+		 *	  INSERT/DELETE		*
+		 *******************************/
+
+/* Add `child` to `n`, which does not have a live child with the same
+   key.  Called with the write lock of `n`.  Returns false on a resource
+   error.  */
+
+static bool
+add_child(trie *trie, trie_node *n, trie_node *child)
+{ trie_children c = n->children;
+  word key = child->key;
+
+  if ( !c )
+  { publish_children(n, (trie_children)child|TRIE_SINGLE_CHILD);
+  } else if ( is_single_child(c) )
+  { trie_children_block *b;
+    trie_node *old = single_child(c);
+
+    if ( !(b = new_block(trie, 2)) )
+      return false;
+    block_append(b, old->key, old);
+    block_append(b, key, child);
+    publish_children(n, (trie_children)b);
+  } else
+  { trie_children_block *b = children_block(c);
+    int pos;
+
+    if ( b->dead && (pos=block_find(b, key)) >= 0 )
+    { MEMORY_RELEASE();			/* revive the entry */
+      b->entries[pos].child = child;
+      b->dead--;
+    } else
+    { if ( b->count == b->capacity )
+      { trie_children_block *nb;
+
+	if ( !(nb = new_block(trie, b->capacity*2)) )
+	  return false;
+	block_copy(nb, b, false);
+	block_append(nb, key, child);
+	publish_children(n, (trie_children)nb);
+	retire_block(trie, b);
+      } else
+      { block_append(b, key, child);
+      }
     }
   }
 
   return true;
+}
+
+static void
+replace_block(trie *trie, trie_node *n, trie_children_block *b)
+{ unsigned live = b->count - b->dead;
+
+  if ( live == 0 )
+  { publish_children(n, 0);
+  } else if ( live == 1 )
+  { for(unsigned i=0; i<b->count; i++)
+    { if ( b->entries[i].child )
+      { publish_children(n, (trie_children)b->entries[i].child|
+			    TRIE_SINGLE_CHILD);
+	break;
+      }
+    }
+  } else
+  { unsigned capacity = 2;
+    trie_children_block *nb;
+
+    while( capacity < live )
+      capacity *= 2;
+    if ( !(nb = new_block(trie, capacity)) )
+      return;				/* keep the old one */
+    block_copy(nb, b, true);
+    publish_children(n, (trie_children)nb);
+  }
+
+  retire_block(trie, b);
+}
+
+/* Compact the children of `n` if many of them are deleted. */
+
+static void
+compact_children(trie *trie, trie_node *n)
+{ simpleMutex *m = lock_children(trie, n);
+  trie_children c = n->children;
+
+  if ( c && !is_single_child(c) )
+  { trie_children_block *b = children_block(c);
+
+    if ( b->dead == b->count || b->dead*2 > b->count )
+      replace_block(trie, n, b);
+  }
+
+  unlock_children(m);
+}
+
+/* Delete `child` from its parent `p`.  If `compact` is true, compact
+   the block of `p` if many children are deleted.  Compacting moves
+   entries and thus may not be done while enumerating the children.
+   Returns true if `p` has no children left. */
+
+static bool
+delete_child(trie *trie, trie_node *p, trie_node *child, bool compact)
+{ simpleMutex *m = lock_children(trie, p);
+  trie_children c = p->children;
+  bool empty = true;
+
+  if ( c )
+  { if ( is_single_child(c) )
+    { if ( single_child(c) == child )
+	publish_children(p, 0);
+      else
+	empty = false;
+    } else
+    { trie_children_block *b = children_block(c);
+      int pos = block_find(b, child->key);
+
+      if ( pos >= 0 && b->entries[pos].child == child )
+      { b->entries[pos].child = NULL;
+	b->dead++;
+      }
+      empty = (b->dead == b->count);
+      if ( compact && (empty || b->dead*2 > b->count) )
+	replace_block(trie, p, b);
+    }
+  }
+
+  unlock_children(m);
+
+  return empty;
 }
 
 
@@ -356,35 +789,23 @@ next:
   { ATOMIC_DEC(&trie->node_count);
     free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
   } else
-  { n->children.any = NULL;
+  { n->children = 0;
     clear(n, TN_PRIMARY|TN_SECONDARY);
   }
 
-  if ( children.any )
-  { switch( children.any->type )
-    { case TN_KEY:
-      { n = children.key->child;
-	free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
-	dealloc = true;
-	goto next;
+  if ( children )
+  { if ( is_single_child(children) )
+    { n = single_child(children);
+      dealloc = true;
+      goto next;
+    } else
+    { trie_children_block *b = children_block(children);
+
+      for(unsigned i=0; i<b->count; i++)
+      { if ( b->entries[i].child )
+	  clear_node(trie, b->entries[i].child, true);
       }
-      case TN_HASHED:
-      { TableWP table = children.hash->table;
-	TableEnum e = newTableEnumWP(table);
-	trie_children_key *os;
-
-	if ( (os=children.hash->old_single) )	/* see insert_child() (*) note */
-	  free_to_pool(trie->alloc_pool, os, sizeof(*os));
-	free_to_pool(trie->alloc_pool, children.hash, sizeof(*children.hash));
-
-	table_value_t tv;
-	while(advanceTableEnum(e, NULL, &tv))
-	  clear_node(trie, val2ptr(tv), true);
-
-	freeTableEnum(e);
-	destroyHTableWP(table);
-	break;
-      }
+      free_block(trie, b);
     }
   }
 }
@@ -400,39 +821,21 @@ destroy_node(trie *trie, trie_node *n)
  * be used after deletion or unsuccessful insertion, e.g., by trying to
  * insert a cyclic term
  *
- * TBD: Need to think about concurrency here.
+ * TBD: Concurrent deletion is not supported.  Although modifying the
+ * children is safe, other threads may be reading the deleted nodes.
  */
 
 void
 prune_node(trie *trie, trie_node *n)
 { trie_node *p;
-  int empty = true;
+  bool empty = true;
 
   for(; empty && n->parent && isoff(n, TN_PRIMARY|TN_SECONDARY|TN_PINNED);
 	n = p)
-  { trie_children children;
-
-    p = n->parent;
-    children = p->children;
-
-    if ( children.any )
-    { switch( children.any->type )
-      { case TN_KEY:
-	  if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
-	  { if ( !trie )
-	      trie = get_trie_from_node(n);
-	    free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
-	  }
-	  break;
-	case TN_HASHED:
-	  deleteHTableWP(children.hash->table, n->key);
-	  empty = children.hash->table->size == 0;
-	  break;
-      }
-    }
-
+  { p = n->parent;
     if ( !trie )
       trie = get_trie_from_node(n);
+    empty = delete_child(trie, p, n, true);
     destroy_node(trie, n);
   }
 }
@@ -443,8 +846,8 @@ prune_node(trie *trie, trie_node *n)
 */
 
 typedef struct prune_state
-{ TableEnum  e;
-  trie_node *n;
+{ child_iter it;
+  bool	     active;
 } prune_state;
 
 void
@@ -455,36 +858,30 @@ prune_trie(trie *trie, trie_node *root,
   trie_children children;
   trie_node *n = root;
   trie_node *p;
-  prune_state ps = { .e = NULL };
+  prune_state ps = { .active = false };
 
   initSegStack(&stack, sizeof(prune_state), sizeof(buffer), buffer);
 
   for(;;)
-  { children = n->children;
+  { children = load_children(n);
 
-    if ( children.any )
-    { switch( children.any->type )
-      { case TN_KEY:
-	{ n = children.key->child;
+    if ( children )
+    { if ( is_single_child(children) )
+      { n = single_child(children);
+	continue;
+      } else
+      { child_iter it;
+	trie_node *c;
+
+	init_child_iter(&it, n);
+	if ( (c=next_child(&it, NULL)) )
+	{ if ( !pushSegStack(&stack, ps, prune_state) )
+	    outOfCore();
+	  ps.it = it;
+	  ps.active = true;
+
+	  n = c;
 	  continue;
-	}
-	case TN_HASHED:
-	{ TableWP table = children.hash->table;
-	  TableEnum e = newTableEnumWP(table);
-	  table_value_t v;
-
-	  if ( advanceTableEnum(e, NULL, &v) )
-	  { if ( !pushSegStack(&stack, ps, prune_state) )
-	      outOfCore();
-	    ps.e = e;
-	    ps.n = n;
-
-	    n = val2ptr(v);
-	    continue;
-	  } else
-	  { freeTableEnum(e);
-	    break;
-	  }
 	}
       }
     } else
@@ -494,43 +891,30 @@ prune_trie(trie *trie, trie_node *root,
 
   prune:
     for(; n != root && isoff(n, TN_PRIMARY|TN_SECONDARY|TN_PINNED); n = p)
-    { trie_children children;
-      int choice = false;
+    { trie_children pc;
+      bool choice;
 
       p = n->parent;
-      children = p->children;
-
-      if ( children.any )
-      { switch( children.any->type )
-	{ case TN_KEY:
-	    if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
-	      free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
-	    break;
-	  case TN_HASHED:
-	    deleteHTableWP(children.hash->table, n->key);
-	    choice = true;
-	    break;
-	}
-      }
-
+      pc = p->children;
+      choice = (pc && !is_single_child(pc));	/* we are enumerating p */
+      delete_child(trie, p, n, false);
       destroy_node(trie, n);
       if ( choice )
 	break;
     }
 
   next_choice:
-    if ( ps.e )
-    { table_value_t v;
+    if ( ps.active )
+    { trie_node *c;
 
-      if ( advanceTableEnum(ps.e, NULL, &v) )
-      { n = val2ptr(v);
+      if ( (c=next_child(&ps.it, NULL)) )
+      { n = c;
 	continue;
       } else
-      { n = ps.n;
-	freeTableEnum(ps.e);
+      { n = ps.it.parent;
 	popSegStack(&stack, &ps, prune_state);
-	assert(n->children.any->type == TN_HASHED);
-	if ( n->children.hash->table->size == 0 )
+	compact_children(trie, n);
+	if ( !trie_has_children(n) )
 	  goto prune;
 	goto next_choice;
       }
@@ -543,117 +927,27 @@ prune_trie(trie *trie, trie_node *root,
 }
 
 
-#define VMASKBITS  (sizeof(unsigned)*8)
-#define VMASK_SCAN (0x1U<<(VMASKBITS-1))
-
-static inline void
-update_var_mask(trie_children_hashed *hnode, word key)
-{ unsigned *maskp;
-
-  if ( tagex(key) == TAG_VAR )
-    maskp = &hnode->var_mask;
-  else if ( tagex(key) == (TAG_ATTVAR|STG_STATIC) )
-    maskp = &hnode->attvar_mask;
-  else
-    return;
-
-  size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
-  ATOMIC_OR(maskp, vn < VMASKBITS ? 0x1U<<(vn-1) : VMASK_SCAN);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) The single node may be  in  use   with  another  thread. We have two
-options:
-
-  - Use one of the LD _active_ pointers to acquire/release access to the
-    trie nodes and use safe delayed release.
-  - Add the ond _single_ node to the new hash node and delete it along
-    with the hash node when we clean the table.  We have opted for this
-    option as it is simple and the single key is neglectable in size
-    compared to the hash table anyway.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 #define insert_child(trie, n, key) LDFUNC(insert_child, trie, n, key)
 static trie_node *
 insert_child(DECL_LD trie *trie, trie_node *n, word key)
-{ for(;;)
-  { trie_children children = n->children;
-    trie_node *new = new_trie_node(trie, key);
+{ simpleMutex *m = lock_children(trie, n);
+  trie_node *child;
 
-    if ( !new )
-      return NULL;			/* resource error */
+  if ( m && (child=get_child(n, key)) )	/* inserted concurrently */
+  { unlock_children(m);
+    return child;
+  }
 
-    if ( children.any )
-    { switch( children.any->type )
-      { case TN_KEY:
-	{ if ( children.key->key == key )
-	  { destroy_node(trie, new);	/* someone else did this */
-	    return children.key->child;
-	  } else
-	  { trie_children_hashed *hnode;
-
-	    if ( !(hnode=alloc_from_pool(trie->alloc_pool, sizeof(*hnode))) )
-	    { destroy_node(trie, new);
-	      return NULL;
-	    }
-
-	    hnode->type     = TN_HASHED;
-	    hnode->table    = newHTableWP(4);
-	    hnode->var_mask = 0;
-	    hnode->attvar_mask = 0;
-	    addHTableWP(hnode->table, children.key->key, children.key->child);
-	    addHTableWP(hnode->table, key, new);
-	    update_var_mask(hnode, children.key->key);
-	    update_var_mask(hnode, new->key);
-	    new->parent = n;
-
-	    if ( COMPARE_AND_SWAP_PTR(&n->children.hash, children.hash, hnode) )
-	    { hnode->old_single = children.key;			/* See (*) */
-	      return new;
-	    } else
-	    { hnode->old_single = NULL;
-	      destroy_node(trie, new);
-	      destroyHTableWP(hnode->table);
-	      free_to_pool(trie->alloc_pool, hnode, sizeof(*hnode));
-	      continue;
-	    }
-	  }
-	}
-	case TN_HASHED:
-	{ trie_node *old = addHTableWP(children.hash->table, key, new);
-
-	  if ( new == old )
-	  { new->parent = n;
-	    update_var_mask(children.hash, new->key);
-	  } else
-	  { destroy_node(trie, new);
-	  }
-	  return old;
-	}
-	default:
-	  assert(0);
-      }
-    } else
-    { trie_children_key *child;
-
-      if ( !(child=alloc_from_pool(trie->alloc_pool, sizeof(*child))) )
-      { destroy_node(trie, new);
-	return NULL;
-      }
-
-      child->type  = TN_KEY;
-      child->key   = key;
-      child->child = new;
-
-      if ( COMPARE_AND_SWAP_PTR(&n->children.key, NULL, child) )
-      { child->child->parent = n;
-	return child->child;
-      }
-      destroy_node(trie, new);
-      free_to_pool(trie->alloc_pool, child, sizeof(*child));
+  if ( (child = new_trie_node(trie, key)) )
+  { child->parent = n;
+    if ( !add_child(trie, n, child) )
+    { destroy_node(trie, child);
+      child = NULL;
     }
   }
+
+  unlock_children(m);
+  return child;
 }
 
 
@@ -1294,33 +1588,23 @@ map_trie_node(trie_node *n,
   void *rc;
 
 next:
-  children = n->children;
+  children = load_children(n);
 
   if ( (rc=(*map)(n, ctx)) != NULL )
     return rc;
 
-  if ( children.any  )
-  { switch( children.any->type )
-    { case TN_KEY:
-      { n = children.key->child;
-	goto next;
-      }
-      case TN_HASHED:
-      { TableWP table = children.hash->table;
-	TableEnum e = newTableEnumWP(table);
-	table_value_t v;
+  if ( children )
+  { if ( is_single_child(children) )
+    { n = single_child(children);
+      goto next;
+    } else
+    { child_iter it;
+      trie_node *n2;
 
-	while(advanceTableEnum(e, NULL, &v))
-	{ trie_node *n2 = val2ptr(v);
-
-	  if ( (rc=map_trie_node(n2, map, ctx)) != NULL )
-	  { freeTableEnum(e);
-	    return rc;
-	  }
-	}
-
-	freeTableEnum(e);
-	break;
+      init_child_iter(&it, n);
+      while( (n2=next_child(&it, NULL)) )
+      { if ( (rc=map_trie_node(n2, map, ctx)) != NULL )
+	  return rc;
       }
     }
   }
@@ -1347,18 +1631,12 @@ stat_node(trie_node *n, void *ctx)
   if ( n->value && ison(n, TN_PRIMARY) )
     stats->values++;
 
-  if ( children.any )
-  { switch( children.any->type )
-    { case TN_KEY:
-	stats->bytes += sizeof(*children.key);
-        break;
-      case TN_HASHED:
-	stats->bytes += sizeofTableWP(children.hash->table);
-	stats->hashes++;
-	break;
-      default:
-	assert(0);
-    }
+  if ( children && !is_single_child(children) )
+  { trie_children_block *b = children_block(children);
+
+    stats->bytes += sizeof_block(b);
+    if ( b->index_bits )
+      stats->hashes++;
   }
 
   return NULL;
@@ -1488,9 +1766,11 @@ PRED_IMPL("trie_new", 1, trie_new, 0)
   trie *trie;
 
   if ( (trie = trie_create(NULL)) )
-  { atom_t symbol = trie_symbol(trie);
+  { atom_t symbol;
     bool rc;
 
+    set(trie, TRIE_CONCURRENT);
+    symbol = trie_symbol(trie);
     rc = unify_trie(A1, trie);
     PL_unregister_atom(symbol);
 
@@ -2315,9 +2595,15 @@ typedef struct qcursor
   bool	 prune;				/* false: no longer pruning */
 } qcursor;
 
+typedef enum
+{ CH_ONE = 0,				/* single child */
+  CH_ENUM,				/* enumerate children of iter.parent */
+  CH_VARS				/* lookup novar and the variables */
+} ch_mode;
+
 typedef struct trie_choice
-{ TableEnum  table_enum;
-  TableWP    table;
+{ ch_mode    mode;			/* how to advance */
+  child_iter iter;			/* parent and position */
   unsigned   var_mask;			/* variables left to try */
   unsigned   attvar_mask;		/* attributed ones, tried next */
   unsigned   var_index;
@@ -2371,15 +2657,7 @@ init_trie_state(DECL_LD trie_gen_state *state, trie *trie,
 
 static void
 clear_trie_state(trie_gen_state *state)
-{ trie_choice *chp = base_choice(state);
-  trie_choice *top = top_choice(state);
-
-  for(; chp < top; chp++)
-  { if ( chp->table_enum )
-      freeTableEnum(chp->table_enum);
-  }
-
-  discardBuffer(&state->choicepoints);
+{ discardBuffer(&state->choicepoints);
   discardBuffer(&state->frames);
 
   release_trie(state->trie);
@@ -2664,10 +2942,10 @@ keep_cursor(trie_gen_state *state, trie_choice *ch, const qcursor *c)
 static trie_choice *
 add_choice(DECL_LD trie_gen_state *state,
 	   qcursor *c, trie_node *node)
-{ trie_children children = node->children;
+{ trie_children children = load_children(node);
   trie_choice *ch;
 
-  if ( !children.any || ison(node, state->vflags) )
+  if ( !children || ison(node, state->vflags) )
   { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
     memset(ch, 0, sizeof(*ch));
     ch->child = node;
@@ -2675,73 +2953,70 @@ add_choice(DECL_LD trie_gen_state *state,
   }
 
   ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-  ch->table_enum = NULL;
-  ch->table      = NULL;
+  ch->mode = CH_ONE;
   ch->cursor.prune = false;
 
-  switch( children.any->type )
-  { case TN_KEY:
-      if ( !align_key(state, c, children.key->key) )
-	break;
-      ch->key   = children.key->key;
-      ch->child = children.key->child;
-      return ch;
-    case TN_HASHED:
-    { trie_children_hashed *hnode = children.hash;
-      unsigned vmask = hnode->var_mask;
-      unsigned amask = hnode->attvar_mask;
-      word k = 0;
-      Word p;
+  if ( is_single_child(children) )
+  { trie_node *child = single_child(children);
 
-      if ( c->prune && !c->open &&
-	   peek_query(state, c, &k, &p) == Q_KEY &&
-	   !((vmask|amask) & VMASK_SCAN) )
-      { if ( !(vmask|amask) )
-	{ if ( !(ch->child = lookupHTableWP(hnode->table, k)) )
-	    break;
-	  ch->key = k;
-	} else
-	{ DEBUG(MSG_TRIE_GEN,
-		Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
-	  keep_cursor(state, ch, c);
-	  ch->table       = hnode->table;
-	  ch->var_mask    = vmask;
-	  ch->attvar_mask = amask;
-	  ch->var_tag     = TAG_VAR;
-	  ch->var_index   = 1;
-	  ch->novar       = k;
-	  if ( !advance_node(ch) )
-	    break;
-	}
-	(void)align_key(state, c, ch->key); /* k or a variable: no cut */
+    if ( !align_key(state, c, child->key) )
+      goto none;
+    ch->key   = child->key;
+    ch->child = child;
+    return ch;
+  } else
+  { trie_children_block *b = children_block(children);
+    unsigned vmask = b->var_mask;
+    unsigned amask = b->attvar_mask;
+    word k = 0;
+    Word p;
+
+    if ( c->prune && !c->open &&
+	 peek_query(state, c, &k, &p) == Q_KEY &&
+	 !((vmask|amask) & VMASK_SCAN) )
+    { if ( !(vmask|amask) )
+      { if ( !(ch->child = get_child(node, k)) )
+	  goto none;
+	ch->key = k;
+      } else
+      { DEBUG(MSG_TRIE_GEN,
+	      Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
+	keep_cursor(state, ch, c);
+	ch->mode        = CH_VARS;
+	init_child_iter(&ch->iter, node);
+	ch->var_mask    = vmask;
+	ch->attvar_mask = amask;
+	ch->var_tag     = TAG_VAR;
+	ch->var_index   = 1;
+	ch->novar       = k;
+	if ( !advance_node(ch) )
+	  goto none;
+      }
+      (void)align_key(state, c, ch->key); /* k or a variable: no cut */
+      return ch;
+    }
+
+    /* A root keeps its children when trie_delete/3 prunes its last key
+       (prune_node() destroys every other node that empties), so the
+       enumeration may produce no child at all. */
+    keep_cursor(state, ch, c);
+    ch->mode = CH_ENUM;
+    init_child_iter(&ch->iter, node);
+    for(;;)
+    { trie_node *child;
+      word ck;
+
+      if ( !(child=next_child(&ch->iter, &ck)) )
+	goto none;
+      if ( align_key(state, c, ck) )
+      { ch->key   = ck;
+	ch->child = child;
 	return ch;
       }
-
-      /* A root keeps its hashed children table when trie_delete/3 prunes
-	 its last key (prune_node() destroys every other node that empties),
-	 so the enumeration may produce no child at all. */
-      keep_cursor(state, ch, c);
-      ch->table_enum = newTableEnumWP(hnode->table);
-      for(;;)
-      { table_key_t tk;
-	table_value_t tv;
-
-	if ( !advanceTableEnum(ch->table_enum, &tk, &tv) )
-	{ freeTableEnum(ch->table_enum);
-	  break;
-	}
-	if ( align_key(state, c, tk) )
-	{ ch->key   = tk;
-	  ch->child = val2ptr(tv);
-	  return ch;
-	}
-      }
-      break;
     }
-    default:
-      assert(0);
   }
 
+none:
   state->choicepoints.top = (char*)ch;	/* no child can match */
   return NULL;
 }
@@ -2753,7 +3028,7 @@ add_choice(DECL_LD trie_gen_state *state,
 static trie_choice *
 descent_node(DECL_LD trie_gen_state *state,
 	     qcursor *c, trie_choice *ch)
-{ while( ch && ch->child->children.any &&
+{ while( ch && trie_has_children(ch->child) &&
 	 isoff(ch->child, state->vflags) )
   { ch = add_choice(state, c, ch->child);
   }
@@ -2768,22 +3043,22 @@ descent_node(DECL_LD trie_gen_state *state,
 
 static inline bool
 advance_node(DECL_LD trie_choice *ch)
-{ if ( ch->table_enum )
-  { table_key_t k;
-    table_value_t v;
+{ if ( ch->mode == CH_ENUM )
+  { trie_node *child;
+    word k;
 
-    if ( advanceTableEnum(ch->table_enum, &k, &v) )
+    if ( (child=next_child(&ch->iter, &k)) )
     { ch->key   = k;
-      ch->child = val2ptr(v);
+      ch->child = child;
 
       return true;
     }
-  } else if ( ch->table )
+  } else if ( ch->mode == CH_VARS )
   { if ( ch->novar )
     { word novar = ch->novar;
 
       ch->novar = 0;
-      if ( (ch->child=lookupHTableWP(ch->table, novar)) )
+      if ( (ch->child=get_child(ch->iter.parent, novar)) )
       { ch->key = novar;
 	return true;
       }
@@ -2793,7 +3068,7 @@ advance_node(DECL_LD trie_choice *ch)
       { if ( (ch->var_mask & (0x1U<<(ch->var_index-1))) )
 	{ word key = ((((word)ch->var_index))<<LMASK_BITS)|ch->var_tag;
 
-	  if ( (ch->child=lookupHTableWP(ch->table, key)) )
+	  if ( (ch->child=get_child(ch->iter.parent, key)) )
 	  { ch->key = key;
 	    ch->var_index++;
 	    return true;
@@ -2912,8 +3187,6 @@ next_choice0(DECL_LD trie_gen_state *state, bool bound)
       } while( advance_node(ch) );
     }
 
-    if ( ch->table_enum )
-      freeTableEnum(ch->table_enum);
     state->choicepoints.top = (char*)ch--;
   next:
     ;
@@ -3134,7 +3407,7 @@ trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
       { root = &trie->root;
       }
 
-      if ( root->children.any )
+      if ( trie_has_children(root) )
 	return trie_gen_raw(trie, root, Key, Value, Data,
 			    unify_data, ctx, PL__ctx);
     }
@@ -3815,38 +4088,28 @@ next:
   }
 
 children:
-  if ( children.any && isoff(n, TN_PRIMARY|TN_SECONDARY) )
-  { switch( children.any->type )
-    { case TN_KEY:
-      { state->try = false;
-	n = children.key->child;
-	goto next;
-      }
-      case TN_HASHED:
-      { TableWP table = children.hash->table;
-	TableEnum e = newTableEnumWP(table);
-	table_key_t k;
-	table_value_t v;
+  if ( children && isoff(n, TN_PRIMARY|TN_SECONDARY) )
+  { if ( is_single_child(children) )
+    { state->try = false;
+      n = single_child(children);
+      goto next;
+    } else
+    { child_iter it;
+      trie_node *next;
 
-	if ( !advanceTableEnum(e, &k, &v) )
-	{ freeTableEnum(e);
-	  return true;				/* empty path */
-	}
+      init_child_iter(&it, n);
+      if ( !(next=next_child(&it, NULL)) )
+	return true;				/* empty path */
 
-	for(;;)
-	{ n = val2ptr(v);
+      for(;;)
+      { n = next;
 
-	  if ( !(state->try = advanceTableEnum(e, &k, &v)) )
-	  { freeTableEnum(e);
-	    goto next;
-	  }
+	if ( !(state->try = !!(next=next_child(&it, NULL))) )
+	  goto next;
 
-	  if ( !compile_trie_node(n, state) )
-	  { freeTableEnum(e);
-	    return false;
-	  }
-	  fixup_else(state);
-	}
+	if ( !compile_trie_node(n, state) )
+	  return false;
+	fixup_else(state);
       }
     }
   } else
@@ -4046,6 +4309,10 @@ initTries(void)
   Definition def;
 
   PL_register_blob_type(&trie_blob);
+#ifdef O_PLMT
+  for(int i=0; i<TRIE_STRIPES; i++)
+    simpleMutexInit(&GD->tries.stripes[i]);
+#endif
 
   proc = PL_predicate("trie_gen_compiled", 2, "system");
   def = proc->definition;

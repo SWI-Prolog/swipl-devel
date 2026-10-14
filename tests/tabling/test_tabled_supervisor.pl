@@ -168,7 +168,7 @@ test(repeated_vars) :-
     inferences(fact(_), N2),
     assertion(N0 == N2),
     assertion(N1 == N2),
-    assertion(var(Z)).
+    assertion((var(Z) ; Z == 1)).       % first answer; order is unspecified
 test(indirect) :-
     forall(member(K-T, [1.5-float, "str"-string, 100000000000000000000-big,
                         a-atom, 1-int]),
