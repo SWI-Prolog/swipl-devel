@@ -1046,6 +1046,102 @@ trie_lookup_flat(DECL_LD trie *trie, trie_node **startp, trie_node **nodep,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trie_insert_flat() is a fast version of trie_lookup_abstract() with `add`
+true for the common answer shape of  tabling:   an  atom  or  a compound
+whose arguments are atomic or plain   unbound  variables. It creates the
+same keys as trie_lookup_abstract():
+
+  Name						(atom)
+  Name/Arity, Arg1, ..., ArgN			(compound, no POP)
+
+Variables are numbered from 1 in the order of their first occurrence and
+are (temporarily) bound to their numbered key.
+
+Return:
+  - true
+    Ok (found or inserted); `nodep` is filled with the node.
+  - false
+    Resource error
+  - TRIE_LOOKUP_NOT_FLAT
+    The term is not flat, or has too many variables.  Nothing is
+    modified.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define FLAT_MAX_VARS 32
+
+int
+trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
+{ trie_node *node;
+  Word vars[FLAT_MAX_VARS];
+  size_t var_number = 0;
+  Word argv;
+  size_t arity;
+  word w;
+
+  deRef(k);
+  w = *k;
+  if ( isAtom(w) )
+  { TRIE_STAT_INC(trie, lookups);
+    if ( !(node = follow_node(trie, &trie->root, w, true)) )
+      return false;
+    *nodep = node;
+    return true;
+  }
+  if ( !isTerm(w) )
+    return TRIE_LOOKUP_NOT_FLAT;
+
+  Functor f = valueTerm(w);
+  arity = arityFunctor(f->definition);
+  argv = f->arguments;
+
+  for(size_t i=0, nvars=0; i<arity; i++)	/* verify it is flat */
+  { Word p = &argv[i];
+
+    deRef(p);
+    switch( tag(*p) )
+    { case TAG_VAR:
+	if ( ++nvars > FLAT_MAX_VARS )
+	  return TRIE_LOOKUP_NOT_FLAT;
+	break;
+      case TAG_ATTVAR:
+      case TAG_COMPOUND:
+	return TRIE_LOOKUP_NOT_FLAT;
+    }
+  }
+
+  TRIE_STAT_INC(trie, lookups);
+  node = follow_node(trie, &trie->root, f->definition, true);
+  for(size_t i=0; node && i<arity; i++)
+  { Word p = &argv[i];
+
+    deRef(p);
+    w = *p;
+    if ( tag(w) == TAG_VAR )
+    { if ( isVar(w) )
+      { vars[var_number++] = p;
+	w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	*p = w;
+      }
+    } else if ( isIndirect(w) )
+    { if ( !(w = trie_intern_indirect(trie, w, true)) )
+      { node = NULL;
+	break;
+      }
+    }
+    node = follow_node(trie, node, w, true);
+  }
+
+  for(size_t i=0; i<var_number; i++)
+    setVar(*vars[i]);
+
+  if ( !node )
+    return false;
+  *nodep = node;
+  return true;
+}
+
+
 trie *
 get_trie_from_node(trie_node *node)
 { trie *trie_ptr;

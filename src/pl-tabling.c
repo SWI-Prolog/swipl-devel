@@ -4158,9 +4158,12 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     if ( ison(wl->table, TRIE_ISMAP) )
       return !!wkl_mode_add_answer(wl, wl->table, A2, A3);
 
-    sa.size = pred_max_table_answer_size(wl->predicate);
-    rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
-			      true, &sa, NULL);
+    rc = trie_insert_flat(wl->table, &node, kp);
+    if ( rc == TRIE_LOOKUP_NOT_FLAT )
+    { sa.size = pred_max_table_answer_size(wl->predicate);
+      rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
+				true, &sa, NULL);
+    }
     if ( rc > 0 )				/* ok or abstracted */
     { idg_node *idg;
 

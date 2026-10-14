@@ -168,6 +168,7 @@ typedef struct size_abstract
 #define	unify_trie_term(node, parent, term)					LDFUNC(unify_trie_term, node, parent, term)
 #define	trie_lookup_abstract(trie, root, nodep, k, add, abstract, vars)		LDFUNC(trie_lookup_abstract, trie, root, nodep, k, add, abstract, vars)
 #define	trie_lookup_flat(trie, startp, nodep, def, argv, vars)			LDFUNC(trie_lookup_flat, trie, startp, nodep, def, argv, vars)
+#define	trie_insert_flat(trie, nodep, k)					LDFUNC(trie_insert_flat, trie, nodep, k)
 #define	put_trie_value(t, node)							LDFUNC(put_trie_value, t, node)
 #define	set_trie_value(trie, node, value)					LDFUNC(set_trie_value, trie, node, value)
 #define	compile_trie(def, trie)							LDFUNC(compile_trie, def, trie)
@@ -198,6 +199,7 @@ int	trie_lookup_abstract(trie *trie,
 int	trie_lookup_flat(trie *trie, trie_node **startp,
 			 trie_node **nodep,
 			 Definition def, Word argv, TmpBuffer vars);
+int	trie_insert_flat(trie *trie, trie_node **nodep, Word k);
 bool	trie_error(int rc, term_t culprit);
 bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);
