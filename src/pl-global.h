@@ -47,6 +47,8 @@
 #define GLOBAL extern
 #endif
 
+#define MODULE_CACHE_SIZE 8		/* Per thread cache of lookupModule() */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module packs SWI-Prolog global data-structures into two structures.
 The structure PL_global_data contains all global data that is related to
@@ -173,6 +175,7 @@ struct PL_global_data
   struct
   { Module	user;			/* user module */
     Module	system;			/* system predicate module */
+    unsigned int generation;		/* Incremented on destroying a module */
   } modules;
 
   struct
@@ -638,6 +641,11 @@ struct PL_local_data
   struct
   { Module	typein;			/* module for type in goals */
     Module	source;			/* module we are reading clauses in */
+    struct				/* See lookupModule() */
+    { atom_t	name[MODULE_CACHE_SIZE];
+      Module	module[MODULE_CACHE_SIZE];
+      unsigned int generation;		/* GD->modules.generation */
+    } cache;
   } modules;
 
   struct

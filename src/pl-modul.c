@@ -136,7 +136,7 @@ Module
 lookupModule(DECL_LD atom_t name)
 { Module m;
 
-  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
+  if ( (m = isCurrentModule(name)) )
     return m;
 
   PL_LOCK(L_MODULE);
@@ -147,9 +147,31 @@ lookupModule(DECL_LD atom_t name)
 }
 
 
+/* Find an existing module.  As meta calls look up modules by name, each
+ * thread caches the most recent lookups.  The cache is flushed if a
+ * module is destroyed (see destroyModule()).
+ */
+
 Module
 isCurrentModule(DECL_LD atom_t name)
-{ return lookupHTableWP(GD->tables.modules, name);
+{ unsigned int i = (unsigned int)(indexAtom(name) & (MODULE_CACHE_SIZE-1));
+  unsigned int gen = GD->modules.generation;
+  Module m;
+
+  if ( likely(LD->modules.cache.generation == gen) )
+  { if ( LD->modules.cache.name[i] == name )
+      return LD->modules.cache.module[i];
+  } else
+  { memset(LD->modules.cache.name, 0, sizeof(LD->modules.cache.name));
+    LD->modules.cache.generation = gen;
+  }
+
+  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
+  { LD->modules.cache.name[i]   = name;
+    LD->modules.cache.module[i] = m;
+  }
+
+  return m;
 }
 
 
@@ -415,6 +437,7 @@ destroyModule(Module m)
   PL_LOCK(L_MODULE);
   if ( deleteHTableWP(GD->tables.modules, m->name) == m )
     set(m, M_DESTROYED);
+  ATOMIC_INC(&GD->modules.generation);	/* flush lookupModule() caches */
   DEBUG(0, { GET_LD
 	     assert(!lookupHTableWP(GD->tables.modules, m->name));
            });
