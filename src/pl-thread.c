@@ -2304,6 +2304,8 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->tabling.restraint        = ldold->tabling.restraint;
   ldnew->table_flags.compile_threshold =
 				    ldold->table_flags.compile_threshold;
+  ldnew->table_flags.drop_intermediate =
+				    ldold->table_flags.drop_intermediate;
   ldnew->tabling.in_assert_propagation = false;
   if ( !ldnew->thread.info->debug )
   { ldnew->_debugstatus.tracing   = false;

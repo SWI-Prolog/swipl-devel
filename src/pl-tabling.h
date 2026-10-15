@@ -86,6 +86,13 @@ typedef struct tbl_component
   worklist_set         *created_worklists;	/* Worklists created */
   worklist_set	       *delay_worklists;	/* Worklists in need for delays */
   trie		       *leader;			/* Leading variant */
+  int64_t		inferences;		/* At creation; cost when complete */
+  struct					/* Dropping intermediate tables */
+  { atom_t		symbol;			/* Registered leader if droppable */
+    size_t		size;			/* Memory of the table */
+    uint64_t		gen_calls;		/* gen_call at completion */
+    int64_t		recompute;		/* Cost to recompute if dropped */
+  } drop;
 } tbl_component;
 
 typedef struct tbl_status

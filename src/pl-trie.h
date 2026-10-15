@@ -142,6 +142,9 @@ typedef struct trie_node_chunk
   unsigned		bytes;		/* Allocated bytes */
   unsigned		size;		/* Allocated nodes */
   unsigned		used;		/* Used nodes */
+  unsigned		live;		/* Nodes in use */
+  unsigned		nfree;		/* Free nodes (newest chunk only) */
+  unsigned		sweep_at;	/* Sweep at nfree (newest chunk only) */
   trie_node		nodes[];
 } trie_node_chunk;
 
@@ -282,6 +285,7 @@ void *	map_trie_node(trie_node *n,
 		      void* (*map)(trie_node *n, void *ctx), void *ctx);
 atom_t	compile_trie(Definition def, trie *trie);
 void	markAtomsInTries(void);
+size_t	trie_table_size(trie *atrie);
 void	freeZombieTrieChunks(void);
 void	trie_discard_clause(trie *trie);
 void	trie_discard_nodes(trie *trie);

@@ -396,6 +396,8 @@ free_component(tbl_component *c, int flags)
   { if ( !(flags&FC_CHILD) && c->parent )
       del_child_component(c->parent, c);
     flags |= FC_CHILD;				/* only for the first */
+    if ( c->drop.symbol )
+      PL_unregister_atom(c->drop.symbol);
     if ( c->worklist )
       free_worklist_set(c->worklist, WLFS_FREE_NONE);
     if ( c->delay_worklists )
@@ -5574,6 +5576,109 @@ unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Dropping intermediate tables (Prolog flag table_drop_intermediate).  A
+chain of tables such as for naive reverse creates many tables that only
+serve the initial query.  When the root component completes, we abolish
+completed child components that are cheap to recompute relative to the
+memory they use.
+
+A child component is droppable if it completed with a single table that
+is private, not incremental and has no conditional answers (i.e., its
+answer trie is TRIE_DISCARDABLE).  Its cost is the number of inferences
+from its creation to its completion, excluding its child components.
+Walking from the leaves up, a dropped table's recompute cost includes
+the cost of the dropped tables below it.  We keep a table if
+
+  - it is smaller than TABLE_DROP_MIN_SIZE bytes,
+  - it was called again after its completion, or
+  - its recompute cost exceeds `table_drop_intermediate` times its own
+    cost.
+
+See doc/tabling/intermediate-tables.md.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TABLE_DROP_MIN_SIZE 1024
+
+static void
+droppable_table(tbl_component *c, trie *atrie)
+{ atom_t symbol = trie_symbol(atrie);
+
+  PL_register_atom(symbol);
+  c->drop.symbol    = symbol;
+  c->drop.size      = trie_table_size(atrie);
+  c->drop.gen_calls = atrie->stats.gen_call;
+}
+
+static void
+children_of_component(tbl_component *c, tmp_buffer *b)
+{ if ( c->children )
+  { tbl_component **bp = baseBuffer(&c->children->members, tbl_component*);
+    tbl_component **tp = topBuffer(&c->children->members, tbl_component*);
+
+    for(; bp < tp; bp++)
+    { if ( (*bp)->status == SCC_COMPLETED )
+	addBuffer(b, *bp, tbl_component*);
+    }
+  }
+}
+
+#define drop_intermediate_tables(root) LDFUNC(drop_intermediate_tables, root)
+static void
+drop_intermediate_tables(DECL_LD tbl_component *root)
+{ tmp_buffer order;
+  size_t i, count;
+  int64_t factor = (int64_t)LD->table_flags.drop_intermediate;
+  trie *vtrie = LD->tabling.variant_table;	/* private tables only */
+
+  initBuffer(&order);				/* pre-order */
+  addBuffer(&order, root, tbl_component*);
+  for(i=0; i<entriesBuffer(&order, tbl_component*); i++)
+    children_of_component(fetchBuffer(&order, i, tbl_component*), &order);
+
+  count = entriesBuffer(&order, tbl_component*);
+  for(i=count; i-- > 1; )			/* children first, not the root */
+  { tbl_component *c = fetchBuffer(&order, i, tbl_component*);
+    int64_t below = 0, recompute = 0;
+    bool keep = true;
+
+    if ( c->children )
+    { tbl_component **bp = baseBuffer(&c->children->members, tbl_component*);
+      tbl_component **tp = topBuffer(&c->children->members, tbl_component*);
+
+      for(; bp < tp; bp++)
+      { if ( (*bp)->status == SCC_COMPLETED )
+	{ below += (*bp)->inferences;
+	  recompute += (*bp)->drop.recompute;
+	}
+      }
+    }
+    int64_t own = c->inferences > below ? c->inferences - below : 0;
+    recompute += own;
+
+    if ( c->drop.symbol )
+    { trie *atrie = symbol_trie(c->drop.symbol);
+
+      keep = ( !atrie ||
+	       c->drop.size < TABLE_DROP_MIN_SIZE ||
+	       atrie->stats.gen_call > c->drop.gen_calls ||
+	       recompute > factor*own );
+      if ( !keep )
+      { DEBUG(MSG_TABLING_ABOLISH,
+	      print_answer_table(atrie, "Dropping intermediate table"));
+	if ( vtrie && !table_is_incomplete(atrie) )
+	  trie_delete(vtrie, atrie->data.variant, true);
+      }
+      PL_unregister_atom(c->drop.symbol);
+      c->drop.symbol = 0;
+    }
+    c->drop.recompute = keep ? 0 : recompute;
+  }
+
+  discardBuffer(&order);
+}
+
+
 /** '$tbl_table_complete_all'(+SCC, -Status, -Clause)
  *
  * Complete and reset all newly created tables.
@@ -5631,6 +5736,16 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
     c->status = SCC_COMPLETED;
     if ( rc && leader_stays )		/* compiled by unify_leader_clause() */
       trie_maybe_discard_nodes(leader);
+    c->inferences = LD->statistics.inferences - c->inferences;
+    if ( LD->table_flags.drop_intermediate )
+    { if ( c->parent )
+      { if ( rc && ntables == 1 && leader_stays &&
+	     ison(leader, TRIE_DISCARDABLE|TRIE_DISCARDED) )
+	  droppable_table(c, leader);
+      } else
+      { drop_intermediate_tables(c);
+      }
+    }
 
     if ( c->parent && LD->tabling.component == c )
       LD->tabling.component = c->parent;
@@ -5707,11 +5822,13 @@ tbl_create_subcomponent(DECL_LD trie *leader)
     else
       LD->tabling.component->status = SCC_ACTIVE;
     LD->tabling.component->leader = leader;
+    LD->tabling.component->inferences = LD->statistics.inferences;
   } else
   { tbl_component *c = new_component();
     tbl_component *p;
 
     c->leader = leader;
+    c->inferences = LD->statistics.inferences;
     c->parent = (p=LD->tabling.component);
     LD->tabling.component = c;
     add_child_component(p, c);

@@ -2458,6 +2458,19 @@ values thus avoid compiling tables that are never called again, while
 lower values reduce the memory used by tables with large answers.  The
 value 0 always compiles the trie on completion.  Default is 32.
 
+    \prologflagitem{table_drop_intermediate}{integer}{rw}
+If non-zero, abolish tables that merely served the evaluation of the
+outermost tabled goal when this goal is completed.  Each table that
+completes as a component of its own is considered.  A table is kept if
+it is small, if it was called again after it was completed or if
+recomputing it, including the tables below it that are dropped, costs
+more inferences than the value of this flag times the cost of computing
+the table itself.  Tables that are shared, incremental or have
+conditional answers are never dropped.  This saves memory for chains of
+tables such as created by tabling naive reverse, where it typically keeps
+one in 10 tables if the value is 10.  The default is 0, which keeps all
+tables.  This flag is experimental.
+
     \prologflagitem{table_incremental}{bool}{rw}
 Set the default for whether to use incremental tabling or not.
 Initially set to \const{false}.  See table/1.

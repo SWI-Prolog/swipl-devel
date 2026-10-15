@@ -1467,6 +1467,11 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 	  return PL_representation_error("size_t"),NULL;
 	LD->table_flags.compile_threshold = (size_t)i;
       }
+      else if ( k == ATOM_table_drop_intermediate )
+      { if ( i < 0 || i > SIZE_MAX )
+	  return PL_representation_error("size_t"),NULL;
+	LD->table_flags.drop_intermediate = (size_t)i;
+      }
       else if ( k == ATOM_stack_limit )
       { if ( i < 0 || i > SIZE_MAX )
 	  return PL_representation_error("size_t"),NULL;
@@ -2578,6 +2583,9 @@ initPrologFlags(void)
   LD->table_flags.compile_threshold = TABLE_COMPILE_THRESHOLD;
   setPrologFlag("table_compile_threshold", FT_INTEGER,
 		(intptr_t)LD->table_flags.compile_threshold);
+  LD->table_flags.drop_intermediate = 0;
+  setPrologFlag("table_drop_intermediate", FT_INTEGER,
+		(intptr_t)LD->table_flags.drop_intermediate);
 #ifdef O_PLMT
   setPrologFlag("shared_table_space", FT_INTEGER, (intptr_t)GD->options.sharedTableSpace);
 #endif

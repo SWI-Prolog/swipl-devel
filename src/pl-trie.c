@@ -926,6 +926,14 @@ node is deleted or a deleted node is reused.  These modifications and
 the registration hold the lock of the chunk list.  Clearing a trie
 releases the keys of its registered chunks per chunk.
 
+(*) Atom-GC only registers a chunk if an earlier atom-GC found it full
+(`scans` > 0) and only atom-GC increments `scans`.  Deleting a node in
+a full chunk with `scans` == 0 therefore needs no lock.  The only race
+is two complete atom-GC runs between testing `scans` and clearing the
+key, which at worst leaks a reference to the atom.  Reusing a node does
+not have this property: an unregistered key in a registered chunk is
+neither scanned nor registered.
+
 A node holds its index in the chunk in the upper bits of its flags, so
 we can find the chunk of a node.  The `used` counter of a chunk is
 incremented after the new node is initialised, so atom-GC never reads
@@ -938,6 +946,10 @@ uninitialised keys.
 #define chunk_is_full(c) ((c)->used == (c)->size)
 
 #define TRIE_REGISTER_SCANS	1	/* Register after these full scans */
+#define TRIE_SWEEP_MIN		1024	/* Min free nodes to sweep */
+
+static void	free_chunk_list(trie_node_chunk *all);
+static void	sweep_node_chunks(trie *trie);
 
 /* Allocate a node.  If it is a chunk node, `*cp` is the chunk and
  * `*bump` is true if it is a new node in this chunk, in which case
@@ -956,13 +968,16 @@ alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
   if ( (c=trie->mem.chunks) )
   { if ( (n=c->free) )
     { c->free = n->parent;
+      c->nfree--;
       *cp = node_chunk(n);
+      (*cp)->live++;
       *bump = false;
       return n;
     }
     if ( c->used < c->size )
     { *cp = c;
       *bump = true;
+      c->live++;
       return &c->nodes[c->used];
     }
   } else if ( trie->node_count <= TRIE_SINGLE_NODES )
@@ -984,6 +999,9 @@ alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
   nc->bytes  = bytes;
   nc->size   = (bytes-offsetof(trie_node_chunk, nodes))/sizeof(trie_node);
   nc->used   = 0;
+  nc->live   = 1;
+  nc->nfree  = 0;
+  nc->sweep_at = c ? c->sweep_at : TRIE_SWEEP_MIN;
   link_chunk(nc);
   trie->mem.chunks = nc;
   *cp = nc;
@@ -1043,8 +1061,8 @@ free_trie_node(trie *trie, trie_node *n)
   { trie_node_chunk *c = node_chunk(n);
     trie_node_chunk *head = trie->mem.chunks;
 
-    if ( chunk_is_full(c) )		/* may be registered */
-    { LOCK_CHUNKS();
+    if ( chunk_is_full(c) && (c->scans || (c->flags&CHUNK_REGISTERED)) )
+    { LOCK_CHUNKS();			/* may be registered, see (*) */
       if ( (c->flags&CHUNK_REGISTERED) )
 	release_key(n->key);
       n->key = 0;
@@ -1052,8 +1070,11 @@ free_trie_node(trie *trie, trie_node *n)
     } else
     { n->key = 0;			/* do not mark it */
     }
+    c->live--;
     n->parent = head->free;
     head->free = n;
+    if ( ++head->nfree >= head->sweep_at && head->nfree > trie->node_count )
+      sweep_node_chunks(trie);
   } else
   { free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
   }
@@ -1072,12 +1093,24 @@ release_chunk_keys(trie_node_chunk *c)
 
 static void
 free_node_chunks(trie *trie)
-{ trie_node_chunk *c, *next, *all, *tofree = NULL;
+{ trie_node_chunk *all;
 
   if ( ison(trie, TRIE_CONCURRENT) || !(all=trie->mem.chunks) )
     return;
 
   trie->mem.chunks = NULL;
+  free_chunk_list(all);
+}
+
+
+/* Free a list of chunks, linked through `next`, that is no longer
+ * used by the trie.
+ */
+
+static void
+free_chunk_list(trie_node_chunk *all)
+{ trie_node_chunk *c, *next, *tofree = NULL;
+
   LOCK_CHUNKS();
   for(c=all; c; c=next)
   { next = c->next;
@@ -1113,6 +1146,47 @@ free_node_chunks(trie *trie)
   { next = c->next;
     free_to_pool(c->pool, c, c->bytes);
   }
+}
+
+
+/* Free the chunks of a trie that have no nodes in use.  Called if the
+ * free list holds more nodes than the trie and twice as many as after
+ * the previous sweep.  The newest chunk is never freed.
+ */
+
+static void
+sweep_node_chunks(trie *trie)
+{ trie_node_chunk *head = trie->mem.chunks;
+  trie_node_chunk *c, *next, *prev, *empty = NULL;
+  trie_node *n, *nnext, *keep = NULL;
+  unsigned kept = 0;
+
+  for(n=head->free; n; n=nnext)
+  { nnext = n->parent;
+    c = node_chunk(n);
+    if ( c->live == 0 && c != head )
+      continue;
+    n->parent = keep;
+    keep = n;
+    kept++;
+  }
+  head->free  = keep;
+  head->nfree = kept;
+  head->sweep_at = kept*2 > TRIE_SWEEP_MIN ? kept*2 : TRIE_SWEEP_MIN;
+
+  for(prev=head, c=head->next; c; c=next)
+  { next = c->next;
+    if ( c->live == 0 )
+    { prev->next = next;
+      c->next = empty;
+      empty = c;
+    } else
+    { prev = c;
+    }
+  }
+
+  if ( empty )
+    free_chunk_list(empty);
 }
 
 
@@ -2096,6 +2170,28 @@ stat_trie(trie *t, trie_stats *stats)
 		 /*******************************
 		 *	  PROLOG BINDING	*
 		 *******************************/
+
+/* Estimate the memory freed by abolishing the answer trie `atrie`: its
+ * nodes and its compiled clause.  The nodes of its variant that are not
+ * shared with other variants are freed as well, but finding these costs
+ * time proportional to the length of the variant.
+ */
+
+size_t
+trie_table_size(trie *atrie)
+{ size_t size = sizeof(*atrie) + (size_t)atrie->node_count*sizeof(trie_node);
+  atom_t dbref;
+
+  if ( (dbref=atrie->clause) && dbref != ATOM_fail )
+  { ClauseRef cref = clause_clref(dbref);
+
+    if ( cref )
+      size += sizeofClause(cref->value.clause->code_size);
+  }
+
+  return size;
+}
+
 
 atom_t
 trie_symbol(trie *trie)

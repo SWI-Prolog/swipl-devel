@@ -758,6 +758,7 @@ struct PL_local_data
 
   struct
   { size_t	compile_threshold;	/* flag table_compile_threshold */
+    size_t	drop_intermediate;	/* flag table_drop_intermediate */
   } table_flags;
 
   struct
