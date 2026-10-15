@@ -1332,14 +1332,18 @@ PL_get_char_ex(term_t t, int *p, int eof)
 
 
 bool
-PL_get_pointer_ex(term_t t, void **addrp)
-{ GET_LD
-  valid_term_t(t);
-  if ( PL_get_pointer(t, addrp) )
+PL_get_pointer_ex(DECL_LD term_t t, void **addrp)
+{ if ( PL_get_pointer(t, addrp) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_address, t);
 }
+
+API_STUB(bool)
+(PL_get_pointer_ex)(term_t t, void **addrp)
+( valid_term_t(t);
+  return PL_get_pointer_ex(t, addrp);
+)
 
 
 bool

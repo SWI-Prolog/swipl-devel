@@ -4146,10 +4146,8 @@ PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 
 
 bool
-PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_get_blob(DECL_LD term_t t, void **blob, size_t *len, PL_blob_t **type)
+{ word w = valHandle(t);
 
   if ( isAtom(w) )
   { Atom a = atomValue(w);
@@ -4166,6 +4164,12 @@ PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
 
   return false;
 }
+
+API_STUB(bool)
+(PL_get_blob)(term_t t, void **blob, size_t *len, PL_blob_t **type)
+( valid_term_t(t);
+  return PL_get_blob(t, blob, len, type);
+)
 
 
 void *

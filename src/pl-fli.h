@@ -101,6 +101,7 @@
 #define	PL_get_long(t, i)			LDFUNC(PL_get_long, t, i)
 #define	PL_get_int64(t, i)			LDFUNC(PL_get_int64, t, i)
 #define	PL_get_pointer(t, ptr)			LDFUNC(PL_get_pointer, t, ptr)
+#define	PL_get_blob(t, b, l, tp)		LDFUNC(PL_get_blob, t, b, l, tp)
 #define	PL_put_term(t1, t2)			LDFUNC(PL_put_term, t1, t2)
 #define	PL_get_functor(t, f)			LDFUNC(PL_get_functor, t, f)
 #define	PL_get_name_arity_sz(t, name, arity)	LDFUNC(PL_get_name_arity_sz, t, name, arity)
@@ -197,6 +198,8 @@ bool		PL_get_long(term_t t, long *i);
 bool		PL_get_int64(term_t t, int64_t *i);
 /* PL_get_size_ex(term_t t, size_t *i) moved to pl-error.h */
 bool		PL_get_pointer(term_t t, void **ptr);
+bool		PL_get_blob(term_t t, void **blob, size_t *len,
+			    PL_blob_t **type);
 bool		PL_put_term(term_t t1, term_t t2)/* WUNUSED*/;
 bool		PL_get_functor(term_t t, functor_t *f);
 bool		PL_get_name_arity_sz(term_t t, atom_t *name,
