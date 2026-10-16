@@ -254,6 +254,13 @@ colour(thread_graph_local,              dodger_blue).
 colour(thread_graph_global,             orange).
 colour(thread_graph_trail,              lime_green).
 colour(thread_graph_cpu,                orchid).
+colour(thread_cpu_idle,                 grey30).
+colour(thread_cpu_busy,                 lime_green).
+
+% Symbol picker
+
+colour(symbol_picker_user,              light_green).
+colour(symbol_picker_prolog,            light_sky_blue).
 
 % PceEmacs bookmarks and the help viewer
 
