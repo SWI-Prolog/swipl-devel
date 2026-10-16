@@ -726,6 +726,11 @@ struct PL_local_data
     term_t delay_list;			/* Global delay list */
     term_t idg_current;			/* Current node in IDG (trie symbol) */
     struct
+    { void *list[4];			/* Freed objects (TBL_FREE_*) */
+      unsigned short count[4];		/* Length of list[] */
+      bool closed;			/* Thread is terminating */
+    } free_objects;
+    struct
     { atom_t max_table_subgoal_size_action;
       size_t max_table_subgoal_size;
       atom_t max_table_answer_size_action;

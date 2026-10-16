@@ -371,6 +371,10 @@ start_tabling(Closure, Wrapper, Worker) :-
         ->  tdebug(monotonic, 'Monotonic new answer: ~p', [Skeleton])
         ;   start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
         )
+    ;   Status == complete                      % common cases of
+    ->  trie_gen_compiled(Trie, Skeleton)       % start_tabling_2/6
+    ;   Status = fresh(SCC, WorkList)
+    ->  create_table(Trie, SCC, WorkList, Skeleton, Wrapper, Worker)
     ;   start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
     ).
 
@@ -378,27 +382,57 @@ start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     tdebug(deadlock, 'Got table ~p, status ~p', [Trie, Status]),
     (   Status == complete
     ->  trie_gen_compiled(Trie, Skeleton)
-    ;   functor(Status, fresh, 2)
-    ->  catch(create_table(Trie, Status, Skeleton, Wrapper, Worker),
-              deadlock,
-              restart_tabling(Closure, Wrapper, Worker))
+    ;   Status = fresh(SCC, WorkList)
+    ->  create_table(Trie, SCC, WorkList, Skeleton, Wrapper, Worker)
     ;   Status == invalid
     ->  reeval(Trie, Wrapper, Skeleton)
+    ;   Status = fresh_shared(SCC, WorkList)
+    ->  catch(create_table(Trie, SCC, WorkList, Skeleton, Wrapper, Worker),
+              deadlock,
+              restart_tabling(Closure, Wrapper, Worker))
     ;   % = run_follower, but never fresh and Status is a worklist
         shift_for_copy(call_info(Skeleton, Status))
     ).
 
-create_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
-    tdebug(Fresh = fresh(SCC, WorkList)),
+%!  create_table(+Trie, +SCC, +WorkList, ?Skeleton, +Wrapper, +Worker)
+%
+%   Run the leader for the fresh table Trie.  Only a shared table is
+%   run inside catch/3 for a `deadlock` exception, which is raised
+%   when claiming a shared table.  The tables we own are shared tables
+%   and restarting a private table cannot release them.
+
+create_table(Trie, SCC, WorkList, Skeleton, Wrapper, Worker) :-
     tdebug(wl_goal(WorkList, Goal, _)),
     tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-    setup_call_catcher_cleanup(
-        '$idg_set_current'(OldCurrent, Trie),
-        run_leader(Skeleton, Worker, Fresh, LStatus, Clause),
-        Catcher,
-        finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
+    '$tbl_leader'(SCC,
+                  run_leader(Skeleton, Worker, SCC, WorkList, LStatus, Clause),
+                  Wrapper, _OldCurrent, Trie),
     tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
-    done_leader(LStatus, Fresh, Skeleton, Clause).
+    done_leader(LStatus, Skeleton, Clause).
+
+%!  '$tbl_leader'(+SCC, :Goal, +Wrapper, -OldCurrent, +Trie)
+%
+%   Run Goal, the leader of the new component SCC for the fresh table
+%   Trie, with Trie as current IDG node.  This acts as
+%
+%       setup_call_catcher_cleanup(
+%           '$idg_set_current'(OldCurrent, Trie),
+%           Goal,
+%           Catcher,
+%           tbl_leader_finished(OldCurrent, Catcher, SCC, Wrapper))
+%
+%   where the cleanup is the C function tbl_leader_finished().  It
+%   restores the IDG node, destroys SCC if the leader completed the
+%   root component and discards the tables of SCC if Goal raised an
+%   exception.  '$call_cleanup' compiles to the VM instructions of
+%   setup_call_catcher_cleanup/4, where callCleanupHandler() detects
+%   this predicate by its arity.  The setup need not be atomic: the
+%   current IDG node is a backtrackable assignment, so an exception
+%   before the cleanup is active restores it.
+
+'$tbl_leader'(_SCC, _Goal, _Wrapper, OldCurrent, Trie) :-
+    '$idg_set_current'(OldCurrent, Trie),
+    '$call_cleanup'.
 
 %!  restart_tabling(+Closure, +Wrapper, +Worker)
 %
@@ -515,11 +549,11 @@ start_abstract_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     ->  start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
     ;   Status == complete
     ->  '$tbl_answer_update_dl'(Trie, Skeleton)
-    ;   functor(Status, fresh, 2)
+    ;   fresh_status(Status, SCC, WorkList)
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
         abstract_worker(Worker, GenWrapper, GenWorker),
-        catch(create_abstract_table(Trie, Status, Skeleton, GenSkeleton, GenWrapper,
-                                    GenWorker),
+        catch(create_abstract_table(Trie, SCC, WorkList, Skeleton, GenSkeleton,
+                                    GenWrapper, GenWorker),
               deadlock,
               restart_abstract_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
@@ -530,112 +564,104 @@ start_abstract_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
         unify_subsumptive(Skeleton, GenSkeleton)
     ).
 
-create_abstract_table(Trie, Fresh, Skeleton, GenSkeleton, Wrapper, Worker) :-
-    tdebug(Fresh = fresh(SCC, WorkList)),
+create_abstract_table(Trie, SCC, WorkList, Skeleton, GenSkeleton, Wrapper,
+                      Worker) :-
     tdebug(wl_goal(WorkList, Goal, _)),
     tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-    setup_call_catcher_cleanup(
-        '$idg_set_current'(OldCurrent, Trie),
-        run_leader(GenSkeleton, Worker, Fresh, LStatus, _Clause),
-        Catcher,
-        finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
+    '$tbl_leader'(SCC,
+                  run_leader(GenSkeleton, Worker, SCC, WorkList, LStatus,
+                             _Clause),
+                  Wrapper, _OldCurrent, Trie),
     tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
     Skeleton = GenSkeleton,
-    done_abstract_leader(LStatus, Fresh, GenSkeleton, Trie).
+    done_abstract_leader(LStatus, GenSkeleton, Trie).
 
 abstract_worker(_:call(Term), _M:GenWrapper, call(GenTerm)) :-
     functor(Term, Closure, _),
     GenWrapper =.. [_|Args],
     GenTerm =.. [Closure|Args].
 
-:- '$hide'((done_abstract_leader/4)).
-
-done_abstract_leader(complete, _Fresh, Skeleton, Trie) :-
-    !,
-    '$tbl_answer_update_dl'(Trie, Skeleton).
-done_abstract_leader(final, fresh(SCC, _Worklist), Skeleton, Trie) :-
-    !,
-    '$tbl_free_component'(SCC),
-    '$tbl_answer_update_dl'(Trie, Skeleton).
-done_abstract_leader(_,_,_,_).
-
-%!  done_leader(+Status, +Fresh, +Skeleton, -Clause)
+%!  fresh_status(+Status, -SCC, -WorkList) is semidet.
 %
-%   Called on completion of a table. Possibly destroys the component and
-%   generates the answers from the complete  table. The last cases deals
-%   with leaders that are merged into a higher SCC (and thus no longer a
-%   leader).
+%   True when Status is the status of a fresh table, i.e., we must run
+%   its leader.
 
-:- '$hide'((done_leader/4, finished_leader/4, leader_answers/2)).
+fresh_status(fresh(SCC, WorkList), SCC, WorkList).
+fresh_status(fresh_shared(SCC, WorkList), SCC, WorkList).
 
-done_leader(complete, _Fresh, Skeleton, Clause) :-
-    !,
-    leader_answers(Clause, Skeleton).
-done_leader(final, fresh(SCC, _Worklist), Skeleton, Clause) :-
-    !,
-    '$tbl_free_component'(SCC),
-    leader_answers(Clause, Skeleton).
-done_leader(_,_,_,_).
+:- '$hide'((done_abstract_leader/3)).
 
-%   leader_answers(+ClauseOrTrie, -Skeleton) is nondet.
+done_abstract_leader(merged, _, _) :-
+    !.
+done_abstract_leader(_, Skeleton, Trie) :-
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+
+%!  done_leader(+Status, +Skeleton, +Clause)
 %
-%   Return the answers of a completed leader.  The trie is only compiled
-%   if  it  has  conditional  answers.   Otherwise  the  first  call  to
-%   trie_gen_compiled/2 compiles it.  Many tables are never called again
-%   after their leader completes.
+%   Called on completion of a table. Generates the answers from the
+%   complete table. The last cases deals with leaders that are merged
+%   into a higher SCC (and thus no longer a leader).  If the leader
+%   completed the root component, the component was destroyed by the
+%   cleanup of '$tbl_leader'/5.
+%
+%   The answer trie is only compiled if it is deep or has conditional
+%   answers (Status is `clause`).  Otherwise the first call to
+%   trie_gen_compiled/2 compiles it.  Many tables are never called
+%   again after their leader completes.
 
-leader_answers(Trie, Skeleton) :-
-    is_trie(Trie),
-    !,
+:- '$hide'((done_leader/3, '$tbl_leader'/5)).
+
+done_leader(true, _, _).                        % single answer, unified
+done_leader(false, _, _) :-                     % no answers
+    fail.
+done_leader(trie, Skeleton, Trie) :-
     trie_gen(Trie, Skeleton).
-leader_answers(Clause, Skeleton) :-
+done_leader(clause, Skeleton, Clause) :-
     trie_gen_compiled(Clause, Skeleton).
+done_leader(merged, _, _).
 
-finished_leader(OldCurrent, Catcher, Fresh, Wrapper) :-
-    '$idg_set_current'(OldCurrent),
-    (   Catcher == exit
-    ->  true
-    ;   Catcher == fail
-    ->  true
-    ;   Catcher = exception(_)
-    ->  Fresh = fresh(SCC, _),
-        '$tbl_table_discard_all'(SCC)
-    ;   print_message(error, tabling(unexpected_result(Wrapper, Catcher)))
-    ).
-
-%!  run_leader(+Skeleton, +Worker, +Fresh, -Status, -Clause) is det.
+%!  run_leader(+Skeleton, +Worker, +SCC, +WorkList, -Status, -Clause) is det.
 %
 %   Run the leader of  a  (new)   SCC,  storing  instantiated  copies of
 %   Wrapper into Trie. Status  is  the  status   of  the  SCC  when this
-%   predicate terminates. It is one of   `complete`, in which case local
-%   completion finished or `merged` if running   the completion finds an
-%   open (not completed) active goal that resides in a parent component.
-%   In this case, this SCC has been merged with this parent.
+%   predicate terminates. It is `true`, `false`, `trie` or `clause` if
+%   local completion finished (see '$tbl_leader_complete'/4 and
+%   done_leader/3), or `merged` if running the
+%   completion finds an open (not completed) active goal that resides
+%   in a parent component.  In this case, this SCC has been merged with
+%   this parent.
+%
+%   This inlines the activation of the leader and completion/3.
 %
 %   If the SCC is merged, the answers   it already gathered are added to
 %   the worklist and we shift  (suspend),   turning  our  leader into an
 %   internal node for the upper SCC.
 
-run_leader(Skeleton, Worker, fresh(SCC, Worklist), Status, Clause) :-
+run_leader(Skeleton, Worker, SCC, Worklist, Status, Clause) :-
     tdebug(wl_goal(Worklist, Goal, Skeleton)),
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
-    activate(Skeleton, Worker, Worklist),
-    tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
-    completion(SCC, Status, Clause),
+    tdebug(activate, '~p: created wl=~p', [Skeleton, Worklist]),
+    (   '$tbl_set_delay_list'([]),              % activate
+        delim(Skeleton, Worker, Worklist, []),
+        fail
+    ;   tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
+        '$tbl_pop_worklist'(SCC, WorkList1)     % completion
+    ->  (   '$tbl_set_delay_list'([]),
+            (   completion_step(WorkList1)
+            ;   completion_(SCC)
+            ),
+            fail
+        ;   true
+        )
+    ;   true
+    ),
+    '$tbl_leader_complete'(SCC, Skeleton, Status, Clause),
     tdebug(schedule, '-> Completed component ~p for ~p: ~p', [SCC, Goal, Status]),
     (   Status == merged
     ->  tdebug(merge, 'Turning leader ~p into follower', [Goal]),
         '$tbl_wkl_make_follower'(Worklist),
         shift_for_copy(call_info(Skeleton, Worklist))
     ;   true                                    % completed
-    ).
-
-activate(Skeleton, Worker, WorkList) :-
-    tdebug(activate, '~p: created wl=~p', [Skeleton, WorkList]),
-    (   reset_delays,
-        delim(Skeleton, Worker, WorkList, []),
-        fail
-    ;   true
     ).
 
 %!  delim(+Skeleton, +Worker, +WorkList, +Delays)
@@ -718,16 +744,14 @@ start_moded_tabling_2(_Closure, Wrapper, Worker, ModeArgs,
                       Trie, Status, Skeleton) :-
     (   Status == complete
     ->  moded_gen_answer(Trie, Skeleton, ModeArgs)
-    ;   functor(Status, fresh, 2)
-    ->  setup_call_catcher_cleanup(
-            '$idg_set_current'(OldCurrent, Trie),
-            moded_run_leader(Wrapper, Skeleton/ModeArgs,
-                             Worker, Status, LStatus),
-            Catcher,
-            finished_leader(OldCurrent, Catcher, Status, Wrapper)),
+    ;   fresh_status(Status, SCC, WorkList)
+    ->  '$tbl_leader'(SCC,
+                      moded_run_leader(Wrapper, Skeleton/ModeArgs,
+                                       Worker, SCC, WorkList, LStatus),
+                      Wrapper, _OldCurrent, Trie),
         tdebug(schedule, 'Leader ~p done, modeargs = ~p, status = ~p',
                [Wrapper, ModeArgs, LStatus]),
-        moded_done_leader(LStatus, Status, Skeleton, ModeArgs, Trie)
+        moded_done_leader(LStatus, Skeleton, ModeArgs, Trie)
     ;   Status == invalid
     ->  reeval(Trie, Wrapper, Skeleton),
         moded_gen_answer(Trie, Skeleton, ModeArgs)
@@ -746,16 +770,15 @@ moded_gen_answer(Trie, Skeleton, ModedArgs) :-
     trie_gen(ATrie, Skeleton),
     '$tbl_answer_c'(ATrie, Skeleton, ModedArgs, Delay).
 
-moded_done_leader(complete, _Fresh, Skeleton, ModeArgs, Trie) :-
+moded_done_leader(complete, Skeleton, ModeArgs, Trie) :-
     !,
     moded_gen_answer(Trie, Skeleton, ModeArgs).
-moded_done_leader(final, fresh(SCC, _WorkList), Skeleton, ModeArgs, Trie) :-
+moded_done_leader(final, Skeleton, ModeArgs, Trie) :-
     !,
-    '$tbl_free_component'(SCC),
     moded_gen_answer(Trie, Skeleton, ModeArgs).
-moded_done_leader(_, _, _, _, _).
+moded_done_leader(_, _, _, _).
 
-moded_run_leader(Wrapper, SkeletonMA, Worker, fresh(SCC, Worklist), Status) :-
+moded_run_leader(Wrapper, SkeletonMA, Worker, SCC, Worklist, Status) :-
     tdebug(wl_goal(Worklist, Goal, _)),
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
     moded_activate(SkeletonMA, Worker, Worklist),
@@ -825,15 +848,23 @@ update(0b00, _Wrapper, _M, _Agg, New, New, keep) :-
 %   Wakeup suspended goals until no new answers are generated. Status is
 %   one of `merged`, `completed` or `final`.  If Status is not `merged`,
 %   Clause is the answer trie of  the   Component  leader  or a compiled
-%   representation of it.  See leader_answers/2.
+%   representation of it.  See done_leader/3.
 
 completion(SCC, Status, Clause) :-
-    (   reset_delays,
-        completion_(SCC),
-        fail
-    ;   '$tbl_table_complete_all'(SCC, Status, Clause),
-        tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status])
-    ).
+    (   '$tbl_pop_worklist'(SCC, WorkList)
+    ->  (   '$tbl_set_delay_list'([]),          % reset_delays
+            tdebug(wl_goal(WorkList, Goal, _)),
+            tdebug(schedule, 'Complete ~p in ~p', [Goal, scc(SCC)]),
+            (   completion_step(WorkList)
+            ;   completion_(SCC)
+            ),
+            fail
+        ;   true
+        )
+    ;   true
+    ),
+    '$tbl_table_complete_all'(SCC, Status, Clause),
+    tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status]).
 
 completion_(SCC) :-
     repeat,

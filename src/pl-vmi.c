@@ -4807,7 +4807,9 @@ this is the final exit.
 
 This group of predicates calls   '$call_cleanup'/0,  which is translated
 into the sequence of these two VM   instructions.  This call must be the
-last of the predicate.
+last of the predicate.  '$tbl_leader'/5 (tabling.pl) uses the same
+instructions, where Goal is the second argument and the cleanup is the
+C function tbl_leader_finished() (see callCleanupHandler()).
 
 We set FR_CLEANUP to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -4817,8 +4819,8 @@ VMI(I_CALLCLEANUP, 0, 0, ())
   size_t arity = FR->predicate->functor->arity;
   size_t arg_goal = arity == 2 ? 1 : 2;
 
-		    /* last arg is cleanup */
-  if ( !mustBeCallable(consTermRef(argFrameP(FR, arity-1))) )
+		    /* last arg is cleanup ('$tbl_leader'/5: C cleanup) */
+  if ( arity < 5 && !mustBeCallable(consTermRef(argFrameP(FR, arity-1))) )
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR);

@@ -1805,7 +1805,7 @@ freePrologLocalData(PL_local_data_t *ld)
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
 
-  clearThreadTablingData(ld);
+  clearThreadTablingData(ld, true);
   if ( ld->tabling.node_pool )
     free_alloc_pool(ld->tabling.node_pool);
 

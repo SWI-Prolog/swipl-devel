@@ -568,6 +568,29 @@ is_leaf_trie_node(trie_node *n)
 }
 
 
+/* Return the node holding the value of a trie with exactly one value
+ * or NULL if this is not the case or the path to it has deleted nodes.
+ */
+
+trie_node *
+trie_single_value_node(trie *trie)
+{ trie_node *n = &trie->root;
+
+  if ( trie->value_count != 1 )
+    return NULL;
+
+  while ( !n->value )
+  { trie_children c = load_children(n);
+
+    if ( !is_single_child(c) )
+      return NULL;
+    n = single_child(c);
+  }
+
+  return n;
+}
+
+
 		 /*******************************
 		 *	  WRITE LOCKING		*
 		 *******************************/

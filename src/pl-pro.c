@@ -521,9 +521,24 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     bool rval;
 
     if ( (args = PL_new_term_refs(arity)) )
-    { for(n=0; n<arity; n++)
+    { int rc;
+
+      for(n=0; n<arity; n++)
 	_PL_get_arg(n+1, g, args+n);
 
+      if ( (flags&PL_Q_PASS_EXCEPTION) &&
+	   call_internal_det_foreign(proc, args, &rc) )
+      { rval = rc && !exception_term;
+	if ( !rval && ex && exception_term )
+	{ PL_put_term(ex2, exception_term);
+	  *ex = ex2;
+	  reset = g;
+	}
+	if ( !reset )
+	  reset = (ex2 ? ex2 : g);
+	PL_reset_term_refs(reset);
+	return rval;
+      }
       if ( (qid = PL_open_query(module, flags, proc, args)) )
       { rval = PL_next_solution(qid);
       } else

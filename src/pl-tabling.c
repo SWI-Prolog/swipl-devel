@@ -56,6 +56,7 @@
 #include "pl-termhash.h"
 #include "pl-variant.h"
 #include "pl-index.h"
+#include "pl-attvar.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -186,11 +187,13 @@ typedef struct
 #define mono_index_find(src, consumer, dep, found)	LDFUNC(mono_index_find, src, consumer, dep, found)
 #define mono_index_insert(src, consumer, mdep, dep)	LDFUNC(mono_index_insert, src, consumer, mdep, dep)
 #define mono_index_build(src)				LDFUNC(mono_index_build, src)
+#define set_idg_current(atrie)				LDFUNC(set_idg_current, atrie)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
 static bool	destroy_answer_trie(trie *atrie);
+static bool	set_idg_current(trie *atrie);
 static bool	delayed_destroy_table(trie *atrie);
 static void	free_worklist(worklist *wl);
 static void	clean_worklist(worklist *wl);
@@ -342,12 +345,78 @@ static int	is_deadlock(trie *atrie);
 
 
 		 /*******************************
+		 *	   FREED OBJECTS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Creating and completing a table allocates and frees a component, two
+worklist sets, a worklist and an answer cluster.  We keep up to
+TBL_FREE_MAX freed objects of each kind per thread in a list linked
+through their first word for reuse.  The lists are freed by
+clearThreadTablingData().  Objects may be freed by another thread
+than the one that allocated them, which is fine.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TBL_FREE_COMPONENT	0
+#define TBL_FREE_WORKLIST_SET	1
+#define TBL_FREE_WORKLIST	2
+#define TBL_FREE_CLUSTER	3
+#define TBL_FREE_KINDS		4
+#define TBL_FREE_MAX		16
+
+static void *
+tbl_alloc(int kind, size_t size)
+{ GET_LD
+  void *p;
+
+  if ( HAS_LD && (p=LD->tabling.free_objects.list[kind]) )
+  { LD->tabling.free_objects.list[kind] = *(void**)p;
+    LD->tabling.free_objects.count[kind]--;
+    return p;
+  }
+
+  return PL_malloc(size);
+}
+
+static void
+tbl_free(int kind, void *p)
+{ GET_LD
+
+  if ( HAS_LD &&
+       LD->tabling.free_objects.count[kind] < TBL_FREE_MAX &&
+       !LD->tabling.free_objects.closed )
+  { *(void**)p = LD->tabling.free_objects.list[kind];
+    LD->tabling.free_objects.list[kind] = p;
+    LD->tabling.free_objects.count[kind]++;
+  } else
+  { PL_free(p);
+  }
+}
+
+static void
+free_tbl_free_objects(PL_local_data_t *ld, bool closed)
+{ for(int kind=0; kind<TBL_FREE_KINDS; kind++)
+  { void *p, *next;
+
+    for(p=ld->tabling.free_objects.list[kind]; p; p=next)
+    { next = *(void**)p;
+      PL_free(p);
+    }
+    ld->tabling.free_objects.list[kind] = NULL;
+    ld->tabling.free_objects.count[kind] = 0;
+  }
+  if ( closed )
+    ld->tabling.free_objects.closed = true;
+}
+
+
+		 /*******************************
 		 *	     COMPONENTS		*
 		 *******************************/
 
 static tbl_component *
 new_component(void)
-{ tbl_component *c = PL_malloc(sizeof(*c));
+{ tbl_component *c = tbl_alloc(TBL_FREE_COMPONENT, sizeof(*c));
 
   memset(c, 0, sizeof(*c));
   c->magic = COMPONENT_MAGIC;
@@ -409,7 +478,7 @@ free_component(tbl_component *c, int flags)
     if ( c->merged )
       push_component_set(&stack, c->merged);
 
-    PL_free(c);
+    tbl_free(TBL_FREE_COMPONENT, c);
   }
 
   clearSegStack(&stack);
@@ -614,7 +683,7 @@ merge_one_component(tbl_component *c, tbl_component *m)
 
 static worklist_set *
 new_worklist_set(worklist *wl)
-{ worklist_set *wls = PL_malloc(sizeof(*wls));
+{ worklist_set *wls = tbl_alloc(TBL_FREE_WORKLIST_SET, sizeof(*wls));
 
   initBuffer(&wls->members);
   addBuffer(&wls->members, wl, worklist*);
@@ -743,7 +812,8 @@ add_newly_created_worklist(worklist *wl)
   worklist_set *wls;
 
   if ( !(wls=c->created_worklists) )
-  { wls	= c->created_worklists = PL_malloc(sizeof(*c->created_worklists));
+  { wls	= c->created_worklists = tbl_alloc(TBL_FREE_WORKLIST_SET,
+					   sizeof(*c->created_worklists));
     initBuffer(&wls->members);
   }
 
@@ -801,7 +871,7 @@ free_worklist_set(worklist_set *wls, int freewl)
   }
 
   discardBuffer(&wls->members);
-  PL_free(wls);
+  tbl_free(TBL_FREE_WORKLIST_SET, wls);
 }
 
 
@@ -2815,10 +2885,11 @@ retry:
 
 
 void
-clearThreadTablingData(PL_local_data_t *ld)
+clearThreadTablingData(PL_local_data_t *ld, bool exit)
 { reset_global_worklist(ld->tabling.component);
   reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
   clear_variant_table(&ld->tabling.variant_table, &ld->tabling.start_nodes);
+  free_tbl_free_objects(ld, exit);
 }
 
 
@@ -3113,7 +3184,7 @@ new_answer_cluster(worklist *wl, answer *ans)
   { wl->free_clusters = c->next;
     c->type = CLUSTER_ANSWERS;
   } else
-  { c = PL_malloc(sizeof(*c));
+  { c = tbl_alloc(TBL_FREE_CLUSTER, sizeof(*c));
     c->type = CLUSTER_ANSWERS;
     initBuffer(&c->members);
   }
@@ -3126,7 +3197,7 @@ new_answer_cluster(worklist *wl, answer *ans)
 static void
 free_answer_cluster(cluster *c)
 { discardBuffer(&c->members);
-  PL_free(c);
+  tbl_free(TBL_FREE_CLUSTER, c);
 }
 
 static void
@@ -3221,7 +3292,7 @@ new_suspension_cluster(DECL_LD worklist *wl, term_t first, int is_tnot,
   { wl->free_clusters = c->next;
     c->type = CLUSTER_SUSPENSIONS;
   } else
-  { c = PL_malloc(sizeof(*c));
+  { c = tbl_alloc(TBL_FREE_CLUSTER, sizeof(*c));
     c->type = CLUSTER_SUSPENSIONS;
     initBuffer(&c->members);
   }
@@ -3249,7 +3320,7 @@ free_suspension_cluster(cluster *c)
   }
 
   discardBuffer(&c->members);
-  PL_free(c);
+  tbl_free(TBL_FREE_CLUSTER, c);
 }
 
 #define add_to_suspension_cluster(c, sterm, is_tnot, instance) LDFUNC(add_to_suspension_cluster, c, sterm, is_tnot, instance)
@@ -3468,7 +3539,7 @@ static worklist *
 new_worklist(trie *trie)
 { worklist *wl;
 
-  wl = PL_malloc(sizeof(*wl));
+  wl = tbl_alloc(TBL_FREE_WORKLIST, sizeof(*wl));
   memset(wl, 0, sizeof(*wl));
   wl->magic = WORKLIST_MAGIC;
   wl->table = trie;
@@ -3508,7 +3579,7 @@ free_worklist(worklist *wl)
   discardBuffer(&wl->delays);
   discardBuffer(&wl->pos_undefined);
 
-  PL_free(wl);
+  tbl_free(TBL_FREE_WORKLIST, wl);
 }
 
 
@@ -3793,8 +3864,29 @@ unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
     worklist *wl = tbl_add_worklist(atrie, scc);
 
     if ( wl )
-    { wl->predicate = def;
-      return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_fresh2,
+    { functor_t f = ison(atrie, TRIE_ISSHARED) ? FUNCTOR_fresh_shared2
+						: FUNCTOR_fresh2;
+      word w1 = consInt(pointerToInt(scc));
+      word w2 = consInt(pointerToInt(wl));
+      Word p;
+
+      wl->predicate = def;
+      if ( valInt(w1) == (sword)pointerToInt(scc) &&
+	   valInt(w2) == (sword)pointerToInt(wl) )
+      { Word v;
+
+	if ( !(p = allocGlobal(3)) )
+	  return false;
+	v = valTermRef(t);
+	p[0] = f;
+	p[1] = w1;
+	p[2] = w2;
+	deRef(v);
+	if ( canBind(*v) )
+	  return bindConst(v, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+      }
+
+      return PL_unify_term(t, PL_FUNCTOR, f,
 				 PL_POINTER, scc,
 				 PL_POINTER, wl);
     } else
@@ -3851,7 +3943,8 @@ unify_complete_or_invalid(DECL_LD term_t t, trie *atrie,
  *   - `dynamic` (for pseudo answer tries representing an incremental
  *     dynamic predicate)
  *   - `fresh` (if `create` is `false`)
- *   - `fresh(SCC, WL)` (if `create` is `true`)
+ *   - `fresh(SCC, WL)` (if `create` is `true`), or
+ *     `fresh_shared(SCC, WL)` for a shared table
  *
  * @param `create` If `true`, we are going to use this worklist for
  * filling the trie.  This is used by '$tbl_variant_table'/6 and
@@ -5554,13 +5647,15 @@ wls_reeval_complete(worklist **wls, size_t ntables)
  * Moded tables do not use the clause.
  */
 
-#define unify_leader_clause(scc, cl) LDFUNC(unify_leader_clause, scc, cl)
+#define unify_leader_clause(scc, cl, is_trie) \
+	LDFUNC(unify_leader_clause, scc, cl, is_trie)
 static int
-unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
+unify_leader_clause(DECL_LD tbl_component *scc, term_t cl, bool *is_trie)
 { trie *atrie = scc->leader;
   worklist *wl = atrie->data.worklist;
   atom_t clref;
 
+  *is_trie = false;
   TRIE_STAT_INC(atrie, gen_call);
   if ( !(clref=atrie->clause) &&
        isoff(atrie, TRIE_ISSHARED|TRIE_ABOLISH_ON_COMPLETE) &&
@@ -5569,7 +5664,9 @@ unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
 	 ( (!WL_IS_WORKLIST(wl) || !wl->undefined) &&
 	   atrie->node_count/((size_t)atrie->value_count+1) <
 	     LD->table_flags.compile_threshold ) ) )
+  { *is_trie = true;
     return PL_unify_atom(cl, trie_symbol(atrie));   /* see (*) */
+  }
 
   clref = compile_trie(GD->procedures.trie_gen_compiled2->definition, atrie);
   return PL_unify_atomic(cl, clref);
@@ -5681,7 +5778,9 @@ drop_intermediate_tables(DECL_LD tbl_component *root)
 
 /** '$tbl_table_complete_all'(+SCC, -Status, -Clause)
  *
- * Complete and reset all newly created tables.
+ * Complete and reset all newly created tables.  Status is one of
+ * `merged`, `complete` or `final` (completed the root component).
+ * Clause is the answer trie of the leader or its compiled clause.
  *
  * (*) currently we keep worklists that play a role on a network
  * of undefined answers.  That is needed for lazy answer completion
@@ -5689,12 +5788,17 @@ drop_intermediate_tables(DECL_LD tbl_component *root)
  * of dependencies when abolishing tries.
  */
 
-static
-PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
-{ PRED_LD
-  tbl_component *c;
+#define table_complete_all(scc, status, cl, skel) \
+	LDFUNC(table_complete_all, scc, status, cl, skel)
 
-  if ( !get_scc(A1, &c) )
+static bool
+table_complete_all(DECL_LD term_t scc, term_t status, term_t cl,
+		   term_t skel)
+{ bool for_leader = !!skel;
+  tbl_component *c;
+  bool is_trie = false;
+
+  if ( !get_scc(scc, &c) )
     return false;
 
   if ( c->status == SCC_ACTIVE )
@@ -5707,7 +5811,7 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
     bool leader_stays = isoff(leader, TRIE_ABOLISH_ON_COMPLETE);
 
     wls_reeval_complete(wls, ntables);
-    rc = unify_leader_clause(c, A3);
+    rc = unify_leader_clause(c, cl, &is_trie);
 
     for(i=0; i<ntables; i++)
     { worklist *wl = wls[i];
@@ -5754,9 +5858,55 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 
     if ( !rc )
       return false;
+
+    if ( for_leader )
+    { if ( is_trie )
+      { trie_node *answer;
+
+	if ( leader->value_count == 0 )
+	  return PL_unify_atom(status, ATOM_false);
+	if ( (answer=trie_single_value_node(leader)) )
+	  return ( unify_trie_term(answer, NULL, skel) &&
+		   PL_unify_atom(status, ATOM_true) );
+      }
+      return PL_unify_atom(status, is_trie ? ATOM_trie : ATOM_clause);
+    }
   }
 
-  return unify_component_status(A2, c);
+  if ( for_leader && c->status == SCC_MERGED )
+    return PL_unify_atom(status, ATOM_merged);
+
+  return unify_component_status(status, c);
+}
+
+static
+PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
+{ PRED_LD
+
+  return table_complete_all(A1, A2, A3, 0);
+}
+
+/** '$tbl_leader_complete'(+SCC, ?Skeleton, -Status, -Clause)
+ *
+ * As '$tbl_table_complete_all'/3 for the leader of SCC, where Status
+ * tells how to return the answers:
+ *
+ *   - `true` if the table has a single answer, which is unified
+ *     with Skeleton.
+ *   - `false` if the table has no answers.
+ *   - `trie` if Clause is the answer trie.
+ *   - `clause` if Clause is the compiled clause of the answer trie.
+ *   - `merged` if SCC was merged into another component.
+ *
+ * Most leaders, e.g., all leaders of naive reverse, have zero or one
+ * answer.
+ */
+
+static
+PRED_IMPL("$tbl_leader_complete", 4, tbl_leader_complete, 0)
+{ PRED_LD
+
+  return table_complete_all(A1, A3, A4, A2);
 }
 
 
@@ -5788,28 +5938,85 @@ PRED_IMPL("$tbl_free_component", 1, tbl_free_component, 0)
  * an exception happens during tabling.
  */
 
+#define table_discard_all(c) LDFUNC(table_discard_all, c)
+static void
+table_discard_all(DECL_LD tbl_component *c)
+{ if ( c->status != SCC_MERGED )
+  { tbl_component *parent = c->parent;
+
+    if ( c->created_worklists )
+      reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
+    reset_global_worklist(c);
+
+    LD->tabling.component = parent;
+    free_component(c, FC_DESTROY);
+
+    if ( !parent )
+      LD->tabling.has_scheduling_component = false;
+  }
+}
+
 static
 PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
 { PRED_LD
   tbl_component *c;
 
   if ( get_scc(A1, &c) )
-  { if ( c->status != SCC_MERGED )
-    { tbl_component *parent = c->parent;
-
-      if ( c->created_worklists )
-	reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
-      reset_global_worklist(c);
-
-      LD->tabling.component = parent;
-      free_component(c, FC_DESTROY);
-
-      if ( !parent )
-	LD->tabling.has_scheduling_component = false;
-    }
-  }
+    table_discard_all(c);
 
   return true;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+tbl_leader_finished() is  the  cleanup  of   '$tbl_leader'/5,  which  runs
+the leader of a new table (see create_table/6 in tabling.pl).  It is called
+directly by callCleanupHandler() rather than as  a  Prolog cleanup goal,
+avoiding the qualification, resolving and calling of a goal.
+
+It restores the current IDG node.  If the leader completed the root
+component, the component is destroyed.  If the leader raised an
+exception, the tables of the component are discarded.  On exit, we only
+compare the component with the current one before using it, as the
+component of a leader that was merged into another component may have
+been destroyed with that component.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+tbl_leader_finished(DECL_LD term_t old, term_t catcher,
+		    term_t scc, term_t wrapper)
+{ trie *atrie;
+  atom_t a;
+
+  if ( !set_idg_current(get_trie_noex(old, &atrie) ? atrie : NULL) )
+    return false;
+
+  if ( PL_get_atom(catcher, &a) && (a == ATOM_exit || a == ATOM_fail) )
+  { tbl_component *c = LD->tabling.component;
+    void *ptr;
+
+    if ( a == ATOM_exit && c &&
+	 PL_get_pointer(scc, &ptr) && ptr == (void*)c &&
+	 c->status == SCC_COMPLETED && !c->parent )
+    { free_component(c, FC_DESTROY);
+      assert(LD->tabling.component == NULL);
+    }
+    return true;
+  }
+
+  if ( PL_is_functor(catcher, FUNCTOR_exception1) )
+  { tbl_component *c;
+
+    if ( get_scc(scc, &c) )
+      table_discard_all(c);
+    return true;
+  }
+
+  return printMessage(ATOM_error,
+		      PL_FUNCTOR_CHARS, "tabling", 1,
+			PL_FUNCTOR_CHARS, "unexpected_result", 2,
+			  PL_TERM, wrapper,
+			  PL_TERM, catcher);
 }
 
 
@@ -5871,7 +6078,7 @@ PRED_IMPL("$tbl_abolish_local_tables", 0, tbl_abolish_local_tables, 0)
 { PRED_LD
 
   if ( !LD->tabling.has_scheduling_component )
-  { clearThreadTablingData(LD);
+  { clearThreadTablingData(LD, false);
     return true;
   }
 
@@ -7271,7 +7478,6 @@ idg_init_variant(DECL_LD trie *atrie, Definition def, term_t variant)
 }
 
 
-#define set_idg_current(atrie) LDFUNC(set_idg_current, atrie)
 static bool
 set_idg_current(DECL_LD trie *atrie)
 { Word p;
@@ -11037,6 +11243,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_pi",             2, tbl_table_pi,	     0)
   PRED_DEF("$tbl_table_complete_all",	3, tbl_table_complete_all,   0)
+  PRED_DEF("$tbl_leader_complete",	4, tbl_leader_complete,	     0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
   PRED_DEF("$tbl_abolish_local_tables", 0, tbl_abolish_local_tables, 0)

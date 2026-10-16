@@ -250,6 +250,7 @@ void	prune_trie(trie *trie, trie_node *root,
 trie *	get_trie_from_node(trie_node *node);
 bool	is_ground_trie_node(trie_node *node);
 bool	is_leaf_trie_node(trie_node *n);
+trie_node *trie_single_value_node(trie *trie);
 bool	get_trie(term_t t, trie **tp);
 bool	get_trie_noex(term_t t, trie **tp);
 bool	get_trie_nodes(term_t t, trie **tp);

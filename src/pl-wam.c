@@ -734,6 +734,45 @@ As frameFinished() is rather time critical this seems worthwhile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_internal_det_foreign() calls  an  internal   (system,  '$'  name)
+deterministic foreign predicate directly instead   of opening a query.
+This is notably used by setup_call_cleanup/3  and friends that run the
+setup and cleanup in a query (see   sig_atomic/1  and callCleanupHandler())
+and  where  these  goals  often   are    internal   predicates.  Unlike
+calling it through a query, the predicate has  no frame of its own. This
+affects the context of errors, which is why we limit this to internal
+predicates.  Returns false if the fast path cannot be used.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+call_internal_det_foreign(Procedure proc, term_t av, int *rc)
+{ GET_LD
+  Definition def = proc->definition;
+  struct foreign_context ctx;
+  typedef foreign_t (*FuncN)(term_t av, size_t argc, control_t);
+
+  if ( ison(def, P_FOREIGN) && ison(def, P_VARARG) &&
+       isoff(def, P_NONDET|P_TRANSPARENT) &&
+       def->module == MODULE_system &&
+       def->impl.foreign.function &&
+       stringAtom(def->functor->name)[0] == '$' &&
+       !debugstatus.debugging &&
+       !LD->profile.active )
+  { ctx.engine    = LD;
+    ctx.control   = FRG_FIRST_CALL;
+    ctx.context   = 0;
+    ctx.predicate = def;
+    LD->statistics.inferences++;
+    *rc = (int)(*(FuncN)def->impl.foreign.function)(av, def->functor->arity,
+						    &ctx);
+    return true;
+  }
+
+  return false;
+}
+
+
 #define call1(mdef, goal) LDFUNC(call1, mdef, goal)
 static int
 call1(DECL_LD Module mdef, term_t goal)
@@ -796,6 +835,8 @@ call_term(DECL_LD Module mdef, term_t goal)
     }
 
     proc = resolveProcedure(functor, module);
+    if ( call_internal_det_foreign(proc, av, &rval) )
+      return rval;
     qid = PL_open_query(module, PL_Q_PASS_EXCEPTION, proc, av);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
@@ -810,10 +851,16 @@ frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
 call_cleanup/2 family.  Both may call-back the Prolog engine.
 
-The helper callCleanupHandler() deals with the cleanup family. Currently
-the predicate is always
+The helper callCleanupHandler() deals with the cleanup family.  The
+predicate is determined by the arity:
 
-    setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup).
+    call_cleanup(Goal, Cleanup)
+    setup_call_cleanup(Setup, Goal, Cleanup)
+    setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup)
+    '$tbl_leader'(SCC, Goal, Wrapper, OldCurrent, Trie)
+
+The cleanup of '$tbl_leader'/5, which runs the leader of a new table, is
+the C function tbl_leader_finished().
 
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -829,6 +876,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
     size_t arg_catcher = 0;
     size_t arg_cleanup = 0;
     term_t clean;
+    term_t catcher = 0;
     wakeup_state wstate;
 
     if ( !(cid=PL_open_foreign_frame()) )
@@ -846,6 +894,9 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 	arg_cleanup = 4;
         arg_catcher = 3;
 	break;
+      case 5:		/* '$tbl_leader'(SCC, Goal, Wrapper, Old, Trie) */
+	assert(fr->predicate->functor->functor == FUNCTOR_dtbl_leader5);
+	break;
       default:
 	assert(0);
     }
@@ -858,16 +909,26 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 
       if ( !unify_finished(catcher, reason) )
 	goto out;
+    } else if ( !arg_cleanup )
+    { if ( !(catcher = PL_new_term_ref()) ||
+	   !unify_finished(catcher, reason) )
+	goto out;
     }
 
 			/* Call the cleanup handler */
     fr = (LocalFrame)valTermRef(fref);
-    clean = consTermRef(argFrameP(fr, arg_cleanup-1));
     if ( saveWakeup(&wstate, false) )
     { int rval;
 
       startCritical();
-      rval = call_term(contextModule(fr), clean);
+      if ( arg_cleanup )
+      { clean = consTermRef(argFrameP(fr, arg_cleanup-1));
+	rval = call_term(contextModule(fr), clean);
+      } else
+      { rval = tbl_leader_finished(consTermRef(argFrameP(fr, 3)), catcher,
+				   consTermRef(argFrameP(fr, 0)),
+				   consTermRef(argFrameP(fr, 2)));
+      }
       if ( !endCritical() )
 	rval = false;
       if ( !rval && exception_term )

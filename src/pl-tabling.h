@@ -329,6 +329,8 @@ typedef struct table_props
 #define		tbl_set_restraint_flag(t, key)		LDFUNC(tbl_set_restraint_flag, t, key)
 #define		tbl_complete_answer_clause(def)		LDFUNC(tbl_complete_answer_clause, def)
 #define		put_supervisor_goal(t, def, abstract)	LDFUNC(put_supervisor_goal, t, def, abstract)
+#define		tbl_leader_finished(old, catcher, scc, wrapper) \
+		LDFUNC(tbl_leader_finished, old, catcher, scc, wrapper)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -337,7 +339,7 @@ int	transaction_commit_tables(void);
 int	transaction_rollback_tables(void);
 void	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 
-void	clearThreadTablingData(PL_local_data_t *ld);
+void	clearThreadTablingData(PL_local_data_t *ld, bool exit);
 term_t	init_delay_list(void);
 void	tbl_push_delay(atom_t atrie, Word wrapper,
 		       trie_node *answer);
@@ -359,6 +361,8 @@ int	tbl_set_restraint_flag(term_t t, atom_t key);
 int	setMonotonicMode(atom_t a);
 void	tbl_set_incremental_predicate(Definition def, int val);
 atom_t	tbl_complete_answer_clause(Definition def);
+bool	tbl_leader_finished(term_t old, term_t catcher,
+			    term_t scc, term_t wrapper);
 bool	put_supervisor_goal(term_t t, Definition def, bool abstract);
 
 #undef LDFUNC_DECLARATIONS

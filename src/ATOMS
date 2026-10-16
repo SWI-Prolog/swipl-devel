@@ -202,6 +202,7 @@ A db_reference		"db_reference"
 A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
+A dtbl_leader		"$tbl_leader"
 A dcall_continuation	"$call_continuation"
 A dcatch		"$catch"
 A dcont			"$cont$"
@@ -375,6 +376,7 @@ A frame_reference	"frame_reference"
 A free_of_attvar	"free_of_attvar"
 A freeze		"freeze"
 A fresh			"fresh"
+A fresh_shared		"fresh_shared"
 A from_state		"from_state"
 A gc_margin               "gc_margin"
 A live                    "live"
@@ -969,6 +971,7 @@ A transaction_option	"transaction_option"
 A transparent		"transparent"
 A transposed_char	"transposed_char"
 A transposed_word	"transposed_word"
+A trie			"trie"
 A true			"true"
 A truncate		"truncate"
 A tshared		"tshared"
@@ -1166,6 +1169,7 @@ F dshift		1
 F dshift_for_copy	1
 F dstream		1
 F dtabled		2
+F dtbl_leader		5
 F dthread_init		0
 F dthrow		1
 F dtime			2
@@ -1211,6 +1215,7 @@ F frame			3
 F frame			4
 F frame_finished	1
 F fresh			2
+F fresh_shared		2
 F gcd			2
 F gc_stats		8
 F gc			6

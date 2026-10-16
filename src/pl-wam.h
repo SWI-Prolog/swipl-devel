@@ -70,6 +70,7 @@ fid_t		PL_open_foreign_frame(void);
 void		PL_close_foreign_frame(fid_t id);
 fid_t		PL_open_signal_foreign_frame(int sync);
 int		PL_next_solution(qid_t qid);
+bool		call_internal_det_foreign(Procedure proc, term_t av, int *rc);
 bool		foreignWakeup(term_t ex);
 COLD void		resumeAfterException(int clear, Stack outofstack);
 COLD void		updateAlerted(PL_local_data_t *ld);

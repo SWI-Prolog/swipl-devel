@@ -2169,6 +2169,11 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	}
 	case I_EXITCLEANUP:
 	{ size_t arity = state->frame->predicate->functor->arity;
+	  if ( arity == 5 )	/* '$tbl_leader'/5: C cleanup uses all args */
+	  { for(size_t i=0; i<arity; i++)
+	      mark_frame_var(state, VAROFFSET(i));
+	    break;
+	  }
 	  if ( arity == 4 ) /* setup_call_catcher_cleanup/4 */
 	    mark_frame_var(state, VAROFFSET(arity-2)); /* The ball */
 	  mark_frame_var(state, VAROFFSET(arity-1)); /* cleanup goal */
