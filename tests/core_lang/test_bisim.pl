@@ -406,6 +406,18 @@ test(minimal_survives_gc, true(M == T)) :-
 test(minimal_atomic, true(M == a)) :-
 	term_minimal(a, M).
 
+%	An attributed variable in the answer is the variable itself, not a
+%	copy of its cell: binding it shows in the answer.
+
+test(minimal_attvar, true(M == f(1,1))) :-
+	freeze(V, true),
+	term_minimal(f(V,V), M),
+	V = 1.
+test(factorized_attvar, true(Skeleton == f(1,1))) :-
+	freeze(V, true),
+	term_factorized(f(V,V), Skeleton, _),
+	V = 1.
+
 		 /*******************************
 		 *	  CANONICAL FORM	*
 		 *******************************/
@@ -704,6 +716,18 @@ test(sink_only, true(M-Map == automaton(a)-map(1,0,1))) :-
 	automaton_minimal(automaton(a,b,a), M, Map).
 test(sink_start_term, true(T == a)) :-
 	term_automaton(T, automaton(a,f(1))).
+test(attvar_sink, true(A == automaton(f(2,2),1))) :-
+	freeze(V, true),
+	term_automaton(f(V,V), A),
+	V = 1.
+test(attvar_start_term, true(T == 1)) :-
+	freeze(V, true),
+	term_automaton(T, automaton(V)),
+	V = 1.
+test(attvar_start_minimal, true(M == automaton(1))) :-
+	freeze(V, true),
+	automaton_minimal(automaton(V), M),
+	V = 1.
 test(disconnected, true(M == automaton(f(1)))) :-
 	automaton_minimal(automaton(f(1),g(2)), M).
 test(out_of_order, true(M == automaton(f(2,2),g(3),a))) :-

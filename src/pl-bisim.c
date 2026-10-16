@@ -1515,7 +1515,7 @@ build_minimal(DECL_LD bs_graph *g, Word base, word *minimal)
       } else				/* a leaf: take it as it stands */
       { Word a = g->leafp[-ch-1];
 
-	cell[c][1+j] = isVar(*a) ? makeRefG(a) : *a;
+	cell[c][1+j] = canBind(*a) ? makeRefG(a) : *a;
       }
     }
   }
@@ -1588,7 +1588,7 @@ build_automaton_result(DECL_LD bs_graph *g, Word base, word *automaton)
   { if ( g->lnum[i] )
     { Word w = g->leafp[i];
 
-      a[g->reached + g->lnum[i]] = isVar(*w) ? makeRefG(w) : *w;
+      a[g->reached + g->lnum[i]] = canBind(*w) ? makeRefG(w) : *w;
     }
   }
 
@@ -1922,7 +1922,7 @@ build_factorized(DECL_LD bs_graph *g, Word base, word *skel, word *subst)
       } else
       { Word a = g->leafp[-ch-1];
 
-	cell[c][1+j] = isVar(*a) ? makeRefG(a) : *a;
+	cell[c][1+j] = canBind(*a) ? makeRefG(a) : *a;
       }
     }
   }
@@ -2180,7 +2180,7 @@ automaton_to_term(DECL_LD term_t A, term_t T)
     { if ( aut.state[0] < 0 )		/* the start state is a sink */
       { Word lw = g.leafp[-aut.state[0]-1];
 
-	*valTermRef(result) = isVar(*lw) ? makeRefG(lw) : *lw;
+	*valTermRef(result) = canBind(*lw) ? makeRefG(lw) : *lw;
       } else
       { need = minimal_size(&g);
 	if ( gTop + need > gMax )
@@ -2286,7 +2286,7 @@ build_minimal_automaton(DECL_LD bs_graph *g, bs_automaton *aut, bool sink,
   { Word lw = g->leafp[-aut->state[0]-1];	/* automaton denotes a leaf */
 
     p[0] = FUNCTOR_automaton1;
-    p[1] = isVar(*lw) ? makeRefG(lw) : *lw;
+    p[1] = canBind(*lw) ? makeRefG(lw) : *lw;
     *min = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
     p += 2;
   } else
