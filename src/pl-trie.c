@@ -194,8 +194,12 @@ static PL_blob_t trie_blob =
 
 static trie_node       *new_trie_node(trie *trie, word key);
 static void		destroy_node(trie *trie, trie_node *n);
-static void		clear_node(trie *trie, trie_node *n, int dealloc);
+static void		clear_node(trie *trie, trie_node *n, int flags);
+
+#define CN_DEALLOC	0x1		/* clear_node(): free the node */
+#define CN_ALL		0x2		/* clear_node(): the trie is cleared */
 static void		free_lingering_blocks(trie *trie);
+static void		free_node_chunks(trie *trie);
 static inline void	release_value(word value);
 
 
@@ -261,8 +265,9 @@ static void
 trie_clear_nodes(trie *trie)
 { indirect_table *it = trie->indirects;
 
-  clear_node(trie, &trie->root, false);	/* TBD: verify not accessed */
+  clear_node(trie, &trie->root, CN_ALL);	/* TBD: verify not accessed */
   free_lingering_blocks(trie);
+  free_node_chunks(trie);
   if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
     destroy_indirect_table(it);
   trie->node_count = 1;
@@ -611,9 +616,9 @@ retire_block(trie *trie, trie_children_block *b)
   { trie_children_block *o;
 
     do
-    { o = trie->lingering;
+    { o = trie->mem.lingering;
       b->older = o;
-    } while( !COMPARE_AND_SWAP_PTR(&trie->lingering, o, b) );
+    } while( !COMPARE_AND_SWAP_PTR(&trie->mem.lingering, o, b) );
   } else
   { free_block(trie, b);
   }
@@ -621,9 +626,13 @@ retire_block(trie *trie, trie_children_block *b)
 
 static void
 free_lingering_blocks(trie *trie)
-{ trie_children_block *b = trie->lingering;
+{ trie_children_block *b;
 
-  if ( b && COMPARE_AND_SWAP_PTR(&trie->lingering, b, NULL) )
+  if ( isoff(trie, TRIE_CONCURRENT) )
+    return;					/* trie->mem holds chunks */
+
+  b = trie->mem.lingering;
+  if ( b && COMPARE_AND_SWAP_PTR(&trie->mem.lingering, b, NULL) )
   { trie_children_block *next;
 
     for(; b; b = next)
@@ -851,23 +860,347 @@ delete_child(trie *trie, trie_node *p, trie_node *child, bool compact)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Node allocation.  Allocating nodes one by one costs a malloc() and an
+atomic update of the pool size per node.  Tries without concurrent
+writers therefore allocate their nodes from chunks that grow
+geometrically.  As many tries are small, the first TRIE_SINGLE_NODES
+nodes are allocated individually.  Deleted chunk nodes are kept on a
+free list and the chunks are freed when the trie is cleared.
+
+The keys of chunk nodes do not register their atoms.  Instead, atom-GC
+scans all chunks, which are in a global list, and marks the atom keys
+(see markAtomsInTries()).  This is similar to marking the atoms on the
+stacks: atom-GC does not stop the threads, so
+
+  - A key added while atom-GC is active is marked (see new_trie_node()).
+    Keys added before are in chunks atom-GC scans.
+  - Atom-GC only needs the lock of the list to fetch its head.  While
+    atom-GC is active, chunks are not unlinked but become zombies that
+    atom-GC frees when it is done.  Otherwise the lock is held to link
+    or unlink a chunk.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_PLMT
+#define LOCK_CHUNKS()   simpleMutexLock(&GD->trie_chunks.mutex)
+#define UNLOCK_CHUNKS() simpleMutexUnlock(&GD->trie_chunks.mutex)
+#else
+#define LOCK_CHUNKS()   (void)0
+#define UNLOCK_CHUNKS() (void)0
+#endif
+
+static void
+link_chunk(trie_node_chunk *c)
+{ LOCK_CHUNKS();
+  c->gprev = NULL;
+  c->gnext = GD->trie_chunks.chunks;
+  if ( c->gnext )
+    c->gnext->gprev = c;
+  GD->trie_chunks.chunks = c;		/* atom-GC may be reading */
+  UNLOCK_CHUNKS();
+}
+
+static void
+unlink_chunk(trie_node_chunk *c)
+{ if ( c->gprev )
+    c->gprev->gnext = c->gnext;
+  else
+    GD->trie_chunks.chunks = c->gnext;
+  if ( c->gnext )
+    c->gnext->gprev = c->gprev;
+}
+
+#define TRIE_SINGLE_NODES	8	/* Allocate these individually */
+#define TRIE_CHUNK_MIN		1024	/* Bytes of first chunk */
+#define TRIE_CHUNK_MAX		16384	/* Max bytes of a chunk */
+					/* powers of 2 match malloc() classes */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Registering chunks.  Scanning all chunks on each atom-GC is expensive for
+large tables.  If atom-GC finds a chunk full that it also found full in
+an earlier run, it registers the atom keys of its nodes and flags the
+chunk CHUNK_REGISTERED.  Atom-GC no longer scans such chunks.
+
+Only full chunks are registered and a full chunk only changes when a
+node is deleted or a deleted node is reused.  These modifications and
+the registration hold the lock of the chunk list.  Clearing a trie
+releases the keys of its registered chunks per chunk.
+
+A node holds its index in the chunk in the upper bits of its flags, so
+we can find the chunk of a node.  The `used` counter of a chunk is
+incremented after the new node is initialised, so atom-GC never reads
+uninitialised keys.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define node_chunk(n) \
+	((trie_node_chunk*)((char*)((n) - ((n)->flags>>TN_CHUNK_INDEX_SHIFT)) - \
+			    offsetof(trie_node_chunk, nodes)))
+#define chunk_is_full(c) ((c)->used == (c)->size)
+
+#define TRIE_REGISTER_SCANS	1	/* Register after these full scans */
+
+/* Allocate a node.  If it is a chunk node, `*cp` is the chunk and
+ * `*bump` is true if it is a new node in this chunk, in which case
+ * new_trie_node() increments c->used.
+ */
+
+static trie_node *
+alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
+{ trie_node_chunk *c;
+  trie_node *n;
+
+  *cp = NULL;
+  if ( ison(trie, TRIE_CONCURRENT) )
+    return alloc_from_pool(trie->alloc_pool, sizeof(trie_node));
+
+  if ( (c=trie->mem.chunks) )
+  { if ( (n=c->free) )
+    { c->free = n->parent;
+      *cp = node_chunk(n);
+      *bump = false;
+      return n;
+    }
+    if ( c->used < c->size )
+    { *cp = c;
+      *bump = true;
+      return &c->nodes[c->used];
+    }
+  } else if ( trie->node_count <= TRIE_SINGLE_NODES )
+  { return alloc_from_pool(trie->alloc_pool, sizeof(trie_node));
+  }
+
+  unsigned bytes = c ? c->bytes*2 : TRIE_CHUNK_MIN;
+  trie_node_chunk *nc;
+
+  if ( bytes > TRIE_CHUNK_MAX )
+    bytes = TRIE_CHUNK_MAX;
+  if ( !(nc=alloc_from_pool(trie->alloc_pool, bytes)) )
+    return NULL;
+  nc->next   = c;
+  nc->free   = NULL;
+  nc->pool   = trie->alloc_pool;
+  nc->flags  = 0;
+  nc->scans  = 0;
+  nc->bytes  = bytes;
+  nc->size   = (bytes-offsetof(trie_node_chunk, nodes))/sizeof(trie_node);
+  nc->used   = 0;
+  link_chunk(nc);
+  trie->mem.chunks = nc;
+  *cp = nc;
+  *bump = true;
+
+  return &nc->nodes[0];
+}
+
+static inline void
+mark_new_key(word key)
+{ if ( unlikely(GD->atoms.gc_active) && isAtom(key) )
+    markAtom(word2atom(key));
+}
+
 static trie_node *
 new_trie_node(trie *trie, word key)
 { trie_node *n;
+  trie_node_chunk *c;
+  bool bump;
 
-  if ( (n = alloc_from_pool(trie->alloc_pool, sizeof(*n))) )
-  { ATOMIC_INC(&trie->node_count);
+  if ( (n = alloc_trie_node(trie, &c, &bump)) )
+  { TRIE_COUNT_INC(trie, node_count);
     memset(n, 0, sizeof(*n));
-    acquire_key(key);
-    n->key = key;
+    if ( !c )
+    { acquire_key(key);
+      n->key = key;
+    } else
+    { unsigned idx = (unsigned)(n - c->nodes);
+
+      n->flags = TN_CHUNKED|(idx<<TN_CHUNK_INDEX_SHIFT);
+      if ( bump )
+      { n->key = key;
+	mark_new_key(key);
+	MEMORY_RELEASE();		/* publish after initialising */
+	c->used = idx+1;
+      } else if ( chunk_is_full(c) )	/* may be registered */
+      { LOCK_CHUNKS();
+	if ( (c->flags&CHUNK_REGISTERED) )
+	  acquire_key(key);
+	else
+	  mark_new_key(key);
+	n->key = key;
+	UNLOCK_CHUNKS();
+      } else
+      { n->key = key;
+	mark_new_key(key);
+      }
+    }
   }
 
   return n;
 }
 
+static void
+free_trie_node(trie *trie, trie_node *n)
+{ if ( ison(n, TN_CHUNKED) )
+  { trie_node_chunk *c = node_chunk(n);
+    trie_node_chunk *head = trie->mem.chunks;
+
+    if ( chunk_is_full(c) )		/* may be registered */
+    { LOCK_CHUNKS();
+      if ( (c->flags&CHUNK_REGISTERED) )
+	release_key(n->key);
+      n->key = 0;
+      UNLOCK_CHUNKS();
+    } else
+    { n->key = 0;			/* do not mark it */
+    }
+    n->parent = head->free;
+    head->free = n;
+  } else
+  { free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
+  }
+}
 
 static void
-clear_node(trie *trie, trie_node *n, int dealloc)
+release_chunk_keys(trie_node_chunk *c)
+{ for(unsigned i=0; i<c->used; i++)
+    release_key(c->nodes[i].key);
+}
+
+/* Free the chunks of a trie that is cleared.  The nodes have not been
+ * freed individually (see clear_node()), so the keys of the nodes in
+ * registered chunks are still registered.
+ */
+
+static void
+free_node_chunks(trie *trie)
+{ trie_node_chunk *c, *next, *all, *tofree = NULL;
+
+  if ( ison(trie, TRIE_CONCURRENT) || !(all=trie->mem.chunks) )
+    return;
+
+  trie->mem.chunks = NULL;
+  LOCK_CHUNKS();
+  for(c=all; c; c=next)
+  { next = c->next;
+    if ( GD->atoms.gc_active )
+      c->flags |= CHUNK_ZOMBIE;		/* atom-GC ignores it */
+    else
+      unlink_chunk(c);
+  }
+  UNLOCK_CHUNKS();
+
+  for(c=all; c; c=next)			/* no longer seen by atom-GC */
+  { next = c->next;
+    if ( (c->flags&CHUNK_REGISTERED) )
+      release_chunk_keys(c);
+    if ( (c->flags&CHUNK_ZOMBIE) )
+    { LOCK_CHUNKS();
+      if ( GD->atoms.gc_active )
+      { c->next = GD->trie_chunks.zombies;
+	GD->trie_chunks.zombies = c;
+	c = NULL;
+      } else
+      { unlink_chunk(c);
+      }
+      UNLOCK_CHUNKS();
+    }
+    if ( c )
+    { c->next = tofree;
+      tofree = c;
+    }
+  }
+
+  for(c=tofree; c; c=next)
+  { next = c->next;
+    free_to_pool(c->pool, c, c->bytes);
+  }
+}
+
+
+/* Register the keys of a full chunk.  Called by atom-GC, holding the
+ * lock.
+ */
+
+static void
+register_chunk_keys(trie_node_chunk *c)
+{ for(unsigned i=0; i<c->size; i++)
+  { word key = c->nodes[i].key;
+
+    if ( isAtom(key) )
+      PL_register_atom(word2atom(key));
+  }
+  c->flags |= CHUNK_REGISTERED;
+}
+
+
+/* Mark the atom keys of all trie chunks.  Called by atom-GC.  As chunks
+ * are not unlinked while atom-GC is active, we only need the lock to
+ * get the start of the list.  Chunks added later only hold keys that
+ * are marked by new_trie_node().  Registered chunks need no marking and
+ * full chunks that were full before are registered.
+ */
+
+void
+markAtomsInTries(void)
+{ trie_node_chunk *c;
+
+  LOCK_CHUNKS();
+  c = GD->trie_chunks.chunks;
+  UNLOCK_CHUNKS();
+
+  for(; c; c = c->gnext)
+  { if ( (c->flags&(CHUNK_ZOMBIE|CHUNK_REGISTERED)) )
+      continue;
+
+    unsigned used = c->used;
+    MEMORY_ACQUIRE();
+
+    if ( used == c->size )
+    { if ( c->scans >= TRIE_REGISTER_SCANS )
+      { LOCK_CHUNKS();
+	if ( !(c->flags&(CHUNK_ZOMBIE|CHUNK_REGISTERED)) )
+	  register_chunk_keys(c);
+	UNLOCK_CHUNKS();
+	continue;
+      }
+      c->scans++;
+    }
+
+    for(unsigned i=0; i<used; i++)
+    { word key = c->nodes[i].key;
+
+      if ( isAtom(key) )
+	markAtom(word2atom(key));
+    }
+  }
+}
+
+/* Free the chunks of tries that were cleared while atom-GC was active.
+ * Called after atom-GC has completed.
+ */
+
+void
+freeZombieTrieChunks(void)
+{ trie_node_chunk *c, *next;
+
+  LOCK_CHUNKS();
+  c = GD->trie_chunks.zombies;
+  GD->trie_chunks.zombies = NULL;
+  for(next=c; next; next=next->next)
+    unlink_chunk(next);
+  UNLOCK_CHUNKS();
+
+  for(; c; c=next)
+  { next = c->next;
+    free_to_pool(c->pool, c, c->bytes);
+  }
+}
+
+/* Clear a node and its descendants.  With CN_ALL the whole trie is
+ * cleared and free_node_chunks() releases the chunk nodes.
+ */
+
+static void
+clear_node(trie *trie, trie_node *n, int flags)
 { trie_children children;
 
 next:
@@ -876,13 +1209,15 @@ next:
   if ( trie->release_node )
     (*trie->release_node)(trie, n);
 
-  release_key(n->key);
+  if ( isoff(n, TN_CHUNKED) )
+    release_key(n->key);
   if ( n->value )
     release_value(n->value);
 
-  if ( dealloc )
-  { ATOMIC_DEC(&trie->node_count);
-    free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
+  if ( (flags&CN_DEALLOC) )
+  { TRIE_COUNT_DEC(trie, node_count);
+    if ( !(flags&CN_ALL) || isoff(n, TN_CHUNKED) )
+      free_trie_node(trie, n);
   } else
   { n->children = 0;
     clear(n, TN_PRIMARY|TN_SECONDARY);
@@ -891,14 +1226,14 @@ next:
   if ( children )
   { if ( is_single_child(children) )
     { n = single_child(children);
-      dealloc = true;
+      flags |= CN_DEALLOC;
       goto next;
     } else
     { trie_children_block *b = children_block(children);
 
       for(unsigned i=0; i<b->count; i++)
       { if ( b->entries[i].child )
-	  clear_node(trie, b->entries[i].child, true);
+	  clear_node(trie, b->entries[i].child, flags|CN_DEALLOC);
       }
       free_block(trie, b);
     }
@@ -907,7 +1242,7 @@ next:
 
 static void
 destroy_node(trie *trie, trie_node *n)
-{ clear_node(trie, n, true);
+{ clear_node(trie, n, CN_DEALLOC);
 }
 
 
@@ -1722,7 +2057,8 @@ stat_node(trie_node *n, void *ctx)
   trie_children children = n->children;
 
   stats->nodes++;
-  stats->bytes += sizeof(*n);
+  if ( isoff(n, TN_CHUNKED) )		/* chunks are added by stat_trie() */
+    stats->bytes += sizeof(*n);
   if ( n->value && ison(n, TN_PRIMARY) )
     stats->values++;
 
@@ -1747,6 +2083,10 @@ stat_trie(trie *t, trie_stats *stats)
 
   acquire_trie(t);
   map_trie_node(&t->root, stat_node, stats);
+  if ( isoff(t, TRIE_CONCURRENT) )
+  { for(trie_node_chunk *c = t->mem.chunks; c; c = c->next)
+      stats->bytes += c->bytes;
+  }
   release_trie(t);
 }
 
@@ -1996,7 +2336,7 @@ set_trie_value_word(trie *trie, trie_node *node, word val)
   { acquire_key(val);
     node->value = val;
     set(node, TN_PRIMARY);
-    ATOMIC_INC(&trie->value_count);
+    TRIE_COUNT_INC(trie, value_count);
     trie_discard_clause(trie);
 
     return true;
@@ -2029,7 +2369,7 @@ void
 trie_delete(trie *trie, trie_node *node, int prune)
 { if ( node->value )
   { if ( ison(node, TN_PRIMARY) )
-      ATOMIC_DEC(&trie->value_count);
+      TRIE_COUNT_DEC(trie, value_count);
 
     clear(node, (TN_PRIMARY|TN_SECONDARY));
     if ( prune && trie->references == 0 )
@@ -2118,7 +2458,7 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
       acquire_key(val);
       node->value = val;
       set(node, TN_PRIMARY);
-      ATOMIC_INC(&trie->value_count);
+      TRIE_COUNT_INC(trie, value_count);
       trie_discard_clause(trie);
 
       return true;
@@ -4479,6 +4819,7 @@ initTries(void)
 #ifdef O_PLMT
   for(int i=0; i<TRIE_STRIPES; i++)
     simpleMutexInit(&GD->tries.stripes[i]);
+  simpleMutexInit(&GD->trie_chunks.mutex);
 #endif
 
   proc = PL_predicate("trie_gen_compiled", 2, "system");

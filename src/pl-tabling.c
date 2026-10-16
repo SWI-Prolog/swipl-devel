@@ -2753,7 +2753,7 @@ retry:
       { set(atrie, TRIE_ISSHARED);
 	if ( COMPARE_AND_SWAP_WORD(&node->value, 0, symb) )
 	{ set(node, TN_PRIMARY);
-	  ATOMIC_INC(&variants->value_count);
+	  TRIE_COUNT_INC(variants, value_count);
 	} else
 	{ release_trie_ref(symb);
 	  PL_unregister_atom(symb);
@@ -2763,7 +2763,7 @@ retry:
 #endif
       { set(node, TN_PRIMARY);
 	node->value = symb;
-	ATOMIC_INC(&variants->value_count);
+	TRIE_COUNT_INC(variants, value_count);
       }
     } else
     { discardBuffer(&vars);

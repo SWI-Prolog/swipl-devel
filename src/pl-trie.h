@@ -96,6 +96,8 @@ typedef struct trie_children_block
 #define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
 #define TN_IDG_AS_LAST			0x0040	/* IDG: answer subsumption node */
 #define TN_PINNED			0x0080	/* Never pruned (cached node) */
+#define TN_CHUNKED			0x0100	/* Allocated in a node chunk */
+#define TN_CHUNK_INDEX_SHIFT		16	/* Index in chunk: upper bits */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
 	 TN_IDG_UNCONDITIONAL|TN_IDG_AS_LAST)
@@ -122,6 +124,30 @@ typedef struct trie_node
 #define TRIE_DISCARDABLE 0x0100		/* Discard nodes after compilation */
 #define TRIE_DISCARDED	0x0200		/* Nodes discarded; clause has keys */
 
+/* Nodes of tries without concurrent writers are allocated from chunks
+ * that are freed with the trie (see alloc_trie_node()).  The newest
+ * chunk is the first and holds the free list of deleted chunk nodes.
+ * All chunks are also in a global list that atom-GC scans for the
+ * atoms of the keys (see markAtomsInTries()).
+ */
+
+typedef struct trie_node_chunk
+{ struct trie_node_chunk *next;		/* Next (older) chunk of the trie */
+  trie_node	       *free;		/* Free nodes (newest chunk only) */
+  struct trie_node_chunk *gprev;	/* Global chunk list */
+  struct trie_node_chunk *gnext;
+  alloc_pool	       *pool;		/* Pool we are allocated from */
+  unsigned short	flags;		/* CHUNK_* */
+  unsigned short	scans;		/* # atom-GC scans that found it full */
+  unsigned		bytes;		/* Allocated bytes */
+  unsigned		size;		/* Allocated nodes */
+  unsigned		used;		/* Used nodes */
+  trie_node		nodes[];
+} trie_node_chunk;
+
+#define CHUNK_ZOMBIE	 0x1		/* Freed during atom-GC */
+#define CHUNK_REGISTERED 0x2		/* The nodes registered their keys */
+
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
   int			magic;		/* TRIE_MAGIC */
@@ -137,7 +163,10 @@ typedef struct trie
   void		      (*release_node)(struct trie *, trie_node *);
   alloc_pool	       *alloc_pool;	/* Node allocation pool */
   atom_t		clause;		/* Compiled representation */
-  trie_children_block *lingering;	/* Replaced blocks (TRIE_CONCURRENT) */
+  union
+  { trie_children_block *lingering;	/* Replaced blocks (TRIE_CONCURRENT) */
+    trie_node_chunk     *chunks;	/* Node chunks (otherwise) */
+  } mem;
 #ifdef O_TRIE_STATS
   struct
   { uint64_t		lookups;	/* trie_lookup */
@@ -160,6 +189,19 @@ typedef struct size_abstract
 { int		from_depth;		/* start below depth */
   size_t	size;			/* limit each term to size */
 } size_abstract;
+
+/* node_count and value_count only need atomic updates if there may be
+ * multiple writers.  Locked instructions are expensive when adding many
+ * new nodes as they wait for these stores to complete.
+ */
+#define TRIE_COUNT_INC(t, c) \
+	do { if ( ison(t, TRIE_CONCURRENT) ) ATOMIC_INC(&(t)->c); \
+	     else (t)->c++; \
+	   } while(0)
+#define TRIE_COUNT_DEC(t, c) \
+	do { if ( ison(t, TRIE_CONCURRENT) ) ATOMIC_DEC(&(t)->c); \
+	     else (t)->c--; \
+	   } while(0)
 
 #define acquire_trie(t) ATOMIC_INC(&(t)->references)
 #define release_trie(t) do { if ( ATOMIC_DEC(&(t)->references) == 0 ) \
@@ -239,6 +281,8 @@ foreign_t trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 void *	map_trie_node(trie_node *n,
 		      void* (*map)(trie_node *n, void *ctx), void *ctx);
 atom_t	compile_trie(Definition def, trie *trie);
+void	markAtomsInTries(void);
+void	freeZombieTrieChunks(void);
 void	trie_discard_clause(trie *trie);
 void	trie_discard_nodes(trie *trie);
 

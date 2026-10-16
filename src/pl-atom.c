@@ -41,6 +41,7 @@
 #include "pl-fli.h"
 #include "pl-pro.h"
 #include "pl-read.h"
+#include "pl-trie.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #undef LD
@@ -1393,6 +1394,7 @@ pl_garbage_collect_atoms(void)
   forThreadLocalDataUnsuspended(markAtomsOnStacks, NULL);
   markAtomsMessageQueues();
 #endif
+  markAtomsInTries();			/* after the stacks */
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
   GD->atoms.collected += reclaimed;
@@ -1413,6 +1415,7 @@ pl_garbage_collect_atoms(void)
 			  PL_DOUBLE, (double)t);
 
   GD->atoms.gc_active = false;
+  freeZombieTrieChunks();
 
   return rc;
 }

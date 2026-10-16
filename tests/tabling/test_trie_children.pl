@@ -45,10 +45,15 @@ Nodes have no children, a single child or  a block of children. Small
 blocks are searched linearly, larger ones  have   an  index. These tests
 exercise growing and compacting blocks,   deletion  and enumeration, and
 concurrent insertion into tries created by trie_new/1.
+
+Tries without concurrent writers, i.e., tables, allocate their nodes
+from chunks.  The trie_node_chunks tests delete and re-add many nodes
+of such tries and re-evaluate large incremental tables.
 */
 
 test_trie_children :-
     run_tests([ trie_children,
+                trie_node_chunks,
                 trie_children_threads
               ]).
 
@@ -199,9 +204,173 @@ test(property) :-
 
 :- end_tests(trie_children).
 
+:- dynamic d/1 as incremental.
+:- table q/1 as incremental.
+:- table v/2.
+
+q(X) :- d(X).
+v(X, Y) :- Y is X*2.
+
+q_answers(L) :-
+    findall(X, q(X), L0),
+    msort(L0, L).
+
+d_facts(L) :-
+    findall(X, d(X), L0),
+    msort(L0, L).
+
+v_tables(N) :-
+    aggregate_all(count,
+                  ( current_table(test_trie_children:V, _),
+                    V = v(_,_)
+                  ), N).
+
+add_d(I)  :- assertz(d(f(I, g(I)))).
+del_d(I)  :- retract(d(f(I, g(I)))).
+clear_d   :- retractall(d(_)).
+
+:- begin_tests(trie_node_chunks, [cleanup(abolish_all_tables)]).
+
+test(incremental) :-                    % re-evaluate a large answer trie
+    abolish_all_tables,
+    clear_d,
+    forall(between(1, 2000, I), add_d(I)),
+    forall(between(1, 3, _),
+           ( q_answers(L1), d_facts(D1), assertion(L1 == D1),
+             forall(( between(1, 2000, I), I mod 2 =:= 0 ),
+                    del_d(I)),
+             q_answers(L2), d_facts(D2), assertion(L2 == D2),
+             assertion(length(L2, 1000)),
+             forall(( between(1, 2000, I), I mod 2 =:= 0 ),
+                    add_d(I))
+           )),
+    q_answers(L), assertion(length(L, 2000)),
+    clear_d.
+test(registered) :-                     % atom-GC registers full chunks
+    abolish_all_tables,
+    \+ \+ reg_atom(_),
+    reg_atom_count(N0),                 % first scan: chunks are full
+    assertion(N0 == 5000),
+    reg_atom_count(N1),                 % second scan: register them
+    assertion(N1 == 5000),
+    aggregate_all(count, reg_atom(_), C),
+    assertion(C == 5000),
+    abolish_all_tables,                 % releases the registered keys
+    assertz(chunk_gen_dummy), retract(chunk_gen_dummy),
+    garbage_collect_clauses,            % and the compiled clause
+    reg_atom_count(N2),
+    assertion(N2 < 10).
+test(variants) :-                       % variant table nodes are pruned
+    abolish_all_tables,
+    forall(between(1, 3, _),
+           ( forall(between(1, 2000, I), v(I, _)),
+             v_tables(N1), assertion(N1 == 2000),
+             forall(( between(1, 2000, I), I mod 2 =:= 1 ),
+                    abolish_table_subgoals(v(I, _))),
+             v_tables(N2), assertion(N2 == 1000)
+           )),
+    forall(between(1, 2000, I), ( v(I, Y), assertion(Y =:= I*2) )).
+
+:- end_tests(trie_node_chunks).
+
+%   Tables with fresh atoms.  Atom-GC marks the keys of the chunk
+%   nodes rather than the nodes registering the atoms.
+
+:- table agc_atom/3, agc_var/2, reg_atom/1.
+:- dynamic chunk_gen_dummy/0.
+
+reg_atom(X) :-
+    between(1, 5000, I),
+    atom_concat(rga_, I, X).
+
+reg_atom_count(N) :-
+    garbage_collect_atoms,
+    aggregate_all(count,
+                  ( current_atom(A),
+                    sub_atom(A, 0, _, After, rga_),
+                    After > 0
+                  ), N).
+
+agc_atom(Id, R, X) :-
+    between(1, 300, I),
+    agc_name(Id, R, I, X).
+
+agc_name(Id, R, I, X) :-
+    format(atom(X), 'agc_~w_~w_~w', [Id, R, I]).
+
+agc_var(_, _).
+
+%   agc_worker(+Id)
+%
+%   Create tables with fresh atoms and verify them a few times, such
+%   that atom-GC registers the full chunks.  Then delete and re-add
+%   variants with fresh atoms, deleting and reusing nodes of registered
+%   chunks of the variant table.
+
+agc_worker(Id) :-
+    forall(between(1, 10, R), \+ \+ agc_atom(Id, R, _)),
+    forall(between(1, 3, _), agc_check_answers(Id)),
+    agc_var_names(Id, Names),
+    forall(member(N, Names), agc_var(Id, N)),
+    forall(between(1, 3, _), agc_check_variants(Id, Names)),
+    agc_odd(Names, Odd, Even),
+    forall(member(N, Odd), abolish_table_subgoals(agc_var(Id, N))),
+    agc_check_variants(Id, Even),
+    forall(member(N, Odd), agc_var(Id, N)),
+    forall(between(1, 3, _), agc_check_variants(Id, Names)),
+    agc_check_answers(Id).
+
+agc_check_answers(Id) :-
+    forall(between(1, 10, R),
+           ( findall(X, agc_atom(Id, R, X), Xs),
+             msort(Xs, Sorted),
+             findall(X, (between(1, 300, I), agc_name(Id, R, I, X)), Exp0),
+             msort(Exp0, Exp),
+             Sorted == Exp
+           )).
+
+agc_var_names(Id, Names) :-
+    findall(N, ( between(1, 400, I),
+                 format(atom(N), 'agc_var_~w_~w', [Id, I])
+               ), Names).
+
+agc_check_variants(Id, Names) :-
+    findall(N, ( current_table(test_trie_children:V, _),
+                 V = agc_var(Id, N)
+               ), Found0),
+    msort(Found0, Found),
+    findall(N, (member(N0, Names), atom_string(N0, S), atom_string(N, S)),
+            Exp0),
+    msort(Exp0, Exp),
+    Found == Exp.
+
+agc_odd([], [], []).
+agc_odd([O], [O], []).
+agc_odd([O,E|T0], [O|O1], [E|E1]) :-
+    agc_odd(T0, O1, E1).
+
+agc_loop(Stop) :-
+    (   thread_peek_message(Stop)
+    ->  true
+    ;   garbage_collect_atoms,
+        agc_loop(Stop)
+    ).
+
 :- begin_tests(trie_children_threads,
                [ condition(current_prolog_flag(threads, true))
                ]).
+
+test(agc_concurrent) :-
+    thread_create(agc_loop(stop), AGC, []),
+    numlist(1, 4, Ids),
+    findall(T, ( member(Id, Ids),
+                 thread_create(agc_worker(Id), T, [])
+               ), Workers),
+    maplist(thread_join, Workers, Statuses),
+    thread_send_message(AGC, stop),
+    thread_join(AGC, AStatus),
+    assertion(maplist(==(true), Statuses)),
+    assertion(AStatus == true).
 
 thread_keys(Id, Keys) :-
     findall(f(K), (between(1, 2000, I), K is (I*Id) mod 3001), Keys0),

@@ -204,6 +204,14 @@ struct PL_global_data
 #endif
 
   struct
+  { struct trie_node_chunk *chunks;	/* All trie node chunks */
+    struct trie_node_chunk *zombies;	/* Freed while atom-GC is active */
+#ifdef O_PLMT
+    simpleMutex	mutex;			/* Guards the lists */
+#endif
+  } trie_chunks;
+
+  struct
   { TableWP	record_lists;		/* Key -> record list */
   } recorded_db;
 
