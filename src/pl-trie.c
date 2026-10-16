@@ -1894,11 +1894,26 @@ Return:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FLAT_MAX_VARS 32
+#define FLAT_MAX_ARGS 16		/* dereferenced once up to this arity */
+
+/* follow_node() with `add` true, with the lookup inlined: nearly all
+   lookups of answer tabling find an existing node. */
+#define follow_node_add(trie, n, key) \
+	LDFUNC(follow_node_add, trie, n, key)
+static inline trie_node *
+follow_node_add(DECL_LD trie *trie, trie_node *n, word key)
+{ trie_node *child;
+
+  if ( likely((child=get_child(n, key)) != NULL) )
+    return child;
+  return insert_child(trie, n, key);
+}
 
 int
 trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
 { trie_node *node;
   Word vars[FLAT_MAX_VARS];
+  Word args[FLAT_MAX_ARGS];
   size_t var_number = 0;
   Word argv;
   size_t arity;
@@ -1908,7 +1923,7 @@ trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
   w = *k;
   if ( isAtom(w) )
   { TRIE_STAT_INC(trie, lookups);
-    if ( !(node = follow_node(trie, &trie->root, w, true)) )
+    if ( !(node = follow_node_add(trie, &trie->root, w)) )
       return false;
     *nodep = node;
     return true;
@@ -1924,6 +1939,8 @@ trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
   { Word p = &argv[i];
 
     deRef(p);
+    if ( i < FLAT_MAX_ARGS )
+      args[i] = p;
     switch( tag(*p) )
     { case TAG_VAR:
 	if ( ++nvars > FLAT_MAX_VARS )
@@ -1936,11 +1953,16 @@ trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
   }
 
   TRIE_STAT_INC(trie, lookups);
-  node = follow_node(trie, &trie->root, f->definition, true);
+  node = follow_node_add(trie, &trie->root, f->definition);
   for(size_t i=0; node && i<arity; i++)
-  { Word p = &argv[i];
+  { Word p;
 
-    deRef(p);
+    if ( likely(i < FLAT_MAX_ARGS) )
+    { p = args[i];
+    } else
+    { p = &argv[i];
+      deRef(p);
+    }
     w = *p;
     if ( tag(w) == TAG_VAR )
     { if ( isVar(w) )
@@ -1954,7 +1976,7 @@ trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
 	break;
       }
     }
-    node = follow_node(trie, node, w, true);
+    node = follow_node_add(trie, node, w);
   }
 
   for(size_t i=0; i<var_number; i++)

@@ -5805,12 +5805,9 @@ VMI(I_EXITRESET, 0, 0, ())
   if ( canBind(*p) )
   { if ( FR->predicate == PROCEDURE_dtbl_reset6->definition )
     { bool rc;
-      fid_t fid;
 
       SAVE_REGISTERS(QID);
-      fid = PL_open_foreign_frame();
-      rc = tbl_reset_add_answer(FR);
-      PL_close_foreign_frame(fid);
+      rc = tbl_reset_add_answer(FR);	/* opens a foreign frame if needed */
       LOAD_REGISTERS(QID);
       if ( rc )				/* answer completes the table */
       { SAVE_REGISTERS(QID);

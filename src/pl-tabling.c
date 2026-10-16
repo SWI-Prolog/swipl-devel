@@ -4291,26 +4291,41 @@ pred_max_table_answer_size(DECL_LD const Definition def)
 #define TBL_ANSWER_NEW      1
 #define TBL_ANSWER_COMPLETE 2
 
+#define tbl_add_answer_found(wl, answer, delays, rc, node) \
+	LDFUNC(tbl_add_answer_found, wl, answer, delays, rc, node)
+static int tbl_add_answer_found(DECL_LD worklist *wl,
+				term_t answer, term_t delays,
+				int rc, trie_node *node);
+
 #define tbl_add_answer(wl, answer, delays) LDFUNC(tbl_add_answer, wl, answer, delays)
 static int
 tbl_add_answer(DECL_LD worklist *wl, term_t answer, term_t delays)
-{ { Word kp;
-    trie_node *node;
-    atom_t action;
-    size_abstract sa = {.from_depth = 2};
-    int rc;
-    bool complete = false;
+{ trie_node *node;
 
 #ifdef O_PLMT
-    DEBUG(0, assert(isoff(wl->table, TRIE_ISSHARED) || wl->table->tid));
+  DEBUG(0, assert(isoff(wl->table, TRIE_ISSHARED) || wl->table->tid));
 #endif
 
-    kp = valTermRef(answer);
-    if ( ison(wl->table, TRIE_ISMAP) )
-      return wkl_mode_add_answer(wl, wl->table, answer, delays) ? TBL_ANSWER_NEW
-							: false;
+  if ( ison(wl->table, TRIE_ISMAP) )
+    return wkl_mode_add_answer(wl, wl->table, answer, delays) ? TBL_ANSWER_NEW
+						      : false;
 
-    rc = trie_insert_flat(wl->table, &node, kp);
+  int rc = trie_insert_flat(wl->table, &node, valTermRef(answer));
+  return tbl_add_answer_found(wl, answer, delays, rc, node);
+}
+
+/* tbl_add_answer_found() continues tbl_add_answer() after
+ * trie_insert_flat() returned `rc` and `node`.
+ */
+
+static int
+tbl_add_answer_found(DECL_LD worklist *wl, term_t answer, term_t delays,
+		     int rc, trie_node *node)
+{ { Word kp = valTermRef(answer);
+    atom_t action;
+    size_abstract sa = {.from_depth = 2};
+    bool complete = false;
+
     if ( rc == TRIE_LOOKUP_NOT_FLAT )
     { sa.size = pred_max_table_answer_size(wl->predicate);
       rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
@@ -4431,22 +4446,76 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
  * if the goal succeeded.  `fr` is the frame of '$tbl_reset'/6.  Returns
  * true if the answer completes the table and false otherwise.  If false
  * is returned there may be an exception.
+ *
+ * Most answers are variants of existing ones.  These are handled
+ * without opening a foreign frame: the worklist is decoded inline and
+ * trie_insert_flat() creates no term references.  Otherwise the found
+ * or created node is passed to tbl_add_answer_found() inside a foreign
+ * frame.
  */
+
+#define frame_worklist(fr) LDFUNC(frame_worklist, fr)
+static inline worklist *
+frame_worklist(DECL_LD LocalFrame fr)
+{ Word p = argFrameP(fr, 3);
+
+  deRef(p);
+  if ( likely(isTaggedInt(*p)) )
+  { worklist *wl = intToPointer((uintptr_t)valInt(*p));
+
+    assert(wl->magic == WORKLIST_MAGIC);
+    return wl;
+  } else
+  { worklist *wl;
+
+    if ( get_worklist(consTermRef(argFrameP(fr, 3)), &wl) )
+      return wl;
+    return NULL;
+  }
+}
 
 bool
 tbl_reset_add_answer(DECL_LD LocalFrame fr)
 { worklist *wl;
-  term_t frref = consTermRef(fr);
+  trie_node *node;
+  int rc;
 
-  if ( get_worklist(consTermRef(argFrameP(fr, 3)), &wl) )
-  { fr = (LocalFrame)valTermRef(frref);
+  if ( !(wl = frame_worklist(fr)) )
+    return false;
 
-    return tbl_add_answer(wl,
-			  consTermRef(argFrameP(fr, 4)),
-			  consTermRef(argFrameP(fr, 5))) == TBL_ANSWER_COMPLETE;
+#ifdef O_PLMT
+  DEBUG(0, assert(isoff(wl->table, TRIE_ISSHARED) || wl->table->tid));
+#endif
+
+  if ( isoff(wl->table, TRIE_ISMAP) )
+  { rc = trie_insert_flat(wl->table, &node, argFrameP(fr, 4));
+    if ( rc == true &&
+	 node->value == ATOM_trienode &&
+	 isoff(node, TN_IDG_DELETED) &&
+	 !answer_is_conditional(node) )
+      return false;			/* variant of an existing answer */
+  } else
+  { rc = 0;				/* not used */
+    node = NULL;
   }
 
-  return false;
+  term_t frref = consTermRef(fr);
+  fid_t fid = PL_open_foreign_frame();
+  int rcadd;
+
+  fr = (LocalFrame)valTermRef(frref);
+  if ( ison(wl->table, TRIE_ISMAP) )
+    rcadd = tbl_add_answer(wl,
+			   consTermRef(argFrameP(fr, 4)),
+			   consTermRef(argFrameP(fr, 5)));
+  else
+    rcadd = tbl_add_answer_found(wl,
+				 consTermRef(argFrameP(fr, 4)),
+				 consTermRef(argFrameP(fr, 5)),
+				 rc, node);
+  PL_close_foreign_frame(fid);
+
+  return rcadd == TBL_ANSWER_COMPLETE;
 }
 
 /** wkl_mode_add_answer(DECL_LD worklist *wl, trie *trie, term_t answer, term_t delays)
