@@ -3362,6 +3362,8 @@ for musttail.
 VMI_CC is the calling convention of the VMI functions.  preserve_none
 (Clang >= 19, GCC >= 15) passes up to 12 arguments in registers and has
 no callee-saved registers, which avoids saving registers in each VMI.
+MinGW GCC (16) accepts it, but the result crashes while compiling the
+boot file: a VMI is entered with LD == NULL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if VMI_TAILCALL
@@ -3370,7 +3372,8 @@ no callee-saved registers, which avoids saving registers in each VMI.
    VMI into normal calls, overflowing the C stack.  Inlining one VMI in
    another only duplicates code anyway. */
 #define VMI_NOINLINE __attribute__((noinline))
-#if !defined(VMI_CC) && __has_attribute(preserve_none)
+#if !defined(VMI_CC) && __has_attribute(preserve_none) && \
+    !(defined(__MINGW32__) && !defined(__clang__))
 #define VMI_CC __attribute__((preserve_none))
 #endif
 #endif
