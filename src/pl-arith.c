@@ -1096,7 +1096,7 @@ retry:
 	    rc = (*(ArithF1)f)(a0, n);
 	    clearNumber(a0);
 	    if ( rc )
-	    { *a0 = *n;
+	    { moveNumber(a0, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1116,7 +1116,7 @@ retry:
 
 	    if ( rc )
 	    { number *n1 = a[1];
-	      *n1 = *n;
+	      moveNumber(n1, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1138,7 +1138,7 @@ retry:
 
 	    if ( rc )
 	    { number *n2 = a[2];
-	      *n2 = *n;
+	      moveNumber(n2, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1152,7 +1152,7 @@ retry:
 
 	popForMark(&term_stack, &p, &walk_ref);
 	if ( p == start )
-	{ *result = *n;
+	{ moveNumber(result, n);
 
 	  return true;
 	}

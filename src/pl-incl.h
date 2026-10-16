@@ -1841,6 +1841,47 @@ struct choice
   } value;
 };
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copy words using one 8-byte load and store per word.  Use these to copy
+small structures whose fields have just been written separately, such as
+a `struct clause_choice` filled by firstClause()/nextClause().  A struct
+assignment or memcpy() compiles to 16-byte (or wider) loads, which
+cannot be store-forwarded from the narrower stores that wrote the data
+and stall until these have retired.  The empty asm keeps GCC from
+merging the moves into vector moves.  copyWordsScalarUp() allows `to` <
+`from` to overlap and copyWordsScalarDown() `to` > `from`.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+copyWordsScalarUp(void *to, const void *from, size_t n)
+{ word *t = to;
+  const word *f = from;
+
+  for(size_t i=0; i<n; i++)
+  { word w = f[i];
+    __asm__("" : "+r"(w));
+    t[i] = w;
+  }
+}
+
+static inline void
+copyWordsScalarDown(void *to, const void *from, size_t n)
+{ word *t = to;
+  const word *f = from;
+
+  for(size_t i=n; i-- > 0; )
+  { word w = f[i];
+    __asm__("" : "+r"(w));
+    t[i] = w;
+  }
+}
+
+static_assertion(sizeof(struct choice)%sizeof(word) == 0);
+static_assertion(sizeof(struct clause_choice)%sizeof(word) == 0);
+
+#define copyClauseChoice(to, from) \
+	copyWordsScalarUp(&(to), &(from), sizeof(struct clause_choice)/sizeof(word))
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 EXCEPTION_GUARDED(code, cleanup) must be used  in environments that need

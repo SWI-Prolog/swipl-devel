@@ -3377,7 +3377,7 @@ VMI(S_STATIC, 0, 0, ())
 
   if ( chp.cref )
   { Choice ch = newChoice(CHP_CLAUSE, FR);
-    ch->value.clause = chp;
+    copyClauseChoice(ch->value.clause, chp);
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR);
 
@@ -6509,7 +6509,11 @@ VMH(shallow_backtrack, 0, (), ())
       if ( f_hasSpace(nTop, lMax, LOCAL_MARGIN, 1) )
       { if ( (Word)ch != nTop ) /* Choice point needs to move */
 	{ Choice nch = (Choice)nTop;
-	  memmove(nch, ch, sizeof(*ch));
+				/* not memmove(): see copyWordsScalarUp() */
+	  if ( nch < ch )
+	    copyWordsScalarUp(nch, ch, sizeof(*ch)/sizeof(word));
+	  else
+	    copyWordsScalarDown(nch, ch, sizeof(*ch)/sizeof(word));
 	  BFR = ch = nch;
 	}
 
@@ -6531,13 +6535,13 @@ VMH(shallow_backtrack, 0, (), ())
 
 	DiscardMark(ch->mark);
 	BFR = ch->parent;
-	chp = ch->value.clause;
+	copyClauseChoice(chp, ch->value.clause);
 	lTop = (LocalFrame)nTop;
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
 	if ( chp.cref )
 	{ ch = newChoice(CHP_CLAUSE, FR);
-	  ch->value.clause = chp;
+	  copyClauseChoice(ch->value.clause, chp);
 	} else if ( unlikely(debugstatus.debugging) )
 	{ ch = newChoice(CHP_DEBUG, FR);
 	}
@@ -6702,7 +6706,9 @@ next_choice:
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
     { Clause clause;
-      struct clause_choice chp = BFR->value.clause;
+      struct clause_choice chp;
+
+      copyClauseChoice(chp, BFR->value.clause);
 
       DEBUG(MSG_BACKTRACK,
 	    Sdprintf("    REDO #%zd: Clause in %s\n",
@@ -6753,7 +6759,7 @@ next_choice:
 	    LOAD_REGISTERS(QID);
 
 	    LD->trace.yield.redo.is_jump = false;
-	    LD->trace.yield.redo.chp = chp;
+	    copyClauseChoice(LD->trace.yield.redo.chp, chp);
 	    VMH_GOTO(debug_redo_continue, action);
 	  } else if ( !chp.cref )
 	  { newChoice(CHP_DEBUG, FR);
@@ -6764,7 +6770,7 @@ next_choice:
 
       if ( chp.cref )
       { Choice ch = newChoice(CHP_CLAUSE, FR);
-	ch->value.clause = chp;
+	copyClauseChoice(ch->value.clause, chp);
       }
 			/* require space for the args of the next frame */
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
@@ -6921,7 +6927,9 @@ VMH(debug_redo_continue, 1, (int), (action))
   }
 
   if ( !LD->trace.yield.redo.is_jump )
-  { struct clause_choice chp = LD->trace.yield.redo.chp;
+  { struct clause_choice chp;
+
+    copyClauseChoice(chp, LD->trace.yield.redo.chp);
 
     Clause clause = CL->value.clause;
     PC            = clause->codes;
@@ -6930,7 +6938,7 @@ VMH(debug_redo_continue, 1, (int), (action))
 
     if ( chp.cref )
     { Choice ch = newChoice(CHP_CLAUSE, FR);
-      ch->value.clause = chp;
+      copyClauseChoice(ch->value.clause, chp);
     } else
     { newChoice(CHP_DEBUG, FR);
     }

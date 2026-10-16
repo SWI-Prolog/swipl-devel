@@ -110,6 +110,30 @@ isIntegerNumber(const Number n)
 #endif
 }
 
+/* moveNumber() does a shallow copy of `from` to `to`, transferring the
+   ownership of GMP data.  For small integers and floats it only copies
+   the type and 8 bytes of value.  A structure copy loads the number in
+   16-byte chunks that overlap the separate stores of `type` and `value`
+   that just created it, which defeats store-to-load forwarding and
+   stalls the CPU.
+*/
+
+static inline void
+moveNumber(Number to, const Number from)
+{ switch(from->type)
+  { case V_INTEGER:
+      to->value.i = from->value.i;
+      break;
+    case V_FLOAT:
+      to->value.f = from->value.f;
+      break;
+    default:
+      *to = *from;			/* structure copy */
+      return;
+  }
+  to->type = from->type;
+}
+
 #define allocArithStack(_) LDFUNC(allocArithStack, _)
 static inline Number
 allocArithStack(DECL_LD)
@@ -124,7 +148,7 @@ static inline void
 pushArithStack(DECL_LD Number n)
 { Number np = allocArithStack();
 
-  *np = *n;				/* structure copy */
+  moveNumber(np, n);
 }
 
 #define resetArithStack(_) LDFUNC(resetArithStack, _)
