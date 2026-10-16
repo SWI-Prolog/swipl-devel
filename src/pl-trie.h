@@ -263,10 +263,10 @@ int	trie_lookup_abstract(trie *trie,
 			     trie_node *root, trie_node **nodep, Word k,
 			     bool add, size_abstract *abstract,
 			     TmpBuffer vars);
-int	trie_lookup_flat(trie *trie, trie_node **startp,
+HOT int	trie_lookup_flat(trie *trie, trie_node **startp,
 			 trie_node **nodep,
 			 Definition def, Word argv, TmpBuffer vars);
-int	trie_insert_flat(trie *trie, trie_node **nodep, Word k);
+HOT int	trie_insert_flat(trie *trie, trie_node **nodep, Word k);
 bool	trie_error(int rc, term_t culprit);
 bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);
