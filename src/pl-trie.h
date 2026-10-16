@@ -212,7 +212,7 @@ typedef struct size_abstract
 			   } while(0)
 
 #define TRIE_ARGS	3
-#define TRIE_VAR_OFFSET (TRIE_ARGS+3)
+#define TRIE_VAR_OFFSET (TRIE_ARGS+4)
 
 #ifdef O_TRIE_STATS
 #define TRIE_STAT_INC(t, v) ATOMIC_INC(&t->stats.v)

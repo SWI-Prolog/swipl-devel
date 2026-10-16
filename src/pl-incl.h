@@ -1875,9 +1875,21 @@ struct choice
   union
   { struct clause_choice clause;	/* Next candidate clause */
     Code	pc;			/* Next candidate program counter */
+    struct				/* CHP_JUMP */
+    { Code	pc;			/* Next candidate (same as .pc) */
+      word	trie_offset;		/* Restore TrieOffset if not 0 */
+    } jump;
     word        foreign;		/* foreign redo handle */
   } value;
 };
+
+/* Initialise a CHP_JUMP choice point.  `trie_offset` is set by the
+   T_TRY_* instructions of compiled tries: the alternative continues
+   with this argument offset, which avoids trailing it. */
+#define setJumpChoice(ch, p) \
+	do { (ch)->value.jump.pc = (p); \
+	     (ch)->value.jump.trie_offset = 0; \
+	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Copy words using one 8-byte load and store per word.  Use these to copy

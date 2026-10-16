@@ -169,7 +169,7 @@ Virtual machine instruction names.  Prefixes:
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR); \
-	  ch->value.pc = altpc; \
+	  setJumpChoice(ch, altpc); \
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR); \
 	} \
@@ -302,7 +302,7 @@ VMI(D_BREAK, 0, 0, ())
     }
 
     ch = newChoice(CHP_JUMP, FR);
-    ch->value.pc = LD->fast_condition;
+    setJumpChoice(ch, LD->fast_condition);
     ARGP = argFrameP(lTop, 0);
     LD->fast_condition = NULL;
   }
@@ -2718,7 +2718,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   }
 
   ch = newChoice(CHP_JUMP, FR);
-  ch->value.pc = PC+skip;
+  setJumpChoice(ch, PC+skip);
   ARGP = argFrameP(lTop, 0);
 
   NEXT_INSTRUCTION;
@@ -4552,7 +4552,7 @@ VMH(foreign_redo, 0, (), ())
   environment_frame = FR;
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   ch = newChoice(CHP_JUMP, FR);
-  ch->value.pc = PC+3;
+  setJumpChoice(ch, PC+3);
 
   ffr = (FliFrame)(ch+1);
   lTop = (LocalFrame)(ffr+1);
@@ -5958,7 +5958,31 @@ environment frame (FR):
   argFrame(3)   Current arg in current term (1..)
   argFrame(4)   Stack of current locations as
 		'$argp'(TermP, ArgN, Parent).
-  argFrame(5..)	Variables (counting from 1..)
+  argFrame(5)	Choice point for which the current term and the stack
+		were saved, as an integer offset from lBase (TrieSavedP)
+  argFrame(6..)	Variables (counting from 1..)
+
+(the actual slots are offset by TRIE_ARGS-2; see TrieTermP, etc.)
+
+The state (TrieTermP, TrieOffset and TrieArgStackP) must be restored
+when backtracking into one of the T_TRY_* choice points.  The only
+choice points younger than FR while the clause runs are those of its
+own T_TRY_* instructions, so each slot needs to be trailed at most once
+per choice point:
+
+  - TRIE_TRY saves TrieOffset in the CHP_JUMP choice point
+    (value.jump.trie_offset), as every alternative changes it, and
+    backtracking into the choice point restores it.  This avoids a
+    trailed assignment and its undo per answer.  The instructions then
+    assign it without trailing.
+  - TrieSaveState() trails TrieTermP and TrieArgStackP on their first
+    change after the choice point was created and records BFR in
+    TrieSavedP.  TrieSavedP is trailed as well, so backtracking resets
+    it to a value that does not refer to the choice point being retried.
+    If BFR is older than FR, nothing needs to be trailed.
+
+Trailing each assignment cost about 10 trailed assignments per answer
+for answers with compound terms.
 
 TBD:
 
@@ -5974,32 +5998,44 @@ TBD:
 			 ? unRef(*TrieTermP) \
 			 : argTermP(*TrieTermP, valInt(*TrieOffset)-1))
 #define TrieArgStackP argFrameP(FR, TRIE_ARGS+2)
+#define TrieSavedP    argFrameP(FR, TRIE_ARGS+3)
 #define TrieVarP(n)   argFrameP(FR, (TRIE_VAR_OFFSET-1+(n)))
+#define TrieSaveState() \
+	do \
+	{ if ( (void*)BFR > (void*)FR && \
+	       *TrieSavedP != consInt(consTermRef(BFR)) ) \
+	  { TrailAssignment(TrieTermP); \
+	    TrailAssignment(TrieArgStackP); \
+	    TrailAssignment(TrieSavedP); \
+	    *TrieSavedP = consInt(consTermRef(BFR)); \
+	  } \
+	} while(0)
 #define TRIE_TRY \
 	do \
 	{ intptr_t skip = *PC++;			     \
 	  Choice ch;					     \
 	  ENSURE_LOCAL_SPACE(sizeof(*ch), THROW_EXCEPTION);  \
 	  ch = newChoice(CHP_JUMP, FR);		     \
-	  ch->value.pc = PC+skip;			     \
+	  ch->value.jump.pc = PC+skip;			     \
+	  ch->value.jump.trie_offset = *TrieOffset;	     \
 	} while(0)
 #define TrieNextArg() \
 	do \
 	{ ENSURE_GLOBAL_SPACE(0, (void)0); \
-	  TrailAssignment(TrieOffset); \
 	  (*TrieOffset = consInt(valInt(*TrieOffset)+1)); \
 	} while(0)
 #define TriePushArgP() \
 	do \
-	{ Word _astack = gTop; \
+	{ Word _astack; \
 	  assert(isTerm(*TrieTermP)); \
+	  TrieSaveState(); \
+	  _astack = gTop; \
 	  gTop += 4; \
 	  assert(gTop < gMax); \
 	  _astack[0] = FUNCTOR_targp3; \
 	  _astack[1] = *TrieTermP; \
 	  _astack[2] = *TrieOffset; \
 	  _astack[3] = *TrieArgStackP; \
-	  TrailAssignment(TrieArgStackP); \
 	  *TrieArgStackP = consPtr(_astack, TAG_COMPOUND|STG_GLOBAL); \
 	} while(0)
 #define TriePopArgP() \
@@ -6014,14 +6050,13 @@ TBD:
 	do \
 	{ Word _as;				\
 	  if ( *TrieArgStackP != ATOM_nil )	\
-	  { _as = valPtr(*TrieArgStackP);	\
+	  { TrieSaveState();			\
+	    _as = valPtr(*TrieArgStackP);	\
 	    assert(_as[0] == FUNCTOR_targp3);	\
 	    while ( _as[3] != ATOM_nil )	\
 	    { assert(_as[0] == FUNCTOR_targp3);	\
 	      _as = valPtr(_as[3]);		\
 	    }					\
-	    TrailAssignment(TrieTermP);		\
-	    TrailAssignment(TrieArgStackP);	\
 	    *TrieTermP     = _as[1];		\
 	    *TrieArgStackP = ATOM_nil;		\
 	  }					\
@@ -6038,6 +6073,7 @@ VMI(T_TRIE_GEN2, 0, 0, ())
   *TrieTermP     = ATOM_nil;
   *TrieOffset    = consInt(1);
   *TrieArgStackP = ATOM_nil;
+  *TrieSavedP    = consInt(-1);
   if ( nvars )
   { Word vp = TrieVarP(1);
     for( ; nvars-- > 0; vp++)
@@ -6069,6 +6105,7 @@ VMI(T_TRIE_GEN3, 0, 0, ())
   *TrieTermP     = ATOM_nil;
   *TrieOffset    = consInt(1);
   *TrieArgStackP = ATOM_nil;
+  *TrieSavedP    = consInt(-1);
   if ( nvars )
   { Word vp = TrieVarP(1);
     for( ; nvars-- > 0; vp++)
@@ -6094,9 +6131,7 @@ END_VMI
 
 
 VMI(T_VALUE, 0, 0, ())
-{ ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
-
-  TrailAssignment(TrieOffset);
+{ ENSURE_GLOBAL_SPACE(0, (void)0);
   UnwindTrieArgP();
   *TrieOffset = consInt(2);
 
@@ -6175,8 +6210,6 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
 	    PL_write_term(Serror, consTermRef(TrieArgStackP), 999,
 			  PL_WRT_NEWLINE);
 	  });
-    TrailAssignment(TrieTermP);
-    TrailAssignment(TrieOffset);
     *TrieTermP  = c;
     *TrieOffset = consInt(1);
     *ap++ = f;
@@ -6192,8 +6225,6 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
     if ( term->definition == f )
     { ENSURE_GLOBAL_SPACE(4, deRef2(TrieCurrentP, p));
       TriePushArgP();
-      TrailAssignment(TrieTermP);
-      TrailAssignment(TrieOffset);
       *TrieTermP  = *p;
       *TrieOffset = consInt(1);
       NEXT_INSTRUCTION;
@@ -6205,10 +6236,8 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
 END_VMI
 
 VMI(T_POP, 0, 0, ())
-{ ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
-  TrailAssignment(TrieTermP);
-  TrailAssignment(TrieOffset);
-  TrailAssignment(TrieArgStackP);
+{ ENSURE_GLOBAL_SPACE(0, (void)0);
+  TrieSaveState();
   TriePopArgP();
   TrieNextArg();
 
@@ -6220,9 +6249,7 @@ VMI(T_POPN, 0, 1, (CA1_INTEGER))
 { intptr_t n = (intptr_t)*PC++;
 
   ENSURE_GLOBAL_SPACE(0, (void)0);
-  TrailAssignment(TrieTermP);
-  TrailAssignment(TrieOffset);
-  TrailAssignment(TrieArgStackP);
+  TrieSaveState();
   while(n-->0)
     TriePopArgP();
   TrieNextArg();
@@ -6318,8 +6345,6 @@ VMI(T_ATTVARA, 0, 1, (CA1_INTEGER))
     tuple = consPtr(&gp[2], TAG_COMPOUND|STG_GLOBAL);
     Trail(vp, tuple);
     TriePushArgP();
-    TrailAssignment(TrieTermP);
-    TrailAssignment(TrieOffset);
     *TrieTermP  = tuple;
     *TrieOffset = consInt(3);
     deRef2(&gp[3], p);
@@ -6596,7 +6621,9 @@ VMH(shallow_backtrack, 0, (), ())
 
     if ( ch->type == CHP_JUMP )
     { DiscardMark(ch->mark);
-      PC   = ch->value.pc;
+      PC   = ch->value.jump.pc;
+      if ( ch->value.jump.trie_offset )
+	*TrieOffset = ch->value.jump.trie_offset;
       BFR  = ch->parent;
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
@@ -6765,7 +6792,9 @@ next_choice:
 	    Sdprintf("    REDO #%zd: Jump in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      PC   = BFR->value.pc;
+      PC   = BFR->value.jump.pc;
+      if ( BFR->value.jump.trie_offset )
+	*TrieOffset = BFR->value.jump.trie_offset;
       DiscardMark(BFR->mark);
       lTop = (LocalFrame)(BFR);
       BFR  = BFR->parent;
