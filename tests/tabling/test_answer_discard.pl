@@ -102,6 +102,9 @@ with_compile_threshold(N, G) :-
         G,
         set_prolog_flag(table_compile_threshold, Old)).
 
+threads :-
+    current_prolog_flag(threads, true).
+
 %   thread_join_true(:Goal)
 %
 %   Run Goal in a new thread and succeed if it succeeds there.
@@ -186,13 +189,12 @@ test(lazy_flag_zero, N == 1) :-         % 0: always compile at completion
     with_compile_threshold(0, all(X, p(X), L)),
     assertion(length(L, 100)),
     nodes(p(_), N).
-test(flag_inherit) :-                  % new threads inherit the flag
-    current_prolog_flag(threads, true),
+test(flag_inherit, condition(threads)) :- % new threads inherit the flag
     with_compile_threshold(1000000,
                            thread_join_true(( all(X, deep(X), [_]),
                                               \+ compiled(deep(_)) ))).
-test(flag_thread_local, V == Old) :-   % setting in a thread is local
-    current_prolog_flag(threads, true),
+test(flag_thread_local, [condition(threads), V == Old]) :-
+                                        % setting in a thread is local
     current_prolog_flag(table_compile_threshold, Old),
     thread_join_true(set_prolog_flag(table_compile_threshold, 7)),
     current_prolog_flag(table_compile_threshold, V).
@@ -270,7 +272,8 @@ test(incremental, L == [1,2]) :-
     add_d(2),
     all(X, ip(X), L),
     del_d(2).
-test(shared, true(N > 1)) :-
+test(shared, [condition(threads), true(N > 1)]) :-
+                                        % without threads, shared is private
     abolish_all_tables,
     call_twice(sh(_), _),
     call_twice(sh(_), _),

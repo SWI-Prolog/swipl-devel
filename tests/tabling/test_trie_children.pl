@@ -37,7 +37,9 @@
 :- use_module(library(lists)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
+:- if(current_prolog_flag(threads, true)).
 :- use_module(library(thread)).
+:- endif.
 
 /** <module> Test the representation of the children of trie nodes
 
