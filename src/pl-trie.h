@@ -186,7 +186,7 @@ bool	is_ground_trie_node(trie_node *node);
 bool	is_leaf_trie_node(trie_node *n);
 bool	get_trie(term_t t, trie **tp);
 bool	get_trie_noex(term_t t, trie **tp);
-bool	unify_trie_term(trie_node *node, trie_node **parent,
+HOT bool	unify_trie_term(trie_node *node, trie_node **parent,
 			term_t term);
 int	trie_lookup_abstract(trie *trie,
 			     trie_node *root, trie_node **nodep, Word k,
@@ -198,7 +198,7 @@ atom_t	trie_symbol(trie *trie);
 trie *	symbol_trie(atom_t symbol);
 bool	put_trie_value(term_t t, trie_node *node);
 bool	set_trie_value(trie *trie, trie_node *node, term_t value);
-bool	set_trie_value_word(trie *trie, trie_node *node, word val);
+HOT bool	set_trie_value_word(trie *trie, trie_node *node, word val);
 foreign_t trie_gen_raw(
 	      trie *trie, trie_node *root,
 	      term_t Key, term_t Value,

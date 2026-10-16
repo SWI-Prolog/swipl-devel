@@ -136,7 +136,7 @@ static void	addClauseToListIndexes(Definition def, ClauseList cl,
 static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
-static ClauseRef first_clause_guarded(const Word argv, size_t argc,
+static HOT ClauseRef first_clause_guarded(const Word argv, size_t argc,
 				      ClauseList clist,
 				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,

@@ -55,9 +55,9 @@
 #define LDFUNC_DECLARATIONS
 
 word		getIndexOfTerm(term_t t);
-ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
+HOT ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseChoice next);
-ClauseRef	nextClause(const ClauseChoice chp, const Word argv,
+HOT ClauseRef	nextClause(const ClauseChoice chp, const Word argv,
 			   const LocalFrame fr, const Definition def);
 int		addClauseToIndexes(Definition def, Clause cl,
 				   ClauseRef where);

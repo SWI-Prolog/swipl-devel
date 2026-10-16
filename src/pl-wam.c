@@ -3519,6 +3519,16 @@ typedef struct register_file
 FOREACH_VMIDECL_CALL(T_SEMICOLON, _VMI_DECLARATION);
 FOREACH_VMHDECL_CALL(T_SEMICOLON, _VMH_DECLARATION);
 
+/* Group the hottest VMI functions in .text.hot to keep them together for
+ * the instruction cache.  The attribute of this redeclaration is merged.
+ */
+#if VMI_TAILCALL && defined(__GNUC__)
+#define VMI_HOT(f) static VMI_NOINLINE VMI_CC __attribute__((hot)) \
+		   VMI_RETTYPE f(VMI_ARG_DECL);
+#include "pl-vmi-hot.h"
+#undef VMI_HOT
+#endif
+
 /* Define the jump table with all the function addresses */
 static vmi_instr jmp_table[] =
 { FOREACH_VMI(T_COMMA,

@@ -49,7 +49,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-Code	push_continuation(term_t cont, LocalFrame pfr, Code pcret);
+HOT Code	push_continuation(term_t cont, LocalFrame pfr, Code pcret);
 Code	shift(term_t ball, bool for_copy);
 
 #undef LDFUNC_DECLARATIONS

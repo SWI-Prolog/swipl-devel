@@ -563,6 +563,17 @@ A common basis for C keywords.
 #define COLD
 #endif
 
+/* HOT marks the C functions that use most of the time when running the
+   VM.  GCC and Clang group these in .text.hot, next to the hot VMI
+   functions (pl-vmi-hot.h).  This keeps the hot code contiguous, so its
+   instruction cache behaviour does not depend on the placement of
+   unrelated code.  See doc/tabling/tailcall-vm.md */
+#ifdef __GNUC__
+#define HOT __attribute__((hot))
+#else
+#define HOT
+#endif
+
 #ifdef DMALLOC
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 

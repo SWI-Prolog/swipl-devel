@@ -64,7 +64,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-boolex_t	do_unify(Word t1, Word t2);
+HOT boolex_t	do_unify(Word t1, Word t2);
 boolex_t	unify_ptrs(Word t1, Word t2, int flags);
 void		unify_vp(Word vp, Word val);
 bool		can_unify(Word t1, Word t2, term_t ex);
