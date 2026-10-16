@@ -38,8 +38,9 @@
 #define _PL_COPYTERM_H
 
 typedef struct fastheap_term
-{ size_t data_len;
-  size_t *relocations;				/* Relocation points */
+{ size_t data_len;				/* total cells */
+  size_t term_len;				/* tagged cells; then indirects */
+  unsigned int flags;				/* FH_* */
   Word data;					/* the actual data */
 } fastheap_term;
 

@@ -919,57 +919,54 @@ This  representations  is   particularly    suited   for   re-activating
 continuations as needed for tabling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define REL_END (~(unsigned int)0)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The record has two parts:
 
-static bool
-needs_relocation(word w)
-{ return ( isTerm(w) ||
-	   isAttVar(w) ||
-	   isRef(w) ||
-	   isIndirect(w) ||
-	   isAtom(w)		/* no relocation, but (un)register */
-         );
-}
+  - data[0..term_len) is the term copied by duplicate_term(). These are
+    all tagged cells: duplicate_term() does not copy indirects, so the
+    area holds no raw data.  A cell is relocated iff its storage is
+    STG_GLOBAL and it is not a functor, i.e., compounds, references,
+    attvar cells and indirects.  Pointers are stored relative to data.
+    An attvar is preceded by the marker TAG_ATTVAR (STG_STATIC), which
+    becomes the link in the attvar chain.
+  - data[term_len..data_len) holds the indirects, copied verbatim.
+
+Relocating by tag rather than by a list of relocation points makes
+restoring a single branch-free pass over the cells, and avoids reading
+back the result of memcpy(), which cannot be store-forwarded.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PTR_SHIFT LMASK_BITS
 
-static word
-relocate_down(word w, size_t offset)
-{ if ( isAtom(w) )
-  { PL_register_atom(word2atom(w));
-    return w;
-  } else
-  { return (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
-  }
-}
+#define FH_ATOMS	0x1			/* Term contains atoms */
+#define FH_ATTVARS	0x2			/* Term contains attvars */
 
-#define relocate_up(p, offset) LDFUNC(relocate_up, p, offset)
-static void
-relocate_up(DECL_LD Word p, size_t offset)
-{ word w = *p;
+#define RELOC_BM ( EXBIT(STG_GLOBAL|TAG_ATTVAR) | \
+		   EXBIT(STG_GLOBAL|TAG_FLOAT) | \
+		   EXBIT(STG_GLOBAL|TAG_INTEGER) | \
+		   EXBIT(STG_GLOBAL|TAG_STRING) | \
+		   EXBIT(STG_GLOBAL|TAG_COMPOUND) | \
+		   EXBIT(STG_GLOBAL|TAG_REFERENCE) )
 
-  if ( isAtom(w) )
-  { pushVolatileAtom(word2atom(w));
-  } else if ( w == TAG_ATTVAR )
-  { assert(isAttVar(p[1]));
-    register_attvar(p);
-    DEBUG(0, assert(on_attvar_chain(p+1)));
-  } else
-  { *p = (((w>>PTR_SHIFT)+offset)<<PTR_SHIFT) | tagex(w);
-  }
-}
+#define needs_relocation(w) ((RELOC_BM>>tagex(w))&1)
 
+#define RM(i) (((RELOC_BM>>(i))&1) ? ~(word)0 : (word)0)
+static const word reloc_mask[32] =
+{ RM(0),  RM(1),  RM(2),  RM(3),  RM(4),  RM(5),  RM(6),  RM(7),
+  RM(8),  RM(9),  RM(10), RM(11), RM(12), RM(13), RM(14), RM(15),
+  RM(16), RM(17), RM(18), RM(19), RM(20), RM(21), RM(22), RM(23),
+  RM(24), RM(25), RM(26), RM(27), RM(28), RM(29), RM(30), RM(31)
+};
+#undef RM
 
 fastheap_term *
 term_to_fastheap(DECL_LD term_t t)
 { term_t copy = PL_new_term_ref();
   Word gcopy, gtop, p, o;
-  size_t relocations=0;
   fastheap_term *fht;
-  size_t *r;
-  size_t last_rel = 0;
   size_t offset;
   size_t indirect_cells = 0;
+  unsigned int flags = 0;
   Word indirects;
 
   if ( !duplicate_term(t, copy, 0, 0) )
@@ -979,57 +976,51 @@ term_to_fastheap(DECL_LD term_t t)
   deRef(gcopy);					/* term at gcopy .. gTop */
 
   for(p=gcopy; p<gtop; p++)
-  { if ( needs_relocation(*p) )
-    { if ( isIndirect(*p) )
-      { Word ip = addressIndirect(*p);
-	indirect_cells += wsizeofInd(*ip)+2;
-      }
-      relocations++;
+  { if ( isIndirect(*p) )
+    { Word ip = addressIndirect(*p);
+      indirect_cells += wsizeofInd(*ip)+2;
     }
   }
 
   if ( !(fht = malloc(sizeof(fastheap_term) +
 		      ((char*)gtop-(char *)gcopy) +
-		      indirect_cells * sizeof(word) +
-		      (relocations+1) * sizeof(size_t))) )
+		      indirect_cells * sizeof(word))) )
   { PL_resource_error("memory");
     return NULL;
   }
 
-  fht->data_len    = (gtop-gcopy) + indirect_cells;
+  fht->term_len    = gtop-gcopy;
+  fht->data_len    = fht->term_len + indirect_cells;
   fht->data        = addPointer(fht, sizeof(fastheap_term));
-  fht->relocations = addPointer(fht->data, fht->data_len*sizeof(word));
-  indirects        = fht->data + (gtop-gcopy);
+  indirects        = fht->data + fht->term_len;
 
   offset = (size_t)gcopy;
-  for(p=gcopy, o=fht->data, r=fht->relocations; p<gtop; p++)
-  { if ( p+1<gTop && isAttVar(p[1]) )
-    { assert(isVar(*p) || isRef(*p));
+  for(p=gcopy, o=fht->data; p<gtop; p++)
+  { word w = *p;
+
+    if ( p+1<gtop && isAttVar(p[1]) )
+    { assert(isVar(w) || isRef(w));
       DEBUG(0, assert(on_attvar_chain(p+1)));
-      size_t this_rel = p-gcopy;
       *o++ = TAG_ATTVAR;
-      *r++ = this_rel-last_rel;
-      last_rel = this_rel;
-    } else if ( needs_relocation(*p) )
-    { size_t this_rel = p-gcopy;
+      flags |= FH_ATTVARS;
+    } else if ( isIndirect(w) )
+    { Word ip = addressIndirect(w);
+      size_t sz = wsizeofInd(*ip)+2;
 
-      if ( isIndirect(*p) )
-      { Word ip = addressIndirect(*p);
-	size_t sz = wsizeofInd(*ip)+2;
-
-	memcpy(indirects, ip, sz*sizeof(word));
-	*o++ = (((char*)indirects-(char*)fht->data)<<PTR_SHIFT) | tagex(*p);
-	indirects += sz;
-      } else
-      { *o++ = relocate_down(*p, offset);
-      }
-      *r++ = this_rel-last_rel;
-      last_rel = this_rel;
+      memcpy(indirects, ip, sz*sizeof(word));
+      *o++ = (((char*)indirects-(char*)fht->data)<<PTR_SHIFT) | tagex(w);
+      indirects += sz;
+    } else if ( needs_relocation(w) )
+    { *o++ = (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
     } else
-    { *o++ = *p;
+    { if ( isAtom(w) )
+      { PL_register_atom(word2atom(w));
+	flags |= FH_ATOMS;
+      }
+      *o++ = w;
     }
   }
-  *r++ = REL_END;
+  fht->flags = flags;
 
   return fht;
 }
@@ -1037,13 +1028,14 @@ term_to_fastheap(DECL_LD term_t t)
 
 void
 free_fastheap(fastheap_term *fht)
-{ size_t *r;
-  Word p = fht->data;
+{ if ( (fht->flags&FH_ATOMS) )
+  { Word p = fht->data;
+    Word e = p + fht->term_len;
 
-  for(r = fht->relocations; *r != REL_END; r++)
-  { p += *r;
-    if ( isAtom(*p) )
-      PL_unregister_atom(word2atom(*p));
+    for(; p<e; p++)
+    { if ( isAtom(*p) )
+	PL_unregister_atom(word2atom(*p));
+    }
   }
 
   free(fht);
@@ -1052,20 +1044,37 @@ free_fastheap(fastheap_term *fht)
 
 bool
 put_fastheap(DECL_LD fastheap_term *fht, term_t t)
-{ Word p, o;
-  size_t offset;
-  size_t *r;
+{ Word o, p, e;
+  const word *s;
+  word delta;
 
   if ( !ensureGlobalSpace(fht->data_len, ALLOW_GC|ALLOW_SHIFT) )
     return false;
 
   o = gTop;
-  memcpy(o, fht->data, fht->data_len*sizeof(word));
+  s = fht->data;
+  delta = (word)o<<PTR_SHIFT;
+  for(p=o, e=o+fht->term_len; p<e; p++, s++)
+  { word w = *s;
+    *p = w + (delta & reloc_mask[tagex(w)]);
+  }
+  if ( fht->data_len > fht->term_len )
+    memcpy(e, s, (fht->data_len-fht->term_len)*sizeof(word));
 
-  offset = (size_t)o;
-  for(r = fht->relocations, p=o; *r != REL_END; r++)
-  { p += *r;
-    relocate_up(p, offset);
+  if ( (fht->flags&FH_ATTVARS) )
+  { for(p=o; p<e; p++)
+    { if ( *p == TAG_ATTVAR )
+      { assert(isAttVar(p[1]));
+	register_attvar(p);
+	DEBUG(0, assert(on_attvar_chain(p+1)));
+      }
+    }
+  }
+  if ( (fht->flags&FH_ATOMS) && GD->atoms.gc_active )
+  { for(p=o; p<e; p++)
+    { if ( isAtom(*p) )
+	pushVolatileAtom(word2atom(*p));
+    }
   }
 
   gTop += fht->data_len;
