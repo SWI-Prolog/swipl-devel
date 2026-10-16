@@ -757,8 +757,10 @@ call_internal_det_foreign(Procedure proc, term_t av, int *rc)
        def->module == MODULE_system &&
        def->impl.foreign.function &&
        stringAtom(def->functor->name)[0] == '$' &&
-       !debugstatus.debugging &&
-       !LD->profile.active )
+#ifdef O_PROFILE
+       !LD->profile.active &&
+#endif
+       !debugstatus.debugging )
   { ctx.engine    = LD;
     ctx.control   = FRG_FIRST_CALL;
     ctx.context   = 0;
