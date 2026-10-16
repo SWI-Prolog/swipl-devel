@@ -71,15 +71,15 @@ void		PL_close_foreign_frame(fid_t id);
 fid_t		PL_open_signal_foreign_frame(int sync);
 int		PL_next_solution(qid_t qid);
 bool		foreignWakeup(term_t ex);
-void		resumeAfterException(int clear, Stack outofstack);
-void		updateAlerted(PL_local_data_t *ld);
+COLD void		resumeAfterException(int clear, Stack outofstack);
+COLD void		updateAlerted(PL_local_data_t *ld);
 bool		raiseSignal(PL_local_data_t *ld, int sig);
 int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
 bool		existingChoice(Choice ch);
 bool		existingFrame(LocalFrame fr);
-bool		grow_trail_ptr(Word p);
+COLD bool		grow_trail_ptr(Word p);
 bool		handles_unwind(qid_t qid, unsigned int flags);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);

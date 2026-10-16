@@ -48,7 +48,7 @@ typedef struct coverage
   unsigned int	flags;		/* COV_* */
 } coverage;
 
-void	  record_coverage(LocalFrame fr, int port);
+COLD void	  record_coverage(LocalFrame fr, int port);
 int	  free_coverage_data(PL_local_data_t *ld);
 coverage *share_coverage_data(coverage *cov);
 

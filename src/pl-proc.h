@@ -107,7 +107,7 @@ void		unallocDefinition(Definition def);
 void		initProcedures(void);
 void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
-Definition	trapUndefined(Definition undef);
+COLD Definition	trapUndefined(Definition undef);
 foreign_t	pl_abolish(term_t atom, term_t arity);
 foreign_t	pl_abolish1(term_t pred);
 bool		redefineProcedure(Procedure proc, SourceFile sf,

@@ -56,7 +56,7 @@
 
 bool		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
-boolex_t	garbageCollect(gc_reason_t reason);
+COLD boolex_t	garbageCollect(gc_reason_t reason);
 foreign_t	pl_garbage_collect(term_t d);
 gc_stat *	last_gc_stats(gc_stats *stats);
 Word		findGRef(int n);
@@ -65,9 +65,9 @@ boolex_t	shiftTightStacks(void);
 boolex_t	growStacks(size_t l, size_t g, size_t t);
 size_t		nextStackSize(Stack s, size_t minfree);
 bool		makeMoreStackSpace(boolex_t overflow, int flags);
-boolex_t	f_ensureStackSpace(size_t gcells, size_t tcells,
+COLD boolex_t	f_ensureStackSpace(size_t gcells, size_t tcells,
 				   int flags);
-boolex_t	growLocalSpace(size_t bytes, int flags);
+COLD boolex_t	growLocalSpace(size_t bytes, int flags);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);

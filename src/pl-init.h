@@ -99,7 +99,7 @@ typedef struct
 		 *******************************/
 
 void		printCrashContext(const char *btname);
-bool		sysError(const char *fm, ...);
+COLD bool		sysError(const char *fm, ...);
 void		fatalError(const char *fm, ...) NORETURN;
 bool		warning(const char *fm, ...);
 void		vfatalError(const char *fm, va_list args) NORETURN;

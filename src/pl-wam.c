@@ -437,7 +437,7 @@ PL_discard_foreign_frame(fid_t id)
 #define determinism_error(fr, bfr, found) \
 	LDFUNC(determinism_error, fr, bfr, found)
 
-static bool
+static COLD bool
 determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 { fid_t fid;
   bool rc = false;
@@ -2107,7 +2107,7 @@ Returns:
 
 #ifdef O_DEBUGGER
 #define isCaughtInOuterQuery(qid, ball) LDFUNC(isCaughtInOuterQuery, qid, ball)
-static term_t
+static COLD term_t
 isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
 { Definition catch3 = PROCEDURE_catch3->definition;
   QueryFrame qf = QueryFromQid(qid);
@@ -2241,7 +2241,7 @@ of redo.  We always show redo for an external redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define dbgRedoFrame(fr, cht) LDFUNC(dbgRedoFrame, fr, cht)
-static LocalFrame
+static COLD LocalFrame
 dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 { DEBUG(MSG_TRACE_REDO, Sdprintf("REDO on [%u] %s\n",
 				 levelFrame(fr), predicateName(fr->predicate)));
@@ -2691,7 +2691,7 @@ on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define dbg_discardChoicesAfter(fr, reason) LDFUNC(dbg_discardChoicesAfter, fr, reason)
-static void
+static COLD void
 dbg_discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);

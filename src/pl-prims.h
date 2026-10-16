@@ -91,7 +91,7 @@ Word		ground(Word p);
 bool		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);
 bool		PL_var_occurs_in(term_t var, term_t value);
-void		raiseInferenceLimitException(void);
+COLD void		raiseInferenceLimitException(void);
 bool		PL_same_term(term_t t1, term_t t2);
 bool		setarg(size_t argn, term_t term, term_t value,
 		       unsigned int flags);

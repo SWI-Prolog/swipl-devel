@@ -536,6 +536,17 @@ A common basis for C keywords.
 #define unlikely(x)	(x)
 #endif
 
+/* COLD marks functions that are only called on slow paths: errors,
+   stack overflows and growing stacks, the debugger, etc.  GCC optimizes
+   these for size and moves the blocks that call them out of the hot
+   code (the .cold part of the caller), which keeps the hot VM code
+   compact for the instruction cache.  See doc/tabling/cpu-stalls.md */
+#ifdef __GNUC__
+#define COLD __attribute__((cold))
+#else
+#define COLD
+#endif
+
 #ifdef DMALLOC
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 

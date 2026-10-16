@@ -63,7 +63,7 @@ void		stopItimer(void);
 bool		activateProfiler(prof_status status);
 bool		resetProfiler(void);
 struct call_node* profCall(Definition def);
-void		profResumeParent(struct call_node *node);
+COLD void		profResumeParent(struct call_node *node);
 void		profExit(struct call_node *node);
 void		profFail(struct call_node *node);
 void		profSetHandle(struct call_node *node, void *handle);

@@ -236,7 +236,7 @@ FLI_INLINE int	PL_pending(int sig);
 bool		PL_clearsig(int sig);
 void		cleanupCodeToAtom(void);
 void		PL_clear_foreign_exception(LocalFrame fr);
-bool		has_emergency_space(void *sv, size_t needed);
+COLD bool		has_emergency_space(void *sv, size_t needed);
 FLI_INLINE
 except_class	classify_exception(term_t ex);
 except_class    classify_exception_p(Word p);

@@ -78,7 +78,7 @@ bool		evalExpression(term_t p, Number n);
 bool		toIntegerNumber(Number n, int flags);
 int		arithChar(Word p);
 int		getCharExpression(Word p, Number r);
-Number		growArithStack(void);
+COLD Number		growArithStack(void);
 void		freeArithLocalData(PL_local_data_t *ld);
 int		ar_sign_i(Number n1);
 int		ar_signbit(Number n1);

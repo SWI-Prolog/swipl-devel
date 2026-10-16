@@ -54,7 +54,7 @@
 
 void		initWamTable(void);
 void		cleanupWamTable(void);
-void		separate_vmi(int nop);
+COLD void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
 bool		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
@@ -71,7 +71,7 @@ bool		forAtomsInClause(Clause clause,
 				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
-bool		det_goal_error(LocalFrame fr, Code PC,
+COLD bool		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
 Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
 bool		argKey(Code PC, size_t skip, word *key);
