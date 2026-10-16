@@ -97,7 +97,9 @@ summary_table_width(55).
 %       Number of nodes with a value divided by the total number
 %       of nodes in a trie.  The maximum is `1`.  A low number
 %       implies that a large amount of differently shaped data
-%       is included in the answer tries.
+%       is included in the answer tries.  Tables whose trie nodes
+%       have been discarded after compilation are not included
+%       (see the flag `table_compile_threshold`).
 %     - complete_call
 %       Number of times answers are generated from a completed
 %       table, i.e., times answers are _reused_.
@@ -378,6 +380,7 @@ atrie_prop(T, value_count(Count)) :-
 atrie_prop(T, space_ratio(Values/Nodes)) :-
     '$trie_property'(T, value_count(Values)),
     Values > 0,
+    \+ '$trie_property'(T, discarded(true)),  % only the clause is left
     '$trie_property'(T, node_count(Nodes)).
 atrie_prop(T, lookup_count(Count)) :-
     '$trie_property'(T, lookup_count(Count)).

@@ -5913,6 +5913,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
     if ( dbref == ATOM_fail )
       FRAME_FAILED;
 
+    trie_maybe_discard_nodes(t);
     cref = clause_clref(dbref);
   }
 

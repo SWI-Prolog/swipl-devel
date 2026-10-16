@@ -48,6 +48,7 @@
 #endif
 
 #define TRIE_STRIPES 256		/* Write locks for concurrent tries */
+#define TABLE_COMPILE_THRESHOLD 32	/* default for the Prolog flag */
 #define MODULE_CACHE_SIZE 8		/* Per thread cache of lookupModule() */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -746,6 +747,10 @@ struct PL_local_data
     access_level_t access_level;	/* Current access level */
     unsigned int   unknown_option;	/* OPT_UNKNOWN_* */
   } prolog_flag;
+
+  struct
+  { size_t	compile_threshold;	/* flag table_compile_threshold */
+  } table_flags;
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */

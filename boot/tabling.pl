@@ -566,16 +566,30 @@ done_abstract_leader(_,_,_,_).
 %   with leaders that are merged into a higher SCC (and thus no longer a
 %   leader).
 
-:- '$hide'((done_leader/4, finished_leader/4)).
+:- '$hide'((done_leader/4, finished_leader/4, leader_answers/2)).
 
 done_leader(complete, _Fresh, Skeleton, Clause) :-
     !,
-    trie_gen_compiled(Clause, Skeleton).
+    leader_answers(Clause, Skeleton).
 done_leader(final, fresh(SCC, _Worklist), Skeleton, Clause) :-
     !,
     '$tbl_free_component'(SCC),
-    trie_gen_compiled(Clause, Skeleton).
+    leader_answers(Clause, Skeleton).
 done_leader(_,_,_,_).
+
+%   leader_answers(+ClauseOrTrie, -Skeleton) is nondet.
+%
+%   Return the answers of a completed leader.  The trie is only compiled
+%   if  it  has  conditional  answers.   Otherwise  the  first  call  to
+%   trie_gen_compiled/2 compiles it.  Many tables are never called again
+%   after their leader completes.
+
+leader_answers(Trie, Skeleton) :-
+    is_trie(Trie),
+    !,
+    trie_gen(Trie, Skeleton).
+leader_answers(Clause, Skeleton) :-
+    trie_gen_compiled(Clause, Skeleton).
 
 finished_leader(OldCurrent, Catcher, Fresh, Wrapper) :-
     '$idg_set_current'(OldCurrent),
@@ -810,8 +824,8 @@ update(0b00, _Wrapper, _M, _Agg, New, New, keep) :-
 %
 %   Wakeup suspended goals until no new answers are generated. Status is
 %   one of `merged`, `completed` or `final`.  If Status is not `merged`,
-%   Clause is a compiled  representation  for   the  answer  trie of the
-%   Component leader.
+%   Clause is the answer trie of  the   Component  leader  or a compiled
+%   representation of it.  See leader_answers/2.
 
 completion(SCC, Status, Clause) :-
     (   reset_delays,

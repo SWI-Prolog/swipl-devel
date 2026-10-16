@@ -4791,6 +4791,15 @@ forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
 	  return false;
 	break;
       }
+					/* compiled tries own their atoms */
+      case T_ATOM:
+	if ( !(*func)(code2atom(PC[1]), ctx) )
+	  return false;
+	break;
+      case T_TRY_ATOM:
+	if ( !(*func)(code2atom(PC[2]), ctx) )
+	  return false;
+	break;
     }
   }
 

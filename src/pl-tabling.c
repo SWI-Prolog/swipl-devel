@@ -3545,6 +3545,22 @@ propagate_to_answer()), and the tables  that are re-activated get a new
 component from tbl_add_worklist().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* True if we may discard the nodes of the complete answer trie `atrie`
+ * after it is compiled (see trie_discard_nodes()).  The caller verified
+ * there are no conditional answers.
+ */
+
+static bool
+answer_nodes_discardable(const trie *atrie)
+{ Definition def = atrie->data.predicate;
+
+  return ( isoff(atrie, TRIE_ISMAP|TRIE_ISSHARED|TRIE_ISTRACKED) &&
+	   !atrie->data.IDG &&
+	   def && def->tabling &&
+	   ison(def->tabling, TP_VARIANT) &&
+	   isoff(def->tabling, TP_INCREMENTAL|TP_MONOTONIC) );
+}
+
 #define complete_worklist(wl, destroy) LDFUNC(complete_worklist, wl, destroy)
 static void
 complete_worklist(DECL_LD worklist *wl, int destroy)
@@ -3557,6 +3573,8 @@ complete_worklist(DECL_LD worklist *wl, int destroy)
   { free_worklist(wl);
     COMPLETE_WORKLIST(atrie,
 		      { atrie->data.worklist = NULL;
+			if ( answer_nodes_discardable(atrie) )
+			  set(atrie, TRIE_DISCARDABLE);
 			set(atrie, TRIE_COMPLETE);
 		      });
   } else
@@ -5522,16 +5540,36 @@ wls_reeval_complete(worklist **wls, size_t ntables)
 }
 
 
+/* Unify `cl` with the answers of the leader of `scc` for done_leader/4.
+ * (*) If possible this is the answer trie, avoiding compilation of tables
+ * that are never called again.  We compile if the answers are conditional
+ * (the clause holds the delays), the trie may change while enumerating
+ * (shared and incremental tables) or the trie is abolished on completion.
+ * We also compile if the trie has at least table_compile_threshold
+ * (Prolog flag) nodes per answer: the clause is about half the size of
+ * the nodes, which we can then discard at once.  This trades time for
+ * memory (1000naiveReverse: 72ms/65Mb with 32, 61ms/94Mb without).
+ * Moded tables do not use the clause.
+ */
+
 #define unify_leader_clause(scc, cl) LDFUNC(unify_leader_clause, scc, cl)
 static int
 unify_leader_clause(DECL_LD tbl_component *scc, term_t cl)
 { trie *atrie = scc->leader;
-  Procedure proc = (ison(atrie, TRIE_ISMAP)
-			     ? GD->procedures.trie_gen_compiled3
-			     : GD->procedures.trie_gen_compiled2);
-  atom_t clref = compile_trie(proc->definition, atrie);
+  worklist *wl = atrie->data.worklist;
+  atom_t clref;
 
   TRIE_STAT_INC(atrie, gen_call);
+  if ( !(clref=atrie->clause) &&
+       isoff(atrie, TRIE_ISSHARED|TRIE_ABOLISH_ON_COMPLETE) &&
+       !atrie->data.IDG &&
+       ( ison(atrie, TRIE_ISMAP) ||
+	 ( (!WL_IS_WORKLIST(wl) || !wl->undefined) &&
+	   atrie->node_count/((size_t)atrie->value_count+1) <
+	     LD->table_flags.compile_threshold ) ) )
+    return PL_unify_atom(cl, trie_symbol(atrie));   /* see (*) */
+
+  clref = compile_trie(GD->procedures.trie_gen_compiled2->definition, atrie);
   return PL_unify_atomic(cl, clref);
 }
 
@@ -5559,6 +5597,9 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
     size_t ntables = worklist_set_to_array(c->created_worklists, &wls);
     size_t i;
     int rc;
+
+    trie *leader = c->leader;
+    bool leader_stays = isoff(leader, TRIE_ABOLISH_ON_COMPLETE);
 
     wls_reeval_complete(wls, ntables);
     rc = unify_leader_clause(c, A3);
@@ -5588,6 +5629,8 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
     }
     reset_newly_created_worklists(c, WLFS_FREE_NONE);
     c->status = SCC_COMPLETED;
+    if ( rc && leader_stays )		/* compiled by unify_leader_clause() */
+      trie_maybe_discard_nodes(leader);
 
     if ( c->parent && LD->tabling.component == c )
       LD->tabling.component = c->parent;
@@ -6112,7 +6155,7 @@ PRED_IMPL("$tbl_answer_c", 4, tbl_answer_c, PL_FA_NONDETERMINISTIC)
   if ( CTX_CNTRL == FRG_CUTTED )
     return clear_trie_gen_state(CTX_PTR);
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *root;
     int rc;
@@ -6171,7 +6214,7 @@ PRED_IMPL("$tbl_answer_dl", 4, tbl_answer_dl, PL_FA_NONDETERMINISTIC)
   if ( CTX_CNTRL == FRG_CUTTED )
     return clear_trie_gen_state(CTX_PTR);
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *root;
     int rc;
@@ -6248,7 +6291,7 @@ PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
   if ( CTX_CNTRL == FRG_CUTTED )
     return clear_trie_gen_state(CTX_PTR);
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *root;
     int rc;
@@ -8602,7 +8645,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 { PRED_LD
   trie *atrie;
 
-  if ( get_trie(A1, &atrie) )
+  if ( get_trie_nodes(A1, &atrie) )
   { if ( atrie->data.IDG && !atrie->data.IDG->monotonic )
     { Sdprintf("Monotonic propagation to non-monotonic table??\n");
       idg_changed(atrie, IDG_CHANGED_NODE);
@@ -10407,21 +10450,21 @@ put_supervisor_goal(DECL_LD term_t t, Definition def, bool abstract)
  * and valid, or 0 if start_tabling/3 must handle the call.  Shared
  * tables are only handled without locking if they are complete and
  * compiled.  Otherwise start_tabling/3 deals with claiming, waiting and
- * compiling.
+ * compiling.  Private tables are compiled here.
  */
 
 #define complete_answer_clause(atrie) LDFUNC(complete_answer_clause, atrie)
 static atom_t
 complete_answer_clause(DECL_LD trie *atrie)
-{ if ( isoff(atrie, TRIE_COMPLETE) ||
+{ atom_t clref;
+
+  if ( isoff(atrie, TRIE_COMPLETE) ||
        complete_or_invalid_status(atrie, true) != ATOM_complete )
     return 0;
 
 #ifdef O_PLMT
   if ( ison(atrie, TRIE_ISSHARED) )
-  { atom_t clref;
-
-    if ( atrie->tid || table_needs_work(atrie) ||
+  { if ( atrie->tid || table_needs_work(atrie) ||
 	 !(clref = atrie->clause) )
       return 0;
     pushVolatileAtom(clref);		/* see (*) at get_answer_table() */
@@ -10429,7 +10472,15 @@ complete_answer_clause(DECL_LD trie *atrie)
   }
 #endif
 
-  return atrie->clause;			/* 0: let S_TRIE_GEN compile */
+  if ( !(clref=atrie->clause) )
+  { Definition def = GD->procedures.trie_gen_compiled2->definition;
+
+    if ( (clref=compile_trie(def, atrie)) == ATOM_error )
+      return clref;
+  }
+  trie_maybe_discard_nodes(atrie);
+
+  return clref;
 }
 
 

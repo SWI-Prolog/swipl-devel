@@ -2445,6 +2445,19 @@ operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
 calling thread.  On Linux systems this is the PID of the thread.
 
+    \prologflagitem{table_compile_threshold}{integer}{rw}
+Determines how the answers of a table are returned to the goal that
+created the table after the table is completed.  If the answer trie
+has fewer than this number of nodes per answer, the answers are
+enumerated from the trie and the trie is only compiled into a clause
+if the complete table is called again.  Otherwise the trie is compiled
+immediately.  The compiled clause is about half the size of the trie
+and, if the table has no conditional answers and is private and not
+incremental, the trie nodes are discarded after compilation.  Higher
+values thus avoid compiling tables that are never called again, while
+lower values reduce the memory used by tables with large answers.  The
+value 0 always compiles the trie on completion.  Default is 32.
+
     \prologflagitem{table_incremental}{bool}{rw}
 Set the default for whether to use incremental tabling or not.
 Initially set to \const{false}.  See table/1.

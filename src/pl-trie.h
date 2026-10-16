@@ -119,6 +119,8 @@ typedef struct trie_node
 #define TRIE_ISTRACKED  0x0020		/* Trie changes are tracked */
 #define TRIE_ISTABLE	0x0040		/* Trie is an answer table */
 #define TRIE_CONCURRENT	0x0080		/* Lock for concurrent writers */
+#define TRIE_DISCARDABLE 0x0100		/* Discard nodes after compilation */
+#define TRIE_DISCARDED	0x0200		/* Nodes discarded; clause has keys */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
@@ -205,6 +207,7 @@ bool	is_ground_trie_node(trie_node *node);
 bool	is_leaf_trie_node(trie_node *n);
 bool	get_trie(term_t t, trie **tp);
 bool	get_trie_noex(term_t t, trie **tp);
+bool	get_trie_nodes(term_t t, trie **tp);
 HOT bool	unify_trie_term(trie_node *node, trie_node **parent,
 			term_t term);
 int	trie_lookup_abstract(trie *trie,
@@ -237,6 +240,7 @@ void *	map_trie_node(trie_node *n,
 		      void* (*map)(trie_node *n, void *ctx), void *ctx);
 atom_t	compile_trie(Definition def, trie *trie);
 void	trie_discard_clause(trie *trie);
+void	trie_discard_nodes(trie *trie);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -249,6 +253,17 @@ void	trie_discard_clause(trie *trie);
 #define trie_gen(Trie, Root, Key, Value, Data, unify_func, ctx, PL__ctx) \
 	trie_gen(Trie, Root, Key, Value, Data, LDFUNC_REF(unify_func), ctx, PL__ctx)
 #endif
+
+/* Discard the nodes of a compiled trie if this is allowed.  See
+ * trie_discard_nodes().
+ */
+
+static inline void
+trie_maybe_discard_nodes(trie *trie)
+{ if ( unlikely(ison(trie, TRIE_DISCARDABLE)) &&
+       trie->clause && !trie->references )
+    trie_discard_nodes(trie);
+}
 
 #define trie_lookup(trie, node, nodep, k, add, vars) LDFUNC(trie_lookup, trie, node, nodep, k, add, vars)
 static inline int

@@ -257,20 +257,115 @@ trie_discard_clause(trie *trie)
 }
 
 
+static void
+trie_clear_nodes(trie *trie)
+{ indirect_table *it = trie->indirects;
+
+  clear_node(trie, &trie->root, false);	/* TBD: verify not accessed */
+  free_lingering_blocks(trie);
+  if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
+    destroy_indirect_table(it);
+  trie->node_count = 1;
+}
+
+
 void
 trie_empty(trie *trie)
 { trie_discard_clause(trie);
 
   if ( !trie->references )
-  { indirect_table *it = trie->indirects;
-
-    clear_node(trie, &trie->root, false);	/* TBD: verify not accessed */
-    free_lingering_blocks(trie);
-    if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
-      destroy_indirect_table(it);
-    trie->node_count = 1;
+  { trie_clear_nodes(trie);
     trie->value_count = 0;
+    clear(trie, TRIE_DISCARDABLE|TRIE_DISCARDED);
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Once a complete answer trie is compiled, the clause holds all its keys and
+we may discard the nodes.  This is allowed if the trie is not modified
+anymore and nobody needs the nodes, i.e., the table is private, has no
+conditional answers and is not incremental.  The tabling code marks such
+tries with TRIE_DISCARDABLE.  As the clause does not refer to the nodes
+and owns its atoms (see compile_trie()), we can discard the nodes as
+long as nobody is enumerating the trie.  trie->value_count remains valid.
+
+Predicates that need the nodes use get_trie_nodes(), which restores the
+nodes from the clause.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+trie_discard_nodes(trie *trie)
+{ assert(trie->clause && !trie->references);
+
+  DEBUG(MSG_TRIE_GC, Sdprintf("Discarding nodes of trie %p\n", trie));
+  trie_clear_nodes(trie);
+  clear(trie, TRIE_DISCARDABLE);
+  set(trie, TRIE_DISCARDED);
+}
+
+
+#define trie_restore_nodes(trie) LDFUNC(trie_restore_nodes, trie)
+static bool
+trie_restore_nodes(DECL_LD trie *trie)
+{ atom_t dbref = trie->clause;
+  unsigned int values = trie->value_count;
+  fid_t fid;
+  term_t av;
+  qid_t qid;
+  bool rc = false;
+
+  DEBUG(MSG_TRIE_GC, Sdprintf("Restoring nodes of trie %p\n", trie));
+  assert(dbref && isoff(trie, TRIE_ISMAP));
+  clear(trie, TRIE_DISCARDED);
+  trie->value_count = 0;
+
+  if ( (fid=PL_open_foreign_frame()) &&
+       (av=PL_new_term_refs(2)) &&
+       PL_put_atom(av+0, dbref) &&
+       (qid=PL_open_query(NULL, PL_Q_PASS_EXCEPTION,
+			  GD->procedures.trie_gen_compiled2, av)) )
+  { while( PL_next_solution(qid) )
+    { trie_node *node;
+      int lrc = trie_lookup(trie, NULL, &node, valTermRef(av+1), true, NULL);
+
+      if ( lrc != true )
+      { trie_error(lrc, av+1);
+	goto out;
+      }
+      if ( !node->value )		/* not set_trie_value_word(): keep */
+      { node->value = ATOM_trienode;	/* the clause */
+	set(node, TN_PRIMARY);
+	trie->value_count++;
+      }
+    }
+    rc = !PL_exception(qid);
+  out:
+    PL_cut_query(qid);
+  }
+  if ( fid )
+    PL_close_foreign_frame(fid);
+
+  if ( !rc )
+  { trie_clear_nodes(trie);
+    trie->value_count = values;
+    set(trie, TRIE_DISCARDED);
+  }
+
+  return rc;
+}
+
+
+bool
+get_trie_nodes(term_t t, trie **tp)
+{ GET_LD
+
+  if ( !get_trie(t, tp) )
+    return false;
+  if ( unlikely(ison(*tp, TRIE_DISCARDED)) )
+    return trie_restore_nodes(*tp);
+
+  return true;
 }
 
 
@@ -1970,7 +2065,7 @@ trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 	    int update, size_abstract *abstract)
 { trie *trie;
 
-  if ( get_trie(Trie, &trie) )
+  if ( get_trie_nodes(Trie, &trie) )
   { Word kp;
     trie_node *node;
     int rc;
@@ -2128,7 +2223,7 @@ PRED_IMPL("trie_delete", 3, trie_delete, 0)
 { PRED_LD
   trie *trie;
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *node;
     int rc;
@@ -2157,7 +2252,7 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 { PRED_LD
   trie *trie;
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *node;
     int rc;
@@ -2522,7 +2617,9 @@ unify_key(DECL_LD ukey_state *state, word key)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 trie_gen/2,3 walks the trie depth first.  The path it is on is a stack of
 trie_choice records, one for each node on it: the child taken and, when
-more children may match, how to find the next one.  A leaf is an answer
+more children may match, a trie_branch on a second stack that says how
+to find the next one.  Most nodes have a single child, so the path stays
+compact.  A leaf is an answer
 if unify_trie_path() unifies the keys of its path with the query, and
 that unification decides every answer.
 
@@ -2601,20 +2698,27 @@ typedef enum
   CH_VARS				/* lookup novar and the variables */
 } ch_mode;
 
+/* A choice that can advance (not CH_ONE) has a trie_branch on a
+   separate stack, so the common single child path costs little. */
+
 typedef struct trie_choice
-{ ch_mode    mode;			/* how to advance */
-  child_iter iter;			/* parent and position */
+{ word       key;
+  trie_node *child;
+  ch_mode    mode;			/* how to advance */
+  unsigned   branch;			/* index of its trie_branch */
+} trie_choice;
+
+typedef struct trie_branch
+{ child_iter iter;			/* parent and position */
   unsigned   var_mask;			/* variables left to try */
   unsigned   attvar_mask;		/* attributed ones, tried next */
   unsigned   var_index;
   unsigned   epoch;			/* epoch `cursor` belongs to */
   word	     var_tag;			/* TAG_VAR or TAG_ATTVAR|STG_STATIC */
   word       novar;
-  word       key;
-  trie_node *child;
   size_t     frames;			/* frames in use when it was made */
   qcursor    cursor;			/* the cursor before this node */
-} trie_choice;
+} trie_branch;
 
 typedef struct
 { trie	      *trie;		/* trie we operate on */
@@ -2626,11 +2730,13 @@ typedef struct
   term_t       key;		/* The query */
   bool	       resume;		/* The top choice advanced, not yet descended */
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
+  tmp_buffer   branches;	/* trie_branch of advancing choices */
   tmp_buffer   frames;		/* qframe records the cursors share */
 } trie_gen_state;
 
-#define advance_node(ch) LDFUNC(advance_node, ch)
-static inline bool advance_node(DECL_LD trie_choice *ch);
+#define advance_node(state, ch) LDFUNC(advance_node, state, ch)
+static inline bool advance_node(DECL_LD trie_gen_state *state,
+				trie_choice *ch);
 
 #define init_trie_state(state, trie, root, key) \
 	LDFUNC(init_trie_state, state, trie, root, key)
@@ -2647,17 +2753,44 @@ init_trie_state(DECL_LD trie_gen_state *state, trie *trie,
   state->key = key;
   state->resume = false;
   initBuffer(&state->choicepoints);
+  initBuffer(&state->branches);
   initBuffer(&state->frames);
 }
 
 
 #define base_choice(state) baseBuffer(&state->choicepoints, trie_choice)
 #define top_choice(state) topBuffer(&state->choicepoints, trie_choice)
+#define choice_branch(state, ch) \
+	(&baseBuffer(&(state)->branches, trie_branch)[(ch)->branch])
+
+/* Give `ch` a branch, making it a choice that can advance */
+
+static trie_branch *
+add_branch(trie_gen_state *state, trie_choice *ch, ch_mode mode)
+{ trie_branch *br;
+
+  ch->mode   = mode;
+  ch->branch = (unsigned)entriesBuffer(&state->branches, trie_branch);
+  br = allocFromBuffer(&state->branches, sizeof(*br));
+  br->cursor.prune = false;
+
+  return br;
+}
+
+/* Pop `ch` and the choices above it */
+
+static inline void
+pop_choice(trie_gen_state *state, trie_choice *ch)
+{ if ( ch->mode != CH_ONE )
+    seekBuffer(&state->branches, ch->branch, trie_branch);
+  state->choicepoints.top = (char*)ch;
+}
 
 
 static void
 clear_trie_state(trie_gen_state *state)
 { discardBuffer(&state->choicepoints);
+  discardBuffer(&state->branches);
   discardBuffer(&state->frames);
 
   release_trie(state->trie);
@@ -2921,11 +3054,11 @@ stop:
    child keeps none. */
 
 static inline void
-keep_cursor(trie_gen_state *state, trie_choice *ch, const qcursor *c)
+keep_cursor(trie_gen_state *state, trie_branch *br, const qcursor *c)
 { if ( c->prune )
-  { ch->epoch  = state->epoch;
-    ch->frames = entriesBuffer(&state->frames, qframe);
-    ch->cursor = *c;
+  { br->epoch  = state->epoch;
+    br->frames = entriesBuffer(&state->frames, qframe);
+    br->cursor = *c;
   }
 }
 
@@ -2945,16 +3078,13 @@ add_choice(DECL_LD trie_gen_state *state,
 { trie_children children = load_children(node);
   trie_choice *ch;
 
+  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+  ch->mode = CH_ONE;
   if ( !children || ison(node, state->vflags) )
-  { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-    memset(ch, 0, sizeof(*ch));
+  { ch->key   = 0;
     ch->child = node;
     return ch;
   }
-
-  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-  ch->mode = CH_ONE;
-  ch->cursor.prune = false;
 
   if ( is_single_child(children) )
   { trie_node *child = single_child(children);
@@ -2979,17 +3109,18 @@ add_choice(DECL_LD trie_gen_state *state,
 	  goto none;
 	ch->key = k;
       } else
-      { DEBUG(MSG_TRIE_GEN,
+      { trie_branch *br = add_branch(state, ch, CH_VARS);
+
+	DEBUG(MSG_TRIE_GEN,
 	      Sdprintf("Created var choice 0x%x 0x%x\n", vmask, amask));
-	keep_cursor(state, ch, c);
-	ch->mode        = CH_VARS;
-	init_child_iter(&ch->iter, node);
-	ch->var_mask    = vmask;
-	ch->attvar_mask = amask;
-	ch->var_tag     = TAG_VAR;
-	ch->var_index   = 1;
-	ch->novar       = k;
-	if ( !advance_node(ch) )
+	keep_cursor(state, br, c);
+	init_child_iter(&br->iter, node);
+	br->var_mask    = vmask;
+	br->attvar_mask = amask;
+	br->var_tag     = TAG_VAR;
+	br->var_index   = 1;
+	br->novar       = k;
+	if ( !advance_node(state, ch) )
 	  goto none;
       }
       (void)align_key(state, c, ch->key); /* k or a variable: no cut */
@@ -2999,14 +3130,15 @@ add_choice(DECL_LD trie_gen_state *state,
     /* A root keeps its children when trie_delete/3 prunes its last key
        (prune_node() destroys every other node that empties), so the
        enumeration may produce no child at all. */
-    keep_cursor(state, ch, c);
-    ch->mode = CH_ENUM;
-    init_child_iter(&ch->iter, node);
+    trie_branch *br = add_branch(state, ch, CH_ENUM);
+
+    keep_cursor(state, br, c);
+    init_child_iter(&br->iter, node);
     for(;;)
     { trie_node *child;
       word ck;
 
-      if ( !(child=next_child(&ch->iter, &ck)) )
+      if ( !(child=next_child(&br->iter, &ck)) )
 	goto none;
       if ( align_key(state, c, ck) )
       { ch->key   = ck;
@@ -3017,7 +3149,7 @@ add_choice(DECL_LD trie_gen_state *state,
   }
 
 none:
-  state->choicepoints.top = (char*)ch;	/* no child can match */
+  pop_choice(state, ch);		/* no child can match */
   return NULL;
 }
 
@@ -3030,7 +3162,18 @@ descent_node(DECL_LD trie_gen_state *state,
 	     qcursor *c, trie_choice *ch)
 { while( ch && trie_has_children(ch->child) &&
 	 isoff(ch->child, state->vflags) )
-  { ch = add_choice(state, c, ch->child);
+  { trie_children children = load_children(ch->child);
+
+    if ( is_single_child(children) && !c->prune )
+    { trie_node *child = single_child(children);	/* fast path */
+
+      ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+      ch->key   = child->key;
+      ch->child = child;
+      ch->mode  = CH_ONE;
+    } else
+    { ch = add_choice(state, c, ch->child);
+    }
   }
 
   return ch;
@@ -3042,45 +3185,48 @@ descent_node(DECL_LD trie_gen_state *state,
    each attributed one attvar_mask names. */
 
 static inline bool
-advance_node(DECL_LD trie_choice *ch)
+advance_node(DECL_LD trie_gen_state *state, trie_choice *ch)
 { if ( ch->mode == CH_ENUM )
-  { trie_node *child;
+  { trie_branch *br = choice_branch(state, ch);
+    trie_node *child;
     word k;
 
-    if ( (child=next_child(&ch->iter, &k)) )
+    if ( (child=next_child(&br->iter, &k)) )
     { ch->key   = k;
       ch->child = child;
 
       return true;
     }
   } else if ( ch->mode == CH_VARS )
-  { if ( ch->novar )
-    { word novar = ch->novar;
+  { trie_branch *br = choice_branch(state, ch);
 
-      ch->novar = 0;
-      if ( (ch->child=get_child(ch->iter.parent, novar)) )
+    if ( br->novar )
+    { word novar = br->novar;
+
+      br->novar = 0;
+      if ( (ch->child=get_child(br->iter.parent, novar)) )
       { ch->key = novar;
 	return true;
       }
     }
     for(;;)
-    { for( ; ch->var_index && ch->var_index < VMASKBITS; ch->var_index++ )
-      { if ( (ch->var_mask & (0x1U<<(ch->var_index-1))) )
-	{ word key = ((((word)ch->var_index))<<LMASK_BITS)|ch->var_tag;
+    { for( ; br->var_index && br->var_index < VMASKBITS; br->var_index++ )
+      { if ( (br->var_mask & (0x1U<<(br->var_index-1))) )
+	{ word key = ((((word)br->var_index))<<LMASK_BITS)|br->var_tag;
 
-	  if ( (ch->child=get_child(ch->iter.parent, key)) )
+	  if ( (ch->child=get_child(br->iter.parent, key)) )
 	  { ch->key = key;
-	    ch->var_index++;
+	    br->var_index++;
 	    return true;
 	  }
 	}
       }
-      if ( !ch->attvar_mask )
+      if ( !br->attvar_mask )
 	break;
-      ch->var_mask    = ch->attvar_mask;
-      ch->attvar_mask = 0;
-      ch->var_tag     = TAG_ATTVAR|STG_STATIC;
-      ch->var_index   = 1;
+      br->var_mask    = br->attvar_mask;
+      br->attvar_mask = 0;
+      br->var_tag     = TAG_ATTVAR|STG_STATIC;
+      br->var_index   = 1;
     }
   }
 
@@ -3108,15 +3254,16 @@ advance_node(DECL_LD trie_choice *ch)
 static void
 restore_cursor(DECL_LD trie_gen_state *state, trie_choice *upto,
 	       qcursor *c)
-{ trie_choice *ch;
+{ trie_branch *ubr = choice_branch(state, upto);
+  trie_choice *ch;
 
-  if ( !upto->cursor.prune )
+  if ( !ubr->cursor.prune )
   { c->prune = false;
     return;
   }
-  if ( upto->epoch == state->epoch )
-  { drop_frames(state, upto->frames);
-    *c = upto->cursor;
+  if ( ubr->epoch == state->epoch )
+  { drop_frames(state, ubr->frames);
+    *c = ubr->cursor;
     return;
   }
 
@@ -3126,9 +3273,13 @@ restore_cursor(DECL_LD trie_gen_state *state, trie_choice *upto,
   drop_frames(state, 0);
   root_cursor(c, true);
   for(ch = base_choice(state); ; ch++)
-  { ch->epoch  = state->epoch;
-    ch->frames = entriesBuffer(&state->frames, qframe);
-    ch->cursor = *c;
+  { if ( ch->mode != CH_ONE )
+    { trie_branch *br = choice_branch(state, ch);
+
+      br->epoch  = state->epoch;
+      br->frames = entriesBuffer(&state->frames, qframe);
+      br->cursor = *c;
+    }
     if ( ch == upto )
       break;
     if ( !align_key(state, c, ch->key) )
@@ -3159,12 +3310,12 @@ next_choice0(DECL_LD trie_gen_state *state, bool bound)
   assert(!(advanced && bound));
   state->resume = false;
   while( ch >= btm )
-  { if ( advanced || advance_node(ch) )
+  { if ( advanced || advance_node(state, ch) )
     { qcursor before;
 
       advanced = false;
-      if ( bound && ch->cursor.prune )	/* restoring it would read Key */
-      { state->resume = true;
+      if ( bound && choice_branch(state, ch)->cursor.prune )
+      { state->resume = true;		/* restoring it would read Key */
 	return ch;
       }
       restore_cursor(state, ch, &before);
@@ -3184,10 +3335,10 @@ next_choice0(DECL_LD trie_gen_state *state, bool bound)
 	  ch  = top_choice(state)-1;
 	  goto next;
 	}
-      } while( advance_node(ch) );
+      } while( advance_node(state, ch) );
     }
 
-    state->choicepoints.top = (char*)ch--;
+    pop_choice(state, ch--);
   next:
     ;
   }
@@ -3365,6 +3516,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
 	  nstate->key = state->key;
 	  nstate->resume = state->resume;
 	  move_buffer(&nstate->choicepoints, &state->choicepoints);
+	  move_buffer(&nstate->branches, &state->branches);
 	  move_buffer(&nstate->frames, &state->frames);
 
 	  state = nstate;
@@ -3396,7 +3548,7 @@ trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
   { trie *trie;
     trie_node *root;
 
-    if ( get_trie(Trie, &trie) )
+    if ( get_trie_nodes(Trie, &trie) )
     { if ( Root )
       { void *ptr;
 
@@ -3478,13 +3630,16 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { return PL_unify_integer(arg, trie->node_count);
       } else if ( name == ATOM_value_count )
       { return PL_unify_integer(arg, trie->value_count);
+      } else if ( name == ATOM_discarded )	/* nodes are discarded */
+      { return PL_unify_bool(arg, ison(trie, TRIE_DISCARDED));
       } else if ( name == ATOM_size )
       { trie_stats stats;
 	stat_trie(trie, &stats);
 	if ( stats.nodes != trie->node_count )
 	  Sdprintf("OOPS: trie_property/2: counted %zd nodes, admin says %zd\n",
 		   (size_t)stats.nodes, (size_t)trie->node_count);
-	if ( stats.values != trie->value_count )
+	if ( stats.values != trie->value_count &&
+	     isoff(trie, TRIE_DISCARDED) )	/* values are in the clause */
 	  Sdprintf("OOPS: trie_property/2: counted %zd values, admin says %zd\n",
 		   (size_t)stats.values, (size_t)trie->value_count);
 	// assert(stats.nodes  == trie->node_count);
@@ -3554,7 +3709,7 @@ PRED_IMPL("trie_insert_insert", 3, trie_insert_insert, 0)
 { PRED_LD
   trie *trie;
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp, vp;
     trie_node *root, *node;
     tmp_buffer vars;
@@ -3593,7 +3748,7 @@ PRED_IMPL("trie_lookup_gen", 3, trie_lookup_gen, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie *trie;
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *root;
     int rc;
@@ -3619,7 +3774,7 @@ PRED_IMPL("trie_lookup_delete", 3, trie_lookup_delete, 0)
 
   trie *trie;
 
-  if ( get_trie(A1, &trie) )
+  if ( get_trie_nodes(A1, &trie) )
   { Word kp;
     trie_node *root;
     int rc;
@@ -4163,6 +4318,17 @@ fixup_last_fail(trie_compile_state *state)
 }
 
 
+/* The clause owns its atoms, so it remains valid if the trie nodes are
+ * discarded (see trie_discard_nodes()).  freeClause() releases them.
+ */
+
+static int
+register_trie_clause_atom(atom_t a, void *ctx)
+{ (void)ctx;
+  PL_register_atom(a);
+  return true;
+}
+
 static bool
 create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 { size_t code_size = entriesBuffer(&state->codes, code);
@@ -4179,6 +4345,7 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   set(cl, UNIT_CLAUSE);			/* no body */
   memcpy(cl->codes, baseBuffer(&state->codes, code),
 	 sizeOfBuffer(&state->codes));
+  forAtomsInClause(cl, register_trie_clause_atom, NULL);
   *cp = cl;
 
   ATOMIC_ADD(&GD->statistics.codes, cl->code_size);
