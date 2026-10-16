@@ -319,8 +319,24 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #undef O_LABEL_ADDRESSES
 #endif
 
-/* clang as of version 11 performs about 30% worse with this option */
-#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS) && !defined(__llvm__)
+/* VMI_TAILCALL: VMI functions continue with a guaranteed tail call to
+   the next instruction (musttail: Clang >= 13, GCC >= 15).  See pl-wam.c
+*/
+#if O_VMI_FUNCTIONS && !defined(VMI_TAILCALL) && defined(__has_attribute)
+#if __has_attribute(musttail)
+#define VMI_TAILCALL 1
+#endif
+#endif
+#ifndef VMI_TAILCALL
+#define VMI_TAILCALL 0
+#endif
+
+/* clang as of version 11 performs about 30% worse with this option when
+   using a single function with label addresses.  Using tail-calling VMI
+   functions, the code holds the function addresses, which saves a load
+   per instruction for Clang as well. */
+#if !defined(VMCODE_IS_ADDRESS) && \
+    ( (O_LABEL_ADDRESSES && !defined(__llvm__)) || VMI_TAILCALL )
 #define VMCODE_IS_ADDRESS	1
 #endif
 

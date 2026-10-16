@@ -1106,16 +1106,29 @@ VMI(B_VAR, VIF_LCO, 1, (CA1_VAR))
 }
 END_VMI
 
+/* The slow paths of hot instructions are separate VMH helpers, so the
+ * fast path of the tail-calling VMI functions needs no stack frame
+ * (GCC does not shrink-wrap preserve_none functions).  See
+ * doc/tabling/tailcall-vm.md.
+ */
+
 VMH(bvar_cont, 1, (int), (voffset))
 { Word p;
   p = varFrameP(FR, voffset);
   if ( unlikely(isVar(*p)) )
-  { ENSURE_GLOBAL_SPACE(1, p = varFrameP(FR, voffset));
-    globaliseVar(p);
-    *ARGP++ = *p;
-  } else
-  { *ARGP++ = linkValI(p);
-  }
+    VMH_GOTO(bvar_globalise, voffset);
+  *ARGP++ = linkValI(p);
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(bvar_globalise, 1, (int), (voffset))
+{ Word p;
+
+  ENSURE_GLOBAL_SPACE(1, (void)0);
+  p = varFrameP(FR, voffset);
+  globaliseVar(p);
+  *ARGP++ = *p;
   NEXT_INSTRUCTION;
 }
 END_VMH
@@ -1783,23 +1796,28 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
   if ( unlikely(LD->alerted) )
-  { Coverage(FR, UNIFY_PORT);
-#if O_DEBUGGER
-    if ( debugstatus.debugging )
-    { int action;
-
-      SAVE_REGISTERS(QID);
-      clearUninitialisedVarsFrame(FR, PC);
-      action = tracePort(FR, BFR, UNIFY_PORT, PC);
-      LOAD_REGISTERS(QID);
-      VMH_GOTO(debug_unify_continue, action);
-    }
-#endif /*O_DEBUGGER*/
-    CHECK_WAKEUP;
-  }
+    VMH_GOTO(i_enter_alerted);
   NEXT_INSTRUCTION;
 }
 END_VMI
+
+VMH(i_enter_alerted, 0, (), ())
+{ Coverage(FR, UNIFY_PORT);
+#if O_DEBUGGER
+  if ( debugstatus.debugging )
+  { int action;
+
+    SAVE_REGISTERS(QID);
+    clearUninitialisedVarsFrame(FR, PC);
+    action = tracePort(FR, BFR, UNIFY_PORT, PC);
+    LOAD_REGISTERS(QID);
+    VMH_GOTO(debug_unify_continue, action);
+  }
+#endif /*O_DEBUGGER*/
+  CHECK_WAKEUP;
+  NEXT_INSTRUCTION;
+}
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CONTEXT is used by  non-meta  predicates   that  are  compiled  into a
@@ -1879,16 +1897,22 @@ procedure and deallocate our temporary version if threading is not used.
   environment_frame = FR = NFR;		/* open the frame */
 
   if ( unlikely(!hasLocalSpace(LOCAL_MARGIN)) )
-  { boolex_t rc;
+    VMH_GOTO(normal_call_grow);
 
-    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-    SAVE_REGISTERS(QID);
-    rc = growLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
-    LOAD_REGISTERS(QID);
-    if ( rc != true )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
+  VMH_GOTO(depart_or_retry_continue);
+}
+END_VMH
+
+VMH(normal_call_grow, 0, (), ())
+{ boolex_t rc;
+
+  lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+  SAVE_REGISTERS(QID);
+  rc = growLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
+  LOAD_REGISTERS(QID);
+  if ( rc != true )
+  { raiseStackOverflow(rc);
+    THROW_EXCEPTION;
   }
 
   VMH_GOTO(depart_or_retry_continue);
@@ -1913,108 +1937,115 @@ VMH(depart_or_retry_continue, 0, (), ())
 #endif
 
   if ( unlikely(LD->alerted) )
-  {					/* play safe */
-    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-    PC = DEF->codes;
+    VMH_GOTO(depart_alerted);
 
-					/* we need the autoloader and get back */
-    if ( DEF->codes[0] == encode(S_VIRGIN) &&
-	 !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
-    { PC = DEF->codes;
-      NEXT_INSTRUCTION;
+  PC = DEF->codes;
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(depart_alerted, 0, (), ())
+{					/* play safe */
+  lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+  PC = DEF->codes;
+
+				      /* we need the autoloader and get back */
+  if ( DEF->codes[0] == encode(S_VIRGIN) &&
+       !DEF->impl.any.defined && isoff(DEF, PROC_DEFINED) )
+  { PC = DEF->codes;
+    NEXT_INSTRUCTION;
+  }
+
+  if ( is_signalled() )
+  { SAVE_REGISTERS(QID);
+    DEF = getProcDefinedDefinition(DEF); /* see (*) above */
+    LOAD_REGISTERS(QID);
+    if ( FR->predicate != DEF )		/* auto imported/loaded */
+    { setFramePredicate(FR, DEF);
+      setGenerationFrame(FR);
     }
-
-    if ( is_signalled() )
+    if ( isoff(DEF, P_SIG_ATOMIC) )
     { SAVE_REGISTERS(QID);
-      DEF = getProcDefinedDefinition(DEF); /* see (*) above */
+      handleSignals();
       LOAD_REGISTERS(QID);
-      if ( FR->predicate != DEF )		/* auto imported/loaded */
-      { setFramePredicate(FR, DEF);
-	setGenerationFrame(FR);
-      }
-      if ( isoff(DEF, P_SIG_ATOMIC) )
-      { SAVE_REGISTERS(QID);
-	handleSignals();
-	LOAD_REGISTERS(QID);
 
-	if ( exception_term )
-	{ CL = NULL;
+      if ( exception_term )
+      { CL = NULL;
 
-	  enterDefinition(DEF);
-					  /* The catch is not yet installed, */
-					  /* so we ignore it */
-	  if ( FR->predicate == PROCEDURE_catch3->definition )
-	    setLocal(FR, FR_CAUGHT);
+	enterDefinition(DEF);
+					/* The catch is not yet installed, */
+					/* so we ignore it */
+	if ( FR->predicate == PROCEDURE_catch3->definition )
+	  setLocal(FR, FR_CAUGHT);
 
-	  THROW_EXCEPTION;
-	}
-      }
-    }
-    if ( UNDO_SCHEDULED(LD) )
-    { int rc;
-
-      SAVE_REGISTERS(QID);
-      rc = run_undo_hooks();
-      LOAD_REGISTERS(QID);
-      if ( !rc )
 	THROW_EXCEPTION;
+      }
     }
+  }
+  if ( UNDO_SCHEDULED(LD) )
+  { int rc;
 
-    Profile(FR->prof_node = profCall(DEF));
-    Coverage(FR, CALL_PORT);
+    SAVE_REGISTERS(QID);
+    rc = run_undo_hooks();
+    LOAD_REGISTERS(QID);
+    if ( !rc )
+      THROW_EXCEPTION;
+  }
+
+  Profile(FR->prof_node = profCall(DEF));
+  Coverage(FR, CALL_PORT);
 
 #ifdef O_LIMIT_DEPTH
-    { size_t depth = levelFrame(FR);
+  { size_t depth = levelFrame(FR);
 
-      if ( depth > LD->depth_info.reached )
-	LD->depth_info.reached = depth;
-      if ( depth > LD->depth_info.limit )
-      { DEBUG(2, Sdprintf("depth-limit\n"));
+    if ( depth > LD->depth_info.reached )
+      LD->depth_info.reached = depth;
+    if ( depth > LD->depth_info.limit )
+    { DEBUG(2, Sdprintf("depth-limit\n"));
 
-	if ( debugstatus.debugging )
-	  newChoice(CHP_DEBUG, FR);
-	FRAME_FAILED;
-      }
+      if ( debugstatus.debugging )
+	newChoice(CHP_DEBUG, FR);
+      FRAME_FAILED;
     }
+  }
 #endif
 
 #ifdef O_INFERENCE_LIMIT
-    if ( LD->statistics.inferences >= LD->inference_limit.limit )
-    { lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-      SAVE_REGISTERS(QID);
-      raiseInferenceLimitException();
-      LOAD_REGISTERS(QID);
-      if ( exception_term )
-	THROW_EXCEPTION;
-    }
+  if ( LD->statistics.inferences >= LD->inference_limit.limit )
+  { lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+    SAVE_REGISTERS(QID);
+    raiseInferenceLimitException();
+    LOAD_REGISTERS(QID);
+    if ( exception_term )
+      THROW_EXCEPTION;
+  }
 #endif
 
 #if O_DEBUGGER
-    if ( debugstatus.debugging )
-    { int rc;
+  if ( debugstatus.debugging )
+  { int rc;
 
-      lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-      SAVE_REGISTERS(QID);
-      DEF = getProcDefinedDefinition(DEF);
-      LOAD_REGISTERS(QID);
-      if ( FR->predicate != DEF )		/* auto imported/loaded */
-      { setFramePredicate(FR, DEF);
-	setGenerationFrame(FR);
+    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+    SAVE_REGISTERS(QID);
+    DEF = getProcDefinedDefinition(DEF);
+    LOAD_REGISTERS(QID);
+    if ( FR->predicate != DEF )		/* auto imported/loaded */
+    { setFramePredicate(FR, DEF);
+      setGenerationFrame(FR);
 #ifdef O_PROFILE
-	if ( FR->prof_node )
-	  profSetHandle(FR->prof_node, DEF);
+      if ( FR->prof_node )
+	profSetHandle(FR->prof_node, DEF);
 #endif
-	VMH_GOTO(depart_or_retry_continue);
-      }
-      setLocal(FR, FR_INBOX);
-
-      SAVE_REGISTERS(QID);
-      rc = tracePort(FR, BFR, CALL_PORT, NULL);
-      LOAD_REGISTERS(QID);
-      VMH_GOTO(debug_call_continue, rc);
+      VMH_GOTO(depart_or_retry_continue);
     }
+    setLocal(FR, FR_INBOX);
+
+    SAVE_REGISTERS(QID);
+    rc = tracePort(FR, BFR, CALL_PORT, NULL);
+    LOAD_REGISTERS(QID);
+    VMH_GOTO(debug_call_continue, rc);
+  }
 #endif /*O_DEBUGGER*/
-  } /* end of if (LD->alerted) */
 
   PC = DEF->codes;
   NEXT_INSTRUCTION;
@@ -2145,64 +2176,105 @@ from C.
 
 VMI(I_EXIT, VIF_BREAK, 0, ())
 { if ( unlikely(LD->alerted != 0) )
-  { if ( (LD->alerted&ALERT_BUFFER) )
-    { LD->alerted &= ~ALERT_BUFFER;
-      release_string_buffers_from_frame(FR);
-    }
-    Coverage(FR, EXIT_PORT);
-
-#if O_DEBUGGER
-    if ( debugstatus.debugging )
-    { int action;
-
-      SAVE_REGISTERS(QID);
-      action = tracePort(FR, BFR, EXIT_PORT, PC);
-      LOAD_REGISTERS(QID);
-
-      VMH_GOTO(debug_exit_continue, action);
-    }
-#endif /*O_DEBUGGER*/
-  }
+    VMH_GOTO(i_exit_alerted);
 
   VMH_GOTO(exit_continue);
 }
 END_VMI
 
-VMH(exit_continue, 0, (), ())
-{ LocalFrame leave;
+VMH(i_exit_alerted, 0, (), ())
+{ if ( (LD->alerted&ALERT_BUFFER) )
+  { LD->alerted &= ~ALERT_BUFFER;
+    release_string_buffers_from_frame(FR);
+  }
+  Coverage(FR, EXIT_PORT);
 
-  if ( (void *)BFR <= (void *)FR )	/* deterministic */
-  { leave = ison(FR, FR_WATCHED) ? FR : NULL;
+#if O_DEBUGGER
+  if ( debugstatus.debugging )
+  { int action;
+
+    SAVE_REGISTERS(QID);
+    action = tracePort(FR, BFR, EXIT_PORT, PC);
+    LOAD_REGISTERS(QID);
+
+    VMH_GOTO(debug_exit_continue, action);
+  }
+#endif /*O_DEBUGGER*/
+
+  VMH_GOTO(exit_continue);
+}
+END_VMH
+
+VMH(exit_continue, 0, (), ())
+{ if ( (void *)BFR <= (void *)FR )	/* deterministic */
+  { if ( unlikely(ison(FR, FR_WATCHED)) )
+      VMH_GOTO(exit_watched);
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
     leaveDefinition(DEF);		/* dynamic pred only */
     lTop = FR;
     DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%zd\n",
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
-  { leave = NULL;
-    clearLocal(FR, FR_INBOX);
-    if ( ison(FR, FR_DET|FR_DETGUARD) )
-    { SAVE_REGISTERS(QID);
-      determinism_error(FR, BFR, ATOM_nondet);
-      LOAD_REGISTERS(QID);
-      if ( exception_term )
-	THROW_EXCEPTION;
-    }
+  { clearLocal(FR, FR_INBOX);
+    if ( unlikely(ison(FR, FR_DET|FR_DETGUARD)) )
+      VMH_GOTO(exit_det_error);
   }
 
   PC = FR->programPointer;
   environment_frame = FR = FR->parent;
   DEF = FR->predicate;
   ARGP = argFrameP(lTop, 0);
-  Profile(profResumeParent(FR->prof_node));
-  if ( leave )
-  { SAVE_REGISTERS(QID);
-    frameFinished(leave, FINISH_EXIT);
-    LOAD_REGISTERS(QID);
-    if ( exception_term )
-      THROW_EXCEPTION;
-  }
+#ifdef O_PROFILE
+  if ( unlikely(LD->profile.active) )
+    VMH_GOTO(exit_profile);
+#endif
 
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+/* Slow paths of exit_continue: a nondeterministic exit of a frame that
+   must be deterministic, a deterministic exit of a watched frame and
+   resuming the profiler. */
+
+VMH(exit_det_error, 0, (), ())
+{ SAVE_REGISTERS(QID);
+  determinism_error(FR, BFR, ATOM_nondet);
+  LOAD_REGISTERS(QID);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  PC = FR->programPointer;
+  environment_frame = FR = FR->parent;
+  DEF = FR->predicate;
+  ARGP = argFrameP(lTop, 0);
+  VMH_GOTO(exit_profile);
+}
+END_VMH
+
+VMH(exit_watched, 0, (), ())
+{ LocalFrame leave = FR;
+
+  FR->clause = NULL;			/* leaveDefinition() destroys clause */
+  leaveDefinition(DEF);			/* dynamic pred only */
+  lTop = FR;
+  PC = FR->programPointer;
+  environment_frame = FR = FR->parent;
+  DEF = FR->predicate;
+  ARGP = argFrameP(lTop, 0);
+  Profile(profResumeParent(FR->prof_node));
+  SAVE_REGISTERS(QID);
+  frameFinished(leave, FINISH_EXIT);
+  LOAD_REGISTERS(QID);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  NEXT_INSTRUCTION;
+}
+END_VMH
+
+VMH(exit_profile, 0, (), ())
+{ Profile(profResumeParent(FR->prof_node));
   NEXT_INSTRUCTION;
 }
 END_VMH
@@ -2530,13 +2602,8 @@ VMI(I_LCALL, 0, 1, (CA1_LPROC))
 END_VMI
 
 VMI(I_TCALL, 0, 0, ())
-{ if ( ison(FR, FR_WATCHED) )
-  { SAVE_REGISTERS(QID);
-    frameFinished(FR, FINISH_EXIT);
-    LOAD_REGISTERS(QID);
-    if ( exception_term )
-      THROW_EXCEPTION;
-  }
+{ if ( unlikely(ison(FR, FR_WATCHED)) )
+    VMH_GOTO(tcall_watched);
 
   tcallSetNextFrameFlags(FR);
   FR->clause = NULL;
@@ -2546,6 +2613,22 @@ VMI(I_TCALL, 0, 0, ())
   VMH_GOTO(depart_or_retry_continue);
 }
 END_VMI
+
+VMH(tcall_watched, 0, (), ())
+{ SAVE_REGISTERS(QID);
+  frameFinished(FR, FINISH_EXIT);
+  LOAD_REGISTERS(QID);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  tcallSetNextFrameFlags(FR);
+  FR->clause = NULL;
+  if ( ison(DEF, HIDE_CHILDS) )
+    setLocal(FR, FR_HIDE_CHILDS);
+
+  VMH_GOTO(depart_or_retry_continue);
+}
+END_VMH
 
 		 /*******************************
 		 *	      CONTROL		*

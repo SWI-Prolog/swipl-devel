@@ -3289,6 +3289,34 @@ typedef enum
 #define LD_REGISTER "rbx"
 #define REGFILE_REGISTER "r12"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+VMI_TAILCALL (see pl-incl.h): using VMI functions, instructions and
+helpers continue with a guaranteed tail call (musttail) to the next
+instruction rather than returning the next PC to the dispatch loop in
+PL_next_solution().  This requires musttail (Clang >= 13, GCC >= 15).
+Compilers without it use the dispatch loop.  Helper arguments are passed in the register file, so
+all VMI and VMH functions have the same signature, as Clang requires
+for musttail.
+
+VMI_CC is the calling convention of the VMI functions.  preserve_none
+(Clang >= 19, GCC >= 15) passes up to 12 arguments in registers and has
+no callee-saved registers, which avoids saving registers in each VMI.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if VMI_TAILCALL
+#define VMI_MUSTTAIL __attribute__((musttail))
+/* noinline: GCC 16 silently turns the musttail calls of an inlined
+   VMI into normal calls, overflowing the C stack.  Inlining one VMI in
+   another only duplicates code anyway. */
+#define VMI_NOINLINE __attribute__((noinline))
+#if !defined(VMI_CC) && __has_attribute(preserve_none)
+#define VMI_CC __attribute__((preserve_none))
+#endif
+#endif
+#ifndef VMI_CC
+#define VMI_CC
+#endif
+
 #if O_VMI_FUNCTIONS
 struct register_file;
 #define VMI_RETTYPE Code
@@ -3311,51 +3339,29 @@ struct register_file;
 #   define VMI_ARG_PASS PC, registers
 #  endif
 # endif
-typedef VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
+# if VMI_TAILCALL && !VMI_USE_REGISTER_VARIABLES
+/* Pass the hottest registers as arguments.  Using preserve_none, the
+   first four are in r12-r15, which ordinary C functions preserve. */
+#  undef VMI_ARG_DECL
+#  undef VMI_ARG_PASS
+#  if (defined(O_PLMT) || defined(O_ENGINES)) && USE_LD_MACROS
+#   define VMI_ARG_DECL PL_local_data_t *__PL_ld, Code PC, LocalFrame __FR, \
+			struct register_file *registers, Word __ARGP
+#   define VMI_ARG_PASS __PL_ld, PC, FR, registers, ARGP
+#  else
+#   define VMI_ARG_DECL Code PC, LocalFrame __FR, \
+			struct register_file *registers, Word __ARGP
+#   define VMI_ARG_PASS PC, FR, registers, ARGP
+#  endif
+#  define VMI_REGISTER_ARGS 1
+# endif
+typedef VMI_CC VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
 # if VMI_REGISTER_VARIABLES
 register struct register_file *__reg_registers asm(REGFILE_REGISTER);
 register PL_local_data_t *__reg_ld asm(LD_REGISTER);
 # endif
 #endif
 
-/* All the registers used in PL_next_solution et al; there will always be a
- * variable or macro called REGISTERS with the current active registers */
-typedef struct register_file
-{ unify_mode umode;			/* Unification mode */
-# define     UMODE	(REGISTERS.umode)
-  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
-# define     SLOW_UNIFY	(REGISTERS.slow_unify)
-  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
-# define     QID	(REGISTERS.qid)
-  QueryFrame qf;			/* Query frame */
-# define     QF		(REGISTERS.qf)
-  LocalFrame fr;			/* current frame */
-# define     FR		(REGISTERS.fr)
-# define     CL		(FR->clause)	/* clause of current frame */
-  LocalFrame nfr;			/* Next frame */
-# define     NFR	(REGISTERS.nfr)
-  Word       argp;			/* current argument pointer */
-# define     ARGP	(REGISTERS.argp)
-  Definition def;			/* definition of current procedure */
-# define     DEF	(REGISTERS.def)
-  fid_t      ffr_id;			/* foreign function id */
-# define     FFR_ID	(REGISTERS.ffr_id)
-  ar_context pl_ar_ctx;
-# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
-  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
-# define     FNDET_CONTEXT (REGISTERS.fndet_context)
-#if VMCODE_IS_ADDRESS
-  int	     nop1;			/* See SEPARATE_VMI1 */
-  int	     nop2;			/* See SEPARATE_VMI2 */
-#endif
-#ifdef O_DEBUG
-  int	     throwed_from_line;		/* Debugging: line we came from */
-# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
-#endif
-  /* Not initialized below here */
-  size_t     pl_ar_buf[GMP_STACK_ALLOC];
-#define __PL_ar_buf	(REGISTERS.pl_ar_buf)
-} register_file;
 
 
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
@@ -3423,32 +3429,91 @@ FOREACH_VMH(T_EMPTY,
   ,VMH_ARGSTRUCT, {VMH_PAD_STRUCT ,VMH_ARGS, };
 )
 
+/* All the registers used in PL_next_solution et al; there will always be a
+ * variable or macro called REGISTERS with the current active registers */
+typedef struct register_file
+{ unify_mode umode;			/* Unification mode */
+# define     UMODE	(REGISTERS.umode)
+  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
+# define     SLOW_UNIFY	(REGISTERS.slow_unify)
+  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
+# define     QID	(REGISTERS.qid)
+  QueryFrame qf;			/* Query frame */
+# define     QF		(REGISTERS.qf)
+  LocalFrame fr;			/* current frame */
+# define     FR		(REGISTERS.fr)
+# define     CL		(FR->clause)	/* clause of current frame */
+  LocalFrame nfr;			/* Next frame */
+# define     NFR	(REGISTERS.nfr)
+  Word       argp;			/* current argument pointer */
+# define     ARGP	(REGISTERS.argp)
+  Definition def;			/* definition of current procedure */
+# define     DEF	(REGISTERS.def)
+  fid_t      ffr_id;			/* foreign function id */
+# define     FFR_ID	(REGISTERS.ffr_id)
+  ar_context pl_ar_ctx;
+# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
+  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
+# define     FNDET_CONTEXT (REGISTERS.fndet_context)
+#if VMCODE_IS_ADDRESS
+  int	     nop1;			/* See SEPARATE_VMI1 */
+  int	     nop2;			/* See SEPARATE_VMI2 */
+#endif
+#if VMI_TAILCALL
+  union					/* Arguments of VMH helpers */
+  { FOREACH_VMH(T_EMPTY,
+      ,VMH_ARGSTRUCT, ,VMH_NAME,;
+    )
+  } helper_args;
+#endif
+#ifdef O_DEBUG
+  int	     throwed_from_line;		/* Debugging: line we came from */
+# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
+#endif
+  /* Not initialized below here */
+  size_t     pl_ar_buf[GMP_STACK_ALLOC];
+#define __PL_ar_buf	(REGISTERS.pl_ar_buf)
+} register_file;
+
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
 #undef _VMH_PROLOGUE
 #define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
 #if O_VMI_FUNCTIONS
 
+#if VMCODE_IS_ADDRESS
+#define VMI_ADDR(c)		((vmi_instr)(c))
+#else
+#define VMI_ADDR(c)		jmp_table[c]
+#endif
+
+#if VMI_TAILCALL
+#define HELPER_ARGS(n)			REGISTERS.helper_args.n
+#define _VMI_DECLARATION(Name,na,at,an)	static VMI_NOINLINE VMI_CC VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
+#define _VMH_DECLARATION(Name,na,at,an)	static VMI_NOINLINE VMI_CC VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL)
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); \
+					VMI_MUSTTAIL return VMI_ADDR(*PC)(VMI_ARG_PASS)
+#define _VMI_GOTO(n)			PC--; VMI_MUSTTAIL return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		HELPER_ARGS(n) = (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT(__VA_ARGS__); \
+					VMI_MUSTTAIL return helper_ ## n(VMI_ARG_PASS)
+#define _VMI_GOTO_CODE(c)		PC--; VMI_MUSTTAIL return VMI_ADDR(c)(VMI_ARG_PASS)
+#else
 #define HELPER_ARGS(n)			__args
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
 #define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
 #define _NEXT_INSTRUCTION		return PC
+#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
+					return helper_ ## n(VMI_ARG_PASS, __args)
+#define _VMI_GOTO_CODE(c)		PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
+#endif
 #if O_THROW
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); \
 					longjmp(LD->exception.throw_environment->exception_jmp_env, 2)
 #else
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); return NULL
 #endif
-#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
-					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
-#if VMCODE_IS_ADDRESS
-#define VMI_ADDR(c)		((vmi_instr)(c))
-#else
-#define VMI_ADDR(c)		jmp_table[c]
-#endif
-#define _VMI_GOTO_CODE(c)	PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
 
 /* Declare prototypes for all VMI/VMH functions */
 FOREACH_VMIDECL_CALL(T_SEMICOLON, _VMI_DECLARATION);
@@ -3471,15 +3536,34 @@ static vmi_instr jmp_table[] =
 #else
 # define REGISTERS (*registers)
 #endif
+#if VMI_REGISTER_ARGS			/* FR and ARGP are arguments */
+# undef FR
+# undef ARGP
+# define FR   __FR
+# define ARGP __ARGP
+#endif
 #include "pl-vmi.c"
+#if VMI_REGISTER_ARGS
+# undef FR
+# undef ARGP
+# define FR   (REGISTERS.fr)
+# define ARGP (REGISTERS.argp)
+#endif
 #undef REGISTERS
 
 /* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_solution() */
 #undef NEXT_INSTRUCTION
 #undef VMH_GOTO
 #define NEXT_INSTRUCTION (void)0
+#if VMI_TAILCALL
+#define VMH_GOTO(n) do { REGISTERS.helper_args.n = \
+			   (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT(); \
+			 PC = helper_##n(VMI_ARG_PASS); \
+		       } while(0)
+#else
 #define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, \
 				    (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT())
+#endif
 
 #if VMI_USE_REGISTER_VARIABLES
 # undef LD
