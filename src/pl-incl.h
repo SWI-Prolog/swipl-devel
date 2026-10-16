@@ -2784,6 +2784,7 @@ typedef struct
 #define PROCEDURE_catch3		(GD->procedures.catch3)
 #define PROCEDURE_reset3		(GD->procedures.reset3)
 #define PROCEDURE_dtbl_reset6		(GD->procedures.dtbl_reset6)
+#define PROCEDURE_call_continuation1	(GD->procedures.call_continuation1)
 #define PROCEDURE_true0			(GD->procedures.true0)
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)

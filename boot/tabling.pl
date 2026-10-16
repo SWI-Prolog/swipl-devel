@@ -679,8 +679,9 @@ run_leader(Skeleton, Worker, SCC, Worklist, Status, Clause) :-
 %        join the two explicitly.
 
 %   Without debugging, '$tbl_reset'/6 adds the answers.  It fails after
-%   adding an answer, unless the answer completes the table, in which
-%   case Continuation is 0.
+%   adding an answer, after pruning the choice points of Worker if the
+%   answer completes the table.  It only exits if Worker suspends.  All
+%   callers of delim/4 fail after it succeeds.
 
 :- if(current_prolog_flag(prolog_debug, true)).
 delim(Skeleton, Worker, WorkList, Delays) :-
@@ -699,10 +700,7 @@ delim(Skeleton, Worker, WorkList, Delays) :-
 :- else.
 delim(Skeleton, Worker, WorkList, Delays) :-
     '$tbl_reset'(Worker, SourceCall, Continuation, WorkList, Skeleton, Delays),
-    (   Continuation == 0
-    ->  !
-    ;   delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays)
-    ).
+    delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays).
 :- endif.
 
 delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays) :-
@@ -921,6 +919,7 @@ completion_(SCC) :-
 
 %!  completion_step(+Worklist) is fail.
 
+:- if(current_prolog_flag(prolog_debug, true)).
 completion_step(SourceWL) :-
     '$tbl_wkl_work'(SourceWL,
                     Answer, Continuation, TargetSkeleton, TargetWL, Delays),
@@ -932,6 +931,15 @@ completion_step(SourceWL) :-
            [TargetGoal, SourceGoal, Answer, Cond]),
     delim(TargetSkeleton, Continuation, TargetWL, Delays),
     fail.
+:- else.
+completion_step(SourceWL) :-                    % inlines delim/4
+    '$tbl_wkl_work'(SourceWL,
+                    _Answer, Continuation, TargetSkeleton, TargetWL, Delays),
+    '$tbl_reset'(Continuation, SourceCall, Cont,
+                 TargetWL, TargetSkeleton, Delays),
+    delim_suspended(SourceCall, Cont, TargetSkeleton, TargetWL, Delays),
+    fail.
+:- endif.
 
 
 		 /*******************************

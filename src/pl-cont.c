@@ -559,6 +559,73 @@ retry:
   }
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+push_continuation_list() pushes all  environments of  a  continuation
+list as produced by shift/1 at once, the last (outermost) first, such
+that each environment returns into the next.  This does the same as
+call_continuation/1, but without executing that predicate.
+
+This is only used by tabling.  In general, reinstalling the whole
+continuation can make a program quadratic (Schrijvers et al., ICLP 2013,
+section 4.2): if a resumed continuation shifts again, the next capture
+must scan all reinstalled environments, whereas call_continuation/1
+keeps the not yet resumed part as the term `Rest` in its own
+environment.  A generator that shifts from a non-tail-recursive loop
+thus becomes quadratic.  Tabling copies each captured continuation into
+the worklist and back for each resumption (term_to_fastheap() and
+put_fastheap()), which is linear in the size of the continuation
+anyway, so reinstalling it as a whole does not change the complexity.
+See doc/tabling/continuations.md.
+
+Returns the PC  at which to start
+or NULL with an exception.  If the list is empty, it returns `pcret`.
+If the list contains a call(Goal) element, which represents a nested
+reset/3, it returns NULL without an exception and pushes nothing.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+push_continuation_list(DECL_LD term_t list, LocalFrame pfr, Code pcret)
+{ term_t pref = consTermRef(pfr);
+  tmp_buffer b;
+  Word p;
+  size_t n;
+
+  initBuffer(&b);			/* global offsets of the elements */
+  p = valTermRef(list);
+  deRef(p);
+  for(; isList(*p); )
+  { Word h = HeadList(p);
+
+    deRef(h);
+    if ( hasFunctor(*h, FUNCTOR_call1) )
+    { discardBuffer(&b);
+      return NULL;			/* nested reset; no exception */
+    }
+    addBuffer(&b, (size_t)(h-gBase), size_t);
+    p = TailList(p);
+    deRef(p);
+  }
+  if ( !isNil(*p) )
+  { discardBuffer(&b);
+    PL_type_error("continuation", list);
+    return NULL;
+  }
+
+  for(n = entriesBuffer(&b, size_t); n-- > 0; )
+  { term_t cont = pushWordAsTermRef(gBase+baseBuffer(&b, size_t)[n]);
+
+    pcret = push_continuation(cont, (LocalFrame)valTermRef(pref), pcret);
+    popTermRef();
+    if ( !pcret )
+      break;
+    pref = consTermRef(environment_frame);
+  }
+  discardBuffer(&b);
+
+  return pcret;
+}
+
+
 void
 cleanupCont(void)
 { memset(fast_functors, 0, sizeof(fast_functors));

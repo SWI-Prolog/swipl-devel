@@ -360,6 +360,7 @@ setBuiltinPredicateProperties(void)
   LOOKUPPROC(catch3);
   LOOKUPPROC(reset3);
   LOOKUPPROC(dtbl_reset6);
+  LOOKUPPROC(call_continuation1);
   LOOKUPPROC(dmeta_call1);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);

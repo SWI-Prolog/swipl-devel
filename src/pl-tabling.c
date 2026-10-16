@@ -4927,10 +4927,36 @@ unify_arg_term(DECL_LD term_t a, Word v)
   Trail(p, linkValI(v));
 }
 
-#define unify_dependency(a0, dependency, wl, answer) LDFUNC(unify_dependency, a0, dependency, wl, answer)
+/* Unify `term` with the Prolog term represented by `node`.  Note that
+ * the node can be a secondary value in the case of answer subsumption,
+ * in which case a term Ret/ModeArgs is created.
+ */
+
+#define tbl_unify_answer(node, term) LDFUNC(tbl_unify_answer, node, term)
+static int
+tbl_unify_answer(DECL_LD trie_node *node, term_t term)
+{ if ( node )
+  { if ( unlikely(ison(node, TN_SECONDARY)) )
+    { term_t av = PL_new_term_refs(2);
+
+      return ( unify_trie_term(node, &node, av+1) &&
+	       unify_trie_term(node, NULL,  av+0) &&
+	       PL_cons_functor_v(av+0, FUNCTOR_divide2, av) &&
+	       PL_unify_output(term, av+0) );
+    } else
+    { return unify_trie_term(node, NULL, term);
+    }
+  }
+
+  return true;				/* for negative dummy solutions */
+}
+
+
+#define unify_dependency(a0, dependency, wl, answer, unified) \
+	LDFUNC(unify_dependency, a0, dependency, wl, answer, unified)
 static int
 unify_dependency(DECL_LD term_t a0, term_t dependency,
-		 worklist *wl, trie_node *answer)
+		 worklist *wl, trie_node *answer, bool unified)
 { if ( !ensureStackSpace(10, 5) )
     return false;
 
@@ -4949,8 +4975,14 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
   unify_arg_term(a0+3,    &f->arguments[3]); /* TargetWL */
   unify_arg_term(a0+4,    &f->arguments[4]); /* Delays */
 
-  if ( !PL_unify(srcskel, a0+0) )
-    return false;
+  if ( unified || !answer )
+  { if ( !PL_unify(srcskel, a0+0) )
+      return false;
+  } else				/* unify the answer into the skeleton */
+  { if ( !tbl_unify_answer(answer, srcskel) ||
+	 !PL_unify(a0+0, srcskel) )
+      return false;
+  }
   if ( !idg_set_current_wl(a0+3) )
     return false;
 
@@ -4980,29 +5012,6 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
 }
 
 
-/* Unify `term` with the Prolog term represented by `node`.  Note that
- * the node can be a secondary value in the case of answer subsumption,
- * in which case a term Ret/ModeArgs is created.
- */
-
-#define tbl_unify_answer(node, term) LDFUNC(tbl_unify_answer, node, term)
-static int
-tbl_unify_answer(DECL_LD trie_node *node, term_t term)
-{ if ( node )
-  { if ( unlikely(ison(node, TN_SECONDARY)) )
-    { term_t av = PL_new_term_refs(2);
-
-      return ( unify_trie_term(node, &node, av+1) &&
-	       unify_trie_term(node, NULL,  av+0) &&
-	       PL_cons_functor_v(av+0, FUNCTOR_divide2, av) &&
-	       PL_unify_output(term, av+0) );
-    } else
-    { return unify_trie_term(node, NULL, term);
-    }
-  }
-
-  return true;				/* for negative dummy solutions */
-}
 
 
 static int
@@ -5298,17 +5307,11 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	 (an != NULL && IS_TNOT(sp->term) && answer_is_conditional(an)) )
       continue;
 
-    /* We got an answer we want to pass the suspension cluster.
-     * Unify A2 with it and get the first suspension.
+    /* We got an answer we want to pass the suspension cluster.  A2
+     * is unified with it if we need it to filter the suspensions.
+     * Otherwise unify_dependency() unifies the answer directly into
+     * the source skeleton of the suspension.
      */
-
-    if ( can != an )				/* reuse the answer */
-    { if ( can )
-	Undo(fli_context->mark);
-      if ( !tbl_unify_answer(an, A2) )
-	break;					/* resource error */
-      can = an;
-    }
 
     /* WFS: need to add a positive node to the delay list if `an`
      * is conditional.  The positive node contains the variant
@@ -5330,6 +5333,14 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 
     if ( sp->instance && an )
     { int rc;
+
+      if ( can != an )				/* reuse the answer */
+      { if ( can )
+	  Undo(fli_context->mark);
+	if ( !tbl_unify_answer(an, A2) )
+	  break;				/* resource error */
+	can = an;
+      }
 
       if ( !state->keys_inited )
       { Word p = valTermRef(A2);
@@ -5377,12 +5388,25 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
      */
 
   match:
-    if ( !( (susp=PL_new_term_ref()) &&
-	    PL_recorded(UNTNOT(sp->term), susp) &&
-				      /* unifies A4..A8 */
-	    unify_dependency(A2, susp, state->list, an)
-	  ) )
-      break;			/* resource errors */
+    if ( can && can != an )			/* A2 holds another answer */
+    { Undo(fli_context->mark);
+      can = NULL;
+    }
+    { Word attvars = LD->attvar.attvars;
+
+      if ( !( (susp=PL_new_term_ref()) &&
+	      PL_recorded(UNTNOT(sp->term), susp) ) )
+	break;			/* resource errors */
+				/* the skeleton has constraints: unify */
+      if ( LD->attvar.attvars != attvars && can != an )
+      { if ( !tbl_unify_answer(an, A2) )
+	  break;
+	can = an;
+      }
+				/* unifies A4..A8 */
+      if ( !unify_dependency(A2, susp, state->list, an, can == an) )
+	break;			/* resource errors */
+    }
 
     DEBUG(MSG_TABLING_WORK,
 	  { Sdprintf("Work: %d %d\n\t",

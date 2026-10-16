@@ -378,7 +378,6 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     ignore(0),
     catch(0,?,0),
     reset(0,?,-),
-    '$tbl_reset'(0,?,-,+,+,+),
     setup_call_cleanup(0,0,0),
     setup_call_catcher_cleanup(0,0,?,0),
     call_cleanup(0,0),
@@ -604,12 +603,15 @@ notrace(Goal) :-
 reset(_Goal, _Ball, _Cont) :-
     '$reset'.
 
-%!  '$tbl_reset'(:Goal, ?Ball, -Continue, +WorkList, +Skeleton, +Delays)
+%!  '$tbl_reset'(+Goal, ?Ball, -Continue, +WorkList, +Skeleton, +Delays)
 %
 %   As reset/3, but if Goal succeeds, add Skeleton as an answer to
-%   WorkList with Delays.  Fails after adding the answer, unless the
-%   answer completes the table, in which case Continue is unified with
-%   0.  Used by delim/4 of the tabling library.
+%   WorkList with Delays and fail.  If the answer completes the table,
+%   first prune the choice points of Goal.  Thus, this only succeeds if
+%   Goal suspends.  Used by delim/4 of the tabling library.  Goal is
+%   either a module-qualified goal or a continuation.  This is not a
+%   meta-predicate to avoid qualifying the continuation on every
+%   resumption.
 
 '$tbl_reset'(_Goal, _Ball, _Cont, _WorkList, _Skeleton, _Delays) :-
     '$reset'.

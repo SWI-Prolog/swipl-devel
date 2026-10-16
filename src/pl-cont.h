@@ -44,12 +44,14 @@
 
 #if USE_LD_MACROS
 #define	push_continuation(cont, pfr, pcret)	LDFUNC(push_continuation, cont, pfr, pcret)
+#define	push_continuation_list(cont, pfr, pcret) LDFUNC(push_continuation_list, cont, pfr, pcret)
 #define	shift(ball, for_copy)			LDFUNC(shift, ball, for_copy)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
 HOT Code	push_continuation(term_t cont, LocalFrame pfr, Code pcret);
+Code	push_continuation_list(term_t cont, LocalFrame pfr, Code pcret);
 Code	shift(term_t ball, bool for_copy);
 
 #undef LDFUNC_DECLARATIONS

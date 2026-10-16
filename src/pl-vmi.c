@@ -5740,8 +5740,14 @@ Where '$reset' maps to
     I_EXITRESET
 
 '$tbl_reset'/6 has the same body.  For this predicate, I_EXITRESET
-adds the answer to the worklist of tabling and fails unless the answer
-completes the table.  See delim/4 in boot/tabling.pl.
+adds the answer to the worklist of tabling and fails.  If the answer
+completes the table, it first prunes the choice points of the goal, so
+'$tbl_reset'/6 only exits if the goal suspends (shift/1).  See delim/4
+in boot/tabling.pl.  If its goal is
+call_continuation(List), which is the case when tabling resumes a
+suspended goal, I_RESET pushes the environments of List directly (see
+push_continuation_list()) rather than meta-calling
+call_continuation/1.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -5753,6 +5759,38 @@ VMI(I_RESET, 0, 0, ())
     THROW_EXCEPTION;
   }
   setLocal(FR, FR_INRESET);
+  if ( FR->predicate == PROCEDURE_dtbl_reset6->definition )
+  { Word g;
+
+    deRef2(p, g);
+    if ( hasFunctor(*g, FUNCTOR_colon2) )
+      deRef2(argTermP(*g, 1), g);
+    if ( hasFunctor(*g, FUNCTOR_call_continuation1) )
+    { term_t list = pushWordAsTermRef(argTermP(*g, 0));
+      Code pc;
+
+      SAVE_REGISTERS(QID);
+      pc = push_continuation_list(list, FR, PC);
+      LOAD_REGISTERS(QID);
+      popTermRef();
+      if ( !pc )
+      { if ( exception_term )
+	  THROW_EXCEPTION;
+	deRef2(argFrameP(FR, 0), g);	/* contains call(Goal) */
+	if ( hasFunctor(*g, FUNCTOR_colon2) )
+	  deRef2(argTermP(*g, 1), g);
+	NFR = lTop;
+	*argFrameP(NFR, 0) = linkValI(argTermP(*g, 0));
+	DEF = PROCEDURE_call_continuation1->definition;
+	VMH_GOTO(mcall_cont, MODULE_system);
+      }
+      PC = pc;
+      FR = environment_frame;
+      DEF = FR->predicate;
+      ARGP = argFrameP(lTop, 0);
+      NEXT_INSTRUCTION;
+    }
+  }
 			  /* = B_VAR0 */
   *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_CALL1);
@@ -5774,13 +5812,14 @@ VMI(I_EXITRESET, 0, 0, ())
       rc = tbl_reset_add_answer(FR);
       PL_close_foreign_frame(fid);
       LOAD_REGISTERS(QID);
-      if ( !rc )
-      { if ( exception_term )
-	  THROW_EXCEPTION;
-	BODY_FAILED;
+      if ( rc )				/* answer completes the table */
+      { SAVE_REGISTERS(QID);
+	discardChoicesAfter(FR, FINISH_CUT);
+	LOAD_REGISTERS(QID);
       }
-      p = argFrameP(FR, 2);
-      deRef(p);
+      if ( exception_term )
+	THROW_EXCEPTION;
+      BODY_FAILED;
     }
     ENSURE_GLOBAL_SPACE(0,
 			{ p = argFrameP(FR, 2);
