@@ -45,6 +45,7 @@
 #include "pl-gc.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Wrap and unwrap predicates. Wrapping  is   realised  by manipulating the
@@ -189,7 +190,7 @@ void
 unregisterWrappedSupervisor(Code codes)
 { codes = skipWrapperPrefix(codes);
 
-  if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+  if ( unlikely(isCallWrapper(codes[0])) )
   { atom_t aref  = (atom_t)codes[2];
     atom_t wname = (atom_t)codes[3];
 
@@ -211,7 +212,7 @@ resetWrappedSupervisor(Definition def0, bool do_linger)
   Code codes = def->codes;
   Code cw    = skipWrapperPrefix(codes);
 
-  while ( cw[0] == encode(S_CALLWRAPPER) )
+  while ( isCallWrapper(cw[0]) )
   { closure *c = PL_blob_data(cw[2], NULL, NULL);
 
     def   = &c->def;
@@ -229,7 +230,7 @@ static Code
 find_wrapper(Definition def, atom_t name)
 { Code codes = skipWrapperPrefix(def->codes);
 
-  while ( codes[0] == encode(S_CALLWRAPPER) )
+  while ( isCallWrapper(codes[0]) )
   { closure *c;
 
     if ( codes[3] == (code)name )
@@ -312,6 +313,21 @@ retry:
 		 *	      PROLOG		*
 		 *******************************/
 
+/* The `table` wrapper of a plain variant tabled predicate uses S_TABLED,
+ * which runs the compiled answer trie directly if the table is complete
+ * and falls back to S_CALLWRAPPER otherwise.
+ */
+
+static code
+wrapper_vmi(Definition def, atom_t wname)
+{ if ( wname == ATOM_table &&
+       def->tabling && ison(def->tabling, TP_VARIANT) )
+    return encode(S_TABLED);
+
+  return encode(S_CALLWRAPPER);
+}
+
+
 /** '$c_wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body)
  *
  * Install a wrapper for the predicate Head
@@ -344,6 +360,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
     { Clause cl = code2ptr(ClauseRef, codes[1])->value.clause;
 
       codes[1] = ptr2code(cref);
+      codes[0] = wrapper_vmi(def, wname);
       retractClauseDefinition(cl->predicate, cl, false);
 
       return true;
@@ -362,7 +379,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	PL_register_atom(aref);
 	PL_register_atom(wname);
 
-	codes[0] = encode(S_CALLWRAPPER);
+	codes[0] = wrapper_vmi(def, wname);
 	codes[1] = ptr2code(cref);
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
@@ -394,7 +411,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
   { Definition def = proc->definition;
     Code codes = skipWrapperPrefix(def->codes);
 
-    if ( codes[0] == encode(S_CALLWRAPPER) )
+    if ( isCallWrapper(codes[0]) )
     { term_t tail = PL_copy_term_ref(A2);
       term_t head = PL_new_term_ref();
       term_t ct   = PL_new_term_ref();
@@ -412,7 +429,7 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 	  return false;
 
 	codes = skipWrapperPrefix(c->def.impl.wrapped.supervisor);
-	if ( codes[0] != encode(S_CALLWRAPPER) )
+	if ( !isCallWrapper(codes[0]) )
 	  return PL_unify_nil(tail);
       }
     }
@@ -488,7 +505,7 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
     Code codes = *cp;
     Code cw    = skipWrapperPrefix(codes);
 
-    while ( cw[0] == encode(S_CALLWRAPPER) )
+    while ( isCallWrapper(cw[0]) )
     { ClauseRef cref = code2ptr(ClauseRef, cw[1]);
       Clause cl = cref->value.clause;
       atom_t aref = (atom_t)cw[2];

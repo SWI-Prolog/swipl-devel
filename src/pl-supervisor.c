@@ -114,7 +114,7 @@ freeCodesDefinition(Definition def, bool do_linger)
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
   { if ( (codes = def->codes) )
-    { if ( unlikely(skipWrapperPrefix(codes)[0] == encode(S_CALLWRAPPER)) )
+    { if ( unlikely(isCallWrapper(skipWrapperPrefix(codes)[0])) )
       { resetWrappedSupervisor(def, do_linger);
 	if ( !do_linger )
 	{ codes = def->codes;

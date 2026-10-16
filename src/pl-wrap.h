@@ -48,6 +48,12 @@ typedef struct closure
 
 extern PL_blob_t _PL_closure_blob;	/* defined in pl-wrap.c */
 
+/* A wrapper supervisor starts with S_CALLWRAPPER or S_TABLED.  Both
+ * have the same arguments: <wrapper clause> <closure> <wrapper name>
+ */
+#define isCallWrapper(c) ((c) == encode(S_CALLWRAPPER) || \
+			  (c) == encode(S_TABLED))
+
 #define LDFUNC_DECLARATIONS
 
 void	  initWrap(void);

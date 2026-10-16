@@ -82,6 +82,7 @@ typedef union trie_children
 #define TN_IDG_ADDED			0x0010	/* IDG recovery */
 #define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
 #define TN_IDG_AS_LAST			0x0040	/* IDG: answer subsumption node */
+#define TN_PINNED			0x0080	/* Never pruned (cached node) */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
 	 TN_IDG_UNCONDITIONAL|TN_IDG_AS_LAST)
@@ -161,10 +162,12 @@ typedef struct size_abstract
 #define TRIE_ABSTRACTED			  2
 #define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
 #define TRIE_LOOKUP_CYCLIC		-11
+#define TRIE_LOOKUP_NOT_FLAT		-12	/* trie_lookup_flat() */
 
 #if USE_LD_MACROS
 #define	unify_trie_term(node, parent, term)					LDFUNC(unify_trie_term, node, parent, term)
 #define	trie_lookup_abstract(trie, root, nodep, k, add, abstract, vars)		LDFUNC(trie_lookup_abstract, trie, root, nodep, k, add, abstract, vars)
+#define	trie_lookup_flat(trie, startp, nodep, def, argv, vars)			LDFUNC(trie_lookup_flat, trie, startp, nodep, def, argv, vars)
 #define	put_trie_value(t, node)							LDFUNC(put_trie_value, t, node)
 #define	set_trie_value(trie, node, value)					LDFUNC(set_trie_value, trie, node, value)
 #define	compile_trie(def, trie)							LDFUNC(compile_trie, def, trie)
@@ -192,6 +195,9 @@ int	trie_lookup_abstract(trie *trie,
 			     trie_node *root, trie_node **nodep, Word k,
 			     bool add, size_abstract *abstract,
 			     TmpBuffer vars);
+int	trie_lookup_flat(trie *trie, trie_node **startp,
+			 trie_node **nodep,
+			 Definition def, Word argv, TmpBuffer vars);
 bool	trie_error(int rc, term_t culprit);
 bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);

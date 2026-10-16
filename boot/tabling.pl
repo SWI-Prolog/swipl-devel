@@ -278,6 +278,7 @@ untable(Name/Arity, M) :-
         retractall(M:'$table_mode'(Head, _Variant, _Moded)),
         unwrap_predicate(M:Name/Arity, table),
         '$set_predicate_attribute'(M:Head, tabled, false),
+        '$set_predicate_attribute'(M:Head, tabled_variant, false),
         '$set_predicate_attribute'(M:Head, opaque, false),
         '$set_predicate_attribute'(M:Head, incremental, false),
         '$set_predicate_attribute'(M:Head, monotonic, false),
@@ -304,17 +305,20 @@ untable_reconsult(PI) :-
     get_dict(mode, Options, subsumptive),
     !,
     set_pattributes(Head, Options),
+    '$set_predicate_attribute'(Head, tabled_variant, false),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       start_subsumptive_tabling(Closure, Head, Wrapped)).
 '$wrap_tabled'(Head, Options) :-
     get_dict(subgoal_abstract, Options, _Abstract),
     !,
     set_pattributes(Head, Options),
+    '$set_predicate_attribute'(Head, tabled_variant, false),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       start_abstract_tabling(Closure, Head, Wrapped)).
 '$wrap_tabled'(Head, Options) :-
     !,
     set_pattributes(Head, Options),
+    '$set_predicate_attribute'(Head, tabled_variant, true),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       start_tabling(Closure, Head, Wrapped)).
 
@@ -674,6 +678,7 @@ delim(Skeleton, Worker, WorkList, Delays) :-
 
 '$moded_wrap_tabled'(Head, Options, ModeTest, WrapperNoModes, ModeArgs) :-
     set_pattributes(Head, Options),
+    '$set_predicate_attribute'(Head, tabled_variant, false),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       (   ModeTest,
                           start_moded_tabling(Closure, Head, Wrapped,

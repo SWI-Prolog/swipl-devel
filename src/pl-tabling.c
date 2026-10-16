@@ -226,6 +226,7 @@ static void	reset_reevaluation(trie *atrie);
 static int	unify_component_status(term_t t, tbl_component *scc);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static bool	table_is_incomplete(trie *trie);
+static void	free_node_array(node_array *a);
 static int	idg_add_edge(trie *atrie, trie *ctrie);
 static int	idg_set_current_wl(term_t wlref);
 #ifdef O_PLMT
@@ -2517,8 +2518,9 @@ destroy_delay_info_table(trie_node *node, void *ctx)
 
 
 static void
-clear_variant_table(trie **vtriep)
+clear_variant_table(trie **vtriep, node_array **startp)
 { trie *vtrie;
+  node_array *sa;
 
   if ( (vtrie=*vtriep) )
   { vtrie->magic = TRIE_CMAGIC;
@@ -2528,6 +2530,11 @@ clear_variant_table(trie **vtriep)
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
     *vtriep = NULL;
+  }
+
+  if ( (sa=*startp) )				/* nodes are in vtrie */
+  { *startp = NULL;
+    free_node_array(sa);
   }
 }
 
@@ -2555,14 +2562,10 @@ trie_ret_arity(Word const *pp, Word const *ep)
 #endif
 }
 
-static int /* bool or *_OVERFLOW */
-unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
-{ Word *pp = baseBuffer(vars, Word);
-  Word *ep = topBuffer(vars, Word);
-  size_t arity = trie_ret_arity(pp, ep);
-  functor_t vf;
+static functor_t
+ret_functor(size_t arity)
+{ functor_t vf;
 
-  assert(arity > 0);
   if ( arity < VAR_SKEL_FAST )
   { if ( !(vf=fast_ret_functor[arity]) )
       fast_ret_functor[arity] = vf = PL_new_functor(ATOM_ret, arity);
@@ -2571,6 +2574,18 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
   }
 
   assert(valueFunctor(vf));
+  return vf;
+}
+
+static int /* bool or *_OVERFLOW */
+unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
+{ Word *pp = baseBuffer(vars, Word);
+  Word *ep = topBuffer(vars, Word);
+  size_t arity = trie_ret_arity(pp, ep);
+  functor_t vf;
+
+  assert(arity > 0);
+  vf = ret_functor(arity);
 
   if ( hasGlobalSpace(arity+1) )
   { Word p = allocGlobalNoShift(arity+1);
@@ -2799,7 +2814,7 @@ void
 clearThreadTablingData(PL_local_data_t *ld)
 { reset_global_worklist(ld->tabling.component);
   reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
-  clear_variant_table(&ld->tabling.variant_table);
+  clear_variant_table(&ld->tabling.variant_table, &ld->tabling.start_nodes);
 }
 
 
@@ -9660,7 +9675,8 @@ tbl_is_predicate_attribute(atom_t key)
 	   key == ATOM_tshared ||
 	   key == ATOM_opaque ||
 	   key == ATOM_lazy ||
-	   key == ATOM_tabled
+	   key == ATOM_tabled ||
+	   key == ATOM_tabled_variant
 	 );
 }
 
@@ -9673,6 +9689,7 @@ clear_table_props(table_props *p)
   p->answer_abstract  = (size_t)-1;
   p->max_answers      = (size_t)-1;
   p->lazy_queue	      = NULL;
+  p->start_id	      = 0;
 }
 
 
@@ -9704,6 +9721,8 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
     { return PL_unify_integer(value, !!ison(p, TP_LAZY));
     } else if ( att == ATOM_tabled )
     { return PL_unify_integer(value, !!ison(p, TP_TABLED));
+    } else if ( att == ATOM_tabled_variant )
+    { return PL_unify_integer(value, !!ison(p, TP_VARIANT));
     } else
     { size_t v0;
 
@@ -9818,6 +9837,8 @@ tbl_set_predicate_attribute(Definition def, atom_t att, term_t value)
   { return set_bool_attr(def, TP_LAZY, value);
   } else if ( att == ATOM_tabled )
   { return set_bool_attr(def, TP_TABLED, value);
+  } else if ( att == ATOM_tabled_variant )
+  { return set_bool_attr(def, TP_VARIANT, value);
   } else
   { table_props *p = get_predicate_table_props(def);
     size_t v;
@@ -10324,6 +10345,414 @@ wait_for_table_to_complete(trie *atrie)
 
 
 		 /*******************************
+		 *	   S_TABLED SUPPORT	*
+		 *******************************/
+
+/* Create M:Head in `t` for the call in the current supervisor frame.
+ * Unbound arguments on the local stack are globalised.  If `abstract`
+ * is true, the arguments are fresh variables.  Must be called with the
+ * VM registers saved.  Used by S_TABLED and S_INCR_DYNAMIC.
+ */
+
+bool
+put_supervisor_goal(DECL_LD term_t t, Definition def, bool abstract)
+{ size_t arity = def->functor->arity;
+  size_t cells = 3 + (arity ? arity+1 : 0);
+  Word gp;
+
+  if ( !ensureStackSpace(cells, arity) ) /* trail for LTrail() below */
+    return false;
+  gp = allocGlobalNoShift(cells);
+
+  gp[0] = FUNCTOR_colon2;
+  gp[1] = def->module->name;
+  if ( arity == 0 )
+  { gp[2] = def->functor->name;
+  } else if ( abstract )
+  { gp[2] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+    gp[3] = def->functor->functor;
+    for(size_t i=0; i<arity; i++)
+      setVar(gp[4+i]);
+  } else
+  { Word fp = argFrameP(LD->query->registers.fr, 0); /* may have shifted */
+    Word ap = &gp[4];
+
+    gp[2] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+    gp[3] = def->functor->functor;
+    for(size_t i=0; i<arity; i++, fp++, ap++)
+    { Word fa;
+
+      deRef2(fp, fa);
+      if ( isVar(*fa) && onStack(local, fa) )
+      { setVar(*ap);
+	LTrail(fa);
+	*fa = makeRefG(ap);
+      } else
+      { *ap = needsRef(*fa) ? makeRefG(fa) : *fa;
+      }
+    }
+  }
+
+  *valTermRef(t) = consPtr(gp, TAG_COMPOUND|STG_GLOBAL);
+  return true;
+}
+
+
+/* Return the compiled answer trie of `atrie` if the table is complete
+ * and valid, or 0 if start_tabling/3 must handle the call.  Shared
+ * tables are only handled without locking if they are complete and
+ * compiled.  Otherwise start_tabling/3 deals with claiming, waiting and
+ * compiling.
+ */
+
+#define complete_answer_clause(atrie) LDFUNC(complete_answer_clause, atrie)
+static atom_t
+complete_answer_clause(DECL_LD trie *atrie)
+{ if ( isoff(atrie, TRIE_COMPLETE) ||
+       complete_or_invalid_status(atrie, true) != ATOM_complete )
+    return 0;
+
+#ifdef O_PLMT
+  if ( ison(atrie, TRIE_ISSHARED) )
+  { atom_t clref;
+
+    if ( atrie->tid || table_needs_work(atrie) ||
+	 !(clref = atrie->clause) )
+      return 0;
+    pushVolatileAtom(clref);		/* see (*) at get_answer_table() */
+    return clref == atrie->clause ? clref : 0;
+  }
+#endif
+
+  return atrie->clause;			/* 0: let S_TRIE_GEN compile */
+}
+
+
+/* Register calling the complete table `atrie` and return `clref`,
+ * ATOM_fail or ATOM_error.
+ */
+
+#define call_complete_table(atrie, def, clref) \
+	LDFUNC(call_complete_table, atrie, def, clref)
+static atom_t
+call_complete_table(DECL_LD trie *atrie, Definition def, atom_t clref)
+{ if ( !idg_init_variant(atrie, def, 0) ||
+       !idg_add_edge(atrie, NULL) )
+    return PL_exception(0) ? ATOM_error : ATOM_fail;
+
+#ifdef O_TRIE_STATS
+  if ( ison(atrie, TRIE_ISSHARED) )	/* avoid the atomic for private tables */
+    TRIE_STAT_INC(atrie, gen_call);
+  else
+    atrie->stats.gen_call++;
+#endif
+
+  return clref;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Start node cache.  The start node of a predicate in a variant table is
+the node after the keys `:`/2, M and Name/Arity (see trie_lookup_flat()).
+We cache it in a node_array that belongs to the variant table, indexed
+by table_props.start_id.  The array is freed with the variant table
+(clear_variant_table()).  Cached nodes are pinned (TN_PINNED), such that
+abolishing the tables of a predicate does not prune them.  Like the
+trie_array for waiting threads, blocks are never moved, so we can read
+the array without locking.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static unsigned int start_node_ids = 0;
+
+static node_array *
+new_node_array(void)
+{ node_array *a = allocHeapOrHalt(sizeof(*a));
+
+  memset(a, 0, sizeof(*a));
+  for(int i=0; i<=MSB(TRIE_ARRAY_PREALLOCATED); i++)
+    a->blocks[i] = a->preallocated - 1;
+
+  return a;
+}
+
+
+static void
+free_node_array(node_array *a)
+{ for(int i = 0; i < MAX_BLOCKS; i++)
+  { if ( a->blocks[i] && a->blocks[i] != a->preallocated - 1 )
+    { size_t bs = (size_t)1<<i;
+
+      PL_free(a->blocks[i]+bs);
+    }
+  }
+
+  freeHeap(a, sizeof(*a));
+}
+
+
+static unsigned int
+start_node_id(table_props *tp)
+{ unsigned int id;
+
+  if ( !(id=tp->start_id) )		/* a race only loses a cache entry */
+    tp->start_id = id = ATOMIC_INC(&start_node_ids);
+
+  return id;
+}
+
+
+#define start_node_array(shared) LDFUNC(start_node_array, shared)
+static inline node_array **
+start_node_array(DECL_LD bool shared)
+{
+#ifdef O_PLMT
+  if ( shared )
+    return &GD->tabling.start_nodes;
+#endif
+  return &LD->tabling.start_nodes;
+}
+
+
+static inline trie_node *
+get_start_node(const node_array *a, unsigned int id)
+{ if ( a )
+  { size_t idx = MSB(id);
+
+    if ( idx < MAX_BLOCKS && a->blocks[idx] )
+      return a->blocks[idx][id];
+  }
+
+  return NULL;
+}
+
+
+static void
+set_start_node(node_array **ap, unsigned int id, trie_node *node)
+{ node_array *a;
+  size_t idx = MSB(id);
+
+  if ( idx >= MAX_BLOCKS )
+    return;
+  if ( !(a=*ap) )
+  { a = new_node_array();
+    if ( !COMPARE_AND_SWAP_PTR(ap, NULL, a) )
+    { freeHeap(a, sizeof(*a));
+      a = *ap;
+    }
+  }
+
+  if ( !a->blocks[idx] )
+  { size_t bs = (size_t)1<<idx;
+    trie_node **newblock;
+
+    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(trie_node*))) )
+      return;				/* just do not cache */
+    memset(newblock, 0, bs*sizeof(trie_node*));
+    if ( !COMPARE_AND_SWAP_PTR(&a->blocks[idx], NULL, newblock-bs) )
+      PL_free(newblock);
+  }
+
+  set(node, TN_PINNED);			/* before publishing it */
+  a->blocks[idx][id] = node;
+}
+
+
+/* Create ret(V1, ...) for the variables found by trie_lookup_flat().
+ * Variables on the local stack are globalised.  The caller ensures
+ * the global and trail stack have space.
+ */
+
+#define flat_skeleton(vars) LDFUNC(flat_skeleton, vars)
+static word
+flat_skeleton(DECL_LD TmpBuffer vars)
+{ Word *pp = baseBuffer(vars, Word);
+  Word *ep = topBuffer(vars, Word);
+  size_t arity = ep-pp;
+  Word p;
+  word w;
+
+  if ( arity == 0 )
+    return atom2word(ATOM_ret);
+
+  p = allocGlobalNoShift(arity+1);
+  w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  *p++ = ret_functor(arity);
+  for(; pp < ep; pp++, p++)
+  { Word vp = *pp;
+
+    if ( onStack(local, vp) )
+    { setVar(*p);
+      LTrail(vp);
+      *vp = makeRefG(p);
+    } else
+    { *p = makeRefG(vp);
+    }
+  }
+
+  return w;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+tbl_complete_answer_clause() is the fast path of the S_TABLED supervisor
+for calling a variant tabled predicate (TP_VARIANT).  If the table for
+the call exists, is complete and valid and has a compiled answer trie,
+it puts this clause in argument 0 of the current frame and the answer
+skeleton (ret/N) in argument 1, such that the caller can run the clause
+in this frame as trie_gen_compiled/2.  This does the same as the
+`Status == complete` path of start_tabling/3.
+
+Returns
+  - The clause reference of the compiled answer trie
+  - ATOM_fail if the call must fail
+  - ATOM_error if an exception was raised
+  - 0 if the call must be handled by start_tabling/3.  We only globalised
+    unbound arguments in this case.
+
+Calls whose arguments are atomic or unbound variables use
+trie_lookup_flat() on the frame arguments.  This does not allocate
+anything if the table does not exist or is not complete.  As we ensure
+there is space for the skeleton beforehand, the stacks cannot move.
+Other calls create M:Head and use trie_lookup_abstract().
+
+Must be called from a supervisor with the VM registers saved and lTop
+above the arguments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define complete_answer_clause_term(def, variants) \
+	LDFUNC(complete_answer_clause_term, def, variants)
+static atom_t
+complete_answer_clause_term(DECL_LD Definition def, trie *variants);
+
+atom_t
+tbl_complete_answer_clause(DECL_LD Definition def)
+{ table_props *tp = def->tabling;
+  size_t arity = def->functor->arity;
+  bool shared = false;
+  trie *variants;
+
+  if ( ison(tp, TP_MONOTONIC) &&
+       ( LD->tabling.in_assert_propagation || inner_is_monotonic() ) )
+    return 0;				/* must shift/1 the dependency */
+#ifdef O_PLMT
+  shared = !!ison(tp, TP_SHARED);
+#endif
+  if ( !(variants = variant_table(shared)) )
+    return 0;
+
+  if ( hasStackSpace(arity+1, arity) )
+  { LocalFrame fr = LD->query->registers.fr;
+    unsigned int id = start_node_id(tp);
+    node_array **sap = start_node_array(shared);
+    trie_node *start = get_start_node(*sap, id);
+    bool cached = !!start;
+    tmp_buffer vars;
+    trie_node *node;
+    atom_t clref = 0;
+    int rc;
+
+    initBuffer(&vars);
+    rc = trie_lookup_flat(variants, &start, &node, def, argFrameP(fr, 0),
+			  &vars);
+    if ( !cached && start )
+      set_start_node(sap, id, start);
+    if ( rc != TRIE_LOOKUP_NOT_FLAT )
+    { if ( rc == true && node->value &&
+	   (clref=complete_answer_clause(symbol_trie(word2atom(node->value)))) )
+      { trie *atrie = symbol_trie(word2atom(node->value));
+	word skel = flat_skeleton(&vars);
+
+	if ( (clref = call_complete_table(atrie, def, clref)) != ATOM_fail &&
+	     clref != ATOM_error )
+	{ *argFrameP(fr, 0) = atom2word(clref);
+	  *argFrameP(fr, 1) = skel;
+	}
+      }
+      discardBuffer(&vars);
+      return clref;
+    }
+    discardBuffer(&vars);
+  }
+
+  return complete_answer_clause_term(def, variants);
+}
+
+
+static atom_t
+complete_answer_clause_term(DECL_LD Definition def, trie *variants)
+{ atom_t clref = 0;
+  fid_t fid;
+  term_t variant, skel;
+  size_abstract sa = {.from_depth = 2};
+  tmp_buffer vars;
+  trie *atrie;
+  trie_node *node;
+  int rc;
+
+  if ( !(fid = PL_open_foreign_frame()) )
+    return ATOM_error;
+  variant = PL_new_term_ref();
+  skel    = PL_new_term_ref();
+  if ( !put_supervisor_goal(variant, def, false) )
+  { clref = ATOM_error;
+    goto out;
+  }
+
+  sa.size = pred_max_table_subgoal_size(def);
+  initBuffer(&vars);
+
+retry:
+  rc = trie_lookup_abstract(variants, NULL, &node, valTermRef(variant),
+			    false, &sa, &vars);
+  if ( rc != true || !node->value )
+    goto out_buf;			/* new, abstracted or error */
+
+  atrie = symbol_trie(word2atom(node->value));
+  if ( !(clref = complete_answer_clause(atrie)) )
+    goto out_buf;
+
+  if ( isEmptyBuffer(&vars) )
+  { PL_put_atom(skel, ATOM_ret);
+  } else if ( (rc=unify_trie_ret(skel, &vars)) != true )
+  { clref = ATOM_error;
+    if ( rc < 0 )
+    { emptyBuffer(&vars, (size_t)-1);
+      if ( makeMoreStackSpace(rc, ALLOW_GC) )
+      { clref = 0;
+	goto retry;
+      }
+    }
+    goto out_buf;
+  }
+
+  clref = call_complete_table(atrie, def, clref);
+  discardBuffer(&vars);
+
+  if ( clref != ATOM_fail && clref != ATOM_error )
+  { Word sp = valTermRef(skel);
+    word w;
+    LocalFrame fr;
+
+    deRef(sp);
+    w = *sp;
+    PL_close_foreign_frame(fid);
+					/* frame args may overlap fid */
+    fr = LD->query->registers.fr;
+    *argFrameP(fr, 0) = atom2word(clref);
+    *argFrameP(fr, 1) = w;
+    return clref;
+  }
+  goto out;
+
+out_buf:
+  discardBuffer(&vars);
+out:
+  PL_close_foreign_frame(fid);
+  return clref;
+}
+
+
+		 /*******************************
 		 *	     UNTABLE		*
 		 *******************************/
 
@@ -10384,7 +10813,7 @@ cleanupTabling(void)
 { memset(fast_ret_functor, 0, sizeof(fast_ret_functor));
 
 #ifdef O_PLMT
-  clear_variant_table(&GD->tabling.variant_table);
+  clear_variant_table(&GD->tabling.variant_table, &GD->tabling.start_nodes);
 
   deleteSimpleMutex(&GD->tabling.mutex);
   cv_destroy(&GD->tabling.cvar);

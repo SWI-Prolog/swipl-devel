@@ -3527,57 +3527,20 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
   if ( current &&
        (ctrie = symbol_trie(current)) &&
        ctrie->data.IDG )
-  { fid_t fid;
+  { bool abstract = ( DEF->tabling &&
+		      DEF->tabling->abstract != (size_t)-1 );
+    fid_t fid;
+
+    if ( abstract && DEF->tabling->abstract != 0 )
+      Sdprintf("%% WARNING: Only abstract(0) is supported\n");
 
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
     SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )
-    { Word ap;
-      word w;
-      term_t t = PL_new_term_ref();
+    { term_t t = PL_new_term_ref();
 
-      if ( !(ap = allocGlobal(4+DEF->functor->arity)) )
-	THROW_EXCEPTION;
-
-      w = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-      ap[0] = FUNCTOR_colon2;
-      ap[1] = DEF->module->name;
-      ap[2] = consPtr(&ap[3], TAG_COMPOUND|STG_GLOBAL);
-      ap[3] = DEF->functor->functor;
-      ap += 4;
-
-      if ( DEF->tabling && DEF->tabling->abstract != (size_t)-1 )
-      { size_t i;
-
-	if ( DEF->tabling->abstract != 0 )
-	  Sdprintf("%% WARNING: Only abstract(0) is supported\n");
-	for(i=0; i<DEF->functor->arity; i++)
-	  setVar(ap[i]);
-      } else
-      { size_t i;
-	Word fp;
-
-	LOAD_REGISTERS(QID);
-	SAVE_REGISTERS(QID);
-	fp = argFrameP(FR, 0);
-
-	for(i=0; i<DEF->functor->arity; i++, fp++)
-	{ Word fa;
-
-	  deRef2(fp, fa);
-	  if ( isVar(*fa) && onStack(local, fa) )
-	  { setVar(ap[i]);
-	    LTrail(fa);
-	    *fa = makeRefG(&ap[i]);
-	  } else
-	  { ap[i] = needsRef(*fa) ? makeRefG(fa) : *fa;
-	  }
-	}
-      }
-
-      *valTermRef(t) = w;
-
-      idg_add_dyncall(DEF, ctrie, t);
+      if ( put_supervisor_goal(t, DEF, abstract) )
+	idg_add_dyncall(DEF, ctrie, t);
       PL_close_foreign_frame(fid);
     }
     LOAD_REGISTERS(QID);
@@ -3665,6 +3628,40 @@ VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
   ARGP = argFrameP(FR, 0);
   FR->predicate = DEF = cref->value.clause->predicate;
   TRUST_CLAUSE(cref);
+}
+END_VMI
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_TABLED: Supervisor for the `table` wrapper of a variant tabled
+predicate.  It has the same arguments as S_CALLWRAPPER.  If the table
+for the call is complete, tbl_complete_answer_clause() puts the compiled
+answer trie and the answer skeleton in the first two arguments of the
+frame and we run the answer trie in this frame as trie_gen_compiled/2.
+Otherwise we continue as S_CALLWRAPPER, calling start_tabling/3.
+When debugging we always use the wrapper, so ports are as before.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_TABLED, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
+{ atom_t clref;
+
+  if ( unlikely(debugstatus.debugging) )
+    VMI_GOTO(S_CALLWRAPPER);
+
+  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+  SAVE_REGISTERS(QID);
+  clref = tbl_complete_answer_clause(DEF);
+  LOAD_REGISTERS(QID);
+
+  if ( !clref )
+    VMI_GOTO(S_CALLWRAPPER);
+  if ( clref == ATOM_fail )
+    FRAME_FAILED;
+  if ( clref == ATOM_error )
+    THROW_EXCEPTION;
+
+  ARGP = argFrameP(FR, 0);
+  FR->predicate = DEF = GD->procedures.trie_gen_compiled2->definition;
+  TRUST_CLAUSE(clause_clref(clref));
 }
 END_VMI
 

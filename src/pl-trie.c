@@ -408,7 +408,8 @@ prune_node(trie *trie, trie_node *n)
 { trie_node *p;
   int empty = true;
 
-  for(; empty && n->parent && isoff(n, TN_PRIMARY|TN_SECONDARY); n = p)
+  for(; empty && n->parent && isoff(n, TN_PRIMARY|TN_SECONDARY|TN_PINNED);
+	n = p)
   { trie_children children;
 
     p = n->parent;
@@ -492,7 +493,7 @@ prune_trie(trie *trie, trie_node *root,
     }
 
   prune:
-    for(; n != root && isoff(n, TN_PRIMARY|TN_SECONDARY); n = p)
+    for(; n != root && isoff(n, TN_PRIMARY|TN_SECONDARY|TN_PINNED); n = p)
     { trie_children children;
       int choice = false;
 
@@ -953,6 +954,95 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
   return rc;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trie_lookup_flat() looks up M:Head  in  `trie`   without  creating  the
+term, where M is the module of  `def`, Head has the name and arity of
+`def` and the arguments of Head are in `argv`.  It only handles flat
+calls, i.e., calls whose arguments are atomic or unbound variables.  It
+follows the same keys as trie_lookup_abstract() with `add` false.  As
+Head is the last argument of `:`, its end does not add a POP key:
+
+  `:`/2, M, Name/Arity, Arg1, ..., ArgN		(Arity > 0)
+  `:`/2, M, Name				(Arity = 0)
+
+Unbound variables are numbered from 1 in the order of their first
+occurrence.  Their (dereferenced) locations are pushed onto `vars`.
+Unlike trie_lookup_abstract(), we do not bind the variables.
+
+`startp` points at the _start node_ of `def`: the node reached after the
+keys `:`/2, M and, if Arity > 0, Name/Arity.  If it is NULL, we find the
+start node and fill `startp` with it.  The start node is the same for
+all calls to `def` and is not a value node.
+
+Return:
+  - true
+    Found; `nodep` is filled with the node.
+  - false
+    Not in the trie.
+  - TRIE_LOOKUP_NOT_FLAT
+    Some argument is compound or an attributed variable.  `vars` may
+    be partially filled.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+trie_lookup_flat(DECL_LD trie *trie, trie_node **startp, trie_node **nodep,
+		 Definition def, Word argv, TmpBuffer vars)
+{ size_t arity = def->functor->arity;
+  trie_node *node;
+
+  TRIE_STAT_INC(trie, lookups);
+  if ( !(node = *startp) )
+  { if ( !(node = get_child(&trie->root, FUNCTOR_colon2)) ||
+	 !(node = get_child(node, def->module->name)) ||
+	 (arity > 0 && !(node = get_child(node, def->functor->functor))) )
+      return false;
+    *startp = node;
+  }
+
+  if ( arity == 0 )
+  { if ( !(node = get_child(node, def->functor->name)) )
+      return false;
+  } else
+  { for(size_t i=0; i<arity; i++)
+    { Word p = &argv[i];
+      word w;
+
+      deRef(p);
+      w = *p;
+      switch( tag(w) )
+      { case TAG_VAR:
+	{ Word *vp = baseBuffer(vars, Word);
+	  Word *ep = topBuffer(vars, Word);
+	  size_t n;
+
+	  for(n=0; vp+n < ep; n++)
+	  { if ( vp[n] == p )
+	      break;
+	  }
+	  if ( vp+n == ep )
+	    addBuffer(vars, p, Word);
+	  w = ((((word)n+1))<<LMASK_BITS)|TAG_VAR;
+	  break;
+	}
+	case TAG_ATTVAR:
+	case TAG_COMPOUND:
+	  return TRIE_LOOKUP_NOT_FLAT;
+	default:
+	  if ( isIndirect(w) &&
+	       !(w = trie_intern_indirect(trie, w, false)) )
+	    return false;
+      }
+
+      if ( !(node = get_child(node, w)) )
+	return false;
+    }
+  }
+
+  *nodep = node;
+  return true;
 }
 
 

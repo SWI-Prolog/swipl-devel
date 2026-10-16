@@ -185,6 +185,7 @@ struct PL_global_data
 #if O_PLMT
   struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
+    struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
     counting_mutex  mutex;		/* Sync completion */
 #ifdef __WINDOWS__
@@ -702,6 +703,7 @@ struct PL_local_data
   struct
   { struct tbl_component *component;    /* active component */
     struct trie *variant_table;		/* Variant --> table */
+    struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */

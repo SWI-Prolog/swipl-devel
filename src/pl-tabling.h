@@ -249,6 +249,11 @@ typedef struct trie_array
   trie *preallocated[TRIE_ARRAY_PREALLOCATED];
 } trie_array;
 
+typedef struct node_array		/* table_props.start_id --> node */
+{ trie_node **blocks[MAX_BLOCKS];
+  trie_node *preallocated[TRIE_ARRAY_PREALLOCATED];
+} node_array;
+
 
 		 /*******************************
 		 *    TRANSACTION RECORDING	*
@@ -291,6 +296,7 @@ typedef struct tbl_trail_answer
 #define TP_OPAQUE	(0x0008)	/* Declared opaque */
 #define TP_LAZY		(0x0010)	/* Lazy (monotonic) */
 #define TP_INCREMENTAL	(0x0020)	/* Incremental tabling */
+#define TP_VARIANT	(0x0040)	/* Plain variant tabling (S_TABLED) */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */
@@ -299,6 +305,7 @@ typedef struct table_props
   size_t	answer_abstract;	/* Answer abstraction */
   size_t	max_answers;		/* Answer count limit */
   Buffer	lazy_queue;		/* Queued clauses for monotonic tabling */
+  unsigned int	start_id;		/* Index in the start node arrays */
 } table_props;
 
 
@@ -313,6 +320,8 @@ typedef struct table_props
 #define		idg_add_dyncall(def, ctrie, variant)	LDFUNC(idg_add_dyncall, def, ctrie, variant)
 #define		tbl_get_restraint_flag(t, key)		LDFUNC(tbl_get_restraint_flag, t, key)
 #define		tbl_set_restraint_flag(t, key)		LDFUNC(tbl_set_restraint_flag, t, key)
+#define		tbl_complete_answer_clause(def)		LDFUNC(tbl_complete_answer_clause, def)
+#define		put_supervisor_goal(t, def, abstract)	LDFUNC(put_supervisor_goal, t, def, abstract)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -342,6 +351,8 @@ int	tbl_get_restraint_flag(term_t t, atom_t key);
 int	tbl_set_restraint_flag(term_t t, atom_t key);
 int	setMonotonicMode(atom_t a);
 void	tbl_set_incremental_predicate(Definition def, int val);
+atom_t	tbl_complete_answer_clause(Definition def);
+bool	put_supervisor_goal(term_t t, Definition def, bool abstract);
 
 #undef LDFUNC_DECLARATIONS
 
