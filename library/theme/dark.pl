@@ -182,6 +182,8 @@ colour(ui_tile_separator,               ui_window_foreground).
 colour(ui_text_selection_background,    '#264f78').
 colour(ui_isearch_background,           '#806000').
 colour(ui_isearch_other_background,     '#2f4f4f').
+colour(ui_isearch_failed_background,    '#8b1a1a').
+colour(ui_code_background,              '#6e768166').
 colour(ui_fold,                         grey60).
 colour(ui_cursor,                       firebrick1).
 colour(ui_cursor_inactive,              grey50).
@@ -192,6 +194,8 @@ colour(ui_placeholder,                  grey50).
 colour(ui_accelerator,                  grey70).
 colour(ui_danger,                       '#f14c4c').
 colour(ui_danger_foreground,            white).
+colour(ui_error,                        '#f14c4c').
+colour(ui_warning,                      '#cca700').
 
 % Epilog terminal ANSI colours
 
