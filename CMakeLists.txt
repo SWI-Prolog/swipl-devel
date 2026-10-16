@@ -23,12 +23,34 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # the picture is less clear. The difference  is small, with a slight win
 # on either depending on  CPU  and   workload.  Using  Emscripten (WASM)
 # however, using a switch produces the fastest and smallest binary.
+#
+# If the compiler supports musttail (Clang >= 13, GCC >= 15), the VMI
+# functions call each other using guaranteed tail calls (VMI_TAILCALL in
+# src/pl-incl.h).  With GCC 16 this is 3% faster than a single function
+# using computed goto, mostly due to fewer instruction cache misses.  See
+# doc/tabling/tailcall-vm.md.
 
 if(EMSCRIPTEN)
   set(DEFAULT_VMI_FUNCTIONS OFF)
   set(O_LABEL_ADDRESSES OFF)
 elseif(MSVC OR CMAKE_C_COMPILER_ID STREQUAL Clang)
   set(DEFAULT_VMI_FUNCTIONS ON)
+elseif(CMAKE_C_COMPILER_ID STREQUAL GNU)
+  include(CheckCSourceCompiles)
+  check_c_source_compiles("
+#if !defined(__has_attribute) || !__has_attribute(musttail)
+#error no musttail
+#endif
+typedef int (*vmi_f)(int);
+static int g(int x);
+static vmi_f table[] = { g };
+static int g(int x) { if ( x > 10 ) return x; __attribute__((musttail)) return table[0](x+1); }
+int main(void) { return g(0) != 11; }" HAVE_C_MUSTTAIL)
+  if(HAVE_C_MUSTTAIL)
+    set(DEFAULT_VMI_FUNCTIONS ON)
+  else()
+    set(DEFAULT_VMI_FUNCTIONS OFF)
+  endif()
 else()
   set(DEFAULT_VMI_FUNCTIONS OFF)
 endif()
