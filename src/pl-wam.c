@@ -850,7 +850,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 	assert(0);
     }
 
-    set(fr, FR_CAUGHT);
+    setLocal(fr, FR_CAUGHT);
 
 			/* Unify the catcher */
     if ( arg_catcher )
@@ -1696,7 +1696,7 @@ contextModule(LocalFrame fr)
 static inline void
 setContextModule__(LocalFrame fr, Module context)
 { fr->context = context;
-  set(fr, FR_CONTEXT);
+  setLocal(fr, FR_CONTEXT);
 }
 
 
@@ -2056,7 +2056,7 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
       { DEBUG(MSG_THROW, Sdprintf("Unified for frame %ld\n", (long)tref));
 	restoreWakeup(&wstate);
 	PL_put_term(exception_term, ex);
-	set(fr, FR_CAUGHT);
+	setLocal(fr, FR_CAUGHT);
 	return consTermRef(fr);
       } else
       { if ( ex2 && !isVar(*valTermRef(ex2)) )
@@ -2259,7 +2259,7 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 		 predicateName(fr->predicate),
 		 ison(fr, FR_INBOX) ? " (inbox)" : ""));
   if ( fr && isoff(fr, FR_INBOX) )
-  { set(fr, FR_INBOX);			/* External retry */
+  { setLocal(fr, FR_INBOX);			/* External retry */
     return fr;
   }
 
@@ -3001,7 +3001,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( ison(qf, PL_Q_NODEBUG) )
-  { set(fr, FR_HIDE_CHILDS);
+  { setLocal(fr, FR_HIDE_CHILDS);
     suspendTrace(true);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = false;

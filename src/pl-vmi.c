@@ -421,7 +421,7 @@ VMH(retry, 0, (), ())
     rframe->clause = NULL;
     environment_frame = FR = rframe;
     DEF = FR->predicate;
-    clear(FR, FR_SKIPPED);
+    clearLocal(FR, FR_SKIPPED);
     exception_term = 0;
 
     VMH_GOTO(depart_or_retry_continue);
@@ -1748,7 +1748,7 @@ VMI(I_SSU_COMMIT, 0, 0, ())
 { if ( tTop > BFR->mark.trailtop.as_ptr )
     CLAUSE_FAILED;
 
-  clear(FR, FR_SSU_DET);
+  clearLocal(FR, FR_SSU_DET);
 
   if ( !debugstatus.debugging )
   { lTop = (LocalFrame)BFR;
@@ -1944,7 +1944,7 @@ VMH(depart_or_retry_continue, 0, (), ())
 					  /* The catch is not yet installed, */
 					  /* so we ignore it */
 	  if ( FR->predicate == PROCEDURE_catch3->definition )
-	    set(FR, FR_CAUGHT);
+	    setLocal(FR, FR_CAUGHT);
 
 	  THROW_EXCEPTION;
 	}
@@ -2006,7 +2006,7 @@ VMH(depart_or_retry_continue, 0, (), ())
 #endif
 	VMH_GOTO(depart_or_retry_continue);
       }
-      set(FR, FR_INBOX);
+      setLocal(FR, FR_INBOX);
 
       SAVE_REGISTERS(QID);
       rc = tracePort(FR, BFR, CALL_PORT, NULL);
@@ -2063,7 +2063,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_LPROC))
     { lcoSetNextFrameFlags(FR);
     }
     if ( ison(DEF, HIDE_CHILDS) )
-      set(FR, FR_HIDE_CHILDS);
+      setLocal(FR, FR_HIDE_CHILDS);
 
     setFramePredicate(FR, DEF);
     copyFrameArguments(lTop, FR, DEF->functor->arity);
@@ -2180,7 +2180,7 @@ VMH(exit_continue, 0, (), ())
 		      predicateName(FR->predicate), loffset(lTop)));
   } else
   { leave = NULL;
-    clear(FR, FR_INBOX);
+    clearLocal(FR, FR_INBOX);
     if ( ison(FR, FR_DET|FR_DETGUARD) )
     { SAVE_REGISTERS(QID);
       determinism_error(FR, BFR, ATOM_nondet);
@@ -2516,13 +2516,13 @@ VMI(I_LCALL, 0, 1, (CA1_LPROC))
   if ( ison(DEF, P_TRANSPARENT) )
   { FR->context = ctx0;
     FR->level++;
-    clear(FR, FR_CLEAR_NEXT);
-    set(FR, FR_CONTEXT);
+    clearLocal(FR, FR_CLEAR_NEXT);
+    setLocal(FR, FR_CONTEXT);
   } else
   { lcoSetNextFrameFlags(FR);
   }
   if ( ison(DEF, HIDE_CHILDS) )
-    set(FR, FR_HIDE_CHILDS);
+    setLocal(FR, FR_HIDE_CHILDS);
 
   setFramePredicate(FR, DEF);
   VMH_GOTO(depart_or_retry_continue);
@@ -2541,7 +2541,7 @@ VMI(I_TCALL, 0, 0, ())
   tcallSetNextFrameFlags(FR);
   FR->clause = NULL;
   if ( ison(DEF, HIDE_CHILDS) )
-    set(FR, FR_HIDE_CHILDS);
+    setLocal(FR, FR_HIDE_CHILDS);
 
   VMH_GOTO(depart_or_retry_continue);
 }
@@ -2557,7 +2557,7 @@ predicate shall succeed deterministically.  It is bound to '$'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DET, VIF_BREAK, 0, ())
-{ set(FR, FR_DETGUARD|FR_DETGUARD_SET);
+{ setLocal(FR, FR_DETGUARD|FR_DETGUARD_SET);
 
   VMI_GOTO(I_CUT);
 }
@@ -2570,7 +2570,7 @@ provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CUT, VIF_BREAK, 0, ())
-{ clear(FR, FR_SSU_DET);
+{ clearLocal(FR, FR_SSU_DET);
 
   if ( (LocalFrame)BFR <= FR )
     NEXT_INSTRUCTION;
@@ -3655,13 +3655,13 @@ END_VMI
 
 
 VMI(S_SSU_DET, 0, 0, ())
-{ set(FR, FR_SSU_DET);
+{ setLocal(FR, FR_SSU_DET);
   NEXT_INSTRUCTION;
 }
 END_VMI
 
 VMI(S_DET, 0, 0, ())
-{ set(FR, FR_DET);
+{ setLocal(FR, FR_DET);
   NEXT_INSTRUCTION;
 }
 END_VMI
@@ -4742,7 +4742,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR);
-  set(FR, FR_CLEANUP);
+  setLocal(FR, FR_CLEANUP);
 
   p = argFrameP(FR, arg_goal-1);
   if ( isVar(*p) )
@@ -4836,7 +4836,7 @@ VMI(I_EXITCATCH, 0, 0, ())
     } else
     { BFR = bfr->parent;
     }
-    set(FR, FR_CAUGHT);
+    setLocal(FR, FR_CAUGHT);
   }
 
   VMI_GOTO(I_EXIT);
@@ -5666,7 +5666,7 @@ VMI(I_RESET, 0, 0, ())
   { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     THROW_EXCEPTION;
   }
-  set(FR, FR_INRESET);
+  setLocal(FR, FR_INRESET);
 			  /* = B_VAR0 */
   *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_CALL1);
@@ -6602,7 +6602,7 @@ next_choice:
 	{ case PL_TRACE_ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
-	    clear(FR, FR_CAUGHT|FR_SKIPPED);
+	    clearLocal(FR, FR_CAUGHT|FR_SKIPPED);
 	    VMH_GOTO(depart_or_retry_continue);
 	  case PL_TRACE_ACTION_ABORT:
 	    THROW_EXCEPTION;

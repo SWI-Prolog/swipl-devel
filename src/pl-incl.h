@@ -1040,6 +1040,11 @@ with one operation, it turns out to be faster as well.
 #define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
+/* Non-atomic versions for structures only accessed by their own thread,
+ * notably local frames
+ */
+#define setLocal(s, a)		((s)->flags |= (a))
+#define clearLocal(s, a)	((s)->flags &= ~(a))
 
 /* Flags on predicates (packed in uint64_t) */
 
