@@ -332,6 +332,7 @@ struct PL_global_data
   { Procedure	dgarbage_collect1;
     Procedure	catch3;
     Procedure	reset3;
+    Procedure	dtbl_reset6;		/* $tbl_reset/6 */
     Procedure	dmeta_call1;		/* $meta_call/1 */
     Procedure	true0;
     Procedure	fail0;

@@ -5739,6 +5739,10 @@ Where '$reset' maps to
     I_RESET
     I_EXITRESET
 
+'$tbl_reset'/6 has the same body.  For this predicate, I_EXITRESET
+adds the answer to the worklist of tabling and fails unless the answer
+completes the table.  See delim/4 in boot/tabling.pl.
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_RESET, 0, 0, ())
@@ -5761,7 +5765,24 @@ VMI(I_EXITRESET, 0, 0, ())
 
   deRef(p);
   if ( canBind(*p) )
-  { ENSURE_GLOBAL_SPACE(0,
+  { if ( FR->predicate == PROCEDURE_dtbl_reset6->definition )
+    { bool rc;
+      fid_t fid;
+
+      SAVE_REGISTERS(QID);
+      fid = PL_open_foreign_frame();
+      rc = tbl_reset_add_answer(FR);
+      PL_close_foreign_frame(fid);
+      LOAD_REGISTERS(QID);
+      if ( !rc )
+      { if ( exception_term )
+	  THROW_EXCEPTION;
+	BODY_FAILED;
+      }
+      p = argFrameP(FR, 2);
+      deRef(p);
+    }
+    ENSURE_GLOBAL_SPACE(0,
 			{ p = argFrameP(FR, 2);
 			  deRef(p);
 			});

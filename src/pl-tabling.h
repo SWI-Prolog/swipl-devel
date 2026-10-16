@@ -331,6 +331,7 @@ typedef struct table_props
 #define		put_supervisor_goal(t, def, abstract)	LDFUNC(put_supervisor_goal, t, def, abstract)
 #define		tbl_leader_finished(old, catcher, scc, wrapper) \
 		LDFUNC(tbl_leader_finished, old, catcher, scc, wrapper)
+#define		tbl_reset_add_answer(fr)		LDFUNC(tbl_reset_add_answer, fr)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -363,6 +364,7 @@ void	tbl_set_incremental_predicate(Definition def, int val);
 atom_t	tbl_complete_answer_clause(Definition def);
 bool	tbl_leader_finished(term_t old, term_t catcher,
 			    term_t scc, term_t wrapper);
+bool	tbl_reset_add_answer(LocalFrame fr);
 bool	put_supervisor_goal(term_t t, Definition def, bool abstract);
 
 #undef LDFUNC_DECLARATIONS

@@ -678,6 +678,11 @@ run_leader(Skeleton, Worker, SCC, Worklist, Status, Clause) :-
 %        '$tbl_wkl_add_answer'/4 joins the two.  For a dependency we
 %        join the two explicitly.
 
+%   Without debugging, '$tbl_reset'/6 adds the answers.  It fails after
+%   adding an answer, unless the answer completes the table, in which
+%   case Continuation is 0.
+
+:- if(current_prolog_flag(prolog_debug, true)).
 delim(Skeleton, Worker, WorkList, Delays) :-
     reset(Worker, SourceCall, Continuation),
     tdebug(wl_goal(WorkList, Goal, _)),
@@ -689,7 +694,19 @@ delim(Skeleton, Worker, WorkList, Delays) :-
         '$tbl_wkl_add_answer'(WorkList, Skeleton, Delays, Complete),
         Complete == !,
         !
-    ;   SourceCall = call_info(SrcSkeleton, SourceWL)
+    ;   delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays)
+    ).
+:- else.
+delim(Skeleton, Worker, WorkList, Delays) :-
+    '$tbl_reset'(Worker, SourceCall, Continuation, WorkList, Skeleton, Delays),
+    (   Continuation == 0
+    ->  !
+    ;   delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays)
+    ).
+:- endif.
+
+delim_suspended(SourceCall, Continuation, Skeleton, WorkList, Delays) :-
+    (   SourceCall = call_info(SrcSkeleton, SourceWL)
     ->  '$tbl_add_global_delays'(Delays, AllDelays),
         tdebug(wl_goal(SourceWL, SrcGoal, _)),
         tdebug(wl_goal(WorkList, DstGoal, _)),

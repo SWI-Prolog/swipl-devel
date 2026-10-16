@@ -203,15 +203,19 @@ static void		free_node_chunks(trie *trie);
 static inline void	release_value(word value);
 
 
+/* Built-in atoms such as `trienode`, the value of answers, are never
+ * collected and need no reference count.
+ */
+
 static inline void
 acquire_key(word key)
-{ if ( isAtom(key) )
+{ if ( isAtom(key) && !isBuiltInAtom(word2atom(key)) )
     PL_register_atom(word2atom(key));
 }
 
 static inline void
 release_key(word key)
-{ if ( isAtom(key) )
+{ if ( isAtom(key) && !isBuiltInAtom(word2atom(key)) )
     PL_unregister_atom(word2atom(key));
 }
 
@@ -2390,7 +2394,9 @@ intern_value(DECL_LD term_t value)
 static inline void
 release_value(word value)
 { if ( isAtom(value) )
-    PL_unregister_atom(word2atom(value));
+  { if ( !isBuiltInAtom(word2atom(value)) )
+      PL_unregister_atom(word2atom(value));
+  }
   else if ( isRecord(value) )
     PL_erase(word2ptr(record_t, value));
 }

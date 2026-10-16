@@ -1257,10 +1257,10 @@ typedef enum
   UDL_COMPLETE
 } udl_status;
 
-#define update_delay_list(wl, answer, skel, delays) LDFUNC(update_delay_list, wl, answer, skel, delays)
+#define update_delay_list_any(wl, answer, skel, delays) LDFUNC(update_delay_list_any, wl, answer, skel, delays)
 static int
-update_delay_list(DECL_LD worklist *wl, trie_node *answer,
-		  term_t skel, term_t delays)
+update_delay_list_any(DECL_LD worklist *wl, trie_node *answer,
+		      term_t skel, term_t delays)
 { Word ldlp;
   Word gdlp;
 
@@ -1452,6 +1452,34 @@ retry:
     PL_resource_error("memory");
     return UDL_FALSE;
   }
+}
+
+
+/* update_delay_list() handles the common case of an unconditional answer
+ * that has no delay information inline.
+ */
+
+#define update_delay_list(wl, answer, skel, delays) LDFUNC(update_delay_list, wl, answer, skel, delays)
+static inline int
+update_delay_list(DECL_LD worklist *wl, trie_node *answer,
+		  term_t skel, term_t delays)
+{ Word ldlp;
+  Word gdlp;
+
+  deRef2(valTermRef(LD->tabling.delay_list), gdlp);
+  gdlp = argTermP(*gdlp, 0);
+  deRef(gdlp);
+  deRef2(valTermRef(delays), ldlp);
+
+  if ( isNil(*ldlp) && isNil(*gdlp) && !answer->data.delayinfo &&
+       !(wl->table->data.IDG && wl->table->data.IDG->reevaluating) )
+  { DEBUG(TABLING_NO_EARLY_COMPLETION,
+	  return UDL_TRUE);
+
+    return wl->ground ? UDL_COMPLETE : UDL_TRUE;
+  }
+
+  return update_delay_list_any(wl, answer, skel, delays);
 }
 
 
@@ -4253,25 +4281,34 @@ pred_max_table_answer_size(DECL_LD const Definition def)
 }
 
 
-static
-PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
-{ PRED_LD
-  worklist *wl;
+/* tbl_add_answer() adds Answer with Delays to the worklist and its
+ * answer trie.  Returns false if the answer is a variant of an existing
+ * answer or on an exception, TBL_ANSWER_NEW for a new answer and
+ * TBL_ANSWER_COMPLETE if the answer completes the table (the `Complete`
+ * argument of '$tbl_wkl_add_answer'/4 is `!`).
+ */
 
-  if ( get_worklist(A1, &wl) )
-  { Word kp;
+#define TBL_ANSWER_NEW      1
+#define TBL_ANSWER_COMPLETE 2
+
+#define tbl_add_answer(wl, answer, delays) LDFUNC(tbl_add_answer, wl, answer, delays)
+static int
+tbl_add_answer(DECL_LD worklist *wl, term_t answer, term_t delays)
+{ { Word kp;
     trie_node *node;
     atom_t action;
     size_abstract sa = {.from_depth = 2};
     int rc;
+    bool complete = false;
 
 #ifdef O_PLMT
     DEBUG(0, assert(isoff(wl->table, TRIE_ISSHARED) || wl->table->tid));
 #endif
 
-    kp = valTermRef(A2);
+    kp = valTermRef(answer);
     if ( ison(wl->table, TRIE_ISMAP) )
-      return !!wkl_mode_add_answer(wl, wl->table, A2, A3);
+      return wkl_mode_add_answer(wl, wl->table, answer, delays) ? TBL_ANSWER_NEW
+							: false;
 
     rc = trie_insert_flat(wl->table, &node, kp);
     if ( rc == TRIE_LOOKUP_NOT_FLAT )
@@ -4305,14 +4342,14 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	    goto update_dl;
 	  } else
 	  { if ( answer_is_conditional(node) )
-	    { if ( update_delay_list(wl, node, A2, A3) == UDL_COMPLETE )
-		return PL_unify_atom(A4, ATOM_cut);
+	    { if ( update_delay_list(wl, node, answer, delays) == UDL_COMPLETE )
+		return TBL_ANSWER_COMPLETE;
 	    }
 	  }
 
 	  return false;				/* already in trie */
 	}
-	return PL_permission_error("modify", "trie_key", A2);
+	return PL_permission_error("modify", "trie_key", answer);
       } else if ( (action=tripwire_answers_for_subgoal(wl)) )
       { DEBUG(MSG_TABLING_RESTRAINT,
 	      print_answer_table(wl->table, "Answer count exceeded"));
@@ -4322,19 +4359,17 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	  trie_delete(wl->table, node, true);
 
 	  if ( !(gen = PL_new_term_ref()) ||
-	       !generalise_answer_substitution(A2, gen) ||
+	       !generalise_answer_substitution(answer, gen) ||
 	       !add_answer_count_restraint() )
 	    return false;
 
 	  kp = valTermRef(gen);
 	  rc = trie_lookup(wl->table, NULL, &node, kp, true, NULL);
 	  if ( rc == true )
-	  { if ( !PL_unify_atom(A4, ATOM_cut) )
+	  { set_trie_value_word(wl->table, node, ATOM_trienode);
+	    if ( update_delay_list(wl, node, answer, delays) == UDL_FALSE )
 	      return false;
-	    set_trie_value_word(wl->table, node, ATOM_trienode);
-	    if ( update_delay_list(wl, node, A2, A3) == UDL_FALSE )
-	      return false;
-	    return true;
+	    return TBL_ANSWER_COMPLETE;
 	  } else
 	  { return trie_error(rc, gen);
 	  }
@@ -4355,23 +4390,60 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	}
 
       update_dl:
-	rc = update_delay_list(wl, node, A2, A3);
+	rc = update_delay_list(wl, node, answer, delays);
 
 	switch(rc)
 	{ case UDL_FALSE:
 	    return false;
 	  case UDL_COMPLETE:
-	    if ( !PL_unify_atom(A4, ATOM_cut) )
-	      return false;
+	    complete = true;
 	  default:
 	    ;
 	}
 
-	return wkl_add_answer(wl, node);
+	if ( !wkl_add_answer(wl, node) )
+	  return false;
+	return complete ? TBL_ANSWER_COMPLETE : TBL_ANSWER_NEW;
       }
     }
 
-    return trie_error(rc, A2);
+    return trie_error(rc, answer);
+  }
+}
+
+static
+PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl) )
+  { int rc = tbl_add_answer(wl, A2, A3);
+
+    if ( rc == TBL_ANSWER_COMPLETE )
+      return PL_unify_atom(A4, ATOM_cut);
+    return !!rc;
+  }
+
+  return false;
+}
+
+/* tbl_reset_add_answer() is called by I_EXITRESET for '$tbl_reset'/6
+ * if the goal succeeded.  `fr` is the frame of '$tbl_reset'/6.  Returns
+ * true if the answer completes the table and false otherwise.  If false
+ * is returned there may be an exception.
+ */
+
+bool
+tbl_reset_add_answer(DECL_LD LocalFrame fr)
+{ worklist *wl;
+  term_t frref = consTermRef(fr);
+
+  if ( get_worklist(consTermRef(argFrameP(fr, 3)), &wl) )
+  { fr = (LocalFrame)valTermRef(frref);
+
+    return tbl_add_answer(wl,
+			  consTermRef(argFrameP(fr, 4)),
+			  consTermRef(argFrameP(fr, 5))) == TBL_ANSWER_COMPLETE;
   }
 
   return false;

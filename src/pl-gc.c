@@ -2179,8 +2179,13 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	  mark_frame_var(state, VAROFFSET(arity-1)); /* cleanup goal */
 	  break;
 	}
+	case I_EXITRESET:	/* '$tbl_reset'/6: worklist, skeleton, delays */
+	  if ( state->frame->predicate->functor->arity == 6 )
+	  { for(size_t i=3; i<6; i++)
+	      mark_frame_var(state, VAROFFSET(i));
+	  }
+	  /*FALLTHROUGH*/
 	case I_EXITCATCH:
-	case I_EXITRESET:
 	  mark_frame_var(state, VAROFFSET(1)); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2)); /* recovery goal */
 	  break;

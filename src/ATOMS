@@ -203,6 +203,7 @@ A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
 A dtbl_leader		"$tbl_leader"
+A dtbl_reset		"$tbl_reset"
 A dcall_continuation	"$call_continuation"
 A dcatch		"$catch"
 A dcont			"$cont$"
@@ -1170,6 +1171,7 @@ F dshift_for_copy	1
 F dstream		1
 F dtabled		2
 F dtbl_leader		5
+F dtbl_reset		6
 F dthread_init		0
 F dthrow		1
 F dtime			2

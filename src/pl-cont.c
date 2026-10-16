@@ -78,6 +78,7 @@ Where the compiler translates '$reset' into
 static int /* true, FRESET_* */
 findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
 { Definition reset3  = PROCEDURE_reset3->definition;
+  Definition reset6  = PROCEDURE_dtbl_reset6->definition;
 
   for(; fr; fr = fr->parent)
   { int rc;
@@ -88,7 +89,7 @@ findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
     if ( fr->predicate == proc_fl->definition )
       return FRESET_FINDALL;
 
-    if ( fr->predicate != reset3 )
+    if ( fr->predicate != reset3 && fr->predicate != reset6 )
       continue;
 
     tref = consTermRef(fr);
@@ -246,6 +247,8 @@ env3_predicate(Definition def)
     return FUNCTOR_catch3;
   if ( def == PROCEDURE_reset3->definition )
     return FUNCTOR_reset3;
+  if ( def == PROCEDURE_dtbl_reset6->definition )
+    return FUNCTOR_dtbl_reset6;
   return 0;
 }
 
@@ -312,15 +315,16 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
       fr_ref = consTermRef(fr);
 
       if ( (env_f=env3_predicate(fr->predicate)) )
-      { term_t av = PL_new_term_refs(2);
+      { size_t arity = arityFunctor(env_f);
+	term_t av = PL_new_term_refs(arity);
 
 	fr = (LocalFrame)valTermRef(fr_ref);
-	PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
-	PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+	for(size_t i=1; i<arity; i++)
+	  PL_put_term(av+i, consTermRef(argFrameP(fr, i)));
 
 	if ( PL_cons_list_v(contv, depth, contv) &&
-	     PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
-	     PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
+	     PL_cons_functor(av+0, FUNCTOR_call_continuation1, contv) &&
+	     PL_cons_functor_v(contv, env_f, av) &&
 	     PL_cons_functor(contv, FUNCTOR_call1, contv) )
 	  depth = 0;
 	else

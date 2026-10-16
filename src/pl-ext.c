@@ -359,6 +359,7 @@ setBuiltinPredicateProperties(void)
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
   LOOKUPPROC(reset3);
+  LOOKUPPROC(dtbl_reset6);
   LOOKUPPROC(dmeta_call1);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
