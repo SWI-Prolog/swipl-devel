@@ -4053,7 +4053,10 @@ trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 
     return false;
   } else
-  { return trie_gen_raw(NULL, NULL, Key, Value, Data,
+  { trie_gen_state *state = CTX_PTR;
+
+    /* Not NULL: GCC's clone for a NULL trie warns on FRG_FIRST_CALL */
+    return trie_gen_raw(state->trie, NULL, Key, Value, Data,
 			unify_data, ctx, PL__ctx);
   }
 }
