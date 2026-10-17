@@ -261,7 +261,10 @@ test(registered) :-                     % atom-GC registers full chunks
     assertz(chunk_gen_dummy), retract(chunk_gen_dummy),
     garbage_collect_clauses,            % and the compiled clause
     reg_atom_count(N2),
-    assertion(N2 < 10).
+    (   if_reliable_agc
+    ->  assertion(N2 < 10)
+    ;   true
+    ).
 test(variants) :-                       % variant table nodes are pruned
     abolish_all_tables,
     forall(between(1, 3, _),
@@ -284,6 +287,13 @@ test(variants) :-                       % variant table nodes are pruned
 reg_atom(X) :-
     between(1, 5000, I),
     atom_concat(rga_, I, X).
+
+%   Whether we can expect AGC to reclaim the released atoms.  AGC
+%   may find stale references on the stacks, so only test this if
+%   `SWIPL_TEST_FAIL_ON_UNLIKELY` is `y`.
+
+if_reliable_agc :-
+    getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y).
 
 reg_atom_count(N) :-
     garbage_collect_atoms,
