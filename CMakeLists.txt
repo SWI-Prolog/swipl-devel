@@ -22,9 +22,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # and using VMI functions more then   doubles the performance. For Clang
 # the picture is less clear. The difference  is small, with a slight win
 # on either depending on  CPU  and   workload.  Using  Emscripten (WASM)
-# without tail calls, a switch produces the fastest and smallest binary.
-# With the tail-call feature (WASM_TAIL_CALL, the default) VMI functions
-# are 19% faster than the switch.
+# however, using a switch produces the fastest and smallest binary.  This
+# also holds for tail-calling VMI functions (WASM_TAIL_CALL), which are
+# 20-60% slower than the switch in V8 and SpiderMonkey once the code is
+# compiled by the optimizing tier.
 #
 # If the compiler supports musttail (Clang >= 13, GCC >= 15), the VMI
 # functions call each other using guaranteed tail calls (VMI_TAILCALL in
@@ -35,7 +36,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 if(EMSCRIPTEN)
   option(WASM_TAIL_CALL
 	 "Use -mtail-call (VMI functions use tail calls)"
-	 ON)
+	 OFF)
   set(DEFAULT_VMI_FUNCTIONS ${WASM_TAIL_CALL})
   set(O_LABEL_ADDRESSES OFF)
 elseif(MSVC OR
