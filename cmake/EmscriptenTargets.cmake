@@ -12,6 +12,10 @@ if(WASM_EXCEPTIONS)
   list(APPEND WASM_SHARED_LINK_FLAGS
        -s SUPPORT_LONGJMP=wasm)
 endif()
+if(WASM_TAIL_CALL)
+  list(APPEND WASM_SHARED_LINK_FLAGS
+       -mtail-call)
+endif()
 if(MULTI_THREADED)
   list(APPEND WASM_SHARED_LINK_FLAGS
        -pthread

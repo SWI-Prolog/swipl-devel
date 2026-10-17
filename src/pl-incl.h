@@ -321,9 +321,11 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 
 /* VMI_TAILCALL: VMI functions continue with a guaranteed tail call to
    the next instruction (musttail: Clang >= 13, GCC >= 15).  See pl-wam.c
+   WebAssembly needs the tail-call feature (-mtail-call).
 */
 #if O_VMI_FUNCTIONS && !defined(VMI_TAILCALL) && defined(__has_attribute)
-#if __has_attribute(musttail)
+#if __has_attribute(musttail) && \
+    (!defined(__wasm__) || defined(__wasm_tail_call__))
 #define VMI_TAILCALL 1
 #endif
 #endif
