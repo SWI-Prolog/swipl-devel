@@ -24,6 +24,7 @@
 #     build_arch arm64             # -> ./stage-arm64
 #     build_arch x86_64            # -> ./stage-x86_64
 #     build_universal              # CMake deps, fat -> ./stage-universal
+#                                  # (needs both arch trees: see import_fat)
 #     merge_universal              # compose the three -> $HOME/deps
 #     check_prerequisites          # verify the result
 #
@@ -36,7 +37,7 @@
 #
 # Two strategies, by build system:
 #
-#  - CMake projects (utf8proc, SDL3, SDL3_image) accept
+#  - CMake projects (utf8proc, SDL3, SDL3_image, SDL3_sound) accept
 #    CMAKE_OSX_ARCHITECTURES and produce a fat binary in a single pass, so
 #    they are built once (`build_universal`).
 #
@@ -88,24 +89,25 @@
 ################################################################
 
 GMP_VERSION=6.3.0
-SSL_VERSION=3.6.4
+SSL_VERSION=4.0.3
 ZLIB_VERSION=1.3.2
 PNG_VERSION=1.6.59
-ARCHIVE_VERSION=3.8.9
+ARCHIVE_VERSION=3.8.10
 UUID_VERSION=1.6.2
 BDB_VERSION=5.3.28
 ODBC_VERSION=2.3.14
-PCRE2_VERSION=10.48
+PCRE2_VERSION=10.49
 FFI_VERSION=3.8.0
 YAML_VERSION=0.2.5
-UTF8PROC_VERSION=2.11.3
-SDL3_VERSION=3.4.16
-SDL3_IMAGE_VERSION=3.4.6
+UTF8PROC_VERSION=2.12.0
+SDL3_VERSION=3.4.18
+SDL3_IMAGE_VERSION=3.4.8
+SDL3_SOUND_VERSION=3.2.0
 PIXMAN_VERSION=0.46.4
-GLIB_VERSION=2.88.3
-FRIBIDI_VERSION=1.0.16
-HARFBUZZ_VERSION=14.4.0
-CAIRO_VERSION=1.18.4
+GLIB_VERSION=2.90.1
+FRIBIDI_VERSION=1.0.17
+HARFBUZZ_VERSION=14.6.0
+CAIRO_VERSION=1.18.6
 PANGO_VERSION=1.58.2
 
 # Where the finished universal libraries go, and where the per-arch builds
@@ -378,6 +380,14 @@ download_sdl3_image()
   unpack SDL3_image-$SDL3_IMAGE_VERSION.tar.gz SDL3_image-$SDL3_IMAGE_VERSION
 }
 
+# SDL_sound lives under icculus/, not libsdl-org/.
+
+download_sdl3_sound()
+{ fetch https://github.com/icculus/SDL_sound/releases/download/v$SDL3_SOUND_VERSION/SDL3_sound-$SDL3_SOUND_VERSION.tar.gz \
+	SDL3_sound-$SDL3_SOUND_VERSION.tar.gz &&
+  unpack SDL3_sound-$SDL3_SOUND_VERSION.tar.gz SDL3_sound-$SDL3_SOUND_VERSION
+}
+
 download_pixman()
 { fetch https://cairographics.org/releases/pixman-$PIXMAN_VERSION.tar.gz \
 	pixman-$PIXMAN_VERSION.tar.gz &&
@@ -634,21 +644,76 @@ build_sdl3()
       -DSDL_X11=OFF -DSDL_WAYLAND=OFF -DSDL_VULKAN=OFF
 }
 
-# PNG and JPEG are decoded by ImageIO (CoreGraphics) and stb, so no
-# libpng or libjpeg is needed.  SDLIMAGE_PNG_LIBPNG must be turned off
-# explicitly: it defaults on whenever SDLIMAGE_PNG is set and would drag in
-# libpng for the sake of animated PNGs, which is the one thing the
-# libpng-free IMG_png.c path gives up.  The release tarball's external/
-# holds only download scripts, so vendoring is not an option either.
+# JPEG is decoded by ImageIO (CoreGraphics) and stb, so no libjpeg is
+# needed.  PNG goes through libpng, which adds animated PNGs: cairo needs
+# libpng anyway, so the bundle already carries it.  It is linked directly
+# (SDLIMAGE_DEPS_SHARED=OFF), not dlopen()ed, so the bundle fixup sees the
+# dependency.  The fat libpng comes from import_fat.  The release tarball's
+# external/ holds only download scripts, so vendoring is not an option.
 
 build_sdl3_image()
 { cmake_build SDL3_image-$SDL3_IMAGE_VERSION \
       -DSDLIMAGE_SAMPLES=OFF -DSDLIMAGE_TESTS=OFF -DSDLIMAGE_DEPS_SHARED=OFF \
       -DSDLIMAGE_VENDORED=OFF \
       -DSDLIMAGE_BACKEND_IMAGEIO=ON -DSDLIMAGE_BACKEND_STB=ON \
-      -DSDLIMAGE_JPG=ON -DSDLIMAGE_PNG=ON -DSDLIMAGE_PNG_LIBPNG=OFF \
+      -DSDLIMAGE_JPG=ON -DSDLIMAGE_PNG=ON -DSDLIMAGE_PNG_LIBPNG=ON \
       -DSDLIMAGE_WEBP=OFF -DSDLIMAGE_AVIF=OFF -DSDLIMAGE_JXL=OFF \
       -DSDLIMAGE_TIF=OFF
+}
+
+# Every decoder is self-contained (dr_flac, dr_mp3, stb_vorbis, modplug,
+# CoreAudio), so SDL3_sound needs nothing beyond SDL3.  MIDI (timidity) is
+# off by default upstream: it needs GUS patch files we do not ship.
+# sdl3-sound.pc.in uses @SDLSOUND_VERSION@, which 3.2.0's CMakeLists.txt
+# never sets; without it the .pc file has an empty Version:.
+
+build_sdl3_sound()
+{ cmake_build SDL3_sound-$SDL3_SOUND_VERSION \
+      -DSDLSOUND_BUILD_SHARED=ON -DSDLSOUND_BUILD_STATIC=OFF \
+      -DSDLSOUND_BUILD_TEST=OFF -DSDLSOUND_BUILD_DOCS=OFF \
+      -DSDLSOUND_DECODER_MIDI=OFF \
+      -DSDLSOUND_VERSION=$SDL3_SOUND_VERSION
+}
+
+# SDL3_image links libpng, which is an autotools project built per
+# architecture (cairo needs it in that pass).  Rather than building it a
+# second time with CMake, lipo the two per-arch builds into the universal
+# staging tree -- together with zlib, which CMake's FindPNG insists on.
+# merge_universal later copies these over the identical result of its own
+# lipo.  Paths are relative to $DEPS; symlinks are copied as they are.
+
+import_fat()				# import_fat path ...
+{ local arm="$DEPS_SRC/stage-arm64$DEPS"
+  local x86="$DEPS_SRC/stage-x86_64$DEPS"
+
+  ( set -e
+    for f in "$@"; do
+	if [ ! -e "$arm/$f" -o ! -e "$x86/$f" ]; then
+	    echo "import_fat: $f missing from a staging tree"
+	    echo "(run build_arch arm64 and build_arch x86_64 first)"
+	    exit 1
+	fi
+    done
+    mkdir -p "$DEPS_ROOT_FAT"
+    ( cd "$arm" && tar cf - "$@" ) | ( cd "$DEPS_ROOT_FAT" && tar xf - )
+    cd "$DEPS_ROOT_FAT"
+    for f in "$@"; do
+	[ -f "$f" -a ! -L "$f" ] || continue
+	case "$(file -b "$f")" in
+	    *Mach-O*)
+		lipo -create "$arm/$f" "$x86/$f" -output "$f"
+		codesign --force --sign - "$f" 2>/dev/null
+		;;
+	esac
+    done
+  )
+}
+
+import_libpng()
+{ import_fat lib/libz.$ZLIB_VERSION.dylib lib/libz.1.dylib lib/libz.dylib \
+	     include/zlib.h include/zconf.h \
+	     lib/libpng16.16.dylib lib/libpng16.dylib lib/libpng.dylib \
+	     include/libpng16 include/png.h include/pngconf.h include/pnglibconf.h
 }
 
 # The `sweep' package (Emacs interface) needs emacs-module.h, which is not
@@ -666,12 +731,13 @@ build_emacs_header()
 ################################################################
 # Order.  zlib, libffi and pcre2 come first because glib uses all three;
 # libpng needs zlib; libpng, glib, pixman, fribidi and harfbuzz come
-# before cairo and pango.
+# before cairo and pango.  SDL3_image uses the per-arch libpng too, so the
+# universal libraries are built after both architectures.
 ################################################################
 
 DEPS_LIBS=(zlib libpng libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
 	   libyaml pixman glib fribidi harfbuzz cairo pango)
-DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image)
+DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image sdl3_sound)
 
 ################################################################
 # Driving the whole thing
@@ -793,6 +859,7 @@ absolute_install_names()
 build_universal()
 { echo "=== Building universal (CMake) libraries in $DEPS_STAGE_FAT ==="
   rm -rf "$DEPS_STAGE_FAT"
+  import_libpng || return 1
   for d in "${DEPS_LIBS_UNIVERSAL[@]}"; do
       echo "*** universal: $d"
       if ! build_$d; then
@@ -897,6 +964,7 @@ clean_prerequisites()
 	   unixODBC-$ODBC_VERSION pcre2-$PCRE2_VERSION libffi-$FFI_VERSION \
 	   yaml-$YAML_VERSION utf8proc-$UTF8PROC_VERSION \
 	   SDL3-$SDL3_VERSION SDL3_image-$SDL3_IMAGE_VERSION \
+	   SDL3_sound-$SDL3_SOUND_VERSION \
 	   pixman-$PIXMAN_VERSION glib-$GLIB_VERSION \
 	   fribidi-$FRIBIDI_VERSION harfbuzz-$HARFBUZZ_VERSION \
 	   cairo-$CAIRO_VERSION pango-$PANGO_VERSION
