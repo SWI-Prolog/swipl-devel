@@ -54,12 +54,11 @@ test_settings :-
 
 %%	reset
 %
-%	Hack to cleanup setting defaults
+%	Hack to cleanup the setting defaults and values of this module.
 
 reset :-
-	retractall(settings:st_default(_,_,_)),
-	retractall(settings:st_value(_,_,_)),
-	retractall(settings:local_file(_)).
+	retractall(settings:st_default(_,test_settings,_)),
+	retractall(settings:st_value(_,test_settings,_)).
 
 %================================================================
 
@@ -70,7 +69,9 @@ test(ch_default, [X == hello_world, cleanup(reset)]) :-
 	setting(test, X).
 test(save_default, [ [X,Terms] == [hello_world,[]],
 		     setup(tmp_file(settings, DB)),
-		     cleanup((reset, delete_file(DB)))
+		     cleanup((reset,
+			      retractall(settings:local_file(DB)),
+			      delete_file(DB)))
 		   ]) :-
 	setup_call_cleanup(open(DB, write, Out), true, close(Out)),
 	set_setting_default(test, hello_world),

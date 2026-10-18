@@ -37,6 +37,9 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(ansi_term)).
+:- use_module(library(debug)).
+:- use_module(library(filesex)).
+:- use_module(library(lists)).
 
 /** <module> Test colouring of the interactive toplevel
 
@@ -163,10 +166,10 @@ test(sgr_multi_code, Seq == "\e[1;48;5;235m") :-
     setup_call_cleanup(
         ( set_color_term(Old, true),
           assertz(user:message_property(test_class,
-                                        color([bold, bg8(235)])))
+                                        color([bold, bg8(235)])), Ref)
         ),
         ansi_sgr(test_class, Seq),
-        ( retractall(user:message_property(test_class, _)),
+        ( erase(Ref),
           set_prolog_flag(color_term, Old)
         )).
 
@@ -262,7 +265,7 @@ in_memory(Theme) :-
 not_in_memory :-
     retractall(test_ct_in_memory(_)).
 
-theme_file_dir(Dir) :-
+theme_file_dir(Dir-Ref) :-
     tmp_file(themes, Dir),
     directory_file_path(Dir, theme, ThemeDir),
     make_directory_path(ThemeDir),
@@ -274,10 +277,10 @@ theme_file_dir(Dir) :-
                      prolog:console_color(test_ct_mem, test_ct_class, \c
                                           [faint]).~n', []),
         close(Out)),
-    asserta(user:file_search_path(library, Dir)).
+    asserta(user:file_search_path(library, Dir), Ref).
 
-remove_theme_file_dir(Dir) :-
-    retractall(user:file_search_path(library, Dir)),
+remove_theme_file_dir(Dir-Ref) :-
+    erase(Ref),
     delete_directory_and_contents(Dir).
 
 :- begin_tests(console_theme,
