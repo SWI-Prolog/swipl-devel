@@ -35,12 +35,6 @@
 
 :- module(linprog, [linprog/0]).
 
-:- dynamic user:file_search_path/2.
-:- prolog_load_context(directory, Dir),
-   atom_concat(Dir, '/../../../packages/clpqr', Lib0),
-   absolute_file_name(Lib0, Lib),
-   asserta(user:file_search_path(library, Lib)).
-
 :- if((current_prolog_flag(bounded, false),	% GMP implies rational
        exists_source(library(clpr)))).		% package not available
 
