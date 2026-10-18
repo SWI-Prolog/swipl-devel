@@ -51,6 +51,7 @@
 :- use_module(library(settings), [setting/2]).
 :- autoload(library(dcg/high_order), [sequence//2, sequence/4]).
 :- autoload(library(error), [must_be/2]).
+:- autoload(library(pce), [get/3, get/4]).
 
 
 /** <module> Check installation issues and features
@@ -112,7 +113,8 @@ component(library(memfile), #{}).
 component(library(odbc), #{}).
 component(library(pce),
           #{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
-            url:'xpce.html'}).
+            url:'xpce.html',
+            features:pce_features}).
 component(library(pcre), #{features:pcre_features}).
 component(library(pdt_console), #{}).
 component(library(porter_stem), #{}).
@@ -417,6 +419,29 @@ pcre_missing(X) :-
 
 pcre_must_have(unicode).
 
+%!  pce_features
+%
+%   Report the image formats xpce can save and the sound files it can
+%   load.  Both depend on how SDL_image and SDL3_sound were built.
+
+pce_features :-
+    forall(pce_formats(What, Getter),
+           (   pce_formats(Getter, Names)
+           ->  print_message(informational,
+                             installation(pce_formats(What, Names)))
+           ;   true
+           )).
+
+pce_formats(image, image_save_formats).
+pce_formats(sound, sound_file_extensions).
+
+pce_formats(Getter, Names) :-
+    catch(get(@(display), Getter, Chain), _, fail),
+    get(Chain, size, N),
+    findall(Name, ( between(1, N, I),
+                    get(Chain, nth1, I, Name)
+                  ), Names).
+
 %!  ssl_version
 
 ssl_version :-
@@ -626,6 +651,15 @@ message(failed(Properties, true, Messages)) -->
 message(archive(What, Names)) -->
     [ '  Supported ~w: '-[What] ],
     list_names(Names).
+message(pce_formats(image, Formats)) -->
+    [ '  Images can be saved as: '-[] ],
+    list_names(Formats).
+message(pce_formats(sound, [wav])) -->
+    !,
+    [ '  Sound files that can be loaded: wav (no SDL3_sound)'-[] ].
+message(pce_formats(sound, Extensions)) -->
+    [ '  Sound files that can be loaded: '-[] ],
+    list_names(Extensions).
 message(pcre_missing(Features)) -->
     [ 'Missing libpcre features: '-[] ],
     list_names(Features).
