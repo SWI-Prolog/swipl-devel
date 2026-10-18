@@ -9,10 +9,10 @@ new maintainer takes over.
 
 The high-level flow is:
 
-  1. Two single-architecture builds (`arm64`, `x86_64`) are produced.
-  2. The x86_64 binaries are imported into the `arm64` build tree
-     and `lipo`'d into universal Mach-O files.
-  3. `ninja pkg` runs the `cmake/macos_app_fixup/CMakeLists.txt`
+  1. Apple Clang builds universal (`arm64` + `x86_64`) Mach-O files
+     in a single pass (`CMAKE_OSX_ARCHITECTURES="arm64;x86_64"`).
+     The dependencies in `~/deps` must be universal too.
+  2. `ninja pkg` runs the `cmake/macos_app_fixup/CMakeLists.txt`
      custom target, which:
      - installs into a staging prefix (default `~/cmake/$BUILDDIR`),
      - runs `scripts/macosx_bundle_fixup.sh` to bundle MacPorts /
@@ -30,7 +30,7 @@ The high-level flow is:
 Two scripts drive the flow:
 
   - `scripts/make-distribution` --- contains the
-    `build_macos_gcc_universal()` shell function that orchestrates
+    `build_macos_universal()` shell function that orchestrates
     the above.
   - `scripts/macosx_bundle_fixup.sh` --- the per-binary fixup +
     code-signing pass, invoked from CMake's install hook.
@@ -139,7 +139,7 @@ Then store it in the login keychain under a profile name:
         --password   'abcd-efgh-ijkl-mnop'
 
 The profile name `swipl-notary` is the default expected by
-`build_macos_gcc_universal()`; if you use a different name, export
+`build_macos_universal()`; if you use a different name, export
 `$NOTARYTOOL_PROFILE`.  Verify the profile works:
 
     xcrun notarytool history --keychain-profile swipl-notary
@@ -153,11 +153,10 @@ With the one-time setup in place:
     cd ~/src/swipl-devel
     export APPLEID=jan@swi-prolog.org      # required guard
     . scripts/make-distribution
-    build_macos_gcc_universal build.fat-gcc
+    build_macos_universal build.fat-clang
 
-This runs both single-arch builds (PGO, GCC from MacPorts), merges
-them via `scripts/macos-import-x86_64.sh`, reconfigures the merged
-tree with the cache variables
+This configures a universal Release build using Apple Clang with
+the cache variables
 
     SWIPL_CODESIGN_IDENTITY    = Developer ID Application: ...
     SWIPL_PKGBUILD_IDENTITY    = Developer ID Installer: ...
@@ -169,21 +168,32 @@ slow step and blocks until Apple replies.
 
 The result lands at
 
-    build.fat-gcc/swipl-<version>-1.fat.pkg
+    build.fat-clang/swipl-<version>-1.fat.pkg
 
 (`fat` because the .pkg ships both arm64 and x86_64 slices; for
 non-universal builds the suffix is the build host's architecture.)
+
+### Unsigned builds
+
+To test the build without an Apple Developer ID, use
+
+    build_macos_universal --no-sign build.fat-clang
+
+This skips the `$APPLEID` check and the keychain handling.  The
+bundle is only ad-hoc signed and the .pkg is neither signed nor
+notarized.  After sourcing
+`scripts/make-distribution`, `build --no-sign` does the same.
 
 ### Keychain password handling
 
 The build needs the login-keychain unlocked for three separate
 phases (codesign during the fixup pass, productbuild after pkgbuild,
-and a final codesign on the wrapped framework).  A long arch+PGO
+and a final codesign on the wrapped framework).  A long
 build can exceed the keychain idle-lock timeout between unlock and
 first use, and an Aqua-less session (ssh, cron, CI) cannot get a
 Security Server prompt at all.
 
-To handle both, `build_macos_gcc_universal` prompts once at the
+To handle both, `build_macos_universal` prompts once at the
 start (`stty -echo` so nothing is echoed), exports the password as
 `$KEYCHAIN_PASSWORD`, and:
 
@@ -201,7 +211,7 @@ start (`stty -echo` so nothing is echoed), exports the password as
 Set the password ahead of time to skip the prompt entirely:
 
     export KEYCHAIN_PASSWORD='your-login-password'
-    build_macos_gcc_universal build.fat-gcc
+    build_macos_universal build.fat-clang
 
 `scripts/macosx_bundle_fixup.sh` no longer re-locks the keychain
 at the end of its codesign pass, since productbuild needs the

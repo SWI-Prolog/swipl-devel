@@ -7,7 +7,7 @@ fi
 
 version=`cat VERSION`
 pdf_build_dir=build.pdf
-macos_builddir=build.bundle-gcc
+macos_builddir=build.pkg
 PUBLIC1="plweb@oehoe:srv/plweb/data/download/devel"
 PUBLIC2="plweb@us:srv/plweb/data/download/devel"
 export MACOSX_DEPLOYMENT_TARGET=10.15
@@ -41,79 +41,9 @@ build_win64()
 { make -C $MINGW_DOCKER_DIR SWIPLSRC=`pwd` win64
 }
 
-build_macos_universal_binary()
-{ buildir=${1-build.macosx-fat}
-  rm -rf $buildir
-  mkdir $buildir
-  ( cd $buildir
-    PREFIX=$HOME/deps
-    export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
-    export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
-    CUFLAGS="-arch x86_64"
-    export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
-    export CXXFLAGS="$CFLAGS" # specific to release generation on JW's machine
-    export PATH=$HOME/deps/bin:$PATH
-    MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-	cmake -DCMAKE_BUILD_TYPE=Release \
-	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
-	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
-	      -DPKG_CONFIG_EXECUTABLE=/opt/local/bin/pkg-config \
-              -DMACOS_UNIVERSAL_BINARY=ON \
-              -DBUILD_MACOS_BUNDLE=ON \
-	      -DJAVA_COMPATIBILITY=ON \
-	      -DCMAKE_FRAMEWORK_PATH=/Library/Frameworks \
-	      -G Ninja ..
-    ninja
-    cpack
-  )
-}
-
-build_macos_gcc_arch()
-{ arch=$1
-  builddir=$2
-
-  case $arch in
-      arm64)
-	  GCCDIR=/opt/local/bin
-	  ;;
-      x86_64)
-	  GCCDIR=$HOME/x86_64/bin
-	  ;;
-      *)
-	  echo "ERROR: Unknown architecture $arch"
-	  return 1
-  esac
-
-  if [ -z "$builddir" ]; then
-      echo "ERROR: Usage: $0 arch builddir"
-      return 1
-  fi
-
-  rm -rf $builddir
-  mkdir $builddir
-  ( cd $builddir
-    PREFIX=$HOME/deps
-    export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
-    export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
-    export PATH=$HOME/deps/bin:$GCCDIR:$PATH
-    export CC=gcc-mp-15
-    export CXX=g++-mp-15
-    MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-	cmake -DCMAKE_BUILD_TYPE=PGO \
-	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
-	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
-	      -DPKG_CONFIG_EXECUTABLE=/opt/local/bin/pkg-config \
-              -DMACOS_UNIVERSAL_BINARY=ON \
-              -DBUILD_MACOS_BUNDLE=ON \
-	      -DJAVA_COMPATIBILITY=ON \
-	      -DCMAKE_FRAMEWORK_PATH=/Library/Frameworks \
-	      -G Ninja ..
-    ninja
-  )
-}
-
-build_macos_gcc_universal()
-{ # Build a signed and notarized universal (arm64 + x86_64) .pkg.
+macos_signing_setup()
+{ # Find the signing identities and unlock the login keychain.  Sets
+  # app_id, pkg_id and PROFILE.
   #
   # Requires:
   #   $APPLEID  -- the Apple ID associated with your Developer ID
@@ -188,9 +118,28 @@ _EOF_
       -s \
       -k "$KEYCHAIN_PASSWORD" \
       ~/Library/Keychains/login.keychain-db >/dev/null || return 1
+}
 
-  buildir=${1-build.fat-gcc}
-  buildir_x86_64=$buildir-x86_64
+build_macos_universal()
+{ # Build a universal (arm64 + x86_64) .pkg using Apple Clang.
+  #
+  # Usage: build_macos_universal [--no-sign] [builddir]
+  #
+  # By default the .pkg is signed and notarized (see
+  # macos_signing_setup()).  Using --no-sign, the bundle is only
+  # ad-hoc signed and the .pkg is neither signed nor notarized.
+
+  sign=yes
+  if [ "$1" = --no-sign ]; then
+      sign=no
+      shift
+  fi
+
+  if [ $sign = yes ]; then
+      macos_signing_setup || return 1
+  fi
+
+  buildir=${1-build.fat-clang}
 
   # Compute and clean the install staging prefix.  cmake/Install.cmake
   # honours $SWIPL_INSTALL_PREFIX with @builddir@ substitution; we use
@@ -206,43 +155,38 @@ _EOF_
       rm -rf "$install_prefix"
   fi
 
-  build_macos_gcc_arch x86_64 $buildir_x86_64 || return 1
-  build_macos_gcc_arch arm64 $buildir || return 1
+  # Apple Clang builds both architectures in one pass.  This requires
+  # the dependencies in $HOME/deps to be universal as well.
+  rm -rf $buildir
+  mkdir $buildir
   ( cd $buildir
-    ../scripts/macos-import-x86_64.sh ../$buildir_x86_64 || return 1
-    cmake -DSWIPL_CODESIGN_IDENTITY="$app_id" \
-          -DSWIPL_PKGBUILD_IDENTITY="$pkg_id" \
-          -DSWIPL_NOTARYTOOL_PROFILE="$PROFILE" \
-          . || return 1
-    ninja pkg
-  )
-}
-
-build_macos_gcc()
-{ buildir=${1-build.macosx-gcc}
-
-  rm -rf $builddir
-  mkdir $builddir
-  ( cd $builddir
     PREFIX=$HOME/deps
     export PKG_CONFIG_LIBDIR="/usr/lib/pkgconfig:$PREFIX/lib/pkgconfig"
     export CMAKE_PREFIX_PATH="$PREFIX:$MACOS_SDK_USR"
-    export CFLAGS="-Wno-nullability-completeness $CUFLAGS"
-    export CXXFLAGS="$CFLAGS"
     export PATH=$HOME/deps/bin:$PATH
-    export CC=gcc-mp-15
-    export CXX=g++-mp-15
+    export CC=clang
+    export CXX=clang++
+    if [ $sign = yes ]; then
+	sign_options=(-DSWIPL_CODESIGN_IDENTITY="$app_id"
+		      -DSWIPL_PKGBUILD_IDENTITY="$pkg_id"
+		      -DSWIPL_NOTARYTOOL_PROFILE="$PROFILE")
+    else
+	sign_options=()
+    fi
     MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
-	cmake -DCMAKE_BUILD_TYPE=PGO \
+	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
 	      -DSWIPL_CC=cc -DSWIPL_CXX=c++ \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
 	      -DPKG_CONFIG_EXECUTABLE=/opt/local/bin/pkg-config \
+              -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
 	      -DJAVA_COMPATIBILITY=ON \
 	      -DCMAKE_FRAMEWORK_PATH=/Library/Frameworks \
-	      -G Ninja ..
-    ninja
-    cpack
+	      "${sign_options[@]}" \
+	      -G Ninja .. || return 1
+    ninja || return 1
+    ninja pkg
   )
 }
 
@@ -311,17 +255,16 @@ list_built()
   fi
 }
 
+# build [--no-sign]
+# On MacOS, --no-sign creates an unsigned universal .pkg
+
 build()
-{ is_clean_release && force_build
+{ is_clean_release && force_build "$@"
 }
 
 force_build()
 { if [ $(uname) = Darwin ]; then
-    if uname -a | grep arm64 > /dev/null; then
-      build_macos_gcc_universal $macos_builddir
-    else
-      build_macos_gcc $macos_builddir
-    fi
+    build_macos_universal "$@" $macos_builddir
   else
     build_pdf
     build_win64
