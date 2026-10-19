@@ -421,8 +421,9 @@ pcre_must_have(unicode).
 
 %!  pce_features
 %
-%   Report the image formats xpce can save and the sound files it can
-%   load.  Both depend on how SDL_image and SDL3_sound were built.
+%   Report the image formats xpce can save, the sound files it can load
+%   and the video codecs it can play and write.  These depend on how
+%   SDL_image, SDL3_sound and the video library were built.
 
 pce_features :-
     forall(pce_formats(What, Getter),
@@ -434,6 +435,8 @@ pce_features :-
 
 pce_formats(image, image_save_formats).
 pce_formats(sound, sound_file_extensions).
+pce_formats(video, video_decoders).
+pce_formats(video_writer, video_encoders).
 
 pce_formats(Getter, Names) :-
     catch(get(@(display), Getter, Chain), _, fail),
@@ -660,6 +663,18 @@ message(pce_formats(sound, [wav])) -->
 message(pce_formats(sound, Extensions)) -->
     [ '  Sound files that can be loaded: '-[] ],
     list_names(Extensions).
+message(pce_formats(video, [])) -->
+    !,
+    [ '  Videos cannot be played (xpce has no video support)'-[] ].
+message(pce_formats(video, Codecs)) -->
+    [ '  Video codecs that can be played: '-[] ],
+    list_names(Codecs).
+message(pce_formats(video_writer, [])) -->
+    !,
+    [ '  Videos cannot be written (no video encoders)'-[] ].
+message(pce_formats(video_writer, Codecs)) -->
+    [ '  Video codecs that can be written: '-[] ],
+    list_names(Codecs).
 message(pcre_missing(Features)) -->
     [ 'Missing libpcre features: '-[] ],
     list_names(Features).
