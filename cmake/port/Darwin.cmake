@@ -49,6 +49,22 @@ elseif(EXISTS /usr/local/Cellar)
   set(HOMEBREW_PREFIX /usr/local)
 endif()
 
+# Dependencies come from the OS plus exactly one of Macports, Homebrew
+# or a directory.  Mixing them gives clashes, e.g., two copies of
+# libSDL3 if SDL3_sound comes from Homebrew and SDL3 from Macports.
+# CMAKE_IGNORE_PATH only ignores the given directories themselves.
+# CMAKE_IGNORE_PREFIX_PATH (CMake 3.23) also stops find_package() from
+# finding config files below a prefix, which it otherwise derives from
+# $PATH.
+
+macro(ignore_prefixes)
+  foreach(prefix ${ARGN})
+    list(APPEND CMAKE_IGNORE_PATH
+         ${prefix}/lib ${prefix}/include ${prefix}/bin)
+    list(APPEND CMAKE_IGNORE_PREFIX_PATH ${prefix})
+  endforeach()
+endmacro()
+
 if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
   message("-- Using Macports packages from /opt/local")
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
@@ -59,6 +75,7 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
   if(EXISTS /opt/local/libexec/jpeg)
     set(JPEG_ROOT /opt/local/libexec/jpeg)
   endif()
+  ignore_prefixes(/opt/homebrew /usr/local)
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   message("-- Using Homebrew packages from ${HOMEBREW_PREFIX}")
   set(CMAKE_FIND_ROOT_PATH ${HOMEBREW_PREFIX})
@@ -69,10 +86,10 @@ elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   latest_subdir(OPENSSL_ROOT_DIR ${HOMEBREW_PREFIX}/Cellar/openssl@3/)
   latest_subdir(LibArchive_ROOT ${HOMEBREW_PREFIX}/Cellar/libarchive)
   latest_subdir(BDB_ROOT ${HOMEBREW_PREFIX}/Cellar/berkeley-db)
-  set(CMAKE_IGNORE_PATH
-      /opt/local/lib
-      /opt/local/include
-      /opt/local/bin)
+  ignore_prefixes(/opt/local)
+  if(NOT HOMEBREW_PREFIX STREQUAL "/usr/local")
+    ignore_prefixes(/usr/local)
+  endif()
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL None)
   message("-- Trying to build without Macports or Homebrew dependencies")
 elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
@@ -81,16 +98,12 @@ elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
       "${MACOSX_DEPENDENCIES_FROM}/lib")
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
       "${MACOSX_DEPENDENCIES_FROM}/include")
-  set(CMAKE_IGNORE_PATH
-      /opt/local/lib
-      /opt/local/include
-      /opt/local/bin
-      /usr/local/lib
-      /usr/local/include
-      /usr/local/bin
-      /opt/homebrew/lib
-      /opt/homebrew/include
-      /opt/homebrew/bin)
+  list(APPEND CMAKE_PREFIX_PATH "${MACOSX_DEPENDENCIES_FROM}")
+  # pkg-config is a tool and may come from Macports or Homebrew, but it
+  # must only read the .pc files of our dependencies.
+  find_program(PKG_CONFIG_EXECUTABLE pkg-config)
+  set(ENV{PKG_CONFIG_LIBDIR} "${MACOSX_DEPENDENCIES_FROM}/lib/pkgconfig")
+  ignore_prefixes(/opt/local /usr/local /opt/homebrew)
 else()
   message(FATAL_ERROR "Invalid MACOSX_DEPENDENCIES_FROM: ${MACOSX_DEPENDENCIES_FROM}")
 endif()
