@@ -688,10 +688,11 @@ sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
       return -1;
 
     count++;
+    sum->ticks += n->ticks;
     if ( !seen )
-    { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
-    }
+    else			/* nested: n's ticks are in the outer siblings */
+      sum->sibling_ticks -= n->ticks;
 
     if ( n->parent )
       add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen);
