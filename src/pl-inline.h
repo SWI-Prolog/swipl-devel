@@ -619,6 +619,22 @@ is_signalled(DECL_LD)
   return !!msk;
 }
 
+/* True if there are pending signals that handleSignals() can process
+ * now.  Inside a critical region (sig_atomic/1, cleanup handlers)
+ * signals remain pending, so waiting must not be interrupted for them.
+ */
+
+#define is_signalled_unblocked(_) LDFUNC(is_signalled_unblocked, _)
+static inline bool
+is_signalled_unblocked(DECL_LD)
+{ return ( is_signalled() &&
+	   ( !LD->critical
+#ifndef __unix__
+	     || LD->signal.forced == SIGINT
+#endif
+	   ) );
+}
+
 #define register_attvar(gp) LDFUNC(register_attvar, gp)
 static inline void
 register_attvar(DECL_LD Word gp)

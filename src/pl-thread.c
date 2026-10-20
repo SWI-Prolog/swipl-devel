@@ -4602,7 +4602,7 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
 	    exit(1);
 	  }
 
-	  if ( is_signalled() )			/* thread-signal */
+	  if ( is_signalled_unblocked() )			/* thread-signal */
 	  { queue->wait_for_drain--;
 	    return MSG_WAIT_INTR;
 	  }
@@ -4814,7 +4814,7 @@ cv_timedwait(message_queue *queue,
 
     rc = SleepConditionVariableCS(cond, mutex, api_timeout);
 
-    if ( is_signalled() )
+    if ( is_signalled_unblocked() )
       return CV_INTR;
     if ( !rc )
       return last ? CV_TIMEDOUT : CV_MAYBE;
@@ -4864,14 +4864,14 @@ cv_timedwait(message_queue *queue,
 
     switch( rc )
     { case ETIMEDOUT:
-	if ( is_signalled() )
+	if ( is_signalled_unblocked() )
 	  return CV_INTR;
 	if ( api_timeout == deadline )
 	  return CV_TIMEDOUT;
 	return CV_MAYBE;
       case EINTR:			/* can not happen in POSIX, but can in */
       case 0:				/* legacy systems */
-	if ( is_signalled() )
+	if ( is_signalled_unblocked() )
 	  return CV_INTR;
 	return CV_READY;
       default:
@@ -5069,7 +5069,7 @@ get_message(DECL_LD message_queue *queue, term_t msg,
 	  exit(1);
 	}
 
-	if ( is_signalled() )		/* thread-signal */
+	if ( is_signalled_unblocked() )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
 	  PL_discard_foreign_frame(fid);
