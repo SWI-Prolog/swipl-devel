@@ -83,6 +83,15 @@
 #
 #  - OSSP uuid is no longer downloadable (the OSSP FTP host is gone).  The
 #    tarball in the source directory is the only copy -- do not delete it.
+#
+#  - ffmpeg is a small LGPL build: only libavformat, libavcodec,
+#    libavutil and libswresample (for the Opus decoder) with the common
+#    containers and network protocols.  ffmpeg's MPEG-4 encoder is the
+#    fallback if the OS cannot encode.  H.264,
+#    HEVC and AAC are encoded by VideoToolbox/AudioToolbox, which also
+#    decode on the GPU, and TLS comes from our OpenSSL.  xpce uses it if
+#    SWI-Prolog is configured with -DXPCE_VIDEO=ffmpeg; by default it
+#    uses AVFoundation.  WITH_SRT=yes adds SRT (srt://) using libsrt.
 
 ################################################################
 # Configuration
@@ -109,6 +118,11 @@ FRIBIDI_VERSION=1.0.17
 HARFBUZZ_VERSION=14.6.0
 CAIRO_VERSION=1.18.6
 PANGO_VERSION=1.58.2
+FFMPEG_VERSION=8.1.3
+SRT_VERSION=1.5.7
+
+# SRT for ffmpeg: `WITH_SRT=yes . macos-deps.sh'
+WITH_SRT="${WITH_SRT:-no}"
 
 # Where the finished universal libraries go, and where the per-arch builds
 # are staged.  DEPS must not contain spaces.  The staging trees are plain
@@ -274,6 +288,26 @@ cmake_build()
   )
 }
 
+# CMake, for one architecture, as part of build_arch.  For a library
+# that links one built per architecture, such as libsrt, which needs
+# OpenSSL.  $CC carries the -arch flag.
+
+cmake_arch_build()
+{ local dir="$1"; shift
+  ( set -e
+    cd "$DEPS_SRC/$dir"
+    rm -rf "build-$DEPS_ARCH"
+    cmake -S . -B "build-$DEPS_ARCH" -G Ninja \
+	  -DCMAKE_BUILD_TYPE=Release \
+	  -DCMAKE_INSTALL_PREFIX="$DEPS" \
+	  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+	  -DBUILD_SHARED_LIBS=ON \
+	  "$@"
+    cmake --build "build-$DEPS_ARCH" -j $NPROC
+    DESTDIR="$DEPS_STAGE" cmake --install "build-$DEPS_ARCH"
+  )
+}
+
 ################################################################
 # Downloading
 ################################################################
@@ -430,6 +464,18 @@ download_pango()
 { fetch https://download.gnome.org/sources/pango/${PANGO_VERSION%.*}/pango-$PANGO_VERSION.tar.xz \
 	pango-$PANGO_VERSION.tar.xz &&
   unpack pango-$PANGO_VERSION.tar.xz pango-$PANGO_VERSION
+}
+
+download_srt()
+{ fetch https://github.com/Haivision/srt/archive/refs/tags/v$SRT_VERSION.tar.gz \
+	srt-$SRT_VERSION.tar.gz &&
+  unpack srt-$SRT_VERSION.tar.gz srt-$SRT_VERSION
+}
+
+download_ffmpeg()
+{ fetch https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz \
+	ffmpeg-$FFMPEG_VERSION.tar.xz &&
+  unpack ffmpeg-$FFMPEG_VERSION.tar.xz ffmpeg-$FFMPEG_VERSION
 }
 
 download_prerequisites()
@@ -631,6 +677,49 @@ build_pango()
 # Building, universal in one pass (CMake projects)
 ################################################################
 
+build_srt()
+{ cmake_arch_build srt-$SRT_VERSION \
+      -DENABLE_APPS=OFF -DENABLE_STATIC=OFF -DENABLE_SHARED=ON \
+      -DUSE_ENCLIB=openssl
+}
+
+# ffmpeg has its own configure.  It finds OpenSSL and libsrt using
+# pkg-config, set up for the staging tree above.  The x86_64 pass uses
+# nasm from Macports if it is there.
+
+build_ffmpeg()
+{ local extra=()
+
+  [ "$WITH_SRT" = yes ] && extra+=(--enable-libsrt --enable-protocol=libsrt)
+  if [ "$DEPS_ARCH" = x86_64 ] && ! command -v nasm >/dev/null; then
+      extra+=(--disable-x86asm)
+  fi
+  ( set -e
+    cd "$DEPS_SRC/ffmpeg-$FFMPEG_VERSION"
+    rm -rf "build-$DEPS_ARCH"
+    mkdir -p "build-$DEPS_ARCH"
+    cd "build-$DEPS_ARCH"
+    ../configure --prefix="$DEPS" --cc="$CC" --arch="$DEPS_ARCH" \
+	--disable-everything --disable-programs --disable-doc \
+	--disable-avdevice --disable-avfilter --disable-swscale \
+	--enable-shared --disable-static \
+	--disable-gpl --disable-nonfree --disable-autodetect \
+	--enable-network --enable-zlib --enable-openssl \
+	--enable-videotoolbox --enable-audiotoolbox \
+	--enable-protocol=file,pipe,http,https,tcp,udp,rtp,rtmp,rtmps,tls,crypto,data,srtp \
+	--enable-demuxer=mov,matroska,mpegts,hls,rtsp,flv,sdp,rtp,aac,mp3,wav,mjpeg \
+	--enable-muxer=mp4,mov,ipod,matroska,webm,mpegts,flv,hls,rtp,rtp_mpegts,adts \
+	--enable-parser=h264,hevc,aac,av1,vp9,opus,mpegaudio,mjpeg,mpeg4video \
+	--enable-bsf=h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc,extract_extradata,vp9_superframe,av1_frame_merge \
+	--enable-decoder=aac,mp3,opus,vp9,mjpeg,mpeg4,h264,hevc \
+	--enable-hwaccel=h264_videotoolbox,hevc_videotoolbox \
+	--enable-encoder=aac,aac_at,mpeg4,h264_videotoolbox,hevc_videotoolbox \
+	"${extra[@]}"
+    make -j$NPROC
+    make install DESTDIR="$DEPS_STAGE"
+  )
+}
+
 build_utf8proc()
 { cmake_build utf8proc-$UTF8PROC_VERSION \
       -DUTF8PROC_ENABLE_TESTING=OFF
@@ -731,12 +820,14 @@ build_emacs_header()
 ################################################################
 # Order.  zlib, libffi and pcre2 come first because glib uses all three;
 # libpng needs zlib; libpng, glib, pixman, fribidi and harfbuzz come
-# before cairo and pango.  SDL3_image uses the per-arch libpng too, so the
+# before cairo and pango.  ffmpeg needs ssl, zlib and srt.  SDL3_image uses the per-arch libpng too, so the
 # universal libraries are built after both architectures.
 ################################################################
 
 DEPS_LIBS=(zlib libpng libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
 	   libyaml pixman glib fribidi harfbuzz cairo pango)
+[ "$WITH_SRT" = yes ] && DEPS_LIBS+=(srt)
+DEPS_LIBS+=(ffmpeg)			# after ssl, zlib and srt
 DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image sdl3_sound)
 
 ################################################################
