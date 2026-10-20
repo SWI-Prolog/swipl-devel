@@ -155,6 +155,16 @@ set_config()
 	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Macports"
 	  gcc_suffix="-mp"
 	  ;;
+      deps)			# deps: MacOS: use ~/deps and macOS 10.15, as the bundle
+	  # The dependencies built by scripts/macos-deps.sh.  This builds
+	  # what scripts/make-distribution builds, but for this machine's
+	  # CPU and not as a bundle.
+	  opts+=" -DMACOSX_DEPENDENCIES_FROM=${MACOS_DEPS:-$HOME/deps}"
+	  opts+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15"
+	  opts+=" -DJAVA_COMPATIBILITY=ON"
+	  export CC=clang
+	  export CXX=clang++
+	  ;;
       # group: Optimization
       native)			# native: Optimize for native CPU
 	  CFLAGS+=" -mtune=native -march=native"
