@@ -512,6 +512,8 @@ build_gmp()
 
 # OpenSSL has its own configuration system.  `install_sw` skips the docs;
 # `install_ssldirs` installs $DEPS/ssl/openssl.cnf, which the bundle needs.
+# It depends on nothing and records $CPPFLAGS in the library (`openssl
+# version -f'), so it is configured without our -I for the staging tree.
 
 build_ssl()
 { local target
@@ -525,7 +527,7 @@ build_ssl()
     rm -rf "build-$DEPS_ARCH"
     mkdir -p "build-$DEPS_ARCH"
     cd "build-$DEPS_ARCH"
-    ../Configure --prefix="$DEPS" --openssldir="$DEPS/ssl" \
+    CPPFLAGS= ../Configure --prefix="$DEPS" --openssldir="$DEPS/ssl" \
 		 shared threads no-docs $target
     make -j$NPROC
     make install_sw install_ssldirs DESTDIR="$DEPS_STAGE"
@@ -684,15 +686,22 @@ build_srt()
 }
 
 # ffmpeg has its own configure.  It finds OpenSSL and libsrt using
-# pkg-config, set up for the staging tree above.  The x86_64 pass uses
-# nasm from Macports if it is there.
+# pkg-config, set up for the staging tree above.  The x86_64 pass needs
+# nasm (`port install nasm') for ffmpeg's x86 assembly, which makes it
+# a lot faster.  Without nasm the build fails, unless WITH_X86ASM=no.
 
 build_ffmpeg()
 { local extra=()
 
   [ "$WITH_SRT" = yes ] && extra+=(--enable-libsrt --enable-protocol=libsrt)
   if [ "$DEPS_ARCH" = x86_64 ] && ! command -v nasm >/dev/null; then
-      extra+=(--disable-x86asm)
+      if [ "$WITH_X86ASM" = no ]; then
+	  extra+=(--disable-x86asm)
+      else
+	  echo "ffmpeg: nasm not found; install it (port install nasm)"
+	  echo "or build without x86 assembly using WITH_X86ASM=no"
+	  return 1
+      fi
   fi
   ( set -e
     cd "$DEPS_SRC/ffmpeg-$FFMPEG_VERSION"
@@ -717,6 +726,10 @@ build_ffmpeg()
 	"${extra[@]}"
     make -j$NPROC
     make install DESTDIR="$DEPS_STAGE"
+    # Libs.private records pkg-config's answers for zlib and OpenSSL,
+    # which name the staging tree (see PKG_CONFIG_SYSROOT_DIR)
+    sed -i '' "s|$DEPS_ROOT|$DEPS|g" "$DEPS_ROOT"/lib/pkgconfig/libav*.pc \
+	"$DEPS_ROOT"/lib/pkgconfig/libswresample.pc
   )
 }
 
