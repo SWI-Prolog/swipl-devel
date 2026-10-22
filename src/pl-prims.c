@@ -6264,7 +6264,11 @@ swi_statistics(DECL_LD atom_t key, Number v)
       v->value.i = pool->size;
     else
       v->value.i = 0;
-  } else if (key == ATOM_indexes_created)
+  } else if (key == ATOM_erased_clauses)
+    v->value.i = GD->clauses.erased;
+  else if (key == ATOM_erased_clause_space)
+    v->value.i = GD->clauses.erased_size;
+  else if (key == ATOM_indexes_created)
     v->value.i = GD->statistics.indexes.created;
   else if (key == ATOM_indexes_destroyed)
     v->value.i = GD->statistics.indexes.destroyed;

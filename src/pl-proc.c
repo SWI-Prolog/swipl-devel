@@ -3573,6 +3573,35 @@ sizeof_predicate(Definition def)
 }
 
 
+/* Memory used by the clauses of def that are erased, but not yet
+ * reclaimed by clause garbage collection.  These are part of
+ * sizeof_predicate().
+ */
+
+static size_t
+sizeof_erased_clauses(Definition def)
+{
+#if O_PLMT
+  GET_LD
+#endif
+  size_t size = 0;
+  ClauseRef c;
+
+  acquire_def(def);
+  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  { Clause cl = c->value.clause;
+
+    if ( ison(cl, CL_ERASED) )
+    { size += sizeofClause(cl->code_size);
+      size += SIZEOF_CREF_CLAUSE;
+    }
+  }
+  release_def(def);
+
+  return size;
+}
+
+
 static
 PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
 	  PL_FA_TRANSPARENT)
@@ -3678,6 +3707,16 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   } else if ( key == ATOM_size )
   { def = getProcDefinition(proc);
     return PL_unify_integer(value, sizeof_predicate(def));
+  } else if ( key == ATOM_erased_clauses ||
+	      key == ATOM_erased_clause_space )
+  { if ( ison(def, P_FOREIGN) )
+      return false;
+    def = getProcDefinition(proc);
+    if ( def->impl.clauses.erased_clauses == 0 )
+      return false;
+    if ( key == ATOM_erased_clauses )
+      return PL_unify_int64(value, def->impl.clauses.erased_clauses);
+    return PL_unify_int64(value, sizeof_erased_clauses(def));
   } else if ( key == ATOM_primary_index )
   { const ClauseList clist = &def->impl.clauses;
     if ( !clist->pindex_verified )

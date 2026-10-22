@@ -45,7 +45,8 @@ between predicate marking and (local) stack shifts.
 */
 
 test_cgc :-
-	run_tests([ cgc
+	run_tests([ cgc,
+		    erased
 		  ]).
 
 shift_cgc(Steps, Threads) :-
@@ -105,3 +106,39 @@ test(shift_cgc) :-
 	shift_cgc(4, 4).
 
 :- end_tests(cgc).
+
+%	Erased clauses that clause GC cannot reclaim, because a call to
+%	the predicate is still active, are reported by the properties
+%	erased_clauses/1 and erased_clause_space/1 of the predicate and
+%	by the statistics keys of the same name.  They are included in
+%	its size/1.  As there, the space of a clause includes its clause
+%	reference, so it is more than its clause_property/2 size.
+
+:- dynamic erased_fact/1.
+
+:- begin_tests(erased).
+
+test(erased_clauses, [ N-Size1 == 100-Size0,
+		       true(Space > ClauseSpace), true(Space < Size0),
+		       true(GN >= 100), true(GS >= Space)
+		     ]) :-
+	retractall(erased_fact(_)),
+	garbage_collect_clauses,
+	forall(between(1, 100, I), assertz(erased_fact(I))),
+	predicate_property(erased_fact(_), size(Size0)),
+	findall(S, ( clause(erased_fact(_), true, Ref),
+		     clause_property(Ref, size(S))
+		   ), Sizes),
+	sum_list(Sizes, ClauseSpace),
+	once(( erased_fact(_),
+	       retractall(erased_fact(_)),
+	       predicate_property(erased_fact(_), erased_clauses(N)),
+	       predicate_property(erased_fact(_), erased_clause_space(Space)),
+	       predicate_property(erased_fact(_), size(Size1)),
+	       statistics(erased_clauses, GN),
+	       statistics(erased_clause_space, GS)
+	     )).
+test(no_erased_clauses, fail) :-
+	predicate_property(test_cgc:step_, erased_clauses(_)).
+
+:- end_tests(erased).

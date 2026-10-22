@@ -904,6 +904,10 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
 '$predicate_property'(size(Bytes), Pred) :-
     '$get_predicate_attribute'(Pred, size, Bytes).
+'$predicate_property'(erased_clauses(Count), Pred) :-
+    '$get_predicate_attribute'(Pred, erased_clauses, Count).
+'$predicate_property'(erased_clause_space(Bytes), Pred) :-
+    '$get_predicate_attribute'(Pred, erased_clause_space, Bytes).
 '$predicate_property'(primary_index(Arg), Pred) :-
     '$get_predicate_attribute'(Pred, primary_index, Arg).
 

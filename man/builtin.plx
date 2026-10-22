@@ -5199,6 +5199,18 @@ the predicates may not be contiguous.
 True if assert/1 and retract/1 may be used to modify the predicate.
 This property is set using dynamic/1.
 
+    \termitem{erased_clauses}{Count}
+Number of clauses of the predicate that are erased, but not yet
+reclaimed by clause garbage collection (see garbage_collect_clauses/0),
+for example because a running goal may still need them.  Fails if there
+are none.  See also \term{erased_clause_space}{Bytes} and the
+statistics/2 keys \const{erased_clauses} and \const{erased_clause_space}.
+
+    \termitem{erased_clause_space}{Bytes}
+Memory used by the clauses counted by \term{erased_clauses}{Count}.
+This memory is part of the \term{size}{Bytes} property.  Fails if
+there are no such clauses.
+
     \termitem{exported}{}
 True if the predicate is in the public list of the context module.
 
@@ -12546,6 +12558,9 @@ cputime         & (User) {\sc cpu} time since thread was started in seconds.
 		  Includes {\sc cpu} time in completed \jargon{child threads}.
 		  See also \const{self_cputime} and \const{process_cputime}. \\
 epoch		& Time stamp when thread was started \\
+erased_clauses  & Number of clauses that are erased but not yet
+		  reclaimed by clause garbage collection \\
+erased_clause_space & Bytes used by these clauses \\
 errors		& Number of error messages printed \\
 functors        & Total number of defined name/arity pairs \\
 functor_space   & Bytes used to represent functors \\
