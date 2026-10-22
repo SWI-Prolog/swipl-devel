@@ -181,7 +181,7 @@ in_query_arguments(DECL_LD Word p)
 }
 
 void
-valid_term_t(DECL_LD term_t t)
+check_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   if ( !onStack(local, p) )
@@ -198,7 +198,7 @@ valid_term_t(DECL_LD term_t t)
 }
 
 void
-valid_user_term_t(DECL_LD term_t t)
+check_user_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   if ( !onStack(local, p) )
@@ -213,7 +213,7 @@ valid_user_term_t(DECL_LD term_t t)
 }
 
 void
-valid_functor_t(functor_t f)
+check_functor_t(functor_t f)
 { if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
     PL_api_error("invalid functor_t %zd (bad tag)", (size_t)f);
   size_t index = indexFunctor(f);
@@ -226,7 +226,7 @@ valid_functor_t(functor_t f)
 }
 
 void
-valid_atom_t(atom_t a)
+check_atom_t(atom_t a)
 { if ( !isAtom(a) )
     PL_api_error("invalid atom_t %zd (bad tag)", (size_t)a);
   size_t index = indexAtom(a);
@@ -240,9 +240,9 @@ valid_atom_t(atom_t a)
 }
 
 void
-valid_dict_key(atom_t a)
+check_dict_key(atom_t a)
 { if ( isTaggedInt(a) )
-    valid_atom_t(a);
+    check_atom_t(a);
 }
 
 #endif /*O_VALIDATE_API*/

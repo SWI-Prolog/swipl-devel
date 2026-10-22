@@ -52,8 +52,8 @@
 
 #if USE_LD_MACROS
 #if O_VALIDATE_API
-#define valid_term_t(t)				LDFUNC(valid_term_t, t)
-#define valid_user_term_t(t)			LDFUNC(valid_user_term_t, t)
+#define check_term_t(t)				LDFUNC(check_term_t, t)
+#define check_user_term_t(t)			LDFUNC(check_user_term_t, t)
 #endif
 #define	linkVal(p)				LDFUNC(linkVal, p)
 #define	linkValG(p)				LDFUNC(linkValG, p)
@@ -128,12 +128,27 @@
 #define LDFUNC_DECLARATIONS
 
 #if O_VALIDATE_API
-void		valid_term_t(term_t t);
-void		valid_atom_t(atom_t t);
-void		valid_functor_t(functor_t t);
-void		valid_dict_key(atom_t a);
+void		check_term_t(term_t t);
+void		check_user_term_t(term_t t);
+void		check_atom_t(atom_t t);
+void		check_functor_t(functor_t t);
+void		check_dict_key(atom_t a);
+
+/* The checks are enabled by the Prolog flag `validate_api` */
+#define validateAPI() truePrologFlag(PLFLAG_VALIDATE_API)
+#define valid_term_t(t) \
+	do { if ( validateAPI() ) check_term_t(t); } while(0)
+#define valid_user_term_t(t) \
+	do { if ( validateAPI() ) check_user_term_t(t); } while(0)
+#define valid_atom_t(a) \
+	do { if ( validateAPI() ) check_atom_t(a); } while(0)
+#define valid_functor_t(f) \
+	do { if ( validateAPI() ) check_functor_t(f); } while(0)
+#define valid_dict_key(a) \
+	do { if ( validateAPI() ) check_dict_key(a); } while(0)
 #else
 #define valid_term_t(t) (void)0
+#define valid_user_term_t(t) (void)0
 #define valid_atom_t(t) (void)0
 #define valid_functor_t(t) (void)0
 #define valid_dict_key(t) (void)0

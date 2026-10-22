@@ -2688,6 +2688,12 @@ initPrologFlags(void)
   setPrologFlag("occurs_check", FT_ATOM, "false");
   setPrologFlag("incomparable", FT_ATOM, "arbitrary");
   setPrologFlag("shift_check", FT_BOOL, false,  PLFLAG_SHIFT_CHECK);
+#if O_VALIDATE_API
+  setPrologFlag("validate_api", FT_BOOL, !GD->cmdline.optimise,
+		PLFLAG_VALIDATE_API);
+#else
+  setPrologFlag("validate_api", FT_BOOL|FF_READONLY, false, 0);
+#endif
   setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM,
 		GD->options.traditional ? "codes" : "string");

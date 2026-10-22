@@ -503,7 +503,8 @@ does not exist.
 
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See current_prolog_flag/2 flag
-\prologflag{optimise} for details.
+\prologflag{optimise} for details.  This option also sets the
+flag \prologflag{validate_api} to \const{false}.
 
     \cmdlineoptionitem{-l}{file}
 Load \arg{file}. This flag provides compatibility with some other Prolog
@@ -2735,6 +2736,22 @@ error and does not create the flag. See also create_prolog_flag/3.  The
 default is \const{silent}, but future versions may change that.
 Developers are encouraged to use another value and ensure proper use
 of create_prolog_flag/3 to create flags for their library.
+
+    \prologflagitem{validate_api}{bool}{rw}
+If \const{true} (default), the functions of the foreign language
+interface (\secref{foreign}) verify their \ctype{term_t}, \ctype{atom_t}
+and \ctype{functor_t} arguments.  An invalid handle, notably a
+\ctype{term_t} that is used after the foreign frame or foreign predicate
+that created it has ended, terminates the process with a message that
+explains the problem.  Without this check, such errors lead to
+undefined behaviour that is often hard to diagnose.  The check costs
+a few nanoseconds per call, which can be significant for foreign code
+that makes many cheap calls.  The initial value is \const{false} if
+Prolog was started with the \cmdlineoption{-O} option.  If you suspect
+problems in foreign code, run without \cmdlineoption{-O} or set this
+flag to \const{true}.  Like most flags, the value is local to a thread
+and inherited by threads it creates.  The flag is read-only and
+\const{false} if the system was built without \const{VALIDATE_API}.
 
     \prologflagitem{var_prefix}{atom}{rw}
 If \const{false} (default), use standard variable syntax.  Otherwise the

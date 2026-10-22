@@ -2929,7 +2929,8 @@ typedef enum plflag
   PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
   PLFLAG_SHIFT_CHECK,			/* Check suspicious shifts */
   PLFLAG_AGC_CLOSE_STREAMS,		/* AGC may close open streams */
-  PLFLAG_EPILOG				/* swipl-win */
+  PLFLAG_EPILOG,			/* swipl-win */
+  PLFLAG_VALIDATE_API			/* Validate PL_*() arguments */
 } plflag;
 
 typedef struct
