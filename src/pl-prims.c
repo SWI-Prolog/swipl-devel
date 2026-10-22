@@ -6258,6 +6258,12 @@ swi_statistics(DECL_LD atom_t key, Number v)
       v->value.i = pool->size;
     else
       v->value.i = 0;
+  } else if (key == ATOM_shared_table_space_used)
+  { alloc_pool *pool;
+    if ( (pool=GD->tabling.node_pool) )
+      v->value.i = pool->size;
+    else
+      v->value.i = 0;
   } else if (key == ATOM_indexes_created)
     v->value.i = GD->statistics.indexes.created;
   else if (key == ATOM_indexes_destroyed)
