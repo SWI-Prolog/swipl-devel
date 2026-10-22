@@ -45,11 +45,34 @@
 %!  test_thread_property
 %
 %   Tests asynchronous polling for  thread   properties  while (notably)
-%   threads  terminate.  Currently  only  checks   the  new  size(Bytes)
-%   property.
+%   threads  terminate.  Checks the size(Bytes) property and the size of
+%   the copies of a thread-local predicate in other threads.
 
 test_thread_property :-
+    test_local_size,
     test_thread_property(100).
+
+%   The copy of p/1 in another thread has 100 clauses.  The main thread
+%   has no copy unless it used p/1.
+
+test_local_size :-
+    thread_create(( forall(between(1, 100, I), assertz(p(I))),
+                    thread_get_message(done)
+                  ), Id, []),
+    wait_clauses(Id, 100),
+    '$thread_local_predicate_size'(test_thread_property:p(_), Id, Size),
+    assertion(Size > 100*24),
+    thread_send_message(Id, done),
+    thread_join(Id),
+    assertion(\+ '$thread_local_predicate_size'(test_thread_property:p(_),
+                                                Id, _)).
+
+wait_clauses(Id, N) :-
+    (   '$thread_local_clause_count'(test_thread_property:p(_), Id, N)
+    ->  true
+    ;   sleep(0.01),
+        wait_clauses(Id, N)
+    ).
 
 test_thread_property(N) :-
     thread_create(create_threads(N), Id, []),
@@ -89,6 +112,12 @@ poll_threads :-
     aggregate_all(sum(S),
                   thread_property(_, size(S)),
                   Sum),
-    debug(thread(size), 'Sum = ~D', [Sum]),
+    aggregate_all(sum(S),
+                  ( thread_property(Id, id(_)),
+                    '$thread_local_predicate_size'(test_thread_property:p(_),
+                                                   Id, S)
+                  ),
+                  LocalSum),
+    debug(thread(size), 'Sum = ~D, p/1: ~D', [Sum, LocalSum]),
     poll_threads.
 

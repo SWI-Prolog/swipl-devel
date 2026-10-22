@@ -8204,6 +8204,48 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 }
 
 
+/** '$thread_local_predicate_size'(:Head, +Thread, -Bytes) is semidet.
+
+True when Bytes is the memory used by the copy of the thread-local
+predicate Head in Thread, as predicate_property/2 `size` reports it
+for the copy of the calling thread.  Fails silently in the same cases
+as '$thread_local_clause_count'/3, including if Thread never used the
+predicate.
+*/
+
+static
+PRED_IMPL("$thread_local_predicate_size", 3, thread_local_predicate_size, 0)
+{ PRED_LD
+  Procedure proc;
+  Definition def;
+  PL_thread_info_t *info;
+  size_t size = 0;
+  bool found;
+
+  term_t pred   = A1;
+  term_t thread = A2;
+  term_t bytes  = A3;
+
+  if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
+    fail;
+
+  def = proc->definition;
+  if ( isoff(def, P_THREAD_LOCAL) )
+    fail;
+
+  if ( !get_thread(thread, &info, false) )
+    fail;
+
+  PL_LOCK(L_THREAD);
+  if ( (found=(def=getProcDefinitionForThread(proc->definition,
+					      info->pl_tid))) )
+    size = sizeof_predicate(def);
+  PL_UNLOCK(L_THREAD);
+
+  return found && PL_unify_int64(bytes, size);
+}
+
+
 #else /*O_PLMT*/
 
 bool
@@ -8801,6 +8843,7 @@ BeginPredDefs(thread)
   PRED_DEF("engine_fetch",	     1, engine_fetch,	       0)
   PRED_DEF("is_engine",		     1,	is_engine,	       0)
   PRED_DEF("$thread_local_clause_count", 3, thread_local_clause_count, 0)
+  PRED_DEF("$thread_local_predicate_size", 3, thread_local_predicate_size, 0)
 #endif
 
 #ifdef O_PLMT
