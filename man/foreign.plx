@@ -1906,6 +1906,61 @@ return value indicates the status of the list:
     \end{description}
 
 It is allowed to pass 0 for \arg{tail} and \const{NULL} for \arg{len}.
+
+    \cfunction{bool}{PL_get_list_slice}{term_t +list, size_t start,
+				       size_t length,
+				       pl_list_slice_f func, void *closure,
+				       size_t *count, unsigned int flags}
+Call \arg{func} for the elements \arg{start} \ldots{}
+\arg{start}+\arg{length}-1 of \arg{list}, where the first element is 0.
+If \arg{length} is \exam{(size_t)-1}, call \arg{func} for all elements
+from \arg{start} to the end of the list.  The type of \arg{func} is
+below.  The argument \arg{index} is the index of the element in the
+slice, i.e., it starts at 0 for the element \arg{start}.
+
+\begin{code}
+typedef int (*pl_list_slice_f)(term_t elem, size_t index, void *closure);
+\end{code}
+
+The term reference \arg{elem} is reused for all elements and is only
+valid during the call to \arg{func}.  \arg{func} may call any API
+function, including functions that create terms or call Prolog.  If
+\arg{func} returns \const{FALSE}, PL_get_list_slice() stops and returns
+\const{FALSE}, leaving an exception raised by \arg{func} in place.  If
+\arg{count} is not \const{NULL}, it is filled with the number of
+elements processed.
+
+The function returns \const{FALSE} if the list is too short, if
+\arg{length} is \exam{(size_t)-1} and the list is partial, does not end
+in \const{[]} or is cyclic, or if the list is partial, not a list or
+cyclic before the end of the slice.  If \arg{flags} includes
+\const{CVT_EXCEPTION}, a partial list raises an instantiation error and
+a cyclic list or a term that is not a list raises a type error.  A list
+that is too short does not raise an exception.  Cycles are detected
+without extra cost for short lists.  Below is the list example using
+this function:
+
+\begin{code}
+static int
+write_atom(term_t a, size_t index, void *closure)
+{ int rc;
+  char *s;
+
+  PL_STRINGS_MARK();
+  if ( (rc=PL_get_chars(a, &s, CVT_ATOM|REP_MB|CVT_EXCEPTION)) )
+    rc = Sfprintf(closure, "%s\n", s) >= 0;
+  PL_STRINGS_RELEASE();
+
+  return rc;
+}
+
+foreign_t
+pl_write_atoms(term_t l)
+{ return PL_get_list_slice(l, 0, (size_t)-1,
+                           write_atom, Scurrent_output,
+                           NULL, CVT_EXCEPTION);
+}
+\end{code}
 \end{description}
 
 \subsubsection{Processing option lists and dicts}

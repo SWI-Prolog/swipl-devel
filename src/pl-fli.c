@@ -1880,6 +1880,91 @@ out:
 }
 
 
+/* PL_get_list_slice() calls func for a slice of a list, reusing the same
+   term reference for the elements.  The tail and the cell saved for the
+   cycle test are kept in term references because func may cause GC or
+   a stack shift.  Cycle detection uses Brent's algorithm, as
+   skip_list(), but only after SLICE_CYCLE_CHECK cells as most lists
+   are short.
+*/
+
+#define SLICE_CYCLE_CHECK 1000
+
+bool
+PL_get_list_slice(term_t list, size_t start, size_t length,
+		  pl_list_slice_f func, void *closure,
+		  size_t *count, unsigned int flags)
+{ GET_LD
+  term_t tail, elem, saved;
+  size_t i = 0, n = 0, power = 1, lam = 0;
+  bool rc = true;
+  Word p;
+
+  valid_term_t(list);
+  if ( !(tail = PL_new_term_refs(3)) )
+    return false;
+  elem  = tail+1;
+  saved = tail+2;
+  setHandle(tail, linkValI(valTermRef(list)));
+
+  for(;;)
+  { p = valTermRef(tail);
+    deRef(p);
+
+    if ( length != (size_t)-1 && n == length )
+      goto out;
+    if ( !isList(*p) )
+      break;
+
+    if ( i >= SLICE_CYCLE_CHECK )
+    { if ( i == SLICE_CYCLE_CHECK )
+      { setHandle(saved, *p);
+      } else if ( valHandle(saved) == *p )
+      { if ( (flags&CVT_EXCEPTION) )
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+	rc = false;
+	goto out;
+      } else if ( ++lam == power )
+      { setHandle(saved, *p);
+	power *= 2;
+	lam = 0;
+      }
+    }
+
+    if ( i >= start )
+    { setHandle(elem, linkValI(argTermP(*p, 0)));
+      if ( !(*func)(elem, n, closure) )
+      { rc = false;
+	goto out;
+      }
+      n++;
+      p = valTermRef(tail);		/* func may have moved the stacks */
+      deRef(p);
+    }
+    setHandle(tail, linkValI(argTermP(*p, 1)));
+    i++;
+  }
+
+  if ( isNil(*p) )
+  { rc = (length == (size_t)-1 && i >= start); /* else beyond the end */
+  } else
+  { if ( (flags&CVT_EXCEPTION) )
+    { if ( canBind(*p) )
+	PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+      else
+	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+    }
+    rc = false;
+  }
+
+out:
+  if ( count )
+    *count = n;
+  PL_reset_term_refs(tail);
+
+  return rc;
+}
+
 int
 atom_to_bool(atom_t a)
 { if ( a == ATOM_true || a == ATOM_on )

@@ -591,6 +591,12 @@ PL_EXPORT(bool)		PL_get_nil(term_t l) WUNUSED;
 PL_EXPORT(bool)		PL_get_arg_values(term_t t, size_t from, size_t count,
 					  pl_value_t *values,
 					  unsigned int flags) WUNUSED;
+typedef int (*pl_list_slice_f)(term_t elem, size_t index, void *closure);
+PL_EXPORT(bool)		PL_get_list_slice(term_t list, size_t start,
+					  size_t length,
+					  pl_list_slice_f func, void *closure,
+					  size_t *count,
+					  unsigned int flags) WUNUSED;
 PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED; /* deprecated; PL_INT64 fills v->i, PL_INTEGER/PL_RATIONAL/PL_FLOAT fill v->f; returns 0 with exception on float-conversion overflow */
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 #define PL_FOR_DICT_SORTED	0x1
