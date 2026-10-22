@@ -43,6 +43,7 @@
     "_PL_get_compound_name_arity",
     "_PL_get_module",
     "_PL_get_arg",
+    "_PL_get_arg_values",
     "_PL_get_atom_nchars",
     "_PL_get_list_nchars",
     "_PL_get_nchars",

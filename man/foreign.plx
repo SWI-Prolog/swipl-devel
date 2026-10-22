@@ -1530,6 +1530,70 @@ Same as PL_get_arg(), but no checking is performed, neither whether \arg{t}
 is actually a term nor whether \arg{index} is a valid argument index.
 This is faster, but invalid usage leads to undefined behaviour.
 
+\cfunction{bool}{PL_get_arg_values}{term_t +t, size_t from, size_t count,
+				   pl_value_t *values, unsigned int flags}
+Fill \arg{values} with the arguments \arg{from} \ldots{}
+\arg{from}+\arg{count}-1 of the compound term \arg{t}, where the first
+argument is 1.  This is intended for C code that reads many small
+terms, for example coordinates, as it avoids creating a \ctype{term_t}
+and calling an API function for each argument.  The type
+\ctype{pl_value_t} is defined as below.
+
+\begin{code}
+typedef struct pl_value
+{ uint64_t type   : 8;          /* PL_VARIABLE, PL_ATOM, ... */
+  uint64_t length : 56;         /* length of value.s */
+  union
+  { int64_t   i;                /* PL_INT64 */
+    double    f;                /* PL_FLOAT; numbers if PL_AS_FLOAT */
+    atom_t    a;                /* PL_ATOM, PL_NIL, PL_BLOB */
+    functor_t t;                /* PL_TERM, PL_LIST_PAIR, PL_DICT */
+    char     *s;                /* text (see CVT_*, REP_*, BUF_*) */
+  } value;
+} pl_value_t;
+\end{code}
+
+The field \const{type} is the type of the argument and is one of
+\const{PL_VARIABLE}, \const{PL_ATOM}, \const{PL_NIL}, \const{PL_BLOB},
+\const{PL_INT64}, \const{PL_INTEGER} (an integer that does not fit in
+64~bits), \const{PL_RATIONAL}, \const{PL_FLOAT}, \const{PL_STRING},
+\const{PL_TERM}, \const{PL_LIST_PAIR} or \const{PL_DICT}.  The type
+and \arg{flags} decide which member of \const{value} is filled.  Text
+is stored in \const{s} with its length in bytes in \const{length},
+using the \const{REP_*} and \const{BUF_*} flags as PL_get_nchars().  The
+following \arg{flags} decide on the conversion:
+
+\begin{description}
+    \termitem{CVT_ATOM}{}
+Represent a text atom as text.  Without, \const{a} holds the atom
+handle.  The empty list and blobs always use \const{a}.
+    \termitem{CVT_INTEGER}{}
+Represent an integer that does not fit in 64~bits as decimal text.
+Using \const{CVT_XINTEGER}, the text is hexadecimal.
+    \termitem{CVT_RATIONAL}{}
+Represent a rational number or large integer as text, e.g.,
+\exam{1r3}.
+    \termitem{PL_AS_FLOAT}{}
+Store all numbers as a \ctype{double} in \const{f}.  The field
+\const{type} still tells the type of the number.  This flag is an
+alias for \const{CVT_FLOAT}.  The function fails or, using
+\const{CVT_EXCEPTION}, raises a float overflow error if a number cannot
+be represented as a float.
+    \termitem{CVT_EXCEPTION}{}
+Raise an exception if the function fails due to an argument that
+cannot be represented.  A large integer or rational number that is not
+converted raises a representation or type error.
+\end{description}
+
+Strings are always represented as text.  Floats are always represented
+as \const{f}.  Variables and compound terms are never converted.  For
+compound terms, \const{t} holds the functor.
+
+The function fails silently if \arg{from} and \arg{count} are not a
+valid range of arguments.  If \arg{t} is not compound, it fails or
+raises a type error if \const{CVT_EXCEPTION} is given.  If the function
+fails using \const{BUF_MALLOC}, no text needs to be freed.
+
 \cfunction{bool}{PL_get_dict_key}{atom_t key, term_t +dict, term_t -value}
 If \arg{dict} is a dict, get the associated value in \arg{value}. Fails
 silently if \arg{key} does not appear in \arg{dict} or

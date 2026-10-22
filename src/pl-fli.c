@@ -1711,6 +1711,175 @@ PL_get_term_value(term_t t, term_value_t *val)
 }
 
 
+/* PL_get_arg_values() fills an array of pl_value_t from a range of
+   arguments of a compound.  It is designed for C code that reads many
+   small terms, avoiding a term_t, an API call and API validation per
+   argument.  Text is converted as PL_get_nchars() does.
+*/
+
+static bool
+is_text_value(const pl_value_t *v, unsigned int flags)
+{ switch(v->type)
+  { case PL_STRING:
+      return true;
+    case PL_ATOM:
+      return !!(flags&CVT_ATOM);
+    case PL_INTEGER:
+    case PL_RATIONAL:
+      return !(flags&CVT_FLOAT);
+    default:
+      return false;
+  }
+}
+
+#define get_value_text(tmp, v, cvt, flags) \
+	LDFUNC(get_value_text, tmp, v, cvt, flags)
+
+static bool
+get_value_text(DECL_LD term_t tmp, pl_value_t *v,
+	       unsigned int cvt, unsigned int flags)
+{ PL_chars_t text;
+
+  flags = (flags&~CVT_MASK)|cvt;
+  if ( PL_get_text(tmp, &text, flags) &&
+       PL_mb_text(&text, flags) &&
+       PL_save_text(&text, flags) )
+  { v->value.s = text.text.t;
+    v->length  = text.length;
+    return true;
+  }
+
+  return false;
+}
+
+bool
+PL_get_arg_values(term_t t, size_t from, size_t count,
+		  pl_value_t *values, unsigned int flags)
+{ GET_LD
+  size_t i;
+  bool rc = true;
+
+  valid_term_t(t);
+  word w = valHandle(t);
+  if ( !isTerm(w) )
+    return ( (flags&CVT_EXCEPTION) &&
+	     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, t) );
+  size_t arity = arityTerm(w);
+  if ( from < 1 || from > arity+1 || count > arity+1-from )
+    return false;
+
+  PL_STRINGS_MARK_IF_MALLOC(flags);
+  Word ap = argTermP(w, from-1);
+  for(i=0; i<count; i++, ap++)
+  { pl_value_t *v = &values[i];
+    unsigned int cvt = 0;
+    Word p;
+
+    deRef2(ap, p);
+    word a = *p;
+    v->length = 0;
+
+    switch(tag(a))
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+	v->type = PL_VARIABLE;
+	break;
+      case TAG_FLOAT:
+	v->type = PL_FLOAT;
+	v->value.f = valFloat(a);
+	break;
+      case TAG_INTEGER:
+      { number n;
+
+	get_number(a, &n);
+	if ( n.type == V_INTEGER )
+	{ v->type = PL_INT64;
+	  if ( (flags&CVT_FLOAT) )
+	    v->value.f = (double)n.value.i;
+	  else
+	    v->value.i = n.value.i;
+	  break;
+	}
+	v->type = n.type == V_MPZ ? PL_INTEGER : PL_RATIONAL;
+	if ( (flags&CVT_FLOAT) )
+	{ if ( promoteToFloatNumber(&n) )
+	  { v->value.f = n.value.f;
+	  } else
+	  { if ( !(flags&CVT_EXCEPTION) )
+	      PL_clear_exception();
+	    goto error;
+	  }
+	} else if ( (flags&CVT_RATIONAL) ||
+		    (v->type == PL_INTEGER && (flags&CVT_INTEGER)) )
+	{ cvt = flags&(CVT_XINTEGER|CVT_RATIONAL);
+	} else
+	{ if ( (flags&CVT_EXCEPTION) )
+	  { if ( v->type == PL_INTEGER )
+	    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
+	    } else
+	    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer,
+		       pushWordAsTermRef(p));
+	      popTermRef();
+	    }
+	  }
+	  goto error;
+	}
+	break;
+      }
+      case TAG_ATOM:
+	v->value.a = word2atom(a);
+	if ( !isTextAtom(a) )
+	  v->type = isNil(a) ? PL_NIL : PL_BLOB;
+	else
+	{ v->type = PL_ATOM;
+	  if ( (flags&CVT_ATOM) )
+	    cvt = CVT_ATOM;
+	}
+	break;
+      case TAG_STRING:
+	v->type = PL_STRING;
+	cvt = CVT_STRING;
+	break;
+      case TAG_COMPOUND:
+      { FunctorDef fd = valueFunctor(functorTerm(a));
+
+	v->value.t = fd->functor;
+	v->type = ( fd->functor == FUNCTOR_dot2 ? PL_LIST_PAIR :
+		    fd->name == ATOM_dict       ? PL_DICT :
+						  PL_TERM );
+	break;
+      }
+      default:
+	assert(0);
+    }
+
+    if ( cvt )
+    { bool ok = get_value_text(pushWordAsTermRef(p), v, cvt, flags);
+
+      popTermRef();
+      if ( !ok )
+	goto error;
+    }
+  }
+
+  goto out;
+
+error:
+  if ( (flags&BUF_MALLOC) )
+  { for(size_t j=0; j<i; j++)
+    { if ( is_text_value(&values[j], flags) )
+	PL_free(values[j].value.s);
+    }
+  }
+  rc = false;
+
+out:
+  PL_STRINGS_RELEASE_IF_MALLOC(flags);
+
+  return rc;
+}
+
+
 int
 atom_to_bool(atom_t a)
 { if ( a == ATOM_true || a == ATOM_on )

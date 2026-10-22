@@ -229,6 +229,19 @@ typedef union
   } t;
 } term_value_t;
 
+					/* values for PL_get_arg_values() */
+typedef struct pl_value
+{ uint64_t type   : 8;			/* PL_VARIABLE, PL_ATOM, ... */
+  uint64_t length : 56;			/* length of value.s */
+  union
+  { int64_t   i;			/* PL_INT64 */
+    double    f;			/* PL_FLOAT; numbers if PL_AS_FLOAT */
+    atom_t    a;			/* PL_ATOM, PL_NIL, PL_BLOB */
+    functor_t t;			/* PL_TERM, PL_LIST_PAIR, PL_DICT */
+    char     *s;			/* text (see CVT_*, REP_*, BUF_*) */
+  } value;
+} pl_value_t;
+
 
 #ifndef TRUE
 #define TRUE	(true)
@@ -575,6 +588,9 @@ PL_EXPORT(bool)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(bool)		PL_get_tail(term_t l, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_nil(term_t l) WUNUSED;
+PL_EXPORT(bool)		PL_get_arg_values(term_t t, size_t from, size_t count,
+					  pl_value_t *values,
+					  unsigned int flags) WUNUSED;
 PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED; /* deprecated; PL_INT64 fills v->i, PL_INTEGER/PL_RATIONAL/PL_FLOAT fill v->f; returns 0 with exception on float-conversion overflow */
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 #define PL_FOR_DICT_SORTED	0x1
@@ -992,6 +1008,7 @@ PL_EXPORT(bool)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_ALL		    (CVT_ATOMIC|CVT_LIST)
 #define CVT_XINTEGER	   (0x00000400|CVT_INTEGER)
 #define CVT_MASK	    0x00000fff
+#define PL_AS_FLOAT	    CVT_FLOAT	/* PL_get_arg_values(): numbers as double */
 
 #define CVT_EXCEPTION	    0x00001000	/* throw exception on error */
 #define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
