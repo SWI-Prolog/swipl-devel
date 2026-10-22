@@ -703,6 +703,13 @@ Open a little window to run Prolog queries from a GUI component.
     \termitem{thread_monitor}{}
 Open a graphical window indicating existing threads and their status.
 
+    \termitem{memory_viewer}{}
+Open a window that shows how Prolog uses its memory: per module and
+predicate, per thread (stacks, thread-local data and private tables),
+the tables, the objects of xpce per class and an overview of the
+process.  The memory is shown as rings or as a treemap, in which a part
+can be zoomed into.
+
     \termitem{debug_monitor}{}
 Open a graphical front-end for the \pllib{debug} library that provides
 an overview of the topics and catches messages.
