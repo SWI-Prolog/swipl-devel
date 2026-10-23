@@ -87,6 +87,15 @@ summary_table_width(55).
 %
 %     - tables
 %       Total number of answer tries
+%     - dependency_nodes
+%       Number of variants of incremental dynamic predicates in the
+%       variant table.  These are not tables, but nodes in the
+%       incremental dependency graph (IDG) that record which tables
+%       depend on the variant.  They have no answers.  Only present
+%       if there are such nodes.
+%     - dependency_space
+%       Memory used by the dependency nodes in bytes.  Only present
+%       if there are such nodes.
 %     - answers
 %       Total number of answers in the combined tries
 %     - duplicate_ratio
@@ -126,10 +135,25 @@ table_statistics(Variant, Stat, Value) :-
     ).
 
 table_statistics_(Variant, tables, NTables) :-
-    aggregate_all(count, table(Variant, _), NTables).
+    aggregate_all(count, answer_table(Variant, _), NTables),
+    (   NTables > 0
+    ->  true
+    ;   \+ dependency_node(Variant, _)
+    ).
+table_statistics_(Variant, dependency_nodes, Count) :-
+    aggregate_all(count, dependency_node(Variant, _), Count),
+    Count > 0.
+table_statistics_(Variant, dependency_space, Bytes) :-
+    \+ \+ dependency_node(Variant, _),
+    aggregate_all(sum(Size),
+                  ( dependency_node(Variant, Trie),
+                    dependency_node_size(Trie, Size)
+                  ),
+                  Bytes).
 table_statistics_(Variant, Stat, Total) :-
     variant_trie_stat(Stat, _What),
     \+ hidden_stat(Stat, Variant),
+    \+ \+ answer_table(Variant, _),
     (   avg(Stat)
     ->  aggregate_all(sum(Ratio)+count,
                       variant_stat(Stat, Variant, Ratio),
@@ -234,6 +258,8 @@ variant_trie_stat0(tables, "Answer tables").
 variant_trie_stat0(Stat, What) :-
     dif(Stat, tables),
     variant_trie_stat(Stat, What).
+variant_trie_stat0(dependency_nodes, "Incremental dependency nodes").
+variant_trie_stat0(dependency_space, "Memory for dependency nodes").
 
 call_table_properties(Which, Trie) :-
     ansi_format([bold], 'Statistics for ~w call trie:', [Which]),
@@ -368,7 +394,7 @@ top(Top, Var, Limit, "Bottom", asc(Var)) :-
 
 variant_stat(Stat, V, Count) :-
     variant_trie_stat(Stat, _, Count, Property),
-    table(V, T),
+    answer_table(V, T),
     atrie_prop(T, Property).
 
 atrie_prop(T, size(Bytes)) :-
@@ -456,6 +482,30 @@ write_variant_stat(W, V-Stat) :-
 table(M:Variant, Trie) :-
     '$tbl_variant_table'(VariantTrie),
     trie_gen(VariantTrie, M:Variant, Trie).
+
+%!  answer_table(:Variant, -Trie) is nondet.
+%!  dependency_node(:Variant, -Trie) is nondet.
+%
+%   The variant table holds the answer tables of tabled predicates and,
+%   for incremental dynamic predicates, the variants that tables depend
+%   on.  The latter are nodes in the incremental dependency graph that
+%   have no answers.
+
+answer_table(Variant, Trie) :-
+    table(Variant, Trie),
+    \+ '$tbl_table_status'(Trie, dynamic, _, _).
+
+dependency_node(Variant, Trie) :-
+    table(Variant, Trie),
+    '$tbl_table_status'(Trie, dynamic, _, _).
+
+dependency_node_size(Trie, Size) :-
+    '$trie_property'(Trie, size(S0)),
+    (   '$trie_property'(Trie, idg_size(S1))
+    ->  true
+    ;   S1 = 0
+    ),
+    Size is S0+S1.
 
 
                 /*******************************
