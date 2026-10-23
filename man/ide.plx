@@ -710,6 +710,27 @@ the tables, the objects of xpce per class and an overview of the
 process.  The memory is shown as rings or as a treemap, in which a part
 can be zoomed into.
 
+    \termitem{idg_viewer}{}
+Open a window that shows the incremental dependency graph (IDG) of a
+thread: which incremental dynamic predicates and incremental tables
+affect which tables.  As the profiler, it has a browser of the
+predicates involved with a filter and shows the graph around the
+current predicate: what affects it on the left and what it affects on
+the right.  Clicking a node makes it the current predicate; clicking the
+current predicate shows its call patterns, e.g., \verb$p(+,-)$, as a box
+holding them; the popup of any predicate does so as well.  A node
+\textit{\ldots\ N more} stands for relatives that are not shown;
+its popup shows them all.  The popup of a
+predicate or call pattern can show its variants with their number of
+answers in a pane of their own, ten at a time, filtered on their text
+and on having answers.  Selecting a variant shows its answers, where
+undefined answers are marked as such; they have a filter of their own.  This pane is reused for the next predicate
+unless it is pinned.  The \textit{Overview} tab shows the graph by
+module and, for the non-modular code in \const{user}, by file;
+clicking a group shows it as a box holding its parts.  Predicates and
+nodes that hold invalid tables are shown in red.  The browser shows the
+incremental dynamic predicates in italics.  Requires Graphviz.
+
     \termitem{debug_monitor}{}
 Open a graphical front-end for the \pllib{debug} library that provides
 an overview of the topics and catches messages.
