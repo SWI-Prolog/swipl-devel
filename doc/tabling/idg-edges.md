@@ -88,3 +88,14 @@ count is the same as before the registry (529.8G vs 529.7G).
 tests/tabling/test_idg_sets.pl reads the IDG of a thread that keeps
 changing it; under ASan, disabling the deferral makes it report a heap
 use-after-free.
+
+## Implemented: summarizing the IDG per predicate
+
+`'$idg_predicate_edges'(+Thread, -Nodes, -Edges)` walks the registry of a
+thread (or `shared`) as an external reader and aggregates the IDG per
+predicate using the predicate of the answer trie (`data.predicate`):
+`node(PI, Count, Invalid)` and `edge(From, To, Count)`, where From
+affects To.  On Pharos (465,392 nodes, 7.3M edges, 389 predicate pairs)
+it takes 0.064 s from another thread; the same aggregation in Prolog
+took 9.3 s in the thread itself.  This is meant for an IDG viewer that
+starts at the predicate (or module) level.

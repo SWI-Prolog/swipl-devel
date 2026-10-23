@@ -164,6 +164,8 @@ read_idg(Thread, Deadline, Reads0, Reads) :-
     ->  Reads = Reads0
     ;   '$idg_thread_summary'(Thread, Nodes, Edges),
         assertion((Nodes >= 0, Edges >= 0)),
+        '$idg_predicate_edges'(Thread, PNodes, _),
+        assertion(is_list(PNodes)),
         Reads1 is Reads0+1,
         read_idg(Thread, Deadline, Reads1, Reads)
     ).
@@ -192,6 +194,58 @@ test(exited, Nodes-Edges == 0-0) :-
     thread_create(fill(10), Id),
     thread_join(Id),
     catch('$idg_thread_summary'(Id, Nodes, Edges), _, (Nodes-Edges = 0-0)).
+%   '$idg_predicate_edges'/3 summarizes the IDG per predicate.
+
+test(predicate_edges, [ Nodes-Edges ==
+                        [ node(test_idg_sets:d/1, 101, 0),
+                          node(test_idg_sets:p/1, 100, 0),
+                          node(test_idg_sets:q/1, 1, 0)
+                        ] -
+                        [ edge(test_idg_sets:d/1, test_idg_sets:p/1, 100),
+                          edge(test_idg_sets:d/1, test_idg_sets:q/1, 100)
+                        ]
+                      ]) :-
+    fill(100),
+    thread_self(Me),
+    '$idg_predicate_edges'(Me, Nodes0, Edges0),
+    msort(Nodes0, Nodes),
+    msort(Edges0, Edges).
+test(predicate_edges_invalid, Invalid == 100) :-
+    fill(100),
+    add_fact(2),
+    thread_self(Me),
+    '$idg_predicate_edges'(Me, Nodes, _),
+    memberchk(node(test_idg_sets:p/1, _, Invalid), Nodes).
+test(predicate_edges_outside, Outside == Inside) :-
+    thread_self(Me),
+    thread_create(( fill(100),
+                    thread_self(Self),
+                    '$idg_predicate_edges'(Self, N, E),
+                    msort(N, SN), msort(E, SE),
+                    thread_send_message(Me, inside(SN-SE)),
+                    thread_get_message(done)
+                  ), Id),
+    thread_get_message(inside(Inside)),
+    '$idg_predicate_edges'(Id, N1, E1),
+    msort(N1, SN1), msort(E1, SE1),
+    Outside = SN1-SE1,
+    thread_send_message(Id, done),
+    thread_join(Id).
+test(predicate_edges_prolog, Edges == PrologEdges) :-
+    fill(30),
+    thread_self(Me),
+    '$idg_predicate_edges'(Me, _, Edges0),
+    msort(Edges0, Edges),
+    '$tbl_local_variant_table'(VT),
+    findall(F-T, ( trie_gen(VT, FM:FV, FT),
+                   '$idg_edge'(FT, affected, DT),
+                   '$tbl_table_status'(DT, _, TM:TV, _),
+                   functor(FV, FN, FA), functor(TV, TN, TA),
+                   F = FM:FN/FA, T = TM:TN/TA
+                 ), Pairs),
+    msort(Pairs, Sorted),
+    clumped(Sorted, Counted),
+    findall(edge(F,T,C), member((F-T)-C, Counted), PrologEdges).
 test(shared, true) :-
     '$idg_thread_summary'(shared, Nodes, Edges),
     integer(Nodes), integer(Edges).

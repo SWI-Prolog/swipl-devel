@@ -8677,6 +8677,203 @@ PRED_IMPL("$idg_thread_summary", 3, idg_thread_summary, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A map from a pair of pointers to two counters, used to aggregate the IDG
+per predicate.  Open addressing, grown at 70% load.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct pair_count
+{ uintptr_t	a;
+  uintptr_t	b;
+  size_t	count;
+  size_t	invalid;
+} pair_count;
+
+typedef struct pair_map
+{ size_t	size;			/* # slots (power of 2) */
+  size_t	used;			/* # slots in use */
+  pair_count   *entries;
+} pair_map;
+
+static inline size_t
+pair_hash(uintptr_t a, uintptr_t b)
+{ uint64_t h = (uint64_t)a * 0x9e3779b97f4a7c15ULL;
+
+  h ^= (uint64_t)b * 0xc2b2ae3d27d4eb4fULL;
+  return (size_t)(h ^ (h >> 29));
+}
+
+static void
+pair_map_init(pair_map *m)
+{ m->size = 64;
+  m->used = 0;
+  m->entries = allocHeapOrHalt(m->size*sizeof(pair_count));
+  memset(m->entries, 0, m->size*sizeof(pair_count));
+}
+
+static void
+pair_map_free(pair_map *m)
+{ freeHeap(m->entries, m->size*sizeof(pair_count));
+}
+
+static pair_count *
+pair_map_find(pair_count *entries, size_t size, uintptr_t a, uintptr_t b)
+{ size_t mask = size-1;
+  size_t i = pair_hash(a, b)&mask;
+
+  for(;;)
+  { pair_count *e = &entries[i];
+
+    if ( (e->a == a && e->b == b) || (!e->a && !e->b) )
+      return e;
+    i = (i+1)&mask;
+  }
+}
+
+/* The entry for (a,b), added with zero counts if it is new.  a or b is
+   not NULL.
+*/
+
+static pair_count *
+pair_map_get(pair_map *m, uintptr_t a, uintptr_t b)
+{ pair_count *e = pair_map_find(m->entries, m->size, a, b);
+
+  if ( !e->a && !e->b )
+  { if ( (m->used+1)*10 > m->size*7 )
+    { size_t nsize = m->size*2;
+      pair_count *n = allocHeapOrHalt(nsize*sizeof(pair_count));
+
+      memset(n, 0, nsize*sizeof(pair_count));
+      for(size_t i=0; i<m->size; i++)
+      { pair_count *o = &m->entries[i];
+
+	if ( o->a || o->b )
+	  *pair_map_find(n, nsize, o->a, o->b) = *o;
+      }
+      freeHeap(m->entries, m->size*sizeof(pair_count));
+      m->entries = n;
+      m->size = nsize;
+      e = pair_map_find(m->entries, m->size, a, b);
+    }
+    e->a = a;
+    e->b = b;
+    m->used++;
+  }
+
+  return e;
+}
+
+#define unify_pred_pi(t, def) LDFUNC(unify_pred_pi, t, def)
+static bool
+unify_pred_pi(DECL_LD term_t t, Definition def)
+{ return unify_definition(MODULE_user, t, def, 0, GP_QUALIFY|GP_NAMEARITY);
+}
+
+/** '$idg_predicate_edges'(+Thread, -Nodes, -Edges)
+ *
+ * Summarize the IDG of Thread (or `shared`) per predicate.  Nodes is a
+ * list node(PI, Count, Invalid) holding the number of IDG nodes of the
+ * predicate and how many of them are invalid (have a falsecount).
+ * Edges is a list edge(From, To, Count), where Count is the number of
+ * IDG edges by which a node of From affects a node of To.  Nodes of
+ * other threads or of shared tables that are connected appear in Nodes
+ * with Count 0.  This may be called for any thread.
+ */
+
+static
+PRED_IMPL("$idg_predicate_edges", 3, idg_predicate_edges, 0)
+{ PRED_LD
+  static functor_t FUNCTOR_node3 = 0, FUNCTOR_edge3 = 0;
+  idg_registry *reg;
+  pair_map nodes, edges;
+  bool rc = true;
+
+  if ( !FUNCTOR_node3 )
+  { FUNCTOR_node3 = PL_new_functor(PL_new_atom("node"), 3);
+    FUNCTOR_edge3 = PL_new_functor(PL_new_atom("edge"), 3);
+  }
+
+  if ( !idg_reader_registry(A1, &reg) )
+    return false;
+  pair_map_init(&nodes);
+  pair_map_init(&edges);
+  if ( reg )
+  { size_t count = idg_registry_count(reg);
+
+    for(size_t i=0; i<count; i++)
+    { idg_node *n = idg_registry_get(reg, i);
+      Definition def;
+
+      if ( n && (def=n->atrie->data.predicate) )
+      { pair_count *e = pair_map_get(&nodes, (uintptr_t)def, 0);
+	idg_set_enum en;
+	idg_node *p;
+
+	e->count++;
+	if ( n->falsecount )
+	  e->invalid++;
+
+	idg_set_enum_init(&en, &n->affected);
+	while( (p=idg_set_next(&en)) )
+	{ Definition pdef = p->atrie->data.predicate;
+
+	  if ( pdef )
+	  { (void)pair_map_get(&nodes, (uintptr_t)pdef, 0);
+	    pair_map_get(&edges, (uintptr_t)def, (uintptr_t)pdef)->count++;
+	  }
+	}
+      }
+    }
+  }
+  idg_reader_exit();
+
+  { term_t tail = PL_copy_term_ref(A2);
+    term_t head = PL_new_term_ref();
+    term_t a1   = PL_new_term_ref();
+    term_t a2   = PL_new_term_ref();
+
+    for(size_t i=0; rc && i<nodes.size; i++)
+    { pair_count *e = &nodes.entries[i];
+
+      if ( e->a )
+	rc = ( PL_unify_list(tail, head, tail) &&
+	       PL_unify_functor(head, FUNCTOR_node3) &&
+	       _PL_get_arg(1, head, a1) &&
+	       unify_pred_pi(a1, (Definition)e->a) &&
+	       _PL_get_arg(2, head, a1) &&
+	       PL_unify_int64(a1, e->count) &&
+	       _PL_get_arg(3, head, a1) &&
+	       PL_unify_int64(a1, e->invalid) );
+    }
+    rc = rc && PL_unify_nil(tail);
+
+    if ( rc )
+    { tail = PL_copy_term_ref(A3);
+
+      for(size_t i=0; rc && i<edges.size; i++)
+      { pair_count *e = &edges.entries[i];
+
+	if ( e->a )
+	  rc = ( PL_unify_list(tail, head, tail) &&
+		 PL_unify_functor(head, FUNCTOR_edge3) &&
+		 _PL_get_arg(1, head, a1) &&
+		 unify_pred_pi(a1, (Definition)e->a) &&
+		 _PL_get_arg(2, head, a2) &&
+		 unify_pred_pi(a2, (Definition)e->b) &&
+		 _PL_get_arg(3, head, a1) &&
+		 PL_unify_int64(a1, e->count) );
+      }
+      rc = rc && PL_unify_nil(tail);
+    }
+  }
+
+  pair_map_free(&nodes);
+  pair_map_free(&edges);
+
+  return rc;
+}
+
+
 static
 PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 { trie *atrie;
@@ -11574,6 +11771,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
   PRED_DEF("$idg_thread_summary",       3, idg_thread_summary,       0)
+  PRED_DEF("$idg_predicate_edges",      3, idg_predicate_edges,      0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_forced",               1, idg_forced,               0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
